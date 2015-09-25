@@ -1,478 +1,254 @@
 From: Christoph Hellwig <hch@lst.de>
-Date: Fri, 25 Sep 2015 06:49:54 -0700
-Subject: [Ocfs2-devel] [PATCH 17/23] dlm: use per-attribute show and store
-	methods
+Date: Fri, 25 Sep 2015 06:49:43 -0700
+Subject: [Ocfs2-devel] [PATCH 06/23] usb-gadget/ether: use per-attribute
+	show and store methods
 In-Reply-To: <1443189000-13398-1-git-send-email-hch@lst.de>
 References: <1443189000-13398-1-git-send-email-hch@lst.de>
-Message-ID: <1443189000-13398-18-git-send-email-hch@lst.de>
+Message-ID: <1443189000-13398-7-git-send-email-hch@lst.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: Joel Becker <jlbec@evilplan.org>, Andrew Morton <akpm@linux-foundation.org>
-Cc: Felipe Balbi <balbi@ti.com>, Tejun Heo <tj@kernel.org>, Pratyush Anand <pratyush.anand@gmail.com>, target-devel@vger.kernel.org, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, linux-usb@vger.kernel.org, netdev@vger.kernel.org
+Cc: linux-usb@vger.kernel.org, netdev@vger.kernel.org, Pratyush Anand <pratyush.anand@gmail.com>, Felipe Balbi <balbi@ti.com>, cluster-devel@redhat.com, target-devel@vger.kernel.org, Tejun Heo <tj@kernel.org>, ocfs2-devel@oss.oracle.com
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- fs/dlm/config.c | 288 +++++++++++++++-----------------------------------------
- 1 file changed, 74 insertions(+), 214 deletions(-)
+ drivers/usb/gadget/function/f_ecm.c            |  8 ++---
+ drivers/usb/gadget/function/f_eem.c            |  8 ++---
+ drivers/usb/gadget/function/f_ncm.c            |  8 ++---
+ drivers/usb/gadget/function/f_rndis.c          |  8 ++---
+ drivers/usb/gadget/function/f_subset.c         |  8 ++---
+ drivers/usb/gadget/function/u_ether_configfs.h | 44 +++++++++++---------------
+ 6 files changed, 38 insertions(+), 46 deletions(-)
 
-diff --git a/fs/dlm/config.c b/fs/dlm/config.c
-index d521bdd..8e294fb 100644
---- a/fs/dlm/config.c
-+++ b/fs/dlm/config.c
-@@ -61,35 +61,8 @@ static struct config_item *make_node(struct config_group *, const char *);
- static void drop_node(struct config_group *, struct config_item *);
- static void release_node(struct config_item *);
+diff --git a/drivers/usb/gadget/function/f_ecm.c b/drivers/usb/gadget/function/f_ecm.c
+index 7b7424f..0106de8 100644
+--- a/drivers/usb/gadget/function/f_ecm.c
++++ b/drivers/usb/gadget/function/f_ecm.c
+@@ -855,10 +855,10 @@ USB_ETHERNET_CONFIGFS_ITEM_ATTR_QMULT(ecm);
+ USB_ETHERNET_CONFIGFS_ITEM_ATTR_IFNAME(ecm);
  
--static ssize_t show_cluster(struct config_item *i, struct configfs_attribute *a,
--			    char *buf);
--static ssize_t store_cluster(struct config_item *i,
--			     struct configfs_attribute *a,
--			     const char *buf, size_t len);
--static ssize_t show_comm(struct config_item *i, struct configfs_attribute *a,
--			 char *buf);
--static ssize_t store_comm(struct config_item *i, struct configfs_attribute *a,
--			  const char *buf, size_t len);
--static ssize_t show_node(struct config_item *i, struct configfs_attribute *a,
--			 char *buf);
--static ssize_t store_node(struct config_item *i, struct configfs_attribute *a,
--			  const char *buf, size_t len);
--
--static ssize_t comm_nodeid_read(struct dlm_comm *cm, char *buf);
--static ssize_t comm_nodeid_write(struct dlm_comm *cm, const char *buf,
--				size_t len);
--static ssize_t comm_local_read(struct dlm_comm *cm, char *buf);
--static ssize_t comm_local_write(struct dlm_comm *cm, const char *buf,
--				size_t len);
--static ssize_t comm_addr_write(struct dlm_comm *cm, const char *buf,
--				size_t len);
--static ssize_t comm_addr_list_read(struct dlm_comm *cm, char *buf);
--static ssize_t node_nodeid_read(struct dlm_node *nd, char *buf);
--static ssize_t node_nodeid_write(struct dlm_node *nd, const char *buf,
--				size_t len);
--static ssize_t node_weight_read(struct dlm_node *nd, char *buf);
--static ssize_t node_weight_write(struct dlm_node *nd, const char *buf,
--				size_t len);
-+static struct configfs_attribute *comm_attrs[];
-+static struct configfs_attribute *node_attrs[];
- 
- struct dlm_cluster {
- 	struct config_group group;
-@@ -108,6 +81,12 @@ struct dlm_cluster {
- 	char cl_cluster_name[DLM_LOCKSPACE_LEN];
- };
- 
-+static struct dlm_cluster *config_item_to_cluster(struct config_item *i)
-+{
-+	return i ? container_of(to_config_group(i), struct dlm_cluster, group) :
-+		   NULL;
-+}
-+
- enum {
- 	CLUSTER_ATTR_TCP_PORT = 0,
- 	CLUSTER_ATTR_BUFFER_SIZE,
-@@ -124,33 +103,24 @@ enum {
- 	CLUSTER_ATTR_CLUSTER_NAME,
- };
- 
--struct cluster_attribute {
--	struct configfs_attribute attr;
--	ssize_t (*show)(struct dlm_cluster *, char *);
--	ssize_t (*store)(struct dlm_cluster *, const char *, size_t);
--};
--
--static ssize_t cluster_cluster_name_read(struct dlm_cluster *cl, char *buf)
-+static ssize_t cluster_cluster_name_show(struct config_item *item, char *buf)
- {
-+	struct dlm_cluster *cl = config_item_to_cluster(item);
- 	return sprintf(buf, "%s\n", cl->cl_cluster_name);
- }
- 
--static ssize_t cluster_cluster_name_write(struct dlm_cluster *cl,
-+static ssize_t cluster_cluster_name_store(struct config_item *item,
- 					  const char *buf, size_t len)
- {
-+	struct dlm_cluster *cl = config_item_to_cluster(item);
-+
- 	strlcpy(dlm_config.ci_cluster_name, buf,
- 				sizeof(dlm_config.ci_cluster_name));
- 	strlcpy(cl->cl_cluster_name, buf, sizeof(cl->cl_cluster_name));
- 	return len;
- }
- 
--static struct cluster_attribute cluster_attr_cluster_name = {
--	.attr   = { .ca_owner = THIS_MODULE,
--                    .ca_name = "cluster_name",
--                    .ca_mode = S_IRUGO | S_IWUSR },
--	.show   = cluster_cluster_name_read,
--	.store  = cluster_cluster_name_write,
--};
-+CONFIGFS_ATTR(cluster_, cluster_name);
- 
- static ssize_t cluster_set(struct dlm_cluster *cl, unsigned int *cl_field,
- 			   int *info_field, int check_zero,
-@@ -175,17 +145,19 @@ static ssize_t cluster_set(struct dlm_cluster *cl, unsigned int *cl_field,
- }
- 
- #define CLUSTER_ATTR(name, check_zero)                                        \
--static ssize_t name##_write(struct dlm_cluster *cl, const char *buf, size_t len) \
-+static ssize_t cluster_##name##_store(struct config_item *item, \
-+		const char *buf, size_t len) \
- {                                                                             \
-+	struct dlm_cluster *cl = config_item_to_cluster(item);		      \
- 	return cluster_set(cl, &cl->cl_##name, &dlm_config.ci_##name,         \
- 			   check_zero, buf, len);                             \
- }                                                                             \
--static ssize_t name##_read(struct dlm_cluster *cl, char *buf)                 \
-+static ssize_t cluster_##name##_show(struct config_item *item, char *buf)     \
- {                                                                             \
-+	struct dlm_cluster *cl = config_item_to_cluster(item);		      \
- 	return snprintf(buf, PAGE_SIZE, "%u\n", cl->cl_##name);               \
- }                                                                             \
--static struct cluster_attribute cluster_attr_##name =                         \
--__CONFIGFS_ATTR(name, 0644, name##_read, name##_write)
-+CONFIGFS_ATTR(cluster_, name);
- 
- CLUSTER_ATTR(tcp_port, 1);
- CLUSTER_ATTR(buffer_size, 1);
-@@ -201,19 +173,19 @@ CLUSTER_ATTR(new_rsb_count, 0);
- CLUSTER_ATTR(recover_callbacks, 0);
- 
- static struct configfs_attribute *cluster_attrs[] = {
--	[CLUSTER_ATTR_TCP_PORT] = &cluster_attr_tcp_port.attr,
--	[CLUSTER_ATTR_BUFFER_SIZE] = &cluster_attr_buffer_size.attr,
--	[CLUSTER_ATTR_RSBTBL_SIZE] = &cluster_attr_rsbtbl_size.attr,
--	[CLUSTER_ATTR_RECOVER_TIMER] = &cluster_attr_recover_timer.attr,
--	[CLUSTER_ATTR_TOSS_SECS] = &cluster_attr_toss_secs.attr,
--	[CLUSTER_ATTR_SCAN_SECS] = &cluster_attr_scan_secs.attr,
--	[CLUSTER_ATTR_LOG_DEBUG] = &cluster_attr_log_debug.attr,
--	[CLUSTER_ATTR_PROTOCOL] = &cluster_attr_protocol.attr,
--	[CLUSTER_ATTR_TIMEWARN_CS] = &cluster_attr_timewarn_cs.attr,
--	[CLUSTER_ATTR_WAITWARN_US] = &cluster_attr_waitwarn_us.attr,
--	[CLUSTER_ATTR_NEW_RSB_COUNT] = &cluster_attr_new_rsb_count.attr,
--	[CLUSTER_ATTR_RECOVER_CALLBACKS] = &cluster_attr_recover_callbacks.attr,
--	[CLUSTER_ATTR_CLUSTER_NAME] = &cluster_attr_cluster_name.attr,
-+	[CLUSTER_ATTR_TCP_PORT] = &cluster_attr_tcp_port,
-+	[CLUSTER_ATTR_BUFFER_SIZE] = &cluster_attr_buffer_size,
-+	[CLUSTER_ATTR_RSBTBL_SIZE] = &cluster_attr_rsbtbl_size,
-+	[CLUSTER_ATTR_RECOVER_TIMER] = &cluster_attr_recover_timer,
-+	[CLUSTER_ATTR_TOSS_SECS] = &cluster_attr_toss_secs,
-+	[CLUSTER_ATTR_SCAN_SECS] = &cluster_attr_scan_secs,
-+	[CLUSTER_ATTR_LOG_DEBUG] = &cluster_attr_log_debug,
-+	[CLUSTER_ATTR_PROTOCOL] = &cluster_attr_protocol,
-+	[CLUSTER_ATTR_TIMEWARN_CS] = &cluster_attr_timewarn_cs,
-+	[CLUSTER_ATTR_WAITWARN_US] = &cluster_attr_waitwarn_us,
-+	[CLUSTER_ATTR_NEW_RSB_COUNT] = &cluster_attr_new_rsb_count,
-+	[CLUSTER_ATTR_RECOVER_CALLBACKS] = &cluster_attr_recover_callbacks,
-+	[CLUSTER_ATTR_CLUSTER_NAME] = &cluster_attr_cluster_name,
+ static struct configfs_attribute *ecm_attrs[] = {
+-	&f_ecm_opts_dev_addr.attr,
+-	&f_ecm_opts_host_addr.attr,
+-	&f_ecm_opts_qmult.attr,
+-	&f_ecm_opts_ifname.attr,
++	&ecm_opts_attr_dev_addr,
++	&ecm_opts_attr_host_addr,
++	&ecm_opts_attr_qmult,
++	&ecm_opts_attr_ifname,
  	NULL,
  };
  
-@@ -224,83 +196,11 @@ enum {
- 	COMM_ATTR_ADDR_LIST,
+diff --git a/drivers/usb/gadget/function/f_eem.c b/drivers/usb/gadget/function/f_eem.c
+index c9e90de..f965403 100644
+--- a/drivers/usb/gadget/function/f_eem.c
++++ b/drivers/usb/gadget/function/f_eem.c
+@@ -555,10 +555,10 @@ USB_ETHERNET_CONFIGFS_ITEM_ATTR_QMULT(eem);
+ USB_ETHERNET_CONFIGFS_ITEM_ATTR_IFNAME(eem);
+ 
+ static struct configfs_attribute *eem_attrs[] = {
+-	&f_eem_opts_dev_addr.attr,
+-	&f_eem_opts_host_addr.attr,
+-	&f_eem_opts_qmult.attr,
+-	&f_eem_opts_ifname.attr,
++	&eem_opts_attr_dev_addr,
++	&eem_opts_attr_host_addr,
++	&eem_opts_attr_qmult,
++	&eem_opts_attr_ifname,
+ 	NULL,
  };
  
--struct comm_attribute {
--	struct configfs_attribute attr;
--	ssize_t (*show)(struct dlm_comm *, char *);
--	ssize_t (*store)(struct dlm_comm *, const char *, size_t);
--};
--
--static struct comm_attribute comm_attr_nodeid = {
--	.attr   = { .ca_owner = THIS_MODULE,
--                    .ca_name = "nodeid",
--                    .ca_mode = S_IRUGO | S_IWUSR },
--	.show   = comm_nodeid_read,
--	.store  = comm_nodeid_write,
--};
--
--static struct comm_attribute comm_attr_local = {
--	.attr   = { .ca_owner = THIS_MODULE,
--                    .ca_name = "local",
--                    .ca_mode = S_IRUGO | S_IWUSR },
--	.show   = comm_local_read,
--	.store  = comm_local_write,
--};
--
--static struct comm_attribute comm_attr_addr = {
--	.attr   = { .ca_owner = THIS_MODULE,
--                    .ca_name = "addr",
--                    .ca_mode = S_IWUSR },
--	.store  = comm_addr_write,
--};
--
--static struct comm_attribute comm_attr_addr_list = {
--	.attr   = { .ca_owner = THIS_MODULE,
--                    .ca_name = "addr_list",
--                    .ca_mode = S_IRUGO },
--	.show   = comm_addr_list_read,
--};
--
--static struct configfs_attribute *comm_attrs[] = {
--	[COMM_ATTR_NODEID] = &comm_attr_nodeid.attr,
--	[COMM_ATTR_LOCAL] = &comm_attr_local.attr,
--	[COMM_ATTR_ADDR] = &comm_attr_addr.attr,
--	[COMM_ATTR_ADDR_LIST] = &comm_attr_addr_list.attr,
--	NULL,
--};
--
- enum {
- 	NODE_ATTR_NODEID = 0,
- 	NODE_ATTR_WEIGHT,
+diff --git a/drivers/usb/gadget/function/f_ncm.c b/drivers/usb/gadget/function/f_ncm.c
+index 3f05c6bd..01a99e5 100644
+--- a/drivers/usb/gadget/function/f_ncm.c
++++ b/drivers/usb/gadget/function/f_ncm.c
+@@ -1503,10 +1503,10 @@ USB_ETHERNET_CONFIGFS_ITEM_ATTR_QMULT(ncm);
+ USB_ETHERNET_CONFIGFS_ITEM_ATTR_IFNAME(ncm);
+ 
+ static struct configfs_attribute *ncm_attrs[] = {
+-	&f_ncm_opts_dev_addr.attr,
+-	&f_ncm_opts_host_addr.attr,
+-	&f_ncm_opts_qmult.attr,
+-	&f_ncm_opts_ifname.attr,
++	&ncm_opts_attr_dev_addr,
++	&ncm_opts_attr_host_addr,
++	&ncm_opts_attr_qmult,
++	&ncm_opts_attr_ifname,
+ 	NULL,
  };
  
--struct node_attribute {
--	struct configfs_attribute attr;
--	ssize_t (*show)(struct dlm_node *, char *);
--	ssize_t (*store)(struct dlm_node *, const char *, size_t);
--};
--
--static struct node_attribute node_attr_nodeid = {
--	.attr   = { .ca_owner = THIS_MODULE,
--                    .ca_name = "nodeid",
--                    .ca_mode = S_IRUGO | S_IWUSR },
--	.show   = node_nodeid_read,
--	.store  = node_nodeid_write,
--};
--
--static struct node_attribute node_attr_weight = {
--	.attr   = { .ca_owner = THIS_MODULE,
--                    .ca_name = "weight",
--                    .ca_mode = S_IRUGO | S_IWUSR },
--	.show   = node_weight_read,
--	.store  = node_weight_write,
--};
--
--static struct configfs_attribute *node_attrs[] = {
--	[NODE_ATTR_NODEID] = &node_attr_nodeid.attr,
--	[NODE_ATTR_WEIGHT] = &node_attr_weight.attr,
--	NULL,
--};
--
- struct dlm_clusters {
- 	struct configfs_subsystem subsys;
- };
-@@ -349,8 +249,6 @@ static struct configfs_group_operations clusters_ops = {
+diff --git a/drivers/usb/gadget/function/f_rndis.c b/drivers/usb/gadget/function/f_rndis.c
+index 32985da..a04b526 100644
+--- a/drivers/usb/gadget/function/f_rndis.c
++++ b/drivers/usb/gadget/function/f_rndis.c
+@@ -878,10 +878,10 @@ USB_ETHERNET_CONFIGFS_ITEM_ATTR_QMULT(rndis);
+ USB_ETHERNET_CONFIGFS_ITEM_ATTR_IFNAME(rndis);
  
- static struct configfs_item_operations cluster_ops = {
- 	.release = release_cluster,
--	.show_attribute = show_cluster,
--	.store_attribute = store_cluster,
+ static struct configfs_attribute *rndis_attrs[] = {
+-	&f_rndis_opts_dev_addr.attr,
+-	&f_rndis_opts_host_addr.attr,
+-	&f_rndis_opts_qmult.attr,
+-	&f_rndis_opts_ifname.attr,
++	&rndis_opts_attr_dev_addr,
++	&rndis_opts_attr_host_addr,
++	&rndis_opts_attr_qmult,
++	&rndis_opts_attr_ifname,
+ 	NULL,
  };
  
- static struct configfs_group_operations spaces_ops = {
-@@ -369,8 +267,6 @@ static struct configfs_group_operations comms_ops = {
+diff --git a/drivers/usb/gadget/function/f_subset.c b/drivers/usb/gadget/function/f_subset.c
+index e3dfa67..055e4ea 100644
+--- a/drivers/usb/gadget/function/f_subset.c
++++ b/drivers/usb/gadget/function/f_subset.c
+@@ -413,10 +413,10 @@ USB_ETHERNET_CONFIGFS_ITEM_ATTR_QMULT(gether);
+ USB_ETHERNET_CONFIGFS_ITEM_ATTR_IFNAME(gether);
  
- static struct configfs_item_operations comm_ops = {
- 	.release = release_comm,
--	.show_attribute = show_comm,
--	.store_attribute = store_comm,
+ static struct configfs_attribute *gether_attrs[] = {
+-	&f_gether_opts_dev_addr.attr,
+-	&f_gether_opts_host_addr.attr,
+-	&f_gether_opts_qmult.attr,
+-	&f_gether_opts_ifname.attr,
++	&gether_opts_attr_dev_addr,
++	&gether_opts_attr_host_addr,
++	&gether_opts_attr_qmult,
++	&gether_opts_attr_ifname,
+ 	NULL,
  };
  
- static struct configfs_group_operations nodes_ops = {
-@@ -380,8 +276,6 @@ static struct configfs_group_operations nodes_ops = {
+diff --git a/drivers/usb/gadget/function/u_ether_configfs.h b/drivers/usb/gadget/function/u_ether_configfs.h
+index bcbd301..4f47289 100644
+--- a/drivers/usb/gadget/function/u_ether_configfs.h
++++ b/drivers/usb/gadget/function/u_ether_configfs.h
+@@ -17,9 +17,6 @@
+ #define __U_ETHER_CONFIGFS_H
  
- static struct configfs_item_operations node_ops = {
- 	.release = release_node,
--	.show_attribute = show_node,
--	.store_attribute = store_node,
- };
+ #define USB_ETHERNET_CONFIGFS_ITEM(_f_)					\
+-	CONFIGFS_ATTR_STRUCT(f_##_f_##_opts);				\
+-	CONFIGFS_ATTR_OPS(f_##_f_##_opts);				\
+-									\
+ 	static void _f_##_attr_release(struct config_item *item)	\
+ 	{								\
+ 		struct f_##_f_##_opts *opts = to_f_##_f_##_opts(item);	\
+@@ -29,14 +26,13 @@
+ 									\
+ 	static struct configfs_item_operations _f_##_item_ops = {	\
+ 		.release	= _f_##_attr_release,			\
+-		.show_attribute = f_##_f_##_opts_attr_show,		\
+-		.store_attribute = f_##_f_##_opts_attr_store,		\
+ 	}
  
- static struct config_item_type clusters_type = {
-@@ -427,12 +321,6 @@ static struct config_item_type node_type = {
- 	.ct_owner = THIS_MODULE,
- };
+ #define USB_ETHERNET_CONFIGFS_ITEM_ATTR_DEV_ADDR(_f_)			\
+-	static ssize_t _f_##_opts_dev_addr_show(struct f_##_f_##_opts *opts, \
++	static ssize_t _f_##_opts_dev_addr_show(struct config_item *item, \
+ 						char *page)		\
+ 	{								\
++		struct f_##_f_##_opts *opts = to_f_##_f_##_opts(item);	\
+ 		int result;						\
+ 									\
+ 		mutex_lock(&opts->lock);				\
+@@ -46,9 +42,10 @@
+ 		return result;						\
+ 	}								\
+ 									\
+-	static ssize_t _f_##_opts_dev_addr_store(struct f_##_f_##_opts *opts, \
++	static ssize_t _f_##_opts_dev_addr_store(struct config_item *item, \
+ 						 const char *page, size_t len)\
+ 	{								\
++		struct f_##_f_##_opts *opts = to_f_##_f_##_opts(item);	\
+ 		int ret;						\
+ 									\
+ 		mutex_lock(&opts->lock);				\
+@@ -64,15 +61,13 @@
+ 		return ret;						\
+ 	}								\
+ 									\
+-	static struct f_##_f_##_opts_attribute f_##_f_##_opts_dev_addr = \
+-		__CONFIGFS_ATTR(dev_addr, S_IRUGO | S_IWUSR,		\
+-				_f_##_opts_dev_addr_show,		\
+-				_f_##_opts_dev_addr_store)
++	CONFIGFS_ATTR(_f_##_opts_, dev_addr)
  
--static struct dlm_cluster *config_item_to_cluster(struct config_item *i)
--{
--	return i ? container_of(to_config_group(i), struct dlm_cluster, group) :
--		   NULL;
--}
--
- static struct dlm_space *config_item_to_space(struct config_item *i)
- {
- 	return i ? container_of(to_config_group(i), struct dlm_space, group) :
-@@ -687,66 +575,30 @@ void dlm_config_exit(void)
-  * Functions for user space to read/write attributes
-  */
+ #define USB_ETHERNET_CONFIGFS_ITEM_ATTR_HOST_ADDR(_f_)			\
+-	static ssize_t _f_##_opts_host_addr_show(struct f_##_f_##_opts *opts, \
++	static ssize_t _f_##_opts_host_addr_show(struct config_item *item, \
+ 						 char *page)		\
+ 	{								\
++		struct f_##_f_##_opts *opts = to_f_##_f_##_opts(item);	\
+ 		int result;						\
+ 									\
+ 		mutex_lock(&opts->lock);				\
+@@ -82,9 +77,10 @@
+ 		return result;						\
+ 	}								\
+ 									\
+-	static ssize_t _f_##_opts_host_addr_store(struct f_##_f_##_opts *opts, \
++	static ssize_t _f_##_opts_host_addr_store(struct config_item *item, \
+ 						  const char *page, size_t len)\
+ 	{								\
++		struct f_##_f_##_opts *opts = to_f_##_f_##_opts(item);	\
+ 		int ret;						\
+ 									\
+ 		mutex_lock(&opts->lock);				\
+@@ -100,15 +96,13 @@
+ 		return ret;						\
+ 	}								\
+ 									\
+-	static struct f_##_f_##_opts_attribute f_##_f_##_opts_host_addr = \
+-		__CONFIGFS_ATTR(host_addr, S_IRUGO | S_IWUSR,		\
+-				_f_##_opts_host_addr_show,		\
+-				_f_##_opts_host_addr_store)
++	CONFIGFS_ATTR(_f_##_opts_, host_addr)
  
--static ssize_t show_cluster(struct config_item *i, struct configfs_attribute *a,
--			    char *buf)
--{
--	struct dlm_cluster *cl = config_item_to_cluster(i);
--	struct cluster_attribute *cla =
--			container_of(a, struct cluster_attribute, attr);
--	return cla->show ? cla->show(cl, buf) : 0;
--}
--
--static ssize_t store_cluster(struct config_item *i,
--			     struct configfs_attribute *a,
--			     const char *buf, size_t len)
-+static ssize_t comm_nodeid_show(struct config_item *item, char *buf)
- {
--	struct dlm_cluster *cl = config_item_to_cluster(i);
--	struct cluster_attribute *cla =
--		container_of(a, struct cluster_attribute, attr);
--	return cla->store ? cla->store(cl, buf, len) : -EINVAL;
--}
--
--static ssize_t show_comm(struct config_item *i, struct configfs_attribute *a,
--			 char *buf)
--{
--	struct dlm_comm *cm = config_item_to_comm(i);
--	struct comm_attribute *cma =
--			container_of(a, struct comm_attribute, attr);
--	return cma->show ? cma->show(cm, buf) : 0;
--}
--
--static ssize_t store_comm(struct config_item *i, struct configfs_attribute *a,
--			  const char *buf, size_t len)
--{
--	struct dlm_comm *cm = config_item_to_comm(i);
--	struct comm_attribute *cma =
--		container_of(a, struct comm_attribute, attr);
--	return cma->store ? cma->store(cm, buf, len) : -EINVAL;
-+	return sprintf(buf, "%d\n", config_item_to_comm(item)->nodeid);
- }
+ #define USB_ETHERNET_CONFIGFS_ITEM_ATTR_QMULT(_f_)			\
+-	static ssize_t _f_##_opts_qmult_show(struct f_##_f_##_opts *opts, \
++	static ssize_t _f_##_opts_qmult_show(struct config_item *item,	\
+ 					     char *page)		\
+ 	{								\
++		struct f_##_f_##_opts *opts = to_f_##_f_##_opts(item);	\
+ 		unsigned qmult;						\
+ 									\
+ 		mutex_lock(&opts->lock);				\
+@@ -117,9 +111,10 @@
+ 		return sprintf(page, "%d", qmult);			\
+ 	}								\
+ 									\
+-	static ssize_t _f_##_opts_qmult_store(struct f_##_f_##_opts *opts, \
++	static ssize_t _f_##_opts_qmult_store(struct config_item *item, \
+ 					      const char *page, size_t len)\
+ 	{								\
++		struct f_##_f_##_opts *opts = to_f_##_f_##_opts(item);	\
+ 		u8 val;							\
+ 		int ret;						\
+ 									\
+@@ -140,15 +135,13 @@ out:									\
+ 		return ret;						\
+ 	}								\
+ 									\
+-	static struct f_##_f_##_opts_attribute f_##_f_##_opts_qmult =	\
+-		__CONFIGFS_ATTR(qmult, S_IRUGO | S_IWUSR,		\
+-				_f_##_opts_qmult_show,		\
+-				_f_##_opts_qmult_store)
++	CONFIGFS_ATTR(_f_##_opts_, qmult)
  
--static ssize_t comm_nodeid_read(struct dlm_comm *cm, char *buf)
--{
--	return sprintf(buf, "%d\n", cm->nodeid);
--}
--
--static ssize_t comm_nodeid_write(struct dlm_comm *cm, const char *buf,
-+static ssize_t comm_nodeid_store(struct config_item *item, const char *buf,
- 				 size_t len)
- {
--	int rc = kstrtoint(buf, 0, &cm->nodeid);
-+	int rc = kstrtoint(buf, 0, &config_item_to_comm(item)->nodeid);
+ #define USB_ETHERNET_CONFIGFS_ITEM_ATTR_IFNAME(_f_)			\
+-	static ssize_t _f_##_opts_ifname_show(struct f_##_f_##_opts *opts, \
++	static ssize_t _f_##_opts_ifname_show(struct config_item *item, \
+ 					      char *page)		\
+ 	{								\
++		struct f_##_f_##_opts *opts = to_f_##_f_##_opts(item);	\
+ 		int ret;						\
+ 									\
+ 		mutex_lock(&opts->lock);				\
+@@ -158,7 +151,6 @@ out:									\
+ 		return ret;						\
+ 	}								\
+ 									\
+-	static struct f_##_f_##_opts_attribute f_##_f_##_opts_ifname =	\
+-		__CONFIGFS_ATTR_RO(ifname, _f_##_opts_ifname_show)
++	CONFIGFS_ATTR_RO(_f_##_opts_, ifname)
  
- 	if (rc)
- 		return rc;
- 	return len;
- }
- 
--static ssize_t comm_local_read(struct dlm_comm *cm, char *buf)
-+static ssize_t comm_local_show(struct config_item *item, char *buf)
- {
--	return sprintf(buf, "%d\n", cm->local);
-+	return sprintf(buf, "%d\n", config_item_to_comm(item)->local);
- }
- 
--static ssize_t comm_local_write(struct dlm_comm *cm, const char *buf,
-+static ssize_t comm_local_store(struct config_item *item, const char *buf,
- 				size_t len)
- {
-+	struct dlm_comm *cm = config_item_to_comm(item);
- 	int rc = kstrtoint(buf, 0, &cm->local);
- 
- 	if (rc)
-@@ -756,8 +608,10 @@ static ssize_t comm_local_write(struct dlm_comm *cm, const char *buf,
- 	return len;
- }
- 
--static ssize_t comm_addr_write(struct dlm_comm *cm, const char *buf, size_t len)
-+static ssize_t comm_addr_store(struct config_item *item, const char *buf,
-+		size_t len)
- {
-+	struct dlm_comm *cm = config_item_to_comm(item);
- 	struct sockaddr_storage *addr;
- 	int rv;
- 
-@@ -783,8 +637,9 @@ static ssize_t comm_addr_write(struct dlm_comm *cm, const char *buf, size_t len)
- 	return len;
- }
- 
--static ssize_t comm_addr_list_read(struct dlm_comm *cm, char *buf)
-+static ssize_t comm_addr_list_show(struct config_item *item, char *buf)
- {
-+	struct dlm_comm *cm = config_item_to_comm(item);
- 	ssize_t s;
- 	ssize_t allowance;
- 	int i;
-@@ -827,32 +682,28 @@ static ssize_t comm_addr_list_read(struct dlm_comm *cm, char *buf)
- 	return 4096 - allowance;
- }
- 
--static ssize_t show_node(struct config_item *i, struct configfs_attribute *a,
--			 char *buf)
--{
--	struct dlm_node *nd = config_item_to_node(i);
--	struct node_attribute *nda =
--			container_of(a, struct node_attribute, attr);
--	return nda->show ? nda->show(nd, buf) : 0;
--}
-+CONFIGFS_ATTR(comm_, nodeid);
-+CONFIGFS_ATTR(comm_, local);
-+CONFIGFS_ATTR_WO(comm_, addr);
-+CONFIGFS_ATTR_RO(comm_, addr_list);
- 
--static ssize_t store_node(struct config_item *i, struct configfs_attribute *a,
--			  const char *buf, size_t len)
--{
--	struct dlm_node *nd = config_item_to_node(i);
--	struct node_attribute *nda =
--		container_of(a, struct node_attribute, attr);
--	return nda->store ? nda->store(nd, buf, len) : -EINVAL;
--}
-+static struct configfs_attribute *comm_attrs[] = {
-+	[COMM_ATTR_NODEID] = &comm_attr_nodeid,
-+	[COMM_ATTR_LOCAL] = &comm_attr_local,
-+	[COMM_ATTR_ADDR] = &comm_attr_addr,
-+	[COMM_ATTR_ADDR_LIST] = &comm_attr_addr_list,
-+	NULL,
-+};
- 
--static ssize_t node_nodeid_read(struct dlm_node *nd, char *buf)
-+static ssize_t node_nodeid_show(struct config_item *item, char *buf)
- {
--	return sprintf(buf, "%d\n", nd->nodeid);
-+	return sprintf(buf, "%d\n", config_item_to_node(item)->nodeid);
- }
- 
--static ssize_t node_nodeid_write(struct dlm_node *nd, const char *buf,
-+static ssize_t node_nodeid_store(struct config_item *item, const char *buf,
- 				 size_t len)
- {
-+	struct dlm_node *nd = config_item_to_node(item);
- 	uint32_t seq = 0;
- 	int rc = kstrtoint(buf, 0, &nd->nodeid);
- 
-@@ -863,21 +714,30 @@ static ssize_t node_nodeid_write(struct dlm_node *nd, const char *buf,
- 	return len;
- }
- 
--static ssize_t node_weight_read(struct dlm_node *nd, char *buf)
-+static ssize_t node_weight_show(struct config_item *item, char *buf)
- {
--	return sprintf(buf, "%d\n", nd->weight);
-+	return sprintf(buf, "%d\n", config_item_to_node(item)->weight);
- }
- 
--static ssize_t node_weight_write(struct dlm_node *nd, const char *buf,
-+static ssize_t node_weight_store(struct config_item *item, const char *buf,
- 				 size_t len)
- {
--	int rc = kstrtoint(buf, 0, &nd->weight);
-+	int rc = kstrtoint(buf, 0, &config_item_to_node(item)->weight);
- 
- 	if (rc)
- 		return rc;
- 	return len;
- }
- 
-+CONFIGFS_ATTR(node_, nodeid);
-+CONFIGFS_ATTR(node_, weight);
-+
-+static struct configfs_attribute *node_attrs[] = {
-+	[NODE_ATTR_NODEID] = &node_attr_nodeid,
-+	[NODE_ATTR_WEIGHT] = &node_attr_weight,
-+	NULL,
-+};
-+
- /*
-  * Functions for the dlm to get the info that's been configured
-  */
+ #endif /* __U_ETHER_CONFIGFS_H */
 -- 
 1.9.1
