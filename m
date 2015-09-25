@@ -1,10 +1,10 @@
 From: Christoph Hellwig <hch@lst.de>
-Date: Fri, 25 Sep 2015 06:49:51 -0700
-Subject: [Ocfs2-devel] [PATCH 14/23] usb-gadget/f_obex: use per-attribute
+Date: Fri, 25 Sep 2015 06:49:41 -0700
+Subject: [Ocfs2-devel] [PATCH 04/23] usb-gadget/f_hid: use per-attribute
 	show and store methods
 In-Reply-To: <1443189000-13398-1-git-send-email-hch@lst.de>
 References: <1443189000-13398-1-git-send-email-hch@lst.de>
-Message-ID: <1443189000-13398-15-git-send-email-hch@lst.de>
+Message-ID: <1443189000-13398-5-git-send-email-hch@lst.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -14,57 +14,102 @@ Cc: linux-usb@vger.kernel.org, netdev@vger.kernel.org, Pratyush Anand <pratyush.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- drivers/usb/gadget/function/f_obex.c | 26 ++++----------------------
- 1 file changed, 4 insertions(+), 22 deletions(-)
+ drivers/usb/gadget/function/f_hid.c | 34 ++++++++++++++--------------------
+ 1 file changed, 14 insertions(+), 20 deletions(-)
 
-diff --git a/drivers/usb/gadget/function/f_obex.c b/drivers/usb/gadget/function/f_obex.c
-index 5460426..f6f1e6b 100644
---- a/drivers/usb/gadget/function/f_obex.c
-+++ b/drivers/usb/gadget/function/f_obex.c
-@@ -395,22 +395,6 @@ static inline struct f_serial_opts *to_f_serial_opts(struct config_item *item)
+diff --git a/drivers/usb/gadget/function/f_hid.c b/drivers/usb/gadget/function/f_hid.c
+index 6df9715..d15b061 100644
+--- a/drivers/usb/gadget/function/f_hid.c
++++ b/drivers/usb/gadget/function/f_hid.c
+@@ -713,9 +713,6 @@ static inline struct f_hid_opts *to_f_hid_opts(struct config_item *item)
  			    func_inst.group);
  }
  
--CONFIGFS_ATTR_STRUCT(f_serial_opts);
--static ssize_t f_obex_attr_show(struct config_item *item,
--				struct configfs_attribute *attr,
--				char *page)
--{
--	struct f_serial_opts *opts = to_f_serial_opts(item);
--	struct f_serial_opts_attribute *f_serial_opts_attr =
--		container_of(attr, struct f_serial_opts_attribute, attr);
--	ssize_t ret = 0;
+-CONFIGFS_ATTR_STRUCT(f_hid_opts);
+-CONFIGFS_ATTR_OPS(f_hid_opts);
 -
--	if (f_serial_opts_attr->show)
--		ret = f_serial_opts_attr->show(opts, page);
--
--	return ret;
--}
--
- static void obex_attr_release(struct config_item *item)
+ static void hid_attr_release(struct config_item *item)
  {
- 	struct f_serial_opts *opts = to_f_serial_opts(item);
-@@ -420,19 +404,17 @@ static void obex_attr_release(struct config_item *item)
+ 	struct f_hid_opts *opts = to_f_hid_opts(item);
+@@ -725,13 +722,12 @@ static void hid_attr_release(struct config_item *item)
  
- static struct configfs_item_operations obex_item_ops = {
- 	.release	= obex_attr_release,
--	.show_attribute = f_obex_attr_show,
+ static struct configfs_item_operations hidg_item_ops = {
+ 	.release	= hid_attr_release,
+-	.show_attribute	= f_hid_opts_attr_show,
+-	.store_attribute = f_hid_opts_attr_store,
  };
  
--static ssize_t f_obex_port_num_show(struct f_serial_opts *opts, char *page)
-+static ssize_t f_obex_port_num_show(struct config_item *item, char *page)
+ #define F_HID_OPT(name, prec, limit)					\
+-static ssize_t f_hid_opts_##name##_show(struct f_hid_opts *opts, char *page)\
++static ssize_t f_hid_opts_##name##_show(struct config_item *item, char *page)\
+ {									\
++	struct f_hid_opts *opts = to_f_hid_opts(item);			\
+ 	int result;							\
+ 									\
+ 	mutex_lock(&opts->lock);					\
+@@ -741,9 +737,10 @@ static ssize_t f_hid_opts_##name##_show(struct f_hid_opts *opts, char *page)\
+ 	return result;							\
+ }									\
+ 									\
+-static ssize_t f_hid_opts_##name##_store(struct f_hid_opts *opts,	\
++static ssize_t f_hid_opts_##name##_store(struct config_item *item,	\
+ 					 const char *page, size_t len)	\
+ {									\
++	struct f_hid_opts *opts = to_f_hid_opts(item);			\
+ 	int ret;							\
+ 	u##prec num;							\
+ 									\
+@@ -769,16 +766,15 @@ end:									\
+ 	return ret;							\
+ }									\
+ 									\
+-static struct f_hid_opts_attribute f_hid_opts_##name =			\
+-	__CONFIGFS_ATTR(name, S_IRUGO | S_IWUSR, f_hid_opts_##name##_show,\
+-			f_hid_opts_##name##_store)
++CONFIGFS_ATTR(f_hid_opts_, name)
+ 
+ F_HID_OPT(subclass, 8, 255);
+ F_HID_OPT(protocol, 8, 255);
+ F_HID_OPT(report_length, 16, 65535);
+ 
+-static ssize_t f_hid_opts_report_desc_show(struct f_hid_opts *opts, char *page)
++static ssize_t f_hid_opts_report_desc_show(struct config_item *item, char *page)
  {
--	return sprintf(page, "%u\n", opts->port_num);
-+	return sprintf(page, "%u\n", to_f_serial_opts(item)->port_num);
++	struct f_hid_opts *opts = to_f_hid_opts(item);
+ 	int result;
+ 
+ 	mutex_lock(&opts->lock);
+@@ -789,9 +785,10 @@ static ssize_t f_hid_opts_report_desc_show(struct f_hid_opts *opts, char *page)
+ 	return result;
  }
  
--static struct f_serial_opts_attribute f_obex_port_num =
--	__CONFIGFS_ATTR_RO(port_num, f_obex_port_num_show);
-+CONFIGFS_ATTR_RO(f_obex_, port_num);
+-static ssize_t f_hid_opts_report_desc_store(struct f_hid_opts *opts,
++static ssize_t f_hid_opts_report_desc_store(struct config_item *item,
+ 					    const char *page, size_t len)
+ {
++	struct f_hid_opts *opts = to_f_hid_opts(item);
+ 	int ret = -EBUSY;
+ 	char *d;
  
- static struct configfs_attribute *acm_attrs[] = {
--	&f_obex_port_num.attr,
-+	&f_obex_attr_port_num,
+@@ -818,16 +815,13 @@ end:
+ 	return ret;
+ }
+ 
+-static struct f_hid_opts_attribute f_hid_opts_report_desc =
+-	__CONFIGFS_ATTR(report_desc, S_IRUGO | S_IWUSR,
+-			f_hid_opts_report_desc_show,
+-			f_hid_opts_report_desc_store);
++CONFIGFS_ATTR(f_hid_opts_, report_desc);
+ 
+ static struct configfs_attribute *hid_attrs[] = {
+-	&f_hid_opts_subclass.attr,
+-	&f_hid_opts_protocol.attr,
+-	&f_hid_opts_report_length.attr,
+-	&f_hid_opts_report_desc.attr,
++	&f_hid_opts_attr_subclass,
++	&f_hid_opts_attr_protocol,
++	&f_hid_opts_attr_report_length,
++	&f_hid_opts_attr_report_desc,
  	NULL,
  };
  
