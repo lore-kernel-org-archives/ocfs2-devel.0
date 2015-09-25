@@ -1,10 +1,9 @@
 From: Christoph Hellwig <hch@lst.de>
-Date: Fri, 25 Sep 2015 06:49:59 -0700
-Subject: [Ocfs2-devel] [PATCH 22/23] ocfs2/cluster: use per-attribute show
-	and store methods
+Date: Fri, 25 Sep 2015 06:50:00 -0700
+Subject: [Ocfs2-devel] [PATCH 23/23] configfs: remove old API
 In-Reply-To: <1443189000-13398-1-git-send-email-hch@lst.de>
 References: <1443189000-13398-1-git-send-email-hch@lst.de>
-Message-ID: <1443189000-13398-23-git-send-email-hch@lst.de>
+Message-ID: <1443189000-13398-24-git-send-email-hch@lst.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -12,736 +11,1654 @@ Content-Transfer-Encoding: 7bit
 To: Joel Becker <jlbec@evilplan.org>, Andrew Morton <akpm@linux-foundation.org>
 Cc: Felipe Balbi <balbi@ti.com>, Tejun Heo <tj@kernel.org>, Pratyush Anand <pratyush.anand@gmail.com>, target-devel@vger.kernel.org, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, linux-usb@vger.kernel.org, netdev@vger.kernel.org
 
+Remove the old show_attribute and store_attribute methods and update
+the documentation.  Also replace the two C samples with a single new
+one in the proper samples directory where people expect to find it.
+
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- fs/ocfs2/cluster/heartbeat.c   | 205 +++++++----------------------------
- fs/ocfs2/cluster/nodemanager.c | 241 ++++++++++-------------------------------
- 2 files changed, 100 insertions(+), 346 deletions(-)
+ Documentation/filesystems/Makefile                 |   2 -
+ Documentation/filesystems/configfs/Makefile        |   3 -
+ Documentation/filesystems/configfs/configfs.txt    |  43 +-
+ .../configfs/configfs_example_explicit.c           | 483 ---------------------
+ .../filesystems/configfs/configfs_example_macros.c | 446 -------------------
+ fs/configfs/file.c                                 |  15 +-
+ include/linux/configfs.h                           |  82 ----
+ samples/Makefile                                   |   3 +-
+ samples/configfs/Makefile                          |   2 +
+ samples/configfs/configfs_sample.c                 | 404 +++++++++++++++++
+ 10 files changed, 427 insertions(+), 1056 deletions(-)
+ delete mode 100644 Documentation/filesystems/configfs/Makefile
+ delete mode 100644 Documentation/filesystems/configfs/configfs_example_explicit.c
+ delete mode 100644 Documentation/filesystems/configfs/configfs_example_macros.c
+ create mode 100644 samples/configfs/Makefile
+ create mode 100644 samples/configfs/configfs_sample.c
 
-diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
-index fa15deb..e404386 100644
---- a/fs/ocfs2/cluster/heartbeat.c
-+++ b/fs/ocfs2/cluster/heartbeat.c
-@@ -1473,16 +1473,17 @@ static int o2hb_read_block_input(struct o2hb_region *reg,
- 	return 0;
- }
+diff --git a/Documentation/filesystems/Makefile b/Documentation/filesystems/Makefile
+index 13483d1..883010c 100644
+--- a/Documentation/filesystems/Makefile
++++ b/Documentation/filesystems/Makefile
+@@ -1,5 +1,3 @@
+-subdir-y := configfs
+-
+ # List of programs to build
+ hostprogs-y := dnotify_test
  
--static ssize_t o2hb_region_block_bytes_read(struct o2hb_region *reg,
-+static ssize_t o2hb_region_block_bytes_show(struct config_item *item,
- 					    char *page)
- {
--	return sprintf(page, "%u\n", reg->hr_block_bytes);
-+	return sprintf(page, "%u\n", to_o2hb_region(item)->hr_block_bytes);
- }
+diff --git a/Documentation/filesystems/configfs/Makefile b/Documentation/filesystems/configfs/Makefile
+deleted file mode 100644
+index be7ec5e..0000000
+--- a/Documentation/filesystems/configfs/Makefile
++++ /dev/null
+@@ -1,3 +0,0 @@
+-ifneq ($(CONFIG_CONFIGFS_FS),)
+-obj-m += configfs_example_explicit.o configfs_example_macros.o
+-endif
+diff --git a/Documentation/filesystems/configfs/configfs.txt b/Documentation/filesystems/configfs/configfs.txt
+index b40fec9..f51d04f 100644
+--- a/Documentation/filesystems/configfs/configfs.txt
++++ b/Documentation/filesystems/configfs/configfs.txt
+@@ -160,12 +160,6 @@ among other things.  For that, it needs a type.
  
--static ssize_t o2hb_region_block_bytes_write(struct o2hb_region *reg,
-+static ssize_t o2hb_region_block_bytes_store(struct config_item *item,
- 					     const char *page,
- 					     size_t count)
- {
-+	struct o2hb_region *reg = to_o2hb_region(item);
- 	int status;
- 	unsigned long block_bytes;
- 	unsigned int block_bits;
-@@ -1501,16 +1502,17 @@ static ssize_t o2hb_region_block_bytes_write(struct o2hb_region *reg,
- 	return count;
- }
+ 	struct configfs_item_operations {
+ 		void (*release)(struct config_item *);
+-		ssize_t (*show_attribute)(struct config_item *,
+-					  struct configfs_attribute *,
+-					  char *);
+-		ssize_t (*store_attribute)(struct config_item *,
+-					   struct configfs_attribute *,
+-					   const char *, size_t);
+ 		int (*allow_link)(struct config_item *src,
+ 				  struct config_item *target);
+ 		int (*drop_link)(struct config_item *src,
+@@ -183,9 +177,7 @@ The most basic function of a config_item_type is to define what
+ operations can be performed on a config_item.  All items that have been
+ allocated dynamically will need to provide the ct_item_ops->release()
+ method.  This method is called when the config_item's reference count
+-reaches zero.  Items that wish to display an attribute need to provide
+-the ct_item_ops->show_attribute() method.  Similarly, storing a new
+-attribute value uses the store_attribute() method.
++reaches zero.
  
--static ssize_t o2hb_region_start_block_read(struct o2hb_region *reg,
-+static ssize_t o2hb_region_start_block_show(struct config_item *item,
- 					    char *page)
- {
--	return sprintf(page, "%llu\n", reg->hr_start_block);
-+	return sprintf(page, "%llu\n", to_o2hb_region(item)->hr_start_block);
- }
+ [struct configfs_attribute]
  
--static ssize_t o2hb_region_start_block_write(struct o2hb_region *reg,
-+static ssize_t o2hb_region_start_block_store(struct config_item *item,
- 					     const char *page,
- 					     size_t count)
- {
-+	struct o2hb_region *reg = to_o2hb_region(item);
- 	unsigned long long tmp;
- 	char *p = (char *)page;
+@@ -193,6 +185,8 @@ attribute value uses the store_attribute() method.
+ 		char                    *ca_name;
+ 		struct module           *ca_owner;
+ 		umode_t                  ca_mode;
++		ssize_t (*show)(struct config_item *, char *);
++		ssize_t (*store)(struct config_item *, const char *, size_t);
+ 	};
  
-@@ -1526,16 +1528,16 @@ static ssize_t o2hb_region_start_block_write(struct o2hb_region *reg,
- 	return count;
- }
+ When a config_item wants an attribute to appear as a file in the item's
+@@ -202,10 +196,15 @@ config_item_type->ct_attrs.  When the item appears in configfs, the
+ attribute file will appear with the configfs_attribute->ca_name
+ filename.  configfs_attribute->ca_mode specifies the file permissions.
  
--static ssize_t o2hb_region_blocks_read(struct o2hb_region *reg,
--				       char *page)
-+static ssize_t o2hb_region_blocks_show(struct config_item *item, char *page)
- {
--	return sprintf(page, "%d\n", reg->hr_blocks);
-+	return sprintf(page, "%d\n", to_o2hb_region(item)->hr_blocks);
- }
+-If an attribute is readable and the config_item provides a
+-ct_item_ops->show_attribute() method, that method will be called
+-whenever userspace asks for a read(2) on the attribute.  The converse
+-will happen for write(2).
++Items that wish to display an attribute need to provide
++the ct_item_ops->show_attribute() method.  Similarly, storing a new
++attribute value uses the store_attribute() method.
++
++
++If an attribute is readable and provides a ->show method, that method will
++be called whenever userspace asks for a read(2) on the attribute.  If an
++attribute is writable and provides a ->store  method, that method will be
++be called whenever userspace asks for a write(2) on the attribute.
  
--static ssize_t o2hb_region_blocks_write(struct o2hb_region *reg,
-+static ssize_t o2hb_region_blocks_store(struct config_item *item,
- 					const char *page,
- 					size_t count)
- {
-+	struct o2hb_region *reg = to_o2hb_region(item);
- 	unsigned long tmp;
- 	char *p = (char *)page;
+ [struct config_group]
  
-@@ -1554,13 +1556,12 @@ static ssize_t o2hb_region_blocks_write(struct o2hb_region *reg,
- 	return count;
- }
+@@ -311,20 +310,10 @@ the subsystem must be ready for it.
+ [An Example]
  
--static ssize_t o2hb_region_dev_read(struct o2hb_region *reg,
--				    char *page)
-+static ssize_t o2hb_region_dev_show(struct config_item *item, char *page)
- {
- 	unsigned int ret = 0;
+ The best example of these basic concepts is the simple_children
+-subsystem/group and the simple_child item in configfs_example_explicit.c
+-and configfs_example_macros.c.  It shows a trivial object displaying and
+-storing an attribute, and a simple group creating and destroying these
+-children.
+-
+-The only difference between configfs_example_explicit.c and
+-configfs_example_macros.c is how the attributes of the childless item
+-are defined.  The childless item has extended attributes, each with
+-their own show()/store() operation.  This follows a convention commonly
+-used in sysfs.  configfs_example_explicit.c creates these attributes
+-by explicitly defining the structures involved.  Conversely
+-configfs_example_macros.c uses some convenience macros from configfs.h
+-to define the attributes.  These macros are similar to their sysfs
+-counterparts.
++subsystem/group and the simple_child item in
++samples/configfs/configfs_sample.c. It shows a trivial object displaying
++and storing an attribute, and a simple group creating and destroying
++these children.
  
--	if (reg->hr_bdev)
--		ret = sprintf(page, "%s\n", reg->hr_dev_name);
-+	if (to_o2hb_region(item)->hr_bdev)
-+		ret = sprintf(page, "%s\n", to_o2hb_region(item)->hr_dev_name);
+ [Hierarchy Navigation and the Subsystem Mutex]
  
- 	return ret;
- }
-@@ -1670,10 +1671,11 @@ out:
- }
- 
- /* this is acting as commit; we set up all of hr_bdev and hr_task or nothing */
--static ssize_t o2hb_region_dev_write(struct o2hb_region *reg,
-+static ssize_t o2hb_region_dev_store(struct config_item *item,
- 				     const char *page,
- 				     size_t count)
- {
-+	struct o2hb_region *reg = to_o2hb_region(item);
- 	struct task_struct *hb_task;
- 	long fd;
- 	int sectsize;
-@@ -1828,9 +1830,9 @@ out:
- 	return ret;
- }
- 
--static ssize_t o2hb_region_pid_read(struct o2hb_region *reg,
--                                      char *page)
-+static ssize_t o2hb_region_pid_show(struct config_item *item, char *page)
- {
-+	struct o2hb_region *reg = to_o2hb_region(item);
- 	pid_t pid = 0;
- 
- 	spin_lock(&o2hb_live_lock);
-@@ -1844,92 +1846,23 @@ static ssize_t o2hb_region_pid_read(struct o2hb_region *reg,
- 	return sprintf(page, "%u\n", pid);
- }
- 
--struct o2hb_region_attribute {
+diff --git a/Documentation/filesystems/configfs/configfs_example_explicit.c b/Documentation/filesystems/configfs/configfs_example_explicit.c
+deleted file mode 100644
+index 1420233..0000000
+--- a/Documentation/filesystems/configfs/configfs_example_explicit.c
++++ /dev/null
+@@ -1,483 +0,0 @@
+-/*
+- * vim: noexpandtab ts=8 sts=0 sw=8:
+- *
+- * configfs_example_explicit.c - This file is a demonstration module
+- *      containing a number of configfs subsystems.  It explicitly defines
+- *      each structure without using the helper macros defined in
+- *      configfs.h.
+- *
+- * This program is free software; you can redistribute it and/or
+- * modify it under the terms of the GNU General Public
+- * License as published by the Free Software Foundation; either
+- * version 2 of the License, or (at your option) any later version.
+- *
+- * This program is distributed in the hope that it will be useful,
+- * but WITHOUT ANY WARRANTY; without even the implied warranty of
+- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+- * General Public License for more details.
+- *
+- * You should have received a copy of the GNU General Public
+- * License along with this program; if not, write to the
+- * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+- * Boston, MA 021110-1307, USA.
+- *
+- * Based on sysfs:
+- * 	sysfs is Copyright (C) 2001, 2002, 2003 Patrick Mochel
+- *
+- * configfs Copyright (C) 2005 Oracle.  All rights reserved.
+- */
+-
+-#include <linux/init.h>
+-#include <linux/module.h>
+-#include <linux/slab.h>
+-
+-#include <linux/configfs.h>
+-
+-
+-
+-/*
+- * 01-childless
+- *
+- * This first example is a childless subsystem.  It cannot create
+- * any config_items.  It just has attributes.
+- *
+- * Note that we are enclosing the configfs_subsystem inside a container.
+- * This is not necessary if a subsystem has no attributes directly
+- * on the subsystem.  See the next example, 02-simple-children, for
+- * such a subsystem.
+- */
+-
+-struct childless {
+-	struct configfs_subsystem subsys;
+-	int showme;
+-	int storeme;
+-};
+-
+-struct childless_attribute {
 -	struct configfs_attribute attr;
--	ssize_t (*show)(struct o2hb_region *, char *);
--	ssize_t (*store)(struct o2hb_region *, const char *, size_t);
+-	ssize_t (*show)(struct childless *, char *);
+-	ssize_t (*store)(struct childless *, const char *, size_t);
 -};
 -
--static struct o2hb_region_attribute o2hb_region_attr_block_bytes = {
--	.attr	= { .ca_owner = THIS_MODULE,
--		    .ca_name = "block_bytes",
--		    .ca_mode = S_IRUGO | S_IWUSR },
--	.show	= o2hb_region_block_bytes_read,
--	.store	= o2hb_region_block_bytes_write,
--};
--
--static struct o2hb_region_attribute o2hb_region_attr_start_block = {
--	.attr	= { .ca_owner = THIS_MODULE,
--		    .ca_name = "start_block",
--		    .ca_mode = S_IRUGO | S_IWUSR },
--	.show	= o2hb_region_start_block_read,
--	.store	= o2hb_region_start_block_write,
--};
--
--static struct o2hb_region_attribute o2hb_region_attr_blocks = {
--	.attr	= { .ca_owner = THIS_MODULE,
--		    .ca_name = "blocks",
--		    .ca_mode = S_IRUGO | S_IWUSR },
--	.show	= o2hb_region_blocks_read,
--	.store	= o2hb_region_blocks_write,
--};
--
--static struct o2hb_region_attribute o2hb_region_attr_dev = {
--	.attr	= { .ca_owner = THIS_MODULE,
--		    .ca_name = "dev",
--		    .ca_mode = S_IRUGO | S_IWUSR },
--	.show	= o2hb_region_dev_read,
--	.store	= o2hb_region_dev_write,
--};
--
--static struct o2hb_region_attribute o2hb_region_attr_pid = {
--       .attr   = { .ca_owner = THIS_MODULE,
--                   .ca_name = "pid",
--                   .ca_mode = S_IRUGO | S_IRUSR },
--       .show   = o2hb_region_pid_read,
--};
-+CONFIGFS_ATTR(o2hb_region_, block_bytes);
-+CONFIGFS_ATTR(o2hb_region_, start_block);
-+CONFIGFS_ATTR(o2hb_region_, blocks);
-+CONFIGFS_ATTR(o2hb_region_, dev);
-+CONFIGFS_ATTR_RO(o2hb_region_, pid);
- 
- static struct configfs_attribute *o2hb_region_attrs[] = {
--	&o2hb_region_attr_block_bytes.attr,
--	&o2hb_region_attr_start_block.attr,
--	&o2hb_region_attr_blocks.attr,
--	&o2hb_region_attr_dev.attr,
--	&o2hb_region_attr_pid.attr,
-+	&o2hb_region_attr_block_bytes,
-+	&o2hb_region_attr_start_block,
-+	&o2hb_region_attr_blocks,
-+	&o2hb_region_attr_dev,
-+	&o2hb_region_attr_pid,
- 	NULL,
- };
- 
--static ssize_t o2hb_region_show(struct config_item *item,
--				struct configfs_attribute *attr,
--				char *page)
+-static inline struct childless *to_childless(struct config_item *item)
 -{
--	struct o2hb_region *reg = to_o2hb_region(item);
--	struct o2hb_region_attribute *o2hb_region_attr =
--		container_of(attr, struct o2hb_region_attribute, attr);
+-	return item ? container_of(to_configfs_subsystem(to_config_group(item)), struct childless, subsys) : NULL;
+-}
+-
+-static ssize_t childless_showme_read(struct childless *childless,
+-				     char *page)
+-{
+-	ssize_t pos;
+-
+-	pos = sprintf(page, "%d\n", childless->showme);
+-	childless->showme++;
+-
+-	return pos;
+-}
+-
+-static ssize_t childless_storeme_read(struct childless *childless,
+-				      char *page)
+-{
+-	return sprintf(page, "%d\n", childless->storeme);
+-}
+-
+-static ssize_t childless_storeme_write(struct childless *childless,
+-				       const char *page,
+-				       size_t count)
+-{
+-	unsigned long tmp;
+-	char *p = (char *) page;
+-
+-	tmp = simple_strtoul(p, &p, 10);
+-	if ((*p != '\0') && (*p != '\n'))
+-		return -EINVAL;
+-
+-	if (tmp > INT_MAX)
+-		return -ERANGE;
+-
+-	childless->storeme = tmp;
+-
+-	return count;
+-}
+-
+-static ssize_t childless_description_read(struct childless *childless,
+-					  char *page)
+-{
+-	return sprintf(page,
+-"[01-childless]\n"
+-"\n"
+-"The childless subsystem is the simplest possible subsystem in\n"
+-"configfs.  It does not support the creation of child config_items.\n"
+-"It only has a few attributes.  In fact, it isn't much different\n"
+-"than a directory in /proc.\n");
+-}
+-
+-static struct childless_attribute childless_attr_showme = {
+-	.attr	= { .ca_owner = THIS_MODULE, .ca_name = "showme", .ca_mode = S_IRUGO },
+-	.show	= childless_showme_read,
+-};
+-static struct childless_attribute childless_attr_storeme = {
+-	.attr	= { .ca_owner = THIS_MODULE, .ca_name = "storeme", .ca_mode = S_IRUGO | S_IWUSR },
+-	.show	= childless_storeme_read,
+-	.store	= childless_storeme_write,
+-};
+-static struct childless_attribute childless_attr_description = {
+-	.attr = { .ca_owner = THIS_MODULE, .ca_name = "description", .ca_mode = S_IRUGO },
+-	.show = childless_description_read,
+-};
+-
+-static struct configfs_attribute *childless_attrs[] = {
+-	&childless_attr_showme.attr,
+-	&childless_attr_storeme.attr,
+-	&childless_attr_description.attr,
+-	NULL,
+-};
+-
+-static ssize_t childless_attr_show(struct config_item *item,
+-				   struct configfs_attribute *attr,
+-				   char *page)
+-{
+-	struct childless *childless = to_childless(item);
+-	struct childless_attribute *childless_attr =
+-		container_of(attr, struct childless_attribute, attr);
 -	ssize_t ret = 0;
 -
--	if (o2hb_region_attr->show)
--		ret = o2hb_region_attr->show(reg, page);
+-	if (childless_attr->show)
+-		ret = childless_attr->show(childless, page);
 -	return ret;
 -}
 -
--static ssize_t o2hb_region_store(struct config_item *item,
--				 struct configfs_attribute *attr,
--				 const char *page, size_t count)
+-static ssize_t childless_attr_store(struct config_item *item,
+-				    struct configfs_attribute *attr,
+-				    const char *page, size_t count)
 -{
--	struct o2hb_region *reg = to_o2hb_region(item);
--	struct o2hb_region_attribute *o2hb_region_attr =
--		container_of(attr, struct o2hb_region_attribute, attr);
+-	struct childless *childless = to_childless(item);
+-	struct childless_attribute *childless_attr =
+-		container_of(attr, struct childless_attribute, attr);
 -	ssize_t ret = -EINVAL;
 -
--	if (o2hb_region_attr->store)
--		ret = o2hb_region_attr->store(reg, page, count);
+-	if (childless_attr->store)
+-		ret = childless_attr->store(childless, page, count);
 -	return ret;
 -}
 -
- static struct configfs_item_operations o2hb_region_item_ops = {
- 	.release		= o2hb_region_release,
--	.show_attribute		= o2hb_region_show,
--	.store_attribute	= o2hb_region_store,
- };
- 
- static struct config_item_type o2hb_region_type = {
-@@ -2124,49 +2057,14 @@ unlock:
- 	spin_unlock(&o2hb_live_lock);
- }
- 
--struct o2hb_heartbeat_group_attribute {
--	struct configfs_attribute attr;
--	ssize_t (*show)(struct o2hb_heartbeat_group *, char *);
--	ssize_t (*store)(struct o2hb_heartbeat_group *, const char *, size_t);
+-static struct configfs_item_operations childless_item_ops = {
+-	.show_attribute		= childless_attr_show,
+-	.store_attribute	= childless_attr_store,
 -};
 -
--static ssize_t o2hb_heartbeat_group_show(struct config_item *item,
+-static struct config_item_type childless_type = {
+-	.ct_item_ops	= &childless_item_ops,
+-	.ct_attrs	= childless_attrs,
+-	.ct_owner	= THIS_MODULE,
+-};
+-
+-static struct childless childless_subsys = {
+-	.subsys = {
+-		.su_group = {
+-			.cg_item = {
+-				.ci_namebuf = "01-childless",
+-				.ci_type = &childless_type,
+-			},
+-		},
+-	},
+-};
+-
+-
+-/* ----------------------------------------------------------------- */
+-
+-/*
+- * 02-simple-children
+- *
+- * This example merely has a simple one-attribute child.  Note that
+- * there is no extra attribute structure, as the child's attribute is
+- * known from the get-go.  Also, there is no container for the
+- * subsystem, as it has no attributes of its own.
+- */
+-
+-struct simple_child {
+-	struct config_item item;
+-	int storeme;
+-};
+-
+-static inline struct simple_child *to_simple_child(struct config_item *item)
+-{
+-	return item ? container_of(item, struct simple_child, item) : NULL;
+-}
+-
+-static struct configfs_attribute simple_child_attr_storeme = {
+-	.ca_owner = THIS_MODULE,
+-	.ca_name = "storeme",
+-	.ca_mode = S_IRUGO | S_IWUSR,
+-};
+-
+-static struct configfs_attribute *simple_child_attrs[] = {
+-	&simple_child_attr_storeme,
+-	NULL,
+-};
+-
+-static ssize_t simple_child_attr_show(struct config_item *item,
+-				      struct configfs_attribute *attr,
+-				      char *page)
+-{
+-	ssize_t count;
+-	struct simple_child *simple_child = to_simple_child(item);
+-
+-	count = sprintf(page, "%d\n", simple_child->storeme);
+-
+-	return count;
+-}
+-
+-static ssize_t simple_child_attr_store(struct config_item *item,
+-				       struct configfs_attribute *attr,
+-				       const char *page, size_t count)
+-{
+-	struct simple_child *simple_child = to_simple_child(item);
+-	unsigned long tmp;
+-	char *p = (char *) page;
+-
+-	tmp = simple_strtoul(p, &p, 10);
+-	if (!p || (*p && (*p != '\n')))
+-		return -EINVAL;
+-
+-	if (tmp > INT_MAX)
+-		return -ERANGE;
+-
+-	simple_child->storeme = tmp;
+-
+-	return count;
+-}
+-
+-static void simple_child_release(struct config_item *item)
+-{
+-	kfree(to_simple_child(item));
+-}
+-
+-static struct configfs_item_operations simple_child_item_ops = {
+-	.release		= simple_child_release,
+-	.show_attribute		= simple_child_attr_show,
+-	.store_attribute	= simple_child_attr_store,
+-};
+-
+-static struct config_item_type simple_child_type = {
+-	.ct_item_ops	= &simple_child_item_ops,
+-	.ct_attrs	= simple_child_attrs,
+-	.ct_owner	= THIS_MODULE,
+-};
+-
+-
+-struct simple_children {
+-	struct config_group group;
+-};
+-
+-static inline struct simple_children *to_simple_children(struct config_item *item)
+-{
+-	return item ? container_of(to_config_group(item), struct simple_children, group) : NULL;
+-}
+-
+-static struct config_item *simple_children_make_item(struct config_group *group, const char *name)
+-{
+-	struct simple_child *simple_child;
+-
+-	simple_child = kzalloc(sizeof(struct simple_child), GFP_KERNEL);
+-	if (!simple_child)
+-		return ERR_PTR(-ENOMEM);
+-
+-	config_item_init_type_name(&simple_child->item, name,
+-				   &simple_child_type);
+-
+-	simple_child->storeme = 0;
+-
+-	return &simple_child->item;
+-}
+-
+-static struct configfs_attribute simple_children_attr_description = {
+-	.ca_owner = THIS_MODULE,
+-	.ca_name = "description",
+-	.ca_mode = S_IRUGO,
+-};
+-
+-static struct configfs_attribute *simple_children_attrs[] = {
+-	&simple_children_attr_description,
+-	NULL,
+-};
+-
+-static ssize_t simple_children_attr_show(struct config_item *item,
 -					 struct configfs_attribute *attr,
 -					 char *page)
 -{
--	struct o2hb_heartbeat_group *reg = to_o2hb_heartbeat_group(to_config_group(item));
--	struct o2hb_heartbeat_group_attribute *o2hb_heartbeat_group_attr =
--		container_of(attr, struct o2hb_heartbeat_group_attribute, attr);
--	ssize_t ret = 0;
--
--	if (o2hb_heartbeat_group_attr->show)
--		ret = o2hb_heartbeat_group_attr->show(reg, page);
--	return ret;
+-	return sprintf(page,
+-"[02-simple-children]\n"
+-"\n"
+-"This subsystem allows the creation of child config_items.  These\n"
+-"items have only one attribute that is readable and writeable.\n");
 -}
 -
--static ssize_t o2hb_heartbeat_group_store(struct config_item *item,
--					  struct configfs_attribute *attr,
--					  const char *page, size_t count)
+-static void simple_children_release(struct config_item *item)
 -{
--	struct o2hb_heartbeat_group *reg = to_o2hb_heartbeat_group(to_config_group(item));
--	struct o2hb_heartbeat_group_attribute *o2hb_heartbeat_group_attr =
--		container_of(attr, struct o2hb_heartbeat_group_attribute, attr);
--	ssize_t ret = -EINVAL;
--
--	if (o2hb_heartbeat_group_attr->store)
--		ret = o2hb_heartbeat_group_attr->store(reg, page, count);
--	return ret;
+-	kfree(to_simple_children(item));
 -}
 -
--static ssize_t o2hb_heartbeat_group_threshold_show(struct o2hb_heartbeat_group *group,
--						     char *page)
-+static ssize_t o2hb_heartbeat_group_threshold_show(struct config_item *item,
-+		char *page)
- {
- 	return sprintf(page, "%u\n", o2hb_dead_threshold);
- }
- 
--static ssize_t o2hb_heartbeat_group_threshold_store(struct o2hb_heartbeat_group *group,
--						    const char *page,
--						    size_t count)
-+static ssize_t o2hb_heartbeat_group_threshold_store(struct config_item *item,
-+		const char *page, size_t count)
- {
- 	unsigned long tmp;
- 	char *p = (char *)page;
-@@ -2181,17 +2079,15 @@ static ssize_t o2hb_heartbeat_group_threshold_store(struct o2hb_heartbeat_group
- 	return count;
- }
- 
--static
--ssize_t o2hb_heartbeat_group_mode_show(struct o2hb_heartbeat_group *group,
--				       char *page)
-+static ssize_t o2hb_heartbeat_group_mode_show(struct config_item *item,
-+		char *page)
- {
- 	return sprintf(page, "%s\n",
- 		       o2hb_heartbeat_mode_desc[o2hb_heartbeat_mode]);
- }
- 
--static
--ssize_t o2hb_heartbeat_group_mode_store(struct o2hb_heartbeat_group *group,
--					const char *page, size_t count)
-+static ssize_t o2hb_heartbeat_group_mode_store(struct config_item *item,
-+		const char *page, size_t count)
- {
- 	unsigned int i;
- 	int ret;
-@@ -2216,33 +2112,15 @@ ssize_t o2hb_heartbeat_group_mode_store(struct o2hb_heartbeat_group *group,
- 
- }
- 
--static struct o2hb_heartbeat_group_attribute o2hb_heartbeat_group_attr_threshold = {
--	.attr	= { .ca_owner = THIS_MODULE,
--		    .ca_name = "dead_threshold",
--		    .ca_mode = S_IRUGO | S_IWUSR },
--	.show	= o2hb_heartbeat_group_threshold_show,
--	.store	= o2hb_heartbeat_group_threshold_store,
+-static struct configfs_item_operations simple_children_item_ops = {
+-	.release	= simple_children_release,
+-	.show_attribute	= simple_children_attr_show,
 -};
 -
--static struct o2hb_heartbeat_group_attribute o2hb_heartbeat_group_attr_mode = {
--	.attr   = { .ca_owner = THIS_MODULE,
--		.ca_name = "mode",
--		.ca_mode = S_IRUGO | S_IWUSR },
--	.show   = o2hb_heartbeat_group_mode_show,
--	.store  = o2hb_heartbeat_group_mode_store,
--};
-+CONFIGFS_ATTR(o2hb_heartbeat_group_, threshold);
-+CONFIGFS_ATTR(o2hb_heartbeat_group_, mode);
- 
- static struct configfs_attribute *o2hb_heartbeat_group_attrs[] = {
--	&o2hb_heartbeat_group_attr_threshold.attr,
--	&o2hb_heartbeat_group_attr_mode.attr,
-+	&o2hb_heartbeat_group_attr_threshold,
-+	&o2hb_heartbeat_group_attr_mode,
- 	NULL,
- };
- 
--static struct configfs_item_operations o2hb_heartbeat_group_item_ops = {
--	.show_attribute		= o2hb_heartbeat_group_show,
--	.store_attribute	= o2hb_heartbeat_group_store,
+-/*
+- * Note that, since no extra work is required on ->drop_item(),
+- * no ->drop_item() is provided.
+- */
+-static struct configfs_group_operations simple_children_group_ops = {
+-	.make_item	= simple_children_make_item,
 -};
 -
- static struct configfs_group_operations o2hb_heartbeat_group_group_ops = {
- 	.make_item	= o2hb_heartbeat_group_make_item,
- 	.drop_item	= o2hb_heartbeat_group_drop_item,
-@@ -2250,7 +2128,6 @@ static struct configfs_group_operations o2hb_heartbeat_group_group_ops = {
- 
- static struct config_item_type o2hb_heartbeat_group_type = {
- 	.ct_group_ops	= &o2hb_heartbeat_group_group_ops,
--	.ct_item_ops	= &o2hb_heartbeat_group_item_ops,
- 	.ct_attrs	= o2hb_heartbeat_group_attrs,
- 	.ct_owner	= THIS_MODULE,
- };
-diff --git a/fs/ocfs2/cluster/nodemanager.c b/fs/ocfs2/cluster/nodemanager.c
-index 7a398f6..72afdca 100644
---- a/fs/ocfs2/cluster/nodemanager.c
-+++ b/fs/ocfs2/cluster/nodemanager.c
-@@ -172,9 +172,9 @@ static void o2nm_node_release(struct config_item *item)
- 	kfree(node);
- }
- 
--static ssize_t o2nm_node_num_read(struct o2nm_node *node, char *page)
-+static ssize_t o2nm_node_num_show(struct config_item *item, char *page)
- {
--	return sprintf(page, "%d\n", node->nd_num);
-+	return sprintf(page, "%d\n", to_o2nm_node(item)->nd_num);
- }
- 
- static struct o2nm_cluster *to_o2nm_cluster_from_node(struct o2nm_node *node)
-@@ -190,9 +190,10 @@ enum {
- 	O2NM_NODE_ATTR_ADDRESS,
- };
- 
--static ssize_t o2nm_node_num_write(struct o2nm_node *node, const char *page,
-+static ssize_t o2nm_node_num_store(struct config_item *item, const char *page,
- 				   size_t count)
- {
-+	struct o2nm_node *node = to_o2nm_node(item);
- 	struct o2nm_cluster *cluster = to_o2nm_cluster_from_node(node);
- 	unsigned long tmp;
- 	char *p = (char *)page;
-@@ -230,14 +231,15 @@ static ssize_t o2nm_node_num_write(struct o2nm_node *node, const char *page,
- 
- 	return count;
- }
--static ssize_t o2nm_node_ipv4_port_read(struct o2nm_node *node, char *page)
-+static ssize_t o2nm_node_ipv4_port_show(struct config_item *item, char *page)
- {
--	return sprintf(page, "%u\n", ntohs(node->nd_ipv4_port));
-+	return sprintf(page, "%u\n", ntohs(to_o2nm_node(item)->nd_ipv4_port));
- }
- 
--static ssize_t o2nm_node_ipv4_port_write(struct o2nm_node *node,
-+static ssize_t o2nm_node_ipv4_port_store(struct config_item *item,
- 					 const char *page, size_t count)
- {
-+	struct o2nm_node *node = to_o2nm_node(item);
- 	unsigned long tmp;
- 	char *p = (char *)page;
- 
-@@ -257,15 +259,16 @@ static ssize_t o2nm_node_ipv4_port_write(struct o2nm_node *node,
- 	return count;
- }
- 
--static ssize_t o2nm_node_ipv4_address_read(struct o2nm_node *node, char *page)
-+static ssize_t o2nm_node_ipv4_address_show(struct config_item *item, char *page)
- {
--	return sprintf(page, "%pI4\n", &node->nd_ipv4_address);
-+	return sprintf(page, "%pI4\n", &to_o2nm_node(item)->nd_ipv4_address);
- }
- 
--static ssize_t o2nm_node_ipv4_address_write(struct o2nm_node *node,
-+static ssize_t o2nm_node_ipv4_address_store(struct config_item *item,
- 					    const char *page,
- 					    size_t count)
- {
-+	struct o2nm_node *node = to_o2nm_node(item);
- 	struct o2nm_cluster *cluster = to_o2nm_cluster_from_node(node);
- 	int ret, i;
- 	struct rb_node **p, *parent;
-@@ -303,14 +306,15 @@ static ssize_t o2nm_node_ipv4_address_write(struct o2nm_node *node,
- 	return count;
- }
- 
--static ssize_t o2nm_node_local_read(struct o2nm_node *node, char *page)
-+static ssize_t o2nm_node_local_show(struct config_item *item, char *page)
- {
--	return sprintf(page, "%d\n", node->nd_local);
-+	return sprintf(page, "%d\n", to_o2nm_node(item)->nd_local);
- }
- 
--static ssize_t o2nm_node_local_write(struct o2nm_node *node, const char *page,
-+static ssize_t o2nm_node_local_store(struct config_item *item, const char *page,
- 				     size_t count)
- {
-+	struct o2nm_node *node = to_o2nm_node(item);
- 	struct o2nm_cluster *cluster = to_o2nm_cluster_from_node(node);
- 	unsigned long tmp;
- 	char *p = (char *)page;
-@@ -357,84 +361,21 @@ static ssize_t o2nm_node_local_write(struct o2nm_node *node, const char *page,
- 	return count;
- }
- 
--struct o2nm_node_attribute {
--	struct configfs_attribute attr;
--	ssize_t (*show)(struct o2nm_node *, char *);
--	ssize_t (*store)(struct o2nm_node *, const char *, size_t);
+-static struct config_item_type simple_children_type = {
+-	.ct_item_ops	= &simple_children_item_ops,
+-	.ct_group_ops	= &simple_children_group_ops,
+-	.ct_attrs	= simple_children_attrs,
+-	.ct_owner	= THIS_MODULE,
 -};
 -
--static struct o2nm_node_attribute o2nm_node_attr_num = {
--	.attr	= { .ca_owner = THIS_MODULE,
--		    .ca_name = "num",
--		    .ca_mode = S_IRUGO | S_IWUSR },
--	.show	= o2nm_node_num_read,
--	.store	= o2nm_node_num_write,
+-static struct configfs_subsystem simple_children_subsys = {
+-	.su_group = {
+-		.cg_item = {
+-			.ci_namebuf = "02-simple-children",
+-			.ci_type = &simple_children_type,
+-		},
+-	},
 -};
 -
--static struct o2nm_node_attribute o2nm_node_attr_ipv4_port = {
--	.attr	= { .ca_owner = THIS_MODULE,
--		    .ca_name = "ipv4_port",
--		    .ca_mode = S_IRUGO | S_IWUSR },
--	.show	= o2nm_node_ipv4_port_read,
--	.store	= o2nm_node_ipv4_port_write,
--};
 -
--static struct o2nm_node_attribute o2nm_node_attr_ipv4_address = {
--	.attr	= { .ca_owner = THIS_MODULE,
--		    .ca_name = "ipv4_address",
--		    .ca_mode = S_IRUGO | S_IWUSR },
--	.show	= o2nm_node_ipv4_address_read,
--	.store	= o2nm_node_ipv4_address_write,
--};
+-/* ----------------------------------------------------------------- */
 -
--static struct o2nm_node_attribute o2nm_node_attr_local = {
--	.attr	= { .ca_owner = THIS_MODULE,
--		    .ca_name = "local",
--		    .ca_mode = S_IRUGO | S_IWUSR },
--	.show	= o2nm_node_local_read,
--	.store	= o2nm_node_local_write,
--};
-+CONFIGFS_ATTR(o2nm_node_, num);
-+CONFIGFS_ATTR(o2nm_node_, ipv4_port);
-+CONFIGFS_ATTR(o2nm_node_, ipv4_address);
-+CONFIGFS_ATTR(o2nm_node_, local);
- 
- static struct configfs_attribute *o2nm_node_attrs[] = {
--	&o2nm_node_attr_num.attr,
--	&o2nm_node_attr_ipv4_port.attr,
--	&o2nm_node_attr_ipv4_address.attr,
--	&o2nm_node_attr_local.attr,
-+	&o2nm_node_attr_num,
-+	&o2nm_node_attr_ipv4_port,
-+	&o2nm_node_attr_ipv4_address,
-+	&o2nm_node_attr_local,
- 	NULL,
- };
- 
--static ssize_t o2nm_node_show(struct config_item *item,
--			      struct configfs_attribute *attr,
--			      char *page)
+-/*
+- * 03-group-children
+- *
+- * This example reuses the simple_children group from above.  However,
+- * the simple_children group is not the subsystem itself, it is a
+- * child of the subsystem.  Creation of a group in the subsystem creates
+- * a new simple_children group.  That group can then have simple_child
+- * children of its own.
+- */
+-
+-static struct config_group *group_children_make_group(struct config_group *group, const char *name)
 -{
--	struct o2nm_node *node = to_o2nm_node(item);
--	struct o2nm_node_attribute *o2nm_node_attr =
--		container_of(attr, struct o2nm_node_attribute, attr);
--	ssize_t ret = 0;
+-	struct simple_children *simple_children;
 -
--	if (o2nm_node_attr->show)
--		ret = o2nm_node_attr->show(node, page);
--	return ret;
+-	simple_children = kzalloc(sizeof(struct simple_children),
+-				  GFP_KERNEL);
+-	if (!simple_children)
+-		return ERR_PTR(-ENOMEM);
+-
+-	config_group_init_type_name(&simple_children->group, name,
+-				    &simple_children_type);
+-
+-	return &simple_children->group;
 -}
 -
--static ssize_t o2nm_node_store(struct config_item *item,
--			       struct configfs_attribute *attr,
--			       const char *page, size_t count)
+-static struct configfs_attribute group_children_attr_description = {
+-	.ca_owner = THIS_MODULE,
+-	.ca_name = "description",
+-	.ca_mode = S_IRUGO,
+-};
+-
+-static struct configfs_attribute *group_children_attrs[] = {
+-	&group_children_attr_description,
+-	NULL,
+-};
+-
+-static ssize_t group_children_attr_show(struct config_item *item,
+-					struct configfs_attribute *attr,
+-					char *page)
 -{
--	struct o2nm_node *node = to_o2nm_node(item);
--	struct o2nm_node_attribute *o2nm_node_attr =
--		container_of(attr, struct o2nm_node_attribute, attr);
--
--	if (o2nm_node_attr->store == NULL)
--		return -EINVAL;
--
--	return o2nm_node_attr->store(node, page, count);
+-	return sprintf(page,
+-"[03-group-children]\n"
+-"\n"
+-"This subsystem allows the creation of child config_groups.  These\n"
+-"groups are like the subsystem simple-children.\n");
 -}
 -
- static struct configfs_item_operations o2nm_node_item_ops = {
- 	.release		= o2nm_node_release,
--	.show_attribute		= o2nm_node_show,
--	.store_attribute	= o2nm_node_store,
- };
- 
- static struct config_item_type o2nm_node_type = {
-@@ -459,12 +400,6 @@ static struct o2nm_node_group *to_o2nm_node_group(struct config_group *group)
- }
- #endif
- 
--struct o2nm_cluster_attribute {
--	struct configfs_attribute attr;
--	ssize_t (*show)(struct o2nm_cluster *, char *);
--	ssize_t (*store)(struct o2nm_cluster *, const char *, size_t);
+-static struct configfs_item_operations group_children_item_ops = {
+-	.show_attribute	= group_children_attr_show,
 -};
 -
- static ssize_t o2nm_cluster_attr_write(const char *page, ssize_t count,
-                                        unsigned int *val)
- {
-@@ -485,15 +420,16 @@ static ssize_t o2nm_cluster_attr_write(const char *page, ssize_t count,
- 	return count;
- }
- 
--static ssize_t o2nm_cluster_attr_idle_timeout_ms_read(
--	struct o2nm_cluster *cluster, char *page)
-+static ssize_t o2nm_cluster_idle_timeout_ms_show(struct config_item *item,
-+	char *page)
- {
--	return sprintf(page, "%u\n", cluster->cl_idle_timeout_ms);
-+	return sprintf(page, "%u\n", to_o2nm_cluster(item)->cl_idle_timeout_ms);
- }
- 
--static ssize_t o2nm_cluster_attr_idle_timeout_ms_write(
--	struct o2nm_cluster *cluster, const char *page, size_t count)
-+static ssize_t o2nm_cluster_idle_timeout_ms_store(struct config_item *item,
-+	const char *page, size_t count)
- {
-+	struct o2nm_cluster *cluster = to_o2nm_cluster(item);
- 	ssize_t ret;
- 	unsigned int val;
- 
-@@ -520,15 +456,17 @@ static ssize_t o2nm_cluster_attr_idle_timeout_ms_write(
- 	return ret;
- }
- 
--static ssize_t o2nm_cluster_attr_keepalive_delay_ms_read(
--	struct o2nm_cluster *cluster, char *page)
-+static ssize_t o2nm_cluster_keepalive_delay_ms_show(
-+	struct config_item *item, char *page)
- {
--	return sprintf(page, "%u\n", cluster->cl_keepalive_delay_ms);
-+	return sprintf(page, "%u\n",
-+			to_o2nm_cluster(item)->cl_keepalive_delay_ms);
- }
- 
--static ssize_t o2nm_cluster_attr_keepalive_delay_ms_write(
--	struct o2nm_cluster *cluster, const char *page, size_t count)
-+static ssize_t o2nm_cluster_keepalive_delay_ms_store(
-+	struct config_item *item, const char *page, size_t count)
- {
-+	struct o2nm_cluster *cluster = to_o2nm_cluster(item);
- 	ssize_t ret;
- 	unsigned int val;
- 
-@@ -555,22 +493,24 @@ static ssize_t o2nm_cluster_attr_keepalive_delay_ms_write(
- 	return ret;
- }
- 
--static ssize_t o2nm_cluster_attr_reconnect_delay_ms_read(
--	struct o2nm_cluster *cluster, char *page)
-+static ssize_t o2nm_cluster_reconnect_delay_ms_show(
-+	struct config_item *item, char *page)
- {
--	return sprintf(page, "%u\n", cluster->cl_reconnect_delay_ms);
-+	return sprintf(page, "%u\n",
-+			to_o2nm_cluster(item)->cl_reconnect_delay_ms);
- }
- 
--static ssize_t o2nm_cluster_attr_reconnect_delay_ms_write(
--	struct o2nm_cluster *cluster, const char *page, size_t count)
-+static ssize_t o2nm_cluster_reconnect_delay_ms_store(
-+	struct config_item *item, const char *page, size_t count)
- {
- 	return o2nm_cluster_attr_write(page, count,
--	                               &cluster->cl_reconnect_delay_ms);
-+                               &to_o2nm_cluster(item)->cl_reconnect_delay_ms);
- }
- 
--static ssize_t o2nm_cluster_attr_fence_method_read(
--	struct o2nm_cluster *cluster, char *page)
-+static ssize_t o2nm_cluster_fence_method_show(
-+	struct config_item *item, char *page)
- {
-+	struct o2nm_cluster *cluster = to_o2nm_cluster(item);
- 	ssize_t ret = 0;
- 
- 	if (cluster)
-@@ -579,8 +519,8 @@ static ssize_t o2nm_cluster_attr_fence_method_read(
- 	return ret;
- }
- 
--static ssize_t o2nm_cluster_attr_fence_method_write(
--	struct o2nm_cluster *cluster, const char *page, size_t count)
-+static ssize_t o2nm_cluster_fence_method_store(
-+	struct config_item *item, const char *page, size_t count)
- {
- 	unsigned int i;
- 
-@@ -592,10 +532,10 @@ static ssize_t o2nm_cluster_attr_fence_method_write(
- 			continue;
- 		if (strncasecmp(page, o2nm_fence_method_desc[i], count - 1))
- 			continue;
--		if (cluster->cl_fence_method != i) {
-+		if (to_o2nm_cluster(item)->cl_fence_method != i) {
- 			printk(KERN_INFO "ocfs2: Changing fence method to %s\n",
- 			       o2nm_fence_method_desc[i]);
--			cluster->cl_fence_method = i;
-+			to_o2nm_cluster(item)->cl_fence_method = i;
- 		}
- 		return count;
- 	}
-@@ -604,79 +544,18 @@ bail:
- 	return -EINVAL;
- }
- 
--static struct o2nm_cluster_attribute o2nm_cluster_attr_idle_timeout_ms = {
--	.attr	= { .ca_owner = THIS_MODULE,
--		    .ca_name = "idle_timeout_ms",
--		    .ca_mode = S_IRUGO | S_IWUSR },
--	.show	= o2nm_cluster_attr_idle_timeout_ms_read,
--	.store	= o2nm_cluster_attr_idle_timeout_ms_write,
+-/*
+- * Note that, since no extra work is required on ->drop_item(),
+- * no ->drop_item() is provided.
+- */
+-static struct configfs_group_operations group_children_group_ops = {
+-	.make_group	= group_children_make_group,
 -};
 -
--static struct o2nm_cluster_attribute o2nm_cluster_attr_keepalive_delay_ms = {
--	.attr	= { .ca_owner = THIS_MODULE,
--		    .ca_name = "keepalive_delay_ms",
--		    .ca_mode = S_IRUGO | S_IWUSR },
--	.show	= o2nm_cluster_attr_keepalive_delay_ms_read,
--	.store	= o2nm_cluster_attr_keepalive_delay_ms_write,
+-static struct config_item_type group_children_type = {
+-	.ct_item_ops	= &group_children_item_ops,
+-	.ct_group_ops	= &group_children_group_ops,
+-	.ct_attrs	= group_children_attrs,
+-	.ct_owner	= THIS_MODULE,
 -};
 -
--static struct o2nm_cluster_attribute o2nm_cluster_attr_reconnect_delay_ms = {
--	.attr	= { .ca_owner = THIS_MODULE,
--		    .ca_name = "reconnect_delay_ms",
--		    .ca_mode = S_IRUGO | S_IWUSR },
--	.show	= o2nm_cluster_attr_reconnect_delay_ms_read,
--	.store	= o2nm_cluster_attr_reconnect_delay_ms_write,
+-static struct configfs_subsystem group_children_subsys = {
+-	.su_group = {
+-		.cg_item = {
+-			.ci_namebuf = "03-group-children",
+-			.ci_type = &group_children_type,
+-		},
+-	},
 -};
 -
--static struct o2nm_cluster_attribute o2nm_cluster_attr_fence_method = {
--	.attr	= { .ca_owner = THIS_MODULE,
--		    .ca_name = "fence_method",
--		    .ca_mode = S_IRUGO | S_IWUSR },
--	.show	= o2nm_cluster_attr_fence_method_read,
--	.store	= o2nm_cluster_attr_fence_method_write,
+-/* ----------------------------------------------------------------- */
+-
+-/*
+- * We're now done with our subsystem definitions.
+- * For convenience in this module, here's a list of them all.  It
+- * allows the init function to easily register them.  Most modules
+- * will only have one subsystem, and will only call register_subsystem
+- * on it directly.
+- */
+-static struct configfs_subsystem *example_subsys[] = {
+-	&childless_subsys.subsys,
+-	&simple_children_subsys,
+-	&group_children_subsys,
+-	NULL,
 -};
-+CONFIGFS_ATTR(o2nm_cluster_, idle_timeout_ms);
-+CONFIGFS_ATTR(o2nm_cluster_, keepalive_delay_ms);
-+CONFIGFS_ATTR(o2nm_cluster_, reconnect_delay_ms);
-+CONFIGFS_ATTR(o2nm_cluster_, fence_method);
- 
- static struct configfs_attribute *o2nm_cluster_attrs[] = {
--	&o2nm_cluster_attr_idle_timeout_ms.attr,
--	&o2nm_cluster_attr_keepalive_delay_ms.attr,
--	&o2nm_cluster_attr_reconnect_delay_ms.attr,
--	&o2nm_cluster_attr_fence_method.attr,
-+	&o2nm_cluster_attr_idle_timeout_ms,
-+	&o2nm_cluster_attr_keepalive_delay_ms,
-+	&o2nm_cluster_attr_reconnect_delay_ms,
-+	&o2nm_cluster_attr_fence_method,
- 	NULL,
- };
--static ssize_t o2nm_cluster_show(struct config_item *item,
--                                 struct configfs_attribute *attr,
--                                 char *page)
+-
+-static int __init configfs_example_init(void)
 -{
--	struct o2nm_cluster *cluster = to_o2nm_cluster(item);
--	struct o2nm_cluster_attribute *o2nm_cluster_attr =
--		container_of(attr, struct o2nm_cluster_attribute, attr);
--	ssize_t ret = 0;
+-	int ret;
+-	int i;
+-	struct configfs_subsystem *subsys;
 -
--	if (o2nm_cluster_attr->show)
--		ret = o2nm_cluster_attr->show(cluster, page);
--	return ret;
--}
+-	for (i = 0; example_subsys[i]; i++) {
+-		subsys = example_subsys[i];
 -
--static ssize_t o2nm_cluster_store(struct config_item *item,
--                                  struct configfs_attribute *attr,
--                                  const char *page, size_t count)
--{
--	struct o2nm_cluster *cluster = to_o2nm_cluster(item);
--	struct o2nm_cluster_attribute *o2nm_cluster_attr =
--		container_of(attr, struct o2nm_cluster_attribute, attr);
--	ssize_t ret;
--
--	if (o2nm_cluster_attr->store == NULL) {
--		ret = -EINVAL;
--		goto out;
+-		config_group_init(&subsys->su_group);
+-		mutex_init(&subsys->su_mutex);
+-		ret = configfs_register_subsystem(subsys);
+-		if (ret) {
+-			printk(KERN_ERR "Error %d while registering subsystem %s\n",
+-			       ret,
+-			       subsys->su_group.cg_item.ci_namebuf);
+-			goto out_unregister;
+-		}
 -	}
 -
--	ret = o2nm_cluster_attr->store(cluster, page, count);
--	if (ret < count)
--		goto out;
--out:
+-	return 0;
+-
+-out_unregister:
+-	for (i--; i >= 0; i--)
+-		configfs_unregister_subsystem(example_subsys[i]);
+-
 -	return ret;
 -}
+-
+-static void __exit configfs_example_exit(void)
+-{
+-	int i;
+-
+-	for (i = 0; example_subsys[i]; i++)
+-		configfs_unregister_subsystem(example_subsys[i]);
+-}
+-
+-module_init(configfs_example_init);
+-module_exit(configfs_example_exit);
+-MODULE_LICENSE("GPL");
+diff --git a/Documentation/filesystems/configfs/configfs_example_macros.c b/Documentation/filesystems/configfs/configfs_example_macros.c
+deleted file mode 100644
+index 327dfbc..0000000
+--- a/Documentation/filesystems/configfs/configfs_example_macros.c
++++ /dev/null
+@@ -1,446 +0,0 @@
+-/*
+- * vim: noexpandtab ts=8 sts=0 sw=8:
+- *
+- * configfs_example_macros.c - This file is a demonstration module
+- *      containing a number of configfs subsystems.  It uses the helper
+- *      macros defined by configfs.h
+- *
+- * This program is free software; you can redistribute it and/or
+- * modify it under the terms of the GNU General Public
+- * License as published by the Free Software Foundation; either
+- * version 2 of the License, or (at your option) any later version.
+- *
+- * This program is distributed in the hope that it will be useful,
+- * but WITHOUT ANY WARRANTY; without even the implied warranty of
+- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+- * General Public License for more details.
+- *
+- * You should have received a copy of the GNU General Public
+- * License along with this program; if not, write to the
+- * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+- * Boston, MA 021110-1307, USA.
+- *
+- * Based on sysfs:
+- * 	sysfs is Copyright (C) 2001, 2002, 2003 Patrick Mochel
+- *
+- * configfs Copyright (C) 2005 Oracle.  All rights reserved.
+- */
+-
+-#include <linux/init.h>
+-#include <linux/module.h>
+-#include <linux/slab.h>
+-
+-#include <linux/configfs.h>
+-
+-
+-
+-/*
+- * 01-childless
+- *
+- * This first example is a childless subsystem.  It cannot create
+- * any config_items.  It just has attributes.
+- *
+- * Note that we are enclosing the configfs_subsystem inside a container.
+- * This is not necessary if a subsystem has no attributes directly
+- * on the subsystem.  See the next example, 02-simple-children, for
+- * such a subsystem.
+- */
+-
+-struct childless {
+-	struct configfs_subsystem subsys;
+-	int showme;
+-	int storeme;
+-};
+-
+-static inline struct childless *to_childless(struct config_item *item)
+-{
+-	return item ? container_of(to_configfs_subsystem(to_config_group(item)), struct childless, subsys) : NULL;
+-}
+-
+-CONFIGFS_ATTR_STRUCT(childless);
+-#define CHILDLESS_ATTR(_name, _mode, _show, _store)	\
+-struct childless_attribute childless_attr_##_name = __CONFIGFS_ATTR(_name, _mode, _show, _store)
+-#define CHILDLESS_ATTR_RO(_name, _show)	\
+-struct childless_attribute childless_attr_##_name = __CONFIGFS_ATTR_RO(_name, _show);
+-
+-static ssize_t childless_showme_read(struct childless *childless,
+-				     char *page)
+-{
+-	ssize_t pos;
+-
+-	pos = sprintf(page, "%d\n", childless->showme);
+-	childless->showme++;
+-
+-	return pos;
+-}
+-
+-static ssize_t childless_storeme_read(struct childless *childless,
+-				      char *page)
+-{
+-	return sprintf(page, "%d\n", childless->storeme);
+-}
+-
+-static ssize_t childless_storeme_write(struct childless *childless,
+-				       const char *page,
+-				       size_t count)
+-{
+-	unsigned long tmp;
+-	char *p = (char *) page;
+-
+-	tmp = simple_strtoul(p, &p, 10);
+-	if (!p || (*p && (*p != '\n')))
+-		return -EINVAL;
+-
+-	if (tmp > INT_MAX)
+-		return -ERANGE;
+-
+-	childless->storeme = tmp;
+-
+-	return count;
+-}
+-
+-static ssize_t childless_description_read(struct childless *childless,
+-					  char *page)
+-{
+-	return sprintf(page,
+-"[01-childless]\n"
+-"\n"
+-"The childless subsystem is the simplest possible subsystem in\n"
+-"configfs.  It does not support the creation of child config_items.\n"
+-"It only has a few attributes.  In fact, it isn't much different\n"
+-"than a directory in /proc.\n");
+-}
+-
+-CHILDLESS_ATTR_RO(showme, childless_showme_read);
+-CHILDLESS_ATTR(storeme, S_IRUGO | S_IWUSR, childless_storeme_read,
+-	       childless_storeme_write);
+-CHILDLESS_ATTR_RO(description, childless_description_read);
+-
+-static struct configfs_attribute *childless_attrs[] = {
+-	&childless_attr_showme.attr,
+-	&childless_attr_storeme.attr,
+-	&childless_attr_description.attr,
+-	NULL,
+-};
+-
+-CONFIGFS_ATTR_OPS(childless);
+-static struct configfs_item_operations childless_item_ops = {
+-	.show_attribute		= childless_attr_show,
+-	.store_attribute	= childless_attr_store,
+-};
+-
+-static struct config_item_type childless_type = {
+-	.ct_item_ops	= &childless_item_ops,
+-	.ct_attrs	= childless_attrs,
+-	.ct_owner	= THIS_MODULE,
+-};
+-
+-static struct childless childless_subsys = {
+-	.subsys = {
+-		.su_group = {
+-			.cg_item = {
+-				.ci_namebuf = "01-childless",
+-				.ci_type = &childless_type,
+-			},
+-		},
+-	},
+-};
+-
+-
+-/* ----------------------------------------------------------------- */
+-
+-/*
+- * 02-simple-children
+- *
+- * This example merely has a simple one-attribute child.  Note that
+- * there is no extra attribute structure, as the child's attribute is
+- * known from the get-go.  Also, there is no container for the
+- * subsystem, as it has no attributes of its own.
+- */
+-
+-struct simple_child {
+-	struct config_item item;
+-	int storeme;
+-};
+-
+-static inline struct simple_child *to_simple_child(struct config_item *item)
+-{
+-	return item ? container_of(item, struct simple_child, item) : NULL;
+-}
+-
+-static struct configfs_attribute simple_child_attr_storeme = {
+-	.ca_owner = THIS_MODULE,
+-	.ca_name = "storeme",
+-	.ca_mode = S_IRUGO | S_IWUSR,
+-};
+-
+-static struct configfs_attribute *simple_child_attrs[] = {
+-	&simple_child_attr_storeme,
+-	NULL,
+-};
+-
+-static ssize_t simple_child_attr_show(struct config_item *item,
+-				      struct configfs_attribute *attr,
+-				      char *page)
+-{
+-	ssize_t count;
+-	struct simple_child *simple_child = to_simple_child(item);
+-
+-	count = sprintf(page, "%d\n", simple_child->storeme);
+-
+-	return count;
+-}
+-
+-static ssize_t simple_child_attr_store(struct config_item *item,
+-				       struct configfs_attribute *attr,
+-				       const char *page, size_t count)
+-{
+-	struct simple_child *simple_child = to_simple_child(item);
+-	unsigned long tmp;
+-	char *p = (char *) page;
+-
+-	tmp = simple_strtoul(p, &p, 10);
+-	if (!p || (*p && (*p != '\n')))
+-		return -EINVAL;
+-
+-	if (tmp > INT_MAX)
+-		return -ERANGE;
+-
+-	simple_child->storeme = tmp;
+-
+-	return count;
+-}
+-
+-static void simple_child_release(struct config_item *item)
+-{
+-	kfree(to_simple_child(item));
+-}
+-
+-static struct configfs_item_operations simple_child_item_ops = {
+-	.release		= simple_child_release,
+-	.show_attribute		= simple_child_attr_show,
+-	.store_attribute	= simple_child_attr_store,
+-};
+-
+-static struct config_item_type simple_child_type = {
+-	.ct_item_ops	= &simple_child_item_ops,
+-	.ct_attrs	= simple_child_attrs,
+-	.ct_owner	= THIS_MODULE,
+-};
+-
+-
+-struct simple_children {
+-	struct config_group group;
+-};
+-
+-static inline struct simple_children *to_simple_children(struct config_item *item)
+-{
+-	return item ? container_of(to_config_group(item), struct simple_children, group) : NULL;
+-}
+-
+-static struct config_item *simple_children_make_item(struct config_group *group, const char *name)
+-{
+-	struct simple_child *simple_child;
+-
+-	simple_child = kzalloc(sizeof(struct simple_child), GFP_KERNEL);
+-	if (!simple_child)
+-		return ERR_PTR(-ENOMEM);
+-
+-	config_item_init_type_name(&simple_child->item, name,
+-				   &simple_child_type);
+-
+-	simple_child->storeme = 0;
+-
+-	return &simple_child->item;
+-}
+-
+-static struct configfs_attribute simple_children_attr_description = {
+-	.ca_owner = THIS_MODULE,
+-	.ca_name = "description",
+-	.ca_mode = S_IRUGO,
+-};
+-
+-static struct configfs_attribute *simple_children_attrs[] = {
+-	&simple_children_attr_description,
+-	NULL,
+-};
+-
+-static ssize_t simple_children_attr_show(struct config_item *item,
+-					 struct configfs_attribute *attr,
+-					 char *page)
+-{
+-	return sprintf(page,
+-"[02-simple-children]\n"
+-"\n"
+-"This subsystem allows the creation of child config_items.  These\n"
+-"items have only one attribute that is readable and writeable.\n");
+-}
+-
+-static void simple_children_release(struct config_item *item)
+-{
+-	kfree(to_simple_children(item));
+-}
+-
+-static struct configfs_item_operations simple_children_item_ops = {
+-	.release	= simple_children_release,
+-	.show_attribute	= simple_children_attr_show,
+-};
+-
+-/*
+- * Note that, since no extra work is required on ->drop_item(),
+- * no ->drop_item() is provided.
+- */
+-static struct configfs_group_operations simple_children_group_ops = {
+-	.make_item	= simple_children_make_item,
+-};
+-
+-static struct config_item_type simple_children_type = {
+-	.ct_item_ops	= &simple_children_item_ops,
+-	.ct_group_ops	= &simple_children_group_ops,
+-	.ct_attrs	= simple_children_attrs,
+-	.ct_owner	= THIS_MODULE,
+-};
+-
+-static struct configfs_subsystem simple_children_subsys = {
+-	.su_group = {
+-		.cg_item = {
+-			.ci_namebuf = "02-simple-children",
+-			.ci_type = &simple_children_type,
+-		},
+-	},
+-};
+-
+-
+-/* ----------------------------------------------------------------- */
+-
+-/*
+- * 03-group-children
+- *
+- * This example reuses the simple_children group from above.  However,
+- * the simple_children group is not the subsystem itself, it is a
+- * child of the subsystem.  Creation of a group in the subsystem creates
+- * a new simple_children group.  That group can then have simple_child
+- * children of its own.
+- */
+-
+-static struct config_group *group_children_make_group(struct config_group *group, const char *name)
+-{
+-	struct simple_children *simple_children;
+-
+-	simple_children = kzalloc(sizeof(struct simple_children),
+-				  GFP_KERNEL);
+-	if (!simple_children)
+-		return ERR_PTR(-ENOMEM);
+-
+-	config_group_init_type_name(&simple_children->group, name,
+-				    &simple_children_type);
+-
+-	return &simple_children->group;
+-}
+-
+-static struct configfs_attribute group_children_attr_description = {
+-	.ca_owner = THIS_MODULE,
+-	.ca_name = "description",
+-	.ca_mode = S_IRUGO,
+-};
+-
+-static struct configfs_attribute *group_children_attrs[] = {
+-	&group_children_attr_description,
+-	NULL,
+-};
+-
+-static ssize_t group_children_attr_show(struct config_item *item,
+-					struct configfs_attribute *attr,
+-					char *page)
+-{
+-	return sprintf(page,
+-"[03-group-children]\n"
+-"\n"
+-"This subsystem allows the creation of child config_groups.  These\n"
+-"groups are like the subsystem simple-children.\n");
+-}
+-
+-static struct configfs_item_operations group_children_item_ops = {
+-	.show_attribute	= group_children_attr_show,
+-};
+-
+-/*
+- * Note that, since no extra work is required on ->drop_item(),
+- * no ->drop_item() is provided.
+- */
+-static struct configfs_group_operations group_children_group_ops = {
+-	.make_group	= group_children_make_group,
+-};
+-
+-static struct config_item_type group_children_type = {
+-	.ct_item_ops	= &group_children_item_ops,
+-	.ct_group_ops	= &group_children_group_ops,
+-	.ct_attrs	= group_children_attrs,
+-	.ct_owner	= THIS_MODULE,
+-};
+-
+-static struct configfs_subsystem group_children_subsys = {
+-	.su_group = {
+-		.cg_item = {
+-			.ci_namebuf = "03-group-children",
+-			.ci_type = &group_children_type,
+-		},
+-	},
+-};
+-
+-/* ----------------------------------------------------------------- */
+-
+-/*
+- * We're now done with our subsystem definitions.
+- * For convenience in this module, here's a list of them all.  It
+- * allows the init function to easily register them.  Most modules
+- * will only have one subsystem, and will only call register_subsystem
+- * on it directly.
+- */
+-static struct configfs_subsystem *example_subsys[] = {
+-	&childless_subsys.subsys,
+-	&simple_children_subsys,
+-	&group_children_subsys,
+-	NULL,
+-};
+-
+-static int __init configfs_example_init(void)
+-{
+-	int ret;
+-	int i;
+-	struct configfs_subsystem *subsys;
+-
+-	for (i = 0; example_subsys[i]; i++) {
+-		subsys = example_subsys[i];
+-
+-		config_group_init(&subsys->su_group);
+-		mutex_init(&subsys->su_mutex);
+-		ret = configfs_register_subsystem(subsys);
+-		if (ret) {
+-			printk(KERN_ERR "Error %d while registering subsystem %s\n",
+-			       ret,
+-			       subsys->su_group.cg_item.ci_namebuf);
+-			goto out_unregister;
+-		}
+-	}
+-
+-	return 0;
+-
+-out_unregister:
+-	for (i--; i >= 0; i--)
+-		configfs_unregister_subsystem(example_subsys[i]);
+-
+-	return ret;
+-}
+-
+-static void __exit configfs_example_exit(void)
+-{
+-	int i;
+-
+-	for (i = 0; example_subsys[i]; i++)
+-		configfs_unregister_subsystem(example_subsys[i]);
+-}
+-
+-module_init(configfs_example_init);
+-module_exit(configfs_example_exit);
+-MODULE_LICENSE("GPL");
+diff --git a/fs/configfs/file.c b/fs/configfs/file.c
+index 106ca58..d39099e 100644
+--- a/fs/configfs/file.c
++++ b/fs/configfs/file.c
+@@ -65,7 +65,6 @@ static int fill_read_buffer(struct dentry * dentry, struct configfs_buffer * buf
+ {
+ 	struct configfs_attribute * attr = to_attr(dentry);
+ 	struct config_item * item = to_item(dentry->d_parent);
+-	struct configfs_item_operations * ops = buffer->ops;
+ 	int ret = 0;
+ 	ssize_t count;
  
- static struct config_item *o2nm_node_group_make_item(struct config_group *group,
- 						     const char *name)
-@@ -757,8 +636,6 @@ static void o2nm_cluster_release(struct config_item *item)
+@@ -74,10 +73,7 @@ static int fill_read_buffer(struct dentry * dentry, struct configfs_buffer * buf
+ 	if (!buffer->page)
+ 		return -ENOMEM;
  
- static struct configfs_item_operations o2nm_cluster_item_ops = {
- 	.release	= o2nm_cluster_release,
--	.show_attribute		= o2nm_cluster_show,
--	.store_attribute	= o2nm_cluster_store,
+-	if (ops->show_attribute)
+-		count = ops->show_attribute(item, attr, buffer->page);
+-	else
+-		count = attr->show(item, buffer->page);
++	count = attr->show(item, buffer->page);
+ 
+ 	buffer->needs_read_fill = 0;
+ 	BUG_ON(count > (ssize_t)SIMPLE_ATTR_SIZE);
+@@ -175,10 +171,7 @@ flush_write_buffer(struct dentry * dentry, struct configfs_buffer * buffer, size
+ {
+ 	struct configfs_attribute * attr = to_attr(dentry);
+ 	struct config_item * item = to_item(dentry->d_parent);
+-	struct configfs_item_operations * ops = buffer->ops;
+ 
+-	if (ops->store_attribute)
+-		return ops->store_attribute(item, attr, buffer->page, count);
+ 	return attr->store(item, buffer->page, count);
+ }
+ 
+@@ -243,8 +236,7 @@ static int check_perm(struct inode * inode, struct file * file)
+ 	 * and we must have a store method.
+ 	 */
+ 	if (file->f_mode & FMODE_WRITE) {
+-		if (!(inode->i_mode & S_IWUGO) ||
+-		    (!ops->store_attribute && !attr->store))
++		if (!(inode->i_mode & S_IWUGO) || !attr->store)
+ 			goto Eaccess;
+ 
+ 	}
+@@ -254,8 +246,7 @@ static int check_perm(struct inode * inode, struct file * file)
+ 	 * must be a show method for it.
+ 	 */
+ 	if (file->f_mode & FMODE_READ) {
+-		if (!(inode->i_mode & S_IRUGO) ||
+-		    (!ops->show_attribute && !attr->show))
++		if (!(inode->i_mode & S_IRUGO) || !attr->show)
+ 			goto Eaccess;
+ 	}
+ 
+diff --git a/include/linux/configfs.h b/include/linux/configfs.h
+index 85e9956..a8a335b 100644
+--- a/include/linux/configfs.h
++++ b/include/linux/configfs.h
+@@ -155,86 +155,6 @@ static struct configfs_attribute _pfx##attr_##_name = {	\
+ }
+ 
+ /*
+- * Users often need to create attribute structures for their configurable
+- * attributes, containing a configfs_attribute member and function pointers
+- * for the show() and store() operations on that attribute. If they don't
+- * need anything else on the extended attribute structure, they can use
+- * this macro to define it  The argument _item is the name of the
+- * config_item structure.
+- */
+-#define CONFIGFS_ATTR_STRUCT(_item)					\
+-struct _item##_attribute {						\
+-	struct configfs_attribute attr;					\
+-	ssize_t (*show)(struct _item *, char *);			\
+-	ssize_t (*store)(struct _item *, const char *, size_t);		\
+-}
+-
+-/*
+- * With the extended attribute structure, users can use this macro
+- * (similar to sysfs' __ATTR) to make defining attributes easier.
+- * An example:
+- * #define MYITEM_ATTR(_name, _mode, _show, _store)	\
+- * struct myitem_attribute childless_attr_##_name =	\
+- *         __CONFIGFS_ATTR(_name, _mode, _show, _store)
+- */
+-#define __CONFIGFS_ATTR(_name, _mode, _show, _store)			\
+-{									\
+-	.attr	= {							\
+-			.ca_name = __stringify(_name),			\
+-			.ca_mode = _mode,				\
+-			.ca_owner = THIS_MODULE,			\
+-	},								\
+-	.show	= _show,						\
+-	.store	= _store,						\
+-}
+-/* Here is a readonly version, only requiring a show() operation */
+-#define __CONFIGFS_ATTR_RO(_name, _show)				\
+-{									\
+-	.attr	= {							\
+-			.ca_name = __stringify(_name),			\
+-			.ca_mode = 0444,				\
+-			.ca_owner = THIS_MODULE,			\
+-	},								\
+-	.show	= _show,						\
+-}
+-
+-/*
+- * With these extended attributes, the simple show_attribute() and
+- * store_attribute() operations need to call the show() and store() of the
+- * attributes.  This is a common pattern, so we provide a macro to define
+- * them.  The argument _item is the name of the config_item structure.
+- * This macro expects the attributes to be named "struct <name>_attribute"
+- * and the function to_<name>() to exist;
+- */
+-#define CONFIGFS_ATTR_OPS(_item)					\
+-static ssize_t _item##_attr_show(struct config_item *item,		\
+-				 struct configfs_attribute *attr,	\
+-				 char *page)				\
+-{									\
+-	struct _item *_item = to_##_item(item);				\
+-	struct _item##_attribute *_item##_attr =			\
+-		container_of(attr, struct _item##_attribute, attr);	\
+-	ssize_t ret = 0;						\
+-									\
+-	if (_item##_attr->show)						\
+-		ret = _item##_attr->show(_item, page);			\
+-	return ret;							\
+-}									\
+-static ssize_t _item##_attr_store(struct config_item *item,		\
+-				  struct configfs_attribute *attr,	\
+-				  const char *page, size_t count)	\
+-{									\
+-	struct _item *_item = to_##_item(item);				\
+-	struct _item##_attribute *_item##_attr =			\
+-		container_of(attr, struct _item##_attribute, attr);	\
+-	ssize_t ret = -EINVAL;						\
+-									\
+-	if (_item##_attr->store)					\
+-		ret = _item##_attr->store(_item, page, count);		\
+-	return ret;							\
+-}
+-
+-/*
+  * If allow_link() exists, the item can symlink(2) out to other
+  * items.  If the item is a group, it may support mkdir(2).
+  * Groups supply one of make_group() and make_item().  If the
+@@ -250,8 +170,6 @@ static ssize_t _item##_attr_store(struct config_item *item,		\
+  */
+ struct configfs_item_operations {
+ 	void (*release)(struct config_item *);
+-	ssize_t	(*show_attribute)(struct config_item *, struct configfs_attribute *,char *);
+-	ssize_t	(*store_attribute)(struct config_item *,struct configfs_attribute *,const char *, size_t);
+ 	int (*allow_link)(struct config_item *src, struct config_item *target);
+ 	int (*drop_link)(struct config_item *src, struct config_item *target);
  };
+diff --git a/samples/Makefile b/samples/Makefile
+index f00257b..48001d7 100644
+--- a/samples/Makefile
++++ b/samples/Makefile
+@@ -1,4 +1,5 @@
+ # Makefile for Linux samples code
  
- static struct config_item_type o2nm_cluster_type = {
+ obj-$(CONFIG_SAMPLES)	+= kobject/ kprobes/ trace_events/ livepatch/ \
+-			   hw_breakpoint/ kfifo/ kdb/ hidraw/ rpmsg/ seccomp/
++			   hw_breakpoint/ kfifo/ kdb/ hidraw/ rpmsg/ seccomp/ \
++			   configfs/
+diff --git a/samples/configfs/Makefile b/samples/configfs/Makefile
+new file mode 100644
+index 0000000..4d3c8b6
+--- /dev/null
++++ b/samples/configfs/Makefile
+@@ -0,0 +1,2 @@
++
++obj-m += configfs_sample.o
+diff --git a/samples/configfs/configfs_sample.c b/samples/configfs/configfs_sample.c
+new file mode 100644
+index 0000000..1ea3311
+--- /dev/null
++++ b/samples/configfs/configfs_sample.c
+@@ -0,0 +1,404 @@
++/*
++ * vim: noexpandtab ts=8 sts=0 sw=8:
++ *
++ * configfs_example_macros.c - This file is a demonstration module
++ *      containing a number of configfs subsystems.  It uses the helper
++ *      macros defined by configfs.h
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public
++ * License as published by the Free Software Foundation; either
++ * version 2 of the License, or (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++ * General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public
++ * License along with this program; if not, write to the
++ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
++ * Boston, MA 021110-1307, USA.
++ *
++ * Based on sysfs:
++ * 	sysfs is Copyright (C) 2001, 2002, 2003 Patrick Mochel
++ *
++ * configfs Copyright (C) 2005 Oracle.  All rights reserved.
++ */
++
++#include <linux/init.h>
++#include <linux/module.h>
++#include <linux/slab.h>
++
++#include <linux/configfs.h>
++
++
++
++/*
++ * 01-childless
++ *
++ * This first example is a childless subsystem.  It cannot create
++ * any config_items.  It just has attributes.
++ *
++ * Note that we are enclosing the configfs_subsystem inside a container.
++ * This is not necessary if a subsystem has no attributes directly
++ * on the subsystem.  See the next example, 02-simple-children, for
++ * such a subsystem.
++ */
++
++struct childless {
++	struct configfs_subsystem subsys;
++	int showme;
++	int storeme;
++};
++
++static inline struct childless *to_childless(struct config_item *item)
++{
++	return item ? container_of(to_configfs_subsystem(to_config_group(item)),
++			struct childless, subsys) : NULL;
++}
++
++static ssize_t childless_showme_show(struct config_item *item, char *page)
++{
++	struct childless *childless = to_childless(item);
++	ssize_t pos;
++
++	pos = sprintf(page, "%d\n", childless->showme);
++	childless->showme++;
++
++	return pos;
++}
++
++static ssize_t childless_storeme_show(struct config_item *item, char *page)
++{
++	return sprintf(page, "%d\n", to_childless(item)->storeme);
++}
++
++static ssize_t childless_storeme_store(struct config_item *item,
++		const char *page, size_t count)
++{
++	struct childless *childless = to_childless(item);
++	unsigned long tmp;
++	char *p = (char *) page;
++
++	tmp = simple_strtoul(p, &p, 10);
++	if (!p || (*p && (*p != '\n')))
++		return -EINVAL;
++
++	if (tmp > INT_MAX)
++		return -ERANGE;
++
++	childless->storeme = tmp;
++
++	return count;
++}
++
++static ssize_t childless_description_show(struct config_item *item, char *page)
++{
++	return sprintf(page,
++"[01-childless]\n"
++"\n"
++"The childless subsystem is the simplest possible subsystem in\n"
++"configfs.  It does not support the creation of child config_items.\n"
++"It only has a few attributes.  In fact, it isn't much different\n"
++"than a directory in /proc.\n");
++}
++
++CONFIGFS_ATTR_RO(childless_, showme);
++CONFIGFS_ATTR(childless_, storeme);
++CONFIGFS_ATTR_RO(childless_, description);
++
++static struct configfs_attribute *childless_attrs[] = {
++	&childless_attr_showme,
++	&childless_attr_storeme,
++	&childless_attr_description,
++	NULL,
++};
++
++static struct config_item_type childless_type = {
++	.ct_attrs	= childless_attrs,
++	.ct_owner	= THIS_MODULE,
++};
++
++static struct childless childless_subsys = {
++	.subsys = {
++		.su_group = {
++			.cg_item = {
++				.ci_namebuf = "01-childless",
++				.ci_type = &childless_type,
++			},
++		},
++	},
++};
++
++
++/* ----------------------------------------------------------------- */
++
++/*
++ * 02-simple-children
++ *
++ * This example merely has a simple one-attribute child.  Note that
++ * there is no extra attribute structure, as the child's attribute is
++ * known from the get-go.  Also, there is no container for the
++ * subsystem, as it has no attributes of its own.
++ */
++
++struct simple_child {
++	struct config_item item;
++	int storeme;
++};
++
++static inline struct simple_child *to_simple_child(struct config_item *item)
++{
++	return item ? container_of(item, struct simple_child, item) : NULL;
++}
++
++static ssize_t simple_child_storeme_show(struct config_item *item, char *page)
++{
++	return sprintf(page, "%d\n", to_simple_child(item)->storeme);
++}
++
++static ssize_t simple_child_storeme_store(struct config_item *item,
++		const char *page, size_t count)
++{
++	struct simple_child *simple_child = to_simple_child(item);
++	unsigned long tmp;
++	char *p = (char *) page;
++
++	tmp = simple_strtoul(p, &p, 10);
++	if (!p || (*p && (*p != '\n')))
++		return -EINVAL;
++
++	if (tmp > INT_MAX)
++		return -ERANGE;
++
++	simple_child->storeme = tmp;
++
++	return count;
++}
++
++CONFIGFS_ATTR(simple_child_, storeme);
++
++static struct configfs_attribute *simple_child_attrs[] = {
++	&simple_child_attr_storeme,
++	NULL,
++};
++
++static void simple_child_release(struct config_item *item)
++{
++	kfree(to_simple_child(item));
++}
++
++static struct configfs_item_operations simple_child_item_ops = {
++	.release		= simple_child_release,
++};
++
++static struct config_item_type simple_child_type = {
++	.ct_item_ops	= &simple_child_item_ops,
++	.ct_attrs	= simple_child_attrs,
++	.ct_owner	= THIS_MODULE,
++};
++
++
++struct simple_children {
++	struct config_group group;
++};
++
++static inline struct simple_children *to_simple_children(struct config_item *item)
++{
++	return item ? container_of(to_config_group(item),
++			struct simple_children, group) : NULL;
++}
++
++static struct config_item *simple_children_make_item(struct config_group *group,
++		const char *name)
++{
++	struct simple_child *simple_child;
++
++	simple_child = kzalloc(sizeof(struct simple_child), GFP_KERNEL);
++	if (!simple_child)
++		return ERR_PTR(-ENOMEM);
++
++	config_item_init_type_name(&simple_child->item, name,
++				   &simple_child_type);
++
++	simple_child->storeme = 0;
++
++	return &simple_child->item;
++}
++
++static ssize_t simple_children_description_show(struct config_item *item,
++		char *page)
++{
++	return sprintf(page,
++"[02-simple-children]\n"
++"\n"
++"This subsystem allows the creation of child config_items.  These\n"
++"items have only one attribute that is readable and writeable.\n");
++}
++
++CONFIGFS_ATTR_RO(simple_children_, description);
++
++static struct configfs_attribute *simple_children_attrs[] = {
++	&simple_children_attr_description,
++	NULL,
++};
++
++static void simple_children_release(struct config_item *item)
++{
++	kfree(to_simple_children(item));
++}
++
++static struct configfs_item_operations simple_children_item_ops = {
++	.release	= simple_children_release,
++};
++
++/*
++ * Note that, since no extra work is required on ->drop_item(),
++ * no ->drop_item() is provided.
++ */
++static struct configfs_group_operations simple_children_group_ops = {
++	.make_item	= simple_children_make_item,
++};
++
++static struct config_item_type simple_children_type = {
++	.ct_item_ops	= &simple_children_item_ops,
++	.ct_group_ops	= &simple_children_group_ops,
++	.ct_attrs	= simple_children_attrs,
++	.ct_owner	= THIS_MODULE,
++};
++
++static struct configfs_subsystem simple_children_subsys = {
++	.su_group = {
++		.cg_item = {
++			.ci_namebuf = "02-simple-children",
++			.ci_type = &simple_children_type,
++		},
++	},
++};
++
++
++/* ----------------------------------------------------------------- */
++
++/*
++ * 03-group-children
++ *
++ * This example reuses the simple_children group from above.  However,
++ * the simple_children group is not the subsystem itself, it is a
++ * child of the subsystem.  Creation of a group in the subsystem creates
++ * a new simple_children group.  That group can then have simple_child
++ * children of its own.
++ */
++
++static struct config_group *group_children_make_group(
++		struct config_group *group, const char *name)
++{
++	struct simple_children *simple_children;
++
++	simple_children = kzalloc(sizeof(struct simple_children),
++				  GFP_KERNEL);
++	if (!simple_children)
++		return ERR_PTR(-ENOMEM);
++
++	config_group_init_type_name(&simple_children->group, name,
++				    &simple_children_type);
++
++	return &simple_children->group;
++}
++
++static ssize_t group_children_description_show(struct config_item *item,
++		char *page)
++{
++	return sprintf(page,
++"[03-group-children]\n"
++"\n"
++"This subsystem allows the creation of child config_groups.  These\n"
++"groups are like the subsystem simple-children.\n");
++}
++
++CONFIGFS_ATTR_RO(group_children_, description);
++
++static struct configfs_attribute *group_children_attrs[] = {
++	&group_children_attr_description,
++	NULL,
++};
++
++/*
++ * Note that, since no extra work is required on ->drop_item(),
++ * no ->drop_item() is provided.
++ */
++static struct configfs_group_operations group_children_group_ops = {
++	.make_group	= group_children_make_group,
++};
++
++static struct config_item_type group_children_type = {
++	.ct_group_ops	= &group_children_group_ops,
++	.ct_attrs	= group_children_attrs,
++	.ct_owner	= THIS_MODULE,
++};
++
++static struct configfs_subsystem group_children_subsys = {
++	.su_group = {
++		.cg_item = {
++			.ci_namebuf = "03-group-children",
++			.ci_type = &group_children_type,
++		},
++	},
++};
++
++/* ----------------------------------------------------------------- */
++
++/*
++ * We're now done with our subsystem definitions.
++ * For convenience in this module, here's a list of them all.  It
++ * allows the init function to easily register them.  Most modules
++ * will only have one subsystem, and will only call register_subsystem
++ * on it directly.
++ */
++static struct configfs_subsystem *example_subsys[] = {
++	&childless_subsys.subsys,
++	&simple_children_subsys,
++	&group_children_subsys,
++	NULL,
++};
++
++static int __init configfs_example_init(void)
++{
++	int ret;
++	int i;
++	struct configfs_subsystem *subsys;
++
++	for (i = 0; example_subsys[i]; i++) {
++		subsys = example_subsys[i];
++
++		config_group_init(&subsys->su_group);
++		mutex_init(&subsys->su_mutex);
++		ret = configfs_register_subsystem(subsys);
++		if (ret) {
++			printk(KERN_ERR "Error %d while registering subsystem %s\n",
++			       ret,
++			       subsys->su_group.cg_item.ci_namebuf);
++			goto out_unregister;
++		}
++	}
++
++	return 0;
++
++out_unregister:
++	for (i--; i >= 0; i--)
++		configfs_unregister_subsystem(example_subsys[i]);
++
++	return ret;
++}
++
++static void __exit configfs_example_exit(void)
++{
++	int i;
++
++	for (i = 0; example_subsys[i]; i++)
++		configfs_unregister_subsystem(example_subsys[i]);
++}
++
++module_init(configfs_example_init);
++module_exit(configfs_example_exit);
++MODULE_LICENSE("GPL");
 -- 
 1.9.1
