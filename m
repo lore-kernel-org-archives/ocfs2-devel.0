@@ -1,10 +1,10 @@
 From: Christoph Hellwig <hch@lst.de>
-Date: Fri, 25 Sep 2015 06:49:40 -0700
-Subject: [Ocfs2-devel] [PATCH 03/23] usb-gadget/uvc: use per-attribute show
-	and store methods
+Date: Fri, 25 Sep 2015 06:49:48 -0700
+Subject: [Ocfs2-devel] [PATCH 11/23] usb-gadget/f_mass_storage: use
+	per-attribute show and store methods
 In-Reply-To: <1443189000-13398-1-git-send-email-hch@lst.de>
 References: <1443189000-13398-1-git-send-email-hch@lst.de>
-Message-ID: <1443189000-13398-4-git-send-email-hch@lst.de>
+Message-ID: <1443189000-13398-12-git-send-email-hch@lst.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -12,866 +12,256 @@ Content-Transfer-Encoding: 7bit
 To: Joel Becker <jlbec@evilplan.org>, Andrew Morton <akpm@linux-foundation.org>
 Cc: linux-usb@vger.kernel.org, netdev@vger.kernel.org, Pratyush Anand <pratyush.anand@gmail.com>, Felipe Balbi <balbi@ti.com>, cluster-devel@redhat.com, target-devel@vger.kernel.org, Tejun Heo <tj@kernel.org>, ocfs2-devel@oss.oracle.com
 
-UVC is a little different from other configfs consumers in that it wants
-different function and field names from the exposed attribute name, so
-it keeps it's local macros to define attributes instead of using the common
-ones.
-
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- drivers/usb/gadget/function/uvc_configfs.c | 391 +++++++++++------------------
- 1 file changed, 146 insertions(+), 245 deletions(-)
+ drivers/usb/gadget/function/f_mass_storage.c | 123 ++++++++++-----------------
+ 1 file changed, 46 insertions(+), 77 deletions(-)
 
-diff --git a/drivers/usb/gadget/function/uvc_configfs.c b/drivers/usb/gadget/function/uvc_configfs.c
-index 3c0467b..8ae8ff8 100644
---- a/drivers/usb/gadget/function/uvc_configfs.c
-+++ b/drivers/usb/gadget/function/uvc_configfs.c
-@@ -15,23 +15,27 @@
- #include "u_uvc.h"
- #include "uvc_configfs.h"
- 
--#define UVCG_STREAMING_CONTROL_SIZE	1
-+#define UVC_ATTR(prefix, cname, aname) \
-+static struct configfs_attribute prefix##attr_##cname = { \
-+	.ca_name	= __stringify(aname),				\
-+	.ca_mode	= S_IRUGO,					\
-+	.ca_owner	= THIS_MODULE,					\
-+	.show		= prefix##cname##_show,				\
-+	.store		= prefix##cname##_store,			\
-+}
- 
--#define CONFIGFS_ATTR_OPS_RO(_item)					\
--static ssize_t _item##_attr_show(struct config_item *item,		\
--				 struct configfs_attribute *attr,	\
--				 char *page)				\
--{									\
--	struct _item *_item = to_##_item(item);				\
--	struct _item##_attribute *_item##_attr =			\
--		container_of(attr, struct _item##_attribute, attr);	\
--	ssize_t ret = 0;						\
--									\
--	if (_item##_attr->show)						\
--		ret = _item##_attr->show(_item, page);			\
--	return ret;							\
-+#define UVC_ATTR_RO(prefix, cname, aname) \
-+static struct configfs_attribute prefix##attr_##cname = { \
-+	.ca_name	= __stringify(aname),				\
-+	.ca_mode	= S_IRUGO,					\
-+	.ca_owner	= THIS_MODULE,					\
-+	.show		= prefix##cname##_show,				\
- }
- 
-+#define identity_conv(x) (x)
-+
-+#define UVCG_STREAMING_CONTROL_SIZE	1
-+
- static inline struct f_uvc_opts *to_f_uvc_opts(struct config_item *item);
- 
- /* control/header/<NAME> */
-@@ -48,18 +52,11 @@ static struct uvcg_control_header *to_uvcg_control_header(struct config_item *it
- 	return container_of(item, struct uvcg_control_header, item);
- }
- 
--CONFIGFS_ATTR_STRUCT(uvcg_control_header);
--CONFIGFS_ATTR_OPS(uvcg_control_header);
--
--static struct configfs_item_operations uvcg_control_header_item_ops = {
--	.show_attribute		= uvcg_control_header_attr_show,
--	.store_attribute	= uvcg_control_header_attr_store,
--};
--
- #define UVCG_CTRL_HDR_ATTR(cname, aname, conv, str2u, uxx, vnoc, limit)	\
- static ssize_t uvcg_control_header_##cname##_show(			\
--	struct uvcg_control_header *ch, char *page)			\
-+	struct config_item *item, char *page)			\
- {									\
-+	struct uvcg_control_header *ch = to_uvcg_control_header(item);	\
- 	struct f_uvc_opts *opts;					\
- 	struct config_item *opts_item;					\
- 	struct mutex *su_mutex = &ch->item.ci_group->cg_subsys->su_mutex;\
-@@ -79,9 +76,10 @@ static ssize_t uvcg_control_header_##cname##_show(			\
- }									\
- 									\
- static ssize_t								\
--uvcg_control_header_##cname##_store(struct uvcg_control_header *ch,	\
-+uvcg_control_header_##cname##_store(struct config_item *item,		\
- 			   const char *page, size_t len)		\
- {									\
-+	struct uvcg_control_header *ch = to_uvcg_control_header(item);	\
- 	struct f_uvc_opts *opts;					\
- 	struct config_item *opts_item;					\
- 	struct mutex *su_mutex = &ch->item.ci_group->cg_subsys->su_mutex;\
-@@ -115,11 +113,7 @@ end:									\
- 	return ret;							\
- }									\
- 									\
--static struct uvcg_control_header_attribute				\
--	uvcg_control_header_##cname =					\
--	__CONFIGFS_ATTR(aname, S_IRUGO | S_IWUSR,			\
--			uvcg_control_header_##cname##_show,		\
--			uvcg_control_header_##cname##_store)
-+UVC_ATTR(uvcg_control_header_, cname, aname)
- 
- UVCG_CTRL_HDR_ATTR(bcd_uvc, bcdUVC, le16_to_cpu, kstrtou16, u16, cpu_to_le16,
- 		   0xffff);
-@@ -130,13 +124,12 @@ UVCG_CTRL_HDR_ATTR(dw_clock_frequency, dwClockFrequency, le32_to_cpu, kstrtou32,
- #undef UVCG_CTRL_HDR_ATTR
- 
- static struct configfs_attribute *uvcg_control_header_attrs[] = {
--	&uvcg_control_header_bcd_uvc.attr,
--	&uvcg_control_header_dw_clock_frequency.attr,
-+	&uvcg_control_header_attr_bcd_uvc,
-+	&uvcg_control_header_attr_dw_clock_frequency,
- 	NULL,
- };
- 
- static struct config_item_type uvcg_control_header_type = {
--	.ct_item_ops	= &uvcg_control_header_item_ops,
- 	.ct_attrs	= uvcg_control_header_attrs,
- 	.ct_owner	= THIS_MODULE,
- };
-@@ -196,17 +189,11 @@ static inline struct uvcg_default_processing
- 			    struct uvcg_default_processing, group);
- }
- 
--CONFIGFS_ATTR_STRUCT(uvcg_default_processing);
--CONFIGFS_ATTR_OPS_RO(uvcg_default_processing);
--
--static struct configfs_item_operations uvcg_default_processing_item_ops = {
--	.show_attribute		= uvcg_default_processing_attr_show,
--};
--
- #define UVCG_DEFAULT_PROCESSING_ATTR(cname, aname, conv)		\
- static ssize_t uvcg_default_processing_##cname##_show(			\
--	struct uvcg_default_processing *dp, char *page)			\
-+	struct config_item *item, char *page)				\
- {									\
-+	struct uvcg_default_processing *dp = to_uvcg_default_processing(item); \
- 	struct f_uvc_opts *opts;					\
- 	struct config_item *opts_item;					\
- 	struct mutex *su_mutex = &dp->group.cg_subsys->su_mutex;	\
-@@ -227,9 +214,7 @@ static ssize_t uvcg_default_processing_##cname##_show(			\
- 	return result;							\
- }									\
- 									\
--static struct uvcg_default_processing_attribute				\
--	uvcg_default_processing_##cname =				\
--	__CONFIGFS_ATTR_RO(aname, uvcg_default_processing_##cname##_show)
-+UVC_ATTR_RO(uvcg_default_processing_, cname, aname)
- 
- #define identity_conv(x) (x)
- 
-@@ -243,8 +228,9 @@ UVCG_DEFAULT_PROCESSING_ATTR(i_processing, iProcessing, identity_conv);
- #undef UVCG_DEFAULT_PROCESSING_ATTR
- 
- static ssize_t uvcg_default_processing_bm_controls_show(
--	struct uvcg_default_processing *dp, char *page)
-+	struct config_item *item, char *page)
- {
-+	struct uvcg_default_processing *dp = to_uvcg_default_processing(item);
- 	struct f_uvc_opts *opts;
- 	struct config_item *opts_item;
- 	struct mutex *su_mutex = &dp->group.cg_subsys->su_mutex;
-@@ -270,22 +256,18 @@ static ssize_t uvcg_default_processing_bm_controls_show(
- 	return result;
- }
- 
--static struct uvcg_default_processing_attribute
--	uvcg_default_processing_bm_controls =
--	__CONFIGFS_ATTR_RO(bmControls,
--		uvcg_default_processing_bm_controls_show);
-+UVC_ATTR_RO(uvcg_default_processing_, bm_controls, bmControls);
- 
- static struct configfs_attribute *uvcg_default_processing_attrs[] = {
--	&uvcg_default_processing_b_unit_id.attr,
--	&uvcg_default_processing_b_source_id.attr,
--	&uvcg_default_processing_w_max_multiplier.attr,
--	&uvcg_default_processing_bm_controls.attr,
--	&uvcg_default_processing_i_processing.attr,
-+	&uvcg_default_processing_attr_b_unit_id,
-+	&uvcg_default_processing_attr_b_source_id,
-+	&uvcg_default_processing_attr_w_max_multiplier,
-+	&uvcg_default_processing_attr_bm_controls,
-+	&uvcg_default_processing_attr_i_processing,
- 	NULL,
- };
- 
- static struct config_item_type uvcg_default_processing_type = {
--	.ct_item_ops	= &uvcg_default_processing_item_ops,
- 	.ct_attrs	= uvcg_default_processing_attrs,
- 	.ct_owner	= THIS_MODULE,
- };
-@@ -318,17 +300,11 @@ static inline struct uvcg_default_camera
- 			    struct uvcg_default_camera, group);
- }
- 
--CONFIGFS_ATTR_STRUCT(uvcg_default_camera);
--CONFIGFS_ATTR_OPS_RO(uvcg_default_camera);
--
--static struct configfs_item_operations uvcg_default_camera_item_ops = {
--	.show_attribute		= uvcg_default_camera_attr_show,
--};
--
- #define UVCG_DEFAULT_CAMERA_ATTR(cname, aname, conv)			\
- static ssize_t uvcg_default_camera_##cname##_show(			\
--	struct uvcg_default_camera *dc, char *page)			\
-+	struct config_item *item, char *page)				\
- {									\
-+	struct uvcg_default_camera *dc = to_uvcg_default_camera(item);	\
- 	struct f_uvc_opts *opts;					\
- 	struct config_item *opts_item;					\
- 	struct mutex *su_mutex = &dc->group.cg_subsys->su_mutex;	\
-@@ -351,9 +327,7 @@ static ssize_t uvcg_default_camera_##cname##_show(			\
- 	return result;							\
- }									\
- 									\
--static struct uvcg_default_camera_attribute				\
--	uvcg_default_camera_##cname =					\
--	__CONFIGFS_ATTR_RO(aname, uvcg_default_camera_##cname##_show)
-+UVC_ATTR_RO(uvcg_default_camera_, cname, aname)
- 
- #define identity_conv(x) (x)
- 
-@@ -373,8 +347,9 @@ UVCG_DEFAULT_CAMERA_ATTR(w_ocular_focal_length, wOcularFocalLength,
- #undef UVCG_DEFAULT_CAMERA_ATTR
- 
- static ssize_t uvcg_default_camera_bm_controls_show(
--	struct uvcg_default_camera *dc, char *page)
-+	struct config_item *item, char *page)
- {
-+	struct uvcg_default_camera *dc = to_uvcg_default_camera(item);
- 	struct f_uvc_opts *opts;
- 	struct config_item *opts_item;
- 	struct mutex *su_mutex = &dc->group.cg_subsys->su_mutex;
-@@ -400,24 +375,21 @@ static ssize_t uvcg_default_camera_bm_controls_show(
- 	return result;
- }
- 
--static struct uvcg_default_camera_attribute
--	uvcg_default_camera_bm_controls =
--	__CONFIGFS_ATTR_RO(bmControls, uvcg_default_camera_bm_controls_show);
-+UVC_ATTR_RO(uvcg_default_camera_, bm_controls, bmControls);
- 
- static struct configfs_attribute *uvcg_default_camera_attrs[] = {
--	&uvcg_default_camera_b_terminal_id.attr,
--	&uvcg_default_camera_w_terminal_type.attr,
--	&uvcg_default_camera_b_assoc_terminal.attr,
--	&uvcg_default_camera_i_terminal.attr,
--	&uvcg_default_camera_w_objective_focal_length_min.attr,
--	&uvcg_default_camera_w_objective_focal_length_max.attr,
--	&uvcg_default_camera_w_ocular_focal_length.attr,
--	&uvcg_default_camera_bm_controls.attr,
-+	&uvcg_default_camera_attr_b_terminal_id,
-+	&uvcg_default_camera_attr_w_terminal_type,
-+	&uvcg_default_camera_attr_b_assoc_terminal,
-+	&uvcg_default_camera_attr_i_terminal,
-+	&uvcg_default_camera_attr_w_objective_focal_length_min,
-+	&uvcg_default_camera_attr_w_objective_focal_length_max,
-+	&uvcg_default_camera_attr_w_ocular_focal_length,
-+	&uvcg_default_camera_attr_bm_controls,
- 	NULL,
- };
- 
- static struct config_item_type uvcg_default_camera_type = {
--	.ct_item_ops	= &uvcg_default_camera_item_ops,
- 	.ct_attrs	= uvcg_default_camera_attrs,
- 	.ct_owner	= THIS_MODULE,
- };
-@@ -450,17 +422,11 @@ static inline struct uvcg_default_output
- 			    struct uvcg_default_output, group);
- }
- 
--CONFIGFS_ATTR_STRUCT(uvcg_default_output);
--CONFIGFS_ATTR_OPS_RO(uvcg_default_output);
--
--static struct configfs_item_operations uvcg_default_output_item_ops = {
--	.show_attribute		= uvcg_default_output_attr_show,
--};
--
- #define UVCG_DEFAULT_OUTPUT_ATTR(cname, aname, conv)			\
- static ssize_t uvcg_default_output_##cname##_show(			\
--	struct uvcg_default_output *dout, char *page)			\
-+	struct config_item *item, char *page)			\
- {									\
-+	struct uvcg_default_output *dout = to_uvcg_default_output(item); \
- 	struct f_uvc_opts *opts;					\
- 	struct config_item *opts_item;					\
- 	struct mutex *su_mutex = &dout->group.cg_subsys->su_mutex;	\
-@@ -483,9 +449,7 @@ static ssize_t uvcg_default_output_##cname##_show(			\
- 	return result;							\
- }									\
- 									\
--static struct uvcg_default_output_attribute				\
--	uvcg_default_output_##cname =					\
--	__CONFIGFS_ATTR_RO(aname, uvcg_default_output_##cname##_show)
-+UVC_ATTR_RO(uvcg_default_output_, cname, aname)
- 
- #define identity_conv(x) (x)
- 
-@@ -500,16 +464,15 @@ UVCG_DEFAULT_OUTPUT_ATTR(i_terminal, iTerminal, identity_conv);
- #undef UVCG_DEFAULT_OUTPUT_ATTR
- 
- static struct configfs_attribute *uvcg_default_output_attrs[] = {
--	&uvcg_default_output_b_terminal_id.attr,
--	&uvcg_default_output_w_terminal_type.attr,
--	&uvcg_default_output_b_assoc_terminal.attr,
--	&uvcg_default_output_b_source_id.attr,
--	&uvcg_default_output_i_terminal.attr,
-+	&uvcg_default_output_attr_b_terminal_id,
-+	&uvcg_default_output_attr_w_terminal_type,
-+	&uvcg_default_output_attr_b_assoc_terminal,
-+	&uvcg_default_output_attr_b_source_id,
-+	&uvcg_default_output_attr_i_terminal,
- 	NULL,
- };
- 
- static struct config_item_type uvcg_default_output_type = {
--	.ct_item_ops	= &uvcg_default_output_item_ops,
- 	.ct_attrs	= uvcg_default_output_attrs,
- 	.ct_owner	= THIS_MODULE,
- };
-@@ -800,9 +763,6 @@ static struct uvcg_streaming_header *to_uvcg_streaming_header(struct config_item
- 	return container_of(item, struct uvcg_streaming_header, item);
- }
- 
--CONFIGFS_ATTR_STRUCT(uvcg_streaming_header);
--CONFIGFS_ATTR_OPS(uvcg_streaming_header);
--
- static int uvcg_streaming_header_allow_link(struct config_item *src,
- 					    struct config_item *target)
- {
-@@ -893,16 +853,15 @@ out:
- }
- 
- static struct configfs_item_operations uvcg_streaming_header_item_ops = {
--	.show_attribute		= uvcg_streaming_header_attr_show,
--	.store_attribute	= uvcg_streaming_header_attr_store,
- 	.allow_link		= uvcg_streaming_header_allow_link,
- 	.drop_link		= uvcg_streaming_header_drop_link,
- };
- 
- #define UVCG_STREAMING_HEADER_ATTR(cname, aname, conv)			\
- static ssize_t uvcg_streaming_header_##cname##_show(			\
--	struct uvcg_streaming_header *sh, char *page)			\
-+	struct config_item *item, char *page)			\
- {									\
-+	struct uvcg_streaming_header *sh = to_uvcg_streaming_header(item); \
- 	struct f_uvc_opts *opts;					\
- 	struct config_item *opts_item;					\
- 	struct mutex *su_mutex = &sh->item.ci_group->cg_subsys->su_mutex;\
-@@ -921,9 +880,7 @@ static ssize_t uvcg_streaming_header_##cname##_show(			\
- 	return result;							\
- }									\
- 									\
--static struct uvcg_streaming_header_attribute				\
--	uvcg_streaming_header_##cname =					\
--	__CONFIGFS_ATTR_RO(aname, uvcg_streaming_header_##cname##_show)
-+UVC_ATTR_RO(uvcg_streaming_header_, cname, aname)
- 
- #define identity_conv(x) (x)
- 
-@@ -939,11 +896,11 @@ UVCG_STREAMING_HEADER_ATTR(b_trigger_usage, bTriggerUsage, identity_conv);
- #undef UVCG_STREAMING_HEADER_ATTR
- 
- static struct configfs_attribute *uvcg_streaming_header_attrs[] = {
--	&uvcg_streaming_header_bm_info.attr,
--	&uvcg_streaming_header_b_terminal_link.attr,
--	&uvcg_streaming_header_b_still_capture_method.attr,
--	&uvcg_streaming_header_b_trigger_support.attr,
--	&uvcg_streaming_header_b_trigger_usage.attr,
-+	&uvcg_streaming_header_attr_bm_info,
-+	&uvcg_streaming_header_attr_b_terminal_link,
-+	&uvcg_streaming_header_attr_b_still_capture_method,
-+	&uvcg_streaming_header_attr_b_trigger_support,
-+	&uvcg_streaming_header_attr_b_trigger_usage,
- 	NULL,
- };
- 
-@@ -1022,17 +979,10 @@ static struct uvcg_frame *to_uvcg_frame(struct config_item *item)
- 	return container_of(item, struct uvcg_frame, item);
- }
- 
--CONFIGFS_ATTR_STRUCT(uvcg_frame);
--CONFIGFS_ATTR_OPS(uvcg_frame);
--
--static struct configfs_item_operations uvcg_frame_item_ops = {
--	.show_attribute		= uvcg_frame_attr_show,
--	.store_attribute	= uvcg_frame_attr_store,
--};
--
- #define UVCG_FRAME_ATTR(cname, aname, to_cpu_endian, to_little_endian, bits) \
--static ssize_t uvcg_frame_##cname##_show(struct uvcg_frame *f, char *page)\
-+static ssize_t uvcg_frame_##cname##_show(struct config_item *item, char *page)\
- {									\
-+	struct uvcg_frame *f = to_uvcg_frame(item);			\
- 	struct f_uvc_opts *opts;					\
- 	struct config_item *opts_item;					\
- 	struct mutex *su_mutex = &f->item.ci_group->cg_subsys->su_mutex;\
-@@ -1051,9 +1001,10 @@ static ssize_t uvcg_frame_##cname##_show(struct uvcg_frame *f, char *page)\
- 	return result;							\
- }									\
- 									\
--static ssize_t  uvcg_frame_##cname##_store(struct uvcg_frame *f,	\
-+static ssize_t  uvcg_frame_##cname##_store(struct config_item *item,	\
- 					   const char *page, size_t len)\
- {									\
-+	struct uvcg_frame *f = to_uvcg_frame(item);			\
- 	struct f_uvc_opts *opts;					\
- 	struct config_item *opts_item;					\
- 	struct uvcg_format *fmt;					\
-@@ -1085,11 +1036,7 @@ end:									\
- 	return ret;							\
- }									\
- 									\
--static struct uvcg_frame_attribute					\
--	uvcg_frame_##cname =						\
--	__CONFIGFS_ATTR(aname, S_IRUGO | S_IWUSR,			\
--			uvcg_frame_##cname##_show,			\
--			uvcg_frame_##cname##_store)
-+UVC_ATTR(uvcg_frame_, cname, aname);
- 
- #define noop_conversion(x) (x)
- 
-@@ -1108,9 +1055,10 @@ UVCG_FRAME_ATTR(dw_default_frame_interval, dwDefaultFrameInterval,
- 
- #undef UVCG_FRAME_ATTR
- 
--static ssize_t uvcg_frame_dw_frame_interval_show(struct uvcg_frame *frm,
-+static ssize_t uvcg_frame_dw_frame_interval_show(struct config_item *item,
- 						 char *page)
- {
-+	struct uvcg_frame *frm = to_uvcg_frame(item);
- 	struct f_uvc_opts *opts;
- 	struct config_item *opts_item;
- 	struct mutex *su_mutex = &frm->item.ci_group->cg_subsys->su_mutex;
-@@ -1185,9 +1133,10 @@ static int __uvcg_iter_frm_intrv(const char *page, size_t len,
- 	return 0;
- }
- 
--static ssize_t uvcg_frame_dw_frame_interval_store(struct uvcg_frame *ch,
-+static ssize_t uvcg_frame_dw_frame_interval_store(struct config_item *item,
- 						  const char *page, size_t len)
- {
-+	struct uvcg_frame *ch = to_uvcg_frame(item);
- 	struct f_uvc_opts *opts;
- 	struct config_item *opts_item;
- 	struct uvcg_format *fmt;
-@@ -1234,26 +1183,21 @@ end:
- 	return ret;
- }
- 
--static struct uvcg_frame_attribute
--	uvcg_frame_dw_frame_interval =
--	__CONFIGFS_ATTR(dwFrameInterval, S_IRUGO | S_IWUSR,
--			uvcg_frame_dw_frame_interval_show,
--			uvcg_frame_dw_frame_interval_store);
-+UVC_ATTR(uvcg_frame_, dw_frame_interval, dwFrameInterval);
- 
- static struct configfs_attribute *uvcg_frame_attrs[] = {
--	&uvcg_frame_bm_capabilities.attr,
--	&uvcg_frame_w_width.attr,
--	&uvcg_frame_w_height.attr,
--	&uvcg_frame_dw_min_bit_rate.attr,
--	&uvcg_frame_dw_max_bit_rate.attr,
--	&uvcg_frame_dw_max_video_frame_buffer_size.attr,
--	&uvcg_frame_dw_default_frame_interval.attr,
--	&uvcg_frame_dw_frame_interval.attr,
-+	&uvcg_frame_attr_bm_capabilities,
-+	&uvcg_frame_attr_w_width,
-+	&uvcg_frame_attr_w_height,
-+	&uvcg_frame_attr_dw_min_bit_rate,
-+	&uvcg_frame_attr_dw_max_bit_rate,
-+	&uvcg_frame_attr_dw_max_video_frame_buffer_size,
-+	&uvcg_frame_attr_dw_default_frame_interval,
-+	&uvcg_frame_attr_dw_frame_interval,
- 	NULL,
- };
- 
- static struct config_item_type uvcg_frame_type = {
--	.ct_item_ops	= &uvcg_frame_item_ops,
- 	.ct_attrs	= uvcg_frame_attrs,
- 	.ct_owner	= THIS_MODULE,
- };
-@@ -1333,22 +1277,15 @@ static struct uvcg_uncompressed *to_uvcg_uncompressed(struct config_item *item)
- 		struct uvcg_uncompressed, fmt);
- }
- 
--CONFIGFS_ATTR_STRUCT(uvcg_uncompressed);
--CONFIGFS_ATTR_OPS(uvcg_uncompressed);
--
--static struct configfs_item_operations uvcg_uncompressed_item_ops = {
--	.show_attribute		= uvcg_uncompressed_attr_show,
--	.store_attribute	= uvcg_uncompressed_attr_store,
--};
--
- static struct configfs_group_operations uvcg_uncompressed_group_ops = {
- 	.make_item		= uvcg_frame_make,
- 	.drop_item		= uvcg_frame_drop,
- };
- 
--static ssize_t uvcg_uncompressed_guid_format_show(struct uvcg_uncompressed *ch,
-+static ssize_t uvcg_uncompressed_guid_format_show(struct config_item *item,
- 							char *page)
- {
-+	struct uvcg_uncompressed *ch = to_uvcg_uncompressed(item);
- 	struct f_uvc_opts *opts;
- 	struct config_item *opts_item;
- 	struct mutex *su_mutex = &ch->fmt.group.cg_subsys->su_mutex;
-@@ -1367,9 +1304,10 @@ static ssize_t uvcg_uncompressed_guid_format_show(struct uvcg_uncompressed *ch,
- 	return sizeof(ch->desc.guidFormat);
- }
- 
--static ssize_t uvcg_uncompressed_guid_format_store(struct uvcg_uncompressed *ch,
-+static ssize_t uvcg_uncompressed_guid_format_store(struct config_item *item,
- 						   const char *page, size_t len)
- {
-+	struct uvcg_uncompressed *ch = to_uvcg_uncompressed(item);
- 	struct f_uvc_opts *opts;
- 	struct config_item *opts_item;
- 	struct mutex *su_mutex = &ch->fmt.group.cg_subsys->su_mutex;
-@@ -1396,16 +1334,13 @@ end:
- 	return ret;
- }
- 
--static struct uvcg_uncompressed_attribute uvcg_uncompressed_guid_format =
--	__CONFIGFS_ATTR(guidFormat, S_IRUGO | S_IWUSR,
--			uvcg_uncompressed_guid_format_show,
--			uvcg_uncompressed_guid_format_store);
--
-+UVC_ATTR(uvcg_uncompressed_, guid_format, guidFormat);
- 
- #define UVCG_UNCOMPRESSED_ATTR_RO(cname, aname, conv)			\
- static ssize_t uvcg_uncompressed_##cname##_show(			\
--	struct uvcg_uncompressed *u, char *page)			\
-+	struct config_item *item, char *page)				\
- {									\
-+	struct uvcg_uncompressed *u = to_uvcg_uncompressed(item);	\
- 	struct f_uvc_opts *opts;					\
- 	struct config_item *opts_item;					\
- 	struct mutex *su_mutex = &u->fmt.group.cg_subsys->su_mutex;	\
-@@ -1424,14 +1359,13 @@ static ssize_t uvcg_uncompressed_##cname##_show(			\
- 	return result;							\
- }									\
- 									\
--static struct uvcg_uncompressed_attribute				\
--	uvcg_uncompressed_##cname =					\
--	__CONFIGFS_ATTR_RO(aname, uvcg_uncompressed_##cname##_show)
-+UVC_ATTR_RO(uvcg_uncompressed_, cname, aname);
- 
- #define UVCG_UNCOMPRESSED_ATTR(cname, aname, conv)			\
- static ssize_t uvcg_uncompressed_##cname##_show(			\
--	struct uvcg_uncompressed *u, char *page)			\
-+	struct config_item *item, char *page)				\
- {									\
-+	struct uvcg_uncompressed *u = to_uvcg_uncompressed(item);	\
- 	struct f_uvc_opts *opts;					\
- 	struct config_item *opts_item;					\
- 	struct mutex *su_mutex = &u->fmt.group.cg_subsys->su_mutex;	\
-@@ -1451,9 +1385,10 @@ static ssize_t uvcg_uncompressed_##cname##_show(			\
- }									\
- 									\
- static ssize_t								\
--uvcg_uncompressed_##cname##_store(struct uvcg_uncompressed *u,		\
-+uvcg_uncompressed_##cname##_store(struct config_item *item,		\
- 				    const char *page, size_t len)	\
- {									\
-+	struct uvcg_uncompressed *u = to_uvcg_uncompressed(item);	\
- 	struct f_uvc_opts *opts;					\
- 	struct config_item *opts_item;					\
- 	struct mutex *su_mutex = &u->fmt.group.cg_subsys->su_mutex;	\
-@@ -1487,11 +1422,7 @@ end:									\
- 	return ret;							\
- }									\
- 									\
--static struct uvcg_uncompressed_attribute				\
--	uvcg_uncompressed_##cname =					\
--	__CONFIGFS_ATTR(aname, S_IRUGO | S_IWUSR,			\
--			uvcg_uncompressed_##cname##_show,		\
--			uvcg_uncompressed_##cname##_store)
-+UVC_ATTR(uvcg_uncompressed_, cname, aname);
- 
- #define identity_conv(x) (x)
- 
-@@ -1508,36 +1439,34 @@ UVCG_UNCOMPRESSED_ATTR_RO(bm_interface_flags, bmInterfaceFlags, identity_conv);
- #undef UVCG_UNCOMPRESSED_ATTR_RO
- 
- static inline ssize_t
--uvcg_uncompressed_bma_controls_show(struct uvcg_uncompressed *unc, char *page)
-+uvcg_uncompressed_bma_controls_show(struct config_item *item, char *page)
- {
-+	struct uvcg_uncompressed *unc = to_uvcg_uncompressed(item);
- 	return uvcg_format_bma_controls_show(&unc->fmt, page);
- }
- 
- static inline ssize_t
--uvcg_uncompressed_bma_controls_store(struct uvcg_uncompressed *ch,
-+uvcg_uncompressed_bma_controls_store(struct config_item *item,
- 				     const char *page, size_t len)
- {
--	return uvcg_format_bma_controls_store(&ch->fmt, page, len);
-+	struct uvcg_uncompressed *unc = to_uvcg_uncompressed(item);
-+	return uvcg_format_bma_controls_store(&unc->fmt, page, len);
- }
- 
--static struct uvcg_uncompressed_attribute uvcg_uncompressed_bma_controls =
--	__CONFIGFS_ATTR(bmaControls, S_IRUGO | S_IWUSR,
--			uvcg_uncompressed_bma_controls_show,
--			uvcg_uncompressed_bma_controls_store);
-+UVC_ATTR(uvcg_uncompressed_, bma_controls, bmaControls);
- 
- static struct configfs_attribute *uvcg_uncompressed_attrs[] = {
--	&uvcg_uncompressed_guid_format.attr,
--	&uvcg_uncompressed_b_bits_per_pixel.attr,
--	&uvcg_uncompressed_b_default_frame_index.attr,
--	&uvcg_uncompressed_b_aspect_ratio_x.attr,
--	&uvcg_uncompressed_b_aspect_ratio_y.attr,
--	&uvcg_uncompressed_bm_interface_flags.attr,
--	&uvcg_uncompressed_bma_controls.attr,
-+	&uvcg_uncompressed_attr_guid_format,
-+	&uvcg_uncompressed_attr_b_bits_per_pixel,
-+	&uvcg_uncompressed_attr_b_default_frame_index,
-+	&uvcg_uncompressed_attr_b_aspect_ratio_x,
-+	&uvcg_uncompressed_attr_b_aspect_ratio_y,
-+	&uvcg_uncompressed_attr_bm_interface_flags,
-+	&uvcg_uncompressed_attr_bma_controls,
- 	NULL,
- };
- 
- static struct config_item_type uvcg_uncompressed_type = {
--	.ct_item_ops	= &uvcg_uncompressed_item_ops,
- 	.ct_group_ops	= &uvcg_uncompressed_group_ops,
- 	.ct_attrs	= uvcg_uncompressed_attrs,
- 	.ct_owner	= THIS_MODULE,
-@@ -1605,22 +1534,15 @@ static struct uvcg_mjpeg *to_uvcg_mjpeg(struct config_item *item)
- 		struct uvcg_mjpeg, fmt);
- }
- 
--CONFIGFS_ATTR_STRUCT(uvcg_mjpeg);
--CONFIGFS_ATTR_OPS(uvcg_mjpeg);
--
--static struct configfs_item_operations uvcg_mjpeg_item_ops = {
--	.show_attribute		= uvcg_mjpeg_attr_show,
--	.store_attribute	= uvcg_mjpeg_attr_store,
--};
--
- static struct configfs_group_operations uvcg_mjpeg_group_ops = {
- 	.make_item		= uvcg_frame_make,
- 	.drop_item		= uvcg_frame_drop,
- };
- 
- #define UVCG_MJPEG_ATTR_RO(cname, aname, conv)				\
--static ssize_t uvcg_mjpeg_##cname##_show(struct uvcg_mjpeg *u, char *page)\
-+static ssize_t uvcg_mjpeg_##cname##_show(struct config_item *item, char *page)\
- {									\
-+	struct uvcg_mjpeg *u = to_uvcg_mjpeg(item);			\
- 	struct f_uvc_opts *opts;					\
- 	struct config_item *opts_item;					\
- 	struct mutex *su_mutex = &u->fmt.group.cg_subsys->su_mutex;	\
-@@ -1639,13 +1561,12 @@ static ssize_t uvcg_mjpeg_##cname##_show(struct uvcg_mjpeg *u, char *page)\
- 	return result;							\
- }									\
- 									\
--static struct uvcg_mjpeg_attribute					\
--	uvcg_mjpeg_##cname =						\
--	__CONFIGFS_ATTR_RO(aname, uvcg_mjpeg_##cname##_show)
-+UVC_ATTR_RO(uvcg_mjpeg_, cname, aname)
- 
- #define UVCG_MJPEG_ATTR(cname, aname, conv)				\
--static ssize_t uvcg_mjpeg_##cname##_show(struct uvcg_mjpeg *u, char *page)\
-+static ssize_t uvcg_mjpeg_##cname##_show(struct config_item *item, char *page)\
- {									\
-+	struct uvcg_mjpeg *u = to_uvcg_mjpeg(item);			\
- 	struct f_uvc_opts *opts;					\
- 	struct config_item *opts_item;					\
- 	struct mutex *su_mutex = &u->fmt.group.cg_subsys->su_mutex;	\
-@@ -1665,9 +1586,10 @@ static ssize_t uvcg_mjpeg_##cname##_show(struct uvcg_mjpeg *u, char *page)\
- }									\
- 									\
- static ssize_t								\
--uvcg_mjpeg_##cname##_store(struct uvcg_mjpeg *u,			\
-+uvcg_mjpeg_##cname##_store(struct config_item *item,			\
- 			   const char *page, size_t len)		\
- {									\
-+	struct uvcg_mjpeg *u = to_uvcg_mjpeg(item);			\
- 	struct f_uvc_opts *opts;					\
- 	struct config_item *opts_item;					\
- 	struct mutex *su_mutex = &u->fmt.group.cg_subsys->su_mutex;	\
-@@ -1701,11 +1623,7 @@ end:									\
- 	return ret;							\
- }									\
- 									\
--static struct uvcg_mjpeg_attribute					\
--	uvcg_mjpeg_##cname =						\
--	__CONFIGFS_ATTR(aname, S_IRUGO | S_IWUSR,			\
--			uvcg_mjpeg_##cname##_show,			\
--			uvcg_mjpeg_##cname##_store)
-+UVC_ATTR(uvcg_mjpeg_, cname, aname)
- 
- #define identity_conv(x) (x)
- 
-@@ -1722,35 +1640,33 @@ UVCG_MJPEG_ATTR_RO(bm_interface_flags, bmInterfaceFlags, identity_conv);
- #undef UVCG_MJPEG_ATTR_RO
- 
- static inline ssize_t
--uvcg_mjpeg_bma_controls_show(struct uvcg_mjpeg *unc, char *page)
-+uvcg_mjpeg_bma_controls_show(struct config_item *item, char *page)
- {
--	return uvcg_format_bma_controls_show(&unc->fmt, page);
-+	struct uvcg_mjpeg *u = to_uvcg_mjpeg(item);
-+	return uvcg_format_bma_controls_show(&u->fmt, page);
- }
- 
- static inline ssize_t
--uvcg_mjpeg_bma_controls_store(struct uvcg_mjpeg *ch,
-+uvcg_mjpeg_bma_controls_store(struct config_item *item,
- 				     const char *page, size_t len)
- {
--	return uvcg_format_bma_controls_store(&ch->fmt, page, len);
-+	struct uvcg_mjpeg *u = to_uvcg_mjpeg(item);
-+	return uvcg_format_bma_controls_store(&u->fmt, page, len);
- }
- 
--static struct uvcg_mjpeg_attribute uvcg_mjpeg_bma_controls =
--	__CONFIGFS_ATTR(bmaControls, S_IRUGO | S_IWUSR,
--			uvcg_mjpeg_bma_controls_show,
--			uvcg_mjpeg_bma_controls_store);
-+UVC_ATTR(uvcg_mjpeg_, bma_controls, bmaControls);
- 
- static struct configfs_attribute *uvcg_mjpeg_attrs[] = {
--	&uvcg_mjpeg_b_default_frame_index.attr,
--	&uvcg_mjpeg_bm_flags.attr,
--	&uvcg_mjpeg_b_aspect_ratio_x.attr,
--	&uvcg_mjpeg_b_aspect_ratio_y.attr,
--	&uvcg_mjpeg_bm_interface_flags.attr,
--	&uvcg_mjpeg_bma_controls.attr,
-+	&uvcg_mjpeg_attr_b_default_frame_index,
-+	&uvcg_mjpeg_attr_bm_flags,
-+	&uvcg_mjpeg_attr_b_aspect_ratio_x,
-+	&uvcg_mjpeg_attr_b_aspect_ratio_y,
-+	&uvcg_mjpeg_attr_bm_interface_flags,
-+	&uvcg_mjpeg_attr_bma_controls,
- 	NULL,
- };
- 
- static struct config_item_type uvcg_mjpeg_type = {
--	.ct_item_ops	= &uvcg_mjpeg_item_ops,
- 	.ct_group_ops	= &uvcg_mjpeg_group_ops,
- 	.ct_attrs	= uvcg_mjpeg_attrs,
- 	.ct_owner	= THIS_MODULE,
-@@ -1811,17 +1727,12 @@ static inline struct uvcg_default_color_matching
- 			    struct uvcg_default_color_matching, group);
- }
- 
--CONFIGFS_ATTR_STRUCT(uvcg_default_color_matching);
--CONFIGFS_ATTR_OPS_RO(uvcg_default_color_matching);
--
--static struct configfs_item_operations uvcg_default_color_matching_item_ops = {
--	.show_attribute		= uvcg_default_color_matching_attr_show,
--};
--
- #define UVCG_DEFAULT_COLOR_MATCHING_ATTR(cname, aname, conv)		\
- static ssize_t uvcg_default_color_matching_##cname##_show(		\
--	struct uvcg_default_color_matching *dc, char *page)		\
-+	struct config_item *item, char *page)		\
- {									\
-+	struct uvcg_default_color_matching *dc =			\
-+		to_uvcg_default_color_matching(item);			\
- 	struct f_uvc_opts *opts;					\
- 	struct config_item *opts_item;					\
- 	struct mutex *su_mutex = &dc->group.cg_subsys->su_mutex;	\
-@@ -1842,9 +1753,7 @@ static ssize_t uvcg_default_color_matching_##cname##_show(		\
- 	return result;							\
- }									\
- 									\
--static struct uvcg_default_color_matching_attribute			\
--	uvcg_default_color_matching_##cname =				\
--	__CONFIGFS_ATTR_RO(aname, uvcg_default_color_matching_##cname##_show)
-+UVC_ATTR_RO(uvcg_default_color_matching_, cname, aname)
- 
- #define identity_conv(x) (x)
- 
-@@ -1860,14 +1769,13 @@ UVCG_DEFAULT_COLOR_MATCHING_ATTR(b_matrix_coefficients, bMatrixCoefficients,
- #undef UVCG_DEFAULT_COLOR_MATCHING_ATTR
- 
- static struct configfs_attribute *uvcg_default_color_matching_attrs[] = {
--	&uvcg_default_color_matching_b_color_primaries.attr,
--	&uvcg_default_color_matching_b_transfer_characteristics.attr,
--	&uvcg_default_color_matching_b_matrix_coefficients.attr,
-+	&uvcg_default_color_matching_attr_b_color_primaries,
-+	&uvcg_default_color_matching_attr_b_transfer_characteristics,
-+	&uvcg_default_color_matching_attr_b_matrix_coefficients,
- 	NULL,
- };
- 
- static struct config_item_type uvcg_default_color_matching_type = {
--	.ct_item_ops	= &uvcg_default_color_matching_item_ops,
- 	.ct_attrs	= uvcg_default_color_matching_attrs,
- 	.ct_owner	= THIS_MODULE,
- };
-@@ -2285,9 +2193,6 @@ static inline struct f_uvc_opts *to_f_uvc_opts(struct config_item *item)
+diff --git a/drivers/usb/gadget/function/f_mass_storage.c b/drivers/usb/gadget/function/f_mass_storage.c
+index a6eb537..db71ae9 100644
+--- a/drivers/usb/gadget/function/f_mass_storage.c
++++ b/drivers/usb/gadget/function/f_mass_storage.c
+@@ -3144,9 +3144,6 @@ static inline struct fsg_opts *to_fsg_opts(struct config_item *item)
  			    func_inst.group);
  }
  
--CONFIGFS_ATTR_STRUCT(f_uvc_opts);
--CONFIGFS_ATTR_OPS(f_uvc_opts);
+-CONFIGFS_ATTR_STRUCT(fsg_lun_opts);
+-CONFIGFS_ATTR_OPS(fsg_lun_opts);
 -
- static void uvc_attr_release(struct config_item *item)
+ static void fsg_lun_attr_release(struct config_item *item)
  {
- 	struct f_uvc_opts *opts = to_f_uvc_opts(item);
-@@ -2297,14 +2202,13 @@ static void uvc_attr_release(struct config_item *item)
+ 	struct fsg_lun_opts *lun_opts;
+@@ -3157,110 +3154,89 @@ static void fsg_lun_attr_release(struct config_item *item)
  
- static struct configfs_item_operations uvc_item_ops = {
- 	.release		= uvc_attr_release,
--	.show_attribute		= f_uvc_opts_attr_show,
--	.store_attribute	= f_uvc_opts_attr_store,
+ static struct configfs_item_operations fsg_lun_item_ops = {
+ 	.release		= fsg_lun_attr_release,
+-	.show_attribute		= fsg_lun_opts_attr_show,
+-	.store_attribute	= fsg_lun_opts_attr_store,
  };
  
- #define UVCG_OPTS_ATTR(cname, conv, str2u, uxx, vnoc, limit)		\
- static ssize_t f_uvc_opts_##cname##_show(				\
--	struct f_uvc_opts *opts, char *page)				\
-+	struct config_item *item, char *page)				\
- {									\
-+	struct f_uvc_opts *opts = to_f_uvc_opts(item);			\
- 	int result;							\
- 									\
- 	mutex_lock(&opts->lock);					\
-@@ -2315,9 +2219,10 @@ static ssize_t f_uvc_opts_##cname##_show(				\
- }									\
- 									\
- static ssize_t								\
--f_uvc_opts_##cname##_store(struct f_uvc_opts *opts,			\
-+f_uvc_opts_##cname##_store(struct config_item *item,			\
- 			   const char *page, size_t len)		\
- {									\
-+	struct f_uvc_opts *opts = to_f_uvc_opts(item);			\
- 	int ret;							\
- 	uxx num;							\
- 									\
-@@ -2342,11 +2247,7 @@ end:									\
- 	return ret;							\
- }									\
- 									\
--static struct f_uvc_opts_attribute					\
--	f_uvc_opts_attribute_##cname =					\
--	__CONFIGFS_ATTR(cname, S_IRUGO | S_IWUSR,			\
--			f_uvc_opts_##cname##_show,			\
--			f_uvc_opts_##cname##_store)
-+UVC_ATTR(f_uvc_opts_, cname, aname)
+-static ssize_t fsg_lun_opts_file_show(struct fsg_lun_opts *opts, char *page)
++static ssize_t fsg_lun_opts_file_show(struct config_item *item, char *page)
+ {
+-	struct fsg_opts *fsg_opts;
+-
+-	fsg_opts = to_fsg_opts(opts->group.cg_item.ci_parent);
++	struct fsg_lun_opts *opts = to_fsg_lun_opts(item);
++	struct fsg_opts *fsg_opts = to_fsg_opts(opts->group.cg_item.ci_parent);
  
- #define identity_conv(x) (x)
+ 	return fsg_show_file(opts->lun, &fsg_opts->common->filesem, page);
+ }
  
-@@ -2362,9 +2263,9 @@ UVCG_OPTS_ATTR(streaming_maxburst, identity_conv, kstrtou8, u8, identity_conv,
- #undef UVCG_OPTS_ATTR
+-static ssize_t fsg_lun_opts_file_store(struct fsg_lun_opts *opts,
++static ssize_t fsg_lun_opts_file_store(struct config_item *item,
+ 				       const char *page, size_t len)
+ {
+-	struct fsg_opts *fsg_opts;
+-
+-	fsg_opts = to_fsg_opts(opts->group.cg_item.ci_parent);
++	struct fsg_lun_opts *opts = to_fsg_lun_opts(item);
++	struct fsg_opts *fsg_opts = to_fsg_opts(opts->group.cg_item.ci_parent);
  
- static struct configfs_attribute *uvc_attrs[] = {
--	&f_uvc_opts_attribute_streaming_interval.attr,
--	&f_uvc_opts_attribute_streaming_maxpacket.attr,
--	&f_uvc_opts_attribute_streaming_maxburst.attr,
-+	&f_uvc_opts_attr_streaming_interval,
-+	&f_uvc_opts_attr_streaming_maxpacket,
-+	&f_uvc_opts_attr_streaming_maxburst,
+ 	return fsg_store_file(opts->lun, &fsg_opts->common->filesem, page, len);
+ }
+ 
+-static struct fsg_lun_opts_attribute fsg_lun_opts_file =
+-	__CONFIGFS_ATTR(file, S_IRUGO | S_IWUSR, fsg_lun_opts_file_show,
+-			fsg_lun_opts_file_store);
+-
+-static ssize_t fsg_lun_opts_ro_show(struct fsg_lun_opts *opts, char *page)
++static ssize_t fsg_lun_opts_ro_show(struct config_item *item, char *page)
+ {
+-	return fsg_show_ro(opts->lun, page);
++	return fsg_show_ro(to_fsg_lun_opts(item)->lun, page);
+ }
+ 
+-static ssize_t fsg_lun_opts_ro_store(struct fsg_lun_opts *opts,
++static ssize_t fsg_lun_opts_ro_store(struct config_item *item,
+ 				       const char *page, size_t len)
+ {
+-	struct fsg_opts *fsg_opts;
+-
+-	fsg_opts = to_fsg_opts(opts->group.cg_item.ci_parent);
++	struct fsg_lun_opts *opts = to_fsg_lun_opts(item);
++	struct fsg_opts *fsg_opts = to_fsg_opts(opts->group.cg_item.ci_parent);
+ 
+ 	return fsg_store_ro(opts->lun, &fsg_opts->common->filesem, page, len);
+ }
+ 
+-static struct fsg_lun_opts_attribute fsg_lun_opts_ro =
+-	__CONFIGFS_ATTR(ro, S_IRUGO | S_IWUSR, fsg_lun_opts_ro_show,
+-			fsg_lun_opts_ro_store);
+-
+-static ssize_t fsg_lun_opts_removable_show(struct fsg_lun_opts *opts,
++static ssize_t fsg_lun_opts_removable_show(struct config_item *item,
+ 					   char *page)
+ {
+-	return fsg_show_removable(opts->lun, page);
++	return fsg_show_removable(to_fsg_lun_opts(item)->lun, page);
+ }
+ 
+-static ssize_t fsg_lun_opts_removable_store(struct fsg_lun_opts *opts,
++static ssize_t fsg_lun_opts_removable_store(struct config_item *item,
+ 				       const char *page, size_t len)
+ {
+-	return fsg_store_removable(opts->lun, page, len);
++	return fsg_store_removable(to_fsg_lun_opts(item)->lun, page, len);
+ }
+ 
+-static struct fsg_lun_opts_attribute fsg_lun_opts_removable =
+-	__CONFIGFS_ATTR(removable, S_IRUGO | S_IWUSR,
+-			fsg_lun_opts_removable_show,
+-			fsg_lun_opts_removable_store);
+-
+-static ssize_t fsg_lun_opts_cdrom_show(struct fsg_lun_opts *opts, char *page)
++static ssize_t fsg_lun_opts_cdrom_show(struct config_item *item, char *page)
+ {
+-	return fsg_show_cdrom(opts->lun, page);
++	return fsg_show_cdrom(to_fsg_lun_opts(item)->lun, page);
+ }
+ 
+-static ssize_t fsg_lun_opts_cdrom_store(struct fsg_lun_opts *opts,
++static ssize_t fsg_lun_opts_cdrom_store(struct config_item *item,
+ 				       const char *page, size_t len)
+ {
+-	struct fsg_opts *fsg_opts;
+-
+-	fsg_opts = to_fsg_opts(opts->group.cg_item.ci_parent);
++	struct fsg_lun_opts *opts = to_fsg_lun_opts(item);
++	struct fsg_opts *fsg_opts = to_fsg_opts(opts->group.cg_item.ci_parent);
+ 
+ 	return fsg_store_cdrom(opts->lun, &fsg_opts->common->filesem, page,
+ 			       len);
+ }
+ 
+-static struct fsg_lun_opts_attribute fsg_lun_opts_cdrom =
+-	__CONFIGFS_ATTR(cdrom, S_IRUGO | S_IWUSR, fsg_lun_opts_cdrom_show,
+-			fsg_lun_opts_cdrom_store);
+-
+-static ssize_t fsg_lun_opts_nofua_show(struct fsg_lun_opts *opts, char *page)
++static ssize_t fsg_lun_opts_nofua_show(struct config_item *item, char *page)
+ {
+-	return fsg_show_nofua(opts->lun, page);
++	return fsg_show_nofua(to_fsg_lun_opts(item)->lun, page);
+ }
+ 
+-static ssize_t fsg_lun_opts_nofua_store(struct fsg_lun_opts *opts,
++static ssize_t fsg_lun_opts_nofua_store(struct config_item *item,
+ 				       const char *page, size_t len)
+ {
+-	return fsg_store_nofua(opts->lun, page, len);
++	return fsg_store_nofua(to_fsg_lun_opts(item)->lun, page, len);
+ }
+ 
+-static struct fsg_lun_opts_attribute fsg_lun_opts_nofua =
+-	__CONFIGFS_ATTR(nofua, S_IRUGO | S_IWUSR, fsg_lun_opts_nofua_show,
+-			fsg_lun_opts_nofua_store);
++CONFIGFS_ATTR(fsg_lun_opts_, file);
++CONFIGFS_ATTR(fsg_lun_opts_, ro);
++CONFIGFS_ATTR(fsg_lun_opts_, removable);
++CONFIGFS_ATTR(fsg_lun_opts_, cdrom);
++CONFIGFS_ATTR(fsg_lun_opts_, nofua);
+ 
+ static struct configfs_attribute *fsg_lun_attrs[] = {
+-	&fsg_lun_opts_file.attr,
+-	&fsg_lun_opts_ro.attr,
+-	&fsg_lun_opts_removable.attr,
+-	&fsg_lun_opts_cdrom.attr,
+-	&fsg_lun_opts_nofua.attr,
++	&fsg_lun_opts_attr_file,
++	&fsg_lun_opts_attr_ro,
++	&fsg_lun_opts_attr_removable,
++	&fsg_lun_opts_attr_cdrom,
++	&fsg_lun_opts_attr_nofua,
  	NULL,
  };
  
+@@ -3352,9 +3328,6 @@ static void fsg_lun_drop(struct config_group *group, struct config_item *item)
+ 	config_item_put(item);
+ }
+ 
+-CONFIGFS_ATTR_STRUCT(fsg_opts);
+-CONFIGFS_ATTR_OPS(fsg_opts);
+-
+ static void fsg_attr_release(struct config_item *item)
+ {
+ 	struct fsg_opts *opts = to_fsg_opts(item);
+@@ -3364,12 +3337,11 @@ static void fsg_attr_release(struct config_item *item)
+ 
+ static struct configfs_item_operations fsg_item_ops = {
+ 	.release		= fsg_attr_release,
+-	.show_attribute		= fsg_opts_attr_show,
+-	.store_attribute	= fsg_opts_attr_store,
+ };
+ 
+-static ssize_t fsg_opts_stall_show(struct fsg_opts *opts, char *page)
++static ssize_t fsg_opts_stall_show(struct config_item *item, char *page)
+ {
++	struct fsg_opts *opts = to_fsg_opts(item);
+ 	int result;
+ 
+ 	mutex_lock(&opts->lock);
+@@ -3379,9 +3351,10 @@ static ssize_t fsg_opts_stall_show(struct fsg_opts *opts, char *page)
+ 	return result;
+ }
+ 
+-static ssize_t fsg_opts_stall_store(struct fsg_opts *opts, const char *page,
++static ssize_t fsg_opts_stall_store(struct config_item *item, const char *page,
+ 				    size_t len)
+ {
++	struct fsg_opts *opts = to_fsg_opts(item);
+ 	int ret;
+ 	bool stall;
+ 
+@@ -3403,13 +3376,12 @@ static ssize_t fsg_opts_stall_store(struct fsg_opts *opts, const char *page,
+ 	return ret;
+ }
+ 
+-static struct fsg_opts_attribute fsg_opts_stall =
+-	__CONFIGFS_ATTR(stall, S_IRUGO | S_IWUSR, fsg_opts_stall_show,
+-			fsg_opts_stall_store);
++CONFIGFS_ATTR(fsg_opts_, stall);
+ 
+ #ifdef CONFIG_USB_GADGET_DEBUG_FILES
+-static ssize_t fsg_opts_num_buffers_show(struct fsg_opts *opts, char *page)
++static ssize_t fsg_opts_num_buffers_show(struct config_item *item, char *page)
+ {
++	struct fsg_opts *opts = to_fsg_opts(item);
+ 	int result;
+ 
+ 	mutex_lock(&opts->lock);
+@@ -3419,9 +3391,10 @@ static ssize_t fsg_opts_num_buffers_show(struct fsg_opts *opts, char *page)
+ 	return result;
+ }
+ 
+-static ssize_t fsg_opts_num_buffers_store(struct fsg_opts *opts,
++static ssize_t fsg_opts_num_buffers_store(struct config_item *item,
+ 					  const char *page, size_t len)
+ {
++	struct fsg_opts *opts = to_fsg_opts(item);
+ 	int ret;
+ 	u8 num;
+ 
+@@ -3446,17 +3419,13 @@ end:
+ 	return ret;
+ }
+ 
+-static struct fsg_opts_attribute fsg_opts_num_buffers =
+-	__CONFIGFS_ATTR(num_buffers, S_IRUGO | S_IWUSR,
+-			fsg_opts_num_buffers_show,
+-			fsg_opts_num_buffers_store);
+-
++CONFIGFS_ATTR(fsg_opts_, num_buffers);
+ #endif
+ 
+ static struct configfs_attribute *fsg_attrs[] = {
+-	&fsg_opts_stall.attr,
++	&fsg_opts_attr_stall,
+ #ifdef CONFIG_USB_GADGET_DEBUG_FILES
+-	&fsg_opts_num_buffers.attr,
++	&fsg_opts_attr_num_buffers,
+ #endif
+ 	NULL,
+ };
 -- 
 1.9.1
