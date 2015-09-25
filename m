@@ -1,10 +1,10 @@
 From: Christoph Hellwig <hch@lst.de>
-Date: Fri, 25 Sep 2015 06:49:46 -0700
-Subject: [Ocfs2-devel] [PATCH 09/23] usb-gadget/f_printer: use per-attribute
+Date: Fri, 25 Sep 2015 06:49:42 -0700
+Subject: [Ocfs2-devel] [PATCH 05/23] usb-gadget/f_acm: use per-attribute
 	show and store methods
 In-Reply-To: <1443189000-13398-1-git-send-email-hch@lst.de>
 References: <1443189000-13398-1-git-send-email-hch@lst.de>
-Message-ID: <1443189000-13398-10-git-send-email-hch@lst.de>
+Message-ID: <1443189000-13398-6-git-send-email-hch@lst.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -14,95 +14,57 @@ Cc: linux-usb@vger.kernel.org, netdev@vger.kernel.org, Pratyush Anand <pratyush.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- drivers/usb/gadget/function/f_printer.c | 31 ++++++++++++-------------------
- 1 file changed, 12 insertions(+), 19 deletions(-)
+ drivers/usb/gadget/function/f_acm.c | 26 ++++----------------------
+ 1 file changed, 4 insertions(+), 22 deletions(-)
 
-diff --git a/drivers/usb/gadget/function/f_printer.c b/drivers/usb/gadget/function/f_printer.c
-index 8e2b6be..29c90d5 100644
---- a/drivers/usb/gadget/function/f_printer.c
-+++ b/drivers/usb/gadget/function/f_printer.c
-@@ -1148,9 +1148,6 @@ static inline struct f_printer_opts
- 			    func_inst.group);
+diff --git a/drivers/usb/gadget/function/f_acm.c b/drivers/usb/gadget/function/f_acm.c
+index be9df09..68b289f 100644
+--- a/drivers/usb/gadget/function/f_acm.c
++++ b/drivers/usb/gadget/function/f_acm.c
+@@ -776,21 +776,6 @@ static inline struct f_serial_opts *to_f_serial_opts(struct config_item *item)
+ 			func_inst.group);
  }
  
--CONFIGFS_ATTR_STRUCT(f_printer_opts);
--CONFIGFS_ATTR_OPS(f_printer_opts);
+-CONFIGFS_ATTR_STRUCT(f_serial_opts);
+-static ssize_t f_acm_attr_show(struct config_item *item,
+-				 struct configfs_attribute *attr,
+-				 char *page)
+-{
+-	struct f_serial_opts *opts = to_f_serial_opts(item);
+-	struct f_serial_opts_attribute *f_serial_opts_attr =
+-		container_of(attr, struct f_serial_opts_attribute, attr);
+-	ssize_t ret = 0;
 -
- static void printer_attr_release(struct config_item *item)
+-	if (f_serial_opts_attr->show)
+-		ret = f_serial_opts_attr->show(opts, page);
+-	return ret;
+-}
+-
+ static void acm_attr_release(struct config_item *item)
  {
- 	struct f_printer_opts *opts = to_f_printer_opts(item);
-@@ -1160,13 +1157,12 @@ static void printer_attr_release(struct config_item *item)
+ 	struct f_serial_opts *opts = to_f_serial_opts(item);
+@@ -800,20 +785,17 @@ static void acm_attr_release(struct config_item *item)
  
- static struct configfs_item_operations printer_item_ops = {
- 	.release	= printer_attr_release,
--	.show_attribute	= f_printer_opts_attr_show,
--	.store_attribute = f_printer_opts_attr_store,
+ static struct configfs_item_operations acm_item_ops = {
+ 	.release                = acm_attr_release,
+-	.show_attribute		= f_acm_attr_show,
  };
  
--static ssize_t f_printer_opts_pnp_string_show(struct f_printer_opts *opts,
-+static ssize_t f_printer_opts_pnp_string_show(struct config_item *item,
- 					      char *page)
+-static ssize_t f_acm_port_num_show(struct f_serial_opts *opts, char *page)
++static ssize_t f_acm_port_num_show(struct config_item *item, char *page)
  {
-+	struct f_printer_opts *opts = to_f_printer_opts(item);
- 	int result;
- 
- 	mutex_lock(&opts->lock);
-@@ -1176,9 +1172,10 @@ static ssize_t f_printer_opts_pnp_string_show(struct f_printer_opts *opts,
- 	return result;
+-	return sprintf(page, "%u\n", opts->port_num);
++	return sprintf(page, "%u\n", to_f_serial_opts(item)->port_num);
  }
  
--static ssize_t f_printer_opts_pnp_string_store(struct f_printer_opts *opts,
-+static ssize_t f_printer_opts_pnp_string_store(struct config_item *item,
- 					       const char *page, size_t len)
- {
-+	struct f_printer_opts *opts = to_f_printer_opts(item);
- 	int result, l;
- 
- 	mutex_lock(&opts->lock);
-@@ -1191,14 +1188,10 @@ static ssize_t f_printer_opts_pnp_string_store(struct f_printer_opts *opts,
- 	return result;
- }
- 
--static struct f_printer_opts_attribute f_printer_opts_pnp_string =
--	__CONFIGFS_ATTR(pnp_string, S_IRUGO | S_IWUSR,
--			f_printer_opts_pnp_string_show,
--			f_printer_opts_pnp_string_store);
+-static struct f_serial_opts_attribute f_acm_port_num =
+-	__CONFIGFS_ATTR_RO(port_num, f_acm_port_num_show);
 -
--static ssize_t f_printer_opts_q_len_show(struct f_printer_opts *opts,
-+static ssize_t f_printer_opts_q_len_show(struct config_item *item,
- 					 char *page)
- {
-+	struct f_printer_opts *opts = to_f_printer_opts(item);
- 	int result;
++CONFIGFS_ATTR_RO(f_acm_port_, num);
  
- 	mutex_lock(&opts->lock);
-@@ -1208,9 +1201,10 @@ static ssize_t f_printer_opts_q_len_show(struct f_printer_opts *opts,
- 	return result;
- }
- 
--static ssize_t f_printer_opts_q_len_store(struct f_printer_opts *opts,
-+static ssize_t f_printer_opts_q_len_store(struct config_item *item,
- 					  const char *page, size_t len)
- {
-+	struct f_printer_opts *opts = to_f_printer_opts(item);
- 	int ret;
- 	u16 num;
- 
-@@ -1231,13 +1225,12 @@ end:
- 	return ret;
- }
- 
--static struct f_printer_opts_attribute f_printer_opts_q_len =
--	__CONFIGFS_ATTR(q_len, S_IRUGO | S_IWUSR, f_printer_opts_q_len_show,
--			f_printer_opts_q_len_store);
-+CONFIGFS_ATTR(f_printer_opts_, pnp_string);
-+CONFIGFS_ATTR(f_printer_opts_, q_len);
- 
- static struct configfs_attribute *printer_attrs[] = {
--	&f_printer_opts_pnp_string.attr,
--	&f_printer_opts_q_len.attr,
-+	&f_printer_opts_attr_pnp_string,
-+	&f_printer_opts_attr_q_len,
+ static struct configfs_attribute *acm_attrs[] = {
+-	&f_acm_port_num.attr,
++	&f_acm_port_attr_num,
  	NULL,
  };
  
