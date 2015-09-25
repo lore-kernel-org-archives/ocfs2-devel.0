@@ -1,10 +1,10 @@
 From: Christoph Hellwig <hch@lst.de>
-Date: Fri, 25 Sep 2015 06:49:38 -0700
-Subject: [Ocfs2-devel] [PATCH 01/23] configfs: add show and store methods to
-	struct configfs_attribute
+Date: Fri, 25 Sep 2015 06:49:45 -0700
+Subject: [Ocfs2-devel] [PATCH 08/23] usb-gadget/f_midi: use per-attribute
+	show and store methods
 In-Reply-To: <1443189000-13398-1-git-send-email-hch@lst.de>
 References: <1443189000-13398-1-git-send-email-hch@lst.de>
-Message-ID: <1443189000-13398-2-git-send-email-hch@lst.de>
+Message-ID: <1443189000-13398-9-git-send-email-hch@lst.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -12,105 +12,111 @@ Content-Transfer-Encoding: 7bit
 To: Joel Becker <jlbec@evilplan.org>, Andrew Morton <akpm@linux-foundation.org>
 Cc: linux-usb@vger.kernel.org, netdev@vger.kernel.org, Pratyush Anand <pratyush.anand@gmail.com>, Felipe Balbi <balbi@ti.com>, cluster-devel@redhat.com, target-devel@vger.kernel.org, Tejun Heo <tj@kernel.org>, ocfs2-devel@oss.oracle.com
 
-Add methods to struct configfs_attribute to directly show and store
-attributes without adding boilerplate code to every user.  In addition
-to the methods this also adds 3 helper macros to define read/write,
-read-only and write-only attributes with a single line of code.
-
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- fs/configfs/file.c       | 17 ++++++++++++-----
- include/linux/configfs.h | 27 +++++++++++++++++++++++++++
- 2 files changed, 39 insertions(+), 5 deletions(-)
+ drivers/usb/gadget/function/f_midi.c | 37 ++++++++++++++++--------------------
+ 1 file changed, 16 insertions(+), 21 deletions(-)
 
-diff --git a/fs/configfs/file.c b/fs/configfs/file.c
-index 403269f..106ca58 100644
---- a/fs/configfs/file.c
-+++ b/fs/configfs/file.c
-@@ -74,7 +74,11 @@ static int fill_read_buffer(struct dentry * dentry, struct configfs_buffer * buf
- 	if (!buffer->page)
- 		return -ENOMEM;
- 
--	count = ops->show_attribute(item,attr,buffer->page);
-+	if (ops->show_attribute)
-+		count = ops->show_attribute(item, attr, buffer->page);
-+	else
-+		count = attr->show(item, buffer->page);
-+
- 	buffer->needs_read_fill = 0;
- 	BUG_ON(count > (ssize_t)SIMPLE_ATTR_SIZE);
- 	if (count >= 0)
-@@ -173,7 +177,9 @@ flush_write_buffer(struct dentry * dentry, struct configfs_buffer * buffer, size
- 	struct config_item * item = to_item(dentry->d_parent);
- 	struct configfs_item_operations * ops = buffer->ops;
- 
--	return ops->store_attribute(item,attr,buffer->page,count);
-+	if (ops->store_attribute)
-+		return ops->store_attribute(item, attr, buffer->page, count);
-+	return attr->store(item, buffer->page, count);
+diff --git a/drivers/usb/gadget/function/f_midi.c b/drivers/usb/gadget/function/f_midi.c
+index a287a48..0e2b8ed 100644
+--- a/drivers/usb/gadget/function/f_midi.c
++++ b/drivers/usb/gadget/function/f_midi.c
+@@ -906,9 +906,6 @@ static inline struct f_midi_opts *to_f_midi_opts(struct config_item *item)
+ 			    func_inst.group);
  }
  
- 
-@@ -237,8 +243,8 @@ static int check_perm(struct inode * inode, struct file * file)
- 	 * and we must have a store method.
- 	 */
- 	if (file->f_mode & FMODE_WRITE) {
+-CONFIGFS_ATTR_STRUCT(f_midi_opts);
+-CONFIGFS_ATTR_OPS(f_midi_opts);
 -
--		if (!(inode->i_mode & S_IWUGO) || !ops->store_attribute)
-+		if (!(inode->i_mode & S_IWUGO) ||
-+		    (!ops->store_attribute && !attr->store))
- 			goto Eaccess;
+ static void midi_attr_release(struct config_item *item)
+ {
+ 	struct f_midi_opts *opts = to_f_midi_opts(item);
+@@ -918,13 +915,12 @@ static void midi_attr_release(struct config_item *item)
  
- 	}
-@@ -248,7 +254,8 @@ static int check_perm(struct inode * inode, struct file * file)
- 	 * must be a show method for it.
- 	 */
- 	if (file->f_mode & FMODE_READ) {
--		if (!(inode->i_mode & S_IRUGO) || !ops->show_attribute)
-+		if (!(inode->i_mode & S_IRUGO) ||
-+		    (!ops->show_attribute && !attr->show))
- 			goto Eaccess;
- 	}
- 
-diff --git a/include/linux/configfs.h b/include/linux/configfs.h
-index 63a36e8..85e9956 100644
---- a/include/linux/configfs.h
-+++ b/include/linux/configfs.h
-@@ -125,8 +125,35 @@ struct configfs_attribute {
- 	const char		*ca_name;
- 	struct module 		*ca_owner;
- 	umode_t			ca_mode;
-+	ssize_t (*show)(struct config_item *, char *);
-+	ssize_t (*store)(struct config_item *, const char *, size_t);
+ static struct configfs_item_operations midi_item_ops = {
+ 	.release	= midi_attr_release,
+-	.show_attribute	= f_midi_opts_attr_show,
+-	.store_attribute = f_midi_opts_attr_store,
  };
  
-+#define CONFIGFS_ATTR(_pfx, _name)			\
-+static struct configfs_attribute _pfx##attr_##_name = {	\
-+	.ca_name	= __stringify(_name),		\
-+	.ca_mode	= S_IRUGO | S_IWUSR,		\
-+	.ca_owner	= THIS_MODULE,			\
-+	.show		= _pfx##_name##_show,		\
-+	.store		= _pfx##_name##_store,		\
-+}
-+
-+#define CONFIGFS_ATTR_RO(_pfx, _name)			\
-+static struct configfs_attribute _pfx##attr_##_name = {	\
-+	.ca_name	= __stringify(_name),		\
-+	.ca_mode	= S_IRUGO,			\
-+	.ca_owner	= THIS_MODULE,			\
-+	.show		= _pfx##_name##_show,		\
-+}
-+
-+#define CONFIGFS_ATTR_WO(_pfx, _name)			\
-+static struct configfs_attribute _pfx##attr_##_name = {	\
-+	.ca_name	= __stringify(_name),		\
-+	.ca_mode	= S_IWUSR,			\
-+	.ca_owner	= THIS_MODULE,			\
-+	.store		= _pfx##_name##_store,		\
-+}
-+
- /*
-  * Users often need to create attribute structures for their configurable
-  * attributes, containing a configfs_attribute member and function pointers
+ #define F_MIDI_OPT(name, test_limit, limit)				\
+-static ssize_t f_midi_opts_##name##_show(struct f_midi_opts *opts, char *page) \
++static ssize_t f_midi_opts_##name##_show(struct config_item *item, char *page) \
+ {									\
++	struct f_midi_opts *opts = to_f_midi_opts(item);		\
+ 	int result;							\
+ 									\
+ 	mutex_lock(&opts->lock);					\
+@@ -934,9 +930,10 @@ static ssize_t f_midi_opts_##name##_show(struct f_midi_opts *opts, char *page) \
+ 	return result;							\
+ }									\
+ 									\
+-static ssize_t f_midi_opts_##name##_store(struct f_midi_opts *opts,	\
++static ssize_t f_midi_opts_##name##_store(struct config_item *item,	\
+ 					 const char *page, size_t len)	\
+ {									\
++	struct f_midi_opts *opts = to_f_midi_opts(item);		\
+ 	int ret;							\
+ 	u32 num;							\
+ 									\
+@@ -962,9 +959,7 @@ end:									\
+ 	return ret;							\
+ }									\
+ 									\
+-static struct f_midi_opts_attribute f_midi_opts_##name =		\
+-	__CONFIGFS_ATTR(name, S_IRUGO | S_IWUSR, f_midi_opts_##name##_show, \
+-			f_midi_opts_##name##_store)
++CONFIGFS_ATTR(f_midi_opts_, name);
+ 
+ F_MIDI_OPT(index, true, SNDRV_CARDS);
+ F_MIDI_OPT(buflen, false, 0);
+@@ -972,8 +967,9 @@ F_MIDI_OPT(qlen, false, 0);
+ F_MIDI_OPT(in_ports, true, MAX_PORTS);
+ F_MIDI_OPT(out_ports, true, MAX_PORTS);
+ 
+-static ssize_t f_midi_opts_id_show(struct f_midi_opts *opts, char *page)
++static ssize_t f_midi_opts_id_show(struct config_item *item, char *page)
+ {
++	struct f_midi_opts *opts = to_f_midi_opts(item);
+ 	int result;
+ 
+ 	mutex_lock(&opts->lock);
+@@ -989,9 +985,10 @@ static ssize_t f_midi_opts_id_show(struct f_midi_opts *opts, char *page)
+ 	return result;
+ }
+ 
+-static ssize_t f_midi_opts_id_store(struct f_midi_opts *opts,
++static ssize_t f_midi_opts_id_store(struct config_item *item,
+ 				    const char *page, size_t len)
+ {
++	struct f_midi_opts *opts = to_f_midi_opts(item);
+ 	int ret;
+ 	char *c;
+ 
+@@ -1016,17 +1013,15 @@ end:
+ 	return ret;
+ }
+ 
+-static struct f_midi_opts_attribute f_midi_opts_id =
+-	__CONFIGFS_ATTR(id, S_IRUGO | S_IWUSR, f_midi_opts_id_show,
+-			f_midi_opts_id_store);
++CONFIGFS_ATTR(f_midi_opts_, id);
+ 
+ static struct configfs_attribute *midi_attrs[] = {
+-	&f_midi_opts_index.attr,
+-	&f_midi_opts_buflen.attr,
+-	&f_midi_opts_qlen.attr,
+-	&f_midi_opts_in_ports.attr,
+-	&f_midi_opts_out_ports.attr,
+-	&f_midi_opts_id.attr,
++	&f_midi_opts_attr_index,
++	&f_midi_opts_attr_buflen,
++	&f_midi_opts_attr_qlen,
++	&f_midi_opts_attr_in_ports,
++	&f_midi_opts_attr_out_ports,
++	&f_midi_opts_attr_id,
+ 	NULL,
+ };
+ 
 -- 
 1.9.1
