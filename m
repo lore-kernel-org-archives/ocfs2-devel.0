@@ -1,19 +1,23 @@
-From: Christoph Hellwig <hch@lst.de>
-Date: Mon, 28 Sep 2015 15:42:14 +0200
-Subject: [Ocfs2-devel] [PATCH 23/23] configfs: remove old API
-In-Reply-To: <56092D2E.1000400@samsung.com>
+From: David Teigland <teigland@redhat.com>
+Date: Mon, 28 Sep 2015 09:49:49 -0500
+Subject: [Ocfs2-devel] [Cluster-devel] [PATCH 17/23] dlm: use
+ per-attribute show and store methods
+In-Reply-To: <1443189000-13398-18-git-send-email-hch@lst.de>
 References: <1443189000-13398-1-git-send-email-hch@lst.de>
-	<1443189000-13398-24-git-send-email-hch@lst.de>
-	<56092D2E.1000400@samsung.com>
-Message-ID: <20150928134214.GE30453@lst.de>
+	<1443189000-13398-18-git-send-email-hch@lst.de>
+Message-ID: <20150928144949.GA30917@redhat.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Andrzej Pietrasiewicz <andrzej.p@samsung.com>
-Cc: Christoph Hellwig <hch@lst.de>, Joel Becker <jlbec@evilplan.org>, Andrew Morton <akpm@linux-foundation.org>, Felipe Balbi <balbi@ti.com>, Tejun Heo <tj@kernel.org>, Pratyush Anand <pratyush.anand@gmail.com>, target-devel@vger.kernel.org, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, linux-usb@vger.kernel.org, netdev@vger.kernel.org
+To: Christoph Hellwig <hch@lst.de>
+Cc: Pratyush Anand <pratyush.anand@gmail.com>, netdev@vger.kernel.org, linux-usb@vger.kernel.org, Felipe Balbi <balbi@ti.com>, cluster-devel@redhat.com, target-devel@vger.kernel.org, Tejun Heo <tj@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, ocfs2-devel@oss.oracle.com
 
-> Haven't you just removed show_attribute() and store_attribute() from
-> configfs_item_operations?
+On Fri, Sep 25, 2015 at 06:49:54AM -0700, Christoph Hellwig wrote:
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
+> ---
+>  fs/dlm/config.c | 288 +++++++++++++++-----------------------------------------
+>  1 file changed, 74 insertions(+), 214 deletions(-)
 
-Oops, looks like the old text manage to slip back in.  I'll fix it up.
+Looks good to me.
+Dave
