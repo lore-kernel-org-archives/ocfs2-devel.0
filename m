@@ -1,12 +1,11 @@
 From: Christoph Hellwig <hch@lst.de>
-Date: Mon, 28 Sep 2015 15:41:01 +0200
-Subject: [Ocfs2-devel] [PATCH 07/23] usb-gadget/f_loopback: use
-	per-attribute show	and store methods
-In-Reply-To: <560928B1.1000605@samsung.com>
+Date: Mon, 28 Sep 2015 15:42:14 +0200
+Subject: [Ocfs2-devel] [PATCH 23/23] configfs: remove old API
+In-Reply-To: <56092D2E.1000400@samsung.com>
 References: <1443189000-13398-1-git-send-email-hch@lst.de>
-	<1443189000-13398-8-git-send-email-hch@lst.de>
-	<560928B1.1000605@samsung.com>
-Message-ID: <20150928134101.GD30453@lst.de>
+	<1443189000-13398-24-git-send-email-hch@lst.de>
+	<56092D2E.1000400@samsung.com>
+Message-ID: <20150928134214.GE30453@lst.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -14,19 +13,7 @@ Content-Transfer-Encoding: 7bit
 To: Andrzej Pietrasiewicz <andrzej.p@samsung.com>
 Cc: Christoph Hellwig <hch@lst.de>, Joel Becker <jlbec@evilplan.org>, Andrew Morton <akpm@linux-foundation.org>, Felipe Balbi <balbi@ti.com>, Tejun Heo <tj@kernel.org>, Pratyush Anand <pratyush.anand@gmail.com>, target-devel@vger.kernel.org, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, linux-usb@vger.kernel.org, netdev@vger.kernel.org
 
-On Mon, Sep 28, 2015 at 01:46:57PM +0200, Andrzej Pietrasiewicz wrote:
->>   }
->>
->> -static struct f_lb_opts_attribute f_lb_opts_qlen =
->> -	__CONFIGFS_ATTR(qlen, S_IRUGO | S_IWUSR,
->> -			f_lb_opts_qlen_show,
->> -			f_lb_opts_qlen_store);
->> -
-> In my opinion the below line belongs here:
->
-> +CONFIGFS_ATTR(f_lb_opts_, qlen);
+> Haven't you just removed show_attribute() and store_attribute() from
+> configfs_item_operations?
 
-The idea is to keep all the attribute defintions near the attribute
-array, similar to how most drivers define their sysfs attributes.
-
-If you really don't like that way I'll move it back.
+Oops, looks like the old text manage to slip back in.  I'll fix it up.
