@@ -1,418 +1,513 @@
 From: Christoph Hellwig <hch@lst.de>
-Date: Sat,  3 Oct 2015 15:32:54 +0200
-Subject: [Ocfs2-devel] [PATCH 18/23] spear13xx_pcie_gadget: use
-	per-attribute show and store methods
+Date: Sat,  3 Oct 2015 15:32:56 +0200
+Subject: [Ocfs2-devel] [PATCH 20/23] netconsole: use per-attribute show and
+	store methods
 In-Reply-To: <1443879179-22280-1-git-send-email-hch@lst.de>
 References: <1443879179-22280-1-git-send-email-hch@lst.de>
-Message-ID: <1443879179-22280-19-git-send-email-hch@lst.de>
+Message-ID: <1443879179-22280-21-git-send-email-hch@lst.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: Joel Becker <jlbec@evilplan.org>, Andrew Morton <akpm@linux-foundation.org>, Nicholas Bellinger <nab@linux-iscsi.org>
-Cc: linux-usb@vger.kernel.org, netdev@vger.kernel.org, Pratyush Anand <pratyush.anand@gmail.com>, Pantelis Antoniou <pantelis.antoniou@konsulko.com>, Felipe Balbi <balbi@ti.com>, cluster-devel@redhat.com, Tejun Heo <tj@kernel.org>, target-devel@vger.kernel.org, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, ocfs2-devel@oss.oracle.com
+Cc: Felipe Balbi <balbi@ti.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, Tejun Heo <tj@kernel.org>, Pratyush Anand <pratyush.anand@gmail.com>, Pantelis Antoniou <pantelis.antoniou@konsulko.com>, target-devel@vger.kernel.org, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, linux-usb@vger.kernel.org, netdev@vger.kernel.org
+
+Note that the old code actually used the store_attributes method to do
+locking, this is moved into the individual methods.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- drivers/misc/spear13xx_pcie_gadget.c | 216 ++++++++++++-----------------------
- 1 file changed, 71 insertions(+), 145 deletions(-)
+ drivers/net/netconsole.c | 271 +++++++++++++++++++++++------------------------
+ 1 file changed, 132 insertions(+), 139 deletions(-)
 
-diff --git a/drivers/misc/spear13xx_pcie_gadget.c b/drivers/misc/spear13xx_pcie_gadget.c
-index b8374cd..ee120dc 100644
---- a/drivers/misc/spear13xx_pcie_gadget.c
-+++ b/drivers/misc/spear13xx_pcie_gadget.c
-@@ -220,11 +220,17 @@ static irqreturn_t spear_pcie_gadget_irq(int irq, void *dev_id)
- /*
-  * configfs interfaces show/store functions
+diff --git a/drivers/net/netconsole.c b/drivers/net/netconsole.c
+index 97f3acd..06ee639 100644
+--- a/drivers/net/netconsole.c
++++ b/drivers/net/netconsole.c
+@@ -244,15 +244,6 @@ static void free_param_target(struct netconsole_target *nt)
+  *				<target>/...
   */
--static ssize_t pcie_gadget_show_link(
--		struct spear_pcie_gadget_config *config,
--		char *buf)
+ 
+-struct netconsole_target_attr {
+-	struct configfs_attribute	attr;
+-	ssize_t				(*show)(struct netconsole_target *nt,
+-						char *buf);
+-	ssize_t				(*store)(struct netconsole_target *nt,
+-						 const char *buf,
+-						 size_t count);
+-};
+-
+ static struct netconsole_target *to_target(struct config_item *item)
+ {
+ 	return item ?
+@@ -264,58 +255,62 @@ static struct netconsole_target *to_target(struct config_item *item)
+  * Attribute operations for netconsole_target.
+  */
+ 
+-static ssize_t show_enabled(struct netconsole_target *nt, char *buf)
++static ssize_t enabled_show(struct config_item *item, char *buf)
+ {
+-	return snprintf(buf, PAGE_SIZE, "%d\n", nt->enabled);
++	return snprintf(buf, PAGE_SIZE, "%d\n", to_target(item)->enabled);
+ }
+ 
+-static ssize_t show_extended(struct netconsole_target *nt, char *buf)
++static ssize_t extended_show(struct config_item *item, char *buf)
+ {
+-	return snprintf(buf, PAGE_SIZE, "%d\n", nt->extended);
++	return snprintf(buf, PAGE_SIZE, "%d\n", to_target(item)->extended);
+ }
+ 
+-static ssize_t show_dev_name(struct netconsole_target *nt, char *buf)
++static ssize_t dev_name_show(struct config_item *item, char *buf)
+ {
+-	return snprintf(buf, PAGE_SIZE, "%s\n", nt->np.dev_name);
++	return snprintf(buf, PAGE_SIZE, "%s\n", to_target(item)->np.dev_name);
+ }
+ 
+-static ssize_t show_local_port(struct netconsole_target *nt, char *buf)
++static ssize_t local_port_show(struct config_item *item, char *buf)
+ {
+-	return snprintf(buf, PAGE_SIZE, "%d\n", nt->np.local_port);
++	return snprintf(buf, PAGE_SIZE, "%d\n", to_target(item)->np.local_port);
+ }
+ 
+-static ssize_t show_remote_port(struct netconsole_target *nt, char *buf)
++static ssize_t remote_port_show(struct config_item *item, char *buf)
+ {
+-	return snprintf(buf, PAGE_SIZE, "%d\n", nt->np.remote_port);
++	return snprintf(buf, PAGE_SIZE, "%d\n", to_target(item)->np.remote_port);
+ }
+ 
+-static ssize_t show_local_ip(struct netconsole_target *nt, char *buf)
++static ssize_t local_ip_show(struct config_item *item, char *buf)
+ {
++	struct netconsole_target *nt = to_target(item);
 +
-+static struct pcie_gadget_target *to_target(struct config_item *item)
+ 	if (nt->np.ipv6)
+ 		return snprintf(buf, PAGE_SIZE, "%pI6c\n", &nt->np.local_ip.in6);
+ 	else
+ 		return snprintf(buf, PAGE_SIZE, "%pI4\n", &nt->np.local_ip);
+ }
+ 
+-static ssize_t show_remote_ip(struct netconsole_target *nt, char *buf)
++static ssize_t remote_ip_show(struct config_item *item, char *buf)
  {
--	struct pcie_app_reg __iomem *app_reg = config->va_app_base;
-+	return item ?
-+		container_of(to_configfs_subsystem(to_config_group(item)),
-+				struct pcie_gadget_target, subsys) : NULL;
-+}
++	struct netconsole_target *nt = to_target(item);
 +
-+static ssize_t pcie_gadget_link_show(struct config_item *item, char *buf)
-+{
-+	struct pcie_app_reg __iomem *app_reg = to_target(item)->va_app_base;
- 
- 	if (readl(&app_reg->app_status_1) & ((u32)1 << XMLH_LINK_UP_ID))
- 		return sprintf(buf, "UP");
-@@ -232,11 +238,10 @@ static ssize_t pcie_gadget_show_link(
- 		return sprintf(buf, "DOWN");
+ 	if (nt->np.ipv6)
+ 		return snprintf(buf, PAGE_SIZE, "%pI6c\n", &nt->np.remote_ip.in6);
+ 	else
+ 		return snprintf(buf, PAGE_SIZE, "%pI4\n", &nt->np.remote_ip);
  }
  
--static ssize_t pcie_gadget_store_link(
--		struct spear_pcie_gadget_config *config,
-+static ssize_t pcie_gadget_link_store(struct config_item *item,
- 		const char *buf, size_t count)
+-static ssize_t show_local_mac(struct netconsole_target *nt, char *buf)
++static ssize_t local_mac_show(struct config_item *item, char *buf)
  {
--	struct pcie_app_reg __iomem *app_reg = config->va_app_base;
-+	struct pcie_app_reg __iomem *app_reg = to_target(item)->va_app_base;
+-	struct net_device *dev = nt->np.dev;
++	struct net_device *dev = to_target(item)->np.dev;
+ 	static const u8 bcast[ETH_ALEN] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
  
- 	if (sysfs_streq(buf, "UP"))
- 		writel(readl(&app_reg->app_ctrl_0) | (1 << APP_LTSSM_ENABLE_ID),
-@@ -250,17 +255,15 @@ static ssize_t pcie_gadget_store_link(
- 	return count;
+ 	return snprintf(buf, PAGE_SIZE, "%pM\n", dev ? dev->dev_addr : bcast);
  }
  
--static ssize_t pcie_gadget_show_int_type(
--		struct spear_pcie_gadget_config *config,
--		char *buf)
-+static ssize_t pcie_gadget_int_type_show(struct config_item *item, char *buf)
+-static ssize_t show_remote_mac(struct netconsole_target *nt, char *buf)
++static ssize_t remote_mac_show(struct config_item *item, char *buf)
  {
--	return sprintf(buf, "%s", config->int_type);
-+	return sprintf(buf, "%s", to_target(item)->int_type);
+-	return snprintf(buf, PAGE_SIZE, "%pM\n", nt->np.remote_mac);
++	return snprintf(buf, PAGE_SIZE, "%pM\n", to_target(item)->np.remote_mac);
  }
  
--static ssize_t pcie_gadget_store_int_type(
--		struct spear_pcie_gadget_config *config,
-+static ssize_t pcie_gadget_int_type_store(struct config_item *item,
- 		const char *buf, size_t count)
+ /*
+@@ -325,23 +320,26 @@ static ssize_t show_remote_mac(struct netconsole_target *nt, char *buf)
+  * would enable him to dynamically add new netpoll targets for new
+  * network interfaces as and when they come up).
+  */
+-static ssize_t store_enabled(struct netconsole_target *nt,
+-			     const char *buf,
+-			     size_t count)
++static ssize_t enabled_store(struct config_item *item,
++		const char *buf, size_t count)
  {
-+	struct spear_pcie_gadget_config *config = to_target(item)
- 	u32 cap, vec, flags;
- 	ulong vector;
++	struct netconsole_target *nt = to_target(item);
+ 	unsigned long flags;
+ 	int enabled;
+ 	int err;
  
-@@ -288,11 +291,10 @@ static ssize_t pcie_gadget_store_int_type(
- 	return count;
++	mutex_lock(&dynamic_netconsole_mutex);
+ 	err = kstrtoint(buf, 10, &enabled);
+ 	if (err < 0)
+-		return err;
++		goto out_unlock;
++
++	err = -EINVAL;
+ 	if (enabled < 0 || enabled > 1)
+-		return -EINVAL;
++		goto out_unlock;
+ 	if ((bool)enabled == nt->enabled) {
+ 		pr_info("network logging has already %s\n",
+ 			nt->enabled ? "started" : "stopped");
+-		return -EINVAL;
++		goto out_unlock;
+ 	}
+ 
+ 	if (enabled) {	/* true */
+@@ -358,7 +356,7 @@ static ssize_t store_enabled(struct netconsole_target *nt,
+ 
+ 		err = netpoll_setup(&nt->np);
+ 		if (err)
+-			return err;
++			goto out_unlock;
+ 
+ 		pr_info("netconsole: network logging started\n");
+ 	} else {	/* false */
+@@ -374,42 +372,56 @@ static ssize_t store_enabled(struct netconsole_target *nt,
+ 
+ 	nt->enabled = enabled;
+ 
++	mutex_unlock(&dynamic_netconsole_mutex);
+ 	return strnlen(buf, count);
++out_unlock:
++	mutex_unlock(&dynamic_netconsole_mutex);
++	return err;
  }
  
--static ssize_t pcie_gadget_show_no_of_msi(
--		struct spear_pcie_gadget_config *config,
--		char *buf)
-+static ssize_t pcie_gadget_no_of_msi_show(struct config_item *item, char *buf)
+-static ssize_t store_extended(struct netconsole_target *nt,
+-			      const char *buf,
+-			      size_t count)
++static ssize_t extended_store(struct config_item *item, const char *buf,
++		size_t count)
  {
--	struct pcie_app_reg __iomem *app_reg = config->va_app_base;
-+	struct spear_pcie_gadget_config *config = to_target(item)
-+	struct pcie_app_reg __iomem *app_reg = to_target(item)->va_app_base;
- 	u32 cap, vec, flags;
- 	ulong vector;
++	struct netconsole_target *nt = to_target(item);
+ 	int extended;
+ 	int err;
  
-@@ -313,13 +315,12 @@ static ssize_t pcie_gadget_show_no_of_msi(
- 	return sprintf(buf, "%lu", vector);
++	mutex_lock(&dynamic_netconsole_mutex);
+ 	if (nt->enabled) {
+ 		pr_err("target (%s) is enabled, disable to update parameters\n",
+ 		       config_item_name(&nt->item));
+-		return -EINVAL;
++		err = -EINVAL;
++		goto out_unlock;
+ 	}
+ 
+ 	err = kstrtoint(buf, 10, &extended);
+ 	if (err < 0)
+-		return err;
+-	if (extended < 0 || extended > 1)
+-		return -EINVAL;
++		goto out_unlock;
++	if (extended < 0 || extended > 1) {
++		err = -EINVAL;
++		goto out_unlock;
++	}
+ 
+ 	nt->extended = extended;
+ 
++	mutex_unlock(&dynamic_netconsole_mutex);
+ 	return strnlen(buf, count);
++out_unlock:
++	mutex_unlock(&dynamic_netconsole_mutex);
++	return err;
  }
  
--static ssize_t pcie_gadget_store_no_of_msi(
--		struct spear_pcie_gadget_config *config,
-+static ssize_t pcie_gadget_no_of_msi_store(struct config_item *item,
- 		const char *buf, size_t count)
+-static ssize_t store_dev_name(struct netconsole_target *nt,
+-			      const char *buf,
+-			      size_t count)
++static ssize_t dev_name_store(struct config_item *item, const char *buf,
++		size_t count)
  {
- 	int ret;
++	struct netconsole_target *nt = to_target(item);
+ 	size_t len;
  
--	ret = kstrtoul(buf, 0, &config->requested_msi);
-+	ret = kstrtoul(buf, 0, &to_target(item)->requested_msi);
- 	if (ret)
- 		return ret;
- 
-@@ -329,11 +330,10 @@ static ssize_t pcie_gadget_store_no_of_msi(
- 	return count;
- }
- 
--static ssize_t pcie_gadget_store_inta(
--		struct spear_pcie_gadget_config *config,
-+static ssize_t pcie_gadget_inta_store(struct config_item *item,
- 		const char *buf, size_t count)
- {
--	struct pcie_app_reg __iomem *app_reg = config->va_app_base;
-+	struct pcie_app_reg __iomem *app_reg = to_target(item)->va_app_base;
- 	ulong en;
- 	int ret;
- 
-@@ -351,10 +351,10 @@ static ssize_t pcie_gadget_store_inta(
- 	return count;
- }
- 
--static ssize_t pcie_gadget_store_send_msi(
--		struct spear_pcie_gadget_config *config,
-+static ssize_t pcie_gadget_send_msi_store(struct config_item *item,
- 		const char *buf, size_t count)
- {
-+	struct spear_pcie_gadget_config *config = to_target(item)
- 	struct pcie_app_reg __iomem *app_reg = config->va_app_base;
- 	ulong vector;
- 	u32 ven_msi;
-@@ -388,19 +388,16 @@ static ssize_t pcie_gadget_store_send_msi(
- 	return count;
- }
- 
--static ssize_t pcie_gadget_show_vendor_id(
--		struct spear_pcie_gadget_config *config,
--		char *buf)
-+static ssize_t pcie_gadget_vendor_id_show(struct config_item *item, char *buf)
- {
- 	u32 id;
- 
--	spear_dbi_read_reg(config, PCI_VENDOR_ID, 2, &id);
-+	spear_dbi_read_reg(to_target(item), PCI_VENDOR_ID, 2, &id);
- 
- 	return sprintf(buf, "%x", id);
- }
- 
--static ssize_t pcie_gadget_store_vendor_id(
--		struct spear_pcie_gadget_config *config,
-+static ssize_t pcie_gadget_vendor_id_store(struct config_item *item,
- 		const char *buf, size_t count)
- {
- 	ulong id;
-@@ -410,24 +407,21 @@ static ssize_t pcie_gadget_store_vendor_id(
- 	if (ret)
- 		return ret;
- 
--	spear_dbi_write_reg(config, PCI_VENDOR_ID, 2, id);
-+	spear_dbi_write_reg(to_target(item), PCI_VENDOR_ID, 2, id);
- 
- 	return count;
- }
- 
--static ssize_t pcie_gadget_show_device_id(
--		struct spear_pcie_gadget_config *config,
--		char *buf)
-+static ssize_t pcie_gadget_device_id_show(struct config_item *item, char *buf)
- {
- 	u32 id;
- 
--	spear_dbi_read_reg(config, PCI_DEVICE_ID, 2, &id);
-+	spear_dbi_read_reg(to_target(item), PCI_DEVICE_ID, 2, &id);
- 
- 	return sprintf(buf, "%x", id);
- }
- 
--static ssize_t pcie_gadget_store_device_id(
--		struct spear_pcie_gadget_config *config,
-+static ssize_t pcie_gadget_device_id_store(struct config_item *item,
- 		const char *buf, size_t count)
- {
- 	ulong id;
-@@ -437,22 +431,20 @@ static ssize_t pcie_gadget_store_device_id(
- 	if (ret)
- 		return ret;
- 
--	spear_dbi_write_reg(config, PCI_DEVICE_ID, 2, id);
-+	spear_dbi_write_reg(to_target(item), PCI_DEVICE_ID, 2, id);
- 
- 	return count;
- }
- 
--static ssize_t pcie_gadget_show_bar0_size(
--		struct spear_pcie_gadget_config *config,
--		char *buf)
-+static ssize_t pcie_gadget_bar0_size_show(struct config_item *item, char *buf)
- {
--	return sprintf(buf, "%lx", config->bar0_size);
-+	return sprintf(buf, "%lx", to_target(item)->bar0_size);
- }
- 
--static ssize_t pcie_gadget_store_bar0_size(
--		struct spear_pcie_gadget_config *config,
-+static ssize_t pcie_gadget_bar0_size_store(struct config_item *item,
- 		const char *buf, size_t count)
- {
-+	struct spear_pcie_gadget_config *config = to_target(item)
- 	ulong size;
- 	u32 pos, pos1;
- 	u32 no_of_bit = 0;
-@@ -489,21 +481,20 @@ static ssize_t pcie_gadget_store_bar0_size(
- 	return count;
- }
- 
--static ssize_t pcie_gadget_show_bar0_address(
--		struct spear_pcie_gadget_config *config,
-+static ssize_t pcie_gadget_bar0_address_show(struct config_item *item,
- 		char *buf)
- {
--	struct pcie_app_reg __iomem *app_reg = config->va_app_base;
-+	struct pcie_app_reg __iomem *app_reg = to_target(item)->va_app_base;
- 
- 	u32 address = readl(&app_reg->pim0_mem_addr_start);
- 
- 	return sprintf(buf, "%x", address);
- }
- 
--static ssize_t pcie_gadget_store_bar0_address(
--		struct spear_pcie_gadget_config *config,
-+static ssize_t pcie_gadget_bar0_address_store(struct config_item *item,
- 		const char *buf, size_t count)
- {
-+	struct spear_pcie_gadget_config *config = to_target(item)
- 	struct pcie_app_reg __iomem *app_reg = config->va_app_base;
- 	ulong address;
- 	int ret;
-@@ -524,15 +515,13 @@ static ssize_t pcie_gadget_store_bar0_address(
- 	return count;
- }
- 
--static ssize_t pcie_gadget_show_bar0_rw_offset(
--		struct spear_pcie_gadget_config *config,
-+static ssize_t pcie_gadget_bar0_rw_offset_show(struct config_item *item,
- 		char *buf)
- {
--	return sprintf(buf, "%lx", config->bar0_rw_offset);
-+	return sprintf(buf, "%lx", to_target(item)->bar0_rw_offset);
- }
- 
--static ssize_t pcie_gadget_store_bar0_rw_offset(
--		struct spear_pcie_gadget_config *config,
-+static ssize_t pcie_gadget_bar0_rw_offset_store(struct config_item *item,
- 		const char *buf, size_t count)
- {
- 	ulong offset;
-@@ -545,15 +534,14 @@ static ssize_t pcie_gadget_store_bar0_rw_offset(
- 	if (offset % 4)
++	mutex_lock(&dynamic_netconsole_mutex);
+ 	if (nt->enabled) {
+ 		pr_err("target (%s) is enabled, disable to update parameters\n",
+ 		       config_item_name(&nt->item));
++		mutex_unlock(&dynamic_netconsole_mutex);
  		return -EINVAL;
+ 	}
  
--	config->bar0_rw_offset = offset;
-+	to_target(item)->bar0_rw_offset = offset;
+@@ -420,53 +432,66 @@ static ssize_t store_dev_name(struct netconsole_target *nt,
+ 	if (nt->np.dev_name[len - 1] == '\n')
+ 		nt->np.dev_name[len - 1] = '\0';
  
- 	return count;
++	mutex_unlock(&dynamic_netconsole_mutex);
+ 	return strnlen(buf, count);
  }
  
--static ssize_t pcie_gadget_show_bar0_data(
--		struct spear_pcie_gadget_config *config,
--		char *buf)
-+static ssize_t pcie_gadget_bar0_data_show(struct config_item *item, char *buf)
+-static ssize_t store_local_port(struct netconsole_target *nt,
+-				const char *buf,
+-				size_t count)
++static ssize_t local_port_store(struct config_item *item, const char *buf,
++		size_t count)
  {
-+	struct spear_pcie_gadget_config *config = to_target(item)
- 	ulong data;
+-	int rv;
++	struct netconsole_target *nt = to_target(item);
++	int rv = -EINVAL;
  
- 	if (!config->va_bar0_address)
-@@ -564,10 +552,10 @@ static ssize_t pcie_gadget_show_bar0_data(
- 	return sprintf(buf, "%lx", data);
++	mutex_lock(&dynamic_netconsole_mutex);
+ 	if (nt->enabled) {
+ 		pr_err("target (%s) is enabled, disable to update parameters\n",
+ 		       config_item_name(&nt->item));
+-		return -EINVAL;
++		goto out_unlock;
+ 	}
+ 
+ 	rv = kstrtou16(buf, 10, &nt->np.local_port);
+ 	if (rv < 0)
+-		return rv;
++		goto out_unlock;
++	mutex_unlock(&dynamic_netconsole_mutex);
+ 	return strnlen(buf, count);
++out_unlock:
++	mutex_unlock(&dynamic_netconsole_mutex);
++	return rv;
  }
  
--static ssize_t pcie_gadget_store_bar0_data(
--		struct spear_pcie_gadget_config *config,
-+static ssize_t pcie_gadget_bar0_data_store(struct config_item *item,
- 		const char *buf, size_t count)
+-static ssize_t store_remote_port(struct netconsole_target *nt,
+-				 const char *buf,
+-				 size_t count)
++static ssize_t remote_port_store(struct config_item *item,
++		const char *buf, size_t count)
  {
-+	struct spear_pcie_gadget_config *config = to_target(item)
- 	ulong data;
- 	int ret;
+-	int rv;
++	struct netconsole_target *nt = to_target(item);
++	int rv = -EINVAL;
  
-@@ -583,97 +571,35 @@ static ssize_t pcie_gadget_store_bar0_data(
- 	return count;
++	mutex_lock(&dynamic_netconsole_mutex);
+ 	if (nt->enabled) {
+ 		pr_err("target (%s) is enabled, disable to update parameters\n",
+ 		       config_item_name(&nt->item));
+-		return -EINVAL;
++		goto out_unlock;
+ 	}
+ 
+ 	rv = kstrtou16(buf, 10, &nt->np.remote_port);
+ 	if (rv < 0)
+-		return rv;
++		goto out_unlock;
++	mutex_unlock(&dynamic_netconsole_mutex);
+ 	return strnlen(buf, count);
++out_unlock:
++	mutex_unlock(&dynamic_netconsole_mutex);
++	return rv;
+ }
+ 
+-static ssize_t store_local_ip(struct netconsole_target *nt,
+-			      const char *buf,
+-			      size_t count)
++static ssize_t local_ip_store(struct config_item *item, const char *buf,
++		size_t count)
+ {
++	struct netconsole_target *nt = to_target(item);
++
++	mutex_lock(&dynamic_netconsole_mutex);
+ 	if (nt->enabled) {
+ 		pr_err("target (%s) is enabled, disable to update parameters\n",
+ 		       config_item_name(&nt->item));
+-		return -EINVAL;
++		goto out_unlock;
+ 	}
+ 
+ 	if (strnchr(buf, count, ':')) {
+@@ -474,29 +499,35 @@ static ssize_t store_local_ip(struct netconsole_target *nt,
+ 		if (in6_pton(buf, count, nt->np.local_ip.in6.s6_addr, -1, &end) > 0) {
+ 			if (*end && *end != '\n') {
+ 				pr_err("invalid IPv6 address at: <%c>\n", *end);
+-				return -EINVAL;
++				goto out_unlock;
+ 			}
+ 			nt->np.ipv6 = true;
+ 		} else
+-			return -EINVAL;
++			goto out_unlock;
+ 	} else {
+ 		if (!nt->np.ipv6) {
+ 			nt->np.local_ip.ip = in_aton(buf);
+ 		} else
+-			return -EINVAL;
++			goto out_unlock;
+ 	}
+ 
++	mutex_unlock(&dynamic_netconsole_mutex);
+ 	return strnlen(buf, count);
++out_unlock:
++	mutex_unlock(&dynamic_netconsole_mutex);
++	return -EINVAL;
+ }
+ 
+-static ssize_t store_remote_ip(struct netconsole_target *nt,
+-			       const char *buf,
+-			       size_t count)
++static ssize_t remote_ip_store(struct config_item *item, const char *buf,
++	       size_t count)
+ {
++	struct netconsole_target *nt = to_target(item);
++
++	mutex_lock(&dynamic_netconsole_mutex);
+ 	if (nt->enabled) {
+ 		pr_err("target (%s) is enabled, disable to update parameters\n",
+ 		       config_item_name(&nt->item));
+-		return -EINVAL;
++		goto out_unlock;
+ 	}
+ 
+ 	if (strnchr(buf, count, ':')) {
+@@ -504,74 +535,71 @@ static ssize_t store_remote_ip(struct netconsole_target *nt,
+ 		if (in6_pton(buf, count, nt->np.remote_ip.in6.s6_addr, -1, &end) > 0) {
+ 			if (*end && *end != '\n') {
+ 				pr_err("invalid IPv6 address at: <%c>\n", *end);
+-				return -EINVAL;
++				goto out_unlock;
+ 			}
+ 			nt->np.ipv6 = true;
+ 		} else
+-			return -EINVAL;
++			goto out_unlock;
+ 	} else {
+ 		if (!nt->np.ipv6) {
+ 			nt->np.remote_ip.ip = in_aton(buf);
+ 		} else
+-			return -EINVAL;
++			goto out_unlock;
+ 	}
+ 
++	mutex_unlock(&dynamic_netconsole_mutex);
+ 	return strnlen(buf, count);
++out_unlock:
++	mutex_unlock(&dynamic_netconsole_mutex);
++	return -EINVAL;
+ }
+ 
+-static ssize_t store_remote_mac(struct netconsole_target *nt,
+-				const char *buf,
+-				size_t count)
++static ssize_t remote_mac_store(struct config_item *item, const char *buf,
++		size_t count)
+ {
++	struct netconsole_target *nt = to_target(item);
+ 	u8 remote_mac[ETH_ALEN];
+ 
++	mutex_lock(&dynamic_netconsole_mutex);
+ 	if (nt->enabled) {
+ 		pr_err("target (%s) is enabled, disable to update parameters\n",
+ 		       config_item_name(&nt->item));
+-		return -EINVAL;
++		goto out_unlock;
+ 	}
+ 
+ 	if (!mac_pton(buf, remote_mac))
+-		return -EINVAL;
++		goto out_unlock;
+ 	if (buf[3 * ETH_ALEN - 1] && buf[3 * ETH_ALEN - 1] != '\n')
+-		return -EINVAL;
++		goto out_unlock;
+ 	memcpy(nt->np.remote_mac, remote_mac, ETH_ALEN);
+ 
++	mutex_unlock(&dynamic_netconsole_mutex);
+ 	return strnlen(buf, count);
++out_unlock:
++	mutex_unlock(&dynamic_netconsole_mutex);
++	return -EINVAL;
  }
  
 -/*
-- * Attribute definitions.
+- * Attribute definitions for netconsole_target.
 - */
 -
--#define PCIE_GADGET_TARGET_ATTR_RO(_name)				\
--static struct pcie_gadget_target_attr pcie_gadget_target_##_name =	\
--	__CONFIGFS_ATTR(_name, S_IRUGO, pcie_gadget_show_##_name, NULL)
+-#define NETCONSOLE_TARGET_ATTR_RO(_name)				\
+-static struct netconsole_target_attr netconsole_target_##_name =	\
+-	__CONFIGFS_ATTR(_name, S_IRUGO, show_##_name, NULL)
 -
--#define PCIE_GADGET_TARGET_ATTR_WO(_name)				\
--static struct pcie_gadget_target_attr pcie_gadget_target_##_name =	\
--	__CONFIGFS_ATTR(_name, S_IWUSR, NULL, pcie_gadget_store_##_name)
+-#define NETCONSOLE_TARGET_ATTR_RW(_name)				\
+-static struct netconsole_target_attr netconsole_target_##_name =	\
+-	__CONFIGFS_ATTR(_name, S_IRUGO | S_IWUSR, show_##_name, store_##_name)
 -
--#define PCIE_GADGET_TARGET_ATTR_RW(_name)				\
--static struct pcie_gadget_target_attr pcie_gadget_target_##_name =	\
--	__CONFIGFS_ATTR(_name, S_IRUGO | S_IWUSR, pcie_gadget_show_##_name, \
--			pcie_gadget_store_##_name)
--PCIE_GADGET_TARGET_ATTR_RW(link);
--PCIE_GADGET_TARGET_ATTR_RW(int_type);
--PCIE_GADGET_TARGET_ATTR_RW(no_of_msi);
--PCIE_GADGET_TARGET_ATTR_WO(inta);
--PCIE_GADGET_TARGET_ATTR_WO(send_msi);
--PCIE_GADGET_TARGET_ATTR_RW(vendor_id);
--PCIE_GADGET_TARGET_ATTR_RW(device_id);
--PCIE_GADGET_TARGET_ATTR_RW(bar0_size);
--PCIE_GADGET_TARGET_ATTR_RW(bar0_address);
--PCIE_GADGET_TARGET_ATTR_RW(bar0_rw_offset);
--PCIE_GADGET_TARGET_ATTR_RW(bar0_data);
-+CONFIGFS_ATTR(pcie_gadget_, link);
-+CONFIGFS_ATTR(pcie_gadget_, int_type);
-+CONFIGFS_ATTR(pcie_gadget_, no_of_msi);
-+CONFIGFS_ATTR_WO(pcie_gadget_, inta);
-+CONFIGFS_ATTR_WO(pcie_gadget_, send_msi);
-+CONFIGFS_ATTR(pcie_gadget_, vendor_id);
-+CONFIGFS_ATTR(pcie_gadget_, device_id);
-+CONFIGFS_ATTR(pcie_gadget_, bar0_size);
-+CONFIGFS_ATTR(pcie_gadget_, bar0_address);
-+CONFIGFS_ATTR(pcie_gadget_, bar0_rw_offset);
-+CONFIGFS_ATTR(pcie_gadget_, bar0_data);
+-NETCONSOLE_TARGET_ATTR_RW(enabled);
+-NETCONSOLE_TARGET_ATTR_RW(extended);
+-NETCONSOLE_TARGET_ATTR_RW(dev_name);
+-NETCONSOLE_TARGET_ATTR_RW(local_port);
+-NETCONSOLE_TARGET_ATTR_RW(remote_port);
+-NETCONSOLE_TARGET_ATTR_RW(local_ip);
+-NETCONSOLE_TARGET_ATTR_RW(remote_ip);
+-NETCONSOLE_TARGET_ATTR_RO(local_mac);
+-NETCONSOLE_TARGET_ATTR_RW(remote_mac);
++CONFIGFS_ATTR(, enabled);
++CONFIGFS_ATTR(, extended);
++CONFIGFS_ATTR(, dev_name);
++CONFIGFS_ATTR(, local_port);
++CONFIGFS_ATTR(, remote_port);
++CONFIGFS_ATTR(, local_ip);
++CONFIGFS_ATTR(, remote_ip);
++CONFIGFS_ATTR_RO(, local_mac);
++CONFIGFS_ATTR(, remote_mac);
  
- static struct configfs_attribute *pcie_gadget_target_attrs[] = {
--	&pcie_gadget_target_link.attr,
--	&pcie_gadget_target_int_type.attr,
--	&pcie_gadget_target_no_of_msi.attr,
--	&pcie_gadget_target_inta.attr,
--	&pcie_gadget_target_send_msi.attr,
--	&pcie_gadget_target_vendor_id.attr,
--	&pcie_gadget_target_device_id.attr,
--	&pcie_gadget_target_bar0_size.attr,
--	&pcie_gadget_target_bar0_address.attr,
--	&pcie_gadget_target_bar0_rw_offset.attr,
--	&pcie_gadget_target_bar0_data.attr,
-+	&pcie_gadget_attr_link,
-+	&pcie_gadget_attr_int_type,
-+	&pcie_gadget_attr_no_of_msi,
-+	&pcie_gadget_attr_inta,
-+	&pcie_gadget_attr_send_msi,
-+	&pcie_gadget_attr_vendor_id,
-+	&pcie_gadget_attr_device_id,
-+	&pcie_gadget_attr_bar0_size,
-+	&pcie_gadget_attr_bar0_address,
-+	&pcie_gadget_attr_bar0_rw_offset,
-+	&pcie_gadget_attr_bar0_data,
+ static struct configfs_attribute *netconsole_target_attrs[] = {
+-	&netconsole_target_enabled.attr,
+-	&netconsole_target_extended.attr,
+-	&netconsole_target_dev_name.attr,
+-	&netconsole_target_local_port.attr,
+-	&netconsole_target_remote_port.attr,
+-	&netconsole_target_local_ip.attr,
+-	&netconsole_target_remote_ip.attr,
+-	&netconsole_target_local_mac.attr,
+-	&netconsole_target_remote_mac.attr,
++	&attr_enabled,
++	&attr_extended,
++	&attr_dev_name,
++	&attr_local_port,
++	&attr_remote_port,
++	&attr_local_ip,
++	&attr_remote_ip,
++	&attr_local_mac,
++	&attr_remote_mac,
  	NULL,
  };
  
--static struct pcie_gadget_target *to_target(struct config_item *item)
--{
--	return item ?
--		container_of(to_configfs_subsystem(to_config_group(item)),
--				struct pcie_gadget_target, subsys) : NULL;
--}
--
--/*
-- * Item operations and type for pcie_gadget_target.
-- */
--
--static ssize_t pcie_gadget_target_attr_show(struct config_item *item,
+@@ -584,43 +612,8 @@ static void netconsole_target_release(struct config_item *item)
+ 	kfree(to_target(item));
+ }
+ 
+-static ssize_t netconsole_target_attr_show(struct config_item *item,
 -					   struct configfs_attribute *attr,
 -					   char *buf)
 -{
 -	ssize_t ret = -EINVAL;
--	struct pcie_gadget_target *target = to_target(item);
--	struct pcie_gadget_target_attr *t_attr =
--		container_of(attr, struct pcie_gadget_target_attr, attr);
+-	struct netconsole_target *nt = to_target(item);
+-	struct netconsole_target_attr *na =
+-		container_of(attr, struct netconsole_target_attr, attr);
 -
--	if (t_attr->show)
--		ret = t_attr->show(&target->config, buf);
+-	if (na->show)
+-		ret = na->show(nt, buf);
+-
 -	return ret;
 -}
 -
--static ssize_t pcie_gadget_target_attr_store(struct config_item *item,
--					struct configfs_attribute *attr,
--					const char *buf,
--					size_t count)
+-static ssize_t netconsole_target_attr_store(struct config_item *item,
+-					    struct configfs_attribute *attr,
+-					    const char *buf,
+-					    size_t count)
 -{
 -	ssize_t ret = -EINVAL;
--	struct pcie_gadget_target *target = to_target(item);
--	struct pcie_gadget_target_attr *t_attr =
--		container_of(attr, struct pcie_gadget_target_attr, attr);
+-	struct netconsole_target *nt = to_target(item);
+-	struct netconsole_target_attr *na =
+-		container_of(attr, struct netconsole_target_attr, attr);
 -
--	if (t_attr->store)
--		ret = t_attr->store(&target->config, buf, count);
+-	mutex_lock(&dynamic_netconsole_mutex);
+-	if (na->store)
+-		ret = na->store(nt, buf, count);
+-	mutex_unlock(&dynamic_netconsole_mutex);
+-
 -	return ret;
 -}
 -
--static struct configfs_item_operations pcie_gadget_target_item_ops = {
--	.show_attribute		= pcie_gadget_target_attr_show,
--	.store_attribute	= pcie_gadget_target_attr_store,
--};
--
- static struct config_item_type pcie_gadget_target_type = {
- 	.ct_attrs		= pcie_gadget_target_attrs,
--	.ct_item_ops		= &pcie_gadget_target_item_ops,
- 	.ct_owner		= THIS_MODULE,
+ static struct configfs_item_operations netconsole_target_item_ops = {
+ 	.release		= netconsole_target_release,
+-	.show_attribute		= netconsole_target_attr_show,
+-	.store_attribute	= netconsole_target_attr_store,
  };
  
+ static struct config_item_type netconsole_target_type = {
 -- 
 1.9.1
