@@ -1,16 +1,16 @@
 From: Christoph Hellwig <hch@lst.de>
-Date: Sat,  3 Oct 2015 15:32:46 +0200
-Subject: [Ocfs2-devel] [PATCH 10/23] usb-gadget/f_sourcesink: use
+Date: Sat,  3 Oct 2015 15:32:47 +0200
+Subject: [Ocfs2-devel] [PATCH 11/23] usb-gadget/f_mass_storage: use
 	per-attribute show and store methods
 In-Reply-To: <1443879179-22280-1-git-send-email-hch@lst.de>
 References: <1443879179-22280-1-git-send-email-hch@lst.de>
-Message-ID: <1443879179-22280-11-git-send-email-hch@lst.de>
+Message-ID: <1443879179-22280-12-git-send-email-hch@lst.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: Joel Becker <jlbec@evilplan.org>, Andrew Morton <akpm@linux-foundation.org>, Nicholas Bellinger <nab@linux-iscsi.org>
-Cc: Felipe Balbi <balbi@ti.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, Tejun Heo <tj@kernel.org>, Pratyush Anand <pratyush.anand@gmail.com>, Pantelis Antoniou <pantelis.antoniou@konsulko.com>, target-devel@vger.kernel.org, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, linux-usb@vger.kernel.org, netdev@vger.kernel.org
+Cc: linux-usb@vger.kernel.org, netdev@vger.kernel.org, Pratyush Anand <pratyush.anand@gmail.com>, Pantelis Antoniou <pantelis.antoniou@konsulko.com>, Felipe Balbi <balbi@ti.com>, cluster-devel@redhat.com, Tejun Heo <tj@kernel.org>, target-devel@vger.kernel.org, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, ocfs2-devel@oss.oracle.com
 
 To simplify the configfs interface and remove boilerplate code that also
 causes binary bloat.
@@ -18,220 +18,254 @@ causes binary bloat.
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 Reviewed-by: Andrzej Pietrasiewicz <andrzej.p@samsung.com>
 ---
- drivers/usb/gadget/function/f_sourcesink.c | 83 +++++++++++++-----------------
- 1 file changed, 36 insertions(+), 47 deletions(-)
+ drivers/usb/gadget/function/f_mass_storage.c | 119 +++++++++++----------------
+ 1 file changed, 46 insertions(+), 73 deletions(-)
 
-diff --git a/drivers/usb/gadget/function/f_sourcesink.c b/drivers/usb/gadget/function/f_sourcesink.c
-index cbfaf86..878a581 100644
---- a/drivers/usb/gadget/function/f_sourcesink.c
-+++ b/drivers/usb/gadget/function/f_sourcesink.c
-@@ -898,9 +898,6 @@ static inline struct f_ss_opts *to_f_ss_opts(struct config_item *item)
+diff --git a/drivers/usb/gadget/function/f_mass_storage.c b/drivers/usb/gadget/function/f_mass_storage.c
+index a6eb537..1ab089f 100644
+--- a/drivers/usb/gadget/function/f_mass_storage.c
++++ b/drivers/usb/gadget/function/f_mass_storage.c
+@@ -3144,9 +3144,6 @@ static inline struct fsg_opts *to_fsg_opts(struct config_item *item)
  			    func_inst.group);
  }
  
--CONFIGFS_ATTR_STRUCT(f_ss_opts);
--CONFIGFS_ATTR_OPS(f_ss_opts);
+-CONFIGFS_ATTR_STRUCT(fsg_lun_opts);
+-CONFIGFS_ATTR_OPS(fsg_lun_opts);
 -
- static void ss_attr_release(struct config_item *item)
+ static void fsg_lun_attr_release(struct config_item *item)
  {
- 	struct f_ss_opts *ss_opts = to_f_ss_opts(item);
-@@ -910,12 +907,11 @@ static void ss_attr_release(struct config_item *item)
+ 	struct fsg_lun_opts *lun_opts;
+@@ -3157,110 +3154,93 @@ static void fsg_lun_attr_release(struct config_item *item)
  
- static struct configfs_item_operations ss_item_ops = {
- 	.release		= ss_attr_release,
--	.show_attribute		= f_ss_opts_attr_show,
--	.store_attribute	= f_ss_opts_attr_store,
+ static struct configfs_item_operations fsg_lun_item_ops = {
+ 	.release		= fsg_lun_attr_release,
+-	.show_attribute		= fsg_lun_opts_attr_show,
+-	.store_attribute	= fsg_lun_opts_attr_store,
  };
  
--static ssize_t f_ss_opts_pattern_show(struct f_ss_opts *opts, char *page)
-+static ssize_t f_ss_opts_pattern_show(struct config_item *item, char *page)
+-static ssize_t fsg_lun_opts_file_show(struct fsg_lun_opts *opts, char *page)
++static ssize_t fsg_lun_opts_file_show(struct config_item *item, char *page)
  {
-+	struct f_ss_opts *opts = to_f_ss_opts(item);
- 	int result;
+-	struct fsg_opts *fsg_opts;
+-
+-	fsg_opts = to_fsg_opts(opts->group.cg_item.ci_parent);
++	struct fsg_lun_opts *opts = to_fsg_lun_opts(item);
++	struct fsg_opts *fsg_opts = to_fsg_opts(opts->group.cg_item.ci_parent);
  
- 	mutex_lock(&opts->lock);
-@@ -925,9 +921,10 @@ static ssize_t f_ss_opts_pattern_show(struct f_ss_opts *opts, char *page)
- 	return result;
+ 	return fsg_show_file(opts->lun, &fsg_opts->common->filesem, page);
  }
  
--static ssize_t f_ss_opts_pattern_store(struct f_ss_opts *opts,
-+static ssize_t f_ss_opts_pattern_store(struct config_item *item,
+-static ssize_t fsg_lun_opts_file_store(struct fsg_lun_opts *opts,
++static ssize_t fsg_lun_opts_file_store(struct config_item *item,
  				       const char *page, size_t len)
  {
-+	struct f_ss_opts *opts = to_f_ss_opts(item);
- 	int ret;
- 	u8 num;
+-	struct fsg_opts *fsg_opts;
+-
+-	fsg_opts = to_fsg_opts(opts->group.cg_item.ci_parent);
++	struct fsg_lun_opts *opts = to_fsg_lun_opts(item);
++	struct fsg_opts *fsg_opts = to_fsg_opts(opts->group.cg_item.ci_parent);
  
-@@ -953,13 +950,11 @@ end:
- 	return ret;
+ 	return fsg_store_file(opts->lun, &fsg_opts->common->filesem, page, len);
  }
  
--static struct f_ss_opts_attribute f_ss_opts_pattern =
--	__CONFIGFS_ATTR(pattern, S_IRUGO | S_IWUSR,
--			f_ss_opts_pattern_show,
--			f_ss_opts_pattern_store);
-+CONFIGFS_ATTR(f_ss_opts_, pattern);
+-static struct fsg_lun_opts_attribute fsg_lun_opts_file =
+-	__CONFIGFS_ATTR(file, S_IRUGO | S_IWUSR, fsg_lun_opts_file_show,
+-			fsg_lun_opts_file_store);
++CONFIGFS_ATTR(fsg_lun_opts_, file);
  
--static ssize_t f_ss_opts_isoc_interval_show(struct f_ss_opts *opts, char *page)
-+static ssize_t f_ss_opts_isoc_interval_show(struct config_item *item, char *page)
+-static ssize_t fsg_lun_opts_ro_show(struct fsg_lun_opts *opts, char *page)
++static ssize_t fsg_lun_opts_ro_show(struct config_item *item, char *page)
  {
-+	struct f_ss_opts *opts = to_f_ss_opts(item);
- 	int result;
- 
- 	mutex_lock(&opts->lock);
-@@ -969,9 +964,10 @@ static ssize_t f_ss_opts_isoc_interval_show(struct f_ss_opts *opts, char *page)
- 	return result;
+-	return fsg_show_ro(opts->lun, page);
++	return fsg_show_ro(to_fsg_lun_opts(item)->lun, page);
  }
  
--static ssize_t f_ss_opts_isoc_interval_store(struct f_ss_opts *opts,
-+static ssize_t f_ss_opts_isoc_interval_store(struct config_item *item,
+-static ssize_t fsg_lun_opts_ro_store(struct fsg_lun_opts *opts,
++static ssize_t fsg_lun_opts_ro_store(struct config_item *item,
  				       const char *page, size_t len)
  {
-+	struct f_ss_opts *opts = to_f_ss_opts(item);
- 	int ret;
- 	u8 num;
+-	struct fsg_opts *fsg_opts;
+-
+-	fsg_opts = to_fsg_opts(opts->group.cg_item.ci_parent);
++	struct fsg_lun_opts *opts = to_fsg_lun_opts(item);
++	struct fsg_opts *fsg_opts = to_fsg_opts(opts->group.cg_item.ci_parent);
  
-@@ -997,13 +993,11 @@ end:
- 	return ret;
+ 	return fsg_store_ro(opts->lun, &fsg_opts->common->filesem, page, len);
  }
  
--static struct f_ss_opts_attribute f_ss_opts_isoc_interval =
--	__CONFIGFS_ATTR(isoc_interval, S_IRUGO | S_IWUSR,
--			f_ss_opts_isoc_interval_show,
--			f_ss_opts_isoc_interval_store);
-+CONFIGFS_ATTR(f_ss_opts_, isoc_interval);
+-static struct fsg_lun_opts_attribute fsg_lun_opts_ro =
+-	__CONFIGFS_ATTR(ro, S_IRUGO | S_IWUSR, fsg_lun_opts_ro_show,
+-			fsg_lun_opts_ro_store);
++CONFIGFS_ATTR(fsg_lun_opts_, ro);
  
--static ssize_t f_ss_opts_isoc_maxpacket_show(struct f_ss_opts *opts, char *page)
-+static ssize_t f_ss_opts_isoc_maxpacket_show(struct config_item *item, char *page)
+-static ssize_t fsg_lun_opts_removable_show(struct fsg_lun_opts *opts,
++static ssize_t fsg_lun_opts_removable_show(struct config_item *item,
+ 					   char *page)
  {
-+	struct f_ss_opts *opts = to_f_ss_opts(item);
- 	int result;
- 
- 	mutex_lock(&opts->lock);
-@@ -1013,9 +1007,10 @@ static ssize_t f_ss_opts_isoc_maxpacket_show(struct f_ss_opts *opts, char *page)
- 	return result;
+-	return fsg_show_removable(opts->lun, page);
++	return fsg_show_removable(to_fsg_lun_opts(item)->lun, page);
  }
  
--static ssize_t f_ss_opts_isoc_maxpacket_store(struct f_ss_opts *opts,
-+static ssize_t f_ss_opts_isoc_maxpacket_store(struct config_item *item,
+-static ssize_t fsg_lun_opts_removable_store(struct fsg_lun_opts *opts,
++static ssize_t fsg_lun_opts_removable_store(struct config_item *item,
  				       const char *page, size_t len)
  {
-+	struct f_ss_opts *opts = to_f_ss_opts(item);
- 	int ret;
- 	u16 num;
- 
-@@ -1041,13 +1036,11 @@ end:
- 	return ret;
+-	return fsg_store_removable(opts->lun, page, len);
++	return fsg_store_removable(to_fsg_lun_opts(item)->lun, page, len);
  }
  
--static struct f_ss_opts_attribute f_ss_opts_isoc_maxpacket =
--	__CONFIGFS_ATTR(isoc_maxpacket, S_IRUGO | S_IWUSR,
--			f_ss_opts_isoc_maxpacket_show,
--			f_ss_opts_isoc_maxpacket_store);
-+CONFIGFS_ATTR(f_ss_opts_, isoc_maxpacket);
+-static struct fsg_lun_opts_attribute fsg_lun_opts_removable =
+-	__CONFIGFS_ATTR(removable, S_IRUGO | S_IWUSR,
+-			fsg_lun_opts_removable_show,
+-			fsg_lun_opts_removable_store);
++CONFIGFS_ATTR(fsg_lun_opts_, removable);
  
--static ssize_t f_ss_opts_isoc_mult_show(struct f_ss_opts *opts, char *page)
-+static ssize_t f_ss_opts_isoc_mult_show(struct config_item *item, char *page)
+-static ssize_t fsg_lun_opts_cdrom_show(struct fsg_lun_opts *opts, char *page)
++static ssize_t fsg_lun_opts_cdrom_show(struct config_item *item, char *page)
  {
-+	struct f_ss_opts *opts = to_f_ss_opts(item);
- 	int result;
- 
- 	mutex_lock(&opts->lock);
-@@ -1057,9 +1050,10 @@ static ssize_t f_ss_opts_isoc_mult_show(struct f_ss_opts *opts, char *page)
- 	return result;
+-	return fsg_show_cdrom(opts->lun, page);
++	return fsg_show_cdrom(to_fsg_lun_opts(item)->lun, page);
  }
  
--static ssize_t f_ss_opts_isoc_mult_store(struct f_ss_opts *opts,
-+static ssize_t f_ss_opts_isoc_mult_store(struct config_item *item,
+-static ssize_t fsg_lun_opts_cdrom_store(struct fsg_lun_opts *opts,
++static ssize_t fsg_lun_opts_cdrom_store(struct config_item *item,
  				       const char *page, size_t len)
  {
-+	struct f_ss_opts *opts = to_f_ss_opts(item);
- 	int ret;
- 	u8 num;
+-	struct fsg_opts *fsg_opts;
+-
+-	fsg_opts = to_fsg_opts(opts->group.cg_item.ci_parent);
++	struct fsg_lun_opts *opts = to_fsg_lun_opts(item);
++	struct fsg_opts *fsg_opts = to_fsg_opts(opts->group.cg_item.ci_parent);
  
-@@ -1085,13 +1079,11 @@ end:
- 	return ret;
+ 	return fsg_store_cdrom(opts->lun, &fsg_opts->common->filesem, page,
+ 			       len);
  }
  
--static struct f_ss_opts_attribute f_ss_opts_isoc_mult =
--	__CONFIGFS_ATTR(isoc_mult, S_IRUGO | S_IWUSR,
--			f_ss_opts_isoc_mult_show,
--			f_ss_opts_isoc_mult_store);
-+CONFIGFS_ATTR(f_ss_opts_, isoc_mult);
+-static struct fsg_lun_opts_attribute fsg_lun_opts_cdrom =
+-	__CONFIGFS_ATTR(cdrom, S_IRUGO | S_IWUSR, fsg_lun_opts_cdrom_show,
+-			fsg_lun_opts_cdrom_store);
++CONFIGFS_ATTR(fsg_lun_opts_, cdrom);
  
--static ssize_t f_ss_opts_isoc_maxburst_show(struct f_ss_opts *opts, char *page)
-+static ssize_t f_ss_opts_isoc_maxburst_show(struct config_item *item, char *page)
+-static ssize_t fsg_lun_opts_nofua_show(struct fsg_lun_opts *opts, char *page)
++static ssize_t fsg_lun_opts_nofua_show(struct config_item *item, char *page)
  {
-+	struct f_ss_opts *opts = to_f_ss_opts(item);
- 	int result;
- 
- 	mutex_lock(&opts->lock);
-@@ -1101,9 +1093,10 @@ static ssize_t f_ss_opts_isoc_maxburst_show(struct f_ss_opts *opts, char *page)
- 	return result;
+-	return fsg_show_nofua(opts->lun, page);
++	return fsg_show_nofua(to_fsg_lun_opts(item)->lun, page);
  }
  
--static ssize_t f_ss_opts_isoc_maxburst_store(struct f_ss_opts *opts,
-+static ssize_t f_ss_opts_isoc_maxburst_store(struct config_item *item,
+-static ssize_t fsg_lun_opts_nofua_store(struct fsg_lun_opts *opts,
++static ssize_t fsg_lun_opts_nofua_store(struct config_item *item,
  				       const char *page, size_t len)
  {
-+	struct f_ss_opts *opts = to_f_ss_opts(item);
- 	int ret;
- 	u8 num;
- 
-@@ -1129,13 +1122,11 @@ end:
- 	return ret;
+-	return fsg_store_nofua(opts->lun, page, len);
++	return fsg_store_nofua(to_fsg_lun_opts(item)->lun, page, len);
  }
  
--static struct f_ss_opts_attribute f_ss_opts_isoc_maxburst =
--	__CONFIGFS_ATTR(isoc_maxburst, S_IRUGO | S_IWUSR,
--			f_ss_opts_isoc_maxburst_show,
--			f_ss_opts_isoc_maxburst_store);
-+CONFIGFS_ATTR(f_ss_opts_, isoc_maxburst);
+-static struct fsg_lun_opts_attribute fsg_lun_opts_nofua =
+-	__CONFIGFS_ATTR(nofua, S_IRUGO | S_IWUSR, fsg_lun_opts_nofua_show,
+-			fsg_lun_opts_nofua_store);
++CONFIGFS_ATTR(fsg_lun_opts_, nofua);
  
--static ssize_t f_ss_opts_bulk_buflen_show(struct f_ss_opts *opts, char *page)
-+static ssize_t f_ss_opts_bulk_buflen_show(struct config_item *item, char *page)
- {
-+	struct f_ss_opts *opts = to_f_ss_opts(item);
- 	int result;
- 
- 	mutex_lock(&opts->lock);
-@@ -1145,9 +1136,10 @@ static ssize_t f_ss_opts_bulk_buflen_show(struct f_ss_opts *opts, char *page)
- 	return result;
- }
- 
--static ssize_t f_ss_opts_bulk_buflen_store(struct f_ss_opts *opts,
-+static ssize_t f_ss_opts_bulk_buflen_store(struct config_item *item,
- 					   const char *page, size_t len)
- {
-+	struct f_ss_opts *opts = to_f_ss_opts(item);
- 	int ret;
- 	u32 num;
- 
-@@ -1168,18 +1160,15 @@ end:
- 	return ret;
- }
- 
--static struct f_ss_opts_attribute f_ss_opts_bulk_buflen =
--	__CONFIGFS_ATTR(buflen, S_IRUGO | S_IWUSR,
--			f_ss_opts_bulk_buflen_show,
--			f_ss_opts_bulk_buflen_store);
-+CONFIGFS_ATTR(f_ss_opts_, bulk_buflen);
- 
- static struct configfs_attribute *ss_attrs[] = {
--	&f_ss_opts_pattern.attr,
--	&f_ss_opts_isoc_interval.attr,
--	&f_ss_opts_isoc_maxpacket.attr,
--	&f_ss_opts_isoc_mult.attr,
--	&f_ss_opts_isoc_maxburst.attr,
--	&f_ss_opts_bulk_buflen.attr,
-+	&f_ss_opts_attr_pattern,
-+	&f_ss_opts_attr_isoc_interval,
-+	&f_ss_opts_attr_isoc_maxpacket,
-+	&f_ss_opts_attr_isoc_mult,
-+	&f_ss_opts_attr_isoc_maxburst,
-+	&f_ss_opts_attr_bulk_buflen,
+ static struct configfs_attribute *fsg_lun_attrs[] = {
+-	&fsg_lun_opts_file.attr,
+-	&fsg_lun_opts_ro.attr,
+-	&fsg_lun_opts_removable.attr,
+-	&fsg_lun_opts_cdrom.attr,
+-	&fsg_lun_opts_nofua.attr,
++	&fsg_lun_opts_attr_file,
++	&fsg_lun_opts_attr_ro,
++	&fsg_lun_opts_attr_removable,
++	&fsg_lun_opts_attr_cdrom,
++	&fsg_lun_opts_attr_nofua,
  	NULL,
  };
  
+@@ -3352,9 +3332,6 @@ static void fsg_lun_drop(struct config_group *group, struct config_item *item)
+ 	config_item_put(item);
+ }
+ 
+-CONFIGFS_ATTR_STRUCT(fsg_opts);
+-CONFIGFS_ATTR_OPS(fsg_opts);
+-
+ static void fsg_attr_release(struct config_item *item)
+ {
+ 	struct fsg_opts *opts = to_fsg_opts(item);
+@@ -3364,12 +3341,11 @@ static void fsg_attr_release(struct config_item *item)
+ 
+ static struct configfs_item_operations fsg_item_ops = {
+ 	.release		= fsg_attr_release,
+-	.show_attribute		= fsg_opts_attr_show,
+-	.store_attribute	= fsg_opts_attr_store,
+ };
+ 
+-static ssize_t fsg_opts_stall_show(struct fsg_opts *opts, char *page)
++static ssize_t fsg_opts_stall_show(struct config_item *item, char *page)
+ {
++	struct fsg_opts *opts = to_fsg_opts(item);
+ 	int result;
+ 
+ 	mutex_lock(&opts->lock);
+@@ -3379,9 +3355,10 @@ static ssize_t fsg_opts_stall_show(struct fsg_opts *opts, char *page)
+ 	return result;
+ }
+ 
+-static ssize_t fsg_opts_stall_store(struct fsg_opts *opts, const char *page,
++static ssize_t fsg_opts_stall_store(struct config_item *item, const char *page,
+ 				    size_t len)
+ {
++	struct fsg_opts *opts = to_fsg_opts(item);
+ 	int ret;
+ 	bool stall;
+ 
+@@ -3403,13 +3380,12 @@ static ssize_t fsg_opts_stall_store(struct fsg_opts *opts, const char *page,
+ 	return ret;
+ }
+ 
+-static struct fsg_opts_attribute fsg_opts_stall =
+-	__CONFIGFS_ATTR(stall, S_IRUGO | S_IWUSR, fsg_opts_stall_show,
+-			fsg_opts_stall_store);
++CONFIGFS_ATTR(fsg_opts_, stall);
+ 
+ #ifdef CONFIG_USB_GADGET_DEBUG_FILES
+-static ssize_t fsg_opts_num_buffers_show(struct fsg_opts *opts, char *page)
++static ssize_t fsg_opts_num_buffers_show(struct config_item *item, char *page)
+ {
++	struct fsg_opts *opts = to_fsg_opts(item);
+ 	int result;
+ 
+ 	mutex_lock(&opts->lock);
+@@ -3419,9 +3395,10 @@ static ssize_t fsg_opts_num_buffers_show(struct fsg_opts *opts, char *page)
+ 	return result;
+ }
+ 
+-static ssize_t fsg_opts_num_buffers_store(struct fsg_opts *opts,
++static ssize_t fsg_opts_num_buffers_store(struct config_item *item,
+ 					  const char *page, size_t len)
+ {
++	struct fsg_opts *opts = to_fsg_opts(item);
+ 	int ret;
+ 	u8 num;
+ 
+@@ -3446,17 +3423,13 @@ end:
+ 	return ret;
+ }
+ 
+-static struct fsg_opts_attribute fsg_opts_num_buffers =
+-	__CONFIGFS_ATTR(num_buffers, S_IRUGO | S_IWUSR,
+-			fsg_opts_num_buffers_show,
+-			fsg_opts_num_buffers_store);
+-
++CONFIGFS_ATTR(fsg_opts_, num_buffers);
+ #endif
+ 
+ static struct configfs_attribute *fsg_attrs[] = {
+-	&fsg_opts_stall.attr,
++	&fsg_opts_attr_stall,
+ #ifdef CONFIG_USB_GADGET_DEBUG_FILES
+-	&fsg_opts_num_buffers.attr,
++	&fsg_opts_attr_num_buffers,
+ #endif
+ 	NULL,
+ };
 -- 
 1.9.1
