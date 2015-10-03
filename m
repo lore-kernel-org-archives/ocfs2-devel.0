@@ -1,10 +1,10 @@
 From: Christoph Hellwig <hch@lst.de>
-Date: Sat,  3 Oct 2015 15:32:49 +0200
-Subject: [Ocfs2-devel] [PATCH 13/23] usb-gadget/f_uac2: use per-attribute
+Date: Sat,  3 Oct 2015 15:32:50 +0200
+Subject: [Ocfs2-devel] [PATCH 14/23] usb-gadget/f_obex: use per-attribute
 	show and store methods
 In-Reply-To: <1443879179-22280-1-git-send-email-hch@lst.de>
 References: <1443879179-22280-1-git-send-email-hch@lst.de>
-Message-ID: <1443879179-22280-14-git-send-email-hch@lst.de>
+Message-ID: <1443879179-22280-15-git-send-email-hch@lst.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -18,80 +18,57 @@ causes binary bloat.
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 Reviewed-by: Andrzej Pietrasiewicz <andrzej.p@samsung.com>
 ---
- drivers/usb/gadget/function/f_uac2.c | 28 +++++++++++-----------------
- 1 file changed, 11 insertions(+), 17 deletions(-)
+ drivers/usb/gadget/function/f_obex.c | 26 ++++----------------------
+ 1 file changed, 4 insertions(+), 22 deletions(-)
 
-diff --git a/drivers/usb/gadget/function/f_uac2.c b/drivers/usb/gadget/function/f_uac2.c
-index f8de7ea..0a5a1e1 100644
---- a/drivers/usb/gadget/function/f_uac2.c
-+++ b/drivers/usb/gadget/function/f_uac2.c
-@@ -1445,9 +1445,6 @@ static inline struct f_uac2_opts *to_f_uac2_opts(struct config_item *item)
+diff --git a/drivers/usb/gadget/function/f_obex.c b/drivers/usb/gadget/function/f_obex.c
+index 5460426..f6f1e6b 100644
+--- a/drivers/usb/gadget/function/f_obex.c
++++ b/drivers/usb/gadget/function/f_obex.c
+@@ -395,22 +395,6 @@ static inline struct f_serial_opts *to_f_serial_opts(struct config_item *item)
  			    func_inst.group);
  }
  
--CONFIGFS_ATTR_STRUCT(f_uac2_opts);
--CONFIGFS_ATTR_OPS(f_uac2_opts);
+-CONFIGFS_ATTR_STRUCT(f_serial_opts);
+-static ssize_t f_obex_attr_show(struct config_item *item,
+-				struct configfs_attribute *attr,
+-				char *page)
+-{
+-	struct f_serial_opts *opts = to_f_serial_opts(item);
+-	struct f_serial_opts_attribute *f_serial_opts_attr =
+-		container_of(attr, struct f_serial_opts_attribute, attr);
+-	ssize_t ret = 0;
 -
- static void f_uac2_attr_release(struct config_item *item)
+-	if (f_serial_opts_attr->show)
+-		ret = f_serial_opts_attr->show(opts, page);
+-
+-	return ret;
+-}
+-
+ static void obex_attr_release(struct config_item *item)
  {
- 	struct f_uac2_opts *opts = to_f_uac2_opts(item);
-@@ -1457,14 +1454,13 @@ static void f_uac2_attr_release(struct config_item *item)
+ 	struct f_serial_opts *opts = to_f_serial_opts(item);
+@@ -420,19 +404,17 @@ static void obex_attr_release(struct config_item *item)
  
- static struct configfs_item_operations f_uac2_item_ops = {
- 	.release	= f_uac2_attr_release,
--	.show_attribute	= f_uac2_opts_attr_show,
--	.store_attribute = f_uac2_opts_attr_store,
+ static struct configfs_item_operations obex_item_ops = {
+ 	.release	= obex_attr_release,
+-	.show_attribute = f_obex_attr_show,
  };
  
- #define UAC2_ATTRIBUTE(name)						\
--static ssize_t f_uac2_opts_##name##_show(struct f_uac2_opts *opts,	\
-+static ssize_t f_uac2_opts_##name##_show(struct config_item *item,	\
- 					 char *page)			\
- {									\
-+	struct f_uac2_opts *opts = to_f_uac2_opts(item);		\
- 	int result;							\
- 									\
- 	mutex_lock(&opts->lock);					\
-@@ -1474,9 +1470,10 @@ static ssize_t f_uac2_opts_##name##_show(struct f_uac2_opts *opts,	\
- 	return result;							\
- }									\
- 									\
--static ssize_t f_uac2_opts_##name##_store(struct f_uac2_opts *opts,	\
-+static ssize_t f_uac2_opts_##name##_store(struct config_item *item,	\
- 					  const char *page, size_t len)	\
- {									\
-+	struct f_uac2_opts *opts = to_f_uac2_opts(item);		\
- 	int ret;							\
- 	u32 num;							\
- 									\
-@@ -1498,10 +1495,7 @@ end:									\
- 	return ret;							\
- }									\
- 									\
--static struct f_uac2_opts_attribute f_uac2_opts_##name =		\
--	__CONFIGFS_ATTR(name, S_IRUGO | S_IWUSR,			\
--			f_uac2_opts_##name##_show,			\
--			f_uac2_opts_##name##_store)
-+CONFIGFS_ATTR(f_uac2_opts_, name)
+-static ssize_t f_obex_port_num_show(struct f_serial_opts *opts, char *page)
++static ssize_t f_obex_port_num_show(struct config_item *item, char *page)
+ {
+-	return sprintf(page, "%u\n", opts->port_num);
++	return sprintf(page, "%u\n", to_f_serial_opts(item)->port_num);
+ }
  
- UAC2_ATTRIBUTE(p_chmask);
- UAC2_ATTRIBUTE(p_srate);
-@@ -1511,12 +1505,12 @@ UAC2_ATTRIBUTE(c_srate);
- UAC2_ATTRIBUTE(c_ssize);
+-static struct f_serial_opts_attribute f_obex_port_num =
+-	__CONFIGFS_ATTR_RO(port_num, f_obex_port_num_show);
++CONFIGFS_ATTR_RO(f_obex_, port_num);
  
- static struct configfs_attribute *f_uac2_attrs[] = {
--	&f_uac2_opts_p_chmask.attr,
--	&f_uac2_opts_p_srate.attr,
--	&f_uac2_opts_p_ssize.attr,
--	&f_uac2_opts_c_chmask.attr,
--	&f_uac2_opts_c_srate.attr,
--	&f_uac2_opts_c_ssize.attr,
-+	&f_uac2_opts_attr_p_chmask,
-+	&f_uac2_opts_attr_p_srate,
-+	&f_uac2_opts_attr_p_ssize,
-+	&f_uac2_opts_attr_c_chmask,
-+	&f_uac2_opts_attr_c_srate,
-+	&f_uac2_opts_attr_c_ssize,
+ static struct configfs_attribute *acm_attrs[] = {
+-	&f_obex_port_num.attr,
++	&f_obex_attr_port_num,
  	NULL,
  };
  
