@@ -1,16 +1,16 @@
 From: Christoph Hellwig <hch@lst.de>
-Date: Sat,  3 Oct 2015 15:32:45 +0200
-Subject: [Ocfs2-devel] [PATCH 09/23] usb-gadget/f_printer: use per-attribute
-	show and store methods
+Date: Sat,  3 Oct 2015 15:32:46 +0200
+Subject: [Ocfs2-devel] [PATCH 10/23] usb-gadget/f_sourcesink: use
+	per-attribute show and store methods
 In-Reply-To: <1443879179-22280-1-git-send-email-hch@lst.de>
 References: <1443879179-22280-1-git-send-email-hch@lst.de>
-Message-ID: <1443879179-22280-10-git-send-email-hch@lst.de>
+Message-ID: <1443879179-22280-11-git-send-email-hch@lst.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: Joel Becker <jlbec@evilplan.org>, Andrew Morton <akpm@linux-foundation.org>, Nicholas Bellinger <nab@linux-iscsi.org>
-Cc: linux-usb@vger.kernel.org, netdev@vger.kernel.org, Pratyush Anand <pratyush.anand@gmail.com>, Pantelis Antoniou <pantelis.antoniou@konsulko.com>, Felipe Balbi <balbi@ti.com>, cluster-devel@redhat.com, Tejun Heo <tj@kernel.org>, target-devel@vger.kernel.org, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, ocfs2-devel@oss.oracle.com
+Cc: Felipe Balbi <balbi@ti.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, Tejun Heo <tj@kernel.org>, Pratyush Anand <pratyush.anand@gmail.com>, Pantelis Antoniou <pantelis.antoniou@konsulko.com>, target-devel@vger.kernel.org, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, linux-usb@vger.kernel.org, netdev@vger.kernel.org
 
 To simplify the configfs interface and remove boilerplate code that also
 causes binary bloat.
@@ -18,95 +18,218 @@ causes binary bloat.
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 Reviewed-by: Andrzej Pietrasiewicz <andrzej.p@samsung.com>
 ---
- drivers/usb/gadget/function/f_printer.c | 30 ++++++++++++------------------
- 1 file changed, 12 insertions(+), 18 deletions(-)
+ drivers/usb/gadget/function/f_sourcesink.c | 83 +++++++++++++-----------------
+ 1 file changed, 36 insertions(+), 47 deletions(-)
 
-diff --git a/drivers/usb/gadget/function/f_printer.c b/drivers/usb/gadget/function/f_printer.c
-index 8e2b6be..3a37846 100644
---- a/drivers/usb/gadget/function/f_printer.c
-+++ b/drivers/usb/gadget/function/f_printer.c
-@@ -1148,9 +1148,6 @@ static inline struct f_printer_opts
+diff --git a/drivers/usb/gadget/function/f_sourcesink.c b/drivers/usb/gadget/function/f_sourcesink.c
+index cbfaf86..878a581 100644
+--- a/drivers/usb/gadget/function/f_sourcesink.c
++++ b/drivers/usb/gadget/function/f_sourcesink.c
+@@ -898,9 +898,6 @@ static inline struct f_ss_opts *to_f_ss_opts(struct config_item *item)
  			    func_inst.group);
  }
  
--CONFIGFS_ATTR_STRUCT(f_printer_opts);
--CONFIGFS_ATTR_OPS(f_printer_opts);
+-CONFIGFS_ATTR_STRUCT(f_ss_opts);
+-CONFIGFS_ATTR_OPS(f_ss_opts);
 -
- static void printer_attr_release(struct config_item *item)
+ static void ss_attr_release(struct config_item *item)
  {
- 	struct f_printer_opts *opts = to_f_printer_opts(item);
-@@ -1160,13 +1157,12 @@ static void printer_attr_release(struct config_item *item)
+ 	struct f_ss_opts *ss_opts = to_f_ss_opts(item);
+@@ -910,12 +907,11 @@ static void ss_attr_release(struct config_item *item)
  
- static struct configfs_item_operations printer_item_ops = {
- 	.release	= printer_attr_release,
--	.show_attribute	= f_printer_opts_attr_show,
--	.store_attribute = f_printer_opts_attr_store,
+ static struct configfs_item_operations ss_item_ops = {
+ 	.release		= ss_attr_release,
+-	.show_attribute		= f_ss_opts_attr_show,
+-	.store_attribute	= f_ss_opts_attr_store,
  };
  
--static ssize_t f_printer_opts_pnp_string_show(struct f_printer_opts *opts,
-+static ssize_t f_printer_opts_pnp_string_show(struct config_item *item,
- 					      char *page)
+-static ssize_t f_ss_opts_pattern_show(struct f_ss_opts *opts, char *page)
++static ssize_t f_ss_opts_pattern_show(struct config_item *item, char *page)
  {
-+	struct f_printer_opts *opts = to_f_printer_opts(item);
++	struct f_ss_opts *opts = to_f_ss_opts(item);
  	int result;
  
  	mutex_lock(&opts->lock);
-@@ -1176,9 +1172,10 @@ static ssize_t f_printer_opts_pnp_string_show(struct f_printer_opts *opts,
+@@ -925,9 +921,10 @@ static ssize_t f_ss_opts_pattern_show(struct f_ss_opts *opts, char *page)
  	return result;
  }
  
--static ssize_t f_printer_opts_pnp_string_store(struct f_printer_opts *opts,
-+static ssize_t f_printer_opts_pnp_string_store(struct config_item *item,
- 					       const char *page, size_t len)
+-static ssize_t f_ss_opts_pattern_store(struct f_ss_opts *opts,
++static ssize_t f_ss_opts_pattern_store(struct config_item *item,
+ 				       const char *page, size_t len)
  {
-+	struct f_printer_opts *opts = to_f_printer_opts(item);
- 	int result, l;
- 
- 	mutex_lock(&opts->lock);
-@@ -1191,14 +1188,12 @@ static ssize_t f_printer_opts_pnp_string_store(struct f_printer_opts *opts,
- 	return result;
- }
- 
--static struct f_printer_opts_attribute f_printer_opts_pnp_string =
--	__CONFIGFS_ATTR(pnp_string, S_IRUGO | S_IWUSR,
--			f_printer_opts_pnp_string_show,
--			f_printer_opts_pnp_string_store);
-+CONFIGFS_ATTR(f_printer_opts_, pnp_string);
- 
--static ssize_t f_printer_opts_q_len_show(struct f_printer_opts *opts,
-+static ssize_t f_printer_opts_q_len_show(struct config_item *item,
- 					 char *page)
- {
-+	struct f_printer_opts *opts = to_f_printer_opts(item);
- 	int result;
- 
- 	mutex_lock(&opts->lock);
-@@ -1208,9 +1203,10 @@ static ssize_t f_printer_opts_q_len_show(struct f_printer_opts *opts,
- 	return result;
- }
- 
--static ssize_t f_printer_opts_q_len_store(struct f_printer_opts *opts,
-+static ssize_t f_printer_opts_q_len_store(struct config_item *item,
- 					  const char *page, size_t len)
- {
-+	struct f_printer_opts *opts = to_f_printer_opts(item);
++	struct f_ss_opts *opts = to_f_ss_opts(item);
  	int ret;
- 	u16 num;
+ 	u8 num;
  
-@@ -1231,13 +1227,11 @@ end:
+@@ -953,13 +950,11 @@ end:
  	return ret;
  }
  
--static struct f_printer_opts_attribute f_printer_opts_q_len =
--	__CONFIGFS_ATTR(q_len, S_IRUGO | S_IWUSR, f_printer_opts_q_len_show,
--			f_printer_opts_q_len_store);
-+CONFIGFS_ATTR(f_printer_opts_, q_len);
+-static struct f_ss_opts_attribute f_ss_opts_pattern =
+-	__CONFIGFS_ATTR(pattern, S_IRUGO | S_IWUSR,
+-			f_ss_opts_pattern_show,
+-			f_ss_opts_pattern_store);
++CONFIGFS_ATTR(f_ss_opts_, pattern);
  
- static struct configfs_attribute *printer_attrs[] = {
--	&f_printer_opts_pnp_string.attr,
--	&f_printer_opts_q_len.attr,
-+	&f_printer_opts_attr_pnp_string,
-+	&f_printer_opts_attr_q_len,
+-static ssize_t f_ss_opts_isoc_interval_show(struct f_ss_opts *opts, char *page)
++static ssize_t f_ss_opts_isoc_interval_show(struct config_item *item, char *page)
+ {
++	struct f_ss_opts *opts = to_f_ss_opts(item);
+ 	int result;
+ 
+ 	mutex_lock(&opts->lock);
+@@ -969,9 +964,10 @@ static ssize_t f_ss_opts_isoc_interval_show(struct f_ss_opts *opts, char *page)
+ 	return result;
+ }
+ 
+-static ssize_t f_ss_opts_isoc_interval_store(struct f_ss_opts *opts,
++static ssize_t f_ss_opts_isoc_interval_store(struct config_item *item,
+ 				       const char *page, size_t len)
+ {
++	struct f_ss_opts *opts = to_f_ss_opts(item);
+ 	int ret;
+ 	u8 num;
+ 
+@@ -997,13 +993,11 @@ end:
+ 	return ret;
+ }
+ 
+-static struct f_ss_opts_attribute f_ss_opts_isoc_interval =
+-	__CONFIGFS_ATTR(isoc_interval, S_IRUGO | S_IWUSR,
+-			f_ss_opts_isoc_interval_show,
+-			f_ss_opts_isoc_interval_store);
++CONFIGFS_ATTR(f_ss_opts_, isoc_interval);
+ 
+-static ssize_t f_ss_opts_isoc_maxpacket_show(struct f_ss_opts *opts, char *page)
++static ssize_t f_ss_opts_isoc_maxpacket_show(struct config_item *item, char *page)
+ {
++	struct f_ss_opts *opts = to_f_ss_opts(item);
+ 	int result;
+ 
+ 	mutex_lock(&opts->lock);
+@@ -1013,9 +1007,10 @@ static ssize_t f_ss_opts_isoc_maxpacket_show(struct f_ss_opts *opts, char *page)
+ 	return result;
+ }
+ 
+-static ssize_t f_ss_opts_isoc_maxpacket_store(struct f_ss_opts *opts,
++static ssize_t f_ss_opts_isoc_maxpacket_store(struct config_item *item,
+ 				       const char *page, size_t len)
+ {
++	struct f_ss_opts *opts = to_f_ss_opts(item);
+ 	int ret;
+ 	u16 num;
+ 
+@@ -1041,13 +1036,11 @@ end:
+ 	return ret;
+ }
+ 
+-static struct f_ss_opts_attribute f_ss_opts_isoc_maxpacket =
+-	__CONFIGFS_ATTR(isoc_maxpacket, S_IRUGO | S_IWUSR,
+-			f_ss_opts_isoc_maxpacket_show,
+-			f_ss_opts_isoc_maxpacket_store);
++CONFIGFS_ATTR(f_ss_opts_, isoc_maxpacket);
+ 
+-static ssize_t f_ss_opts_isoc_mult_show(struct f_ss_opts *opts, char *page)
++static ssize_t f_ss_opts_isoc_mult_show(struct config_item *item, char *page)
+ {
++	struct f_ss_opts *opts = to_f_ss_opts(item);
+ 	int result;
+ 
+ 	mutex_lock(&opts->lock);
+@@ -1057,9 +1050,10 @@ static ssize_t f_ss_opts_isoc_mult_show(struct f_ss_opts *opts, char *page)
+ 	return result;
+ }
+ 
+-static ssize_t f_ss_opts_isoc_mult_store(struct f_ss_opts *opts,
++static ssize_t f_ss_opts_isoc_mult_store(struct config_item *item,
+ 				       const char *page, size_t len)
+ {
++	struct f_ss_opts *opts = to_f_ss_opts(item);
+ 	int ret;
+ 	u8 num;
+ 
+@@ -1085,13 +1079,11 @@ end:
+ 	return ret;
+ }
+ 
+-static struct f_ss_opts_attribute f_ss_opts_isoc_mult =
+-	__CONFIGFS_ATTR(isoc_mult, S_IRUGO | S_IWUSR,
+-			f_ss_opts_isoc_mult_show,
+-			f_ss_opts_isoc_mult_store);
++CONFIGFS_ATTR(f_ss_opts_, isoc_mult);
+ 
+-static ssize_t f_ss_opts_isoc_maxburst_show(struct f_ss_opts *opts, char *page)
++static ssize_t f_ss_opts_isoc_maxburst_show(struct config_item *item, char *page)
+ {
++	struct f_ss_opts *opts = to_f_ss_opts(item);
+ 	int result;
+ 
+ 	mutex_lock(&opts->lock);
+@@ -1101,9 +1093,10 @@ static ssize_t f_ss_opts_isoc_maxburst_show(struct f_ss_opts *opts, char *page)
+ 	return result;
+ }
+ 
+-static ssize_t f_ss_opts_isoc_maxburst_store(struct f_ss_opts *opts,
++static ssize_t f_ss_opts_isoc_maxburst_store(struct config_item *item,
+ 				       const char *page, size_t len)
+ {
++	struct f_ss_opts *opts = to_f_ss_opts(item);
+ 	int ret;
+ 	u8 num;
+ 
+@@ -1129,13 +1122,11 @@ end:
+ 	return ret;
+ }
+ 
+-static struct f_ss_opts_attribute f_ss_opts_isoc_maxburst =
+-	__CONFIGFS_ATTR(isoc_maxburst, S_IRUGO | S_IWUSR,
+-			f_ss_opts_isoc_maxburst_show,
+-			f_ss_opts_isoc_maxburst_store);
++CONFIGFS_ATTR(f_ss_opts_, isoc_maxburst);
+ 
+-static ssize_t f_ss_opts_bulk_buflen_show(struct f_ss_opts *opts, char *page)
++static ssize_t f_ss_opts_bulk_buflen_show(struct config_item *item, char *page)
+ {
++	struct f_ss_opts *opts = to_f_ss_opts(item);
+ 	int result;
+ 
+ 	mutex_lock(&opts->lock);
+@@ -1145,9 +1136,10 @@ static ssize_t f_ss_opts_bulk_buflen_show(struct f_ss_opts *opts, char *page)
+ 	return result;
+ }
+ 
+-static ssize_t f_ss_opts_bulk_buflen_store(struct f_ss_opts *opts,
++static ssize_t f_ss_opts_bulk_buflen_store(struct config_item *item,
+ 					   const char *page, size_t len)
+ {
++	struct f_ss_opts *opts = to_f_ss_opts(item);
+ 	int ret;
+ 	u32 num;
+ 
+@@ -1168,18 +1160,15 @@ end:
+ 	return ret;
+ }
+ 
+-static struct f_ss_opts_attribute f_ss_opts_bulk_buflen =
+-	__CONFIGFS_ATTR(buflen, S_IRUGO | S_IWUSR,
+-			f_ss_opts_bulk_buflen_show,
+-			f_ss_opts_bulk_buflen_store);
++CONFIGFS_ATTR(f_ss_opts_, bulk_buflen);
+ 
+ static struct configfs_attribute *ss_attrs[] = {
+-	&f_ss_opts_pattern.attr,
+-	&f_ss_opts_isoc_interval.attr,
+-	&f_ss_opts_isoc_maxpacket.attr,
+-	&f_ss_opts_isoc_mult.attr,
+-	&f_ss_opts_isoc_maxburst.attr,
+-	&f_ss_opts_bulk_buflen.attr,
++	&f_ss_opts_attr_pattern,
++	&f_ss_opts_attr_isoc_interval,
++	&f_ss_opts_attr_isoc_maxpacket,
++	&f_ss_opts_attr_isoc_mult,
++	&f_ss_opts_attr_isoc_maxburst,
++	&f_ss_opts_attr_bulk_buflen,
  	NULL,
  };
  
