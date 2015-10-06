@@ -1,27 +1,41 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Date: Mon, 5 Oct 2015 14:37:05 -0700
-Subject: [Ocfs2-devel] simplify configfs attributes V2
-In-Reply-To: <1443879179-22280-1-git-send-email-hch@lst.de>
-References: <1443879179-22280-1-git-send-email-hch@lst.de>
-Message-ID: <20151005143705.bdcfa7d7b8211506c5dbc12e@linux-foundation.org>
+From: Joseph Qi <joseph.qi@huawei.com>
+Date: Tue, 6 Oct 2015 09:22:11 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Solve a problem of crossing the
+ boundary in updating backups
+In-Reply-To: <5611F380.2050102@huawei.com>
+References: <5611F380.2050102@huawei.com>
+Message-ID: <56132243.6050804@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Christoph Hellwig <hch@lst.de>
-Cc: Joel Becker <jlbec@evilplan.org>, Nicholas Bellinger <nab@linux-iscsi.org>, Felipe Balbi <balbi@ti.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, Tejun Heo <tj@kernel.org>, Pratyush Anand <pratyush.anand@gmail.com>, Pantelis Antoniou <pantelis.antoniou@konsulko.com>, target-devel@vger.kernel.org, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, linux-usb@vger.kernel.org, netdev@vger.kernel.org
+To: ocfs2-devel@oss.oracle.com
 
-On Sat,  3 Oct 2015 15:32:36 +0200 Christoph Hellwig <hch@lst.de> wrote:
-
-> This series consolidates the code to implement configfs attributes
-> by providing the ->show and ->store method in common code and using
-> container_of in the methods to access the containing structure.
+On 2015/10/5 11:50, jiangyiwen wrote:
+> In update_backups func, it exists a problem of crossing the boundary
+> as follows:
+> we assume that lun will be resized to 1TB(cluster_size is 32kb),
+> it will include 0~33554431 cluster, in update_backups func,
+> it will backup super block in location of 1TB which is the 33554432th
+> cluster, so the phenomenon of crossing the boundary is happened.
 > 
-> This reduces source and binary size of configfs consumers a lot.
-
-There's a version of this patch series (I assume V1) in linux-next via
-Nicholas's tree so my hands are tied.  I trust that Nicholas will
-update things.
-
-Or maybe it was a slipup - modifying usb, ocfs2 etc from the iscsi tree
-is innovative ;)
+> Signed-off-by: Yiwen Jiang <jiangyiwen@huawei.com>
+Reviewed-by: Joseph Qi <joseph.qi@huawei.com>
+> ---
+>  fs/ocfs2/resize.c | 2 +-
+>  1 file changed, 1 insertion(+), 1 deletion(-)
+> 
+> diff --git a/fs/ocfs2/resize.c b/fs/ocfs2/resize.c
+> index d5da6f6..10ad87b 100644
+> --- a/fs/ocfs2/resize.c
+> +++ b/fs/ocfs2/resize.c
+> @@ -187,7 +187,7 @@ static int update_backups(struct inode * inode, u32 clusters, char *data)
+>  	for (i = 0; i < OCFS2_MAX_BACKUP_SUPERBLOCKS; i++) {
+>  		blkno = ocfs2_backup_super_blkno(inode->i_sb, i);
+>  		cluster = ocfs2_blocks_to_clusters(inode->i_sb, blkno);
+> -		if (cluster > clusters)
+> +		if (cluster >= clusters)
+>  			break;
+> 
+>  		ret = ocfs2_read_blocks_sync(osb, blkno, 1, &backup);
+> 
