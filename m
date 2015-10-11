@@ -1,63 +1,27 @@
-From: eric <zren@suse.com>
-Date: Sat, 10 Oct 2015 16:21:08 +0800
-Subject: [Ocfs2-devel] OCFS2 test project current status ANNOUNCEMENT
-In-Reply-To: <20151009051207.GA11859@laptop.ha>
-References: <20151009051207.GA11859@laptop.ha>
-Message-ID: <5618CA74.3090807@suse.com>
+From: Christoph Hellwig <hch@lst.de>
+Date: Sun, 11 Oct 2015 15:09:41 +0200
+Subject: [Ocfs2-devel] [PATCH 18/23] spear13xx_pcie_gadget: use
+	per-attribute show	and store methods
+In-Reply-To: <87r3l3u50y.fsf@saruman.tx.rr.com>
+References: <CAHM4w1=ySCiVR3g=oYx5JPK2XxRCYxP7MQNrF_VLJaRrT5g-Yg@mail.gmail.com>
+	<87r3l3u50y.fsf@saruman.tx.rr.com>
+Message-ID: <20151011130941.GA3890@lst.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Felipe Balbi <balbi@ti.com>
+Cc: Pratyush Anand <pratyush.anand@gmail.com>, Christoph Hellwig <hch@lst.de>, Joel Becker <jlbec@evilplan.org>, Andrew Morton <akpm@linux-foundation.org>, Nicholas Bellinger <nab@linux-iscsi.org>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, Tejun Heo <tj@kernel.org>, Pantelis Antoniou <pantelis.antoniou@konsulko.com>, target-devel@vger.kernel.org, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, USB list <linux-usb@vger.kernel.org>, netdev@vger.kernel.org
 
-Hi,
+On Fri, Oct 09, 2015 at 04:05:17PM -0500, Felipe Balbi wrote:
+> Pratyush Anand <pratyush.anand@gmail.com> writes:
+> 
+> > On Sat, Oct 3, 2015 at 7:02 PM, Christoph Hellwig <hch@lst.de> wrote:
+> >> Signed-off-by: Christoph Hellwig <hch@lst.de>
+> >
+> > Acked-by: Pratyush Anand <pratyush.anand@gmail.com>
+> 
+> I don't seem to have the actual patch, care to resend?
 
-The following patches are also conflicted and dropped:
-
-[PATCH 19/59] verify_truncate: Lack of cluster index variable upon 
-memcmp failure.
-[PATCH 20/59] verify_truncate: Kill o_ret which is unused variable.
-[PATCH 21/59] reserve_space: s/lld/PRId64/g to suppress compiler warning.
-[PATCH 24/59] Inline-data: Remove unused label from inline-data.c.
-[PATCH 53/59] discontig: fix remote mount
-
-Sorry for late to report it!
-
-Thanks,
-Eric
-
-On 10/09/15 13:12, Eric Ren wrote:
-> Hi all,
->
-> Now, we have already collected 55 patches into Mark's github repo[1]
-> since Mar 16, 2012.
-> [1] https://github.com/markfasheh/ocfs2-test
->
-> Thanks a lot for their contributors:
->      Junxiao Bi: 23
->      Jeff Liu: 11
->      Tiger Yang: 12
->      Goldwynr: 5
->      Eric Ren: 3
->      Gang He: 1
->
-> This patches below are dropped, need improved, or conflicted with
-> previous ones:
->
-> [PATCH 09/10] Trigger udev rescan to get volume label that mkfs made remotely.   -- relate to blkid.conf, needs improved
-> [PATCH 42/59] mmap-test: fix segment fault  -- needs improved
-> [PATCH 48/59] ocfs2-test: fix build error   -- conflicted, dropped
-> [PATCH 45/59] flock-test: disable posix lock test   -- needs improved
-> [PATCH 53/59] discontig: fix remote mount   -- conflicted, dropped
-> [PATCH 32/59] xattr-test: fix single test failed    -- conflicted, dropped
-> [PATCH 17/59] Splice: Fix conflict definition of splice(2) for splice tests.    -- conflicted, dropped
-> [PATCH 13/59] aio-stress: fix aio-stress Makefile to link pthread explicitly.   -- conflicted, dropped
->
-> There might be some incorrectness in my conclusion. For details, please
-> refer to ocfs2-test-devel mailist!
->
-> Test project is very important to ensure the quality of ocfs2. Welcome
-> more contributions from you! Let's make it better;-)
->
-> Thanks,
-> Eric
+The whole series was sent to all the receipients in the To and Cc lists,
+so check your spam folder or one of the list archives.
