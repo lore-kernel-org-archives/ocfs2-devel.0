@@ -1,36 +1,71 @@
-From: Christoph Hellwig <hch@lst.de>
-Date: Tue, 13 Oct 2015 14:54:33 +0200
-Subject: [Ocfs2-devel] simplify configfs attributes V2
-In-Reply-To: <20151005143705.bdcfa7d7b8211506c5dbc12e@linux-foundation.org>
-References: <1443879179-22280-1-git-send-email-hch@lst.de>
-	<20151005143705.bdcfa7d7b8211506c5dbc12e@linux-foundation.org>
-Message-ID: <20151013125433.GA18474@lst.de>
+From: alex chen <alex.chen@huawei.com>
+Date: Wed, 14 Oct 2015 11:23:03 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: should reclaim the inode if
+ '__ocfs2_mknod_locked' returns an error
+Message-ID: <561DCA97.1010709@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
-Cc: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>, Joel Becker <jlbec-aKy9MeLSZ9dg9hUCZPvPmw@public.gmane.org>, Nicholas Bellinger <nab-IzHhD5pYlfBP7FQvKIMDCQ@public.gmane.org>, Felipe Balbi <balbi-l0cyMroinI0@public.gmane.org>, Andrzej Pietrasiewicz <andrzej.p-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>, Tejun Heo <tj-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Pratyush Anand <pratyush.anand-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Pantelis Antoniou <pantelis.antoniou-OWPKS81ov/FWk0Htik3J/w@public.gmane.org>, target-devel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, cluster-devel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, ocfs2-devel-N0ozoZBvEnrZJqsBc5GL+g@public.gmane.org, linux-usb-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, netdev-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: ocfs2-devel@oss.oracle.com
 
-On Mon, Oct 05, 2015 at 02:37:05PM -0700, Andrew Morton wrote:
-> > This series consolidates the code to implement configfs attributes
-> > by providing the ->show and ->store method in common code and using
-> > container_of in the methods to access the containing structure.
-> > 
-> > This reduces source and binary size of configfs consumers a lot.
-> 
-> There's a version of this patch series (I assume V1) in linux-next via
-> Nicholas's tree so my hands are tied.  I trust that Nicholas will
-> update things.
-> 
-> Or maybe it was a slipup - modifying usb, ocfs2 etc from the iscsi tree
-> is innovative ;)
+In ocfs2_mknod_locked if '__ocfs2_mknod_locked' returns an error, we
+should reclaim the inode successfully claimed above, otherwise, the
+inode never be reused. The case is described below:
 
-Nic wanted this as the target code is the biggest user of configfs.
-I don't really care where it goes as long as we get in the current version
-into a stable not to be rebased branch somehwere so that all consumers
-can use that as a base point.
+ocfs2_mknod
+    ocfs2_mknod_locked
+	ocfs2_claim_new_inode
+		Successfully claim the inode
+        __ocfs2_mknod_locked
+            ocfs2_journal_access_di
+            Failed because of -ENOMEM or other reasons, the inode
+			lockres has not been initialized yet.
 
-Nic, can you do that?  A lot of previous work went in through Andrew, but I
-think -mm is still a quilt stack so the stable base branch wouldn't be
-possible that way.
+    iput(inode)
+        ocfs2_evict_inode
+            ocfs2_delete_inode
+                ocfs2_inode_lock
+                    ocfs2_inode_lock_full_nested
+                        __ocfs2_cluster_lock
+				Return -EINVAL because of the inode
+				lockres has not been initialized.
+
+		So the following operations are not performed
+		ocfs2_wipe_inode
+			ocfs2_remove_inode
+				ocfs2_free_dinode
+					ocfs2_free_suballoc_bits
+
+Signed-off-by: Alex Chen <alex.chen@huawei.com>
+Reviewed-by: Joseph Qi <joseph.qi@huawei.com>
+---
+ fs/ocfs2/namei.c | 11 ++++++++++-
+ 1 file changed, 10 insertions(+), 1 deletion(-)
+
+diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
+index 1206392..3b48ac2 100644
+--- a/fs/ocfs2/namei.c
++++ b/fs/ocfs2/namei.c
+@@ -655,9 +655,18 @@ static int ocfs2_mknod_locked(struct ocfs2_super *osb,
+ 		return status;
+ 	}
+
+-	return __ocfs2_mknod_locked(dir, inode, dev, new_fe_bh,
++	status = __ocfs2_mknod_locked(dir, inode, dev, new_fe_bh,
+ 				    parent_fe_bh, handle, inode_ac,
+ 				    fe_blkno, suballoc_loc, suballoc_bit);
++	if (status < 0) {
++		u64 bg_blkno = ocfs2_which_suballoc_group(fe_blkno, suballoc_bit);
++		int tmp = ocfs2_free_suballoc_bits(handle, inode_ac->ac_inode,
++				inode_ac->ac_bh, suballoc_bit, bg_blkno, 1);
++		if (tmp)
++			mlog_errno(tmp);
++	}
++
++	return status;
+ }
+
+ static int ocfs2_mkdir(struct inode *dir,
+-- 
+1.8.4.3
