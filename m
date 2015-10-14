@@ -1,22 +1,42 @@
 From: Eric Ren <zren@suse.com>
-Date: Wed, 14 Oct 2015 23:20:46 +0800
-Subject: [Ocfs2-devel] dlm: make dlm_posix_lock comply with posix file lock
-	semanteme
-Message-ID: <1444836047-8020-1-git-send-email-zren@suse.com>
+Date: Wed, 14 Oct 2015 23:20:47 +0800
+Subject: [Ocfs2-devel] [PATCH] dlm: make dlm_posix_lock comply with posix
+	file lock semanteme
+In-Reply-To: <1444836047-8020-1-git-send-email-zren@suse.com>
+References: <1444836047-8020-1-git-send-email-zren@suse.com>
+Message-ID: <1444836047-8020-2-git-send-email-zren@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi David and all,
+Posix file lock semanteme expects that waiting processes that request
+a conflicting lock on file can be interrputed by signals like SIGALRM.
+But, dlm_posix_lock puts waiting process into "Disk Sleep" status.
+This failed ocfs2 test suits for posix file lock.
 
-After using this patch, deadlock test for posix file lock, both on local and
-on cluster mode for ocfs2, acts the same now as other local fs like ext4.
+Replacing wait_event_killable with wait_event_interruptible can fix
+this issue.
 
-But, I have no gfs2 environment to verify if this issue would happen and can
-be fixed by this patch. Hope anyone working on gfs2 could comfirm on it with
-me.
+Signed-off-by: Eric Ren <zren@suse.com>
+Acked-by: David Teigland <teigland@redhat.com>
+---
+ fs/dlm/plock.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-Thanks,
-Eric
+diff --git a/fs/dlm/plock.c b/fs/dlm/plock.c
+index 5532f09..88f1036 100644
+--- a/fs/dlm/plock.c
++++ b/fs/dlm/plock.c
+@@ -145,7 +145,7 @@ int dlm_posix_lock(dlm_lockspace_t *lockspace, u64 number, struct file *file,
+ 	send_op(op);
+ 
+ 	if (xop->callback == NULL) {
+-		rv = wait_event_killable(recv_wq, (op->done != 0));
++		rv = wait_event_interruptible(recv_wq, (op->done != 0));
+ 		if (rv == -ERESTARTSYS) {
+ 			log_debug(ls, "dlm_posix_lock: wait killed %llx",
+ 				  (unsigned long long)number);
+-- 
+2.1.4
