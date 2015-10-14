@@ -1,10 +1,8 @@
 From: Eric Ren <zren@suse.com>
-Date: Wed, 14 Oct 2015 23:20:47 +0800
+Date: Wed, 14 Oct 2015 23:28:26 +0800
 Subject: [Ocfs2-devel] [PATCH] dlm: make dlm_posix_lock comply with posix
 	file lock semanteme
-In-Reply-To: <1444836047-8020-1-git-send-email-zren@suse.com>
-References: <1444836047-8020-1-git-send-email-zren@suse.com>
-Message-ID: <1444836047-8020-2-git-send-email-zren@suse.com>
+Message-ID: <1444836506-2438-1-git-send-email-zren@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
