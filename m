@@ -1,52 +1,21 @@
-From: Eric Ren <zren@suse.com>
-Date: Thu, 22 Oct 2015 11:05:02 +0800
-Subject: [Ocfs2-devel] Any other reading about DLM?
-In-Reply-To: <5627F0E0.2010203@oracle.com>
+From: Gang He <ghe@suse.com>
+Date: Fri, 23 Oct 2015 00:44:58 -0600
+Subject: [Ocfs2-devel] Who know the binary ocfs2_controld?
+In-Reply-To: <5628525E.5050507@suse.com>
 References: <5625CF9D.7040704@suse.com> <5627F0E0.2010203@oracle.com>
-Message-ID: <5628525E.5050507@suse.com>
+	<5628525E.5050507@suse.com>
+Message-ID: <562A47EA020000F90001B791@relay2.provo.novell.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Tariq and Joseph,
+Hello Guys,
 
-Thanks very much for the information!
+There is a question about ocfs2_controld on SLES11SP3, who know this binary/daemon in the ocfs2-tools? 
+What does it do? In SLES12 we cannot find this binary.
+I am setting up a sles11 ocfs2 cluster for matching the customer environment, if you know something, please help to share.
 
-Eric
-
-On 10/22/15 04:09, Tariq Saeed wrote:
-> Documents/filesystems/dlmfs.txt is a concise description of how to used
-> dlmfs
-> without the api, using only fs open/close/remove calls.
-> Regards
-> -Tariq
-> On 10/19/2015 10:22 PM, Eric Ren wrote:
->> Hi Joseph and all,
->>
->> In order to learn about DLM, I got [1][2][3] besides source code in
->> fs/dlm and fs/ocfs2/dlm.
->> Among them, [1][2] are for fs/dlm, and [3] is for fs/ocfs2/dlm. But most
->> parts of [3] is not complete yet.
->>
->> [1] http://opendlm.sourceforge.net/cvsmirror/opendlm/docs/dlmbook_final.pdf
->> [2] http://people.redhat.com/ccaulfie/docs/rhdlmbook.pdf
->> [3] https://oss.oracle.com/~smushran/ocfs2_dlm_design_draft.pdf
->>
->> So, I'm wondering if anyone has a complete [3]? Or Any other reading
->> like docs, notes and blogs about DLM?
->> Thanks in advance;-)
->>
->> Eric
->>
->> _______________________________________________
->> Ocfs2-devel mailing list
->> Ocfs2-devel at oss.oracle.com
->> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
->
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
->
+Thanks
+Gang 
