@@ -1,37 +1,65 @@
-From: James Morris <jmorris@namei.org>
-Date: Wed, 28 Oct 2015 17:09:10 +1100 (AEDT)
-Subject: [Ocfs2-devel] [PATCH v3 5/7] security: Add hook to invalidate
- inode security labels
-In-Reply-To: <1445894128-6765-6-git-send-email-agruenba@redhat.com>
-References: <1445894128-6765-1-git-send-email-agruenba@redhat.com>
-	<1445894128-6765-6-git-send-email-agruenba@redhat.com>
-Message-ID: <alpine.LRH.2.20.1510281708280.23621@namei.org>
+From: Joseph Qi <joseph.qi@huawei.com>
+Date: Wed, 28 Oct 2015 14:18:32 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: add uuid to ocfs2 thread name for
+ problem analysis
+In-Reply-To: <56304962.7000803@oracle.com>
+References: <562EF05F.2000901@huawei.com> <562F2E28.4020507@oracle.com>
+	<562F6266.3090100@huawei.com> <56304962.7000803@oracle.com>
+Message-ID: <563068B8.5020409@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Andreas Gruenbacher <agruenba@redhat.com>
-Cc: linux-security-module@vger.kernel.org, selinux@tycho.nsa.gov, ocfs2-devel@oss.oracle.com
+To: ocfs2-devel@oss.oracle.com
 
-On Mon, 26 Oct 2015, Andreas Gruenbacher wrote:
-
-> Add a hook to invalidate an inode's security label when the cached
-> information becomes invalid.
+On 2015/10/28 12:04, Junxiao Bi wrote:
+> On 10/27/2015 07:39 PM, Joseph Qi wrote:
+>> Hi Junxiao,
+>>
+> ...
+>>>> diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
+>>>> index a43f9ef..570509e 100644
+>>>> --- a/fs/ocfs2/dlm/dlmrecovery.c
+>>>> +++ b/fs/ocfs2/dlm/dlmrecovery.c
+>>>> @@ -205,7 +205,7 @@ int dlm_launch_recovery_thread(struct dlm_ctxt *dlm)
+>>>>  	mlog(0, "starting dlm recovery thread...\n");
+>>>>
+>>>>  	dlm->dlm_reco_thread_task = kthread_run(dlm_recovery_thread, dlm,
+>>>> -						"dlm_reco_thread");
+>>>> +			"dlm_reco_thread-%s", dlm->name);
+>>> Indeed max length of task name is 16 bytes, and "dlm_reco_thread" plus
+>>> '\0' have taken all the space. So indeed above code is useless. Can we
+>>> rename this name and maybe other one(like "dlm_thread") to leave more
+>>> space for domain marker?
+>>>
+>> Yes, you are right. For dlm_reco_thread it won't print any uuid bytes.
+>> I put it here just for code consistency.
+>> It is really hard for me to rename it to a better one:)
+>> Any suggestions?
+> How about this?
 > 
-> Implement the new hook in selinux: set a flag when a security label becomes
-> invalid.  When hitting a security label which has been marked as invalid in
-> inode_has_perm, try reloading the label.
+> dlmwq-xxxx
+> dlmrec-xxxx
+> dlm-xxxx
+> o2dc-xxxx
+> o2cmt-xxx
+> o2rec-xxx
 > 
-> If an inode does not have any dentries attached, we cannot reload its
-> security label because we cannot use the getxattr inode operation.  In that
-> case, continue using the old, invalid label until a dentry becomes
-> available.
+Thanks very much for your advice. But from our experience, it is usual
+that we can distinguish the messages if plus 3 uuid bytes. So rename
+all of them may not be necessary.
+Could we only rename "dlm_reco_thread" to "dlm_reco-xxx"?
+
+Thanks,
+Joseph
+
+> Thanks,
+> Junxiao.
 > 
-> Signed-off-by: Andreas Gruenbacher <agruenba@redhat.com>
-
-
-Reviewed-by: James Morris <james.l.morris@oracle.com>
-
--- 
-James Morris
-<jmorris@namei.org>
+>>
+>> Thanks,
+>> Joseph
+>>
+> 
+> 
+> 
