@@ -1,57 +1,57 @@
-From: Srinivas Eeda <srinivas.eeda@oracle.com>
-Date: Wed, 28 Oct 2015 09:34:58 -0700
-Subject: [Ocfs2-devel] [PATCH v2 0/4] Add online file check feature
-In-Reply-To: <1446013561-22121-1-git-send-email-ghe@suse.com>
-References: <1446013561-22121-1-git-send-email-ghe@suse.com>
-Message-ID: <5630F932.8050701@oracle.com>
+From: Stephen Smalley <sds@tycho.nsa.gov>
+Date: Wed, 28 Oct 2015 13:31:55 -0400
+Subject: [Ocfs2-devel] [PATCH v3 3/7] selinux: Get rid of
+	file_path_has_perm
+In-Reply-To: <CAHc6FU5w6Znxs=xa6TPgG0QJkAsx3=AwUn4KXNAiHMDQ1PsV2A@mail.gmail.com>
+References: <1445894128-6765-1-git-send-email-agruenba@redhat.com>
+	<1445894128-6765-4-git-send-email-agruenba@redhat.com>
+	<562FA8ED.7020704@tycho.nsa.gov>
+	<CAHc6FU5w6Znxs=xa6TPgG0QJkAsx3=AwUn4KXNAiHMDQ1PsV2A@mail.gmail.com>
+Message-ID: <5631068B.3060803@tycho.nsa.gov>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Gang He <ghe@suse.com>, mfasheh@suse.com, rgoldwyn@suse.de
-Cc: linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
+To: Andreas Gruenbacher <agruenba@redhat.com>
+Cc: LSM <linux-security-module@vger.kernel.org>, selinux@tycho.nsa.gov, ocfs2-devel@oss.oracle.com, David Howells <dhowells@redhat.com>
 
-Hi Gang,
+On 10/28/2015 07:48 AM, Andreas Gruenbacher wrote:
+> On Tue, Oct 27, 2015 at 5:40 PM, Stephen Smalley <sds@tycho.nsa.gov> wrote:
+>> On 10/26/2015 05:15 PM, Andreas Gruenbacher wrote:
+>>>
+>>> Use path_has_perm directly instead.
+>>
+>>
+>> This reverts:
+>>
+>> commit 13f8e9810bff12d01807b6f92329111f45218235
+>> Author: David Howells <dhowells@redhat.com>
+>> Date:   Thu Jun 13 23:37:55 2013 +0100
+>>
+>>     SELinux: Institute file_path_has_perm()
+>>
+>>     Create a file_path_has_perm() function that is like path_has_perm() but
+>>     instead takes a file struct that is the source of both the path and the
+>>     inode (rather than getting the inode from the dentry in the path).  This
+>>     is then used where appropriate.
+>>
+>>     This will be useful for situations like unionmount where it will be
+>>     possible to have an apparently-negative dentry (eg. a fallthrough) that
+>> is
+>>     open with the file struct pointing to an inode on the lower fs.
+>>
+>>     Signed-off-by: David Howells <dhowells@redhat.com>
+>>     Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
+>>
+>> which I think David was intending to use as part of his SELinux/overlayfs
+>> support.
+> 
+> Okay. As long as overlayfs support in SELinux is in half-finished
+> state, let's leave this alone.
 
-thank you for implementing this. I would like to understand this better 
-on where and how it helps ... would you mind sharing couple 
-examples(real scenarios).
+Also, the caller is holding a spinlock (tty_files_lock), so you can't call inode_doinit from
+here.
 
-Thanks,
---Srini
-
-
-On 10/27/2015 11:25 PM, Gang He wrote:
-> When there are errors in the ocfs2 filesystem,
-> they are usually accompanied by the inode number which caused the error.
-> This inode number would be the input to fixing the file.
-> One of these options could be considered:
-> A file in the sys filesytem which would accept inode numbers.
-> This could be used to communication back what has to be fixed or is fixed.
-> You could write:
-> $# echo "CHECK <inode>" > /sys/fs/ocfs2/devname/filecheck
-> or
-> $# echo "FIX <inode>" > /sys/fs/ocfs2/devname/filecheck
->
-> Compare with first version, I use strncasecmp instead of double strncmp
-> functions. Second, update the source file contribution vendor.
->
-> Gang He (4):
->    ocfs2: export ocfs2_kset for online file check
->    ocfs2: sysfile interfaces for online file check
->    ocfs2: create/remove sysfile for online file check
->    ocfs2: check/fix inode block for online file check
->
->   fs/ocfs2/Makefile      |   3 +-
->   fs/ocfs2/filecheck.c   | 566 +++++++++++++++++++++++++++++++++++++++++++++++++
->   fs/ocfs2/filecheck.h   |  48 +++++
->   fs/ocfs2/inode.c       | 196 ++++++++++++++++-
->   fs/ocfs2/inode.h       |   3 +
->   fs/ocfs2/ocfs2_trace.h |   2 +
->   fs/ocfs2/stackglue.c   |   3 +-
->   fs/ocfs2/stackglue.h   |   2 +
->   fs/ocfs2/super.c       |   5 +
->   9 files changed, 820 insertions(+), 8 deletions(-)
->   create mode 100644 fs/ocfs2/filecheck.c
->   create mode 100644 fs/ocfs2/filecheck.h
->
+Try stress testing your patch series by just always setting isec->initialized to LABEL_INVALID.
+Previously the *has_perm functions could be called under essentially any condition, with the exception
+of when in a RCU walk and needing to audit the dname (but they did not previously block/sleep).
