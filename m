@@ -1,79 +1,153 @@
-From: Jan Kara <jack@suse.cz>
-Date: Thu, 12 Nov 2015 10:53:01 +0100
-Subject: [Ocfs2-devel] [PATCH] mm: Allow GFP_IOFS for page_cache_read
- page cache allocation
-In-Reply-To: <1447251233-14449-1-git-send-email-mhocko@kernel.org>
-References: <1447251233-14449-1-git-send-email-mhocko@kernel.org>
-Message-ID: <20151112095301.GA25265@quack.suse.cz>
+From: Joseph Qi <joseph.qi@huawei.com>
+Date: Fri, 13 Nov 2015 11:31:27 +0800
+Subject: [Ocfs2-devel] Long io response time doubt
+In-Reply-To: <56446068.8010502@suse.com>
+References: <56440208.7070809@huawei.com> <56443E60.9060103@suse.com>
+	<56444708.2050207@huawei.com> <56446068.8010502@suse.com>
+Message-ID: <5645598F.7010304@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: mhocko@kernel.org
-Cc: linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>, Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>, Mel Gorman <mgorman@suse.de>, Dave Chinner <david@fromorbit.com>, Mark Fasheh <mfasheh@suse.com>, ocfs2-devel@oss.oracle.com, ceph-devel@vger.kernel.org, linux-fsdevel@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>, Michal Hocko <mhocko@suse.com>
+To: ocfs2-devel@oss.oracle.com
 
-On Wed 11-11-15 15:13:53, mhocko at kernel.org wrote:
-> From: Michal Hocko <mhocko@suse.com>
-> 
-> page_cache_read has been historically using page_cache_alloc_cold to
-> allocate a new page. This means that mapping_gfp_mask is used as the
-> base for the gfp_mask. Many filesystems are setting this mask to
-> GFP_NOFS to prevent from fs recursion issues. page_cache_read is
-> called from the vm_operations_struct::fault() context during the page
-> fault. This context doesn't need the reclaim protection normally.
-> 
-> ceph and ocfs2 which call filemap_fault from their fault handlers
-> seem to be OK because they are not taking any fs lock before invoking
-> generic implementation. xfs which takes XFS_MMAPLOCK_SHARED is safe
-> from the reclaim recursion POV because this lock serializes truncate
-> and punch hole with the page faults and it doesn't get involved in the
-> reclaim.
-> 
-> There is simply no reason to deliberately use a weaker allocation
-> context when a __GFP_FS | __GFP_IO can be used. The GFP_NOFS
-> protection might be even harmful. There is a push to fail GFP_NOFS
-> allocations rather than loop within allocator indefinitely with a
-> very limited reclaim ability. Once we start failing those requests
-> the OOM killer might be triggered prematurely because the page cache
-> allocation failure is propagated up the page fault path and end up in
-> pagefault_out_of_memory.
-> 
-> We cannot play with mapping_gfp_mask directly because that would be racy
-> wrt. parallel page faults and it might interfere with other users who
-> really rely on NOFS semantic from the stored gfp_mask. The mask is also
-> inode proper so it would even be a layering violation. What we can do
-> instead is to push the gfp_mask into struct vm_fault and allow fs layer
-> to overwrite it should the callback need to be called with a different
-> allocation context.
-> 
-> Initialize the default to (mapping_gfp_mask | __GFP_FS | __GFP_IO)
-> because this should be safe from the page fault path normally. Why do we
-> care about mapping_gfp_mask at all then? Because this doesn't hold only
-> reclaim protection flags but it also might contain zone and movability
-> restrictions (GFP_DMA32, __GFP_MOVABLE and others) so we have to respect
-> those.
-> 
-> Reported-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-> Signed-off-by: Michal Hocko <mhocko@suse.com>
-> ---
-> 
-> Hi,
-> this has been posted previously as a part of larger GFP_NOFS related
-> patch set (http://lkml.kernel.org/r/1438768284-30927-1-git-send-email-mhocko%40kernel.org)
-> but I think it makes sense to discuss it even out of that scope.
-> 
-> I would like to hear FS and other MM people about the proposed interface.
-> Using mapping_gfp_mask blindly doesn't sound good to me and vm_fault
-> looks like a proper channel to communicate between MM and FS layers.
-> 
-> Comments? Are there any better ideas?
+Hi Eric,
 
-Makes sense to me and the filesystems I know should be fine with this
-(famous last words ;). Feel free to add:
+On 2015/11/12 17:48, Eric Ren wrote:
+> Hi Joseph,
+> 
+> On 11/12/15 16:00, Joseph Qi wrote:
+>> On 2015/11/12 15:23, Eric Ren wrote:
+>>> Hi Joseph,
+>>>
+>>> Thanks for your reply! There're more details I'd like to ask about ;-)
+>>>
+>>> On 11/12/15 11:05, Joseph Qi wrote:
+>>>> Hi Eric,
+>>>> You reported an issue about sometime io response time may be long.
+>>>>
+>>>>   From your test case information, I think it was caused by downconvert.
+>>>  From what I learned from fs/dlm, lock manager grants all down-conversions requests
+>>> in place,i.e. on grant queue. Here're some silly questions:
+>>> 1. who may requests down-convertion?
+>>> 2. when down-convertion happends?
+>>> 3. how could a down-convertion takes so long?
+>> IMO, it happens almost in two cases.
+>> 1. Owner knows another node is waiting on the lock, in other words, one
+>> have blocked another's request. It may be triggered in ast, bast, or
+>> unlock.
+>> 2. ocfs2cmt does periodically commit.
+>>
+>> One case can lead to long time downconvert is, it is indeed that it has
+>> too much work to do. I am not sure if there are any other cases or code
+>> bug.
+> OK, not familiar with ocfs2cmt. Could I bother you to explain what ocfs2cmt is used to do,
+> it's relation with R/W, and why down-conversion can be triggered by when it commits?
+Sorry, the above explanation is not right and may mislead you.
 
-Acked-by: Jan Kara <jack@suse.com>
+jbd2/xxx (previously called kjournald2?) does periodically commit,
+the default interval is 5s and can be set with mount option "commit=".
 
-								Honza
--- 
-Jan Kara <jack@suse.com>
-SUSE Labs, CR
+ocfs2cmt does the checkpoint, it can be waked up:
+a) unblock lock during downconvert, and if jbd2/xxx has already done the
+commit, ocfs2cmt won't be actually waken up because it has already been
+checkpointed. So ocfs2cmt works with jbd2/xxx.
+b) evict inode and then do downconvert.
+
+>>> Could you describes more in this case?
+>>>> And it seemed reasonable because it had to.
+>>>>
+>>>> Node 1 wrote file, and node 2 read it. Since you used buffer io, that
+>>>> was after node 1 had finished written, it might be still in page cache.
+>>> Sorry, I cannot understand the relationship between "still in page case" and "so...downconvert".
+>>>> So node 1 should downconvert first then node 2 read could continue.
+>>>> That was why you said it seemed ocfs2_inode_lock_with_page spent most
+>>> Actually, it suprises me more with such long time spent than the *most* time compared to "readpage" stuff ;-)
+>>>> time. More specifically, it was ocfs2_inode_lock after trying nonblock
+>>>> lock and returning -EAGAIN.
+>>> You mean read process would repeatedly try nonblock lock until write process down-convertion completes?
+>> No, after nonblock lock returning -EAGAIN, it will unlock page and then
+>> call ocfs2_inode_lock and ocfs2_inode_unlock. And ocfs2_inode_lock will
+> Yes.
+>> wait until downconvert completion in another node.
+> Another node which read or write process on?
+Yes, the node blocks my request.
+For example, node 1 has EX, then node 2 wants to get PR, it should wait
+for node 1 downconvert first.
+
+Thanks,
+Joesph
+
+>> This is for an lock inversion case. You can refer the comments of
+>> ocfs2_inode_lock_with_page.
+> Yeah, actually I read this comments again and again, but still fail to get this idea.
+> Could you please explain how this works? I'm really really interested ;-) Forgive me
+> paste code below, make it convenient to refer.
+> 
+> /*
+>  * This is working around a lock inversion between tasks acquiring DLM
+>  * locks while holding a page lock and the downconvert thread which
+>  * blocks dlm lock acquiry while acquiring page locks.
+>  *
+>  * ** These _with_page variantes are only intended to be called from aop
+>  * methods that hold page locks and return a very specific *positive* error
+>  * code that aop methods pass up to the VFS -- test for errors with != 0. **
+>  *
+>  * The DLM is called such that it returns -EAGAIN if it would have
+>  * blocked waiting for the downconvert thread.  In that case we unlock
+>  * our page so the downconvert thread can make progress.  Once we've
+>  * done this we have to return AOP_TRUNCATED_PAGE so the aop method
+>  * that called us can bubble that back up into the VFS who will then
+>  * immediately retry the aop call.
+>  *
+>  * We do a blocking lock and immediate unlock before returning, though, so that
+>  * the lock has a great chance of being cached on this node by the time the VFS
+>  * calls back to retry the aop.    This has a potential to livelock as nodes
+>  * ping locks back and forth, but that's a risk we're willing to take to avoid
+>  * the lock inversion simply.
+>  */
+> int ocfs2_inode_lock_with_page(struct inode *inode,
+>                               struct buffer_head **ret_bh,
+>                               int ex,
+>                               struct page *page)
+> {
+>         int ret;
+> 
+>         ret = ocfs2_inode_lock_full(inode, ret_bh, ex, OCFS2_LOCK_NONBLOCK);
+>         if (ret == -EAGAIN) {
+>                 unlock_page(page);
+>                 if (ocfs2_inode_lock(inode, ret_bh, ex) == 0)
+>                         ocfs2_inode_unlock(inode, ex);
+>                 ret = AOP_TRUNCATED_PAGE;
+>         }
+> 
+>         return ret;
+> }
+> 
+> Thanks,
+> Eric
+>>>> And this also explained why direct io didn't have the issue, but took
+>>>> more time.
+>>>>
+>>>> I am not sure if your test case is the same as what the customer has
+>>>> reported. I think you should recheck the operations in each node.
+>>> Yes, we've verified several times both on sles10 and sles11.  On sles10, each IO time is smooth, no long time IO peak.
+>>>> And we have reported an case before about DLM handling issue. I am not
+>>>> sure if it has relations.
+>>>> https://oss.oracle.com/pipermail/ocfs2-devel/2015-August/011045.html
+>>> Thanks, I've read this post. I cannot see any relations yet. Actually, fs/dlm also implements that way, it's the so-called "conversion deadlock"
+>>> which mentioned in 2.3.7.3 section of "programming locking applications" book.
+>>>
+>>> There're only two processes from two nodes. Process A is blocked on wait queue caused by process B in convert queue, that leave grant queue empty,
+>>> is this possible?
+>> So we have to investigate why convert request cannot be satisfied.
+>> If dlm still works fine, it is impossible. Otherwise it is a bug.
+>>
+>>> You'know I'm new here, maybe some questions're improper,please point out if so;-)
+>>>
+>>> Thank,
+>>> Eric
+> 
+> 
+> .
+> 
