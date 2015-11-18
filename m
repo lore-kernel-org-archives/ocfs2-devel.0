@@ -1,211 +1,108 @@
-From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Date: Mon, 16 Nov 2015 20:12:13 -0800
-Subject: [Ocfs2-devel] [PATCH] lib/kobject: fix memory leak in error
- path of kset_create_and_add()
-In-Reply-To: <871tbpebjw.fsf@gmail.com>
-References: <871tbpebjw.fsf@gmail.com>
-Message-ID: <20151117041213.GA10860@kroah.com>
+From: Junxiao Bi <junxiao.bi@oracle.com>
+Date: Wed, 18 Nov 2015 13:51:38 +0800
+Subject: [Ocfs2-devel] v4.3 kernel panic when run ocfs2-test single test
+Message-ID: <564C11EA.4000504@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Nicolai Stange <nicstange@gmail.com>
-Cc: Theodore Ts'o <tytso@mit.edu>, Andreas Dilger <adilger.kernel@dilger.ca>, Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>, Andrew Morton <akpm@linux-foundation.org>, Joe Perches <joe@perches.com>, linux-kernel@vger.kernel.org, linux-ext4@vger.kernel.org, ocfs2-devel@oss.oracle.com
+To: ocfs2-devel@oss.oracle.com
 
-On Tue, Nov 17, 2015 at 01:04:19AM +0100, Nicolai Stange wrote:
-> In kset_create_and_add(), the name duped into the kset's kobject by
-> kset_create() gets leaked if the call to kset_register() fails.
-> 
-> Indeed, triggering failure by invoking kset_create_and_add() with a
-> duplicate name makes kmemleak reporting
-> 
->   unreferenced object 0xffff8800b4a1f428 (size 16):
->     comm "insmod", pid 682, jiffies 4294745489 (age 50.477s)
->     hex dump (first 16 bytes):
->       64 75 70 6c 69 63 61 74 65 00 6b 6b 6b 6b 6b a5  duplicate.kkkkk.
->     backtrace:
->       [<ffffffff814380ee>] kmemleak_alloc+0x4e/0xb0
->       [<ffffffff811aab01>] __kmalloc_track_caller+0x2b1/0x390
->       [<ffffffff811797f1>] kstrdup+0x31/0x60
->       [<ffffffff81179843>] kstrdup_const+0x23/0x30
->       [<ffffffff81290254>] kvasprintf_const+0x54/0x90
->       [<ffffffff81284d21>] kobject_set_name_vargs+0x21/0xa0
->       [<ffffffff81284dee>] kobject_set_name+0x4e/0x70
->       [<ffffffff812854f5>] kset_create_and_add+0x45/0xa0
->       [...]
-> 
-> Similar problems exist at all call sites of kset_register(), that is
-> in drivers/base, fs/ext4 and in fs/ocfs2.
+Hi,
 
-Yes, but those calls all succeed, so this isn't a problem in the "real"
-world :)
+The following kernel panic was saw when run ocfs2-test single test for
+v4.3 kernel. Anybody ever saw this?
 
-> The deeper cause behind this are the current semantics of the kset
-> initialization, creation and registration functions which differ from the
-> ones of their corresponding kobject counterparts.
-> Namely,
-> - there is no _exported_ kset initialization function,
-> - the (not exported) kset_create() creates a halfway initialized kset
->   object,
-> - and the kset_register() finishes a kset object's initialization but
->   expects its name to already have been set at its entry.
-> 
-> To fix this:
-> - Export kset_init() and let it mimic the semantics of kobject_init().
->   Especially it takes and sets a kobj_type which makes the kset object
->   kset_put()able upon return.
-> - Let the internal kset_create() do the complete initialization by means
->   of kset_init().
-> - Remove any kset initialization from kset_register(): it expects a
->   readily initialized kset object now. Furthermore, let kset_register()
->   take and set the kset object's name. This resembles the behaviour of
->   kobject_add(). In analogy to the latter, require the caller to call
->   kset_put() or kset_unregister() unconditionally, even on failure.
-> 
-> At the call sites of kset_register():
-> - Replace the open coded kset object initialization by a call to
->   kset_init().
-> - Remove the explicit name setting and let the kset_register() call do
->   that work.
-> - Replace any kfree()s by kset_put()s where appropriate.
-> 
-> Signed-off-by: Nicolai Stange <nicstange@gmail.com>
-> ---
-> To the maintainers of ext4 and ocfs2: although several subsystems are
-> touched, the changes come in one single patch in order to keep them bisectable.
-> 
-> 
->  drivers/base/bus.c         | 14 ++-----
->  drivers/base/class.c       | 39 ++++++++++++++-----
->  fs/ext4/sysfs.c            | 13 +++----
->  fs/ocfs2/cluster/masklog.c | 13 ++++---
->  include/linux/kobject.h    |  6 ++-
->  lib/kobject.c              | 94 ++++++++++++++++++++++++++++------------------
->  6 files changed, 110 insertions(+), 69 deletions(-)
-> 
-> diff --git a/drivers/base/bus.c b/drivers/base/bus.c
-> index 5005924..a81227c 100644
-> --- a/drivers/base/bus.c
-> +++ b/drivers/base/bus.c
-> @@ -900,15 +900,11 @@ int bus_register(struct bus_type *bus)
->  
->  	BLOCKING_INIT_NOTIFIER_HEAD(&priv->bus_notifier);
->  
-> -	retval = kobject_set_name(&priv->subsys.kobj, "%s", bus->name);
-> -	if (retval)
-> -		goto out;
-> -
-> -	priv->subsys.kobj.kset = bus_kset;
-> -	priv->subsys.kobj.ktype = &bus_ktype;
->  	priv->drivers_autoprobe = 1;
->  
-> -	retval = kset_register(&priv->subsys);
-> +	kset_init(&priv->subsys, &bus_ktype, NULL);
-> +	priv->subsys.kobj.kset = bus_kset;
-> +	retval = kset_register(&priv->subsys, bus->name, NULL);
->  	if (retval)
->  		goto out;
->  
-> @@ -955,10 +951,8 @@ bus_drivers_fail:
->  bus_devices_fail:
->  	bus_remove_file(bus, &bus_attr_uevent);
->  bus_uevent_fail:
-> -	kset_unregister(&bus->p->subsys);
->  out:
-> -	kfree(bus->p);
-> -	bus->p = NULL;
-> +	kset_unregister(&bus->p->subsys);
->  	return retval;
->  }
->  EXPORT_SYMBOL_GPL(bus_register);
-> diff --git a/drivers/base/class.c b/drivers/base/class.c
-> index 71059e3..94a5b040 100644
-> --- a/drivers/base/class.c
-> +++ b/drivers/base/class.c
-> @@ -19,6 +19,7 @@
->  #include <linux/slab.h>
->  #include <linux/genhd.h>
->  #include <linux/mutex.h>
-> +#include <linux/printk.h>
->  #include "base.h"
->  
->  #define to_class_attr(_attr) container_of(_attr, struct class_attribute, attr)
-> @@ -82,6 +83,24 @@ static struct kobj_type class_ktype = {
->  	.child_ns_type	= class_child_ns_type,
->  };
->  
-> +static void glue_dirs_release_dummy(struct kobject *kobj)
-> +{
-> +	/*
-> +	 * The glue_dirs kset member of struct subsys_private is never
-> +	 * registered and thus, never unregistered.
-> +	 * This release function is a dummy to make kset_init() happy.
-> +	 */
-> +	pr_err(
-> +	"class (%p): unexpected kset_put() on glue_dirs, something is broken.",
-> +		container_of(kobj, struct subsys_private,
-> +				glue_dirs.kobj)->class);
-> +	dump_stack();
+[ 6538.405938] ------------[ cut here ]------------
+[ 6538.406686] kernel BUG at fs/ocfs2/suballoc.c:2400!
+[ 6538.406686] invalid opcode: 0000 [#1] SMP
+[ 6538.406686] Modules linked in: ocfs2 nfsd lockd grace nfs_acl
+auth_rpcgss sunrpc autofs4 ocfs2_dlmfs ocfs2_stack_o2cb ocfs2_dlm
+ocfs2_nodemanager ocfs2_stackglue configfs sd_mod sg ip6t_REJECT
+nf_reject_ipv6 nf_conntrack_ipv6 nf_defrag_ipv6 xt_state nf_conntrack
+ip6table_filter ip6_tables be2iscsi iscsi_boot_sysfs bnx2i cnic uio
+cxgb4i cxgb4 cxgb3i libcxgbi cxgb3 mdio ib_iser rdma_cm ib_cm iw_cm
+ib_sa ib_mad ib_core ib_addr ipv6 iscsi_tcp libiscsi_tcp libiscsi
+scsi_transport_iscsi ppdev xen_kbdfront xen_netfront xen_fbfront
+parport_pc parport pcspkr i2c_piix4 acpi_cpufreq ext4 jbd2 mbcache
+xen_blkfront floppy pata_acpi ata_generic ata_piix cirrus ttm
+drm_kms_helper drm fb_sys_fops sysimgblt sysfillrect i2c_core
+syscopyarea dm_mirror dm_region_hash dm_log dm_mod
+[ 6538.406686] CPU: 1 PID: 16265 Comm: mmap_truncate Not tainted 4.3.0 #1
+[ 6538.406686] Hardware name: Xen HVM domU, BIOS 4.3.1OVM 05/14/2014
+[ 6538.406686] task: ffff88007c2bab00 ti: ffff880075b78000 task.ti:
+ffff880075b78000
+[ 6538.406686] RIP: 0010:[<ffffffffa06a286b>]  [<ffffffffa06a286b>]
+ocfs2_block_group_clear_bits+0x23b/0x250 [ocfs2]
+[ 6538.406686] RSP: 0018:ffff880075b7b7f8  EFLAGS: 00010246
+[ 6538.406686] RAX: ffff8800760c5b40 RBX: ffff88006c06a000 RCX:
+ffffffffa06e6df0
+[ 6538.406686] RDX: 0000000000000000 RSI: ffff88007a6f6ea0 RDI:
+ffff88007a760430
+[ 6538.406686] RBP: ffff880075b7b878 R08: 0000000000000002 R09:
+0000000000000001
+[ 6538.406686] R10: ffffffffa06769be R11: 0000000000000000 R12:
+0000000000000001
+[ 6538.406686] R13: ffffffffa06a1750 R14: 0000000000000001 R15:
+ffff88007a6f6ea0
+[ 6538.406686] FS:  00007f17fde30720(0000) GS:ffff88007f040000(0000)
+knlGS:0000000000000000
+[ 6538.406686] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[ 6538.406686] CR2: 0000000000601730 CR3: 000000007aea0000 CR4:
+00000000000406e0
+[ 6538.406686] Stack:
+[ 6538.406686]  ffff88007c2bb5b0 ffff880075b7b8e0 ffff88007a7604b0
+ffff88006c640800
+[ 6538.406686]  ffff88007a7604b0 ffff880075d77390 0000000075b7b878
+ffffffffa06a309d
+[ 6538.406686]  ffff880075d752d8 ffff880075b7b990 ffff880075b7b898
+0000000000000000
+[ 6538.406686] Call Trace:
+[ 6538.406686]  [<ffffffffa06a309d>] ?
+ocfs2_read_group_descriptor+0x6d/0xa0 [ocfs2]
+[ 6538.406686]  [<ffffffffa06a3654>]
+_ocfs2_free_suballoc_bits+0xe4/0x320 [ocfs2]
+[ 6538.406686]  [<ffffffffa06a1750>] ? ocfs2_put_slot+0xf0/0xf0 [ocfs2]
+[ 6538.406686]  [<ffffffffa06a397e>] _ocfs2_free_clusters+0xee/0x210 [ocfs2]
+[ 6538.406686]  [<ffffffffa06a1750>] ? ocfs2_put_slot+0xf0/0xf0 [ocfs2]
+[ 6538.406686]  [<ffffffffa06a1750>] ? ocfs2_put_slot+0xf0/0xf0 [ocfs2]
+[ 6538.406686]  [<ffffffffa0682d50>] ? ocfs2_extend_trans+0x50/0x1a0 [ocfs2]
+[ 6538.406686]  [<ffffffffa06a3ad5>] ocfs2_free_clusters+0x15/0x20 [ocfs2]
+[ 6538.406686]  [<ffffffffa065072c>]
+ocfs2_replay_truncate_records+0xfc/0x290 [ocfs2]
+[ 6538.406686]  [<ffffffffa06843ac>] ? ocfs2_start_trans+0xec/0x1d0 [ocfs2]
+[ 6538.406686]  [<ffffffffa0654600>]
+__ocfs2_flush_truncate_log+0x140/0x2d0 [ocfs2]
+[ 6538.406686]  [<ffffffffa0654394>] ?
+ocfs2_reserve_blocks_for_rec_trunc.clone.0+0x44/0x170 [ocfs2]
+[ 6538.406686]  [<ffffffffa065acd4>]
+ocfs2_remove_btree_range+0x374/0x630 [ocfs2]
+[ 6538.406686]  [<ffffffffa017486b>] ? jbd2_journal_stop+0x25b/0x470 [jbd2]
+[ 6538.406686]  [<ffffffffa065d5b5>] ocfs2_commit_truncate+0x305/0x670
+[ocfs2]
+[ 6538.406686]  [<ffffffffa0683430>] ? ocfs2_journal_access_eb+0x20/0x20
+[ocfs2]
+[ 6538.406686]  [<ffffffffa067adb7>] ocfs2_truncate_file+0x297/0x380 [ocfs2]
+[ 6538.406686]  [<ffffffffa01759e4>] ?
+jbd2_journal_begin_ordered_truncate+0x64/0xc0 [jbd2]
+[ 6538.406686]  [<ffffffffa067c7a2>] ocfs2_setattr+0x572/0x860 [ocfs2]
+[ 6538.406686]  [<ffffffff810e4a3f>] ? current_fs_time+0x3f/0x50
+[ 6538.406686]  [<ffffffff812124b7>] notify_change+0x1d7/0x340
+[ 6538.406686]  [<ffffffff8121abf9>] ? generic_getxattr+0x79/0x80
+[ 6538.406686]  [<ffffffff811f5876>] do_truncate+0x66/0x90
+[ 6538.406686]  [<ffffffff81120e30>] ? __audit_syscall_entry+0xb0/0x110
+[ 6538.406686]  [<ffffffff811f5bb3>] do_sys_ftruncate.clone.0+0xf3/0x120
+[ 6538.406686]  [<ffffffff811f5bee>] SyS_ftruncate+0xe/0x10
+[ 6538.406686]  [<ffffffff816aa2ae>] entry_SYSCALL_64_fastpath+0x12/0x71
+[ 6538.406686] Code: 28 48 81 ee b0 04 00 00 48 8b 92 50 fb ff ff 48 8b
+80 b0 03 00 00 48 39 90 88 00 00 00 0f 84 30 fe ff ff 0f 0b eb fe 0f 0b
+eb fe <0f> 0b 0f 1f 00 eb fb 66 66 66 66 66 2e 0f 1f 84 00 00 00 00 00
+[ 6538.406686] RIP  [<ffffffffa06a286b>]
+ocfs2_block_group_clear_bits+0x23b/0x250 [ocfs2]
+[ 6538.406686]  RSP <ffff880075b7b7f8>
+[ 6538.691128] ---[ end trace 31cd7011d6770d7e ]---
+[ 6538.694492] Kernel panic - not syncing: Fatal exception
+[ 6538.695484] Kernel Offset: disabled
 
-How can this ever happen?
-
-> +}
-> +
-> +static struct kobj_type glue_dirs_ktype = {
-> +	.release = glue_dirs_release_dummy,
-> +};
-> +
->  /* Hotplug events for classes go to the class subsys */
->  static struct kset *class_kset;
->  
-> @@ -175,18 +194,14 @@ int __class_register(struct class *cls, struct lock_class_key *key)
->  		return -ENOMEM;
->  	klist_init(&cp->klist_devices, klist_class_dev_get, klist_class_dev_put);
->  	INIT_LIST_HEAD(&cp->interfaces);
-> -	kset_init(&cp->glue_dirs);
-> +	kset_init(&cp->glue_dirs, &glue_dirs_ktype, NULL);
->  	__mutex_init(&cp->mutex, "subsys mutex", key);
-> -	error = kobject_set_name(&cp->subsys.kobj, "%s", cls->name);
-> -	if (error) {
-> -		kfree(cp);
-> -		return error;
-> -	}
->  
->  	/* set the default /sys/dev directory for devices of this class */
->  	if (!cls->dev_kobj)
->  		cls->dev_kobj = sysfs_dev_char_kobj;
->  
-> +	kset_init(&cp->subsys, &class_ktype, NULL);
->  #if defined(CONFIG_BLOCK)
->  	/* let the block class directory show up in the root of sysfs */
->  	if (!sysfs_deprecated || cls != &block_class)
-> @@ -194,13 +209,19 @@ int __class_register(struct class *cls, struct lock_class_key *key)
->  #else
->  	cp->subsys.kobj.kset = class_kset;
->  #endif
-> -	cp->subsys.kobj.ktype = &class_ktype;
->  	cp->class = cls;
->  	cls->p = cp;
->  
-> -	error = kset_register(&cp->subsys);
-> +	error = kset_register(&cp->subsys, cls->name, NULL);
->  	if (error) {
-> -		kfree(cp);
-> +		/*
-> +		 * class->release() would be called by cp->subsys'
-> +		 * release function. Prevent this from happening in
-> +		 * the error case by zeroing cp->class out.
-> +		 */
-> +		cp->class = NULL;
-> +		cls->p = NULL;
-> +		kset_put(&cp->subsys);
-
-That seems pretty messy, why can't we allow the release to be called?  I
-don't think this is really correct :(
-
-But overall I like the patch, nice job.  Any way to fix this last bit
-up?
-
-thanks,
-
-greg k-h
+Thanks,
+Junxiao.
