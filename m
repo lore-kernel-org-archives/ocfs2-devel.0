@@ -1,60 +1,41 @@
-From: Ryan Ding <ryan.ding@oracle.com>
-Date: Fri, 20 Nov 2015 16:23:19 +0800
-Subject: [Ocfs2-devel] [PATCH 4/4] ocfs2: Fix a deadlock issue in
-	ocfs2_dio_end_io_write()
-In-Reply-To: <1448007799-10914-1-git-send-email-ryan.ding@oracle.com>
-References: <1448007799-10914-1-git-send-email-ryan.ding@oracle.com>
-Message-ID: <1448007799-10914-4-git-send-email-ryan.ding@oracle.com>
+From: Zhangguanghui <zhang.guanghui@h3c.com>
+Date: Fri, 20 Nov 2015 11:00:38 +0000
+Subject: [Ocfs2-devel] File system is read-only review
+Message-ID: <2015112019003413274371@h3c.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Should call ocfs2_free_alloc_context() to free meta_ac & data_ac before calling
-ocfs2_run_deallocs(). Because ocfs2_run_deallocs() will acquire the system
-inode's i_mutex hold by meta_ac. So try to release the lock before
-ocfs2_run_deallocs().
 
-Fixes: af1310367f41 ("ocfs2: fix sparse file & data ordering issue in direct io.")
-Signed-off-by: Ryan Ding <ryan.ding@oracle.com>
----
- fs/ocfs2/aops.c |   12 ++++++++----
- 1 files changed, 8 insertions(+), 4 deletions(-)
+File system is read-only when deleting the inode, So I try fsck.ocfs2 -f and success,
+Anybody ever see this, how to avoid this, Thanks
 
-diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-index f33cfe4..182f754 100644
---- a/fs/ocfs2/aops.c
-+++ b/fs/ocfs2/aops.c
-@@ -2341,6 +2341,10 @@ static void ocfs2_dio_end_io_write(struct inode *inode,
- 
- 	ret = ocfs2_lock_allocators(inode, &et, 0, dwc->dw_zero_count*2,
- 				    &data_ac, &meta_ac);
-+	if (ret) {
-+		mlog_errno(ret);
-+		goto unlock;
-+	}
- 
- 	credits = ocfs2_calc_extend_credits(inode->i_sb, &di->id2.i_list);
- 
-@@ -2380,14 +2384,14 @@ unlock:
- 	ocfs2_inode_unlock(inode, 1);
- 	brelse(di_bh);
- out:
--	ocfs2_run_deallocs(osb, &dealloc);
--	if (locked)
--		mutex_unlock(&inode->i_mutex);
--	ocfs2_dio_free_write_ctx(inode, dwc);
- 	if (data_ac)
- 		ocfs2_free_alloc_context(data_ac);
- 	if (meta_ac)
- 		ocfs2_free_alloc_context(meta_ac);
-+	ocfs2_run_deallocs(osb, &dealloc);
-+	if (locked)
-+		mutex_unlock(&inode->i_mutex);
-+	ocfs2_dio_free_write_ctx(inode, dwc);
- }
- 
- /*
--- 
-1.7.1
+Nov 18 11:04:30 cvk110 kernel: [144411.362978] OCFS2: ERROR (device dm-2): ocfs2_commit_truncate: Inode 24772873 has empty extent block at 24772873
+Nov 18 11:04:30 cvk110 kernel: [144411.362978]
+Nov 18 11:04:30 cvk110 kernel: [144411.362986] File system is now read-only due to the potential of on-disk corruption. Please run fsck.ocfs2 once the file system is unmounted.
+Nov 18 11:04:30 cvk110 kernel: [144411.362991] (kworker/u129:0,32928,0):ocfs2_truncate_for_delete:574 ERROR: status = -30
+Nov 18 11:04:30 cvk110 kernel: [144411.362993] (kworker/u129:0,32928,0):ocfs2_wipe_inode:743 ERROR: status = -30
+Nov 18 11:04:30 cvk110 kernel: [144411.362996] (kworker/u129:0,32928,0):ocfs2_delete_inode:1022 ERROR: status = -30
+Nov 18 11:04:30 cvk110 kernel: [144411.434249] OCFS2: ERROR (device dm-2): ocfs2_commit_truncate: Inode 1445125 has empty extent block at 1445125
+Nov 18 11:04:30 cvk110 kernel: [144411.434249]
+Nov 18 11:04:30 cvk110 kernel: [144411.434256] (kworker/u129:0,32928,1):ocfs2_truncate_for_delete:574 ERROR: status = -30
+Nov 18 11:04:30 cvk110 kernel: [144411.434258] (kworker/u129:0,32928,1):ocfs2_wipe_inode:743 ERROR: status = -30
+Nov 18 11:04:30 cvk110 kernel: [144411.434261] (kworker/u129:0,32928,1):ocfs2_delete_inode:1022 ERROR: status = -30
+________________________________
+zhangguanghui
+-------------------------------------------------------------------------------------------------------------------------------------
+????????????????????????????????????????
+????????????????????????????????????????
+????????????????????????????????????????
+???
+This e-mail and its attachments contain confidential information from H3C, which is
+intended only for the person or entity whose address is listed above. Any use of the
+information contained herein in any way (including, but not limited to, total or partial
+disclosure, reproduction, or dissemination) by persons other than the intended
+recipient(s) is prohibited. If you receive this e-mail in error, please notify the sender
+by phone or email immediately and delete it!
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20151120/2a70eeb5/attachment.html 
