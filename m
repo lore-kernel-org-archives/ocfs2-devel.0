@@ -1,56 +1,62 @@
-From: Joseph Qi <joseph.qi@huawei.com>
-Date: Mon, 23 Nov 2015 08:55:06 +0800
-Subject: [Ocfs2-devel] File system is read-only review
-In-Reply-To: <2015112019003413274371@h3c.com>
-References: <2015112019003413274371@h3c.com>
-Message-ID: <565263EA.5040306@huawei.com>
+From: Andrew Morton <akpm@linux-foundation.org>
+Date: Mon, 23 Nov 2015 16:26:40 -0800
+Subject: [Ocfs2-devel] [PATCH 1/4] ocfs2: fix ip_unaligned_aio deadlock
+ with dio work queue
+In-Reply-To: <1448007799-10914-1-git-send-email-ryan.ding@oracle.com>
+References: <1448007799-10914-1-git-send-email-ryan.ding@oracle.com>
+Message-ID: <20151123162640.fa62db07934ad869b00e5435@linux-foundation.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Guanghui,
-Misusing jbd2_journal_restart() may cause this issue.
-You can find details and patches we sent before.
+On Fri, 20 Nov 2015 16:23:16 +0800 Ryan Ding <ryan.ding@oracle.com> wrote:
 
-ocfs2: fix some inconsistency problems caused by jbd2_journal_restart()
-https://oss.oracle.com/pipermail/ocfs2-devel/2015-April/010768.html
+> In the current implementation of unaligned aio+dio, lock order behave as follow:
+> 
+> in user process context:
+>   -> call io_submit()
+>     -> get i_mutex
+> 		<== window1
+>       -> get ip_unaligned_aio
+>         -> submit direct io to block device
+>     -> release i_mutex
+>   -> io_submit() return
+> 
+> in dio work queue context(the work queue is created in __blockdev_direct_IO):
+>   -> release ip_unaligned_aio
+> 		<== window2
+>     -> get i_mutex
+>       -> clear unwritten flag & change i_size
+>     -> release i_mutex
+> 
+> There is a limitation to the thread number of dio work queue. 256 at default.
+> If all 256 thread are in the above 'window2' stage, and there is a user process
+> in the 'window1' stage, the system will became deadlock. Since the user process
+> hold i_mutex to wait ip_unaligned_aio lock, while there is a direct bio hold
+> ip_unaligned_aio mutex who is waiting for a dio work queue thread to be
+> schedule. But all the dio work queue thread is waiting for i_mutex lock in
+> 'window2'.
+> 
+> This case only happened in a test which send a large number(more than 256) of
+> aio at one io_submit() call.
+> 
+> My design is to remove ip_unaligned_aio lock. Change it to a sync io instead.
+> Just like ip_unaligned_aio lock, serialize the unaligned aio dio.
 
-On 2015/11/20 19:00, Zhangguanghui wrote:
-> 
-> File system is read-only when deleting the inode, So I try fsck.ocfs2 -f and success,
-> Anybody ever see this, how to avoid this, Thanks 
-> 
-> Nov 18 11:04:30 cvk110 kernel: [144411.362978] OCFS2: ERROR (device dm-2): ocfs2_commit_truncate: Inode 24772873 has empty extent block at 24772873
-> Nov 18 11:04:30 cvk110 kernel: [144411.362978]
-> Nov 18 11:04:30 cvk110 kernel: [144411.362986] File system is now read-only due to the potential of on-disk corruption. Please run fsck.ocfs2 once the file system is unmounted.
-> Nov 18 11:04:30 cvk110 kernel: [144411.362991] (kworker/u129:0,32928,0):ocfs2_truncate_for_delete:574 ERROR: status = -30
-> Nov 18 11:04:30 cvk110 kernel: [144411.362993] (kworker/u129:0,32928,0):ocfs2_wipe_inode:743 ERROR: status = -30
-> Nov 18 11:04:30 cvk110 kernel: [144411.362996] (kworker/u129:0,32928,0):ocfs2_delete_inode:1022 ERROR: status = -30
-> Nov 18 11:04:30 cvk110 kernel: [144411.434249] OCFS2: ERROR (device dm-2): ocfs2_commit_truncate: Inode 1445125 has empty extent block at 1445125
-> Nov 18 11:04:30 cvk110 kernel: [144411.434249]
-> Nov 18 11:04:30 cvk110 kernel: [144411.434256] (kworker/u129:0,32928,1):ocfs2_truncate_for_delete:574 ERROR: status = -30
-> Nov 18 11:04:30 cvk110 kernel: [144411.434258] (kworker/u129:0,32928,1):ocfs2_wipe_inode:743 ERROR: status = -30
-> Nov 18 11:04:30 cvk110 kernel: [144411.434261] (kworker/u129:0,32928,1):ocfs2_delete_inode:1022 ERROR: status = -30
-> ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------!
----
-> zhangguanghui
-> -------------------------------------------------------------------------------------------------------------------------------------
-> ????????????????????????????????????????
-> ????????????????????????????????????????
-> ????????????????????????????????????????
-> ???
-> This e-mail and its attachments contain confidential information from H3C, which is
-> intended only for the person or entity whose address is listed above. Any use of the
-> information contained herein in any way (including, but not limited to, total or partial
-> disclosure, reproduction, or dissemination) by persons other than the intended
-> recipient(s) is prohibited. If you receive this e-mail in error, please notify the sender
-> by phone or email immediately and delete it!
-> 
-> 
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
-> 
+So this patch series is a bunch of fixes against your previous patch series:
+
+ocfs2-add-ocfs2_write_type_t-type-to-identify-the-caller-of-write.patch
+ocfs2-use-c_new-to-indicate-newly-allocated-extents.patch
+ocfs2-test-target-page-before-change-it.patch
+ocfs2-do-not-change-i_size-in-write_end-for-direct-io.patch
+ocfs2-return-the-physical-address-in-ocfs2_write_cluster.patch
+ocfs2-record-unwritten-extents-when-populate-write-desc.patch
+ocfs2-fix-sparse-file-data-ordering-issue-in-direct-io.patch
+ocfs2-code-clean-up-for-direct-io.patch
+
+correct?
+
+Those patches are languishing a bit, awaiting review/ack.  I'll send
+everything out for a round of review soon...
