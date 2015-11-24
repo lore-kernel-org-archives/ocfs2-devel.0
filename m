@@ -1,67 +1,57 @@
-From: Ryan Ding <ryan.ding@oracle.com>
-Date: Tue, 24 Nov 2015 11:24:19 +0800
-Subject: [Ocfs2-devel] [PATCH 1/4] ocfs2: fix ip_unaligned_aio deadlock
- with dio work queue
-In-Reply-To: <20151123162640.fa62db07934ad869b00e5435@linux-foundation.org>
-References: <1448007799-10914-1-git-send-email-ryan.ding@oracle.com>
-	<20151123162640.fa62db07934ad869b00e5435@linux-foundation.org>
-Message-ID: <5653D863.9080308@oracle.com>
+From: Eric Ren <zren@suse.com>
+Date: Tue, 24 Nov 2015 18:02:46 +0800
+Subject: [Ocfs2-devel] Long io response time doubt
+In-Reply-To: <564933F1.80906@huawei.com>
+References: <56440208.7070809@huawei.com> <56443E60.9060103@suse.com>
+	<56444708.2050207@huawei.com> <56446068.8010502@suse.com>
+	<5645598F.7010304@huawei.com> <20151114052333.GA5173@laptop.ha>
+	<564933F1.80906@huawei.com>
+Message-ID: <565435C6.4050601@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Andrew,
+Hi Joseph,
 
-On 11/24/2015 08:26 AM, Andrew Morton wrote:
-> On Fri, 20 Nov 2015 16:23:16 +0800 Ryan Ding <ryan.ding@oracle.com> wrote:
+I use ftrace's function tracer to record some code flow. There's a 
+question that makes me confused -
+why does ocfs2_cancel_convert() be called here in ocfs2dc thread? In 
+other words, what do we expect it
+to do here?
+
+ocfs2_unblock_lock(){
+      ...
+      if(lockres->l_flags & OCFS2_LOCK_BUSY){
+         ...
+         ocfs2_cancel_convert()
+        ...
+     }
+}
+
+ From what I understand, 
+ocfs2_cancel_convert()->ocfs2_dlm_unlock()->user_dlm_unlock()->dlm_unlock(DLM_LKF_CANCEL) 
+puts
+the lock back on the the grand queue at its old grant mode.  In my case, 
+you know, read/write the same shared file from two nodes,
+I think the up-conversion can only happen on the writing node - 
+(PR->EX), while on the reading node, no up-conversion  is need, right?
+
+But, the following output from writing and reading nodes, shows that 
+ocfs2_cancel_convert() has been called on both nodes. why could
+this happen in this scenario?
+
+On 11/16/15 09:40, Joseph Qi wrote:
+>> Sorry, I'm confused about b). You mean b) is also part of ocfs2cmt's
+>> work? Does b) have something to do with a)? And what's the meaning of "evict inode"?
+>> Actually, I can hardly understand the idea of b).
+> You can go through the code flow:
+> iput->iput_final->evict->evict_inode->ocfs2_evict_inode
+> ->ocfs2_clear_inode->ocfs2_checkpoint_inode->ocfs2_start_checkpoint
 >
->> In the current implementation of unaligned aio+dio, lock order behave as follow:
->>
->> in user process context:
->>    -> call io_submit()
->>      -> get i_mutex
->> 		<== window1
->>        -> get ip_unaligned_aio
->>          -> submit direct io to block device
->>      -> release i_mutex
->>    -> io_submit() return
->>
->> in dio work queue context(the work queue is created in __blockdev_direct_IO):
->>    -> release ip_unaligned_aio
->> 		<== window2
->>      -> get i_mutex
->>        -> clear unwritten flag & change i_size
->>      -> release i_mutex
->>
->> There is a limitation to the thread number of dio work queue. 256 at default.
->> If all 256 thread are in the above 'window2' stage, and there is a user process
->> in the 'window1' stage, the system will became deadlock. Since the user process
->> hold i_mutex to wait ip_unaligned_aio lock, while there is a direct bio hold
->> ip_unaligned_aio mutex who is waiting for a dio work queue thread to be
->> schedule. But all the dio work queue thread is waiting for i_mutex lock in
->> 'window2'.
->>
->> This case only happened in a test which send a large number(more than 256) of
->> aio at one io_submit() call.
->>
->> My design is to remove ip_unaligned_aio lock. Change it to a sync io instead.
->> Just like ip_unaligned_aio lock, serialize the unaligned aio dio.
-> So this patch series is a bunch of fixes against your previous patch series:
->
-> ocfs2-add-ocfs2_write_type_t-type-to-identify-the-caller-of-write.patch
-> ocfs2-use-c_new-to-indicate-newly-allocated-extents.patch
-> ocfs2-test-target-page-before-change-it.patch
-> ocfs2-do-not-change-i_size-in-write_end-for-direct-io.patch
-> ocfs2-return-the-physical-address-in-ocfs2_write_cluster.patch
-> ocfs2-record-unwritten-extents-when-populate-write-desc.patch
-> ocfs2-fix-sparse-file-data-ordering-issue-in-direct-io.patch
-> ocfs2-code-clean-up-for-direct-io.patch
->
-> correct?
-Yes, you are right. :)
-> Those patches are languishing a bit, awaiting review/ack.  I'll send
-> everything out for a round of review soon...
-Thanks a lot!
-Ryan
+> It happens that one node do not use the inode any longer (but not
+> delete), and will free its related lockres.
+OK, thanks~
+
+Eric
