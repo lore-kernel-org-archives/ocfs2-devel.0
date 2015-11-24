@@ -1,210 +1,149 @@
-From: Eric Ren <zren@suse.com>
-Date: Tue, 24 Nov 2015 18:05:40 +0800
-Subject: [Ocfs2-devel] Long io response time doubt
-In-Reply-To: <565435C6.4050601@suse.com>
-References: <56440208.7070809@huawei.com> <56443E60.9060103@suse.com>
-	<56444708.2050207@huawei.com> <56446068.8010502@suse.com>
-	<5645598F.7010304@huawei.com> <20151114052333.GA5173@laptop.ha>
-	<564933F1.80906@huawei.com> <565435C6.4050601@suse.com>
-Message-ID: <56543674.6060809@suse.com>
+From: Joseph Qi <joseph.qi@huawei.com>
+Date: Tue, 24 Nov 2015 21:38:18 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: fix BUG due to uncleaned localalloc
+	during mount
+Message-ID: <5654684A.1070305@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Sorry, forget to add the pieces of code flow...
+Tariq has reported a BUG before and posted a fix at:
+https://oss.oracle.com/pipermail/ocfs2-devel/2015-April/010696.html
 
-On reading node:
+This is because during umount, localalloc shutdown relies on journal
+shutdown. But during journal shutdown, it just stops commit thread
+without checking its result. So it may happen that localalloc shutdown
+uncleaned during I/O error and after that, journal then has been marked
+clean if I/O restores.
+Then during mount, localalloc won't be recovered because of clean
+journal and then trigger BUG when claiming clusters from localalloc.
 
-  3)  dlm_ast-4278  =>  ocfs2dc-4277
-  ------------------------------------------
+In Tariq's fix, we have to run fsck offline and a separate fix to fsck
+is needed because it currently does not support clearing out localalloc
+inode. And my way to fix this issue is checking localalloc before
+actually loading it during mount. And this is somewhat online.
 
-  3)               |  ocfs2_process_blocked_lock() {
-  3)               |    ocfs2_unblock_lock() {
-  3)   0.116 us    |      ocfs2_prepare_cancel_convert();
-  3)               |      ocfs2_cancel_convert() {
-  3)               |        user_dlm_unlock() {
-  3)               |          dlm_unlock() {
-  3)   0.120 us    |            dlm_find_lockspace_local();
-  3)   0.158 us    |            find_lkb();
-  3)               |            cancel_lock() {
-  3)               |              validate_unlock_args() {
-  3)   0.093 us    |                del_timeout();
-  3)   0.782 us    |              }
-  3)               |              _cancel_lock() {
-  3)               |                send_common() {
-  3)   0.189 us    |                  add_to_waiters();
-  3)               |                  create_message() {
-  3)               |                    _create_message() {
-  3)               |                      dlm_lowcomms_get_buffer() {
-  3)   0.156 us    |                        nodeid2con();
-  3)   1.680 us    |                      }
-  3)   0.108 us    |                      dlm_our_nodeid();
-  3)   2.821 us    |                    }
-  3)   3.319 us    |                  }
-  3)   0.094 us    |                  send_args();
-  3)               |                  send_message() {
-  3)   0.070 us    |                    dlm_message_out();
-  3)   9.485 us    |                    dlm_lowcomms_commit_buffer();
-  3) + 10.609 us   |                  }
-  3) + 16.054 us   |                }
-  3) + 16.632 us   |              }
-  3)   0.156 us    |              put_rsb();
-  3) + 19.044 us   |            }
-  3)               |            dlm_put_lkb() {
-  3)   0.094 us    |              __put_lkb();
-  3)   0.632 us    |            }
-  3)   0.074 us    |            dlm_put_lockspace();
-  3) + 22.513 us   |          }
-  3) + 23.028 us   |        }
-  3) + 23.727 us   |      }
-  3) + 25.004 us   |    }
-  3)               |    ocfs2_schedule_blocked_lock() {
-  3)   0.073 us    |      lockres_set_flags();
-  3)   0.592 us    |    }
-  3) + 26.852 us   |  }
-  ------------------------------------------
-  3)  ocfs2dc-4277  =>  dlm_ast-4278
-  ------------------------------------------
+Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
+---
+ fs/ocfs2/localalloc.c | 19 ++++++++++++-------
+ fs/ocfs2/localalloc.h |  2 +-
+ fs/ocfs2/super.c      | 17 ++++++++++++++---
+ 3 files changed, 27 insertions(+), 11 deletions(-)
 
-  3)               |  process_asts() {
-  3)   0.202 us    |    dlm_rem_lkb_callback();
-  3)   0.081 us    |    dlm_rem_lkb_callback();
-  3)               |    fsdlm_lock_ast_wrapper() {
-  3)               |      ocfs2_unlock_ast() {
-  3)   0.099 us    |        ocfs2_get_inode_osb();
-  3)   1.290 us    |        ocfs2_wake_downconvert_thread();
-  3)               |        lockres_clear_flags() {
-  3)   8.539 us    |          lockres_set_flags();
-  3)   9.096 us    |        }
-  3) + 12.055 us   |      }
-  3) + 12.673 us   |    }
-  3)               |    dlm_put_lkb() {
-  3)   0.161 us    |      __put_lkb();
-  3)   0.718 us    |    }
-  3) + 16.133 us   |  }
+diff --git a/fs/ocfs2/localalloc.c b/fs/ocfs2/localalloc.c
+index 0a4457f..ceebaef 100644
+--- a/fs/ocfs2/localalloc.c
++++ b/fs/ocfs2/localalloc.c
+@@ -281,7 +281,7 @@ bail:
+ 	return ret;
+ }
 
+-int ocfs2_load_local_alloc(struct ocfs2_super *osb)
++int ocfs2_load_local_alloc(struct ocfs2_super *osb, int check, int *recovery)
+ {
+ 	int status = 0;
+ 	struct ocfs2_dinode *alloc = NULL;
+@@ -345,21 +345,26 @@ int ocfs2_load_local_alloc(struct ocfs2_super *osb)
+ 	if (num_used
+ 	    || alloc->id1.bitmap1.i_used
+ 	    || alloc->id1.bitmap1.i_total
+-	    || la->la_bm_off)
++	    || la->la_bm_off) {
+ 		mlog(ML_ERROR, "Local alloc hasn't been recovered!\n"
+ 		     "found = %u, set = %u, taken = %u, off = %u\n",
+ 		     num_used, le32_to_cpu(alloc->id1.bitmap1.i_used),
+ 		     le32_to_cpu(alloc->id1.bitmap1.i_total),
+ 		     OCFS2_LOCAL_ALLOC(alloc)->la_bm_off);
++		status = -EINVAL;
++		*recovery = 1;
++		goto bail;
++	}
 
-On writing node:
+-	osb->local_alloc_bh = alloc_bh;
+-	osb->local_alloc_state = OCFS2_LA_ENABLED;
++	if (!check) {
++		osb->local_alloc_bh = alloc_bh;
++		osb->local_alloc_state = OCFS2_LA_ENABLED;
++	}
 
-  3)  kworker-443   =>  ocfs2dc-4456
-  ------------------------------------------
+ bail:
+-	if (status < 0)
++	if (status < 0 || check)
+ 		brelse(alloc_bh);
+-	if (inode)
+-		iput(inode);
++	iput(inode);
 
-  3)               |  ocfs2_process_blocked_lock() {
-  3)               |    ocfs2_unblock_lock() {
-  3)   0.269 us    |      ocfs2_prepare_cancel_convert();
-  3)               |      ocfs2_cancel_convert() {
-  3)               |        user_dlm_unlock() {
-  3)               |          dlm_unlock() {
-  3)   0.321 us    |            dlm_find_lockspace_local();
-  3)   0.286 us    |            find_lkb();
-  3)               |            cancel_lock() {
-  3)               |              validate_unlock_args() {
-  3)   0.122 us    |                del_timeout();
-  3)   0.901 us    |              }
-  3)               |              _cancel_lock() {
-  3)               |                do_cancel() {
-  3)               |                  revert_lock() {
-  3)               |                    move_lkb() {
-  3)   0.155 us    |                      del_lkb();
-  3)   0.243 us    |                      add_lkb();
-  3)   1.778 us    |                    }
-  3)   2.577 us    |                  }
-  3)               |                  queue_cast() {
-  3)   0.102 us    |                    del_timeout();
-  3)               |                    dlm_add_ast() {
-  3)   0.165 us    |                      dlm_add_lkb_callback();
-  3) + 14.492 us   |                    }
-  3) + 16.381 us   |                  }
-  3) + 20.384 us   |                }
-  3)               |                grant_pending_locks() {
-  3)               |                  grant_pending_convert() {
-  3)               |                    can_be_granted() {
-  3)   0.143 us    |                      _can_be_granted();
-  3)   0.906 us    |                    }
-  3)   1.900 us    |                  }
-  3)   2.738 us    |                }
-  3) + 24.670 us   |              }
-  3)   0.154 us    |              put_rsb();
-  3) + 28.068 us   |            }
-  3)               |            dlm_put_lkb() {
-  3)   0.163 us    |              __put_lkb();
-  3)   1.029 us    |            }
-  3)   0.195 us    |            dlm_put_lockspace();
-  3) + 34.035 us   |          }
-  3) + 34.914 us   |        }
-  3) + 35.919 us   |      }
-  3) + 37.864 us   |    }
-  3)               |    ocfs2_schedule_blocked_lock() {
-  3)   0.210 us    |      lockres_set_flags();
-  0)               |  process_asts() {
-  3)   0.998 us    |    }
-  0)   0.215 us    |    dlm_rem_lkb_callback();
-  3) + 40.671 us   |  }
-  0)   0.084 us    |    dlm_rem_lkb_callback();
-  0)               |    fsdlm_lock_ast_wrapper() {
-  0)               |      ocfs2_unlock_ast() {
-  0)   0.088 us    |        ocfs2_get_inode_osb();
-  0)   9.498 us    |        ocfs2_wake_downconvert_thread();
-  0)               |        lockres_clear_flags() {
-  0)   1.272 us    |          lockres_set_flags();
-  0)   1.757 us    |        }
-  0) + 13.396 us   |      }
-  0) + 13.983 us   |    }
-  0)               |    dlm_put_lkb() {
-  0)   0.136 us    |      __put_lkb();
-  0)   0.641 us    |    }
-  0) + 17.224 us   |  }
+ 	trace_ocfs2_load_local_alloc(osb->local_alloc_bits);
 
+diff --git a/fs/ocfs2/localalloc.h b/fs/ocfs2/localalloc.h
+index 44a7d1f..a913841 100644
+--- a/fs/ocfs2/localalloc.h
++++ b/fs/ocfs2/localalloc.h
+@@ -26,7 +26,7 @@
+ #ifndef OCFS2_LOCALALLOC_H
+ #define OCFS2_LOCALALLOC_H
 
-Thank,
-Eric
-On 11/24/15 18:02, Eric Ren wrote:
-> Hi Joseph,
->
-> I use ftrace's function tracer to record some code flow. There's a 
-> question that makes me confused -
-> why does ocfs2_cancel_convert() be called here in ocfs2dc thread? In 
-> other words, what do we expect it
-> to do here?
->
-> ocfs2_unblock_lock(){
->      ...
->      if(lockres->l_flags & OCFS2_LOCK_BUSY){
->         ...
->         ocfs2_cancel_convert()
->        ...
->     }
-> }
->
-> From what I understand, 
-> ocfs2_cancel_convert()->ocfs2_dlm_unlock()->user_dlm_unlock()->dlm_unlock(DLM_LKF_CANCEL) 
-> puts
-> the lock back on the the grand queue at its old grant mode.  In my 
-> case, you know, read/write the same shared file from two nodes,
-> I think the up-conversion can only happen on the writing node - 
-> (PR->EX), while on the reading node, no up-conversion  is need, right?
->
-> But, the following output from writing and reading nodes, shows that 
-> ocfs2_cancel_convert() has been called on both nodes. why could
-> this happen in this scenario?
->
-> On 11/16/15 09:40, Joseph Qi wrote:
->>> Sorry, I'm confused about b). You mean b) is also part of ocfs2cmt's
->>> work? Does b) have something to do with a)? And what's the meaning 
->>> of "evict inode"?
->>> Actually, I can hardly understand the idea of b).
->> You can go through the code flow:
->> iput->iput_final->evict->evict_inode->ocfs2_evict_inode
->> ->ocfs2_clear_inode->ocfs2_checkpoint_inode->ocfs2_start_checkpoint
->>
->> It happens that one node do not use the inode any longer (but not
->> delete), and will free its related lockres.
-> OK, thanks~
->
-> Eric
+-int ocfs2_load_local_alloc(struct ocfs2_super *osb);
++int ocfs2_load_local_alloc(struct ocfs2_super *osb, int check, int *recovery);
 
--------------- next part --------------
-An HTML attachment was scrubbed...
-URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20151124/75a60f06/attachment-0001.html 
+ void ocfs2_shutdown_local_alloc(struct ocfs2_super *osb);
+
+diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+index 2de4c8a..4004b29 100644
+--- a/fs/ocfs2/super.c
++++ b/fs/ocfs2/super.c
+@@ -2428,6 +2428,7 @@ static int ocfs2_check_volume(struct ocfs2_super *osb)
+ 	int status;
+ 	int dirty;
+ 	int local;
++	int la_dirty = 0, recovery = 0;
+ 	struct ocfs2_dinode *local_alloc = NULL; /* only used if we
+ 						  * recover
+ 						  * ourselves. */
+@@ -2449,6 +2450,16 @@ static int ocfs2_check_volume(struct ocfs2_super *osb)
+ 	 * recover anything. Otherwise, journal_load will do that
+ 	 * dirty work for us :) */
+ 	if (!dirty) {
++		/* It may happen that local alloc is unclean shutdown, but
++		 * journal has been marked clean, so check it here and do
++		 * recovery if needed */
++		status = ocfs2_load_local_alloc(osb, 1, &recovery);
++		if (recovery) {
++			printk(KERN_NOTICE "ocfs2: local alloc needs recovery "
++					"on device (%s).\n", osb->dev_str);
++			la_dirty = 1;
++		}
++
+ 		status = ocfs2_journal_wipe(osb->journal, 0);
+ 		if (status < 0) {
+ 			mlog_errno(status);
+@@ -2477,7 +2488,7 @@ static int ocfs2_check_volume(struct ocfs2_super *osb)
+ 				JBD2_FEATURE_COMPAT_CHECKSUM, 0,
+ 				JBD2_FEATURE_INCOMPAT_ASYNC_COMMIT);
+
+-	if (dirty) {
++	if (dirty || la_dirty) {
+ 		/* recover my local alloc if we didn't unmount cleanly. */
+ 		status = ocfs2_begin_local_alloc_recovery(osb,
+ 							  osb->slot_num,
+@@ -2490,13 +2501,13 @@ static int ocfs2_check_volume(struct ocfs2_super *osb)
+ 		 * ourselves as mounted. */
+ 	}
+
+-	status = ocfs2_load_local_alloc(osb);
++	status = ocfs2_load_local_alloc(osb, 0, &recovery);
+ 	if (status < 0) {
+ 		mlog_errno(status);
+ 		goto finally;
+ 	}
+
+-	if (dirty) {
++	if (dirty || la_dirty) {
+ 		/* Recovery will be completed after we've mounted the
+ 		 * rest of the volume. */
+ 		osb->dirty = 1;
+-- 
+1.8.4.3
