@@ -1,57 +1,80 @@
 From: Gang He <ghe@suse.com>
-Date: Tue, 24 Nov 2015 19:53:48 -0700
-Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2: return non-zero st_blocks for
- inline data
-In-Reply-To: <1448399221-6109-2-git-send-email-john.haxby@oracle.com>
-References: <1448399221-6109-1-git-send-email-john.haxby@oracle.com>
-	<1448399221-6109-2-git-send-email-john.haxby@oracle.com>
-Message-ID: <5655933C020000F90001FC54@relay2.provo.novell.com>
+Date: Tue, 24 Nov 2015 20:29:41 -0700
+Subject: [Ocfs2-devel] [PATCH v2 2/4] ocfs2: sysfile interfaces for
+ online file check
+In-Reply-To: <20151124214617.GT15575@wotan.suse.de>
+References: <1446013561-22121-1-git-send-email-ghe@suse.com>
+	<1446013561-22121-3-git-send-email-ghe@suse.com>
+	<5638604E.9030000@oracle.com>
+	<5638D8CF020000F90001CC68@relay2.provo.novell.com>
+	<56386E4B.5080506@oracle.com> <20151124214617.GT15575@wotan.suse.de>
+Message-ID: <56559BA5020000F90001FC8B@relay2.provo.novell.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Junxiao Bi <junxiao.bi@oracle.com>, Mark Fasheh <mfasheh@suse.de>
+Cc: akpm@linux-foundation.org, ocfs2-devel@oss.oracle.com, rgoldwyn@suse.de, linux-kernel@vger.kernel.org
 
-Looks good for me.
-
-Thanks
-Gang
+Hi Mark and Junxiao,
 
 
 >>> 
-> Some versions of tar assume that files with st_blocks == 0 do not
-> contain any data and will skip reading them entirely. See also
-> commit 9206c561554c ("ext4: return non-zero st_blocks for inline data").
+> On Tue, Nov 03, 2015 at 04:20:27PM +0800, Junxiao Bi wrote:
+>> Hi Gang,
+>> 
+>> On 11/03/2015 03:54 PM, Gang He wrote:
+>> > Hi Junxiao,
+>> > 
+>> > Thank for your reviewing.
+>> > Current design, we use a sysfile as a interface to check/fix a file (via 
+> pass a ino number).
+>> > But, this operation is manually triggered by user, instead of automatically 
+>  fix in the kernel.
+>> > Why?
+>> > 1) we should let users make this decision, since some users do not want to 
+> fix when encountering a file system corruption, maybe they want to keep the 
+> file system unchanged for a further investigation.
+>> If user don't want this, they should not use error=continue option, let
+>> fs go after a corruption is very dangerous.
 > 
-> Signed-off-by: John Haxby <john.haxby@oracle.com>
-> ---
->  fs/ocfs2/file.c | 8 ++++++++
->  1 file changed, 8 insertions(+)
+> Maybe we need another errors=XXX flag (maybe errors=fix)?
 > 
-> diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-> index 0e5b451..d631279 100644
-> --- a/fs/ocfs2/file.c
-> +++ b/fs/ocfs2/file.c
-> @@ -1302,6 +1302,14 @@ int ocfs2_getattr(struct vfsmount *mnt,
->  	}
->  
->  	generic_fillattr(inode, stat);
-> +	/*
-> +	 * If there is inline data in the inode, the inode will normally not
-> +	 * have data blocks allocated (it may have an external xattr block).
-> +	 * Report at least one sector for such files, so tools like tar, rsync,
-> +	 * others don't incorrectly think the file is completely sparse.
-> +	 */
-> +	if (unlikely(OCFS2_I(inode)->ip_dyn_features & OCFS2_INLINE_DATA_FL))
-> +		stat->blocks += (stat->size + 511)>>9;
->  
->  	/* We set the blksize from the cluster size for performance */
->  	stat->blksize = osb->s_clustersize;
-> -- 
-> 2.5.0
+> You both make good points, here's what I gather from the conversation:
+> 
+>  - Some customers would be sad if they have to manually fix corruptions.
+>    This takes effort on their part, and if the FS can handle it
+>    automatically, it should.
+> 
+>  - There are valid concerns that automatically fixing things is a change in
+>    behavior that might not be welcome, or worse might lead to unforseeable
+>    circumstances.
+> 
+>  - I will add that fixing things automatically implies checking them
+>    automatically which could introduce some performance impact depending on
+>    how much checking we're doing.
+> 
+> So if the user wants errors to be fixed automatically, they could mount with
+> errros=fix, and everyone else would have no change in behavior unless they
+> wanted to make use of the new feature.
+That is what I want to say, add a mount option to let users to decide. Here, I want to split "error=fix"
+mount option  task out from online file check feature, I think this part should be a independent feature.
+We can implement this feature after online file check is done, I want to split the feature into some more 
+detailed features, implement them one by one. Do you agree this point?
+
 > 
 > 
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com 
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+>> > 2) frankly speaking, this feature will probably bring a second corruption 
+> if there is some error in the code, I do not suggest to use automatically fix 
+> by default in the first version.
+>> I think if this feature could bring more corruption, then this should be
+>> fixed first.
+> 
+> Btw, I am pretty sure that Gang is referring to the feature being new and
+> thus more likely to have problems. There is nothing I see in here that is
+> file system corrupting.
+> 	--Mark
+> 
+> 
+> --
+> Mark Fasheh
