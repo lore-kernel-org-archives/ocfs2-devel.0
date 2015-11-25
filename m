@@ -1,51 +1,178 @@
-From: Mark Fasheh <mfasheh@suse.de>
-Date: Tue, 24 Nov 2015 14:16:04 -0800
-Subject: [Ocfs2-devel] [PATCH v2 4/4] ocfs2: check/fix inode block for
- online file check
-In-Reply-To: <56385E63.80808@oracle.com>
-References: <1446013561-22121-1-git-send-email-ghe@suse.com>
-	<1446013561-22121-5-git-send-email-ghe@suse.com>
-	<56385E63.80808@oracle.com>
-Message-ID: <20151124221604.GX15575@wotan.suse.de>
+From: Shichangkuo <shi.changkuo@h3c.com>
+Date: Wed, 25 Nov 2015 01:08:19 +0000
+Subject: [Ocfs2-devel] [PATCH] ocfs2: fix BUG due to uncleaned
+ localalloc during mount
+Message-ID: <D1E4D02760513D4B90DC3B40FF32AF355EDCB027@H3CMLB12-EX.srv.huawei-3com.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Junxiao Bi <junxiao.bi@oracle.com>
-Cc: Gang He <ghe@suse.com>, rgoldwyn@suse.de, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
+To: ocfs2-devel@oss.oracle.com
 
-Hi Junxiao,
+Hi?Joseph Qi
+In this situation,  ocfs2_begin_local_alloc_recovery will be called, and finally call ocfs2_clear_local_alloc, which direct clear la bitmap, like:
 
-On Tue, Nov 03, 2015 at 03:12:35PM +0800, Junxiao Bi wrote:
-> Hi Gang,
-> 
-> This is not like a right patch.
-> First, online file check only checks inode's block number, valid flag,
-> fs generation value, and meta ecc. I never see a real corruption
-> happened only on this field, if these fields are corrupted, that means
-> something bad may happen on other place. So fix this field may not help
-> and even cause corruption more hard.
+        alloc->id1.bitmap1.i_total = 0;
+        alloc->id1.bitmap1.i_used = 0;
+        la->la_bm_off = 0;
+        for(i = 0; i < le16_to_cpu(la->la_size); i++)
+                la->la_bitmap[i] = 0;
 
-I agree that these are rather uncommon, we might even consider removing the
-VALID_FL fixup. I definitely don't think we're ready for anything more
-complicated than this though either. We kind of have to start somewhere too.
+It's different from fsck.ocfs2, also called function ocfs2_clear_local_alloc, but this function does more than direct clear la bitmap.
+Global bitmap will also be cleared.
+So, does this patch data-safe?
 
 
-> Second, the repair way is wrong. In
-> ocfs2_filecheck_repair_inode_block(), if these fields in disk don't
-> match the ones in memory, the ones in memory are used to update the disk
-> fields. The question is how do you know these field in memory are
-> right(they may be the real corrupted ones)?
+-----????-----
+???: ocfs2-devel-bounces at oss.oracle.com [mailto:ocfs2-devel-bounces at oss.oracle.com] ?? Joseph Qi
+????: 2015?11?24? 21:38
+???: Andrew Morton
+??: Mark Fasheh; ocfs2-devel at oss.oracle.com
+??: [Ocfs2-devel] [PATCH] ocfs2: fix BUG due to uncleaned localalloc during mount
 
-Your second point (and the last part of your 1st point) makes a good
-argument for why this shouldn't happen automatically. Some of these
-corruptions might require a human to look at the log and decide what to do.
-Especially as you point out, where we might not know where the source of the
-corruption is. And if the human can't figure it out, then it's probably time
-to unmount and fsck.
+Tariq has reported a BUG before and posted a fix at:
+https://oss.oracle.com/pipermail/ocfs2-devel/2015-April/010696.html
 
-Thanks,
-	--Mark
+This is because during umount, localalloc shutdown relies on journal shutdown. But during journal shutdown, it just stops commit thread without checking its result. So it may happen that localalloc shutdown uncleaned during I/O error and after that, journal then has been marked clean if I/O restores.
+Then during mount, localalloc won't be recovered because of clean journal and then trigger BUG when claiming clusters from localalloc.
 
+In Tariq's fix, we have to run fsck offline and a separate fix to fsck is needed because it currently does not support clearing out localalloc inode. And my way to fix this issue is checking localalloc before actually loading it during mount. And this is somewhat online.
+
+Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
+---
+ fs/ocfs2/localalloc.c | 19 ++++++++++++-------  fs/ocfs2/localalloc.h |  2 +-
+ fs/ocfs2/super.c      | 17 ++++++++++++++---
+ 3 files changed, 27 insertions(+), 11 deletions(-)
+
+diff --git a/fs/ocfs2/localalloc.c b/fs/ocfs2/localalloc.c index 0a4457f..ceebaef 100644
+--- a/fs/ocfs2/localalloc.c
++++ b/fs/ocfs2/localalloc.c
+@@ -281,7 +281,7 @@ bail:
+        return ret;
+ }
+
+-int ocfs2_load_local_alloc(struct ocfs2_super *osb)
++int ocfs2_load_local_alloc(struct ocfs2_super *osb, int check, int
++*recovery)
+ {
+        int status = 0;
+        struct ocfs2_dinode *alloc = NULL;
+@@ -345,21 +345,26 @@ int ocfs2_load_local_alloc(struct ocfs2_super *osb)
+        if (num_used
+            || alloc->id1.bitmap1.i_used
+            || alloc->id1.bitmap1.i_total
+-           || la->la_bm_off)
++           || la->la_bm_off) {
+                mlog(ML_ERROR, "Local alloc hasn't been recovered!\n"
+                     "found = %u, set = %u, taken = %u, off = %u\n",
+                     num_used, le32_to_cpu(alloc->id1.bitmap1.i_used),
+                     le32_to_cpu(alloc->id1.bitmap1.i_total),
+                     OCFS2_LOCAL_ALLOC(alloc)->la_bm_off);
++               status = -EINVAL;
++               *recovery = 1;
++               goto bail;
++       }
+
+-       osb->local_alloc_bh = alloc_bh;
+-       osb->local_alloc_state = OCFS2_LA_ENABLED;
++       if (!check) {
++               osb->local_alloc_bh = alloc_bh;
++               osb->local_alloc_state = OCFS2_LA_ENABLED;
++       }
+
+ bail:
+-       if (status < 0)
++       if (status < 0 || check)
+                brelse(alloc_bh);
+-       if (inode)
+-               iput(inode);
++       iput(inode);
+
+        trace_ocfs2_load_local_alloc(osb->local_alloc_bits);
+
+diff --git a/fs/ocfs2/localalloc.h b/fs/ocfs2/localalloc.h index 44a7d1f..a913841 100644
+--- a/fs/ocfs2/localalloc.h
++++ b/fs/ocfs2/localalloc.h
+@@ -26,7 +26,7 @@
+ #ifndef OCFS2_LOCALALLOC_H
+ #define OCFS2_LOCALALLOC_H
+
+-int ocfs2_load_local_alloc(struct ocfs2_super *osb);
++int ocfs2_load_local_alloc(struct ocfs2_super *osb, int check, int
++*recovery);
+
+ void ocfs2_shutdown_local_alloc(struct ocfs2_super *osb);
+
+diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c index 2de4c8a..4004b29 100644
+--- a/fs/ocfs2/super.c
++++ b/fs/ocfs2/super.c
+@@ -2428,6 +2428,7 @@ static int ocfs2_check_volume(struct ocfs2_super *osb)
+        int status;
+        int dirty;
+        int local;
++       int la_dirty = 0, recovery = 0;
+        struct ocfs2_dinode *local_alloc = NULL; /* only used if we
+                                                  * recover
+                                                  * ourselves. */
+@@ -2449,6 +2450,16 @@ static int ocfs2_check_volume(struct ocfs2_super *osb)
+         * recover anything. Otherwise, journal_load will do that
+         * dirty work for us :) */
+        if (!dirty) {
++               /* It may happen that local alloc is unclean shutdown, but
++                * journal has been marked clean, so check it here and do
++                * recovery if needed */
++               status = ocfs2_load_local_alloc(osb, 1, &recovery);
++               if (recovery) {
++                       printk(KERN_NOTICE "ocfs2: local alloc needs recovery "
++                                       "on device (%s).\n", osb->dev_str);
++                       la_dirty = 1;
++               }
++
+                status = ocfs2_journal_wipe(osb->journal, 0);
+                if (status < 0) {
+                        mlog_errno(status);
+@@ -2477,7 +2488,7 @@ static int ocfs2_check_volume(struct ocfs2_super *osb)
+                                JBD2_FEATURE_COMPAT_CHECKSUM, 0,
+                                JBD2_FEATURE_INCOMPAT_ASYNC_COMMIT);
+
+-       if (dirty) {
++       if (dirty || la_dirty) {
+                /* recover my local alloc if we didn't unmount cleanly. */
+                status = ocfs2_begin_local_alloc_recovery(osb,
+                                                          osb->slot_num,
+@@ -2490,13 +2501,13 @@ static int ocfs2_check_volume(struct ocfs2_super *osb)
+                 * ourselves as mounted. */
+        }
+
+-       status = ocfs2_load_local_alloc(osb);
++       status = ocfs2_load_local_alloc(osb, 0, &recovery);
+        if (status < 0) {
+                mlog_errno(status);
+                goto finally;
+        }
+
+-       if (dirty) {
++       if (dirty || la_dirty) {
+                /* Recovery will be completed after we've mounted the
+                 * rest of the volume. */
+                osb->dirty = 1;
 --
-Mark Fasheh
+1.8.4.3
+
+
+
+_______________________________________________
+Ocfs2-devel mailing list
+Ocfs2-devel at oss.oracle.com
+https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+-------------------------------------------------------------------------------------------------------------------------------------
+????????????????????????????????????????
+????????????????????????????????????????
+????????????????????????????????????????
+???
+This e-mail and its attachments contain confidential information from H3C, which is
+intended only for the person or entity whose address is listed above. Any use of the
+information contained herein in any way (including, but not limited to, total or partial
+disclosure, reproduction, or dissemination) by persons other than the intended
+recipient(s) is prohibited. If you receive this e-mail in error, please notify the sender
+by phone or email immediately and delete it!
