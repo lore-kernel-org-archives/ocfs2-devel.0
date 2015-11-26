@@ -1,91 +1,215 @@
-From: Junxiao Bi <junxiao.bi@oracle.com>
-Date: Wed, 25 Nov 2015 13:44:26 +0800
-Subject: [Ocfs2-devel] [PATCH v2 4/4] ocfs2: check/fix inode block for
- online file check
-In-Reply-To: <5655B1C0020000F90001FCB5@relay2.provo.novell.com>
-References: <1446013561-22121-1-git-send-email-ghe@suse.com>
-	<1446013561-22121-5-git-send-email-ghe@suse.com>
-	<56385E63.80808@oracle.com>
-	<20151124221604.GX15575@wotan.suse.de> <565534D5.5060002@oracle.com>
-	<5655B1C0020000F90001FCB5@relay2.provo.novell.com>
-Message-ID: <56554ABA.10104@oracle.com>
+From: Joseph Qi <joseph.qi@huawei.com>
+Date: Thu, 26 Nov 2015 09:34:46 +0800
+Subject: [Ocfs2-devel] Long io response time doubt
+In-Reply-To: <56543674.6060809@suse.com>
+References: <56440208.7070809@huawei.com> <56443E60.9060103@suse.com>
+	<56444708.2050207@huawei.com> <56446068.8010502@suse.com>
+	<5645598F.7010304@huawei.com> <20151114052333.GA5173@laptop.ha>
+	<564933F1.80906@huawei.com> <565435C6.4050601@suse.com>
+	<56543674.6060809@suse.com>
+Message-ID: <565661B6.7000902@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Gang He <ghe@suse.com>, Mark Fasheh <mfasheh@suse.de>
-Cc: ocfs2-devel@oss.oracle.com, rgoldwyn@suse.de, linux-kernel@vger.kernel.org
+To: ocfs2-devel@oss.oracle.com
 
-On 11/25/2015 01:04 PM, Gang He wrote:
-> Hi Mark and Junxiao,
-> 
-> 
->>>>
->> Hi Mark,
->>
->> On 11/25/2015 06:16 AM, Mark Fasheh wrote:
->>> Hi Junxiao,
->>>
->>> On Tue, Nov 03, 2015 at 03:12:35PM +0800, Junxiao Bi wrote:
->>>> Hi Gang,
->>>>
->>>> This is not like a right patch.
->>>> First, online file check only checks inode's block number, valid flag,
->>>> fs generation value, and meta ecc. I never see a real corruption
->>>> happened only on this field, if these fields are corrupted, that means
->>>> something bad may happen on other place. So fix this field may not help
->>>> and even cause corruption more hard.
->>>
->>> I agree that these are rather uncommon, we might even consider removing the
->>> VALID_FL fixup. I definitely don't think we're ready for anything more
->>> complicated than this though either. We kind of have to start somewhere too.
->>>
->> Yes, the fix is too simple, and just a start, I think we'd better wait
->> more useful parts done before merging it.
-> I agree, just remark VALID_FL flag to fix this field is too simple, we should delay this field fix before 
-> I have a flawless solution, I will remove these lines code in the first version patches. In the future submits,
-> I also hope your guys to help review the code carefully, shout out your comments when you doubt somewhere.
-Sure.
-
-> 
-> 
-> 
->>>
->>>> Second, the repair way is wrong. In
->>>> ocfs2_filecheck_repair_inode_block(), if these fields in disk don't
->>>> match the ones in memory, the ones in memory are used to update the disk
->>>> fields. The question is how do you know these field in memory are
->>>> right(they may be the real corrupted ones)?
->>>
->>> Your second point (and the last part of your 1st point) makes a good
->>> argument for why this shouldn't happen automatically. Some of these
->>> corruptions might require a human to look at the log and decide what to do.
->>> Especially as you point out, where we might not know where the source of the
->>> corruption is. And if the human can't figure it out, then it's probably time
->>> to unmount and fsck.
->> The point is that the fix way is wrong, just flush memory info to disk
->> is not right. I agree online fsck is good feature, but need carefully
->> design, it should not involve more corruptions. A rough idea from mine
->> is that maybe we need some "frezee" mechanism in fs, which can hung all
->> fs op and let fs stop at a safe area. After freeze fs, we can do some
->> fsck work on it and these works should not cost lots time. What's your idea?
-> If we need to touch some global data structures, freezing fs can be considered when we can't
-> get any way in case using the locks.
-> If we only handle some independent problem, we just need to lock the related data structures. 
-Hmm, I am not sure whether it's hard to decide an independent issue.
+Hi Eric,
+convert has two types, upconvert and downconvert. And please note that,
+PR and EX is not compatible.
+Assume read node has gotten PR first, then write node wants to get EX,
+it requires read node to downconvert PR to NL. Then read node want's to
+get PR again, write node should downconvert EX to PR (highest
+compatible) and then read node can upconvert NL to PR. And so forth.
+So both the read/write nodes will do upconvert and downconvert.
+The code you paste is calling into fs/dlm which I am not familiar with:(
+I think you can list your questions and send to cluster-devel.
 
 Thanks,
-Junxiao.
+Joseph
+
+On 2015/11/24 18:05, Eric Ren wrote:
+> Sorry, forget to add the pieces of code flow...
 > 
+> On reading node:
+> 
+>  3)  dlm_ast-4278  =>  ocfs2dc-4277 
+>  ------------------------------------------
+> 
+>  3)               |  ocfs2_process_blocked_lock() {
+>  3)               |    ocfs2_unblock_lock() {
+>  3)   0.116 us    |      ocfs2_prepare_cancel_convert();
+>  3)               |      ocfs2_cancel_convert() {
+>  3)               |        user_dlm_unlock() {
+>  3)               |          dlm_unlock() {
+>  3)   0.120 us    |            dlm_find_lockspace_local();
+>  3)   0.158 us    |            find_lkb();
+>  3)               |            cancel_lock() {
+>  3)               |              validate_unlock_args() {
+>  3)   0.093 us    |                del_timeout();
+>  3)   0.782 us    |              }
+>  3)               |              _cancel_lock() {
+>  3)               |                send_common() {
+>  3)   0.189 us    |                  add_to_waiters();
+>  3)               |                  create_message() {
+>  3)               |                    _create_message() {
+>  3)               |                      dlm_lowcomms_get_buffer() {
+>  3)   0.156 us    |                        nodeid2con();
+>  3)   1.680 us    |                      }
+>  3)   0.108 us    |                      dlm_our_nodeid();
+>  3)   2.821 us    |                    }
+>  3)   3.319 us    |                  }
+>  3)   0.094 us    |                  send_args();
+>  3)               |                  send_message() {
+>  3)   0.070 us    |                    dlm_message_out();
+>  3)   9.485 us    |                    dlm_lowcomms_commit_buffer();
+>  3) + 10.609 us   |                  }
+>  3) + 16.054 us   |                }
+>  3) + 16.632 us   |              }
+>  3)   0.156 us    |              put_rsb();
+>  3) + 19.044 us   |            }
+>  3)               |            dlm_put_lkb() {
+>  3)   0.094 us    |              __put_lkb();
+>  3)   0.632 us    |            }
+>  3)   0.074 us    |            dlm_put_lockspace();
+>  3) + 22.513 us   |          }
+>  3) + 23.028 us   |        }
+>  3) + 23.727 us   |      }
+>  3) + 25.004 us   |    }
+>  3)               |    ocfs2_schedule_blocked_lock() {
+>  3)   0.073 us    |      lockres_set_flags();
+>  3)   0.592 us    |    }
+>  3) + 26.852 us   |  }
+>  ------------------------------------------
+>  3)  ocfs2dc-4277  =>  dlm_ast-4278 
+>  ------------------------------------------
+> 
+>  3)               |  process_asts() {
+>  3)   0.202 us    |    dlm_rem_lkb_callback();
+>  3)   0.081 us    |    dlm_rem_lkb_callback();
+>  3)               |    fsdlm_lock_ast_wrapper() {
+>  3)               |      ocfs2_unlock_ast() {
+>  3)   0.099 us    |        ocfs2_get_inode_osb();
+>  3)   1.290 us    |        ocfs2_wake_downconvert_thread();
+>  3)               |        lockres_clear_flags() {
+>  3)   8.539 us    |          lockres_set_flags();
+>  3)   9.096 us    |        }
+>  3) + 12.055 us   |      }
+>  3) + 12.673 us   |    }
+>  3)               |    dlm_put_lkb() {
+>  3)   0.161 us    |      __put_lkb();
+>  3)   0.718 us    |    }
+>  3) + 16.133 us   |  }
+> 
+> 
+> On writing node:
+> 
+>  3)  kworker-443   =>  ocfs2dc-4456 
+>  ------------------------------------------
+> 
+>  3)               |  ocfs2_process_blocked_lock() {
+>  3)               |    ocfs2_unblock_lock() {
+>  3)   0.269 us    |      ocfs2_prepare_cancel_convert();
+>  3)               |      ocfs2_cancel_convert() {
+>  3)               |        user_dlm_unlock() {
+>  3)               |          dlm_unlock() {
+>  3)   0.321 us    |            dlm_find_lockspace_local();
+>  3)   0.286 us    |            find_lkb();
+>  3)               |            cancel_lock() {
+>  3)               |              validate_unlock_args() {
+>  3)   0.122 us    |                del_timeout();
+>  3)   0.901 us    |              }
+>  3)               |              _cancel_lock() {
+>  3)               |                do_cancel() {
+>  3)               |                  revert_lock() {
+>  3)               |                    move_lkb() {
+>  3)   0.155 us    |                      del_lkb();
+>  3)   0.243 us    |                      add_lkb();
+>  3)   1.778 us    |                    }
+>  3)   2.577 us    |                  }
+>  3)               |                  queue_cast() {
+>  3)   0.102 us    |                    del_timeout();
+>  3)               |                    dlm_add_ast() {
+>  3)   0.165 us    |                      dlm_add_lkb_callback();
+>  3) + 14.492 us   |                    }
+>  3) + 16.381 us   |                  }
+>  3) + 20.384 us   |                }
+>  3)               |                grant_pending_locks() {
+>  3)               |                  grant_pending_convert() {
+>  3)               |                    can_be_granted() {
+>  3)   0.143 us    |                      _can_be_granted();
+>  3)   0.906 us    |                    }
+>  3)   1.900 us    |                  }
+>  3)   2.738 us    |                }
+>  3) + 24.670 us   |              }
+>  3)   0.154 us    |              put_rsb();
+>  3) + 28.068 us   |            }
+>  3)               |            dlm_put_lkb() {
+>  3)   0.163 us    |              __put_lkb();
+>  3)   1.029 us    |            }
+>  3)   0.195 us    |            dlm_put_lockspace();
+>  3) + 34.035 us   |          }
+>  3) + 34.914 us   |        }
+>  3) + 35.919 us   |      }
+>  3) + 37.864 us   |    }
+>  3)               |    ocfs2_schedule_blocked_lock() {
+>  3)   0.210 us    |      lockres_set_flags();
+>  0)               |  process_asts() {
+>  3)   0.998 us    |    }
+>  0)   0.215 us    |    dlm_rem_lkb_callback();
+>  3) + 40.671 us   |  }
+>  0)   0.084 us    |    dlm_rem_lkb_callback();
+>  0)               |    fsdlm_lock_ast_wrapper() {
+>  0)               |      ocfs2_unlock_ast() {
+>  0)   0.088 us    |        ocfs2_get_inode_osb();
+>  0)   9.498 us    |        ocfs2_wake_downconvert_thread();
+>  0)               |        lockres_clear_flags() {
+>  0)   1.272 us    |          lockres_set_flags();
+>  0)   1.757 us    |        }
+>  0) + 13.396 us   |      }
+>  0) + 13.983 us   |    }
+>  0)               |    dlm_put_lkb() {
+>  0)   0.136 us    |      __put_lkb();
+>  0)   0.641 us    |    }
+>  0) + 17.224 us   |  }
+> 
+> 
+> Thank,
+> Eric
+> On 11/24/15 18:02, Eric Ren wrote:
+>> Hi Joseph,
 >>
->> Thanks,
->> Junxiao.
+>> I use ftrace's function tracer to record some code flow. There's a question that makes me confused -
+>> why does ocfs2_cancel_convert() be called here in ocfs2dc thread? In other words, what do we expect it
+>> to do here?
 >>
+>> ocfs2_unblock_lock(){
+>>      ...
+>>      if(lockres->l_flags & OCFS2_LOCK_BUSY){
+>>         ...
+>>         ocfs2_cancel_convert()
+>>        ...
+>>     }
+>> }
+>>
+>> From what I understand, ocfs2_cancel_convert()->ocfs2_dlm_unlock()->user_dlm_unlock()->dlm_unlock(DLM_LKF_CANCEL) puts
+>> the lock back on the the grand queue at its old grant mode.  In my case, you know, read/write the same shared file from two nodes,
+>> I think the up-conversion can only happen on the writing node - (PR->EX), while on the reading node, no up-conversion  is need, right?
+>>
+>> But, the following output from writing and reading nodes, shows that ocfs2_cancel_convert() has been called on both nodes. why could
+>> this happen in this scenario?
+>>
+>> On 11/16/15 09:40, Joseph Qi wrote:
+>>>> Sorry, I'm confused about b). You mean b) is also part of ocfs2cmt's
+>>>> work? Does b) have something to do with a)? And what's the meaning of "evict inode"?
+>>>> Actually, I can hardly understand the idea of b).
+>>> You can go through the code flow:
+>>> iput->iput_final->evict->evict_inode->ocfs2_evict_inode
+>>> ->ocfs2_clear_inode->ocfs2_checkpoint_inode->ocfs2_start_checkpoint
 >>>
->>> Thanks,
->>> 	--Mark
->>>
->>> --
->>> Mark Fasheh
->>>
+>>> It happens that one node do not use the inode any longer (but not
+>>> delete), and will free its related lockres.
+>> OK, thanks~
+>>
+>> Eric
 > 
