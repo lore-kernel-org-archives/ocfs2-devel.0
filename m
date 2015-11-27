@@ -1,224 +1,123 @@
-From: Eric Ren <zren@suse.com>
-Date: Thu, 26 Nov 2015 09:49:35 +0800
-Subject: [Ocfs2-devel] Long io response time doubt
-In-Reply-To: <565661B6.7000902@huawei.com>
-References: <56440208.7070809@huawei.com> <56443E60.9060103@suse.com>
-	<56444708.2050207@huawei.com> <56446068.8010502@suse.com>
-	<5645598F.7010304@huawei.com> <20151114052333.GA5173@laptop.ha>
-	<564933F1.80906@huawei.com> <565435C6.4050601@suse.com>
-	<56543674.6060809@suse.com> <565661B6.7000902@huawei.com>
-Message-ID: <5656652F.1050903@suse.com>
+From: Junxiao Bi <junxiao.bi@oracle.com>
+Date: Fri, 27 Nov 2015 09:57:21 +0800
+Subject: [Ocfs2-devel] [PATCH] jbd2: fix null committed data return in
+	undo_access
+Message-ID: <1448589441-19321-1-git-send-email-junxiao.bi@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: linux-ext4@vger.kernel.org
+Cc: ocfs2-devel@oss.oracle.com, jack@suse.com
 
-Hi Joseph,
+commit de92c8c ("jbd2: speedup jbd2_journal_get_[write|undo]_access()")
+introduced jbd2_write_access_granted() to improve write|undo_access
+speed, but missed to check the status of b_committed_data which caused
+a kernel panic on ocfs2.
 
-You've cleared up my confusion! Very good explaination~
+[ 6538.405938] ------------[ cut here ]------------
+[ 6538.406686] kernel BUG at fs/ocfs2/suballoc.c:2400!
+[ 6538.406686] invalid opcode: 0000 [#1] SMP
+[ 6538.406686] Modules linked in: ocfs2 nfsd lockd grace nfs_acl auth_rpcgss sunrpc autofs4 ocfs2_dlmfs ocfs2_stack_o2cb ocfs2_dlm ocfs2_nodemanager ocfs2_stackglue configfs sd_mod sg ip6t_REJECT nf_reject_ipv6 nf_conntrack_ipv6 nf_defrag_ipv6 xt_state nf_conntrack ip6table_filter ip6_tables be2iscsi iscsi_boot_sysfs bnx2i cnic uio cxgb4i cxgb4 cxgb3i libcxgbi cxgb3 mdio ib_iser rdma_cm ib_cm iw_cm ib_sa ib_mad ib_core ib_addr ipv6 iscsi_tcp libiscsi_tcp libiscsi scsi_transport_iscsi ppdev xen_kbdfront xen_netfront xen_fbfront parport_pc parport pcspkr i2c_piix4 acpi_cpufreq ext4 jbd2 mbcache xen_blkfront floppy pata_acpi ata_generic ata_piix cirrus ttm drm_kms_helper drm fb_sys_fops sysimgblt sysfillrect i2c_core syscopyarea dm_mirror dm_region_hash dm_log dm_mod
+[ 6538.406686] CPU: 1 PID: 16265 Comm: mmap_truncate Not tainted 4.3.0 #1
+[ 6538.406686] Hardware name: Xen HVM domU, BIOS 4.3.1OVM 05/14/2014
+[ 6538.406686] task: ffff88007c2bab00 ti: ffff880075b78000 task.ti: ffff880075b78000
+[ 6538.406686] RIP: 0010:[<ffffffffa06a286b>]  [<ffffffffa06a286b>] ocfs2_block_group_clear_bits+0x23b/0x250 [ocfs2]
+[ 6538.406686] RSP: 0018:ffff880075b7b7f8  EFLAGS: 00010246
+[ 6538.406686] RAX: ffff8800760c5b40 RBX: ffff88006c06a000 RCX: ffffffffa06e6df0
+[ 6538.406686] RDX: 0000000000000000 RSI: ffff88007a6f6ea0 RDI: ffff88007a760430
+[ 6538.406686] RBP: ffff880075b7b878 R08: 0000000000000002 R09: 0000000000000001
+[ 6538.406686] R10: ffffffffa06769be R11: 0000000000000000 R12: 0000000000000001
+[ 6538.406686] R13: ffffffffa06a1750 R14: 0000000000000001 R15: ffff88007a6f6ea0
+[ 6538.406686] FS:  00007f17fde30720(0000) GS:ffff88007f040000(0000) knlGS:0000000000000000
+[ 6538.406686] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[ 6538.406686] CR2: 0000000000601730 CR3: 000000007aea0000 CR4: 00000000000406e0
+[ 6538.406686] Stack:
+[ 6538.406686]  ffff88007c2bb5b0 ffff880075b7b8e0 ffff88007a7604b0 ffff88006c640800
+[ 6538.406686]  ffff88007a7604b0 ffff880075d77390 0000000075b7b878 ffffffffa06a309d
+[ 6538.406686]  ffff880075d752d8 ffff880075b7b990 ffff880075b7b898 0000000000000000
+[ 6538.406686] Call Trace:
+[ 6538.406686]  [<ffffffffa06a309d>] ? ocfs2_read_group_descriptor+0x6d/0xa0 [ocfs2]
+[ 6538.406686]  [<ffffffffa06a3654>] _ocfs2_free_suballoc_bits+0xe4/0x320 [ocfs2]
+[ 6538.406686]  [<ffffffffa06a1750>] ? ocfs2_put_slot+0xf0/0xf0 [ocfs2]
+[ 6538.406686]  [<ffffffffa06a397e>] _ocfs2_free_clusters+0xee/0x210 [ocfs2]
+[ 6538.406686]  [<ffffffffa06a1750>] ? ocfs2_put_slot+0xf0/0xf0 [ocfs2]
+[ 6538.406686]  [<ffffffffa06a1750>] ? ocfs2_put_slot+0xf0/0xf0 [ocfs2]
+[ 6538.406686]  [<ffffffffa0682d50>] ? ocfs2_extend_trans+0x50/0x1a0 [ocfs2]
+[ 6538.406686]  [<ffffffffa06a3ad5>] ocfs2_free_clusters+0x15/0x20 [ocfs2]
+[ 6538.406686]  [<ffffffffa065072c>] ocfs2_replay_truncate_records+0xfc/0x290 [ocfs2]
+[ 6538.406686]  [<ffffffffa06843ac>] ? ocfs2_start_trans+0xec/0x1d0 [ocfs2]
+[ 6538.406686]  [<ffffffffa0654600>] __ocfs2_flush_truncate_log+0x140/0x2d0 [ocfs2]
+[ 6538.406686]  [<ffffffffa0654394>] ? ocfs2_reserve_blocks_for_rec_trunc.clone.0+0x44/0x170 [ocfs2]
+[ 6538.406686]  [<ffffffffa065acd4>] ocfs2_remove_btree_range+0x374/0x630 [ocfs2]
+[ 6538.406686]  [<ffffffffa017486b>] ? jbd2_journal_stop+0x25b/0x470 [jbd2]
+[ 6538.406686]  [<ffffffffa065d5b5>] ocfs2_commit_truncate+0x305/0x670 [ocfs2]
+[ 6538.406686]  [<ffffffffa0683430>] ? ocfs2_journal_access_eb+0x20/0x20 [ocfs2]
+[ 6538.406686]  [<ffffffffa067adb7>] ocfs2_truncate_file+0x297/0x380 [ocfs2]
+[ 6538.406686]  [<ffffffffa01759e4>] ? jbd2_journal_begin_ordered_truncate+0x64/0xc0 [jbd2]
+[ 6538.406686]  [<ffffffffa067c7a2>] ocfs2_setattr+0x572/0x860 [ocfs2]
+[ 6538.406686]  [<ffffffff810e4a3f>] ? current_fs_time+0x3f/0x50
+[ 6538.406686]  [<ffffffff812124b7>] notify_change+0x1d7/0x340
+[ 6538.406686]  [<ffffffff8121abf9>] ? generic_getxattr+0x79/0x80
+[ 6538.406686]  [<ffffffff811f5876>] do_truncate+0x66/0x90
+[ 6538.406686]  [<ffffffff81120e30>] ? __audit_syscall_entry+0xb0/0x110
+[ 6538.406686]  [<ffffffff811f5bb3>] do_sys_ftruncate.clone.0+0xf3/0x120
+[ 6538.406686]  [<ffffffff811f5bee>] SyS_ftruncate+0xe/0x10
+[ 6538.406686]  [<ffffffff816aa2ae>] entry_SYSCALL_64_fastpath+0x12/0x71
+[ 6538.406686] Code: 28 48 81 ee b0 04 00 00 48 8b 92 50 fb ff ff 48 8b 80 b0 03 00 00 48 39 90 88 00 00 00 0f 84 30 fe ff ff 0f 0b eb fe 0f 0b eb fe <0f> 0b 0f 1f 00 eb fb 66 66 66 66 66 2e 0f 1f 84 00 00 00 00 00
+[ 6538.406686] RIP  [<ffffffffa06a286b>] ocfs2_block_group_clear_bits+0x23b/0x250 [ocfs2]
+[ 6538.406686]  RSP <ffff880075b7b7f8>
+[ 6538.691128] ---[ end trace 31cd7011d6770d7e ]---
+[ 6538.694492] Kernel panic - not syncing: Fatal exception
+[ 6538.695484] Kernel Offset: disabled
 
-Thanks,
-Eric
+Fixes: de92c8c("jbd2: speedup jbd2_journal_get_[write|undo]_access()")
+Cc: <stable@vger.kernel.org>
+Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
+---
+ fs/jbd2/transaction.c |    9 ++++++---
+ 1 file changed, 6 insertions(+), 3 deletions(-)
 
-On 11/26/15 09:34, Joseph Qi wrote:
-> Hi Eric,
-> convert has two types, upconvert and downconvert. And please note that,
-> PR and EX is not compatible.
-> Assume read node has gotten PR first, then write node wants to get EX,
-> it requires read node to downconvert PR to NL. Then read node want's to
-> get PR again, write node should downconvert EX to PR (highest
-> compatible) and then read node can upconvert NL to PR. And so forth.
-> So both the read/write nodes will do upconvert and downconvert.
-> The code you paste is calling into fs/dlm which I am not familiar with:(
-> I think you can list your questions and send to cluster-devel.
->
-> Thanks,
-> Joseph
->
-> On 2015/11/24 18:05, Eric Ren wrote:
->> Sorry, forget to add the pieces of code flow...
->>
->> On reading node:
->>
->>   3)  dlm_ast-4278  =>  ocfs2dc-4277
->>   ------------------------------------------
->>
->>   3)               |  ocfs2_process_blocked_lock() {
->>   3)               |    ocfs2_unblock_lock() {
->>   3)   0.116 us    |      ocfs2_prepare_cancel_convert();
->>   3)               |      ocfs2_cancel_convert() {
->>   3)               |        user_dlm_unlock() {
->>   3)               |          dlm_unlock() {
->>   3)   0.120 us    |            dlm_find_lockspace_local();
->>   3)   0.158 us    |            find_lkb();
->>   3)               |            cancel_lock() {
->>   3)               |              validate_unlock_args() {
->>   3)   0.093 us    |                del_timeout();
->>   3)   0.782 us    |              }
->>   3)               |              _cancel_lock() {
->>   3)               |                send_common() {
->>   3)   0.189 us    |                  add_to_waiters();
->>   3)               |                  create_message() {
->>   3)               |                    _create_message() {
->>   3)               |                      dlm_lowcomms_get_buffer() {
->>   3)   0.156 us    |                        nodeid2con();
->>   3)   1.680 us    |                      }
->>   3)   0.108 us    |                      dlm_our_nodeid();
->>   3)   2.821 us    |                    }
->>   3)   3.319 us    |                  }
->>   3)   0.094 us    |                  send_args();
->>   3)               |                  send_message() {
->>   3)   0.070 us    |                    dlm_message_out();
->>   3)   9.485 us    |                    dlm_lowcomms_commit_buffer();
->>   3) + 10.609 us   |                  }
->>   3) + 16.054 us   |                }
->>   3) + 16.632 us   |              }
->>   3)   0.156 us    |              put_rsb();
->>   3) + 19.044 us   |            }
->>   3)               |            dlm_put_lkb() {
->>   3)   0.094 us    |              __put_lkb();
->>   3)   0.632 us    |            }
->>   3)   0.074 us    |            dlm_put_lockspace();
->>   3) + 22.513 us   |          }
->>   3) + 23.028 us   |        }
->>   3) + 23.727 us   |      }
->>   3) + 25.004 us   |    }
->>   3)               |    ocfs2_schedule_blocked_lock() {
->>   3)   0.073 us    |      lockres_set_flags();
->>   3)   0.592 us    |    }
->>   3) + 26.852 us   |  }
->>   ------------------------------------------
->>   3)  ocfs2dc-4277  =>  dlm_ast-4278
->>   ------------------------------------------
->>
->>   3)               |  process_asts() {
->>   3)   0.202 us    |    dlm_rem_lkb_callback();
->>   3)   0.081 us    |    dlm_rem_lkb_callback();
->>   3)               |    fsdlm_lock_ast_wrapper() {
->>   3)               |      ocfs2_unlock_ast() {
->>   3)   0.099 us    |        ocfs2_get_inode_osb();
->>   3)   1.290 us    |        ocfs2_wake_downconvert_thread();
->>   3)               |        lockres_clear_flags() {
->>   3)   8.539 us    |          lockres_set_flags();
->>   3)   9.096 us    |        }
->>   3) + 12.055 us   |      }
->>   3) + 12.673 us   |    }
->>   3)               |    dlm_put_lkb() {
->>   3)   0.161 us    |      __put_lkb();
->>   3)   0.718 us    |    }
->>   3) + 16.133 us   |  }
->>
->>
->> On writing node:
->>
->>   3)  kworker-443   =>  ocfs2dc-4456
->>   ------------------------------------------
->>
->>   3)               |  ocfs2_process_blocked_lock() {
->>   3)               |    ocfs2_unblock_lock() {
->>   3)   0.269 us    |      ocfs2_prepare_cancel_convert();
->>   3)               |      ocfs2_cancel_convert() {
->>   3)               |        user_dlm_unlock() {
->>   3)               |          dlm_unlock() {
->>   3)   0.321 us    |            dlm_find_lockspace_local();
->>   3)   0.286 us    |            find_lkb();
->>   3)               |            cancel_lock() {
->>   3)               |              validate_unlock_args() {
->>   3)   0.122 us    |                del_timeout();
->>   3)   0.901 us    |              }
->>   3)               |              _cancel_lock() {
->>   3)               |                do_cancel() {
->>   3)               |                  revert_lock() {
->>   3)               |                    move_lkb() {
->>   3)   0.155 us    |                      del_lkb();
->>   3)   0.243 us    |                      add_lkb();
->>   3)   1.778 us    |                    }
->>   3)   2.577 us    |                  }
->>   3)               |                  queue_cast() {
->>   3)   0.102 us    |                    del_timeout();
->>   3)               |                    dlm_add_ast() {
->>   3)   0.165 us    |                      dlm_add_lkb_callback();
->>   3) + 14.492 us   |                    }
->>   3) + 16.381 us   |                  }
->>   3) + 20.384 us   |                }
->>   3)               |                grant_pending_locks() {
->>   3)               |                  grant_pending_convert() {
->>   3)               |                    can_be_granted() {
->>   3)   0.143 us    |                      _can_be_granted();
->>   3)   0.906 us    |                    }
->>   3)   1.900 us    |                  }
->>   3)   2.738 us    |                }
->>   3) + 24.670 us   |              }
->>   3)   0.154 us    |              put_rsb();
->>   3) + 28.068 us   |            }
->>   3)               |            dlm_put_lkb() {
->>   3)   0.163 us    |              __put_lkb();
->>   3)   1.029 us    |            }
->>   3)   0.195 us    |            dlm_put_lockspace();
->>   3) + 34.035 us   |          }
->>   3) + 34.914 us   |        }
->>   3) + 35.919 us   |      }
->>   3) + 37.864 us   |    }
->>   3)               |    ocfs2_schedule_blocked_lock() {
->>   3)   0.210 us    |      lockres_set_flags();
->>   0)               |  process_asts() {
->>   3)   0.998 us    |    }
->>   0)   0.215 us    |    dlm_rem_lkb_callback();
->>   3) + 40.671 us   |  }
->>   0)   0.084 us    |    dlm_rem_lkb_callback();
->>   0)               |    fsdlm_lock_ast_wrapper() {
->>   0)               |      ocfs2_unlock_ast() {
->>   0)   0.088 us    |        ocfs2_get_inode_osb();
->>   0)   9.498 us    |        ocfs2_wake_downconvert_thread();
->>   0)               |        lockres_clear_flags() {
->>   0)   1.272 us    |          lockres_set_flags();
->>   0)   1.757 us    |        }
->>   0) + 13.396 us   |      }
->>   0) + 13.983 us   |    }
->>   0)               |    dlm_put_lkb() {
->>   0)   0.136 us    |      __put_lkb();
->>   0)   0.641 us    |    }
->>   0) + 17.224 us   |  }
->>
->>
->> Thank,
->> Eric
->> On 11/24/15 18:02, Eric Ren wrote:
->>> Hi Joseph,
->>>
->>> I use ftrace's function tracer to record some code flow. There's a question that makes me confused -
->>> why does ocfs2_cancel_convert() be called here in ocfs2dc thread? In other words, what do we expect it
->>> to do here?
->>>
->>> ocfs2_unblock_lock(){
->>>       ...
->>>       if(lockres->l_flags & OCFS2_LOCK_BUSY){
->>>          ...
->>>          ocfs2_cancel_convert()
->>>         ...
->>>      }
->>> }
->>>
->>>  From what I understand, ocfs2_cancel_convert()->ocfs2_dlm_unlock()->user_dlm_unlock()->dlm_unlock(DLM_LKF_CANCEL) puts
->>> the lock back on the the grand queue at its old grant mode.  In my case, you know, read/write the same shared file from two nodes,
->>> I think the up-conversion can only happen on the writing node - (PR->EX), while on the reading node, no up-conversion  is need, right?
->>>
->>> But, the following output from writing and reading nodes, shows that ocfs2_cancel_convert() has been called on both nodes. why could
->>> this happen in this scenario?
->>>
->>> On 11/16/15 09:40, Joseph Qi wrote:
->>>>> Sorry, I'm confused about b). You mean b) is also part of ocfs2cmt's
->>>>> work? Does b) have something to do with a)? And what's the meaning of "evict inode"?
->>>>> Actually, I can hardly understand the idea of b).
->>>> You can go through the code flow:
->>>> iput->iput_final->evict->evict_inode->ocfs2_evict_inode
->>>> ->ocfs2_clear_inode->ocfs2_checkpoint_inode->ocfs2_start_checkpoint
->>>>
->>>> It happens that one node do not use the inode any longer (but not
->>>> delete), and will free its related lockres.
->>> OK, thanks~
->>>
->>> Eric
->
->
+diff --git a/fs/jbd2/transaction.c b/fs/jbd2/transaction.c
+index 6b8338e..4750bda 100644
+--- a/fs/jbd2/transaction.c
++++ b/fs/jbd2/transaction.c
+@@ -1009,7 +1009,8 @@ out:
+ }
+ 
+ /* Fast check whether buffer is already attached to the required transaction */
+-static bool jbd2_write_access_granted(handle_t *handle, struct buffer_head *bh)
++static bool jbd2_write_access_granted(handle_t *handle, struct buffer_head *bh,
++							int undo)
+ {
+ 	struct journal_head *jh;
+ 	bool ret = false;
+@@ -1036,6 +1037,8 @@ static bool jbd2_write_access_granted(handle_t *handle, struct buffer_head *bh)
+ 	jh = READ_ONCE(bh->b_private);
+ 	if (!jh)
+ 		goto out;
++	if (undo && !jh->b_committed_data)
++		goto out;
+ 	if (jh->b_transaction != handle->h_transaction &&
+ 	    jh->b_next_transaction != handle->h_transaction)
+ 		goto out;
+@@ -1073,7 +1076,7 @@ int jbd2_journal_get_write_access(handle_t *handle, struct buffer_head *bh)
+ 	struct journal_head *jh;
+ 	int rc;
+ 
+-	if (jbd2_write_access_granted(handle, bh))
++	if (jbd2_write_access_granted(handle, bh, 0))
+ 		return 0;
+ 
+ 	jh = jbd2_journal_add_journal_head(bh);
+@@ -1210,7 +1213,7 @@ int jbd2_journal_get_undo_access(handle_t *handle, struct buffer_head *bh)
+ 	char *committed_data = NULL;
+ 
+ 	JBUFFER_TRACE(jh, "entry");
+-	if (jbd2_write_access_granted(handle, bh))
++	if (jbd2_write_access_granted(handle, bh, 1))
+ 		return 0;
+ 
+ 	jh = jbd2_journal_add_journal_head(bh);
+-- 
+1.7.9.5
