@@ -1,102 +1,58 @@
-From: Junxiao Bi <junxiao.bi@oracle.com>
-Date: Mon, 30 Nov 2015 11:03:57 +0800
-Subject: [Ocfs2-devel] [PATCH] jbd2: fix null committed data return in
-	undo_access
-In-Reply-To: <20151127084553.GB3093@quack.suse.cz>
-References: <1448589441-19321-1-git-send-email-junxiao.bi@oracle.com>
-	<20151127084553.GB3093@quack.suse.cz>
-Message-ID: <565BBC9D.6040007@oracle.com>
+From: Eric Ren <zren@suse.com>
+Date: Mon, 30 Nov 2015 19:35:42 +0800
+Subject: [Ocfs2-devel] [QUESTION] what's lockres
+	P000000000000000000000000000000?
+Message-ID: <20151130113542.GA27988@desktop.apac.novell.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Jan Kara <jack@suse.cz>
-Cc: Mark Fasheh <mfasheh@suse.com>, linux-ext4@vger.kernel.org, ocfs2-devel@oss.oracle.com, jack@suse.com
+To: ocfs2-devel@oss.oracle.com
 
-On 11/27/2015 04:45 PM, Jan Kara wrote:
-> On Fri 27-11-15 09:57:21, Junxiao Bi wrote:
->> commit de92c8c ("jbd2: speedup jbd2_journal_get_[write|undo]_access()")
->> introduced jbd2_write_access_granted() to improve write|undo_access
->> speed, but missed to check the status of b_committed_data which caused
->> a kernel panic on ocfs2.
-> 
-> Thanks for debugging this! Just a few minor nits:
-> 
-> 1) Please use at least 12 characters of the commit hash - i.e. de92c8caf16c
-> - that is pretty much guaranteed to stay unique for the lifetime of Linux.
-> Using just 7 characters will become non-unique with high probability rather
-> soon.
-I saw this report from checkpatch.pl. Since there have "patch subject",
-so i didn't modify it. I will update it in v2 patch.
-> 
-> 2) Send this patch to Ted Tso as well as he is the one merging jbd2
-> patches.
-OK.
-> 
-> 3) The fact that OCFS2 hit this problem means that it is mixing
-> jbd2_journal_get_write_access() and jbd2_journal_get_undo_access() for the
-> same buffer. That is slightly suspicious to me. Not that it would be
-> outright bug but you have to account for the fact that someone can be
-> modifying the buffer data while you are getting undo access...
-I am not sure about this. Mark involved this in commit b4414eea0e
-("ocfs2: Clear undo bits when local alloc is freed").
+Hi all,
 
-Mark, is mixing using undo/write access a bug?
-> 
-> 4) Some other comments below in the code.
-> 
->> diff --git a/fs/jbd2/transaction.c b/fs/jbd2/transaction.c
->> index 6b8338e..4750bda 100644
->> --- a/fs/jbd2/transaction.c
->> +++ b/fs/jbd2/transaction.c
->> @@ -1009,7 +1009,8 @@ out:
->>  }
->>  
->>  /* Fast check whether buffer is already attached to the required transaction */
->> -static bool jbd2_write_access_granted(handle_t *handle, struct buffer_head *bh)
->> +static bool jbd2_write_access_granted(handle_t *handle, struct buffer_head *bh,
->> +							int undo)
-> 							^^^
-> Use 'bool' please. The function is already using bools so it is good for
-> consistency.
-Will fix this in v2.
+I found there is an odd lockres P000000000000000000000000000000 for me, so I'm
+curious about what this lockres stands for?
+
+1. #dmesg
+...
+[ 7657.554057] (ocfs2dc,4061,1):ocfs2_process_blocked_lock:3904 lockres
+P000000000000000000000000000000 blocked
+[ 7657.554059] (ocfs2dc,4061,1):ocfs2_prepare_downconvert:3248 lockres
+P000000000000000000000000000000, level 5 => 0, blocking 5
+[ 7657.554062] (ocfs2dc,4061,1):ocfs2_downconvert_lock:3266 lockres
+P000000000000000000000000000000, level 5 => 0
+[ 7657.554066] (ocfs2dc,4061,1):ocfs2_process_blocked_lock:3928 lockres
+P000000000000000000000000000000, requeue = no.
+[ 7657.554070] (dlm_astd,4062,1):ocfs2_locking_ast:1076 AST fired for
+lockres M0000000000000000011a1800000000, action 3, unlock 0, level 5 =>
+0
+[ 7657.554073] (dlm_astd,4062,1):ocfs2_locking_ast:1076 AST fired for
+lockres P000000000000000000000000000000, action 3, unlock 0, level 5 =>
+0
+...
+
+2. n1:/debug/dlm # echo "locate <P000000000000000000000000000000>" |
+debugfs.ocfs2 /dev/sda2 
+debugfs.ocfs2 1.8.2
+debugfs: usage: locate <inode#>
+debugfs: 
+
+3. n1:/debug/dlm # echo "stat <P000000000000000000000000000000>" |
+debugfs.ocfs2 /dev/sda2 
+debugfs.ocfs2 1.8.2
+debugfs: stat: Directory entry not found
+'<P000000000000000000000000000000>'
+debugfs: 
+
+4. n1:/debug/dlm # echo "locate <M0000000000000000011a1800000000>" |
+debugfs.ocfs2 /dev/sda2 
+debugfs.ocfs2 1.8.2
+debugfs:        72216   /file
+debugfs: 
+
+I know "M" refter to Metadata, but what's "P" here refer to?
+Any help will be appreciated!
 
 Thanks,
-Junxiao.
-> 
->>  {
->>  	struct journal_head *jh;
->>  	bool ret = false;
->> @@ -1036,6 +1037,8 @@ static bool jbd2_write_access_granted(handle_t *handle, struct buffer_head *bh)
->>  	jh = READ_ONCE(bh->b_private);
->>  	if (!jh)
->>  		goto out;
-> 
-> Short comment here please. Like:
-> 
-> 	/* For undo access buffer must have data copied */
-> 
->> +	if (undo && !jh->b_committed_data)
->> +		goto out;
->>  	if (jh->b_transaction != handle->h_transaction &&
->>  	    jh->b_next_transaction != handle->h_transaction)
->>  		goto out;
->> @@ -1073,7 +1076,7 @@ int jbd2_journal_get_write_access(handle_t *handle, struct buffer_head *bh)
->>  	struct journal_head *jh;
->>  	int rc;
->>  
->> -	if (jbd2_write_access_granted(handle, bh))
->> +	if (jbd2_write_access_granted(handle, bh, 0))
-> 
-> Here 'false' instead of 0.
-> 
->>  	JBUFFER_TRACE(jh, "entry");
->> -	if (jbd2_write_access_granted(handle, bh))
->> +	if (jbd2_write_access_granted(handle, bh, 1))
-> 
-> Here 'true' instead of 1.
-> 
-> Thanks.
-> 
-> 								Honza
-> 
+Eric
