@@ -1,65 +1,52 @@
 From: Junxiao Bi <junxiao.bi@oracle.com>
-Date: Tue, 1 Dec 2015 14:53:51 +0800
-Subject: [Ocfs2-devel] [PATCH 4/4] ocfs2: Fix a deadlock issue in
- ocfs2_dio_end_io_write()
-In-Reply-To: <1448007799-10914-4-git-send-email-ryan.ding@oracle.com>
-References: <1448007799-10914-1-git-send-email-ryan.ding@oracle.com>
-	<1448007799-10914-4-git-send-email-ryan.ding@oracle.com>
-Message-ID: <565D43FF.4060108@oracle.com>
+Date: Tue, 1 Dec 2015 15:08:51 +0800
+Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2: return non-zero st_blocks for
+ inline data
+In-Reply-To: <1448399221-6109-2-git-send-email-john.haxby@oracle.com>
+References: <1448399221-6109-1-git-send-email-john.haxby@oracle.com>
+	<1448399221-6109-2-git-send-email-john.haxby@oracle.com>
+Message-ID: <565D4783.2090501@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 11/20/2015 04:23 PM, Ryan Ding wrote:
-> Should call ocfs2_free_alloc_context() to free meta_ac & data_ac before calling
-> ocfs2_run_deallocs(). Because ocfs2_run_deallocs() will acquire the system
-> inode's i_mutex hold by meta_ac. So try to release the lock before
-> ocfs2_run_deallocs().
+On 11/25/2015 05:07 AM, John Haxby wrote:
+> Some versions of tar assume that files with st_blocks == 0 do not
+> contain any data and will skip reading them entirely. See also
+> commit 9206c561554c ("ext4: return non-zero st_blocks for inline data").
 > 
-> Fixes: af1310367f41 ("ocfs2: fix sparse file & data ordering issue in direct io.")
-Patch looks good. Also we can fold this patch into above commit.
+> Signed-off-by: John Haxby <john.haxby@oracle.com>
+> ---
+>  fs/ocfs2/file.c | 8 ++++++++
+>  1 file changed, 8 insertions(+)
+> 
+> diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+> index 0e5b451..d631279 100644
+> --- a/fs/ocfs2/file.c
+> +++ b/fs/ocfs2/file.c
+> @@ -1302,6 +1302,14 @@ int ocfs2_getattr(struct vfsmount *mnt,
+>  	}
+>  
+>  	generic_fillattr(inode, stat);
+> +	/*
+> +	 * If there is inline data in the inode, the inode will normally not
+> +	 * have data blocks allocated (it may have an external xattr block).
+> +	 * Report at least one sector for such files, so tools like tar, rsync,
+> +	 * others don't incorrectly think the file is completely sparse.
+> +	 */
+> +	if (unlikely(OCFS2_I(inode)->ip_dyn_features & OCFS2_INLINE_DATA_FL))
+> +		stat->blocks += (stat->size + 511)>>9;
+From filesystem side, looks reasonable that data block is 0 for
+inlined-data file. This is like a hack to filesystem to fix tools issue.
+Indeed tar-1.26-27 have been fixed to not think file with st_blocks == 0
+empty. But I am not sure why ext4 merge that fix.
 
 Thanks,
 Junxiao.
-> Signed-off-by: Ryan Ding <ryan.ding@oracle.com>
-> ---
->  fs/ocfs2/aops.c |   12 ++++++++----
->  1 files changed, 8 insertions(+), 4 deletions(-)
-> 
-> diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-> index f33cfe4..182f754 100644
-> --- a/fs/ocfs2/aops.c
-> +++ b/fs/ocfs2/aops.c
-> @@ -2341,6 +2341,10 @@ static void ocfs2_dio_end_io_write(struct inode *inode,
+
 >  
->  	ret = ocfs2_lock_allocators(inode, &et, 0, dwc->dw_zero_count*2,
->  				    &data_ac, &meta_ac);
-> +	if (ret) {
-> +		mlog_errno(ret);
-> +		goto unlock;
-> +	}
->  
->  	credits = ocfs2_calc_extend_credits(inode->i_sb, &di->id2.i_list);
->  
-> @@ -2380,14 +2384,14 @@ unlock:
->  	ocfs2_inode_unlock(inode, 1);
->  	brelse(di_bh);
->  out:
-> -	ocfs2_run_deallocs(osb, &dealloc);
-> -	if (locked)
-> -		mutex_unlock(&inode->i_mutex);
-> -	ocfs2_dio_free_write_ctx(inode, dwc);
->  	if (data_ac)
->  		ocfs2_free_alloc_context(data_ac);
->  	if (meta_ac)
->  		ocfs2_free_alloc_context(meta_ac);
-> +	ocfs2_run_deallocs(osb, &dealloc);
-> +	if (locked)
-> +		mutex_unlock(&inode->i_mutex);
-> +	ocfs2_dio_free_write_ctx(inode, dwc);
->  }
->  
->  /*
+>  	/* We set the blksize from the cluster size for performance */
+>  	stat->blksize = osb->s_clustersize;
 > 
