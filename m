@@ -1,264 +1,229 @@
-From: xuejiufei <xuejiufei@huawei.com>
-Date: Thu, 31 Dec 2015 15:15:33 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: ignore cleaning the migration
- mle that is inuse
-In-Reply-To: <56849B8A.80004@oracle.com>
-References: <567E3C07.2000305@huawei.com> <5680E845.8080509@huawei.com>
-	<568346E8.1060105@oracle.com> <5683AA68.2050304@huawei.com>
-	<56849B8A.80004@oracle.com>
-Message-ID: <5684D615.8050609@huawei.com>
+From: Junxiao Bi <junxiao.bi@oracle.com>
+Date: Tue, 1 Dec 2015 10:03:21 +0800
+Subject: [Ocfs2-devel] [ocfs2-test] all nodes hung when run multiple reflink
+	test for v4.3
+Message-ID: <565CFFE9.1040904@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Junxiao,
-On 2015/12/31 11:05, Junxiao Bi wrote:
-> On 12/30/2015 05:56 PM, xuejiufei wrote:
->> Hi Junxiao,
->> You are right. But it may happen that mle->woken is set to 1 in
->> dlm_clean_migration_mle() just after atomic_read() in
->> dlm_migrate_lockres(). Actually we trigger this BUG when dlm_send_one_lockres()
->> return error.
-> Yes, that's possible because of that 5s timeout wakeup, I think this
-> timeout is useless and can be removed?
->>
->> And I think dlm_migrate_lockres() should not set owner to target and return 0
->> when mle->woken is set to 1 in dlm_clean_migration_mle(). This is another problem?
-> Yes, it should be fixed, or the lockres owner will be set to a down node
-> wrongly. Can the following fix these two issue?
-> 
-It can not fix the first issue when dlm_send_one_lockres() or
-dlm_mark_lockres_migrating() return error, right?
+Hi,
 
-> 
-> diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
-> index 84f2f8079466..d0380ea62340 100644
-> --- a/fs/ocfs2/dlm/dlmmaster.c
-> +++ b/fs/ocfs2/dlm/dlmmaster.c
-> @@ -2618,39 +2618,22 @@ fail:
-> 
-> 
->  	/* wait for new node to assert master */
-> -	while (1) {
-> -		ret = wait_event_interruptible_timeout(mle->wq,
-> -					(atomic_read(&mle->woken) == 1),
-> -					msecs_to_jiffies(5000));
-> -
-> -		if (ret >= 0) {
-> -		       	if (atomic_read(&mle->woken) == 1 ||
-> -			    res->owner == target)
-> -				break;
-> -
-> -			mlog(0, "%s:%.*s: timed out during migration\n",
-> -			     dlm->name, res->lockname.len, res->lockname.name);
-> -			/* avoid hang during shutdown when migrating lockres
-> -			 * to a node which also goes down */
-> -			if (dlm_is_node_dead(dlm, target)) {
-> -				mlog(0, "%s:%.*s: expected migration "
-> -				     "target %u is no longer up, restarting\n",
-> -				     dlm->name, res->lockname.len,
-> -				     res->lockname.name, target);
-> -				ret = -EINVAL;
-> -				/* migration failed, detach and clean up mle */
-> -				dlm_mle_detach_hb_events(dlm, mle);
-> -				dlm_put_mle(mle);
-> -				dlm_put_mle_inuse(mle);
-> -				spin_lock(&res->spinlock);
-> -				res->state &= ~DLM_LOCK_RES_MIGRATING;
-> -				wake = 1;
-> -				spin_unlock(&res->spinlock);
-> -				goto leave;
-> -			}
-> -		} else
-> -			mlog(0, "%s:%.*s: caught signal during migration\n",
-> -			     dlm->name, res->lockname.len, res->lockname.name);
-> +	wait_event(mle->wq, ((atomic_read(&mle->woken) == 1) ||
-> +				(atomic_read(&mle->woken) == 2)));
-> +
-> +	/* migrate target down */
-> +	if (atomic_read(&mle->woken) == 2) {
-> +		mlog(0, "%s:%.*s: expected migration "
-> +				"target %u is no longer up, restarting\n",
-> +				dlm->name, res->lockname.len,
-> +				res->lockname.name, target);
-> +		ret = -EINVAL;
-> +		dlm_put_mle_inuse(mle);
-> +		spin_lock(&res->spinlock);
-> +		res->state &= ~DLM_LOCK_RES_MIGRATING;
-> +		wake = 1;
-> +		spin_unlock(&res->spinlock);
-> +		goto leave;
->  	}
-> 
->  	/* all done, set the owner, clear the flag */
-> @@ -3227,7 +3210,7 @@ static void dlm_clean_migration_mle(struct
-> dlm_ctxt *dlm,
-> 
->  	spin_lock(&mle->spinlock);
->  	__dlm_unlink_mle(dlm, mle);
-> -	atomic_set(&mle->woken, 1);
-> +	atomic_set(&mle->woken, 2);
->  	spin_unlock(&mle->spinlock);
-> 
->  	wake_up(&mle->wq);
-> 
-> Thanks,
-> Junxiao.
-> 
-> 
->>
->> Thanks
->> Jiufei.
->>
->> On 2015/12/30 10:52, Junxiao Bi wrote:
->>> Hi Jiufei,
->>>
->>> When target node down, mle is cleared from
->>> dlm_do_local_recovery_cleanup()->dlm_clean_master_list()->dlm_clean_migration_mle()?
->>> mle->woken is set to 1 in dlm_clean_migration_mle(), so the code to
->>> detect target node down(if (dlm_is_node_dead(dlm, target))) will never
->>> be run in dlm_migrate_lockres()?
->>>
->>>
->>> 2621         while (1) {
->>> 2622                 ret = wait_event_interruptible_timeout(mle->wq,
->>> 2623                                         (atomic_read(&mle->woken)
->>> == 1),
->>> 2624                                         msecs_to_jiffies(5000));
->>> 2625
->>> 2626                 if (ret >= 0) {
->>> 2627                         if (atomic_read(&mle->woken) == 1 ||
->>> 2628                             res->owner == target)
->>> 2629                                 break;
->>> 2630
->>> 2631                         mlog(0, "%s:%.*s: timed out during
->>> migration\n",
->>> 2632                              dlm->name, res->lockname.len,
->>> res->lockname.name);
->>> 2633                         /* avoid hang during shutdown when
->>> migrating lockres
->>> 2634                          * to a node which also goes down */
->>> 2635                         if (dlm_is_node_dead(dlm, target)) {
->>> 2636                                 mlog(0, "%s:%.*s: expected migration "
->>> 2637                                      "target %u is no longer up,
->>> restarting\n",
->>> 2638                                      dlm->name, res->lockname.len,
->>> 2639                                      res->lockname.name, target);
->>> 2640                                 ret = -EINVAL;
->>> 2641                                 /* migration failed, detach and
->>> clean up mle */
->>> 2642                                 dlm_mle_detach_hb_events(dlm, mle);
->>> 2643                                 dlm_put_mle(mle);
->>> 2644                                 dlm_put_mle_inuse(mle);
->>> 2645                                 spin_lock(&res->spinlock);
->>> 2646                                 res->state &= ~DLM_LOCK_RES_MIGRATING;
->>> 2647                                 wake = 1;
->>> 2648                                 spin_unlock(&res->spinlock);
->>> 2649                                 goto leave;
->>> 2650                         }
->>> 2651                 } else
->>> 2652                         mlog(0, "%s:%.*s: caught signal during
->>> migration\n",
->>> 2653                              dlm->name, res->lockname.len,
->>> res->lockname.name);
->>> 2654         }
->>>
->>>
->>> Thanks,
->>> Junxiao.
->>> On 12/28/2015 03:44 PM, xuejiufei wrote:
->>>> We have found that migration source will trigger a BUG that the
->>>> refcount of mle is already zero before put when the target is
->>>> down during migration. The situation is as follows:
->>>>
->>>> dlm_migrate_lockres
->>>>   dlm_add_migration_mle
->>>>   dlm_mark_lockres_migrating
->>>>   dlm_get_mle_inuse
->>>>   <<<<<< Now the refcount of the mle is 2.
->>>>   dlm_send_one_lockres and wait for the target to become the
->>>>   new master.
->>>>   <<<<<< o2hb detect the target down and clean the migration
->>>>   mle. Now the refcount is 1.
->>>>
->>>> dlm_migrate_lockres woken, and put the mle twice when found
->>>> the target goes down which trigger the BUG with the following
->>>> message:
->>>> "ERROR: bad mle: ".
->>>>
->>>> Signed-off-by: Jiufei Xue <xuejiufei@huawei.com>
->>>> Reviewed-by: Joseph Qi <joseph.qi@huawei.com>
->>>> ---
->>>>  fs/ocfs2/dlm/dlmmaster.c | 26 +++++++++++++++-----------
->>>>  1 file changed, 15 insertions(+), 11 deletions(-)
->>>>
->>>> diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
->>>> index 936e11b..b713140 100644
->>>> --- a/fs/ocfs2/dlm/dlmmaster.c
->>>> +++ b/fs/ocfs2/dlm/dlmmaster.c
->>>> @@ -2519,6 +2519,11 @@ static int dlm_migrate_lockres(struct dlm_ctxt *dlm,
->>>>  	spin_lock(&dlm->master_lock);
->>>>  	ret = dlm_add_migration_mle(dlm, res, mle, &oldmle, name,
->>>>  				    namelen, target, dlm->node_num);
->>>> +	/* get an extra reference on the mle.
->>>> +	 * otherwise the assert_master from the new
->>>> +	 * master will destroy this.
->>>> +	 */
->>>> +	dlm_get_mle_inuse(mle);
->>>>  	spin_unlock(&dlm->master_lock);
->>>>  	spin_unlock(&dlm->spinlock);
->>>>
->>>> @@ -2554,6 +2559,7 @@ fail:
->>>>  		if (mle_added) {
->>>>  			dlm_mle_detach_hb_events(dlm, mle);
->>>>  			dlm_put_mle(mle);
->>>> +			dlm_put_mle_inuse(mle);
->>>>  		} else if (mle) {
->>>>  			kmem_cache_free(dlm_mle_cache, mle);
->>>>  			mle = NULL;
->>>> @@ -2571,17 +2577,6 @@ fail:
->>>>  	 * ensure that all assert_master work is flushed. */
->>>>  	flush_workqueue(dlm->dlm_worker);
->>>>
->>>> -	/* get an extra reference on the mle.
->>>> -	 * otherwise the assert_master from the new
->>>> -	 * master will destroy this.
->>>> -	 * also, make sure that all callers of dlm_get_mle
->>>> -	 * take both dlm->spinlock and dlm->master_lock */
->>>> -	spin_lock(&dlm->spinlock);
->>>> -	spin_lock(&dlm->master_lock);
->>>> -	dlm_get_mle_inuse(mle);
->>>> -	spin_unlock(&dlm->master_lock);
->>>> -	spin_unlock(&dlm->spinlock);
->>>> -
->>>>  	/* notify new node and send all lock state */
->>>>  	/* call send_one_lockres with migration flag.
->>>>  	 * this serves as notice to the target node that a
->>>> @@ -3312,6 +3307,15 @@ top:
->>>>  			    mle->new_master != dead_node)
->>>>  				continue;
->>>>
->>>> +			if (mle->new_master == dead_node && mle->inuse) {
->>>> +				mlog(ML_NOTICE, "%s: target %u died during "
->>>> +						"migration from %u, the MLE is "
->>>> +						"still keep used, ignore it!\n",
->>>> +						dlm->name, dead_node,
->>>> +						mle->master);
->>>> +				continue;
->>>> +			}
->>>> +
->>>>  			/* If we have reached this point, this mle needs to be
->>>>  			 * removed from the list and freed. */
->>>>  			dlm_clean_migration_mle(dlm, mle);
->>>>
->>>
->>>
->>> .
->>>
->>
-> 
-> 
-> .
-> 
+When run a full ocfs2-test to kernel v4.3, all nodes hung at
+multiple-reflink test. Does anybody ever saw this? If anybody is
+interested in it, please let me know, i have vmcores for them.
+
+Node 1:
+======================
+[79321.329122] INFO: task multi_reflink_t:24205 blocked for more than
+120 seconds.
+[79321.335057]       Tainted: G           OE   4.3.0 #3
+[79321.345968] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs"
+disables this message.
+[79321.357346] multi_reflink_t D ffff88007f416980     0 24205  24199
+0x00000080
+[79321.363623]  ffff88003ffdb868 0000000000000086 ffffffff81a25500
+ffff88007c6bab00
+[79321.371393]  ffff88006a2bcc6c ffff88007af5b370 ffff88007af5b2c0
+ffff880071885a80
+[79321.376586]  ffff88003ffdb848 ffffffffa057a89d ffff88007af5b2c0
+0000000000000000
+[79321.380613] Call Trace:
+[79321.381942]  [<ffffffffa057a89d>] ? dlm_kick_thread+0x7d/0xa0 [ocfs2_dlm]
+[79321.385431]  [<ffffffff816a6d1e>] schedule+0x3e/0x80
+[79321.388026]  [<ffffffff816a9778>] schedule_timeout+0x1c8/0x220
+[79321.391093]  [<ffffffffa058ceda>] ? dlmlock+0x9a/0x8b0 [ocfs2_dlm]
+[79321.394258]  [<ffffffff810c5f41>] ?
+__raw_callee_save___pv_queued_spin_unlock+0x11/0x20
+[79321.398390]  [<ffffffff816a7cce>] wait_for_completion+0xde/0x110
+[79321.401481]  [<ffffffff810a81b0>] ? try_to_wake_up+0x240/0x240
+[79321.405127]  [<ffffffffa066f65d>] __ocfs2_cluster_lock+0x20d/0x720
+[ocfs2]
+[79321.409042]  [<ffffffff8112e8f7>] ? delayacct_end+0x67/0x80
+[79321.412046]  [<ffffffff810c5f41>] ?
+__raw_callee_save___pv_queued_spin_unlock+0x11/0x20
+[79321.416241]  [<ffffffffa0674841>]
+ocfs2_inode_lock_full_nested+0x181/0x400 [ocfs2]
+[79321.420159]  [<ffffffffa068b24f>] ?
+ocfs2_mv_orphaned_inode_to_new+0xbf/0x7c0 [ocfs2]
+[79321.424161]  [<ffffffffa068b24f>]
+ocfs2_mv_orphaned_inode_to_new+0xbf/0x7c0 [ocfs2]
+[79321.428021]  [<ffffffffa0674153>] ? ocfs2_rw_unlock+0x123/0x160 [ocfs2]
+[79321.431353]  [<ffffffffa069aef2>] ocfs2_reflink+0x1b2/0x480 [ocfs2]
+[79321.434551]  [<ffffffffa069b305>] ocfs2_vfs_reflink+0x145/0x1e0 [ocfs2]
+[79321.437988]  [<ffffffffa069b4f3>] ocfs2_reflink_ioctl+0x153/0x1b0 [ocfs2]
+[79321.441549]  [<ffffffff810c5f41>] ?
+__raw_callee_save___pv_queued_spin_unlock+0x11/0x20
+[79321.445733]  [<ffffffffa06817a8>] ocfs2_ioctl+0x1f8/0x400 [ocfs2]
+[79321.449014]  [<ffffffff812066d9>] ? do_filp_open+0x99/0xe0
+[79321.451962]  [<ffffffff81212d62>] ? __fd_install+0x32/0xf0
+[79321.454811]  [<ffffffff81209083>] do_vfs_ioctl+0x73/0x380
+[79321.457601]  [<ffffffff81003596>] ? do_audit_syscall_entry+0x66/0x70
+[79321.460838]  [<ffffffff81209422>] SyS_ioctl+0x92/0xa0
+[79321.463489]  [<ffffffff816aa6ee>] entry_SYSCALL_64_fastpath+0x12/0x71
+[79321.466827] INFO: task multi_reflink_t:24206 blocked for more than
+120 seconds.
+[79321.470759]       Tainted: G           OE   4.3.0 #3
+[79321.473627] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs"
+disables this message.
+[79321.478804] multi_reflink_t D ffff88007f456980     0 24206  24199
+0x00000080
+[79321.483813]  ffff88007afe3bf8 0000000000000086 ffff88007c502b00
+ffff880037b02b00
+[79321.488384]  ffff88007afe3ca8 ffffffff81204b00 ffff88007afe3d68
+000000007afe3c18
+[79321.493049]  0000000000000000 0000000000000000 ffff880037b02b00
+ffff8800174c3042
+[79321.497531] Call Trace:
+[79321.498830]  [<ffffffff81204b00>] ? filename_parentat+0x100/0x170
+[79321.501924]  [<ffffffff816a6d1e>] schedule+0x3e/0x80
+[79321.504452]  [<ffffffff816a6f4e>] schedule_preempt_disabled+0xe/0x10
+[79321.507794]  [<ffffffff816a889c>] __mutex_lock_slowpath+0x8c/0x100
+[79321.511024]  [<ffffffff816a8933>] mutex_lock+0x23/0x40
+[79321.513752]  [<ffffffff81204bed>] filename_create+0x7d/0x150
+[79321.516747]  [<ffffffff81204d44>] user_path_create+0x34/0x50
+[79321.519687]  [<ffffffffa069b476>] ocfs2_reflink_ioctl+0xd6/0x1b0 [ocfs2]
+[79321.523162]  [<ffffffff810c5f41>] ?
+__raw_callee_save___pv_queued_spin_unlock+0x11/0x20
+[79321.527211]  [<ffffffffa06817a8>] ocfs2_ioctl+0x1f8/0x400 [ocfs2]
+[79321.530377]  [<ffffffff812066d9>] ? do_filp_open+0x99/0xe0
+[79321.533197]  [<ffffffff81212d62>] ? __fd_install+0x32/0xf0
+[79321.536018]  [<ffffffff81209083>] do_vfs_ioctl+0x73/0x380
+[79321.538928]  [<ffffffff81003596>] ? do_audit_syscall_entry+0x66/0x70
+[79321.542737]  [<ffffffff81209422>] SyS_ioctl+0x92/0xa0
+[79321.545395]  [<ffffffff816aa6ee>] entry_SYSCALL_64_fastpath+0x12/0x71
+
+=====================================================
+
+Node 2:
+=====================================================
+[79682.381129] INFO: task multi_reflink_t:11279 blocked for more than
+120 seconds.
+[79682.387929]       Tainted: G           OE   4.3.0 #1
+[79682.393352] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs"
+disables this message.
+[79682.400733] multi_reflink_t D ffff88003fc16980     0 11279  11278
+0x00000080
+[79682.408206]  ffff88003ba475f8 0000000000000086 ffffffff81a25500
+ffff88003c8d4080
+[79682.417174]  ffff88003ba475c8 ffffffff8117992f ffffea00004b9cc0
+ffff88003fc16980
+[79682.422624]  7fffffffffffffff 0000000000000000 0000000000000001
+ffffea00004b9cc0
+[79682.427041] Call Trace:
+[79682.428426]  [<ffffffff8117992f>] ? find_get_entry+0x2f/0xc0
+[79682.433074]  [<ffffffff816a68fe>] schedule+0x3e/0x80
+[79682.437402]  [<ffffffff816a9358>] schedule_timeout+0x1c8/0x220
+[79682.444401]  [<ffffffffa067eee4>] ?
+ocfs2_inode_cache_unlock+0x14/0x20 [ocfs2]
+[79682.450495]  [<ffffffffa06bb1e9>] ?
+ocfs2_metadata_cache_unlock+0x19/0x30 [ocfs2]
+[79682.455303]  [<ffffffffa06bb399>] ? ocfs2_buffer_cached+0x99/0x170
+[ocfs2]
+[79682.459708]  [<ffffffffa067eee4>] ?
+ocfs2_inode_cache_unlock+0x14/0x20 [ocfs2]
+[79682.464037]  [<ffffffffa06bb1e9>] ?
+ocfs2_metadata_cache_unlock+0x19/0x30 [ocfs2]
+[79682.468109]  [<ffffffff810c5f41>] ?
+__raw_callee_save___pv_queued_spin_unlock+0x11/0x20
+[79682.472386]  [<ffffffff816a78ae>] wait_for_completion+0xde/0x110
+[79682.475510]  [<ffffffff810a81b0>] ? try_to_wake_up+0x240/0x240
+[79682.478685]  [<ffffffffa066f65d>] __ocfs2_cluster_lock+0x20d/0x720
+[ocfs2]
+[79682.482821]  [<ffffffff810c5f41>] ?
+__raw_callee_save___pv_queued_spin_unlock+0x11/0x20
+[79682.487010]  [<ffffffffa0674841>]
+ocfs2_inode_lock_full_nested+0x181/0x400 [ocfs2]
+[79682.490913]  [<ffffffffa06d0db3>] ? ocfs2_iop_get_acl+0x53/0x113 [ocfs2]
+[79682.494435]  [<ffffffff81210cd2>] ? igrab+0x42/0x70
+[79682.496977]  [<ffffffffa06d0db3>] ocfs2_iop_get_acl+0x53/0x113 [ocfs2]
+[79682.500353]  [<ffffffff81254583>] get_acl+0x53/0x70
+[79682.502912]  [<ffffffff81254923>] posix_acl_create+0x73/0x130
+[79682.505869]  [<ffffffffa068f0bf>] ocfs2_mknod+0x7cf/0x1140 [ocfs2]
+[79682.509043]  [<ffffffffa068fba2>] ocfs2_create+0x62/0x110 [ocfs2]
+[79682.512160]  [<ffffffff8120be25>] ? __d_alloc+0x65/0x190
+[79682.514878]  [<ffffffff81201b3e>] ? __inode_permission+0x4e/0xd0
+[79682.517933]  [<ffffffff81202cf5>] vfs_create+0xd5/0x100
+[79682.520641]  [<ffffffff812009ed>] ? lookup_real+0x1d/0x60
+[79682.523421]  [<ffffffff81203a03>] lookup_open+0x173/0x1a0
+[79682.526202]  [<ffffffff810c59c6>] ? percpu_down_read+0x16/0x70
+[79682.529199]  [<ffffffff81205fea>] do_last+0x31a/0x830
+[79682.531813]  [<ffffffff81201b3e>] ? __inode_permission+0x4e/0xd0
+[79682.534926]  [<ffffffff81201bd8>] ? inode_permission+0x18/0x50
+[79682.538376]  [<ffffffff812046b0>] ? link_path_walk+0x290/0x550
+[79682.541724]  [<ffffffff8120657c>] path_openat+0x7c/0x140
+[79682.544699]  [<ffffffff812066c5>] do_filp_open+0x85/0xe0
+[79682.547536]  [<ffffffff8120190f>] ? getname_flags+0x7f/0x1f0
+[79682.550459]  [<ffffffff811f613a>] do_sys_open+0x11a/0x220
+[79682.553238]  [<ffffffff8100374b>] ?
+syscall_trace_enter_phase1+0x15b/0x170
+[79682.556745]  [<ffffffff811f627e>] SyS_open+0x1e/0x20
+[79682.559317]  [<ffffffff816aa2ae>] entry_SYSCALL_64_fastpath+0x12/0x71
+
+============================================
+
+Node 3:
+============================================
+
+[79682.135120] INFO: task multi_reflink_t:11263 blocked for more than
+120 seconds.
+[79682.141115]       Tainted: G           OE   4.3.0 #1
+[79682.147279] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs"
+disables this message.
+[79682.164553] multi_reflink_t D ffff88003ec16980     0 11263  11262
+0x00000080
+[79682.180223]  ffff88003c2db698 0000000000000082 ffffffff81a25500
+ffff88003b8fc080
+[79682.190947]  ffff88003c2db668 ffffffff810c0a73 ffffffffa025de04
+ffff88003c2f92c0
+[79682.199118]  ffff88003b9d3f00 ffff88003c2db6b0 ffff88003c2f9370
+0000000000000000
+[79682.207337] Call Trace:
+[79682.209986]  [<ffffffff810c0a73>] ? __wake_up+0x53/0x70
+[79682.215598]  [<ffffffffa025de04>] ?
+o2net_send_message_vec+0x154/0x900 [ocfs2_nodemanager]
+[79682.224433]  [<ffffffff816a68fe>] schedule+0x3e/0x80
+[79682.229756]  [<ffffffff816a9358>] schedule_timeout+0x1c8/0x220
+[79682.236005]  [<ffffffffa058ceda>] ? dlmlock+0x9a/0x8b0 [ocfs2_dlm]
+[79682.242615]  [<ffffffff810a677a>] ? finish_task_switch+0x7a/0x200
+[79682.249146]  [<ffffffff810c5f41>] ?
+__raw_callee_save___pv_queued_spin_unlock+0x11/0x20
+[79682.257676]  [<ffffffffa025de04>] ?
+o2net_send_message_vec+0x154/0x900 [ocfs2_nodemanager]
+[79682.266506]  [<ffffffff816a78ae>] wait_for_completion+0xde/0x110
+[79682.272914]  [<ffffffff810a81b0>] ? try_to_wake_up+0x240/0x240
+[79682.279173]  [<ffffffffa066f65d>] __ocfs2_cluster_lock+0x20d/0x720
+[ocfs2]
+[79682.286557]  [<ffffffff816a68fe>] ? schedule+0x3e/0x80
+[79682.292054]  [<ffffffff810c5f41>] ?
+__raw_callee_save___pv_queued_spin_unlock+0x11/0x20
+[79682.300603]  [<ffffffffa0674841>]
+ocfs2_inode_lock_full_nested+0x181/0x400 [ocfs2]
+[79682.308835]  [<ffffffffa068eafe>] ? ocfs2_mknod+0x20e/0x1140 [ocfs2]
+[79682.315667]  [<ffffffffa068eafe>] ocfs2_mknod+0x20e/0x1140 [ocfs2]
+[79682.322302]  [<ffffffffa068fba2>] ocfs2_create+0x62/0x110 [ocfs2]
+[79682.328885]  [<ffffffff8120be25>] ? __d_alloc+0x65/0x190
+[79682.334580]  [<ffffffff81201b3e>] ? __inode_permission+0x4e/0xd0
+[79682.340972]  [<ffffffff81202cf5>] vfs_create+0xd5/0x100
+[79682.346595]  [<ffffffff812009ed>] ? lookup_real+0x1d/0x60
+[79682.352381]  [<ffffffff81203a03>] lookup_open+0x173/0x1a0
+[79682.358183]  [<ffffffff810c59c6>] ? percpu_down_read+0x16/0x70
+[79682.364433]  [<ffffffff81205fea>] do_last+0x31a/0x830
+[79682.369837]  [<ffffffff81201b3e>] ? __inode_permission+0x4e/0xd0
+[79682.376324]  [<ffffffff81201bd8>] ? inode_permission+0x18/0x50
+[79682.382610]  [<ffffffff812046b0>] ? link_path_walk+0x290/0x550
+[79682.388855]  [<ffffffff8120657c>] path_openat+0x7c/0x140
+[79682.394539]  [<ffffffff812066c5>] do_filp_open+0x85/0xe0
+[79682.400226]  [<ffffffff8120190f>] ? getname_flags+0x7f/0x1f0
+[79682.406273]  [<ffffffff811f613a>] do_sys_open+0x11a/0x220
+[79682.412060]  [<ffffffff8100374b>] ?
+syscall_trace_enter_phase1+0x15b/0x170
+[79682.419401]  [<ffffffff811f627e>] SyS_open+0x1e/0x20
+[79682.424729]  [<ffffffff816aa2ae>] entry_SYSCALL_64_fastpath+0x12/0x71
+
+=======================================================
+
+Thanks,
+Junxiao.
