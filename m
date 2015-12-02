@@ -1,38 +1,84 @@
 From: Junxiao Bi <junxiao.bi@oracle.com>
-Date: Wed, 2 Dec 2015 09:44:11 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: fix BUG due to uncleaned
- localalloc during mount
-In-Reply-To: <20151201164454.624f2294f6142b9b2fe4bd74@linux-foundation.org>
-References: <5654684A.1070305@huawei.com> <565D542F.1020609@oracle.com>
-	<20151201164454.624f2294f6142b9b2fe4bd74@linux-foundation.org>
-Message-ID: <565E4CEB.3080707@oracle.com>
+Date: Wed, 2 Dec 2015 10:47:16 +0800
+Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2: return non-zero st_blocks for
+ inline data
+In-Reply-To: <BAA384F0-637C-406B-AED2-3ED9E6BCA7D2@oracle.com>
+References: <1448399221-6109-1-git-send-email-john.haxby@oracle.com>
+	<1448399221-6109-2-git-send-email-john.haxby@oracle.com>
+	<565D4783.2090501@oracle.com>
+	<BAA384F0-637C-406B-AED2-3ED9E6BCA7D2@oracle.com>
+Message-ID: <565E5BB4.8000207@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 12/02/2015 08:44 AM, Andrew Morton wrote:
-> On Tue, 1 Dec 2015 16:02:55 +0800 Junxiao Bi <junxiao.bi@oracle.com> wrote:
+On 12/02/2015 06:33 AM, John Haxby wrote:
 > 
->> On 11/24/2015 09:38 PM, Joseph Qi wrote:
->>> Tariq has reported a BUG before and posted a fix at:
->>> https://oss.oracle.com/pipermail/ocfs2-devel/2015-April/010696.html
+>> On 1 Dec 2015, at 07:08, Junxiao Bi <junxiao.bi@oracle.com
+>> <mailto:junxiao.bi@oracle.com>> wrote:
+>>
+>> On 11/25/2015 05:07 AM, John Haxby wrote:
+>>> Some versions of tar assume that files with st_blocks == 0 do not
+>>> contain any data and will skip reading them entirely. See also
+>>> commit 9206c561554c ("ext4: return non-zero st_blocks for inline data").
 >>>
->>> This is because during umount, localalloc shutdown relies on journal
->>> shutdown. But during journal shutdown, it just stops commit thread
->>> without checking its result. So it may happen that localalloc shutdown
->>> uncleaned during I/O error and after that, journal then has been marked
->>> clean if I/O restores.
->> The above is a storage issue. In this condition, io error can even
->> happen to journal commit, some transactions may have wrong data. Let fs
->> go without a fsck may cause corruption.
->> I am thinking whether we can fail the mount and mark the journal dirty
->> again. Then we can do fsck to it withoug a fsck patch.
+>>> Signed-off-by: John Haxby <john.haxby@oracle.com
+>>> <mailto:john.haxby@oracle.com>>
+>>> ---
+>>> fs/ocfs2/file.c | 8 ++++++++
+>>> 1 file changed, 8 insertions(+)
+>>>
+>>> diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+>>> index 0e5b451..d631279 100644
+>>> --- a/fs/ocfs2/file.c
+>>> +++ b/fs/ocfs2/file.c
+>>> @@ -1302,6 +1302,14 @@ int ocfs2_getattr(struct vfsmount *mnt,
+>>> }
+>>>
+>>> generic_fillattr(inode, stat);
+>>> +/*
+>>> + * If there is inline data in the inode, the inode will normally not
+>>> + * have data blocks allocated (it may have an external xattr block).
+>>> + * Report at least one sector for such files, so tools like tar, rsync,
+>>> + * others don't incorrectly think the file is completely sparse.
+>>> + */
+>>> +if (unlikely(OCFS2_I(inode)->ip_dyn_features & OCFS2_INLINE_DATA_FL))
+>>> +stat->blocks += (stat->size + 511)>>9;
+>> From filesystem side, looks reasonable that data block is 0 for
+>> inlined-data file. This is like a hack to filesystem to fix tools issue.
+>> Indeed tar-1.26-27 have been fixed to not think file with st_blocks == 0
+>> empty. But I am not sure why ext4 merge that fix.
 > 
-> hm, was that an ack, a nack or a quack?
-nack, i think we need another way to fix this issue.
+> It?s not just tar and it?s not just ext4.   Programmers not unreasonably
+> assume that a file occupying zero blocks contains no data (where would
+> you put it?)
+> 
+> ext4, btrfs and ntfs-3g all give inlined files a non-zero block size to
+> avoid surprising programmers.   There?s nothing in Posix that says what
+> stat?s st_blocks so in this case it?s right for the file systems in
+> question to stick to the principle of least surprise.  In this case, it
+> would be surprising if some small files suddenly started occupying no
+> space while being non-empty.   It?s not as though it would be
+> consistent: some small files would occupy space and some would not.  We
+> want to present a consistent view of files to the user.  It?s not as
+> though we?re breaking du either: it already tells lies :)
+> 
+> Does that make sense now?
+OK. Thanks you for the explanation. We'd better not surprise programmers
+and keep align with other fs. So
 
-Thanks,
-Junxiao.
+Reviewed-by: Junxiao Bi <junxiao.bi@oracle.com>
+> 
+> jch
+> 
+> 
+>>
+>> Thanks,
+>> Junxiao.
+>>
+>>>
+>>> /* We set the blksize from the cluster size for performance */
+>>> stat->blksize = osb->s_clustersize;
 > 
