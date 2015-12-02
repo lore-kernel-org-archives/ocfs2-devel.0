@@ -1,124 +1,191 @@
 From: Junxiao Bi <junxiao.bi@oracle.com>
-Date: Wed,  2 Dec 2015 14:54:15 +0800
-Subject: [Ocfs2-devel] [PATCH V2] jbd2: fix null committed data return in
-	undo_access
-Message-ID: <1449039255-21833-1-git-send-email-junxiao.bi@oracle.com>
+Date: Wed, 2 Dec 2015 15:07:11 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: fix BUG due to uncleaned
+ localalloc during mount
+In-Reply-To: <565E9515.1090808@huawei.com>
+References: <5654684A.1070305@huawei.com> <565D542F.1020609@oracle.com>
+	<565E9515.1090808@huawei.com>
+Message-ID: <565E989F.9020302@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: linux-ext4@vger.kernel.org
-Cc: jack@suse.cz, tytso@mit.edu, ocfs2-devel@oss.oracle.com
+To: ocfs2-devel@oss.oracle.com
 
-commit de92c8caf16c ("jbd2: speedup jbd2_journal_get_[write|undo]_access()")
-introduced jbd2_write_access_granted() to improve write|undo_access
-speed, but missed to check the status of b_committed_data which caused
-a kernel panic on ocfs2.
+On 12/02/2015 02:52 PM, Xue jiufei wrote:
+> Hi Junxiao,
+> On 2015/12/1 16:02, Junxiao Bi wrote:
+>> Hi Joseph,
+>>
+>> On 11/24/2015 09:38 PM, Joseph Qi wrote:
+>>> Tariq has reported a BUG before and posted a fix at:
+>>> https://oss.oracle.com/pipermail/ocfs2-devel/2015-April/010696.html
+>>>
+>>> This is because during umount, localalloc shutdown relies on journal
+>>> shutdown. But during journal shutdown, it just stops commit thread
+>>> without checking its result. So it may happen that localalloc shutdown
+>>> uncleaned during I/O error and after that, journal then has been marked
+>>> clean if I/O restores.
+>> The above is a storage issue. In this condition, io error can even
+>> happen to journal commit, some transactions may have wrong data. Let fs
+>> go without a fsck may cause corruption.
+>> I am thinking whether we can fail the mount and mark the journal dirty
+>> again. Then we can do fsck to it withoug a fsck patch.
+>>
+> Can you explain which situation would cause file system corruption. I think
+> if IO error happens to journal commit and commit block have not reach the disk,
+> the whole transactions is skipped while recovering the journal. So file system
+> is still consistent.
+At least local alloc inconsistent as this storage error, right? I think
+it can't be sure whether this caused some other metadata inconsistent,
+so a full fsck deserved.
 
-[ 6538.405938] ------------[ cut here ]------------
-[ 6538.406686] kernel BUG at fs/ocfs2/suballoc.c:2400!
-[ 6538.406686] invalid opcode: 0000 [#1] SMP
-[ 6538.406686] Modules linked in: ocfs2 nfsd lockd grace nfs_acl auth_rpcgss sunrpc autofs4 ocfs2_dlmfs ocfs2_stack_o2cb ocfs2_dlm ocfs2_nodemanager ocfs2_stackglue configfs sd_mod sg ip6t_REJECT nf_reject_ipv6 nf_conntrack_ipv6 nf_defrag_ipv6 xt_state nf_conntrack ip6table_filter ip6_tables be2iscsi iscsi_boot_sysfs bnx2i cnic uio cxgb4i cxgb4 cxgb3i libcxgbi cxgb3 mdio ib_iser rdma_cm ib_cm iw_cm ib_sa ib_mad ib_core ib_addr ipv6 iscsi_tcp libiscsi_tcp libiscsi scsi_transport_iscsi ppdev xen_kbdfront xen_netfront xen_fbfront parport_pc parport pcspkr i2c_piix4 acpi_cpufreq ext4 jbd2 mbcache xen_blkfront floppy pata_acpi ata_generic ata_piix cirrus ttm drm_kms_helper drm fb_sys_fops sysimgblt sysfillrect i2c_core syscopyarea dm_mirror dm_region_hash dm_log dm_mod
-[ 6538.406686] CPU: 1 PID: 16265 Comm: mmap_truncate Not tainted 4.3.0 #1
-[ 6538.406686] Hardware name: Xen HVM domU, BIOS 4.3.1OVM 05/14/2014
-[ 6538.406686] task: ffff88007c2bab00 ti: ffff880075b78000 task.ti: ffff880075b78000
-[ 6538.406686] RIP: 0010:[<ffffffffa06a286b>]  [<ffffffffa06a286b>] ocfs2_block_group_clear_bits+0x23b/0x250 [ocfs2]
-[ 6538.406686] RSP: 0018:ffff880075b7b7f8  EFLAGS: 00010246
-[ 6538.406686] RAX: ffff8800760c5b40 RBX: ffff88006c06a000 RCX: ffffffffa06e6df0
-[ 6538.406686] RDX: 0000000000000000 RSI: ffff88007a6f6ea0 RDI: ffff88007a760430
-[ 6538.406686] RBP: ffff880075b7b878 R08: 0000000000000002 R09: 0000000000000001
-[ 6538.406686] R10: ffffffffa06769be R11: 0000000000000000 R12: 0000000000000001
-[ 6538.406686] R13: ffffffffa06a1750 R14: 0000000000000001 R15: ffff88007a6f6ea0
-[ 6538.406686] FS:  00007f17fde30720(0000) GS:ffff88007f040000(0000) knlGS:0000000000000000
-[ 6538.406686] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-[ 6538.406686] CR2: 0000000000601730 CR3: 000000007aea0000 CR4: 00000000000406e0
-[ 6538.406686] Stack:
-[ 6538.406686]  ffff88007c2bb5b0 ffff880075b7b8e0 ffff88007a7604b0 ffff88006c640800
-[ 6538.406686]  ffff88007a7604b0 ffff880075d77390 0000000075b7b878 ffffffffa06a309d
-[ 6538.406686]  ffff880075d752d8 ffff880075b7b990 ffff880075b7b898 0000000000000000
-[ 6538.406686] Call Trace:
-[ 6538.406686]  [<ffffffffa06a309d>] ? ocfs2_read_group_descriptor+0x6d/0xa0 [ocfs2]
-[ 6538.406686]  [<ffffffffa06a3654>] _ocfs2_free_suballoc_bits+0xe4/0x320 [ocfs2]
-[ 6538.406686]  [<ffffffffa06a1750>] ? ocfs2_put_slot+0xf0/0xf0 [ocfs2]
-[ 6538.406686]  [<ffffffffa06a397e>] _ocfs2_free_clusters+0xee/0x210 [ocfs2]
-[ 6538.406686]  [<ffffffffa06a1750>] ? ocfs2_put_slot+0xf0/0xf0 [ocfs2]
-[ 6538.406686]  [<ffffffffa06a1750>] ? ocfs2_put_slot+0xf0/0xf0 [ocfs2]
-[ 6538.406686]  [<ffffffffa0682d50>] ? ocfs2_extend_trans+0x50/0x1a0 [ocfs2]
-[ 6538.406686]  [<ffffffffa06a3ad5>] ocfs2_free_clusters+0x15/0x20 [ocfs2]
-[ 6538.406686]  [<ffffffffa065072c>] ocfs2_replay_truncate_records+0xfc/0x290 [ocfs2]
-[ 6538.406686]  [<ffffffffa06843ac>] ? ocfs2_start_trans+0xec/0x1d0 [ocfs2]
-[ 6538.406686]  [<ffffffffa0654600>] __ocfs2_flush_truncate_log+0x140/0x2d0 [ocfs2]
-[ 6538.406686]  [<ffffffffa0654394>] ? ocfs2_reserve_blocks_for_rec_trunc.clone.0+0x44/0x170 [ocfs2]
-[ 6538.406686]  [<ffffffffa065acd4>] ocfs2_remove_btree_range+0x374/0x630 [ocfs2]
-[ 6538.406686]  [<ffffffffa017486b>] ? jbd2_journal_stop+0x25b/0x470 [jbd2]
-[ 6538.406686]  [<ffffffffa065d5b5>] ocfs2_commit_truncate+0x305/0x670 [ocfs2]
-[ 6538.406686]  [<ffffffffa0683430>] ? ocfs2_journal_access_eb+0x20/0x20 [ocfs2]
-[ 6538.406686]  [<ffffffffa067adb7>] ocfs2_truncate_file+0x297/0x380 [ocfs2]
-[ 6538.406686]  [<ffffffffa01759e4>] ? jbd2_journal_begin_ordered_truncate+0x64/0xc0 [jbd2]
-[ 6538.406686]  [<ffffffffa067c7a2>] ocfs2_setattr+0x572/0x860 [ocfs2]
-[ 6538.406686]  [<ffffffff810e4a3f>] ? current_fs_time+0x3f/0x50
-[ 6538.406686]  [<ffffffff812124b7>] notify_change+0x1d7/0x340
-[ 6538.406686]  [<ffffffff8121abf9>] ? generic_getxattr+0x79/0x80
-[ 6538.406686]  [<ffffffff811f5876>] do_truncate+0x66/0x90
-[ 6538.406686]  [<ffffffff81120e30>] ? __audit_syscall_entry+0xb0/0x110
-[ 6538.406686]  [<ffffffff811f5bb3>] do_sys_ftruncate.clone.0+0xf3/0x120
-[ 6538.406686]  [<ffffffff811f5bee>] SyS_ftruncate+0xe/0x10
-[ 6538.406686]  [<ffffffff816aa2ae>] entry_SYSCALL_64_fastpath+0x12/0x71
-[ 6538.406686] Code: 28 48 81 ee b0 04 00 00 48 8b 92 50 fb ff ff 48 8b 80 b0 03 00 00 48 39 90 88 00 00 00 0f 84 30 fe ff ff 0f 0b eb fe 0f 0b eb fe <0f> 0b 0f 1f 00 eb fb 66 66 66 66 66 2e 0f 1f 84 00 00 00 00 00
-[ 6538.406686] RIP  [<ffffffffa06a286b>] ocfs2_block_group_clear_bits+0x23b/0x250 [ocfs2]
-[ 6538.406686]  RSP <ffff880075b7b7f8>
-[ 6538.691128] ---[ end trace 31cd7011d6770d7e ]---
-[ 6538.694492] Kernel panic - not syncing: Fatal exception
-[ 6538.695484] Kernel Offset: disabled
+Thanks,
+Junxiao.
 
-Fixes: de92c8caf16c("jbd2: speedup jbd2_journal_get_[write|undo]_access()")
-Cc: <stable@vger.kernel.org>
-Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
----
- fs/jbd2/transaction.c |   10 +++++++---
- 1 file changed, 7 insertions(+), 3 deletions(-)
-
-diff --git a/fs/jbd2/transaction.c b/fs/jbd2/transaction.c
-index 6b8338e..fb5014f 100644
---- a/fs/jbd2/transaction.c
-+++ b/fs/jbd2/transaction.c
-@@ -1009,7 +1009,8 @@ out:
- }
- 
- /* Fast check whether buffer is already attached to the required transaction */
--static bool jbd2_write_access_granted(handle_t *handle, struct buffer_head *bh)
-+static bool jbd2_write_access_granted(handle_t *handle, struct buffer_head *bh,
-+							bool undo)
- {
- 	struct journal_head *jh;
- 	bool ret = false;
-@@ -1036,6 +1037,9 @@ static bool jbd2_write_access_granted(handle_t *handle, struct buffer_head *bh)
- 	jh = READ_ONCE(bh->b_private);
- 	if (!jh)
- 		goto out;
-+	/* For undo access buffer must have data copied */
-+	if (undo && !jh->b_committed_data)
-+		goto out;
- 	if (jh->b_transaction != handle->h_transaction &&
- 	    jh->b_next_transaction != handle->h_transaction)
- 		goto out;
-@@ -1073,7 +1077,7 @@ int jbd2_journal_get_write_access(handle_t *handle, struct buffer_head *bh)
- 	struct journal_head *jh;
- 	int rc;
- 
--	if (jbd2_write_access_granted(handle, bh))
-+	if (jbd2_write_access_granted(handle, bh, false))
- 		return 0;
- 
- 	jh = jbd2_journal_add_journal_head(bh);
-@@ -1210,7 +1214,7 @@ int jbd2_journal_get_undo_access(handle_t *handle, struct buffer_head *bh)
- 	char *committed_data = NULL;
- 
- 	JBUFFER_TRACE(jh, "entry");
--	if (jbd2_write_access_granted(handle, bh))
-+	if (jbd2_write_access_granted(handle, bh, true))
- 		return 0;
- 
- 	jh = jbd2_journal_add_journal_head(bh);
--- 
-1.7.9.5
+> Thanks,
+> Xuejiufei
+> 
+>> Thanks,
+>> Junxiao.
+>>
+>>> Then during mount, localalloc won't be recovered because of clean
+>>> journal and then trigger BUG when claiming clusters from localalloc.
+>>>
+>>> In Tariq's fix, we have to run fsck offline and a separate fix to fsck
+>>> is needed because it currently does not support clearing out localalloc
+>>> inode. And my way to fix this issue is checking localalloc before
+>>> actually loading it during mount. And this is somewhat online.
+>>>
+>>> Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
+>>> ---
+>>>  fs/ocfs2/localalloc.c | 19 ++++++++++++-------
+>>>  fs/ocfs2/localalloc.h |  2 +-
+>>>  fs/ocfs2/super.c      | 17 ++++++++++++++---
+>>>  3 files changed, 27 insertions(+), 11 deletions(-)
+>>>
+>>> diff --git a/fs/ocfs2/localalloc.c b/fs/ocfs2/localalloc.c
+>>> index 0a4457f..ceebaef 100644
+>>> --- a/fs/ocfs2/localalloc.c
+>>> +++ b/fs/ocfs2/localalloc.c
+>>> @@ -281,7 +281,7 @@ bail:
+>>>  	return ret;
+>>>  }
+>>>
+>>> -int ocfs2_load_local_alloc(struct ocfs2_super *osb)
+>>> +int ocfs2_load_local_alloc(struct ocfs2_super *osb, int check, int *recovery)
+>>>  {
+>>>  	int status = 0;
+>>>  	struct ocfs2_dinode *alloc = NULL;
+>>> @@ -345,21 +345,26 @@ int ocfs2_load_local_alloc(struct ocfs2_super *osb)
+>>>  	if (num_used
+>>>  	    || alloc->id1.bitmap1.i_used
+>>>  	    || alloc->id1.bitmap1.i_total
+>>> -	    || la->la_bm_off)
+>>> +	    || la->la_bm_off) {
+>>>  		mlog(ML_ERROR, "Local alloc hasn't been recovered!\n"
+>>>  		     "found = %u, set = %u, taken = %u, off = %u\n",
+>>>  		     num_used, le32_to_cpu(alloc->id1.bitmap1.i_used),
+>>>  		     le32_to_cpu(alloc->id1.bitmap1.i_total),
+>>>  		     OCFS2_LOCAL_ALLOC(alloc)->la_bm_off);
+>>> +		status = -EINVAL;
+>>> +		*recovery = 1;
+>>> +		goto bail;
+>>> +	}
+>>>
+>>> -	osb->local_alloc_bh = alloc_bh;
+>>> -	osb->local_alloc_state = OCFS2_LA_ENABLED;
+>>> +	if (!check) {
+>>> +		osb->local_alloc_bh = alloc_bh;
+>>> +		osb->local_alloc_state = OCFS2_LA_ENABLED;
+>>> +	}
+>>>
+>>>  bail:
+>>> -	if (status < 0)
+>>> +	if (status < 0 || check)
+>>>  		brelse(alloc_bh);
+>>> -	if (inode)
+>>> -		iput(inode);
+>>> +	iput(inode);
+>>>
+>>>  	trace_ocfs2_load_local_alloc(osb->local_alloc_bits);
+>>>
+>>> diff --git a/fs/ocfs2/localalloc.h b/fs/ocfs2/localalloc.h
+>>> index 44a7d1f..a913841 100644
+>>> --- a/fs/ocfs2/localalloc.h
+>>> +++ b/fs/ocfs2/localalloc.h
+>>> @@ -26,7 +26,7 @@
+>>>  #ifndef OCFS2_LOCALALLOC_H
+>>>  #define OCFS2_LOCALALLOC_H
+>>>
+>>> -int ocfs2_load_local_alloc(struct ocfs2_super *osb);
+>>> +int ocfs2_load_local_alloc(struct ocfs2_super *osb, int check, int *recovery);
+>>>
+>>>  void ocfs2_shutdown_local_alloc(struct ocfs2_super *osb);
+>>>
+>>> diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+>>> index 2de4c8a..4004b29 100644
+>>> --- a/fs/ocfs2/super.c
+>>> +++ b/fs/ocfs2/super.c
+>>> @@ -2428,6 +2428,7 @@ static int ocfs2_check_volume(struct ocfs2_super *osb)
+>>>  	int status;
+>>>  	int dirty;
+>>>  	int local;
+>>> +	int la_dirty = 0, recovery = 0;
+>>>  	struct ocfs2_dinode *local_alloc = NULL; /* only used if we
+>>>  						  * recover
+>>>  						  * ourselves. */
+>>> @@ -2449,6 +2450,16 @@ static int ocfs2_check_volume(struct ocfs2_super *osb)
+>>>  	 * recover anything. Otherwise, journal_load will do that
+>>>  	 * dirty work for us :) */
+>>>  	if (!dirty) {
+>>> +		/* It may happen that local alloc is unclean shutdown, but
+>>> +		 * journal has been marked clean, so check it here and do
+>>> +		 * recovery if needed */
+>>> +		status = ocfs2_load_local_alloc(osb, 1, &recovery);
+>>> +		if (recovery) {
+>>> +			printk(KERN_NOTICE "ocfs2: local alloc needs recovery "
+>>> +					"on device (%s).\n", osb->dev_str);
+>>> +			la_dirty = 1;
+>>> +		}
+>>> +
+>>>  		status = ocfs2_journal_wipe(osb->journal, 0);
+>>>  		if (status < 0) {
+>>>  			mlog_errno(status);
+>>> @@ -2477,7 +2488,7 @@ static int ocfs2_check_volume(struct ocfs2_super *osb)
+>>>  				JBD2_FEATURE_COMPAT_CHECKSUM, 0,
+>>>  				JBD2_FEATURE_INCOMPAT_ASYNC_COMMIT);
+>>>
+>>> -	if (dirty) {
+>>> +	if (dirty || la_dirty) {
+>>>  		/* recover my local alloc if we didn't unmount cleanly. */
+>>>  		status = ocfs2_begin_local_alloc_recovery(osb,
+>>>  							  osb->slot_num,
+>>> @@ -2490,13 +2501,13 @@ static int ocfs2_check_volume(struct ocfs2_super *osb)
+>>>  		 * ourselves as mounted. */
+>>>  	}
+>>>
+>>> -	status = ocfs2_load_local_alloc(osb);
+>>> +	status = ocfs2_load_local_alloc(osb, 0, &recovery);
+>>>  	if (status < 0) {
+>>>  		mlog_errno(status);
+>>>  		goto finally;
+>>>  	}
+>>>
+>>> -	if (dirty) {
+>>> +	if (dirty || la_dirty) {
+>>>  		/* Recovery will be completed after we've mounted the
+>>>  		 * rest of the volume. */
+>>>  		osb->dirty = 1;
+>>>
+>>
+>>
+>> _______________________________________________
+>> Ocfs2-devel mailing list
+>> Ocfs2-devel at oss.oracle.com
+>> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+>>
+>> .
+>>
+> 
+> 
