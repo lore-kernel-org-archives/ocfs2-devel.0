@@ -1,44 +1,65 @@
-From: Junxiao Bi <junxiao.bi@oracle.com>
-Date: Fri, 4 Dec 2015 13:48:47 +0800
-Subject: [Ocfs2-devel] ocfs2 test for 0-day test
-In-Reply-To: <20151204030433.GA23401@wfg-t540p.sh.intel.com>
-References: <565D07C3.2020609@oracle.com>
-	<20151204030433.GA23401@wfg-t540p.sh.intel.com>
-Message-ID: <F2467EE2-498F-42C4-9358-3F1F002459B1@oracle.com>
+From: Gang He <ghe@suse.com>
+Date: Fri, 04 Dec 2015 01:36:21 -0700
+Subject: [Ocfs2-devel] [PATCH v2 0/4] Add online file check feature
+In-Reply-To: <20151203051721.GA5241@kroah.com>
+References: <1446013561-22121-1-git-send-email-ghe@suse.com>
+	<20151202182012.GA21249@amd>
+	<566013E7020000F900020CA2@relay2.provo.novell.com>
+	<20151203051721.GA5241@kroah.com>
+Message-ID: <5661C105020000F9000210FA@relay2.provo.novell.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: greg@kroah.com
+Cc: akpm@linux-foundation.org, ocfs2-devel@oss.oracle.com, Mark Fasheh <MFasheh@suse.com>, rgoldwyn@suse.de, pavel@ucw.cz, linux-kernel@vger.kernel.org
+
+Hi Greg,
 
 
-> ? 2015?12?4????11:04?Fengguang Wu <fengguang.wu@intel.com> ???
-> 
-> Hi Junxiao,
-> 
-> On Tue, Dec 01, 2015 at 10:36:51AM +0800, Junxiao Bi wrote:
->> Hi Fengguang,
+>>> 
+> On Wed, Dec 02, 2015 at 07:05:27PM -0700, Gang He wrote:
+>> Hello Pavel,
 >> 
->> I heard you ever asked for test cases from subsystems to merge into your
->> 0-day test framework. For ocfs2, we have a test project "ocfs2-test",
->> its git tree at
->> https://oss.oracle.com/git/ocfs2-tools.git/ocfs2-tools-1.8.4?p=ocfs2-test.git;a=summary
->> . There is a README in it about test cases and steps to setup test env.
 >> 
->> Recently we fixed lots of issues of it and I am using it to test ocfs2
->> mainline regularly. Two regression bugs have been found by it. It's a
->> little pain for me that I have to analysis and fix regression bugs
->> manually. Since 0-day test supports auto bisect, I am curious whether
->> you are interested in merging it into your 0-day test?
+>> 
+>> >>> 
+>> > On Wed 2015-10-28 14:25:57, Gang He wrote:
+>> >> When there are errors in the ocfs2 filesystem,
+>> >> they are usually accompanied by the inode number which caused the error.
+>> >> This inode number would be the input to fixing the file.
+>> >> One of these options could be considered:
+>> >> A file in the sys filesytem which would accept inode numbers.
+>> >> This could be used to communication back what has to be fixed or is fixed.
+>> >> You could write:
+>> >> $# echo "CHECK <inode>" > /sys/fs/ocfs2/devname/filecheck
+>> >> or
+>> >> $# echo "FIX <inode>" > /sys/fs/ocfs2/devname/filecheck
+>> >> 
+>> > 
+>> > Are you sure this is reasonable interface? I mean.... sysfs is
+>> > supposed to be one value per file. And I don't think its suitable for
+>> > running commands.
+>> Usually, the corrupted file (inode) should be rarely encountered for OCFS2 
+> file system, then
+>> lots of commands are executed via this interface with high performance is 
+> not expected by us.
+>> Second, after online file check is added, we also plan to add a mount option 
+> "error=fix", that means
+>> the file system can fix these errors automatically without a manual command 
+> triggering.
 > 
-> Yes it's good to test ocfs2 and thanks for the info! Currently it's
-> Xiaolong (CCed) taking care of the test cases. So it's up to him to
-> schedule the merging of ocfs2-test.
-Fengguang, glad to hear that, Thanks a lot.
-Xiaolong, any ocfs2-test issue, feel free to contact me.
+> It's not a "performance" issue, it's a "sysfs files only have one value"
+> type thing.  Have two files, "inode_fix" and "inode_check" and then just
+> write the inode into them, no need to have a "verb <inode>" type parser.
+Current, we have three functional items "check, fix and set", in the future, maybe we can add more item.
+Then, for each functional item, we need to create a sys file and add related code (actual some code is duplicated),
+I prefer to one sys file to handle multiple sub-commands.
 
-Thanks,
-Junxiao.
+Thanks
+Gang
+
 > 
-> Thanks,
-> Fengguang
+> thanks,
+> 
+> greg k-h
