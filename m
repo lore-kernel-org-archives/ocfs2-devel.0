@@ -1,88 +1,70 @@
-From: Gang He <ghe@suse.com>
-Date: Sun, 06 Dec 2015 20:33:49 -0700
-Subject: [Ocfs2-devel] [PATCH v2 0/4] Add online file check feature
-In-Reply-To: <20151204164015.GA18166@kroah.com>
-References: <1446013561-22121-1-git-send-email-ghe@suse.com>
-	<20151202182012.GA21249@amd>
-	<566013E7020000F900020CA2@relay2.provo.novell.com>
-	<20151203051721.GA5241@kroah.com>
-	<5661C105020000F9000210FA@relay2.provo.novell.com>
-	<20151204164015.GA18166@kroah.com>
-Message-ID: <56656E9D020000F90002141F@relay2.provo.novell.com>
+From: Xue jiufei <xuejiufei@huawei.com>
+Date: Mon, 7 Dec 2015 11:34:24 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: fix a race between purge and
+	migratio
+Message-ID: <5664FE40.2010105@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: greg@kroah.com
-Cc: akpm@linux-foundation.org, ocfs2-devel@oss.oracle.com, Mark Fasheh <MFasheh@suse.com>, rgoldwyn@suse.de, pavel@ucw.cz, linux-kernel@vger.kernel.org
+To: ocfs2-devel@oss.oracle.com
 
-Hello Greg and Pavel,
+We found a race between purge and migration when doing code review.
+Node A put lockres to purgelist before receiving the migrate message
+from node B which is the master. dlm_mig_lockres_handler finds the
+lockres and releases the dlm spinlock. Then dlm_thread on node A
+can purge the lockres. dlm_mig_lockres_handler then gets the lockres
+spinlock and sends assert master message to tell other nodes that node
+A is the master now even lockres is purged. If node C set the master to
+node A, and another node D master the lockres because no node respond
+he is the master. That will make node C crash when node D send assert
+master to node C. So check if lockres gets unhashed in
+dlm_mig_lockres_handler to fix this race.
 
-Sorry, there was a misunderstand, I was not aware that there were some design constraints for sysfs interfaces. I will review and modify this portion code. 
+Signed-off-by: Jiufei Xue <xuejiufei@huawei.com>
+Reviewed-by: Joseph Qi <joseph.qi@huawei.com>
+Reviewed-by: Yiwen Jiang <jiangyiwen@huawei.com>
+---
+ fs/ocfs2/dlm/dlmrecovery.c | 22 ++++++++++++++++++++++
+ 1 file changed, 22 insertions(+)
 
-
-Thanks
-Gang 
-
-
->>> 
-> On Fri, Dec 04, 2015 at 01:36:21AM -0700, Gang He wrote:
->> Hi Greg,
->> 
->> 
->> >>> 
->> > On Wed, Dec 02, 2015 at 07:05:27PM -0700, Gang He wrote:
->> >> Hello Pavel,
->> >> 
->> >> 
->> >> 
->> >> >>> 
->> >> > On Wed 2015-10-28 14:25:57, Gang He wrote:
->> >> >> When there are errors in the ocfs2 filesystem,
->> >> >> they are usually accompanied by the inode number which caused the error.
->> >> >> This inode number would be the input to fixing the file.
->> >> >> One of these options could be considered:
->> >> >> A file in the sys filesytem which would accept inode numbers.
->> >> >> This could be used to communication back what has to be fixed or is fixed.
->> >> >> You could write:
->> >> >> $# echo "CHECK <inode>" > /sys/fs/ocfs2/devname/filecheck
->> >> >> or
->> >> >> $# echo "FIX <inode>" > /sys/fs/ocfs2/devname/filecheck
->> >> >> 
->> >> > 
->> >> > Are you sure this is reasonable interface? I mean.... sysfs is
->> >> > supposed to be one value per file. And I don't think its suitable for
->> >> > running commands.
->> >> Usually, the corrupted file (inode) should be rarely encountered for OCFS2 
->> > file system, then
->> >> lots of commands are executed via this interface with high performance is 
->> > not expected by us.
->> >> Second, after online file check is added, we also plan to add a mount 
-> option 
->> > "error=fix", that means
->> >> the file system can fix these errors automatically without a manual command 
-> 
->> > triggering.
->> > 
->> > It's not a "performance" issue, it's a "sysfs files only have one value"
->> > type thing.  Have two files, "inode_fix" and "inode_check" and then just
->> > write the inode into them, no need to have a "verb <inode>" type parser.
->> Current, we have three functional items "check, fix and set", in the future, 
-> maybe we can add more item.
->> Then, for each functional item, we need to create a sys file and add related 
-> code (actual some code is duplicated),
->> I prefer to one sys file to handle multiple sub-commands.
-> 
-> No, sorry, that is not how sysfs works.  Please use individual files,
-> again, sysfs is "one value per file" you should never have to write a
-> "parser" for a sysfs file either reading, or writing to it.
-> 
-> If you need additional things in the future, great, add new sysfs files,
-> that makes it the easiest way for your userspace tools to be able to
-> determine if that feature is present in the kernel or not, it does not
-> have to write a command that it doesn't know if the kernel can handle or
-> not.
-> 
-> thanks,
-> 
-> greg k-h
+diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
+index 58eaa5c..84908a0 100644
+--- a/fs/ocfs2/dlm/dlmrecovery.c
++++ b/fs/ocfs2/dlm/dlmrecovery.c
+@@ -1400,11 +1400,33 @@ int dlm_mig_lockres_handler(struct o2net_msg *msg, u32 len, void *data,
+ 	/* lookup the lock to see if we have a secondary queue for this
+ 	 * already...  just add the locks in and this will have its owner
+ 	 * and RECOVERY flag changed when it completes. */
++way_up_top:
+ 	res = dlm_lookup_lockres(dlm, mres->lockname, mres->lockname_len);
+ 	if (res) {
+ 	 	/* this will get a ref on res */
+ 		/* mark it as recovering/migrating and hash it */
+ 		spin_lock(&res->spinlock);
++
++		/*
++		 * Right after dlm spinlock was released, dlm_thread could have
++		 * purged the lockres. Check if lockres got unhashed. If so
++		 * start over.
++		 */
++		if (hlist_unhashed(&res->hash_node)) {
++			spin_unlock(&res->spinlock);
++			dlm_lockres_put(res);
++			goto way_up_top;
++		}
++
++		/* Wait on the resource purge to complete before continuing */
++		if (res->state & DLM_LOCK_RES_DROPPING_REF) {
++			__dlm_wait_on_lockres_flags(res,
++					DLM_LOCK_RES_DROPPING_REF);
++			spin_unlock(&res->spinlock);
++			dlm_lockres_put(res);
++			goto way_up_top;
++		}
++
+ 		if (mres->flags & DLM_MRES_RECOVERY) {
+ 			res->state |= DLM_LOCK_RES_RECOVERING;
+ 		} else {
+-- 
+1.8.4.3
