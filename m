@@ -1,195 +1,102 @@
-From: Joseph Qi <joseph.qi@huawei.com>
-Date: Wed, 9 Dec 2015 14:07:56 +0800
-Subject: [Ocfs2-devel] Buffer read will get starvation in case
- reading/writing the same file from different nodes concurrently
-In-Reply-To: <20151208082622.GA24442@desktop.lab.bej.apac.novell.com>
-References: <5666BD4D020000F900021726@relay2.provo.novell.com>
-	<566654A6.7060308@huawei.com>
-	<20151208045117.GA19932@desktop.lab.bej.apac.novell.com>
-	<56667575.3060000@huawei.com>
-	<20151208082622.GA24442@desktop.lab.bej.apac.novell.com>
-Message-ID: <5667C53C.4090902@huawei.com>
+From: Junxiao Bi <junxiao.bi@oracle.com>
+Date: Wed, 9 Dec 2015 16:08:14 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: dlm: fix deadlock due to nested
+	lock
+In-Reply-To: <1449132603-4918-1-git-send-email-junxiao.bi@oracle.com>
+References: <1449132603-4918-1-git-send-email-junxiao.bi@oracle.com>
+Message-ID: <5667E16E.9020104@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 2015/12/8 16:26, Eric Ren wrote:
-> Hi Joseph,
-> On Tue, Dec 08, 2015 at 02:15:17PM +0800, joseph wrote: 
->> On 2015/12/8 12:51, Eric Ren wrote:
->>> Hi,
->>>
->>> On Tue, Dec 08, 2015 at 11:55:18AM +0800, joseph wrote: 
->>>> Hi Gang,
->>>> Eric and I have discussed this case before.
->>>> Using NONBLOCK here is because there is a lock inversion between inode
->>>> lock and page lock. You can refer to the comments of
->>>> ocfs2_inode_lock_with_page for details.
->>>> Actually I have found that NONBLOCK mode is only used in lock inversion
->>>> cases.
->>> Yes, that comments can helps;-) I try to explain it, if any problem please correct me.
->>>
->>> On node 1, when calling ocfs2_inode_lock_with_page(), thread A(likely doing reading) has
->>> loced this page. Before thread A stepping into ocfs2_inode_lock_full(), on node 2, thread B(doing
->>> writing) required EX lock on the same inode, if lockres->l_level is PR, so lockres needs to
->>> been downconverted PR->NL on node1, i.e. ocfs2_blocking_ast()->ocfs2_wake_downconvert_thread().
->>>
->>> On node 1, if tread ocfs2dc proceeds like this:
->>> ocfs2_downconvert_thread()
->>>  ocfs2_downconvert_thread_do_work()
->>>   ocfs2_process_blocked_lock()
->>>    ocfs2_unblock_lock()
->>>     lockres->l_ops->downconvert_worker(lockres, blocking)
->>>       ocfs2_data_convert_worker() {
->>>         ...
->>>         3557         if (blocking == DLM_LOCK_EX) {
->>>         3558                 truncate_inode_pages(mapping, 0);
->>>         3559         } else {
->>>         3560                 /* We only need to wait on the I/O if we're not also
->>>         3561                  * truncating pages because truncate_inode_pages waits
->>>         3562                  * for us above. We don't truncate pages if we're
->>>         3563                  * blocking anything < EXMODE because we want to keep
->>>         3564                  * them around in that case. */
->>>         3565                 filemap_fdatawait(mapping);
->>>         3566         }
->>>         ...
->>>       }
->>> We can see truncate_inode_pages()
->>>             truncate_inode_pages_range()
->>>               trylock_page()/lock_page()/find_lock_page()
->>>
->>> if thread A call ocfs2_inode_lock_full() in BLOCK way, there's a window that flag
->>> OCFS2_LOCK_BLOCED and ->l_blocking=EX have been set by BAST like ocfs2_blocking_ast()->
->>> ocfs2_generic_handle_bast(), so thread A may be blocked.
->>>
->>> Now, ocfs2dc wants page lock, but thread A hold page lock and has been blocked because of
->>> thread B. Deadlock occurs, right? Again, please correct me if any.
->> Yes, you are right.
->>>
->>> So, the author had to use UNBLOCK way here thus create livelock problem. But, I cannot understand
->>> very clearly how livelock come up. Joseph or anyone else, could you please elaborate it?
->> Firstly it takes inode lock in NONBLOCK way, if it couldn't be fulfilled
->> currently and returns -EAGAIN, then unlock page and make downconvert go
->> on. This is to release the deadlock.
->> But we do have to take page lock and inode lock to safely accomplish the
->> request. So it has to return to VFS and retry with page lock. Here
->> taking inode lock and then unlocking it immediately in BLOCK way wants
-> Thanks! But unfortunately in our case, it oftern takes long time waiting here 
-> for inode lock, for some reasons I don't know yet. This is likely the cause why
-> ocfs2_readpage() takes long.
-One time takes long time or retry many times? The former may be because
-downconvert take too much time, or there are many requests ahead of this
-node. And the latter may be this node still fails the race when retry.
-
-> 
-> I really want to know why to lock & unlock inode here? I'm glad you mention the reason,
-> but is it the only one?
->> to cache the inode and increase the chance of the next retry. But if
-> Any reason to cache the inode? And how this can increase the chance of retry? 
-> It's really interesting... Please elaborate more;-)
-IMO? this is because unlock is not truly unlock. This node retry is
-somewhat 'local' operation, and another node has to send messages, so
-this node has more chance to win the race.
+Please drop this patch, I will send V2 later to avoid a possible
+starvation issue.
 
 Thanks,
-Joseph
+Junxiao.
+On 12/03/2015 04:50 PM, Junxiao Bi wrote:
+> DLM allows nested cluster locking. One node X can acquire a cluster lock
+> two times before release it. But between these two acquiring, if another
+> node Y asks for the same lock and is blocked, then a bast will be sent to
+> node X and OCFS2_LOCK_BLOCKED will be set in that lock's lockres. In this
+> case, the second acquiring of that lock in node X will cause a deadlock.
+> Not block for nested locking can fix this.
 > 
-> Thanks,
-> Eric
->> another node successfully takes the inode lock again immediately after
->> this node unlocks inode, the flow you described above happens again and
->> this node still couldn't be fulfilled. And so forth.
->>
->>>
->>> Thanks,
->>> Eric
->>>
->>>>
->>>> Thanks,
->>>> Joseph
->>>>
->>>> On 2015/12/8 11:21, Gang He wrote:
->>>>> Hello Guys,
->>>>>
->>>>> There is a issue from the customer, who is complaining that buffer reading sometimes lasts too much time ( 1 - 10 seconds) in case reading/writing the same file from different nodes concurrently.
->>>>> According to the demo code from the customer, we also can reproduce this issue at home (run the test program under SLES11SP4 OCFS2 cluster), actually this issue can be reproduced in openSuSe 13.2 (more newer code), but in direct-io mode, this issue will disappear.
->>>>> Base on my investigation, the root cause is the buffer-io using cluster-lock is different from direct-io, I do not know why buffer-io use cluster-lock like this way.
->>>>> the code details are as below,
->>>>> in aops.c file,
->>>>>  281 static int ocfs2_readpage(struct file *file, struct page *page)
->>>>>  282 {
->>>>>  283         struct inode *inode = page->mapping->host;
->>>>>  284         struct ocfs2_inode_info *oi = OCFS2_I(inode);
->>>>>  285         loff_t start = (loff_t)page->index << PAGE_CACHE_SHIFT;
->>>>>  286         int ret, unlock = 1;
->>>>>  287
->>>>>  288         trace_ocfs2_readpage((unsigned long long)oi->ip_blkno,
->>>>>  289                              (page ? page->index : 0));
->>>>>  290
->>>>>  291         ret = ocfs2_inode_lock_with_page(inode, NULL, 0, page);  <<== this line
->>>>>  292         if (ret != 0) {
->>>>>  293                 if (ret == AOP_TRUNCATED_PAGE)
->>>>>  294                         unlock = 0;
->>>>>  295                 mlog_errno(ret);
->>>>>  296                 goto out;
->>>>>  297         } 
->>>>>  
->>>>> in dlmglue.c file,
->>>>> 2 int ocfs2_inode_lock_with_page(struct inode *inode,
->>>>> 2443                               struct buffer_head **ret_bh,
->>>>> 2444                               int ex,
->>>>> 2445                               struct page *page)
->>>>> 2446 {
->>>>> 2447         int ret;
->>>>> 2448
->>>>> 2449         ret = ocfs2_inode_lock_full(inode, ret_bh, ex, OCFS2_LOCK_NONBLOCK); <<== there, why using NONBLOCK mode to get the cluster lock? this way will let reading IO get starvation. 
->>>>> 2450         if (ret == -EAGAIN) {
->>>>> 2451                 unlock_page(page);
->>>>> 2452                 if (ocfs2_inode_lock(inode, ret_bh, ex) == 0)
->>>>> 2453                         ocfs2_inode_unlock(inode, ex);
->>>>> 2454                 ret = AOP_TRUNCATED_PAGE;
->>>>> 2455         }
->>>>> 2456
->>>>> 2457         return ret;
->>>>> 2458 }
->>>>>
->>>>> If you know the background behind the code, please tell us, why not use block way to get the lock in reading a page, then reading IO will get the page fairly when there is a concurrent writing IO from the other node.
->>>>> Second, I tried to modify that line from OCFS2_LOCK_NONBLOCK to 0 (switch to blocking way), the reading IO will not be blocked too much time (can erase the customer's complaining), but a new problem arises, sometimes the reading IO and writing IO get a dead lock (why dead lock? I am looking at). 
->>>>>
->>>>>
->>>>> Thanks
->>>>> Gang  
->>>>>
->>>>>
->>>>>
->>>>> .
->>>>>
->>>>
->>>>
->>>>
->>>> _______________________________________________
->>>> Ocfs2-devel mailing list
->>>> Ocfs2-devel at oss.oracle.com
->>>> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
->>>>
->>>
->>> _______________________________________________
->>> Ocfs2-devel mailing list
->>> Ocfs2-devel at oss.oracle.com
->>> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
->>>
->>> .
->>>
->>
->>
->>
+> Use ocfs2-test multiple reflink test can reproduce this on v4.3 kernel,
+> the whole cluster hung, and get the following call trace.
 > 
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+>  INFO: task multi_reflink_t:10118 blocked for more than 120 seconds.
+>        Tainted: G           OE   4.3.0 #1
+>  "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+>  multi_reflink_t D ffff88003e816980     0 10118  10117 0x00000080
+>   ffff880005b735f8 0000000000000082 ffffffff81a25500 ffff88003e750000
+>   ffff880005b735c8 ffffffff8117992f ffffea0000929f80 ffff88003e816980
+>   7fffffffffffffff 0000000000000000 0000000000000001 ffffea0000929f80
+>  Call Trace:
+>   [<ffffffff8117992f>] ? find_get_entry+0x2f/0xc0
+>   [<ffffffff816a68fe>] schedule+0x3e/0x80
+>   [<ffffffff816a9358>] schedule_timeout+0x1c8/0x220
+>   [<ffffffffa067eee4>] ? ocfs2_inode_cache_unlock+0x14/0x20 [ocfs2]
+>   [<ffffffffa06bb1e9>] ? ocfs2_metadata_cache_unlock+0x19/0x30 [ocfs2]
+>   [<ffffffffa06bb399>] ? ocfs2_buffer_cached+0x99/0x170 [ocfs2]
+>   [<ffffffffa067eee4>] ? ocfs2_inode_cache_unlock+0x14/0x20 [ocfs2]
+>   [<ffffffffa06bb1e9>] ? ocfs2_metadata_cache_unlock+0x19/0x30 [ocfs2]
+>   [<ffffffff810c5f41>] ? __raw_callee_save___pv_queued_spin_unlock+0x11/0x20
+>   [<ffffffff816a78ae>] wait_for_completion+0xde/0x110
+>   [<ffffffff810a81b0>] ? try_to_wake_up+0x240/0x240
+>   [<ffffffffa066f65d>] __ocfs2_cluster_lock+0x20d/0x720 [ocfs2]
+>   [<ffffffff810c5f41>] ? __raw_callee_save___pv_queued_spin_unlock+0x11/0x20
+>   [<ffffffffa0674841>] ocfs2_inode_lock_full_nested+0x181/0x400 [ocfs2]
+>   [<ffffffffa06d0db3>] ? ocfs2_iop_get_acl+0x53/0x113 [ocfs2]
+>   [<ffffffff81210cd2>] ? igrab+0x42/0x70
+>   [<ffffffffa06d0db3>] ocfs2_iop_get_acl+0x53/0x113 [ocfs2]
+>   [<ffffffff81254583>] get_acl+0x53/0x70
+>   [<ffffffff81254923>] posix_acl_create+0x73/0x130
+>   [<ffffffffa068f0bf>] ocfs2_mknod+0x7cf/0x1140 [ocfs2]
+>   [<ffffffffa068fba2>] ocfs2_create+0x62/0x110 [ocfs2]
+>   [<ffffffff8120be25>] ? __d_alloc+0x65/0x190
+>   [<ffffffff81201b3e>] ? __inode_permission+0x4e/0xd0
+>   [<ffffffff81202cf5>] vfs_create+0xd5/0x100
+>   [<ffffffff812009ed>] ? lookup_real+0x1d/0x60
+>   [<ffffffff81203a03>] lookup_open+0x173/0x1a0
+>   [<ffffffff810c59c6>] ? percpu_down_read+0x16/0x70
+>   [<ffffffff81205fea>] do_last+0x31a/0x830
+>   [<ffffffff81201b3e>] ? __inode_permission+0x4e/0xd0
+>   [<ffffffff81201bd8>] ? inode_permission+0x18/0x50
+>   [<ffffffff812046b0>] ? link_path_walk+0x290/0x550
+>   [<ffffffff8120657c>] path_openat+0x7c/0x140
+>   [<ffffffff812066c5>] do_filp_open+0x85/0xe0
+>   [<ffffffff8120190f>] ? getname_flags+0x7f/0x1f0
+>   [<ffffffff811f613a>] do_sys_open+0x11a/0x220
+>   [<ffffffff8100374b>] ? syscall_trace_enter_phase1+0x15b/0x170
+>   [<ffffffff811f627e>] SyS_open+0x1e/0x20
+>   [<ffffffff816aa2ae>] entry_SYSCALL_64_fastpath+0x12/0x71
 > 
-> .
+> commit 743b5f1434f5 ("ocfs2: take inode lock in ocfs2_iop_set/get_acl()")
+> add a nested locking to ocfs2_mknod() which exports this deadlock, but
+> indeed this is a common issue, it can be triggered in other place.
+> 
+> Cc: <stable@vger.kernel.org>
+> Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
+> ---
+>  fs/ocfs2/dlmglue.c |    4 +++-
+>  1 file changed, 3 insertions(+), 1 deletion(-)
+> 
+> diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
+> index 1c91103..5b7d9d4 100644
+> --- a/fs/ocfs2/dlmglue.c
+> +++ b/fs/ocfs2/dlmglue.c
+> @@ -1295,7 +1295,9 @@ static inline int ocfs2_may_continue_on_blocked_lock(struct ocfs2_lock_res *lock
+>  {
+>  	BUG_ON(!(lockres->l_flags & OCFS2_LOCK_BLOCKED));
+>  
+> -	return wanted <= ocfs2_highest_compat_lock_level(lockres->l_blocking);
+> +	/* allow nested lock request go to avoid deadlock. */
+> +	return wanted <= ocfs2_highest_compat_lock_level(lockres->l_blocking)
+> +		|| lockres->l_ro_holders || lockres->l_ex_holders;
+>  }
+>  
+>  static void ocfs2_init_mask_waiter(struct ocfs2_mask_waiter *mw)
 > 
