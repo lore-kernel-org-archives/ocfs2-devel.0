@@ -1,207 +1,142 @@
-From: Eric Ren <zren@suse.com>
-Date: Thu, 10 Dec 2015 14:31:26 +0800
-Subject: [Ocfs2-devel] Buffer read will get starvation in case
- reading/writing the same file from different nodes concurrently
-In-Reply-To: <5667C53C.4090902@huawei.com>
-References: <5666BD4D020000F900021726@relay2.provo.novell.com>
-	<566654A6.7060308@huawei.com>
-	<20151208045117.GA19932@desktop.lab.bej.apac.novell.com>
-	<56667575.3060000@huawei.com>
-	<20151208082622.GA24442@desktop.lab.bej.apac.novell.com>
-	<5667C53C.4090902@huawei.com>
-Message-ID: <20151210063126.GA7231@desktop.lab.bej.apac.novell.com>
+From: Joseph Qi <joseph.qi@huawei.com>
+Date: Thu, 10 Dec 2015 15:54:03 +0800
+Subject: [Ocfs2-devel] [PATCH 0/8] ocfs2: fix ocfs2 direct io code patch
+ to support sparse file and data ordering semantics
+In-Reply-To: <561B5474.6060104@oracle.com>
+References: <1441959559-29947-1-git-send-email-ryan.ding@oracle.com>
+	<5609148B.6040506@huawei.com> <5615DF35.3030802@oracle.com>
+	<561609A0.5010108@huawei.com> <561B5474.6060104@oracle.com>
+Message-ID: <56692F9B.4040701@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Joseph,
+Hi Ryan,
 
-On Wed, Dec 09, 2015 at 02:07:56PM +0800, joseph wrote: 
-> On 2015/12/8 16:26, Eric Ren wrote:
-> > Hi Joseph,
-> > On Tue, Dec 08, 2015 at 02:15:17PM +0800, joseph wrote: 
-> >> On 2015/12/8 12:51, Eric Ren wrote:
-> >>> Hi,
-> >>>
-> >>> On Tue, Dec 08, 2015 at 11:55:18AM +0800, joseph wrote: 
-> >>>> Hi Gang,
-> >>>> Eric and I have discussed this case before.
-> >>>> Using NONBLOCK here is because there is a lock inversion between inode
-> >>>> lock and page lock. You can refer to the comments of
-> >>>> ocfs2_inode_lock_with_page for details.
-> >>>> Actually I have found that NONBLOCK mode is only used in lock inversion
-> >>>> cases.
-> >>> Yes, that comments can helps;-) I try to explain it, if any problem please correct me.
-> >>>
-> >>> On node 1, when calling ocfs2_inode_lock_with_page(), thread A(likely doing reading) has
-> >>> loced this page. Before thread A stepping into ocfs2_inode_lock_full(), on node 2, thread B(doing
-> >>> writing) required EX lock on the same inode, if lockres->l_level is PR, so lockres needs to
-> >>> been downconverted PR->NL on node1, i.e. ocfs2_blocking_ast()->ocfs2_wake_downconvert_thread().
-> >>>
-> >>> On node 1, if tread ocfs2dc proceeds like this:
-> >>> ocfs2_downconvert_thread()
-> >>>  ocfs2_downconvert_thread_do_work()
-> >>>   ocfs2_process_blocked_lock()
-> >>>    ocfs2_unblock_lock()
-> >>>     lockres->l_ops->downconvert_worker(lockres, blocking)
-> >>>       ocfs2_data_convert_worker() {
-> >>>         ...
-> >>>         3557         if (blocking == DLM_LOCK_EX) {
-> >>>         3558                 truncate_inode_pages(mapping, 0);
-> >>>         3559         } else {
-> >>>         3560                 /* We only need to wait on the I/O if we're not also
-> >>>         3561                  * truncating pages because truncate_inode_pages waits
-> >>>         3562                  * for us above. We don't truncate pages if we're
-> >>>         3563                  * blocking anything < EXMODE because we want to keep
-> >>>         3564                  * them around in that case. */
-> >>>         3565                 filemap_fdatawait(mapping);
-> >>>         3566         }
-> >>>         ...
-> >>>       }
-> >>> We can see truncate_inode_pages()
-> >>>             truncate_inode_pages_range()
-> >>>               trylock_page()/lock_page()/find_lock_page()
-> >>>
-> >>> if thread A call ocfs2_inode_lock_full() in BLOCK way, there's a window that flag
-> >>> OCFS2_LOCK_BLOCED and ->l_blocking=EX have been set by BAST like ocfs2_blocking_ast()->
-> >>> ocfs2_generic_handle_bast(), so thread A may be blocked.
-> >>>
-> >>> Now, ocfs2dc wants page lock, but thread A hold page lock and has been blocked because of
-> >>> thread B. Deadlock occurs, right? Again, please correct me if any.
-> >> Yes, you are right.
-> >>>
-> >>> So, the author had to use UNBLOCK way here thus create livelock problem. But, I cannot understand
-> >>> very clearly how livelock come up. Joseph or anyone else, could you please elaborate it?
-> >> Firstly it takes inode lock in NONBLOCK way, if it couldn't be fulfilled
-> >> currently and returns -EAGAIN, then unlock page and make downconvert go
-> >> on. This is to release the deadlock.
-> >> But we do have to take page lock and inode lock to safely accomplish the
-> >> request. So it has to return to VFS and retry with page lock. Here
-> >> taking inode lock and then unlocking it immediately in BLOCK way wants
-> > Thanks! But unfortunately in our case, it oftern takes long time waiting here 
-> > for inode lock, for some reasons I don't know yet. This is likely the cause why
-> > ocfs2_readpage() takes long.
-> One time takes long time or retry many times? The former may be because
-One time takes long time, that's observed by ftrace ;-)
-> downconvert take too much time, or there are many requests ahead of this
-> node. And the latter may be this node still fails the race when retry.
-Thanks very much for your info!
+On 2015/10/12 14:34, Ryan Ding wrote:
+> Hi Joseph,
 > 
-> > 
-> > I really want to know why to lock & unlock inode here? I'm glad you mention the reason,
-> > but is it the only one?
-> >> to cache the inode and increase the chance of the next retry. But if
-> > Any reason to cache the inode? And how this can increase the chance of retry? 
-> > It's really interesting... Please elaborate more;-)
-> IMO? this is because unlock is not truly unlock. This node retry is
-> somewhat 'local' operation, and another node has to send messages, so
-> this node has more chance to win the race.
-Sounds reasonable, thanks!
+> On 10/08/2015 02:13 PM, Joseph Qi wrote:
+>> Hi Ryan,
+>>
+>> On 2015/10/8 11:12, Ryan Ding wrote:
+>>> Hi Joseph,
+>>>
+>>> On 09/28/2015 06:20 PM, Joseph Qi wrote:
+>>>> Hi Ryan,
+>>>> I have gone through this patch set and done a simple performance test
+>>>> using direct dd, it indeed brings much performance promotion.
+>>>>            Before      After
+>>>> bs=4K    1.4 MB/s    5.0 MB/s
+>>>> bs=256k  40.5 MB/s   56.3 MB/s
+>>>>
+>>>> My questions are:
+>>>> 1) You solution is still using orphan dir to keep inode and allocation
+>>>> consistency, am I right? From our test, it is the most complicated part
+>>>> and has many race cases to be taken consideration. So I wonder if this
+>>>> can be restructured.
+>>> I have not got a better idea to do this. I think the only reason why direct io using orphan is to prevent space lost when system crash during append direct write. But maybe a 'fsck -f' will do that job. Is it necessary to use orphan?
+>> The idea is taken from ext4, but since ocfs2 is cluster filesystem, so
+>> it is much more complicated than ext4.
+>> And fsck can only be used offline, but using orphan is to perform
+>> recovering online. So I don't think fsck can replace it in all cases.
+>>
+>>>> 2) Rather than using normal block direct io, you introduce a way to use
+>>>> write begin/end in buffer io. IMO, if it wants to perform like direct
+>>>> io, it should be committed to disk by forcing committing journal. But
+>>>> journal committing will consume much time. Why does it bring performance
+>>>> promotion instead?
+>>> I use buffer io to write only the zero pages. Actual data payload is written as direct io. I think there is no need to do a force commit. Because direct means "Try to minimize cache effects of the I/O to and from this file.", it does not means "write all data & meta data to disk before write return".
+I think we cannot mix zero pages with direct io here, which will lead
+to direct io data to be overwritten by zero pages.
+For example, a ocfs2 volume with block size 4K and cluster size 4K.
+Firstly I create a file with size of 5K and it will be allocated 2
+clusters (8K) and the last 3K without zeroed (no need at this time).
+Then I seek to offset 9K and do direct write 1K, then back to 4K and do
+direct write 5K. Here we have to zero allocated space to avoid dirty
+data. But since direct write data goes to disk directly and zero pages
+depends on journal commit, so direct write data will be overwritten and
+file corrupts.
 
- Eric
+>> So this is protected by "UNWRITTEN" flag, right?
+>>
+>>>> 3) Do you have a test in case of lack of memory?
+>>> I tested it in a system with 2GB memory. Is that enough?
+>> What I mean is doing many direct io jobs in case system free memory is
+>> low.
+> I understand what you mean, but did not find a better way to test it. Since if free memory is too low, even the process can not be started. If free memory is fairlyenough, the test has no meaning.
+> So I try to collect the memory usage during io, and do a comparison test with buffer io. The result is:
+> 1. start 100 dd to do 4KB direct write:
+> [root at hnode3 ~]# cat /proc/meminfo | grep -E "^Cached|^Dirty|^MemFree|^MemTotal|^Buffers|^Writeback:"
+> MemTotal:        2809788 kB
+> MemFree:           21824 kB
+> Buffers:           55176 kB
+> Cached:          2513968 kB
+> Dirty:               412 kB
+> Writeback:            36 kB
+> 
+> 2. start 100 dd to do 4KB buffer write:
+> [root at hnode3 ~]# cat /proc/meminfo | grep -E "^Cached|^Dirty|^MemFree|^MemTotal|^Buffers|^Writeback:"
+> MemTotal:        2809788 kB
+> MemFree:           22476 kB
+> Buffers:           15696 kB
+> Cached:          2544892 kB
+> Dirty:            320136 kB
+> Writeback:        146404 kB
+> 
+> You can see from the 'Dirty' and 'Writeback' field that there is not so much memory used as buffer io. So I think what you concern is no longer exist. :-)
 > 
 > Thanks,
-> Joseph
-> > 
-> > Thanks,
-> > Eric
-> >> another node successfully takes the inode lock again immediately after
-> >> this node unlocks inode, the flow you described above happens again and
-> >> this node still couldn't be fulfilled. And so forth.
-> >>
-> >>>
-> >>> Thanks,
-> >>> Eric
-> >>>
-> >>>>
-> >>>> Thanks,
-> >>>> Joseph
-> >>>>
-> >>>> On 2015/12/8 11:21, Gang He wrote:
-> >>>>> Hello Guys,
-> >>>>>
-> >>>>> There is a issue from the customer, who is complaining that buffer reading sometimes lasts too much time ( 1 - 10 seconds) in case reading/writing the same file from different nodes concurrently.
-> >>>>> According to the demo code from the customer, we also can reproduce this issue at home (run the test program under SLES11SP4 OCFS2 cluster), actually this issue can be reproduced in openSuSe 13.2 (more newer code), but in direct-io mode, this issue will disappear.
-> >>>>> Base on my investigation, the root cause is the buffer-io using cluster-lock is different from direct-io, I do not know why buffer-io use cluster-lock like this way.
-> >>>>> the code details are as below,
-> >>>>> in aops.c file,
-> >>>>>  281 static int ocfs2_readpage(struct file *file, struct page *page)
-> >>>>>  282 {
-> >>>>>  283         struct inode *inode = page->mapping->host;
-> >>>>>  284         struct ocfs2_inode_info *oi = OCFS2_I(inode);
-> >>>>>  285         loff_t start = (loff_t)page->index << PAGE_CACHE_SHIFT;
-> >>>>>  286         int ret, unlock = 1;
-> >>>>>  287
-> >>>>>  288         trace_ocfs2_readpage((unsigned long long)oi->ip_blkno,
-> >>>>>  289                              (page ? page->index : 0));
-> >>>>>  290
-> >>>>>  291         ret = ocfs2_inode_lock_with_page(inode, NULL, 0, page);  <<== this line
-> >>>>>  292         if (ret != 0) {
-> >>>>>  293                 if (ret == AOP_TRUNCATED_PAGE)
-> >>>>>  294                         unlock = 0;
-> >>>>>  295                 mlog_errno(ret);
-> >>>>>  296                 goto out;
-> >>>>>  297         } 
-> >>>>>  
-> >>>>> in dlmglue.c file,
-> >>>>> 2 int ocfs2_inode_lock_with_page(struct inode *inode,
-> >>>>> 2443                               struct buffer_head **ret_bh,
-> >>>>> 2444                               int ex,
-> >>>>> 2445                               struct page *page)
-> >>>>> 2446 {
-> >>>>> 2447         int ret;
-> >>>>> 2448
-> >>>>> 2449         ret = ocfs2_inode_lock_full(inode, ret_bh, ex, OCFS2_LOCK_NONBLOCK); <<== there, why using NONBLOCK mode to get the cluster lock? this way will let reading IO get starvation. 
-> >>>>> 2450         if (ret == -EAGAIN) {
-> >>>>> 2451                 unlock_page(page);
-> >>>>> 2452                 if (ocfs2_inode_lock(inode, ret_bh, ex) == 0)
-> >>>>> 2453                         ocfs2_inode_unlock(inode, ex);
-> >>>>> 2454                 ret = AOP_TRUNCATED_PAGE;
-> >>>>> 2455         }
-> >>>>> 2456
-> >>>>> 2457         return ret;
-> >>>>> 2458 }
-> >>>>>
-> >>>>> If you know the background behind the code, please tell us, why not use block way to get the lock in reading a page, then reading IO will get the page fairly when there is a concurrent writing IO from the other node.
-> >>>>> Second, I tried to modify that line from OCFS2_LOCK_NONBLOCK to 0 (switch to blocking way), the reading IO will not be blocked too much time (can erase the customer's complaining), but a new problem arises, sometimes the reading IO and writing IO get a dead lock (why dead lock? I am looking at). 
-> >>>>>
-> >>>>>
-> >>>>> Thanks
-> >>>>> Gang  
-> >>>>>
-> >>>>>
-> >>>>>
-> >>>>> .
-> >>>>>
-> >>>>
-> >>>>
-> >>>>
-> >>>> _______________________________________________
-> >>>> Ocfs2-devel mailing list
-> >>>> Ocfs2-devel at oss.oracle.com
-> >>>> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
-> >>>>
-> >>>
-> >>> _______________________________________________
-> >>> Ocfs2-devel mailing list
-> >>> Ocfs2-devel at oss.oracle.com
-> >>> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
-> >>>
-> >>> .
-> >>>
-> >>
-> >>
-> >>
-> > 
-> > _______________________________________________
-> > Ocfs2-devel mailing list
-> > Ocfs2-devel at oss.oracle.com
-> > https://oss.oracle.com/mailman/listinfo/ocfs2-devel
-> > 
-> > .
-> > 
+> Ryan
+>>
+>> Thanks,
+>> Joesph
+>>
+>>> Thanks,
+>>> Ryan
+>>>> On 2015/9/11 16:19, Ryan Ding wrote:
+>>>>> The idea is to use buffer io(more precisely use the interface
+>>>>> ocfs2_write_begin_nolock & ocfs2_write_end_nolock) to do the zero work beyond
+>>>>> block size. And clear UNWRITTEN flag until direct io data has been written to
+>>>>> disk, which can prevent data corruption when system crashed during direct write.
+>>>>>
+>>>>> And we will also archive a better performance:
+>>>>> eg. dd direct write new file with block size 4KB:
+>>>>> before this patch:
+>>>>> 2.5 MB/s
+>>>>> after this patch:
+>>>>> 66.4 MB/s
+>>>>>
+>>>>> ----------------------------------------------------------------
+>>>>> Ryan Ding (8):
+>>>>>         ocfs2: add ocfs2_write_type_t type to identify the caller of write
+>>>>>         ocfs2: use c_new to indicate newly allocated extents
+>>>>>         ocfs2: test target page before change it
+>>>>>         ocfs2: do not change i_size in write_end for direct io
+>>>>>         ocfs2: return the physical address in ocfs2_write_cluster
+>>>>>         ocfs2: record UNWRITTEN extents when populate write desc
+>>>>>         ocfs2: fix sparse file & data ordering issue in direct io.
+>>>>>         ocfs2: code clean up for direct io
+>>>>>
+>>>>>    fs/ocfs2/aops.c        | 1118 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++------------------------------------------------------------------------------------------
+>>>>>    fs/ocfs2/aops.h        |   11 +-
+>>>>>    fs/ocfs2/file.c        |  138 +---------------------
+>>>>>    fs/ocfs2/inode.c       |    3 +
+>>>>>    fs/ocfs2/inode.h       |    3 +
+>>>>>    fs/ocfs2/mmap.c        |    4 +-
+>>>>>    fs/ocfs2/ocfs2_trace.h |   16 +--
+>>>>>    fs/ocfs2/super.c       |    1 +
+>>>>>    8 files changed, 568 insertions(+), 726 deletions(-)
+>>>>>
+>>>>> .
+>>>>>
+>>>
+>>> .
+>>>
+>>
 > 
 > 
+> .
 > 
