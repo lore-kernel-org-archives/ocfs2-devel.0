@@ -1,35 +1,81 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Date: Thu, 10 Dec 2015 14:02:40 -0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: fix SGID not inherited issue
-In-Reply-To: <566791C1.6050407@oracle.com>
-References: <1449461346-21864-1-git-send-email-junxiao.bi@oracle.com>
-	<20151208132215.6efe510a3868e57c9ca2f87a@linux-foundation.org>
-	<566791C1.6050407@oracle.com>
-Message-ID: <20151210140240.e38f0f569e4ea7d1911b1055@linux-foundation.org>
+From: Xue jiufei <xuejiufei@huawei.com>
+Date: Fri, 11 Dec 2015 11:09:33 +0800
+Subject: [Ocfs2-devel] [PATCH V2] ocfs2/dlm: fix a race between purge and
+	migration
+Message-ID: <566A3E6D.8050009@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Wed, 9 Dec 2015 10:28:17 +0800 Junxiao Bi <junxiao.bi@oracle.com> wrote:
+We found a race between purge and migration when doing code review.  Node
+A put lockres to purgelist before receiving the migrate message from node
+B which is the master. Node A call dlm_mig_lockres_handler to handle
+this message.
 
-> Hi Andrew,
-> 
-> On 12/09/2015 05:22 AM, Andrew Morton wrote:
-> > On Mon,  7 Dec 2015 12:09:06 +0800 Junxiao Bi <junxiao.bi@oracle.com> wrote:
-> > 
-> >> commit 8f1eb48758aa ("ocfs2: fix umask ignored issue") introduced an issue,
-> >> SGID of sub dir was not inherited from its parents dir. It is because SGID
-> >> is set into "inode->i_mode" in ocfs2_get_init_inode(), but is overwritten
-> >> by "mode" which don't have SGID set later.
-> >>
-> >> Fixes: 8f1eb48758aa ("ocfs2: fix umask ignored issue")
-> >> Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
-> >> Cc: <stable@vger.kernel.org>
-> > 
-> > 8f1eb48758aa is only in 4.4-rcX so I removed the cc:stable.
-> If 8f1eb48758aa is merged into stable, but this patch not, there will be
-> a regression issue in stable branch?
+dlm_mig_lockres_handler
+  dlm_lookup_lockres
+  >>>>>> race window, dlm_run_purge_list may run and send
+         deref message to master, waiting the response
+  spin_lock(&res->spinlock);
+  res->state |= DLM_LOCK_RES_MIGRATING;
+  spin_unlock(&res->spinlock);
+  dlm_mig_lockres_handler returns
 
-Ah, yes, right you are, thanks.
+  >>>>>> dlm_thread receives the response from master for the deref
+  message and triggers the BUG because the lockres has the state
+  DLM_LOCK_RES_MIGRATING with the following message:
+
+dlm_purge_lockres:209 ERROR: 6633EB681FA7474A9C280A4E1A836F0F:
+res M0000000000000000030c0300000000 in use after deref
+
+Signed-off-by: Jiufei Xue <xuejiufei@huawei.com>
+Reviewed-by: Joseph Qi <joseph.qi@huawei.com>
+---
+ fs/ocfs2/dlm/dlmrecovery.c | 9 ++++++++-
+ 1 file changed, 8 insertions(+), 1 deletion(-)
+
+diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
+index 58eaa5c..4055909 100644
+--- a/fs/ocfs2/dlm/dlmrecovery.c
++++ b/fs/ocfs2/dlm/dlmrecovery.c
+@@ -1373,6 +1373,7 @@ int dlm_mig_lockres_handler(struct o2net_msg *msg, u32 len, void *data,
+ 	char *buf = NULL;
+ 	struct dlm_work_item *item = NULL;
+ 	struct dlm_lock_resource *res = NULL;
++	unsigned int hash;
+ 
+ 	if (!dlm_grab(dlm))
+ 		return -EINVAL;
+@@ -1400,7 +1401,10 @@ int dlm_mig_lockres_handler(struct o2net_msg *msg, u32 len, void *data,
+ 	/* lookup the lock to see if we have a secondary queue for this
+ 	 * already...  just add the locks in and this will have its owner
+ 	 * and RECOVERY flag changed when it completes. */
+-	res = dlm_lookup_lockres(dlm, mres->lockname, mres->lockname_len);
++	hash = dlm_lockid_hash(mres->lockname, mres->lockname_len);
++	spin_lock(&dlm->spinlock);
++	res = __dlm_lookup_lockres(dlm, mres->lockname, mres->lockname_len,
++			hash);
+ 	if (res) {
+ 	 	/* this will get a ref on res */
+ 		/* mark it as recovering/migrating and hash it */
+@@ -1421,13 +1425,16 @@ int dlm_mig_lockres_handler(struct o2net_msg *msg, u32 len, void *data,
+ 				     mres->lockname_len, mres->lockname);
+ 				ret = -EFAULT;
+ 				spin_unlock(&res->spinlock);
++				spin_unlock(&dlm->spinlock);
+ 				dlm_lockres_put(res);
+ 				goto leave;
+ 			}
+ 			res->state |= DLM_LOCK_RES_MIGRATING;
+ 		}
+ 		spin_unlock(&res->spinlock);
++		spin_unlock(&dlm->spinlock);
+ 	} else {
++		spin_unlock(&dlm->spinlock);
+ 		/* need to allocate, just like if it was
+ 		 * mastered here normally  */
+ 		res = dlm_new_lockres(dlm, mres->lockname, mres->lockname_len);
+-- 
+1.8.4.3
