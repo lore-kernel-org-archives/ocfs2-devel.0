@@ -1,483 +1,169 @@
-From: Eric Ren <zren@suse.com>
-Date: Mon, 14 Dec 2015 18:14:38 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: dlm: fix recursive locking deadlock
-In-Reply-To: <566E85A2.8030004@oracle.com>
-References: <1450058259-30682-1-git-send-email-junxiao.bi@oracle.com>
-	<20151214084438.GA7837@desktop.lab.bej.apac.novell.com>
-	<566E85A2.8030004@oracle.com>
-Message-ID: <20151214101438.GC7837@desktop.lab.bej.apac.novell.com>
+From: Joseph Qi <joseph.qi@huawei.com>
+Date: Mon, 14 Dec 2015 18:36:23 +0800
+Subject: [Ocfs2-devel] [PATCH 0/8] ocfs2: fix ocfs2 direct io code patch
+ to support sparse file and data ordering semantics
+In-Reply-To: <566E542B.4060605@oracle.com>
+References: <1441959559-29947-1-git-send-email-ryan.ding@oracle.com>
+	<5609148B.6040506@huawei.com> <5615DF35.3030802@oracle.com>
+	<561609A0.5010108@huawei.com> <561B5474.6060104@oracle.com>
+	<56692F9B.4040701@huawei.com> <56693C4D.8070104@oracle.com>
+	<566955C2.4020302@huawei.com> <566E542B.4060605@oracle.com>
+Message-ID: <566E9BA7.5040609@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi,
+Hi Ryan,
 
-On Mon, Dec 14, 2015 at 05:02:26PM +0800, Junxiao Bi wrote: 
-> On 12/14/2015 04:44 PM, Eric Ren wrote:
-> > Hi Junxiao,
-> > 
-> > On Mon, Dec 14, 2015 at 09:57:38AM +0800, Junxiao Bi wrote: 
-> >> The following locking order can cause a deadlock.
-> >> Process A on Node X:                 Process B on Node Y:
-> >> lock_XYZ(PR)
-> >>                                      lock_XYZ(EX)
-> >> lock_XYZ(PR) >>> blocked forever by OCFS2_LOCK_BLOCKED.
-> >>
-> >> Use ocfs2-test multiple reflink test can reproduce this on v4.3 kernel,
-> >> the whole cluster hung, and get the following call trace.
-> >>
-> >>  INFO: task multi_reflink_t:10118 blocked for more than 120 seconds.
-> >>        Tainted: G           OE   4.3.0 #1
-> >>  "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
-> >>  multi_reflink_t D ffff88003e816980     0 10118  10117 0x00000080
-> >>   ffff880005b735f8 0000000000000082 ffffffff81a25500 ffff88003e750000
-> >>   ffff880005b735c8 ffffffff8117992f ffffea0000929f80 ffff88003e816980
-> >>   7fffffffffffffff 0000000000000000 0000000000000001 ffffea0000929f80
-> >>  Call Trace:
-> >>   [<ffffffff8117992f>] ? find_get_entry+0x2f/0xc0
-> >>   [<ffffffff816a68fe>] schedule+0x3e/0x80
-> >>   [<ffffffff816a9358>] schedule_timeout+0x1c8/0x220
-> >>   [<ffffffffa067eee4>] ? ocfs2_inode_cache_unlock+0x14/0x20 [ocfs2]
-> >>   [<ffffffffa06bb1e9>] ? ocfs2_metadata_cache_unlock+0x19/0x30 [ocfs2]
-> >>   [<ffffffffa06bb399>] ? ocfs2_buffer_cached+0x99/0x170 [ocfs2]
-> >>   [<ffffffffa067eee4>] ? ocfs2_inode_cache_unlock+0x14/0x20 [ocfs2]
-> >>   [<ffffffffa06bb1e9>] ? ocfs2_metadata_cache_unlock+0x19/0x30 [ocfs2]
-> >>   [<ffffffff810c5f41>] ? __raw_callee_save___pv_queued_spin_unlock+0x11/0x20
-> >>   [<ffffffff816a78ae>] wait_for_completion+0xde/0x110
-> >>   [<ffffffff810a81b0>] ? try_to_wake_up+0x240/0x240
-> >>   [<ffffffffa066f65d>] __ocfs2_cluster_lock+0x20d/0x720 [ocfs2]
-> >>   [<ffffffff810c5f41>] ? __raw_callee_save___pv_queued_spin_unlock+0x11/0x20
-> >>   [<ffffffffa0674841>] ocfs2_inode_lock_full_nested+0x181/0x400 [ocfs2]
-> >>   [<ffffffffa06d0db3>] ? ocfs2_iop_get_acl+0x53/0x113 [ocfs2]
-> >>   [<ffffffff81210cd2>] ? igrab+0x42/0x70
-> >>   [<ffffffffa06d0db3>] ocfs2_iop_get_acl+0x53/0x113 [ocfs2]
-> >>   [<ffffffff81254583>] get_acl+0x53/0x70
-> >>   [<ffffffff81254923>] posix_acl_create+0x73/0x130
-> >>   [<ffffffffa068f0bf>] ocfs2_mknod+0x7cf/0x1140 [ocfs2]
-> >>   [<ffffffffa068fba2>] ocfs2_create+0x62/0x110 [ocfs2]
-> >>   [<ffffffff8120be25>] ? __d_alloc+0x65/0x190
-> >>   [<ffffffff81201b3e>] ? __inode_permission+0x4e/0xd0
-> >>   [<ffffffff81202cf5>] vfs_create+0xd5/0x100
-> >>   [<ffffffff812009ed>] ? lookup_real+0x1d/0x60
-> >>   [<ffffffff81203a03>] lookup_open+0x173/0x1a0
-> >>   [<ffffffff810c59c6>] ? percpu_down_read+0x16/0x70
-> >>   [<ffffffff81205fea>] do_last+0x31a/0x830
-> >>   [<ffffffff81201b3e>] ? __inode_permission+0x4e/0xd0
-> >>   [<ffffffff81201bd8>] ? inode_permission+0x18/0x50
-> >>   [<ffffffff812046b0>] ? link_path_walk+0x290/0x550
-> >>   [<ffffffff8120657c>] path_openat+0x7c/0x140
-> >>   [<ffffffff812066c5>] do_filp_open+0x85/0xe0
-> >>   [<ffffffff8120190f>] ? getname_flags+0x7f/0x1f0
-> >>   [<ffffffff811f613a>] do_sys_open+0x11a/0x220
-> >>   [<ffffffff8100374b>] ? syscall_trace_enter_phase1+0x15b/0x170
-> >>   [<ffffffff811f627e>] SyS_open+0x1e/0x20
-> >>   [<ffffffff816aa2ae>] entry_SYSCALL_64_fastpath+0x12/0x71
-> >>
-> >> commit 743b5f1434f5 ("ocfs2: take inode lock in ocfs2_iop_set/get_acl()")
-> >> add a recursive locking to ocfs2_mknod() which exports this deadlock, but
-> >> indeed this is a common issue, it can be triggered in other place.
-> >>
-> >> Record processes who owned the cluster lock, allow recursive lock to go
-> > Recording process hurts scalability, performace and readability heavily, right?
-> Do you mean searching the l_owner_list of lockres when locking hurting
-> the above?
-Hm, yes.
+On 2015/12/14 13:31, Ryan Ding wrote:
+> Hi Joseph,
 > 
-> >> can fix PR+PR, EX+EX, EX+PR deadlock. But it can't fix the PR+EX deadlock,
-> > Could you please describe why PR+EX is special?
-> Because on the master nodes, the lockres of blocked node Y is in the
-> position before the one of node X from the converting list. So even let
-> Ex go from Node X, still a deadlock.
-Got it, thanks.
+> On 12/10/2015 06:36 PM, Joseph Qi wrote:
+>> Hi Ryan,
+>>
+>> On 2015/12/10 16:48, Ryan Ding wrote:
+>>> Hi Joseph,
+>>>
+>>> Thanks for your comments, please see my reply:
+>>>
+>>> On 12/10/2015 03:54 PM, Joseph Qi wrote:
+>>>> Hi Ryan,
+>>>>
+>>>> On 2015/10/12 14:34, Ryan Ding wrote:
+>>>>> Hi Joseph,
+>>>>>
+>>>>> On 10/08/2015 02:13 PM, Joseph Qi wrote:
+>>>>>> Hi Ryan,
+>>>>>>
+>>>>>> On 2015/10/8 11:12, Ryan Ding wrote:
+>>>>>>> Hi Joseph,
+>>>>>>>
+>>>>>>> On 09/28/2015 06:20 PM, Joseph Qi wrote:
+>>>>>>>> Hi Ryan,
+>>>>>>>> I have gone through this patch set and done a simple performance test
+>>>>>>>> using direct dd, it indeed brings much performance promotion.
+>>>>>>>>              Before      After
+>>>>>>>> bs=4K    1.4 MB/s    5.0 MB/s
+>>>>>>>> bs=256k  40.5 MB/s   56.3 MB/s
+>>>>>>>>
+>>>>>>>> My questions are:
+>>>>>>>> 1) You solution is still using orphan dir to keep inode and allocation
+>>>>>>>> consistency, am I right? From our test, it is the most complicated part
+>>>>>>>> and has many race cases to be taken consideration. So I wonder if this
+>>>>>>>> can be restructured.
+>>>>>>> I have not got a better idea to do this. I think the only reason why direct io using orphan is to prevent space lost when system crash during append direct write. But maybe a 'fsck -f' will do that job. Is it necessary to use orphan?
+>>>>>> The idea is taken from ext4, but since ocfs2 is cluster filesystem, so
+>>>>>> it is much more complicated than ext4.
+>>>>>> And fsck can only be used offline, but using orphan is to perform
+>>>>>> recovering online. So I don't think fsck can replace it in all cases.
+>>>>>>
+>>>>>>>> 2) Rather than using normal block direct io, you introduce a way to use
+>>>>>>>> write begin/end in buffer io. IMO, if it wants to perform like direct
+>>>>>>>> io, it should be committed to disk by forcing committing journal. But
+>>>>>>>> journal committing will consume much time. Why does it bring performance
+>>>>>>>> promotion instead?
+>>>>>>> I use buffer io to write only the zero pages. Actual data payload is written as direct io. I think there is no need to do a force commit. Because direct means "Try to minimize cache effects of the I/O to and from this file.", it does not means "write all data & meta data to disk before write return".
+>>>> I think we cannot mix zero pages with direct io here, which will lead
+>>>> to direct io data to be overwritten by zero pages.
+>>>> For example, a ocfs2 volume with block size 4K and cluster size 4K.
+>>>> Firstly I create a file with size of 5K and it will be allocated 2
+>>>> clusters (8K) and the last 3K without zeroed (no need at this time).
+>>> I think the last 3K will be zeroed no matter you use direct io or buffer io to create the a file with 5K.
+>>>> Then I seek to offset 9K and do direct write 1K, then back to 4K and do
+>>>> direct write 5K. Here we have to zero allocated space to avoid dirty
+>>>> data. But since direct write data goes to disk directly and zero pages
+>>>> depends on journal commit, so direct write data will be overwritten and
+>>>> file corrupts.
+>>> do_blockdev_direct_IO() will zero unwritten area within block size(in this case, 6K~8K), when get_block callback return a map with buffer_new flag. This zero operation is also using direct io.
+>>> So the buffer io zero operation in my design will not work at all in this case.It only works to zero the area beyond block size, but within cluster size. For example, when block size 4KB cluster size 1MB, a 4KB direct write will trigger a zero buffer page of size 1MB-4KB=1020KB.
+>>> I think your question is this zero buffer page will conflict with the later direct io writing to the same area. The truth is conflict will not exist, because before direct write, all conflict buffer page will be flushed to disk first (in __generic_file_write_iter()).
+>> How can it make sure the zero pages to be flushed to disk first? In
+>> ocfs2_direct_IO, it calls ocfs2_dio_get_block which uses write_begin
+>> and write_end, and then __blockdev_direct_IO.
+>> I've backported your patch set to kernel 3.0 and tested with vhd-util,
+>> and the result fails. The test case is below.
+>> 1) create a 1G dynamic vhd file, the actual size is 5K.
+>> # vhd-util create -n test.vhd -s 1024
+>> 2) resize it to 4G, the actual size becomes to 11K
+>> # vhd-util resize -n test.vhd -s 4096 -j test.log
+>> 3) hexdump the data, say hexdump1
+>> 4) umount to commit journal and mount again, and hexdump the data again,
+>> say hexdump2, which is not equal to hexdump1.
+>> I am not sure if there is any relations with kernel version, which
+>> indeed has many differences due to refactoring.
+> I have backported it to kernel 3.8, and run the scripts below (I think it's the same as your test):
+> 
+>     mount /dev/dm-1 /mnt
+>     pushd /mnt/
+>     rm test.vhd -f
+>     vhd-util create -n test.vhd -s 1024
+>     vhd-util resize -n test.vhd -s 4096 -j test.log
+>     hexdump test.vhd > ~/test.hex.1
+>     popd
+>     umount /mnt/
+>     mount /dev/dm-1 /mnt/
+>     hexdump /mnt/test.vhd > ~/test.hex.2
+>     umount /mnt
+> 
+> block size & cluster size are all 4K.
+> It shows there is no difference between test.hex.1 and test.hex.2. I think this issue is related to specified kernel version, so which version is your kernel? Please provide the backport patches if you wish :)
+I am using kernel 3.0.93. But I think it have no relations with kernel.
+In one direct io, use buffer to zero first and then do direct write, you
+cannot make sure the order. In other words, direct io may goes to disk
+first and then zero buffers. That's why I am using blkdev_issue_zeroout
+to do this in my patches.
+And I am using jbd2_journal_force_commit to get metadata go to disk at
+the same time, which will make performance poorer than yours. It can be
+removed if direct io's semantics does not require.
 
-Eric
 > 
 > Thanks,
-> Junxiao.
+> Ryan
+>>
+>> Thanks,
+>> Joseph
+>>
+>>> BTW, there is a lot testcases to test the operations like buffer write, direct write, lseek.. (it's a mix of these operations) in ltp (Linux Test Project). This patch set has passed all of them. :)
+>>>>>> So this is protected by "UNWRITTEN" flag, right?
+>>>>>>
+>>>>>>>> 3) Do you have a test in case of lack of memory?
+>>>>>>> I tested it in a system with 2GB memory. Is that enough?
+>>>>>> What I mean is doing many direct io jobs in case system free memory is
+>>>>>> low.
+>>>>> I understand what you mean, but did not find a better way to test it. Since if free memory is too low, even the process can not be started. If free memory is fairlyenough, the test has no meaning.
+>>>>> So I try to collect the memory usage during io, and do a comparison test with buffer io. The result is:
+>>>>> 1. start 100 dd to do 4KB direct write:
+>>>>> [root at hnode3 ~]# cat /proc/meminfo | grep -E "^Cached|^Dirty|^MemFree|^MemTotal|^Buffers|^Writeback:"
+>>>>> MemTotal:        2809788 kB
+>>>>> MemFree:           21824 kB
+>>>>> Buffers:           55176 kB
+>>>>> Cached:          2513968 kB
+>>>>> Dirty:               412 kB
+>>>>> Writeback:            36 kB
+>>>>>
+>>>>> 2. start 100 dd to do 4KB buffer write:
+>>>>> [root at hnode3 ~]# cat /proc/meminfo | grep -E "^Cached|^Dirty|^MemFree|^MemTotal|^Buffers|^Writeback:"
+>>>>> MemTotal:        2809788 kB
+>>>>> MemFree:           22476 kB
+>>>>> Buffers:           15696 kB
+>>>>> Cached:          2544892 kB
+>>>>> Dirty:            320136 kB
+>>>>> Writeback:        146404 kB
+>>>>>
+>>>>> You can see from the 'Dirty' and 'Writeback' field that there is not so much memory used as buffer io. So I think what you concern is no longer exist. :-)
+>>>>>
+>>>>> Thanks,
+>>>>> Ryan
+>>>>>> Thanks,
+>>>>>> Joesph
+>>>>>>
+>>>>>>> Thanks,
+>>>>>>> Ryan
+>>
+>>
 > 
-> > 
-> > Thanks,
-> > Eric
-> >> to avoid this, the second EX locking must use non-block way.
-> >>
-> >> Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
-> >> ---
-> >>  fs/ocfs2/dlmglue.c |  209 ++++++++++++++++++++++++++++++++++++++++++++++++----
-> >>  fs/ocfs2/ocfs2.h   |   15 ++++
-> >>  2 files changed, 211 insertions(+), 13 deletions(-)
-> >>
-> >> diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-> >> index 1c91103..e46be46 100644
-> >> --- a/fs/ocfs2/dlmglue.c
-> >> +++ b/fs/ocfs2/dlmglue.c
-> >> @@ -33,6 +33,7 @@
-> >>  #include <linux/seq_file.h>
-> >>  #include <linux/time.h>
-> >>  #include <linux/quotaops.h>
-> >> +#include <linux/delay.h>
-> >>  
-> >>  #define MLOG_MASK_PREFIX ML_DLM_GLUE
-> >>  #include <cluster/masklog.h>
-> >> @@ -115,6 +116,7 @@ static int ocfs2_check_refcount_downconvert(struct ocfs2_lock_res *lockres,
-> >>  					    int new_level);
-> >>  static int ocfs2_refcount_convert_worker(struct ocfs2_lock_res *lockres,
-> >>  					 int blocking);
-> >> +static int ocfs2_is_recursive_lock(struct ocfs2_lock_res *lockres);
-> >>  
-> >>  #define mlog_meta_lvb(__level, __lockres) ocfs2_dump_meta_lvb_info(__level, __PRETTY_FUNCTION__, __LINE__, __lockres)
-> >>  
-> >> @@ -341,8 +343,9 @@ static int ocfs2_lock_create(struct ocfs2_super *osb,
-> >>  			     struct ocfs2_lock_res *lockres,
-> >>  			     int level,
-> >>  			     u32 dlm_flags);
-> >> -static inline int ocfs2_may_continue_on_blocked_lock(struct ocfs2_lock_res *lockres,
-> >> -						     int wanted);
-> >> +static inline int
-> >> +ocfs2_may_continue_on_blocked_lock(struct ocfs2_lock_res *lockres,
-> >> +				   int wanted, int nonblock, int *canwait);
-> >>  static void __ocfs2_cluster_unlock(struct ocfs2_super *osb,
-> >>  				   struct ocfs2_lock_res *lockres,
-> >>  				   int level, unsigned long caller_ip);
-> >> @@ -531,6 +534,7 @@ void ocfs2_lock_res_init_once(struct ocfs2_lock_res *res)
-> >>  	init_waitqueue_head(&res->l_event);
-> >>  	INIT_LIST_HEAD(&res->l_blocked_list);
-> >>  	INIT_LIST_HEAD(&res->l_mask_waiters);
-> >> +	INIT_LIST_HEAD(&res->l_owner_list);
-> >>  }
-> >>  
-> >>  void ocfs2_inode_lock_res_init(struct ocfs2_lock_res *res,
-> >> @@ -782,6 +786,10 @@ static inline void ocfs2_dec_holders(struct ocfs2_lock_res *lockres,
-> >>  	default:
-> >>  		BUG();
-> >>  	}
-> >> +
-> >> +	/* l_owner_list should be empty if no holders. */
-> >> +	BUG_ON(!lockres->l_ex_holders && !lockres->l_ro_holders \
-> >> +		&& !list_empty(&lockres->l_owner_list));
-> >>  }
-> >>  
-> >>  /* WARNING: This function lives in a world where the only three lock
-> >> @@ -1287,15 +1295,37 @@ static inline void ocfs2_wait_on_refreshing_lock(struct ocfs2_lock_res *lockres)
-> >>  		   !ocfs2_check_wait_flag(lockres, OCFS2_LOCK_REFRESHING));
-> >>  }
-> >>  
-> >> -/* predict what lock level we'll be dropping down to on behalf
-> >> - * of another node, and return true if the currently wanted
-> >> - * level will be compatible with it. */
-> >> -static inline int ocfs2_may_continue_on_blocked_lock(struct ocfs2_lock_res *lockres,
-> >> -						     int wanted)
-> >> +/* If wanted level is compatible with blocked one, then allow it go.
-> >> + * To avoid deadlock, recursive locking should be let go. An exception
-> >> + * is block asking for PR+EX recursive lock, it is not supported, the
-> >> + * second EX locking should use nonblock way, or will cause deadlock.
-> >> + */
-> >> +static inline int
-> >> +ocfs2_may_continue_on_blocked_lock(struct ocfs2_lock_res *lockres,
-> >> +				   int wanted, int nonblock, int *canwait)
-> >>  {
-> >>  	BUG_ON(!(lockres->l_flags & OCFS2_LOCK_BLOCKED));
-> >>  
-> >> -	return wanted <= ocfs2_highest_compat_lock_level(lockres->l_blocking);
-> >> +	*canwait = 1;
-> >> +	if (wanted <= ocfs2_highest_compat_lock_level(lockres->l_blocking))
-> >> +		return 1;
-> >> +
-> >> +	/* non-recursive lock not allowed to go to avoid possible
-> >> +	 * starvation of blocked node.
-> >> +	 */
-> >> +	if (!ocfs2_is_recursive_lock(lockres))
-> >> +		return 0;
-> >> +
-> >> +	/* block asking for PR+EX recursive lock not allowed. */
-> >> +	if (lockres->l_level == DLM_LOCK_PR && wanted == DLM_LOCK_EX
-> >> +		&& !nonblock) {
-> >> +		*canwait = 0;
-> >> +		mlog(ML_ERROR, "block asking for PR+EX recursive lock not allowed.\n");
-> >> +		return 0;
-> >> +
-> >> +	}
-> >> +
-> >> +	return 1;
-> >>  }
-> >>  
-> >>  static void ocfs2_init_mask_waiter(struct ocfs2_mask_waiter *mw)
-> >> @@ -1375,6 +1405,131 @@ static int ocfs2_wait_for_mask_interruptible(struct ocfs2_mask_waiter *mw,
-> >>  	return ret;
-> >>  }
-> >>  
-> >> +static struct ocfs2_pid_locking *ocfs2_alloc_pid_locking(void)
-> >> +{
-> >> +	struct ocfs2_pid_locking *pid_locking;
-> >> +
-> >> +retry:
-> >> +	pid_locking = kmalloc(sizeof(struct ocfs2_pid_locking), GFP_NOFS);
-> >> +	if (!pid_locking) {
-> >> +		msleep(100);
-> >> +		goto retry;
-> >> +	}
-> >> +
-> >> +	INIT_LIST_HEAD(&pid_locking->next);
-> >> +	pid_locking->ro_holders = 0;
-> >> +	pid_locking->ex_holders = 0;
-> >> +	pid_locking->pid = current->pid;
-> >> +
-> >> +	return pid_locking;
-> >> +}
-> >> +
-> >> +static void ocfs2_free_pid_locking(struct ocfs2_pid_locking *pid_locking)
-> >> +{
-> >> +	list_del(&pid_locking->next);
-> >> +	kfree(pid_locking);
-> >> +}
-> >> +
-> >> +static struct ocfs2_pid_locking *
-> >> +ocfs2_find_pid_locking(struct ocfs2_lock_res *lockres)
-> >> +{
-> >> +	struct ocfs2_pid_locking *pid_locking;
-> >> +
-> >> +	list_for_each_entry(pid_locking, &lockres->l_owner_list, next) {
-> >> +		if (pid_locking->pid == current->pid)
-> >> +			return pid_locking;
-> >> +	}
-> >> +
-> >> +	return NULL;
-> >> +}
-> >> +
-> >> +static void
-> >> +ocfs2_pid_locking_update_holder(struct ocfs2_pid_locking *pid_locking,
-> >> +				int level, int lock)
-> >> +{
-> >> +	if (level == DLM_LOCK_EX) {
-> >> +		if (lock)
-> >> +			pid_locking->ex_holders++;
-> >> +		else
-> >> +			pid_locking->ex_holders--;
-> >> +	} else if (level == DLM_LOCK_PR) {
-> >> +		if (lock)
-> >> +			pid_locking->ro_holders++;
-> >> +		else
-> >> +			pid_locking->ro_holders--;
-> >> +	} else
-> >> +		BUG();
-> >> +}
-> >> +
-> >> +static void ocfs2_pid_locking_update(struct ocfs2_lock_res *lockres,
-> >> +		struct ocfs2_pid_locking *pid_locking, int level, int lock)
-> >> +{
-> >> +	/* new alloced pid_locking linked to l_owner_list. */
-> >> +	if (!pid_locking->ro_holders && !pid_locking->ex_holders)
-> >> +		list_add_tail(&pid_locking->next, &lockres->l_owner_list);
-> >> +
-> >> +	ocfs2_pid_locking_update_holder(pid_locking, level, lock);
-> >> +}
-> >> +
-> >> +static void ocfs2_get_pid_locking(struct ocfs2_lock_res *lockres,
-> >> +			struct ocfs2_pid_locking *pid_locking, int level)
-> >> +{
-> >> +	ocfs2_pid_locking_update(lockres, pid_locking, level, 1);
-> >> +}
-> >> +
-> >> +static void ocfs2_put_pid_locking(struct ocfs2_lock_res *lockres,
-> >> +			struct ocfs2_pid_locking *pid_locking, int level)
-> >> +{
-> >> +	struct ocfs2_pid_locking *plocking, *next;
-> >> +	struct list_head *head = &lockres->l_owner_list;
-> >> +	int total_ro_holders = 0, total_ex_holders = 0;
-> >> +
-> >> +	ocfs2_pid_locking_update(lockres, pid_locking, level, 0);
-> >> +
-> >> +	/* free unused pid locking. */
-> >> +	if (!pid_locking->ro_holders && !pid_locking->ex_holders) {
-> >> +		ocfs2_free_pid_locking(pid_locking);
-> >> +		return;
-> >> +	}
-> >> +
-> >> +	/* If get here, it means lock/unlock happened in different processes,
-> >> +	 * or a bug where unlock happened without lock first. Let check.
-> >> +	 */
-> >> +	list_for_each_entry(plocking, head, next) {
-> >> +		total_ro_holders += plocking->ro_holders;
-> >> +		total_ex_holders += plocking->ex_holders;
-> >> +	}
-> >> +
-> >> +	/* locked and unlocked in different processs, the lock is not hold now,
-> >> +	 * free all pid_locking entries.
-> >> +	 */
-> >> +	if (!total_ro_holders && !total_ex_holders) {
-> >> +		list_for_each_entry_safe(plocking, next, head, next) {
-> >> +			ocfs2_free_pid_locking(plocking);
-> >> +		}
-> >> +	} else if (total_ro_holders < 0 || total_ex_holders < 0) {
-> >> +		mlog(ML_ERROR, "lockres %s unlocked but not locked first.\n",
-> >> +			lockres->l_name);
-> >> +		BUG();
-> >> +	}
-> >> +}
-> >> +
-> >> +/* lock at least twice before unlock in one process is recursive locking. */
-> >> +static int ocfs2_is_recursive_lock(struct ocfs2_lock_res *lockres)
-> >> +{
-> >> +	struct ocfs2_pid_locking *pid_locking;
-> >> +
-> >> +	list_for_each_entry(pid_locking, &lockres->l_owner_list, next) {
-> >> +		if (pid_locking->pid != current->pid)
-> >> +			continue;
-> >> +
-> >> +		return (pid_locking->ro_holders > 0 ||
-> >> +			pid_locking->ex_holders > 0);
-> >> +	}
-> >> +
-> >> +	return 0;
-> >> +}
-> >> +
-> >>  static int __ocfs2_cluster_lock(struct ocfs2_super *osb,
-> >>  				struct ocfs2_lock_res *lockres,
-> >>  				int level,
-> >> @@ -1390,6 +1545,9 @@ static int __ocfs2_cluster_lock(struct ocfs2_super *osb,
-> >>  	unsigned int gen;
-> >>  	int noqueue_attempted = 0;
-> >>  	int dlm_locked = 0;
-> >> +	struct ocfs2_pid_locking *pid_locking = NULL;
-> >> +	int canwait = 1;
-> >> +	int nonblock = arg_flags & OCFS2_LOCK_NONBLOCK;
-> >>  
-> >>  	if (!(lockres->l_flags & OCFS2_LOCK_INITIALIZED)) {
-> >>  		mlog_errno(-EINVAL);
-> >> @@ -1405,6 +1563,14 @@ again:
-> >>  	wait = 0;
-> >>  
-> >>  	spin_lock_irqsave(&lockres->l_lock, flags);
-> >> +	if (!pid_locking) {
-> >> +		pid_locking = ocfs2_find_pid_locking(lockres);
-> >> +		if (!pid_locking) {
-> >> +			spin_unlock_irqrestore(&lockres->l_lock, flags);
-> >> +			pid_locking = ocfs2_alloc_pid_locking();
-> >> +			spin_lock_irqsave(&lockres->l_lock, flags);
-> >> +		}
-> >> +	}
-> >>  
-> >>  	if (catch_signals && signal_pending(current)) {
-> >>  		ret = -ERESTARTSYS;
-> >> @@ -1447,7 +1613,8 @@ again:
-> >>  	}
-> >>  
-> >>  	if (lockres->l_flags & OCFS2_LOCK_BLOCKED &&
-> >> -	    !ocfs2_may_continue_on_blocked_lock(lockres, level)) {
-> >> +	    !ocfs2_may_continue_on_blocked_lock(lockres, level,
-> >> +						nonblock, &canwait)) {
-> >>  		/* is the lock is currently blocked on behalf of
-> >>  		 * another node */
-> >>  		lockres_add_mask_waiter(lockres, &mw, OCFS2_LOCK_BLOCKED, 0);
-> >> @@ -1519,6 +1686,7 @@ again:
-> >>  update_holders:
-> >>  	/* Ok, if we get here then we're good to go. */
-> >>  	ocfs2_inc_holders(lockres, level);
-> >> +	ocfs2_get_pid_locking(lockres, pid_locking, level);
-> >>  
-> >>  	ret = 0;
-> >>  unlock:
-> >> @@ -1534,7 +1702,7 @@ out:
-> >>  	 * This block is helping an aop path notice the inversion and back
-> >>  	 * off to unlock its page lock before trying the dlm lock again.
-> >>  	 */
-> >> -	if (wait && arg_flags & OCFS2_LOCK_NONBLOCK &&
-> >> +	if (wait && nonblock &&
-> >>  	    mw.mw_mask & (OCFS2_LOCK_BUSY|OCFS2_LOCK_BLOCKED)) {
-> >>  		wait = 0;
-> >>  		spin_lock_irqsave(&lockres->l_lock, flags);
-> >> @@ -1550,9 +1718,12 @@ out:
-> >>  		}
-> >>  	}
-> >>  	if (wait) {
-> >> -		ret = ocfs2_wait_for_mask(&mw);
-> >> -		if (ret == 0)
-> >> -			goto again;
-> >> +		if (canwait) {
-> >> +			ret = ocfs2_wait_for_mask(&mw);
-> >> +			if (ret == 0)
-> >> +				goto again;
-> >> +		} else
-> >> +			ret = -EPERM;
-> >>  		mlog_errno(ret);
-> >>  	}
-> >>  	ocfs2_update_lock_stats(lockres, level, &mw, ret);
-> >> @@ -1569,6 +1740,10 @@ out:
-> >>  				caller_ip);
-> >>  	}
-> >>  #endif
-> >> +	/* free unused pid_locking if error. */
-> >> +	if (ret && !pid_locking->ro_holders && !pid_locking->ex_holders)
-> >> +		ocfs2_free_pid_locking(pid_locking);
-> >> +
-> >>  	return ret;
-> >>  }
-> >>  
-> >> @@ -1589,8 +1764,16 @@ static void __ocfs2_cluster_unlock(struct ocfs2_super *osb,
-> >>  				   unsigned long caller_ip)
-> >>  {
-> >>  	unsigned long flags;
-> >> +	struct ocfs2_pid_locking *pid_locking;
-> >>  
-> >>  	spin_lock_irqsave(&lockres->l_lock, flags);
-> >> +	pid_locking = ocfs2_find_pid_locking(lockres);
-> >> +	if (!pid_locking) {
-> >> +		spin_unlock_irqrestore(&lockres->l_lock, flags);
-> >> +		pid_locking = ocfs2_alloc_pid_locking();
-> >> +		spin_lock_irqsave(&lockres->l_lock, flags);
-> >> +	}
-> >> +	ocfs2_put_pid_locking(lockres, pid_locking, level);
-> >>  	ocfs2_dec_holders(lockres, level);
-> >>  	ocfs2_downconvert_on_unlock(osb, lockres);
-> >>  	spin_unlock_irqrestore(&lockres->l_lock, flags);
-> >> diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
-> >> index 7a01262..bf80fb7 100644
-> >> --- a/fs/ocfs2/ocfs2.h
-> >> +++ b/fs/ocfs2/ocfs2.h
-> >> @@ -165,6 +165,19 @@ struct ocfs2_lock_stats {
-> >>  };
-> >>  #endif
-> >>  
-> >> +/* locking stat of processes. */
-> >> +struct ocfs2_pid_locking {
-> >> +	/* used to link into lockres->l_owner_list. */
-> >> +	struct list_head next;
-> >> +	/* inc by 1 when lock PR and dec by 1 when unlock PR. It could be
-> >> +	 * negative number if lock/unlock happened in different processes.
-> >> +	 */
-> >> +	int ro_holders;
-> >> +	int ex_holders;
-> >> +	/* the process who is using this lock. */
-> >> +	pid_t pid;
-> >> +};
-> >> +
-> >>  struct ocfs2_lock_res {
-> >>  	void                    *l_priv;
-> >>  	struct ocfs2_lock_res_ops *l_ops;
-> >> @@ -207,6 +220,8 @@ struct ocfs2_lock_res {
-> >>  #ifdef CONFIG_DEBUG_LOCK_ALLOC
-> >>  	struct lockdep_map	 l_lockdep_map;
-> >>  #endif
-> >> +	/* save all processes who owned this lock. */
-> >> +	struct list_head	 l_owner_list;
-> >>  };
-> >>  
-> >>  enum ocfs2_orphan_reco_type {
-> >> -- 
-> >> 1.7.9.5
-> >>
-> >>
-> >> _______________________________________________
-> >> Ocfs2-devel mailing list
-> >> Ocfs2-devel at oss.oracle.com
-> >> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
-> >>
-> > 
-> > _______________________________________________
-> > Ocfs2-devel mailing list
-> > Ocfs2-devel at oss.oracle.com
-> > https://oss.oracle.com/mailman/listinfo/ocfs2-devel
-> > 
 > 
+> .
 > 
