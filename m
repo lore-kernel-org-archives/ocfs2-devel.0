@@ -1,169 +1,74 @@
-From: Joseph Qi <joseph.qi@huawei.com>
-Date: Mon, 14 Dec 2015 18:36:23 +0800
-Subject: [Ocfs2-devel] [PATCH 0/8] ocfs2: fix ocfs2 direct io code patch
- to support sparse file and data ordering semantics
-In-Reply-To: <566E542B.4060605@oracle.com>
-References: <1441959559-29947-1-git-send-email-ryan.ding@oracle.com>
-	<5609148B.6040506@huawei.com> <5615DF35.3030802@oracle.com>
-	<561609A0.5010108@huawei.com> <561B5474.6060104@oracle.com>
-	<56692F9B.4040701@huawei.com> <56693C4D.8070104@oracle.com>
-	<566955C2.4020302@huawei.com> <566E542B.4060605@oracle.com>
-Message-ID: <566E9BA7.5040609@huawei.com>
+From: Junxiao Bi <junxiao.bi@oracle.com>
+Date: Mon, 14 Dec 2015 23:07:42 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: dlm: fix recursive locking deadlock
+In-Reply-To: <20151214085701.GB7837@desktop.lab.bej.apac.novell.com>
+References: <1450058259-30682-1-git-send-email-junxiao.bi@oracle.com>
+	<566EC6A8020000F90002219D@relay2.provo.novell.com>
+	<566E5BA5.5030308@oracle.com>
+	<20151214085701.GB7837@desktop.lab.bej.apac.novell.com>
+Message-ID: <CF112FCC-8F5B-4F88-A4FC-663B5C40AD90@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Ryan,
 
-On 2015/12/14 13:31, Ryan Ding wrote:
-> Hi Joseph,
+> ? 2015?12?14????4:57?Eric Ren <zren@suse.com> ???
 > 
-> On 12/10/2015 06:36 PM, Joseph Qi wrote:
->> Hi Ryan,
->>
->> On 2015/12/10 16:48, Ryan Ding wrote:
->>> Hi Joseph,
->>>
->>> Thanks for your comments, please see my reply:
->>>
->>> On 12/10/2015 03:54 PM, Joseph Qi wrote:
->>>> Hi Ryan,
->>>>
->>>> On 2015/10/12 14:34, Ryan Ding wrote:
->>>>> Hi Joseph,
->>>>>
->>>>> On 10/08/2015 02:13 PM, Joseph Qi wrote:
->>>>>> Hi Ryan,
->>>>>>
->>>>>> On 2015/10/8 11:12, Ryan Ding wrote:
->>>>>>> Hi Joseph,
->>>>>>>
->>>>>>> On 09/28/2015 06:20 PM, Joseph Qi wrote:
->>>>>>>> Hi Ryan,
->>>>>>>> I have gone through this patch set and done a simple performance test
->>>>>>>> using direct dd, it indeed brings much performance promotion.
->>>>>>>>              Before      After
->>>>>>>> bs=4K    1.4 MB/s    5.0 MB/s
->>>>>>>> bs=256k  40.5 MB/s   56.3 MB/s
->>>>>>>>
->>>>>>>> My questions are:
->>>>>>>> 1) You solution is still using orphan dir to keep inode and allocation
->>>>>>>> consistency, am I right? From our test, it is the most complicated part
->>>>>>>> and has many race cases to be taken consideration. So I wonder if this
->>>>>>>> can be restructured.
->>>>>>> I have not got a better idea to do this. I think the only reason why direct io using orphan is to prevent space lost when system crash during append direct write. But maybe a 'fsck -f' will do that job. Is it necessary to use orphan?
->>>>>> The idea is taken from ext4, but since ocfs2 is cluster filesystem, so
->>>>>> it is much more complicated than ext4.
->>>>>> And fsck can only be used offline, but using orphan is to perform
->>>>>> recovering online. So I don't think fsck can replace it in all cases.
->>>>>>
->>>>>>>> 2) Rather than using normal block direct io, you introduce a way to use
->>>>>>>> write begin/end in buffer io. IMO, if it wants to perform like direct
->>>>>>>> io, it should be committed to disk by forcing committing journal. But
->>>>>>>> journal committing will consume much time. Why does it bring performance
->>>>>>>> promotion instead?
->>>>>>> I use buffer io to write only the zero pages. Actual data payload is written as direct io. I think there is no need to do a force commit. Because direct means "Try to minimize cache effects of the I/O to and from this file.", it does not means "write all data & meta data to disk before write return".
->>>> I think we cannot mix zero pages with direct io here, which will lead
->>>> to direct io data to be overwritten by zero pages.
->>>> For example, a ocfs2 volume with block size 4K and cluster size 4K.
->>>> Firstly I create a file with size of 5K and it will be allocated 2
->>>> clusters (8K) and the last 3K without zeroed (no need at this time).
->>> I think the last 3K will be zeroed no matter you use direct io or buffer io to create the a file with 5K.
->>>> Then I seek to offset 9K and do direct write 1K, then back to 4K and do
->>>> direct write 5K. Here we have to zero allocated space to avoid dirty
->>>> data. But since direct write data goes to disk directly and zero pages
->>>> depends on journal commit, so direct write data will be overwritten and
->>>> file corrupts.
->>> do_blockdev_direct_IO() will zero unwritten area within block size(in this case, 6K~8K), when get_block callback return a map with buffer_new flag. This zero operation is also using direct io.
->>> So the buffer io zero operation in my design will not work at all in this case.It only works to zero the area beyond block size, but within cluster size. For example, when block size 4KB cluster size 1MB, a 4KB direct write will trigger a zero buffer page of size 1MB-4KB=1020KB.
->>> I think your question is this zero buffer page will conflict with the later direct io writing to the same area. The truth is conflict will not exist, because before direct write, all conflict buffer page will be flushed to disk first (in __generic_file_write_iter()).
->> How can it make sure the zero pages to be flushed to disk first? In
->> ocfs2_direct_IO, it calls ocfs2_dio_get_block which uses write_begin
->> and write_end, and then __blockdev_direct_IO.
->> I've backported your patch set to kernel 3.0 and tested with vhd-util,
->> and the result fails. The test case is below.
->> 1) create a 1G dynamic vhd file, the actual size is 5K.
->> # vhd-util create -n test.vhd -s 1024
->> 2) resize it to 4G, the actual size becomes to 11K
->> # vhd-util resize -n test.vhd -s 4096 -j test.log
->> 3) hexdump the data, say hexdump1
->> 4) umount to commit journal and mount again, and hexdump the data again,
->> say hexdump2, which is not equal to hexdump1.
->> I am not sure if there is any relations with kernel version, which
->> indeed has many differences due to refactoring.
-> I have backported it to kernel 3.8, and run the scripts below (I think it's the same as your test):
+> Hi,
 > 
->     mount /dev/dm-1 /mnt
->     pushd /mnt/
->     rm test.vhd -f
->     vhd-util create -n test.vhd -s 1024
->     vhd-util resize -n test.vhd -s 4096 -j test.log
->     hexdump test.vhd > ~/test.hex.1
->     popd
->     umount /mnt/
->     mount /dev/dm-1 /mnt/
->     hexdump /mnt/test.vhd > ~/test.hex.2
->     umount /mnt
-> 
-> block size & cluster size are all 4K.
-> It shows there is no difference between test.hex.1 and test.hex.2. I think this issue is related to specified kernel version, so which version is your kernel? Please provide the backport patches if you wish :)
-I am using kernel 3.0.93. But I think it have no relations with kernel.
-In one direct io, use buffer to zero first and then do direct write, you
-cannot make sure the order. In other words, direct io may goes to disk
-first and then zero buffers. That's why I am using blkdev_issue_zeroout
-to do this in my patches.
-And I am using jbd2_journal_force_commit to get metadata go to disk at
-the same time, which will make performance poorer than yours. It can be
-removed if direct io's semantics does not require.
+> On Mon, Dec 14, 2015 at 02:03:17PM +0800, Junxiao Bi wrote: 
+>> On 12/14/2015 01:39 PM, Gang He wrote:
+>>> Hello Junxiao,
+>>> 
+>>> From the initial description, the second lock_XYZ(PR) should be blocked, since DLM have a fair queue  mechanism, otherwise, it looks to bring a write lock starvation.
+>> Should be blocked? No, that is a deadlock. I don't think this recursive
+>> locking is common, so no need care starvation here.
+> "not common" is really good news. I think we should list recursive use
+> cases first
+I have said in pervious mail, this way is simple for developer, it is usually hard to find the recursive use case before see the deadlock call trace.
+> and try to decrease that use before messing up "__ocfs2_cluster_lock"
+> further.
+I don?t see this is a mess up, I think record which processes are using the lockers is very useful. I am going to add a blocker list of lockres. With this, for one process, we can see which locks it is holding, and which lock it is blocked.
+This can be exported to debugfs and is useful to debug deadlock issue.
 
+> As for this patch,  cost is too high :/
+I don?t think so. The list will not be long, and searching on it will be very fast. Also please keep in mind, ocfs2_cluster_lock/unlock itself is never the bottle neck of the performance, when you get a high delay for locking, that is because io triggered by down convert on other nodes or lock race hurt the performance, a list search is just a cpu op, it is much faster than io. I don?t see it can hurt performance.
+
+Thanks,
+Junxiao.
 > 
 > Thanks,
-> Ryan
->>
+> Eric
+>> 
+>>> Second, this issue can be reproduced in old Linux kernels (e.g. 3.16.7-24)? there should not be any regression issue? 
+>> Maybe just hard to reproduce, ocfs2 supports recursive locking.
+>> 
+>>> Finally, really do not like nested using lock, can we avoid this.
+>> I didn't see a good reason why this should be avoided. Without this,
+>> developer needs pay more attend to not involve recursive locking,
+>> usually that is very hard before run a full test or a very detailed review.
+>> 
 >> Thanks,
->> Joseph
->>
->>> BTW, there is a lot testcases to test the operations like buffer write, direct write, lseek.. (it's a mix of these operations) in ltp (Linux Test Project). This patch set has passed all of them. :)
->>>>>> So this is protected by "UNWRITTEN" flag, right?
->>>>>>
->>>>>>>> 3) Do you have a test in case of lack of memory?
->>>>>>> I tested it in a system with 2GB memory. Is that enough?
->>>>>> What I mean is doing many direct io jobs in case system free memory is
->>>>>> low.
->>>>> I understand what you mean, but did not find a better way to test it. Since if free memory is too low, even the process can not be started. If free memory is fairlyenough, the test has no meaning.
->>>>> So I try to collect the memory usage during io, and do a comparison test with buffer io. The result is:
->>>>> 1. start 100 dd to do 4KB direct write:
->>>>> [root at hnode3 ~]# cat /proc/meminfo | grep -E "^Cached|^Dirty|^MemFree|^MemTotal|^Buffers|^Writeback:"
->>>>> MemTotal:        2809788 kB
->>>>> MemFree:           21824 kB
->>>>> Buffers:           55176 kB
->>>>> Cached:          2513968 kB
->>>>> Dirty:               412 kB
->>>>> Writeback:            36 kB
->>>>>
->>>>> 2. start 100 dd to do 4KB buffer write:
->>>>> [root at hnode3 ~]# cat /proc/meminfo | grep -E "^Cached|^Dirty|^MemFree|^MemTotal|^Buffers|^Writeback:"
->>>>> MemTotal:        2809788 kB
->>>>> MemFree:           22476 kB
->>>>> Buffers:           15696 kB
->>>>> Cached:          2544892 kB
->>>>> Dirty:            320136 kB
->>>>> Writeback:        146404 kB
->>>>>
->>>>> You can see from the 'Dirty' and 'Writeback' field that there is not so much memory used as buffer io. So I think what you concern is no longer exist. :-)
->>>>>
->>>>> Thanks,
->>>>> Ryan
->>>>>> Thanks,
->>>>>> Joesph
->>>>>>
->>>>>>> Thanks,
->>>>>>> Ryan
->>
->>
+>> Junxiao.
+>>> 
+>>> Thanks
+>>> Gang
+>>> 
+>>> 
+>> 
+>> 
+>> _______________________________________________
+>> Ocfs2-devel mailing list
+>> Ocfs2-devel at oss.oracle.com
+>> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+>> 
 > 
-> 
-> .
-> 
+> _______________________________________________
+> Ocfs2-devel mailing list
+> Ocfs2-devel at oss.oracle.com <mailto:Ocfs2-devel@oss.oracle.com>
+> https://oss.oracle.com/mailman/listinfo/ocfs2-devel <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20151214/6ce7afe8/attachment-0001.html 
