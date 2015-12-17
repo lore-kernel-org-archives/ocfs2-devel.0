@@ -1,168 +1,75 @@
-From: Joseph Qi <joseph.qi@huawei.com>
-Date: Wed, 16 Dec 2015 13:57:23 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: clean up redundant NULL check before
-	iput
-Message-ID: <5670FD43.7080502@huawei.com>
+From: Shichangkuo <shi.changkuo@h3c.com>
+Date: Thu, 17 Dec 2015 03:29:56 +0000
+Subject: [Ocfs2-devel]  mount failed as system file //journal:0004 damaged
+Message-ID: <D1E4D02760513D4B90DC3B40FF32AF355EE07229@H3CMLB12-EX.srv.huawei-3com.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Since iput will take care the NULL check itself, NULL check before
-calling it is redundant. So clean them up.
+Hi, all
+    I can't mount a disk with slotnum=4, other slots could mount successfully. Err msg is:
+       root at cvk41:~# mount /dev/sdi /vms/gqg-1T -o preferred_slot=4
+       mount.ocfs2: Invalid argument while mounting /dev/sdi on /vms/gqg-1T. Check 'dmesg' for more information on this error.
 
-Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
----
- fs/ocfs2/alloc.c      |  3 +--
- fs/ocfs2/ioctl.c      |  4 +---
- fs/ocfs2/journal.c    | 10 +++-------
- fs/ocfs2/localalloc.c | 10 +++-------
- fs/ocfs2/namei.c      |  3 +--
- fs/ocfs2/slot_map.c   |  3 +--
- fs/ocfs2/super.c      |  3 +--
- 7 files changed, 11 insertions(+), 25 deletions(-)
+Dec 16 11:25:42 cvknode kernel: [ 5409.023779] o2dlm: Joining domain 9B244483B1C04B76A1AAEB3A5D09847B ( 1 2 4 5 6 ) 5 nodes
+Dec 16 11:25:42 cvknode kernel: [ 5409.041933] JBD2: no valid journal superblock found
+Dec 16 11:25:42 cvknode kernel: [ 5409.041939] (mount.ocfs2,23379,11):ocfs2_journal_wipe:1113 ERROR: status = -22
+Dec 16 11:25:42 cvknode kernel: [ 5409.041971] (mount.ocfs2,23379,11):ocfs2_check_volume:2449 ERROR: status = -22
+Dec 16 11:25:42 cvknode kernel: [ 5409.041974] (mount.ocfs2,23379,11):ocfs2_check_volume:2510 ERROR: status = -22
+Dec 16 11:25:42 cvknode kernel: [ 5409.041978] (mount.ocfs2,23379,11):ocfs2_mount_volume:1889 ERROR: status = -22
+Dec 16 11:25:42 cvknode kernel: [ 5409.043947] o2dlm: Node 3 joins domain 9B244483B1C04B76A1AAEB3A5D09847B ( 1 2 3 4 5 6 ) 6 nodes
+Dec 16 11:25:46 cvknode kernel: [ 5413.076279] o2dlm: Leaving domain 9B244483B1C04B76A1AAEB3A5D09847B
+Dec 16 11:25:46 cvknode kernel: [ 5413.076732] ocfs2: Unmounting device (8,128) on (node 2)
 
-diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-index 86181d6..9a8467f 100644
---- a/fs/ocfs2/alloc.c
-+++ b/fs/ocfs2/alloc.c
-@@ -6174,8 +6174,7 @@ int ocfs2_begin_truncate_log_recovery(struct ocfs2_super *osb,
- 	}
+I dumped //journal:0004 with hexdump, and found the fist block (4KB) maybe changed.
+//journal:0000
+root at cvk41:~# hexdump -C -n 1024 -s 0x600000 /dev/dm-4
+00600000 c0 3b 39 98 00 00 00 04 00 00 00 00 00 00 10 00 |.;9.............|
+00600010 00 00 80 00 00 00 00 01 00 06 2d ef 00 00 00 07 |..........-.....|
+00600020 00 00 00 00 00 00 00 00 00 00 00 02 00 00 00 00 |................|
+00600030 9b 24 44 83 b1 c0 4b 76 a1 aa eb 3a 5d 09 84 7b |.$D...Kv...:]..{|
+00600040 00 00 00 01 00 00 00 00 00 00 00 00 00 00 00 00 |................|
+00600050 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 |................|
+*
+00600400
 
- bail:
--	if (tl_inode)
--		iput(tl_inode);
-+	iput(tl_inode);
- 	brelse(tl_bh);
+//journal:0004
+root at cvk41:~# hexdump -C -n 1024 -s 0x20600000 /dev/dm-4
+20600000 c0 3b 39 98 00 00 00 02 00 00 e0 d3 00 00 00 00 |.;9.............|
+20600010 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 |................|
+*
+20600030 00 00 00 00 56 0b 0f d7 01 e5 84 c2 00 00 00 00 |....V...........|
+20600040 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 |................|
+*
+20600400
 
- 	if (status < 0) {
-diff --git a/fs/ocfs2/ioctl.c b/fs/ocfs2/ioctl.c
-index 3cb097c..16b0bb4 100644
---- a/fs/ocfs2/ioctl.c
-+++ b/fs/ocfs2/ioctl.c
-@@ -606,9 +606,7 @@ bail:
- 	if (gb_inode)
- 		mutex_unlock(&gb_inode->i_mutex);
+In first block, the journal type is 02(JBD2_COMMIT_BLOCK) other than 04(JBD2_SUPERBLOCK_V2).
+This disk has been idled for a long time, but I think the first block was written by formatting, and none operations could change it.
+So I can't understand which operations could cause to my issue.
+The attachment is a file which is dumped by " logdump slot4".
 
--	if (gb_inode)
--		iput(gb_inode);
--
-+	iput(gb_inode);
- 	brelse(bh);
+Thanks a lot!!
 
- 	return status;
-diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
-index 13534f4..3772a2d 100644
---- a/fs/ocfs2/journal.c
-+++ b/fs/ocfs2/journal.c
-@@ -1042,8 +1042,7 @@ void ocfs2_journal_shutdown(struct ocfs2_super *osb)
-
- //	up_write(&journal->j_trans_barrier);
- done:
--	if (inode)
--		iput(inode);
-+	iput(inode);
- }
-
- static void ocfs2_clear_journal_error(struct super_block *sb,
-@@ -1687,9 +1686,7 @@ done:
- 	if (got_lock)
- 		ocfs2_inode_unlock(inode, 1);
-
--	if (inode)
--		iput(inode);
--
-+	iput(inode);
- 	brelse(bh);
-
- 	return status;
-@@ -1796,8 +1793,7 @@ static int ocfs2_trylock_journal(struct ocfs2_super *osb,
-
- 	ocfs2_inode_unlock(inode, 1);
- bail:
--	if (inode)
--		iput(inode);
-+	iput(inode);
-
- 	return status;
- }
-diff --git a/fs/ocfs2/localalloc.c b/fs/ocfs2/localalloc.c
-index 0a4457f..e9c99e3 100644
---- a/fs/ocfs2/localalloc.c
-+++ b/fs/ocfs2/localalloc.c
-@@ -358,8 +358,7 @@ int ocfs2_load_local_alloc(struct ocfs2_super *osb)
- bail:
- 	if (status < 0)
- 		brelse(alloc_bh);
--	if (inode)
--		iput(inode);
-+	iput(inode);
-
- 	trace_ocfs2_load_local_alloc(osb->local_alloc_bits);
-
-@@ -473,8 +472,7 @@ out_mutex:
- 	iput(main_bm_inode);
-
- out:
--	if (local_alloc_inode)
--		iput(local_alloc_inode);
-+	iput(local_alloc_inode);
-
- 	kfree(alloc_copy);
- }
-@@ -1327,9 +1325,7 @@ bail:
-
- 	brelse(main_bm_bh);
-
--	if (main_bm_inode)
--		iput(main_bm_inode);
--
-+	iput(main_bm_inode);
- 	kfree(alloc_copy);
-
- 	if (ac)
-diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
-index 3123408..922eae9 100644
---- a/fs/ocfs2/namei.c
-+++ b/fs/ocfs2/namei.c
-@@ -1683,8 +1683,7 @@ bail:
- 	if (new_inode)
- 		sync_mapping_buffers(old_inode->i_mapping);
-
--	if (new_inode)
--		iput(new_inode);
-+	iput(new_inode);
-
- 	ocfs2_free_dir_lookup_result(&target_lookup_res);
- 	ocfs2_free_dir_lookup_result(&old_entry_lookup);
-diff --git a/fs/ocfs2/slot_map.c b/fs/ocfs2/slot_map.c
-index e78a203..47bba1b 100644
---- a/fs/ocfs2/slot_map.c
-+++ b/fs/ocfs2/slot_map.c
-@@ -322,8 +322,7 @@ static void __ocfs2_free_slot_info(struct ocfs2_slot_info *si)
- 	if (si == NULL)
- 		return;
-
--	if (si->si_inode)
--		iput(si->si_inode);
-+	iput(si->si_inode);
- 	if (si->si_bh) {
- 		for (i = 0; i < si->si_blocks; i++) {
- 			if (si->si_bh[i]) {
-diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-index 2de4c8a..7805984 100644
---- a/fs/ocfs2/super.c
-+++ b/fs/ocfs2/super.c
-@@ -1726,8 +1726,7 @@ static int ocfs2_statfs(struct dentry *dentry, struct kstatfs *buf)
- 	ocfs2_inode_unlock(inode, 0);
- 	status = 0;
- bail:
--	if (inode)
--		iput(inode);
-+	iput(inode);
-
- 	if (status)
- 		mlog_errno(status);
--- 
-1.8.4.3
+-------------------------------------------------------------------------------------------------------------------------------------
+????????????????????????????????????????
+????????????????????????????????????????
+????????????????????????????????????????
+???
+This e-mail and its attachments contain confidential information from H3C, which is
+intended only for the person or entity whose address is listed above. Any use of the
+information contained herein in any way (including, but not limited to, total or partial
+disclosure, reproduction, or dissemination) by persons other than the intended
+recipient(s) is prohibited. If you receive this e-mail in error, please notify the sender
+by phone or email immediately and delete it!
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20151217/96088c84/attachment.html 
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: journal4.rar
+Type: application/octet-stream
+Size: 1317 bytes
+Desc: journal4.rar
+Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20151217/96088c84/attachment.obj 
