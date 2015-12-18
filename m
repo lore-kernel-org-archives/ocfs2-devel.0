@@ -1,99 +1,85 @@
-From: Zhangguanghui <zhang.guanghui@h3c.com>
-Date: Fri, 18 Dec 2015 04:58:39 +0000
-Subject: [Ocfs2-devel] ocfs2 cannot continue when JBD2 has aborted the
- journal, 
-References: <2015121713343524045332@h3c.com>, <56735BF7.2090108@huawei.com>
-Message-ID: <20151218125949277021131@h3c.com>
+From: Ryan Ding <ryan.ding@oracle.com>
+Date: Fri, 18 Dec 2015 15:19:25 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: call ocfs2_abort when journal abort
+Message-ID: <1450423165-14695-1-git-send-email-ryan.ding@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi  Joseph<mailto:joseph.qi@huawei.com>
+orabug: 22293201
 
-The following locking order can cause a deadlock.
- Node  A                                                                                                           Node B                                                              Node C
-     Super lock  EX
-        ocfs2_commit_thread
-             ocfs2_commit_cache
-              jbd2_journal_flush  while  journal is aborted , have been -EIO error.
-     do not wake_up(&osb->dc_event)
-     do not  downconvert EX->NL
+journal can not recover from abort state, so we should take following action to
+prevent file system from corruption:
 
-while Node B required EX lock or PR lock, may cause nodes hung.
-So reset Node A,  Node B and Node C will be normal.
-Thanks a lot
-________________________________
-zhangguanghui
+1. change to readonly filesystem when local mount. We can not afford further
+   write, so change to RO state is reasonable.
 
-From: Joseph Qi<mailto:joseph.qi@huawei.com>
-Date: 2015-12-18 09:05
-To: zhangguanghui 10102 (CCPL)<mailto:zhang.guanghui@h3c.com>
-CC: ocfs2-devel at oss.oracle.com<mailto:ocfs2-devel@oss.oracle.com>
-Subject: Re: [Ocfs2-devel] ocfs2 cannot continue when JBD2 has aborted the journal,
+2. panic when cluster mount. Because we can not release lock resource in this
+   state, other node will hung when it require a lock owned by this node. So
+   panic and remaster is a reasonable choise.
 
-Hi Guanghui,
-Could you please describe the problem you encountered more specifically?
-I don't think this change is in a fair way.
+ocfs2_abort() will do all the above work.
 
-On 2015/12/17 13:33, Zhangguanghui wrote:
-> Hi all,
->
-> A tiny race about JBD2 has aborted to jbd2_journal_flush,
->
-> because of unstable storage link and I/O stress.
->
-> while JBD2 state is aborted, have been -EIO error,
->
-> may cause all cluster nodes hung. so I thinks
->
-> JBD2 has aborted the journal, ocfs2 cannot continue and trigger ocfs2_abort.
->
-> Thanks, Any ideas about this patch?
->
->
-> description:
->
-> ocfs2_commit_thread
->   ocfs2_commit_cache
->     jbd2_journal_flush
->
->
-> --- journal.c 2015-12-17 11:36:39.140542941 +0800
-> +++ journal.c.diff 2015-12-17 11:39:21.308542922 +0800
-> @@ -328,6 +328,9 @@
-> if (status < 0) {
-> up_write(&journal->j_trans_barrier);
-> mlog_errno(status);
-> + if (is_journal_aborted(journal)) {
-> + ocfs2_abort(osb->sb, "Detect aborted journal,while committing cache.");
-> + }
-> goto finally;
-> }
-> ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------!
+Signed-off-by: Ryan Ding <ryan.ding@oracle.com>
 ---
-> zhangguanghui
-> -------------------------------------------------------------------------------------------------------------------------------------
-> ????????????????????????????????????????
-> ????????????????????????????????????????
-> ????????????????????????????????????????
-> ???
-> This e-mail and its attachments contain confidential information from H3C, which is
-> intended only for the person or entity whose address is listed above. Any use of the
-> information contained herein in any way (including, but not limited to, total or partial
-> disclosure, reproduction, or dissemination) by persons other than the intended
-> recipient(s) is prohibited. If you receive this e-mail in error, please notify the sender
-> by phone or email immediately and delete it!
->
->
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
->
+ fs/ocfs2/journal.c |   27 +++++++++++----------------
+ 1 files changed, 11 insertions(+), 16 deletions(-)
 
-
--------------- next part --------------
-An HTML attachment was scrubbed...
-URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20151218/daea7981/attachment-0001.html 
+diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
+index ff82b28..2069671 100644
+--- a/fs/ocfs2/journal.c
++++ b/fs/ocfs2/journal.c
+@@ -30,7 +30,6 @@
+ #include <linux/kthread.h>
+ #include <linux/time.h>
+ #include <linux/random.h>
+-#include <linux/delay.h>
+ 
+ #include <cluster/masklog.h>
+ 
+@@ -2265,7 +2264,7 @@ static int __ocfs2_wait_on_mount(struct ocfs2_super *osb, int quota)
+ 
+ static int ocfs2_commit_thread(void *arg)
+ {
+-	int status;
++	int status = 0;
+ 	struct ocfs2_super *osb = arg;
+ 	struct ocfs2_journal *journal = osb->journal;
+ 
+@@ -2279,22 +2278,18 @@ static int ocfs2_commit_thread(void *arg)
+ 		wait_event_interruptible(osb->checkpoint_event,
+ 					 atomic_read(&journal->j_num_trans)
+ 					 || kthread_should_stop());
++		if (status < 0)
++			/* As we can not terminate by myself, just enter an
++			 * empty loop to wait for stop. */
++			continue;
+ 
+ 		status = ocfs2_commit_cache(osb);
+-		if (status < 0) {
+-			static unsigned long abort_warn_time;
+-
+-			/* Warn about this once per minute */
+-			if (printk_timed_ratelimit(&abort_warn_time, 60*HZ))
+-				mlog(ML_ERROR, "status = %d, journal is "
+-						"already aborted.\n", status);
+-			/*
+-			 * After ocfs2_commit_cache() fails, j_num_trans has a
+-			 * non-zero value.  Sleep here to avoid a busy-wait
+-			 * loop.
+-			 */
+-			msleep_interruptible(1000);
+-		}
++		if (status < 0)
++			/* journal can not recover from abort state, there is
++			 * no need to keep commit cache. So we should either
++			 * change to readonly(local mount) or just panic
++			 * (cluster mount). */
++			ocfs2_abort(osb->sb, "Detected aborted journal");
+ 
+ 		if (kthread_should_stop() && atomic_read(&journal->j_num_trans)){
+ 			mlog(ML_KTHREAD,
+-- 
+1.7.1
