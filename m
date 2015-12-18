@@ -1,80 +1,73 @@
-From: Ryan Ding <ryan.ding@oracle.com>
-Date: Fri, 18 Dec 2015 10:15:27 +0800
-Subject: [Ocfs2-devel] ocfs2 cannot continue when JBD2 has aborted the
- journal, 
-In-Reply-To: <2015121713343524045332@h3c.com>
-References: <2015121713343524045332@h3c.com>
-Message-ID: <56736C3F.8050203@oracle.com>
+From: Xue jiufei <xuejiufei@huawei.com>
+Date: Fri, 18 Dec 2015 11:26:45 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: return appropriate value when
+ dlm_grab() returns NULL
+Message-ID: <56737CF5.8070304@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Guanghui,
+Function dlm_grab() may return NULL when the node is doing unmount.
+When doing code review, we found that some dlm handlers may return
+error to caller when dlm_grab() returns NULL and make caller
+BUG or other problems. Here is an example:
 
-I think I encounter an problem just like you. But it's not race case.
+Node 1                                 Node 2
+receives migration message
+from node 3, and send
+migrate request to others
+                                     start unmounting
 
-Every time ocfs2_commit_threadreceive an errorfrom jbd2_journal_flush 
-(which may cause by disk io error), it will continue to try commit 
-journal. But in this case, journal should run into abort state, so retry 
-commit is useless. And even worse, the lock resource hold by this node 
-can not be release, so entire cluster hung.
+                                     receives migrate request
+                                     from node 1 and call
+                                     dlm_migrate_request_handler()
 
-I have write a patch about this, and my solution is just like yours, 
-will send it in another email.
+                                     unmount thread unregisters
+                                     domain handlers and removes
+                                     dlm_context from dlm_domains
+      
+                                     dlm_migrate_request_handlers()
+                                     returns -EINVAL to node 1
+Exit migration neither clearing the
+migration state nor sending
+assert master message to node 3 which
+cause node 3 hung.
 
-Thanks,
-Ryan
+Signed-off-by: Jiufei Xue <xuejiufei@huawei.com>
+Reviewed-by: Joseph Qi <joseph.qi@huawei.com>
+Reviewed-by: Yiwen Jiang <jiangyiwen@huawei.com>
+---
+ fs/ocfs2/dlm/dlmmaster.c | 2 +-
+ fs/ocfs2/dlm/dlmunlock.c | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
 
-On 12/17/2015 01:33 PM, Zhangguanghui wrote:
-> Hi all,
-> A tiny race aboutJBD2has aborted to jbd2_journal_flush,
-> because of unstable storagelink and I/O stress.
-> whileJBD2state is aborted, have been -EIO error,
-> may cause all cluster nodes hung. so I thinks
-> JBD2 has aborted the journal, ocfs2 cannot continue andtriggerocfs2_abort.
-> Thanks,Any ideas about this patch?
-> description:
-> ocfs2_commit_thread
->    ocfs2_commit_cache
->      jbd2_journal_flush
-> --- journal.c 2015-12-17 11:36:39.140542941 +0800
-> +++ journal.c.diff 2015-12-17 11:39:21.308542922 +0800
-> @@ -328,6 +328,9 @@
-> if (status < 0) {
-> up_write(&journal->j_trans_barrier);
-> mlog_errno(status);
-> + if (is_journal_aborted(journal)) {
-> + ocfs2_abort(osb->sb, "Detect aborted journal,while committing cache.");
-> + }
-> goto finally;
-> }
-> ------------------------------------------------------------------------
-> zhangguanghui
-> -------------------------------------------------------------------------------------------------------------------------------------
-> ??????????????????????????,?????????????
-> ?????????????????????(??????????????????
-> ???)?????????????????,??????????????????
-> ??!
-> This e-mail and its attachments contain confidential information from 
-> H3C, which is
-> intended only for the person or entity whose address is listed above. 
-> Any use of the
-> information contained herein in any way (including, but not limited 
-> to, total or partial
-> disclosure, reproduction, or dissemination) by persons other than the 
-> intended
-> recipient(s) is prohibited. If you receive this e-mail in error, 
-> please notify the sender
-> by phone or email immediately and delete it!
->
->
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
-
--------------- next part --------------
-An HTML attachment was scrubbed...
-URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20151218/4252dcb3/attachment.html 
+diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
+index ce38b4c..c43da7f 100644
+--- a/fs/ocfs2/dlm/dlmmaster.c
++++ b/fs/ocfs2/dlm/dlmmaster.c
+@@ -3048,7 +3048,7 @@ int dlm_migrate_request_handler(struct o2net_msg *msg, u32 len, void *data,
+ 	int ret = 0;
+ 
+ 	if (!dlm_grab(dlm))
+-		return -EINVAL;
++		return 0;
+ 
+ 	name = migrate->name;
+ 	namelen = migrate->namelen;
+diff --git a/fs/ocfs2/dlm/dlmunlock.c b/fs/ocfs2/dlm/dlmunlock.c
+index 2e3c9db..1082b2c 100644
+--- a/fs/ocfs2/dlm/dlmunlock.c
++++ b/fs/ocfs2/dlm/dlmunlock.c
+@@ -421,7 +421,7 @@ int dlm_unlock_lock_handler(struct o2net_msg *msg, u32 len, void *data,
+ 	}
+ 
+ 	if (!dlm_grab(dlm))
+-		return DLM_REJECTED;
++		return DLM_FORWARD;
+ 
+ 	mlog_bug_on_msg(!dlm_domain_fully_joined(dlm),
+ 			"Domain %s not fully joined!\n", dlm->name);
+-- 
+1.8.4.3
