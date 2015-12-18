@@ -1,122 +1,94 @@
-From: Eric Ren <zren@suse.com>
-Date: Fri, 18 Dec 2015 17:09:39 +0800
-Subject: [Ocfs2-devel] The root cause analysis about buffer read getting
- starvation
-In-Reply-To: <56736AAA020000F9001A9EEA@relay2.provo.novell.com>
-References: <56736AAA020000F9001A9EEA@relay2.provo.novell.com>
-Message-ID: <20151218090939.GB10744@desktop.lab.bej.apac.novell.com>
+From: Joseph Qi <joseph.qi@huawei.com>
+Date: Fri, 18 Dec 2015 18:45:27 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: fix BUG when calculate new backup super
+Message-ID: <5673E3C7.9050607@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi all,
+When resize, it firstly extends the last gd. Once it should backup super
+in the gd, it calculates new backup super and update the corresponding
+value. But it currently doesn't consider the situation that the backup
+super is already done. And in this case, it still sets the bit in gd
+bitmap and then decrease from bg_free_bits_count, which leads to a
+corrupted gd and trigger the BUG in ocfs2_block_group_set_bits:
+BUG_ON(le16_to_cpu(bg->bg_free_bits_count) < num_bits);
+So check whether the backup super is done and then do the updates.
 
-On Thu, Dec 17, 2015 at 08:08:42AM -0700, He Gang wrote: 
-> Hello Mark and all,
-> In the past days, I and Eric were looking at a customer issue, the customer is complaining that buffer reading sometimes lasts too much time ( 1 - 10 seconds) in case reading/writing the same file from different nodes concurrently, some day ago I sent a mail to the list for some discussions, you can read some details via the link https://oss.oracle.com/pipermail/ocfs2-devel/2015-December/011389.html.
-> But, this problem does not happen under SLES10 (sp1 - sp4), the customer upgraded his Linux OS to SLES11(sp3 or sp4), the problem happened, this is why the customer complains, he hope we can give a investigation, to see how to make OCFS2 buffer reading/writing behavior be consistent with SLES10.
-> According to our code reviewing and some testings, we found that the root cause to let buffer read get starvation.
-> The suspicious code in aops.c 
->  274 static int ocfs2_readpage(struct file *file, struct page *page)
->  275 {
->  276         struct inode *inode = page->mapping->host;
->  277         struct ocfs2_inode_info *oi = OCFS2_I(inode);
->  278         loff_t start = (loff_t)page->index << PAGE_CACHE_SHIFT;
->  279         int ret, unlock = 1;
->  280         long delta;
->  281         struct timespec t_enter, t_mid1, t_mid2, t_exit;
->  282
->  283         trace_ocfs2_readpage((unsigned long long)oi->ip_blkno,
->  284                              (page ? page->index : 0));
->  285
->  286         ret = ocfs2_inode_lock_with_page(inode, NULL, 0, page);  <<= here, using nonblock way to get lock will bring many times retry, spend too much time
->  287         if (ret != 0) {
->  288                 if (ret == AOP_TRUNCATED_PAGE)
->  289                         unlock = 0;
->  290                 mlog_errno(ret);
->  291                 goto out;
->  292         }
->  293
->  294         if (down_read_trylock(&oi->ip_alloc_sem) == 0) {  <<= here, the same problem with above
->  295                 /*
->  296                  * Unlock the page and cycle ip_alloc_sem so that we don't
->  297                  * busyloop waiting for ip_alloc_sem to unlock
->  298                  */
->  299                 ret = AOP_TRUNCATED_PAGE;
->  300                 unlock_page(page);
->  301                 unlock = 0;
->  302                 down_read(&oi->ip_alloc_sem);
->  303                 up_read(&oi->ip_alloc_sem);
->  304                 goto out_inode_unlock;
->  305         }
-> 
-> 
-> As you can see, using nonblock way to get lock will bring many time retry, spend too much time.
-> We can't modify the code to using block way to get the lock, as this will bring a dead lock.
-> Actually, we did some testing when trying to use block way to get the lock here, the deadlock problems were encountered.
-> But, in SLES10 source code, there is not any using nonblock way to get lock in buffer reading/writing, this is why buffer reading/writing are very fair to get IO when reading/writing the same file from multiple nodes. 
-SLES10 with kernel version about 2.6.16.x, used blocking way, i.e. down_read(), wich has the
-potential deaklock between page lock / ip_alloc_sem when one node get the cluster lock and
-does writing and reading on same file on it. This deadlock was fixed by this commit:
+Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
+Reviewed-by: Jiufei Xue <xuejiufei@huawei.com>
+Reviewed-by: Yiwen Jiang <jiangyiwen@huawei.com>
+Cc: <stable@vger.kernel.org>
 ---
-commit e9dfc0b2bc42761410e8db6c252c6c5889e178b8
-Author: Mark Fasheh <mark.fasheh@oracle.com>
-Date:   Mon May 14 11:38:51 2007 -0700
+ fs/ocfs2/resize.c | 15 ++++++++++++---
+ 1 file changed, 12 insertions(+), 3 deletions(-)
 
-    ocfs2: trylock in ocfs2_readpage()
+diff --git a/fs/ocfs2/resize.c b/fs/ocfs2/resize.c
+index d5da6f6..79b8021 100644
+--- a/fs/ocfs2/resize.c
++++ b/fs/ocfs2/resize.c
+@@ -54,11 +54,12 @@
+ static u16 ocfs2_calc_new_backup_super(struct inode *inode,
+ 				       struct ocfs2_group_desc *gd,
+ 				       u16 cl_cpg,
++				       u16 old_bg_clusters,
+ 				       int set)
+ {
+ 	int i;
+ 	u16 backups = 0;
+-	u32 cluster;
++	u32 cluster, lgd_cluster;
+ 	u64 blkno, gd_blkno, lgd_blkno = le64_to_cpu(gd->bg_blkno);
 
-    Similarly to the page lock / cluster lock inversion in ocfs2_readpage, we
-    can deadlock on ip_alloc_sem. We can down_read_trylock() instead and just
-    return AOP_TRUNCATED_PAGE if the operation fails.
+ 	for (i = 0; i < OCFS2_MAX_BACKUP_SUPERBLOCKS; i++) {
+@@ -71,6 +72,12 @@ static u16 ocfs2_calc_new_backup_super(struct inode *inode,
+ 		else if (gd_blkno > lgd_blkno)
+ 			break;
 
-    Signed-off-by: Mark Fasheh <mark.fasheh@oracle.com>
++		/* check if already done backup super */
++		lgd_cluster = ocfs2_blocks_to_clusters(inode->i_sb, lgd_blkno);
++		lgd_cluster += old_bg_clusters;
++		if (lgd_cluster >= cluster)
++			continue;
++
+ 		if (set)
+ 			ocfs2_set_bit(cluster % cl_cpg,
+ 				      (unsigned long *)gd->bg_bitmap);
+@@ -99,6 +106,7 @@ static int ocfs2_update_last_group_and_inode(handle_t *handle,
+ 	u16 chain, num_bits, backups = 0;
+ 	u16 cl_bpc = le16_to_cpu(cl->cl_bpc);
+ 	u16 cl_cpg = le16_to_cpu(cl->cl_cpg);
++	u16 old_bg_clusters;
 
-diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-index 8e7cafb..3030670 100644
---- a/fs/ocfs2/aops.c
-+++ b/fs/ocfs2/aops.c
-@@ -222,7 +222,10 @@ static int ocfs2_readpage(struct file *file, struct page *page)
-                goto out;
-        }
+ 	trace_ocfs2_update_last_group_and_inode(new_clusters,
+ 						first_new_cluster);
+@@ -112,6 +120,7 @@ static int ocfs2_update_last_group_and_inode(handle_t *handle,
 
--       down_read(&OCFS2_I(inode)->ip_alloc_sem);
-+       if (down_read_trylock(&OCFS2_I(inode)->ip_alloc_sem) == 0) {
-+               ret = AOP_TRUNCATED_PAGE;
-+               goto out_meta_unlock;
-+       }
+ 	group = (struct ocfs2_group_desc *)group_bh->b_data;
 
-        /*
-         * i_size might have just been updated as we grabed the meta lock.  We
-@@ -258,6 +261,7 @@ static int ocfs2_readpage(struct file *file, struct page *page)
-        ocfs2_data_unlock(inode, 0);
- out_alloc:
-        up_read(&OCFS2_I(inode)->ip_alloc_sem);
-+out_meta_unlock:
-        ocfs2_meta_unlock(inode, 0);
- out:
-        if (unlock)
----
++	old_bg_clusters = le16_to_cpu(group->bg_bits) / cl_bpc;
+ 	/* update the group first. */
+ 	num_bits = new_clusters * cl_bpc;
+ 	le16_add_cpu(&group->bg_bits, num_bits);
+@@ -125,7 +134,7 @@ static int ocfs2_update_last_group_and_inode(handle_t *handle,
+ 				     OCFS2_FEATURE_COMPAT_BACKUP_SB)) {
+ 		backups = ocfs2_calc_new_backup_super(bm_inode,
+ 						     group,
+-						     cl_cpg, 1);
++						     cl_cpg, old_bg_clusters, 1);
+ 		le16_add_cpu(&group->bg_free_bits_count, -1 * backups);
+ 	}
 
-But somehow with this patch, performance in the scenario become very bad. I don't how this could happen? because the reading node just has only one
-thread reading the shared file, then down_read_trylock() should always get ip_alloc_sem successfully, right? if not, who else may race ip_alloc_sem?
-
-Thanks,
-Eric
-> Why the dead locks happen on SLES11? you can see the source code, there are some code change, especially inode alloc_sem lock.
-> On SLES11, to get  inode alloc_sem lock is moved into ocfs2_readpage and ocfs2_write_begin, why we need to do that? this will let us to bring a dead lock factor, to avoid the dead locks, we will have to use nonblocking way to get some locks in ocfs2_readpage, the result will let buffer reading be unfair to get IO. and that, to avoid CPU busy loop, add some code to get the lock with block way in case can't get a lock in nonblock way, waste too much time also.
-> Finally, I want to discuss with your guys, how to fix this issue? could we move the inode alloc_sem lock back to ocfs2_file_aio_read/ocfs2_file_aio_write? 
-> we can get the inode alloc_sem lock before calling into ocfs2_readpage/ocfs2_write_begin, just like SLES10. 
-> Since I have not enough background behind these code changes, hope you can give some comments.
-> 
-> Thanks a lot.
-> Gang
-> 
-> 
-> 
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
-> 
+@@ -163,7 +172,7 @@ out_rollback:
+ 	if (ret < 0) {
+ 		ocfs2_calc_new_backup_super(bm_inode,
+ 					    group,
+-					    cl_cpg, 0);
++					    cl_cpg, old_bg_clusters, 0);
+ 		le16_add_cpu(&group->bg_free_bits_count, backups);
+ 		le16_add_cpu(&group->bg_bits, -1 * num_bits);
+ 		le16_add_cpu(&group->bg_free_bits_count, -1 * num_bits);
+-- 
+1.8.4.3
