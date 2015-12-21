@@ -1,120 +1,161 @@
-From: Ryan Ding <ryan.ding@oracle.com>
-Date: Mon, 21 Dec 2015 10:32:19 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: call ocfs2_abort when journal abort
-In-Reply-To: <20151218155035.7b82a3a4f1b555ed1106acfa@linux-foundation.org>
-References: <1450423165-14695-1-git-send-email-ryan.ding@oracle.com>
-	<20151218155035.7b82a3a4f1b555ed1106acfa@linux-foundation.org>
-Message-ID: <567764B3.8040308@oracle.com>
+From: Gang He <ghe@suse.com>
+Date: Sun, 20 Dec 2015 19:53:50 -0700
+Subject: [Ocfs2-devel] The root cause analysis about buffer read getting
+ starvation
+In-Reply-To: <20151218232846.GN11072@wotan.suse.de>
+References: <56736AAA020000F9001A9EEA@relay2.provo.novell.com>
+	<20151218090939.GB10744@desktop.lab.bej.apac.novell.com>
+	<20151218232846.GN11072@wotan.suse.de>
+Message-ID: <5677DA3E020000F900023048@relay2.provo.novell.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Andrew,
+Hello Mark and all,
 
-Thanks for you comments, please see my reply:
 
-On 12/19/2015 07:50 AM, Andrew Morton wrote:
-> On Fri, 18 Dec 2015 15:19:25 +0800 Ryan Ding <ryan.ding@oracle.com> wrote:
->
->> orabug: 22293201
->>
->> journal can not recover from abort state, so we should take following action to
->> prevent file system from corruption:
->>
->> 1. change to readonly filesystem when local mount. We can not afford further
->>     write, so change to RO state is reasonable.
->>
->> 2. panic when cluster mount. Because we can not release lock resource in this
->>     state, other node will hung when it require a lock owned by this node. So
->>     panic and remaster is a reasonable choise.
->>
->> ocfs2_abort() will do all the above work.
->>
->> ...
->>
->> --- a/fs/ocfs2/journal.c
->> +++ b/fs/ocfs2/journal.c
->> @@ -30,7 +30,6 @@
->>   #include <linux/kthread.h>
->>   #include <linux/time.h>
->>   #include <linux/random.h>
->> -#include <linux/delay.h>
->>   
->>   #include <cluster/masklog.h>
->>   
->> @@ -2265,7 +2264,7 @@ static int __ocfs2_wait_on_mount(struct ocfs2_super *osb, int quota)
->>   
->>   static int ocfs2_commit_thread(void *arg)
->>   {
->> -	int status;
->> +	int status = 0;
->>   	struct ocfs2_super *osb = arg;
->>   	struct ocfs2_journal *journal = osb->journal;
->>   
->> @@ -2279,22 +2278,18 @@ static int ocfs2_commit_thread(void *arg)
->>   		wait_event_interruptible(osb->checkpoint_event,
->>   					 atomic_read(&journal->j_num_trans)
->>   					 || kthread_should_stop());
->> +		if (status < 0)
->> +			/* As we can not terminate by myself, just enter an
->> +			 * empty loop to wait for stop. */
->> +			continue;
-> This is a busy-wait loop, isn't it?  That's going to chew lots of CPU
-> and in some situations (eg, SMP=n, PREEMPT=n) it will lock up the
-> kernel because kjournald will never run.
-This will not be a busy loop, because j_num_trans will be 0 here (when 
-cluster mount, system will panic to prevent further corruption of ocfs2 
-file system; when local mount, this value will be 0 all the time), so 
-this thread will always wait on above wait wait_event_interruptible().
-But to make code more clearer, I will add code to set j_num_trans to 0in 
-this function.
->
->>   		status = ocfs2_commit_cache(osb);
->> -		if (status < 0) {
->> -			static unsigned long abort_warn_time;
->> -
->> -			/* Warn about this once per minute */
->> -			if (printk_timed_ratelimit(&abort_warn_time, 60*HZ))
->> -				mlog(ML_ERROR, "status = %d, journal is "
->> -						"already aborted.\n", status);
->> -			/*
->> -			 * After ocfs2_commit_cache() fails, j_num_trans has a
->> -			 * non-zero value.  Sleep here to avoid a busy-wait
->> -			 * loop.
->> -			 */
->> -			msleep_interruptible(1000);
->> -		}
->> +		if (status < 0)
->> +			/* journal can not recover from abort state, there is
->> +			 * no need to keep commit cache. So we should either
->> +			 * change to readonly(local mount) or just panic
->> +			 * (cluster mount). */
->> +			ocfs2_abort(osb->sb, "Detected aborted journal");
-> Coding-style issues:
->
-> It would be more conventional to add braces for the comment:
->
-> 		if (status < 0) {
-> 			/* journal can not recover from abort state, there is
-> 			 * no need to keep commit cache. So we should either
-> 			 * change to readonly(local mount) or just panic
-> 			 * (cluster mount). */
-> 			ocfs2_abort(osb->sb, "Detected aborted journal");
-> 		}
->
-> And to lay out the comment like this:
->
-> 			/*
-> 			 * journal can not recover from abort state, there is
-> 			 * no need to keep commit cache. So we should either
-> 			 * change to readonly(local mount) or just panic
-> 			 * (cluster mount).
-> 			 */
-OK
+>>> 
+> On Fri, Dec 18, 2015 at 05:09:39PM +0800, Eric Ren wrote:
+>> Hi all,
+>> 
+>> On Thu, Dec 17, 2015 at 08:08:42AM -0700, He Gang wrote: 
+>> > Hello Mark and all,
+>> > In the past days, I and Eric were looking at a customer issue, the customer 
+> is complaining that buffer reading sometimes lasts too much time ( 1 - 10 
+> seconds) in case reading/writing the same file from different nodes 
+> concurrently, some day ago I sent a mail to the list for some discussions, 
+> you can read some details via the link 
+> https://oss.oracle.com/pipermail/ocfs2-devel/2015-December/011389.html.
+>> > But, this problem does not happen under SLES10 (sp1 - sp4), the customer 
+> upgraded his Linux OS to SLES11(sp3 or sp4), the problem happened, this is 
+> why the customer complains, he hope we can give a investigation, to see how 
+> to make OCFS2 buffer reading/writing behavior be consistent with SLES10.
+>> > According to our code reviewing and some testings, we found that the root 
+> cause to let buffer read get starvation.
+>> > The suspicious code in aops.c 
+>> >  274 static int ocfs2_readpage(struct file *file, struct page *page)
+>> >  275 {
+>> >  276         struct inode *inode = page->mapping->host;
+>> >  277         struct ocfs2_inode_info *oi = OCFS2_I(inode);
+>> >  278         loff_t start = (loff_t)page->index << PAGE_CACHE_SHIFT;
+>> >  279         int ret, unlock = 1;
+>> >  280         long delta;
+>> >  281         struct timespec t_enter, t_mid1, t_mid2, t_exit;
+>> >  282
+>> >  283         trace_ocfs2_readpage((unsigned long long)oi->ip_blkno,
+>> >  284                              (page ? page->index : 0));
+>> >  285
+>> >  286         ret = ocfs2_inode_lock_with_page(inode, NULL, 0, page);  <<= 
+> here, using nonblock way to get lock will bring many times retry, spend too 
+> much time
+>> >  287         if (ret != 0) {
+>> >  288                 if (ret == AOP_TRUNCATED_PAGE)
+>> >  289                         unlock = 0;
+>> >  290                 mlog_errno(ret);
+>> >  291                 goto out;
+>> >  292         }
+>> >  293
+>> >  294         if (down_read_trylock(&oi->ip_alloc_sem) == 0) {  <<= here, the 
+> same problem with above
+>> >  295                 /*
+>> >  296                  * Unlock the page and cycle ip_alloc_sem so that we 
+> don't
+>> >  297                  * busyloop waiting for ip_alloc_sem to unlock
+>> >  298                  */
+>> >  299                 ret = AOP_TRUNCATED_PAGE;
+>> >  300                 unlock_page(page);
+>> >  301                 unlock = 0;
+>> >  302                 down_read(&oi->ip_alloc_sem);
+>> >  303                 up_read(&oi->ip_alloc_sem);
+>> >  304                 goto out_inode_unlock;
+>> >  305         }
+>> > 
+>> > 
+>> > As you can see, using nonblock way to get lock will bring many time retry, 
+> spend too much time.
+>> > We can't modify the code to using block way to get the lock, as this will 
+> bring a dead lock.
+>> > Actually, we did some testing when trying to use block way to get the lock 
+> here, the deadlock problems were encountered.
+>> > But, in SLES10 source code, there is not any using nonblock way to get lock 
+> in buffer reading/writing, this is why buffer reading/writing are very fair 
+> to get IO when reading/writing the same file from multiple nodes. 
+>> SLES10 with kernel version about 2.6.16.x, used blocking way, i.e. 
+> down_read(), wich has the
+>> potential deaklock between page lock / ip_alloc_sem when one node get the 
+> cluster lock and
+>> does writing and reading on same file on it. This deadlock was fixed by this 
+> commit:
+> 
+> You are correct here - the change was introduced to solve a deadlock between
+> page lock and ip_alloc_sem(). Basically, ->readpage is going to be called
+> with the page lock held and we need to be aware of that.
+Hello guys, my main question is, why we changed ip_alloc_sem lock/unlock position from SLES10 to SLES11?
+In SLES10, we get ip_alloc_sem lock before calling generic_file_read() or generic_file_write_nolock in file.c, 
+but in SLES11, we get ip_alloc_sem lock in ocfs2_readpage in aops.c, and more, getting/putting the page lock and ip_alloc_sem lock orders are NOT consistent in read/write path.
+I just want to know the background behind this code evolution. If we keep getting the ip_alloc_sem lock before calling generic_file_aio_read in SLES11, the deadlock can be avoided?
+then, we need not to use nonblocking way to get the lock in read_page(), buffer read will not getting starvation in such case, the read/write IO behavior will be the same with SLES10.
 
-I will resend v2 patch later.
+Thanks
+Gang
 
-Thanks,
-Ryan
+> 
+> 
+>> ---
+>> commit e9dfc0b2bc42761410e8db6c252c6c5889e178b8
+>> Author: Mark Fasheh <mark.fasheh@oracle.com>
+>> Date:   Mon May 14 11:38:51 2007 -0700
+>> 
+>>     ocfs2: trylock in ocfs2_readpage()
+>> 
+>>     Similarly to the page lock / cluster lock inversion in ocfs2_readpage, 
+> we
+>>     can deadlock on ip_alloc_sem. We can down_read_trylock() instead and 
+> just
+>>     return AOP_TRUNCATED_PAGE if the operation fails.
+>> 
+>>     Signed-off-by: Mark Fasheh <mark.fasheh@oracle.com>
+>> 
+>> diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+>> index 8e7cafb..3030670 100644
+>> --- a/fs/ocfs2/aops.c
+>> +++ b/fs/ocfs2/aops.c
+>> @@ -222,7 +222,10 @@ static int ocfs2_readpage(struct file *file, struct page 
+> *page)
+>>                 goto out;
+>>         }
+>> 
+>> -       down_read(&OCFS2_I(inode)->ip_alloc_sem);
+>> +       if (down_read_trylock(&OCFS2_I(inode)->ip_alloc_sem) == 0) {
+>> +               ret = AOP_TRUNCATED_PAGE;
+>> +               goto out_meta_unlock;
+>> +       }
+>> 
+>>         /*
+>>          * i_size might have just been updated as we grabed the meta lock.  
+> We
+>> @@ -258,6 +261,7 @@ static int ocfs2_readpage(struct file *file, struct page 
+> *page)
+>>         ocfs2_data_unlock(inode, 0);
+>>  out_alloc:
+>>         up_read(&OCFS2_I(inode)->ip_alloc_sem);
+>> +out_meta_unlock:
+>>         ocfs2_meta_unlock(inode, 0);
+>>  out:
+>>         if (unlock)
+>> ---
+>> 
+>> But somehow with this patch, performance in the scenario become very bad. I 
+> don't how this could happen? because the reading node just has only one
+>> thread reading the shared file, then down_read_trylock() should always get 
+> ip_alloc_sem successfully, right? if not, who else may race ip_alloc_sem?
+> 
+> Hmm, there's only one thread and it can't get the lock? Any chance you might
+> put some debug prints around where we acquire ip_alloc_sem? It would be
+> interesting to see where it get taken to prevent this from happening.
+> 	--Mark
+> 
+> --
+> Mark Fasheh
