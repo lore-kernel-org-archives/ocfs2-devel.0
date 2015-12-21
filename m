@@ -1,76 +1,88 @@
-From: Junxiao Bi <junxiao.bi@oracle.com>
-Date: Mon, 21 Dec 2015 13:12:34 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: dlm: fix recursive locking deadlock
-In-Reply-To: <20151218232319.GM11072@wotan.suse.de>
-References: <1450058259-30682-1-git-send-email-junxiao.bi@oracle.com>
-	<566EC6A8020000F90002219D@relay2.provo.novell.com>
-	<566E5BA5.5030308@oracle.com> <20151214191827.GF11072@wotan.suse.de>
-	<566F7054.8030501@oracle.com> <20151218232319.GM11072@wotan.suse.de>
-Message-ID: <56778A42.3060905@oracle.com>
+From: Ryan Ding <ryan.ding@oracle.com>
+Date: Mon, 21 Dec 2015 13:39:46 +0800
+Subject: [Ocfs2-devel] [PATCH V2] ocfs2: call ocfs2_abort when journal abort
+Message-ID: <1450676386-27715-1-git-send-email-ryan.ding@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Mark,
+orabug: 22293201
 
-On 12/19/2015 07:23 AM, Mark Fasheh wrote:
-> On Tue, Dec 15, 2015 at 09:43:48AM +0800, Junxiao Bi wrote:
->> Hi Mark,
->>
->> On 12/15/2015 03:18 AM, Mark Fasheh wrote:
->>> On Mon, Dec 14, 2015 at 02:03:17PM +0800, Junxiao Bi wrote:
->>>>> Second, this issue can be reproduced in old Linux kernels (e.g. 3.16.7-24)? there should not be any regression issue? 
->>>> Maybe just hard to reproduce, ocfs2 supports recursive locking.
->>>
->>> In what sense? The DLM might but the FS should never be making use of such a
->>> mechanism (it would be for userspace users).
->> See commit 743b5f1434f5 ("ocfs2: take inode lock in
->> ocfs2_iop_set/get_acl()"), it used recursive locking and caused a
->> deadlock, the call trace is in this patch's log.
-> 
-> Ahh ok so it's part of the buggy patch.
-> 
-> 
->>> We really can't add recursive locks without this getting rejected upstream.
->>> There's a whole slew of reasons why we don't like those in the kernel.
->> Is there any harm to support this lock in kernel?
-> 
-> Yeah so you can google search on why recursive locks are considered harmful
-> by many programmers and in the Linux Kernel they are a big 'No No'. We used
-> to have one recursive lock (the 'big kernel lock') which took a large effort
-> to clean up.
-> 
-> Most objections are going to come down to the readability of the code and
-> the nasty bugs that can come about as a result. Here's a random blog post I
-> found explaining some of this:
-> 
-> http://blog.stephencleary.com/2013/04/recursive-re-entrant-locks.html
-Good doc. Thank you for sharing it. Learned more about recursive locking.
+journal can not recover from abort state, so we should take following action to
+prevent file system from corruption:
 
-But I am afraid, cluster lock suffers all drawbacks mentioned in that
-doc since it is stick to node. P1 and P2 can hold one EX lock at the
-same time, is it a kind of recursive locking for cluster lock?
-Maybe it is just a bad naming of recursive locking. If two processes in
-one node are allowed to hold one EX lock at the same time, why one
-process not allowed to lock one EX lock two times?
+1. change to readonly filesystem when local mount. We can not afford further
+   write, so change to RO state is reasonable.
 
-Thanks,
-Junxiao.
+2. panic when cluster mount. Because we can not release lock resource in this
+   state, other node will hung when it require a lock owned by this node. So
+   panic and remaster is a reasonable choise.
 
-> 
-> I'm pretty sure Linus has a rant about it somewhere too you can find.
-> 
-> 
-> But basically your approach to fixing situations like this is going to be
-> refactoring the code in a readable manner such that the lock is only taken
-> once per code path.
-> 
-> Hope that all helps,
-> 	--Mark
-> 
-> 
-> --
-> Mark Fasheh
-> 
+ocfs2_abort() will do all the above work.
+
+Signed-off-by: Ryan Ding <ryan.ding@oracle.com>
+---
+ fs/ocfs2/journal.c |   27 +++++++++++++++------------
+ 1 files changed, 15 insertions(+), 12 deletions(-)
+
+diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
+index ff53192..afa750c 100644
+--- a/fs/ocfs2/journal.c
++++ b/fs/ocfs2/journal.c
+@@ -30,7 +30,6 @@
+ #include <linux/kthread.h>
+ #include <linux/time.h>
+ #include <linux/random.h>
+-#include <linux/delay.h>
+ 
+ #include <cluster/masklog.h>
+ 
+@@ -2241,7 +2240,7 @@ static int __ocfs2_wait_on_mount(struct ocfs2_super *osb, int quota)
+ 
+ static int ocfs2_commit_thread(void *arg)
+ {
+-	int status;
++	int status = 0;
+ 	struct ocfs2_super *osb = arg;
+ 	struct ocfs2_journal *journal = osb->journal;
+ 
+@@ -2255,21 +2254,25 @@ static int ocfs2_commit_thread(void *arg)
+ 		wait_event_interruptible(osb->checkpoint_event,
+ 					 atomic_read(&journal->j_num_trans)
+ 					 || kthread_should_stop());
++		if (status < 0) {
++			/* As we can not terminate by ourself, just enter an
++			 * empty loop to wait for stop.
++			 */
++			continue;
++		}
+ 
+ 		status = ocfs2_commit_cache(osb);
+ 		if (status < 0) {
+-			static unsigned long abort_warn_time;
+-
+-			/* Warn about this once per minute */
+-			if (printk_timed_ratelimit(&abort_warn_time, 60*HZ))
+-				mlog(ML_ERROR, "status = %d, journal is "
+-						"already aborted.\n", status);
+ 			/*
+-			 * After ocfs2_commit_cache() fails, j_num_trans has a
+-			 * non-zero value.  Sleep here to avoid a busy-wait
+-			 * loop.
++			 * journal can not recover from abort state, there is
++			 * no need to keep commit cache. So we should either
++			 * change to readonly(local mount) or just panic
++			 * (cluster mount).
++			 * We should also clear j_num_trans to prevent further
++			 * commit.
+ 			 */
+-			msleep_interruptible(1000);
++			atomic_set(&journal->j_num_trans, 0);
++			ocfs2_abort(osb->sb, "Detected aborted journal");
+ 		}
+ 
+ 		if (kthread_should_stop() && atomic_read(&journal->j_num_trans)){
+-- 
+1.7.1
