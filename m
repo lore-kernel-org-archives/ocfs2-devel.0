@@ -1,128 +1,71 @@
-From: Eric Ren <zren@suse.com>
-Date: Tue, 22 Dec 2015 15:39:48 +0800
-Subject: [Ocfs2-devel] ocfs2-test for v4.3 done
-In-Reply-To: <5678B6AC.1080005@oracle.com>
-References: <56776B6B.2010208@oracle.com> <20151221135038.GA3194@laptop.ha>
-	<5678B6AC.1080005@oracle.com>
-Message-ID: <20151222073948.GA18380@laptop.ha>
+From: Junxiao Bi <junxiao.bi@oracle.com>
+Date: Tue, 22 Dec 2015 16:08:27 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: fix flock panic issue
+Message-ID: <1450771707-11568-1-git-send-email-junxiao.bi@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi,
+Commit 4f6563677ae8 ("Move locks API users to locks_lock_inode_wait()")
+move flock/posix lock indentify code to locks_lock_inode_wait(), but
+missed to set fl_flags to FL_FLOCK which caused the following kernel
+panic on 4.4.0_rc5.
 
-On Tue, Dec 22, 2015 at 10:34:20AM +0800, Junxiao Bi wrote: 
-> On 12/21/2015 09:50 PM, Eric Ren wrote:
-> > Hi Junxiao,
-> > 
-> > Thanks for your sharing, and very appreciated your efforts.
-> > 
-> > On Mon, Dec 21, 2015 at 11:00:59AM +0800, Junxiao Bi wrote: 
-> >> Hi,
-> >>
-> >> I have run a full ocfs2-test(single/multiple/discontig) to v4.3 mainline
-> >> kernel. The following three issues are found. The first two are
-> >> regression bugs.
-> >>
-> >> 1. https://oss.oracle.com/bugzilla/show_bug.cgi?id=1357
-> >>   Fix merged. Upstream commit 087ffd4eae99("jbd2: fix null committed
-> >> data return in undo_access")
-> >>
-> >> 2. https://oss.oracle.com/bugzilla/show_bug.cgi?id=1358
-> >>   A recursive locking issue, discussing fix in ocfs2-devel.
-> >>
-> >> 3. https://oss.oracle.com/bugzilla/show_bug.cgi?id=1359
-> >>   o2hb-increase-unsteady-iterations.patch to fix this issue, merged by
-> >> -mm tree
-> >>
-> >> I have setup a test env to build and auto do ocfs2 test. With it, Ocfs2
-> >> for mainline and linux-next will be test regularly, the test status and
-> >> bugs will be reported to ocfs2-devel. Feel free to take any bug if you
-> >> are interested, it will be a good start point with ocfs2. Hope this can
-> >> catch regression bugs earlier before merged by mainline.
-> > I'm very interested in how your testing env works, could you briefly introduce
-> > it?
-> Four vm are used, one for git server, and the other three to build
-> kernel and run ocfs2 test. Tag a branch and push it to the git server,
-> the test will be started. The test cases to run can be set in tag message.
-> 
-> >>
-> >> For the test cases, now only ocfs2-test is supported. Ltp is going to be
-> >> merged in the future. If any other test cases or benchmark useful to
-> >> ocfs2 test, please let me know.
-> > Btw, recently, I did a performance testing on both ocfs2 and gfs2 using iozone. The
-> > testing has 3 different cases:
-> > 1. local mode: ocfs2 better than gfs2
-> > 2. two files mutiple nodes  
-> > 3. same file mutiple nodes, for 2 and 3 gfs2 better than ocfs2 generally
-> Can you share the perf data, i am curious about the performance diff?
-Sure, but I cannot guarantee it's quality;-) I'd like to put some handled data here,
-and then attach the raw data.
-My env has two sle12 nodes(vm) with same configuration: 4GB RAM, 4 core, 50G iscsi
-shared disk. Poor equipment, isn't? hah
+[19343.650448] kernel BUG at fs/locks.c:1895!
+[19343.650448] invalid opcode: 0000 [#1] SMP
+[19343.650448] Modules linked in: ocfs2(O) ocfs2_dlmfs(O) ocfs2_stack_o2cb(O) ocfs2_dlm(O) ocfs2_nodemanager(O) ocfs2_stackglue(O) iscsi_tcp libiscsi_tcp libiscsi scsi_transport_iscsi xen_kbdfront xen_netfront xen_fbfront xen_blkfront
+[19343.650448] CPU: 0 PID: 20268 Comm: flock_unit_test Tainted: G           O    4.4.0-rc5-next-20151217 #1
+[19343.650448] Hardware name: Xen HVM domU, BIOS 4.3.1OVM 05/14/2014
+[19343.650448] task: ffff88007b3672c0 ti: ffff880028b58000 task.ti: ffff880028b58000
+[19343.650448] RIP: 0010:[<ffffffff811def7e>]  [<ffffffff811def7e>] locks_lock_inode_wait+0x2e/0x160
+[19343.650448] RSP: 0018:ffff880028b5bce8  EFLAGS: 00010293
+[19343.650448] RAX: 0000000000000000 RBX: ffff880028b5bdb8 RCX: 0000000000000000
+[19343.650448] RDX: 0000000000000007 RSI: ffff880028b5bdb8 RDI: ffff88006842bb08
+[19343.650448] RBP: ffff880028b5bd98 R08: ffff88007d21b930 R09: ffff880076a005b0
+[19343.650448] R10: ffff88007a0e9360 R11: ffff880028b5be78 R12: ffff880040b45408
+[19343.650448] R13: ffff880079cbf000 R14: ffff88006842bb08 R15: 0000000000000001
+[19343.650448] FS:  00007f17572c7700(0000) GS:ffff88007d200000(0000) knlGS:0000000000000000
+[19343.650448] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[19343.650448] CR2: 00007f17572d7000 CR3: 000000007b2cf000 CR4: 00000000000406f0
+[19343.650448] Stack:
+[19343.650448]  ffff880028a70a38 ffffffff0000005a ffff880028a70800 000000000000005a
+[19343.650448]  ffff880028b5bda8 0000000100000001 000000000000005a ffff880028a70a30
+[19343.650448]  0000000000000292 0000000000000001 0000000000000001 0000000000000292
+[19343.650448] Call Trace:
+[19343.650448]  [<ffffffff810a15ee>] ? __wake_up+0x4e/0x70
+[19343.650448]  [<ffffffff810a1180>] ? bit_waitqueue+0x90/0x90
+[19343.650448]  [<ffffffffa010ee01>] ocfs2_do_flock+0x91/0x160 [ocfs2]
+[19343.650448]  [<ffffffffa010ef46>] ocfs2_flock+0x76/0xd0 [ocfs2]
+[19343.650448]  [<ffffffff811df1bf>] SyS_flock+0x10f/0x1a0
+[19343.650448]  [<ffffffff8191b6ae>] entry_SYSCALL_64_fastpath+0x12/0x71
+[19343.650448] Code: e5 41 57 41 56 49 89 fe 41 55 41 54 53 48 89 f3 48 81 ec 88 00 00 00 8b 46 40 83 e0 03 83 f8 01 0f 84 ad 00 00 00 83 f8 02 74 04 <0f> 0b eb fe 4c 8d ad 60 ff ff ff 4c 8d 7b 58 e8 0e 8e 73 00 4d
+[19343.650448] RIP  [<ffffffff811def7e>] locks_lock_inode_wait+0x2e/0x160
+[19343.650448]  RSP <ffff880028b5bce8>
+[19343.819187] ---[ end trace dfca74ec9b5b274c ]---
 
-1. local mode
-#iozone -R -s 10G -r 4 -i 0 -i 1 -i 2 -f /mnt/shared/test -b output 
-        Write   Re-write    Read    Re-read Random Read Random Write
-gfs2    62458   109542      104830  113967  8860        71114
-ocfs2   79411   117789      123872  135462  9988        73653
+Fixes: 4f6563677ae8 ("Move locks API users to locks_lock_inode_wait()")
+Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
+---
+ fs/ocfs2/locks.c |    5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
 
-2. two files mutiple nodes - use "pdsh" tools from working machine to start iozone
-   on both nodes concurrently. node1 iozone on file1, node2 iozone on file2. Then
-   add up the IO data and divide by 2, to get the average value.
-#iozone -R -s 2G -r 4 -i 0 -i 1 -i 2 -f /mnt/shared/file1 -b multi_two-files_${FS}-2G.wks
-        Write       Re-write    Read        Re-read     Random Read Random Write
-GFS2    50347       51479       6079973.5   6215918.5   3885683.5   4619.5
-OCFS2   38921.5     67632.5     4104709.5   3891825.5   2964093     5863.5
-
-3. same file mutiple nodes - similar with 2th case, but both node1 and node2 iozone on the
-   same file.
-        Write   Re-write    Read    Re-read     Random Read Random Write
-GFS2    45337   26388       48032.5 3192007     1682927.5   45014
-OCFS2   19428   404.5       86296   1888067.5   1399657.5   3226.5 
-
-Again, raw data attatched.
-> > Just provide a reference here. I tried to make it as simple as possible,
-> > leaving all formating and mount options as default, and with fixed-size file(2GB)
-> > and buffer(4kb). 
-> > 
-> > Did you or anyone ever test performance for ocfs2? maybe we can discuss further on
-> > this topic in future;-)
-> Yes, a lot of works need to do for ocfs2 performance, to make local
-> ocfs2 performance more close to ext4, and try best to make cluster ocfs2
-> performance close to local.
-Let's do it one by one;-)
-
-Thanks,
-Eric
-> 
-> Thanks,
-> Junxiao.
-> > 
-> > Thanks,
-> > Eric
-> >>
-> >> Thanks,
-> >> Junxiao.
-> >>
-> >> _______________________________________________
-> >> Ocfs2-devel mailing list
-> >> Ocfs2-devel at oss.oracle.com
-> >> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
-> >>
-> 
-> 
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
-> 
--------------- next part --------------
-A non-text attachment was scrubbed...
-Name: ocfs2-vs-gfs2-performace-testing-data.gz
-Type: application/x-gzip
-Size: 57925 bytes
-Desc: not available
-Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20151222/5e926fd8/attachment-0001.gz 
+diff --git a/fs/ocfs2/locks.c b/fs/ocfs2/locks.c
+index 652ece4a9d9e..d56f0079b858 100644
+--- a/fs/ocfs2/locks.c
++++ b/fs/ocfs2/locks.c
+@@ -67,7 +67,10 @@ static int ocfs2_do_flock(struct file *file, struct inode *inode,
+ 		 */
+ 
+ 		locks_lock_file_wait(file,
+-				     &(struct file_lock){.fl_type = F_UNLCK});
++				&(struct file_lock) {
++					.fl_type = F_UNLCK,
++					.fl_flags = FL_FLOCK
++				});
+ 
+ 		ocfs2_file_unlock(file);
+ 	}
+-- 
+1.7.9.5
