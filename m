@@ -1,125 +1,97 @@
 From: Mark Fasheh <mfasheh@suse.de>
-Date: Tue, 22 Dec 2015 12:43:58 -0800
-Subject: [Ocfs2-devel] [PATCH] NFS hangs in __ocfs2_cluster_lock due to
- race with ocfs2_unblock_lock
-In-Reply-To: <5679AF1E.3020304@oracle.com>
-References: <1440536130-29622-1-git-send-email-tariq.x.saeed@oracle.com>
-	<5679AF1E.3020304@oracle.com>
-Message-ID: <20151222204358.GP11072@wotan.suse.de>
+Date: Tue, 22 Dec 2015 14:12:47 -0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: dlm: fix recursive locking deadlock
+In-Reply-To: <56778A42.3060905@oracle.com>
+References: <1450058259-30682-1-git-send-email-junxiao.bi@oracle.com>
+	<566EC6A8020000F90002219D@relay2.provo.novell.com>
+	<566E5BA5.5030308@oracle.com>
+	<20151214191827.GF11072@wotan.suse.de>
+	<566F7054.8030501@oracle.com>
+	<20151218232319.GM11072@wotan.suse.de>
+	<56778A42.3060905@oracle.com>
+Message-ID: <20151222221247.GQ11072@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Reviewed-by: Mark Fasheh <mfasheh@suse.de>
+On Mon, Dec 21, 2015 at 01:12:34PM +0800, Junxiao Bi wrote:
+> Hi Mark,
+> 
+> On 12/19/2015 07:23 AM, Mark Fasheh wrote:
+> > On Tue, Dec 15, 2015 at 09:43:48AM +0800, Junxiao Bi wrote:
+> >> Hi Mark,
+> >>
+> >> On 12/15/2015 03:18 AM, Mark Fasheh wrote:
+> >>> On Mon, Dec 14, 2015 at 02:03:17PM +0800, Junxiao Bi wrote:
+> >>>>> Second, this issue can be reproduced in old Linux kernels (e.g. 3.16.7-24)? there should not be any regression issue? 
+> >>>> Maybe just hard to reproduce, ocfs2 supports recursive locking.
+> >>>
+> >>> In what sense? The DLM might but the FS should never be making use of such a
+> >>> mechanism (it would be for userspace users).
+> >> See commit 743b5f1434f5 ("ocfs2: take inode lock in
+> >> ocfs2_iop_set/get_acl()"), it used recursive locking and caused a
+> >> deadlock, the call trace is in this patch's log.
+> > 
+> > Ahh ok so it's part of the buggy patch.
+> > 
+> > 
+> >>> We really can't add recursive locks without this getting rejected upstream.
+> >>> There's a whole slew of reasons why we don't like those in the kernel.
+> >> Is there any harm to support this lock in kernel?
+> > 
+> > Yeah so you can google search on why recursive locks are considered harmful
+> > by many programmers and in the Linux Kernel they are a big 'No No'. We used
+> > to have one recursive lock (the 'big kernel lock') which took a large effort
+> > to clean up.
+> > 
+> > Most objections are going to come down to the readability of the code and
+> > the nasty bugs that can come about as a result. Here's a random blog post I
+> > found explaining some of this:
+> > 
+> > http://blog.stephencleary.com/2013/04/recursive-re-entrant-locks.html
+> Good doc. Thank you for sharing it. Learned more about recursive locking.
+
+Np, glad it helped.
 
 
-On Tue, Dec 22, 2015 at 12:14:22PM -0800, Tariq Saeed wrote:
-> Hi,
-> Looks like this fell into through the cracks. This is a very real bug
-> encountered by Luminex Software and they tested the fix.
-> Regards
-> -Tariq
-> 
-> 
-> -------- Forwarded Message --------
-> Subject: [Ocfs2-devel] [PATCH] NFS hangs in __ocfs2_cluster_lock due to race
->          with ocfs2_unblock_lock
->    Date: Tue, 25 Aug 2015 13:55:30 -0700
->    From: Tariq Saeed <tariq.x.saeed@oracle.com>
->      To: ocfs2-devel at oss.oracle.com
->      CC: mfasheh at suse.de
-> 
-> 
-> 
-> Orabug: 20933419
-> 
-> NFS on a 2 node ocfs2 cluster each node exporting dir. The lock causing
-> the hang is the global bit map inode lock.  Node 1 is master, has
-> the lock granted in PR mode; Node 2 is in the converting list (PR ->
-> EX). There are no holders of the lock on the master node so it should
-> downconvert to NL and grant EX to node 2 but that does not happen.
-> BLOCKED + QUEUED in lock res are set and it is on osb blocked list.
-> Threads are waiting in __ocfs2_cluster_lock on BLOCKED.  One thread wants
-> EX, rest want PR. So it is as though the downconvert thread needs to be
-> kicked to complete the conv.
-> 
-> The hang is caused by an EX req coming into  __ocfs2_cluster_lock on
-> the heels of a PR req after it sets BUSY (drops l_lock, releasing EX
-> thread), forcing the incoming EX to wait on BUSY without doing anything.
-> PR has called ocfs2_dlm_lock, which  sets the node 1 lock from NL ->
-> PR, queues ast.
-> 
-> At this time, upconvert (PR ->EX) arrives from node 2, finds conflict with
-> node 1 lock in PR, so the lock res is put on dlm thread's dirty listt.
-> 
-> After ret from ocf2_dlm_lock, PR thread now waits behind EX on BUSY till
-> awoken by ast.
-> 
-> Now it is dlm_thread that serially runs dlm_shuffle_lists, ast,  bast,
-> in that order.  dlm_shuffle_lists ques a bast on behalf of node 2
-> (which will be run by dlm_thread right after the ast).  ast does its
-> part, sets UPCONVERT_FINISHING, clears BUSY and wakes its waiters. Next,
-> dlm_thread runs  bast. It sets BLOCKED and kicks dc thread.  dc thread
-> runs ocfs2_unblock_lock, but since UPCONVERT_FINISHING set, skips doing
-> anything and reques.
-> 
-> Inside of __ocfs2_cluster_lock, since EX has been waiting on BUSY ahead
-> of PR, it wakes up first, finds BLOCKED set and skips doing anything
-> but clearing UPCONVERT_FINISHING (which was actually "meant" for the
-> PR thread), and this time waits on BLOCKED.  Next, the PR thread comes
-> out of wait but since UPCONVERT_FINISHING is not set, it skips updating
-> the l_ro_holders and goes straight to wait on BLOCKED. So there, we
-> have a hang! Threads in __ocfs2_cluster_lock wait on BLOCKED, lock
-> res in osb blocked list. Only when dc thread is awoken, it will run
-> ocfs2_unblock_lock and things will unhang.
-> 
-> One way to fix this is to wake the dc thread on the flag after clearing
-> UPCONVERT_FINISHING
-> 
-> Signed-off-by: Tariq Saeed <tariq.x.saeed@oracle.com>
-> Reviewed-by: Wengang Wang <wen.gang.wang@oracle.com>
-> Signed-off-by: Santosh Shilimkar <santosh.shilimkar@oracle.com>
-> ---
->  fs/ocfs2/dlmglue.c |    6 ++++++
->  1 files changed, 6 insertions(+), 0 deletions(-)
-> 
-> diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-> index 8b23aa2..313c816 100644
-> --- a/fs/ocfs2/dlmglue.c
-> +++ b/fs/ocfs2/dlmglue.c
-> @@ -1390,6 +1390,7 @@ static int __ocfs2_cluster_lock(struct ocfs2_super *osb,
->         unsigned int gen;
->         int noqueue_attempted = 0;
->         int dlm_locked = 0;
-> +       int kick_dc = 0;
-> 
->         if (!(lockres->l_flags & OCFS2_LOCK_INITIALIZED)) {
->                 mlog_errno(-EINVAL);
-> @@ -1524,7 +1525,12 @@ update_holders:
->  unlock:
->         lockres_clear_flags(lockres, OCFS2_LOCK_UPCONVERT_FINISHING);
-> 
-> +       /* ocfs2_unblock_lock reques on seeing OCFS2_LOCK_UPCONVERT_FINISHING */
-> +       kick_dc = (lockres->l_flags & OCFS2_LOCK_BLOCKED);
-> +
->         spin_unlock_irqrestore(&lockres->l_lock, flags);
-> +       if (kick_dc)
-> +               ocfs2_wake_downconvert_thread(osb);
->  out:
->         /*
->          * This is helping work around a lock inversion between the page lock
-> --
-> 1.7.1
-> 
-> 
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
-> 
-> 
-> 
+> But I am afraid, cluster lock suffers all drawbacks mentioned in that
+> doc since it is stick to node. P1 and P2 can hold one EX lock at the
+> same time, is it a kind of recursive locking for cluster lock?
+> Maybe it is just a bad naming of recursive locking. If two processes in
+> one node are allowed to hold one EX lock at the same time, why one
+> process not allowed to lock one EX lock two times?
+
+Yeah I think maybe it's 'bad naming' as you say? What dlmglue is doing we
+call 'lock caching'.
+
+It's possible to use the dlm without caching the locks but that means every
+process wanting a cluster lock will have to make a dlm request. So instead,
+we hold onto the lock until another node wants it. However, this effectively
+makes each lock node-wide (as opposed to per-process which we would get
+without the lock caching).
+
+For local process locking, we use the VFS locks (inode mutex, etc).
+
+So the cluster lock is never being acquired more than once, it gets
+acquired and dlmglue caches access to it in a fair way. Hence it is not
+being acquired 'recusively'.
+
+Callers of dlmglue honor the usual locking rules - the same ones that we
+honor with local locks. For example, they must be properly ordered with
+respect to other locks.
+
+
+As you point out, we could turn the dlmglue locking into a true recursive
+locking scheme. But if we do that, then we are changing the design of
+dlmglue and introducing recursive locking into a kernel which does not hav
+it. The 2nd point is self explanatory. The reason I would also not want to
+change the design of dlmglue is that I don't feel this bug requires such a
+drastic measure.
+
+Thanks,
+	--Mark
+
 --
 Mark Fasheh
