@@ -1,71 +1,121 @@
-From: Junxiao Bi <junxiao.bi@oracle.com>
-Date: Tue, 22 Dec 2015 16:08:27 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: fix flock panic issue
-Message-ID: <1450771707-11568-1-git-send-email-junxiao.bi@oracle.com>
+From: Tariq Saeed <tariq.x.saeed@oracle.com>
+Date: Tue, 22 Dec 2015 12:14:22 -0800
+Subject: [Ocfs2-devel] [PATCH] NFS hangs in __ocfs2_cluster_lock due to race
+ with ocfs2_unblock_lock
+In-Reply-To: <1440536130-29622-1-git-send-email-tariq.x.saeed@oracle.com>
+References: <1440536130-29622-1-git-send-email-tariq.x.saeed@oracle.com>
+Message-ID: <5679AF1E.3020304@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Commit 4f6563677ae8 ("Move locks API users to locks_lock_inode_wait()")
-move flock/posix lock indentify code to locks_lock_inode_wait(), but
-missed to set fl_flags to FL_FLOCK which caused the following kernel
-panic on 4.4.0_rc5.
+Hi,
+Looks like this fell into through the cracks. This is a very real bug
+encountered by Luminex Software and they tested the fix.
+Regards
+-Tariq
 
-[19343.650448] kernel BUG at fs/locks.c:1895!
-[19343.650448] invalid opcode: 0000 [#1] SMP
-[19343.650448] Modules linked in: ocfs2(O) ocfs2_dlmfs(O) ocfs2_stack_o2cb(O) ocfs2_dlm(O) ocfs2_nodemanager(O) ocfs2_stackglue(O) iscsi_tcp libiscsi_tcp libiscsi scsi_transport_iscsi xen_kbdfront xen_netfront xen_fbfront xen_blkfront
-[19343.650448] CPU: 0 PID: 20268 Comm: flock_unit_test Tainted: G           O    4.4.0-rc5-next-20151217 #1
-[19343.650448] Hardware name: Xen HVM domU, BIOS 4.3.1OVM 05/14/2014
-[19343.650448] task: ffff88007b3672c0 ti: ffff880028b58000 task.ti: ffff880028b58000
-[19343.650448] RIP: 0010:[<ffffffff811def7e>]  [<ffffffff811def7e>] locks_lock_inode_wait+0x2e/0x160
-[19343.650448] RSP: 0018:ffff880028b5bce8  EFLAGS: 00010293
-[19343.650448] RAX: 0000000000000000 RBX: ffff880028b5bdb8 RCX: 0000000000000000
-[19343.650448] RDX: 0000000000000007 RSI: ffff880028b5bdb8 RDI: ffff88006842bb08
-[19343.650448] RBP: ffff880028b5bd98 R08: ffff88007d21b930 R09: ffff880076a005b0
-[19343.650448] R10: ffff88007a0e9360 R11: ffff880028b5be78 R12: ffff880040b45408
-[19343.650448] R13: ffff880079cbf000 R14: ffff88006842bb08 R15: 0000000000000001
-[19343.650448] FS:  00007f17572c7700(0000) GS:ffff88007d200000(0000) knlGS:0000000000000000
-[19343.650448] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-[19343.650448] CR2: 00007f17572d7000 CR3: 000000007b2cf000 CR4: 00000000000406f0
-[19343.650448] Stack:
-[19343.650448]  ffff880028a70a38 ffffffff0000005a ffff880028a70800 000000000000005a
-[19343.650448]  ffff880028b5bda8 0000000100000001 000000000000005a ffff880028a70a30
-[19343.650448]  0000000000000292 0000000000000001 0000000000000001 0000000000000292
-[19343.650448] Call Trace:
-[19343.650448]  [<ffffffff810a15ee>] ? __wake_up+0x4e/0x70
-[19343.650448]  [<ffffffff810a1180>] ? bit_waitqueue+0x90/0x90
-[19343.650448]  [<ffffffffa010ee01>] ocfs2_do_flock+0x91/0x160 [ocfs2]
-[19343.650448]  [<ffffffffa010ef46>] ocfs2_flock+0x76/0xd0 [ocfs2]
-[19343.650448]  [<ffffffff811df1bf>] SyS_flock+0x10f/0x1a0
-[19343.650448]  [<ffffffff8191b6ae>] entry_SYSCALL_64_fastpath+0x12/0x71
-[19343.650448] Code: e5 41 57 41 56 49 89 fe 41 55 41 54 53 48 89 f3 48 81 ec 88 00 00 00 8b 46 40 83 e0 03 83 f8 01 0f 84 ad 00 00 00 83 f8 02 74 04 <0f> 0b eb fe 4c 8d ad 60 ff ff ff 4c 8d 7b 58 e8 0e 8e 73 00 4d
-[19343.650448] RIP  [<ffffffff811def7e>] locks_lock_inode_wait+0x2e/0x160
-[19343.650448]  RSP <ffff880028b5bce8>
-[19343.819187] ---[ end trace dfca74ec9b5b274c ]---
 
-Fixes: 4f6563677ae8 ("Move locks API users to locks_lock_inode_wait()")
-Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
+-------- Forwarded Message --------
+Subject: 	[Ocfs2-devel] [PATCH] NFS hangs in __ocfs2_cluster_lock due to 
+race with ocfs2_unblock_lock
+Date: 	Tue, 25 Aug 2015 13:55:30 -0700
+From: 	Tariq Saeed <tariq.x.saeed@oracle.com>
+To: 	ocfs2-devel at oss.oracle.com
+CC: 	mfasheh at suse.de
+
+
+
+Orabug: 20933419
+
+NFS on a 2 node ocfs2 cluster each node exporting dir. The lock causing
+the hang is the global bit map inode lock.  Node 1 is master, has
+the lock granted in PR mode; Node 2 is in the converting list (PR ->
+EX). There are no holders of the lock on the master node so it should
+downconvert to NL and grant EX to node 2 but that does not happen.
+BLOCKED + QUEUED in lock res are set and it is on osb blocked list.
+Threads are waiting in __ocfs2_cluster_lock on BLOCKED.  One thread wants
+EX, rest want PR. So it is as though the downconvert thread needs to be
+kicked to complete the conv.
+
+The hang is caused by an EX req coming into  __ocfs2_cluster_lock on
+the heels of a PR req after it sets BUSY (drops l_lock, releasing EX
+thread), forcing the incoming EX to wait on BUSY without doing anything.
+PR has called ocfs2_dlm_lock, which  sets the node 1 lock from NL ->
+PR, queues ast.
+
+At this time, upconvert (PR ->EX) arrives from node 2, finds conflict with
+node 1 lock in PR, so the lock res is put on dlm thread's dirty listt.
+
+After ret from ocf2_dlm_lock, PR thread now waits behind EX on BUSY till
+awoken by ast.
+
+Now it is dlm_thread that serially runs dlm_shuffle_lists, ast,  bast,
+in that order.  dlm_shuffle_lists ques a bast on behalf of node 2
+(which will be run by dlm_thread right after the ast).  ast does its
+part, sets UPCONVERT_FINISHING, clears BUSY and wakes its waiters. Next,
+dlm_thread runs  bast. It sets BLOCKED and kicks dc thread.  dc thread
+runs ocfs2_unblock_lock, but since UPCONVERT_FINISHING set, skips doing
+anything and reques.
+
+Inside of __ocfs2_cluster_lock, since EX has been waiting on BUSY ahead
+of PR, it wakes up first, finds BLOCKED set and skips doing anything
+but clearing UPCONVERT_FINISHING (which was actually "meant" for the
+PR thread), and this time waits on BLOCKED.  Next, the PR thread comes
+out of wait but since UPCONVERT_FINISHING is not set, it skips updating
+the l_ro_holders and goes straight to wait on BLOCKED. So there, we
+have a hang! Threads in __ocfs2_cluster_lock wait on BLOCKED, lock
+res in osb blocked list. Only when dc thread is awoken, it will run
+ocfs2_unblock_lock and things will unhang.
+
+One way to fix this is to wake the dc thread on the flag after clearing
+UPCONVERT_FINISHING
+
+Signed-off-by: Tariq Saeed <tariq.x.saeed@oracle.com>
+Reviewed-by: Wengang Wang <wen.gang.wang@oracle.com>
+Signed-off-by: Santosh Shilimkar <santosh.shilimkar@oracle.com>
 ---
- fs/ocfs2/locks.c |    5 ++++-
- 1 file changed, 4 insertions(+), 1 deletion(-)
+  fs/ocfs2/dlmglue.c |    6 ++++++
+  1 files changed, 6 insertions(+), 0 deletions(-)
 
-diff --git a/fs/ocfs2/locks.c b/fs/ocfs2/locks.c
-index 652ece4a9d9e..d56f0079b858 100644
---- a/fs/ocfs2/locks.c
-+++ b/fs/ocfs2/locks.c
-@@ -67,7 +67,10 @@ static int ocfs2_do_flock(struct file *file, struct inode *inode,
- 		 */
- 
- 		locks_lock_file_wait(file,
--				     &(struct file_lock){.fl_type = F_UNLCK});
-+				&(struct file_lock) {
-+					.fl_type = F_UNLCK,
-+					.fl_flags = FL_FLOCK
-+				});
- 
- 		ocfs2_file_unlock(file);
- 	}
+diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
+index 8b23aa2..313c816 100644
+--- a/fs/ocfs2/dlmglue.c
++++ b/fs/ocfs2/dlmglue.c
+@@ -1390,6 +1390,7 @@ static int __ocfs2_cluster_lock(struct ocfs2_super *osb,
+  	unsigned int gen;
+  	int noqueue_attempted = 0;
+  	int dlm_locked = 0;
++	int kick_dc = 0;
+  
+  	if (!(lockres->l_flags & OCFS2_LOCK_INITIALIZED)) {
+  		mlog_errno(-EINVAL);
+@@ -1524,7 +1525,12 @@ update_holders:
+  unlock:
+  	lockres_clear_flags(lockres, OCFS2_LOCK_UPCONVERT_FINISHING);
+  
++	/* ocfs2_unblock_lock reques on seeing OCFS2_LOCK_UPCONVERT_FINISHING */
++	kick_dc = (lockres->l_flags & OCFS2_LOCK_BLOCKED);
++
+  	spin_unlock_irqrestore(&lockres->l_lock, flags);
++	if (kick_dc)
++		ocfs2_wake_downconvert_thread(osb);
+  out:
+  	/*
+  	 * This is helping work around a lock inversion between the page lock
 -- 
-1.7.9.5
+1.7.1
+
+
+_______________________________________________
+Ocfs2-devel mailing list
+Ocfs2-devel at oss.oracle.com
+https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+
+
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20151222/5daa6786/attachment.html 
