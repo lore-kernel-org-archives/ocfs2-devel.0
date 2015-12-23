@@ -1,15 +1,15 @@
 From: jiangyiwen <jiangyiwen@huawei.com>
-Date: Wed, 23 Dec 2015 18:18:41 +0800
-Subject: [Ocfs2-devel] [PATCH]ocfs2: fix slot overwritten if storage link
+Date: Wed, 23 Dec 2015 18:23:36 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: fix slot overwritten if storage link
 	down during mount
-Message-ID: <567A7501.3050607@huawei.com>
+Message-ID: <567A7628.5040503@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-The following case will lead to slot is overwritten.
+The following case will lead to slot overwritten.
 
 N1                               N2
 mount ocfs2 volume, find and
