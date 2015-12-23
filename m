@@ -1,110 +1,121 @@
-From: Tariq Saeed <tariq.x.saeed@oracle.com>
-Date: Tue, 22 Dec 2015 15:55:50 -0800
-Subject: [Ocfs2-devel] [PATCH] add OCFS2_LOCK_IGNORE_BLOCKED arg_flags to
-	ocfs2_cluster_lock() to prevent hang
-Message-ID: <1450828550-23168-1-git-send-email-tariq.x.saeed@oracle.com>
+From: Junxiao Bi <junxiao.bi@oracle.com>
+Date: Wed, 23 Dec 2015 10:18:52 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: dlm: fix recursive locking deadlock
+In-Reply-To: <20151222221247.GQ11072@wotan.suse.de>
+References: <1450058259-30682-1-git-send-email-junxiao.bi@oracle.com>
+	<566EC6A8020000F90002219D@relay2.provo.novell.com>
+	<566E5BA5.5030308@oracle.com> <20151214191827.GF11072@wotan.suse.de>
+	<566F7054.8030501@oracle.com> <20151218232319.GM11072@wotan.suse.de>
+	<56778A42.3060905@oracle.com> <20151222221247.GQ11072@wotan.suse.de>
+Message-ID: <567A048C.9020401@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-From: Linus Torvalds <torvalds@linux-foundation.org>
+Hi Mark,
 
-Orabug: 21793017
+On 12/23/2015 06:12 AM, Mark Fasheh wrote:
+> On Mon, Dec 21, 2015 at 01:12:34PM +0800, Junxiao Bi wrote:
+>> Hi Mark,
+>>
+>> On 12/19/2015 07:23 AM, Mark Fasheh wrote:
+>>> On Tue, Dec 15, 2015 at 09:43:48AM +0800, Junxiao Bi wrote:
+>>>> Hi Mark,
+>>>>
+>>>> On 12/15/2015 03:18 AM, Mark Fasheh wrote:
+>>>>> On Mon, Dec 14, 2015 at 02:03:17PM +0800, Junxiao Bi wrote:
+>>>>>>> Second, this issue can be reproduced in old Linux kernels (e.g. 3.16.7-24)? there should not be any regression issue? 
+>>>>>> Maybe just hard to reproduce, ocfs2 supports recursive locking.
+>>>>>
+>>>>> In what sense? The DLM might but the FS should never be making use of such a
+>>>>> mechanism (it would be for userspace users).
+>>>> See commit 743b5f1434f5 ("ocfs2: take inode lock in
+>>>> ocfs2_iop_set/get_acl()"), it used recursive locking and caused a
+>>>> deadlock, the call trace is in this patch's log.
+>>>
+>>> Ahh ok so it's part of the buggy patch.
+>>>
+>>>
+>>>>> We really can't add recursive locks without this getting rejected upstream.
+>>>>> There's a whole slew of reasons why we don't like those in the kernel.
+>>>> Is there any harm to support this lock in kernel?
+>>>
+>>> Yeah so you can google search on why recursive locks are considered harmful
+>>> by many programmers and in the Linux Kernel they are a big 'No No'. We used
+>>> to have one recursive lock (the 'big kernel lock') which took a large effort
+>>> to clean up.
+>>>
+>>> Most objections are going to come down to the readability of the code and
+>>> the nasty bugs that can come about as a result. Here's a random blog post I
+>>> found explaining some of this:
+>>>
+>>> http://blog.stephencleary.com/2013/04/recursive-re-entrant-locks.html
+>> Good doc. Thank you for sharing it. Learned more about recursive locking.
+> 
+> Np, glad it helped.
+> 
+> 
+>> But I am afraid, cluster lock suffers all drawbacks mentioned in that
+>> doc since it is stick to node. P1 and P2 can hold one EX lock at the
+>> same time, is it a kind of recursive locking for cluster lock?
+>> Maybe it is just a bad naming of recursive locking. If two processes in
+>> one node are allowed to hold one EX lock at the same time, why one
+>> process not allowed to lock one EX lock two times?
+> 
+> Yeah I think maybe it's 'bad naming' as you say? What dlmglue is doing we
+> call 'lock caching'.
+> 
+> It's possible to use the dlm without caching the locks but that means every
+> process wanting a cluster lock will have to make a dlm request. So instead,
+> we hold onto the lock until another node wants it. However, this effectively
+> makes each lock node-wide (as opposed to per-process which we would get
+> without the lock caching).
+Yes.
+> 
+> For local process locking, we use the VFS locks (inode mutex, etc).
+Yes.
+> 
+> So the cluster lock is never being acquired more than once, it gets
+> acquired and dlmglue caches access to it in a fair way. Hence it is not
+> being acquired 'recusively'.
+> 
+> Callers of dlmglue honor the usual locking rules - the same ones that we
+> honor with local locks. For example, they must be properly ordered with
+> respect to other locks.
+> 
+> 
+> As you point out, we could turn the dlmglue locking into a true recursive
+> locking scheme. But if we do that, then we are changing the design of
+> dlmglue and introducing recursive locking into a kernel which does not hav
+> it. 
+Well, so this is just to keep cluster locking behavior align with local
+locks and don't want to involve recursive locking into kernel. But
+without recursive locking, it's a little hard to fix this issue, may
+need refactor ocfs2_mknod(). Do you have a suggestion about the fix?
 
-commit 743b5f1434f5 ("ocfs2: take inode lock in ocfs2_iop_set/get_acl()")
-introduced this issue.  ocfs2_setattr called by chmod command
-holds cluster wide inode lock (Orabug 21685187) when calling
-posix_acl_chmod. This latter function in turn calls ocfs2_iop_get_acl
-and ocfs2_iop_set_acl.  These two are also called directly from vfs layer
-for getfacl/setfacl commands and therefore acquire the cluster wide inode
-lock. If a remote conversion request comes after the first inode lock
-in ocfs2_setattr, OCFS2_LOCK_BLOCKED will be set in l_flags. This will
-cause the second call to inode lock from the  ocfs2_iop_get|set_acl()
-to block indefinetly.  The new flag OCFS2_LOCK_IGNORE_BLOCKED will be
-used to prevent this blocking.
+> The 2nd point is self explanatory. The reason I would also not want to
+> change the design of dlmglue is that I don't feel this bug requires such a
+> drastic measure.
+Tariq just post another patch to fix this issue(add
+OCFS2_LOCK_IGNORE_BLOCKED arg_flags to ocfs2_cluster_lock() to prevent
+hang), do you agree with fixing like that?
 
-Signed-off-by: Tariq Saeed <tariq.x.saeed@oracle.com> Signed-off-by:
-Junxiao Bi <junxiao.bi@oracle.com>
----
- Makefile           |    2 +-
- fs/ocfs2/acl.c     |    7 +++++--
- fs/ocfs2/dlmglue.c |    3 ++-
- fs/ocfs2/dlmglue.h |    2 ++
- 4 files changed, 10 insertions(+), 4 deletions(-)
+The way i am using is more common, it can avoid all possible recursive
+locking deadlock issue.
 
-diff --git a/Makefile b/Makefile
-index 431067a..d5b3739 100644
---- a/Makefile
-+++ b/Makefile
-@@ -1,7 +1,7 @@
- VERSION = 4
- PATCHLEVEL = 3
- SUBLEVEL = 0
--EXTRAVERSION = -rc7
-+EXTRAVERSION =
- NAME = Blurry Fish Butt
- 
- # *DOCUMENTATION*
-diff --git a/fs/ocfs2/acl.c b/fs/ocfs2/acl.c
-index 0cdf497..4404d9a 100644
---- a/fs/ocfs2/acl.c
-+++ b/fs/ocfs2/acl.c
-@@ -37,6 +37,7 @@
- #include "xattr.h"
- #include "acl.h"
- 
-+
- /*
-  * Convert from xattr value to acl struct.
-  */
-@@ -287,7 +288,8 @@ int ocfs2_iop_set_acl(struct inode *inode, struct posix_acl *acl, int type)
- 	struct buffer_head *bh = NULL;
- 	int status = 0;
- 
--	status = ocfs2_inode_lock(inode, &bh, 1);
-+	status = ocfs2_inode_lock_full(inode, &bh, 1,
-+					OCFS2_LOCK_IGNORE_BLOCKED);
- 	if (status < 0) {
- 		if (status != -ENOENT)
- 			mlog_errno(status);
-@@ -309,7 +311,8 @@ struct posix_acl *ocfs2_iop_get_acl(struct inode *inode, int type)
- 	osb = OCFS2_SB(inode->i_sb);
- 	if (!(osb->s_mount_opt & OCFS2_MOUNT_POSIX_ACL))
- 		return NULL;
--	ret = ocfs2_inode_lock(inode, &di_bh, 0);
-+	ret = ocfs2_inode_lock_full(inode, &di_bh, 0,
-+					OCFS2_LOCK_IGNORE_BLOCKED);
- 	if (ret < 0) {
- 		if (ret != -ENOENT)
- 			mlog_errno(ret);
-diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-index 1c91103..ea79e1b 100644
---- a/fs/ocfs2/dlmglue.c
-+++ b/fs/ocfs2/dlmglue.c
-@@ -1447,7 +1447,8 @@ again:
- 	}
- 
- 	if (lockres->l_flags & OCFS2_LOCK_BLOCKED &&
--	    !ocfs2_may_continue_on_blocked_lock(lockres, level)) {
-+	    !ocfs2_may_continue_on_blocked_lock(lockres, level) &&
-+	    !(arg_flags & OCFS2_LOCK_IGNORE_BLOCKED)) {
- 		/* is the lock is currently blocked on behalf of
- 		 * another node */
- 		lockres_add_mask_waiter(lockres, &mw, OCFS2_LOCK_BLOCKED, 0);
-diff --git a/fs/ocfs2/dlmglue.h b/fs/ocfs2/dlmglue.h
-index d293a22..845831f 100644
---- a/fs/ocfs2/dlmglue.h
-+++ b/fs/ocfs2/dlmglue.h
-@@ -78,6 +78,8 @@ struct ocfs2_orphan_scan_lvb {
- /* don't block waiting for the downconvert thread, instead return -EAGAIN */
- #define OCFS2_LOCK_NONBLOCK		(0x04)
- 
-+/* if requested level is <= l_level, ignore BLOCKED flag. */
-+#define OCFS2_LOCK_IGNORE_BLOCKED		(0x08)
- /* Locking subclasses of inode cluster lock */
- enum {
- 	OI_LS_NORMAL = 0,
--- 
-1.7.1
+Another side benefit is that with this, we can know the lockres some
+process is holding and blocked by, this info can be exported to debugfs,
+then it will be very useful to live debug a cluster hung issue.
+
+Thanks,
+Junxiao.
+
+> 
+> Thanks,
+> 	--Mark
+> 
+> --
+> Mark Fasheh
+> 
