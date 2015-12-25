@@ -1,51 +1,48 @@
-From: Gang He <ghe@suse.com>
-Date: Fri, 25 Dec 2015 15:16:16 +0800
-Subject: [Ocfs2-devel] [PATCH v3 1/4] ocfs2: export ocfs2_kset for online
-	file check
-In-Reply-To: <1451027779-6849-1-git-send-email-ghe@suse.com>
-References: <1451027779-6849-1-git-send-email-ghe@suse.com>
-Message-ID: <1451027779-6849-2-git-send-email-ghe@suse.com>
+From: xuejiufei <xuejiufei@huawei.com>
+Date: Fri, 25 Dec 2015 16:34:26 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: do not insert a new mle when
+ another process is already migrating
+Message-ID: <567CFF92.3060105@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: mfasheh@suse.com, rgoldwyn@suse.de, ghe@suse.com
-Cc: linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com, akpm@linux-foundation.org
+To: ocfs2-devel@oss.oracle.com
 
-Export ocfs2_kset object from ocfs2_stackglue kernel module,
-then online file check code will create the related sysfiles
-under ocfs2_kset object.
+When two processes are migrating the same lockres,
+dlm_add_migration_mle() return -EEXIST, but insert a new mle in
+hash list. Function dlm_migrate_lockres will detach the ole mle
+and free the new one which is already in hash list, that will
+destroy the list.
 
-Signed-off-by: Gang He <ghe@suse.com>
+Signed-off-by: Jiufei Xue <xuejiufei@huawei.com>
+Reviewed-by: Joseph Qi <joseph.qi@huawei.com>
 ---
- fs/ocfs2/stackglue.c | 3 ++-
- fs/ocfs2/stackglue.h | 2 ++
- 2 files changed, 4 insertions(+), 1 deletion(-)
+ fs/ocfs2/dlm/dlmmaster.c | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
 
-diff --git a/fs/ocfs2/stackglue.c b/fs/ocfs2/stackglue.c
-index 5d965e8..13219ed 100644
---- a/fs/ocfs2/stackglue.c
-+++ b/fs/ocfs2/stackglue.c
-@@ -629,7 +629,8 @@ static struct attribute_group ocfs2_attr_group = {
- 	.attrs = ocfs2_attrs,
- };
- 
--static struct kset *ocfs2_kset;
-+struct kset *ocfs2_kset;
-+EXPORT_SYMBOL_GPL(ocfs2_kset);
- 
- static void ocfs2_sysfs_exit(void)
- {
-diff --git a/fs/ocfs2/stackglue.h b/fs/ocfs2/stackglue.h
-index 66334a3..f2dce10 100644
---- a/fs/ocfs2/stackglue.h
-+++ b/fs/ocfs2/stackglue.h
-@@ -298,4 +298,6 @@ void ocfs2_stack_glue_set_max_proto_version(struct ocfs2_protocol_version *max_p
- int ocfs2_stack_glue_register(struct ocfs2_stack_plugin *plugin);
- void ocfs2_stack_glue_unregister(struct ocfs2_stack_plugin *plugin);
- 
-+extern struct kset *ocfs2_kset;
-+
- #endif  /* STACKGLUE_H */
+diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
+index 936e11b..753dd9c 100644
+--- a/fs/ocfs2/dlm/dlmmaster.c
++++ b/fs/ocfs2/dlm/dlmmaster.c
+@@ -2544,7 +2544,7 @@ static int dlm_migrate_lockres(struct dlm_ctxt *dlm,
+ 	}
+
+ fail:
+-	if (oldmle) {
++	if (ret != -EEXIST && oldmle) {
+ 		/* master is known, detach if not already detached */
+ 		dlm_mle_detach_hb_events(dlm, oldmle);
+ 		dlm_put_mle(oldmle);
+@@ -3141,7 +3141,8 @@ static int dlm_add_migration_mle(struct dlm_ctxt *dlm,
+ 				mlog(0, "tried to migrate %.*s, but some "
+ 				     "process beat me to it\n",
+ 				     namelen, name);
+-				ret = -EEXIST;
++				spin_unlock(&tmp->spinlock);
++				return -EEXIST;
+ 			} else {
+ 				/* bad.  2 NODES are trying to migrate! */
+ 				mlog(ML_ERROR, "migration error  mle: "
 -- 
-2.1.2
+1.8.4.3
