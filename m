@@ -1,37 +1,46 @@
-From: Junxiao Bi <junxiao.bi@oracle.com>
-Date: Wed, 30 Dec 2015 13:26:39 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: dlm: remove redundant code
-Message-ID: <1451453199-13450-1-git-send-email-junxiao.bi@oracle.com>
+From: Gang He <ghe@suse.com>
+Date: Tue, 29 Dec 2015 23:13:31 -0700
+Subject: [Ocfs2-devel] [PATCH v3 1/4] ocfs2: export ocfs2_kset for
+ online file check
+In-Reply-To: <20151229133844.b2758dbe21604e64acd50383@linux-foundation.org>
+References: <1451027779-6849-1-git-send-email-ghe@suse.com>
+	<1451027779-6849-2-git-send-email-ghe@suse.com>
+	<20151229133844.b2758dbe21604e64acd50383@linux-foundation.org>
+Message-ID: <5683E68B020000F900023B73@relay2.provo.novell.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: akpm@linux-foundation.org
+Cc: ocfs2-devel@oss.oracle.com, Mark Fasheh <MFasheh@suse.com>, rgoldwyn@suse.de, linux-kernel@vger.kernel.org
 
-Found this when do patch review, remove to make it clear and save
-a little cpu time.
+Hello Andrew,
 
-Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
----
- fs/ocfs2/dlm/dlmrecovery.c |    6 +-----
- 1 file changed, 1 insertion(+), 5 deletions(-)
 
-diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
-index 9e4f862d20fe..42cac5f01a96 100644
---- a/fs/ocfs2/dlm/dlmrecovery.c
-+++ b/fs/ocfs2/dlm/dlmrecovery.c
-@@ -2450,11 +2450,7 @@ static void __dlm_hb_node_down(struct dlm_ctxt *dlm, int idx)
- 	 * perhaps later we can genericize this for other waiters. */
- 	wake_up(&dlm->migration_wq);
- 
--	if (test_bit(idx, dlm->recovery_map))
--		mlog(0, "domain %s, node %u already added "
--		     "to recovery map!\n", dlm->name, idx);
--	else
--		set_bit(idx, dlm->recovery_map);
-+	set_bit(idx, dlm->recovery_map);
- }
- 
- void dlm_hb_node_down_cb(struct o2nm_node *node, int idx, void *data)
--- 
-1.7.9.5
+>>> 
+> On Fri, 25 Dec 2015 15:16:16 +0800 Gang He <ghe@suse.com> wrote:
+> 
+>> Export ocfs2_kset object from ocfs2_stackglue kernel module,
+>> then online file check code will create the related sysfiles
+>> under ocfs2_kset object.
+>> 
+>> ...
+>>
+>> --- a/fs/ocfs2/stackglue.c
+>> +++ b/fs/ocfs2/stackglue.c
+>> @@ -629,7 +629,8 @@ static struct attribute_group ocfs2_attr_group = {
+>>  	.attrs = ocfs2_attrs,
+>>  };
+>>  
+>> -static struct kset *ocfs2_kset;
+>> +struct kset *ocfs2_kset;
+>> +EXPORT_SYMBOL_GPL(ocfs2_kset);
+> 
+> The EXPORT_SYMBOL is only needed if this symbol is to be referred to
+> from a different module.  That isn't the case here - everything which
+> refers to ocfs2_kset is linked into ocfs2.ko, correct?
+There are some kernel modules (Not single KO file) for OCFS2 file system, the variable ocfs2_kset is located in ocfs2_stackglue.ko kernel module,
+if the main kernel module ocfs2.ko wants to refer to this variable, it looks to have to export this symbol? 
+
+Thanks
+Gang  
