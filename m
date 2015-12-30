@@ -1,52 +1,37 @@
 From: Junxiao Bi <junxiao.bi@oracle.com>
-Date: Wed, 30 Dec 2015 13:11:38 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: do not insert a new mle when
- another process is already migrating
-In-Reply-To: <567CFF92.3060105@huawei.com>
-References: <567CFF92.3060105@huawei.com>
-Message-ID: <5683678A.8080905@oracle.com>
+Date: Wed, 30 Dec 2015 13:26:39 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: dlm: remove redundant code
+Message-ID: <1451453199-13450-1-git-send-email-junxiao.bi@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 12/25/2015 04:34 PM, xuejiufei wrote:
-> When two processes are migrating the same lockres,
-> dlm_add_migration_mle() return -EEXIST, but insert a new mle in
-> hash list. Function dlm_migrate_lockres will detach the ole mle
-> and free the new one which is already in hash list, that will
-> destroy the list.
-> 
-> Signed-off-by: Jiufei Xue <xuejiufei@huawei.com>
-> Reviewed-by: Joseph Qi <joseph.qi@huawei.com>
-Looks good.
-Reviewed-by: Junxiao Bi <junxiao.bi@oracle.com>
-> ---
->  fs/ocfs2/dlm/dlmmaster.c | 5 +++--
->  1 file changed, 3 insertions(+), 2 deletions(-)
-> 
-> diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
-> index 936e11b..753dd9c 100644
-> --- a/fs/ocfs2/dlm/dlmmaster.c
-> +++ b/fs/ocfs2/dlm/dlmmaster.c
-> @@ -2544,7 +2544,7 @@ static int dlm_migrate_lockres(struct dlm_ctxt *dlm,
->  	}
-> 
->  fail:
-> -	if (oldmle) {
-> +	if (ret != -EEXIST && oldmle) {
->  		/* master is known, detach if not already detached */
->  		dlm_mle_detach_hb_events(dlm, oldmle);
->  		dlm_put_mle(oldmle);
-> @@ -3141,7 +3141,8 @@ static int dlm_add_migration_mle(struct dlm_ctxt *dlm,
->  				mlog(0, "tried to migrate %.*s, but some "
->  				     "process beat me to it\n",
->  				     namelen, name);
-> -				ret = -EEXIST;
-> +				spin_unlock(&tmp->spinlock);
-> +				return -EEXIST;
->  			} else {
->  				/* bad.  2 NODES are trying to migrate! */
->  				mlog(ML_ERROR, "migration error  mle: "
-> 
+Found this when do patch review, remove to make it clear and save
+a little cpu time.
+
+Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
+---
+ fs/ocfs2/dlm/dlmrecovery.c |    6 +-----
+ 1 file changed, 1 insertion(+), 5 deletions(-)
+
+diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
+index 9e4f862d20fe..42cac5f01a96 100644
+--- a/fs/ocfs2/dlm/dlmrecovery.c
++++ b/fs/ocfs2/dlm/dlmrecovery.c
+@@ -2450,11 +2450,7 @@ static void __dlm_hb_node_down(struct dlm_ctxt *dlm, int idx)
+ 	 * perhaps later we can genericize this for other waiters. */
+ 	wake_up(&dlm->migration_wq);
+ 
+-	if (test_bit(idx, dlm->recovery_map))
+-		mlog(0, "domain %s, node %u already added "
+-		     "to recovery map!\n", dlm->name, idx);
+-	else
+-		set_bit(idx, dlm->recovery_map);
++	set_bit(idx, dlm->recovery_map);
+ }
+ 
+ void dlm_hb_node_down_cb(struct o2nm_node *node, int idx, void *data)
+-- 
+1.7.9.5
