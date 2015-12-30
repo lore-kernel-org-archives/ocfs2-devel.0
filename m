@@ -1,46 +1,65 @@
-From: Gang He <ghe@suse.com>
-Date: Tue, 29 Dec 2015 23:13:31 -0700
-Subject: [Ocfs2-devel] [PATCH v3 1/4] ocfs2: export ocfs2_kset for
- online file check
-In-Reply-To: <20151229133844.b2758dbe21604e64acd50383@linux-foundation.org>
-References: <1451027779-6849-1-git-send-email-ghe@suse.com>
-	<1451027779-6849-2-git-send-email-ghe@suse.com>
-	<20151229133844.b2758dbe21604e64acd50383@linux-foundation.org>
-Message-ID: <5683E68B020000F900023B73@relay2.provo.novell.com>
+From: Junxiao Bi <junxiao.bi@oracle.com>
+Date: Wed, 30 Dec 2015 15:10:30 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: access orphan dinode before delete
+ entry in ocfs2_orphan_del
+In-Reply-To: <567BA725.8080607@huawei.com>
+References: <567BA725.8080607@huawei.com>
+Message-ID: <56838366.6090503@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: akpm@linux-foundation.org
-Cc: ocfs2-devel@oss.oracle.com, Mark Fasheh <MFasheh@suse.com>, rgoldwyn@suse.de, linux-kernel@vger.kernel.org
+To: ocfs2-devel@oss.oracle.com
 
-Hello Andrew,
-
-
->>> 
-> On Fri, 25 Dec 2015 15:16:16 +0800 Gang He <ghe@suse.com> wrote:
+On 12/24/2015 04:04 PM, Joseph Qi wrote:
+> In ocfs2_orphan_del, currently it finds and deletes entry first, and
+> then access orphan dir dinode. This will have a problem once
+> ocfs2_journal_access_di fails. In this case, entry will be removed from
+> orphan dir, but in deed the inode hasn't been deleted successfully. In
+> other words, the file is missing but not actually deleted.
+> So we should access orphan dinode first like unlink and rename.
 > 
->> Export ocfs2_kset object from ocfs2_stackglue kernel module,
->> then online file check code will create the related sysfiles
->> under ocfs2_kset object.
->> 
->> ...
->>
->> --- a/fs/ocfs2/stackglue.c
->> +++ b/fs/ocfs2/stackglue.c
->> @@ -629,7 +629,8 @@ static struct attribute_group ocfs2_attr_group = {
->>  	.attrs = ocfs2_attrs,
->>  };
->>  
->> -static struct kset *ocfs2_kset;
->> +struct kset *ocfs2_kset;
->> +EXPORT_SYMBOL_GPL(ocfs2_kset);
+> Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
+> Reviewed-by: Jiufei Xue <xuejiufei@huawei.com>
+Reviewed-by: Junxiao Bi <junxiao.bi@oracle.com>
+> ---
+>  fs/ocfs2/namei.c | 18 +++++++++---------
+>  1 file changed, 9 insertions(+), 9 deletions(-)
 > 
-> The EXPORT_SYMBOL is only needed if this symbol is to be referred to
-> from a different module.  That isn't the case here - everything which
-> refers to ocfs2_kset is linked into ocfs2.ko, correct?
-There are some kernel modules (Not single KO file) for OCFS2 file system, the variable ocfs2_kset is located in ocfs2_stackglue.ko kernel module,
-if the main kernel module ocfs2.ko wants to refer to this variable, it looks to have to export this symbol? 
-
-Thanks
-Gang  
+> diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
+> index 922eae9..816c667 100644
+> --- a/fs/ocfs2/namei.c
+> +++ b/fs/ocfs2/namei.c
+> @@ -2371,6 +2371,15 @@ int ocfs2_orphan_del(struct ocfs2_super *osb,
+>  	     (unsigned long long)OCFS2_I(orphan_dir_inode)->ip_blkno,
+>  	     name, strlen(name));
+> 
+> +	status = ocfs2_journal_access_di(handle,
+> +					 INODE_CACHE(orphan_dir_inode),
+> +					 orphan_dir_bh,
+> +					 OCFS2_JOURNAL_ACCESS_WRITE);
+> +	if (status < 0) {
+> +		mlog_errno(status);
+> +		goto leave;
+> +	}
+> +
+>  	/* find it's spot in the orphan directory */
+>  	status = ocfs2_find_entry(name, strlen(name), orphan_dir_inode,
+>  				  &lookup);
+> @@ -2386,15 +2395,6 @@ int ocfs2_orphan_del(struct ocfs2_super *osb,
+>  		goto leave;
+>  	}
+> 
+> -	status = ocfs2_journal_access_di(handle,
+> -					 INODE_CACHE(orphan_dir_inode),
+> -					 orphan_dir_bh,
+> -					 OCFS2_JOURNAL_ACCESS_WRITE);
+> -	if (status < 0) {
+> -		mlog_errno(status);
+> -		goto leave;
+> -	}
+> -
+>  	/* do the i_nlink dance! :) */
+>  	orphan_fe = (struct ocfs2_dinode *) orphan_dir_bh->b_data;
+>  	if (S_ISDIR(inode->i_mode))
+> 
