@@ -1,71 +1,85 @@
-From: Eric Ren <zren@suse.com>
-Date: Fri, 29 Jan 2016 16:25:11 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: move lock to the tail of grant
- queue while doing in-place convert
-In-Reply-To: <56A89345.5040903@huawei.com>
-References: <56A89345.5040903@huawei.com>
-Message-ID: <20160129082511.GB14315@desktop.lab.bej.apac.novell.com>
+From: Julia Lawall <Julia.Lawall@lip6.fr>
+Date: Fri,  1 Jan 2016 08:53:37 +0100
+Subject: [Ocfs2-devel] [PATCH] quota: constify qtree_fmt_operations
+	structures
+Message-ID: <1451634817-1903-1-git-send-email-Julia.Lawall@lip6.fr>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Jan Kara <jack@suse.com>
+Cc: kernel-janitors@vger.kernel.org, linux-kernel@vger.kernel.org, Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@oss.oracle.com
 
-Hello jiufei,
+The qtree_fmt_operations structures are never modified, so declare them as
+const.
 
-On Wed, Jan 27, 2016 at 05:52:05PM +0800, xuejiufei wrote: 
-> We have found a bug when two nodes doing umount one after another.
-> 1) Node 1 migrate a lockres that has 3 locks in grant queue such as
-> N2(PR)<->N3(NL)<->N4(PR) to N2. After migration, lvb of the lock N3(NL)
-> and N4(PR) are empty on node 2 because migration target do not copy lvb
-> to these two lock.
-> 2) Node 3 want to convert to PR, it can be granted in
-> __dlmconvert_master(), and the order of these locks is unchanged. The
-> lvb of the lock N3(PR) on node 2 is copyed from lockres in function
-> dlm_update_lvb() while the lvb of lock N4(PR) is still empty.
-> 3) Node 2 want to leave domain, it will migrate this lockres to node 3.
-> Then node 2 will trigger the BUG in dlm_prepare_lvb_for_migration()
-> when adding the lock N4(PR) to mres with the following message because
-> the lvb of mres is already copied from lock N3(PR), but the lvb of lock
-> N4(PR) is empty.
-> 
-> "Mismatched lvb in lock cookie=%u:%llu, name=%.*s, node=%u"
-> 
-> Signed-off-by: xuejiufei <xuejiufei@huawei.com>
-> ---
->  fs/ocfs2/dlm/dlmconvert.c | 6 ++++++
->  1 file changed, 6 insertions(+)
-> 
-> diff --git a/fs/ocfs2/dlm/dlmconvert.c b/fs/ocfs2/dlm/dlmconvert.c
-> index e36d63f..ae0c9d1 100644
-> --- a/fs/ocfs2/dlm/dlmconvert.c
-> +++ b/fs/ocfs2/dlm/dlmconvert.c
-> @@ -212,6 +212,12 @@ grant:
->  	if (lock->lksb->flags & DLM_LKSB_PUT_LVB)
->  		memcpy(res->lvb, lock->lksb->lvb, DLM_LVB_LEN);
-> 
-> +	/*
-> +	 * move the lock to tail because it may be the only lock who has
-> +	 * a invalid lvb.
-> +	 */
+Done with the help of Coccinelle.
 
-I'm not fimiliar with ocfs2/dlm yet, just out of curious, by "invalid lvb"
-here it means when a lock has been upconvert in place, its lvb is invalid?
-If so, why not reset it than move?
+Signed-off-by: Julia Lawall <Julia.Lawall@lip6.fr>
 
-Thanks,
-Eric
-> +	list_move_tail(&lock->list, &res->granted);
-> +
->  	status = DLM_NORMAL;
->  	*call_ast = 1;
->  	goto unlock_exit;
-> -- 
-> 1.8.4.3
-> 
-> 
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
-> 
+---
+ fs/ocfs2/quota.h            |    2 +-
+ fs/ocfs2/quota_global.c     |    2 +-
+ fs/quota/quota_v2.c         |    4 ++--
+ include/linux/dqblk_qtree.h |    2 +-
+ 4 files changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/include/linux/dqblk_qtree.h b/include/linux/dqblk_qtree.h
+index 82a1652..ff8b553 100644
+--- a/include/linux/dqblk_qtree.h
++++ b/include/linux/dqblk_qtree.h
+@@ -34,7 +34,7 @@ struct qtree_mem_dqinfo {
+ 	unsigned int dqi_entry_size;	/* Size of quota entry in quota file */
+ 	unsigned int dqi_usable_bs;	/* Space usable in block for quota data */
+ 	unsigned int dqi_qtree_depth;	/* Precomputed depth of quota tree */
+-	struct qtree_fmt_operations *dqi_ops;	/* Operations for entry manipulation */
++	const struct qtree_fmt_operations *dqi_ops; /* Operations for entry manipulation */
+ };
+ 
+ int qtree_write_dquot(struct qtree_mem_dqinfo *info, struct dquot *dquot);
+diff --git a/fs/quota/quota_v2.c b/fs/quota/quota_v2.c
+index 2aa012a..ed85d4f 100644
+--- a/fs/quota/quota_v2.c
++++ b/fs/quota/quota_v2.c
+@@ -30,13 +30,13 @@ static void v2r1_mem2diskdqb(void *dp, struct dquot *dquot);
+ static void v2r1_disk2memdqb(struct dquot *dquot, void *dp);
+ static int v2r1_is_id(void *dp, struct dquot *dquot);
+ 
+-static struct qtree_fmt_operations v2r0_qtree_ops = {
++static const struct qtree_fmt_operations v2r0_qtree_ops = {
+ 	.mem2disk_dqblk = v2r0_mem2diskdqb,
+ 	.disk2mem_dqblk = v2r0_disk2memdqb,
+ 	.is_id = v2r0_is_id,
+ };
+ 
+-static struct qtree_fmt_operations v2r1_qtree_ops = {
++static const struct qtree_fmt_operations v2r1_qtree_ops = {
+ 	.mem2disk_dqblk = v2r1_mem2diskdqb,
+ 	.disk2mem_dqblk = v2r1_disk2memdqb,
+ 	.is_id = v2r1_is_id,
+diff --git a/fs/ocfs2/quota.h b/fs/ocfs2/quota.h
+index b6d5133..d153e6e 100644
+--- a/fs/ocfs2/quota.h
++++ b/fs/ocfs2/quota.h
+@@ -82,7 +82,7 @@ struct ocfs2_quota_chunk {
+ extern struct kmem_cache *ocfs2_dquot_cachep;
+ extern struct kmem_cache *ocfs2_qf_chunk_cachep;
+ 
+-extern struct qtree_fmt_operations ocfs2_global_ops;
++extern const struct qtree_fmt_operations ocfs2_global_ops;
+ 
+ struct ocfs2_quota_recovery *ocfs2_begin_quota_recovery(
+ 				struct ocfs2_super *osb, int slot_num);
+diff --git a/fs/ocfs2/quota_global.c b/fs/ocfs2/quota_global.c
+index 44df24b..f0c7ae1 100644
+--- a/fs/ocfs2/quota_global.c
++++ b/fs/ocfs2/quota_global.c
+@@ -123,7 +123,7 @@ static int ocfs2_global_is_id(void *dp, struct dquot *dquot)
+ 		      dquot->dq_id);
+ }
+ 
+-struct qtree_fmt_operations ocfs2_global_ops = {
++const struct qtree_fmt_operations ocfs2_global_ops = {
+ 	.mem2disk_dqblk = ocfs2_global_mem2diskdqb,
+ 	.disk2mem_dqblk = ocfs2_global_disk2memdqb,
+ 	.is_id = ocfs2_global_is_id,
