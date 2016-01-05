@@ -1,60 +1,105 @@
-From: Junxiao Bi <junxiao.bi@oracle.com>
-Date: Tue, 5 Jan 2016 09:46:49 +0800
-Subject: [Ocfs2-devel] [PATCH] add OCFS2_LOCK_IGNORE_BLOCKED arg_flags
- to ocfs2_cluster_lock() to prevent hang
-In-Reply-To: <20160105003532.GA819@wotan.suse.de>
-References: <1450828550-23168-1-git-send-email-tariq.x.saeed@oracle.com>
-	<20151230003456.GR11072@wotan.suse.de> <568ADCC1.7090503@oracle.com>
-	<20160105003532.GA819@wotan.suse.de>
-Message-ID: <568B2089.6060902@oracle.com>
+From: Gang He <ghe@suse.com>
+Date: Mon, 04 Jan 2016 23:52:29 -0700
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Do not lock/unlock() inode DLM lock
+In-Reply-To: <5684240F.2040403@suse.de>
+References: <1451413209-26406-1-git-send-email-rgoldwyn@suse.de>
+	<5683B274020000F900023B30@suse.com> <5684240F.2040403@suse.de>
+Message-ID: <568BD8AD020000F900024187@relay2.provo.novell.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Mark,
+Hello Goldwyn,
 
-We may fix this issue in another way, without recursive locking and
-without refactoring. We can check before asking for the second locking,
-if lock is already hold, then skip the second locking, do you agree
-fixing like this?
 
-Thanks,
-Junxiao.
-On 01/05/2016 08:35 AM, Mark Fasheh wrote:
-> On Mon, Jan 04, 2016 at 12:57:37PM -0800, Tariq Saeed wrote:
+>>> 
+
+> 
+> On 12/29/2015 08:31 PM, Gang He wrote:
+>> Hello Goldwyn,
 >>
->> On 12/29/2015 04:34 PM, Mark Fasheh wrote:
->>> NACK - as I explained earlier on this list we need to refactor the code to
->> Not sure how things work in the open source world. Is refactoring to be 
->> picked by
->> somebody soon?
+>> When read path can't get the DLM lock immediately (NONBLOCK way), next get 
+> the lock with BLOCK way, this behavior will cost some time (several msecs).
+>> It looks make sense to delete that two line code.
+>> But why there are two line code existed? I just worry about, if we delete 
+> two line code, when read path can't get the DLM lock with NONBLOCK way, read 
+> path will retry to get this DLM lock repeatedly, this will lead to cost too 
+> much CPU (Not waiting in sleep).
+>> I just worry about this possibility, Eric will test this case, and give a 
+> feedback.
+>>
 > 
-> No problem, A couple explanations  / notes:
+> If DLM cannot grant a lock, it simply queues it in the order it 
+> received, irrespective of lock type request.
+If can't get the DLM inode lock  (ocfs2_inode_lock_with_page) in read path (ocfs2_readpage), 
+it will return to VFS layer (do_generic_file_read), the do_generic_file_read function will re-call OCFS2 readpage()  function to read this page again,
+actually, the readpage() function still not get the lock until write path unlocks the DLM inode lock, this will bring many time retries for consuming too much CPU.   
+Of course, deleting these two line code will increase read path get the lock opportunities, but looks to bring CPU busy loop problem also. 
+
+Thanks
+Gang 
+
+> Imagine a case of continuous contention of a PR with a EX lock (a 
+> typical ping pong):
+> If we request a blocking PR lock and an EX request follows. We will be 
+> waiting and getting the PR lock but the lock immediately granted after 
+> we unlock PR will be the EX lock. So, the nonblocking PR lock will be 
+> starved when we actually require it to perform useful work.
 > 
-> 1) CC me with your patches (someone had to point the last one out to me).
-> 
-> I'll get to reviewing most things but if you CC me then it can happen
-> sooner.
+> I assume this is antebellum code which probably existed when DLM locks 
+> were disk-based. I may be wrong though.
 > 
 > 
-> 2) You are fixing the bug and sending the patches. We usually expect the
-> sender to incorporate feedback into their patch so the answer would be that
-> you get to to the refactoring :)
+>> Thanks
+>> Gang
+>>
+>>
+>>>>>
+>>> From: Goldwyn Rodrigues <rgoldwyn@suse.com>
+>>>
+>>> DLM does not cache locks. So, blocking lock and unlock
+>>> will only make the performance worse where contention over
+>>> the locks is high.
+>>>
+>>> Signed-off-by: Goldwyn Rodrigues <rgoldwyn@suse.com>
+>>> ---
+>>>   fs/ocfs2/dlmglue.c | 8 --------
+>>>   1 file changed, 8 deletions(-)
+>>>
+>>> diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
+>>> index 20276e3..f92612e 100644
+>>> --- a/fs/ocfs2/dlmglue.c
+>>> +++ b/fs/ocfs2/dlmglue.c
+>>> @@ -2432,12 +2432,6 @@ bail:
+>>>    * done this we have to return AOP_TRUNCATED_PAGE so the aop method
+>>>    * that called us can bubble that back up into the VFS who will then
+>>>    * immediately retry the aop call.
+>>> - *
+>>> - * We do a blocking lock and immediate unlock before returning, though, so
+>>> that
+>>> - * the lock has a great chance of being cached on this node by the time the
+>>> VFS
+>>> - * calls back to retry the aop.    This has a potential to livelock as 
+> nodes
+>>> - * ping locks back and forth, but that's a risk we're willing to take to
+>>> avoid
+>>> - * the lock inversion simply.
+>>>    */
+>>>   int ocfs2_inode_lock_with_page(struct inode *inode,
+>>>   			      struct buffer_head **ret_bh,
+>>> @@ -2449,8 +2443,6 @@ int ocfs2_inode_lock_with_page(struct inode *inode,
+>>>   	ret = ocfs2_inode_lock_full(inode, ret_bh, ex, OCFS2_LOCK_NONBLOCK);
+>>>   	if (ret == -EAGAIN) {
+>>>   		unlock_page(page);
+>>> -		if (ocfs2_inode_lock(inode, ret_bh, ex) == 0)
+>>> -			ocfs2_inode_unlock(inode, ex);
+>>>   		ret = AOP_TRUNCATED_PAGE;
+>>>   	}
+>>>
+>>> --
+>>> 2.6.2
 > 
-> If you need to make small changes to the VFS to let this happen (sometimes
-> we might want 'nolock' variants of funtions, etc), do them in seperate
-> patches and send them along with your changes.
-> 
-> Hope this helps,
-> 	--Mark
-> 
-> --
-> Mark Fasheh
-> 
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
-> 
+> -- 
+> Goldwyn
