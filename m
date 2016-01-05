@@ -1,9 +1,9 @@
 From: mchristi at redhat.com <mchristi@redhat.com>
-Date: Tue,  5 Jan 2016 14:53:18 -0600
-Subject: [Ocfs2-devel] [PATCH 15/35] mpage: set bi_op to REQ_OP
+Date: Tue,  5 Jan 2016 14:53:20 -0600
+Subject: [Ocfs2-devel] [PATCH 17/35] ocfs2: set bi_op to REQ_OP
 In-Reply-To: <1452027218-32303-1-git-send-email-mchristi@redhat.com>
 References: <1452027218-32303-1-git-send-email-mchristi@redhat.com>
-Message-ID: <1452027218-32303-16-git-send-email-mchristi@redhat.com>
+Message-ID: <1452027218-32303-18-git-send-email-mchristi@redhat.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -13,161 +13,58 @@ Cc: Mike Christie <mchristi@redhat.com>
 
 From: Mike Christie <mchristi@redhat.com>
 
-This patch has the mpage.c code set the bio bi_op to a REQ_OP, and
+This patch has ocfs2 set the bio bi_op to a REQ_OP, and
 rq_flag_bits to bi_rw.
 
-I have run xfstest with xfs, but I am not sure
-if I have stressed these code paths well.
+This patch is compile tested only.
 
 Signed-off-by: Mike Christie <mchristi@redhat.com>
 ---
- fs/mpage.c | 41 +++++++++++++++++++++--------------------
- 1 file changed, 21 insertions(+), 20 deletions(-)
+ fs/ocfs2/cluster/heartbeat.c | 11 +++++++----
+ 1 file changed, 7 insertions(+), 4 deletions(-)
 
-diff --git a/fs/mpage.c b/fs/mpage.c
-index 9fec67f..3f7d221 100644
---- a/fs/mpage.c
-+++ b/fs/mpage.c
-@@ -55,11 +55,12 @@ static void mpage_end_io(struct bio *bio)
- 	bio_put(bio);
- }
- 
--static struct bio *mpage_bio_submit(int rw, struct bio *bio)
-+static struct bio *mpage_bio_submit(int op, int op_flags, struct bio *bio)
+diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
+index 41039c2..38596aa 100644
+--- a/fs/ocfs2/cluster/heartbeat.c
++++ b/fs/ocfs2/cluster/heartbeat.c
+@@ -391,7 +391,8 @@ static void o2hb_bio_end_io(struct bio *bio)
+ static struct bio *o2hb_setup_one_bio(struct o2hb_region *reg,
+ 				      struct o2hb_bio_wait_ctxt *wc,
+ 				      unsigned int *current_slot,
+-				      unsigned int max_slots, int rw)
++				      unsigned int max_slots, int op,
++				      int op_flags)
  {
- 	bio->bi_end_io = mpage_end_io;
+ 	int len, current_page;
+ 	unsigned int vec_len, vec_start;
+@@ -417,7 +418,8 @@ static struct bio *o2hb_setup_one_bio(struct o2hb_region *reg,
+ 	bio->bi_bdev = reg->hr_bdev;
+ 	bio->bi_private = wc;
+ 	bio->bi_end_io = o2hb_bio_end_io;
 -	bio->bi_rw |= rw;
--	guard_bio_eod(rw, bio);
 +	bio->bi_op = op;
 +	bio->bi_rw |= op_flags;
-+	guard_bio_eod(op, bio);
- 	submit_bio(bio);
- 	return NULL;
- }
-@@ -269,7 +270,7 @@ do_mpage_readpage(struct bio *bio, struct page *page, unsigned nr_pages,
- 	 * This page will go to BIO.  Do we need to send this BIO off first?
- 	 */
- 	if (bio && (*last_block_in_bio != blocks[0] - 1))
--		bio = mpage_bio_submit(READ, bio);
-+		bio = mpage_bio_submit(REQ_OP_READ, 0, bio);
  
- alloc_new:
- 	if (bio == NULL) {
-@@ -286,7 +287,7 @@ alloc_new:
+ 	vec_start = (cs << bits) % PAGE_CACHE_SIZE;
+ 	while(cs < max_slots) {
+@@ -454,7 +456,7 @@ static int o2hb_read_slots(struct o2hb_region *reg,
  
- 	length = first_hole << blkbits;
- 	if (bio_add_page(bio, page, length, 0) < length) {
--		bio = mpage_bio_submit(READ, bio);
-+		bio = mpage_bio_submit(REQ_OP_READ, 0, bio);
- 		goto alloc_new;
- 	}
+ 	while(current_slot < max_slots) {
+ 		bio = o2hb_setup_one_bio(reg, &wc, &current_slot, max_slots,
+-					 READ);
++					 REQ_OP_READ, 0);
+ 		if (IS_ERR(bio)) {
+ 			status = PTR_ERR(bio);
+ 			mlog_errno(status);
+@@ -486,7 +488,8 @@ static int o2hb_issue_node_write(struct o2hb_region *reg,
  
-@@ -294,7 +295,7 @@ alloc_new:
- 	nblocks = map_bh->b_size >> blkbits;
- 	if ((buffer_boundary(map_bh) && relative_block == nblocks) ||
- 	    (first_hole != blocks_per_page))
--		bio = mpage_bio_submit(READ, bio);
-+		bio = mpage_bio_submit(REQ_OP_READ, 0, bio);
- 	else
- 		*last_block_in_bio = blocks[blocks_per_page - 1];
- out:
-@@ -302,7 +303,7 @@ out:
+ 	slot = o2nm_this_node();
  
- confused:
- 	if (bio)
--		bio = mpage_bio_submit(READ, bio);
-+		bio = mpage_bio_submit(REQ_OP_READ, 0, bio);
- 	if (!PageUptodate(page))
- 	        block_read_full_page(page, get_block);
- 	else
-@@ -384,7 +385,7 @@ mpage_readpages(struct address_space *mapping, struct list_head *pages,
- 	}
- 	BUG_ON(!list_empty(pages));
- 	if (bio)
--		mpage_bio_submit(READ, bio);
-+		mpage_bio_submit(REQ_OP_READ, 0, bio);
- 	return 0;
- }
- EXPORT_SYMBOL(mpage_readpages);
-@@ -405,7 +406,7 @@ int mpage_readpage(struct page *page, get_block_t get_block)
- 	bio = do_mpage_readpage(bio, page, 1, &last_block_in_bio,
- 			&map_bh, &first_logical_block, get_block, gfp);
- 	if (bio)
--		mpage_bio_submit(READ, bio);
-+		mpage_bio_submit(REQ_OP_READ, 0, bio);
- 	return 0;
- }
- EXPORT_SYMBOL(mpage_readpage);
-@@ -486,7 +487,7 @@ static int __mpage_writepage(struct page *page, struct writeback_control *wbc,
- 	struct buffer_head map_bh;
- 	loff_t i_size = i_size_read(inode);
- 	int ret = 0;
--	int wr = (wbc->sync_mode == WB_SYNC_ALL ?  WRITE_SYNC : WRITE);
-+	int op_flags = (wbc->sync_mode == WB_SYNC_ALL ?  WRITE_SYNC : 0);
- 
- 	if (page_has_buffers(page)) {
- 		struct buffer_head *head = page_buffers(page);
-@@ -595,7 +596,7 @@ page_is_mapped:
- 	 * This page will go to BIO.  Do we need to send this BIO off first?
- 	 */
- 	if (bio && mpd->last_block_in_bio != blocks[0] - 1)
--		bio = mpage_bio_submit(wr, bio);
-+		bio = mpage_bio_submit(REQ_OP_WRITE, op_flags, bio);
- 
- alloc_new:
- 	if (bio == NULL) {
-@@ -622,7 +623,7 @@ alloc_new:
- 	wbc_account_io(wbc, page, PAGE_SIZE);
- 	length = first_unmapped << blkbits;
- 	if (bio_add_page(bio, page, length, 0) < length) {
--		bio = mpage_bio_submit(wr, bio);
-+		bio = mpage_bio_submit(REQ_OP_WRITE, op_flags, bio);
- 		goto alloc_new;
- 	}
- 
-@@ -632,7 +633,7 @@ alloc_new:
- 	set_page_writeback(page);
- 	unlock_page(page);
- 	if (boundary || (first_unmapped != blocks_per_page)) {
--		bio = mpage_bio_submit(wr, bio);
-+		bio = mpage_bio_submit(REQ_OP_WRITE, op_flags, bio);
- 		if (boundary_block) {
- 			write_boundary_block(boundary_bdev,
- 					boundary_block, 1 << blkbits);
-@@ -644,7 +645,7 @@ alloc_new:
- 
- confused:
- 	if (bio)
--		bio = mpage_bio_submit(wr, bio);
-+		bio = mpage_bio_submit(REQ_OP_WRITE, op_flags, bio);
- 
- 	if (mpd->use_writepage) {
- 		ret = mapping->a_ops->writepage(page, wbc);
-@@ -701,9 +702,9 @@ mpage_writepages(struct address_space *mapping,
- 
- 		ret = write_cache_pages(mapping, wbc, __mpage_writepage, &mpd);
- 		if (mpd.bio) {
--			int wr = (wbc->sync_mode == WB_SYNC_ALL ?
--				  WRITE_SYNC : WRITE);
--			mpage_bio_submit(wr, mpd.bio);
-+			int op_flags = (wbc->sync_mode == WB_SYNC_ALL ?
-+				  WRITE_SYNC : 0);
-+			mpage_bio_submit(REQ_OP_WRITE, op_flags, mpd.bio);
- 		}
- 	}
- 	blk_finish_plug(&plug);
-@@ -722,9 +723,9 @@ int mpage_writepage(struct page *page, get_block_t get_block,
- 	};
- 	int ret = __mpage_writepage(page, wbc, &mpd);
- 	if (mpd.bio) {
--		int wr = (wbc->sync_mode == WB_SYNC_ALL ?
--			  WRITE_SYNC : WRITE);
--		mpage_bio_submit(wr, mpd.bio);
-+		int op_flags = (wbc->sync_mode == WB_SYNC_ALL ?
-+			  WRITE_SYNC : 0);
-+		mpage_bio_submit(REQ_OP_WRITE, op_flags, mpd.bio);
- 	}
- 	return ret;
- }
+-	bio = o2hb_setup_one_bio(reg, write_wc, &slot, slot+1, WRITE_SYNC);
++	bio = o2hb_setup_one_bio(reg, write_wc, &slot, slot+1, REQ_OP_WRITE,
++				 WRITE_SYNC);
+ 	if (IS_ERR(bio)) {
+ 		status = PTR_ERR(bio);
+ 		mlog_errno(status);
 -- 
 1.8.3.1
