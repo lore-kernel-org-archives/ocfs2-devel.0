@@ -1,23 +1,36 @@
-From: Bart Van Assche <bart.vanassche@sandisk.com>
-Date: Wed, 6 Jan 2016 16:59:26 +0100
-Subject: [Ocfs2-devel] [dm-devel] [PATCH 01/35] block/fs/drivers: remove
- rw argument from submit_bio
-In-Reply-To: <1452027218-32303-2-git-send-email-mchristi@redhat.com>
+From: Nicholas A. Bellinger <nab@linux-iscsi.org>
+Date: Wed, 06 Jan 2016 11:06:00 -0800
+Subject: [Ocfs2-devel] [PATCH 25/35] target: set bi_op to REQ_OP
+In-Reply-To: <1452027218-32303-26-git-send-email-mchristi@redhat.com>
 References: <1452027218-32303-1-git-send-email-mchristi@redhat.com>
-	<1452027218-32303-2-git-send-email-mchristi@redhat.com>
-Message-ID: <568D39DE.2060709@sandisk.com>
+	<1452027218-32303-26-git-send-email-mchristi@redhat.com>
+Message-ID: <1452107160.26125.39.camel@haakon3.risingtidesystems.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: device-mapper development <dm-devel@redhat.com>, linux-f2fs-devel@lists.sourceforge.net, linux-ext4@vger.kernel.org, konrad.wilk@oracle.com, drbd-dev@lists.linbit.com, philipp.reisner@linbit.com, lars.ellenberg@linbit.com, linux-raid@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-bcache@vger.kernel.org, linux-block@vger.kernel.org, linux-kernel@vger.kernel.org, linux-scsi@vger.kernel.org, linux-mtd@lists.infradead.org, target-devel@vger.kernel.org, linux-btrfs@vger.kernel.org, osd-dev@open-osd.org, xfs@oss.sgi.com, ocfs2-devel@oss.oracle.com
-Cc: Mike Christie <mchristi@redhat.com>
+To: mchristi@redhat.com
+Cc: linux-f2fs-devel@lists.sourceforge.net, linux-ext4@vger.kernel.org, konrad.wilk@oracle.com, drbd-dev@lists.linbit.com, philipp.reisner@linbit.com, lars.ellenberg@linbit.com, linux-raid@vger.kernel.org, dm-devel@redhat.com, linux-fsdevel@vger.kernel.org, linux-bcache@vger.kernel.org, linux-block@vger.kernel.org, linux-kernel@vger.kernel.org, linux-scsi@vger.kernel.org, linux-mtd@lists.infradead.org, target-devel@vger.kernel.org, linux-btrfs@vger.kernel.org, osd-dev@open-osd.org, xfs@oss.sgi.com, ocfs2-devel@oss.oracle.com
 
-On 01/05/2016 09:53 PM, mchristi at redhat.com wrote:
+Hi Mike,
+
+On Tue, 2016-01-05 at 14:53 -0600, mchristi at redhat.com wrote:
 > From: Mike Christie <mchristi@redhat.com>
->
-> This has callers of submit_bio/submit_bio_wait set the bio->bi_rw
-> instead of passing it in. This makes that use the same as
-> generic_make_request and how we set the other bio fields.
+> 
+> This patch has the target modules set the bio bi_op to a REQ_OP, and
+> rq_flag_bits to bi_rw.
+> 
+> This patch is compile tested only.
+> 
+> Signed-off-by: Mike Christie <mchristi@redhat.com>
+> ---
+>  drivers/target/target_core_iblock.c | 38 ++++++++++++++++++++++---------------
+>  drivers/target/target_core_pscsi.c  |  2 +-
+>  2 files changed, 24 insertions(+), 16 deletions(-)
+> 
 
-Reviewed-by: Bart Van Assche <bart.vanassche@sandisk.com>
+Nice work to clean this long standing abuse.  ;)
+
+For the target/iblock bit:
+
+Acked-by: Nicholas Bellinger <nab@linux-iscsi.org>
