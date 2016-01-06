@@ -1,40 +1,23 @@
-From: Junxiao Bi <junxiao.bi@oracle.com>
-Date: Wed, 6 Jan 2016 12:47:40 +0800
-Subject: [Ocfs2-devel] [PATCH] add OCFS2_LOCK_IGNORE_BLOCKED arg_flags
- to ocfs2_cluster_lock() to prevent hang
-In-Reply-To: <20160105234715.GP29804@ZenIV.linux.org.uk>
-References: <1450828550-23168-1-git-send-email-tariq.x.saeed@oracle.com>
-	<20151230003456.GR11072@wotan.suse.de> <568ADCC1.7090503@oracle.com>
-	<20160105003532.GA819@wotan.suse.de> <568B2089.6060902@oracle.com>
-	<20160105234715.GP29804@ZenIV.linux.org.uk>
-Message-ID: <568C9C6C.2030506@oracle.com>
+From: Bart Van Assche <bart.vanassche@sandisk.com>
+Date: Wed, 6 Jan 2016 16:59:26 +0100
+Subject: [Ocfs2-devel] [dm-devel] [PATCH 01/35] block/fs/drivers: remove
+ rw argument from submit_bio
+In-Reply-To: <1452027218-32303-2-git-send-email-mchristi@redhat.com>
+References: <1452027218-32303-1-git-send-email-mchristi@redhat.com>
+	<1452027218-32303-2-git-send-email-mchristi@redhat.com>
+Message-ID: <568D39DE.2060709@sandisk.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: device-mapper development <dm-devel@redhat.com>, linux-f2fs-devel@lists.sourceforge.net, linux-ext4@vger.kernel.org, konrad.wilk@oracle.com, drbd-dev@lists.linbit.com, philipp.reisner@linbit.com, lars.ellenberg@linbit.com, linux-raid@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-bcache@vger.kernel.org, linux-block@vger.kernel.org, linux-kernel@vger.kernel.org, linux-scsi@vger.kernel.org, linux-mtd@lists.infradead.org, target-devel@vger.kernel.org, linux-btrfs@vger.kernel.org, osd-dev@open-osd.org, xfs@oss.sgi.com, ocfs2-devel@oss.oracle.com
+Cc: Mike Christie <mchristi@redhat.com>
 
-Hi Joel,
+On 01/05/2016 09:53 PM, mchristi at redhat.com wrote:
+> From: Mike Christie <mchristi@redhat.com>
+>
+> This has callers of submit_bio/submit_bio_wait set the bio->bi_rw
+> instead of passing it in. This makes that use the same as
+> generic_make_request and how we set the other bio fields.
 
-On 01/06/2016 07:47 AM, Joel Becker wrote:
-> On Tue, Jan 05, 2016 at 09:46:49AM +0800, Junxiao Bi wrote:
->> Hi Mark,
->>
->> We may fix this issue in another way, without recursive locking and
->> without refactoring. We can check before asking for the second locking,
->> if lock is already hold, then skip the second locking, do you agree
->> fixing like this?
-> 
-> Hey Junxiao,
-> 
-> What is to prevent the second lock from being dropped while in the
-> middle of the operation?
-Log processes id into lockres when lock is got. When do second locking,
-if this lock is already got by this process, then skip it.
-
-Thanks,
-Junxiao.
-
-> 
-> Joel
-> 
+Reviewed-by: Bart Van Assche <bart.vanassche@sandisk.com>
