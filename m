@@ -1,23 +1,41 @@
-From: Tariq Saeed <tariq.x.saeed@oracle.com>
-Date: Wed, 06 Jan 2016 18:51:41 -0800
-Subject: [Ocfs2-devel] [PATCH] revert to using ocfs2_acl_chmod to avoid
- inode cluster lock hang
-In-Reply-To: <568C9B0F.7040500@oracle.com>
-References: <1452047231-30569-1-git-send-email-tariq.x.saeed@oracle.com>
-	<568C9B0F.7040500@oracle.com>
-Message-ID: <568DD2BD.8010503@oracle.com>
+From: Dave Chinner <david@fromorbit.com>
+Date: Thu, 7 Jan 2016 14:11:31 +1100
+Subject: [Ocfs2-devel] [PATCH 13/35] xfs: set bi_op to REQ_OP
+In-Reply-To: <1452027218-32303-14-git-send-email-mchristi@redhat.com>
+References: <1452027218-32303-1-git-send-email-mchristi@redhat.com>
+	<1452027218-32303-14-git-send-email-mchristi@redhat.com>
+Message-ID: <20160107031131.GB32200@dastard>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: mchristi@redhat.com
+Cc: linux-bcache@vger.kernel.org, linux-block@vger.kernel.org, xfs@oss.sgi.com, ocfs2-devel@oss.oracle.com, linux-scsi@vger.kernel.org, konrad.wilk@oracle.com, linux-kernel@vger.kernel.org, philipp.reisner@linbit.com, linux-f2fs-devel@lists.sourceforge.net, linux-raid@vger.kernel.org, dm-devel@redhat.com, target-devel@vger.kernel.org, linux-mtd@lists.infradead.org, osd-dev@open-osd.org, linux-fsdevel@vger.kernel.org, lars.ellenberg@linbit.com, linux-ext4@vger.kernel.org, linux-btrfs@vger.kernel.org, drbd-dev@lists.linbit.com
 
+On Tue, Jan 05, 2016 at 02:53:16PM -0600, mchristi at redhat.com wrote:
+> From: Mike Christie <mchristi@redhat.com>
+> 
+> This patch has xfs set the bio bi_op to a REQ_OP, and
+> rq_flag_bits to bi_rw.
+> 
+> Note:
+> I have run xfs tests on these btrfs patches. There were some failures
+> with and without the patches. I have not had time to track down why
+> xfstest fails without the patches.
+> 
+> Signed-off-by: Mike Christie <mchristi@redhat.com>
+> ---
+>  fs/xfs/xfs_aops.c |  3 ++-
+>  fs/xfs/xfs_buf.c  | 27 +++++++++++++++------------
+>  2 files changed, 17 insertions(+), 13 deletions(-)
 
-On 01/05/2016 08:41 PM, Junxiao Bi wrote:
-> This fixed part of the deadlock. There is another part.
-> ocfs2_mknod()->posix_acl_create()->ocfs2_iop_get_acl()
-Right. It used to be:  ocfs2_mknod -> ocfs2_init_acl -> 
-ocfs2_get_acl_nolock.
+Not sure which patches your note is refering to here.
 
-Thanks
--Tariq
+The XFS change here looks fine.
+
+Acked-by: Dave Chinner <dchinner@redhat.com>
+
+-Dave.
+-- 
+Dave Chinner
+david at fromorbit.com
