@@ -1,28 +1,25 @@
-From: Tariq Saeed <tariq.x.saeed@oracle.com>
-Date: Fri, 08 Jan 2016 14:44:29 -0800
-Subject: [Ocfs2-devel] [PATCH] revert to using ocfs2_acl_chmod to avoid
- inode cluster lock hang
-In-Reply-To: <20160108014556.GD819@wotan.suse.de>
-References: <1452047231-30569-1-git-send-email-tariq.x.saeed@oracle.com>
-	<20160107225507.GB819@wotan.suse.de> <568EF987.9080904@oracle.com>
-	<20160108014556.GD819@wotan.suse.de>
-Message-ID: <56903BCD.6050806@oracle.com>
+From: Mike Christie <michaelc@cs.wisc.edu>
+Date: Fri, 08 Jan 2016 14:50:58 -0600
+Subject: [Ocfs2-devel] [PATCH 00/35 v2] separate operations from flags
+ in the bio/request structs
+In-Reply-To: <20160108133237.GA7663@infradead.org>
+References: <1452027218-32303-1-git-send-email-mchristi@redhat.com>
+	<20160108133237.GA7663@infradead.org>
+Message-ID: <56902132.8080008@cs.wisc.edu>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Christoph Hellwig <hch@infradead.org>, mchristi@redhat.com
+Cc: linux-f2fs-devel@lists.sourceforge.net, linux-ext4@vger.kernel.org, konrad.wilk@oracle.com, drbd-dev@lists.linbit.com, philipp.reisner@linbit.com, lars.ellenberg@linbit.com, linux-raid@vger.kernel.org, dm-devel@redhat.com, linux-fsdevel@vger.kernel.org, linux-bcache@vger.kernel.org, linux-block@vger.kernel.org, linux-kernel@vger.kernel.org, linux-scsi@vger.kernel.org, linux-mtd@lists.infradead.org, target-devel@vger.kernel.org, linux-btrfs@vger.kernel.org, osd-dev@open-osd.org, xfs@oss.sgi.com, ocfs2-devel@oss.oracle.com
 
+On 01/08/2016 07:32 AM, Christoph Hellwig wrote:
+> This looks good to me from a highlevel point of view.
+> Do you also have a git tree to take a look at all the changes in a
+> single big diff?
 
-On 01/07/2016 05:45 PM, Mark Fasheh wrote:
->> 2. ocfs2_reflink ->  ocfs2_init_security_and_acl -> ocfs2_iop_set_acl
-> Could you elaborate for me on the problem you found there?
-The problem here is dropping dir lock in posix_acl_create after getting
-default_acl and acl. These two can be changed by another node by
-the time we get around to using  them in ocfs2_init_security_and_acl.
+I uploaded a git tree here:
 
-The old code in uek3 is mindful of this. In that code, 
-ocfs2_init_security_and_acl
-gets the dir lock and keeps it until the acls of new node are set.
-Thanks
--Tariq
+https://github.com/mikechristie/linux-kernel.git
+
+based off of linux-next today. The patches are just in the master branch.
