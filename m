@@ -1,35 +1,168 @@
 From: Christoph Hellwig <hch@infradead.org>
-Date: Sat, 9 Jan 2016 00:04:26 -0800
-Subject: [Ocfs2-devel] [PATCH 34/35] block: add QUEUE_FLAGs for flush
-	and fua
-In-Reply-To: <1452027218-32303-35-git-send-email-mchristi@redhat.com>
+Date: Sat, 9 Jan 2016 05:34:09 -0800
+Subject: [Ocfs2-devel] [PATCH 01/35] block/fs/drivers: remove rw
+ argument from submit_bio
+In-Reply-To: <1452027218-32303-2-git-send-email-mchristi@redhat.com>
 References: <1452027218-32303-1-git-send-email-mchristi@redhat.com>
-	<1452027218-32303-35-git-send-email-mchristi@redhat.com>
-Message-ID: <20160109080426.GA6207@infradead.org>
+	<1452027218-32303-2-git-send-email-mchristi@redhat.com>
+Message-ID: <20160109133409.GA26660@infradead.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: mchristi-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org
-Cc: linux-bcache-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-block-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, xfs-VZNHf3L845pBDgjK7y7TUQ@public.gmane.org, ocfs2-devel-N0ozoZBvEnrZJqsBc5GL+g@public.gmane.org, linux-scsi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, konrad.wilk-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, philipp.reisner-63ez5xqkn6DQT0dZR+AlfA@public.gmane.org, linux-f2fs-devel-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, linux-raid-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, dm-devel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, target-devel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-mtd-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, osd-dev-yNzVSZO3znNg9hUCZPvPmw@public.gmane.org, linux-fsdevel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, lars.ellenberg-63ez5xqkn6DQT0dZR+AlfA@public.gmane.org, linux-ext4-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-btrfs-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, drbd-dev-cunTk1MwBs8qoQakbn7OcQ@public.gmane.org
+To: mchristi@redhat.com
+Cc: linux-f2fs-devel@lists.sourceforge.net, linux-ext4@vger.kernel.org, konrad.wilk@oracle.com, drbd-dev@lists.linbit.com, philipp.reisner@linbit.com, lars.ellenberg@linbit.com, linux-raid@vger.kernel.org, dm-devel@redhat.com, linux-fsdevel@vger.kernel.org, linux-bcache@vger.kernel.org, linux-block@vger.kernel.org, linux-kernel@vger.kernel.org, linux-scsi@vger.kernel.org, linux-mtd@lists.infradead.org, target-devel@vger.kernel.org, linux-btrfs@vger.kernel.org, osd-dev@open-osd.org, xfs@oss.sgi.com, ocfs2-devel@oss.oracle.com
 
-On Tue, Jan 05, 2016 at 02:53:37PM -0600, mchristi at redhat.com wrote:
+On Tue, Jan 05, 2016 at 02:53:04PM -0600, mchristi at redhat.com wrote:
 > From: Mike Christie <mchristi@redhat.com>
 > 
-> The last patch added a REQ_OP_FLUSH for request_fn drivers
-> and the next patch renames REQ_FLUSH to REQ_PREFLUSH which
-> will be used by file systems and make_request_fn drivers.
-> 
-> This leaves REQ_FLUSH/REQ_FUA defined for drivers to tell
-> the block layer if flush/fua is supported. The names are
-> confusing and I bet will will accidentally be used by
-> people to request flushes. To avoid that, this patch adds
-> QUEUE_FLAGs for flush and fua which drivers will use to
-> indicate what they support.
+> This has callers of submit_bio/submit_bio_wait set the bio->bi_rw
+> instead of passing it in. This makes that use the same as
+> generic_make_request and how we set the other bio fields.
 > 
 > Signed-off-by: Mike Christie <mchristi@redhat.com>
+> ---
+>  block/bio.c                         |  7 +++----
+>  block/blk-core.c                    | 11 ++++-------
+>  block/blk-flush.c                   |  3 ++-
+>  block/blk-lib.c                     |  9 ++++++---
+>  drivers/block/drbd/drbd_actlog.c    |  2 +-
+>  drivers/block/drbd/drbd_bitmap.c    |  4 ++--
+>  drivers/block/floppy.c              |  3 ++-
+>  drivers/block/xen-blkback/blkback.c |  4 +++-
+>  drivers/block/xen-blkfront.c        |  4 ++--
+>  drivers/md/bcache/debug.c           |  6 ++++--
+>  drivers/md/bcache/journal.c         |  2 +-
+>  drivers/md/bcache/super.c           |  4 ++--
+>  drivers/md/dm-bufio.c               |  3 ++-
+>  drivers/md/dm-io.c                  |  3 ++-
+>  drivers/md/dm-log-writes.c          |  9 ++++++---
+>  drivers/md/dm-thin.c                |  3 ++-
+>  drivers/md/md.c                     | 10 +++++++---
+>  drivers/md/raid1.c                  |  3 ++-
+>  drivers/md/raid10.c                 |  4 +++-
+>  drivers/md/raid5-cache.c            |  7 ++++---
+>  drivers/target/target_core_iblock.c | 24 +++++++++++++-----------
+>  fs/btrfs/check-integrity.c          | 18 ++++++++++--------
+>  fs/btrfs/check-integrity.h          |  4 ++--
+>  fs/btrfs/disk-io.c                  |  3 ++-
+>  fs/btrfs/extent_io.c                |  7 ++++---
+>  fs/btrfs/raid56.c                   | 16 +++++++++++-----
+>  fs/btrfs/scrub.c                    | 16 +++++++++++-----
+>  fs/btrfs/volumes.c                  | 14 +++++++-------
+>  fs/buffer.c                         |  3 ++-
+>  fs/direct-io.c                      |  3 ++-
+>  fs/ext4/crypto.c                    |  3 ++-
+>  fs/ext4/page-io.c                   |  3 ++-
+>  fs/ext4/readpage.c                  |  9 +++++----
+>  fs/f2fs/data.c                      | 13 ++++++++-----
+>  fs/f2fs/segment.c                   |  6 ++++--
+>  fs/gfs2/lops.c                      |  3 ++-
+>  fs/gfs2/meta_io.c                   |  3 ++-
+>  fs/gfs2/ops_fstype.c                |  3 ++-
+>  fs/hfsplus/wrapper.c                |  3 ++-
+>  fs/jfs/jfs_logmgr.c                 |  6 ++++--
+>  fs/jfs/jfs_metapage.c               | 10 ++++++----
+>  fs/logfs/dev_bdev.c                 | 15 ++++++++++-----
+>  fs/mpage.c                          |  3 ++-
+>  fs/nfs/blocklayout/blocklayout.c    | 22 ++++++++++++----------
+>  fs/nilfs2/segbuf.c                  |  3 ++-
+>  fs/ocfs2/cluster/heartbeat.c        | 12 +++++++-----
+>  fs/xfs/xfs_aops.c                   |  3 ++-
+>  fs/xfs/xfs_buf.c                    |  4 ++--
+>  include/linux/bio.h                 |  2 +-
+>  include/linux/fs.h                  |  2 +-
+>  kernel/power/swap.c                 |  5 +++--
+>  mm/page_io.c                        | 10 ++++++----
+>  52 files changed, 211 insertions(+), 141 deletions(-)
+> 
+> diff --git a/block/bio.c b/block/bio.c
+> index dbabd48..921112b 100644
+> --- a/block/bio.c
+> +++ b/block/bio.c
+> @@ -859,21 +859,20 @@ static void submit_bio_wait_endio(struct bio *bio)
+>  
+>  /**
+>   * submit_bio_wait - submit a bio, and wait until it completes
+> - * @rw: whether to %READ or %WRITE, or maybe to %READA (read ahead)
+>   * @bio: The &struct bio which describes the I/O
+>   *
+>   * Simple wrapper around submit_bio(). Returns 0 on success, or the error from
+>   * bio_endio() on failure.
+>   */
+> -int submit_bio_wait(int rw, struct bio *bio)
+> +int submit_bio_wait(struct bio *bio)
+>  {
+>  	struct submit_bio_ret ret;
+>  
+> -	rw |= REQ_SYNC;
+>  	init_completion(&ret.event);
+>  	bio->bi_private = &ret;
+>  	bio->bi_end_io = submit_bio_wait_endio;
+> -	submit_bio(rw, bio);
+> +	bio->bi_rw |= REQ_SYNC;
+> +	submit_bio(bio);
+>  	wait_for_completion(&ret.event);
+>  
+>  	return ret.error;
+> diff --git a/block/blk-core.c b/block/blk-core.c
+> index ab51685..9b887e3 100644
+> --- a/block/blk-core.c
+> +++ b/block/blk-core.c
+> @@ -2092,7 +2092,6 @@ EXPORT_SYMBOL(generic_make_request);
+>  
+>  /**
+>   * submit_bio - submit a bio to the block device layer for I/O
+> - * @rw: whether to %READ or %WRITE, or maybe to %READA (read ahead)
+>   * @bio: The &struct bio which describes the I/O
+>   *
+>   * submit_bio() is very similar in purpose to generic_make_request(), and
+> @@ -2100,10 +2099,8 @@ EXPORT_SYMBOL(generic_make_request);
+>   * interfaces; @bio must be presetup and ready for I/O.
+>   *
+>   */
+> -blk_qc_t submit_bio(int rw, struct bio *bio)
+> +blk_qc_t submit_bio(struct bio *bio)
+>  {
+> -	bio->bi_rw |= rw;
+> -
+>  	/*
+>  	 * If it's a regular read/write or a barrier with data attached,
+>  	 * go through the normal accounting stuff before submission.
+> @@ -2111,12 +2108,12 @@ blk_qc_t submit_bio(int rw, struct bio *bio)
+>  	if (bio_has_data(bio)) {
+>  		unsigned int count;
+>  
+> -		if (unlikely(rw & REQ_WRITE_SAME))
+> +		if (unlikely(bio->bi_rw & REQ_WRITE_SAME))
+>  			count = bdev_logical_block_size(bio->bi_bdev) >> 9;
+>  		else
+>  			count = bio_sectors(bio);
+>  
+> -		if (rw & WRITE) {
+> +		if (bio->bi_rw & WRITE) {
+>  			count_vm_events(PGPGOUT, count);
+>  		} else {
+>  			task_io_account_read(bio->bi_iter.bi_size);
+> @@ -2127,7 +2124,7 @@ blk_qc_t submit_bio(int rw, struct bio *bio)
+>  			char b[BDEVNAME_SIZE];
+>  			printk(KERN_DEBUG "%s(%d): %s block %Lu on %s (%u sectors)\n",
+>  			current->comm, task_pid_nr(current),
+> -				(rw & WRITE) ? "WRITE" : "READ",
+> +				(bio->bi_rw & WRITE) ? "WRITE" : "READ",
+>  				(unsigned long long)bio->bi_iter.bi_sector,
+>  				bdevname(bio->bi_bdev, b),
+>  				count);
+> diff --git a/block/blk-flush.c b/block/blk-flush.c
+> index 9c423e5..e092e13 100644
+> --- a/block/blk-flush.c
+> +++ b/block/blk-flush.c
+> @@ -484,8 +484,9 @@ int blkdev_issue_flush(struct block_device *bdev, gfp_t gfp_mask,
+>  
+>  	bio = bio_alloc(gfp_mask, 0);
+>  	bio->bi_bdev = bdev;
+> +	bio->bi_rw |= WRITE_FLUSH;
 
-Yes, this was rather confusing before.  Looks great fix the fix for th
-kbuild complaint:
+Shouldn't the |= be a = here and in many other places?
 
-Reviewed-by: Christoph Hellwig <hch@lst.de>
+Otherwise this loks fine to me.
