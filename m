@@ -1,34 +1,50 @@
-From: Christoph Hellwig <hch@infradead.org>
-Date: Sat, 9 Jan 2016 23:15:58 -0800
-Subject: [Ocfs2-devel] [dm-devel] [PATCH 02/35] block: add REQ_OP
- definitions and bi_op/op fields
-In-Reply-To: <5691B208.9060001@cs.wisc.edu>
-References: <1452027218-32303-1-git-send-email-mchristi@redhat.com>
-	<1452027218-32303-3-git-send-email-mchristi@redhat.com>
-	<20160109133716.GB26660@infradead.org>
-	<5691AC2E.2050403@cs.wisc.edu> <5691B208.9060001@cs.wisc.edu>
-Message-ID: <20160110071558.GB12831@infradead.org>
+From: xuejiufei <xuejiufei@huawei.com>
+Date: Mon, 11 Jan 2016 10:46:29 +0800
+Subject: [Ocfs2-devel] ocfs2: A race between refmap setting and clearing
+Message-ID: <56931785.2090603@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Mike Christie <michaelc@cs.wisc.edu>
-Cc: device-mapper development <dm-devel@redhat.com>, mchristi@redhat.com, linux-bcache@vger.kernel.org, linux-block@vger.kernel.org, xfs@oss.sgi.com, linux-scsi@vger.kernel.org, konrad.wilk@oracle.com, linux-kernel@vger.kernel.org, philipp.reisner@linbit.com, linux-f2fs-devel@lists.sourceforge.net, linux-raid@vger.kernel.org, ocfs2-devel@oss.oracle.com, target-devel@vger.kernel.org, linux-mtd@lists.infradead.org, osd-dev@open-osd.org, linux-fsdevel@vger.kernel.org, lars.ellenberg@linbit.com, linux-ext4@vger.kernel.org, linux-btrfs@vger.kernel.org, drbd-dev@lists.linbit.com
+To: ocfs2-devel@oss.oracle.com
 
-On Sat, Jan 09, 2016 at 07:21:12PM -0600, Mike Christie wrote:
-> Oh yeah, to answer the second part of your question, REQ_OP_FLUSH is
-> only a flush operation like what request_fn drivers wanted.
+Hi all,
+We have found a race between refmap setting and clearing which
+will cause the lock resource on master is freed before other nodes
+purge it.
 
-And that's the odd part that trips me up.
+Node 1                               Node 2(master)
+dlm_do_master_request
+                                dlm_master_request_handler
+                                -> dlm_lockres_set_refmap_bit
+call dlm_purge_lockres after unlock
+                                dlm_deref_handler
+                                -> find lock resource is in
+                                   DLM_LOCK_RES_SETREF_INPROG state,
+                                   so dispatch a deref work
+dlm_purge_lockres succeed.
 
-> 
-> REQ_PREFLUSH can be set with a REQ_OP_WRITE bio when filesystems want to
-> do both.
-> 
-> There is then the case where filesystems and blkdev_issue_flush could
-> just want to request a flush. I left them as a REQ_PREFLUSH with
-> REQ_OP_WRITE set, so there would be a single code path.
+dlm_do_master_request
+                                dlm_master_request_handler
+                                -> dlm_lockres_set_refmap_bit
 
-But the pure flush without data transfer case is pretty different,
-so it seems rather odd to handle it like that.  But I suspec we could
-just fix that up later.
+                                deref work trigger, call
+                                dlm_lockres_clear_refmap_bit
+                                to clear Node 1 from refmap
+
+Now Node 2 can purge the lock resource but the owner of lock resource
+on Node 1 is still Node 2 which may trigger BUG if the lock resource
+is $RECOVERY or other problems.
+
+We have discussed 2 solutions:
+1)The master return error to Node 1 if the DLM_LOCK_RES_SETREF_INPROG
+is set. Node 1 will not retry and master send another message to Node 1
+after clearing the refmap. Node 1 can purge the lock resource after the
+refmap on master is cleared.
+2) The master return error to Node 1 if the DLM_LOCK_RES_SETREF_INPROG
+is set, and Node 1 will retry to deref the lockres.
+
+Does anybody has better ideas?
+
+Thanks,
+--Jiufei
