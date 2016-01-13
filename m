@@ -1,73 +1,125 @@
-From: Shichangkuo <shi.changkuo@h3c.com>
-Date: Wed, 13 Jan 2016 06:07:41 +0000
-Subject: [Ocfs2-devel] =?utf-8?b?562U5aSNOiAgZGxuIGRvbWFpbl9tYXAgaXMgbm90?=
- =?utf-8?q?_consistent_after_a_node_was_fencing?=
-In-Reply-To: <5695BD42.30403@huawei.com>
-References: <D1E4D02760513D4B90DC3B40FF32AF355EE0C84C@H3CMLB12-EX.srv.huawei-3com.com>
-	<5695BD42.30403@huawei.com>
-Message-ID: <D1E4D02760513D4B90DC3B40FF32AF355EE0CB4B@H3CMLB12-EX.srv.huawei-3com.com>
+From: xuejiufei <xuejiufei@huawei.com>
+Date: Wed, 13 Jan 2016 14:21:26 +0800
+Subject: [Ocfs2-devel] ocfs2: A race between refmap setting and clearing
+In-Reply-To: <5695BA7D.90009@oracle.com>
+References: <56931785.2090603@huawei.com> <56947B02.7030503@oracle.com>
+	<5694A857.5020906@huawei.com> <5695BA7D.90009@oracle.com>
+Message-ID: <5695ECE6.7050709@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi, Joseph, Junxiao and Jiufei,
-	Thanks for your reply.
-	I am sorry for my mistake after checking syslog on Node2 again. The disk is indeed unavailable on Node2 and Node3 when Node1 was mounting.
-    The slotmap also changed, as Node1 will do "recovery" on Node2 and Node3
-root at cvknode1:~# debugfs.ocfs2 -R slotmap /dev/sdd
-	Slot#   Node#
-	    1       2
+Hi Junxiao,
+I have not describe the issue clearly.
 
-When the storage link recovered , and mounted another LUN on Node1, the tcp connections to Node2 and Node3 established, but the dlm map of LUN1 still inconsistent.
-Then the cluster enters split-brain state, dose this issue can automatically fix when heartbeat changed to be active?
+Node 1                               Node 2(master)
+dlmlock
+dlm_do_master_request
+                                dlm_master_request_handler
+                                -> dlm_lockres_set_refmap_bit
+dlmlock succeed
+dlmunlock succeed
 
------------------
-???: xuejiufei [mailto:xuejiufei at huawei.com] 
-????: 2016?1?13? 10:58
-???: shichangkuo 09727 (CCPL); ocfs2-devel at oss.oracle.com
-??: Re: [Ocfs2-devel] dln domain_map is not consistent after a node was fencing
+dlm_purge_lockres
+                                dlm_deref_handler
+                                -> find lock resource is in
+                                   DLM_LOCK_RES_SETREF_INPROG state,
+                                   so dispatch a deref work
+dlm_purge_lockres succeed.
 
-Hi Changkuo,
+call dlmlock again
+dlm_do_master_request
+                                dlm_master_request_handler
+                                -> dlm_lockres_set_refmap_bit
 
-On 2016/1/11 19:52, Shichangkuo wrote:
-> Hi,
-> 
-> I have three nodes in one cluster. Node1 disconnect TCP with Node2 and Node3, and then fencing by restarting.
-> When re-mounted LUNA on Node1, I found strange issue: Node1 this it was the only node mounted on LUNA, the kernel log as follows:
-> Jan  4 16:46:14 cvk12 kernel: [   99.223321] o2dlm: Joining domain 0400EAB0791F4B4C85F3FCB5AAC76A1D ( 5 ) 1 nodes
-> 
-> I don't think Node1 had a mistake by reading heartbeat on other slots.
-Maybe Node2 and Node3 is busy writing user data and can not write heartbeat to disk when Node1 remount.
-So Node1 think Node2 and Node3 is dead. So the dlm domain_map on Node1 only contain itself.
+                                deref work trigger, call
+                                dlm_lockres_clear_refmap_bit
+                                to clear Node 1 from refmap
 
-> The most possible reason maybe other nodes responded JOIN_OK_NO_MAP after receiving dlm_query_join messages by Node1.
-> Threr are two ways to respond JOIN_OK_NO_MAP in dlm_query_join_handler:
->     1) dlm->dlm_state == DLM_CTXT_LEAVING
->     2) dlm->dlm_state == DLM_CTXT_NEW &&
->                     dlm->joining_node == DLM_LOCK_RES_OWNER_UNKNOWN 
-> But neither of them is suitable as node already mounted.
-> I have no idea about it, If any other encount or familiar with this issue, please let me know.
+                                dlm_purge_lockres succeed
+
+dlm_send_remote_lock_request
+                                return DLM_IVLOCKID because
+                                the lockres is not exist
+BUG if the lockres is $RECOVERY
+
+On 2016/1/13 10:46, Junxiao Bi wrote:
+> On 01/12/2016 03:16 PM, xuejiufei wrote:
+>> Hi, Junxiao
+>>
+>> On 2016/1/12 12:03, Junxiao Bi wrote:
+>>> Hi Jiufei,
+>>>
+>>> On 01/11/2016 10:46 AM, xuejiufei wrote:
+>>>> Hi all,
+>>>> We have found a race between refmap setting and clearing which
+>>>> will cause the lock resource on master is freed before other nodes
+>>>> purge it.
+>>>>
+>>>> Node 1                               Node 2(master)
+>>>> dlm_do_master_request
+>>>>                                 dlm_master_request_handler
+>>>>                                 -> dlm_lockres_set_refmap_bit
+>>>> call dlm_purge_lockres after unlock
+>>>>                                 dlm_deref_handler
+>>>>                                 -> find lock resource is in
+>>>>                                    DLM_LOCK_RES_SETREF_INPROG state,
+>>>>                                    so dispatch a deref work
+>>>> dlm_purge_lockres succeed.
+>>>>
+>>>> dlm_do_master_request
+>>>>                                 dlm_master_request_handler
+>>>>                                 -> dlm_lockres_set_refmap_bit
+>>>>
+>>>>                                 deref work trigger, call
+>>>>                                 dlm_lockres_clear_refmap_bit
+>>>>                                 to clear Node 1 from refmap
+>>>>
+>>>> Now Node 2 can purge the lock resource but the owner of lock resource
+>>>> on Node 1 is still Node 2 which may trigger BUG if the lock resource
+>>>> is $RECOVERY or other problems.
+>>>>
+>>>> We have discussed 2 solutions:
+>>>> 1)The master return error to Node 1 if the DLM_LOCK_RES_SETREF_INPROG
+>>>> is set. Node 1 will not retry and master send another message to Node 1
+>>>> after clearing the refmap. Node 1 can purge the lock resource after the
+>>>> refmap on master is cleared.
+>>>> 2) The master return error to Node 1 if the DLM_LOCK_RES_SETREF_INPROG
+>>>> is set, and Node 1 will retry to deref the lockres.
+>>>>
+>>>> Does anybody has better ideas?
+>>>>
+>>> dlm_purge_lockres() will wait to drop ref until
+>>> DLM_LOCK_RES_SETREF_INPROG cleared. So if set this flag when find the
+>>> master during doing master request. And then this flag was cleared when
+>>> receiving assert master message, can this fix the issue?
+>>>
+>> I don't think this can fix. Before doing master request, the lock resource is
+>> already purged. The master should clear the refmap before client purge it.
+> inflight_locks is increased in dlm_get_lock_resource() which will stop
+> lockres purged? Set DLM_LOCK_RES_SETREF_INPROG when found lockres owner
+> during master request, then this will stop lockres purged after unlock?
 > 
 > Thanks,
-> Changkuo.
+> Junxiao.
 > 
-> ----------------------------------------------------------------------
-> ---------------------------------------------------------------
-> ????????????????????????????????????????
-> ????????????????????????????????????????
-> ????????????????????????????????????????
-> ???
-> This e-mail and its attachments contain confidential information from 
-> H3C, which is intended only for the person or entity whose address is 
-> listed above. Any use of the information contained herein in any way 
-> (including, but not limited to, total or partial disclosure, 
-> reproduction, or dissemination) by persons other than the intended
-> recipient(s) is prohibited. If you receive this e-mail in error, 
-> please notify the sender by phone or email immediately and delete it!
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+>>
+>> Thanks,
+>> Jiufei
+>>
+>>> Thanks,
+>>> Junxiao.
+>>>> Thanks,
+>>>> --Jiufei
+>>>>
+>>>
+>>>
+>>> .
+>>>
+>>
+> 
+> 
+> .
 > 
