@@ -1,126 +1,161 @@
-From: Jan Kara <jack@suse.cz>
-Date: Fri, 15 Jan 2016 11:17:59 +0100
-Subject: [Ocfs2-devel] [PATCH v8] fs: clear file privilege bits when
-	mmap writing
-In-Reply-To: <CALYGNiNn7m=AS9Zopa1g+TT5key=bEi7pKzGz3LzazQfm28qUw@mail.gmail.com>
-References: <20160112190903.GA9421@www.outflux.net>
-	<20160113090330.GA14630@quack.suse.cz>
-	<CAGXu5jLWk5ymWKYAaW+uQX-5SWQkFmCjesH_H=LPKwX=UVL5oQ@mail.gmail.com>
-	<CALYGNiMg73Zs7eNHvnaqYbW9kbk_r-kmSJj6mqwdhuTbZXSsfw@mail.gmail.com>
-	<CAGXu5jKt4GmOcC9WJyV9sDVOPDG+ViUDWd5PDOjm7Pe0RSLgEg@mail.gmail.com>
-	<CALYGNiNn7m=AS9Zopa1g+TT5key=bEi7pKzGz3LzazQfm28qUw@mail.gmail.com>
-Message-ID: <20160115101759.GC15950@quack.suse.cz>
+From: Junxiao Bi <junxiao.bi@oracle.com>
+Date: Mon, 18 Jan 2016 12:28:20 +0800
+Subject: [Ocfs2-devel] ocfs2: A race between refmap setting and clearing
+In-Reply-To: <569609BE.8050802@huawei.com>
+References: <56931785.2090603@huawei.com> <56947B02.7030503@oracle.com>
+	<5694A857.5020906@huawei.com> <5695BA7D.90009@oracle.com>
+	<5695ECE6.7050709@huawei.com> <5695F616.9040105@oracle.com>
+	<569609BE.8050802@huawei.com>
+Message-ID: <569C69E4.6030500@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Konstantin Khlebnikov <koct9i@gmail.com>
-Cc: Kees Cook <keescook@chromium.org>, Jan Kara <jack@suse.cz>, Alexander Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, yalin wang <yalin.wang2010@gmail.com>, Willy Tarreau <w@1wt.eu>, Andrew Morton <akpm@linux-foundation.org>, Linux-MM <linux-mm@kvack.org>, LKML <linux-kernel@vger.kernel.org>, mfasheh@suse.de, ocfs2-devel@oss.oracle.com
+To: ocfs2-devel@oss.oracle.com
 
-On Thu 14-01-16 10:35:17, Konstantin Khlebnikov wrote:
-> On Wed, Jan 13, 2016 at 11:33 PM, Kees Cook <keescook@chromium.org> wrote:
-> > On Wed, Jan 13, 2016 at 12:23 PM, Konstantin Khlebnikov
-> > <koct9i@gmail.com> wrote:
-> >> On Wed, Jan 13, 2016 at 7:09 PM, Kees Cook <keescook@chromium.org> wrote:
-> >>> On Wed, Jan 13, 2016 at 1:03 AM, Jan Kara <jack@suse.cz> wrote:
-> >>>> On Tue 12-01-16 11:09:04, Kees Cook wrote:
-> >>>>> Normally, when a user can modify a file that has setuid or setgid bits,
-> >>>>> those bits are cleared when they are not the file owner or a member
-> >>>>> of the group. This is enforced when using write and truncate but not
-> >>>>> when writing to a shared mmap on the file. This could allow the file
-> >>>>> writer to gain privileges by changing a binary without losing the
-> >>>>> setuid/setgid/caps bits.
-> >>>>>
-> >>>>> Changing the bits requires holding inode->i_mutex, so it cannot be done
-> >>>>> during the page fault (due to mmap_sem being held during the fault).
-> >>>>> Instead, clear the bits if PROT_WRITE is being used at mmap open time,
-> >>>>> or added at mprotect time.
-> >>>>>
-> >>>>> Since we can't do the check in the right place inside mmap (due to
-> >>>>> holding mmap_sem), we have to do it before holding mmap_sem, which
-> >>>>> means duplicating some checks, which have to be available to the non-MMU
-> >>>>> builds too.
-> >>>>>
-> >>>>> When walking VMAs during mprotect, we need to drop mmap_sem (while
-> >>>>> holding a file reference) and restart the walk after clearing privileges.
-> >>>>
-> >>>> ...
-> >>>>
-> >>>>> @@ -375,6 +376,7 @@ SYSCALL_DEFINE3(mprotect, unsigned long, start, size_t, len,
-> >>>>>
-> >>>>>       vm_flags = calc_vm_prot_bits(prot);
-> >>>>>
-> >>>>> +restart:
-> >>>>>       down_write(&current->mm->mmap_sem);
-> >>>>>
-> >>>>>       vma = find_vma(current->mm, start);
-> >>>>> @@ -416,6 +418,28 @@ SYSCALL_DEFINE3(mprotect, unsigned long, start, size_t, len,
-> >>>>>                       goto out;
-> >>>>>               }
-> >>>>>
-> >>>>> +             /*
-> >>>>> +              * If we're adding write permissions to a shared file,
-> >>>>> +              * we must clear privileges (like done at mmap time),
-> >>>>> +              * but we have to juggle the locks to avoid holding
-> >>>>> +              * mmap_sem while holding i_mutex.
-> >>>>> +              */
-> >>>>> +             if ((vma->vm_flags & VM_SHARED) && vma->vm_file &&
-> >>>>> +                 (newflags & VM_WRITE) && !(vma->vm_flags & VM_WRITE) &&
-> >>>>> +                 !IS_NOSEC(file_inode(vma->vm_file))) {
-> >>>>
-> >>>> This code assumes that IS_NOSEC gets set for inode once file_remove_privs()
-> >>>> is called. However that is not true for two reasons:
-> >>>>
-> >>>> 1) When you are root, SUID bit doesn't get cleared and thus you cannot set
-> >>>> IS_NOSEC.
-> >>>>
-> >>>> 2) Some filesystems do not have MS_NOSEC set and for those IS_NOSEC is
-> >>>> never true.
-> >>>>
-> >>>> So in these cases you'll loop forever.
-> >>>
-> >>> UUuugh.
-> >>>
-> >>>>
-> >>>> You can check SUID bits without i_mutex so that could be done without
-> >>>> dropping mmap_sem but you cannot easily call security_inode_need_killpriv()
-> >>>> without i_mutex as that checks extended attributes (IMA) and that needs
-> >>>> i_mutex to be held to avoid races with someone else changing the attributes
-> >>>> under you.
-> >>>
-> >>> Yeah, that's why I changed this from Konstantin's original suggestion.
-> >>>
-> >>>> Honestly, I don't see a way of implementing this in mprotect() which would
-> >>>> be reasonably elegant.
-> >>>
-> >>> Konstantin, any thoughts here?
-> >>
-> >> Getxattr works fine without i_mutex: sys_getxattr/vfs_getxattr doesn't lock it.
-> >> If somebody changes xattrs under us we'll end up in race anyway.
-> >> But this still safe: setxattrs are sychronized.
-> >
-> > So I can swap my IS_NOSEC for your original file_needs_remove_privs()?
-> > Are the LSM hooks expecting to be called under mm_sem? (Looks like
-> > only common_caps implements that, though.)
+On 01/13/2016 04:24 PM, Joseph Qi wrote:
+> Hi Junxiao,
 > 
-> getxattr should nests inside mmap_sem safely: it has sort of
-> "readpage" semantics,
-> actually ext4 uses it when inlines content of tiny files into xattr.
+> On 2016/1/13 15:00, Junxiao Bi wrote:
+>> On 01/13/2016 02:21 PM, xuejiufei wrote:
+>>> Hi Junxiao,
+>>> I have not describe the issue clearly.
+>>>
+>>> Node 1                               Node 2(master)
+>>> dlmlock
+>>> dlm_do_master_request
+>>>                                 dlm_master_request_handler
+>>>                                 -> dlm_lockres_set_refmap_bit
+>>> dlmlock succeed
+>>> dlmunlock succeed
+>>>
+>>> dlm_purge_lockres
+>>>                                 dlm_deref_handler
+>>>                                 -> find lock resource is in
+>>>                                    DLM_LOCK_RES_SETREF_INPROG state,
+>>>                                    so dispatch a deref work
+>>> dlm_purge_lockres succeed.
+>>>
+>>> call dlmlock again
+>>> dlm_do_master_request
+>>>                                 dlm_master_request_handler
+>>>                                 -> dlm_lockres_set_refmap_bit
+>>>
+>>>                                 deref work trigger, call
+>>>                                 dlm_lockres_clear_refmap_bit
+>>>                                 to clear Node 1 from refmap
+>>>
+>>>                                 dlm_purge_lockres succeed
+>>>
+>>> dlm_send_remote_lock_request
+>>>                                 return DLM_IVLOCKID because
+>>>                                 the lockres is not exist
+>> More clear now. Thank you.
+>> This is a very complicated race. I didn't have a good solution to fix it
+>> now. Your fix looks work, but I am afraid if we keep going fix this
+>> kinds of races case by case, we will make dlm harder to understand and
+>> easy to involve bugs, maybe we should think about refactor dlm.
+>>
+> Agree. IMO, the root cause is bit op cannot handle such a case.
+> I wonder if we have to change it to refcount, which may require a much
+> bigger refactoring.
+one bit for each node seems reasonable, as lockres is per node. I think
+the cause is the dis-order of set/clear, i am trying to see whether they
+can be made happen in order.
 
-First, sorry Kees for misleading you. Somehow I missed that i_mutex is not
-actually acquired for getxattr() calls.
-
-I have checked and lots of filesystems have dedicated xattr semaphore which
-should be safe to nest inside mmap_sem. There are filesystems like ocfs2 or
-gfs2 which use their equivalent of i_mutex for xattr locking so there we
-would create lock inversion when calling file_needs_remove_privs() from
-under mmap_sem.
-
-That being said at least OCFS2 has other issues with this xattr locking
-scheme and they are working on changing things AFAIK. Mark can you perhaps
-comment?
-
-								Honza
--- 
-Jan Kara <jack@suse.com>
-SUSE Labs, CR
+Thanks,
+Junxiao.
+> 
+> Thanks,
+> Joseph
+> 
+>> Thanks,
+>> Junxiao.
+>>
+>>> BUG if the lockres is $RECOVERY
+>>>
+>>> On 2016/1/13 10:46, Junxiao Bi wrote:
+>>>> On 01/12/2016 03:16 PM, xuejiufei wrote:
+>>>>> Hi, Junxiao
+>>>>>
+>>>>> On 2016/1/12 12:03, Junxiao Bi wrote:
+>>>>>> Hi Jiufei,
+>>>>>>
+>>>>>> On 01/11/2016 10:46 AM, xuejiufei wrote:
+>>>>>>> Hi all,
+>>>>>>> We have found a race between refmap setting and clearing which
+>>>>>>> will cause the lock resource on master is freed before other nodes
+>>>>>>> purge it.
+>>>>>>>
+>>>>>>> Node 1                               Node 2(master)
+>>>>>>> dlm_do_master_request
+>>>>>>>                                 dlm_master_request_handler
+>>>>>>>                                 -> dlm_lockres_set_refmap_bit
+>>>>>>> call dlm_purge_lockres after unlock
+>>>>>>>                                 dlm_deref_handler
+>>>>>>>                                 -> find lock resource is in
+>>>>>>>                                    DLM_LOCK_RES_SETREF_INPROG state,
+>>>>>>>                                    so dispatch a deref work
+>>>>>>> dlm_purge_lockres succeed.
+>>>>>>>
+>>>>>>> dlm_do_master_request
+>>>>>>>                                 dlm_master_request_handler
+>>>>>>>                                 -> dlm_lockres_set_refmap_bit
+>>>>>>>
+>>>>>>>                                 deref work trigger, call
+>>>>>>>                                 dlm_lockres_clear_refmap_bit
+>>>>>>>                                 to clear Node 1 from refmap
+>>>>>>>
+>>>>>>> Now Node 2 can purge the lock resource but the owner of lock resource
+>>>>>>> on Node 1 is still Node 2 which may trigger BUG if the lock resource
+>>>>>>> is $RECOVERY or other problems.
+>>>>>>>
+>>>>>>> We have discussed 2 solutions:
+>>>>>>> 1)The master return error to Node 1 if the DLM_LOCK_RES_SETREF_INPROG
+>>>>>>> is set. Node 1 will not retry and master send another message to Node 1
+>>>>>>> after clearing the refmap. Node 1 can purge the lock resource after the
+>>>>>>> refmap on master is cleared.
+>>>>>>> 2) The master return error to Node 1 if the DLM_LOCK_RES_SETREF_INPROG
+>>>>>>> is set, and Node 1 will retry to deref the lockres.
+>>>>>>>
+>>>>>>> Does anybody has better ideas?
+>>>>>>>
+>>>>>> dlm_purge_lockres() will wait to drop ref until
+>>>>>> DLM_LOCK_RES_SETREF_INPROG cleared. So if set this flag when find the
+>>>>>> master during doing master request. And then this flag was cleared when
+>>>>>> receiving assert master message, can this fix the issue?
+>>>>>>
+>>>>> I don't think this can fix. Before doing master request, the lock resource is
+>>>>> already purged. The master should clear the refmap before client purge it.
+>>>> inflight_locks is increased in dlm_get_lock_resource() which will stop
+>>>> lockres purged? Set DLM_LOCK_RES_SETREF_INPROG when found lockres owner
+>>>> during master request, then this will stop lockres purged after unlock?
+>>>>
+>>>> Thanks,
+>>>> Junxiao.
+>>>>
+>>>>>
+>>>>> Thanks,
+>>>>> Jiufei
+>>>>>
+>>>>>> Thanks,
+>>>>>> Junxiao.
+>>>>>>> Thanks,
+>>>>>>> --Jiufei
+>>>>>>>
+>>>>>>
+>>>>>>
+>>>>>> .
+>>>>>>
+>>>>>
+>>>>
+>>>>
+>>>> .
+>>>>
+>>>
+>>
+>>
+>> .
+>>
+> 
+> 
