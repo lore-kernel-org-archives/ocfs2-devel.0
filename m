@@ -1,63 +1,109 @@
-From: Junxiao Bi <junxiao.bi@oracle.com>
-Date: Wed, 20 Jan 2016 11:13:38 +0800
-Subject: [Ocfs2-devel] [PATCH 5/6] ocfs2: o2hb: don't negotiate if last hb
-	fail
-In-Reply-To: <1453259619-5347-1-git-send-email-junxiao.bi@oracle.com>
-References: <1453259619-5347-1-git-send-email-junxiao.bi@oracle.com>
-Message-ID: <1453259619-5347-6-git-send-email-junxiao.bi@oracle.com>
+From: Eric Ren <zren@suse.com>
+Date: Wed, 20 Jan 2016 10:16:38 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: dlmglue: fix false deadlock caused
+ by clearing UPCONVERT_FINISHING too early
+In-Reply-To: <1453222013-9425-1-git-send-email-zren@suse.com>
+References: <1453222013-9425-1-git-send-email-zren@suse.com>
+Message-ID: <20160120021637.GA3297@laptop.ha>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Sometimes io error is returned when storage is down for a while.
-Like for iscsi device, stroage is made offline when session timeout,
-and this will make all io return -EIO. For this case, nodes shouldn't
-do negotiate timeout but should fence self. So let nodes fence self
-when o2hb_do_disk_heartbeat return an error, this is the same behavior
-with o2hb without negotiate timer.
+Hi,
 
-Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
-Reviewed-by: Ryan Ding <ryan.ding@oracle.com>
----
- fs/ocfs2/cluster/heartbeat.c |   10 ++++++++++
- 1 file changed, 10 insertions(+)
+This fix is wrong, becuase it can ensure waking up every waiter, but cannot
+guarantee every waiter finish trying its "again" patch in __ocfs2_cluster_lock().
 
-diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
-index 6c57fd21e597..cb931381f474 100644
---- a/fs/ocfs2/cluster/heartbeat.c
-+++ b/fs/ocfs2/cluster/heartbeat.c
-@@ -284,6 +284,9 @@ struct o2hb_region {
- 	/* Message key for negotiate timeout message. */
- 	unsigned int		hr_key;
- 	struct list_head	hr_handler_list;
-+
-+	/* last hb status, 0 for success, other value for error. */
-+	int			hr_last_hb_status;
- };
- 
- struct o2hb_bio_wait_ctxt {
-@@ -397,6 +400,12 @@ static void o2hb_nego_timeout(struct work_struct *work)
- 	unsigned long live_node_bitmap[BITS_TO_LONGS(O2NM_MAX_NODES)];
- 	int master_node, i, ret;
- 
-+	/* don't negotiate timeout if last hb failed since it is very
-+	 * possible io failed. Should let write timeout fence self.
-+	 */
-+	if (reg->hr_last_hb_status)
-+		return;
-+
- 	o2hb_fill_node_map(live_node_bitmap, sizeof(live_node_bitmap));
- 	/* lowest node as master node to make negotiate decision. */
- 	master_node = find_next_bit(live_node_bitmap, O2NM_MAX_NODES, 0);
-@@ -1230,6 +1239,7 @@ static int o2hb_thread(void *data)
- 		before_hb = ktime_get_real();
- 
- 		ret = o2hb_do_disk_heartbeat(reg);
-+		reg->hr_last_hb_status = ret;
- 
- 		after_hb = ktime_get_real();
- 
--- 
-1.7.9.5
+Other solutions now on my mind are:
+1. Give every waiter an ID. When clearing OCFS2_LOCK_BUSY, we can record those IDs
+in an array. Process any waiter in mask-waiter list, remove the ID from the arry
+if its ID is in the array, util array is empty we can then clear
+OCFS2_LOCK_UPCONVERT_FINISHING.
+
+I think it's a bad idea. It's inefficient to handle the array and the ID control is
+another problem.
+
+2. Split mask-waiter list into two lists: one for OCFS2_LOCK_BUSY, and another for
+OCFS2_LOCK_BLOCKED. When OCFS2_LOCK_BUSY being cleared and OCFS2_LOCK_BLOCKED being
+set, we should process waiters in BUSY list and move waiters who cannot get the lock into
+BLOCKED list again. And when OCFS2_LOCK_BLOCKED being cleared and OCFS2_LOCK_BUSY being
+set, we should do things like that.
+
+But is any chance that both OCFS2_LOCK_BUSY and OCFS2_LOCK_BLOCKED are set at the same time?
+If not, I prefer this one.
+
+What do you think? Any comment would be appreciated.
+
+Thanks,
+Eric
+
+On Wed, Jan 20, 2016 at 12:46:53AM +0800, Eric Ren wrote: 
+> This problem was introduced by commit a19128260107f951d1b4c421cf98b92f8092b069.
+> OCFS2_LOCK_UPCONVERT_FINISHING is set just before clearing OCFS2_LOCK_BUSY. This
+> will prevent dc thread from downconverting immediately, and let mask-waiters in
+> ->l_mask_waiters list whose requesting level is compatible with ->l_level to take
+> the lock. But if we have two waiters in mw list, the first is to get EX lock, and
+> the second is to to get PR lock. The first may fail to get lock and then clear
+> UPCONVERT_FINISHING. It's too early to clear the flag because this second will be
+> also queued again even if ->l_level is PR. As a result, nobody would kick up dc
+> thread, leaving dlmglue a deadlock until another lockres relative thread wake it
+> up.
+> 
+> More specifically, for example:
+> On node1, there is thread W1 keeping writing; on node2, there are thread R1 and
+> R2 keeping reading; sure this 3 threads make IO on the same shared file. At a
+> time, node2 is receiving ast(0=>3), followed immediately by a bast requesting EX
+> lock on behave of node1. Then this may happen:
+> node2:                                          node1:
+> l_level==3; R1(3); R2(3)                        l_level==3
+> R1(unlock); R1(3=>5, update atime)              W1(3=>5)
+> BAST
+> R2(unlock); AST(3=>0)
+> R2(0=>3)
+>                                                 BAST
+> AST(0=>3)
+> set OCFS2_LOCK_UPCONVERT_FINISHING
+> clear OCFS2_LOCK_BUSY
+>                                                 W1(3=>5)
+> BAST
+> dc thread requeue=yes
+> R1(clear OCFS2_LOCK_UPCONVERT_FINISHING,wait)
+> R2(wait)
+> ...
+> dlmglue deadlock util dc thread woken up by others
+> 
+> This fix is to clear OCFS2_LOCK_UPCONVERT_FINISHING util OCFS2_LOCK_BUSY has
+> been cleared and every waiters has been looped.
+> 
+> Signed-off-by: Eric Ren <zren@suse.com>
+> ---
+>  fs/ocfs2/dlmglue.c | 4 ++--
+>  1 file changed, 2 insertions(+), 2 deletions(-)
+> 
+> diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
+> index f92612e..72f8b6c 100644
+> --- a/fs/ocfs2/dlmglue.c
+> +++ b/fs/ocfs2/dlmglue.c
+> @@ -824,6 +824,8 @@ static void lockres_clear_flags(struct ocfs2_lock_res *lockres,
+>  				unsigned long clear)
+>  {
+>  	lockres_set_flags(lockres, lockres->l_flags & ~clear);
+> +	if(clear & OCFS2_LOCK_BUSY)
+> +		lockres->l_flags &= ~OCFS2_LOCK_UPCONVERT_FINISHING;
+>  }
+>  
+>  static inline void ocfs2_generic_handle_downconvert_action(struct ocfs2_lock_res *lockres)
+> @@ -1522,8 +1524,6 @@ update_holders:
+>  
+>  	ret = 0;
+>  unlock:
+> -	lockres_clear_flags(lockres, OCFS2_LOCK_UPCONVERT_FINISHING);
+> -
+>  	spin_unlock_irqrestore(&lockres->l_lock, flags);
+>  out:
+>  	/*
+> -- 
+> 2.6.2
+> 
