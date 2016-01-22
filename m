@@ -1,55 +1,66 @@
-From: Junxiao Bi <junxiao.bi@oracle.com>
-Date: Fri, 22 Jan 2016 13:46:57 +0800
-Subject: [Ocfs2-devel] [PATCH 2/6] ocfs2: o2hb: add NEGO_TIMEOUT message
-In-Reply-To: <20160121214505.2a177efa.akpm@linux-foundation.org>
-References: <1453259619-5347-1-git-send-email-junxiao.bi@oracle.com>
-	<1453259619-5347-3-git-send-email-junxiao.bi@oracle.com>
-	<20160121154707.569ce8d12cce6cf43bc5e31c@linux-foundation.org>
-	<56A1BA3A.20700@oracle.com>
-	<20160121214505.2a177efa.akpm@linux-foundation.org>
-Message-ID: <56A1C251.3080606@oracle.com>
+From: Joseph Qi <joseph.qi@huawei.com>
+Date: Fri, 22 Jan 2016 18:11:08 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2/cluster: fix memory leak in
+	o2hb_region_release
+Message-ID: <56A2003C.70405@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 01/22/2016 01:45 PM, Andrew Morton wrote:
-> On Fri, 22 Jan 2016 13:12:26 +0800 Junxiao Bi <junxiao.bi@oracle.com> wrote:
-> 
->> On 01/22/2016 07:47 AM, Andrew Morton wrote:
->>> On Wed, 20 Jan 2016 11:13:35 +0800 Junxiao Bi <junxiao.bi@oracle.com> wrote:
->>>
->>>> This message is sent to master node when non-master nodes's
->>>> negotiate timer expired. Master node records these nodes in
->>>> a bitmap which is used to do write timeout timer re-queue
->>>> decision.
->>>>
->>>> ...
->>>>
->>>> +static int o2hb_nego_timeout_handler(struct o2net_msg *msg, u32 len, void *data,
->>>> +				void **ret_data)
->>>> +{
->>>> +	struct o2hb_region *reg = (struct o2hb_region *)data;
->>>
->>> It's best not to typecast a void*.  It's unneeded clutter and the cast
->>> can actually hide bugs - if someone changes `data' to a different type
->>> or if there's a different "data" in scope, etc.
->> There are many kinds of messages in ocfs2 and each one needs a different
->> type of "data", so it is made type void*.
-> 
-> What I mean is to do this:
-> 
-> 	struct o2hb_region *reg = data;
-> 
-> and not
-> 
-> 	struct o2hb_region *reg = (struct o2hb_region *)data;
-> 
-> Because the typecast is unneeded and is actually harmful.  Imagine if someone
-> goofed and had `int data;': no warning, runtime failure.
-Oh, I see. Thank you. Will update this in V2.
+o2hb_region_release currently doesn't free o2hb_debug_buf
+hr_db_elapsed_time and hr_db_pinned malloced in o2hb_debug_create.
+Also we should call debugfs_remove before freeing its data, to prevent
+the risk accessing debugfs rightly after its data has been freed.
 
-Thanks,
-Junxiao.
-> 
+Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
+Reviewed-by: Jiufei Xue <xuejiufei@huawei.com>
+---
+ fs/ocfs2/cluster/heartbeat.c | 14 ++++++++------
+ 1 file changed, 8 insertions(+), 6 deletions(-)
+
+diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
+index 709fbbd..428683b 100644
+--- a/fs/ocfs2/cluster/heartbeat.c
++++ b/fs/ocfs2/cluster/heartbeat.c
+@@ -1254,15 +1254,15 @@ static const struct file_operations o2hb_debug_fops = {
+
+ void o2hb_exit(void)
+ {
+-	kfree(o2hb_db_livenodes);
+-	kfree(o2hb_db_liveregions);
+-	kfree(o2hb_db_quorumregions);
+-	kfree(o2hb_db_failedregions);
+ 	debugfs_remove(o2hb_debug_failedregions);
+ 	debugfs_remove(o2hb_debug_quorumregions);
+ 	debugfs_remove(o2hb_debug_liveregions);
+ 	debugfs_remove(o2hb_debug_livenodes);
+ 	debugfs_remove(o2hb_debug_dir);
++	kfree(o2hb_db_livenodes);
++	kfree(o2hb_db_liveregions);
++	kfree(o2hb_db_quorumregions);
++	kfree(o2hb_db_failedregions);
+ }
+
+ static struct dentry *o2hb_debug_create(const char *name, struct dentry *dir,
+@@ -1438,13 +1438,15 @@ static void o2hb_region_release(struct config_item *item)
+
+ 	kfree(reg->hr_slots);
+
+-	kfree(reg->hr_db_regnum);
+-	kfree(reg->hr_db_livenodes);
+ 	debugfs_remove(reg->hr_debug_livenodes);
+ 	debugfs_remove(reg->hr_debug_regnum);
+ 	debugfs_remove(reg->hr_debug_elapsed_time);
+ 	debugfs_remove(reg->hr_debug_pinned);
+ 	debugfs_remove(reg->hr_debug_dir);
++	kfree(reg->hr_db_livenodes);
++	kfree(reg->hr_db_regnum);
++	kfree(reg->hr_debug_elapsed_time);
++	kfree(reg->hr_debug_pinned);
+
+ 	spin_lock(&o2hb_live_lock);
+ 	list_del(&reg->hr_all_item);
+-- 
+1.8.4.3
