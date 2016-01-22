@@ -1,122 +1,49 @@
 From: Junxiao Bi <junxiao.bi@oracle.com>
-Date: Fri, 22 Jan 2016 13:08:31 +0800
-Subject: [Ocfs2-devel] ocfs2: o2hb: not fence self if storage down
-In-Reply-To: <56A1AF34.4030006@huawei.com>
+Date: Fri, 22 Jan 2016 13:12:26 +0800
+Subject: [Ocfs2-devel] [PATCH 2/6] ocfs2: o2hb: add NEGO_TIMEOUT message
+In-Reply-To: <20160121154707.569ce8d12cce6cf43bc5e31c@linux-foundation.org>
 References: <1453259619-5347-1-git-send-email-junxiao.bi@oracle.com>
-	<569F50CE.10009@huawei.com>
-	<AAC06E60-7984-495B-B538-3267D14A2644@oracle.com>
-	<56A02A74.50503@huawei.com> <56A038D8.1020207@oracle.com>
-	<56A1AF34.4030006@huawei.com>
-Message-ID: <56A1B94F.5050705@oracle.com>
+	<1453259619-5347-3-git-send-email-junxiao.bi@oracle.com>
+	<20160121154707.569ce8d12cce6cf43bc5e31c@linux-foundation.org>
+Message-ID: <56A1BA3A.20700@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Joseph,
-
-On 01/22/2016 12:25 PM, Joseph Qi wrote:
-> Hi Junxiao,
+On 01/22/2016 07:47 AM, Andrew Morton wrote:
+> On Wed, 20 Jan 2016 11:13:35 +0800 Junxiao Bi <junxiao.bi@oracle.com> wrote:
 > 
-> On 2016/1/21 9:48, Junxiao Bi wrote:
->> On 01/21/2016 08:46 AM, Joseph Qi wrote:
->>> Hi Junxiao,
->>> So you mean the negotiation you added only happens if all nodes storage
->>> link down?
->> Negotiation happened when one node found its storage link down, but
->> success when all nodes storage link down, or it will keep the same
->> behavior like before.
-> IC, thanks for your explanation.
-> IMHO, if storage down, all business deployed on the storage will be
-> impacted even nodes won't fence.
-Yes, but storage may back online again after a while. This can improve
-system's stability and availability.
-
-> I have another scenario, only several paths (multipath environment) in
-> several nodes have problems, as a result, ocfs2 will fence these nodes.
-> So I wonder if we have a better way to resolve this issue.
-This seemed not obey usual ocfs2's policy. Fence these nodes at that
-time will be good to the availability of ocfs2?
-
-Any way I am not sure whether it is feasible now, the problem is that we
-need find a way to make an agreement between good nodes during an env
-that more error maybe coming, while good nodes can't be hurt even the
-agreement can't be made.
+>> This message is sent to master node when non-master nodes's
+>> negotiate timer expired. Master node records these nodes in
+>> a bitmap which is used to do write timeout timer re-queue
+>> decision.
+>>
+>> ...
+>>
+>> +static int o2hb_nego_timeout_handler(struct o2net_msg *msg, u32 len, void *data,
+>> +				void **ret_data)
+>> +{
+>> +	struct o2hb_region *reg = (struct o2hb_region *)data;
+> 
+> It's best not to typecast a void*.  It's unneeded clutter and the cast
+> can actually hide bugs - if someone changes `data' to a different type
+> or if there's a different "data" in scope, etc.
+There are many kinds of messages in ocfs2 and each one needs a different
+type of "data", so it is made type void*.
 
 Thanks,
 Junxiao.
 > 
-> Thanks,
-> Joseph
-> 
->>
->> Thanks,
->> Junxiao.
->>>
->>> Thanks,
->>> Joseph
->>>
->>> On 2016/1/20 21:27, Junxiao Bi wrote:
->>>> Hi Joseph,
->>>>
->>>>> ? 2016?1?20????5:18?Joseph Qi <joseph.qi@huawei.com> ???
->>>>>
->>>>> Hi Junxiao,
->>>>> Thanks for the patch set.
->>>>> In case only one node storage link down, if this node doesn't fence
->>>>> self, other nodes will still check and mark this node dead, which will
->>>>> cause cluster membership inconsistency.
->>>>> In your patch set, I cannot see any logic to handle this. Am I missing
->>>>> something?
->>>> No, there is no logic for this. But why didn?t node fence self when storage down? What make a softirq timer can?t be run, another bug?
->>>>
->>>> Thanks,
->>>> Junxiao.
->>>>>
->>>>> On 2016/1/20 11:13, Junxiao Bi wrote:
->>>>>> Hi,
->>>>>>
->>>>>> This serial of patches is to fix the issue that when storage down,
->>>>>> all nodes will fence self due to write timeout.
->>>>>> With this patch set, all nodes will keep going until storage back
->>>>>> online, except if the following issue happens, then all nodes will
->>>>>> do as before to fence self.
->>>>>> 1. io error got
->>>>>> 2. network between nodes down
->>>>>> 3. nodes panic
->>>>>>
->>>>>> Junxiao Bi (6):
->>>>>>      ocfs2: o2hb: add negotiate timer
->>>>>>      ocfs2: o2hb: add NEGO_TIMEOUT message
->>>>>>      ocfs2: o2hb: add NEGOTIATE_APPROVE message
->>>>>>      ocfs2: o2hb: add some user/debug log
->>>>>>      ocfs2: o2hb: don't negotiate if last hb fail
->>>>>>      ocfs2: o2hb: fix hb hung time
->>>>>>
->>>>>> fs/ocfs2/cluster/heartbeat.c |  181 ++++++++++++++++++++++++++++++++++++++++--
->>>>>> 1 file changed, 175 insertions(+), 6 deletions(-)
->>>>>>
->>>>>> Thanks,
->>>>>> Junxiao.
->>>>>>
->>>>>> _______________________________________________
->>>>>> Ocfs2-devel mailing list
->>>>>> Ocfs2-devel at oss.oracle.com
->>>>>> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
->>>>>>
->>>>>>
->>>>>
->>>>>
->>>>
->>>>
->>>> .
->>>>
->>>
->>>
->>
->>
->> .
->>
-> 
+>> +	struct o2hb_nego_msg *nego_msg;
+>>  
+>> +	nego_msg = (struct o2hb_nego_msg *)msg->buf;
+>> +	if (nego_msg->node_num < O2NM_MAX_NODES)
+>> +		set_bit(nego_msg->node_num, reg->hr_nego_node_bitmap);
+>> +	else
+>> +		mlog(ML_ERROR, "got nego timeout message from bad node.\n");
+>> +
+>> +	return 0;
+>>  }
 > 
