@@ -1,66 +1,72 @@
-From: Joseph Qi <joseph.qi@huawei.com>
-Date: Fri, 22 Jan 2016 18:11:08 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2/cluster: fix memory leak in
-	o2hb_region_release
-Message-ID: <56A2003C.70405@huawei.com>
+From: jiangyiwen <jiangyiwen@huawei.com>
+Date: Mon, 25 Jan 2016 10:52:24 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: use spinlock irqsave for downconvert
+ lock in ocfs2_osb_dump()
+Message-ID: <56A58DE8.3000207@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-o2hb_region_release currently doesn't free o2hb_debug_buf
-hr_db_elapsed_time and hr_db_pinned malloced in o2hb_debug_create.
-Also we should call debugfs_remove before freeing its data, to prevent
-the risk accessing debugfs rightly after its data has been freed.
+commit a75e9ccabd92("ocfs2: use spinlock irqsave for downconvert lock")
+missed an unmodified place in ocfs2_osb_dump(), so it still exists
+a deadlock scenario.
 
-Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
-Reviewed-by: Jiufei Xue <xuejiufei@huawei.com>
+    ocfs2_wake_downconvert_thread
+    ocfs2_rw_unlock
+    ocfs2_dio_end_io
+    dio_complete
+    .....
+    bio_endio
+    req_bio_endio
+    ....
+    scsi_io_completion
+    blk_done_softirq
+    __do_softirq
+    do_softirq
+    irq_exit
+    do_IRQ
+    ocfs2_osb_dump
+    cat /sys/kernel/debug/ocfs2/${uuid}/fs_state
+
+This patch will still use spin_lock_irqsave() replace spin_lock() to
+solve this situation.
+
+Signed-off-by: Yiwen Jiang <jiangyiwen@huawei.com>
+Reviewed-by: Joseph Qi <joseph.qi@huawei.com>
 ---
- fs/ocfs2/cluster/heartbeat.c | 14 ++++++++------
- 1 file changed, 8 insertions(+), 6 deletions(-)
+ fs/ocfs2/super.c | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
 
-diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
-index 709fbbd..428683b 100644
---- a/fs/ocfs2/cluster/heartbeat.c
-+++ b/fs/ocfs2/cluster/heartbeat.c
-@@ -1254,15 +1254,15 @@ static const struct file_operations o2hb_debug_fops = {
+diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+index 2de4c8a..0623710 100644
+--- a/fs/ocfs2/super.c
++++ b/fs/ocfs2/super.c
+@@ -236,6 +236,7 @@ static int ocfs2_osb_dump(struct ocfs2_super *osb, char *buf, int len)
+ 	struct ocfs2_recovery_map *rm = osb->recovery_map;
+ 	struct ocfs2_orphan_scan *os = &osb->osb_orphan_scan;
+ 	int i, out = 0;
++	unsigned long flags;
 
- void o2hb_exit(void)
- {
--	kfree(o2hb_db_livenodes);
--	kfree(o2hb_db_liveregions);
--	kfree(o2hb_db_quorumregions);
--	kfree(o2hb_db_failedregions);
- 	debugfs_remove(o2hb_debug_failedregions);
- 	debugfs_remove(o2hb_debug_quorumregions);
- 	debugfs_remove(o2hb_debug_liveregions);
- 	debugfs_remove(o2hb_debug_livenodes);
- 	debugfs_remove(o2hb_debug_dir);
-+	kfree(o2hb_db_livenodes);
-+	kfree(o2hb_db_liveregions);
-+	kfree(o2hb_db_quorumregions);
-+	kfree(o2hb_db_failedregions);
- }
+ 	out += snprintf(buf + out, len - out,
+ 			"%10s => Id: %-s  Uuid: %-s  Gen: 0x%X  Label: %-s\n",
+@@ -271,14 +272,14 @@ static int ocfs2_osb_dump(struct ocfs2_super *osb, char *buf, int len)
+ 				cconn->cc_version.pv_minor);
+ 	}
 
- static struct dentry *o2hb_debug_create(const char *name, struct dentry *dir,
-@@ -1438,13 +1438,15 @@ static void o2hb_region_release(struct config_item *item)
+-	spin_lock(&osb->dc_task_lock);
++	spin_lock_irqsave(&osb->dc_task_lock, flags);
+ 	out += snprintf(buf + out, len - out,
+ 			"%10s => Pid: %d  Count: %lu  WakeSeq: %lu  "
+ 			"WorkSeq: %lu\n", "DownCnvt",
+ 			(osb->dc_task ?  task_pid_nr(osb->dc_task) : -1),
+ 			osb->blocked_lock_count, osb->dc_wake_sequence,
+ 			osb->dc_work_sequence);
+-	spin_unlock(&osb->dc_task_lock);
++	spin_unlock_irqrestore(&osb->dc_task_lock, flags);
 
- 	kfree(reg->hr_slots);
-
--	kfree(reg->hr_db_regnum);
--	kfree(reg->hr_db_livenodes);
- 	debugfs_remove(reg->hr_debug_livenodes);
- 	debugfs_remove(reg->hr_debug_regnum);
- 	debugfs_remove(reg->hr_debug_elapsed_time);
- 	debugfs_remove(reg->hr_debug_pinned);
- 	debugfs_remove(reg->hr_debug_dir);
-+	kfree(reg->hr_db_livenodes);
-+	kfree(reg->hr_db_regnum);
-+	kfree(reg->hr_debug_elapsed_time);
-+	kfree(reg->hr_debug_pinned);
-
- 	spin_lock(&o2hb_live_lock);
- 	list_del(&reg->hr_all_item);
+ 	spin_lock(&osb->osb_lock);
+ 	out += snprintf(buf + out, len - out, "%10s => Pid: %d  Nodes:",
 -- 
 1.8.4.3
