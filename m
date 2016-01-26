@@ -1,44 +1,79 @@
-From: Eric Ren <zren@suse.com>
-Date: Mon, 25 Jan 2016 14:00:32 +0800
-Subject: [Ocfs2-devel] [PATCH 4/6] ocfs2: o2hb: add some user/debug log
-In-Reply-To: <56A5A491.4050205@oracle.com>
-References: <1453259619-5347-1-git-send-email-junxiao.bi@oracle.com>
-	<1453259619-5347-5-git-send-email-junxiao.bi@oracle.com>
-	<20160125032815.GB7746@laptop.ha> <56A5A491.4050205@oracle.com>
-Message-ID: <20160125060032.GD7746@laptop.ha>
+From: xuejiufei <xuejiufei@huawei.com>
+Date: Tue, 26 Jan 2016 09:43:57 +0800
+Subject: [Ocfs2-devel] ocfs2: A race between refmap setting and clearing
+In-Reply-To: <56A08A05.5020002@oracle.com>
+References: <56931785.2090603@huawei.com> <56A08A05.5020002@oracle.com>
+Message-ID: <56A6CF5D.4090804@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Juxiao,
+Hi Junxiao,
 
-On Mon, Jan 25, 2016 at 12:29:05PM +0800, Junxiao Bi wrote: 
-> On 01/25/2016 11:28 AM, Eric Ren wrote:
-> >> @@ -449,7 +470,11 @@ static int o2hb_nego_timeout_handler(struct o2net_msg *msg, u32 len, void *data,
-> >> >  static int o2hb_nego_approve_handler(struct o2net_msg *msg, u32 len, void *data,
-> >> >  				void **ret_data)
-> >> >  {
-> >> > -	o2hb_arm_timeout((struct o2hb_region *)data);
-> >> > +	struct o2hb_region *reg = (struct o2hb_region *)data;
-> >> > +
-> >> > +	printk(KERN_NOTICE "o2hb: negotiate timeout approved by master node on region %s (%s).\n",
-> >> > +		config_item_name(&reg->hr_item), reg->hr_dev_name);
-> >> > +	o2hb_arm_timeout(reg);
-> > Why mix the use of printk and mlog? Any rules to follow?
-> printk is log for user while mlog is log for debug.
-
-Gotcha, thanks!
-
-Eric
-
+On 2016/1/21 15:34, Junxiao Bi wrote:
+> Hi Jiufei,
 > 
+> I didn't find other solution for this issue. You can go with yours.
+> Looks like your second one is more straightforward, there deref work can
+> be removed.
+> 
+There are two problems with the second solution:
+1) Node retry to deref the lock resource will block dlm_thread to process
+other lock resources.
+2) When node retries to drop the refmap bit, the master may be in another
+assert master work, that will take a long time to purge a lockres.
+So I prefer the first solution.
+
+Thanks,
+Jiufei
+
 > Thanks,
 > Junxiao.
+> On 01/11/2016 10:46 AM, xuejiufei wrote:
+>> Hi all,
+>> We have found a race between refmap setting and clearing which
+>> will cause the lock resource on master is freed before other nodes
+>> purge it.
+>>
+>> Node 1                               Node 2(master)
+>> dlm_do_master_request
+>>                                 dlm_master_request_handler
+>>                                 -> dlm_lockres_set_refmap_bit
+>> call dlm_purge_lockres after unlock
+>>                                 dlm_deref_handler
+>>                                 -> find lock resource is in
+>>                                    DLM_LOCK_RES_SETREF_INPROG state,
+>>                                    so dispatch a deref work
+>> dlm_purge_lockres succeed.
+>>
+>> dlm_do_master_request
+>>                                 dlm_master_request_handler
+>>                                 -> dlm_lockres_set_refmap_bit
+>>
+>>                                 deref work trigger, call
+>>                                 dlm_lockres_clear_refmap_bit
+>>                                 to clear Node 1 from refmap
+>>
+>> Now Node 2 can purge the lock resource but the owner of lock resource
+>> on Node 1 is still Node 2 which may trigger BUG if the lock resource
+>> is $RECOVERY or other problems.
+>>
+>> We have discussed 2 solutions:
+>> 1)The master return error to Node 1 if the DLM_LOCK_RES_SETREF_INPROG
+>> is set. Node 1 will not retry and master send another message to Node 1
+>> after clearing the refmap. Node 1 can purge the lock resource after the
+>> refmap on master is cleared.
+>> 2) The master return error to Node 1 if the DLM_LOCK_RES_SETREF_INPROG
+>> is set, and Node 1 will retry to deref the lockres.
+>>
+>> Does anybody has better ideas?
+>>
+>> Thanks,
+>> --Jiufei
+>>
 > 
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+> 
+> .
 > 
