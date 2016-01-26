@@ -1,51 +1,55 @@
 From: xuejiufei <xuejiufei@huawei.com>
-Date: Tue, 26 Jan 2016 17:43:11 +0800
-Subject: [Ocfs2-devel] [PATCH 3/4] ocfs2/dlm: clear DROPPING_REF flag when
- the master goes down
-Message-ID: <56A73FAF.40409@huawei.com>
+Date: Tue, 26 Jan 2016 17:44:09 +0800
+Subject: [Ocfs2-devel] [PATCH 4/4] ocfs2/dlm: return EINVAL when the lockres
+ on migration target is in DROPPING_REF state
+Message-ID: <56A73FE9.3010007@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-If the master goes down after return in-progress for deref message. The
-lock resource on non-master node can not be purged. Clear the
-DROPPING_REF flag and recovery it.
+If master migrate this lock resource to node when it happened to purge
+it, a new lock resource will be created and inserted into hash list. If
+then master goes down, the lock resource being purged is recovered, so
+there exist two lock resource with different owner. So return error to
+master if the lock resource is in DROPPING state, master will retry to
+migrate this lock resource.
 
 Signed-off-by: xuejiufei <xuejiufei@huawei.com>
 ---
- fs/ocfs2/dlm/dlmrecovery.c | 18 ++++++++++--------
- 1 file changed, 10 insertions(+), 8 deletions(-)
+ fs/ocfs2/dlm/dlmrecovery.c | 14 +++++++++++++-
+ 1 file changed, 13 insertions(+), 1 deletion(-)
 
 diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
-index c5bdf02..c19059a 100644
+index c19059a..4c7b548 100644
 --- a/fs/ocfs2/dlm/dlmrecovery.c
 +++ b/fs/ocfs2/dlm/dlmrecovery.c
-@@ -2375,14 +2375,16 @@ static void dlm_do_local_recovery_cleanup(struct dlm_ctxt *dlm, u8 dead_node)
- 			dlm_revalidate_lvb(dlm, res, dead_node);
- 			if (res->owner == dead_node) {
- 				if (res->state & DLM_LOCK_RES_DROPPING_REF) {
--					mlog(ML_NOTICE, "%s: res %.*s, Skip "
--					     "recovery as it is being freed\n",
--					     dlm->name, res->lockname.len,
--					     res->lockname.name);
--				} else
--					dlm_move_lockres_to_recovery_list(dlm,
--									  res);
--
-+					mlog(0, "%s:%.*s: owned by "
-+						"dead node %u, this node was "
-+						"dropping its ref when it died. "
-+						"continue, dropping the flag.\n",
-+						dlm->name, res->lockname.len,
-+						res->lockname.name, dead_node);
-+				}
-+				res->state &= ~DLM_LOCK_RES_DROPPING_REF;
-+				dlm_move_lockres_to_recovery_list(dlm,
-+						res);
- 			} else if (res->owner == dlm->node_num) {
- 				dlm_free_dead_locks(dlm, res, dead_node);
- 				__dlm_lockres_calc_usage(dlm, res);
+@@ -1403,12 +1403,24 @@ int dlm_mig_lockres_handler(struct o2net_msg *msg, u32 len, void *data,
+ 	 * and RECOVERY flag changed when it completes. */
+ 	hash = dlm_lockid_hash(mres->lockname, mres->lockname_len);
+ 	spin_lock(&dlm->spinlock);
+-	res = __dlm_lookup_lockres(dlm, mres->lockname, mres->lockname_len,
++	res = __dlm_lookup_lockres_full(dlm, mres->lockname, mres->lockname_len,
+ 			hash);
+ 	if (res) {
+ 	 	/* this will get a ref on res */
+ 		/* mark it as recovering/migrating and hash it */
+ 		spin_lock(&res->spinlock);
++		if (res->state & DLM_LOCK_RES_DROPPING_REF) {
++			mlog(0, "%s: node is attempting to migrate "
++				"lockres %.*s, but marked as dropping "
++				" ref!\n", dlm->name,
++				mres->lockname_len, mres->lockname);
++			ret = -EINVAL;
++			spin_unlock(&res->spinlock);
++			spin_unlock(&dlm->spinlock);
++			dlm_lockres_put(res);
++			goto leave;
++		}
++
+ 		if (mres->flags & DLM_MRES_RECOVERY) {
+ 			res->state |= DLM_LOCK_RES_RECOVERING;
+ 		} else {
 -- 
 1.8.4.3
