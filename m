@@ -1,52 +1,53 @@
-From: xuejiufei <xuejiufei@huawei.com>
-Date: Wed, 27 Jan 2016 17:52:05 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: move lock to the tail of grant
- queue while doing in-place convert
-Message-ID: <56A89345.5040903@huawei.com>
+From: Junxiao Bi <junxiao.bi@oracle.com>
+Date: Thu, 28 Jan 2016 10:52:19 +0800
+Subject: [Ocfs2-devel] Ocfs2 test for linux-next-20160122 passed
+Message-ID: <56A98263.5010208@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-We have found a bug when two nodes doing umount one after another.
-1) Node 1 migrate a lockres that has 3 locks in grant queue such as
-N2(PR)<->N3(NL)<->N4(PR) to N2. After migration, lvb of the lock N3(NL)
-and N4(PR) are empty on node 2 because migration target do not copy lvb
-to these two lock.
-2) Node 3 want to convert to PR, it can be granted in
-__dlmconvert_master(), and the order of these locks is unchanged. The
-lvb of the lock N3(PR) on node 2 is copyed from lockres in function
-dlm_update_lvb() while the lvb of lock N4(PR) is still empty.
-3) Node 2 want to leave domain, it will migrate this lockres to node 3.
-Then node 2 will trigger the BUG in dlm_prepare_lvb_for_migration()
-when adding the lock N4(PR) to mres with the following message because
-the lvb of mres is already copied from lock N3(PR), but the lvb of lock
-N4(PR) is empty.
+This means the following patches have passed ocfs2-test. The first three
+ones are merged by me to avoid that recursive deadlock issue.
 
-"Mismatched lvb in lock cookie=%u:%llu, name=%.*s, node=%u"
+=============================
 
-Signed-off-by: xuejiufei <xuejiufei@huawei.com>
----
- fs/ocfs2/dlm/dlmconvert.c | 6 ++++++
- 1 file changed, 6 insertions(+)
+-inode deadlock in ocfs2_mknode due to using posix_acl_create
+-posix_acl_create unsuitable to use in ocfs2_reflink
+-revert to using ocfs2_acl_chmod to avoid inode cluster lock hang
+-ocfs2: check/fix inode block for online file check
+-ocfs2: create/remove sysfile for online file check
+-ocfs2: sysfile interfaces for online file check
+-ocfs2: export ocfs2_kset for online file check
+-ocfs2: solve a problem of crossing the boundary in updating backups
+-ocfs2: fix occurring deadlock by changing ocfs2_wq from global to local
+-ocfs2: extend enough credits for freeing one truncate record while
+replaying truncate records
+-ocfs2: extend transaction for ocfs2_remove_rightmost_path() and
+ocfs2_update_edge_lengths() before to avoid inconsistency between inode
+and et
+-ocfs2/dlm: fix BUG in dlm_move_lockres_to_recovery_list
+-ocfs2-dlm-fix-race-between-convert-and-recovery-v3
+-ocfs2-dlm-fix-race-between-convert-and-recovery-v2
+-ocfs2/dlm: fix race between convert and recovery
+-ocfs2: fix a deadlock issue in ocfs2_dio_end_io_write()
+-ocfs2: fix disk file size and memory file size mismatch
+-ocfs2: take ip_alloc_sem in ocfs2_dio_get_block & ocfs2_dio_end_io_write
+-ocfs2-fix-ip_unaligned_aio-deadlock-with-dio-work-queue-fix
+-ocfs2: fix ip_unaligned_aio deadlock with dio work queue
+-ocfs2: code clean up for direct io
+-ocfs2: fix sparse file & data ordering issue in direct io
+-ocfs2: record UNWRITTEN extents when populate write desc
+-ocfs2: return the physical address in ocfs2_write_cluster
+-ocfs2: do not change i_size in write_end for direct io
+-ocfs2: test target page before change it
+-ocfs2: use c_new to indicate newly allocated extents
+-ocfs2: add ocfs2_write_type_t type to identify the caller of write
+-ocfs2: NFS hangs in __ocfs2_cluster_lock due to race with
+ocfs2_unblock_lock
 
-diff --git a/fs/ocfs2/dlm/dlmconvert.c b/fs/ocfs2/dlm/dlmconvert.c
-index e36d63f..ae0c9d1 100644
---- a/fs/ocfs2/dlm/dlmconvert.c
-+++ b/fs/ocfs2/dlm/dlmconvert.c
-@@ -212,6 +212,12 @@ grant:
- 	if (lock->lksb->flags & DLM_LKSB_PUT_LVB)
- 		memcpy(res->lvb, lock->lksb->lvb, DLM_LVB_LEN);
+==================================
 
-+	/*
-+	 * move the lock to tail because it may be the only lock who has
-+	 * a invalid lvb.
-+	 */
-+	list_move_tail(&lock->list, &res->granted);
-+
- 	status = DLM_NORMAL;
- 	*call_ast = 1;
- 	goto unlock_exit;
--- 
-1.8.4.3
+Thanks,
+Junxiao.
