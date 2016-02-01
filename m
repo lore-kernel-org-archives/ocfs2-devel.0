@@ -1,85 +1,35 @@
-From: Julia Lawall <Julia.Lawall@lip6.fr>
-Date: Fri,  1 Jan 2016 08:53:37 +0100
-Subject: [Ocfs2-devel] [PATCH] quota: constify qtree_fmt_operations
-	structures
-Message-ID: <1451634817-1903-1-git-send-email-Julia.Lawall@lip6.fr>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Mon, 01 Feb 2016 17:23:39 +0100
+Subject: [Ocfs2-devel] [PATCH] ocfs2: remove unused label
+Message-ID: <3477441.9K8aQAEjZq@wuerfel>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Jan Kara <jack@suse.com>
-Cc: kernel-janitors@vger.kernel.org, linux-kernel@vger.kernel.org, Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@oss.oracle.com
+To: linux-arm-kernel@lists.infradead.org
 
-The qtree_fmt_operations structures are never modified, so declare them as
-const.
+A recent cleanup modified the ocfs2_file_write_iter function, which
+no longer uses its 'relock' label, as gcc warns:
 
-Done with the help of Coccinelle.
+fs/ocfs2/file.c: In function 'ocfs2_file_write_iter':
+fs/ocfs2/file.c:2198:1: error: label 'relock' defined but not used [-Werror=unused-label]
 
-Signed-off-by: Julia Lawall <Julia.Lawall@lip6.fr>
+This removes the label as well.
 
+Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+Fixes: 1a46f12e5071 ("ocfs2: code clean up for direct io")
 ---
- fs/ocfs2/quota.h            |    2 +-
- fs/ocfs2/quota_global.c     |    2 +-
- fs/quota/quota_v2.c         |    4 ++--
- include/linux/dqblk_qtree.h |    2 +-
- 4 files changed, 5 insertions(+), 5 deletions(-)
+Found on ARM randconfig builds on linux-next last week.
 
-diff --git a/include/linux/dqblk_qtree.h b/include/linux/dqblk_qtree.h
-index 82a1652..ff8b553 100644
---- a/include/linux/dqblk_qtree.h
-+++ b/include/linux/dqblk_qtree.h
-@@ -34,7 +34,7 @@ struct qtree_mem_dqinfo {
- 	unsigned int dqi_entry_size;	/* Size of quota entry in quota file */
- 	unsigned int dqi_usable_bs;	/* Space usable in block for quota data */
- 	unsigned int dqi_qtree_depth;	/* Precomputed depth of quota tree */
--	struct qtree_fmt_operations *dqi_ops;	/* Operations for entry manipulation */
-+	const struct qtree_fmt_operations *dqi_ops; /* Operations for entry manipulation */
- };
+diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+index 41c506e7814e..c18ab45f8d21 100644
+--- a/fs/ocfs2/file.c
++++ b/fs/ocfs2/file.c
+@@ -2195,7 +2195,6 @@ static ssize_t ocfs2_file_write_iter(struct kiocb *iocb,
  
- int qtree_write_dquot(struct qtree_mem_dqinfo *info, struct dquot *dquot);
-diff --git a/fs/quota/quota_v2.c b/fs/quota/quota_v2.c
-index 2aa012a..ed85d4f 100644
---- a/fs/quota/quota_v2.c
-+++ b/fs/quota/quota_v2.c
-@@ -30,13 +30,13 @@ static void v2r1_mem2diskdqb(void *dp, struct dquot *dquot);
- static void v2r1_disk2memdqb(struct dquot *dquot, void *dp);
- static int v2r1_is_id(void *dp, struct dquot *dquot);
+ 	inode_lock(inode);
  
--static struct qtree_fmt_operations v2r0_qtree_ops = {
-+static const struct qtree_fmt_operations v2r0_qtree_ops = {
- 	.mem2disk_dqblk = v2r0_mem2diskdqb,
- 	.disk2mem_dqblk = v2r0_disk2memdqb,
- 	.is_id = v2r0_is_id,
- };
- 
--static struct qtree_fmt_operations v2r1_qtree_ops = {
-+static const struct qtree_fmt_operations v2r1_qtree_ops = {
- 	.mem2disk_dqblk = v2r1_mem2diskdqb,
- 	.disk2mem_dqblk = v2r1_disk2memdqb,
- 	.is_id = v2r1_is_id,
-diff --git a/fs/ocfs2/quota.h b/fs/ocfs2/quota.h
-index b6d5133..d153e6e 100644
---- a/fs/ocfs2/quota.h
-+++ b/fs/ocfs2/quota.h
-@@ -82,7 +82,7 @@ struct ocfs2_quota_chunk {
- extern struct kmem_cache *ocfs2_dquot_cachep;
- extern struct kmem_cache *ocfs2_qf_chunk_cachep;
- 
--extern struct qtree_fmt_operations ocfs2_global_ops;
-+extern const struct qtree_fmt_operations ocfs2_global_ops;
- 
- struct ocfs2_quota_recovery *ocfs2_begin_quota_recovery(
- 				struct ocfs2_super *osb, int slot_num);
-diff --git a/fs/ocfs2/quota_global.c b/fs/ocfs2/quota_global.c
-index 44df24b..f0c7ae1 100644
---- a/fs/ocfs2/quota_global.c
-+++ b/fs/ocfs2/quota_global.c
-@@ -123,7 +123,7 @@ static int ocfs2_global_is_id(void *dp, struct dquot *dquot)
- 		      dquot->dq_id);
- }
- 
--struct qtree_fmt_operations ocfs2_global_ops = {
-+const struct qtree_fmt_operations ocfs2_global_ops = {
- 	.mem2disk_dqblk = ocfs2_global_mem2diskdqb,
- 	.disk2mem_dqblk = ocfs2_global_disk2memdqb,
- 	.is_id = ocfs2_global_is_id,
+-relock:
+ 	/*
+ 	 * Concurrent O_DIRECT writes are allowed with
+ 	 * mount_option "coherency=buffered".
