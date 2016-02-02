@@ -1,35 +1,85 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Mon, 01 Feb 2016 17:23:39 +0100
-Subject: [Ocfs2-devel] [PATCH] ocfs2: remove unused label
-Message-ID: <3477441.9K8aQAEjZq@wuerfel>
+From: xuejiufei <xuejiufei@huawei.com>
+Date: Tue, 2 Feb 2016 09:10:53 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: move lock to the tail of grant
+ queue while doing in-place convert
+In-Reply-To: <20160129082511.GB14315@desktop.lab.bej.apac.novell.com>
+References: <56A89345.5040903@huawei.com>
+	<20160129082511.GB14315@desktop.lab.bej.apac.novell.com>
+Message-ID: <56B0021D.2090505@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: linux-arm-kernel@lists.infradead.org
+To: ocfs2-devel@oss.oracle.com
 
-A recent cleanup modified the ocfs2_file_write_iter function, which
-no longer uses its 'relock' label, as gcc warns:
+Hi Eric,
 
-fs/ocfs2/file.c: In function 'ocfs2_file_write_iter':
-fs/ocfs2/file.c:2198:1: error: label 'relock' defined but not used [-Werror=unused-label]
+On 2016/1/29 16:25, Eric Ren wrote:
+> Hello jiufei,
+> 
+> On Wed, Jan 27, 2016 at 05:52:05PM +0800, xuejiufei wrote: 
+>> We have found a bug when two nodes doing umount one after another.
+>> 1) Node 1 migrate a lockres that has 3 locks in grant queue such as
+>> N2(PR)<->N3(NL)<->N4(PR) to N2. After migration, lvb of the lock N3(NL)
+>> and N4(PR) are empty on node 2 because migration target do not copy lvb
+>> to these two lock.
+>> 2) Node 3 want to convert to PR, it can be granted in
+>> __dlmconvert_master(), and the order of these locks is unchanged. The
+>> lvb of the lock N3(PR) on node 2 is copyed from lockres in function
+>> dlm_update_lvb() while the lvb of lock N4(PR) is still empty.
+>> 3) Node 2 want to leave domain, it will migrate this lockres to node 3.
+>> Then node 2 will trigger the BUG in dlm_prepare_lvb_for_migration()
+>> when adding the lock N4(PR) to mres with the following message because
+>> the lvb of mres is already copied from lock N3(PR), but the lvb of lock
+>> N4(PR) is empty.
+>>
+>> "Mismatched lvb in lock cookie=%u:%llu, name=%.*s, node=%u"
+>>
+>> Signed-off-by: xuejiufei <xuejiufei@huawei.com>
+>> ---
+>>  fs/ocfs2/dlm/dlmconvert.c | 6 ++++++
+>>  1 file changed, 6 insertions(+)
+>>
+>> diff --git a/fs/ocfs2/dlm/dlmconvert.c b/fs/ocfs2/dlm/dlmconvert.c
+>> index e36d63f..ae0c9d1 100644
+>> --- a/fs/ocfs2/dlm/dlmconvert.c
+>> +++ b/fs/ocfs2/dlm/dlmconvert.c
+>> @@ -212,6 +212,12 @@ grant:
+>>  	if (lock->lksb->flags & DLM_LKSB_PUT_LVB)
+>>  		memcpy(res->lvb, lock->lksb->lvb, DLM_LVB_LEN);
+>>
+>> +	/*
+>> +	 * move the lock to tail because it may be the only lock who has
+>> +	 * a invalid lvb.
+>> +	 */
+> 
+> I'm not fimiliar with ocfs2/dlm yet, just out of curious, by "invalid lvb"
+> here it means when a lock has been upconvert in place, its lvb is invalid?
+> If so, why not reset it than move?
+> 
+"invalid lvb" means that the lvb can not be trusted. After migration, lvb in
+all locks on master are invalid because the locks are new created. The lock
+been upconverted is valid after copy from lock resource on master.
 
-This removes the label as well.
+Thanks,
+Jiufei
 
-Signed-off-by: Arnd Bergmann <arnd@arndb.de>
-Fixes: 1a46f12e5071 ("ocfs2: code clean up for direct io")
----
-Found on ARM randconfig builds on linux-next last week.
-
-diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-index 41c506e7814e..c18ab45f8d21 100644
---- a/fs/ocfs2/file.c
-+++ b/fs/ocfs2/file.c
-@@ -2195,7 +2195,6 @@ static ssize_t ocfs2_file_write_iter(struct kiocb *iocb,
- 
- 	inode_lock(inode);
- 
--relock:
- 	/*
- 	 * Concurrent O_DIRECT writes are allowed with
- 	 * mount_option "coherency=buffered".
+> Thanks,
+> Eric
+>> +	list_move_tail(&lock->list, &res->granted);
+>> +
+>>  	status = DLM_NORMAL;
+>>  	*call_ast = 1;
+>>  	goto unlock_exit;
+>> -- 
+>> 1.8.4.3
+>>
+>>
+>> _______________________________________________
+>> Ocfs2-devel mailing list
+>> Ocfs2-devel at oss.oracle.com
+>> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+>>
+> 
+> .
+> 
