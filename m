@@ -1,37 +1,40 @@
-From: xuejiufei <xuejiufei@huawei.com>
-Date: Tue, 2 Feb 2016 09:18:26 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: clear refmap bit of recovery lock
- while doing local recovery cleanup
-Message-ID: <56B003E2.5080104@huawei.com>
+From: Sudip Mukherjee <sudipm.mukherjee@gmail.com>
+Date: Tue,  2 Feb 2016 12:16:53 +0530
+Subject: [Ocfs2-devel] [PATCH] ocfs2: fix build warning
+Message-ID: <1454395613-3428-1-git-send-email-sudipm.mukherjee@gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>
+Cc: linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, ocfs2-devel@oss.oracle.com, Sudip Mukherjee <sudipm.mukherjee@gmail.com>, Ryan Ding <ryan.ding@oracle.com>
 
-When recovery master down, dlm_do_local_recovery_cleanup() only
-remove the $RECOVERY lock owned by dead node, but do not clear
-the refmap bit. Which will make umount thread falling in dead loop
-migrating $RECOVERY to the dead node.
+We were getting build warning about:
+/fs/ocfs2/file.c: In function ?ocfs2_file_write_iter?:
+fs/ocfs2/file.c:2198:1: warning: label ?relock? defined but not used
 
-Signed-off-by: xuejiufei <xuejiufei@huawei.com>
-Reviewed-by: Joseph Qi <joseph.qi@huawei.com>
+The previous commit has cleaned up the code for direct io and removed
+the jump instruction to relock, but missed removing the label which is
+unused now.
+
+Fixes: 1a46f12e5071 ("ocfs2: code clean up for direct io")
+Cc: Ryan Ding <ryan.ding@oracle.com>
+Signed-off-by: Sudip Mukherjee <sudip@vectorindia.org>
 ---
- fs/ocfs2/dlm/dlmrecovery.c | 2 ++
- 1 file changed, 2 insertions(+)
+ fs/ocfs2/file.c | 1 -
+ 1 file changed, 1 deletion(-)
 
-diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
-index 4c7b548..213279d 100644
---- a/fs/ocfs2/dlm/dlmrecovery.c
-+++ b/fs/ocfs2/dlm/dlmrecovery.c
-@@ -2379,6 +2379,8 @@ static void dlm_do_local_recovery_cleanup(struct dlm_ctxt *dlm, u8 dead_node)
- 						break;
- 					}
- 				}
-+				dlm_lockres_clear_refmap_bit(dlm, res,
-+						dead_node);
- 				spin_unlock(&res->spinlock);
- 				continue;
- 			}
+diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+index 41c506e..c18ab45 100644
+--- a/fs/ocfs2/file.c
++++ b/fs/ocfs2/file.c
+@@ -2195,7 +2195,6 @@ static ssize_t ocfs2_file_write_iter(struct kiocb *iocb,
+ 
+ 	inode_lock(inode);
+ 
+-relock:
+ 	/*
+ 	 * Concurrent O_DIRECT writes are allowed with
+ 	 * mount_option "coherency=buffered".
 -- 
-1.8.4.3
+1.9.1
