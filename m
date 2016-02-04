@@ -1,90 +1,160 @@
-From: Darrick J. Wong <darrick.wong@oracle.com>
-Date: Thu, 4 Feb 2016 00:17:57 -0800
-Subject: [Ocfs2-devel] [PATCH 1/3] direct-io: always call ->end_io if
-	non-NULL
-In-Reply-To: <20160204071455.GA20002@lst.de>
-References: <1454524816-11392-1-git-send-email-hch@lst.de>
-	<1454524816-11392-2-git-send-email-hch@lst.de>
-	<20160203195531.GJ20038@birch.djwong.org>
-	<20160204071455.GA20002@lst.de>
-Message-ID: <20160204081757.GM22352@birch.djwong.org>
+From: Jan Kara <jack@suse.cz>
+Date: Thu,  4 Feb 2016 15:28:06 +0100
+Subject: [Ocfs2-devel] [PATCH 2/3] quota_v2: Implement get_next_id() for V2
+	quota format
+In-Reply-To: <1454596087-6814-1-git-send-email-jack@suse.cz>
+References: <1454596087-6814-1-git-send-email-jack@suse.cz>
+Message-ID: <1454596087-6814-3-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Christoph Hellwig <hch@lst.de>
-Cc: linux-fsdevel@vger.kernel.org, xfs@oss.sgi.com, linux-ext4@vger.kernel.org, ocfs2-devel@oss.oracle.com
+To: linux-fsdevel@vger.kernel.org
+Cc: ocfs2-devel@oss.oracle.com, Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>, xfs@oss.sgi.com, Jan Kara <jack@suse.cz>
 
-On Thu, Feb 04, 2016 at 08:14:55AM +0100, Christoph Hellwig wrote:
-> On Wed, Feb 03, 2016 at 11:55:31AM -0800, Darrick J. Wong wrote:
-> > This will have the effect of a later error superseding an earlier error.  I'm
-> > under the impression that code should generally preserve the first error, since
-> > some side effect of that probably caused the rest of the errors.
-> > 
-> > That said, my guess is that 95% of the time err is set, retval and err will
-> > both be -EIO anyway.  I'm not particularly passionate about whether or not we
-> > preserve the first error code.
-> 
-> This leaves the option to the file system to pass the value through
-> or not.  Note that ret before the call will usually have the positive
-> number of bytes written, so checking if it's 'set' wouldn't be enough
-> even if adding some special casing in the callers.
+Implement functions to get id of next existing quota structure in quota
+file for quota tree based formats and thus for V2 quota format.
 
-Ok, I can live with that.
+Signed-off-by: Jan Kara <jack@suse.cz>
+---
+ fs/quota/quota_tree.c       | 67 +++++++++++++++++++++++++++++++++++++++++++--
+ fs/quota/quota_v2.c         |  6 ++++
+ include/linux/dqblk_qtree.h |  2 ++
+ 3 files changed, 73 insertions(+), 2 deletions(-)
 
-> > > +static int ext4_end_io_dio(struct kiocb *iocb, loff_t offset,
-> > >  			    ssize_t size, void *private)
-> > >  {
-> > >          ext4_io_end_t *io_end = iocb->private;
-> > >  
-> > > +	if (size <= 0)
-> > > +		return 0;
-> > 
-> > This leaks the ext4_io_end_t, if there was one.  Granted, that only happens
-> > during an AIO DIO to an unwritten extent, but in any case I suggest removing
-> > this hunk and...
-> 
-> It's the same behavior as before - and if you look at ext4_ext_direct_IO
-> it seems to expect this and works around it.
-
-Gotcha.  That's right, so I'll stop worrying about these. :)
-
---D
-
-> 
-> > > +	if (bytes <= 0)
-> > > +		return 0;
-> > > +
-> > 
-> > I suspect we still need to unlock the mutexes later on in this function.
-> > 
-> > >  	/* this io's submitter should not have unlocked this before we could */
-> > >  	BUG_ON(!ocfs2_iocb_is_rw_locked(iocb));
-> > >  
-> > > @@ -644,6 +647,8 @@ static void ocfs2_dio_end_io(struct kiocb *iocb,
-> > >  		level = ocfs2_iocb_rw_locked_level(iocb);
-> > >  		ocfs2_rw_unlock(inode, level);
-> > >  	}
-> > 
-> > Do we need to still have an accurate value for bytes the conditional above
-> > even if the IO errored out?  
-> 
-> Again, no changes to the old behavior.  ocfs has some magic stuffed
-> in iocb->private to deal with the locked state of an iocb, and while
-> I don't fully understand it I suspect it's to handle the existing
-> odd ->end_io calling conventions.  Cleaning this up would be nice,
-> but let's keep that a separate patch.
-> 
-> > >  	struct kiocb		*iocb,
-> > >  	loff_t			offset,
-> > > @@ -1655,15 +1655,19 @@ xfs_end_io_direct_write(
-> > >  	struct inode		*inode = file_inode(iocb->ki_filp);
-> > >  	struct xfs_ioend	*ioend = private;
-> > >  
-> > > +	if (size <= 0)
-> > > +		return 0;
-> > 
-> > Same thing here, I think we can end up leaking the ioend.
-> 
-> This keeps the existing behavior.  But either way, at least for
-> XFS all this will be properly fixed in the next patch anyway.
+diff --git a/fs/quota/quota_tree.c b/fs/quota/quota_tree.c
+index 58efb83dec1c..0738972e8d3f 100644
+--- a/fs/quota/quota_tree.c
++++ b/fs/quota/quota_tree.c
+@@ -22,10 +22,9 @@ MODULE_LICENSE("GPL");
+ 
+ #define __QUOTA_QT_PARANOIA
+ 
+-static int get_index(struct qtree_mem_dqinfo *info, struct kqid qid, int depth)
++static int __get_index(struct qtree_mem_dqinfo *info, qid_t id, int depth)
+ {
+ 	unsigned int epb = info->dqi_usable_bs >> 2;
+-	qid_t id = from_kqid(&init_user_ns, qid);
+ 
+ 	depth = info->dqi_qtree_depth - depth - 1;
+ 	while (depth--)
+@@ -33,6 +32,13 @@ static int get_index(struct qtree_mem_dqinfo *info, struct kqid qid, int depth)
+ 	return id % epb;
+ }
+ 
++static int get_index(struct qtree_mem_dqinfo *info, struct kqid qid, int depth)
++{
++	qid_t id = from_kqid(&init_user_ns, qid);
++
++	return __get_index(info, id, depth);
++}
++
+ /* Number of entries in one blocks */
+ static int qtree_dqstr_in_blk(struct qtree_mem_dqinfo *info)
+ {
+@@ -668,3 +674,60 @@ int qtree_release_dquot(struct qtree_mem_dqinfo *info, struct dquot *dquot)
+ 	return 0;
+ }
+ EXPORT_SYMBOL(qtree_release_dquot);
++
++static int find_next_id(struct qtree_mem_dqinfo *info, qid_t *id,
++			unsigned int blk, int depth)
++{
++	char *buf = getdqbuf(info->dqi_usable_bs);
++	__le32 *ref = (__le32 *)buf;
++	ssize_t ret;
++	unsigned int epb = info->dqi_usable_bs >> 2;
++	unsigned int level_inc = 1;
++	int i;
++
++	if (!buf)
++		return -ENOMEM;
++
++	for (i = depth; i < info->dqi_qtree_depth - 1; i++)
++		level_inc *= epb;
++
++	ret = read_blk(info, blk, buf);
++	if (ret < 0) {
++		quota_error(info->dqi_sb,
++			    "Can't read quota tree block %u", blk);
++		goto out_buf;
++	}
++	for (i = __get_index(info, *id, depth); i < epb; i++) {
++		if (ref[i] == cpu_to_le32(0)) {
++			*id += level_inc;
++			continue;
++		}
++		if (depth == info->dqi_qtree_depth - 1) {
++			ret = 0;
++			goto out_buf;
++		}
++		ret = find_next_id(info, id, le32_to_cpu(ref[i]), depth + 1);
++		if (ret != -ENOENT)
++			break;
++	}
++	if (i == epb) {
++		ret = -ENOENT;
++		goto out_buf;
++	}
++out_buf:
++	kfree(buf);
++	return ret;
++}
++
++int qtree_get_next_id(struct qtree_mem_dqinfo *info, struct kqid *qid)
++{
++	qid_t id = from_kqid(&init_user_ns, *qid);
++	int ret;
++
++	ret = find_next_id(info, &id, QT_TREEOFF, 0);
++	if (ret < 0)
++		return ret;
++	*qid = make_kqid(&init_user_ns, qid->type, id);
++	return 0;
++}
++EXPORT_SYMBOL(qtree_get_next_id);
+diff --git a/fs/quota/quota_v2.c b/fs/quota/quota_v2.c
+index ed85d4f35c04..ca71bf881ad1 100644
+--- a/fs/quota/quota_v2.c
++++ b/fs/quota/quota_v2.c
+@@ -304,6 +304,11 @@ static int v2_free_file_info(struct super_block *sb, int type)
+ 	return 0;
+ }
+ 
++static int v2_get_next_id(struct super_block *sb, struct kqid *qid)
++{
++	return qtree_get_next_id(sb_dqinfo(sb, qid->type)->dqi_priv, qid);
++}
++
+ static const struct quota_format_ops v2_format_ops = {
+ 	.check_quota_file	= v2_check_quota_file,
+ 	.read_file_info		= v2_read_file_info,
+@@ -312,6 +317,7 @@ static const struct quota_format_ops v2_format_ops = {
+ 	.read_dqblk		= v2_read_dquot,
+ 	.commit_dqblk		= v2_write_dquot,
+ 	.release_dqblk		= v2_release_dquot,
++	.get_next_id		= v2_get_next_id,
+ };
+ 
+ static struct quota_format_type v2r0_quota_format = {
+diff --git a/include/linux/dqblk_qtree.h b/include/linux/dqblk_qtree.h
+index ff8b55359648..0de21e935976 100644
+--- a/include/linux/dqblk_qtree.h
++++ b/include/linux/dqblk_qtree.h
+@@ -15,6 +15,7 @@
+ #define QTREE_DEL_REWRITE 6
+ 
+ struct dquot;
++struct kqid;
+ 
+ /* Operations */
+ struct qtree_fmt_operations {
+@@ -52,5 +53,6 @@ static inline int qtree_depth(struct qtree_mem_dqinfo *info)
+ 		entries *= epb;
+ 	return i;
+ }
++int qtree_get_next_id(struct qtree_mem_dqinfo *info, struct kqid *qid);
+ 
+ #endif /* _LINUX_DQBLK_QTREE_H */
+-- 
+2.6.2
