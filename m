@@ -1,63 +1,45 @@
-From: Jan Kara <jack@suse.cz>
-Date: Mon, 8 Feb 2016 15:34:33 +0100
-Subject: [Ocfs2-devel] [PATCH 1/3] quota: Add support for
- ->get_nextdqblk() for VFS quota
-In-Reply-To: <20160208142749.GD9451@quack.suse.cz>
-References: <1454596087-6814-1-git-send-email-jack@suse.cz>
-	<1454596087-6814-2-git-send-email-jack@suse.cz>
-	<20160205010519.GJ459@dastard>
-	<20160208142749.GD9451@quack.suse.cz>
-Message-ID: <20160208143433.GA4468@quack.suse.cz>
+From: Darrick J. Wong <darrick.wong@oracle.com>
+Date: Wed, 10 Feb 2016 11:18:48 -0800
+Subject: [Ocfs2-devel] [LFS/MM TOPIC] fs reflink issues,
+	fs online scrub/check, etc
+In-Reply-To: <20160210191715.GB6339@birch.djwong.org>
+References: <20160210191715.GB6339@birch.djwong.org>
+Message-ID: <20160210191848.GC6346@birch.djwong.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Dave Chinner <david@fromorbit.com>
-Cc: Jan Kara <jack@suse.cz>, linux-fsdevel@vger.kernel.org, ocfs2-devel@oss.oracle.com, Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>, xfs@oss.sgi.com
+To: lsf-pc@lists.linux-foundation.org
+Cc: xfs <xfs@oss.sgi.com>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-ext4 <linux-ext4@vger.kernel.org>, linux-btrfs <linux-btrfs@vger.kernel.org>, ocfs2-devel@oss.oracle.com
 
-On Mon 08-02-16 15:27:49, Jan Kara wrote:
-> On Fri 05-02-16 12:05:19, Dave Chinner wrote:
-> > On Thu, Feb 04, 2016 at 03:28:05PM +0100, Jan Kara wrote:
-> > > Add infrastructure for supporting get_nextdqblk() callback for VFS
-> > > quotas. Translate the operation into a callback to appropriate
-> > > filesystem and consequently to quota format callback.
-> > > 
-> > > Signed-off-by: Jan Kara <jack@suse.cz>
-> > 
-> > I'm a little confused here. What patchset is this dependent on? i.e.
-> > what introduces the ->get_nextdqblk method?
-> 
-> It depends on the patches Eric sent which introduce ->get_nextdqblk.
-> 
-> > The patches I currently have in my XFS working tree introduce this
-> > (quota: add new quotactl Q_XGETNEXTQUOTA) and everythign else is
-> > dependent on this. I looked a coupl eof days ago and I wasnt' able
-> > to find this in your tree.
-> 
-> Yeah, I have this patch as well, I just didn't push out.
-> 
-> > I'd much prefer that one of us publish a stable branch with just the
-> > quotactl() infrastructure (i.e. commands and bits up to the
-> > ->get_nextdqblk() callback) that we can then both base the different
-> > subsystem implementations off, rather than one of us having to pull
-> > in a whole tree of changes just to get the one commit we need...
-> 
-> Sure, I have pushed out:
-> 
-> 'getnextquota' branch into my tree
-> 
-> git://git.kernel.org/pub/scm/linux/kernel/git/jack/linux-fs.git 
-> 
-> which contains the patches from Eric I carry (including fixups in comments
-> other minor stuff I have found during final review). Can you please base
-> XFS patches on top of this branch? Thanks!
+[resend, email exploded, sorry...]
 
-Ah, now I saw your next email and you already created the stable branch.
-OK, since I didn't push out anything yet, I will base my branches on top of
-yours. I have made some small fixups in the comments but I can push these
-as a separate patch.
+Hi,
 
-								Honza
--- 
-Jan Kara <jack@suse.com>
-SUSE Labs, CR
+I want to discuss a few FS related topics that I haven't already seen on
+the mailing lists:
+
+ * Shared pagecache pages for reflinked files (and by extension making dax
+   work with reflink on xfs)
+
+ * Providing a simple interface for scrubbing filesystem metadata in the
+   background (the online check thing).  Ideally we'd make it easy to discover
+   what kind of metadata there is to check and provide a simple interface to
+   check the metadata, once discovered.  This is a tricky interface topic
+   since FS design differs pretty widely.
+
+ * Rudimentary online repair and rebuilding (xfs) from secondary metadata
+
+ * Working out the variances in the btrfs/xfs/ocfs2/nfs reflink implementations
+   and making sure they all get test coverage
+
+I would also like participate in some of the proposed discussions:
+
+ * The ext4 summit (and whatever meeting of XFS devs may happen)
+
+ * Integrating existing filesystems into pmem, or hallway bofs about designing
+   new filesystems for pmem
+
+ * Actually seeing the fs developers (well, everyone!) in person again :)
+
+--Darrick
