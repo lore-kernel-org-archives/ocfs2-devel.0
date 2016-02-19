@@ -1,47 +1,51 @@
-From: Eric Ren <zren@suse.com>
-Date: Fri, 19 Feb 2016 11:01:24 +0800
-Subject: [Ocfs2-devel] ocfs2-test for v4.3 done
-In-Reply-To: <56C3D7DC.2030403@oracle.com>
-References: <56776B6B.2010208@oracle.com> <20151221135038.GA3194@laptop.ha>
-	<5678B6AC.1080005@oracle.com> <20160216095411.GA8125@laptop.ha>
-	<56C3D7DC.2030403@oracle.com>
-Message-ID: <20160219030124.GA4861@laptop.ha>
+From: Eric Sandeen <sandeen@sandeen.net>
+Date: Fri, 19 Feb 2016 11:31:58 -0600
+Subject: [Ocfs2-devel] [PATCH 1/3] quota: Add support for
+ ->get_nextdqblk() for VFS quota
+In-Reply-To: <1454596087-6814-2-git-send-email-jack@suse.cz>
+References: <1454596087-6814-1-git-send-email-jack@suse.cz>
+	<1454596087-6814-2-git-send-email-jack@suse.cz>
+Message-ID: <56C7518E.4020204@sandeen.net>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Jan Kara <jack@suse.cz>, linux-fsdevel@vger.kernel.org
+Cc: ocfs2-devel@oss.oracle.com, Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>, xfs@oss.sgi.com
 
-Hi Junxiao,
 
-On Wed, Feb 17, 2016 at 10:15:56AM +0800, Junxiao Bi wrote: 
-> Hi Eric,
+
+On 2/4/16 8:28 AM, Jan Kara wrote:
+> Add infrastructure for supporting get_nextdqblk() callback for VFS
+> quotas. Translate the operation into a callback to appropriate
+> filesystem and consequently to quota format callback.
 > 
-> I remember i described it before, please search it on ocfs2-devel. For
-> ocfs2 env setup, please refer to README in ocfs2-test.
-
-Yes, you did. Actually, it's the  quoted paragraph below;-)
-Thanks, but more things what I really want to learn about are, such as:
-1. git hook/auto control scripts, if it's OK to share;
-2. pain point and solution, for example, a latest tagged release kernel may
-   not compile successfully by `make defconfig` or `cp /boot/config-`uname -r``;
-   Or cannot boot up even if we've built kernel RPM and installed it.
-
-   Did you have this problem? Any suggestion;-) What I can think of is to try opensuse
-   tumbleweed distribution(a rolling release).
-
+> Signed-off-by: Jan Kara <jack@suse.cz>
+> ---
+>  fs/ext4/super.c          |  1 +
+>  fs/quota/dquot.c         | 39 +++++++++++++++++++++++++++++++++++++++
+>  fs/reiserfs/super.c      |  1 +
+>  include/linux/quota.h    |  3 +++
+>  include/linux/quotaops.h |  3 +++
+>  5 files changed, 47 insertions(+)
 > 
-> On 02/16/2016 05:54 PM, Eric Ren wrote:
-> > Hi Junxiao,
-> > 
-> >> Four vm are used, one for git server, and the other three to build
-> >> kernel and run ocfs2 test. Tag a branch and push it to the git server,
-> >> the test will be started. The test cases to run can be set in tag message.
-> > 
-> > Recently, I get free days and also want to setup automatic testing env for ocfs2.
-> > I'll use pcmk as cluster stack while you probably use o2cb. I think we can complement
-> > each other.  May I bother you to describe the work flow more specifically, or share
-> > experiences and references? That way it would save my life;-)
-> > 
-Thanks!
-Eric
+> diff --git a/fs/ext4/super.c b/fs/ext4/super.c
+> index f1b56ff01208..51649f442bf6 100644
+> --- a/fs/ext4/super.c
+> +++ b/fs/ext4/super.c
+> @@ -1100,6 +1100,7 @@ static const struct dquot_operations ext4_quota_operations = {
+>  	.write_info	= ext4_write_info,
+>  	.alloc_dquot	= dquot_alloc,
+>  	.destroy_dquot	= dquot_destroy,
+> +	.get_next_id	= dquot_get_next_id,
+>  };
+
+Hi Jan, doesn't this also need to set:
+
+
++       .get_nextdqblk  = dquot_get_next_dqblk,
+
+in ext4_qctl_sysfile_operations?
+
+Thanks,
+-Eric
