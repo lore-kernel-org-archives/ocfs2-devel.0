@@ -1,21 +1,116 @@
-From: Mike Christie <michaelc@cs.wisc.edu>
-Date: Mon, 29 Feb 2016 11:30:22 -0600
-Subject: [Ocfs2-devel] [PATCH 00/35 v4] separate operations from flags
- in the bio/request structs
-In-Reply-To: <20160229171339.GA17755@infradead.org>
-References: <1456343292-14535-1-git-send-email-mchristi@redhat.com>
-	<20160229171339.GA17755@infradead.org>
-Message-ID: <56D4802E.3090507@cs.wisc.edu>
+From: Nicolai Stange <nicstange@gmail.com>
+Date: Tue, 23 Feb 2016 15:58:49 +0100
+Subject: [Ocfs2-devel] [PATCH v2] kset- and class-registration cleanups
+In-Reply-To: <87k2pfcl73.fsf_-_@gmail.com> (Nicolai Stange's message of "Wed, 
+	18 Nov 2015 17:43:28 +0100")
+References: <871tbpebjw.fsf@gmail.com> <20151117041213.GA10860@kroah.com>
+	<87k2pfcl73.fsf_-_@gmail.com>
+Message-ID: <87wppvlbh2.fsf@gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Christoph Hellwig <hch@infradead.org>, mchristi@redhat.com
-Cc: linux-bcache@vger.kernel.org, linux-block@vger.kernel.org, xfs@oss.sgi.com, ocfs2-devel@oss.oracle.com, linux-scsi@vger.kernel.org, konrad.wilk@oracle.com, linux-kernel@vger.kernel.org, philipp.reisner@linbit.com, linux-f2fs-devel@lists.sourceforge.net, linux-raid@vger.kernel.org, dm-devel@redhat.com, target-devel@vger.kernel.org, linux-mtd@lists.infradead.org, osd-dev@open-osd.org, linux-fsdevel@vger.kernel.org, lars.ellenberg@linbit.com, linux-ext4@vger.kernel.org, linux-btrfs@vger.kernel.org, drbd-dev@lists.linbit.com
+To: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Cc: Nicolai Stange <nicstange@gmail.com>, Theodore Ts'o <tytso@mit.edu>, Andreas Dilger <adilger.kernel@dilger.ca>, Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>, Andrew Morton <akpm@linux-foundation.org>, Joe Perches <joe@perches.com>, linux-kernel@vger.kernel.org, linux-ext4@vger.kernel.org, ocfs2-devel@oss.oracle.com
 
-On 02/29/2016 11:13 AM, Christoph Hellwig wrote:
-> Any reason you've dropped my ACK for the previous version?
+Nicolai Stange <nicstange@gmail.com> writes:
 
-Sorry. I think I accidentally dropped it when I rebased back over to
-linux-next. It looks like it only got stuck on the first patch. I will
-fix that up on the resend for those kbuild errors.
+> In order to have something to base further discussion on, here comes the
+> second version.
+>
+
+Hi Greg,
+
+I'd like to ask whether this is still in your review queue or did it
+slip through?
+
+Should I resend?
+
+Thank you,
+
+Nicolai
+
+> In addition to some changes to the inital patch (now [1/3]), two
+> additional ones have been introduced.
+>
+> The three patches depend on one another in sequence.
+>
+> For a detailed changelist, see the end of this mail.
+>
+> Greg Kroah-Hartman <gregkh@linuxfoundation.org> writes:
+>> On Tue, Nov 17, 2015 at 01:04:19AM +0100, Nicolai Stange wrote:
+>> Yes, but those calls all succeed, so this isn't a problem in the "real"
+>> world :)
+>
+> I added a word about non-impact in the commit message of [1/3].
+>
+>>> +static void glue_dirs_release_dummy(struct kobject *kobj)
+>>> +{
+>>> +	/*
+>>> +	 * The glue_dirs kset member of struct subsys_private is never
+>>> +	 * registered and thus, never unregistered.
+>>> +	 * This release function is a dummy to make kset_init() happy.
+>>> +	 */
+>>> +	pr_err(
+>>> +	"class (%p): unexpected kset_put() on glue_dirs, something is broken.",
+>>> +		container_of(kobj, struct subsys_private,
+>>> +				glue_dirs.kobj)->class);
+>>> +	dump_stack();
+>>
+>> How can this ever happen?
+>
+> Not at all. I'm not sure I understand you correctly here.
+> Do you strictly want to abandon the dummy releaser, or more specifically,
+> the dummy kobj_type?
+> For the moment, I turned the pr_err()/dump_stack() into a WARN() for the
+> sake of better style.
+>
+>>>  	if (error) {
+>>> -		kfree(cp);
+>>> +		/*
+>>> +		 * class->release() would be called by cp->subsys'
+>>> +		 * release function. Prevent this from happening in
+>>> +		 * the error case by zeroing cp->class out.
+>>> +		 */
+>>> +		cp->class = NULL;
+>>> +		cls->p = NULL;
+>>> +		kset_put(&cp->subsys);
+>>
+>> That seems pretty messy, why can't we allow the release to be called?  I
+>> don't think this is really correct :(
+>
+> At the moment, it is necessary. I've added [3/3] for the case that you
+> want cls->class_release() to get called from __class_register() on error.
+> In [3/3] you will also find the (few) callers expecting the behaviour as
+> it currently is.
+>
+>
+> Detailed changes from initial version to v2:
+> [1/3] lib/kobject: fix memory leak in error path of kset_create_and_add()
+> This one is the original patch with a few changes:
+> - added a word of non-impact to commit message
+> - use WARN() instead of open coded pr_error()/dump_stack() pair in
+>   struct class' glue_dirs' dummy class releaser.
+> - follow my own advice in the docstring of kset_register() and
+>   use kset_put() instead of kset_unregister() on error of
+>   kset_register() in ext4's ext4_init_sysfs() and ocfs2's mlog_sys_init().
+>
+> [2/3] drivers/base/class: __class_register(): make error behaviour consistent
+> This one is new and quite unrelated to the original patch.
+> Following the sidenote made in my last mail, it makes __class_register()
+> properly clean up after itself on error.
+>
+> [3/3] drivers/base/class: __class_register(): invoke class' releaser on failure
+> This one is new.
+> It addresses Greg K-H's comment on the initial version about the messiness
+> of avoiding to call class->class_release() from __class_register() on
+> error. Given the fact that I had to introduce an explicit
+> cls->class_release() in the early part when there is no kset object
+> available yet, I'm by no means sure that it is much less messy now and
+> that this patch is worth the trouble.
+> -> It is up to you to judge.
+> As there are enough people bothered already, I did not CC the people
+> suggested for this one by get_maintainer.pl: all of them are maintainers
+> of external subsystems and probably not particularly interested in
+> __class_register() and friends. I will do this as soon as
+> a decision for this patch has been made, perhaps in a separate thread.
