@@ -1,54 +1,48 @@
-From: Gang He <ghe@suse.com>
-Date: Wed, 24 Feb 2016 00:47:09 -0700
-Subject: [Ocfs2-devel] [PATCH] ocfs2: unlock inode if deleting inode
- from orphan fail
-In-Reply-To: <56CD1247.9020806@huawei.com>
-References: <56CD1247.9020806@huawei.com>
-Message-ID: <56CDD07D020000F90002AECF@relay2.provo.novell.com>
+From: mchristi at redhat.com <mchristi@redhat.com>
+Date: Wed, 24 Feb 2016 13:47:37 -0600
+Subject: [Ocfs2-devel] [PATCH 00/35 v4] separate operations from flags in
+	the bio/request structs
+Message-ID: <1456343292-14535-1-git-send-email-mchristi@redhat.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: linux-f2fs-devel@lists.sourceforge.net, linux-ext4@vger.kernel.org, konrad.wilk@oracle.com, drbd-dev@lists.linbit.com, philipp.reisner@linbit.com, lars.ellenberg@linbit.com, linux-raid@vger.kernel.org, dm-devel@redhat.com, linux-fsdevel@vger.kernel.org, linux-bcache@vger.kernel.org, linux-block@vger.kernel.org, linux-kernel@vger.kernel.org, linux-scsi@vger.kernel.org, linux-mtd@lists.infradead.org, target-devel@vger.kernel.org, linux-btrfs@vger.kernel.org, osd-dev@open-osd.org, xfs@oss.sgi.com, ocfs2-devel@oss.oracle.com
 
-looks good, thanks.
+The following patches begin to cleanup the request->cmd_flags and
+bio->bi_rw mess. We currently use cmd_flags to specify the operation,
+attributes and state of the request. For bi_rw we use it for similar
+info and also the priority but then also have another bi_flags field
+for state. At some point, we abused them so much we just made cmd_flags
+64 bits, so we could add more.
 
-Reviewed-by: Gang He <ghe@suse.com>
+The following patches seperate the operation (read, write discard,
+flush, etc) from cmd_flags/bi_rw.
 
+This patchset was made against linux-next from today Feb 24 2016
+(git tag next-20160224).
 
->>> 
-> From: Guozhonghua <guozhonghua@h3c.com>
-> 
-> When doing append direct io cleanup, if deleting inode fails, it goes
-> out without unlocking inode, which will cause the inode deadlock.
-> This issue was introduced by commit cf1776a9e834("ocfs2: fix a tiny
-> race when truncate dio orohaned entry").
-> 
-> Signed-off-by: Guozhonghua <guozhonghua@h3c.com>
-> Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
-> Cc: <stable@vger.kernel.org>	[4.2+]
-> ---
->  fs/ocfs2/aops.c | 1 +
->  1 file changed, 1 insertion(+)
-> 
-> diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-> index 7f60472..e6795c7 100644
-> --- a/fs/ocfs2/aops.c
-> +++ b/fs/ocfs2/aops.c
-> @@ -956,6 +956,7 @@ clean_orphan:
->  		tmp_ret = ocfs2_del_inode_from_orphan(osb, inode, di_bh,
->  				update_isize, end);
->  		if (tmp_ret < 0) {
-> +			ocfs2_inode_unlock(inode, 1);
->  			ret = tmp_ret;
->  			mlog_errno(ret);
->  			brelse(di_bh);
-> -- 
-> 1.8.4.3
-> 
-> 
-> 
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com 
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+I put a git tree here:
+https://github.com/mikechristie/linux-kernel.git
+
+v4:
+1. Rebased to current linux-next tree.
+
+v3:
+
+1. Used "=" instead of "|="  to setup bio bi_rw.
+2. Removed __get_request cmd_flags compat code.
+3. Merged initial dm related changes requested by Mike Snitzer.
+4. Fixed ubd kbuild errors in flush related patches.
+5. Fix 80 char col issues in several patches.
+6. Fix issue with one of the btrfs patches where it looks like I reverted
+a patch when trying to fix a merge error.
+
+v2
+
+1. Dropped arguments from submit_bio, and had callers setup
+bio.
+2. Add REQ_OP_FLUSH for request_fn users and renamed REQ_FLUSH
+to REQ_PREFLUSH for make_request_fn users.
+3. Dropped bio/rq_data_dir functions, and added a op_is_write
+function instead.
