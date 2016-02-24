@@ -1,39 +1,70 @@
-From: Joseph Qi <joseph.qi@huawei.com>
-Date: Wed, 24 Feb 2016 10:15:35 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: unlock inode if deleting inode from
-	orphan fail
-Message-ID: <56CD1247.9020806@huawei.com>
+From: Eric Ren <zren@suse.com>
+Date: Wed, 24 Feb 2016 11:30:41 +0800
+Subject: [Ocfs2-devel] ocfs2-test for v4.3 done
+In-Reply-To: <56CD0BEC.6040900@oracle.com>
+References: <56776B6B.2010208@oracle.com> <20151221135038.GA3194@laptop.ha>
+	<5678B6AC.1080005@oracle.com> <20160216095411.GA8125@laptop.ha>
+	<56C3D7DC.2030403@oracle.com> <20160219030124.GA4861@laptop.ha>
+	<56CD0BEC.6040900@oracle.com>
+Message-ID: <56CD23E1.1080707@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-From: Guozhonghua <guozhonghua@h3c.com>
+Hi Junxiao,
 
-When doing append direct io cleanup, if deleting inode fails, it goes
-out without unlocking inode, which will cause the inode deadlock.
-This issue was introduced by commit cf1776a9e834("ocfs2: fix a tiny
-race when truncate dio orohaned entry").
+On 02/24/2016 09:48 AM, Junxiao Bi wrote:
+> Hi Eric,
+>
+> On 02/19/2016 11:01 AM, Eric Ren wrote:
+>> Hi Junxiao,
+>>
+>> On Wed, Feb 17, 2016 at 10:15:56AM +0800, Junxiao Bi wrote:
+>>> Hi Eric,
+>>>
+>>> I remember i described it before, please search it on ocfs2-devel. For
+>>> ocfs2 env setup, please refer to README in ocfs2-test.
+>> Yes, you did. Actually, it's the  quoted paragraph below;-)
+>> Thanks, but more things what I really want to learn about are, such as:
+>> 1. git hook/auto control scripts, if it's OK to share;
+> Sure. Attached.
+>> 2. pain point and solution, for example, a latest tagged release kernel may
+>>     not compile successfully by `make defconfig` or `cp /boot/config-`uname -r``;
+>>     Or cannot boot up even if we've built kernel RPM and installed it.
+> That maybe because some config not enabled for your platform. I used xen
+> vm as test nodes, and use make xenconfig to generate .config and it
+> works well.
+>
+> There are two pain points for this test framework:
+> 1. auto bisect to spot regression issue.
+> 2. improve ocfs2-test speed.
+> Now it needs several days to done the test. Better split the test as
+> function test and stress test.
+>
+> Please think about it when build your test framework.
 
-Signed-off-by: Guozhonghua <guozhonghua@h3c.com>
-Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
-Cc: <stable@vger.kernel.org>	[4.2+]
----
- fs/ocfs2/aops.c | 1 +
- 1 file changed, 1 insertion(+)
+Thanks very much! I really appreciate your help;-)
 
-diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-index 7f60472..e6795c7 100644
---- a/fs/ocfs2/aops.c
-+++ b/fs/ocfs2/aops.c
-@@ -956,6 +956,7 @@ clean_orphan:
- 		tmp_ret = ocfs2_del_inode_from_orphan(osb, inode, di_bh,
- 				update_isize, end);
- 		if (tmp_ret < 0) {
-+			ocfs2_inode_unlock(inode, 1);
- 			ret = tmp_ret;
- 			mlog_errno(ret);
- 			brelse(di_bh);
--- 
-1.8.4.3
+Eric
+>
+> Thanks,
+> Junxiao.
+>>     Did you have this problem? Any suggestion;-) What I can think of is to try opensuse
+>>     tumbleweed distribution(a rolling release).
+>>
+>>> On 02/16/2016 05:54 PM, Eric Ren wrote:
+>>>> Hi Junxiao,
+>>>>
+>>>>> Four vm are used, one for git server, and the other three to build
+>>>>> kernel and run ocfs2 test. Tag a branch and push it to the git server,
+>>>>> the test will be started. The test cases to run can be set in tag message.
+>>>> Recently, I get free days and also want to setup automatic testing env for ocfs2.
+>>>> I'll use pcmk as cluster stack while you probably use o2cb. I think we can complement
+>>>> each other.  May I bother you to describe the work flow more specifically, or share
+>>>> experiences and references? That way it would save my life;-)
+>>>>
+>> Thanks!
+>> Eric
+>>
