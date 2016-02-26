@@ -1,88 +1,83 @@
-From: kbuild test robot <lkp@intel.com>
-Date: Thu, 25 Feb 2016 08:54:08 +0800
-Subject: [Ocfs2-devel] [PATCH 31/35] block,
-	fs: remove old REQ definitions.
-In-Reply-To: <1456343292-14535-32-git-send-email-mchristi@redhat.com>
-Message-ID: <201602250839.tv8OqUSP%fengguang.wu@intel.com>
+From: Junxiao Bi <junxiao.bi@oracle.com>
+Date: Fri, 26 Feb 2016 14:33:02 +0800
+Subject: [Ocfs2-devel] kernel panic on next-20160225
+Message-ID: <56CFF19E.4010003@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: linux-next@vger.kernel.org, "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>, Devel FS Linux <linux-fsdevel@vger.kernel.org>, Linux Kernel mailing list <linux-kernel@vger.kernel.org>
 
-Hi Mike,
+Hi,
 
-[auto build test WARNING on next-20160224]
-[cannot apply to dm/for-next v4.5-rc5 v4.5-rc4 v4.5-rc3 v4.5-rc5]
-[if your patch is applied to the wrong git tree, please drop us a note to help improving the system]
+The following panic is triggered when run ocfs2 xattr test on
+linux-next-20160225. Did anybody ever see this?
 
-url:    https://github.com/0day-ci/linux/commits/mchristi-redhat-com/separate-operations-from-flags-in-the-bio-request-structs/20160225-041726
-config: i386-allmodconfig (attached as .config)
-reproduce:
-        # save the attached .config to linux build tree
-        make ARCH=i386 
+[  254.604228] BUG: unable to handle kernel paging request at
+00000002000800c0
+[  254.605013] IP: [<ffffffff81192978>] kmem_cache_alloc+0x78/0x160
+[  254.605013] PGD 7bbe5067 PUD 0
+[  254.605013] Oops: 0000 [#1] SMP
+[  254.605013] Modules linked in: ocfs2_dlmfs ocfs2_stack_o2cb ocfs2_dlm
+ocfs2_nodemanager ocfs2_stackglue iscsi_tcp libiscsi_tcp libiscsi
+scsi_transport_iscsi xen_kbdfront xen_netfront xen_fbfront xen_blkfront
+[  254.605013] CPU: 2 PID: 4044 Comm: mpirun Not tainted
+4.5.0-rc5-next-20160225 #1
+[  254.605013] Hardware name: Xen HVM domU, BIOS 4.3.1OVM 05/14/2014
+[  254.605013] task: ffff88007a521a80 ti: ffff88007aed0000 task.ti:
+ffff88007aed0000
+[  254.605013] RIP: 0010:[<ffffffff81192978>]  [<ffffffff81192978>]
+kmem_cache_alloc+0x78/0x160
+[  254.605013] RSP: 0018:ffff88007aed3a48  EFLAGS: 00010282
+[  254.605013] RAX: 0000000000000000 RBX: 0000000000000000 RCX:
+0000000000001991
+[  254.605013] RDX: 0000000000001990 RSI: 00000000024000c0 RDI:
+000000000001b330
+[  254.605013] RBP: ffff88007aed3a98 R08: ffff88007d29b330 R09:
+00000002000800c0
+[  254.605013] R10: 0000000c51376d87 R11: ffff8800792cac38 R12:
+ffff88007cc30f00
+[  254.605013] R13: 00000000024000c0 R14: ffffffff811b053f R15:
+ffff88007aed3ce7
+[  254.605013] FS:  0000000000000000(0000) GS:ffff88007d280000(0000)
+knlGS:0000000000000000
+[  254.605013] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[  254.605013] CR2: 00000002000800c0 CR3: 000000007aeb2000 CR4:
+00000000000406e0
+[  254.605013] Stack:
+[  254.605013]  0000000013082000 ffff88007aed3d28 0000007900000000
+0000000000000001
+[  254.605013]  2f2f2f2f00000000 ffff8800792cac00 ffff88007aed3d38
+0000000000000101
+[  254.605013]  ffff88007a5e2000 ffff88007aed3ce7 ffff88007aed3b08
+ffffffff811b053f
+[  254.605013] Call Trace:
+[  254.605013]  [<ffffffff811b053f>] __d_alloc+0x2f/0x1a0
+[  254.605013]  [<ffffffff811a58f2>] ? unlazy_walk+0xe2/0x160
+[  254.605013]  [<ffffffff811b1c67>] d_alloc+0x17/0x80
+[  254.605013]  [<ffffffff811a5b0a>] lookup_dcache+0x8a/0xc0
+[  254.605013]  [<ffffffff81143e63>] ? __alloc_pages_nodemask+0x173/0xeb0
+[  254.605013]  [<ffffffff811aa523>] path_openat+0x3c3/0x1210
+[  254.605013]  [<ffffffff81354eb3>] ? radix_tree_lookup_slot+0x13/0x30
+[  254.605013]  [<ffffffff81139002>] ? find_get_entry+0x32/0xc0
+[  254.605013]  [<ffffffff811b4065>] ? atime_needs_update+0x55/0xe0
+[  254.605013]  [<ffffffff8113b7a1>] ? filemap_fault+0xd1/0x4b0
+[  254.605013]  [<ffffffff81168296>] ? do_set_pte+0xb6/0x140
+[  254.605013]  [<ffffffff811ab3f0>] do_filp_open+0x80/0xe0
+[  254.605013]  [<ffffffff811b7c48>] ? __alloc_fd+0x48/0x1a0
+[  254.605013]  [<ffffffff811a60aa>] ? getname_flags+0x7a/0x1e0
+[  254.605013]  [<ffffffff8119a2d0>] do_sys_open+0x110/0x200
+[  254.605013]  [<ffffffff8119a3f9>] SyS_open+0x19/0x20
+[  254.605013]  [<ffffffff81003ec2>] do_syscall_64+0x72/0x230
+[  254.605013]  [<ffffffff8105fc37>] ? __do_page_fault+0x177/0x430
+[  254.605013]  [<ffffffff8193bc61>] entry_SYSCALL64_slow_path+0x25/0x25
+[  254.605013] Code: 05 e6 77 e7 7e 4d 8b 08 49 8b 40 10 4d 85 c9 0f 84
+dd 00 00 00 48 85 c0 0f 84 d4 00 00 00 49 63 44 24 20 49 8b 3c 24 48 8d
+4a 01 <49> 8b 1c 01 4c 89 c8 65 48 0f c7 0f 0f 94 c0 3c 01 75 b6 49 63
+[  254.605013] RIP  [<ffffffff81192978>] kmem_cache_alloc+0x78/0x160
+[  254.605013]  RSP <ffff88007aed3a48>
+[  254.605013] CR2: 00000002000800c0
+[  254.792273] ---[ end trace 823969e602e4aaac ]---
 
-All warnings (new ones prefixed by >>):
-
-   In file included from include/linux/pagemap.h:8:0,
-                    from fs/crypto/crypto.c:24:
-   fs/crypto/crypto.c: In function 'fscrypt_zeroout_range':
->> include/linux/fs.h:198:19: warning: passing argument 1 of 'submit_bio_wait' makes pointer from integer without a cast [-Wint-conversion]
-    #define RW_MASK   REQ_OP_WRITE
-                      ^
-   include/linux/fs.h:202:17: note: in expansion of macro 'RW_MASK'
-    #define WRITE   RW_MASK
-                    ^
-   fs/crypto/crypto.c:325:25: note: in expansion of macro 'WRITE'
-      err = submit_bio_wait(WRITE, bio);
-                            ^
-   In file included from fs/crypto/crypto.c:29:0:
-   include/linux/bio.h:449:12: note: expected 'struct bio *' but argument is of type 'int'
-    extern int submit_bio_wait(struct bio *bio);
-               ^
-   fs/crypto/crypto.c:325:9: error: too many arguments to function 'submit_bio_wait'
-      err = submit_bio_wait(WRITE, bio);
-            ^
-   In file included from fs/crypto/crypto.c:29:0:
-   include/linux/bio.h:449:12: note: declared here
-    extern int submit_bio_wait(struct bio *bio);
-               ^
-
-vim +/submit_bio_wait +198 include/linux/fs.h
-
-   182	 * READA		Used for read-ahead operations. Lower priority, and the
-   183	 *			block layer could (in theory) choose to ignore this
-   184	 *			request if it runs into resource problems.
-   185	 * WRITE		A normal async write. Device will be plugged.
-   186	 * WRITE_SYNC		Synchronous write. Identical to WRITE, but passes down
-   187	 *			the hint that someone will be waiting on this IO
-   188	 *			shortly. The write equivalent of READ_SYNC.
-   189	 * WRITE_ODIRECT	Special case write for O_DIRECT only.
-   190	 * WRITE_FLUSH		Like WRITE_SYNC but with preceding cache flush.
-   191	 * WRITE_FUA		Like WRITE_SYNC but data is guaranteed to be on
-   192	 *			non-volatile media on completion.
-   193	 * WRITE_FLUSH_FUA	Combination of WRITE_FLUSH and FUA. The IO is preceded
-   194	 *			by a cache flush and data is guaranteed to be on
-   195	 *			non-volatile media on completion.
-   196	 *
-   197	 */
- > 198	#define RW_MASK			REQ_OP_WRITE
-   199	#define RWA_MASK		REQ_RAHEAD
-   200	
-   201	#define READ			REQ_OP_READ
-   202	#define WRITE			RW_MASK
-   203	#define READA			RWA_MASK
-   204	
-   205	#define READ_SYNC		REQ_SYNC
-   206	#define WRITE_SYNC		(REQ_SYNC | REQ_NOIDLE)
-
----
-0-DAY kernel test infrastructure                Open Source Technology Center
-https://lists.01.org/pipermail/kbuild-all                   Intel Corporation
--------------- next part --------------
-A non-text attachment was scrubbed...
-Name: .config.gz
-Type: application/octet-stream
-Size: 54079 bytes
-Desc: not available
-Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20160225/97d040ba/attachment-0001.obj 
+Thanks,
+Junxiao.
