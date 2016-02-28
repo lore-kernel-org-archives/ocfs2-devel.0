@@ -1,57 +1,27 @@
-From: Nicholas A. Bellinger <nab@linux-iscsi.org>
-Date: Sat, 27 Feb 2016 15:22:22 -0800
+From: Christoph Hellwig <hch@lst.de>
+Date: Sun, 28 Feb 2016 14:09:33 +0100
 Subject: [Ocfs2-devel] [PATCH] configfs: switch ->default groups to a
 	linked list
-In-Reply-To: <1456490031-7132-1-git-send-email-hch@lst.de>
+In-Reply-To: <56D2D2E2.3000200@dev.mellanox.co.il>
 References: <1456490031-7132-1-git-send-email-hch@lst.de>
-Message-ID: <1456615342.1750.49.camel@haakon3.risingtidesystems.com>
+	<56D2D2E2.3000200@dev.mellanox.co.il>
+Message-ID: <20160228130933.GA21578@lst.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Christoph Hellwig <hch@lst.de>
-Cc: jlbec@evilplan.org, balbi@kernel.org, laurent.pinchart@ideasonboard.com, target-devel@vger.kernel.org, linux-usb@vger.kernel.org, linux-rdma@vger.kernel.org, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
+To: Sagi Grimberg <sagig-LDSdmyG8hGV8YrgS2mwiifqBs+8SCbDb@public.gmane.org>
+Cc: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>, jlbec-aKy9MeLSZ9dg9hUCZPvPmw@public.gmane.org, balbi-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, laurent.pinchart-ryLnwIuWjnjg/C1BVhZhaw@public.gmane.org, target-devel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-usb-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-rdma-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, cluster-devel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, ocfs2-devel-N0ozoZBvEnrZJqsBc5GL+g@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 
-On Fri, 2016-02-26 at 13:33 +0100, Christoph Hellwig wrote:
-> Replace the current NULL-terminated array of default groups with a linked
-> list.  This gets rid of lots of nasty code to size and/or dynamically
-> allocate the array.
-> 
-> While we're at it also provide a conveniant helper to remove the default
-> groups.
-> 
-> Signed-off-by: Christoph Hellwig <hch@lst.de>
-> ---
->  Documentation/filesystems/configfs/configfs.txt |  11 +-
->  drivers/infiniband/core/cma_configfs.c          |  31 ++--
->  drivers/target/iscsi/iscsi_target_configfs.c    |  75 +++------
->  drivers/target/target_core_configfs.c           | 203 +++++-------------------
->  drivers/target/target_core_fabric_configfs.c    | 194 ++++++----------------
->  drivers/target/target_core_internal.h           |   1 -
->  drivers/target/target_core_stat.c               |  41 ++---
->  drivers/usb/gadget/configfs.c                   |  36 ++---
->  drivers/usb/gadget/function/f_mass_storage.c    |   6 +-
->  drivers/usb/gadget/function/f_rndis.c           |   1 -
->  drivers/usb/gadget/function/uvc_configfs.c      | 198 +++++++++--------------
->  fs/configfs/dir.c                               |  44 +++--
->  fs/configfs/item.c                              |   1 +
->  fs/dlm/config.c                                 |  38 +----
->  fs/ocfs2/cluster/nodemanager.c                  |  22 +--
->  include/linux/configfs.h                        |  11 +-
->  include/target/target_core_base.h               |   3 -
->  17 files changed, 284 insertions(+), 632 deletions(-)
-> 
+On Sun, Feb 28, 2016 at 12:58:42PM +0200, Sagi Grimberg wrote:
+>> -As a consequence of this, default_groups cannot be removed directly via
+>> +As a consequence of this, default groups cannot be removed directly via
+>>   rmdir(2).  They also are not considered when rmdir(2) on the parent
+>>   group is checking for children.
+>>
+>
+> What's changed here?
 
-This is a very nice simplification to drop the long-standing fixed size
-->default_groups[] usage tree-wide for configfs consumers.
-
-For the target parts:
-
-Acked-by: Nicholas Bellinger <nab@linux-iscsi.org>
-
-Also, this applies cleanly to target-pending/for-next, so I don't see a
-problem merging it up via your new configfs tree.
-
-Otherwise let me know, and I'll be happy to merge via target-pending.
-
-Thanks HCH.
+I removed the underscore in default_groups - while we still have
+a member of that name it's not exposed directly anymore, so I'd rather
+not have the documentation refer to it.
