@@ -1,10 +1,10 @@
 From: Gang He <ghe@suse.com>
-Date: Mon, 29 Feb 2016 13:18:00 +0800
-Subject: [Ocfs2-devel] [PATCH v4 3/5] ocfs2: create/remove sysfile for
-	online file check
+Date: Mon, 29 Feb 2016 13:17:58 +0800
+Subject: [Ocfs2-devel] [PATCH v4 1/5] ocfs2: export ocfs2_kset for online
+	file check
 In-Reply-To: <1456723082-13838-1-git-send-email-ghe@suse.com>
 References: <1456723082-13838-1-git-send-email-ghe@suse.com>
-Message-ID: <1456723082-13838-4-git-send-email-ghe@suse.com>
+Message-ID: <1456723082-13838-2-git-send-email-ghe@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -12,44 +12,41 @@ Content-Transfer-Encoding: 7bit
 To: mfasheh@suse.com, rgoldwyn@suse.de, ghe@suse.com
 Cc: linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com, akpm@linux-foundation.org
 
-Create online file check sysfile when ocfs2 mount,
-remove the related sysfile when ocfs2 umount.
+Export ocfs2_kset object from ocfs2_stackglue kernel module,
+then online file check code will create the related sysfiles
+under ocfs2_kset object.
 
 Signed-off-by: Gang He <ghe@suse.com>
 Reviewed-by: Mark Fasheh <mfasheh@suse.de>
 ---
- fs/ocfs2/super.c | 5 +++++
- 1 file changed, 5 insertions(+)
+ fs/ocfs2/stackglue.c | 3 ++-
+ fs/ocfs2/stackglue.h | 2 ++
+ 2 files changed, 4 insertions(+), 1 deletion(-)
 
-diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-index 2de4c8a..5ef88b8 100644
---- a/fs/ocfs2/super.c
-+++ b/fs/ocfs2/super.c
-@@ -74,6 +74,7 @@
- #include "suballoc.h"
+diff --git a/fs/ocfs2/stackglue.c b/fs/ocfs2/stackglue.c
+index 5d965e8..13219ed 100644
+--- a/fs/ocfs2/stackglue.c
++++ b/fs/ocfs2/stackglue.c
+@@ -629,7 +629,8 @@ static struct attribute_group ocfs2_attr_group = {
+ 	.attrs = ocfs2_attrs,
+ };
  
- #include "buffer_head_io.h"
-+#include "filecheck.h"
+-static struct kset *ocfs2_kset;
++struct kset *ocfs2_kset;
++EXPORT_SYMBOL_GPL(ocfs2_kset);
  
- static struct kmem_cache *ocfs2_inode_cachep;
- struct kmem_cache *ocfs2_dquot_cachep;
-@@ -1204,6 +1205,9 @@ static int ocfs2_fill_super(struct super_block *sb, void *data, int silent)
- 	/* Start this when the mount is almost sure of being successful */
- 	ocfs2_orphan_scan_start(osb);
+ static void ocfs2_sysfs_exit(void)
+ {
+diff --git a/fs/ocfs2/stackglue.h b/fs/ocfs2/stackglue.h
+index 66334a3..f2dce10 100644
+--- a/fs/ocfs2/stackglue.h
++++ b/fs/ocfs2/stackglue.h
+@@ -298,4 +298,6 @@ void ocfs2_stack_glue_set_max_proto_version(struct ocfs2_protocol_version *max_p
+ int ocfs2_stack_glue_register(struct ocfs2_stack_plugin *plugin);
+ void ocfs2_stack_glue_unregister(struct ocfs2_stack_plugin *plugin);
  
-+	/* Create filecheck sysfile /sys/fs/ocfs2/<devname>/filecheck */
-+	ocfs2_filecheck_create_sysfs(sb);
++extern struct kset *ocfs2_kset;
 +
- 	return status;
- 
- read_super_error:
-@@ -1671,6 +1675,7 @@ static void ocfs2_put_super(struct super_block *sb)
- 
- 	ocfs2_sync_blockdev(sb);
- 	ocfs2_dismount_volume(sb, 0);
-+	ocfs2_filecheck_remove_sysfs(sb);
- }
- 
- static int ocfs2_statfs(struct dentry *dentry, struct kstatfs *buf)
+ #endif  /* STACKGLUE_H */
 -- 
 2.1.2
