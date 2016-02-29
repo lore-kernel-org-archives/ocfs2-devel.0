@@ -1,23 +1,21 @@
-From: Christoph Hellwig <hch@infradead.org>
-Date: Mon, 29 Feb 2016 09:13:39 -0800
+From: Mike Christie <michaelc@cs.wisc.edu>
+Date: Mon, 29 Feb 2016 11:30:22 -0600
 Subject: [Ocfs2-devel] [PATCH 00/35 v4] separate operations from flags
  in the bio/request structs
-In-Reply-To: <1456343292-14535-1-git-send-email-mchristi@redhat.com>
+In-Reply-To: <20160229171339.GA17755@infradead.org>
 References: <1456343292-14535-1-git-send-email-mchristi@redhat.com>
-Message-ID: <20160229171339.GA17755@infradead.org>
+	<20160229171339.GA17755@infradead.org>
+Message-ID: <56D4802E.3090507@cs.wisc.edu>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: mchristi@redhat.com
-Cc: linux-f2fs-devel@lists.sourceforge.net, linux-ext4@vger.kernel.org, konrad.wilk@oracle.com, drbd-dev@lists.linbit.com, philipp.reisner@linbit.com, lars.ellenberg@linbit.com, linux-raid@vger.kernel.org, dm-devel@redhat.com, linux-fsdevel@vger.kernel.org, linux-bcache@vger.kernel.org, linux-block@vger.kernel.org, linux-kernel@vger.kernel.org, linux-scsi@vger.kernel.org, linux-mtd@lists.infradead.org, target-devel@vger.kernel.org, linux-btrfs@vger.kernel.org, osd-dev@open-osd.org, xfs@oss.sgi.com, ocfs2-devel@oss.oracle.com
+To: Christoph Hellwig <hch@infradead.org>, mchristi@redhat.com
+Cc: linux-bcache@vger.kernel.org, linux-block@vger.kernel.org, xfs@oss.sgi.com, ocfs2-devel@oss.oracle.com, linux-scsi@vger.kernel.org, konrad.wilk@oracle.com, linux-kernel@vger.kernel.org, philipp.reisner@linbit.com, linux-f2fs-devel@lists.sourceforge.net, linux-raid@vger.kernel.org, dm-devel@redhat.com, target-devel@vger.kernel.org, linux-mtd@lists.infradead.org, osd-dev@open-osd.org, linux-fsdevel@vger.kernel.org, lars.ellenberg@linbit.com, linux-ext4@vger.kernel.org, linux-btrfs@vger.kernel.org, drbd-dev@lists.linbit.com
 
-Any reason you've dropped my ACK for the previous version?
+On 02/29/2016 11:13 AM, Christoph Hellwig wrote:
+> Any reason you've dropped my ACK for the previous version?
 
-Jens, is this something you're fine with?  Would be great to figure
-out a way to get this into 4.6.  There's probably going to be
-plenty of conflicts, so having some sort of stable base tree
-would be nice..
-
-(Talking about conflicts, seems like the block for-linus and for-next
-trees already conflict quite a bit..)
+Sorry. I think I accidentally dropped it when I rebased back over to
+linux-next. It looks like it only got stuck on the first patch. I will
+fix that up on the resend for those kbuild errors.
