@@ -1,40 +1,40 @@
-From: Sagi Grimberg <sagig@dev.mellanox.co.il>
-Date: Sun, 28 Feb 2016 12:58:42 +0200
-Subject: [Ocfs2-devel] [PATCH] configfs: switch ->default groups to a
-	linked list
-In-Reply-To: <1456490031-7132-1-git-send-email-hch@lst.de>
-References: <1456490031-7132-1-git-send-email-hch@lst.de>
-Message-ID: <56D2D2E2.3000200@dev.mellanox.co.il>
+From: Junxiao Bi <junxiao.bi@oracle.com>
+Date: Wed,  2 Mar 2016 15:56:06 +0800
+Subject: [Ocfs2-devel] ocfs2: o2hb: not fence self if storage down
+Message-ID: <1456905372-22313-1-git-send-email-junxiao.bi@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Christoph Hellwig <hch@lst.de>, jlbec@evilplan.org
-Cc: balbi@kernel.org, laurent.pinchart@ideasonboard.com, target-devel@vger.kernel.org, linux-usb@vger.kernel.org, linux-rdma@vger.kernel.org, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
+To: ocfs2-devel@oss.oracle.com
 
 
+Hi Mark,
 
-On 26/02/2016 14:33, Christoph Hellwig wrote:
-> Replace the current NULL-terminated array of default groups with a linked
-> list.  This gets rid of lots of nasty code to size and/or dynamically
-> allocate the array.
->
-> While we're at it also provide a conveniant helper to remove the default
-> groups.
->
-> Signed-off-by: Christoph Hellwig <hch@lst.de>
-> ---
+This serial of patches is to fix the issue that when storage down,
+all nodes will fence self due to write timeout.
+With this patch set, all nodes will keep going until storage back
+online, except if the following issue happens, then all nodes will
+do as before to fence self.
+1. io error got
+2. network between nodes down
+3. nodes panic
 
-Nice!
+---
+Changes from V1:
+- code style fix.
 
-> -As a consequence of this, default_groups cannot be removed directly via
-> +As a consequence of this, default groups cannot be removed directly via
->   rmdir(2).  They also are not considered when rmdir(2) on the parent
->   group is checking for children.
->
+Junxiao Bi (6):
+      ocfs2: o2hb: add negotiate timer
+      ocfs2: o2hb: add NEGO_TIMEOUT message
+      ocfs2: o2hb: add NEGOTIATE_APPROVE message
+      ocfs2: o2hb: add some user/debug log
+      ocfs2: o2hb: don't negotiate if last hb fail
+      ocfs2: o2hb: fix hb hung time
 
-What's changed here?
+fs/ocfs2/cluster/heartbeat.c |  180 ++++++++++++++++++++++++++++++++++++++++--
+ 1 file changed, 174 insertions(+), 6 deletions(-)
 
-Other than that, looks good
 
-Reviewed-by: Sagi Grimberg <sagig@mellanox.com>
+Thanks,
+Junxiao.
