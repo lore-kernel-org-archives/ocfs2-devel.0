@@ -1,58 +1,165 @@
 From: Joseph Qi <joseph.qi@huawei.com>
-Date: Wed, 2 Mar 2016 17:38:39 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: o2hb: remove useless force cast
-In-Reply-To: <1456905498-22495-1-git-send-email-junxiao.bi@oracle.com>
-References: <1456905498-22495-1-git-send-email-junxiao.bi@oracle.com>
-Message-ID: <56D6B49F.7030408@huawei.com>
+Date: Thu, 3 Mar 2016 09:07:20 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: fix a tiny race that leads file
+	system read-only
+In-Reply-To: <56D6B292.4050001@huawei.com>
+References: <56D6B292.4050001@huawei.com>
+Message-ID: <56D78E48.8010204@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 2016/3/2 15:58, Junxiao Bi wrote:
-> Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
-Looks good, thanks.
+On 2016/3/2 17:29, xuejiufei wrote:
+> when o2hb detect a node down, it first set the dead node to recovery
+> map and create ocfs2rec which will replay journal for dead node.
+> o2hb thread then call dlm_do_local_recovery_cleanup() to delete the
+> lock for dead node. After the lock of dead node is gone, locks for other
+> nodes can be granted and may modify the meta data without replaying
+> journal of the dead node. The detail is described as follows.
+> 
+>      N1                         N2                   N3(master)
+> modify the extent tree of
+> inode, and commit
+> dirty metadata to journal,
+> then goes down.
+>                                                  o2hb thread detects
+>                                                  N1 goes down, set
+>                                                  recovery map and
+>                                                  delete the lock of N1.
+> 
+>                                                  dlm_thread flush ast
+>                                                  for the lock of N2.
+>                         do not detect the death
+>                         of N1, so recovery map is
+>                         empty.
+> 
+>                         read inode from disk
+>                         without replaying
+>                         the journal of N1 and
+>                         modify the extent tree
+>                         of the inode that N1
+>                         had modified.
+>                                                  ocfs2rec recover the
+>                                                  journal of N1.
+>                                                  The modification of N2
+>                                                  is lost.
+> 
+> The modification of N1 and N2 are not serial, and it will lead to
+> read-only file system. We can set recovery_waiting flag to the lock
+> resource after delete the lock for dead node to prevent other node
+> from getting the lock before dlm recovery. After dlm recovery, the
+> recovery map on N2 is not empty, ocfs2_inode_lock_full_nested() will
+> wait for ocfs2 recovery.
+> 
+> Signed-off-by: Jiufei Xue <xuejiufei@huawei.com>
+
+Lockres $RECOVERY cannot be set the flag. So I agree that the flag is
+set in dlm_free_dead_locks which has already excluded lockres $RECOVERY.
+So this fix looks good to me.
 
 Reviewed-by: Joseph Qi <joseph.qi@huawei.com>
+
 > ---
->  fs/ocfs2/cluster/heartbeat.c |    8 ++++----
->  1 file changed, 4 insertions(+), 4 deletions(-)
+>  fs/ocfs2/dlm/dlmcommon.h   | 5 ++++-
+>  fs/ocfs2/dlm/dlmmaster.c   | 3 ++-
+>  fs/ocfs2/dlm/dlmrecovery.c | 8 ++++++++
+>  fs/ocfs2/dlm/dlmthread.c   | 6 ++++--
+>  4 files changed, 18 insertions(+), 4 deletions(-)
 > 
-> diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
-> index 8ec85cac894e..023c72d35498 100644
-> --- a/fs/ocfs2/cluster/heartbeat.c
-> +++ b/fs/ocfs2/cluster/heartbeat.c
-> @@ -1315,19 +1315,19 @@ static int o2hb_debug_open(struct inode *inode, struct file *file)
->  
->  	case O2HB_DB_TYPE_REGION_LIVENODES:
->  		spin_lock(&o2hb_live_lock);
-> -		reg = (struct o2hb_region *)db->db_data;
-> +		reg = db->db_data;
->  		memcpy(map, reg->hr_live_node_bitmap, db->db_size);
->  		spin_unlock(&o2hb_live_lock);
->  		break;
->  
->  	case O2HB_DB_TYPE_REGION_NUMBER:
-> -		reg = (struct o2hb_region *)db->db_data;
-> +		reg = db->db_data;
->  		out += snprintf(buf + out, PAGE_SIZE - out, "%d\n",
->  				reg->hr_region_num);
->  		goto done;
->  
->  	case O2HB_DB_TYPE_REGION_ELAPSED_TIME:
-> -		reg = (struct o2hb_region *)db->db_data;
-> +		reg = db->db_data;
->  		lts = reg->hr_last_timeout_start;
->  		/* If 0, it has never been set before */
->  		if (lts)
-> @@ -1336,7 +1336,7 @@ static int o2hb_debug_open(struct inode *inode, struct file *file)
->  		goto done;
->  
->  	case O2HB_DB_TYPE_REGION_PINNED:
-> -		reg = (struct o2hb_region *)db->db_data;
-> +		reg = db->db_data;
->  		out += snprintf(buf + out, PAGE_SIZE - out, "%u\n",
->  				!!reg->hr_item_pinned);
->  		goto done;
+> diff --git a/fs/ocfs2/dlm/dlmcommon.h b/fs/ocfs2/dlm/dlmcommon.h
+> index 68c607e..1276d91 100644
+> --- a/fs/ocfs2/dlm/dlmcommon.h
+> +++ b/fs/ocfs2/dlm/dlmcommon.h
+> @@ -282,6 +282,7 @@ static inline void __dlm_set_joining_node(struct dlm_ctxt *dlm,
+>  #define DLM_LOCK_RES_DROPPING_REF         0x00000040
+>  #define DLM_LOCK_RES_BLOCK_DIRTY          0x00001000
+>  #define DLM_LOCK_RES_SETREF_INPROG        0x00002000
+> +#define DLM_LOCK_RES_RECOVERY_WAITING     0x00004000
+> 
+>  /* max milliseconds to wait to sync up a network failure with a node death */
+>  #define DLM_NODE_DEATH_WAIT_MAX (5 * 1000)
+> @@ -789,7 +790,8 @@ __dlm_lockres_state_to_status(struct dlm_lock_resource *res)
+> 
+>  	assert_spin_locked(&res->spinlock);
+> 
+> -	if (res->state & DLM_LOCK_RES_RECOVERING)
+> +	if (res->state & (DLM_LOCK_RES_RECOVERING|
+> +			DLM_LOCK_RES_RECOVERY_WAITING))
+>  		status = DLM_RECOVERING;
+>  	else if (res->state & DLM_LOCK_RES_MIGRATING)
+>  		status = DLM_MIGRATING;
+> @@ -1009,6 +1011,7 @@ static inline void __dlm_wait_on_lockres(struct dlm_lock_resource *res)
+>  {
+>  	__dlm_wait_on_lockres_flags(res, (DLM_LOCK_RES_IN_PROGRESS|
+>  				    	  DLM_LOCK_RES_RECOVERING|
+> +					  DLM_LOCK_RES_RECOVERY_WAITING|
+>  					  DLM_LOCK_RES_MIGRATING));
+>  }
+> 
+> diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
+> index 9477d6e..12d385b 100644
+> --- a/fs/ocfs2/dlm/dlmmaster.c
+> +++ b/fs/ocfs2/dlm/dlmmaster.c
+> @@ -2432,7 +2432,8 @@ static int dlm_is_lockres_migrateable(struct dlm_ctxt *dlm,
+>  		return 0;
+> 
+>  	/* delay migration when the lockres is in RECOCERING state */
+> -	if (res->state & DLM_LOCK_RES_RECOVERING)
+> +	if (res->state & (DLM_LOCK_RES_RECOVERING|
+> +			DLM_LOCK_RES_RECOVERY_WAITING))
+>  		return 0;
+> 
+>  	if (res->owner != dlm->node_num)
+> diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
+> index b94a425..099714e 100644
+> --- a/fs/ocfs2/dlm/dlmrecovery.c
+> +++ b/fs/ocfs2/dlm/dlmrecovery.c
+> @@ -2163,6 +2163,13 @@ static void dlm_finish_local_lockres_recovery(struct dlm_ctxt *dlm,
+>  	for (i = 0; i < DLM_HASH_BUCKETS; i++) {
+>  		bucket = dlm_lockres_hash(dlm, i);
+>  		hlist_for_each_entry(res, bucket, hash_node) {
+> +			if (res->state & DLM_LOCK_RES_RECOVERY_WAITING) {
+> +				spin_lock(&res->spinlock);
+> +				res->state &= ~DLM_LOCK_RES_RECOVERY_WAITING;
+> +				spin_unlock(&res->spinlock);
+> +				wake_up(&res->wq);
+> +			}
+> +
+>  			if (!(res->state & DLM_LOCK_RES_RECOVERING))
+>  				continue;
+> 
+> @@ -2300,6 +2307,7 @@ static void dlm_free_dead_locks(struct dlm_ctxt *dlm,
+>  			     res->lockname.len, res->lockname.name, freed, dead_node);
+>  			__dlm_print_one_lock_resource(res);
+>  		}
+> +		res->state |= DLM_LOCK_RES_RECOVERY_WAITING;
+>  		dlm_lockres_clear_refmap_bit(dlm, res, dead_node);
+>  	} else if (test_bit(dead_node, res->refmap)) {
+>  		mlog(0, "%s:%.*s: dead node %u had a ref, but had "
+> diff --git a/fs/ocfs2/dlm/dlmthread.c b/fs/ocfs2/dlm/dlmthread.c
+> index c5f6c24..73c03be 100644
+> --- a/fs/ocfs2/dlm/dlmthread.c
+> +++ b/fs/ocfs2/dlm/dlmthread.c
+> @@ -106,7 +106,8 @@ int __dlm_lockres_unused(struct dlm_lock_resource *res)
+>  	if (!list_empty(&res->dirty) || res->state & DLM_LOCK_RES_DIRTY)
+>  		return 0;
+> 
+> -	if (res->state & DLM_LOCK_RES_RECOVERING)
+> +	if (res->state & (DLM_LOCK_RES_RECOVERING|
+> +			DLM_LOCK_RES_RECOVERY_WAITING))
+>  		return 0;
+> 
+>  	/* Another node has this resource with this node as the master */
+> @@ -700,7 +701,8 @@ static int dlm_thread(void *data)
+>  			 * dirty for a short while. */
+>  			BUG_ON(res->state & DLM_LOCK_RES_MIGRATING);
+>  			if (res->state & (DLM_LOCK_RES_IN_PROGRESS |
+> -					  DLM_LOCK_RES_RECOVERING)) {
+> +					  DLM_LOCK_RES_RECOVERING |
+> +					  DLM_LOCK_RES_RECOVERY_WAITING)) {
+>  				/* move it to the tail and keep going */
+>  				res->state &= ~DLM_LOCK_RES_DIRTY;
+>  				spin_unlock(&res->spinlock);
 > 
