@@ -1,36 +1,29 @@
-From: Jan Kara <jack@suse.cz>
-Date: Thu,  3 Mar 2016 15:14:22 +0100
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Fix return value from
-	ocfs2_page_mkwrite()
-Message-ID: <1457014462-32620-1-git-send-email-jack@suse.cz>
+From: Shichangkuo <shi.changkuo@h3c.com>
+Date: Fri, 4 Mar 2016 00:47:24 +0000
+Subject: [Ocfs2-devel]  [QUESTION] How to recover a deleted file?
+Message-ID: <D1E4D02760513D4B90DC3B40FF32AF355EE21FC1@H3CMLB14-EX.srv.huawei-3com.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-ocfs2_page_mkwrite() could mistakenly return error code instead of
-mkwrite status value. Fix it.
+Hi All,
+    I have removed a file which was very important to me by mistake. Does someone once encount a problem like this, and could the file be undeleted?
 
-Signed-off-by: Jan Kara <jack@suse.cz>
----
- fs/ocfs2/mmap.c | 4 ++++
- 1 file changed, 4 insertions(+)
-
-diff --git a/fs/ocfs2/mmap.c b/fs/ocfs2/mmap.c
-index 9581d190f6e1..77ebc2bc1cca 100644
---- a/fs/ocfs2/mmap.c
-+++ b/fs/ocfs2/mmap.c
-@@ -147,6 +147,10 @@ static int ocfs2_page_mkwrite(struct vm_area_struct *vma, struct vm_fault *vmf)
- 	ret = ocfs2_inode_lock(inode, &di_bh, 1);
- 	if (ret < 0) {
- 		mlog_errno(ret);
-+		if (ret == -ENOMEM)
-+			ret = VM_FAULT_OOM;
-+		else
-+			ret = VM_FAULT_SIGBUS;
- 		goto out;
- 	}
- 
--- 
-2.6.2
+Many thanks.
+Changkuo.Shi
+-------------------------------------------------------------------------------------------------------------------------------------
+????????????????????????????????????????
+????????????????????????????????????????
+????????????????????????????????????????
+???
+This e-mail and its attachments contain confidential information from H3C, which is
+intended only for the person or entity whose address is listed above. Any use of the
+information contained herein in any way (including, but not limited to, total or partial
+disclosure, reproduction, or dissemination) by persons other than the intended
+recipient(s) is prohibited. If you receive this e-mail in error, please notify the sender
+by phone or email immediately and delete it!
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20160304/9dcbc269/attachment.html 
