@@ -1,44 +1,78 @@
-From: jiangyiwen <jiangyiwen@huawei.com>
-Date: Mon, 28 Mar 2016 20:41:56 +0800
-Subject: [Ocfs2-devel] [patch 19/25] ocfs2: o2hb: add negotiate timer
-In-Reply-To: <56F887AB.8050005@oracle.com>
-References: <56f2f8b5.J89ZbuqS9aWdapr3%akpm@linux-foundation.org>
-	<56F355F7.2040004@oracle.com> <56F5F9C9.7040105@huawei.com>
-	<56F887AB.8050005@oracle.com>
-Message-ID: <56F92694.20204@huawei.com>
+From: Doug Ledford <dledford@redhat.com>
+Date: Fri, 11 Mar 2016 02:19:08 -0000
+Subject: [Ocfs2-devel] [PATCH] configfs: switch ->default groups to a
+	linked list
+In-Reply-To: <1456615342.1750.49.camel@haakon3.risingtidesystems.com>
+References: <1456490031-7132-1-git-send-email-hch@lst.de>
+	<1456615342.1750.49.camel@haakon3.risingtidesystems.com>
+Message-ID: <56E22B15.1030000@redhat.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: "Nicholas A. Bellinger" <nab@linux-iscsi.org>, Christoph Hellwig <hch@lst.de>
+Cc: jlbec@evilplan.org, balbi@kernel.org, laurent.pinchart@ideasonboard.com, target-devel@vger.kernel.org, linux-usb@vger.kernel.org, linux-rdma@vger.kernel.org, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
 
-On 2016/3/28 9:23, Junxiao Bi wrote:
-> Hi Yiwen,
-> 
-> On 03/26/2016 10:54 AM, jiangyiwen wrote:
->> Hi, Junxiao
->> This patch may have a problem. That is journal of every nodes become
->> abort when storage down, and then when storage up, because journal
->> has become abort, all of operations of metadata will fail. So how to
->> restore environment? panic or reset? how to trigger?
-> Journal aborted means io error was returned by storage, right?
-> If so, o2hb_thread should also get io error, in this case, nego process
-> will be bypassed, and nodes will be fenced at last, see "[patch 23/25]
-> ocfs2: o2hb: don't negotiate if last hb fail".
-> 
-> Thanks,
-> Junxiao.
+On 02/27/2016 06:22 PM, Nicholas A. Bellinger wrote:
+> On Fri, 2016-02-26 at 13:33 +0100, Christoph Hellwig wrote:
+>> Replace the current NULL-terminated array of default groups with a linked
+>> list.  This gets rid of lots of nasty code to size and/or dynamically
+>> allocate the array.
 >>
->> Thanks,
->> Yiwen Jiang.
+>> While we're at it also provide a conveniant helper to remove the default
+>> groups.
+>>
+>> Signed-off-by: Christoph Hellwig <hch@lst.de>
+>> ---
+>>  Documentation/filesystems/configfs/configfs.txt |  11 +-
+>>  drivers/infiniband/core/cma_configfs.c          |  31 ++--
+>>  drivers/target/iscsi/iscsi_target_configfs.c    |  75 +++------
+>>  drivers/target/target_core_configfs.c           | 203 +++++-------------------
+>>  drivers/target/target_core_fabric_configfs.c    | 194 ++++++----------------
+>>  drivers/target/target_core_internal.h           |   1 -
+>>  drivers/target/target_core_stat.c               |  41 ++---
+>>  drivers/usb/gadget/configfs.c                   |  36 ++---
+>>  drivers/usb/gadget/function/f_mass_storage.c    |   6 +-
+>>  drivers/usb/gadget/function/f_rndis.c           |   1 -
+>>  drivers/usb/gadget/function/uvc_configfs.c      | 198 +++++++++--------------
+>>  fs/configfs/dir.c                               |  44 +++--
+>>  fs/configfs/item.c                              |   1 +
+>>  fs/dlm/config.c                                 |  38 +----
+>>  fs/ocfs2/cluster/nodemanager.c                  |  22 +--
+>>  include/linux/configfs.h                        |  11 +-
+>>  include/target/target_core_base.h               |   3 -
+>>  17 files changed, 284 insertions(+), 632 deletions(-)
+>>
 > 
+> This is a very nice simplification to drop the long-standing fixed size
+> ->default_groups[] usage tree-wide for configfs consumers.
 > 
-> .
+> For the target parts:
 > 
-yes, you are right, sorry I don't see this patch before.
+> Acked-by: Nicholas Bellinger <nab@linux-iscsi.org>
 
-But I understand the results of storage down should return IO error
-rather than getting hang.
+For the (minor) RDMA parts:
 
-Thanks,
-Yiwen Jiang.
+Acked-by: Doug Ledford <dledford@redhat.com>
+
+> Also, this applies cleanly to target-pending/for-next, so I don't see a
+> problem merging it up via your new configfs tree.
+> 
+> Otherwise let me know, and I'll be happy to merge via target-pending.
+
+Given that it touches target more than anything else, I'm happy to see
+it merged through your tree.
+
+
+-- 
+Doug Ledford <dledford@redhat.com>
+              GPG KeyID: 0E572FDD
+
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 884 bytes
+Desc: OpenPGP digital signature
+Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20160311/f588aa7e/attachment.bin 
