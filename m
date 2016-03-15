@@ -1,40 +1,45 @@
-From: Joseph Qi <joseph.qi@huawei.com>
-Date: Mon, 14 Mar 2016 20:46:04 +0800
-Subject: [Ocfs2-devel] [PATCH V2] ocfs2/dlm: fix a variable overflow
-	problem in dlmdomain.c
-In-Reply-To: <56E6B161.1090707@huawei.com>
-References: <56E6B161.1090707@huawei.com>
-Message-ID: <56E6B28C.9030901@huawei.com>
+From: Shichangkuo <shi.changkuo@h3c.com>
+Date: Tue, 15 Mar 2016 01:55:10 +0000
+Subject: [Ocfs2-devel] Could the master return DLM_NORMAL when unlock
+ nonexistent locks from other node?
+Message-ID: <D1E4D02760513D4B90DC3B40FF32AF355EE2304D@H3CMLB14-EX.srv.huawei-3com.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 2016/3/14 20:41, piaojun wrote:
-> In dlm_send_join_cancels(), node is defined with type unsigned int, but
-> initialized with -1, this will lead variable overflow. Although this
-> won't cause any runtime problem, the code looks a little uncoordinated.
-> 
-> Signed-off-by: Jun Piao <piaojun@huawei.com>
-Thanks, Jun.
-Reviewed-by: Joseph Qi <joseph.qi@huawei.com>
+Hi all,
+    When NodeA want to unlock lock-res1, and it send message to NodeB, but in NodeB any lock queues (granted, converting, blocked) could not find this lock for some unknown reason, then NodeB reply DLM_IVLOCKID.
+    In this situation, NodeA bug. The detail is described as follows.
 
-> ---
->  dlm/dlmdomain.c | 2 +-
->  1 file changed, 1 insertion(+), 1 deletion(-)
-> 
-> diff --git a/dlm/dlmdomain.c b/dlm/dlmdomain.c
-> index 2ee7fe7..8cbf6e8 100644
-> --- a/dlm/dlmdomain.c
-> +++ b/dlm/dlmdomain.c
-> @@ -1396,7 +1396,7 @@ static int dlm_send_join_cancels(struct dlm_ctxt *dlm,
->  				 unsigned int map_size)
->  {
->  	int status, tmpstat;
-> -	unsigned int node;
-> +	int node;
-> 
->  	if (map_size != (BITS_TO_LONGS(O2NM_MAX_NODES) *
->  			 sizeof(unsigned long))) {
-> 
+        NODEA                                              NODEB
+ocfs2_drop_lock
+    ocfs2_dlm_unlock
+        o2cb_dlm_unlock
+            dlmunlock
+                dlmunlock_remote        ---->   send message to master
+                                                  dlm_unlock_lock_handler
+                                                      return DLM_IVLOCKID
+    BUG()
+
+I think it's no nessary to let NodeA bug, it just like we removed an nonexistent file.
+Could NodeB return DLM_NORMAL?
+
+Thanks
+Changkuo
+_______________________________________________
+Ocfs2-devel mailing list
+Ocfs2-devel at oss.oracle.com
+https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+-------------------------------------------------------------------------------------------------------------------------------------
+????????????????????????????????????????
+????????????????????????????????????????
+????????????????????????????????????????
+???
+This e-mail and its attachments contain confidential information from H3C, which is
+intended only for the person or entity whose address is listed above. Any use of the
+information contained herein in any way (including, but not limited to, total or partial
+disclosure, reproduction, or dissemination) by persons other than the intended
+recipient(s) is prohibited. If you receive this e-mail in error, please notify the sender
+by phone or email immediately and delete it!
