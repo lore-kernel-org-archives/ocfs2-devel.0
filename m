@@ -1,45 +1,69 @@
-From: Joseph Qi <joseph.qi@huawei.com>
-Date: Thu, 17 Mar 2016 17:23:21 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: clean up an unused variable
- 'wants_rotate' in ocfs2_truncate_rec
-In-Reply-To: <56EA74BF.7090201@huawei.com>
-References: <56EA74BF.7090201@huawei.com>
-Message-ID: <56EA7789.3070700@huawei.com>
+From: Shichangkuo <shi.changkuo@h3c.com>
+Date: Sat, 19 Mar 2016 11:24:55 +0000
+Subject: [Ocfs2-devel] Re Could the master return DLM_NORMAL when unlock
+ nonexistent locks from other node?
+Message-ID: <D1E4D02760513D4B90DC3B40FF32AF355EE239EA@H3CMLB14-EX.srv.huawei-3com.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 2016/3/17 17:11, piaojun wrote:
-> Clean up an unused variable 'wants_rotate' in ocfs2_truncate_rec.
-> 
-> Signed-off-by: Jun Piao <piaojun@huawei.com>
-Reviewed-by: Joseph Qi <joseph.qi@huawei.com>
+Hi Junxiao
+        Yes, we have already merged this patchset.
 
-> ---
->  alloc.c | 3 +--
->  1 file changed, 1 insertion(+), 2 deletions(-)
-> 
-> diff --git a/alloc.c b/alloc.c
-> index d002579..2b8b721 100644
-> --- a/alloc.c
-> +++ b/alloc.c
-> @@ -5334,7 +5334,7 @@ static int ocfs2_truncate_rec(handle_t *handle,
->  {
->  	int ret;
->  	u32 left_cpos, rec_range, trunc_range;
-> -	int wants_rotate = 0, is_rightmost_tree_rec = 0;
-> +	int is_rightmost_tree_rec = 0;
->  	struct super_block *sb = ocfs2_metadata_cache_get_super(et->et_ci);
->  	struct ocfs2_path *left_path = NULL;
->  	struct ocfs2_extent_list *el = path_leaf_el(path);
-> @@ -5431,7 +5431,6 @@ static int ocfs2_truncate_rec(handle_t *handle,
-> 
->  		memset(rec, 0, sizeof(*rec));
->  		ocfs2_cleanup_merge(el, index);
-> -		wants_rotate = 1;
-> 
->  		next_free = le16_to_cpu(el->l_next_free_rec);
->  		if (is_rightmost_tree_rec && next_free > 1) {
-> 
+On 03/15/2016 09:55 AM, Shichangkuo wrote:
+> Hi all,
+>     When NodeA want to unlock lock-res1, and it send message to NodeB, but in NodeB any lock queues (granted, converting, blocked) could not find this lock for some unknown reason, then NodeB reply DLM_IVLOCKID.
+>     In this situation, NodeA bug. The detail is described as follows.
+>
+>         NODEA                                              NODEB
+> ocfs2_drop_lock
+>     ocfs2_dlm_unlock
+>         o2cb_dlm_unlock
+>             dlmunlock
+>                 dlmunlock_remote        ---->   send message to master
+>                                                   dlm_unlock_lock_handler
+>                                                       return DLM_IVLOCKID
+>     BUG()
+>
+> I think it's no nessary to let NodeA bug, it just like we removed an nonexistent file.
+> Could NodeB return DLM_NORMAL?
+No. This is a lock inconsistent bug. What kernel version are you using?
+Please check whether patchset "ocfs2: o2net: don't shutdown connection when idle timeout" is there. Without this, this inconsistent lock can be triggered.
+
+Thanks,
+Junxiao.
+>
+> Thanks
+> Changkuo
+> _______________________________________________
+> Ocfs2-devel mailing list
+> Ocfs2-devel at oss.oracle.com
+> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+> ----------------------------------------------------------------------
+> ---------------------------------------------------------------
+> This e-mail and its attachments contain confidential information from
+> H3C, which is intended only for the person or entity whose address is
+> listed above. Any use of the information contained herein in any way
+> (including, but not limited to, total or partial disclosure,
+> reproduction, or dissemination) by persons other than the intended
+> recipient(s) is prohibited. If you receive this e-mail in error,
+> please notify the sender by phone or email immediately and delete it!
+> _______________________________________________
+> Ocfs2-devel mailing list
+> Ocfs2-devel at oss.oracle.com
+> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+>
+
+-------------------------------------------------------------------------------------------------------------------------------------
+????????????????????????????????????????
+????????????????????????????????????????
+????????????????????????????????????????
+???
+This e-mail and its attachments contain confidential information from H3C, which is
+intended only for the person or entity whose address is listed above. Any use of the
+information contained herein in any way (including, but not limited to, total or partial
+disclosure, reproduction, or dissemination) by persons other than the intended
+recipient(s) is prohibited. If you receive this e-mail in error, please notify the sender
+by phone or email immediately and delete it!
