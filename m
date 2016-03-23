@@ -1,7 +1,8 @@
 From: akpm at linux-foundation.org <akpm@linux-foundation.org>
-Date: Wed, 23 Mar 2016 13:12:06 -0700
-Subject: [Ocfs2-devel] [patch 08/25] ocfs2: code clean up for direct io
-Message-ID: <56f2f896.0VtEZG156dvTdkfW%akpm@linux-foundation.org>
+Date: Wed, 23 Mar 2016 13:12:09 -0700
+Subject: [Ocfs2-devel] [patch 09/25] ocfs2: fix ip_unaligned_aio deadlock
+ with dio work queue
+Message-ID: <56f2f899.3BIexEaPTpR1F6ZV%akpm@linux-foundation.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -9,19 +10,43 @@ Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
 From: Ryan Ding <ryan.ding@oracle.com>
-Subject: ocfs2: code clean up for direct io
+Subject: ocfs2: fix ip_unaligned_aio deadlock with dio work queue
 
-Clean up ocfs2_file_write_iter & ocfs2_prepare_inode_for_write:
-* remove append dio check: it will be checked in ocfs2_direct_IO()
-* remove file hole check: file hole is supported for now
-* remove inline data check: it will be checked in ocfs2_direct_IO()
-* remove the full_coherence check when append dio: we will get the inode_lock
-  in ocfs2_dio_get_block, there is no need to fall back to buffer io to ensure
-  the coherence semantics.
+In the current implementation of unaligned aio+dio, lock order behave as
+follow:
 
-Now the drop dio procedure is gone. :)
+in user process context:
+  -> call io_submit()
+    -> get i_mutex
+		<== window1
+      -> get ip_unaligned_aio
+        -> submit direct io to block device
+    -> release i_mutex
+  -> io_submit() return
 
-[akpm at linux-foundation.org: remove unused label]
+in dio work queue context(the work queue is created in __blockdev_direct_IO):
+  -> release ip_unaligned_aio
+		<== window2
+    -> get i_mutex
+      -> clear unwritten flag & change i_size
+    -> release i_mutex
+
+There is a limitation to the thread number of dio work queue.  256 at
+default.  If all 256 thread are in the above 'window2' stage, and there is
+a user process in the 'window1' stage, the system will became deadlock. 
+Since the user process hold i_mutex to wait ip_unaligned_aio lock, while
+there is a direct bio hold ip_unaligned_aio mutex who is waiting for a dio
+work queue thread to be schedule.  But all the dio work queue thread is
+waiting for i_mutex lock in 'window2'.
+
+This case only happened in a test which send a large number(more than 256)
+of aio at one io_submit() call.
+
+My design is to remove ip_unaligned_aio lock.  Change it to a sync io
+instead.  Just like ip_unaligned_aio lock, serialize the unaligned aio
+dio.
+
+[akpm at linux-foundation.org: remove OCFS2_IOCB_UNALIGNED_IO, per Junxiao Bi]
 Signed-off-by: Ryan Ding <ryan.ding@oracle.com>
 Reviewed-by: Junxiao Bi <junxiao.bi@oracle.com>
 Cc: Joseph Qi <joseph.qi@huawei.com>
@@ -30,277 +55,138 @@ Cc: Joel Becker <jlbec@evilplan.org>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- fs/ocfs2/file.c        |  138 +--------------------------------------
- fs/ocfs2/ocfs2_trace.h |   16 +---
- 2 files changed, 10 insertions(+), 144 deletions(-)
+ fs/ocfs2/aops.c  |    6 ------
+ fs/ocfs2/aops.h  |    8 --------
+ fs/ocfs2/file.c  |   27 +++++++++------------------
+ fs/ocfs2/inode.h |    3 ---
+ fs/ocfs2/super.c |    1 -
+ 5 files changed, 9 insertions(+), 36 deletions(-)
 
-diff -puN fs/ocfs2/file.c~ocfs2-code-clean-up-for-direct-io fs/ocfs2/file.c
---- a/fs/ocfs2/file.c~ocfs2-code-clean-up-for-direct-io
-+++ a/fs/ocfs2/file.c
-@@ -1381,44 +1381,6 @@ out:
- 	return ret;
- }
+diff -puN fs/ocfs2/aops.c~ocfs2-fix-ip_unaligned_aio-deadlock-with-dio-work-queue fs/ocfs2/aops.c
+--- a/fs/ocfs2/aops.c~ocfs2-fix-ip_unaligned_aio-deadlock-with-dio-work-queue
++++ a/fs/ocfs2/aops.c
+@@ -2391,12 +2391,6 @@ static int ocfs2_dio_end_io(struct kiocb
+ 	/* this io's submitter should not have unlocked this before we could */
+ 	BUG_ON(!ocfs2_iocb_is_rw_locked(iocb));
  
--/*
-- * Will look for holes and unwritten extents in the range starting at
-- * pos for count bytes (inclusive).
-- */
--static int ocfs2_check_range_for_holes(struct inode *inode, loff_t pos,
--				       size_t count)
--{
--	int ret = 0;
--	unsigned int extent_flags;
--	u32 cpos, clusters, extent_len, phys_cpos;
--	struct super_block *sb = inode->i_sb;
+-	if (ocfs2_iocb_is_unaligned_aio(iocb)) {
+-		ocfs2_iocb_clear_unaligned_aio(iocb);
 -
--	cpos = pos >> OCFS2_SB(sb)->s_clustersize_bits;
--	clusters = ocfs2_clusters_for_bytes(sb, pos + count) - cpos;
--
--	while (clusters) {
--		ret = ocfs2_get_clusters(inode, cpos, &phys_cpos, &extent_len,
--					 &extent_flags);
--		if (ret < 0) {
--			mlog_errno(ret);
--			goto out;
--		}
--
--		if (phys_cpos == 0 || (extent_flags & OCFS2_EXT_UNWRITTEN)) {
--			ret = 1;
--			break;
--		}
--
--		if (extent_len > clusters)
--			extent_len = clusters;
--
--		clusters -= extent_len;
--		cpos += extent_len;
+-		mutex_unlock(&OCFS2_I(inode)->ip_unaligned_aio);
 -	}
--out:
--	return ret;
--}
 -
- static int ocfs2_write_remove_suid(struct inode *inode)
- {
- 	int ret;
-@@ -2129,18 +2091,12 @@ out:
+ 	if (private)
+ 		ocfs2_dio_end_io_write(inode, private, offset, bytes);
  
- static int ocfs2_prepare_inode_for_write(struct file *file,
- 					 loff_t pos,
--					 size_t count,
--					 int appending,
--					 int *direct_io,
--					 int *has_refcount)
-+					 size_t count)
- {
- 	int ret = 0, meta_level = 0;
- 	struct dentry *dentry = file->f_path.dentry;
- 	struct inode *inode = d_inode(dentry);
- 	loff_t end;
--	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
--	int full_coherency = !(osb->s_mount_opt &
--		OCFS2_MOUNT_COHERENCY_BUFFERED);
+diff -puN fs/ocfs2/aops.h~ocfs2-fix-ip_unaligned_aio-deadlock-with-dio-work-queue fs/ocfs2/aops.h
+--- a/fs/ocfs2/aops.h~ocfs2-fix-ip_unaligned_aio-deadlock-with-dio-work-queue
++++ a/fs/ocfs2/aops.h
+@@ -84,7 +84,6 @@ static inline void ocfs2_iocb_set_rw_loc
+ enum ocfs2_iocb_lock_bits {
+ 	OCFS2_IOCB_RW_LOCK = 0,
+ 	OCFS2_IOCB_RW_LOCK_LEVEL,
+-	OCFS2_IOCB_UNALIGNED_IO,
+ 	OCFS2_IOCB_NUM_LOCKS
+ };
  
- 	/*
- 	 * We start with a read level meta lock and only jump to an ex
-@@ -2189,10 +2145,6 @@ static int ocfs2_prepare_inode_for_write
- 							       pos,
- 							       count,
- 							       &meta_level);
--			if (has_refcount)
--				*has_refcount = 1;
--			if (direct_io)
--				*direct_io = 0;
- 		}
+@@ -93,11 +92,4 @@ enum ocfs2_iocb_lock_bits {
+ #define ocfs2_iocb_rw_locked_level(iocb) \
+ 	test_bit(OCFS2_IOCB_RW_LOCK_LEVEL, (unsigned long *)&iocb->private)
  
- 		if (ret < 0) {
-@@ -2200,67 +2152,12 @@ static int ocfs2_prepare_inode_for_write
- 			goto out_unlock;
- 		}
- 
--		/*
--		 * Skip the O_DIRECT checks if we don't need
--		 * them.
--		 */
--		if (!direct_io || !(*direct_io))
--			break;
+-#define ocfs2_iocb_set_unaligned_aio(iocb) \
+-	set_bit(OCFS2_IOCB_UNALIGNED_IO, (unsigned long *)&iocb->private)
+-#define ocfs2_iocb_clear_unaligned_aio(iocb) \
+-	clear_bit(OCFS2_IOCB_UNALIGNED_IO, (unsigned long *)&iocb->private)
+-#define ocfs2_iocb_is_unaligned_aio(iocb) \
+-	test_bit(OCFS2_IOCB_UNALIGNED_IO, (unsigned long *)&iocb->private)
 -
--		/*
--		 * There's no sane way to do direct writes to an inode
--		 * with inline data.
--		 */
--		if (OCFS2_I(inode)->ip_dyn_features & OCFS2_INLINE_DATA_FL) {
--			*direct_io = 0;
--			break;
--		}
--
--		/*
--		 * Allowing concurrent direct writes means
--		 * i_size changes wouldn't be synchronized, so
--		 * one node could wind up truncating another
--		 * nodes writes.
--		 */
--		if (end > i_size_read(inode) && !full_coherency) {
--			*direct_io = 0;
--			break;
--		}
--
--		/*
--		 * Fallback to old way if the feature bit is not set.
--		 */
--		if (end > i_size_read(inode) &&
--				!ocfs2_supports_append_dio(osb)) {
--			*direct_io = 0;
--			break;
--		}
--
--		/*
--		 * We don't fill holes during direct io, so
--		 * check for them here. If any are found, the
--		 * caller will have to retake some cluster
--		 * locks and initiate the io as buffered.
--		 */
--		ret = ocfs2_check_range_for_holes(inode, pos, count);
--		if (ret == 1) {
--			/*
--			 * Fallback to old way if the feature bit is not set.
--			 * Otherwise try dio first and then complete the rest
--			 * request through buffer io.
--			 */
--			if (!ocfs2_supports_append_dio(osb))
--				*direct_io = 0;
--			ret = 0;
--		} else if (ret < 0)
--			mlog_errno(ret);
- 		break;
- 	}
- 
- out_unlock:
- 	trace_ocfs2_prepare_inode_for_write(OCFS2_I(inode)->ip_blkno,
--					    pos, appending, count,
--					    direct_io, has_refcount);
-+					    pos, count);
- 
- 	if (meta_level >= 0)
- 		ocfs2_inode_unlock(inode, meta_level);
-@@ -2272,18 +2169,16 @@ out:
- static ssize_t ocfs2_file_write_iter(struct kiocb *iocb,
- 				    struct iov_iter *from)
- {
--	int direct_io, appending, rw_level;
--	int can_do_direct, has_refcount = 0;
-+	int direct_io, rw_level;
- 	ssize_t written = 0;
- 	ssize_t ret;
--	size_t count = iov_iter_count(from), orig_count;
-+	size_t count = iov_iter_count(from);
- 	struct file *file = iocb->ki_filp;
- 	struct inode *inode = file_inode(file);
+ #endif /* OCFS2_FILE_H */
+diff -puN fs/ocfs2/file.c~ocfs2-fix-ip_unaligned_aio-deadlock-with-dio-work-queue fs/ocfs2/file.c
+--- a/fs/ocfs2/file.c~ocfs2-fix-ip_unaligned_aio-deadlock-with-dio-work-queue
++++ a/fs/ocfs2/file.c
+@@ -2178,7 +2178,7 @@ static ssize_t ocfs2_file_write_iter(str
  	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
  	int full_coherency = !(osb->s_mount_opt &
  			       OCFS2_MOUNT_COHERENCY_BUFFERED);
- 	int unaligned_dio = 0;
--	int dropped_dio = 0;
+-	int unaligned_dio = 0;
++	void *saved_ki_complete = NULL;
  	int append_write = ((iocb->ki_pos + count) >=
  			i_size_read(inode) ? 1 : 0);
  
-@@ -2296,12 +2191,10 @@ static ssize_t ocfs2_file_write_iter(str
- 	if (count == 0)
- 		return 0;
- 
--	appending = iocb->ki_flags & IOCB_APPEND ? 1 : 0;
- 	direct_io = iocb->ki_flags & IOCB_DIRECT ? 1 : 0;
- 
- 	inode_lock(inode);
- 
--relock:
- 	/*
- 	 * Concurrent O_DIRECT writes are allowed with
- 	 * mount_option "coherency=buffered".
-@@ -2334,7 +2227,6 @@ relock:
- 		ocfs2_inode_unlock(inode, 1);
- 	}
- 
--	orig_count = iov_iter_count(from);
- 	ret = generic_write_checks(iocb, from);
- 	if (ret <= 0) {
- 		if (ret)
-@@ -2343,9 +2235,7 @@ relock:
- 	}
- 	count = ret;
- 
--	can_do_direct = direct_io;
--	ret = ocfs2_prepare_inode_for_write(file, iocb->ki_pos, count, appending,
--					    &can_do_direct, &has_refcount);
-+	ret = ocfs2_prepare_inode_for_write(file, iocb->ki_pos, count);
- 	if (ret < 0) {
- 		mlog_errno(ret);
+@@ -2241,17 +2241,12 @@ static ssize_t ocfs2_file_write_iter(str
  		goto out;
-@@ -2354,22 +2244,6 @@ relock:
- 	if (direct_io && !is_sync_kiocb(iocb))
- 		unaligned_dio = ocfs2_is_io_unaligned(inode, count, iocb->ki_pos);
+ 	}
  
--	/*
--	 * We can't complete the direct I/O as requested, fall back to
--	 * buffered I/O.
--	 */
--	if (direct_io && !can_do_direct) {
--		ocfs2_rw_unlock(inode, rw_level);
+-	if (direct_io && !is_sync_kiocb(iocb))
+-		unaligned_dio = ocfs2_is_io_unaligned(inode, count, iocb->ki_pos);
 -
--		rw_level = -1;
--
--		direct_io = 0;
--		iocb->ki_flags &= ~IOCB_DIRECT;
--		iov_iter_reexpand(from, orig_count);
--		dropped_dio = 1;
--		goto relock;
--	}
--
- 	if (unaligned_dio) {
+-	if (unaligned_dio) {
++	if (direct_io && !is_sync_kiocb(iocb) &&
++	    ocfs2_is_io_unaligned(inode, count, iocb->ki_pos)) {
  		/*
- 		 * Wait on previous unaligned aio to complete before
-@@ -2405,7 +2279,7 @@ relock:
- 		goto no_sync;
+-		 * Wait on previous unaligned aio to complete before
+-		 * proceeding.
++		 * Make it a sync io if it's an unaligned aio.
+ 		 */
+-		mutex_lock(&OCFS2_I(inode)->ip_unaligned_aio);
+-		/* Mark the iocb as needing an unlock in ocfs2_dio_end_io */
+-		ocfs2_iocb_set_unaligned_aio(iocb);
++		saved_ki_complete = xchg(&iocb->ki_complete, NULL);
+ 	}
+ 
+ 	/* communicate with ocfs2_dio_end_io */
+@@ -2272,11 +2267,10 @@ static ssize_t ocfs2_file_write_iter(str
+ 	 */
+ 	if ((written == -EIOCBQUEUED) || (!ocfs2_iocb_is_rw_locked(iocb))) {
+ 		rw_level = -1;
+-		unaligned_dio = 0;
+ 	}
+ 
+ 	if (unlikely(written <= 0))
+-		goto no_sync;
++		goto out;
  
  	if (((file->f_flags & O_DSYNC) && !direct_io) ||
--	    IS_SYNC(inode) || dropped_dio) {
-+	    IS_SYNC(inode)) {
- 		ret = filemap_fdatawrite_range(file->f_mapping,
- 					       iocb->ki_pos - written,
- 					       iocb->ki_pos - 1);
-diff -puN fs/ocfs2/ocfs2_trace.h~ocfs2-code-clean-up-for-direct-io fs/ocfs2/ocfs2_trace.h
---- a/fs/ocfs2/ocfs2_trace.h~ocfs2-code-clean-up-for-direct-io
-+++ a/fs/ocfs2/ocfs2_trace.h
-@@ -1450,28 +1450,20 @@ DEFINE_OCFS2_ULL_ULL_ULL_EVENT(ocfs2_rem
+ 	    IS_SYNC(inode)) {
+@@ -2298,13 +2292,10 @@ static ssize_t ocfs2_file_write_iter(str
+ 						      iocb->ki_pos - 1);
+ 	}
  
- TRACE_EVENT(ocfs2_prepare_inode_for_write,
- 	TP_PROTO(unsigned long long ino, unsigned long long saved_pos,
--		 int appending, unsigned long count,
--		 int *direct_io, int *has_refcount),
--	TP_ARGS(ino, saved_pos, appending, count, direct_io, has_refcount),
-+		 unsigned long count),
-+	TP_ARGS(ino, saved_pos, count),
- 	TP_STRUCT__entry(
- 		__field(unsigned long long, ino)
- 		__field(unsigned long long, saved_pos)
--		__field(int, appending)
- 		__field(unsigned long, count)
--		__field(int, direct_io)
--		__field(int, has_refcount)
- 	),
- 	TP_fast_assign(
- 		__entry->ino = ino;
- 		__entry->saved_pos = saved_pos;
--		__entry->appending = appending;
- 		__entry->count = count;
--		__entry->direct_io = direct_io ? *direct_io : -1;
--		__entry->has_refcount = has_refcount ? *has_refcount : -1;
- 	),
--	TP_printk("%llu %llu %d %lu %d %d", __entry->ino,
--		  __entry->saved_pos, __entry->appending, __entry->count,
--		  __entry->direct_io, __entry->has_refcount)
-+	TP_printk("%llu %llu %lu", __entry->ino,
-+		  __entry->saved_pos, __entry->count)
- );
+-no_sync:
+-	if (unaligned_dio && ocfs2_iocb_is_unaligned_aio(iocb)) {
+-		ocfs2_iocb_clear_unaligned_aio(iocb);
+-		mutex_unlock(&OCFS2_I(inode)->ip_unaligned_aio);
+-	}
+-
+ out:
++	if (saved_ki_complete)
++		xchg(&iocb->ki_complete, saved_ki_complete);
++
+ 	if (rw_level != -1)
+ 		ocfs2_rw_unlock(inode, rw_level);
  
- DEFINE_OCFS2_INT_EVENT(generic_file_aio_read_ret);
+diff -puN fs/ocfs2/inode.h~ocfs2-fix-ip_unaligned_aio-deadlock-with-dio-work-queue fs/ocfs2/inode.h
+--- a/fs/ocfs2/inode.h~ocfs2-fix-ip_unaligned_aio-deadlock-with-dio-work-queue
++++ a/fs/ocfs2/inode.h
+@@ -43,9 +43,6 @@ struct ocfs2_inode_info
+ 	/* protects extended attribute changes on this inode */
+ 	struct rw_semaphore		ip_xattr_sem;
+ 
+-	/* Number of outstanding AIO's which are not page aligned */
+-	struct mutex			ip_unaligned_aio;
+-
+ 	/* These fields are protected by ip_lock */
+ 	spinlock_t			ip_lock;
+ 	u32				ip_open_count;
+diff -puN fs/ocfs2/super.c~ocfs2-fix-ip_unaligned_aio-deadlock-with-dio-work-queue fs/ocfs2/super.c
+--- a/fs/ocfs2/super.c~ocfs2-fix-ip_unaligned_aio-deadlock-with-dio-work-queue
++++ a/fs/ocfs2/super.c
+@@ -1747,7 +1747,6 @@ static void ocfs2_inode_init_once(void *
+ 	INIT_LIST_HEAD(&oi->ip_io_markers);
+ 	INIT_LIST_HEAD(&oi->ip_unwritten_list);
+ 	oi->ip_dir_start_lookup = 0;
+-	mutex_init(&oi->ip_unaligned_aio);
+ 	init_rwsem(&oi->ip_alloc_sem);
+ 	init_rwsem(&oi->ip_xattr_sem);
+ 	mutex_init(&oi->ip_io_mutex);
 _
