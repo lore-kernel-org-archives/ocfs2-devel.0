@@ -1,8 +1,8 @@
 From: akpm at linux-foundation.org <akpm@linux-foundation.org>
-Date: Wed, 23 Mar 2016 13:12:14 -0700
-Subject: [Ocfs2-devel] [patch 11/25] ocfs2: fix disk file size and memory
- file size mismatch
-Message-ID: <56f2f89e.wkDkM9XcWRQY+kqI%akpm@linux-foundation.org>
+Date: Wed, 23 Mar 2016 13:12:17 -0700
+Subject: [Ocfs2-devel] [patch 12/25] ocfs2: fix a deadlock issue in
+ ocfs2_dio_end_io_write()
+Message-ID: <56f2f8a1.WYrg+i2acWyEdmJ5%akpm@linux-foundation.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -10,13 +10,12 @@ Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
 From: Ryan Ding <ryan.ding@oracle.com>
-Subject: ocfs2: fix disk file size and memory file size mismatch
+Subject: ocfs2: fix a deadlock issue in ocfs2_dio_end_io_write()
 
-When doing append direct write in an already allocated cluster, and fast
-path in ocfs2_dio_get_block() is triggered, function
-ocfs2_dio_end_io_write() will be skipped as there is no context allocated.
- So disk file size will not be changed as it should be.  The solution is
-to skip fast path when we are about to change file size.
+Should call ocfs2_free_alloc_context() to free meta_ac & data_ac before
+calling ocfs2_run_deallocs().  Because ocfs2_run_deallocs() will acquire
+the system inode's i_mutex hold by meta_ac.  So try to release the lock
+before ocfs2_run_deallocs().
 
 Fixes: af1310367f41 ("ocfs2: fix sparse file & data ordering issue in direct io.")
 Signed-off-by: Ryan Ding <ryan.ding@oracle.com>
@@ -27,47 +26,40 @@ Cc: Joel Becker <jlbec@evilplan.org>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- fs/ocfs2/aops.c |   27 +++++++++++++++++----------
- 1 file changed, 17 insertions(+), 10 deletions(-)
+ fs/ocfs2/aops.c |   12 ++++++++----
+ 1 file changed, 8 insertions(+), 4 deletions(-)
 
-diff -puN fs/ocfs2/aops.c~ocfs2-fix-disk-file-size-and-memory-file-size-mismatch fs/ocfs2/aops.c
---- a/fs/ocfs2/aops.c~ocfs2-fix-disk-file-size-and-memory-file-size-mismatch
+diff -puN fs/ocfs2/aops.c~ocfs2-fix-a-deadlock-issue-in-ocfs2_dio_end_io_write fs/ocfs2/aops.c
+--- a/fs/ocfs2/aops.c~ocfs2-fix-a-deadlock-issue-in-ocfs2_dio_end_io_write
 +++ a/fs/ocfs2/aops.c
-@@ -2167,19 +2167,26 @@ static int ocfs2_dio_get_block(struct in
- 	mlog(0, "get block of %lu at %llu:%u req %u\n",
- 			inode->i_ino, pos, len, total_len);
+@@ -2341,6 +2341,10 @@ static void ocfs2_dio_end_io_write(struc
  
--	down_read(&oi->ip_alloc_sem);
--	/* This is the fast path for re-write. */
--	ret = ocfs2_get_block(inode, iblock, bh_result, create);
-+	/*
-+	 * Because we need to change file size in ocfs2_dio_end_io_write(), or
-+	 * we may need to add it to orphan dir. So can not fall to fast path
-+	 * while file size will be changed.
-+	 */
-+	if (pos + total_len <= i_size_read(inode)) {
-+		down_read(&oi->ip_alloc_sem);
-+		/* This is the fast path for re-write. */
-+		ret = ocfs2_get_block(inode, iblock, bh_result, create);
- 
--	up_read(&oi->ip_alloc_sem);
-+		up_read(&oi->ip_alloc_sem);
- 
--	if (buffer_mapped(bh_result) &&
--	    !buffer_new(bh_result) &&
--	    ret == 0)
--		goto out;
-+		if (buffer_mapped(bh_result) &&
-+		    !buffer_new(bh_result) &&
-+		    ret == 0)
-+			goto out;
- 
--	/* Clear state set by ocfs2_get_block. */
--	bh_result->b_state = 0;
-+		/* Clear state set by ocfs2_get_block. */
-+		bh_result->b_state = 0;
+ 	ret = ocfs2_lock_allocators(inode, &et, 0, dwc->dw_zero_count*2,
+ 				    &data_ac, &meta_ac);
++	if (ret) {
++		mlog_errno(ret);
++		goto unlock;
 +	}
  
- 	dwc = ocfs2_dio_alloc_write_ctx(bh_result, &first_get_block);
- 	if (unlikely(dwc == NULL)) {
+ 	credits = ocfs2_calc_extend_credits(inode->i_sb, &di->id2.i_list);
+ 
+@@ -2380,14 +2384,14 @@ unlock:
+ 	ocfs2_inode_unlock(inode, 1);
+ 	brelse(di_bh);
+ out:
+-	ocfs2_run_deallocs(osb, &dealloc);
+-	if (locked)
+-		mutex_unlock(&inode->i_mutex);
+-	ocfs2_dio_free_write_ctx(inode, dwc);
+ 	if (data_ac)
+ 		ocfs2_free_alloc_context(data_ac);
+ 	if (meta_ac)
+ 		ocfs2_free_alloc_context(meta_ac);
++	ocfs2_run_deallocs(osb, &dealloc);
++	if (locked)
++		mutex_unlock(&inode->i_mutex);
++	ocfs2_dio_free_write_ctx(inode, dwc);
+ }
+ 
+ /*
 _
