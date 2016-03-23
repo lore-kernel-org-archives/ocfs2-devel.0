@@ -1,8 +1,8 @@
 From: akpm at linux-foundation.org <akpm@linux-foundation.org>
-Date: Wed, 23 Mar 2016 13:12:20 -0700
-Subject: [Ocfs2-devel] [patch 13/25] ocfs2/dlm: fix race between convert and
-	recovery
-Message-ID: <56f2f8a4.kIIVWyzxHkbroR3G%akpm@linux-foundation.org>
+Date: Wed, 23 Mar 2016 13:12:23 -0700
+Subject: [Ocfs2-devel] [patch 14/25] ocfs2/dlm: fix BUG in
+ dlm_move_lockres_to_recovery_list
+Message-ID: <56f2f8a7.iq7Lv4ZelSHUyEqe%akpm@linux-foundation.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -10,42 +10,20 @@ Content-Transfer-Encoding: 7bit
 To: mfasheh@suse.de, jlbec@evilplan.org, junxiao.bi@oracle.com, joseph.qi@huawei.com, ocfs2-devel@oss.oracle.com, akpm@linux-foundation.org, jiangyiwen@huawei.com, stable@vger.kernel.org, tariq.x.saeed@oracle.com
 
 From: Joseph Qi <joseph.qi@huawei.com>
-Subject: ocfs2/dlm: fix race between convert and recovery
+Subject: ocfs2/dlm: fix BUG in dlm_move_lockres_to_recovery_list
 
-There is a race window between dlmconvert_remote and
-dlm_move_lockres_to_recovery_list, which will cause a lock with
-OCFS2_LOCK_BUSY in grant list, thus system hangs.
-
-dlmconvert_remote
-{
-        spin_lock(&res->spinlock);
-        list_move_tail(&lock->list, &res->converting);
-        lock->convert_pending = 1;
-        spin_unlock(&res->spinlock);
-
-        status = dlm_send_remote_convert_request();
-        >>>>>> race window, master has queued ast and return DLM_NORMAL,
-               and then down before sending ast.
-               this node detects master down and calls
-               dlm_move_lockres_to_recovery_list, which will revert the
-               lock to grant list.
-               Then OCFS2_LOCK_BUSY won't be cleared as new master won't
-               send ast any more because it thinks already be authorized.
-
-        spin_lock(&res->spinlock);
-        lock->convert_pending = 0;
-        if (status != DLM_NORMAL)
-                dlm_revert_pending_convert(res, lock);
-        spin_unlock(&res->spinlock);
-}
-
-In this case, check if res->state has DLM_LOCK_RES_RECOVERING bit set (res
-is still in recovering) or res master changed (new master has finished
-recovery), reset the status to DLM_RECOVERING, then it will retry convert.
+When master handles convert request, it queues ast first and then returns
+status.  This may happen that the ast is sent before the request status
+because the above two messages are sent by two threads.  And right after
+the ast is sent, if master down, it may trigger BUG in
+dlm_move_lockres_to_recovery_list in the requested node because ast
+handler moves it to grant list without clear lock->convert_pending.  So
+remove BUG_ON statement and check if the ast is processed in
+dlmconvert_remote.
 
 Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
 Reported-by: Yiwen Jiang <jiangyiwen@huawei.com>
-Reviewed-by: Junxiao Bi <junxiao.bi@oracle.com>
+Cc: Junxiao Bi <junxiao.bi@oracle.com>
 Cc: Mark Fasheh <mfasheh@suse.de>
 Cc: Joel Becker <jlbec@evilplan.org>
 Cc: Tariq Saeed <tariq.x.saeed@oracle.com>
@@ -54,39 +32,42 @@ Cc: <stable@vger.kernel.org>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- fs/ocfs2/dlm/dlmconvert.c |   11 ++++++++++-
- 1 file changed, 10 insertions(+), 1 deletion(-)
+ fs/ocfs2/dlm/dlmconvert.c  |   13 +++++++++++++
+ fs/ocfs2/dlm/dlmrecovery.c |    1 -
+ 2 files changed, 13 insertions(+), 1 deletion(-)
 
-diff -puN fs/ocfs2/dlm/dlmconvert.c~ocfs2-dlm-fix-race-between-convert-and-recovery fs/ocfs2/dlm/dlmconvert.c
---- a/fs/ocfs2/dlm/dlmconvert.c~ocfs2-dlm-fix-race-between-convert-and-recovery
+diff -puN fs/ocfs2/dlm/dlmconvert.c~ocfs2-dlm-fix-bug-in-dlm_move_lockres_to_recovery_list fs/ocfs2/dlm/dlmconvert.c
+--- a/fs/ocfs2/dlm/dlmconvert.c~ocfs2-dlm-fix-bug-in-dlm_move_lockres_to_recovery_list
 +++ a/fs/ocfs2/dlm/dlmconvert.c
-@@ -262,6 +262,7 @@ enum dlm_status dlmconvert_remote(struct
- 				  struct dlm_lock *lock, int flags, int type)
- {
- 	enum dlm_status status;
-+	u8 old_owner = res->owner;
- 
- 	mlog(0, "type=%d, convert_type=%d, busy=%d\n", lock->ml.type,
- 	     lock->ml.convert_type, res->state & DLM_LOCK_RES_IN_PROGRESS);
-@@ -316,11 +317,19 @@ enum dlm_status dlmconvert_remote(struct
- 	spin_lock(&res->spinlock);
- 	res->state &= ~DLM_LOCK_RES_IN_PROGRESS;
- 	lock->convert_pending = 0;
--	/* if it failed, move it back to granted queue */
-+	/* if it failed, move it back to granted queue.
-+	 * if master returns DLM_NORMAL and then down before sending ast,
-+	 * it may have already been moved to granted queue, reset to
-+	 * DLM_RECOVERING and retry convert */
- 	if (status != DLM_NORMAL) {
- 		if (status != DLM_NOTQUEUED)
- 			dlm_error(status);
- 		dlm_revert_pending_convert(res, lock);
-+	} else if ((res->state & DLM_LOCK_RES_RECOVERING) ||
-+			(old_owner != res->owner)) {
-+		mlog(0, "res %.*s is in recovering or has been recovered.\n",
-+				res->lockname.len, res->lockname.name);
-+		status = DLM_RECOVERING;
+@@ -288,6 +288,19 @@ enum dlm_status dlmconvert_remote(struct
+ 		status = DLM_DENIED;
+ 		goto bail;
  	}
- bail:
- 	spin_unlock(&res->spinlock);
++
++	if (lock->ml.type == type && lock->ml.convert_type == LKM_IVMODE) {
++		mlog(0, "last convert request returned DLM_RECOVERING, but "
++		     "owner has already queued and sent ast to me. res %.*s, "
++		     "(cookie=%u:%llu, type=%d, conv=%d)\n",
++		     res->lockname.len, res->lockname.name,
++		     dlm_get_lock_cookie_node(be64_to_cpu(lock->ml.cookie)),
++		     dlm_get_lock_cookie_seq(be64_to_cpu(lock->ml.cookie)),
++		     lock->ml.type, lock->ml.convert_type);
++		status = DLM_NORMAL;
++		goto bail;
++	}
++
+ 	res->state |= DLM_LOCK_RES_IN_PROGRESS;
+ 	/* move lock to local convert queue */
+ 	/* do not alter lock refcount.  switching lists. */
+diff -puN fs/ocfs2/dlm/dlmrecovery.c~ocfs2-dlm-fix-bug-in-dlm_move_lockres_to_recovery_list fs/ocfs2/dlm/dlmrecovery.c
+--- a/fs/ocfs2/dlm/dlmrecovery.c~ocfs2-dlm-fix-bug-in-dlm_move_lockres_to_recovery_list
++++ a/fs/ocfs2/dlm/dlmrecovery.c
+@@ -2083,7 +2083,6 @@ void dlm_move_lockres_to_recovery_list(s
+ 			dlm_lock_get(lock);
+ 			if (lock->convert_pending) {
+ 				/* move converting lock back to granted */
+-				BUG_ON(i != DLM_CONVERTING_LIST);
+ 				mlog(0, "node died with convert pending "
+ 				     "on %.*s. move back to granted list.\n",
+ 				     res->lockname.len, res->lockname.name);
 _
