@@ -1,73 +1,214 @@
 From: akpm at linux-foundation.org <akpm@linux-foundation.org>
-Date: Wed, 23 Mar 2016 13:12:23 -0700
-Subject: [Ocfs2-devel] [patch 14/25] ocfs2/dlm: fix BUG in
- dlm_move_lockres_to_recovery_list
-Message-ID: <56f2f8a7.iq7Lv4ZelSHUyEqe%akpm@linux-foundation.org>
+Date: Wed, 23 Mar 2016 13:12:25 -0700
+Subject: [Ocfs2-devel] [patch 15/25] ocfs2: extend transaction for
+ ocfs2_remove_rightmost_path() and ocfs2_update_edge_lengths() before to
+ avoid inconsistency between inode and et
+Message-ID: <56f2f8a9.ZdjpJIRXvNxZBTrR%akpm@linux-foundation.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: mfasheh@suse.de, jlbec@evilplan.org, junxiao.bi@oracle.com, joseph.qi@huawei.com, ocfs2-devel@oss.oracle.com, akpm@linux-foundation.org, jiangyiwen@huawei.com, stable@vger.kernel.org, tariq.x.saeed@oracle.com
+To: ocfs2-devel@oss.oracle.com
 
-From: Joseph Qi <joseph.qi@huawei.com>
-Subject: ocfs2/dlm: fix BUG in dlm_move_lockres_to_recovery_list
+From: Xue jiufei <xuejiufei@huawei.com>
+Subject: ocfs2: extend transaction for ocfs2_remove_rightmost_path() and ocfs2_update_edge_lengths() before to avoid inconsistency between inode and et
 
-When master handles convert request, it queues ast first and then returns
-status.  This may happen that the ast is sent before the request status
-because the above two messages are sent by two threads.  And right after
-the ast is sent, if master down, it may trigger BUG in
-dlm_move_lockres_to_recovery_list in the requested node because ast
-handler moves it to grant list without clear lock->convert_pending.  So
-remove BUG_ON statement and check if the ast is processed in
-dlmconvert_remote.
+I found that jbd2_journal_restart() is called in some places without
+keeping things consistently before.  However, jbd2_journal_restart() may
+commit the handle's transaction and restart another one.  If the first
+transaction is committed successfully while another not, it may cause
+filesystem inconsistency or read only.  This is an effort to fix this kind
+of problems.
 
-Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
-Reported-by: Yiwen Jiang <jiangyiwen@huawei.com>
-Cc: Junxiao Bi <junxiao.bi@oracle.com>
-Cc: Mark Fasheh <mfasheh@suse.de>
+
+This patch (of 3):
+
+The following functions will be called while truncating an extent:
+ocfs2_remove_btree_range
+  -> ocfs2_start_trans
+  -> ocfs2_remove_extent
+     -> ocfs2_truncate_rec
+       -> ocfs2_extend_rotate_transaction
+         -> jbd2_journal_restart if jbd2_journal_extend fail
+       -> ocfs2_rotate_tree_left
+         -> ocfs2_remove_rightmost_path
+             -> ocfs2_extend_rotate_transaction
+               -> ocfs2_unlink_subtree
+                -> ocfs2_update_edge_lengths
+                  -> ocfs2_extend_trans
+                    -> jbd2_journal_restart if jbd2_journal_extend fail
+  -> ocfs2_et_update_clusters
+  -> ocfs2_commit_trans
+
+jbd2_journal_restart() may be called and it may happened that the buffers
+dirtied in ocfs2_truncate_rec() are committed while buffers dirtied in
+ocfs2_et_update_clusters() are not, the total clusters on extent tree and
+i_clusters in ocfs2_dinode is inconsistency.  So the clusters got from
+ocfs2_dinode is incorrect, and it also cause read-only problem when call
+ocfs2_commit_truncate() with the error message: "Inode %llu has empty
+extent block at %llu".
+
+We should extend enough credits for function ocfs2_remove_rightmost_path
+and ocfs2_update_edge_lengths to avoid this inconsistency.
+
+Signed-off-by: joyce.xue <xuejiufei@huawei.com>
+Cc: Mark Fasheh <mfasheh@suse.com>
 Cc: Joel Becker <jlbec@evilplan.org>
-Cc: Tariq Saeed <tariq.x.saeed@oracle.com>
-Cc: Junxiao Bi <junxiao.bi@oracle.com>
-Cc: <stable@vger.kernel.org>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- fs/ocfs2/dlm/dlmconvert.c  |   13 +++++++++++++
- fs/ocfs2/dlm/dlmrecovery.c |    1 -
- 2 files changed, 13 insertions(+), 1 deletion(-)
+ fs/ocfs2/alloc.c |   82 +++++++++++++++++++++++++++++----------------
+ 1 file changed, 54 insertions(+), 28 deletions(-)
 
-diff -puN fs/ocfs2/dlm/dlmconvert.c~ocfs2-dlm-fix-bug-in-dlm_move_lockres_to_recovery_list fs/ocfs2/dlm/dlmconvert.c
---- a/fs/ocfs2/dlm/dlmconvert.c~ocfs2-dlm-fix-bug-in-dlm_move_lockres_to_recovery_list
-+++ a/fs/ocfs2/dlm/dlmconvert.c
-@@ -288,6 +288,19 @@ enum dlm_status dlmconvert_remote(struct
- 		status = DLM_DENIED;
- 		goto bail;
- 	}
+diff -puN fs/ocfs2/alloc.c~ocfs2-extend-transaction-for-ocfs2_remove_rightmost_path-and-ocfs2_update_edge_lengths-before-to-avoid-inconsistency-between-inode-and-et fs/ocfs2/alloc.c
+--- a/fs/ocfs2/alloc.c~ocfs2-extend-transaction-for-ocfs2_remove_rightmost_path-and-ocfs2_update_edge_lengths-before-to-avoid-inconsistency-between-inode-and-et
++++ a/fs/ocfs2/alloc.c
+@@ -2516,21 +2516,6 @@ static int ocfs2_update_edge_lengths(han
+ 	struct ocfs2_extent_block *eb;
+ 	u32 range;
+ 
+-	/*
+-	 * In normal tree rotation process, we will never touch the
+-	 * tree branch above subtree_index and ocfs2_extend_rotate_transaction
+-	 * doesn't reserve the credits for them either.
+-	 *
+-	 * But we do have a special case here which will update the rightmost
+-	 * records for all the bh in the path.
+-	 * So we have to allocate extra credits and access them.
+-	 */
+-	ret = ocfs2_extend_trans(handle, subtree_index);
+-	if (ret) {
+-		mlog_errno(ret);
+-		goto out;
+-	}
+-
+ 	ret = ocfs2_journal_access_path(et->et_ci, handle, path);
+ 	if (ret) {
+ 		mlog_errno(ret);
+@@ -2956,7 +2941,7 @@ static int __ocfs2_rotate_tree_left(hand
+ 		     right_path->p_node[subtree_root].bh->b_blocknr,
+ 		     right_path->p_tree_depth);
+ 
+-		ret = ocfs2_extend_rotate_transaction(handle, subtree_root,
++		ret = ocfs2_extend_rotate_transaction(handle, 0,
+ 						      orig_credits, left_path);
+ 		if (ret) {
+ 			mlog_errno(ret);
+@@ -3029,21 +3014,9 @@ static int ocfs2_remove_rightmost_path(h
+ 	struct ocfs2_extent_block *eb;
+ 	struct ocfs2_extent_list *el;
+ 
+-
+ 	ret = ocfs2_et_sanity_check(et);
+ 	if (ret)
+ 		goto out;
+-	/*
+-	 * There's two ways we handle this depending on
+-	 * whether path is the only existing one.
+-	 */
+-	ret = ocfs2_extend_rotate_transaction(handle, 0,
+-					      handle->h_buffer_credits,
+-					      path);
+-	if (ret) {
+-		mlog_errno(ret);
+-		goto out;
+-	}
+ 
+ 	ret = ocfs2_journal_access_path(et->et_ci, handle, path);
+ 	if (ret) {
+@@ -3641,6 +3614,14 @@ static int ocfs2_merge_rec_left(struct o
+ 		 */
+ 		if (le16_to_cpu(right_rec->e_leaf_clusters) == 0 &&
+ 		    le16_to_cpu(el->l_next_free_rec) == 1) {
++			/* extend credit for ocfs2_remove_rightmost_path */
++			ret = ocfs2_extend_rotate_transaction(handle, 0,
++					handle->h_buffer_credits,
++					right_path);
++			if (ret) {
++				mlog_errno(ret);
++				goto out;
++			}
+ 
+ 			ret = ocfs2_remove_rightmost_path(handle, et,
+ 							  right_path,
+@@ -3679,6 +3660,14 @@ static int ocfs2_try_to_merge_extent(han
+ 	BUG_ON(ctxt->c_contig_type == CONTIG_NONE);
+ 
+ 	if (ctxt->c_split_covers_rec && ctxt->c_has_empty_extent) {
++		/* extend credit for ocfs2_remove_rightmost_path */
++		ret = ocfs2_extend_rotate_transaction(handle, 0,
++				handle->h_buffer_credits,
++				path);
++		if (ret) {
++			mlog_errno(ret);
++			goto out;
++		}
+ 		/*
+ 		 * The merge code will need to create an empty
+ 		 * extent to take the place of the newly
+@@ -3727,6 +3716,15 @@ static int ocfs2_try_to_merge_extent(han
+ 		 */
+ 		BUG_ON(!ocfs2_is_empty_extent(&el->l_recs[0]));
+ 
++		/* extend credit for ocfs2_remove_rightmost_path */
++		ret = ocfs2_extend_rotate_transaction(handle, 0,
++					handle->h_buffer_credits,
++					path);
++		if (ret) {
++			mlog_errno(ret);
++			goto out;
++		}
 +
-+	if (lock->ml.type == type && lock->ml.convert_type == LKM_IVMODE) {
-+		mlog(0, "last convert request returned DLM_RECOVERING, but "
-+		     "owner has already queued and sent ast to me. res %.*s, "
-+		     "(cookie=%u:%llu, type=%d, conv=%d)\n",
-+		     res->lockname.len, res->lockname.name,
-+		     dlm_get_lock_cookie_node(be64_to_cpu(lock->ml.cookie)),
-+		     dlm_get_lock_cookie_seq(be64_to_cpu(lock->ml.cookie)),
-+		     lock->ml.type, lock->ml.convert_type);
-+		status = DLM_NORMAL;
-+		goto bail;
-+	}
+ 		/* The merge left us with an empty extent, remove it. */
+ 		ret = ocfs2_rotate_tree_left(handle, et, path, dealloc);
+ 		if (ret) {
+@@ -3748,6 +3746,15 @@ static int ocfs2_try_to_merge_extent(han
+ 			goto out;
+ 		}
+ 
++		/* extend credit for ocfs2_remove_rightmost_path */
++		ret = ocfs2_extend_rotate_transaction(handle, 0,
++				handle->h_buffer_credits,
++				path);
++		if (ret) {
++			mlog_errno(ret);
++			goto out;
++		}
 +
- 	res->state |= DLM_LOCK_RES_IN_PROGRESS;
- 	/* move lock to local convert queue */
- 	/* do not alter lock refcount.  switching lists. */
-diff -puN fs/ocfs2/dlm/dlmrecovery.c~ocfs2-dlm-fix-bug-in-dlm_move_lockres_to_recovery_list fs/ocfs2/dlm/dlmrecovery.c
---- a/fs/ocfs2/dlm/dlmrecovery.c~ocfs2-dlm-fix-bug-in-dlm_move_lockres_to_recovery_list
-+++ a/fs/ocfs2/dlm/dlmrecovery.c
-@@ -2083,7 +2083,6 @@ void dlm_move_lockres_to_recovery_list(s
- 			dlm_lock_get(lock);
- 			if (lock->convert_pending) {
- 				/* move converting lock back to granted */
--				BUG_ON(i != DLM_CONVERTING_LIST);
- 				mlog(0, "node died with convert pending "
- 				     "on %.*s. move back to granted list.\n",
- 				     res->lockname.len, res->lockname.name);
+ 		ret = ocfs2_rotate_tree_left(handle, et, path, dealloc);
+ 		/*
+ 		 * Error from this last rotate is not critical, so
+@@ -3783,6 +3790,16 @@ static int ocfs2_try_to_merge_extent(han
+ 		}
+ 
+ 		if (ctxt->c_split_covers_rec) {
++			/* extend credit for ocfs2_remove_rightmost_path */
++			ret = ocfs2_extend_rotate_transaction(handle, 0,
++					handle->h_buffer_credits,
++					path);
++			if (ret) {
++				mlog_errno(ret);
++				ret = 0;
++				goto out;
++			}
++
+ 			/*
+ 			 * The merge may have left an empty extent in
+ 			 * our leaf. Try to rotate it away.
+@@ -5342,6 +5359,15 @@ static int ocfs2_truncate_rec(handle_t *
+ 	struct ocfs2_extent_block *eb;
+ 
+ 	if (ocfs2_is_empty_extent(&el->l_recs[0]) && index > 0) {
++		/* extend credit for ocfs2_remove_rightmost_path */
++		ret = ocfs2_extend_rotate_transaction(handle, 0,
++				handle->h_buffer_credits,
++				path);
++		if (ret) {
++			mlog_errno(ret);
++			goto out;
++		}
++
+ 		ret = ocfs2_rotate_tree_left(handle, et, path, dealloc);
+ 		if (ret) {
+ 			mlog_errno(ret);
 _
