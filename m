@@ -1,10 +1,10 @@
 From: Joseph Qi <joseph.qi@huawei.com>
-Date: Thu, 24 Mar 2016 08:19:03 +0800
-Subject: [Ocfs2-devel] [patch 16/25] ocfs2: extend enough credits for
- freeing one truncate record while replaying truncate records
-In-Reply-To: <56f2f8ac.N+n2D5Y7sAdYO5d2%akpm@linux-foundation.org>
-References: <56f2f8ac.N+n2D5Y7sAdYO5d2%akpm@linux-foundation.org>
-Message-ID: <56F33277.9090605@huawei.com>
+Date: Thu, 24 Mar 2016 08:21:04 +0800
+Subject: [Ocfs2-devel] [patch 25/25] ocfs2/dlm: move lock to the tail of
+ grant queue while doing in-place convert
+In-Reply-To: <56f2f8c6.T/I6hGiWDdw2Uy0U%akpm@linux-foundation.org>
+References: <56f2f8c6.T/I6hGiWDdw2Uy0U%akpm@linux-foundation.org>
+Message-ID: <56F332F0.6070708@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -12,72 +12,59 @@ Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
 On 2016/3/24 4:12, akpm at linux-foundation.org wrote:
-> From: Xue jiufei <xuejiufei@huawei.com>
-> Subject: ocfs2: extend enough credits for freeing one truncate record while replaying truncate records
+> From: xuejiufei <xuejiufei@huawei.com>
+> Subject: ocfs2/dlm: move lock to the tail of grant queue while doing in-place convert
 > 
-> Now function ocfs2_replay_truncate_records() first modifies tl_used, then
-> calls ocfs2_extend_trans() to extend transactions for gd and alloc inode
-> used for freeing clusters.  jbd2_journal_restart() may be called and it
-> may happen that tl_used in truncate log is decreased but the clusters are
-> not freed, which means these clusters are lost.  So we should avoid
-> extending transactions in these two operations.
+> We have found a bug when two nodes doing umount one after another.
 > 
-> Signed-off-by: joyce.xue <xuejiufei@huawei.com>
-> Reviewed-by: Mark Fasheh <mfasheh@suse.de>
+> 1) Node 1 migrate a lockres that has 3 locks in grant queue such as
+>    N2(PR)<->N3(NL)<->N4(PR) to N2.  After migration, lvb of the lock
+>    N3(NL) and N4(PR) are empty on node 2 because migration target do not
+>    copy lvb to these two lock.
+> 
+> 2) Node 3 want to convert to PR, it can be granted in
+>    __dlmconvert_master(), and the order of these locks is unchanged.  The
+>    lvb of the lock N3(PR) on node 2 is copyed from lockres in function
+>    dlm_update_lvb() while the lvb of lock N4(PR) is still empty.
+> 
+> 3) Node 2 want to leave domain, it will migrate this lockres to node 3.
+>    Then node 2 will trigger the BUG in dlm_prepare_lvb_for_migration()
+>    when adding the lock N4(PR) to mres with the following message because
+>    the lvb of mres is already copied from lock N3(PR), but the lvb of lock
+>    N4(PR) is empty.
+> 
+> "Mismatched lvb in lock cookie=%u:%llu, name=%.*s, node=%u"
+> 
+> [akpm at linux-foundation.org: tweak comment]
+> Signed-off-by: xuejiufei <xuejiufei@huawei.com>
 Acked-by: Joseph Qi <joseph.qi@huawei.com>
 
+> Cc: Mark Fasheh <mfasheh@suse.de>
 > Cc: Joel Becker <jlbec@evilplan.org>
-> Cc: Joseph Qi <joseph.qi@huawei.com>
 > Cc: Junxiao Bi <junxiao.bi@oracle.com>
+> Cc: Joseph Qi <joseph.qi@huawei.com>
 > Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 > ---
 > 
->  fs/ocfs2/alloc.c |   19 ++++++++-----------
->  1 file changed, 8 insertions(+), 11 deletions(-)
+>  fs/ocfs2/dlm/dlmconvert.c |    6 ++++++
+>  1 file changed, 6 insertions(+)
 > 
-> diff -puN fs/ocfs2/alloc.c~extend-enough-credits-for-freeing-one-truncate-record-while-replaying-truncate-records fs/ocfs2/alloc.c
-> --- a/fs/ocfs2/alloc.c~extend-enough-credits-for-freeing-one-truncate-record-while-replaying-truncate-records
-> +++ a/fs/ocfs2/alloc.c
-> @@ -5954,16 +5954,6 @@ static int ocfs2_replay_truncate_records
+> diff -puN fs/ocfs2/dlm/dlmconvert.c~ocfs2-dlm-move-lock-to-the-tail-of-grant-queue-while-doing-in-place-convert fs/ocfs2/dlm/dlmconvert.c
+> --- a/fs/ocfs2/dlm/dlmconvert.c~ocfs2-dlm-move-lock-to-the-tail-of-grant-queue-while-doing-in-place-convert
+> +++ a/fs/ocfs2/dlm/dlmconvert.c
+> @@ -212,6 +212,12 @@ grant:
+>  	if (lock->lksb->flags & DLM_LKSB_PUT_LVB)
+>  		memcpy(res->lvb, lock->lksb->lvb, DLM_LVB_LEN);
 >  
->  		ocfs2_journal_dirty(handle, tl_bh);
->  
-> -		/* TODO: Perhaps we can calculate the bulk of the
-> -		 * credits up front rather than extending like
-> -		 * this. */
-> -		status = ocfs2_extend_trans(handle,
-> -					    OCFS2_TRUNCATE_LOG_FLUSH_ONE_REC);
-> -		if (status < 0) {
-> -			mlog_errno(status);
-> -			goto bail;
-> -		}
-> -
->  		rec = tl->tl_recs[i];
->  		start_blk = ocfs2_clusters_to_blocks(data_alloc_inode->i_sb,
->  						    le32_to_cpu(rec.t_start));
-> @@ -5984,6 +5974,13 @@ static int ocfs2_replay_truncate_records
->  				goto bail;
->  			}
->  		}
+> +	/*
+> +	 * Move the lock to the tail because it may be the only lock which has
+> +	 * an invalid lvb.
+> +	 */
+> +	list_move_tail(&lock->list, &res->granted);
 > +
-> +		status = ocfs2_extend_trans(handle,
-> +				OCFS2_TRUNCATE_LOG_FLUSH_ONE_REC);
-> +		if (status < 0) {
-> +			mlog_errno(status);
-> +			goto bail;
-> +		}
->  		i--;
->  	}
->  
-> @@ -6042,7 +6039,7 @@ int __ocfs2_flush_truncate_log(struct oc
->  		goto out_mutex;
->  	}
->  
-> -	handle = ocfs2_start_trans(osb, OCFS2_TRUNCATE_LOG_UPDATE);
-> +	handle = ocfs2_start_trans(osb, OCFS2_TRUNCATE_LOG_FLUSH_ONE_REC);
->  	if (IS_ERR(handle)) {
->  		status = PTR_ERR(handle);
->  		mlog_errno(status);
+>  	status = DLM_NORMAL;
+>  	*call_ast = 1;
+>  	goto unlock_exit;
 > _
 > 
 > .
