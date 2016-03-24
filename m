@@ -1,71 +1,169 @@
-From: Joseph Qi <joseph.qi@huawei.com>
-Date: Thu, 24 Mar 2016 08:21:04 +0800
-Subject: [Ocfs2-devel] [patch 25/25] ocfs2/dlm: move lock to the tail of
- grant queue while doing in-place convert
-In-Reply-To: <56f2f8c6.T/I6hGiWDdw2Uy0U%akpm@linux-foundation.org>
-References: <56f2f8c6.T/I6hGiWDdw2Uy0U%akpm@linux-foundation.org>
-Message-ID: <56F332F0.6070708@huawei.com>
+From: Junxiao Bi <junxiao.bi@oracle.com>
+Date: Thu, 24 Mar 2016 10:50:31 +0800
+Subject: [Ocfs2-devel] [patch 19/25] ocfs2: o2hb: add negotiate timer
+In-Reply-To: <56f2f8b5.J89ZbuqS9aWdapr3%akpm@linux-foundation.org>
+References: <56f2f8b5.J89ZbuqS9aWdapr3%akpm@linux-foundation.org>
+Message-ID: <56F355F7.2040004@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 2016/3/24 4:12, akpm at linux-foundation.org wrote:
-> From: xuejiufei <xuejiufei@huawei.com>
-> Subject: ocfs2/dlm: move lock to the tail of grant queue while doing in-place convert
-> 
-> We have found a bug when two nodes doing umount one after another.
-> 
-> 1) Node 1 migrate a lockres that has 3 locks in grant queue such as
->    N2(PR)<->N3(NL)<->N4(PR) to N2.  After migration, lvb of the lock
->    N3(NL) and N4(PR) are empty on node 2 because migration target do not
->    copy lvb to these two lock.
-> 
-> 2) Node 3 want to convert to PR, it can be granted in
->    __dlmconvert_master(), and the order of these locks is unchanged.  The
->    lvb of the lock N3(PR) on node 2 is copyed from lockres in function
->    dlm_update_lvb() while the lvb of lock N4(PR) is still empty.
-> 
-> 3) Node 2 want to leave domain, it will migrate this lockres to node 3.
->    Then node 2 will trigger the BUG in dlm_prepare_lvb_for_migration()
->    when adding the lock N4(PR) to mres with the following message because
->    the lvb of mres is already copied from lock N3(PR), but the lvb of lock
->    N4(PR) is empty.
-> 
-> "Mismatched lvb in lock cookie=%u:%llu, name=%.*s, node=%u"
-> 
-> [akpm at linux-foundation.org: tweak comment]
-> Signed-off-by: xuejiufei <xuejiufei@huawei.com>
-Acked-by: Joseph Qi <joseph.qi@huawei.com>
+This is v1 version, I sent out V2 patch set before to fix all code style
+issue.
 
+On 03/24/2016 04:12 AM, akpm at linux-foundation.org wrote:
+> From: Junxiao Bi <junxiao.bi@oracle.com>
+> Subject: ocfs2: o2hb: add negotiate timer
+> 
+> This series of patches is to fix the issue that when storage down, all
+> nodes will fence self due to write timeout.
+> 
+> With this patch set, all nodes will keep going until storage back online,
+> except if the following issue happens, then all nodes will do as before to
+> fence self.
+> 
+> 1. io error got
+> 2. network between nodes down
+> 3. nodes panic
+> 
+> 
+> This patch (of 6):
+> 
+> When storage down, all nodes will fence self due to write timeout.  The
+> negotiate timer is designed to avoid this, with it node will wait until
+> storage up again.
+> 
+> Negotiate timer working in the following way:
+> 
+> 1. The timer expires before write timeout timer, its timeout is half
+>    of write timeout now.  It is re-queued along with write timeout timer. 
+>    If expires, it will send NEGO_TIMEOUT message to master node(node with
+>    lowest node number).  This message does nothing but marks a bit in a
+>    bitmap recording which nodes are negotiating timeout on master node.
+> 
+> 2. If storage down, nodes will send this message to master node, then
+>    when master node finds its bitmap including all online nodes, it sends
+>    NEGO_APPROVL message to all nodes one by one, this message will
+>    re-queue write timeout timer and negotiate timer.  For any node doesn't
+>    receive this message or meets some issue when handling this message, it
+>    will be fenced.  If storage up at any time, o2hb_thread will run and
+>    re-queue all the timer, nothing will be affected by these two steps.
+> 
+> Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
+> Reviewed-by: Ryan Ding <ryan.ding@oracle.com>
+> Cc: Gang He <ghe@suse.com>
+> Cc: rwxybh <rwxybh@126.com>
 > Cc: Mark Fasheh <mfasheh@suse.de>
 > Cc: Joel Becker <jlbec@evilplan.org>
-> Cc: Junxiao Bi <junxiao.bi@oracle.com>
 > Cc: Joseph Qi <joseph.qi@huawei.com>
 > Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 > ---
 > 
->  fs/ocfs2/dlm/dlmconvert.c |    6 ++++++
->  1 file changed, 6 insertions(+)
+>  fs/ocfs2/cluster/heartbeat.c |   52 ++++++++++++++++++++++++++++++---
+>  1 file changed, 48 insertions(+), 4 deletions(-)
 > 
-> diff -puN fs/ocfs2/dlm/dlmconvert.c~ocfs2-dlm-move-lock-to-the-tail-of-grant-queue-while-doing-in-place-convert fs/ocfs2/dlm/dlmconvert.c
-> --- a/fs/ocfs2/dlm/dlmconvert.c~ocfs2-dlm-move-lock-to-the-tail-of-grant-queue-while-doing-in-place-convert
-> +++ a/fs/ocfs2/dlm/dlmconvert.c
-> @@ -212,6 +212,12 @@ grant:
->  	if (lock->lksb->flags & DLM_LKSB_PUT_LVB)
->  		memcpy(res->lvb, lock->lksb->lvb, DLM_LVB_LEN);
+> diff -puN fs/ocfs2/cluster/heartbeat.c~ocfs2-o2hb-add-negotiate-timer fs/ocfs2/cluster/heartbeat.c
+> --- a/fs/ocfs2/cluster/heartbeat.c~ocfs2-o2hb-add-negotiate-timer
+> +++ a/fs/ocfs2/cluster/heartbeat.c
+> @@ -272,6 +272,10 @@ struct o2hb_region {
+>  	struct delayed_work	hr_write_timeout_work;
+>  	unsigned long		hr_last_timeout_start;
 >  
-> +	/*
-> +	 * Move the lock to the tail because it may be the only lock which has
-> +	 * an invalid lvb.
-> +	 */
-> +	list_move_tail(&lock->list, &res->granted);
+> +	/* negotiate timer, used to negotiate extending hb timeout. */
+> +	struct delayed_work	hr_nego_timeout_work;
+> +	unsigned long		hr_nego_node_bitmap[BITS_TO_LONGS(O2NM_MAX_NODES)];
 > +
->  	status = DLM_NORMAL;
->  	*call_ast = 1;
->  	goto unlock_exit;
+>  	/* Used during o2hb_check_slot to hold a copy of the block
+>  	 * being checked because we temporarily have to zero out the
+>  	 * crc field. */
+> @@ -319,7 +323,7 @@ static void o2hb_write_timeout(struct wo
+>  	o2quo_disk_timeout();
+>  }
+>  
+> -static void o2hb_arm_write_timeout(struct o2hb_region *reg)
+> +static void o2hb_arm_timeout(struct o2hb_region *reg)
+>  {
+>  	/* Arm writeout only after thread reaches steady state */
+>  	if (atomic_read(&reg->hr_steady_iterations) != 0)
+> @@ -337,11 +341,50 @@ static void o2hb_arm_write_timeout(struc
+>  	reg->hr_last_timeout_start = jiffies;
+>  	schedule_delayed_work(&reg->hr_write_timeout_work,
+>  			      msecs_to_jiffies(O2HB_MAX_WRITE_TIMEOUT_MS));
+> +
+> +	cancel_delayed_work(&reg->hr_nego_timeout_work);
+> +	/* negotiate timeout must be less than write timeout. */
+> +	schedule_delayed_work(&reg->hr_nego_timeout_work,
+> +			      msecs_to_jiffies(O2HB_MAX_WRITE_TIMEOUT_MS)/2);
+> +	memset(reg->hr_nego_node_bitmap, 0, sizeof(reg->hr_nego_node_bitmap));
+>  }
+>  
+> -static void o2hb_disarm_write_timeout(struct o2hb_region *reg)
+> +static void o2hb_disarm_timeout(struct o2hb_region *reg)
+>  {
+>  	cancel_delayed_work_sync(&reg->hr_write_timeout_work);
+> +	cancel_delayed_work_sync(&reg->hr_nego_timeout_work);
+> +}
+> +
+> +static void o2hb_nego_timeout(struct work_struct *work)
+> +{
+> +	struct o2hb_region *reg =
+> +		container_of(work, struct o2hb_region,
+> +			     hr_nego_timeout_work.work);
+> +	unsigned long live_node_bitmap[BITS_TO_LONGS(O2NM_MAX_NODES)];
+> +	int master_node;
+> +
+> +	o2hb_fill_node_map(live_node_bitmap, sizeof(live_node_bitmap));
+> +	/* lowest node as master node to make negotiate decision. */
+> +	master_node = find_next_bit(live_node_bitmap, O2NM_MAX_NODES, 0);
+> +
+> +	if (master_node == o2nm_this_node()) {
+> +		set_bit(master_node, reg->hr_nego_node_bitmap);
+> +		if (memcmp(reg->hr_nego_node_bitmap, live_node_bitmap,
+> +				sizeof(reg->hr_nego_node_bitmap))) {
+> +			/* check negotiate bitmap every second to do timeout
+> +			 * approve decision.
+> +			 */
+> +			schedule_delayed_work(&reg->hr_nego_timeout_work,
+> +				msecs_to_jiffies(1000));
+> +
+> +			return;
+> +		}
+> +
+> +		/* approve negotiate timeout request. */
+> +	} else {
+> +		/* negotiate timeout with master node. */
+> +	}
+> +
+>  }
+>  
+>  static inline void o2hb_bio_wait_init(struct o2hb_bio_wait_ctxt *wc)
+> @@ -1032,7 +1075,7 @@ static int o2hb_do_disk_heartbeat(struct
+>  	/* Skip disarming the timeout if own slot has stale/bad data */
+>  	if (own_slot_ok) {
+>  		o2hb_set_quorum_device(reg);
+> -		o2hb_arm_write_timeout(reg);
+> +		o2hb_arm_timeout(reg);
+>  	}
+>  
+>  bail:
+> @@ -1114,7 +1157,7 @@ static int o2hb_thread(void *data)
+>  		}
+>  	}
+>  
+> -	o2hb_disarm_write_timeout(reg);
+> +	o2hb_disarm_timeout(reg);
+>  
+>  	/* unclean stop is only used in very bad situation */
+>  	for(i = 0; !reg->hr_unclean_stop && i < reg->hr_blocks; i++)
+> @@ -1763,6 +1806,7 @@ static ssize_t o2hb_region_dev_store(str
+>  	}
+>  
+>  	INIT_DELAYED_WORK(&reg->hr_write_timeout_work, o2hb_write_timeout);
+> +	INIT_DELAYED_WORK(&reg->hr_nego_timeout_work, o2hb_nego_timeout);
+>  
+>  	/*
+>  	 * A node is considered live after it has beat LIVE_THRESHOLD
 > _
-> 
-> .
 > 
