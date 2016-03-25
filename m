@@ -1,37 +1,33 @@
-From: Guozhonghua <guozhonghua@h3c.com>
-Date: Fri, 25 Mar 2016 08:22:53 +0000
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Error code comments and amendments.
- The comment of ocfs2_extended_slot should be 0x08.
-Message-ID: <71604351584F6A4EBAE558C676F37CA4829467DA@H3CMLB14-EX.srv.huawei-3com.com>
+From: Andrew Morton <akpm@linux-foundation.org>
+Date: Fri, 25 Mar 2016 12:36:35 -0700
+Subject: [Ocfs2-devel] [PATCH] ocfs2: clean up an unused variable
+ 'wants_rotate' in ocfs2_truncate_rec
+In-Reply-To: <56EA74BF.7090201@huawei.com>
+References: <56EA74BF.7090201@huawei.com>
+Message-ID: <20160325123635.9fd878212c3762c791773ce6@linux-foundation.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Error code comments and amendments. The comment of ocfs2_extended_slot should be 0x08.
+On Thu, 17 Mar 2016 17:11:27 +0800 piaojun <piaojun@huawei.com> wrote:
 
-Signed-off-by: Guozhonghua <guozhonghua@h3c.com>
+> Clean up an unused variable 'wants_rotate' in ocfs2_truncate_rec.
+> 
+> Signed-off-by: Jun Piao <piaojun@huawei.com>
+> ---
+>  alloc.c | 3 +--
+>  1 file changed, 1 insertion(+), 2 deletions(-)
+> 
+> diff --git a/alloc.c b/alloc.c
+> index d002579..2b8b721 100644
+> --- a/alloc.c
+> +++ b/alloc.c
 
---- ocfs2.org/ocfs2_fs.h        2016-03-25 15:29:22.187343770 +0800
-+++ ocfs2/ocfs2_fs.h    2016-03-25 15:30:08.823345004 +0800
-@@ -580,7 +580,7 @@ struct ocfs2_extended_slot {
- /*00*/ __u8    es_valid;
-        __u8    es_reserved1[3];
-        __le32  es_node_num;
--/*10*/
-+/*08*/
- };
+This should be
 
- /*
--------------------------------------------------------------------------------------------------------------------------------------
-????????????????????????????????????????
-????????????????????????????????????????
-????????????????????????????????????????
-???
-This e-mail and its attachments contain confidential information from H3C, which is
-intended only for the person or entity whose address is listed above. Any use of the
-information contained herein in any way (including, but not limited to, total or partial
-disclosure, reproduction, or dissemination) by persons other than the intended
-recipient(s) is prohibited. If you receive this e-mail in error, please notify the sender
-by phone or email immediately and delete it!
+--- a/fs/ocfs2/alloc.c
++++ b/fs/ocfs2/alloc.c
+
+please.  `patch -p1' form.
