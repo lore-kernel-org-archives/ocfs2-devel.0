@@ -1,72 +1,31 @@
-From: piaojun <piaojun@huawei.com>
-Date: Sat, 26 Mar 2016 12:25:55 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: clean up an unused variable
- 'wants_rotate' in ocfs2_truncate_rec
-In-Reply-To: <20160325123635.9fd878212c3762c791773ce6@linux-foundation.org>
-References: <56EA74BF.7090201@huawei.com>
-	<20160325123635.9fd878212c3762c791773ce6@linux-foundation.org>
-Message-ID: <56F60F53.9010108@huawei.com>
+From: Junxiao Bi <junxiao.bi@oracle.com>
+Date: Mon, 28 Mar 2016 09:23:55 +0800
+Subject: [Ocfs2-devel] [patch 19/25] ocfs2: o2hb: add negotiate timer
+In-Reply-To: <56F5F9C9.7040105@huawei.com>
+References: <56f2f8b5.J89ZbuqS9aWdapr3%akpm@linux-foundation.org>
+	<56F355F7.2040004@oracle.com> <56F5F9C9.7040105@huawei.com>
+Message-ID: <56F887AB.8050005@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Clean up an unused variable 'wants_rotate' in ocfs2_truncate_rec.
+Hi Yiwen,
 
-Signed-off-by: Jun Piao <piaojun@huawei.com>
----
- fs/ocfs2/alloc.c | 3 +--
- 1 file changed, 1 insertion(+), 2 deletions(-)
+On 03/26/2016 10:54 AM, jiangyiwen wrote:
+> Hi, Junxiao
+> This patch may have a problem. That is journal of every nodes become
+> abort when storage down, and then when storage up, because journal
+> has become abort, all of operations of metadata will fail. So how to
+> restore environment? panic or reset? how to trigger?
+Journal aborted means io error was returned by storage, right?
+If so, o2hb_thread should also get io error, in this case, nego process
+will be bypassed, and nodes will be fenced at last, see "[patch 23/25]
+ocfs2: o2hb: don't negotiate if last hb fail".
 
-diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-index d002579..2b8b721 100644
---- a/fs/ocfs2/alloc.c
-+++ b/fs/ocfs2/alloc.c
-@@ -5334,7 +5334,7 @@ static int ocfs2_truncate_rec(handle_t *handle,
- {
- 	int ret;
- 	u32 left_cpos, rec_range, trunc_range;
--	int wants_rotate = 0, is_rightmost_tree_rec = 0;
-+	int is_rightmost_tree_rec = 0;
- 	struct super_block *sb = ocfs2_metadata_cache_get_super(et->et_ci);
- 	struct ocfs2_path *left_path = NULL;
- 	struct ocfs2_extent_list *el = path_leaf_el(path);
-@@ -5431,7 +5431,6 @@ static int ocfs2_truncate_rec(handle_t *handle,
-
- 		memset(rec, 0, sizeof(*rec));
- 		ocfs2_cleanup_merge(el, index);
--		wants_rotate = 1;
-
- 		next_free = le16_to_cpu(el->l_next_free_rec);
- 		if (is_rightmost_tree_rec && next_free > 1) {
--- 
-1.8.4.3
-
-On 2016/3/26 3:36, Andrew Morton wrote:
-> On Thu, 17 Mar 2016 17:11:27 +0800 piaojun <piaojun@huawei.com> wrote:
+Thanks,
+Junxiao.
 > 
->> Clean up an unused variable 'wants_rotate' in ocfs2_truncate_rec.
->>
->> Signed-off-by: Jun Piao <piaojun@huawei.com>
->> ---
->>  alloc.c | 3 +--
->>  1 file changed, 1 insertion(+), 2 deletions(-)
->>
->> diff --git a/alloc.c b/alloc.c
->> index d002579..2b8b721 100644
->> --- a/alloc.c
->> +++ b/alloc.c
-> 
-> This should be
-> 
-> --- a/fs/ocfs2/alloc.c
-> +++ b/fs/ocfs2/alloc.c
-> 
-> please.  `patch -p1' form.
-> 
-> 
-> 
-> .
-> 
-I make a new patch according to your suggestion, thks.
+> Thanks,
+> Yiwen Jiang.
