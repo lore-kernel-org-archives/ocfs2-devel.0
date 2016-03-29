@@ -1,59 +1,79 @@
-From: jiangyiwen <jiangyiwen@huawei.com>
-Date: Tue, 29 Mar 2016 09:08:09 +0800
-Subject: [Ocfs2-devel] [patch 19/25] ocfs2: o2hb: add negotiate timer
-In-Reply-To: <56F95EF9.5030203@oracle.com>
-References: <56f2f8b5.J89ZbuqS9aWdapr3%akpm@linux-foundation.org>
-	<56F355F7.2040004@oracle.com> <56F5F9C9.7040105@huawei.com>
-	<56F887AB.8050005@oracle.com> <56F92694.20204@huawei.com>
-	<56F95EF9.5030203@oracle.com>
-Message-ID: <56F9D579.3050000@huawei.com>
+From: Shichangkuo <shi.changkuo@h3c.com>
+Date: Tue, 29 Mar 2016 12:32:21 +0000
+Subject: [Ocfs2-devel] [PATCH] o2hb: increase unsteady iterations
+Message-ID: <D1E4D02760513D4B90DC3B40FF32AF355EE24988@H3CMLB14-EX.srv.huawei-3com.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 2016/3/29 0:42, Srinivas Eeda wrote:
-> On 03/28/2016 05:41 AM, jiangyiwen wrote:
->> On 2016/3/28 9:23, Junxiao Bi wrote:
->>> Hi Yiwen,
->>>
->>> On 03/26/2016 10:54 AM, jiangyiwen wrote:
->>>> Hi, Junxiao
->>>> This patch may have a problem. That is journal of every nodes become
->>>> abort when storage down, and then when storage up, because journal
->>>> has become abort, all of operations of metadata will fail. So how to
->>>> restore environment? panic or reset? how to trigger?
->>> Journal aborted means io error was returned by storage, right?
->>> If so, o2hb_thread should also get io error, in this case, nego process
->>> will be bypassed, and nodes will be fenced at last, see "[patch 23/25]
->>> ocfs2: o2hb: don't negotiate if last hb fail".
->>>
->>> Thanks,
->>> Junxiao.
->>>> Thanks,
->>>> Yiwen Jiang.
->>>
->>> .
->>>
->> yes, you are right, sorry I don't see this patch before.
->>
->> But I understand the results of storage down should return IO error
->> rather than getting hang.
-> that is upto the driver or storage. If they return I/O error, o2hb i/o's will get i/o errors and will be addressed accordingly. These changes are made for cases where storage is not yet responding due to head failovers/recovery on the storage array.
-> 
->>
->> Thanks,
->> Yiwen Jiang.
->>
->>
->> _______________________________________________
->> Ocfs2-devel mailing list
->> Ocfs2-devel at oss.oracle.com
->> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
-> 
-> 
-> .
-> 
-Thank you, I have already understood.
-This patch is very useful, looks good to me.
+Hi Junxiao,
+If tcp connections take a long time to establish, and hr_unsteady_iterations still may change to 0, then o2hb thread will exit by error.
+What about wait the connection?
+
+--- a/fs/ocfs2/cluster/heartbeat.c      2016-03-29 20:22:03.066400592 +0800
++++ a/fs/ocfs2/cluster/heartbeat.c      2016-03-29 20:20:55.494065519 +0800
+@@ -1054,7 +1054,7 @@ bail:
+        }
+
+        if (atomic_read(&reg->hr_steady_iterations) != 0) {
+-               if (atomic_dec_and_test(&reg->hr_unsteady_iterations)) {
++               if (!membership_change && atomic_dec_and_test(&reg->hr_unsteady_iterations)) {
+                        printk(KERN_NOTICE "o2hb: Unable to stabilize "
+                               "heartbeart on region %s (%s)\n",
+                               config_item_name(&reg->hr_item),
+
+Thanks
+Changkuo
+
+???: ocfs2-devel-bounces at oss.oracle.com [mailto:ocfs2-devel-bounces at oss.oracle.com] ?? Junxiao Bi
+????: 2015?11?19? 16:08
+???: ocfs2-devel at oss.oracle.com
+??: mfasheh at suse.com
+??: [Ocfs2-devel] [PATCH] o2hb: increase unsteady iterations
+
+When run multiple xattr test of ocfs2-test on a three-nodes cluster, mount failed sometimes with the following message.
+
+o2hb: Unable to stabilize heartbeart on region D18B775E758D4D80837E8CF3D086AD4A (xvdb)
+
+Stabilize heartbeat depends on the timing order to mount ocfs2 from cluster nodes and how fast the tcp connections are established. So increase unsteady interations to leave more time for it.
+
+Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
+---
+ fs/ocfs2/cluster/heartbeat.c |    4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c index 709fbbd..a3cc6d2 100644
+--- a/fs/ocfs2/cluster/heartbeat.c
++++ b/fs/ocfs2/cluster/heartbeat.c
+@@ -1780,8 +1780,8 @@ static ssize_t o2hb_region_dev_store(struct config_item *item,
+        }
+        ++live_threshold;
+        atomic_set(&reg->hr_steady_iterations, live_threshold);
+-       /* unsteady_iterations is double the steady_iterations */
+-       atomic_set(&reg->hr_unsteady_iterations, (live_threshold << 1));
++       /* unsteady_iterations is triple the steady_iterations */
++       atomic_set(&reg->hr_unsteady_iterations, (live_threshold * 3));
+
+        hb_task = kthread_run(o2hb_thread, reg, "o2hb-%s",
+                              reg->hr_item.ci_name);
+--
+1.7.9.5
+
+
+_______________________________________________
+Ocfs2-devel mailing list
+Ocfs2-devel at oss.oracle.com
+https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+-------------------------------------------------------------------------------------------------------------------------------------
+????????????????????????????????????????
+????????????????????????????????????????
+????????????????????????????????????????
+???
+This e-mail and its attachments contain confidential information from H3C, which is
+intended only for the person or entity whose address is listed above. Any use of the
+information contained herein in any way (including, but not limited to, total or partial
+disclosure, reproduction, or dissemination) by persons other than the intended
+recipient(s) is prohibited. If you receive this e-mail in error, please notify the sender
+by phone or email immediately and delete it!
