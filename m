@@ -1,49 +1,52 @@
-From: Zhangguanghui <zhang.guanghui@h3c.com>
-Date: Fri, 1 Apr 2016 08:34:51 +0000
-Subject: [Ocfs2-devel] ocfs2_clear_journal_error review
-References: <mailman.1.1458759602.8075.ocfs2-devel@oss.oracle.com>
-Message-ID: <E3535A62B291B54FBD1D003696CCB5375E18CF7B@H3CMLB14-EX.srv.huawei-3com.com>
+From: Theodore Ts'o <tytso@mit.edu>
+Date: Fri, 1 Apr 2016 10:39:56 -0400
+Subject: [Ocfs2-devel] [PATCH 1/2] quota: Handle Q_GETNEXTQUOTA when
+	quota is disabled
+In-Reply-To: <1459267904-10755-1-git-send-email-jack@suse.cz>
+References: <1459267904-10755-1-git-send-email-jack@suse.cz>
+Message-ID: <20160401143956.GD29897@thunk.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Jan Kara <jack@suse.cz>
+Cc: linux-ext4@vger.kernel.org, linux-fsdevel@vger.kernel.org, ocfs2-devel@oss.oracle.com
 
-Hi
-    I get a issue while mounting the volume at a time. Missing jbd2_journal_update_sb_errno() may cause this issue.
-    So far as i know,  in  jbd2_journal_clear_err,  journal->j_errno = 0, but don't call jbd2_journal_update_sb_errno update sb->s_errno.
-? in __journal_abort_soft? journal->j_errno and  sb->s_errno record the abort error status.
-    the value of sb->s_errno is always EIO, jbd2_journal_load->load_superblock->journal->j_errno = be32_to_cpu(sb->s_errno);
-    the next time mounting the volume, still get the same issues.  so jbd2_journal_update_sb_errno should be called after jbd2_journal_clear_err
-     in ocfs2_clear_journal_error.  Anybody ever see this, is it reasonable??Thanks
+On Tue, Mar 29, 2016 at 06:11:43PM +0200, Jan Kara wrote:
+> Currently we oopsed when Q_GETNEXTQUOTA got called when quota was
+> disabled. Properly check whether quota is enabled for the filesystem
+> before calling into quota format handler.
+> 
+> diff --git a/fs/quota/dquot.c b/fs/quota/dquot.c
+> index ba827daea5a0..ff21980d0119 100644
+> --- a/fs/quota/dquot.c
+> +++ b/fs/quota/dquot.c
+> @@ -2047,11 +2047,20 @@ int dquot_get_next_id(struct super_block *sb, struct kqid *qid)
+>  	struct quota_info *dqopt = sb_dqopt(sb);
+>  	int err;
+>  
+> -	if (!dqopt->ops[qid->type]->get_next_id)
+> -		return -ENOSYS;
+> +	mutex_lock(&dqopt->dqonoff_mutex);
+> +	if (!sb_has_quota_active(sb, qid->type)) {
+> +		err = -ESRCH;
+> +		goto out;
+> +	}
+> +	if (!dqopt->ops[qid->type]->get_next_id) {
+> +		err = -ENOSYS;
+> +		goto out;
+> +	}
 
-    ocfs2_journal_load
-       --jbd2_journal_load
-       -- ocfs2_clear_journal_error
-            --jbd2_journal_errno
-            --jbd2_journal_ack_err
-            --jbd2_journal_clear_err
-            -- jbd2_journal_update_sb_errno  --update sb_error
+Don't you also have to test if dqopt->ops[qid->type] is NULL?  e.g.,
+if the quota inode hasn't been loaded for that quota type?
 
-    (mount.ocfs2,7417,38):ocfs2_clear_journal_error:1052 ERROR: File system error -5 recorded in journal 2.
-    (mount.ocfs2,7417,38):ocfs2_clear_journal_error:1054 ERROR: File system on device dm-1 needs checking
+Also, I notice you have this queued on the for_next branch and not the
+for_linus branch.  I was hoping you could push this to Linus sooner
+than the next merge cycle, since this is (a) making my testing hard,
+and (b) it makes it easy for an attacker to crash the system.  For
+similar reasons, perhaps this should have a cc: stable at vger.kernel.org
+tag?
 
-  Thanks.
+Thanks,
 
-________________________________
-zhangguanghui
-
--------------------------------------------------------------------------------------------------------------------------------------
-????????????????????????????????????????
-????????????????????????????????????????
-????????????????????????????????????????
-???
-This e-mail and its attachments contain confidential information from H3C, which is
-intended only for the person or entity whose address is listed above. Any use of the
-information contained herein in any way (including, but not limited to, total or partial
-disclosure, reproduction, or dissemination) by persons other than the intended
-recipient(s) is prohibited. If you receive this e-mail in error, please notify the sender
-by phone or email immediately and delete it!
--------------- next part --------------
-An HTML attachment was scrubbed...
-URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20160401/1a82de15/attachment.html 
+					- Ted
