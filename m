@@ -1,25 +1,29 @@
-From: Credit France <sebastien@watches452.eu>
-Date: Fri, 01 Apr 2016 23:09:46 -0000
-Subject: [Ocfs2-devel] Credit auto au Meilleur Taux
-Message-ID: <201604012309.u31N9aPl019808@userp2030.oracle.com>
+From: David Binderman <dcb314@hotmail.com>
+Date: Wed, 6 Apr 2016 18:23:02 +0000
+Subject: [Ocfs2-devel] linux-4.6-rc2/fs/ocfs2/refcounttree.c:987]: (style)
+ Redundant condition
+Message-ID: <DUB128-W561D1B4C5EA0D014C351739C9F0@phx.gbl>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
+Hello there,
 
-Pour consulter la version en ligne,
-c'est la
-Obtenez jusqu'? -65% sur le co?t du cr?dit (TAEG) en trouvant le bon organisme de cr?dit !
-B?N?FICIEZ DU MEILLEUR TAUX
-POUR FINANCER VOTRE V?HICULE
-Simulez gr#ecf0f1atuitement en moins de 2 minutes
-Compare-cr?dit est une soci?t? ind?pendante qui a pour but d'offrir aux Internautes, la possibilit? de comparer les offres de cr?dits de plus de 20 banques et organismes financiers.
+linux-4.6-rc2/fs/ocfs2/refcounttree.c:987]: (style) Redundant condition: eb. '!eb || (eb && !eb.h_next_leaf_blk)' is equivalent to '!eb || !eb.h_next_leaf_blk'
 
-Pour retirer votre adresse email,
-c'est la
- 
--------------- next part --------------
-An HTML attachment was scrubbed...
-URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20160401/3c0a7788/attachment.html 
+Source code is
+
+??????? if (!eb || (eb && !eb->h_next_leaf_blk)) {
+
+Also,
+
+linux-4.6-rc2/fs/ocfs2/refcounttree.c:1011] -> [linux-4.6-rc2/fs/ocfs2/refcounttree.c:987]: (warning) Either the condition 'eb' is redundant or there is possible null pointer dereference: eb.
+
+
+Regards
+
+David Binderman
+
+ 		 	   		  
