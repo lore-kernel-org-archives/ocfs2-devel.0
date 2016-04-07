@@ -1,8 +1,8 @@
 From: xuejiufei <xuejiufei@huawei.com>
-Date: Wed, 6 Apr 2016 16:45:59 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: return zero if deref_done message
- is successfully handled
-Message-ID: <5704CCC7.5020703@huawei.com>
+Date: Thu, 7 Apr 2016 16:39:56 +0800
+Subject: [Ocfs2-devel] [PATCH V2] ocfs2/dlm: return zero if deref_done
+ message is successfully handled
+Message-ID: <57061CDC.6000600@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -12,7 +12,7 @@ To: ocfs2-devel@oss.oracle.com
 Function dlm_deref_lockres_done_handler() should return zero
 if the message is successfully handled.
 
-Signed-off-by: Jiufei Xue <xuejiufei@huawei.com>
+Signed-off-by: xuejiufei <xuejiufei@huawei.com>
 ---
  fs/ocfs2/dlm/dlmmaster.c | 2 ++
  1 file changed, 2 insertions(+)
