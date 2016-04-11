@@ -1,43 +1,57 @@
 From: Joseph Qi <joseph.qi@huawei.com>
-Date: Fri, 8 Apr 2016 09:03:41 +0800
-Subject: [Ocfs2-devel] [PATCH V2] ocfs2/dlm: return zero if deref_done
- message is successfully handled
-In-Reply-To: <57061CDC.6000600@huawei.com>
-References: <57061CDC.6000600@huawei.com>
-Message-ID: <5707036D.10508@huawei.com>
+Date: Mon, 11 Apr 2016 11:48:41 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: clean up an unuseful goto in
+ ocfs2_put_slot function
+In-Reply-To: <71604351584F6A4EBAE558C676F37CA48294933C@H3CMLB14-EX.srv.huawei-3com.com>
+References: <71604351584F6A4EBAE558C676F37CA48294933C@H3CMLB14-EX.srv.huawei-3com.com>
+Message-ID: <570B1E99.60202@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Thanks, Jiufei.
-We'd better add:
-Fixes: 60d663cb5273("ocfs2/dlm: add DEREF_DONE message")
-Others looks good to me.
+Hi Guozhonghua,
+You should follow the rules when submitting patches. Please refer
+Documentation\SubmittingPatches for details.
 
-Reviewed-by: Joseph Qi <joseph.qi@huawei.com>
+Thanks,
+Joseph
 
-On 2016/4/7 16:39, xuejiufei wrote:
-> Function dlm_deref_lockres_done_handler() should return zero
-> if the message is successfully handled.
+On 2016/4/7 17:16, Guozhonghua wrote:
+> The goto is not useful in the function ocfs2_put_slot, so delete it.
 > 
-> Signed-off-by: xuejiufei <xuejiufei@huawei.com>
-> ---
->  fs/ocfs2/dlm/dlmmaster.c | 2 ++
->  1 file changed, 2 insertions(+)
+> Signed-off-by: Guozhonghua <guozhonghua@h3c.com>
 > 
-> diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
-> index 9aed6e2..13719d3 100644
-> --- a/fs/ocfs2/dlm/dlmmaster.c
-> +++ b/fs/ocfs2/dlm/dlmmaster.c
-> @@ -2455,6 +2455,8 @@ int dlm_deref_lockres_done_handler(struct o2net_msg *msg, u32 len, void *data,
+> --- ocfs2.org/slot_map.c        2016-03-25 15:29:22.175343770 +0800
+> +++ ocfs2/slot_map.c    2016-04-07 16:53:25.540793954 +0800
+> @@ -535,12 +535,9 @@ void ocfs2_put_slot(struct ocfs2_super *
+>         spin_unlock(&osb->osb_lock);
 > 
->  	spin_unlock(&dlm->spinlock);
-> 
-> +	ret = 0;
+>         status = ocfs2_update_disk_slot(osb, si, slot_num);
+> -       if (status < 0) {
+> +       if (status < 0)
+>                 mlog_errno(status);
+> -               goto bail;
+> -       }
+> -
+> -bail:
 > +
->  done:
->  	dlm_put(dlm);
->  	return ret;
+>         ocfs2_free_slot_info(osb);
+>  }
+> -------------------------------------------------------------------------------------------------------------------------------------
+> ????????????????????????????????????????
+> ????????????????????????????????????????
+> ????????????????????????????????????????
+> ???
+> This e-mail and its attachments contain confidential information from H3C, which is
+> intended only for the person or entity whose address is listed above. Any use of the
+> information contained herein in any way (including, but not limited to, total or partial
+> disclosure, reproduction, or dissemination) by persons other than the intended
+> recipient(s) is prohibited. If you receive this e-mail in error, please notify the sender
+> by phone or email immediately and delete it!
+> _______________________________________________
+> Ocfs2-devel mailing list
+> Ocfs2-devel at oss.oracle.com
+> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
 > 
