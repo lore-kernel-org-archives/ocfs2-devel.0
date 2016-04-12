@@ -1,57 +1,45 @@
-From: Joseph Qi <joseph.qi@huawei.com>
-Date: Mon, 11 Apr 2016 11:48:41 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: clean up an unuseful goto in
- ocfs2_put_slot function
-In-Reply-To: <71604351584F6A4EBAE558C676F37CA48294933C@H3CMLB14-EX.srv.huawei-3com.com>
-References: <71604351584F6A4EBAE558C676F37CA48294933C@H3CMLB14-EX.srv.huawei-3com.com>
-Message-ID: <570B1E99.60202@huawei.com>
+From: Gechangwei <ge.changwei@h3c.com>
+Date: Tue, 12 Apr 2016 02:51:29 +0000
+Subject: [Ocfs2-devel] An issue on OCFS2 fsck tool
+Message-ID: <63ADC13FD55D6546B7DECE290D39E373CADD1B@H3CMLB14-EX.srv.huawei-3com.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Guozhonghua,
-You should follow the rules when submitting patches. Please refer
-Documentation\SubmittingPatches for details.
+Hi OCFS2 experts,
 
-Thanks,
-Joseph
+I encountered an issue during checking an OCFS2 volume via OCFS2 fsck tool aka fsck.ocfs2. I am not sure if I can get some help from you.
 
-On 2016/4/7 17:16, Guozhonghua wrote:
-> The goto is not useful in the function ocfs2_put_slot, so delete it.
-> 
-> Signed-off-by: Guozhonghua <guozhonghua@h3c.com>
-> 
-> --- ocfs2.org/slot_map.c        2016-03-25 15:29:22.175343770 +0800
-> +++ ocfs2/slot_map.c    2016-04-07 16:53:25.540793954 +0800
-> @@ -535,12 +535,9 @@ void ocfs2_put_slot(struct ocfs2_super *
->         spin_unlock(&osb->osb_lock);
-> 
->         status = ocfs2_update_disk_slot(osb, si, slot_num);
-> -       if (status < 0) {
-> +       if (status < 0)
->                 mlog_errno(status);
-> -               goto bail;
-> -       }
-> -
-> -bail:
-> +
->         ocfs2_free_slot_info(osb);
->  }
-> -------------------------------------------------------------------------------------------------------------------------------------
-> ????????????????????????????????????????
-> ????????????????????????????????????????
-> ????????????????????????????????????????
-> ???
-> This e-mail and its attachments contain confidential information from H3C, which is
-> intended only for the person or entity whose address is listed above. Any use of the
-> information contained herein in any way (including, but not limited to, total or partial
-> disclosure, reproduction, or dissemination) by persons other than the intended
-> recipient(s) is prohibited. If you receive this e-mail in error, please notify the sender
-> by phone or email immediately and delete it!
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
-> 
+I found that as long as there was some dirty data held by journal, fsck.ocfs2 tool would start an O2HB thread and tried to replay the journal.
+
+What bothers me is that even the file system checking and recovering procedure is done; the O2HB thread is still active.
+
+I think this is not reasonable. I doubt this was a BUG in fsck.ocfs2. Do you have any comments on this issue?
+
+I am looking forward to getting a little help from you.
+
+Many thanks.
+
+Best regards.
+
+
+Gechangwei
+H3C Technologies Co., Limited
+
+
+-------------------------------------------------------------------------------------------------------------------------------------
+????????????????????????????????????????
+????????????????????????????????????????
+????????????????????????????????????????
+???
+This e-mail and its attachments contain confidential information from H3C, which is
+intended only for the person or entity whose address is listed above. Any use of the
+information contained herein in any way (including, but not limited to, total or partial
+disclosure, reproduction, or dissemination) by persons other than the intended
+recipient(s) is prohibited. If you receive this e-mail in error, please notify the sender
+by phone or email immediately and delete it!
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20160412/a98f446e/attachment.html 
