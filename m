@@ -1,7 +1,7 @@
 From: Gechangwei <ge.changwei@h3c.com>
-Date: Tue, 12 Apr 2016 02:51:29 +0000
-Subject: [Ocfs2-devel] An issue on OCFS2 fsck tool
-Message-ID: <63ADC13FD55D6546B7DECE290D39E373CADD1B@H3CMLB14-EX.srv.huawei-3com.com>
+Date: Wed, 13 Apr 2016 11:17:49 +0000
+Subject: [Ocfs2-devel] OCFS2 cache coherent quesiton
+Message-ID: <63ADC13FD55D6546B7DECE290D39E373CADEF6@H3CMLB14-EX.srv.huawei-3com.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -10,17 +10,13 @@ To: ocfs2-devel@oss.oracle.com
 
 Hi OCFS2 experts,
 
-I encountered an issue during checking an OCFS2 volume via OCFS2 fsck tool aka fsck.ocfs2. I am not sure if I can get some help from you.
+According to OCFS2 user guide, OCFS2 supports cache consistency, which means one node writes to shared disk while another node can get the newest data just written.
 
-I found that as long as there was some dirty data held by journal, fsck.ocfs2 tool would start an O2HB thread and tried to replay the journal.
+I am working hard on OCFS2 kernel code. I am confused that OCFS2 also adopts page cache provided by Linux Kernel, however, page cache does not know anything about other nodes in cluster.
 
-What bothers me is that even the file system checking and recovering procedure is done; the O2HB thread is still active.
+Well, my question is that if data is cached by page cache in one node, how could another node read the newest data from it? At this scenario, the page cache is dirty and the disk data is old. How OCFS2 can support cache consistency?
 
-I think this is not reasonable. I doubt this was a BUG in fsck.ocfs2. Do you have any comments on this issue?
-
-I am looking forward to getting a little help from you.
-
-Many thanks.
+Thanks,
 
 Best regards.
 
@@ -42,4 +38,4 @@ recipient(s) is prohibited. If you receive this e-mail in error, please notify t
 by phone or email immediately and delete it!
 -------------- next part --------------
 An HTML attachment was scrubbed...
-URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20160412/a98f446e/attachment.html 
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20160413/f731e386/attachment.html 
