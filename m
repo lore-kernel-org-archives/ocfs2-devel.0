@@ -1,10 +1,9 @@
 From: mchristi at redhat.com <mchristi@redhat.com>
-Date: Wed, 13 Apr 2016 14:36:13 -0500
-Subject: [Ocfs2-devel] [PATCH 27/42] block: prepare request
-	creation/destruction code to use REQ_OPs
+Date: Wed, 13 Apr 2016 14:36:15 -0500
+Subject: [Ocfs2-devel] [PATCH 29/42] block: prepare elevator to use REQ_OPs.
 In-Reply-To: <1460576188-5751-1-git-send-email-mchristi@redhat.com>
 References: <1460576188-5751-1-git-send-email-mchristi@redhat.com>
-Message-ID: <1460576188-5751-28-git-send-email-mchristi@redhat.com>
+Message-ID: <1460576188-5751-30-git-send-email-mchristi@redhat.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -14,228 +13,103 @@ Cc: Mike Christie <mchristi@redhat.com>
 
 From: Mike Christie <mchristi@redhat.com>
 
-This patch prepares *_get_request/*_put_request and freed_request,
-to use separate variables for the operation and flags. In the
-next patches the struct request users will be converted like
-was done for bios. request->op will be used for the REQ_OP and
-request->cmd_flags for the rq_flag_bits.
-
-There is some temporary compat code in __get_request to
-allow users to read the operation from the cmd_flags. This will
-be deleted in one of the last patches when all drivers have
-been converted.
+This patch converts the elevator code to use separate variables
+for the operation and flags, and to check request->op for the REQ_OP.
 
 Signed-off-by: Mike Christie <mchristi@redhat.com>
 Reviewed-by: Christoph Hellwig <hch@lst.de>
 ---
- block/blk-core.c | 56 +++++++++++++++++++++++++++++++-------------------------
- 1 file changed, 31 insertions(+), 25 deletions(-)
+ block/blk-core.c         | 2 +-
+ block/cfq-iosched.c      | 4 ++--
+ block/elevator.c         | 7 +++----
+ include/linux/elevator.h | 4 ++--
+ 4 files changed, 8 insertions(+), 9 deletions(-)
 
 diff --git a/block/blk-core.c b/block/blk-core.c
-index 4224775..f1545d1 100644
+index f1545d1..3ec1310 100644
 --- a/block/blk-core.c
 +++ b/block/blk-core.c
-@@ -959,10 +959,10 @@ static void __freed_request(struct request_list *rl, int sync)
-  * A request has just been released.  Account for it, update the full and
-  * congestion status, wake up any waiters.   Called under q->queue_lock.
-  */
--static void freed_request(struct request_list *rl, unsigned int flags)
-+static void freed_request(struct request_list *rl, int op, unsigned int flags)
- {
- 	struct request_queue *q = rl->q;
--	int sync = rw_is_sync(flags);
-+	int sync = rw_is_sync(op | flags);
- 
- 	q->nr_rqs[sync]--;
- 	rl->count[sync]--;
-@@ -1054,7 +1054,8 @@ static struct io_context *rq_ioc(struct bio *bio)
- /**
-  * __get_request - get a free request
-  * @rl: request list to allocate from
-- * @rw_flags: RW and SYNC flags
-+ * @op: REQ_OP_READ/REQ_OP_WRITE
-+ * @op_flags: rq_flag_bits
-  * @bio: bio to allocate request for (can be %NULL)
-  * @gfp_mask: allocation mask
-  *
-@@ -1065,21 +1066,22 @@ static struct io_context *rq_ioc(struct bio *bio)
-  * Returns ERR_PTR on failure, with @q->queue_lock held.
-  * Returns request pointer on success, with @q->queue_lock *not held*.
-  */
--static struct request *__get_request(struct request_list *rl, int rw_flags,
--				     struct bio *bio, gfp_t gfp_mask)
-+static struct request *__get_request(struct request_list *rl, int op,
-+				     int op_flags, struct bio *bio,
-+				     gfp_t gfp_mask)
- {
- 	struct request_queue *q = rl->q;
- 	struct request *rq;
- 	struct elevator_type *et = q->elevator->type;
- 	struct io_context *ioc = rq_ioc(bio);
- 	struct io_cq *icq = NULL;
--	const bool is_sync = rw_is_sync(rw_flags) != 0;
-+	const bool is_sync = rw_is_sync(op | op_flags) != 0;
- 	int may_queue;
- 
+@@ -1081,7 +1081,7 @@ static struct request *__get_request(struct request_list *rl, int op,
  	if (unlikely(blk_queue_dying(q)))
  		return ERR_PTR(-ENODEV);
  
--	may_queue = elv_may_queue(q, rw_flags);
-+	may_queue = elv_may_queue(q, op | op_flags);
+-	may_queue = elv_may_queue(q, op | op_flags);
++	may_queue = elv_may_queue(q, op, op_flags);
  	if (may_queue == ELV_MQUEUE_NO)
  		goto rq_starved;
  
-@@ -1123,7 +1125,7 @@ static struct request *__get_request(struct request_list *rl, int rw_flags,
- 
- 	/*
- 	 * Decide whether the new request will be managed by elevator.  If
--	 * so, mark @rw_flags and increment elvpriv.  Non-zero elvpriv will
-+	 * so, mark @op_flags and increment elvpriv.  Non-zero elvpriv will
- 	 * prevent the current elevator from being destroyed until the new
- 	 * request is freed.  This guarantees icq's won't be destroyed and
- 	 * makes creating new ones safe.
-@@ -1132,14 +1134,14 @@ static struct request *__get_request(struct request_list *rl, int rw_flags,
- 	 * it will be created after releasing queue_lock.
- 	 */
- 	if (blk_rq_should_init_elevator(bio) && !blk_queue_bypass(q)) {
--		rw_flags |= REQ_ELVPRIV;
-+		op_flags |= REQ_ELVPRIV;
- 		q->nr_rqs_elvpriv++;
- 		if (et->icq_cache && ioc)
- 			icq = ioc_lookup_icq(ioc, q);
- 	}
- 
- 	if (blk_queue_io_stat(q))
--		rw_flags |= REQ_IO_STAT;
-+		op_flags |= REQ_IO_STAT;
- 	spin_unlock_irq(q->queue_lock);
- 
- 	/* allocate and init request */
-@@ -1149,10 +1151,12 @@ static struct request *__get_request(struct request_list *rl, int rw_flags,
- 
- 	blk_rq_init(q, rq);
- 	blk_rq_set_rl(rq, rl);
--	rq->cmd_flags = rw_flags | REQ_ALLOCED;
-+	/* tmp compat - allow users to check either one for the op */
-+	rq->cmd_flags = op | op_flags | REQ_ALLOCED;
-+	rq->op = op;
- 
- 	/* init elvpriv */
--	if (rw_flags & REQ_ELVPRIV) {
-+	if (op_flags & REQ_ELVPRIV) {
- 		if (unlikely(et->icq_cache && !icq)) {
- 			if (ioc)
- 				icq = ioc_create_icq(ioc, q, gfp_mask);
-@@ -1178,7 +1182,7 @@ out:
- 	if (ioc_batching(q, ioc))
- 		ioc->nr_batch_requests--;
- 
--	trace_block_getrq(q, bio, rw_flags & 1);
-+	trace_block_getrq(q, bio, op);
- 	return rq;
- 
- fail_elvpriv:
-@@ -1208,7 +1212,7 @@ fail_alloc:
- 	 * queue, but this is pretty rare.
- 	 */
- 	spin_lock_irq(q->queue_lock);
--	freed_request(rl, rw_flags);
-+	freed_request(rl, op, op_flags);
- 
- 	/*
- 	 * in the very unlikely event that allocation failed and no
-@@ -1226,7 +1230,8 @@ rq_starved:
- /**
-  * get_request - get a free request
-  * @q: request_queue to allocate request from
-- * @rw_flags: RW and SYNC flags
-+ * @op: REQ_OP_READ/REQ_OP_WRITE
-+ * @op_flags: rq_flag_bits
-  * @bio: bio to allocate request for (can be %NULL)
-  * @gfp_mask: allocation mask
-  *
-@@ -1237,17 +1242,18 @@ rq_starved:
-  * Returns ERR_PTR on failure, with @q->queue_lock held.
-  * Returns request pointer on success, with @q->queue_lock *not held*.
-  */
--static struct request *get_request(struct request_queue *q, int rw_flags,
--				   struct bio *bio, gfp_t gfp_mask)
-+static struct request *get_request(struct request_queue *q, int op,
-+				   int op_flags, struct bio *bio,
-+				   gfp_t gfp_mask)
- {
--	const bool is_sync = rw_is_sync(rw_flags) != 0;
-+	const bool is_sync = rw_is_sync(op | op_flags) != 0;
- 	DEFINE_WAIT(wait);
- 	struct request_list *rl;
- 	struct request *rq;
- 
- 	rl = blk_get_rl(q, bio);	/* transferred to @rq on success */
- retry:
--	rq = __get_request(rl, rw_flags, bio, gfp_mask);
-+	rq = __get_request(rl, op, op_flags, bio, gfp_mask);
- 	if (!IS_ERR(rq))
- 		return rq;
- 
-@@ -1260,7 +1266,7 @@ retry:
- 	prepare_to_wait_exclusive(&rl->wait[is_sync], &wait,
- 				  TASK_UNINTERRUPTIBLE);
- 
--	trace_block_sleeprq(q, bio, rw_flags & 1);
-+	trace_block_sleeprq(q, bio, op);
- 
- 	spin_unlock_irq(q->queue_lock);
- 	io_schedule();
-@@ -1289,7 +1295,7 @@ static struct request *blk_old_get_request(struct request_queue *q, int rw,
- 	create_io_context(gfp_mask, q->node);
- 
- 	spin_lock_irq(q->queue_lock);
--	rq = get_request(q, rw, NULL, gfp_mask);
-+	rq = get_request(q, rw, 0, NULL, gfp_mask);
- 	if (IS_ERR(rq))
- 		spin_unlock_irq(q->queue_lock);
- 	/* q->queue_lock is unlocked at this point */
-@@ -1491,13 +1497,14 @@ void __blk_put_request(struct request_queue *q, struct request *req)
- 	 */
- 	if (req->cmd_flags & REQ_ALLOCED) {
- 		unsigned int flags = req->cmd_flags;
-+		int op = req->op;
- 		struct request_list *rl = blk_rq_rl(req);
- 
- 		BUG_ON(!list_empty(&req->queuelist));
- 		BUG_ON(ELV_ON_HASH(req));
- 
- 		blk_free_request(rl, req);
--		freed_request(rl, flags);
-+		freed_request(rl, op, flags);
- 		blk_put_rl(rl);
- 	}
+diff --git a/block/cfq-iosched.c b/block/cfq-iosched.c
+index 4a34978..3fcc598 100644
+--- a/block/cfq-iosched.c
++++ b/block/cfq-iosched.c
+@@ -4285,7 +4285,7 @@ static inline int __cfq_may_queue(struct cfq_queue *cfqq)
+ 	return ELV_MQUEUE_MAY;
  }
-@@ -1713,7 +1720,7 @@ static blk_qc_t blk_queue_bio(struct request_queue *q, struct bio *bio)
+ 
+-static int cfq_may_queue(struct request_queue *q, int rw)
++static int cfq_may_queue(struct request_queue *q, int op, int op_flags)
  {
- 	const bool sync = !!(bio->bi_rw & REQ_SYNC);
- 	struct blk_plug *plug;
--	int el_ret, rw_flags, where = ELEVATOR_INSERT_SORT;
-+	int el_ret, rw_flags = 0, where = ELEVATOR_INSERT_SORT;
- 	struct request *req;
- 	unsigned int request_count = 0;
+ 	struct cfq_data *cfqd = q->elevator->elevator_data;
+ 	struct task_struct *tsk = current;
+@@ -4302,7 +4302,7 @@ static int cfq_may_queue(struct request_queue *q, int rw)
+ 	if (!cic)
+ 		return ELV_MQUEUE_MAY;
  
-@@ -1773,7 +1780,6 @@ get_rq:
- 	 * but we need to set it earlier to expose the sync flag to the
- 	 * rq allocator and io schedulers.
- 	 */
--	rw_flags = bio_data_dir(bio);
- 	if (sync)
- 		rw_flags |= REQ_SYNC;
+-	cfqq = cic_to_cfqq(cic, rw_is_sync(rw));
++	cfqq = cic_to_cfqq(cic, rw_is_sync(op | op_flags));
+ 	if (cfqq) {
+ 		cfq_init_prio_data(cfqq, cic);
  
-@@ -1781,7 +1787,7 @@ get_rq:
- 	 * Grab a free request. This is might sleep but can not fail.
- 	 * Returns with the queue unlocked.
- 	 */
--	req = get_request(q, rw_flags, bio, GFP_NOIO);
-+	req = get_request(q, bio_data_dir(bio), rw_flags, bio, GFP_NOIO);
- 	if (IS_ERR(req)) {
- 		bio->bi_error = PTR_ERR(req);
- 		bio_endio(bio);
+diff --git a/block/elevator.c b/block/elevator.c
+index c3555c9..6a282bf 100644
+--- a/block/elevator.c
++++ b/block/elevator.c
+@@ -366,8 +366,7 @@ void elv_dispatch_sort(struct request_queue *q, struct request *rq)
+ 	list_for_each_prev(entry, &q->queue_head) {
+ 		struct request *pos = list_entry_rq(entry);
+ 
+-		if ((rq->cmd_flags & REQ_DISCARD) !=
+-		    (pos->cmd_flags & REQ_DISCARD))
++		if ((rq->op == REQ_OP_DISCARD) != (pos->op == REQ_OP_DISCARD))
+ 			break;
+ 		if (rq_data_dir(rq) != rq_data_dir(pos))
+ 			break;
+@@ -717,12 +716,12 @@ void elv_put_request(struct request_queue *q, struct request *rq)
+ 		e->type->ops.elevator_put_req_fn(rq);
+ }
+ 
+-int elv_may_queue(struct request_queue *q, int rw)
++int elv_may_queue(struct request_queue *q, int op, int op_flags)
+ {
+ 	struct elevator_queue *e = q->elevator;
+ 
+ 	if (e->type->ops.elevator_may_queue_fn)
+-		return e->type->ops.elevator_may_queue_fn(q, rw);
++		return e->type->ops.elevator_may_queue_fn(q, op, op_flags);
+ 
+ 	return ELV_MQUEUE_MAY;
+ }
+diff --git a/include/linux/elevator.h b/include/linux/elevator.h
+index 638b324..953d286 100644
+--- a/include/linux/elevator.h
++++ b/include/linux/elevator.h
+@@ -26,7 +26,7 @@ typedef int (elevator_dispatch_fn) (struct request_queue *, int);
+ typedef void (elevator_add_req_fn) (struct request_queue *, struct request *);
+ typedef struct request *(elevator_request_list_fn) (struct request_queue *, struct request *);
+ typedef void (elevator_completed_req_fn) (struct request_queue *, struct request *);
+-typedef int (elevator_may_queue_fn) (struct request_queue *, int);
++typedef int (elevator_may_queue_fn) (struct request_queue *, int, int);
+ 
+ typedef void (elevator_init_icq_fn) (struct io_cq *);
+ typedef void (elevator_exit_icq_fn) (struct io_cq *);
+@@ -134,7 +134,7 @@ extern struct request *elv_former_request(struct request_queue *, struct request
+ extern struct request *elv_latter_request(struct request_queue *, struct request *);
+ extern int elv_register_queue(struct request_queue *q);
+ extern void elv_unregister_queue(struct request_queue *q);
+-extern int elv_may_queue(struct request_queue *, int);
++extern int elv_may_queue(struct request_queue *, int, int);
+ extern void elv_completed_request(struct request_queue *, struct request *);
+ extern int elv_set_request(struct request_queue *q, struct request *rq,
+ 			   struct bio *bio, gfp_t gfp_mask);
 -- 
 2.7.2
