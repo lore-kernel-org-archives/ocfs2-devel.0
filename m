@@ -1,10 +1,9 @@
 From: mchristi at redhat.com <mchristi@redhat.com>
-Date: Fri, 15 Apr 2016 14:16:02 -0500
-Subject: [Ocfs2-devel] [PATCH 27/42] block: prepare request
-	creation/destruction code to use REQ_OPs
+Date: Fri, 15 Apr 2016 14:16:05 -0500
+Subject: [Ocfs2-devel] [PATCH 30/42] blkg_rwstat: separate op from flags
 In-Reply-To: <1460747777-8479-1-git-send-email-mchristi@redhat.com>
 References: <1460747777-8479-1-git-send-email-mchristi@redhat.com>
-Message-ID: <1460747777-8479-28-git-send-email-mchristi@redhat.com>
+Message-ID: <1460747777-8479-31-git-send-email-mchristi@redhat.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -14,229 +13,199 @@ Cc: Mike Christie <mchristi@redhat.com>
 
 From: Mike Christie <mchristi@redhat.com>
 
-This patch prepares *_get_request/*_put_request and freed_request,
-to use separate variables for the operation and flags. In the
-next patches the struct request users will be converted like
-was done for bios. request->op will be used for the REQ_OP and
-request->cmd_flags for the rq_flag_bits.
-
-There is some temporary compat code in __get_request to
-allow users to read the operation from the cmd_flags. This will
-be deleted in one of the last patches when all drivers have
-been converted.
+The bio and request operation and flags are going to be separate definitions,
+so we cannot pass them in as a bitmap. This patch converts the blkg_rwstat
+code and its caller, cfq, to pass in the values separately.
 
 Signed-off-by: Mike Christie <mchristi@redhat.com>
 Reviewed-by: Christoph Hellwig <hch@lst.de>
 Reviewed-by: Hannes Reinecke <hare@suse.com>
 ---
- block/blk-core.c | 56 +++++++++++++++++++++++++++++++-------------------------
- 1 file changed, 31 insertions(+), 25 deletions(-)
+ block/cfq-iosched.c        | 49 +++++++++++++++++++++++++++-------------------
+ include/linux/blk-cgroup.h | 13 ++++++------
+ 2 files changed, 36 insertions(+), 26 deletions(-)
 
-diff --git a/block/blk-core.c b/block/blk-core.c
-index 94736c3..3168962 100644
---- a/block/blk-core.c
-+++ b/block/blk-core.c
-@@ -959,10 +959,10 @@ static void __freed_request(struct request_list *rl, int sync)
-  * A request has just been released.  Account for it, update the full and
-  * congestion status, wake up any waiters.   Called under q->queue_lock.
-  */
--static void freed_request(struct request_list *rl, unsigned int flags)
-+static void freed_request(struct request_list *rl, int op, unsigned int flags)
+diff --git a/block/cfq-iosched.c b/block/cfq-iosched.c
+index 3fcc598..0dfa2dd 100644
+--- a/block/cfq-iosched.c
++++ b/block/cfq-iosched.c
+@@ -667,9 +667,10 @@ static inline void cfqg_put(struct cfq_group *cfqg)
+ } while (0)
+ 
+ static inline void cfqg_stats_update_io_add(struct cfq_group *cfqg,
+-					    struct cfq_group *curr_cfqg, int rw)
++					    struct cfq_group *curr_cfqg, int op,
++					    int op_flags)
  {
- 	struct request_queue *q = rl->q;
--	int sync = rw_is_sync(flags);
-+	int sync = rw_is_sync(op | flags);
- 
- 	q->nr_rqs[sync]--;
- 	rl->count[sync]--;
-@@ -1054,7 +1054,8 @@ static struct io_context *rq_ioc(struct bio *bio)
- /**
-  * __get_request - get a free request
-  * @rl: request list to allocate from
-- * @rw_flags: RW and SYNC flags
-+ * @op: REQ_OP_READ/REQ_OP_WRITE
-+ * @op_flags: rq_flag_bits
-  * @bio: bio to allocate request for (can be %NULL)
-  * @gfp_mask: allocation mask
-  *
-@@ -1065,21 +1066,22 @@ static struct io_context *rq_ioc(struct bio *bio)
-  * Returns ERR_PTR on failure, with @q->queue_lock held.
-  * Returns request pointer on success, with @q->queue_lock *not held*.
-  */
--static struct request *__get_request(struct request_list *rl, int rw_flags,
--				     struct bio *bio, gfp_t gfp_mask)
-+static struct request *__get_request(struct request_list *rl, int op,
-+				     int op_flags, struct bio *bio,
-+				     gfp_t gfp_mask)
- {
- 	struct request_queue *q = rl->q;
- 	struct request *rq;
- 	struct elevator_type *et = q->elevator->type;
- 	struct io_context *ioc = rq_ioc(bio);
- 	struct io_cq *icq = NULL;
--	const bool is_sync = rw_is_sync(rw_flags) != 0;
-+	const bool is_sync = rw_is_sync(op | op_flags) != 0;
- 	int may_queue;
- 
- 	if (unlikely(blk_queue_dying(q)))
- 		return ERR_PTR(-ENODEV);
- 
--	may_queue = elv_may_queue(q, rw_flags);
-+	may_queue = elv_may_queue(q, op | op_flags);
- 	if (may_queue == ELV_MQUEUE_NO)
- 		goto rq_starved;
- 
-@@ -1123,7 +1125,7 @@ static struct request *__get_request(struct request_list *rl, int rw_flags,
- 
- 	/*
- 	 * Decide whether the new request will be managed by elevator.  If
--	 * so, mark @rw_flags and increment elvpriv.  Non-zero elvpriv will
-+	 * so, mark @op_flags and increment elvpriv.  Non-zero elvpriv will
- 	 * prevent the current elevator from being destroyed until the new
- 	 * request is freed.  This guarantees icq's won't be destroyed and
- 	 * makes creating new ones safe.
-@@ -1132,14 +1134,14 @@ static struct request *__get_request(struct request_list *rl, int rw_flags,
- 	 * it will be created after releasing queue_lock.
- 	 */
- 	if (blk_rq_should_init_elevator(bio) && !blk_queue_bypass(q)) {
--		rw_flags |= REQ_ELVPRIV;
-+		op_flags |= REQ_ELVPRIV;
- 		q->nr_rqs_elvpriv++;
- 		if (et->icq_cache && ioc)
- 			icq = ioc_lookup_icq(ioc, q);
- 	}
- 
- 	if (blk_queue_io_stat(q))
--		rw_flags |= REQ_IO_STAT;
-+		op_flags |= REQ_IO_STAT;
- 	spin_unlock_irq(q->queue_lock);
- 
- 	/* allocate and init request */
-@@ -1149,10 +1151,12 @@ static struct request *__get_request(struct request_list *rl, int rw_flags,
- 
- 	blk_rq_init(q, rq);
- 	blk_rq_set_rl(rq, rl);
--	rq->cmd_flags = rw_flags | REQ_ALLOCED;
-+	/* tmp compat - allow users to check either one for the op */
-+	rq->cmd_flags = op | op_flags | REQ_ALLOCED;
-+	rq->op = op;
- 
- 	/* init elvpriv */
--	if (rw_flags & REQ_ELVPRIV) {
-+	if (op_flags & REQ_ELVPRIV) {
- 		if (unlikely(et->icq_cache && !icq)) {
- 			if (ioc)
- 				icq = ioc_create_icq(ioc, q, gfp_mask);
-@@ -1178,7 +1182,7 @@ out:
- 	if (ioc_batching(q, ioc))
- 		ioc->nr_batch_requests--;
- 
--	trace_block_getrq(q, bio, rw_flags & 1);
-+	trace_block_getrq(q, bio, op);
- 	return rq;
- 
- fail_elvpriv:
-@@ -1208,7 +1212,7 @@ fail_alloc:
- 	 * queue, but this is pretty rare.
- 	 */
- 	spin_lock_irq(q->queue_lock);
--	freed_request(rl, rw_flags);
-+	freed_request(rl, op, op_flags);
- 
- 	/*
- 	 * in the very unlikely event that allocation failed and no
-@@ -1226,7 +1230,8 @@ rq_starved:
- /**
-  * get_request - get a free request
-  * @q: request_queue to allocate request from
-- * @rw_flags: RW and SYNC flags
-+ * @op: REQ_OP_READ/REQ_OP_WRITE
-+ * @op_flags: rq_flag_bits
-  * @bio: bio to allocate request for (can be %NULL)
-  * @gfp_mask: allocation mask
-  *
-@@ -1237,17 +1242,18 @@ rq_starved:
-  * Returns ERR_PTR on failure, with @q->queue_lock held.
-  * Returns request pointer on success, with @q->queue_lock *not held*.
-  */
--static struct request *get_request(struct request_queue *q, int rw_flags,
--				   struct bio *bio, gfp_t gfp_mask)
-+static struct request *get_request(struct request_queue *q, int op,
-+				   int op_flags, struct bio *bio,
-+				   gfp_t gfp_mask)
- {
--	const bool is_sync = rw_is_sync(rw_flags) != 0;
-+	const bool is_sync = rw_is_sync(op | op_flags) != 0;
- 	DEFINE_WAIT(wait);
- 	struct request_list *rl;
- 	struct request *rq;
- 
- 	rl = blk_get_rl(q, bio);	/* transferred to @rq on success */
- retry:
--	rq = __get_request(rl, rw_flags, bio, gfp_mask);
-+	rq = __get_request(rl, op, op_flags, bio, gfp_mask);
- 	if (!IS_ERR(rq))
- 		return rq;
- 
-@@ -1260,7 +1266,7 @@ retry:
- 	prepare_to_wait_exclusive(&rl->wait[is_sync], &wait,
- 				  TASK_UNINTERRUPTIBLE);
- 
--	trace_block_sleeprq(q, bio, rw_flags & 1);
-+	trace_block_sleeprq(q, bio, op);
- 
- 	spin_unlock_irq(q->queue_lock);
- 	io_schedule();
-@@ -1289,7 +1295,7 @@ static struct request *blk_old_get_request(struct request_queue *q, int rw,
- 	create_io_context(gfp_mask, q->node);
- 
- 	spin_lock_irq(q->queue_lock);
--	rq = get_request(q, rw, NULL, gfp_mask);
-+	rq = get_request(q, rw, 0, NULL, gfp_mask);
- 	if (IS_ERR(rq))
- 		spin_unlock_irq(q->queue_lock);
- 	/* q->queue_lock is unlocked at this point */
-@@ -1491,13 +1497,14 @@ void __blk_put_request(struct request_queue *q, struct request *req)
- 	 */
- 	if (req->cmd_flags & REQ_ALLOCED) {
- 		unsigned int flags = req->cmd_flags;
-+		int op = req->op;
- 		struct request_list *rl = blk_rq_rl(req);
- 
- 		BUG_ON(!list_empty(&req->queuelist));
- 		BUG_ON(ELV_ON_HASH(req));
- 
- 		blk_free_request(rl, req);
--		freed_request(rl, flags);
-+		freed_request(rl, op, flags);
- 		blk_put_rl(rl);
- 	}
+-	blkg_rwstat_add(&cfqg->stats.queued, rw, 1);
++	blkg_rwstat_add(&cfqg->stats.queued, op, op_flags, 1);
+ 	cfqg_stats_end_empty_time(&cfqg->stats);
+ 	cfqg_stats_set_start_group_wait_time(cfqg, curr_cfqg);
  }
-@@ -1713,7 +1720,7 @@ static blk_qc_t blk_queue_bio(struct request_queue *q, struct bio *bio)
+@@ -683,26 +684,30 @@ static inline void cfqg_stats_update_timeslice_used(struct cfq_group *cfqg,
+ #endif
+ }
+ 
+-static inline void cfqg_stats_update_io_remove(struct cfq_group *cfqg, int rw)
++static inline void cfqg_stats_update_io_remove(struct cfq_group *cfqg, int op,
++					       int op_flags)
  {
- 	const bool sync = !!(bio->bi_rw & REQ_SYNC);
- 	struct blk_plug *plug;
--	int el_ret, rw_flags, where = ELEVATOR_INSERT_SORT;
-+	int el_ret, rw_flags = 0, where = ELEVATOR_INSERT_SORT;
- 	struct request *req;
- 	unsigned int request_count = 0;
+-	blkg_rwstat_add(&cfqg->stats.queued, rw, -1);
++	blkg_rwstat_add(&cfqg->stats.queued, op, op_flags, -1);
+ }
  
-@@ -1773,7 +1780,6 @@ get_rq:
- 	 * but we need to set it earlier to expose the sync flag to the
- 	 * rq allocator and io schedulers.
- 	 */
--	rw_flags = bio_data_dir(bio);
- 	if (sync)
- 		rw_flags |= REQ_SYNC;
+-static inline void cfqg_stats_update_io_merged(struct cfq_group *cfqg, int rw)
++static inline void cfqg_stats_update_io_merged(struct cfq_group *cfqg, int op,
++					       int op_flags)
+ {
+-	blkg_rwstat_add(&cfqg->stats.merged, rw, 1);
++	blkg_rwstat_add(&cfqg->stats.merged, op, op_flags, 1);
+ }
  
-@@ -1781,7 +1787,7 @@ get_rq:
- 	 * Grab a free request. This is might sleep but can not fail.
- 	 * Returns with the queue unlocked.
- 	 */
--	req = get_request(q, rw_flags, bio, GFP_NOIO);
-+	req = get_request(q, bio_data_dir(bio), rw_flags, bio, GFP_NOIO);
- 	if (IS_ERR(req)) {
- 		bio->bi_error = PTR_ERR(req);
- 		bio_endio(bio);
+ static inline void cfqg_stats_update_completion(struct cfq_group *cfqg,
+-			uint64_t start_time, uint64_t io_start_time, int rw)
++			uint64_t start_time, uint64_t io_start_time, int op,
++			int op_flags)
+ {
+ 	struct cfqg_stats *stats = &cfqg->stats;
+ 	unsigned long long now = sched_clock();
+ 
+ 	if (time_after64(now, io_start_time))
+-		blkg_rwstat_add(&stats->service_time, rw, now - io_start_time);
++		blkg_rwstat_add(&stats->service_time, op, op_flags,
++				now - io_start_time);
+ 	if (time_after64(io_start_time, start_time))
+-		blkg_rwstat_add(&stats->wait_time, rw,
++		blkg_rwstat_add(&stats->wait_time, op, op_flags,
+ 				io_start_time - start_time);
+ }
+ 
+@@ -781,13 +786,16 @@ static inline void cfqg_put(struct cfq_group *cfqg) { }
+ #define cfq_log_cfqg(cfqd, cfqg, fmt, args...)		do {} while (0)
+ 
+ static inline void cfqg_stats_update_io_add(struct cfq_group *cfqg,
+-			struct cfq_group *curr_cfqg, int rw) { }
++			struct cfq_group *curr_cfqg, int op, int op_flags) { }
+ static inline void cfqg_stats_update_timeslice_used(struct cfq_group *cfqg,
+ 			unsigned long time, unsigned long unaccounted_time) { }
+-static inline void cfqg_stats_update_io_remove(struct cfq_group *cfqg, int rw) { }
+-static inline void cfqg_stats_update_io_merged(struct cfq_group *cfqg, int rw) { }
++static inline void cfqg_stats_update_io_remove(struct cfq_group *cfqg, int op,
++			int op_flags) { }
++static inline void cfqg_stats_update_io_merged(struct cfq_group *cfqg, int op,
++			int op_flags) { }
+ static inline void cfqg_stats_update_completion(struct cfq_group *cfqg,
+-			uint64_t start_time, uint64_t io_start_time, int rw) { }
++			uint64_t start_time, uint64_t io_start_time, int op,
++			int op_flags) { }
+ 
+ #endif	/* CONFIG_CFQ_GROUP_IOSCHED */
+ 
+@@ -2461,10 +2469,10 @@ static void cfq_reposition_rq_rb(struct cfq_queue *cfqq, struct request *rq)
+ {
+ 	elv_rb_del(&cfqq->sort_list, rq);
+ 	cfqq->queued[rq_is_sync(rq)]--;
+-	cfqg_stats_update_io_remove(RQ_CFQG(rq), rq->cmd_flags);
++	cfqg_stats_update_io_remove(RQ_CFQG(rq), rq->op, rq->cmd_flags);
+ 	cfq_add_rq_rb(rq);
+ 	cfqg_stats_update_io_add(RQ_CFQG(rq), cfqq->cfqd->serving_group,
+-				 rq->cmd_flags);
++				 rq->op, rq->cmd_flags);
+ }
+ 
+ static struct request *
+@@ -2517,7 +2525,7 @@ static void cfq_remove_request(struct request *rq)
+ 	cfq_del_rq_rb(rq);
+ 
+ 	cfqq->cfqd->rq_queued--;
+-	cfqg_stats_update_io_remove(RQ_CFQG(rq), rq->cmd_flags);
++	cfqg_stats_update_io_remove(RQ_CFQG(rq), rq->op, rq->cmd_flags);
+ 	if (rq->cmd_flags & REQ_PRIO) {
+ 		WARN_ON(!cfqq->prio_pending);
+ 		cfqq->prio_pending--;
+@@ -2552,7 +2560,7 @@ static void cfq_merged_request(struct request_queue *q, struct request *req,
+ static void cfq_bio_merged(struct request_queue *q, struct request *req,
+ 				struct bio *bio)
+ {
+-	cfqg_stats_update_io_merged(RQ_CFQG(req), bio->bi_rw);
++	cfqg_stats_update_io_merged(RQ_CFQG(req), bio->bi_op, bio->bi_rw);
+ }
+ 
+ static void
+@@ -2575,7 +2583,7 @@ cfq_merged_requests(struct request_queue *q, struct request *rq,
+ 	if (cfqq->next_rq == next)
+ 		cfqq->next_rq = rq;
+ 	cfq_remove_request(next);
+-	cfqg_stats_update_io_merged(RQ_CFQG(rq), next->cmd_flags);
++	cfqg_stats_update_io_merged(RQ_CFQG(rq), next->op, next->cmd_flags);
+ 
+ 	cfqq = RQ_CFQQ(next);
+ 	/*
+@@ -4108,7 +4116,7 @@ static void cfq_insert_request(struct request_queue *q, struct request *rq)
+ 	rq->fifo_time = jiffies + cfqd->cfq_fifo_expire[rq_is_sync(rq)];
+ 	list_add_tail(&rq->queuelist, &cfqq->fifo);
+ 	cfq_add_rq_rb(rq);
+-	cfqg_stats_update_io_add(RQ_CFQG(rq), cfqd->serving_group,
++	cfqg_stats_update_io_add(RQ_CFQG(rq), cfqd->serving_group, rq->op,
+ 				 rq->cmd_flags);
+ 	cfq_rq_enqueued(cfqd, cfqq, rq);
+ }
+@@ -4206,7 +4214,8 @@ static void cfq_completed_request(struct request_queue *q, struct request *rq)
+ 	cfqq->dispatched--;
+ 	(RQ_CFQG(rq))->dispatched--;
+ 	cfqg_stats_update_completion(cfqq->cfqg, rq_start_time_ns(rq),
+-				     rq_io_start_time_ns(rq), rq->cmd_flags);
++				     rq_io_start_time_ns(rq), rq->op,
++				     rq->cmd_flags);
+ 
+ 	cfqd->rq_in_flight[cfq_cfqq_sync(cfqq)]--;
+ 
+diff --git a/include/linux/blk-cgroup.h b/include/linux/blk-cgroup.h
+index c02e669..9071feb 100644
+--- a/include/linux/blk-cgroup.h
++++ b/include/linux/blk-cgroup.h
+@@ -590,25 +590,26 @@ static inline void blkg_rwstat_exit(struct blkg_rwstat *rwstat)
+ /**
+  * blkg_rwstat_add - add a value to a blkg_rwstat
+  * @rwstat: target blkg_rwstat
+- * @rw: mask of REQ_{WRITE|SYNC}
++ * @op: REQ_OP
++ * @op_flags: rq_flag_bits
+  * @val: value to add
+  *
+  * Add @val to @rwstat.  The counters are chosen according to @rw.  The
+  * caller is responsible for synchronizing calls to this function.
+  */
+ static inline void blkg_rwstat_add(struct blkg_rwstat *rwstat,
+-				   int rw, uint64_t val)
++				   int op, int op_flags, uint64_t val)
+ {
+ 	struct percpu_counter *cnt;
+ 
+-	if (rw & REQ_WRITE)
++	if (op_is_write(op))
+ 		cnt = &rwstat->cpu_cnt[BLKG_RWSTAT_WRITE];
+ 	else
+ 		cnt = &rwstat->cpu_cnt[BLKG_RWSTAT_READ];
+ 
+ 	__percpu_counter_add(cnt, val, BLKG_STAT_CPU_BATCH);
+ 
+-	if (rw & REQ_SYNC)
++	if (op_flags & REQ_SYNC)
+ 		cnt = &rwstat->cpu_cnt[BLKG_RWSTAT_SYNC];
+ 	else
+ 		cnt = &rwstat->cpu_cnt[BLKG_RWSTAT_ASYNC];
+@@ -713,9 +714,9 @@ static inline bool blkcg_bio_issue_check(struct request_queue *q,
+ 
+ 	if (!throtl) {
+ 		blkg = blkg ?: q->root_blkg;
+-		blkg_rwstat_add(&blkg->stat_bytes, bio->bi_rw,
++		blkg_rwstat_add(&blkg->stat_bytes, bio->bi_op, bio->bi_rw,
+ 				bio->bi_iter.bi_size);
+-		blkg_rwstat_add(&blkg->stat_ios, bio->bi_rw, 1);
++		blkg_rwstat_add(&blkg->stat_ios, bio->bi_op, bio->bi_rw, 1);
+ 	}
+ 
+ 	rcu_read_unlock();
 -- 
 2.7.2
