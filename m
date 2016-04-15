@@ -1,9 +1,10 @@
 From: mchristi at redhat.com <mchristi@redhat.com>
-Date: Fri, 15 Apr 2016 14:16:04 -0500
-Subject: [Ocfs2-devel] [PATCH 29/42] block: prepare elevator to use REQ_OPs.
+Date: Fri, 15 Apr 2016 14:16:06 -0500
+Subject: [Ocfs2-devel] [PATCH 31/42] block: convert merge/insert code to
+	check for REQ_OPs.
 In-Reply-To: <1460747777-8479-1-git-send-email-mchristi@redhat.com>
 References: <1460747777-8479-1-git-send-email-mchristi@redhat.com>
-Message-ID: <1460747777-8479-30-git-send-email-mchristi@redhat.com>
+Message-ID: <1460747777-8479-32-git-send-email-mchristi@redhat.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -13,104 +14,128 @@ Cc: Mike Christie <mchristi@redhat.com>
 
 From: Mike Christie <mchristi@redhat.com>
 
-This patch converts the elevator code to use separate variables
+This patch converts the block layer merging code to use separate variables
 for the operation and flags, and to check request->op for the REQ_OP.
 
 Signed-off-by: Mike Christie <mchristi@redhat.com>
 Reviewed-by: Christoph Hellwig <hch@lst.de>
 Reviewed-by: Hannes Reinecke <hare@suse.com>
 ---
- block/blk-core.c         | 2 +-
- block/cfq-iosched.c      | 4 ++--
- block/elevator.c         | 7 +++----
- include/linux/elevator.h | 4 ++--
- 4 files changed, 8 insertions(+), 9 deletions(-)
+ block/blk-core.c       |  2 +-
+ block/blk-merge.c      | 10 ++++++----
+ include/linux/blkdev.h | 20 ++++++++++----------
+ 3 files changed, 17 insertions(+), 15 deletions(-)
 
 diff --git a/block/blk-core.c b/block/blk-core.c
-index 3168962..a796b35 100644
+index a796b35..660aeb8 100644
 --- a/block/blk-core.c
 +++ b/block/blk-core.c
-@@ -1081,7 +1081,7 @@ static struct request *__get_request(struct request_list *rl, int op,
- 	if (unlikely(blk_queue_dying(q)))
- 		return ERR_PTR(-ENODEV);
- 
--	may_queue = elv_may_queue(q, op | op_flags);
-+	may_queue = elv_may_queue(q, op, op_flags);
- 	if (may_queue == ELV_MQUEUE_NO)
- 		goto rq_starved;
- 
-diff --git a/block/cfq-iosched.c b/block/cfq-iosched.c
-index 4a34978..3fcc598 100644
---- a/block/cfq-iosched.c
-+++ b/block/cfq-iosched.c
-@@ -4285,7 +4285,7 @@ static inline int __cfq_may_queue(struct cfq_queue *cfqq)
- 	return ELV_MQUEUE_MAY;
- }
- 
--static int cfq_may_queue(struct request_queue *q, int rw)
-+static int cfq_may_queue(struct request_queue *q, int op, int op_flags)
+@@ -2176,7 +2176,7 @@ EXPORT_SYMBOL(submit_bio);
+ static int blk_cloned_rq_check_limits(struct request_queue *q,
+ 				      struct request *rq)
  {
- 	struct cfq_data *cfqd = q->elevator->elevator_data;
- 	struct task_struct *tsk = current;
-@@ -4302,7 +4302,7 @@ static int cfq_may_queue(struct request_queue *q, int rw)
- 	if (!cic)
- 		return ELV_MQUEUE_MAY;
+-	if (blk_rq_sectors(rq) > blk_queue_get_max_sectors(q, rq->cmd_flags)) {
++	if (blk_rq_sectors(rq) > blk_queue_get_max_sectors(q, rq->op)) {
+ 		printk(KERN_ERR "%s: over max size limit.\n", __func__);
+ 		return -EIO;
+ 	}
+diff --git a/block/blk-merge.c b/block/blk-merge.c
+index 2613531..c02371f 100644
+--- a/block/blk-merge.c
++++ b/block/blk-merge.c
+@@ -649,7 +649,8 @@ static int attempt_merge(struct request_queue *q, struct request *req,
+ 	if (!rq_mergeable(req) || !rq_mergeable(next))
+ 		return 0;
  
--	cfqq = cic_to_cfqq(cic, rw_is_sync(rw));
-+	cfqq = cic_to_cfqq(cic, rw_is_sync(op | op_flags));
- 	if (cfqq) {
- 		cfq_init_prio_data(cfqq, cic);
+-	if (!blk_check_merge_flags(req->cmd_flags, next->cmd_flags))
++	if (!blk_check_merge_flags(req->cmd_flags, req->op, next->cmd_flags,
++				   next->op))
+ 		return 0;
  
-diff --git a/block/elevator.c b/block/elevator.c
-index c3555c9..6a282bf 100644
---- a/block/elevator.c
-+++ b/block/elevator.c
-@@ -366,8 +366,7 @@ void elv_dispatch_sort(struct request_queue *q, struct request *rq)
- 	list_for_each_prev(entry, &q->queue_head) {
- 		struct request *pos = list_entry_rq(entry);
+ 	/*
+@@ -663,7 +664,7 @@ static int attempt_merge(struct request_queue *q, struct request *req,
+ 	    || req_no_special_merge(next))
+ 		return 0;
  
--		if ((rq->cmd_flags & REQ_DISCARD) !=
--		    (pos->cmd_flags & REQ_DISCARD))
-+		if ((rq->op == REQ_OP_DISCARD) != (pos->op == REQ_OP_DISCARD))
- 			break;
- 		if (rq_data_dir(rq) != rq_data_dir(pos))
- 			break;
-@@ -717,12 +716,12 @@ void elv_put_request(struct request_queue *q, struct request *rq)
- 		e->type->ops.elevator_put_req_fn(rq);
+-	if (req->cmd_flags & REQ_WRITE_SAME &&
++	if (req->op == REQ_OP_WRITE_SAME &&
+ 	    !blk_write_same_mergeable(req->bio, next->bio))
+ 		return 0;
+ 
+@@ -751,7 +752,8 @@ bool blk_rq_merge_ok(struct request *rq, struct bio *bio)
+ 	if (!rq_mergeable(rq) || !bio_mergeable(bio))
+ 		return false;
+ 
+-	if (!blk_check_merge_flags(rq->cmd_flags, bio->bi_rw))
++	if (!blk_check_merge_flags(rq->cmd_flags, rq->op, bio->bi_rw,
++				   bio->bi_op))
+ 		return false;
+ 
+ 	/* different data direction or already started, don't merge */
+@@ -767,7 +769,7 @@ bool blk_rq_merge_ok(struct request *rq, struct bio *bio)
+ 		return false;
+ 
+ 	/* must be using the same buffer */
+-	if (rq->cmd_flags & REQ_WRITE_SAME &&
++	if (rq->op == REQ_OP_WRITE_SAME &&
+ 	    !blk_write_same_mergeable(rq->bio, bio))
+ 		return false;
+ 
+diff --git a/include/linux/blkdev.h b/include/linux/blkdev.h
+index bce32e2..4aaa317 100644
+--- a/include/linux/blkdev.h
++++ b/include/linux/blkdev.h
+@@ -659,16 +659,16 @@ static inline bool rq_mergeable(struct request *rq)
+ 	return true;
  }
  
--int elv_may_queue(struct request_queue *q, int rw)
-+int elv_may_queue(struct request_queue *q, int op, int op_flags)
+-static inline bool blk_check_merge_flags(unsigned int flags1,
+-					 unsigned int flags2)
++static inline bool blk_check_merge_flags(unsigned int flags1, unsigned int op1,
++					 unsigned int flags2, unsigned int op2)
  {
- 	struct elevator_queue *e = q->elevator;
+-	if ((flags1 & REQ_DISCARD) != (flags2 & REQ_DISCARD))
++	if ((op1 == REQ_OP_DISCARD) != (op2 == REQ_OP_DISCARD))
+ 		return false;
  
- 	if (e->type->ops.elevator_may_queue_fn)
--		return e->type->ops.elevator_may_queue_fn(q, rw);
-+		return e->type->ops.elevator_may_queue_fn(q, op, op_flags);
+ 	if ((flags1 & REQ_SECURE) != (flags2 & REQ_SECURE))
+ 		return false;
  
- 	return ELV_MQUEUE_MAY;
+-	if ((flags1 & REQ_WRITE_SAME) != (flags2 & REQ_WRITE_SAME))
++	if ((op1 == REQ_OP_WRITE_SAME) != (op2 == REQ_OP_WRITE_SAME))
+ 		return false;
+ 
+ 	return true;
+@@ -869,12 +869,12 @@ static inline unsigned int blk_rq_cur_sectors(const struct request *rq)
  }
-diff --git a/include/linux/elevator.h b/include/linux/elevator.h
-index 638b324..953d286 100644
---- a/include/linux/elevator.h
-+++ b/include/linux/elevator.h
-@@ -26,7 +26,7 @@ typedef int (elevator_dispatch_fn) (struct request_queue *, int);
- typedef void (elevator_add_req_fn) (struct request_queue *, struct request *);
- typedef struct request *(elevator_request_list_fn) (struct request_queue *, struct request *);
- typedef void (elevator_completed_req_fn) (struct request_queue *, struct request *);
--typedef int (elevator_may_queue_fn) (struct request_queue *, int);
-+typedef int (elevator_may_queue_fn) (struct request_queue *, int, int);
  
- typedef void (elevator_init_icq_fn) (struct io_cq *);
- typedef void (elevator_exit_icq_fn) (struct io_cq *);
-@@ -134,7 +134,7 @@ extern struct request *elv_former_request(struct request_queue *, struct request
- extern struct request *elv_latter_request(struct request_queue *, struct request *);
- extern int elv_register_queue(struct request_queue *q);
- extern void elv_unregister_queue(struct request_queue *q);
--extern int elv_may_queue(struct request_queue *, int);
-+extern int elv_may_queue(struct request_queue *, int, int);
- extern void elv_completed_request(struct request_queue *, struct request *);
- extern int elv_set_request(struct request_queue *q, struct request *rq,
- 			   struct bio *bio, gfp_t gfp_mask);
+ static inline unsigned int blk_queue_get_max_sectors(struct request_queue *q,
+-						     unsigned int cmd_flags)
++						     int op)
+ {
+-	if (unlikely(cmd_flags & REQ_DISCARD))
++	if (unlikely(op == REQ_OP_DISCARD))
+ 		return min(q->limits.max_discard_sectors, UINT_MAX >> 9);
+ 
+-	if (unlikely(cmd_flags & REQ_WRITE_SAME))
++	if (unlikely(op == REQ_OP_WRITE_SAME))
+ 		return q->limits.max_write_same_sectors;
+ 
+ 	return q->limits.max_sectors;
+@@ -901,11 +901,11 @@ static inline unsigned int blk_rq_get_max_sectors(struct request *rq)
+ 	if (unlikely(rq->cmd_type != REQ_TYPE_FS))
+ 		return q->limits.max_hw_sectors;
+ 
+-	if (!q->limits.chunk_sectors || (rq->cmd_flags & REQ_DISCARD))
+-		return blk_queue_get_max_sectors(q, rq->cmd_flags);
++	if (!q->limits.chunk_sectors || (rq->op == REQ_OP_DISCARD))
++		return blk_queue_get_max_sectors(q, rq->op);
+ 
+ 	return min(blk_max_size_offset(q, blk_rq_pos(rq)),
+-			blk_queue_get_max_sectors(q, rq->cmd_flags));
++			blk_queue_get_max_sectors(q, rq->op));
+ }
+ 
+ static inline unsigned int blk_rq_count_bios(struct request *rq)
 -- 
 2.7.2
