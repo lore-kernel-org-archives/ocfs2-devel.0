@@ -1,9 +1,10 @@
 From: mchristi at redhat.com <mchristi@redhat.com>
-Date: Fri, 15 Apr 2016 14:16:00 -0500
-Subject: [Ocfs2-devel] [PATCH 25/42] target: set bi_op to REQ_OP
+Date: Fri, 15 Apr 2016 14:16:08 -0500
+Subject: [Ocfs2-devel] [PATCH 33/42] block: convert rq_data_dir helper to
+	use REQ_OPs
 In-Reply-To: <1460747777-8479-1-git-send-email-mchristi@redhat.com>
 References: <1460747777-8479-1-git-send-email-mchristi@redhat.com>
-Message-ID: <1460747777-8479-26-git-send-email-mchristi@redhat.com>
+Message-ID: <1460747777-8479-34-git-send-email-mchristi@redhat.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -13,125 +14,29 @@ Cc: Mike Christie <mchristi@redhat.com>
 
 From: Mike Christie <mchristi@redhat.com>
 
-This patch has the target modules use bio->bi_op for REQ_OPs and
-rq_flag_bits to bio->bi_rw.
+The request->op field is now always setup up with a REQ_OP.
+This patch has the rq_data_dir helper convert the operation
+to a WRITE or READ direction based on that.
 
 Signed-off-by: Mike Christie <mchristi@redhat.com>
 Reviewed-by: Christoph Hellwig <hch@lst.de>
 Reviewed-by: Hannes Reinecke <hare@suse.com>
-Acked-by: Nicholas Bellinger <nab@linux-iscsi.org>
 ---
- drivers/target/target_core_iblock.c | 30 +++++++++++++++---------------
- drivers/target/target_core_pscsi.c  |  2 +-
- 2 files changed, 16 insertions(+), 16 deletions(-)
+ include/linux/blkdev.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/drivers/target/target_core_iblock.c b/drivers/target/target_core_iblock.c
-index c25109c..5e60dbc 100644
---- a/drivers/target/target_core_iblock.c
-+++ b/drivers/target/target_core_iblock.c
-@@ -312,7 +312,8 @@ static void iblock_bio_done(struct bio *bio)
- }
+diff --git a/include/linux/blkdev.h b/include/linux/blkdev.h
+index 42711ef..5694894 100644
+--- a/include/linux/blkdev.h
++++ b/include/linux/blkdev.h
+@@ -598,7 +598,7 @@ static inline void queue_flag_clear(unsigned int flag, struct request_queue *q)
  
- static struct bio *
--iblock_get_bio(struct se_cmd *cmd, sector_t lba, u32 sg_num, int rw)
-+iblock_get_bio(struct se_cmd *cmd, sector_t lba, u32 sg_num, int op,
-+	       int op_flags)
- {
- 	struct iblock_dev *ib_dev = IBLOCK_DEV(cmd->se_dev);
- 	struct bio *bio;
-@@ -334,7 +335,8 @@ iblock_get_bio(struct se_cmd *cmd, sector_t lba, u32 sg_num, int rw)
- 	bio->bi_private = cmd;
- 	bio->bi_end_io = &iblock_bio_done;
- 	bio->bi_iter.bi_sector = lba;
--	bio->bi_rw = rw;
-+	bio->bi_op = op;
-+	bio->bi_rw = op_flags;
+ #define list_entry_rq(ptr)	list_entry((ptr), struct request, queuelist)
  
- 	return bio;
- }
-@@ -480,7 +482,7 @@ iblock_execute_write_same(struct se_cmd *cmd)
- 		goto fail;
- 	cmd->priv = ibr;
+-#define rq_data_dir(rq)		((int)((rq)->cmd_flags & 1))
++#define rq_data_dir(rq)		(op_is_write(rq->op) ? WRITE : READ)
  
--	bio = iblock_get_bio(cmd, block_lba, 1, WRITE);
-+	bio = iblock_get_bio(cmd, block_lba, 1, REQ_OP_WRITE, 0);
- 	if (!bio)
- 		goto fail_free_ibr;
- 
-@@ -493,7 +495,8 @@ iblock_execute_write_same(struct se_cmd *cmd)
- 		while (bio_add_page(bio, sg_page(sg), sg->length, sg->offset)
- 				!= sg->length) {
- 
--			bio = iblock_get_bio(cmd, block_lba, 1, WRITE);
-+			bio = iblock_get_bio(cmd, block_lba, 1, REQ_OP_WRITE,
-+					     0);
- 			if (!bio)
- 				goto fail_put_bios;
- 
-@@ -679,8 +682,7 @@ iblock_execute_rw(struct se_cmd *cmd, struct scatterlist *sgl, u32 sgl_nents,
- 	struct scatterlist *sg;
- 	u32 sg_num = sgl_nents;
- 	unsigned bio_cnt;
--	int rw = 0;
--	int i;
-+	int i, op, op_flags = 0;
- 
- 	if (data_direction == DMA_TO_DEVICE) {
- 		struct iblock_dev *ib_dev = IBLOCK_DEV(dev);
-@@ -689,18 +691,15 @@ iblock_execute_rw(struct se_cmd *cmd, struct scatterlist *sgl, u32 sgl_nents,
- 		 * Force writethrough using WRITE_FUA if a volatile write cache
- 		 * is not enabled, or if initiator set the Force Unit Access bit.
- 		 */
-+		op = REQ_OP_WRITE;
- 		if (test_bit(QUEUE_FLAG_FUA, &q->queue_flags)) {
- 			if (cmd->se_cmd_flags & SCF_FUA)
--				rw = WRITE_FUA;
-+				op_flags = WRITE_FUA;
- 			else if (!test_bit(QUEUE_FLAG_WC, &q->queue_flags))
--				rw = WRITE_FUA;
--			else
--				rw = WRITE;
--		} else {
--			rw = WRITE;
-+				op_flags = WRITE_FUA;
- 		}
- 	} else {
--		rw = READ;
-+		op = REQ_OP_READ;
- 	}
- 
- 	ibr = kzalloc(sizeof(struct iblock_req), GFP_KERNEL);
-@@ -714,7 +713,7 @@ iblock_execute_rw(struct se_cmd *cmd, struct scatterlist *sgl, u32 sgl_nents,
- 		return 0;
- 	}
- 
--	bio = iblock_get_bio(cmd, block_lba, sgl_nents, rw);
-+	bio = iblock_get_bio(cmd, block_lba, sgl_nents, op, op_flags);
- 	if (!bio)
- 		goto fail_free_ibr;
- 
-@@ -738,7 +737,8 @@ iblock_execute_rw(struct se_cmd *cmd, struct scatterlist *sgl, u32 sgl_nents,
- 				bio_cnt = 0;
- 			}
- 
--			bio = iblock_get_bio(cmd, block_lba, sg_num, rw);
-+			bio = iblock_get_bio(cmd, block_lba, sg_num, op,
-+					     op_flags);
- 			if (!bio)
- 				goto fail_put_bios;
- 
-diff --git a/drivers/target/target_core_pscsi.c b/drivers/target/target_core_pscsi.c
-index de18790..2cf915c 100644
---- a/drivers/target/target_core_pscsi.c
-+++ b/drivers/target/target_core_pscsi.c
-@@ -922,7 +922,7 @@ pscsi_map_sg(struct se_cmd *cmd, struct scatterlist *sgl, u32 sgl_nents,
- 					goto fail;
- 
- 				if (rw)
--					bio->bi_rw |= REQ_WRITE;
-+					bio->bi_op = REQ_OP_WRITE;
- 
- 				pr_debug("PSCSI: Allocated bio: %p,"
- 					" dir: %s nr_vecs: %d\n", bio,
+ /*
+  * Driver can handle struct request, if it either has an old style
 -- 
 2.7.2
