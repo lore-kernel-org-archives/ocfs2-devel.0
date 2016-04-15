@@ -1,9 +1,9 @@
 From: mchristi at redhat.com <mchristi@redhat.com>
-Date: Fri, 15 Apr 2016 14:15:48 -0500
-Subject: [Ocfs2-devel] [PATCH 13/42] xfs: set bi_op to REQ_OP
+Date: Fri, 15 Apr 2016 14:15:50 -0500
+Subject: [Ocfs2-devel] [PATCH 15/42] mpage: set bi_op to REQ_OP
 In-Reply-To: <1460747777-8479-1-git-send-email-mchristi@redhat.com>
 References: <1460747777-8479-1-git-send-email-mchristi@redhat.com>
-Message-ID: <1460747777-8479-14-git-send-email-mchristi@redhat.com>
+Message-ID: <1460747777-8479-16-git-send-email-mchristi@redhat.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -13,113 +13,160 @@ Cc: Mike Christie <mchristi@redhat.com>
 
 From: Mike Christie <mchristi@redhat.com>
 
-This patch has xfs use bio->bi_op for REQ_OPs and rq_flag_bits to bio->bi_rw.
+This patch has mpage.c use bio->bi_op for REQ_OPs and rq_flag_bits
+to bio->bi_rw.
 
 Signed-off-by: Mike Christie <mchristi@redhat.com>
 Reviewed-by: Christoph Hellwig <hch@lst.de>
 Reviewed-by: Hannes Reinecke <hare@suse.com>
-Acked-by: Dave Chinner <dchinner@redhat.com>
-
 ---
- fs/xfs/xfs_aops.c |  3 +--
- fs/xfs/xfs_buf.c  | 27 +++++++++++++++------------
- 2 files changed, 16 insertions(+), 14 deletions(-)
+ fs/mpage.c | 41 +++++++++++++++++++++--------------------
+ 1 file changed, 21 insertions(+), 20 deletions(-)
 
-diff --git a/fs/xfs/xfs_aops.c b/fs/xfs/xfs_aops.c
-index 5852c5a..6c20336 100644
---- a/fs/xfs/xfs_aops.c
-+++ b/fs/xfs/xfs_aops.c
-@@ -439,10 +439,9 @@ xfs_submit_ioend(
+diff --git a/fs/mpage.c b/fs/mpage.c
+index 2c251ec..89f58f1 100644
+--- a/fs/mpage.c
++++ b/fs/mpage.c
+@@ -56,11 +56,12 @@ static void mpage_end_io(struct bio *bio)
+ 	bio_put(bio);
+ }
  
- 	ioend->io_bio->bi_private = ioend;
- 	ioend->io_bio->bi_end_io = xfs_end_bio;
-+	ioend->io_bio->bi_op = REQ_OP_WRITE;
- 	if (wbc->sync_mode)
- 		ioend->io_bio->bi_rw = WRITE_SYNC;
--	else
--		ioend->io_bio->bi_rw = WRITE;
- 	/*
- 	 * If we are failing the IO now, just mark the ioend with an
- 	 * error and finish it. This will run IO completion immediately
-diff --git a/fs/xfs/xfs_buf.c b/fs/xfs/xfs_buf.c
-index 079bb77..917774e 100644
---- a/fs/xfs/xfs_buf.c
-+++ b/fs/xfs/xfs_buf.c
-@@ -1131,7 +1131,8 @@ xfs_buf_ioapply_map(
- 	int		map,
- 	int		*buf_offset,
- 	int		*count,
--	int		rw)
-+	int		op,
-+	int		op_flags)
+-static struct bio *mpage_bio_submit(int rw, struct bio *bio)
++static struct bio *mpage_bio_submit(int op, int op_flags, struct bio *bio)
  {
- 	int		page_index;
- 	int		total_nr_pages = bp->b_page_count;
-@@ -1170,7 +1171,8 @@ next_chunk:
- 	bio->bi_iter.bi_sector = sector;
- 	bio->bi_end_io = xfs_buf_bio_end_io;
- 	bio->bi_private = bp;
+ 	bio->bi_end_io = mpage_end_io;
 -	bio->bi_rw = rw;
+-	guard_bio_eod(rw, bio);
 +	bio->bi_op = op;
 +	bio->bi_rw = op_flags;
++	guard_bio_eod(op, bio);
+ 	submit_bio(bio);
+ 	return NULL;
+ }
+@@ -270,7 +271,7 @@ do_mpage_readpage(struct bio *bio, struct page *page, unsigned nr_pages,
+ 	 * This page will go to BIO.  Do we need to send this BIO off first?
+ 	 */
+ 	if (bio && (*last_block_in_bio != blocks[0] - 1))
+-		bio = mpage_bio_submit(READ, bio);
++		bio = mpage_bio_submit(REQ_OP_READ, 0, bio);
  
- 	for (; size && nr_pages; nr_pages--, page_index++) {
- 		int	rbytes, nbytes = PAGE_SIZE - offset;
-@@ -1214,7 +1216,8 @@ _xfs_buf_ioapply(
- 	struct xfs_buf	*bp)
- {
- 	struct blk_plug	plug;
--	int		rw;
-+	int		op;
-+	int		op_flags = 0;
- 	int		offset;
- 	int		size;
- 	int		i;
-@@ -1233,14 +1236,13 @@ _xfs_buf_ioapply(
- 		bp->b_ioend_wq = bp->b_target->bt_mount->m_buf_workqueue;
+ alloc_new:
+ 	if (bio == NULL) {
+@@ -287,7 +288,7 @@ alloc_new:
  
- 	if (bp->b_flags & XBF_WRITE) {
-+		op = REQ_OP_WRITE;
- 		if (bp->b_flags & XBF_SYNCIO)
--			rw = WRITE_SYNC;
--		else
--			rw = WRITE;
-+			op_flags = WRITE_SYNC;
- 		if (bp->b_flags & XBF_FUA)
--			rw |= REQ_FUA;
-+			op_flags |= REQ_FUA;
- 		if (bp->b_flags & XBF_FLUSH)
--			rw |= REQ_FLUSH;
-+			op_flags |= REQ_FLUSH;
- 
- 		/*
- 		 * Run the write verifier callback function if it exists. If
-@@ -1270,13 +1272,14 @@ _xfs_buf_ioapply(
- 			}
- 		}
- 	} else if (bp->b_flags & XBF_READ_AHEAD) {
--		rw = READA;
-+		op = REQ_OP_READ;
-+		op_flags = REQ_RAHEAD;
- 	} else {
--		rw = READ;
-+		op = REQ_OP_READ;
+ 	length = first_hole << blkbits;
+ 	if (bio_add_page(bio, page, length, 0) < length) {
+-		bio = mpage_bio_submit(READ, bio);
++		bio = mpage_bio_submit(REQ_OP_READ, 0, bio);
+ 		goto alloc_new;
  	}
  
- 	/* we only use the buffer cache for meta-data */
--	rw |= REQ_META;
-+	op_flags |= REQ_META;
+@@ -295,7 +296,7 @@ alloc_new:
+ 	nblocks = map_bh->b_size >> blkbits;
+ 	if ((buffer_boundary(map_bh) && relative_block == nblocks) ||
+ 	    (first_hole != blocks_per_page))
+-		bio = mpage_bio_submit(READ, bio);
++		bio = mpage_bio_submit(REQ_OP_READ, 0, bio);
+ 	else
+ 		*last_block_in_bio = blocks[blocks_per_page - 1];
+ out:
+@@ -303,7 +304,7 @@ out:
  
- 	/*
- 	 * Walk all the vectors issuing IO on them. Set up the initial offset
-@@ -1288,7 +1291,7 @@ _xfs_buf_ioapply(
- 	size = BBTOB(bp->b_io_length);
- 	blk_start_plug(&plug);
- 	for (i = 0; i < bp->b_map_count; i++) {
--		xfs_buf_ioapply_map(bp, i, &offset, &size, rw);
-+		xfs_buf_ioapply_map(bp, i, &offset, &size, op, op_flags);
- 		if (bp->b_error)
- 			break;
- 		if (size <= 0)
+ confused:
+ 	if (bio)
+-		bio = mpage_bio_submit(READ, bio);
++		bio = mpage_bio_submit(REQ_OP_READ, 0, bio);
+ 	if (!PageUptodate(page))
+ 	        block_read_full_page(page, get_block);
+ 	else
+@@ -385,7 +386,7 @@ mpage_readpages(struct address_space *mapping, struct list_head *pages,
+ 	}
+ 	BUG_ON(!list_empty(pages));
+ 	if (bio)
+-		mpage_bio_submit(READ, bio);
++		mpage_bio_submit(REQ_OP_READ, 0, bio);
+ 	return 0;
+ }
+ EXPORT_SYMBOL(mpage_readpages);
+@@ -406,7 +407,7 @@ int mpage_readpage(struct page *page, get_block_t get_block)
+ 	bio = do_mpage_readpage(bio, page, 1, &last_block_in_bio,
+ 			&map_bh, &first_logical_block, get_block, gfp);
+ 	if (bio)
+-		mpage_bio_submit(READ, bio);
++		mpage_bio_submit(REQ_OP_READ, 0, bio);
+ 	return 0;
+ }
+ EXPORT_SYMBOL(mpage_readpage);
+@@ -487,7 +488,7 @@ static int __mpage_writepage(struct page *page, struct writeback_control *wbc,
+ 	struct buffer_head map_bh;
+ 	loff_t i_size = i_size_read(inode);
+ 	int ret = 0;
+-	int wr = (wbc->sync_mode == WB_SYNC_ALL ?  WRITE_SYNC : WRITE);
++	int op_flags = (wbc->sync_mode == WB_SYNC_ALL ?  WRITE_SYNC : 0);
+ 
+ 	if (page_has_buffers(page)) {
+ 		struct buffer_head *head = page_buffers(page);
+@@ -596,7 +597,7 @@ page_is_mapped:
+ 	 * This page will go to BIO.  Do we need to send this BIO off first?
+ 	 */
+ 	if (bio && mpd->last_block_in_bio != blocks[0] - 1)
+-		bio = mpage_bio_submit(wr, bio);
++		bio = mpage_bio_submit(REQ_OP_WRITE, op_flags, bio);
+ 
+ alloc_new:
+ 	if (bio == NULL) {
+@@ -623,7 +624,7 @@ alloc_new:
+ 	wbc_account_io(wbc, page, PAGE_SIZE);
+ 	length = first_unmapped << blkbits;
+ 	if (bio_add_page(bio, page, length, 0) < length) {
+-		bio = mpage_bio_submit(wr, bio);
++		bio = mpage_bio_submit(REQ_OP_WRITE, op_flags, bio);
+ 		goto alloc_new;
+ 	}
+ 
+@@ -633,7 +634,7 @@ alloc_new:
+ 	set_page_writeback(page);
+ 	unlock_page(page);
+ 	if (boundary || (first_unmapped != blocks_per_page)) {
+-		bio = mpage_bio_submit(wr, bio);
++		bio = mpage_bio_submit(REQ_OP_WRITE, op_flags, bio);
+ 		if (boundary_block) {
+ 			write_boundary_block(boundary_bdev,
+ 					boundary_block, 1 << blkbits);
+@@ -645,7 +646,7 @@ alloc_new:
+ 
+ confused:
+ 	if (bio)
+-		bio = mpage_bio_submit(wr, bio);
++		bio = mpage_bio_submit(REQ_OP_WRITE, op_flags, bio);
+ 
+ 	if (mpd->use_writepage) {
+ 		ret = mapping->a_ops->writepage(page, wbc);
+@@ -702,9 +703,9 @@ mpage_writepages(struct address_space *mapping,
+ 
+ 		ret = write_cache_pages(mapping, wbc, __mpage_writepage, &mpd);
+ 		if (mpd.bio) {
+-			int wr = (wbc->sync_mode == WB_SYNC_ALL ?
+-				  WRITE_SYNC : WRITE);
+-			mpage_bio_submit(wr, mpd.bio);
++			int op_flags = (wbc->sync_mode == WB_SYNC_ALL ?
++				  WRITE_SYNC : 0);
++			mpage_bio_submit(REQ_OP_WRITE, op_flags, mpd.bio);
+ 		}
+ 	}
+ 	blk_finish_plug(&plug);
+@@ -723,9 +724,9 @@ int mpage_writepage(struct page *page, get_block_t get_block,
+ 	};
+ 	int ret = __mpage_writepage(page, wbc, &mpd);
+ 	if (mpd.bio) {
+-		int wr = (wbc->sync_mode == WB_SYNC_ALL ?
+-			  WRITE_SYNC : WRITE);
+-		mpage_bio_submit(wr, mpd.bio);
++		int op_flags = (wbc->sync_mode == WB_SYNC_ALL ?
++			  WRITE_SYNC : 0);
++		mpage_bio_submit(REQ_OP_WRITE, op_flags, mpd.bio);
+ 	}
+ 	return ret;
+ }
 -- 
 2.7.2
