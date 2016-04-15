@@ -1,9 +1,10 @@
 From: mchristi at redhat.com <mchristi@redhat.com>
-Date: Fri, 15 Apr 2016 14:15:46 -0500
-Subject: [Ocfs2-devel] [PATCH 11/42] f2fs: set bi_op to REQ_OP
+Date: Fri, 15 Apr 2016 14:16:03 -0500
+Subject: [Ocfs2-devel] [PATCH 28/42] block: prepare mq request creation to
+	use REQ_OPs
 In-Reply-To: <1460747777-8479-1-git-send-email-mchristi@redhat.com>
 References: <1460747777-8479-1-git-send-email-mchristi@redhat.com>
-Message-ID: <1460747777-8479-12-git-send-email-mchristi@redhat.com>
+Message-ID: <1460747777-8479-29-git-send-email-mchristi@redhat.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -13,450 +14,146 @@ Cc: Mike Christie <mchristi@redhat.com>
 
 From: Mike Christie <mchristi@redhat.com>
 
-This patch has f2fs use bio->bi_op for REQ_OPs and rq_flag_bits to bio->bi_rw.
+This patch modifies the blk mq request creation code to use
+separate variables for the operation and flags, because in the
+the next patches the struct request users will be converted like
+was done for bios. request->op will be used for the REQ_OP and
+request->cmd_flags for the rq_flag_bits.
+
+Like the non mq patch there is some temporary compat code in
+blk_mq_rq_ctx_init to allow users to read the operation from the
+cmd_flags. This will be deleted in one of the last patches when all
+drivers have been converted.
 
 Signed-off-by: Mike Christie <mchristi@redhat.com>
 Reviewed-by: Christoph Hellwig <hch@lst.de>
 Reviewed-by: Hannes Reinecke <hare@suse.com>
 ---
- fs/f2fs/checkpoint.c        | 10 ++++++----
- fs/f2fs/data.c              | 33 ++++++++++++++++++++-------------
- fs/f2fs/f2fs.h              |  5 +++--
- fs/f2fs/gc.c                |  9 ++++++---
- fs/f2fs/inline.c            |  3 ++-
- fs/f2fs/node.c              |  8 +++++---
- fs/f2fs/segment.c           | 10 +++++++---
- fs/f2fs/trace.c             |  7 ++++---
- include/trace/events/f2fs.h | 34 +++++++++++++++++++++-------------
- 9 files changed, 74 insertions(+), 45 deletions(-)
+ block/blk-mq.c | 38 +++++++++++++++++++++-----------------
+ 1 file changed, 21 insertions(+), 17 deletions(-)
 
-diff --git a/fs/f2fs/checkpoint.c b/fs/f2fs/checkpoint.c
-index b92782f..6f9dc16 100644
---- a/fs/f2fs/checkpoint.c
-+++ b/fs/f2fs/checkpoint.c
-@@ -55,14 +55,15 @@ static struct page *__get_meta_page(struct f2fs_sb_info *sbi, pgoff_t index,
- 	struct f2fs_io_info fio = {
- 		.sbi = sbi,
- 		.type = META,
--		.rw = READ_SYNC | REQ_META | REQ_PRIO,
-+		.op = REQ_OP_READ,
-+		.op_flags = READ_SYNC | REQ_META | REQ_PRIO,
- 		.old_blkaddr = index,
- 		.new_blkaddr = index,
- 		.encrypted_page = NULL,
- 	};
+diff --git a/block/blk-mq.c b/block/blk-mq.c
+index 1699baf..4843c0b 100644
+--- a/block/blk-mq.c
++++ b/block/blk-mq.c
+@@ -159,16 +159,19 @@ bool blk_mq_can_queue(struct blk_mq_hw_ctx *hctx)
+ EXPORT_SYMBOL(blk_mq_can_queue);
  
- 	if (unlikely(!is_meta))
--		fio.rw &= ~REQ_META;
-+		fio.op_flags &= ~REQ_META;
- repeat:
- 	page = grab_cache_page(mapping, index);
- 	if (!page) {
-@@ -149,13 +150,14 @@ int ra_meta_pages(struct f2fs_sb_info *sbi, block_t start, int nrpages,
- 	struct f2fs_io_info fio = {
- 		.sbi = sbi,
- 		.type = META,
--		.rw = sync ? (READ_SYNC | REQ_META | REQ_PRIO) : READA,
-+		.op = REQ_OP_READ,
-+		.op_flags = sync ? (READ_SYNC | REQ_META | REQ_PRIO) : READA,
- 		.encrypted_page = NULL,
- 	};
- 	struct blk_plug plug;
+ static void blk_mq_rq_ctx_init(struct request_queue *q, struct blk_mq_ctx *ctx,
+-			       struct request *rq, unsigned int rw_flags)
++			       struct request *rq, int op,
++			       unsigned int op_flags)
+ {
+ 	if (blk_queue_io_stat(q))
+-		rw_flags |= REQ_IO_STAT;
++		op_flags |= REQ_IO_STAT;
  
- 	if (unlikely(type == META_POR))
--		fio.rw &= ~REQ_META;
-+		fio.op_flags &= ~REQ_META;
+ 	INIT_LIST_HEAD(&rq->queuelist);
+ 	/* csd/requeue_work/fifo_time is initialized before use */
+ 	rq->q = q;
+ 	rq->mq_ctx = ctx;
+-	rq->cmd_flags |= rw_flags;
++	rq->op = op;
++	/* tmp compat - allow users to check either one for the op */
++	rq->cmd_flags |= op | op_flags;
+ 	/* do not touch atomic flags, it needs atomic ops against the timer */
+ 	rq->cpu = -1;
+ 	INIT_HLIST_NODE(&rq->hash);
+@@ -203,11 +206,11 @@ static void blk_mq_rq_ctx_init(struct request_queue *q, struct blk_mq_ctx *ctx,
+ 	rq->end_io_data = NULL;
+ 	rq->next_rq = NULL;
  
- 	blk_start_plug(&plug);
- 	for (; nrpages-- > 0; blkno++) {
-diff --git a/fs/f2fs/data.c b/fs/f2fs/data.c
-index 74cf5cb..03b6362 100644
---- a/fs/f2fs/data.c
-+++ b/fs/f2fs/data.c
-@@ -105,11 +105,12 @@ static void __submit_merged_bio(struct f2fs_bio_info *io)
- 	if (!io->bio)
- 		return;
- 
--	if (is_read_io(fio->rw))
-+	if (is_read_io(fio->op))
- 		trace_f2fs_submit_read_bio(io->sbi->sb, fio, io->bio);
- 	else
- 		trace_f2fs_submit_write_bio(io->sbi->sb, fio, io->bio);
--	io->bio->bi_rw = fio->rw;
-+	io->bio->bi_op = fio->op;
-+	io->bio->bi_rw = fio->op_flags;
- 
- 	submit_bio(io->bio);
- 	io->bio = NULL;
-@@ -177,10 +178,12 @@ static void __f2fs_submit_merged_bio(struct f2fs_sb_info *sbi,
- 	/* change META to META_FLUSH in the checkpoint procedure */
- 	if (type >= META_FLUSH) {
- 		io->fio.type = META_FLUSH;
-+		io->fio.op = REQ_OP_WRITE;
- 		if (test_opt(sbi, NOBARRIER))
--			io->fio.rw = WRITE_FLUSH | REQ_META | REQ_PRIO;
-+			io->fio.op_flags = WRITE_FLUSH | REQ_META | REQ_PRIO;
- 		else
--			io->fio.rw = WRITE_FLUSH_FUA | REQ_META | REQ_PRIO;
-+			io->fio.op_flags = WRITE_FLUSH_FUA | REQ_META |
-+								REQ_PRIO;
- 	}
- 	__submit_merged_bio(io);
- out:
-@@ -222,13 +225,14 @@ int f2fs_submit_page_bio(struct f2fs_io_info *fio)
- 	f2fs_trace_ios(fio, 0);
- 
- 	/* Allocate a new bio */
--	bio = __bio_alloc(fio->sbi, fio->new_blkaddr, 1, is_read_io(fio->rw));
-+	bio = __bio_alloc(fio->sbi, fio->new_blkaddr, 1, is_read_io(fio->op));
- 
- 	if (bio_add_page(bio, page, PAGE_SIZE, 0) < PAGE_SIZE) {
- 		bio_put(bio);
- 		return -EFAULT;
- 	}
--	bio->bi_rw = fio->rw;
-+	bio->bi_op = fio->op;
-+	bio->bi_rw = fio->op_flags;
- 
- 	submit_bio(bio);
- 	return 0;
-@@ -239,7 +243,7 @@ void f2fs_submit_page_mbio(struct f2fs_io_info *fio)
- 	struct f2fs_sb_info *sbi = fio->sbi;
- 	enum page_type btype = PAGE_TYPE_OF_BIO(fio->type);
- 	struct f2fs_bio_info *io;
--	bool is_read = is_read_io(fio->rw);
-+	bool is_read = is_read_io(fio->op);
- 	struct page *bio_page;
- 
- 	io = is_read ? &sbi->read_io : &sbi->write_io[btype];
-@@ -254,7 +258,7 @@ void f2fs_submit_page_mbio(struct f2fs_io_info *fio)
- 		inc_page_count(sbi, F2FS_WRITEBACK);
- 
- 	if (io->bio && (io->last_block_in_bio != fio->new_blkaddr - 1 ||
--						io->fio.rw != fio->rw))
-+	    (io->fio.op != fio->op || io->fio.op_flags != fio->op_flags)))
- 		__submit_merged_bio(io);
- alloc_new:
- 	if (io->bio == NULL) {
-@@ -359,7 +363,7 @@ int f2fs_get_block(struct dnode_of_data *dn, pgoff_t index)
+-	ctx->rq_dispatched[rw_is_sync(rw_flags)]++;
++	ctx->rq_dispatched[rw_is_sync(op | op_flags)]++;
  }
  
- struct page *get_read_data_page(struct inode *inode, pgoff_t index,
--						int rw, bool for_write)
-+						int op_flags, bool for_write)
+ static struct request *
+-__blk_mq_alloc_request(struct blk_mq_alloc_data *data, int rw)
++__blk_mq_alloc_request(struct blk_mq_alloc_data *data, int op, int op_flags)
  {
- 	struct address_space *mapping = inode->i_mapping;
- 	struct dnode_of_data dn;
-@@ -369,7 +373,8 @@ struct page *get_read_data_page(struct inode *inode, pgoff_t index,
- 	struct f2fs_io_info fio = {
- 		.sbi = F2FS_I_SB(inode),
- 		.type = DATA,
--		.rw = rw,
-+		.op = REQ_OP_READ,
-+		.op_flags = op_flags,
- 		.encrypted_page = NULL,
- 	};
- 
-@@ -1014,7 +1019,7 @@ submit_and_realloc:
- 			bio->bi_iter.bi_sector = SECTOR_FROM_BLOCK(block_nr);
- 			bio->bi_end_io = f2fs_read_end_io;
- 			bio->bi_private = ctx;
--			bio->bi_rw = READ;
-+			bio->bi_op = REQ_OP_READ;
+ 	struct request *rq;
+ 	unsigned int tag;
+@@ -222,7 +225,7 @@ __blk_mq_alloc_request(struct blk_mq_alloc_data *data, int rw)
  		}
  
- 		if (bio_add_page(bio, page, blocksize, 0) < blocksize)
-@@ -1156,7 +1161,8 @@ static int f2fs_write_data_page(struct page *page,
- 	struct f2fs_io_info fio = {
- 		.sbi = sbi,
- 		.type = DATA,
--		.rw = (wbc->sync_mode == WB_SYNC_ALL) ? WRITE_SYNC : WRITE,
-+		.op = REQ_OP_WRITE,
-+		.op_flags = (wbc->sync_mode == WB_SYNC_ALL) ? WRITE_SYNC : 0,
- 		.page = page,
- 		.encrypted_page = NULL,
- 	};
-@@ -1594,7 +1600,8 @@ repeat:
- 		struct f2fs_io_info fio = {
- 			.sbi = sbi,
- 			.type = DATA,
--			.rw = READ_SYNC,
-+			.op = REQ_OP_READ,
-+			.op_flags = READ_SYNC,
- 			.old_blkaddr = blkaddr,
- 			.new_blkaddr = blkaddr,
- 			.page = page,
-diff --git a/fs/f2fs/f2fs.h b/fs/f2fs/f2fs.h
-index 3f15513..bc488e2 100644
---- a/fs/f2fs/f2fs.h
-+++ b/fs/f2fs/f2fs.h
-@@ -636,14 +636,15 @@ enum page_type {
- struct f2fs_io_info {
- 	struct f2fs_sb_info *sbi;	/* f2fs_sb_info pointer */
- 	enum page_type type;	/* contains DATA/NODE/META/META_FLUSH */
--	int rw;			/* contains R/RS/W/WS with REQ_META/REQ_PRIO */
-+	int op;			/* contains REQ_OP_ */
-+	int op_flags;		/* rq_flag_bits */
- 	block_t new_blkaddr;	/* new block address to be written */
- 	block_t old_blkaddr;	/* old block address before Cow */
- 	struct page *page;	/* page to be written */
- 	struct page *encrypted_page;	/* encrypted page */
- };
+ 		rq->tag = tag;
+-		blk_mq_rq_ctx_init(data->q, data->ctx, rq, rw);
++		blk_mq_rq_ctx_init(data->q, data->ctx, rq, op, op_flags);
+ 		return rq;
+ 	}
  
--#define is_read_io(rw)	(((rw) & 1) == READ)
-+#define is_read_io(rw) (rw == READ)
- struct f2fs_bio_info {
- 	struct f2fs_sb_info *sbi;	/* f2fs superblock */
- 	struct bio *bio;		/* bios to merge */
-diff --git a/fs/f2fs/gc.c b/fs/f2fs/gc.c
-index b0051a9..fbd4b88 100644
---- a/fs/f2fs/gc.c
-+++ b/fs/f2fs/gc.c
-@@ -546,7 +546,8 @@ static void move_encrypted_block(struct inode *inode, block_t bidx)
- 	struct f2fs_io_info fio = {
- 		.sbi = F2FS_I_SB(inode),
- 		.type = DATA,
--		.rw = READ_SYNC,
-+		.op = REQ_OP_READ,
-+		.op_flags = READ_SYNC,
- 		.encrypted_page = NULL,
- 	};
- 	struct dnode_of_data dn;
-@@ -620,7 +621,8 @@ static void move_encrypted_block(struct inode *inode, block_t bidx)
- 	/* allocate block address */
- 	f2fs_wait_on_page_writeback(dn.node_page, NODE, true);
+@@ -246,7 +249,7 @@ struct request *blk_mq_alloc_request(struct request_queue *q, int rw,
+ 	hctx = q->mq_ops->map_queue(q, ctx->cpu);
+ 	blk_mq_set_alloc_data(&alloc_data, q, flags, ctx, hctx);
  
--	fio.rw = WRITE_SYNC;
-+	fio.op = REQ_OP_WRITE;
-+	fio.op_flags = WRITE_SYNC;
- 	fio.new_blkaddr = newaddr;
- 	f2fs_submit_page_mbio(&fio);
+-	rq = __blk_mq_alloc_request(&alloc_data, rw);
++	rq = __blk_mq_alloc_request(&alloc_data, rw, 0);
+ 	if (!rq && !(flags & BLK_MQ_REQ_NOWAIT)) {
+ 		__blk_mq_run_hw_queue(hctx);
+ 		blk_mq_put_ctx(ctx);
+@@ -254,7 +257,7 @@ struct request *blk_mq_alloc_request(struct request_queue *q, int rw,
+ 		ctx = blk_mq_get_ctx(q);
+ 		hctx = q->mq_ops->map_queue(q, ctx->cpu);
+ 		blk_mq_set_alloc_data(&alloc_data, q, flags, ctx, hctx);
+-		rq =  __blk_mq_alloc_request(&alloc_data, rw);
++		rq =  __blk_mq_alloc_request(&alloc_data, rw, 0);
+ 		ctx = alloc_data.ctx;
+ 	}
+ 	blk_mq_put_ctx(ctx);
+@@ -1170,28 +1173,29 @@ static struct request *blk_mq_map_request(struct request_queue *q,
+ 	struct blk_mq_hw_ctx *hctx;
+ 	struct blk_mq_ctx *ctx;
+ 	struct request *rq;
+-	int rw = bio_data_dir(bio);
++	int op = bio_data_dir(bio);
++	int op_flags = 0;
+ 	struct blk_mq_alloc_data alloc_data;
  
-@@ -657,7 +659,8 @@ static void move_data_page(struct inode *inode, block_t bidx, int gc_type)
- 		struct f2fs_io_info fio = {
- 			.sbi = F2FS_I_SB(inode),
- 			.type = DATA,
--			.rw = WRITE_SYNC,
-+			.op = REQ_OP_WRITE,
-+			.op_flags = WRITE_SYNC,
- 			.page = page,
- 			.encrypted_page = NULL,
- 		};
-diff --git a/fs/f2fs/inline.c b/fs/f2fs/inline.c
-index 7720565..d3f7292 100644
---- a/fs/f2fs/inline.c
-+++ b/fs/f2fs/inline.c
-@@ -108,7 +108,8 @@ int f2fs_convert_inline_page(struct dnode_of_data *dn, struct page *page)
- 	struct f2fs_io_info fio = {
- 		.sbi = F2FS_I_SB(dn->inode),
- 		.type = DATA,
--		.rw = WRITE_SYNC | REQ_PRIO,
-+		.op = REQ_OP_WRITE,
-+		.op_flags = WRITE_SYNC | REQ_PRIO,
- 		.page = page,
- 		.encrypted_page = NULL,
- 	};
-diff --git a/fs/f2fs/node.c b/fs/f2fs/node.c
-index 095fc2c..c6935c5 100644
---- a/fs/f2fs/node.c
-+++ b/fs/f2fs/node.c
-@@ -1043,14 +1043,15 @@ fail:
-  * 0: f2fs_put_page(page, 0)
-  * LOCKED_PAGE or error: f2fs_put_page(page, 1)
+ 	blk_queue_enter_live(q);
+ 	ctx = blk_mq_get_ctx(q);
+ 	hctx = q->mq_ops->map_queue(q, ctx->cpu);
+ 
+-	if (rw_is_sync(bio->bi_rw))
+-		rw |= REQ_SYNC;
++	if (rw_is_sync(bio->bi_op | bio->bi_rw))
++		op_flags |= REQ_SYNC;
+ 
+-	trace_block_getrq(q, bio, rw);
++	trace_block_getrq(q, bio, op);
+ 	blk_mq_set_alloc_data(&alloc_data, q, BLK_MQ_REQ_NOWAIT, ctx, hctx);
+-	rq = __blk_mq_alloc_request(&alloc_data, rw);
++	rq = __blk_mq_alloc_request(&alloc_data, op, op_flags);
+ 	if (unlikely(!rq)) {
+ 		__blk_mq_run_hw_queue(hctx);
+ 		blk_mq_put_ctx(ctx);
+-		trace_block_sleeprq(q, bio, rw);
++		trace_block_sleeprq(q, bio, op);
+ 
+ 		ctx = blk_mq_get_ctx(q);
+ 		hctx = q->mq_ops->map_queue(q, ctx->cpu);
+ 		blk_mq_set_alloc_data(&alloc_data, q, 0, ctx, hctx);
+-		rq = __blk_mq_alloc_request(&alloc_data, rw);
++		rq = __blk_mq_alloc_request(&alloc_data, op, op_flags);
+ 		ctx = alloc_data.ctx;
+ 		hctx = alloc_data.hctx;
+ 	}
+@@ -1245,7 +1249,7 @@ static int blk_mq_direct_issue_request(struct request *rq, blk_qc_t *cookie)
   */
--static int read_node_page(struct page *page, int rw)
-+static int read_node_page(struct page *page, int op_flags)
+ static blk_qc_t blk_mq_make_request(struct request_queue *q, struct bio *bio)
  {
- 	struct f2fs_sb_info *sbi = F2FS_P_SB(page);
- 	struct node_info ni;
- 	struct f2fs_io_info fio = {
- 		.sbi = sbi,
- 		.type = NODE,
--		.rw = rw,
-+		.op = REQ_OP_READ,
-+		.op_flags = op_flags,
- 		.page = page,
- 		.encrypted_page = NULL,
- 	};
-@@ -1389,7 +1390,8 @@ static int f2fs_write_node_page(struct page *page,
- 	struct f2fs_io_info fio = {
- 		.sbi = sbi,
- 		.type = NODE,
--		.rw = (wbc->sync_mode == WB_SYNC_ALL) ? WRITE_SYNC : WRITE,
-+		.op = REQ_OP_WRITE,
-+		.op_flags = (wbc->sync_mode == WB_SYNC_ALL) ? WRITE_SYNC : 0,
- 		.page = page,
- 		.encrypted_page = NULL,
- 	};
-diff --git a/fs/f2fs/segment.c b/fs/f2fs/segment.c
-index 0928d57..e271f16 100644
---- a/fs/f2fs/segment.c
-+++ b/fs/f2fs/segment.c
-@@ -255,7 +255,8 @@ static int __commit_inmem_pages(struct inode *inode,
- 	struct f2fs_io_info fio = {
- 		.sbi = sbi,
- 		.type = DATA,
--		.rw = WRITE_SYNC | REQ_PRIO,
-+		.op = REQ_OP_WRITE,
-+		.op_flags = WRITE_SYNC | REQ_PRIO,
- 		.encrypted_page = NULL,
- 	};
- 	bool submit_bio = false;
-@@ -404,6 +405,7 @@ repeat:
- 		fcc->dispatch_list = llist_reverse_order(fcc->dispatch_list);
- 
- 		bio->bi_bdev = sbi->sb->s_bdev;
-+		bio->bi_op = REQ_OP_WRITE;
- 		bio->bi_rw = WRITE_FLUSH;
- 		ret = submit_bio_wait(bio);
- 
-@@ -437,6 +439,7 @@ int f2fs_issue_flush(struct f2fs_sb_info *sbi)
- 		int ret;
- 
- 		bio->bi_bdev = sbi->sb->s_bdev;
-+		bio->bi_op = REQ_OP_WRITE;
- 		bio->bi_rw = WRITE_FLUSH;
- 		ret = submit_bio_wait(bio);
- 		bio_put(bio);
-@@ -1401,7 +1404,8 @@ void write_meta_page(struct f2fs_sb_info *sbi, struct page *page)
- 	struct f2fs_io_info fio = {
- 		.sbi = sbi,
- 		.type = META,
--		.rw = WRITE_SYNC | REQ_META | REQ_PRIO,
-+		.op = REQ_OP_WRITE,
-+		.op_flags = WRITE_SYNC | REQ_META | REQ_PRIO,
- 		.old_blkaddr = page->index,
- 		.new_blkaddr = page->index,
- 		.page = page,
-@@ -1409,7 +1413,7 @@ void write_meta_page(struct f2fs_sb_info *sbi, struct page *page)
- 	};
- 
- 	if (unlikely(page->index >= MAIN_BLKADDR(sbi)))
--		fio.rw &= ~REQ_META;
-+		fio.op_flags &= ~REQ_META;
- 
- 	set_page_writeback(page);
- 	f2fs_submit_page_mbio(&fio);
-diff --git a/fs/f2fs/trace.c b/fs/f2fs/trace.c
-index 562ce08..73b4e1d 100644
---- a/fs/f2fs/trace.c
-+++ b/fs/f2fs/trace.c
-@@ -25,11 +25,11 @@ static inline void __print_last_io(void)
- 	if (!last_io.len)
- 		return;
- 
--	trace_printk("%3x:%3x %4x %-16s %2x %5x %12x %4x\n",
-+	trace_printk("%3x:%3x %4x %-16s %2x %5x %5x %12x %4x\n",
- 			last_io.major, last_io.minor,
- 			last_io.pid, "----------------",
- 			last_io.type,
--			last_io.fio.rw,
-+			last_io.fio.op, last_io.fio.op_flags,
- 			last_io.fio.new_blkaddr,
- 			last_io.len);
- 	memset(&last_io, 0, sizeof(last_io));
-@@ -101,7 +101,8 @@ void f2fs_trace_ios(struct f2fs_io_info *fio, int flush)
- 	if (last_io.major == major && last_io.minor == minor &&
- 			last_io.pid == pid &&
- 			last_io.type == __file_type(inode, pid) &&
--			last_io.fio.rw == fio->rw &&
-+			last_io.fio.op == fio->op &&
-+			last_io.fio.op_flags == fio->op_flags &&
- 			last_io.fio.new_blkaddr + last_io.len ==
- 							fio->new_blkaddr) {
- 		last_io.len++;
-diff --git a/include/trace/events/f2fs.h b/include/trace/events/f2fs.h
-index 0f56584..db75d69 100644
---- a/include/trace/events/f2fs.h
-+++ b/include/trace/events/f2fs.h
-@@ -56,17 +56,21 @@ TRACE_DEFINE_ENUM(CP_DISCARD);
- 		{ IPU,		"IN-PLACE" },				\
- 		{ OPU,		"OUT-OF-PLACE" })
- 
--#define F2FS_BIO_MASK(t)	(t & (READA | WRITE_FLUSH_FUA))
-+#define F2FS_BIO_FLAG_MASK(t)	(t & (READA | WRITE_FLUSH_FUA))
- #define F2FS_BIO_EXTRA_MASK(t)	(t & (REQ_META | REQ_PRIO))
- 
--#define show_bio_type(type)	show_bio_base(type), show_bio_extra(type)
-+#define show_bio_type(op, op_flags) show_bio_op(op),			\
-+			show_bio_op_flags(op_flags), show_bio_extra(op_flags)
- 
--#define show_bio_base(type)						\
--	__print_symbolic(F2FS_BIO_MASK(type),				\
-+#define show_bio_op(op)							\
-+	__print_symbolic(op,						\
- 		{ READ, 		"READ" },			\
-+		{ WRITE,		"WRITE" })
-+
-+#define show_bio_op_flags(flags)					\
-+	__print_symbolic(F2FS_BIO_FLAG_MASK(flags),			\
- 		{ READA, 		"READAHEAD" },			\
- 		{ READ_SYNC, 		"READ_SYNC" },			\
--		{ WRITE, 		"WRITE" },			\
- 		{ WRITE_SYNC, 		"WRITE_SYNC" },			\
- 		{ WRITE_FLUSH,		"WRITE_FLUSH" },		\
- 		{ WRITE_FUA, 		"WRITE_FUA" },			\
-@@ -730,7 +734,8 @@ DECLARE_EVENT_CLASS(f2fs__submit_page_bio,
- 		__field(pgoff_t, index)
- 		__field(block_t, old_blkaddr)
- 		__field(block_t, new_blkaddr)
--		__field(int, rw)
-+		__field(int, op)
-+		__field(int, op_flags)
- 		__field(int, type)
- 	),
- 
-@@ -740,17 +745,18 @@ DECLARE_EVENT_CLASS(f2fs__submit_page_bio,
- 		__entry->index		= page->index;
- 		__entry->old_blkaddr	= fio->old_blkaddr;
- 		__entry->new_blkaddr	= fio->new_blkaddr;
--		__entry->rw		= fio->rw;
-+		__entry->op		= fio->op;
-+		__entry->op_flags	= fio->op_flags;
- 		__entry->type		= fio->type;
- 	),
- 
- 	TP_printk("dev = (%d,%d), ino = %lu, page_index = 0x%lx, "
--		"oldaddr = 0x%llx, newaddr = 0x%llx rw = %s%s, type = %s",
-+		"oldaddr = 0x%llx, newaddr = 0x%llx rw = %s%si%s, type = %s",
- 		show_dev_ino(__entry),
- 		(unsigned long)__entry->index,
- 		(unsigned long long)__entry->old_blkaddr,
- 		(unsigned long long)__entry->new_blkaddr,
--		show_bio_type(__entry->rw),
-+		show_bio_type(__entry->op, __entry->op_flags),
- 		show_block_type(__entry->type))
- );
- 
-@@ -781,7 +787,8 @@ DECLARE_EVENT_CLASS(f2fs__submit_bio,
- 
- 	TP_STRUCT__entry(
- 		__field(dev_t,	dev)
--		__field(int,	rw)
-+		__field(int,	op)
-+		__field(int,	op_flags)
- 		__field(int,	type)
- 		__field(sector_t,	sector)
- 		__field(unsigned int,	size)
-@@ -789,15 +796,16 @@ DECLARE_EVENT_CLASS(f2fs__submit_bio,
- 
- 	TP_fast_assign(
- 		__entry->dev		= sb->s_dev;
--		__entry->rw		= fio->rw;
-+		__entry->op		= fio->op;
-+		__entry->op_flags	= fio->op_flags;
- 		__entry->type		= fio->type;
- 		__entry->sector		= bio->bi_iter.bi_sector;
- 		__entry->size		= bio->bi_iter.bi_size;
- 	),
- 
--	TP_printk("dev = (%d,%d), %s%s, %s, sector = %lld, size = %u",
-+	TP_printk("dev = (%d,%d), %s%s%s, %s, sector = %lld, size = %u",
- 		show_dev(__entry),
--		show_bio_type(__entry->rw),
-+		show_bio_type(__entry->op, __entry->op_flags),
- 		show_block_type(__entry->type),
- 		(unsigned long long)__entry->sector,
- 		__entry->size)
+-	const int is_sync = rw_is_sync(bio->bi_rw);
++	const int is_sync = rw_is_sync(bio->bi_op | bio->bi_rw);
+ 	const int is_flush_fua = bio->bi_rw & (REQ_FLUSH | REQ_FUA);
+ 	struct blk_map_ctx data;
+ 	struct request *rq;
+@@ -1342,7 +1346,7 @@ done:
+  */
+ static blk_qc_t blk_sq_make_request(struct request_queue *q, struct bio *bio)
+ {
+-	const int is_sync = rw_is_sync(bio->bi_rw);
++	const int is_sync = rw_is_sync(bio->bi_op | bio->bi_rw);
+ 	const int is_flush_fua = bio->bi_rw & (REQ_FLUSH | REQ_FUA);
+ 	struct blk_plug *plug;
+ 	unsigned int request_count = 0;
 -- 
 2.7.2
