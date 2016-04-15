@@ -1,46 +1,83 @@
-From: Hannes Reinecke <hare@suse.de>
-Date: Thu, 14 Apr 2016 08:09:30 +0200
-Subject: [Ocfs2-devel] [PATCH 00/42] v5: separate operations from flags
- in the bio/request structs
-In-Reply-To: <1460576188-5751-1-git-send-email-mchristi@redhat.com>
-References: <1460576188-5751-1-git-send-email-mchristi@redhat.com>
-Message-ID: <570F341A.2040108@suse.de>
+From: Juergen Gross <kernel@pfupf.net>
+Date: Fri, 15 Apr 2016 12:50:39 +0200
+Subject: [Ocfs2-devel] [PATCH 41/42] block: do not use REQ_FLUSH for
+ tracking flush support
+In-Reply-To: <1460716802-2294-42-git-send-email-mchristi@redhat.com>
+References: <1460716802-2294-1-git-send-email-mchristi@redhat.com>
+	<1460716802-2294-42-git-send-email-mchristi@redhat.com>
+Message-ID: <5710C77F.2000405@pfupf.net>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: mchristi@redhat.com, linux-f2fs-devel@lists.sourceforge.net, linux-ext4@vger.kernel.org, konrad.wilk@oracle.com, drbd-dev@lists.linbit.com, philipp.reisner@linbit.com, lars.ellenberg@linbit.com, linux-raid@vger.kernel.org, dm-devel@redhat.com, linux-fsdevel@vger.kernel.org, linux-bcache@vger.kernel.org, linux-block@vger.kernel.org, linux-kernel@vger.kernel.org, linux-scsi@vger.kernel.org, linux-mtd@lists.infradead.org, target-devel@vger.kernel.org, linux-btrfs@vger.kernel.org, osd-dev@open-osd.org, xfs@oss.sgi.com, ocfs2-devel@oss.oracle.com
 
-On 04/13/2016 09:35 PM, mchristi at redhat.com wrote:
-> The following patches begin to cleanup the request->cmd_flags and
-> bio->bi_rw mess. We currently use cmd_flags to specify the operation,
-> attributes and state of the request. For bi_rw we use it for similar
-> info and also the priority but then also have another bi_flags field
-> for state. At some point, we abused them so much we just made cmd_flags
-> 64 bits, so we could add more.
+On 15/04/16 12:40, mchristi at redhat.com wrote:
+> From: Mike Christie <mchristi@redhat.com>
 > 
-> The following patches seperate the operation (read, write discard,
-> flush, etc) from cmd_flags/bi_rw.
+> The last patch added a REQ_OP_FLUSH for request_fn drivers
+> and the next patch renames REQ_FLUSH to REQ_PREFLUSH which
+> will be used by file systems and make_request_fn drivers so
+> they can send a write/flush combo.
 > 
-> This patchset was made against linux-next from today April 13
-> (git tag next-20160413).
+> This patch drops xen's use of REQ_FLUSH to track if it supports
+> REQ_OP_FLUSH requests, so REQ_FLUSH can be deleted.
 > 
-> I put a git tree here:
-> https://github.com/mikechristie/linux-kernel.git
-> The patches are in the op branch.
+> v6:
+> - Dropped parts of patch handled by Jens's QUEUE_FLAG_WC/FUA
+> patches and modified patch to check feature_flush/fua bits.
 > 
-A round of applause for you.
+> Signed-off-by: Mike Christie <mchristi@redhat.com>
+> Reviewed-by: Hannes Reinecke <hare@suse.com>
+> ---
+>  drivers/block/xen-blkfront.c | 47 ++++++++++++++++++++++----------------------
+>  1 file changed, 24 insertions(+), 23 deletions(-)
+> 
+> diff --git a/drivers/block/xen-blkfront.c b/drivers/block/xen-blkfront.c
+> index f01691a..d6429e7 100644
+> --- a/drivers/block/xen-blkfront.c
+> +++ b/drivers/block/xen-blkfront.c
 
-For the entire series:
+...
 
-Reviewed-by: Hannes Reinecke <hare@suse.com>
+> @@ -985,24 +981,22 @@ static int xlvbd_init_blk_queue(struct gendisk *gd, u16 sector_size,
+>  	return 0;
+>  }
+>  
+> -static const char *flush_info(unsigned int feature_flush)
+> +static const char *flush_info(struct blkfront_info *info)
+>  {
+> -	switch (feature_flush & ((REQ_FLUSH | REQ_FUA))) {
+> -	case REQ_FLUSH|REQ_FUA:
+> +	if (info->feature_flush && info->feature_fua)
+>  		return "barrier: enabled;";
+> -	case REQ_FLUSH:
+> +	else if (info->feature_fua)
 
-Cheers,
+Shouldn't this test feature_flush?
 
-Hannes
--- 
-Dr. Hannes Reinecke		   Teamlead Storage & Networking
-hare at suse.de			               +49 911 74053 688
-SUSE LINUX GmbH, Maxfeldstr. 5, 90409 N?rnberg
-GF: F. Imend?rffer, J. Smithard, J. Guild, D. Upmanyu, G. Norton
-HRB 21284 (AG N?rnberg)
+>  		return "flush diskcache: enabled;";
+> -	default:
+> +	else
+>  		return "barrier or flush: disabled;";
+> -	}
+>  }
+>  
+>  static void xlvbd_flush(struct blkfront_info *info)
+>  {
+> -	blk_queue_write_cache(info->rq, info->feature_flush & REQ_FLUSH,
+> -				info->feature_flush & REQ_FUA);
+> +	blk_queue_write_cache(info->rq, info->feature_flush ? true : false,
+> +			      info->feature_flush ? true : false);
+
+And here the second test should be feature_fua?
+
+>  	pr_info("blkfront: %s: %s %s %s %s %s\n",
+> -		info->gd->disk_name, flush_info(info->feature_flush),
+> +		info->gd->disk_name, flush_info(info),
+>  		"persistent grants:", info->feature_persistent ?
+>  		"enabled;" : "disabled;", "indirect descriptors:",
+>  		info->max_indirect_segments ? "enabled;" : "disabled;");
+
+
+Juergen
