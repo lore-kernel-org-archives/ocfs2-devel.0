@@ -1,10 +1,10 @@
 From: mchristi at redhat.com <mchristi@redhat.com>
-Date: Fri, 15 Apr 2016 14:16:07 -0500
-Subject: [Ocfs2-devel] [PATCH 32/42] block: convert is_sync helpers to use
-	REQ_OPs.
+Date: Fri, 15 Apr 2016 14:15:44 -0500
+Subject: [Ocfs2-devel] [PATCH 09/42] btrfs: update __btrfs_map_block for
+	bi_op transition
 In-Reply-To: <1460747777-8479-1-git-send-email-mchristi@redhat.com>
 References: <1460747777-8479-1-git-send-email-mchristi@redhat.com>
-Message-ID: <1460747777-8479-33-git-send-email-mchristi@redhat.com>
+Message-ID: <1460747777-8479-10-git-send-email-mchristi@redhat.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -14,124 +14,251 @@ Cc: Mike Christie <mchristi@redhat.com>
 
 From: Mike Christie <mchristi@redhat.com>
 
-This patch converts the is_sync helpers to use separate variables
-for the operation and flags.
+We no longer pass in a bitmap of rq_flag_bits bits to __btrfs_map_block.
+It will always be a REQ_OP, or the btrfs specific REQ_GET_READ_MIRRORS,
+so this drops the bit tests.
 
 Signed-off-by: Mike Christie <mchristi@redhat.com>
 Reviewed-by: Christoph Hellwig <hch@lst.de>
 Reviewed-by: Hannes Reinecke <hare@suse.com>
 ---
- block/blk-core.c       | 6 +++---
- block/blk-mq.c         | 8 ++++----
- block/cfq-iosched.c    | 2 +-
- include/linux/blkdev.h | 6 +++---
- 4 files changed, 11 insertions(+), 11 deletions(-)
+ fs/btrfs/extent-tree.c |  2 +-
+ fs/btrfs/inode.c       |  2 +-
+ fs/btrfs/volumes.c     | 55 +++++++++++++++++++++++++++-----------------------
+ fs/btrfs/volumes.h     |  4 ++--
+ 4 files changed, 34 insertions(+), 29 deletions(-)
 
-diff --git a/block/blk-core.c b/block/blk-core.c
-index 660aeb8..e2f7b0a 100644
---- a/block/blk-core.c
-+++ b/block/blk-core.c
-@@ -962,7 +962,7 @@ static void __freed_request(struct request_list *rl, int sync)
- static void freed_request(struct request_list *rl, int op, unsigned int flags)
- {
- 	struct request_queue *q = rl->q;
--	int sync = rw_is_sync(op | flags);
-+	int sync = rw_is_sync(op, flags);
+diff --git a/fs/btrfs/extent-tree.c b/fs/btrfs/extent-tree.c
+index 99decfb..f4bc8c1 100644
+--- a/fs/btrfs/extent-tree.c
++++ b/fs/btrfs/extent-tree.c
+@@ -2053,7 +2053,7 @@ int btrfs_discard_extent(struct btrfs_root *root, u64 bytenr,
  
- 	q->nr_rqs[sync]--;
- 	rl->count[sync]--;
-@@ -1075,7 +1075,7 @@ static struct request *__get_request(struct request_list *rl, int op,
- 	struct elevator_type *et = q->elevator->type;
- 	struct io_context *ioc = rq_ioc(bio);
- 	struct io_cq *icq = NULL;
--	const bool is_sync = rw_is_sync(op | op_flags) != 0;
-+	const bool is_sync = rw_is_sync(op, op_flags) != 0;
- 	int may_queue;
  
- 	if (unlikely(blk_queue_dying(q)))
-@@ -1246,7 +1246,7 @@ static struct request *get_request(struct request_queue *q, int op,
- 				   int op_flags, struct bio *bio,
- 				   gfp_t gfp_mask)
- {
--	const bool is_sync = rw_is_sync(op | op_flags) != 0;
-+	const bool is_sync = rw_is_sync(op, op_flags) != 0;
- 	DEFINE_WAIT(wait);
- 	struct request_list *rl;
- 	struct request *rq;
-diff --git a/block/blk-mq.c b/block/blk-mq.c
-index 4843c0b..64d61be 100644
---- a/block/blk-mq.c
-+++ b/block/blk-mq.c
-@@ -206,7 +206,7 @@ static void blk_mq_rq_ctx_init(struct request_queue *q, struct blk_mq_ctx *ctx,
- 	rq->end_io_data = NULL;
- 	rq->next_rq = NULL;
+ 	/* Tell the block device(s) that the sectors can be discarded */
+-	ret = btrfs_map_block(root->fs_info, REQ_DISCARD,
++	ret = btrfs_map_block(root->fs_info, REQ_OP_DISCARD,
+ 			      bytenr, &num_bytes, &bbio, 0);
+ 	/* Error condition is -ENOMEM */
+ 	if (!ret) {
+diff --git a/fs/btrfs/inode.c b/fs/btrfs/inode.c
+index f693490..c2dc75b 100644
+--- a/fs/btrfs/inode.c
++++ b/fs/btrfs/inode.c
+@@ -8300,7 +8300,7 @@ static int btrfs_submit_direct_hook(int rw, struct btrfs_dio_private *dip,
+ 	int i;
  
--	ctx->rq_dispatched[rw_is_sync(op | op_flags)]++;
-+	ctx->rq_dispatched[rw_is_sync(op, op_flags)]++;
+ 	map_length = orig_bio->bi_iter.bi_size;
+-	ret = btrfs_map_block(root->fs_info, rw, start_sector << 9,
++	ret = btrfs_map_block(root->fs_info, orig_bio->bi_op, start_sector << 9,
+ 			      &map_length, NULL, 0);
+ 	if (ret)
+ 		return -EIO;
+diff --git a/fs/btrfs/volumes.c b/fs/btrfs/volumes.c
+index 96fdf4b..dc56558 100644
+--- a/fs/btrfs/volumes.c
++++ b/fs/btrfs/volumes.c
+@@ -5212,7 +5212,7 @@ void btrfs_put_bbio(struct btrfs_bio *bbio)
+ 		kfree(bbio);
  }
  
- static struct request *
-@@ -1181,7 +1181,7 @@ static struct request *blk_mq_map_request(struct request_queue *q,
- 	ctx = blk_mq_get_ctx(q);
- 	hctx = q->mq_ops->map_queue(q, ctx->cpu);
+-static int __btrfs_map_block(struct btrfs_fs_info *fs_info, int rw,
++static int __btrfs_map_block(struct btrfs_fs_info *fs_info, int op,
+ 			     u64 logical, u64 *length,
+ 			     struct btrfs_bio **bbio_ret,
+ 			     int mirror_num, int need_raid_map)
+@@ -5290,7 +5290,7 @@ static int __btrfs_map_block(struct btrfs_fs_info *fs_info, int rw,
+ 		raid56_full_stripe_start *= full_stripe_len;
+ 	}
  
--	if (rw_is_sync(bio->bi_op | bio->bi_rw))
-+	if (rw_is_sync(bio->bi_op, bio->bi_rw))
- 		op_flags |= REQ_SYNC;
+-	if (rw & REQ_DISCARD) {
++	if (op == REQ_OP_DISCARD) {
+ 		/* we don't discard raid56 yet */
+ 		if (map->type & BTRFS_BLOCK_GROUP_RAID56_MASK) {
+ 			ret = -EOPNOTSUPP;
+@@ -5303,7 +5303,7 @@ static int __btrfs_map_block(struct btrfs_fs_info *fs_info, int rw,
+ 		   For other RAID types and for RAID[56] reads, just allow a single
+ 		   stripe (on a single disk). */
+ 		if ((map->type & BTRFS_BLOCK_GROUP_RAID56_MASK) &&
+-		    (rw & REQ_WRITE)) {
++		    (op == REQ_OP_WRITE)) {
+ 			max_len = stripe_len * nr_data_stripes(map) -
+ 				(offset - raid56_full_stripe_start);
+ 		} else {
+@@ -5328,8 +5328,8 @@ static int __btrfs_map_block(struct btrfs_fs_info *fs_info, int rw,
+ 		btrfs_dev_replace_set_lock_blocking(dev_replace);
  
- 	trace_block_getrq(q, bio, op);
-@@ -1249,7 +1249,7 @@ static int blk_mq_direct_issue_request(struct request *rq, blk_qc_t *cookie)
-  */
- static blk_qc_t blk_mq_make_request(struct request_queue *q, struct bio *bio)
- {
--	const int is_sync = rw_is_sync(bio->bi_op | bio->bi_rw);
-+	const int is_sync = rw_is_sync(bio->bi_op, bio->bi_rw);
- 	const int is_flush_fua = bio->bi_rw & (REQ_FLUSH | REQ_FUA);
- 	struct blk_map_ctx data;
- 	struct request *rq;
-@@ -1346,7 +1346,7 @@ done:
-  */
- static blk_qc_t blk_sq_make_request(struct request_queue *q, struct bio *bio)
- {
--	const int is_sync = rw_is_sync(bio->bi_op | bio->bi_rw);
-+	const int is_sync = rw_is_sync(bio->bi_op, bio->bi_rw);
- 	const int is_flush_fua = bio->bi_rw & (REQ_FLUSH | REQ_FUA);
- 	struct blk_plug *plug;
- 	unsigned int request_count = 0;
-diff --git a/block/cfq-iosched.c b/block/cfq-iosched.c
-index 0dfa2dd..2fd5bcf 100644
---- a/block/cfq-iosched.c
-+++ b/block/cfq-iosched.c
-@@ -4311,7 +4311,7 @@ static int cfq_may_queue(struct request_queue *q, int op, int op_flags)
- 	if (!cic)
- 		return ELV_MQUEUE_MAY;
+ 	if (dev_replace_is_ongoing && mirror_num == map->num_stripes + 1 &&
+-	    !(rw & (REQ_WRITE | REQ_DISCARD | REQ_GET_READ_MIRRORS)) &&
+-	    dev_replace->tgtdev != NULL) {
++	    op != REQ_OP_WRITE && op != REQ_OP_DISCARD &&
++	    op != REQ_GET_READ_MIRRORS && dev_replace->tgtdev != NULL) {
+ 		/*
+ 		 * in dev-replace case, for repair case (that's the only
+ 		 * case where the mirror is selected explicitly when
+@@ -5416,15 +5416,17 @@ static int __btrfs_map_block(struct btrfs_fs_info *fs_info, int rw,
+ 			    (offset + *length);
  
--	cfqq = cic_to_cfqq(cic, rw_is_sync(op | op_flags));
-+	cfqq = cic_to_cfqq(cic, rw_is_sync(op, op_flags));
- 	if (cfqq) {
- 		cfq_init_prio_data(cfqq, cic);
+ 	if (map->type & BTRFS_BLOCK_GROUP_RAID0) {
+-		if (rw & REQ_DISCARD)
++		if (op == REQ_OP_DISCARD)
+ 			num_stripes = min_t(u64, map->num_stripes,
+ 					    stripe_nr_end - stripe_nr_orig);
+ 		stripe_nr = div_u64_rem(stripe_nr, map->num_stripes,
+ 				&stripe_index);
+-		if (!(rw & (REQ_WRITE | REQ_DISCARD | REQ_GET_READ_MIRRORS)))
++		if (op != REQ_OP_WRITE && op != REQ_OP_DISCARD &&
++		    op != REQ_GET_READ_MIRRORS)
+ 			mirror_num = 1;
+ 	} else if (map->type & BTRFS_BLOCK_GROUP_RAID1) {
+-		if (rw & (REQ_WRITE | REQ_DISCARD | REQ_GET_READ_MIRRORS))
++		if (op == REQ_OP_WRITE || op == REQ_OP_DISCARD ||
++		    op == REQ_GET_READ_MIRRORS)
+ 			num_stripes = map->num_stripes;
+ 		else if (mirror_num)
+ 			stripe_index = mirror_num - 1;
+@@ -5437,7 +5439,8 @@ static int __btrfs_map_block(struct btrfs_fs_info *fs_info, int rw,
+ 		}
  
-diff --git a/include/linux/blkdev.h b/include/linux/blkdev.h
-index 4aaa317..42711ef 100644
---- a/include/linux/blkdev.h
-+++ b/include/linux/blkdev.h
-@@ -617,14 +617,14 @@ static inline unsigned int blk_queue_cluster(struct request_queue *q)
- /*
-  * We regard a request as sync, if either a read or a sync write
-  */
--static inline bool rw_is_sync(unsigned int rw_flags)
-+static inline bool rw_is_sync(int op, unsigned int rw_flags)
- {
--	return !(rw_flags & REQ_WRITE) || (rw_flags & REQ_SYNC);
-+	return op == REQ_OP_READ || (rw_flags & REQ_SYNC);
+ 	} else if (map->type & BTRFS_BLOCK_GROUP_DUP) {
+-		if (rw & (REQ_WRITE | REQ_DISCARD | REQ_GET_READ_MIRRORS)) {
++		if (op == REQ_OP_WRITE || REQ_OP_DISCARD ||
++		    op == REQ_GET_READ_MIRRORS) {
+ 			num_stripes = map->num_stripes;
+ 		} else if (mirror_num) {
+ 			stripe_index = mirror_num - 1;
+@@ -5451,9 +5454,9 @@ static int __btrfs_map_block(struct btrfs_fs_info *fs_info, int rw,
+ 		stripe_nr = div_u64_rem(stripe_nr, factor, &stripe_index);
+ 		stripe_index *= map->sub_stripes;
+ 
+-		if (rw & (REQ_WRITE | REQ_GET_READ_MIRRORS))
++		if (op == REQ_OP_WRITE || op == REQ_GET_READ_MIRRORS)
+ 			num_stripes = map->sub_stripes;
+-		else if (rw & REQ_DISCARD)
++		else if (op == REQ_OP_DISCARD)
+ 			num_stripes = min_t(u64, map->sub_stripes *
+ 					    (stripe_nr_end - stripe_nr_orig),
+ 					    map->num_stripes);
+@@ -5471,7 +5474,7 @@ static int __btrfs_map_block(struct btrfs_fs_info *fs_info, int rw,
+ 
+ 	} else if (map->type & BTRFS_BLOCK_GROUP_RAID56_MASK) {
+ 		if (need_raid_map &&
+-		    ((rw & (REQ_WRITE | REQ_GET_READ_MIRRORS)) ||
++		    (op == REQ_OP_WRITE || op == REQ_GET_READ_MIRRORS ||
+ 		     mirror_num > 1)) {
+ 			/* push stripe_nr back to the start of the full stripe */
+ 			stripe_nr = div_u64(raid56_full_stripe_start,
+@@ -5499,8 +5502,8 @@ static int __btrfs_map_block(struct btrfs_fs_info *fs_info, int rw,
+ 			/* We distribute the parity blocks across stripes */
+ 			div_u64_rem(stripe_nr + stripe_index, map->num_stripes,
+ 					&stripe_index);
+-			if (!(rw & (REQ_WRITE | REQ_DISCARD |
+-				    REQ_GET_READ_MIRRORS)) && mirror_num <= 1)
++			if ((op != REQ_OP_WRITE && op != REQ_OP_DISCARD &&
++			    op != REQ_GET_READ_MIRRORS) && mirror_num <= 1)
+ 				mirror_num = 1;
+ 		}
+ 	} else {
+@@ -5517,9 +5520,9 @@ static int __btrfs_map_block(struct btrfs_fs_info *fs_info, int rw,
+ 
+ 	num_alloc_stripes = num_stripes;
+ 	if (dev_replace_is_ongoing) {
+-		if (rw & (REQ_WRITE | REQ_DISCARD))
++		if (op == REQ_OP_WRITE || op == REQ_OP_DISCARD)
+ 			num_alloc_stripes <<= 1;
+-		if (rw & REQ_GET_READ_MIRRORS)
++		if (op == REQ_GET_READ_MIRRORS)
+ 			num_alloc_stripes++;
+ 		tgtdev_indexes = num_stripes;
+ 	}
+@@ -5534,7 +5537,8 @@ static int __btrfs_map_block(struct btrfs_fs_info *fs_info, int rw,
+ 
+ 	/* build raid_map */
+ 	if (map->type & BTRFS_BLOCK_GROUP_RAID56_MASK &&
+-	    need_raid_map && ((rw & (REQ_WRITE | REQ_GET_READ_MIRRORS)) ||
++	    need_raid_map &&
++	    ((op == REQ_OP_WRITE || op == REQ_GET_READ_MIRRORS) ||
+ 	    mirror_num > 1)) {
+ 		u64 tmp;
+ 		unsigned rot;
+@@ -5559,7 +5563,7 @@ static int __btrfs_map_block(struct btrfs_fs_info *fs_info, int rw,
+ 				RAID6_Q_STRIPE;
+ 	}
+ 
+-	if (rw & REQ_DISCARD) {
++	if (op == REQ_OP_DISCARD) {
+ 		u32 factor = 0;
+ 		u32 sub_stripes = 0;
+ 		u64 stripes_per_dev = 0;
+@@ -5639,14 +5643,15 @@ static int __btrfs_map_block(struct btrfs_fs_info *fs_info, int rw,
+ 		}
+ 	}
+ 
+-	if (rw & (REQ_WRITE | REQ_GET_READ_MIRRORS))
++	if (op == REQ_OP_WRITE || op == REQ_GET_READ_MIRRORS)
+ 		max_errors = btrfs_chunk_max_errors(map);
+ 
+ 	if (bbio->raid_map)
+ 		sort_parity_stripes(bbio, num_stripes);
+ 
+ 	tgtdev_indexes = 0;
+-	if (dev_replace_is_ongoing && (rw & (REQ_WRITE | REQ_DISCARD)) &&
++	if (dev_replace_is_ongoing &&
++	   (op == REQ_OP_WRITE || op == REQ_OP_DISCARD) &&
+ 	    dev_replace->tgtdev != NULL) {
+ 		int index_where_to_add;
+ 		u64 srcdev_devid = dev_replace->srcdev->devid;
+@@ -5681,7 +5686,7 @@ static int __btrfs_map_block(struct btrfs_fs_info *fs_info, int rw,
+ 			}
+ 		}
+ 		num_stripes = index_where_to_add;
+-	} else if (dev_replace_is_ongoing && (rw & REQ_GET_READ_MIRRORS) &&
++	} else if (dev_replace_is_ongoing && (op == REQ_GET_READ_MIRRORS) &&
+ 		   dev_replace->tgtdev != NULL) {
+ 		u64 srcdev_devid = dev_replace->srcdev->devid;
+ 		int index_srcdev = 0;
+@@ -5756,21 +5761,21 @@ out:
+ 	return ret;
  }
  
- static inline bool rq_is_sync(struct request *rq)
+-int btrfs_map_block(struct btrfs_fs_info *fs_info, int rw,
++int btrfs_map_block(struct btrfs_fs_info *fs_info, int op,
+ 		      u64 logical, u64 *length,
+ 		      struct btrfs_bio **bbio_ret, int mirror_num)
  {
--	return rw_is_sync(rq->cmd_flags);
-+	return rw_is_sync(rq->op, rq->cmd_flags);
+-	return __btrfs_map_block(fs_info, rw, logical, length, bbio_ret,
++	return __btrfs_map_block(fs_info, op, logical, length, bbio_ret,
+ 				 mirror_num, 0);
  }
  
- static inline bool blk_rl_full(struct request_list *rl, bool sync)
+ /* For Scrub/replace */
+-int btrfs_map_sblock(struct btrfs_fs_info *fs_info, int rw,
++int btrfs_map_sblock(struct btrfs_fs_info *fs_info, int op,
+ 		     u64 logical, u64 *length,
+ 		     struct btrfs_bio **bbio_ret, int mirror_num,
+ 		     int need_raid_map)
+ {
+-	return __btrfs_map_block(fs_info, rw, logical, length, bbio_ret,
++	return __btrfs_map_block(fs_info, op, logical, length, bbio_ret,
+ 				 mirror_num, need_raid_map);
+ }
+ 
+diff --git a/fs/btrfs/volumes.h b/fs/btrfs/volumes.h
+index febdb7b..c64229e 100644
+--- a/fs/btrfs/volumes.h
++++ b/fs/btrfs/volumes.h
+@@ -421,10 +421,10 @@ int btrfs_account_dev_extents_size(struct btrfs_device *device, u64 start,
+ 				   u64 end, u64 *length);
+ void btrfs_get_bbio(struct btrfs_bio *bbio);
+ void btrfs_put_bbio(struct btrfs_bio *bbio);
+-int btrfs_map_block(struct btrfs_fs_info *fs_info, int rw,
++int btrfs_map_block(struct btrfs_fs_info *fs_info, int op,
+ 		    u64 logical, u64 *length,
+ 		    struct btrfs_bio **bbio_ret, int mirror_num);
+-int btrfs_map_sblock(struct btrfs_fs_info *fs_info, int rw,
++int btrfs_map_sblock(struct btrfs_fs_info *fs_info, int op,
+ 		     u64 logical, u64 *length,
+ 		     struct btrfs_bio **bbio_ret, int mirror_num,
+ 		     int need_raid_map);
 -- 
 2.7.2
