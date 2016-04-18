@@ -1,40 +1,109 @@
-From: Juergen Gross <kernel@pfupf.net>
-Date: Sun, 17 Apr 2016 10:46:59 +0200
-Subject: [Ocfs2-devel] [PATCH 41/42] block: do not use REQ_FLUSH for
- tracking flush support
-In-Reply-To: <1460747777-8479-42-git-send-email-mchristi@redhat.com>
+From: Ryusuke Konishi <konishi.ryusuke@lab.ntt.co.jp>
+Date: Tue, 19 Apr 2016 01:04:15 +0900 (JST)
+Subject: [Ocfs2-devel] [PATCH 16/42] nilfs: set bi_op to REQ_OP
+In-Reply-To: <1460747777-8479-17-git-send-email-mchristi@redhat.com>
 References: <1460747777-8479-1-git-send-email-mchristi@redhat.com>
-	<1460747777-8479-42-git-send-email-mchristi@redhat.com>
-Message-ID: <57134D83.8020309@pfupf.net>
+	<1460747777-8479-17-git-send-email-mchristi@redhat.com>
+Message-ID: <20160419.010415.105960685033839882.konishi.ryusuke@lab.ntt.co.jp>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: mchristi@redhat.com, linux-f2fs-devel@lists.sourceforge.net, linux-ext4@vger.kernel.org, konrad.wilk@oracle.com, drbd-dev@lists.linbit.com, philipp.reisner@linbit.com, lars.ellenberg@linbit.com, linux-raid@vger.kernel.org, dm-devel@redhat.com, linux-fsdevel@vger.kernel.org, linux-bcache@vger.kernel.org, linux-block@vger.kernel.org, linux-kernel@vger.kernel.org, linux-scsi@vger.kernel.org, linux-mtd@lists.infradead.org, target-devel@vger.kernel.org, linux-btrfs@vger.kernel.org, osd-dev@open-osd.org, xfs@oss.sgi.com, ocfs2-devel@oss.oracle.com
+To: Mike Christie <mchristi@redhat.com>
+Cc: linux-f2fs-devel@lists.sourceforge.net, linux-ext4@vger.kernel.org, konrad.wilk@oracle.com, drbd-dev@lists.linbit.com, philipp.reisner@linbit.com, lars.ellenberg@linbit.com, linux-raid@vger.kernel.org, dm-devel@redhat.com, linux-fsdevel@vger.kernel.org, linux-bcache@vger.kernel.org, linux-block@vger.kernel.org, linux-kernel@vger.kernel.org, linux-scsi@vger.kernel.org, linux-mtd@lists.infradead.org, target-devel@vger.kernel.org, linux-btrfs@vger.kernel.org, osd-dev@open-osd.org, xfs@oss.sgi.com, ocfs2-devel@oss.oracle.com
 
-On 15/04/16 21:16, mchristi at redhat.com wrote:
+On Fri, 15 Apr 2016 14:15:51 -0500, mchristi at redhat.com wrote:
 > From: Mike Christie <mchristi@redhat.com>
 > 
-> The last patch added a REQ_OP_FLUSH for request_fn drivers
-> and the next patch renames REQ_FLUSH to REQ_PREFLUSH which
-> will be used by file systems and make_request_fn drivers so
-> they can send a write/flush combo.
-> 
-> This patch drops xen's use of REQ_FLUSH to track if it supports
-> REQ_OP_FLUSH requests, so REQ_FLUSH can be deleted.
-> 
-> v7:
-> - Fix feature_flush/fua use.
-> 
-> v6:
-> - Dropped parts of patch handled by Jens's QUEUE_FLAG_WC/FUA
-> patches and modified patch to check feature_flush/fua bits.
+> This patch has nilfs use bio->bi_op for REQ_OPs and rq_flag_bits
+> to bio->bi_rw.
 > 
 > Signed-off-by: Mike Christie <mchristi@redhat.com>
+> Reviewed-by: Christoph Hellwig <hch@lst.de>
 > Reviewed-by: Hannes Reinecke <hare@suse.com>
-> Cc: Juergen Gross <kernel@pfupf.net>
+> ---
+>  fs/nilfs2/segbuf.c | 18 ++++++++++--------
+>  1 file changed, 10 insertions(+), 8 deletions(-)
 
-Acked-by: Juergen Gross <jgross@suse.com>
+Looks good to me.
 
+Acked-by: Ryusuke Konishi <konishi.ryusuke@lab.ntt.co.jp>
 
-Juergen
+Thanks,
+Ryuske Konishi
+
+> 
+> diff --git a/fs/nilfs2/segbuf.c b/fs/nilfs2/segbuf.c
+> index 7666f1d..7b13e14 100644
+> --- a/fs/nilfs2/segbuf.c
+> +++ b/fs/nilfs2/segbuf.c
+> @@ -350,7 +350,8 @@ static void nilfs_end_bio_write(struct bio *bio)
+>  }
+>  
+>  static int nilfs_segbuf_submit_bio(struct nilfs_segment_buffer *segbuf,
+> -				   struct nilfs_write_info *wi, int mode)
+> +				   struct nilfs_write_info *wi, int mode,
+> +				   int mode_flags)
+>  {
+>  	struct bio *bio = wi->bio;
+>  	int err;
+> @@ -368,7 +369,8 @@ static int nilfs_segbuf_submit_bio(struct nilfs_segment_buffer *segbuf,
+>  
+>  	bio->bi_end_io = nilfs_end_bio_write;
+>  	bio->bi_private = segbuf;
+> -	bio->bi_rw = mode;
+> +	bio->bi_op = mode;
+> +	bio->bi_rw = mode_flags;
+>  	submit_bio(bio);
+>  	segbuf->sb_nbio++;
+>  
+> @@ -442,7 +444,7 @@ static int nilfs_segbuf_submit_bh(struct nilfs_segment_buffer *segbuf,
+>  		return 0;
+>  	}
+>  	/* bio is FULL */
+> -	err = nilfs_segbuf_submit_bio(segbuf, wi, mode);
+> +	err = nilfs_segbuf_submit_bio(segbuf, wi, mode, 0);
+>  	/* never submit current bh */
+>  	if (likely(!err))
+>  		goto repeat;
+> @@ -466,19 +468,19 @@ static int nilfs_segbuf_write(struct nilfs_segment_buffer *segbuf,
+>  {
+>  	struct nilfs_write_info wi;
+>  	struct buffer_head *bh;
+> -	int res = 0, rw = WRITE;
+> +	int res = 0;
+>  
+>  	wi.nilfs = nilfs;
+>  	nilfs_segbuf_prepare_write(segbuf, &wi);
+>  
+>  	list_for_each_entry(bh, &segbuf->sb_segsum_buffers, b_assoc_buffers) {
+> -		res = nilfs_segbuf_submit_bh(segbuf, &wi, bh, rw);
+> +		res = nilfs_segbuf_submit_bh(segbuf, &wi, bh, REQ_OP_WRITE);
+>  		if (unlikely(res))
+>  			goto failed_bio;
+>  	}
+>  
+>  	list_for_each_entry(bh, &segbuf->sb_payload_buffers, b_assoc_buffers) {
+> -		res = nilfs_segbuf_submit_bh(segbuf, &wi, bh, rw);
+> +		res = nilfs_segbuf_submit_bh(segbuf, &wi, bh, REQ_OP_WRITE);
+>  		if (unlikely(res))
+>  			goto failed_bio;
+>  	}
+> @@ -488,8 +490,8 @@ static int nilfs_segbuf_write(struct nilfs_segment_buffer *segbuf,
+>  		 * Last BIO is always sent through the following
+>  		 * submission.
+>  		 */
+> -		rw |= REQ_SYNC;
+> -		res = nilfs_segbuf_submit_bio(segbuf, &wi, rw);
+> +		res = nilfs_segbuf_submit_bio(segbuf, &wi, REQ_OP_WRITE,
+> +					      REQ_SYNC);
+>  	}
+>  
+>   failed_bio:
+> -- 
+> 2.7.2
+> 
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-fsdevel" in
+> the body of a message to majordomo at vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
