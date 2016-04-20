@@ -1,37 +1,47 @@
-From: xuejiufei <xuejiufei@huawei.com>
-Date: Tue, 19 Apr 2016 10:14:33 +0800
-Subject: [Ocfs2-devel] [PATCH V3] ocfs2/dlm: return zero if deref_done
- message is successfully handled
-Message-ID: <57159489.1000902@huawei.com>
+From: Gang He <ghe@suse.com>
+Date: Wed, 20 Apr 2016 00:36:28 -0600
+Subject: [Ocfs2-devel] linux-4.6-rc2/fs/ocfs2/refcounttree.c:987]:
+ (style) Redundant condition
+In-Reply-To: <DUB128-W561D1B4C5EA0D014C351739C9F0@phx.gbl>
+References: <DUB128-W561D1B4C5EA0D014C351739C9F0@phx.gbl>
+Message-ID: <571793EC020000F900032FC9@prv-mh.provo.novell.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Function dlm_deref_lockres_done_handler() should return zero
-if the message is successfully handled.
+Yes, "!eb || !eb.h_next_leaf_blk" looks more readable.
 
-Fixes: 60d663cb5273("ocfs2/dlm: add DEREF_DONE message").
+Thanks
+Gang
 
-Signed-off-by: xuejiufei <xuejiufei@huawei.com>
-Reviewed-by: Joseph Qi <joseph.qi@huawei.com>
----
- fs/ocfs2/dlm/dlmmaster.c | 2 ++
- 1 file changed, 2 insertions(+)
 
-diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
-index 9aed6e2..13719d3 100644
---- a/fs/ocfs2/dlm/dlmmaster.c
-+++ b/fs/ocfs2/dlm/dlmmaster.c
-@@ -2455,6 +2455,8 @@ int dlm_deref_lockres_done_handler(struct o2net_msg *msg, u32 len, void *data,
 
- 	spin_unlock(&dlm->spinlock);
-
-+	ret = 0;
-+
- done:
- 	dlm_put(dlm);
- 	return ret;
--- 
-1.8.4.3
+>>> 
+> Hello there,
+> 
+> linux-4.6-rc2/fs/ocfs2/refcounttree.c:987]: (style) Redundant condition: eb. 
+> '!eb || (eb && !eb.h_next_leaf_blk)' is equivalent to '!eb || 
+> !eb.h_next_leaf_blk'
+> 
+> Source code is
+> 
+>         if (!eb || (eb && !eb->h_next_leaf_blk)) {
+> 
+> Also,
+> 
+> linux-4.6-rc2/fs/ocfs2/refcounttree.c:1011] -> 
+> [linux-4.6-rc2/fs/ocfs2/refcounttree.c:987]: (warning) Either the condition 
+> 'eb' is redundant or there is possible null pointer dereference: eb.
+> 
+> 
+> Regards
+> 
+> David Binderman
+> 
+>  		 	   		  
+> _______________________________________________
+> Ocfs2-devel mailing list
+> Ocfs2-devel at oss.oracle.com 
+> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
