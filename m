@@ -1,58 +1,60 @@
-From: Shichangkuo <shi.changkuo@h3c.com>
-Date: Wed, 20 Apr 2016 07:53:23 +0000
-Subject: [Ocfs2-devel] [PATCH] Mounting failed will not clean up dlm and o2hb
-Message-ID: <D1E4D02760513D4B90DC3B40FF32AF355EE2843E@H3CMLB14-EX.srv.huawei-3com.com>
+From: Guozhonghua <guozhonghua@h3c.com>
+Date: Wed, 20 Apr 2016 08:24:35 +0000
+Subject: [Ocfs2-devel] ocfs2: disk timeout,
+	autoumount the volume to avoid host reboot
+Message-ID: <71604351584F6A4EBAE558C676F37CA48294CD74@H3CMLB14-EX.srv.huawei-3com.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi all
-    When mounting an ocfs2 device, the dlm will join the domian firstly, in ocfs2_dlm_init function. Then the storage link changes to inactive, then ocfs2_super_lock retutn -EIO.
-ocfs2_dismount_volume will be called to clean up osb, but it just return when lock failed. This will cause dlm and o2hb thread still exits.
+Hi, Guanghui,
 
--------------------------
-Signed-off-by: shichangkuo <shi.changkuo@h3c.com>
-Reviewed-by: zhangguanghui <zhang.guanghui@h3c.com>
+That will be an good new feature to OCFS2.
 
-diff -pu linux-4.6-rc4/fs/ocfs2/super.c super.c
---- linux-4.6-rc4/fs/ocfs2/super.c      2016-04-18 10:13:32.000000000 +0800
-+++ super.c     2016-04-20 15:45:31.306475078 +0800
-@@ -1922,21 +1922,20 @@ static void ocfs2_dismount_volume(struct
-        ocfs2_purge_refcount_trees(osb);
+There is one scenarios that one host have several LUNs connected with different storage servers, may be iSCSI, and FC SAN.
+One of the volumes(LUNs) disconnected from server, the host will be fence and restart itself for heartbeat timeout.
+Same time, the services running depend on the other good volumes(LUNs) will be interrupted and cannot be accessed continuously for the host, which is been restarted.
 
-        /* No cluster connection means we've failed during mount, so skip
--        * all the steps which depended on that to complete. */
--       if (osb->cconn) {
-+        * all the steps which depended on that to complete.
-+    * to fix resource leaks and avoid call sb_getblk again, mount can't return*/
-+       if (!mnt_err && osb->cconn) {
-                tmp = ocfs2_super_lock(osb, 1);
-                if (tmp < 0) {
-                        mlog_errno(tmp);
--                       return;
-+               } else {
-+                       if (osb->slot_num != OCFS2_INVALID_SLOT)
-+                ocfs2_put_slot(osb);
-+
-+               ocfs2_super_unlock(osb, 1);
-                }
-        }
+If OCFS2 had this feature, the services depending on other good status volumes(LUNs) will be running continue, and the host will not be fence, and not restart itself.
+Only this services which depend on the abnormal volume(LUN) run timeout.
 
--       if (osb->slot_num != OCFS2_INVALID_SLOT)
--               ocfs2_put_slot(osb);
--
--       if (osb->cconn)
--               ocfs2_super_unlock(osb, 1);
--
-        ocfs2_release_system_inodes(osb);
+I think it is a good idea and feature for OCFS2.
 
-        /*
+Thank you.
+Guozhonghua
 
-Best regards.
 
-Changkuo
+
+Message: 2
+Date: Wed, 20 Apr 2016 07:27:48 +0000
+From: Zhangguanghui <zhang.guanghui@h3c.com>
+Subject: [Ocfs2-devel] ocfs2: disk timeout, autoumount the volume to
+        avoid calling emergency_restart
+To: "ocfs2-devel-bounces at oss.oracle.com"
+        <ocfs2-devel-bounces@oss.oracle.com>,   "ocfs2-devel at oss.oracle.com"
+        <ocfs2-devel@oss.oracle.com>
+Message-ID:
+        <E3535A62B291B54FBD1D003696CCB5375E19CDC7@H3CMLB14-EX.srv.huawei-3com.com>
+
+Content-Type: text/plain; charset="utf-8"
+Hi everyone
+
+
+In ocfs2, when one storage volume can't access, all nodes which have mounted the volume will fence self
+
+due to write timeout or io error. So I make a useful attempt to add autoumount option.
+
+in the case, I know that for some reason umount may be hung.Based on the analysis process of ocfs2 umount,
+
+it's possible to complete all locks and wake up block events before umounting the volume.
+
+the way is to work well by forever experimenting and devising tests.the patch may be release in the recent times.
+
+Is the patch risky and reasonable? what do you think ? Thanks
+
+Best regards
 -------------------------------------------------------------------------------------------------------------------------------------
 ????????????????????????????????????????
 ????????????????????????????????????????
