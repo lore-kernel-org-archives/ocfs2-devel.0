@@ -1,55 +1,73 @@
-From: Jeff Moyer <jmoyer@redhat.com>
-Date: Tue, 03 May 2016 16:44:02 -0400
-Subject: [Ocfs2-devel] [PATCH 00/42] v7: separate operations from flags
-	in the bio/request structs
-In-Reply-To: <1460747777-8479-1-git-send-email-mchristi@redhat.com>
-	(mchristi@redhat.com's message of "Fri, 15 Apr 2016 14:15:35 -0500")
-References: <1460747777-8479-1-git-send-email-mchristi@redhat.com>
-Message-ID: <x49d1p2c1nx.fsf@segfault.boston.devel.redhat.com>
+From: Gechangwei <ge.changwei@h3c.com>
+Date: Wed, 4 May 2016 00:54:07 +0000
+Subject: [Ocfs2-devel] =?utf-8?b?562U5aSNOiAgd2hhdCBNTEUgd2FudHMgdG8gZG8/?=
+In-Reply-To: <5728D35A.1060507@oracle.com>
+References: <63ADC13FD55D6546B7DECE290D39E373CAFB13@H3CMLB14-EX.srv.huawei-3com.com>
+	<5728D35A.1060507@oracle.com>
+Message-ID: <63ADC13FD55D6546B7DECE290D39E373CAFB8C@H3CMLB14-EX.srv.huawei-3com.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: mchristi-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org
-Cc: linux-bcache-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-block-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, xfs-VZNHf3L845pBDgjK7y7TUQ@public.gmane.org, ocfs2-devel-N0ozoZBvEnrZJqsBc5GL+g@public.gmane.org, linux-scsi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, konrad.wilk-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, philipp.reisner-63ez5xqkn6DQT0dZR+AlfA@public.gmane.org, linux-f2fs-devel-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, linux-raid-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, dm-devel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, target-devel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-mtd-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, osd-dev-yNzVSZO3znNg9hUCZPvPmw@public.gmane.org, linux-fsdevel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, lars.ellenberg-63ez5xqkn6DQT0dZR+AlfA@public.gmane.org, linux-ext4-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-btrfs-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, drbd-dev-cunTk1MwBs8qoQakbn7OcQ@public.gmane.org
+To: ocfs2-devel@oss.oracle.com
 
-mchristi at redhat.com writes:
+Thanks. Your reply means great help to me.
 
-> The following patches begin to cleanup the request->cmd_flags and
-> bio->bi_rw mess. We currently use cmd_flags to specify the operation,
-> attributes and state of the request. For bi_rw we use it for similar
-> info and also the priority but then also have another bi_flags field
-> for state. At some point, we abused them so much we just made cmd_flags
-> 64 bits, so we could add more.
->
-> The following patches seperate the operation (read, write discard,
-> flush, etc) from cmd_flags/bi_rw.
->
-> This patchset was made against linux-next from today April 15
-> (git tag next-20160415).
->
-> I put a git tree here:
-> https://github.com/mikechristie/linux-kernel.git
-> The patches are in the op branch.
+???: Srinivas Eeda [mailto:srinivas.eeda at oracle.com]
+????: 2016?5?4? 0:36
+???: gechangwei 12382 (CCPL)
+??: ocfs2-devel at oss.oracle.com
+??: Re: [Ocfs2-devel] what MLE wants to do?
 
-Hi, Mike,
+In simple terms, mle's get into life at the beginning of the lock mastery and ends at the end of lock mastery(either new lockres or during lockres migration). It's purpose is to handle the race when more than one node try to master or find master of a lockres.
 
-That git tree doesn't seem to exist.  I did manage to apply your patch
-set on top of next-20160415, though.
+On 05/03/2016 02:23 AM, Gechangwei wrote:
+Hi OCFS2 experts,
 
-So... what testing did you do? ;-) I ran into the following problems:
-- git clone fails
-- yum segfaults
-- many blktrace/blkparse issues, including incorrect cpu recorded in
-  traces, null task names, and blkparse outputting nothing for a trace
-  file several gigabytes in size.
+Recently, I am working hard on OCFS2 DLM related code. I think it is an essential part of OCFS2 which must be mastered.
 
-After that, I decided to back out your patches and test the base
-linux-next kernel.  That kernel has none of those issues.
+But I was confused with MLE (stands for master list entry) related procedure.
 
-So, either I'm missing some dependencies, or I think we've got some
-issues to iron out before this thing goes in.  Before I dig any further,
-am I missing something?
+Would you please introduce me some study material covering MLE or just directly give me a clue on what MLE wants to do briefly via an email.
 
-Cheers,
-Jeff
+
+Thanks a lot.
+
+Br.
+
+
+Gechangwei
+H3C Technologies Co., Limited
+
+
+> ----------------------------------------------------------------------
+
+> ------
+
+> ---------------------------------------------------------
+
+-------------------------------------------------------------------------------------------------------------------------------------
+????????????????????????????????????????
+????????????????????????????????????????
+????????????????????????????????????????
+???
+This e-mail and its attachments contain confidential information from H3C, which is
+intended only for the person or entity whose address is listed above. Any use of the
+information contained herein in any way (including, but not limited to, total or partial
+disclosure, reproduction, or dissemination) by persons other than the intended
+recipient(s) is prohibited. If you receive this e-mail in error, please notify the sender
+by phone or email immediately and delete it!
+
+
+
+_______________________________________________
+
+Ocfs2-devel mailing list
+
+Ocfs2-devel at oss.oracle.com<mailto:Ocfs2-devel@oss.oracle.com>
+
+https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20160504/f8d61d3e/attachment.html 
