@@ -1,73 +1,59 @@
-From: Gechangwei <ge.changwei@h3c.com>
-Date: Wed, 4 May 2016 00:54:07 +0000
-Subject: [Ocfs2-devel] =?utf-8?b?562U5aSNOiAgd2hhdCBNTEUgd2FudHMgdG8gZG8/?=
-In-Reply-To: <5728D35A.1060507@oracle.com>
-References: <63ADC13FD55D6546B7DECE290D39E373CAFB13@H3CMLB14-EX.srv.huawei-3com.com>
-	<5728D35A.1060507@oracle.com>
-Message-ID: <63ADC13FD55D6546B7DECE290D39E373CAFB8C@H3CMLB14-EX.srv.huawei-3com.com>
+From: Mike Christie <mchristi@redhat.com>
+Date: Wed, 4 May 2016 12:51:59 -0500
+Subject: [Ocfs2-devel] [PATCH 00/42] v7: separate operations from flags
+ in the bio/request structs
+In-Reply-To: <x49d1p2c1nx.fsf@segfault.boston.devel.redhat.com>
+References: <1460747777-8479-1-git-send-email-mchristi@redhat.com>
+	<x49d1p2c1nx.fsf@segfault.boston.devel.redhat.com>
+Message-ID: <572A36BF.3070208@redhat.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Jeff Moyer <jmoyer@redhat.com>
+Cc: linux-f2fs-devel@lists.sourceforge.net, linux-ext4@vger.kernel.org, konrad.wilk@oracle.com, drbd-dev@lists.linbit.com, philipp.reisner@linbit.com, lars.ellenberg@linbit.com, linux-raid@vger.kernel.org, dm-devel@redhat.com, linux-fsdevel@vger.kernel.org, linux-bcache@vger.kernel.org, linux-block@vger.kernel.org, linux-kernel@vger.kernel.org, linux-scsi@vger.kernel.org, linux-mtd@lists.infradead.org, target-devel@vger.kernel.org, linux-btrfs@vger.kernel.org, osd-dev@open-osd.org, xfs@oss.sgi.com, ocfs2-devel@oss.oracle.com
 
-Thanks. Your reply means great help to me.
+On 05/03/2016 03:44 PM, Jeff Moyer wrote:
+> mchristi at redhat.com writes:
+> 
+>> The following patches begin to cleanup the request->cmd_flags and
+>> bio->bi_rw mess. We currently use cmd_flags to specify the operation,
+>> attributes and state of the request. For bi_rw we use it for similar
+>> info and also the priority but then also have another bi_flags field
+>> for state. At some point, we abused them so much we just made cmd_flags
+>> 64 bits, so we could add more.
+>>
+>> The following patches seperate the operation (read, write discard,
+>> flush, etc) from cmd_flags/bi_rw.
+>>
+>> This patchset was made against linux-next from today April 15
+>> (git tag next-20160415).
+>>
+>> I put a git tree here:
+>> https://github.com/mikechristie/linux-kernel.git
+>> The patches are in the op branch.
+> 
+> Hi, Mike,
+> 
+> That git tree doesn't seem to exist.  I did manage to apply your patch
+> set on top of next-20160415, though.
+> 
+> So... what testing did you do? ;-) I ran into the following problems
 
-???: Srinivas Eeda [mailto:srinivas.eeda at oracle.com]
-????: 2016?5?4? 0:36
-???: gechangwei 12382 (CCPL)
-??: ocfs2-devel at oss.oracle.com
-??: Re: [Ocfs2-devel] what MLE wants to do?
+I normally run xfstests and run it on my daily workstation and laptop. I
+did not do this for every FS this time and hit a regression.
 
-In simple terms, mle's get into life at the beginning of the lock mastery and ends at the end of lock mastery(either new lockres or during lockres migration). It's purpose is to handle the race when more than one node try to master or find master of a lockres.
+What FS were you using?
 
-On 05/03/2016 02:23 AM, Gechangwei wrote:
-Hi OCFS2 experts,
-
-Recently, I am working hard on OCFS2 DLM related code. I think it is an essential part of OCFS2 which must be mastered.
-
-But I was confused with MLE (stands for master list entry) related procedure.
-
-Would you please introduce me some study material covering MLE or just directly give me a clue on what MLE wants to do briefly via an email.
-
-
-Thanks a lot.
-
-Br.
-
-
-Gechangwei
-H3C Technologies Co., Limited
-
-
-> ----------------------------------------------------------------------
-
-> ------
-
-> ---------------------------------------------------------
-
--------------------------------------------------------------------------------------------------------------------------------------
-????????????????????????????????????????
-????????????????????????????????????????
-????????????????????????????????????????
-???
-This e-mail and its attachments contain confidential information from H3C, which is
-intended only for the person or entity whose address is listed above. Any use of the
-information contained herein in any way (including, but not limited to, total or partial
-disclosure, reproduction, or dissemination) by persons other than the intended
-recipient(s) is prohibited. If you receive this e-mail in error, please notify the sender
-by phone or email immediately and delete it!
+> - git clone fails
+> - yum segfaults
 
 
+In v7/v6, I missed a new submit_bio call, so I hit issues like the two
+above. I have this fixed in the next version.
 
-_______________________________________________
+> - many blktrace/blkparse issues, including incorrect cpu recorded in
+>   traces, null task names, and blkparse outputting nothing for a trace
+>   file several gigabytes in size.
 
-Ocfs2-devel mailing list
-
-Ocfs2-devel at oss.oracle.com<mailto:Ocfs2-devel@oss.oracle.com>
-
-https://oss.oracle.com/mailman/listinfo/ocfs2-devel
-
--------------- next part --------------
-An HTML attachment was scrubbed...
-URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20160504/f8d61d3e/attachment.html 
+I will double check for these issues.
