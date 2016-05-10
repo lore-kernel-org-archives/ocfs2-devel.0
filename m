@@ -1,109 +1,20 @@
 From: Junxiao Bi <junxiao.bi@oracle.com>
-Date: Tue, 10 May 2016 12:53:42 +0800
-Subject: [Ocfs2-devel] [PATCH 1/2] ocfs2: revert using ocfs2_acl_chmod to
-	avoid inode cluster lock hang
-In-Reply-To: <1462856023-13801-1-git-send-email-junxiao.bi@oracle.com>
-References: <1462856023-13801-1-git-send-email-junxiao.bi@oracle.com>
-Message-ID: <1462856023-13801-2-git-send-email-junxiao.bi@oracle.com>
+Date: Tue, 10 May 2016 12:53:41 +0800
+Subject: [Ocfs2-devel] ocfs2: fix recursive locking deadlock
+Message-ID: <1462856023-13801-1-git-send-email-junxiao.bi@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-commit 743b5f1434f5 ("ocfs2: take inode lock in ocfs2_iop_set/get_acl()")
-introduced this issue.  ocfs2_setattr called by chmod command holds cluster
-wide inode lock when calling posix_acl_chmod. This latter function in turn
-calls ocfs2_iop_get_acl and ocfs2_iop_set_acl.  These two are also called
-directly from vfs layer for getfacl/setfacl commands and therefore acquire
-the cluster wide inode lock. If a remote conversion request comes after the
-first inode lock in ocfs2_setattr, OCFS2_LOCK_BLOCKED will be set. And this
-will cause the second call to inode lock from the ocfs2_iop_get_acl() to
-block indefinetly.
 
-The deleted version of ocfs2_acl_chmod() calls __posix_acl_chmod() which
-does not call back into the filesystem. Therefore, we restore
-ocfs2_acl_chmod(), modify it slightly for locking as needed, and use that
-instead.
+Hi,
 
-Fixes: 743b5f1434f5 ("ocfs2: take inode lock in ocfs2_iop_set/get_acl()")
-Signed-off-by: Tariq Saeed <tariq.x.saeed@oracle.com>
-Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
----
- fs/ocfs2/acl.c  |   24 ++++++++++++++++++++++++
- fs/ocfs2/acl.h  |    1 +
- fs/ocfs2/file.c |    4 ++--
- 3 files changed, 27 insertions(+), 2 deletions(-)
+These two patches is to fix recursive locking deadlock issues. As we
+talked with Mark before, recursive locking is not allowed in ocfs2,
+so these two patches fixes the deadlock issue with reverting back
+patches to avoid recursive locking. Please review.
 
-diff --git a/fs/ocfs2/acl.c b/fs/ocfs2/acl.c
-index 0cdf497c91ef..749d3bc41232 100644
---- a/fs/ocfs2/acl.c
-+++ b/fs/ocfs2/acl.c
-@@ -322,3 +322,27 @@ struct posix_acl *ocfs2_iop_get_acl(struct inode *inode, int type)
- 	brelse(di_bh);
- 	return acl;
- }
-+
-+int ocfs2_acl_chmod(struct inode *inode, struct buffer_head *bh)
-+{
-+	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
-+	struct posix_acl *acl;
-+	int ret;
-+
-+	if (S_ISLNK(inode->i_mode))
-+		return -EOPNOTSUPP;
-+
-+	if (!(osb->s_mount_opt & OCFS2_MOUNT_POSIX_ACL))
-+		return 0;
-+
-+	acl = ocfs2_get_acl_nolock(inode, ACL_TYPE_ACCESS, bh);
-+	if (IS_ERR(acl) || !acl)
-+		return PTR_ERR(acl);
-+	ret = __posix_acl_chmod(&acl, GFP_KERNEL, inode->i_mode);
-+	if (ret)
-+		return ret;
-+	ret = ocfs2_set_acl(NULL, inode, NULL, ACL_TYPE_ACCESS,
-+			    acl, NULL, NULL);
-+	posix_acl_release(acl);
-+	return ret;
-+}
-diff --git a/fs/ocfs2/acl.h b/fs/ocfs2/acl.h
-index 3fce68d08625..035e5878db06 100644
---- a/fs/ocfs2/acl.h
-+++ b/fs/ocfs2/acl.h
-@@ -35,5 +35,6 @@ int ocfs2_set_acl(handle_t *handle,
- 			 struct posix_acl *acl,
- 			 struct ocfs2_alloc_context *meta_ac,
- 			 struct ocfs2_alloc_context *data_ac);
-+extern int ocfs2_acl_chmod(struct inode *, struct buffer_head *);
- 
- #endif /* OCFS2_ACL_H */
-diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-index 2bf23fd333ed..4e7b0dc22450 100644
---- a/fs/ocfs2/file.c
-+++ b/fs/ocfs2/file.c
-@@ -1268,20 +1268,20 @@ bail_unlock_rw:
- 	if (size_change)
- 		ocfs2_rw_unlock(inode, 1);
- bail:
--	brelse(bh);
- 
- 	/* Release quota pointers in case we acquired them */
- 	for (qtype = 0; qtype < OCFS2_MAXQUOTAS; qtype++)
- 		dqput(transfer_to[qtype]);
- 
- 	if (!status && attr->ia_valid & ATTR_MODE) {
--		status = posix_acl_chmod(inode, inode->i_mode);
-+		status = ocfs2_acl_chmod(inode, bh);
- 		if (status < 0)
- 			mlog_errno(status);
- 	}
- 	if (inode_locked)
- 		ocfs2_inode_unlock(inode, 1);
- 
-+	brelse(bh);
- 	return status;
- }
- 
--- 
-1.7.9.5
+Thanks,
+Junxiao.
