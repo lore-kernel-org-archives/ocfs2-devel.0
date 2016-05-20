@@ -1,55 +1,39 @@
-From: Jeong Woo Seo <seo@xsinc.co.kr>
-Date: Sun, 15 May 2016 01:56:05 +0900 (KST)
-Subject: [Ocfs2-devel]
- =?utf-8?q?ocfs2=3A_fix_recursive_locking_deadlock?=
-In-Reply-To: <1462856023-13801-1-git-send-email-junxiao.bi@oracle.com>
-References: <1462856023-13801-1-git-send-email-junxiao.bi@oracle.com>
-Message-ID: <a6332c53a5705972d35d5ff73afdefcf@cweb17.nm.nhnsystem.com>
+From: Gang He <ghe@suse.com>
+Date: Fri, 20 May 2016 16:12:19 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: adjust arguments in dlm_new_lockspace
+	called by kernel
+Message-ID: <1463731940-13044-1-git-send-email-ghe@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: mfasheh@suse.com, rgoldwyn@suse.de, ghe@suse.com
+Cc: linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com, akpm@linux-foundation.org
 
-  I applied patch and when try to trim ocfs2 volume, it turns to read-only status.
- 
-log is :
- 
-[114572.044443] OCFS2: ERROR (device drbd0): ocfs2_validate_gd_self: Group descriptor #8257536 has bad signature
-[114572.044501] On-disk corruption discovered. Please run fsck.ocfs2 once the filesystem is unmounted.
-[114572.044528] OCFS2: File system is now read-only.
-[114572.044544] (fstrim,9432,1):ocfs2_trim_fs:7399 ERROR: status = -30
+We encountered a bug from the customer, the user did a fsck.ocfs2 on the file
+system and exited unusually, the lockspace (with LVB size = 32) was left in
+the kernel space, next, the user mounted this file system, the kernel module
+did not create a new lockspace (LVB size = 64) via calling dlm_new_lockspace() 
+function in mounting stage, just used the existing lockspace, created by the 
+user space tool, this would lead the user was not able to mount this file 
+system from the other nodes, with the error message likes,
+dlm: 032F5......: config mismatch: 64,0 nodeid 177127961: 32,0
+(mount.ocfs2,26981,46):ocfs2_dlm_init:2995 ERROR: status = -71
+ocfs2_mount_volume:1881 ERROR: status = -71
+ocfs2_fill_super:1236 ERROR: status = -71
+The user was very difficult to find the root cause, then, we brought out this
+patch to relieve such problem. 
+First, we add one more flag in calling dlm_new_lockspace() function, to make 
+sure the lockspace is created by kernel module itself, and this change will 
+not affect the backward compatibility.
+Second, the obvious error message is reported in the kernel log, let the user 
+be more easy to find the root cause.
 
-  
+Gang He (1):
+  ocfs2: insure dlm lockspace is created by kernel module
 
+ fs/ocfs2/stack_user.c | 11 +++++++++--
+ 1 file changed, 9 insertions(+), 2 deletions(-)
 
- ??? ???? XS INC. ? ? ?  ? ? ?  / ? ? ?/ Seo Jeong Woo
-??? ??? ??3? 197-5 ??IT?? 1004?
-Mobile 010-3896-9002 / Office 02-2088-3243
- FAX  02-2039-3076 / E-mail seo at xsinc.co.kr 
-  
------Original Message-----
-From: "Junxiao Bi"&lt;junxiao.bi at oracle.com&gt; 
-To: &lt;ocfs2-devel at oss.oracle.com&gt;; &lt;akpm at linux-foundation.org&gt;; 
-Cc: &lt;mfasheh at suse.com&gt;; 
-Sent: 2016-05-10 (?) 13:53:41
-Subject: [Ocfs2-devel] ocfs2: fix recursive locking deadlock
- 
-
-Hi,
-
-These two patches is to fix recursive locking deadlock issues. As we
-talked with Mark before, recursive locking is not allowed in ocfs2,
-so these two patches fixes the deadlock issue with reverting back
-patches to avoid recursive locking. Please review.
-
-Thanks,
-Junxiao.
-
-_______________________________________________
-Ocfs2-devel mailing list
-Ocfs2-devel at oss.oracle.com
-https://oss.oracle.com/mailman/listinfo/ocfs2-devel
--------------- next part --------------
-An HTML attachment was scrubbed...
-URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20160515/2f869ef2/attachment.html 
+-- 
+1.8.5.6
