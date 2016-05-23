@@ -1,50 +1,41 @@
-From: akpm at linux-foundation.org <akpm@linux-foundation.org>
-Date: Mon, 23 May 2016 14:50:43 -0700
-Subject: [Ocfs2-devel] [patch 6/6] ocfs2: o2hb: fix hb hung time
-Message-ID: <57437b33.2AynewoJAtHVEOJk%akpm@linux-foundation.org>
+From: Mark Fasheh <mfasheh@suse.de>
+Date: Mon, 23 May 2016 16:40:30 -0700
+Subject: [Ocfs2-devel] ocfs2: o2hb: not fence self if storage down
+In-Reply-To: <20160523145010.2e7f606d0db552d529d9253e@linux-foundation.org>
+References: <1456905372-22313-1-git-send-email-junxiao.bi@oracle.com>
+	<20160523145010.2e7f606d0db552d529d9253e@linux-foundation.org>
+Message-ID: <20160523234030.GP7633@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-From: Junxiao Bi <junxiao.bi@oracle.com>
-Subject: ocfs2: o2hb: fix hb hung time
+On Mon, May 23, 2016 at 02:50:10PM -0700, Andrew Morton wrote:
+> On Wed,  2 Mar 2016 15:56:06 +0800 Junxiao Bi <junxiao.bi@oracle.com> wrote:
+> 
+> > 
+> > Hi Mark,
+> > 
+> > This serial of patches is to fix the issue that when storage down,
+> > all nodes will fence self due to write timeout.
+> > With this patch set, all nodes will keep going until storage back
+> > online, except if the following issue happens, then all nodes will
+> > do as before to fence self.
+> > 1. io error got
+> > 2. network between nodes down
+> > 3. nodes panic
+> 
+> Guys, can we please do a quick triple-check on this series?  I'd like
+> to unload them this week.  Thanks.
+> 
+> I'll send out the current version in a few secs.
 
-hr_last_timeout_start should be set as the last time where hb is still OK.
-When hb write timeout, hung time will be (jiffies -
-hr_last_timeout_start).
+I'll go through them and give my review.
 
-Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
-Reviewed-by: Ryan Ding <ryan.ding@oracle.com>
-Cc: Gang He <ghe@suse.com>
-Cc: rwxybh <rwxybh@126.com>
-Cc: Mark Fasheh <mfasheh@suse.de>
-Cc: Joel Becker <jlbec@evilplan.org>
-Cc: Joseph Qi <joseph.qi@huawei.com>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
----
+Thanks,
+	--Mark
 
- fs/ocfs2/cluster/heartbeat.c |    2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff -puN fs/ocfs2/cluster/heartbeat.c~ocfs2-o2hb-fix-hb-hung-time fs/ocfs2/cluster/heartbeat.c
---- a/fs/ocfs2/cluster/heartbeat.c~ocfs2-o2hb-fix-hb-hung-time
-+++ a/fs/ocfs2/cluster/heartbeat.c
-@@ -356,7 +356,6 @@ static void o2hb_arm_timeout(struct o2hb
- 		spin_unlock(&o2hb_live_lock);
- 	}
- 	cancel_delayed_work(&reg->hr_write_timeout_work);
--	reg->hr_last_timeout_start = jiffies;
- 	schedule_delayed_work(&reg->hr_write_timeout_work,
- 			      msecs_to_jiffies(O2HB_MAX_WRITE_TIMEOUT_MS));
- 
-@@ -1174,6 +1173,7 @@ static int o2hb_do_disk_heartbeat(struct
- 	if (own_slot_ok) {
- 		o2hb_set_quorum_device(reg);
- 		o2hb_arm_timeout(reg);
-+		reg->hr_last_timeout_start = jiffies;
- 	}
- 
- bail:
-_
+--
+Mark Fasheh
