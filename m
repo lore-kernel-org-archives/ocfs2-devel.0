@@ -1,7 +1,7 @@
 From: akpm at linux-foundation.org <akpm@linux-foundation.org>
-Date: Mon, 23 May 2016 14:50:28 -0700
-Subject: [Ocfs2-devel] [patch 1/6] ocfs2: o2hb: add negotiate timer
-Message-ID: <57437b24.EEEpYkPZSJqHbkjn%akpm@linux-foundation.org>
+Date: Mon, 23 May 2016 14:50:31 -0700
+Subject: [Ocfs2-devel] [patch 2/6] ocfs2: o2hb: add NEGO_TIMEOUT message
+Message-ID: <57437b27.X8K5KU7uT/ZmjOuo%akpm@linux-foundation.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -9,40 +9,11 @@ Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
 From: Junxiao Bi <junxiao.bi@oracle.com>
-Subject: ocfs2: o2hb: add negotiate timer
+Subject: ocfs2: o2hb: add NEGO_TIMEOUT message
 
-This series of patches is to fix the issue that when storage down, all
-nodes will fence self due to write timeout.
-
-With this patch set, all nodes will keep going until storage back online,
-except if the following issue happens, then all nodes will do as before to
-fence self.
-
-1. io error got
-2. network between nodes down
-3. nodes panic
-
-This patch (of 6):
-
-When storage down, all nodes will fence self due to write timeout.  The
-negotiate timer is designed to avoid this, with it node will wait until
-storage up again.
-
-Negotiate timer working in the following way:
-
-1. The timer expires before write timeout timer, its timeout is half
-   of write timeout now.  It is re-queued along with write timeout timer.
-   If expires, it will send NEGO_TIMEOUT message to master node(node with
-   lowest node number).  This message does nothing but marks a bit in a
-   bitmap recording which nodes are negotiating timeout on master node.
-
-2. If storage down, nodes will send this message to master node, then
-   when master node finds its bitmap including all online nodes, it sends
-   NEGO_APPROVL message to all nodes one by one, this message will
-   re-queue write timeout timer and negotiate timer.  For any node doesn't
-   receive this message or meets some issue when handling this message, it
-   will be fenced.  If storage up at any time, o2hb_thread will run and
-   re-queue all the timer, nothing will be affected by these two steps.
+This message is sent to master node when non-master nodes's negotiate
+timer expired.  Master node records these nodes in a bitmap which is used
+to do write timeout timer re-queue decision.
 
 Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
 Reviewed-by: Ryan Ding <ryan.ding@oracle.com>
@@ -54,107 +25,126 @@ Cc: Joseph Qi <joseph.qi@huawei.com>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- fs/ocfs2/cluster/heartbeat.c |   51 ++++++++++++++++++++++++++++++---
- 1 file changed, 47 insertions(+), 4 deletions(-)
+ fs/ocfs2/cluster/heartbeat.c |   66 ++++++++++++++++++++++++++++++++-
+ 1 file changed, 65 insertions(+), 1 deletion(-)
 
-diff -puN fs/ocfs2/cluster/heartbeat.c~ocfs2-o2hb-add-negotiate-timer fs/ocfs2/cluster/heartbeat.c
---- a/fs/ocfs2/cluster/heartbeat.c~ocfs2-o2hb-add-negotiate-timer
+diff -puN fs/ocfs2/cluster/heartbeat.c~ocfs2-o2hb-add-nego_timeout-message fs/ocfs2/cluster/heartbeat.c
+--- a/fs/ocfs2/cluster/heartbeat.c~ocfs2-o2hb-add-nego_timeout-message
 +++ a/fs/ocfs2/cluster/heartbeat.c
-@@ -272,6 +272,10 @@ struct o2hb_region {
- 	struct delayed_work	hr_write_timeout_work;
- 	unsigned long		hr_last_timeout_start;
- 
-+	/* negotiate timer, used to negotiate extending hb timeout. */
-+	struct delayed_work	hr_nego_timeout_work;
-+	unsigned long		hr_nego_node_bitmap[BITS_TO_LONGS(O2NM_MAX_NODES)];
-+
- 	/* Used during o2hb_check_slot to hold a copy of the block
+@@ -280,6 +280,10 @@ struct o2hb_region {
  	 * being checked because we temporarily have to zero out the
  	 * crc field. */
-@@ -319,7 +323,7 @@ static void o2hb_write_timeout(struct wo
- 	o2quo_disk_timeout();
+ 	struct o2hb_disk_heartbeat_block *hr_tmp_block;
++
++	/* Message key for negotiate timeout message. */
++	unsigned int		hr_key;
++	struct list_head	hr_handler_list;
+ };
+ 
+ struct o2hb_bio_wait_ctxt {
+@@ -288,6 +292,14 @@ struct o2hb_bio_wait_ctxt {
+ 	int               wc_error;
+ };
+ 
++enum {
++	O2HB_NEGO_TIMEOUT_MSG = 1,
++};
++
++struct o2hb_nego_msg {
++	u8 node_num;
++};
++
+ static void o2hb_write_timeout(struct work_struct *work)
+ {
+ 	int failed, quorum;
+@@ -355,6 +367,24 @@ static void o2hb_disarm_timeout(struct o
+ 	cancel_delayed_work_sync(&reg->hr_nego_timeout_work);
  }
  
--static void o2hb_arm_write_timeout(struct o2hb_region *reg)
-+static void o2hb_arm_timeout(struct o2hb_region *reg)
- {
- 	/* Arm writeout only after thread reaches steady state */
- 	if (atomic_read(&reg->hr_steady_iterations) != 0)
-@@ -337,11 +341,49 @@ static void o2hb_arm_write_timeout(struc
- 	reg->hr_last_timeout_start = jiffies;
- 	schedule_delayed_work(&reg->hr_write_timeout_work,
- 			      msecs_to_jiffies(O2HB_MAX_WRITE_TIMEOUT_MS));
-+
-+	cancel_delayed_work(&reg->hr_nego_timeout_work);
-+	/* negotiate timeout must be less than write timeout. */
-+	schedule_delayed_work(&reg->hr_nego_timeout_work,
-+			      msecs_to_jiffies(O2HB_MAX_WRITE_TIMEOUT_MS)/2);
-+	memset(reg->hr_nego_node_bitmap, 0, sizeof(reg->hr_nego_node_bitmap));
- }
- 
--static void o2hb_disarm_write_timeout(struct o2hb_region *reg)
-+static void o2hb_disarm_timeout(struct o2hb_region *reg)
- {
- 	cancel_delayed_work_sync(&reg->hr_write_timeout_work);
-+	cancel_delayed_work_sync(&reg->hr_nego_timeout_work);
-+}
-+
-+static void o2hb_nego_timeout(struct work_struct *work)
++static int o2hb_send_nego_msg(int key, int type, u8 target)
 +{
-+	unsigned long live_node_bitmap[BITS_TO_LONGS(O2NM_MAX_NODES)];
-+	int master_node;
-+	struct o2hb_region *reg;
++	struct o2hb_nego_msg msg;
++	int status, ret;
 +
-+	reg = container_of(work, struct o2hb_region, hr_nego_timeout_work.work);
-+	o2hb_fill_node_map(live_node_bitmap, sizeof(live_node_bitmap));
-+	/* lowest node as master node to make negotiate decision. */
-+	master_node = find_next_bit(live_node_bitmap, O2NM_MAX_NODES, 0);
++	msg.node_num = o2nm_this_node();
++again:
++	ret = o2net_send_message(type, key, &msg, sizeof(msg),
++			target, &status);
 +
-+	if (master_node == o2nm_this_node()) {
-+		set_bit(master_node, reg->hr_nego_node_bitmap);
-+		if (memcmp(reg->hr_nego_node_bitmap, live_node_bitmap,
-+				sizeof(reg->hr_nego_node_bitmap))) {
-+			/* check negotiate bitmap every second to do timeout
-+			 * approve decision.
-+			 */
-+			schedule_delayed_work(&reg->hr_nego_timeout_work,
-+				msecs_to_jiffies(1000));
-+
-+			return;
-+		}
-+
-+		/* approve negotiate timeout request. */
-+	} else {
-+		/* negotiate timeout with master node. */
++	if (ret == -EAGAIN || ret == -ENOMEM) {
++		msleep(100);
++		goto again;
 +	}
 +
++	return ret;
++}
++
+ static void o2hb_nego_timeout(struct work_struct *work)
+ {
+ 	unsigned long live_node_bitmap[BITS_TO_LONGS(O2NM_MAX_NODES)];
+@@ -382,8 +412,24 @@ static void o2hb_nego_timeout(struct wor
+ 		/* approve negotiate timeout request. */
+ 	} else {
+ 		/* negotiate timeout with master node. */
++		o2hb_send_nego_msg(reg->hr_key, O2HB_NEGO_TIMEOUT_MSG,
++			master_node);
+ 	}
++}
+ 
++static int o2hb_nego_timeout_handler(struct o2net_msg *msg, u32 len, void *data,
++				void **ret_data)
++{
++	struct o2hb_region *reg = data;
++	struct o2hb_nego_msg *nego_msg;
++
++	nego_msg = (struct o2hb_nego_msg *)msg->buf;
++	if (nego_msg->node_num < O2NM_MAX_NODES)
++		set_bit(nego_msg->node_num, reg->hr_nego_node_bitmap);
++	else
++		mlog(ML_ERROR, "got nego timeout message from bad node.\n");
++
++	return 0;
  }
  
  static inline void o2hb_bio_wait_init(struct o2hb_bio_wait_ctxt *wc)
-@@ -1032,7 +1074,7 @@ static int o2hb_do_disk_heartbeat(struct
- 	/* Skip disarming the timeout if own slot has stale/bad data */
- 	if (own_slot_ok) {
- 		o2hb_set_quorum_device(reg);
--		o2hb_arm_write_timeout(reg);
-+		o2hb_arm_timeout(reg);
+@@ -1493,6 +1539,7 @@ static void o2hb_region_release(struct c
+ 	list_del(&reg->hr_all_item);
+ 	spin_unlock(&o2hb_live_lock);
+ 
++	o2net_unregister_handler_list(&reg->hr_handler_list);
+ 	kfree(reg);
+ }
+ 
+@@ -2038,13 +2085,30 @@ static struct config_item *o2hb_heartbea
+ 
+ 	config_item_init_type_name(&reg->hr_item, name, &o2hb_region_type);
+ 
++	/* this is the same way to generate msg key as dlm, for local heartbeat,
++	 * name is also the same, so make initial crc value different to avoid
++	 * message key conflict.
++	 */
++	reg->hr_key = crc32_le(reg->hr_region_num + O2NM_MAX_REGIONS,
++		name, strlen(name));
++	INIT_LIST_HEAD(&reg->hr_handler_list);
++	ret = o2net_register_handler(O2HB_NEGO_TIMEOUT_MSG, reg->hr_key,
++			sizeof(struct o2hb_nego_msg),
++			o2hb_nego_timeout_handler,
++			reg, NULL, &reg->hr_handler_list);
++	if (ret)
++		goto free;
++
+ 	ret = o2hb_debug_region_init(reg, o2hb_debug_dir);
+ 	if (ret) {
+ 		config_item_put(&reg->hr_item);
+-		goto free;
++		goto unregister_handler;
  	}
  
- bail:
-@@ -1114,7 +1156,7 @@ static int o2hb_thread(void *data)
- 		}
- 	}
- 
--	o2hb_disarm_write_timeout(reg);
-+	o2hb_disarm_timeout(reg);
- 
- 	/* unclean stop is only used in very bad situation */
- 	for(i = 0; !reg->hr_unclean_stop && i < reg->hr_blocks; i++)
-@@ -1762,6 +1804,7 @@ static ssize_t o2hb_region_dev_store(str
- 	}
- 
- 	INIT_DELAYED_WORK(&reg->hr_write_timeout_work, o2hb_write_timeout);
-+	INIT_DELAYED_WORK(&reg->hr_nego_timeout_work, o2hb_nego_timeout);
- 
- 	/*
- 	 * A node is considered live after it has beat LIVE_THRESHOLD
+ 	return &reg->hr_item;
++
++unregister_handler:
++	o2net_unregister_handler_list(&reg->hr_handler_list);
+ free:
+ 	kfree(reg);
+ 	return ERR_PTR(ret);
 _
