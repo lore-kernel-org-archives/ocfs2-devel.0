@@ -1,62 +1,30 @@
-From: Gang He <ghe@suse.com>
-Date: Sun, 22 May 2016 23:34:57 -0600
-Subject: [Ocfs2-devel] [PATCH] ocfs2: fix improper handling of return
- errno
-In-Reply-To: <5742774D.9010007@huawei.com>
-References: <1463970656-18413-1-git-send-email-zren@suse.com>
-	<5742774D.9010007@huawei.com>
-Message-ID: <57430701020000F900038254@prv-mh.provo.novell.com>
+From: Andrew Morton <akpm@linux-foundation.org>
+Date: Mon, 23 May 2016 14:50:10 -0700
+Subject: [Ocfs2-devel] ocfs2: o2hb: not fence self if storage down
+In-Reply-To: <1456905372-22313-1-git-send-email-junxiao.bi@oracle.com>
+References: <1456905372-22313-1-git-send-email-junxiao.bi@oracle.com>
+Message-ID: <20160523145010.2e7f606d0db552d529d9253e@linux-foundation.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-
-
-
->>> 
-> On 2016/5/23 10:30, Eric Ren wrote:
->> Previously, if bad inode was found in ocfs2_iget(), -ESTALE was
->> returned back to the caller anyway. Since commit d2b9d71a2da7
->> ("ocfs2: check/fix inode block for online file check") can handle
->> with return value from ocfs2_read_locked_inode() now, we know the
->> exact errno returned for us.
->> 
->> Signed-off-by: Eric Ren <zren@suse.com>
-> Looks good to me, thanks.
-> Reviewed-by: Joseph Qi <joseph.qi@huawei.com>
-Reviewed-by: Gang He <ghe@suse.com>
+On Wed,  2 Mar 2016 15:56:06 +0800 Junxiao Bi <junxiao.bi@oracle.com> wrote:
 
 > 
->> ---
->>  fs/ocfs2/inode.c | 7 +------
->>  1 file changed, 1 insertion(+), 6 deletions(-)
->> 
->> diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
->> index ba495be..fee5ec6 100644
->> --- a/fs/ocfs2/inode.c
->> +++ b/fs/ocfs2/inode.c
->> @@ -176,12 +176,7 @@ struct inode *ocfs2_iget(struct ocfs2_super *osb, u64 
-> blkno, unsigned flags,
->>  	}
->>  	if (is_bad_inode(inode)) {
->>  		iput(inode);
->> -		if ((flags & OCFS2_FI_FLAG_FILECHECK_CHK) ||
->> -		    (flags & OCFS2_FI_FLAG_FILECHECK_FIX))
->> -			/* Return OCFS2_FILECHECK_ERR_XXX related errno */
->> -			inode = ERR_PTR(rc);
->> -		else
->> -			inode = ERR_PTR(-ESTALE);
->> +		inode = ERR_PTR(rc);
->>  		goto bail;
->>  	}
->>  
->> 
+> Hi Mark,
 > 
-> 
-> 
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com 
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+> This serial of patches is to fix the issue that when storage down,
+> all nodes will fence self due to write timeout.
+> With this patch set, all nodes will keep going until storage back
+> online, except if the following issue happens, then all nodes will
+> do as before to fence self.
+> 1. io error got
+> 2. network between nodes down
+> 3. nodes panic
+
+Guys, can we please do a quick triple-check on this series?  I'd like
+to unload them this week.  Thanks.
+
+I'll send out the current version in a few secs.
