@@ -1,45 +1,62 @@
-From: Joseph Qi <joseph.qi@huawei.com>
-Date: Wed, 25 May 2016 11:44:50 +0800
-Subject: [Ocfs2-devel] OCFS2 benchmark questions
-In-Reply-To: <57450F53.70602@oracle.com>
-References: <573F3B8C020000F900037F05@prv-mh.provo.novell.com>
-	<57450F53.70602@oracle.com>
-Message-ID: <57451FB2.2030900@huawei.com>
+From: Mark Fasheh <mfasheh@suse.de>
+Date: Wed, 25 May 2016 16:26:19 -0700
+Subject: [Ocfs2-devel] [patch 1/6] ocfs2: o2hb: add negotiate timer
+In-Reply-To: <57450377.10509@oracle.com>
+References: <57437b24.EEEpYkPZSJqHbkjn%akpm@linux-foundation.org>
+	<20160524223557.GQ7633@wotan.suse.de> <57450377.10509@oracle.com>
+Message-ID: <20160525232619.GS7633@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 2016/5/25 10:34, Junxiao Bi wrote:
-> On 05/20/2016 04:30 PM, Gang He wrote:
->> Hello Joseph, Junxiao and All,
->>
->> I got some benchmark related questions, but due to hardware limitation in our local lab, we have not enough information to answer the questions. 
->> Could you help to look at the questions, if you ever did the related testings in your sites.
->> 1) How many nodes can OCFS2 cluster scale out to? theoretically, the answer is 32. but who ever did the testing with the maximum number of nodes? second, too many nodes will impact the performance, or not?
-> The limit is 255, but we didn't advise using more than 32 nodes. More
-> nodes impact performance for sure.
-> 
-> Thanks,
-> Junxiao.
+On Wed, May 25, 2016 at 09:44:23AM +0800, Junxiao Bi wrote:
+> On 05/25/2016 06:35 AM, Mark Fasheh wrote:
+> > I went through the patch series, and generally feel that the code
+> > is well written and straight forward. I have two issues regarding
+> > how this operates. Otherwise, I like the general direction this
+> > is taking.
+> > 
+> > The first is easy - we're updating the o2cb network protocol and
+> > need to bump the protocol version otherwise a node that doesn't
+> > speak these new messages could mount and even be selected as the
+> > 'master' without actually being able to participate in this scheme.
+> Right. Will add this.
 
-IMO, benchmark depends on user scenarios.
-For the scalability, I think the number of messages is one of the main
-impact factors. And more nodes will increase fault probability.
+Great, thanks!
+
+
+> > 
+> > 
+> > My other concern is whether the notion of 'lowest node' can
+> > change if one comes online while the cluster is negotiating this
+> > timeout. Obviously in the case where all the disks are unplugged
+> > this couldn't happen because a new node couldn't begin to
+> > heartbeat.
+> Yes.
+> > 
+> > What about a situation where only some nodes are negotiating this
+> > timeout? On the ones which have no disk access, lowest node
+> > number still won't change since they can't read the new
+> > heartbeats. On those with stable access though, can't this value
+> > change? How does that effect this algorithm?
+> The lowest node can change for good nodes, but didn't affect the
+> algorithm. Because only bad nodes sent NEGO_TIMEOUT message while good
+> nodes not, so the original lowest node will never receive NEGO_TIMEOUT
+> messages from all nodes, then it will not approve the timeout, at last
+> bad nodes will fence self and good nodes keep alive.
+
+Ok, in that case you can put:
+
+Reviewed-by: Mark Fasheh <mfasheh@suse.de>
+
+on the patches I've seen (this series). We don't want it to go upstream
+until your patch to bump the protocol version though so please cc me on
+that patch and the others.
 
 Thanks,
-Joseph
+	--Mark
 
->>
->> 2) Who can help to share OCFS2 benchmark information/data in the physical environment? e.g. node hardware information, back-end storage information, IO read/write data, IOPS/IO throughput. etc.
->>
->>
->> Thanks
->> Gang  
->>
->>
-> 
-> 
-> .
-> 
+--
+Mark Fasheh
