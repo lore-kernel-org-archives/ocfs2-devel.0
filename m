@@ -1,9 +1,10 @@
 From: Goldwyn Rodrigues <rgoldwyn@suse.de>
-Date: Wed, 25 May 2016 22:10:17 -0500
-Subject: [Ocfs2-devel] [PATCH 3/5] Generate uevents for errors
+Date: Wed, 25 May 2016 22:10:18 -0500
+Subject: [Ocfs2-devel] [PATCH 4/5] ocfs2: Disallow duplicate entries in the
+	list
 In-Reply-To: <1464232219-12553-1-git-send-email-rgoldwyn@suse.de>
 References: <1464232219-12553-1-git-send-email-rgoldwyn@suse.de>
-Message-ID: <1464232219-12553-4-git-send-email-rgoldwyn@suse.de>
+Message-ID: <1464232219-12553-5-git-send-email-rgoldwyn@suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -14,103 +15,63 @@ From: Goldwyn Rodrigues <rgoldwyn@suse.com>
 
 Signed-off-by: Goldwyn Rodrigues <rgoldwyn@suse.com>
 ---
- fs/ocfs2/inode.c | 13 +++++++++++++
- fs/ocfs2/sysfs.c | 17 +++++++++++++++++
- fs/ocfs2/sysfs.h |  2 ++
- 3 files changed, 32 insertions(+)
+ fs/ocfs2/filecheck.c | 26 +++++++++++++++++---------
+ 1 file changed, 17 insertions(+), 9 deletions(-)
 
-diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-index 12f4a9e..a6cfe5d 100644
---- a/fs/ocfs2/inode.c
-+++ b/fs/ocfs2/inode.c
-@@ -54,6 +54,7 @@
- #include "refcounttree.h"
- #include "ocfs2_trace.h"
- #include "filecheck.h"
-+#include "sysfs.h"
- 
- #include "buffer_head_io.h"
- 
-@@ -1412,6 +1413,9 @@ int ocfs2_validate_inode_block(struct super_block *sb,
- 		rc = ocfs2_error(sb, "Invalid dinode #%llu: signature = %.*s\n",
- 				 (unsigned long long)bh->b_blocknr, 7,
- 				 di->i_signature);
-+		ocfs2_report_error(OCFS2_SB(sb), (unsigned long long)bh->b_blocknr,
-+				(unsigned long long)bh->b_blocknr,
-+				rc);
- 		goto bail;
- 	}
- 
-@@ -1419,6 +1423,9 @@ int ocfs2_validate_inode_block(struct super_block *sb,
- 		rc = ocfs2_error(sb, "Invalid dinode #%llu: i_blkno is %llu\n",
- 				 (unsigned long long)bh->b_blocknr,
- 				 (unsigned long long)le64_to_cpu(di->i_blkno));
-+		ocfs2_report_error(OCFS2_SB(sb), (unsigned long long)bh->b_blocknr,
-+				(unsigned long long)bh->b_blocknr,
-+				rc);
- 		goto bail;
- 	}
- 
-@@ -1426,6 +1433,9 @@ int ocfs2_validate_inode_block(struct super_block *sb,
- 		rc = ocfs2_error(sb,
- 				 "Invalid dinode #%llu: OCFS2_VALID_FL not set\n",
- 				 (unsigned long long)bh->b_blocknr);
-+		ocfs2_report_error(OCFS2_SB(sb), (unsigned long long)bh->b_blocknr,
-+				(unsigned long long)bh->b_blocknr,
-+				rc);
- 		goto bail;
- 	}
- 
-@@ -1435,6 +1445,9 @@ int ocfs2_validate_inode_block(struct super_block *sb,
- 				 "Invalid dinode #%llu: fs_generation is %u\n",
- 				 (unsigned long long)bh->b_blocknr,
- 				 le32_to_cpu(di->i_fs_generation));
-+		ocfs2_report_error(OCFS2_SB(sb), (unsigned long long)bh->b_blocknr,
-+				(unsigned long long)bh->b_blocknr,
-+				rc);
- 		goto bail;
- 	}
- 
-diff --git a/fs/ocfs2/sysfs.c b/fs/ocfs2/sysfs.c
-index 81e3dd4..acc4834 100644
---- a/fs/ocfs2/sysfs.c
-+++ b/fs/ocfs2/sysfs.c
-@@ -126,6 +126,23 @@ static ssize_t file_check_max_entries_store(struct ocfs2_super *osb,
- 	return count;
- }
- 
-+void ocfs2_report_error(struct ocfs2_super *osb, unsigned long long ino,
-+			unsigned long long blkno, int errno)
-+{
-+	char event_name[] = "EVENT=FS_ERROR";
-+	char device[16];
-+	char inode_number[16];
-+	char error_number[16];
-+	char block_number[16];
-+	char *envp[] = {event_name, inode_number, error_number, block_number,
-+		NULL};
-+	snprintf(device, 16, "DEVICE=%s", osb->sb->s_id);
-+	snprintf(error_number, 16, "ERROR=%d", errno);
-+	snprintf(inode_number, 16, "INODE=%llu", ino);
-+	snprintf(block_number, 16, "BLOCK=%llu", blkno);
-+	kobject_uevent_env(&osb->kobj, KOBJ_CHANGE, envp);
-+}
-+
- static void sb_release(struct kobject *kobj)
+diff --git a/fs/ocfs2/filecheck.c b/fs/ocfs2/filecheck.c
+index 0b41967..006d521 100644
+--- a/fs/ocfs2/filecheck.c
++++ b/fs/ocfs2/filecheck.c
+@@ -217,14 +217,12 @@ ocfs2_filecheck_handle_entry(struct ocfs2_super *osb,
+ int ocfs2_filecheck_add_inode(struct ocfs2_super *osb,
+ 				     unsigned long ino)
  {
- 	struct ocfs2_super *osb = container_of(kobj, struct ocfs2_super, kobj);
-diff --git a/fs/ocfs2/sysfs.h b/fs/ocfs2/sysfs.h
-index d929ac1..0383ee3 100644
---- a/fs/ocfs2/sysfs.h
-+++ b/fs/ocfs2/sysfs.h
-@@ -3,6 +3,8 @@
- #ifndef _SYS_H
- #define _SYS_H
+-	struct ocfs2_filecheck_entry *entry;
++	struct ocfs2_filecheck_entry *entry, *p;
+ 	ssize_t ret = 0;
  
-+void ocfs2_report_error(struct ocfs2_super *osb, unsigned long long ino,
-+		unsigned long long blkno, int error);
- int ocfs2_sysfs_sb_init(struct super_block *sb);
- void ocfs2_sysfs_sb_exit(struct super_block *sb);
+ 	entry = kmalloc(sizeof(struct ocfs2_filecheck_entry), GFP_NOFS);
+-	if (!entry) {
+-		ret = -ENOMEM;
+-		goto exit;
+-	}
++	if (!entry)
++		return -ENOMEM;
  
+ 	spin_lock(&osb->fc_lock);
+ 	if ((osb->fc_size >= osb->fc_max) &&
+@@ -244,6 +242,12 @@ int ocfs2_filecheck_add_inode(struct ocfs2_super *osb,
+ 			 */
+ 			BUG_ON(!ocfs2_filecheck_erase_entry(osb));
+ 		}
++		list_for_each_entry(p, &osb->file_check_entries, fe_list)
++			if (p->fe_ino == ino) {
++				ret = -EEXIST;
++				kfree(entry);
++				goto unlock;
++			}
+ 
+ 		entry->fe_ino = ino;
+ 		entry->fe_type = OCFS2_FILECHECK_TYPE_CHK;
+@@ -252,11 +256,15 @@ int ocfs2_filecheck_add_inode(struct ocfs2_super *osb,
+ 		list_add_tail(&entry->fe_list, &osb->file_check_entries);
+ 		osb->fc_size++;
+ 	}
++unlock:
+ 	spin_unlock(&osb->fc_lock);
+ 
+-	if (!ret)
+-		ocfs2_filecheck_handle_entry(osb, entry);
++	if (ret)
++		return ret;
+ 
+-exit:
+-	return ret;
++	entry->fe_status = ocfs2_filecheck_handle(osb,
++			entry->fe_ino, OCFS2_FI_FLAG_FILECHECK_CHK);
++
++	ocfs2_filecheck_done_entry(osb, entry);
++	return 0;
+ }
 -- 
 2.6.6
