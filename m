@@ -1,18 +1,21 @@
 From: Gang He <ghe@suse.com>
-Date: Mon, 30 May 2016 03:28:27 -0600
-Subject: [Ocfs2-devel] [PATCH 4/5] ocfs2: Disallow duplicate entries in
- the list
-In-Reply-To: <1464232219-12553-5-git-send-email-rgoldwyn@suse.de>
+Date: Mon, 30 May 2016 03:45:14 -0600
+Subject: [Ocfs2-devel] [PATCH 5/5] Fix files when an inode is written in
+ file_fix
+In-Reply-To: <1464232219-12553-6-git-send-email-rgoldwyn@suse.de>
 References: <1464232219-12553-1-git-send-email-rgoldwyn@suse.de>
-	<1464232219-12553-5-git-send-email-rgoldwyn@suse.de>
-Message-ID: <574C783B020000F900039264@prv-mh.provo.novell.com>
+	<1464232219-12553-6-git-send-email-rgoldwyn@suse.de>
+Message-ID: <574C7C2A020000F900039287@prv-mh.provo.novell.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Looks good to me.
+Hello Goldwyn,
+
+Please see my comments inline.
+
 
 Thanks
 Gang
@@ -21,66 +24,102 @@ Gang
 >>> 
 > From: Goldwyn Rodrigues <rgoldwyn@suse.com>
 > 
+> Check that the entriy exists and has been filed for check.
+> Also perform some code cleanup
+> 
 > Signed-off-by: Goldwyn Rodrigues <rgoldwyn@suse.com>
 > ---
->  fs/ocfs2/filecheck.c | 26 +++++++++++++++++---------
->  1 file changed, 17 insertions(+), 9 deletions(-)
+>  fs/ocfs2/filecheck.c | 41 +++++++++++++++++++++++++----------------
+>  fs/ocfs2/filecheck.h |  1 +
+>  fs/ocfs2/sysfs.c     |  2 +-
+>  3 files changed, 27 insertions(+), 17 deletions(-)
 > 
 > diff --git a/fs/ocfs2/filecheck.c b/fs/ocfs2/filecheck.c
-> index 0b41967..006d521 100644
+> index 006d521..fc6e183 100644
 > --- a/fs/ocfs2/filecheck.c
 > +++ b/fs/ocfs2/filecheck.c
-> @@ -217,14 +217,12 @@ ocfs2_filecheck_handle_entry(struct ocfs2_super *osb,
+> @@ -198,22 +198,6 @@ ocfs2_filecheck_handle(struct ocfs2_super *osb,
+>  	return ret;
+>  }
+>  
+> -static void
+> -ocfs2_filecheck_handle_entry(struct ocfs2_super *osb,
+> -			     struct ocfs2_filecheck_entry *entry)
+> -{
+> -	if (entry->fe_type == OCFS2_FILECHECK_TYPE_CHK)
+> -		entry->fe_status = ocfs2_filecheck_handle(osb,
+> -				entry->fe_ino, OCFS2_FI_FLAG_FILECHECK_CHK);
+> -	else if (entry->fe_type == OCFS2_FILECHECK_TYPE_FIX)
+> -		entry->fe_status = ocfs2_filecheck_handle(osb,
+> -				entry->fe_ino, OCFS2_FI_FLAG_FILECHECK_FIX);
+> -	else
+> -		entry->fe_status = OCFS2_FILECHECK_ERR_UNSUPPORTED;
+> -
+> -	ocfs2_filecheck_done_entry(osb, entry);
+> -}
+> -
 >  int ocfs2_filecheck_add_inode(struct ocfs2_super *osb,
 >  				     unsigned long ino)
 >  {
-> -	struct ocfs2_filecheck_entry *entry;
-> +	struct ocfs2_filecheck_entry *entry, *p;
->  	ssize_t ret = 0;
->  
->  	entry = kmalloc(sizeof(struct ocfs2_filecheck_entry), GFP_NOFS);
-> -	if (!entry) {
-> -		ret = -ENOMEM;
-> -		goto exit;
-> -	}
-> +	if (!entry)
-> +		return -ENOMEM;
->  
->  	spin_lock(&osb->fc_lock);
->  	if ((osb->fc_size >= osb->fc_max) &&
-> @@ -244,6 +242,12 @@ int ocfs2_filecheck_add_inode(struct ocfs2_super *osb,
->  			 */
->  			BUG_ON(!ocfs2_filecheck_erase_entry(osb));
->  		}
-> +		list_for_each_entry(p, &osb->file_check_entries, fe_list)
-> +			if (p->fe_ino == ino) {
-> +				ret = -EEXIST;
-> +				kfree(entry);
-> +				goto unlock;
-> +			}
->  
->  		entry->fe_ino = ino;
->  		entry->fe_type = OCFS2_FILECHECK_TYPE_CHK;
-> @@ -252,11 +256,15 @@ int ocfs2_filecheck_add_inode(struct ocfs2_super *osb,
->  		list_add_tail(&entry->fe_list, &osb->file_check_entries);
->  		osb->fc_size++;
->  	}
-> +unlock:
->  	spin_unlock(&osb->fc_lock);
->  
-> -	if (!ret)
-> -		ocfs2_filecheck_handle_entry(osb, entry);
+> @@ -268,3 +252,28 @@ unlock:
+>  	ocfs2_filecheck_done_entry(osb, entry);
+>  	return 0;
+>  }
+> +
+> +int ocfs2_filefix_add_inode(struct ocfs2_super *osb,
+> +				     unsigned long ino)
+> +{
+> +	struct ocfs2_filecheck_entry *entry;
+> +	int ret = -ENOENT;
+> +
+> +	spin_lock(&osb->fc_lock);
+> +	list_for_each_entry(entry, &osb->file_check_entries, fe_list)
+> +		if (entry->fe_ino == ino) {
+> +			entry->fe_type = OCFS2_FILECHECK_TYPE_FIX;
+Gang: It looks that we can not do it directly, why? because the entry pointer can be freed by the function ocfs2_filecheck_erase_entries().
+We can not use the same entry pointer within two user processes.
+The simple solution is to return -EBUSY error in case there is the same ino number entry in the list, then the user can try again after the previous user process is returned.
+
+> +			ret = 0;
+> +			break;
+> +		}
+> +	spin_unlock(&osb->fc_lock);
 > +	if (ret)
 > +		return ret;
->  
-> -exit:
-> -	return ret;
+> +
 > +	entry->fe_status = ocfs2_filecheck_handle(osb,
-> +			entry->fe_ino, OCFS2_FI_FLAG_FILECHECK_CHK);
+> +			entry->fe_ino, OCFS2_FI_FLAG_FILECHECK_FIX);
 > +
 > +	ocfs2_filecheck_done_entry(osb, entry);
 > +	return 0;
->  }
+> +}
+> +
+> diff --git a/fs/ocfs2/filecheck.h b/fs/ocfs2/filecheck.h
+> index b1a0d8c..d5f81a7 100644
+> --- a/fs/ocfs2/filecheck.h
+> +++ b/fs/ocfs2/filecheck.h
+> @@ -53,6 +53,7 @@ int ocfs2_filecheck_create_sysfs(struct super_block *sb);
+>  int ocfs2_filecheck_remove_sysfs(struct super_block *sb);
+>  int ocfs2_filefix_inode(struct ocfs2_super *osb, unsigned long ino);
+>  int ocfs2_filecheck_add_inode(struct ocfs2_super *osb, unsigned long ino);
+> +int ocfs2_filefix_add_inode(struct ocfs2_super *osb, unsigned long ino);
+>  int ocfs2_filecheck_set_max_entries(struct ocfs2_super *osb, int num);
+>  int ocfs2_filecheck_show(struct ocfs2_super *osb, unsigned int type, char 
+> *buf);
+>  
+> diff --git a/fs/ocfs2/sysfs.c b/fs/ocfs2/sysfs.c
+> index acc4834..ac149fb 100644
+> --- a/fs/ocfs2/sysfs.c
+> +++ b/fs/ocfs2/sysfs.c
+> @@ -91,7 +91,7 @@ static ssize_t file_fix_store(struct ocfs2_super *osb,
+>  	ret = kstrtoul(skip_spaces(buf), 0, &t);
+>  	if (ret)
+>  		return ret;
+> -	ret = ocfs2_filecheck_add_inode(osb, t);
+> +	ret = ocfs2_filefix_add_inode(osb, t);
+>  	if (ret)
+>  		return ret;
+>  	return count;
 > -- 
 > 2.6.6
 > 
