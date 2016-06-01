@@ -1,961 +1,107 @@
-From: Gang He <ghe@suse.com>
-Date: Tue, 31 May 2016 21:16:17 -0600
-Subject: [Ocfs2-devel] [PATCH 2/5] Use the sysfs interface for creating
- filecheck files
-In-Reply-To: <574D8640.1040204@suse.com>
-References: <1464232219-12553-1-git-send-email-rgoldwyn@suse.de>
-	<1464232219-12553-3-git-send-email-rgoldwyn@suse.de>
-	<574C7704020000F900039256@suse.com> <574D8640.1040204@suse.com>
-Message-ID: <574EC401020000F900029237@prv-mh.provo.novell.com>
+From: Zhangguanghui <zhang.guanghui@h3c.com>
+Date: Wed, 1 Jun 2016 08:05:41 +0000
+Subject: [Ocfs2-devel] the first two block become corrupt in ocfs2.
+Message-ID: <E3535A62B291B54FBD1D003696CCB5375E1D0410@H3CMLB12-EX.srv.huawei-3com.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
+Hi
+In OCFS2, the super block is on the third block.
+But I find that the first two block become corrupt in the race window
+while storage link down.
+I don't know what is reason for triggering the problem.
+c0 3b 39 98 is JFS_MAGIC_NUMBER,overwrites inode signature.
+45 30 31 00 is generation number on disk inode for OCFS2
+(ocfs2_dinode) ,
+
+Thanks for your reply. Regards
 
 
+details:
 
->>> 
+root at hxn-server24:~# hexdump -C /dev/dm-7 | more
+00000000 c0 3b 39 98 45 30 31 00 9c c3 67 76 06 00 09 00 |.;9.E01...gv....|
+00000010 00 00 00 00 ed 00 00 00 00 00 00 00 00 00 00 00 |................|
+00000020 00 00 d0 0e 00 00 00 00 80 81 01 00 01 00 00 00 |................|
+00000030 76 4f 4e 57 00 00 00 00 29 4e 4e 57 00 00 00 00 |vONW....)NNW....|
+00000040 29 4e 4e 57 00 00 00 00 00 00 00 00 00 00 00 00 |)NNW............|
+00000050 09 01 7a 01 00 00 00 00 00 00 00 00 00 00 00 00 |..z.............|
+00000060 9a 3d 0b c8 12 ab d6 28 fd c1 a9 32 fd c1 a9 32 |.=.....(...2...2|
+00000070 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 |................|
+*
+000000c0 00 00 f3 00 2b 00 00 00 00 00 00 00 00 00 00 00 |....+...........|
+000000d0 00 00 00 00 08 00 00 00 00 71 85 0d 00 00 00 00 |.........q......|
+000000e0 08 00 00 00 02 00 00 00 00 7a 85 0d 00 00 00 00 |.........z......|
+000000f0 0a 00 00 00 01 00 00 00 00 79 85 0d 00 00 00 00 |.........y......|
+00000100 0b 00 00 00 05 00 00 00 00 7c 85 0d 00 00 00 00 |.........|......|
+00000110 10 00 00 00 09 00 00 00 00 b1 86 0d 00 00 00 00 |................|
+00000120 19 00 00 00 01 00 00 00 00 bd 86 0d 00 00 00 00 |................|
+00000130 1a 00 00 00 03 00 00 00 00 ba 86 0d 00 00 00 00 |................|
+00000140 1d 00 00 00 03 00 00 00 00 be 86 0d 00 00 00 00 |................|
+00000150 20 00 00 00 07 00 00 00 00 51 87 0d 00 00 00 00 | ........Q......|
+00000160 27 00 00 00 01 00 00 00 00 59 87 0d 00 00 00 00 |'........Y......|
+00000170 28 00 00 00 01 00 00 00 00 58 87 0d 00 00 00 00 |(........X......|
+00000180 29 00 00 00 07 00 00 00 00 5a 87 0d 00 00 00 00 |)........Z......|
+00000190 30 00 00 00 20 00 00 00 00 01 88 0d 00 00 00 00 |0... ...........|
+000001a0 50 00 00 00 10 00 00 00 00 61 89 0d 00 00 00 00 |P........a......|
+000001b0 60 00 00 00 03 00 00 00 00 0e 85 0d 00 00 00 00 |`...............|
+000001c0 63 00 00 00 07 00 00 00 00 8a 85 0d 00 00 00 00 |c...............|
+000001d0 6a 00 00 00 07 00 00 00 00 ca 85 0d 00 00 00 00 |j...............|
+000001e0 71 00 00 00 07 00 00 00 00 4a 86 0d 00 00 00 00 |q........J......|
+000001f0 78 00 00 00 01 00 00 00 00 8c 86 0d 00 00 00 00 |x...............|
+00000200 79 00 00 00 01 00 00 00 00 8e 86 0d 00 00 00 00 |y...............|
+00000210 7a 00 00 00 01 00 00 00 00 69 86 0d 00 00 00 00 |z........i......|
+00000220 7b 00 00 00 10 00 00 00 00 7a 4e 0d 00 00 00 00 |{........zN.....|
+00000230 8b 00 00 00 10 00 00 00 00 aa 4e 0d 00 00 00 00 |..........N.....|
+00000240 9b 00 00 00 10 00 00 00 00 01 4b 0d 00 00 00 00 |..........K.....|
+00000250 ab 00 00 00 10 00 00 00 00 c1 4b 0d 00 00 00 00 |..........K.....|
+00000260 bb 00 00 00 03 00 00 00 00 61 4c 0d 00 00 00 00 |.........aL.....|
+00000270 be 00 00 00 02 00 00 00 00 15 f5 02 00 00 00 00 |................|
+00000280 c0 00 00 00 01 00 00 00 00 12 d4 0a 00 00 00 00 |................|
+00000290 c1 00 00 00 01 00 00 00 00 11 f4 0a 00 00 00 00 |................|
+000002a0 c2 00 00 00 07 00 00 00 00 62 d0 0b 00 00 00 00 |.........b......|
+000002b0 c9 00 00 00 06 00 00 00 00 22 56 0a 00 00 00 00 |........."V.....|
+000002c0 cf 00 00 00 01 00 00 00 00 43 76 02 00 00 00 00 |.........Cv.....|
+000002d0 d0 00 00 00 04 00 00 00 00 54 e0 07 00 00 00 00 |.........T......|
+000002e0 d4 00 00 00 01 00 00 00 00 b8 f8 01 00 00 00 00 |................|
+000002f0 d5 00 00 00 01 00 00 00 00 ba f8 01 00 00 00 00 |................|
+00000300 d6 00 00 00 07 00 00 00 00 01 dd 08 00 00 00 00 |................|
+00000310 dd 00 00 00 01 00 00 00 00 89 4e 0c 00 00 00 00 |..........N.....|
+00000320 de 00 00 00 01 00 00 00 00 4f 46 0e 00 00 00 00 |.........OF.....|
+00000330 df 00 00 00 01 00 00 00 00 8d 62 07 00 00 00 00 |..........b.....|
+00000340 e0 00 00 00 01 00 00 00 00 cd 4e 0c 00 00 00 00 |..........N.....|
+00000350 e1 00 00 00 01 00 00 00 00 d3 e8 05 00 00 00 00 |................|
+00000360 e2 00 00 00 0a 00 00 00 00 74 46 0e 00 00 00 00 |.........tF.....|
+00000370 ec 00 00 00 01 00 00 00 00 25 e9 05 00 00 00 00 |.........%......|
+00000380 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 |................|
+*
+00001000 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 |................|
+*
+00002000 4f 43 46 53 56 32 00 00 9a 3d 0b c8 ff ff ff ff |OCFSV2...=......|
+00002010 00 00 00 00 00 a0 0f 00 00 00 00 00 00 00 00 00 |................|
+00002020 00 00 00 00 00 00 00 00 00 00 00 00 31 00 00 00 |............1...|
+00002030 00 00 00 00 00 00 00 00 f9 c6 42 57 00 00 00 00 |..........BW....|
+00002040 f9 c6 42 57 00 00 00 00 00 00 00 00 00 00 00 00 |..BW............|
+00002050 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 |................|
+00002060 9a 3d 0b c8 00 00 00 00 00 00 00 00 00 00 00 00 |.=..............|
+00002070 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 |................|
 
-> 
-> On 05/30/2016 04:23 AM, Gang He wrote:
->> Hello Goldwyn,
->>
->> Please see my comments inline.
->> I just suggest to re-use the existing code as most as possible, since the 
-> code was tested by us.
->>
->> Thanks
->> Gang
->>
->>
->>>>>
->>> From: Goldwyn Rodrigues <rgoldwyn@suse.com>
->>>
->>> This reduces the code base and removes unnecessary data structures
->>> for filecheck information since all information is stored in ocfs2_super
->>> now.
->>>
->>> Signed-off-by: Goldwyn Rodrigues <rgoldwyn@suse.com>
->>> ---
->>>   fs/ocfs2/filecheck.c | 440 
-> ++++++---------------------------------------------
->>>   fs/ocfs2/filecheck.h |  10 ++
->>>   fs/ocfs2/ocfs2.h     |   7 +
->>>   fs/ocfs2/super.c     |   7 +
->>>   fs/ocfs2/sysfs.c     |  91 ++++++++++-
->>>   5 files changed, 161 insertions(+), 394 deletions(-)
->>>
->>> diff --git a/fs/ocfs2/filecheck.c b/fs/ocfs2/filecheck.c
->>> index 2cabbcf..0b41967 100644
->>> --- a/fs/ocfs2/filecheck.c
->>> +++ b/fs/ocfs2/filecheck.c
->>> @@ -17,15 +17,7 @@
->>>    * General Public License for more details.
->>>    */
->>>
->>> -#include <linux/list.h>
->>> -#include <linux/spinlock.h>
->>> -#include <linux/module.h>
->>> -#include <linux/slab.h>
->>> -#include <linux/kmod.h>
->>>   #include <linux/fs.h>
->>> -#include <linux/kobject.h>
->>> -#include <linux/sysfs.h>
->>> -#include <linux/sysctl.h>
->>>   #include <cluster/masklog.h>
->>>
->>>   #include "ocfs2.h"
->>> @@ -53,36 +45,6 @@ static const char * const ocfs2_filecheck_errs[] = {
->>>   	"UNSUPPORTED"
->>>   };
->>>
->>> -static DEFINE_SPINLOCK(ocfs2_filecheck_sysfs_lock);
->>> -static LIST_HEAD(ocfs2_filecheck_sysfs_list);
->>> -
->>
->>> -struct ocfs2_filecheck {
->>> -	struct list_head fc_head;	/* File check entry list head */
->>> -	spinlock_t fc_lock;
->>> -	unsigned int fc_max;	/* Maximum number of entry in list */
->>> -	unsigned int fc_size;	/* Current entry count in list */
->>> -	unsigned int fc_done;	/* Finished entry count in list */
->>> -};
->> Gang: we can reuse this structure, please move this structure into struct 
-> ocfs2_super, instead of defining a few members in struct ocfs2_super.
->> We should use a separate structure to handle all the file check related 
-> thing, make the code simple and easy to maintain.
-> 
-> 
-> Not sure why you are insistent on keeping a separate structure when it 
-> would not be references from different structures. Keeping a prefix of 
-> fc will make sure it is for filecheck attributes.
-Gang: I just want to make the feature code more independent in other source files, define a separate data structure to 
-make the file check code more easily read for the developer, and keep the code change more less in other source file.
-Actually, the existing  struct ocfs2_filecheck can be re-used here.
-
-> 
->>
->>
->>> -
->>> -struct ocfs2_filecheck_sysfs_entry {	/* sysfs entry per mounting */
->>> -	struct list_head fs_list;
->>> -	atomic_t fs_count;
->>> -	struct super_block *fs_sb;
->>> -	struct kset *fs_devicekset;
->>> -	struct kset *fs_fcheckkset;
->>> -	struct ocfs2_filecheck *fs_fcheck;
->>> -};
->> Gang: I think that we can not delete this structure directly, some members 
-> are still useful.
->> e.g. fs_count, which is used to track if there are any pending file check 
-> entries, can be moved into struct ocfs2_filecheck.
->> kset members maybe be kept in struct ocfs2_filecheck.
-> 
-> Okay, I will fix that.
-> 
->>
->>> -
->>> -#define OCFS2_FILECHECK_MAXSIZE		100
->>> -#define OCFS2_FILECHECK_MINSIZE		10
->> Gang: any file will reference these two macro?
->> if not, that means these are not interfaces, should be kept in source file.
-> 
-> Yes, they are referenced by multiple files.
-> 
->>
->>> -
->>> -/* File check operation type */
->>> -enum {
->>> -	OCFS2_FILECHECK_TYPE_CHK = 0,	/* Check a file(inode) */
->>> -	OCFS2_FILECHECK_TYPE_FIX,	/* Fix a file(inode) */
->>> -	OCFS2_FILECHECK_TYPE_SET = 100	/* Set entry list maximum size */
->>> -};
->> Gang: delete the member OCFS2_FILECHECK_TYPE_SET,
->> Move this enum to the header file if any other source file will use, 
-> otherwise should be kept in source file.
-> 
-> The idea of removing this structures was to simplify the code. More 
-> structures make more complicated code.
-Gang: that is OK, but please define the OCFS2_FILECHECK_TYPE_CHK to 0, otherwise this replacing is not equivalent.
-
-> 
->>
->>> -
->>>   struct ocfs2_filecheck_entry {
->>>   	struct list_head fe_list;
->>>   	unsigned long fe_ino;
->>> @@ -91,14 +53,6 @@ struct ocfs2_filecheck_entry {
->>>   	unsigned int fe_status:31;
->>>   };
->>>
->>> -struct ocfs2_filecheck_args {
->>> -	unsigned int fa_type;
->>> -	union {
->>> -		unsigned long fa_ino;
->>> -		unsigned int fa_len;
->>> -	};
->>> -};
->>> -
->>>   static const char *
->>>   ocfs2_filecheck_error(int errno)
->>>   {
->>> @@ -110,321 +64,51 @@ ocfs2_filecheck_error(int errno)
->>>   	return ocfs2_filecheck_errs[errno - OCFS2_FILECHECK_ERR_START + 1];
->>>   }
->>>
->>> -static ssize_t ocfs2_filecheck_show(struct kobject *kobj,
->>> -				    struct kobj_attribute *attr,
->>> -				    char *buf);
->>> -static ssize_t ocfs2_filecheck_store(struct kobject *kobj,
->>> -				     struct kobj_attribute *attr,
->>> -				     const char *buf, size_t count);
->>> -static struct kobj_attribute ocfs2_attr_filecheck_chk =
->>> -					__ATTR(check, S_IRUSR | S_IWUSR,
->>> -					ocfs2_filecheck_show,
->>> -					ocfs2_filecheck_store);
->>> -static struct kobj_attribute ocfs2_attr_filecheck_fix =
->>> -					__ATTR(fix, S_IRUSR | S_IWUSR,
->>> -					ocfs2_filecheck_show,
->>> -					ocfs2_filecheck_store);
->>> -static struct kobj_attribute ocfs2_attr_filecheck_set =
->>> -					__ATTR(set, S_IRUSR | S_IWUSR,
->>> -					ocfs2_filecheck_show,
->>> -					ocfs2_filecheck_store);
->>> -
->>> -static int ocfs2_filecheck_sysfs_wait(atomic_t *p)
->>> -{
->>> -	schedule();
->>> -	return 0;
->>> -}
->>> -
->>> -static void
->>> -ocfs2_filecheck_sysfs_free(struct ocfs2_filecheck_sysfs_entry *entry)
->>> -{
->>> -	struct ocfs2_filecheck_entry *p;
->>> -
->>> -	if (!atomic_dec_and_test(&entry->fs_count))
->>> -		wait_on_atomic_t(&entry->fs_count, ocfs2_filecheck_sysfs_wait,
->>> -				 TASK_UNINTERRUPTIBLE);
->>> -
->>> -	spin_lock(&entry->fs_fcheck->fc_lock);
->>> -	while (!list_empty(&entry->fs_fcheck->fc_head)) {
->>> -		p = list_first_entry(&entry->fs_fcheck->fc_head,
->>> -				     struct ocfs2_filecheck_entry, fe_list);
->>> -		list_del(&p->fe_list);
->>> -		BUG_ON(!p->fe_done); /* To free a undone file check entry */
->>> -		kfree(p);
->>> -	}
->>> -	spin_unlock(&entry->fs_fcheck->fc_lock);
->>> -
->>> -	kset_unregister(entry->fs_fcheckkset);
->>> -	kset_unregister(entry->fs_devicekset);
->>> -	kfree(entry->fs_fcheck);
->>> -	kfree(entry);
->>> -}
->> Gang: we cannot delete the function ocfs2_filecheck_sysfs_free() directly, 
-> this will be used to free the file check entries.
->> Please keep the code, otherwise, it will lead to memory leak.
-> 
-> Yes, there should a cleanup routine.
-> 
->>
->>> -
->>> -static void
->>> -ocfs2_filecheck_sysfs_add(struct ocfs2_filecheck_sysfs_entry *entry)
->>> -{
->>> -	spin_lock(&ocfs2_filecheck_sysfs_lock);
->>> -	list_add_tail(&entry->fs_list, &ocfs2_filecheck_sysfs_list);
->>> -	spin_unlock(&ocfs2_filecheck_sysfs_lock);
->>> -}
->>> -
->>> -static int ocfs2_filecheck_sysfs_del(const char *devname)
->>> -{
->>> -	struct ocfs2_filecheck_sysfs_entry *p;
->>> -
->>> -	spin_lock(&ocfs2_filecheck_sysfs_lock);
->>> -	list_for_each_entry(p, &ocfs2_filecheck_sysfs_list, fs_list) {
->>> -		if (!strcmp(p->fs_sb->s_id, devname)) {
->>> -			list_del(&p->fs_list);
->>> -			spin_unlock(&ocfs2_filecheck_sysfs_lock);
->>> -			ocfs2_filecheck_sysfs_free(p);
->>> -			return 0;
->>> -		}
->>> -	}
->>> -	spin_unlock(&ocfs2_filecheck_sysfs_lock);
->>> -	return 1;
->>> -}
->>> -
->>> -static void
->>> -ocfs2_filecheck_sysfs_put(struct ocfs2_filecheck_sysfs_entry *entry)
->>> -{
->>> -	if (atomic_dec_and_test(&entry->fs_count))
->>> -		wake_up_atomic_t(&entry->fs_count);
->>> -}
->>> -
->>> -static struct ocfs2_filecheck_sysfs_entry *
->>> -ocfs2_filecheck_sysfs_get(const char *devname)
->>> -{
->>> -	struct ocfs2_filecheck_sysfs_entry *p = NULL;
->>> -
->>> -	spin_lock(&ocfs2_filecheck_sysfs_lock);
->>> -	list_for_each_entry(p, &ocfs2_filecheck_sysfs_list, fs_list) {
->>> -		if (!strcmp(p->fs_sb->s_id, devname)) {
->>> -			atomic_inc(&p->fs_count);
->>> -			spin_unlock(&ocfs2_filecheck_sysfs_lock);
->>> -			return p;
->>> -		}
->>> -	}
->>> -	spin_unlock(&ocfs2_filecheck_sysfs_lock);
->>> -	return NULL;
->>> -}
->> Gang: We can't delete these code directly, fs_count variable is used to 
-> track if there is any process to use file check related data.
->> Please consider this variable before delete this part code.
->>
->>
->>> -int ocfs2_filecheck_create_sysfs(struct super_block *sb)
->>> -{
->>> -	int ret = 0;
->>> -	struct kset *device_kset = NULL;
->>> -	struct kset *fcheck_kset = NULL;
->>> -	struct ocfs2_filecheck *fcheck = NULL;
->>> -	struct ocfs2_filecheck_sysfs_entry *entry = NULL;
->>> -	struct attribute **attrs = NULL;
->>> -	struct attribute_group attrgp;
->>> -
->>> -	if (!ocfs2_kset)
->>> -		return -ENOMEM;
->>> -
->>> -	attrs = kmalloc(sizeof(struct attribute *) * 4, GFP_NOFS);
->>> -	if (!attrs) {
->>> -		ret = -ENOMEM;
->>> -		goto error;
->>> -	} else {
->>> -		attrs[0] = &ocfs2_attr_filecheck_chk.attr;
->>> -		attrs[1] = &ocfs2_attr_filecheck_fix.attr;
->>> -		attrs[2] = &ocfs2_attr_filecheck_set.attr;
->>> -		attrs[3] = NULL;
->>> -		memset(&attrgp, 0, sizeof(attrgp));
->>> -		attrgp.attrs = attrs;
->>> -	}
->>> -
->>> -	fcheck = kmalloc(sizeof(struct ocfs2_filecheck), GFP_NOFS);
->>> -	if (!fcheck) {
->>> -		ret = -ENOMEM;
->>> -		goto error;
->>> -	} else {
->>> -		INIT_LIST_HEAD(&fcheck->fc_head);
->>> -		spin_lock_init(&fcheck->fc_lock);
->>> -		fcheck->fc_max = OCFS2_FILECHECK_MINSIZE;
->>> -		fcheck->fc_size = 0;
->>> -		fcheck->fc_done = 0;
->>> -	}
->>> -
->>> -	if (strlen(sb->s_id) <= 0) {
->>> -		mlog(ML_ERROR,
->>> -		"Cannot get device basename when create filecheck sysfs\n");
->>> -		ret = -ENODEV;
->>> -		goto error;
->>> -	}
->>> -
->>> -	device_kset = kset_create_and_add(sb->s_id, NULL, &ocfs2_kset->kobj);
->>> -	if (!device_kset) {
->>> -		ret = -ENOMEM;
->>> -		goto error;
->>> -	}
->>> -
->>> -	fcheck_kset = kset_create_and_add("filecheck", NULL,
->>> -					  &device_kset->kobj);
->>> -	if (!fcheck_kset) {
->>> -		ret = -ENOMEM;
->>> -		goto error;
->>> -	}
->>> -
->>> -	ret = sysfs_create_group(&fcheck_kset->kobj, &attrgp);
->>> -	if (ret)
->>> -		goto error;
->>> -
->>> -	entry = kmalloc(sizeof(struct ocfs2_filecheck_sysfs_entry), GFP_NOFS);
->>> -	if (!entry) {
->>> -		ret = -ENOMEM;
->>> -		goto error;
->>> -	} else {
->>> -		atomic_set(&entry->fs_count, 1);
->>> -		entry->fs_sb = sb;
->>> -		entry->fs_devicekset = device_kset;
->>> -		entry->fs_fcheckkset = fcheck_kset;
->>> -		entry->fs_fcheck = fcheck;
->>> -		ocfs2_filecheck_sysfs_add(entry);
->>> -	}
->>> -
->>> -	kfree(attrs);
->>> -	return 0;
->>> -
->>> -error:
->>> -	kfree(attrs);
->>> -	kfree(entry);
->>> -	kfree(fcheck);
->>> -	kset_unregister(fcheck_kset);
->>> -	kset_unregister(device_kset);
->>> -	return ret;
->>> -}
->>> -
->>> -int ocfs2_filecheck_remove_sysfs(struct super_block *sb)
->>> -{
->>> -	return ocfs2_filecheck_sysfs_del(sb->s_id);
->>> -}
->> Gang: this part code can be re-used after a little modification.
-> 
-> For what?
-Gang: this part code have a complete creating/releasing kset code, have been tested, it will not bring any memory leak.
-
-> 
->>
->>> -
->>>   static int
->>> -ocfs2_filecheck_erase_entries(struct ocfs2_filecheck_sysfs_entry *ent,
->>> +ocfs2_filecheck_erase_entries(struct ocfs2_super *,
->>>   			      unsigned int count);
->>> -static int
->>> -ocfs2_filecheck_adjust_max(struct ocfs2_filecheck_sysfs_entry *ent,
->>> -			   unsigned int len)
->>> +
->>> +int ocfs2_filecheck_set_max_entries(struct ocfs2_super *osb,
->>> +				int len)
->>>   {
->>>   	int ret;
->>>
->>>   	if ((len < OCFS2_FILECHECK_MINSIZE) || (len > OCFS2_FILECHECK_MAXSIZE))
->>>   		return -EINVAL;
->>>
->>> -	spin_lock(&ent->fs_fcheck->fc_lock);
->>> -	if (len < (ent->fs_fcheck->fc_size - ent->fs_fcheck->fc_done)) {
->>> +	spin_lock(&osb->fc_lock);
->>> +	if (len < (osb->fc_size - osb->fc_done)) {
->>>   		mlog(ML_ERROR,
->>>   		"Cannot set online file check maximum entry number "
->>>   		"to %u due to too many pending entries(%u)\n",
->>> -		len, ent->fs_fcheck->fc_size - ent->fs_fcheck->fc_done);
->>> +		len, osb->fc_size - osb->fc_done);
->>>   		ret = -EBUSY;
->>>   	} else {
->>> -		if (len < ent->fs_fcheck->fc_size)
->>> -			BUG_ON(!ocfs2_filecheck_erase_entries(ent,
->>> -				ent->fs_fcheck->fc_size - len));
->>> +		if (len < osb->fc_size)
->>> +			BUG_ON(!ocfs2_filecheck_erase_entries(osb,
->>> +				osb->fc_size - len));
->>>
->>> -		ent->fs_fcheck->fc_max = len;
->>> +		osb->fc_max = len;
->>>   		ret = 0;
->>>   	}
->>> -	spin_unlock(&ent->fs_fcheck->fc_lock);
->>> +	spin_unlock(&osb->fc_lock);
->>>
->>>   	return ret;
->>>   }
->>>
->>> -#define OCFS2_FILECHECK_ARGS_LEN	24
->>> -static int
->>> -ocfs2_filecheck_args_get_long(const char *buf, size_t count,
->>> -			      unsigned long *val)
->>> -{
->>> -	char buffer[OCFS2_FILECHECK_ARGS_LEN];
->>> -
->>> -	memcpy(buffer, buf, count);
->>> -	buffer[count] = '\0';
->>> -
->>> -	if (kstrtoul(buffer, 0, val))
->>> -		return 1;
->>> -
->>> -	return 0;
->>> -}
->>> -
->>> -static int
->>> -ocfs2_filecheck_type_parse(const char *name, unsigned int *type)
->>> -{
->>> -	if (!strncmp(name, "fix", 4))
->>> -		*type = OCFS2_FILECHECK_TYPE_FIX;
->>> -	else if (!strncmp(name, "check", 6))
->>> -		*type = OCFS2_FILECHECK_TYPE_CHK;
->>> -	else if (!strncmp(name, "set", 4))
->>> -		*type = OCFS2_FILECHECK_TYPE_SET;
->>> -	else
->>> -		return 1;
->>> -
->>> -	return 0;
->>> -}
->>> -
->>> -static int
->>> -ocfs2_filecheck_args_parse(const char *name, const char *buf, size_t count,
->>> -			   struct ocfs2_filecheck_args *args)
->>> -{
->>> -	unsigned long val = 0;
->>> -	unsigned int type;
->>> -
->>> -	/* too short/long args length */
->>> -	if ((count < 1) || (count >= OCFS2_FILECHECK_ARGS_LEN))
->>> -		return 1;
->>> -
->>> -	if (ocfs2_filecheck_type_parse(name, &type))
->>> -		return 1;
->>> -	if (ocfs2_filecheck_args_get_long(buf, count, &val))
->>> -		return 1;
->>> -
->>> -	if (val <= 0)
->>> -		return 1;
->>>
->>> -	args->fa_type = type;
->>> -	if (type == OCFS2_FILECHECK_TYPE_SET)
->>> -		args->fa_len = (unsigned int)val;
->>> -	else
->>> -		args->fa_ino = val;
->>> -
->>> -	return 0;
->>> -}
->>> -
->> Gang: please keep the ocfs2_filecheck_args_parse function, or write a 
-> similar argument checking function since the arguments are from user-space, 
-> must be check strictly.
->> Otherwise, this will be a way for malicious users to panic the kernel.
-> 
-> How? Do you have an example?
-Gang: for example, user input a too long number string, we should return a invalid error directly, not do the further file check operation.
-We need a ocfs2_filecheck_args_parse function, add some argument checking rules for now and future (when we find more limitations),
-return the error to the user process directly, to avoid bringing the further IO checking efforts. 
-
-> 
->>
->>> -static ssize_t ocfs2_filecheck_show(struct kobject *kobj,
->>> -				    struct kobj_attribute *attr,
->>> +int ocfs2_filecheck_show(struct ocfs2_super *osb, unsigned int type,
->>>   				    char *buf)
->>>   {
->>>
->>>   	ssize_t ret = 0, total = 0, remain = PAGE_SIZE;
->>> -	unsigned int type;
->>>   	struct ocfs2_filecheck_entry *p;
->>> -	struct ocfs2_filecheck_sysfs_entry *ent;
->>> -
->>> -	if (ocfs2_filecheck_type_parse(attr->attr.name, &type))
->>> -		return -EINVAL;
->>> -
->>> -	ent = ocfs2_filecheck_sysfs_get(kobj->parent->name);
->> Gang: if delete file check data reference count mechanism, how to make sure 
-> the resource race condition (e.g. list the check results during the file 
-> system umounting.)
->> Please consider this race condition problem.
-> 
-> Isn't spinlock enough? What is the race?
-Gang: No, since file check operation is executed without spinlock, we need a reference count to keep the related data, until the last usage is finished.
-
-> 
->>
->>> -	if (!ent) {
->>> -		mlog(ML_ERROR,
->>> -		"Cannot get the corresponding entry via device basename %s\n",
->>> -		kobj->name);
->>> -		return -ENODEV;
->>> -	}
->>> -
->>> -	if (type == OCFS2_FILECHECK_TYPE_SET) {
->>> -		spin_lock(&ent->fs_fcheck->fc_lock);
->>> -		total = snprintf(buf, remain, "%u\n", ent->fs_fcheck->fc_max);
->>> -		spin_unlock(&ent->fs_fcheck->fc_lock);
->>> -		goto exit;
->>> -	}
->>>
->>>   	ret = snprintf(buf, remain, "INO\t\tDONE\tERROR\n");
->>>   	total += ret;
->>>   	remain -= ret;
->>> -	spin_lock(&ent->fs_fcheck->fc_lock);
->>> -	list_for_each_entry(p, &ent->fs_fcheck->fc_head, fe_list) {
->>> +	spin_lock(&osb->fc_lock);
->>> +	list_for_each_entry(p, &osb->file_check_entries, fe_list) {
->>>   		if (p->fe_type != type)
->>>   			continue;
->>>
->>> @@ -443,24 +127,21 @@ static ssize_t ocfs2_filecheck_show(struct kobject
->>> *kobj,
->>>   		total += ret;
->>>   		remain -= ret;
->>>   	}
->>> -	spin_unlock(&ent->fs_fcheck->fc_lock);
->>> -
->>> -exit:
->>> -	ocfs2_filecheck_sysfs_put(ent);
->>> +	spin_unlock(&osb->fc_lock);
->>>   	return total;
->>>   }
->>>
->>>   static int
->>> -ocfs2_filecheck_erase_entry(struct ocfs2_filecheck_sysfs_entry *ent)
->>> +ocfs2_filecheck_erase_entry(struct ocfs2_super *osb)
->>>   {
->>>   	struct ocfs2_filecheck_entry *p;
->>>
->>> -	list_for_each_entry(p, &ent->fs_fcheck->fc_head, fe_list) {
->>> +	list_for_each_entry(p, &osb->file_check_entries, fe_list) {
->>>   		if (p->fe_done) {
->>>   			list_del(&p->fe_list);
->>>   			kfree(p);
->>> -			ent->fs_fcheck->fc_size--;
->>> -			ent->fs_fcheck->fc_done--;
->>> +			osb->fc_size--;
->>> +			osb->fc_done--;
->>>   			return 1;
->>>   		}
->>>   	}
->>> @@ -469,14 +150,14 @@ ocfs2_filecheck_erase_entry(struct
->>> ocfs2_filecheck_sysfs_entry *ent)
->>>   }
->>>
->>>   static int
->>> -ocfs2_filecheck_erase_entries(struct ocfs2_filecheck_sysfs_entry *ent,
->>> +ocfs2_filecheck_erase_entries(struct ocfs2_super *osb,
->>>   			      unsigned int count)
->>>   {
->>>   	unsigned int i = 0;
->>>   	unsigned int ret = 0;
->>>
->>>   	while (i++ < count) {
->>> -		if (ocfs2_filecheck_erase_entry(ent))
->>> +		if (ocfs2_filecheck_erase_entry(osb))
->>>   			ret++;
->>>   		else
->>>   			break;
->>> @@ -486,24 +167,24 @@ ocfs2_filecheck_erase_entries(struct
->>> ocfs2_filecheck_sysfs_entry *ent,
->>>   }
->>>
->>>   static void
->>> -ocfs2_filecheck_done_entry(struct ocfs2_filecheck_sysfs_entry *ent,
->>> +ocfs2_filecheck_done_entry(struct ocfs2_super *osb,
->>>   			   struct ocfs2_filecheck_entry *entry)
->>>   {
->>>   	entry->fe_done = 1;
->>> -	spin_lock(&ent->fs_fcheck->fc_lock);
->>> -	ent->fs_fcheck->fc_done++;
->>> -	spin_unlock(&ent->fs_fcheck->fc_lock);
->>> +	spin_lock(&osb->fc_lock);
->>> +	osb->fc_done++;
->>> +	spin_unlock(&osb->fc_lock);
->>>   }
->>>
->>>   static unsigned int
->>> -ocfs2_filecheck_handle(struct super_block *sb,
->>> +ocfs2_filecheck_handle(struct ocfs2_super *osb,
->>>   		       unsigned long ino, unsigned int flags)
->>>   {
->>>   	unsigned int ret = OCFS2_FILECHECK_ERR_SUCCESS;
->>>   	struct inode *inode = NULL;
->>>   	int rc;
->>>
->>> -	inode = ocfs2_iget(OCFS2_SB(sb), ino, flags, 0);
->>> +	inode = ocfs2_iget(osb, ino, flags, 0);
->>>   	if (IS_ERR(inode)) {
->>>   		rc = (int)(-(long)inode);
->>>   		if (rc >= OCFS2_FILECHECK_ERR_START &&
->>> @@ -518,89 +199,64 @@ ocfs2_filecheck_handle(struct super_block *sb,
->>>   }
->>>
->>>   static void
->>> -ocfs2_filecheck_handle_entry(struct ocfs2_filecheck_sysfs_entry *ent,
->>> +ocfs2_filecheck_handle_entry(struct ocfs2_super *osb,
->>>   			     struct ocfs2_filecheck_entry *entry)
->>>   {
->>>   	if (entry->fe_type == OCFS2_FILECHECK_TYPE_CHK)
->>> -		entry->fe_status = ocfs2_filecheck_handle(ent->fs_sb,
->>> +		entry->fe_status = ocfs2_filecheck_handle(osb,
->>>   				entry->fe_ino, OCFS2_FI_FLAG_FILECHECK_CHK);
->>>   	else if (entry->fe_type == OCFS2_FILECHECK_TYPE_FIX)
->>> -		entry->fe_status = ocfs2_filecheck_handle(ent->fs_sb,
->>> +		entry->fe_status = ocfs2_filecheck_handle(osb,
->>>   				entry->fe_ino, OCFS2_FI_FLAG_FILECHECK_FIX);
->>>   	else
->>>   		entry->fe_status = OCFS2_FILECHECK_ERR_UNSUPPORTED;
->>>
->>> -	ocfs2_filecheck_done_entry(ent, entry);
->>> +	ocfs2_filecheck_done_entry(osb, entry);
->>>   }
->>>
->>> -static ssize_t ocfs2_filecheck_store(struct kobject *kobj,
->>> -				     struct kobj_attribute *attr,
->>> -				     const char *buf, size_t count)
->>> +int ocfs2_filecheck_add_inode(struct ocfs2_super *osb,
->>> +				     unsigned long ino)
->>>   {
->>> -	struct ocfs2_filecheck_args args;
->>>   	struct ocfs2_filecheck_entry *entry;
->>> -	struct ocfs2_filecheck_sysfs_entry *ent;
->>>   	ssize_t ret = 0;
->>>
->>> -	if (count == 0)
->>> -		return count;
->>> -
->>> -	if (ocfs2_filecheck_args_parse(attr->attr.name, buf, count, &args)) {
->>> -		mlog(ML_ERROR, "Invalid arguments for online file check\n");
->>> -		return -EINVAL;
->>> -	}
->>> -
->>> -	ent = ocfs2_filecheck_sysfs_get(kobj->parent->name);
->>> -	if (!ent) {
->>> -		mlog(ML_ERROR,
->>> -		"Cannot get the corresponding entry via device basename %s\n",
->>> -		kobj->parent->name);
->>> -		return -ENODEV;
->>> -	}
->>> -
->>> -	if (args.fa_type == OCFS2_FILECHECK_TYPE_SET) {
->>> -		ret = ocfs2_filecheck_adjust_max(ent, args.fa_len);
->>> -		goto exit;
->>> -	}
->>> -
->>>   	entry = kmalloc(sizeof(struct ocfs2_filecheck_entry), GFP_NOFS);
->>>   	if (!entry) {
->>>   		ret = -ENOMEM;
->>>   		goto exit;
->>>   	}
->>>
->>> -	spin_lock(&ent->fs_fcheck->fc_lock);
->>> -	if ((ent->fs_fcheck->fc_size >= ent->fs_fcheck->fc_max) &&
->>> -	    (ent->fs_fcheck->fc_done == 0)) {
->>> +	spin_lock(&osb->fc_lock);
->>> +	if ((osb->fc_size >= osb->fc_max) &&
->>> +	    (osb->fc_done == 0)) {
->>>   		mlog(ML_ERROR,
->>>   		"Cannot do more file check "
->>>   		"since file check queue(%u) is full now\n",
->>> -		ent->fs_fcheck->fc_max);
->>> +		osb->fc_max);
->>>   		ret = -EBUSY;
->>>   		kfree(entry);
->>>   	} else {
->>> -		if ((ent->fs_fcheck->fc_size >= ent->fs_fcheck->fc_max) &&
->>> -		    (ent->fs_fcheck->fc_done > 0)) {
->>> +		if ((osb->fc_size >= osb->fc_max) &&
->>> +		    (osb->fc_done > 0)) {
->>>   			/* Delete the oldest entry which was done,
->>>   			 * make sure the entry size in list does
->>>   			 * not exceed maximum value
->>>   			 */
->>> -			BUG_ON(!ocfs2_filecheck_erase_entry(ent));
->>> +			BUG_ON(!ocfs2_filecheck_erase_entry(osb));
->>>   		}
->>>
->>> -		entry->fe_ino = args.fa_ino;
->>> -		entry->fe_type = args.fa_type;
->>> +		entry->fe_ino = ino;
->>> +		entry->fe_type = OCFS2_FILECHECK_TYPE_CHK;
->>>   		entry->fe_done = 0;
->>>   		entry->fe_status = OCFS2_FILECHECK_ERR_INPROGRESS;
->>> -		list_add_tail(&entry->fe_list, &ent->fs_fcheck->fc_head);
->>> -		ent->fs_fcheck->fc_size++;
->>> +		list_add_tail(&entry->fe_list, &osb->file_check_entries);
->>> +		osb->fc_size++;
->>>   	}
->>> -	spin_unlock(&ent->fs_fcheck->fc_lock);
->>> +	spin_unlock(&osb->fc_lock);
->>>
->>>   	if (!ret)
->>> -		ocfs2_filecheck_handle_entry(ent, entry);
->>> +		ocfs2_filecheck_handle_entry(osb, entry);
->>>
->>>   exit:
->>> -	ocfs2_filecheck_sysfs_put(ent);
->>> -	return (!ret ? count : ret);
->>> +	return ret;
->>>   }
->>> diff --git a/fs/ocfs2/filecheck.h b/fs/ocfs2/filecheck.h
->>> index e5cd002..b1a0d8c 100644
->>> --- a/fs/ocfs2/filecheck.h
->>> +++ b/fs/ocfs2/filecheck.h
->>> @@ -42,8 +42,18 @@ enum {
->>>
->>>   #define OCFS2_FILECHECK_ERR_START	OCFS2_FILECHECK_ERR_FAILED
->>>   #define OCFS2_FILECHECK_ERR_END		OCFS2_FILECHECK_ERR_UNSUPPORTED
->>> +#define OCFS2_FILECHECK_MAXSIZE         100
->>> +#define OCFS2_FILECHECK_MINSIZE         10
->>> +
->>> +/* File check operation type */
->>> +#define OCFS2_FILECHECK_TYPE_CHK  	1   /* Check a file(inode) */
->>> +#define OCFS2_FILECHECK_TYPE_FIX  	2   /* Fix a file(inode) */
->> Please use enum, not use macro definitions, maybe there will be more type.
->> OCFS2_FILECHECK_TYPE_CHK should be zero, otherwise this macro is different 
-> with previous enum definitions.
->>
->>>
->>>   int ocfs2_filecheck_create_sysfs(struct super_block *sb);
->>>   int ocfs2_filecheck_remove_sysfs(struct super_block *sb);
->>> +int ocfs2_filefix_inode(struct ocfs2_super *osb, unsigned long ino);
->>> +int ocfs2_filecheck_add_inode(struct ocfs2_super *osb, unsigned long ino);
->>> +int ocfs2_filecheck_set_max_entries(struct ocfs2_super *osb, int num);
->>> +int ocfs2_filecheck_show(struct ocfs2_super *osb, unsigned int type, char
->>> *buf);
->>>
->>>   #endif  /* FILECHECK_H */
->>> diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
->>> index 8e66cdf..9ced543 100644
->>> --- a/fs/ocfs2/ocfs2.h
->>> +++ b/fs/ocfs2/ocfs2.h
->>> @@ -474,6 +474,13 @@ struct ocfs2_super
->>>   	 */
->>>   	struct workqueue_struct *ocfs2_wq;
->>>
->>> +	/* file check */
->>> +	struct list_head file_check_entries;
->>> +	unsigned int fc_size;
->>> +	unsigned int fc_max;
->>> +	unsigned int fc_done;
->>> +	spinlock_t fc_lock;
->>> +
->> Gang: please use a separate structure to include all the file check members, 
-> easy to read/maintain.
-> 
-> 
-> I would prefer it to be a part of ocfs2_super. It is easier to maintain 
-> and read.
-> 
->>
->>>   	struct kobject kobj;
->>>   	struct completion kobj_unregister;
->>>   };
->>> diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
->>> index 96b7a9f..a7791fa 100644
->>> --- a/fs/ocfs2/super.c
->>> +++ b/fs/ocfs2/super.c
->>> @@ -2215,6 +2215,13 @@ static int ocfs2_initialize_super(struct super_block
->>> *sb,
->>>
->>>   	get_random_bytes(&osb->s_next_generation, sizeof(u32));
->>>
->>> +	/* file check information */
->>> +	INIT_LIST_HEAD(&osb->file_check_entries);
->>> +	osb->fc_max = OCFS2_FILECHECK_MINSIZE;
->>> +	osb->fc_size = 0;
->>> +	osb->fc_done = 0;
->>> +	spin_lock_init(&osb->fc_lock);
->>> +
->> Gang: write a separate funtion in filecheck.c to include these line code, 
-> easy to read/maintain.
-> 
-> Why? Unless we are starting something specific to filecheck, I don't see 
-> any need.
-Gang: I just want to make the file check thing is done in filecheck source file, the other module just call some functions.
-Let the code more clear.
-
-> 
->>
->>>   	/* FIXME
->>>   	 * This should be done in ocfs2_journal_init(), but unknown
->>>   	 * ordering issues will cause the filesystem to crash.
->>> diff --git a/fs/ocfs2/sysfs.c b/fs/ocfs2/sysfs.c
->>> index e21e699..81e3dd4 100644
->>> --- a/fs/ocfs2/sysfs.c
->>> +++ b/fs/ocfs2/sysfs.c
->>> @@ -1,5 +1,6 @@
->>>   #include "ocfs2.h"
->>>   #include "sysfs.h"
->>> +#include "filecheck.h"
->>>
->>>   struct ocfs2_sb_attr {
->>>   	struct attribute attr;
->>> @@ -9,8 +10,12 @@ struct ocfs2_sb_attr {
->>>   			const char *buf, size_t count);
->>>   };
->>>
->>> -#define OCFS2_SB_ATTR(_name, _mode) \
->>> -struct ocfs2_sb_attr sb_attr_##_name = __ATTR(name, _mode, _show, _store)
->>> +#define OCFS2_SB_ATTR(_name) \
->>> +struct ocfs2_sb_attr sb_attr_##_name = { \
->>> +	.attr = {.name = __stringify(_name), .mode = (S_IWUSR | S_IRUGO)},  \
->>> +	.show = _name##_show, \
->>> +	.store = _name##_store \
->>> +}
->>>
->>>   #define OCFS2_SB_ATTR_RO(_name) \
->>>   struct ocfs2_sb_attr sb_attr_##_name = __ATTR_RO(_name)
->>> @@ -46,6 +51,81 @@ static ssize_t slot_num_show(struct ocfs2_super *osb,
->>>   	return sprintf(buf, "%d\n", osb->slot_num);
->>>   }
->>>
->>> +static ssize_t file_check_show(struct ocfs2_super *osb,
->>> +		struct ocfs2_sb_attr *attr,
->>> +		char *buf)
->>> +{
->>> +	return ocfs2_filecheck_show(osb, OCFS2_FILECHECK_TYPE_CHK, buf);
->>> +}
->>> +
->>> +static ssize_t file_check_store(struct ocfs2_super *osb,
->>> +		struct ocfs2_sb_attr *attr,
->>> +		const char *buf, size_t count)
->>> +{
->>> +	unsigned long t;
->>> +	int ret;
->>> +
->>> +	ret = kstrtoul(skip_spaces(buf), 0, &t);
->>> +	if (ret)
->>> +		return ret;
->>> +	ret = ocfs2_filecheck_add_inode(osb, t);
->>> +	if (ret)
->>> +		return ret;
->>> +	return count;
->>> +}
->>> +
->>> +static ssize_t file_fix_show(struct ocfs2_super *osb,
->>> +		struct ocfs2_sb_attr *attr,
->>> +		char *buf)
->>> +{
->>> +	return ocfs2_filecheck_show(osb, OCFS2_FILECHECK_TYPE_FIX, buf);
->>> +}
->>> +
->>> +static ssize_t file_fix_store(struct ocfs2_super *osb,
->>> +		struct ocfs2_sb_attr *attr,
->>> +		const char *buf, size_t count)
->>> +{
->>> +	unsigned long t;
->>> +	int ret;
->>> +
->>> +	ret = kstrtoul(skip_spaces(buf), 0, &t);
->>> +	if (ret)
->>> +		return ret;
->>> +	ret = ocfs2_filecheck_add_inode(osb, t);
->>> +	if (ret)
->>> +		return ret;
->>> +	return count;
->>> +}
->>> +
->>> +static ssize_t file_check_max_entries_show(struct ocfs2_super *osb,
->>> +		struct ocfs2_sb_attr *attr,
->>> +		char *buf)
->>> +{
->>> +	int len = 0;
->>> +	spin_lock(&osb->fc_lock);
->>> +	/* Show done, current size and max */
->>> +	len += sprintf(buf, "%d\t%d\t%d\n", osb->fc_done, osb->fc_size,
->>> +			osb->fc_max);
->>> +	spin_unlock(&osb->fc_lock);
->>> +	return len;
->>> +}
->>> +
->>> +static ssize_t file_check_max_entries_store(struct ocfs2_super *osb,
->>> +		struct ocfs2_sb_attr *attr, const char *buf, size_t count)
->>> +{
->>> +
->>> +	unsigned long t;
->>> +	int ret;
->>> +
->>> +	ret = kstrtoul(skip_spaces(buf), 0, &t);
->> Gang: please make sure the function kstrtoul does work well since the 
-> inputed buf has not terminating null character.
->> This is why I write a wrapper function ocfs2_filecheck_args_get_long().
-> 
-> Can you give an example on how this can be activated? Maybe a check on 
-> value < 0 may make sense.
-Gang: I am not sure if this function works well when the string is inputed without a terminating null character.
-need to test all the case if using the function directly. But we test all the case with a terminating null character.
-
-
-> 
->>
->>> +	if (ret)
->>> +		return ret;
->>> +	ret = ocfs2_filecheck_set_max_entries(osb, (int)t);
->>> +	if (ret)
->>> +		return ret;
->>> +	return count;
->>> +}
->>> +
->>>   static void sb_release(struct kobject *kobj)
->>>   {
->>>   	struct ocfs2_super *osb = container_of(kobj, struct ocfs2_super, kobj);
->>> @@ -58,8 +138,15 @@ static const struct sysfs_ops ocfs2_sb_sysfs_ops = {
->>>   };
->>>
->>>   static OCFS2_SB_ATTR_RO(slot_num);
->>> +static OCFS2_SB_ATTR(file_check);
->>> +static OCFS2_SB_ATTR(file_fix);
->>> +static OCFS2_SB_ATTR(file_check_max_entries);
->>> +
->>>   static struct attribute *ocfs2_sb_attrs[] = {
->>>   	&sb_attr_slot_num.attr,
->>> +	&sb_attr_file_check.attr,
->>> +	&sb_attr_file_fix.attr,
->>> +	&sb_attr_file_check_max_entries.attr,
->>>   	NULL
->>>   };
->> Gang: as I said in the first patch, please make all the file check related 
-> attributes in a separate sub directory.
->> It will let us to be easy to read/debug, especially if there is any 
-> reference count leaking problem.
-> 
-> The main reason of the code is to remove unnecessary data structures 
-> which is making the code hard to understand. I don't see a point in 
-> keeping them in a separate structure besides adding more indirections.
-> 
-> 
-> -- 
-> Goldwyn
+________________________________
+zhangguanghui
+-------------------------------------------------------------------------------------------------------------------------------------
+????????????????????????????????????????
+????????????????????????????????????????
+????????????????????????????????????????
+???
+This e-mail and its attachments contain confidential information from H3C, which is
+intended only for the person or entity whose address is listed above. Any use of the
+information contained herein in any way (including, but not limited to, total or partial
+disclosure, reproduction, or dissemination) by persons other than the intended
+recipient(s) is prohibited. If you receive this e-mail in error, please notify the sender
+by phone or email immediately and delete it!
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20160601/8a6796e6/attachment.html 
