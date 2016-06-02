@@ -1,107 +1,190 @@
-From: Zhangguanghui <zhang.guanghui@h3c.com>
-Date: Wed, 1 Jun 2016 08:05:41 +0000
-Subject: [Ocfs2-devel] the first two block become corrupt in ocfs2.
-Message-ID: <E3535A62B291B54FBD1D003696CCB5375E1D0410@H3CMLB12-EX.srv.huawei-3com.com>
+From: Goldwyn Rodrigues <rgoldwyn@suse.de>
+Date: Wed, 1 Jun 2016 21:26:33 -0500
+Subject: [Ocfs2-devel] [PATCH 5/5] Fix files when an inode is written in
+ file_fix
+In-Reply-To: <574EB352020000F900029215@prv-mh.provo.novell.com>
+References: <1464232219-12553-1-git-send-email-rgoldwyn@suse.de>
+	<1464232219-12553-6-git-send-email-rgoldwyn@suse.de>
+	<574C7C2A020000F900039287@suse.com> <574D863F.6000104@suse.com>
+	<574EB352020000F900029215@prv-mh.provo.novell.com>
+Message-ID: <574F9959.3060004@suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi
-In OCFS2, the super block is on the third block.
-But I find that the first two block become corrupt in the race window
-while storage link down.
-I don't know what is reason for triggering the problem.
-c0 3b 39 98 is JFS_MAGIC_NUMBER,overwrites inode signature.
-45 30 31 00 is generation number on disk inode for OCFS2
-(ocfs2_dinode) ,
-
-Thanks for your reply. Regards
 
 
-details:
+On 05/31/2016 09:05 PM, Gang He wrote:
+> Hello Goldwyn,
+>
+>
+>>>>
+>
+>>
+>> On 05/30/2016 04:45 AM, Gang He wrote:
+>>> Hello Goldwyn,
+>>>
+>>> Please see my comments inline.
+>>>
+>>>
+>>> Thanks
+>>> Gang
+>>>
+>>>
+>>>>>>
+>>>> From: Goldwyn Rodrigues <rgoldwyn@suse.com>
+>>>>
+>>>> Check that the entriy exists and has been filed for check.
+>>>> Also perform some code cleanup
+>>>>
+>>>> Signed-off-by: Goldwyn Rodrigues <rgoldwyn@suse.com>
+>>>> ---
+>>>>    fs/ocfs2/filecheck.c | 41 +++++++++++++++++++++++++----------------
+>>>>    fs/ocfs2/filecheck.h |  1 +
+>>>>    fs/ocfs2/sysfs.c     |  2 +-
+>>>>    3 files changed, 27 insertions(+), 17 deletions(-)
+>>>>
+>>>> diff --git a/fs/ocfs2/filecheck.c b/fs/ocfs2/filecheck.c
+>>>> index 006d521..fc6e183 100644
+>>>> --- a/fs/ocfs2/filecheck.c
+>>>> +++ b/fs/ocfs2/filecheck.c
+>>>> @@ -198,22 +198,6 @@ ocfs2_filecheck_handle(struct ocfs2_super *osb,
+>>>>    	return ret;
+>>>>    }
+>>>>
+>>>> -static void
+>>>> -ocfs2_filecheck_handle_entry(struct ocfs2_super *osb,
+>>>> -			     struct ocfs2_filecheck_entry *entry)
+>>>> -{
+>>>> -	if (entry->fe_type == OCFS2_FILECHECK_TYPE_CHK)
+>>>> -		entry->fe_status = ocfs2_filecheck_handle(osb,
+>>>> -				entry->fe_ino, OCFS2_FI_FLAG_FILECHECK_CHK);
+>>>> -	else if (entry->fe_type == OCFS2_FILECHECK_TYPE_FIX)
+>>>> -		entry->fe_status = ocfs2_filecheck_handle(osb,
+>>>> -				entry->fe_ino, OCFS2_FI_FLAG_FILECHECK_FIX);
+>>>> -	else
+>>>> -		entry->fe_status = OCFS2_FILECHECK_ERR_UNSUPPORTED;
+>>>> -
+>>>> -	ocfs2_filecheck_done_entry(osb, entry);
+>>>> -}
+>>>> -
+>>>>    int ocfs2_filecheck_add_inode(struct ocfs2_super *osb,
+>>>>    				     unsigned long ino)
+>>>>    {
+>>>> @@ -268,3 +252,28 @@ unlock:
+>>>>    	ocfs2_filecheck_done_entry(osb, entry);
+>>>>    	return 0;
+>>>>    }
+>>>> +
+>>>> +int ocfs2_filefix_add_inode(struct ocfs2_super *osb,
+>>>> +				     unsigned long ino)
+>>>> +{
+>>>> +	struct ocfs2_filecheck_entry *entry;
+>>>> +	int ret = -ENOENT;
+>>>> +
+>>>> +	spin_lock(&osb->fc_lock);
+>>>> +	list_for_each_entry(entry, &osb->file_check_entries, fe_list)
+>>>> +		if (entry->fe_ino == ino) {
+>>>> +			entry->fe_type = OCFS2_FILECHECK_TYPE_FIX;
+>>> Gang: It looks that we can not do it directly, why? because the entry
+>> pointer can be freed by the function ocfs2_filecheck_erase_entries().
+>>> We can not use the same entry pointer within two user processes.
+>>> The simple solution is to return -EBUSY error in case there is the same ino
+>> number entry in the list, then the user can try again after the previous user
+>> process is returned.
+>>
+>> How? is it not protected under spinlock?
+> Gang: please aware that this spinlock fc_lock is used to protect entry list (adding entry/deleting entry), not protect entry itself.
+> The first user process will mark the entry's status to done after the file check operation is finished, then the function ocfs2_filecheck_erase_entries() will possibly delete this entry from the list, to free the entry memory during the second user process is referencing on this entry.
+> You know, the spinlock can not protect the file check operation (too long time IO operation).
 
-root at hxn-server24:~# hexdump -C /dev/dm-7 | more
-00000000 c0 3b 39 98 45 30 31 00 9c c3 67 76 06 00 09 00 |.;9.E01...gv....|
-00000010 00 00 00 00 ed 00 00 00 00 00 00 00 00 00 00 00 |................|
-00000020 00 00 d0 0e 00 00 00 00 80 81 01 00 01 00 00 00 |................|
-00000030 76 4f 4e 57 00 00 00 00 29 4e 4e 57 00 00 00 00 |vONW....)NNW....|
-00000040 29 4e 4e 57 00 00 00 00 00 00 00 00 00 00 00 00 |)NNW............|
-00000050 09 01 7a 01 00 00 00 00 00 00 00 00 00 00 00 00 |..z.............|
-00000060 9a 3d 0b c8 12 ab d6 28 fd c1 a9 32 fd c1 a9 32 |.=.....(...2...2|
-00000070 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 |................|
-*
-000000c0 00 00 f3 00 2b 00 00 00 00 00 00 00 00 00 00 00 |....+...........|
-000000d0 00 00 00 00 08 00 00 00 00 71 85 0d 00 00 00 00 |.........q......|
-000000e0 08 00 00 00 02 00 00 00 00 7a 85 0d 00 00 00 00 |.........z......|
-000000f0 0a 00 00 00 01 00 00 00 00 79 85 0d 00 00 00 00 |.........y......|
-00000100 0b 00 00 00 05 00 00 00 00 7c 85 0d 00 00 00 00 |.........|......|
-00000110 10 00 00 00 09 00 00 00 00 b1 86 0d 00 00 00 00 |................|
-00000120 19 00 00 00 01 00 00 00 00 bd 86 0d 00 00 00 00 |................|
-00000130 1a 00 00 00 03 00 00 00 00 ba 86 0d 00 00 00 00 |................|
-00000140 1d 00 00 00 03 00 00 00 00 be 86 0d 00 00 00 00 |................|
-00000150 20 00 00 00 07 00 00 00 00 51 87 0d 00 00 00 00 | ........Q......|
-00000160 27 00 00 00 01 00 00 00 00 59 87 0d 00 00 00 00 |'........Y......|
-00000170 28 00 00 00 01 00 00 00 00 58 87 0d 00 00 00 00 |(........X......|
-00000180 29 00 00 00 07 00 00 00 00 5a 87 0d 00 00 00 00 |)........Z......|
-00000190 30 00 00 00 20 00 00 00 00 01 88 0d 00 00 00 00 |0... ...........|
-000001a0 50 00 00 00 10 00 00 00 00 61 89 0d 00 00 00 00 |P........a......|
-000001b0 60 00 00 00 03 00 00 00 00 0e 85 0d 00 00 00 00 |`...............|
-000001c0 63 00 00 00 07 00 00 00 00 8a 85 0d 00 00 00 00 |c...............|
-000001d0 6a 00 00 00 07 00 00 00 00 ca 85 0d 00 00 00 00 |j...............|
-000001e0 71 00 00 00 07 00 00 00 00 4a 86 0d 00 00 00 00 |q........J......|
-000001f0 78 00 00 00 01 00 00 00 00 8c 86 0d 00 00 00 00 |x...............|
-00000200 79 00 00 00 01 00 00 00 00 8e 86 0d 00 00 00 00 |y...............|
-00000210 7a 00 00 00 01 00 00 00 00 69 86 0d 00 00 00 00 |z........i......|
-00000220 7b 00 00 00 10 00 00 00 00 7a 4e 0d 00 00 00 00 |{........zN.....|
-00000230 8b 00 00 00 10 00 00 00 00 aa 4e 0d 00 00 00 00 |..........N.....|
-00000240 9b 00 00 00 10 00 00 00 00 01 4b 0d 00 00 00 00 |..........K.....|
-00000250 ab 00 00 00 10 00 00 00 00 c1 4b 0d 00 00 00 00 |..........K.....|
-00000260 bb 00 00 00 03 00 00 00 00 61 4c 0d 00 00 00 00 |.........aL.....|
-00000270 be 00 00 00 02 00 00 00 00 15 f5 02 00 00 00 00 |................|
-00000280 c0 00 00 00 01 00 00 00 00 12 d4 0a 00 00 00 00 |................|
-00000290 c1 00 00 00 01 00 00 00 00 11 f4 0a 00 00 00 00 |................|
-000002a0 c2 00 00 00 07 00 00 00 00 62 d0 0b 00 00 00 00 |.........b......|
-000002b0 c9 00 00 00 06 00 00 00 00 22 56 0a 00 00 00 00 |........."V.....|
-000002c0 cf 00 00 00 01 00 00 00 00 43 76 02 00 00 00 00 |.........Cv.....|
-000002d0 d0 00 00 00 04 00 00 00 00 54 e0 07 00 00 00 00 |.........T......|
-000002e0 d4 00 00 00 01 00 00 00 00 b8 f8 01 00 00 00 00 |................|
-000002f0 d5 00 00 00 01 00 00 00 00 ba f8 01 00 00 00 00 |................|
-00000300 d6 00 00 00 07 00 00 00 00 01 dd 08 00 00 00 00 |................|
-00000310 dd 00 00 00 01 00 00 00 00 89 4e 0c 00 00 00 00 |..........N.....|
-00000320 de 00 00 00 01 00 00 00 00 4f 46 0e 00 00 00 00 |.........OF.....|
-00000330 df 00 00 00 01 00 00 00 00 8d 62 07 00 00 00 00 |..........b.....|
-00000340 e0 00 00 00 01 00 00 00 00 cd 4e 0c 00 00 00 00 |..........N.....|
-00000350 e1 00 00 00 01 00 00 00 00 d3 e8 05 00 00 00 00 |................|
-00000360 e2 00 00 00 0a 00 00 00 00 74 46 0e 00 00 00 00 |.........tF.....|
-00000370 ec 00 00 00 01 00 00 00 00 25 e9 05 00 00 00 00 |.........%......|
-00000380 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 |................|
-*
-00001000 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 |................|
-*
-00002000 4f 43 46 53 56 32 00 00 9a 3d 0b c8 ff ff ff ff |OCFSV2...=......|
-00002010 00 00 00 00 00 a0 0f 00 00 00 00 00 00 00 00 00 |................|
-00002020 00 00 00 00 00 00 00 00 00 00 00 00 31 00 00 00 |............1...|
-00002030 00 00 00 00 00 00 00 00 f9 c6 42 57 00 00 00 00 |..........BW....|
-00002040 f9 c6 42 57 00 00 00 00 00 00 00 00 00 00 00 00 |..BW............|
-00002050 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 |................|
-00002060 9a 3d 0b c8 00 00 00 00 00 00 00 00 00 00 00 00 |.=..............|
-00002070 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 |................|
+Yes, a possible reason for separating the lists too. The entries will be 
+deleted after a check, and the user will not be able to perform a fix on it.
 
-________________________________
-zhangguanghui
--------------------------------------------------------------------------------------------------------------------------------------
-????????????????????????????????????????
-????????????????????????????????????????
-????????????????????????????????????????
-???
-This e-mail and its attachments contain confidential information from H3C, which is
-intended only for the person or entity whose address is listed above. Any use of the
-information contained herein in any way (including, but not limited to, total or partial
-disclosure, reproduction, or dissemination) by persons other than the intended
-recipient(s) is prohibited. If you receive this e-mail in error, please notify the sender
-by phone or email immediately and delete it!
--------------- next part --------------
-An HTML attachment was scrubbed...
-URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20160601/8a6796e6/attachment.html 
+In any case, if we check on status, we can do away with it. We may 
+require filecheck_entry spinlocks later on, but for now it is not required.
+
+
+>
+>> Anyways, I plan to make a separate list for this so we can do away with
+>> more macros.
+> Gang: you can use two lists, but I think that one list is also OK, keep the thing simple.
+> Just return a -EBUSY error when the same inode is on the progress, then the user can try again after that file check process returns.
+
+Thanks for the suggestions, I have incorporated that, with the two 
+lists, of course.
+
+>
+>>
+>> Besides, any I/O and check operation should be done in a separate
+>> thread/work queue.
+> Gang: current design is no a separated thread is used to run file check operation, each user trigger process is used to execute its file check operation.
+> Why? first, keep the thing simple, avoid to involve more logic/thread. second, if we involved a thread/work queue to run the file check operations,
+> that means the user trigger process will return directly and need not to wait for the actual file check operation, there will be a risk that the user can
+> not see the result from the result history record (via cat check/fix), since the new submits result will make the oldest result records to be released,
+> we have a fixed length list to keep these status records. If we use the user trigger process to do the file check operation, the user can surely see the result after this user process returns (since this file check operation is done in the kernel space).
+>
+
+In the future, how do you plan to extend this? How would you check for 
+extent_blocks? Or worse, system files? Would you keep the system waiting 
+until all I/O has completed?
+
+>
+>>
+>>>
+>>>> +			ret = 0;
+>>>> +			break;
+>>>> +		}
+>>>> +	spin_unlock(&osb->fc_lock);
+>>>> +	if (ret)
+>>>> +		return ret;
+>>>> +
+>>>> +	entry->fe_status = ocfs2_filecheck_handle(osb,
+>>>> +			entry->fe_ino, OCFS2_FI_FLAG_FILECHECK_FIX);
+>>>> +
+>>>> +	ocfs2_filecheck_done_entry(osb, entry);
+>>>> +	return 0;
+>>>> +}
+>>>> +
+>>>> diff --git a/fs/ocfs2/filecheck.h b/fs/ocfs2/filecheck.h
+>>>> index b1a0d8c..d5f81a7 100644
+>>>> --- a/fs/ocfs2/filecheck.h
+>>>> +++ b/fs/ocfs2/filecheck.h
+>>>> @@ -53,6 +53,7 @@ int ocfs2_filecheck_create_sysfs(struct super_block *sb);
+>>>>    int ocfs2_filecheck_remove_sysfs(struct super_block *sb);
+>>>>    int ocfs2_filefix_inode(struct ocfs2_super *osb, unsigned long ino);
+>>>>    int ocfs2_filecheck_add_inode(struct ocfs2_super *osb, unsigned long ino);
+>>>> +int ocfs2_filefix_add_inode(struct ocfs2_super *osb, unsigned long ino);
+>>>>    int ocfs2_filecheck_set_max_entries(struct ocfs2_super *osb, int num);
+>>>>    int ocfs2_filecheck_show(struct ocfs2_super *osb, unsigned int type, char
+>>>> *buf);
+>>>>
+>>>> diff --git a/fs/ocfs2/sysfs.c b/fs/ocfs2/sysfs.c
+>>>> index acc4834..ac149fb 100644
+>>>> --- a/fs/ocfs2/sysfs.c
+>>>> +++ b/fs/ocfs2/sysfs.c
+>>>> @@ -91,7 +91,7 @@ static ssize_t file_fix_store(struct ocfs2_super *osb,
+>>>>    	ret = kstrtoul(skip_spaces(buf), 0, &t);
+>>>>    	if (ret)
+>>>>    		return ret;
+>>>> -	ret = ocfs2_filecheck_add_inode(osb, t);
+>>>> +	ret = ocfs2_filefix_add_inode(osb, t);
+>>>>    	if (ret)
+>>>>    		return ret;
+>>>>    	return count;
+>>>> --
+>>>> 2.6.6
+>>>>
+>>>>
+>>>> _______________________________________________
+>>>> Ocfs2-devel mailing list
+>>>> Ocfs2-devel at oss.oracle.com
+>>>> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+>>
+>> --
+>> Goldwyn
+
+-- 
+Goldwyn
