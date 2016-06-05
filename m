@@ -1,10 +1,9 @@
 From: mchristi at redhat.com <mchristi@redhat.com>
-Date: Sun,  5 Jun 2016 14:31:53 -0500
-Subject: [Ocfs2-devel] [PATCH 13/45] btrfs: update __btrfs_map_block for
-	REQ_OP transition
+Date: Sun,  5 Jun 2016 14:31:55 -0500
+Subject: [Ocfs2-devel] [PATCH 15/45] f2fs: use bio op accessors
 In-Reply-To: <1465155145-10812-1-git-send-email-mchristi@redhat.com>
 References: <1465155145-10812-1-git-send-email-mchristi@redhat.com>
-Message-ID: <1465155145-10812-14-git-send-email-mchristi@redhat.com>
+Message-ID: <1465155145-10812-16-git-send-email-mchristi@redhat.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -14,251 +13,499 @@ Cc: Mike Christie <mchristi@redhat.com>
 
 From: Mike Christie <mchristi@redhat.com>
 
-We no longer pass in a bitmap of rq_flag_bits bits to __btrfs_map_block.
-It will always be a REQ_OP, or the btrfs specific REQ_GET_READ_MIRRORS,
-so this drops the bit tests.
+Separate the op from the rq_flag_bits and have f2fs
+set/get the bio using bio_set_op_attrs/bio_op.
 
 Signed-off-by: Mike Christie <mchristi@redhat.com>
 Reviewed-by: Christoph Hellwig <hch@lst.de>
 Reviewed-by: Hannes Reinecke <hare@suse.com>
 ---
- fs/btrfs/extent-tree.c |  2 +-
- fs/btrfs/inode.c       |  2 +-
- fs/btrfs/volumes.c     | 55 +++++++++++++++++++++++++++-----------------------
- fs/btrfs/volumes.h     |  4 ++--
- 4 files changed, 34 insertions(+), 29 deletions(-)
+ fs/f2fs/checkpoint.c        | 10 ++++++----
+ fs/f2fs/data.c              | 47 ++++++++++++++++++++++++++-------------------
+ fs/f2fs/f2fs.h              |  5 +++--
+ fs/f2fs/gc.c                |  9 ++++++---
+ fs/f2fs/inline.c            |  3 ++-
+ fs/f2fs/node.c              |  8 +++++---
+ fs/f2fs/segment.c           | 12 +++++++-----
+ fs/f2fs/trace.c             |  7 ++++---
+ include/trace/events/f2fs.h | 34 +++++++++++++++++++-------------
+ 9 files changed, 81 insertions(+), 54 deletions(-)
 
-diff --git a/fs/btrfs/extent-tree.c b/fs/btrfs/extent-tree.c
-index a400951..70af591 100644
---- a/fs/btrfs/extent-tree.c
-+++ b/fs/btrfs/extent-tree.c
-@@ -2043,7 +2043,7 @@ int btrfs_discard_extent(struct btrfs_root *root, u64 bytenr,
+diff --git a/fs/f2fs/checkpoint.c b/fs/f2fs/checkpoint.c
+index 3891600..b6d600e 100644
+--- a/fs/f2fs/checkpoint.c
++++ b/fs/f2fs/checkpoint.c
+@@ -63,14 +63,15 @@ static struct page *__get_meta_page(struct f2fs_sb_info *sbi, pgoff_t index,
+ 	struct f2fs_io_info fio = {
+ 		.sbi = sbi,
+ 		.type = META,
+-		.rw = READ_SYNC | REQ_META | REQ_PRIO,
++		.op = REQ_OP_READ,
++		.op_flags = READ_SYNC | REQ_META | REQ_PRIO,
+ 		.old_blkaddr = index,
+ 		.new_blkaddr = index,
+ 		.encrypted_page = NULL,
+ 	};
  
+ 	if (unlikely(!is_meta))
+-		fio.rw &= ~REQ_META;
++		fio.op_flags &= ~REQ_META;
+ repeat:
+ 	page = f2fs_grab_cache_page(mapping, index, false);
+ 	if (!page) {
+@@ -157,13 +158,14 @@ int ra_meta_pages(struct f2fs_sb_info *sbi, block_t start, int nrpages,
+ 	struct f2fs_io_info fio = {
+ 		.sbi = sbi,
+ 		.type = META,
+-		.rw = sync ? (READ_SYNC | REQ_META | REQ_PRIO) : READA,
++		.op = REQ_OP_READ,
++		.op_flags = sync ? (READ_SYNC | REQ_META | REQ_PRIO) : READA,
+ 		.encrypted_page = NULL,
+ 	};
+ 	struct blk_plug plug;
  
- 	/* Tell the block device(s) that the sectors can be discarded */
--	ret = btrfs_map_block(root->fs_info, REQ_DISCARD,
-+	ret = btrfs_map_block(root->fs_info, REQ_OP_DISCARD,
- 			      bytenr, &num_bytes, &bbio, 0);
- 	/* Error condition is -ENOMEM */
- 	if (!ret) {
-diff --git a/fs/btrfs/inode.c b/fs/btrfs/inode.c
-index b07e1d9..1575944 100644
---- a/fs/btrfs/inode.c
-+++ b/fs/btrfs/inode.c
-@@ -1838,7 +1838,7 @@ int btrfs_merge_bio_hook(int rw, struct page *page, unsigned long offset,
+ 	if (unlikely(type == META_POR))
+-		fio.rw &= ~REQ_META;
++		fio.op_flags &= ~REQ_META;
  
- 	length = bio->bi_iter.bi_size;
- 	map_length = length;
--	ret = btrfs_map_block(root->fs_info, rw, logical,
-+	ret = btrfs_map_block(root->fs_info, bio_op(bio), logical,
- 			      &map_length, NULL, 0);
- 	/* Will always return 0 with map_multi == NULL */
- 	BUG_ON(ret < 0);
-diff --git a/fs/btrfs/volumes.c b/fs/btrfs/volumes.c
-index 4dc2249..345b183 100644
---- a/fs/btrfs/volumes.c
-+++ b/fs/btrfs/volumes.c
-@@ -5248,7 +5248,7 @@ void btrfs_put_bbio(struct btrfs_bio *bbio)
- 		kfree(bbio);
+ 	blk_start_plug(&plug);
+ 	for (; nrpages-- > 0; blkno++) {
+diff --git a/fs/f2fs/data.c b/fs/f2fs/data.c
+index c595c8f..8769e83 100644
+--- a/fs/f2fs/data.c
++++ b/fs/f2fs/data.c
+@@ -97,12 +97,10 @@ static struct bio *__bio_alloc(struct f2fs_sb_info *sbi, block_t blk_addr,
+ 	return bio;
  }
  
--static int __btrfs_map_block(struct btrfs_fs_info *fs_info, int rw,
-+static int __btrfs_map_block(struct btrfs_fs_info *fs_info, int op,
- 			     u64 logical, u64 *length,
- 			     struct btrfs_bio **bbio_ret,
- 			     int mirror_num, int need_raid_map)
-@@ -5334,7 +5334,7 @@ static int __btrfs_map_block(struct btrfs_fs_info *fs_info, int rw,
- 		raid56_full_stripe_start *= full_stripe_len;
- 	}
- 
--	if (rw & REQ_DISCARD) {
-+	if (op == REQ_OP_DISCARD) {
- 		/* we don't discard raid56 yet */
- 		if (map->type & BTRFS_BLOCK_GROUP_RAID56_MASK) {
- 			ret = -EOPNOTSUPP;
-@@ -5347,7 +5347,7 @@ static int __btrfs_map_block(struct btrfs_fs_info *fs_info, int rw,
- 		   For other RAID types and for RAID[56] reads, just allow a single
- 		   stripe (on a single disk). */
- 		if ((map->type & BTRFS_BLOCK_GROUP_RAID56_MASK) &&
--		    (rw & REQ_WRITE)) {
-+		    (op == REQ_OP_WRITE)) {
- 			max_len = stripe_len * nr_data_stripes(map) -
- 				(offset - raid56_full_stripe_start);
- 		} else {
-@@ -5372,8 +5372,8 @@ static int __btrfs_map_block(struct btrfs_fs_info *fs_info, int rw,
- 		btrfs_dev_replace_set_lock_blocking(dev_replace);
- 
- 	if (dev_replace_is_ongoing && mirror_num == map->num_stripes + 1 &&
--	    !(rw & (REQ_WRITE | REQ_DISCARD | REQ_GET_READ_MIRRORS)) &&
--	    dev_replace->tgtdev != NULL) {
-+	    op != REQ_OP_WRITE && op != REQ_OP_DISCARD &&
-+	    op != REQ_GET_READ_MIRRORS && dev_replace->tgtdev != NULL) {
- 		/*
- 		 * in dev-replace case, for repair case (that's the only
- 		 * case where the mirror is selected explicitly when
-@@ -5460,15 +5460,17 @@ static int __btrfs_map_block(struct btrfs_fs_info *fs_info, int rw,
- 			    (offset + *length);
- 
- 	if (map->type & BTRFS_BLOCK_GROUP_RAID0) {
--		if (rw & REQ_DISCARD)
-+		if (op == REQ_OP_DISCARD)
- 			num_stripes = min_t(u64, map->num_stripes,
- 					    stripe_nr_end - stripe_nr_orig);
- 		stripe_nr = div_u64_rem(stripe_nr, map->num_stripes,
- 				&stripe_index);
--		if (!(rw & (REQ_WRITE | REQ_DISCARD | REQ_GET_READ_MIRRORS)))
-+		if (op != REQ_OP_WRITE && op != REQ_OP_DISCARD &&
-+		    op != REQ_GET_READ_MIRRORS)
- 			mirror_num = 1;
- 	} else if (map->type & BTRFS_BLOCK_GROUP_RAID1) {
--		if (rw & (REQ_WRITE | REQ_DISCARD | REQ_GET_READ_MIRRORS))
-+		if (op == REQ_OP_WRITE || op == REQ_OP_DISCARD ||
-+		    op == REQ_GET_READ_MIRRORS)
- 			num_stripes = map->num_stripes;
- 		else if (mirror_num)
- 			stripe_index = mirror_num - 1;
-@@ -5481,7 +5483,8 @@ static int __btrfs_map_block(struct btrfs_fs_info *fs_info, int rw,
- 		}
- 
- 	} else if (map->type & BTRFS_BLOCK_GROUP_DUP) {
--		if (rw & (REQ_WRITE | REQ_DISCARD | REQ_GET_READ_MIRRORS)) {
-+		if (op == REQ_OP_WRITE || REQ_OP_DISCARD ||
-+		    op == REQ_GET_READ_MIRRORS) {
- 			num_stripes = map->num_stripes;
- 		} else if (mirror_num) {
- 			stripe_index = mirror_num - 1;
-@@ -5495,9 +5498,9 @@ static int __btrfs_map_block(struct btrfs_fs_info *fs_info, int rw,
- 		stripe_nr = div_u64_rem(stripe_nr, factor, &stripe_index);
- 		stripe_index *= map->sub_stripes;
- 
--		if (rw & (REQ_WRITE | REQ_GET_READ_MIRRORS))
-+		if (op == REQ_OP_WRITE || op == REQ_GET_READ_MIRRORS)
- 			num_stripes = map->sub_stripes;
--		else if (rw & REQ_DISCARD)
-+		else if (op == REQ_OP_DISCARD)
- 			num_stripes = min_t(u64, map->sub_stripes *
- 					    (stripe_nr_end - stripe_nr_orig),
- 					    map->num_stripes);
-@@ -5515,7 +5518,7 @@ static int __btrfs_map_block(struct btrfs_fs_info *fs_info, int rw,
- 
- 	} else if (map->type & BTRFS_BLOCK_GROUP_RAID56_MASK) {
- 		if (need_raid_map &&
--		    ((rw & (REQ_WRITE | REQ_GET_READ_MIRRORS)) ||
-+		    (op == REQ_OP_WRITE || op == REQ_GET_READ_MIRRORS ||
- 		     mirror_num > 1)) {
- 			/* push stripe_nr back to the start of the full stripe */
- 			stripe_nr = div_u64(raid56_full_stripe_start,
-@@ -5543,8 +5546,8 @@ static int __btrfs_map_block(struct btrfs_fs_info *fs_info, int rw,
- 			/* We distribute the parity blocks across stripes */
- 			div_u64_rem(stripe_nr + stripe_index, map->num_stripes,
- 					&stripe_index);
--			if (!(rw & (REQ_WRITE | REQ_DISCARD |
--				    REQ_GET_READ_MIRRORS)) && mirror_num <= 1)
-+			if ((op != REQ_OP_WRITE && op != REQ_OP_DISCARD &&
-+			    op != REQ_GET_READ_MIRRORS) && mirror_num <= 1)
- 				mirror_num = 1;
- 		}
- 	} else {
-@@ -5567,9 +5570,9 @@ static int __btrfs_map_block(struct btrfs_fs_info *fs_info, int rw,
- 
- 	num_alloc_stripes = num_stripes;
- 	if (dev_replace_is_ongoing) {
--		if (rw & (REQ_WRITE | REQ_DISCARD))
-+		if (op == REQ_OP_WRITE || op == REQ_OP_DISCARD)
- 			num_alloc_stripes <<= 1;
--		if (rw & REQ_GET_READ_MIRRORS)
-+		if (op == REQ_GET_READ_MIRRORS)
- 			num_alloc_stripes++;
- 		tgtdev_indexes = num_stripes;
- 	}
-@@ -5584,7 +5587,8 @@ static int __btrfs_map_block(struct btrfs_fs_info *fs_info, int rw,
- 
- 	/* build raid_map */
- 	if (map->type & BTRFS_BLOCK_GROUP_RAID56_MASK &&
--	    need_raid_map && ((rw & (REQ_WRITE | REQ_GET_READ_MIRRORS)) ||
-+	    need_raid_map &&
-+	    ((op == REQ_OP_WRITE || op == REQ_GET_READ_MIRRORS) ||
- 	    mirror_num > 1)) {
- 		u64 tmp;
- 		unsigned rot;
-@@ -5609,7 +5613,7 @@ static int __btrfs_map_block(struct btrfs_fs_info *fs_info, int rw,
- 				RAID6_Q_STRIPE;
- 	}
- 
--	if (rw & REQ_DISCARD) {
-+	if (op == REQ_OP_DISCARD) {
- 		u32 factor = 0;
- 		u32 sub_stripes = 0;
- 		u64 stripes_per_dev = 0;
-@@ -5689,14 +5693,15 @@ static int __btrfs_map_block(struct btrfs_fs_info *fs_info, int rw,
- 		}
- 	}
- 
--	if (rw & (REQ_WRITE | REQ_GET_READ_MIRRORS))
-+	if (op == REQ_OP_WRITE || op == REQ_GET_READ_MIRRORS)
- 		max_errors = btrfs_chunk_max_errors(map);
- 
- 	if (bbio->raid_map)
- 		sort_parity_stripes(bbio, num_stripes);
- 
- 	tgtdev_indexes = 0;
--	if (dev_replace_is_ongoing && (rw & (REQ_WRITE | REQ_DISCARD)) &&
-+	if (dev_replace_is_ongoing &&
-+	   (op == REQ_OP_WRITE || op == REQ_OP_DISCARD) &&
- 	    dev_replace->tgtdev != NULL) {
- 		int index_where_to_add;
- 		u64 srcdev_devid = dev_replace->srcdev->devid;
-@@ -5731,7 +5736,7 @@ static int __btrfs_map_block(struct btrfs_fs_info *fs_info, int rw,
- 			}
- 		}
- 		num_stripes = index_where_to_add;
--	} else if (dev_replace_is_ongoing && (rw & REQ_GET_READ_MIRRORS) &&
-+	} else if (dev_replace_is_ongoing && (op == REQ_GET_READ_MIRRORS) &&
- 		   dev_replace->tgtdev != NULL) {
- 		u64 srcdev_devid = dev_replace->srcdev->devid;
- 		int index_srcdev = 0;
-@@ -5806,21 +5811,21 @@ out:
- 	return ret;
- }
- 
--int btrfs_map_block(struct btrfs_fs_info *fs_info, int rw,
-+int btrfs_map_block(struct btrfs_fs_info *fs_info, int op,
- 		      u64 logical, u64 *length,
- 		      struct btrfs_bio **bbio_ret, int mirror_num)
+-static inline void __submit_bio(struct f2fs_sb_info *sbi, int rw,
+-						struct bio *bio)
++static inline void __submit_bio(struct f2fs_sb_info *sbi, struct bio *bio)
  {
--	return __btrfs_map_block(fs_info, rw, logical, length, bbio_ret,
-+	return __btrfs_map_block(fs_info, op, logical, length, bbio_ret,
- 				 mirror_num, 0);
+-	if (!is_read_io(rw))
++	if (!is_read_io(bio_op(bio)))
+ 		atomic_inc(&sbi->nr_wb_bios);
+-	bio->bi_rw = rw;
+ 	submit_bio(bio);
  }
  
- /* For Scrub/replace */
--int btrfs_map_sblock(struct btrfs_fs_info *fs_info, int rw,
-+int btrfs_map_sblock(struct btrfs_fs_info *fs_info, int op,
- 		     u64 logical, u64 *length,
- 		     struct btrfs_bio **bbio_ret, int mirror_num,
- 		     int need_raid_map)
+@@ -113,12 +111,14 @@ static void __submit_merged_bio(struct f2fs_bio_info *io)
+ 	if (!io->bio)
+ 		return;
+ 
+-	if (is_read_io(fio->rw))
++	if (is_read_io(fio->op))
+ 		trace_f2fs_submit_read_bio(io->sbi->sb, fio, io->bio);
+ 	else
+ 		trace_f2fs_submit_write_bio(io->sbi->sb, fio, io->bio);
+ 
+-	__submit_bio(io->sbi, fio->rw, io->bio);
++	bio_set_op_attrs(io->bio, fio->op, fio->op_flags);
++
++	__submit_bio(io->sbi, io->bio);
+ 	io->bio = NULL;
+ }
+ 
+@@ -184,10 +184,12 @@ static void __f2fs_submit_merged_bio(struct f2fs_sb_info *sbi,
+ 	/* change META to META_FLUSH in the checkpoint procedure */
+ 	if (type >= META_FLUSH) {
+ 		io->fio.type = META_FLUSH;
++		io->fio.op = REQ_OP_WRITE;
+ 		if (test_opt(sbi, NOBARRIER))
+-			io->fio.rw = WRITE_FLUSH | REQ_META | REQ_PRIO;
++			io->fio.op_flags = WRITE_FLUSH | REQ_META | REQ_PRIO;
+ 		else
+-			io->fio.rw = WRITE_FLUSH_FUA | REQ_META | REQ_PRIO;
++			io->fio.op_flags = WRITE_FLUSH_FUA | REQ_META |
++								REQ_PRIO;
+ 	}
+ 	__submit_merged_bio(io);
+ out:
+@@ -229,14 +231,16 @@ int f2fs_submit_page_bio(struct f2fs_io_info *fio)
+ 	f2fs_trace_ios(fio, 0);
+ 
+ 	/* Allocate a new bio */
+-	bio = __bio_alloc(fio->sbi, fio->new_blkaddr, 1, is_read_io(fio->rw));
++	bio = __bio_alloc(fio->sbi, fio->new_blkaddr, 1, is_read_io(fio->op));
+ 
+ 	if (bio_add_page(bio, page, PAGE_SIZE, 0) < PAGE_SIZE) {
+ 		bio_put(bio);
+ 		return -EFAULT;
+ 	}
++	bio->bi_rw = fio->op_flags;
++	bio_set_op_attrs(bio, fio->op, fio->op_flags);
+ 
+-	__submit_bio(fio->sbi, fio->rw, bio);
++	__submit_bio(fio->sbi, bio);
+ 	return 0;
+ }
+ 
+@@ -245,7 +249,7 @@ void f2fs_submit_page_mbio(struct f2fs_io_info *fio)
+ 	struct f2fs_sb_info *sbi = fio->sbi;
+ 	enum page_type btype = PAGE_TYPE_OF_BIO(fio->type);
+ 	struct f2fs_bio_info *io;
+-	bool is_read = is_read_io(fio->rw);
++	bool is_read = is_read_io(fio->op);
+ 	struct page *bio_page;
+ 
+ 	io = is_read ? &sbi->read_io : &sbi->write_io[btype];
+@@ -257,7 +261,7 @@ void f2fs_submit_page_mbio(struct f2fs_io_info *fio)
+ 	down_write(&io->io_rwsem);
+ 
+ 	if (io->bio && (io->last_block_in_bio != fio->new_blkaddr - 1 ||
+-						io->fio.rw != fio->rw))
++	    (io->fio.op != fio->op || io->fio.op_flags != fio->op_flags)))
+ 		__submit_merged_bio(io);
+ alloc_new:
+ 	if (io->bio == NULL) {
+@@ -391,7 +395,7 @@ int f2fs_get_block(struct dnode_of_data *dn, pgoff_t index)
+ }
+ 
+ struct page *get_read_data_page(struct inode *inode, pgoff_t index,
+-						int rw, bool for_write)
++						int op_flags, bool for_write)
  {
--	return __btrfs_map_block(fs_info, rw, logical, length, bbio_ret,
-+	return __btrfs_map_block(fs_info, op, logical, length, bbio_ret,
- 				 mirror_num, need_raid_map);
+ 	struct address_space *mapping = inode->i_mapping;
+ 	struct dnode_of_data dn;
+@@ -401,7 +405,8 @@ struct page *get_read_data_page(struct inode *inode, pgoff_t index,
+ 	struct f2fs_io_info fio = {
+ 		.sbi = F2FS_I_SB(inode),
+ 		.type = DATA,
+-		.rw = rw,
++		.op = REQ_OP_READ,
++		.op_flags = op_flags,
+ 		.encrypted_page = NULL,
+ 	};
+ 
+@@ -1052,7 +1057,7 @@ got_it:
+ 		 */
+ 		if (bio && (last_block_in_bio != block_nr - 1)) {
+ submit_and_realloc:
+-			__submit_bio(F2FS_I_SB(inode), READ, bio);
++			__submit_bio(F2FS_I_SB(inode), bio);
+ 			bio = NULL;
+ 		}
+ 		if (bio == NULL) {
+@@ -1081,7 +1086,7 @@ submit_and_realloc:
+ 			bio->bi_iter.bi_sector = SECTOR_FROM_BLOCK(block_nr);
+ 			bio->bi_end_io = f2fs_read_end_io;
+ 			bio->bi_private = ctx;
+-			bio->bi_rw = READ;
++			bio_set_op_attrs(bio, REQ_OP_READ, 0);
+ 		}
+ 
+ 		if (bio_add_page(bio, page, blocksize, 0) < blocksize)
+@@ -1096,7 +1101,7 @@ set_error_page:
+ 		goto next_page;
+ confused:
+ 		if (bio) {
+-			__submit_bio(F2FS_I_SB(inode), READ, bio);
++			__submit_bio(F2FS_I_SB(inode), bio);
+ 			bio = NULL;
+ 		}
+ 		unlock_page(page);
+@@ -1106,7 +1111,7 @@ next_page:
+ 	}
+ 	BUG_ON(pages && !list_empty(pages));
+ 	if (bio)
+-		__submit_bio(F2FS_I_SB(inode), READ, bio);
++		__submit_bio(F2FS_I_SB(inode), bio);
+ 	return 0;
  }
  
-diff --git a/fs/btrfs/volumes.h b/fs/btrfs/volumes.h
-index 0ac90f8..3b78700 100644
---- a/fs/btrfs/volumes.h
-+++ b/fs/btrfs/volumes.h
-@@ -375,10 +375,10 @@ int btrfs_account_dev_extents_size(struct btrfs_device *device, u64 start,
- 				   u64 end, u64 *length);
- void btrfs_get_bbio(struct btrfs_bio *bbio);
- void btrfs_put_bbio(struct btrfs_bio *bbio);
--int btrfs_map_block(struct btrfs_fs_info *fs_info, int rw,
-+int btrfs_map_block(struct btrfs_fs_info *fs_info, int op,
- 		    u64 logical, u64 *length,
- 		    struct btrfs_bio **bbio_ret, int mirror_num);
--int btrfs_map_sblock(struct btrfs_fs_info *fs_info, int rw,
-+int btrfs_map_sblock(struct btrfs_fs_info *fs_info, int op,
- 		     u64 logical, u64 *length,
- 		     struct btrfs_bio **bbio_ret, int mirror_num,
- 		     int need_raid_map);
+@@ -1223,7 +1228,8 @@ static int f2fs_write_data_page(struct page *page,
+ 	struct f2fs_io_info fio = {
+ 		.sbi = sbi,
+ 		.type = DATA,
+-		.rw = (wbc->sync_mode == WB_SYNC_ALL) ? WRITE_SYNC : WRITE,
++		.op = REQ_OP_WRITE,
++		.op_flags = (wbc->sync_mode == WB_SYNC_ALL) ? WRITE_SYNC : 0,
+ 		.page = page,
+ 		.encrypted_page = NULL,
+ 	};
+@@ -1664,7 +1670,8 @@ repeat:
+ 		struct f2fs_io_info fio = {
+ 			.sbi = sbi,
+ 			.type = DATA,
+-			.rw = READ_SYNC,
++			.op = REQ_OP_READ,
++			.op_flags = READ_SYNC,
+ 			.old_blkaddr = blkaddr,
+ 			.new_blkaddr = blkaddr,
+ 			.page = page,
+diff --git a/fs/f2fs/f2fs.h b/fs/f2fs/f2fs.h
+index 916e7c2..23ae6a8 100644
+--- a/fs/f2fs/f2fs.h
++++ b/fs/f2fs/f2fs.h
+@@ -686,14 +686,15 @@ enum page_type {
+ struct f2fs_io_info {
+ 	struct f2fs_sb_info *sbi;	/* f2fs_sb_info pointer */
+ 	enum page_type type;	/* contains DATA/NODE/META/META_FLUSH */
+-	int rw;			/* contains R/RS/W/WS with REQ_META/REQ_PRIO */
++	int op;			/* contains REQ_OP_ */
++	int op_flags;		/* rq_flag_bits */
+ 	block_t new_blkaddr;	/* new block address to be written */
+ 	block_t old_blkaddr;	/* old block address before Cow */
+ 	struct page *page;	/* page to be written */
+ 	struct page *encrypted_page;	/* encrypted page */
+ };
+ 
+-#define is_read_io(rw)	(((rw) & 1) == READ)
++#define is_read_io(rw) (rw == READ)
+ struct f2fs_bio_info {
+ 	struct f2fs_sb_info *sbi;	/* f2fs superblock */
+ 	struct bio *bio;		/* bios to merge */
+diff --git a/fs/f2fs/gc.c b/fs/f2fs/gc.c
+index 38d56f6..3649d86 100644
+--- a/fs/f2fs/gc.c
++++ b/fs/f2fs/gc.c
+@@ -538,7 +538,8 @@ static void move_encrypted_block(struct inode *inode, block_t bidx)
+ 	struct f2fs_io_info fio = {
+ 		.sbi = F2FS_I_SB(inode),
+ 		.type = DATA,
+-		.rw = READ_SYNC,
++		.op = REQ_OP_READ,
++		.op_flags = READ_SYNC,
+ 		.encrypted_page = NULL,
+ 	};
+ 	struct dnode_of_data dn;
+@@ -612,7 +613,8 @@ static void move_encrypted_block(struct inode *inode, block_t bidx)
+ 	/* allocate block address */
+ 	f2fs_wait_on_page_writeback(dn.node_page, NODE, true);
+ 
+-	fio.rw = WRITE_SYNC;
++	fio.op = REQ_OP_WRITE;
++	fio.op_flags = WRITE_SYNC;
+ 	fio.new_blkaddr = newaddr;
+ 	f2fs_submit_page_mbio(&fio);
+ 
+@@ -649,7 +651,8 @@ static void move_data_page(struct inode *inode, block_t bidx, int gc_type)
+ 		struct f2fs_io_info fio = {
+ 			.sbi = F2FS_I_SB(inode),
+ 			.type = DATA,
+-			.rw = WRITE_SYNC,
++			.op = REQ_OP_WRITE,
++			.op_flags = WRITE_SYNC,
+ 			.page = page,
+ 			.encrypted_page = NULL,
+ 		};
+diff --git a/fs/f2fs/inline.c b/fs/f2fs/inline.c
+index a4bb155..c15e53c 100644
+--- a/fs/f2fs/inline.c
++++ b/fs/f2fs/inline.c
+@@ -108,7 +108,8 @@ int f2fs_convert_inline_page(struct dnode_of_data *dn, struct page *page)
+ 	struct f2fs_io_info fio = {
+ 		.sbi = F2FS_I_SB(dn->inode),
+ 		.type = DATA,
+-		.rw = WRITE_SYNC | REQ_PRIO,
++		.op = REQ_OP_WRITE,
++		.op_flags = WRITE_SYNC | REQ_PRIO,
+ 		.page = page,
+ 		.encrypted_page = NULL,
+ 	};
+diff --git a/fs/f2fs/node.c b/fs/f2fs/node.c
+index 1f21aae..e534039 100644
+--- a/fs/f2fs/node.c
++++ b/fs/f2fs/node.c
+@@ -1070,14 +1070,15 @@ fail:
+  * 0: f2fs_put_page(page, 0)
+  * LOCKED_PAGE or error: f2fs_put_page(page, 1)
+  */
+-static int read_node_page(struct page *page, int rw)
++static int read_node_page(struct page *page, int op_flags)
+ {
+ 	struct f2fs_sb_info *sbi = F2FS_P_SB(page);
+ 	struct node_info ni;
+ 	struct f2fs_io_info fio = {
+ 		.sbi = sbi,
+ 		.type = NODE,
+-		.rw = rw,
++		.op = REQ_OP_READ,
++		.op_flags = op_flags,
+ 		.page = page,
+ 		.encrypted_page = NULL,
+ 	};
+@@ -1568,7 +1569,8 @@ static int f2fs_write_node_page(struct page *page,
+ 	struct f2fs_io_info fio = {
+ 		.sbi = sbi,
+ 		.type = NODE,
+-		.rw = (wbc->sync_mode == WB_SYNC_ALL) ? WRITE_SYNC : WRITE,
++		.op = REQ_OP_WRITE,
++		.op_flags = (wbc->sync_mode == WB_SYNC_ALL) ? WRITE_SYNC : 0,
+ 		.page = page,
+ 		.encrypted_page = NULL,
+ 	};
+diff --git a/fs/f2fs/segment.c b/fs/f2fs/segment.c
+index 3fe2fab..4c2d1fa 100644
+--- a/fs/f2fs/segment.c
++++ b/fs/f2fs/segment.c
+@@ -257,7 +257,8 @@ static int __commit_inmem_pages(struct inode *inode,
+ 	struct f2fs_io_info fio = {
+ 		.sbi = sbi,
+ 		.type = DATA,
+-		.rw = WRITE_SYNC | REQ_PRIO,
++		.op = REQ_OP_WRITE,
++		.op_flags = WRITE_SYNC | REQ_PRIO,
+ 		.encrypted_page = NULL,
+ 	};
+ 	bool submit_bio = false;
+@@ -406,7 +407,7 @@ repeat:
+ 		fcc->dispatch_list = llist_reverse_order(fcc->dispatch_list);
+ 
+ 		bio->bi_bdev = sbi->sb->s_bdev;
+-		bio->bi_rw = WRITE_FLUSH;
++		bio_set_op_attrs(bio, REQ_OP_WRITE, WRITE_FLUSH);
+ 		ret = submit_bio_wait(bio);
+ 
+ 		llist_for_each_entry_safe(cmd, next,
+@@ -439,7 +440,7 @@ int f2fs_issue_flush(struct f2fs_sb_info *sbi)
+ 		int ret;
+ 
+ 		bio->bi_bdev = sbi->sb->s_bdev;
+-		bio->bi_rw = WRITE_FLUSH;
++		bio_set_op_attrs(bio, REQ_OP_WRITE, WRITE_FLUSH);
+ 		ret = submit_bio_wait(bio);
+ 		bio_put(bio);
+ 		return ret;
+@@ -1403,7 +1404,8 @@ void write_meta_page(struct f2fs_sb_info *sbi, struct page *page)
+ 	struct f2fs_io_info fio = {
+ 		.sbi = sbi,
+ 		.type = META,
+-		.rw = WRITE_SYNC | REQ_META | REQ_PRIO,
++		.op = REQ_OP_WRITE,
++		.op_flags = WRITE_SYNC | REQ_META | REQ_PRIO,
+ 		.old_blkaddr = page->index,
+ 		.new_blkaddr = page->index,
+ 		.page = page,
+@@ -1411,7 +1413,7 @@ void write_meta_page(struct f2fs_sb_info *sbi, struct page *page)
+ 	};
+ 
+ 	if (unlikely(page->index >= MAIN_BLKADDR(sbi)))
+-		fio.rw &= ~REQ_META;
++		fio.op_flags &= ~REQ_META;
+ 
+ 	set_page_writeback(page);
+ 	f2fs_submit_page_mbio(&fio);
+diff --git a/fs/f2fs/trace.c b/fs/f2fs/trace.c
+index 562ce08..73b4e1d 100644
+--- a/fs/f2fs/trace.c
++++ b/fs/f2fs/trace.c
+@@ -25,11 +25,11 @@ static inline void __print_last_io(void)
+ 	if (!last_io.len)
+ 		return;
+ 
+-	trace_printk("%3x:%3x %4x %-16s %2x %5x %12x %4x\n",
++	trace_printk("%3x:%3x %4x %-16s %2x %5x %5x %12x %4x\n",
+ 			last_io.major, last_io.minor,
+ 			last_io.pid, "----------------",
+ 			last_io.type,
+-			last_io.fio.rw,
++			last_io.fio.op, last_io.fio.op_flags,
+ 			last_io.fio.new_blkaddr,
+ 			last_io.len);
+ 	memset(&last_io, 0, sizeof(last_io));
+@@ -101,7 +101,8 @@ void f2fs_trace_ios(struct f2fs_io_info *fio, int flush)
+ 	if (last_io.major == major && last_io.minor == minor &&
+ 			last_io.pid == pid &&
+ 			last_io.type == __file_type(inode, pid) &&
+-			last_io.fio.rw == fio->rw &&
++			last_io.fio.op == fio->op &&
++			last_io.fio.op_flags == fio->op_flags &&
+ 			last_io.fio.new_blkaddr + last_io.len ==
+ 							fio->new_blkaddr) {
+ 		last_io.len++;
+diff --git a/include/trace/events/f2fs.h b/include/trace/events/f2fs.h
+index 3a09bb4..733b896 100644
+--- a/include/trace/events/f2fs.h
++++ b/include/trace/events/f2fs.h
+@@ -56,17 +56,21 @@ TRACE_DEFINE_ENUM(CP_DISCARD);
+ 		{ IPU,		"IN-PLACE" },				\
+ 		{ OPU,		"OUT-OF-PLACE" })
+ 
+-#define F2FS_BIO_MASK(t)	(t & (READA | WRITE_FLUSH_FUA))
++#define F2FS_BIO_FLAG_MASK(t)	(t & (READA | WRITE_FLUSH_FUA))
+ #define F2FS_BIO_EXTRA_MASK(t)	(t & (REQ_META | REQ_PRIO))
+ 
+-#define show_bio_type(type)	show_bio_base(type), show_bio_extra(type)
++#define show_bio_type(op, op_flags) show_bio_op(op),			\
++			show_bio_op_flags(op_flags), show_bio_extra(op_flags)
+ 
+-#define show_bio_base(type)						\
+-	__print_symbolic(F2FS_BIO_MASK(type),				\
++#define show_bio_op(op)							\
++	__print_symbolic(op,						\
+ 		{ READ, 		"READ" },			\
++		{ WRITE,		"WRITE" })
++
++#define show_bio_op_flags(flags)					\
++	__print_symbolic(F2FS_BIO_FLAG_MASK(flags),			\
+ 		{ READA, 		"READAHEAD" },			\
+ 		{ READ_SYNC, 		"READ_SYNC" },			\
+-		{ WRITE, 		"WRITE" },			\
+ 		{ WRITE_SYNC, 		"WRITE_SYNC" },			\
+ 		{ WRITE_FLUSH,		"WRITE_FLUSH" },		\
+ 		{ WRITE_FUA, 		"WRITE_FUA" },			\
+@@ -734,7 +738,8 @@ DECLARE_EVENT_CLASS(f2fs__submit_page_bio,
+ 		__field(pgoff_t, index)
+ 		__field(block_t, old_blkaddr)
+ 		__field(block_t, new_blkaddr)
+-		__field(int, rw)
++		__field(int, op)
++		__field(int, op_flags)
+ 		__field(int, type)
+ 	),
+ 
+@@ -744,17 +749,18 @@ DECLARE_EVENT_CLASS(f2fs__submit_page_bio,
+ 		__entry->index		= page->index;
+ 		__entry->old_blkaddr	= fio->old_blkaddr;
+ 		__entry->new_blkaddr	= fio->new_blkaddr;
+-		__entry->rw		= fio->rw;
++		__entry->op		= fio->op;
++		__entry->op_flags	= fio->op_flags;
+ 		__entry->type		= fio->type;
+ 	),
+ 
+ 	TP_printk("dev = (%d,%d), ino = %lu, page_index = 0x%lx, "
+-		"oldaddr = 0x%llx, newaddr = 0x%llx rw = %s%s, type = %s",
++		"oldaddr = 0x%llx, newaddr = 0x%llx rw = %s%si%s, type = %s",
+ 		show_dev_ino(__entry),
+ 		(unsigned long)__entry->index,
+ 		(unsigned long long)__entry->old_blkaddr,
+ 		(unsigned long long)__entry->new_blkaddr,
+-		show_bio_type(__entry->rw),
++		show_bio_type(__entry->op, __entry->op_flags),
+ 		show_block_type(__entry->type))
+ );
+ 
+@@ -785,7 +791,8 @@ DECLARE_EVENT_CLASS(f2fs__submit_bio,
+ 
+ 	TP_STRUCT__entry(
+ 		__field(dev_t,	dev)
+-		__field(int,	rw)
++		__field(int,	op)
++		__field(int,	op_flags)
+ 		__field(int,	type)
+ 		__field(sector_t,	sector)
+ 		__field(unsigned int,	size)
+@@ -793,15 +800,16 @@ DECLARE_EVENT_CLASS(f2fs__submit_bio,
+ 
+ 	TP_fast_assign(
+ 		__entry->dev		= sb->s_dev;
+-		__entry->rw		= fio->rw;
++		__entry->op		= fio->op;
++		__entry->op_flags	= fio->op_flags;
+ 		__entry->type		= fio->type;
+ 		__entry->sector		= bio->bi_iter.bi_sector;
+ 		__entry->size		= bio->bi_iter.bi_size;
+ 	),
+ 
+-	TP_printk("dev = (%d,%d), %s%s, %s, sector = %lld, size = %u",
++	TP_printk("dev = (%d,%d), %s%s%s, %s, sector = %lld, size = %u",
+ 		show_dev(__entry),
+-		show_bio_type(__entry->rw),
++		show_bio_type(__entry->op, __entry->op_flags),
+ 		show_block_type(__entry->type),
+ 		(unsigned long long)__entry->sector,
+ 		__entry->size)
 -- 
 2.7.2
