@@ -1,11 +1,11 @@
 From: Hannes Reinecke <hare@suse.de>
-Date: Mon, 6 Jun 2016 08:15:49 +0200
-Subject: [Ocfs2-devel] [PATCH 06/45] dm: use op_is_write instead of
+Date: Mon, 6 Jun 2016 08:16:44 +0200
+Subject: [Ocfs2-devel] [PATCH 07/45] bcache: use op_is_write instead of
  checking for REQ_WRITE
-In-Reply-To: <1465155145-10812-7-git-send-email-mchristi@redhat.com>
+In-Reply-To: <1465155145-10812-8-git-send-email-mchristi@redhat.com>
 References: <1465155145-10812-1-git-send-email-mchristi@redhat.com>
-	<1465155145-10812-7-git-send-email-mchristi@redhat.com>
-Message-ID: <57551515.8060205@suse.de>
+	<1465155145-10812-8-git-send-email-mchristi@redhat.com>
+Message-ID: <5755154C.7030007@suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -21,13 +21,16 @@ On 06/05/2016 09:31 PM, mchristi at redhat.com wrote:
 > detect a operation direction like writesame by testing if REQ_WRITE is
 > set.
 > 
-> This has dm use the op_is_write helper which will do the right
+> This has bcache use the op_is_write helper which will do the right
 > thing.
 > 
 > Signed-off-by: Mike Christie <mchristi@redhat.com>
 > ---
-
-(Could probably be folded into the previous patch)
+>  drivers/md/bcache/io.c      | 2 +-
+>  drivers/md/bcache/request.c | 6 +++---
+>  2 files changed, 4 insertions(+), 4 deletions(-)
+> 
+(Could probably folded together with the two previous patches)
 
 Reviewed-by: Hannes Reinecke <hare@suse.com>
 
