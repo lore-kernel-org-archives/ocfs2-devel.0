@@ -1,11 +1,11 @@
 From: Hannes Reinecke <hare@suse.de>
-Date: Mon, 6 Jun 2016 08:14:40 +0200
-Subject: [Ocfs2-devel] [PATCH 05/45] block, drivers,
- cgroup: use op_is_write helper instead of checking for REQ_WRITE
-In-Reply-To: <1465155145-10812-6-git-send-email-mchristi@redhat.com>
+Date: Mon, 6 Jun 2016 08:15:49 +0200
+Subject: [Ocfs2-devel] [PATCH 06/45] dm: use op_is_write instead of
+ checking for REQ_WRITE
+In-Reply-To: <1465155145-10812-7-git-send-email-mchristi@redhat.com>
 References: <1465155145-10812-1-git-send-email-mchristi@redhat.com>
-	<1465155145-10812-6-git-send-email-mchristi@redhat.com>
-Message-ID: <575514D0.3000609@suse.de>
+	<1465155145-10812-7-git-send-email-mchristi@redhat.com>
+Message-ID: <57551515.8060205@suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -21,13 +21,14 @@ On 06/05/2016 09:31 PM, mchristi at redhat.com wrote:
 > detect a operation direction like writesame by testing if REQ_WRITE is
 > set.
 > 
-> This patch converts the drivers and cgroup to use the
-> op_is_write helper. This should just cover the simple
-> cases. I did dm, md and bcache in their own patches
-> because they were more involved.
+> This has dm use the op_is_write helper which will do the right
+> thing.
 > 
 > Signed-off-by: Mike Christie <mchristi@redhat.com>
 > ---
+
+(Could probably be folded into the previous patch)
+
 Reviewed-by: Hannes Reinecke <hare@suse.com>
 
 Cheers,
