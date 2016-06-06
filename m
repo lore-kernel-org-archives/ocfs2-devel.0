@@ -1,11 +1,11 @@
 From: Hannes Reinecke <hare@suse.de>
-Date: Mon, 6 Jun 2016 08:13:39 +0200
-Subject: [Ocfs2-devel] [PATCH 02/45] block: add REQ_OP definitions and
-	helpers
-In-Reply-To: <1465155145-10812-3-git-send-email-mchristi@redhat.com>
+Date: Mon, 6 Jun 2016 08:14:40 +0200
+Subject: [Ocfs2-devel] [PATCH 05/45] block, drivers,
+ cgroup: use op_is_write helper instead of checking for REQ_WRITE
+In-Reply-To: <1465155145-10812-6-git-send-email-mchristi@redhat.com>
 References: <1465155145-10812-1-git-send-email-mchristi@redhat.com>
-	<1465155145-10812-3-git-send-email-mchristi@redhat.com>
-Message-ID: <57551493.5050300@suse.de>
+	<1465155145-10812-6-git-send-email-mchristi@redhat.com>
+Message-ID: <575514D0.3000609@suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -15,16 +15,16 @@ To: mchristi@redhat.com, linux-f2fs-devel@lists.sourceforge.net, linux-ext4@vger
 On 06/05/2016 09:31 PM, mchristi at redhat.com wrote:
 > From: Mike Christie <mchristi@redhat.com>
 > 
-> The following patches separate the operation (WRITE, READ, DISCARD,
-> etc) from the rq_flag_bits flags. This patch adds definitions for
-> request/bio operations (REQ_OPs) and adds request/bio accessors to
-> get/set the op.
+> We currently set REQ_WRITE/WRITE for all non READ IOs
+> like discard, flush, writesame, etc. In the next patches where we
+> no longer set up the op as a bitmap, we will not be able to
+> detect a operation direction like writesame by testing if REQ_WRITE is
+> set.
 > 
-> In this patch the REQ_OPs match the REQ rq_flag_bits ones
-> for compat reasons while all the code is converted to use the
-> op accessors in the set. In the last patches the op will become a
-> number and the accessors and helpers in this patch will be dropped
-> or updated.
+> This patch converts the drivers and cgroup to use the
+> op_is_write helper. This should just cover the simple
+> cases. I did dm, md and bcache in their own patches
+> because they were more involved.
 > 
 > Signed-off-by: Mike Christie <mchristi@redhat.com>
 > ---
