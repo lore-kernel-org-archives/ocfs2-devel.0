@@ -1,10 +1,10 @@
 From: Hannes Reinecke <hare@suse.de>
-Date: Mon, 6 Jun 2016 08:43:51 +0200
-Subject: [Ocfs2-devel] [PATCH 24/45] dm: use bio op accessors
-In-Reply-To: <1465155145-10812-25-git-send-email-mchristi@redhat.com>
+Date: Mon, 6 Jun 2016 08:45:06 +0200
+Subject: [Ocfs2-devel] [PATCH 25/45] bcache: use bio op accessors
+In-Reply-To: <1465155145-10812-26-git-send-email-mchristi@redhat.com>
 References: <1465155145-10812-1-git-send-email-mchristi@redhat.com>
-	<1465155145-10812-25-git-send-email-mchristi@redhat.com>
-Message-ID: <57551BA7.8080102@suse.de>
+	<1465155145-10812-26-git-send-email-mchristi@redhat.com>
+Message-ID: <57551BF2.6060000@suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -14,10 +14,19 @@ To: mchristi@redhat.com, linux-f2fs-devel@lists.sourceforge.net, linux-ext4@vger
 On 06/05/2016 09:32 PM, mchristi at redhat.com wrote:
 > From: Mike Christie <mchristi@redhat.com>
 > 
-> Separate the op from the rq_flag_bits and have dm
+> Separate the op from the rq_flag_bits and have bcache
 > set/get the bio using bio_set_op_attrs/bio_op.
 > 
 > Signed-off-by: Mike Christie <mchristi@redhat.com>
+> ---
+>  drivers/md/bcache/btree.c     |  4 ++--
+>  drivers/md/bcache/debug.c     |  4 ++--
+>  drivers/md/bcache/journal.c   |  7 ++++---
+>  drivers/md/bcache/movinggc.c  |  2 +-
+>  drivers/md/bcache/request.c   | 14 +++++++-------
+>  drivers/md/bcache/super.c     | 24 +++++++++++++-----------
+>  drivers/md/bcache/writeback.c |  4 ++--
+>  7 files changed, 31 insertions(+), 28 deletions(-)
 > 
 Reviewed-by: Hannes Reinecke <hare@suse.com>
 
