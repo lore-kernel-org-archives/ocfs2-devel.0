@@ -1,97 +1,136 @@
-From: Joseph Qi <joseph.qi@huawei.com>
-Date: Fri, 17 Jun 2016 17:43:32 +0800
-Subject: [Ocfs2-devel] [PATCH v2] ocfs2: improve recovery performance
-In-Reply-To: <1466155682-24656-1-git-send-email-junxiao.bi@oracle.com>
-References: <1466155682-24656-1-git-send-email-junxiao.bi@oracle.com>
-Message-ID: <5763C644.9060104@huawei.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Fri, 17 Jun 2016 22:03:16 +0200
+Subject: [Ocfs2-devel] [PATCH] quota: use time64_t internally
+Message-ID: <20160617200344.2096348-1-arnd@arndb.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Jan Kara <jack@suse.com>
+Cc: y2038@lists.linaro.org, linux-fsdevel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
 
-On 2016/6/17 17:28, Junxiao Bi wrote:
-> Journal replay will be run when do recovery for a dead node,
-> to avoid the stale cache impact, all blocks of dead node's
-> journal inode were reload from disk. This hurts the performance,
-> check whether one block is cached before reload it can improve
-> a lot performance. In my test env, the time doing recovery was
-> improved from 120s to 1s.
-> 
-> Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
-Looks good to me. And it indeed has performance improvement from my
-test.
-Reviewed-by: Joseph Qi <joseph.qi@huawei.com>
+The quota subsystem has two formats, the old v1 format using architecture
+specific time_t values on the on-disk format, while the v2 format
+(introduced in Linux 2.5.16 and 2.4.22) uses fixed 64-bit little-endian.
 
-> ---
->  fs/ocfs2/journal.c |   41 ++++++++++++++++++++++-------------------
->  1 file changed, 22 insertions(+), 19 deletions(-)
-> 
-> diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
-> index e607419cdfa4..bc0e21e8a674 100644
-> --- a/fs/ocfs2/journal.c
-> +++ b/fs/ocfs2/journal.c
-> @@ -1159,10 +1159,8 @@ static int ocfs2_force_read_journal(struct inode *inode)
->  	int status = 0;
->  	int i;
->  	u64 v_blkno, p_blkno, p_blocks, num_blocks;
-> -#define CONCURRENT_JOURNAL_FILL 32ULL
-> -	struct buffer_head *bhs[CONCURRENT_JOURNAL_FILL];
-> -
-> -	memset(bhs, 0, sizeof(struct buffer_head *) * CONCURRENT_JOURNAL_FILL);
-> +	struct buffer_head *bh = NULL;
-> +	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
->  
->  	num_blocks = ocfs2_blocks_for_bytes(inode->i_sb, i_size_read(inode));
->  	v_blkno = 0;
-> @@ -1174,29 +1172,34 @@ static int ocfs2_force_read_journal(struct inode *inode)
->  			goto bail;
->  		}
->  
-> -		if (p_blocks > CONCURRENT_JOURNAL_FILL)
-> -			p_blocks = CONCURRENT_JOURNAL_FILL;
-> +		for (i = 0; i < p_blocks; i++) {
-> +			bh = __find_get_block(osb->sb->s_bdev, p_blkno,
-> +					osb->sb->s_blocksize);
-> +			/* block not cached. */
-> +			if (!bh) {
-> +				p_blkno++;
-> +				continue;
-> +			}
->  
-> -		/* We are reading journal data which should not
-> -		 * be put in the uptodate cache */
-> -		status = ocfs2_read_blocks_sync(OCFS2_SB(inode->i_sb),
-> -						p_blkno, p_blocks, bhs);
-> -		if (status < 0) {
-> -			mlog_errno(status);
-> -			goto bail;
-> -		}
-> +			brelse(bh);
-> +			bh = NULL;
-> +			/* We are reading journal data which should not
-> +			 * be put in the uptodate cache.
-> +			 */
-> +			status = ocfs2_read_blocks_sync(osb, p_blkno, 1, &bh);
-> +			if (status < 0) {
-> +				mlog_errno(status);
-> +				goto bail;
-> +			}
->  
-> -		for(i = 0; i < p_blocks; i++) {
-> -			brelse(bhs[i]);
-> -			bhs[i] = NULL;
-> +			brelse(bh);
-> +			bh = NULL;
->  		}
->  
->  		v_blkno += p_blocks;
->  	}
->  
->  bail:
-> -	for(i = 0; i < CONCURRENT_JOURNAL_FILL; i++)
-> -		brelse(bhs[i]);
->  	return status;
->  }
->  
-> 
+While there is no future for the v1 format beyond y2038, the v2 format
+is almost there on 32-bit architectures, as both the user interface
+and the on-disk format use 64-bit timestamps, just not the time_t
+inbetween.
+
+This changes the internal representation to use time64_t, which will
+end up doing the right thing everywhere for v2 format.
+
+Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+---
+ fs/ocfs2/quota_global.c |  2 +-
+ fs/quota/dquot.c        | 16 ++++++++--------
+ include/linux/quota.h   |  4 ++--
+ 3 files changed, 11 insertions(+), 11 deletions(-)
+
+diff --git a/fs/ocfs2/quota_global.c b/fs/ocfs2/quota_global.c
+index ab6a6cdcf91c..87e577a49b0d 100644
+--- a/fs/ocfs2/quota_global.c
++++ b/fs/ocfs2/quota_global.c
+@@ -483,7 +483,7 @@ int __ocfs2_sync_dquot(struct dquot *dquot, int freeing)
+ 	struct ocfs2_mem_dqinfo *info = sb_dqinfo(sb, type)->dqi_priv;
+ 	struct ocfs2_global_disk_dqblk dqblk;
+ 	s64 spacechange, inodechange;
+-	time_t olditime, oldbtime;
++	time64_t olditime, oldbtime;
+ 
+ 	err = sb->s_op->quota_read(sb, type, (char *)&dqblk,
+ 				   sizeof(struct ocfs2_global_disk_dqblk),
+diff --git a/fs/quota/dquot.c b/fs/quota/dquot.c
+index ff21980d0119..b1322dd9d136 100644
+--- a/fs/quota/dquot.c
++++ b/fs/quota/dquot.c
+@@ -1133,7 +1133,7 @@ static void dquot_decr_inodes(struct dquot *dquot, qsize_t number)
+ 	else
+ 		dquot->dq_dqb.dqb_curinodes = 0;
+ 	if (dquot->dq_dqb.dqb_curinodes <= dquot->dq_dqb.dqb_isoftlimit)
+-		dquot->dq_dqb.dqb_itime = (time_t) 0;
++		dquot->dq_dqb.dqb_itime = (time64_t) 0;
+ 	clear_bit(DQ_INODES_B, &dquot->dq_flags);
+ }
+ 
+@@ -1145,7 +1145,7 @@ static void dquot_decr_space(struct dquot *dquot, qsize_t number)
+ 	else
+ 		dquot->dq_dqb.dqb_curspace = 0;
+ 	if (dquot->dq_dqb.dqb_curspace <= dquot->dq_dqb.dqb_bsoftlimit)
+-		dquot->dq_dqb.dqb_btime = (time_t) 0;
++		dquot->dq_dqb.dqb_btime = (time64_t) 0;
+ 	clear_bit(DQ_BLKS_B, &dquot->dq_flags);
+ }
+ 
+@@ -1292,7 +1292,7 @@ static int check_idq(struct dquot *dquot, qsize_t inodes,
+ 	if (dquot->dq_dqb.dqb_isoftlimit &&
+ 	    newinodes > dquot->dq_dqb.dqb_isoftlimit &&
+ 	    dquot->dq_dqb.dqb_itime &&
+-	    get_seconds() >= dquot->dq_dqb.dqb_itime &&
++	    ktime_get_real_seconds() >= dquot->dq_dqb.dqb_itime &&
+             !ignore_hardlimit(dquot)) {
+ 		prepare_warning(warn, dquot, QUOTA_NL_ISOFTLONGWARN);
+ 		return -EDQUOT;
+@@ -1302,7 +1302,7 @@ static int check_idq(struct dquot *dquot, qsize_t inodes,
+ 	    newinodes > dquot->dq_dqb.dqb_isoftlimit &&
+ 	    dquot->dq_dqb.dqb_itime == 0) {
+ 		prepare_warning(warn, dquot, QUOTA_NL_ISOFTWARN);
+-		dquot->dq_dqb.dqb_itime = get_seconds() +
++		dquot->dq_dqb.dqb_itime = ktime_get_real_seconds() +
+ 		    sb_dqopt(dquot->dq_sb)->info[dquot->dq_id.type].dqi_igrace;
+ 	}
+ 
+@@ -1334,7 +1334,7 @@ static int check_bdq(struct dquot *dquot, qsize_t space, int prealloc,
+ 	if (dquot->dq_dqb.dqb_bsoftlimit &&
+ 	    tspace > dquot->dq_dqb.dqb_bsoftlimit &&
+ 	    dquot->dq_dqb.dqb_btime &&
+-	    get_seconds() >= dquot->dq_dqb.dqb_btime &&
++	    ktime_get_real_seconds() >= dquot->dq_dqb.dqb_btime &&
+             !ignore_hardlimit(dquot)) {
+ 		if (!prealloc)
+ 			prepare_warning(warn, dquot, QUOTA_NL_BSOFTLONGWARN);
+@@ -1346,7 +1346,7 @@ static int check_bdq(struct dquot *dquot, qsize_t space, int prealloc,
+ 	    dquot->dq_dqb.dqb_btime == 0) {
+ 		if (!prealloc) {
+ 			prepare_warning(warn, dquot, QUOTA_NL_BSOFTWARN);
+-			dquot->dq_dqb.dqb_btime = get_seconds() +
++			dquot->dq_dqb.dqb_btime = ktime_get_real_seconds() +
+ 			    sb_dqopt(sb)->info[dquot->dq_id.type].dqi_bgrace;
+ 		}
+ 		else
+@@ -2695,7 +2695,7 @@ static int do_set_dqblk(struct dquot *dquot, struct qc_dqblk *di)
+ 			clear_bit(DQ_BLKS_B, &dquot->dq_flags);
+ 		} else if (!(di->d_fieldmask & QC_SPC_TIMER))
+ 			/* Set grace only if user hasn't provided his own... */
+-			dm->dqb_btime = get_seconds() + dqi->dqi_bgrace;
++			dm->dqb_btime = ktime_get_real_seconds() + dqi->dqi_bgrace;
+ 	}
+ 	if (check_ilim) {
+ 		if (!dm->dqb_isoftlimit ||
+@@ -2704,7 +2704,7 @@ static int do_set_dqblk(struct dquot *dquot, struct qc_dqblk *di)
+ 			clear_bit(DQ_INODES_B, &dquot->dq_flags);
+ 		} else if (!(di->d_fieldmask & QC_INO_TIMER))
+ 			/* Set grace only if user hasn't provided his own... */
+-			dm->dqb_itime = get_seconds() + dqi->dqi_igrace;
++			dm->dqb_itime = ktime_get_real_seconds() + dqi->dqi_igrace;
+ 	}
+ 	if (dm->dqb_bhardlimit || dm->dqb_bsoftlimit || dm->dqb_ihardlimit ||
+ 	    dm->dqb_isoftlimit)
+diff --git a/include/linux/quota.h b/include/linux/quota.h
+index 9dfb6bce8c9e..8486d27cf360 100644
+--- a/include/linux/quota.h
++++ b/include/linux/quota.h
+@@ -200,8 +200,8 @@ struct mem_dqblk {
+ 	qsize_t dqb_ihardlimit;	/* absolute limit on allocated inodes */
+ 	qsize_t dqb_isoftlimit;	/* preferred inode limit */
+ 	qsize_t dqb_curinodes;	/* current # allocated inodes */
+-	time_t dqb_btime;	/* time limit for excessive disk use */
+-	time_t dqb_itime;	/* time limit for excessive inode use */
++	time64_t dqb_btime;	/* time limit for excessive disk use */
++	time64_t dqb_itime;	/* time limit for excessive inode use */
+ };
+ 
+ /*
+-- 
+2.9.0
