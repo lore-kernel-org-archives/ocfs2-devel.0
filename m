@@ -1,181 +1,108 @@
-From: Eric Ren <zren@suse.com>
-Date: Wed, 22 Jun 2016 17:07:49 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: retry on ENOSPC if sufficient space in
-	truncate log
-Message-ID: <1466586469-5541-1-git-send-email-zren@suse.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Tue, 21 Jun 2016 17:00:37 +0200
+Subject: [Ocfs2-devel] [Y2038] [PATCH v2 00/24] Delete CURRENT_TIME and
+	CURRENT_TIME_SEC macros
+In-Reply-To: <CA+55aFzK2K-7UeQRsWR7ooNHMMbtMFRAF60byR1Gvmbf9XWhbA@mail.gmail.com>
+References: <1466382443-11063-1-git-send-email-deepa.kernel@gmail.com>
+	<CA+55aFzK2K-7UeQRsWR7ooNHMMbtMFRAF60byR1Gvmbf9XWhbA@mail.gmail.com>
+Message-ID: <4953017.3z0GqUlq8o@wuerfel>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: y2038-cunTk1MwBs8s++Sfvej+rw@public.gmane.org
+Cc: Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Deepa Dinamani <deepa.kernel-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Dave Kleikamp <shaggy-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, jfs-discussion-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, Trond Myklebust <trond.myklebust-7I+n7zu2hftEKMMhf/gKZA@public.gmane.org>, Adrian Hunter <adrian.hunter-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>, Chris Mason <clm-b10kYP2dOMg@public.gmane.org>, "adilger.kernel-m1MBpc4rdrD3fQ9qLvQP4Q@public.gmane.org" <adilger.kernel-m1MBpc4rdrD3fQ9qLvQP4Q@public.gmane.org>, buchino-FYB4Gu1CFyUAvxtiuMwx3w@public.gmane.org, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, "Yan, Zheng" <zyan-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, jejb-23VcF4HTsmIX0ybBhKVfKdBPR1lH4CV8@public.gmane.org, Paul Moore <paul-r2n+y4ga6xFZroRs9YW3xA@public.gmane.org>, Linux SCSI List <linux-scsi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Ilya Dryomov <idryomov-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, "linux-ext4-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-ext4-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Changman Lee <cm224.lee-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>, Mark Fasheh <mfasheh-IBi9RG/b67k@public.gmane.org>, sramars-FYB4Gu1CFyUAvxtiuMwx3w@public.gmane.org, John Stultz <john.stultz-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Al Viro <viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org>, David Sterba <dsterba-IBi9RG/b67k@public.gmane.org>, Jaegeuk Kim <jaegeuk-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, ceph-devel <ceph-devel@v>
 
-The testcase "mmaptruncate" in ocfs2 test suite always fails with
-ENOSPC error on small volume (say less than 10G). This testcase
-creates 2 threads T1/T2 which race to "truncate"/"extend" a same
-file repeatedly. Specifically, T1 truncates 1/2 size of a small file
-while T2 extend to 100% size. The main bitmap will quickly run out
-of space because the "truncate" code prevent truncate log from being
-flushed by ocfs2_schedule_truncate_log_flush(osb, 1), while truncate
-log may have cached lots of clusters.
+On Monday, June 20, 2016 11:03:01 AM CEST you wrote:
+> On Sun, Jun 19, 2016 at 5:26 PM, Deepa Dinamani <deepa.kernel@gmail.com> wrote:
+> > The series is aimed at getting rid of CURRENT_TIME and CURRENT_TIME_SEC macros.
 
-So retry to allocate after flushing truncate log when ENOSPC is
-returned. And we cannot reuse the deleted blocks before the transaction
-committed. Fortunately, we already have a function to do this -
-ocfs2_try_to_free_truncate_log(). Just need to remove the "static"
-modifier and put it into a right place.
+> Gcc handles 8-byte structure returns (on most architectures) by
+> returning them as two 32-bit registers (%edx:%eax on x86). But once it
+> is timespec64, that will no longer be the case, and the calling
+> convention will end up using a pointer to the local stack instead.
 
-Signed-off-by: Eric Ren <zren@suse.com>
----
- fs/ocfs2/alloc.c    | 37 +++++++++++++++++++++++++++++++++++++
- fs/ocfs2/alloc.h    |  2 ++
- fs/ocfs2/aops.c     | 37 -------------------------------------
- fs/ocfs2/suballoc.c | 17 ++++++++++++++++-
- 4 files changed, 55 insertions(+), 38 deletions(-)
+I guess we already have that today, as the implementation of
+current_fs_time() is
 
-diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-index 460c0ce..7dabbc3 100644
---- a/fs/ocfs2/alloc.c
-+++ b/fs/ocfs2/alloc.c
-@@ -6106,6 +6106,43 @@ void ocfs2_schedule_truncate_log_flush(struct ocfs2_super *osb,
- 	}
- }
- 
-+/*
-+ * Try to flush truncate logs if we can free enough clusters from it.
-+ * As for return value, "< 0" means error, "0" no space and "1" means
-+ * we have freed enough spaces and let the caller try to allocate again.
-+ */
-+int ocfs2_try_to_free_truncate_log(struct ocfs2_super *osb,
-+					unsigned int needed)
-+{
-+	tid_t target;
-+	int ret = 0;
-+	unsigned int truncated_clusters;
-+
-+	inode_lock(osb->osb_tl_inode);
-+	truncated_clusters = osb->truncated_clusters;
-+	inode_unlock(osb->osb_tl_inode);
-+
-+	/*
-+	 * Check whether we can succeed in allocating if we free
-+	 * the truncate log.
-+	 */
-+	if (truncated_clusters < needed)
-+		goto out;
-+
-+	ret = ocfs2_flush_truncate_log(osb);
-+	if (ret) {
-+		mlog_errno(ret);
-+		goto out;
-+	}
-+
-+	if (jbd2_journal_start_commit(osb->journal->j_journal, &target)) {
-+		jbd2_log_wait_commit(osb->journal->j_journal, target);
-+		ret = 1;
-+	}
-+out:
-+	return ret;
-+}
-+
- static int ocfs2_get_truncate_log_info(struct ocfs2_super *osb,
- 				       int slot_num,
- 				       struct inode **tl_inode,
-diff --git a/fs/ocfs2/alloc.h b/fs/ocfs2/alloc.h
-index f3dc1b0..4a5152e 100644
---- a/fs/ocfs2/alloc.h
-+++ b/fs/ocfs2/alloc.h
-@@ -188,6 +188,8 @@ int ocfs2_truncate_log_append(struct ocfs2_super *osb,
- 			      u64 start_blk,
- 			      unsigned int num_clusters);
- int __ocfs2_flush_truncate_log(struct ocfs2_super *osb);
-+int ocfs2_try_to_free_truncate_log(struct ocfs2_super *osb,
-+				   unsigned int needed);
- 
- /*
-  * Process local structure which describes the block unlinks done
-diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-index c034edf..1802aef 100644
---- a/fs/ocfs2/aops.c
-+++ b/fs/ocfs2/aops.c
-@@ -1645,43 +1645,6 @@ static int ocfs2_zero_tail(struct inode *inode, struct buffer_head *di_bh,
- 	return ret;
- }
- 
--/*
-- * Try to flush truncate logs if we can free enough clusters from it.
-- * As for return value, "< 0" means error, "0" no space and "1" means
-- * we have freed enough spaces and let the caller try to allocate again.
-- */
--static int ocfs2_try_to_free_truncate_log(struct ocfs2_super *osb,
--					  unsigned int needed)
--{
--	tid_t target;
--	int ret = 0;
--	unsigned int truncated_clusters;
--
--	inode_lock(osb->osb_tl_inode);
--	truncated_clusters = osb->truncated_clusters;
--	inode_unlock(osb->osb_tl_inode);
--
--	/*
--	 * Check whether we can succeed in allocating if we free
--	 * the truncate log.
--	 */
--	if (truncated_clusters < needed)
--		goto out;
--
--	ret = ocfs2_flush_truncate_log(osb);
--	if (ret) {
--		mlog_errno(ret);
--		goto out;
--	}
--
--	if (jbd2_journal_start_commit(osb->journal->j_journal, &target)) {
--		jbd2_log_wait_commit(osb->journal->j_journal, target);
--		ret = 1;
--	}
--out:
--	return ret;
--}
--
- int ocfs2_write_begin_nolock(struct address_space *mapping,
- 			     loff_t pos, unsigned len, ocfs2_write_type_t type,
- 			     struct page **pagep, void **fsdata,
-diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
-index 2f19aee..9f7f3b6 100644
---- a/fs/ocfs2/suballoc.c
-+++ b/fs/ocfs2/suballoc.c
-@@ -1164,7 +1164,8 @@ static int ocfs2_reserve_clusters_with_limit(struct ocfs2_super *osb,
- 					     int flags,
- 					     struct ocfs2_alloc_context **ac)
- {
--	int status;
-+	int status, ret = 0;
-+	int retried = 0;
- 
- 	*ac = kzalloc(sizeof(struct ocfs2_alloc_context), GFP_KERNEL);
- 	if (!(*ac)) {
-@@ -1189,7 +1190,21 @@ static int ocfs2_reserve_clusters_with_limit(struct ocfs2_super *osb,
- 	}
- 
- 	if (status == -ENOSPC) {
-+retry:
- 		status = ocfs2_reserve_cluster_bitmap_bits(osb, *ac);
-+		/* Retry if there is sufficient space cached in truncate log */
-+		if (status == -ENOSPC && !retried) {
-+			retried = 1;
-+			ocfs2_inode_unlock((*ac)->ac_inode, 1);
-+			inode_unlock((*ac)->ac_inode);
-+
-+			ret = ocfs2_try_to_free_truncate_log(osb, bits_wanted);
-+			if (ret == 1)
-+				goto retry;
-+
-+			if (ret < 0)
-+				mlog_errno(ret);
-+		}
- 		if (status < 0) {
- 			if (status != -ENOSPC)
- 				mlog_errno(status);
--- 
-2.6.6
+static inline struct timespec64 tk_xtime(struct timekeeper *tk)
+{
+        struct timespec64 ts;
+
+        ts.tv_sec = tk->xtime_sec;
+        ts.tv_nsec = (long)(tk->tkr_mono.xtime_nsec >> tk->tkr_mono.shift);
+        return ts;
+}
+extern struct timespec64 current_kernel_time64(void);
+struct timespec64 current_kernel_time64(void)
+{
+        struct timekeeper *tk = &tk_core.timekeeper;
+        struct timespec64 now;
+        unsigned long seq;
+
+        do {
+                seq = read_seqcount_begin(&tk_core.seq);
+
+                now = tk_xtime(tk);
+        } while (read_seqcount_retry(&tk_core.seq, seq));
+
+        return now;
+}
+static inline struct timespec current_kernel_time(void)
+{
+        struct timespec64 now = current_kernel_time64();
+
+        return timespec64_to_timespec(now);
+}
+extern struct timespec current_fs_time(struct super_block *sb);
+struct timespec current_fs_time(struct super_block *sb)
+{       
+        struct timespec now = current_kernel_time();
+        return timespec_trunc(now, sb->s_time_gran);
+}       
+
+We can surely do a little better than this, independent of the
+conversion in Deepa's patch set.
+
+> So for 32-bit code generation, we *may* want to introduce a new model of doing
+> 
+>     set_inode_time(inode, ATTR_ATIME | ATTR_MTIME);
+> 
+> which basically just does
+> 
+>     inode->i_atime = inode->i_mtime = current_time(inode);
+> 
+> but with a much easier calling convention on 32-bit architectures.
+> 
+> But that is entirely orthogonal to this patch-set, and should be seen
+> as a separate issue.
+
+I've played around with that, but found it hard to avoid going
+through memory other than going all the way to the tk_xtime()
+access to copy both tk->xtime_sec and the nanoseconds into
+the inode fields.
+
+Without that, the set_inode_time() implementation ends up
+being more expensive than
+inode->i_atime = inode->i_ctime = inode->i_mtime = current_time(inode);
+because we still copy through the stack but also have
+a couple of conditional branches that we don't have at the
+moment.
+
+At the moment, the triple assignment becomes (here on ARM)
+
+   c:   4668            mov     r0, sp
+  12:   f7ff fffe       bl      0 <current_kernel_time64>
+  3e:   f107 0520       add.w   r5, r7, #32
+                        12: R_ARM_THM_CALL      current_kernel_time64
+  16:   f106 0410       add.w   r4, r6, #16
+  1a:   e89d 000f       ldmia.w sp, {r0, r1, r2, r3} # load from stack
+  1e:   e885 000f       stmia.w r5, {r0, r1, r2, r3} # store into i_atime
+  22:   e884 000f       stmia.w r4, {r0, r1, r2, r3} #            i_ctime
+  26:   e886 000f       stmia.w r6, {r0, r1, r2, r3} #            i_mtime
+
+and a slightly more verbose version of the same thing on x86
+(storing only 12 bytes instead of 16 is cheaper there, while
+ARM does a store-multiple to copy the entire structure).
+
+        Arnd
