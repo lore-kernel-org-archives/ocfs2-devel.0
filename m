@@ -1,54 +1,108 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Wed, 22 Jun 2016 17:49:48 +0200
-Subject: [Ocfs2-devel] [Y2038] [PATCH v2 00/24] Delete CURRENT_TIME and
-	CURRENT_TIME_SEC macros
-In-Reply-To: <1466382443-11063-1-git-send-email-deepa.kernel@gmail.com>
-References: <1466382443-11063-1-git-send-email-deepa.kernel@gmail.com>
-Message-ID: <5119217.EGiBXE3Be4@wuerfel>
+From: Junxiao Bi <junxiao.bi@oracle.com>
+Date: Thu, 23 Jun 2016 09:17:53 +0800
+Subject: [Ocfs2-devel] [PATCH v2] ocfs2: improve recovery performance
+In-Reply-To: <5763C644.9060104@huawei.com>
+References: <1466155682-24656-1-git-send-email-junxiao.bi@oracle.com>
+	<5763C644.9060104@huawei.com>
+Message-ID: <576B38C1.50002@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: y2038@lists.linaro.org, tglx@linutronix.de, linux-ext4@vger.kernel.org, jbacik@fb.com
-Cc: shaggy@kernel.org, jfs-discussion@lists.sourceforge.net, trond.myklebust@primarydata.com, adrian.hunter@intel.com, clm@fb.com, adilger.kernel@dilger.ca, Deepa Dinamani <deepa.kernel@gmail.com>, sfrench@samba.org, jejb@linux.vnet.ibm.com, paul@paul-moore.com, linux-scsi@vger.kernel.org, cm224.lee@samsung.com, mfasheh@suse.com, linux-nfs@vger.kernel.org, john.stultz@linaro.org, viro@zeniv.linux.org.uk, dsterba@suse.com, jaegeuk@kernel.org, ceph-devel@vger.kernel.org, jlbec@evilplan.org, sramars@cisco.com, elder@kernel.org, tytso@mit.edu, sage@redhat.com, martin.petersen@oracle.com, gregkh@linuxfoundation.org, hiralpat@cisco.com, linux-kernel@vger.kernel.org, eparis@redhat.com, linux-f2fs-devel@lists.sourceforge.net, zyan@redhat.com, linux-audit@redhat.com, linux-btrfs@vger.kernel.org, jack@suse.com, linux-fsdevel@vger.kernel.org, linux-mtd@lists.infradead.org, torvalds@lin
+To: ocfs2-devel@oss.oracle.com
 
-On Sunday, June 19, 2016 5:26:59 PM CEST Deepa Dinamani wrote:
-> The series is aimed at getting rid of CURRENT_TIME and CURRENT_TIME_SEC macros.
-> The macros are not y2038 safe. There is no plan to transition them into being
-> y2038 safe.
-> ktime_get_* api's can be used in their place. And, these are y2038 safe.
-> 
-> Thanks to Arnd Bergmann for all the guidance and discussions.
-> 
-> Patches 2-4 were mostly generated using coccinelle scripts.
-> 
-> All filesystem timestamps use current_fs_time() for right granularity as
-> mentioned in the respective commit texts of patches. This has a changed
-> signature, renamed to current_time() and moved to the fs/inode.c.
-> 
-> This series also serves as a preparatory series to transition vfs to 64 bit
-> timestamps as outlined here: https://lkml.org/lkml/2016/2/12/104 .
-> 
-> As per Linus's suggestion in https://lkml.org/lkml/2016/5/24/663 , all the
-> inode timestamp changes have been squashed into a single patch. Also,
-> current_time() now is used as a single generic vfs filesystem timestamp api.
-> It also takes struct inode* as argument instead of struct super_block*.
-> Posting all patches together in a bigger series so that the big picture is
-> clear.
-> 
-> As per the suggestion in https://lwn.net/Articles/672598/, CURRENT_TIME macro
-> bug fixes are being handled in a series separate from transitioning vfs to use.
+Hi Andrew,
 
-I've looked in detail at all the patches in this version now, and while
-overall everything is fine, I found that two patches cannot be part of the
-series because of the dependency on the patch that John already took (adding
-time64_to_tm), but I think that's ok because we just need to change over
-all the users of CURRENT_TIME and CURRENT_TIME_SEC that assign to inode
-timestamps in order to prepare for the type change, the other ones
-can be changed later.
+Did you miss this patch to your tree?
 
-I also found a few things that could be done differently to make the
-later conversion slightly easier, but it's also possible that I missed
-part of your bigger plan for those files, and none of them seem important.
+Thanks,
+Junxiao.
 
-	Arnd
+On 06/17/2016 05:43 PM, Joseph Qi wrote:
+> On 2016/6/17 17:28, Junxiao Bi wrote:
+>> Journal replay will be run when do recovery for a dead node,
+>> to avoid the stale cache impact, all blocks of dead node's
+>> journal inode were reload from disk. This hurts the performance,
+>> check whether one block is cached before reload it can improve
+>> a lot performance. In my test env, the time doing recovery was
+>> improved from 120s to 1s.
+>>
+>> Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
+> Looks good to me. And it indeed has performance improvement from my
+> test.
+> Reviewed-by: Joseph Qi <joseph.qi@huawei.com>
+> 
+>> ---
+>>  fs/ocfs2/journal.c |   41 ++++++++++++++++++++++-------------------
+>>  1 file changed, 22 insertions(+), 19 deletions(-)
+>>
+>> diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
+>> index e607419cdfa4..bc0e21e8a674 100644
+>> --- a/fs/ocfs2/journal.c
+>> +++ b/fs/ocfs2/journal.c
+>> @@ -1159,10 +1159,8 @@ static int ocfs2_force_read_journal(struct inode *inode)
+>>  	int status = 0;
+>>  	int i;
+>>  	u64 v_blkno, p_blkno, p_blocks, num_blocks;
+>> -#define CONCURRENT_JOURNAL_FILL 32ULL
+>> -	struct buffer_head *bhs[CONCURRENT_JOURNAL_FILL];
+>> -
+>> -	memset(bhs, 0, sizeof(struct buffer_head *) * CONCURRENT_JOURNAL_FILL);
+>> +	struct buffer_head *bh = NULL;
+>> +	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+>>  
+>>  	num_blocks = ocfs2_blocks_for_bytes(inode->i_sb, i_size_read(inode));
+>>  	v_blkno = 0;
+>> @@ -1174,29 +1172,34 @@ static int ocfs2_force_read_journal(struct inode *inode)
+>>  			goto bail;
+>>  		}
+>>  
+>> -		if (p_blocks > CONCURRENT_JOURNAL_FILL)
+>> -			p_blocks = CONCURRENT_JOURNAL_FILL;
+>> +		for (i = 0; i < p_blocks; i++) {
+>> +			bh = __find_get_block(osb->sb->s_bdev, p_blkno,
+>> +					osb->sb->s_blocksize);
+>> +			/* block not cached. */
+>> +			if (!bh) {
+>> +				p_blkno++;
+>> +				continue;
+>> +			}
+>>  
+>> -		/* We are reading journal data which should not
+>> -		 * be put in the uptodate cache */
+>> -		status = ocfs2_read_blocks_sync(OCFS2_SB(inode->i_sb),
+>> -						p_blkno, p_blocks, bhs);
+>> -		if (status < 0) {
+>> -			mlog_errno(status);
+>> -			goto bail;
+>> -		}
+>> +			brelse(bh);
+>> +			bh = NULL;
+>> +			/* We are reading journal data which should not
+>> +			 * be put in the uptodate cache.
+>> +			 */
+>> +			status = ocfs2_read_blocks_sync(osb, p_blkno, 1, &bh);
+>> +			if (status < 0) {
+>> +				mlog_errno(status);
+>> +				goto bail;
+>> +			}
+>>  
+>> -		for(i = 0; i < p_blocks; i++) {
+>> -			brelse(bhs[i]);
+>> -			bhs[i] = NULL;
+>> +			brelse(bh);
+>> +			bh = NULL;
+>>  		}
+>>  
+>>  		v_blkno += p_blocks;
+>>  	}
+>>  
+>>  bail:
+>> -	for(i = 0; i < CONCURRENT_JOURNAL_FILL; i++)
+>> -		brelse(bhs[i]);
+>>  	return status;
+>>  }
+>>  
+>>
+> 
+> 
