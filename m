@@ -1,90 +1,186 @@
-From: Deepa Dinamani <deepa.kernel@gmail.com>
-Date: Sat, 25 Jun 2016 14:37:40 -0700
-Subject: [Ocfs2-devel] [PATCH v3 16/24] fs: ocfs2: Use time64_t to represent
-	orphan scan times
-In-Reply-To: <1466890668-23400-1-git-send-email-deepa.kernel@gmail.com>
-References: <1466890668-23400-1-git-send-email-deepa.kernel@gmail.com>
-Message-ID: <1466890668-23400-17-git-send-email-deepa.kernel@gmail.com>
+From: Joseph Qi <joseph.qi@huawei.com>
+Date: Wed, 29 Jun 2016 11:45:43 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: retry on ENOSPC if sufficient
+ space in truncate log
+In-Reply-To: <1466586469-5541-1-git-send-email-zren@suse.com>
+References: <1466586469-5541-1-git-send-email-zren@suse.com>
+Message-ID: <57734467.90000@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: arnd@arndb.de, tglx@linutronix.de, torvalds@linux-foundation.org, tytso@mit.edu, viro@zeniv.linux.org.uk, y2038@lists.linaro.org, Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@oss.oracle.com
+To: ocfs2-devel@oss.oracle.com
 
-struct timespec is not y2038 safe.
-Use time64_t which is y2038 safe to represent orphan
-scan times.
-time64_t is sufficient here as only the seconds delta
-times are relevant.
+Looks good to me, thanks.
+Reviewed-by: Joseph Qi <joseph.qi@huawei.com>
 
-Also use appropriate time functions that return time in
-time64_t format. Time functions now return monotonic
-time instead of real time as only delta scan times are
-relevant and these values are not persistent across
-reboots.
-
-The format string for the debug print is still using long
-as this is only the time elapsed since the last scan and
-long is sufficient to represent this value.
-
-Signed-off-by: Deepa Dinamani <deepa.kernel@gmail.com>
-Cc: Mark Fasheh <mfasheh@suse.com>
-Cc: Joel Becker <jlbec@evilplan.org>
-Cc: ocfs2-devel at oss.oracle.com
----
- fs/ocfs2/journal.c | 4 ++--
- fs/ocfs2/ocfs2.h   | 2 +-
- fs/ocfs2/super.c   | 2 +-
- 3 files changed, 4 insertions(+), 4 deletions(-)
-
-diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
-index bc0e21e..ab68933 100644
---- a/fs/ocfs2/journal.c
-+++ b/fs/ocfs2/journal.c
-@@ -1949,7 +1949,7 @@ static void ocfs2_queue_orphan_scan(struct ocfs2_super *osb)
- 	 */
- 	seqno++;
- 	os->os_count++;
--	os->os_scantime = CURRENT_TIME;
-+	os->os_scantime = ktime_get_seconds();
- unlock:
- 	ocfs2_orphan_scan_unlock(osb, seqno);
- out:
-@@ -2006,7 +2006,7 @@ void ocfs2_orphan_scan_start(struct ocfs2_super *osb)
- 	struct ocfs2_orphan_scan *os;
- 
- 	os = &osb->osb_orphan_scan;
--	os->os_scantime = CURRENT_TIME;
-+	os->os_scantime = ktime_get_seconds();
- 	if (ocfs2_is_hard_readonly(osb) || ocfs2_mount_local(osb))
- 		atomic_set(&os->os_state, ORPHAN_SCAN_INACTIVE);
- 	else {
-diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
-index e63af7d..7e5958b 100644
---- a/fs/ocfs2/ocfs2.h
-+++ b/fs/ocfs2/ocfs2.h
-@@ -224,7 +224,7 @@ struct ocfs2_orphan_scan {
- 	struct ocfs2_super 	*os_osb;
- 	struct ocfs2_lock_res 	os_lockres;     /* lock to synchronize scans */
- 	struct delayed_work 	os_orphan_scan_work;
--	struct timespec		os_scantime;  /* time this node ran the scan */
-+	time64_t		os_scantime;  /* time this node ran the scan */
- 	u32			os_count;      /* tracks node specific scans */
- 	u32  			os_seqno;       /* tracks cluster wide scans */
- 	atomic_t		os_state;              /* ACTIVE or INACTIVE */
-diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-index 3971146..6992c00 100644
---- a/fs/ocfs2/super.c
-+++ b/fs/ocfs2/super.c
-@@ -337,7 +337,7 @@ static int ocfs2_osb_dump(struct ocfs2_super *osb, char *buf, int len)
- 		out += snprintf(buf + out, len - out, "Disabled\n");
- 	else
- 		out += snprintf(buf + out, len - out, "%lu seconds ago\n",
--				(get_seconds() - os->os_scantime.tv_sec));
-+				(unsigned long)(ktime_get_seconds() - os->os_scantime));
- 
- 	out += snprintf(buf + out, len - out, "%10s => %3s  %10s\n",
- 			"Slots", "Num", "RecoGen");
--- 
-1.9.1
+On 2016/6/22 17:07, Eric Ren wrote:
+> The testcase "mmaptruncate" in ocfs2 test suite always fails with
+> ENOSPC error on small volume (say less than 10G). This testcase
+> creates 2 threads T1/T2 which race to "truncate"/"extend" a same
+> file repeatedly. Specifically, T1 truncates 1/2 size of a small file
+> while T2 extend to 100% size. The main bitmap will quickly run out
+> of space because the "truncate" code prevent truncate log from being
+> flushed by ocfs2_schedule_truncate_log_flush(osb, 1), while truncate
+> log may have cached lots of clusters.
+> 
+> So retry to allocate after flushing truncate log when ENOSPC is
+> returned. And we cannot reuse the deleted blocks before the transaction
+> committed. Fortunately, we already have a function to do this -
+> ocfs2_try_to_free_truncate_log(). Just need to remove the "static"
+> modifier and put it into a right place.
+> 
+> Signed-off-by: Eric Ren <zren@suse.com>
+> ---
+>  fs/ocfs2/alloc.c    | 37 +++++++++++++++++++++++++++++++++++++
+>  fs/ocfs2/alloc.h    |  2 ++
+>  fs/ocfs2/aops.c     | 37 -------------------------------------
+>  fs/ocfs2/suballoc.c | 17 ++++++++++++++++-
+>  4 files changed, 55 insertions(+), 38 deletions(-)
+> 
+> diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
+> index 460c0ce..7dabbc3 100644
+> --- a/fs/ocfs2/alloc.c
+> +++ b/fs/ocfs2/alloc.c
+> @@ -6106,6 +6106,43 @@ void ocfs2_schedule_truncate_log_flush(struct ocfs2_super *osb,
+>  	}
+>  }
+>  
+> +/*
+> + * Try to flush truncate logs if we can free enough clusters from it.
+> + * As for return value, "< 0" means error, "0" no space and "1" means
+> + * we have freed enough spaces and let the caller try to allocate again.
+> + */
+> +int ocfs2_try_to_free_truncate_log(struct ocfs2_super *osb,
+> +					unsigned int needed)
+> +{
+> +	tid_t target;
+> +	int ret = 0;
+> +	unsigned int truncated_clusters;
+> +
+> +	inode_lock(osb->osb_tl_inode);
+> +	truncated_clusters = osb->truncated_clusters;
+> +	inode_unlock(osb->osb_tl_inode);
+> +
+> +	/*
+> +	 * Check whether we can succeed in allocating if we free
+> +	 * the truncate log.
+> +	 */
+> +	if (truncated_clusters < needed)
+> +		goto out;
+> +
+> +	ret = ocfs2_flush_truncate_log(osb);
+> +	if (ret) {
+> +		mlog_errno(ret);
+> +		goto out;
+> +	}
+> +
+> +	if (jbd2_journal_start_commit(osb->journal->j_journal, &target)) {
+> +		jbd2_log_wait_commit(osb->journal->j_journal, target);
+> +		ret = 1;
+> +	}
+> +out:
+> +	return ret;
+> +}
+> +
+>  static int ocfs2_get_truncate_log_info(struct ocfs2_super *osb,
+>  				       int slot_num,
+>  				       struct inode **tl_inode,
+> diff --git a/fs/ocfs2/alloc.h b/fs/ocfs2/alloc.h
+> index f3dc1b0..4a5152e 100644
+> --- a/fs/ocfs2/alloc.h
+> +++ b/fs/ocfs2/alloc.h
+> @@ -188,6 +188,8 @@ int ocfs2_truncate_log_append(struct ocfs2_super *osb,
+>  			      u64 start_blk,
+>  			      unsigned int num_clusters);
+>  int __ocfs2_flush_truncate_log(struct ocfs2_super *osb);
+> +int ocfs2_try_to_free_truncate_log(struct ocfs2_super *osb,
+> +				   unsigned int needed);
+>  
+>  /*
+>   * Process local structure which describes the block unlinks done
+> diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+> index c034edf..1802aef 100644
+> --- a/fs/ocfs2/aops.c
+> +++ b/fs/ocfs2/aops.c
+> @@ -1645,43 +1645,6 @@ static int ocfs2_zero_tail(struct inode *inode, struct buffer_head *di_bh,
+>  	return ret;
+>  }
+>  
+> -/*
+> - * Try to flush truncate logs if we can free enough clusters from it.
+> - * As for return value, "< 0" means error, "0" no space and "1" means
+> - * we have freed enough spaces and let the caller try to allocate again.
+> - */
+> -static int ocfs2_try_to_free_truncate_log(struct ocfs2_super *osb,
+> -					  unsigned int needed)
+> -{
+> -	tid_t target;
+> -	int ret = 0;
+> -	unsigned int truncated_clusters;
+> -
+> -	inode_lock(osb->osb_tl_inode);
+> -	truncated_clusters = osb->truncated_clusters;
+> -	inode_unlock(osb->osb_tl_inode);
+> -
+> -	/*
+> -	 * Check whether we can succeed in allocating if we free
+> -	 * the truncate log.
+> -	 */
+> -	if (truncated_clusters < needed)
+> -		goto out;
+> -
+> -	ret = ocfs2_flush_truncate_log(osb);
+> -	if (ret) {
+> -		mlog_errno(ret);
+> -		goto out;
+> -	}
+> -
+> -	if (jbd2_journal_start_commit(osb->journal->j_journal, &target)) {
+> -		jbd2_log_wait_commit(osb->journal->j_journal, target);
+> -		ret = 1;
+> -	}
+> -out:
+> -	return ret;
+> -}
+> -
+>  int ocfs2_write_begin_nolock(struct address_space *mapping,
+>  			     loff_t pos, unsigned len, ocfs2_write_type_t type,
+>  			     struct page **pagep, void **fsdata,
+> diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
+> index 2f19aee..9f7f3b6 100644
+> --- a/fs/ocfs2/suballoc.c
+> +++ b/fs/ocfs2/suballoc.c
+> @@ -1164,7 +1164,8 @@ static int ocfs2_reserve_clusters_with_limit(struct ocfs2_super *osb,
+>  					     int flags,
+>  					     struct ocfs2_alloc_context **ac)
+>  {
+> -	int status;
+> +	int status, ret = 0;
+> +	int retried = 0;
+>  
+>  	*ac = kzalloc(sizeof(struct ocfs2_alloc_context), GFP_KERNEL);
+>  	if (!(*ac)) {
+> @@ -1189,7 +1190,21 @@ static int ocfs2_reserve_clusters_with_limit(struct ocfs2_super *osb,
+>  	}
+>  
+>  	if (status == -ENOSPC) {
+> +retry:
+>  		status = ocfs2_reserve_cluster_bitmap_bits(osb, *ac);
+> +		/* Retry if there is sufficient space cached in truncate log */
+> +		if (status == -ENOSPC && !retried) {
+> +			retried = 1;
+> +			ocfs2_inode_unlock((*ac)->ac_inode, 1);
+> +			inode_unlock((*ac)->ac_inode);
+> +
+> +			ret = ocfs2_try_to_free_truncate_log(osb, bits_wanted);
+> +			if (ret == 1)
+> +				goto retry;
+> +
+> +			if (ret < 0)
+> +				mlog_errno(ret);
+> +		}
+>  		if (status < 0) {
+>  			if (status != -ENOSPC)
+>  				mlog_errno(status);
+> 
