@@ -1,69 +1,60 @@
 From: Joseph Qi <joseph.qi@huawei.com>
-Date: Fri, 1 Jul 2016 17:10:02 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: remove obscure BUG_ON in dlmglue
-Message-ID: <5776336A.6030104@huawei.com>
+Date: Fri, 1 Jul 2016 17:27:35 +0800
+Subject: [Ocfs2-devel] ocfs2: cleanup implemented prototypes
+Message-ID: <57763787.4020706@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-These BUG_ON(!inode) are obscure because we have already used inode to
-get osb. And actually we can guarantee here inode is valid in the
-context. So we can safely remove them.
+Several prototypes in inode.h are just defined but not actually
+implemented and used, so remove them.
 
 Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
 ---
- fs/ocfs2/dlmglue.c | 9 ---------
- 1 file changed, 9 deletions(-)
+ fs/ocfs2/inode.h | 7 -------
+ fs/ocfs2/super.c | 1 -
+ 2 files changed, 8 deletions(-)
 
-diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-index 1cfa1b6bf..2108960 100644
---- a/fs/ocfs2/dlmglue.c
-+++ b/fs/ocfs2/dlmglue.c
-@@ -1634,7 +1634,6 @@ int ocfs2_create_new_inode_locks(struct inode *inode)
- 	int ret;
- 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+diff --git a/fs/ocfs2/inode.h b/fs/ocfs2/inode.h
+index d8f3fc8..50cc550 100644
+--- a/fs/ocfs2/inode.h
++++ b/fs/ocfs2/inode.h
+@@ -145,22 +145,15 @@ int ocfs2_drop_inode(struct inode *inode);
+ struct inode *ocfs2_ilookup(struct super_block *sb, u64 feoff);
+ struct inode *ocfs2_iget(struct ocfs2_super *osb, u64 feoff, unsigned flags,
+ 			 int sysfile_type);
+-int ocfs2_inode_init_private(struct inode *inode);
+ int ocfs2_inode_revalidate(struct dentry *dentry);
+ void ocfs2_populate_inode(struct inode *inode, struct ocfs2_dinode *fe,
+ 			  int create_ino);
+-void ocfs2_read_inode(struct inode *inode);
+-void ocfs2_read_inode2(struct inode *inode, void *opaque);
+-ssize_t ocfs2_rw_direct(int rw, struct file *filp, char *buf,
+-			size_t size, loff_t *offp);
+ void ocfs2_sync_blockdev(struct super_block *sb);
+ void ocfs2_refresh_inode(struct inode *inode,
+ 			 struct ocfs2_dinode *fe);
+ int ocfs2_mark_inode_dirty(handle_t *handle,
+ 			   struct inode *inode,
+ 			   struct buffer_head *bh);
+-struct buffer_head *ocfs2_bread(struct inode *inode,
+-				int block, int *err, int reada);
 
--	BUG_ON(!inode);
- 	BUG_ON(!ocfs2_inode_is_new(inode));
+ void ocfs2_set_inode_flags(struct inode *inode);
+ void ocfs2_get_inode_flags(struct ocfs2_inode_info *oi);
+diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+index d7cae33..d97de21 100644
+--- a/fs/ocfs2/super.c
++++ b/fs/ocfs2/super.c
+@@ -2072,7 +2072,6 @@ static int ocfs2_initialize_super(struct super_block *sb,
+ 	osb->osb_dx_seed[3] = le32_to_cpu(di->id2.i_super.s_uuid_hash);
 
- 	mlog(0, "Inode %llu\n", (unsigned long long)OCFS2_I(inode)->ip_blkno);
-@@ -1677,8 +1676,6 @@ int ocfs2_rw_lock(struct inode *inode, int write)
- 	struct ocfs2_lock_res *lockres;
- 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+ 	osb->sb = sb;
+-	/* Save off for ocfs2_rw_direct */
+ 	osb->s_sectsize_bits = blksize_bits(sector_size);
+ 	BUG_ON(!osb->s_sectsize_bits);
 
--	BUG_ON(!inode);
--
- 	mlog(0, "inode %llu take %s RW lock\n",
- 	     (unsigned long long)OCFS2_I(inode)->ip_blkno,
- 	     write ? "EXMODE" : "PRMODE");
-@@ -1721,8 +1718,6 @@ int ocfs2_open_lock(struct inode *inode)
- 	struct ocfs2_lock_res *lockres;
- 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
-
--	BUG_ON(!inode);
--
- 	mlog(0, "inode %llu take PRMODE open lock\n",
- 	     (unsigned long long)OCFS2_I(inode)->ip_blkno);
-
-@@ -1746,8 +1741,6 @@ int ocfs2_try_open_lock(struct inode *inode, int write)
- 	struct ocfs2_lock_res *lockres;
- 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
-
--	BUG_ON(!inode);
--
- 	mlog(0, "inode %llu try to take %s open lock\n",
- 	     (unsigned long long)OCFS2_I(inode)->ip_blkno,
- 	     write ? "EXMODE" : "PRMODE");
-@@ -2325,8 +2318,6 @@ int ocfs2_inode_lock_full_nested(struct inode *inode,
- 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
- 	struct buffer_head *local_bh = NULL;
-
--	BUG_ON(!inode);
--
- 	mlog(0, "inode %llu, take %s META lock\n",
- 	     (unsigned long long)OCFS2_I(inode)->ip_blkno,
- 	     ex ? "EXMODE" : "PRMODE");
 -- 
 1.8.4.3
