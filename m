@@ -1,92 +1,97 @@
-From: Eric Ren <zren@suse.com>
-Date: Mon, 4 Jul 2016 12:58:04 +0800
-Subject: [Ocfs2-devel] ocfs2: cleanup implemented prototypes
-In-Reply-To: <5779DC82.6060408@huawei.com>
-References: <57763787.4020706@huawei.com> <5779D9A9.4030605@suse.com>
-	<5779DC82.6060408@huawei.com>
-Message-ID: <5779ECDC.7080304@suse.com>
+From: Joseph Qi <joseph.qi@huawei.com>
+Date: Tue, 5 Jul 2016 21:34:13 +0800
+Subject: [Ocfs2-devel] ocfs2/dlm: fix memory leak of dlm_debug_ctxt
+Message-ID: <577BB755.4030900@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Joseph,
+dlm_debug_ctxt->debug_refcnt is initialized to 1 and then increased to 2
+by dlm_debug_get in dlm_debug_init. But dlm_debug_put is called only
+once in dlm_debug_shutdown during unregister dlm, which leads to
+dlm_debug_ctxt leaked.
 
-On 07/04/2016 11:48 AM, Joseph Qi wrote:
-> It's comments of ocfs2_read_dir_block, I have kept it as I think it
-> still makes sense.
+Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
+Reviewed-by: Jiufei Xue <xuejiufei@huawei.com>
+---
+ fs/ocfs2/dlm/dlmdebug.c | 26 ++------------------------
+ fs/ocfs2/dlm/dlmdebug.h |  1 -
+ 2 files changed, 2 insertions(+), 25 deletions(-)
 
-Yes, I see it. Well, perhaps reword the comments is better? Comment with
-a no longer existing function name is confusing, anyway;-)
+diff --git a/fs/ocfs2/dlm/dlmdebug.c b/fs/ocfs2/dlm/dlmdebug.c
+index 8251360..e7b760d 100644
+--- a/fs/ocfs2/dlm/dlmdebug.c
++++ b/fs/ocfs2/dlm/dlmdebug.c
+@@ -347,26 +347,6 @@ static struct dentry *dlm_debugfs_root;
+ #define DLM_DEBUGFS_PURGE_LIST			"purge_list"
 
-> Thanks,
-> Joseph
->
-> On 2016/7/4 11:36, Eric Ren wrote:
->> Hi Joseph,
->>
->> Please see comments inline;-)
->>
->> On 07/01/2016 05:27 PM, Joseph Qi wrote:
->>> Several prototypes in inode.h are just defined but not actually
->>> implemented and used, so remove them.
->>>
->>> Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
->>> ---
->>>    fs/ocfs2/inode.h | 7 -------
->>>    fs/ocfs2/super.c | 1 -
->>>    2 files changed, 8 deletions(-)
->>>
->>> diff --git a/fs/ocfs2/inode.h b/fs/ocfs2/inode.h
->>> index d8f3fc8..50cc550 100644
->>> --- a/fs/ocfs2/inode.h
->>> +++ b/fs/ocfs2/inode.h
->>> @@ -145,22 +145,15 @@ int ocfs2_drop_inode(struct inode *inode);
->>>    struct inode *ocfs2_ilookup(struct super_block *sb, u64 feoff);
->>>    struct inode *ocfs2_iget(struct ocfs2_super *osb, u64 feoff, unsigned flags,
->>>                 int sysfile_type);
->>> -int ocfs2_inode_init_private(struct inode *inode);
->>>    int ocfs2_inode_revalidate(struct dentry *dentry);
->>>    void ocfs2_populate_inode(struct inode *inode, struct ocfs2_dinode *fe,
->>>                  int create_ino);
->>> -void ocfs2_read_inode(struct inode *inode);
->>> -void ocfs2_read_inode2(struct inode *inode, void *opaque);
->>> -ssize_t ocfs2_rw_direct(int rw, struct file *filp, char *buf,
->>> -            size_t size, loff_t *offp);
->>>    void ocfs2_sync_blockdev(struct super_block *sb);
->>>    void ocfs2_refresh_inode(struct inode *inode,
->>>                 struct ocfs2_dinode *fe);
->>>    int ocfs2_mark_inode_dirty(handle_t *handle,
->>>                   struct inode *inode,
->>>                   struct buffer_head *bh);
->>> -struct buffer_head *ocfs2_bread(struct inode *inode,
->>> -                int block, int *err, int reada);
->>
->> grep shows "ocfs2_bread" also appears in dir.c:511, could you take a
->> look at?
->>
->> Eric
->>
->>>
->>>    void ocfs2_set_inode_flags(struct inode *inode);
->>>    void ocfs2_get_inode_flags(struct ocfs2_inode_info *oi);
->>> diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
->>> index d7cae33..d97de21 100644
->>> --- a/fs/ocfs2/super.c
->>> +++ b/fs/ocfs2/super.c
->>> @@ -2072,7 +2072,6 @@ static int ocfs2_initialize_super(struct super_block *sb,
->>>        osb->osb_dx_seed[3] = le32_to_cpu(di->id2.i_super.s_uuid_hash);
->>>
->>>        osb->sb = sb;
->>> -    /* Save off for ocfs2_rw_direct */
->>>        osb->s_sectsize_bits = blksize_bits(sector_size);
->>>        BUG_ON(!osb->s_sectsize_bits);
->>>
->>
->>
->> .
->>
->
->
->
+ /* begin - utils funcs */
+-static void dlm_debug_free(struct kref *kref)
+-{
+-	struct dlm_debug_ctxt *dc;
+-
+-	dc = container_of(kref, struct dlm_debug_ctxt, debug_refcnt);
+-
+-	kfree(dc);
+-}
+-
+-static void dlm_debug_put(struct dlm_debug_ctxt *dc)
+-{
+-	if (dc)
+-		kref_put(&dc->debug_refcnt, dlm_debug_free);
+-}
+-
+-static void dlm_debug_get(struct dlm_debug_ctxt *dc)
+-{
+-	kref_get(&dc->debug_refcnt);
+-}
+-
+ static int debug_release(struct inode *inode, struct file *file)
+ {
+ 	free_page((unsigned long)file->private_data);
+@@ -932,11 +912,9 @@ int dlm_debug_init(struct dlm_ctxt *dlm)
+ 		goto bail;
+ 	}
+
+-	dlm_debug_get(dc);
+ 	return 0;
+
+ bail:
+-	dlm_debug_shutdown(dlm);
+ 	return -ENOMEM;
+ }
+
+@@ -949,7 +927,8 @@ void dlm_debug_shutdown(struct dlm_ctxt *dlm)
+ 		debugfs_remove(dc->debug_mle_dentry);
+ 		debugfs_remove(dc->debug_lockres_dentry);
+ 		debugfs_remove(dc->debug_state_dentry);
+-		dlm_debug_put(dc);
++		kfree(dc);
++		dc = NULL;
+ 	}
+ }
+
+@@ -969,7 +948,6 @@ int dlm_create_debugfs_subroot(struct dlm_ctxt *dlm)
+ 		mlog_errno(-ENOMEM);
+ 		goto bail;
+ 	}
+-	kref_init(&dlm->dlm_debug_ctxt->debug_refcnt);
+
+ 	return 0;
+ bail:
+diff --git a/fs/ocfs2/dlm/dlmdebug.h b/fs/ocfs2/dlm/dlmdebug.h
+index 1f27c48..5ced548 100644
+--- a/fs/ocfs2/dlm/dlmdebug.h
++++ b/fs/ocfs2/dlm/dlmdebug.h
+@@ -30,7 +30,6 @@ void dlm_print_one_mle(struct dlm_master_list_entry *mle);
+ #ifdef CONFIG_DEBUG_FS
+
+ struct dlm_debug_ctxt {
+-	struct kref debug_refcnt;
+ 	struct dentry *debug_state_dentry;
+ 	struct dentry *debug_lockres_dentry;
+ 	struct dentry *debug_mle_dentry;
+-- 
+1.8.4.3
