@@ -1,97 +1,186 @@
 From: Joseph Qi <joseph.qi@huawei.com>
-Date: Tue, 5 Jul 2016 21:34:13 +0800
-Subject: [Ocfs2-devel] ocfs2/dlm: fix memory leak of dlm_debug_ctxt
-Message-ID: <577BB755.4030900@huawei.com>
+Date: Wed, 6 Jul 2016 12:21:26 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: retry on ENOSPC if sufficient
+ space in truncate log
+In-Reply-To: <1466586469-5541-1-git-send-email-zren@suse.com>
+References: <1466586469-5541-1-git-send-email-zren@suse.com>
+Message-ID: <577C8746.2040705@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-dlm_debug_ctxt->debug_refcnt is initialized to 1 and then increased to 2
-by dlm_debug_get in dlm_debug_init. But dlm_debug_put is called only
-once in dlm_debug_shutdown during unregister dlm, which leads to
-dlm_debug_ctxt leaked.
+NAK, if ocfs2_try_to_free_truncate_log fails, it will lead to double
+ocfs2_inode_unlock and then BUG.
 
-Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
-Reviewed-by: Jiufei Xue <xuejiufei@huawei.com>
----
- fs/ocfs2/dlm/dlmdebug.c | 26 ++------------------------
- fs/ocfs2/dlm/dlmdebug.h |  1 -
- 2 files changed, 2 insertions(+), 25 deletions(-)
-
-diff --git a/fs/ocfs2/dlm/dlmdebug.c b/fs/ocfs2/dlm/dlmdebug.c
-index 8251360..e7b760d 100644
---- a/fs/ocfs2/dlm/dlmdebug.c
-+++ b/fs/ocfs2/dlm/dlmdebug.c
-@@ -347,26 +347,6 @@ static struct dentry *dlm_debugfs_root;
- #define DLM_DEBUGFS_PURGE_LIST			"purge_list"
-
- /* begin - utils funcs */
--static void dlm_debug_free(struct kref *kref)
--{
--	struct dlm_debug_ctxt *dc;
--
--	dc = container_of(kref, struct dlm_debug_ctxt, debug_refcnt);
--
--	kfree(dc);
--}
--
--static void dlm_debug_put(struct dlm_debug_ctxt *dc)
--{
--	if (dc)
--		kref_put(&dc->debug_refcnt, dlm_debug_free);
--}
--
--static void dlm_debug_get(struct dlm_debug_ctxt *dc)
--{
--	kref_get(&dc->debug_refcnt);
--}
--
- static int debug_release(struct inode *inode, struct file *file)
- {
- 	free_page((unsigned long)file->private_data);
-@@ -932,11 +912,9 @@ int dlm_debug_init(struct dlm_ctxt *dlm)
- 		goto bail;
- 	}
-
--	dlm_debug_get(dc);
- 	return 0;
-
- bail:
--	dlm_debug_shutdown(dlm);
- 	return -ENOMEM;
- }
-
-@@ -949,7 +927,8 @@ void dlm_debug_shutdown(struct dlm_ctxt *dlm)
- 		debugfs_remove(dc->debug_mle_dentry);
- 		debugfs_remove(dc->debug_lockres_dentry);
- 		debugfs_remove(dc->debug_state_dentry);
--		dlm_debug_put(dc);
-+		kfree(dc);
-+		dc = NULL;
- 	}
- }
-
-@@ -969,7 +948,6 @@ int dlm_create_debugfs_subroot(struct dlm_ctxt *dlm)
- 		mlog_errno(-ENOMEM);
- 		goto bail;
- 	}
--	kref_init(&dlm->dlm_debug_ctxt->debug_refcnt);
-
- 	return 0;
- bail:
-diff --git a/fs/ocfs2/dlm/dlmdebug.h b/fs/ocfs2/dlm/dlmdebug.h
-index 1f27c48..5ced548 100644
---- a/fs/ocfs2/dlm/dlmdebug.h
-+++ b/fs/ocfs2/dlm/dlmdebug.h
-@@ -30,7 +30,6 @@ void dlm_print_one_mle(struct dlm_master_list_entry *mle);
- #ifdef CONFIG_DEBUG_FS
-
- struct dlm_debug_ctxt {
--	struct kref debug_refcnt;
- 	struct dentry *debug_state_dentry;
- 	struct dentry *debug_lockres_dentry;
- 	struct dentry *debug_mle_dentry;
--- 
-1.8.4.3
+On 2016/6/22 17:07, Eric Ren wrote:
+> The testcase "mmaptruncate" in ocfs2 test suite always fails with
+> ENOSPC error on small volume (say less than 10G). This testcase
+> creates 2 threads T1/T2 which race to "truncate"/"extend" a same
+> file repeatedly. Specifically, T1 truncates 1/2 size of a small file
+> while T2 extend to 100% size. The main bitmap will quickly run out
+> of space because the "truncate" code prevent truncate log from being
+> flushed by ocfs2_schedule_truncate_log_flush(osb, 1), while truncate
+> log may have cached lots of clusters.
+> 
+> So retry to allocate after flushing truncate log when ENOSPC is
+> returned. And we cannot reuse the deleted blocks before the transaction
+> committed. Fortunately, we already have a function to do this -
+> ocfs2_try_to_free_truncate_log(). Just need to remove the "static"
+> modifier and put it into a right place.
+> 
+> Signed-off-by: Eric Ren <zren@suse.com>
+> ---
+>  fs/ocfs2/alloc.c    | 37 +++++++++++++++++++++++++++++++++++++
+>  fs/ocfs2/alloc.h    |  2 ++
+>  fs/ocfs2/aops.c     | 37 -------------------------------------
+>  fs/ocfs2/suballoc.c | 17 ++++++++++++++++-
+>  4 files changed, 55 insertions(+), 38 deletions(-)
+> 
+> diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
+> index 460c0ce..7dabbc3 100644
+> --- a/fs/ocfs2/alloc.c
+> +++ b/fs/ocfs2/alloc.c
+> @@ -6106,6 +6106,43 @@ void ocfs2_schedule_truncate_log_flush(struct ocfs2_super *osb,
+>  	}
+>  }
+>  
+> +/*
+> + * Try to flush truncate logs if we can free enough clusters from it.
+> + * As for return value, "< 0" means error, "0" no space and "1" means
+> + * we have freed enough spaces and let the caller try to allocate again.
+> + */
+> +int ocfs2_try_to_free_truncate_log(struct ocfs2_super *osb,
+> +					unsigned int needed)
+> +{
+> +	tid_t target;
+> +	int ret = 0;
+> +	unsigned int truncated_clusters;
+> +
+> +	inode_lock(osb->osb_tl_inode);
+> +	truncated_clusters = osb->truncated_clusters;
+> +	inode_unlock(osb->osb_tl_inode);
+> +
+> +	/*
+> +	 * Check whether we can succeed in allocating if we free
+> +	 * the truncate log.
+> +	 */
+> +	if (truncated_clusters < needed)
+> +		goto out;
+> +
+> +	ret = ocfs2_flush_truncate_log(osb);
+> +	if (ret) {
+> +		mlog_errno(ret);
+> +		goto out;
+> +	}
+> +
+> +	if (jbd2_journal_start_commit(osb->journal->j_journal, &target)) {
+> +		jbd2_log_wait_commit(osb->journal->j_journal, target);
+> +		ret = 1;
+> +	}
+> +out:
+> +	return ret;
+> +}
+> +
+>  static int ocfs2_get_truncate_log_info(struct ocfs2_super *osb,
+>  				       int slot_num,
+>  				       struct inode **tl_inode,
+> diff --git a/fs/ocfs2/alloc.h b/fs/ocfs2/alloc.h
+> index f3dc1b0..4a5152e 100644
+> --- a/fs/ocfs2/alloc.h
+> +++ b/fs/ocfs2/alloc.h
+> @@ -188,6 +188,8 @@ int ocfs2_truncate_log_append(struct ocfs2_super *osb,
+>  			      u64 start_blk,
+>  			      unsigned int num_clusters);
+>  int __ocfs2_flush_truncate_log(struct ocfs2_super *osb);
+> +int ocfs2_try_to_free_truncate_log(struct ocfs2_super *osb,
+> +				   unsigned int needed);
+>  
+>  /*
+>   * Process local structure which describes the block unlinks done
+> diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+> index c034edf..1802aef 100644
+> --- a/fs/ocfs2/aops.c
+> +++ b/fs/ocfs2/aops.c
+> @@ -1645,43 +1645,6 @@ static int ocfs2_zero_tail(struct inode *inode, struct buffer_head *di_bh,
+>  	return ret;
+>  }
+>  
+> -/*
+> - * Try to flush truncate logs if we can free enough clusters from it.
+> - * As for return value, "< 0" means error, "0" no space and "1" means
+> - * we have freed enough spaces and let the caller try to allocate again.
+> - */
+> -static int ocfs2_try_to_free_truncate_log(struct ocfs2_super *osb,
+> -					  unsigned int needed)
+> -{
+> -	tid_t target;
+> -	int ret = 0;
+> -	unsigned int truncated_clusters;
+> -
+> -	inode_lock(osb->osb_tl_inode);
+> -	truncated_clusters = osb->truncated_clusters;
+> -	inode_unlock(osb->osb_tl_inode);
+> -
+> -	/*
+> -	 * Check whether we can succeed in allocating if we free
+> -	 * the truncate log.
+> -	 */
+> -	if (truncated_clusters < needed)
+> -		goto out;
+> -
+> -	ret = ocfs2_flush_truncate_log(osb);
+> -	if (ret) {
+> -		mlog_errno(ret);
+> -		goto out;
+> -	}
+> -
+> -	if (jbd2_journal_start_commit(osb->journal->j_journal, &target)) {
+> -		jbd2_log_wait_commit(osb->journal->j_journal, target);
+> -		ret = 1;
+> -	}
+> -out:
+> -	return ret;
+> -}
+> -
+>  int ocfs2_write_begin_nolock(struct address_space *mapping,
+>  			     loff_t pos, unsigned len, ocfs2_write_type_t type,
+>  			     struct page **pagep, void **fsdata,
+> diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
+> index 2f19aee..9f7f3b6 100644
+> --- a/fs/ocfs2/suballoc.c
+> +++ b/fs/ocfs2/suballoc.c
+> @@ -1164,7 +1164,8 @@ static int ocfs2_reserve_clusters_with_limit(struct ocfs2_super *osb,
+>  					     int flags,
+>  					     struct ocfs2_alloc_context **ac)
+>  {
+> -	int status;
+> +	int status, ret = 0;
+> +	int retried = 0;
+>  
+>  	*ac = kzalloc(sizeof(struct ocfs2_alloc_context), GFP_KERNEL);
+>  	if (!(*ac)) {
+> @@ -1189,7 +1190,21 @@ static int ocfs2_reserve_clusters_with_limit(struct ocfs2_super *osb,
+>  	}
+>  
+>  	if (status == -ENOSPC) {
+> +retry:
+>  		status = ocfs2_reserve_cluster_bitmap_bits(osb, *ac);
+> +		/* Retry if there is sufficient space cached in truncate log */
+> +		if (status == -ENOSPC && !retried) {
+> +			retried = 1;
+> +			ocfs2_inode_unlock((*ac)->ac_inode, 1);
+> +			inode_unlock((*ac)->ac_inode);
+> +
+> +			ret = ocfs2_try_to_free_truncate_log(osb, bits_wanted);
+> +			if (ret == 1)
+> +				goto retry;
+> +
+> +			if (ret < 0)
+> +				mlog_errno(ret);
+> +		}
+>  		if (status < 0) {
+>  			if (status != -ENOSPC)
+>  				mlog_errno(status);
+> 
