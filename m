@@ -1,72 +1,59 @@
-From: Eric Ren <zren@suse.com>
-Date: Thu, 7 Jul 2016 17:59:12 +0800
-Subject: [Ocfs2-devel] [PATCH v2] ocfs2: retry on ENOSPC if sufficient
- space in truncate log
-In-Reply-To: <577DA9C5.1050503@huawei.com>
-References: <1467802651-12461-1-git-send-email-zren@suse.com>
-	<577DA9C5.1050503@huawei.com>
-Message-ID: <577E27F0.2010700@suse.com>
+From: Dan Carpenter <dan.carpenter@oracle.com>
+Date: Thu, 7 Jul 2016 18:35:39 +0300
+Subject: [Ocfs2-devel] [bug report] ocfs2: fix sparse file & data ordering
+ issue in direct io
+Message-ID: <20160707153539.GA19602@mwanda>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Joseph,
+Hello Ryan Ding,
 
-On 07/07/2016 09:00 AM, Joseph Qi wrote:
->> @@ -1164,7 +1164,8 @@ static int ocfs2_reserve_clusters_with_limit(struct ocfs2_super *osb,
->>   					     int flags,
->>   					     struct ocfs2_alloc_context **ac)
->>   {
->> -	int status;
->> +	int status, ret = 0;
->> +	int retried = 0;
->>
->>   	*ac = kzalloc(sizeof(struct ocfs2_alloc_context), GFP_KERNEL);
->>   	if (!(*ac)) {
->> @@ -1189,7 +1190,24 @@ static int ocfs2_reserve_clusters_with_limit(struct ocfs2_super *osb,
->>   	}
->>
->>   	if (status == -ENOSPC) {
->> +retry:
->>   		status = ocfs2_reserve_cluster_bitmap_bits(osb, *ac);
->> +		/* Retry if there is sufficient space cached in truncate log */
->> +		if (status == -ENOSPC && !retried) {
->> +			retried = 1;
->> +			ocfs2_inode_unlock((*ac)->ac_inode, 1);
->> +			inode_unlock((*ac)->ac_inode);
->> +
->> +			ret = ocfs2_try_to_free_truncate_log(osb, bits_wanted);
->> +			if (ret == 1)
->> +				goto retry;
->> +
->> +			if (ret < 0) {
->> +				mlog_errno(ret);
->> +				inode_lock((*ac)->ac_inode);
->> +				ocfs2_inode_lock((*ac)->ac_inode, NULL, 1);
->> +			}
-> Here not only the case error occurs in ocfs2_try_to_free_truncate_log,
-> but also have tried to free truncate log but still no space, you have
-> already unlocked inode and it will still call ocfs2_free_alloc_context
-> and unlock again.
-> I suggest here we consider a bit code refactoring but not just lock
-> again.
+The patch c15471f79506: "ocfs2: fix sparse file & data ordering issue
+in direct io" from Mar 25, 2016, leads to the following static
+checker warning:
 
-Oh, yes! "< 0" means error and "0" means no space. I also considered the 
-possibility of refactoring somehow. But it needs plenty of changes
-because of DLM glue layer doesn't keep track of the lock holder@
-process level. I know it looks ugly and inefficient, but fortunately
-the chance of hitting here is very little, so I think it doesn't worth
-a refactor. Any suggestions?
+	fs/ocfs2/aops.c:2205 ocfs2_dio_get_block()
+	error: potentially dereferencing uninitialized 'wc'.
 
-Eric
+fs/ocfs2/aops.c
+  2196  
+  2197          ret = ocfs2_write_begin_nolock(inode->i_mapping, pos, len,
+  2198                                         OCFS2_WRITE_DIRECT, NULL,
+  2199                                         (void **)&wc, di_bh, NULL);
+  2200          if (ret) {
+  2201                  mlog_errno(ret);
+  2202                  goto unlock;
+  2203          }
+  2204  
+  2205          desc = &wc->w_desc[0];
+  2206  
+  2207          p_blkno = ocfs2_clusters_to_blocks(inode->i_sb, desc->c_phys);
+  2208          BUG_ON(p_blkno == 0);
+  2209          p_blkno += iblock & (u64)(ocfs2_clusters_to_blocks(inode->i_sb, 1) - 1);
 
->
-> Thanks,
-> Joseph
->
->> +		}
->>   		if (status < 0) {
->>   			if (status != -ENOSPC)
->>   				mlog_errno(status);
+What it's complaining about is this code path:
+
+fs/ocfs2/aops.c
+  1807  
+  1808          /*
+  1809           * ocfs2_grab_pages_for_write() returns -EAGAIN if it could not lock
+  1810           * the target page. In this case, we exit with no error and no target
+  1811           * page. This will trigger the caller, page_mkwrite(), to re-try
+  1812           * the operation.
+  1813           */
+  1814          if (ret == -EAGAIN) {
+  1815                  BUG_ON(wc->w_target_page);
+  1816                  ret = 0;
+  1817                  goto out_quota;
+  1818          }
+  1819  
+
+We return success without setting "wc".  It says that the caller will
+check the target page, but we are passing a NULL target page?  It's not
+clear to me how this works.
+
+regards,
+dan carpenter
