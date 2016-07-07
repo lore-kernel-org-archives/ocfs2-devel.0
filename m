@@ -1,92 +1,34 @@
-From: Junxiao Bi <junxiao.bi@oracle.com>
-Date: Thu,  7 Jul 2016 10:24:48 +0800
-Subject: [Ocfs2-devel] [PATCH v2] ocfs2: improve recovery performance
-Message-ID: <1467858288-4159-1-git-send-email-junxiao.bi@oracle.com>
+From: Dan Carpenter <dan.carpenter@oracle.com>
+Date: Thu, 7 Jul 2016 11:12:41 +0300
+Subject: [Ocfs2-devel] [patch] ocfs2: silence an integer overflow warning
+Message-ID: <20160707081241.GA16645@mwanda>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Mark Fasheh <mfasheh@suse.com>
+Cc: Joel Becker <jlbec@evilplan.org>, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org, kernel-janitors@vger.kernel.org
 
-Journal replay will be run when do recovery for a dead node,
-to avoid the stale cache impact, all blocks of dead node's
-journal inode were reload from disk. This hurts the performance,
-check whether one block is cached before reload it can improve
-a lot performance. In my test env, the time doing recovery was
-improved from 120s to 1s.
+My static checker complains that ->me_start + ->me_len can overflow.
+I haven't followed it through to see the implications but it seems
+simple enough to prevent the overflow.
 
-Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
+Signed-off-by: Dan Carpenter <dan.carpenter@oracle.com>
 ---
- fs/ocfs2/journal.c |   42 +++++++++++++++++++++++-------------------
- 1 file changed, 23 insertions(+), 19 deletions(-)
+move_extents in other less common file systems have this same warning as
+well.
 
-diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
-index e607419cdfa4..67179cf60525 100644
---- a/fs/ocfs2/journal.c
-+++ b/fs/ocfs2/journal.c
-@@ -1159,10 +1159,8 @@ static int ocfs2_force_read_journal(struct inode *inode)
- 	int status = 0;
- 	int i;
- 	u64 v_blkno, p_blkno, p_blocks, num_blocks;
--#define CONCURRENT_JOURNAL_FILL 32ULL
--	struct buffer_head *bhs[CONCURRENT_JOURNAL_FILL];
--
--	memset(bhs, 0, sizeof(struct buffer_head *) * CONCURRENT_JOURNAL_FILL);
-+	struct buffer_head *bh = NULL;
-+	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
- 
- 	num_blocks = ocfs2_blocks_for_bytes(inode->i_sb, i_size_read(inode));
- 	v_blkno = 0;
-@@ -1174,29 +1172,35 @@ static int ocfs2_force_read_journal(struct inode *inode)
- 			goto bail;
- 		}
- 
--		if (p_blocks > CONCURRENT_JOURNAL_FILL)
--			p_blocks = CONCURRENT_JOURNAL_FILL;
-+		for (i = 0; i < p_blocks; i++) {
-+			bh = __find_get_block(osb->sb->s_bdev, p_blkno,
-+					osb->sb->s_blocksize);
-+			/* block not cached. */
-+			if (!bh) {
-+				p_blkno++;
-+				continue;
-+			}
- 
--		/* We are reading journal data which should not
--		 * be put in the uptodate cache */
--		status = ocfs2_read_blocks_sync(OCFS2_SB(inode->i_sb),
--						p_blkno, p_blocks, bhs);
--		if (status < 0) {
--			mlog_errno(status);
--			goto bail;
--		}
-+			brelse(bh);
-+			bh = NULL;
-+			/* We are reading journal data which should not
-+			 * be put in the uptodate cache.
-+			 */
-+			status = ocfs2_read_blocks_sync(osb, p_blkno, 1, &bh);
-+			if (status < 0) {
-+				mlog_errno(status);
-+				goto bail;
-+			}
- 
--		for(i = 0; i < p_blocks; i++) {
--			brelse(bhs[i]);
--			bhs[i] = NULL;
-+			brelse(bh);
-+			bh = NULL;
-+			p_blkno++;
- 		}
- 
- 		v_blkno += p_blocks;
+diff --git a/fs/ocfs2/move_extents.c b/fs/ocfs2/move_extents.c
+index e3d05d9..9ff405a 100644
+--- a/fs/ocfs2/move_extents.c
++++ b/fs/ocfs2/move_extents.c
+@@ -1014,7 +1014,8 @@ int ocfs2_ioctl_move_extents(struct file *filp, void __user *argp)
+ 		goto out_free;
  	}
  
- bail:
--	for(i = 0; i < CONCURRENT_JOURNAL_FILL; i++)
--		brelse(bhs[i]);
- 	return status;
- }
- 
--- 
-1.7.9.5
+-	if (range.me_start > i_size_read(inode)) {
++	if (range.me_start > i_size_read(inode) ||
++	    range.me_len > i_size_read(inode)) {
+ 		status = -EINVAL;
+ 		goto out_free;
+ 	}
