@@ -1,72 +1,119 @@
-From: Junxiao Bi <junxiao.bi@oracle.com>
-Date: Mon, 11 Jul 2016 10:12:39 +0800
-Subject: [Ocfs2-devel] [PATCH v2] ocfs2: improve recovery performance
-In-Reply-To: <20160708142341.5d8c3ab794e89cc981267391@linux-foundation.org>
-References: <1467858288-4159-1-git-send-email-junxiao.bi@oracle.com>
-	<20160708142341.5d8c3ab794e89cc981267391@linux-foundation.org>
-Message-ID: <57830097.8060508@oracle.com>
+From: piaojun <piaojun@huawei.com>
+Date: Mon, 11 Jul 2016 10:18:08 +0800
+Subject: [Ocfs2-devel] ocfs2/dlm: solve a BUG when deref failed in
+	dlm_drop_lockres_ref
+In-Reply-To: <5782FF44.2040906@huawei.com>
+References: <57821D5B.40102@huawei.com> <5782FF44.2040906@huawei.com>
+Message-ID: <578301E0.8080806@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 07/09/2016 05:23 AM, Andrew Morton wrote:
-> On Thu,  7 Jul 2016 10:24:48 +0800 Junxiao Bi <junxiao.bi@oracle.com> wrote:
-> 
->> Journal replay will be run when do recovery for a dead node,
->> to avoid the stale cache impact, all blocks of dead node's
->> journal inode were reload from disk. This hurts the performance,
->> check whether one block is cached before reload it can improve
->> a lot performance. In my test env, the time doing recovery was
->> improved from 120s to 1s.
-> 
-> So since v1 you did this (unchangelogged bugfix!):
-> 
-> --- a/fs/ocfs2/journal.c~ocfs2-improve-recovery-performance-v2
-> +++ a/fs/ocfs2/journal.c
-> @@ -1194,6 +1194,7 @@ static int ocfs2_force_read_journal(stru
->  
->  			brelse(bh);
->  			bh = NULL;
-> +			p_blkno++;
->  		}
->  
->  		v_blkno += p_blocks;
-> 
-> 
-> I suppose this is a bit neater?
-Yes, looks good. Thank you.
 
-Thanks,
-Junxiao.
+
+On 2016-7-11 10:07, Joseph Qi wrote:
+> On 2016/7/10 18:03, piaojun wrote:
+>> We found a BUG situation that lockres is migrated during deref
+>> described below. To solve the BUG, we could purge lockres directly when
+>> other node says I did not have a ref. Additionally, we'd better purge
+>> lockres if master goes down, as no one will response deref done.
+>>
+>> Node 1                  Node 2(old master)             Node3(new master)
+>> dlm_purge_lockres
+>> send deref to N2
+>>
+>>                         leave domain
+>>                         migrate lockres to N3
+>>                                                        finish migration
+>>                                                        send do assert
+>>                                                        master to N1
+>>
+>> receive do assert msg
+>> form N3, but can not
+>> find lockres because
+>> DROPPING_REF is set,
+>> so the owner is still
+>> N2.
+>>
+>>                         receive deref from N1
+>>                         and response -EINVAL
+>>                         because lockres is migrated
+>>
+>> BUG when receive -EINVAL
+>> in dlm_drop_lockres_ref
+>>
+>> Fixes: 842b90b62461d ("ocfs2/dlm: return in progress if master can not clear the refmap bit...")
+>> Signed-off-by: Jun Piao <piaojun@huawei.com>
+> Use full patch title please.
+> Others looks well.
 > 
-> --- a/fs/ocfs2/journal.c~ocfs2-improve-recovery-performance-v2-fix
-> +++ a/fs/ocfs2/journal.c
-> @@ -1172,14 +1172,12 @@ static int ocfs2_force_read_journal(stru
->  			goto bail;
->  		}
->  
-> -		for (i = 0; i < p_blocks; i++) {
-> +		for (i = 0; i < p_blocks; i++, p_blkno++) {
->  			bh = __find_get_block(osb->sb->s_bdev, p_blkno,
->  					osb->sb->s_blocksize);
->  			/* block not cached. */
-> -			if (!bh) {
-> -				p_blkno++;
-> +			if (!bh)
->  				continue;
-> -			}
->  
->  			brelse(bh);
->  			bh = NULL;
-> @@ -1194,7 +1192,6 @@ static int ocfs2_force_read_journal(stru
->  
->  			brelse(bh);
->  			bh = NULL;
-> -			p_blkno++;
->  		}
->  
->  		v_blkno += p_blocks;
-> _
+> Thanks,
+> Joseph
+> 
+Good suggestion, I will fix this problem in the following [PATCH v2].
+Thanks,
+Jun Piao
+>> ---
+>>  fs/ocfs2/dlm/dlmmaster.c |  9 ++++++---
+>>  fs/ocfs2/dlm/dlmthread.c | 13 +++++++++++--
+>>  2 files changed, 17 insertions(+), 5 deletions(-)
+>>
+>> diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
+>> index f72e7ae..8c84641 100644
+>> --- a/fs/ocfs2/dlm/dlmmaster.c
+>> +++ b/fs/ocfs2/dlm/dlmmaster.c
+>> @@ -2276,9 +2276,12 @@ int dlm_drop_lockres_ref(struct dlm_ctxt *dlm, struct dlm_lock_resource *res)
+>>  		mlog(ML_ERROR, "%s: res %.*s, DEREF to node %u got %d\n",
+>>  		     dlm->name, namelen, lockname, res->owner, r);
+>>  		dlm_print_one_lock_resource(res);
+>> -		BUG();
+>> -	}
+>> -	return ret ? ret : r;
+>> +		if (r == -ENOMEM)
+>> +			BUG();
+>> +	} else
+>> +		ret = r;
+>> +
+>> +	return ret;
+>>  }
+>>  
+>>  int dlm_deref_lockres_handler(struct o2net_msg *msg, u32 len, void *data,
+>> diff --git a/fs/ocfs2/dlm/dlmthread.c b/fs/ocfs2/dlm/dlmthread.c
+>> index 68d239b..ce39722 100644
+>> --- a/fs/ocfs2/dlm/dlmthread.c
+>> +++ b/fs/ocfs2/dlm/dlmthread.c
+>> @@ -175,6 +175,15 @@ static void dlm_purge_lockres(struct dlm_ctxt *dlm,
+>>  	     res->lockname.len, res->lockname.name, master);
+>>  
+>>  	if (!master) {
+>> +		if (res->state & DLM_LOCK_RES_DROPPING_REF) {
+>> +			mlog(ML_NOTICE, "%s: res %.*s already in "
+>> +				"DLM_LOCK_RES_DROPPING_REF state\n",
+>> +				dlm->name, res->lockname.len,
+>> +				res->lockname.name);
+>> +			spin_unlock(&res->spinlock);
+>> +			return;
+>> +		}
+>> +
+>>  		res->state |= DLM_LOCK_RES_DROPPING_REF;
+>>  		/* drop spinlock...  retake below */
+>>  		spin_unlock(&res->spinlock);
+>> @@ -203,8 +212,8 @@ static void dlm_purge_lockres(struct dlm_ctxt *dlm,
+>>  		dlm->purge_count--;
+>>  	}
+>>  
+>> -	if (!master && ret != 0) {
+>> -		mlog(0, "%s: deref %.*s in progress or master goes down\n",
+>> +	if (!master && ret == DLM_DEREF_RESPONSE_INPROG) {
+>> +		mlog(0, "%s: deref %.*s in progress\n",
+>>  			dlm->name, res->lockname.len, res->lockname.name);
+>>  		spin_unlock(&res->spinlock);
+>>  		return;
+>>
+> 
+> 
+> 
+> .
 > 
