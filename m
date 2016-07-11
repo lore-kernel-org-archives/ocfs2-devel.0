@@ -1,93 +1,108 @@
 From: Joseph Qi <joseph.qi@huawei.com>
-Date: Mon, 11 Jul 2016 09:55:06 +0800
-Subject: [Ocfs2-devel] ocfs2/dlm: disable BUG_ON when
- DLM_LOCK_RES_DROPPING_REF, is cleared before dlm_deref_lockres_done_handler
-In-Reply-To: <57821D09.1040306@huawei.com>
-References: <57821D09.1040306@huawei.com>
-Message-ID: <5782FC7A.90208@huawei.com>
+Date: Mon, 11 Jul 2016 10:07:00 +0800
+Subject: [Ocfs2-devel] ocfs2/dlm: solve a BUG when deref failed in
+	dlm_drop_lockres_ref
+In-Reply-To: <57821D5B.40102@huawei.com>
+References: <57821D5B.40102@huawei.com>
+Message-ID: <5782FF44.2040906@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Jun,
-
-On 2016/7/10 18:01, piaojun wrote:
-> We found a BUG situation in which DLM_LOCK_RES_DROPPING_REF is cleared
-> unexpected that described below. To solve the bug, we disable the BUG_ON
-> and purge lockres in dlm_do_local_recovery_cleanup.
+On 2016/7/10 18:03, piaojun wrote:
+> We found a BUG situation that lockres is migrated during deref
+> described below. To solve the BUG, we could purge lockres directly when
+> other node says I did not have a ref. Additionally, we'd better purge
+> lockres if master goes down, as no one will response deref done.
 > 
-> Node 1                               Node 2(master)
+> Node 1                  Node 2(old master)             Node3(new master)
 > dlm_purge_lockres
->                                      dlm_deref_lockres_handler
+> send deref to N2
 > 
->                                      DLM_LOCK_RES_SETREF_INPROG is set
->                                      response DLM_DEREF_RESPONSE_INPROG
+>                         leave domain
+>                         migrate lockres to N3
+>                                                        finish migration
+>                                                        send do assert
+>                                                        master to N1
 > 
-> receive DLM_DEREF_RESPONSE_INPROG
-> stop puring in dlm_purge_lockres
-> and wait for DLM_DEREF_RESPONSE_DONE
+> receive do assert msg
+> form N3, but can not
+> find lockres because
+> DROPPING_REF is set,
+> so the owner is still
+> N2.
 > 
->                                      dispatch dlm_deref_lockres_worker
->                                      response DLM_DEREF_RESPONSE_DONE
+>                         receive deref from N1
+>                         and response -EINVAL
+>                         because lockres is migrated
 > 
-> receive DLM_DEREF_RESPONSE_DONE and
-> prepare to purge lockres
+> BUG when receive -EINVAL
+> in dlm_drop_lockres_ref
 > 
->                                      Node 2 goes down
-> 
-> find Node2 down and do local
-> clean up for Node2:
-> dlm_do_local_recovery_cleanup
->   -> clear DLM_LOCK_RES_DROPPING_REF
-> 
-> when purging lockres, BUG_ON happens
-> because DLM_LOCK_RES_DROPPING_REF is clear:
-> dlm_deref_lockres_done_handler
->   ->BUG_ON(!(res->state & DLM_LOCK_RES_DROPPING_REF));
-> 
-> Fixes: 60d663cb5273 ("ocfs2/dlm: add DEREF_DONE message")
+> Fixes: 842b90b62461d ("ocfs2/dlm: return in progress if master can not clear the refmap bit...")
 > Signed-off-by: Jun Piao <piaojun@huawei.com>
-> ---
->  fs/ocfs2/dlm/dlmmaster.c | 13 ++++++++++++-
->  1 file changed, 12 insertions(+), 1 deletion(-)
-> 
-> diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
-> index 9aed6e2..f72e7ae 100644
-> --- a/fs/ocfs2/dlm/dlmmaster.c
-> +++ b/fs/ocfs2/dlm/dlmmaster.c
-> @@ -2416,7 +2416,16 @@ int dlm_deref_lockres_done_handler(struct o2net_msg *msg, u32 len, void *data,
->  	}
->  
->  	spin_lock(&res->spinlock);
-> -	BUG_ON(!(res->state & DLM_LOCK_RES_DROPPING_REF));
-> +	if (!(res->state & DLM_LOCK_RES_DROPPING_REF)) {
-> +		spin_unlock(&res->spinlock);
-> +		spin_unlock(&dlm->spinlock);
-> +		mlog(ML_NOTICE, "%s:%.*s: node %u sends deref done "
-> +			"but it is already derefed!\n", dlm->name,
-> +			res->lockname.len, res->lockname.name, node);
-> +		dlm_lockres_put(res);
-So we treat this case as normal?
-If so, we'd better return 0 other than -EINVAL.
+Use full patch title please.
+Others looks well.
 
 Thanks,
 Joseph
 
-> +		goto done;
-> +	}
+> ---
+>  fs/ocfs2/dlm/dlmmaster.c |  9 ++++++---
+>  fs/ocfs2/dlm/dlmthread.c | 13 +++++++++++--
+>  2 files changed, 17 insertions(+), 5 deletions(-)
+> 
+> diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
+> index f72e7ae..8c84641 100644
+> --- a/fs/ocfs2/dlm/dlmmaster.c
+> +++ b/fs/ocfs2/dlm/dlmmaster.c
+> @@ -2276,9 +2276,12 @@ int dlm_drop_lockres_ref(struct dlm_ctxt *dlm, struct dlm_lock_resource *res)
+>  		mlog(ML_ERROR, "%s: res %.*s, DEREF to node %u got %d\n",
+>  		     dlm->name, namelen, lockname, res->owner, r);
+>  		dlm_print_one_lock_resource(res);
+> -		BUG();
+> -	}
+> -	return ret ? ret : r;
+> +		if (r == -ENOMEM)
+> +			BUG();
+> +	} else
+> +		ret = r;
 > +
->  	if (!list_empty(&res->purge)) {
->  		mlog(0, "%s: Removing res %.*s from purgelist\n",
+> +	return ret;
+>  }
+>  
+>  int dlm_deref_lockres_handler(struct o2net_msg *msg, u32 len, void *data,
+> diff --git a/fs/ocfs2/dlm/dlmthread.c b/fs/ocfs2/dlm/dlmthread.c
+> index 68d239b..ce39722 100644
+> --- a/fs/ocfs2/dlm/dlmthread.c
+> +++ b/fs/ocfs2/dlm/dlmthread.c
+> @@ -175,6 +175,15 @@ static void dlm_purge_lockres(struct dlm_ctxt *dlm,
+>  	     res->lockname.len, res->lockname.name, master);
+>  
+>  	if (!master) {
+> +		if (res->state & DLM_LOCK_RES_DROPPING_REF) {
+> +			mlog(ML_NOTICE, "%s: res %.*s already in "
+> +				"DLM_LOCK_RES_DROPPING_REF state\n",
+> +				dlm->name, res->lockname.len,
+> +				res->lockname.name);
+> +			spin_unlock(&res->spinlock);
+> +			return;
+> +		}
+> +
+>  		res->state |= DLM_LOCK_RES_DROPPING_REF;
+>  		/* drop spinlock...  retake below */
+>  		spin_unlock(&res->spinlock);
+> @@ -203,8 +212,8 @@ static void dlm_purge_lockres(struct dlm_ctxt *dlm,
+>  		dlm->purge_count--;
+>  	}
+>  
+> -	if (!master && ret != 0) {
+> -		mlog(0, "%s: deref %.*s in progress or master goes down\n",
+> +	if (!master && ret == DLM_DEREF_RESPONSE_INPROG) {
+> +		mlog(0, "%s: deref %.*s in progress\n",
 >  			dlm->name, res->lockname.len, res->lockname.name);
-> @@ -2455,6 +2464,8 @@ int dlm_deref_lockres_done_handler(struct o2net_msg *msg, u32 len, void *data,
->  
->  	spin_unlock(&dlm->spinlock);
->  
-> +	ret = 0;
-> +
->  done:
->  	dlm_put(dlm);
->  	return ret;
+>  		spin_unlock(&res->spinlock);
+>  		return;
 > 
