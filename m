@@ -1,40 +1,44 @@
 From: piaojun <piaojun@huawei.com>
-Date: Tue, 12 Jul 2016 10:20:40 +0800
-Subject: [Ocfs2-devel] ocfs2/dlm: continue to purge recovery lockres
- when recovery master goes down
-In-Reply-To: <20160711133738.06b386f800bdfcdcc10e6d52@linux-foundation.org>
-References: <57821DB1.9060208@huawei.com>
-	<20160711133430.fa4e146f61907d2c86b4a208@linux-foundation.org>
-	<20160711133738.06b386f800bdfcdcc10e6d52@linux-foundation.org>
-Message-ID: <578453F8.1040407@huawei.com>
+Date: Mon, 18 Jul 2016 12:58:30 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2/cluster: clean up unnecessary
+	assignment for 'ret'
+Message-ID: <578C61F6.4080403@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
+clean up unnecessary assignment for 'ret'.
 
+Signed-off-by: Jun Piao <piaojun@huawei.com>
+Reviewed-by: Joseph Qi <joseph.qi@huawei.com>
+---
+ fs/ocfs2/cluster/tcp.c | 8 ++------
+ 1 file changed, 2 insertions(+), 6 deletions(-)
 
-On 2016-7-12 4:37, Andrew Morton wrote:
-> On Mon, 11 Jul 2016 13:34:30 -0700 Andrew Morton <akpm@linux-foundation.org> wrote:
-> 
->> On Sun, 10 Jul 2016 18:04:33 +0800 piaojun <piaojun@huawei.com> wrote:
->>
->>> We found a dlm-blocked situation caused by continuous breakdown of
->>> recovery masters described below. To solve this problem, we should purge
->>> recovery lock once detecting recovery master goes down.
->>
->> I'm not sure which kernel version this patch is against, but I get
->> significant rejects when merging into 4.7-rc7.  Can you please redo it
->> against the latest Linus tree?
-> 
-> Oh, OK, it's probably due to changes in your earlier patches.  It helps
-> if you use sequence numbering:
-> 
-> [patch 1/3] ocfs2/dlm: disable BUG_ON when DLM_LOCK_RES_DROPPING_REF, is cleared before dlm_deref_lockres_done_handler
-> [patch 2/3] ocfs2/dlm: solve a BUG when deref failed in dlm_drop_lockres_ref
-> etc
-> 
-> .
-> 
-Thanks for remainder, I have sent [PATCH v2] to fix it.
+diff --git a/fs/ocfs2/cluster/tcp.c b/fs/ocfs2/cluster/tcp.c
+index 2d0acd6..9aea996 100644
+--- a/fs/ocfs2/cluster/tcp.c
++++ b/fs/ocfs2/cluster/tcp.c
+@@ -1617,16 +1617,12 @@ static void o2net_start_connect(struct work_struct *work)
+ 
+ 	/* watch for racing with tearing a node down */
+ 	node = o2nm_get_node_by_num(o2net_num_from_nn(nn));
+-	if (node == NULL) {
+-		ret = 0;
++	if (node == NULL)
+ 		goto out;
+-	}
+ 
+ 	mynode = o2nm_get_node_by_num(o2nm_this_node());
+-	if (mynode == NULL) {
+-		ret = 0;
++	if (mynode == NULL)
+ 		goto out;
+-	}
+ 
+ 	spin_lock(&nn->nn_lock);
+ 	/*
+-- 
+1.8.4.3
