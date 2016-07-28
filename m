@@ -1,90 +1,195 @@
 From: akpm at linux-foundation.org <akpm@linux-foundation.org>
-Date: Thu, 28 Jul 2016 14:05:56 -0700
-Subject: [Ocfs2-devel] [patch 1/5] ocfs2: ensure that dlm lockspace is
-	created by kernel module
-Message-ID: <579a73b4.UvdhRu1jgG1MmrgX%akpm@linux-foundation.org>
+Date: Thu, 28 Jul 2016 14:05:59 -0700
+Subject: [Ocfs2-devel] [patch 2/5] ocfs2: retry on ENOSPC if sufficient
+ space in truncate log
+Message-ID: <579a73b7.YTrXbBq1bvN10SiX%akpm@linux-foundation.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-From: Gang He <ghe@suse.com>
-Subject: ocfs2: ensure that dlm lockspace is created by kernel module
+From: Eric Ren <zren@suse.com>
+Subject: ocfs2: retry on ENOSPC if sufficient space in truncate log
 
-We encountered a bug from the customer, the user did a fsck.ocfs2 on the
-file system and exited unusually, the lockspace (with LVB size = 32) was
-left in the kernel space, next, the user mounted this file system, the
-kernel module did not create a new lockspace (LVB size = 64) via calling
-dlm_new_lockspace() function in mounting stage, just used the existing
-lockspace, created by the user space tool, this would lead the user was
-not able to mount this file system from the other nodes, with the error
-message like:
+The testcase "mmaptruncate" in ocfs2 test suite always fails with ENOSPC
+error on small volume (say less than 10G).  This testcase repeatedly
+performs "extend" and "truncate" on a file.  Continuously, it truncates
+the file to 1/2 of the size, and then extends to 100% of the size.  The
+main bitmap will quickly run out of space because the "truncate" code
+prevent truncate log from being flushed by
+ocfs2_schedule_truncate_log_flush(osb, 1), while truncate log may have
+cached lots of clusters.
 
-dlm: 032F5......: config mismatch: 64,0 nodeid 177127961: 32,0
-(mount.ocfs2,26981,46):ocfs2_dlm_init:2995 ERROR: status = -71
-ocfs2_mount_volume:1881 ERROR: status = -71
-ocfs2_fill_super:1236 ERROR: status = -71
+So retry to allocate after flushing truncate log when ENOSPC is returned. 
+And we cannot reuse the deleted blocks before the transaction committed. 
+Fortunately, we already have a function to do this -
+ocfs2_try_to_free_truncate_log().  Just need to remove the "static"
+modifier and put it into the right place.
 
-The user found it very difficult to find the root cause, then, we brought
-out this patch to relieve such problem.  
+The "unlock"/"lock" code isn't elegant, but there seems to be no better
+option.
 
-First, we add one more flag in calling dlm_new_lockspace() function, to
-make sure the lockspace is created by kernel module itself, and this
-change will not affect the backward compatibility.
-
-Second, the obvious error message is reported in the kernel log, let the
-user be more easy to find the root cause.
-
-
-
-This patch will be used to insure the dlm lockspace is created by kernel
-module when mounting a ocfs2 file system.  There are two ways to create a
-lockspace, from user space and kernel space, but the same name lockspaces
-probably have different lvblen lengths/flags.
-
-To avoid this mix using, we add one more flag DLM_LSFL_NEWEXCL, it will
-make sure the dlm lockspace is created by kernel module when mounting. 
-Secondly, if a user space program (ocfs2-tools) is running on a file
-system, the user tries to mount this file system in the cluster, DLM
-module will return a -EEXIST or -EPROTO errno, we should give the user a
-obvious error message, then, the user can let that user space tool exit
-before mounting the file system again.
-
-Link: http://lkml.kernel.org/r/1463731940-13044-2-git-send-email-ghe at suse.com
-Signed-off-by: Gang He <ghe@suse.com>
-Reviewed-by: Goldwyn Rodrigues <rgoldwyn@suse.com>
+[zren at suse.com: locking fix]
+  Link: http://lkml.kernel.org/r/1468031546-4797-1-git-send-email-zren at suse.com
+Link: http://lkml.kernel.org/r/1466586469-5541-1-git-send-email-zren at suse.com
+Signed-off-by: Eric Ren <zren@suse.com>
+Reviewed-by: Gang He <ghe@suse.com>
+Reviewed-by: Joseph Qi <joseph.qi@huawei.com>
 Cc: Mark Fasheh <mfasheh@suse.de>
 Cc: Joel Becker <jlbec@evilplan.org>
 Cc: Junxiao Bi <junxiao.bi@oracle.com>
-Cc: Joseph Qi <joseph.qi@huawei.com>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- fs/ocfs2/stack_user.c |   11 +++++++++--
- 1 file changed, 9 insertions(+), 2 deletions(-)
+ fs/ocfs2/alloc.c    |   37 +++++++++++++++++++++++++++++++++++++
+ fs/ocfs2/alloc.h    |    2 ++
+ fs/ocfs2/aops.c     |   37 -------------------------------------
+ fs/ocfs2/suballoc.c |   20 +++++++++++++++++++-
+ 4 files changed, 58 insertions(+), 38 deletions(-)
 
-diff -puN fs/ocfs2/stack_user.c~ocfs2-insure-dlm-lockspace-is-created-by-kernel-module fs/ocfs2/stack_user.c
---- a/fs/ocfs2/stack_user.c~ocfs2-insure-dlm-lockspace-is-created-by-kernel-module
-+++ a/fs/ocfs2/stack_user.c
-@@ -1007,10 +1007,17 @@ static int user_cluster_connect(struct o
- 	lc->oc_type = NO_CONTROLD;
+diff -puN fs/ocfs2/alloc.c~ocfs2-retry-on-enospc-if-sufficient-space-in-truncate-log fs/ocfs2/alloc.c
+--- a/fs/ocfs2/alloc.c~ocfs2-retry-on-enospc-if-sufficient-space-in-truncate-log
++++ a/fs/ocfs2/alloc.c
+@@ -6106,6 +6106,43 @@ void ocfs2_schedule_truncate_log_flush(s
+ 	}
+ }
  
- 	rc = dlm_new_lockspace(conn->cc_name, conn->cc_cluster_name,
--			       DLM_LSFL_FS, DLM_LVB_LEN,
-+			       DLM_LSFL_FS | DLM_LSFL_NEWEXCL, DLM_LVB_LEN,
- 			       &ocfs2_ls_ops, conn, &ops_rv, &fsdlm);
--	if (rc)
-+	if (rc) {
-+		if (rc == -EEXIST || rc == -EPROTO)
-+			printk(KERN_ERR "ocfs2: Unable to create the "
-+				"lockspace %s (%d), because a ocfs2-tools "
-+				"program is running on this file system "
-+				"with the same name lockspace\n",
-+				conn->cc_name, rc);
- 		goto out;
++/*
++ * Try to flush truncate logs if we can free enough clusters from it.
++ * As for return value, "< 0" means error, "0" no space and "1" means
++ * we have freed enough spaces and let the caller try to allocate again.
++ */
++int ocfs2_try_to_free_truncate_log(struct ocfs2_super *osb,
++					unsigned int needed)
++{
++	tid_t target;
++	int ret = 0;
++	unsigned int truncated_clusters;
++
++	inode_lock(osb->osb_tl_inode);
++	truncated_clusters = osb->truncated_clusters;
++	inode_unlock(osb->osb_tl_inode);
++
++	/*
++	 * Check whether we can succeed in allocating if we free
++	 * the truncate log.
++	 */
++	if (truncated_clusters < needed)
++		goto out;
++
++	ret = ocfs2_flush_truncate_log(osb);
++	if (ret) {
++		mlog_errno(ret);
++		goto out;
 +	}
++
++	if (jbd2_journal_start_commit(osb->journal->j_journal, &target)) {
++		jbd2_log_wait_commit(osb->journal->j_journal, target);
++		ret = 1;
++	}
++out:
++	return ret;
++}
++
+ static int ocfs2_get_truncate_log_info(struct ocfs2_super *osb,
+ 				       int slot_num,
+ 				       struct inode **tl_inode,
+diff -puN fs/ocfs2/alloc.h~ocfs2-retry-on-enospc-if-sufficient-space-in-truncate-log fs/ocfs2/alloc.h
+--- a/fs/ocfs2/alloc.h~ocfs2-retry-on-enospc-if-sufficient-space-in-truncate-log
++++ a/fs/ocfs2/alloc.h
+@@ -188,6 +188,8 @@ int ocfs2_truncate_log_append(struct ocf
+ 			      u64 start_blk,
+ 			      unsigned int num_clusters);
+ int __ocfs2_flush_truncate_log(struct ocfs2_super *osb);
++int ocfs2_try_to_free_truncate_log(struct ocfs2_super *osb,
++				   unsigned int needed);
  
- 	if (ops_rv == -EOPNOTSUPP) {
- 		lc->oc_type = WITH_CONTROLD;
+ /*
+  * Process local structure which describes the block unlinks done
+diff -puN fs/ocfs2/aops.c~ocfs2-retry-on-enospc-if-sufficient-space-in-truncate-log fs/ocfs2/aops.c
+--- a/fs/ocfs2/aops.c~ocfs2-retry-on-enospc-if-sufficient-space-in-truncate-log
++++ a/fs/ocfs2/aops.c
+@@ -1645,43 +1645,6 @@ static int ocfs2_zero_tail(struct inode
+ 	return ret;
+ }
+ 
+-/*
+- * Try to flush truncate logs if we can free enough clusters from it.
+- * As for return value, "< 0" means error, "0" no space and "1" means
+- * we have freed enough spaces and let the caller try to allocate again.
+- */
+-static int ocfs2_try_to_free_truncate_log(struct ocfs2_super *osb,
+-					  unsigned int needed)
+-{
+-	tid_t target;
+-	int ret = 0;
+-	unsigned int truncated_clusters;
+-
+-	inode_lock(osb->osb_tl_inode);
+-	truncated_clusters = osb->truncated_clusters;
+-	inode_unlock(osb->osb_tl_inode);
+-
+-	/*
+-	 * Check whether we can succeed in allocating if we free
+-	 * the truncate log.
+-	 */
+-	if (truncated_clusters < needed)
+-		goto out;
+-
+-	ret = ocfs2_flush_truncate_log(osb);
+-	if (ret) {
+-		mlog_errno(ret);
+-		goto out;
+-	}
+-
+-	if (jbd2_journal_start_commit(osb->journal->j_journal, &target)) {
+-		jbd2_log_wait_commit(osb->journal->j_journal, target);
+-		ret = 1;
+-	}
+-out:
+-	return ret;
+-}
+-
+ int ocfs2_write_begin_nolock(struct address_space *mapping,
+ 			     loff_t pos, unsigned len, ocfs2_write_type_t type,
+ 			     struct page **pagep, void **fsdata,
+diff -puN fs/ocfs2/suballoc.c~ocfs2-retry-on-enospc-if-sufficient-space-in-truncate-log fs/ocfs2/suballoc.c
+--- a/fs/ocfs2/suballoc.c~ocfs2-retry-on-enospc-if-sufficient-space-in-truncate-log
++++ a/fs/ocfs2/suballoc.c
+@@ -1164,7 +1164,8 @@ static int ocfs2_reserve_clusters_with_l
+ 					     int flags,
+ 					     struct ocfs2_alloc_context **ac)
+ {
+-	int status;
++	int status, ret = 0;
++	int retried = 0;
+ 
+ 	*ac = kzalloc(sizeof(struct ocfs2_alloc_context), GFP_KERNEL);
+ 	if (!(*ac)) {
+@@ -1189,7 +1190,24 @@ static int ocfs2_reserve_clusters_with_l
+ 	}
+ 
+ 	if (status == -ENOSPC) {
++retry:
+ 		status = ocfs2_reserve_cluster_bitmap_bits(osb, *ac);
++		/* Retry if there is sufficient space cached in truncate log */
++		if (status == -ENOSPC && !retried) {
++			retried = 1;
++			ocfs2_inode_unlock((*ac)->ac_inode, 1);
++			inode_unlock((*ac)->ac_inode);
++
++			ret = ocfs2_try_to_free_truncate_log(osb, bits_wanted);
++			if (ret == 1)
++				goto retry;
++
++			if (ret < 0)
++				mlog_errno(ret);
++
++			inode_lock((*ac)->ac_inode);
++			ocfs2_inode_lock((*ac)->ac_inode, NULL, 1);
++		}
+ 		if (status < 0) {
+ 			if (status != -ENOSPC)
+ 				mlog_errno(status);
 _
