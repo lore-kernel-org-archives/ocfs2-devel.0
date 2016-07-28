@@ -1,195 +1,93 @@
 From: akpm at linux-foundation.org <akpm@linux-foundation.org>
-Date: Thu, 28 Jul 2016 14:05:59 -0700
-Subject: [Ocfs2-devel] [patch 2/5] ocfs2: retry on ENOSPC if sufficient
- space in truncate log
-Message-ID: <579a73b7.YTrXbBq1bvN10SiX%akpm@linux-foundation.org>
+Date: Thu, 28 Jul 2016 14:06:02 -0700
+Subject: [Ocfs2-devel] [patch 3/5] ocfs2/dlm: disable BUG_ON when
+ DLM_LOCK_RES_DROPPING_REF is cleared before dlm_deref_lockres_done_handler
+Message-ID: <579a73ba.w6r/vSvvhIAjJAxY%akpm@linux-foundation.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-From: Eric Ren <zren@suse.com>
-Subject: ocfs2: retry on ENOSPC if sufficient space in truncate log
+From: piaojun <piaojun@huawei.com>
+Subject: ocfs2/dlm: disable BUG_ON when DLM_LOCK_RES_DROPPING_REF is cleared before dlm_deref_lockres_done_handler
 
-The testcase "mmaptruncate" in ocfs2 test suite always fails with ENOSPC
-error on small volume (say less than 10G).  This testcase repeatedly
-performs "extend" and "truncate" on a file.  Continuously, it truncates
-the file to 1/2 of the size, and then extends to 100% of the size.  The
-main bitmap will quickly run out of space because the "truncate" code
-prevent truncate log from being flushed by
-ocfs2_schedule_truncate_log_flush(osb, 1), while truncate log may have
-cached lots of clusters.
+We found a BUG situation in which DLM_LOCK_RES_DROPPING_REF is cleared
+unexpected that described below.  To solve the bug, we disable the BUG_ON
+and purge lockres in dlm_do_local_recovery_cleanup.
 
-So retry to allocate after flushing truncate log when ENOSPC is returned. 
-And we cannot reuse the deleted blocks before the transaction committed. 
-Fortunately, we already have a function to do this -
-ocfs2_try_to_free_truncate_log().  Just need to remove the "static"
-modifier and put it into the right place.
+Node 1                               Node 2(master)
+dlm_purge_lockres
+                                     dlm_deref_lockres_handler
 
-The "unlock"/"lock" code isn't elegant, but there seems to be no better
-option.
+                                     DLM_LOCK_RES_SETREF_INPROG is set
+                                     response DLM_DEREF_RESPONSE_INPROG
 
-[zren at suse.com: locking fix]
-  Link: http://lkml.kernel.org/r/1468031546-4797-1-git-send-email-zren at suse.com
-Link: http://lkml.kernel.org/r/1466586469-5541-1-git-send-email-zren at suse.com
-Signed-off-by: Eric Ren <zren@suse.com>
-Reviewed-by: Gang He <ghe@suse.com>
+receive DLM_DEREF_RESPONSE_INPROG
+stop puring in dlm_purge_lockres
+and wait for DLM_DEREF_RESPONSE_DONE
+
+                                     dispatch dlm_deref_lockres_worker
+                                     response DLM_DEREF_RESPONSE_DONE
+
+receive DLM_DEREF_RESPONSE_DONE and
+prepare to purge lockres
+
+                                     Node 2 goes down
+
+find Node2 down and do local
+clean up for Node2:
+dlm_do_local_recovery_cleanup
+  -> clear DLM_LOCK_RES_DROPPING_REF
+
+when purging lockres, BUG_ON happens
+because DLM_LOCK_RES_DROPPING_REF is clear:
+dlm_deref_lockres_done_handler
+  ->BUG_ON(!(res->state & DLM_LOCK_RES_DROPPING_REF));
+
+[akpm at linux-foundation.org: fix duplicated write to `ret']
+Fixes: 60d663cb5273 ("ocfs2/dlm: add DEREF_DONE message")
+Link: http://lkml.kernel.org/r/57845055.9080702 at huawei.com
+Signed-off-by: Jun Piao <piaojun@huawei.com>
 Reviewed-by: Joseph Qi <joseph.qi@huawei.com>
+Reviewed-by: Jiufei Xue <xuejiufei@huawei.com>
 Cc: Mark Fasheh <mfasheh@suse.de>
 Cc: Joel Becker <jlbec@evilplan.org>
 Cc: Junxiao Bi <junxiao.bi@oracle.com>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- fs/ocfs2/alloc.c    |   37 +++++++++++++++++++++++++++++++++++++
- fs/ocfs2/alloc.h    |    2 ++
- fs/ocfs2/aops.c     |   37 -------------------------------------
- fs/ocfs2/suballoc.c |   20 +++++++++++++++++++-
- 4 files changed, 58 insertions(+), 38 deletions(-)
+ fs/ocfs2/dlm/dlmmaster.c |   13 +++++++++++--
+ 1 file changed, 11 insertions(+), 2 deletions(-)
 
-diff -puN fs/ocfs2/alloc.c~ocfs2-retry-on-enospc-if-sufficient-space-in-truncate-log fs/ocfs2/alloc.c
---- a/fs/ocfs2/alloc.c~ocfs2-retry-on-enospc-if-sufficient-space-in-truncate-log
-+++ a/fs/ocfs2/alloc.c
-@@ -6106,6 +6106,43 @@ void ocfs2_schedule_truncate_log_flush(s
+diff -puN fs/ocfs2/dlm/dlmmaster.c~ocfs2-dlm-disable-bug_on-when-dlm_lock_res_dropping_ref-is-cleared-before-dlm_deref_lockres_done_handler fs/ocfs2/dlm/dlmmaster.c
+--- a/fs/ocfs2/dlm/dlmmaster.c~ocfs2-dlm-disable-bug_on-when-dlm_lock_res_dropping_ref-is-cleared-before-dlm_deref_lockres_done_handler
++++ a/fs/ocfs2/dlm/dlmmaster.c
+@@ -2416,7 +2416,17 @@ int dlm_deref_lockres_done_handler(struc
  	}
- }
  
-+/*
-+ * Try to flush truncate logs if we can free enough clusters from it.
-+ * As for return value, "< 0" means error, "0" no space and "1" means
-+ * we have freed enough spaces and let the caller try to allocate again.
-+ */
-+int ocfs2_try_to_free_truncate_log(struct ocfs2_super *osb,
-+					unsigned int needed)
-+{
-+	tid_t target;
-+	int ret = 0;
-+	unsigned int truncated_clusters;
-+
-+	inode_lock(osb->osb_tl_inode);
-+	truncated_clusters = osb->truncated_clusters;
-+	inode_unlock(osb->osb_tl_inode);
-+
-+	/*
-+	 * Check whether we can succeed in allocating if we free
-+	 * the truncate log.
-+	 */
-+	if (truncated_clusters < needed)
-+		goto out;
-+
-+	ret = ocfs2_flush_truncate_log(osb);
-+	if (ret) {
-+		mlog_errno(ret);
-+		goto out;
+ 	spin_lock(&res->spinlock);
+-	BUG_ON(!(res->state & DLM_LOCK_RES_DROPPING_REF));
++	if (!(res->state & DLM_LOCK_RES_DROPPING_REF)) {
++		spin_unlock(&res->spinlock);
++		spin_unlock(&dlm->spinlock);
++		mlog(ML_NOTICE, "%s:%.*s: node %u sends deref done "
++			"but it is already derefed!\n", dlm->name,
++			res->lockname.len, res->lockname.name, node);
++		dlm_lockres_put(res);
++		ret = 0;
++		goto done;
 +	}
 +
-+	if (jbd2_journal_start_commit(osb->journal->j_journal, &target)) {
-+		jbd2_log_wait_commit(osb->journal->j_journal, target);
-+		ret = 1;
-+	}
-+out:
-+	return ret;
-+}
-+
- static int ocfs2_get_truncate_log_info(struct ocfs2_super *osb,
- 				       int slot_num,
- 				       struct inode **tl_inode,
-diff -puN fs/ocfs2/alloc.h~ocfs2-retry-on-enospc-if-sufficient-space-in-truncate-log fs/ocfs2/alloc.h
---- a/fs/ocfs2/alloc.h~ocfs2-retry-on-enospc-if-sufficient-space-in-truncate-log
-+++ a/fs/ocfs2/alloc.h
-@@ -188,6 +188,8 @@ int ocfs2_truncate_log_append(struct ocf
- 			      u64 start_blk,
- 			      unsigned int num_clusters);
- int __ocfs2_flush_truncate_log(struct ocfs2_super *osb);
-+int ocfs2_try_to_free_truncate_log(struct ocfs2_super *osb,
-+				   unsigned int needed);
+ 	if (!list_empty(&res->purge)) {
+ 		mlog(0, "%s: Removing res %.*s from purgelist\n",
+ 			dlm->name, res->lockname.len, res->lockname.name);
+@@ -2456,7 +2466,6 @@ int dlm_deref_lockres_done_handler(struc
+ 	spin_unlock(&dlm->spinlock);
  
- /*
-  * Process local structure which describes the block unlinks done
-diff -puN fs/ocfs2/aops.c~ocfs2-retry-on-enospc-if-sufficient-space-in-truncate-log fs/ocfs2/aops.c
---- a/fs/ocfs2/aops.c~ocfs2-retry-on-enospc-if-sufficient-space-in-truncate-log
-+++ a/fs/ocfs2/aops.c
-@@ -1645,43 +1645,6 @@ static int ocfs2_zero_tail(struct inode
+ 	ret = 0;
+-
+ done:
+ 	dlm_put(dlm);
  	return ret;
- }
- 
--/*
-- * Try to flush truncate logs if we can free enough clusters from it.
-- * As for return value, "< 0" means error, "0" no space and "1" means
-- * we have freed enough spaces and let the caller try to allocate again.
-- */
--static int ocfs2_try_to_free_truncate_log(struct ocfs2_super *osb,
--					  unsigned int needed)
--{
--	tid_t target;
--	int ret = 0;
--	unsigned int truncated_clusters;
--
--	inode_lock(osb->osb_tl_inode);
--	truncated_clusters = osb->truncated_clusters;
--	inode_unlock(osb->osb_tl_inode);
--
--	/*
--	 * Check whether we can succeed in allocating if we free
--	 * the truncate log.
--	 */
--	if (truncated_clusters < needed)
--		goto out;
--
--	ret = ocfs2_flush_truncate_log(osb);
--	if (ret) {
--		mlog_errno(ret);
--		goto out;
--	}
--
--	if (jbd2_journal_start_commit(osb->journal->j_journal, &target)) {
--		jbd2_log_wait_commit(osb->journal->j_journal, target);
--		ret = 1;
--	}
--out:
--	return ret;
--}
--
- int ocfs2_write_begin_nolock(struct address_space *mapping,
- 			     loff_t pos, unsigned len, ocfs2_write_type_t type,
- 			     struct page **pagep, void **fsdata,
-diff -puN fs/ocfs2/suballoc.c~ocfs2-retry-on-enospc-if-sufficient-space-in-truncate-log fs/ocfs2/suballoc.c
---- a/fs/ocfs2/suballoc.c~ocfs2-retry-on-enospc-if-sufficient-space-in-truncate-log
-+++ a/fs/ocfs2/suballoc.c
-@@ -1164,7 +1164,8 @@ static int ocfs2_reserve_clusters_with_l
- 					     int flags,
- 					     struct ocfs2_alloc_context **ac)
- {
--	int status;
-+	int status, ret = 0;
-+	int retried = 0;
- 
- 	*ac = kzalloc(sizeof(struct ocfs2_alloc_context), GFP_KERNEL);
- 	if (!(*ac)) {
-@@ -1189,7 +1190,24 @@ static int ocfs2_reserve_clusters_with_l
- 	}
- 
- 	if (status == -ENOSPC) {
-+retry:
- 		status = ocfs2_reserve_cluster_bitmap_bits(osb, *ac);
-+		/* Retry if there is sufficient space cached in truncate log */
-+		if (status == -ENOSPC && !retried) {
-+			retried = 1;
-+			ocfs2_inode_unlock((*ac)->ac_inode, 1);
-+			inode_unlock((*ac)->ac_inode);
-+
-+			ret = ocfs2_try_to_free_truncate_log(osb, bits_wanted);
-+			if (ret == 1)
-+				goto retry;
-+
-+			if (ret < 0)
-+				mlog_errno(ret);
-+
-+			inode_lock((*ac)->ac_inode);
-+			ocfs2_inode_lock((*ac)->ac_inode, NULL, 1);
-+		}
- 		if (status < 0) {
- 			if (status != -ENOSPC)
- 				mlog_errno(status);
 _
