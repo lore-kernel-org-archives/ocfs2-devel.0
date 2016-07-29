@@ -1,11 +1,11 @@
-From: Gang He <ghe@suse.com>
-Date: Thu, 28 Jul 2016 20:54:45 -0600
-Subject: [Ocfs2-devel] [patch 1/5] ocfs2: ensure that dlm lockspace is
- created by kernel module
-In-Reply-To: <20160728215721.GB5316@wotan.suse.de>
-References: <579a73b4.UvdhRu1jgG1MmrgX%akpm@linux-foundation.org>
-	<20160728215721.GB5316@wotan.suse.de>
-Message-ID: <579B35F5020000F9000437BA@prv-mh.provo.novell.com>
+From: piaojun <piaojun@huawei.com>
+Date: Fri, 29 Jul 2016 11:08:50 +0800
+Subject: [Ocfs2-devel] [patch 4/5] ocfs2/dlm: solve a BUG when deref
+ failed in dlm_drop_lockres_ref
+In-Reply-To: <20160728221204.GD5316@wotan.suse.de>
+References: <579a73bd.aWzQ0Rkjfu9OwqME%akpm@linux-foundation.org>
+	<20160728221204.GD5316@wotan.suse.de>
+Message-ID: <579AC8C2.5070402@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -14,127 +14,123 @@ To: ocfs2-devel@oss.oracle.com
 
 Hello Mark,
 
-
->>> 
-> On Thu, Jul 28, 2016 at 02:05:56PM -0700, Andrew Morton wrote:
->> From: Gang He <ghe@suse.com>
->> Subject: ocfs2: ensure that dlm lockspace is created by kernel module
->> 
->> We encountered a bug from the customer, the user did a fsck.ocfs2 on the
->> file system and exited unusually, the lockspace (with LVB size = 32) was
->> left in the kernel space, next, the user mounted this file system, the
->> kernel module did not create a new lockspace (LVB size = 64) via calling
->> dlm_new_lockspace() function in mounting stage, just used the existing
->> lockspace, created by the user space tool, this would lead the user was
->> not able to mount this file system from the other nodes, with the error
->> message like:
->> 
->> dlm: 032F5......: config mismatch: 64,0 nodeid 177127961: 32,0
->> (mount.ocfs2,26981,46):ocfs2_dlm_init:2995 ERROR: status = -71
->> ocfs2_mount_volume:1881 ERROR: status = -71
->> ocfs2_fill_super:1236 ERROR: status = -71
->> 
->> The user found it very difficult to find the root cause, then, we brought
->> out this patch to relieve such problem.  
->> 
->> First, we add one more flag in calling dlm_new_lockspace() function, to
->> make sure the lockspace is created by kernel module itself, and this
->> change will not affect the backward compatibility.
->> 
->> Second, the obvious error message is reported in the kernel log, let the
->> user be more easy to find the root cause.
->> 
->> 
->> 
->> This patch will be used to insure the dlm lockspace is created by kernel
->> module when mounting a ocfs2 file system.  There are two ways to create a
->> lockspace, from user space and kernel space, but the same name lockspaces
->> probably have different lvblen lengths/flags.
->> 
->> To avoid this mix using, we add one more flag DLM_LSFL_NEWEXCL, it will
->> make sure the dlm lockspace is created by kernel module when mounting. 
->> Secondly, if a user space program (ocfs2-tools) is running on a file
->> system, the user tries to mount this file system in the cluster, DLM
->> module will return a -EEXIST or -EPROTO errno, we should give the user a
->> obvious error message, then, the user can let that user space tool exit
->> before mounting the file system again.
+On 2016-7-29 6:12, Mark Fasheh wrote:
+> On Thu, Jul 28, 2016 at 02:06:05PM -0700, Andrew Morton wrote:
+>> From: piaojun <piaojun@huawei.com>
+>> Subject: ocfs2/dlm: solve a BUG when deref failed in dlm_drop_lockres_ref
+>>
+>> We found a BUG situation that lockres is migrated during deref described
+>> below.  To solve the BUG, we could purge lockres directly when other node
+>> says I did not have a ref.  Additionally, we'd better purge lockres if
+>> master goes down, as no one will response deref done.
+>>
+>> Node 1                  Node 2(old master)             Node3(new master)
+>> dlm_purge_lockres
+>> send deref to N2
+>>
+>>                         leave domain
+>>                         migrate lockres to N3
+>>                                                        finish migration
+>>                                                        send do assert
+>>                                                        master to N1
+>>
+>> receive do assert msg
+>> form N3, but can not
+>> find lockres because
+>> DROPPING_REF is set,
+>> so the owner is still
+>> N2.
+>>
+>>                         receive deref from N1
+>>                         and response -EINVAL
+>>                         because lockres is migrated
+>>
+>> BUG when receive -EINVAL
+>> in dlm_drop_lockres_ref
+>>
+>> Fixes: 842b90b62461d ("ocfs2/dlm: return in progress if master can not clear the refmap bit right now")
+>>
+>> Link: http://lkml.kernel.org/r/57845103.3070406 at huawei.com
+>> Signed-off-by: Jun Piao <piaojun@huawei.com>
+>> Reviewed-by: Joseph Qi <joseph.qi@huawei.com>
+>> Reviewed-by: Jiufei Xue <xuejiufei@huawei.com>
 > 
-> I really like that we're printing a clear message for the user. I'm
-> concerned about a couple things though:
+> Reviewed-by: Mark Fasheh <mfasheh@suse.de>
 > 
-> Gang - did you check that *online* userspace tools can still work on a
-> mounted cluster with this change? I ask because this isn't the first time
-> this issue has come up and if my memory hasn't faded too much we had
-> problems with userspace/kernel interactions when we tried to fix it. In
-> particular if the kernel says the lockspace is now exclusive, does that mean
-> userspace will not be allowed to join, even if it doesn't use the lvb?
+> The only thing is I wonder if those ML_NOTICE messages in this patch and
+> the previous one will cause unnecessary end-user concern.
 > 
-> Actually, how does this interact with dlmfs? We won't be allowed to join
-> domains from dlmfs effectively gutting the ocfs2-tools ability to query the
-> cluster. In particualr see this blurb in libocfs2/dlm.c:
-> 
->         /*
->          * We want to use dlmfs if we can, as it provides the full feature
->          * set of libo2dlm.  Any dlmfs with the 'stackglue' capability will
->          * support all cluster stacks.  An empty cluster.c_stack means
->          * o2cb, which always supports dlmfs.
->          *
->          * If we're unlucky enough to have older userspace stack code,
->          * we pass NULL to avoid dlmfs.
->          */
-> 
-Yes, we did lots of testing, this code change will not affect the existing ocfs2-tool behavior.
-As you said, this part code is very messy, I can not fix this problem directly base on the current code/design.
-Then, the fix is only to give the user a obvious error message and prevent the user make matters worse.
-That is all we can do for this issue.
-
-Thanks
-Gang 
-
-
-> Thanks,
+> The fixes though look good, thanks for those.
 > 	--Mark
 > 
 > 
->> 
->> Link: http://lkml.kernel.org/r/1463731940-13044-2-git-send-email-ghe at suse.com 
->> Signed-off-by: Gang He <ghe@suse.com>
->> Reviewed-by: Goldwyn Rodrigues <rgoldwyn@suse.com>
+Those ML_NOTICE log just server as reminders for developer, I think
+end-user usually care about ML_NOTICE log.
+
+Thanks
+Jun
 >> Cc: Mark Fasheh <mfasheh@suse.de>
 >> Cc: Joel Becker <jlbec@evilplan.org>
 >> Cc: Junxiao Bi <junxiao.bi@oracle.com>
->> Cc: Joseph Qi <joseph.qi@huawei.com>
 >> Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 >> ---
->> 
->>  fs/ocfs2/stack_user.c |   11 +++++++++--
->>  1 file changed, 9 insertions(+), 2 deletions(-)
->> 
->> diff -puN 
-> fs/ocfs2/stack_user.c~ocfs2-insure-dlm-lockspace-is-created-by-kernel-module 
-> fs/ocfs2/stack_user.c
->> --- a/fs/ocfs2/stack_user.c~ocfs2-insure-dlm-lockspace-is-created-by-kernel-module
->> +++ a/fs/ocfs2/stack_user.c
->> @@ -1007,10 +1007,17 @@ static int user_cluster_connect(struct o
->>  	lc->oc_type = NO_CONTROLD;
+>>
+>>  fs/ocfs2/dlm/dlmmaster.c |    9 ++++++---
+>>  fs/ocfs2/dlm/dlmthread.c |   13 +++++++++++--
+>>  2 files changed, 17 insertions(+), 5 deletions(-)
+>>
+>> diff -puN fs/ocfs2/dlm/dlmmaster.c~ocfs2-dlm-solve-a-bug-when-deref-failed-in-dlm_drop_lockres_ref fs/ocfs2/dlm/dlmmaster.c
+>> --- a/fs/ocfs2/dlm/dlmmaster.c~ocfs2-dlm-solve-a-bug-when-deref-failed-in-dlm_drop_lockres_ref
+>> +++ a/fs/ocfs2/dlm/dlmmaster.c
+>> @@ -2276,9 +2276,12 @@ int dlm_drop_lockres_ref(struct dlm_ctxt
+>>  		mlog(ML_ERROR, "%s: res %.*s, DEREF to node %u got %d\n",
+>>  		     dlm->name, namelen, lockname, res->owner, r);
+>>  		dlm_print_one_lock_resource(res);
+>> -		BUG();
+>> -	}
+>> -	return ret ? ret : r;
+>> +		if (r == -ENOMEM)
+>> +			BUG();
+>> +	} else
+>> +		ret = r;
+>> +
+>> +	return ret;
+>>  }
 >>  
->>  	rc = dlm_new_lockspace(conn->cc_name, conn->cc_cluster_name,
->> -			       DLM_LSFL_FS, DLM_LVB_LEN,
->> +			       DLM_LSFL_FS | DLM_LSFL_NEWEXCL, DLM_LVB_LEN,
->>  			       &ocfs2_ls_ops, conn, &ops_rv, &fsdlm);
->> -	if (rc)
->> +	if (rc) {
->> +		if (rc == -EEXIST || rc == -EPROTO)
->> +			printk(KERN_ERR "ocfs2: Unable to create the "
->> +				"lockspace %s (%d), because a ocfs2-tools "
->> +				"program is running on this file system "
->> +				"with the same name lockspace\n",
->> +				conn->cc_name, rc);
->>  		goto out;
->> +	}
+>>  int dlm_deref_lockres_handler(struct o2net_msg *msg, u32 len, void *data,
+>> diff -puN fs/ocfs2/dlm/dlmthread.c~ocfs2-dlm-solve-a-bug-when-deref-failed-in-dlm_drop_lockres_ref fs/ocfs2/dlm/dlmthread.c
+>> --- a/fs/ocfs2/dlm/dlmthread.c~ocfs2-dlm-solve-a-bug-when-deref-failed-in-dlm_drop_lockres_ref
+>> +++ a/fs/ocfs2/dlm/dlmthread.c
+>> @@ -175,6 +175,15 @@ static void dlm_purge_lockres(struct dlm
+>>  	     res->lockname.len, res->lockname.name, master);
 >>  
->>  	if (ops_rv == -EOPNOTSUPP) {
->>  		lc->oc_type = WITH_CONTROLD;
+>>  	if (!master) {
+>> +		if (res->state & DLM_LOCK_RES_DROPPING_REF) {
+>> +			mlog(ML_NOTICE, "%s: res %.*s already in "
+>> +				"DLM_LOCK_RES_DROPPING_REF state\n",
+>> +				dlm->name, res->lockname.len,
+>> +				res->lockname.name);
+>> +			spin_unlock(&res->spinlock);
+>> +			return;
+>> +		}
+>> +
+>>  		res->state |= DLM_LOCK_RES_DROPPING_REF;
+>>  		/* drop spinlock...  retake below */
+>>  		spin_unlock(&res->spinlock);
+>> @@ -203,8 +212,8 @@ static void dlm_purge_lockres(struct dlm
+>>  		dlm->purge_count--;
+>>  	}
+>>  
+>> -	if (!master && ret != 0) {
+>> -		mlog(0, "%s: deref %.*s in progress or master goes down\n",
+>> +	if (!master && ret == DLM_DEREF_RESPONSE_INPROG) {
+>> +		mlog(0, "%s: deref %.*s in progress\n",
+>>  			dlm->name, res->lockname.len, res->lockname.name);
+>>  		spin_unlock(&res->spinlock);
+>>  		return;
 >> _
 > --
 > Mark Fasheh
+> 
+> .
+> 
