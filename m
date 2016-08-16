@@ -1,86 +1,43 @@
-From: Srinivas Eeda <srinivas.eeda@oracle.com>
-Date: Mon, 22 Aug 2016 11:59:12 -0700
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Fix start offset to
- ocfs2_zero_range_for_truncate()
-In-Reply-To: <1470957147-14185-1-git-send-email-ashish.samant@oracle.com>
-References: <1470957147-14185-1-git-send-email-ashish.samant@oracle.com>
-Message-ID: <57BB4B80.3040901@oracle.com>
+From: Deepa Dinamani <deepa.kernel@gmail.com>
+Date: Tue, 16 Aug 2016 11:18:52 -0700
+Subject: [Ocfs2-devel] [GIT PULL] [PATCH v4 00/26] Delete CURRENT_TIME
+ and CURRENT_TIME_SEC macros
+In-Reply-To: <20160815162312.GA19794@kroah.com>
+References: <1471128518-24075-1-git-send-email-deepa.kernel@gmail.com>
+	<20160815162312.GA19794@kroah.com>
+Message-ID: <CABeXuvp027DZR0=zQPp86oGdi2B+Gh16z8_FyoY5UDUdHXAngA@mail.gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Greg KH <gregkh-hQyY1W1yCW8ekmWlsbkhG0B+6BGkLq7r@public.gmane.org>
+Cc: Dave Kleikamp <shaggy-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, jfs-discussion-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, Trond Myklebust <trond.myklebust-7I+n7zu2hftEKMMhf/gKZA@public.gmane.org>, Adrian Hunter <adrian.hunter-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>, Chris Mason <clm-b10kYP2dOMg@public.gmane.org>, Andreas Dilger <adilger.kernel-m1MBpc4rdrD3fQ9qLvQP4Q@public.gmane.org>, Brian Uchino <buchino-FYB4Gu1CFyUAvxtiuMwx3w@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, "Yan, Zheng" <zyan-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, "James E.J. Bottomley" <jejb-23VcF4HTsmIX0ybBhKVfKdBPR1lH4CV8@public.gmane.org>, Paul Moore <paul-r2n+y4ga6xFZroRs9YW3xA@public.gmane.org>, Linux SCSI List <linux-scsi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, y2038 Mailman List <y2038-cunTk1MwBs8s++Sfvej+rw@public.gmane.org>, Ilya Dryomov <idryomov-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, linux-ext4-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Changman Lee <cm224.lee-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>, Evgeniy Dushistov <dushistov-JGs/UdohzUI@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Mark Fasheh <mfasheh-IBi9RG/b67k@public.gmane.org>, Suma Ramars <sramars-FYB4Gu1CFyUAvxtiuMwx3w@public.gmane.org>, John Stultz <john.stultz-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Alexander Viro <viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org>, David Sterba <dsterba-IBi9RG/b67k@public.gmane.org>, Jaegeuk Kim <jaege>
 
-Good catch! Thank you for the fix
+Thank you for the suggestion.
 
-Reviewed-by: Srinivas Eeda <srinivas.eeda@oracle.com>
+> Who are you execting to pull this huge patch series?
 
-On 08/11/2016 04:12 PM, Ashish Samant wrote:
-> If we do fallocate with punch hole option on a reflink, with start offset
-> on a cluster boundary and end offset somewhere in another cluster, we
-> dont COW the first cluster starting at the start offset. But in this
-> case, we were wrongly passing this cluster to
-> ocfs2_zero_range_for_truncate() to zero out.
->
-> Fix this by skipping this cluster in such a scenario.
->
-> Signed-off-by: Ashish Samant <ashish.samant@oracle.com>
-> ---
->   fs/ocfs2/file.c | 34 ++++++++++++++++++++++++----------
->   1 file changed, 24 insertions(+), 10 deletions(-)
->
-> diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-> index 4a6e130..ab305aa 100644
-> --- a/fs/ocfs2/file.c
-> +++ b/fs/ocfs2/file.c
-> @@ -1522,7 +1522,8 @@ static int ocfs2_zero_partial_clusters(struct inode *inode,
->   				       u64 start, u64 len)
->   {
->   	int ret = 0;
-> -	u64 tmpend, end = start + len;
-> +	u64 tmpend = 0;
-> +	u64 end = start + len;
->   	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
->   	unsigned int csize = osb->s_clustersize;
->   	handle_t *handle;
-> @@ -1554,18 +1555,31 @@ static int ocfs2_zero_partial_clusters(struct inode *inode,
->   	}
->   
->   	/*
-> -	 * We want to get the byte offset of the end of the 1st cluster.
-> +	 * If start is on a cluster boundary and end is somewhere in another
-> +	 * cluster, we have not COWed the cluster starting at start, unless
-> +	 * end is also within the same cluster. So, in this case, we skip this
-> +	 * first call to ocfs2_zero_range_for_truncate() truncate and move on
-> +	 * to the next one.
->   	 */
-> -	tmpend = (u64)osb->s_clustersize + (start & ~(osb->s_clustersize - 1));
-> -	if (tmpend > end)
-> -		tmpend = end;
-> +	if ((start & (csize - 1)) != 0) {
-> +		/*
-> +		 * We want to get the byte offset of the end of the 1st
-> +		 * cluster.
-> +		 */
-> +		tmpend = (u64)osb->s_clustersize +
-> +			(start & ~(osb->s_clustersize - 1));
-> +		if (tmpend > end)
-> +			tmpend = end;
->   
-> -	trace_ocfs2_zero_partial_clusters_range1((unsigned long long)start,
-> -						 (unsigned long long)tmpend);
-> +		trace_ocfs2_zero_partial_clusters_range1(
-> +			(unsigned long long)start,
-> +			(unsigned long long)tmpend);
->   
-> -	ret = ocfs2_zero_range_for_truncate(inode, handle, start, tmpend);
-> -	if (ret)
-> -		mlog_errno(ret);
-> +		ret = ocfs2_zero_range_for_truncate(inode, handle, start,
-> +						    tmpend);
-> +		if (ret)
-> +			mlog_errno(ret);
-> +	}
->   
->   	if (tmpend < end) {
->   		/*
+The last pull request was addressed to Al as per Arnd's suggestion.
+I'm not completely sure who should it be addressed to.
+
+> Why not just introduce the new api call, wait for that to be merged, and
+> then push the individual patches through the different subsystems?
+> After half of those get ignored, then provide a single set of patches
+> that can go through Andrew or my trees.
+
+Arnd and I tried to do this a few ways.
+
+We can try to introduce the api first like you suggest.
+
+There are a few Acks already on the patches.
+And, patches 2-5 also need to be merged through some common tree like
+yours or Andrew's as you suggest.
+
+So, if everyone is ok, I could do the following:
+
+1. Post patches 1-5 for rc-2.
+2. Post all other patches to respective maintainers after rc-2
+3. Then after patches get ignored or merged, post remaining as a
+series for you or Andrew to pick up.
+
+-Deepa
