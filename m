@@ -1,88 +1,50 @@
-From: Deepa Dinamani <deepa.kernel@gmail.com>
-Date: Sat, 13 Aug 2016 15:48:30 -0700
-Subject: [Ocfs2-devel] [PATCH v4 18/26] fs: ocfs2: Replace CURRENT_TIME macro
-In-Reply-To: <1471128518-24075-1-git-send-email-deepa.kernel@gmail.com>
-References: <1471128518-24075-1-git-send-email-deepa.kernel@gmail.com>
-Message-ID: <1471128518-24075-19-git-send-email-deepa.kernel@gmail.com>
+From: Junxiao Bi <junxiao.bi@oracle.com>
+Date: Wed, 17 Aug 2016 09:22:03 +0800
+Subject: [Ocfs2-devel] [PATCH] Revert "ocfs2: bump up o2cb network protocol
+	version"
+Message-ID: <1471396924-10375-1-git-send-email-junxiao.bi@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: arnd@arndb.de, tglx@linutronix.de, torvalds@linux-foundation.org, tytso@mit.edu, viro@zeniv.linux.org.uk, y2038@lists.linaro.org, Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@oss.oracle.com
+To: ocfs2-devel@oss.oracle.com
 
-CURRENT_TIME is not y2038 safe.
+This reverts commit 38b52efd218bf2a11a5b4a8f56052cee6684cfec.
 
-Use y2038 safe ktime_get_real_seconds() here for timestamps.
-struct heartbeat_block's hb_seq and deletetion time are already
-64 bits wide and accommodate times beyond y2038.
+This commit made rolling upgrade fail. When one node is upgraded
+to new version with this commit, the remaining nodes will fail to
+establish connections to it, then the application like VMs on the
+remaining nodes can't be live migrated to the upgraded one. This
+will cause an outage. Since negotiate hb timeout behavior didn't
+change without this commit, so revert it.
 
-Also use y2038 safe ktime_get_real_ts64() for on disk inode
-timestamps.
-These are also wide enough to accommodate time64_t.
-
-Signed-off-by: Deepa Dinamani <deepa.kernel@gmail.com>
-Reviewed-by: Arnd Bergmann <arnd@arndb.de>
-Cc: Mark Fasheh <mfasheh@suse.com>
-Cc: Joel Becker <jlbec@evilplan.org>
-Cc: ocfs2-devel at oss.oracle.com
+Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
 ---
- fs/ocfs2/cluster/heartbeat.c | 2 +-
- fs/ocfs2/inode.c             | 2 +-
- fs/ocfs2/namei.c             | 6 ++++--
- 3 files changed, 6 insertions(+), 4 deletions(-)
+ fs/ocfs2/cluster/tcp_internal.h |    5 +----
+ 1 file changed, 1 insertion(+), 4 deletions(-)
 
-diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
-index 636abcb..9158c98 100644
---- a/fs/ocfs2/cluster/heartbeat.c
-+++ b/fs/ocfs2/cluster/heartbeat.c
-@@ -741,7 +741,7 @@ static inline void o2hb_prepare_block(struct o2hb_region *reg,
- 	hb_block = (struct o2hb_disk_heartbeat_block *)slot->ds_raw_block;
- 	memset(hb_block, 0, reg->hr_block_bytes);
- 	/* TODO: time stuff */
--	cputime = CURRENT_TIME.tv_sec;
-+	cputime = ktime_get_real_seconds();
- 	if (!cputime)
- 		cputime = 1;
- 
-diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-index c56a767..382401d 100644
---- a/fs/ocfs2/inode.c
-+++ b/fs/ocfs2/inode.c
-@@ -703,7 +703,7 @@ static int ocfs2_remove_inode(struct inode *inode,
- 		goto bail_commit;
- 	}
- 
--	di->i_dtime = cpu_to_le64(CURRENT_TIME.tv_sec);
-+	di->i_dtime = cpu_to_le64(ktime_get_real_seconds());
- 	di->i_flags &= cpu_to_le32(~(OCFS2_VALID_FL | OCFS2_ORPHANED_FL));
- 	ocfs2_journal_dirty(handle, di_bh);
- 
-diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
-index e2747d8..6a7bf9a 100644
---- a/fs/ocfs2/namei.c
-+++ b/fs/ocfs2/namei.c
-@@ -516,6 +516,7 @@ static int __ocfs2_mknod_locked(struct inode *dir,
- 	struct ocfs2_extent_list *fel;
- 	u16 feat;
- 	struct ocfs2_inode_info *oi = OCFS2_I(inode);
-+	struct timespec64 ts;
- 
- 	*new_fe_bh = NULL;
- 
-@@ -564,10 +565,11 @@ static int __ocfs2_mknod_locked(struct inode *dir,
- 	fe->i_last_eb_blk = 0;
- 	strcpy(fe->i_signature, OCFS2_INODE_SIGNATURE);
- 	fe->i_flags |= cpu_to_le32(OCFS2_VALID_FL);
-+	ktime_get_real_ts64(&ts);
- 	fe->i_atime = fe->i_ctime = fe->i_mtime =
--		cpu_to_le64(CURRENT_TIME.tv_sec);
-+		cpu_to_le64(ts.tv_sec);
- 	fe->i_mtime_nsec = fe->i_ctime_nsec = fe->i_atime_nsec =
--		cpu_to_le32(CURRENT_TIME.tv_nsec);
-+		cpu_to_le32(ts.tv_nsec);
- 	fe->i_dtime = 0;
- 
- 	/*
+diff --git a/fs/ocfs2/cluster/tcp_internal.h b/fs/ocfs2/cluster/tcp_internal.h
+index 94b18369b1cc..b95e7df5b76a 100644
+--- a/fs/ocfs2/cluster/tcp_internal.h
++++ b/fs/ocfs2/cluster/tcp_internal.h
+@@ -44,9 +44,6 @@
+  * version here in tcp_internal.h should not need to be bumped for
+  * filesystem locking changes.
+  *
+- * New in version 12
+- *	- Negotiate hb timeout when storage is down.
+- *
+  * New in version 11
+  * 	- Negotiation of filesystem locking in the dlm join.
+  *
+@@ -78,7 +75,7 @@
+  * 	- full 64 bit i_size in the metadata lock lvbs
+  * 	- introduction of "rw" lock and pushing meta/data locking down
+  */
+-#define O2NET_PROTOCOL_VERSION 12ULL
++#define O2NET_PROTOCOL_VERSION 11ULL
+ struct o2net_handshake {
+ 	__be64	protocol_version;
+ 	__be64	connector_id;
 -- 
-1.9.1
+1.7.9.5
