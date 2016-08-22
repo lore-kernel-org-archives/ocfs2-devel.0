@@ -1,50 +1,85 @@
-From: Junxiao Bi <junxiao.bi@oracle.com>
-Date: Wed, 17 Aug 2016 09:22:03 +0800
-Subject: [Ocfs2-devel] [PATCH] Revert "ocfs2: bump up o2cb network protocol
-	version"
-Message-ID: <1471396924-10375-1-git-send-email-junxiao.bi@oracle.com>
+From: Eric Ren <zren@suse.com>
+Date: Mon, 22 Aug 2016 10:42:55 +0800
+Subject: [Ocfs2-devel] OCFS2 test report for linux vanilla kernel V4.7.0
+In-Reply-To: <410483215.37.1471766765455.JavaMail.jenkins@bj-ha-1>
+References: <410483215.37.1471766765455.JavaMail.jenkins@bj-ha-1>
+Message-ID: <6705ddee-a26f-6f26-3943-5977f3584502@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-This reverts commit 38b52efd218bf2a11a5b4a8f56052cee6684cfec.
+Hi,
 
-This commit made rolling upgrade fail. When one node is upgraded
-to new version with this commit, the remaining nodes will fail to
-establish connections to it, then the application like VMs on the
-remaining nodes can't be live migrated to the upgraded one. This
-will cause an outage. Since negotiate hb timeout behavior didn't
-change without this commit, so revert it.
 
-Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
----
- fs/ocfs2/cluster/tcp_internal.h |    5 +----
- 1 file changed, 1 insertion(+), 4 deletions(-)
+The test report below is agaist vanilla kernel v4.7.0. Some highlights:
 
-diff --git a/fs/ocfs2/cluster/tcp_internal.h b/fs/ocfs2/cluster/tcp_internal.h
-index 94b18369b1cc..b95e7df5b76a 100644
---- a/fs/ocfs2/cluster/tcp_internal.h
-+++ b/fs/ocfs2/cluster/tcp_internal.h
-@@ -44,9 +44,6 @@
-  * version here in tcp_internal.h should not need to be bumped for
-  * filesystem locking changes.
-  *
-- * New in version 12
-- *	- Negotiate hb timeout when storage is down.
-- *
-  * New in version 11
-  * 	- Negotiation of filesystem locking in the dlm join.
-  *
-@@ -78,7 +75,7 @@
-  * 	- full 64 bit i_size in the metadata lock lvbs
-  * 	- introduction of "rw" lock and pushing meta/data locking down
-  */
--#define O2NET_PROTOCOL_VERSION 12ULL
-+#define O2NET_PROTOCOL_VERSION 11ULL
- struct o2net_handshake {
- 	__be64	protocol_version;
- 	__be64	connector_id;
--- 
-1.7.9.5
+1.  As you can see from logs attached, pcmk stack is used with "blocksize=4096, 
+clustersize=32768";
+
+2. "inline" testcase on multiple nodes failed 3/3 times so far; seems to be a regression issue;
+
+3. Two cases are skipped:
+o lvb_torture:  libo2dlm [1] doesn't correctly support LVB operations for fs/dlm;
+
+       Actually, ocfs2 tools (mkfs and fsck) even don't need LVB operations, so it is not 
+worth touching
+
+      libo2dlm right now, I think;
+
+     o filecheck: is not scheduled this time;
+
+4. "discontig test" is missing now:-/
+
+
+If anyone is intersted in  the detailed test logs, I can upload somewhere;-) will schedule 
+test for V4.8.rc2 soon.
+
+[1] https://oss.oracle.com/pipermail/ocfs2-tools-devel/2008-May/000761.html
+
+Eric
+
+run-dev-test
+	*BUILD UNSTABLE*
+Project: 	run-dev-test
+Date of build: 	Sat, 20 Aug 2016 20:11:19 +0800
+Build duration: 	19 hr
+Build cause: 	Started by upstream project "zren-testing/ocfs2-dlm-dev" build number 16
+Build description: 	 linux vanilla kernel V4.7.0
+Built on: 	HA-232
+
+
+  Health Report
+
+W 	Description 	Score
+	Build stability: 2 out of the last 5 builds failed. 	60
+	Test Result: 1 test failing out of a total of 29 tests. 	96
+
+
+  Tests Reports
+
+<http://147.2.207.237:8080/job/zren-testing/job/run-dev-test/28//testReport>
+Package 	Failed 	Passed 	Skipped 	Total
+MultipleNodes 	1 	8 	1 	*10*
+MultipleNodes.inline.inline-test
+SingleNode 	0 	18 	1 	*19*
+
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20160822/62cc5af0/attachment.html 
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: single_run.log
+Type: application/octet-stream
+Size: 7763 bytes
+Desc: not available
+Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20160822/62cc5af0/attachment.obj 
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: multiple-run-x86_64-2016-08-21-01-11-40.log
+Type: application/octet-stream
+Size: 1074 bytes
+Desc: not available
+Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20160822/62cc5af0/attachment-0001.obj 
