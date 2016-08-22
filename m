@@ -1,79 +1,86 @@
-From: Eric Ren <zren@suse.com>
-Date: Mon, 22 Aug 2016 16:21:22 +0800
-Subject: [Ocfs2-devel] OCFS2 test report for linux vanilla kernel
-	V4.8.0-rc2
-In-Reply-To: <6705ddee-a26f-6f26-3943-5977f3584502@suse.com>
-References: <410483215.37.1471766765455.JavaMail.jenkins@bj-ha-1>
-	<6705ddee-a26f-6f26-3943-5977f3584502@suse.com>
-Message-ID: <09fc7502-2db4-8a52-c7a2-8fc690f7713e@suse.com>
+From: Srinivas Eeda <srinivas.eeda@oracle.com>
+Date: Mon, 22 Aug 2016 11:59:12 -0700
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Fix start offset to
+ ocfs2_zero_range_for_truncate()
+In-Reply-To: <1470957147-14185-1-git-send-email-ashish.samant@oracle.com>
+References: <1470957147-14185-1-git-send-email-ashish.samant@oracle.com>
+Message-ID: <57BB4B80.3040901@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Sorry, actually it's already:
+Good catch! Thank you for the fix
 
-4.8.0-rc2-173-g184ca82-1.gacbdb4b-vanilla
+Reviewed-by: Srinivas Eeda <srinivas.eeda@oracle.com>
 
-Eric
-
-On 08/22/2016 10:42 AM, Eric Ren wrote:
-> Hi,
+On 08/11/2016 04:12 PM, Ashish Samant wrote:
+> If we do fallocate with punch hole option on a reflink, with start offset
+> on a cluster boundary and end offset somewhere in another cluster, we
+> dont COW the first cluster starting at the start offset. But in this
+> case, we were wrongly passing this cluster to
+> ocfs2_zero_range_for_truncate() to zero out.
 >
+> Fix this by skipping this cluster in such a scenario.
 >
-> The test report below is agaist vanilla kernel v4.7.0. Some highlights:
+> Signed-off-by: Ashish Samant <ashish.samant@oracle.com>
+> ---
+>   fs/ocfs2/file.c | 34 ++++++++++++++++++++++++----------
+>   1 file changed, 24 insertions(+), 10 deletions(-)
 >
-> 1.  As you can see from logs attached, pcmk stack is used with "blocksize=4096, 
-> clustersize=32768";
->
-> 2. "inline" testcase on multiple nodes failed 3/3 times so far; seems to be a regression 
-> issue;
->
-> 3. Two cases are skipped:
-> o lvb_torture:  libo2dlm [1] doesn't correctly support LVB operations for fs/dlm;
->
->       Actually, ocfs2 tools (mkfs and fsck) even don't need LVB operations, so it is not 
-> worth touching
->
->      libo2dlm right now, I think;
->
->     o filecheck: is not scheduled this time;
->
-> 4. "discontig test" is missing now:-/
->
->
-> If anyone is intersted in  the detailed test logs, I can upload somewhere;-) will schedule 
-> test for V4.8.rc2 soon.
->
-> [1] https://oss.oracle.com/pipermail/ocfs2-tools-devel/2008-May/000761.html
->
-> Eric
->
-> run-dev-test
->     *BUILD UNSTABLE*
-> Project:     run-dev-test
-> Date of build:     Sat, 20 Aug 2016 20:11:19 +0800
-> Build duration:     19 hr
-> Build cause:     Started by upstream project "zren-testing/ocfs2-dlm-dev" build number 16
-> Build description:      linux vanilla kernel V4.7.0
-> Built on:     HA-232
->
->
->  Health Report
->
-> W     Description     Score
->     Build stability: 2 out of the last 5 builds failed.     60
->     Test Result: 1 test failing out of a total of 29 tests.     96
->
->
->  Tests Reports
->
-> <http://147.2.207.237:8080/job/zren-testing/job/run-dev-test/28//testReport>
-> Package     Failed     Passed     Skipped     Total
-> MultipleNodes     1     8     1     *10*
-> MultipleNodes.inline.inline-test
-> SingleNode     0     18     1     *19*
->
->
->
+> diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+> index 4a6e130..ab305aa 100644
+> --- a/fs/ocfs2/file.c
+> +++ b/fs/ocfs2/file.c
+> @@ -1522,7 +1522,8 @@ static int ocfs2_zero_partial_clusters(struct inode *inode,
+>   				       u64 start, u64 len)
+>   {
+>   	int ret = 0;
+> -	u64 tmpend, end = start + len;
+> +	u64 tmpend = 0;
+> +	u64 end = start + len;
+>   	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+>   	unsigned int csize = osb->s_clustersize;
+>   	handle_t *handle;
+> @@ -1554,18 +1555,31 @@ static int ocfs2_zero_partial_clusters(struct inode *inode,
+>   	}
+>   
+>   	/*
+> -	 * We want to get the byte offset of the end of the 1st cluster.
+> +	 * If start is on a cluster boundary and end is somewhere in another
+> +	 * cluster, we have not COWed the cluster starting at start, unless
+> +	 * end is also within the same cluster. So, in this case, we skip this
+> +	 * first call to ocfs2_zero_range_for_truncate() truncate and move on
+> +	 * to the next one.
+>   	 */
+> -	tmpend = (u64)osb->s_clustersize + (start & ~(osb->s_clustersize - 1));
+> -	if (tmpend > end)
+> -		tmpend = end;
+> +	if ((start & (csize - 1)) != 0) {
+> +		/*
+> +		 * We want to get the byte offset of the end of the 1st
+> +		 * cluster.
+> +		 */
+> +		tmpend = (u64)osb->s_clustersize +
+> +			(start & ~(osb->s_clustersize - 1));
+> +		if (tmpend > end)
+> +			tmpend = end;
+>   
+> -	trace_ocfs2_zero_partial_clusters_range1((unsigned long long)start,
+> -						 (unsigned long long)tmpend);
+> +		trace_ocfs2_zero_partial_clusters_range1(
+> +			(unsigned long long)start,
+> +			(unsigned long long)tmpend);
+>   
+> -	ret = ocfs2_zero_range_for_truncate(inode, handle, start, tmpend);
+> -	if (ret)
+> -		mlog_errno(ret);
+> +		ret = ocfs2_zero_range_for_truncate(inode, handle, start,
+> +						    tmpend);
+> +		if (ret)
+> +			mlog_errno(ret);
+> +	}
+>   
+>   	if (tmpend < end) {
+>   		/*
