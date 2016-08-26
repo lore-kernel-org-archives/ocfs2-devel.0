@@ -1,51 +1,105 @@
-From: Greg KH <gregkh@linuxfoundation.org>
-Date: Tue, 16 Aug 2016 20:53:20 +0200
-Subject: [Ocfs2-devel] [GIT PULL] [PATCH v4 00/26] Delete CURRENT_TIME
- and CURRENT_TIME_SEC macros
-In-Reply-To: <CABeXuvp027DZR0=zQPp86oGdi2B+Gh16z8_FyoY5UDUdHXAngA@mail.gmail.com>
-References: <1471128518-24075-1-git-send-email-deepa.kernel@gmail.com>
-	<20160815162312.GA19794@kroah.com>
-	<CABeXuvp027DZR0=zQPp86oGdi2B+Gh16z8_FyoY5UDUdHXAngA@mail.gmail.com>
-Message-ID: <20160816185320.GB6513@kroah.com>
+From: Guozhonghua <guozhonghua@h3c.com>
+Date: Fri, 26 Aug 2016 02:09:02 +0000
+Subject: [Ocfs2-devel] One issue and its scenarios,
+	the patch for reviews. Thank you.
+Message-ID: <71604351584F6A4EBAE558C676F37CA4A3D30E19@H3CMLB12-EX.srv.huawei-3com.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Deepa Dinamani <deepa.kernel-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Cc: Dave Kleikamp <shaggy-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, jfs-discussion-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, Trond Myklebust <trond.myklebust-7I+n7zu2hftEKMMhf/gKZA@public.gmane.org>, Adrian Hunter <adrian.hunter-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>, Chris Mason <clm-b10kYP2dOMg@public.gmane.org>, Andreas Dilger <adilger.kernel-m1MBpc4rdrD3fQ9qLvQP4Q@public.gmane.org>, Brian Uchino <buchino-FYB4Gu1CFyUAvxtiuMwx3w@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, "Yan, Zheng" <zyan-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, "James E.J. Bottomley" <jejb-23VcF4HTsmIX0ybBhKVfKdBPR1lH4CV8@public.gmane.org>, Paul Moore <paul-r2n+y4ga6xFZroRs9YW3xA@public.gmane.org>, Linux SCSI List <linux-scsi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, y2038 Mailman List <y2038-cunTk1MwBs8s++Sfvej+rw@public.gmane.org>, Ilya Dryomov <idryomov-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, linux-ext4-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Changman Lee <cm224.lee-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>, Evgeniy Dushistov <dushistov-JGs/UdohzUI@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Mark Fasheh <mfasheh-IBi9RG/b67k@public.gmane.org>, Suma Ramars <sramars-FYB4Gu1CFyUAvxtiuMwx3w@public.gmane.org>, John Stultz <john.stultz-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Alexander Viro <viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org>, David Sterba <dsterba-IBi9RG/b67k@public.gmane.org>, Jaegeuk Kim <jaege>
+To: ocfs2-devel@oss.oracle.com
 
-On Tue, Aug 16, 2016 at 11:18:52AM -0700, Deepa Dinamani wrote:
-> Thank you for the suggestion.
-> 
-> > Who are you execting to pull this huge patch series?
-> 
-> The last pull request was addressed to Al as per Arnd's suggestion.
-> I'm not completely sure who should it be addressed to.
-> 
-> > Why not just introduce the new api call, wait for that to be merged, and
-> > then push the individual patches through the different subsystems?
-> > After half of those get ignored, then provide a single set of patches
-> > that can go through Andrew or my trees.
-> 
-> Arnd and I tried to do this a few ways.
-> 
-> We can try to introduce the api first like you suggest.
-> 
-> There are a few Acks already on the patches.
-> And, patches 2-5 also need to be merged through some common tree like
-> yours or Andrew's as you suggest.
-> 
-> So, if everyone is ok, I could do the following:
-> 
-> 1. Post patches 1-5 for rc-2.
 
--rc2 is already released, and we aren't adding new apis this late in the
-release cycle, sorry.
+Hi, All;
 
-> 2. Post all other patches to respective maintainers after rc-2
-> 3. Then after patches get ignored or merged, post remaining as a
-> series for you or Andrew to pick up.
+38734:Jul 22 22:18:02 server171 kernel: [ 1284.747194] (dlm_reco-BE66E8,23324,5):dlm_get_lock_resource:995 BE66E8375C9A472D9472456A511B2835: res $RECOVERY, Node map changed, redo the master request now, blocked=1
+38930:Jul 22 22:18:52 server171 kernel: [ 1334.786242] (dlm_reco-BE66E8,23324,5):dlm_get_lock_resource:995 BE66E8375C9A472D9472456A511B2835: res $RECOVERY, Node map changed, redo the master request now, blocked=1
+39118:Jul 22 22:21:02 server171 kernel: [ 1464.887764] (dlm_reco-BE66E8,23324,14):dlm_get_lock_resource:995 BE66E8375C9A472D9472456A511B2835: res $RECOVERY, Node map changed, redo the master request now, blocked=1
+39247:Jul 22 22:23:37 server171 kernel: [ 1620.008748] (dlm_reco-BE66E8,23324,4):dlm_wait_for_lock_mastery:1176 BE66E8375C9A472D9472456A511B2835:$RECOVERY: restart lock mastery againnot to recheck when sleep
+39249:Jul 22 22:23:37 server171 kernel: [ 1620.008758] (dlm_reco-BE66E8,23324,4):dlm_get_lock_resource:995 BE66E8375C9A472D9472456A511B2835: res $RECOVERY, Node map changed, redo the master request now, blocked=1
+39340:Jul 22 22:26:12 server171 kernel: [ 1775.129777] (dlm_reco-BE66E8,23324,3):dlm_wait_for_lock_mastery:1176 BE66E8375C9A472D9472456A511B2835:$RECOVERY: restart lock mastery againnot to recheck when sleep
 
-The apis need to be aimed for 4.9-rc1, it's too late for 4.8, sorry.
+Other information's:
+root at server171:/sys/kernel/debug/o2dlm/BE66E8375C9A472D9472456A511B2835# cat dlm_state
+Domain: BE66E8375C9A472D9472456A511B2835  Key: 0xa5a35693  Protocol: 1.2
+Thread Pid: 23323  Node: 2  State: JOINED
+Number of Joins: 1  Joining Node: 255
+Domain Map: 2
+Exit Domain Map:
+Live Map: 1 2 4 5
+Lock Resources: 49 (56)
+MLEs: 1 (66)
+  Blocking: 1 (17)
+  Mastery: 0 (49)
+  Migration: 0 (0)
+Lists: Dirty=InUse  Purge=Empty  PendingASTs=Empty  PendingBASTs=Empty
+Purge Count: 0  Refs: 1
+Dead Node: 8
+Recovery Pid: 23324  Master: 255  State: ACTIVE
+Recovery Map: 1 3 4 5 6 7 8 9
+Recovery Node State:
 
-greg k-h
+root at server171:/sys/kernel/debug/o2dlm/BE66E8375C9A472D9472456A511B2835# cat mle_state
+Dumping MLEs for Domain: BE66E8375C9A472D9472456A511B2835
+$RECOVERY       BLK     mas=255 new=255 evt=1   use=1   ref=  3
+Maybe=
+Vote=
+Response=
+Node=
+
+Total: 1, Longest: 1
+
+
+When all other nodes down, and mle's node map will be empty, so local node should not wait for other node response while voted done.
+
+--- E:\dev\v1r3b01d000_newFeature_fence_bugfix\kernel\ocfs2\dlm\dlmmaster.c   2016-07-14 16:00:00.000000000 +0800
++++ E:\dev\project\ocfs2_fence_opt\ocfs2_fence_opt\ocfs2-ko-4.1.x\ocfs2\dlm\dlmmaster.c  2016-07-23 19:47:53.000000000 +0800
+               }
+               goto recheck;
+       } else {
+               if (!voting_done) {
+                       mlog(0, "map not changed and voting not done "
+                            "for %s:%.*s\n", dlm->name, res->lockname.len,
+@@ -1120,24 +1121,26 @@
+               /* another node has done an assert!
+                * all done! */
+               sleep = 0;
+       } else {
+               sleep = 1;
+               /* have all nodes responded? */
+-               if (voting_done && !*blocked) {
++              if (voting_done){
+                       bit = find_next_bit(mle->maybe_map, O2NM_MAX_NODES, 0);
+-                       if (dlm->node_num <= bit) {
++                      mle_node = find_next_bit(mle->node_map, O2NM_MAX_NODES, 0);
++                      if ((!*blocked && dlm->node_num <= bit) || mle_node >= O2NM_MAX_NODES) {
+                               /* my node number is lowest.
+                                * now tell other nodes that I am
+                                * mastering this. */
+                               mle->master = dlm->node_num;
+                               /* ref was grabbed in get_lock_resource
+                                * will be dropped in dlmlock_master */
+                               assert = 1;
+                               sleep = 0;
+                       }
+
+                       /* if voting is done, but we have not received
+                        * an assert master yet, we must sleep */
+               }
+       }
+
+        spin_unlock(&mle->spinlock);
+
+
+
+-------------------------------------------------------------------------------------------------------------------------------------
+????????????????????????????????????????
+????????????????????????????????????????
+????????????????????????????????????????
+???
+This e-mail and its attachments contain confidential information from H3C, which is
+intended only for the person or entity whose address is listed above. Any use of the
+information contained herein in any way (including, but not limited to, total or partial
+disclosure, reproduction, or dissemination) by persons other than the intended
+recipient(s) is prohibited. If you receive this e-mail in error, please notify the sender
+by phone or email immediately and delete it!
