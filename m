@@ -1,103 +1,30 @@
-From: Eric Ren <zren@suse.com>
-Date: Tue, 30 Aug 2016 15:51:03 +0800
-Subject: [Ocfs2-devel] [Ocfs2-test-devel] OCFS2 test report for linux
- vanilla kernel V4.7.0
-In-Reply-To: <57BA722D.8010503@huawei.com>
-References: <410483215.37.1471766765455.JavaMail.jenkins@bj-ha-1>
-	<6705ddee-a26f-6f26-3943-5977f3584502@suse.com>
-	<57BA722D.8010503@huawei.com>
-Message-ID: <6e0cf935-01f8-e8ab-f1b4-7d49e434bd41@suse.com>
+From: David Howells <dhowells@redhat.com>
+Date: Tue, 30 Aug 2016 20:36:25 +0100
+Subject: [Ocfs2-devel] [PATCH 0/9] Remove deprecated
+	create_singlethread_workqueue
+In-Reply-To: <cover.1472578959.git.bhaktipriya96@gmail.com>
+References: <cover.1472578959.git.bhaktipriya96@gmail.com>
+Message-ID: <22296.1472585785@warthog.procyon.org.uk>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Bhaktipriya Shridhar <bhaktipriya96@gmail.com>
+Cc: dhowells@redhat.com, Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>, Michal Hocko <mhocko@suse.com>, Johannes Weiner <hannes@cmpxchg.org>, Vladimir Davydov <vdavydov@virtuozzo.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, "David S. Miller" <davem@davemloft.net>, Eric Dumazet <edumazet@google.com>, Andrew Morton <akpm@linux-foundation.org>, Joseph Qi <joseph.qi@huawei.com>, "Norton.Zhu" <norton.zhu@huawei.com>, Jun Piao <piaojun@huawei.com>, xuejiufei <xuejiufei@huawei.com>, ocfs2-devel@oss.oracle.com, linux-afs@lists.infradead.org, linux-kernel@vger.kernel.org, Tejun Heo <tj@kernel.org>
 
-Hi Joseph,
+Bhaktipriya Shridhar <bhaktipriya96@gmail.com> wrote:
 
-On 08/22/2016 11:31 AM, Joseph Qi wrote:
-> Hi Eric,
-> Thanks very much for your efforts.
-Nop
-> I am interested in the failed inline testcase. Could you please send out
-> the testcase as well as detailed log? I'll do analysis when I have time.
-Of course, logs has been attached.  And you can also find the recent vanilla kernel repo here:
+> This patch set removes deprecated create_singlethread_workqueue
+> usages in fs/.
+> 
+> Bhaktipriya Shridhar (9):
+>   fs/afs/vlocation: Remove deprecated create_singlethread_workqueue
+>   fs/afs/rxrpc: Remove deprecated create_singlethread_workqueue
+>   fs/afs/callback: Remove deprecated create_singlethread_workqueue
+>   fs/afs/flock: Remove deprecated create_singlethread_workqueue
 
-http://download.opensuse.org/repositories/Kernel:/vanilla/standard/
+I'm removing the workqueue in fs/afs/rxrpc.c in one of my patches.  Can I take
+your other three AFS patches myself and leave someone else to handle the
+non-AFS patches?
 
-Eric
->
-> Thanks,
-> Joseph
->
-> On 2016/8/22 10:42, Eric Ren wrote:
->> Hi,
->>
->>
->> The test report below is agaist vanilla kernel v4.7.0. Some highlights:
->>
->> 1.  As you can see from logs attached, pcmk stack is used with "blocksize=4096, clustersize=32768";
->>
->> 2. "inline" testcase on multiple nodes failed 3/3 times so far; seems to be a regression issue;
->>
->> 3. Two cases are skipped:
->>      o lvb_torture:  libo2dlm [1] doesn't correctly support LVB operations for fs/dlm;
->>
->>        Actually, ocfs2 tools (mkfs and fsck) even don't need LVB operations, so it is not worth touching
->>
->>       libo2dlm right now, I think;
->>
->>      o filecheck: is not scheduled this time;
->>
->> 4. "discontig test" is missing now:-/
->>
->>
->> If anyone is intersted in  the detailed test logs, I can upload somewhere;-) will schedule test for V4.8.rc2 soon.
->>
->> [1] https://oss.oracle.com/pipermail/ocfs2-tools-devel/2008-May/000761.html
->>
->> Eric
->>
->> run-dev-test
->> 	*BUILD UNSTABLE*
->> Project: 	run-dev-test
->> Date of build: 	Sat, 20 Aug 2016 20:11:19 +0800
->> Build duration: 	19 hr
->> Build cause: 	Started by upstream project "zren-testing/ocfs2-dlm-dev" build number 16
->> Build description: 	 linux vanilla kernel V4.7.0
->> Built on: 	HA-232
->>
->>
->>    Health Report
->>
->> W 	Description 	Score
->> 	Build stability: 2 out of the last 5 builds failed. 	60
->> 	Test Result: 1 test failing out of a total of 29 tests. 	96
->>
->>
->>    Tests Reports
->>
->> <http://147.2.207.237:8080/job/zren-testing/job/run-dev-test/28//testReport>
->> Package 	Failed 	Passed 	Skipped 	Total
->> MultipleNodes 	1 	8 	1 	*10*
->> MultipleNodes.inline.inline-test
->> SingleNode 	0 	18 	1 	*19*
->>
->>
->>
->>
->> _______________________________________________
->> Ocfs2-test-devel mailing list
->> Ocfs2-test-devel at oss.oracle.com
->> https://oss.oracle.com/mailman/listinfo/ocfs2-test-devel
->>
->
->
-
--------------- next part --------------
-A non-text attachment was scrubbed...
-Name: ocfs2-test-log-28.gz
-Type: application/gzip
-Size: 1828456 bytes
-Desc: not available
-Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20160830/50b41e65/attachment-0001.bin 
+David
