@@ -1,210 +1,103 @@
 From: Eric Ren <zren@suse.com>
-Date: Tue, 30 Aug 2016 15:38:08 +0800
-Subject: [Ocfs2-devel] [PATCH v2] ocfs2: Fix start offset to
- ocfs2_zero_range_for_truncate()
-In-Reply-To: <57C50776.4050808@oracle.com>
-References: <1472252646-29618-1-git-send-email-ashish.samant@oracle.com>
-	<bdd26542-cbe2-8879-6db0-fe576286b04d@suse.com>
-	<57C48BBE.4060500@oracle.com>
-	<b972483a-a468-4d02-333d-3e5f105c53c2@suse.com>
-	<57C50776.4050808@oracle.com>
-Message-ID: <4a9f89d0-6556-0989-3314-9c535ba7763a@suse.com>
+Date: Tue, 30 Aug 2016 15:51:03 +0800
+Subject: [Ocfs2-devel] [Ocfs2-test-devel] OCFS2 test report for linux
+ vanilla kernel V4.7.0
+In-Reply-To: <57BA722D.8010503@huawei.com>
+References: <410483215.37.1471766765455.JavaMail.jenkins@bj-ha-1>
+	<6705ddee-a26f-6f26-3943-5977f3584502@suse.com>
+	<57BA722D.8010503@huawei.com>
+Message-ID: <6e0cf935-01f8-e8ab-f1b4-7d49e434bd41@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi,
+Hi Joseph,
 
-I'm on 4.8.0-rc3 kernel. Hope someone else can double-confirm this;-)
+On 08/22/2016 11:31 AM, Joseph Qi wrote:
+> Hi Eric,
+> Thanks very much for your efforts.
+Nop
+> I am interested in the failed inline testcase. Could you please send out
+> the testcase as well as detailed log? I'll do analysis when I have time.
+Of course, logs has been attached.  And you can also find the recent vanilla kernel repo here:
 
-On 08/30/2016 12:11 PM, Ashish Samant wrote:
-> Hmm, thats weird. I see this on 4.7 kernel without the patch:
->
-> # xfs_io -c 'pwrite -b 4k 0 10M' -f 10MBfile
-> wrote 10485760/10485760 bytes at offset 0
-> 10 MiB, 2560 ops; 0.0000 sec (683.995 MiB/sec and 175102.5992 ops/sec)
-> # reflink -f 10MBfile reflnktest
-> # fallocate -p -o 0 -l 1048615 reflnktest
-> # dd if=10MBfile iflag=direct bs=1048576 count=1 | hexdump -C
-> 00000000  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
-> *
-> 1+0 records in
-> 1+0 records out
-> 1048576 bytes (1.0 MB) copied, 0.0321517 s, 32.6 MB/s
-> 00100000
->
-> and with patch
-> ----
-> # dd if=10MBfile iflag=direct bs=1M count=1 | hexdump -C
-> 00000000  cd cd cd cd cd cd cd cd  cd cd cd cd cd cd cd cd |................|
-
-I'm not familiar with this code.  So why is the output "cd ..."? because we didn't write 
-anything
-into "10MBfile". Is it a magic number when reading from a hole?
+http://download.opensuse.org/repositories/Kernel:/vanilla/standard/
 
 Eric
-
-> *
-> 1+0 records in
-> 1+0 records out
-> 00100000
-
-
-
 >
 > Thanks,
-> Ashish
+> Joseph
 >
->
-> On 08/29/2016 08:33 PM, Eric Ren wrote:
->> Hello,
+> On 2016/8/22 10:42, Eric Ren wrote:
+>> Hi,
 >>
->> On 08/30/2016 03:23 AM, Ashish Samant wrote:
->>> Hi Eric,
->>>
->>> The easiest way to reproduce this is :
->>>
->>> 1. Create a random file of say 10 MB
->>>     xfs_io -c 'pwrite -b 4k 0 10M' -f 10MBfile
->>> 2. Reflink  it
->>>     reflink -f 10MBfile reflnktest
->>> 3. Punch a hole at starting at cluster boundary  with range greater that 1MB. You can 
->>> also use a range that will put the end offset in another extent.
->>>     fallocate -p -o 0 -l 1048615 reflnktest
->>> 4. sync
->>> 5. Check the  first cluster in the source file. (It will be zeroed out).
->>>    dd if=10MBfile iflag=direct bs=<cluster size> count=1 | hexdump -C
 >>
->> Thanks! I have a try myself, but I'm not sure what is our expected output and if the test 
->> result meet
->> it:
+>> The test report below is agaist vanilla kernel v4.7.0. Some highlights:
 >>
->> 1. After applying this patch:
->> ocfs2dev1:/mnt/ocfs2 # rm 10MBfile reflnktest
->> ocfs2dev1:/mnt/ocfs2 # xfs_io -c 'pwrite -b 4k 0 10M' -f 10MBfile
->> wrote 10485760/10485760 bytes at offset 0
->> 10 MiB, 2560 ops; 0.0000 sec (1.089 GiB/sec and 285427.5839 ops/sec)
->> ocfs2dev1:/mnt/ocfs2 # reflink -f 10MBfile reflnktest
->> ocfs2dev1:/mnt/ocfs2 # fallocate -p -o 0 -l 1048615 reflnktest
->> ocfs2dev1:/mnt/ocfs2 # dd if=10MBfile iflag=direct bs=1048576 count=1 | hexdump -C
->> 00000000  cd cd cd cd cd cd cd cd  cd cd cd cd cd cd cd cd |................|
->> *
->> 1+0 records in
->> 1+0 records out
->> 1048576 bytes (1.0 MB, 1.0 MiB) copied, 0.0952464 s, 11.0 MB/s
->> 00100000
+>> 1.  As you can see from logs attached, pcmk stack is used with "blocksize=4096, clustersize=32768";
 >>
->> 2. Before this patch:
->> ....
->> ocfs2dev1:/mnt/ocfs2 # dd if=10MBfile iflag=direct bs=1048576 count=1 | hexdump -C
->> 00000000  cd cd cd cd cd cd cd cd  cd cd cd cd cd cd cd cd |................|
->> *
->> 1+0 records in
->> 1+0 records out
->> 1048576 bytes (1.0 MB, 1.0 MiB) copied, 0.0954648 s, 11.0 MB/s
->> 00100000
+>> 2. "inline" testcase on multiple nodes failed 3/3 times so far; seems to be a regression issue;
 >>
->> 3. debugfs.ocfs2 -R stats /dev/sdb
->> ...
->> Block Size Bits: 12   Cluster Size Bits: 20
->> ...
+>> 3. Two cases are skipped:
+>>      o lvb_torture:  libo2dlm [1] doesn't correctly support LVB operations for fs/dlm;
+>>
+>>        Actually, ocfs2 tools (mkfs and fsck) even don't need LVB operations, so it is not worth touching
+>>
+>>       libo2dlm right now, I think;
+>>
+>>      o filecheck: is not scheduled this time;
+>>
+>> 4. "discontig test" is missing now:-/
+>>
+>>
+>> If anyone is intersted in  the detailed test logs, I can upload somewhere;-) will schedule test for V4.8.rc2 soon.
+>>
+>> [1] https://oss.oracle.com/pipermail/ocfs2-tools-devel/2008-May/000761.html
 >>
 >> Eric
->>>
->>> Thanks,
->>> Ashish
->>>
->>> On 08/28/2016 10:39 PM, Eric Ren wrote:
->>>> Hi,
->>>>
->>>> Thanks for this fix. I'd like to reproduce this issue locally and test this patch,
->>>> could you elaborate the detailed steps of reproduction?
->>>>
->>>> Thanks,
->>>> Eric
->>>>
->>>> On 08/27/2016 07:04 AM, Ashish Samant wrote:
->>>>> If we punch a hole on a reflink such that following conditions are met:
->>>>>
->>>>> 1. start offset is on a cluster boundary
->>>>> 2. end offset is not on a cluster boundary
->>>>> 3. (end offset is somewhere in another extent) or
->>>>>     (hole range > MAX_CONTIG_BYTES(1MB)),
->>>>>
->>>>> we dont COW the first cluster starting at the start offset. But in this
->>>>> case, we were wrongly passing this cluster to
->>>>> ocfs2_zero_range_for_truncate() to zero out. This will modify the cluster
->>>>> in place and zero it in the source too.
->>>>>
->>>>> Fix this by skipping this cluster in such a scenario.
->>>>>
->>>>> Reported-by: Saar Maoz <saar.maoz@oracle.com>
->>>>> Signed-off-by: Ashish Samant <ashish.samant@oracle.com>
->>>>> Reviewed-by: Srinivas Eeda <srinivas.eeda@oracle.com>
->>>>> ---
->>>>> v1->v2:
->>>>> -Changed the commit msg to include a better and generic description of
->>>>>   the problem, for all cluster sizes.
->>>>> -Added Reported-by and Reviewed-by tags.
->>>>>      fs/ocfs2/file.c | 34 ++++++++++++++++++++++++----------
->>>>>   1 file changed, 24 insertions(+), 10 deletions(-)
->>>>>
->>>>> diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
->>>>> index 4e7b0dc..0b055bf 100644
->>>>> --- a/fs/ocfs2/file.c
->>>>> +++ b/fs/ocfs2/file.c
->>>>> @@ -1506,7 +1506,8 @@ static int ocfs2_zero_partial_clusters(struct inode *inode,
->>>>>                          u64 start, u64 len)
->>>>>   {
->>>>>       int ret = 0;
->>>>> -    u64 tmpend, end = start + len;
->>>>> +    u64 tmpend = 0;
->>>>> +    u64 end = start + len;
->>>>>       struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
->>>>>       unsigned int csize = osb->s_clustersize;
->>>>>       handle_t *handle;
->>>>> @@ -1538,18 +1539,31 @@ static int ocfs2_zero_partial_clusters(struct inode *inode,
->>>>>       }
->>>>>         /*
->>>>> -     * We want to get the byte offset of the end of the 1st cluster.
->>>>> +     * If start is on a cluster boundary and end is somewhere in another
->>>>> +     * cluster, we have not COWed the cluster starting at start, unless
->>>>> +     * end is also within the same cluster. So, in this case, we skip this
->>>>> +     * first call to ocfs2_zero_range_for_truncate() truncate and move on
->>>>> +     * to the next one.
->>>>>        */
->>>>> -    tmpend = (u64)osb->s_clustersize + (start & ~(osb->s_clustersize - 1));
->>>>> -    if (tmpend > end)
->>>>> -        tmpend = end;
->>>>> +    if ((start & (csize - 1)) != 0) {
->>>>> +        /*
->>>>> +         * We want to get the byte offset of the end of the 1st
->>>>> +         * cluster.
->>>>> +         */
->>>>> +        tmpend = (u64)osb->s_clustersize +
->>>>> +            (start & ~(osb->s_clustersize - 1));
->>>>> +        if (tmpend > end)
->>>>> +            tmpend = end;
->>>>>   -    trace_ocfs2_zero_partial_clusters_range1((unsigned long long)start,
->>>>> -                         (unsigned long long)tmpend);
->>>>> +        trace_ocfs2_zero_partial_clusters_range1(
->>>>> +            (unsigned long long)start,
->>>>> +            (unsigned long long)tmpend);
->>>>>   -    ret = ocfs2_zero_range_for_truncate(inode, handle, start, tmpend);
->>>>> -    if (ret)
->>>>> -        mlog_errno(ret);
->>>>> +        ret = ocfs2_zero_range_for_truncate(inode, handle, start,
->>>>> +                            tmpend);
->>>>> +        if (ret)
->>>>> +            mlog_errno(ret);
->>>>> +    }
->>>>>         if (tmpend < end) {
->>>>>           /*
->>>>
->>>>
->>>
+>>
+>> run-dev-test
+>> 	*BUILD UNSTABLE*
+>> Project: 	run-dev-test
+>> Date of build: 	Sat, 20 Aug 2016 20:11:19 +0800
+>> Build duration: 	19 hr
+>> Build cause: 	Started by upstream project "zren-testing/ocfs2-dlm-dev" build number 16
+>> Build description: 	 linux vanilla kernel V4.7.0
+>> Built on: 	HA-232
+>>
+>>
+>>    Health Report
+>>
+>> W 	Description 	Score
+>> 	Build stability: 2 out of the last 5 builds failed. 	60
+>> 	Test Result: 1 test failing out of a total of 29 tests. 	96
+>>
+>>
+>>    Tests Reports
+>>
+>> <http://147.2.207.237:8080/job/zren-testing/job/run-dev-test/28//testReport>
+>> Package 	Failed 	Passed 	Skipped 	Total
+>> MultipleNodes 	1 	8 	1 	*10*
+>> MultipleNodes.inline.inline-test
+>> SingleNode 	0 	18 	1 	*19*
+>>
+>>
+>>
+>>
+>> _______________________________________________
+>> Ocfs2-test-devel mailing list
+>> Ocfs2-test-devel at oss.oracle.com
+>> https://oss.oracle.com/mailman/listinfo/ocfs2-test-devel
 >>
 >
 >
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: ocfs2-test-log-28.gz
+Type: application/gzip
+Size: 1828456 bytes
+Desc: not available
+Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20160830/50b41e65/attachment-0001.bin 
