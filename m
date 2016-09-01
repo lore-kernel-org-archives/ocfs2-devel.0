@@ -1,49 +1,76 @@
-From: Gechangwei <ge.changwei@h3c.com>
-Date: Wed, 31 Aug 2016 10:56:55 +0000
-Subject: [Ocfs2-devel] A question on OCFS2 mount
-Message-ID: <63ADC13FD55D6546B7DECE290D39E373220B61D0@H3CMLB12-EX.srv.huawei-3com.com>
+From: Guozhonghua <guozhonghua@h3c.com>
+Date: Thu, 1 Sep 2016 11:15:39 +0000
+Subject: [Ocfs2-devel] MLE process bugs and its patch for review.
+Message-ID: <71604351584F6A4EBAE558C676F37CA4A3D3226D@H3CMLB12-EX.srv.huawei-3com.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi,
+Hi, All
 
-I am asking for your help on OCFS2 again.
+In the function dlm_migrate_lockres, as the return value is -EEXIST, the mle should not be added because it had not been initialized. And the oldmle should be put.
+Same as in function dlm_migrate_request_handler, when the return val is -EEIST, the mle should cache freed, otherwise memory lead may be occurred.
 
-I can?t figure out a segment of code.
 
-In the function dlm_register_domain which is called during mount procedure, below code stays:
+*** ocfs2.org/dlm/dlmmaster.c   2016-09-01 15:46:16.163140295 +0800
+--- ocfs2/dlm/dlmmaster.c       2016-09-01 18:56:21.211442107 +0800
+*************** static int dlm_is_lockres_migrateable(st
+*** 2592,2599 ****
+  /*
+   * DLM_MIGRATE_LOCKRES
+   */
+-
+-
+  static int dlm_migrate_lockres(struct dlm_ctxt *dlm,
+                               struct dlm_lock_resource *res, u8 target)
+  {
+--- 2592,2597 ----
+*************** static int dlm_migrate_lockres(struct dl
+*** 2640,2645 ****
+--- 2638,2654 ----
+        spin_lock(&dlm->master_lock);
+        ret = dlm_add_migration_mle(dlm, res, mle, &oldmle, name,
+                                    namelen, target, dlm->node_num);
++
++       if (ret == -EEXIST) {
++               if(oldmle)
++                       dlm_put_mle(oldmle);
++
++               spin_unlock(&dlm->master_lock);
++               spin_unlock(&dlm->spinlock);
++               mlog(0, "another process is already migrating it\n");
++               goto fail;
++       }
++
+        /* get an extra reference on the mle.
+         * otherwise the assert_master from the new
+         * master will destroy this.
+*************** static int dlm_migrate_lockres(struct dl
+*** 2648,2657 ****
+        spin_unlock(&dlm->master_lock);
+        spin_unlock(&dlm->spinlock);
 
-         dlm = __dlm_lookup_domain(domain);
-         if (dlm) {
-                   if (dlm->dlm_state != DLM_CTXT_JOINED) {
-                            spin_unlock(&dlm_domain_lock);
+-       if (ret == -EEXIST) {
+-               mlog(0, "another process is already migrating it\n");
+-               goto fail;
+-       }
+        mle_added = 1;
 
-                            mlog(ML_ERROR, "fence: dlm(%s) is not joined yet.\n", dlm->name);
+        /*
+--- 2657,2662 ----
+*************** int dlm_migrate_request_handler(struct o
+*** 3206,3211 ****
+--- 3211,3218 ----
+                                    name, namelen,
+                                    migrate->new_master,
+                                    migrate->master);
++       if (ret < 0)
++               kmem_cache_free(dlm_mle_cache, mle);
 
-                            mlog(0, "This ctxt is not joined yet!\n");
-                            wait_event_interruptible(dlm_domain_events,
-                                                        dlm_wait_on_domain_helper(
-                                                                 domain));
-                            goto retry;
-                   }
-
-I can see that it wants to look up an existed DLM context object which matches file system?s UUID.
-
-According to my comprehension, DLM context object must be detached from the DLM domain?s list and released when dismount.
-
-So it?s weird that such a DLM context object can be found at the procedure of MOUNT.
-
-Could you please provide a clue for me, if convenient?
-
-Many thanks!
-
-BR.
-
-Changwei.
-
+        spin_unlock(&dlm->master_lock);
+  unlock:
 -------------------------------------------------------------------------------------------------------------------------------------
 ????????????????????????????????????????
 ????????????????????????????????????????
@@ -55,6 +82,3 @@ information contained herein in any way (including, but not limited to, total or
 disclosure, reproduction, or dissemination) by persons other than the intended
 recipient(s) is prohibited. If you receive this e-mail in error, please notify the sender
 by phone or email immediately and delete it!
--------------- next part --------------
-An HTML attachment was scrubbed...
-URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20160831/9724faed/attachment-0001.html 
