@@ -1,84 +1,73 @@
-From: Guozhonghua <guozhonghua@h3c.com>
-Date: Thu, 1 Sep 2016 11:15:39 +0000
-Subject: [Ocfs2-devel] MLE process bugs and its patch for review.
-Message-ID: <71604351584F6A4EBAE558C676F37CA4A3D3226D@H3CMLB12-EX.srv.huawei-3com.com>
+From: Joseph Qi <joseph.qi@huawei.com>
+Date: Tue, 6 Sep 2016 09:01:29 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: fix race between convert and
+	migration
+Message-ID: <57CE1569.8010704@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi, All
+Commit ac7cf246dfdb ("ocfs2/dlm: fix race between convert and recovery")
+checks if lockres master has changed to identify whether new master has
+finished recovery or not. This will introduce a race that right after
+old master does umount ( means master will change), a new convert request
+comes.
+In this case, it will reset lockres state to DLM_RECOVERING and then
+retry convert, and then fail with lockres->l_action being set to
+OCFS2_AST_INVALID, which will cause inconsistent lock level between
+ocfs2 and dlm, and then finally BUG.
+Since dlm recovery will clear lock->convert_pending in
+dlm_move_lockres_to_recovery_list, we can use it to correctly identify
+the race case between convert and recovery. So fix it.
 
-In the function dlm_migrate_lockres, as the return value is -EEXIST, the mle should not be added because it had not been initialized. And the oldmle should be put.
-Same as in function dlm_migrate_request_handler, when the return val is -EEIST, the mle should cache freed, otherwise memory lead may be occurred.
+Fixes: ac7cf246dfdb ("ocfs2/dlm: fix race between convert and recovery")
+Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
+Signed-off-by: Jun Piao <piaojun@huawei.com>
+Cc: <stable@vger.kernel.org>
+---
+ fs/ocfs2/dlm/dlmconvert.c | 12 ++++++------
+ 1 file changed, 6 insertions(+), 6 deletions(-)
 
+diff --git a/fs/ocfs2/dlm/dlmconvert.c b/fs/ocfs2/dlm/dlmconvert.c
+index cdeafb4..0bb1286 100644
+--- a/fs/ocfs2/dlm/dlmconvert.c
++++ b/fs/ocfs2/dlm/dlmconvert.c
+@@ -268,7 +268,6 @@ enum dlm_status dlmconvert_remote(struct dlm_ctxt *dlm,
+ 				  struct dlm_lock *lock, int flags, int type)
+ {
+ 	enum dlm_status status;
+-	u8 old_owner = res->owner;
 
-*** ocfs2.org/dlm/dlmmaster.c   2016-09-01 15:46:16.163140295 +0800
---- ocfs2/dlm/dlmmaster.c       2016-09-01 18:56:21.211442107 +0800
-*************** static int dlm_is_lockres_migrateable(st
-*** 2592,2599 ****
-  /*
-   * DLM_MIGRATE_LOCKRES
-   */
--
--
-  static int dlm_migrate_lockres(struct dlm_ctxt *dlm,
-                               struct dlm_lock_resource *res, u8 target)
-  {
---- 2592,2597 ----
-*************** static int dlm_migrate_lockres(struct dl
-*** 2640,2645 ****
---- 2638,2654 ----
-        spin_lock(&dlm->master_lock);
-        ret = dlm_add_migration_mle(dlm, res, mle, &oldmle, name,
-                                    namelen, target, dlm->node_num);
+ 	mlog(0, "type=%d, convert_type=%d, busy=%d\n", lock->ml.type,
+ 	     lock->ml.convert_type, res->state & DLM_LOCK_RES_IN_PROGRESS);
+@@ -335,7 +334,6 @@ enum dlm_status dlmconvert_remote(struct dlm_ctxt *dlm,
+
+ 	spin_lock(&res->spinlock);
+ 	res->state &= ~DLM_LOCK_RES_IN_PROGRESS;
+-	lock->convert_pending = 0;
+ 	/* if it failed, move it back to granted queue.
+ 	 * if master returns DLM_NORMAL and then down before sending ast,
+ 	 * it may have already been moved to granted queue, reset to
+@@ -344,12 +342,14 @@ enum dlm_status dlmconvert_remote(struct dlm_ctxt *dlm,
+ 		if (status != DLM_NOTQUEUED)
+ 			dlm_error(status);
+ 		dlm_revert_pending_convert(res, lock);
+-	} else if ((res->state & DLM_LOCK_RES_RECOVERING) ||
+-			(old_owner != res->owner)) {
+-		mlog(0, "res %.*s is in recovering or has been recovered.\n",
+-				res->lockname.len, res->lockname.name);
++	} else if (!lock->convert_pending) {
++		mlog(0, "%s: res %.*s, owner died and lock has been moved back "
++				"to granted list, retry convert.\n",
++				dlm->name, res->lockname.len, res->lockname.name);
+ 		status = DLM_RECOVERING;
+ 	}
 +
-+       if (ret == -EEXIST) {
-+               if(oldmle)
-+                       dlm_put_mle(oldmle);
-+
-+               spin_unlock(&dlm->master_lock);
-+               spin_unlock(&dlm->spinlock);
-+               mlog(0, "another process is already migrating it\n");
-+               goto fail;
-+       }
-+
-        /* get an extra reference on the mle.
-         * otherwise the assert_master from the new
-         * master will destroy this.
-*************** static int dlm_migrate_lockres(struct dl
-*** 2648,2657 ****
-        spin_unlock(&dlm->master_lock);
-        spin_unlock(&dlm->spinlock);
++	lock->convert_pending = 0;
+ bail:
+ 	spin_unlock(&res->spinlock);
 
--       if (ret == -EEXIST) {
--               mlog(0, "another process is already migrating it\n");
--               goto fail;
--       }
-        mle_added = 1;
-
-        /*
---- 2657,2662 ----
-*************** int dlm_migrate_request_handler(struct o
-*** 3206,3211 ****
---- 3211,3218 ----
-                                    name, namelen,
-                                    migrate->new_master,
-                                    migrate->master);
-+       if (ret < 0)
-+               kmem_cache_free(dlm_mle_cache, mle);
-
-        spin_unlock(&dlm->master_lock);
-  unlock:
--------------------------------------------------------------------------------------------------------------------------------------
-????????????????????????????????????????
-????????????????????????????????????????
-????????????????????????????????????????
-???
-This e-mail and its attachments contain confidential information from H3C, which is
-intended only for the person or entity whose address is listed above. Any use of the
-information contained herein in any way (including, but not limited to, total or partial
-disclosure, reproduction, or dissemination) by persons other than the intended
-recipient(s) is prohibited. If you receive this e-mail in error, please notify the sender
-by phone or email immediately and delete it!
+-- 
+1.8.4.3
