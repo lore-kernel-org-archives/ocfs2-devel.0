@@ -1,73 +1,71 @@
-From: Joseph Qi <joseph.qi@huawei.com>
-Date: Tue, 6 Sep 2016 09:01:29 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: fix race between convert and
-	migration
-Message-ID: <57CE1569.8010704@huawei.com>
+From: Eric Ren <zren@suse.com>
+Date: Sat, 10 Sep 2016 17:55:35 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: fix deadlock on mmapped page in
+	ocfs2_write_begin_nolock()
+Message-ID: <1473501335-12519-1-git-send-email-zren@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Commit ac7cf246dfdb ("ocfs2/dlm: fix race between convert and recovery")
-checks if lockres master has changed to identify whether new master has
-finished recovery or not. This will introduce a race that right after
-old master does umount ( means master will change), a new convert request
-comes.
-In this case, it will reset lockres state to DLM_RECOVERING and then
-retry convert, and then fail with lockres->l_action being set to
-OCFS2_AST_INVALID, which will cause inconsistent lock level between
-ocfs2 and dlm, and then finally BUG.
-Since dlm recovery will clear lock->convert_pending in
-dlm_move_lockres_to_recovery_list, we can use it to correctly identify
-the race case between convert and recovery. So fix it.
+The testcase "mmaptruncate" of ocfs2-test deadlocked occasionally.
 
-Fixes: ac7cf246dfdb ("ocfs2/dlm: fix race between convert and recovery")
-Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
-Signed-off-by: Jun Piao <piaojun@huawei.com>
-Cc: <stable@vger.kernel.org>
+In this testcase, we create a 2*CLUSTER_SIZE file and mmap() on it;
+there are 2 process repeatedly performing the following operations
+respectively: one is doing memset(mmaped_addr + 2*CLUSTER_SIZE - 1,
+'a', 1), while the another is playing ftruncate(fd, 2*CLUSTER_SIZE)
+and then ftruncate(fd, CLUSTER_SIZE) again and again.
+
+This is the backtrace when the deadlock happens:
+[<ffffffff817054f0>] __wait_on_bit_lock+0x50/0xa0
+[<ffffffff81199bd7>] __lock_page+0xb7/0xc0
+[<ffffffff810c4de0>] ? autoremove_wake_function+0x40/0x40
+[<ffffffffa0440f4f>] ocfs2_write_begin_nolock+0x163f/0x1790 [ocfs2]
+[<ffffffffa0462a50>] ? ocfs2_allocate_extend_trans+0x180/0x180 [ocfs2]
+[<ffffffffa0467b47>] ocfs2_page_mkwrite+0x1c7/0x2a0 [ocfs2]
+[<ffffffff811cf286>] do_page_mkwrite+0x66/0xc0
+[<ffffffff811d3635>] handle_mm_fault+0x685/0x1350
+[<ffffffff81039dc0>] ? __fpu__restore_sig+0x70/0x530
+[<ffffffff810694c8>] __do_page_fault+0x1d8/0x4d0
+[<ffffffff81069827>] trace_do_page_fault+0x37/0xf0
+[<ffffffff81061e69>] do_async_page_fault+0x19/0x70
+[<ffffffff8170ac98>] async_page_fault+0x28/0x30
+
+In ocfs2_write_begin_nolock(), we first grab the pages and then
+allocate disk space for this write; ocfs2_try_to_free_truncate_log()
+will be called if ENOSPC is turned; if we're lucky to get enough clusters,
+which is usually the case, we start over again. But in ocfs2_free_write_ctxt()
+the target page isn't unlocked, so we will deadlock when trying to grab
+the target page again.
+
+Fix this issue by unlocking the target page after we fail to allocate
+enough space at the first time.
+
+Jan Kara helps me clear out the JBD2 part, and suggest the hint for root cause.
+
+Signed-off-by: Eric Ren <zren@suse.com>
 ---
- fs/ocfs2/dlm/dlmconvert.c | 12 ++++++------
- 1 file changed, 6 insertions(+), 6 deletions(-)
+ fs/ocfs2/aops.c | 7 +++++++
+ 1 file changed, 7 insertions(+)
 
-diff --git a/fs/ocfs2/dlm/dlmconvert.c b/fs/ocfs2/dlm/dlmconvert.c
-index cdeafb4..0bb1286 100644
---- a/fs/ocfs2/dlm/dlmconvert.c
-+++ b/fs/ocfs2/dlm/dlmconvert.c
-@@ -268,7 +268,6 @@ enum dlm_status dlmconvert_remote(struct dlm_ctxt *dlm,
- 				  struct dlm_lock *lock, int flags, int type)
- {
- 	enum dlm_status status;
--	u8 old_owner = res->owner;
-
- 	mlog(0, "type=%d, convert_type=%d, busy=%d\n", lock->ml.type,
- 	     lock->ml.convert_type, res->state & DLM_LOCK_RES_IN_PROGRESS);
-@@ -335,7 +334,6 @@ enum dlm_status dlmconvert_remote(struct dlm_ctxt *dlm,
-
- 	spin_lock(&res->spinlock);
- 	res->state &= ~DLM_LOCK_RES_IN_PROGRESS;
--	lock->convert_pending = 0;
- 	/* if it failed, move it back to granted queue.
- 	 * if master returns DLM_NORMAL and then down before sending ast,
- 	 * it may have already been moved to granted queue, reset to
-@@ -344,12 +342,14 @@ enum dlm_status dlmconvert_remote(struct dlm_ctxt *dlm,
- 		if (status != DLM_NOTQUEUED)
- 			dlm_error(status);
- 		dlm_revert_pending_convert(res, lock);
--	} else if ((res->state & DLM_LOCK_RES_RECOVERING) ||
--			(old_owner != res->owner)) {
--		mlog(0, "res %.*s is in recovering or has been recovered.\n",
--				res->lockname.len, res->lockname.name);
-+	} else if (!lock->convert_pending) {
-+		mlog(0, "%s: res %.*s, owner died and lock has been moved back "
-+				"to granted list, retry convert.\n",
-+				dlm->name, res->lockname.len, res->lockname.name);
- 		status = DLM_RECOVERING;
- 	}
+diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+index 98d3654..78d1d67 100644
+--- a/fs/ocfs2/aops.c
++++ b/fs/ocfs2/aops.c
+@@ -1860,6 +1860,13 @@ out:
+ 		 */
+ 		try_free = 0;
+ 
++		/*
++		 * Unlock mmap_page because the page has been locked when we
++		 * are here.
++		 */
++		if (mmap_page)
++			unlock_page(mmap_page);
 +
-+	lock->convert_pending = 0;
- bail:
- 	spin_unlock(&res->spinlock);
-
+ 		ret1 = ocfs2_try_to_free_truncate_log(osb, clusters_need);
+ 		if (ret1 == 1)
+ 			goto try_again;
 -- 
-1.8.4.3
+2.6.6
