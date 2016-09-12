@@ -1,19 +1,23 @@
-From: Joseph Qi <joseph.qi@huawei.com>
-Date: Mon, 12 Sep 2016 09:37:46 +0800
+From: Gang He <ghe@suse.com>
+Date: Sun, 11 Sep 2016 20:03:42 -0600
 Subject: [Ocfs2-devel] [PATCH] ocfs2: fix deadlock on mmapped page in
  ocfs2_write_begin_nolock()
 In-Reply-To: <1473501335-12519-1-git-send-email-zren@suse.com>
 References: <1473501335-12519-1-git-send-email-zren@suse.com>
-Message-ID: <57D606EA.5010009@huawei.com>
+Message-ID: <57D67D7E020000F90004A0FC@prv-mh.provo.novell.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Eric,
+Reviewed-by: Gang He <ghe@suse.com>
 
-On 2016/9/10 17:55, Eric Ren wrote:
+Thanks
+Gang
+
+
+>>> 
 > The testcase "mmaptruncate" of ocfs2-test deadlocked occasionally.
 > 
 > In this testcase, we create a 2*CLUSTER_SIZE file and mmap() on it;
@@ -40,23 +44,16 @@ On 2016/9/10 17:55, Eric Ren wrote:
 > In ocfs2_write_begin_nolock(), we first grab the pages and then
 > allocate disk space for this write; ocfs2_try_to_free_truncate_log()
 > will be called if ENOSPC is turned; if we're lucky to get enough clusters,
-> which is usually the case, we start over again. But in ocfs2_free_write_ctxt()
+> which is usually the case, we start over again. But in 
+> ocfs2_free_write_ctxt()
 > the target page isn't unlocked, so we will deadlock when trying to grab
 > the target page again.
-IMO, in ocfs2_grab_pages_for_write, mmap_page is mapping to w_pages and
-w_target_locked is set to true, and then will be unlocked by
-ocfs2_unlock_pages in ocfs2_free_write_ctxt.
-So I'm not getting the case "page isn't unlock". Could you please explain
-it in more detail?
-
-Thanks,
-Joseph
-
 > 
 > Fix this issue by unlocking the target page after we fail to allocate
 > enough space at the first time.
 > 
-> Jan Kara helps me clear out the JBD2 part, and suggest the hint for root cause.
+> Jan Kara helps me clear out the JBD2 part, and suggest the hint for root 
+> cause.
 > 
 > Signed-off-by: Eric Ren <zren@suse.com>
 > ---
@@ -81,4 +78,11 @@ Joseph
 >  		ret1 = ocfs2_try_to_free_truncate_log(osb, clusters_need);
 >  		if (ret1 == 1)
 >  			goto try_again;
+> -- 
+> 2.6.6
 > 
+> 
+> _______________________________________________
+> Ocfs2-devel mailing list
+> Ocfs2-devel at oss.oracle.com 
+> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
