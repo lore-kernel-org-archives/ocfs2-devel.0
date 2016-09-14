@@ -1,104 +1,86 @@
-From: Eric Ren <zren@suse.com>
-Date: Wed, 14 Sep 2016 16:08:34 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: fix deadlock on mmapped page in
- ocfs2_write_begin_nolock()
-In-Reply-To: <ec1e0839-e1d7-57e2-a349-491236edfb59@suse.com>
-References: <1473501335-12519-1-git-send-email-zren@suse.com>
-	<57D606EA.5010009@huawei.com>
-	<5170a92c-caaf-be47-3ef8-ab9803e7a6c4@suse.com>
-	<ec1e0839-e1d7-57e2-a349-491236edfb59@suse.com>
-Message-ID: <4018106f-7823-c083-66c2-e003fcdb6799@suse.com>
+From: Joseph Qi <joseph.qi@huawei.com>
+Date: Wed, 14 Sep 2016 16:13:06 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: fix double unlock in case retry
+ after free truncate log
+In-Reply-To: <836ecbe3-f534-161e-c46c-2902412dd21b@suse.com>
+References: <57D8CEF8.5010206@huawei.com>
+	<836ecbe3-f534-161e-c46c-2902412dd21b@suse.com>
+Message-ID: <57D90692.90008@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi,
+Hi Eric,
 
-On 09/12/2016 11:06 AM, Eric Ren wrote:
-> Hi,
->>> IMO, in ocfs2_grab_pages_for_write, mmap_page is mapping to w_pages and
->>> w_target_locked is set to true, and then will be unlocked by
->>> ocfs2_unlock_pages in ocfs2_free_write_ctxt.
->>> So I'm not getting the case "page isn't unlock". Could you please explain
->>> it in more detail?
->> Thanks for review;-) Follow up the calling chain:
->>
->> ocfs2_free_write_ctxt()
->>   ->ocfs2_unlock_pages()
->>
->> in ocfs2_unlock_pages
->> (https://github.com/torvalds/linux/blob/master/fs/ocfs2/aops.c#L793), we
->> can see the code just put_page(target_page), but not unlock it.
->>
->> Yeah, I will think this a bit more like:
->> why not unlock the target_page there? Is there other potential problems if the "ret" is
->> not "-ENOSPC" but
->> other possible error code?
-> 1. ocfs2_unlock_pages() will be called in ocfs2_write_end_nolock(), in this case, we
-> definitely want to return a locked mmaped page
-> to VM code (do_page_mkwrite) when VM_FAULT_LOCKED is set.
->
-> 2. But there's indeed a potential existing deadlock situation:
->                                  ocfs2_grab_pages_for_write()  ==> return -ENOMEM and with
-> the mmaped page locked
->                                  ocfs2_free_write_ctxt() ==> leave the mmapped page locked
->                            ocfs2_write_begin_nolock() ==> return -ENOMEM
->                      __ocfs2_page_mkwrite() ==> return VM_FAULT_OMM
->                __do_page_mkwrite() ==> deadlock here
-> (https://github.com/torvalds/linux/blob/master/mm/memory.c#L2054)
-> This is another corner case, right?
->
-> Anyway, I think this patch is good for the -ENOSPC case. And another patch should be
-> proposed for -ENOMEM case?
-Yes, I think we can catch both -ENOSPC and -ENOMEM cases in the failure path by unlocking the
-mmaped page after ocfs2_free_write_ctx(), right?
-
-Eric
->
-> Thanks,
+On 2016/9/14 15:57, Eric Ren wrote:
+> Hello Joseph,
+> 
+> Thanks for fixing up this.
+> 
+> On 09/14/2016 12:15 PM, Joseph Qi wrote:
+>> If ocfs2_reserve_cluster_bitmap_bits fails with ENOSPC, it will try to
+>> free truncate log and then retry. Since ocfs2_try_to_free_truncate_log
+>> will lock/unlock global bitmap inode, we have to unlock it before
+>> calling this function. But when retry reserve and it fails with no
+> You mean the retry succeeds by "retry reserve", right? I fail to understand in which situation
+> the retry will fail to get global bitmap inode lock. Because I didn't see this problem when I
+> tested my patch, could you explain a bit more?
+> 
 > Eric
->
->> Thanks,
->> Eric
+Before retry it has inode unlocked, but ac inode is still valid. And
+if inode lock fails this time, it will goto bail and do inode unlock
+again.
+
+Thanks,
+Joseph
+
+>> global bitmap inode lock taken, it will unlock again in error handling
+>> branch and BUG.
+>> This issue also exists if no need retry and then ocfs2_inode_lock fails.
+>> So fix it.
 >>
->>> Thanks,
->>> Joseph
->>>
->>>> Fix this issue by unlocking the target page after we fail to allocate
->>>> enough space at the first time.
->>>>
->>>> Jan Kara helps me clear out the JBD2 part, and suggest the hint for root cause.
->>>>
->>>> Signed-off-by: Eric Ren <zren@suse.com>
->>>> ---
->>>>    fs/ocfs2/aops.c | 7 +++++++
->>>>    1 file changed, 7 insertions(+)
->>>>
->>>> diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
->>>> index 98d3654..78d1d67 100644
->>>> --- a/fs/ocfs2/aops.c
->>>> +++ b/fs/ocfs2/aops.c
->>>> @@ -1860,6 +1860,13 @@ out:
->>>>             */
->>>>            try_free = 0;
->>>>    +        /*
->>>> +         * Unlock mmap_page because the page has been locked when we
->>>> +         * are here.
->>>> +         */
->>>> +        if (mmap_page)
->>>> +            unlock_page(mmap_page);
->>>> +
->>>>            ret1 = ocfs2_try_to_free_truncate_log(osb, clusters_need);
->>>>            if (ret1 == 1)
->>>>                goto try_again;
->>>>
->>>
+>> Fixes: 2070ad1aebff ("ocfs2: retry on ENOSPC if sufficient space in
+>> truncate log"
+>> Signed-off-by: Jospeh Qi <joseph.qi@huawei.com>
+>> Signed-off-by: Jiufei Xue <xuejiufei@huawei.com>
+>> ---
+>>   fs/ocfs2/suballoc.c | 13 +++++++++++--
+>>   1 file changed, 11 insertions(+), 2 deletions(-)
 >>
->
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
->
+>> diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
+>> index ea47120..041453b 100644
+>> --- a/fs/ocfs2/suballoc.c
+>> +++ b/fs/ocfs2/suballoc.c
+>> @@ -1199,14 +1199,23 @@ retry:
+>>               inode_unlock((*ac)->ac_inode);
+>>
+>>               ret = ocfs2_try_to_free_truncate_log(osb, bits_wanted);
+>> -            if (ret == 1)
+>> +            if (ret == 1) {
+>> +                iput((*ac)->ac_inode);
+>> +                (*ac)->ac_inode = NULL;
+>>                   goto retry;
+>> +            }
+>>
+>>               if (ret < 0)
+>>                   mlog_errno(ret);
+>>
+>>               inode_lock((*ac)->ac_inode);
+>> -            ocfs2_inode_lock((*ac)->ac_inode, NULL, 1);
+>> +            status = ocfs2_inode_lock((*ac)->ac_inode, NULL, 1);
+>> +            if (status < 0) {
+>> +                inode_unlock((*ac)->ac_inode);
+>> +                iput((*ac)->ac_inode);
+>> +                (*ac)->ac_inode = NULL;
+>> +                goto bail;
+>> +            }
+>>           }
+>>           if (status < 0) {
+>>               if (status != -ENOSPC)
+> 
+> 
+> 
+> .
+> 
