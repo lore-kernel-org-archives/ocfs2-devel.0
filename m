@@ -1,70 +1,95 @@
 From: Eric Ren <zren@suse.com>
-Date: Wed, 14 Sep 2016 15:57:10 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: fix double unlock in case retry
- after free truncate log
-In-Reply-To: <57D8CEF8.5010206@huawei.com>
-References: <57D8CEF8.5010206@huawei.com>
-Message-ID: <836ecbe3-f534-161e-c46c-2902412dd21b@suse.com>
+Date: Wed, 14 Sep 2016 16:04:19 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: fix deadlock on mmapped page in
+ ocfs2_write_begin_nolock()
+In-Reply-To: <5170a92c-caaf-be47-3ef8-ab9803e7a6c4@suse.com>
+References: <1473501335-12519-1-git-send-email-zren@suse.com>
+	<57D606EA.5010009@huawei.com>
+	<5170a92c-caaf-be47-3ef8-ab9803e7a6c4@suse.com>
+Message-ID: <d1bae3b5-50b3-a79a-8c21-14bc644e7071@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hello Joseph,
+Hi Joseph,
+>>> In ocfs2_write_begin_nolock(), we first grab the pages and then
+>>> allocate disk space for this write; ocfs2_try_to_free_truncate_log()
+>>> will be called if ENOSPC is turned; if we're lucky to get enough clusters,
+>>> which is usually the case, we start over again. But in ocfs2_free_write_ctxt()
+>>> the target page isn't unlocked, so we will deadlock when trying to grab
+>>> the target page again.
+>> IMO, in ocfs2_grab_pages_for_write, mmap_page is mapping to w_pages and
+>> w_target_locked is set to true, and then will be unlocked by
+>> ocfs2_unlock_pages in ocfs2_free_write_ctxt.
+>> So I'm not getting the case "page isn't unlock". Could you please explain
+>> it in more detail?
+> Thanks for review;-) Follow up the calling chain:
+>
+> ocfs2_free_write_ctxt()
+>  ->ocfs2_unlock_pages()
+>
+> in ocfs2_unlock_pages 
+> (https://github.com/torvalds/linux/blob/master/fs/ocfs2/aops.c#L793), we
+> can see the code just put_page(target_page), but not unlock it.
+Did this answer your question?
 
-Thanks for fixing up this.
-
-On 09/14/2016 12:15 PM, Joseph Qi wrote:
-> If ocfs2_reserve_cluster_bitmap_bits fails with ENOSPC, it will try to
-> free truncate log and then retry. Since ocfs2_try_to_free_truncate_log
-> will lock/unlock global bitmap inode, we have to unlock it before
-> calling this function. But when retry reserve and it fails with no
-You mean the retry succeeds by "retry reserve", right? I fail to understand in which situation
-the retry will fail to get global bitmap inode lock. Because I didn't see this problem when I
-tested my patch, could you explain a bit more?
-
+Thanks,
 Eric
-> global bitmap inode lock taken, it will unlock again in error handling
-> branch and BUG.
-> This issue also exists if no need retry and then ocfs2_inode_lock fails.
-> So fix it.
 >
-> Fixes: 2070ad1aebff ("ocfs2: retry on ENOSPC if sufficient space in
-> truncate log"
-> Signed-off-by: Jospeh Qi <joseph.qi@huawei.com>
-> Signed-off-by: Jiufei Xue <xuejiufei@huawei.com>
-> ---
->   fs/ocfs2/suballoc.c | 13 +++++++++++--
->   1 file changed, 11 insertions(+), 2 deletions(-)
+> Yeah, I will think this a bit more like:
+> why not unlock the target_page there? Is there other potential problems if the "ret" is 
+> not "-ENOSPC" but
+> other possible error code?
 >
-> diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
-> index ea47120..041453b 100644
-> --- a/fs/ocfs2/suballoc.c
-> +++ b/fs/ocfs2/suballoc.c
-> @@ -1199,14 +1199,23 @@ retry:
->   			inode_unlock((*ac)->ac_inode);
+> Thanks,
+> Eric
 >
->   			ret = ocfs2_try_to_free_truncate_log(osb, bits_wanted);
-> -			if (ret == 1)
-> +			if (ret == 1) {
-> +				iput((*ac)->ac_inode);
-> +				(*ac)->ac_inode = NULL;
->   				goto retry;
-> +			}
+>>
+>> Thanks,
+>> Joseph
+>>
+>>> Fix this issue by unlocking the target page after we fail to allocate
+>>> enough space at the first time.
+>>>
+>>> Jan Kara helps me clear out the JBD2 part, and suggest the hint for root cause.
+>>>
+>>> Signed-off-by: Eric Ren <zren@suse.com>
+>>> ---
+>>>   fs/ocfs2/aops.c | 7 +++++++
+>>>   1 file changed, 7 insertions(+)
+>>>
+>>> diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+>>> index 98d3654..78d1d67 100644
+>>> --- a/fs/ocfs2/aops.c
+>>> +++ b/fs/ocfs2/aops.c
+>>> @@ -1860,6 +1860,13 @@ out:
+>>>            */
+>>>           try_free = 0;
+>>>   +        /*
+>>> +         * Unlock mmap_page because the page has been locked when we
+>>> +         * are here.
+>>> +         */
+>>> +        if (mmap_page)
+>>> +            unlock_page(mmap_page);
+>>> +
+>>>           ret1 = ocfs2_try_to_free_truncate_log(osb, clusters_need);
+>>>           if (ret1 == 1)
+>>>               goto try_again;
+>>>
+>>
+>>
 >
->   			if (ret < 0)
->   				mlog_errno(ret);
 >
->   			inode_lock((*ac)->ac_inode);
-> -			ocfs2_inode_lock((*ac)->ac_inode, NULL, 1);
-> +			status = ocfs2_inode_lock((*ac)->ac_inode, NULL, 1);
-> +			if (status < 0) {
-> +				inode_unlock((*ac)->ac_inode);
-> +				iput((*ac)->ac_inode);
-> +				(*ac)->ac_inode = NULL;
-> +				goto bail;
-> +			}
->   		}
->   		if (status < 0) {
->   			if (status != -ENOSPC)
+>
+>
+> _______________________________________________
+> Ocfs2-devel mailing list
+> Ocfs2-devel at oss.oracle.com
+> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20160914/f04177a5/attachment.html 
