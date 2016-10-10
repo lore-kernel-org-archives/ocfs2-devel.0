@@ -1,63 +1,34 @@
-From: Gang He <ghe@suse.com>
-Date: Sun, 09 Oct 2016 19:51:41 -0600
-Subject: [Ocfs2-devel] What are the purposes of
- GLOBAL_INODE_ALLOC_SYSTEM_INODE and BAD_BLOCK_SYSTEM_INODE system file
-In-Reply-To: <57FA1D0E.3020204@huawei.com>
-References: <57FA748D020000F90004EEB3@prv-mh.provo.novell.com>
-	<57FA1D0E.3020204@huawei.com>
-Message-ID: <57FB64AD020000F90004EF8A@prv-mh.provo.novell.com>
+From: piaojun <piaojun@huawei.com>
+Date: Mon, 10 Oct 2016 17:26:10 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: clean up useless BUG_ON default
+ case in dlm_finalize_reco_handler()
+Message-ID: <57FB5EB2.7050002@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hello Junxiao and Joseph,
+The value of 'stage' must be between 1 and 2, so the switch can't reach
+the default case.
 
-Thank for your confirm. 
+Signed-off-by: Jun Piao <piaojun@huawei.com>
+---
+ fs/ocfs2/dlm/dlmrecovery.c | 2 --
+ 1 file changed, 2 deletions(-)
 
--Gang
-
-
->>> 
-> Hi Gang,
-> GLOBAL_INODE_ALLOC_SYSTEM_INODE is used for system file inodes
-> allocation, you can refer mkfs.c for details.
-> 
-> Thanks,
-> Joseph
-> 
-> On 2016/10/9 16:47, Gang He wrote:
->> Hello Guys,
->> 
->> If you use debugfs.ocfs2 to list system files for a ocfs2 file system, you 
-> can find these two system files.
->> sles12sp1-node1:/ # debugfs.ocfs2 /dev/sdb1
->> debugfs.ocfs2 1.8.2
->> debugfs: ls //
->>  6               16   1    2  .
->>  6               16   2    2  ..
->>  7               24   10   1  bad_blocks             << ==  
-> BAD_BLOCK_SYSTEM_INODE
->>  8               32   18   1  global_inode_alloc     << ==  
-> GLOBAL_INODE_ALLOC_SYSTEM_INODE
->>   ....
->> 
->> But, What are the purposes of GLOBAL_INODE_ALLOC_SYSTEM_INODE and 
-> BAD_BLOCK_SYSTEM_INODE system file?
->> For BAD_BLOCK_SYSTEM_INODE system file, it looks to be used to store bad 
-> blocks for a file system partition, but from the code, there is not any code 
-> for this system file.
->> For GLOBAL_INODE_ALLOC_SYSTEM_INODE system file, there is also not any code 
-> for it, what is the purpose of this file ?
->> 
->> 
->> Thanks
->> Gang
->> 
->> 
->> 
->> 
->> 
->> .
->> 
+diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
+index dd5cb8b..74407c6 100644
+--- a/fs/ocfs2/dlm/dlmrecovery.c
++++ b/fs/ocfs2/dlm/dlmrecovery.c
+@@ -2966,8 +2966,6 @@ int dlm_finalize_reco_handler(struct o2net_msg *msg, u32 len, void *data,
+ 			spin_unlock(&dlm->spinlock);
+ 			dlm_kick_recovery_thread(dlm);
+ 			break;
+-		default:
+-			BUG();
+ 	}
+ 
+ 	mlog(0, "%s: recovery done, reco master was %u, dead now %u, master now %u\n",
+-- 
+1.9.5.msysgit.1
