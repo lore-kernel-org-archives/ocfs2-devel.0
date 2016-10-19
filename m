@@ -1,57 +1,120 @@
 From: Eric Ren <zren@suse.com>
-Date: Wed, 19 Oct 2016 13:19:40 +0800
-Subject: [Ocfs2-devel] [RFC] Should we revert commit "ocfs2: take inode lock
-	in ocfs2_iop_set/get_acl()"? or other ideas?
-Message-ID: <1476854382-28101-1-git-send-email-zren@suse.com>
+Date: Wed, 19 Oct 2016 13:19:42 +0800
+Subject: [Ocfs2-devel] [DRAFT 2/2] ocfs2: fix deadlock caused by recursive
+	cluster locking
+In-Reply-To: <1476854382-28101-1-git-send-email-zren@suse.com>
+References: <1476854382-28101-1-git-send-email-zren@suse.com>
+Message-ID: <1476854382-28101-3-git-send-email-zren@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi all!
+The deadlock issue happens when running discontiguous block
+group testing on multiple nodes. The easier way to reproduce
+is to do "chmod -R 777 /mnt/ocfs2" things like this on multiple
+nodes at the same time by pssh.
 
-Commit 743b5f1434f5 ("ocfs2: take inode lock in ocfs2_iop_set/get_acl()")
-results in another deadlock as we have discussed in the recent thread:
-    https://oss.oracle.com/pipermail/ocfs2-devel/2016-October/012454.html
+This is indeed another deadlock caused by: commit 743b5f1434f5
+("ocfs2: take inode lock in ocfs2_iop_set/get_acl()"). The reason
+had been explained well by Tariq Saeed in this thread:
 
-Before this one, a similiar deadlock has been fixed by Junxiao:
-    commit c25a1e0671fb ("ocfs2: fix posix_acl_create deadlock")
-    commit 5ee0fbd50fdf ("ocfs2: revert using ocfs2_acl_chmod to avoid inode cluster lock hang")
+https://oss.oracle.com/pipermail/ocfs2-devel/2015-September/011085.html
 
-We are in the situation that we have to avoid recursive cluster locking, but
-there is no way to check if a cluster lock has been taken by a precess already.
+For this case, the ocfs2_inode_lock() is misused recursively as below:
 
-Mostly, we can avoid recursive locking by writing code carefully. However, as
-the deadlock issues have proved out, it's very hard to handle the routines
-that are called directly by vfs. For instance:
+do_sys_open
+ do_filp_open
+  path_openat
+   may_open
+    inode_permission
+     __inode_permission
+      ocfs2_permission  <====== ocfs2_inode_lock()
+       generic_permission
+        get_acl
+         ocfs2_iop_get_acl  <====== ocfs2_inode_lock()
+          ocfs2_inode_lock_full_nested <===== deadlock if a remote EX request
+comes between two ocfs2_inode_lock()
 
-    const struct inode_operations ocfs2_file_iops = {
-            .permission     = ocfs2_permission,
-            .get_acl        = ocfs2_iop_get_acl,
-            .set_acl        = ocfs2_iop_set_acl,
-    };
+Fix by checking if the cluster lock has been acquired aready in the call-chain
+path.
 
+Fixes: commit 743b5f1434f5 ("ocfs2: take inode lock in ocfs2_iop_set/get_acl()")
+Signed-off-by: Eric Ren <zren@suse.com>
+---
+ fs/ocfs2/acl.c | 39 +++++++++++++++++++++++++++------------
+ 1 file changed, 27 insertions(+), 12 deletions(-)
 
-ocfs2_permission() and ocfs2_iop_get/set_acl() both call ocfs2_inode_lock().
-The problem is that the call chain of ocfs2_permission() includes *_acl().
-
-Possibly, there are three solutions I can think of.  The first one is to
-implement the inode permission routine for ocfs2 itself, replacing the
-existing generic_permission(); this will bring lots of changes and
-involve too many trivial vfs functions into ocfs2 code. Frown on this.
-
-The second one is, what I am trying now, to keep track of the processes who
-lock/unlock a cluster lock by the following draft patches. But, I quickly
-find out that a cluster locking which has been taken by processA can be unlocked
-by processB. For example, systemfiles like journal:0000 is locked during mout, and
-unlocked during umount. 
-
-The thrid one is to revert that problematic commit! It looks like get/set_acl()
-are always been called by other vfs callback like ocfs2_permission(). I think
-we can do this if it's true, right? Anyway, I'll try to work out if it's true;-)
-
-Hope for your input to solve this problem;-)
-
-Thanks,
-Eric
+diff --git a/fs/ocfs2/acl.c b/fs/ocfs2/acl.c
+index bed1fcb..7e3544e 100644
+--- a/fs/ocfs2/acl.c
++++ b/fs/ocfs2/acl.c
+@@ -283,16 +283,24 @@ int ocfs2_set_acl(handle_t *handle,
+ int ocfs2_iop_set_acl(struct inode *inode, struct posix_acl *acl, int type)
+ {
+ 	struct buffer_head *bh = NULL;
++	struct ocfs2_holder *oh;
++	struct ocfs2_lock_res *lockres = &OCFS2_I(inode)->ip_inode_lockres;
+ 	int status = 0;
+ 
+-	status = ocfs2_inode_lock(inode, &bh, 1);
+-	if (status < 0) {
+-		if (status != -ENOENT)
+-			mlog_errno(status);
+-		return status;
++	oh = ocfs2_is_locked_by_me(lockres);
++	if (!oh) {
++		status = ocfs2_inode_lock(inode, &bh, 1);
++		if (status < 0) {
++			if (status != -ENOENT)
++				mlog_errno(status);
++			return status;
++		}
+ 	}
++
+ 	status = ocfs2_set_acl(NULL, inode, bh, type, acl, NULL, NULL);
+-	ocfs2_inode_unlock(inode, 1);
++
++	if (!oh)
++		ocfs2_inode_unlock(inode, 1);
+ 	brelse(bh);
+ 	return status;
+ }
+@@ -302,21 +310,28 @@ struct posix_acl *ocfs2_iop_get_acl(struct inode *inode, int type)
+ 	struct ocfs2_super *osb;
+ 	struct buffer_head *di_bh = NULL;
+ 	struct posix_acl *acl;
++	struct ocfs2_holder *oh;
++	struct ocfs2_lock_res *lockres = &OCFS2_I(inode)->ip_inode_lockres;
+ 	int ret;
+ 
+ 	osb = OCFS2_SB(inode->i_sb);
+ 	if (!(osb->s_mount_opt & OCFS2_MOUNT_POSIX_ACL))
+ 		return NULL;
+-	ret = ocfs2_inode_lock(inode, &di_bh, 0);
+-	if (ret < 0) {
+-		if (ret != -ENOENT)
+-			mlog_errno(ret);
+-		return ERR_PTR(ret);
++
++	oh = ocfs2_is_locked_by_me(lockres);
++	if (!oh) {
++		ret = ocfs2_inode_lock(inode, &di_bh, 0);
++		if (ret < 0) {
++			if (ret != -ENOENT)
++				mlog_errno(ret);
++			return ERR_PTR(ret);
++		}
+ 	}
+ 
+ 	acl = ocfs2_get_acl_nolock(inode, type, di_bh);
+ 
+-	ocfs2_inode_unlock(inode, 0);
++	if (!oh)
++		ocfs2_inode_unlock(inode, 0);
+ 	brelse(di_bh);
+ 	return acl;
+ }
+-- 
+2.6.6
