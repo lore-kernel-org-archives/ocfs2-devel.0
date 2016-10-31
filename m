@@ -1,97 +1,124 @@
-From: Gechangwei <ge.changwei@h3c.com>
-Date: Fri, 28 Oct 2016 07:14:20 +0000
-Subject: [Ocfs2-devel] [PATCH] MLE releases issue.
-Message-ID: <63ADC13FD55D6546B7DECE290D39E373220C9A5B@H3CMLB12-EX.srv.huawei-3com.com>
+From: piaojun <piaojun@huawei.com>
+Date: Mon, 31 Oct 2016 18:55:56 +0800
+Subject: [Ocfs2-devel] [DRAFT 2/2] ocfs2: fix deadlock caused by
+ recursive cluster locking
+In-Reply-To: <1476854382-28101-3-git-send-email-zren@suse.com>
+References: <1476854382-28101-1-git-send-email-zren@suse.com>
+	<1476854382-28101-3-git-send-email-zren@suse.com>
+Message-ID: <5817233C.4060703@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi,
-During my test on OCFS2 suffering a storage failure, a crash issue was found.
-Below was the call trace when crashed.
-From the call trace, we can see a MLE's reference count is going to be negative, which aroused a BUG_ON()
+Hi Eric,
 
-[143355.593258] Call Trace:
-[143355.593268]  [<ffffffffc0328447>] dlm_put_mle_inuse+0x47/0x70 [ocfs2_dlm]
-[143355.593276]  [<ffffffffc032bee5>] dlm_get_lock_resource+0xac5/0x10d0 [ocfs2_dlm]
-[143355.593286]  [<ffffffff81724a7a>] ? ip_queue_xmit+0x14a/0x3d0
-[143355.593292]  [<ffffffff811e50b4>] ? kmem_cache_alloc+0x1e4/0x220
-[143355.593300]  [<ffffffffc03215cc>] ? dlm_wait_for_recovery+0x6c/0x190 [ocfs2_dlm]
-[143355.593311]  [<ffffffffc0335c4d>] dlmlock+0x62d/0x16e0 [ocfs2_dlm]
-[143355.593316]  [<ffffffff816cfbab>] ? __alloc_skb+0x9b/0x2b0
-[143355.593323]  [<ffffffffc01f6000>] ? 0xffffffffc01f6000
-
-
-I think I probably have found the root cause of this issue. Please
-
-**Node 1**                                          **Node 2**
-                                                                Storage failure
-                                                        An assert master message is sent to Node 1
-Treat Node2 as down
-Assert master handler
-Decrease MLE reference count
-Clean blocked MLE
-Decrease MLE reference count
-
-
-In the above scenario, both dlm_assert_master_handler and dlm_clean_block_mle will decease MLE
-reference count, thus, in the following get_resouce procedure, the reference count is going to be negative.
-
-I propose a patch to solve this, please take review if you have any time.
-
-Signed-off-by: gechangwei <ge.changwei@h3c.com>
----
- dlm/dlmmaster.c | 8 +++++++-
- 1 file changed, 6 insertions(+), 1 deletion(-)
-
-diff --git a/dlm/dlmmaster.c b/dlm/dlmmaster.c
-index b747854..0540414 100644
---- a/dlm/dlmmaster.c
-+++ b/dlm/dlmmaster.c
-@@ -2020,7 +2020,7 @@ ok:
-
-                spin_lock(&mle->spinlock);
-                if (mle->type == DLM_MLE_BLOCK || mle->type == DLM_MLE_MIGRATION)
--                       extra_ref = 1;
-+                       extra_ref = test_bit(assert->node_idx, mle->maybe_map) ? 1 : 0;
-                else {
-                        /* MASTER mle: if any bits set in the response map
-                         * then the calling node needs to re-assert to clear
-@@ -3465,12 +3465,18 @@ static void dlm_clean_block_mle(struct dlm_ctxt *dlm,
-                mlog(0, "mle found, but dead node %u would not have been "
-                     "master\n", dead_node);
-                spin_unlock(&mle->spinlock);
-+       } else if(mle->master != O2NM_MAX_NODES){
-+               mlog(ML_NOTICE, "mle found, master assert received, master has "
-+                        "already set to %d.\n ", mle->master);
-+               spin_unlock(&mle->spinlock);
-        } else {
-                /* Must drop the refcount by one since the assert_master will
-                 * never arrive. This may result in the mle being unlinked and
-                 * freed, but there may still be a process waiting in the
-                 * dlmlock path which is fine. */
-                mlog(0, "node %u was expected master\n", dead_node);
-+               clear_bit(bit, mle->maybe_map);
-                atomic_set(&mle->woken, 1);
-                spin_unlock(&mle->spinlock);
-                wake_up(&mle->wq);
---
-
-
-BR.
-
-Changwei
-
--------------------------------------------------------------------------------------------------------------------------------------
-????????????????????????????????????????
-????????????????????????????????????????
-????????????????????????????????????????
-???
-This e-mail and its attachments contain confidential information from H3C, which is
-intended only for the person or entity whose address is listed above. Any use of the
-information contained herein in any way (including, but not limited to, total or partial
-disclosure, reproduction, or dissemination) by persons other than the intended
-recipient(s) is prohibited. If you receive this e-mail in error, please notify the sender
-by phone or email immediately and delete it!
+On 2016-10-19 13:19, Eric Ren wrote:
+> The deadlock issue happens when running discontiguous block
+> group testing on multiple nodes. The easier way to reproduce
+> is to do "chmod -R 777 /mnt/ocfs2" things like this on multiple
+> nodes at the same time by pssh.
+> 
+> This is indeed another deadlock caused by: commit 743b5f1434f5
+> ("ocfs2: take inode lock in ocfs2_iop_set/get_acl()"). The reason
+> had been explained well by Tariq Saeed in this thread:
+> 
+> https://oss.oracle.com/pipermail/ocfs2-devel/2015-September/011085.html
+> 
+> For this case, the ocfs2_inode_lock() is misused recursively as below:
+> 
+> do_sys_open
+>  do_filp_open
+>   path_openat
+>    may_open
+>     inode_permission
+>      __inode_permission
+>       ocfs2_permission  <====== ocfs2_inode_lock()
+>        generic_permission
+>         get_acl
+>          ocfs2_iop_get_acl  <====== ocfs2_inode_lock()
+>           ocfs2_inode_lock_full_nested <===== deadlock if a remote EX request
+Do you mean another node wants to get ex of the inode? or another process?
+> comes between two ocfs2_inode_lock()
+> 
+> Fix by checking if the cluster lock has been acquired aready in the call-chain
+> path.
+> 
+> Fixes: commit 743b5f1434f5 ("ocfs2: take inode lock in ocfs2_iop_set/get_acl()")
+> Signed-off-by: Eric Ren <zren@suse.com>
+> ---
+>  fs/ocfs2/acl.c | 39 +++++++++++++++++++++++++++------------
+>  1 file changed, 27 insertions(+), 12 deletions(-)
+> 
+> diff --git a/fs/ocfs2/acl.c b/fs/ocfs2/acl.c
+> index bed1fcb..7e3544e 100644
+> --- a/fs/ocfs2/acl.c
+> +++ b/fs/ocfs2/acl.c
+> @@ -283,16 +283,24 @@ int ocfs2_set_acl(handle_t *handle,
+>  int ocfs2_iop_set_acl(struct inode *inode, struct posix_acl *acl, int type)
+>  {
+>  	struct buffer_head *bh = NULL;
+> +	struct ocfs2_holder *oh;
+> +	struct ocfs2_lock_res *lockres = &OCFS2_I(inode)->ip_inode_lockres;
+>  	int status = 0;
+>  
+> -	status = ocfs2_inode_lock(inode, &bh, 1);
+> -	if (status < 0) {
+> -		if (status != -ENOENT)
+> -			mlog_errno(status);
+> -		return status;
+> +	oh = ocfs2_is_locked_by_me(lockres);
+> +	if (!oh) {
+> +		status = ocfs2_inode_lock(inode, &bh, 1);
+> +		if (status < 0) {
+> +			if (status != -ENOENT)
+> +				mlog_errno(status);
+> +			return status;
+> +		}
+>  	}
+> +
+>  	status = ocfs2_set_acl(NULL, inode, bh, type, acl, NULL, NULL);
+> -	ocfs2_inode_unlock(inode, 1);
+> +
+> +	if (!oh)
+> +		ocfs2_inode_unlock(inode, 1);
+>  	brelse(bh);
+>  	return status;
+>  }
+> @@ -302,21 +310,28 @@ struct posix_acl *ocfs2_iop_get_acl(struct inode *inode, int type)
+>  	struct ocfs2_super *osb;
+>  	struct buffer_head *di_bh = NULL;
+>  	struct posix_acl *acl;
+> +	struct ocfs2_holder *oh;
+> +	struct ocfs2_lock_res *lockres = &OCFS2_I(inode)->ip_inode_lockres;
+>  	int ret;
+>  
+>  	osb = OCFS2_SB(inode->i_sb);
+>  	if (!(osb->s_mount_opt & OCFS2_MOUNT_POSIX_ACL))
+>  		return NULL;
+> -	ret = ocfs2_inode_lock(inode, &di_bh, 0);
+> -	if (ret < 0) {
+> -		if (ret != -ENOENT)
+> -			mlog_errno(ret);
+> -		return ERR_PTR(ret);
+> +
+> +	oh = ocfs2_is_locked_by_me(lockres);
+> +	if (!oh) {
+> +		ret = ocfs2_inode_lock(inode, &di_bh, 0);
+> +		if (ret < 0) {
+> +			if (ret != -ENOENT)
+> +				mlog_errno(ret);
+> +			return ERR_PTR(ret);
+> +		}
+>  	}
+>  
+>  	acl = ocfs2_get_acl_nolock(inode, type, di_bh);
+>  
+> -	ocfs2_inode_unlock(inode, 0);
+> +	if (!oh)
+> +		ocfs2_inode_unlock(inode, 0);
+>  	brelse(di_bh);
+>  	return acl;
+>  }
+> 
