@@ -1,50 +1,43 @@
-From: Eric Ren <zren@suse.com>
-Date: Wed, 30 Nov 2016 16:37:17 +0800
-Subject: [Ocfs2-devel] [PATCH 0/7] quota: Use s_umount for quota on/off
-	serialization
-In-Reply-To: <1479975162-24060-1-git-send-email-jack@suse.cz>
-References: <1479975162-24060-1-git-send-email-jack@suse.cz>
-Message-ID: <9ec493f7-9fdb-d8e1-d2ea-468ce1d3e401@suse.com>
+From: Joseph Qi <joseph.qi@huawei.com>
+Date: Tue, 1 Nov 2016 08:22:29 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: clean up deadcode in
+	dlm_master_request_handler()
+In-Reply-To: <58174C91.3040004@huawei.com>
+References: <58174C91.3040004@huawei.com>
+Message-ID: <5817E045.7040902@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Jan Kara <jack@suse.cz>, linux-fsdevel@vger.kernel.org
-Cc: Al Viro <viro@ZenIV.linux.org.uk>, mfasheh@versity.com, jlbec@evilplan.org, ocfs2-devel@oss.oracle.com
+To: ocfs2-devel@oss.oracle.com
 
-Hello,
+On 2016/10/31 21:52, piaojun wrote:
+> when 'dispatch_assert' is set, 'response' must be DLM_MASTER_RESP_YES,
+> and 'res' won't be null, so execution can't reach these two branch.
+> 
+> Signed-off-by: Jun Piao <piaojun@huawei.com>
 
-On 11/24/2016 04:12 PM, Jan Kara wrote:
-> Hello,
->
-> this patch set changes quota code to use s_umount semaphore for serialization
-> of quota on/off operations among each other and with other quotactl and
-> quota writeback operations. So far we have used dedicated dqonoff_mutex but
-> that triggered lockdep warnings during fs freezing and also unnecessarily
-> serialized some quotactl operations.
->
-> Al, any objections to patch 1/7 exporting functionality to get superblock with
-> s_umount in exclusive mode? Alternatively I could add a wrapper around
-> get_super_thawed() in quota code to drop s_umount & get it in exclusive mode
-> and recheck that superblock didn't get unmounted / frozen but what I did here
-> looked cleaner to me.
->
-> OCFS2 guys, it would be good if you could test ocfs2 quotas with this patch set
-> in some multi-node setup (I have tested just with a single node), especially
-> whether quota file recovery for other nodes still works as expected. Thanks.
-
-With this patch set, the quota file recovery works well for ocfs2 on multiple nodes.
-
-Tested-by:    Eric Ren <zren@suse.com>
-
-Thanks,
-Eric
->
-> If nobody objects, I'll push these changes through my tree to Linus.
->
-> 								Honza
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-fsdevel" in
-> the body of a message to majordomo at vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
->
+Looks good to me.
+Reviewed-by: Joseph Qi <joseph.qi@huawei.com>
+> ---
+>  fs/ocfs2/dlm/dlmmaster.c | 6 ------
+>  1 file changed, 6 deletions(-)
+> 
+> diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
+> index 3f828a1..9a72dd8 100644
+> --- a/fs/ocfs2/dlm/dlmmaster.c
+> +++ b/fs/ocfs2/dlm/dlmmaster.c
+> @@ -1644,12 +1644,6 @@ int dlm_master_request_handler(struct o2net_msg *msg, u32 len, void *data,
+>  	 * dlm_assert_master_worker() isn't called, we drop it here.
+>  	 */
+>  	if (dispatch_assert) {
+> -		if (response != DLM_MASTER_RESP_YES)
+> -			mlog(ML_ERROR, "invalid response %d\n", response);
+> -		if (!res) {
+> -			mlog(ML_ERROR, "bad lockres while trying to assert!\n");
+> -			BUG();
+> -		}
+>  		mlog(0, "%u is the owner of %.*s, cleaning everyone else\n",
+>  			     dlm->node_num, res->lockname.len, res->lockname.name);
+>  		spin_lock(&res->spinlock);
+> 
