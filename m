@@ -1,10 +1,11 @@
 From: Eric Ren <zren@suse.com>
-Date: Wed, 9 Nov 2016 12:47:13 +0800
-Subject: [Ocfs2-devel] [RFC] Should we revert commit "ocfs2: take inode
- lock in ocfs2_iop_set/get_acl()"? or other ideas?
-In-Reply-To: <1476854382-28101-1-git-send-email-zren@suse.com>
+Date: Wed, 9 Nov 2016 12:55:34 +0800
+Subject: [Ocfs2-devel] [DRAFT 2/2] ocfs2: fix deadlock caused by
+ recursive cluster locking
+In-Reply-To: <1476854382-28101-3-git-send-email-zren@suse.com>
 References: <1476854382-28101-1-git-send-email-zren@suse.com>
-Message-ID: <d861b8e8-7dc1-a0fc-98fb-c0ef7a3a4a86@suse.com>
+	<1476854382-28101-3-git-send-email-zren@suse.com>
+Message-ID: <ed21016a-4e68-9a9e-4b54-91c970d5629f@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -14,51 +15,87 @@ To: ocfs2-devel@oss.oracle.com
 Hi all,
 
 On 10/19/2016 01:19 PM, Eric Ren wrote:
-> ocfs2_permission() and ocfs2_iop_get/set_acl() both call ocfs2_inode_lock().
-> The problem is that the call chain of ocfs2_permission() includes *_acl().
->
-> Possibly, there are three solutions I can think of.  The first one is to
-> implement the inode permission routine for ocfs2 itself, replacing the
-> existing generic_permission(); this will bring lots of changes and
-> involve too many trivial vfs functions into ocfs2 code. Frown on this.
->
-> The second one is, what I am trying now, to keep track of the processes who
-> lock/unlock a cluster lock by the following draft patches. But, I quickly
-> find out that a cluster locking which has been taken by processA can be unlocked
-> by processB. For example, systemfiles like journal:0000 is locked during mout, and
-> unlocked during umount.
-We can avoid the problem above by:
+> diff --git a/fs/ocfs2/acl.c b/fs/ocfs2/acl.c
+> index bed1fcb..7e3544e 100644
+> --- a/fs/ocfs2/acl.c
+> +++ b/fs/ocfs2/acl.c
+> @@ -283,16 +283,24 @@ int ocfs2_set_acl(handle_t *handle,
+>   int ocfs2_iop_set_acl(struct inode *inode, struct posix_acl *acl, int type)
+>   {
+>   	struct buffer_head *bh = NULL;
+> +	struct ocfs2_holder *oh;
+> +	struct ocfs2_lock_res *lockres = &OCFS2_I(inode)->ip_inode_lockres;
+>   	int status = 0;
+>   
+> -	status = ocfs2_inode_lock(inode, &bh, 1);
+> -	if (status < 0) {
+> -		if (status != -ENOENT)
+> -			mlog_errno(status);
+> -		return status;
+> +	oh = ocfs2_is_locked_by_me(lockres);
+> +	if (!oh) {
+> +		status = ocfs2_inode_lock(inode, &bh, 1);
+> +		if (status < 0) {
+> +			if (status != -ENOENT)
+> +				mlog_errno(status);
+> +			return status;
+> +		}
+>   	}
+This is wrong. We also depend ocfs2_inode_lock() pass out "bh" for later use.
 
-1) not keeping track of system file inode:
-
-    if (!(OCFS2_I(inode)->ip_flags & OCFS2_INODE_SYSTEM_FILE)) {
-        ....
-   }
-
-2) only keeping track of inode metadata lockres:
-
-    OCFS2_I(inode)->ip_inode_lockres;
-
-because inode open lockres can also be get/release by different processes.
+So, we may need another function something like ocfs2_inode_getbh():
+      if (!oh)
+         ocfs2_inode_lock();
+    else
+        ocfs2_inode_getbh();
 
 Eric
->
-> The thrid one is to revert that problematic commit! It looks like get/set_acl()
-> are always been called by other vfs callback like ocfs2_permission(). I think
-> we can do this if it's true, right? Anyway, I'll try to work out if it's true;-)
->
-> Hope for your input to solve this problem;-)
->
-> Thanks,
-> Eric
->
->
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
->
+> +
+>   	status = ocfs2_set_acl(NULL, inode, bh, type, acl, NULL, NULL);
+> -	ocfs2_inode_unlock(inode, 1);
+> +
+> +	if (!oh)
+> +		ocfs2_inode_unlock(inode, 1);
+>   	brelse(bh);
+>   	return status;
+>   }
+> @@ -302,21 +310,28 @@ struct posix_acl *ocfs2_iop_get_acl(struct inode *inode, int type)
+>   	struct ocfs2_super *osb;
+>   	struct buffer_head *di_bh = NULL;
+>   	struct posix_acl *acl;
+> +	struct ocfs2_holder *oh;
+> +	struct ocfs2_lock_res *lockres = &OCFS2_I(inode)->ip_inode_lockres;
+>   	int ret;
+>   
+>   	osb = OCFS2_SB(inode->i_sb);
+>   	if (!(osb->s_mount_opt & OCFS2_MOUNT_POSIX_ACL))
+>   		return NULL;
+> -	ret = ocfs2_inode_lock(inode, &di_bh, 0);
+> -	if (ret < 0) {
+> -		if (ret != -ENOENT)
+> -			mlog_errno(ret);
+> -		return ERR_PTR(ret);
+> +
+> +	oh = ocfs2_is_locked_by_me(lockres);
+> +	if (!oh) {
+> +		ret = ocfs2_inode_lock(inode, &di_bh, 0);
+> +		if (ret < 0) {
+> +			if (ret != -ENOENT)
+> +				mlog_errno(ret);
+> +			return ERR_PTR(ret);
+> +		}
+>   	}
+>   
+>   	acl = ocfs2_get_acl_nolock(inode, type, di_bh);
+>   
+> -	ocfs2_inode_unlock(inode, 0);
+> +	if (!oh)
+> +		ocfs2_inode_unlock(inode, 0);
+>   	brelse(di_bh);
+>   	return acl;
+>   }
+
 
 -------------- next part --------------
 An HTML attachment was scrubbed...
-URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20161109/df737ced/attachment.html 
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20161109/ddb6d0e4/attachment.html 
