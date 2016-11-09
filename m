@@ -1,101 +1,76 @@
-From: Eric Ren <zren@suse.com>
-Date: Wed, 9 Nov 2016 12:55:34 +0800
-Subject: [Ocfs2-devel] [DRAFT 2/2] ocfs2: fix deadlock caused by
- recursive cluster locking
-In-Reply-To: <1476854382-28101-3-git-send-email-zren@suse.com>
-References: <1476854382-28101-1-git-send-email-zren@suse.com>
-	<1476854382-28101-3-git-send-email-zren@suse.com>
-Message-ID: <ed21016a-4e68-9a9e-4b54-91c970d5629f@suse.com>
+From: Zhangguanghui <zhang.guanghui@h3c.com>
+Date: Wed, 9 Nov 2016 10:17:22 +0000
+Subject: [Ocfs2-devel] ocfs2: A race about mle is unlinked and freed for the
+	dead node, BUG
+References: <mailman.3.1478635201.364.ocfs2-devel@oss.oracle.com>
+Message-ID: <E3535A62B291B54FBD1D003696CCB53771FB9FCE@H3CMLB12-EX.srv.huawei-3com.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi all,
+Hi All,
 
-On 10/19/2016 01:19 PM, Eric Ren wrote:
-> diff --git a/fs/ocfs2/acl.c b/fs/ocfs2/acl.c
-> index bed1fcb..7e3544e 100644
-> --- a/fs/ocfs2/acl.c
-> +++ b/fs/ocfs2/acl.c
-> @@ -283,16 +283,24 @@ int ocfs2_set_acl(handle_t *handle,
->   int ocfs2_iop_set_acl(struct inode *inode, struct posix_acl *acl, int type)
->   {
->   	struct buffer_head *bh = NULL;
-> +	struct ocfs2_holder *oh;
-> +	struct ocfs2_lock_res *lockres = &OCFS2_I(inode)->ip_inode_lockres;
->   	int status = 0;
->   
-> -	status = ocfs2_inode_lock(inode, &bh, 1);
-> -	if (status < 0) {
-> -		if (status != -ENOENT)
-> -			mlog_errno(status);
-> -		return status;
-> +	oh = ocfs2_is_locked_by_me(lockres);
-> +	if (!oh) {
-> +		status = ocfs2_inode_lock(inode, &bh, 1);
-> +		if (status < 0) {
-> +			if (status != -ENOENT)
-> +				mlog_errno(status);
-> +			return status;
-> +		}
->   	}
-This is wrong. We also depend ocfs2_inode_lock() pass out "bh" for later use.
+when the mle have been used in dlm_get_lock_resouce, other nodes dead at the same time,
+the mle that is block type may be unlinked and freed repeatedly for dead nodes.
+so it is a BUG  about mle->mle_refs.refcount in __dlm_put_mle  in dlm_get_lock_resouce.
+Finally, any feedback about this process (positive or negative) would be  greatly appreciated.
 
-So, we may need another function something like ocfs2_inode_getbh():
-      if (!oh)
-         ocfs2_inode_lock();
-    else
-        ocfs2_inode_getbh();
+*** linux-4.1.35/fs/ocfs2/dlm/dlmmaster.c 2016-11-09 17:39:02.230163503 +0800
+--- dlmmaster.c.update 2016-11-09 17:41:39.210166752 +0800
+***************
+*** 3229,3248 ****
+--- 3229,3261 ----
+struct dlm_master_list_entry *mle, u8 dead_node)
+{
+int bit;
++ int next_bit = O2NM_MAX_NODES;
+BUG_ON(mle->type != DLM_MLE_BLOCK);
 
-Eric
-> +
->   	status = ocfs2_set_acl(NULL, inode, bh, type, acl, NULL, NULL);
-> -	ocfs2_inode_unlock(inode, 1);
-> +
-> +	if (!oh)
-> +		ocfs2_inode_unlock(inode, 1);
->   	brelse(bh);
->   	return status;
->   }
-> @@ -302,21 +310,28 @@ struct posix_acl *ocfs2_iop_get_acl(struct inode *inode, int type)
->   	struct ocfs2_super *osb;
->   	struct buffer_head *di_bh = NULL;
->   	struct posix_acl *acl;
-> +	struct ocfs2_holder *oh;
-> +	struct ocfs2_lock_res *lockres = &OCFS2_I(inode)->ip_inode_lockres;
->   	int ret;
->   
->   	osb = OCFS2_SB(inode->i_sb);
->   	if (!(osb->s_mount_opt & OCFS2_MOUNT_POSIX_ACL))
->   		return NULL;
-> -	ret = ocfs2_inode_lock(inode, &di_bh, 0);
-> -	if (ret < 0) {
-> -		if (ret != -ENOENT)
-> -			mlog_errno(ret);
-> -		return ERR_PTR(ret);
-> +
-> +	oh = ocfs2_is_locked_by_me(lockres);
-> +	if (!oh) {
-> +		ret = ocfs2_inode_lock(inode, &di_bh, 0);
-> +		if (ret < 0) {
-> +			if (ret != -ENOENT)
-> +				mlog_errno(ret);
-> +			return ERR_PTR(ret);
-> +		}
->   	}
->   
->   	acl = ocfs2_get_acl_nolock(inode, type, di_bh);
->   
-> -	ocfs2_inode_unlock(inode, 0);
-> +	if (!oh)
-> +		ocfs2_inode_unlock(inode, 0);
->   	brelse(di_bh);
->   	return acl;
->   }
+spin_lock(&mle->spinlock);
+bit = find_next_bit(mle->maybe_map, O2NM_MAX_NODES, 0);
++ if (bit != O2NM_MAX_NODES)
++ next_bit = find_next_bit(mle->maybe_map, O2NM_MAX_NODES, bit+1);
++
+if (bit != dead_node) {
+mlog(0, "mle found, but dead node %u would not have been "
+"master\n", dead_node);
+spin_unlock(&mle->spinlock);
++ } else if (mle->inuse && next_bit != O2NM_MAX_NODES) {
++ /*Ignore it, the mle is used, other nodes dead now.
++ *as it is unlinked and freed for the dead node, it's a BUG*/
++ mlog(ML_ERROR, "the mle is used, but inuse %d, dead node %u, "
++ "master %u\n", mle->inuse, dead_node, mle->master);
++ clear_bit(bit, mle->maybe_map);
++ spin_unlock(&mle->spinlock);
++
+} else {
+/* Must drop the refcount by one since the assert_master will
+* never arrive. This may result in the mle being unlinked and
+* freed, but there may still be a process waiting in the
+* dlmlock path which is fine. */
+mlog(0, "node %u was expected master\n", dead_node);
++ clear_bit(bit, mle->maybe_map);
+atomic_set(&mle->woken, 1);
+spin_unlock(&mle->spinlock);
+wake_up(&mle->wq);
 
+________________________________
+All the best wishes for you.
+zhangguanghui
 
+-------------------------------------------------------------------------------------------------------------------------------------
+????????????????????????????????????????
+????????????????????????????????????????
+????????????????????????????????????????
+???
+This e-mail and its attachments contain confidential information from H3C, which is
+intended only for the person or entity whose address is listed above. Any use of the
+information contained herein in any way (including, but not limited to, total or partial
+disclosure, reproduction, or dissemination) by persons other than the intended
+recipient(s) is prohibited. If you receive this e-mail in error, please notify the sender
+by phone or email immediately and delete it!
 -------------- next part --------------
 An HTML attachment was scrubbed...
-URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20161109/ddb6d0e4/attachment.html 
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20161109/e75bd6a6/attachment-0001.html 
