@@ -1,64 +1,125 @@
-From: Darrick J. Wong <darrick.wong@oracle.com>
-Date: Tue, 8 Nov 2016 11:47:48 -0800
-Subject: [Ocfs2-devel] Announcing btrfs-dedupe
-In-Reply-To: <CAGe7X7m-rPmGxk3DXuo6Vo5qAQwRhNFEKyRZzYxP2iyy1mGrSw@mail.gmail.com>
-References: <2855552b-714c-d1de-08f9-89153c293772@wellbehavedsoftware.com>
-	<20161107140200.GM12522@suse.cz>
-	<CAGe7X7n=xkveD4TS2cyfXx5-hydOCHTh=tjDK54h8HWpnK5NqQ@mail.gmail.com>
-	<20161107205409.GA20325@angband.pl>
-	<20161108021722.GA16801@birch.djwong.org>
-	<CAGe7X7m-rPmGxk3DXuo6Vo5qAQwRhNFEKyRZzYxP2iyy1mGrSw@mail.gmail.com>
-Message-ID: <20161108194748.GC16801@birch.djwong.org>
+From: Guozhonghua <guozhonghua@h3c.com>
+Date: Wed, 9 Nov 2016 00:29:17 +0000
+Subject: [Ocfs2-devel] [PATCH] ocfs2: old mle put and release after the
+ function dlm_add_migration_mle called.
+Message-ID: <71604351584F6A4EBAE558C676F37CA4A3D4B7FE@H3CMLB12-EX.srv.huawei-3com.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Mark Fasheh <mark@fasheh.com>
-Cc: Adam Borowski <kilobyte@angband.pl>, dsterba@suse.cz, James Pharaoh <james@wellbehavedsoftware.com>, linux-btrfs@vger.kernel.org, ocfs2-devel@oss.oracle.com
+To: ocfs2-devel@oss.oracle.com
 
-On Tue, Nov 08, 2016 at 10:59:56AM -0800, Mark Fasheh wrote:
-> On Mon, Nov 7, 2016 at 6:17 PM, Darrick J. Wong <darrick.wong@oracle.com> wrote:
-> > On Mon, Nov 07, 2016 at 09:54:09PM +0100, Adam Borowski wrote:
-> >> Mark has already included XFS in documentation of duperemove, all that looks
-> >> amiss is btrfs-extent-same having an obsolete name.  But then, I never did
-> >> any non-superficial tests on XFS, beyond "seems to work".
-> 
-> I'd actually be ok dropping btrfs-extent-same completely at this point
-> but I'm concerned that it would leave some users behind.
-> 
-> 
-> > /me wonders if ocfs2 will ever catch up to the reflink/dedupe party. ;)
-> 
-> Hey, Ocfs2 started the reflink party! But yeah it's fallen behind
-> since then with respect to cow and dedupe. More importantly though I'd
-> like to see some extra extent tracking in there like XFS did with the
-> reflink b+tree.
 
-Perhaps this should move to the ocfs2 list, but...
+If the old mle is found after the dlm_add_migration_mle called, it should be put once.
+If the return value is not - EEXIST and its type is BLOCK, it should be put again to release it to avoid memory leak, for it had been unhashed from the map.
 
-...as I understand ocfs2, each inode can point to the head of a refcount
-tree that maintains refcounts for all the physical blocks that are
-mapped by any of the files that share that refcount tree.  It wouldn't
-be difficult to hook up this existing refcount structure to the reflink
-and dedupe vfs ioctls, with the huge caveat that both inodes will end up
-belonging to the same refcount tree (or the call fails).  This might not
-be such a huge issue for reflink since we're generally only using it
-during a file copy anyway, but for dedupe this could have disastrous
-consequences if someone does an fs-wide dedupe and every file in the fs
-ends up with the same refcount tree.
+Signed-off-by: Guozhonghua <guozhonghua@h3c.com>
 
-So I guess you could give each block group its own refcount tree or
-something so that all the writes in the fs don't end up contending for a
-single data structure.
+--- ocfs2.orig/dlm/dlmmaster.c  2016-11-08 16:58:30.233592715 +0800
++++ ocfs2/dlm/dlmmaster.c       2016-11-08 17:37:00.157673017 +0800
+@@ -2621,20 +2621,45 @@ static int dlm_migrate_lockres(struct dl
+        spin_lock(&dlm->master_lock);
+        ret = dlm_add_migration_mle(dlm, res, mle, &oldmle, name,
+                                    namelen, target, dlm->node_num);
++       if (ret == -EEXIST) {
++               if(oldmle)
++                       __dlm_put_mle(oldmle);
++
++               spin_unlock(&dlm->master_lock);
++               spin_unlock(&dlm->spinlock);
++               mlog(0, "another process is already migrating it\n");
++               goto fail;
++       }
++
++       /* If an old one mle found, it should be put. if its type is BLOCK,
++        * it should be put again. Because it had been unhasded from the map
++        * in the function dlm_add_migration_mle.
++        * otherwise the memory will be leaked. It will not found it again from
++        * the hash map.
++        */
++       if (oldmle) {
++               /* master is known, detach if not already detached */
++               __dlm_mle_detach_hb_events(dlm, oldmle);
++               __dlm_put_mle(oldmle);
++
++               /* if the type of the mle is BLOCK, should put it once for release.
++                * otherwise memory leak may be caused because oldmle had been unhashed
++                * from the hash map, it will not be found anymore.
++                */
++               if (oldmle->type == DLM_MLE_BLOCK)
++                       __dlm_put_mle(oldmle);
++       }
++
+        /* get an extra reference on the mle.
+         * otherwise the assert_master from the new
+         * master will destroy this.
+         */
+        dlm_get_mle_inuse(mle);
++       mle_added = 1;
++
+        spin_unlock(&dlm->master_lock);
+        spin_unlock(&dlm->spinlock);
 
---D
+-       if (ret == -EEXIST) {
+-               mlog(0, "another process is already migrating it\n");
+-               goto fail;
+-       }
+-       mle_added = 1;
+-
+        /*
+         * set the MIGRATING flag and flush asts
+         * if we fail after this we need to re-dirty the lockres
+@@ -2651,12 +2676,6 @@ static int dlm_migrate_lockres(struct dl
+        }
 
->    --Mark
-> 
-> -- 
-> "When the going gets weird, the weird turn pro."
-> Hunter S. Thompson
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-btrfs" in
-> the body of a message to majordomo at vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+ fail:
+-       if (ret != -EEXIST && oldmle) {
+-               /* master is known, detach if not already detached */
+-               dlm_mle_detach_hb_events(dlm, oldmle);
+-               dlm_put_mle(oldmle);
+-       }
+-
+        if (ret < 0) {
+                if (mle_added) {
+                        dlm_mle_detach_hb_events(dlm, mle);
+@@ -3191,16 +3210,23 @@ int dlm_migrate_request_handler(struct o
+        if (ret < 0)
+                kmem_cache_free(dlm_mle_cache, mle);
+
++       /* If an old one mle found, it should be put. if its type is BLOCK,
++        * it should be put again. Because it had been unhasded from the map
++        * in the function dlm_add_migration_mle.
++        * otherwise the memory will be leaked. It will not found it again from
++        * the hash map.
++        */
++       if (oldmle) {
++               __dlm_mle_detach_hb_events(dlm, oldmle);
++               __dlm_put_mle(oldmle);
++               if (ret >= 0 && oldmle->type == DLM_MLE_BLOCK)
++                       __dlm_put_mle(oldmle);
++       }
++
+        spin_unlock(&dlm->master_lock);
+ unlock:
+        spin_unlock(&dlm->spinlock);
+
+-       if (oldmle) {
+-               /* master is known, detach if not already detached */
+-               dlm_mle_detach_hb_events(dlm, oldmle);
+-               dlm_put_mle(oldmle);
+-       }
+-
+        if (res)
+                dlm_lockres_put(res);
+ leave:
+-------------------------------------------------------------------------------------------------------------------------------------
+????????????????????????????????????????
+????????????????????????????????????????
+????????????????????????????????????????
+???
+This e-mail and its attachments contain confidential information from H3C, which is
+intended only for the person or entity whose address is listed above. Any use of the
+information contained herein in any way (including, but not limited to, total or partial
+disclosure, reproduction, or dissemination) by persons other than the intended
+recipient(s) is prohibited. If you receive this e-mail in error, please notify the sender
+by phone or email immediately and delete it!
