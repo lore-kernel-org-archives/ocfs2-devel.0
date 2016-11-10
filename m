@@ -1,73 +1,182 @@
-From: Darrick J. Wong <darrick.wong@oracle.com>
-Date: Wed, 9 Nov 2016 15:00:17 -0800
-Subject: [Ocfs2-devel] [PATCH 7/6] xfstests: fix some minor problems testing
-	ocfs2
-In-Reply-To: <147873186646.2820.17513529102740292215.stgit@birch.djwong.org>
+From: Eric Ren <zren@suse.com>
+Date: Thu, 10 Nov 2016 10:14:48 +0800
+Subject: [Ocfs2-devel] [PATCH 1/6] ocfs2: convert inode refcount test to
+	a helper
+In-Reply-To: <147873187285.2820.9992440620792982440.stgit@birch.djwong.org>
 References: <147873186646.2820.17513529102740292215.stgit@birch.djwong.org>
-Message-ID: <20161109230017.GB21519@birch.djwong.org>
+	<147873187285.2820.9992440620792982440.stgit@birch.djwong.org>
+Message-ID: <22f65896-f2c7-fe5d-9822-c9e7f7ffc8b6@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: mfasheh@versity.com, jlbec@evilplan.org, eguan@redhat.com
-Cc: linux-fsdevel@vger.kernel.org, ocfs2-devel@oss.oracle.com, fstests <fstests@vger.kernel.org>
+To: "Darrick J. Wong" <darrick.wong@oracle.com>, mfasheh@versity.com, jlbec@evilplan.org
+Cc: linux-fsdevel@vger.kernel.org, ocfs2-devel@oss.oracle.com
 
-There are a a few things about ocfs2 tools that need special-casing in
-xfstests, so fix them so that we can start testing ocfs2.
+On 11/10/2016 06:51 AM, Darrick J. Wong wrote:
+> Replace the open-coded inode refcount flag test with a helper function
+> to reduce the potential for bugs.
+Thanks for this series;-) Some comments inline below:
+>
+> Signed-off-by: Darrick J. Wong <darrick.wong@oracle.com>
+> ---
+>   fs/ocfs2/refcounttree.c |   28 +++++++++++++++-------------
+>   fs/ocfs2/refcounttree.h |    2 ++
+>   2 files changed, 17 insertions(+), 13 deletions(-)
+>
+>
+> diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
+> index 1923851..59be8f4 100644
+> --- a/fs/ocfs2/refcounttree.c
+> +++ b/fs/ocfs2/refcounttree.c
+> @@ -48,6 +48,12 @@
+>   #include <linux/mount.h>
+>   #include <linux/posix_acl.h>
+>   
+> +/* Does this inode have the reflink flag set? */
+> +bool ocfs2_is_refcount_inode(struct inode *inode)
+Should it be an inline function?
 
-Signed-off-by: Darrick J. Wong <darrick.wong@oracle.com>
+After applying this patch, looks there are still some places not being replaced with this 
+function:
 ---
- common/quota |    2 +-
- common/rc    |   10 ++++++++--
- 2 files changed, 9 insertions(+), 3 deletions(-)
+fs/ocfs2 # grep -rn "OCFS2_I(inode)->ip_dyn_features & OCFS2_HAS_REFCOUNT_FL"
+xattr.c:2580:    if (OCFS2_I(inode)->ip_dyn_features & OCFS2_HAS_REFCOUNT_FL) {
+xattr.c:3611:    if (OCFS2_I(inode)->ip_dyn_features & OCFS2_HAS_REFCOUNT_FL &&
+file.c:1722:    if (OCFS2_I(inode)->ip_dyn_features & OCFS2_HAS_REFCOUNT_FL) {
+file.c:2039:        !(OCFS2_I(inode)->ip_dyn_features & OCFS2_HAS_REFCOUNT_FL) ||
+refcounttree.c:55:    return (OCFS2_I(inode)->ip_dyn_features & OCFS2_HAS_REFCOUNT_FL);
 
-diff --git a/common/quota b/common/quota
-index 678bc43..d9bb8d9 100644
---- a/common/quota
-+++ b/common/quota
-@@ -34,7 +34,7 @@ _require_quota()
- 	    _notrun "Installed kernel does not support quotas"
- 	fi
- 	;;
--    gfs2)
-+    gfs2|ocfs2)
- 	;;
-     xfs)
- 	if [ ! -f /proc/fs/xfs/xqmstat ]; then
-diff --git a/common/rc b/common/rc
-index 8e078da..c75b614 100644
---- a/common/rc
-+++ b/common/rc
-@@ -978,7 +978,7 @@ _scratch_mkfs_sized()
-     xfs)
- 	def_blksz=`echo $MKFS_OPTIONS|sed -rn 's/.*-b ?size= ?+([0-9]+).*/\1/p'`
- 	;;
--    ext2|ext3|ext4|ext4dev|udf|btrfs|reiser4)
-+    ext2|ext3|ext4|ext4dev|udf|btrfs|reiser4|ocfs2)
- 	def_blksz=`echo $MKFS_OPTIONS| sed -rn 's/.*-b ?+([0-9]+).*/\1/p'`
- 	;;
-     esac
-@@ -1015,6 +1015,9 @@ _scratch_mkfs_sized()
-     ext2|ext3|ext4|ext4dev)
- 	${MKFS_PROG}.$FSTYP -F $MKFS_OPTIONS -b $blocksize $SCRATCH_DEV $blocks
- 	;;
-+    ocfs2)
-+	yes | ${MKFS_PROG}.$FSTYP -F $MKFS_OPTIONS -b $blocksize $SCRATCH_DEV $blocks
-+	;;
-     udf)
- 	$MKFS_UDF_PROG $MKFS_OPTIONS -b $blocksize $SCRATCH_DEV $blocks
- 	;;
-@@ -1087,9 +1090,12 @@ _scratch_mkfs_blocksized()
-     xfs)
- 	_scratch_mkfs_xfs $MKFS_OPTIONS -b size=$blocksize
- 	;;
--    ext2|ext3|ext4|ocfs2)
-+    ext2|ext3|ext4)
- 	${MKFS_PROG}.$FSTYP -F $MKFS_OPTIONS -b $blocksize $SCRATCH_DEV
- 	;;
-+    ocfs2)
-+	yes | ${MKFS_PROG}.$FSTYP -F $MKFS_OPTIONS -b $blocksize $SCRATCH_DEV
-+	;;
-     *)
- 	_notrun "Filesystem $FSTYP not supported in _scratch_mkfs_blocksized"
- 	;;
+Eric
+
+> +{
+> +	return (OCFS2_I(inode)->ip_dyn_features & OCFS2_HAS_REFCOUNT_FL);
+> +}
+> +
+>   struct ocfs2_cow_context {
+>   	struct inode *inode;
+>   	u32 cow_start;
+> @@ -410,7 +416,7 @@ static int ocfs2_get_refcount_block(struct inode *inode, u64 *ref_blkno)
+>   		goto out;
+>   	}
+>   
+> -	BUG_ON(!(OCFS2_I(inode)->ip_dyn_features & OCFS2_HAS_REFCOUNT_FL));
+> +	BUG_ON(!ocfs2_is_refcount_inode(inode));
+>   
+>   	di = (struct ocfs2_dinode *)di_bh->b_data;
+>   	*ref_blkno = le64_to_cpu(di->i_refcount_loc);
+> @@ -570,7 +576,7 @@ static int ocfs2_create_refcount_tree(struct inode *inode,
+>   	u32 num_got;
+>   	u64 suballoc_loc, first_blkno;
+>   
+> -	BUG_ON(oi->ip_dyn_features & OCFS2_HAS_REFCOUNT_FL);
+> +	BUG_ON(ocfs2_is_refcount_inode(inode));
+>   
+>   	trace_ocfs2_create_refcount_tree(
+>   		(unsigned long long)OCFS2_I(inode)->ip_blkno);
+> @@ -708,7 +714,7 @@ static int ocfs2_set_refcount_tree(struct inode *inode,
+>   	struct ocfs2_refcount_block *rb;
+>   	struct ocfs2_refcount_tree *ref_tree;
+>   
+> -	BUG_ON(oi->ip_dyn_features & OCFS2_HAS_REFCOUNT_FL);
+> +	BUG_ON(ocfs2_is_refcount_inode(inode));
+>   
+>   	ret = ocfs2_lock_refcount_tree(osb, refcount_loc, 1,
+>   				       &ref_tree, &ref_root_bh);
+> @@ -775,7 +781,7 @@ int ocfs2_remove_refcount_tree(struct inode *inode, struct buffer_head *di_bh)
+>   	u64 blk = 0, bg_blkno = 0, ref_blkno = le64_to_cpu(di->i_refcount_loc);
+>   	u16 bit = 0;
+>   
+> -	if (!(oi->ip_dyn_features & OCFS2_HAS_REFCOUNT_FL))
+> +	if (!ocfs2_is_refcount_inode(inode))
+>   		return 0;
+>   
+>   	BUG_ON(!ref_blkno);
+> @@ -2299,11 +2305,10 @@ int ocfs2_decrease_refcount(struct inode *inode,
+>   {
+>   	int ret;
+>   	u64 ref_blkno;
+> -	struct ocfs2_inode_info *oi = OCFS2_I(inode);
+>   	struct buffer_head *ref_root_bh = NULL;
+>   	struct ocfs2_refcount_tree *tree;
+>   
+> -	BUG_ON(!(oi->ip_dyn_features & OCFS2_HAS_REFCOUNT_FL));
+> +	BUG_ON(!ocfs2_is_refcount_inode(inode));
+>   
+>   	ret = ocfs2_get_refcount_block(inode, &ref_blkno);
+>   	if (ret) {
+> @@ -2533,7 +2538,6 @@ int ocfs2_prepare_refcount_change_for_del(struct inode *inode,
+>   					  int *ref_blocks)
+>   {
+>   	int ret;
+> -	struct ocfs2_inode_info *oi = OCFS2_I(inode);
+>   	struct buffer_head *ref_root_bh = NULL;
+>   	struct ocfs2_refcount_tree *tree;
+>   	u64 start_cpos = ocfs2_blocks_to_clusters(inode->i_sb, phys_blkno);
+> @@ -2544,7 +2548,7 @@ int ocfs2_prepare_refcount_change_for_del(struct inode *inode,
+>   		goto out;
+>   	}
+>   
+> -	BUG_ON(!(oi->ip_dyn_features & OCFS2_HAS_REFCOUNT_FL));
+> +	BUG_ON(!ocfs2_is_refcount_inode(inode));
+>   
+>   	ret = ocfs2_get_refcount_tree(OCFS2_SB(inode->i_sb),
+>   				      refcount_loc, &tree);
+> @@ -3412,14 +3416,13 @@ static int ocfs2_refcount_cow_hunk(struct inode *inode,
+>   {
+>   	int ret;
+>   	u32 cow_start = 0, cow_len = 0;
+> -	struct ocfs2_inode_info *oi = OCFS2_I(inode);
+>   	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+>   	struct ocfs2_dinode *di = (struct ocfs2_dinode *)di_bh->b_data;
+>   	struct buffer_head *ref_root_bh = NULL;
+>   	struct ocfs2_refcount_tree *ref_tree;
+>   	struct ocfs2_cow_context *context = NULL;
+>   
+> -	BUG_ON(!(oi->ip_dyn_features & OCFS2_HAS_REFCOUNT_FL));
+> +	BUG_ON(!ocfs2_is_refcount_inode(inode));
+>   
+>   	ret = ocfs2_refcount_cal_cow_clusters(inode, &di->id2.i_list,
+>   					      cpos, write_len, max_cpos,
+> @@ -3629,11 +3632,10 @@ int ocfs2_refcount_cow_xattr(struct inode *inode,
+>   {
+>   	int ret;
+>   	struct ocfs2_xattr_value_root *xv = vb->vb_xv;
+> -	struct ocfs2_inode_info *oi = OCFS2_I(inode);
+>   	struct ocfs2_cow_context *context = NULL;
+>   	u32 cow_start, cow_len;
+>   
+> -	BUG_ON(!(oi->ip_dyn_features & OCFS2_HAS_REFCOUNT_FL));
+> +	BUG_ON(!ocfs2_is_refcount_inode(inode));
+>   
+>   	ret = ocfs2_refcount_cal_cow_clusters(inode, &xv->xr_list,
+>   					      cpos, write_len, UINT_MAX,
+> @@ -3807,7 +3809,7 @@ static int ocfs2_attach_refcount_tree(struct inode *inode,
+>   
+>   	ocfs2_init_dealloc_ctxt(&dealloc);
+>   
+> -	if (!(oi->ip_dyn_features & OCFS2_HAS_REFCOUNT_FL)) {
+> +	if (!ocfs2_is_refcount_inode(inode)) {
+>   		ret = ocfs2_create_refcount_tree(inode, di_bh);
+>   		if (ret) {
+>   			mlog_errno(ret);
+> diff --git a/fs/ocfs2/refcounttree.h b/fs/ocfs2/refcounttree.h
+> index 6422bbc..553edfb 100644
+> --- a/fs/ocfs2/refcounttree.h
+> +++ b/fs/ocfs2/refcounttree.h
+> @@ -17,6 +17,8 @@
+>   #ifndef OCFS2_REFCOUNTTREE_H
+>   #define OCFS2_REFCOUNTTREE_H
+>   
+> +bool ocfs2_is_refcount_inode(struct inode *inode);
+> +
+>   struct ocfs2_refcount_tree {
+>   	struct rb_node rf_node;
+>   	u64 rf_blkno;
+>
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-fsdevel" in
+> the body of a message to majordomo at vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+>
+>
