@@ -1,80 +1,142 @@
-From: Darwin <darwin.xupt@gmail.com>
-Date: Thu, 10 Nov 2016 17:20:27 +0800
-Subject: [Ocfs2-devel] [PATCH 4/6] ocfs2: budget for extent tree splits
- when adding refcount flag
-In-Reply-To: <147873189167.2820.5870521669010779004.stgit@birch.djwong.org>
-References: <147873186646.2820.17513529102740292215.stgit@birch.djwong.org>
-	<147873189167.2820.5870521669010779004.stgit@birch.djwong.org>
-Message-ID: <CACbbJyYped4uF9rnEJ0RZ5dK54e8PAo8jamHpcWznb5obJ_bOw@mail.gmail.com>
+From: piaojun <piaojun@huawei.com>
+Date: Thu, 10 Nov 2016 18:49:51 +0800
+Subject: [Ocfs2-devel] [DRAFT 2/2] ocfs2: fix deadlock caused by
+ recursive cluster locking
+In-Reply-To: <27420c84-c2db-ea00-dbce-33036674de9b@suse.com>
+References: <1476854382-28101-1-git-send-email-zren@suse.com>
+	<1476854382-28101-3-git-send-email-zren@suse.com>
+	<5817233C.4060703@huawei.com>
+	<27420c84-c2db-ea00-dbce-33036674de9b@suse.com>
+Message-ID: <582450CF.4030705@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: "Darrick J. Wong" <darrick.wong@oracle.com>
-Cc: mfasheh@versity.com, jlbec@evilplan.org, linux-fsdevel@vger.kernel.org, ocfs2-devel <ocfs2-devel@oss.oracle.com>
+To: ocfs2-devel@oss.oracle.com
 
-Hello,
+Hi Eric,
 
-On Thu, Nov 10, 2016 at 6:51 AM, Darrick J. Wong
-<darrick.wong@oracle.com> wrote:
-> When we're adding the refcount flag to an extent, we have to budget
-> enough space to handle a full extent btree split in addition to
+On 2016-11-1 9:45, Eric Ren wrote:
+> Hi,
+> 
+> On 10/31/2016 06:55 PM, piaojun wrote:
+>> Hi Eric,
+>>
+>> On 2016-10-19 13:19, Eric Ren wrote:
+>>> The deadlock issue happens when running discontiguous block
+>>> group testing on multiple nodes. The easier way to reproduce
+>>> is to do "chmod -R 777 /mnt/ocfs2" things like this on multiple
+>>> nodes at the same time by pssh.
+>>>
+>>> This is indeed another deadlock caused by: commit 743b5f1434f5
+>>> ("ocfs2: take inode lock in ocfs2_iop_set/get_acl()"). The reason
+>>> had been explained well by Tariq Saeed in this thread:
+>>>
+>>> https://oss.oracle.com/pipermail/ocfs2-devel/2015-September/011085.html
+>>>
+>>> For this case, the ocfs2_inode_lock() is misused recursively as below:
+>>>
+>>> do_sys_open
+>>>   do_filp_open
+>>>    path_openat
+>>>     may_open
+>>>      inode_permission
+>>>       __inode_permission
+>>>        ocfs2_permission  <====== ocfs2_inode_lock()
+>>>         generic_permission
+>>>          get_acl
+>>>           ocfs2_iop_get_acl  <====== ocfs2_inode_lock()
+>>>            ocfs2_inode_lock_full_nested <===== deadlock if a remote EX request
+>> Do you mean another node wants to get ex of the inode? or another process?
+> Remote EX request means "another node wants to get ex of the inode";-)
+> 
+> Eric
+If another node wants to get ex, it will get blocked as this node has
+got pr. Why will the ex request make this node get blocked? Expect your
+detailed description.
 
-May I ask some questions (possibly stupid):
-1) why and when would extend btree split? From my understanding, if I do
-
-$cp --reflink a b
-
-a is not inline-data. refcount tree will be allocated, every extent
-record of "a" will refer to
-refcount record respectively and be marked with refcounted, operations
-like this also for "b".
-So, I think splitting only happens when writing on them, CMIIW;-)
-
-2) what do you mean by "*full* extent btree"?
-
-> whatever modifications have to be made to the refcount btree.  We
-> don't currently do this, with the result that generic/186 crashes
-> when we need an extent split but not a refcount split because meta_ac
-> never gets allocated.
-
-3) in what situation, will this happen? - "we need an extent split but
-not a refcount split".
-Could you please explain more by example?
-
-Thanks,
-Darwin
-
->
-> Signed-off-by: Darrick J. Wong <darrick.wong@oracle.com>
-> ---
->  fs/ocfs2/refcounttree.c |    3 +++
->  1 file changed, 3 insertions(+)
->
->
-> diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
-> index 59be8f4..d92b6c6 100644
-> --- a/fs/ocfs2/refcounttree.c
-> +++ b/fs/ocfs2/refcounttree.c
-> @@ -3698,6 +3698,9 @@ int ocfs2_add_refcount_flag(struct inode *inode,
->         struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
->         struct ocfs2_alloc_context *meta_ac = NULL;
->
-> +       /* We need to be able to handle at least an extent tree split. */
-> +       ref_blocks = ocfs2_extend_meta_needed(data_et->et_root_el);
-> +
->         ret = ocfs2_calc_refcount_meta_credits(inode->i_sb,
->                                                ref_ci, ref_root_bh,
->                                                p_cluster, num_clusters,
->
->
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
-
-
-
--- 
-Thanks,
-Darwin
+thanks,
+Jun
+>>> comes between two ocfs2_inode_lock()
+>>>
+>>> Fix by checking if the cluster lock has been acquired aready in the call-chain
+>>> path.
+>>>
+>>> Fixes: commit 743b5f1434f5 ("ocfs2: take inode lock in ocfs2_iop_set/get_acl()")
+>>> Signed-off-by: Eric Ren <zren@suse.com>
+>>> ---
+>>>   fs/ocfs2/acl.c | 39 +++++++++++++++++++++++++++------------
+>>>   1 file changed, 27 insertions(+), 12 deletions(-)
+>>>
+>>> diff --git a/fs/ocfs2/acl.c b/fs/ocfs2/acl.c
+>>> index bed1fcb..7e3544e 100644
+>>> --- a/fs/ocfs2/acl.c
+>>> +++ b/fs/ocfs2/acl.c
+>>> @@ -283,16 +283,24 @@ int ocfs2_set_acl(handle_t *handle,
+>>>   int ocfs2_iop_set_acl(struct inode *inode, struct posix_acl *acl, int type)
+>>>   {
+>>>       struct buffer_head *bh = NULL;
+>>> +    struct ocfs2_holder *oh;
+>>> +    struct ocfs2_lock_res *lockres = &OCFS2_I(inode)->ip_inode_lockres;
+>>>       int status = 0;
+>>>   -    status = ocfs2_inode_lock(inode, &bh, 1);
+>>> -    if (status < 0) {
+>>> -        if (status != -ENOENT)
+>>> -            mlog_errno(status);
+>>> -        return status;
+>>> +    oh = ocfs2_is_locked_by_me(lockres);
+>>> +    if (!oh) {
+>>> +        status = ocfs2_inode_lock(inode, &bh, 1);
+>>> +        if (status < 0) {
+>>> +            if (status != -ENOENT)
+>>> +                mlog_errno(status);
+>>> +            return status;
+>>> +        }
+>>>       }
+>>> +
+>>>       status = ocfs2_set_acl(NULL, inode, bh, type, acl, NULL, NULL);
+>>> -    ocfs2_inode_unlock(inode, 1);
+>>> +
+>>> +    if (!oh)
+>>> +        ocfs2_inode_unlock(inode, 1);
+>>>       brelse(bh);
+>>>       return status;
+>>>   }
+>>> @@ -302,21 +310,28 @@ struct posix_acl *ocfs2_iop_get_acl(struct inode *inode, int type)
+>>>       struct ocfs2_super *osb;
+>>>       struct buffer_head *di_bh = NULL;
+>>>       struct posix_acl *acl;
+>>> +    struct ocfs2_holder *oh;
+>>> +    struct ocfs2_lock_res *lockres = &OCFS2_I(inode)->ip_inode_lockres;
+>>>       int ret;
+>>>         osb = OCFS2_SB(inode->i_sb);
+>>>       if (!(osb->s_mount_opt & OCFS2_MOUNT_POSIX_ACL))
+>>>           return NULL;
+>>> -    ret = ocfs2_inode_lock(inode, &di_bh, 0);
+>>> -    if (ret < 0) {
+>>> -        if (ret != -ENOENT)
+>>> -            mlog_errno(ret);
+>>> -        return ERR_PTR(ret);
+>>> +
+>>> +    oh = ocfs2_is_locked_by_me(lockres);
+>>> +    if (!oh) {
+>>> +        ret = ocfs2_inode_lock(inode, &di_bh, 0);
+>>> +        if (ret < 0) {
+>>> +            if (ret != -ENOENT)
+>>> +                mlog_errno(ret);
+>>> +            return ERR_PTR(ret);
+>>> +        }
+>>>       }
+>>>         acl = ocfs2_get_acl_nolock(inode, type, di_bh);
+>>>   -    ocfs2_inode_unlock(inode, 0);
+>>> +    if (!oh)
+>>> +        ocfs2_inode_unlock(inode, 0);
+>>>       brelse(di_bh);
+>>>       return acl;
+>>>   }
+>>>
+>>
+> 
+> 
+> .
+> 
