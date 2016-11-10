@@ -1,153 +1,176 @@
 From: Darrick J. Wong <darrick.wong@oracle.com>
-Date: Thu, 10 Nov 2016 09:11:59 -0800
-Subject: [Ocfs2-devel] [PATCH 4/6] ocfs2: budget for extent tree splits
- when adding refcount flag
-In-Reply-To: <CACbbJyYped4uF9rnEJ0RZ5dK54e8PAo8jamHpcWznb5obJ_bOw@mail.gmail.com>
+Date: Thu, 10 Nov 2016 09:51:05 -0800
+Subject: [Ocfs2-devel] [PATCH 1/6] ocfs2: convert inode refcount test to
+	a helper
+In-Reply-To: <22f65896-f2c7-fe5d-9822-c9e7f7ffc8b6@suse.com>
 References: <147873186646.2820.17513529102740292215.stgit@birch.djwong.org>
-	<147873189167.2820.5870521669010779004.stgit@birch.djwong.org>
-	<CACbbJyYped4uF9rnEJ0RZ5dK54e8PAo8jamHpcWznb5obJ_bOw@mail.gmail.com>
-Message-ID: <20161110171159.GC21519@birch.djwong.org>
+	<147873187285.2820.9992440620792982440.stgit@birch.djwong.org>
+	<22f65896-f2c7-fe5d-9822-c9e7f7ffc8b6@suse.com>
+Message-ID: <20161110175105.GB16807@birch.djwong.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Darwin <darwin.xupt@gmail.com>
-Cc: mfasheh@versity.com, jlbec@evilplan.org, linux-fsdevel@vger.kernel.org, ocfs2-devel <ocfs2-devel@oss.oracle.com>
+To: Eric Ren <zren@suse.com>
+Cc: mfasheh@versity.com, jlbec@evilplan.org, linux-fsdevel@vger.kernel.org, ocfs2-devel@oss.oracle.com
 
-On Thu, Nov 10, 2016 at 05:20:27PM +0800, Darwin wrote:
-> Hello,
-> 
-> On Thu, Nov 10, 2016 at 6:51 AM, Darrick J. Wong
-> <darrick.wong@oracle.com> wrote:
-> > When we're adding the refcount flag to an extent, we have to budget
-> > enough space to handle a full extent btree split in addition to
-> 
-> May I ask some questions (possibly stupid):
-> 1) why and when would extend btree split? From my understanding, if I do
-> 
-> $cp --reflink a b
-> 
-> a is not inline-data. refcount tree will be allocated, every extent
-> record of "a" will refer to
-> refcount record respectively and be marked with refcounted, operations
-> like this also for "b".
-> So, I think splitting only happens when writing on them, CMIIW;-)
+On Thu, Nov 10, 2016 at 10:14:48AM +0800, Eric Ren wrote:
+> On 11/10/2016 06:51 AM, Darrick J. Wong wrote:
+> >Replace the open-coded inode refcount flag test with a helper function
+> >to reduce the potential for bugs.
+> Thanks for this series;-) Some comments inline below:
+> >
+> >Signed-off-by: Darrick J. Wong <darrick.wong@oracle.com>
+> >---
+> >  fs/ocfs2/refcounttree.c |   28 +++++++++++++++-------------
+> >  fs/ocfs2/refcounttree.h |    2 ++
+> >  2 files changed, 17 insertions(+), 13 deletions(-)
+> >
+> >
+> >diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
+> >index 1923851..59be8f4 100644
+> >--- a/fs/ocfs2/refcounttree.c
+> >+++ b/fs/ocfs2/refcounttree.c
+> >@@ -48,6 +48,12 @@
+> >  #include <linux/mount.h>
+> >  #include <linux/posix_acl.h>
+> >+/* Does this inode have the reflink flag set? */
+> >+bool ocfs2_is_refcount_inode(struct inode *inode)
+> Should it be an inline function?
 
-The VFS reflink interface (FICLONERANGE) and dedupe interface (FIDEDUPERANGE)
-allows callers to specify the range of bytes on which to operate, which means
-that we can share arbitrary parts of two files.  For example, let's say you
-have one regular extent in a file's block map:
+Yes, it can be an inline function.
 
-RRRRRRRRRRRRRRRRRRRRRRRRRRRRRR (regular extent)
+> After applying this patch, looks there are still some places not being
+> replaced with this function:
+> ---
+> fs/ocfs2 # grep -rn "OCFS2_I(inode)->ip_dyn_features & OCFS2_HAS_REFCOUNT_FL"
+> xattr.c:2580:    if (OCFS2_I(inode)->ip_dyn_features & OCFS2_HAS_REFCOUNT_FL) {
+> xattr.c:3611:    if (OCFS2_I(inode)->ip_dyn_features & OCFS2_HAS_REFCOUNT_FL &&
+> file.c:1722:    if (OCFS2_I(inode)->ip_dyn_features & OCFS2_HAS_REFCOUNT_FL) {
+> file.c:2039:        !(OCFS2_I(inode)->ip_dyn_features & OCFS2_HAS_REFCOUNT_FL) ||
+> refcounttree.c:55:    return (OCFS2_I(inode)->ip_dyn_features & OCFS2_HAS_REFCOUNT_FL);
 
-Now ask reflink to share the middle of that extent with some other file.
-ocfs2's extent mapping record can store a flag indicating that the
-extent could be shared, which means that the one record now splits into
-three:
-
-RRRRRRRRRRRssssssRRRRRRRRRRRRR (regular, shared, regular)
-
-This scenario happens if you run duperemove against an ocfs2 filesystem
-to deduplicate file data, since dedupe wants the filesystem to be able
-to share arbitrary blocks of files.
-
-You're correct that cp --reflink only ever deals with entire extents
-because it calls FICLONERANGE with both file offsets zero and the length
-set to the length of the source file.  The important thing to remember
-is that we are not limited to sharing entire files, even if the
-userspace utilities don't take advantage of it.
-
-(FWIW the duperemove program does take advantage of it.)
-
-> 2) what do you mean by "*full* extent btree"?
-
-(Slight correction to that -- I should have said "full extent tree split".)
-
-Record insertion operations on a tree structure all follow the same
-basic strategy -- search from the root towards the records in the leaf
-blocks until we find the place where the record would be, memmove() all
-the records following that spot up by one index, copy the record data
-into the newly vacated slot, and (if necessary) walk back up the tree to
-update the interior node pointers.
-
-If the desired leaf is already full, however, there is a problem -- we
-have to split the leaf into two half-full leaf blocks before we can
-insert the record.  We must also add a pointer to the new leaf into the
-next level up in the tree.  If that interior node is also full, we split
-the interior node prior to adding the new leaf block pointer.  We must
-then add a pointer to the new interior node into the next level up in
-the tree, and so on until we reach the root.
-
-In short, if we want to add a record to a tree whose blocks are
-completely full, we end up splitting blocks all the way up the tree.
-
-> > whatever modifications have to be made to the refcount btree.  We
-> > don't currently do this, with the result that generic/186 crashes
-> > when we need an extent split but not a refcount split because meta_ac
-> > never gets allocated.
-> 
-> 3) in what situation, will this happen? - "we need an extent split but
-> not a refcount split".
-> Could you please explain more by example?
-
-An extreme example would be a program like this:
-
-- write to block zero
-- for i in 1 to 524288,
-  - reflink block zero to block $i
-
-When this program terminates, the refcount tree will contain a single
-refcount record ($phys_blk, len=1, refcount=524288).  The extent map for
-this file, however, will have 524,288 extent records:
-
-($phys_blk, len=1, offset=0, flags=shared)
-($phys_blk, len=1, offset=1, flags=shared)
-...
-($phys_blk, len=1, offset=524288, flags=shared)
-
-There are 524288 records.  A 4k leaf can fit 252 records, so there will
-be 2081 leaf blocks.  A 4k node also can fit 252 records, so there will
-be 9 node blocks pointing to leaves, and one root block to point to the
-first level nodes.  Clearly, the extent tree has split many times across
-all the reflink operations.  However, the refcount tree never splits
-because there's only one record.
+Oops.  Yeah, I missed those.  Will send out a v2 patch.
 
 --D
 
 > 
-> Thanks,
-> Darwin
+> Eric
 > 
+> >+{
+> >+	return (OCFS2_I(inode)->ip_dyn_features & OCFS2_HAS_REFCOUNT_FL);
+> >+}
+> >+
+> >  struct ocfs2_cow_context {
+> >  	struct inode *inode;
+> >  	u32 cow_start;
+> >@@ -410,7 +416,7 @@ static int ocfs2_get_refcount_block(struct inode *inode, u64 *ref_blkno)
+> >  		goto out;
+> >  	}
+> >-	BUG_ON(!(OCFS2_I(inode)->ip_dyn_features & OCFS2_HAS_REFCOUNT_FL));
+> >+	BUG_ON(!ocfs2_is_refcount_inode(inode));
+> >  	di = (struct ocfs2_dinode *)di_bh->b_data;
+> >  	*ref_blkno = le64_to_cpu(di->i_refcount_loc);
+> >@@ -570,7 +576,7 @@ static int ocfs2_create_refcount_tree(struct inode *inode,
+> >  	u32 num_got;
+> >  	u64 suballoc_loc, first_blkno;
+> >-	BUG_ON(oi->ip_dyn_features & OCFS2_HAS_REFCOUNT_FL);
+> >+	BUG_ON(ocfs2_is_refcount_inode(inode));
+> >  	trace_ocfs2_create_refcount_tree(
+> >  		(unsigned long long)OCFS2_I(inode)->ip_blkno);
+> >@@ -708,7 +714,7 @@ static int ocfs2_set_refcount_tree(struct inode *inode,
+> >  	struct ocfs2_refcount_block *rb;
+> >  	struct ocfs2_refcount_tree *ref_tree;
+> >-	BUG_ON(oi->ip_dyn_features & OCFS2_HAS_REFCOUNT_FL);
+> >+	BUG_ON(ocfs2_is_refcount_inode(inode));
+> >  	ret = ocfs2_lock_refcount_tree(osb, refcount_loc, 1,
+> >  				       &ref_tree, &ref_root_bh);
+> >@@ -775,7 +781,7 @@ int ocfs2_remove_refcount_tree(struct inode *inode, struct buffer_head *di_bh)
+> >  	u64 blk = 0, bg_blkno = 0, ref_blkno = le64_to_cpu(di->i_refcount_loc);
+> >  	u16 bit = 0;
+> >-	if (!(oi->ip_dyn_features & OCFS2_HAS_REFCOUNT_FL))
+> >+	if (!ocfs2_is_refcount_inode(inode))
+> >  		return 0;
+> >  	BUG_ON(!ref_blkno);
+> >@@ -2299,11 +2305,10 @@ int ocfs2_decrease_refcount(struct inode *inode,
+> >  {
+> >  	int ret;
+> >  	u64 ref_blkno;
+> >-	struct ocfs2_inode_info *oi = OCFS2_I(inode);
+> >  	struct buffer_head *ref_root_bh = NULL;
+> >  	struct ocfs2_refcount_tree *tree;
+> >-	BUG_ON(!(oi->ip_dyn_features & OCFS2_HAS_REFCOUNT_FL));
+> >+	BUG_ON(!ocfs2_is_refcount_inode(inode));
+> >  	ret = ocfs2_get_refcount_block(inode, &ref_blkno);
+> >  	if (ret) {
+> >@@ -2533,7 +2538,6 @@ int ocfs2_prepare_refcount_change_for_del(struct inode *inode,
+> >  					  int *ref_blocks)
+> >  {
+> >  	int ret;
+> >-	struct ocfs2_inode_info *oi = OCFS2_I(inode);
+> >  	struct buffer_head *ref_root_bh = NULL;
+> >  	struct ocfs2_refcount_tree *tree;
+> >  	u64 start_cpos = ocfs2_blocks_to_clusters(inode->i_sb, phys_blkno);
+> >@@ -2544,7 +2548,7 @@ int ocfs2_prepare_refcount_change_for_del(struct inode *inode,
+> >  		goto out;
+> >  	}
+> >-	BUG_ON(!(oi->ip_dyn_features & OCFS2_HAS_REFCOUNT_FL));
+> >+	BUG_ON(!ocfs2_is_refcount_inode(inode));
+> >  	ret = ocfs2_get_refcount_tree(OCFS2_SB(inode->i_sb),
+> >  				      refcount_loc, &tree);
+> >@@ -3412,14 +3416,13 @@ static int ocfs2_refcount_cow_hunk(struct inode *inode,
+> >  {
+> >  	int ret;
+> >  	u32 cow_start = 0, cow_len = 0;
+> >-	struct ocfs2_inode_info *oi = OCFS2_I(inode);
+> >  	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+> >  	struct ocfs2_dinode *di = (struct ocfs2_dinode *)di_bh->b_data;
+> >  	struct buffer_head *ref_root_bh = NULL;
+> >  	struct ocfs2_refcount_tree *ref_tree;
+> >  	struct ocfs2_cow_context *context = NULL;
+> >-	BUG_ON(!(oi->ip_dyn_features & OCFS2_HAS_REFCOUNT_FL));
+> >+	BUG_ON(!ocfs2_is_refcount_inode(inode));
+> >  	ret = ocfs2_refcount_cal_cow_clusters(inode, &di->id2.i_list,
+> >  					      cpos, write_len, max_cpos,
+> >@@ -3629,11 +3632,10 @@ int ocfs2_refcount_cow_xattr(struct inode *inode,
+> >  {
+> >  	int ret;
+> >  	struct ocfs2_xattr_value_root *xv = vb->vb_xv;
+> >-	struct ocfs2_inode_info *oi = OCFS2_I(inode);
+> >  	struct ocfs2_cow_context *context = NULL;
+> >  	u32 cow_start, cow_len;
+> >-	BUG_ON(!(oi->ip_dyn_features & OCFS2_HAS_REFCOUNT_FL));
+> >+	BUG_ON(!ocfs2_is_refcount_inode(inode));
+> >  	ret = ocfs2_refcount_cal_cow_clusters(inode, &xv->xr_list,
+> >  					      cpos, write_len, UINT_MAX,
+> >@@ -3807,7 +3809,7 @@ static int ocfs2_attach_refcount_tree(struct inode *inode,
+> >  	ocfs2_init_dealloc_ctxt(&dealloc);
+> >-	if (!(oi->ip_dyn_features & OCFS2_HAS_REFCOUNT_FL)) {
+> >+	if (!ocfs2_is_refcount_inode(inode)) {
+> >  		ret = ocfs2_create_refcount_tree(inode, di_bh);
+> >  		if (ret) {
+> >  			mlog_errno(ret);
+> >diff --git a/fs/ocfs2/refcounttree.h b/fs/ocfs2/refcounttree.h
+> >index 6422bbc..553edfb 100644
+> >--- a/fs/ocfs2/refcounttree.h
+> >+++ b/fs/ocfs2/refcounttree.h
+> >@@ -17,6 +17,8 @@
+> >  #ifndef OCFS2_REFCOUNTTREE_H
+> >  #define OCFS2_REFCOUNTTREE_H
+> >+bool ocfs2_is_refcount_inode(struct inode *inode);
+> >+
+> >  struct ocfs2_refcount_tree {
+> >  	struct rb_node rf_node;
+> >  	u64 rf_blkno;
 > >
-> > Signed-off-by: Darrick J. Wong <darrick.wong@oracle.com>
-> > ---
-> >  fs/ocfs2/refcounttree.c |    3 +++
-> >  1 file changed, 3 insertions(+)
+> >--
+> >To unsubscribe from this list: send the line "unsubscribe linux-fsdevel" in
+> >the body of a message to majordomo at vger.kernel.org
+> >More majordomo info at  http://vger.kernel.org/majordomo-info.html
 > >
 > >
-> > diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
-> > index 59be8f4..d92b6c6 100644
-> > --- a/fs/ocfs2/refcounttree.c
-> > +++ b/fs/ocfs2/refcounttree.c
-> > @@ -3698,6 +3698,9 @@ int ocfs2_add_refcount_flag(struct inode *inode,
-> >         struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
-> >         struct ocfs2_alloc_context *meta_ac = NULL;
-> >
-> > +       /* We need to be able to handle at least an extent tree split. */
-> > +       ref_blocks = ocfs2_extend_meta_needed(data_et->et_root_el);
-> > +
-> >         ret = ocfs2_calc_refcount_meta_credits(inode->i_sb,
-> >                                                ref_ci, ref_root_bh,
-> >                                                p_cluster, num_clusters,
-> >
-> >
-> > _______________________________________________
-> > Ocfs2-devel mailing list
-> > Ocfs2-devel at oss.oracle.com
-> > https://oss.oracle.com/mailman/listinfo/ocfs2-devel
 > 
-> 
-> 
-> -- 
-> Thanks,
-> Darwin
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-fsdevel" in
+> the body of a message to majordomo at vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
