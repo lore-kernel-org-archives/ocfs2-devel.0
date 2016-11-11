@@ -1,247 +1,158 @@
-From: Darrick J. Wong <darrick.wong@oracle.com>
-Date: Thu, 10 Nov 2016 09:52:17 -0800
-Subject: [Ocfs2-devel] [PATCH v2 1/6] ocfs2: convert inode refcount test to
-	a helper
-In-Reply-To: <147873187285.2820.9992440620792982440.stgit@birch.djwong.org>
-References: <147873186646.2820.17513529102740292215.stgit@birch.djwong.org>
-	<147873187285.2820.9992440620792982440.stgit@birch.djwong.org>
-Message-ID: <20161110175217.GC16807@birch.djwong.org>
+From: Eric Ren <zren@suse.com>
+Date: Fri, 11 Nov 2016 09:56:12 +0800
+Subject: [Ocfs2-devel] [DRAFT 2/2] ocfs2: fix deadlock caused by
+ recursive cluster locking
+In-Reply-To: <582450CF.4030705@huawei.com>
+References: <1476854382-28101-1-git-send-email-zren@suse.com>
+	<1476854382-28101-3-git-send-email-zren@suse.com>
+	<5817233C.4060703@huawei.com>
+	<27420c84-c2db-ea00-dbce-33036674de9b@suse.com>
+	<582450CF.4030705@huawei.com>
+Message-ID: <968237e5-b308-84cc-2c99-637cdd13bd4c@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: mfasheh@versity.com, jlbec@evilplan.org
-Cc: linux-fsdevel@vger.kernel.org, ocfs2-devel@oss.oracle.com
+To: ocfs2-devel@oss.oracle.com
 
-Replace the open-coded inode refcount flag test with a helper function
-to reduce the potential for bugs.
+Hi,
 
-Signed-off-by: Darrick J. Wong <darrick.wong@oracle.com>
----
- fs/ocfs2/alloc.c        |    3 +--
- fs/ocfs2/file.c         |    7 +++----
- fs/ocfs2/inode.h        |    6 ++++++
- fs/ocfs2/move_extents.c |   10 ++--------
- fs/ocfs2/refcounttree.c |   22 +++++++++-------------
- fs/ocfs2/xattr.c        |    4 ++--
- 6 files changed, 23 insertions(+), 29 deletions(-)
+On 11/10/2016 06:49 PM, piaojun wrote:
+> Hi Eric,
+>
+> On 2016-11-1 9:45, Eric Ren wrote:
+>> Hi,
+>>
+>> On 10/31/2016 06:55 PM, piaojun wrote:
+>>> Hi Eric,
+>>>
+>>> On 2016-10-19 13:19, Eric Ren wrote:
+>>>> The deadlock issue happens when running discontiguous block
+>>>> group testing on multiple nodes. The easier way to reproduce
+>>>> is to do "chmod -R 777 /mnt/ocfs2" things like this on multiple
+>>>> nodes at the same time by pssh.
+>>>>
+>>>> This is indeed another deadlock caused by: commit 743b5f1434f5
+>>>> ("ocfs2: take inode lock in ocfs2_iop_set/get_acl()"). The reason
+>>>> had been explained well by Tariq Saeed in this thread:
+>>>>
+>>>> https://oss.oracle.com/pipermail/ocfs2-devel/2015-September/011085.html
+>>>>
+>>>> For this case, the ocfs2_inode_lock() is misused recursively as below:
+>>>>
+>>>> do_sys_open
+>>>>    do_filp_open
+>>>>     path_openat
+>>>>      may_open
+>>>>       inode_permission
+>>>>        __inode_permission
+>>>>         ocfs2_permission  <====== ocfs2_inode_lock()
+>>>>          generic_permission
+>>>>           get_acl
+>>>>            ocfs2_iop_get_acl  <====== ocfs2_inode_lock()
+>>>>             ocfs2_inode_lock_full_nested <===== deadlock if a remote EX request
+>>> Do you mean another node wants to get ex of the inode? or another process?
+>> Remote EX request means "another node wants to get ex of the inode";-)
+>>
+>> Eric
+> If another node wants to get ex, it will get blocked as this node has
+> got pr. Why will the ex request make this node get blocked? Expect your
+> detailed description.
+Did you look at this link I mentioned above?
 
-diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-index f72712f..a0ca49f 100644
---- a/fs/ocfs2/alloc.c
-+++ b/fs/ocfs2/alloc.c
-@@ -5713,8 +5713,7 @@ int ocfs2_remove_btree_range(struct inode *inode,
- 	struct ocfs2_refcount_tree *ref_tree = NULL;
- 
- 	if ((flags & OCFS2_EXT_REFCOUNTED) && len) {
--		BUG_ON(!(OCFS2_I(inode)->ip_dyn_features &
--			 OCFS2_HAS_REFCOUNT_FL));
-+		BUG_ON(!ocfs2_is_refcount_inode(inode));
- 
- 		if (!refcount_tree_locked) {
- 			ret = ocfs2_lock_refcount_tree(osb, refcount_loc, 1,
-diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-index 000c234..d261f3a 100644
---- a/fs/ocfs2/file.c
-+++ b/fs/ocfs2/file.c
-@@ -1030,7 +1030,7 @@ int ocfs2_extend_no_holes(struct inode *inode, struct buffer_head *di_bh,
- 	 * Only quota files call this without a bh, and they can't be
- 	 * refcounted.
- 	 */
--	BUG_ON(!di_bh && (oi->ip_dyn_features & OCFS2_HAS_REFCOUNT_FL));
-+	BUG_ON(!di_bh && ocfs2_is_refcount_inode(inode));
- 	BUG_ON(!di_bh && !(oi->ip_flags & OCFS2_INODE_SYSTEM_FILE));
- 
- 	clusters_to_add = ocfs2_clusters_for_bytes(inode->i_sb, new_i_size);
-@@ -1719,8 +1719,7 @@ static int ocfs2_remove_inode_range(struct inode *inode,
- 	 * within one cluster(means is not exactly aligned to clustersize).
- 	 */
- 
--	if (OCFS2_I(inode)->ip_dyn_features & OCFS2_HAS_REFCOUNT_FL) {
--
-+	if (ocfs2_is_refcount_inode(inode)) {
- 		ret = ocfs2_cow_file_pos(inode, di_bh, byte_start);
- 		if (ret) {
- 			mlog_errno(ret);
-@@ -2036,7 +2035,7 @@ int ocfs2_check_range_for_refcount(struct inode *inode, loff_t pos,
- 	struct super_block *sb = inode->i_sb;
- 
- 	if (!ocfs2_refcount_tree(OCFS2_SB(inode->i_sb)) ||
--	    !(OCFS2_I(inode)->ip_dyn_features & OCFS2_HAS_REFCOUNT_FL) ||
-+	    !ocfs2_is_refcount_inode(inode) ||
- 	    OCFS2_I(inode)->ip_dyn_features & OCFS2_INLINE_DATA_FL)
- 		return 0;
- 
-diff --git a/fs/ocfs2/inode.h b/fs/ocfs2/inode.h
-index 5af68fc..9b955f7 100644
---- a/fs/ocfs2/inode.h
-+++ b/fs/ocfs2/inode.h
-@@ -181,4 +181,10 @@ static inline struct ocfs2_inode_info *cache_info_to_inode(struct ocfs2_caching_
- 	return container_of(ci, struct ocfs2_inode_info, ip_metadata_cache);
- }
- 
-+/* Does this inode have the reflink flag set? */
-+static inline bool ocfs2_is_refcount_inode(struct inode *inode)
-+{
-+	return (OCFS2_I(inode)->ip_dyn_features & OCFS2_HAS_REFCOUNT_FL);
-+}
-+
- #endif /* OCFS2_INODE_H */
-diff --git a/fs/ocfs2/move_extents.c b/fs/ocfs2/move_extents.c
-index 4e8f32eb..e52a285 100644
---- a/fs/ocfs2/move_extents.c
-+++ b/fs/ocfs2/move_extents.c
-@@ -235,10 +235,7 @@ static int ocfs2_defrag_extent(struct ocfs2_move_extents_context *context,
- 	u64 phys_blkno = ocfs2_clusters_to_blocks(inode->i_sb, phys_cpos);
- 
- 	if ((ext_flags & OCFS2_EXT_REFCOUNTED) && *len) {
--
--		BUG_ON(!(OCFS2_I(inode)->ip_dyn_features &
--			 OCFS2_HAS_REFCOUNT_FL));
--
-+		BUG_ON(!ocfs2_is_refcount_inode(inode));
- 		BUG_ON(!context->refcount_loc);
- 
- 		ret = ocfs2_lock_refcount_tree(osb, context->refcount_loc, 1,
-@@ -581,10 +578,7 @@ static int ocfs2_move_extent(struct ocfs2_move_extents_context *context,
- 	phys_blkno = ocfs2_clusters_to_blocks(inode->i_sb, phys_cpos);
- 
- 	if ((ext_flags & OCFS2_EXT_REFCOUNTED) && len) {
--
--		BUG_ON(!(OCFS2_I(inode)->ip_dyn_features &
--			 OCFS2_HAS_REFCOUNT_FL));
--
-+		BUG_ON(!ocfs2_is_refcount_inode(inode));
- 		BUG_ON(!context->refcount_loc);
- 
- 		ret = ocfs2_lock_refcount_tree(osb, context->refcount_loc, 1,
-diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
-index 1923851..3410eb1 100644
---- a/fs/ocfs2/refcounttree.c
-+++ b/fs/ocfs2/refcounttree.c
-@@ -410,7 +410,7 @@ static int ocfs2_get_refcount_block(struct inode *inode, u64 *ref_blkno)
- 		goto out;
- 	}
- 
--	BUG_ON(!(OCFS2_I(inode)->ip_dyn_features & OCFS2_HAS_REFCOUNT_FL));
-+	BUG_ON(!ocfs2_is_refcount_inode(inode));
- 
- 	di = (struct ocfs2_dinode *)di_bh->b_data;
- 	*ref_blkno = le64_to_cpu(di->i_refcount_loc);
-@@ -570,7 +570,7 @@ static int ocfs2_create_refcount_tree(struct inode *inode,
- 	u32 num_got;
- 	u64 suballoc_loc, first_blkno;
- 
--	BUG_ON(oi->ip_dyn_features & OCFS2_HAS_REFCOUNT_FL);
-+	BUG_ON(ocfs2_is_refcount_inode(inode));
- 
- 	trace_ocfs2_create_refcount_tree(
- 		(unsigned long long)OCFS2_I(inode)->ip_blkno);
-@@ -708,7 +708,7 @@ static int ocfs2_set_refcount_tree(struct inode *inode,
- 	struct ocfs2_refcount_block *rb;
- 	struct ocfs2_refcount_tree *ref_tree;
- 
--	BUG_ON(oi->ip_dyn_features & OCFS2_HAS_REFCOUNT_FL);
-+	BUG_ON(ocfs2_is_refcount_inode(inode));
- 
- 	ret = ocfs2_lock_refcount_tree(osb, refcount_loc, 1,
- 				       &ref_tree, &ref_root_bh);
-@@ -775,7 +775,7 @@ int ocfs2_remove_refcount_tree(struct inode *inode, struct buffer_head *di_bh)
- 	u64 blk = 0, bg_blkno = 0, ref_blkno = le64_to_cpu(di->i_refcount_loc);
- 	u16 bit = 0;
- 
--	if (!(oi->ip_dyn_features & OCFS2_HAS_REFCOUNT_FL))
-+	if (!ocfs2_is_refcount_inode(inode))
- 		return 0;
- 
- 	BUG_ON(!ref_blkno);
-@@ -2299,11 +2299,10 @@ int ocfs2_decrease_refcount(struct inode *inode,
- {
- 	int ret;
- 	u64 ref_blkno;
--	struct ocfs2_inode_info *oi = OCFS2_I(inode);
- 	struct buffer_head *ref_root_bh = NULL;
- 	struct ocfs2_refcount_tree *tree;
- 
--	BUG_ON(!(oi->ip_dyn_features & OCFS2_HAS_REFCOUNT_FL));
-+	BUG_ON(!ocfs2_is_refcount_inode(inode));
- 
- 	ret = ocfs2_get_refcount_block(inode, &ref_blkno);
- 	if (ret) {
-@@ -2533,7 +2532,6 @@ int ocfs2_prepare_refcount_change_for_del(struct inode *inode,
- 					  int *ref_blocks)
- {
- 	int ret;
--	struct ocfs2_inode_info *oi = OCFS2_I(inode);
- 	struct buffer_head *ref_root_bh = NULL;
- 	struct ocfs2_refcount_tree *tree;
- 	u64 start_cpos = ocfs2_blocks_to_clusters(inode->i_sb, phys_blkno);
-@@ -2544,7 +2542,7 @@ int ocfs2_prepare_refcount_change_for_del(struct inode *inode,
- 		goto out;
- 	}
- 
--	BUG_ON(!(oi->ip_dyn_features & OCFS2_HAS_REFCOUNT_FL));
-+	BUG_ON(!ocfs2_is_refcount_inode(inode));
- 
- 	ret = ocfs2_get_refcount_tree(OCFS2_SB(inode->i_sb),
- 				      refcount_loc, &tree);
-@@ -3412,14 +3410,13 @@ static int ocfs2_refcount_cow_hunk(struct inode *inode,
- {
- 	int ret;
- 	u32 cow_start = 0, cow_len = 0;
--	struct ocfs2_inode_info *oi = OCFS2_I(inode);
- 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
- 	struct ocfs2_dinode *di = (struct ocfs2_dinode *)di_bh->b_data;
- 	struct buffer_head *ref_root_bh = NULL;
- 	struct ocfs2_refcount_tree *ref_tree;
- 	struct ocfs2_cow_context *context = NULL;
- 
--	BUG_ON(!(oi->ip_dyn_features & OCFS2_HAS_REFCOUNT_FL));
-+	BUG_ON(!ocfs2_is_refcount_inode(inode));
- 
- 	ret = ocfs2_refcount_cal_cow_clusters(inode, &di->id2.i_list,
- 					      cpos, write_len, max_cpos,
-@@ -3629,11 +3626,10 @@ int ocfs2_refcount_cow_xattr(struct inode *inode,
- {
- 	int ret;
- 	struct ocfs2_xattr_value_root *xv = vb->vb_xv;
--	struct ocfs2_inode_info *oi = OCFS2_I(inode);
- 	struct ocfs2_cow_context *context = NULL;
- 	u32 cow_start, cow_len;
- 
--	BUG_ON(!(oi->ip_dyn_features & OCFS2_HAS_REFCOUNT_FL));
-+	BUG_ON(!ocfs2_is_refcount_inode(inode));
- 
- 	ret = ocfs2_refcount_cal_cow_clusters(inode, &xv->xr_list,
- 					      cpos, write_len, UINT_MAX,
-@@ -3807,7 +3803,7 @@ static int ocfs2_attach_refcount_tree(struct inode *inode,
- 
- 	ocfs2_init_dealloc_ctxt(&dealloc);
- 
--	if (!(oi->ip_dyn_features & OCFS2_HAS_REFCOUNT_FL)) {
-+	if (!ocfs2_is_refcount_inode(inode)) {
- 		ret = ocfs2_create_refcount_tree(inode, di_bh);
- 		if (ret) {
- 			mlog_errno(ret);
-diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index cb157a3..3c5384d 100644
---- a/fs/ocfs2/xattr.c
-+++ b/fs/ocfs2/xattr.c
-@@ -2577,7 +2577,7 @@ int ocfs2_xattr_remove(struct inode *inode, struct buffer_head *di_bh)
- 	if (!(oi->ip_dyn_features & OCFS2_HAS_XATTR_FL))
- 		return 0;
- 
--	if (OCFS2_I(inode)->ip_dyn_features & OCFS2_HAS_REFCOUNT_FL) {
-+	if (ocfs2_is_refcount_inode(inode)) {
- 		ret = ocfs2_lock_refcount_tree(OCFS2_SB(inode->i_sb),
- 					       le64_to_cpu(di->i_refcount_loc),
- 					       1, &ref_tree, &ref_root_bh);
-@@ -3608,7 +3608,7 @@ int ocfs2_xattr_set(struct inode *inode,
- 	}
- 
- 	/* Check whether the value is refcounted and do some preparation. */
--	if (OCFS2_I(inode)->ip_dyn_features & OCFS2_HAS_REFCOUNT_FL &&
-+	if (ocfs2_is_refcount_inode(inode) &&
- 	    (!xis.not_found || !xbs.not_found)) {
- 		ret = ocfs2_prepare_refcount_xattr(inode, di, &xi,
- 						   &xis, &xbs, &ref_tree,
+OCFS2_LOCK_BLOCKED flag of this lockres is set in BAST (ocfs2_generic_handle_bast) when 
+downconvert is needed
+on behalf of remote lock request.
+
+The recursive cluster lock (the second one) will be blocked in __ocfs2_cluster_lock() 
+because of OCFS2_LOCK_BLOCKED.
+But the downconvert cannot be done, why? because there is no chance for the first cluster 
+lock on this node to be unlocked -
+we blocked ourselves in the code path.
+
+Eric
+>
+> thanks,
+> Jun
+>>>> comes between two ocfs2_inode_lock()
+>>>>
+>>>> Fix by checking if the cluster lock has been acquired aready in the call-chain
+>>>> path.
+>>>>
+>>>> Fixes: commit 743b5f1434f5 ("ocfs2: take inode lock in ocfs2_iop_set/get_acl()")
+>>>> Signed-off-by: Eric Ren <zren@suse.com>
+>>>> ---
+>>>>    fs/ocfs2/acl.c | 39 +++++++++++++++++++++++++++------------
+>>>>    1 file changed, 27 insertions(+), 12 deletions(-)
+>>>>
+>>>> diff --git a/fs/ocfs2/acl.c b/fs/ocfs2/acl.c
+>>>> index bed1fcb..7e3544e 100644
+>>>> --- a/fs/ocfs2/acl.c
+>>>> +++ b/fs/ocfs2/acl.c
+>>>> @@ -283,16 +283,24 @@ int ocfs2_set_acl(handle_t *handle,
+>>>>    int ocfs2_iop_set_acl(struct inode *inode, struct posix_acl *acl, int type)
+>>>>    {
+>>>>        struct buffer_head *bh = NULL;
+>>>> +    struct ocfs2_holder *oh;
+>>>> +    struct ocfs2_lock_res *lockres = &OCFS2_I(inode)->ip_inode_lockres;
+>>>>        int status = 0;
+>>>>    -    status = ocfs2_inode_lock(inode, &bh, 1);
+>>>> -    if (status < 0) {
+>>>> -        if (status != -ENOENT)
+>>>> -            mlog_errno(status);
+>>>> -        return status;
+>>>> +    oh = ocfs2_is_locked_by_me(lockres);
+>>>> +    if (!oh) {
+>>>> +        status = ocfs2_inode_lock(inode, &bh, 1);
+>>>> +        if (status < 0) {
+>>>> +            if (status != -ENOENT)
+>>>> +                mlog_errno(status);
+>>>> +            return status;
+>>>> +        }
+>>>>        }
+>>>> +
+>>>>        status = ocfs2_set_acl(NULL, inode, bh, type, acl, NULL, NULL);
+>>>> -    ocfs2_inode_unlock(inode, 1);
+>>>> +
+>>>> +    if (!oh)
+>>>> +        ocfs2_inode_unlock(inode, 1);
+>>>>        brelse(bh);
+>>>>        return status;
+>>>>    }
+>>>> @@ -302,21 +310,28 @@ struct posix_acl *ocfs2_iop_get_acl(struct inode *inode, int type)
+>>>>        struct ocfs2_super *osb;
+>>>>        struct buffer_head *di_bh = NULL;
+>>>>        struct posix_acl *acl;
+>>>> +    struct ocfs2_holder *oh;
+>>>> +    struct ocfs2_lock_res *lockres = &OCFS2_I(inode)->ip_inode_lockres;
+>>>>        int ret;
+>>>>          osb = OCFS2_SB(inode->i_sb);
+>>>>        if (!(osb->s_mount_opt & OCFS2_MOUNT_POSIX_ACL))
+>>>>            return NULL;
+>>>> -    ret = ocfs2_inode_lock(inode, &di_bh, 0);
+>>>> -    if (ret < 0) {
+>>>> -        if (ret != -ENOENT)
+>>>> -            mlog_errno(ret);
+>>>> -        return ERR_PTR(ret);
+>>>> +
+>>>> +    oh = ocfs2_is_locked_by_me(lockres);
+>>>> +    if (!oh) {
+>>>> +        ret = ocfs2_inode_lock(inode, &di_bh, 0);
+>>>> +        if (ret < 0) {
+>>>> +            if (ret != -ENOENT)
+>>>> +                mlog_errno(ret);
+>>>> +            return ERR_PTR(ret);
+>>>> +        }
+>>>>        }
+>>>>          acl = ocfs2_get_acl_nolock(inode, type, di_bh);
+>>>>    -    ocfs2_inode_unlock(inode, 0);
+>>>> +    if (!oh)
+>>>> +        ocfs2_inode_unlock(inode, 0);
+>>>>        brelse(di_bh);
+>>>>        return acl;
+>>>>    }
+>>>>
+>>
+>> .
+>>
+>
