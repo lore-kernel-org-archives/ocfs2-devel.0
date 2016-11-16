@@ -1,77 +1,53 @@
-From: Eric Ren <zren@suse.com>
-Date: Wed, 16 Nov 2016 10:33:49 +0800
+From: Dan Carpenter <dan.carpenter@oracle.com>
+Date: Wed, 16 Nov 2016 13:45:39 +0300
 Subject: [Ocfs2-devel] ocfs2: fix sparse file & data ordering issue in
  direct io
-In-Reply-To: <20161115103638.GM28558@mwanda>
+In-Reply-To: <777b2218-d12e-ea96-7e1c-6852c14b71ec@suse.com>
 References: <20160309102505.GA15030@mwanda> <20161115103330.GL28558@mwanda>
 	<20161115103638.GM28558@mwanda>
-Message-ID: <777b2218-d12e-ea96-7e1c-6852c14b71ec@suse.com>
+	<777b2218-d12e-ea96-7e1c-6852c14b71ec@suse.com>
+Message-ID: <20161116104539.GO28558@mwanda>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Dan,
+On Wed, Nov 16, 2016 at 10:33:49AM +0800, Eric Ren wrote:
+> >>>fs/ocfs2/aops.c
+> >>>   2235
+> >>>   2236          ret = ocfs2_write_begin_nolock(inode->i_mapping, pos, len,
+> >>>   2237                                         OCFS2_WRITE_DIRECT, NULL,
+> >>>   2238                                         (void **)&wc, di_bh, NULL);
+> >>>                                                ^^^^^^^^^^^^
+> How do you perform the static checker? Please tech me;-)
+> 
 
-On 11/15/2016 06:36 PM, Dan Carpenter wrote:
-> Ryan's email is dead.  But this is buggy.  Someone please fix it.
->
-> regards,
-> dan carpenter
->
-> On Tue, Nov 15, 2016 at 01:33:30PM +0300, Dan Carpenter wrote:
->> I never got a response on this.  I was looking at it today and it still
->> looks buggy to me.
->>
->> regards,
->> dan carpenter
->>
->> On Wed, Mar 09, 2016 at 01:25:05PM +0300, Dan Carpenter wrote:
->>> Hello Ryan Ding,
->>>
->>> The patch fbe25fb91af5: "ocfs2: fix sparse file & data ordering issue
->>> in direct io" from Feb 25, 2016, leads to the following static
->>> checker warning:
->>>
->>> 	fs/ocfs2/aops.c:2242 ocfs2_dio_get_block()
->>> 	error: potentially dereferencing uninitialized 'wc'.
->>>
->>> fs/ocfs2/aops.c
->>>    2235
->>>    2236          ret = ocfs2_write_begin_nolock(inode->i_mapping, pos, len,
->>>    2237                                         OCFS2_WRITE_DIRECT, NULL,
->>>    2238                                         (void **)&wc, di_bh, NULL);
->>>                                                 ^^^^^^^^^^^^
-How do you perform the static checker? Please tech me;-)
+It's Smatch things that's not public yet.  Soon.
 
-Regarding this warning, please try to make this line 
-(https://github.com/torvalds/linux/blob/master/fs/ocfs2/aops.c#L2128)
-into:
+> Regarding this warning, please try to make this line
+> (https://github.com/torvalds/linux/blob/master/fs/ocfs2/aops.c#L2128)
+> into:
+> 
+> struct ocfs2_write_ctxt *wc = NULL;
+> 
+> It should work, and haven't any side effect.
 
-struct ocfs2_write_ctxt *wc = NULL;
+That silences the warning, of course, but I feel like the code is buggy.
+How do we know that we don't hit that exit path?
 
-It should work, and haven't any side effect.
+fs/ocfs2/aops.c
+  1808          /*
+  1809           * ocfs2_grab_pages_for_write() returns -EAGAIN if it could not lock
+  1810           * the target page. In this case, we exit with no error and no target
+  1811           * page. This will trigger the caller, page_mkwrite(), to re-try
+  1812           * the operation.
+  1813           */
+  1814          if (ret == -EAGAIN) {
+  1815                  BUG_ON(wc->w_target_page);
+  1816                  ret = 0;
+  1817                  goto out_quota;
+  1818          }
 
-Eric
->>>
->>> See commit 5cffff9e2986 ('ocfs2: Fix ocfs2_page_mkwrite()') for an
->>> explanation why a zero return here does not imply that "wc" has been
->>> initialized.
->>>
->>>    2239          if (ret) {
->>>    2240                  mlog_errno(ret);
->>>    2241                  goto unlock;
->>>    2242          }
->>>    2243
->>>    2244          desc = &wc->w_desc[0];
->>>    2245
->>>    2246          p_blkno = ocfs2_clusters_to_blocks(inode->i_sb, desc->c_phys);
->>>
->>> regards,
->>> dan carpenter
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
->
+regards,
+dan carpenter
