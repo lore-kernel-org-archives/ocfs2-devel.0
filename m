@@ -1,18 +1,39 @@
-From: Joseph Qi <jiangqi903@gmail.com>
-Date: Thu, 17 Nov 2016 17:17:51 +0800
-Subject: [Ocfs2-devel]
- =?utf-8?b?562U5aSNOiAgW1BBVENIXSBvY2ZzMi9kbG06IGZp?=
- =?utf-8?q?x_umount_hang?=
-In-Reply-To: <63ADC13FD55D6546B7DECE290D39E37342E5A3B1@H3CMLB12-EX.srv.huawei-3com.com>
+From: Gechangwei <ge.changwei@h3c.com>
+Date: Thu, 17 Nov 2016 09:27:19 +0000
+Subject: [Ocfs2-devel] =?utf-8?b?562U5aSNOiDnrZTlpI06ICBbUEFUQ0hdIG9jZnMy?=
+ =?utf-8?q?/dlm=3A_fix_umount_hang?=
+In-Reply-To: <31dee005-3d0d-2890-f222-93048c93a56c@gmail.com>
 References: <63ADC13FD55D6546B7DECE290D39E37342E59EFA@H3CMLB12-EX.srv.huawei-3com.com>
 	<38d004a3-2dd7-fab5-a4fd-b0ccb602a41e@gmail.com>
 	<63ADC13FD55D6546B7DECE290D39E37342E5A3B1@H3CMLB12-EX.srv.huawei-3com.com>
-Message-ID: <31dee005-3d0d-2890-f222-93048c93a56c@gmail.com>
+	<31dee005-3d0d-2890-f222-93048c93a56c@gmail.com>
+Message-ID: <63ADC13FD55D6546B7DECE290D39E37342E5A3DE@H3CMLB12-EX.srv.huawei-3com.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
+
+Hi Joseph,
+
+Could you please point out the particular side effects?
+I'd like to get it improved.
+
+IMO, I don't see anything broken from this patch since the HD detachment will be done in dlm_mle_release().
+Furthermore, I believe that will be the proper place to detach HB events in my case.
+
+Your advisement is very important to me.
+
+Thanks.
+
+Changwei.
+
+-----????-----
+???: Joseph Qi [mailto:jiangqi903 at gmail.com] 
+????: 2016?11?17? 17:18
+???: gechangwei 12382 (CCPL); akpm at linux-foundation.org
+??: mfasheh at versity.com; ocfs2-devel at oss.oracle.com
+??: Re: ??: [Ocfs2-devel] [PATCH] ocfs2/dlm: fix umount hang
 
 Any clue to confirm the case?
 
@@ -26,9 +47,9 @@ Joseph
 On 16/11/17 17:04, Gechangwei wrote:
 > Hi Joseph,
 >
-> I suppose it is because local heartbeat mode was applied in my test environment and
-> other nodes were still writing heartbeat to other LUNs but not the LUN corresponding
-> to 7DA412FEB1374366B0F3C70025EB14.
+> I suppose it is because local heartbeat mode was applied in my test 
+> environment and other nodes were still writing heartbeat to other LUNs 
+> but not the LUN corresponding to 7DA412FEB1374366B0F3C70025EB14.
 >
 > Br.
 > Changwei.
@@ -54,8 +75,8 @@ On 16/11/17 17:04, Gechangwei wrote:
 >> During my recent test on OCFS2, an umount hang issue was found.
 >> Below clues can help us to analyze this issue.
 >>
->>   From the debug information, we can see some abnormal stats like only
->> node 1 is in DLM domain map, however, node 3 - 9 are still in MLE's node map and vote map.
+>>   From the debug information, we can see some abnormal stats like 
+>> only node 1 is in DLM domain map, however, node 3 - 9 are still in MLE's node map and vote map.
 >> The root cause of unchanging vote map I think is that HB events are detached too early!
 >> That caused no chance of transforming from BLOCK MLE into MASTER MLE.
 >> Thus NODE 1 can't master lock resource even other nodes are all dead.
@@ -73,7 +94,8 @@ On 16/11/17 17:04, Gechangwei wrote:
 >>    fs/ocfs2/dlm/dlmmaster.c | 2 --
 >>    1 file changed, 2 deletions(-)
 >>
->> diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c index
+>> diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c 
+>> index
 >> 6ea06f8..3c46882 100644
 >> --- a/fs/ocfs2/dlm/dlmmaster.c
 >> +++ b/fs/ocfs2/dlm/dlmmaster.c
@@ -93,10 +115,11 @@ On 16/11/17 17:04, Gechangwei wrote:
 >> root at HXY-CVK110:~# grep P000000000000000000000000000000 bbb
 >> Lockres: P000000000000000000000000000000   Owner: 255  State: 0x10 InProgress
 >>
->> root at HXY-CVK110:/sys/kernel/debug/o2dlm/7DA412FEB1374366B0F3C70025EB14
+>> root at HXY-CVK110:/sys/kernel/debug/o2dlm/7DA412FEB1374366B0F3C70025EB1
+>> 4
 >> 37# cat dlm_state
 >> Domain: 7DA412FEB1374366B0F3C70025EB1437  Key: 0x8ff804a1  Protocol:
->> 1.2 Thread Pid: 21679  Node: 1  State: JOINED Number of Joins: 1
+>> 1.2 Thread Pid: 21679  Node: 1  State: JOINED Number of Joins: 1 
 >> Joining Node: 255 Domain Map: 1 Exit Domain Map:
 >> Live Map: 1 2 3 4 5 6 7 8 9
 >> Lock Resources: 29 (116)
@@ -104,33 +127,35 @@ On 16/11/17 17:04, Gechangwei wrote:
 >>     Blocking: 1 (4)
 >>     Mastery: 0 (115)
 >>     Migration: 0 (0)
->> Lists: Dirty=Empty  Purge=Empty  PendingASTs=Empty  PendingBASTs=Empty
->> Purge Count: 0  Refs: 1 Dead Node: 255 Recovery Pid: 21680  Master:
+>> Lists: Dirty=Empty  Purge=Empty  PendingASTs=Empty  
+>> PendingBASTs=Empty Purge Count: 0  Refs: 1 Dead Node: 255 Recovery Pid: 21680  Master:
 >> 255  State: INACTIVE Recovery Map:
 >> Recovery Node State:
 >>
 >>
->> root at HXY-CVK110:/sys/kernel/debug/o2dlm/7DA412FEB1374366B0F3C70025EB14
->> 37# ls dlm_state  locking_state  mle_state  purge_list
->> root at HXY-CVK110:/sys/kernel/debug/o2dlm/7DA412FEB1374366B0F3C70025EB14
->> 37# cat mle_state Dumping MLEs for Domain: 7DA412FEB1374366B0F3C70025EB1437
+>> root at HXY-CVK110:/sys/kernel/debug/o2dlm/7DA412FEB1374366B0F3C70025EB1
+>> 4 37# ls dlm_state  locking_state  mle_state  purge_list
+>> root at HXY-CVK110:/sys/kernel/debug/o2dlm/7DA412FEB1374366B0F3C70025EB1
+>> 4 37# cat mle_state Dumping MLEs for Domain: 
+>> 7DA412FEB1374366B0F3C70025EB1437
 >> P000000000000000000000000000000  BLK  mas=255 new=255 evt=0        use=1       ref=  2
 >> Maybe=
 >> Vote=3 4 5 6 7 8 9
 >> Response=
 >> Node=3 4 5 6 7 8 9
->> ----------------------------------------------------------------------
+>> ---------------------------------------------------------------------
+>> -
 >> ---------------------------------------------------------------
 >> ????????????????????????????????????????
 >> ????????????????????????????????????????
 >> ????????????????????????????????????????
 >> ???
->> This e-mail and its attachments contain confidential information from
->> H3C, which is intended only for the person or entity whose address is
->> listed above. Any use of the information contained herein in any way
->> (including, but not limited to, total or partial disclosure,
+>> This e-mail and its attachments contain confidential information from 
+>> H3C, which is intended only for the person or entity whose address is 
+>> listed above. Any use of the information contained herein in any way 
+>> (including, but not limited to, total or partial disclosure, 
 >> reproduction, or dissemination) by persons other than the intended
->> recipient(s) is prohibited. If you receive this e-mail in error,
+>> recipient(s) is prohibited. If you receive this e-mail in error, 
 >> please notify the sender by phone or email immediately and delete it!
 >> _______________________________________________
 >> Ocfs2-devel mailing list
