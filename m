@@ -1,82 +1,63 @@
-From: piaojun <piaojun@huawei.com>
-Date: Sat, 19 Nov 2016 12:46:18 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: clean up unused 'page' parameter in
- ocfs2_write_end_nolock()
-Message-ID: <582FD91A.5000902@huawei.com>
+From: Gechangwei <ge.changwei@h3c.com>
+Date: Sat, 19 Nov 2016 08:32:24 +0000
+Subject: [Ocfs2-devel] A question on OCFS2 mount
+References: <63ADC13FD55D6546B7DECE290D39E373220B61D0@H3CMLB12-EX.srv.huawei-3com.com>
+Message-ID: <63ADC13FD55D6546B7DECE290D39E37342E5BA9A@H3CMLB12-EX.srv.huawei-3com.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-'page' parameter in ocfs2_write_end_nolock() is never used.
+On 2016?08?31? 18:59, Gechangwei wrote:
+Hi,
 
-Signed-off-by: Jun Piao <piaojun@huawei.com>
----
- fs/ocfs2/aops.c | 7 +++----
- fs/ocfs2/aops.h | 3 +--
- fs/ocfs2/mmap.c | 3 +--
- 3 files changed, 5 insertions(+), 8 deletions(-)
+I am asking for your help on OCFS2 again.
 
-diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-index c5c5b97..9a88984 100644
---- a/fs/ocfs2/aops.c
-+++ b/fs/ocfs2/aops.c
-@@ -1950,8 +1950,7 @@ static void ocfs2_write_end_inline(struct inode *inode, loff_t pos,
- }
- 
- int ocfs2_write_end_nolock(struct address_space *mapping,
--			   loff_t pos, unsigned len, unsigned copied,
--			   struct page *page, void *fsdata)
-+			   loff_t pos, unsigned len, unsigned copied, void *fsdata)
- {
- 	int i, ret;
- 	unsigned from, to, start = pos & (PAGE_SIZE - 1);
-@@ -2064,7 +2063,7 @@ static int ocfs2_write_end(struct file *file, struct address_space *mapping,
- 	int ret;
- 	struct inode *inode = mapping->host;
- 
--	ret = ocfs2_write_end_nolock(mapping, pos, len, copied, page, fsdata);
-+	ret = ocfs2_write_end_nolock(mapping, pos, len, copied, fsdata);
- 
- 	up_write(&OCFS2_I(inode)->ip_alloc_sem);
- 	ocfs2_inode_unlock(inode, 1);
-@@ -2241,7 +2240,7 @@ static int ocfs2_dio_get_block(struct inode *inode, sector_t iblock,
- 		dwc->dw_zero_count++;
- 	}
- 
--	ret = ocfs2_write_end_nolock(inode->i_mapping, pos, len, len, NULL, wc);
-+	ret = ocfs2_write_end_nolock(inode->i_mapping, pos, len, len, wc);
- 	BUG_ON(ret != len);
- 	ret = 0;
- unlock:
-diff --git a/fs/ocfs2/aops.h b/fs/ocfs2/aops.h
-index b1c9f28..8614ff0 100644
---- a/fs/ocfs2/aops.h
-+++ b/fs/ocfs2/aops.h
-@@ -44,8 +44,7 @@ int walk_page_buffers(	handle_t *handle,
- 					struct buffer_head *bh));
- 
- int ocfs2_write_end_nolock(struct address_space *mapping,
--			   loff_t pos, unsigned len, unsigned copied,
--			   struct page *page, void *fsdata);
-+			   loff_t pos, unsigned len, unsigned copied, void *fsdata);
- 
- typedef enum {
- 	OCFS2_WRITE_BUFFER = 0,
-diff --git a/fs/ocfs2/mmap.c b/fs/ocfs2/mmap.c
-index 71545ad..4290887 100644
---- a/fs/ocfs2/mmap.c
-+++ b/fs/ocfs2/mmap.c
-@@ -120,8 +120,7 @@ static int __ocfs2_page_mkwrite(struct file *file, struct buffer_head *di_bh,
- 		ret = VM_FAULT_NOPAGE;
- 		goto out;
- 	}
--	ret = ocfs2_write_end_nolock(mapping, pos, len, len, locked_page,
--				     fsdata);
-+	ret = ocfs2_write_end_nolock(mapping, pos, len, len, fsdata);
- 	BUG_ON(ret != len);
- 	ret = VM_FAULT_LOCKED;
- out:
--- 
-1.9.5.msysgit.1
+I can?t figure out a segment of code.
+
+In the function dlm_register_domain which is called during mount procedure, below code stays:
+
+         dlm = __dlm_lookup_domain(domain);
+         if (dlm) {
+                   if (dlm->dlm_state != DLM_CTXT_JOINED) {
+                            spin_unlock(&dlm_domain_lock);
+
+                            mlog(ML_ERROR, "fence: dlm(%s) is not joined yet.\n", dlm->name);
+
+                            mlog(0, "This ctxt is not joined yet!\n");
+                            wait_event_interruptible(dlm_domain_events,
+                                                        dlm_wait_on_domain_helper(
+                                                                 domain));
+                            goto retry;
+                   }
+
+I can see that it wants to look up an existed DLM context object which matches file system?s UUID.
+
+According to my comprehension, DLM context object must be detached from the DLM domain?s list and released when dismount.
+
+So it?s weird that such a DLM context object can be found at the procedure of MOUNT.
+
+Could you please provide a clue for me, if convenient?
+ how are u
+Many thanks!
+
+BR.
+
+Changwei.
+
+-------------------------------------------------------------------------------------------------------------------------------------
+????????????????????????????????????????
+????????????????????????????????????????
+????????????????????????????????????????
+???
+This e-mail and its attachments contain confidential information from H3C, which is
+intended only for the person or entity whose address is listed above. Any use of the
+information contained herein in any way (including, but not limited to, total or partial
+disclosure, reproduction, or dissemination) by persons other than the intended
+recipient(s) is prohibited. If you receive this e-mail in error, please notify the sender
+by phone or email immediately and delete it!
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20161119/8c86b03a/attachment-0001.html 
