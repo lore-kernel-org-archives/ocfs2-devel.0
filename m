@@ -1,67 +1,56 @@
-From: Jan Kara <jack@suse.cz>
-Date: Thu, 24 Nov 2016 09:12:41 +0100
-Subject: [Ocfs2-devel] [PATCH 6/7] ocfs2: Use s_umount for quota recovery
-	protection
-In-Reply-To: <1479975162-24060-1-git-send-email-jack@suse.cz>
-References: <1479975162-24060-1-git-send-email-jack@suse.cz>
-Message-ID: <1479975162-24060-7-git-send-email-jack@suse.cz>
+From: kbuild test robot <lkp@intel.com>
+Date: Thu, 24 Nov 2016 19:49:57 +0800
+Subject: [Ocfs2-devel] [PATCH 2/7] quota: Hold s_umount in exclusive
+ mode when enabling / disabling quotas
+In-Reply-To: <1479975162-24060-3-git-send-email-jack@suse.cz>
+Message-ID: <201611241901.TEDfFV02%fengguang.wu@intel.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: linux-fsdevel@vger.kernel.org
-Cc: Al Viro <viro@ZenIV.linux.org.uk>, mfasheh@versity.com, jlbec@evilplan.org, ocfs2-devel@oss.oracle.com, Jan Kara <jack@suse.cz>
+To: ocfs2-devel@oss.oracle.com
 
-Currently we use dqonoff_mutex to serialize quota recovery protection
-and turning of quotas on / off. Use s_umount semaphore instead.
+Hi Jan,
 
-Signed-off-by: Jan Kara <jack@suse.cz>
+[auto build test ERROR on linus/master]
+[also build test ERROR on v4.9-rc6 next-20161124]
+[if your patch is applied to the wrong git tree, please drop us a note to help improve the system]
+
+url:    https://github.com/0day-ci/linux/commits/Jan-Kara/fs-Provide-function-to-get-superblock-with-exclusive-s_umount/20161124-192840
+config: x86_64-randconfig-x013-201647 (attached as .config)
+compiler: gcc-6 (Debian 6.2.0-3) 6.2.0 20160901
+reproduce:
+        # save the attached .config to linux build tree
+        make ARCH=x86_64 
+
+All errors (new ones prefixed by >>):
+
+   fs/quota/quota.c: In function 'SYSC_quotactl':
+>> fs/quota/quota.c:883:7: error: implicit declaration of function 'quotactl_cmd_onoff' [-Werror=implicit-function-declaration]
+     if (!quotactl_cmd_onoff(cmds))
+          ^~~~~~~~~~~~~~~~~~
+   cc1: some warnings being treated as errors
+
+vim +/quotactl_cmd_onoff +883 fs/quota/quota.c
+
+   877			ret = PTR_ERR(sb);
+   878			goto out;
+   879		}
+   880	
+   881		ret = do_quotactl(sb, type, cmds, id, addr, pathp);
+   882	
+ > 883		if (!quotactl_cmd_onoff(cmds))
+   884			drop_super(sb);
+   885		else
+   886			drop_super_exclusive(sb);
+
 ---
- fs/ocfs2/quota_local.c | 11 +++++++----
- 1 file changed, 7 insertions(+), 4 deletions(-)
-
-diff --git a/fs/ocfs2/quota_local.c b/fs/ocfs2/quota_local.c
-index 8a54fd8a4fa5..32c5a40c1257 100644
---- a/fs/ocfs2/quota_local.c
-+++ b/fs/ocfs2/quota_local.c
-@@ -454,7 +454,7 @@ struct ocfs2_quota_recovery *ocfs2_begin_quota_recovery(
- /* Sync changes in local quota file into global quota file and
-  * reinitialize local quota file.
-  * The function expects local quota file to be already locked and
-- * dqonoff_mutex locked. */
-+ * s_umount locked in shared mode. */
- static int ocfs2_recover_local_quota_file(struct inode *lqinode,
- 					  int type,
- 					  struct ocfs2_quota_recovery *rec)
-@@ -597,7 +597,7 @@ int ocfs2_finish_quota_recovery(struct ocfs2_super *osb,
- 	printk(KERN_NOTICE "ocfs2: Finishing quota recovery on device (%s) for "
- 	       "slot %u\n", osb->dev_str, slot_num);
- 
--	mutex_lock(&sb_dqopt(sb)->dqonoff_mutex);
-+	down_read(&sb->s_umount);
- 	for (type = 0; type < OCFS2_MAXQUOTAS; type++) {
- 		if (list_empty(&(rec->r_list[type])))
- 			continue;
-@@ -674,7 +674,7 @@ int ocfs2_finish_quota_recovery(struct ocfs2_super *osb,
- 			break;
- 	}
- out:
--	mutex_unlock(&sb_dqopt(sb)->dqonoff_mutex);
-+	up_read(&sb->s_umount);
- 	kfree(rec);
- 	return status;
- }
-@@ -840,7 +840,10 @@ static int ocfs2_local_free_info(struct super_block *sb, int type)
- 	}
- 	ocfs2_release_local_quota_bitmaps(&oinfo->dqi_chunk);
- 
--	/* dqonoff_mutex protects us against racing with recovery thread... */
-+	/*
-+	 * s_umount held in exclusive mode protects us against racing with
-+	 * recovery thread...
-+	 */
- 	if (oinfo->dqi_rec) {
- 		ocfs2_free_quota_recovery(oinfo->dqi_rec);
- 		mark_clean = 0;
--- 
-2.6.6
+0-DAY kernel test infrastructure                Open Source Technology Center
+https://lists.01.org/pipermail/kbuild-all                   Intel Corporation
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: .config.gz
+Type: application/gzip
+Size: 26410 bytes
+Desc: not available
+Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20161124/238f6683/attachment-0001.bin 
