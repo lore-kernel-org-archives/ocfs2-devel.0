@@ -1,99 +1,106 @@
-From: Eric Ren <zren@suse.com>
-Date: Mon, 28 Nov 2016 17:39:12 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Optimization of code while free
- dead locks, changed for reviews.
-In-Reply-To: <71604351584F6A4EBAE558C676F37CA4C4AE05D3@H3CMLB12-EX.srv.huawei-3com.com>
-References: <71604351584F6A4EBAE558C676F37CA4C4AE05D3@H3CMLB12-EX.srv.huawei-3com.com>
-Message-ID: <5e579d8a-4c69-0e25-d8ed-fabad3a1e3d0@suse.com>
+From: Darrick J. Wong <darrick.wong@oracle.com>
+Date: Mon, 28 Nov 2016 10:24:20 -0800
+Subject: [Ocfs2-devel] [PATCH 6/7] ocfs2: implement the VFS clone_range,
+ copy_range, and dedupe_range features
+In-Reply-To: <20161125081822.GB22465@infradead.org>
+References: <147987576127.2678.7138661302696363830.stgit@birch.djwong.org>
+	<147987580233.2678.3884516221182271613.stgit@birch.djwong.org>
+	<20161125081822.GB22465@infradead.org>
+Message-ID: <20161128182420.GH16807@birch.djwong.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Christoph Hellwig <hch@infradead.org>
+Cc: mfasheh@versity.com, jlbec@evilplan.org, linux-fsdevel@vger.kernel.org, darwin.xupt@gmail.com, zren@suse.com, ocfs2-devel@oss.oracle.com
 
-Hi,
+On Fri, Nov 25, 2016 at 12:18:22AM -0800, Christoph Hellwig wrote:
+> > +static ssize_t ocfs2_file_copy_range(struct file *file_in,
+> > +				     loff_t pos_in,
+> > +				     struct file *file_out,
+> > +				     loff_t pos_out,
+> > +				     size_t len,
+> > +				     unsigned int flags)
+> > +{
+> > +	int error;
+> > +
+> > +	error = ocfs2_reflink_remap_range(file_in, pos_in, file_out, pos_out,
+> > +					  len, false);
+> > +	if (error)
+> > +		return error;
+> > +	return len;
+> > +}
+> 
+> Meh, another dummy copy_range implementation, they now officially
+> outnumber the real ones.  I've had a patch to move this shim to common
+> code forever, but the complete lack of copy_range testing kept me from
+> sending it.  I guess I should finally bite the bullet and we should move
+> it to the front of your series.
 
-I am tired telling you things about patch format... won't do any response until you really 
-model after
-a correct patch.
+Yeah.  Once ocfs2 gets its implementation it'll be time to clean up a
+few things, starting with your patch, moving on to inode_reflink_ok and
+making a common "check the pages of these two files" helper for
+xfs/ocfs2 dedupe.
 
-Eric
+(I'm not sure why btrfs reads in the entire data range of both files,
+locks the extents, does the compare, shares the extents, and only then
+releases the locks and then the pages.  I'd probably just leave it
+alone.)
 
-On 11/28/2016 05:05 PM, Guozhonghua wrote:
-> Changed the free order and code styles with reviews. Based on Linux-4.9-rc6. Thanks.
->
-> Signed-off-by: guozhonghua <guozhonghua@h3c.com>
->
-> diff -uprN ocfs2.orig/dlm/dlmrecovery.c ocfs2/dlm/dlmrecovery.c
-> --- ocfs2.orig/dlm/dlmrecovery.c        2016-11-28 16:26:45.890934481 +0800
-> +++ ocfs2/dlm/dlmrecovery.c     2016-11-28 16:32:04.982940629 +0800
-> @@ -2268,6 +2268,9 @@ static void dlm_free_dead_locks(struct d
->   {
->          struct dlm_lock *lock, *next;
->          unsigned int freed = 0;
-> +       struct list_head *queue = NULL;
-> +       int i;
-> +
->
->          /* this node is the lockres master:
->           * 1) remove any stale locks for the dead node
-> @@ -2280,33 +2283,19 @@ static void dlm_free_dead_locks(struct d
->           * to force the DLM_UNLOCK_FREE_LOCK action so as to free the locks */
->
->          /* TODO: check pending_asts, pending_basts here */
-> -       list_for_each_entry_safe(lock, next, &res->granted, list) {
-> -               if (lock->ml.node == dead_node) {
-> -                       list_del_init(&lock->list);
-> -                       dlm_lock_put(lock);
-> -                       /* Can't schedule DLM_UNLOCK_FREE_LOCK - do manually */
-> -                       dlm_lock_put(lock);
-> -                       freed++;
-> -               }
-> -       }
-> -       list_for_each_entry_safe(lock, next, &res->converting, list) {
-> -               if (lock->ml.node == dead_node) {
-> -                       list_del_init(&lock->list);
-> -                       dlm_lock_put(lock);
-> -                       /* Can't schedule DLM_UNLOCK_FREE_LOCK - do manually */
-> -                       dlm_lock_put(lock);
-> -                       freed++;
-> -               }
-> -       }
-> -       list_for_each_entry_safe(lock, next, &res->blocked, list) {
-> -               if (lock->ml.node == dead_node) {
-> -                       list_del_init(&lock->list);
-> -                       dlm_lock_put(lock);
-> -                       /* Can't schedule DLM_UNLOCK_FREE_LOCK - do manually */
-> -                       dlm_lock_put(lock);
-> -                       freed++;
-> -               }
-> -       }
-> +       for (i = DLM_GRANTED_LIST; i <= DLM_BLOCKED_LIST; i++) {
-> +               queue = dlm_list_idx_to_ptr(res, i);
-> +               list_for_each_entry_safe(lock, next, queue, list) {
-> +                       if (lock->ml.node == dead_node) {
-> +                               list_del_init(&lock->list);
-> +                               dlm_lock_put(lock);
-> +
-> +                               /* Can't schedule DLM_UNLOCK_FREE_LOCK
-> +                                * - do manually
-> +                                */
-> +                               dlm_lock_put(lock);
-> +                               freed++;
-> +                       }
-> +               }
-> +       }
->
->          if (freed) {
->                  mlog(0, "%s:%.*s: freed %u locks for dead node %u, "
-> -------------------------------------------------------------------------------------------------------------------------------------
-> ????????????????????????????????????????
-> ????????????????????????????????????????
-> ????????????????????????????????????????
-> ???
-> This e-mail and its attachments contain confidential information from H3C, which is
-> intended only for the person or entity whose address is listed above. Any use of the
-> information contained herein in any way (including, but not limited to, total or partial
-> disclosure, reproduction, or dissemination) by persons other than the intended
-> recipient(s) is prohibited. If you receive this e-mail in error, please notify the sender
-> by phone or email immediately and delete it!
+> > +/* Lock an inode and grab a bh pointing to the inode. */
+> > +static int ocfs2_reflink_inodes_lock(struct inode *s_inode,
+> > +				     struct buffer_head **bh1,
+> > +				     struct inode *t_inode,
+> > +				     struct buffer_head **bh2)
+> > +{
+> > +	struct inode *inode1;
+> > +	struct inode *inode2;
+> > +	struct ocfs2_inode_info *oi1;
+> > +	struct ocfs2_inode_info *oi2;
+> > +	bool same_inode = (s_inode == t_inode);
+> > +	int status;
+> > +
+> > +	/* First grab the VFS and rw locks. */
+> > +	inode1 = s_inode;
+> > +	inode2 = t_inode;
+> > +	if (inode1->i_ino > inode2->i_ino)
+> > +		swap(inode1, inode2);
+> > +
+> > +	inode_lock(inode1);
+> 
+> For the VFS inode lock this should use lock_two_nondirectories.
+
+OK.
+
+> > +	ret = -ETXTBSY;
+> > +	if (IS_SWAPFILE(inode_in) || IS_SWAPFILE(inode_out))
+> > +		goto out_unlock;
+> > +
+> > +	/* Don't reflink dirs, pipes, sockets... */
+> > +	ret = -EISDIR;
+> > +	if (S_ISDIR(inode_in->i_mode) || S_ISDIR(inode_out->i_mode))
+> > +		goto out_unlock;
+> > +	ret = -EINVAL;
+> > +	if (S_ISFIFO(inode_in->i_mode) || S_ISFIFO(inode_out->i_mode))
+> > +		goto out_unlock;
+> > +	if (!S_ISREG(inode_in->i_mode) || !S_ISREG(inode_out->i_mode))
+> > +		goto out_unlock;
+> > +
+> > +	/* Are we going all the way to the end? */
+> > +	isize = i_size_read(inode_in);
+> > +	if (isize == 0) {
+> 
+> It seems like most of this should be factored into a
+> inode_reflink_ok() helper so that it can be shared between
+> implementations.  Or maybe even inode_prepare_reflink if we can
+> move the pagecache flushing and extent compare for the clone case
+> into it as well.
+
+<nod>
+
+--D
+
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-fsdevel" in
+> the body of a message to majordomo at vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
