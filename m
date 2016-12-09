@@ -1,45 +1,46 @@
 From: Darrick J. Wong <darrick.wong@oracle.com>
-Date: Thu, 01 Dec 2016 16:55:14 -0800
-Subject: [Ocfs2-devel] [PATCH 8/8] ocfs2: charge quota for reflinked blocks
+Date: Thu, 8 Dec 2016 23:32:13 -0800
+Subject: [Ocfs2-devel] [PATCH v3 0/8] ocfs2: wire up {clone, copy,
+	dedupe}_range
 In-Reply-To: <148064006267.14039.3248903225701175868.stgit@birch.djwong.org>
 References: <148064006267.14039.3248903225701175868.stgit@birch.djwong.org>
-Message-ID: <148064011424.14039.9933990570615486837.stgit@birch.djwong.org>
+Message-ID: <20161209073213.GK16807@birch.djwong.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: mfasheh@versity.com, akpm@linux-foundation.org, jlbec@evilplan.org, darrick.wong@oracle.com
+To: mfasheh@versity.com, akpm@linux-foundation.org, jlbec@evilplan.org
 Cc: linux-fsdevel@vger.kernel.org, hch@infradead.org, ocfs2-devel@oss.oracle.com
 
-When ocfs2 shares blocks from one file to another, it's necessary to
-charge that many blocks to the quota because ocfs2 tallies block charges
-according to the number of blocks mapped, not the number of physical
-blocks used.
+On Thu, Dec 01, 2016 at 04:54:22PM -0800, Darrick J. Wong wrote:
+> Hi all,
+> 
+> This is the third submission of a series of patches that wire up the
+> existing ocfs2 reflinking capabilities to the new(ish) VFS
+> {copy,clone,dedupe}_range interface.  The first few patches clean up
+> some minor bugs that I found; the last kernel patch contains the new
+> code.  The last patch is a new; it fixes a quota accounting bug.
+> 
+> A few minor fixes to xfstests are needed to make more of the tests run;
+> those have been sent separately to the fstests lists.  Some of the
+> xfstests will fail because ocfs2's design does not allow sharing of
+> blocks between disjoint sets of files with shared blocks.  That is to
+> say, if A shares with B and C shares with D, B and C cannot be made to
+> share blocks.
+> 
+> Andrew, could you please queue these up for testing?  I'd like to get
+> them into 4.10 if possible.
 
-Without this patch, reflinking X blocks and then CoWing all of them
-causes quota usage to *decrease* by X as seen in generic/305.
+It's been a week and nobody's written in any objections.  Andrew, could
+this go into linux-next for some soak time?
 
-Signed-off-by: Darrick J. Wong <darrick.wong@oracle.com>
----
- fs/ocfs2/refcounttree.c |    7 +++++++
- 1 file changed, 7 insertions(+)
+--D
 
-
-diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
-index 57297ce..33555d58 100644
---- a/fs/ocfs2/refcounttree.c
-+++ b/fs/ocfs2/refcounttree.c
-@@ -3934,6 +3934,13 @@ static int ocfs2_add_refcounted_extent(struct inode *inode,
- 	ret = ocfs2_increase_refcount(handle, ref_ci, ref_root_bh,
- 				      p_cluster, num_clusters,
- 				      meta_ac, dealloc);
-+	if (ret) {
-+		mlog_errno(ret);
-+		goto out_commit;
-+	}
-+
-+	ret = dquot_alloc_space_nodirty(inode,
-+		ocfs2_clusters_to_bytes(osb->sb, num_clusters));
- 	if (ret)
- 		mlog_errno(ret);
- 
+> 
+> --D
+> 
+> [1] https://github.com/djwong/linux/tree/ocfs2-vfs-reflink-4
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-fsdevel" in
+> the body of a message to majordomo at vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
