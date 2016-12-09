@@ -1,13 +1,14 @@
 From: Eric Ren <zren@suse.com>
-Date: Fri,  9 Dec 2016 17:24:35 +0800
+Date: Fri,  9 Dec 2016 17:30:46 +0800
 Subject: [Ocfs2-devel] [PATCH] ocfs2: fix crash caused by stale lvb with
 	fsdlm plugin
-Message-ID: <1481275475-6429-1-git-send-email-zren@suse.com>
+Message-ID: <1481275846-6604-1-git-send-email-zren@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
+Cc: akpm@linux-foundation.org, mfasheh@versity.com, jlbec@evilplan.org, teigland@redhat.com, ghe@suse.com, junxiao.bi@oracle.com, jiangqi903@gmail.com, zren@suse.com, linux-kernel@vger.kernel.org
 
 The crash happens rather often when we reset some cluster
 nodes while nodes contend fiercely to do truncate and append.
