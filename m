@@ -1,7 +1,10 @@
 From: Darrick J. Wong <darrick.wong@oracle.com>
-Date: Sun, 11 Dec 2016 13:52:45 -0800
-Subject: [Ocfs2-devel] [PATCH 0/7] xfstests: misc reflink test fixes
-Message-ID: <148149316504.31093.16129068344227450710.stgit@birch.djwong.org>
+Date: Sun, 11 Dec 2016 13:52:51 -0800
+Subject: [Ocfs2-devel] [PATCH 1/7] ocfs2: test reflinking to inline data
+	files
+In-Reply-To: <148149316504.31093.16129068344227450710.stgit@birch.djwong.org>
+References: <148149316504.31093.16129068344227450710.stgit@birch.djwong.org>
+Message-ID: <148149317133.31093.439907074888693999.stgit@birch.djwong.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -9,19 +12,179 @@ Content-Transfer-Encoding: 7bit
 To: eguan@redhat.com, darrick.wong@oracle.com
 Cc: ocfs2-devel@oss.oracle.com, fstests@vger.kernel.org
 
-Hi all,
+Make sure that we can handle reflinking from and to inline-data files.
 
-The following patchset enable the use of xfstests to test reflink
-functionality under ocfs2.  The first patch tests the ability to reflink
-into and out of inline-data files on ocfs2.  Patches 2-6 fix various
-problems with the tests that came up when qualifying ocfs2.
+Signed-off-by: Darrick J. Wong <darrick.wong@oracle.com>
+---
+ common/reflink       |    2 +
+ tests/ocfs2/001      |   88 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ tests/ocfs2/001.out  |   14 ++++++++
+ tests/ocfs2/Makefile |   20 +++++++++++
+ tests/ocfs2/group    |    1 +
+ 5 files changed, 124 insertions(+), 1 deletion(-)
+ create mode 100755 tests/ocfs2/001
+ create mode 100644 tests/ocfs2/001.out
+ create mode 100644 tests/ocfs2/Makefile
+ create mode 100644 tests/ocfs2/group
 
-The last patch maliciously corrupts ext4 and xfs filesystems to
-exploit nonexistent checking of i_size in order to coerce Linux into
-loading a file with negative size.  It then exploits integer overflows
-in the VFS writeback code to hard lock the kernel.  Don't run the tests
-in this patch ({ext4,xfs}/40[01]) unless you have a fixed kernel (4.10?)
 
-Comments and questions are, as always, welcome.
-
---D
+diff --git a/common/reflink b/common/reflink
+index 9d51729..d048045 100644
+--- a/common/reflink
++++ b/common/reflink
+@@ -197,7 +197,7 @@ _cp_reflink() {
+ 	file1="$1"
+ 	file2="$2"
+ 
+-	cp --reflink=always -p "$file1" "$file2"
++	cp --reflink=always -p -f "$file1" "$file2"
+ }
+ 
+ # Reflink some file1 into file2
+diff --git a/tests/ocfs2/001 b/tests/ocfs2/001
+new file mode 100755
+index 0000000..afb9ce9
+--- /dev/null
++++ b/tests/ocfs2/001
+@@ -0,0 +1,88 @@
++#! /bin/bash
++# FS QA Test No. 001
++#
++# Ensure that reflink works correctly with inline-data files.
++#
++#-----------------------------------------------------------------------
++# Copyright (c) 2016, Oracle and/or its affiliates.  All Rights Reserved.
++#
++# This program is free software; you can redistribute it and/or
++# modify it under the terms of the GNU General Public License as
++# published by the Free Software Foundation.
++#
++# This program is distributed in the hope that it would be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU General Public License for more details.
++#
++# You should have received a copy of the GNU General Public License
++# along with this program; if not, write the Free Software Foundation,
++# Inc.,  51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
++#-----------------------------------------------------------------------
++
++seq=`basename $0`
++seqres=$RESULT_DIR/$seq
++echo "QA output created by $seq"
++
++here=`pwd`
++tmp=/tmp/$$
++status=1    # failure is the default!
++trap "_cleanup; exit \$status" 0 1 2 3 15
++
++_cleanup()
++{
++    cd /
++    rm -rf $tmp.*
++}
++
++# get standard environment, filters and checks
++. ./common/rc
++. ./common/filter
++. ./common/reflink
++
++# real QA test starts here
++_supported_os Linux
++_supported_fs ocfs2
++_require_scratch_reflink
++_require_cp_reflink
++
++rm -f $seqres.full
++
++echo "Format and mount"
++_scratch_mkfs --fs-features=local,unwritten,refcount,inline-data > $seqres.full 2>&1
++tunefs.ocfs2 --query '%H' $SCRATCH_DEV | grep -q 'inline-data' || \
++	_notrun "Inline data is not supported."
++_scratch_mount >> $seqres.full 2>&1
++
++testdir=$SCRATCH_MNT/test-$seq
++mkdir $testdir
++
++sz=65536
++echo "Create the original files"
++$XFS_IO_PROG -f -c "pwrite -S 0x61 -b $sz 0 $sz" $testdir/file1 >> $seqres.full
++echo x > $testdir/file2
++echo x > $testdir/file3
++echo y > $testdir/file4
++$XFS_IO_PROG -f -c "pwrite -S 0x61 -b $sz 0 $sz" $testdir/file5 >> $seqres.full
++echo a > $testdir/file6
++_scratch_cycle_mount
++
++echo "reflink into the start of file2"
++_cp_reflink $testdir/file1 $testdir/file2 >> $seqres.full
++
++echo "reflink past the stuff in file3"
++_reflink_range $testdir/file1 0 $testdir/file3 $sz $sz >> $seqres.full
++
++echo "reflink an inline-data file to a regular one"
++_cp_reflink $testdir/file4 $testdir/file5 >> $seqres.full
++
++echo "reflink an inline-data file to another inline-data file"
++_cp_reflink $testdir/file4 $testdir/file6 >> $seqres.full
++
++echo "Verify the whole mess"
++_scratch_cycle_mount
++md5sum $testdir/file* | _filter_scratch
++
++# success, all done
++status=0
++exit
+diff --git a/tests/ocfs2/001.out b/tests/ocfs2/001.out
+new file mode 100644
+index 0000000..99fa43a
+--- /dev/null
++++ b/tests/ocfs2/001.out
+@@ -0,0 +1,14 @@
++QA output created by 001
++Format and mount
++Create the original files
++reflink into the start of file2
++reflink past the stuff in file3
++reflink an inline-data file to a regular one
++reflink an inline-data file to another inline-data file
++Verify the whole mess
++2d61aa54b58c2e94403fb092c3dbc027  SCRATCH_MNT/test-001/file1
++2d61aa54b58c2e94403fb092c3dbc027  SCRATCH_MNT/test-001/file2
++4e68a2e24b6b0f386ab39d01d902293d  SCRATCH_MNT/test-001/file3
++009520053b00386d1173f3988c55d192  SCRATCH_MNT/test-001/file4
++009520053b00386d1173f3988c55d192  SCRATCH_MNT/test-001/file5
++009520053b00386d1173f3988c55d192  SCRATCH_MNT/test-001/file6
+diff --git a/tests/ocfs2/Makefile b/tests/ocfs2/Makefile
+new file mode 100644
+index 0000000..70a4f16
+--- /dev/null
++++ b/tests/ocfs2/Makefile
+@@ -0,0 +1,20 @@
++#
++# Copyright (c) 2016 Oracle.  All Rights Reserved.
++#
++
++TOPDIR = ../..
++include $(TOPDIR)/include/builddefs
++
++OCFS2_DIR = ocfs2
++TARGET_DIR = $(PKG_LIB_DIR)/$(TESTS_DIR)/$(OCFS2_DIR)
++
++include $(BUILDRULES)
++
++install:
++	$(INSTALL) -m 755 -d $(TARGET_DIR)
++	$(INSTALL) -m 755 $(TESTS) $(TARGET_DIR)
++	$(INSTALL) -m 644 group $(TARGET_DIR)
++	$(INSTALL) -m 644 $(OUTFILES) $(TARGET_DIR)
++
++# Nothing.
++install-dev install-lib:
+diff --git a/tests/ocfs2/group b/tests/ocfs2/group
+new file mode 100644
+index 0000000..28e6807
+--- /dev/null
++++ b/tests/ocfs2/group
+@@ -0,0 +1 @@
++001 auto quick clone
