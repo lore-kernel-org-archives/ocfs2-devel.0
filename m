@@ -1,10 +1,10 @@
 From: Darrick J. Wong <darrick.wong@oracle.com>
-Date: Sun, 11 Dec 2016 13:52:51 -0800
-Subject: [Ocfs2-devel] [PATCH 1/7] ocfs2: test reflinking to inline data
-	files
+Date: Sun, 11 Dec 2016 13:52:57 -0800
+Subject: [Ocfs2-devel] [PATCH 2/7] ocfs2/reflink: fix file block size
+	reporting
 In-Reply-To: <148149316504.31093.16129068344227450710.stgit@birch.djwong.org>
 References: <148149316504.31093.16129068344227450710.stgit@birch.djwong.org>
-Message-ID: <148149317133.31093.439907074888693999.stgit@birch.djwong.org>
+Message-ID: <148149317758.31093.14955725683270205488.stgit@birch.djwong.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -12,179 +12,203 @@ Content-Transfer-Encoding: 7bit
 To: eguan@redhat.com, darrick.wong@oracle.com
 Cc: ocfs2-devel@oss.oracle.com, fstests@vger.kernel.org
 
-Make sure that we can handle reflinking from and to inline-data files.
+Some of the reflink tests try to require a specific filesystem block
+size so that they can test file block manipulation functions.  That's
+straightforward for most filesystems but ocfs2 throws in the additional
+twist that data fork block mappings are stored in units of clusters, not
+blocks, which causes these reflink tests to fail.
+
+Therefore, introduce a new helper that retrieves the file minimum block
+size and adapt the reflink tests to use that instead.
 
 Signed-off-by: Darrick J. Wong <darrick.wong@oracle.com>
 ---
- common/reflink       |    2 +
- tests/ocfs2/001      |   88 ++++++++++++++++++++++++++++++++++++++++++++++++++
- tests/ocfs2/001.out  |   14 ++++++++
- tests/ocfs2/Makefile |   20 +++++++++++
- tests/ocfs2/group    |    1 +
- 5 files changed, 124 insertions(+), 1 deletion(-)
- create mode 100755 tests/ocfs2/001
- create mode 100644 tests/ocfs2/001.out
- create mode 100644 tests/ocfs2/Makefile
- create mode 100644 tests/ocfs2/group
+ common/rc         |   21 +++++++++++++++++++--
+ tests/generic/205 |    2 +-
+ tests/generic/206 |    2 +-
+ tests/generic/216 |    2 +-
+ tests/generic/217 |    2 +-
+ tests/generic/218 |    2 +-
+ tests/generic/220 |    2 +-
+ tests/generic/222 |    2 +-
+ tests/generic/227 |    2 +-
+ tests/generic/229 |    2 +-
+ tests/generic/238 |    2 +-
+ 11 files changed, 29 insertions(+), 12 deletions(-)
 
 
-diff --git a/common/reflink b/common/reflink
-index 9d51729..d048045 100644
---- a/common/reflink
-+++ b/common/reflink
-@@ -197,7 +197,7 @@ _cp_reflink() {
- 	file1="$1"
- 	file2="$2"
- 
--	cp --reflink=always -p "$file1" "$file2"
-+	cp --reflink=always -p -f "$file1" "$file2"
+diff --git a/common/rc b/common/rc
+index 2639fbd..30111d4 100644
+--- a/common/rc
++++ b/common/rc
+@@ -925,7 +925,7 @@ _scratch_mkfs_blocksized()
+ 	${MKFS_PROG}.$FSTYP -F $MKFS_OPTIONS -b $blocksize $SCRATCH_DEV
+ 	;;
+     ocfs2)
+-	yes | ${MKFS_PROG}.$FSTYP -F $MKFS_OPTIONS -b $blocksize $SCRATCH_DEV
++	yes | ${MKFS_PROG}.$FSTYP -F $MKFS_OPTIONS -b $blocksize -C $blocksize $SCRATCH_DEV
+ 	;;
+     *)
+ 	_notrun "Filesystem $FSTYP not supported in _scratch_mkfs_blocksized"
+@@ -3029,13 +3029,30 @@ _sysfs_dev()
+ 	echo /sys/dev/block/$_maj:$_min
  }
  
- # Reflink some file1 into file2
-diff --git a/tests/ocfs2/001 b/tests/ocfs2/001
-new file mode 100755
-index 0000000..afb9ce9
---- /dev/null
-+++ b/tests/ocfs2/001
-@@ -0,0 +1,88 @@
-+#! /bin/bash
-+# FS QA Test No. 001
-+#
-+# Ensure that reflink works correctly with inline-data files.
-+#
-+#-----------------------------------------------------------------------
-+# Copyright (c) 2016, Oracle and/or its affiliates.  All Rights Reserved.
-+#
-+# This program is free software; you can redistribute it and/or
-+# modify it under the terms of the GNU General Public License as
-+# published by the Free Software Foundation.
-+#
-+# This program is distributed in the hope that it would be useful,
-+# but WITHOUT ANY WARRANTY; without even the implied warranty of
-+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+# GNU General Public License for more details.
-+#
-+# You should have received a copy of the GNU General Public License
-+# along with this program; if not, write the Free Software Foundation,
-+# Inc.,  51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-+#-----------------------------------------------------------------------
-+
-+seq=`basename $0`
-+seqres=$RESULT_DIR/$seq
-+echo "QA output created by $seq"
-+
-+here=`pwd`
-+tmp=/tmp/$$
-+status=1    # failure is the default!
-+trap "_cleanup; exit \$status" 0 1 2 3 15
-+
-+_cleanup()
++# Get the minimum block size of a file.  Usually this is the
++# minimum fs block size, but some filesystems (ocfs2) do block
++# mappings in larger units.
++get_file_block_size()
 +{
-+    cd /
-+    rm -rf $tmp.*
++	if [ -z $1 ] || [ ! -d $1 ]; then
++		echo "Missing mount point argument for get_file_block_size"
++		exit 1
++	fi
++	if [ "$FSTYP" = "ocfs2" ]; then
++		stat -c '%o' $1
++	else
++		stat -f -c '%S' $1
++	fi
 +}
 +
-+# get standard environment, filters and checks
-+. ./common/rc
-+. ./common/filter
-+. ./common/reflink
-+
-+# real QA test starts here
-+_supported_os Linux
-+_supported_fs ocfs2
-+_require_scratch_reflink
-+_require_cp_reflink
-+
-+rm -f $seqres.full
-+
-+echo "Format and mount"
-+_scratch_mkfs --fs-features=local,unwritten,refcount,inline-data > $seqres.full 2>&1
-+tunefs.ocfs2 --query '%H' $SCRATCH_DEV | grep -q 'inline-data' || \
-+	_notrun "Inline data is not supported."
-+_scratch_mount >> $seqres.full 2>&1
-+
-+testdir=$SCRATCH_MNT/test-$seq
-+mkdir $testdir
-+
-+sz=65536
-+echo "Create the original files"
-+$XFS_IO_PROG -f -c "pwrite -S 0x61 -b $sz 0 $sz" $testdir/file1 >> $seqres.full
-+echo x > $testdir/file2
-+echo x > $testdir/file3
-+echo y > $testdir/file4
-+$XFS_IO_PROG -f -c "pwrite -S 0x61 -b $sz 0 $sz" $testdir/file5 >> $seqres.full
-+echo a > $testdir/file6
-+_scratch_cycle_mount
-+
-+echo "reflink into the start of file2"
-+_cp_reflink $testdir/file1 $testdir/file2 >> $seqres.full
-+
-+echo "reflink past the stuff in file3"
-+_reflink_range $testdir/file1 0 $testdir/file3 $sz $sz >> $seqres.full
-+
-+echo "reflink an inline-data file to a regular one"
-+_cp_reflink $testdir/file4 $testdir/file5 >> $seqres.full
-+
-+echo "reflink an inline-data file to another inline-data file"
-+_cp_reflink $testdir/file4 $testdir/file6 >> $seqres.full
-+
-+echo "Verify the whole mess"
-+_scratch_cycle_mount
-+md5sum $testdir/file* | _filter_scratch
-+
-+# success, all done
-+status=0
-+exit
-diff --git a/tests/ocfs2/001.out b/tests/ocfs2/001.out
-new file mode 100644
-index 0000000..99fa43a
---- /dev/null
-+++ b/tests/ocfs2/001.out
-@@ -0,0 +1,14 @@
-+QA output created by 001
-+Format and mount
-+Create the original files
-+reflink into the start of file2
-+reflink past the stuff in file3
-+reflink an inline-data file to a regular one
-+reflink an inline-data file to another inline-data file
-+Verify the whole mess
-+2d61aa54b58c2e94403fb092c3dbc027  SCRATCH_MNT/test-001/file1
-+2d61aa54b58c2e94403fb092c3dbc027  SCRATCH_MNT/test-001/file2
-+4e68a2e24b6b0f386ab39d01d902293d  SCRATCH_MNT/test-001/file3
-+009520053b00386d1173f3988c55d192  SCRATCH_MNT/test-001/file4
-+009520053b00386d1173f3988c55d192  SCRATCH_MNT/test-001/file5
-+009520053b00386d1173f3988c55d192  SCRATCH_MNT/test-001/file6
-diff --git a/tests/ocfs2/Makefile b/tests/ocfs2/Makefile
-new file mode 100644
-index 0000000..70a4f16
---- /dev/null
-+++ b/tests/ocfs2/Makefile
-@@ -0,0 +1,20 @@
-+#
-+# Copyright (c) 2016 Oracle.  All Rights Reserved.
-+#
-+
-+TOPDIR = ../..
-+include $(TOPDIR)/include/builddefs
-+
-+OCFS2_DIR = ocfs2
-+TARGET_DIR = $(PKG_LIB_DIR)/$(TESTS_DIR)/$(OCFS2_DIR)
-+
-+include $(BUILDRULES)
-+
-+install:
-+	$(INSTALL) -m 755 -d $(TARGET_DIR)
-+	$(INSTALL) -m 755 $(TESTS) $(TARGET_DIR)
-+	$(INSTALL) -m 644 group $(TARGET_DIR)
-+	$(INSTALL) -m 644 $(OUTFILES) $(TARGET_DIR)
-+
-+# Nothing.
-+install-dev install-lib:
-diff --git a/tests/ocfs2/group b/tests/ocfs2/group
-new file mode 100644
-index 0000000..28e6807
---- /dev/null
-+++ b/tests/ocfs2/group
-@@ -0,0 +1 @@
-+001 auto quick clone
++# Get the minimum block size of an fs.
+ get_block_size()
+ {
+ 	if [ -z $1 ] || [ ! -d $1 ]; then
+ 		echo "Missing mount point argument for get_block_size"
+ 		exit 1
+ 	fi
+-	echo `stat -f -c %S $1`
++	stat -f -c %S $1
+ }
+ 
+ get_page_size()
+diff --git a/tests/generic/205 b/tests/generic/205
+index cfda8c3..7889ca4 100755
+--- a/tests/generic/205
++++ b/tests/generic/205
+@@ -60,7 +60,7 @@ _scratch_mount >> $seqres.full 2>&1
+ testdir=$SCRATCH_MNT/test-$seq
+ mkdir $testdir
+ 
+-real_blksz=$(get_block_size $testdir)
++real_blksz=$(get_file_block_size $testdir)
+ test $real_blksz != $blksz && _notrun "Failed to format with small blocksize."
+ 
+ echo "Create the original files"
+diff --git a/tests/generic/206 b/tests/generic/206
+index 909956f..f82e146 100755
+--- a/tests/generic/206
++++ b/tests/generic/206
+@@ -61,7 +61,7 @@ _scratch_mount >> $seqres.full 2>&1
+ testdir=$SCRATCH_MNT/test-$seq
+ mkdir $testdir
+ 
+-real_blksz=$(get_block_size $testdir)
++real_blksz=$(get_file_block_size $testdir)
+ test $real_blksz != $blksz && _notrun "Failed to format with small blocksize."
+ 
+ echo "Create the original files"
+diff --git a/tests/generic/216 b/tests/generic/216
+index d9b868a..cbff75f 100755
+--- a/tests/generic/216
++++ b/tests/generic/216
+@@ -61,7 +61,7 @@ _scratch_mount >> $seqres.full 2>&1
+ testdir=$SCRATCH_MNT/test-$seq
+ mkdir $testdir
+ 
+-real_blksz=$(get_block_size $testdir)
++real_blksz=$(get_file_block_size $testdir)
+ test $real_blksz != $blksz && _notrun "Failed to format with small blocksize."
+ 
+ echo "Create the original files"
+diff --git a/tests/generic/217 b/tests/generic/217
+index 65113d9..5f59fd8 100755
+--- a/tests/generic/217
++++ b/tests/generic/217
+@@ -62,7 +62,7 @@ _scratch_mount >> $seqres.full 2>&1
+ testdir=$SCRATCH_MNT/test-$seq
+ mkdir $testdir
+ 
+-real_blksz=$(get_block_size $testdir)
++real_blksz=$(get_file_block_size $testdir)
+ test $real_blksz != $blksz && _notrun "Failed to format with small blocksize."
+ 
+ echo "Create the original files"
+diff --git a/tests/generic/218 b/tests/generic/218
+index 21029ef..bdce367 100755
+--- a/tests/generic/218
++++ b/tests/generic/218
+@@ -61,7 +61,7 @@ _scratch_mount >> $seqres.full 2>&1
+ testdir=$SCRATCH_MNT/test-$seq
+ mkdir $testdir
+ 
+-real_blksz=$(get_block_size $testdir)
++real_blksz=$(get_file_block_size $testdir)
+ test $real_blksz != $blksz && _notrun "Failed to format with small blocksize."
+ 
+ echo "Create the original files"
+diff --git a/tests/generic/220 b/tests/generic/220
+index c54bf06..29d2f04 100755
+--- a/tests/generic/220
++++ b/tests/generic/220
+@@ -62,7 +62,7 @@ _scratch_mount >> $seqres.full 2>&1
+ testdir=$SCRATCH_MNT/test-$seq
+ mkdir $testdir
+ 
+-real_blksz=$(get_block_size $testdir)
++real_blksz=$(get_file_block_size $testdir)
+ test $real_blksz != $blksz && _notrun "Failed to format with small blocksize."
+ 
+ echo "Create the original files"
+diff --git a/tests/generic/222 b/tests/generic/222
+index d7ee57e..3052a22 100755
+--- a/tests/generic/222
++++ b/tests/generic/222
+@@ -61,7 +61,7 @@ _scratch_mount >> $seqres.full 2>&1
+ testdir=$SCRATCH_MNT/test-$seq
+ mkdir $testdir
+ 
+-real_blksz=$(get_block_size $testdir)
++real_blksz=$(get_file_block_size $testdir)
+ test $real_blksz != $blksz && _notrun "Failed to format with small blocksize."
+ 
+ echo "Create the original files"
+diff --git a/tests/generic/227 b/tests/generic/227
+index fa6a33e..18441cf 100755
+--- a/tests/generic/227
++++ b/tests/generic/227
+@@ -62,7 +62,7 @@ _scratch_mount >> $seqres.full 2>&1
+ testdir=$SCRATCH_MNT/test-$seq
+ mkdir $testdir
+ 
+-real_blksz=$(get_block_size $testdir)
++real_blksz=$(get_file_block_size $testdir)
+ test $real_blksz != $blksz && _notrun "Failed to format with small blocksize."
+ 
+ echo "Create the original files"
+diff --git a/tests/generic/229 b/tests/generic/229
+index 3e2c6f4..99eb774 100755
+--- a/tests/generic/229
++++ b/tests/generic/229
+@@ -61,7 +61,7 @@ _scratch_mount >> $seqres.full 2>&1
+ testdir=$SCRATCH_MNT/test-$seq
+ mkdir $testdir
+ 
+-real_blksz=$(get_block_size $testdir)
++real_blksz=$(get_file_block_size $testdir)
+ test $real_blksz != $blksz && _notrun "Failed to format with small blocksize."
+ 
+ runtest() {
+diff --git a/tests/generic/238 b/tests/generic/238
+index a2f44e8..5419a30 100755
+--- a/tests/generic/238
++++ b/tests/generic/238
+@@ -62,7 +62,7 @@ _scratch_mount >> $seqres.full 2>&1
+ testdir=$SCRATCH_MNT/test-$seq
+ mkdir $testdir
+ 
+-real_blksz=$(get_block_size $testdir)
++real_blksz=$(get_file_block_size $testdir)
+ test $real_blksz != $blksz && _notrun "Failed to format with small blocksize."
+ 
+ runtest() {
