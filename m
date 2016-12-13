@@ -1,67 +1,40 @@
 From: Eric Ren <zren@suse.com>
-Date: Tue, 13 Dec 2016 13:29:32 +0800
-Subject: [Ocfs2-devel] [PATCH 14/17] Fix openmpi warning by specifying
-	proper slot number
+Date: Tue, 13 Dec 2016 13:29:35 +0800
+Subject: [Ocfs2-devel] [PATCH 17/17] discontig bg: give single and multiple
+	node test different log file name
 In-Reply-To: <1481606975-13186-1-git-send-email-zren@suse.com>
 References: <1481606975-13186-1-git-send-email-zren@suse.com>
-Message-ID: <1481606975-13186-15-git-send-email-zren@suse.com>
+Message-ID: <1481606975-13186-18-git-send-email-zren@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-The warning message as below:
-
-"
-There are not enough slots available in the system to satisfy the 4
-slots
-that were requested by the application:
-  ./xattr-multi-test
-
-  Either request fewer slots for your application, or make more slots
-  available
-  for use.
-"
-
-outputs when specifying a rank number for openmpi more than "mkfs"
-slots.
-
 Signed-off-by: Eric Ren <zren@suse.com>
 ---
- programs/python_common/multiple_run.sh | 6 +++---
- 1 file changed, 3 insertions(+), 3 deletions(-)
+ programs/discontig_bg_test/discontig_runner.sh | 9 +++++++--
+ 1 file changed, 7 insertions(+), 2 deletions(-)
 
-diff --git a/programs/python_common/multiple_run.sh b/programs/python_common/multiple_run.sh
-index 3e52eff..74c3531 100755
---- a/programs/python_common/multiple_run.sh
-+++ b/programs/python_common/multiple_run.sh
-@@ -368,7 +368,7 @@ run_xattr_test()
- 	local logdir=${LOG_DIR}/multi-xattr-test
- 
- 	LogRunMsg "xattr-test"
--	${BINDIR}/xattr-multi-run.sh -r 4 -f ${NODE_LIST} -a ssh -o ${logdir} \
-+	${BINDIR}/xattr-multi-run.sh -r ${SLOTS} -f ${NODE_LIST} -a ssh -o ${logdir} \
- -d ${DEVICE} -b ${BLOCKSIZE} -c ${CLUSTERSIZE} -s ${CLUSTER_STACK} -n ${CLUSTER_NAME} ${MOUNT_POINT} >> ${LOGFILE} 2>&1
- 	LogRC $?
- }
-@@ -378,7 +378,7 @@ run_inline_test()
- 	local logdir=${LOG_DIR}/multi-inline-test
- 
- 	LogRunMsg "inline-test"
--	${BINDIR}/multi-inline-run.sh -r 2 -f ${NODE_LIST} -a ssh -o ${logdir} \
-+	${BINDIR}/multi-inline-run.sh -r ${SLOTS} -f ${NODE_LIST} -a ssh -o ${logdir} \
- -d ${DEVICE} -b ${BLOCKSIZE} -c ${CLUSTERSIZE} -s ${CLUSTER_STACK} -n ${CLUSTER_NAME} ${MOUNT_POINT} >> ${LOGFILE} 2>&1
- 	LogRC $?
- }
-@@ -389,7 +389,7 @@ run_reflink_test()
- 
- 	LogRunMsg "reflink-test"
- 	LogMsg "reflink 'data=ordered' mode test"
--	${BINDIR}/multi_reflink_test_run.sh -r 4 -f ${NODE_LIST} -a ssh -o \
-+	${BINDIR}/multi_reflink_test_run.sh -r ${SLOTS} -f ${NODE_LIST} -a ssh -o \
- ${logdir} -d ${DEVICE} -s ${CLUSTER_STACK} -n ${CLUSTER_NAME} ${MOUNT_POINT} >> ${LOGFILE} 2>&1 || {
- 	RET=$?
- 	LogRC $RET
+diff --git a/programs/discontig_bg_test/discontig_runner.sh b/programs/discontig_bg_test/discontig_runner.sh
+index 182ca3a..f3a69f5 100755
+--- a/programs/discontig_bg_test/discontig_runner.sh
++++ b/programs/discontig_bg_test/discontig_runner.sh
+@@ -164,8 +164,13 @@ function f_setup()
+ 	LOG_DIR=${LOG_DIR:-$DEFAULT_LOG_DIR}
+ 	${MKDIR_BIN} -p ${LOG_DIR} || exit 1
+ 	
+-	RUN_LOG_FILE="`dirname ${LOG_DIR}`/`basename ${LOG_DIR}`/`date +%F-%H-\
+-%M-%S`-discontig-bg-run.log"
++	if [ -n "${MULTI_TEST}" ];then
++		RUN_LOG_FILE="`dirname ${LOG_DIR}`/`basename ${LOG_DIR}`/`date +%F-%H-\
++%M-%S`-discontig-bg-multiple-run.log"
++	else
++		RUN_LOG_FILE="`dirname ${LOG_DIR}`/`basename ${LOG_DIR}`/`date +%F-%H-\
++%M-%S`-discontig-bg-single-run.log"
++	fi
+ 	LOG_FILE="`dirname ${LOG_DIR}`/`basename ${LOG_DIR}`/`date +%F-%H-\
+ %M-%S`-discontig-bg.log"
+         PUNCH_LOG_FILE="`dirname ${LOG_DIR}`/`basename ${LOG_DIR}`/`date +%F-%H-\
 -- 
 2.6.6
