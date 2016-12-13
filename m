@@ -1,130 +1,135 @@
-From: Eric Ren <zren@suse.com>
-Date: Tue, 13 Dec 2016 13:29:34 +0800
-Subject: [Ocfs2-devel] [PATCH 16/17] inline data: fix build error
-In-Reply-To: <1481606975-13186-1-git-send-email-zren@suse.com>
-References: <1481606975-13186-1-git-send-email-zren@suse.com>
-Message-ID: <1481606975-13186-17-git-send-email-zren@suse.com>
+From: Darrick J. Wong <darrick.wong@oracle.com>
+Date: Mon, 12 Dec 2016 23:11:36 -0800
+Subject: [Ocfs2-devel] [PATCH 1/7] ocfs2: test reflinking to inline data
+	files
+In-Reply-To: <20161213032057.GE29149@eguan.usersys.redhat.com>
+References: <148149316504.31093.16129068344227450710.stgit@birch.djwong.org>
+	<148149317133.31093.439907074888693999.stgit@birch.djwong.org>
+	<20161212090120.GV29149@eguan.usersys.redhat.com>
+	<20161212180922.GP8436@birch.djwong.org>
+	<20161213032057.GE29149@eguan.usersys.redhat.com>
+Message-ID: <20161213071136.GB6366@birch.djwong.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Eryu Guan <eguan@redhat.com>
+Cc: ocfs2-devel@oss.oracle.com, fstests@vger.kernel.org
 
-Signed-off-by: Eric Ren <zren@suse.com>
----
- programs/defrag-test/frager.c             | 2 +-
- programs/directio_test/directio_test.c    | 2 +-
- programs/discontig_bg_test/spawn_inodes.c | 2 +-
- programs/dx_dirs_tests/index_dir.c        | 2 +-
- programs/inline-data/inline-data.c        | 2 +-
- programs/inline-data/inline-dirs.c        | 2 +-
- programs/reflink_tests/reflink_test.c     | 2 +-
- programs/xattr_tests/xattr-test.c         | 2 +-
- 8 files changed, 8 insertions(+), 8 deletions(-)
+On Tue, Dec 13, 2016 at 11:20:57AM +0800, Eryu Guan wrote:
+> On Mon, Dec 12, 2016 at 10:09:22AM -0800, Darrick J. Wong wrote:
+> > On Mon, Dec 12, 2016 at 05:01:20PM +0800, Eryu Guan wrote:
+> > > On Sun, Dec 11, 2016 at 01:52:51PM -0800, Darrick J. Wong wrote:
+> > > > Make sure that we can handle reflinking from and to inline-data files.
+> > > > 
+> > > > Signed-off-by: Darrick J. Wong <darrick.wong@oracle.com>
+> > > > ---
+> > > >  common/reflink       |    2 +
+> > > >  tests/ocfs2/001      |   88 ++++++++++++++++++++++++++++++++++++++++++++++++++
+> > > >  tests/ocfs2/001.out  |   14 ++++++++
+> > > >  tests/ocfs2/Makefile |   20 +++++++++++
+> > > >  tests/ocfs2/group    |    1 +
+> > > >  5 files changed, 124 insertions(+), 1 deletion(-)
+> > > >  create mode 100755 tests/ocfs2/001
+> > > >  create mode 100644 tests/ocfs2/001.out
+> > > >  create mode 100644 tests/ocfs2/Makefile
+> > > >  create mode 100644 tests/ocfs2/group
+> > > > 
+> > > > 
+> > > > diff --git a/common/reflink b/common/reflink
+> > > > index 9d51729..d048045 100644
+> > > > --- a/common/reflink
+> > > > +++ b/common/reflink
+> > > > @@ -197,7 +197,7 @@ _cp_reflink() {
+> > > >  	file1="$1"
+> > > >  	file2="$2"
+> > > >  
+> > > > -	cp --reflink=always -p "$file1" "$file2"
+> > > > +	cp --reflink=always -p -f "$file1" "$file2"
+> > > 
+> > > I'm still seeing "File exists" error with this patch, tested with your
+> > > ocfs2-vfs-reflink-6 branch, compiled on openSUSE Tumbleweed.
+> > > 
+> > > FSTYP         -- ocfs2
+> > > PLATFORM      -- Linux/x86_64 bootp-73-5-234 4.9.0-rc8.djwong-ocfs2+
+> > > MKFS_OPTIONS  -- --fs-features=local /dev/sda5
+> > > MOUNT_OPTIONS -- /dev/sda5 /mnt/testarea/scratch
+> > > 
+> > > ocfs2/001        - output mismatch (see /root/xfstests/results//ocfs2/ocfs2/001.out.bad)
+> > >     --- tests/ocfs2/001.out     2016-12-12 13:51:38.053909486 +0800
+> > >     +++ /root/xfstests/results//ocfs2/ocfs2/001.out.bad 2016-12-12 16:49:35.038882697 +0800
+> > >     @@ -1,14 +1,18 @@
+> > >      QA output created by 001
+> > >     +mkfs.ocfs2 1.8.4
+> > 
+> > I guess I'll have to neuter this on newer ocfs2-tools.  (Still running 1.6.4
+> > here).
+> 
+> I have a patch pending on review that could fix & filter this, FYI
+> 
+> fstests: teach _scratch_mkfs to handle mkfs option conflicts
+> https://www.spinics.net/lists/fstests/msg04550.html
 
-diff --git a/programs/defrag-test/frager.c b/programs/defrag-test/frager.c
-index f510dde..473c31c 100755
---- a/programs/defrag-test/frager.c
-+++ b/programs/defrag-test/frager.c
-@@ -86,7 +86,7 @@ static int usage(void)
- static void sigchld_handler()
- {
- 	pid_t   pid;
--	union wait status;
-+	int status;
- 
- 	while (1) {
- 		pid = wait3(&status, WNOHANG, NULL);
-diff --git a/programs/directio_test/directio_test.c b/programs/directio_test/directio_test.c
-index 7ec5278..21bc32c 100755
---- a/programs/directio_test/directio_test.c
-+++ b/programs/directio_test/directio_test.c
-@@ -214,7 +214,7 @@ static int teardown(void)
- static void sigchld_handler()
- {
- 	pid_t pid;
--	union wait status;
-+	int status;
- 
- 	while (1) {
- 		pid = wait3(&status, WNOHANG, NULL);
-diff --git a/programs/discontig_bg_test/spawn_inodes.c b/programs/discontig_bg_test/spawn_inodes.c
-index 6bb7a93..633f0a9 100755
---- a/programs/discontig_bg_test/spawn_inodes.c
-+++ b/programs/discontig_bg_test/spawn_inodes.c
-@@ -64,7 +64,7 @@ static int usage(void)
- static void sigchld_handler()
- {
- 	pid_t   pid;
--	union wait status;
-+	int status;
- 
- 	while (1) {
- 		pid = wait3(&status, WNOHANG, NULL);
-diff --git a/programs/dx_dirs_tests/index_dir.c b/programs/dx_dirs_tests/index_dir.c
-index 75ea8bd..ffdfa0f 100755
---- a/programs/dx_dirs_tests/index_dir.c
-+++ b/programs/dx_dirs_tests/index_dir.c
-@@ -926,7 +926,7 @@ void random_test(void)
- static void sigchld_handler()
- {
-         pid_t pid;
--        union wait status;
-+        int status;
- 
-         while (1) {
-                 pid = wait3(&status, WNOHANG, NULL);
-diff --git a/programs/inline-data/inline-data.c b/programs/inline-data/inline-data.c
-index 13124d7..daaee3c 100644
---- a/programs/inline-data/inline-data.c
-+++ b/programs/inline-data/inline-data.c
-@@ -256,7 +256,7 @@ static int teardown(void)
- static void sigchld_handler()
- {
- 	pid_t pid;
--	union wait status;
-+	int status;
- 
- 	while (1) {
- 		pid = wait3(&status, WNOHANG, NULL);
-diff --git a/programs/inline-data/inline-dirs.c b/programs/inline-data/inline-dirs.c
-index ac7882f..0db24b9 100644
---- a/programs/inline-data/inline-dirs.c
-+++ b/programs/inline-data/inline-dirs.c
-@@ -357,7 +357,7 @@ static void run_large_dir_tests(void)
- static void sigchld_handler()
- {
- 	pid_t pid;
--	union wait status;
-+	int status;
- 
- 	while (1) {
- 		pid = wait3(&status, WNOHANG, NULL);
-diff --git a/programs/reflink_tests/reflink_test.c b/programs/reflink_tests/reflink_test.c
-index 22386db..2801968 100755
---- a/programs/reflink_tests/reflink_test.c
-+++ b/programs/reflink_tests/reflink_test.c
-@@ -965,7 +965,7 @@ static int stress_test()
- static void sigchld_handler()
- {
- 	pid_t pid;
--	union wait status;
-+	int status;
- 
- 	while (1) {
- 		pid = wait3(&status, WNOHANG, NULL);
-diff --git a/programs/xattr_tests/xattr-test.c b/programs/xattr_tests/xattr-test.c
-index d204aba..77be780 100755
---- a/programs/xattr_tests/xattr-test.c
-+++ b/programs/xattr_tests/xattr-test.c
-@@ -301,7 +301,7 @@ static void judge_sys_return(int ret, const char *sys_func)
- static void sigchld_handler()
- {
- 	pid_t	pid;
--	union wait status;
-+	int status;
- 	while (1) {
- 		pid = wait3(&status, WNOHANG, NULL);
- 		if (pid <= 0)
--- 
-2.6.6
+<nod> I actually meant the printing of the mkfs version string.
+
+> 
+> > 
+> > >      Format and mount
+> > >      Create the original files
+> > >      reflink into the start of file2
+> > >     +cp: failed to reflink '/mnt/testarea/scratch/test-001/file2' from '/mnt/testarea/scratch/test-001/file1': File exists
+> > >      reflink past the stuff in file3
+> > >     ...
+> > >     (Run 'diff -u tests/ocfs2/001.out /root/xfstests/results//ocfs2/ocfs2/001.out.bad'  to see the entire diff)
+> > > 
+> > > --- tests/ocfs2/001.out 2016-12-12 13:51:38.053909486 +0800
+> > > +++ /root/xfstests/results//ocfs2/ocfs2/001.out.bad     2016-12-12 16:44:31.991943842 +0800
+> > > @@ -1,14 +1,18 @@
+> > >  QA output created by 001
+> > > +mkfs.ocfs2 1.8.4
+> > >  Format and mount
+> > >  Create the original files
+> > >  reflink into the start of file2
+> > > +cp: failed to reflink '/mnt/testarea/scratch/test-001/file2' from '/mnt/testarea/scratch/test-001/file1': File exists
+> > >  reflink past the stuff in file3
+> > >  reflink an inline-data file to a regular one
+> > > +cp: failed to reflink '/mnt/testarea/scratch/test-001/file5' from '/mnt/testarea/scratch/test-001/file4': File exists
+> > >  reflink an inline-data file to another inline-data file
+> > > +cp: failed to reflink '/mnt/testarea/scratch/test-001/file6' from '/mnt/testarea/scratch/test-001/file4': File exists
+> > >  Verify the whole mess
+> > >  2d61aa54b58c2e94403fb092c3dbc027  SCRATCH_MNT/test-001/file1
+> > > -2d61aa54b58c2e94403fb092c3dbc027  SCRATCH_MNT/test-001/file2
+> > > +401b30e3b8b5d629635a5c613cdb7919  SCRATCH_MNT/test-001/file2
+> > >  4e68a2e24b6b0f386ab39d01d902293d  SCRATCH_MNT/test-001/file3
+> > >  009520053b00386d1173f3988c55d192  SCRATCH_MNT/test-001/file4
+> > > -009520053b00386d1173f3988c55d192  SCRATCH_MNT/test-001/file5
+> > > -009520053b00386d1173f3988c55d192  SCRATCH_MNT/test-001/file6
+> > > +2d61aa54b58c2e94403fb092c3dbc027  SCRATCH_MNT/test-001/file5
+> > > +60b725f10c9c85c70d97880dfe8191b3  SCRATCH_MNT/test-001/file6
+> > > 
+> > > I did the "reflink into the start of file2" test manually, and strace
+> > > showed that it is file1 reports EEXIST.
+> > > 
+> > > open("/mnt/ocfs2/testfile1", O_RDONLY)  = 3
+> > > fstat(3, {st_mode=S_IFREG|0600, st_size=65536, ...}) = 0
+> > > ioctl(3, _IOC(_IOC_WRITE, 0x6f, 0x04, 0x18), 0x7ffc8daf09f0) = -1 EEXIST (File exists)
+> > 
+> > Wait, that's the ocfs2 reflink ioctl, not FICLONE.  Well that explains
+> > why the functional parts of the tests fail.  I looked at latest coreutils
+> > source, which does not use OCFS2_IOC_REFLINK, so I guess this must be an
+> > opensuse thing?
+> 
+> Ok, I'll try a newer coreutils.
+
+coreutils 8.26 (latest) doesn't have any OCFS2_IOC_REFLINK support; I
+suspect a distro patch in the srpm or something....
+
+--D
+
+> 
+> Thanks,
+> Eryu
+> --
+> To unsubscribe from this list: send the line "unsubscribe fstests" in
+> the body of a message to majordomo at vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
