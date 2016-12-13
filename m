@@ -1,83 +1,67 @@
 From: Eric Ren <zren@suse.com>
-Date: Tue, 13 Dec 2016 13:29:31 +0800
-Subject: [Ocfs2-devel] [PATCH 13/17] Save punch_hole details into logfile
-	for debugging convenience
+Date: Tue, 13 Dec 2016 13:29:32 +0800
+Subject: [Ocfs2-devel] [PATCH 14/17] Fix openmpi warning by specifying
+	proper slot number
 In-Reply-To: <1481606975-13186-1-git-send-email-zren@suse.com>
 References: <1481606975-13186-1-git-send-email-zren@suse.com>
-Message-ID: <1481606975-13186-14-git-send-email-zren@suse.com>
+Message-ID: <1481606975-13186-15-git-send-email-zren@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
+The warning message as below:
+
+"
+There are not enough slots available in the system to satisfy the 4
+slots
+that were requested by the application:
+  ./xattr-multi-test
+
+  Either request fewer slots for your application, or make more slots
+  available
+  for use.
+"
+
+outputs when specifying a rank number for openmpi more than "mkfs"
+slots.
+
 Signed-off-by: Eric Ren <zren@suse.com>
 ---
- programs/discontig_bg_test/discontig_runner.sh | 13 ++++++++-----
- 1 file changed, 8 insertions(+), 5 deletions(-)
+ programs/python_common/multiple_run.sh | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
 
-diff --git a/programs/discontig_bg_test/discontig_runner.sh b/programs/discontig_bg_test/discontig_runner.sh
-index 3be39c8..4c13adb 100755
---- a/programs/discontig_bg_test/discontig_runner.sh
-+++ b/programs/discontig_bg_test/discontig_runner.sh
-@@ -41,6 +41,7 @@ DEFAULT_LOG_DIR=${O2TDIR}/log
- LOG_DIR=
- RUN_LOG_FILE=
- LOG_FILE=
-+PUNCH_LOG_FILE=
+diff --git a/programs/python_common/multiple_run.sh b/programs/python_common/multiple_run.sh
+index 3e52eff..74c3531 100755
+--- a/programs/python_common/multiple_run.sh
++++ b/programs/python_common/multiple_run.sh
+@@ -368,7 +368,7 @@ run_xattr_test()
+ 	local logdir=${LOG_DIR}/multi-xattr-test
  
- BLOCKSIZE=
- CLUSTERSIZE=
-@@ -162,6 +163,8 @@ function f_setup()
- %M-%S`-discontig-bg-run.log"
- 	LOG_FILE="`dirname ${LOG_DIR}`/`basename ${LOG_DIR}`/`date +%F-%H-\
- %M-%S`-discontig-bg.log"
-+        PUNCH_LOG_FILE="`dirname ${LOG_DIR}`/`basename ${LOG_DIR}`/`date +%F-%H-\
-+%M-%S`-punch-hole.log"
- 
+ 	LogRunMsg "xattr-test"
+-	${BINDIR}/xattr-multi-run.sh -r 4 -f ${NODE_LIST} -a ssh -o ${logdir} \
++	${BINDIR}/xattr-multi-run.sh -r ${SLOTS} -f ${NODE_LIST} -a ssh -o ${logdir} \
+ -d ${DEVICE} -b ${BLOCKSIZE} -c ${CLUSTERSIZE} -s ${CLUSTER_STACK} -n ${CLUSTER_NAME} ${MOUNT_POINT} >> ${LOGFILE} 2>&1
+ 	LogRC $?
  }
+@@ -378,7 +378,7 @@ run_inline_test()
+ 	local logdir=${LOG_DIR}/multi-inline-test
  
-@@ -529,7 +532,7 @@ function f_extents_test()
- 	recs_in_blk=$(((${BLOCKSIZE}-64)/16))
- 	while :;do
- 		if [ "$((${RANDOM}%2))" -eq "0" ];then
--			${PUNCH_HOLE_BIN} -f ${filename} -s ${offset} -l $((${CLUSTERSIZE}*${recs_in_blk})) >>/dev/null 2>&1 || {
-+			${PUNCH_HOLE_BIN} -f ${filename} -s ${offset} -l $((${CLUSTERSIZE}*${recs_in_blk})) >>${PUNCH_LOG_FILE} 2>&1 || {
- 				f_LogMsg ${LOG_FILE} "Punch hole at offset:${offset} failed."
- 				return 1
- 			}
-@@ -798,13 +801,13 @@ function f_refcount_test()
- 	fi
- 	while :;do
- 		if [ "$((${RANDOM}%2))" -eq "0" ];then
--			${PUNCH_HOLE_BIN} -f ${orig_filename} -s ${offset} -l ${CLUSTERSIZE} >>/dev/null 2>&1 || {
-+			${PUNCH_HOLE_BIN} -f ${orig_filename} -s ${offset} -l ${CLUSTERSIZE} >>${PUNCH_LOG_FILE} 2>&1 || {
- 				f_LogMsg ${LOG_FILE} "Punch hole at offset:${offset} failed on ${orig_filename}."
- 				return 1
- 			}
- 		fi
- 		if [ "$((${RANDOM}%2))" -eq "1" ];then
--			${PUNCH_HOLE_BIN} -f ${ref_filename} -s ${offset} -l ${CLUSTERSIZE} >>/dev/null 2>&1 || {
-+			${PUNCH_HOLE_BIN} -f ${ref_filename} -s ${offset} -l ${CLUSTERSIZE} >>${PUNCH_LOG_FILE} 2>&1 || {
- 				f_LogMsg ${LOG_FILE} "Punch hole at offset:${offset} failed on ${ref_filename}."
- 				return 1
- 			}
-@@ -822,14 +825,14 @@ function f_refcount_test()
- 	recs_in_blk=$(((${BLOCKSIZE}-64)/16))
- 	while :;do
- 		if [ "$((${RANDOM}%2))" -eq "0" ];then
--			${PUNCH_HOLE_BIN} -f ${orig_filename} -s ${offset} -l $((${CLUSTERSIZE}*${recs_in_blk})) >>/dev/null 2>&1 || {
-+			${PUNCH_HOLE_BIN} -f ${orig_filename} -s ${offset} -l $((${CLUSTERSIZE}*${recs_in_blk})) >>${PUNCH_LOG_FILE} 2>&1 || {
- 				f_LogMsg ${LOG_FILE} "Punch hole at offset:${offset} failed on ${orig_filename}."
- 				return 1
- 			}
- 		fi
+ 	LogRunMsg "inline-test"
+-	${BINDIR}/multi-inline-run.sh -r 2 -f ${NODE_LIST} -a ssh -o ${logdir} \
++	${BINDIR}/multi-inline-run.sh -r ${SLOTS} -f ${NODE_LIST} -a ssh -o ${logdir} \
+ -d ${DEVICE} -b ${BLOCKSIZE} -c ${CLUSTERSIZE} -s ${CLUSTER_STACK} -n ${CLUSTER_NAME} ${MOUNT_POINT} >> ${LOGFILE} 2>&1
+ 	LogRC $?
+ }
+@@ -389,7 +389,7 @@ run_reflink_test()
  
- 		if [ "$((${RANDOM}%2))" -eq "1" ];then
--			${PUNCH_HOLE_BIN} -f ${ref_filename} -s ${offset} -l $((${CLUSTERSIZE}*${recs_in_blk})) >>/dev/null 2>&1 || {
-+			${PUNCH_HOLE_BIN} -f ${ref_filename} -s ${offset} -l $((${CLUSTERSIZE}*${recs_in_blk})) >>${PUNCH_LOG_FILE} 2>&1 || {
- 				f_LogMsg ${LOG_FILE} "Punch hole at offset:${offset} failed on ${ref_filename}."
- 				return 1
- 			}
+ 	LogRunMsg "reflink-test"
+ 	LogMsg "reflink 'data=ordered' mode test"
+-	${BINDIR}/multi_reflink_test_run.sh -r 4 -f ${NODE_LIST} -a ssh -o \
++	${BINDIR}/multi_reflink_test_run.sh -r ${SLOTS} -f ${NODE_LIST} -a ssh -o \
+ ${logdir} -d ${DEVICE} -s ${CLUSTER_STACK} -n ${CLUSTER_NAME} ${MOUNT_POINT} >> ${LOGFILE} 2>&1 || {
+ 	RET=$?
+ 	LogRC $RET
 -- 
 2.6.6
