@@ -1,47 +1,132 @@
 From: Eric Ren <zren@suse.com>
-Date: Tue, 13 Dec 2016 13:29:18 +0800
-Subject: [Ocfs2-devel] [PATCH 00/17] ocfs2-test: misc improvements and
-	trivial fixes
-Message-ID: <1481606975-13186-1-git-send-email-zren@suse.com>
+Date: Tue, 13 Dec 2016 13:29:20 +0800
+Subject: [Ocfs2-devel] [PATCH 02/17] Single Run: kernel building is little
+	broken now
+In-Reply-To: <1481606975-13186-1-git-send-email-zren@suse.com>
+References: <1481606975-13186-1-git-send-email-zren@suse.com>
+Message-ID: <1481606975-13186-3-git-send-email-zren@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-- Misc trivial fixes:
+Only check kernel source if we specify "buildkernel" test case.
+The original kernel source web-link cannot be reached,
+so give a new link instead but the md5sum check is missing
+now.
 
-[PATCH 01/17] ocfs2 test: correct the check on testcase if supported
-[PATCH 02/17] Single Run: kernel building is little broken now
-[PATCH 03/17] Trivial: better not to depend on where we issue testing
-[PATCH 04/17] Trivial: fix a typo mistake
-[PATCH 05/17] Trivial: fix checking empty return value
-[PATCH 06/17] multi_mmap: make log messages go to right place
-[PATCH 07/17] lvb_torture: failed when pcmk is used as cluster stack
-[PATCH 08/17] multiple node: pass cross_delete the right log file
+Signed-off-by: Eric Ren <zren@suse.com>
+---
+ programs/python_common/single_run-WIP.sh | 56 ++++++++++++++++----------------
+ 1 file changed, 28 insertions(+), 28 deletions(-)
 
-- This patches add two more parameters: blocksize and clustersize when we
-kick off a testing, which shortens the run time of a testing round.
-It will keep the old behaviors if they are not specified.
-
-[PATCH 09/17] Single run: make blocksize and clustersize as
-[PATCH 10/17] Multiple run: make blocksize and clustersize as
-[PATCH 11/17] discontig bg: make blocksize and clustersize as
-
-- This patch reflects the mkfs.ocfs2 changes that "--cluster-stack" and
-"--cluster-name" were added.
-
-[PATCH 12/17] Add two cluster-aware parameters: cluster stack and cluster name
-
-- More misc trival fixes:
-
-[PATCH 13/17] Save punch_hole details into logfile for debugging
-[PATCH 14/17] Fix openmpi warning by specifying proper slot number
-[PATCH 15/17] Handle the case when a symbolic link device is given
-[PATCH 16/17] inline data: fix build error
-[PATCH 17/17] discontig bg: give single and multiple node test
-
-Comments and questions are, as always, welcome.
-
-Thanks,
-Eric
+diff --git a/programs/python_common/single_run-WIP.sh b/programs/python_common/single_run-WIP.sh
+index fe0056c..61008d8 100755
+--- a/programs/python_common/single_run-WIP.sh
++++ b/programs/python_common/single_run-WIP.sh
+@@ -20,9 +20,9 @@ WGET=`which wget`
+ WHOAMI=`which whoami`
+ SED=`which sed`
+ 
+-DWNLD_PATH="http://oss.oracle.com/~smushran/ocfs2-test"
+-KERNEL_TARBALL="linux-kernel.tar.gz"
+-KERNEL_TARBALL_CHECK="${KERNEL_TARBALL}.md5sum"
++DWNLD_PATH="https://cdn.kernel.org/pub/linux/kernel/v3.x/"
++KERNEL_TARBALL="linux-3.2.80.tar.xz"
++#KERNEL_TARBALL_CHECK="${KERNEL_TARBALL}.md5sum"
+ USERID=`${WHOAMI}`
+ 
+ DEBUGFS_BIN="${SUDO} `which debugfs.ocfs2`"
+@@ -85,7 +85,7 @@ get_bits()
+ # get_kernel_source $LOGDIR $DWNLD_PATH $KERNEL_TARBALL $KERNEL_TARBALL_CHECK
+ get_kernel_source()
+ {
+-	if [ "$#" -lt "4" ]; then
++	if [ "$#" -lt "3" ]; then
+ 		${ECHO} "Error in get_kernel_source()"
+ 		exit 1
+ 	fi
+@@ -93,18 +93,18 @@ get_kernel_source()
+ 	logdir=$1
+ 	dwnld_path=$2
+ 	kernel_tarball=$3
+-	kernel_tarball_check=$4
++	#kernel_tarball_check=$4
+ 
+ 	cd ${logdir}
+ 
+ 	outlog=get_kernel_source.log
+ 
+-	${WGET} -o ${outlog} ${dwnld_path}/${kernel_tarball_check}
+-	if [ $? -ne 0 ]; then
+-		${ECHO} "ERROR downloading ${dwnld_path}/${kernel_tarball_check}"
+-		cd -
+-		exit 1
+-	fi
++#	${WGET} -o ${outlog} ${dwnld_path}/${kernel_tarball_check}
++#	if [ $? -ne 0 ]; then
++#		${ECHO} "ERROR downloading ${dwnld_path}/${kernel_tarball_check}"
++#		cd -
++#		exit 1
++#	fi
+ 
+ 	${WGET} -a ${outlog} ${dwnld_path}/${kernel_tarball}
+ 	if [ $? -ne 0 ]; then
+@@ -113,13 +113,13 @@ get_kernel_source()
+ 		exit 1
+ 	fi
+ 
+-	${MD5SUM} -c ${kernel_tarball_check} >>${outlog} 2>&1
+-	if [ $? -ne 0 ]; then
+-		${ECHO} "ERROR ${kernel_tarball_check} check failed"
+-		cd -
+-		exit 1
+-	fi
+-	cd -
++#	${MD5SUM} -c ${kernel_tarball_check} >>${outlog} 2>&1
++#	if [ $? -ne 0 ]; then
++#		${ECHO} "ERROR ${kernel_tarball_check} check failed"
++#		cd -
++#		exit 1
++#	fi
++#	cd -
+ }
+ 
+ # do_format() ${BLOCKSIZE} ${CLUSTERSIZE} ${FEATURES} ${DEVICE}
+@@ -1012,16 +1012,6 @@ LOGFILE=${LOGDIR}/single_run.log
+ 
+ do_mkdir ${LOGDIR}
+ 
+-if [ -z ${KERNELSRC} ]; then
+-	get_kernel_source $LOGDIR $DWNLD_PATH $KERNEL_TARBALL $KERNEL_TARBALL_CHECK
+-	KERNELSRC=${LOGDIR}/${KERNEL_TARBALL}
+-fi
+-
+-if [ ! -f ${KERNELSRC} ]; then
+-	${ECHO} "No kernel source"
+-	usage
+-fi
+-
+ STARTRUN=$(date +%s)
+ log_message "*** Start Single Node test ***"
+ 
+@@ -1058,6 +1048,16 @@ for tc in `${ECHO} ${TESTCASES} | ${SED} "s:,: :g"`; do
+ 	fi
+ 
+ 	if [ "$tc"X = "buildkernel"X -o "$tc"X = "all"X ];then
++		if [ -z ${KERNELSRC} ]; then
++			get_kernel_source $LOGDIR $DWNLD_PATH $KERNEL_TARBALL #$KERNEL_TARBALL_CHECK
++			KERNELSRC=${LOGDIR}/${KERNEL_TARBALL}
++		fi
++
++		if [ ! -f ${KERNELSRC} ]; then
++			${ECHO} "No kernel source"
++			usage
++		fi
++
+ 		run_buildkernel ${LOGDIR} ${DEVICE} ${MOUNTPOINT} ${KERNELSRC}
+ 	fi
+ 
+-- 
+2.6.6
