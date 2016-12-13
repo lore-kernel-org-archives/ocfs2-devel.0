@@ -1,99 +1,47 @@
-From: Darrick J. Wong <darrick.wong@oracle.com>
-Date: Mon, 12 Dec 2016 15:08:51 -0800
-Subject: [Ocfs2-devel] [PATCH 2/7] ocfs2/reflink: fix file block size
-	reporting
-In-Reply-To: <20161212094820.GY29149@eguan.usersys.redhat.com>
-References: <148149316504.31093.16129068344227450710.stgit@birch.djwong.org>
-	<148149317758.31093.14955725683270205488.stgit@birch.djwong.org>
-	<20161212094820.GY29149@eguan.usersys.redhat.com>
-Message-ID: <20161212230851.GI25841@birch.djwong.org>
+From: Eric Ren <zren@suse.com>
+Date: Tue, 13 Dec 2016 13:29:18 +0800
+Subject: [Ocfs2-devel] [PATCH 00/17] ocfs2-test: misc improvements and
+	trivial fixes
+Message-ID: <1481606975-13186-1-git-send-email-zren@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Eryu Guan <eguan@redhat.com>
-Cc: ocfs2-devel@oss.oracle.com, fstests@vger.kernel.org
+To: ocfs2-devel@oss.oracle.com
 
-On Mon, Dec 12, 2016 at 05:48:20PM +0800, Eryu Guan wrote:
-> On Sun, Dec 11, 2016 at 01:52:57PM -0800, Darrick J. Wong wrote:
-> > Some of the reflink tests try to require a specific filesystem block
-> > size so that they can test file block manipulation functions.  That's
-> > straightforward for most filesystems but ocfs2 throws in the additional
-> > twist that data fork block mappings are stored in units of clusters, not
-> > blocks, which causes these reflink tests to fail.
-> > 
-> > Therefore, introduce a new helper that retrieves the file minimum block
-> > size and adapt the reflink tests to use that instead.
-> > 
-> > Signed-off-by: Darrick J. Wong <darrick.wong@oracle.com>
-> > ---
-> >  common/rc         |   21 +++++++++++++++++++--
-> >  tests/generic/205 |    2 +-
-> >  tests/generic/206 |    2 +-
-> >  tests/generic/216 |    2 +-
-> >  tests/generic/217 |    2 +-
-> >  tests/generic/218 |    2 +-
-> >  tests/generic/220 |    2 +-
-> >  tests/generic/222 |    2 +-
-> >  tests/generic/227 |    2 +-
-> >  tests/generic/229 |    2 +-
-> >  tests/generic/238 |    2 +-
-> >  11 files changed, 29 insertions(+), 12 deletions(-)
-> > 
-> > 
-> > diff --git a/common/rc b/common/rc
-> > index 2639fbd..30111d4 100644
-> > --- a/common/rc
-> > +++ b/common/rc
-> > @@ -925,7 +925,7 @@ _scratch_mkfs_blocksized()
-> >  	${MKFS_PROG}.$FSTYP -F $MKFS_OPTIONS -b $blocksize $SCRATCH_DEV
-> >  	;;
-> >      ocfs2)
-> > -	yes | ${MKFS_PROG}.$FSTYP -F $MKFS_OPTIONS -b $blocksize $SCRATCH_DEV
-> > +	yes | ${MKFS_PROG}.$FSTYP -F $MKFS_OPTIONS -b $blocksize -C $blocksize $SCRATCH_DEV
-> >  	;;
-> >      *)
-> >  	_notrun "Filesystem $FSTYP not supported in _scratch_mkfs_blocksized"
-> > @@ -3029,13 +3029,30 @@ _sysfs_dev()
-> >  	echo /sys/dev/block/$_maj:$_min
-> >  }
-> >  
-> > +# Get the minimum block size of a file.  Usually this is the
-> > +# minimum fs block size, but some filesystems (ocfs2) do block
-> > +# mappings in larger units.
-> > +get_file_block_size()
-> 
-> Name it with leading underscore? As it's a common helper.
-> 
-> > +{
-> > +	if [ -z $1 ] || [ ! -d $1 ]; then
-> > +		echo "Missing mount point argument for get_file_block_size"
-> > +		exit 1
-> > +	fi
-> > +	if [ "$FSTYP" = "ocfs2" ]; then
-> > +		stat -c '%o' $1
-> > +	else
-> > +		stat -f -c '%S' $1
-> 
-> We can use "get_block_size $1" here.
-> 
-> > +	fi
-> > +}
-> > +
-> > +# Get the minimum block size of an fs.
-> >  get_block_size()
-> 
-> We should rename it with a underscore too, but probably in an different
-> patch.
+- Misc trivial fixes:
 
-Ok.
+[PATCH 01/17] ocfs2 test: correct the check on testcase if supported
+[PATCH 02/17] Single Run: kernel building is little broken now
+[PATCH 03/17] Trivial: better not to depend on where we issue testing
+[PATCH 04/17] Trivial: fix a typo mistake
+[PATCH 05/17] Trivial: fix checking empty return value
+[PATCH 06/17] multi_mmap: make log messages go to right place
+[PATCH 07/17] lvb_torture: failed when pcmk is used as cluster stack
+[PATCH 08/17] multiple node: pass cross_delete the right log file
 
---D
+- This patches add two more parameters: blocksize and clustersize when we
+kick off a testing, which shortens the run time of a testing round.
+It will keep the old behaviors if they are not specified.
 
-> 
-> Thanks,
-> Eryu
-> --
-> To unsubscribe from this list: send the line "unsubscribe fstests" in
-> the body of a message to majordomo at vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+[PATCH 09/17] Single run: make blocksize and clustersize as
+[PATCH 10/17] Multiple run: make blocksize and clustersize as
+[PATCH 11/17] discontig bg: make blocksize and clustersize as
+
+- This patch reflects the mkfs.ocfs2 changes that "--cluster-stack" and
+"--cluster-name" were added.
+
+[PATCH 12/17] Add two cluster-aware parameters: cluster stack and cluster name
+
+- More misc trival fixes:
+
+[PATCH 13/17] Save punch_hole details into logfile for debugging
+[PATCH 14/17] Fix openmpi warning by specifying proper slot number
+[PATCH 15/17] Handle the case when a symbolic link device is given
+[PATCH 16/17] inline data: fix build error
+[PATCH 17/17] discontig bg: give single and multiple node test
+
+Comments and questions are, as always, welcome.
+
+Thanks,
+Eric
