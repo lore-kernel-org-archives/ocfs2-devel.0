@@ -1,188 +1,90 @@
 From: Eric Ren <zren@suse.com>
-Date: Tue, 13 Dec 2016 13:29:29 +0800
-Subject: [Ocfs2-devel] [PATCH 11/17] discontig bg: make blocksize and
-	clustersize as parameters
+Date: Tue, 13 Dec 2016 13:29:33 +0800
+Subject: [Ocfs2-devel] [PATCH 15/17] Handle the case when a symbolic link
+	device is given
 In-Reply-To: <1481606975-13186-1-git-send-email-zren@suse.com>
 References: <1481606975-13186-1-git-send-email-zren@suse.com>
-Message-ID: <1481606975-13186-12-git-send-email-zren@suse.com>
+Message-ID: <1481606975-13186-16-git-send-email-zren@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Add "-b blocksize" and "-c clustersize" as optional parameters.
-It will keep the original behavior if we don't specify their
-values.
+It's a usual case that the shared disk is given in symbolic
+name, like iscsi disk "/dev/disk/by-path/disk". So work out
+the typical device name in such case.
 
 Signed-off-by: Eric Ren <zren@suse.com>
 ---
- programs/discontig_bg_test/discontig_runner.sh | 51 +++++++++++++++++---------
- 1 file changed, 33 insertions(+), 18 deletions(-)
+ programs/discontig_bg_test/discontig_runner.sh |  5 +++++
+ programs/python_common/multiple_run.sh         | 13 +++++++++++++
+ programs/python_common/single_run-WIP.sh       |  6 ++++++
+ 3 files changed, 24 insertions(+)
 
 diff --git a/programs/discontig_bg_test/discontig_runner.sh b/programs/discontig_bg_test/discontig_runner.sh
-index bb6a53e..1d94be3 100755
+index 4c13adb..182ca3a 100755
 --- a/programs/discontig_bg_test/discontig_runner.sh
 +++ b/programs/discontig_bg_test/discontig_runner.sh
-@@ -64,7 +64,8 @@ MPI_BTL_IF_ARG=
- ################################################################################
- function f_usage()
- {
--    echo "usage: `basename ${0}` <-d device> [-o logdir] [-m multi_hosts] [-a access_method] <mount point>"
-+    echo "usage: `basename ${0}` <-d device> [-o logdir] [-m multi_hosts] [-a access_method] \
-+[-b block_size] [-c cluster_size] <mount point>"
-     exit 1;
- 
- }
-@@ -76,13 +77,15 @@ function f_getoptions()
- 		exit 1
- 	fi
+@@ -126,6 +126,11 @@ function f_setup()
+ 	if [ -z "${DEVICE}" ];then
+ 		f_usage
+ 	fi	
++
++	# if a symbollink is given, work out the typical device name, like /dev/sda
++	if [ -L ${DEVICE} ];then
++		DEVICE=`readlink -f ${DEVICE}`
++	fi
  	
--	while getopts "hd:o:m:a:" options; do
-+	while getopts "hd:o:m:a:b:c:" options; do
- 		case $options in
- 		d ) DEVICE="$OPTARG";;
- 		o ) LOG_DIR="$OPTARG";;
- 		a ) MPI_ACCESS_METHOD="$OPTARG";;
- 		m ) MULTI_TEST=1
- 		    MPI_HOSTS="$OPTARG";;
-+                b ) BLOCKSIZE="$OPTARG";;
-+                c ) CLUSTERSIZE="$OPTARG";;
- 		h ) f_usage
- 			exit 1;;
- 		* ) f_usage
-@@ -209,7 +212,7 @@ function f_inodes_test()
- 	local filename=
+ 	if [ -z "${MOUNT_POINT}" ];then
+ 		f_usage
+diff --git a/programs/python_common/multiple_run.sh b/programs/python_common/multiple_run.sh
+index 74c3531..3e11abd 100755
+--- a/programs/python_common/multiple_run.sh
++++ b/programs/python_common/multiple_run.sh
+@@ -135,6 +135,19 @@ f_setup()
  
- 	f_LogMsg ${LOG_FILE} "Activate inode discontig-bg on ${DEVICE}"
--	${DISCONTIG_ACTIVATE_BIN} -t inode -r 200 -b $BLOCKSIZE -c ${CLUSTERSIZE} -d ${DEVICE} -o ${LOG_DIR} -l ${LABELNAME} ${MOUNT_POINT} >>${LOG_FILE} 2>&1
-+	${DISCONTIG_ACTIVATE_BIN} -t inode -r 200 -b ${BLOCKSIZE} -c ${CLUSTERSIZE} -d ${DEVICE} -o ${LOG_DIR} -l ${LABELNAME} ${MOUNT_POINT} >>${LOG_FILE} 2>&1
- 	RET=$?
- 	f_exit_or_not ${RET}
+ 	f_getoptions $*
  
-@@ -292,7 +295,7 @@ function f_inodes_test()
- 	f_exit_or_not ${RET}
++	if [ -z ${DEVICE} ] ; then
++		${ECHO} "ERROR: No device"
++		f_usage
++	elif [ ! -b ${DEVICE} ] ; then
++		${ECHO} "ERROR: Invalid device ${DEVICE}"
++		exit 1
++	fi
++
++	# if a symbollink is given, work out the typical device name, like /dev/sda
++	if [ -L ${DEVICE} ];then
++		 DEVICE=`readlink -f ${DEVICE}`
++	fi
++
+ 	if [ -z "${MOUNT_POINT}" ];then
+                 f_usage
+         fi
+diff --git a/programs/python_common/single_run-WIP.sh b/programs/python_common/single_run-WIP.sh
+index 5c174f0..92d1216 100755
+--- a/programs/python_common/single_run-WIP.sh
++++ b/programs/python_common/single_run-WIP.sh
+@@ -1095,6 +1095,7 @@ do
+     		?) usage;;
+   	esac
+ done
++
+ if [ -z ${DEVICE} ] ; then
+ 	${ECHO} "ERROR: No device"
+ 	usage
+@@ -1103,6 +1104,11 @@ elif [ ! -b ${DEVICE} ] ; then
+ 	exit 1
+ fi
  
- 	f_LogMsg ${LOG_FILE} "[*] Activate inode discontig-bg on ${DEVICE}"
--	${DISCONTIG_ACTIVATE_BIN} -t inode -r 4096 -b $BLOCKSIZE -c ${CLUSTERSIZE} -d ${DEVICE} -o ${LOG_DIR} ${MOUNT_POINT} >>${LOG_FILE} 2>&1
-+	${DISCONTIG_ACTIVATE_BIN} -t inode -r 4096 -b ${BLOCKSIZE} -c ${CLUSTERSIZE} -d ${DEVICE} -o ${LOG_DIR} ${MOUNT_POINT} >>${LOG_FILE} 2>&1
- 	RET=$?
- 	f_exit_or_not ${RET}
- 
-@@ -420,7 +423,7 @@ function f_extents_test()
- 	local inc=
- 
- 	f_LogMsg ${LOG_FILE} "[*] Activate extent discontig-bg on ${DEVICE}"
--	${DISCONTIG_ACTIVATE_BIN} -t extent -r 2048 -b $BLOCKSIZE -c ${CLUSTERSIZE} -d ${DEVICE} -o ${LOG_DIR} ${MOUNT_POINT} >>${LOG_FILE} 2>&1
-+	${DISCONTIG_ACTIVATE_BIN} -t extent -r 2048 -b ${BLOCKSIZE}-c ${CLUSTERSIZE} -d ${DEVICE} -o ${LOG_DIR} ${MOUNT_POINT} >>${LOG_FILE} 2>&1
- 	RET=$?
- 	f_exit_or_not ${RET}
- 
-@@ -552,7 +555,7 @@ function f_extents_test()
- function f_inline_test()
- {
- 	f_LogMsg ${LOG_FILE} "[*] Activate inode discontig-bg on ${DEVICE}"
--	${DISCONTIG_ACTIVATE_BIN} -t inode -r 1024 -b $BLOCKSIZE -c ${CLUSTERSIZE} -d ${DEVICE} -o ${LOG_DIR} ${MOUNT_POINT} >>${LOG_FILE} 2>&1
-+	${DISCONTIG_ACTIVATE_BIN} -t inode -r 1024 -b ${BLOCKSIZE} -c ${CLUSTERSIZE} -d ${DEVICE} -o ${LOG_DIR} ${MOUNT_POINT} >>${LOG_FILE} 2>&1
- 	RET=$?
- 	f_exit_or_not ${RET}
- 
-@@ -622,7 +625,7 @@ function f_inline_test()
- function f_xattr_test()
- {
- 	f_LogMsg ${LOG_FILE} "[*] Activate extent discontig-bg on ${DEVICE}"
--	${DISCONTIG_ACTIVATE_BIN} -t extent -r 10240 -b $BLOCKSIZE -c ${CLUSTERSIZE} -d ${DEVICE} -o ${LOG_DIR} ${MOUNT_POINT} >>${LOG_FILE} 2>&1
-+	${DISCONTIG_ACTIVATE_BIN} -t extent -r 10240 -b ${BLOCKSIZE} -c ${CLUSTERSIZE} -d ${DEVICE} -o ${LOG_DIR} ${MOUNT_POINT} >>${LOG_FILE} 2>&1
- 	RET=$?
- 	f_exit_or_not ${RET}
- 
-@@ -705,7 +708,7 @@ function f_refcount_test()
- 	local inc=
- 
- 	f_LogMsg ${LOG_FILE} "[*] Activate extent discontig-bg on ${DEVICE}"
--	${DISCONTIG_ACTIVATE_BIN} -t extent -r ${remain_space} -b $BLOCKSIZE -c ${CLUSTERSIZE} -d ${DEVICE} -o ${LOG_DIR} ${MOUNT_POINT} >>${LOG_FILE} 2>&1
-+	${DISCONTIG_ACTIVATE_BIN} -t extent -r ${remain_space} -b ${BLOCKSIZE} -c ${CLUSTERSIZE} -d ${DEVICE} -o ${LOG_DIR} ${MOUNT_POINT} >>${LOG_FILE} 2>&1
- 	RET=$?
- 	f_exit_or_not ${RET}
- 
-@@ -883,7 +886,7 @@ function f_refcount_test()
- function f_dxdir_test()
- {
- 	f_LogMsg ${LOG_FILE} "[*] Activate inode discontig-bg on ${DEVICE}"
--	${DISCONTIG_ACTIVATE_BIN} -t extents -r 2048 -b $BLOCKSIZE -c ${CLUSTERSIZE} -d ${DEVICE} -o ${LOG_DIR} ${MOUNT_POINT} >>${LOG_FILE} 2>&1
-+	${DISCONTIG_ACTIVATE_BIN} -t extents -r 2048 -b ${BLOCKSIZE} -c ${CLUSTERSIZE} -d ${DEVICE} -o ${LOG_DIR} ${MOUNT_POINT} >>${LOG_FILE} 2>&1
- 	RET=$?
- 	f_exit_or_not ${RET}
- 
-@@ -965,7 +968,7 @@ function f_multi_inodes_test()
- {
- 
- 	f_LogMsg ${LOG_FILE} "Activate inode discontig-bg on ${DEVICE}"
--	${DISCONTIG_ACTIVATE_BIN} -t inode -r 800 -b $BLOCKSIZE -c ${CLUSTERSIZE} -d ${DEVICE} -o ${LOG_DIR} -l ${LABELNAME} -m ${MPI_HOSTS} ${MOUNT_POINT} >>${LOG_FILE} 2>&1
-+	${DISCONTIG_ACTIVATE_BIN} -t inode -r 800 -b ${BLOCKSIZE} -c ${CLUSTERSIZE} -d ${DEVICE} -o ${LOG_DIR} -l ${LABELNAME} -m ${MPI_HOSTS} ${MOUNT_POINT} >>${LOG_FILE} 2>&1
- 	RET=$?
- 	f_exit_or_not ${RET}
- 
-@@ -1014,8 +1017,8 @@ function f_multi_extents_test()
- 	local filename=
- 
- 	f_LogMsg ${LOG_FILE} "Activate extents discontig-bg on ${DEVICE}"
--	f_LogMsg ${LOG_FILE} "CMD: ${DISCONTIG_ACTIVATE_BIN} -t extent -r ${remain_space} -b $BLOCKSIZE -c ${CLUSTERSIZE} -d ${DEVICE} -o ${LOG_DIR} -l ${LABELNAME} -m ${MPI_HOSTS} -a ${MPI_ACCESS_METHOD} ${MOUNT_POINT}"
--	${DISCONTIG_ACTIVATE_BIN} -t extent -r ${remain_space} -b $BLOCKSIZE -c ${CLUSTERSIZE} -d ${DEVICE} -o ${LOG_DIR} -l ${LABELNAME} -m ${MPI_HOSTS} -a ${MPI_ACCESS_METHOD} ${MOUNT_POINT} >>${LOG_FILE} 2>&1
-+	f_LogMsg ${LOG_FILE} "CMD: ${DISCONTIG_ACTIVATE_BIN} -t extent -r ${remain_space} -b ${BLOCKSIZE} -c ${CLUSTERSIZE} -d ${DEVICE} -o ${LOG_DIR} -l ${LABELNAME} -m ${MPI_HOSTS} -a ${MPI_ACCESS_METHOD} ${MOUNT_POINT}"
-+	${DISCONTIG_ACTIVATE_BIN} -t extent -r ${remain_space} -b ${BLOCKSIZE} -c ${CLUSTERSIZE} -d ${DEVICE} -o ${LOG_DIR} -l ${LABELNAME} -m ${MPI_HOSTS} -a ${MPI_ACCESS_METHOD} ${MOUNT_POINT} >>${LOG_FILE} 2>&1
- 	RET=$?
- 	f_exit_or_not ${RET}
- 
-@@ -1070,8 +1073,8 @@ function f_multi_xattr_test()
- 	local remain_space=1024
- 
- 	f_LogMsg ${LOG_FILE} "Activate extents discontig-bg on ${DEVICE}"
--	f_LogMsg ${LOG_FILE} "CMD: ${DISCONTIG_ACTIVATE_BIN} -t extent -r ${remain_space} -b $BLOCKSIZE -c ${CLUSTERSIZE} -d ${DEVICE} -o ${LOG_DIR} -l ${LABELNAME} -m ${MPI_HOSTS} -a ${MPI_ACCESS_METHOD} ${MOUNT_POINT}"
--	${DISCONTIG_ACTIVATE_BIN} -t extent -r ${remain_space} -b $BLOCKSIZE -c ${CLUSTERSIZE} -d ${DEVICE} -o ${LOG_DIR} -l ${LABELNAME} -m ${MPI_HOSTS} -a ${MPI_ACCESS_METHOD} ${MOUNT_POINT} >>${LOG_FILE} 2>&1
-+	f_LogMsg ${LOG_FILE} "CMD: ${DISCONTIG_ACTIVATE_BIN} -t extent -r ${remain_space} -b ${BLOCKSIZE} -c ${CLUSTERSIZE} -d ${DEVICE} -o ${LOG_DIR} -l ${LABELNAME} -m ${MPI_HOSTS} -a ${MPI_ACCESS_METHOD} ${MOUNT_POINT}"
-+	${DISCONTIG_ACTIVATE_BIN} -t extent -r ${remain_space} -b ${BLOCKSIZE} -c ${CLUSTERSIZE} -d ${DEVICE} -o ${LOG_DIR} -l ${LABELNAME} -m ${MPI_HOSTS} -a ${MPI_ACCESS_METHOD} ${MOUNT_POINT} >>${LOG_FILE} 2>&1
- 	RET=$?
- 	f_exit_or_not ${RET}
- 
-@@ -1136,8 +1139,8 @@ function f_multi_refcount_test()
- 	local remain_space=1024
- 
- 	f_LogMsg ${LOG_FILE} "Activate extents discontig-bg on ${DEVICE}"
--	f_LogMsg ${LOG_FILE} "CMD: ${DISCONTIG_ACTIVATE_BIN} -t extent -r ${remain_space} -b $BLOCKSIZE -c ${CLUSTERSIZE} -d ${DEVICE} -o ${LOG_DIR} -l ${LABELNAME} -m ${MPI_HOSTS} -a ${MPI_ACCESS_METHOD} ${MOUNT_POINT}"
--	${DISCONTIG_ACTIVATE_BIN} -t extent -r ${remain_space} -b $BLOCKSIZE -c ${CLUSTERSIZE} -d ${DEVICE} -o ${LOG_DIR} -l ${LABELNAME} -m ${MPI_HOSTS} -a ${MPI_ACCESS_METHOD} ${MOUNT_POINT} >>${LOG_FILE} 2>&1
-+	f_LogMsg ${LOG_FILE} "CMD: ${DISCONTIG_ACTIVATE_BIN} -t extent -r ${remain_space} -b ${BLOCKSIZE} -c ${CLUSTERSIZE} -d ${DEVICE} -o ${LOG_DIR} -l ${LABELNAME} -m ${MPI_HOSTS} -a ${MPI_ACCESS_METHOD} ${MOUNT_POINT}"
-+	${DISCONTIG_ACTIVATE_BIN} -t extent -r ${remain_space} -b ${BLOCKSIZE} -c ${CLUSTERSIZE} -d ${DEVICE} -o ${LOG_DIR} -l ${LABELNAME} -m ${MPI_HOSTS} -a ${MPI_ACCESS_METHOD} ${MOUNT_POINT} >>${LOG_FILE} 2>&1
- 	RET=$?
- 	f_exit_or_not ${RET}
- 
-@@ -1255,13 +1258,25 @@ trap 'echo -ne "\n\n">>${RUN_LOG_FILE};echo  "Interrupted by Ctrl+C,Cleanuping\
- 
- f_setup $*
- 
-+if [ -z ${BLOCKSIZE} ];then
-+       bslist="512 4096"
-+else
-+       bslist=${BLOCKSIZE}
++# if a symbollink is given, work out the typical device name, like /dev/sda
++if [ -L ${DEVICE} ];then
++	DEVICE=`readlink -f ${DEVICE}`
 +fi
 +
-+if [ -z ${CLUSTERSIZE} ];then
-+       cslist="4096 8192"
-+else
-+       cslist=${CLUSTERSIZE}
-+fi
-+
- f_LogRunMsg ${RUN_LOG_FILE} "=====================Discontiguous block group test starts:  `date`\
- =====================\n"
- f_LogMsg ${LOG_FILE} "=====================Discontiguous block groups tests start:  `date`\
- ====================="
- 
--for BLOCKSIZE in 512 4096;do
--	for CLUSTERSIZE in 4096 8192;do
-+for BLOCKSIZE in $(echo "$bslist");do
-+	for CLUSTERSIZE in $(echo "$cslist");do
- 		f_LogRunMsg ${RUN_LOG_FILE} "<- Running test with ${BLOCKSIZE} \
- bs and ${CLUSTERSIZE} cs ->\n"
- 		f_LogMsg ${LOG_FILE} "<- Running test with ${BLOCKSIZE} bs \
+ if [ -z ${MOUNTPOINT} ] ; then
+ 	${ECHO} "ERROR: No mountpoint"
+ 	usage
 -- 
 2.6.6
