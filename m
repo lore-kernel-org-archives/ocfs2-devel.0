@@ -1,229 +1,576 @@
-From: Eric Ren <zren@suse.com>
-Date: Thu, 15 Dec 2016 10:27:12 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: fix crash caused by stale lvb with
-	fsdlm plugin
-In-Reply-To: <7dbdc1d8-f1c5-c6bf-0614-1d8f03f0e3f0@gmail.com>
-References: <1481275846-6604-1-git-send-email-zren@suse.com>
-	<7dbdc1d8-f1c5-c6bf-0614-1d8f03f0e3f0@gmail.com>
-Message-ID: <66edad7f-6c83-a5e0-aab3-d3a034667042@suse.com>
+From: Gang He <ghe@suse.com>
+Date: Mon, 19 Dec 2016 17:21:26 +0800
+Subject: [Ocfs2-devel] [PATCH 1/2] ocfs2: add kobject for online file check
+In-Reply-To: <1482139287-19040-1-git-send-email-ghe@suse.com>
+References: <1482139287-19040-1-git-send-email-ghe@suse.com>
+Message-ID: <1482139287-19040-2-git-send-email-ghe@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Joseph Qi <jiangqi903@gmail.com>, ocfs2-devel@oss.oracle.com
-Cc: akpm@linux-foundation.org, mfasheh@versity.com, jlbec@evilplan.org, teigland@redhat.com, ghe@suse.com, junxiao.bi@oracle.com, linux-kernel@vger.kernel.org
+To: mfasheh@versity.com, jlbec@evilplan.org
+Cc: Gang He <ghe@suse.com>, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com, akpm@linux-foundation.org
 
-Hi,
+Use embedded kobject mechanism for online file check feature,
+this will avoid to use a global list to save/search per-device online file
+check related data. The changed code is based on Goldwyn Rodrigues's
+patches and ext4 fs code.
+Second, some small adjustment/fixes are also included.
+1) move some data structure definitions to the header file;
+2) tune mlog message level from ERROR to NOTICE;
+3) add file check duplicative ino number check;
+4) the other miscellaneous.
 
-On 12/15/2016 09:46 AM, Joseph Qi wrote:
-> In you description, this issue can only happen in case of stack user +
->
-> fsdlm.
-Yes.
->
-> So I feel we'd better to make stack user and o2cb behaves the same,
->
-> other than treat it as a special case.
-Yes, I agree. But, actually, there is nothing wrong with fsdlm. I think o2cb does some tricks
-with  DLM_LKF_VALBLK flag in such a special case where down conversion is PR->NULL.
+Signed-off-by: Gang He <ghe@suse.com>
+---
+ fs/ocfs2/filecheck.c | 360 ++++++++++++++++++++-------------------------------
+ fs/ocfs2/filecheck.h |  29 ++++-
+ 2 files changed, 165 insertions(+), 224 deletions(-)
 
-I'd like to see this quick and small fix to be merged at this moment, because this issue is 
-little emergency for us.
-Anyway, we can supersede this one easily if someone familiar with o2cb works out a patch for 
-o2cb in the future.
-
-Does this sounds good to you?
-
-Thanks,
-Eric
->
->
-> Thanks,
->
-> Joseph
->
-> On 16/12/9 17:30, Eric Ren wrote:
->> The crash happens rather often when we reset some cluster
->> nodes while nodes contend fiercely to do truncate and append.
->>
->> The crash backtrace is below:
->> "
->> [  245.197849] dlm: C21CBDA5E0774F4BA5A9D4F317717495: dlm_recover_grant 1 locks on 971 
->> resources
->> [  245.197859] dlm: C21CBDA5E0774F4BA5A9D4F317717495: dlm_recover 9 generation 5 done: 4 ms
->> [  245.198379] ocfs2: Begin replay journal (node 318952601, slot 2) on device (253,18)
->> [  247.272338] ocfs2: End replay journal (node 318952601, slot 2) on device (253,18)
->> [  247.547084] ocfs2: Beginning quota recovery on device (253,18) for slot 2
->> [  247.683263] ocfs2: Finishing quota recovery on device (253,18) for slot 2
->> [  247.833022] (truncate,30154,1):ocfs2_truncate_file:470 ERROR: bug expression: 
->> le64_to_cpu(fe->i_size) != i_size_read(inode)
->> [  247.833029] (truncate,30154,1):ocfs2_truncate_file:470 ERROR: Inode 290321, inode 
->> i_size = 732 != di i_size = 937, i_flags = 0x1
->> [  247.833074] ------------[ cut here ]------------
->> [  247.833077] kernel BUG at /usr/src/linux/fs/ocfs2/file.c:470!
->> [  247.833079] invalid opcode: 0000 [#1] SMP
->> [  247.833081] Modules linked in: ocfs2_stack_user(OEN) ocfs2(OEN) ocfs2_nodemanager 
->> ocfs2_stackglue(OEN) quota_tree dlm(OEN) configfs fuse sd_mod    iscsi_tcp libiscsi_tcp 
->> libiscsi scsi_transport_iscsi af_packet iscsi_ibft iscsi_boot_sysfs softdog xfs libcrc32c 
->> ppdev parport_pc pcspkr parport joydev virtio_balloon virtio_net i2c_piix4 acpi_cpufreq 
->> button processor ext4 crc16 jbd2 mbcache ata_generic cirrus virtio_blk 
->> ata_piix               drm_kms_helper ahci syscopyarea libahci sysfillrect sysimgblt 
->> fb_sys_fops ttm floppy libata drm virtio_pci virtio_ring uhci_hcd virtio ehci_hcd       
->> usbcore serio_raw usb_common sg dm_multipath dm_mod scsi_dh_rdac scsi_dh_emc scsi_dh_alua 
->> scsi_mod autofs4
->> [  247.833107] Supported: No, Unsupported modules are loaded
->> [  247.833110] CPU: 1 PID: 30154 Comm: truncate Tainted: G           OE   N  
->> 4.4.21-69-default #1
->> [  247.833111] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 
->> rel-1.8.1-0-g4adadbd-20151112_172657-sheep25 04/01/2014
->> [  247.833112] task: ffff88004ff6d240 ti: ffff880074e68000 task.ti: ffff880074e68000
->> [  247.833113] RIP: 0010:[<ffffffffa05c8c30>] [<ffffffffa05c8c30>] 
->> ocfs2_truncate_file+0x640/0x6c0 [ocfs2]
->> [  247.833151] RSP: 0018:ffff880074e6bd50  EFLAGS: 00010282
->> [  247.833152] RAX: 0000000000000074 RBX: 000000000000029e RCX: 0000000000000000
->> [  247.833153] RDX: 0000000000000001 RSI: 0000000000000246 RDI: 0000000000000246
->> [  247.833154] RBP: ffff880074e6bda8 R08: 000000003675dc7a R09: ffffffff82013414
->> [  247.833155] R10: 0000000000034c50 R11: 0000000000000000 R12: ffff88003aab3448
->> [  247.833156] R13: 00000000000002dc R14: 0000000000046e11 R15: 0000000000000020
->> [  247.833157] FS:  00007f839f965700(0000) GS:ffff88007fc80000(0000) knlGS:0000000000000000
->> [  247.833158] CS:  0010 DS: 0000 ES: 0000 CR0: 000000008005003b
->> [  247.833159] CR2: 00007f839f97e000 CR3: 0000000036723000 CR4: 00000000000006e0
->> [  247.833164] Stack:
->> [  247.833165]  00000000000003a9 0000000000000001 ffff880060554000 ffff88004fcaf000
->> [  247.833167]  ffff88003aa7b090 1000000000000000 ffff88003aab3448 ffff880074e6beb0
->> [  247.833169]  0000000000000001 0000000000002068 0000000000000020 0000000000000000
->> [  247.833171] Call Trace:
->> [  247.833208]  [<ffffffffa05cb1a8>] ocfs2_setattr+0x698/0xa90 [ocfs2]
->> [  247.833225]  [<ffffffff8121587e>] notify_change+0x1ae/0x380
->> [  247.833242]  [<ffffffff811f8bfe>] do_truncate+0x5e/0x90
->> [  247.833246]  [<ffffffff811f8f58>] do_sys_ftruncate.constprop.11+0x108/0x160
->> [  247.833257]  [<ffffffff815e142e>] entry_SYSCALL_64_fastpath+0x12/0x6d
->> [  247.834724] DWARF2 unwinder stuck at entry_SYSCALL_64_fastpath+0x12/0x6d
->> [  247.834725]
->> [  247.834726] Leftover inexact backtrace:
->>
->> [  247.834728] Code: 24 28 ba d6 01 00 00 48 c7 c6 30 43 62 a0 8b 41 2c 89 44 24 08 48 8b 
->> 41 20 48 c7 c1 78 a3 62 a0 48 89 04 24 31 c0 e8 a0 97 f9 ff <0f> 0b 3d 00 fe ff ff 0f 84 
->> ab fd ff ff 83 f8 fc 0f 84 a2 fd ff
->> [  247.834748] RIP  [<ffffffffa05c8c30>] ocfs2_truncate_file+0x640/0x6c0 [ocfs2]
->> [  247.834774]  RSP <ffff880074e6bd50>
->> "
->>
->> It's because ocfs2_inode_lock() get us stale LVB in which the i_size is not
->> equal to the disk i_size. We mistakenly trust the LVB because the underlaying
->> fsdlm dlm_lock() doesn't set lkb_sbflags with DLM_SBF_VALNOTVALID properly for
->> us. But, why?
->>
->> The current code tries to downconvert lock without DLM_LKF_VALBLK
->> flag to tell o2cb don't update RSB's LVB if it's a PR->NULL conversion,
->> even if the lock resource type needs LVB. This is not the right way for fsdlm.
->>
->> The fsdlm plugin behaves different on DLM_LKF_VALBLK, it depends on
->> DLM_LKF_VALBLK to decide if we care about the LVB in the LKB. If DLM_LKF_VALBLK
->> is not set, fsdlm will skip recovering RSB's LVB from this lkb and set the right
->> DLM_SBF_VALNOTVALID appropriately when node failure happens.
->>
->> The following diagram briefly illustrates how this crash happens:
->>
->> RSB1 is inode metadata lock resource with LOCK_TYPE_USES_LVB;
->>
->> The 1st round:
->>
->>               Node1                                    Node2
->> RSB1: PR
->>                                                    RSB1(master): NULL->EX
->> ocfs2_downconvert_lock(PR->NULL, set_lvb==0)
->>    ocfs2_dlm_lock(no DLM_LKF_VALBLK)
->>
->> - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
->>
->> dlm_lock(no DLM_LKF_VALBLK)
->>    convert_lock(overwrite lkb->lkb_exflags
->>                 with no DLM_LKF_VALBLK)
->>
->> RSB1: NULL                                        RSB1: EX
->>                                                    reset Node2
->> dlm_recover_rsbs()
->>    recover_lvb()
->>
->> /* The LVB is not trustable if the node with EX fails and
->>   * no lock >= PR is left. We should set RSB_VALNOTVALID for RSB1.
->>   */
->>
->>   if(!(kb_exflags & DLM_LKF_VALBLK)) /* This means we miss the chance to
->>             return;                   * to invalid the LVB here.
->>                                       */
->>
->> The 2nd round:
->>
->>           Node 1                                Node2
->> RSB1(become master from recovery)
->>
->> ocfs2_setattr()
->>    ocfs2_inode_lock(NULL->EX)
->>      /* dlm_lock() return the stale lvb without setting DLM_SBF_VALNOTVALID */
->>      ocfs2_meta_lvb_is_trustable() return 1 /* so we don't refresh inode from disk */
->>    ocfs2_truncate_file()
->>        mlog_bug_on_msg(disk isize != i_size_read(inode))  /* crash! */
->>
->> The fix is quite straightforward. We keep to set DLM_LKF_VALBLK flag for dlm_lock()
->> if the lock resource type needs LVB and the fsdlm plugin is uesed.
->>
->> Signed-off-by: Eric Ren <zren@suse.com>
->> ---
->>   fs/ocfs2/dlmglue.c   | 10 ++++++++++
->>   fs/ocfs2/stackglue.c |  6 ++++++
->>   fs/ocfs2/stackglue.h |  3 +++
->>   3 files changed, 19 insertions(+)
->>
->> diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
->> index 83d576f..77d1632 100644
->> --- a/fs/ocfs2/dlmglue.c
->> +++ b/fs/ocfs2/dlmglue.c
->> @@ -3303,6 +3303,16 @@ static int ocfs2_downconvert_lock(struct ocfs2_super *osb,
->>       mlog(ML_BASTS, "lockres %s, level %d => %d\n", lockres->l_name,
->>            lockres->l_level, new_level);
->>   +    /*
->> +     * On DLM_LKF_VALBLK, fsdlm behaves differently with o2cb. It always
->> +     * expects DLM_LKF_VALBLK being set if the LKB has LVB, so that
->> +     * we can recover correctly from node failure. Otherwise, we may get
->> +     * invalid LVB in LKB, but without DLM_SBF_VALNOTVALID being set.
->> +     */
->> +    if (!ocfs2_is_o2cb_active() &&
->> +        lockres->l_ops->flags & LOCK_TYPE_USES_LVB)
->> +        lvb = 1;
->> +
->>       if (lvb)
->>           dlm_flags |= DLM_LKF_VALBLK;
->>   diff --git a/fs/ocfs2/stackglue.c b/fs/ocfs2/stackglue.c
->> index 52c07346b..8203590 100644
->> --- a/fs/ocfs2/stackglue.c
->> +++ b/fs/ocfs2/stackglue.c
->> @@ -48,6 +48,12 @@ static char ocfs2_hb_ctl_path[OCFS2_MAX_HB_CTL_PATH] = 
->> "/sbin/ocfs2_hb_ctl";
->>    */
->>   static struct ocfs2_stack_plugin *active_stack;
->>   +inline int ocfs2_is_o2cb_active(void)
->> +{
->> +    return !strcmp(active_stack->sp_name, OCFS2_STACK_PLUGIN_O2CB);
->> +}
->> +EXPORT_SYMBOL_GPL(ocfs2_is_o2cb_active);
->> +
->>   static struct ocfs2_stack_plugin *ocfs2_stack_lookup(const char *name)
->>   {
->>       struct ocfs2_stack_plugin *p;
->> diff --git a/fs/ocfs2/stackglue.h b/fs/ocfs2/stackglue.h
->> index f2dce10..e3036e1 100644
->> --- a/fs/ocfs2/stackglue.h
->> +++ b/fs/ocfs2/stackglue.h
->> @@ -298,6 +298,9 @@ void ocfs2_stack_glue_set_max_proto_version(struct 
->> ocfs2_protocol_version *max_p
->>   int ocfs2_stack_glue_register(struct ocfs2_stack_plugin *plugin);
->>   void ocfs2_stack_glue_unregister(struct ocfs2_stack_plugin *plugin);
->>   +/* In ocfs2_downconvert_lock(), we need to know which stack we are using */
->> +int ocfs2_is_o2cb_active(void);
->> +
->>   extern struct kset *ocfs2_kset;
->>     #endif  /* STACKGLUE_H */
->
->
+diff --git a/fs/ocfs2/filecheck.c b/fs/ocfs2/filecheck.c
+index 2cabbcf..5a6ae70 100644
+--- a/fs/ocfs2/filecheck.c
++++ b/fs/ocfs2/filecheck.c
+@@ -53,36 +53,6 @@
+ 	"UNSUPPORTED"
+ };
+ 
+-static DEFINE_SPINLOCK(ocfs2_filecheck_sysfs_lock);
+-static LIST_HEAD(ocfs2_filecheck_sysfs_list);
+-
+-struct ocfs2_filecheck {
+-	struct list_head fc_head;	/* File check entry list head */
+-	spinlock_t fc_lock;
+-	unsigned int fc_max;	/* Maximum number of entry in list */
+-	unsigned int fc_size;	/* Current entry count in list */
+-	unsigned int fc_done;	/* Finished entry count in list */
+-};
+-
+-struct ocfs2_filecheck_sysfs_entry {	/* sysfs entry per mounting */
+-	struct list_head fs_list;
+-	atomic_t fs_count;
+-	struct super_block *fs_sb;
+-	struct kset *fs_devicekset;
+-	struct kset *fs_fcheckkset;
+-	struct ocfs2_filecheck *fs_fcheck;
+-};
+-
+-#define OCFS2_FILECHECK_MAXSIZE		100
+-#define OCFS2_FILECHECK_MINSIZE		10
+-
+-/* File check operation type */
+-enum {
+-	OCFS2_FILECHECK_TYPE_CHK = 0,	/* Check a file(inode) */
+-	OCFS2_FILECHECK_TYPE_FIX,	/* Fix a file(inode) */
+-	OCFS2_FILECHECK_TYPE_SET = 100	/* Set entry list maximum size */
+-};
+-
+ struct ocfs2_filecheck_entry {
+ 	struct list_head fe_list;
+ 	unsigned long fe_ino;
+@@ -110,40 +80,84 @@ struct ocfs2_filecheck_args {
+ 	return ocfs2_filecheck_errs[errno - OCFS2_FILECHECK_ERR_START + 1];
+ }
+ 
+-static ssize_t ocfs2_filecheck_show(struct kobject *kobj,
+-				    struct kobj_attribute *attr,
+-				    char *buf);
+-static ssize_t ocfs2_filecheck_store(struct kobject *kobj,
+-				     struct kobj_attribute *attr,
+-				     const char *buf, size_t count);
+-static struct kobj_attribute ocfs2_attr_filecheck_chk =
++static ssize_t ocfs2_filecheck_attr_show(struct kobject *kobj,
++					struct kobj_attribute *attr,
++					char *buf);
++static ssize_t ocfs2_filecheck_attr_store(struct kobject *kobj,
++					struct kobj_attribute *attr,
++					const char *buf, size_t count);
++static struct kobj_attribute ocfs2_filecheck_attr_chk =
+ 					__ATTR(check, S_IRUSR | S_IWUSR,
+-					ocfs2_filecheck_show,
+-					ocfs2_filecheck_store);
+-static struct kobj_attribute ocfs2_attr_filecheck_fix =
++					ocfs2_filecheck_attr_show,
++					ocfs2_filecheck_attr_store);
++static struct kobj_attribute ocfs2_filecheck_attr_fix =
+ 					__ATTR(fix, S_IRUSR | S_IWUSR,
+-					ocfs2_filecheck_show,
+-					ocfs2_filecheck_store);
+-static struct kobj_attribute ocfs2_attr_filecheck_set =
++					ocfs2_filecheck_attr_show,
++					ocfs2_filecheck_attr_store);
++static struct kobj_attribute ocfs2_filecheck_attr_set =
+ 					__ATTR(set, S_IRUSR | S_IWUSR,
+-					ocfs2_filecheck_show,
+-					ocfs2_filecheck_store);
++					ocfs2_filecheck_attr_show,
++					ocfs2_filecheck_attr_store);
++static struct attribute *ocfs2_filecheck_attrs[] = {
++	&ocfs2_filecheck_attr_chk.attr,
++	&ocfs2_filecheck_attr_fix.attr,
++	&ocfs2_filecheck_attr_set.attr,
++	NULL
++};
+ 
+-static int ocfs2_filecheck_sysfs_wait(atomic_t *p)
++static void ocfs2_filecheck_release(struct kobject *kobj)
+ {
+-	schedule();
+-	return 0;
++	struct ocfs2_filecheck_sysfs_entry *entry = container_of(kobj,
++				struct ocfs2_filecheck_sysfs_entry, fs_kobj);
++
++	complete(&entry->fs_kobj_unregister);
+ }
+ 
++static ssize_t
++ocfs2_filecheck_show(struct kobject *kobj, struct attribute *attr, char *buf)
++{
++	ssize_t ret = -EIO;
++	struct kobj_attribute *kattr = container_of(attr,
++					struct kobj_attribute, attr);
++
++	kobject_get(kobj);
++	if (kattr->show)
++		ret = kattr->show(kobj, kattr, buf);
++	kobject_put(kobj);
++	return ret;
++}
++
++static ssize_t
++ocfs2_filecheck_store(struct kobject *kobj, struct attribute *attr,
++			const char *buf, size_t count)
++{
++	ssize_t ret = -EIO;
++	struct kobj_attribute *kattr = container_of(attr,
++					struct kobj_attribute, attr);
++
++	kobject_get(kobj);
++	if (kattr->store)
++		ret = kattr->store(kobj, kattr, buf, count);
++	kobject_put(kobj);
++	return ret;
++}
++
++static const struct sysfs_ops ocfs2_filecheck_ops = {
++	.show = ocfs2_filecheck_show,
++	.store = ocfs2_filecheck_store,
++};
++
++static struct kobj_type ocfs2_ktype_filecheck = {
++	.default_attrs = ocfs2_filecheck_attrs,
++	.sysfs_ops = &ocfs2_filecheck_ops,
++	.release = ocfs2_filecheck_release,
++};
++
+ static void
+ ocfs2_filecheck_sysfs_free(struct ocfs2_filecheck_sysfs_entry *entry)
+ {
+ 	struct ocfs2_filecheck_entry *p;
+ 
+-	if (!atomic_dec_and_test(&entry->fs_count))
+-		wait_on_atomic_t(&entry->fs_count, ocfs2_filecheck_sysfs_wait,
+-				 TASK_UNINTERRUPTIBLE);
+-
+ 	spin_lock(&entry->fs_fcheck->fc_lock);
+ 	while (!list_empty(&entry->fs_fcheck->fc_head)) {
+ 		p = list_first_entry(&entry->fs_fcheck->fc_head,
+@@ -154,151 +168,48 @@ static int ocfs2_filecheck_sysfs_wait(atomic_t *p)
+ 	}
+ 	spin_unlock(&entry->fs_fcheck->fc_lock);
+ 
+-	kset_unregister(entry->fs_fcheckkset);
+-	kset_unregister(entry->fs_devicekset);
+ 	kfree(entry->fs_fcheck);
+-	kfree(entry);
+-}
+-
+-static void
+-ocfs2_filecheck_sysfs_add(struct ocfs2_filecheck_sysfs_entry *entry)
+-{
+-	spin_lock(&ocfs2_filecheck_sysfs_lock);
+-	list_add_tail(&entry->fs_list, &ocfs2_filecheck_sysfs_list);
+-	spin_unlock(&ocfs2_filecheck_sysfs_lock);
++	entry->fs_fcheck = NULL;
+ }
+ 
+-static int ocfs2_filecheck_sysfs_del(const char *devname)
+-{
+-	struct ocfs2_filecheck_sysfs_entry *p;
+-
+-	spin_lock(&ocfs2_filecheck_sysfs_lock);
+-	list_for_each_entry(p, &ocfs2_filecheck_sysfs_list, fs_list) {
+-		if (!strcmp(p->fs_sb->s_id, devname)) {
+-			list_del(&p->fs_list);
+-			spin_unlock(&ocfs2_filecheck_sysfs_lock);
+-			ocfs2_filecheck_sysfs_free(p);
+-			return 0;
+-		}
+-	}
+-	spin_unlock(&ocfs2_filecheck_sysfs_lock);
+-	return 1;
+-}
+-
+-static void
+-ocfs2_filecheck_sysfs_put(struct ocfs2_filecheck_sysfs_entry *entry)
++int ocfs2_filecheck_create_sysfs(struct ocfs2_super *osb)
+ {
+-	if (atomic_dec_and_test(&entry->fs_count))
+-		wake_up_atomic_t(&entry->fs_count);
+-}
+-
+-static struct ocfs2_filecheck_sysfs_entry *
+-ocfs2_filecheck_sysfs_get(const char *devname)
+-{
+-	struct ocfs2_filecheck_sysfs_entry *p = NULL;
+-
+-	spin_lock(&ocfs2_filecheck_sysfs_lock);
+-	list_for_each_entry(p, &ocfs2_filecheck_sysfs_list, fs_list) {
+-		if (!strcmp(p->fs_sb->s_id, devname)) {
+-			atomic_inc(&p->fs_count);
+-			spin_unlock(&ocfs2_filecheck_sysfs_lock);
+-			return p;
+-		}
+-	}
+-	spin_unlock(&ocfs2_filecheck_sysfs_lock);
+-	return NULL;
+-}
+-
+-int ocfs2_filecheck_create_sysfs(struct super_block *sb)
+-{
+-	int ret = 0;
+-	struct kset *device_kset = NULL;
+-	struct kset *fcheck_kset = NULL;
+-	struct ocfs2_filecheck *fcheck = NULL;
+-	struct ocfs2_filecheck_sysfs_entry *entry = NULL;
+-	struct attribute **attrs = NULL;
+-	struct attribute_group attrgp;
+-
+-	if (!ocfs2_kset)
+-		return -ENOMEM;
+-
+-	attrs = kmalloc(sizeof(struct attribute *) * 4, GFP_NOFS);
+-	if (!attrs) {
+-		ret = -ENOMEM;
+-		goto error;
+-	} else {
+-		attrs[0] = &ocfs2_attr_filecheck_chk.attr;
+-		attrs[1] = &ocfs2_attr_filecheck_fix.attr;
+-		attrs[2] = &ocfs2_attr_filecheck_set.attr;
+-		attrs[3] = NULL;
+-		memset(&attrgp, 0, sizeof(attrgp));
+-		attrgp.attrs = attrs;
+-	}
++	int ret;
++	struct ocfs2_filecheck *fcheck;
++	struct ocfs2_filecheck_sysfs_entry *entry = &osb->osb_fc_ent;
+ 
+ 	fcheck = kmalloc(sizeof(struct ocfs2_filecheck), GFP_NOFS);
+-	if (!fcheck) {
+-		ret = -ENOMEM;
+-		goto error;
+-	} else {
+-		INIT_LIST_HEAD(&fcheck->fc_head);
+-		spin_lock_init(&fcheck->fc_lock);
+-		fcheck->fc_max = OCFS2_FILECHECK_MINSIZE;
+-		fcheck->fc_size = 0;
+-		fcheck->fc_done = 0;
+-	}
+-
+-	if (strlen(sb->s_id) <= 0) {
+-		mlog(ML_ERROR,
+-		"Cannot get device basename when create filecheck sysfs\n");
+-		ret = -ENODEV;
+-		goto error;
+-	}
+-
+-	device_kset = kset_create_and_add(sb->s_id, NULL, &ocfs2_kset->kobj);
+-	if (!device_kset) {
+-		ret = -ENOMEM;
+-		goto error;
+-	}
+-
+-	fcheck_kset = kset_create_and_add("filecheck", NULL,
+-					  &device_kset->kobj);
+-	if (!fcheck_kset) {
+-		ret = -ENOMEM;
+-		goto error;
+-	}
+-
+-	ret = sysfs_create_group(&fcheck_kset->kobj, &attrgp);
+-	if (ret)
+-		goto error;
++	if (!fcheck)
++		return -ENOMEM;
+ 
+-	entry = kmalloc(sizeof(struct ocfs2_filecheck_sysfs_entry), GFP_NOFS);
+-	if (!entry) {
+-		ret = -ENOMEM;
+-		goto error;
+-	} else {
+-		atomic_set(&entry->fs_count, 1);
+-		entry->fs_sb = sb;
+-		entry->fs_devicekset = device_kset;
+-		entry->fs_fcheckkset = fcheck_kset;
+-		entry->fs_fcheck = fcheck;
+-		ocfs2_filecheck_sysfs_add(entry);
++	INIT_LIST_HEAD(&fcheck->fc_head);
++	spin_lock_init(&fcheck->fc_lock);
++	fcheck->fc_max = OCFS2_FILECHECK_MINSIZE;
++	fcheck->fc_size = 0;
++	fcheck->fc_done = 0;
++
++	entry->fs_kobj.kset = osb->osb_dev_kset;
++	init_completion(&entry->fs_kobj_unregister);
++	ret = kobject_init_and_add(&entry->fs_kobj, &ocfs2_ktype_filecheck,
++					NULL, "filecheck");
++	if (ret) {
++		kfree(fcheck);
++		return ret;
+ 	}
+ 
+-	kfree(attrs);
++	entry->fs_fcheck = fcheck;
+ 	return 0;
+-
+-error:
+-	kfree(attrs);
+-	kfree(entry);
+-	kfree(fcheck);
+-	kset_unregister(fcheck_kset);
+-	kset_unregister(device_kset);
+-	return ret;
+ }
+ 
+-int ocfs2_filecheck_remove_sysfs(struct super_block *sb)
++void ocfs2_filecheck_remove_sysfs(struct ocfs2_super *osb)
+ {
+-	return ocfs2_filecheck_sysfs_del(sb->s_id);
++	if (!osb->osb_fc_ent.fs_fcheck)
++		return;
++
++	kobject_del(&osb->osb_fc_ent.fs_kobj);
++	kobject_put(&osb->osb_fc_ent.fs_kobj);
++	wait_for_completion(&osb->osb_fc_ent.fs_kobj_unregister);
++	ocfs2_filecheck_sysfs_free(&osb->osb_fc_ent);
+ }
+ 
+ static int
+@@ -315,7 +226,7 @@ int ocfs2_filecheck_remove_sysfs(struct super_block *sb)
+ 
+ 	spin_lock(&ent->fs_fcheck->fc_lock);
+ 	if (len < (ent->fs_fcheck->fc_size - ent->fs_fcheck->fc_done)) {
+-		mlog(ML_ERROR,
++		mlog(ML_NOTICE,
+ 		"Cannot set online file check maximum entry number "
+ 		"to %u due to too many pending entries(%u)\n",
+ 		len, ent->fs_fcheck->fc_size - ent->fs_fcheck->fc_done);
+@@ -392,7 +303,7 @@ int ocfs2_filecheck_remove_sysfs(struct super_block *sb)
+ 	return 0;
+ }
+ 
+-static ssize_t ocfs2_filecheck_show(struct kobject *kobj,
++static ssize_t ocfs2_filecheck_attr_show(struct kobject *kobj,
+ 				    struct kobj_attribute *attr,
+ 				    char *buf)
+ {
+@@ -400,19 +311,12 @@ static ssize_t ocfs2_filecheck_show(struct kobject *kobj,
+ 	ssize_t ret = 0, total = 0, remain = PAGE_SIZE;
+ 	unsigned int type;
+ 	struct ocfs2_filecheck_entry *p;
+-	struct ocfs2_filecheck_sysfs_entry *ent;
++	struct ocfs2_filecheck_sysfs_entry *ent = container_of(kobj,
++				struct ocfs2_filecheck_sysfs_entry, fs_kobj);
+ 
+ 	if (ocfs2_filecheck_type_parse(attr->attr.name, &type))
+ 		return -EINVAL;
+ 
+-	ent = ocfs2_filecheck_sysfs_get(kobj->parent->name);
+-	if (!ent) {
+-		mlog(ML_ERROR,
+-		"Cannot get the corresponding entry via device basename %s\n",
+-		kobj->name);
+-		return -ENODEV;
+-	}
+-
+ 	if (type == OCFS2_FILECHECK_TYPE_SET) {
+ 		spin_lock(&ent->fs_fcheck->fc_lock);
+ 		total = snprintf(buf, remain, "%u\n", ent->fs_fcheck->fc_max);
+@@ -446,11 +350,27 @@ static ssize_t ocfs2_filecheck_show(struct kobject *kobj,
+ 	spin_unlock(&ent->fs_fcheck->fc_lock);
+ 
+ exit:
+-	ocfs2_filecheck_sysfs_put(ent);
+ 	return total;
+ }
+ 
+-static int
++
++static inline int
++ocfs2_filecheck_is_dup_entry(struct ocfs2_filecheck_sysfs_entry *ent,
++				unsigned long ino)
++{
++	struct ocfs2_filecheck_entry *p;
++
++	list_for_each_entry(p, &ent->fs_fcheck->fc_head, fe_list) {
++		if (!p->fe_done) {
++			if (p->fe_ino == ino)
++				return 1;
++		}
++	}
++
++	return 0;
++}
++
++static inline int
+ ocfs2_filecheck_erase_entry(struct ocfs2_filecheck_sysfs_entry *ent)
+ {
+ 	struct ocfs2_filecheck_entry *p;
+@@ -489,21 +409,21 @@ static ssize_t ocfs2_filecheck_show(struct kobject *kobj,
+ ocfs2_filecheck_done_entry(struct ocfs2_filecheck_sysfs_entry *ent,
+ 			   struct ocfs2_filecheck_entry *entry)
+ {
+-	entry->fe_done = 1;
+ 	spin_lock(&ent->fs_fcheck->fc_lock);
++	entry->fe_done = 1;
+ 	ent->fs_fcheck->fc_done++;
+ 	spin_unlock(&ent->fs_fcheck->fc_lock);
+ }
+ 
+ static unsigned int
+-ocfs2_filecheck_handle(struct super_block *sb,
++ocfs2_filecheck_handle(struct ocfs2_super *osb,
+ 		       unsigned long ino, unsigned int flags)
+ {
+ 	unsigned int ret = OCFS2_FILECHECK_ERR_SUCCESS;
+ 	struct inode *inode = NULL;
+ 	int rc;
+ 
+-	inode = ocfs2_iget(OCFS2_SB(sb), ino, flags, 0);
++	inode = ocfs2_iget(osb, ino, flags, 0);
+ 	if (IS_ERR(inode)) {
+ 		rc = (int)(-(long)inode);
+ 		if (rc >= OCFS2_FILECHECK_ERR_START &&
+@@ -521,11 +441,14 @@ static ssize_t ocfs2_filecheck_show(struct kobject *kobj,
+ ocfs2_filecheck_handle_entry(struct ocfs2_filecheck_sysfs_entry *ent,
+ 			     struct ocfs2_filecheck_entry *entry)
+ {
++	struct ocfs2_super *osb = container_of(ent, struct ocfs2_super,
++						osb_fc_ent);
++
+ 	if (entry->fe_type == OCFS2_FILECHECK_TYPE_CHK)
+-		entry->fe_status = ocfs2_filecheck_handle(ent->fs_sb,
++		entry->fe_status = ocfs2_filecheck_handle(osb,
+ 				entry->fe_ino, OCFS2_FI_FLAG_FILECHECK_CHK);
+ 	else if (entry->fe_type == OCFS2_FILECHECK_TYPE_FIX)
+-		entry->fe_status = ocfs2_filecheck_handle(ent->fs_sb,
++		entry->fe_status = ocfs2_filecheck_handle(osb,
+ 				entry->fe_ino, OCFS2_FI_FLAG_FILECHECK_FIX);
+ 	else
+ 		entry->fe_status = OCFS2_FILECHECK_ERR_UNSUPPORTED;
+@@ -533,30 +456,21 @@ static ssize_t ocfs2_filecheck_show(struct kobject *kobj,
+ 	ocfs2_filecheck_done_entry(ent, entry);
+ }
+ 
+-static ssize_t ocfs2_filecheck_store(struct kobject *kobj,
++static ssize_t ocfs2_filecheck_attr_store(struct kobject *kobj,
+ 				     struct kobj_attribute *attr,
+ 				     const char *buf, size_t count)
+ {
++	ssize_t ret = 0;
+ 	struct ocfs2_filecheck_args args;
+ 	struct ocfs2_filecheck_entry *entry;
+-	struct ocfs2_filecheck_sysfs_entry *ent;
+-	ssize_t ret = 0;
++	struct ocfs2_filecheck_sysfs_entry *ent = container_of(kobj,
++				struct ocfs2_filecheck_sysfs_entry, fs_kobj);
+ 
+ 	if (count == 0)
+-		return count;
++		return 0; /* nothing to do */
+ 
+-	if (ocfs2_filecheck_args_parse(attr->attr.name, buf, count, &args)) {
+-		mlog(ML_ERROR, "Invalid arguments for online file check\n");
++	if (ocfs2_filecheck_args_parse(attr->attr.name, buf, count, &args))
+ 		return -EINVAL;
+-	}
+-
+-	ent = ocfs2_filecheck_sysfs_get(kobj->parent->name);
+-	if (!ent) {
+-		mlog(ML_ERROR,
+-		"Cannot get the corresponding entry via device basename %s\n",
+-		kobj->parent->name);
+-		return -ENODEV;
+-	}
+ 
+ 	if (args.fa_type == OCFS2_FILECHECK_TYPE_SET) {
+ 		ret = ocfs2_filecheck_adjust_max(ent, args.fa_len);
+@@ -570,13 +484,16 @@ static ssize_t ocfs2_filecheck_store(struct kobject *kobj,
+ 	}
+ 
+ 	spin_lock(&ent->fs_fcheck->fc_lock);
+-	if ((ent->fs_fcheck->fc_size >= ent->fs_fcheck->fc_max) &&
+-	    (ent->fs_fcheck->fc_done == 0)) {
+-		mlog(ML_ERROR,
++	if (ocfs2_filecheck_is_dup_entry(ent, args.fa_ino)) {
++		ret = -EEXIST;
++		kfree(entry);
++	} else if ((ent->fs_fcheck->fc_size >= ent->fs_fcheck->fc_max) &&
++		(ent->fs_fcheck->fc_done == 0)) {
++		mlog(ML_NOTICE,
+ 		"Cannot do more file check "
+ 		"since file check queue(%u) is full now\n",
+ 		ent->fs_fcheck->fc_max);
+-		ret = -EBUSY;
++		ret = -EAGAIN;
+ 		kfree(entry);
+ 	} else {
+ 		if ((ent->fs_fcheck->fc_size >= ent->fs_fcheck->fc_max) &&
+@@ -601,6 +518,5 @@ static ssize_t ocfs2_filecheck_store(struct kobject *kobj,
+ 		ocfs2_filecheck_handle_entry(ent, entry);
+ 
+ exit:
+-	ocfs2_filecheck_sysfs_put(ent);
+ 	return (!ret ? count : ret);
+ }
+diff --git a/fs/ocfs2/filecheck.h b/fs/ocfs2/filecheck.h
+index e5cd002..6a22ee7 100644
+--- a/fs/ocfs2/filecheck.h
++++ b/fs/ocfs2/filecheck.h
+@@ -43,7 +43,32 @@ enum {
+ #define OCFS2_FILECHECK_ERR_START	OCFS2_FILECHECK_ERR_FAILED
+ #define OCFS2_FILECHECK_ERR_END		OCFS2_FILECHECK_ERR_UNSUPPORTED
+ 
+-int ocfs2_filecheck_create_sysfs(struct super_block *sb);
+-int ocfs2_filecheck_remove_sysfs(struct super_block *sb);
++struct ocfs2_filecheck {
++	struct list_head fc_head;	/* File check entry list head */
++	spinlock_t fc_lock;
++	unsigned int fc_max;	/* Maximum number of entry in list */
++	unsigned int fc_size;	/* Current entry count in list */
++	unsigned int fc_done;	/* Finished entry count in list */
++};
++
++#define OCFS2_FILECHECK_MAXSIZE		100
++#define OCFS2_FILECHECK_MINSIZE		10
++
++/* File check operation type */
++enum {
++	OCFS2_FILECHECK_TYPE_CHK = 0,	/* Check a file(inode) */
++	OCFS2_FILECHECK_TYPE_FIX,	/* Fix a file(inode) */
++	OCFS2_FILECHECK_TYPE_SET = 100	/* Set entry list maximum size */
++};
++
++struct ocfs2_filecheck_sysfs_entry {	/* sysfs entry per partition */
++	struct kobject fs_kobj;
++	struct completion fs_kobj_unregister;
++	struct ocfs2_filecheck *fs_fcheck;
++};
++
++
++int ocfs2_filecheck_create_sysfs(struct ocfs2_super *osb);
++void ocfs2_filecheck_remove_sysfs(struct ocfs2_super *osb);
+ 
+ #endif  /* FILECHECK_H */
+-- 
+1.8.5.6
