@@ -1,15 +1,26 @@
-From: kbuild test robot <lkp@intel.com>
-Date: Mon, 19 Dec 2016 18:56:25 +0800
-Subject: [Ocfs2-devel] [PATCH 1/2] ocfs2: add kobject for online file
-	check
-In-Reply-To: <1482139287-19040-2-git-send-email-ghe@suse.com>
-Message-ID: <201612191811.4gtVVyNv%fengguang.wu@intel.com>
+From: Gang He <ghe@suse.com>
+Date: Mon, 19 Dec 2016 18:43:48 -0700
+Subject: [Ocfs2-devel] =?utf-8?b?562U5aSN77yaIFJlOiBbUEFUQ0ggMS8yXSBvY2Zz?=
+ =?utf-8?q?2=3A_add_kobject_for_online_file_check?=
+In-Reply-To: <201612191811.4gtVVyNv%fengguang.wu@intel.com>
+References: <1482139287-19040-2-git-send-email-ghe@suse.com>
+	<201612191811.4gtVVyNv%fengguang.wu@intel.com>
+Message-ID: <58592784020000F9001B856C@prv-mh.provo.novell.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: lkp@intel.com
+Cc: kbuild-all@01.org, jlbec@evilplan.org, akpm@linux-foundation.org, ocfs2-devel@oss.oracle.com, mfasheh@versity.com, linux-kernel@vger.kernel.org
 
+Hello Kbuild,
+Could you build my whole patch set (2 patch)? I think that the code is OK.
+
+Thanks
+Gang
+
+
+>>> kbuild test robot <lkp@intel.com> 2016-12-19 ?? 18:56 >>>
 Hi Gang,
 
 [auto build test ERROR on linus/master]
@@ -75,8 +86,7 @@ All error/warnings (new ones prefixed by >>):
 >> include/linux/kernel.h:850:27: error: 'struct ocfs2_super' has no member named 'osb_fc_ent'; did you mean 'osb_ctxt'?
      const typeof( ((type *)0)->member ) *__mptr = (ptr); \
                               ^
->> fs/ocfs2/filecheck.c:444:28: note: in expansion of macro 'container_of'
-     struct ocfs2_super *osb = container_of(ent, struct ocfs2_super,
+>> fs/ocfs2/filecheck.c:444:     struct ocfs2_super *osb = container_of(ent, struct ocfs2_super,
                                ^~~~~~~~~~~~
    include/linux/kernel.h:850:48: error: initialization from incompatible pointer type [-Werror=incompatible-pointer-types]
      const typeof( ((type *)0)->member ) *__mptr = (ptr); \
@@ -134,10 +144,3 @@ ccd979bd Mark Fasheh   2005-12-15  1207
 ---
 0-DAY kernel test infrastructure                Open Source Technology Center
 https://lists.01.org/pipermail/kbuild-all                   Intel Corporation
--------------- next part --------------
-A non-text attachment was scrubbed...
-Name: .config.gz
-Type: application/gzip
-Size: 34606 bytes
-Desc: not available
-Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20161219/c3756a16/attachment-0001.bin 
