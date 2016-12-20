@@ -1,39 +1,31 @@
-From: Gang He <ghe@suse.com>
-Date: Mon, 19 Dec 2016 20:00:55 -0700
-Subject: [Ocfs2-devel] =?utf-8?b?562U5aSN77yaIFJlOiBba2J1aWxkLWFsbF0g562U?=
- =?utf-8?b?5aSN77yaIFJlOiBbUEFUQ0ggMS8yXSBvY2ZzMjogYWRkIGtvYmplY3QgZm9y?=
- =?utf-8?q?_online_file_check?=
-In-Reply-To: <20161220014713.zf2ksqzeb7tz75gw@wfg-t540p.sh.intel.com>
-References: <1482139287-19040-2-git-send-email-ghe@suse.com>
-	<201612191811.4gtVVyNv%fengguang.wu@intel.com>
-	<58592784020000F9001B856C@prv-mh.provo.novell.com>
-	<20161220014713.zf2ksqzeb7tz75gw@wfg-t540p.sh.intel.com>
-Message-ID: <58593997020000F9001B859F@prv-mh.provo.novell.com>
+From: Andrew Morton <akpm@linux-foundation.org>
+Date: Tue, 20 Dec 2016 14:51:26 -0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: fix crash caused by stale lvb with
+	fsdlm plugin
+In-Reply-To: <6ddf36d1-9e2b-f094-77a4-6ec6d6661dc2@gmail.com>
+References: <1481275846-6604-1-git-send-email-zren@suse.com>
+	<7dbdc1d8-f1c5-c6bf-0614-1d8f03f0e3f0@gmail.com>
+	<66edad7f-6c83-a5e0-aab3-d3a034667042@suse.com>
+	<6ddf36d1-9e2b-f094-77a4-6ec6d6661dc2@gmail.com>
+Message-ID: <20161220145126.5ee33b840f9967aae2e63806@linux-foundation.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: lkp@intel.com
-Cc: kbuild-all@01.org, jlbec@evilplan.org, akpm@linux-foundation.org, ocfs2-devel@oss.oracle.com, mfasheh@versity.com, linux-kernel@vger.kernel.org
+To: Joseph Qi <jiangqi903@gmail.com>
+Cc: Eric Ren <zren@suse.com>, ocfs2-devel@oss.oracle.com, mfasheh@versity.com, jlbec@evilplan.org, teigland@redhat.com, ghe@suse.com, junxiao.bi@oracle.com, linux-kernel@vger.kernel.org
 
-Hi Fengguang and all,
-I will reconstruct my patch set, to make sure each patch can follow this rule.
+On Mon, 19 Dec 2016 17:55:06 +0800 Joseph Qi <jiangqi903@gmail.com> wrote:
 
-Thanks
-Gang 
+> > I'd like to see this quick and small fix to be merged at this moment, 
+> > because this issue is little emergency for us.
+> > Anyway, we can supersede this one easily if someone familiar with o2cb 
+> > works out a patch for o2cb in the future.
+> >
+> > Does this sounds good to you?
+> 
+> Fine.
+> Reviewed-by: Joseph Qi <jiangqi903@gmail.com>
 
->>> Fengguang Wu <lkp@intel.com> 2016-12-20 ?? 9:47 >>>
-Hi Gang,
-
-On Mon, Dec 19, 2016 at 06:43:48PM -0700, Gang He wrote:
->Hello Kbuild,
->Could you build my whole patch set (2 patch)? I think that the code is OK.
-
-We test your whole patch as well as first-N patches, and noticed that
-the first-1 patch breaks bisectibility:
-
->Note: the linux-review/Gang-He/ocfs2-add-kobject-for-online-file-check/20161219-181858 HEAD 6ef9256cd25ef72a5e69490cc3dacde95b8e2ac4 builds fine.
->      It only hurts bisectibility.
-
-Thanks,
-Fengguang
+I'll add cc:stable to this one so the fix gets backported into older
+kernels.
