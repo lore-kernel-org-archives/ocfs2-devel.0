@@ -1,20 +1,28 @@
-From: Fengguang Wu <lkp@intel.com>
-Date: Tue, 20 Dec 2016 09:47:13 +0800
-Subject: [Ocfs2-devel]
- =?utf-8?b?W2tidWlsZC1hbGxdIOetlOWkje+8miBSZTogW1BB?=
- =?utf-8?q?TCH_1/2=5D_ocfs2=3A_add_kobject_for_online_file_check?=
-In-Reply-To: <58592784020000F9001B856C@prv-mh.provo.novell.com>
+From: Gang He <ghe@suse.com>
+Date: Mon, 19 Dec 2016 20:00:55 -0700
+Subject: [Ocfs2-devel] =?utf-8?b?562U5aSN77yaIFJlOiBba2J1aWxkLWFsbF0g562U?=
+ =?utf-8?b?5aSN77yaIFJlOiBbUEFUQ0ggMS8yXSBvY2ZzMjogYWRkIGtvYmplY3QgZm9y?=
+ =?utf-8?q?_online_file_check?=
+In-Reply-To: <20161220014713.zf2ksqzeb7tz75gw@wfg-t540p.sh.intel.com>
 References: <1482139287-19040-2-git-send-email-ghe@suse.com>
 	<201612191811.4gtVVyNv%fengguang.wu@intel.com>
 	<58592784020000F9001B856C@prv-mh.provo.novell.com>
-Message-ID: <20161220014713.zf2ksqzeb7tz75gw@wfg-t540p.sh.intel.com>
+	<20161220014713.zf2ksqzeb7tz75gw@wfg-t540p.sh.intel.com>
+Message-ID: <58593997020000F9001B859F@prv-mh.provo.novell.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Gang He <ghe@suse.com>
-Cc: mfasheh@versity.com, linux-kernel@vger.kernel.org, kbuild-all@01.org, akpm@linux-foundation.org, ocfs2-devel@oss.oracle.com, jlbec@evilplan.org
+To: lkp@intel.com
+Cc: kbuild-all@01.org, jlbec@evilplan.org, akpm@linux-foundation.org, ocfs2-devel@oss.oracle.com, mfasheh@versity.com, linux-kernel@vger.kernel.org
 
+Hi Fengguang and all,
+I will reconstruct my patch set, to make sure each patch can follow this rule.
+
+Thanks
+Gang 
+
+>>> Fengguang Wu <lkp@intel.com> 2016-12-20 ?? 9:47 >>>
 Hi Gang,
 
 On Mon, Dec 19, 2016 at 06:43:48PM -0700, Gang He wrote:
