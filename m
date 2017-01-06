@@ -1,228 +1,298 @@
-From: Eric Ren <zren@suse.com>
-Date: Thu,  5 Jan 2017 23:31:02 +0800
-Subject: [Ocfs2-devel] [PATCH 2/2] ocfs2: fix deadlocks when taking inode
-	lock at vfs entry points
-In-Reply-To: <1483630262-22227-1-git-send-email-zren@suse.com>
-References: <1483630262-22227-1-git-send-email-zren@suse.com>
-Message-ID: <1483630262-22227-3-git-send-email-zren@suse.com>
+From: piaojun <piaojun@huawei.com>
+Date: Fri, 6 Jan 2017 10:07:27 +0800
+Subject: [Ocfs2-devel] [PATCH v2 3/3] ocfs2/dlm: continue to purge
+ recovery lockres when recovery master goes down
+In-Reply-To: <63ADC13FD55D6546B7DECE290D39E37342E73695@H3CMLB12-EX.srv.huawei-3com.com>
+References: <578453AF.8030404@huawei.com>
+	<63ADC13FD55D6546B7DECE290D39E37342E72604@H3CMLB12-EX.srv.huawei-3com.com>
+	<63ADC13FD55D6546B7DECE290D39E37342E73695@H3CMLB12-EX.srv.huawei-3com.com>
+Message-ID: <586EFBDF.7090008@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
-Cc: akpm@linux-foundation.org, mfasheh@versity.com, jlbec@evilplan.org, ghe@suse.com, junxiao.bi@oracle.com, jiangqi903@gmail.com, zren@suse.com, linux-kernel@vger.kernel.org
 
-Commit 743b5f1434f5 ("ocfs2: take inode lock in ocfs2_iop_set/get_acl()")
-results in a deadlock, as the author "Tariq Saeed" realized shortly
-after the patch was merged. The discussion happened here
-(https://oss.oracle.com/pipermail/ocfs2-devel/2015-September/011085.html).
 
-The reason why taking cluster inode lock at vfs entry points opens up
-a self deadlock window, is explained in the previous patch of this
-series.
 
-So far, we have seen two different code paths that have this issue.
-1. do_sys_open
-     may_open
-      inode_permission
-       ocfs2_permission
-        ocfs2_inode_lock() <=== take PR
-         generic_permission
-          get_acl
-           ocfs2_iop_get_acl
-            ocfs2_inode_lock() <=== take PR
-2. fchmod|fchmodat
-    chmod_common
-     notify_change
-      ocfs2_setattr <=== take EX
-       posix_acl_chmod
-        get_acl
-         ocfs2_iop_get_acl <=== take PR
-        ocfs2_iop_set_acl <=== take EX
+On 2017/1/5 15:44, Gechangwei wrote:
+> On 2017/1/5 15:28, gechangwei 12382 (Cloud) wrote:
+> 
+> Hi Jun,
+> I suppose that a defect hid your patch.
+> 
+> 
+>> We found a dlm-blocked situation caused by continuous breakdown of recovery masters described below. To solve this problem, we should purge recovery lock once detecting recovery master goes down.
+>>
+>> N3                      N2                   N1(reco master)
+>>                         go down
+>>                                              pick up recovery lock and
+>>                                              begin recoverying for N2
+>>
+>>                                              go down
+>>
+>> pick up recovery
+>> lock failed, then
+>> purge it:
+>> dlm_purge_lockres
+>>   ->DROPPING_REF is set
+>>
+>> send deref to N1 failed,
+>> recovery lock is not purged
+>>
+>> find N1 go down, begin
+>> recoverying for N1, but
+>> blocked in dlm_do_recovery
+>> as DROPPING_REF is set:
+>> dlm_do_recovery
+>>   ->dlm_pick_recovery_master
+>>     ->dlmlock
+>>       ->dlm_get_lock_resource
+>>         ->__dlm_wait_on_lockres_flags(tmpres,
+>>               DLM_LOCK_RES_DROPPING_REF);
+>>
+>> Fixes: 8c0343968163 ("ocfs2/dlm: clear DROPPING_REF flag when the master goes down")
+>>
+>> Signed-off-by: Jun Piao <piaojun@huawei.com>
+>> Reviewed-by: Joseph Qi <joseph.qi@huawei.com>
+>> Reviewed-by: Jiufei Xue <xuejiufei@huawei.com>
+>> ---
+>>  fs/ocfs2/dlm/dlmcommon.h   |  2 ++
+>>  fs/ocfs2/dlm/dlmmaster.c   | 38 +++------------------------------
+>>  fs/ocfs2/dlm/dlmrecovery.c | 29 +++++++++++++++++++-------
+>>  fs/ocfs2/dlm/dlmthread.c   | 52 ++++++++++++++++++++++++++++++++++++++++++----
+>>  4 files changed, 74 insertions(+), 47 deletions(-)
+>>
+>> diff --git a/fs/ocfs2/dlm/dlmcommon.h b/fs/ocfs2/dlm/dlmcommon.h index 004f2cb..3e3e9ba8 100644
+>> --- a/fs/ocfs2/dlm/dlmcommon.h
+>> +++ b/fs/ocfs2/dlm/dlmcommon.h
+>> @@ -1004,6 +1004,8 @@ int dlm_finalize_reco_handler(struct o2net_msg *msg, u32 len, void *data,  int dlm_do_master_requery(struct dlm_ctxt *dlm, struct dlm_lock_resource *res,
+>>                         u8 nodenum, u8 *real_master);
+>>
+>> +void __dlm_do_purge_lockres(struct dlm_ctxt *dlm,
+>> +             struct dlm_lock_resource *res);
+>>
+>>  int dlm_dispatch_assert_master(struct dlm_ctxt *dlm,
+>>                              struct dlm_lock_resource *res, diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c index 311404f..1d87e0f 100644
+>> --- a/fs/ocfs2/dlm/dlmmaster.c
+>> +++ b/fs/ocfs2/dlm/dlmmaster.c
+>> @@ -2425,52 +2425,20 @@ int dlm_deref_lockres_done_handler(struct o2net_msg *msg, u32 len, void *data,
+>>               mlog(ML_NOTICE, "%s:%.*s: node %u sends deref done "
+>>                       "but it is already derefed!\n", dlm->name,
+>>                       res->lockname.len, res->lockname.name, node);
+>> -             dlm_lockres_put(res);
+>>               ret = 0;
+>>               goto done;
+>>       }
+>> -
+>> -     if (!list_empty(&res->purge)) {
+>> -             mlog(0, "%s: Removing res %.*s from purgelist\n",
+>> -                     dlm->name, res->lockname.len, res->lockname.name);
+>> -             list_del_init(&res->purge);
+>> -             dlm_lockres_put(res);
+>> -             dlm->purge_count--;
+>> -     }
+>> -
+>> -     if (!__dlm_lockres_unused(res)) {
+>> -             mlog(ML_ERROR, "%s: res %.*s in use after deref\n",
+>> -                     dlm->name, res->lockname.len, res->lockname.name);
+>> -             __dlm_print_one_lock_resource(res);
+>> -             BUG();
+>> -     }
+>> -
+>> -     __dlm_unhash_lockres(dlm, res);
+>> -
+>> -     spin_lock(&dlm->track_lock);
+>> -     if (!list_empty(&res->tracking))
+>> -             list_del_init(&res->tracking);
+>> -     else {
+>> -             mlog(ML_ERROR, "%s: Resource %.*s not on the Tracking list\n",
+>> -                  dlm->name, res->lockname.len, res->lockname.name);
+>> -             __dlm_print_one_lock_resource(res);
+>> -     }
+>> -     spin_unlock(&dlm->track_lock);
+>> -
+>> -     /* lockres is not in the hash now. drop the flag and wake up
+>> -      * any processes waiting in dlm_get_lock_resource.
+>> -      */
+>> -     res->state &= ~DLM_LOCK_RES_DROPPING_REF;
+>> +     __dlm_do_purge_lockres(dlm, res);
+>>       spin_unlock(&res->spinlock);
+>>       wake_up(&res->wq);
+>>
+>> -     dlm_lockres_put(res);
+>> -
+>>       spin_unlock(&dlm->spinlock);
+>>
+>>       ret = 0;
+>>
+>>  done:
+>> +     if (res)
+>> +             dlm_lockres_put(res);
+>>       dlm_put(dlm);
+>>       return ret;
+>>  }
+>> diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c index f6b3138..dd5cb8b 100644
+>> --- a/fs/ocfs2/dlm/dlmrecovery.c
+>> +++ b/fs/ocfs2/dlm/dlmrecovery.c
+>> @@ -2343,6 +2343,7 @@ static void dlm_do_local_recovery_cleanup(struct dlm_ctxt *dlm, u8 dead_node)
+>>       struct dlm_lock_resource *res;
+>>       int i;
+>>       struct hlist_head *bucket;
+>> +     struct hlist_node *tmp;
+>>       struct dlm_lock *lock;
+>>
+>>
+>> @@ -2365,7 +2366,7 @@ static void dlm_do_local_recovery_cleanup(struct dlm_ctxt *dlm, u8 dead_node)
+>>        */
+>>       for (i = 0; i < DLM_HASH_BUCKETS; i++) {
+>>               bucket = dlm_lockres_hash(dlm, i);
+>> -             hlist_for_each_entry(res, bucket, hash_node) {
+>> +             hlist_for_each_entry_safe(res, tmp, bucket, hash_node) {
+>>                       /* always prune any $RECOVERY entries for dead nodes,
+>>                        * otherwise hangs can occur during later recovery */
+>>                       if (dlm_is_recovery_lock(res->lockname.name,
+>> @@ -2386,8 +2387,17 @@ static void dlm_do_local_recovery_cleanup(struct dlm_ctxt *dlm, u8 dead_node)
+>>                                               break;
+>>                                       }
+>>                               }
+>> -                             dlm_lockres_clear_refmap_bit(dlm, res,
+>> -                                             dead_node);
+>> +
+>> +                             if ((res->owner == dead_node) &&
+>> +                                                     (res->state & DLM_LOCK_RES_DROPPING_REF)) {
+>> +                                     dlm_lockres_get(res);
+>> +                                     __dlm_do_purge_lockres(dlm, res);
+>> +                                     spin_unlock(&res->spinlock);
+>> +                                     wake_up(&res->wq);
+>> +                                     dlm_lockres_put(res);
+>> +                                     continue;
+>> +                             } else if (res->owner == dlm->node_num)
+>> +                                     dlm_lockres_clear_refmap_bit(dlm, res, dead_node);
+>>                               spin_unlock(&res->spinlock);
+>>                               continue;
+>>                       }
+>> @@ -2398,14 +2408,17 @@ static void dlm_do_local_recovery_cleanup(struct dlm_ctxt *dlm, u8 dead_node)
+>>                               if (res->state & DLM_LOCK_RES_DROPPING_REF) {
+>>                                       mlog(0, "%s:%.*s: owned by "
+>>                                               "dead node %u, this node was "
+>> -                                             "dropping its ref when it died. "
+>> -                                             "continue, dropping the flag.\n",
+>> +                                             "dropping its ref when master died. "
+>> +                                             "continue, purging the lockres.\n",
+>>                                               dlm->name, res->lockname.len,
+>>                                               res->lockname.name, dead_node);
+>> +                                     dlm_lockres_get(res);
+>> +                                     __dlm_do_purge_lockres(dlm, res);
+>> +                                     spin_unlock(&res->spinlock);
+>> +                                     wake_up(&res->wq);
+>> +                                     dlm_lockres_put(res);
+>> +                                     continue;
+>>                               }
+>> -                             res->state &= ~DLM_LOCK_RES_DROPPING_REF;
+>> -                             dlm_move_lockres_to_recovery_list(dlm,
+>> -                                             res);
+> 
+> Here, you just remove above line, thus, no chance for DLM to select lock
+> resources to be recovered, is right?
+> 
+> 
+> 
+Here we purge lockres directly instead of moving to recovery list
+when DLM_LOCK_RES_DROPPING_REF is set in case of deadlock.
 
-Fixes them by adding the tracking logic (in the previous patch) for
-these funcs above, ocfs2_permission(), ocfs2_iop_[set|get]_acl(),
-ocfs2_setattr().
+Thanks,
+Jun
 
-Signed-off-by: Eric Ren <zren@suse.com>
----
- fs/ocfs2/acl.c  | 39 ++++++++++++++++++++++++++++++++++-----
- fs/ocfs2/file.c | 44 ++++++++++++++++++++++++++++++++++----------
- 2 files changed, 68 insertions(+), 15 deletions(-)
-
-diff --git a/fs/ocfs2/acl.c b/fs/ocfs2/acl.c
-index bed1fcb..c539890 100644
---- a/fs/ocfs2/acl.c
-+++ b/fs/ocfs2/acl.c
-@@ -284,16 +284,31 @@ int ocfs2_iop_set_acl(struct inode *inode, struct posix_acl *acl, int type)
- {
- 	struct buffer_head *bh = NULL;
- 	int status = 0;
--
--	status = ocfs2_inode_lock(inode, &bh, 1);
-+	int arg_flags = 0, has_locked;
-+	struct ocfs2_holder oh;
-+	struct ocfs2_lock_res *lockres;
-+
-+	lockres = &OCFS2_I(inode)->ip_inode_lockres;
-+	has_locked = (ocfs2_is_locked_by_me(lockres) != NULL);
-+	if (has_locked)
-+		arg_flags = OCFS2_META_LOCK_GETBH;
-+	status = ocfs2_inode_lock_full(inode, &bh, 1, arg_flags);
- 	if (status < 0) {
- 		if (status != -ENOENT)
- 			mlog_errno(status);
- 		return status;
- 	}
-+	if (!has_locked)
-+		ocfs2_add_holder(lockres, &oh);
-+
- 	status = ocfs2_set_acl(NULL, inode, bh, type, acl, NULL, NULL);
--	ocfs2_inode_unlock(inode, 1);
-+
-+	if (!has_locked) {
-+		ocfs2_remove_holder(lockres, &oh);
-+		ocfs2_inode_unlock(inode, 1);
-+	}
- 	brelse(bh);
-+
- 	return status;
- }
- 
-@@ -303,21 +318,35 @@ struct posix_acl *ocfs2_iop_get_acl(struct inode *inode, int type)
- 	struct buffer_head *di_bh = NULL;
- 	struct posix_acl *acl;
- 	int ret;
-+	int arg_flags = 0, has_locked;
-+	struct ocfs2_holder oh;
-+	struct ocfs2_lock_res *lockres;
- 
- 	osb = OCFS2_SB(inode->i_sb);
- 	if (!(osb->s_mount_opt & OCFS2_MOUNT_POSIX_ACL))
- 		return NULL;
--	ret = ocfs2_inode_lock(inode, &di_bh, 0);
-+
-+	lockres = &OCFS2_I(inode)->ip_inode_lockres;
-+	has_locked = (ocfs2_is_locked_by_me(lockres) != NULL);
-+	if (has_locked)
-+		arg_flags = OCFS2_META_LOCK_GETBH;
-+	ret = ocfs2_inode_lock_full(inode, &di_bh, 0, arg_flags);
- 	if (ret < 0) {
- 		if (ret != -ENOENT)
- 			mlog_errno(ret);
- 		return ERR_PTR(ret);
- 	}
-+	if (!has_locked)
-+		ocfs2_add_holder(lockres, &oh);
- 
- 	acl = ocfs2_get_acl_nolock(inode, type, di_bh);
- 
--	ocfs2_inode_unlock(inode, 0);
-+	if (!has_locked) {
-+		ocfs2_remove_holder(lockres, &oh);
-+		ocfs2_inode_unlock(inode, 0);
-+	}
- 	brelse(di_bh);
-+
- 	return acl;
- }
- 
-diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-index c488965..62be75d 100644
---- a/fs/ocfs2/file.c
-+++ b/fs/ocfs2/file.c
-@@ -1138,6 +1138,9 @@ int ocfs2_setattr(struct dentry *dentry, struct iattr *attr)
- 	handle_t *handle = NULL;
- 	struct dquot *transfer_to[MAXQUOTAS] = { };
- 	int qtype;
-+	int arg_flags = 0, had_lock;
-+	struct ocfs2_holder oh;
-+	struct ocfs2_lock_res *lockres;
- 
- 	trace_ocfs2_setattr(inode, dentry,
- 			    (unsigned long long)OCFS2_I(inode)->ip_blkno,
-@@ -1173,13 +1176,20 @@ int ocfs2_setattr(struct dentry *dentry, struct iattr *attr)
- 		}
- 	}
- 
--	status = ocfs2_inode_lock(inode, &bh, 1);
-+	lockres = &OCFS2_I(inode)->ip_inode_lockres;
-+	had_lock = (ocfs2_is_locked_by_me(lockres) != NULL);
-+	if (had_lock)
-+		arg_flags = OCFS2_META_LOCK_GETBH;
-+	status = ocfs2_inode_lock_full(inode, &bh, 1, arg_flags);
- 	if (status < 0) {
- 		if (status != -ENOENT)
- 			mlog_errno(status);
- 		goto bail_unlock_rw;
- 	}
--	inode_locked = 1;
-+	if (!had_lock) {
-+		ocfs2_add_holder(lockres, &oh);
-+		inode_locked = 1;
-+	}
- 
- 	if (size_change) {
- 		status = inode_newsize_ok(inode, attr->ia_size);
-@@ -1260,7 +1270,8 @@ int ocfs2_setattr(struct dentry *dentry, struct iattr *attr)
- bail_commit:
- 	ocfs2_commit_trans(osb, handle);
- bail_unlock:
--	if (status) {
-+	if (status && inode_locked) {
-+		ocfs2_remove_holder(lockres, &oh);
- 		ocfs2_inode_unlock(inode, 1);
- 		inode_locked = 0;
- 	}
-@@ -1278,8 +1289,10 @@ int ocfs2_setattr(struct dentry *dentry, struct iattr *attr)
- 		if (status < 0)
- 			mlog_errno(status);
- 	}
--	if (inode_locked)
-+	if (inode_locked) {
-+		ocfs2_remove_holder(lockres, &oh);
- 		ocfs2_inode_unlock(inode, 1);
-+	}
- 
- 	brelse(bh);
- 	return status;
-@@ -1321,20 +1334,31 @@ int ocfs2_getattr(struct vfsmount *mnt,
- int ocfs2_permission(struct inode *inode, int mask)
- {
- 	int ret;
-+	int has_locked;
-+	struct ocfs2_holder oh;
-+	struct ocfs2_lock_res *lockres;
- 
- 	if (mask & MAY_NOT_BLOCK)
- 		return -ECHILD;
- 
--	ret = ocfs2_inode_lock(inode, NULL, 0);
--	if (ret) {
--		if (ret != -ENOENT)
--			mlog_errno(ret);
--		goto out;
-+	lockres = &OCFS2_I(inode)->ip_inode_lockres;
-+	has_locked = (ocfs2_is_locked_by_me(lockres) != NULL);
-+	if (!has_locked) {
-+		ret = ocfs2_inode_lock(inode, NULL, 0);
-+		if (ret) {
-+			if (ret != -ENOENT)
-+				mlog_errno(ret);
-+			goto out;
-+		}
-+		ocfs2_add_holder(lockres, &oh);
- 	}
- 
- 	ret = generic_permission(inode, mask);
- 
--	ocfs2_inode_unlock(inode, 0);
-+	if (!has_locked) {
-+		ocfs2_remove_holder(lockres, &oh);
-+		ocfs2_inode_unlock(inode, 0);
-+	}
- out:
- 	return ret;
- }
--- 
-2.6.6
+>>                       } else if (res->owner == dlm->node_num) {
+>>                               dlm_free_dead_locks(dlm, res, dead_node);
+>>                               __dlm_lockres_calc_usage(dlm, res); diff --git a/fs/ocfs2/dlm/dlmthread.c b/fs/ocfs2/dlm/dlmthread.c index ce39722..838a06d 100644
+>> --- a/fs/ocfs2/dlm/dlmthread.c
+>> +++ b/fs/ocfs2/dlm/dlmthread.c
+>> @@ -160,6 +160,52 @@ void dlm_lockres_calc_usage(struct dlm_ctxt *dlm,
+>>       spin_unlock(&dlm->spinlock);
+>>  }
+>>
+>> +/*
+>> + * Do the real purge work:
+>> + *     unhash the lockres, and
+>> + *     clear flag DLM_LOCK_RES_DROPPING_REF.
+>> + * It requires dlm and lockres spinlock to be taken.
+>> + */
+>> +void __dlm_do_purge_lockres(struct dlm_ctxt *dlm,
+>> +             struct dlm_lock_resource *res)
+>> +{
+>> +     assert_spin_locked(&dlm->spinlock);
+>> +     assert_spin_locked(&res->spinlock);
+>> +
+>> +     if (!list_empty(&res->purge)) {
+>> +             mlog(0, "%s: Removing res %.*s from purgelist\n",
+>> +                  dlm->name, res->lockname.len, res->lockname.name);
+>> +             list_del_init(&res->purge);
+>> +             dlm_lockres_put(res);
+>> +             dlm->purge_count--;
+>> +     }
+>> +
+>> +     if (!__dlm_lockres_unused(res)) {
+>> +             mlog(ML_ERROR, "%s: res %.*s in use after deref\n",
+>> +                  dlm->name, res->lockname.len, res->lockname.name);
+>> +             __dlm_print_one_lock_resource(res);
+>> +             BUG();
+>> +     }
+>> +
+>> +     __dlm_unhash_lockres(dlm, res);
+>> +
+>> +     spin_lock(&dlm->track_lock);
+>> +     if (!list_empty(&res->tracking))
+>> +             list_del_init(&res->tracking);
+>> +     else {
+>> +             mlog(ML_ERROR, "%s: Resource %.*s not on the Tracking list\n",
+>> +                  dlm->name, res->lockname.len, res->lockname.name);
+>> +             __dlm_print_one_lock_resource(res);
+>> +     }
+>> +     spin_unlock(&dlm->track_lock);
+>> +
+>> +     /*
+>> +      * lockres is not in the hash now. drop the flag and wake up
+>> +      * any processes waiting in dlm_get_lock_resource.
+>> +      */
+>> +     res->state &= ~DLM_LOCK_RES_DROPPING_REF; }
+>> +
+>>  static void dlm_purge_lockres(struct dlm_ctxt *dlm,
+>>                            struct dlm_lock_resource *res)
+>>  {
+>> @@ -176,10 +222,8 @@ static void dlm_purge_lockres(struct dlm_ctxt *dlm,
+>>
+>>       if (!master) {
+>>               if (res->state & DLM_LOCK_RES_DROPPING_REF) {
+>> -                     mlog(ML_NOTICE, "%s: res %.*s already in "
+>> -                             "DLM_LOCK_RES_DROPPING_REF state\n",
+>> -                             dlm->name, res->lockname.len,
+>> -                             res->lockname.name);
+>> +                     mlog(ML_NOTICE, "%s: res %.*s already in DLM_LOCK_RES_DROPPING_REF state\n",
+>> +                             dlm->name, res->lockname.len, res->lockname.name);
+>>                       spin_unlock(&res->spinlock);
+>>                       return;
+>>               }
+>> --
+>> 1.8.4.3
+>>
+>>
+>> _______________________________________________
+>> Ocfs2-devel mailing list
+>> Ocfs2-devel at oss.oracle.com
+>> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+> 
+> 
+> -------------------------------------------------------------------------------------------------------------------------------------
+> ????????????????????????????????????????
+> ????????????????????????????????????????
+> ????????????????????????????????????????
+> ???
+> This e-mail and its attachments contain confidential information from H3C, which is
+> intended only for the person or entity whose address is listed above. Any use of the
+> information contained herein in any way (including, but not limited to, total or partial
+> disclosure, reproduction, or dissemination) by persons other than the intended
+> recipient(s) is prohibited. If you receive this e-mail in error, please notify the sender
+> by phone or email immediately and delete it!
+> 
