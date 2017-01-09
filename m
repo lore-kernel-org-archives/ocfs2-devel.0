@@ -1,108 +1,344 @@
-From: Gechangwei <ge.changwei@h3c.com>
-Date: Sat, 7 Jan 2017 12:01:06 +0000
-Subject: [Ocfs2-devel] [PATCH] ocfs2/journal: fix umount hang after flushing
- journal failure
-Message-ID: <63ADC13FD55D6546B7DECE290D39E37342E739A1@H3CMLB12-EX.srv.huawei-3com.com>
+From: Joseph Qi <jiangqi903@gmail.com>
+Date: Mon, 9 Jan 2017 09:13:04 +0800
+Subject: [Ocfs2-devel] [PATCH 2/2] ocfs2: fix deadlocks when taking
+ inode lock at vfs entry points
+In-Reply-To: <f983a441-68b9-c793-c7e6-30ad02c40136@suse.com>
+References: <1483630262-22227-1-git-send-email-zren@suse.com>
+	<1483630262-22227-3-git-send-email-zren@suse.com>
+	<dbf37786-9620-77fe-c500-881fdd455964@gmail.com>
+	<2bfda278-6d7f-87c1-a053-8cbb9fb2463e@suse.com>
+	<6450d035-1eec-88a0-57c2-cc3dcc115a46@gmail.com>
+	<1dbd531e-39c3-d352-1052-bdbcb771a2c0@suse.com>
+	<e8fb854e-14eb-4e14-0329-0807f0c43177@gmail.com>
+	<2cc2b35f-9c93-0093-2365-e3fb02d46078@suse.com>
+	<d1c38a46-f721-8f29-d395-9d8b67dc1330@gmail.com>
+	<f983a441-68b9-c793-c7e6-30ad02c40136@suse.com>
+Message-ID: <5c114d4b-8d6b-a26c-be05-ea2604f0b37c@gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
-
-Hi,
-
-When journal flushing in ocfs2_commit_cache() fails, following umount procedure at stage of shutting journal may be blocked due to non-zero transactions number.
-
-Once jbd2_journal_flush() fails, the journal will be marked as ABORT state inner JBD2. There is no way to come back afterwards.
-
-So there is no chance to set transactions number to zero, thus, shutting journal may be blocked .
+To: Eric Ren <zren@suse.com>, ocfs2-devel@oss.oracle.com
+Cc: akpm@linux-foundation.org, mfasheh@versity.com, jlbec@evilplan.org, ghe@suse.com, junxiao.bi@oracle.com, linux-kernel@vger.kernel.org
 
 
-ocfs2_commit_thread()
-
-    ocfs2_commit_cache()
-
-        jbd2_journal_flush() -> failure takes journal into ABORT state, thus, transaction number will never set to zero
-
-
-The back trace is cited blow:
-
-[<ffffffff8109de0c>] kthread_stop+0x4c/0x150
-[<ffffffffc056a887>] ocfs2_journal_shutdown+0xa7/0x400 [ocfs2]
-[<ffffffffc059fbde>] ocfs2_dismount_volume+0xbe/0x4a0 [ocfs2]
-[<ffffffffc059fff7>] ocfs2_put_super+0x37/0xb0 [ocfs2]
-[<ffffffff8120534e>] generic_shutdown_super+0x7e/0x110
-[<ffffffff81205410>] kill_block_super+0x30/0x80
-[<ffffffff81205669>] deactivate_locked_super+0x59/0x90
-[<ffffffff812062ee>] deactivate_super+0x4e/0x70
-[<ffffffff81222423>] cleanup_mnt+0x43/0x90
-[<ffffffff812224c2>] __cleanup_mnt+0x12/0x20
-[<ffffffff8109c247>] task_work_run+0xb7/0xf0
-[<ffffffff81016f7c>] do_notify_resume+0x8c/0xa0
-[<ffffffff817f8384>] int_signal+0x12/0x17
-[<ffffffffffffffff>] 0xffffffffffffffff
-
-Through crash debug tool, It can seen that j_num_trans field is set to 2.
-
-struct ocfs2_journal {
-  j_state = OCFS2_JOURNAL_IN_SHUTDOWN,
-  j_journal = 0xffff8800b4926000,
-  j_inode = 0xffff880122aba298,
-  j_osb = 0xffff880093caa000,
-  j_bh = 0xffff8800a09df888,
-  j_num_trans = {
-    counter = 0x2
-  },
-  j_lock = {
-    {
-      rlock = {
-        raw_lock = {
-          {
-
-
-To solve this issue, I propose a patch. Any comments will be welcomed.
-
-Since journal has been marked as ABORT and flushing journal failure will free all corresponding buffer heads, it will be safe to directly set transactions number to zero.
-
-
-From 98f42f5f52851ed84eb372a3e09a413a30ea2664 Mon Sep 17 00:00:00 2001
-From: gechangwei <ge.changwei@h3c.com><mailto:ge.changwei@h3c.com>
-Date: Sat, 7 Jan 2017 19:48:13 +0800
-Subject: [PATCH] fix umount hang after flushing journal failure
-
-Signed-off-by: gechangwei <ge.changwei@h3c.com><mailto:ge.changwei@h3c.com>
----
- fs/ocfs2/journal.c | 1 +
- 1 file changed, 1 insertion(+)
-
-diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
-index a244f14..dab2094 100644
---- a/fs/ocfs2/journal.c
-+++ b/fs/ocfs2/journal.c
-@@ -326,6 +326,7 @@ static int ocfs2_commit_cache(struct ocfs2_super *osb)
-     status = jbd2_journal_flush(journal->j_journal);
-     jbd2_journal_unlock_updates(journal->j_journal);
-     if (status < 0) {
-+        atomic_set(&journal->j_num_trans, 0);
-         up_write(&journal->j_trans_barrier);
-         mlog_errno(status);
-         goto finally;
---
-2.5.1.windows.1
-
-
-
--------------------------------------------------------------------------------------------------------------------------------------
-????????????????????????????????????????
-????????????????????????????????????????
-????????????????????????????????????????
-???
-This e-mail and its attachments contain confidential information from H3C, which is
-intended only for the person or entity whose address is listed above. Any use of the
-information contained herein in any way (including, but not limited to, total or partial
-disclosure, reproduction, or dissemination) by persons other than the intended
-recipient(s) is prohibited. If you receive this e-mail in error, please notify the sender
-by phone or email immediately and delete it!
--------------- next part --------------
-An HTML attachment was scrubbed...
-URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20170107/9a6eeece/attachment.html 
+On 17/1/6 19:56, Eric Ren wrote:
+> Hi!
+>
+> On 01/06/2017 05:55 PM, Joseph Qi wrote:
+>> On 17/1/6 17:13, Eric Ren wrote:
+>>> Hi,
+>>>
+>>>>>>>>>
+>>>>>>>>> Fixes them by adding the tracking logic (in the previous 
+>>>>>>>>> patch) for
+>>>>>>>>> these funcs above, ocfs2_permission(), ocfs2_iop_[set|get]_acl(),
+>>>>>>>>> ocfs2_setattr().
+>>>>>>>> As described cases above, shall we just add the tracking logic 
+>>>>>>>> only for set/get_acl()?
+>>>>>>>
+>>>>>>> The idea is to detect recursive locking on the running task 
+>>>>>>> stack. Take case 1) for example if ocfs2_permisssion()
+>>>>>>> is not changed:
+>>>>>>>
+>>>>>>> ocfs2_permission() <=== take PR, ocfs2_holder is not added
+>>>>>>>    ocfs2_iop_get_acl <=== still take PR, because there is no 
+>>>>>>> lock holder on the tracking list
+>>>>>> I mean we have no need to check if locked by me, just do inode 
+>>>>>> lock and add holder.
+>>>>>> This will make code more clean, IMO.
+>>>>> Oh, sorry, I get your point this time. I think we need to check it 
+>>>>> if there are more than one processes that hold
+>>>>> PR lock on the same resource.  If I don't understand you 
+>>>>> correctly, please tell me why you think it's not neccessary
+>>>>> to check before getting lock?
+>>>> The code logic can only check if it is locked by myself. In the case
+>>> Why only...?
+>>>> described above, ocfs2_permission is the first entry to take inode 
+>>>> lock.
+>>>> And even if check succeeds, it is a bug without unlock, but not the 
+>>>> case
+>>>> of recursive lock.
+>>>
+>>> By checking succeeds, you mean it's locked by me, right? If so, this 
+>>> flag
+>>>                       "arg_flags = OCFS2_META_LOCK_GETBH"
+>>> will be passed down to ocfs2_inode_lock_full(), which gets back 
+>>> buffer head of
+>>> the disk inode for us if necessary, but doesn't take cluster locking 
+>>> again. So, there is
+>>> no need to unlock in such case.
+>> I am trying to state my point more clearly...
+>
+> Thanks a lot!
+>
+>> The issue case you are trying to fix is:
+>> Process A
+>> take inode lock (phase1)
+>> ...
+>> <<< race window (phase2, Process B)
+>
+> The deadlock only happens if process B is on a remote node and request 
+> EX lock.
+>
+> Quote the patch[1/2]'s commit message:
+>
+> A deadlock will occur if a remote EX request comes in between two of
+> ocfs2_inode_lock().  Briefly describe how the deadlock is formed:
+>
+> On one hand, OCFS2_LOCK_BLOCKED flag of this lockres is set in
+> BAST(ocfs2_generic_handle_bast) when downconvert is started on behalf of
+> the remote EX lock request.  Another hand, the recursive cluster lock 
+> (the
+> second one) will be blocked in in __ocfs2_cluster_lock() because of
+> OCFS2_LOCK_BLOCKED.  But, the downconvert never complete, why? because
+> there is no chance for the first cluster lock on this node to be unlocked
+> - we block ourselves in the code path.
+> ---
+>
+>> ...
+>> take inode lock again (phase3)
+>>
+>> Deadlock happens because Process B in phase2 and Process A in phase3
+>> are waiting for each other.
+> It's local lock's (like i_mutex) responsibility to protect critical 
+> section from racing
+> among processes on the same node.
+I know we are talking a cluster lock issue. And the Process B I described is
+downconvert thread.
+>
+>> So you are trying to fix it by making phase3 finish without really doing
+>
+> Phase3 can go ahead because this node is already under protection of 
+> cluster lock.
+You said it was blocked...
+"Another hand, the recursive cluster lock (the second one) will be 
+blocked in
+__ocfs2_cluster_lock() because of OCFS2_LOCK_BLOCKED."
+>
+>> __ocfs2_cluster_lock, then Process B can continue either.
+>> Let us bear in mind that phase1 and phase3 are in the same context and
+>> executed in order. That's why I think there is no need to check if 
+>> locked
+>> by myself in phase1.
+>> If phase1 finds it is already locked by myself, that means the holder
+>> is left by last operation without dec holder. That's why I think it 
+>> is a bug
+>> instead of a recursive lock case.
+>
+> Did I answer your question?
+>
+> Thanks!
+> Eric
+>
+>>
+>> Thanks,
+>> Joseph
+>>>
+>>> Thanks,
+>>> Eric
+>>>
+>>>>
+>>>> Thanks,
+>>>> Joseph
+>>>>>
+>>>>> Thanks,
+>>>>> Eric
+>>>>>>
+>>>>>> Thanks,
+>>>>>> Joseph
+>>>>>>>
+>>>>>>> Thanks for your review;-)
+>>>>>>> Eric
+>>>>>>>
+>>>>>>>>
+>>>>>>>> Thanks,
+>>>>>>>> Joseph
+>>>>>>>>>
+>>>>>>>>> Signed-off-by: Eric Ren <zren@suse.com>
+>>>>>>>>> ---
+>>>>>>>>>   fs/ocfs2/acl.c  | 39 ++++++++++++++++++++++++++++++++++-----
+>>>>>>>>>   fs/ocfs2/file.c | 44 
+>>>>>>>>> ++++++++++++++++++++++++++++++++++----------
+>>>>>>>>>   2 files changed, 68 insertions(+), 15 deletions(-)
+>>>>>>>>>
+>>>>>>>>> diff --git a/fs/ocfs2/acl.c b/fs/ocfs2/acl.c
+>>>>>>>>> index bed1fcb..c539890 100644
+>>>>>>>>> --- a/fs/ocfs2/acl.c
+>>>>>>>>> +++ b/fs/ocfs2/acl.c
+>>>>>>>>> @@ -284,16 +284,31 @@ int ocfs2_iop_set_acl(struct inode 
+>>>>>>>>> *inode, struct posix_acl *acl, int type)
+>>>>>>>>>   {
+>>>>>>>>>       struct buffer_head *bh = NULL;
+>>>>>>>>>       int status = 0;
+>>>>>>>>> -
+>>>>>>>>> -    status = ocfs2_inode_lock(inode, &bh, 1);
+>>>>>>>>> +    int arg_flags = 0, has_locked;
+>>>>>>>>> +    struct ocfs2_holder oh;
+>>>>>>>>> +    struct ocfs2_lock_res *lockres;
+>>>>>>>>> +
+>>>>>>>>> +    lockres = &OCFS2_I(inode)->ip_inode_lockres;
+>>>>>>>>> +    has_locked = (ocfs2_is_locked_by_me(lockres) != NULL);
+>>>>>>>>> +    if (has_locked)
+>>>>>>>>> +        arg_flags = OCFS2_META_LOCK_GETBH;
+>>>>>>>>> +    status = ocfs2_inode_lock_full(inode, &bh, 1, arg_flags);
+>>>>>>>>>       if (status < 0) {
+>>>>>>>>>           if (status != -ENOENT)
+>>>>>>>>>               mlog_errno(status);
+>>>>>>>>>           return status;
+>>>>>>>>>       }
+>>>>>>>>> +    if (!has_locked)
+>>>>>>>>> +        ocfs2_add_holder(lockres, &oh);
+>>>>>>>>> +
+>>>>>>>>>       status = ocfs2_set_acl(NULL, inode, bh, type, acl, NULL, 
+>>>>>>>>> NULL);
+>>>>>>>>> -    ocfs2_inode_unlock(inode, 1);
+>>>>>>>>> +
+>>>>>>>>> +    if (!has_locked) {
+>>>>>>>>> +        ocfs2_remove_holder(lockres, &oh);
+>>>>>>>>> +        ocfs2_inode_unlock(inode, 1);
+>>>>>>>>> +    }
+>>>>>>>>>       brelse(bh);
+>>>>>>>>> +
+>>>>>>>>>       return status;
+>>>>>>>>>   }
+>>>>>>>>>   @@ -303,21 +318,35 @@ struct posix_acl 
+>>>>>>>>> *ocfs2_iop_get_acl(struct inode *inode, int type)
+>>>>>>>>>       struct buffer_head *di_bh = NULL;
+>>>>>>>>>       struct posix_acl *acl;
+>>>>>>>>>       int ret;
+>>>>>>>>> +    int arg_flags = 0, has_locked;
+>>>>>>>>> +    struct ocfs2_holder oh;
+>>>>>>>>> +    struct ocfs2_lock_res *lockres;
+>>>>>>>>>         osb = OCFS2_SB(inode->i_sb);
+>>>>>>>>>       if (!(osb->s_mount_opt & OCFS2_MOUNT_POSIX_ACL))
+>>>>>>>>>           return NULL;
+>>>>>>>>> -    ret = ocfs2_inode_lock(inode, &di_bh, 0);
+>>>>>>>>> +
+>>>>>>>>> +    lockres = &OCFS2_I(inode)->ip_inode_lockres;
+>>>>>>>>> +    has_locked = (ocfs2_is_locked_by_me(lockres) != NULL);
+>>>>>>>>> +    if (has_locked)
+>>>>>>>>> +        arg_flags = OCFS2_META_LOCK_GETBH;
+>>>>>>>>> +    ret = ocfs2_inode_lock_full(inode, &di_bh, 0, arg_flags);
+>>>>>>>>>       if (ret < 0) {
+>>>>>>>>>           if (ret != -ENOENT)
+>>>>>>>>>               mlog_errno(ret);
+>>>>>>>>>           return ERR_PTR(ret);
+>>>>>>>>>       }
+>>>>>>>>> +    if (!has_locked)
+>>>>>>>>> +        ocfs2_add_holder(lockres, &oh);
+>>>>>>>>>         acl = ocfs2_get_acl_nolock(inode, type, di_bh);
+>>>>>>>>>   -    ocfs2_inode_unlock(inode, 0);
+>>>>>>>>> +    if (!has_locked) {
+>>>>>>>>> +        ocfs2_remove_holder(lockres, &oh);
+>>>>>>>>> +        ocfs2_inode_unlock(inode, 0);
+>>>>>>>>> +    }
+>>>>>>>>>       brelse(di_bh);
+>>>>>>>>> +
+>>>>>>>>>       return acl;
+>>>>>>>>>   }
+>>>>>>>>>   diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+>>>>>>>>> index c488965..62be75d 100644
+>>>>>>>>> --- a/fs/ocfs2/file.c
+>>>>>>>>> +++ b/fs/ocfs2/file.c
+>>>>>>>>> @@ -1138,6 +1138,9 @@ int ocfs2_setattr(struct dentry *dentry, 
+>>>>>>>>> struct iattr *attr)
+>>>>>>>>>       handle_t *handle = NULL;
+>>>>>>>>>       struct dquot *transfer_to[MAXQUOTAS] = { };
+>>>>>>>>>       int qtype;
+>>>>>>>>> +    int arg_flags = 0, had_lock;
+>>>>>>>>> +    struct ocfs2_holder oh;
+>>>>>>>>> +    struct ocfs2_lock_res *lockres;
+>>>>>>>>>         trace_ocfs2_setattr(inode, dentry,
+>>>>>>>>>                   (unsigned long long)OCFS2_I(inode)->ip_blkno,
+>>>>>>>>> @@ -1173,13 +1176,20 @@ int ocfs2_setattr(struct dentry 
+>>>>>>>>> *dentry, struct iattr *attr)
+>>>>>>>>>           }
+>>>>>>>>>       }
+>>>>>>>>>   -    status = ocfs2_inode_lock(inode, &bh, 1);
+>>>>>>>>> +    lockres = &OCFS2_I(inode)->ip_inode_lockres;
+>>>>>>>>> +    had_lock = (ocfs2_is_locked_by_me(lockres) != NULL);
+>>>>>>>>> +    if (had_lock)
+>>>>>>>>> +        arg_flags = OCFS2_META_LOCK_GETBH;
+>>>>>>>>> +    status = ocfs2_inode_lock_full(inode, &bh, 1, arg_flags);
+>>>>>>>>>       if (status < 0) {
+>>>>>>>>>           if (status != -ENOENT)
+>>>>>>>>>               mlog_errno(status);
+>>>>>>>>>           goto bail_unlock_rw;
+>>>>>>>>>       }
+>>>>>>>>> -    inode_locked = 1;
+>>>>>>>>> +    if (!had_lock) {
+>>>>>>>>> +        ocfs2_add_holder(lockres, &oh);
+>>>>>>>>> +        inode_locked = 1;
+>>>>>>>>> +    }
+>>>>>>>>>         if (size_change) {
+>>>>>>>>>           status = inode_newsize_ok(inode, attr->ia_size);
+>>>>>>>>> @@ -1260,7 +1270,8 @@ int ocfs2_setattr(struct dentry *dentry, 
+>>>>>>>>> struct iattr *attr)
+>>>>>>>>>   bail_commit:
+>>>>>>>>>       ocfs2_commit_trans(osb, handle);
+>>>>>>>>>   bail_unlock:
+>>>>>>>>> -    if (status) {
+>>>>>>>>> +    if (status && inode_locked) {
+>>>>>>>>> +        ocfs2_remove_holder(lockres, &oh);
+>>>>>>>>>           ocfs2_inode_unlock(inode, 1);
+>>>>>>>>>           inode_locked = 0;
+>>>>>>>>>       }
+>>>>>>>>> @@ -1278,8 +1289,10 @@ int ocfs2_setattr(struct dentry 
+>>>>>>>>> *dentry, struct iattr *attr)
+>>>>>>>>>           if (status < 0)
+>>>>>>>>>               mlog_errno(status);
+>>>>>>>>>       }
+>>>>>>>>> -    if (inode_locked)
+>>>>>>>>> +    if (inode_locked) {
+>>>>>>>>> +        ocfs2_remove_holder(lockres, &oh);
+>>>>>>>>>           ocfs2_inode_unlock(inode, 1);
+>>>>>>>>> +    }
+>>>>>>>>>         brelse(bh);
+>>>>>>>>>       return status;
+>>>>>>>>> @@ -1321,20 +1334,31 @@ int ocfs2_getattr(struct vfsmount *mnt,
+>>>>>>>>>   int ocfs2_permission(struct inode *inode, int mask)
+>>>>>>>>>   {
+>>>>>>>>>       int ret;
+>>>>>>>>> +    int has_locked;
+>>>>>>>>> +    struct ocfs2_holder oh;
+>>>>>>>>> +    struct ocfs2_lock_res *lockres;
+>>>>>>>>>         if (mask & MAY_NOT_BLOCK)
+>>>>>>>>>           return -ECHILD;
+>>>>>>>>>   -    ret = ocfs2_inode_lock(inode, NULL, 0);
+>>>>>>>>> -    if (ret) {
+>>>>>>>>> -        if (ret != -ENOENT)
+>>>>>>>>> -            mlog_errno(ret);
+>>>>>>>>> -        goto out;
+>>>>>>>>> +    lockres = &OCFS2_I(inode)->ip_inode_lockres;
+>>>>>>>>> +    has_locked = (ocfs2_is_locked_by_me(lockres) != NULL);
+>>>>>>>>> +    if (!has_locked) {
+>>>>>>>>> +        ret = ocfs2_inode_lock(inode, NULL, 0);
+>>>>>>>>> +        if (ret) {
+>>>>>>>>> +            if (ret != -ENOENT)
+>>>>>>>>> +                mlog_errno(ret);
+>>>>>>>>> +            goto out;
+>>>>>>>>> +        }
+>>>>>>>>> +        ocfs2_add_holder(lockres, &oh);
+>>>>>>>>>       }
+>>>>>>>>>         ret = generic_permission(inode, mask);
+>>>>>>>>>   -    ocfs2_inode_unlock(inode, 0);
+>>>>>>>>> +    if (!has_locked) {
+>>>>>>>>> +        ocfs2_remove_holder(lockres, &oh);
+>>>>>>>>> +        ocfs2_inode_unlock(inode, 0);
+>>>>>>>>> +    }
+>>>>>>>>>   out:
+>>>>>>>>>       return ret;
+>>>>>>>>>   }
+>>>>>>>>
+>>>>>>>>
+>>>>>>>
+>>>>>>
+>>>>>>
+>>>>>
+>>>>
+>>>>
+>>>
+>>
+>>
+>
