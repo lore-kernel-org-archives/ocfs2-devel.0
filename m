@@ -1,36 +1,48 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Date: Mon, 9 Jan 2017 14:42:26 -0800
+From: Joseph Qi <jiangqi903@gmail.com>
+Date: Tue, 10 Jan 2017 14:17:30 +0800
 Subject: [Ocfs2-devel] [PATCH] ocfs2/journal: fix umount hang after
  flushing journal failure
 In-Reply-To: <63ADC13FD55D6546B7DECE290D39E37342E739A1@H3CMLB12-EX.srv.huawei-3com.com>
 References: <63ADC13FD55D6546B7DECE290D39E37342E739A1@H3CMLB12-EX.srv.huawei-3com.com>
-Message-ID: <20170109144226.9eb70c2778409a53a468b46d@linux-foundation.org>
+Message-ID: <bc34ccf5-ad10-d5da-22c3-9b830f7901e1@gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Sat, 7 Jan 2017 12:01:06 +0000 Gechangwei <ge.changwei@h3c.com> wrote:
+According to the call trace, umount hangs because ocfs2_commit_thread
+can't exit. So I think we'd better put the logic into ocfs2_commit_thread,
+which can be align with kthread_should_stop to identify the case.
 
+Thanks,
+Joseph
+
+On 17/1/7 20:01, Gechangwei wrote:
+>
 > Hi,
-> 
-> When journal flushing in ocfs2_commit_cache() fails, following umount procedure at stage of shutting journal may be blocked due to non-zero transactions number.
-> 
-> Once jbd2_journal_flush() fails, the journal will be marked as ABORT state inner JBD2. There is no way to come back afterwards.
-> 
-> So there is no chance to set transactions number to zero, thus, shutting journal may be blocked .
-> 
-> 
+>
+> When journal flushing in ocfs2_commit_cache() fails, following umount 
+> procedure at stage of shutting journal may be blocked due to non-zero 
+> transactions number.
+>
+> Once jbd2_journal_flush() fails, the journal will be marked as ABORT 
+> state inner JBD2. There is no way to come back afterwards.
+>
+> So there is no chance to set transactions number to zero, thus, 
+> shutting journal may be blocked .
+>
+>
 > ocfs2_commit_thread()
-> 
+>
 >     ocfs2_commit_cache()
-> 
->         jbd2_journal_flush() -> failure takes journal into ABORT state, thus, transaction number will never set to zero
-> 
-> 
+>
+>         jbd2_journal_flush() -> failure takes journal into ABORT 
+> state, thus, transaction number will never set to zero
+>
+>
 > The back trace is cited blow:
-> 
+>
 > [<ffffffff8109de0c>] kthread_stop+0x4c/0x150
 > [<ffffffffc056a887>] ocfs2_journal_shutdown+0xa7/0x400 [ocfs2]
 > [<ffffffffc059fbde>] ocfs2_dismount_volume+0xbe/0x4a0 [ocfs2]
@@ -45,9 +57,9 @@ On Sat, 7 Jan 2017 12:01:06 +0000 Gechangwei <ge.changwei@h3c.com> wrote:
 > [<ffffffff81016f7c>] do_notify_resume+0x8c/0xa0
 > [<ffffffff817f8384>] int_signal+0x12/0x17
 > [<ffffffffffffffff>] 0xffffffffffffffff
-> 
+>
 > Through crash debug tool, It can seen that j_num_trans field is set to 2.
-> 
+>
 > struct ocfs2_journal {
 >   j_state = OCFS2_JOURNAL_IN_SHUTDOWN,
 >   j_journal = 0xffff8800b4926000,
@@ -62,23 +74,25 @@ On Sat, 7 Jan 2017 12:01:06 +0000 Gechangwei <ge.changwei@h3c.com> wrote:
 >       rlock = {
 >         raw_lock = {
 >           {
-> 
-> 
+>
+>
 > To solve this issue, I propose a patch. Any comments will be welcomed.
-> 
-> Since journal has been marked as ABORT and flushing journal failure will free all corresponding buffer heads, it will be safe to directly set transactions number to zero.
-> 
-> 
+>
+> Since journal has been marked as ABORT and flushing journal failure 
+> will free all corresponding buffer heads, it will be safe to directly 
+> set transactions number to zero.
+>
+>
 > From 98f42f5f52851ed84eb372a3e09a413a30ea2664 Mon Sep 17 00:00:00 2001
-> From: gechangwei <ge.changwei@h3c.com><mailto:ge.changwei@h3c.com>
+> From: gechangwei <ge.changwei@h3c.com>
 > Date: Sat, 7 Jan 2017 19:48:13 +0800
 > Subject: [PATCH] fix umount hang after flushing journal failure
-> 
-> Signed-off-by: gechangwei <ge.changwei@h3c.com><mailto:ge.changwei@h3c.com>
+>
+> Signed-off-by: gechangwei <ge.changwei@h3c.com>
 > ---
 >  fs/ocfs2/journal.c | 1 +
 >  1 file changed, 1 insertion(+)
-> 
+>
 > diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
 > index a244f14..dab2094 100644
 > --- a/fs/ocfs2/journal.c
@@ -91,8 +105,27 @@ On Sat, 7 Jan 2017 12:01:06 +0000 Gechangwei <ge.changwei@h3c.com> wrote:
 >          up_write(&journal->j_trans_barrier);
 >          mlog_errno(status);
 >          goto finally;
+> -- 
+> 2.5.1.windows.1
+>
+>
+> -------------------------------------------------------------------------------------------------------------------------------------
+> ????????????????????????????????????????
+> ????????????????????????????????????????
+> ????????????????????????????????????????
+> ???
+> This e-mail and its attachments contain confidential information from 
+> H3C, which is
+> intended only for the person or entity whose address is listed above. 
+> Any use of the
+> information contained herein in any way (including, but not limited 
+> to, total or partial
+> disclosure, reproduction, or dissemination) by persons other than the 
+> intended
+> recipient(s) is prohibited. If you receive this e-mail in error, 
+> please notify the sender
+> by phone or email immediately and delete it! 
 
-This seems a little hacky, but I'll let the ocfs2 developers decide.
-
-I do think there should be a code comment here, telling readers why
-this operation is being performed.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20170110/51b7989e/attachment.html 
