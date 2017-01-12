@@ -1,252 +1,72 @@
-From: Gechangwei <ge.changwei@h3c.com>
-Date: Thu, 12 Jan 2017 01:45:41 +0000
-Subject: [Ocfs2-devel] [PATCH v2] ocfs2/journal: fix umount hang after
- flushing journal failure
-References: <63ADC13FD55D6546B7DECE290D39E37342E73E73@H3CMLB12-EX.srv.huawei-3com.com>
-	<2e92ef09-08b2-8f34-36c5-bd0a9d4f6578@gmail.com>
-Message-ID: <63ADC13FD55D6546B7DECE290D39E37342E74B81@H3CMLB12-EX.srv.huawei-3com.com>
+From: Eric Ren <zren@suse.com>
+Date: Thu, 12 Jan 2017 19:24:26 +0800
+Subject: [Ocfs2-devel] [PATCH 2/2] ocfs2: fix deadlocks when taking
+ inode lock at vfs entry points
+In-Reply-To: <8789b9ff-b951-2569-8e80-2aabd503215d@suse.com>
+References: <1483630262-22227-1-git-send-email-zren@suse.com>
+	<1483630262-22227-3-git-send-email-zren@suse.com>
+	<dbf37786-9620-77fe-c500-881fdd455964@gmail.com>
+	<2bfda278-6d7f-87c1-a053-8cbb9fb2463e@suse.com>
+	<6450d035-1eec-88a0-57c2-cc3dcc115a46@gmail.com>
+	<1dbd531e-39c3-d352-1052-bdbcb771a2c0@suse.com>
+	<e8fb854e-14eb-4e14-0329-0807f0c43177@gmail.com>
+	<2cc2b35f-9c93-0093-2365-e3fb02d46078@suse.com>
+	<d1c38a46-f721-8f29-d395-9d8b67dc1330@gmail.com>
+	<f983a441-68b9-c793-c7e6-30ad02c40136@suse.com>
+	<5c114d4b-8d6b-a26c-be05-ea2604f0b37c@gmail.com>
+	<8789b9ff-b951-2569-8e80-2aabd503215d@suse.com>
+Message-ID: <340218da-57ae-dcdb-2ad3-b934632b0ab9@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Joseph Qi <jiangqi903@gmail.com>
+Cc: ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Joel Becker <jlbec@evilplan.org>, Gang He <ghe@suse.com>, Junxiao Bi <junxiao.bi@oracle.com>, mfasheh@versity.com
 
 Hi Joseph,
 
-At the very beginning, I tried to put the quoted string within the log 
-in two separated lines.
-
-But I was alerted that:
-
-
-WARNING: line over 80 characters
-#21: FILE: fs/ocfs2/journal.c:2320:
-+                               mlog(ML_ERROR, "journal is already abort
-and cannot be "
-
-WARNING: quoted string split across lines
-#22: FILE: fs/ocfs2/journal.c:2321:
-+                               mlog(ML_ERROR, "journal is already abort
-and cannot be "
-+                                        "flushed any more. So ignore
-the pending "
-
-WARNING: quoted string split across lines
-#23: FILE: fs/ocfs2/journal.c:2322:
-+                                        "flushed any more. So ignore
-the pending "
-+                                        "transactions to avoid blocking
-ocfs2 unmount.\n");
-
-total: 0 errors, 3 warnings, 24 lines checked
-
-So I did like my last patch to make these warning quiet.
-
-
-And I accept your suggestion that turning logging level from ML_KTHREAD
-to ML_ERROR.
-Also, let's make the log description like what you proposed. It may
-alert system administrator strikingly.
-
-So does this one look fine to you?
-
-
-From 686b52ee2f06395c53e36e2c7515c276dc7541fb Mon Sep 17 00:00:00 2001
-From: Changwei Ge <ge.changwei@h3c.com>
-Date: Wed, 11 Jan 2017 09:05:35 +0800
-Subject: [PATCH v3] fix umount hang after journal flushing failure
-
-Signed-off-by: Changwei Ge <ge.changwei@h3c.com>
----
- fs/ocfs2/journal.c |   18 ++++++++++++++++++
- 1 file changed, 18 insertions(+)
-
-diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
-index a244f14..5f3c862 100644
---- a/fs/ocfs2/journal.c
-+++ b/fs/ocfs2/journal.c
-@@ -2315,6 +2315,24 @@ static int ocfs2_commit_thread(void *arg)
-                             "commit_thread: %u transactions pending on "
-                             "shutdown\n",
-                             atomic_read(&journal->j_num_trans));
-+
-+                       if (status < 0) {
-+                               mlog(ML_ERROR, "journal is already abort
-and cannot be "
-+                                        "flushed any more. So ignore
-the pending "
-+                                        "transactions to avoid blocking
-ocfs2 unmount.\n");
-+                               /*
-+                                * This may a litte hacky, however, no
-chance
-+                                * for ocfs2/journal to decrease this
-variable
-+                                * thourgh commit-thread. I have to do so to
-+                                * avoid umount hang after journal flushing
-+                                * failure. Since jounral has been
-marked ABORT
-+                                * within jbd2_journal_flush, commit
-cache will
-+                                * never do any real work to flush
-journal to
-+                                * disk.Set it to ZERO so that umount will
-+                                * continue during shutting down journal
-+                                */
-+                               atomic_set(&journal->j_num_trans, 0);
-+                       }
-                }
-        }
-
---
-1.7.9.5
-
-Thanks.
-Br.
-Changwei
-
-
-
-On 2017/1/11 11:22, Joseph Qi wrote:
-> The patch is malformed...
+On 01/09/2017 10:13 AM, Eric Ren wrote:
+>>>> So you are trying to fix it by making phase3 finish without really doing
+>>> Phase3 can go ahead because this node is already under protection of cluster lock.
+>> You said it was blocked...
+> Oh, sorry, I meant phase3 can go ahead if this patch set is applied;-)
 >
-> BTW, I'd like ML_ERROR level log rather ML_KTHREAD, because journal
+>> "Another hand, the recursive cluster lock (the second one) will be blocked in
+>> __ocfs2_cluster_lock() because of OCFS2_LOCK_BLOCKED."
+>>>> __ocfs2_cluster_lock, then Process B can continue either.
+>>>> Let us bear in mind that phase1 and phase3 are in the same context and
+>>>> executed in order. That's why I think there is no need to check if locked
+>>>> by myself in phase1.
+> Sorry, I still cannot see it. Without keeping track of the first cluster lock, how can we
+> know if
+> we are under a context that has already been in the protecting of cluster lock? How can we
+> handle
+> the recursive locking (the second cluster lock) if we don't have this information?
+>>>> If phase1 finds it is already locked by myself, that means the holder
+>>>> is left by last operation without dec holder. That's why I think it is a bug
+>>>> instead of a recursive lock case.
+> I think I got your point here. Do you mean that we should just add the lock holder at the
+> first locking position
+> without checking before that? Unfortunately, it's tricky here to know exactly which ocfs2
+> routine will be the first vfs
+> entry point, such as ocfs2_get_acl() which can be both the first vfs entry point and the
+> second vfs entry point after
+> ocfs2_permission(), right?
 >
-> abort at least should alert filesystem administrator, also this will discard
+> It will be a coding bug if the problem you concern about happens. I think we don't need to
+> worry about this much because
+> the code logic here is quite simple;-)
+Ping...
+
+Did I clear your doubts by the last email? I really want to get your point, if not.
+
+If there's any problem, I will fix them in the next version;-)
+
+Thanks,
+Eric
+
 >
-> some transactions.
+> Thanks for your patience!
+> Eric
 >
-> So how about:
->
-> if (status < 0) {
->
->      mlog(ML_ERROR, "journal is already abort and cannot be "
->
->              "flushed any more. So ignore the pending "
->
->              " transactions to avoid blocking ocfs2 unmount.\n");
->
->      atomic_set(&journal->j_num_trans, 0);
->
-> }
->
-> Thanks,
-> Joseph
->
-> On 17/1/11 10:16, Gechangwei wrote:
->> Hi,
->>
->> As prior e-mail described, umount would hang after journal flushing failure.
->>
->> When journal flushing in ocfs2_commit_cache() fails, following umount
->> procedure at stage of shutting journal may be blocked due to non-zero
->> transactions number.
->>
->> Once jbd2_journal_flush() fails, the journal will be marked as ABORT
->> state within JBD2. There is no way to come back afterwards.
->>
->> So there is no chance to set transactions number to zero, thus, shutting
->> journal may be blocked .
->>
->> ocfs2_commit_thread()
->>
->>      ocfs2_commit_cache()
->>
->>          jbd2_journal_flush() -> failure takes journal into ABORT state,
->> thus, transaction number will never set to zero
->>
->>
->>
->> The back trace is cited blow:
->>
->> [<ffffffff8109de0c>] kthread_stop+0x4c/0x150
->> [<ffffffffc056a887>] ocfs2_journal_shutdown+0xa7/0x400 [ocfs2]
->> [<ffffffffc059fbde>] ocfs2_dismount_volume+0xbe/0x4a0 [ocfs2]
->> [<ffffffffc059fff7>] ocfs2_put_super+0x37/0xb0 [ocfs2]
->> [<ffffffff8120534e>] generic_shutdown_super+0x7e/0x110
->> [<ffffffff81205410>] kill_block_super+0x30/0x80
->> [<ffffffff81205669>] deactivate_locked_super+0x59/0x90
->> [<ffffffff812062ee>] deactivate_super+0x4e/0x70
->> [<ffffffff81222423>] cleanup_mnt+0x43/0x90
->> [<ffffffff812224c2>] __cleanup_mnt+0x12/0x20
->> [<ffffffff8109c247>] task_work_run+0xb7/0xf0
->> [<ffffffff81016f7c>] do_notify_resume+0x8c/0xa0
->> [<ffffffff817f8384>] int_signal+0x12/0x17
->> [<ffffffffffffffff>] 0xffffffffffffffff
->>
->>
->> To solve this issue, I propose an improved version of patch referring to
->> Andrew's and Joseph's  comments.
->>
->> Any more comments is welcomed as always.
->>
->>
->>  From f3315307dd2a30da138383340689a81708134a44 Mon Sep 17 00:00:00 2001
->> From: Changwei Ge <ge.changwei@h3c.com>
->> Date: Wed, 11 Jan 2017 09:05:35 +0800
->> Subject: [PATCH v2] fix umount hang after journal flushing failure
->>
->> Signed-off-by: Changwei Ge <ge.changwei@h3c.com>
->> ---
->>   fs/ocfs2/journal.c |   18 ++++++++++++++++++
->>   1 file changed, 18 insertions(+)
->>
->> diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
->> index a244f14..9a6b234 100644
->> --- a/fs/ocfs2/journal.c
->> +++ b/fs/ocfs2/journal.c
->> @@ -2315,6 +2315,24 @@ static int ocfs2_commit_thread(void *arg)
->>                               "commit_thread: %u transactions pending on "
->>                               "shutdown\n",
->>                               atomic_read(&journal->j_num_trans));
->> +
->> +                       if (status < 0) {
->> +                               mlog(ML_KTHREAD,
->> +                                    "Although %u transactions left,
->> journal must be shut down right now.\n",
->> +                                    atomic_read(&journal->j_num_trans));
->> +                               /*
->> +                                * This may a litte hacky, however, no
->> chance
->> +                                * for ocfs2/journal to decrease this
->> variable
->> +                                * thourgh commit-thread. I have to do so to
->> +                                * avoid umount hang after journal flushing
->> +                                * failure. Since jounral has been
->> marked ABORT
->> +                                * within jbd2_journal_flush, commit
->> cache will
->> +                                * never do any real work to flush
->> journal to
->> +                                * disk.Set t to ZERO so that umount will
->> +                                * continue during shutting downjournal
->> +                                */
->> +                               atomic_set(&journal->j_num_trans, 0);
->> +                       }
->>                  }
->>          }
->>
->> --
->> 1.7.9.5
->>
->>
->> Thanks.
->>
->> Br.
->>
->> Changwei
->>
->>
->>
->> -------------------------------------------------------------------------------------------------------------------------------------
->> ????????????????????????????????????????
->> ????????????????????????????????????????
->> ????????????????????????????????????????
->> ???
->> This e-mail and its attachments contain confidential information from H3C, which is
->> intended only for the person or entity whose address is listed above. Any use of the
->> information contained herein in any way (including, but not limited to, total or partial
->> disclosure, reproduction, or dissemination) by persons other than the intended
->> recipient(s) is prohibited. If you receive this e-mail in error, please notify the sender
->> by phone or email immediately and delete it!
->
+>>> D
