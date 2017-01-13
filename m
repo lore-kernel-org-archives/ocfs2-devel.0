@@ -1,96 +1,90 @@
-From: Joseph Qi <jiangqi903@gmail.com>
-Date: Thu, 12 Jan 2017 19:36:27 +0800
-Subject: [Ocfs2-devel] [PATCH 2/2] ocfs2: fix deadlocks when taking
- inode lock at vfs entry points
-In-Reply-To: <340218da-57ae-dcdb-2ad3-b934632b0ab9@suse.com>
-References: <1483630262-22227-1-git-send-email-zren@suse.com>
-	<1483630262-22227-3-git-send-email-zren@suse.com>
-	<dbf37786-9620-77fe-c500-881fdd455964@gmail.com>
-	<2bfda278-6d7f-87c1-a053-8cbb9fb2463e@suse.com>
-	<6450d035-1eec-88a0-57c2-cc3dcc115a46@gmail.com>
-	<1dbd531e-39c3-d352-1052-bdbcb771a2c0@suse.com>
-	<e8fb854e-14eb-4e14-0329-0807f0c43177@gmail.com>
-	<2cc2b35f-9c93-0093-2365-e3fb02d46078@suse.com>
-	<d1c38a46-f721-8f29-d395-9d8b67dc1330@gmail.com>
-	<f983a441-68b9-c793-c7e6-30ad02c40136@suse.com>
-	<5c114d4b-8d6b-a26c-be05-ea2604f0b37c@gmail.com>
-	<8789b9ff-b951-2569-8e80-2aabd503215d@suse.com>
-	<340218da-57ae-dcdb-2ad3-b934632b0ab9@suse.com>
-Message-ID: <836cc2c3-f00e-adf2-922e-d4d7a8b3286d@gmail.com>
+From: Changwei Ge <ge.changwei@h3c.com>
+Date: Fri, 13 Jan 2017 02:52:57 +0000
+Subject: [Ocfs2-devel] [PATCH v3] ocfs2/journal: fix umount hang after
+ flushing journal failure
+Message-ID: <63ADC13FD55D6546B7DECE290D39E37342E74EAD@H3CMLB12-EX.srv.huawei-3com.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Eric Ren <zren@suse.com>
-Cc: ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Joel Becker <jlbec@evilplan.org>, Gang He <ghe@suse.com>, Junxiao Bi <junxiao.bi@oracle.com>, mfasheh@versity.com
+To: "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>, Joseph Qi <jiangqi903@gmail.com>
+Cc: "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
 
+Hi Joseph,
 
-On 17/1/12 19:24, Eric Ren wrote:
-> Hi Joseph,
->
-> On 01/09/2017 10:13 AM, Eric Ren wrote:
->>>>> So you are trying to fix it by making phase3 finish without really 
->>>>> doing
->>>> Phase3 can go ahead because this node is already under protection 
->>>> of cluster lock.
->>> You said it was blocked...
->> Oh, sorry, I meant phase3 can go ahead if this patch set is applied;-)
->>
->>> "Another hand, the recursive cluster lock (the second one) will be 
->>> blocked in
->>> __ocfs2_cluster_lock() because of OCFS2_LOCK_BLOCKED."
->>>>> __ocfs2_cluster_lock, then Process B can continue either.
->>>>> Let us bear in mind that phase1 and phase3 are in the same context 
->>>>> and
->>>>> executed in order. That's why I think there is no need to check if 
->>>>> locked
->>>>> by myself in phase1.
->> Sorry, I still cannot see it. Without keeping track of the first 
->> cluster lock, how can we
->> know if
->> we are under a context that has already been in the protecting of 
->> cluster lock? How can we
->> handle
->> the recursive locking (the second cluster lock) if we don't have this 
->> information?
->>>>> If phase1 finds it is already locked by myself, that means the holder
->>>>> is left by last operation without dec holder. That's why I think 
->>>>> it is a bug
->>>>> instead of a recursive lock case.
->> I think I got your point here. Do you mean that we should just add 
->> the lock holder at the
->> first locking position
->> without checking before that? Unfortunately, it's tricky here to know 
->> exactly which ocfs2
->> routine will be the first vfs
->> entry point, such as ocfs2_get_acl() which can be both the first vfs 
->> entry point and the
->> second vfs entry point after
->> ocfs2_permission(), right?
->>
->> It will be a coding bug if the problem you concern about happens. I 
->> think we don't need to
->> worry about this much because
->> the code logic here is quite simple;-)
-> Ping...
->
-> Did I clear your doubts by the last email? I really want to get your 
-> point, if not.
->
-> If there's any problem, I will fix them in the next version;-)
-Yes, but I still worry about the code bug case will be hidden behind 
-recursive lock...
-Anyway, It depends on others...
+Do you think my last version of patch to fix umount hang after journal
+flushing failure is OK?
+
+If so, I 'd like to ask Andrew's help to merge this patch into his test
+tree.
+
 
 Thanks,
-Joseph
->
-> Thanks,
-> Eric
->
->>
->> Thanks for your patience!
->> Eric
->>
->>>> D
->
+
+Br.
+
+Changwei
+
+
+
+From 686b52ee2f06395c53e36e2c7515c276dc7541fb Mon Sep 17 00:00:00 2001
+From: Changwei Ge <ge.changwei@h3c.com>
+Date: Wed, 11 Jan 2017 09:05:35 +0800
+Subject: [PATCH] fix umount hang after journal flushing failure
+
+Signed-off-by: Changwei Ge <ge.changwei@h3c.com>
+---
+ fs/ocfs2/journal.c |   18 ++++++++++++++++++
+ 1 file changed, 18 insertions(+)
+
+diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
+index a244f14..5f3c862 100644
+--- a/fs/ocfs2/journal.c
++++ b/fs/ocfs2/journal.c
+@@ -2315,6 +2315,24 @@ static int ocfs2_commit_thread(void *arg)
+                             "commit_thread: %u transactions pending on "
+                             "shutdown\n",
+                             atomic_read(&journal->j_num_trans));
++
++                       if (status < 0) {
++                               mlog(ML_ERROR, "journal is already abort
+and cannot be "
++                                        "flushed any more. So ignore
+the pending "
++                                        "transactions to avoid blocking
+ocfs2 unmount.\n");
++                               /*
++                                * This may a litte hacky, however, no
+chance
++                                * for ocfs2/journal to decrease this
+variable
++                                * thourgh commit-thread. I have to do so to
++                                * avoid umount hang after journal flushing
++                                * failure. Since jounral has been
+marked ABORT
++                                * within jbd2_journal_flush, commit
+cache will
++                                * never do any real work to flush
+journal to
++                                * disk.Set it to ZERO so that umount will
++                                * continue during shutting down journal
++                                */
++                               atomic_set(&journal->j_num_trans, 0);
++                       }
+                }
+        }
+
+--
+1.7.9.5
+
+-------------------------------------------------------------------------------------------------------------------------------------
+????????????????????????????????????????
+????????????????????????????????????????
+????????????????????????????????????????
+???
+This e-mail and its attachments contain confidential information from H3C, which is
+intended only for the person or entity whose address is listed above. Any use of the
+information contained herein in any way (including, but not limited to, total or partial
+disclosure, reproduction, or dissemination) by persons other than the intended
+recipient(s) is prohibited. If you receive this e-mail in error, please notify the sender
+by phone or email immediately and delete it!
