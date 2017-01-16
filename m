@@ -1,16 +1,14 @@
 From: Eric Ren <zren@suse.com>
-Date: Mon, 16 Jan 2017 11:17:41 +0800
-Subject: [Ocfs2-devel] [PATCH 2/2] ocfs2: fix deadlocks when taking
- inode lock at vfs entry points
-In-Reply-To: <d0585955-51fa-653d-94f3-51ca59e29453@oracle.com>
+Date: Mon, 16 Jan 2017 11:31:48 +0800
+Subject: [Ocfs2-devel] [PATCH 1/2] ocfs2/dlmglue: prepare tracking logic
+ to avoid recursive cluster lock
+In-Reply-To: <18438355-5e33-3efc-cc88-05f877652b4b@oracle.com>
 References: <1483630262-22227-1-git-send-email-zren@suse.com>
-	<1483630262-22227-3-git-send-email-zren@suse.com>
-	<eceaf0b9-e233-0424-5b91-8b4da6ffb85f@oracle.com>
-	<31cc0413-6aa2-2493-fce6-f8f8ab9aaa16@suse.com>
-	<6b3f4c7c-9276-321b-4e75-33c87a855757@oracle.com>
-	<1d56b79c-1c2b-b988-7861-6b80df1d0a20@suse.com>
-	<d0585955-51fa-653d-94f3-51ca59e29453@oracle.com>
-Message-ID: <7db68770-0e1f-65f6-5b7a-c9ad47c43d3a@suse.com>
+	<1483630262-22227-2-git-send-email-zren@suse.com>
+	<7605c419-b724-1277-acac-7439fcb6670b@oracle.com>
+	<5ea23e68-1fb7-391d-4171-3efc877003bc@suse.com>
+	<18438355-5e33-3efc-cc88-05f877652b4b@oracle.com>
+Message-ID: <f347aaf5-cd16-d2f1-477f-375aa8de9210@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -18,118 +16,74 @@ Content-Transfer-Encoding: 7bit
 To: Junxiao Bi <junxiao.bi@oracle.com>, ocfs2-devel@oss.oracle.com
 Cc: akpm@linux-foundation.org, mfasheh@versity.com, jlbec@evilplan.org, ghe@suse.com, jiangqi903@gmail.com, linux-kernel@vger.kernel.org
 
-On 01/16/2017 11:13 AM, Junxiao Bi wrote:
-> On 01/16/2017 11:06 AM, Eric Ren wrote:
->> Hi Junxiao,
->>
->> On 01/16/2017 10:46 AM, Junxiao Bi wrote:
->>>>> If had_lock==true, it is a bug? I think we should BUG_ON for it, that
->>>>> can help us catch bug at the first time.
->>>> Good idea! But I'm not sure if "ocfs2_setattr" is always the first one
->>>> who takes the cluster lock.
->>>> It's harder for me to name all the possible paths;-/
->>> The BUG_ON() can help catch the path where ocfs2_setattr is not the
->>> first one.
->> Yes, I understand. But, the problem is that the vfs entries calling
->> order is out of our control.
->> I don't want to place an assertion where I'm not 100% sure it's
->> absolutely right;-)
-> If it is not the first one, is it another recursive locking bug? In this
-> case, if you don't like BUG_ON(), you can dump the call trace and print
-> some warning message.
+Hi Junxiao,
+>> OK, good suggestion. Hrm, but in order to align with "ocfs2_inc_holders", I
+>> think it's good to keep those function names as it is;-)
+> that name is also not very clear. Maybe you can make another patch to
+> clear it.
 
-Yes! I like this idea, will add it in next version, thanks!
+Maybe, the name completeness needs to compromise with the name length at
+some time.  One of basic rules is whether the name may confuse the reader.
+In this case,  "ocfs2_inc_holders"  in dlmglue.c sounds good to me, not ambiguous.
 
+I want to go with it. Anyone who don't like the name can propose their patch for it;-)
+
+Thanks,
 Eric
 
 >
 > Thanks,
 > Junxiao.
->> Thanks,
+>
+>
+>> Thanks for your review!
 >> Eric
 >>
 >>> Thanks,
 >>> Junxiao.
 >>>
->>>>>> +    if (had_lock)
->>>>>> +        arg_flags = OCFS2_META_LOCK_GETBH;
->>>>>> +    status = ocfs2_inode_lock_full(inode, &bh, 1, arg_flags);
->>>>>>         if (status < 0) {
->>>>>>             if (status != -ENOENT)
->>>>>>                 mlog_errno(status);
->>>>>>             goto bail_unlock_rw;
->>>>>>         }
->>>>>> -    inode_locked = 1;
->>>>>> +    if (!had_lock) {
->>>>>> +        ocfs2_add_holder(lockres, &oh);
->>>>>> +        inode_locked = 1;
->>>>>> +    }
->>>>>>           if (size_change) {
->>>>>>             status = inode_newsize_ok(inode, attr->ia_size);
->>>>>> @@ -1260,7 +1270,8 @@ int ocfs2_setattr(struct dentry *dentry, struct
->>>>>> iattr *attr)
->>>>>>     bail_commit:
->>>>>>         ocfs2_commit_trans(osb, handle);
->>>>>>     bail_unlock:
->>>>>> -    if (status) {
->>>>>> +    if (status && inode_locked) {
->>>>>> +        ocfs2_remove_holder(lockres, &oh);
->>>>>>             ocfs2_inode_unlock(inode, 1);
->>>>>>             inode_locked = 0;
->>>>>>         }
->>>>>> @@ -1278,8 +1289,10 @@ int ocfs2_setattr(struct dentry *dentry,
->>>>>> struct iattr *attr)
->>>>>>             if (status < 0)
->>>>>>                 mlog_errno(status);
->>>>>>         }
->>>>>> -    if (inode_locked)
->>>>>> +    if (inode_locked) {
->>>>>> +        ocfs2_remove_holder(lockres, &oh);
->>>>>>             ocfs2_inode_unlock(inode, 1);
->>>>>> +    }
->>>>>>           brelse(bh);
->>>>>>         return status;
->>>>>> @@ -1321,20 +1334,31 @@ int ocfs2_getattr(struct vfsmount *mnt,
->>>>>>     int ocfs2_permission(struct inode *inode, int mask)
->>>>>>     {
->>>>>>         int ret;
->>>>>> +    int has_locked;
->>>>>> +    struct ocfs2_holder oh;
->>>>>> +    struct ocfs2_lock_res *lockres;
->>>>>>           if (mask & MAY_NOT_BLOCK)
->>>>>>             return -ECHILD;
->>>>>>     -    ret = ocfs2_inode_lock(inode, NULL, 0);
->>>>>> -    if (ret) {
->>>>>> -        if (ret != -ENOENT)
->>>>>> -            mlog_errno(ret);
->>>>>> -        goto out;
->>>>>> +    lockres = &OCFS2_I(inode)->ip_inode_lockres;
->>>>>> +    has_locked = (ocfs2_is_locked_by_me(lockres) != NULL);
->>>>> The same thing as ocfs2_setattr.
->>>> OK. I will think over your suggestions!
+>>>> +    struct list_head oh_list;
+>>>> +    struct pid *oh_owner_pid;
+>>>> +};
+>>>> +
+>>>>    /* ocfs2_inode_lock_full() 'arg_flags' flags */
+>>>>    /* don't wait on recovery. */
+>>>>    #define OCFS2_META_LOCK_RECOVERY    (0x01)
+>>>> @@ -77,6 +82,8 @@ struct ocfs2_orphan_scan_lvb {
+>>>>    #define OCFS2_META_LOCK_NOQUEUE        (0x02)
+>>>>    /* don't block waiting for the downconvert thread, instead return
+>>>> -EAGAIN */
+>>>>    #define OCFS2_LOCK_NONBLOCK        (0x04)
+>>>> +/* just get back disk inode bh if we've got cluster lock. */
+>>>> +#define OCFS2_META_LOCK_GETBH        (0x08)
+>>>>      /* Locking subclasses of inode cluster lock */
+>>>>    enum {
+>>>> @@ -170,4 +177,15 @@ void ocfs2_put_dlm_debug(struct ocfs2_dlm_debug
+>>>> *dlm_debug);
+>>>>      /* To set the locking protocol on module initialization */
+>>>>    void ocfs2_set_locking_protocol(void);
+>>>> +
+>>>> +/*
+>>>> + * Keep a list of processes who have interest in a lockres.
+>>>> + * Note: this is now only uesed for check recursive cluster lock.
+>>>> + */
+>>>> +inline void ocfs2_add_holder(struct ocfs2_lock_res *lockres,
+>>>> +                 struct ocfs2_holder *oh);
+>>>> +inline void ocfs2_remove_holder(struct ocfs2_lock_res *lockres,
+>>>> +                 struct ocfs2_holder *oh);
+>>>> +inline struct ocfs2_holder *ocfs2_is_locked_by_me(struct
+>>>> ocfs2_lock_res *lockres);
+>>>> +
+>>>>    #endif    /* DLMGLUE_H */
+>>>> diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
+>>>> index 7e5958b..0c39d71 100644
+>>>> --- a/fs/ocfs2/ocfs2.h
+>>>> +++ b/fs/ocfs2/ocfs2.h
+>>>> @@ -172,6 +172,7 @@ struct ocfs2_lock_res {
+>>>>          struct list_head         l_blocked_list;
+>>>>        struct list_head         l_mask_waiters;
+>>>> +    struct list_head     l_holders;
+>>>>          unsigned long         l_flags;
+>>>>        char                     l_name[OCFS2_LOCK_ID_MAX_LEN];
 >>>>
->>>> Thanks,
->>>> Eric
->>>>
->>>>> Thanks,
->>>>> Junxiao.
->>>>>> +    if (!has_locked) {
->>>>>> +        ret = ocfs2_inode_lock(inode, NULL, 0);
->>>>>> +        if (ret) {
->>>>>> +            if (ret != -ENOENT)
->>>>>> +                mlog_errno(ret);
->>>>>> +            goto out;
->>>>>> +        }
->>>>>> +        ocfs2_add_holder(lockres, &oh);
->>>>>>         }
->>>>>>           ret = generic_permission(inode, mask);
->>>>>>     -    ocfs2_inode_unlock(inode, 0);
->>>>>> +    if (!has_locked) {
->>>>>> +        ocfs2_remove_holder(lockres, &oh);
->>>>>> +        ocfs2_inode_unlock(inode, 0);
->>>>>> +    }
->>>>>>     out:
->>>>>>         return ret;
->>>>>>     }
->>>>>>
 >
