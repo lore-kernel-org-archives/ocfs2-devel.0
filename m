@@ -1,64 +1,96 @@
-From: Eric Ren <zren@suse.com>
-Date: Tue, 17 Jan 2017 18:09:46 +0800
-Subject: [Ocfs2-devel] [PATCH v4 0/2] fix deadlock caused by recursive
-	cluster locking
-Message-ID: <20170117100948.11657-1-zren@suse.com>
+From: Guozhonghua <guozhonghua@h3c.com>
+Date: Tue, 17 Jan 2017 11:22:59 +0000
+Subject: [Ocfs2-devel] [PATCH v3] ocfs2/dlm: Optimization of code while free
+ dead node locks.
+Message-ID: <71604351584F6A4EBAE558C676F37CA4C4AF898E@H3CMLB12-EX.srv.huawei-3com.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
-Cc: akpm@linux-foundation.org, mfasheh@versity.com, jlbec@evilplan.org, ghe@suse.com, junxiao.bi@oracle.com, jiangqi903@gmail.com, sfr@canb.auug.org.au, hch@lst.de, linux-kernel@vger.kernel.org
 
-Hi Andrew,
 
-This patch set version has got reviewed by Joseph and Junxiao Bi. I
-think it's good to queued up now.
+Three loops can be optimized into one and its sub loops, so as small code can do the same work.
 
-Thanks for all of you!
-Eric
+From 8a1e682503f4e5a5299fe8316cbf559f9b9701f1 Mon Sep 17 00:00:00 2001
+From: Guozhonghua <guozhonghua@h3c.com>
+Date: Fri, 13 Jan 2017 11:27:32 +0800
+Subject: [PATCH] Optimization of code while free dead locks, changed for
+ reviews.
 
-This is a formal patch set v2 to solve the deadlock issue on which I
-previously started a RFC (draft patch), and the discussion happened here:
-[https://oss.oracle.com/pipermail/ocfs2-devel/2016-October/012455.html]
 
-Compared to the previous draft patch, this one is much simple and neat.
-It neither messes up the dlmglue core, nor has a performance penalty on
-the whole cluster locking system. Instead, it is only used in places where
-such recursive cluster locking may happen.
- 
-Changes since v1: 
-- Let ocfs2_is_locked_by_me() just return true/false to indicate if the
-process gets the cluster lock - suggested by: Joseph Qi <jiangqi903@gmail.com>
-and Junxiao Bi <junxiao.bi@oracle.com>.
- 
-- Change "struct ocfs2_holder" to a more meaningful name "ocfs2_lock_holder",
-suggested by: Junxiao Bi. 
- 
-- Add debugging output at ocfs2_setattr() and ocfs2_permission() to
-catch exceptional cases, suggested by: Junxiao Bi. 
- 
-- Do not inline functions whose bodies are not in scope, changed by:
-Stephen Rothwell <sfr@canb.auug.org.au>.
+Signed-off-by: Guozhonghua <guozhonghua@h3c.com>
+---
+ fs/ocfs2/dlm/dlmrecovery.c |   39 ++++++++++++++-------------------------
+ 1 file changed, 14 insertions(+), 25 deletions(-)
 
-Changes since v2: 
-- Use new wrappers of tracking logic code, suggested by: Junxiao Bi.
+diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
+index dd5cb8b..93b71dd 100644
+--- a/fs/ocfs2/dlm/dlmrecovery.c
++++ b/fs/ocfs2/dlm/dlmrecovery.c
+@@ -2268,6 +2268,8 @@ static void dlm_free_dead_locks(struct dlm_ctxt *dlm,
+ {
+        struct dlm_lock *lock, *next;
+        unsigned int freed = 0;
++       struct list_head *queue = NULL;
++       int i;
 
-Change since v3:
-- Fixes redundant space, spotted by: Joseph Qi.
- 
-Your comments and feedbacks are always welcomed.
+        /* this node is the lockres master:
+         * 1) remove any stale locks for the dead node
+@@ -2280,31 +2282,18 @@ static void dlm_free_dead_locks(struct dlm_ctxt *dlm,
+         * to force the DLM_UNLOCK_FREE_LOCK action so as to free the locks */
 
-Eric Ren (2):
-  ocfs2/dlmglue: prepare tracking logic to avoid recursive cluster lock
-  ocfs2: fix deadlock issue when taking inode lock at vfs entry points
+        /* TODO: check pending_asts, pending_basts here */
+-       list_for_each_entry_safe(lock, next, &res->granted, list) {
+-               if (lock->ml.node == dead_node) {
+-                       list_del_init(&lock->list);
+-                       dlm_lock_put(lock);
+-                       /* Can't schedule DLM_UNLOCK_FREE_LOCK - do manually */
+-                       dlm_lock_put(lock);
+-                       freed++;
+-               }
+-       }
+-       list_for_each_entry_safe(lock, next, &res->converting, list) {
+-               if (lock->ml.node == dead_node) {
+-                       list_del_init(&lock->list);
+-                       dlm_lock_put(lock);
+-                       /* Can't schedule DLM_UNLOCK_FREE_LOCK - do manually */
+-                       dlm_lock_put(lock);
+-                       freed++;
+-               }
+-       }
+-       list_for_each_entry_safe(lock, next, &res->blocked, list) {
+-               if (lock->ml.node == dead_node) {
+-                       list_del_init(&lock->list);
+-                       dlm_lock_put(lock);
+-                       /* Can't schedule DLM_UNLOCK_FREE_LOCK - do manually */
+-                       dlm_lock_put(lock);
+-                       freed++;
++       for (i = DLM_GRANTED_LIST; i <= DLM_BLOCKED_LIST; i++) {
++               queue = dlm_list_idx_to_ptr(res, i);
++               list_for_each_entry_safe(lock, next, queue, list) {
++                       if (lock->ml.node == dead_node) {
++                               list_del_init(&lock->list);
++                               dlm_lock_put(lock);
++                               /* Can't schedule DLM_UNLOCK_FREE_LOCK
++                                * do manually
++                                */
++                               dlm_lock_put(lock);
++                               freed++;
++                       }
+                }
+        }
 
- fs/ocfs2/acl.c     |  29 +++++++--------
- fs/ocfs2/dlmglue.c | 105 +++++++++++++++++++++++++++++++++++++++++++++++++++--
- fs/ocfs2/dlmglue.h |  18 +++++++++
- fs/ocfs2/file.c    |  58 ++++++++++++++++++++++-------
- fs/ocfs2/ocfs2.h   |   1 +
- 5 files changed, 179 insertions(+), 32 deletions(-)
-
--- 
-2.10.2
+--
+1.7.9.5
+-------------------------------------------------------------------------------------------------------------------------------------
+????????????????????????????????????????
+????????????????????????????????????????
+????????????????????????????????????????
+???
+This e-mail and its attachments contain confidential information from H3C, which is
+intended only for the person or entity whose address is listed above. Any use of the
+information contained herein in any way (including, but not limited to, total or partial
+disclosure, reproduction, or dissemination) by persons other than the intended
+recipient(s) is prohibited. If you receive this e-mail in error, please notify the sender
+by phone or email immediately and delete it!
