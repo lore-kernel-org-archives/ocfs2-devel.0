@@ -1,150 +1,57 @@
-From: Eric Ren <zren@suse.com>
-Date: Mon, 13 Mar 2017 16:29:24 +0800
-Subject: [Ocfs2-devel] [PATCH 02/17] Single Run: kernel building is
-	little broken now
-In-Reply-To: <c950b2f6-575f-545c-a7d3-bd99ba056271@oracle.com>
-References: <1481606975-13186-1-git-send-email-zren@suse.com>
-	<1481606975-13186-3-git-send-email-zren@suse.com>
-	<c950b2f6-575f-545c-a7d3-bd99ba056271@oracle.com>
-Message-ID: <98dbd78c-6bcf-8c01-a0b3-9abcb847a046@suse.com>
+From: Junxiao Bi <junxiao.bi@oracle.com>
+Date: Tue, 28 Mar 2017 09:40:45 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: o2hb: revert hb threshold to keep
+	compatible
+Message-ID: <1490665245-15374-1-git-send-email-junxiao.bi@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Junxiao,
+Configfs is the interface for ocfs2-tools to set configure to
+kernel. Change heartbeat dead threshold name in configfs will
+cause compatible issue, so revert it.
 
-On 03/13/2017 04:12 PM, Junxiao Bi wrote:
-> On 12/13/2016 01:29 PM, Eric Ren wrote:
->> Only check kernel source if we specify "buildkernel" test case.
->> The original kernel source web-link cannot be reached,
->> so give a new link instead but the md5sum check is missing
->> now.
->>
->> Signed-off-by: Eric Ren <zren@suse.com>
->> ---
->>   programs/python_common/single_run-WIP.sh | 56 ++++++++++++++++----------------
->>   1 file changed, 28 insertions(+), 28 deletions(-)
->>
->> diff --git a/programs/python_common/single_run-WIP.sh b/programs/python_common/single_run-WIP.sh
->> index fe0056c..61008d8 100755
->> --- a/programs/python_common/single_run-WIP.sh
->> +++ b/programs/python_common/single_run-WIP.sh
->> @@ -20,9 +20,9 @@ WGET=`which wget`
->>   WHOAMI=`which whoami`
->>   SED=`which sed`
->>   
->> -DWNLD_PATH="http://oss.oracle.com/~smushran/ocfs2-test"
->> -KERNEL_TARBALL="linux-kernel.tar.gz"
->> -KERNEL_TARBALL_CHECK="${KERNEL_TARBALL}.md5sum"
->> +DWNLD_PATH="https://cdn.kernel.org/pub/linux/kernel/v3.x/"
->> +KERNEL_TARBALL="linux-3.2.80.tar.xz"
->> +#KERNEL_TARBALL_CHECK="${KERNEL_TARBALL}.md5sum"
-> Can we compute the md5sum manually and put it here?
+Fixes: 45b997737a80 ("ocfs2/cluster: use per-attribute show and store methods")
+Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
+---
+ fs/ocfs2/cluster/heartbeat.c |    8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
 
-OK.
-
-Thanks for your review.
-
-Thanks,
-Eric
->
-> Thanks,
-> Junxiao.
->
->>   USERID=`${WHOAMI}`
->>   
->>   DEBUGFS_BIN="${SUDO} `which debugfs.ocfs2`"
->> @@ -85,7 +85,7 @@ get_bits()
->>   # get_kernel_source $LOGDIR $DWNLD_PATH $KERNEL_TARBALL $KERNEL_TARBALL_CHECK
->>   get_kernel_source()
->>   {
->> -	if [ "$#" -lt "4" ]; then
->> +	if [ "$#" -lt "3" ]; then
->>   		${ECHO} "Error in get_kernel_source()"
->>   		exit 1
->>   	fi
->> @@ -93,18 +93,18 @@ get_kernel_source()
->>   	logdir=$1
->>   	dwnld_path=$2
->>   	kernel_tarball=$3
->> -	kernel_tarball_check=$4
->> +	#kernel_tarball_check=$4
->>   
->>   	cd ${logdir}
->>   
->>   	outlog=get_kernel_source.log
->>   
->> -	${WGET} -o ${outlog} ${dwnld_path}/${kernel_tarball_check}
->> -	if [ $? -ne 0 ]; then
->> -		${ECHO} "ERROR downloading ${dwnld_path}/${kernel_tarball_check}"
->> -		cd -
->> -		exit 1
->> -	fi
->> +#	${WGET} -o ${outlog} ${dwnld_path}/${kernel_tarball_check}
->> +#	if [ $? -ne 0 ]; then
->> +#		${ECHO} "ERROR downloading ${dwnld_path}/${kernel_tarball_check}"
->> +#		cd -
->> +#		exit 1
->> +#	fi
->>   
->>   	${WGET} -a ${outlog} ${dwnld_path}/${kernel_tarball}
->>   	if [ $? -ne 0 ]; then
->> @@ -113,13 +113,13 @@ get_kernel_source()
->>   		exit 1
->>   	fi
->>   
->> -	${MD5SUM} -c ${kernel_tarball_check} >>${outlog} 2>&1
->> -	if [ $? -ne 0 ]; then
->> -		${ECHO} "ERROR ${kernel_tarball_check} check failed"
->> -		cd -
->> -		exit 1
->> -	fi
->> -	cd -
->> +#	${MD5SUM} -c ${kernel_tarball_check} >>${outlog} 2>&1
->> +#	if [ $? -ne 0 ]; then
->> +#		${ECHO} "ERROR ${kernel_tarball_check} check failed"
->> +#		cd -
->> +#		exit 1
->> +#	fi
->> +#	cd -
->>   }
->>   
->>   # do_format() ${BLOCKSIZE} ${CLUSTERSIZE} ${FEATURES} ${DEVICE}
->> @@ -1012,16 +1012,6 @@ LOGFILE=${LOGDIR}/single_run.log
->>   
->>   do_mkdir ${LOGDIR}
->>   
->> -if [ -z ${KERNELSRC} ]; then
->> -	get_kernel_source $LOGDIR $DWNLD_PATH $KERNEL_TARBALL $KERNEL_TARBALL_CHECK
->> -	KERNELSRC=${LOGDIR}/${KERNEL_TARBALL}
->> -fi
->> -
->> -if [ ! -f ${KERNELSRC} ]; then
->> -	${ECHO} "No kernel source"
->> -	usage
->> -fi
->> -
->>   STARTRUN=$(date +%s)
->>   log_message "*** Start Single Node test ***"
->>   
->> @@ -1058,6 +1048,16 @@ for tc in `${ECHO} ${TESTCASES} | ${SED} "s:,: :g"`; do
->>   	fi
->>   
->>   	if [ "$tc"X = "buildkernel"X -o "$tc"X = "all"X ];then
->> +		if [ -z ${KERNELSRC} ]; then
->> +			get_kernel_source $LOGDIR $DWNLD_PATH $KERNEL_TARBALL #$KERNEL_TARBALL_CHECK
->> +			KERNELSRC=${LOGDIR}/${KERNEL_TARBALL}
->> +		fi
->> +
->> +		if [ ! -f ${KERNELSRC} ]; then
->> +			${ECHO} "No kernel source"
->> +			usage
->> +		fi
->> +
->>   		run_buildkernel ${LOGDIR} ${DEVICE} ${MOUNTPOINT} ${KERNELSRC}
->>   	fi
->>   
->>
->
+diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
+index f6e871760f8d..0da0332725aa 100644
+--- a/fs/ocfs2/cluster/heartbeat.c
++++ b/fs/ocfs2/cluster/heartbeat.c
+@@ -2242,13 +2242,13 @@ static void o2hb_heartbeat_group_drop_item(struct config_group *group,
+ 	spin_unlock(&o2hb_live_lock);
+ }
+ 
+-static ssize_t o2hb_heartbeat_group_threshold_show(struct config_item *item,
++static ssize_t o2hb_heartbeat_group_dead_threshold_show(struct config_item *item,
+ 		char *page)
+ {
+ 	return sprintf(page, "%u\n", o2hb_dead_threshold);
+ }
+ 
+-static ssize_t o2hb_heartbeat_group_threshold_store(struct config_item *item,
++static ssize_t o2hb_heartbeat_group_dead_threshold_store(struct config_item *item,
+ 		const char *page, size_t count)
+ {
+ 	unsigned long tmp;
+@@ -2297,11 +2297,11 @@ static ssize_t o2hb_heartbeat_group_mode_store(struct config_item *item,
+ 
+ }
+ 
+-CONFIGFS_ATTR(o2hb_heartbeat_group_, threshold);
++CONFIGFS_ATTR(o2hb_heartbeat_group_, dead_threshold);
+ CONFIGFS_ATTR(o2hb_heartbeat_group_, mode);
+ 
+ static struct configfs_attribute *o2hb_heartbeat_group_attrs[] = {
+-	&o2hb_heartbeat_group_attr_threshold,
++	&o2hb_heartbeat_group_attr_dead_threshold,
+ 	&o2hb_heartbeat_group_attr_mode,
+ 	NULL,
+ };
+-- 
+1.7.9.5
