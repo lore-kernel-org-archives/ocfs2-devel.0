@@ -1,66 +1,79 @@
-From: piaojun <piaojun@huawei.com>
-Date: Sat, 20 May 2017 09:56:02 +0800
-Subject: [Ocfs2-devel] [PATCH] o2image: back-up xattr tree for regular file
-Message-ID: <591FA232.3000502@huawei.com>
+From: Dan Carpenter <dan.carpenter@oracle.com>
+Date: Sat, 20 May 2017 12:48:39 +0300
+Subject: [Ocfs2-devel] [bug report] ocfs2: check/fix inode block for online
+	file check
+Message-ID: <20170520094839.f6jtjcao3q3p7ztw@mwanda>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-when traversing regular file's inode with xattr btree in
-traverse_inode(), we will get into traverse_chains() rather than
-traverse_xb(). so xattr tree is not back-up actually.
+Hello Gang He,
 
-Signed-off-by: Jun Piao <piaojun@huawei.com>
----
- o2image/o2image.c | 18 ++++++++++--------
- 1 file changed, 10 insertions(+), 8 deletions(-)
+The patch d56a8f32e4c6: "ocfs2: check/fix inode block for online file
+check" from Mar 22, 2016, leads to the following static checker
+warning:
 
-diff --git a/o2image/o2image.c b/o2image/o2image.c
-index ee62acf..c56bbcf 100644
---- a/o2image/o2image.c
-+++ b/o2image/o2image.c
-@@ -256,9 +256,16 @@ static errcode_t traverse_inode(ocfs2_filesys *ofs, uint64_t inode)
- 	 *
- 	 * NOTE: we do need to handle its xattr btree if exists.
- 	 */
--	if (!S_ISDIR(di->i_mode) && !(di->i_flags & OCFS2_SYSTEM_FL) &&
--	    !(di->i_dyn_features & OCFS2_HAS_XATTR_FL))
-+	if (!S_ISDIR(di->i_mode) && !(di->i_flags & OCFS2_SYSTEM_FL)) {
-+		if ((di->i_dyn_features & OCFS2_HAS_XATTR_FL) && di->i_xattr_loc) {
-+			/* traverse xattr btree to map bucket leaves */
-+			ret = traverse_xb(ofs, di->i_xattr_loc);
-+			if (ret)
-+				com_err(program_name, ret, "while traversing xattr tree"
-+					" %"PRIu64"", inode);
-+		}
- 		goto out;
-+	}
+	fs/ocfs2/inode.c:179 ocfs2_iget()
+	warn: passing zero to 'ERR_PTR'
 
- 	/* Read and traverse group descriptors */
- 	if (di->i_flags & OCFS2_SYSTEM_FL)
-@@ -291,9 +298,6 @@ static errcode_t traverse_inode(ocfs2_filesys *ofs, uint64_t inode)
- 		ret = traverse_chains(ofs, &(di->id2.i_chain), dump_type);
- 	else if (di->i_flags & OCFS2_DEALLOC_FL)
- 		ret = mark_dealloc_bits(ofs, &(di->id2.i_dealloc));
--	else if ((di->i_dyn_features & OCFS2_HAS_XATTR_FL) && di->i_xattr_loc)
--		/* Do need to traverse xattr btree to map bucket leaves */
--		ret = traverse_xb(ofs, di->i_xattr_loc);
- 	else {
- 		/*
- 		 * Don't check superblock flag for the dir indexing
-@@ -318,11 +322,9 @@ static errcode_t traverse_inode(ocfs2_filesys *ofs, uint64_t inode)
- 	}
+fs/ocfs2/inode.c
+   137                           int sysfile_type)
+   138  {
+   139          int rc = 0;
+                    ^^^^^^
+rc is zero.
 
- out_error:
--	if (ret) {
-+	if (ret)
- 		com_err(program_name, ret, "while scanning inode %"PRIu64"",
- 			inode);
--		goto out;
--	}
- out:
- 	if (buf)
- 		ocfs2_free(&buf);
--- 
+   140          struct inode *inode = NULL;
+   141          struct super_block *sb = osb->sb;
+   142          struct ocfs2_find_inode_args args;
+   143          journal_t *journal = OCFS2_SB(sb)->journal->j_journal;
+   144  
+   145          trace_ocfs2_iget_begin((unsigned long long)blkno, flags,
+   146                                 sysfile_type);
+   147  
+   148          /* Ok. By now we've either got the offsets passed to us by the
+   149           * caller, or we just pulled them off the bh. Lets do some
+   150           * sanity checks to make sure they're OK. */
+   151          if (blkno == 0) {
+   152                  inode = ERR_PTR(-EINVAL);
+   153                  mlog_errno(PTR_ERR(inode));
+   154                  goto bail;
+   155          }
+   156  
+   157          args.fi_blkno = blkno;
+   158          args.fi_flags = flags;
+   159          args.fi_ino = ino_from_blkno(sb, blkno);
+   160          args.fi_sysfile_type = sysfile_type;
+   161  
+   162          inode = iget5_locked(sb, args.fi_ino, ocfs2_find_actor,
+   163                               ocfs2_init_locked_inode, &args);
+   164          /* inode was *not* in the inode cache. 2.6.x requires
+   165           * us to do our own read_inode call and unlock it
+   166           * afterwards. */
+   167          if (inode == NULL) {
+   168                  inode = ERR_PTR(-ENOMEM);
+   169                  mlog_errno(PTR_ERR(inode));
+   170                  goto bail;
+   171          }
+   172          trace_ocfs2_iget5_locked(inode->i_state);
+   173          if (inode->i_state & I_NEW) {
+   174                  rc = ocfs2_read_locked_inode(inode, &args);
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+or it's set here
+
+   175                  unlock_new_inode(inode);
+   176          }
+   177          if (is_bad_inode(inode)) {
+   178                  iput(inode);
+   179                  inode = ERR_PTR(rc);
+                        ^^^^^^^^^^^^^^^^^^^
+then we possibly set inode to NULL.  The callers I looked at are not
+expecting so it will result in a NULL deref.
+
+   180                  goto bail;
+   181          }
+
+regards,
+dan carpenter
