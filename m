@@ -1,63 +1,93 @@
 From: Gang He <ghe@suse.com>
-Date: Mon, 22 May 2017 10:15:05 +0800
-Subject: [Ocfs2-devel] [PATCH v2] ocfs2: give an obvious tip for dismatch
-	cluster names
-Message-ID: <1495419305-3780-1-git-send-email-ghe@suse.com>
+Date: Sun, 21 May 2017 21:20:30 -0600
+Subject: [Ocfs2-devel] [bug report] ocfs2: check/fix inode block for
+ online file check
+In-Reply-To: <20170520094839.f6jtjcao3q3p7ztw@mwanda>
+References: <20170520094839.f6jtjcao3q3p7ztw@mwanda>
+Message-ID: <5922C97E020000F900077474@prv-mh.provo.novell.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: mfasheh@versity.com, jlbec@evilplan.org
-Cc: Gang He <ghe@suse.com>, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com, akpm@linux-foundation.org
+To: ocfs2-devel@oss.oracle.com
 
-This patch is used to add an obvious error message, due to
-dismatch cluster names between on-disk and in the current cluster.
-We can meet this case during OCFS2 cluster migration, if we can
-give the user an obvious tip for why they can not mount the file
-system after migration, they can quickly fix this dismatch problem.
-Second, also move printing ocfs2_fill_super() errno to the front
-of ocfs2_dismount_volume() function, since ocfs2_dismount_volume()
-will also print it's own message.
-Compare with initial version, we only print this error tip when
-the user uses pcmk stack. since in o2cb stack, the user will not
-meet this error.
+Hello Dan,
 
-Signed-off-by: Gang He <ghe@suse.com>
----
- fs/ocfs2/super.c | 8 ++++++--
- 1 file changed, 6 insertions(+), 2 deletions(-)
+Thank for your reporting.
+I will send the patch for fixing this warning.
 
-diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-index ca1646f..fc25d4a 100644
---- a/fs/ocfs2/super.c
-+++ b/fs/ocfs2/super.c
-@@ -1208,14 +1208,15 @@ static int ocfs2_fill_super(struct super_block *sb, void *data, int silent)
- read_super_error:
- 	brelse(bh);
- 
-+	if (status)
-+		mlog_errno(status);
-+
- 	if (osb) {
- 		atomic_set(&osb->vol_state, VOLUME_DISABLED);
- 		wake_up(&osb->osb_mount_event);
- 		ocfs2_dismount_volume(sb, 1);
- 	}
- 
--	if (status)
--		mlog_errno(status);
- 	return status;
- }
- 
-@@ -1843,6 +1844,9 @@ static int ocfs2_mount_volume(struct super_block *sb)
- 	status = ocfs2_dlm_init(osb);
- 	if (status < 0) {
- 		mlog_errno(status);
-+		if (status == -EBADR && ocfs2_userspace_stack(osb))
-+			mlog(ML_ERROR, "couldn't mount because cluster name on"
-+			" disk does not match the running cluster name.\n");
- 		goto leave;
- 	}
- 
--- 
-1.8.5.6
+
+Thanks
+Gang
+
+
+>>> 
+> Hello Gang He,
+> 
+> The patch d56a8f32e4c6: "ocfs2: check/fix inode block for online file
+> check" from Mar 22, 2016, leads to the following static checker
+> warning:
+> 
+> 	fs/ocfs2/inode.c:179 ocfs2_iget()
+> 	warn: passing zero to 'ERR_PTR'
+> 
+> fs/ocfs2/inode.c
+>    137                           int sysfile_type)
+>    138  {
+>    139          int rc = 0;
+>                     ^^^^^^
+> rc is zero.
+> 
+>    140          struct inode *inode = NULL;
+>    141          struct super_block *sb = osb->sb;
+>    142          struct ocfs2_find_inode_args args;
+>    143          journal_t *journal = OCFS2_SB(sb)->journal->j_journal;
+>    144  
+>    145          trace_ocfs2_iget_begin((unsigned long long)blkno, flags,
+>    146                                 sysfile_type);
+>    147  
+>    148          /* Ok. By now we've either got the offsets passed to us by 
+> the
+>    149           * caller, or we just pulled them off the bh. Lets do some
+>    150           * sanity checks to make sure they're OK. */
+>    151          if (blkno == 0) {
+>    152                  inode = ERR_PTR(-EINVAL);
+>    153                  mlog_errno(PTR_ERR(inode));
+>    154                  goto bail;
+>    155          }
+>    156  
+>    157          args.fi_blkno = blkno;
+>    158          args.fi_flags = flags;
+>    159          args.fi_ino = ino_from_blkno(sb, blkno);
+>    160          args.fi_sysfile_type = sysfile_type;
+>    161  
+>    162          inode = iget5_locked(sb, args.fi_ino, ocfs2_find_actor,
+>    163                               ocfs2_init_locked_inode, &args);
+>    164          /* inode was *not* in the inode cache. 2.6.x requires
+>    165           * us to do our own read_inode call and unlock it
+>    166           * afterwards. */
+>    167          if (inode == NULL) {
+>    168                  inode = ERR_PTR(-ENOMEM);
+>    169                  mlog_errno(PTR_ERR(inode));
+>    170                  goto bail;
+>    171          }
+>    172          trace_ocfs2_iget5_locked(inode->i_state);
+>    173          if (inode->i_state & I_NEW) {
+>    174                  rc = ocfs2_read_locked_inode(inode, &args);
+>                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> or it's set here
+> 
+>    175                  unlock_new_inode(inode);
+>    176          }
+>    177          if (is_bad_inode(inode)) {
+>    178                  iput(inode);
+>    179                  inode = ERR_PTR(rc);
+>                         ^^^^^^^^^^^^^^^^^^^
+> then we possibly set inode to NULL.  The callers I looked at are not
+> expecting so it will result in a NULL deref.
+> 
+>    180                  goto bail;
+>    181          }
+> 
+> regards,
+> dan carpenter
