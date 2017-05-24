@@ -1,44 +1,42 @@
-From: Eric Ren <zren@suse.com>
-Date: Wed, 24 May 2017 14:17:46 +0800
-Subject: [Ocfs2-devel] [PATCH v2] ocfs2: fix a static checker warning
-In-Reply-To: <1495516634-1952-1-git-send-email-ghe@suse.com>
-References: <1495516634-1952-1-git-send-email-ghe@suse.com>
-Message-ID: <15d5493a-26a4-65a0-0421-d6c921b73bb6@suse.com>
+From: Gang He <ghe@suse.com>
+Date: Wed, 24 May 2017 15:44:22 +0800
+Subject: [Ocfs2-devel] [PATCH v3 0/4] ocfs2: use kobject for online file
+	check
+Message-ID: <1495611866-27360-1-git-send-email-ghe@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Gang He <ghe@suse.com>, mfasheh@versity.com, jlbec@evilplan.org
-Cc: linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
+To: mfasheh@versity.com, jlbec@evilplan.org
+Cc: Gang He <ghe@suse.com>, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com, akpm@linux-foundation.org
 
-On 05/23/2017 01:17 PM, Gang He wrote:
-> This patch will fix a static code checker warning, which looks
-> like below,
-> fs/ocfs2/inode.c:179 ocfs2_iget()
-> warn: passing zero to 'ERR_PTR'
->
-> this warning was caused by the
-> commit d56a8f32e4c6 ("ocfs2: check/fix inode block for online file check").
-> after apply this patch, the error return value will not be NULL(zero).
->
-> Signed-off-by: Gang He <ghe@suse.com>
-Looks good to me.
+Use embedded kobject mechanism for online file check feature,
+this will avoid to use a global list to save/search per-device
+online file check related data. The changed code is based on 
+Goldwyn Rodrigues's patches and ext4 fs code, there is not 
+any new features added, except some very small fixes during 
+this code refactoring. Second, the code change does not affect
+the underlying file check code.
+Thank Goldwyn very much.
 
-Reviewed-by: Eric Ren <zren@suse.com>
-> ---
->   fs/ocfs2/inode.c | 2 +-
->   1 file changed, 1 insertion(+), 1 deletion(-)
->
-> diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-> index 382401d..1a1e007 100644
-> --- a/fs/ocfs2/inode.c
-> +++ b/fs/ocfs2/inode.c
-> @@ -136,7 +136,7 @@ struct inode *ocfs2_ilookup(struct super_block *sb, u64 blkno)
->   struct inode *ocfs2_iget(struct ocfs2_super *osb, u64 blkno, unsigned flags,
->   			 int sysfile_type)
->   {
-> -	int rc = 0;
-> +	int rc = -ESTALE;
->   	struct inode *inode = NULL;
->   	struct super_block *sb = osb->sb;
->   	struct ocfs2_find_inode_args args;
+Compare with second version, add more comments in the patch 
+descriptions, to make sure each modification is mentioned.
+Compare with first version, split the code change into four
+patches, make sure each patch will not bring ocfs2 kernel 
+modules compiling errors.
+
+
+Gang He (4):
+  ocfs2: move some definitions to header file
+  ocfs2: fix some small problems
+  ocfs2: add kobject for online file check
+  ocfs2: add duplicative ino number check
+
+ fs/ocfs2/filecheck.c | 357 ++++++++++++++++++++-------------------------------
+ fs/ocfs2/filecheck.h |  29 ++++-
+ fs/ocfs2/ocfs2.h     |   8 ++
+ fs/ocfs2/super.c     |  27 +++-
+ 4 files changed, 194 insertions(+), 227 deletions(-)
+
+-- 
+1.8.5.6
