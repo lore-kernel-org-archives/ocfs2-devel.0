@@ -1,8 +1,10 @@
 From: Gang He <ghe@suse.com>
-Date: Wed, 24 May 2017 15:44:22 +0800
-Subject: [Ocfs2-devel] [PATCH v3 0/4] ocfs2: use kobject for online file
-	check
-Message-ID: <1495611866-27360-1-git-send-email-ghe@suse.com>
+Date: Wed, 24 May 2017 15:44:23 +0800
+Subject: [Ocfs2-devel] [PATCH v3 1/4] ocfs2: move some definitions to header
+	file
+In-Reply-To: <1495611866-27360-1-git-send-email-ghe@suse.com>
+References: <1495611866-27360-1-git-send-email-ghe@suse.com>
+Message-ID: <1495611866-27360-2-git-send-email-ghe@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -10,33 +12,90 @@ Content-Transfer-Encoding: 7bit
 To: mfasheh@versity.com, jlbec@evilplan.org
 Cc: Gang He <ghe@suse.com>, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com, akpm@linux-foundation.org
 
-Use embedded kobject mechanism for online file check feature,
-this will avoid to use a global list to save/search per-device
-online file check related data. The changed code is based on 
-Goldwyn Rodrigues's patches and ext4 fs code, there is not 
-any new features added, except some very small fixes during 
-this code refactoring. Second, the code change does not affect
-the underlying file check code.
-Thank Goldwyn very much.
+Move some definitions to header file, which will be referenced
+by other source files when kobject mechanism is introduced.
 
-Compare with second version, add more comments in the patch 
-descriptions, to make sure each modification is mentioned.
-Compare with first version, split the code change into four
-patches, make sure each patch will not bring ocfs2 kernel 
-modules compiling errors.
+Signed-off-by: Gang He <ghe@suse.com>
+---
+ fs/ocfs2/filecheck.c | 27 ---------------------------
+ fs/ocfs2/filecheck.h | 27 +++++++++++++++++++++++++++
+ 2 files changed, 27 insertions(+), 27 deletions(-)
 
-
-Gang He (4):
-  ocfs2: move some definitions to header file
-  ocfs2: fix some small problems
-  ocfs2: add kobject for online file check
-  ocfs2: add duplicative ino number check
-
- fs/ocfs2/filecheck.c | 357 ++++++++++++++++++++-------------------------------
- fs/ocfs2/filecheck.h |  29 ++++-
- fs/ocfs2/ocfs2.h     |   8 ++
- fs/ocfs2/super.c     |  27 +++-
- 4 files changed, 194 insertions(+), 227 deletions(-)
-
+diff --git a/fs/ocfs2/filecheck.c b/fs/ocfs2/filecheck.c
+index 2cabbcf..cc7b595 100644
+--- a/fs/ocfs2/filecheck.c
++++ b/fs/ocfs2/filecheck.c
+@@ -56,33 +56,6 @@
+ static DEFINE_SPINLOCK(ocfs2_filecheck_sysfs_lock);
+ static LIST_HEAD(ocfs2_filecheck_sysfs_list);
+ 
+-struct ocfs2_filecheck {
+-	struct list_head fc_head;	/* File check entry list head */
+-	spinlock_t fc_lock;
+-	unsigned int fc_max;	/* Maximum number of entry in list */
+-	unsigned int fc_size;	/* Current entry count in list */
+-	unsigned int fc_done;	/* Finished entry count in list */
+-};
+-
+-struct ocfs2_filecheck_sysfs_entry {	/* sysfs entry per mounting */
+-	struct list_head fs_list;
+-	atomic_t fs_count;
+-	struct super_block *fs_sb;
+-	struct kset *fs_devicekset;
+-	struct kset *fs_fcheckkset;
+-	struct ocfs2_filecheck *fs_fcheck;
+-};
+-
+-#define OCFS2_FILECHECK_MAXSIZE		100
+-#define OCFS2_FILECHECK_MINSIZE		10
+-
+-/* File check operation type */
+-enum {
+-	OCFS2_FILECHECK_TYPE_CHK = 0,	/* Check a file(inode) */
+-	OCFS2_FILECHECK_TYPE_FIX,	/* Fix a file(inode) */
+-	OCFS2_FILECHECK_TYPE_SET = 100	/* Set entry list maximum size */
+-};
+-
+ struct ocfs2_filecheck_entry {
+ 	struct list_head fe_list;
+ 	unsigned long fe_ino;
+diff --git a/fs/ocfs2/filecheck.h b/fs/ocfs2/filecheck.h
+index e5cd002..af1678b 100644
+--- a/fs/ocfs2/filecheck.h
++++ b/fs/ocfs2/filecheck.h
+@@ -43,6 +43,33 @@ enum {
+ #define OCFS2_FILECHECK_ERR_START	OCFS2_FILECHECK_ERR_FAILED
+ #define OCFS2_FILECHECK_ERR_END		OCFS2_FILECHECK_ERR_UNSUPPORTED
+ 
++struct ocfs2_filecheck {
++	struct list_head fc_head;	/* File check entry list head */
++	spinlock_t fc_lock;
++	unsigned int fc_max;	/* Maximum number of entry in list */
++	unsigned int fc_size;	/* Current entry count in list */
++	unsigned int fc_done;	/* Finished entry count in list */
++};
++
++struct ocfs2_filecheck_sysfs_entry {	/* sysfs entry per mounting */
++	struct list_head fs_list;
++	atomic_t fs_count;
++	struct super_block *fs_sb;
++	struct kset *fs_devicekset;
++	struct kset *fs_fcheckkset;
++	struct ocfs2_filecheck *fs_fcheck;
++};
++
++#define OCFS2_FILECHECK_MAXSIZE		100
++#define OCFS2_FILECHECK_MINSIZE		10
++
++/* File check operation type */
++enum {
++	OCFS2_FILECHECK_TYPE_CHK = 0,	/* Check a file(inode) */
++	OCFS2_FILECHECK_TYPE_FIX,	/* Fix a file(inode) */
++	OCFS2_FILECHECK_TYPE_SET = 100	/* Set entry list maximum size */
++};
++
+ int ocfs2_filecheck_create_sysfs(struct super_block *sb);
+ int ocfs2_filecheck_remove_sysfs(struct super_block *sb);
+ 
 -- 
 1.8.5.6
