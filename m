@@ -1,15 +1,75 @@
 From: Zhangguanghui <zhang.guanghui@h3c.com>
-Date: Fri, 26 May 2017 08:21:00 +0000
+Date: Sat, 27 May 2017 05:54:06 +0000
 Subject: [Ocfs2-devel] ocfs2: fix sparse file & data ordering issue in
- direct io. review
+	direct io. review
 References: <E3535A62B291B54FBD1D003696CCB53792E30014@H3CMLB12-EX.srv.huawei-3com.com>,
-	<E3535A62B291B54FBD1D003696CCB53792E30049@H3CMLB12-EX.srv.huawei-3com.com>
-Message-ID: <E3535A62B291B54FBD1D003696CCB53792E309AA@H3CMLB12-EX.srv.huawei-3com.com>
+	<E3535A62B291B54FBD1D003696CCB53792E30049@H3CMLB12-EX.srv.huawei-3com.com>,
+	<E3535A62B291B54FBD1D003696CCB53792E309AA@H3CMLB12-EX.srv.huawei-3com.com>
+Message-ID: <E3535A62B291B54FBD1D003696CCB53792E319BE@H3CMLB12-EX.srv.huawei-3com.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
+
+--- a/aops.c 2017-05-27 01:23:35.591274026 -0400
++++ b/aops.c 2017-05-27 01:29:44.743285821 -0400
+@@ -2396,6 +2396,35 @@
+return 0;
+}
+
++/*
++ * TODO: Make this into a generic get_blocks function.
++ *
++ * In ocfs2, ip_alloc_sem is used to protect allocation changes on the node.
++ * In direct IO, we add ip_alloc_sem to protect date consistent between
++ * direct-io and ocfs2_truncate_file race (buffer io use ip_alloc_sem
++ * already). Although inode->i_mutex lock is used to avoid concurrency of
++ * above situation, i think ip_alloc_sem is still needed because protect
++ * allocation changes is significant.
++ *
++ * This function is called directly from get_more_blocks in direct-io.c.
++ *
++ * called like this: dio->get_blocks(dio->inode, fs_startblk,
++ * fs_count, map_bh, dio->rw == READ);
++ */
++static int ocfs2_dio_read_get_block(struct inode *inode, sector_t iblock,
++ struct buffer_head *bh_result, int create)
++{
++ struct ocfs2_inode_info *oi = OCFS2_I(inode);
++ int ret = 0;
++
++ down_read(&oi->ip_alloc_sem);
++ /* This is the fast path for direct-io reading. */
++ ret = ocfs2_get_block(inode, iblock, bh_result, create);
++ up_read(&oi->ip_alloc_sem);
++
++ return ret;
++}
++
+static ssize_t ocfs2_direct_IO(struct kiocb *iocb, struct iov_iter *iter)
+{
+struct file *file = iocb->ki_filp;
+@@ -2416,7 +2445,7 @@
+return 0;
+
+if (iov_iter_rw(iter) == READ)
+- get_block = ocfs2_get_block;
++ get_block = ocfs2_dio_read_get_block;
+else
+get_block = ocfs2_dio_get_block;
+
+comments and questions are, as always, welcome. Thanks
+
+________________________________
+All the best wishes for you.
+zhangguanghui
+
+From: zhangguanghui 10102 (Cloud)<mailto:zhang.guanghui@h3c.com>
+Date: 2017-05-26 16:21
+To: ocfs2-devel at oss.oracle.com<mailto:ocfs2-devel@oss.oracle.com>
+CC: ryan.ding<mailto:ryan.ding@oracle.com>; Andrew Morton<mailto:akpm@linux-foundation.org>; wangww631<mailto:wangww631@huawei.com>; Joel Becker<mailto:jlbec@evilplan.org>; Mark Fasheh<mailto:mfasheh@suse.com>
+Subject: Re: ocfs2: fix sparse file & data ordering issue in direct io. review
 
 Hi
 
@@ -84,4 +144,4 @@ recipient(s) is prohibited. If you receive this e-mail in error, please notify t
 by phone or email immediately and delete it!
 -------------- next part --------------
 An HTML attachment was scrubbed...
-URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20170526/4c63b20e/attachment.html 
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20170527/2318474d/attachment-0001.html 
