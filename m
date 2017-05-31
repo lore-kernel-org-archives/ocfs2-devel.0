@@ -1,31 +1,42 @@
-From: Fabian Frederick <fabf@skynet.be>
-Date: Sun, 28 May 2017 14:00:18 +0200 (CEST)
-Subject: [Ocfs2-devel] [PATCH 00/11 linux-next] super magic values
-	consolidation
-In-Reply-To: <20170528093401.GD14519@infradead.org>
-References: <20170521153947.26281-1-fabf@skynet.be>
-	<20170528093401.GD14519@infradead.org>
-Message-ID: <958803264.435844.1495972818238.open-xchange@webmail.nmp.proximus.be>
+From: kbuild test robot <lkp@intel.com>
+Date: Wed, 31 May 2017 23:40:48 +0800
+Subject: [Ocfs2-devel] [PATCH 27/28] ext4: xattr inode deduplication
+In-Reply-To: <20170531081517.11438-27-tahsin@google.com>
+Message-ID: <201705312342.neJ4qeq9%fengguang.wu@intel.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Christoph Hellwig <hch@infradead.org>
-Cc: linux-mtd@lists.infradead.org, pvfs2-developers@beowulf-underground.org, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org, Alexander Viro <viro@zeniv.linux.org.uk>, ceph-devel@vger.kernel.org, linux-fsdevel@vger.kernel.org, jfs-discussion@lists.sourceforge.net
+To: ocfs2-devel@oss.oracle.com
 
+Hi Tahsin,
 
+[auto build test ERROR on ext4/dev]
+[also build test ERROR on next-20170531]
+[cannot apply to v4.12-rc3]
+[if your patch is applied to the wrong git tree, please drop us a note to help improve the system]
 
-> On 28 May 2017 at 11:34 Christoph Hellwig <hch@infradead.org> wrote:
->
->
-> On Sun, May 21, 2017 at 05:39:47PM +0200, Fabian Frederick wrote:
-> > This small patchset reorganizes magic.h and fixes filesystems
-> > which defined locally super magic values.
->
-> And what's the point?
+url:    https://github.com/0day-ci/linux/commits/Tahsin-Erdogan/ext4-xattr-in-inode-support/20170531-214310
+base:   https://git.kernel.org/pub/scm/linux/kernel/git/tytso/ext4.git dev
+config: powerpc-pcm030_defconfig (attached as .config)
+compiler: powerpc-linux-gnu-gcc (Debian 6.1.1-9) 6.1.1 20160705
+reproduce:
+        wget https://raw.githubusercontent.com/01org/lkp-tests/master/sbin/make.cross -O ~/bin/make.cross
+        chmod +x ~/bin/make.cross
+        # save the attached .config to linux build tree
+        make.cross ARCH=powerpc 
 
-Current magic.h organization is strange for the less. Filesystems generally use
-SUPER_MAGIC values from magic.h
-instead of a local definition plus it looks easier for new subsystems to look at
-just one file when
-seeking for unique value.
+All errors (new ones prefixed by >>):
+
+>> ERROR: "crc32c" [fs/ext4/ext4.ko] undefined!
+
+---
+0-DAY kernel test infrastructure                Open Source Technology Center
+https://lists.01.org/pipermail/kbuild-all                   Intel Corporation
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: .config.gz
+Type: application/gzip
+Size: 14696 bytes
+Desc: not available
+Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20170531/94b6c3ba/attachment.bin 
