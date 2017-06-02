@@ -1,279 +1,203 @@
-From: Eric Ren <zren@suse.com>
-Date: Fri, 2 Jun 2017 17:14:40 +0800
+From: Zhangguanghui <zhang.guanghui@h3c.com>
+Date: Fri, 2 Jun 2017 09:40:14 +0000
 Subject: [Ocfs2-devel] ocfs2: fix sparse file & data ordering issue in
  direct io. review
-In-Reply-To: <E3535A62B291B54FBD1D003696CCB53792E30049@H3CMLB12-EX.srv.huawei-3com.com>
-References: <E3535A62B291B54FBD1D003696CCB53792E30014@H3CMLB12-EX.srv.huawei-3com.com>
-	<E3535A62B291B54FBD1D003696CCB53792E30049@H3CMLB12-EX.srv.huawei-3com.com>
-Message-ID: <be7344c4-e8aa-6845-3351-3df79d4fb42f@suse.com>
+References: <E3535A62B291B54FBD1D003696CCB53792E30014@H3CMLB12-EX.srv.huawei-3com.com>,
+	<E3535A62B291B54FBD1D003696CCB53792E30049@H3CMLB12-EX.srv.huawei-3com.com>,
+	<E3535A62B291B54FBD1D003696CCB53792E309AA@H3CMLB12-EX.srv.huawei-3com.com>,
+	<E3535A62B291B54FBD1D003696CCB53792E319BE@H3CMLB12-EX.srv.huawei-3com.com>
+Message-ID: <E3535A62B291B54FBD1D003696CCB53792E39DBF@H3CMLB12-EX.srv.huawei-3com.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Guanghui,
+Hi
+    Please take a look at this issue.
+    BUG_ON(v_cluster < le32_to_cpu(rec->e_cpos))  in ocfs2_get_clusters_nocache
+    has been triggered, so  i think ip_alloc_sem is still needed.
+    the crash have been detailed.
 
-Please sort out your mail more orderly. It looks really messy! So, rework your mail by asking
-question yourself like:
+crash> bt
+PID: 1558 TASK: ffff88001245e4a0 CPU: 0 COMMAND: "dd"
+#0 [ffff8800077df410] machine_kexec at ffffffff8105b311
+#1 [ffff8800077df480] crash_kexec at ffffffff8110c358
+#2 [ffff8800077df550] oops_end at ffffffff8101a7a8
+#3 [ffff8800077df580] die at ffffffff8101ae28
+#4 [ffff8800077df5b0] do_trap at ffffffff8101732d
+#5 [ffff8800077df610] do_error_trap at ffffffff81017663
+#6 [ffff8800077df6d0] do_error_trap at ffffffff81017714
+#7 [ffff8800077df710] do_invalid_op at ffffffff81017f60
+#8 [ffff8800077df720] invalid_op at ffffffff817f9afe
+[exception RIP: ocfs2_get_clusters_nocache+1538]
+RIP: ffffffffc08353d2 RSP: ffff8800077df7d8 RFLAGS: 00010297
+RAX: 0000000000000081 RBX: ffff8800483c7130 RCX: 0000000000000000
+RDX: ffff88007c611f78 RSI: ffff88007c60e708 RDI: ffff88007c60e708
+RBP: ffff8800077df888 R8: 0000000000000007 R9: 0000000000000367
+R10: 0000000000000006 R11: 0000000000000006 R12: ffff8800077df8b8
+R13: ffff8800483c70c0 R14: 0000000000000000 R15: ffff8800483c7000
+ORIG_RAX: ffffffffffffffff CS: 0010 SS: 0018
+#9 [ffff8800077df890] ocfs2_get_clusters at ffffffffc0835a0b [ocfs2]
+#10 [ffff8800077df910] ocfs2_extent_map_get_blocks at ffffffffc0835bca [ocfs2]
+#11 [ffff8800077df980] ocfs2_get_block at ffffffffc081834c [ocfs2]
+#12 [ffff8800077dfa40] do_blockdev_direct_IO at ffffffff8123fabc
+#13 [ffff8800077dfc80] __blockdev_direct_IO at ffffffff81240c83
+#14 [ffff8800077dfcb0] ocfs2_direct_IO at ffffffffc081722f [ocfs2]
+#15 [ffff8800077dfce0] generic_file_read_iter at ffffffff8118ba1a
+#16 [ffff8800077dfdb0] ocfs2_file_read_iter at ffffffffc083887a [ocfs2]
+#17 [ffff8800077dfe50] __vfs_read at ffffffff8120263b
+#18 [ffff8800077dfed0] vfs_read at ffffffff812039d5
+#19 [ffff8800077dff10] sys_read at ffffffff81203abf
+#20 [ffff8800077dff50] system_call_fastpath at ffffffff817f81b2
+RIP: 00007f49c8af0f30 RSP: 00007ffcb7b343e8 RFLAGS: 00000246
+RAX: ffffffffffffffda RBX: 0000000000100000 RCX: 00007f49c8af0f30
+RDX: 0000000000100000 RSI: 00007f49c86ec000 RDI: 0000000000000000
+RBP: 00007f49c86ec000 R8: 00000000ffffffff R9: 0000000000000000
+R10: 00007ffcb7b34180 R11: 0000000000000246 R12: 0000000000000000
+R13: 0000000000100000 R14: 0000000000100000 R15: 00007ffcb7b36814
+ORIG_RAX: 0000000000000000 CS: 0033 SS: 002b
 
-- What is the problem you are facing?
-Looks like a BUG_ON() is triggered. but which BUG_ON()? the backtrace?  How this can be
-reroduced?
 
-- What help or answer do you hope for?
-You didn't ask any question below!
+________________________________
+All the best wishes for you.
+zhangguanghui
+
+From: zhangguanghui 10102<mailto:zhang.guanghui@h3c.com>
+Date: 2017-05-27 13:54
+To: ocfs2-devel at oss.oracle.com<mailto:ocfs2-devel@oss.oracle.com>
+CC: ryan.ding<mailto:ryan.ding@oracle.com>; Andrew Morton<mailto:akpm@linux-foundation.org>; wangww631<mailto:wangww631@huawei.com>; Joel Becker<mailto:jlbec@evilplan.org>; Mark Fasheh<mailto:mfasheh@suse.com>
+Subject: ocfs2: fix sparse file & data ordering issue in direct io. review
+--- a/aops.c 2017-05-27 01:23:35.591274026 -0400
++++ b/aops.c 2017-05-27 01:29:44.743285821 -0400
+@@ -2396,6 +2396,35 @@
+return 0;
+}
+
++/*
++ * TODO: Make this into a generic get_blocks function.
++ *
++ * In ocfs2, ip_alloc_sem is used to protect allocation changes on the node.
++ * In direct IO, we add ip_alloc_sem to protect date consistent between
++ * direct-io and ocfs2_truncate_file race (buffer io use ip_alloc_sem
++ * already). Although inode->i_mutex lock is used to avoid concurrency of
++ * above situation, i think ip_alloc_sem is still needed because protect
++ * allocation changes is significant.
++ *
++ * This function is called directly from get_more_blocks in direct-io.c.
++ *
++ * called like this: dio->get_blocks(dio->inode, fs_startblk,
++ * fs_count, map_bh, dio->rw == READ);
++ */
++static int ocfs2_dio_read_get_block(struct inode *inode, sector_t iblock,
++ struct buffer_head *bh_result, int create)
++{
++ struct ocfs2_inode_info *oi = OCFS2_I(inode);
++ int ret = 0;
++
++ down_read(&oi->ip_alloc_sem);
++ /* This is the fast path for direct-io reading. */
++ ret = ocfs2_get_block(inode, iblock, bh_result, create);
++ up_read(&oi->ip_alloc_sem);
++
++ return ret;
++}
++
+static ssize_t ocfs2_direct_IO(struct kiocb *iocb, struct iov_iter *iter)
+{
+struct file *file = iocb->ki_filp;
+@@ -2416,7 +2445,7 @@
+return 0;
+
+if (iov_iter_rw(iter) == READ)
+- get_block = ocfs2_get_block;
++ get_block = ocfs2_dio_read_get_block;
+else
+get_block = ocfs2_dio_get_block;
+
+comments and questions are, as always, welcome. Thanks
+
+________________________________
+All the best wishes for you.
+zhangguanghui
+
+From: zhangguanghui 10102 (Cloud)<mailto:zhang.guanghui@h3c.com>
+Date: 2017-05-26 16:21
+To: ocfs2-devel at oss.oracle.com<mailto:ocfs2-devel@oss.oracle.com>
+CC: ryan.ding<mailto:ryan.ding@oracle.com>; Andrew Morton<mailto:akpm@linux-foundation.org>; wangww631<mailto:wangww631@huawei.com>; Joel Becker<mailto:jlbec@evilplan.org>; Mark Fasheh<mailto:mfasheh@suse.com>
+Subject: Re: ocfs2: fix sparse file & data ordering issue in direct io. review
+
+Hi
+
+This patch replace that function ocfs2_direct_IO_get_blocks with
+
+this function ocfs2_get_blocks  in ocfs2_direct_IO, and remove the  ip_alloc_sem.
+
+but i think ip_alloc_sem is still needed because protect  allocation changes is very correct.
+
+Now, BUG_ON have been tiggered  in the process of testing direct-io.
+
+Comments and questions are, as always, welcome. Thanks
 
 
-On 05/26/2017 11:46 AM, Zhangguanghui wrote:
-> This patch replace that function ocfs2_direct_IO_get_blocks with
-Which patch? Don't analyze code before telling the problem.
+As wangww631 described
 
->
-> this function ocfs2_get_blocks  in ocfs2_direct_IO, and remove the  ip_alloc_sem.
->
-> but i think ip_alloc_sem is still needed because protect  allocation changes is very correct.
-"still needed" - so, which commit dropped it?
+In ocfs2, ip_alloc_sem is used to protect allocation changes on the node.
+In direct IO, we add ip_alloc_sem to protect date consistent between
+direct-io and ocfs2_truncate_file race (buffer io use ip_alloc_sem
+already).  Although inode->i_mutex lock is used to avoid concurrency of
+above situation, i think ip_alloc_sem is still needed because protect
+allocation changes is significant.
 
->
-> Now, BUG_ON have been tiggered  in the process of testing direct-io.
->
-> Comments and questions are, as always, welcome. Thanks
+Other filesystem like ext4 also uses rw_semaphore to protect data
+consistent between get_block-vs-truncate race by other means, So
+ip_alloc_sem in ocfs2 direct io is needed.
 
-Comments on what?
 
->
->
-> As wangww631 described
-A mail thread link is useful for people to know the discussion and background.
+Date: Fri, 11 Sep 2015 16:19:18 +0800
+From: Ryan Ding <ryan.ding@oracle.com>
+Subject: [Ocfs2-devel] [PATCH 7/8] ocfs2: fix sparse file & data
+        ordering        issue in direct io.
+To: ocfs2-devel at oss.oracle.com
+Cc: mfasheh at suse.de
+Message-ID: <1441959559-29947-8-git-send-email-ryan.ding@oracle.com>
 
->
-> In ocfs2, ip_alloc_sem is used to protect allocation changes on the node.
-> In direct IO, we add ip_alloc_sem to protect date consistent between
-> direct-io and ocfs2_truncate_file race (buffer io use ip_alloc_sem
-> already).  Although inode->i_mutex lock is used to avoid concurrency of
-> above situation, i think ip_alloc_sem is still needed because protect
-> allocation changes is significant.
->
-> Other filesystem like ext4 also uses rw_semaphore to protect data
-> consistent between get_block-vs-truncate race by other means, So
-> ip_alloc_sem in ocfs2 direct io is needed.
->
->
-> Date: Fri, 11 Sep 2015 16:19:18 +0800
-> From: Ryan Ding <ryan.ding@oracle.com>
-> Subject: [Ocfs2-devel] [PATCH 7/8] ocfs2: fix sparse file & data
->          ordering        issue in direct io.
-You email subject is almost the same as this patch, which brings confusion...
+There are mainly 3 issue in the direct io code path after commit 24c40b329e03 ("ocfs2: implement ocfs2_direct_IO_write"):
+  * Do not support sparse file.
+  * Do not support data ordering. eg: when write to a file hole, it will alloc
+    extent first. If system crashed before io finished, data will corrupt.
+  * Potential risk when doing aio+dio. The -EIOCBQUEUED return value is likely
+    to be ignored by ocfs2_direct_IO_write().
 
-> To: ocfs2-devel at oss.oracle.com
-> Cc: mfasheh at suse.de
-> Message-ID: <1441959559-29947-8-git-send-email-ryan.ding@oracle.com>
-Don't copy & paste patch content, only making you mail too long to scare reader away.
+To resolve above problems, re-design direct io code with following ideas:
+  * Use buffer io to fill in holes. And this will make better performance also.
+  * Clear unwritten after direct write finished. So we can make sure meta data
+    changes after data write to disk. (Unwritten extent is invisible to user,
+    from user's view, meta data is not changed when allocate an unwritten
+    extent.)
+  * Clear ocfs2_direct_IO_write(). Do all ending work in end_io.
 
-Eric
+This patch has passed fs,dio,ltp-aiodio.part1,ltp-aiodio.part2,ltp-aiodio.part4
+test cases of ltp.
 
->
-> There are mainly 3 issue in the direct io code path after commit 24c40b329e03 ("ocfs2: implement ocfs2_direct_IO_write"):
->    * Do not support sparse file.
->    * Do not support data ordering. eg: when write to a file hole, it will alloc
->      extent first. If system crashed before io finished, data will corrupt.
->    * Potential risk when doing aio+dio. The -EIOCBQUEUED return value is likely
->      to be ignored by ocfs2_direct_IO_write().
->
-> To resolve above problems, re-design direct io code with following ideas:
->    * Use buffer io to fill in holes. And this will make better performance also.
->    * Clear unwritten after direct write finished. So we can make sure meta data
->      changes after data write to disk. (Unwritten extent is invisible to user,
->      from user's view, meta data is not changed when allocate an unwritten
->      extent.)
->    * Clear ocfs2_direct_IO_write(). Do all ending work in end_io.
->
-> This patch has passed fs,dio,ltp-aiodio.part1,ltp-aiodio.part2,ltp-aiodio.part4
-> test cases of ltp.
->
-> Signed-off-by: Ryan Ding <ryan.ding@oracle.com>
-> Reviewed-by: Junxiao Bi <junxiao.bi@oracle.com>
-> cc: Joseph Qi <joseph.qi@huawei.com>
-> ---
->   fs/ocfs2/aops.c |  851 ++++++++++++++++++++++---------------------------------
->   1 files changed, 342 insertions(+), 509 deletions(-)
->
-> diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-> index b4ec600..4bb9921 100644
-> --- a/fs/ocfs2/aops.c
-> +++ b/fs/ocfs2/aops.c
-> @@ -499,152 +499,6 @@ bail:
->          return status;
->   }
->
-> -/*
-> - * TODO: Make this into a generic get_blocks function.
-> - *
-> - * From do_direct_io in direct-io.c:
-> - *  "So what we do is to permit the ->get_blocks function to populate
-> - *   bh.b_size with the size of IO which is permitted at this offset and
-> - *   this i_blkbits."
-> - *
-> - * This function is called directly from get_more_blocks in direct-io.c.
-> - *
-> - * called like this: dio->get_blocks(dio->inode, fs_startblk,
-> - *                                     fs_count, map_bh, dio->rw == WRITE);
-> - */
-> -static int ocfs2_direct_IO_get_blocks(struct inode *inode, sector_t iblock,
-> -                                    struct buffer_head *bh_result, int create)
-> -{
-> -       int ret;
-> -       u32 cpos = 0;
-> -       int alloc_locked = 0;
-> -       u64 p_blkno, inode_blocks, contig_blocks;
-> -       unsigned int ext_flags;
-> -       unsigned char blocksize_bits = inode->i_sb->s_blocksize_bits;
-> -       unsigned long max_blocks = bh_result->b_size >> inode->i_blkbits;
-> -       unsigned long len = bh_result->b_size;
-> -       unsigned int clusters_to_alloc = 0, contig_clusters = 0;
-> -
-> -       cpos = ocfs2_blocks_to_clusters(inode->i_sb, iblock);
-> -
-> -       /* This function won't even be called if the request isn't all
-> -        * nicely aligned and of the right size, so there's no need
-> -        * for us to check any of that. */
-> -
-> -       inode_blocks = ocfs2_blocks_for_bytes(inode->i_sb, i_size_read(inode));
-> -
-> -       down_read(&OCFS2_I(inode)->ip_alloc_sem);
-> -
-> -       /* This figures out the size of the next contiguous block, and
-> -        * our logical offset */
-> -       ret = ocfs2_extent_map_get_blocks(inode, iblock, &p_blkno,
-> -                                         &contig_blocks, &ext_flags);
-> -       up_read(&OCFS2_I(inode)->ip_alloc_sem);
-> -
-> -       if (ret) {
-> -               mlog(ML_ERROR, "get_blocks() failed iblock=%llu\n",
-> -                    (unsigned long long)iblock);
-> -               ret = -EIO;
-> -               goto bail;
-> -       }
-> -
-> -       /* We should already CoW the refcounted extent in case of create. */
-> -       BUG_ON(create && (ext_flags & OCFS2_EXT_REFCOUNTED));
-> -
-> -       /* allocate blocks if no p_blkno is found, and create == 1 */
-> -       if (!p_blkno && create) {
-> -               ret = ocfs2_inode_lock(inode, NULL, 1);
-> -               if (ret < 0) {
-> -                       mlog_errno(ret);
-> -                       goto bail;
-> -               }
-> -
-> -               alloc_locked = 1;
-> -
-> -               down_write(&OCFS2_I(inode)->ip_alloc_sem);
-> -
-> -               /* fill hole, allocate blocks can't be larger than the size
-> -                * of the hole */
-> -               clusters_to_alloc = ocfs2_clusters_for_bytes(inode->i_sb, len);
-> -               contig_clusters = ocfs2_clusters_for_blocks(inode->i_sb,
-> -                               contig_blocks);
-> -               if (clusters_to_alloc > contig_clusters)
-> -                       clusters_to_alloc = contig_clusters;
-> -
-> -               /* allocate extent and insert them into the extent tree */
-> -               ret = ocfs2_extend_allocation(inode, cpos,
-> -                               clusters_to_alloc, 0);
-> -               if (ret < 0) {
-> -                       up_write(&OCFS2_I(inode)->ip_alloc_sem);
-> -                       mlog_errno(ret);
-> -                       goto bail;
-> -               }
-> -
-> -               ret = ocfs2_extent_map_get_blocks(inode, iblock, &p_blkno,
-> -                               &contig_blocks, &ext_flags);
-> -               if (ret < 0) {
-> -                       up_write(&OCFS2_I(inode)->ip_alloc_sem);
-> -                       mlog(ML_ERROR, "get_blocks() failed iblock=%llu\n",
-> -                                       (unsigned long long)iblock);
-> -                       ret = -EIO;
-> -                       goto bail;
-> -               }
-> -               up_write(&OCFS2_I(inode)->ip_alloc_sem);
-> -       }
-> -
-> -       /*
-> -        * get_more_blocks() expects us to describe a hole by clearing
-> -        * the mapped bit on bh_result().
-> -        *
-> -        * Consider an unwritten extent as a hole.
-> -        */
-> -       if (p_blkno && !(ext_flags & OCFS2_EXT_UNWRITTEN))
-> -               map_bh(bh_result, inode->i_sb, p_blkno);
-> -       else
-> -               clear_buffer_mapped(bh_result);
-> -
-> -       /* make sure we don't map more than max_blocks blocks here as
-> -          that's all the kernel will handle at this point. */
-> -       if (max_blocks < contig_blocks)
-> -               contig_blocks = max_blocks;
-> -       bh_result->b_size = contig_blocks << blocksize_bits;
-> -bail:
-> -       if (alloc_locked)
-> -               ocfs2_inode_unlock(inode, 1);
-> -       return ret;
-> -}
->
-> ......
->
-> +static ssize_t ocfs2_direct_IO(struct kiocb *iocb, struct iov_iter *iter,
-> +                              loff_t offset)
-> +{
-> +       struct file *file = iocb->ki_filp;
-> +       struct inode *inode = file_inode(file)->i_mapping->host;
-> +       struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
-> +       loff_t end = offset + iter->count;
-> +       get_block_t *get_block;
-> +
-> +       /*
-> +        * Fallback to buffered I/O if we see an inode without
-> +        * extents.
-> +        */
-> +       if (OCFS2_I(inode)->ip_dyn_features & OCFS2_INLINE_DATA_FL)
-> +               return 0;
-> +
-> +       /* Fallback to buffered I/O if we do not support append dio. */
-> +       if (end > i_size_read(inode) && !ocfs2_supports_append_dio(osb))
-> +               return 0;
-> +
-> +       if (iov_iter_rw(iter) == READ)
-> +               get_block = ocfs2_get_block;
-> +       else
-> +               get_block = ocfs2_dio_get_block;
-> +
-> +       return __blockdev_direct_IO(iocb, inode, inode->i_sb->s_bdev,
-> +                                   iter, offset, get_block,
-> +                                   ocfs2_dio_end_io, NULL, 0);
-> +}
-> +
->   const struct address_space_operations ocfs2_aops = {
->          .readpage               = ocfs2_readpage,
->          .readpages              = ocfs2_readpages,
-> ________________________________
-> All the best wishes for you.
-> zhangguanghui
-> -------------------------------------------------------------------------------------------------------------------------------------
-> ?????????????????????????????????????
-> ????????????????????????????????????????
-> ????????????????????????????????????????
-> ???
-> This e-mail and its attachments contain confidential information from New H3C, which is
-> intended only for the person or entity whose address is listed above. Any use of the
-> information contained herein in any way (including, but not limited to, total or partial
-> disclosure, reproduction, or dissemination) by persons other than the intended
-> recipient(s) is prohibited. If you receive this e-mail in error, please notify the sender
-> by phone or email immediately and delete it!
->
->
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+Signed-off-by: Ryan Ding <ryan.ding@oracle.com>
+Reviewed-by: Junxiao Bi <junxiao.bi@oracle.com>
+cc: Joseph Qi <joseph.qi@huawei.com>
+
+________________________________
+All the best wishes for you.
+zhangguanghui
+-------------------------------------------------------------------------------------------------------------------------------------
+?????????????????????????????????????
+????????????????????????????????????????
+????????????????????????????????????????
+???
+This e-mail and its attachments contain confidential information from New H3C, which is
+intended only for the person or entity whose address is listed above. Any use of the
+information contained herein in any way (including, but not limited to, total or partial
+disclosure, reproduction, or dissemination) by persons other than the intended
+recipient(s) is prohibited. If you receive this e-mail in error, please notify the sender
+by phone or email immediately and delete it!
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20170602/b3175bb3/attachment-0001.html 
