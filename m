@@ -1,146 +1,35 @@
-From: Eric Ren <zren@suse.com>
-Date: Wed, 21 Jun 2017 20:34:50 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: fix deadlock caused by recursive
-	locking in xattr
-Message-ID: <20170621123450.5502-1-zren@suse.com>
+From: Mimi Zohar <zohar@linux.vnet.ibm.com>
+Date: Wed, 21 Jun 2017 14:18:27 -0400
+Subject: [Ocfs2-devel] [PATCH v2 07/10] ocfs2: define integrity_read method
+In-Reply-To: <1498069110-10009-1-git-send-email-zohar@linux.vnet.ibm.com>
+References: <1498069110-10009-1-git-send-email-zohar@linux.vnet.ibm.com>
+Message-ID: <1498069110-10009-8-git-send-email-zohar@linux.vnet.ibm.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
-Cc: akpm@linux-foundation.org, mfasheh@versity.com, jlbec@evilplan.org, tv@lio96.de, ghe@suse.com, junxiao.bi@oracle.com, jiangqi903@gmail.com, linux-kernel@vger.kernel.org
+To: Christoph Hellwig <hch@lst.de>, Al Viro <viro@zeniv.linux.org.uk>
+Cc: Mimi Zohar <zohar@linux.vnet.ibm.com>, James Morris <jmorris@namei.org>, linux-fsdevel@vger.kernel.org, linux-ima-devel@lists.sourceforge.net, linux-security-module@vger.kernel.org, Mark Fasheh <mfasheh@versity.com>, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@oss.oracle.com
 
-Another deadlock path caused by recursive locking is reported.
-This kind of issue was introduced since commit 743b5f1434f5 ("ocfs2:
-take inode lock in ocfs2_iop_set/get_acl()"). Two deadlock paths
-have been fixed by commit b891fa5024a9 ("ocfs2: fix deadlock issue when
-taking inode lock at vfs entry points"). Yes, we intend to fix this
-kind of case in incremental way, because it's hard to find out all
-possible paths at once.
+Define an ->integrity_read file operation method to read data for
+integrity hash collection.
 
-This one can be reproduced like this. On node1, cp a large file from
-home directory to ocfs2 mountpoint. While on node2, run setfacl/getfacl.
-Both nodes will hang up there. The backtraces:
-
-On node1:
-[<ffffffffc06a1f67>] __ocfs2_cluster_lock.isra.39+0x357/0x740 [ocfs2]
-[<ffffffffc06a2d3d>] ocfs2_inode_lock_full_nested+0x17d/0x840 [ocfs2]
-[<ffffffffc0692043>] ocfs2_write_begin+0x43/0x1a0 [ocfs2]
-[<ffffffffa21ac719>] generic_perform_write+0xa9/0x180
-[<ffffffffa21aecda>] __generic_file_write_iter+0x1aa/0x1d0
-[<ffffffffc06abc24>] ocfs2_file_write_iter+0x4f4/0xb40 [ocfs2]
-[<ffffffffa223c3b3>] __vfs_write+0xc3/0x130
-[<ffffffffa223cae1>] vfs_write+0xb1/0x1a0
-[<ffffffffa223dfe6>] SyS_write+0x46/0xa0
-
-On node2:
-[<ffffffffc07b6f67>] __ocfs2_cluster_lock.isra.39+0x357/0x740 [ocfs2]
-[<ffffffffc07b7d3d>] ocfs2_inode_lock_full_nested+0x17d/0x840 [ocfs2]
-[<ffffffffc0815c1e>] ocfs2_xattr_set+0x12e/0xe80 [ocfs2]
-[<ffffffffc081783d>] ocfs2_set_acl+0x22d/0x260 [ocfs2]
-[<ffffffffc08178d5>] ocfs2_iop_set_acl+0x65/0xb0 [ocfs2]
-[<ffffffffa62a43f5>] set_posix_acl+0x75/0xb0
-[<ffffffffa62a4479>] posix_acl_xattr_set+0x49/0xa0
-[<ffffffffa6265c69>] __vfs_setxattr+0x69/0x80
-[<ffffffffa6266832>] __vfs_setxattr_noperm+0x72/0x1a0
-[<ffffffffa6266a07>] vfs_setxattr+0xa7/0xb0
-[<ffffffffa6266b3d>] setxattr+0x12d/0x190
-[<ffffffffa6266c3f>] path_setxattr+0x9f/0xb0
-[<ffffffffa6266d74>] SyS_setxattr+0x14/0x20
-
-Fixes this one by using ocfs2_inode_{lock|unlock}_tracker, which is
-exported by 439a36b8ef38 ("ocfs2/dlmglue: prepare tracking logic to
-avoid recursive cluster lock").
-
-Reported-by:	Thomas Voegtle <tv@lio96.de>
-Tested-by:	Thomas Voegtle <tv@lio96.de>
-Signed-off-by:	Eric Ren <zren@suse.com>
+Signed-off-by: Mimi Zohar <zohar@linux.vnet.ibm.com>
 ---
- fs/ocfs2/dlmglue.c |  4 ++++
- fs/ocfs2/xattr.c   | 23 +++++++++++++----------
- 2 files changed, 17 insertions(+), 10 deletions(-)
+ fs/ocfs2/file.c | 1 +
+ 1 file changed, 1 insertion(+)
 
-diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-index 3b7c937..4689940 100644
---- a/fs/ocfs2/dlmglue.c
-+++ b/fs/ocfs2/dlmglue.c
-@@ -2591,6 +2591,10 @@ void ocfs2_inode_unlock_tracker(struct inode *inode,
- 	struct ocfs2_lock_res *lockres;
+diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+index bfeb647459d9..2832a7c92acd 100644
+--- a/fs/ocfs2/file.c
++++ b/fs/ocfs2/file.c
+@@ -2536,6 +2536,7 @@ const struct file_operations ocfs2_fops = {
+ 	.fallocate	= ocfs2_fallocate,
+ 	.clone_file_range = ocfs2_file_clone_range,
+ 	.dedupe_file_range = ocfs2_file_dedupe_range,
++	.integrity_read	= ocfs2_file_read_iter,
+ };
  
- 	lockres = &OCFS2_I(inode)->ip_inode_lockres;
-+	/* had_lock means that the currect process already takes the cluster
-+	 * lock previously. If had_lock is 1, we have nothing to do here, and
-+	 * it will get unlocked where we got the lock.
-+	 */
- 	if (!had_lock) {
- 		ocfs2_remove_holder(lockres, oh);
- 		ocfs2_inode_unlock(inode, ex);
-diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index 3c5384d..f70c377 100644
---- a/fs/ocfs2/xattr.c
-+++ b/fs/ocfs2/xattr.c
-@@ -1328,20 +1328,21 @@ static int ocfs2_xattr_get(struct inode *inode,
- 			   void *buffer,
- 			   size_t buffer_size)
- {
--	int ret;
-+	int ret, had_lock;
- 	struct buffer_head *di_bh = NULL;
-+	struct ocfs2_lock_holder oh;
- 
--	ret = ocfs2_inode_lock(inode, &di_bh, 0);
--	if (ret < 0) {
--		mlog_errno(ret);
--		return ret;
-+	had_lock = ocfs2_inode_lock_tracker(inode, &di_bh, 0, &oh);
-+	if (had_lock < 0) {
-+		mlog_errno(had_lock);
-+		return had_lock;
- 	}
- 	down_read(&OCFS2_I(inode)->ip_xattr_sem);
- 	ret = ocfs2_xattr_get_nolock(inode, di_bh, name_index,
- 				     name, buffer, buffer_size);
- 	up_read(&OCFS2_I(inode)->ip_xattr_sem);
- 
--	ocfs2_inode_unlock(inode, 0);
-+	ocfs2_inode_unlock_tracker(inode, 0, &oh, had_lock);
- 
- 	brelse(di_bh);
- 
-@@ -3537,11 +3538,12 @@ int ocfs2_xattr_set(struct inode *inode,
- {
- 	struct buffer_head *di_bh = NULL;
- 	struct ocfs2_dinode *di;
--	int ret, credits, ref_meta = 0, ref_credits = 0;
-+	int ret, credits, had_lock, ref_meta = 0, ref_credits = 0;
- 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
- 	struct inode *tl_inode = osb->osb_tl_inode;
- 	struct ocfs2_xattr_set_ctxt ctxt = { NULL, NULL, NULL, };
- 	struct ocfs2_refcount_tree *ref_tree = NULL;
-+	struct ocfs2_lock_holder oh;
- 
- 	struct ocfs2_xattr_info xi = {
- 		.xi_name_index = name_index,
-@@ -3572,8 +3574,9 @@ int ocfs2_xattr_set(struct inode *inode,
- 		return -ENOMEM;
- 	}
- 
--	ret = ocfs2_inode_lock(inode, &di_bh, 1);
--	if (ret < 0) {
-+	had_lock = ocfs2_inode_lock_tracker(inode, &di_bh, 1, &oh);
-+	if (had_lock < 0) {
-+		ret = had_lock;
- 		mlog_errno(ret);
- 		goto cleanup_nolock;
- 	}
-@@ -3670,7 +3673,7 @@ int ocfs2_xattr_set(struct inode *inode,
- 		if (ret)
- 			mlog_errno(ret);
- 	}
--	ocfs2_inode_unlock(inode, 1);
-+	ocfs2_inode_unlock_tracker(inode, 1, &oh, had_lock);
- cleanup_nolock:
- 	brelse(di_bh);
- 	brelse(xbs.xattr_bh);
+ const struct file_operations ocfs2_dops = {
 -- 
-2.10.2
+2.7.4
