@@ -1,34 +1,159 @@
-From: Jan Kara <jack@suse.cz>
-Date: Thu, 22 Jun 2017 15:31:04 +0200
-Subject: [Ocfs2-devel] [PATCH 0/11 v1] Fix inheritance of SGID in presence
-	of default ACLs
-Message-ID: <20170622133115.16968-1-jack@suse.cz>
+From: Andrew Morton <akpm@linux-foundation.org>
+Date: Thu, 22 Jun 2017 14:24:44 -0700
+Subject: [Ocfs2-devel] [PATCH v2] ocfs2: fix deadlock caused by
+ recursive locking in xattr
+In-Reply-To: <8348cb21-60e1-f0a2-54c3-e36a2e9ddf7b@gmail.com>
+References: <20170622014746.5815-1-zren@suse.com>
+	<8348cb21-60e1-f0a2-54c3-e36a2e9ddf7b@gmail.com>
+Message-ID: <20170622142444.7bb5873c27c105bbb90fdfec@linux-foundation.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: linux-fsdevel@vger.kernel.org
-Cc: Andreas Gruenbacher <agruenba@redhat.com>, Jan Kara <jack@suse.cz>, "Darrick J . Wong" <darrick.wong@oracle.com>, linux-xfs@vger.kernel.org, reiserfs-devel@vger.kernel.org, Mike Marshall <hubcap@omnibond.com>, pvfs2-developers@beowulf-underground.org, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@oss.oracle.com, Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, cluster-devel@redhat.com, Bob Peterson <rpeterso@redhat.com>, linux-btrfs@vger.kernel.org, David Sterba <dsterba@suse.com>, linux-ext4@vger.kernel.org, Theodore Ts'o <tytso@mit.edu>
+To: Joseph Qi <jiangqi903@gmail.com>
+Cc: Eric Ren <zren@suse.com>, ocfs2-devel@oss.oracle.com, mfasheh@versity.com, jlbec@evilplan.org, tv@lio96.de, ghe@suse.com, junxiao.bi@oracle.com, linux-kernel@vger.kernel.org
 
-Hello,
+On Thu, 22 Jun 2017 14:10:38 +0800 Joseph Qi <jiangqi903@gmail.com> wrote:
 
-this patch set fixes a problem introduced by commit 073931017b49 "posix_acl:
-Clear SGID bit when setting file permissions". The problem is that when new
-directory 'DIR1' is created in a directory 'DIR0' with SGID bit set, DIR1 is
-expected to have SGID bit set (and owning group equal to the owning group of
-'DIR0'). However when 'DIR0' also has some default ACLs that 'DIR1' inherits,
-setting these ACLs will result in SGID bit on 'DIR1' to get cleared if user is
-not member of the owning group.
+> Looks good.
+> Reviewed-by: Joseph Qi <jiangqi903@gmail.com>
 
-The problem is fixed by moving posix_acl_update_mode() so that it does not
-get called when default ACLs are inherited.
+Should this fix be backported into -stable kernels?
 
-I have created new generic/441 test for this and verified that generic/314,
-generic/375, and generic/441 pass for ext2, ext4, btrfs, xfs, ocfs2, reiserfs.
-
-All patches in this series are completely independent so fs maintainers please
-pick them up as soon as they get reviewed. I'm leaving for three weeks of
-vacation at the end of the week so I won't be able to push this further for
-some time.
-
-								Honza
+> On 17/6/22 09:47, Eric Ren wrote:
+> > Another deadlock path caused by recursive locking is reported.
+> > This kind of issue was introduced since commit 743b5f1434f5 ("ocfs2:
+> > take inode lock in ocfs2_iop_set/get_acl()"). Two deadlock paths
+> > have been fixed by commit b891fa5024a9 ("ocfs2: fix deadlock issue when
+> > taking inode lock at vfs entry points"). Yes, we intend to fix this
+> > kind of case in incremental way, because it's hard to find out all
+> > possible paths at once.
+> > 
+> > This one can be reproduced like this. On node1, cp a large file from
+> > home directory to ocfs2 mountpoint. While on node2, run setfacl/getfacl.
+> > Both nodes will hang up there. The backtraces:
+> > 
+> > On node1:
+> > [<ffffffffc06a1f67>] __ocfs2_cluster_lock.isra.39+0x357/0x740 [ocfs2]
+> > [<ffffffffc06a2d3d>] ocfs2_inode_lock_full_nested+0x17d/0x840 [ocfs2]
+> > [<ffffffffc0692043>] ocfs2_write_begin+0x43/0x1a0 [ocfs2]
+> > [<ffffffffa21ac719>] generic_perform_write+0xa9/0x180
+> > [<ffffffffa21aecda>] __generic_file_write_iter+0x1aa/0x1d0
+> > [<ffffffffc06abc24>] ocfs2_file_write_iter+0x4f4/0xb40 [ocfs2]
+> > [<ffffffffa223c3b3>] __vfs_write+0xc3/0x130
+> > [<ffffffffa223cae1>] vfs_write+0xb1/0x1a0
+> > [<ffffffffa223dfe6>] SyS_write+0x46/0xa0
+> > 
+> > On node2:
+> > [<ffffffffc07b6f67>] __ocfs2_cluster_lock.isra.39+0x357/0x740 [ocfs2]
+> > [<ffffffffc07b7d3d>] ocfs2_inode_lock_full_nested+0x17d/0x840 [ocfs2]
+> > [<ffffffffc0815c1e>] ocfs2_xattr_set+0x12e/0xe80 [ocfs2]
+> > [<ffffffffc081783d>] ocfs2_set_acl+0x22d/0x260 [ocfs2]
+> > [<ffffffffc08178d5>] ocfs2_iop_set_acl+0x65/0xb0 [ocfs2]
+> > [<ffffffffa62a43f5>] set_posix_acl+0x75/0xb0
+> > [<ffffffffa62a4479>] posix_acl_xattr_set+0x49/0xa0
+> > [<ffffffffa6265c69>] __vfs_setxattr+0x69/0x80
+> > [<ffffffffa6266832>] __vfs_setxattr_noperm+0x72/0x1a0
+> > [<ffffffffa6266a07>] vfs_setxattr+0xa7/0xb0
+> > [<ffffffffa6266b3d>] setxattr+0x12d/0x190
+> > [<ffffffffa6266c3f>] path_setxattr+0x9f/0xb0
+> > [<ffffffffa6266d74>] SyS_setxattr+0x14/0x20
+> > 
+> > Fixes this one by using ocfs2_inode_{lock|unlock}_tracker, which is
+> > exported by commit 439a36b8ef38 ("ocfs2/dlmglue: prepare tracking
+> > logic to avoid recursive cluster lock").
+> > 
+> > Changes since v1:
+> > - Revised git commit description style in commit log.
+> > 
+> > Reported-by: Thomas Voegtle <tv@lio96.de>
+> > Tested-by: Thomas Voegtle <tv@lio96.de>
+> > Signed-off-by: Eric Ren <zren@suse.com>
+> > ---
+> >  fs/ocfs2/dlmglue.c |  4 ++++
+> >  fs/ocfs2/xattr.c   | 23 +++++++++++++----------
+> >  2 files changed, 17 insertions(+), 10 deletions(-)
+> > 
+> > diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
+> > index 3b7c937..4689940 100644
+> > --- a/fs/ocfs2/dlmglue.c
+> > +++ b/fs/ocfs2/dlmglue.c
+> > @@ -2591,6 +2591,10 @@ void ocfs2_inode_unlock_tracker(struct inode *inode,
+> >  	struct ocfs2_lock_res *lockres;
+> >  
+> >  	lockres = &OCFS2_I(inode)->ip_inode_lockres;
+> > +	/* had_lock means that the currect process already takes the cluster
+> > +	 * lock previously. If had_lock is 1, we have nothing to do here, and
+> > +	 * it will get unlocked where we got the lock.
+> > +	 */
+> >  	if (!had_lock) {
+> >  		ocfs2_remove_holder(lockres, oh);
+> >  		ocfs2_inode_unlock(inode, ex);
+> > diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
+> > index 3c5384d..f70c377 100644
+> > --- a/fs/ocfs2/xattr.c
+> > +++ b/fs/ocfs2/xattr.c
+> > @@ -1328,20 +1328,21 @@ static int ocfs2_xattr_get(struct inode *inode,
+> >  			   void *buffer,
+> >  			   size_t buffer_size)
+> >  {
+> > -	int ret;
+> > +	int ret, had_lock;
+> >  	struct buffer_head *di_bh = NULL;
+> > +	struct ocfs2_lock_holder oh;
+> >  
+> > -	ret = ocfs2_inode_lock(inode, &di_bh, 0);
+> > -	if (ret < 0) {
+> > -		mlog_errno(ret);
+> > -		return ret;
+> > +	had_lock = ocfs2_inode_lock_tracker(inode, &di_bh, 0, &oh);
+> > +	if (had_lock < 0) {
+> > +		mlog_errno(had_lock);
+> > +		return had_lock;
+> >  	}
+> >  	down_read(&OCFS2_I(inode)->ip_xattr_sem);
+> >  	ret = ocfs2_xattr_get_nolock(inode, di_bh, name_index,
+> >  				     name, buffer, buffer_size);
+> >  	up_read(&OCFS2_I(inode)->ip_xattr_sem);
+> >  
+> > -	ocfs2_inode_unlock(inode, 0);
+> > +	ocfs2_inode_unlock_tracker(inode, 0, &oh, had_lock);
+> >  
+> >  	brelse(di_bh);
+> >  
+> > @@ -3537,11 +3538,12 @@ int ocfs2_xattr_set(struct inode *inode,
+> >  {
+> >  	struct buffer_head *di_bh = NULL;
+> >  	struct ocfs2_dinode *di;
+> > -	int ret, credits, ref_meta = 0, ref_credits = 0;
+> > +	int ret, credits, had_lock, ref_meta = 0, ref_credits = 0;
+> >  	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+> >  	struct inode *tl_inode = osb->osb_tl_inode;
+> >  	struct ocfs2_xattr_set_ctxt ctxt = { NULL, NULL, NULL, };
+> >  	struct ocfs2_refcount_tree *ref_tree = NULL;
+> > +	struct ocfs2_lock_holder oh;
+> >  
+> >  	struct ocfs2_xattr_info xi = {
+> >  		.xi_name_index = name_index,
+> > @@ -3572,8 +3574,9 @@ int ocfs2_xattr_set(struct inode *inode,
+> >  		return -ENOMEM;
+> >  	}
+> >  
+> > -	ret = ocfs2_inode_lock(inode, &di_bh, 1);
+> > -	if (ret < 0) {
+> > +	had_lock = ocfs2_inode_lock_tracker(inode, &di_bh, 1, &oh);
+> > +	if (had_lock < 0) {
+> > +		ret = had_lock;
+> >  		mlog_errno(ret);
+> >  		goto cleanup_nolock;
+> >  	}
+> > @@ -3670,7 +3673,7 @@ int ocfs2_xattr_set(struct inode *inode,
+> >  		if (ret)
+> >  			mlog_errno(ret);
+> >  	}
+> > -	ocfs2_inode_unlock(inode, 1);
+> > +	ocfs2_inode_unlock_tracker(inode, 1, &oh, had_lock);
+> >  cleanup_nolock:
+> >  	brelse(di_bh);
+> >  	brelse(xbs.xattr_bh);
+> > 
