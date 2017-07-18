@@ -1,16 +1,53 @@
-From: Christoph Hellwig <hch@lst.de>
-Date: Wed, 28 Jun 2017 16:39:23 +0200
-Subject: [Ocfs2-devel] [PATCH v2 07/10] ocfs2: define integrity_read
-	method
-In-Reply-To: <1498069110-10009-8-git-send-email-zohar@linux.vnet.ibm.com>
-References: <1498069110-10009-1-git-send-email-zohar@linux.vnet.ibm.com>
-	<1498069110-10009-8-git-send-email-zohar@linux.vnet.ibm.com>
-Message-ID: <20170628143923.GF2359@lst.de>
+From: Jan Kara <jack@suse.cz>
+Date: Tue, 18 Jul 2017 18:22:19 +0200
+Subject: [Ocfs2-devel] [PATCH 1/2] ocfs2: Make ocfs2_set_acl() static
+Message-ID: <20170718162220.27526-1-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Mimi Zohar <zohar@linux.vnet.ibm.com>
-Cc: Christoph Hellwig <hch@lst.de>, Al Viro <viro@zeniv.linux.org.uk>, James Morris <jmorris@namei.org>, linux-fsdevel@vger.kernel.org, linux-ima-devel@lists.sourceforge.net, linux-security-module@vger.kernel.org, Mark Fasheh <mfasheh@versity.com>, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@oss.oracle.com
+To: ocfs2-devel@oss.oracle.com
 
-should be folded into patch 2.
+The function is never called outside of fs/ocfs2/acl.c.
+
+CC: Joel Becker <jlbec@evilplan.org>
+CC: ocfs2-devel at oss.oracle.com
+Signed-off-by: Jan Kara <jack@suse.cz>
+---
+ fs/ocfs2/acl.c | 2 +-
+ fs/ocfs2/acl.h | 7 -------
+ 2 files changed, 1 insertion(+), 8 deletions(-)
+
+diff --git a/fs/ocfs2/acl.c b/fs/ocfs2/acl.c
+index dc22ba8c710f..3b9c3638a381 100644
+--- a/fs/ocfs2/acl.c
++++ b/fs/ocfs2/acl.c
+@@ -221,7 +221,7 @@ static int ocfs2_acl_set_mode(struct inode *inode, struct buffer_head *di_bh,
+ /*
+  * Set the access or default ACL of an inode.
+  */
+-int ocfs2_set_acl(handle_t *handle,
++static int ocfs2_set_acl(handle_t *handle,
+ 			 struct inode *inode,
+ 			 struct buffer_head *di_bh,
+ 			 int type,
+diff --git a/fs/ocfs2/acl.h b/fs/ocfs2/acl.h
+index 2783a75b3999..7be0bb756286 100644
+--- a/fs/ocfs2/acl.h
++++ b/fs/ocfs2/acl.h
+@@ -28,13 +28,6 @@ struct ocfs2_acl_entry {
+ 
+ struct posix_acl *ocfs2_iop_get_acl(struct inode *inode, int type);
+ int ocfs2_iop_set_acl(struct inode *inode, struct posix_acl *acl, int type);
+-int ocfs2_set_acl(handle_t *handle,
+-			 struct inode *inode,
+-			 struct buffer_head *di_bh,
+-			 int type,
+-			 struct posix_acl *acl,
+-			 struct ocfs2_alloc_context *meta_ac,
+-			 struct ocfs2_alloc_context *data_ac);
+ extern int ocfs2_acl_chmod(struct inode *, struct buffer_head *);
+ extern int ocfs2_init_acl(handle_t *, struct inode *, struct inode *,
+ 			  struct buffer_head *, struct buffer_head *,
+-- 
+2.12.3
