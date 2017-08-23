@@ -1,101 +1,110 @@
-From: Joseph Qi <jiangqi903@gmail.com>
-Date: Wed, 23 Aug 2017 09:06:52 +0800
+From: Junxiao Bi <junxiao.bi@oracle.com>
+Date: Wed, 23 Aug 2017 10:23:20 +0800
 Subject: [Ocfs2-devel] [PATCH] ocfs2: re-queue AST or BAST if sending is
  failed to improve the reliability
-In-Reply-To: <CAAXPY_Khwm1o4gnCjPAhfn576F9dOrCkEggEb4BcrexvxywLkw@mail.gmail.com>
+In-Reply-To: <63ADC13FD55D6546B7DECE290D39E373AC2CBD22@H3CMLB14-EX.srv.huawei-3com.com>
 References: <63ADC13FD55D6546B7DECE290D39E373AC2CB721@H3CMLB14-EX.srv.huawei-3com.com>
-	<CAAXPY_+YpQgRPBu1AeDMj-a3ouUxVktL7gdkSkSaEdeTKTUCvw@mail.gmail.com>
-	<63ADC13FD55D6546B7DECE290D39E373AC2CB9E5@H3CMLB14-EX.srv.huawei-3com.com>
-	<CAAXPY_Khwm1o4gnCjPAhfn576F9dOrCkEggEb4BcrexvxywLkw@mail.gmail.com>
-Message-ID: <e23780d3-6339-2e58-3372-2b16bfe11ac9@gmail.com>
+	<6b282ca9-f7b9-08d6-666d-565098587475@gmail.com>
+	<SG2PR0601MB1871B5C9B91D7E6B03FA9FD2D58B0@SG2PR0601MB1871.apcprd06.prod.outlook.com>
+	<0c918113-72f5-eda6-acad-1679c6de392f@gmail.com>
+	<63ADC13FD55D6546B7DECE290D39E373AC2CBD22@H3CMLB14-EX.srv.huawei-3com.com>
+Message-ID: <b2d93241-cf33-9a31-224d-5cfc983f7ff9@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Mark,
-
-On 17/8/23 04:49, Mark Fasheh wrote:
-> On Tue, Aug 8, 2017 at 5:56 AM, Changwei Ge <ge.changwei@h3c.com> wrote:
->>>> It will improve the reliability a lot.
->>> Can you detail your testing? Code-wise this looks fine to me but as
->>> you note, this is a pretty hard to hit corner case so it'd be nice to
->>> hear that you were able to exercise it.
+On 08/10/2017 06:49 PM, Changwei Ge wrote:
+> Hi Joseph,
+> 
+> 
+> On 2017/8/10 17:53, Joseph Qi wrote:
+>> Hi Changwei,
+>>
+>> On 17/8/9 23:24, ge changwei wrote:
+>>> Hi
 >>>
->>> Thanks,
->>>    --Mark
->> Hi Mark,
->>
->> My test is quite simple to perform.
->> Test environment includes 7 hosts. Ethernet devices in 6 of them are
->> down and then up repetitively.
->> After several rounds of up and down. Some file operation hangs.
->>
->> Through debugfs.ocfs2 tool involved in NODE 2 which was the owner of
->> lock resource 'O000000000000000011150300000000',
->> it told that:
->>
->> debugfs: dlm_locks O000000000000000011150300000000
->> Lockres: O000000000000000011150300000000   Owner: 2    State: 0x0
->> Last Used: 0      ASTs Reserved: 0    Inflight: 0    Migration Pending: No
->> Refs: 4    Locks: 2    On Lists: None
->> Reference Map: 3
->>  Lock-Queue  Node  Level  Conv  Cookie           Refs  AST  BAST
->> Pending-Action
->>  Granted     2     PR     -1    2:53             2     No   No    None
->>  Granted     3     PR     -1    3:48             2     No   No    None
->>
->> That meant NODE 2 had granted NODE 3 and the AST had been transited to
->> NODE 3.
->>
->> Meanwhile, through debugfs.ocfs2 tool involved in NODE 3,
->> it told that:
->> debugfs: dlm_locks O000000000000000011150300000000
->> Lockres: O000000000000000011150300000000   Owner: 2    State: 0x0
->> Last Used: 0      ASTs Reserved: 0    Inflight: 0    Migration Pending: No
->> Refs: 3    Locks: 1    On Lists: None
->> Reference Map:
->>  Lock-Queue  Node  Level  Conv  Cookie           Refs  AST  BAST
->> Pending-Action
->>  Blocked     3     PR     -1    3:48             2     No   No    None
->>
->> That meant NODE 3 didn't ever receive any AST to move local lock from
->> blocked list to grant list.
->>
->> This consequence  makes sense, since AST sending is failed which can be
->> seen in kernel log.
->>
->> As for BAST, it is more or less the same.
->>
->> Thanks
->> Changwei
-> 
-> 
-> Thanks for the testing details. I think you got Andrew's e-mail wrong
-> so I'm CC'ing him now. It might be a good idea to re-send the patch
-> with the right CC's - add some of your testing details to the log.
-
-IMO, network error occurs cannot make sure that target node hasn't
-received the message. A complete message round includes:
-1. sending to the target node;
-2. get response from the target node.
-
-So if network error happens on phase 2, re-queue the message will
-cause ast/bast to be sent twice. I'm afraid this cannot be handled
-currently.
-
-If I understand wrong, please point out.
+>>>
+>>> On 2017/8/9 ??7:32, Joseph Qi wrote:
+>>>> Hi,
+>>>>
+>>>> On 17/8/7 15:13, Changwei Ge wrote:
+>>>>> Hi,
+>>>>>
+>>>>> In current code, while flushing AST, we don't handle an exception that
+>>>>> sending AST or BAST is failed.
+>>>>> But it is indeed possible that AST or BAST is lost due to some kind of
+>>>>> networks fault.
+>>>>>
+>>>> Could you please describe this issue more clearly? It is better analyze
+>>>> issue along with the error message and the status of related nodes.
+>>>> IMO, if network is down, one of the two nodes will be fenced. So what's
+>>>> your case here?
+>>>>
+>>>> Thanks,
+>>>> Joseph
+>>> I have posted the status of related lock resource in my preceding email. 
+>>> Please check them out.
+>>>
+>>> Moreover, network is not down forever even not longer than threshold  to 
+>>> be fenced.
+>>> So no node will be fenced.
+>>>
+>>> This issue happens in terrible network environment. Some messages may be 
+>>> abandoned by switch due to various conditions.
+>>> And even frequent and fast link up and down will also cause this issue.
+>>>
+>>> In a nutshell,  re-queuing AST and BAST is crucial when link between 
+>>> nodes recover quickly. It prevents cluster from hanging.
+>>> So you mean the tcp packet is lost due to connection reset? IIRC,
+> Yes, it's something like that exception which I think is deserved to be
+> fixed within OCFS2.
+>> Junxiao has posted a patchset to fix this issue.
+>> If you are using the way of re-queuing, how to make sure the original
+>> message is *truly* lost and the same ast/bast won't be sent twice?
+> With regards to TCP layer, if it returns error to OCFS2, packets must
+> not be sent successfully. So no node will obtain such an AST or BAST.
+Right, but not only AST/BAST, other messages pending in tcp queue will
+also lost if tcp return error to ocfs2, this can also caused hung.
+Besides, your fix may introduce duplicated ast/bast message Joseph
+mentioned.
+Ocfs2 depends tcp a lot, it can't work well if tcp return error to it.
+To fix it, maybe ocfs2 should maintain its own message queue and ack
+messages while not depend on TCP.
 
 Thanks,
-Joseph
+Junxiao.
 
-> You're free to use my
+
+> With regards to OCFS2, my patch can guarantee that one AST/BAST can't be
+> queued on pending list twice of which are both sent successfully.
 > 
-> Reviewed-by: Mark Fasheh <mfasheh@versity.com>
-> 
-> as well.
-> 
-> Thanks again,
->    --Mark
+> Thanks,
+> Changwei
+>>
+>> Thanks,
+>> Joseph
+>>  
+>>> Thanks,
+>>> Changwei
+>>>>> If above exception happens, the requesting node will never obtain an AST
+>>>>> back, hence, it will never acquire the lock or abort current locking.
+>>>>>
+>>>>> With this patch, I'd like to fix this issue by re-queuing the AST or
+>>>>> BAST if sending is failed due to networks fault.
+>>>>>
+>>>>> And the re-queuing AST or BAST will be dropped if the requesting node is
+>>>>> dead!
+>>>>>
+>>>>> It will improve the reliability a lot.
+>>>>>
+>>>>>
+>>>>> Thanks.
+>>>>>
+>>>>> Changwei.
+>>>> _______________________________________________
+>>>> Ocfs2-devel mailing list
+>>>> Ocfs2-devel at oss.oracle.com
+>>>> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
 > 
