@@ -1,151 +1,71 @@
-From: Larry Chen <lchen@suse.com>
-Date: Wed, 6 Sep 2017 17:54:33 +0800
-Subject: [Ocfs2-devel] [Ocfs2-tools-devel] fsck.ocfs2 does not write
- back block data corrected with hamming code
-In-Reply-To: <59A56395020000F900089D64@suse.com>
-References: <1fb7bf43-b4cd-9b7b-d812-df483577ddcb@suse.com>
-	<59A56395020000F900089D64@suse.com>
-Message-ID: <9654905b-41fa-980b-9ba4-519c368897cc@suse.com>
+From: Zhangyang <zhang.yangB@h3c.com>
+Date: Mon, 11 Sep 2017 07:24:56 +0000
+Subject: [Ocfs2-devel] [patch]o2net: fix qs_holds may could not be zero
+Message-ID: <7F50894FD17BEC45AAC26E5BADA6CE330C60AC5B@H3CMLB12-EX.srv.huawei-3com.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi everyone,
+Hi all
+In our test, We fond that , when the network down, qs->qs_holds may could not be reduce to zero, lead to the node can't do fence.
+o2net_idle_timer -> o2quo_conn_err -> qs->qs_holds++, after O2NET_QUORUM_DELAY_MS if qs_holds could be subtract to zero, it could do make_decision.
+But if there are many nodes, when one node network down which contains o2net connections may not do o2net_idle_timer at the same time, so when a o2net_node have done nn->nn_still_up, but the qs_holds is not be zero, because other o2net_node have not done nn->nn_still_up.so the first o2net_node will do o2net_idle_timer again, and the qs_holds could be add again. And the qs_holds is global variable, so it formed a loop, the node could not do o2quo_make_decision, because of qs_holds never be zero.
 
-It's my feeling that we had better adopt Solution 2,
-
---keep ocfs2_read_blocks as it is, and just clear 
-OCFS2_FLAG_NO_ECC_CHECKS for debugfs.ocfs2.
-
-
-Mainly for following reasons:
-
-1. It's improper and unreasonable to write back block data in 
-ocfs2_read_dx_root,
-
- ??? which makes this an impure read operation.
-
-2. Besides ocfs2_read_dx_root, each function which inside calls(directly 
-or indirectly)
-
- ??? ocfs2_validate_meta_ecc should be token care of. Especially many of 
-them are low-level
-
- ??? interfaces. Obviously, it's tough to check each calling's return 
-value combined with
-
- ??? using context(like read-only mode).
-
-Thanks.
-
-Larry Chen
+I alter two functions o2quo_conn_up and o2quo_conn_err, take o2quo_set_hold or o2quo_clear_hold under control of the bit map qs_conn_bm
 
 
-On 08/29/2017 12:52 PM, Gang He wrote:
-> Hello Guys,
->
-> This is a little tricky problem.
-> When the user modifies a character in a meta-block, the hamming code can repair this block when reading this block in fsck tool,
-> so fsck tool can not detect this disk block inconsistent problem.
-> But debugfs tool reads meta blocks without using meta-ecc mechanism, that means debugfs can see this corrupted block.
-> We need to discuss if we should aware this problem in fsck and rewrite the corrected block in memory to disk in this case.
->
-> Thanks
-> Gang
->
->
->> Recently I found that fsck.ocfs2 does not write back block data
->> corrected with hamming code.
->>
->> The following is how to reproduce my occasion.
->> 1.  Using debugfs.ocfs2 to find block number of index root of a dir
->> 2.  Change the signature of this block from "DXDIR01" to "EXDIR01"
->> 3.  fsck.ocfs2 does not repair or rebuild the index of this dir, as if
->> the change can not be detected
->> 4.  Using dx_dump <dir inode #>command in debugfs.ocfs2, nothing can be
->> seen.
->>
->> Then I try to find how all of this happened.
->>
->> Then I found that for block data that could be corrected by hamming code
->> won't be written back
->> to disk. And the validated data lies only in memory.
->>
->> This is the function back trace:
->> fix_dirent_index
->>       ocfs2_lookup
->>           ocfs2_find_entry_dx
->>               ocfs2_read_dx_root
->>                   ocfs2_read_blocks
->> ocfs2_validate_meta_ecc
->>
->>
->> In last function ocfs2_validate_meta_ecc, the data could be corrected
->> and function returns success.
->> Without being written back, data differs between memory and disk. This
->> could result in another side
->> effect, i.e., if this portion of data read from disk is not validated by
->> hamming code, it will be somewhere
->> wrong.
->>
->> Unfortunately, the bad occasion happens in debugfs.ocfs2 when dx_dump
->> command is used to read index information.
->>
->> The following is how dx_dump works.
->> do_dx_dump
->>       dump_dx_entries
->>           ocfs2_read_dx_root
->>               ocfs2_read_blocks
->> ocfs2_validate_meta_ecc
->>               memcmp(dx_root->dr_signature, "DXDIR01")
->>
->> Although ocfs2_validate_meta_ecc is invoked, actually it does not work
->> as expected.
->> Because one of file system flags(OCFS2_FLAG_NO_ECC_CHECKS) has already
->> been set.
->>
->>
->> errcode_t ocfs2_validate_meta_ecc(ocfs2_filesys *fs, void *data,
->>                     struct ocfs2_block_check *bc)
->> {
->>       errcode_t err = 0;
->>
->>       if (ocfs2_meta_ecc(OCFS2_RAW_SB(fs->fs_super)) &&
->>           !(fs->fs_flags & OCFS2_FLAG_NO_ECC_CHECKS))
->>           err = ocfs2_block_check_validate(data, fs->fs_blocksize, bc);
->>
->>       return err;
->> }
->>
->>
->>
->> This flag has been set explicitly during the initial function do_open
->> was being called.
->> static void do_open(char **args)
->> {
->>       ...
->>       flags |= OCFS2_FLAG_HEARTBEAT_DEV_OK|OCFS2_FLAG_NO_ECC_CHECKS;
->>       ...
->> }
->>
->> To summary, validated data in memory and corrupted data on disk lead to
->> the result that
->> debugfs.ocfs2 misfunctions.
->>
->> Maybe, this behavior is not proper for fsck.ocfs2.
->>
->> To solve this problem, I thought about two solutions.
->>
->> S1. Add a error code to indicate that data read from disk is valid,
->> however, it has already be corrected.
->> Once ocfs2_read_blocks returns, check the return code to decide whether
->> or not write it back.
->>
->> S2. Keep ocfs2_read_blocks  as it is, and just clear
->> OCFS2_FLAG_NO_ECC_CHECKS for debugfs.ocfs2.
+Best Regards,
+Yang Zhang
 
+
+@@ -280,20 +280,24 @@ void o2quo_conn_up(u8 node)
+       struct o2quo_state *qs = &o2quo_state;
+        spin_lock(&qs->qs_lock);
+-
+-        qs->qs_connected++;
+-        mlog_bug_on_msg(qs->qs_connected == O2NM_MAX_NODES,
+-                         "node %u\n", node);
+-        mlog_bug_on_msg(test_bit(node, qs->qs_conn_bm), "node %u\n", node);
+-        set_bit(node, qs->qs_conn_bm);
+-
+-        mlog(0, "node %u, %d total\n", node, qs->qs_connected);
+-
+-        if (!test_bit(node, qs->qs_hb_bm))
+-                 o2quo_set_hold(qs, node);
+-        else
+-                 o2quo_clear_hold(qs, node);
+-
++       if (!test_bit(node, qs->qs_conn_bm)) {
++                qs->qs_connected++;
++                mlog_bug_on_msg(qs->qs_connected == O2NM_MAX_NODES,
++                            "node %u\n", node);
++                mlog_bug_on_msg(test_bit(node, qs->qs_conn_bm), "node %u\n", node);
++                set_bit(node, qs->qs_conn_bm);
++
++                mlog(0, "node %u, %d total\n", node, qs->qs_connected);
++
++                if (!test_bit(node, qs->qs_hb_bm))
++                          o2quo_set_hold(qs, node);
++                else
++                          o2quo_clear_hold(qs, node);
++       }
+       spin_unlock(&qs->qs_lock);
+}
+@@ -314,13 +318,13 @@ void o2quo_conn_err(u8 node)
+                                   node, qs->qs_connected);
+                 clear_bit(node, qs->qs_conn_bm);
++
++                if (test_bit(node, qs->qs_hb_bm))
++                          o2quo_set_hold(qs, node);
+       }
+        mlog(0, "node %u, %d total\n", node, qs->qs_connected);
+-        if (test_bit(node, qs->qs_hb_bm))
+-                 o2quo_set_hold(qs, node);
+-
+       spin_unlock(&qs->qs_lock);
+}
 -------------- next part --------------
 An HTML attachment was scrubbed...
-URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20170906/18283898/attachment.html 
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20170911/9114b403/attachment.html 
