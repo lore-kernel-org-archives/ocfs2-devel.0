@@ -1,60 +1,48 @@
 From: piaojun <piaojun@huawei.com>
-Date: Sat, 23 Sep 2017 11:39:43 +0800
-Subject: [Ocfs2-devel] [patch 1/2] ocfs2/dlm: protect 'tracking_list' by
-	'track_lock'
-Message-ID: <59C5D77F.2030303@huawei.com>
+Date: Sat, 23 Sep 2017 11:41:10 +0800
+Subject: [Ocfs2-devel] [patch 2/2] ocfs2: clean up some unused func
+	declaration
+Message-ID: <59C5D7D6.9050106@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-'dlm->tracking_list' need to be protected by 'dlm->track_lock'.
-
 Signed-off-by: Jun Piao <piaojun@huawei.com>
 Reviewed-by: Alex Chen <alex.chen@huawei.com>
 ---
- fs/ocfs2/dlm/dlmdomain.c | 7 ++++++-
- fs/ocfs2/dlm/dlmmaster.c | 4 ++--
- 2 files changed, 8 insertions(+), 3 deletions(-)
+ fs/ocfs2/buffer_head_io.h    | 3 ---
+ fs/ocfs2/cluster/heartbeat.h | 2 --
+ 2 files changed, 5 deletions(-)
 
-diff --git a/fs/ocfs2/dlm/dlmdomain.c b/fs/ocfs2/dlm/dlmdomain.c
-index a2b19fb..b118525 100644
---- a/fs/ocfs2/dlm/dlmdomain.c
-+++ b/fs/ocfs2/dlm/dlmdomain.c
-@@ -726,12 +726,17 @@ void dlm_unregister_domain(struct dlm_ctxt *dlm)
- 		}
+diff --git a/fs/ocfs2/buffer_head_io.h b/fs/ocfs2/buffer_head_io.h
+index b97bcc6..b1bb70c 100644
+--- a/fs/ocfs2/buffer_head_io.h
++++ b/fs/ocfs2/buffer_head_io.h
+@@ -28,9 +28,6 @@
 
- 		/* This list should be empty. If not, print remaining lockres */
-+		spin_lock(&dlm->track_lock);
- 		if (!list_empty(&dlm->tracking_list)) {
- 			mlog(ML_ERROR, "Following lockres' are still on the "
- 			     "tracking list:\n");
--			list_for_each_entry(res, &dlm->tracking_list, tracking)
-+			list_for_each_entry(res, &dlm->tracking_list, tracking) {
-+				spin_unlock(&dlm->track_lock);
- 				dlm_print_one_lock_resource(res);
-+				spin_lock(&dlm->track_lock);
-+			}
- 		}
-+		spin_unlock(&dlm->track_lock);
+ #include <linux/buffer_head.h>
 
- 		dlm_mark_domain_leaving(dlm);
- 		dlm_leave_domain(dlm);
-diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
-index 3e04279..44e7d18 100644
---- a/fs/ocfs2/dlm/dlmmaster.c
-+++ b/fs/ocfs2/dlm/dlmmaster.c
-@@ -589,9 +589,9 @@ static void dlm_init_lockres(struct dlm_ctxt *dlm,
-
- 	res->last_used = 0;
-
--	spin_lock(&dlm->spinlock);
-+	spin_lock(&dlm->track_lock);
- 	list_add_tail(&res->tracking, &dlm->tracking_list);
--	spin_unlock(&dlm->spinlock);
-+	spin_unlock(&dlm->track_lock);
-
- 	memset(res->lvb, 0, DLM_LVB_LEN);
- 	memset(res->refmap, 0, sizeof(res->refmap));
+-void ocfs2_end_buffer_io_sync(struct buffer_head *bh,
+-			     int uptodate);
+-
+ int ocfs2_write_block(struct ocfs2_super          *osb,
+ 		      struct buffer_head  *bh,
+ 		      struct ocfs2_caching_info   *ci);
+diff --git a/fs/ocfs2/cluster/heartbeat.h b/fs/ocfs2/cluster/heartbeat.h
+index 3ef5137..a9e67ef 100644
+--- a/fs/ocfs2/cluster/heartbeat.h
++++ b/fs/ocfs2/cluster/heartbeat.h
+@@ -79,10 +79,8 @@ void o2hb_fill_node_map(unsigned long *map,
+ 			unsigned bytes);
+ void o2hb_exit(void);
+ int o2hb_init(void);
+-int o2hb_check_node_heartbeating(u8 node_num);
+ int o2hb_check_node_heartbeating_no_sem(u8 node_num);
+ int o2hb_check_node_heartbeating_from_callback(u8 node_num);
+-int o2hb_check_local_node_heartbeating(void);
+ void o2hb_stop_all_regions(void);
+ int o2hb_get_all_regions(char *region_uuids, u8 numregions);
+ int o2hb_global_heartbeat_active(void);
 -- 
