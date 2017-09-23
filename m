@@ -1,59 +1,60 @@
-From: Zhangyang <zhang.yangB@h3c.com>
-Date: Thu, 21 Sep 2017 02:09:33 +0000
-Subject: [Ocfs2-devel] [patch] ocfs2: fix qs_holds may could not be zero
-Message-ID: <7F50894FD17BEC45AAC26E5BADA6CE330C60F99A@H3CMLB12-EX.srv.huawei-3com.com>
+From: piaojun <piaojun@huawei.com>
+Date: Sat, 23 Sep 2017 11:39:43 +0800
+Subject: [Ocfs2-devel] [patch 1/2] ocfs2/dlm: protect 'tracking_list' by
+	'track_lock'
+Message-ID: <59C5D77F.2030303@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi all,
+'dlm->tracking_list' need to be protected by 'dlm->track_lock'.
 
-
-
-In our test, We fond that , when the network down, qs->qs_holds could not be reduce to zero, it will lead to the node can't do fence.
-
-
-
-o2net_idle_timer -> o2quo_conn_err -> qs->qs_holds++, after O2NET_QUORUM_DELAY_MS if qs_holds could be subtract to zero, it could do make_decision.
-
-But if there are many nodes, when one node network down which contains o2net connections may not do o2net_idle_timer at the same time.
-
-So when a o2net_node have done nn->nn_still_up, but the qs_holds is not zero. because the other o2net_node have not done nn->nn_still_up.
-
-So the first o2net_node will do o2net_idle_timer again, and the qs_holds could be add again. And the qs_holds is global variable, so it formed a loop, the node could not do o2quo_make_decision, because of qs_holds never be zero.
-
-
-
-I alter the function o2quo_conn_err, take o2quo_set_hold under control of the bit map qs_conn_bm.
-
-Signed-off-by: Yang Zhang <zhang.yangB@h3c.com>
+Signed-off-by: Jun Piao <piaojun@huawei.com>
+Reviewed-by: Alex Chen <alex.chen@huawei.com>
 ---
-fs/ocfs2/cluster/quorum.c | 8 +++++---
-1 file changed, 5 insertions(+), 3 deletions(-)
+ fs/ocfs2/dlm/dlmdomain.c | 7 ++++++-
+ fs/ocfs2/dlm/dlmmaster.c | 4 ++--
+ 2 files changed, 8 insertions(+), 3 deletions(-)
 
-diff --git a/fs/ocfs2/cluster/quorum.c b/fs/ocfs2/cluster/quorum.c
-index 3f337e5..0fe531e 100644
---- a/fs/ocfs2/cluster/quorum.c
-+++ b/fs/ocfs2/cluster/quorum.c
-@@ -423,13 +423,15 @@ void o2quo_conn_err(u8 node)
-                                     node, qs->qs_connected);
-                   clear_bit(node, qs->qs_conn_bm);
-+                /*bring set hold within this judgement, in order to avoid qs_hold
-+                * could not be zero.
-+                */
-+                if (test_bit(node, qs->qs_hb_bm))
-+                          o2quo_set_hold(qs, node);
-         }
+diff --git a/fs/ocfs2/dlm/dlmdomain.c b/fs/ocfs2/dlm/dlmdomain.c
+index a2b19fb..b118525 100644
+--- a/fs/ocfs2/dlm/dlmdomain.c
++++ b/fs/ocfs2/dlm/dlmdomain.c
+@@ -726,12 +726,17 @@ void dlm_unregister_domain(struct dlm_ctxt *dlm)
+ 		}
 
-                   mlog(0, "node %u, %d total\n", node, qs->qs_connected);
+ 		/* This list should be empty. If not, print remaining lockres */
++		spin_lock(&dlm->track_lock);
+ 		if (!list_empty(&dlm->tracking_list)) {
+ 			mlog(ML_ERROR, "Following lockres' are still on the "
+ 			     "tracking list:\n");
+-			list_for_each_entry(res, &dlm->tracking_list, tracking)
++			list_for_each_entry(res, &dlm->tracking_list, tracking) {
++				spin_unlock(&dlm->track_lock);
+ 				dlm_print_one_lock_resource(res);
++				spin_lock(&dlm->track_lock);
++			}
+ 		}
++		spin_unlock(&dlm->track_lock);
 
--                 if (test_bit(node, qs->qs_hb_bm))
--                           o2quo_set_hold(qs, node);
--
-                   spin_unlock(&qs->qs_lock);
-         }
--------------- next part --------------
-An HTML attachment was scrubbed...
-URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20170921/86286525/attachment.html 
+ 		dlm_mark_domain_leaving(dlm);
+ 		dlm_leave_domain(dlm);
+diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
+index 3e04279..44e7d18 100644
+--- a/fs/ocfs2/dlm/dlmmaster.c
++++ b/fs/ocfs2/dlm/dlmmaster.c
+@@ -589,9 +589,9 @@ static void dlm_init_lockres(struct dlm_ctxt *dlm,
+
+ 	res->last_used = 0;
+
+-	spin_lock(&dlm->spinlock);
++	spin_lock(&dlm->track_lock);
+ 	list_add_tail(&res->tracking, &dlm->tracking_list);
+-	spin_unlock(&dlm->spinlock);
++	spin_unlock(&dlm->track_lock);
+
+ 	memset(res->lvb, 0, DLM_LVB_LEN);
+ 	memset(res->refmap, 0, sizeof(res->refmap));
+-- 
