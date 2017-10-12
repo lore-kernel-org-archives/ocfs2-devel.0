@@ -1,46 +1,47 @@
-From: Changwei Ge <ge.changwei@h3c.com>
-Date: Wed, 11 Oct 2017 00:48:34 +0000
-Subject: [Ocfs2-devel] mmotm 2016-08-02-15-53 uploaded
-References: <57a124aa.eJmVCvd1SOHlQ1X8%akpm@linux-foundation.org>
-	<CAGF4SLgi6jgtxbqtTEjL8FGXUHHsSm6KeoVqANLt3LB6OTBboA@mail.gmail.com>
-	<20171010123749.2c59f3b762b3c0b33e80a67d@linux-foundation.org>
-Message-ID: <63ADC13FD55D6546B7DECE290D39E373CED68187@H3CMLB14-EX.srv.huawei-3com.com>
+From: Gang He <ghe@suse.com>
+Date: Thu, 12 Oct 2017 00:37:41 -0600
+Subject: [Ocfs2-devel] A o2cb DLM problem
+Message-ID: <59DF7E35020000F9000921C2@prv-mh.provo.novell.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Andrew Morton <akpm@linux-foundation.org>, Vitaly Mayatskih <v.mayatskih@gmail.com>
-Cc: "mm-commits@vger.kernel.org" <mm-commits@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, "linux-next@vger.kernel.org" <linux-next@vger.kernel.org>, "sfr@canb.auug.org.au" <sfr@canb.auug.org.au>, "mhocko@suse.cz" <mhocko@suse.cz>, "broonie@kernel.org" <broonie@kernel.org>, "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>, piaojun <piaojun@huawei.com>, Joseph Qi <joseph.qi@huawei.com>, Jiufei Xue <xuejiufei@huawei.com>, Mark Fasheh <mfasheh@suse.de>, Joel Becker <jlbec@evilplan.org>, Junxiao Bi <junxiao.bi@oracle.com>
+To: ocfs2-devel@oss.oracle.com
 
-Hi Andrew and Vitaly,
+Hello list,
 
-I do agree that patch ee8f7fcbe638 ("ocfs2/dlm: continue to purge 
-recovery lockres when recovery master goes down", 2016-08-02) introduced 
-an issue. It makes DLM recovery can't pick up a new master for an 
-existed lock resource whose owner died seconds ago.
+We got a o2cb DLM problem from the customer, which is using o2cb stack for OCFS2 file system on SLES12SP1(3.12.49-11-default).
+The problem description is as below,
 
-But this patch truly solves another issue.
-So I think we can't just revert this patch but to give a fix to it.
+Customer has three node oracle rack cluster
+gal7gblr2084
+gal7gblr2085
+gal7gblr2086
 
-Thanks,
-Changwei
+On each node they have configured two ocfs resources as a filesystem. The two node gal7gblr2085 and gal7gblr2086 got hung and went into loop to kill each other and they want root cause analysis.
+Anyway, all I see in logs is those messages flooding /var/log/messages
 
-On 2017/10/11 3:38, Andrew Morton wrote:
-> On Tue, 10 Oct 2017 14:06:41 -0400 Vitaly Mayatskih <v.mayatskih@gmail.com> wrote:
-> 
->> * ocfs2-dlm-continue-to-purge-recovery-lockres-when-recovery
->> -master-goes-down.patch
->>
->> This one completely broke two node cluster use case: when one node dies,
->> the other one either eventually crashes (~4.14-rc4) or locks up (pre-4.14).
-> 
-> Are you sure?
-> 
-> Are you able to confirm that reverting this patch (ee8f7fcbe638b07e8)
-> and only this patch fixes up current mainline kernels?
-> 
-> Are you able to supply more info on the crashes and lockups so that the
-> ocfs2 developers can understand the failures?
-> 
-> Thanks.
-> 
+2017-10-05T06:50:25.980773+01:00 gal7gblr2085 kernel: [16874541.314199] o2net: Connection to node gal7gblr2086 (num 2) at 10.233.217.12:7777 has been idle for 30.5 secs, shutting it down.
+2017-10-05T06:50:37.456786+01:00 gal7gblr2085 kernel: [16874552.778726] o2net: No longer connected to node gal7gblr2086 (num 2) at 10.233.217.12:7777
+2017-10-05T06:50:45.176798+01:00 gal7gblr2085 kernel: [16874560.487834] (kworker/u64:1,13245,10):dlm_send_remote_convert_request:392 ERROR: Error -107 when sending message 504 (key 0x4a68dd81) to node 2
+2017-10-05T06:50:45.176812+01:00 gal7gblr2085 kernel: [16874560.487838] o2dlm: Waiting on the death of node 2 in domain 18AE08328428452BA610E7BDE26F5246
+2017-10-05T06:50:50.284796+01:00 gal7gblr2085 kernel: [16874565.589996] (kworker/u64:1,13245,10):dlm_send_remote_convert_request:392 ERROR: Error -107 when sending message 504 (key 0x4a68dd81) to node 2
+2017-10-05T06:50:50.284811+01:00 gal7gblr2085 kernel: [16874565.590000] o2dlm: Waiting on the death of node 2 in domain 18AE08328428452BA610E7BDE26F5246
+2017-10-05T06:50:55.400808+01:00 gal7gblr2085 kernel: [16874570.700448] (kworker/u64:1,13245,10):dlm_send_remote_convert_request:392 ERROR: Error -107 when sending message 504 (key 0x4a68dd81) to node 2
+2017-10-05T06:50:55.400824+01:00 gal7gblr2085 kernel: [16874570.700452] o2dlm: Waiting on the death of node 2 in domain 18AE08328428452BA610E7BDE26F5246
+2017-10-05T06:51:00.512766+01:00 gal7gblr2085 kernel: [16874575.808944] (kworker/u64:1,13245,26):dlm_send_remote_convert_request:392 ERROR: Error -107 when sending message 504 (key 0x4a68dd81) to node 2
+2017-10-05T06:51:00.512783+01:00 gal7gblr2085 kernel: [16874575.808948] o2dlm: Waiting on the death of node 2 in domain 18AE08328428452BA610E7BDE26F5246
+2017-10-05T06:51:02.456785+01:00 gal7gblr2085 kernel: [16874577.749286] (ora_diag_rcp2,24339,0):dlm_do_master_request:1344 ERROR: link to 2 went down!
+2017-10-05T06:51:02.456797+01:00 gal7gblr2085 kernel: [16874577.749289] (ora_diag_rcp2,24339,0):dlm_get_lock_resource:929 ERROR: status = -107
+2017-10-05T06:51:05.632955+01:00 gal7gblr2085 kernel: [16874580.920124] (kworker/u64:1,13245,26):dlm_send_remote_convert_request:392 ERROR: Error -107 when sending message 504 (key 0x4a68dd81) to node 2
+2017-10-05T06:51:05.632973+01:00 gal7gblr2085 kernel: [16874580.920132] o2dlm: Waiting on the death of node 2 in domain 18AE08328428452BA610E7BDE26F5246
+2017-10-05T06:51:07.976787+01:00 gal7gblr2085 kernel: [16874583.262561] o2net: No connection established with node 2 after 30.0 seconds, giving up.
+2017-10-05T10:03:38.439542+01:00 gal7gblr2084 kernel: [1911889.097543] (mdb_psp0_-mgmtd,21126,0):dlm_send_remote_unlock_request:358 ERROR: Error -107 when sending message 506 (key 0x4a68dd81) to node 1
+2017-10-05T10:03:38.439543+01:00 gal7gblr2084 kernel: [1911889.097547] (mdb_psp0_-mgmtd,21126,0):dlm_send_remote_unlock_request:358 ERROR: Error -107 when sending message 506 (key 0x4a68dd81) to node 1
+
+
+Did you guys encounter such problem when using o2cb stack? since we mainly focus on pmck stack, but I still want to help this customer to know the root cause.
+
+
+Thanks
+Gang
