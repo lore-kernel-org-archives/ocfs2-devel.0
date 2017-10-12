@@ -1,107 +1,87 @@
-From: Gang He <ghe@suse.com>
-Date: Thu, 12 Oct 2017 01:14:42 -0600
-Subject: [Ocfs2-devel] A o2cb DLM problem
-In-Reply-To: <6ffa4f8b-bd5f-f831-b9d7-9c53269705bd@oracle.com>
-References: <59DF7E35020000F9000921C2@prv-mh.provo.novell.com>
-	<6ffa4f8b-bd5f-f831-b9d7-9c53269705bd@oracle.com>
-Message-ID: <59DF86E2020000F9000921F9@prv-mh.provo.novell.com>
+From: Ashish Samant <ashish.samant@oracle.com>
+Date: Thu, 12 Oct 2017 12:12:59 -0700
+Subject: [Ocfs2-devel] [PATCH] ocfs2: fstrim: Fix start offset of first
+	cluster group during fstrim
+Message-ID: <1507835579-7308-1-git-send-email-ashish.samant@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
+Cc: ashish.samant@oracle.com, stable@vger.kernel.org
 
-Hello Junxiao,
+The first cluster group descriptor is not stored at the start of the group
+but at an offset from the start. We need to take this into account while
+doing fstrim on the first cluster group. Otherwise we will wrongly start
+fstrim a few blocks after the desired start block and the range can cross
+over into the next cluster group and zero out the group descriptor there.
+This can cause filesytem corruption that cannot be fixed by fsck.
 
+Signed-off-by: Ashish Samant <ashish.samant@oracle.com>
+Cc: stable at vger.kernel.org
+---
+ fs/ocfs2/alloc.c | 24 ++++++++++++++++++------
+ 1 file changed, 18 insertions(+), 6 deletions(-)
 
-Thank for quick reply, the information is very helpful.
-
--Gang
-
-
->>> 
-> On 10/12/2017 02:37 PM, Gang He wrote:
->> Hello list,
->> 
->> We got a o2cb DLM problem from the customer, which is using o2cb stack for 
-> OCFS2 file system on SLES12SP1(3.12.49-11-default).
->> The problem description is as below,
->> 
->> Customer has three node oracle rack cluster
->> gal7gblr2084
->> gal7gblr2085
->> gal7gblr2086
->> 
->> On each node they have configured two ocfs resources as a filesystem. The 
-> two node gal7gblr2085 and gal7gblr2086 got hung and went into loop to kill 
-> each other and they want root cause analysis.
->> Anyway, all I see in logs is those messages flooding /var/log/messages
->> 
->> 2017-10-05T06:50:25.980773+01:00 gal7gblr2085 kernel: [16874541.314199] o2net: 
-> Connection to node gal7gblr2086 (num 2) at 10.233.217.12:7777 has been idle 
-> for 30.5 secs, shutting it down.
-> Looks it is an old kernel. Shutting down connection when idle timeout
-> will cause losing dlm message which may cause hung. Please apply the
-> following 3 patches.
-> 
-> 8c7b638cece1 ocfs2: quorum: add a log for node not fenced
-> 8e9801dfe37c ocfs2: o2net: set tcp user timeout to max value
-> c43c363def04 ocfs2: o2net: don't shutdown connection when idle timeout
-> 
-> Thanks,
-> Junxiao.
->> 2017-10-05T06:50:37.456786+01:00 gal7gblr2085 kernel: [16874552.778726] o2net: 
-> No longer connected to node gal7gblr2086 (num 2) at 10.233.217.12:7777
->> 2017-10-05T06:50:45.176798+01:00 gal7gblr2085 kernel: [16874560.487834] 
-> (kworker/u64:1,13245,10):dlm_send_remote_convert_request:392 ERROR: Error -107 
-> when sending message 504 (key 0x4a68dd81) to node 2
->> 2017-10-05T06:50:45.176812+01:00 gal7gblr2085 kernel: [16874560.487838] o2dlm: 
-> Waiting on the death of node 2 in domain 18AE08328428452BA610E7BDE26F5246
->> 2017-10-05T06:50:50.284796+01:00 gal7gblr2085 kernel: [16874565.589996] 
-> (kworker/u64:1,13245,10):dlm_send_remote_convert_request:392 ERROR: Error -107 
-> when sending message 504 (key 0x4a68dd81) to node 2
->> 2017-10-05T06:50:50.284811+01:00 gal7gblr2085 kernel: [16874565.590000] o2dlm: 
-> Waiting on the death of node 2 in domain 18AE08328428452BA610E7BDE26F5246
->> 2017-10-05T06:50:55.400808+01:00 gal7gblr2085 kernel: [16874570.700448] 
-> (kworker/u64:1,13245,10):dlm_send_remote_convert_request:392 ERROR: Error -107 
-> when sending message 504 (key 0x4a68dd81) to node 2
->> 2017-10-05T06:50:55.400824+01:00 gal7gblr2085 kernel: [16874570.700452] o2dlm: 
-> Waiting on the death of node 2 in domain 18AE08328428452BA610E7BDE26F5246
->> 2017-10-05T06:51:00.512766+01:00 gal7gblr2085 kernel: [16874575.808944] 
-> (kworker/u64:1,13245,26):dlm_send_remote_convert_request:392 ERROR: Error -107 
-> when sending message 504 (key 0x4a68dd81) to node 2
->> 2017-10-05T06:51:00.512783+01:00 gal7gblr2085 kernel: [16874575.808948] o2dlm: 
-> Waiting on the death of node 2 in domain 18AE08328428452BA610E7BDE26F5246
->> 2017-10-05T06:51:02.456785+01:00 gal7gblr2085 kernel: [16874577.749286] 
-> (ora_diag_rcp2,24339,0):dlm_do_master_request:1344 ERROR: link to 2 went 
-> down!
->> 2017-10-05T06:51:02.456797+01:00 gal7gblr2085 kernel: [16874577.749289] 
-> (ora_diag_rcp2,24339,0):dlm_get_lock_resource:929 ERROR: status = -107
->> 2017-10-05T06:51:05.632955+01:00 gal7gblr2085 kernel: [16874580.920124] 
-> (kworker/u64:1,13245,26):dlm_send_remote_convert_request:392 ERROR: Error -107 
-> when sending message 504 (key 0x4a68dd81) to node 2
->> 2017-10-05T06:51:05.632973+01:00 gal7gblr2085 kernel: [16874580.920132] o2dlm: 
-> Waiting on the death of node 2 in domain 18AE08328428452BA610E7BDE26F5246
->> 2017-10-05T06:51:07.976787+01:00 gal7gblr2085 kernel: [16874583.262561] o2net: 
-> No connection established with node 2 after 30.0 seconds, giving up.
->> 2017-10-05T10:03:38.439542+01:00 gal7gblr2084 kernel: [1911889.097543] 
-> (mdb_psp0_-mgmtd,21126,0):dlm_send_remote_unlock_request:358 ERROR: Error -107 
-> when sending message 506 (key 0x4a68dd81) to node 1
->> 2017-10-05T10:03:38.439543+01:00 gal7gblr2084 kernel: [1911889.097547] 
-> (mdb_psp0_-mgmtd,21126,0):dlm_send_remote_unlock_request:358 ERROR: Error -107 
-> when sending message 506 (key 0x4a68dd81) to node 1
->> 
->> 
->> Did you guys encounter such problem when using o2cb stack? since we mainly 
-> focus on pmck stack, but I still want to help this customer to know the root 
-> cause.
->> 
->> 
->> Thanks
->> Gang
->> 
->> 
->> 
->> 
->> 
->> 
+diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
+index a177eae..addd7c5 100644
+--- a/fs/ocfs2/alloc.c
++++ b/fs/ocfs2/alloc.c
+@@ -7304,13 +7304,24 @@ int ocfs2_truncate_inline(struct inode *inode, struct buffer_head *di_bh,
+ 
+ static int ocfs2_trim_extent(struct super_block *sb,
+ 			     struct ocfs2_group_desc *gd,
+-			     u32 start, u32 count)
++			     u64 group, u32 start, u32 count)
+ {
+ 	u64 discard, bcount;
++	struct ocfs2_super *osb = OCFS2_SB(sb);
+ 
+ 	bcount = ocfs2_clusters_to_blocks(sb, count);
+-	discard = le64_to_cpu(gd->bg_blkno) +
+-			ocfs2_clusters_to_blocks(sb, start);
++	discard = ocfs2_clusters_to_blocks(sb, start);
++
++	/*
++	 * For the first cluster group, the gd->bg_blkno is not at the start
++	 * of the group, but at an offset from the start. If we add it while
++	 * calculating discard for first group, we will wrongly start fstrim a
++	 * few blocks after the desried start block and the range can cross
++	 * over into the next cluster group. So, add it only if this is not
++	 * the first cluster group.
++	 */
++	if (group != osb->first_cluster_group_blkno)
++		discard += le64_to_cpu(gd->bg_blkno);
+ 
+ 	trace_ocfs2_trim_extent(sb, (unsigned long long)discard, bcount);
+ 
+@@ -7318,7 +7329,7 @@ static int ocfs2_trim_extent(struct super_block *sb,
+ }
+ 
+ static int ocfs2_trim_group(struct super_block *sb,
+-			    struct ocfs2_group_desc *gd,
++			    struct ocfs2_group_desc *gd, u64 group,
+ 			    u32 start, u32 max, u32 minbits)
+ {
+ 	int ret = 0, count = 0, next;
+@@ -7337,7 +7348,7 @@ static int ocfs2_trim_group(struct super_block *sb,
+ 		next = ocfs2_find_next_bit(bitmap, max, start);
+ 
+ 		if ((next - start) >= minbits) {
+-			ret = ocfs2_trim_extent(sb, gd,
++			ret = ocfs2_trim_extent(sb, gd, group,
+ 						start, next - start);
+ 			if (ret < 0) {
+ 				mlog_errno(ret);
+@@ -7435,7 +7446,8 @@ int ocfs2_trim_fs(struct super_block *sb, struct fstrim_range *range)
+ 		}
+ 
+ 		gd = (struct ocfs2_group_desc *)gd_bh->b_data;
+-		cnt = ocfs2_trim_group(sb, gd, first_bit, last_bit, minlen);
++		cnt = ocfs2_trim_group(sb, gd, group,
++				       first_bit, last_bit, minlen);
+ 		brelse(gd_bh);
+ 		gd_bh = NULL;
+ 		if (cnt < 0) {
+-- 
+1.9.1
