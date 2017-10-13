@@ -1,62 +1,67 @@
-From: Gang He <ghe@suse.com>
-Date: Fri, 13 Oct 2017 01:21:26 -0600
-Subject: [Ocfs2-devel] [PATCH 2/2] ocfs2: cleanup unused func
- declaration and assignment
-In-Reply-To: <59E064BB.8000005@huawei.com>
-References: <59E064BB.8000005@huawei.com>
-Message-ID: <59E0D9F6020000F90009266C@prv-mh.provo.novell.com>
+From: Joseph Qi <jiangqi903@gmail.com>
+Date: Fri, 13 Oct 2017 17:19:48 +0800
+Subject: [Ocfs2-devel] [PATCH 1/2] ocfs2: no need flush workqueue before
+	destroying it
+In-Reply-To: <59E06476.3090502@huawei.com>
+References: <59E06476.3090502@huawei.com>
+Message-ID: <25082494-e092-0f60-cdac-ec6fe7241bf0@gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Look good, but hope you can add more comments in the patch description.
-Reviewed-by: Gang He <ghe@suse.com>
-
-Thanks
-Gang
 
 
->>> 
+On 17/10/13 15:00, piaojun wrote:
+> destroy_workqueue() will do flushing work for us.
+> 
 > Signed-off-by: Jun Piao <piaojun@huawei.com>
+Reviewed-by: Joseph Qi <jiangqi903@gmail.com>
+
 > ---
->  fs/ocfs2/alloc.c             | 2 --
->  fs/ocfs2/cluster/heartbeat.h | 2 --
->  2 files changed, 4 deletions(-)
+>  fs/ocfs2/dlm/dlmdomain.c | 1 -
+>  fs/ocfs2/dlmfs/dlmfs.c   | 1 -
+>  fs/ocfs2/super.c         | 4 +---
+>  3 files changed, 1 insertion(+), 5 deletions(-)
 > 
-> diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-> index a177eae..31a416d 100644
-> --- a/fs/ocfs2/alloc.c
-> +++ b/fs/ocfs2/alloc.c
-> @@ -3585,8 +3585,6 @@ static int ocfs2_merge_rec_left(struct ocfs2_path 
-> *right_path,
->  		 * The easy case - we can just plop the record right in.
->  		 */
->  		*left_rec = *split_rec;
-> -
-> -		has_empty_extent = 0;
->  	} else
->  		le16_add_cpu(&left_rec->e_leaf_clusters, split_clusters);
+> diff --git a/fs/ocfs2/dlm/dlmdomain.c b/fs/ocfs2/dlm/dlmdomain.c
+> index a2b19fb..e1fea14 100644
+> --- a/fs/ocfs2/dlm/dlmdomain.c
+> +++ b/fs/ocfs2/dlm/dlmdomain.c
+> @@ -394,7 +394,6 @@ int dlm_domain_fully_joined(struct dlm_ctxt *dlm)
+>  static void dlm_destroy_dlm_worker(struct dlm_ctxt *dlm)
+>  {
+>  	if (dlm->dlm_worker) {
+> -		flush_workqueue(dlm->dlm_worker);
+>  		destroy_workqueue(dlm->dlm_worker);
+>  		dlm->dlm_worker = NULL;
+>  	}
+> diff --git a/fs/ocfs2/dlmfs/dlmfs.c b/fs/ocfs2/dlmfs/dlmfs.c
+> index 9ab9e18..edce7b5 100644
+> --- a/fs/ocfs2/dlmfs/dlmfs.c
+> +++ b/fs/ocfs2/dlmfs/dlmfs.c
+> @@ -670,7 +670,6 @@ static void __exit exit_dlmfs_fs(void)
+>  {
+>  	unregister_filesystem(&dlmfs_fs_type);
 > 
-> diff --git a/fs/ocfs2/cluster/heartbeat.h b/fs/ocfs2/cluster/heartbeat.h
-> index 3ef5137..a9e67ef 100644
-> --- a/fs/ocfs2/cluster/heartbeat.h
-> +++ b/fs/ocfs2/cluster/heartbeat.h
-> @@ -79,10 +79,8 @@ void o2hb_fill_node_map(unsigned long *map,
->  			unsigned bytes);
->  void o2hb_exit(void);
->  int o2hb_init(void);
-> -int o2hb_check_node_heartbeating(u8 node_num);
->  int o2hb_check_node_heartbeating_no_sem(u8 node_num);
->  int o2hb_check_node_heartbeating_from_callback(u8 node_num);
-> -int o2hb_check_local_node_heartbeating(void);
->  void o2hb_stop_all_regions(void);
->  int o2hb_get_all_regions(char *region_uuids, u8 numregions);
->  int o2hb_global_heartbeat_active(void);
-> -- 
+> -	flush_workqueue(user_dlm_worker);
+>  	destroy_workqueue(user_dlm_worker);
 > 
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com 
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+>  	/*
+> diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+> index 8073349..040bbb6 100644
+> --- a/fs/ocfs2/super.c
+> +++ b/fs/ocfs2/super.c
+> @@ -2521,10 +2521,8 @@ static void ocfs2_delete_osb(struct ocfs2_super *osb)
+>  	/* This function assumes that the caller has the main osb resource */
+> 
+>  	/* ocfs2_initializer_super have already created this workqueue */
+> -	if (osb->ocfs2_wq) {
+> -		flush_workqueue(osb->ocfs2_wq);
+> +	if (osb->ocfs2_wq)
+>  		destroy_workqueue(osb->ocfs2_wq);
+> -	}
+> 
+>  	ocfs2_free_slot_info(osb);
+> 
