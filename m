@@ -1,105 +1,92 @@
-From: Joseph Qi <jiangqi903@gmail.com>
-Date: Fri, 13 Oct 2017 09:27:40 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: fstrim: Fix start offset of first
- cluster group during fstrim
-In-Reply-To: <8a0ead0f-7390-b3be-ea5b-847b943a81e2@oracle.com>
-References: <1507835579-7308-1-git-send-email-ashish.samant@oracle.com>
-	<8a0ead0f-7390-b3be-ea5b-847b943a81e2@oracle.com>
-Message-ID: <f204ac03-610d-a3c6-a4c5-7c9252cce2ae@gmail.com>
+From: piaojun <piaojun@huawei.com>
+Date: Fri, 13 Oct 2017 11:04:05 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: no need flush workqueue before
+	destroying it
+Message-ID: <59E02D25.7010307@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Junxiao Bi <junxiao.bi@oracle.com>, Ashish Samant <ashish.samant@oracle.com>, ocfs2-devel@oss.oracle.com
-Cc: stable@vger.kernel.org
+To: ocfs2-devel@oss.oracle.com
 
+1. delete redundant flush_workqueue();
+2. delete some unused func declaration and assignment.
 
+Signed-off-by: Jun Piao <piaojun@huawei.com>
+---
+ fs/ocfs2/alloc.c             | 2 --
+ fs/ocfs2/cluster/heartbeat.h | 2 --
+ fs/ocfs2/dlm/dlmdomain.c     | 1 -
+ fs/ocfs2/dlmfs/dlmfs.c       | 1 -
+ fs/ocfs2/super.c             | 4 +---
+ 5 files changed, 1 insertion(+), 9 deletions(-)
 
-On 17/10/13 08:45, Junxiao Bi wrote:
-> On 10/13/2017 03:12 AM, Ashish Samant wrote:
->> The first cluster group descriptor is not stored at the start of the group
->> but at an offset from the start. We need to take this into account while
->> doing fstrim on the first cluster group. Otherwise we will wrongly start
->> fstrim a few blocks after the desired start block and the range can cross
->> over into the next cluster group and zero out the group descriptor there.
->> This can cause filesytem corruption that cannot be fixed by fsck.
->>
->> Signed-off-by: Ashish Samant <ashish.samant@oracle.com>
->> Cc: stable at vger.kernel.org
-> Looks good.
-> 
-> Reviewed-by: Junxiao Bi <junxiao.bi@oracle.com>
-> 
-Reviewed-by: Joseph Qi <jiangqi903@gmail.com>
->> ---
->>  fs/ocfs2/alloc.c | 24 ++++++++++++++++++------
->>  1 file changed, 18 insertions(+), 6 deletions(-)
->>
->> diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
->> index a177eae..addd7c5 100644
->> --- a/fs/ocfs2/alloc.c
->> +++ b/fs/ocfs2/alloc.c
->> @@ -7304,13 +7304,24 @@ int ocfs2_truncate_inline(struct inode *inode, struct buffer_head *di_bh,
->>  
->>  static int ocfs2_trim_extent(struct super_block *sb,
->>  			     struct ocfs2_group_desc *gd,
->> -			     u32 start, u32 count)
->> +			     u64 group, u32 start, u32 count)
->>  {
->>  	u64 discard, bcount;
->> +	struct ocfs2_super *osb = OCFS2_SB(sb);
->>  
->>  	bcount = ocfs2_clusters_to_blocks(sb, count);
->> -	discard = le64_to_cpu(gd->bg_blkno) +
->> -			ocfs2_clusters_to_blocks(sb, start);
->> +	discard = ocfs2_clusters_to_blocks(sb, start);
->> +
->> +	/*
->> +	 * For the first cluster group, the gd->bg_blkno is not at the start
->> +	 * of the group, but at an offset from the start. If we add it while
->> +	 * calculating discard for first group, we will wrongly start fstrim a
->> +	 * few blocks after the desried start block and the range can cross
->> +	 * over into the next cluster group. So, add it only if this is not
->> +	 * the first cluster group.
->> +	 */
->> +	if (group != osb->first_cluster_group_blkno)
->> +		discard += le64_to_cpu(gd->bg_blkno);
->>  
->>  	trace_ocfs2_trim_extent(sb, (unsigned long long)discard, bcount);
->>  
->> @@ -7318,7 +7329,7 @@ static int ocfs2_trim_extent(struct super_block *sb,
->>  }
->>  
->>  static int ocfs2_trim_group(struct super_block *sb,
->> -			    struct ocfs2_group_desc *gd,
->> +			    struct ocfs2_group_desc *gd, u64 group,
->>  			    u32 start, u32 max, u32 minbits)
->>  {
->>  	int ret = 0, count = 0, next;
->> @@ -7337,7 +7348,7 @@ static int ocfs2_trim_group(struct super_block *sb,
->>  		next = ocfs2_find_next_bit(bitmap, max, start);
->>  
->>  		if ((next - start) >= minbits) {
->> -			ret = ocfs2_trim_extent(sb, gd,
->> +			ret = ocfs2_trim_extent(sb, gd, group,
->>  						start, next - start);
->>  			if (ret < 0) {
->>  				mlog_errno(ret);
->> @@ -7435,7 +7446,8 @@ int ocfs2_trim_fs(struct super_block *sb, struct fstrim_range *range)
->>  		}
->>  
->>  		gd = (struct ocfs2_group_desc *)gd_bh->b_data;
->> -		cnt = ocfs2_trim_group(sb, gd, first_bit, last_bit, minlen);
->> +		cnt = ocfs2_trim_group(sb, gd, group,
->> +				       first_bit, last_bit, minlen);
->>  		brelse(gd_bh);
->>  		gd_bh = NULL;
->>  		if (cnt < 0) {
->>
-> 
-> 
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
-> 
+diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
+index a177eae..31a416d 100644
+--- a/fs/ocfs2/alloc.c
++++ b/fs/ocfs2/alloc.c
+@@ -3585,8 +3585,6 @@ static int ocfs2_merge_rec_left(struct ocfs2_path *right_path,
+ 		 * The easy case - we can just plop the record right in.
+ 		 */
+ 		*left_rec = *split_rec;
+-
+-		has_empty_extent = 0;
+ 	} else
+ 		le16_add_cpu(&left_rec->e_leaf_clusters, split_clusters);
+
+diff --git a/fs/ocfs2/cluster/heartbeat.h b/fs/ocfs2/cluster/heartbeat.h
+index 3ef5137..a9e67ef 100644
+--- a/fs/ocfs2/cluster/heartbeat.h
++++ b/fs/ocfs2/cluster/heartbeat.h
+@@ -79,10 +79,8 @@ void o2hb_fill_node_map(unsigned long *map,
+ 			unsigned bytes);
+ void o2hb_exit(void);
+ int o2hb_init(void);
+-int o2hb_check_node_heartbeating(u8 node_num);
+ int o2hb_check_node_heartbeating_no_sem(u8 node_num);
+ int o2hb_check_node_heartbeating_from_callback(u8 node_num);
+-int o2hb_check_local_node_heartbeating(void);
+ void o2hb_stop_all_regions(void);
+ int o2hb_get_all_regions(char *region_uuids, u8 numregions);
+ int o2hb_global_heartbeat_active(void);
+diff --git a/fs/ocfs2/dlm/dlmdomain.c b/fs/ocfs2/dlm/dlmdomain.c
+index a2b19fb..e1fea14 100644
+--- a/fs/ocfs2/dlm/dlmdomain.c
++++ b/fs/ocfs2/dlm/dlmdomain.c
+@@ -394,7 +394,6 @@ int dlm_domain_fully_joined(struct dlm_ctxt *dlm)
+ static void dlm_destroy_dlm_worker(struct dlm_ctxt *dlm)
+ {
+ 	if (dlm->dlm_worker) {
+-		flush_workqueue(dlm->dlm_worker);
+ 		destroy_workqueue(dlm->dlm_worker);
+ 		dlm->dlm_worker = NULL;
+ 	}
+diff --git a/fs/ocfs2/dlmfs/dlmfs.c b/fs/ocfs2/dlmfs/dlmfs.c
+index 9ab9e18..edce7b5 100644
+--- a/fs/ocfs2/dlmfs/dlmfs.c
++++ b/fs/ocfs2/dlmfs/dlmfs.c
+@@ -670,7 +670,6 @@ static void __exit exit_dlmfs_fs(void)
+ {
+ 	unregister_filesystem(&dlmfs_fs_type);
+
+-	flush_workqueue(user_dlm_worker);
+ 	destroy_workqueue(user_dlm_worker);
+
+ 	/*
+diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+index 8073349..040bbb6 100644
+--- a/fs/ocfs2/super.c
++++ b/fs/ocfs2/super.c
+@@ -2521,10 +2521,8 @@ static void ocfs2_delete_osb(struct ocfs2_super *osb)
+ 	/* This function assumes that the caller has the main osb resource */
+
+ 	/* ocfs2_initializer_super have already created this workqueue */
+-	if (osb->ocfs2_wq) {
+-		flush_workqueue(osb->ocfs2_wq);
++	if (osb->ocfs2_wq)
+ 		destroy_workqueue(osb->ocfs2_wq);
+-	}
+
+ 	ocfs2_free_slot_info(osb);
+
+-- 
