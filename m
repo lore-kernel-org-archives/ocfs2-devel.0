@@ -1,53 +1,36 @@
-From: Changwei Ge <ge.changwei@h3c.com>
-Date: Tue, 17 Oct 2017 06:48:21 +0000
-Subject: [Ocfs2-devel] [PATCH] ocfs2: fix cluster hang after a node dies
-Message-ID: <63ADC13FD55D6546B7DECE290D39E373CED6E0F9@H3CMLB14-EX.srv.huawei-3com.com>
+From: Andrew Morton <akpm@linux-foundation.org>
+Date: Tue, 17 Oct 2017 16:20:15 -0700
+Subject: [Ocfs2-devel] [patch] ocfs2: fix qs_holds may could not be zero
+In-Reply-To: <7F50894FD17BEC45AAC26E5BADA6CE330C60F99A@H3CMLB12-EX.srv.huawei-3com.com>
+References: <7F50894FD17BEC45AAC26E5BADA6CE330C60F99A@H3CMLB12-EX.srv.huawei-3com.com>
+Message-ID: <20171017162015.b2f8faecc23ecd25eb5139f8@linux-foundation.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>, Mark Fasheh <mfasheh@versity.com>, Junxiao Bi <junxiao.bi@oracle.com>, Joseph Qi <jiangqi903@gmail.com>, Joel Becker <jlbec@evilplan.org>
-Cc: Vitaly Mayatskih <v.mayatskih@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>
+To: ocfs2-devel@oss.oracle.com
 
-When a node dies, other live nodes have to choose a new master
-for an existed lock resource mastered by the dead node.
+On Thu, 21 Sep 2017 02:09:33 +0000 Zhangyang <zhang.yangB@h3c.com> wrote:
 
-As for ocfs2/dlm implementation, this is done by function -
-dlm_move_lockres_to_recovery_list which marks those lock rsources
-as DLM_LOCK_RES_RECOVERING and manages them via a list from which
-DLM changes lock resource's master later.
+> In our test, We fond that , when the network down, qs->qs_holds could not be reduce to zero, it will lead to the node can't do fence.
+> 
+> 
+> 
+> o2net_idle_timer -> o2quo_conn_err -> qs->qs_holds++, after O2NET_QUORUM_DELAY_MS if qs_holds could be subtract to zero, it could do make_decision.
+> 
+> But if there are many nodes, when one node network down which contains o2net connections may not do o2net_idle_timer at the same time.
+> 
+> So when a o2net_node have done nn->nn_still_up, but the qs_holds is not zero. because the other o2net_node have not done nn->nn_still_up.
+> 
+> So the first o2net_node will do o2net_idle_timer again, and the qs_holds could be add again. And the qs_holds is global variable, so it formed a loop, the node could not do o2quo_make_decision, because of qs_holds never be zero.
+> 
+> 
+> 
+> I alter the function o2quo_conn_err, take o2quo_set_hold under control of the bit map qs_conn_bm.
 
-So without invoking dlm_move_lockres_to_recovery_list, no master will
-be choosed after dlm recovery accomplishment since no lock resource can
-be found through ::resource list.
+I merged this, subject to review by the ocfs2 maintainers.
 
-What's worse is that if DLM_LOCK_RES_RECOVERING is not marked for
-lock resources mastered a dead node, it will break up synchronization
-among nodes.
+The changelog and the comment are really hard to understand.  Perhaps
+one of the ocfs2 developers could suggest some more clear words to use?
 
-So invoke dlm_move_lockres_to_recovery_list again.
-
-Fixs: 'commit ee8f7fcbe638 ("ocfs2/dlm: continue to purge recovery
-lockres when recovery master goes down")'
-
-Reported-by: Vitaly Mayatskih <v.mayatskih@gmail.com>
-Signed-off-by: Changwei Ge <ge.changwei@h3c.com>
----
-  fs/ocfs2/dlm/dlmrecovery.c |    1 +
-  1 file changed, 1 insertion(+)
-
-diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
-index 74407c6..ec8f758 100644
---- a/fs/ocfs2/dlm/dlmrecovery.c
-+++ b/fs/ocfs2/dlm/dlmrecovery.c
-@@ -2419,6 +2419,7 @@ static void dlm_do_local_recovery_cleanup(struct 
-dlm_ctxt *dlm, u8 dead_node)
-  					dlm_lockres_put(res);
-  					continue;
-  				}
-+				dlm_move_lockres_to_recovery_list(dlm, res);
-  			} else if (res->owner == dlm->node_num) {
-  				dlm_free_dead_locks(dlm, res, dead_node);
-  				__dlm_lockres_calc_usage(dlm, res);
--- 
-1.7.9.5
+Thanks.
