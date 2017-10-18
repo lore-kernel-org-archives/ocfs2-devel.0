@@ -1,105 +1,59 @@
-From: Dmitry Melekhov <dm@belkam.com>
-Date: Wed, 18 Oct 2017 09:17:59 +0400
-Subject: [Ocfs2-devel] ocfs2 hangs
-Message-ID: <ec1e7376-5292-1c79-3b8d-9476423edec2@belkam.com>
+From: piaojun <piaojun@huawei.com>
+Date: Wed, 18 Oct 2017 16:17:31 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: fix cluster hang after a node dies
+In-Reply-To: <63ADC13FD55D6546B7DECE290D39E373CED6E0F9@H3CMLB14-EX.srv.huawei-3com.com>
+References: <63ADC13FD55D6546B7DECE290D39E373CED6E0F9@H3CMLB14-EX.srv.huawei-3com.com>
+Message-ID: <59E70E1B.7000303@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Changwei Ge <ge.changwei@h3c.com>, "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>, Mark Fasheh <mfasheh@versity.com>, Junxiao Bi <junxiao.bi@oracle.com>, Joseph Qi <jiangqi903@gmail.com>, Joel Becker <jlbec@evilplan.org>
+Cc: "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, Vitaly Mayatskih <v.mayatskih@gmail.com>
 
-Hello!
+Hi Changwei,
 
-I run two dovecot servers over ocfs2 for years.
+Could you share the method to reproduce the problem?
 
-Previously I used ubuntu, but migrated to Oracle Linux this year.
-
-And all kernels older then
-
-4.1.12-94.5.9.el7uek.x86_64
-
-hangs with
-Aug 27 07:14:17 dovecot1 kernel: INFO: task deliver:15573 blocked for more than
-120 seconds.
-Aug 27 07:14:17 dovecot1 kernel:      Not tainted 4.1.12-103.3.8.el7uek.x86_64
-#2
-Aug 27 07:14:17 dovecot1 kernel: "echo 0 >
-/proc/sys/kernel/hung_task_timeout_secs" disables this message.
-Aug 27 07:14:17 dovecot1 kernel: deliver         D 0000000000000001     0 15573
-  15572 0x00000080
-Aug 27 07:14:17 dovecot1 kernel: ffff88003d0af6c8 0000000000000086
-ffff880079039c00 ffff88007c1ff000
-Aug 27 07:14:17 dovecot1 kernel: ffff88003d0af6b8 ffff88003d0b0000
-ffff88003d0af890 7fffffffffffffff
-Aug 27 07:14:17 dovecot1 kernel: ffff88007c1ff000 0000000000000000
-ffff88003d0af6e8 ffffffff81739c57
-Aug 27 07:14:17 dovecot1 kernel: Call Trace:
-Aug 27 07:14:17 dovecot1 kernel: [<ffffffff81739c57>] schedule+0x37/0x90
-Aug 27 07:14:17 dovecot1 kernel: [<ffffffff8173cd3c>]
-schedule_timeout+0x24c/0x2c0
-Aug 27 07:14:17 dovecot1 kernel: [<ffffffff811945de>] ?
-find_get_entry+0x1e/0xa0
-Aug 27 07:14:17 dovecot1 kernel: [<ffffffff811956a1>] ?
-pagecache_get_page+0xd1/0x1a0
-Aug 27 07:14:17 dovecot1 kernel: [<ffffffff812499aa>] ?
-bh_lru_install+0x18a/0x1e0
-Aug 27 07:14:17 dovecot1 kernel: [<ffffffff8173a844>]
-wait_for_completion+0x134/0x190
-Aug 27 07:14:17 dovecot1 kernel: [<ffffffff810b65c0>] ? wake_up_state+0x20/0x20
-Aug 27 07:14:17 dovecot1 kernel: [<ffffffffa045d4d1>]
-__ocfs2_cluster_lock.isra.36+0x231/0x9c0 [ocfs2]
-Aug 27 07:14:17 dovecot1 kernel: [<ffffffffa04bab96>] ?
-ocfs2_buffer_cached.isra.6+0xb6/0x240 [ocfs2]
-Aug 27 07:14:17 dovecot1 kernel: [<ffffffffa045ebfa>]
-ocfs2_inode_lock_full_nested+0x1da/0x530 [ocfs2]
-Aug 27 07:14:17 dovecot1 kernel: [<ffffffffa045f00b>]
-ocfs2_inode_lock_tracker+0xbb/0x1c0 [ocfs2]
-Aug 27 07:14:17 dovecot1 kernel: [<ffffffffa04d699d>]
-ocfs2_iop_get_acl+0x5d/0x25e [ocfs2]
-Aug 27 07:14:17 dovecot1 kernel: [<ffffffffa047892d>] ?
-ocfs2_reserve_local_alloc_bits+0x8d/0x380 [ocfs2]
-Aug 27 07:14:17 dovecot1 kernel: [<ffffffff812740a7>] get_acl+0x47/0x70
-Aug 27 07:14:17 dovecot1 kernel: [<ffffffff8127478a>]
-posix_acl_create+0x5a/0x160
-Aug 27 07:14:17 dovecot1 kernel: [<ffffffffa04818f8>] ocfs2_mknod+0x938/0x1620
-[ocfs2]
-Aug 27 07:14:17 dovecot1 kernel: [<ffffffffa045a599>] ?
-ocfs2_wake_downconvert_thread+0x49/0x50 [ocfs2]
-Aug 27 07:14:17 dovecot1 kernel: [<ffffffffa04827b6>] ocfs2_create+0x66/0x170
-[ocfs2]
-Aug 27 07:14:17 dovecot1 kernel: [<ffffffff8121f865>] vfs_create+0xd5/0x140
-Aug 27 07:14:17 dovecot1 kernel: [<ffffffff81222a5d>] do_last+0x9ed/0x1270
-Aug 27 07:14:17 dovecot1 kernel: [<ffffffff8122336f>] path_openat+0x8f/0x630
-Aug 27 07:14:17 dovecot1 kernel: [<ffffffff81224dde>] ?
-user_path_at_empty+0x6e/0xc0
-Aug 27 07:14:17 dovecot1 kernel: [<ffffffff81224ee9>] do_filp_open+0x49/0xc0
-Aug 27 07:14:17 dovecot1 kernel: [<ffffffff81351545>] ?
-find_next_zero_bit+0x25/0x30
-Aug 27 07:14:17 dovecot1 kernel: [<ffffffff812320a7>] ? __alloc_fd+0xa7/0x130
-Aug 27 07:14:17 dovecot1 kernel: [<ffffffff81212367>] do_sys_open+0x137/0x240
-Aug 27 07:14:17 dovecot1 kernel: [<ffffffff81130b16>] ?
-__audit_syscall_exit+0x1e6/0x280
-Aug 27 07:14:17 dovecot1 kernel: [<ffffffff811cf554>] ?
-SyS_mprotect+0x1f4/0x290
-Aug 27 07:14:17 dovecot1 kernel: [<ffffffff8121248e>] SyS_open+0x1e/0x20
-Aug 27 07:14:17 dovecot1 kernel: [<ffffffff8173deee>]
-system_call_fastpath+0x12/0x71
-     
-   
-
-Here is my bug report
-https://bugzilla.oracle.com/bugzilla/show_bug.cgi?id=16056
-
-But, unfortunately, there is no activity here and bug is still not fixed 
-in latest UEK kernels.
-
-I think that Oracle takes ocfs2 from here anyway.
-
-May be somebody knows what was changed in
-4.1.12-103.3.8.el7uek ?
-
-
-Thank you!<mailto:greg.marsden@oracle.com>
--------------- next part --------------
-An HTML attachment was scrubbed...
-URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20171018/73b0fe93/attachment-0001.html 
+On 2017/10/17 14:48, Changwei Ge wrote:
+> When a node dies, other live nodes have to choose a new master
+> for an existed lock resource mastered by the dead node.
+> 
+> As for ocfs2/dlm implementation, this is done by function -
+> dlm_move_lockres_to_recovery_list which marks those lock rsources
+> as DLM_LOCK_RES_RECOVERING and manages them via a list from which
+> DLM changes lock resource's master later.
+> 
+> So without invoking dlm_move_lockres_to_recovery_list, no master will
+> be choosed after dlm recovery accomplishment since no lock resource can
+> be found through ::resource list.
+> 
+> What's worse is that if DLM_LOCK_RES_RECOVERING is not marked for
+> lock resources mastered a dead node, it will break up synchronization
+> among nodes.
+> 
+> So invoke dlm_move_lockres_to_recovery_list again.
+> 
+> Fixs: 'commit ee8f7fcbe638 ("ocfs2/dlm: continue to purge recovery
+> lockres when recovery master goes down")'
+> 
+> Reported-by: Vitaly Mayatskih <v.mayatskih@gmail.com>
+> Signed-off-by: Changwei Ge <ge.changwei@h3c.com>
+> ---
+>   fs/ocfs2/dlm/dlmrecovery.c |    1 +
+>   1 file changed, 1 insertion(+)
+> 
+> diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
+> index 74407c6..ec8f758 100644
+> --- a/fs/ocfs2/dlm/dlmrecovery.c
+> +++ b/fs/ocfs2/dlm/dlmrecovery.c
+> @@ -2419,6 +2419,7 @@ static void dlm_do_local_recovery_cleanup(struct 
+> dlm_ctxt *dlm, u8 dead_node)
+>   					dlm_lockres_put(res);
+>   					continue;
+>   				}
+> +				dlm_move_lockres_to_recovery_list(dlm, res);
+>   			} else if (res->owner == dlm->node_num) {
+>   				dlm_free_dead_locks(dlm, res, dead_node);
+>   				__dlm_lockres_calc_usage(dlm, res);
+> 
