@@ -1,109 +1,105 @@
-From: Junxiao Bi <junxiao.bi@oracle.com>
-Date: Wed, 18 Oct 2017 12:44:46 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: mknod: fix recursive locking hung
-In-Reply-To: <59E74BFF020000F90009353F@prv-mh.provo.novell.com>
-References: <1508300302-5155-1-git-send-email-junxiao.bi@oracle.com>
-	<59E74BFF020000F90009353F@prv-mh.provo.novell.com>
-Message-ID: <36080fe1-8556-a6da-4b76-13f40efb7c44@oracle.com>
+From: Dmitry Melekhov <dm@belkam.com>
+Date: Wed, 18 Oct 2017 09:17:59 +0400
+Subject: [Ocfs2-devel] ocfs2 hangs
+Message-ID: <ec1e7376-5292-1c79-3b8d-9476423edec2@belkam.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 10/18/2017 12:41 PM, Gang He wrote:
-> Hi Junxiao,
-> 
-> The problem looks easy to reproduce?
-> Could you share the trigger script/code for this issue?
-Please run ocfs2-test multiple reflink test.
+Hello!
 
-Thanks,
-Junxiao.
-> 
-> 
-> Thanks
-> Gang
-> 
-> 
->>>>
->> Here another recursive lock caught and it caused the cluster hung.
->>
->>  #0 [ffff88008e3935a8] __schedule at ffffffff816e4722
->>  #1 [ffff88008e393600] schedule at ffffffff816e4dee
->>  #2 [ffff88008e393620] schedule_timeout at ffffffff816e7cd5
->>  #3 [ffff88008e3936c0] wait_for_completion at ffffffff816e631f
->>  #4 [ffff88008e393740] __ocfs2_cluster_lock at ffffffffa05a9111 [ocfs2]
->>  #5 [ffff88008e393890] ocfs2_inode_lock_full_nested at ffffffffa05aec14 
->> [ocfs2]
->>  #6 [ffff88008e393910] ocfs2_inode_lock_tracker at ffffffffa05af02f [ocfs2]
->>  #7 [ffff88008e393970] ocfs2_iop_get_acl at ffffffffa0620c92 [ocfs2]
->>  #8 [ffff88008e3939d0] get_acl at ffffffff8126ae79
->>  #9 [ffff88008e3939f0] posix_acl_create at ffffffff8126b27a
->>  #10 [ffff88008e393a20] ocfs2_mknod at ffffffffa05cedcc [ocfs2]
->>  #11 [ffff88008e393b60] ocfs2_create at ffffffffa05cfb13 [ocfs2]
->>  #12 [ffff88008e393bd0] vfs_create at ffffffff81217338
->>  #13 [ffff88008e393c10] lookup_open at ffffffff81217a85
->>  #14 [ffff88008e393ca0] do_last at ffffffff8121ac6d
->>  #15 [ffff88008e393d30] path_openat at ffffffff8121b112
->>  #16 [ffff88008e393df0] do_filp_open at ffffffff8121b53a
->>  #17 [ffff88008e393ed0] do_sys_open at ffffffff81209a5a
->>  #18 [ffff88008e393f40] sys_open at ffffffff81209bae
->>  #19 [ffff88008e393f50] system_call_fastpath at ffffffff816e902e
->>
->> inode lock is got by ocfs2_mknod() before call into posix_acl_create().
->>
->> Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
->> Cc: <stable@vger.kernel.org>
->> ---
->>  fs/ocfs2/namei.c |   14 ++++++++------
->>  1 file changed, 8 insertions(+), 6 deletions(-)
->>
->> diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
->> index 3b0a10d9b36f..f0ee52e600ff 100644
->> --- a/fs/ocfs2/namei.c
->> +++ b/fs/ocfs2/namei.c
->> @@ -260,6 +260,8 @@ static int ocfs2_mknod(struct inode *dir,
->>  	sigset_t oldset;
->>  	int did_block_signals = 0;
->>  	struct ocfs2_dentry_lock *dl = NULL;
->> +	int locked;
->> +	struct ocfs2_lock_holder oh;
->>  
->>  	trace_ocfs2_mknod(dir, dentry, dentry->d_name.len, dentry->d_name.name,
->>  			  (unsigned long long)OCFS2_I(dir)->ip_blkno,
->> @@ -274,11 +276,11 @@ static int ocfs2_mknod(struct inode *dir,
->>  	/* get our super block */
->>  	osb = OCFS2_SB(dir->i_sb);
->>  
->> -	status = ocfs2_inode_lock(dir, &parent_fe_bh, 1);
->> -	if (status < 0) {
->> -		if (status != -ENOENT)
->> -			mlog_errno(status);
->> -		return status;
->> +	locked = ocfs2_inode_lock_tracker(dir, &parent_fe_bh, 1, &oh);
->> +	if (locked < 0) {
->> +		if (locked != -ENOENT)
->> +			mlog_errno(locked);
->> +		return locked;
->>  	}
->>  
->>  	if (S_ISDIR(mode) && (dir->i_nlink >= ocfs2_link_max(osb))) {
->> @@ -462,7 +464,7 @@ static int ocfs2_mknod(struct inode *dir,
->>  	if (handle)
->>  		ocfs2_commit_trans(osb, handle);
->>  
->> -	ocfs2_inode_unlock(dir, 1);
->> +	ocfs2_inode_unlock_tracker(dir, 1, &oh, locked);
->>  	if (did_block_signals)
->>  		ocfs2_unblock_signals(&oldset);
->>  
->> -- 
->> 1.7.9.5
->>
->>
->> _______________________________________________
->> Ocfs2-devel mailing list
->> Ocfs2-devel at oss.oracle.com 
->> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
-> 
+I run two dovecot servers over ocfs2 for years.
+
+Previously I used ubuntu, but migrated to Oracle Linux this year.
+
+And all kernels older then
+
+4.1.12-94.5.9.el7uek.x86_64
+
+hangs with
+Aug 27 07:14:17 dovecot1 kernel: INFO: task deliver:15573 blocked for more than
+120 seconds.
+Aug 27 07:14:17 dovecot1 kernel:      Not tainted 4.1.12-103.3.8.el7uek.x86_64
+#2
+Aug 27 07:14:17 dovecot1 kernel: "echo 0 >
+/proc/sys/kernel/hung_task_timeout_secs" disables this message.
+Aug 27 07:14:17 dovecot1 kernel: deliver         D 0000000000000001     0 15573
+  15572 0x00000080
+Aug 27 07:14:17 dovecot1 kernel: ffff88003d0af6c8 0000000000000086
+ffff880079039c00 ffff88007c1ff000
+Aug 27 07:14:17 dovecot1 kernel: ffff88003d0af6b8 ffff88003d0b0000
+ffff88003d0af890 7fffffffffffffff
+Aug 27 07:14:17 dovecot1 kernel: ffff88007c1ff000 0000000000000000
+ffff88003d0af6e8 ffffffff81739c57
+Aug 27 07:14:17 dovecot1 kernel: Call Trace:
+Aug 27 07:14:17 dovecot1 kernel: [<ffffffff81739c57>] schedule+0x37/0x90
+Aug 27 07:14:17 dovecot1 kernel: [<ffffffff8173cd3c>]
+schedule_timeout+0x24c/0x2c0
+Aug 27 07:14:17 dovecot1 kernel: [<ffffffff811945de>] ?
+find_get_entry+0x1e/0xa0
+Aug 27 07:14:17 dovecot1 kernel: [<ffffffff811956a1>] ?
+pagecache_get_page+0xd1/0x1a0
+Aug 27 07:14:17 dovecot1 kernel: [<ffffffff812499aa>] ?
+bh_lru_install+0x18a/0x1e0
+Aug 27 07:14:17 dovecot1 kernel: [<ffffffff8173a844>]
+wait_for_completion+0x134/0x190
+Aug 27 07:14:17 dovecot1 kernel: [<ffffffff810b65c0>] ? wake_up_state+0x20/0x20
+Aug 27 07:14:17 dovecot1 kernel: [<ffffffffa045d4d1>]
+__ocfs2_cluster_lock.isra.36+0x231/0x9c0 [ocfs2]
+Aug 27 07:14:17 dovecot1 kernel: [<ffffffffa04bab96>] ?
+ocfs2_buffer_cached.isra.6+0xb6/0x240 [ocfs2]
+Aug 27 07:14:17 dovecot1 kernel: [<ffffffffa045ebfa>]
+ocfs2_inode_lock_full_nested+0x1da/0x530 [ocfs2]
+Aug 27 07:14:17 dovecot1 kernel: [<ffffffffa045f00b>]
+ocfs2_inode_lock_tracker+0xbb/0x1c0 [ocfs2]
+Aug 27 07:14:17 dovecot1 kernel: [<ffffffffa04d699d>]
+ocfs2_iop_get_acl+0x5d/0x25e [ocfs2]
+Aug 27 07:14:17 dovecot1 kernel: [<ffffffffa047892d>] ?
+ocfs2_reserve_local_alloc_bits+0x8d/0x380 [ocfs2]
+Aug 27 07:14:17 dovecot1 kernel: [<ffffffff812740a7>] get_acl+0x47/0x70
+Aug 27 07:14:17 dovecot1 kernel: [<ffffffff8127478a>]
+posix_acl_create+0x5a/0x160
+Aug 27 07:14:17 dovecot1 kernel: [<ffffffffa04818f8>] ocfs2_mknod+0x938/0x1620
+[ocfs2]
+Aug 27 07:14:17 dovecot1 kernel: [<ffffffffa045a599>] ?
+ocfs2_wake_downconvert_thread+0x49/0x50 [ocfs2]
+Aug 27 07:14:17 dovecot1 kernel: [<ffffffffa04827b6>] ocfs2_create+0x66/0x170
+[ocfs2]
+Aug 27 07:14:17 dovecot1 kernel: [<ffffffff8121f865>] vfs_create+0xd5/0x140
+Aug 27 07:14:17 dovecot1 kernel: [<ffffffff81222a5d>] do_last+0x9ed/0x1270
+Aug 27 07:14:17 dovecot1 kernel: [<ffffffff8122336f>] path_openat+0x8f/0x630
+Aug 27 07:14:17 dovecot1 kernel: [<ffffffff81224dde>] ?
+user_path_at_empty+0x6e/0xc0
+Aug 27 07:14:17 dovecot1 kernel: [<ffffffff81224ee9>] do_filp_open+0x49/0xc0
+Aug 27 07:14:17 dovecot1 kernel: [<ffffffff81351545>] ?
+find_next_zero_bit+0x25/0x30
+Aug 27 07:14:17 dovecot1 kernel: [<ffffffff812320a7>] ? __alloc_fd+0xa7/0x130
+Aug 27 07:14:17 dovecot1 kernel: [<ffffffff81212367>] do_sys_open+0x137/0x240
+Aug 27 07:14:17 dovecot1 kernel: [<ffffffff81130b16>] ?
+__audit_syscall_exit+0x1e6/0x280
+Aug 27 07:14:17 dovecot1 kernel: [<ffffffff811cf554>] ?
+SyS_mprotect+0x1f4/0x290
+Aug 27 07:14:17 dovecot1 kernel: [<ffffffff8121248e>] SyS_open+0x1e/0x20
+Aug 27 07:14:17 dovecot1 kernel: [<ffffffff8173deee>]
+system_call_fastpath+0x12/0x71
+     
+   
+
+Here is my bug report
+https://bugzilla.oracle.com/bugzilla/show_bug.cgi?id=16056
+
+But, unfortunately, there is no activity here and bug is still not fixed 
+in latest UEK kernels.
+
+I think that Oracle takes ocfs2 from here anyway.
+
+May be somebody knows what was changed in
+4.1.12-103.3.8.el7uek ?
+
+
+Thank you!<mailto:greg.marsden@oracle.com>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20171018/73b0fe93/attachment-0001.html 
