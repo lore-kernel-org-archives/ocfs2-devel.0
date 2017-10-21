@@ -1,22 +1,39 @@
 From: Changwei Ge <ge.changwei@h3c.com>
-Date: Fri, 20 Oct 2017 09:23:38 +0000
+Date: Sat, 21 Oct 2017 03:27:19 +0000
 Subject: [Ocfs2-devel] [PATCH] ocfs2: the ip_alloc_sem should be taken
  in ocfs2_get_block()
 References: <59E9BBEF.1060601@huawei.com>
-Message-ID: <63ADC13FD55D6546B7DECE290D39E373CED6F4FD@H3CMLB14-EX.srv.huawei-3com.com>
+Message-ID: <63ADC13FD55D6546B7DECE290D39E373CED6F747@H3CMLB14-EX.srv.huawei-3com.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Alex,
+Hi,
+Actually we encountered the same issue months ago and we also ever 
+posted a patch to fix it, however, we never got a 'reviewed-by':-(
 
-Are you able to provide a way to reproduce this issue?
-I'm very interested in it.
+Your patch has a better change-log and the logic is fine to me.
+I think it is deserved to be merged.
+
+But it seems that your editor has '4 white spaces' occupied tab, it 
+violates the exited code style. Can you adjust it to '8 white spaces' 
+and re-send this patch?
+
+Otherwise I thinks this is a good fix.
+
+Moreover, this issue was introduced by commit c15471f79506 ("ocfs2: fix 
+sparse file & data ordering issue in direct io")
+
+Adding a *Fixs* tag to your change-log is encouraged.
+
+Also I CC to ocfs2 maintainers so that they can provide some helpful 
+comments.
 
 Thanks,
 Changwei.
+
 
 On 2017/10/20 17:08, alex chen wrote:
 > The ip_alloc_sem should be taken in ocfs2_get_block() when reading file
@@ -26,6 +43,9 @@ On 2017/10/20 17:08, alex chen wrote:
 > 
 > Signed-off-by: Alex Chen <alex.chen@huawei.com>
 > Reviewed-by: Jun Piao <piaojun@huawei.com>
+
+Acked-by: Changwei Ge <ge.changwei@h3c.com>
+
 > 
 > ---
 >   fs/ocfs2/aops.c | 21 +++++++++++++++------
