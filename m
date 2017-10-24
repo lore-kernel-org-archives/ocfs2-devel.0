@@ -1,127 +1,207 @@
-From: alex chen <alex.chen@huawei.com>
-Date: Tue, 24 Oct 2017 11:39:44 +0800
-Subject: [Ocfs2-devel] [PATCH v2] ocfs2: the ip_alloc_sem should be
- taken in ocfs2_get_block()
-In-Reply-To: <59EE07CD020000F9000945D8@prv-mh.provo.novell.com>
-References: <59E9BBEF.1060601@huawei.com> <59ED80E6.4030600@huawei.com>
-	<59EE07CD020000F9000945D8@prv-mh.provo.novell.com>
-Message-ID: <59EEB600.2030902@huawei.com>
+From: Joseph Qi <jiangqi903@gmail.com>
+Date: Tue, 24 Oct 2017 11:45:04 +0800
+Subject: [Ocfs2-devel] [PATCH v2] ocfs2: subsystem.su_mutex is required
+ while accessing the item->ci_parent
+In-Reply-To: <59EEAA69.9080703@huawei.com>
+References: <59EEAA69.9080703@huawei.com>
+Message-ID: <f32acd87-53ea-09a6-3108-2e17d5515f84@gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Everybody,
 
-Thanks for your reviews.
 
-I agree with Gang to make function name ocfs2_get_block_lock() more
-readable. But the ocfs2_get_block_lock() may be called by the
-ocfs2_dio_get_block() in re-write sitiation, so I don't think the
-ocfs2_dio_rd_get_block() is a better name. I agree with Joseph and
-rename it to ocfs2_lock_get_block().
+On 17/10/24 10:50, alex chen wrote:
+> The subsystem.su_mutex is required while accessing the item->ci_parent,
+> otherwise, NULL pointer dereference to the item->ci_parent will be
+> triggered in the following situation:
+> add node                     delete node
+> sys_write
+>  vfs_write
+>   configfs_write_file
+>    o2nm_node_store
+>     o2nm_node_local_write
+>                              do_rmdir
+>                               vfs_rmdir
+>                                configfs_rmdir
+>                                 mutex_lock(&subsys->su_mutex);
+>                                 unlink_obj
+>                                  item->ci_group = NULL;
+>                                  item->ci_parent = NULL;			
+> 	 to_o2nm_cluster_from_node
+> 	  node->nd_item.ci_parent->ci_parent
+> 	  BUG since of NULL pointer dereference to nd_item.ci_parent
+> 
+> Moreover, the o2nm_cluster also should be protected by the subsystem.su_mutex.
+> 
+> Signed-off-by: Alex Chen <alex.chen@huawei.com>
+> Reviewed-by: Jun Piao <piaojun@huawei.com>
+Reviewed-by: Joseph Qi <jiangqi903@gmail.com>
 
-BTW, I think the ocfs2_dio_wr_get_block() is more suitable for the
-ocfs2_dio_get_block().
-
-Please give me any feedback if you have any suggestions.
-
-Thanks
-Alex
-
-On 2017/10/23 15:16, Gang He wrote:
-> Hello Alex,
 > 
-> Base on your bug description, I think that the fix should be OK.
-> But I suggest you to use more clear function name in this patch.
-> 1) For new-added function ocfs2_get_block_lock(), I think that it is better if the function name is ocfs2_dio_rd_get_block().
-> 2) Then, rename the original function ocfs2_dio_get_block() to ocfs2_dio_wr_get_block().
-> Why? 
-> Since this function looks to only be used by direct IO (read) mode, 
-> we should make the function name more clear, do NOT make other developer to misunderstand/misuse it in the future.
+> ---
+>  fs/ocfs2/cluster/nodemanager.c | 63 ++++++++++++++++++++++++++++++++++++------
+>  1 file changed, 55 insertions(+), 8 deletions(-)
 > 
-> Thanks
-> Gang 
+> diff --git a/fs/ocfs2/cluster/nodemanager.c b/fs/ocfs2/cluster/nodemanager.c
+> index b17d180..c204ac9b 100644
+> --- a/fs/ocfs2/cluster/nodemanager.c
+> +++ b/fs/ocfs2/cluster/nodemanager.c
+> @@ -40,6 +40,9 @@
+>  		"panic",	/* O2NM_FENCE_PANIC */
+>  };
 > 
+> +static inline void o2nm_lock_subsystem(void);
+> +static inline void o2nm_unlock_subsystem(void);
+> +
+>  struct o2nm_node *o2nm_get_node_by_num(u8 node_num)
+>  {
+>  	struct o2nm_node *node = NULL;
+> @@ -181,7 +184,10 @@ static struct o2nm_cluster *to_o2nm_cluster_from_node(struct o2nm_node *node)
+>  {
+>  	/* through the first node_set .parent
+>  	 * mycluster/nodes/mynode == o2nm_cluster->o2nm_node_group->o2nm_node */
+> -	return to_o2nm_cluster(node->nd_item.ci_parent->ci_parent);
+> +	if (node->nd_item.ci_parent)
+> +		return to_o2nm_cluster(node->nd_item.ci_parent->ci_parent);
+> +	else
+> +		return NULL;
+>  }
 > 
->>>>
->> The ip_alloc_sem should be taken in ocfs2_get_block() when reading file
->> in DIRECT mode to prevent concurrent access to extent tree with
->> ocfs2_dio_end_io_write(), which may cause BUGON in
->> ocfs2_get_clusters_nocache()->BUG_ON(v_cluster < le32_to_cpu(rec->e_cpos))
->>
->> Fixes: c15471f79506 ("ocfs2: fix sparse file & data ordering issue in direct 
->> io")
->>
->> Signed-off-by: Alex Chen <alex.chen@huawei.com>
->> Reviewed-by: Jun Piao <piaojun@huawei.com>
->> Acked-by: Changwei Ge <ge.changwei@h3c.com>
->>
->> ---
->>  fs/ocfs2/aops.c | 22 ++++++++++++++++------
->>  1 file changed, 16 insertions(+), 6 deletions(-)
->>
->> diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
->> index 88a31e9..29607d9 100644
->> --- a/fs/ocfs2/aops.c
->> +++ b/fs/ocfs2/aops.c
->> @@ -134,6 +134,19 @@ static int ocfs2_symlink_get_block(struct inode *inode, 
->> sector_t iblock,
->>  	return err;
->>  }
->>
->> +static int ocfs2_get_block_lock(struct inode *inode, sector_t iblock,
->> +		    struct buffer_head *bh_result, int create)
->> +{
->> +	int ret = 0;
->> +	struct ocfs2_inode_info *oi = OCFS2_I(inode);
->> +
->> +	down_read(&oi->ip_alloc_sem);
->> +	ret = ocfs2_get_block(inode, iblock, bh_result, create);
->> +	up_read(&oi->ip_alloc_sem);
->> +
->> +	return ret;
->> +}
->> +
->>  int ocfs2_get_block(struct inode *inode, sector_t iblock,
->>  		    struct buffer_head *bh_result, int create)
->>  {
->> @@ -2154,12 +2167,9 @@ static int ocfs2_dio_get_block(struct inode *inode, 
->> sector_t iblock,
->>  	 * while file size will be changed.
->>  	 */
->>  	if (pos + total_len <= i_size_read(inode)) {
->> -		down_read(&oi->ip_alloc_sem);
->> -		/* This is the fast path for re-write. */
->> -		ret = ocfs2_get_block(inode, iblock, bh_result, create);
->> -
->> -		up_read(&oi->ip_alloc_sem);
->>
->> +		/* This is the fast path for re-write. */
->> +		ret = ocfs2_get_block_lock(inode, iblock, bh_result, create);
->>  		if (buffer_mapped(bh_result) &&
->>  		    !buffer_new(bh_result) &&
->>  		    ret == 0)
->> @@ -2424,7 +2434,7 @@ static ssize_t ocfs2_direct_IO(struct kiocb *iocb, 
->> struct iov_iter *iter)
->>  		return 0;
->>
->>  	if (iov_iter_rw(iter) == READ)
->> -		get_block = ocfs2_get_block;
->> +		get_block = ocfs2_get_block_lock;
->>  	else
->>  		get_block = ocfs2_dio_get_block;
->>
->> -- 
->> 1.9.5.msysgit.1
->>
->>
->> _______________________________________________
->> Ocfs2-devel mailing list
->> Ocfs2-devel at oss.oracle.com 
->> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+>  enum {
+> @@ -194,7 +200,7 @@ static ssize_t o2nm_node_num_store(struct config_item *item, const char *page,
+>  				   size_t count)
+>  {
+>  	struct o2nm_node *node = to_o2nm_node(item);
+> -	struct o2nm_cluster *cluster = to_o2nm_cluster_from_node(node);
+> +	struct o2nm_cluster *cluster;
+>  	unsigned long tmp;
+>  	char *p = (char *)page;
+>  	int ret = 0;
+> @@ -214,6 +220,13 @@ static ssize_t o2nm_node_num_store(struct config_item *item, const char *page,
+>  	    !test_bit(O2NM_NODE_ATTR_PORT, &node->nd_set_attributes))
+>  		return -EINVAL; /* XXX */
 > 
+> +	o2nm_lock_subsystem();
+> +	cluster = to_o2nm_cluster_from_node(node);
+> +	if (!cluster) {
+> +		o2nm_unlock_subsystem();
+> +		return -EINVAL;
+> +	}
+> +
+>  	write_lock(&cluster->cl_nodes_lock);
+>  	if (cluster->cl_nodes[tmp])
+>  		ret = -EEXIST;
+> @@ -226,6 +239,8 @@ static ssize_t o2nm_node_num_store(struct config_item *item, const char *page,
+>  		set_bit(tmp, cluster->cl_nodes_bitmap);
+>  	}
+>  	write_unlock(&cluster->cl_nodes_lock);
+> +	o2nm_unlock_subsystem();
+> +
+>  	if (ret)
+>  		return ret;
 > 
-> .
+> @@ -269,7 +284,7 @@ static ssize_t o2nm_node_ipv4_address_store(struct config_item *item,
+>  					    size_t count)
+>  {
+>  	struct o2nm_node *node = to_o2nm_node(item);
+> -	struct o2nm_cluster *cluster = to_o2nm_cluster_from_node(node);
+> +	struct o2nm_cluster *cluster;
+>  	int ret, i;
+>  	struct rb_node **p, *parent;
+>  	unsigned int octets[4];
+> @@ -286,6 +301,13 @@ static ssize_t o2nm_node_ipv4_address_store(struct config_item *item,
+>  		be32_add_cpu(&ipv4_addr, octets[i] << (i * 8));
+>  	}
+> 
+> +	o2nm_lock_subsystem();
+> +	cluster = to_o2nm_cluster_from_node(node);
+> +	if (!cluster) {
+> +		o2nm_unlock_subsystem();
+> +		return -EINVAL;
+> +	}
+> +
+>  	ret = 0;
+>  	write_lock(&cluster->cl_nodes_lock);
+>  	if (o2nm_node_ip_tree_lookup(cluster, ipv4_addr, &p, &parent))
+> @@ -298,6 +320,8 @@ static ssize_t o2nm_node_ipv4_address_store(struct config_item *item,
+>  		rb_insert_color(&node->nd_ip_node, &cluster->cl_node_ip_tree);
+>  	}
+>  	write_unlock(&cluster->cl_nodes_lock);
+> +	o2nm_unlock_subsystem();
+> +
+>  	if (ret)
+>  		return ret;
+> 
+> @@ -315,7 +339,7 @@ static ssize_t o2nm_node_local_store(struct config_item *item, const char *page,
+>  				     size_t count)
+>  {
+>  	struct o2nm_node *node = to_o2nm_node(item);
+> -	struct o2nm_cluster *cluster = to_o2nm_cluster_from_node(node);
+> +	struct o2nm_cluster *cluster;
+>  	unsigned long tmp;
+>  	char *p = (char *)page;
+>  	ssize_t ret;
+> @@ -333,17 +357,26 @@ static ssize_t o2nm_node_local_store(struct config_item *item, const char *page,
+>  	    !test_bit(O2NM_NODE_ATTR_PORT, &node->nd_set_attributes))
+>  		return -EINVAL; /* XXX */
+> 
+> +	o2nm_lock_subsystem();
+> +	cluster = to_o2nm_cluster_from_node(node);
+> +	if (!cluster) {
+> +		ret = -EINVAL;
+> +		goto out;
+> +	}
+> +
+>  	/* the only failure case is trying to set a new local node
+>  	 * when a different one is already set */
+>  	if (tmp && tmp == cluster->cl_has_local &&
+> -	    cluster->cl_local_node != node->nd_num)
+> -		return -EBUSY;
+> +	    cluster->cl_local_node != node->nd_num) {
+> +		ret = -EBUSY;
+> +		goto out;
+> +	}
+> 
+>  	/* bring up the rx thread if we're setting the new local node. */
+>  	if (tmp && !cluster->cl_has_local) {
+>  		ret = o2net_start_listening(node);
+>  		if (ret)
+> -			return ret;
+> +			goto out;
+>  	}
+> 
+>  	if (!tmp && cluster->cl_has_local &&
+> @@ -358,7 +391,11 @@ static ssize_t o2nm_node_local_store(struct config_item *item, const char *page,
+>  		cluster->cl_local_node = node->nd_num;
+>  	}
+> 
+> -	return count;
+> +	ret = count;
+> +
+> +out:
+> +	o2nm_unlock_subsystem();
+> +	return ret;
+>  }
+> 
+>  CONFIGFS_ATTR(o2nm_node_, num);
+> @@ -738,6 +775,16 @@ static void o2nm_cluster_group_drop_item(struct config_group *group, struct conf
+>  	},
+>  };
+> 
+> +static inline void o2nm_lock_subsystem(void)
+> +{
+> +	mutex_lock(&o2nm_cluster_group.cs_subsys.su_mutex);
+> +}
+> +
+> +static inline void o2nm_unlock_subsystem(void)
+> +{
+> +	mutex_unlock(&o2nm_cluster_group.cs_subsys.su_mutex);
+> +}
+> +
+>  int o2nm_depend_item(struct config_item *item)
+>  {
+>  	return configfs_depend_item(&o2nm_cluster_group.cs_subsys, item);
 > 
