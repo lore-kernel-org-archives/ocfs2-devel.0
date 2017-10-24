@@ -1,230 +1,224 @@
-From: Junxiao Bi <junxiao.bi@oracle.com>
-Date: Tue, 24 Oct 2017 08:55:51 +0800
-Subject: [Ocfs2-devel] ocfs2 hangs
-In-Reply-To: <59EE1175020000D40009EADC@prv-mh.provo.novell.com>
-References: <ec1e7376-5292-1c79-3b8d-9476423edec2@belkam.com>
-	<59EE1175020000D40009EADC@prv-mh.provo.novell.com>
-Message-ID: <049767e6-444e-843f-4d59-6300c34c5e89@oracle.com>
+From: alex chen <alex.chen@huawei.com>
+Date: Tue, 24 Oct 2017 09:45:12 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: subsystem.su_mutex is required
+ while accessing the item->ci_parent
+In-Reply-To: <e8db29df-ec9c-9ac2-bf7a-1ecf784148fc@gmail.com>
+References: <59E8A6FA.4000902@huawei.com> <59E9B36A.10700@huawei.com>
+	<e8db29df-ec9c-9ac2-bf7a-1ecf784148fc@gmail.com>
+Message-ID: <59EE9B28.3080609@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Dmitry,
+Hi Joseph,
 
-Please wait our new kernel, we will drop this issue and backport
-upstream commit c25a1e0671fb ("ocfs2: fix posix_acl_create deadlock") to
-fix this issue.
+On 2017/10/23 10:59, Joseph Qi wrote:
+> Hi Alex,
+> 
+> On 17/10/20 16:27, alex chen wrote:
+>> The subsystem.su_mutex is required while accessing the item->ci_parent,
+>> otherwise, NULL pointer dereference to the item->ci_parent will be
+>> triggered in the following situation:
+>> add node                     delete node
+>> sys_write
+>>  vfs_write
+>>   configfs_write_file
+>>    o2nm_node_store
+>>     o2nm_node_local_write
+>>                              do_rmdir
+>>                               vfs_rmdir
+>>                                configfs_rmdir
+>>                                 mutex_lock(&subsys->su_mutex);
+>>                                 unlink_obj
+>>                                  item->ci_group = NULL;
+>>                                  item->ci_parent = NULL;			
+>> 	 to_o2nm_cluster_from_node
+>> 	  node->nd_item.ci_parent->ci_parent
+>> 	  BUG since of NULL pointer dereference to nd_item.ci_parent
+>>
+>> Moreover, the o2nm_cluster also should be protected by the subsystem.su_mutex.
+>>
+> Looks good to me. One suggestion is, we'd better add some blank lines
+> for code readability.
 
-Thanks,
-Junxiao.
-On 10/23/2017 11:57 PM, Zhen Ren wrote:
-> Hi,
+Thanks for your suggestions, i will send the patch v2.
+
+Thanks
+Alex
+
 > 
->>From the backtrace below, it seems very like the issue fixed by Junxiao recently
-> by this patch:
+>> Signed-off-by: Alex Chen <alex.chen@huawei.com>
+>> Reviewed-by: Jun Piao <piaojun@huawei.com>
+>>
+>> ---
+>>  fs/ocfs2/cluster/nodemanager.c | 58 ++++++++++++++++++++++++++++++++++--------
+>>  1 file changed, 48 insertions(+), 10 deletions(-)
+>>
+>> diff --git a/fs/ocfs2/cluster/nodemanager.c b/fs/ocfs2/cluster/nodemanager.c
+>> index b17d180..9b1859a 100644
+>> --- a/fs/ocfs2/cluster/nodemanager.c
+>> +++ b/fs/ocfs2/cluster/nodemanager.c
+>> @@ -39,6 +39,8 @@
+>>  		"reset",	/* O2NM_FENCE_RESET */
+>>  		"panic",	/* O2NM_FENCE_PANIC */
+>>  };
+>> +static inline void o2nm_lock_subsystem(void);
+>> +static inline void o2nm_unlock_subsystem(void);
+>>
+>>  struct o2nm_node *o2nm_get_node_by_num(u8 node_num)
+>>  {
+>> @@ -181,7 +183,10 @@ static struct o2nm_cluster *to_o2nm_cluster_from_node(struct o2nm_node *node)
+>>  {
+>>  	/* through the first node_set .parent
+>>  	 * mycluster/nodes/mynode == o2nm_cluster->o2nm_node_group->o2nm_node */
+>> -	return to_o2nm_cluster(node->nd_item.ci_parent->ci_parent);
+>> +	if (node->nd_item.ci_parent)
+>> +		return to_o2nm_cluster(node->nd_item.ci_parent->ci_parent);
+>> +	else
+>> +		return NULL;
+>>  }
+>>
+>>  enum {
+>> @@ -194,7 +199,7 @@ static ssize_t o2nm_node_num_store(struct config_item *item, const char *page,
+>>  				   size_t count)
+>>  {
+>>  	struct o2nm_node *node = to_o2nm_node(item);
+>> -	struct o2nm_cluster *cluster = to_o2nm_cluster_from_node(node);
+>> +	struct o2nm_cluster *cluster;
+>>  	unsigned long tmp;
+>>  	char *p = (char *)page;
+>>  	int ret = 0;
+>> @@ -213,6 +218,12 @@ static ssize_t o2nm_node_num_store(struct config_item *item, const char *page,
+>>  	if (!test_bit(O2NM_NODE_ATTR_ADDRESS, &node->nd_set_attributes) ||
+>>  	    !test_bit(O2NM_NODE_ATTR_PORT, &node->nd_set_attributes))
+>>  		return -EINVAL; /* XXX */
+> <<< A blank line here may be better.
 > 
-> [PATCH] ocfs2: mknode :  fix recursive locking hung
+>> +	o2nm_lock_subsystem();
+>> +	cluster = to_o2nm_cluster_from_node(node);
+>> +	if (!cluster) {
+>> +		o2nm_unlock_subsystem();
+>> +		return -EINVAL;
+>> +	}
+>>
+>>  	write_lock(&cluster->cl_nodes_lock);
+>>  	if (cluster->cl_nodes[tmp])
+>> @@ -226,6 +237,7 @@ static ssize_t o2nm_node_num_store(struct config_item *item, const char *page,
+>>  		set_bit(tmp, cluster->cl_nodes_bitmap);
+>>  	}
+>>  	write_unlock(&cluster->cl_nodes_lock);
+>> +	o2nm_unlock_subsystem();
+>>  	if (ret)
+>>  		return ret;
+>>
+>> @@ -269,7 +281,7 @@ static ssize_t o2nm_node_ipv4_address_store(struct config_item *item,
+>>  					    size_t count)
+>>  {
+>>  	struct o2nm_node *node = to_o2nm_node(item);
+>> -	struct o2nm_cluster *cluster = to_o2nm_cluster_from_node(node);
+>> +	struct o2nm_cluster *cluster;
+>>  	int ret, i;
+>>  	struct rb_node **p, *parent;
+>>  	unsigned int octets[4];
+>> @@ -285,7 +297,12 @@ static ssize_t o2nm_node_ipv4_address_store(struct config_item *item,
+>>  			return -ERANGE;
+>>  		be32_add_cpu(&ipv4_addr, octets[i] << (i * 8));
+>>  	}
+>> -
+> <<< Also here.
 > 
-> Eric
+>> +	o2nm_lock_subsystem();
+>> +	cluster = to_o2nm_cluster_from_node(node);
+>> +	if (!cluster) {
+>> +		o2nm_unlock_subsystem();
+>> +		return -EINVAL;
+>> +	}
+>>  	ret = 0;
+>>  	write_lock(&cluster->cl_nodes_lock);
+>>  	if (o2nm_node_ip_tree_lookup(cluster, ipv4_addr, &p, &parent))
+>> @@ -298,6 +315,7 @@ static ssize_t o2nm_node_ipv4_address_store(struct config_item *item,
+>>  		rb_insert_color(&node->nd_ip_node, &cluster->cl_node_ip_tree);
+>>  	}
+>>  	write_unlock(&cluster->cl_nodes_lock);
+>> +	o2nm_unlock_subsystem();
+>>  	if (ret)
+>>  		return ret;
+>>
+>> @@ -315,7 +333,7 @@ static ssize_t o2nm_node_local_store(struct config_item *item, const char *page,
+>>  				     size_t count)
+>>  {
+>>  	struct o2nm_node *node = to_o2nm_node(item);
+>> -	struct o2nm_cluster *cluster = to_o2nm_cluster_from_node(node);
+>> +	struct o2nm_cluster *cluster;
+>>  	unsigned long tmp;
+>>  	char *p = (char *)page;
+>>  	ssize_t ret;
+>> @@ -333,17 +351,24 @@ static ssize_t o2nm_node_local_store(struct config_item *item, const char *page,
+>>  	    !test_bit(O2NM_NODE_ATTR_PORT, &node->nd_set_attributes))
+>>  		return -EINVAL; /* XXX */
+>>
+>> +	o2nm_lock_subsystem();
+>> +	cluster = to_o2nm_cluster_from_node(node);
+>> +	if (!cluster) {
+>> +		ret = -EINVAL;
+>> +		goto out;
+>> +	}
+> <<< Also here.
 > 
+>>  	/* the only failure case is trying to set a new local node
+>>  	 * when a different one is already set */
+>>  	if (tmp && tmp == cluster->cl_has_local &&
+>> -	    cluster->cl_local_node != node->nd_num)
+>> -		return -EBUSY;
+>> -
+>> +	    cluster->cl_local_node != node->nd_num) {
+>> +		ret = -EBUSY;
+>> +		goto out;
+>> +	}
+> <<< Also here.
 > 
->>>> Dmitry Melekhov <dm@belkam.com> 10/18/17 1:20 PM >>>
-> Hello!
+>>  	/* bring up the rx thread if we're setting the new local node. */
+>>  	if (tmp && !cluster->cl_has_local) {
+>>  		ret = o2net_start_listening(node);
+>>  		if (ret)
+>> -			return ret;
+>> +			goto out;
+>>  	}
+>>
+>>  	if (!tmp && cluster->cl_has_local &&
+>> @@ -357,8 +382,11 @@ static ssize_t o2nm_node_local_store(struct config_item *item, const char *page,
+>>  		cluster->cl_has_local = tmp;
+>>  		cluster->cl_local_node = node->nd_num;
+>>  	}
+>> +	ret = count;
+>>
+>> -	return count;
+>> +out:
+>> +	o2nm_unlock_subsystem();
+>> +	return ret;
+>>  }
+>>
+>>  CONFIGFS_ATTR(o2nm_node_, num);
+>> @@ -738,6 +766,16 @@ static void o2nm_cluster_group_drop_item(struct config_group *group, struct conf
+>>  	},
+>>  };
+>>
+>> +static inline void o2nm_lock_subsystem(void)
+>> +{
+>> +	mutex_lock(&o2nm_cluster_group.cs_subsys.su_mutex);
+>> +}
+>> +
+>> +static inline void o2nm_unlock_subsystem(void)
+>> +{
+>> +	mutex_unlock(&o2nm_cluster_group.cs_subsys.su_mutex);
+>> +}
+>> +
+>>  int o2nm_depend_item(struct config_item *item)
+>>  {
+>>  	return configfs_depend_item(&o2nm_cluster_group.cs_subsys, item);
+>>
 > 
-> I run two dovecot servers over ocfs2 for years.
-> 
-> Previously I used ubuntu, but migrated to Oracle Linux this year.
-> 
-> And all kernels older then
-> 
-> 4.1.12-94.5.9.el7uek.x86_64
-> 
-> hangs with
-> Aug 27 07:14:17 dovecot1 kernel: INFO: task deliver:15573 blocked for more than
-> 120 seconds.
-> Aug 27 07:14:17 dovecot1 kernel:      Not tainted 4.1.12-103.3.8.el7uek.x86_64
-> #2
-> Aug 27 07:14:17 dovecot1 kernel: "echo 0 >
-> /proc/sys/kernel/hung_task_timeout_secs" disables this message.
-> Aug 27 07:14:17 dovecot1 kernel: deliver         D 0000000000000001     0 15573
->   15572 0x00000080
-> Aug 27 07:14:17 dovecot1 kernel: ffff88003d0af6c8 0000000000000086
-> ffff880079039c00 ffff88007c1ff000
-> Aug 27 07:14:17 dovecot1 kernel: ffff88003d0af6b8 ffff88003d0b0000
-> ffff88003d0af890 7fffffffffffffff
-> Aug 27 07:14:17 dovecot1 kernel: ffff88007c1ff000 0000000000000000
-> ffff88003d0af6e8 ffffffff81739c57
-> Aug 27 07:14:17 dovecot1 kernel: Call Trace:
-> Aug 27 07:14:17 dovecot1 kernel: [<ffffffff81739c57>] schedule+0x37/0x90
-> Aug 27 07:14:17 dovecot1 kernel: [<ffffffff8173cd3c>]
-> schedule_timeout+0x24c/0x2c0
-> Aug 27 07:14:17 dovecot1 kernel: [<ffffffff811945de>] ?
-> find_get_entry+0x1e/0xa0
-> Aug 27 07:14:17 dovecot1 kernel: [<ffffffff811956a1>] ?
-> pagecache_get_page+0xd1/0x1a0
-> Aug 27 07:14:17 dovecot1 kernel: [<ffffffff812499aa>] ?
-> bh_lru_install+0x18a/0x1e0
-> Aug 27 07:14:17 dovecot1 kernel: [<ffffffff8173a844>]
-> wait_for_completion+0x134/0x190
-> Aug 27 07:14:17 dovecot1 kernel: [<ffffffff810b65c0>] ? wake_up_state+0x20/0x20
-> Aug 27 07:14:17 dovecot1 kernel: [<ffffffffa045d4d1>]
-> __ocfs2_cluster_lock.isra.36+0x231/0x9c0 [ocfs2]
-> Aug 27 07:14:17 dovecot1 kernel: [<ffffffffa04bab96>] ?
-> ocfs2_buffer_cached.isra.6+0xb6/0x240 [ocfs2]
-> Aug 27 07:14:17 dovecot1 kernel: [<ffffffffa045ebfa>]
-> ocfs2_inode_lock_full_nested+0x1da/0x530 [ocfs2]
-> Aug 27 07:14:17 dovecot1 kernel: [<ffffffffa045f00b>]
-> ocfs2_inode_lock_tracker+0xbb/0x1c0 [ocfs2]
-> Aug 27 07:14:17 dovecot1 kernel: [<ffffffffa04d699d>]
-> ocfs2_iop_get_acl+0x5d/0x25e [ocfs2]
-> Aug 27 07:14:17 dovecot1 kernel: [<ffffffffa047892d>] ?
-> ocfs2_reserve_local_alloc_bits+0x8d/0x380 [ocfs2]
-> Aug 27 07:14:17 dovecot1 kernel: [<ffffffff812740a7>] get_acl+0x47/0x70
-> Aug 27 07:14:17 dovecot1 kernel: [<ffffffff8127478a>]
-> posix_acl_create+0x5a/0x160
-> Aug 27 07:14:17 dovecot1 kernel: [<ffffffffa04818f8>] ocfs2_mknod+0x938/0x1620
-> [ocfs2]
-> Aug 27 07:14:17 dovecot1 kernel: [<ffffffffa045a599>] ?
-> ocfs2_wake_downconvert_thread+0x49/0x50 [ocfs2]
-> Aug 27 07:14:17 dovecot1 kernel: [<ffffffffa04827b6>] ocfs2_create+0x66/0x170
-> [ocfs2]
-> Aug 27 07:14:17 dovecot1 kernel: [<ffffffff8121f865>] vfs_create+0xd5/0x140
-> Aug 27 07:14:17 dovecot1 kernel: [<ffffffff81222a5d>] do_last+0x9ed/0x1270
-> Aug 27 07:14:17 dovecot1 kernel: [<ffffffff8122336f>] path_openat+0x8f/0x630
-> Aug 27 07:14:17 dovecot1 kernel: [<ffffffff81224dde>] ?
-> user_path_at_empty+0x6e/0xc0
-> Aug 27 07:14:17 dovecot1 kernel: [<ffffffff81224ee9>] do_filp_open+0x49/0xc0
-> Aug 27 07:14:17 dovecot1 kernel: [<ffffffff81351545>] ?
-> find_next_zero_bit+0x25/0x30
-> Aug 27 07:14:17 dovecot1 kernel: [<ffffffff812320a7>] ? __alloc_fd+0xa7/0x130
-> Aug 27 07:14:17 dovecot1 kernel: [<ffffffff81212367>] do_sys_open+0x137/0x240
-> Aug 27 07:14:17 dovecot1 kernel: [<ffffffff81130b16>] ?
-> __audit_syscall_exit+0x1e6/0x280
-> Aug 27 07:14:17 dovecot1 kernel: [<ffffffff811cf554>] ?
-> SyS_mprotect+0x1f4/0x290
-> Aug 27 07:14:17 dovecot1 kernel: [<ffffffff8121248e>] SyS_open+0x1e/0x20
-> Aug 27 07:14:17 dovecot1 kernel: [<ffffffff8173deee>]
-> system_call_fastpath+0x12/0x71
->      
->    
-> 
-> Here is my bug report
-> https://bugzilla.oracle.com/bugzilla/show_bug.cgi?id=16056
-> 
-> But, unfortunately, there is no activity here and bug is still not fixed 
-> in latest UEK kernels.
-> 
-> I think that Oracle takes ocfs2 from here anyway.
-> 
-> May be somebody knows what was changed in
-> 4.1.12-103.3.8.el7uek ?
-> 
-> 
-> Thank you!<mailto:greg.marsden@oracle.com>
-> Hi,
-> 
->>From the backtrace below, it seems very like the issue fixed by Junxiao recently
-> by this patch:
-> 
-> [PATCH] ocfs2: mknod: fix recursive locking hung
-> 
-> EricHi,
-> 
->>From the backtrace below, it seems very like the issue fixed by Junxiao recently
-> by this patch:
-> 
-> [PATCH] ocfs2: mknod: fix recursive locking hung
-> 
-> EricHi,
-> 
->>From the backtrace below, it seems very like the issue fixed by Junxiao recently
-> by this patch:
-> 
-> [PATCH] ocfs2: mknod: fix recursive locking hung
-> 
-> EricHi,
-> 
->>From the backtrace below, it seems very like the issue fixed by Junxiao recently
-> by this patch:
-> 
-> [PATCH] ocfs2: mknod: fix recursive locking hung
-> 
-> EricHi,
-> 
->>From the backtrace below, it seems very like the issue fixed by Junxiao recently
-> by this patch:
-> 
-> [PATCH] ocfs2: mknod: fix recursive locking hung
-> 
-> EricHi,
-> 
->>From the backtrace below, it seems very like the issue fixed by Junxiao recently
-> by this patch:
-> 
-> [PATCH] ocfs2: mknod: fix recursive locking hung
-> 
-> EricHi,
-> 
->>From the backtrace below, it seems very like the issue fixed by Junxiao recently
-> by this patch:
-> 
-> [PATCH] ocfs2: mknod: fix recursive locking hung
-> 
-> EricHi,
-> 
->>From the backtrace below, it seems very like the issue fixed by Junxiao recently
-> by this patch:
-> 
-> [PATCH] ocfs2: mknod: fix recursive locking hung
-> 
-> EricHi,
-> 
->>From the backtrace below, it seems very like the issue fixed by Junxiao recently
-> by this patch:
-> 
-> [PATCH] ocfs2: mknod: fix recursive locking hung
-> 
-> EricHi,
-> 
->>From the backtrace below, it seems very like the issue fixed by Junxiao recently
-> by this patch:
-> 
-> [PATCH] ocfs2: mknod: fix recursive locking hung
-> 
-> EricHi,
-> 
->>From the backtrace below, it seems very like the issue fixed by Junxiao recently
-> by this patch:
-> 
-> [PATCH] ocfs2: mknod: fix recursive locking hung
-> 
-> EricHi,
-> 
->>From the backtrace below, it seems very like the issue fixed by Junxiao recently
-> by this patch:
-> 
-> [PATCH] ocfs2: mknod: fix recursive locking hung
-> 
-> EricHi,
-> 
->>From the backtrace below, it seems very like the issue fixed by Junxiao recently
-> by this patch:
-> 
-> [PATCH] ocfs2: mknod: fix recursive locking hung
-> 
-> EricHi,
-> 
->>From the backtrace below, it seems very like the issue fixed by Junxiao recently
-> by this patch:
-> 
-> [PATCH] ocfs2: mknod: fix recursive locking hung
-> 
-> Eric
-> 
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+> .
 > 
