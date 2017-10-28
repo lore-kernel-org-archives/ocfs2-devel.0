@@ -1,88 +1,138 @@
-From: Gang He <ghe@suse.com>
-Date: Sat, 28 Oct 2017 01:44:41 -0600
-Subject: [Ocfs2-devel] fstrim corrupts ocfs2 filesystems(become
- ready-only) on SSD device which is managed by multipath
-In-Reply-To: <59F375A1.60709@oracle.com>
-References: <59F37145020000F900095631@prv-mh.provo.novell.com>
-	<59F375A1.60709@oracle.com>
-Message-ID: <59F43569020000F9001C44B2@prv-mh.provo.novell.com>
+From: Changwei Ge <ge.changwei@h3c.com>
+Date: Sat, 28 Oct 2017 08:12:16 +0000
+Subject: [Ocfs2-devel] [PATCH] ocfs2: should wait dio before inode lock
+ in ocfs2_setattr()
+References: <59F2E6F2.7090803@huawei.com>
+	<63ADC13FD55D6546B7DECE290D39E373CED71C9E@H3CMLB14-EX.srv.huawei-3com.com>
+	<59F3ECC8.1030509@huawei.com>
+Message-ID: <63ADC13FD55D6546B7DECE290D39E373CED72176@H3CMLB14-EX.srv.huawei-3com.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hello Ashish,
-Thank for your reply.
-From the patch, it looks very related to this bug.
-But one thing, I feel a little confused.
-Why was I not able to reproduce this bug in local with a SSD disk?
-There are any specific steps to reproduce this issue? 
-e.g. mount option for ocfs2? need to set SSD disk? 
-According to the patch, the bug is not related to multipath configuration.  
-
-
-Thanks
-Gang
-
-
-
->>> Ashish Samant <ashish.samant@oracle.com> 10/28/17 2:06 AM >>>
-Hi Gang,
-
-The following patch sent to the list should fix the issue.
-
-https://urldefense.proofpoint.com/v2/url?u=https-3A__patchwork.kernel.org_patch_10002583_&d=DwIFAg&c=RoP1YumCXCgaWHvlZYR8PQcxBKCX5YTpkKY057SbK10&r=f4ohdmGrYxZejY77yzx3eNgTHb1ZAfZytktjHqNVzc8&m=u9qPUM-rO4Z723CYidx1hFBGCM6dchae9grN8j9xyuI&s=FW13LRle0QG1IcOHlzXysYhiUz19DXp0N5FuQBVyYTU&e= 
+Hi Alex,
+On 2017/10/28 10:35, alex chen wrote:
+> Hi Changwei,
+> 
+> Thanks for you reply.
+> 
+> On 2017/10/27 18:21, Changwei Ge wrote:
+>> Hi Alex,
+>>
+>> Thanks for reporting.
+>> I probably get your point. You mean that for a lock resource(say A), it
+>> is used to protect metadata changing  among nodes in cluster.
+>>
+>> Unfortunately, it was marks as BLOCKED since it was granted with a EX
+>> lock, and the lock can't be unblocked since it has more or equal to one
+>> ::ex_holder(s), furthermore, since process 1 is waiting for all inflight
+>> dio accomplishment, it won't give up its ownership of lock source A.
+>>
+>> Thus, hang, right?
+> 
+> Yes, I'm glad you can understand this.
+> 
+>>
+>>   From code reviewing, I admit that the hang situation does exit.
+>>
+>> But as for your patch, how can you guarantee no more bio will be issued
+>> from other nodes in cluster?
+>>
+> 
+> First of all, we use the inode_lock() in do_truncate() to prevent another bio to
+> be issued from this node.
+> Furthermore, we use the ocfs2_rw_lock() and ocfs2_inode_lock() in ocfs2_setattr()
+> to guarantee no more bio will be issued from the other nodes in this cluster.
+Thanks for your particular elaboration.
+I think this patch makes sense.
+Acked.
 
 Thanks,
-Ashish
+Changwei
 
+> 
+> Thanks,
+> Alex
+> 
+>> Also, I cc this patch to ocfs2 maintainers.
+>>
+>> Thanks,
+>> Changwei
+>>
+>> On 2017/10/27 16:01, alex chen wrote:
+>>> we should wait dio requests to finish before inode lock in
+>>> ocfs2_setattr(), otherwise the following deadlock will be happened:
+>>> process 1                  process 2                    process 3
+>>> truncate file 'A'          end_io of writing file 'A'   receiving the bast messages
+>>> ocfs2_setattr
+>>>    ocfs2_inode_lock_tracker
+>>>     ocfs2_inode_lock_full
+>>>    inode_dio_wait
+>>>     __inode_dio_wait
+>>>     -->waiting for all dio
+>>>     requests finish
+>>>                                                           dlm_proxy_ast_handler
+>>>                                                            dlm_do_local_bast
+>>>                                                             ocfs2_blocking_ast
+>>>                                                              ocfs2_generic_handle_bast
+>>>                                                               set OCFS2_LOCK_BLOCKED flag
+>>>                           dio_end_io
+>>>                            dio_bio_end_aio
+>>>                             dio_complete
+>>>                              ocfs2_dio_end_io
+>>>                               ocfs2_dio_end_io_write
+>>>                                ocfs2_inode_lock
+>>>                                 __ocfs2_cluster_lock
+>>>                                  ocfs2_wait_for_mask
+>>>                                  -->waiting for OCFS2_LOCK_BLOCKED
+>>>                                  flag to be cleared, that is waiting
+>>>                                  for 'process 1' unlocking the inode lock
+>>>                              inode_dio_end
+>>>                              -->here dec the i_dio_count, but will never
+>>>                              be called, so a deadlock happened.
+>>>
+>>> Signed-off-by: Alex Chen <alex.chen@huawei.com>
+>>> Reviewed-by: Jun Piao <piaojun@huawei.com>
+Acked-by: Changwei Ge <ge.changwei@h3c.com>
 
-On 10/27/2017 02:47 AM, Gang He wrote:
-> Hello Guys,
->
-> I got a bug from the customer, he said, fstrim command corrupted ocfs2 file system on their SSD SAN, the file system became read-only and SSD LUN was configured by multipath.
-> After umount the file system, the customer ran fsck.ocfs2 on this file system, then the file system can be mounted until the next fstrim happens.
-> The error messages were likes,
-> 2017-10-02T00:00:00.334141+02:00 rz-xen10 systemd[1]: Starting Discard unused blocks...
-> 2017-10-02T00:00:00.383805+02:00 rz-xen10 fstrim[36615]: fstrim: /xensan1: FITRIM ioctl fehlgeschlagen: Das Dateisystem ist nur lesbar
-> 2017-10-02T00:00:00.385233+02:00 rz-xen10 kernel: [1092967.091821] OCFS2: ERROR (device dm-5): ocfs2_validate_gd_self: Group descriptor #8257536 has bad signature  <<== here
-> 2017-10-02T00:00:00.385251+02:00 rz-xen10 kernel: [1092967.091831] On-disk corruption discovered. Please run fsck.ocfs2 once the filesystem is unmounted.
-> 2017-10-02T00:00:00.385254+02:00 rz-xen10 kernel: [1092967.091836] (fstrim,36615,5):ocfs2_trim_fs:7422 ERROR: status = -30
-> 2017-10-02T00:00:00.385854+02:00 rz-xen10 systemd[1]: fstrim.service: Main process exited, code=exited, status=32/n/a
-> 2017-10-02T00:00:00.386756+02:00 rz-xen10 systemd[1]: Failed to start Discard unused blocks.
-> 2017-10-02T00:00:00.387236+02:00 rz-xen10 systemd[1]: fstrim.service: Unit entered failed state.
-> 2017-10-02T00:00:00.387601+02:00 rz-xen10 systemd[1]: fstrim.service: Failed with result 'exit-code'.
->
-> The similar bug looks like https://urldefense.proofpoint.com/v2/url?u=https-3A__bugs.launchpad.net_ubuntu_-2Bsource_util-2Dlinux_-2Bbug_1681410&d=DwIFAg&c=RoP1YumCXCgaWHvlZYR8PQcxBKCX5YTpkKY057SbK10&r=f4ohdmGrYxZejY77yzx3eNgTHb1ZAfZytktjHqNVzc8&m=Jdo98IlzJDxBqiDEhsKfqxvEt4B6WpIbZ_woY7zmLFw&s=xp0bUwpDVIHZP9g4EboYYG_1gkenzWEt_O_5KZXyFg8&e= .
-> Then, I tried to reproduce this bug in local.
-> Since I have not a SSD SAN, I found a PC server which has a SSD disk.
-> I setup a two nodes ocfs2 cluster in VM on this PC server, attach this SSD disk to each VM instance twice, then I can configure this SSD disk with multipath tool,
-> the configuration on each node likes,
-> sle12sp3-nd1:/ # multipath -l
-> INTEL_SSDSA2M040G2GC_CVGB0490002C040NGN dm-0 ATA,INTEL SSDSA2M040
-> size=37G features='1 retain_attached_hw_handler' hwhandler='0' wp=rw
-> |-+- policy='service-time 0' prio=0 status=active
-> | `- 0:0:0:0 sda 8:0  active undef unknown
-> `-+- policy='service-time 0' prio=0 status=enabled
->    `- 0:0:0:1 sdb 8:16 active undef unknown
->
-> Next, I do some fstrim command from each node simultaneously,
-> I also do dd command to write data to the shared SSD disk during fstrim commands.
-> But, I can not reproduce this issue, all the things go well.
->
-> Then, I'd like to ping the list, did who ever encounter this bug?  If yes, please help to provide some information.
-> I think there are three factors which are related to this bug, SSD device type, multipath configuration and simultaneously fstrim.
->
-> Thanks a lot.
-> Gang
->
->
->
->
->
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
->
+>>>
+>>> ---
+>>>    fs/ocfs2/file.c | 9 +++++++--
+>>>    1 file changed, 7 insertions(+), 2 deletions(-)
+>>>
+>>> diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+>>> index 6e41fc8..50e09a6 100644
+>>> --- a/fs/ocfs2/file.c
+>>> +++ b/fs/ocfs2/file.c
+>>> @@ -1161,6 +1161,13 @@ int ocfs2_setattr(struct dentry *dentry, struct iattr *attr)
+>>>    	}
+>>>    	size_change = S_ISREG(inode->i_mode) && attr->ia_valid & ATTR_SIZE;
+>>>    	if (size_change) {
+>>> +
+>>> +		/* here we should wait dio to finish before inode lock
+>>> +		 * to avoid a deadlock between ocfs2_setattr() and
+>>> +		 * ocfs2_dio_end_io_write()
+>>> +		 */
+>>> +		inode_dio_wait(inode);
+>>> +
+>>>    		status = ocfs2_rw_lock(inode, 1);
+>>>    		if (status < 0) {
+>>>    			mlog_errno(status);
+>>> @@ -1200,8 +1207,6 @@ int ocfs2_setattr(struct dentry *dentry, struct iattr *attr)
+>>>    		if (status)
+>>>    			goto bail_unlock;
+>>>
+>>> -		inode_dio_wait(inode);
+>>> -
+>>>    		if (i_size_read(inode) >= attr->ia_size) {
+>>>    			if (ocfs2_should_order_data(inode)) {
+>>>    				status = ocfs2_begin_ordered_truncate(inode,
+>>>
+>>
+>>
+>> .
+>>
+> 
+> 
