@@ -1,5 +1,5 @@
-From: Eric Ren <zren@suse.com>
-Date: Mon, 30 Oct 2017 09:48:29 +0800
+From: piaojun <piaojun@huawei.com>
+Date: Mon, 30 Oct 2017 10:04:10 +0800
 Subject: [Ocfs2-devel] [o2nm_depend_item] BUG: sleeping function called
  from invalid context at kernel/locking/rwsem.c:52
 In-Reply-To: <20171029232323.d2ij2jifojqfw3xv@wfg-t540p.sh.intel.com>
@@ -7,31 +7,34 @@ References: <CA+55aFxSJGeN=2X-uX-on1Uq2Nb8+v1aiMDz5H1+tKW_N5Q+6g@mail.gmail.com>
 	<20171029225155.qcum5i75awrt5tzm@wfg-t540p.sh.intel.com>
 	<20171029231027.s4m7hck5ebl463lc@wfg-t540p.sh.intel.com>
 	<20171029232323.d2ij2jifojqfw3xv@wfg-t540p.sh.intel.com>
-Message-ID: <8805c39f-1ccb-d562-e5e1-a433f84cf9b3@suse.com>
+Message-ID: <59F6889A.1070405@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: Fengguang Wu <fengguang.wu@intel.com>, "Darrick J. Wong" <darrick.wong@oracle.com>
-Cc: Jan Kara <jack@suse.cz>, Christoph Hellwig <hch@lst.de>, piaojun <piaojun@huawei.com>, Sunil Mushran <sunil.mushran@oracle.com>, Linus Torvalds <torvalds@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>
+Cc: Jan Kara <jack@suse.cz>, Christoph Hellwig <hch@lst.de>, Eric Ren <zren@suse.com>, Sunil Mushran <sunil.mushran@oracle.com>, Linus Torvalds <torvalds@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>, Jiangyiwen <jiangyiwen@huawei.com>, alex chen <alex.chen@huawei.com>
 
 Hi Fengguang,
 
-OCFS2 has two DLM (Distributed Locking Manager) plugins: 
-o2cb(fs/ocfs2/dlm) and fsdlm (fs/dlm). From the backtrace,
-the testing is using o2cb. For now, our team only supports fsdlm. We 
-nearly didn't touch the o2cb code.
+I probably hit the same problem not long ago, and the reason is that
+rw_semaphore is called under spin_lock which lead soft lockup:
 
-Also CC the ocfs2 maillist and Junxiao (he runs ocfs2-test with o2cb 
-regularly) to see if they know about this problem.
+dlm_join_domain
+  o2hb_register_callback
+    o2hb_region_inc_user
+	  spin_lock(&o2hb_live_lock); // here we get spin_lock!
+	  o2hb_region_pin
+	    o2nm_depend_item
+		  configfs_depend_item
+		    inode_lock
+			  down_write // we might sleep here and reschedule
 
+the patch for the problem is testing now, and will be sent later.
 
-Thanks,
-Eric
-
-On 10/30/2017 07:23 AM, Fengguang Wu wrote:
+On 2017/10/30 7:23, Fengguang Wu wrote:
 > [adjust CC list]
->
+> 
 > On Mon, Oct 30, 2017 at 12:10:27AM +0100, Fengguang Wu wrote:
 >> CC OCFS2 maintainers for the BUG in v4.14-rc6.
 >>
@@ -49,125 +52,101 @@ On 10/30/2017 07:23 AM, Fengguang Wu wrote:
 >>>
 >>> BUG:kernel_hang_in_test_stage: 152
 >>> BUG:kernel_reboot-without-warning_in_test_stage: 10
->>> BUG:sleeping_function_called_from_invalid_context_at_kernel/locking/mutex.c: 
->>> 1
->>> BUG:sleeping_function_called_from_invalid_context_at_kernel/locking/rwsem.c: 
->>> 3
+>>> BUG:sleeping_function_called_from_invalid_context_at_kernel/locking/mutex.c: 1
+>>> BUG:sleeping_function_called_from_invalid_context_at_kernel/locking/rwsem.c: 3
 >>
 >> There are 2 call paths that lead to this BUG:
 >>
->> [?? 41.456285]
->> [?? 41.559269] Output log is 
->> /home/ocfs2test/ocfs2log/2017-10-25_09:33/single_run.log
->> [?? 41.559273]
->> [?? 41.576824] mkfs.ocfs2 1.8.5
->> [?? 41.576828]
->> [?? 47.713421] BUG: sleeping function called from invalid context at 
->> kernel/locking/rwsem.c:52
->> [?? 47.725763] in_atomic(): 1, irqs_disabled(): 0, pid: 4899, name: 
->> mkfs.ocfs2
->> [?? 47.735004] CPU: 1 PID: 4899 Comm: mkfs.ocfs2 Not tainted 
->> 4.14.0-rc6 #1
->> [?? 47.743854] Hardware name: Intel Corporation S2600WTT/S2600WTT, 
->> BIOS SE5C610.86B.01.01.0008.021120151325 02/11/2015
->> [?? 47.756984] Call Trace:
->> [?? 47.761141]? dump_stack+0x63/0x86
->> [?? 47.766255]? ___might_sleep+0xf1/0x110
->> [?? 47.771809]? __might_sleep+0x4a/0x80
->> [?? 47.777124]? down_write+0x20/0x50
->> [?? 47.782095]? configfs_depend_item+0x3f/0xb0
->> [?? 47.788051]? o2nm_depend_item+0x18/0x20 [ocfs2_nodemanager]
->> [?? 47.795578]? o2hb_region_pin+0xbc/0x150 [ocfs2_nodemanager]
->> [?? 47.803101]? o2hb_register_callback+0x131/0x290 [ocfs2_nodemanager]
->> [?? 47.811402]? dlm_join_domain+0xbd/0x800 [ocfs2_dlm]
->> [?? 47.818139]? dlm_register_domain+0x2f8/0x3d0 [ocfs2_dlm]
->> [?? 47.825365]? o2cb_cluster_connect+0x171/0x285 [ocfs2_stack_o2cb]
->> [?? 47.833393]? ocfs2_cluster_connect+0x189/0x240 [ocfs2_stackglue]
->> [?? 47.841970]? ocfs2_cluster_connect_agnostic+0x3a/0x3c 
->> [ocfs2_stackglue]
->> [?? 47.850664]? ? 0xffffffffa006b000
->> [?? 47.855664]? user_dlm_register+0x2e/0xa0 [ocfs2_dlmfs]
->> [?? 47.862708]? dlmfs_mkdir+0x80/0x1a0 [ocfs2_dlmfs]
->> [?? 47.869267]? vfs_mkdir+0x10f/0x1b0
->> [?? 47.874354]? SyS_mkdir+0x6b/0xd0
->> [?? 47.879218]? entry_SYSCALL_64_fastpath+0x1a/0xa5
->> [?? 47.885627] RIP: 0033:0x7ff3d38b4407
->> [?? 47.890832] RSP: 002b:00007ffce4e1cef8 EFLAGS: 00000246 ORIG_RAX: 
->> 0000000000000053
->> [?? 47.900501] RAX: ffffffffffffffda RBX: 000055abe2b6b070 RCX: 
->> 00007ff3d38b4407
->> [?? 47.909704] RDX: ffffffffffffff30 RSI: 00000000000001ed RDI: 
->> 000055abe2b6a02c
->> [?? 47.918912] RBP: 000055abe0b20df2 R08: 000055abe2b65250 R09: 
->> 0000000000000026
->> [?? 47.928126] R10: 0000000000000370 R11: 0000000000000246 R12: 
->> 000055abe2b65250
->> [?? 47.937348] R13: 00007ffce4e1cf18 R14: 000055abe2b6a010 R15: 
->> 00007ffce4e1ee28
->> [?? 47.947178] o2dlm: Joining domain D764E616AA0846C3B0DF3A81F7333E91
->> [?? 47.947181] (
->> [?? 47.955477] 1
+>> [   41.456285]
+>> [   41.559269] Output log is /home/ocfs2test/ocfs2log/2017-10-25_09:33/single_run.log
+>> [   41.559273]
+>> [   41.576824] mkfs.ocfs2 1.8.5
+>> [   41.576828]
+>> [   47.713421] BUG: sleeping function called from invalid context at kernel/locking/rwsem.c:52
+>> [   47.725763] in_atomic(): 1, irqs_disabled(): 0, pid: 4899, name: mkfs.ocfs2
+>> [   47.735004] CPU: 1 PID: 4899 Comm: mkfs.ocfs2 Not tainted 4.14.0-rc6 #1
+>> [   47.743854] Hardware name: Intel Corporation S2600WTT/S2600WTT, BIOS SE5C610.86B.01.01.0008.021120151325 02/11/2015
+>> [   47.756984] Call Trace:
+>> [   47.761141]  dump_stack+0x63/0x86
+>> [   47.766255]  ___might_sleep+0xf1/0x110
+>> [   47.771809]  __might_sleep+0x4a/0x80
+>> [   47.777124]  down_write+0x20/0x50
+>> [   47.782095]  configfs_depend_item+0x3f/0xb0
+>> [   47.788051]  o2nm_depend_item+0x18/0x20 [ocfs2_nodemanager]
+>> [   47.795578]  o2hb_region_pin+0xbc/0x150 [ocfs2_nodemanager]
+>> [   47.803101]  o2hb_register_callback+0x131/0x290 [ocfs2_nodemanager]
+>> [   47.811402]  dlm_join_domain+0xbd/0x800 [ocfs2_dlm]
+>> [   47.818139]  dlm_register_domain+0x2f8/0x3d0 [ocfs2_dlm]
+>> [   47.825365]  o2cb_cluster_connect+0x171/0x285 [ocfs2_stack_o2cb]
+>> [   47.833393]  ocfs2_cluster_connect+0x189/0x240 [ocfs2_stackglue]
+>> [   47.841970]  ocfs2_cluster_connect_agnostic+0x3a/0x3c [ocfs2_stackglue]
+>> [   47.850664]  ? 0xffffffffa006b000
+>> [   47.855664]  user_dlm_register+0x2e/0xa0 [ocfs2_dlmfs]
+>> [   47.862708]  dlmfs_mkdir+0x80/0x1a0 [ocfs2_dlmfs]
+>> [   47.869267]  vfs_mkdir+0x10f/0x1b0
+>> [   47.874354]  SyS_mkdir+0x6b/0xd0
+>> [   47.879218]  entry_SYSCALL_64_fastpath+0x1a/0xa5
+>> [   47.885627] RIP: 0033:0x7ff3d38b4407
+>> [   47.890832] RSP: 002b:00007ffce4e1cef8 EFLAGS: 00000246 ORIG_RAX: 0000000000000053
+>> [   47.900501] RAX: ffffffffffffffda RBX: 000055abe2b6b070 RCX: 00007ff3d38b4407
+>> [   47.909704] RDX: ffffffffffffff30 RSI: 00000000000001ed RDI: 000055abe2b6a02c
+>> [   47.918912] RBP: 000055abe0b20df2 R08: 000055abe2b65250 R09: 0000000000000026
+>> [   47.928126] R10: 0000000000000370 R11: 0000000000000246 R12: 000055abe2b65250
+>> [   47.937348] R13: 00007ffce4e1cf18 R14: 000055abe2b6a010 R15: 00007ffce4e1ee28
+>> [   47.947178] o2dlm: Joining domain D764E616AA0846C3B0DF3A81F7333E91
+>> [   47.947181] (
+>> [   47.955477] 1
 >>
->> [? 125.027591]
->> [? 125.034602] Test 46: bitmap_cpg change
->> [? 125.034604]
->> [? 125.578546] mkfs ..... OK
->> [? 125.578549]
->> [? 133.795387] BUG: sleeping function called from invalid context at 
->> kernel/locking/rwsem.c:52
->> [? 133.806708] in_atomic(): 1, irqs_disabled(): 0, pid: 6277, name: 
->> mount.ocfs2
->> [? 133.814884] CPU: 0 PID: 6277 Comm: mount.ocfs2 Not tainted 
->> 4.14.0-rc6 #1
->> [? 133.822645] Hardware name: Intel Corporation S2600WTT/S2600WTT, 
->> BIOS SE5C610.86B.01.01.0008.021120151325 02/11/2015
->> [? 133.834591] Call Trace:
->> [? 133.837612]? dump_stack+0x63/0x86
->> [? 133.841601]? ___might_sleep+0xf1/0x110
->> [? 133.846074]? __might_sleep+0x4a/0x80
->> [? 133.850355]? down_write+0x20/0x50
->> [? 133.854343]? configfs_depend_item+0x3f/0xb0
->> [? 133.859309]? o2nm_depend_item+0x18/0x20 [ocfs2_nodemanager]
->> [? 133.865825]? o2hb_region_pin+0xbc/0x150 [ocfs2_nodemanager]
->> [? 133.872340]? o2hb_register_callback+0x131/0x290 [ocfs2_nodemanager]
->> [? 133.879643]? dlm_join_domain+0xbd/0x800 [ocfs2_dlm]
->> [? 133.885392]? dlm_register_domain+0x2f8/0x3d0 [ocfs2_dlm]
->> [? 133.891635]? o2cb_cluster_connect+0x171/0x285 [ocfs2_stack_o2cb]
->> [? 133.898663]? ocfs2_cluster_connect+0x189/0x240 [ocfs2_stackglue]
->> [? 133.905740]? ocfs2_dlm_init+0x325/0x560 [ocfs2]
->> [? 133.911132]? ? ocfs2_init_node_maps+0x50/0x50 [ocfs2]
->> [? 133.917113]? ocfs2_fill_super+0xbf9/0x1270 [ocfs2]
->> [? 133.922794]? ? vsnprintf+0x230/0x4b0
->> [? 133.927114]? mount_bdev+0x178/0x1b0
->> [? 133.931387]? ? ocfs2_initialize_super+0xfe0/0xfe0 [ocfs2]
->> [? 133.938644]? ocfs2_mount+0x15/0x20 [ocfs2]
->> [? 133.943560]? mount_fs+0x38/0x140
->> [? 133.947508]? vfs_kern_mount+0x67/0x140
->> [? 133.952038]? do_mount+0x1e0/0xcd0
->> [? 133.956084]? SyS_mount+0x83/0xd0
->> [? 133.960020]? entry_SYSCALL_64_fastpath+0x1a/0xa5
->> [? 133.965524] RIP: 0033:0x7f2856b9020a
->> [? 133.969862] RSP: 002b:00007fff480062a8 EFLAGS: 00000202 ORIG_RAX: 
->> 00000000000000a5
->> [? 133.978678] RAX: ffffffffffffffda RBX: 00007fff48006180 RCX: 
->> 00007f2856b9020a
->> [? 133.987005] RDX: 0000561c83e796ae RSI: 0000561c8589a0b0 RDI: 
->> 0000561c8589a310
->> [? 133.995347] RBP: 00007fff480050a0 R08: 0000561c8589a2b0 R09: 
->> 0000000000000020
->> [? 134.003692] R10: 0000000000000000 R11: 0000000000000202 R12: 
->> 0000000000000004
->> [? 134.012042] R13: 00000000000000ff R14: 0000561c8589a130 R15: 
->> 00007fff48004fa0
->> [? 134.021494] o2dlm: Joining domain D764E616AA0846C3B0DF3A81F7333E91
->> [? 134.021496] (
->> [? 134.021497] 1
+>> [  125.027591]
+>> [  125.034602] Test 46: bitmap_cpg change
+>> [  125.034604]
+>> [  125.578546] mkfs ..... OK
+>> [  125.578549]
+>> [  133.795387] BUG: sleeping function called from invalid context at kernel/locking/rwsem.c:52
+>> [  133.806708] in_atomic(): 1, irqs_disabled(): 0, pid: 6277, name: mount.ocfs2
+>> [  133.814884] CPU: 0 PID: 6277 Comm: mount.ocfs2 Not tainted 4.14.0-rc6 #1
+>> [  133.822645] Hardware name: Intel Corporation S2600WTT/S2600WTT, BIOS SE5C610.86B.01.01.0008.021120151325 02/11/2015
+>> [  133.834591] Call Trace:
+>> [  133.837612]  dump_stack+0x63/0x86
+>> [  133.841601]  ___might_sleep+0xf1/0x110
+>> [  133.846074]  __might_sleep+0x4a/0x80
+>> [  133.850355]  down_write+0x20/0x50
+>> [  133.854343]  configfs_depend_item+0x3f/0xb0
+>> [  133.859309]  o2nm_depend_item+0x18/0x20 [ocfs2_nodemanager]
+>> [  133.865825]  o2hb_region_pin+0xbc/0x150 [ocfs2_nodemanager]
+>> [  133.872340]  o2hb_register_callback+0x131/0x290 [ocfs2_nodemanager]
+>> [  133.879643]  dlm_join_domain+0xbd/0x800 [ocfs2_dlm]
+>> [  133.885392]  dlm_register_domain+0x2f8/0x3d0 [ocfs2_dlm]
+>> [  133.891635]  o2cb_cluster_connect+0x171/0x285 [ocfs2_stack_o2cb]
+>> [  133.898663]  ocfs2_cluster_connect+0x189/0x240 [ocfs2_stackglue]
+>> [  133.905740]  ocfs2_dlm_init+0x325/0x560 [ocfs2]
+>> [  133.911132]  ? ocfs2_init_node_maps+0x50/0x50 [ocfs2]
+>> [  133.917113]  ocfs2_fill_super+0xbf9/0x1270 [ocfs2]
+>> [  133.922794]  ? vsnprintf+0x230/0x4b0
+>> [  133.927114]  mount_bdev+0x178/0x1b0
+>> [  133.931387]  ? ocfs2_initialize_super+0xfe0/0xfe0 [ocfs2]
+>> [  133.938644]  ocfs2_mount+0x15/0x20 [ocfs2]
+>> [  133.943560]  mount_fs+0x38/0x140
+>> [  133.947508]  vfs_kern_mount+0x67/0x140
+>> [  133.952038]  do_mount+0x1e0/0xcd0
+>> [  133.956084]  SyS_mount+0x83/0xd0
+>> [  133.960020]  entry_SYSCALL_64_fastpath+0x1a/0xa5
+>> [  133.965524] RIP: 0033:0x7f2856b9020a
+>> [  133.969862] RSP: 002b:00007fff480062a8 EFLAGS: 00000202 ORIG_RAX: 00000000000000a5
+>> [  133.978678] RAX: ffffffffffffffda RBX: 00007fff48006180 RCX: 00007f2856b9020a
+>> [  133.987005] RDX: 0000561c83e796ae RSI: 0000561c8589a0b0 RDI: 0000561c8589a310
+>> [  133.995347] RBP: 00007fff480050a0 R08: 0000561c8589a2b0 R09: 0000000000000020
+>> [  134.003692] R10: 0000000000000000 R11: 0000000000000202 R12: 0000000000000004
+>> [  134.012042] R13: 00000000000000ff R14: 0000561c8589a130 R15: 00007fff48004fa0
+>> [  134.021494] o2dlm: Joining domain D764E616AA0846C3B0DF3A81F7333E91
+>> [  134.021496] (
+>> [  134.021497] 1
 >>
 >> .config is attached.
 >>
 >> Thanks,
 >> Fengguang
->
+> 
 >> #
 >> # Automatically generated file; DO NOT EDIT.
 >> # Linux/x86_64 4.14.0-rc6 Kernel Configuration
@@ -5311,8 +5290,7 @@ On 10/30/2017 07:23 AM, Fengguang Wu wrote:
 >> # CONFIG_LEDS_LM355x is not set
 >>
 >> #
->> # LED driver for blink(1) USB RGB LED is under Special HID drivers 
->> (HID_THINGM)
+>> # LED driver for blink(1) USB RGB LED is under Special HID drivers (HID_THINGM)
 >> #
 >> CONFIG_LEDS_BLINKM=m
 >> # CONFIG_LEDS_MLXCPLD is not set
@@ -6846,5 +6824,6 @@ On 10/30/2017 07:23 AM, Fengguang Wu wrote:
 >> CONFIG_ARCH_HAS_UACCESS_FLUSHCACHE=y
 >> CONFIG_SBITMAP=y
 >> # CONFIG_STRING_SELFTEST is not set
->
->
+> 
+> .
+> 
