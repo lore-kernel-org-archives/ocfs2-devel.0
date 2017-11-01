@@ -1,108 +1,135 @@
-From: Changwei Ge <ge.changwei@h3c.com>
-Date: Wed, 1 Nov 2017 08:28:53 +0000
-Subject: [Ocfs2-devel] [PATCH] ocfs2/cluster: unlock the o2hb_live_lock
- before the o2nm_depend_item()
-References: <59F86F83.7010501@huawei.com>
-	<2581fe81-0b89-0385-a8e2-b82ca66ec114@gmail.com>
-	<59F97160.9000506@huawei.com>
-Message-ID: <63ADC13FD55D6546B7DECE290D39E373CED73664@H3CMLB14-EX.srv.huawei-3com.com>
+From: piaojun <piaojun@huawei.com>
+Date: Wed, 1 Nov 2017 16:45:00 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: wait for dlm recovery done
+ when migrating all lockres
+In-Reply-To: <63ADC13FD55D6546B7DECE290D39E373CED7361B@H3CMLB14-EX.srv.huawei-3com.com>
+References: <59F91FEF.5020609@huawei.com>
+	<63ADC13FD55D6546B7DECE290D39E373CED73303@H3CMLB14-EX.srv.huawei-3com.com>
+	<59F96136.3070307@huawei.com>
+	<63ADC13FD55D6546B7DECE290D39E373CED73541@H3CMLB14-EX.srv.huawei-3com.com>
+	<59F97E2A.3000604@huawei.com>
+	<63ADC13FD55D6546B7DECE290D39E373CED7361B@H3CMLB14-EX.srv.huawei-3com.com>
+Message-ID: <59F9898C.4070902@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Alex,
+Hi Changwei,
 
-On 2017/11/1 15:05, alex chen wrote:
-> Hi Joseph and Changwei,
+I do think we need follow the principle that use 'dlm_domain_lock' to
+protect 'dlm_state' as the NOTE says in 'dlm_ctxt':
+/* NOTE: Next three are protected by dlm_domain_lock */
+
+deadnode won't be cleared from 'dlm->domain_map' if return from
+__dlm_hb_node_down(), and NodeA will retry migrating to NodeB forever
+if only NodeA and NodeB in domain. I suggest more testing needed in
+your solution.
+
+thanks,
+Jun
+
+On 2017/11/1 16:11, Changwei Ge wrote:
+> Hi Jun,
 > 
-> It's our basic principle that the function in which may sleep can't be called
-> within spinlock hold.
-
-I suppose this principle is a suggestion not a restriction.
-
+> Thanks for reviewing.
+> I don't think we have to worry about misusing *dlm_domain_lock* and 
+> *dlm::spinlock*. I admit my change may look a little different from most 
+> of other code snippets where using these two spin locks. But our purpose 
+> is to close the race between __dlm_hb_node_down and 
+> dlm_unregister_domain, right?  And my change meets that. :-)
 > 
-> On 2017/11/1 9:03, Joseph Qi wrote:
->> Hi Alex,
->>
->> On 17/10/31 20:41, alex chen wrote:
->>> In the following situation, the down_write() will be called under
->>> the spin_lock(), which may lead a soft lockup:
->>> o2hb_region_inc_user
->>>   spin_lock(&o2hb_live_lock)
->>>    o2hb_region_pin
->>>     o2nm_depend_item
->>>      configfs_depend_item
->>>       inode_lock
->>>        down_write
->>>        -->here may sleep and reschedule
->>>
->>> So we should unlock the o2hb_live_lock before the o2nm_depend_item(), and
->>> get item reference in advance to prevent the region to be released.
->>>
->>> Signed-off-by: Alex Chen <alex.chen@huawei.com>
->>> Reviewed-by: Yiwen Jiang <jiangyiwen@huawei.com>
->>> Reviewed-by: Jun Piao <piaojun@huawei.com>
->>> ---
->>>   fs/ocfs2/cluster/heartbeat.c | 8 ++++++++
->>>   1 file changed, 8 insertions(+)
->>>
->>> diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
->>> index d020604..f1142a9 100644
->>> --- a/fs/ocfs2/cluster/heartbeat.c
->>> +++ b/fs/ocfs2/cluster/heartbeat.c
->>> @@ -2399,6 +2399,9 @@ static int o2hb_region_pin(const char *region_uuid)
->>>   		if (reg->hr_item_pinned || reg->hr_item_dropped)
->>>   			goto skip_pin;
->>>
->>> +		config_item_get(&reg->hr_item);
->>> +		spin_unlock(&o2hb_live_lock);
->>> +
->> If unlock here, the iteration of o2hb_all_regions is no longer safe.
->>
->> Thanks,
->> Joseph
->>
-> 
-> In local heartbeat mode, here we already found the region and will break the loop after
-> depending item, we get the item reference before spin_unlock(), that means the region will
-> never be released by the o2hb_region_release() until we put the item reference after
-> spin_lock(&o2hb_live_lock), so we can safely iterate over the list.
-> In global heartbeat mode, it doesn't matter that some regions may be deleted after
-> spin_unlock(), because we just pin all the active regions.
-
-But we are still iterating elements on global list  *o2hb_all_regions*, 
-right? How can we guarantee that no more elements will be attached or 
-detached while the lock is unlocked.
-
+> I suppose we can do it in a flexible way.
 > 
 > Thanks,
-> Alex
+> Changwei
 > 
->>>   		/* Ignore ENOENT only for local hb (userdlm domain) */
->>>   		ret = o2nm_depend_item(&reg->hr_item);
->>>   		if (!ret) {
->>> @@ -2410,9 +2413,14 @@ static int o2hb_region_pin(const char *region_uuid)
->>>   			else {
->>>   				mlog(ML_ERROR, "Pin region %s fails with %d\n",
->>>   				     uuid, ret);
->>> +				config_item_put(&reg->hr_item);
->>> +				spin_lock(&o2hb_live_lock);
->>>   				break;
->>>   			}
->>>   		}
+> 
+> On 2017/11/1 15:57, piaojun wrote:
+>> Hi Changwei,
+>>
+>> thanks for reviewing, and I think waiting for recoverying done before
+>> migrating seems another solution, but I wonder if new problems will be
+>> invoked as following comments.
+>>
+>> thanks,
+>> Jun
+>>
+>> On 2017/11/1 15:13, Changwei Ge wrote:
+>>> Hi Jun,
+>>>
+>>> I probably get your point.
+>>>
+>>> You mean that dlm finds no lock resource to be migrated and no more lock
+>>> resource is managed by its hash table. After that a node dies all of a
+>>> sudden and the dead node is put into dlm's recovery map, right?
+>> that is it.
+>>> Furthermore, a lock resource is migrated from other nodes and local node
+>>> has already asserted master to them.
+>>>
+>>> If so, I want to suggest a easier way to solve it.
+>>> We don't have to add a new flag to dlm structure, just leverage existed
+>>> dlm status and bitmap.
+>>> It will bring a bonus - no lock resource will be marked with RECOVERING,
+>>> it's a safer way, I suppose.
+>>>
+>>> Please take a review.
+>>>
+>>> Thanks,
+>>> Changwei
+>>>
+>>>
+>>> Subject: [PATCH] ocfs2/dlm: a node can't be involved in recovery if it
+>>> is being shutdown
+>>>
+>>> Signed-off-by: Changwei Ge <ge.changwei@h3c.com>
+>>> ---
+>>>    fs/ocfs2/dlm/dlmdomain.c   | 4 ++++
+>>>    fs/ocfs2/dlm/dlmrecovery.c | 3 +++
+>>>    2 files changed, 7 insertions(+)
+>>>
+>>> diff --git a/fs/ocfs2/dlm/dlmdomain.c b/fs/ocfs2/dlm/dlmdomain.c
+>>> index a2b19fbdcf46..5e9283e509a4 100644
+>>> --- a/fs/ocfs2/dlm/dlmdomain.c
+>>> +++ b/fs/ocfs2/dlm/dlmdomain.c
+>>> @@ -707,11 +707,15 @@ void dlm_unregister_domain(struct dlm_ctxt *dlm)
+>>>    		 * want new domain joins to communicate with us at
+>>>    		 * least until we've completed migration of our
+>>>    		 * resources. */
+>>> +		spin_lock(&dlm->spinlock);
+>>>    		dlm->dlm_state = DLM_CTXT_IN_SHUTDOWN;
+>>> +		spin_unlock(&dlm->spinlock);
+>> I guess there will be misuse of 'dlm->spinlock' and dlm_domain_lock.
+>>>    		leave = 1;
+>>>    	}
+>>>    	spin_unlock(&dlm_domain_lock);
+>>>
+>>> +	dlm_wait_for_recovery(dlm);
 >>> +
->>> +		config_item_put(&reg->hr_item);
->>> +		spin_lock(&o2hb_live_lock);
->>>   skip_pin:
->>>   		if (found)
->>>   			break;
->>> -- 1.9.5.msysgit.1
+>>>    	if (leave) {
+>>>    		mlog(0, "shutting down domain %s\n", dlm->name);
+>>>    		dlm_begin_exit_domain(dlm);
+>>> diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
+>>> index 74407c6dd592..764c95b2b35c 100644
+>>> --- a/fs/ocfs2/dlm/dlmrecovery.c
+>>> +++ b/fs/ocfs2/dlm/dlmrecovery.c
+>>> @@ -2441,6 +2441,9 @@ static void __dlm_hb_node_down(struct dlm_ctxt
+>>> *dlm, int idx)
+>>>    {
+>>>    	assert_spin_locked(&dlm->spinlock);
 >>>
+>>> +	if (dlm->dlm_state == DLM_CTXT_IN_SHUTDOWN)
+>>> +		return;
+>>> +
+>> 'dlm->dlm_state' probably need be to protected by 'dlm_domain_lock'.
+>> and I wander if there is more work to be done when in
+>> 'DLM_CTXT_IN_SHUTDOWN'?
+>>>    	if (dlm->reco.new_master == idx) {
+>>>    		mlog(0, "%s: recovery master %d just died\n",
+>>>    		     dlm->name, idx);
 >>>
->>
->> .
 >>
 > 
+> .
 > 
