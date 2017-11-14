@@ -1,26 +1,19 @@
-From: alex chen <alex.chen@huawei.com>
-Date: Tue, 14 Nov 2017 17:22:46 +0800
+From: Joseph Qi <jiangqi903@gmail.com>
+Date: Tue, 14 Nov 2017 18:44:07 +0800
 Subject: [Ocfs2-devel] [PATCH v2] ocfs2/dlm: get mle inuse only when it
- is initialized
+	is initialized
 In-Reply-To: <63ADC13FD55D6546B7DECE290D39E373CED7AA61@H3CMLB14-EX.srv.huawei-3com.com>
 References: <63ADC13FD55D6546B7DECE290D39E373CED7AA61@H3CMLB14-EX.srv.huawei-3com.com>
-Message-ID: <5A0AB5E6.1000208@huawei.com>
+Message-ID: <c03d2079-1b45-8403-931e-27f79441228d@gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Changwei,
 
-Now, this seem a good fix. But it would be better if you can add a *Fixs* tag.
-BTW, I think this problem also exists in the "-stable" tree and you may
-cc <stable@vger.kernel.org>.
 
-Thanks,
-Alex
-
-On 2017/11/14 17:15, Changwei Ge wrote:
+On 17/11/14 17:15, Changwei Ge wrote:
 > Sorry for previous patch's format.
 > So I resend it.
 > 
@@ -33,6 +26,8 @@ On 2017/11/14 17:15, Changwei Ge wrote:
 > Changwei
 > 
 > Signed-off-by: Changwei Ge <ge.changwei@h3c.com>
+Reviewed-by: Joseph Qi <jiangqi903@gmail.com>
+
 > ---
 >   fs/ocfs2/dlm/dlmmaster.c | 4 +++-
 >   1 file changed, 3 insertions(+), 1 deletion(-)
