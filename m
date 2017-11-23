@@ -1,58 +1,41 @@
-From: John Lightsey <john@nixnuts.net>
-Date: Tue, 21 Nov 2017 15:05:01 -0600
-Subject: [Ocfs2-devel] [PATCH] Bug#841144: kernel BUG at
- /build/linux-Wgpe2M/linux-4.8.11/fs/ocfs2/alloc.c:1514!
-In-Reply-To: <63ADC13FD55D6546B7DECE290D39E373CED7CDDB@H3CMLB14-EX.srv.huawei-3com.com>
-References: <1511204090.3644.6.camel@nixnuts.net>
-	<63ADC13FD55D6546B7DECE290D39E373CED7CB51@H3CMLB14-EX.srv.huawei-3com.com>
-	<1511232309.3644.14.camel@nixnuts.net>
-	<63ADC13FD55D6546B7DECE290D39E373CED7CDDB@H3CMLB14-EX.srv.huawei-3com.com>
-Message-ID: <1511298301.2735.1.camel@nixnuts.net>
+From: =?UTF-8?Q?BASSAGET_C=C3=A9dric?= <cedric.bassaget.ml@gmail.com>
+Date: Thu, 23 Nov 2017 11:23:39 +0100
+Subject: [Ocfs2-devel] OCFS2 cluster debian8 / debian9
+Message-ID: <CAN+OZjS0Rd71QNg6abJ1o_4Jp+P2oNg1duCdXiEZPEsObH5dUQ@mail.gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Tue, 2017-11-21 at 05:58 +0000, Changwei Ge wrote:
+hello,
+I'm trying to set-up an OCFS2 cluster between hosts running debian8 and
+debian9
 
-> Can your tell me how did you format your volume?
-> What's your _cluster size_ and _block size_?
-> Your can obtain such information via debugfs.ocfs2 <your volume> -R?
-> 'stats' | grep 'Cluster Size'
-> 
-> It's better for you provide a way to reproduce this issue so that we
-> can?
-> perform some test.
-> 
+2*debian 8 : ocfs2-tools 1.6.4-3
+1*debian 9 : ocfs2-tools 1.8.4-4
 
-The issue recurred in our cluster today, so at best my patch is just
-decreasing the frequency of the crashes.
+I created the FS on debian 8 node :
+ mkfs.ocfs2 -L "ocfs2_new" -N 5 /dev/mapper/data_san_2
 
-Our setup has 10 machines sharing two OCFS2 mountpoints over fibre
-channel.
+then mounted it without problem
+mount /dev/mapper/data_san_2 /mnt/vol1_iscsi_san2/
 
-Both OCFS2 partitions have block size bits set to 12 and cluster size
-bits set to 20.
+I mounted it on second debian 8 host too, without problem.
 
-The two partitions contain around 310 files total with 200 of those
-being qcow2 files. The only inodes getting any read and write activity
-are the qcow2 files.
+Trying to mount in on debian9 returns :
+mount.ocfs2: Cluster name is invalid while trying to join the group
 
-The qcow2 files were created as sparse files (preallocation=metadata)
-and some are reflinked copies.
+I saw in "man mkfs.ocfs2" that debian9 version has --cluster-stack and
+--cluster-name options.
 
-It's not clear to me exactly why it's passing through
-ocfs2_lock_allocators() without allocating meta_ac. These qcow files
-wouldn't be written concurrently by different systems in the OCFS2
-cluster.
+Is this option mandatory on ocfs2 1.8 ? That would say that ocfs2 1.6 and
+1.8 are not compatible ? Nothing is said about 1.8 on
+https://oss.oracle.com/projects/ocfs2/
 
-Is it possible the 2 x multiplier in the ocfs2_lock_allocators call is
-not large enough?
+Any tip ?
+Regards,
+C?dric
 -------------- next part --------------
-A non-text attachment was scrubbed...
-Name: not available
-Type: application/pgp-signature
-Size: 833 bytes
-Desc: This is a digitally signed message part
-Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20171121/29b65745/attachment.bin 
+An HTML attachment was scrubbed...
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20171123/2871d20a/attachment.html 
