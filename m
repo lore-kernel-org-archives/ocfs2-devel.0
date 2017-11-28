@@ -1,361 +1,159 @@
-From: Gang He <ghe@suse.com>
-Date: Mon, 27 Nov 2017 22:59:46 -0700
-Subject: [Ocfs2-devel] [PATCH 3/3] ocfs2: nowait aio support
-In-Reply-To: <5A1CCF37.2020306@huawei.com>
+From: alex chen <alex.chen@huawei.com>
+Date: Tue, 28 Nov 2017 14:19:47 +0800
+Subject: [Ocfs2-devel] [PATCH 2/3] ocfs2: add ocfs2_overwrite_io function
+In-Reply-To: <5A1D65C4020000F90009ACE1@prv-mh.provo.novell.com>
 References: <1511775987-841-1-git-send-email-ghe@suse.com>
-	<1511775987-841-4-git-send-email-ghe@suse.com>
-	<5A1CCF37.2020306@huawei.com>
-Message-ID: <5A1D6BD2020000F90009AD1B@prv-mh.provo.novell.com>
+	<1511775987-841-3-git-send-email-ghe@suse.com>
+	<5A1CC7BC.3060309@huawei.com>
+	<5A1D65C4020000F90009ACE1@prv-mh.provo.novell.com>
+Message-ID: <5A1D0003.6060605@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: alex.chen@huawei.com
+To: Gang He <ghe@suse.com>
 Cc: jlbec@evilplan.org, hch@lst.de, ocfs2-devel@oss.oracle.com, Goldwyn Rodrigues <RGoldwyn@suse.com>, mfasheh@versity.com, linux-kernel@vger.kernel.org
 
-Hello Alex,
+Hi Gang,
 
-
->>> 
-> Hi Gang,
+On 2017/11/28 13:33, Gang He wrote:
+> Hello Alex,
 > 
-> On 2017/11/27 17:46, Gang He wrote:
->> Return EAGAIN if any of the following checks fail for direct I/O:
->> Can not get the related locks immediately,
->> Blocks are not allocated at the write location, it will trigger
->> block allocation and block IO operations.
->> 
->> Signed-off-by: Gang He <ghe@suse.com>
->> ---
->>  fs/ocfs2/dir.c         |  2 +-
->>  fs/ocfs2/dlmglue.c     | 20 ++++++++++----
->>  fs/ocfs2/dlmglue.h     |  2 +-
->>  fs/ocfs2/file.c        | 74 +++++++++++++++++++++++++++++++++++++-------------
->>  fs/ocfs2/mmap.c        |  2 +-
->>  fs/ocfs2/ocfs2_trace.h | 10 ++++---
->>  6 files changed, 79 insertions(+), 31 deletions(-)
->> 
->> diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
->> index febe631..ea50901 100644
->> --- a/fs/ocfs2/dir.c
->> +++ b/fs/ocfs2/dir.c
->> @@ -1957,7 +1957,7 @@ int ocfs2_readdir(struct file *file, struct dir_context 
-> *ctx)
->>  
->>  	trace_ocfs2_readdir((unsigned long long)OCFS2_I(inode)->ip_blkno);
->>  
->> -	error = ocfs2_inode_lock_atime(inode, file->f_path.mnt, &lock_level);
->> +	error = ocfs2_inode_lock_atime(inode, file->f_path.mnt, &lock_level, 1);
->>  	if (lock_level && error >= 0) {
->>  		/* We release EX lock which used to update atime
->>  		 * and get PR lock again to reduce contention
->> diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
->> index 5cfbd04..feb8dbe 100644
->> --- a/fs/ocfs2/dlmglue.c
->> +++ b/fs/ocfs2/dlmglue.c
->> @@ -2516,13 +2516,18 @@ int ocfs2_inode_lock_with_page(struct inode *inode,
->>  
->>  int ocfs2_inode_lock_atime(struct inode *inode,
->>  			  struct vfsmount *vfsmnt,
->> -			  int *level)
->> +			  int *level, int wait)
->>  {
->>  	int ret;
->>  
->> -	ret = ocfs2_inode_lock(inode, NULL, 0);
->> +	if (wait)
->> +		ret = ocfs2_inode_lock(inode, NULL, 0);
->> +	else
->> +		ret = ocfs2_try_inode_lock(inode, NULL, 0);
->> +
->>  	if (ret < 0) {
->> -		mlog_errno(ret);
->> +		if (ret != -EAGAIN)
->> +			mlog_errno(ret);
->>  		return ret;
->>  	}
->>  
->> @@ -2534,9 +2539,14 @@ int ocfs2_inode_lock_atime(struct inode *inode,
->>  		struct buffer_head *bh = NULL;
->>  
->>  		ocfs2_inode_unlock(inode, 0);
->> -		ret = ocfs2_inode_lock(inode, &bh, 1);
->> +		if (wait)
->> +			ret = ocfs2_inode_lock(inode, &bh, 1);
->> +		else
->> +			ret = ocfs2_try_inode_lock(inode, &bh, 1);
->> +
->>  		if (ret < 0) {
->> -			mlog_errno(ret);
->> +			if (ret != -EAGAIN)
->> +				mlog_errno(ret);
->>  			return ret;
->>  		}
->>  		*level = 1;
->> diff --git a/fs/ocfs2/dlmglue.h b/fs/ocfs2/dlmglue.h
->> index 05910fc..c83dbb5 100644
->> --- a/fs/ocfs2/dlmglue.h
->> +++ b/fs/ocfs2/dlmglue.h
->> @@ -123,7 +123,7 @@ void ocfs2_refcount_lock_res_init(struct ocfs2_lock_res 
-> *lockres,
->>  void ocfs2_open_unlock(struct inode *inode);
->>  int ocfs2_inode_lock_atime(struct inode *inode,
->>  			  struct vfsmount *vfsmnt,
->> -			  int *level);
->> +			  int *level, int wait);
->>  int ocfs2_inode_lock_full_nested(struct inode *inode,
->>  			 struct buffer_head **ret_bh,
->>  			 int ex,
->> diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
->> index dc455d4..900f04e 100644
->> --- a/fs/ocfs2/file.c
->> +++ b/fs/ocfs2/file.c
->> @@ -140,6 +140,8 @@ static int ocfs2_file_open(struct inode *inode, struct 
-> file *file)
->>  		spin_unlock(&oi->ip_lock);
->>  	}
->>  
->> +	file->f_mode |= FMODE_NOWAIT;
->> +
->>  leave:
->>  	return status;
->>  }
->> @@ -2132,8 +2134,7 @@ static int ocfs2_prepare_inode_for_refcount(struct 
-> inode *inode,
->>  }
->>  
->>  static int ocfs2_prepare_inode_for_write(struct file *file,
->> -					 loff_t pos,
->> -					 size_t count)
->> +					 loff_t pos, size_t count, int wait)
->>  {
->>  	int ret = 0, meta_level = 0;
->>  	struct dentry *dentry = file->f_path.dentry;
->> @@ -2145,10 +2146,14 @@ static int ocfs2_prepare_inode_for_write(struct file 
-> *file,
->>  	 * if we need to make modifications here.
->>  	 */
->>  	for(;;) {
->> -		ret = ocfs2_inode_lock(inode, NULL, meta_level);
->> +		if (wait)
->> +			ret = ocfs2_inode_lock(inode, NULL, meta_level);
->> +		else
->> +			ret = ocfs2_try_inode_lock(inode, NULL, meta_level);
->>  		if (ret < 0) {
->>  			meta_level = -1;
->> -			mlog_errno(ret);
->> +			if (ret != -EAGAIN)
->> +				mlog_errno(ret);
->>  			goto out;
->>  		}
+> 
+>>>>
+>> Hi Gang,
 >>
+>> On 2017/11/27 17:46, Gang He wrote:
+>>> Add ocfs2_overwrite_io function, which is used to judge if
+>>> overwrite allocated blocks, otherwise, the write will bring extra
+>>> block allocation overhead.
+>>>
+>>> Signed-off-by: Gang He <ghe@suse.com>
+>>> ---
+>>>  fs/ocfs2/extent_map.c | 67 
+>> +++++++++++++++++++++++++++++++++++++++++++++++++++
+>>>  fs/ocfs2/extent_map.h |  3 +++
+>>>  2 files changed, 70 insertions(+)
+>>>
+>>> diff --git a/fs/ocfs2/extent_map.c b/fs/ocfs2/extent_map.c
+>>> index e4719e0..98bf325 100644
+>>> --- a/fs/ocfs2/extent_map.c
+>>> +++ b/fs/ocfs2/extent_map.c
+>>> @@ -832,6 +832,73 @@ int ocfs2_fiemap(struct inode *inode, struct 
+>> fiemap_extent_info *fieinfo,
+>>>  	return ret;
+>>>  }
+>>>  
+>>> +/* Is IO overwriting allocated blocks? */
+>>> +int ocfs2_overwrite_io(struct inode *inode, u64 map_start, u64 map_len,
+>>> +		       int wait)
+>>> +{
+>>> +	int ret = 0, is_last;
+>>> +	u32 mapping_end, cpos;
+>>> +	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+>>> +	struct buffer_head *di_bh = NULL;
+>>> +	struct ocfs2_extent_rec rec;
+>>> +
+>>> +	if (wait)
+>>> +		ret = ocfs2_inode_lock(inode, &di_bh, 0);
+>>> +	else
+>>> +		ret = ocfs2_try_inode_lock(inode, &di_bh, 0);
+>>> +	if (ret)
+>>> +		goto out;
+>>> +
+>>> +	if (wait)
+>>> +		down_read(&OCFS2_I(inode)->ip_alloc_sem);
+>>> +	else {
+>>> +		if (!down_read_trylock(&OCFS2_I(inode)->ip_alloc_sem)) {
+>>> +			ret = -EAGAIN;
+>>> +			goto out_unlock1;
+>>> +		}
+>>> +	}
+>>> +
+>>> +	if ((OCFS2_I(inode)->ip_dyn_features & OCFS2_INLINE_DATA_FL) &&
+>>> +	   ((map_start + map_len) <= i_size_read(inode)))
+>>> +		goto out_unlock2;
+>>> +
+>>> +	cpos = map_start >> osb->s_clustersize_bits;
+>>> +	mapping_end = ocfs2_clusters_for_bytes(inode->i_sb,
+>>> +					       map_start + map_len);
+>>> +	is_last = 0;
+>>> +	while (cpos < mapping_end && !is_last) {
+>>> +		ret = ocfs2_get_clusters_nocache(inode, di_bh, cpos,
+>>> +						 NULL, &rec, &is_last);
+>>> +		if (ret) {
+>>> +			mlog_errno(ret);
+>>> +			goto out_unlock2;
+>>> +		}
+>>> +
+>>> +		if (rec.e_blkno == 0ULL)
+>>> +			break;
+>> I think here the blocks is not overwrite, because the hold is found and the 
+>> blocks
+>> should be allocated.
+> If the rec.e_blkno == NULL, this means there is a hole.
+> The file hole means that these blocks are not allocated, it does not like unwritten block.
+> The unwritten blocks means that these blocks are allocated, but still have not been unwritten. 
 > 
-> We will lock inode again in 
-> ocfs2_prepare_inode_for_write()->ocfs2_prepare_inode_for_refcount().
-> Should we add the check of 'nowait' flags?
-I think ocfs2_overwrite_io() function can make sure ocfs2_prepare_inode_for_refcount() is passed,
-but it looks there is a race condition between ocfs2_overwrite_io() and ocfs2_prepare_inode_for_write() since inode lock is released.
-I think I will move ocfs2_overwrite_io() function invoking in ocfs2_prepare_inode_for_write() to avoid this race.
+If we break the loop when we find the hold, out of this function we will allocate the blocks in
+ocfs2_file_write_iter()->..->ocfs2_direct_IO->__blockdev_direct_IO->..->ocfs2_dio_wr_get_block()
+->ocfs2_write_begin_nolock. Does this violate the semantics of 'IOCB_NOWAIT';
 
-Thanks
-Gang
+BTW, should we consider the down_write() and ocfs2_inode_lock() in ocfs2_dio_wr_get_block() when
+the flag 'IOCB_NOWAIT' is set;
 
-
+>>> +
+>>> +		if (rec.e_flags & OCFS2_EXT_REFCOUNTED)
+>>> +			break;
+>>> +
+>>> +		cpos = le32_to_cpu(rec.e_cpos) +
+>>> +			le16_to_cpu(rec.e_leaf_clusters);
+>>> +	}
+>>> +
+>>> +	if (cpos < mapping_end)
+>>> +		ret = 1;
+>>> +
+>>> +out_unlock2:
+>>
+>> I think the 'out_up_read' is more readable than the 'out_unlock2' .
+> Ok, I will use more readable tag here.
+>>
+>>> +	brelse(di_bh);
+>>> +
+>>> +	up_read(&OCFS2_I(inode)->ip_alloc_sem);
+>>> +
+>>> +out_unlock1:
+>>
+>> We should release buffer head here.
+>>
+>>> +	ocfs2_inode_unlock(inode, 0);
+>>> +
+>>> +out:
+>>> +	return (ret ? 0 : 1);
+>>> +}
+>>> +
+>>>  int ocfs2_seek_data_hole_offset(struct file *file, loff_t *offset, int 
+>> whence)
+>>>  {
+>>>  	struct inode *inode = file->f_mapping->host;
+>>> diff --git a/fs/ocfs2/extent_map.h b/fs/ocfs2/extent_map.h
+>>> index 67ea57d..fd9e86a 100644
+>>> --- a/fs/ocfs2/extent_map.h
+>>> +++ b/fs/ocfs2/extent_map.h
+>>> @@ -53,6 +53,9 @@ int ocfs2_extent_map_get_blocks(struct inode *inode, u64 
+>> v_blkno, u64 *p_blkno,
+>>>  int ocfs2_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo,
+>>>  		 u64 map_start, u64 map_len);
+>>>  
+>>> +int ocfs2_overwrite_io(struct inode *inode, u64 map_start, u64 map_len,
+>>> +		       int wait);
+>>> +
+>>>  int ocfs2_seek_data_hole_offset(struct file *file, loff_t *offset, int 
+>> origin);
+>>>  
+>>>  int ocfs2_xattr_get_clusters(struct inode *inode, u32 v_cluster,
+>>>
 > 
->> @@ -2199,7 +2204,7 @@ static int ocfs2_prepare_inode_for_write(struct file 
-> *file,
->>  
->>  out_unlock:
->>  	trace_ocfs2_prepare_inode_for_write(OCFS2_I(inode)->ip_blkno,
->> -					    pos, count);
->> +					    pos, count, wait);
->>  
->>  	if (meta_level >= 0)
->>  		ocfs2_inode_unlock(inode, meta_level);
->> @@ -2211,7 +2216,7 @@ static int ocfs2_prepare_inode_for_write(struct file 
-> *file,
->>  static ssize_t ocfs2_file_write_iter(struct kiocb *iocb,
->>  				    struct iov_iter *from)
->>  {
->> -	int direct_io, rw_level;
->> +	int rw_level;
->>  	ssize_t written = 0;
->>  	ssize_t ret;
->>  	size_t count = iov_iter_count(from);
->> @@ -2223,6 +2228,8 @@ static ssize_t ocfs2_file_write_iter(struct kiocb 
-> *iocb,
->>  	void *saved_ki_complete = NULL;
->>  	int append_write = ((iocb->ki_pos + count) >=
->>  			i_size_read(inode) ? 1 : 0);
->> +	int direct_io = iocb->ki_flags & IOCB_DIRECT ? 1 : 0;
->> +	int nowait = iocb->ki_flags & IOCB_NOWAIT ? 1 : 0;
->>  
->>  	trace_ocfs2_file_aio_write(inode, file, file->f_path.dentry,
->>  		(unsigned long long)OCFS2_I(inode)->ip_blkno,
->> @@ -2230,12 +2237,17 @@ static ssize_t ocfs2_file_write_iter(struct kiocb 
-> *iocb,
->>  		file->f_path.dentry->d_name.name,
->>  		(unsigned int)from->nr_segs);	/* GRRRRR */
->>  
->> +	if (!direct_io && nowait)
->> +		return -EOPNOTSUPP;
->> +
->>  	if (count == 0)
->>  		return 0;
->>  
->> -	direct_io = iocb->ki_flags & IOCB_DIRECT ? 1 : 0;
->> -
->> -	inode_lock(inode);
->> +	if (direct_io && nowait) {
->> +		if (!inode_trylock(inode))
->> +			return -EAGAIN;
->> +	} else
->> +		inode_lock(inode);
->>  
->>  	/*
->>  	 * Concurrent O_DIRECT writes are allowed with
->> @@ -2244,9 +2256,13 @@ static ssize_t ocfs2_file_write_iter(struct kiocb 
-> *iocb,
->>  	 */
->>  	rw_level = (!direct_io || full_coherency || append_write);
->>  
->> -	ret = ocfs2_rw_lock(inode, rw_level);
->> +	if (direct_io && nowait)
->> +		ret = ocfs2_try_rw_lock(inode, rw_level);
->> +	else
->> +		ret = ocfs2_rw_lock(inode, rw_level);
->>  	if (ret < 0) {
->> -		mlog_errno(ret);
->> +		if (ret != -EAGAIN)
->> +			mlog_errno(ret);
->>  		goto out_mutex;
->>  	}
->>  
->> @@ -2260,9 +2276,13 @@ static ssize_t ocfs2_file_write_iter(struct kiocb 
-> *iocb,
->>  		 * other nodes to drop their caches.  Buffered I/O
->>  		 * already does this in write_begin().
->>  		 */
->> -		ret = ocfs2_inode_lock(inode, NULL, 1);
->> +		if (nowait)
->> +			ret = ocfs2_try_inode_lock(inode, NULL, 1);
->> +		else
->> +			ret = ocfs2_inode_lock(inode, NULL, 1);
->>  		if (ret < 0) {
->> -			mlog_errno(ret);
->> +			if (ret != -EAGAIN)
->> +				mlog_errno(ret);
->>  			goto out;
->>  		}
->>  
->> @@ -2277,9 +2297,17 @@ static ssize_t ocfs2_file_write_iter(struct kiocb 
-> *iocb,
->>  	}
->>  	count = ret;
->>  
->> -	ret = ocfs2_prepare_inode_for_write(file, iocb->ki_pos, count);
->> +	if (direct_io && nowait) {
->> +		if (!ocfs2_overwrite_io(inode, iocb->ki_pos, count, 0)) {
->> +			ret = -EAGAIN;
->> +			goto out;
->> +		}
->> +	}
->> +
->> +	ret = ocfs2_prepare_inode_for_write(file, iocb->ki_pos, count, !nowait);
->>  	if (ret < 0) {
->> -		mlog_errno(ret);
->> +		if (ret != -EAGAIN)
->> +			mlog_errno(ret);
->>  		goto out;
->>  	}
->>  
->> @@ -2355,6 +2383,7 @@ static ssize_t ocfs2_file_read_iter(struct kiocb *iocb,
->>  	int ret = 0, rw_level = -1, lock_level = 0;
->>  	struct file *filp = iocb->ki_filp;
->>  	struct inode *inode = file_inode(filp);
->> +	int nowait = iocb->ki_flags & IOCB_NOWAIT ? 1 : 0;
->>  
->>  	trace_ocfs2_file_aio_read(inode, filp, filp->f_path.dentry,
->>  			(unsigned long long)OCFS2_I(inode)->ip_blkno,
->> @@ -2374,9 +2403,14 @@ static ssize_t ocfs2_file_read_iter(struct kiocb 
-> *iocb,
->>  	 * need locks to protect pending reads from racing with truncate.
->>  	 */
->>  	if (iocb->ki_flags & IOCB_DIRECT) {
->> -		ret = ocfs2_rw_lock(inode, 0);
->> +		if (nowait)
->> +			ret = ocfs2_try_rw_lock(inode, 0);
->> +		else
->> +			ret = ocfs2_rw_lock(inode, 0);
->> +
->>  		if (ret < 0) {
->> -			mlog_errno(ret);
->> +			if (ret != -EAGAIN)
->> +				mlog_errno(ret);
->>  			goto bail;
->>  		}
->>  		rw_level = 0;
->> @@ -2393,9 +2427,11 @@ static ssize_t ocfs2_file_read_iter(struct kiocb 
-> *iocb,
->>  	 * like i_size. This allows the checks down below
->>  	 * generic_file_aio_read() a chance of actually working.
->>  	 */
->> -	ret = ocfs2_inode_lock_atime(inode, filp->f_path.mnt, &lock_level);
->> +	ret = ocfs2_inode_lock_atime(inode, filp->f_path.mnt, &lock_level,
->> +				     !nowait);
 > 
-> Should we judge if the flags is included O_DIRECT?
+> .
 > 
->>  	if (ret < 0) {
->> -		mlog_errno(ret);
->> +		if (ret != -EAGAIN)
->> +			mlog_errno(ret);
->>  		goto bail;
->>  	}
->>  	ocfs2_inode_unlock(inode, lock_level);
->> diff --git a/fs/ocfs2/mmap.c b/fs/ocfs2/mmap.c
->> index 098f5c7..fb9a20e 100644
->> --- a/fs/ocfs2/mmap.c
->> +++ b/fs/ocfs2/mmap.c
->> @@ -184,7 +184,7 @@ int ocfs2_mmap(struct file *file, struct vm_area_struct 
-> *vma)
->>  	int ret = 0, lock_level = 0;
->>  
->>  	ret = ocfs2_inode_lock_atime(file_inode(file),
->> -				    file->f_path.mnt, &lock_level);
->> +				    file->f_path.mnt, &lock_level, 1);
->>  	if (ret < 0) {
->>  		mlog_errno(ret);
->>  		goto out;
->> diff --git a/fs/ocfs2/ocfs2_trace.h b/fs/ocfs2/ocfs2_trace.h
->> index a0b5d00..e2a11aa 100644
->> --- a/fs/ocfs2/ocfs2_trace.h
->> +++ b/fs/ocfs2/ocfs2_trace.h
->> @@ -1449,20 +1449,22 @@
->>  
->>  TRACE_EVENT(ocfs2_prepare_inode_for_write,
->>  	TP_PROTO(unsigned long long ino, unsigned long long saved_pos,
->> -		 unsigned long count),
->> -	TP_ARGS(ino, saved_pos, count),
->> +		 unsigned long count, int wait),
->> +	TP_ARGS(ino, saved_pos, count, wait),
->>  	TP_STRUCT__entry(
->>  		__field(unsigned long long, ino)
->>  		__field(unsigned long long, saved_pos)
->>  		__field(unsigned long, count)
->> +		__field(int, wait)
->>  	),
->>  	TP_fast_assign(
->>  		__entry->ino = ino;
->>  		__entry->saved_pos = saved_pos;
->>  		__entry->count = count;
->> +		__entry->wait = wait;
->>  	),
->> -	TP_printk("%llu %llu %lu", __entry->ino,
->> -		  __entry->saved_pos, __entry->count)
->> +	TP_printk("%llu %llu %lu %d", __entry->ino,
->> +		  __entry->saved_pos, __entry->count, __entry->wait)
->>  );
->>  
->>  DEFINE_OCFS2_INT_EVENT(generic_file_aio_read_ret);
->> 
