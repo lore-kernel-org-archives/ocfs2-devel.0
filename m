@@ -1,223 +1,84 @@
-From: alex chen <alex.chen@huawei.com>
-Date: Tue, 28 Nov 2017 21:22:13 +0800
-Subject: [Ocfs2-devel] [PATCH 2/3] ocfs2: add ocfs2_overwrite_io function
-In-Reply-To: <5A1D8FAF020000F90009ADEF@prv-mh.provo.novell.com>
-References: <1511775987-841-1-git-send-email-ghe@suse.com>
-	<1511775987-841-3-git-send-email-ghe@suse.com>
-	<5A1CC7BC.3060309@huawei.com>
-	<5A1D65C4020000F90009ACE1@prv-mh.provo.novell.com>
-	<5A1D0003.6060605@huawei.com>
-	<5A1D830E020000F90009ADA7@prv-mh.provo.novell.com>
-	<5A1D1A4A.8040506@huawei.com>
-	<5A1D8FAF020000F90009ADEF@prv-mh.provo.novell.com>
-Message-ID: <5A1D6305.80202@huawei.com>
+From: John Lightsey <john@nixnuts.net>
+Date: Tue, 28 Nov 2017 08:34:51 -0600
+Subject: [Ocfs2-devel] [PATCH] Bug#841144: kernel BUG at
+ /build/linux-Wgpe2M/linux-4.8.11/fs/ocfs2/alloc.c:1514!
+In-Reply-To: <5A17B220.5030909@huawei.com>
+References: <1511204090.3644.6.camel@nixnuts.net>
+	<63ADC13FD55D6546B7DECE290D39E373CED7CB51@H3CMLB14-EX.srv.huawei-3com.com>
+	<1511232309.3644.14.camel@nixnuts.net>
+	<63ADC13FD55D6546B7DECE290D39E373CED7CDDB@H3CMLB14-EX.srv.huawei-3com.com>
+	<1511298301.2735.1.camel@nixnuts.net> <5A17B220.5030909@huawei.com>
+Message-ID: <1511879691.2799.1.camel@nixnuts.net>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Gang He <ghe@suse.com>
-Cc: "jlbec@evilplan.org" <jlbec@evilplan.org>, "hch@lst.de" <hch@lst.de>, "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>, Goldwyn Rodrigues <RGoldwyn@suse.com>, "mfasheh@versity.com" <mfasheh@versity.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+To: ocfs2-devel@oss.oracle.com
 
-Hi Gang,
+On Fri, 2017-11-24 at 13:46 +0800, alex chen wrote:
+> We need to check the free number of the records in each loop to mark
+> extent written,
+> because the last extent block may be changed through many times
+> marking extent written
+> and the num_free_extents also be changed. In the worst case, the
+> num_free_extents may
+> become less than at the beginning of the loop. So we should not
+> estimate the free
+> number of the records at the beginning of the loop to mark extent
+> written.
+> 
+> I'd appreciate it if you could test the following patch and feedback
+> the result.
 
-On 2017/11/28 16:32, Gang He wrote:
-> Hi Alex,
-> 
-> 
->>>>
->> Hi Gang,
->>
->> On 2017/11/28 15:38, Gang He wrote:
->>> Hi Alex,
->>>
->>>
->>>>>>
->>>> Hi Gang,
->>>>
->>>> On 2017/11/28 13:33, Gang He wrote:
->>>>> Hello Alex,
->>>>>
->>>>>
->>>>>>>>
->>>>>> Hi Gang,
->>>>>>
->>>>>> On 2017/11/27 17:46, Gang He wrote:
->>>>>>> Add ocfs2_overwrite_io function, which is used to judge if
->>>>>>> overwrite allocated blocks, otherwise, the write will bring extra
->>>>>>> block allocation overhead.
->>>>>>>
->>>>>>> Signed-off-by: Gang He <ghe@suse.com>
->>>>>>> ---
->>>>>>>  fs/ocfs2/extent_map.c | 67 
->>>>>> +++++++++++++++++++++++++++++++++++++++++++++++++++
->>>>>>>  fs/ocfs2/extent_map.h |  3 +++
->>>>>>>  2 files changed, 70 insertions(+)
->>>>>>>
->>>>>>> diff --git a/fs/ocfs2/extent_map.c b/fs/ocfs2/extent_map.c
->>>>>>> index e4719e0..98bf325 100644
->>>>>>> --- a/fs/ocfs2/extent_map.c
->>>>>>> +++ b/fs/ocfs2/extent_map.c
->>>>>>> @@ -832,6 +832,73 @@ int ocfs2_fiemap(struct inode *inode, struct 
->>>>>> fiemap_extent_info *fieinfo,
->>>>>>>  	return ret;
->>>>>>>  }
->>>>>>>  
->>>>>>> +/* Is IO overwriting allocated blocks? */
->>>>>>> +int ocfs2_overwrite_io(struct inode *inode, u64 map_start, u64 map_len,
->>>>>>> +		       int wait)
->>>>>>> +{
->>>>>>> +	int ret = 0, is_last;
->>>>>>> +	u32 mapping_end, cpos;
->>>>>>> +	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
->>>>>>> +	struct buffer_head *di_bh = NULL;
->>>>>>> +	struct ocfs2_extent_rec rec;
->>>>>>> +
->>>>>>> +	if (wait)
->>>>>>> +		ret = ocfs2_inode_lock(inode, &di_bh, 0);
->>>>>>> +	else
->>>>>>> +		ret = ocfs2_try_inode_lock(inode, &di_bh, 0);
->>>>>>> +	if (ret)
->>>>>>> +		goto out;
->>>>>>> +
->>>>>>> +	if (wait)
->>>>>>> +		down_read(&OCFS2_I(inode)->ip_alloc_sem);
->>>>>>> +	else {
->>>>>>> +		if (!down_read_trylock(&OCFS2_I(inode)->ip_alloc_sem)) {
->>>>>>> +			ret = -EAGAIN;
->>>>>>> +			goto out_unlock1;
->>>>>>> +		}
->>>>>>> +	}
->>>>>>> +
->>>>>>> +	if ((OCFS2_I(inode)->ip_dyn_features & OCFS2_INLINE_DATA_FL) &&
->>>>>>> +	   ((map_start + map_len) <= i_size_read(inode)))
->>>>>>> +		goto out_unlock2;
->>>>>>> +
->>>>>>> +	cpos = map_start >> osb->s_clustersize_bits;
->>>>>>> +	mapping_end = ocfs2_clusters_for_bytes(inode->i_sb,
->>>>>>> +					       map_start + map_len);
->>>>>>> +	is_last = 0;
->>>>>>> +	while (cpos < mapping_end && !is_last) {
->>>>>>> +		ret = ocfs2_get_clusters_nocache(inode, di_bh, cpos,
->>>>>>> +						 NULL, &rec, &is_last);
->>>>>>> +		if (ret) {
->>>>>>> +			mlog_errno(ret);
->>>>>>> +			goto out_unlock2;
->>>>>>> +		}
->>>>>>> +
->>>>>>> +		if (rec.e_blkno == 0ULL)
->>>>>>> +			break;
->>>>>> I think here the blocks is not overwrite, because the hold is found and the 
->>>>>> blocks
->>>>>> should be allocated.
->>>>> If the rec.e_blkno == NULL, this means there is a hole.
->>>>> The file hole means that these blocks are not allocated, it does not like 
->>>> unwritten block.
->>>>> The unwritten blocks means that these blocks are allocated, but still have 
->>>> not been unwritten. 
->>>>>
->>>> If we break the loop when we find the hold, out of this function we will 
->>>> allocate the blocks in
->>>> ocfs2_file_write_iter()->..->ocfs2_direct_IO->__blockdev_direct_IO->..->ocfs2_dio_wr_g
->>>> et_block()
->>>> ->ocfs2_write_begin_nolock. Does this violate the semantics of 'IOCB_NOWAIT';
->>> Yes, then we need to check if this is a overwrite before doing direct-io.
->>>
->>
->> I mean here we should return 0 instead of break and we should immediately 
->> return -EAGAIN
->> to upper apps, otherwise, some block allocation will be happen, which 
->> violates the
->> semantics of 'IOCB_NOWAIT'.
-> Before we do a direct-io, I need to check if this is a overwrite allocated blocks IO.
-> If not, we will return  -EAGAIN in 'IOCB_NOWAIT' mode. this should not trigger any block allocation.
-> I am not sure if we understand your concern totally.
-> 
+I managed to reproduce the bug in a test environment using the
+following method. Some of the specific details here are definitely
+irrelevant:
 
-Yes, your description is correct.
-So we should return 0 instead of break when we find the hold in ocfs2_overwrite_io();
+- Setup a 20GB iscsi lun going to a spinning disk drive.
 
-> Thanks
-> Gang 
-> 
->>
->> Thanks,
->> Alex
->>
->>>>
->>>> BTW, should we consider the down_write() and ocfs2_inode_lock() in 
->>>> ocfs2_dio_wr_get_block() when
->>>> the flag 'IOCB_NOWAIT' is set;
->>> I think that we should not consider that layer lock, otherwise, the code 
->> change will become more and more complex and big.
->>> I also refer to ext4 file system code change for this 
->> feature(728fbc0e10b7f3ce2ee043b32e3453fd5201c055), they did not do any change 
->> in that layer.
->>>
->>
->> OK.
->>
->>> Thanks
->>> Gang
->>>
->>>>
->>>>>>> +
->>>>>>> +		if (rec.e_flags & OCFS2_EXT_REFCOUNTED)
->>>>>>> +			break;
->>>>>>> +
->>>>>>> +		cpos = le32_to_cpu(rec.e_cpos) +
->>>>>>> +			le16_to_cpu(rec.e_leaf_clusters);
->>>>>>> +	}
->>>>>>> +
->>>>>>> +	if (cpos < mapping_end)
->>>>>>> +		ret = 1;
->>>>>>> +
->>>>>>> +out_unlock2:
->>>>>>
->>>>>> I think the 'out_up_read' is more readable than the 'out_unlock2' .
->>>>> Ok, I will use more readable tag here.
->>>>>>
->>>>>>> +	brelse(di_bh);
->>>>>>> +
->>>>>>> +	up_read(&OCFS2_I(inode)->ip_alloc_sem);
->>>>>>> +
->>>>>>> +out_unlock1:
->>>>>>
->>>>>> We should release buffer head here.
->>>>>>
->>>>>>> +	ocfs2_inode_unlock(inode, 0);
->>>>>>> +
->>>>>>> +out:
->>>>>>> +	return (ret ? 0 : 1);
->>>>>>> +}
->>>>>>> +
->>>>>>>  int ocfs2_seek_data_hole_offset(struct file *file, loff_t *offset, int 
->>>>>> whence)
->>>>>>>  {
->>>>>>>  	struct inode *inode = file->f_mapping->host;
->>>>>>> diff --git a/fs/ocfs2/extent_map.h b/fs/ocfs2/extent_map.h
->>>>>>> index 67ea57d..fd9e86a 100644
->>>>>>> --- a/fs/ocfs2/extent_map.h
->>>>>>> +++ b/fs/ocfs2/extent_map.h
->>>>>>> @@ -53,6 +53,9 @@ int ocfs2_extent_map_get_blocks(struct inode *inode, u64 
->>>>>> v_blkno, u64 *p_blkno,
->>>>>>>  int ocfs2_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo,
->>>>>>>  		 u64 map_start, u64 map_len);
->>>>>>>  
->>>>>>> +int ocfs2_overwrite_io(struct inode *inode, u64 map_start, u64 map_len,
->>>>>>> +		       int wait);
->>>>>>> +
->>>>>>>  int ocfs2_seek_data_hole_offset(struct file *file, loff_t *offset, int 
->>>>>> origin);
->>>>>>>  
->>>>>>>  int ocfs2_xattr_get_clusters(struct inode *inode, u32 v_cluster,
->>>>>>>
->>>>>
->>>>>
->>>>> .
->>>>>
->>>
->>> .
->>>
-> 
-> .
-> 
+- Configure the OCFS cluster with three KVM VMs.
+
+- Connect the iscsi lun to all three VMs.
+
+- Format an OCFS2 partition on the iscsi lun with block size 1k and
+cluster size 4k.
+
+- Mount the OCFS2 partition on one VM.
+
+- Write out a 1GB file with a random pattern of 4k chunks. 4/5 of the
+4k chunks are filled with nulls. 1/5 are filled with data.
+
+- Run fallocate -d <filename> to make sure the file is sparse.
+
+- Copy the test file so that the next step can be run repeatedly with
+copies.
+
+- Use directio to rewrite the copy of the file in 64k chunks of null
+bytes.
+
+
+In my test setup, the assertion failure happens on the next loop
+iteration after the number of free extents drops from 59 to 0. The call
+to ocfs2_split_extent() in ocfs2_change_extent_flag() is what actually
+reduces the number of free extents to 0. The count drops all at once in
+this case, not by 1 or 2 per loop iteration.
+
+With your patch applied, it does handle this sudden reduction in the
+number of free extents, and it's able to entirely overwrite the 1GB
+file without any problems.
+
+Is it safe to bring up a few nodes in our production OCFS2 cluster with
+the patched 4.9 kernel while the remainder nodes are running a 3.16
+kernel?
+
+The downtime required to switch our cluster forward to a 4.9 kernel and
+then back to a 3.16 kernel is hard to justify, but I can definitely
+test one or two nodes in our production environment if it will be a
+realistic test.
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: not available
+Type: application/pgp-signature
+Size: 833 bytes
+Desc: This is a digitally signed message part
+Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20171128/a8f6a070/attachment.bin 
