@@ -1,29 +1,29 @@
-From: alex chen <alex.chen@huawei.com>
-Date: Tue, 28 Nov 2017 14:19:47 +0800
+From: Joseph Qi <jiangqi903@gmail.com>
+Date: Tue, 28 Nov 2017 14:51:45 +0800
 Subject: [Ocfs2-devel] [PATCH 2/3] ocfs2: add ocfs2_overwrite_io function
-In-Reply-To: <5A1D65C4020000F90009ACE1@prv-mh.provo.novell.com>
+In-Reply-To: <5A1D49E5020000F90009AC66@prv-mh.provo.novell.com>
 References: <1511775987-841-1-git-send-email-ghe@suse.com>
 	<1511775987-841-3-git-send-email-ghe@suse.com>
-	<5A1CC7BC.3060309@huawei.com>
-	<5A1D65C4020000F90009ACE1@prv-mh.provo.novell.com>
-Message-ID: <5A1D0003.6060605@huawei.com>
+	<123f1322-d453-4aca-ac95-63d6f90fd8a2@gmail.com>
+	<5A1D49E5020000F90009AC66@prv-mh.provo.novell.com>
+Message-ID: <805fb849-dcc7-cbbc-02af-1c6116a88957@gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Gang He <ghe@suse.com>
-Cc: jlbec@evilplan.org, hch@lst.de, ocfs2-devel@oss.oracle.com, Goldwyn Rodrigues <RGoldwyn@suse.com>, mfasheh@versity.com, linux-kernel@vger.kernel.org
+To: Gang He <ghe@suse.com>, jlbec@evilplan.org, hch@lst.de, Goldwyn Rodrigues <RGoldwyn@suse.com>, mfasheh@versity.com
+Cc: ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
 
-Hi Gang,
 
-On 2017/11/28 13:33, Gang He wrote:
-> Hello Alex,
+
+On 17/11/28 11:35, Gang He wrote:
+> Hello Joseph,
 > 
 > 
 >>>>
 >> Hi Gang,
 >>
->> On 2017/11/27 17:46, Gang He wrote:
+>> On 17/11/27 17:46, Gang He wrote:
 >>> Add ocfs2_overwrite_io function, which is used to judge if
 >>> overwrite allocated blocks, otherwise, the write will bring extra
 >>> block allocation overhead.
@@ -88,20 +88,6 @@ On 2017/11/28 13:33, Gang He wrote:
 >>> +
 >>> +		if (rec.e_blkno == 0ULL)
 >>> +			break;
->> I think here the blocks is not overwrite, because the hold is found and the 
->> blocks
->> should be allocated.
-> If the rec.e_blkno == NULL, this means there is a hole.
-> The file hole means that these blocks are not allocated, it does not like unwritten block.
-> The unwritten blocks means that these blocks are allocated, but still have not been unwritten. 
-> 
-If we break the loop when we find the hold, out of this function we will allocate the blocks in
-ocfs2_file_write_iter()->..->ocfs2_direct_IO->__blockdev_direct_IO->..->ocfs2_dio_wr_get_block()
-->ocfs2_write_begin_nolock. Does this violate the semantics of 'IOCB_NOWAIT';
-
-BTW, should we consider the down_write() and ocfs2_inode_lock() in ocfs2_dio_wr_get_block() when
-the flag 'IOCB_NOWAIT' is set;
-
 >>> +
 >>> +		if (rec.e_flags & OCFS2_EXT_REFCOUNTED)
 >>> +			break;
@@ -114,22 +100,33 @@ the flag 'IOCB_NOWAIT' is set;
 >>> +		ret = 1;
 >>> +
 >>> +out_unlock2:
->>
->> I think the 'out_up_read' is more readable than the 'out_unlock2' .
-> Ok, I will use more readable tag here.
->>
 >>> +	brelse(di_bh);
 >>> +
 >>> +	up_read(&OCFS2_I(inode)->ip_alloc_sem);
 >>> +
 >>> +out_unlock1:
->>
->> We should release buffer head here.
+>> Should brelse(di_bh) be here?
+> If the code jumps to out_unlock1 directly, the di_bh pointer should be NULL, it is not necessary to release.
+> 
+Umm... No, once going out here, we have already taken inode lock. So
+di_bh should be released.
+
 >>
 >>> +	ocfs2_inode_unlock(inode, 0);
 >>> +
 >>> +out:
 >>> +	return (ret ? 0 : 1);
+>> I don't think EAGAIN and other error code can be handled the same. We
+>> have to distinguish them.
+> Ok, I think we can add one line log to report the error in case the error is not EAGAIN. 
+> 
+My point is, there is no need to try again in several cases, e.g. EROFS
+returned by ocfs2_get_clusters_nocache.
+
+>>
+>> Thanks,
+>> Joseph
+>>
 >>> +}
 >>> +
 >>>  int ocfs2_seek_data_hole_offset(struct file *file, loff_t *offset, int 
@@ -153,7 +150,4 @@ the flag 'IOCB_NOWAIT' is set;
 >>>  
 >>>  int ocfs2_xattr_get_clusters(struct inode *inode, u32 v_cluster,
 >>>
-> 
-> 
-> .
 > 
