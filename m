@@ -1,38 +1,45 @@
-From: alex chen <alex.chen@huawei.com>
-Date: Tue, 28 Nov 2017 10:19:40 +0800
+From: Changwei Ge <ge.changwei@h3c.com>
+Date: Tue, 28 Nov 2017 02:48:01 +0000
 Subject: [Ocfs2-devel] [PATCH 2/3] ocfs2: add ocfs2_overwrite_io function
-In-Reply-To: <1511775987-841-3-git-send-email-ghe@suse.com>
 References: <1511775987-841-1-git-send-email-ghe@suse.com>
 	<1511775987-841-3-git-send-email-ghe@suse.com>
-Message-ID: <5A1CC7BC.3060309@huawei.com>
+Message-ID: <63ADC13FD55D6546B7DECE290D39E373F1470B4A@H3CMLB12-EX.srv.huawei-3com.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Gang He <ghe@suse.com>
-Cc: mfasheh@versity.com, jlbec@evilplan.org, rgoldwyn@suse.com, hch@lst.de, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
+To: Gang He <ghe@suse.com>, "mfasheh@versity.com" <mfasheh@versity.com>, "jlbec@evilplan.org" <jlbec@evilplan.org>, "rgoldwyn@suse.com" <rgoldwyn@suse.com>, "hch@lst.de" <hch@lst.de>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>
 
-Hi Gang,
+Hi,
+Gang
 
-On 2017/11/27 17:46, Gang He wrote:
+On 2017/11/27 17:48, Gang He wrote:
 > Add ocfs2_overwrite_io function, which is used to judge if
 > overwrite allocated blocks, otherwise, the write will bring extra
 > block allocation overhead.
 > 
+
+Can you elaborate how this overhead is introduced?
+Forgive me, I don't figure it.
+
+Thanks,
+Changwei
+
 > Signed-off-by: Gang He <ghe@suse.com>
 > ---
->  fs/ocfs2/extent_map.c | 67 +++++++++++++++++++++++++++++++++++++++++++++++++++
->  fs/ocfs2/extent_map.h |  3 +++
->  2 files changed, 70 insertions(+)
+>   fs/ocfs2/extent_map.c | 67 +++++++++++++++++++++++++++++++++++++++++++++++++++
+>   fs/ocfs2/extent_map.h |  3 +++
+>   2 files changed, 70 insertions(+)
 > 
 > diff --git a/fs/ocfs2/extent_map.c b/fs/ocfs2/extent_map.c
 > index e4719e0..98bf325 100644
 > --- a/fs/ocfs2/extent_map.c
 > +++ b/fs/ocfs2/extent_map.c
 > @@ -832,6 +832,73 @@ int ocfs2_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo,
->  	return ret;
->  }
->  
+>   	return ret;
+>   }
+>   
 > +/* Is IO overwriting allocated blocks? */
 > +int ocfs2_overwrite_io(struct inode *inode, u64 map_start, u64 map_len,
 > +		       int wait)
@@ -77,8 +84,6 @@ On 2017/11/27 17:46, Gang He wrote:
 > +
 > +		if (rec.e_blkno == 0ULL)
 > +			break;
-I think here the blocks is not overwrite, because the hold is found and the blocks
-should be allocated.
 > +
 > +		if (rec.e_flags & OCFS2_EXT_REFCOUNTED)
 > +			break;
@@ -91,38 +96,32 @@ should be allocated.
 > +		ret = 1;
 > +
 > +out_unlock2:
-
-I think the 'out_up_read' is more readable than the 'out_unlock2' .
-
 > +	brelse(di_bh);
 > +
 > +	up_read(&OCFS2_I(inode)->ip_alloc_sem);
 > +
 > +out_unlock1:
-
-We should release buffer head here.
-
 > +	ocfs2_inode_unlock(inode, 0);
 > +
 > +out:
 > +	return (ret ? 0 : 1);
 > +}
 > +
->  int ocfs2_seek_data_hole_offset(struct file *file, loff_t *offset, int whence)
->  {
->  	struct inode *inode = file->f_mapping->host;
+>   int ocfs2_seek_data_hole_offset(struct file *file, loff_t *offset, int whence)
+>   {
+>   	struct inode *inode = file->f_mapping->host;
 > diff --git a/fs/ocfs2/extent_map.h b/fs/ocfs2/extent_map.h
 > index 67ea57d..fd9e86a 100644
 > --- a/fs/ocfs2/extent_map.h
 > +++ b/fs/ocfs2/extent_map.h
 > @@ -53,6 +53,9 @@ int ocfs2_extent_map_get_blocks(struct inode *inode, u64 v_blkno, u64 *p_blkno,
->  int ocfs2_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo,
->  		 u64 map_start, u64 map_len);
->  
+>   int ocfs2_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo,
+>   		 u64 map_start, u64 map_len);
+>   
 > +int ocfs2_overwrite_io(struct inode *inode, u64 map_start, u64 map_len,
 > +		       int wait);
 > +
->  int ocfs2_seek_data_hole_offset(struct file *file, loff_t *offset, int origin);
->  
->  int ocfs2_xattr_get_clusters(struct inode *inode, u32 v_cluster,
+>   int ocfs2_seek_data_hole_offset(struct file *file, loff_t *offset, int origin);
+>   
+>   int ocfs2_xattr_get_clusters(struct inode *inode, u32 v_cluster,
 > 
