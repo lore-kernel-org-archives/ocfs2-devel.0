@@ -1,49 +1,68 @@
-From: Joseph Qi <jiangqi903@gmail.com>
-Date: Tue, 28 Nov 2017 14:51:45 +0800
+From: Changwei Ge <ge.changwei@h3c.com>
+Date: Tue, 28 Nov 2017 05:48:58 +0000
 Subject: [Ocfs2-devel] [PATCH 2/3] ocfs2: add ocfs2_overwrite_io function
-In-Reply-To: <5A1D49E5020000F90009AC66@prv-mh.provo.novell.com>
 References: <1511775987-841-1-git-send-email-ghe@suse.com>
 	<1511775987-841-3-git-send-email-ghe@suse.com>
-	<123f1322-d453-4aca-ac95-63d6f90fd8a2@gmail.com>
-	<5A1D49E5020000F90009AC66@prv-mh.provo.novell.com>
-Message-ID: <805fb849-dcc7-cbbc-02af-1c6116a88957@gmail.com>
+	<63ADC13FD55D6546B7DECE290D39E373F1470B4A@H3CMLB12-EX.srv.huawei-3com.com>
+	<5A1D674A020000F90009AD06@prv-mh.provo.novell.com>
+Message-ID: <63ADC13FD55D6546B7DECE290D39E373F1470CC0@H3CMLB12-EX.srv.huawei-3com.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Gang He <ghe@suse.com>, jlbec@evilplan.org, hch@lst.de, Goldwyn Rodrigues <RGoldwyn@suse.com>, mfasheh@versity.com
-Cc: ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
+To: Gang He <ghe@suse.com>, "jlbec@evilplan.org" <jlbec@evilplan.org>, "hch@lst.de" <hch@lst.de>, Goldwyn Rodrigues <RGoldwyn@suse.com>, "mfasheh@versity.com" <mfasheh@versity.com>
+Cc: "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
 
-
-
-On 17/11/28 11:35, Gang He wrote:
-> Hello Joseph,
+On 2017/11/28 13:44, Gang He wrote:
+> Hi Changwei,
 > 
 > 
 >>>>
->> Hi Gang,
+>> Hi,
+>> Gang
 >>
->> On 17/11/27 17:46, Gang He wrote:
+>> On 2017/11/27 17:48, Gang He wrote:
 >>> Add ocfs2_overwrite_io function, which is used to judge if
 >>> overwrite allocated blocks, otherwise, the write will bring extra
 >>> block allocation overhead.
 >>>
+>>
+>> Can you elaborate how this overhead is introduced?
+>> Forgive me, I don't figure it.
+> If the blocks have been allocated, we just write these block directly.
+> If these blocks have not been allocated, that means we need to allocate these block firstly before write,
+> this allocation will bring the IO invoking be blocked, if the upper application does not want take this kind of overhead,
+> he can pass a nowait flag to avoid and return immediately with a -EAGAIN error.
+
+Thanks for your answer and contribution.
+This makes sense.
+
+Changwei
+
+> 
+> Thanks
+> Gang
+> 
+>>
+>> Thanks,
+>> Changwei
+>>
 >>> Signed-off-by: Gang He <ghe@suse.com>
 >>> ---
->>>  fs/ocfs2/extent_map.c | 67 
+>>>    fs/ocfs2/extent_map.c | 67
 >> +++++++++++++++++++++++++++++++++++++++++++++++++++
->>>  fs/ocfs2/extent_map.h |  3 +++
->>>  2 files changed, 70 insertions(+)
+>>>    fs/ocfs2/extent_map.h |  3 +++
+>>>    2 files changed, 70 insertions(+)
 >>>
 >>> diff --git a/fs/ocfs2/extent_map.c b/fs/ocfs2/extent_map.c
 >>> index e4719e0..98bf325 100644
 >>> --- a/fs/ocfs2/extent_map.c
 >>> +++ b/fs/ocfs2/extent_map.c
->>> @@ -832,6 +832,73 @@ int ocfs2_fiemap(struct inode *inode, struct 
+>>> @@ -832,6 +832,73 @@ int ocfs2_fiemap(struct inode *inode, struct
 >> fiemap_extent_info *fieinfo,
->>>  	return ret;
->>>  }
->>>  
+>>>    	return ret;
+>>>    }
+>>>    
 >>> +/* Is IO overwriting allocated blocks? */
 >>> +int ocfs2_overwrite_io(struct inode *inode, u64 map_start, u64 map_len,
 >>> +		       int wait)
@@ -105,49 +124,32 @@ On 17/11/28 11:35, Gang He wrote:
 >>> +	up_read(&OCFS2_I(inode)->ip_alloc_sem);
 >>> +
 >>> +out_unlock1:
->> Should brelse(di_bh) be here?
-> If the code jumps to out_unlock1 directly, the di_bh pointer should be NULL, it is not necessary to release.
-> 
-Umm... No, once going out here, we have already taken inode lock. So
-di_bh should be released.
-
->>
 >>> +	ocfs2_inode_unlock(inode, 0);
 >>> +
 >>> +out:
 >>> +	return (ret ? 0 : 1);
->> I don't think EAGAIN and other error code can be handled the same. We
->> have to distinguish them.
-> Ok, I think we can add one line log to report the error in case the error is not EAGAIN. 
-> 
-My point is, there is no need to try again in several cases, e.g. EROFS
-returned by ocfs2_get_clusters_nocache.
-
->>
->> Thanks,
->> Joseph
->>
 >>> +}
 >>> +
->>>  int ocfs2_seek_data_hole_offset(struct file *file, loff_t *offset, int 
+>>>    int ocfs2_seek_data_hole_offset(struct file *file, loff_t *offset, int
 >> whence)
->>>  {
->>>  	struct inode *inode = file->f_mapping->host;
+>>>    {
+>>>    	struct inode *inode = file->f_mapping->host;
 >>> diff --git a/fs/ocfs2/extent_map.h b/fs/ocfs2/extent_map.h
 >>> index 67ea57d..fd9e86a 100644
 >>> --- a/fs/ocfs2/extent_map.h
 >>> +++ b/fs/ocfs2/extent_map.h
->>> @@ -53,6 +53,9 @@ int ocfs2_extent_map_get_blocks(struct inode *inode, u64 
+>>> @@ -53,6 +53,9 @@ int ocfs2_extent_map_get_blocks(struct inode *inode, u64
 >> v_blkno, u64 *p_blkno,
->>>  int ocfs2_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo,
->>>  		 u64 map_start, u64 map_len);
->>>  
+>>>    int ocfs2_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo,
+>>>    		 u64 map_start, u64 map_len);
+>>>    
 >>> +int ocfs2_overwrite_io(struct inode *inode, u64 map_start, u64 map_len,
 >>> +		       int wait);
 >>> +
->>>  int ocfs2_seek_data_hole_offset(struct file *file, loff_t *offset, int 
+>>>    int ocfs2_seek_data_hole_offset(struct file *file, loff_t *offset, int
 >> origin);
->>>  
->>>  int ocfs2_xattr_get_clusters(struct inode *inode, u32 v_cluster,
+>>>    
+>>>    int ocfs2_xattr_get_clusters(struct inode *inode, u32 v_cluster,
 >>>
+> 
 > 
