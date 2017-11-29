@@ -1,39 +1,35 @@
-From: piaojun <piaojun@huawei.com>
-Date: Wed, 29 Nov 2017 17:05:51 +0800
+From: Changwei Ge <ge.changwei@h3c.com>
+Date: Wed, 29 Nov 2017 12:02:56 +0000
 Subject: [Ocfs2-devel] [PATCH v2 1/3] ocfs2: add ocfs2_try_rw_lock and
  ocfs2_try_inode_lock
-In-Reply-To: <1511944612-9629-2-git-send-email-ghe@suse.com>
 References: <1511944612-9629-1-git-send-email-ghe@suse.com>
 	<1511944612-9629-2-git-send-email-ghe@suse.com>
-Message-ID: <5A1E786F.4080103@huawei.com>
+Message-ID: <63ADC13FD55D6546B7DECE290D39E373F147CA86@H3CMLB14-EX.srv.huawei-3com.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Gang He <ghe@suse.com>, mfasheh@versity.com, jlbec@evilplan.org, rgoldwyn@suse.com, hch@lst.de
-Cc: linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
+To: Gang He <ghe@suse.com>, "mfasheh@versity.com" <mfasheh@versity.com>, "jlbec@evilplan.org" <jlbec@evilplan.org>, "rgoldwyn@suse.com" <rgoldwyn@suse.com>, "hch@lst.de" <hch@lst.de>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>
 
-
-
-On 2017/11/29 16:36, Gang He wrote:
+On 2017/11/29 16:38, Gang He wrote:
 > Add ocfs2_try_rw_lock and ocfs2_try_inode_lock functions, which
 > will be used in non-block IO scenarios.
 > 
 > Signed-off-by: Gang He <ghe@suse.com>
-Reviewed-by: Jun Piao <piaojun@huawei.com>
 > ---
->  fs/ocfs2/dlmglue.c | 21 +++++++++++++++++++++
->  fs/ocfs2/dlmglue.h |  4 ++++
->  2 files changed, 25 insertions(+)
+>   fs/ocfs2/dlmglue.c | 21 +++++++++++++++++++++
+>   fs/ocfs2/dlmglue.h |  4 ++++
+>   2 files changed, 25 insertions(+)
 > 
 > diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
 > index 4689940..a68efa3 100644
 > --- a/fs/ocfs2/dlmglue.c
 > +++ b/fs/ocfs2/dlmglue.c
 > @@ -1742,6 +1742,27 @@ int ocfs2_rw_lock(struct inode *inode, int write)
->  	return status;
->  }
->  
+>   	return status;
+>   }
+>   
 > +int ocfs2_try_rw_lock(struct inode *inode, int write)
 > +{
 > +	int status, level;
@@ -52,32 +48,41 @@ Reviewed-by: Jun Piao <piaojun@huawei.com>
 > +	level = write ? DLM_LOCK_EX : DLM_LOCK_PR;
 > +
 > +	status = ocfs2_cluster_lock(osb, lockres, level, DLM_LKF_NOQUEUE, 0);
+
+Hi Gang,
+Should we consider about passing a flag - OCFS2_LOCK_NONBLOCK to 
+ocfs2_cluster_lock. Otherwise a cluster locking progress may be waiting 
+for accomplishment of DC, which I think violates _NO_WAIT_ semantics.
+
+Thanks,
+Changwei.
+
 > +	return status;
 > +}
 > +
->  void ocfs2_rw_unlock(struct inode *inode, int write)
->  {
->  	int level = write ? DLM_LOCK_EX : DLM_LOCK_PR;
+>   void ocfs2_rw_unlock(struct inode *inode, int write)
+>   {
+>   	int level = write ? DLM_LOCK_EX : DLM_LOCK_PR;
 > diff --git a/fs/ocfs2/dlmglue.h b/fs/ocfs2/dlmglue.h
 > index a7fc18b..05910fc 100644
 > --- a/fs/ocfs2/dlmglue.h
 > +++ b/fs/ocfs2/dlmglue.h
 > @@ -116,6 +116,7 @@ void ocfs2_refcount_lock_res_init(struct ocfs2_lock_res *lockres,
->  int ocfs2_create_new_inode_locks(struct inode *inode);
->  int ocfs2_drop_inode_locks(struct inode *inode);
->  int ocfs2_rw_lock(struct inode *inode, int write);
+>   int ocfs2_create_new_inode_locks(struct inode *inode);
+>   int ocfs2_drop_inode_locks(struct inode *inode);
+>   int ocfs2_rw_lock(struct inode *inode, int write);
 > +int ocfs2_try_rw_lock(struct inode *inode, int write);
->  void ocfs2_rw_unlock(struct inode *inode, int write);
->  int ocfs2_open_lock(struct inode *inode);
->  int ocfs2_try_open_lock(struct inode *inode, int write);
+>   void ocfs2_rw_unlock(struct inode *inode, int write);
+>   int ocfs2_open_lock(struct inode *inode);
+>   int ocfs2_try_open_lock(struct inode *inode, int write);
 > @@ -140,6 +141,9 @@ int ocfs2_inode_lock_with_page(struct inode *inode,
->  /* 99% of the time we don't want to supply any additional flags --
->   * those are for very specific cases only. */
->  #define ocfs2_inode_lock(i, b, e) ocfs2_inode_lock_full_nested(i, b, e, 0, OI_LS_NORMAL)
+>   /* 99% of the time we don't want to supply any additional flags --
+>    * those are for very specific cases only. */
+>   #define ocfs2_inode_lock(i, b, e) ocfs2_inode_lock_full_nested(i, b, e, 0, OI_LS_NORMAL)
 > +#define ocfs2_try_inode_lock(i, b, e)\
 > +		ocfs2_inode_lock_full_nested(i, b, e, OCFS2_META_LOCK_NOQUEUE,\
 > +		OI_LS_NORMAL)
->  void ocfs2_inode_unlock(struct inode *inode,
->  		       int ex);
->  int ocfs2_super_lock(struct ocfs2_super *osb,
+>   void ocfs2_inode_unlock(struct inode *inode,
+>   		       int ex);
+>   int ocfs2_super_lock(struct ocfs2_super *osb,
 > 
