@@ -1,8 +1,8 @@
 From: akpm at linux-foundation.org <akpm@linux-foundation.org>
-Date: Thu, 30 Nov 2017 14:24:11 -0800
-Subject: [Ocfs2-devel] [patch 02/11] ocfs2: give an obvious tip for
- mismatched cluster names
-Message-ID: <5a20850b.3jaW0Z+eNZzGEhkV%akpm@linux-foundation.org>
+Date: Thu, 30 Nov 2017 14:24:14 -0800
+Subject: [Ocfs2-devel] [patch 03/11] ocfs2: move some definitions to header
+	file
+Message-ID: <5a20850e.o9gE6SVbz9UP6W49%akpm@linux-foundation.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -10,75 +10,113 @@ Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
 From: Gang He <ghe@suse.com>
-Subject: ocfs2: give an obvious tip for mismatched cluster names
+Subject: ocfs2: move some definitions to header file
 
-Add an obvious error message, due to mismatched cluster names between
-on-disk and in the current cluster.  We can meet this case during OCFS2
-cluster migration.
+Patch series "ocfs2: use kobject for online file check", v3.
 
-If we can give the user an obvious tip for why they can not mount the file
-system after migration, they can quickly fix this mismatch problem. 
+Use embedded kobject mechanism for online file check feature, this will
+avoid to use a global list to save/search per-device online file check
+related data.  The changed code is based on Goldwyn Rodrigues's patches
+and ext4 fs code, there is not any new features added, except some very
+small fixes during this code refactoring.  Second, the code change does
+not affect the underlying file check code.  Thank Goldwyn very much.
 
-Second, also move printing ocfs2_fill_super() errno to the front of
-ocfs2_dismount_volume(), since ocfs2_dismount_volume() will also print
-its own message.
+Compare with second version, add more comments in the patch descriptions,
+to make sure each modification is mentioned.  Compare with first version,
+split the code change into four patches, make sure each patch will not
+bring ocfs2 kernel modules compiling errors.
 
-I looked through all the code of OCFS2 (include o2cb); there is not any
-place which returns this error.  In fact, the function calling path
-ocfs2_fill_super -> ocfs2_mount_volume -> ocfs2_dlm_init ->
-dlm_new_lockspace is a very specific one.  We can use this errno to give
-the user a more clear tip, since this case is a little common during
-cluster migration, but the customer can quickly get the failure cause if
-there is a error printed.  Also, I think it is not possible to add this
-errno in the o2cb path during ocfs2_dlm_init(), since the o2cb code has
-been stable for a long time.  
 
-We only print this error tip when the user uses pcmk stack, since using
-the o2cb stack the user will not meet this error.
+This patch (of 3):
 
-[ghe at suse.com: v2]
-  Link: https://urldefense.proofpoint.com/v2/url?u=http-3A__lkml.kernel.org_r_1495419305-2D3780-2D1-2Dgit-2Dsend-2Demail-2Dghe-40suse.com&d=DwICAg&c=RoP1YumCXCgaWHvlZYR8PZh8Bv7qIrMUB65eapI_JnE&r=C7gAd4uDxlAvTdc0vmU6X8CMk6L2iDY8-HD0qT6Fo7Y&m=Anizi3o0ZEwILAnq8iiH7ZUxVKzFDRuYLdiaRHpC4Vs&s=d_OaUpYR5I06nrTowJ7vyCrdVacgZFzsh9Kt6L8fud0&e=
-Link: https://urldefense.proofpoint.com/v2/url?u=http-3A__lkml.kernel.org_r_1495089336-2D19312-2D1-2Dgit-2Dsend-2Demail-2Dghe-40suse.com&d=DwICAg&c=RoP1YumCXCgaWHvlZYR8PZh8Bv7qIrMUB65eapI_JnE&r=C7gAd4uDxlAvTdc0vmU6X8CMk6L2iDY8-HD0qT6Fo7Y&m=Anizi3o0ZEwILAnq8iiH7ZUxVKzFDRuYLdiaRHpC4Vs&s=tHiMEtYMT-cxwBE5pjdrOew8mDXm92NHTa1vbbdVb0M&e=
+Move some definitions to header file, which will be referenced by other
+source files when kobject mechanism is introduced.
+
+Link: https://urldefense.proofpoint.com/v2/url?u=http-3A__lkml.kernel.org_r_1495611866-2D27360-2D2-2Dgit-2Dsend-2Demail-2Dghe-40suse.com&d=DwICAg&c=RoP1YumCXCgaWHvlZYR8PZh8Bv7qIrMUB65eapI_JnE&r=C7gAd4uDxlAvTdc0vmU6X8CMk6L2iDY8-HD0qT6Fo7Y&m=X_q4tNbiBNICvLHoJOYw1UwObhEKDqrcmLfT8-2MjWQ&s=ToS9Ss-UoWIft7TT34_M_AEmAX1GGWHTzYhLaHz-JS4&e=
 Signed-off-by: Gang He <ghe@suse.com>
-Reviewed-by: Mark Fasheh <mfasheh@versity.com>
+Cc: Mark Fasheh <mfasheh@versity.com>
 Cc: Joel Becker <jlbec@evilplan.org>
 Cc: Junxiao Bi <junxiao.bi@oracle.com>
 Cc: Joseph Qi <jiangqi903@gmail.com>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- fs/ocfs2/super.c |    8 ++++++--
- 1 file changed, 6 insertions(+), 2 deletions(-)
+ fs/ocfs2/filecheck.c |   27 ---------------------------
+ fs/ocfs2/filecheck.h |   27 +++++++++++++++++++++++++++
+ 2 files changed, 27 insertions(+), 27 deletions(-)
 
-diff -puN fs/ocfs2/super.c~ocfs2-give-an-obvious-tip-for-dismatch-cluster-names fs/ocfs2/super.c
---- a/fs/ocfs2/super.c~ocfs2-give-an-obvious-tip-for-dismatch-cluster-names
-+++ a/fs/ocfs2/super.c
-@@ -1208,14 +1208,15 @@ static int ocfs2_fill_super(struct super
- read_super_error:
- 	brelse(bh);
+diff -puN fs/ocfs2/filecheck.c~ocfs2-move-some-definitions-to-header-file fs/ocfs2/filecheck.c
+--- a/fs/ocfs2/filecheck.c~ocfs2-move-some-definitions-to-header-file
++++ a/fs/ocfs2/filecheck.c
+@@ -56,33 +56,6 @@ static const char * const ocfs2_filechec
+ static DEFINE_SPINLOCK(ocfs2_filecheck_sysfs_lock);
+ static LIST_HEAD(ocfs2_filecheck_sysfs_list);
  
-+	if (status)
-+		mlog_errno(status);
+-struct ocfs2_filecheck {
+-	struct list_head fc_head;	/* File check entry list head */
+-	spinlock_t fc_lock;
+-	unsigned int fc_max;	/* Maximum number of entry in list */
+-	unsigned int fc_size;	/* Current entry count in list */
+-	unsigned int fc_done;	/* Finished entry count in list */
+-};
+-
+-struct ocfs2_filecheck_sysfs_entry {	/* sysfs entry per mounting */
+-	struct list_head fs_list;
+-	atomic_t fs_count;
+-	struct super_block *fs_sb;
+-	struct kset *fs_devicekset;
+-	struct kset *fs_fcheckkset;
+-	struct ocfs2_filecheck *fs_fcheck;
+-};
+-
+-#define OCFS2_FILECHECK_MAXSIZE		100
+-#define OCFS2_FILECHECK_MINSIZE		10
+-
+-/* File check operation type */
+-enum {
+-	OCFS2_FILECHECK_TYPE_CHK = 0,	/* Check a file(inode) */
+-	OCFS2_FILECHECK_TYPE_FIX,	/* Fix a file(inode) */
+-	OCFS2_FILECHECK_TYPE_SET = 100	/* Set entry list maximum size */
+-};
+-
+ struct ocfs2_filecheck_entry {
+ 	struct list_head fe_list;
+ 	unsigned long fe_ino;
+diff -puN fs/ocfs2/filecheck.h~ocfs2-move-some-definitions-to-header-file fs/ocfs2/filecheck.h
+--- a/fs/ocfs2/filecheck.h~ocfs2-move-some-definitions-to-header-file
++++ a/fs/ocfs2/filecheck.h
+@@ -43,6 +43,33 @@ enum {
+ #define OCFS2_FILECHECK_ERR_START	OCFS2_FILECHECK_ERR_FAILED
+ #define OCFS2_FILECHECK_ERR_END		OCFS2_FILECHECK_ERR_UNSUPPORTED
+ 
++struct ocfs2_filecheck {
++	struct list_head fc_head;	/* File check entry list head */
++	spinlock_t fc_lock;
++	unsigned int fc_max;	/* Maximum number of entry in list */
++	unsigned int fc_size;	/* Current entry count in list */
++	unsigned int fc_done;	/* Finished entry count in list */
++};
 +
- 	if (osb) {
- 		atomic_set(&osb->vol_state, VOLUME_DISABLED);
- 		wake_up(&osb->osb_mount_event);
- 		ocfs2_dismount_volume(sb, 1);
- 	}
- 
--	if (status)
--		mlog_errno(status);
- 	return status;
- }
- 
-@@ -1843,6 +1844,9 @@ static int ocfs2_mount_volume(struct sup
- 	status = ocfs2_dlm_init(osb);
- 	if (status < 0) {
- 		mlog_errno(status);
-+		if (status == -EBADR && ocfs2_userspace_stack(osb))
-+			mlog(ML_ERROR, "couldn't mount because cluster name on"
-+			" disk does not match the running cluster name.\n");
- 		goto leave;
- 	}
++struct ocfs2_filecheck_sysfs_entry {	/* sysfs entry per mounting */
++	struct list_head fs_list;
++	atomic_t fs_count;
++	struct super_block *fs_sb;
++	struct kset *fs_devicekset;
++	struct kset *fs_fcheckkset;
++	struct ocfs2_filecheck *fs_fcheck;
++};
++
++#define OCFS2_FILECHECK_MAXSIZE		100
++#define OCFS2_FILECHECK_MINSIZE		10
++
++/* File check operation type */
++enum {
++	OCFS2_FILECHECK_TYPE_CHK = 0,	/* Check a file(inode) */
++	OCFS2_FILECHECK_TYPE_FIX,	/* Fix a file(inode) */
++	OCFS2_FILECHECK_TYPE_SET = 100	/* Set entry list maximum size */
++};
++
+ int ocfs2_filecheck_create_sysfs(struct super_block *sb);
+ int ocfs2_filecheck_remove_sysfs(struct super_block *sb);
  
 _
