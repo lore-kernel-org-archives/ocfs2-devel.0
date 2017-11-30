@@ -1,21 +1,38 @@
 From: akpm at linux-foundation.org <akpm@linux-foundation.org>
-Date: Thu, 30 Nov 2017 14:24:26 -0800
-Subject: [Ocfs2-devel] [patch 06/11] ocfs2: add duplicated ino number check
-Message-ID: <5a20851a.VacVlPzjAqqfVK2N%akpm@linux-foundation.org>
+Date: Thu, 30 Nov 2017 14:24:30 -0800
+Subject: [Ocfs2-devel] [patch 07/11] ocfs2: fix qs_holds may could not be
+	zero
+Message-ID: <5a20851e.upbuwraIKYxYTZhm%akpm@linux-foundation.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-From: Gang He <ghe@suse.com>
-Subject: ocfs2: add duplicated ino number check
+From: Zhangyang <zhang.yangB@h3c.com>
+Subject: ocfs2: fix qs_holds may could not be zero
 
-Add duplicated ino number check, to avoid adding a file into the file
-check list when this file is being checked.
+In our test, We fond that when the network down, qs->qs_holds could not b=
+e reduce to zero, it will lead to the node can't do fence.
 
-Link: https://urldefense.proofpoint.com/v2/url?u=http-3A__lkml.kernel.org_r_1495611866-2D27360-2D5-2Dgit-2Dsend-2Demail-2Dghe-40suse.com&d=DwICAg&c=RoP1YumCXCgaWHvlZYR8PZh8Bv7qIrMUB65eapI_JnE&r=C7gAd4uDxlAvTdc0vmU6X8CMk6L2iDY8-HD0qT6Fo7Y&m=HmSc3pTeEieMijxmVBM1pRMAfCZMIys4MLICBUN7pd8&s=DPCQBlhR-HB4Genx8SyZ9PR7KBqEUUQWyXbqyODG_7I&e=
-Signed-off-by: Gang He <ghe@suse.com>
+o2net_idle_timer -> o2quo_conn_err -> qs->qs_holds++, after
+O2NET_QUORUM_DE= LAY_MS if qs_holds could be subtract to zero, it could do
+make_decision.
+
+But if there are many nodes, when one node network down which contains
+o2net connections may not do o2net_idle_timer at the same time.
+
+So when a o2net_node have done nn->nn_still_up, but the qs_holds is not
+zero.  because the other o2net_node have not done nn->nn_still_up.  So the
+first o2net_node will do o2net_idle_timer again, and the qs_holds could be
+add again.  And the qs_holds is global variable, so it formed a loop, the
+node could not do o2quo_make_decision, because of qs_holds never be zero.
+
+I alter the function o2quo_conn_err, take o2quo_set_hold under control of
+t= he bit map qs_conn_bm.
+
+Link: https://urldefense.proofpoint.com/v2/url?u=http-3A__lkml.kernel.org_r_7F50894FD17BEC45AAC26E5BADA6CE330C60F99A-40H3CMLB12-2DEX.srv.huawei-2D3com.com&d=DwICAg&c=RoP1YumCXCgaWHvlZYR8PZh8Bv7qIrMUB65eapI_JnE&r=C7gAd4uDxlAvTdc0vmU6X8CMk6L2iDY8-HD0qT6Fo7Y&m=CYujo6g1PiMEWNoljfzfkpq8GWBXbNNSftl3t-szE9s&s=9JBgEUTtHISAW_NA8cG1Vg9v_7vTHRok4N9hiTmUSHM&e=
+Signed-off-by: Yang Zhang <zhang.yangB@h3c.com>
 Cc: Mark Fasheh <mfasheh@versity.com>
 Cc: Joel Becker <jlbec@evilplan.org>
 Cc: Junxiao Bi <junxiao.bi@oracle.com>
@@ -23,45 +40,30 @@ Cc: Joseph Qi <jiangqi903@gmail.com>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- fs/ocfs2/filecheck.c |   21 ++++++++++++++++++++-
- 1 file changed, 20 insertions(+), 1 deletion(-)
+ fs/ocfs2/cluster/quorum.c |    9 ++++++---
+ 1 file changed, 6 insertions(+), 3 deletions(-)
 
-diff -puN fs/ocfs2/filecheck.c~ocfs2-add-duplicative-ino-number-check fs/ocfs2/filecheck.c
---- a/fs/ocfs2/filecheck.c~ocfs2-add-duplicative-ino-number-check
-+++ a/fs/ocfs2/filecheck.c
-@@ -354,6 +354,22 @@ exit:
- }
+diff -puN fs/ocfs2/cluster/quorum.c~ocfs2-fix-qs_holds-may-could-not-be-zero fs/ocfs2/cluster/quorum.c
+--- a/fs/ocfs2/cluster/quorum.c~ocfs2-fix-qs_holds-may-could-not-be-zero
++++ a/fs/ocfs2/cluster/quorum.c
+@@ -314,13 +314,16 @@ void o2quo_conn_err(u8 node)
+ 				node, qs->qs_connected);
  
- static inline int
-+ocfs2_filecheck_is_dup_entry(struct ocfs2_filecheck_sysfs_entry *ent,
-+				unsigned long ino)
-+{
-+	struct ocfs2_filecheck_entry *p;
-+
-+	list_for_each_entry(p, &ent->fs_fcheck->fc_head, fe_list) {
-+		if (!p->fe_done) {
-+			if (p->fe_ino == ino)
-+				return 1;
-+		}
-+	}
-+
-+	return 0;
-+}
-+
-+static inline int
- ocfs2_filecheck_erase_entry(struct ocfs2_filecheck_sysfs_entry *ent)
- {
- 	struct ocfs2_filecheck_entry *p;
-@@ -467,7 +483,10 @@ static ssize_t ocfs2_filecheck_attr_stor
+ 		clear_bit(node, qs->qs_conn_bm);
++		/*
++		 * Bring set hold within this judgement, in order to avoid
++		 * qs_hold could not be zero.
++		 */
++		if (test_bit(node, qs->qs_hb_bm))
++			o2quo_set_hold(qs, node);
  	}
  
- 	spin_lock(&ent->fs_fcheck->fc_lock);
--	if ((ent->fs_fcheck->fc_size >= ent->fs_fcheck->fc_max) &&
-+	if (ocfs2_filecheck_is_dup_entry(ent, args.fa_ino)) {
-+		ret = -EEXIST;
-+		kfree(entry);
-+	} else if ((ent->fs_fcheck->fc_size >= ent->fs_fcheck->fc_max) &&
- 		(ent->fs_fcheck->fc_done == 0)) {
- 		mlog(ML_NOTICE,
- 		"Cannot do more file check "
+ 	mlog(0, "node %u, %d total\n", node, qs->qs_connected);
+ 
+-	if (test_bit(node, qs->qs_hb_bm))
+-		o2quo_set_hold(qs, node);
+-
+ 	spin_unlock(&qs->qs_lock);
+ }
+ 
 _
