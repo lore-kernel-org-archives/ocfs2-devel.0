@@ -1,54 +1,46 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Date: Tue,  5 Dec 2017 16:20:50 +0100
+Date: Tue, 5 Dec 2017 21:27:08 +0100
 Subject: [Ocfs2-devel] [PATCH] ocfs2: use get_task_comm
-Message-ID: <20171205152110.2050975-1-arnd@arndb.de>
+In-Reply-To: <CAGXu5j+=7wAsJpUwAsPK_AMzhLduhBGpdQm9oqqbt3bzoQOMDQ@mail.gmail.com>
+References: <20171205152110.2050975-1-arnd@arndb.de>
+	<CAGXu5j+=7wAsJpUwAsPK_AMzhLduhBGpdQm9oqqbt3bzoQOMDQ@mail.gmail.com>
+Message-ID: <CAK8P3a0RYJwyOui+dP-QJSJh3JVZ+XGLKSV3B6hVBr78nptDRQ@mail.gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Mark Fasheh <mfasheh@versity.com>, Joel Becker <jlbec@evilplan.org>
-Cc: Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Joseph Qi <jiangqi903@gmail.com>, piaojun <piaojun@huawei.com>, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
+To: Kees Cook <keescook@chromium.org>
+Cc: Mark Fasheh <mfasheh@versity.com>, Joel Becker <jlbec@evilplan.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Joseph Qi <jiangqi903@gmail.com>, piaojun <piaojun@huawei.com>, ocfs2-devel@oss.oracle.com, LKML <linux-kernel@vger.kernel.org>
 
-While reviewing all callers of get_task_comm(), I stumbled
-over this one that claimed it was not exported, when in fact
-it is. Accessing task->comm directly is not safe, so better
-convert this one to using get_task_comm as well.
+On Tue, Dec 5, 2017 at 8:19 PM, Kees Cook <keescook@chromium.org> wrote:
+> On Tue, Dec 5, 2017 at 7:20 AM, Arnd Bergmann <arnd@arndb.de> wrote:
+>> While reviewing all callers of get_task_comm(), I stumbled
+>> over this one that claimed it was not exported, when in fact
+>> it is. Accessing task->comm directly is not safe, so better
+>> convert this one to using get_task_comm as well.
+>
+> Using get_task_comm() in cases like this is actually overkill (i.e.
+> using up stack space), since there's (currently) no benefit. Nothing
+> protects getting a "correct" view of task->comm (i.e. it could get
+> updated in the middle of a copy), but it _is_ always NULL terminated,
+> so it's safe to use with %s like this. While it does make me slightly
+> uncomfortable to _depend_ on this NULL termination, but there are lots
+> of open-coded %s users of task->comm. When we're trying to save a
+> _copy_ of task->comm, then we want get_task_comm(), just to make sure
+> we're doing it right.
+>
+> So, while I don't oppose this patch, it might be seen as a wasteful
+> use of stack space.
 
-Signed-off-by: Arnd Bergmann <arnd@arndb.de>
----
- fs/ocfs2/cluster/netdebug.c | 5 +++--
- 1 file changed, 3 insertions(+), 2 deletions(-)
+It's only a few bytes of stack space in a leaf function, I'd not be
+worried about that.
 
-diff --git a/fs/ocfs2/cluster/netdebug.c b/fs/ocfs2/cluster/netdebug.c
-index 74a21f6695c8..a51d001b89b1 100644
---- a/fs/ocfs2/cluster/netdebug.c
-+++ b/fs/ocfs2/cluster/netdebug.c
-@@ -130,6 +130,7 @@ static void *nst_seq_next(struct seq_file *seq, void *v, loff_t *pos)
- static int nst_seq_show(struct seq_file *seq, void *v)
- {
- 	struct o2net_send_tracking *nst, *dummy_nst = seq->private;
-+	char comm[TASK_COMM_LEN];
- 	ktime_t now;
- 	s64 sock, send, status;
- 
-@@ -142,8 +143,8 @@ static int nst_seq_show(struct seq_file *seq, void *v)
- 	sock = ktime_to_us(ktime_sub(now, nst->st_sock_time));
- 	send = ktime_to_us(ktime_sub(now, nst->st_send_time));
- 	status = ktime_to_us(ktime_sub(now, nst->st_status_time));
-+	get_task_comm(comm, nst->st_task);
- 
--	/* get_task_comm isn't exported.  oh well. */
- 	seq_printf(seq, "%p:\n"
- 		   "  pid:          %lu\n"
- 		   "  tgid:         %lu\n"
-@@ -158,7 +159,7 @@ static int nst_seq_show(struct seq_file *seq, void *v)
- 		   "  wait start:   %lld usecs ago\n",
- 		   nst, (unsigned long)task_pid_nr(nst->st_task),
- 		   (unsigned long)nst->st_task->tgid,
--		   nst->st_task->comm, nst->st_node,
-+		   comm, nst->st_node,
- 		   nst->st_sc, nst->st_id, nst->st_msg_type,
- 		   nst->st_msg_key,
- 		   (long long)sock,
--- 
-2.9.0
+More generally speaking though, how exactly do we guarantee that
+there is NUL-termination on tsk->comm during a concurrent update?
+Could we ever get into a situation where overwrite the NUL byte
+while setting tsk->comm to a longer string, and read the new start
+of the string together with an unterminated end, or do we strictly
+guarantee that the last byte is still NUL? I assume the latter is
+true, just haven't found exactly where that guarantee is made.
+
+      Arnd
