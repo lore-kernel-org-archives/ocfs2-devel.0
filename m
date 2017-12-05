@@ -1,201 +1,168 @@
-From: piaojun <piaojun@huawei.com>
-Date: Wed, 1 Nov 2017 13:52:54 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: wait for dlm recovery done
- when migrating all lockres
-In-Reply-To: <63ADC13FD55D6546B7DECE290D39E373CED73303@H3CMLB14-EX.srv.huawei-3com.com>
-References: <59F91FEF.5020609@huawei.com>
-	<63ADC13FD55D6546B7DECE290D39E373CED73303@H3CMLB14-EX.srv.huawei-3com.com>
-Message-ID: <59F96136.3070307@huawei.com>
+From: alex chen <alex.chen@huawei.com>
+Date: Tue, 5 Dec 2017 09:41:47 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: check the metadate alloc before
+	marking extent written
+Message-ID: <5A25F95B.5050600@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Changwei,
+We need to check the free number of the records in each loop to mark
+extent written, because the last extent block may be changed through
+many times marking extent written and the 'num_free_extents' also be
+changed. In the worst case, the 'num_free_extents' may become less
+than the beginning of the loop. So we should not estimate the free
+number of the records at the beginning of the loop to mark extent
+written.
 
-On 2017/11/1 10:47, Changwei Ge wrote:
-> Hi Jun,
-> 
-> Thanks for reporting.
-> I am very interesting in this issue. But, first of all, I want to make 
-> this issue clear, so that I might be able to provide some comments.
-> 
-> 
-> On 2017/11/1 9:16, piaojun wrote:
->> wait for dlm recovery done when migrating all lockres in case of new
->> lockres to be left after leaving dlm domain.
-> 
-> What do you mean by 'a new lock resource to be left after leaving 
-> domain'? It means we leak a dlm lock resource if below situation happens.
-> 
-a new lockres is the one collected by NodeA during recoverying for
-NodeB. It leaks a lockres indeed.
->>
->>        NodeA                       NodeB                NodeC
->>
->> umount and migrate
->> all lockres
->>
->>                                   node down
->>
->> do recovery for NodeB
->> and collect a new lockres
->> form other live nodes
-> 
-> You mean a lock resource whose owner was NodeB is just migrated from 
-> other cluster member nodes?
-> 
-that is it.
->>
->> leave domain but the
->> new lockres remains
->>
->>                                                    mount and join domain
->>
->>                                                    request for the owner
->>                                                    of the new lockres, but
->>                                                    all the other nodes said
->>                                                    'NO', so NodeC decide to
->>                                                    the owner, and send do
->>                                                    assert msg to other nodes.
->>
->>                                                    other nodes receive the msg
->>                                                    and found two masters exist.
->>                                                    at last cause BUG in
->>                                                    dlm_assert_master_handler()
->>                                                    -->BUG();
-> 
-> If this issue truly exists, can we take some efforts in 
-> dlm_exit_domain_handler? Or perhaps we should kick dlm's work queue 
-> before migrating all lock resources.
-> 
-If NodeA has entered dlm_leave_domain(), we can hardly go back
-migrating res. Perhaps more work will be needed in that way.
->>
->> Fixes: bc9838c4d44a ("dlm: allow dlm do recovery during shutdown")
->>
->> Signed-off-by: Jun Piao <piaojun@huawei.com>
->> Reviewed-by: Alex Chen <alex.chen@huawei.com>
->> Reviewed-by: Yiwen Jiang <jiangyiwen@huawei.com>
->> ---
->>   fs/ocfs2/dlm/dlmcommon.h   |  1 +
->>   fs/ocfs2/dlm/dlmdomain.c   | 14 ++++++++++++++
->>   fs/ocfs2/dlm/dlmrecovery.c | 12 +++++++++---
->>   3 files changed, 24 insertions(+), 3 deletions(-)
->>
->> diff --git a/fs/ocfs2/dlm/dlmcommon.h b/fs/ocfs2/dlm/dlmcommon.h
->> index e9f3705..999ab7d 100644
->> --- a/fs/ocfs2/dlm/dlmcommon.h
->> +++ b/fs/ocfs2/dlm/dlmcommon.h
->> @@ -140,6 +140,7 @@ struct dlm_ctxt
->>   	u8 node_num;
->>   	u32 key;
->>   	u8  joining_node;
->> +	u8 migrate_done; /* set to 1 means node has migrated all lockres */
->>   	wait_queue_head_t dlm_join_events;
->>   	unsigned long live_nodes_map[BITS_TO_LONGS(O2NM_MAX_NODES)];
->>   	unsigned long domain_map[BITS_TO_LONGS(O2NM_MAX_NODES)];
->> diff --git a/fs/ocfs2/dlm/dlmdomain.c b/fs/ocfs2/dlm/dlmdomain.c
->> index e1fea14..98a8f56 100644
->> --- a/fs/ocfs2/dlm/dlmdomain.c
->> +++ b/fs/ocfs2/dlm/dlmdomain.c
->> @@ -461,6 +461,18 @@ static int dlm_migrate_all_locks(struct dlm_ctxt *dlm)
->>   		cond_resched_lock(&dlm->spinlock);
->>   		num += n;
->>   	}
->> +
->> +	if (!num) {
->> +		if (dlm->reco.state & DLM_RECO_STATE_ACTIVE) {
->> +			mlog(0, "%s: perhaps there are more lock resources need to "
->> +					"be migrated after dlm recovery\n", dlm->name);
-> 
-> If dlm is mark with DLM_RECO_STATE_ACTIVE, then a lock resource must 
-> already be marked with DLM_LOCK_RES_RECOVERING which can't be migrated. 
-> So code will goto redo_bucket in function dlm_migrate_all_locks.
-> So I don't understand why a judgement is added here?
-> 
-> 
-> 
-because we have done migrating before recoverying. the judgement here
-is to avoid the following potential recoverying.
->> +			ret = -EAGAIN;
->> +		} else {
->> +			mlog(0, "%s: we won't do dlm recovery after migrating all lockres",
->> +					dlm->name);
->> +			dlm->migrate_done = 1;
->> +		}
->> +	}
->>   	spin_unlock(&dlm->spinlock);
->>   	wake_up(&dlm->dlm_thread_wq);
->>
->> @@ -2052,6 +2064,8 @@ static struct dlm_ctxt *dlm_alloc_ctxt(const char *domain,
->>   	dlm->joining_node = DLM_LOCK_RES_OWNER_UNKNOWN;
->>   	init_waitqueue_head(&dlm->dlm_join_events);
->>
->> +	dlm->migrate_done = 0;
->> +
->>   	dlm->reco.new_master = O2NM_INVALID_NODE_NUM;
->>   	dlm->reco.dead_node = O2NM_INVALID_NODE_NUM;
->>
->> diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
->> index 74407c6..3106332 100644
->> --- a/fs/ocfs2/dlm/dlmrecovery.c
->> +++ b/fs/ocfs2/dlm/dlmrecovery.c
->> @@ -423,12 +423,11 @@ void dlm_wait_for_recovery(struct dlm_ctxt *dlm)
->>
->>   static void dlm_begin_recovery(struct dlm_ctxt *dlm)
->>   {
->> -	spin_lock(&dlm->spinlock);
->> +	assert_spin_locked(&dlm->spinlock);
->>   	BUG_ON(dlm->reco.state & DLM_RECO_STATE_ACTIVE);
->>   	printk(KERN_NOTICE "o2dlm: Begin recovery on domain %s for node %u\n",
->>   	       dlm->name, dlm->reco.dead_node);
->>   	dlm->reco.state |= DLM_RECO_STATE_ACTIVE;
->> -	spin_unlock(&dlm->spinlock);
->>   }
->>
->>   static void dlm_end_recovery(struct dlm_ctxt *dlm)
->> @@ -456,6 +455,12 @@ static int dlm_do_recovery(struct dlm_ctxt *dlm)
->>
->>   	spin_lock(&dlm->spinlock);
->>
->> +	if (dlm->migrate_done) {
->> +		mlog(0, "%s: no need do recovery after migrating all lockres\n",
->> +				dlm->name);
-> 
-> Don't we need unlock above spin_lock before return?
-> 
-> And if we just return here, how dlm lock resource can clear its 
-> REDISCOVERING flag. I suppose this may cause cluster hang.
-> 
-> And I cc this to ocfs2 maintainers.
-> 
-> Thanks,
-> Changwei
-> 
-oh, good catch, I missed spin_unlock(&dlm->spinlock);
->> +		return 0;
->> +	}
->> +
->>   	/* check to see if the new master has died */
->>   	if (dlm->reco.new_master != O2NM_INVALID_NODE_NUM &&
->>   	    test_bit(dlm->reco.new_master, dlm->recovery_map)) {
->> @@ -490,12 +495,13 @@ static int dlm_do_recovery(struct dlm_ctxt *dlm)
->>   	mlog(0, "%s(%d):recovery thread found node %u in the recovery map!\n",
->>   	     dlm->name, task_pid_nr(dlm->dlm_reco_thread_task),
->>   	     dlm->reco.dead_node);
->> -	spin_unlock(&dlm->spinlock);
->>
->>   	/* take write barrier */
->>   	/* (stops the list reshuffling thread, proxy ast handling) */
->>   	dlm_begin_recovery(dlm);
->>
->> +	spin_unlock(&dlm->spinlock);
->> +
->>   	if (dlm->reco.new_master == dlm->node_num)
->>   		goto master_here;
->>
-> 
-> .
-> 
+Reported-by: John Lightsey <john@nixnuts.net>
+Signed-off-by: Alex Chen <alex.chen@huawei.com>
+Reviewed-by: Jun Piao <piaojun@huawei.com>
+---
+ fs/ocfs2/aops.c | 76 ++++++++++++++++++++++++++++++++++++++++++++++++---------
+ 1 file changed, 64 insertions(+), 12 deletions(-)
+
+diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+index d151632..702aebc 100644
+--- a/fs/ocfs2/aops.c
++++ b/fs/ocfs2/aops.c
+@@ -2272,6 +2272,35 @@ static int ocfs2_dio_wr_get_block(struct inode *inode, sector_t iblock,
+ 	return ret;
+ }
+
++static int ocfs2_dio_should_restart(struct ocfs2_extent_tree *et,
++		struct ocfs2_alloc_context *meta_ac, int max_rec_needed)
++{
++	int status = 0, free_extents;
++
++	free_extents = ocfs2_num_free_extents(et);
++	if (free_extents < 0) {
++		status = free_extents;
++		mlog_errno(status);
++		return status;
++	}
++
++	/*
++	 * there are two cases which could cause us to EAGAIN in the
++	 * we-need-more-metadata case:
++	 * 1) we haven't reserved *any*
++	 * 2) we are so fragmented, we've needed to add metadata too
++	 *    many times.
++	 */
++	if (free_extents < max_rec_needed) {
++		if (!meta_ac || (ocfs2_alloc_context_bits_left(meta_ac)
++				< ocfs2_extend_meta_needed(et->et_root_el)))
++			status = 1;
++	}
++
++	return status;
++}
++
++#define OCFS2_MAX_REC_NEEDED_SPLIT 2
+ static int ocfs2_dio_end_io_write(struct inode *inode,
+ 				  struct ocfs2_dio_write_ctxt *dwc,
+ 				  loff_t offset,
+@@ -2281,14 +2310,13 @@ static int ocfs2_dio_end_io_write(struct inode *inode,
+ 	struct ocfs2_extent_tree et;
+ 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+ 	struct ocfs2_inode_info *oi = OCFS2_I(inode);
+-	struct ocfs2_unwritten_extent *ue = NULL;
++	struct ocfs2_unwritten_extent *ue = NULL, *tmp_ue;
+ 	struct buffer_head *di_bh = NULL;
+ 	struct ocfs2_dinode *di;
+-	struct ocfs2_alloc_context *data_ac = NULL;
+ 	struct ocfs2_alloc_context *meta_ac = NULL;
+ 	handle_t *handle = NULL;
+ 	loff_t end = offset + bytes;
+-	int ret = 0, credits = 0, locked = 0;
++	int ret = 0, credits = 0, locked = 0, restart = 0;
+
+ 	ocfs2_init_dealloc_ctxt(&dealloc);
+
+@@ -2330,8 +2358,9 @@ static int ocfs2_dio_end_io_write(struct inode *inode,
+
+ 	ocfs2_init_dinode_extent_tree(&et, INODE_CACHE(inode), di_bh);
+
+-	ret = ocfs2_lock_allocators(inode, &et, 0, dwc->dw_zero_count*2,
+-				    &data_ac, &meta_ac);
++restart_all:
++	ret = ocfs2_lock_allocators(inode, &et, 0, OCFS2_MAX_REC_NEEDED_SPLIT,
++				    NULL, &meta_ac);
+ 	if (ret) {
+ 		mlog_errno(ret);
+ 		goto unlock;
+@@ -2343,7 +2372,7 @@ static int ocfs2_dio_end_io_write(struct inode *inode,
+ 	if (IS_ERR(handle)) {
+ 		ret = PTR_ERR(handle);
+ 		mlog_errno(ret);
+-		goto unlock;
++		goto free_ac;
+ 	}
+ 	ret = ocfs2_journal_access_di(handle, INODE_CACHE(inode), di_bh,
+ 				      OCFS2_JOURNAL_ACCESS_WRITE);
+@@ -2352,7 +2381,17 @@ static int ocfs2_dio_end_io_write(struct inode *inode,
+ 		goto commit;
+ 	}
+
+-	list_for_each_entry(ue, &dwc->dw_zero_list, ue_node) {
++	list_for_each_entry_safe(ue, tmp_ue, &dwc->dw_zero_list, ue_node) {
++		ret = ocfs2_dio_should_restart(&et, meta_ac,
++				OCFS2_MAX_REC_NEEDED_SPLIT * 2);
++		if (ret < 0) {
++			mlog_errno(ret);
++			break;
++		} else if (ret == 1) {
++			restart = 1;
++			break;
++		}
++
+ 		ret = ocfs2_mark_extent_written(inode, &et, handle,
+ 						ue->ue_cpos, 1,
+ 						ue->ue_phys,
+@@ -2361,24 +2400,37 @@ static int ocfs2_dio_end_io_write(struct inode *inode,
+ 			mlog_errno(ret);
+ 			break;
+ 		}
++
++		dwc->dw_zero_count--;
++		list_del_init(&ue->ue_node);
++		spin_lock(&oi->ip_lock);
++		list_del_init(&ue->ue_ip_node);
++		spin_unlock(&oi->ip_lock);
++		kfree(ue);
+ 	}
+
+-	if (end > i_size_read(inode)) {
++	if (!restart && end > i_size_read(inode)) {
+ 		ret = ocfs2_set_inode_size(handle, inode, di_bh, end);
+ 		if (ret < 0)
+ 			mlog_errno(ret);
+ 	}
++
+ commit:
+ 	ocfs2_commit_trans(osb, handle);
++free_ac:
++	if (meta_ac) {
++		ocfs2_free_alloc_context(meta_ac);
++		meta_ac = NULL;
++	}
++	if (restart) {
++		restart = 0;
++		goto restart_all;
++	}
+ unlock:
+ 	up_write(&oi->ip_alloc_sem);
+ 	ocfs2_inode_unlock(inode, 1);
+ 	brelse(di_bh);
+ out:
+-	if (data_ac)
+-		ocfs2_free_alloc_context(data_ac);
+-	if (meta_ac)
+-		ocfs2_free_alloc_context(meta_ac);
+ 	ocfs2_run_deallocs(osb, &dealloc);
+ 	if (locked)
+ 		inode_unlock(inode);
+-- 
+1.9.5.msysgit.1
