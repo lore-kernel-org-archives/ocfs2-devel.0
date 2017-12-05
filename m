@@ -1,27 +1,26 @@
-From: alex chen <alex.chen@huawei.com>
-Date: Tue, 5 Dec 2017 15:58:40 +0800
+From: Joseph Qi <jiangqi903@gmail.com>
+Date: Tue, 5 Dec 2017 16:20:12 +0800
 Subject: [Ocfs2-devel] [PATCH] ocfs2/cluster: neaten a member of
 	o2net_msg_handler
 In-Reply-To: <63ADC13FD55D6546B7DECE290D39E373F1F554DA@H3CMLB14-EX.srv.huawei-3com.com>
 References: <63ADC13FD55D6546B7DECE290D39E373F1F554DA@H3CMLB14-EX.srv.huawei-3com.com>
-Message-ID: <5A2651B0.5070001@huawei.com>
+Message-ID: <6893bf97-1119-c454-cd5c-48809ac69e91@gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Changwei,
 
-Thank you for your patch.
 
-On 2017/12/5 13:47, Changwei Ge wrote:
+On 17/12/5 13:47, Changwei Ge wrote:
 > It's odd that o2net_msg_handler::nh_func_data is declared as type
 > o2net_msg_handler_func*.
 > So neaten it.
 > 
 > Signed-off-by: Changwei Ge <ge.changwei@h3c.com>
-Reviewed-by: Alex Chen <alex.chen@huawei.com>
+Reviewed-by: Joseph Qi <jiangqi903@gmail.com>
+
 > ---
 >   fs/ocfs2/cluster/tcp_internal.h | 2 +-
 >   1 file changed, 1 insertion(+), 1 deletion(-)
