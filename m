@@ -1,50 +1,98 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Date: Tue, 5 Dec 2017 23:01:36 +0100
-Subject: [Ocfs2-devel] [PATCH] ocfs2: use get_task_comm
-In-Reply-To: <CAK8P3a3Ucm587Ah57-4fKwxkJwK6RvE_4Tgdf_cnKpU6PpoZhg@mail.gmail.com>
-References: <20171205152110.2050975-1-arnd@arndb.de>
-	<CAGXu5j+=7wAsJpUwAsPK_AMzhLduhBGpdQm9oqqbt3bzoQOMDQ@mail.gmail.com>
-	<CAK8P3a0RYJwyOui+dP-QJSJh3JVZ+XGLKSV3B6hVBr78nptDRQ@mail.gmail.com>
-	<CAGXu5jL507+NhCtbQEZDbLihGAybNNkuOeettKB+9NcAg5TAPQ@mail.gmail.com>
-	<CAK8P3a3Ucm587Ah57-4fKwxkJwK6RvE_4Tgdf_cnKpU6PpoZhg@mail.gmail.com>
-Message-ID: <20171205220136.GW3165@worktop.lehotels.local>
+From: Larry Chen <lchen@suse.com>
+Date: Wed, 6 Dec 2017 17:18:08 +0800
+Subject: [Ocfs2-devel] Fwd: RES: [Ocfs2-users] How do I resize Ocfs2
+ filesystem using Pacemaker stack?
+In-Reply-To: <5A27D51C020000F90009CAD1@suse.com>
+References: <5A27D51C020000F90009CAD1@suse.com>
+Message-ID: <af83ee30-a655-1046-869a-7cb72acef4d9@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Kees Cook <keescook@chromium.org>, Mark Fasheh <mfasheh@versity.com>, Joel Becker <jlbec@evilplan.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Joseph Qi <jiangqi903@gmail.com>, piaojun <piaojun@huawei.com>, ocfs2-devel@oss.oracle.com, LKML <linux-kernel@vger.kernel.org>
+To: ocfs2-devel@oss.oracle.com
 
-On Tue, Dec 05, 2017 at 10:44:17PM +0100, Arnd Bergmann wrote:
-> On Tue, Dec 5, 2017 at 9:32 PM, Kees Cook <keescook@chromium.org> wrote:
-> > On Tue, Dec 5, 2017 at 12:27 PM, Arnd Bergmann <arnd@arndb.de> wrote:
-> >>
-> >> More generally speaking though, how exactly do we guarantee that
-> >> there is NUL-termination on tsk->comm during a concurrent update?
-> >> Could we ever get into a situation where overwrite the NUL byte
-> >> while setting tsk->comm to a longer string, and read the new start
-> >> of the string together with an unterminated end, or do we strictly
-> >> guarantee that the last byte is still NUL? I assume the latter is
-> >> true, just haven't found exactly where that guarantee is made.
-> >
-> > strncpy will zero pad with the trailing NULL, so it's supposed to
-> > always be safe... still gives me the creeps, though.
-> 
-> But set_task_comm uses strlcpy(), not strncpy(), so you might
-> get some of the old data back, the question is just whether it could
-> leak uninitialized data or part of the task_struct up to the next
-> NUL byte. I could not come up with any code path that would leave
-> a non-NUL byte in at the end of task->comm though, so it's
-> probably still safe.
+Hello Carlos,
 
-So we used to have some magic code set_task_comm() which even included a
-memory barrier etc.. But since none of the reading sites include a
-memory barrier its all pointless.
+Could you please provide the command line used to format
 
-There is no guarantee that a tsk->comm user reads the bytes in string
-order.
+the partition?
 
-The only thing that ensures we never run over, is the hard guarantee
-that ->comm[TSK_COMM_LEN-1] == 0 at all times. If we don't trust
-str*cpy() to do the right thing here, we could simply open code the
-thing.
+I found this prompt comes from code of o2cb stack.
+
+Unable to access cluster service while closing device
+"/dev/mapper/storage1-part2"
+
+Thanks,
+Larry
+
+>> Hello Gang,
+>> Tank you for your fast answer.
+>>
+>>> Hello Carlos,
+>>>> Hi all.
+>>>>
+>>>> We have a OCFS2 clustered file system running with Pacemaker stack
+>>>> over a Dell storage.
+>>>> Now we need to enlarge the size of the file system. We already have
+>>>> grown it at the storage and with fdisk it was recreated the partition
+>>>> to allocate the new available size.
+>>>>
+>>>> To resize the disk I umounted the filesystem and left the DLM running.
+>>>>
+>>>> When I tried to resize the OCFS2 filesystem with tunefs.ocfs2, it
+>>>> couldn't find the cluster stack.
+>>>>
+>>>> apolo:~ # tunefs.ocfs2 -S /dev/mapper/storage1-part2
+>>>> tunefs.ocfs2: Unable to access cluster service while closing device
+>>>> "/dev/mapper/storage1-part2"
+>>> Could you use "crm_mon" comand to identify the current cluster status is
+>> OK?
+>>
+>> The file system is mounted at boot when the Pacemaker starts, as it is
+>> configured on it.
+>>
+>> Last updated: Mon Dec  4 15:23:11 2017
+>> Last change: Sat Dec  2 02:03:59 2017
+>> Stack: corosync
+>> Current DC: diana (2) - partition with quorum
+>> Version: 1.1.12-1.1.12.git20140904.266d5c2
+>> 2 Nodes configured
+>> 13 Resources configured
+>>
+>>
+>> Online: [ apolo diana ]
+>>
+>> stonith_sbd     (stonith:external/sbd): Started diana
+>>   Clone Set: base-clone [dlm]
+>>       Started: [ apolo diana ]
+>>   Clone Set: c-clusterfs [clusterfs]
+>>       Started: [ apolo diana ]
+>>   Clone Set: web_server [apache]
+>>       Started: [ apolo diana ]
+>>   Clone Set: c-ip_httpd [ip_httpd]
+>>       Started: [ apolo diana ]
+>>
+>>> Next, could you mount this partition first? just want to know if this
+>> partition is integrated, since most people use LVM to extend the disk.
+>>
+>> This is how it is mounted
+>> apolo:~ # mount | grep ocfs2
+>> /dev/mapper/storage1-part2 on /export type ocfs2
+>> (rw,noatime,heartbeat=none,nointr,data=ordered,errors=remount-ro,atime_quant
+>> um=60,localalloc=1,cluster_stack=pcmk,coherency=full,user_xattr,acl)
+>>
+>>> Then do the file system extension command.
+>> With the filesystem mounted the same issue happens.
+>> apolo:~ # tunefs.ocfs2 -S /dev/mapper/storage1-part2
+>> tunefs.ocfs2: Unable to access cluster service while closing device
+>> "/dev/mapper/storage1-part2"
+>>
+>>> If still not work, please report a bug.
+>> As openSUSE 13.2 isn't supported anymore, I don't know if they will take a
+>> look at this.
+>>
+>> Is there a way I can change the stack of the filesystem, extend it and
+>> change the stack back to Pacemaker?
+>>
+>> Regards,
+>> Carlos.
