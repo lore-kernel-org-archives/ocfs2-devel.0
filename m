@@ -1,98 +1,177 @@
-From: Larry Chen <lchen@suse.com>
-Date: Wed, 6 Dec 2017 17:18:08 +0800
-Subject: [Ocfs2-devel] Fwd: RES: [Ocfs2-users] How do I resize Ocfs2
- filesystem using Pacemaker stack?
-In-Reply-To: <5A27D51C020000F90009CAD1@suse.com>
-References: <5A27D51C020000F90009CAD1@suse.com>
-Message-ID: <af83ee30-a655-1046-869a-7cb72acef4d9@suse.com>
+From: piaojun <piaojun@huawei.com>
+Date: Thu, 7 Dec 2017 19:28:59 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: fix a potential 'ABBA' deadlock caused
+ by 'l_lock' and 'dentry_attach_lock'
+Message-ID: <5A2925FB.2060908@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hello Carlos,
+       CPUA                                      CPUB
 
-Could you please provide the command line used to format
+ocfs2_dentry_convert_worker
+get 'l_lock'
 
-the partition?
+                                    get 'dentry_attach_lock'
 
-I found this prompt comes from code of o2cb stack.
+                                    interruptted by dio_end_io:
+                                      dio_end_io
+                                        dio_bio_end_aio
+                                          dio_complete
+                                            dio->end_io
+                                              ocfs2_dio_end_io
+                                                ocfs2_rw_unlock
+                                                ...
+                                                try to get 'l_lock'
+                                                but CPUA has got it.
 
-Unable to access cluster service while closing device
-"/dev/mapper/storage1-part2"
+try to get 'dentry_attach_lock',
+but CPUB has got 'dentry_attach_lock',
+and would not release it.
 
-Thanks,
-Larry
+so we need use spin_lock_irqsave for 'dentry_attach_lock' to prevent
+interruptted by softirq.
 
->> Hello Gang,
->> Tank you for your fast answer.
->>
->>> Hello Carlos,
->>>> Hi all.
->>>>
->>>> We have a OCFS2 clustered file system running with Pacemaker stack
->>>> over a Dell storage.
->>>> Now we need to enlarge the size of the file system. We already have
->>>> grown it at the storage and with fdisk it was recreated the partition
->>>> to allocate the new available size.
->>>>
->>>> To resize the disk I umounted the filesystem and left the DLM running.
->>>>
->>>> When I tried to resize the OCFS2 filesystem with tunefs.ocfs2, it
->>>> couldn't find the cluster stack.
->>>>
->>>> apolo:~ # tunefs.ocfs2 -S /dev/mapper/storage1-part2
->>>> tunefs.ocfs2: Unable to access cluster service while closing device
->>>> "/dev/mapper/storage1-part2"
->>> Could you use "crm_mon" comand to identify the current cluster status is
->> OK?
->>
->> The file system is mounted at boot when the Pacemaker starts, as it is
->> configured on it.
->>
->> Last updated: Mon Dec  4 15:23:11 2017
->> Last change: Sat Dec  2 02:03:59 2017
->> Stack: corosync
->> Current DC: diana (2) - partition with quorum
->> Version: 1.1.12-1.1.12.git20140904.266d5c2
->> 2 Nodes configured
->> 13 Resources configured
->>
->>
->> Online: [ apolo diana ]
->>
->> stonith_sbd     (stonith:external/sbd): Started diana
->>   Clone Set: base-clone [dlm]
->>       Started: [ apolo diana ]
->>   Clone Set: c-clusterfs [clusterfs]
->>       Started: [ apolo diana ]
->>   Clone Set: web_server [apache]
->>       Started: [ apolo diana ]
->>   Clone Set: c-ip_httpd [ip_httpd]
->>       Started: [ apolo diana ]
->>
->>> Next, could you mount this partition first? just want to know if this
->> partition is integrated, since most people use LVM to extend the disk.
->>
->> This is how it is mounted
->> apolo:~ # mount | grep ocfs2
->> /dev/mapper/storage1-part2 on /export type ocfs2
->> (rw,noatime,heartbeat=none,nointr,data=ordered,errors=remount-ro,atime_quant
->> um=60,localalloc=1,cluster_stack=pcmk,coherency=full,user_xattr,acl)
->>
->>> Then do the file system extension command.
->> With the filesystem mounted the same issue happens.
->> apolo:~ # tunefs.ocfs2 -S /dev/mapper/storage1-part2
->> tunefs.ocfs2: Unable to access cluster service while closing device
->> "/dev/mapper/storage1-part2"
->>
->>> If still not work, please report a bug.
->> As openSUSE 13.2 isn't supported anymore, I don't know if they will take a
->> look at this.
->>
->> Is there a way I can change the stack of the filesystem, extend it and
->> change the stack back to Pacemaker?
->>
->> Regards,
->> Carlos.
+Signed-off-by: Jun Piao <piaojun@huawei.com>
+Reviewed-by: Alex Chen <alex.chen@huawei.com>
+---
+ fs/ocfs2/dcache.c  | 14 ++++++++------
+ fs/ocfs2/dlmglue.c | 14 +++++++-------
+ fs/ocfs2/namei.c   |  5 +++--
+ 3 files changed, 18 insertions(+), 15 deletions(-)
+
+diff --git a/fs/ocfs2/dcache.c b/fs/ocfs2/dcache.c
+index 2903730..6555fbf 100644
+--- a/fs/ocfs2/dcache.c
++++ b/fs/ocfs2/dcache.c
+@@ -230,6 +230,7 @@ int ocfs2_dentry_attach_lock(struct dentry *dentry,
+ 	int ret;
+ 	struct dentry *alias;
+ 	struct ocfs2_dentry_lock *dl = dentry->d_fsdata;
++	unsigned long flags;
+
+ 	trace_ocfs2_dentry_attach_lock(dentry->d_name.len, dentry->d_name.name,
+ 				       (unsigned long long)parent_blkno, dl);
+@@ -309,10 +310,10 @@ int ocfs2_dentry_attach_lock(struct dentry *dentry,
+ 	ocfs2_dentry_lock_res_init(dl, parent_blkno, inode);
+
+ out_attach:
+-	spin_lock(&dentry_attach_lock);
++	spin_lock_irqsave(&dentry_attach_lock, flags);
+ 	dentry->d_fsdata = dl;
+ 	dl->dl_count++;
+-	spin_unlock(&dentry_attach_lock);
++	spin_unlock_irqrestore(&dentry_attach_lock, flags);
+
+ 	/*
+ 	 * This actually gets us our PRMODE level lock. From now on,
+@@ -333,9 +334,9 @@ int ocfs2_dentry_attach_lock(struct dentry *dentry,
+ 	if (ret < 0 && !alias) {
+ 		ocfs2_lock_res_free(&dl->dl_lockres);
+ 		BUG_ON(dl->dl_count != 1);
+-		spin_lock(&dentry_attach_lock);
++		spin_lock_irqsave(&dentry_attach_lock, flags);
+ 		dentry->d_fsdata = NULL;
+-		spin_unlock(&dentry_attach_lock);
++		spin_unlock_irqrestore(&dentry_attach_lock, flags);
+ 		kfree(dl);
+ 		iput(inode);
+ 	}
+@@ -379,13 +380,14 @@ void ocfs2_dentry_lock_put(struct ocfs2_super *osb,
+ 			   struct ocfs2_dentry_lock *dl)
+ {
+ 	int unlock = 0;
++	unsigned long flags;
+
+ 	BUG_ON(dl->dl_count == 0);
+
+-	spin_lock(&dentry_attach_lock);
++	spin_lock_irqsave(&dentry_attach_lock, flags);
+ 	dl->dl_count--;
+ 	unlock = !dl->dl_count;
+-	spin_unlock(&dentry_attach_lock);
++	spin_unlock_irqrestore(&dentry_attach_lock, flags);
+
+ 	if (unlock)
+ 		ocfs2_drop_dentry_lock(osb, dl);
+diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
+index 4689940..9bff3d2 100644
+--- a/fs/ocfs2/dlmglue.c
++++ b/fs/ocfs2/dlmglue.c
+@@ -3801,7 +3801,7 @@ static int ocfs2_dentry_convert_worker(struct ocfs2_lock_res *lockres,
+ 	struct ocfs2_dentry_lock *dl = ocfs2_lock_res_dl(lockres);
+ 	struct ocfs2_inode_info *oi = OCFS2_I(dl->dl_inode);
+ 	struct dentry *dentry;
+-	unsigned long flags;
++	unsigned long flags, d_flags;
+ 	int extra_ref = 0;
+
+ 	/*
+@@ -3831,13 +3831,13 @@ static int ocfs2_dentry_convert_worker(struct ocfs2_lock_res *lockres,
+ 	 * flag.
+ 	 */
+ 	spin_lock_irqsave(&lockres->l_lock, flags);
+-	spin_lock(&dentry_attach_lock);
++	spin_lock_irqsave(&dentry_attach_lock, d_flags);
+ 	if (!(lockres->l_flags & OCFS2_LOCK_FREEING)
+ 	    && dl->dl_count) {
+ 		dl->dl_count++;
+ 		extra_ref = 1;
+ 	}
+-	spin_unlock(&dentry_attach_lock);
++	spin_unlock_irqrestore(&dentry_attach_lock, d_flags);
+ 	spin_unlock_irqrestore(&lockres->l_lock, flags);
+
+ 	mlog(0, "extra_ref = %d\n", extra_ref);
+@@ -3850,13 +3850,13 @@ static int ocfs2_dentry_convert_worker(struct ocfs2_lock_res *lockres,
+ 	if (!extra_ref)
+ 		return UNBLOCK_CONTINUE;
+
+-	spin_lock(&dentry_attach_lock);
++	spin_lock_irqsave(&dentry_attach_lock, d_flags);
+ 	while (1) {
+ 		dentry = ocfs2_find_local_alias(dl->dl_inode,
+ 						dl->dl_parent_blkno, 1);
+ 		if (!dentry)
+ 			break;
+-		spin_unlock(&dentry_attach_lock);
++		spin_unlock_irqrestore(&dentry_attach_lock, d_flags);
+
+ 		if (S_ISDIR(dl->dl_inode->i_mode))
+ 			shrink_dcache_parent(dentry);
+@@ -3874,9 +3874,9 @@ static int ocfs2_dentry_convert_worker(struct ocfs2_lock_res *lockres,
+ 		d_delete(dentry);
+ 		dput(dentry);
+
+-		spin_lock(&dentry_attach_lock);
++		spin_lock_irqsave(&dentry_attach_lock, d_flags);
+ 	}
+-	spin_unlock(&dentry_attach_lock);
++	spin_unlock_irqrestore(&dentry_attach_lock, d_flags);
+
+ 	/*
+ 	 * If we are the last holder of this dentry lock, there is no
+diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
+index 3b0a10d..a17454e 100644
+--- a/fs/ocfs2/namei.c
++++ b/fs/ocfs2/namei.c
+@@ -223,13 +223,14 @@ static void ocfs2_cleanup_add_entry_failure(struct ocfs2_super *osb,
+ 		struct dentry *dentry, struct inode *inode)
+ {
+ 	struct ocfs2_dentry_lock *dl = dentry->d_fsdata;
++	unsigned long flags;
+
+ 	ocfs2_simple_drop_lockres(osb, &dl->dl_lockres);
+ 	ocfs2_lock_res_free(&dl->dl_lockres);
+ 	BUG_ON(dl->dl_count != 1);
+-	spin_lock(&dentry_attach_lock);
++	spin_lock_irqsave(&dentry_attach_lock, flags);
+ 	dentry->d_fsdata = NULL;
+-	spin_unlock(&dentry_attach_lock);
++	spin_unlock_irqrestore(&dentry_attach_lock, flags);
+ 	kfree(dl);
+ 	iput(inode);
+ }
+-- 
