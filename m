@@ -1,8 +1,8 @@
 From: alex chen <alex.chen@huawei.com>
-Date: Mon, 11 Dec 2017 14:03:03 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: using the OCFS2_XATTR_ROOT_SIZE macro
-	in ocfs2_reflink_xattr_header()
-Message-ID: <5A2E1F97.5010906@huawei.com>
+Date: Mon, 11 Dec 2017 14:24:08 +0800
+Subject: [Ocfs2-devel] [PATCH v2] ocfs2: using the OCFS2_XATTR_ROOT_SIZE
+	macro in ocfs2_reflink_xattr_header()
+Message-ID: <5A2E2488.70301@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
