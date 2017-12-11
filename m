@@ -1,260 +1,33 @@
-From: Changwei Ge <ge.changwei@h3c.com>
-Date: Sat, 9 Dec 2017 03:44:46 +0000
-Subject: [Ocfs2-devel] [PATCH] ocfs2: fix a potential 'ABBA' deadlock
- caused by 'l_lock' and 'dentry_attach_lock'
-References: <5A2925FB.2060908@huawei.com>
-	<63ADC13FD55D6546B7DECE290D39E373F1F59145@H3CMLB14-EX.srv.huawei-3com.com>
-	<5A2935DA.1030905@huawei.com>
-	<63ADC13FD55D6546B7DECE290D39E373F1F5966A@H3CMLB14-EX.srv.huawei-3com.com>
-	<5A2A6689.6010302@huawei.com>
-Message-ID: <63ADC13FD55D6546B7DECE290D39E373F1F598C8@H3CMLB14-EX.srv.huawei-3com.com>
+From: alex chen <alex.chen@huawei.com>
+Date: Mon, 11 Dec 2017 14:03:03 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: using the OCFS2_XATTR_ROOT_SIZE macro
+	in ocfs2_reflink_xattr_header()
+Message-ID: <5A2E1F97.5010906@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 2017/12/8 18:17, piaojun wrote:
-> Hi Changwei,
-> 
-> On 2017/12/8 17:09, Changwei Ge wrote:
->> On 2017/12/7 20:37, piaojun wrote:
->>> Hi Changwei,
->>>
->>> On 2017/12/7 19:59, Changwei Ge wrote:
->>>> Hi Jun,
->>>>
->>>> On 2017/12/7 19:30, piaojun wrote:
->>>>>           CPUA                                      CPUB
->>>>>
->>>>> ocfs2_dentry_convert_worker
->>>>> get 'l_lock'
->>>>
->>>> This lock belongs to ocfs2_dentry_lock::ocfs2_lock_res::l_lock
->>>>
->>>>>
->>>>>                                        get 'dentry_attach_lock'
->>>>>
->>>>>                                        interruptted by dio_end_io:
->>>>>                                          dio_end_io
->>>>>                                            dio_bio_end_aio
->>>>>                                              dio_complete
->>>>>                                                dio->end_io
->>>>>                                                  ocfs2_dio_end_io
->>>>>                                                    ocfs2_rw_unlock
->>>>>                                                    ...
->>>>>                                                    try to get 'l_lock'
->>>>
->>>> This lock belongs to ocfs2_lock_res::l_lock though.
->>>>
->>>> So I think they are totally two different locks.
->>>> So making spin_lock to interruption safe is pointless.
->>>>
->>>> Thanks,
->>>> Changwei
->>>>
->>>
->>> For the same lock, we need use spin_lock_irqsave to ensure irq-safe as
->>> you said. But the scenario described above is another kind of deadlock
->>> caused by two different locks which stuck each other. To avoid this
->>> 'ABBA' deadlock we need follow the rule that 'spin_lock_irqsave' should
->>> be called under 'spin_lock_irqsave'.
->>
->> Hi Jun,
->> I'm not sure if you understood my concern?
->> I agree with that we should avoid ABBA dead lock scenario.
->> But the dead lock scenario your sequence diagram is demonstrating
->> doesn't even exist.
->>
->> Because CPU A is holding lock _X1_ and waiting for _dentry_attach_lock_.
->> meanwhile CPU B is holding lock _dentry_attach_lock_ and waiting for _X2_.
->> No ABBA deadlock condition is met, CPU B will acquire lock _X2_ without
->> being affected by CPU A.
->>
->> In a nutshell, there are three locks(lock memory space) involved in your
->> diagram rather than two.
->>
->> Thanks,
->> Changwei
->>
-> 
-> Sorry for misunderstanding your point, and I realize no deadlock would
-> happen as these two 'l_lock' belong to different lockres. But I still
-> suggest merging this patch, because this would reduce the risk of
-> introducing new deadlock probably by programming.
+Using the OCFS2_XATTR_ROOT_SIZE macro improves the readability of the code.
 
-Hi Jun,
+Signed-off-by: Alex Chen <alex.chen@huawei.com>
+Reviewed-by: Jun Piao <piaojun@huawei.com>
+---
+ fs/ocfs2/xattr.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-Um, I don't think so. Moreover, unnecessarily disabling local CPU 
-interrupt will introduce overhead like memory copying and also delay 
-interrupt handling, which I don't think is a good idea.
-
-Thanks,
-Changwei
-
-> 
-> thanks,
-> Jun
-> 
->>>
->>> thanks,
->>> Jun
->>>
->>>>>                                                    but CPUA has got it.
->>>>>
->>>>> try to get 'dentry_attach_lock',
->>>>> but CPUB has got 'dentry_attach_lock',
->>>>> and would not release it.
->>>>>
->>>>> so we need use spin_lock_irqsave for 'dentry_attach_lock' to prevent
->>>>> interruptted by softirq.
->>>>>
->>>>> Signed-off-by: Jun Piao <piaojun@huawei.com>
->>>>> Reviewed-by: Alex Chen <alex.chen@huawei.com>
->>>>> ---
->>>>>     fs/ocfs2/dcache.c  | 14 ++++++++------
->>>>>     fs/ocfs2/dlmglue.c | 14 +++++++-------
->>>>>     fs/ocfs2/namei.c   |  5 +++--
->>>>>     3 files changed, 18 insertions(+), 15 deletions(-)
->>>>>
->>>>> diff --git a/fs/ocfs2/dcache.c b/fs/ocfs2/dcache.c
->>>>> index 2903730..6555fbf 100644
->>>>> --- a/fs/ocfs2/dcache.c
->>>>> +++ b/fs/ocfs2/dcache.c
->>>>> @@ -230,6 +230,7 @@ int ocfs2_dentry_attach_lock(struct dentry *dentry,
->>>>>     	int ret;
->>>>>     	struct dentry *alias;
->>>>>     	struct ocfs2_dentry_lock *dl = dentry->d_fsdata;
->>>>> +	unsigned long flags;
->>>>>
->>>>>     	trace_ocfs2_dentry_attach_lock(dentry->d_name.len, dentry->d_name.name,
->>>>>     				       (unsigned long long)parent_blkno, dl);
->>>>> @@ -309,10 +310,10 @@ int ocfs2_dentry_attach_lock(struct dentry *dentry,
->>>>>     	ocfs2_dentry_lock_res_init(dl, parent_blkno, inode);
->>>>>
->>>>>     out_attach:
->>>>> -	spin_lock(&dentry_attach_lock);
->>>>> +	spin_lock_irqsave(&dentry_attach_lock, flags);
->>>>>     	dentry->d_fsdata = dl;
->>>>>     	dl->dl_count++;
->>>>> -	spin_unlock(&dentry_attach_lock);
->>>>> +	spin_unlock_irqrestore(&dentry_attach_lock, flags);
->>>>>
->>>>>     	/*
->>>>>     	 * This actually gets us our PRMODE level lock. From now on,
->>>>> @@ -333,9 +334,9 @@ int ocfs2_dentry_attach_lock(struct dentry *dentry,
->>>>>     	if (ret < 0 && !alias) {
->>>>>     		ocfs2_lock_res_free(&dl->dl_lockres);
->>>>>     		BUG_ON(dl->dl_count != 1);
->>>>> -		spin_lock(&dentry_attach_lock);
->>>>> +		spin_lock_irqsave(&dentry_attach_lock, flags);
->>>>>     		dentry->d_fsdata = NULL;
->>>>> -		spin_unlock(&dentry_attach_lock);
->>>>> +		spin_unlock_irqrestore(&dentry_attach_lock, flags);
->>>>>     		kfree(dl);
->>>>>     		iput(inode);
->>>>>     	}
->>>>> @@ -379,13 +380,14 @@ void ocfs2_dentry_lock_put(struct ocfs2_super *osb,
->>>>>     			   struct ocfs2_dentry_lock *dl)
->>>>>     {
->>>>>     	int unlock = 0;
->>>>> +	unsigned long flags;
->>>>>
->>>>>     	BUG_ON(dl->dl_count == 0);
->>>>>
->>>>> -	spin_lock(&dentry_attach_lock);
->>>>> +	spin_lock_irqsave(&dentry_attach_lock, flags);
->>>>>     	dl->dl_count--;
->>>>>     	unlock = !dl->dl_count;
->>>>> -	spin_unlock(&dentry_attach_lock);
->>>>> +	spin_unlock_irqrestore(&dentry_attach_lock, flags);
->>>>>
->>>>>     	if (unlock)
->>>>>     		ocfs2_drop_dentry_lock(osb, dl);
->>>>> diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
->>>>> index 4689940..9bff3d2 100644
->>>>> --- a/fs/ocfs2/dlmglue.c
->>>>> +++ b/fs/ocfs2/dlmglue.c
->>>>> @@ -3801,7 +3801,7 @@ static int ocfs2_dentry_convert_worker(struct ocfs2_lock_res *lockres,
->>>>>     	struct ocfs2_dentry_lock *dl = ocfs2_lock_res_dl(lockres);
->>>>>     	struct ocfs2_inode_info *oi = OCFS2_I(dl->dl_inode);
->>>>>     	struct dentry *dentry;
->>>>> -	unsigned long flags;
->>>>> +	unsigned long flags, d_flags;
->>>>>     	int extra_ref = 0;
->>>>>
->>>>>     	/*
->>>>> @@ -3831,13 +3831,13 @@ static int ocfs2_dentry_convert_worker(struct ocfs2_lock_res *lockres,
->>>>>     	 * flag.
->>>>>     	 */
->>>>>     	spin_lock_irqsave(&lockres->l_lock, flags);
->>>>> -	spin_lock(&dentry_attach_lock);
->>>>> +	spin_lock_irqsave(&dentry_attach_lock, d_flags);
->>>>>     	if (!(lockres->l_flags & OCFS2_LOCK_FREEING)
->>>>>     	    && dl->dl_count) {
->>>>>     		dl->dl_count++;
->>>>>     		extra_ref = 1;
->>>>>     	}
->>>>> -	spin_unlock(&dentry_attach_lock);
->>>>> +	spin_unlock_irqrestore(&dentry_attach_lock, d_flags);
->>>>>     	spin_unlock_irqrestore(&lockres->l_lock, flags);
->>>>>
->>>>>     	mlog(0, "extra_ref = %d\n", extra_ref);
->>>>> @@ -3850,13 +3850,13 @@ static int ocfs2_dentry_convert_worker(struct ocfs2_lock_res *lockres,
->>>>>     	if (!extra_ref)
->>>>>     		return UNBLOCK_CONTINUE;
->>>>>
->>>>> -	spin_lock(&dentry_attach_lock);
->>>>> +	spin_lock_irqsave(&dentry_attach_lock, d_flags);
->>>>>     	while (1) {
->>>>>     		dentry = ocfs2_find_local_alias(dl->dl_inode,
->>>>>     						dl->dl_parent_blkno, 1);
->>>>>     		if (!dentry)
->>>>>     			break;
->>>>> -		spin_unlock(&dentry_attach_lock);
->>>>> +		spin_unlock_irqrestore(&dentry_attach_lock, d_flags);
->>>>>
->>>>>     		if (S_ISDIR(dl->dl_inode->i_mode))
->>>>>     			shrink_dcache_parent(dentry);
->>>>> @@ -3874,9 +3874,9 @@ static int ocfs2_dentry_convert_worker(struct ocfs2_lock_res *lockres,
->>>>>     		d_delete(dentry);
->>>>>     		dput(dentry);
->>>>>
->>>>> -		spin_lock(&dentry_attach_lock);
->>>>> +		spin_lock_irqsave(&dentry_attach_lock, d_flags);
->>>>>     	}
->>>>> -	spin_unlock(&dentry_attach_lock);
->>>>> +	spin_unlock_irqrestore(&dentry_attach_lock, d_flags);
->>>>>
->>>>>     	/*
->>>>>     	 * If we are the last holder of this dentry lock, there is no
->>>>> diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
->>>>> index 3b0a10d..a17454e 100644
->>>>> --- a/fs/ocfs2/namei.c
->>>>> +++ b/fs/ocfs2/namei.c
->>>>> @@ -223,13 +223,14 @@ static void ocfs2_cleanup_add_entry_failure(struct ocfs2_super *osb,
->>>>>     		struct dentry *dentry, struct inode *inode)
->>>>>     {
->>>>>     	struct ocfs2_dentry_lock *dl = dentry->d_fsdata;
->>>>> +	unsigned long flags;
->>>>>
->>>>>     	ocfs2_simple_drop_lockres(osb, &dl->dl_lockres);
->>>>>     	ocfs2_lock_res_free(&dl->dl_lockres);
->>>>>     	BUG_ON(dl->dl_count != 1);
->>>>> -	spin_lock(&dentry_attach_lock);
->>>>> +	spin_lock_irqsave(&dentry_attach_lock, flags);
->>>>>     	dentry->d_fsdata = NULL;
->>>>> -	spin_unlock(&dentry_attach_lock);
->>>>> +	spin_unlock_irqrestore(&dentry_attach_lock, flags);
->>>>>     	kfree(dl);
->>>>>     	iput(inode);
->>>>>     }
->>>>>
->>>>
->>>> .
->>>>
->>>
->>
->> .
->>
-> 
+diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
+index 5fdf269..ca3b61a 100644
+--- a/fs/ocfs2/xattr.c
++++ b/fs/ocfs2/xattr.c
+@@ -6415,7 +6415,7 @@ static int ocfs2_reflink_xattr_header(handle_t *handle,
+ 		 * and then insert the extents one by one.
+ 		 */
+ 		if (xv->xr_list.l_tree_depth) {
+-			memcpy(new_xv, &def_xv, sizeof(def_xv));
++			memcpy(new_xv, &def_xv, OCFS2_XATTR_ROOT_SIZE);
+ 			vb->vb_xv = new_xv;
+ 			vb->vb_bh = value_bh;
+ 			ocfs2_init_xattr_value_extent_tree(&data_et,
+-- 1.9.5.msysgit.1
