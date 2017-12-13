@@ -1,38 +1,38 @@
-From: Joseph Qi <jiangqi903@gmail.com>
-Date: Wed, 13 Dec 2017 12:05:13 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2/cluster: clean up unused function
- declaration in heartbeat.h
-In-Reply-To: <63ADC13FD55D6546B7DECE290D39E373F1F5A7ED@H3CMLB14-EX.srv.huawei-3com.com>
-References: <63ADC13FD55D6546B7DECE290D39E373F1F5A7ED@H3CMLB14-EX.srv.huawei-3com.com>
-Message-ID: <1fb5341c-fb33-3b17-509a-568572f96b26@gmail.com>
+From: Changwei Ge <ge.changwei@h3c.com>
+Date: Wed, 13 Dec 2017 04:51:17 +0000
+Subject: [Ocfs2-devel] [PATCH v2] ocfs2: clean dead code in suballoc.c
+References: <63ADC13FD55D6546B7DECE290D39E373F1F5A842@H3CMLB14-EX.srv.huawei-3com.com>
+	<b0e71d54-2948-5b21-7a41-b77b36d0a679@gmail.com>
+Message-ID: <63ADC13FD55D6546B7DECE290D39E373F1F5A8AF@H3CMLB14-EX.srv.huawei-3com.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-These have already been cleaned up in commit
-98d6c09ec2899a9a601b16ec7ae31d54e6b100b9.
+On 2017/12/13 12:03, Joseph Qi wrote:
+> 
+> 
+> On 17/12/13 11:51, Changwei Ge wrote:
+>> Stack variable fe is no longer used, so trim it to save some cpu cycles
+>> and stack space.
+>>
 
-On 17/12/13 11:19, Changwei Ge wrote:
-> Signed-off-by: Changwei Ge <ge.changwei@h3c.com>
-> ---
->   fs/ocfs2/cluster/heartbeat.h | 2 --
->   1 file changed, 2 deletions(-)
+>> -	BUG_ON(start_blk != ocfs2_clusters_to_blocks(bitmap_inode->i_sb,
+>> ocfs2_blocks_to_clusters(bitmap_inode->i_sb, start_blk)));
 > 
-> diff --git a/fs/ocfs2/cluster/heartbeat.h b/fs/ocfs2/cluster/heartbeat.h
-> index 3ef5137dc362..a9e67efc0004 100644
-> --- a/fs/ocfs2/cluster/heartbeat.h
-> +++ b/fs/ocfs2/cluster/heartbeat.h
-> @@ -79,10 +79,8 @@ void o2hb_fill_node_map(unsigned long *map,
->   			unsigned bytes);
->   void o2hb_exit(void);
->   int o2hb_init(void);
-> -int o2hb_check_node_heartbeating(u8 node_num);
->   int o2hb_check_node_heartbeating_no_sem(u8 node_num);
->   int o2hb_check_node_heartbeating_from_callback(u8 node_num);
-> -int o2hb_check_local_node_heartbeating(void);
->   void o2hb_stop_all_regions(void);
->   int o2hb_get_all_regions(char *region_uuids, u8 numregions);
->   int o2hb_global_heartbeat_active(void);
+> Still malformed. You have to disable auto wrap length in your editor.
+
+Hi Joseph,
+Thanks for your tips, I will send a revised patch later.
+
+Thanks,
+Changwei
+
 > 
+> Thanks,
+> Joseph
+> 
+>> +	BUG_ON(start_blk != ocfs2_clusters_to_blocks(bitmap_inode->i_sb,
+>> +				ocfs2_blocks_to_clusters(bitmap_inode->i_sb,
+>> +							 start_blk)));
