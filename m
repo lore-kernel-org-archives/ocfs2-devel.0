@@ -1,47 +1,44 @@
 From: Changwei Ge <ge.changwei@h3c.com>
-Date: Wed, 13 Dec 2017 04:52:38 +0000
-Subject: [Ocfs2-devel] [PATCH] ocfs2/cluster: clean up unused function
- declaration in heartbeat.h
-References: <63ADC13FD55D6546B7DECE290D39E373F1F5A7ED@H3CMLB14-EX.srv.huawei-3com.com>
-	<1fb5341c-fb33-3b17-509a-568572f96b26@gmail.com>
-Message-ID: <63ADC13FD55D6546B7DECE290D39E373F1F5A8BC@H3CMLB14-EX.srv.huawei-3com.com>
+Date: Wed, 13 Dec 2017 04:54:29 +0000
+Subject: [Ocfs2-devel] [PATCH v3] ocfs2: clean dead code in suballoc.c
+Message-ID: <63ADC13FD55D6546B7DECE290D39E373F1F5A8DD@H3CMLB14-EX.srv.huawei-3com.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Yes, Jun has cleaned up those declarations.
+Stack variable fe is no longer used, so trim it to save some CPU cycles
+and stack space.
 
-I will rebase my tree.
+Signed-off-by: Changwei Ge <ge.changwei@h3c.com>
+---
+  fs/ocfs2/suballoc.c | 6 +++---
+  1 file changed, 3 insertions(+), 3 deletions(-)
 
-Thanks,
-Changwei
-
-On 2017/12/13 12:06, Joseph Qi wrote:
-> These have already been cleaned up in commit
-> 98d6c09ec2899a9a601b16ec7ae31d54e6b100b9.
-> 
-> On 17/12/13 11:19, Changwei Ge wrote:
->> Signed-off-by: Changwei Ge <ge.changwei@h3c.com>
->> ---
->>    fs/ocfs2/cluster/heartbeat.h | 2 --
->>    1 file changed, 2 deletions(-)
->>
->> diff --git a/fs/ocfs2/cluster/heartbeat.h b/fs/ocfs2/cluster/heartbeat.h
->> index 3ef5137dc362..a9e67efc0004 100644
->> --- a/fs/ocfs2/cluster/heartbeat.h
->> +++ b/fs/ocfs2/cluster/heartbeat.h
->> @@ -79,10 +79,8 @@ void o2hb_fill_node_map(unsigned long *map,
->>    			unsigned bytes);
->>    void o2hb_exit(void);
->>    int o2hb_init(void);
->> -int o2hb_check_node_heartbeating(u8 node_num);
->>    int o2hb_check_node_heartbeating_no_sem(u8 node_num);
->>    int o2hb_check_node_heartbeating_from_callback(u8 node_num);
->> -int o2hb_check_local_node_heartbeating(void);
->>    void o2hb_stop_all_regions(void);
->>    int o2hb_get_all_regions(char *region_uuids, u8 numregions);
->>    int o2hb_global_heartbeat_active(void);
->>
-> 
+diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
+index 71f22c8fbffd..508422b0032f 100644
+--- a/fs/ocfs2/suballoc.c
++++ b/fs/ocfs2/suballoc.c
+@@ -2566,16 +2566,16 @@ static int _ocfs2_free_clusters(handle_t *handle,
+  	int status;
+  	u16 bg_start_bit;
+  	u64 bg_blkno;
+-	struct ocfs2_dinode *fe;
+  
+  	/* You can't ever have a contiguous set of clusters
+  	 * bigger than a block group bitmap so we never have to worry
+  	 * about looping on them.
+  	 * This is expensive. We can safely remove once this stuff has
+  	 * gotten tested really well. */
+-	BUG_ON(start_blk != ocfs2_clusters_to_blocks(bitmap_inode->i_sb, ocfs2_blocks_to_clusters(bitmap_inode->i_sb, start_blk)));
++	BUG_ON(start_blk != ocfs2_clusters_to_blocks(bitmap_inode->i_sb,
++				ocfs2_blocks_to_clusters(bitmap_inode->i_sb,
++							 start_blk)));
+  
+-	fe = (struct ocfs2_dinode *) bitmap_bh->b_data;
+  
+  	ocfs2_block_to_cluster_group(bitmap_inode, start_blk, &bg_blkno,
+  				     &bg_start_bit);
+-- 
+2.11.0
