@@ -1,50 +1,224 @@
-From: Joseph Qi <jiangqi903@gmail.com>
-Date: Wed, 13 Dec 2017 13:38:23 +0800
-Subject: [Ocfs2-devel] [PATCH v3] ocfs2: clean dead code in suballoc.c
-In-Reply-To: <63ADC13FD55D6546B7DECE290D39E373F1F5A8DD@H3CMLB14-EX.srv.huawei-3com.com>
-References: <63ADC13FD55D6546B7DECE290D39E373F1F5A8DD@H3CMLB14-EX.srv.huawei-3com.com>
-Message-ID: <888d858d-980b-e982-fcc3-ea26b18ddab6@gmail.com>
+From: alex chen <alex.chen@huawei.com>
+Date: Wed, 13 Dec 2017 15:24:32 +0800
+Subject: [Ocfs2-devel] [PATCH v2] ocfs2: check the metadate alloc before
+ marking extent written
+In-Reply-To: <63ADC13FD55D6546B7DECE290D39E373F1F5A147@H3CMLB14-EX.srv.huawei-3com.com>
+References: <5A261299.6080403@huawei.com>
+	<63ADC13FD55D6546B7DECE290D39E373F1F5A147@H3CMLB14-EX.srv.huawei-3com.com>
+Message-ID: <5A30D5B0.9050009@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
+Hi Changwei,
 
-
-On 17/12/13 12:54, Changwei Ge wrote:
-> Stack variable fe is no longer used, so trim it to save some CPU cycles
-> and stack space.
+On 2017/12/12 9:05, Changwei Ge wrote:
+> Hi Alex,
 > 
-> Signed-off-by: Changwei Ge <ge.changwei@h3c.com>
-Reviewed-by: Joseph Qi <jiangqi903@gmail.com>
-
-> ---
->   fs/ocfs2/suballoc.c | 6 +++---
->   1 file changed, 3 insertions(+), 3 deletions(-)
+> On 2017/12/5 11:31, alex chen wrote:
+>> We need to check the free number of the records in each loop to mark
+>> extent written, because the last extent block may be changed through
+>> many times marking extent written and the 'num_free_extents' also be
+>> changed. In the worst case, the 'num_free_extents' may become less
+>> than the beginning of the loop. So we should not estimate the free
+>> number of the records at the beginning of the loop to mark extent
+>> written.
+>>
+>> Reported-by: John Lightsey <john@nixnuts.net>
+>> Signed-off-by: Alex Chen <alex.chen@huawei.com>
+>> Reviewed-by: Jun Piao <piaojun@huawei.com>
+>> ---
+>>   fs/ocfs2/aops.c | 77 +++++++++++++++++++++++++++++++++++++++++++++++----------
+>>   1 file changed, 64 insertions(+), 13 deletions(-)
+>>
+>> diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+>> index d151632..7e1659d 100644
+>> --- a/fs/ocfs2/aops.c
+>> +++ b/fs/ocfs2/aops.c
+>> @@ -2272,6 +2272,35 @@ static int ocfs2_dio_wr_get_block(struct inode *inode, sector_t iblock,
+>>   	return ret;
+>>   }
+>>
+>> +static int ocfs2_dio_should_restart(struct ocfs2_extent_tree *et,
+>> +		struct ocfs2_alloc_context *meta_ac, int max_rec_needed)
+>> +{
+>> +	int status = 0, free_extents;
+>> +
+>> +	free_extents = ocfs2_num_free_extents(et);
+>> +	if (free_extents < 0) {
+>> +		status = free_extents;
+>> +		mlog_errno(status);
+>> +		return status;
+>> +	}
+>> +
+>> +	/*
+>> +	 * there are two cases which could cause us to EAGAIN in the
+>> +	 * we-need-more-metadata case:
+>> +	 * 1) we haven't reserved *any*
+>> +	 * 2) we are so fragmented, we've needed to add metadata too
+>> +	 *    many times.
+>> +	 */
+>> +	if (free_extents < max_rec_needed) {
+>> +		if (!meta_ac || (ocfs2_alloc_context_bits_left(meta_ac)
+>> +				< ocfs2_extend_meta_needed(et->et_root_el)))
+>> +			status = 1;
+>> +	}
+>> +
+>> +	return status;
+>> +}
+>> +
+>> +#define OCFS2_MAX_REC_NEEDED_SPLIT 2
+>>   static int ocfs2_dio_end_io_write(struct inode *inode,
+>>   				  struct ocfs2_dio_write_ctxt *dwc,
+>>   				  loff_t offset,
+>> @@ -2281,14 +2310,13 @@ static int ocfs2_dio_end_io_write(struct inode *inode,
+>>   	struct ocfs2_extent_tree et;
+>>   	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+>>   	struct ocfs2_inode_info *oi = OCFS2_I(inode);
+>> -	struct ocfs2_unwritten_extent *ue = NULL;
+>> +	struct ocfs2_unwritten_extent *ue = NULL, *tmp_ue;
+>>   	struct buffer_head *di_bh = NULL;
+>>   	struct ocfs2_dinode *di;
+>> -	struct ocfs2_alloc_context *data_ac = NULL;
+>>   	struct ocfs2_alloc_context *meta_ac = NULL;
+>>   	handle_t *handle = NULL;
+>>   	loff_t end = offset + bytes;
+>> -	int ret = 0, credits = 0, locked = 0;
+>> +	int ret = 0, credits = 0, locked = 0, restart = 0;
+>>
+>>   	ocfs2_init_dealloc_ctxt(&dealloc);
+>>
+>> @@ -2328,10 +2356,10 @@ static int ocfs2_dio_end_io_write(struct inode *inode,
+>>
+>>   	di = (struct ocfs2_dinode *)di_bh->b_data;
+>>
+>> +restart_all:
+>>   	ocfs2_init_dinode_extent_tree(&et, INODE_CACHE(inode), di_bh);
+>> -
+>> -	ret = ocfs2_lock_allocators(inode, &et, 0, dwc->dw_zero_count*2,
+>> -				    &data_ac, &meta_ac);
+>> +	ret = ocfs2_lock_allocators(inode, &et, 0, OCFS2_MAX_REC_NEEDED_SPLIT,
+>> +				    NULL, &meta_ac);
+>>   	if (ret) {
+>>   		mlog_errno(ret);
+>>   		goto unlock;
+>> @@ -2343,7 +2371,7 @@ static int ocfs2_dio_end_io_write(struct inode *inode,
+>>   	if (IS_ERR(handle)) {
+>>   		ret = PTR_ERR(handle);
+>>   		mlog_errno(ret);
+>> -		goto unlock;
+>> +		goto free_ac;
+>>   	}
+>>   	ret = ocfs2_journal_access_di(handle, INODE_CACHE(inode), di_bh,
+>>   				      OCFS2_JOURNAL_ACCESS_WRITE);
+>> @@ -2352,7 +2380,17 @@ static int ocfs2_dio_end_io_write(struct inode *inode,
+>>   		goto commit;
+>>   	}
+>>
+>> -	list_for_each_entry(ue, &dwc->dw_zero_list, ue_node) {
+>> +	list_for_each_entry_safe(ue, tmp_ue, &dwc->dw_zero_list, ue_node) {
+>> +		ret = ocfs2_dio_should_restart(&et, meta_ac,
+>> +				OCFS2_MAX_REC_NEEDED_SPLIT * 2);
+>> +		if (ret < 0) {
+>> +			mlog_errno(ret);
+>> +			break;
+>> +		} else if (ret == 1) {
+>> +			restart = 1;
 > 
-> diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
-> index 71f22c8fbffd..508422b0032f 100644
-> --- a/fs/ocfs2/suballoc.c
-> +++ b/fs/ocfs2/suballoc.c
-> @@ -2566,16 +2566,16 @@ static int _ocfs2_free_clusters(handle_t *handle,
->   	int status;
->   	u16 bg_start_bit;
->   	u64 bg_blkno;
-> -	struct ocfs2_dinode *fe;
->   
->   	/* You can't ever have a contiguous set of clusters
->   	 * bigger than a block group bitmap so we never have to worry
->   	 * about looping on them.
->   	 * This is expensive. We can safely remove once this stuff has
->   	 * gotten tested really well. */
-> -	BUG_ON(start_blk != ocfs2_clusters_to_blocks(bitmap_inode->i_sb, ocfs2_blocks_to_clusters(bitmap_inode->i_sb, start_blk)));
-> +	BUG_ON(start_blk != ocfs2_clusters_to_blocks(bitmap_inode->i_sb,
-> +				ocfs2_blocks_to_clusters(bitmap_inode->i_sb,
-> +							 start_blk)));
->   
-> -	fe = (struct ocfs2_dinode *) bitmap_bh->b_data;
->   
->   	ocfs2_block_to_cluster_group(bitmap_inode, start_blk, &bg_blkno,
->   				     &bg_start_bit);
+> If there isn't enough extent records here, you break this loop and also 
+> commit transaction.
+> After re-executing from _restart_all_, a new transaction is started.
+> So you separate 'before _restart_all_' and 'after _restart_all_' into 
+> different transactions.
+> 
+> 
+>> +			break;
+>> +		}
+>> +
+>>   		ret = ocfs2_mark_extent_written(inode, &et, handle,
+>>   						ue->ue_cpos, 1,
+>>   						ue->ue_phys,
+>> @@ -2361,24 +2399,37 @@ static int ocfs2_dio_end_io_write(struct inode *inode,
+>>   			mlog_errno(ret);
+>>   			break;
+>>   		}
+>> +
+>> +		dwc->dw_zero_count--;
+>> +		list_del_init(&ue->ue_node);
+>> +		spin_lock(&oi->ip_lock);
+>> +		list_del_init(&ue->ue_ip_node);
+>> +		spin_unlock(&oi->ip_lock);
+>> +		kfree(ue);
+>>   	}
+>>
+>> -	if (end > i_size_read(inode)) {
+>> +	if (!restart && end > i_size_read(inode)) {
+> 
+> Here you don't change inode size, however, obviously you already mark 
+> extents as *written*.
+
+Here we should not change inode size, otherwise, the user may read some of the data
+he wrote and the other part of data is zero, which breaks the consistency of WRITE.
+Here it just mark extents to written and do not allocated data spaces.
+
+> 
+>>   		ret = ocfs2_set_inode_size(handle, inode, di_bh, end);
+>>   		if (ret < 0)
+>>   			mlog_errno(ret);
+>>   	}
+>> +
+>>   commit:
+>>   	ocfs2_commit_trans(osb, handle);
+> 
+> You commit transaction here and host just crashes at this point.
+> Then you will have a file with a smaller size than its real size.
+> Moreover, those space could not be declaimed.
+
+The problem you described above is exist. But it is a new problem and is not introduced by this patch.
+It is introduced in commit c15471f79506(ocfs2: fix sparse file & data ordering issue in direct io).
+Those space was allocated in ocfs2_dio_wr_get_block()->ocfs2_write_begin_nolock()->
+ocfs2_write_cluster_by_desc() and it could not be declaimed when any errors happen in
+ocfs2_dio_end_io_write().
+This patch corrects the calculation method of the free number of the records.
+
+At present, I have no idea to solve the new problem you described above, I think you can send the patch
+to solve this problem if you have a good idea.
+
+Thanks,
+Alex
+
+> 
+> Should we do more work on JBD2?
+> 
+> Thanks,
+> Changwei
+> 
+> 
+>> +free_ac:
+>> +	if (meta_ac) {
+>> +		ocfs2_free_alloc_context(meta_ac);
+>> +		meta_ac = NULL;
+>> +	}
+>> +	if (restart) {
+>> +		restart = 0;
+>> +		goto restart_all;
+>> +	}
+>>   unlock:
+>>   	up_write(&oi->ip_alloc_sem);
+>>   	ocfs2_inode_unlock(inode, 1);
+>>   	brelse(di_bh);
+>>   out:
+>> -	if (data_ac)
+>> -		ocfs2_free_alloc_context(data_ac);
+>> -	if (meta_ac)
+>> -		ocfs2_free_alloc_context(meta_ac);
+>>   	ocfs2_run_deallocs(osb, &dealloc);
+>>   	if (locked)
+>>   		inode_unlock(inode);
+>>
+> 
+> 
+> .
 > 
