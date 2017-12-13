@@ -1,47 +1,42 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Date: Tue, 12 Dec 2017 14:47:47 -0800
-Subject: [Ocfs2-devel] [PATCH v2] ocfs2: using the OCFS2_XATTR_ROOT_SIZE
- macro in ocfs2_reflink_xattr_header()
-In-Reply-To: <5A2E2488.70301@huawei.com>
-References: <5A2E2488.70301@huawei.com>
-Message-ID: <20171212144747.f35e16dfcd2a0b90c18e0479@linux-foundation.org>
+From: Changwei Ge <ge.changwei@h3c.com>
+Date: Wed, 13 Dec 2017 03:04:48 +0000
+Subject: [Ocfs2-devel] [PATCH] ocfs2: clean dead code in suballoc.c
+Message-ID: <63ADC13FD55D6546B7DECE290D39E373F1F5A7C0@H3CMLB14-EX.srv.huawei-3com.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Mon, 11 Dec 2017 14:24:08 +0800 alex chen <alex.chen@huawei.com> wrote:
+Stack variable fe is no longer used, so trim it to save some cpu cycles
+and stack space.
 
-> Using the OCFS2_XATTR_ROOT_SIZE macro improves the readability of the code.
-> 
-> Signed-off-by: Alex Chen <alex.chen@huawei.com>
-> Reviewed-by: Jun Piao <piaojun@huawei.com>
-> ---
->  fs/ocfs2/xattr.c | 2 +-
->  1 file changed, 1 insertion(+), 1 deletion(-)
-> 
-> diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-> index 5fdf269..ca3b61a 100644
-> --- a/fs/ocfs2/xattr.c
-> +++ b/fs/ocfs2/xattr.c
-> @@ -6415,7 +6415,7 @@ static int ocfs2_reflink_xattr_header(handle_t *handle,
->  		 * and then insert the extents one by one.
->  		 */
->  		if (xv->xr_list.l_tree_depth) {
-> -			memcpy(new_xv, &def_xv, sizeof(def_xv));
-> +			memcpy(new_xv, &def_xv, OCFS2_XATTR_ROOT_SIZE);
->  			vb->vb_xv = new_xv;
->  			vb->vb_bh = value_bh;
->  			ocfs2_init_xattr_value_extent_tree(&data_et,
+Signed-off-by: Changwei Ge <ge.changwei@h3c.com>
+---
+  fs/ocfs2/suballoc.c | 3 ---
+  1 file changed, 3 deletions(-)
 
-OK.
+diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
+index 71f22c8fbffd..a74108d22d47 100644
+--- a/fs/ocfs2/suballoc.c
++++ b/fs/ocfs2/suballoc.c
+@@ -2566,7 +2566,6 @@ static int _ocfs2_free_clusters(handle_t *handle,
+  	int status;
+  	u16 bg_start_bit;
+  	u64 bg_blkno;
+-	struct ocfs2_dinode *fe;
 
-But what's wrong with
+  	/* You can't ever have a contiguous set of clusters
+  	 * bigger than a block group bitmap so we never have to worry
+@@ -2575,8 +2574,6 @@ static int _ocfs2_free_clusters(handle_t *handle,
+  	 * gotten tested really well. */
+  	BUG_ON(start_blk != ocfs2_clusters_to_blocks(bitmap_inode->i_sb, 
+ocfs2_blocks_to_clusters(bitmap_inode->i_sb, start_blk)));
 
-	*new_xv = def_xv;
+-	fe = (struct ocfs2_dinode *) bitmap_bh->b_data;
+-
+  	ocfs2_block_to_cluster_group(bitmap_inode, start_blk, &bg_blkno,
+  				     &bg_start_bit);
 
-?
-
-That gets typechecked and the compiler may be able to perform
-some optimizations...
+-- 
+2.11.0
