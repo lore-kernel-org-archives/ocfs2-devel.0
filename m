@@ -1,10 +1,10 @@
-From: piaojun <piaojun@huawei.com>
-Date: Tue, 19 Dec 2017 09:44:44 +0800
+From: Gang He <ghe@suse.com>
+Date: Mon, 18 Dec 2017 19:35:22 -0700
 Subject: [Ocfs2-devel] [PATCH] ocfs2: fall back to buffer IO when append
  dio is disabled with file hole existing
 In-Reply-To: <63ADC13FD55D6546B7DECE290D39E373F1F5C2CE@H3CMLB14-EX.srv.huawei-3com.com>
 References: <63ADC13FD55D6546B7DECE290D39E373F1F5C2CE@H3CMLB14-EX.srv.huawei-3com.com>
-Message-ID: <5A386F0C.3090501@huawei.com>
+Message-ID: <5A38EB6A020000F90009F4B6@prv-mh.provo.novell.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -13,19 +13,21 @@ To: ocfs2-devel@oss.oracle.com
 
 Hi Changwei,
 
-On 2017/12/18 20:06, Changwei Ge wrote:
+
+>>> 
 > Before ocfs2 supporting allocating clusters while doing append-dio, all append
 > dio will fall back to buffer io to allocate clusters firstly. Also, when it
 > steps on a file hole, it will fall back to buffer io, too. But for current
-> code, writing to file hole will leverage dio to allocate clusters. This is not
-> right, since whether append-io is enabled tells the capability whether ocfs2 can
+> code, writing to file hole will leverage dio to allocate clusters. This is 
+> not
+> right, since whether append-io is enabled tells the capability whether ocfs2 
+> can
 > allocate space while doing dio.
 > So introduce file hole check function back into ocfs2.
-> Once ocfs2 is doing dio upon a file hole with append-dio disabled, it will fall
+> Once ocfs2 is doing dio upon a file hole with append-dio disabled, it will 
+> fall
 > back to buffer IO to allocate clusters.
 > 
-1. Do you mean that filling hole can't go with dio when append-dio is disabled?
-2. Is your checking-hole just for 'append-dio' or for 'all-common-dio'?
 > Signed-off-by: Changwei Ge <ge.changwei@h3c.com>
 > ---
 >   fs/ocfs2/aops.c | 44 ++++++++++++++++++++++++++++++++++++++++++--
@@ -43,6 +45,9 @@ On 2017/12/18 20:06, Changwei Ge wrote:
 > + * Will look for holes and unwritten extents in the range starting at
 > + * pos for count bytes (inclusive).
 > + */
+Why do we also need to look for unwritten extents here? unwritten extents means, the clusters have been allocated, but have not been written yet.
+Unwritten extents will not bring any block allocation, my understanding is right here?
+
 > +static int ocfs2_check_range_for_holes(struct inode *inode, loff_t pos,
 > +				       size_t count)
 > +{
@@ -53,6 +58,9 @@ On 2017/12/18 20:06, Changwei Ge wrote:
 > +
 > +	cpos = pos >> OCFS2_SB(sb)->s_clustersize_bits;
 > +	clusters = ocfs2_clusters_for_bytes(sb, pos + count) - cpos;
+Please consider data-inline case, if in data-inline case, we maybe need not to allocate more cluster.
+Then, if there is not any more block need to be allocated, we should make the check return true.
+
 > +
 > +	while (clusters) {
 > +		ret = ocfs2_get_clusters(inode, cpos, &phys_cpos, &extent_len,
@@ -80,7 +88,8 @@ On 2017/12/18 20:06, Changwei Ge wrote:
 >   static ssize_t ocfs2_direct_IO(struct kiocb *iocb, struct iov_iter *iter)
 >   {
 >   	struct file *file = iocb->ki_filp;
-> @@ -2429,8 +2467,10 @@ static ssize_t ocfs2_direct_IO(struct kiocb *iocb, struct iov_iter *iter)
+> @@ -2429,8 +2467,10 @@ static ssize_t ocfs2_direct_IO(struct kiocb *iocb, 
+> struct iov_iter *iter)
 >   		return 0;
 >   
 >   	/* Fallback to buffered I/O if we do not support append dio. */
@@ -90,11 +99,13 @@ On 2017/12/18 20:06, Changwei Ge wrote:
 > +			(iocb->ki_pos + iter->count > i_size_read(inode) ||
 > +			 ocfs2_check_range_for_holes(inode, iocb->ki_pos,
 > +						     iter->count)))
-we should check error here, right?
-
-thanks,
-Jun
 >   		return 0;
 >   
 >   	if (iov_iter_rw(iter) == READ)
+> -- 
+> 2.7.4
 > 
+> _______________________________________________
+> Ocfs2-devel mailing list
+> Ocfs2-devel at oss.oracle.com 
+> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
