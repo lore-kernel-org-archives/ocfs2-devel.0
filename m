@@ -1,85 +1,29 @@
-From: alex chen <alex.chen@huawei.com>
-Date: Tue, 19 Dec 2017 11:13:31 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: fix a potential deadlock in
-	dlm_reset_mleres_owner()
-In-Reply-To: <e925268c-c699-f763-7a1e-edec86955a33@gmail.com>
-References: <5A3796E8.4060708@huawei.com>
-	<e925268c-c699-f763-7a1e-edec86955a33@gmail.com>
-Message-ID: <5A3883DB.3030809@huawei.com>
+From: Martin K. Petersen <martin.petersen@oracle.com>
+Date: Mon, 18 Dec 2017 22:31:06 -0500
+Subject: [Ocfs2-devel] [trivial PATCH] treewide: Align function
+	definition open/close braces
+In-Reply-To: <1513556924.31581.51.camel@perches.com> (Joe Perches's message of
+	"Sun, 17 Dec 2017 16:28:44 -0800")
+References: <1513556924.31581.51.camel@perches.com>
+Message-ID: <yq1shc7jsw5.fsf@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Joe Perches <joe@perches.com>
+Cc: linux-rtc@vger.kernel.org, alsa-devel@alsa-project.org, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Jiri Kosina <trivial@kernel.org>, linux-scsi@vger.kernel.org, MPT-FusionLinux.pdl@broadcom.com, acpi4asus-user@lists.sourceforge.net, linux-wireless@vger.kernel.org, linux-kernel@vger.kernel.org, dri-devel@lists.freedesktop.org, platform-driver-x86@vger.kernel.org, linux-xfs@vger.kernel.org, linux-acpi@vger.kernel.org, linux-audit@redhat.com, amd-gfx@lists.freedesktop.org, netdev@vger.kernel.org, linux-fsdevel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, ocfs2-devel@oss.oracle.com, linux-media@vger.kernel.org
 
-Hi Joseph,
 
-On 2017/12/18 19:52, Joseph Qi wrote:
-> 
-> 
-> On 17/12/18 18:22, alex chen wrote:
->> In dlm_reset_mleres_owner(), we will lock
->> dlm_lock_resource->spinlock after locking dlm_ctxt->master_lock,
->> which breaks the spinlock lock ordering:
->>  dlm_domain_lock
->>  struct dlm_ctxt->spinlock
->>  struct dlm_lock_resource->spinlock
->>  struct dlm_ctxt->master_lock
->>
->> Fix it by unlocking dlm_ctxt->master_lock before locking
->> dlm_lock_resource->spinlock and restarting to clean master list.
->>
->> Signed-off-by: Alex Chen <alex.chen@huawei.com>
->> Reviewed-by: Jun Piao <piaojun@huawei.com>
->> ---
->>  fs/ocfs2/dlm/dlmmaster.c | 13 +++++++++++--
->>  1 file changed, 11 insertions(+), 2 deletions(-)
->>
->> diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
->> index 3e04279..0df939a 100644
->> --- a/fs/ocfs2/dlm/dlmmaster.c
->> +++ b/fs/ocfs2/dlm/dlmmaster.c
->> @@ -3287,14 +3287,23 @@ static struct dlm_lock_resource *dlm_reset_mleres_owner(struct dlm_ctxt *dlm,
->>  {
->>  	struct dlm_lock_resource *res;
->>
->> +	assert_spin_locked(&dlm->spinlock);
->> +	assert_spin_locked(&dlm->master_lock);
->> +
->>  	/* Find the lockres associated to the mle and set its owner to UNK */
->> -	res = __dlm_lookup_lockres(dlm, mle->mname, mle->mnamelen,
->> +	res = __dlm_lookup_lockres_full(dlm, mle->mname, mle->mnamelen,
->>  				   mle->mnamehash);
->>  	if (res) {
->>  		spin_unlock(&dlm->master_lock);
->>
->> -		/* move lockres onto recovery list */
->>  		spin_lock(&res->spinlock);
->> +		if (res->state & DLM_LOCK_RES_DROPPING_REF) {
->> +			spin_unlock(&res->spinlock);
->> +			dlm_lockres_put(res);
->> +			return NULL;
->> +		}
-> 
-> We can't just return NULL here. Please note that we have to:
-> return a valid lock resource with master_lock unlocked, or return NULL
-> with master_lock.
-> You patch will introduce unlocking master_lock twice.
-> 
-OK, my mistake.
-I will modify it in the next patch.
+Joe,
 
-Thanks,
-Alex
-> Thanks,
-> Joseph
-> 
->> +
->> +		/* move lockres onto recovery list */
->>  		dlm_set_lockres_owner(dlm, res, DLM_LOCK_RES_OWNER_UNKNOWN);
->>  		dlm_move_lockres_to_recovery_list(dlm, res);
->>  		spin_unlock(&res->spinlock);
->>
-> 
-> .
-> 
+> Some functions definitions have either the initial open brace and/or
+> the closing brace outside of column 1.
+>
+> Move those braces to column 1.
+
+SCSI bits look OK.
+
+Acked-by: Martin K. Petersen <martin.petersen@oracle.com>
+
+-- 
+Martin K. Petersen	Oracle Linux Engineering
