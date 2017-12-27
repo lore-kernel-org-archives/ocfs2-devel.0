@@ -1,63 +1,92 @@
-From: Junxiao Bi <junxiao.bi@oracle.com>
-Date: Wed, 27 Dec 2017 16:56:27 +0800
-Subject: [Ocfs2-devel] [PATCH v2] ocfs2: fall back to buffer IO when
- append dio is disabled with file hole existing
-In-Reply-To: <63ADC13FD55D6546B7DECE290D39E373F2909565@H3CMLB12-EX.srv.huawei-3com.com>
-References: <63ADC13FD55D6546B7DECE290D39E373F2908F5C@H3CMLB12-EX.srv.huawei-3com.com>
-	<5A42062C.1020804@huawei.com>
-	<63ADC13FD55D6546B7DECE290D39E373F2909081@H3CMLB12-EX.srv.huawei-3com.com>
-	<94ccc327-90ec-59f5-c75a-eac6755e0eaa@oracle.com>
-	<63ADC13FD55D6546B7DECE290D39E373F2909565@H3CMLB12-EX.srv.huawei-3com.com>
-Message-ID: <dabe5b6c-f9db-c4c9-ec4f-1a8a637e76e8@oracle.com>
+From: Gang He <ghe@suse.com>
+Date: Wed, 27 Dec 2017 17:29:20 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: try a blocking lock before return
+	AOP_TRUNCATED_PAGE
+Message-ID: <1514366960-10588-1-git-send-email-ghe@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: mfasheh@versity.com, jlbec@evilplan.org
+Cc: Gang He <ghe@suse.com>, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com, akpm@linux-foundation.org
 
-On 12/27/2017 03:46 PM, Changwei Ge wrote:
+If we can't get inode lock immediately in the function
+ocfs2_inode_lock_with_page() when reading a page, we should not
+return directly here, since this will lead to a softlockup problem.
+The method is to get a blocking lock and immediately unlock before
+returning, this can avoid CPU resource waste due to lots of retries,
+and benefits fairness in getting lock among multiple nodes, increase
+efficiency in case modifying the same file frequently from multiple
+nodes.
+The softlockup problem looks like,
+Kernel panic - not syncing: softlockup: hung tasks
+CPU: 0 PID: 885 Comm: multi_mmap Tainted: G L 4.12.14-6.1-default #1
+Hardware name: Bochs Bochs, BIOS Bochs 01/01/2011
+Call Trace:
+  <IRQ>
+  dump_stack+0x5c/0x82
+  panic+0xd5/0x21e
+  watchdog_timer_fn+0x208/0x210
+  ? watchdog_park_threads+0x70/0x70
+  __hrtimer_run_queues+0xcc/0x200
+  hrtimer_interrupt+0xa6/0x1f0
+  smp_apic_timer_interrupt+0x34/0x50
+  apic_timer_interrupt+0x96/0xa0
+  </IRQ>
+ RIP: 0010:unlock_page+0x17/0x30
+ RSP: 0000:ffffaf154080bc88 EFLAGS: 00000246 ORIG_RAX: ffffffffffffff10
+ RAX: dead000000000100 RBX: fffff21e009f5300 RCX: 0000000000000004
+ RDX: dead0000000000ff RSI: 0000000000000202 RDI: fffff21e009f5300
+ RBP: 0000000000000000 R08: 0000000000000000 R09: ffffaf154080bb00
+ R10: ffffaf154080bc30 R11: 0000000000000040 R12: ffff993749a39518
+ R13: 0000000000000000 R14: fffff21e009f5300 R15: fffff21e009f5300
+  ocfs2_inode_lock_with_page+0x25/0x30 [ocfs2]
+  ocfs2_readpage+0x41/0x2d0 [ocfs2]
+  ? pagecache_get_page+0x30/0x200
+  filemap_fault+0x12b/0x5c0
+  ? recalc_sigpending+0x17/0x50
+  ? __set_task_blocked+0x28/0x70
+  ? __set_current_blocked+0x3d/0x60
+  ocfs2_fault+0x29/0xb0 [ocfs2]
+  __do_fault+0x1a/0xa0
+  __handle_mm_fault+0xbe8/0x1090
+  handle_mm_fault+0xaa/0x1f0
+  __do_page_fault+0x235/0x4b0
+  trace_do_page_fault+0x3c/0x110
+  async_page_fault+0x28/0x30
+ RIP: 0033:0x7fa75ded638e
+ RSP: 002b:00007ffd6657db18 EFLAGS: 00010287
+ RAX: 000055c7662fb700 RBX: 0000000000000001 RCX: 000055c7662fb700
+ RDX: 0000000000001770 RSI: 00007fa75e909000 RDI: 000055c7662fb700
+ RBP: 0000000000000003 R08: 000000000000000e R09: 0000000000000000
+ R10: 0000000000000483 R11: 00007fa75ded61b0 R12: 00007fa75e90a770
+ R13: 000000000000000e R14: 0000000000001770 R15: 0000000000000000
 
-> Hi Junxiao,
->
-> On 2017/12/27 15:35, Junxiao Bi wrote:
->> Hi Changwei,
->>
->> On 12/26/2017 05:20 PM, Changwei Ge wrote:
->>> Hi Alex
->>>
->>> On 2017/12/26 16:20, alex chen wrote:
->>>> Hi Changwei,
->>>>
->>>> On 2017/12/26 15:03, Changwei Ge wrote:
->>>>> The intention of this patch is to provide an option to ocfs2 users whether
->>>>> to allocate disk space while doing dio write.
->>>>>
->>>>> Whether to make ocfs2 fall back to buffer io is up to ocfs2 users through
->>>>> toggling append-dio feature. It rather makes ocfs2 configurable and
->>>>> flexible.
->>>>>
->>>> It is too strange to make ocfs2 fall back to buffer io by toggling append-dio feature.
->>> It might be.
->>> But as my changelog said, I think, append-dio is key to whether to allocate
->>> space with dio writing. So filling hole and appending file should have the same reflection.
->>>
->>> Besides, in the early days, ocfs2 truly falls back to buffer io when append-dio is disabled and file hole is encountered.
->> I think we have discussed a lot in your v1 version. This wasn't fit for
->> mainline, you can keep one off-mainline patch.
-> Fine. I agree now.
-> I give up trying to push this patch into mainline.
-> BTW, could you please help review my another patch (ocfs2: try to reuse extent block in dealloc without meta_alloc) which is used to fix a dio crash issue?
-> So without this patch, dio still won't hit such an issue.
-> Your comments are very important to me.
-Sure,? will look at it.
+Fixes: 1cce4df04f37 ("ocfs2: do not lock/unlock() inode DLM lock")
+Signed-off-by: Gang He <ghe@suse.com>
+---
+ fs/ocfs2/dlmglue.c | 9 +++++++++
+ 1 file changed, 9 insertions(+)
 
-Thanks,
-Junxiao.
->
-> Thanks,
-> Changwei
->
->> Thanks,
->> Junxiao.
->>
->
+diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
+index 4689940..5193218 100644
+--- a/fs/ocfs2/dlmglue.c
++++ b/fs/ocfs2/dlmglue.c
+@@ -2486,6 +2486,15 @@ int ocfs2_inode_lock_with_page(struct inode *inode,
+ 	ret = ocfs2_inode_lock_full(inode, ret_bh, ex, OCFS2_LOCK_NONBLOCK);
+ 	if (ret == -EAGAIN) {
+ 		unlock_page(page);
++		/*
++		 * If we can't get inode lock immediately, we should not return
++		 * directly here, since this will lead to a softlockup problem.
++		 * The method is to get a blocking lock and immediately unlock
++		 * before returning, this can avoid CPU resource waste due to
++		 * lots of retries, and benefits fairness in getting lock.
++		 */
++		if (ocfs2_inode_lock(inode, ret_bh, ex) == 0)
++			ocfs2_inode_unlock(inode, ex);
+ 		ret = AOP_TRUNCATED_PAGE;
+ 	}
+ 
+-- 
+1.8.5.6
