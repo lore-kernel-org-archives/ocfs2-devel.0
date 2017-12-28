@@ -1,26 +1,20 @@
-From: alex chen <alex.chen@huawei.com>
-Date: Thu, 28 Dec 2017 16:17:18 +0800
+From: Joseph Qi <jiangqi903@gmail.com>
+Date: Thu, 28 Dec 2017 17:52:21 +0800
 Subject: [Ocfs2-devel] [PATCH v2] ocfs2: try a blocking lock before
  return AOP_TRUNCATED_PAGE
 In-Reply-To: <1514447305-30814-1-git-send-email-ghe@suse.com>
 References: <1514447305-30814-1-git-send-email-ghe@suse.com>
-Message-ID: <5A44A88E.6080104@huawei.com>
+Message-ID: <cb310814-4ad9-d3f3-674d-8746fae35fe0@gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Gang He <ghe@suse.com>, Andrew Morton <akpm@linux-foundation.org>
-Cc: mfasheh@versity.com, jlbec@evilplan.org, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
-
-Hi Gang,
-
-It looks good to me.
-
-Thanks,
-Alex
+To: Gang He <ghe@suse.com>, mfasheh@versity.com, jlbec@evilplan.org
+Cc: linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
 
 
-On 2017/12/28 15:48, Gang He wrote:
+
+On 17/12/28 15:48, Gang He wrote:
 > If we can't get inode lock immediately in the function
 > ocfs2_inode_lock_with_page() when reading a page, we should not
 > return directly here, since this will lead to a softlockup problem
@@ -119,8 +113,7 @@ On 2017/12/28 15:48, Gang He wrote:
 > 
 > Fixes: 1cce4df04f37 ("ocfs2: do not lock/unlock() inode DLM lock")
 > Signed-off-by: Gang He <ghe@suse.com>
-
-Reviewed-by: Alex Chen <alex.chen@huawei.com>
+Reviewed-by: Joseph Qi <jiangqi903@gmail.com>
 
 > ---
 >  fs/ocfs2/dlmglue.c | 9 +++++++++
