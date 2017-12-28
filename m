@@ -1,350 +1,141 @@
-From: Gang He <ghe@suse.com>
-Date: Thu, 28 Dec 2017 18:07:45 +0800
-Subject: [Ocfs2-devel] [PATCH v3 3/3] ocfs2: nowait aio support
-In-Reply-To: <1514455665-16325-1-git-send-email-ghe@suse.com>
-References: <1514455665-16325-1-git-send-email-ghe@suse.com>
-Message-ID: <1514455665-16325-4-git-send-email-ghe@suse.com>
+From: piaojun <piaojun@huawei.com>
+Date: Thu, 28 Dec 2017 18:26:30 +0800
+Subject: [Ocfs2-devel] [PATCH v2] ocfs2: try a blocking lock before
+ return AOP_TRUNCATED_PAGE
+In-Reply-To: <1514447305-30814-1-git-send-email-ghe@suse.com>
+References: <1514447305-30814-1-git-send-email-ghe@suse.com>
+Message-ID: <5A44C6D6.6040009@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: mfasheh@versity.com, jlbec@evilplan.org
-Cc: Gang He <ghe@suse.com>, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com, akpm@linux-foundation.org
+To: Gang He <ghe@suse.com>, mfasheh@versity.com, jlbec@evilplan.org
+Cc: linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
 
-Return -EAGAIN if any of the following checks fail for
-direct I/O with nowait flag:
-Can not get the related locks immediately,
-Blocks are not allocated at the write location, it will trigger
-block allocation, this will block IO operations.
+LGTM
 
-Signed-off-by: Gang He <ghe@suse.com>
----
- fs/ocfs2/dir.c         |  2 +-
- fs/ocfs2/dlmglue.c     | 20 ++++++++---
- fs/ocfs2/dlmglue.h     |  2 +-
- fs/ocfs2/file.c        | 95 +++++++++++++++++++++++++++++++++++++++-----------
- fs/ocfs2/mmap.c        |  2 +-
- fs/ocfs2/ocfs2_trace.h | 10 +++---
- 6 files changed, 99 insertions(+), 32 deletions(-)
-
-diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
-index febe631..ea50901 100644
---- a/fs/ocfs2/dir.c
-+++ b/fs/ocfs2/dir.c
-@@ -1957,7 +1957,7 @@ int ocfs2_readdir(struct file *file, struct dir_context *ctx)
- 
- 	trace_ocfs2_readdir((unsigned long long)OCFS2_I(inode)->ip_blkno);
- 
--	error = ocfs2_inode_lock_atime(inode, file->f_path.mnt, &lock_level);
-+	error = ocfs2_inode_lock_atime(inode, file->f_path.mnt, &lock_level, 1);
- 	if (lock_level && error >= 0) {
- 		/* We release EX lock which used to update atime
- 		 * and get PR lock again to reduce contention
-diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-index a68efa3..07e169f 100644
---- a/fs/ocfs2/dlmglue.c
-+++ b/fs/ocfs2/dlmglue.c
-@@ -2515,13 +2515,18 @@ int ocfs2_inode_lock_with_page(struct inode *inode,
- 
- int ocfs2_inode_lock_atime(struct inode *inode,
- 			  struct vfsmount *vfsmnt,
--			  int *level)
-+			  int *level, int wait)
- {
- 	int ret;
- 
--	ret = ocfs2_inode_lock(inode, NULL, 0);
-+	if (wait)
-+		ret = ocfs2_inode_lock(inode, NULL, 0);
-+	else
-+		ret = ocfs2_try_inode_lock(inode, NULL, 0);
-+
- 	if (ret < 0) {
--		mlog_errno(ret);
-+		if (ret != -EAGAIN)
-+			mlog_errno(ret);
- 		return ret;
- 	}
- 
-@@ -2533,9 +2538,14 @@ int ocfs2_inode_lock_atime(struct inode *inode,
- 		struct buffer_head *bh = NULL;
- 
- 		ocfs2_inode_unlock(inode, 0);
--		ret = ocfs2_inode_lock(inode, &bh, 1);
-+		if (wait)
-+			ret = ocfs2_inode_lock(inode, &bh, 1);
-+		else
-+			ret = ocfs2_try_inode_lock(inode, &bh, 1);
-+
- 		if (ret < 0) {
--			mlog_errno(ret);
-+			if (ret != -EAGAIN)
-+				mlog_errno(ret);
- 			return ret;
- 		}
- 		*level = 1;
-diff --git a/fs/ocfs2/dlmglue.h b/fs/ocfs2/dlmglue.h
-index 05910fc..c83dbb5 100644
---- a/fs/ocfs2/dlmglue.h
-+++ b/fs/ocfs2/dlmglue.h
-@@ -123,7 +123,7 @@ void ocfs2_refcount_lock_res_init(struct ocfs2_lock_res *lockres,
- void ocfs2_open_unlock(struct inode *inode);
- int ocfs2_inode_lock_atime(struct inode *inode,
- 			  struct vfsmount *vfsmnt,
--			  int *level);
-+			  int *level, int wait);
- int ocfs2_inode_lock_full_nested(struct inode *inode,
- 			 struct buffer_head **ret_bh,
- 			 int ex,
-diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-index a1d0510..caef9b1 100644
---- a/fs/ocfs2/file.c
-+++ b/fs/ocfs2/file.c
-@@ -140,6 +140,8 @@ static int ocfs2_file_open(struct inode *inode, struct file *file)
- 		spin_unlock(&oi->ip_lock);
- 	}
- 
-+	file->f_mode |= FMODE_NOWAIT;
-+
- leave:
- 	return status;
- }
-@@ -2132,12 +2134,12 @@ static int ocfs2_prepare_inode_for_refcount(struct inode *inode,
- }
- 
- static int ocfs2_prepare_inode_for_write(struct file *file,
--					 loff_t pos,
--					 size_t count)
-+					 loff_t pos, size_t count, int wait)
- {
--	int ret = 0, meta_level = 0;
-+	int ret = 0, meta_level = 0, overwrite_io = 0;
- 	struct dentry *dentry = file->f_path.dentry;
- 	struct inode *inode = d_inode(dentry);
-+	struct buffer_head *di_bh = NULL;
- 	loff_t end;
- 
- 	/*
-@@ -2145,13 +2147,40 @@ static int ocfs2_prepare_inode_for_write(struct file *file,
- 	 * if we need to make modifications here.
- 	 */
- 	for(;;) {
--		ret = ocfs2_inode_lock(inode, NULL, meta_level);
-+		if (wait)
-+			ret = ocfs2_inode_lock(inode, NULL, meta_level);
-+		else
-+			ret = ocfs2_try_inode_lock(inode,
-+				overwrite_io ? NULL : &di_bh, meta_level);
- 		if (ret < 0) {
- 			meta_level = -1;
--			mlog_errno(ret);
-+			if (ret != -EAGAIN)
-+				mlog_errno(ret);
- 			goto out;
- 		}
- 
-+		/*
-+		 * Check if IO will overwrite allocated blocks in case
-+		 * IOCB_NOWAIT flag is set.
-+		 */
-+		if (!wait && !overwrite_io) {
-+			overwrite_io = 1;
-+			if (!down_read_trylock(&OCFS2_I(inode)->ip_alloc_sem)) {
-+				ret = -EAGAIN;
-+				goto out_unlock;
-+			}
-+
-+			ret = ocfs2_overwrite_io(inode, di_bh, pos, count);
-+			brelse(di_bh);
-+			di_bh = NULL;
-+			up_read(&OCFS2_I(inode)->ip_alloc_sem);
-+			if (ret < 0) {
-+				if (ret != -EAGAIN)
-+					mlog_errno(ret);
-+				goto out_unlock;
-+			}
-+		}
-+
- 		/* Clear suid / sgid if necessary. We do this here
- 		 * instead of later in the write path because
- 		 * remove_suid() calls ->setattr without any hint that
-@@ -2199,7 +2228,9 @@ static int ocfs2_prepare_inode_for_write(struct file *file,
- 
- out_unlock:
- 	trace_ocfs2_prepare_inode_for_write(OCFS2_I(inode)->ip_blkno,
--					    pos, count);
-+					    pos, count, wait);
-+
-+	brelse(di_bh);
- 
- 	if (meta_level >= 0)
- 		ocfs2_inode_unlock(inode, meta_level);
-@@ -2211,7 +2242,7 @@ static int ocfs2_prepare_inode_for_write(struct file *file,
- static ssize_t ocfs2_file_write_iter(struct kiocb *iocb,
- 				    struct iov_iter *from)
- {
--	int direct_io, rw_level;
-+	int rw_level;
- 	ssize_t written = 0;
- 	ssize_t ret;
- 	size_t count = iov_iter_count(from);
-@@ -2223,6 +2254,8 @@ static ssize_t ocfs2_file_write_iter(struct kiocb *iocb,
- 	void *saved_ki_complete = NULL;
- 	int append_write = ((iocb->ki_pos + count) >=
- 			i_size_read(inode) ? 1 : 0);
-+	int direct_io = iocb->ki_flags & IOCB_DIRECT ? 1 : 0;
-+	int nowait = iocb->ki_flags & IOCB_NOWAIT ? 1 : 0;
- 
- 	trace_ocfs2_file_aio_write(inode, file, file->f_path.dentry,
- 		(unsigned long long)OCFS2_I(inode)->ip_blkno,
-@@ -2230,12 +2263,17 @@ static ssize_t ocfs2_file_write_iter(struct kiocb *iocb,
- 		file->f_path.dentry->d_name.name,
- 		(unsigned int)from->nr_segs);	/* GRRRRR */
- 
-+	if (!direct_io && nowait)
-+		return -EOPNOTSUPP;
-+
- 	if (count == 0)
- 		return 0;
- 
--	direct_io = iocb->ki_flags & IOCB_DIRECT ? 1 : 0;
--
--	inode_lock(inode);
-+	if (direct_io && nowait) {
-+		if (!inode_trylock(inode))
-+			return -EAGAIN;
-+	} else
-+		inode_lock(inode);
- 
- 	/*
- 	 * Concurrent O_DIRECT writes are allowed with
-@@ -2244,9 +2282,13 @@ static ssize_t ocfs2_file_write_iter(struct kiocb *iocb,
- 	 */
- 	rw_level = (!direct_io || full_coherency || append_write);
- 
--	ret = ocfs2_rw_lock(inode, rw_level);
-+	if (direct_io && nowait)
-+		ret = ocfs2_try_rw_lock(inode, rw_level);
-+	else
-+		ret = ocfs2_rw_lock(inode, rw_level);
- 	if (ret < 0) {
--		mlog_errno(ret);
-+		if (ret != -EAGAIN)
-+			mlog_errno(ret);
- 		goto out_mutex;
- 	}
- 
-@@ -2260,9 +2302,13 @@ static ssize_t ocfs2_file_write_iter(struct kiocb *iocb,
- 		 * other nodes to drop their caches.  Buffered I/O
- 		 * already does this in write_begin().
- 		 */
--		ret = ocfs2_inode_lock(inode, NULL, 1);
-+		if (nowait)
-+			ret = ocfs2_try_inode_lock(inode, NULL, 1);
-+		else
-+			ret = ocfs2_inode_lock(inode, NULL, 1);
- 		if (ret < 0) {
--			mlog_errno(ret);
-+			if (ret != -EAGAIN)
-+				mlog_errno(ret);
- 			goto out;
- 		}
- 
-@@ -2277,9 +2323,10 @@ static ssize_t ocfs2_file_write_iter(struct kiocb *iocb,
- 	}
- 	count = ret;
- 
--	ret = ocfs2_prepare_inode_for_write(file, iocb->ki_pos, count);
-+	ret = ocfs2_prepare_inode_for_write(file, iocb->ki_pos, count, !nowait);
- 	if (ret < 0) {
--		mlog_errno(ret);
-+		if (ret != -EAGAIN)
-+			mlog_errno(ret);
- 		goto out;
- 	}
- 
-@@ -2355,6 +2402,7 @@ static ssize_t ocfs2_file_read_iter(struct kiocb *iocb,
- 	int ret = 0, rw_level = -1, lock_level = 0;
- 	struct file *filp = iocb->ki_filp;
- 	struct inode *inode = file_inode(filp);
-+	int nowait = iocb->ki_flags & IOCB_NOWAIT ? 1 : 0;
- 
- 	trace_ocfs2_file_aio_read(inode, filp, filp->f_path.dentry,
- 			(unsigned long long)OCFS2_I(inode)->ip_blkno,
-@@ -2374,9 +2422,14 @@ static ssize_t ocfs2_file_read_iter(struct kiocb *iocb,
- 	 * need locks to protect pending reads from racing with truncate.
- 	 */
- 	if (iocb->ki_flags & IOCB_DIRECT) {
--		ret = ocfs2_rw_lock(inode, 0);
-+		if (nowait)
-+			ret = ocfs2_try_rw_lock(inode, 0);
-+		else
-+			ret = ocfs2_rw_lock(inode, 0);
-+
- 		if (ret < 0) {
--			mlog_errno(ret);
-+			if (ret != -EAGAIN)
-+				mlog_errno(ret);
- 			goto bail;
- 		}
- 		rw_level = 0;
-@@ -2393,9 +2446,11 @@ static ssize_t ocfs2_file_read_iter(struct kiocb *iocb,
- 	 * like i_size. This allows the checks down below
- 	 * generic_file_aio_read() a chance of actually working.
- 	 */
--	ret = ocfs2_inode_lock_atime(inode, filp->f_path.mnt, &lock_level);
-+	ret = ocfs2_inode_lock_atime(inode, filp->f_path.mnt, &lock_level,
-+				     !nowait);
- 	if (ret < 0) {
--		mlog_errno(ret);
-+		if (ret != -EAGAIN)
-+			mlog_errno(ret);
- 		goto bail;
- 	}
- 	ocfs2_inode_unlock(inode, lock_level);
-diff --git a/fs/ocfs2/mmap.c b/fs/ocfs2/mmap.c
-index 098f5c7..fb9a20e 100644
---- a/fs/ocfs2/mmap.c
-+++ b/fs/ocfs2/mmap.c
-@@ -184,7 +184,7 @@ int ocfs2_mmap(struct file *file, struct vm_area_struct *vma)
- 	int ret = 0, lock_level = 0;
- 
- 	ret = ocfs2_inode_lock_atime(file_inode(file),
--				    file->f_path.mnt, &lock_level);
-+				    file->f_path.mnt, &lock_level, 1);
- 	if (ret < 0) {
- 		mlog_errno(ret);
- 		goto out;
-diff --git a/fs/ocfs2/ocfs2_trace.h b/fs/ocfs2/ocfs2_trace.h
-index a0b5d00..e2a11aa 100644
---- a/fs/ocfs2/ocfs2_trace.h
-+++ b/fs/ocfs2/ocfs2_trace.h
-@@ -1449,20 +1449,22 @@
- 
- TRACE_EVENT(ocfs2_prepare_inode_for_write,
- 	TP_PROTO(unsigned long long ino, unsigned long long saved_pos,
--		 unsigned long count),
--	TP_ARGS(ino, saved_pos, count),
-+		 unsigned long count, int wait),
-+	TP_ARGS(ino, saved_pos, count, wait),
- 	TP_STRUCT__entry(
- 		__field(unsigned long long, ino)
- 		__field(unsigned long long, saved_pos)
- 		__field(unsigned long, count)
-+		__field(int, wait)
- 	),
- 	TP_fast_assign(
- 		__entry->ino = ino;
- 		__entry->saved_pos = saved_pos;
- 		__entry->count = count;
-+		__entry->wait = wait;
- 	),
--	TP_printk("%llu %llu %lu", __entry->ino,
--		  __entry->saved_pos, __entry->count)
-+	TP_printk("%llu %llu %lu %d", __entry->ino,
-+		  __entry->saved_pos, __entry->count, __entry->wait)
- );
- 
- DEFINE_OCFS2_INT_EVENT(generic_file_aio_read_ret);
--- 
-1.8.5.6
+On 2017/12/28 15:48, Gang He wrote:
+> If we can't get inode lock immediately in the function
+> ocfs2_inode_lock_with_page() when reading a page, we should not
+> return directly here, since this will lead to a softlockup problem
+> when the kernel is configured with CONFIG_PREEMPT is not set.
+> The method is to get a blocking lock and immediately unlock before
+> returning, this can avoid CPU resource waste due to lots of retries,
+> and benefits fairness in getting lock among multiple nodes, increase
+> efficiency in case modifying the same file frequently from multiple
+> nodes.
+> The softlockup crash (when set /proc/sys/kernel/softlockup_panic to 1)
+> looks like,
+> Kernel panic - not syncing: softlockup: hung tasks
+> CPU: 0 PID: 885 Comm: multi_mmap Tainted: G L 4.12.14-6.1-default #1
+> Hardware name: Bochs Bochs, BIOS Bochs 01/01/2011
+> Call Trace:
+>   <IRQ>
+>   dump_stack+0x5c/0x82
+>   panic+0xd5/0x21e
+>   watchdog_timer_fn+0x208/0x210
+>   ? watchdog_park_threads+0x70/0x70
+>   __hrtimer_run_queues+0xcc/0x200
+>   hrtimer_interrupt+0xa6/0x1f0
+>   smp_apic_timer_interrupt+0x34/0x50
+>   apic_timer_interrupt+0x96/0xa0
+>   </IRQ>
+>  RIP: 0010:unlock_page+0x17/0x30
+>  RSP: 0000:ffffaf154080bc88 EFLAGS: 00000246 ORIG_RAX: ffffffffffffff10
+>  RAX: dead000000000100 RBX: fffff21e009f5300 RCX: 0000000000000004
+>  RDX: dead0000000000ff RSI: 0000000000000202 RDI: fffff21e009f5300
+>  RBP: 0000000000000000 R08: 0000000000000000 R09: ffffaf154080bb00
+>  R10: ffffaf154080bc30 R11: 0000000000000040 R12: ffff993749a39518
+>  R13: 0000000000000000 R14: fffff21e009f5300 R15: fffff21e009f5300
+>   ocfs2_inode_lock_with_page+0x25/0x30 [ocfs2]
+>   ocfs2_readpage+0x41/0x2d0 [ocfs2]
+>   ? pagecache_get_page+0x30/0x200
+>   filemap_fault+0x12b/0x5c0
+>   ? recalc_sigpending+0x17/0x50
+>   ? __set_task_blocked+0x28/0x70
+>   ? __set_current_blocked+0x3d/0x60
+>   ocfs2_fault+0x29/0xb0 [ocfs2]
+>   __do_fault+0x1a/0xa0
+>   __handle_mm_fault+0xbe8/0x1090
+>   handle_mm_fault+0xaa/0x1f0
+>   __do_page_fault+0x235/0x4b0
+>   trace_do_page_fault+0x3c/0x110
+>   async_page_fault+0x28/0x30
+>  RIP: 0033:0x7fa75ded638e
+>  RSP: 002b:00007ffd6657db18 EFLAGS: 00010287
+>  RAX: 000055c7662fb700 RBX: 0000000000000001 RCX: 000055c7662fb700
+>  RDX: 0000000000001770 RSI: 00007fa75e909000 RDI: 000055c7662fb700
+>  RBP: 0000000000000003 R08: 000000000000000e R09: 0000000000000000
+>  R10: 0000000000000483 R11: 00007fa75ded61b0 R12: 00007fa75e90a770
+>  R13: 000000000000000e R14: 0000000000001770 R15: 0000000000000000
+> 
+> About performance improvement, we can see the testing time is reduced,
+> and CPU utilization decreases, the detailed data is as follows.
+> I ran multi_mmap test case in ocfs2-test package in a three nodes cluster.
+> Before apply this patch,
+>   PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND
+>  2754 ocfs2te+  20   0  170248   6980   4856 D 80.73 0.341   0:18.71 multi_mmap
+>  1505 root      rt   0  222236 123060  97224 S 2.658 6.015   0:01.44 corosync
+>     5 root      20   0       0      0      0 S 1.329 0.000   0:00.19 kworker/u8:0
+>    95 root      20   0       0      0      0 S 1.329 0.000   0:00.25 kworker/u8:1
+>  2728 root      20   0       0      0      0 S 0.997 0.000   0:00.24 jbd2/sda1-33
+>  2721 root      20   0       0      0      0 S 0.664 0.000   0:00.07 ocfs2dc-3C8CFD4
+>  2750 ocfs2te+  20   0  142976   4652   3532 S 0.664 0.227   0:00.28 mpirun
+> 
+> ocfs2test at tb-node2:~>multiple_run.sh -i ens3 -k ~/linux-4.4.21-69.tar.gz -o 
+> ~/ocfs2mullog -C hacluster -s pcmk -n tb-node2,tb-node1,tb-node3 -d 
+> /dev/sda1 -b 4096 -c 32768 -t multi_mmap /mnt/shared
+> Tests with "-b 4096 -C 32768"
+> Thu Dec 28 14:44:52 CST 2017
+> multi_mmap..................................................Passed.
+> Runtime 783 seconds.
+> 
+> After apply this patch,
+>   PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND
+>  2508 ocfs2te+  20   0  170248   6804   4680 R 54.00 0.333   0:55.37 multi_mmap
+>   155 root      20   0       0      0      0 S 2.667 0.000   0:01.20 kworker/u8:3
+>    95 root      20   0       0      0      0 S 2.000 0.000   0:01.58 kworker/u8:1
+>  2504 ocfs2te+  20   0  142976   4604   3480 R 1.667 0.225   0:01.65 mpirun
+>     5 root      20   0       0      0      0 S 1.000 0.000   0:01.36 kworker/u8:0
+>  2482 root      20   0       0      0      0 S 1.000 0.000   0:00.86 jbd2/sda1-33
+>   299 root       0 -20       0      0      0 S 0.333 0.000   0:00.13 kworker/2:1H
+>   335 root       0 -20       0      0      0 S 0.333 0.000   0:00.17 kworker/1:1H
+>   535 root      20   0   12140   7268   1456 S 0.333 0.355   0:00.34 haveged
+>  1282 root      rt   0  222284 123108  97224 S 0.333 6.017   0:01.33 corosync
+> 
+> ocfs2test at tb-node2:~>multiple_run.sh -i ens3 -k ~/linux-4.4.21-69.tar.gz -o 
+> ~/ocfs2mullog -C hacluster -s pcmk -n tb-node2,tb-node1,tb-node3 -d 
+> /dev/sda1 -b 4096 -c 32768 -t multi_mmap /mnt/shared
+> Tests with "-b 4096 -C 32768"
+> Thu Dec 28 15:04:12 CST 2017
+> multi_mmap..................................................Passed.
+> Runtime 487 seconds.
+> 
+> Fixes: 1cce4df04f37 ("ocfs2: do not lock/unlock() inode DLM lock")
+> Signed-off-by: Gang He <ghe@suse.com>
+Reviewed-by: Jun Piao <piaojun@huawei.com>
+> ---
+>  fs/ocfs2/dlmglue.c | 9 +++++++++
+>  1 file changed, 9 insertions(+)
+> 
+> diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
+> index 4689940..5193218 100644
+> --- a/fs/ocfs2/dlmglue.c
+> +++ b/fs/ocfs2/dlmglue.c
+> @@ -2486,6 +2486,15 @@ int ocfs2_inode_lock_with_page(struct inode *inode,
+>  	ret = ocfs2_inode_lock_full(inode, ret_bh, ex, OCFS2_LOCK_NONBLOCK);
+>  	if (ret == -EAGAIN) {
+>  		unlock_page(page);
+> +		/*
+> +		 * If we can't get inode lock immediately, we should not return
+> +		 * directly here, since this will lead to a softlockup problem.
+> +		 * The method is to get a blocking lock and immediately unlock
+> +		 * before returning, this can avoid CPU resource waste due to
+> +		 * lots of retries, and benefits fairness in getting lock.
+> +		 */
+> +		if (ocfs2_inode_lock(inode, ret_bh, ex) == 0)
+> +			ocfs2_inode_unlock(inode, ex);
+>  		ret = AOP_TRUNCATED_PAGE;
+>  	}
+>  
+> 
