@@ -1,24 +1,26 @@
-From: Changwei Ge <ge.changwei@h3c.com>
-Date: Thu, 28 Dec 2017 08:10:19 +0000
+From: alex chen <alex.chen@huawei.com>
+Date: Thu, 28 Dec 2017 16:17:18 +0800
 Subject: [Ocfs2-devel] [PATCH v2] ocfs2: try a blocking lock before
  return AOP_TRUNCATED_PAGE
+In-Reply-To: <1514447305-30814-1-git-send-email-ghe@suse.com>
 References: <1514447305-30814-1-git-send-email-ghe@suse.com>
-Message-ID: <63ADC13FD55D6546B7DECE290D39E373F2909DF4@H3CMLB12-EX.srv.huawei-3com.com>
+Message-ID: <5A44A88E.6080104@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Gang He <ghe@suse.com>, "mfasheh@versity.com" <mfasheh@versity.com>, "jlbec@evilplan.org" <jlbec@evilplan.org>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>
+To: Gang He <ghe@suse.com>, Andrew Morton <akpm@linux-foundation.org>
+Cc: mfasheh@versity.com, jlbec@evilplan.org, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
 
 Hi Gang,
 
 It looks good to me.
 
 Thanks,
-Changwei
+Alex
 
-On 2017/12/28 15:49, Gang He wrote:
+
+On 2017/12/28 15:48, Gang He wrote:
 > If we can't get inode lock immediately in the function
 > ocfs2_inode_lock_with_page() when reading a page, we should not
 > return directly here, since this will lead to a softlockup problem
@@ -34,60 +36,60 @@ On 2017/12/28 15:49, Gang He wrote:
 > CPU: 0 PID: 885 Comm: multi_mmap Tainted: G L 4.12.14-6.1-default #1
 > Hardware name: Bochs Bochs, BIOS Bochs 01/01/2011
 > Call Trace:
->    <IRQ>
->    dump_stack+0x5c/0x82
->    panic+0xd5/0x21e
->    watchdog_timer_fn+0x208/0x210
->    ? watchdog_park_threads+0x70/0x70
->    __hrtimer_run_queues+0xcc/0x200
->    hrtimer_interrupt+0xa6/0x1f0
->    smp_apic_timer_interrupt+0x34/0x50
->    apic_timer_interrupt+0x96/0xa0
->    </IRQ>
->   RIP: 0010:unlock_page+0x17/0x30
->   RSP: 0000:ffffaf154080bc88 EFLAGS: 00000246 ORIG_RAX: ffffffffffffff10
->   RAX: dead000000000100 RBX: fffff21e009f5300 RCX: 0000000000000004
->   RDX: dead0000000000ff RSI: 0000000000000202 RDI: fffff21e009f5300
->   RBP: 0000000000000000 R08: 0000000000000000 R09: ffffaf154080bb00
->   R10: ffffaf154080bc30 R11: 0000000000000040 R12: ffff993749a39518
->   R13: 0000000000000000 R14: fffff21e009f5300 R15: fffff21e009f5300
->    ocfs2_inode_lock_with_page+0x25/0x30 [ocfs2]
->    ocfs2_readpage+0x41/0x2d0 [ocfs2]
->    ? pagecache_get_page+0x30/0x200
->    filemap_fault+0x12b/0x5c0
->    ? recalc_sigpending+0x17/0x50
->    ? __set_task_blocked+0x28/0x70
->    ? __set_current_blocked+0x3d/0x60
->    ocfs2_fault+0x29/0xb0 [ocfs2]
->    __do_fault+0x1a/0xa0
->    __handle_mm_fault+0xbe8/0x1090
->    handle_mm_fault+0xaa/0x1f0
->    __do_page_fault+0x235/0x4b0
->    trace_do_page_fault+0x3c/0x110
->    async_page_fault+0x28/0x30
->   RIP: 0033:0x7fa75ded638e
->   RSP: 002b:00007ffd6657db18 EFLAGS: 00010287
->   RAX: 000055c7662fb700 RBX: 0000000000000001 RCX: 000055c7662fb700
->   RDX: 0000000000001770 RSI: 00007fa75e909000 RDI: 000055c7662fb700
->   RBP: 0000000000000003 R08: 000000000000000e R09: 0000000000000000
->   R10: 0000000000000483 R11: 00007fa75ded61b0 R12: 00007fa75e90a770
->   R13: 000000000000000e R14: 0000000000001770 R15: 0000000000000000
+>   <IRQ>
+>   dump_stack+0x5c/0x82
+>   panic+0xd5/0x21e
+>   watchdog_timer_fn+0x208/0x210
+>   ? watchdog_park_threads+0x70/0x70
+>   __hrtimer_run_queues+0xcc/0x200
+>   hrtimer_interrupt+0xa6/0x1f0
+>   smp_apic_timer_interrupt+0x34/0x50
+>   apic_timer_interrupt+0x96/0xa0
+>   </IRQ>
+>  RIP: 0010:unlock_page+0x17/0x30
+>  RSP: 0000:ffffaf154080bc88 EFLAGS: 00000246 ORIG_RAX: ffffffffffffff10
+>  RAX: dead000000000100 RBX: fffff21e009f5300 RCX: 0000000000000004
+>  RDX: dead0000000000ff RSI: 0000000000000202 RDI: fffff21e009f5300
+>  RBP: 0000000000000000 R08: 0000000000000000 R09: ffffaf154080bb00
+>  R10: ffffaf154080bc30 R11: 0000000000000040 R12: ffff993749a39518
+>  R13: 0000000000000000 R14: fffff21e009f5300 R15: fffff21e009f5300
+>   ocfs2_inode_lock_with_page+0x25/0x30 [ocfs2]
+>   ocfs2_readpage+0x41/0x2d0 [ocfs2]
+>   ? pagecache_get_page+0x30/0x200
+>   filemap_fault+0x12b/0x5c0
+>   ? recalc_sigpending+0x17/0x50
+>   ? __set_task_blocked+0x28/0x70
+>   ? __set_current_blocked+0x3d/0x60
+>   ocfs2_fault+0x29/0xb0 [ocfs2]
+>   __do_fault+0x1a/0xa0
+>   __handle_mm_fault+0xbe8/0x1090
+>   handle_mm_fault+0xaa/0x1f0
+>   __do_page_fault+0x235/0x4b0
+>   trace_do_page_fault+0x3c/0x110
+>   async_page_fault+0x28/0x30
+>  RIP: 0033:0x7fa75ded638e
+>  RSP: 002b:00007ffd6657db18 EFLAGS: 00010287
+>  RAX: 000055c7662fb700 RBX: 0000000000000001 RCX: 000055c7662fb700
+>  RDX: 0000000000001770 RSI: 00007fa75e909000 RDI: 000055c7662fb700
+>  RBP: 0000000000000003 R08: 000000000000000e R09: 0000000000000000
+>  R10: 0000000000000483 R11: 00007fa75ded61b0 R12: 00007fa75e90a770
+>  R13: 000000000000000e R14: 0000000000001770 R15: 0000000000000000
 > 
 > About performance improvement, we can see the testing time is reduced,
 > and CPU utilization decreases, the detailed data is as follows.
 > I ran multi_mmap test case in ocfs2-test package in a three nodes cluster.
 > Before apply this patch,
->    PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND
->   2754 ocfs2te+  20   0  170248   6980   4856 D 80.73 0.341   0:18.71 multi_mmap
->   1505 root      rt   0  222236 123060  97224 S 2.658 6.015   0:01.44 corosync
->      5 root      20   0       0      0      0 S 1.329 0.000   0:00.19 kworker/u8:0
->     95 root      20   0       0      0      0 S 1.329 0.000   0:00.25 kworker/u8:1
->   2728 root      20   0       0      0      0 S 0.997 0.000   0:00.24 jbd2/sda1-33
->   2721 root      20   0       0      0      0 S 0.664 0.000   0:00.07 ocfs2dc-3C8CFD4
->   2750 ocfs2te+  20   0  142976   4652   3532 S 0.664 0.227   0:00.28 mpirun
+>   PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND
+>  2754 ocfs2te+  20   0  170248   6980   4856 D 80.73 0.341   0:18.71 multi_mmap
+>  1505 root      rt   0  222236 123060  97224 S 2.658 6.015   0:01.44 corosync
+>     5 root      20   0       0      0      0 S 1.329 0.000   0:00.19 kworker/u8:0
+>    95 root      20   0       0      0      0 S 1.329 0.000   0:00.25 kworker/u8:1
+>  2728 root      20   0       0      0      0 S 0.997 0.000   0:00.24 jbd2/sda1-33
+>  2721 root      20   0       0      0      0 S 0.664 0.000   0:00.07 ocfs2dc-3C8CFD4
+>  2750 ocfs2te+  20   0  142976   4652   3532 S 0.664 0.227   0:00.28 mpirun
 > 
-> ocfs2test at tb-node2:~>multiple_run.sh -i ens3 -k ~/linux-4.4.21-69.tar.gz -o
-> ~/ocfs2mullog -C hacluster -s pcmk -n tb-node2,tb-node1,tb-node3 -d
+> ocfs2test at tb-node2:~>multiple_run.sh -i ens3 -k ~/linux-4.4.21-69.tar.gz -o 
+> ~/ocfs2mullog -C hacluster -s pcmk -n tb-node2,tb-node1,tb-node3 -d 
 > /dev/sda1 -b 4096 -c 32768 -t multi_mmap /mnt/shared
 > Tests with "-b 4096 -C 32768"
 > Thu Dec 28 14:44:52 CST 2017
@@ -95,20 +97,20 @@ On 2017/12/28 15:49, Gang He wrote:
 > Runtime 783 seconds.
 > 
 > After apply this patch,
->    PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND
->   2508 ocfs2te+  20   0  170248   6804   4680 R 54.00 0.333   0:55.37 multi_mmap
->    155 root      20   0       0      0      0 S 2.667 0.000   0:01.20 kworker/u8:3
->     95 root      20   0       0      0      0 S 2.000 0.000   0:01.58 kworker/u8:1
->   2504 ocfs2te+  20   0  142976   4604   3480 R 1.667 0.225   0:01.65 mpirun
->      5 root      20   0       0      0      0 S 1.000 0.000   0:01.36 kworker/u8:0
->   2482 root      20   0       0      0      0 S 1.000 0.000   0:00.86 jbd2/sda1-33
->    299 root       0 -20       0      0      0 S 0.333 0.000   0:00.13 kworker/2:1H
->    335 root       0 -20       0      0      0 S 0.333 0.000   0:00.17 kworker/1:1H
->    535 root      20   0   12140   7268   1456 S 0.333 0.355   0:00.34 haveged
->   1282 root      rt   0  222284 123108  97224 S 0.333 6.017   0:01.33 corosync
+>   PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND
+>  2508 ocfs2te+  20   0  170248   6804   4680 R 54.00 0.333   0:55.37 multi_mmap
+>   155 root      20   0       0      0      0 S 2.667 0.000   0:01.20 kworker/u8:3
+>    95 root      20   0       0      0      0 S 2.000 0.000   0:01.58 kworker/u8:1
+>  2504 ocfs2te+  20   0  142976   4604   3480 R 1.667 0.225   0:01.65 mpirun
+>     5 root      20   0       0      0      0 S 1.000 0.000   0:01.36 kworker/u8:0
+>  2482 root      20   0       0      0      0 S 1.000 0.000   0:00.86 jbd2/sda1-33
+>   299 root       0 -20       0      0      0 S 0.333 0.000   0:00.13 kworker/2:1H
+>   335 root       0 -20       0      0      0 S 0.333 0.000   0:00.17 kworker/1:1H
+>   535 root      20   0   12140   7268   1456 S 0.333 0.355   0:00.34 haveged
+>  1282 root      rt   0  222284 123108  97224 S 0.333 6.017   0:01.33 corosync
 > 
-> ocfs2test at tb-node2:~>multiple_run.sh -i ens3 -k ~/linux-4.4.21-69.tar.gz -o
-> ~/ocfs2mullog -C hacluster -s pcmk -n tb-node2,tb-node1,tb-node3 -d
+> ocfs2test at tb-node2:~>multiple_run.sh -i ens3 -k ~/linux-4.4.21-69.tar.gz -o 
+> ~/ocfs2mullog -C hacluster -s pcmk -n tb-node2,tb-node1,tb-node3 -d 
 > /dev/sda1 -b 4096 -c 32768 -t multi_mmap /mnt/shared
 > Tests with "-b 4096 -C 32768"
 > Thu Dec 28 15:04:12 CST 2017
@@ -117,19 +119,21 @@ On 2017/12/28 15:49, Gang He wrote:
 > 
 > Fixes: 1cce4df04f37 ("ocfs2: do not lock/unlock() inode DLM lock")
 > Signed-off-by: Gang He <ghe@suse.com>
-Reviewed-by: Changwei Ge <ge.changwei@h3c.com>
+
+Reviewed-by: Alex Chen <alex.chen@huawei.com>
+
 > ---
->   fs/ocfs2/dlmglue.c | 9 +++++++++
->   1 file changed, 9 insertions(+)
+>  fs/ocfs2/dlmglue.c | 9 +++++++++
+>  1 file changed, 9 insertions(+)
 > 
 > diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
 > index 4689940..5193218 100644
 > --- a/fs/ocfs2/dlmglue.c
 > +++ b/fs/ocfs2/dlmglue.c
 > @@ -2486,6 +2486,15 @@ int ocfs2_inode_lock_with_page(struct inode *inode,
->   	ret = ocfs2_inode_lock_full(inode, ret_bh, ex, OCFS2_LOCK_NONBLOCK);
->   	if (ret == -EAGAIN) {
->   		unlock_page(page);
+>  	ret = ocfs2_inode_lock_full(inode, ret_bh, ex, OCFS2_LOCK_NONBLOCK);
+>  	if (ret == -EAGAIN) {
+>  		unlock_page(page);
 > +		/*
 > +		 * If we can't get inode lock immediately, we should not return
 > +		 * directly here, since this will lead to a softlockup problem.
@@ -139,7 +143,7 @@ Reviewed-by: Changwei Ge <ge.changwei@h3c.com>
 > +		 */
 > +		if (ocfs2_inode_lock(inode, ret_bh, ex) == 0)
 > +			ocfs2_inode_unlock(inode, ex);
->   		ret = AOP_TRUNCATED_PAGE;
->   	}
->   
+>  		ret = AOP_TRUNCATED_PAGE;
+>  	}
+>  
 > 
