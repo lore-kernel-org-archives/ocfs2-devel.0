@@ -1,27 +1,20 @@
-From: piaojun <piaojun@huawei.com>
-Date: Thu, 28 Dec 2017 09:30:42 +0800
+From: alex chen <alex.chen@huawei.com>
+Date: Thu, 28 Dec 2017 10:02:19 +0800
 Subject: [Ocfs2-devel] [PATCH] ocfs2: try a blocking lock before return
  AOP_TRUNCATED_PAGE
 In-Reply-To: <5A43E86D020000F9000A0683@prv-mh.provo.novell.com>
 References: <1514366960-10588-1-git-send-email-ghe@suse.com>
 	<5A4372AA.1080007@huawei.com>
 	<5A43E86D020000F9000A0683@prv-mh.provo.novell.com>
-Message-ID: <5A444942.7040901@huawei.com>
+Message-ID: <5A4450AB.2000106@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Gang He <ghe@suse.com>, jlbec@evilplan.org, mfasheh@versity.com
-Cc: ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
+To: Gang He <ghe@suse.com>
+Cc: jlbec@evilplan.org, piaojun@huawei.com, mfasheh@versity.com, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
 
 Hi Gang,
-
-Thanks for your explaination, and I just have one more question. Could
-we use 'ocfs2_inode_lock' instead of 'ocfs2_inode_lock_full' to avoid
--EAGAIN circularly?
-
-thanks,
-Jun
 
 On 2017/12/27 18:37, Gang He wrote:
 > Hi Jun,
@@ -38,11 +31,19 @@ On 2017/12/27 18:37, Gang He wrote:
 > it can not get a inode lock with non-block mode, the VFS layer code will invoke ocfs2
 > read page call back function circularly, this will lead to a softlockup problem (like the below back trace).
 > So, we should get a blocking lock to let the dlm lock to this node and also can avoid CPU loop,
+Can we use 'cond_resched()' to allow the thread to release the CPU temperately for solving this softlockup?
+
 > second, base on my testing, the patch also can improve the efficiency in case modifying the same
 > file frequently from multiple nodes, since the lock acquisition chance is more fair.
 > In fact, the code was modified by a patch 1cce4df04f37 ("ocfs2: do not lock/unlock() inode DLM lock"),
 > before that patch, the code is the same, this patch can be considered to revert that patch, except adding more
 > clear comments.
+In patch 1cce4df04f37 ("ocfs2: do not lock/unlock() inode DLM lock"), Goldwyn says blocking lock and unlock will only make
+the performance worse where contention over the locks is high, which is the opposite of your described above.
+IMO, blocking lock and unlock here is indeed unnecessary.
+
+Thanks,
+Alex
 >  
 > Thanks
 > Gang
@@ -132,5 +133,11 @@ On 2017/12/27 18:37, Gang He wrote:
 >>>  	}
 >>>  
 >>>
+> 
+> _______________________________________________
+> Ocfs2-devel mailing list
+> Ocfs2-devel at oss.oracle.com
+> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+> 
 > .
 > 
