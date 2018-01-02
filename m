@@ -1,166 +1,98 @@
-From: Changwei Ge <ge.changwei@h3c.com>
-Date: Fri, 1 Dec 2017 01:59:29 +0000
-Subject: [Ocfs2-devel] [patch 08/11] ocfs2/dlm: wait for dlm recovery
- done when migrating all lockres
-References: <5a208521.LO9QJOkwf55plmkw%akpm@linux-foundation.org>
-Message-ID: <63ADC13FD55D6546B7DECE290D39E373F1F41D8D@H3CMLB12-EX.srv.huawei-3com.com>
+From: Junxiao Bi <junxiao.bi@oracle.com>
+Date: Tue, 2 Jan 2018 16:17:26 +0800
+Subject: [Ocfs2-devel] [PATCH v2] ocfs2: try to reuse extent block in
+ dealloc without meta_alloc
+In-Reply-To: <63ADC13FD55D6546B7DECE290D39E373F290988E@H3CMLB12-EX.srv.huawei-3com.com>
+References: <63ADC13FD55D6546B7DECE290D39E373F2908FC7@H3CMLB12-EX.srv.huawei-3com.com>
+	<be127091-f971-57b9-f488-681149f1d58a@oracle.com>
+	<63ADC13FD55D6546B7DECE290D39E373F290988E@H3CMLB12-EX.srv.huawei-3com.com>
+Message-ID: <72982904-5152-bbcd-c751-3e2ac8fca16d@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-I NACK to this patch since I don't think it can solve the issue Jun 
-reported completely.
+On 12/27/2017 08:21 PM, Changwei Ge wrote:
+> Hi Junxiao,
+> 
+> On 2017/12/27 18:02, Junxiao Bi wrote:
+>> Hi Changwei,
+>>
+>>
+>> On 12/26/2017 03:55 PM, Changwei Ge wrote:
+>>> A crash issue was reported by John.
+>>> The call trace follows:
+>>> ocfs2_split_extent+0x1ad3/0x1b40 [ocfs2]
+>>> ocfs2_change_extent_flag+0x33a/0x470 [ocfs2]
+>>> ocfs2_mark_extent_written+0x172/0x220 [ocfs2]
+>>> ocfs2_dio_end_io+0x62d/0x910 [ocfs2]
+>>> dio_complete+0x19a/0x1a0
+>>> do_blockdev_direct_IO+0x19dd/0x1eb0
+>>> __blockdev_direct_IO+0x43/0x50
+>>> ocfs2_direct_IO+0x8f/0xa0 [ocfs2]
+>>> generic_file_direct_write+0xb2/0x170
+>>> __generic_file_write_iter+0xc3/0x1b0
+>>> ocfs2_file_write_iter+0x4bb/0xca0 [ocfs2]
+>>> __vfs_write+0xae/0xf0
+>>> vfs_write+0xb8/0x1b0
+>>> SyS_write+0x4f/0xb0
+>>> system_call_fastpath+0x16/0x75
+>>>
+>>> The BUG code told that extent tree wants to grow but no metadata
+>>> was reserved ahead of time.
+>>>    From my investigation into this issue, the root cause it that although
+>>> enough metadata is not reserved, there should be enough for following use.
+>>> Rightmost extent is merged into its left one due to a certain times of
+>>> marking extent written. Because during marking extent written, we got many
+>>> physically continuous extents. At last, an empty extent showed up and the
+>>> rightmost path is removed from extent tree.
+>> I am trying to understand the issue. Quick questions.
+>> Is this issue caused by BUG_ON(meta_ac == NULL)? Can you explain why it
+>> is NULL?
+> My pleasure to.
+> Before marking extents written, we have to estimate how many metadata will be used.
+> If there are enough metadata for following operation-marking extent written, no metadata
+> will be reserved ahead of time.
+> 
+> For this BUG scenario, it happens that extent tree already has enough free metadata.
+> This can be referred by code path:
+> ocfs2_dio_end_io_write
+>    ocfs2_lock_allocators - No need to reserve metadata,since extent tree already has more metadata than needed. So *mata_ac* is NULL.
+>    ocfs2_mark_extent_written
+>      ocfs2_change_extent_flag - cluster by cluster
+>        ocfs2_split_extent
+>          ocfs2_try_to_merge_extent - During filling file hole, we mark cluster as written one by one. Somehow, we merge those physically continuous cluster(WRITTEN) into a single one.
+>            ocfs2_rotate_tree_left - rotate extent
+>              __ocfs2_rotate_tree_left
+>                ocfs2_rotate_subtree_left - Aha, we find a totally empty extent here, so unlink it from extent tree.
+>                  ocfs2_unlink_subtree
+>                  ocfs2_remove_empty_extent
+>                  
+> 
+> Then, since we delete one extent block, our previously estimated metadata number is
+> pointless(NOTE, actually the estimation is accurate.). Since it is reduced resulted by extent
+> rotation and merging.
+> So for now, we don't have enough metadata.
+See, thanks for your detailed explanation.
+
+> 
+> Then we are still marking extent tree written for left clusters and we need to split extent.
+Once one ocfs2_mark_extent_written() caused an extent block removed,
+then next invoke to it may not have enought metadata, right?
+
+> But we don't have enough metadata to accommodate the split extent records.
+If above is right, can we invoke ocfs2_lock_allocators() to calculate
+enough metadata before every invoke to ocfs2_mark_extent_written()?
+That will be more simple than fixing by reuse dealloc.
 
 Thanks,
-Changwei
+Junxiao.
 
-On 2017/12/1 6:26, akpm at linux-foundation.org wrote:
-> From: piaojun <piaojun@huawei.com>
-> Subject: ocfs2/dlm: wait for dlm recovery done when migrating all lockres
+> So extent tree need to grow.
+> BUG. no metadata is reserved ahead of time.
 > 
-> wait for dlm recovery done when migrating all lockres in case of new
-> lockres to be left after leaving dlm domain.
-> 
->        NodeA                       NodeB                NodeC
-> 
-> umount and migrate
-> all lockres
-> 
->                                   node down
-> 
-> do recovery for NodeB
-> and collect a new lockres
-> form other live nodes
-> 
-> leave domain but the
-> new lockres remains
-> 
->                                                    mount and join domain
-> 
->                                                    request for the owner
->                                                    of the new lockres, but
->                                                    all the other nodes said
->                                                    'NO', so NodeC decide to
->                                                    the owner, and send do
->                                                    assert msg to other nodes.
-> 
->                                                    other nodes receive the msg
->                                                    and found two masters exist.
->                                                    at last cause BUG in
->                                                    dlm_assert_master_handler()
->                                                    -->BUG();
-> 
-> Link: https://urldefense.proofpoint.com/v2/url?u=http-3A__lkml.kernel.org_r_59FFB7AD.90108-40huawei.com&d=DwICAg&c=RoP1YumCXCgaWHvlZYR8PZh8Bv7qIrMUB65eapI_JnE&r=C7gAd4uDxlAvTdc0vmU6X8CMk6L2iDY8-HD0qT6Fo7Y&m=eA-mkBvutvIzGPMzaE9P8Cis0buQmhfPdaUQEjK-634&s=zTKHn7nr2VuSBip021NkdyIlj7eSYEoKose-sPG4gA0&e=
-> Fixes: bc9838c4d44a ("dlm: allow dlm do recovery during shutdown")
-> Signed-off-by: Jun Piao <piaojun@huawei.com>
-> Reviewed-by: Alex Chen <alex.chen@huawei.com>
-> Reviewed-by: Yiwen Jiang <jiangyiwen@huawei.com>
-> Cc: Mark Fasheh <mfasheh@versity.com>
-> Cc: Joel Becker <jlbec@evilplan.org>
-> Cc: Junxiao Bi <junxiao.bi@oracle.com>
-> Cc: Joseph Qi <jiangqi903@gmail.com>
-> Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
-> ---
-> 
->   fs/ocfs2/dlm/dlmcommon.h   |    1 +
->   fs/ocfs2/dlm/dlmdomain.c   |   14 ++++++++++++++
->   fs/ocfs2/dlm/dlmrecovery.c |   13 ++++++++++---
->   3 files changed, 25 insertions(+), 3 deletions(-)
-> 
-> diff -puN fs/ocfs2/dlm/dlmcommon.h~ocfs2-dlm-wait-for-dlm-recovery-done-when-migrating-all-lockres fs/ocfs2/dlm/dlmcommon.h
-> --- a/fs/ocfs2/dlm/dlmcommon.h~ocfs2-dlm-wait-for-dlm-recovery-done-when-migrating-all-lockres
-> +++ a/fs/ocfs2/dlm/dlmcommon.h
-> @@ -140,6 +140,7 @@ struct dlm_ctxt
->   	u8 node_num;
->   	u32 key;
->   	u8  joining_node;
-> +	u8 migrate_done; /* set to 1 means node has migrated all lockres */
->   	wait_queue_head_t dlm_join_events;
->   	unsigned long live_nodes_map[BITS_TO_LONGS(O2NM_MAX_NODES)];
->   	unsigned long domain_map[BITS_TO_LONGS(O2NM_MAX_NODES)];
-> diff -puN fs/ocfs2/dlm/dlmdomain.c~ocfs2-dlm-wait-for-dlm-recovery-done-when-migrating-all-lockres fs/ocfs2/dlm/dlmdomain.c
-> --- a/fs/ocfs2/dlm/dlmdomain.c~ocfs2-dlm-wait-for-dlm-recovery-done-when-migrating-all-lockres
-> +++ a/fs/ocfs2/dlm/dlmdomain.c
-> @@ -461,6 +461,18 @@ redo_bucket:
->   		cond_resched_lock(&dlm->spinlock);
->   		num += n;
->   	}
-> +
-> +	if (!num) {
-> +		if (dlm->reco.state & DLM_RECO_STATE_ACTIVE) {
-> +			mlog(0, "%s: perhaps there are more lock resources need to "
-> +					"be migrated after dlm recovery\n", dlm->name);
-> +			ret = -EAGAIN;
-> +		} else {
-> +			mlog(0, "%s: we won't do dlm recovery after migrating all lockres",
-> +					dlm->name);
-> +			dlm->migrate_done = 1;
-> +		}
-> +	}
->   	spin_unlock(&dlm->spinlock);
->   	wake_up(&dlm->dlm_thread_wq);
->   
-> @@ -2052,6 +2064,8 @@ static struct dlm_ctxt *dlm_alloc_ctxt(c
->   	dlm->joining_node = DLM_LOCK_RES_OWNER_UNKNOWN;
->   	init_waitqueue_head(&dlm->dlm_join_events);
->   
-> +	dlm->migrate_done = 0;
-> +
->   	dlm->reco.new_master = O2NM_INVALID_NODE_NUM;
->   	dlm->reco.dead_node = O2NM_INVALID_NODE_NUM;
->   
-> diff -puN fs/ocfs2/dlm/dlmrecovery.c~ocfs2-dlm-wait-for-dlm-recovery-done-when-migrating-all-lockres fs/ocfs2/dlm/dlmrecovery.c
-> --- a/fs/ocfs2/dlm/dlmrecovery.c~ocfs2-dlm-wait-for-dlm-recovery-done-when-migrating-all-lockres
-> +++ a/fs/ocfs2/dlm/dlmrecovery.c
-> @@ -423,12 +423,11 @@ void dlm_wait_for_recovery(struct dlm_ct
->   
->   static void dlm_begin_recovery(struct dlm_ctxt *dlm)
->   {
-> -	spin_lock(&dlm->spinlock);
-> +	assert_spin_locked(&dlm->spinlock);
->   	BUG_ON(dlm->reco.state & DLM_RECO_STATE_ACTIVE);
->   	printk(KERN_NOTICE "o2dlm: Begin recovery on domain %s for node %u\n",
->   	       dlm->name, dlm->reco.dead_node);
->   	dlm->reco.state |= DLM_RECO_STATE_ACTIVE;
-> -	spin_unlock(&dlm->spinlock);
->   }
->   
->   static void dlm_end_recovery(struct dlm_ctxt *dlm)
-> @@ -456,6 +455,13 @@ static int dlm_do_recovery(struct dlm_ct
->   
->   	spin_lock(&dlm->spinlock);
->   
-> +	if (dlm->migrate_done) {
-> +		mlog(0, "%s: no need do recovery after migrating all lockres\n",
-> +				dlm->name);
-> +		spin_unlock(&dlm->spinlock);
-> +		return 0;
-> +	}
-> +
->   	/* check to see if the new master has died */
->   	if (dlm->reco.new_master != O2NM_INVALID_NODE_NUM &&
->   	    test_bit(dlm->reco.new_master, dlm->recovery_map)) {
-> @@ -490,12 +496,13 @@ static int dlm_do_recovery(struct dlm_ct
->   	mlog(0, "%s(%d):recovery thread found node %u in the recovery map!\n",
->   	     dlm->name, task_pid_nr(dlm->dlm_reco_thread_task),
->   	     dlm->reco.dead_node);
-> -	spin_unlock(&dlm->spinlock);
->   
->   	/* take write barrier */
->   	/* (stops the list reshuffling thread, proxy ast handling) */
->   	dlm_begin_recovery(dlm);
->   
-> +	spin_unlock(&dlm->spinlock);
-> +
->   	if (dlm->reco.new_master == dlm->node_num)
->   		goto master_here;
->   
-> _
-> 
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+> Thanks,
+> Changwei
+>            
 > 
