@@ -1,130 +1,127 @@
-From: Changwei Ge <ge.changwei@h3c.com>
-Date: Wed, 3 Jan 2018 02:27:44 +0000
-Subject: [Ocfs2-devel] [PATCH v2] ocfs2: try to reuse extent block in
- dealloc without meta_alloc
-References: <63ADC13FD55D6546B7DECE290D39E373F2908FC7@H3CMLB12-EX.srv.huawei-3com.com>
-	<be127091-f971-57b9-f488-681149f1d58a@oracle.com>
-	<63ADC13FD55D6546B7DECE290D39E373F290988E@H3CMLB12-EX.srv.huawei-3com.com>
-	<72982904-5152-bbcd-c751-3e2ac8fca16d@oracle.com>
-Message-ID: <63ADC13FD55D6546B7DECE290D39E373F290AAFE@H3CMLB12-EX.srv.huawei-3com.com>
+From: Gang He <ghe@suse.com>
+Date: Tue, 02 Jan 2018 22:14:01 -0700
+Subject: [Ocfs2-devel] [PATCH v3 2/3] ocfs2: add ocfs2_overwrite_io
+ function
+In-Reply-To: <5A4B666B.1040803@huawei.com>
+References: <1514455665-16325-1-git-send-email-ghe@suse.com>
+	<1514455665-16325-3-git-send-email-ghe@suse.com>
+	<5A4B666B.1040803@huawei.com>
+Message-ID: <5A4CD719020000F9000A0FE0@prv-mh.provo.novell.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: alex.chen@huawei.com
+Cc: jlbec@evilplan.org, ocfs2-devel@oss.oracle.com, mfasheh@versity.com, linux-kernel@vger.kernel.org
 
-Hi Junxiao,
+Hi Alex,
 
-On 2018/1/2 16:18, Junxiao Bi wrote:
-> On 12/27/2017 08:21 PM, Changwei Ge wrote:
->> Hi Junxiao,
->>
->> On 2017/12/27 18:02, Junxiao Bi wrote:
->>> Hi Changwei,
->>>
->>>
->>> On 12/26/2017 03:55 PM, Changwei Ge wrote:
->>>> A crash issue was reported by John.
->>>> The call trace follows:
->>>> ocfs2_split_extent+0x1ad3/0x1b40 [ocfs2]
->>>> ocfs2_change_extent_flag+0x33a/0x470 [ocfs2]
->>>> ocfs2_mark_extent_written+0x172/0x220 [ocfs2]
->>>> ocfs2_dio_end_io+0x62d/0x910 [ocfs2]
->>>> dio_complete+0x19a/0x1a0
->>>> do_blockdev_direct_IO+0x19dd/0x1eb0
->>>> __blockdev_direct_IO+0x43/0x50
->>>> ocfs2_direct_IO+0x8f/0xa0 [ocfs2]
->>>> generic_file_direct_write+0xb2/0x170
->>>> __generic_file_write_iter+0xc3/0x1b0
->>>> ocfs2_file_write_iter+0x4bb/0xca0 [ocfs2]
->>>> __vfs_write+0xae/0xf0
->>>> vfs_write+0xb8/0x1b0
->>>> SyS_write+0x4f/0xb0
->>>> system_call_fastpath+0x16/0x75
->>>>
->>>> The BUG code told that extent tree wants to grow but no metadata
->>>> was reserved ahead of time.
->>>>     From my investigation into this issue, the root cause it that although
->>>> enough metadata is not reserved, there should be enough for following use.
->>>> Rightmost extent is merged into its left one due to a certain times of
->>>> marking extent written. Because during marking extent written, we got many
->>>> physically continuous extents. At last, an empty extent showed up and the
->>>> rightmost path is removed from extent tree.
->>> I am trying to understand the issue. Quick questions.
->>> Is this issue caused by BUG_ON(meta_ac == NULL)? Can you explain why it
->>> is NULL?
->> My pleasure to.
->> Before marking extents written, we have to estimate how many metadata will be used.
->> If there are enough metadata for following operation-marking extent written, no metadata
->> will be reserved ahead of time.
->>
->> For this BUG scenario, it happens that extent tree already has enough free metadata.
->> This can be referred by code path:
->> ocfs2_dio_end_io_write
->>     ocfs2_lock_allocators - No need to reserve metadata,since extent tree already has more metadata than needed. So *mata_ac* is NULL.
->>     ocfs2_mark_extent_written
->>       ocfs2_change_extent_flag - cluster by cluster
->>         ocfs2_split_extent
->>           ocfs2_try_to_merge_extent - During filling file hole, we mark cluster as written one by one. Somehow, we merge those physically continuous cluster(WRITTEN) into a single one.
->>             ocfs2_rotate_tree_left - rotate extent
->>               __ocfs2_rotate_tree_left
->>                 ocfs2_rotate_subtree_left - Aha, we find a totally empty extent here, so unlink it from extent tree.
->>                   ocfs2_unlink_subtree
->>                   ocfs2_remove_empty_extent
->>                   
->>
->> Then, since we delete one extent block, our previously estimated metadata number is
->> pointless(NOTE, actually the estimation is accurate.). Since it is reduced resulted by extent
->> rotation and merging.
->> So for now, we don't have enough metadata.
-> See, thanks for your detailed explanation.
+
+>>> 
+> Hi Gang,
 > 
->>
->> Then we are still marking extent tree written for left clusters and we need to split extent.
-> Once one ocfs2_mark_extent_written() caused an extent block removed,
-> then next invoke to it may not have enought metadata, right?
+> On 2017/12/28 18:07, Gang He wrote:
+>> Add ocfs2_overwrite_io function, which is used to judge if
+>> overwrite allocated blocks, otherwise, the write will bring extra
+>> block allocation overhead.
+>> 
+>> Signed-off-by: Gang He <ghe@suse.com>
+>> ---
+>>  fs/ocfs2/extent_map.c | 45 +++++++++++++++++++++++++++++++++++++++++++++
+>>  fs/ocfs2/extent_map.h |  3 +++
+>>  2 files changed, 48 insertions(+)
+>> 
+>> diff --git a/fs/ocfs2/extent_map.c b/fs/ocfs2/extent_map.c
+>> index e4719e0..06cb964 100644
+>> --- a/fs/ocfs2/extent_map.c
+>> +++ b/fs/ocfs2/extent_map.c
+>> @@ -38,6 +38,7 @@
+>>  #include "inode.h"
+>>  #include "super.h"
+>>  #include "symlink.h"
+>> +#include "aops.h"
+>>  #include "ocfs2_trace.h" 
+>>  
+>>  #include "buffer_head_io.h"
+>> @@ -832,6 +833,50 @@ int ocfs2_fiemap(struct inode *inode, struct 
+> fiemap_extent_info *fieinfo,
+>>  	return ret;
+>>  }
+>>  
+>> +/* Is IO overwriting allocated blocks? */
+>> +int ocfs2_overwrite_io(struct inode *inode, struct buffer_head *di_bh,
+>> +		       u64 map_start, u64 map_len)
+> Here can the type of 'map_start' is struct loff_t and map_len is struct 
+> size_t?
+I prefer to use the detailed types for file start address and length in ocfs2_overwrite_io() function declaration, 
+then here will be a potential type conversion (loff_t  -> u64, size_t -> u64), I think this conversion should be considered as expectation. 
+Since our OCFS2 is a 64 bit file system, the related data types do not change,  but loff_t and size_t type can change under different architectures (e.g. x86_32, x86_64, etc.).
 
-Very true.
-
-> 
->> But we don't have enough metadata to accommodate the split extent records.
-> If above is right, can we invoke ocfs2_lock_allocators() to calculate
-> enough metadata before every invoke to ocfs2_mark_extent_written()?
-> That will be more simple than fixing by reuse dealloc.
-
-That might be a way to fix this dio crash issue, too.
-And Alex ever posted a patch to fix it like that way.
-
-But I still prefer to fix it by reusing some extent blocks in dealloc.
-I have a couple reasons:
-1) Re-checking remaining metadata before invoking  ocfs2_mark_extent_written() will introduce
-    overhead like wasting CPU cycles and more times accessing disk which will hurt ocfs2 performance very much.
-    Specifically speaking, checking remaining metadata needs reload extent tree from disk. Allocating
-    more extent block still need more time to modify _alloc_ on disk. But, actually, the space has already
-    be allocated at the stage of _write_begin_.
-2) That way makes estimating metadata pointless, which will make maintainer puzzle why we still need to estimate.
-    IMO, we have to make the estimation robust and trusty.
-3) It is hard to handle jbd2 part.
-
-Moreover, I want to add a new common mechanism which can be used around similar scenario.
-
-And I believe although my way is a little complicated but it is elegant.
-
-That kind of problems can be solved once and for all.
-
-Thanks,
-Changwei
+Thanks
+Gang
 
 > 
 > Thanks,
-> Junxiao.
-> 
->> So extent tree need to grow.
->> BUG. no metadata is reserved ahead of time.
->>
->> Thanks,
->> Changwei
->>             
->>
-> 
-> 
+> Alex
+>> +{
+>> +	int ret = 0, is_last;
+>> +	u32 mapping_end, cpos;
+>> +	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+>> +	struct ocfs2_extent_rec rec;
+>> +
+>> +	if (OCFS2_I(inode)->ip_dyn_features & OCFS2_INLINE_DATA_FL) {
+>> +		if (ocfs2_size_fits_inline_data(di_bh, map_start + map_len))
+>> +			return ret;
+>> +		else
+>> +			return -EAGAIN;
+>> +	}
+>> +
+>> +	cpos = map_start >> osb->s_clustersize_bits;
+>> +	mapping_end = ocfs2_clusters_for_bytes(inode->i_sb,
+>> +					       map_start + map_len);
+>> +	is_last = 0;
+>> +	while (cpos < mapping_end && !is_last) {
+>> +		ret = ocfs2_get_clusters_nocache(inode, di_bh, cpos,
+>> +						 NULL, &rec, &is_last);
+>> +		if (ret) {
+>> +			mlog_errno(ret);
+>> +			goto out;
+>> +		}
+>> +
+>> +		if (rec.e_blkno == 0ULL)
+>> +			break;
+>> +
+>> +		if (rec.e_flags & OCFS2_EXT_REFCOUNTED)
+>> +			break;
+>> +
+>> +		cpos = le32_to_cpu(rec.e_cpos) +
+>> +			le16_to_cpu(rec.e_leaf_clusters);
+>> +	}
+>> +
+>> +	if (cpos < mapping_end)
+>> +		ret = -EAGAIN;
+>> +out:
+>> +	return ret;
+>> +}
+>> +
+>>  int ocfs2_seek_data_hole_offset(struct file *file, loff_t *offset, int 
+> whence)
+>>  {
+>>  	struct inode *inode = file->f_mapping->host;
+>> diff --git a/fs/ocfs2/extent_map.h b/fs/ocfs2/extent_map.h
+>> index 67ea57d..1057586 100644
+>> --- a/fs/ocfs2/extent_map.h
+>> +++ b/fs/ocfs2/extent_map.h
+>> @@ -53,6 +53,9 @@ int ocfs2_extent_map_get_blocks(struct inode *inode, u64 
+> v_blkno, u64 *p_blkno,
+>>  int ocfs2_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo,
+>>  		 u64 map_start, u64 map_len);
+>>  
+>> +int ocfs2_overwrite_io(struct inode *inode, struct buffer_head *di_bh,
+>> +		       u64 map_start, u64 map_len);
+>> +
+>>  int ocfs2_seek_data_hole_offset(struct file *file, loff_t *offset, int 
+> origin);
+>>  
+>>  int ocfs2_xattr_get_clusters(struct inode *inode, u32 v_cluster,
+>> 
