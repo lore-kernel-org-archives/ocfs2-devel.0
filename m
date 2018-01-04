@@ -1,142 +1,117 @@
 From: alex chen <alex.chen@huawei.com>
-Date: Thu, 4 Jan 2018 09:10:10 +0800
-Subject: [Ocfs2-devel] [PATCH v3 2/3] ocfs2: add ocfs2_overwrite_io
-	function
-In-Reply-To: <5A4CD719020000F9000A0FE0@prv-mh.provo.novell.com>
-References: <1514455665-16325-1-git-send-email-ghe@suse.com>
-	<1514455665-16325-3-git-send-email-ghe@suse.com>
-	<5A4B666B.1040803@huawei.com>
-	<5A4CD719020000F9000A0FE0@prv-mh.provo.novell.com>
-Message-ID: <5A4D7EF2.4030605@huawei.com>
+Date: Thu, 4 Jan 2018 09:39:23 +0800
+Subject: [Ocfs2-devel] [PATCH v2 2/2] ocfs2: add trimfs lock to avoid
+ duplicated trims in cluster
+In-Reply-To: <1513228484-2084-2-git-send-email-ghe@suse.com>
+References: <1513228484-2084-1-git-send-email-ghe@suse.com>
+	<1513228484-2084-2-git-send-email-ghe@suse.com>
+Message-ID: <5A4D85CB.4020208@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: Gang He <ghe@suse.com>
-Cc: jlbec@evilplan.org, ocfs2-devel@oss.oracle.com, mfasheh@versity.com, linux-kernel@vger.kernel.org
+Cc: mfasheh@versity.com, jlbec@evilplan.org, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com, Andrew Morton <akpm@linux-foundation.org>
 
 Hi Gang,
 
-On 2018/1/3 13:14, Gang He wrote:
-> Hi Alex,
+On 2017/12/14 13:14, Gang He wrote:
+> As you know, ocfs2 has support trim the underlying disk via
+> fstrim command. But there is a problem, ocfs2 is a shared disk
+> cluster file system, if the user configures a scheduled fstrim
+> job on each file system node, this will trigger multiple nodes
+> trim a shared disk simultaneously, it is very wasteful for CPU
+> and IO consumption, also might negatively affect the lifetime
+> of poor-quality SSD devices.
+> Then, we introduce a trimfs dlm lock to communicate with each
+> other in this case, which will make only one fstrim command to
+> do the trimming on a shared disk among the cluster, the fstrim
+> commands from the other nodes should wait for the first fstrim
+> to finish and returned success directly, to avoid running a the
+> same trim on the shared disk again.
 > 
-> 
->>>>
->> Hi Gang,
->>
->> On 2017/12/28 18:07, Gang He wrote:
->>> Add ocfs2_overwrite_io function, which is used to judge if
->>> overwrite allocated blocks, otherwise, the write will bring extra
->>> block allocation overhead.
->>>
->>> Signed-off-by: Gang He <ghe@suse.com>
->>> ---
->>>  fs/ocfs2/extent_map.c | 45 +++++++++++++++++++++++++++++++++++++++++++++
->>>  fs/ocfs2/extent_map.h |  3 +++
->>>  2 files changed, 48 insertions(+)
->>>
->>> diff --git a/fs/ocfs2/extent_map.c b/fs/ocfs2/extent_map.c
->>> index e4719e0..06cb964 100644
->>> --- a/fs/ocfs2/extent_map.c
->>> +++ b/fs/ocfs2/extent_map.c
->>> @@ -38,6 +38,7 @@
->>>  #include "inode.h"
->>>  #include "super.h"
->>>  #include "symlink.h"
->>> +#include "aops.h"
->>>  #include "ocfs2_trace.h" 
->>>  
->>>  #include "buffer_head_io.h"
->>> @@ -832,6 +833,50 @@ int ocfs2_fiemap(struct inode *inode, struct 
->> fiemap_extent_info *fieinfo,
->>>  	return ret;
->>>  }
->>>  
->>> +/* Is IO overwriting allocated blocks? */
->>> +int ocfs2_overwrite_io(struct inode *inode, struct buffer_head *di_bh,
->>> +		       u64 map_start, u64 map_len)
->> Here can the type of 'map_start' is struct loff_t and map_len is struct 
->> size_t?
-> I prefer to use the detailed types for file start address and length in ocfs2_overwrite_io() function declaration, 
-> then here will be a potential type conversion (loff_t  -> u64, size_t -> u64), I think this conversion should be considered as expectation. 
-> Since our OCFS2 is a 64 bit file system, the related data types do not change,  but loff_t and size_t type can change under different architectures (e.g. x86_32, x86_64, etc.).
-> 
-The type conversion (loff_t  -> u64, size_t -> u64) has been made before calling the function ocfs2_overwrite_io().
-So it doesn't matter which type we use for file start address and length in ocfs2_overwrite_io(), Right?
-To be consistent with the context, is it better to use struct loff_t for 'map_start' and struct size_t for 'map_len'?
+For the same purpose, can we take global bitmap meta lock EXMODE instead of
+add a new trimfs dlm lock?
 
 Thanks,
 Alex
 
-> Thanks
-> Gang
+> Compare with first version, I change the fstrim commands' returned
+> value and behavior in case which meets a fstrim command is running
+> on a shared disk.
 > 
->>
->> Thanks,
->> Alex
->>> +{
->>> +	int ret = 0, is_last;
->>> +	u32 mapping_end, cpos;
->>> +	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
->>> +	struct ocfs2_extent_rec rec;
->>> +
->>> +	if (OCFS2_I(inode)->ip_dyn_features & OCFS2_INLINE_DATA_FL) {
->>> +		if (ocfs2_size_fits_inline_data(di_bh, map_start + map_len))
->>> +			return ret;
->>> +		else
->>> +			return -EAGAIN;
->>> +	}
->>> +
->>> +	cpos = map_start >> osb->s_clustersize_bits;
->>> +	mapping_end = ocfs2_clusters_for_bytes(inode->i_sb,
->>> +					       map_start + map_len);
->>> +	is_last = 0;
->>> +	while (cpos < mapping_end && !is_last) {
->>> +		ret = ocfs2_get_clusters_nocache(inode, di_bh, cpos,
->>> +						 NULL, &rec, &is_last);
->>> +		if (ret) {
->>> +			mlog_errno(ret);
->>> +			goto out;
->>> +		}
->>> +
->>> +		if (rec.e_blkno == 0ULL)
->>> +			break;
->>> +
->>> +		if (rec.e_flags & OCFS2_EXT_REFCOUNTED)
->>> +			break;
->>> +
->>> +		cpos = le32_to_cpu(rec.e_cpos) +
->>> +			le16_to_cpu(rec.e_leaf_clusters);
->>> +	}
->>> +
->>> +	if (cpos < mapping_end)
->>> +		ret = -EAGAIN;
->>> +out:
->>> +	return ret;
->>> +}
->>> +
->>>  int ocfs2_seek_data_hole_offset(struct file *file, loff_t *offset, int 
->> whence)
->>>  {
->>>  	struct inode *inode = file->f_mapping->host;
->>> diff --git a/fs/ocfs2/extent_map.h b/fs/ocfs2/extent_map.h
->>> index 67ea57d..1057586 100644
->>> --- a/fs/ocfs2/extent_map.h
->>> +++ b/fs/ocfs2/extent_map.h
->>> @@ -53,6 +53,9 @@ int ocfs2_extent_map_get_blocks(struct inode *inode, u64 
->> v_blkno, u64 *p_blkno,
->>>  int ocfs2_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo,
->>>  		 u64 map_start, u64 map_len);
->>>  
->>> +int ocfs2_overwrite_io(struct inode *inode, struct buffer_head *di_bh,
->>> +		       u64 map_start, u64 map_len);
->>> +
->>>  int ocfs2_seek_data_hole_offset(struct file *file, loff_t *offset, int 
->> origin);
->>>  
->>>  int ocfs2_xattr_get_clusters(struct inode *inode, u32 v_cluster,
->>>
+> Signed-off-by: Gang He <ghe@suse.com>
+> ---
+>  fs/ocfs2/alloc.c | 44 ++++++++++++++++++++++++++++++++++++++++++++
+>  1 file changed, 44 insertions(+)
 > 
-> 
-> .
+> diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
+> index ab5105f..5c9c3e2 100644
+> --- a/fs/ocfs2/alloc.c
+> +++ b/fs/ocfs2/alloc.c
+> @@ -7382,6 +7382,7 @@ int ocfs2_trim_fs(struct super_block *sb, struct fstrim_range *range)
+>  	struct buffer_head *gd_bh = NULL;
+>  	struct ocfs2_dinode *main_bm;
+>  	struct ocfs2_group_desc *gd = NULL;
+> +	struct ocfs2_trim_fs_info info, *pinfo = NULL;
+>  
+>  	start = range->start >> osb->s_clustersize_bits;
+>  	len = range->len >> osb->s_clustersize_bits;
+> @@ -7419,6 +7420,42 @@ int ocfs2_trim_fs(struct super_block *sb, struct fstrim_range *range)
+>  
+>  	trace_ocfs2_trim_fs(start, len, minlen);
+>  
+> +	ocfs2_trim_fs_lock_res_init(osb);
+> +	ret = ocfs2_trim_fs_lock(osb, NULL, 1);
+> +	if (ret < 0) {
+> +		if (ret != -EAGAIN) {
+> +			mlog_errno(ret);
+> +			ocfs2_trim_fs_lock_res_uninit(osb);
+> +			goto out_unlock;
+> +		}
+> +
+> +		mlog(ML_NOTICE, "Wait for trim on device (%s) to "
+> +		     "finish, which is running from another node.\n",
+> +		     osb->dev_str);
+> +		ret = ocfs2_trim_fs_lock(osb, &info, 0);
+> +		if (ret < 0) {
+> +			mlog_errno(ret);
+> +			ocfs2_trim_fs_lock_res_uninit(osb);
+> +			goto out_unlock;
+> +		}
+> +
+> +		if (info.tf_valid && info.tf_success &&
+> +		    info.tf_start == start && info.tf_len == len &&
+> +		    info.tf_minlen == minlen) {
+> +			/* Avoid sending duplicated trim to a shared device */
+> +			mlog(ML_NOTICE, "The same trim on device (%s) was "
+> +			     "just done from node (%u), return.\n",
+> +			     osb->dev_str, info.tf_nodenum);
+> +			range->len = info.tf_trimlen;
+> +			goto out_trimunlock;
+> +		}
+> +	}
+> +
+> +	info.tf_nodenum = osb->node_num;
+> +	info.tf_start = start;
+> +	info.tf_len = len;
+> +	info.tf_minlen = minlen;
+> +
+>  	/* Determine first and last group to examine based on start and len */
+>  	first_group = ocfs2_which_cluster_group(main_bm_inode, start);
+>  	if (first_group == osb->first_cluster_group_blkno)
+> @@ -7463,6 +7500,13 @@ int ocfs2_trim_fs(struct super_block *sb, struct fstrim_range *range)
+>  			group += ocfs2_clusters_to_blocks(sb, osb->bitmap_cpg);
+>  	}
+>  	range->len = trimmed * sb->s_blocksize;
+> +
+> +	info.tf_trimlen = range->len;
+> +	info.tf_success = (ret ? 0 : 1);
+> +	pinfo = &info;
+> +out_trimunlock:
+> +	ocfs2_trim_fs_unlock(osb, pinfo);
+> +	ocfs2_trim_fs_lock_res_uninit(osb);
+>  out_unlock:
+>  	ocfs2_inode_unlock(main_bm_inode, 0);
+>  	brelse(main_bm_bh);
 > 
