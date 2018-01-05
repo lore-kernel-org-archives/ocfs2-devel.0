@@ -1,164 +1,169 @@
 From: Gang He <ghe@suse.com>
-Date: Wed, 03 Jan 2018 20:32:08 -0700
-Subject: [Ocfs2-devel] [PATCH v3 2/3] ocfs2: add ocfs2_overwrite_io
- function
-In-Reply-To: <5A4D7EF2.4030605@huawei.com>
-References: <1514455665-16325-1-git-send-email-ghe@suse.com>
-	<1514455665-16325-3-git-send-email-ghe@suse.com>
-	<5A4B666B.1040803@huawei.com>
-	<5A4CD719020000F9000A0FE0@prv-mh.provo.novell.com>
-	<5A4D7EF2.4030605@huawei.com>
-Message-ID: <5A4E10B8020000F9000A122B@prv-mh.provo.novell.com>
+Date: Thu, 04 Jan 2018 23:31:12 -0700
+Subject: [Ocfs2-devel] [PATCH v2] ocfs2: try a blocking lock before
+ return AOP_TRUNCATED_PAGE
+In-Reply-To: <cb310814-4ad9-d3f3-674d-8746fae35fe0@gmail.com>
+References: <1514447305-30814-1-git-send-email-ghe@suse.com>
+	<cb310814-4ad9-d3f3-674d-8746fae35fe0@gmail.com>
+Message-ID: <5A4F8C30020000F9000A16FE@prv-mh.provo.novell.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: alex.chen@huawei.com
-Cc: jlbec@evilplan.org, ocfs2-devel@oss.oracle.com, mfasheh@versity.com, linux-kernel@vger.kernel.org
+To: jlbec@evilplan.org, jiangqi903@gmail.com, akpm@linux-foundation.org, mfasheh@versity.com
+Cc: ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
 
-Hi Alex,
+Hi Andrew,
+
+Happy new year.
+Could you help to pick up this patch, which is used to fix a old patch 1cce4df04f37.
+If we have not this patch, some multiple node test cases will trigger softlockup problems,
+also make HA communication daemon (e.g. corosync) timeout and the node will has to be fenced.
+
+Thanks
+Gang  
 
 
 >>> 
-> Hi Gang,
-> 
-> On 2018/1/3 13:14, Gang He wrote:
->> Hi Alex,
->> 
->> 
->>>>>
->>> Hi Gang,
->>>
->>> On 2017/12/28 18:07, Gang He wrote:
->>>> Add ocfs2_overwrite_io function, which is used to judge if
->>>> overwrite allocated blocks, otherwise, the write will bring extra
->>>> block allocation overhead.
->>>>
->>>> Signed-off-by: Gang He <ghe@suse.com>
->>>> ---
->>>>  fs/ocfs2/extent_map.c | 45 +++++++++++++++++++++++++++++++++++++++++++++
->>>>  fs/ocfs2/extent_map.h |  3 +++
->>>>  2 files changed, 48 insertions(+)
->>>>
->>>> diff --git a/fs/ocfs2/extent_map.c b/fs/ocfs2/extent_map.c
->>>> index e4719e0..06cb964 100644
->>>> --- a/fs/ocfs2/extent_map.c
->>>> +++ b/fs/ocfs2/extent_map.c
->>>> @@ -38,6 +38,7 @@
->>>>  #include "inode.h"
->>>>  #include "super.h"
->>>>  #include "symlink.h"
->>>> +#include "aops.h"
->>>>  #include "ocfs2_trace.h" 
->>>>  
->>>>  #include "buffer_head_io.h"
->>>> @@ -832,6 +833,50 @@ int ocfs2_fiemap(struct inode *inode, struct 
->>> fiemap_extent_info *fieinfo,
->>>>  	return ret;
->>>>  }
->>>>  
->>>> +/* Is IO overwriting allocated blocks? */
->>>> +int ocfs2_overwrite_io(struct inode *inode, struct buffer_head *di_bh,
->>>> +		       u64 map_start, u64 map_len)
->>> Here can the type of 'map_start' is struct loff_t and map_len is struct 
->>> size_t?
->> I prefer to use the detailed types for file start address and length in 
-> ocfs2_overwrite_io() function declaration, 
->> then here will be a potential type conversion (loff_t  -> u64, size_t -> u64), I 
-> think this conversion should be considered as expectation. 
->> Since our OCFS2 is a 64 bit file system, the related data types do not 
-> change,  but loff_t and size_t type can change under different architectures 
-> (e.g. x86_32, x86_64, etc.).
->> 
-> The type conversion (loff_t  -> u64, size_t -> u64) has been made before calling 
-> the function ocfs2_overwrite_io().
-> So it doesn't matter which type we use for file start address and length in 
-> ocfs2_overwrite_io(), Right?
-> To be consistent with the context, is it better to use struct loff_t for 
-> 'map_start' and struct size_t for 'map_len'?
-I am not sure if I describe my thought clearly.
-In VFS layer, loff_t, size_t and other related data types are used for all architectures, that means these kinds of data type's lengths
-will change based on different CPU bits.
-But, for a specific file system, the file system bit is fixed, e.g. ocfs2 is a 64 bits file system, this bit length is determined by file system layout (not CPU bits).
-Then, in this layer we should use fixed-length (or common) data type in the code, the VFS layer data types should be converted into our data types potentially (but except pointer type).
-
-
-Thanks
-Gang   
 
 > 
-> Thanks,
-> Alex
+> On 17/12/28 15:48, Gang He wrote:
+>> If we can't get inode lock immediately in the function
+>> ocfs2_inode_lock_with_page() when reading a page, we should not
+>> return directly here, since this will lead to a softlockup problem
+>> when the kernel is configured with CONFIG_PREEMPT is not set.
+>> The method is to get a blocking lock and immediately unlock before
+>> returning, this can avoid CPU resource waste due to lots of retries,
+>> and benefits fairness in getting lock among multiple nodes, increase
+>> efficiency in case modifying the same file frequently from multiple
+>> nodes.
+>> The softlockup crash (when set /proc/sys/kernel/softlockup_panic to 1)
+>> looks like,
+>> Kernel panic - not syncing: softlockup: hung tasks
+>> CPU: 0 PID: 885 Comm: multi_mmap Tainted: G L 4.12.14-6.1-default #1
+>> Hardware name: Bochs Bochs, BIOS Bochs 01/01/2011
+>> Call Trace:
+>>   <IRQ>
+>>   dump_stack+0x5c/0x82
+>>   panic+0xd5/0x21e
+>>   watchdog_timer_fn+0x208/0x210
+>>   ? watchdog_park_threads+0x70/0x70
+>>   __hrtimer_run_queues+0xcc/0x200
+>>   hrtimer_interrupt+0xa6/0x1f0
+>>   smp_apic_timer_interrupt+0x34/0x50
+>>   apic_timer_interrupt+0x96/0xa0
+>>   </IRQ>
+>>  RIP: 0010:unlock_page+0x17/0x30
+>>  RSP: 0000:ffffaf154080bc88 EFLAGS: 00000246 ORIG_RAX: ffffffffffffff10
+>>  RAX: dead000000000100 RBX: fffff21e009f5300 RCX: 0000000000000004
+>>  RDX: dead0000000000ff RSI: 0000000000000202 RDI: fffff21e009f5300
+>>  RBP: 0000000000000000 R08: 0000000000000000 R09: ffffaf154080bb00
+>>  R10: ffffaf154080bc30 R11: 0000000000000040 R12: ffff993749a39518
+>>  R13: 0000000000000000 R14: fffff21e009f5300 R15: fffff21e009f5300
+>>   ocfs2_inode_lock_with_page+0x25/0x30 [ocfs2]
+>>   ocfs2_readpage+0x41/0x2d0 [ocfs2]
+>>   ? pagecache_get_page+0x30/0x200
+>>   filemap_fault+0x12b/0x5c0
+>>   ? recalc_sigpending+0x17/0x50
+>>   ? __set_task_blocked+0x28/0x70
+>>   ? __set_current_blocked+0x3d/0x60
+>>   ocfs2_fault+0x29/0xb0 [ocfs2]
+>>   __do_fault+0x1a/0xa0
+>>   __handle_mm_fault+0xbe8/0x1090
+>>   handle_mm_fault+0xaa/0x1f0
+>>   __do_page_fault+0x235/0x4b0
+>>   trace_do_page_fault+0x3c/0x110
+>>   async_page_fault+0x28/0x30
+>>  RIP: 0033:0x7fa75ded638e
+>>  RSP: 002b:00007ffd6657db18 EFLAGS: 00010287
+>>  RAX: 000055c7662fb700 RBX: 0000000000000001 RCX: 000055c7662fb700
+>>  RDX: 0000000000001770 RSI: 00007fa75e909000 RDI: 000055c7662fb700
+>>  RBP: 0000000000000003 R08: 000000000000000e R09: 0000000000000000
+>>  R10: 0000000000000483 R11: 00007fa75ded61b0 R12: 00007fa75e90a770
+>>  R13: 000000000000000e R14: 0000000000001770 R15: 0000000000000000
+>> 
+>> About performance improvement, we can see the testing time is reduced,
+>> and CPU utilization decreases, the detailed data is as follows.
+>> I ran multi_mmap test case in ocfs2-test package in a three nodes cluster.
+>> Before apply this patch,
+>>   PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND
+>>  2754 ocfs2te+  20   0  170248   6980   4856 D 80.73 0.341   0:18.71 
+> multi_mmap
+>>  1505 root      rt   0  222236 123060  97224 S 2.658 6.015   0:01.44 
+> corosync
+>>     5 root      20   0       0      0      0 S 1.329 0.000   0:00.19 
+> kworker/u8:0
+>>    95 root      20   0       0      0      0 S 1.329 0.000   0:00.25 
+> kworker/u8:1
+>>  2728 root      20   0       0      0      0 S 0.997 0.000   0:00.24 
+> jbd2/sda1-33
+>>  2721 root      20   0       0      0      0 S 0.664 0.000   0:00.07 
+> ocfs2dc-3C8CFD4
+>>  2750 ocfs2te+  20   0  142976   4652   3532 S 0.664 0.227   0:00.28 mpirun
+>> 
+>> ocfs2test at tb-node2:~>multiple_run.sh -i ens3 -k ~/linux-4.4.21-69.tar.gz -o 
+>> ~/ocfs2mullog -C hacluster -s pcmk -n tb-node2,tb-node1,tb-node3 -d 
+>> /dev/sda1 -b 4096 -c 32768 -t multi_mmap /mnt/shared
+>> Tests with "-b 4096 -C 32768"
+>> Thu Dec 28 14:44:52 CST 2017
+>> multi_mmap..................................................Passed.
+>> Runtime 783 seconds.
+>> 
+>> After apply this patch,
+>>   PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND
+>>  2508 ocfs2te+  20   0  170248   6804   4680 R 54.00 0.333   0:55.37 
+> multi_mmap
+>>   155 root      20   0       0      0      0 S 2.667 0.000   0:01.20 
+> kworker/u8:3
+>>    95 root      20   0       0      0      0 S 2.000 0.000   0:01.58 
+> kworker/u8:1
+>>  2504 ocfs2te+  20   0  142976   4604   3480 R 1.667 0.225   0:01.65 mpirun
+>>     5 root      20   0       0      0      0 S 1.000 0.000   0:01.36 
+> kworker/u8:0
+>>  2482 root      20   0       0      0      0 S 1.000 0.000   0:00.86 
+> jbd2/sda1-33
+>>   299 root       0 -20       0      0      0 S 0.333 0.000   0:00.13 
+> kworker/2:1H
+>>   335 root       0 -20       0      0      0 S 0.333 0.000   0:00.17 
+> kworker/1:1H
+>>   535 root      20   0   12140   7268   1456 S 0.333 0.355   0:00.34 haveged
+>>  1282 root      rt   0  222284 123108  97224 S 0.333 6.017   0:01.33 
+> corosync
+>> 
+>> ocfs2test at tb-node2:~>multiple_run.sh -i ens3 -k ~/linux-4.4.21-69.tar.gz -o 
+>> ~/ocfs2mullog -C hacluster -s pcmk -n tb-node2,tb-node1,tb-node3 -d 
+>> /dev/sda1 -b 4096 -c 32768 -t multi_mmap /mnt/shared
+>> Tests with "-b 4096 -C 32768"
+>> Thu Dec 28 15:04:12 CST 2017
+>> multi_mmap..................................................Passed.
+>> Runtime 487 seconds.
+>> 
+>> Fixes: 1cce4df04f37 ("ocfs2: do not lock/unlock() inode DLM lock")
+>> Signed-off-by: Gang He <ghe@suse.com>
+> Reviewed-by: Joseph Qi <jiangqi903@gmail.com>
 > 
->> Thanks
->> Gang
+>> ---
+>>  fs/ocfs2/dlmglue.c | 9 +++++++++
+>>  1 file changed, 9 insertions(+)
 >> 
->>>
->>> Thanks,
->>> Alex
->>>> +{
->>>> +	int ret = 0, is_last;
->>>> +	u32 mapping_end, cpos;
->>>> +	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
->>>> +	struct ocfs2_extent_rec rec;
->>>> +
->>>> +	if (OCFS2_I(inode)->ip_dyn_features & OCFS2_INLINE_DATA_FL) {
->>>> +		if (ocfs2_size_fits_inline_data(di_bh, map_start + map_len))
->>>> +			return ret;
->>>> +		else
->>>> +			return -EAGAIN;
->>>> +	}
->>>> +
->>>> +	cpos = map_start >> osb->s_clustersize_bits;
->>>> +	mapping_end = ocfs2_clusters_for_bytes(inode->i_sb,
->>>> +					       map_start + map_len);
->>>> +	is_last = 0;
->>>> +	while (cpos < mapping_end && !is_last) {
->>>> +		ret = ocfs2_get_clusters_nocache(inode, di_bh, cpos,
->>>> +						 NULL, &rec, &is_last);
->>>> +		if (ret) {
->>>> +			mlog_errno(ret);
->>>> +			goto out;
->>>> +		}
->>>> +
->>>> +		if (rec.e_blkno == 0ULL)
->>>> +			break;
->>>> +
->>>> +		if (rec.e_flags & OCFS2_EXT_REFCOUNTED)
->>>> +			break;
->>>> +
->>>> +		cpos = le32_to_cpu(rec.e_cpos) +
->>>> +			le16_to_cpu(rec.e_leaf_clusters);
->>>> +	}
->>>> +
->>>> +	if (cpos < mapping_end)
->>>> +		ret = -EAGAIN;
->>>> +out:
->>>> +	return ret;
->>>> +}
->>>> +
->>>>  int ocfs2_seek_data_hole_offset(struct file *file, loff_t *offset, int 
->>> whence)
->>>>  {
->>>>  	struct inode *inode = file->f_mapping->host;
->>>> diff --git a/fs/ocfs2/extent_map.h b/fs/ocfs2/extent_map.h
->>>> index 67ea57d..1057586 100644
->>>> --- a/fs/ocfs2/extent_map.h
->>>> +++ b/fs/ocfs2/extent_map.h
->>>> @@ -53,6 +53,9 @@ int ocfs2_extent_map_get_blocks(struct inode *inode, u64 
->>> v_blkno, u64 *p_blkno,
->>>>  int ocfs2_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo,
->>>>  		 u64 map_start, u64 map_len);
->>>>  
->>>> +int ocfs2_overwrite_io(struct inode *inode, struct buffer_head *di_bh,
->>>> +		       u64 map_start, u64 map_len);
->>>> +
->>>>  int ocfs2_seek_data_hole_offset(struct file *file, loff_t *offset, int 
->>> origin);
->>>>  
->>>>  int ocfs2_xattr_get_clusters(struct inode *inode, u32 v_cluster,
->>>>
->> 
->> 
->> .
+>> diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
+>> index 4689940..5193218 100644
+>> --- a/fs/ocfs2/dlmglue.c
+>> +++ b/fs/ocfs2/dlmglue.c
+>> @@ -2486,6 +2486,15 @@ int ocfs2_inode_lock_with_page(struct inode *inode,
+>>  	ret = ocfs2_inode_lock_full(inode, ret_bh, ex, OCFS2_LOCK_NONBLOCK);
+>>  	if (ret == -EAGAIN) {
+>>  		unlock_page(page);
+>> +		/*
+>> +		 * If we can't get inode lock immediately, we should not return
+>> +		 * directly here, since this will lead to a softlockup problem.
+>> +		 * The method is to get a blocking lock and immediately unlock
+>> +		 * before returning, this can avoid CPU resource waste due to
+>> +		 * lots of retries, and benefits fairness in getting lock.
+>> +		 */
+>> +		if (ocfs2_inode_lock(inode, ret_bh, ex) == 0)
+>> +			ocfs2_inode_unlock(inode, ex);
+>>  		ret = AOP_TRUNCATED_PAGE;
+>>  	}
+>>  
 >> 
