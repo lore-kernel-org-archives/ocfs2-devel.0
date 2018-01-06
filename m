@@ -1,19 +1,24 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Date: Fri, 5 Jan 2018 12:50:34 -0800
+From: Gang He <ghe@suse.com>
+Date: Fri, 05 Jan 2018 19:46:06 -0700
 Subject: [Ocfs2-devel] [PATCH v2] ocfs2: try a blocking lock before
  return AOP_TRUNCATED_PAGE
-In-Reply-To: <5A4F8C30020000F9000A16FE@prv-mh.provo.novell.com>
+In-Reply-To: <20180105125034.762581d16dc8572990a9e5b6@linux-foundation.org>
 References: <1514447305-30814-1-git-send-email-ghe@suse.com>
 	<cb310814-4ad9-d3f3-674d-8746fae35fe0@gmail.com>
 	<5A4F8C30020000F9000A16FE@prv-mh.provo.novell.com>
-Message-ID: <20180105125034.762581d16dc8572990a9e5b6@linux-foundation.org>
+	<20180105125034.762581d16dc8572990a9e5b6@linux-foundation.org>
+Message-ID: <5A50386E020000F9001C7156@prv-mh.provo.novell.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Gang He <ghe@suse.com>
-Cc: jlbec@evilplan.org, jiangqi903@gmail.com, mfasheh@versity.com, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
+To: akpm@linux-foundation.org
+Cc: jlbec@evilplan.org, jiangqi903@gmail.com, ocfs2-devel@oss.oracle.com, mfasheh@versity.com, linux-kernel@vger.kernel.org
 
+Hi Andrew,
+
+
+>>> Andrew Morton <akpm@linux-foundation.org> 01/06/18 4:50 AM >>>
 On Thu, 04 Jan 2018 23:31:12 -0700 "Gang He" <ghe@suse.com> wrote:
 
 > Happy new year.
@@ -23,8 +28,13 @@ On Thu, 04 Jan 2018 23:31:12 -0700 "Gang He" <ghe@suse.com> wrote:
 
 I have the below queued for 4.16-rc1.
 
-Is the problem seriosu enough to push this into 4.15?  Should the fix
-be backported into -stable kernels?
+Is the problem seriosu enough to push this into 4.15?If possible, please do that, since it can bring the system crash or fence in some test cases.
+
+
+Should the fix be backported into -stable kernels?
+Yes, I feel it can be considered as a regression problem.
+Thanks a lot.
+Gang
 
 From: Gang He <ghe@suse.com>
 Subject: ocfs2: try a blocking lock before return AOP_TRUNCATED_PAGE
@@ -128,7 +138,7 @@ Thu Dec 28 15:04:12 CST 2017
 multi_mmap..................................................Passed.
 Runtime 487 seconds.
 
-Link: https://urldefense.proofpoint.com/v2/url?u=http-3A__lkml.kernel.org_r_1514447305-2D30814-2D1-2Dgit-2Dsend-2Demail-2Dghe-40suse.com&d=DwICAg&c=RoP1YumCXCgaWHvlZYR8PZh8Bv7qIrMUB65eapI_JnE&r=C7gAd4uDxlAvTdc0vmU6X8CMk6L2iDY8-HD0qT6Fo7Y&m=M21nNntO7tCMZO9CQ1nGLTIQwQ6xQ3PgJCJKmqD9z70&s=5WyCM97hXAgkY6xKX9EY5dBcNi7g1rmMGG0sYehl4fs&e=
+Link: https://urldefense.proofpoint.com/v2/url?u=http-3A__lkml.kernel.org_r_1514447305-2D30814-2D1-2Dgit-2Dsend-2Demail-2Dghe-40suse.com&d=DwIFAg&c=RoP1YumCXCgaWHvlZYR8PZh8Bv7qIrMUB65eapI_JnE&r=C7gAd4uDxlAvTdc0vmU6X8CMk6L2iDY8-HD0qT6Fo7Y&m=FqkGQvctDRc0IZPbMXumDvKj4AKssblI74e-lj8_bsM&s=lv2undt396m6o7r_zPXd68c08DaN_60aqC2Wvpw3fRI&e=
 Fixes: 1cce4df04f37 ("ocfs2: do not lock/unlock() inode DLM lock")
 Signed-off-by: Gang He <ghe@suse.com>
 Reviewed-by: Eric Ren <zren@suse.com>
@@ -149,19 +159,19 @@ diff -puN fs/ocfs2/dlmglue.c~ocfs2-try-a-blocking-lock-before-return-aop_truncat
 --- a/fs/ocfs2/dlmglue.c~ocfs2-try-a-blocking-lock-before-return-aop_truncated_page
 +++ a/fs/ocfs2/dlmglue.c
 @@ -2529,6 +2529,15 @@ int ocfs2_inode_lock_with_page(struct in
- 	ret = ocfs2_inode_lock_full(inode, ret_bh, ex, OCFS2_LOCK_NONBLOCK);
- 	if (ret == -EAGAIN) {
- 		unlock_page(page);
-+		/*
-+		 * If we can't get inode lock immediately, we should not return
-+		 * directly here, since this will lead to a softlockup problem.
-+		 * The method is to get a blocking lock and immediately unlock
-+		 * before returning, this can avoid CPU resource waste due to
-+		 * lots of retries, and benefits fairness in getting lock.
-+		 */
-+		if (ocfs2_inode_lock(inode, ret_bh, ex) == 0)
-+			ocfs2_inode_unlock(inode, ex);
- 		ret = AOP_TRUNCATED_PAGE;
- 	}
+     ret = ocfs2_inode_lock_full(inode, ret_bh, ex, OCFS2_LOCK_NONBLOCK);
+     if (ret == -EAGAIN) {
+         unlock_page(page);
++        /*
++         * If we can't get inode lock immediately, we should not return
++         * directly here, since this will lead to a softlockup problem.
++         * The method is to get a blocking lock and immediately unlock
++         * before returning, this can avoid CPU resource waste due to
++         * lots of retries, and benefits fairness in getting lock.
++         */
++        if (ocfs2_inode_lock(inode, ret_bh, ex) == 0)
++            ocfs2_inode_unlock(inode, ex);
+         ret = AOP_TRUNCATED_PAGE;
+     }
  
 _
