@@ -1,10 +1,8 @@
 From: Changwei Ge <ge.changwei@h3c.com>
-Date: Tue, 9 Jan 2018 14:24:30 +0800
-Subject: [Ocfs2-devel] [PATCH RESEND v3 2/2] ocfs2: try to reuse extent
-	block in dealloc without meta_alloc
-In-Reply-To: <1515479070-32653-1-git-send-email-ge.changwei@h3c.com>
-References: <1515479070-32653-1-git-send-email-ge.changwei@h3c.com>
-Message-ID: <1515479070-32653-2-git-send-email-ge.changwei@h3c.com>
+Date: Tue, 9 Jan 2018 14:24:29 +0800
+Subject: [Ocfs2-devel] [PATCH RESEND v3 1/2] ocfs2: make metadata estimation
+	accurate and clear
+Message-ID: <1515479070-32653-1-git-send-email-ge.changwei@h3c.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -13,358 +11,44 @@ To: ocfs2-devel@oss.oracle.com
 
 For Andrew's convenience, resend this patch
 
-A crash issue was reported by John.
-The call trace follows:
-ocfs2_split_extent+0x1ad3/0x1b40 [ocfs2]
-ocfs2_change_extent_flag+0x33a/0x470 [ocfs2]
-ocfs2_mark_extent_written+0x172/0x220 [ocfs2]
-ocfs2_dio_end_io+0x62d/0x910 [ocfs2]
-dio_complete+0x19a/0x1a0
-do_blockdev_direct_IO+0x19dd/0x1eb0
-__blockdev_direct_IO+0x43/0x50
-ocfs2_direct_IO+0x8f/0xa0 [ocfs2]
-generic_file_direct_write+0xb2/0x170
-__generic_file_write_iter+0xc3/0x1b0
-ocfs2_file_write_iter+0x4bb/0xca0 [ocfs2]
-__vfs_write+0xae/0xf0
-vfs_write+0xb8/0x1b0
-SyS_write+0x4f/0xb0
-system_call_fastpath+0x16/0x75
-
-The BUG code told that extent tree wants to grow but no metadata
-was reserved ahead of time.
-From my investigation into this issue, the root cause it that although
-enough metadata is not reserved, there should be enough for following use.
-Rightmost extent is merged into its left one due to a certain times of
-marking extent written. Because during marking extent written, we got many
-physically continuous extents. At last, an empty extent showed up and the
-rightmost path is removed from extent tree.
-
-Add a new mechanism to reuse extent block cached in dealloc which were
-just unlinked from extent tree to solve this crash issue.
-
-Criteria is that during marking extents *written*, if extent rotation
-and merging results in unlinking extent with growing extent tree later
-without any metadata reserved ahead of time, try to reuse those extents
-in dealloc in which deleted extents are cached.
-
-Also, this patch addresses the issue John reported that ::dw_zero_count is
-not calculated properly.
-
-After applying this patch, the issue John reported was gone.
-Thanks for the reproducer provided by John.
-And this patch has passed ocfs2-test(29 cases) suite running by New H3C Group.
-
-Change from v2:
-   1)Separate improvement for how to estimate metadata into respective patch
-   2)Solve the issue reported by John in last version of this patch - try to
-     reuse metadata in dealloc ahead of claiming new metadata.
-   3)Add a method ocfs2_find_preferred_free_list() to find space of local slot
-     at higher priority.
+Current code assume that ::w_unwritten_list always has only one item on.
+This is not right and hard to get understood.
+So improve how to count unwritten item.
 
 Reported-by: John Lightsey <john@nixnuts.net>
 Signed-off-by: Changwei Ge <ge.changwei@h3c.com>
 ---
- fs/ocfs2/alloc.c | 208 ++++++++++++++++++++++++++++++++++++++++++++++++++++---
- fs/ocfs2/alloc.h |   1 +
- fs/ocfs2/aops.c  |   6 ++
- 3 files changed, 205 insertions(+), 10 deletions(-)
+ fs/ocfs2/aops.c | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
 
-diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-index addd7c5..ec1ebbf 100644
---- a/fs/ocfs2/alloc.c
-+++ b/fs/ocfs2/alloc.c
-@@ -165,6 +165,13 @@ static int ocfs2_dinode_insert_check(struct ocfs2_extent_tree *et,
- 				     struct ocfs2_extent_rec *rec);
- static int ocfs2_dinode_sanity_check(struct ocfs2_extent_tree *et);
- static void ocfs2_dinode_fill_root_el(struct ocfs2_extent_tree *et);
-+
-+static int ocfs2_reuse_blk_from_dealloc(handle_t *handle,
-+					struct ocfs2_extent_tree *et,
-+					struct buffer_head **new_eb_bh,
-+					int blk_wanted, int *blk_given);
-+static int ocfs2_is_dealloc_empty(struct ocfs2_extent_tree *et);
-+
- static const struct ocfs2_extent_tree_operations ocfs2_dinode_et_ops = {
- 	.eo_set_last_eb_blk	= ocfs2_dinode_set_last_eb_blk,
- 	.eo_get_last_eb_blk	= ocfs2_dinode_get_last_eb_blk,
-@@ -448,6 +455,7 @@ static void __ocfs2_init_extent_tree(struct ocfs2_extent_tree *et,
- 	if (!obj)
- 		obj = (void *)bh->b_data;
- 	et->et_object = obj;
-+	et->et_dealloc = NULL;
- 
- 	et->et_ops->eo_fill_root_el(et);
- 	if (!et->et_ops->eo_fill_max_leaf_clusters)
-@@ -1158,7 +1166,7 @@ static int ocfs2_add_branch(handle_t *handle,
- 			    struct buffer_head **last_eb_bh,
- 			    struct ocfs2_alloc_context *meta_ac)
- {
--	int status, new_blocks, i;
-+	int status, new_blocks, i, block_given = 0;
- 	u64 next_blkno, new_last_eb_blk;
- 	struct buffer_head *bh;
- 	struct buffer_head **new_eb_bhs = NULL;
-@@ -1213,11 +1221,31 @@ static int ocfs2_add_branch(handle_t *handle,
- 		goto bail;
- 	}
- 
--	status = ocfs2_create_new_meta_bhs(handle, et, new_blocks,
--					   meta_ac, new_eb_bhs);
--	if (status < 0) {
--		mlog_errno(status);
--		goto bail;
-+	/* Firstyly, try to reuse dealloc since we have already estimated how
-+	 * many extent blocks we may use.
-+	 */
-+	if (!ocfs2_is_dealloc_empty(et)) {
-+		status = ocfs2_reuse_blk_from_dealloc(handle, et,
-+						      new_eb_bhs, new_blocks,
-+						      &block_given);
-+		if (status < 0) {
-+			mlog_errno(status);
-+			goto bail;
-+		}
-+	}
-+
-+	BUG_ON(block_given > new_blocks);
-+
-+	if (block_given < new_blocks) {
-+		BUG_ON(!meta_ac);
-+		status = ocfs2_create_new_meta_bhs(handle, et,
-+						   new_blocks - block_given,
-+						   meta_ac,
-+						   &new_eb_bhs[block_given]);
-+		if (status < 0) {
-+			mlog_errno(status);
-+			goto bail;
-+		}
- 	}
- 
- 	/* Note: new_eb_bhs[new_blocks - 1] is the guy which will be
-@@ -1340,15 +1368,25 @@ static int ocfs2_shift_tree_depth(handle_t *handle,
- 				  struct ocfs2_alloc_context *meta_ac,
- 				  struct buffer_head **ret_new_eb_bh)
- {
--	int status, i;
-+	int status, i, block_given = 0;
- 	u32 new_clusters;
- 	struct buffer_head *new_eb_bh = NULL;
- 	struct ocfs2_extent_block *eb;
- 	struct ocfs2_extent_list  *root_el;
- 	struct ocfs2_extent_list  *eb_el;
- 
--	status = ocfs2_create_new_meta_bhs(handle, et, 1, meta_ac,
--					   &new_eb_bh);
-+	if (!ocfs2_is_dealloc_empty(et)) {
-+		status = ocfs2_reuse_blk_from_dealloc(handle, et,
-+						      &new_eb_bh, 1,
-+						      &block_given);
-+	} else if (meta_ac) {
-+		status = ocfs2_create_new_meta_bhs(handle, et, 1, meta_ac,
-+						   &new_eb_bh);
-+
-+	} else {
-+		BUG();
-+	}
-+
- 	if (status < 0) {
- 		mlog_errno(status);
- 		goto bail;
-@@ -1511,7 +1549,7 @@ static int ocfs2_grow_tree(handle_t *handle, struct ocfs2_extent_tree *et,
- 	int depth = le16_to_cpu(el->l_tree_depth);
- 	struct buffer_head *bh = NULL;
- 
--	BUG_ON(meta_ac == NULL);
-+	BUG_ON(meta_ac == NULL && ocfs2_is_dealloc_empty(et));
- 
- 	shift = ocfs2_find_branch_target(et, &bh);
- 	if (shift < 0) {
-@@ -6587,6 +6625,156 @@ ocfs2_find_per_slot_free_list(int type,
- 	return fl;
- }
- 
-+static struct ocfs2_per_slot_free_list *
-+ocfs2_find_preferred_free_list(int type,
-+			       int preferred_slot,
-+			       int *real_slot,
-+			       struct ocfs2_cached_dealloc_ctxt *ctxt)
-+{
-+	struct ocfs2_per_slot_free_list *fl = ctxt->c_first_suballocator;
-+
-+	while (fl) {
-+		if (fl->f_inode_type == type && fl->f_slot == preferred_slot) {
-+			*real_slot = fl->f_slot;
-+			return fl;
-+		}
-+
-+		fl = fl->f_next_suballocator;
-+	}
-+
-+	/* If we can't find any free list matching preferred slot, just use
-+	 * the first one.
-+	 */
-+	fl = ctxt->c_first_suballocator;
-+	*real_slot = fl->f_slot;
-+
-+	return fl;
-+}
-+
-+/* Return Value 1 indicates empty */
-+static int ocfs2_is_dealloc_empty(struct ocfs2_extent_tree *et)
-+{
-+	struct ocfs2_per_slot_free_list *fl = NULL;
-+
-+	if (!et->et_dealloc)
-+		return 1;
-+
-+	fl = et->et_dealloc->c_first_suballocator;
-+	if (!fl)
-+		return 1;
-+
-+	if (!fl->f_first)
-+		return 1;
-+
-+	return 0;
-+}
-+
-+/* If extent was deleted from tree due to extent rotation and merging, and
-+ * no metadata is reserved ahead of time. Try to reuse some extents
-+ * just deleted. This is only used to reuse extent blocks.
-+ * It is supposed to find enough extent blocks in dealloc if our estimation
-+ * on metadata is accurate.
-+ */
-+static int ocfs2_reuse_blk_from_dealloc(handle_t *handle,
-+					struct ocfs2_extent_tree *et,
-+					struct buffer_head **new_eb_bh,
-+					int blk_wanted, int *blk_given)
-+{
-+	int i, status = 0, real_slot;
-+	struct ocfs2_cached_dealloc_ctxt *dealloc;
-+	struct ocfs2_per_slot_free_list *fl;
-+	struct ocfs2_cached_block_free *bf;
-+	struct ocfs2_extent_block *eb;
-+	struct ocfs2_super *osb =
-+		OCFS2_SB(ocfs2_metadata_cache_get_super(et->et_ci));
-+
-+	*blk_given = 0;
-+
-+	/* If extent tree doesn't have a dealloc, this is not faulty. Just
-+	 * tell upper caller dealloc can't provide any block and it should
-+	 * ask for alloc to claim more space.
-+	 */
-+	dealloc = et->et_dealloc;
-+	if (!dealloc)
-+		goto bail;
-+
-+	for (i = 0; i < blk_wanted; i++) {
-+		/* Prefer to use local slot */
-+		fl = ocfs2_find_preferred_free_list(EXTENT_ALLOC_SYSTEM_INODE,
-+						    osb->slot_num, &real_slot,
-+						    dealloc);
-+		/* If no more block can be reused, we should claim more
-+		 * from alloc. Just return here normally.
-+		 */
-+		if (!fl) {
-+			status = 0;
-+			break;
-+		}
-+
-+		bf = fl->f_first;
-+		fl->f_first = bf->free_next;
-+
-+		new_eb_bh[i] = sb_getblk(osb->sb, bf->free_blk);
-+		if (new_eb_bh[i] == NULL) {
-+			status = -ENOMEM;
-+			mlog_errno(status);
-+			goto bail;
-+		}
-+
-+		mlog(0, "Reusing block(%llu) from "
-+		     "dealloc(local slot:%d, real slot:%d)\n",
-+		     bf->free_blk, osb->slot_num, real_slot);
-+
-+		ocfs2_set_new_buffer_uptodate(et->et_ci, new_eb_bh[i]);
-+
-+		status = ocfs2_journal_access_eb(handle, et->et_ci,
-+						 new_eb_bh[i],
-+						 OCFS2_JOURNAL_ACCESS_CREATE);
-+		if (status < 0) {
-+			mlog_errno(status);
-+			goto bail;
-+		}
-+
-+		memset(new_eb_bh[i]->b_data, 0, osb->sb->s_blocksize);
-+		eb = (struct ocfs2_extent_block *) new_eb_bh[i]->b_data;
-+
-+		/* We can't guarantee that buffer head is still cached, so
-+		 * polutlate the extent block again.
-+		 */
-+		strcpy(eb->h_signature, OCFS2_EXTENT_BLOCK_SIGNATURE);
-+		eb->h_blkno = cpu_to_le64(bf->free_blk);
-+		eb->h_fs_generation = cpu_to_le32(osb->fs_generation);
-+		eb->h_suballoc_slot = cpu_to_le16(real_slot);
-+		eb->h_suballoc_loc = cpu_to_le64(bf->free_bg);
-+		eb->h_suballoc_bit = cpu_to_le16(bf->free_bit);
-+		eb->h_list.l_count =
-+			cpu_to_le16(ocfs2_extent_recs_per_eb(osb->sb));
-+
-+		/* We'll also be dirtied by the caller, so
-+		 * this isn't absolutely necessary.
-+		 */
-+		ocfs2_journal_dirty(handle, new_eb_bh[i]);
-+
-+		if (!fl->f_first) {
-+			dealloc->c_first_suballocator = fl->f_next_suballocator;
-+			kfree(fl);
-+		}
-+		kfree(bf);
-+	}
-+
-+	*blk_given = i;
-+
-+bail:
-+	if (unlikely(status)) {
-+		for (; i >= 0; i--) {
-+			if (new_eb_bh[i])
-+				brelse(new_eb_bh[i]);
-+		}
-+	}
-+
-+	return status;
-+}
-+
- int ocfs2_cache_block_dealloc(struct ocfs2_cached_dealloc_ctxt *ctxt,
- 			      int type, int slot, u64 suballoc,
- 			      u64 blkno, unsigned int bit)
-diff --git a/fs/ocfs2/alloc.h b/fs/ocfs2/alloc.h
-index 27b75cf..250bcac 100644
---- a/fs/ocfs2/alloc.h
-+++ b/fs/ocfs2/alloc.h
-@@ -61,6 +61,7 @@ struct ocfs2_extent_tree {
- 	ocfs2_journal_access_func		et_root_journal_access;
- 	void					*et_object;
- 	unsigned int				et_max_leaf_clusters;
-+	struct ocfs2_cached_dealloc_ctxt	*et_dealloc;
- };
- 
- /*
 diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-index 77ec9b4..2ff02dd 100644
+index 88a31e9..77ec9b4 100644
 --- a/fs/ocfs2/aops.c
 +++ b/fs/ocfs2/aops.c
-@@ -2322,6 +2322,12 @@ static int ocfs2_dio_end_io_write(struct inode *inode,
+@@ -784,6 +784,7 @@ struct ocfs2_write_ctxt {
+ 	struct ocfs2_cached_dealloc_ctxt w_dealloc;
  
- 	ocfs2_init_dinode_extent_tree(&et, INODE_CACHE(inode), di_bh);
+ 	struct list_head		w_unwritten_list;
++	unsigned int			w_unwritten_count;
+ };
  
-+	/* Attach dealloc with extent tree in case that we may reuse extents
-+	 * which are already unlinked from current extent tree due to extent
-+	 * rotation and merging.
-+	 */
-+	et.et_dealloc = &dealloc;
-+
- 	ret = ocfs2_lock_allocators(inode, &et, 0, dwc->dw_zero_count*2,
- 				    &data_ac, &meta_ac);
- 	if (ret) {
+ void ocfs2_unlock_and_free_pages(struct page **pages, int num_pages)
+@@ -1373,6 +1374,7 @@ static int ocfs2_unwritten_check(struct inode *inode,
+ 	desc->c_clear_unwritten = 0;
+ 	list_add_tail(&new->ue_ip_node, &oi->ip_unwritten_list);
+ 	list_add_tail(&new->ue_node, &wc->w_unwritten_list);
++	wc->w_unwritten_count++;
+ 	new = NULL;
+ unlock:
+ 	spin_unlock(&oi->ip_lock);
+@@ -2246,7 +2248,7 @@ static int ocfs2_dio_get_block(struct inode *inode, sector_t iblock,
+ 		ue->ue_phys = desc->c_phys;
+ 
+ 		list_splice_tail_init(&wc->w_unwritten_list, &dwc->dw_zero_list);
+-		dwc->dw_zero_count++;
++		dwc->dw_zero_count += wc->w_unwritten_count;
+ 	}
+ 
+ 	ret = ocfs2_write_end_nolock(inode->i_mapping, pos, len, len, wc);
 -- 
 2.7.4
