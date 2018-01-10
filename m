@@ -1,5 +1,5 @@
 From: Changwei Ge <ge.changwei@h3c.com>
-Date: Wed, 10 Jan 2018 10:51:37 +0000
+Date: Wed, 10 Jan 2018 11:12:17 +0000
 Subject: [Ocfs2-devel] [PATCH v2 2/2] ocfs2: add trimfs lock to avoid
  duplicated trims in cluster
 References: <1513228484-2084-1-git-send-email-ghe@suse.com>
@@ -8,15 +8,13 @@ References: <1513228484-2084-1-git-send-email-ghe@suse.com>
 	<5A5647C2020000F9000A2929@prv-mh.provo.novell.com>
 	<63ADC13FD55D6546B7DECE290D39E373F290E878@H3CMLB12-EX.srv.huawei-3com.com>
 	<5A5657D8020000F9000A2987@prv-mh.provo.novell.com>
-Message-ID: <63ADC13FD55D6546B7DECE290D39E373F290E906@H3CMLB12-EX.srv.huawei-3com.com>
+Message-ID: <63ADC13FD55D6546B7DECE290D39E373F290E930@H3CMLB12-EX.srv.huawei-3com.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: Gang He <ghe@suse.com>, "jlbec@evilplan.org" <jlbec@evilplan.org>, "mfasheh@versity.com" <mfasheh@versity.com>
 Cc: "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
-
-Hi Gang,
 
 On 2018/1/10 18:14, Gang He wrote:
 > Hi Changwei,
@@ -121,14 +119,13 @@ On 2018/1/10 18:14, Gang He wrote:
 > No, the second node does not change DLM lock's value, but the DLM lock's value is still valid.
 > The third node also refer to this DLM lock's value, then do the same logic like the second node.
 
-Um, as I know SUSE is using fs/dlm which I am not familiar with.
-But for ocfs2/dlm, the LVB passing path should be like below:
+Hi Gang,
+I don't see any places where ocfs2_lock_res::ocfs2_lock_res_ops::set_lvb is set while flag LOCK_TYPE_USES_LVB is added.
 
-NODE 1 lvb (ex granted at time1) -> NODE 2 lvb(ex granted at time2) -> NODE 3 lvb(ex granted at time3).
-time1 < time2  < time3
-
-So I think NODE 3 can't obtain LVB from NODE 1 but from NODE 2.
-Moreover, if node 1 is the master of trimfs lock resource, node 1's LVB will be updated to be the same as node 2.
+Are you sure below code path can work well?
+ocfs2_process_blocked_lock
+   ocfs2_unblock_lock
+       Reference to ::set_lvb since LOCK_TYPE_USES_LVB is set.
 
 Thanks,
 Changwei
