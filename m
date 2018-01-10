@@ -1,54 +1,128 @@
 From: Changwei Ge <ge.changwei@h3c.com>
-Date: Tue, 9 Jan 2018 14:24:29 +0800
-Subject: [Ocfs2-devel] [PATCH RESEND v3 1/2] ocfs2: make metadata estimation
-	accurate and clear
-Message-ID: <1515479070-32653-1-git-send-email-ge.changwei@h3c.com>
+Date: Wed, 10 Jan 2018 06:33:43 +0000
+Subject: [Ocfs2-devel] [PATCH v2 2/2] ocfs2: add trimfs lock to avoid
+ duplicated trims in cluster
+References: <1513228484-2084-1-git-send-email-ghe@suse.com>
+	<1513228484-2084-2-git-send-email-ghe@suse.com>
+Message-ID: <63ADC13FD55D6546B7DECE290D39E373F290E6C5@H3CMLB12-EX.srv.huawei-3com.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Gang He <ghe@suse.com>, "mfasheh@versity.com" <mfasheh@versity.com>, "jlbec@evilplan.org" <jlbec@evilplan.org>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>
 
-For Andrew's convenience, resend this patch
+Hi Gang,
 
-Current code assume that ::w_unwritten_list always has only one item on.
-This is not right and hard to get understood.
-So improve how to count unwritten item.
+On 2017/12/14 13:16, Gang He wrote:
+> As you know, ocfs2 has support trim the underlying disk via
+> fstrim command. But there is a problem, ocfs2 is a shared disk
+> cluster file system, if the user configures a scheduled fstrim
+> job on each file system node, this will trigger multiple nodes
+> trim a shared disk simultaneously, it is very wasteful for CPU
+> and IO consumption, also might negatively affect the lifetime
+> of poor-quality SSD devices.
+> Then, we introduce a trimfs dlm lock to communicate with each
+> other in this case, which will make only one fstrim command to
+> do the trimming on a shared disk among the cluster, the fstrim
+> commands from the other nodes should wait for the first fstrim
+> to finish and returned success directly, to avoid running a the
+> same trim on the shared disk again.
+> 
+> Compare with first version, I change the fstrim commands' returned
+> value and behavior in case which meets a fstrim command is running
+> on a shared disk.
+> 
+> Signed-off-by: Gang He <ghe@suse.com>
+> ---
+>   fs/ocfs2/alloc.c | 44 ++++++++++++++++++++++++++++++++++++++++++++
+>   1 file changed, 44 insertions(+)
+> 
+> diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
+> index ab5105f..5c9c3e2 100644
+> --- a/fs/ocfs2/alloc.c
+> +++ b/fs/ocfs2/alloc.c
+> @@ -7382,6 +7382,7 @@ int ocfs2_trim_fs(struct super_block *sb, struct fstrim_range *range)
+>   	struct buffer_head *gd_bh = NULL;
+>   	struct ocfs2_dinode *main_bm;
+>   	struct ocfs2_group_desc *gd = NULL;
+> +	struct ocfs2_trim_fs_info info, *pinfo = NULL;
 
-Reported-by: John Lightsey <john@nixnuts.net>
-Signed-off-by: Changwei Ge <ge.changwei@h3c.com>
----
- fs/ocfs2/aops.c | 4 +++-
- 1 file changed, 3 insertions(+), 1 deletion(-)
+I think *pinfo* is not necessary.
+>   
+>   	start = range->start >> osb->s_clustersize_bits;
+>   	len = range->len >> osb->s_clustersize_bits;
+> @@ -7419,6 +7420,42 @@ int ocfs2_trim_fs(struct super_block *sb, struct fstrim_range *range)
+>   
+>   	trace_ocfs2_trim_fs(start, len, minlen);
+>   
+> +	ocfs2_trim_fs_lock_res_init(osb);
+> +	ret = ocfs2_trim_fs_lock(osb, NULL, 1);
 
-diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-index 88a31e9..77ec9b4 100644
---- a/fs/ocfs2/aops.c
-+++ b/fs/ocfs2/aops.c
-@@ -784,6 +784,7 @@ struct ocfs2_write_ctxt {
- 	struct ocfs2_cached_dealloc_ctxt w_dealloc;
- 
- 	struct list_head		w_unwritten_list;
-+	unsigned int			w_unwritten_count;
- };
- 
- void ocfs2_unlock_and_free_pages(struct page **pages, int num_pages)
-@@ -1373,6 +1374,7 @@ static int ocfs2_unwritten_check(struct inode *inode,
- 	desc->c_clear_unwritten = 0;
- 	list_add_tail(&new->ue_ip_node, &oi->ip_unwritten_list);
- 	list_add_tail(&new->ue_node, &wc->w_unwritten_list);
-+	wc->w_unwritten_count++;
- 	new = NULL;
- unlock:
- 	spin_unlock(&oi->ip_lock);
-@@ -2246,7 +2248,7 @@ static int ocfs2_dio_get_block(struct inode *inode, sector_t iblock,
- 		ue->ue_phys = desc->c_phys;
- 
- 		list_splice_tail_init(&wc->w_unwritten_list, &dwc->dw_zero_list);
--		dwc->dw_zero_count++;
-+		dwc->dw_zero_count += wc->w_unwritten_count;
- 	}
- 
- 	ret = ocfs2_write_end_nolock(inode->i_mapping, pos, len, len, wc);
--- 
-2.7.4
+I don't get why try to lock here and if fails, acquire the same lock again later but wait until granted.
+Can it just acquire the _trimfs_ lock as a blocking one directly here?
+
+> +	if (ret < 0) {
+> +		if (ret != -EAGAIN) {
+> +			mlog_errno(ret);
+> +			ocfs2_trim_fs_lock_res_uninit(osb);
+> +			goto out_unlock;
+> +		}
+> +
+> +		mlog(ML_NOTICE, "Wait for trim on device (%s) to "
+> +		     "finish, which is running from another node.\n",
+> +		     osb->dev_str);
+> +		ret = ocfs2_trim_fs_lock(osb, &info, 0);
+> +		if (ret < 0) {
+> +			mlog_errno(ret);
+> +			ocfs2_trim_fs_lock_res_uninit(osb);
+
+In ocfs2_trim_fs_lock_res_uninit(), you drop lock. But it is never granted.
+Still need to drop lock resource?
+
+> +			goto out_unlock;
+> +		}
+> +
+> +		if (info.tf_valid && info.tf_success &&
+> +		    info.tf_start == start && info.tf_len == len &&
+> +		    info.tf_minlen == minlen) {
+> +			/* Avoid sending duplicated trim to a shared device */
+> +			mlog(ML_NOTICE, "The same trim on device (%s) was "
+> +			     "just done from node (%u), return.\n",
+> +			     osb->dev_str, info.tf_nodenum);
+> +			range->len = info.tf_trimlen;
+> +			goto out_trimunlock;
+> +		}
+> +	}
+> +
+> +	info.tf_nodenum = osb->node_num;
+> +	info.tf_start = start;
+> +	info.tf_len = len;
+> +	info.tf_minlen = minlen;
+
+If we faild during dong trimfs, I think we should not cache above info in LVB.
+BTW, it seems that this patch is on top of  'try lock' patches which you previously sent out.
+Are they related?
+
+Thanks,
+Changwei
+
+> +
+>   	/* Determine first and last group to examine based on start and len */
+>   	first_group = ocfs2_which_cluster_group(main_bm_inode, start);
+>   	if (first_group == osb->first_cluster_group_blkno)
+> @@ -7463,6 +7500,13 @@ int ocfs2_trim_fs(struct super_block *sb, struct fstrim_range *range)
+>   			group += ocfs2_clusters_to_blocks(sb, osb->bitmap_cpg);
+>   	}
+>   	range->len = trimmed * sb->s_blocksize;
+> +
+> +	info.tf_trimlen = range->len;
+> +	info.tf_success = (ret ? 0 : 1);
+> +	pinfo = &info;
+> +out_trimunlock:
+> +	ocfs2_trim_fs_unlock(osb, pinfo);
+> +	ocfs2_trim_fs_lock_res_uninit(osb);
+>   out_unlock:
+>   	ocfs2_inode_unlock(main_bm_inode, 0);
+>   	brelse(main_bm_bh);
+> 
