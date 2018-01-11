@@ -1,34 +1,47 @@
-From: piaojun <piaojun@huawei.com>
-Date: Thu, 11 Jan 2018 16:13:35 +0800
+From: Gang He <ghe@suse.com>
+Date: Thu, 11 Jan 2018 01:40:59 -0700
 Subject: [Ocfs2-devel] [PATCH] ocfs2/xattr: assign errno to 'ret' in
-	ocfs2_calc_xattr_init()
-Message-ID: <5A571CAF.8050709@huawei.com>
+ ocfs2_calc_xattr_init()
+In-Reply-To: <5A571CAF.8050709@huawei.com>
+References: <5A571CAF.8050709@huawei.com>
+Message-ID: <5A57939B020000F9000A31A8@prv-mh.provo.novell.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-We need catch the errno returned by ocfs2_xattr_get_nolock() and assign
-it to 'ret' for printing and noticing upper callers.
+Looks good.
 
-Signed-off-by: Jun Piao <piaojun@huawei.com>
-Reviewed-by: Alex Chen <alex.chen@huawei.com>
-Reviewed-by: Yiwen Jiang <jiangyiwen@huawei.com>
----
- fs/ocfs2/xattr.c | 1 +
- 1 file changed, 1 insertion(+)
 
-diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index 5fdf269..439f567 100644
---- a/fs/ocfs2/xattr.c
-+++ b/fs/ocfs2/xattr.c
-@@ -646,6 +646,7 @@ int ocfs2_calc_xattr_init(struct inode *dir,
- 			if (S_ISDIR(mode))
- 				a_size <<= 1;
- 		} else if (acl_len != 0 && acl_len != -ENODATA) {
-+			ret = acl_len;
- 			mlog_errno(ret);
- 			return ret;
- 		}
--- 
+>>> 
+> We need catch the errno returned by ocfs2_xattr_get_nolock() and assign
+> it to 'ret' for printing and noticing upper callers.
+> 
+> Signed-off-by: Jun Piao <piaojun@huawei.com>
+> Reviewed-by: Alex Chen <alex.chen@huawei.com>
+> Reviewed-by: Yiwen Jiang <jiangyiwen@huawei.com>
+Reviewed-by: Gang He <ghe@suse.com>
+
+> ---
+>  fs/ocfs2/xattr.c | 1 +
+>  1 file changed, 1 insertion(+)
+> 
+> diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
+> index 5fdf269..439f567 100644
+> --- a/fs/ocfs2/xattr.c
+> +++ b/fs/ocfs2/xattr.c
+> @@ -646,6 +646,7 @@ int ocfs2_calc_xattr_init(struct inode *dir,
+>  			if (S_ISDIR(mode))
+>  				a_size <<= 1;
+>  		} else if (acl_len != 0 && acl_len != -ENODATA) {
+> +			ret = acl_len;
+>  			mlog_errno(ret);
+>  			return ret;
+>  		}
+> -- 
+> 
+> _______________________________________________
+> Ocfs2-devel mailing list
+> Ocfs2-devel at oss.oracle.com 
+> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
