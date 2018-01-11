@@ -1,179 +1,249 @@
-From: alex chen <alex.chen@huawei.com>
-Date: Thu, 11 Jan 2018 09:59:42 +0800
-Subject: [Ocfs2-devel] [PATCH v3 2/3] ocfs2: add ocfs2_overwrite_io
-	function
-In-Reply-To: <5A4E10B8020000F9000A122B@prv-mh.provo.novell.com>
-References: <1514455665-16325-1-git-send-email-ghe@suse.com>
-	<1514455665-16325-3-git-send-email-ghe@suse.com>
-	<5A4B666B.1040803@huawei.com>
-	<5A4CD719020000F9000A0FE0@prv-mh.provo.novell.com>
-	<5A4D7EF2.4030605@huawei.com>
-	<5A4E10B8020000F9000A122B@prv-mh.provo.novell.com>
-Message-ID: <5A56C50E.5070800@huawei.com>
+From: Gang He <ghe@suse.com>
+Date: Wed, 10 Jan 2018 19:06:34 -0700
+Subject: [Ocfs2-devel] [PATCH v2 2/2] ocfs2: add trimfs lock to avoid
+ duplicated trims in cluster
+In-Reply-To: <63ADC13FD55D6546B7DECE290D39E373F290E930@H3CMLB12-EX.srv.huawei-3com.com>
+References: <1513228484-2084-1-git-send-email-ghe@suse.com>
+	<1513228484-2084-2-git-send-email-ghe@suse.com>
+	<63ADC13FD55D6546B7DECE290D39E373F290E6C5@H3CMLB12-EX.srv.huawei-3com.com>
+	<5A5647C2020000F9000A2929@prv-mh.provo.novell.com>
+	<63ADC13FD55D6546B7DECE290D39E373F290E878@H3CMLB12-EX.srv.huawei-3com.com>
+	<5A5657D8020000F9000A2987@prv-mh.provo.novell.com>
+	<63ADC13FD55D6546B7DECE290D39E373F290E930@H3CMLB12-EX.srv.huawei-3com.com>
+Message-ID: <5A57372A020000F9000A2E01@prv-mh.provo.novell.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Gang He <ghe@suse.com>
-Cc: jlbec@evilplan.org, ocfs2-devel@oss.oracle.com, mfasheh@versity.com, linux-kernel@vger.kernel.org
+To: jlbec@evilplan.org, ge.changwei@h3c.com, mfasheh@versity.com
+Cc: ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
 
-Hi Gang,
+Hi Changwei,
 
-On 2018/1/4 11:32, Gang He wrote:
-> Hi Alex,
-> 
-> 
+
+>>> 
+> On 2018/1/10 18:14, Gang He wrote:
+>> Hi Changwei,
+>> 
+>> 
+>>>>>
+>>> On 2018/1/10 17:05, Gang He wrote:
+>>>> Hi Changwei,
 >>>>
->> Hi Gang,
->>
->> On 2018/1/3 13:14, Gang He wrote:
->>> Hi Alex,
->>>
->>>
+>>>>
+>>>>>>>
+>>>>> Hi Gang,
+>>>>>
+>>>>> On 2017/12/14 13:16, Gang He wrote:
+>>>>>> As you know, ocfs2 has support trim the underlying disk via
+>>>>>> fstrim command. But there is a problem, ocfs2 is a shared disk
+>>>>>> cluster file system, if the user configures a scheduled fstrim
+>>>>>> job on each file system node, this will trigger multiple nodes
+>>>>>> trim a shared disk simultaneously, it is very wasteful for CPU
+>>>>>> and IO consumption, also might negatively affect the lifetime
+>>>>>> of poor-quality SSD devices.
+>>>>>> Then, we introduce a trimfs dlm lock to communicate with each
+>>>>>> other in this case, which will make only one fstrim command to
+>>>>>> do the trimming on a shared disk among the cluster, the fstrim
+>>>>>> commands from the other nodes should wait for the first fstrim
+>>>>>> to finish and returned success directly, to avoid running a the
+>>>>>> same trim on the shared disk again.
 >>>>>>
->>>> Hi Gang,
->>>>
->>>> On 2017/12/28 18:07, Gang He wrote:
->>>>> Add ocfs2_overwrite_io function, which is used to judge if
->>>>> overwrite allocated blocks, otherwise, the write will bring extra
->>>>> block allocation overhead.
+>>>>>> Compare with first version, I change the fstrim commands' returned
+>>>>>> value and behavior in case which meets a fstrim command is running
+>>>>>> on a shared disk.
+>>>>>>
+>>>>>> Signed-off-by: Gang He <ghe@suse.com>
+>>>>>> ---
+>>>>>>     fs/ocfs2/alloc.c | 44 ++++++++++++++++++++++++++++++++++++++++++++
+>>>>>>     1 file changed, 44 insertions(+)
+>>>>>>
+>>>>>> diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
+>>>>>> index ab5105f..5c9c3e2 100644
+>>>>>> --- a/fs/ocfs2/alloc.c
+>>>>>> +++ b/fs/ocfs2/alloc.c
+>>>>>> @@ -7382,6 +7382,7 @@ int ocfs2_trim_fs(struct super_block *sb, struct
+>>>>> fstrim_range *range)
+>>>>>>     	struct buffer_head *gd_bh = NULL;
+>>>>>>     	struct ocfs2_dinode *main_bm;
+>>>>>>     	struct ocfs2_group_desc *gd = NULL;
+>>>>>> +	struct ocfs2_trim_fs_info info, *pinfo = NULL;
 >>>>>
->>>>> Signed-off-by: Gang He <ghe@suse.com>
->>>>> ---
->>>>>  fs/ocfs2/extent_map.c | 45 +++++++++++++++++++++++++++++++++++++++++++++
->>>>>  fs/ocfs2/extent_map.h |  3 +++
->>>>>  2 files changed, 48 insertions(+)
->>>>>
->>>>> diff --git a/fs/ocfs2/extent_map.c b/fs/ocfs2/extent_map.c
->>>>> index e4719e0..06cb964 100644
->>>>> --- a/fs/ocfs2/extent_map.c
->>>>> +++ b/fs/ocfs2/extent_map.c
->>>>> @@ -38,6 +38,7 @@
->>>>>  #include "inode.h"
->>>>>  #include "super.h"
->>>>>  #include "symlink.h"
->>>>> +#include "aops.h"
->>>>>  #include "ocfs2_trace.h" 
->>>>>  
->>>>>  #include "buffer_head_io.h"
->>>>> @@ -832,6 +833,50 @@ int ocfs2_fiemap(struct inode *inode, struct 
->>>> fiemap_extent_info *fieinfo,
->>>>>  	return ret;
->>>>>  }
->>>>>  
->>>>> +/* Is IO overwriting allocated blocks? */
->>>>> +int ocfs2_overwrite_io(struct inode *inode, struct buffer_head *di_bh,
->>>>> +		       u64 map_start, u64 map_len)
->>>> Here can the type of 'map_start' is struct loff_t and map_len is struct 
->>>> size_t?
->>> I prefer to use the detailed types for file start address and length in 
->> ocfs2_overwrite_io() function declaration, 
->>> then here will be a potential type conversion (loff_t  -> u64, size_t -> u64), I 
->> think this conversion should be considered as expectation. 
->>> Since our OCFS2 is a 64 bit file system, the related data types do not 
->> change,  but loff_t and size_t type can change under different architectures 
->> (e.g. x86_32, x86_64, etc.).
+>>>>> I think *pinfo* is not necessary.
+>>>> This pointer is necessary, since it can be NULL or non-NULL depend on the
+>>> code logic.
 >>>
->> The type conversion (loff_t  -> u64, size_t -> u64) has been made before calling 
->> the function ocfs2_overwrite_io().
->> So it doesn't matter which type we use for file start address and length in 
->> ocfs2_overwrite_io(), Right?
->> To be consistent with the context, is it better to use struct loff_t for 
->> 'map_start' and struct size_t for 'map_len'?
-> I am not sure if I describe my thought clearly.
-> In VFS layer, loff_t, size_t and other related data types are used for all architectures, that means these kinds of data type's lengths
-> will change based on different CPU bits.
-> But, for a specific file system, the file system bit is fixed, e.g. ocfs2 is a 64 bits file system, this bit length is determined by file system layout (not CPU bits).
-> Then, in this layer we should use fixed-length (or common) data type in the code, the VFS layer data types should be converted into our data types potentially (but except pointer type).
-> 
-I agree about you to use fixed-length data type in OCFS2 layer, but now we already use the loff_t for pos in ocfs2_prepare_inode_for_write(), I don't
-think it's going to work whatever data type we use. Right ?
-Anyway, I accept it if you think it is better to use fixed-length type here.
-
-Reviewed-by: Alex Chen <alex.chen@huawei.com>
-
-Thanks,
-Alex
-> 
-> Thanks
-> Gang   
-> 
->>
->> Thanks,
->> Alex
->>
->>> Thanks
->>> Gang
+>>> This point is OK for me.
 >>>
 >>>>
->>>> Thanks,
->>>> Alex
->>>>> +{
->>>>> +	int ret = 0, is_last;
->>>>> +	u32 mapping_end, cpos;
->>>>> +	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
->>>>> +	struct ocfs2_extent_rec rec;
->>>>> +
->>>>> +	if (OCFS2_I(inode)->ip_dyn_features & OCFS2_INLINE_DATA_FL) {
->>>>> +		if (ocfs2_size_fits_inline_data(di_bh, map_start + map_len))
->>>>> +			return ret;
->>>>> +		else
->>>>> +			return -EAGAIN;
->>>>> +	}
->>>>> +
->>>>> +	cpos = map_start >> osb->s_clustersize_bits;
->>>>> +	mapping_end = ocfs2_clusters_for_bytes(inode->i_sb,
->>>>> +					       map_start + map_len);
->>>>> +	is_last = 0;
->>>>> +	while (cpos < mapping_end && !is_last) {
->>>>> +		ret = ocfs2_get_clusters_nocache(inode, di_bh, cpos,
->>>>> +						 NULL, &rec, &is_last);
->>>>> +		if (ret) {
->>>>> +			mlog_errno(ret);
->>>>> +			goto out;
->>>>> +		}
->>>>> +
->>>>> +		if (rec.e_blkno == 0ULL)
->>>>> +			break;
->>>>> +
->>>>> +		if (rec.e_flags & OCFS2_EXT_REFCOUNTED)
->>>>> +			break;
->>>>> +
->>>>> +		cpos = le32_to_cpu(rec.e_cpos) +
->>>>> +			le16_to_cpu(rec.e_leaf_clusters);
->>>>> +	}
->>>>> +
->>>>> +	if (cpos < mapping_end)
->>>>> +		ret = -EAGAIN;
->>>>> +out:
->>>>> +	return ret;
->>>>> +}
->>>>> +
->>>>>  int ocfs2_seek_data_hole_offset(struct file *file, loff_t *offset, int 
->>>> whence)
->>>>>  {
->>>>>  	struct inode *inode = file->f_mapping->host;
->>>>> diff --git a/fs/ocfs2/extent_map.h b/fs/ocfs2/extent_map.h
->>>>> index 67ea57d..1057586 100644
->>>>> --- a/fs/ocfs2/extent_map.h
->>>>> +++ b/fs/ocfs2/extent_map.h
->>>>> @@ -53,6 +53,9 @@ int ocfs2_extent_map_get_blocks(struct inode *inode, u64 
->>>> v_blkno, u64 *p_blkno,
->>>>>  int ocfs2_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo,
->>>>>  		 u64 map_start, u64 map_len);
->>>>>  
->>>>> +int ocfs2_overwrite_io(struct inode *inode, struct buffer_head *di_bh,
->>>>> +		       u64 map_start, u64 map_len);
->>>>> +
->>>>>  int ocfs2_seek_data_hole_offset(struct file *file, loff_t *offset, int 
->>>> origin);
->>>>>  
->>>>>  int ocfs2_xattr_get_clusters(struct inode *inode, u32 v_cluster,
+>>>>>>     
+>>>>>>     	start = range->start >> osb->s_clustersize_bits;
+>>>>>>     	len = range->len >> osb->s_clustersize_bits;
+>>>>>> @@ -7419,6 +7420,42 @@ int ocfs2_trim_fs(struct super_block *sb, struct
+>>>>> fstrim_range *range)
+>>>>>>     
+>>>>>>     	trace_ocfs2_trim_fs(start, len, minlen);
+>>>>>>     
+>>>>>> +	ocfs2_trim_fs_lock_res_init(osb);
+>>>>>> +	ret = ocfs2_trim_fs_lock(osb, NULL, 1);
 >>>>>
+>>>>> I don't get why try to lock here and if fails, acquire the same lock again
+>>>>> later but wait until granted.
+>>>> Please think about the user case, the patch is only used to handle this
+>>> case.
+>>>> When the administer configures a fstrim schedule task on each node, then
+>>> each node will trigger a fstrim on shared disks concurrently.
+>>>> In this case, we should avoid duplicated fstrim on a shared disk since this
+>>> will waste CPU/IO resources and affect SSD lifetime sometimes.
 >>>
+>>> I'm not worrying about that trimfs will affect SSD's lifetime quite a lot,
+>>> since physical-logical address converting table resides in RAM while SSD is
+>>> working.
+>>> And that table won't be at a big scale. My point here is not affecting this
+>>> patch. Just a tip here.
+>> This depend on SSD firmware implementation, but for secure-trim, it really 
+> possibly affect SSD lifetime.
+>> 
+>>>> Firstly, we use try_lock to get fstrim dlm lock to identify if there is any
+>>> other node which is doing fstrim on the disk.
+>>>> If not, this node is the first one, this node should do fstrim operation on
+>>> the disk.
+>>>> If yes, this node is not the first one, this node should wait until the
+>>> first node is done for fstrim operation, then return the result from DLM
+>>> lock's value.
+>>>>
+>>>>> Can it just acquire the _trimfs_ lock as a blocking one directly here?
+>>>> We can not do a blocking lock directly, since we need to identify if there
+>>> is any other node has being do fstrim operation when this node start to do
+>>> fstrim.
 >>>
->>> .
+>>> Thanks for your elaboration.
 >>>
+>>> Well how about the third node trying to trimming fs too?
+>>> It needs LVB from the second node.
+>>> But it seems that the second node can't provide a valid LVB.
+>>> So the third node will perform trimfs once more.
+>> No, the second node does not change DLM lock's value, but the DLM lock's 
+> value is still valid.
+>> The third node also refer to this DLM lock's value, then do the same logic 
+> like the second node.
 > 
-> .
+> Hi Gang,
+> I don't see any places where ocfs2_lock_res::ocfs2_lock_res_ops::set_lvb is 
+> set while flag LOCK_TYPE_USES_LVB is added.
 > 
+> Are you sure below code path can work well?
+Yes, have done a full testing on two and three nodes.
+
+> ocfs2_process_blocked_lock
+>    ocfs2_unblock_lock
+>        Reference to ::set_lvb since LOCK_TYPE_USES_LVB is set.
+> 
+the set_lvb callback function is not necessary, if we update DLM lock value by ourselves before unlock.
+By the way, the code is transparent to the underlying DLM stack (o2cb or pcmk).
+
+Thanks
+Gang 
+
+> Thanks,
+> Changwei
+> 
+>> 
+>>>
+>>> IOW, three nodes are trying to trimming fs concurrently. Is your patch able
+>>> to handle such a scenario?
+>> Yes, the patch can handle this case.
+>> 
+>>>
+>>> Even the second lock request with QUEUE set just follows
+>>> ocfs2_trim_fs_lock_res_uninit() will not get rid of concurrent trimfs.
+>>>
+>>>>
+>>>>>
+>>>>>> +	if (ret < 0) {
+>>>>>> +		if (ret != -EAGAIN) {
+>>>>>> +			mlog_errno(ret);
+>>>>>> +			ocfs2_trim_fs_lock_res_uninit(osb);
+>>>>>> +			goto out_unlock;
+>>>>>> +		}
+>>>>>> +
+>>>>>> +		mlog(ML_NOTICE, "Wait for trim on device (%s) to "
+>>>>>> +		     "finish, which is running from another node.\n",
+>>>>>> +		     osb->dev_str);
+>>>>>> +		ret = ocfs2_trim_fs_lock(osb, &info, 0);
+>>>>>> +		if (ret < 0) {
+>>>>>> +			mlog_errno(ret);
+>>>>>> +			ocfs2_trim_fs_lock_res_uninit(osb);
+>>>>>
+>>>>> In ocfs2_trim_fs_lock_res_uninit(), you drop lock. But it is never granted.
+>>>>> Still need to drop lock resource?
+>>>> Yes, we need to init/uninit fstrim dlm lock resource for each time.
+>>>> Otherwise, trylock does not work, this is a little different from other dlm
+>>> lock usage in ocfs2.
+>>>
+>>> This point is OK for now, too.
+>>>>
+>>>>>
+>>>>>> +			goto out_unlock;
+>>>>>> +		}
+>>>>>> +
+>>>>>> +		if (info.tf_valid && info.tf_success &&
+>>>>>> +		    info.tf_start == start && info.tf_len == len &&
+>>>>>> +		    info.tf_minlen == minlen) {
+>>>>>> +			/* Avoid sending duplicated trim to a shared device */
+>>>>>> +			mlog(ML_NOTICE, "The same trim on device (%s) was "
+>>>>>> +			     "just done from node (%u), return.\n",
+>>>>>> +			     osb->dev_str, info.tf_nodenum);
+>>>>>> +			range->len = info.tf_trimlen;
+>>>>>> +			goto out_trimunlock;
+>>>>>> +		}
+>>>>>> +	}
+>>>>>> +
+>>>>>> +	info.tf_nodenum = osb->node_num;
+>>>>>> +	info.tf_start = start;
+>>>>>> +	info.tf_len = len;
+>>>>>> +	info.tf_minlen = minlen;
+>>>>>
+>>>>> If we faild during dong trimfs, I think we should not cache above info in
+>>>>> LVB.
+>>>> It is necessary, if the second node is waiting the first node, the first
+>>> node fails to do fstrim,
+>>>> the first node should update dlm lock's value, then the second node can get
+>>> the latest dlm lock value (rather than the last time DLM lock value),
+>>>> the second node will do the fstrim again, since the first node has failed.
+>>>
+>>> Yes, it makes scene.
+>>>>
+>>>>> BTW, it seems that this patch is on top of  'try lock' patches which you
+>>>>> previously sent out.
+>>>>> Are they related?
+>>>> try lock patch is related to non-block aio support for ocfs2.
+>>>>
+>>>> Thanks
+>>>> Gang
+>>>>>
+>>>>> Thanks,
+>>>>> Changwei
+>>>>>
+>>>>>> +
+>>>>>>     	/* Determine first and last group to examine based on start and len */
+>>>>>>     	first_group = ocfs2_which_cluster_group(main_bm_inode, start);
+>>>>>>     	if (first_group == osb->first_cluster_group_blkno)
+>>>>>> @@ -7463,6 +7500,13 @@ int ocfs2_trim_fs(struct super_block *sb, struct
+>>>>> fstrim_range *range)
+>>>>>>     			group += ocfs2_clusters_to_blocks(sb, osb->bitmap_cpg);
+>>>>>>     	}
+>>>>>>     	range->len = trimmed * sb->s_blocksize;
+>>>>>> +
+>>>>>> +	info.tf_trimlen = range->len;
+>>>>>> +	info.tf_success = (ret ? 0 : 1);
+>>>>>> +	pinfo = &info;
+>>>>>> +out_trimunlock:
+>>>>>> +	ocfs2_trim_fs_unlock(osb, pinfo);
+>>>>>> +	ocfs2_trim_fs_lock_res_uninit(osb);
+>>>>>>     out_unlock:
+>>>>>>     	ocfs2_inode_unlock(main_bm_inode, 0);
+>>>>>>     	brelse(main_bm_bh);
+>>>>>>
+>>>>
+>> 
