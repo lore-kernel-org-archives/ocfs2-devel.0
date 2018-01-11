@@ -1,55 +1,179 @@
-From: Changwei Ge <ge.changwei@h3c.com>
-Date: Thu, 11 Jan 2018 01:03:24 +0000
-Subject: [Ocfs2-devel] kernel bug
-References: <CAN+OZjTsnQr8ybyA6kFz8eK=zQf6EOpDm4AHa7NvyCLCcOPGzQ@mail.gmail.com>
-	<63ADC13FD55D6546B7DECE290D39E373F290E98C@H3CMLB12-EX.srv.huawei-3com.com>
-	<CAN+OZjTq8KpGG75duYHDDRMhrWZde0t_aQe2D35Q8ktxhqNbkQ@mail.gmail.com>
-Message-ID: <63ADC13FD55D6546B7DECE290D39E373F290ECCB@H3CMLB12-EX.srv.huawei-3com.com>
+From: alex chen <alex.chen@huawei.com>
+Date: Thu, 11 Jan 2018 09:59:42 +0800
+Subject: [Ocfs2-devel] [PATCH v3 2/3] ocfs2: add ocfs2_overwrite_io
+	function
+In-Reply-To: <5A4E10B8020000F9000A122B@prv-mh.provo.novell.com>
+References: <1514455665-16325-1-git-send-email-ghe@suse.com>
+	<1514455665-16325-3-git-send-email-ghe@suse.com>
+	<5A4B666B.1040803@huawei.com>
+	<5A4CD719020000F9000A0FE0@prv-mh.provo.novell.com>
+	<5A4D7EF2.4030605@huawei.com>
+	<5A4E10B8020000F9000A122B@prv-mh.provo.novell.com>
+Message-ID: <5A56C50E.5070800@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Gang He <ghe@suse.com>
+Cc: jlbec@evilplan.org, ocfs2-devel@oss.oracle.com, mfasheh@versity.com, linux-kernel@vger.kernel.org
 
-Hi C?dric,
+Hi Gang,
 
-These two patches are already picked by Andrew being merged into -mm tree for now.
-So you can refer to below links for them:
+On 2018/1/4 11:32, Gang He wrote:
+> Hi Alex,
+> 
+> 
+>>>>
+>> Hi Gang,
+>>
+>> On 2018/1/3 13:14, Gang He wrote:
+>>> Hi Alex,
+>>>
+>>>
+>>>>>>
+>>>> Hi Gang,
+>>>>
+>>>> On 2017/12/28 18:07, Gang He wrote:
+>>>>> Add ocfs2_overwrite_io function, which is used to judge if
+>>>>> overwrite allocated blocks, otherwise, the write will bring extra
+>>>>> block allocation overhead.
+>>>>>
+>>>>> Signed-off-by: Gang He <ghe@suse.com>
+>>>>> ---
+>>>>>  fs/ocfs2/extent_map.c | 45 +++++++++++++++++++++++++++++++++++++++++++++
+>>>>>  fs/ocfs2/extent_map.h |  3 +++
+>>>>>  2 files changed, 48 insertions(+)
+>>>>>
+>>>>> diff --git a/fs/ocfs2/extent_map.c b/fs/ocfs2/extent_map.c
+>>>>> index e4719e0..06cb964 100644
+>>>>> --- a/fs/ocfs2/extent_map.c
+>>>>> +++ b/fs/ocfs2/extent_map.c
+>>>>> @@ -38,6 +38,7 @@
+>>>>>  #include "inode.h"
+>>>>>  #include "super.h"
+>>>>>  #include "symlink.h"
+>>>>> +#include "aops.h"
+>>>>>  #include "ocfs2_trace.h" 
+>>>>>  
+>>>>>  #include "buffer_head_io.h"
+>>>>> @@ -832,6 +833,50 @@ int ocfs2_fiemap(struct inode *inode, struct 
+>>>> fiemap_extent_info *fieinfo,
+>>>>>  	return ret;
+>>>>>  }
+>>>>>  
+>>>>> +/* Is IO overwriting allocated blocks? */
+>>>>> +int ocfs2_overwrite_io(struct inode *inode, struct buffer_head *di_bh,
+>>>>> +		       u64 map_start, u64 map_len)
+>>>> Here can the type of 'map_start' is struct loff_t and map_len is struct 
+>>>> size_t?
+>>> I prefer to use the detailed types for file start address and length in 
+>> ocfs2_overwrite_io() function declaration, 
+>>> then here will be a potential type conversion (loff_t  -> u64, size_t -> u64), I 
+>> think this conversion should be considered as expectation. 
+>>> Since our OCFS2 is a 64 bit file system, the related data types do not 
+>> change,  but loff_t and size_t type can change under different architectures 
+>> (e.g. x86_32, x86_64, etc.).
+>>>
+>> The type conversion (loff_t  -> u64, size_t -> u64) has been made before calling 
+>> the function ocfs2_overwrite_io().
+>> So it doesn't matter which type we use for file start address and length in 
+>> ocfs2_overwrite_io(), Right?
+>> To be consistent with the context, is it better to use struct loff_t for 
+>> 'map_start' and struct size_t for 'map_len'?
+> I am not sure if I describe my thought clearly.
+> In VFS layer, loff_t, size_t and other related data types are used for all architectures, that means these kinds of data type's lengths
+> will change based on different CPU bits.
+> But, for a specific file system, the file system bit is fixed, e.g. ocfs2 is a 64 bits file system, this bit length is determined by file system layout (not CPU bits).
+> Then, in this layer we should use fixed-length (or common) data type in the code, the VFS layer data types should be converted into our data types potentially (but except pointer type).
+> 
+I agree about you to use fixed-length data type in OCFS2 layer, but now we already use the loff_t for pos in ocfs2_prepare_inode_for_write(), I don't
+think it's going to work whatever data type we use. Right ?
+Anyway, I accept it if you think it is better to use fixed-length type here.
 
-https://urldefense.proofpoint.com/v2/url?u=http-3A__ozlabs.org_-7Eakpm_mmots_broken-2Dout_ocfs2-2Dmake-2Dmetadata-2Destimation-2Daccurate-2Dand-2Dclear.patch&d=DwIFAw&c=RoP1YumCXCgaWHvlZYR8PZh8Bv7qIrMUB65eapI_JnE&r=C7gAd4uDxlAvTdc0vmU6X8CMk6L2iDY8-HD0qT6Fo7Y&m=X7y1OsuDBq6niu5y7JV1RtaNOKt-Oq_o9uzUefUKyBs&s=kzOY5X2_O3wA4tpFbw354ys2YG7uAi1WQFzt9YKizq8&e=
-https://urldefense.proofpoint.com/v2/url?u=http-3A__ozlabs.org_-7Eakpm_mmots_broken-2Dout_ocfs2-2Dtry-2Dto-2Dreuse-2Dextent-2Dblock-2Din-2Ddealloc-2Dwithout-2Dmeta-5Falloc.patch&d=DwIFAw&c=RoP1YumCXCgaWHvlZYR8PZh8Bv7qIrMUB65eapI_JnE&r=C7gAd4uDxlAvTdc0vmU6X8CMk6L2iDY8-HD0qT6Fo7Y&m=X7y1OsuDBq6niu5y7JV1RtaNOKt-Oq_o9uzUefUKyBs&s=bspJmdJPXl_qmyz_mgxbIjV2vXlx7VBbxVur_5zpW3M&e=
+Reviewed-by: Alex Chen <alex.chen@huawei.com>
 
 Thanks,
-Changwei
-
-On 2018/1/10 22:34, BASSAGET C?dric wrote:
-> Hi Changwei,
-> Can you give me a ref or a link pointing to your patch ?
+Alex
+> 
 > Thanks
+> Gang   
 > 
-> 2018-01-10 12:57 GMT+01:00 Changwei Ge <ge.changwei at h3c.com <mailto:ge.changwei@h3c.com>>:
+>>
+>> Thanks,
+>> Alex
+>>
+>>> Thanks
+>>> Gang
+>>>
+>>>>
+>>>> Thanks,
+>>>> Alex
+>>>>> +{
+>>>>> +	int ret = 0, is_last;
+>>>>> +	u32 mapping_end, cpos;
+>>>>> +	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+>>>>> +	struct ocfs2_extent_rec rec;
+>>>>> +
+>>>>> +	if (OCFS2_I(inode)->ip_dyn_features & OCFS2_INLINE_DATA_FL) {
+>>>>> +		if (ocfs2_size_fits_inline_data(di_bh, map_start + map_len))
+>>>>> +			return ret;
+>>>>> +		else
+>>>>> +			return -EAGAIN;
+>>>>> +	}
+>>>>> +
+>>>>> +	cpos = map_start >> osb->s_clustersize_bits;
+>>>>> +	mapping_end = ocfs2_clusters_for_bytes(inode->i_sb,
+>>>>> +					       map_start + map_len);
+>>>>> +	is_last = 0;
+>>>>> +	while (cpos < mapping_end && !is_last) {
+>>>>> +		ret = ocfs2_get_clusters_nocache(inode, di_bh, cpos,
+>>>>> +						 NULL, &rec, &is_last);
+>>>>> +		if (ret) {
+>>>>> +			mlog_errno(ret);
+>>>>> +			goto out;
+>>>>> +		}
+>>>>> +
+>>>>> +		if (rec.e_blkno == 0ULL)
+>>>>> +			break;
+>>>>> +
+>>>>> +		if (rec.e_flags & OCFS2_EXT_REFCOUNTED)
+>>>>> +			break;
+>>>>> +
+>>>>> +		cpos = le32_to_cpu(rec.e_cpos) +
+>>>>> +			le16_to_cpu(rec.e_leaf_clusters);
+>>>>> +	}
+>>>>> +
+>>>>> +	if (cpos < mapping_end)
+>>>>> +		ret = -EAGAIN;
+>>>>> +out:
+>>>>> +	return ret;
+>>>>> +}
+>>>>> +
+>>>>>  int ocfs2_seek_data_hole_offset(struct file *file, loff_t *offset, int 
+>>>> whence)
+>>>>>  {
+>>>>>  	struct inode *inode = file->f_mapping->host;
+>>>>> diff --git a/fs/ocfs2/extent_map.h b/fs/ocfs2/extent_map.h
+>>>>> index 67ea57d..1057586 100644
+>>>>> --- a/fs/ocfs2/extent_map.h
+>>>>> +++ b/fs/ocfs2/extent_map.h
+>>>>> @@ -53,6 +53,9 @@ int ocfs2_extent_map_get_blocks(struct inode *inode, u64 
+>>>> v_blkno, u64 *p_blkno,
+>>>>>  int ocfs2_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo,
+>>>>>  		 u64 map_start, u64 map_len);
+>>>>>  
+>>>>> +int ocfs2_overwrite_io(struct inode *inode, struct buffer_head *di_bh,
+>>>>> +		       u64 map_start, u64 map_len);
+>>>>> +
+>>>>>  int ocfs2_seek_data_hole_offset(struct file *file, loff_t *offset, int 
+>>>> origin);
+>>>>>  
+>>>>>  int ocfs2_xattr_get_clusters(struct inode *inode, u32 v_cluster,
+>>>>>
+>>>
+>>>
+>>> .
+>>>
 > 
->     Hi BASSAGET,
-> 
->     We ocfs2 developers are solving a DIO crash issue which may share the same root cause with yours.
-> 
->     You can refer to my patch set of 2 and backport them into your kernel to see if the issue can be kicked away.
-> 
->      ? ocfs2: make metadata estimation accurate and clear
->      ? ocfs2: try to reuse extent block in dealloc without meta_alloc
-> 
->     On 2018/1/10 19:48, BASSAGET C?dric wrote:
->     > Hello
->     > Today I reported a bug related to ocfs2 1.8.on proxmox forum, maybe somebody here will be able to help me...
->      > The bog on proxmox forum : https://urldefense.proofpoint.com/v2/url?u=https-3A__forum.proxmox.com_threads_ocfs2-2Dkernel-2Dbug.39163_&d=DwIFAw&c=RoP1YumCXCgaWHvlZYR8PZh8Bv7qIrMUB65eapI_JnE&r=C7gAd4uDxlAvTdc0vmU6X8CMk6L2iDY8-HD0qT6Fo7Y&m=X7y1OsuDBq6niu5y7JV1RtaNOKt-Oq_o9uzUefUKyBs&s=hgkhCabJ2ipS_TxituQaLg-2jncxg93gtCOfJAXYaPI&e= <https://urldefense.proofpoint.com/v2/url?u=https-3A__forum.proxmox.com_threads_ocfs2-2Dkernel-2Dbug.39163_&d=DwIFAw&c=RoP1YumCXCgaWHvlZYR8PZh8Bv7qIrMUB65eapI_JnE&r=C7gAd4uDxlAvTdc0vmU6X8CMk6L2iDY8-HD0qT6Fo7Y&m=X7y1OsuDBq6niu5y7JV1RtaNOKt-Oq_o9uzUefUKyBs&s=hgkhCabJ2ipS_TxituQaLg-2jncxg93gtCOfJAXYaPI&e=> <https://urldefense.proofpoint.com/v2/url?u=https-3A__forum.proxmox.com_threads_ocfs2-2Dkernel-2Dbug.39163_&d=DwMFaQ&c=RoP1YumCXCgaWHvlZYR8PZh8Bv7qIrMUB65eapI_JnE&r=C7gAd4uDxlAvTdc0vmU6X8CMk6L2iDY8-HD0qT6Fo7Y&m=93_F2INiG6ig-q6s8P3sPY09iW1NMx6_H9zZx13OxhM&s=j8Ae2cUQUVQJOimaDZOI0C-HbAhHPvEV-l6BS23AaSw&e= <https://urldefense.proofpoint.com/v2/url?u=https-3A__forum.proxmox.com_threads_ocfs2-2Dkernel-2Dbug.39163_&d=DwMFaQ&c=RoP1YumCXCgaWHvlZYR8PZh8Bv7qIrMUB65eapI_JnE&r=C7gAd4uDxlAvTdc0vmU6X8CMk6L2iDY8-HD0qT6Fo7Y&m=93_F2INiG6ig-q6s8P3sPY09iW1NMx6_H9zZx13OxhM&s=j8Ae2cUQUVQJOimaDZOI0C-HbAhHPvEV-l6BS23AaSw&e=>>
->      >
->      > to resume :?kernel BUG at fs/ocfs2/suballoc.c:2017!
->      >
->      > is this related to proxmox kernel or ocfs2 ? or both ?
->      > does it have something to do with https://oss.oracle.com/pipermail/ocfs2-devel/2017-January/012701.html <https://oss.oracle.com/pipermail/ocfs2-devel/2017-January/012701.html> ?
->      >
->      > Thanks for your help.
->      > Regards,
->      > C?dric
-> 
+> .
 > 
