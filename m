@@ -1,58 +1,51 @@
-From: Eric Ren <zren@suse.com>
-Date: Fri, 12 Jan 2018 16:25:56 +0800
-Subject: [Ocfs2-devel] [Ocfs2-dev] BUG: deadlock with umount and ocfs2
- workqueue triggered by ocfs2rec thread
-In-Reply-To: <D1E4D02760513D4B90DC3B40FF32AF35E22EC390@H3CMLB14-EX.srv.huawei-3com.com>
-References: <D1E4D02760513D4B90DC3B40FF32AF35E22EC390@H3CMLB14-EX.srv.huawei-3com.com>
-Message-ID: <0044cc89-5cda-c4a9-5eb0-1e5d85416805@suse.com>
+From: Guozhonghua <guozhonghua@h3c.com>
+Date: Sat, 13 Jan 2018 03:04:11 +0000
+Subject: [Ocfs2-devel] Ocfs2-devel Digest, Vol 167, Issue 20
+Message-ID: <71604351584F6A4EBAE558C676F37CA401071A4B80@H3CMLB12-EX.srv.huawei-3com.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi,
 
-On 01/12/2018 11:43 AM, Shichangkuo wrote:
-> Hi all,
-> ??Now we are testing ocfs2 with 4.14 kernel, and we finding a deadlock with umount and ocfs2 workqueue triggered by ocfs2rec thread. The stack as follows:
-> journal recovery work:
-> [<ffffffff8a8c0694>] call_rwsem_down_read_failed+0x14/0x30
-> [<ffffffffc0d5d652>] ocfs2_finish_quota_recovery+0x62/0x450 [ocfs2]
-> [<ffffffffc0d21221>] ocfs2_complete_recovery+0xc1/0x440 [ocfs2]
-> [<ffffffff8a09a1f0>] process_one_work+0x130/0x350
-> [<ffffffff8a09a946>] worker_thread+0x46/0x3b0
-> [<ffffffff8a0a0e51>] kthread+0x101/0x140
-> [<ffffffff8aa002ff>] ret_from_fork+0x1f/0x30
-> [<ffffffffffffffff>] 0xffffffffffffffff
->
-> /bin/umount:
-> [<ffffffff8a099b24>] flush_workqueue+0x104/0x3e0
-> [<ffffffffc0cf18db>] ocfs2_truncate_log_shutdown+0x3b/0xc0 [ocfs2]
-> [<ffffffffc0d4fd6c>] ocfs2_dismount_volume+0x8c/0x3d0 [ocfs2]
-> [<ffffffffc0d500e1>] ocfs2_put_super+0x31/0xa0 [ocfs2]
-> [<ffffffff8a2445bd>] generic_shutdown_super+0x6d/0x120
-> [<ffffffff8a24469d>] kill_block_super+0x2d/0x60
-> [<ffffffff8a244e71>] deactivate_locked_super+0x51/0x90
-> [<ffffffff8a263a1b>] cleanup_mnt+0x3b/0x70
-> [<ffffffff8a09e9c6>] task_work_run+0x86/0xa0
-> [<ffffffff8a003d70>] exit_to_usermode_loop+0x6d/0xa9
-> [<ffffffff8a003a2d>] do_syscall_64+0x11d/0x130
-> [<ffffffff8aa00113>] entry_SYSCALL64_slow_path+0x25/0x25
-> [<ffffffffffffffff>] 0xffffffffffffffff
-> ??
-> Function ocfs2_finish_quota_recovery try to get sb->s_umount, which was already locked by umount thread, then get a deadlock.
+> Message: 1
+> Date: Fri, 12 Jan 2018 06:15:01 +0000
+> From: Shichangkuo <shi.changkuo@h3c.com>
+> Subject: Re: [Ocfs2-devel] [Ocfs2-dev] BUG: deadlock with umount and
+> 	ocfs2 workqueue triggered by ocfs2rec thread
+> To: Joseph Qi <jiangqi903@gmail.com>, "zren at suse.com" <zren@suse.com>,
+> 	"jack at suse.cz" <jack@suse.cz>
+> Cc: "ocfs2-devel at oss.oracle.com" <ocfs2-devel@oss.oracle.com>
+> Message-ID:
+> 	<D1E4D02760513D4B90DC3B40FF32AF35E22EC513@H3CMLB14-EX.srv.huawe
+> i-3com.com>
+> 
+> Content-Type: text/plain; charset="gb2312"
+> 
+> Hi Joseph
+>     Thanks for replying.
+>     Umount will flush the ocfs2 workqueue in function
+> ocfs2_truncate_log_shutdown and journal recovery is one work of ocfs2 wq.
+> 
+> Thanks
+> Changkuo
+> 
 
-Good catch, thanks for reporting.? Is it reproducible? Can you please 
-share the steps for reproducing this issue?
-> This issue was introduced by c3b004460d77bf3f980d877be539016f2df4df12 and 5f530de63cfc6ca8571cbdf58af63fb166cc6517.
-> I think we cannot use :: s_umount, but the mutex ::dqonoff_mutex was already removed.
-> Shall we add a new mutex?
+Umount 
+  mngput
+   cleanup_mnt 
+ 	 deactivate_super:   down_write the rw_semaphore:  down_write(&s->s_umount)
+	    deactivate_locked_super
+ 		  kill_sb: kill_block_super
+			generic_shutdown_super
+				put_super : ocfs2_put_supe
+					ocfs2_dismount_volume
+						ocfs2_truncate_log_shutdown 
+							flush_workqueue(osb->ocfs2_wq);
+								ocfs2_finish_quota_recovery
+									down_read(&sb->s_umount); 
+									 Here retry down_read rw_semaphore; down read while holding write?  Try rw_semaphore twice, dead lock ?
+	                                 The flush work queue of ocfs2_wq will be blocked, so as the umount ops.  
 
-@Jan, I don't look into the code yet, could you help me understand why 
-we need to get sb->s_umount in ocfs2_finish_quota_recovery?
-Is it because that the quota recovery process will start at umounting? 
-or some where else?
-
-Thanks,
-Eric
+Thanks. 
