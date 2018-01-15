@@ -1,7 +1,10 @@
 From: Gang He <ghe@suse.com>
-Date: Mon, 15 Jan 2018 17:08:00 +0800
-Subject: [Ocfs2-devel] [PATCH v4 0/3] ocfs2: add nowait aio support
-Message-ID: <1516007283-29932-1-git-send-email-ghe@suse.com>
+Date: Mon, 15 Jan 2018 17:08:01 +0800
+Subject: [Ocfs2-devel] [PATCH v4 1/3] ocfs2: add ocfs2_try_rw_lock and
+	ocfs2_try_inode_lock
+In-Reply-To: <1516007283-29932-1-git-send-email-ghe@suse.com>
+References: <1516007283-29932-1-git-send-email-ghe@suse.com>
+Message-ID: <1516007283-29932-2-git-send-email-ghe@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -9,43 +12,69 @@ Content-Transfer-Encoding: 7bit
 To: mfasheh@versity.com, jlbec@evilplan.org
 Cc: Gang He <ghe@suse.com>, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com, akpm@linux-foundation.org
 
-As you know, VFS layer has introduced non-block aio
-flag IOCB_NOWAIT, which informs kernel to bail out
-if an AIO request will block for reasons such as file
-allocations, or a writeback triggered, or would block
-while allocating requests while performing direct I/O.
-Subsequent, pwritev2/preadv2 also can leverage this
-part kernel code.
-So far, ext4/xfs/btrfs have supported this feature,
-I'd like to add the related code for ocfs2 file system.
+Add ocfs2_try_rw_lock and ocfs2_try_inode_lock functions, which
+will be used in non-block IO scenarios.
 
-Compare with v3, modify the check condition for nowait in
-ocfs2_file_write_iter() function. second, add direct-io and 
-nowait combination check in ocfs2_file_read_iter() function.
-Compare with v2, do some modification in ocfs2_overwrite_io()
-function for OCFS2_INLINE_DATA_FL case.
-Compare with v1, some changes are as below,
-use osb pointer in ocfs2_try_rw_lock() function,
-modify ocfs2_overwrite_io() function to make all error
-value can be returned to the upper code,
-move invoking ocfs2_overwrite_io() function from
-ocfs2_file_write_iter() to ocfs2_prepare_inode_for_write(),
-this change can combine acquiring the related locks.
+Reviewed-by: Alex Chen <alex.chen@huawei.com>
+Signed-off-by: Gang He <ghe@suse.com>
+---
+ fs/ocfs2/dlmglue.c | 21 +++++++++++++++++++++
+ fs/ocfs2/dlmglue.h |  4 ++++
+ 2 files changed, 25 insertions(+)
 
-Gang He (3):
-  ocfs2: add ocfs2_try_rw_lock and ocfs2_try_inode_lock
-  ocfs2: add ocfs2_overwrite_io function
-  ocfs2: nowait aio support
-
- fs/ocfs2/dir.c         |   2 +-
- fs/ocfs2/dlmglue.c     |  41 +++++++++++++++++---
- fs/ocfs2/dlmglue.h     |   6 ++-
- fs/ocfs2/extent_map.c  |  45 ++++++++++++++++++++++
- fs/ocfs2/extent_map.h  |   3 ++
- fs/ocfs2/file.c        | 101 +++++++++++++++++++++++++++++++++++++++----------
- fs/ocfs2/mmap.c        |   2 +-
- fs/ocfs2/ocfs2_trace.h |  10 +++--
- 8 files changed, 177 insertions(+), 33 deletions(-)
-
+diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
+index 4689940..a68efa3 100644
+--- a/fs/ocfs2/dlmglue.c
++++ b/fs/ocfs2/dlmglue.c
+@@ -1742,6 +1742,27 @@ int ocfs2_rw_lock(struct inode *inode, int write)
+ 	return status;
+ }
+ 
++int ocfs2_try_rw_lock(struct inode *inode, int write)
++{
++	int status, level;
++	struct ocfs2_lock_res *lockres;
++	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
++
++	mlog(0, "inode %llu try to take %s RW lock\n",
++	     (unsigned long long)OCFS2_I(inode)->ip_blkno,
++	     write ? "EXMODE" : "PRMODE");
++
++	if (ocfs2_mount_local(osb))
++		return 0;
++
++	lockres = &OCFS2_I(inode)->ip_rw_lockres;
++
++	level = write ? DLM_LOCK_EX : DLM_LOCK_PR;
++
++	status = ocfs2_cluster_lock(osb, lockres, level, DLM_LKF_NOQUEUE, 0);
++	return status;
++}
++
+ void ocfs2_rw_unlock(struct inode *inode, int write)
+ {
+ 	int level = write ? DLM_LOCK_EX : DLM_LOCK_PR;
+diff --git a/fs/ocfs2/dlmglue.h b/fs/ocfs2/dlmglue.h
+index a7fc18b..05910fc 100644
+--- a/fs/ocfs2/dlmglue.h
++++ b/fs/ocfs2/dlmglue.h
+@@ -116,6 +116,7 @@ void ocfs2_refcount_lock_res_init(struct ocfs2_lock_res *lockres,
+ int ocfs2_create_new_inode_locks(struct inode *inode);
+ int ocfs2_drop_inode_locks(struct inode *inode);
+ int ocfs2_rw_lock(struct inode *inode, int write);
++int ocfs2_try_rw_lock(struct inode *inode, int write);
+ void ocfs2_rw_unlock(struct inode *inode, int write);
+ int ocfs2_open_lock(struct inode *inode);
+ int ocfs2_try_open_lock(struct inode *inode, int write);
+@@ -140,6 +141,9 @@ int ocfs2_inode_lock_with_page(struct inode *inode,
+ /* 99% of the time we don't want to supply any additional flags --
+  * those are for very specific cases only. */
+ #define ocfs2_inode_lock(i, b, e) ocfs2_inode_lock_full_nested(i, b, e, 0, OI_LS_NORMAL)
++#define ocfs2_try_inode_lock(i, b, e)\
++		ocfs2_inode_lock_full_nested(i, b, e, OCFS2_META_LOCK_NOQUEUE,\
++		OI_LS_NORMAL)
+ void ocfs2_inode_unlock(struct inode *inode,
+ 		       int ex);
+ int ocfs2_super_lock(struct ocfs2_super *osb,
 -- 
 1.8.5.6
