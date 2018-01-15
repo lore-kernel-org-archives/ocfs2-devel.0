@@ -1,360 +1,380 @@
-From: Gang He <ghe@suse.com>
-Date: Mon, 15 Jan 2018 17:08:03 +0800
-Subject: [Ocfs2-devel] [PATCH v4 3/3] ocfs2: nowait aio support
-In-Reply-To: <1516007283-29932-1-git-send-email-ghe@suse.com>
-References: <1516007283-29932-1-git-send-email-ghe@suse.com>
-Message-ID: <1516007283-29932-4-git-send-email-ghe@suse.com>
+From: John Lightsey <john@nixnuts.net>
+Date: Mon, 15 Jan 2018 16:42:16 -0600
+Subject: [Ocfs2-devel] [PATCH RESEND v3 2/2] ocfs2: try to reuse extent
+ block in dealloc without meta_alloc
+In-Reply-To: <1515479070-32653-2-git-send-email-ge.changwei@h3c.com>
+References: <1515479070-32653-1-git-send-email-ge.changwei@h3c.com>
+	<1515479070-32653-2-git-send-email-ge.changwei@h3c.com>
+Message-ID: <1516056136.3054.3.camel@nixnuts.net>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: mfasheh@versity.com, jlbec@evilplan.org
-Cc: Gang He <ghe@suse.com>, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com, akpm@linux-foundation.org
+To: ocfs2-devel@oss.oracle.com
 
-Return -EAGAIN if any of the following checks fail for
-direct I/O with nowait flag:
-Can not get the related locks immediately,
-Blocks are not allocated at the write location, it will trigger
-block allocation, this will block IO operations.
+On Tue, 2018-01-09 at 14:24 +0800, Changwei Ge wrote:
+> For Andrew's convenience, resend this patch
+> 
+> A crash issue was reported by John.
+> The call trace follows:
+> ocfs2_split_extent+0x1ad3/0x1b40 [ocfs2]
+> ocfs2_change_extent_flag+0x33a/0x470 [ocfs2]
+> ocfs2_mark_extent_written+0x172/0x220 [ocfs2]
+> ocfs2_dio_end_io+0x62d/0x910 [ocfs2]
+> dio_complete+0x19a/0x1a0
+> do_blockdev_direct_IO+0x19dd/0x1eb0
+> __blockdev_direct_IO+0x43/0x50
+> ocfs2_direct_IO+0x8f/0xa0 [ocfs2]
+> generic_file_direct_write+0xb2/0x170
+> __generic_file_write_iter+0xc3/0x1b0
+> ocfs2_file_write_iter+0x4bb/0xca0 [ocfs2]
+> __vfs_write+0xae/0xf0
+> vfs_write+0xb8/0x1b0
+> SyS_write+0x4f/0xb0
+> system_call_fastpath+0x16/0x75
+> 
+> The BUG code told that extent tree wants to grow but no metadata
+> was reserved ahead of time.
+> From my investigation into this issue, the root cause it that although
+> enough metadata is not reserved, there should be enough for following use.
+> Rightmost extent is merged into its left one due to a certain times of
+> marking extent written. Because during marking extent written, we got many
+> physically continuous extents. At last, an empty extent showed up and the
+> rightmost path is removed from extent tree.
+> 
+> Add a new mechanism to reuse extent block cached in dealloc which were
+> just unlinked from extent tree to solve this crash issue.
+> 
+> Criteria is that during marking extents *written*, if extent rotation
+> and merging results in unlinking extent with growing extent tree later
+> without any metadata reserved ahead of time, try to reuse those extents
+> in dealloc in which deleted extents are cached.
+> 
+> Also, this patch addresses the issue John reported that ::dw_zero_count is
+> not calculated properly.
+> 
+> After applying this patch, the issue John reported was gone.
+> Thanks for the reproducer provided by John.
+> And this patch has passed ocfs2-test(29 cases) suite running by New H3C Group.
+> 
+> Change from v2:
+>    1)Separate improvement for how to estimate metadata into respective patch
+>    2)Solve the issue reported by John in last version of this patch - try to
+>      reuse metadata in dealloc ahead of claiming new metadata.
+>    3)Add a method ocfs2_find_preferred_free_list() to find space of local slot
+>      at higher priority.
+> 
+> Reported-by: John Lightsey <john@nixnuts.net>
+> Signed-off-by: Changwei Ge <ge.changwei@h3c.com>
+Tested-by: John Lightsey <john@nixnuts.net>
 
-Signed-off-by: Gang He <ghe@suse.com>
----
- fs/ocfs2/dir.c         |   2 +-
- fs/ocfs2/dlmglue.c     |  20 +++++++---
- fs/ocfs2/dlmglue.h     |   2 +-
- fs/ocfs2/file.c        | 101 +++++++++++++++++++++++++++++++++++++++----------
- fs/ocfs2/mmap.c        |   2 +-
- fs/ocfs2/ocfs2_trace.h |  10 +++--
- 6 files changed, 104 insertions(+), 33 deletions(-)
+I backported these two patches to Debian's 4.9.0-5 kernel, verified it
+passed the test script I wrote for this problem, then deployed the
+fixed version into our 10 node OCFS2 cluster.
 
-diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
-index febe631..ea50901 100644
---- a/fs/ocfs2/dir.c
-+++ b/fs/ocfs2/dir.c
-@@ -1957,7 +1957,7 @@ int ocfs2_readdir(struct file *file, struct dir_context *ctx)
- 
- 	trace_ocfs2_readdir((unsigned long long)OCFS2_I(inode)->ip_blkno);
- 
--	error = ocfs2_inode_lock_atime(inode, file->f_path.mnt, &lock_level);
-+	error = ocfs2_inode_lock_atime(inode, file->f_path.mnt, &lock_level, 1);
- 	if (lock_level && error >= 0) {
- 		/* We release EX lock which used to update atime
- 		 * and get PR lock again to reduce contention
-diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-index a68efa3..07e169f 100644
---- a/fs/ocfs2/dlmglue.c
-+++ b/fs/ocfs2/dlmglue.c
-@@ -2515,13 +2515,18 @@ int ocfs2_inode_lock_with_page(struct inode *inode,
- 
- int ocfs2_inode_lock_atime(struct inode *inode,
- 			  struct vfsmount *vfsmnt,
--			  int *level)
-+			  int *level, int wait)
- {
- 	int ret;
- 
--	ret = ocfs2_inode_lock(inode, NULL, 0);
-+	if (wait)
-+		ret = ocfs2_inode_lock(inode, NULL, 0);
-+	else
-+		ret = ocfs2_try_inode_lock(inode, NULL, 0);
-+
- 	if (ret < 0) {
--		mlog_errno(ret);
-+		if (ret != -EAGAIN)
-+			mlog_errno(ret);
- 		return ret;
- 	}
- 
-@@ -2533,9 +2538,14 @@ int ocfs2_inode_lock_atime(struct inode *inode,
- 		struct buffer_head *bh = NULL;
- 
- 		ocfs2_inode_unlock(inode, 0);
--		ret = ocfs2_inode_lock(inode, &bh, 1);
-+		if (wait)
-+			ret = ocfs2_inode_lock(inode, &bh, 1);
-+		else
-+			ret = ocfs2_try_inode_lock(inode, &bh, 1);
-+
- 		if (ret < 0) {
--			mlog_errno(ret);
-+			if (ret != -EAGAIN)
-+				mlog_errno(ret);
- 			return ret;
- 		}
- 		*level = 1;
-diff --git a/fs/ocfs2/dlmglue.h b/fs/ocfs2/dlmglue.h
-index 05910fc..c83dbb5 100644
---- a/fs/ocfs2/dlmglue.h
-+++ b/fs/ocfs2/dlmglue.h
-@@ -123,7 +123,7 @@ void ocfs2_refcount_lock_res_init(struct ocfs2_lock_res *lockres,
- void ocfs2_open_unlock(struct inode *inode);
- int ocfs2_inode_lock_atime(struct inode *inode,
- 			  struct vfsmount *vfsmnt,
--			  int *level);
-+			  int *level, int wait);
- int ocfs2_inode_lock_full_nested(struct inode *inode,
- 			 struct buffer_head **ret_bh,
- 			 int ex,
-diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-index a1d0510..5d1784a 100644
---- a/fs/ocfs2/file.c
-+++ b/fs/ocfs2/file.c
-@@ -140,6 +140,8 @@ static int ocfs2_file_open(struct inode *inode, struct file *file)
- 		spin_unlock(&oi->ip_lock);
- 	}
- 
-+	file->f_mode |= FMODE_NOWAIT;
-+
- leave:
- 	return status;
- }
-@@ -2132,12 +2134,12 @@ static int ocfs2_prepare_inode_for_refcount(struct inode *inode,
- }
- 
- static int ocfs2_prepare_inode_for_write(struct file *file,
--					 loff_t pos,
--					 size_t count)
-+					 loff_t pos, size_t count, int wait)
- {
--	int ret = 0, meta_level = 0;
-+	int ret = 0, meta_level = 0, overwrite_io = 0;
- 	struct dentry *dentry = file->f_path.dentry;
- 	struct inode *inode = d_inode(dentry);
-+	struct buffer_head *di_bh = NULL;
- 	loff_t end;
- 
- 	/*
-@@ -2145,13 +2147,40 @@ static int ocfs2_prepare_inode_for_write(struct file *file,
- 	 * if we need to make modifications here.
- 	 */
- 	for(;;) {
--		ret = ocfs2_inode_lock(inode, NULL, meta_level);
-+		if (wait)
-+			ret = ocfs2_inode_lock(inode, NULL, meta_level);
-+		else
-+			ret = ocfs2_try_inode_lock(inode,
-+				overwrite_io ? NULL : &di_bh, meta_level);
- 		if (ret < 0) {
- 			meta_level = -1;
--			mlog_errno(ret);
-+			if (ret != -EAGAIN)
-+				mlog_errno(ret);
- 			goto out;
- 		}
- 
-+		/*
-+		 * Check if IO will overwrite allocated blocks in case
-+		 * IOCB_NOWAIT flag is set.
-+		 */
-+		if (!wait && !overwrite_io) {
-+			overwrite_io = 1;
-+			if (!down_read_trylock(&OCFS2_I(inode)->ip_alloc_sem)) {
-+				ret = -EAGAIN;
-+				goto out_unlock;
-+			}
-+
-+			ret = ocfs2_overwrite_io(inode, di_bh, pos, count);
-+			brelse(di_bh);
-+			di_bh = NULL;
-+			up_read(&OCFS2_I(inode)->ip_alloc_sem);
-+			if (ret < 0) {
-+				if (ret != -EAGAIN)
-+					mlog_errno(ret);
-+				goto out_unlock;
-+			}
-+		}
-+
- 		/* Clear suid / sgid if necessary. We do this here
- 		 * instead of later in the write path because
- 		 * remove_suid() calls ->setattr without any hint that
-@@ -2199,7 +2228,9 @@ static int ocfs2_prepare_inode_for_write(struct file *file,
- 
- out_unlock:
- 	trace_ocfs2_prepare_inode_for_write(OCFS2_I(inode)->ip_blkno,
--					    pos, count);
-+					    pos, count, wait);
-+
-+	brelse(di_bh);
- 
- 	if (meta_level >= 0)
- 		ocfs2_inode_unlock(inode, meta_level);
-@@ -2211,7 +2242,7 @@ static int ocfs2_prepare_inode_for_write(struct file *file,
- static ssize_t ocfs2_file_write_iter(struct kiocb *iocb,
- 				    struct iov_iter *from)
- {
--	int direct_io, rw_level;
-+	int rw_level;
- 	ssize_t written = 0;
- 	ssize_t ret;
- 	size_t count = iov_iter_count(from);
-@@ -2223,6 +2254,8 @@ static ssize_t ocfs2_file_write_iter(struct kiocb *iocb,
- 	void *saved_ki_complete = NULL;
- 	int append_write = ((iocb->ki_pos + count) >=
- 			i_size_read(inode) ? 1 : 0);
-+	int direct_io = iocb->ki_flags & IOCB_DIRECT ? 1 : 0;
-+	int nowait = iocb->ki_flags & IOCB_NOWAIT ? 1 : 0;
- 
- 	trace_ocfs2_file_aio_write(inode, file, file->f_path.dentry,
- 		(unsigned long long)OCFS2_I(inode)->ip_blkno,
-@@ -2230,12 +2263,17 @@ static ssize_t ocfs2_file_write_iter(struct kiocb *iocb,
- 		file->f_path.dentry->d_name.name,
- 		(unsigned int)from->nr_segs);	/* GRRRRR */
- 
-+	if (!direct_io && nowait)
-+		return -EOPNOTSUPP;
-+
- 	if (count == 0)
- 		return 0;
- 
--	direct_io = iocb->ki_flags & IOCB_DIRECT ? 1 : 0;
--
--	inode_lock(inode);
-+	if (nowait) {
-+		if (!inode_trylock(inode))
-+			return -EAGAIN;
-+	} else
-+		inode_lock(inode);
- 
- 	/*
- 	 * Concurrent O_DIRECT writes are allowed with
-@@ -2244,9 +2282,13 @@ static ssize_t ocfs2_file_write_iter(struct kiocb *iocb,
- 	 */
- 	rw_level = (!direct_io || full_coherency || append_write);
- 
--	ret = ocfs2_rw_lock(inode, rw_level);
-+	if (nowait)
-+		ret = ocfs2_try_rw_lock(inode, rw_level);
-+	else
-+		ret = ocfs2_rw_lock(inode, rw_level);
- 	if (ret < 0) {
--		mlog_errno(ret);
-+		if (ret != -EAGAIN)
-+			mlog_errno(ret);
- 		goto out_mutex;
- 	}
- 
-@@ -2260,9 +2302,13 @@ static ssize_t ocfs2_file_write_iter(struct kiocb *iocb,
- 		 * other nodes to drop their caches.  Buffered I/O
- 		 * already does this in write_begin().
- 		 */
--		ret = ocfs2_inode_lock(inode, NULL, 1);
-+		if (nowait)
-+			ret = ocfs2_try_inode_lock(inode, NULL, 1);
-+		else
-+			ret = ocfs2_inode_lock(inode, NULL, 1);
- 		if (ret < 0) {
--			mlog_errno(ret);
-+			if (ret != -EAGAIN)
-+				mlog_errno(ret);
- 			goto out;
- 		}
- 
-@@ -2277,9 +2323,10 @@ static ssize_t ocfs2_file_write_iter(struct kiocb *iocb,
- 	}
- 	count = ret;
- 
--	ret = ocfs2_prepare_inode_for_write(file, iocb->ki_pos, count);
-+	ret = ocfs2_prepare_inode_for_write(file, iocb->ki_pos, count, !nowait);
- 	if (ret < 0) {
--		mlog_errno(ret);
-+		if (ret != -EAGAIN)
-+			mlog_errno(ret);
- 		goto out;
- 	}
- 
-@@ -2355,6 +2402,8 @@ static ssize_t ocfs2_file_read_iter(struct kiocb *iocb,
- 	int ret = 0, rw_level = -1, lock_level = 0;
- 	struct file *filp = iocb->ki_filp;
- 	struct inode *inode = file_inode(filp);
-+	int direct_io = iocb->ki_flags & IOCB_DIRECT ? 1 : 0;
-+	int nowait = iocb->ki_flags & IOCB_NOWAIT ? 1 : 0;
- 
- 	trace_ocfs2_file_aio_read(inode, filp, filp->f_path.dentry,
- 			(unsigned long long)OCFS2_I(inode)->ip_blkno,
-@@ -2369,14 +2418,22 @@ static ssize_t ocfs2_file_read_iter(struct kiocb *iocb,
- 		goto bail;
- 	}
- 
-+	if (!direct_io && nowait)
-+		return -EOPNOTSUPP;
-+
- 	/*
- 	 * buffered reads protect themselves in ->readpage().  O_DIRECT reads
- 	 * need locks to protect pending reads from racing with truncate.
- 	 */
--	if (iocb->ki_flags & IOCB_DIRECT) {
--		ret = ocfs2_rw_lock(inode, 0);
-+	if (direct_io) {
-+		if (nowait)
-+			ret = ocfs2_try_rw_lock(inode, 0);
-+		else
-+			ret = ocfs2_rw_lock(inode, 0);
-+
- 		if (ret < 0) {
--			mlog_errno(ret);
-+			if (ret != -EAGAIN)
-+				mlog_errno(ret);
- 			goto bail;
- 		}
- 		rw_level = 0;
-@@ -2393,9 +2450,11 @@ static ssize_t ocfs2_file_read_iter(struct kiocb *iocb,
- 	 * like i_size. This allows the checks down below
- 	 * generic_file_aio_read() a chance of actually working.
- 	 */
--	ret = ocfs2_inode_lock_atime(inode, filp->f_path.mnt, &lock_level);
-+	ret = ocfs2_inode_lock_atime(inode, filp->f_path.mnt, &lock_level,
-+				     !nowait);
- 	if (ret < 0) {
--		mlog_errno(ret);
-+		if (ret != -EAGAIN)
-+			mlog_errno(ret);
- 		goto bail;
- 	}
- 	ocfs2_inode_unlock(inode, lock_level);
-diff --git a/fs/ocfs2/mmap.c b/fs/ocfs2/mmap.c
-index 098f5c7..fb9a20e 100644
---- a/fs/ocfs2/mmap.c
-+++ b/fs/ocfs2/mmap.c
-@@ -184,7 +184,7 @@ int ocfs2_mmap(struct file *file, struct vm_area_struct *vma)
- 	int ret = 0, lock_level = 0;
- 
- 	ret = ocfs2_inode_lock_atime(file_inode(file),
--				    file->f_path.mnt, &lock_level);
-+				    file->f_path.mnt, &lock_level, 1);
- 	if (ret < 0) {
- 		mlog_errno(ret);
- 		goto out;
-diff --git a/fs/ocfs2/ocfs2_trace.h b/fs/ocfs2/ocfs2_trace.h
-index a0b5d00..e2a11aa 100644
---- a/fs/ocfs2/ocfs2_trace.h
-+++ b/fs/ocfs2/ocfs2_trace.h
-@@ -1449,20 +1449,22 @@
- 
- TRACE_EVENT(ocfs2_prepare_inode_for_write,
- 	TP_PROTO(unsigned long long ino, unsigned long long saved_pos,
--		 unsigned long count),
--	TP_ARGS(ino, saved_pos, count),
-+		 unsigned long count, int wait),
-+	TP_ARGS(ino, saved_pos, count, wait),
- 	TP_STRUCT__entry(
- 		__field(unsigned long long, ino)
- 		__field(unsigned long long, saved_pos)
- 		__field(unsigned long, count)
-+		__field(int, wait)
- 	),
- 	TP_fast_assign(
- 		__entry->ino = ino;
- 		__entry->saved_pos = saved_pos;
- 		__entry->count = count;
-+		__entry->wait = wait;
- 	),
--	TP_printk("%llu %llu %lu", __entry->ino,
--		  __entry->saved_pos, __entry->count)
-+	TP_printk("%llu %llu %lu %d", __entry->ino,
-+		  __entry->saved_pos, __entry->count, __entry->wait)
- );
- 
- DEFINE_OCFS2_INT_EVENT(generic_file_aio_read_ret);
--- 
-1.8.5.6
+We've gone three days now without any crashes, so it seems safe to say
+that the problem with directio writes over sparse files is fixed now.
+
+
+> ---
+>  fs/ocfs2/alloc.c | 208 ++++++++++++++++++++++++++++++++++++++++++++++++++++---
+>  fs/ocfs2/alloc.h |   1 +
+>  fs/ocfs2/aops.c  |   6 ++
+>  3 files changed, 205 insertions(+), 10 deletions(-)
+> 
+> diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
+> index addd7c5..ec1ebbf 100644
+> --- a/fs/ocfs2/alloc.c
+> +++ b/fs/ocfs2/alloc.c
+> @@ -165,6 +165,13 @@ static int ocfs2_dinode_insert_check(struct ocfs2_extent_tree *et,
+>  				     struct ocfs2_extent_rec *rec);
+>  static int ocfs2_dinode_sanity_check(struct ocfs2_extent_tree *et);
+>  static void ocfs2_dinode_fill_root_el(struct ocfs2_extent_tree *et);
+> +
+> +static int ocfs2_reuse_blk_from_dealloc(handle_t *handle,
+> +					struct ocfs2_extent_tree *et,
+> +					struct buffer_head **new_eb_bh,
+> +					int blk_wanted, int *blk_given);
+> +static int ocfs2_is_dealloc_empty(struct ocfs2_extent_tree *et);
+> +
+>  static const struct ocfs2_extent_tree_operations ocfs2_dinode_et_ops = {
+>  	.eo_set_last_eb_blk	= ocfs2_dinode_set_last_eb_blk,
+>  	.eo_get_last_eb_blk	= ocfs2_dinode_get_last_eb_blk,
+> @@ -448,6 +455,7 @@ static void __ocfs2_init_extent_tree(struct ocfs2_extent_tree *et,
+>  	if (!obj)
+>  		obj = (void *)bh->b_data;
+>  	et->et_object = obj;
+> +	et->et_dealloc = NULL;
+>  
+>  	et->et_ops->eo_fill_root_el(et);
+>  	if (!et->et_ops->eo_fill_max_leaf_clusters)
+> @@ -1158,7 +1166,7 @@ static int ocfs2_add_branch(handle_t *handle,
+>  			    struct buffer_head **last_eb_bh,
+>  			    struct ocfs2_alloc_context *meta_ac)
+>  {
+> -	int status, new_blocks, i;
+> +	int status, new_blocks, i, block_given = 0;
+>  	u64 next_blkno, new_last_eb_blk;
+>  	struct buffer_head *bh;
+>  	struct buffer_head **new_eb_bhs = NULL;
+> @@ -1213,11 +1221,31 @@ static int ocfs2_add_branch(handle_t *handle,
+>  		goto bail;
+>  	}
+>  
+> -	status = ocfs2_create_new_meta_bhs(handle, et, new_blocks,
+> -					   meta_ac, new_eb_bhs);
+> -	if (status < 0) {
+> -		mlog_errno(status);
+> -		goto bail;
+> +	/* Firstyly, try to reuse dealloc since we have already estimated how
+> +	 * many extent blocks we may use.
+> +	 */
+> +	if (!ocfs2_is_dealloc_empty(et)) {
+> +		status = ocfs2_reuse_blk_from_dealloc(handle, et,
+> +						      new_eb_bhs, new_blocks,
+> +						      &block_given);
+> +		if (status < 0) {
+> +			mlog_errno(status);
+> +			goto bail;
+> +		}
+> +	}
+> +
+> +	BUG_ON(block_given > new_blocks);
+> +
+> +	if (block_given < new_blocks) {
+> +		BUG_ON(!meta_ac);
+> +		status = ocfs2_create_new_meta_bhs(handle, et,
+> +						   new_blocks - block_given,
+> +						   meta_ac,
+> +						   &new_eb_bhs[block_given]);
+> +		if (status < 0) {
+> +			mlog_errno(status);
+> +			goto bail;
+> +		}
+>  	}
+>  
+>  	/* Note: new_eb_bhs[new_blocks - 1] is the guy which will be
+> @@ -1340,15 +1368,25 @@ static int ocfs2_shift_tree_depth(handle_t *handle,
+>  				  struct ocfs2_alloc_context *meta_ac,
+>  				  struct buffer_head **ret_new_eb_bh)
+>  {
+> -	int status, i;
+> +	int status, i, block_given = 0;
+>  	u32 new_clusters;
+>  	struct buffer_head *new_eb_bh = NULL;
+>  	struct ocfs2_extent_block *eb;
+>  	struct ocfs2_extent_list  *root_el;
+>  	struct ocfs2_extent_list  *eb_el;
+>  
+> -	status = ocfs2_create_new_meta_bhs(handle, et, 1, meta_ac,
+> -					   &new_eb_bh);
+> +	if (!ocfs2_is_dealloc_empty(et)) {
+> +		status = ocfs2_reuse_blk_from_dealloc(handle, et,
+> +						      &new_eb_bh, 1,
+> +						      &block_given);
+> +	} else if (meta_ac) {
+> +		status = ocfs2_create_new_meta_bhs(handle, et, 1, meta_ac,
+> +						   &new_eb_bh);
+> +
+> +	} else {
+> +		BUG();
+> +	}
+> +
+>  	if (status < 0) {
+>  		mlog_errno(status);
+>  		goto bail;
+> @@ -1511,7 +1549,7 @@ static int ocfs2_grow_tree(handle_t *handle, struct ocfs2_extent_tree *et,
+>  	int depth = le16_to_cpu(el->l_tree_depth);
+>  	struct buffer_head *bh = NULL;
+>  
+> -	BUG_ON(meta_ac == NULL);
+> +	BUG_ON(meta_ac == NULL && ocfs2_is_dealloc_empty(et));
+>  
+>  	shift = ocfs2_find_branch_target(et, &bh);
+>  	if (shift < 0) {
+> @@ -6587,6 +6625,156 @@ ocfs2_find_per_slot_free_list(int type,
+>  	return fl;
+>  }
+>  
+> +static struct ocfs2_per_slot_free_list *
+> +ocfs2_find_preferred_free_list(int type,
+> +			       int preferred_slot,
+> +			       int *real_slot,
+> +			       struct ocfs2_cached_dealloc_ctxt *ctxt)
+> +{
+> +	struct ocfs2_per_slot_free_list *fl = ctxt->c_first_suballocator;
+> +
+> +	while (fl) {
+> +		if (fl->f_inode_type == type && fl->f_slot == preferred_slot) {
+> +			*real_slot = fl->f_slot;
+> +			return fl;
+> +		}
+> +
+> +		fl = fl->f_next_suballocator;
+> +	}
+> +
+> +	/* If we can't find any free list matching preferred slot, just use
+> +	 * the first one.
+> +	 */
+> +	fl = ctxt->c_first_suballocator;
+> +	*real_slot = fl->f_slot;
+> +
+> +	return fl;
+> +}
+> +
+> +/* Return Value 1 indicates empty */
+> +static int ocfs2_is_dealloc_empty(struct ocfs2_extent_tree *et)
+> +{
+> +	struct ocfs2_per_slot_free_list *fl = NULL;
+> +
+> +	if (!et->et_dealloc)
+> +		return 1;
+> +
+> +	fl = et->et_dealloc->c_first_suballocator;
+> +	if (!fl)
+> +		return 1;
+> +
+> +	if (!fl->f_first)
+> +		return 1;
+> +
+> +	return 0;
+> +}
+> +
+> +/* If extent was deleted from tree due to extent rotation and merging, and
+> + * no metadata is reserved ahead of time. Try to reuse some extents
+> + * just deleted. This is only used to reuse extent blocks.
+> + * It is supposed to find enough extent blocks in dealloc if our estimation
+> + * on metadata is accurate.
+> + */
+> +static int ocfs2_reuse_blk_from_dealloc(handle_t *handle,
+> +					struct ocfs2_extent_tree *et,
+> +					struct buffer_head **new_eb_bh,
+> +					int blk_wanted, int *blk_given)
+> +{
+> +	int i, status = 0, real_slot;
+> +	struct ocfs2_cached_dealloc_ctxt *dealloc;
+> +	struct ocfs2_per_slot_free_list *fl;
+> +	struct ocfs2_cached_block_free *bf;
+> +	struct ocfs2_extent_block *eb;
+> +	struct ocfs2_super *osb =
+> +		OCFS2_SB(ocfs2_metadata_cache_get_super(et->et_ci));
+> +
+> +	*blk_given = 0;
+> +
+> +	/* If extent tree doesn't have a dealloc, this is not faulty. Just
+> +	 * tell upper caller dealloc can't provide any block and it should
+> +	 * ask for alloc to claim more space.
+> +	 */
+> +	dealloc = et->et_dealloc;
+> +	if (!dealloc)
+> +		goto bail;
+> +
+> +	for (i = 0; i < blk_wanted; i++) {
+> +		/* Prefer to use local slot */
+> +		fl = ocfs2_find_preferred_free_list(EXTENT_ALLOC_SYSTEM_INODE,
+> +						    osb->slot_num, &real_slot,
+> +						    dealloc);
+> +		/* If no more block can be reused, we should claim more
+> +		 * from alloc. Just return here normally.
+> +		 */
+> +		if (!fl) {
+> +			status = 0;
+> +			break;
+> +		}
+> +
+> +		bf = fl->f_first;
+> +		fl->f_first = bf->free_next;
+> +
+> +		new_eb_bh[i] = sb_getblk(osb->sb, bf->free_blk);
+> +		if (new_eb_bh[i] == NULL) {
+> +			status = -ENOMEM;
+> +			mlog_errno(status);
+> +			goto bail;
+> +		}
+> +
+> +		mlog(0, "Reusing block(%llu) from "
+> +		     "dealloc(local slot:%d, real slot:%d)\n",
+> +		     bf->free_blk, osb->slot_num, real_slot);
+> +
+> +		ocfs2_set_new_buffer_uptodate(et->et_ci, new_eb_bh[i]);
+> +
+> +		status = ocfs2_journal_access_eb(handle, et->et_ci,
+> +						 new_eb_bh[i],
+> +						 OCFS2_JOURNAL_ACCESS_CREATE);
+> +		if (status < 0) {
+> +			mlog_errno(status);
+> +			goto bail;
+> +		}
+> +
+> +		memset(new_eb_bh[i]->b_data, 0, osb->sb->s_blocksize);
+> +		eb = (struct ocfs2_extent_block *) new_eb_bh[i]->b_data;
+> +
+> +		/* We can't guarantee that buffer head is still cached, so
+> +		 * polutlate the extent block again.
+> +		 */
+> +		strcpy(eb->h_signature, OCFS2_EXTENT_BLOCK_SIGNATURE);
+> +		eb->h_blkno = cpu_to_le64(bf->free_blk);
+> +		eb->h_fs_generation = cpu_to_le32(osb->fs_generation);
+> +		eb->h_suballoc_slot = cpu_to_le16(real_slot);
+> +		eb->h_suballoc_loc = cpu_to_le64(bf->free_bg);
+> +		eb->h_suballoc_bit = cpu_to_le16(bf->free_bit);
+> +		eb->h_list.l_count =
+> +			cpu_to_le16(ocfs2_extent_recs_per_eb(osb->sb));
+> +
+> +		/* We'll also be dirtied by the caller, so
+> +		 * this isn't absolutely necessary.
+> +		 */
+> +		ocfs2_journal_dirty(handle, new_eb_bh[i]);
+> +
+> +		if (!fl->f_first) {
+> +			dealloc->c_first_suballocator = fl->f_next_suballocator;
+> +			kfree(fl);
+> +		}
+> +		kfree(bf);
+> +	}
+> +
+> +	*blk_given = i;
+> +
+> +bail:
+> +	if (unlikely(status)) {
+> +		for (; i >= 0; i--) {
+> +			if (new_eb_bh[i])
+> +				brelse(new_eb_bh[i]);
+> +		}
+> +	}
+> +
+> +	return status;
+> +}
+> +
+>  int ocfs2_cache_block_dealloc(struct ocfs2_cached_dealloc_ctxt *ctxt,
+>  			      int type, int slot, u64 suballoc,
+>  			      u64 blkno, unsigned int bit)
+> diff --git a/fs/ocfs2/alloc.h b/fs/ocfs2/alloc.h
+> index 27b75cf..250bcac 100644
+> --- a/fs/ocfs2/alloc.h
+> +++ b/fs/ocfs2/alloc.h
+> @@ -61,6 +61,7 @@ struct ocfs2_extent_tree {
+>  	ocfs2_journal_access_func		et_root_journal_access;
+>  	void					*et_object;
+>  	unsigned int				et_max_leaf_clusters;
+> +	struct ocfs2_cached_dealloc_ctxt	*et_dealloc;
+>  };
+>  
+>  /*
+> diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+> index 77ec9b4..2ff02dd 100644
+> --- a/fs/ocfs2/aops.c
+> +++ b/fs/ocfs2/aops.c
+> @@ -2322,6 +2322,12 @@ static int ocfs2_dio_end_io_write(struct inode *inode,
+>  
+>  	ocfs2_init_dinode_extent_tree(&et, INODE_CACHE(inode), di_bh);
+>  
+> +	/* Attach dealloc with extent tree in case that we may reuse extents
+> +	 * which are already unlinked from current extent tree due to extent
+> +	 * rotation and merging.
+> +	 */
+> +	et.et_dealloc = &dealloc;
+> +
+>  	ret = ocfs2_lock_allocators(inode, &et, 0, dwc->dw_zero_count*2,
+>  				    &data_ac, &meta_ac);
+>  	if (ret) {
