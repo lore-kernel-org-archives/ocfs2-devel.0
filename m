@@ -1,9 +1,9 @@
-From: piaojun <piaojun@huawei.com>
-Date: Tue, 16 Jan 2018 20:40:41 +0800
+From: alex chen <alex.chen@huawei.com>
+Date: Wed, 17 Jan 2018 09:04:20 +0800
 Subject: [Ocfs2-devel] [PATCH] ocfs2: clean dead code up in alloc.c
 In-Reply-To: <1516105069-12643-1-git-send-email-ge.changwei@h3c.com>
 References: <1516105069-12643-1-git-send-email-ge.changwei@h3c.com>
-Message-ID: <5A5DF2C9.6050509@huawei.com>
+Message-ID: <5A5EA114.3030903@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -12,14 +12,14 @@ To: ocfs2-devel@oss.oracle.com
 
 Hi Changwei,
 
-LGTM
+Looks good to me.
 
 On 2018/1/16 20:17, Changwei Ge wrote:
 > Some stack variables are no longer used but still assigned.
 > Trim them.
 > 
 > Signed-off-by: Changwei Ge <ge.changwei@h3c.com>
-Reviewed-by: Jun Piao <piaojun@huawei.com>
+Reviewed-by: Alex Chen <alex.chen@huawei.com>
 > ---
 >  fs/ocfs2/alloc.c | 11 ++---------
 >  1 file changed, 2 insertions(+), 9 deletions(-)
