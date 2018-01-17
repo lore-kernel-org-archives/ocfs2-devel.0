@@ -1,112 +1,75 @@
-From: Changwei Ge <ge.changwei@h3c.com>
-Date: Wed, 17 Jan 2018 07:40:14 +0000
-Subject: [Ocfs2-devel] [PATCH v2 2/2] ocfs2: add trimfs lock to avoid
- duplicated trims in cluster
-References: <1513228484-2084-1-git-send-email-ghe@suse.com>
-	<1513228484-2084-2-git-send-email-ghe@suse.com>
-Message-ID: <63ADC13FD55D6546B7DECE290D39E373F29114CC@H3CMLB12-EX.srv.huawei-3com.com>
+From: Jan Kara <jack@suse.cz>
+Date: Wed, 17 Jan 2018 16:21:35 +0100
+Subject: [Ocfs2-devel] [Ocfs2-dev] BUG: deadlock with umount and ocfs2
+ workqueue triggered by ocfs2rec thread
+In-Reply-To: <0044cc89-5cda-c4a9-5eb0-1e5d85416805@suse.com>
+References: <D1E4D02760513D4B90DC3B40FF32AF35E22EC390@H3CMLB14-EX.srv.huawei-3com.com>
+	<0044cc89-5cda-c4a9-5eb0-1e5d85416805@suse.com>
+Message-ID: <20180117152135.nhiho7agzxige6xl@quack2.suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Gang He <ghe@suse.com>, "mfasheh@versity.com" <mfasheh@versity.com>, "jlbec@evilplan.org" <jlbec@evilplan.org>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>, Andrew Morton <akpm@linux-foundation.org>
+To: ocfs2-devel@oss.oracle.com
 
-It looks good to me.
+Hello,
 
-Reviewed-by: Changwei Ge <ge.changwei@h3c.com>
+On Fri 12-01-18 16:25:56, Eric Ren wrote:
+> On 01/12/2018 11:43 AM, Shichangkuo wrote:
+> > Hi all,
+> > ??Now we are testing ocfs2 with 4.14 kernel, and we finding a deadlock with umount and ocfs2 workqueue triggered by ocfs2rec thread. The stack as follows:
+> > journal recovery work:
+> > [<ffffffff8a8c0694>] call_rwsem_down_read_failed+0x14/0x30
+> > [<ffffffffc0d5d652>] ocfs2_finish_quota_recovery+0x62/0x450 [ocfs2]
+> > [<ffffffffc0d21221>] ocfs2_complete_recovery+0xc1/0x440 [ocfs2]
+> > [<ffffffff8a09a1f0>] process_one_work+0x130/0x350
+> > [<ffffffff8a09a946>] worker_thread+0x46/0x3b0
+> > [<ffffffff8a0a0e51>] kthread+0x101/0x140
+> > [<ffffffff8aa002ff>] ret_from_fork+0x1f/0x30
+> > [<ffffffffffffffff>] 0xffffffffffffffff
+> > 
+> > /bin/umount:
+> > [<ffffffff8a099b24>] flush_workqueue+0x104/0x3e0
+> > [<ffffffffc0cf18db>] ocfs2_truncate_log_shutdown+0x3b/0xc0 [ocfs2]
+> > [<ffffffffc0d4fd6c>] ocfs2_dismount_volume+0x8c/0x3d0 [ocfs2]
+> > [<ffffffffc0d500e1>] ocfs2_put_super+0x31/0xa0 [ocfs2]
+> > [<ffffffff8a2445bd>] generic_shutdown_super+0x6d/0x120
+> > [<ffffffff8a24469d>] kill_block_super+0x2d/0x60
+> > [<ffffffff8a244e71>] deactivate_locked_super+0x51/0x90
+> > [<ffffffff8a263a1b>] cleanup_mnt+0x3b/0x70
+> > [<ffffffff8a09e9c6>] task_work_run+0x86/0xa0
+> > [<ffffffff8a003d70>] exit_to_usermode_loop+0x6d/0xa9
+> > [<ffffffff8a003a2d>] do_syscall_64+0x11d/0x130
+> > [<ffffffff8aa00113>] entry_SYSCALL64_slow_path+0x25/0x25
+> > [<ffffffffffffffff>] 0xffffffffffffffff
+> > ??
+> > Function ocfs2_finish_quota_recovery try to get sb->s_umount, which was already locked by umount thread, then get a deadlock.
+> 
+> Good catch, thanks for reporting.? Is it reproducible? Can you please share
+> the steps for reproducing this issue?
+> > This issue was introduced by c3b004460d77bf3f980d877be539016f2df4df12 and 5f530de63cfc6ca8571cbdf58af63fb166cc6517.
+> > I think we cannot use :: s_umount, but the mutex ::dqonoff_mutex was already removed.
+> > Shall we add a new mutex?
+> 
+> @Jan, I don't look into the code yet, could you help me understand why we
+> need to get sb->s_umount in ocfs2_finish_quota_recovery?
+> Is it because that the quota recovery process will start at umounting? or
+> some where else?
 
-On 2017/12/14 13:16, Gang He wrote:
-> As you know, ocfs2 has support trim the underlying disk via
-> fstrim command. But there is a problem, ocfs2 is a shared disk
-> cluster file system, if the user configures a scheduled fstrim
-> job on each file system node, this will trigger multiple nodes
-> trim a shared disk simultaneously, it is very wasteful for CPU
-> and IO consumption, also might negatively affect the lifetime
-> of poor-quality SSD devices.
-> Then, we introduce a trimfs dlm lock to communicate with each
-> other in this case, which will make only one fstrim command to
-> do the trimming on a shared disk among the cluster, the fstrim
-> commands from the other nodes should wait for the first fstrim
-> to finish and returned success directly, to avoid running a the
-> same trim on the shared disk again.
-> 
-> Compare with first version, I change the fstrim commands' returned
-> value and behavior in case which meets a fstrim command is running
-> on a shared disk.
-> 
-> Signed-off-by: Gang He <ghe@suse.com>
-> ---
->   fs/ocfs2/alloc.c | 44 ++++++++++++++++++++++++++++++++++++++++++++
->   1 file changed, 44 insertions(+)
-> 
-> diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-> index ab5105f..5c9c3e2 100644
-> --- a/fs/ocfs2/alloc.c
-> +++ b/fs/ocfs2/alloc.c
-> @@ -7382,6 +7382,7 @@ int ocfs2_trim_fs(struct super_block *sb, struct fstrim_range *range)
->   	struct buffer_head *gd_bh = NULL;
->   	struct ocfs2_dinode *main_bm;
->   	struct ocfs2_group_desc *gd = NULL;
-> +	struct ocfs2_trim_fs_info info, *pinfo = NULL;
->   
->   	start = range->start >> osb->s_clustersize_bits;
->   	len = range->len >> osb->s_clustersize_bits;
-> @@ -7419,6 +7420,42 @@ int ocfs2_trim_fs(struct super_block *sb, struct fstrim_range *range)
->   
->   	trace_ocfs2_trim_fs(start, len, minlen);
->   
-> +	ocfs2_trim_fs_lock_res_init(osb);
-> +	ret = ocfs2_trim_fs_lock(osb, NULL, 1);
-> +	if (ret < 0) {
-> +		if (ret != -EAGAIN) {
-> +			mlog_errno(ret);
-> +			ocfs2_trim_fs_lock_res_uninit(osb);
-> +			goto out_unlock;
-> +		}
-> +
-> +		mlog(ML_NOTICE, "Wait for trim on device (%s) to "
-> +		     "finish, which is running from another node.\n",
-> +		     osb->dev_str);
-> +		ret = ocfs2_trim_fs_lock(osb, &info, 0);
-> +		if (ret < 0) {
-> +			mlog_errno(ret);
-> +			ocfs2_trim_fs_lock_res_uninit(osb);
-> +			goto out_unlock;
-> +		}
-> +
-> +		if (info.tf_valid && info.tf_success &&
-> +		    info.tf_start == start && info.tf_len == len &&
-> +		    info.tf_minlen == minlen) {
-> +			/* Avoid sending duplicated trim to a shared device */
-> +			mlog(ML_NOTICE, "The same trim on device (%s) was "
-> +			     "just done from node (%u), return.\n",
-> +			     osb->dev_str, info.tf_nodenum);
-> +			range->len = info.tf_trimlen;
-> +			goto out_trimunlock;
-> +		}
-> +	}
-> +
-> +	info.tf_nodenum = osb->node_num;
-> +	info.tf_start = start;
-> +	info.tf_len = len;
-> +	info.tf_minlen = minlen;
-> +
->   	/* Determine first and last group to examine based on start and len */
->   	first_group = ocfs2_which_cluster_group(main_bm_inode, start);
->   	if (first_group == osb->first_cluster_group_blkno)
-> @@ -7463,6 +7500,13 @@ int ocfs2_trim_fs(struct super_block *sb, struct fstrim_range *range)
->   			group += ocfs2_clusters_to_blocks(sb, osb->bitmap_cpg);
->   	}
->   	range->len = trimmed * sb->s_blocksize;
-> +
-> +	info.tf_trimlen = range->len;
-> +	info.tf_success = (ret ? 0 : 1);
-> +	pinfo = &info;
-> +out_trimunlock:
-> +	ocfs2_trim_fs_unlock(osb, pinfo);
-> +	ocfs2_trim_fs_lock_res_uninit(osb);
->   out_unlock:
->   	ocfs2_inode_unlock(main_bm_inode, 0);
->   	brelse(main_bm_bh);
-> 
+I was refreshing my memory wrt how ocfs2 quota recovery works. The problem
+is the following: We load information about all quota information that
+needs recovering (this is possibly for other nodes) in
+ocfs2_begin_quota_recovery() that gets called during mount. Real quota
+recovery happens from the recovery thread in ocfs2_finish_quota_recovery().
+We need to protect code running there from dquot_disable() calls as that
+will free structures we use for updating quota information etc. Currently
+we use sb->s_umount for that protection.
+
+The problem above apparently happens when someone calls umount before the
+recovery thread can finish quota recovery. I will think more about how to
+fix the locking so that this lock inversion does not happen...
+
+								Honza
+-- 
+Jan Kara <jack@suse.com>
+SUSE Labs, CR
