@@ -1,200 +1,115 @@
-From: Jan Kara <jack@suse.cz>
-Date: Fri, 19 Jan 2018 13:18:27 +0100
-Subject: [Ocfs2-devel] [Ocfs2-dev] BUG: deadlock with umount and ocfs2
- workqueue triggered by ocfs2rec thread
-In-Reply-To: <5A619842.3090108@huawei.com>
-References: <D1E4D02760513D4B90DC3B40FF32AF35E22EC390@H3CMLB14-EX.srv.huawei-3com.com>
-	<0044cc89-5cda-c4a9-5eb0-1e5d85416805@suse.com>
-	<20180117152135.nhiho7agzxige6xl@quack2.suse.cz>
-	<20180117155734.ntkwdbvbkikh6dcl@quack2.suse.cz>
-	<63ADC13FD55D6546B7DECE290D39E373F2912842@H3CMLB12-EX.srv.huawei-3com.com>
-	<5A616313.4070403@huawei.com>
-	<63ADC13FD55D6546B7DECE290D39E373F2912961@H3CMLB12-EX.srv.huawei-3com.com>
-	<5A616D15.3060101@huawei.com>
-	<63ADC13FD55D6546B7DECE290D39E373F2912A22@H3CMLB12-EX.srv.huawei-3com.com>
-	<5A619842.3090108@huawei.com>
-Message-ID: <20180119121827.zkzxxrggkzpxtlaq@quack2.suse.cz>
+From: Gang He <ghe@suse.com>
+Date: Tue, 23 Jan 2018 23:24:36 -0700
+Subject: [Ocfs2-devel] OCFS2 encountered a hang issue when running on
+ Multi-nodes RefcountBlock Group Test
+References: <5A688EC1020000F9000A5FB8@prv-mh.provo.novell.com>
+Message-ID: <5A689724020000F9000A5FC3@prv-mh.provo.novell.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi!
+Hello Guys,
 
-On Fri 19-01-18 15:03:30, piaojun wrote:
-> On 2018/1/19 13:42, Changwei Ge wrote:
-> > Hi Jun,
-> > 
-> > On 2018/1/19 11:59, piaojun wrote:
-> >> Hi Changwei,
-> >>
-> >> On 2018/1/19 11:38, Changwei Ge wrote:
-> >>> Hi Jun,
-> >>>
-> >>> On 2018/1/19 11:17, piaojun wrote:
-> >>>> Hi Jan, Eric and Changwei,
-> >>>>
-> >>>> Could we use another mutex lock to protect quota recovery? Sharing the
-> >>>> lock with VFS-layer probably seems a little weird.
-> >>>
-> >>> I am afraid that we can't since quota need ::s_umount and we indeed need
-> >>> ::s_umount to get rid of race that quota has freed structs that will be
-> >>> used by quota recovery in ocfs2.
-> >>>
-> >> Could you explain which 'structs' used by quota recovery? Do you mean
-> >> 'struct super_block'?
-> > I am not pointing to super_block.
-> > 
-> > Sure.
-> > You can refer to
-> > ocfs2_finish_quota_recovery
-> >    ocfs2_recover_local_quota_file -> here, operations on quota happens
-> > 
-> > Thanks,
-> > Changwei
-> > 
-> I looked through the code in deactivate_locked_super(), and did not
-> find any *structs* needed to be protected except 'sb'. In addition I
+I met a ocfs2 hang issue when running on Multi-nodes Refcount Block Group Test on three nodes cluster, this hang issue can not reproduced each time, but it looks there is a bug in dlmglue layer.
+The bug symptom looks as below,
+Node1: 
+ocfs2te+  2403  2372  2403  0    1 Jan18 ?        00:00:00 /usr/lib64/mpi/gcc/openmpi/bin/orted --hnp-topo-sig 0N:4S:0L3:4L2:4L1:4C:4H:x86_64 -mca ess env -mca orte_ess_jobid 174456832 -mca orte_es
+ocfs2te+  2404  2403  2404  0    2 Jan18 ?        00:00:06 /usr/local/ocfs2-test/bin/multi_reflink_test -i 1 -p 1000 -l 10485760 -n 100 -w /mnt/shared/ocfs2-discontig-bg-test-multi-nodes -s         <<== hang process
+ocfs2te+  2404  2403  2405  0    2 Jan18 ?        00:00:00 /usr/local/ocfs2-test/bin/multi_reflink_test -i 1 -p 1000 -l 10485760 -n 100 -w /mnt/shared/ocfs2-discontig-bg-test-multi-nodes -s
+sle15b4-nd1:/ # cat /proc/2404/stack
+[<ffffffffc06878e5>] __ocfs2_cluster_lock.isra.37+0x2a5/0x6d0 [ocfs2]
+[<ffffffffc0688918>] ocfs2_inode_lock_full_nested+0x1d8/0x930 [ocfs2]
+[<ffffffffc068912d>] ocfs2_inode_lock_tracker+0xbd/0x180 [ocfs2]
+[<ffffffffc068bfcc>] ocfs2_permission+0x3c/0xc0 [ocfs2]
+[<ffffffff8e23def9>] __inode_permission+0x69/0xc0
+[<ffffffff8e23ff9c>] link_path_walk+0x26c/0x4e0
+[<ffffffff8e241c93>] path_openat+0xd3/0x1570
+[<ffffffff8e24429c>] do_filp_open+0x8c/0xf0
+[<ffffffff8e231586>] do_sys_open+0x1a6/0x230
+[<ffffffff8e6acfb7>] entry_SYSCALL_64_fastpath+0x1a/0xa5
+[<ffffffffffffffff>] 0xffffffffffffffff
 
-There are quota structures (generally attached to superblock in some way)
-that get freed in ocfs2_local_free_info() that are used by quota recovery.
-ocfs2_local_free_info() gets called when we call dquot_disable() from
-ocfs2_disable_quotas() from ocfs2_dismount_volume(). That's why we need to
-serialize quota recovery and umount.
+Node2:
+ocfs2te+ 21312 28669 21312  0    2 Jan18 pts/2    00:00:00 /usr/lib64/mpi/gcc/openmpi/bin/mpirun -mca plm_rsh_agent ssh:rsh -mca btl tcp,self --host sle15b4-nd2,sle15b4-nd1,sle15b4-nd3 /usr/local/o
+ocfs2te+ 21312 28669 21313  0    2 Jan18 pts/2    00:00:00 /usr/lib64/mpi/gcc/openmpi/bin/mpirun -mca plm_rsh_agent ssh:rsh -mca btl tcp,self --host sle15b4-nd2,sle15b4-nd1,sle15b4-nd3 /usr/local/o
+ocfs2te+ 21314 21312 21314  0    1 Jan18 pts/2    00:00:00 /usr/bin/ssh -x sle15b4-nd1     PATH=/usr/lib64/mpi/gcc/openmpi/bin:$PATH ; export PATH ; LD_LIBRARY_PATH=/usr/lib64/mpi/gcc/openmpi/lib64
+ocfs2te+ 21315 21312 21315  0    1 Jan18 pts/2    00:00:00 /usr/bin/ssh -x sle15b4-nd3     PATH=/usr/lib64/mpi/gcc/openmpi/bin:$PATH ; export PATH ; LD_LIBRARY_PATH=/usr/lib64/mpi/gcc/openmpi/lib64
+ocfs2te+ 21316 21312 21316  0    2 Jan18 pts/2    00:00:07 /usr/local/ocfs2-test/bin/multi_reflink_test -i 1 -p 1000 -l 10485760 -n 100 -w /mnt/shared/ocfs2-discontig-bg-test-multi-nodes -s <<== hang process
+ocfs2te+ 21316 21312 21317  0    2 Jan18 pts/2    00:00:00 /usr/local/ocfs2-test/bin/multi_reflink_test -i 1 -p 1000 -l 10485760 -n 100 -w /mnt/shared/ocfs2-discontig-bg-test-multi-nodes -s
+sle15b4-nd2:/ # cat /proc/21316/stack
+[<ffffffffc06bc8e5>] __ocfs2_cluster_lock.isra.37+0x2a5/0x6d0 [ocfs2]
+[<ffffffffc06bd918>] ocfs2_inode_lock_full_nested+0x1d8/0x930 [ocfs2]
+[<ffffffffc06d6cd0>] ocfs2_mknod+0x1e0/0xeb0 [ocfs2]
+[<ffffffffc06d7af5>] ocfs2_create+0x35/0x120 [ocfs2]
+[<ffffffffa6242e41>] path_openat+0x1281/0x1570
+[<ffffffffa624429c>] do_filp_open+0x8c/0xf0
+[<ffffffffa6231586>] do_sys_open+0x1a6/0x230
+[<ffffffffa66acfb7>] entry_SYSCALL_64_fastpath+0x1a/0xa5
+[<ffffffffffffffff>] 0x
 
-> still could not figure out why 'dqonoff_mutex' was relaced by
-> 's_umount'. At least, the patch 5f530de63cfc did not mention that. I
-> will appreciate for detailed explaination.
+Node3:
+ocfs2te+ 13108 13079 13108  0    1 Jan18 ?        00:00:00 /usr/lib64/mpi/gcc/openmpi/bin/orted --hnp-topo-sig 0N:4S:0L3:4L2:4L1:4C:4H:x86_64 -mca ess env -mca orte_ess_jobid 174456832 -mca orte_es
+ocfs2te+ 13109 13108 13109  0    2 Jan18 ?        00:00:06 /usr/local/ocfs2-test/bin/multi_reflink_test -i 1 -p 1000 -l 10485760 -n 100 -w /mnt/shared/ocfs2-discontig-bg-test-multi-nodes -s <<== hang process
+ocfs2te+ 13109 13108 13110  0    2 Jan18 ?        00:00:00 /usr/local/ocfs2-test/bin/multi_reflink_test -i 1 -p 1000 -l 10485760 -n 100 -w /mnt/shared/ocfs2-discontig-bg-test-multi-nodes -s
+sle15b4-nd3:~ # cat /proc/13109/stack
+[<ffffffffc08b48e5>] __ocfs2_cluster_lock.isra.37+0x2a5/0x6d0 [ocfs2]
+[<ffffffffc08b5918>] ocfs2_inode_lock_full_nested+0x1d8/0x930 [ocfs2]
+[<ffffffffc08d2907>] ocfs2_mv_orphaned_inode_to_new+0x77/0x7b0 [ocfs2]
+[<ffffffffc08dd019>] ocfs2_reflink+0x309/0x430 [ocfs2]
+[<ffffffffc08dd866>] ocfs2_reflink_ioctl+0x2a6/0x330 [ocfs2]
+[<ffffffffc08c3537>] ocfs2_ioctl+0x237/0x640 [ocfs2]
+[<ffffffff81247b2d>] do_vfs_ioctl+0x8d/0x5d0
+[<ffffffff812480e4>] SyS_ioctl+0x74/0x80
+[<ffffffff816acfb7>] entry_SYSCALL_64_fastpath+0x1a/0xa5
+[<ffffffffffffffff>] 0xffffffffffffffff
 
-It was replaced mostly to fix a lock inversion issue in generic code -
-details are described in commit 9d1ccbe70e0b145 "quota: Use s_umount
-protection for quota operations".
+These three processes in the cluster have been hanged for more than one days, 
+The processes on Node1 and Node2 are hanged at getting meta-dlm-lock (from NL to PR or EX) of inode 20122639 (dentry is "ocfs2-discontig-bg-test-multi-nodes"),
+Node3 has hold this inode meta-dlm-lock with EX level, but the process on Node3 is trying to get meta-dlm-lock again and is hanged at waitting for lockres blocked flag clear.
+But this lockres is not queued on Node3, the memory dump looks like,
+ ip_inode_lockres = {
+    l_priv = 0xffff9edb6af75458,
+    l_ops = 0xffffffffc0952160 <ocfs2_inode_inode_lops>,
+    l_blocked_list = {
+      next = 0xffff9edb6af75160, <<= NOT in block lock list of super obj
+      prev = 0xffff9edb6af75160
+    },
+    l_mask_waiters = {
+      next = 0xffffb6e140453bd0,
+      prev = 0xffffb6e141bc3d10
+    },
+    l_holders = {
+      next = 0xffff9edb6af75180,
+      prev = 0xffff9edb6af75180
+    },
+    l_flags = 69,  <<== No OCFS2_LOCK_QUEUED flag
+    l_name = "M0000000000000001330c0f00000000",
+    l_ro_holders = 0,
+    l_ex_holders = 0,
+    l_level = 5 '\005',
+    l_requested = 0 '\000',
+    l_blocking = 5 '\005',
+    l_type = 0 '\000',
+    l_action = 0 '\000',
+    l_unlock_action = 0 '\000',
+    l_pending_gen = 4997,
 
-Looking into ocfs2 quota code, I think it will be easiest to introduce
-ocfs2 variant of dqonoff mutex and use it for serialization of umount and
-recovery. While reading the recovery / umount / remount code, I've also
-found several other problems / races that also need fixing (e.g. if some
-node mounts a filesystem in read-only mode and ends up doing recovery of
-some crashed node, quota recovery will not work). So I plan to do some more
-fixing in this area, just didn't get to it yet.
+In fact, OSB on Node 3 has a empty block lock list, that means this lockres will not be handled anymore.
+  dc_work_sequence = 174228,
+  blocked_lock_list = {   << == empty list
+    next = 0xffff9edb991e4660,
+    prev = 0xffff9edb991e4660
+  },
+  blocked_lock_count = 0,
+  dquot_drop_list = {
+    first = 0x0
+  },
+  dquot_drop_work = { 
 
-								Honza
+So, these processes on each node will be hanged forever, it looks there is a bug for queuing lockres.
+Did you meet this bug before I investigate it further?
 
-> >>>> On 2018/1/19 9:48, Changwei Ge wrote:
-> >>>>> Hi Jan,
-> >>>>>
-> >>>>> On 2018/1/18 0:03, Jan Kara wrote:
-> >>>>>> On Wed 17-01-18 16:21:35, Jan Kara wrote:
-> >>>>>>> Hello,
-> >>>>>>>
-> >>>>>>> On Fri 12-01-18 16:25:56, Eric Ren wrote:
-> >>>>>>>> On 01/12/2018 11:43 AM, Shichangkuo wrote:
-> >>>>>>>>> Hi all,
-> >>>>>>>>> ??Now we are testing ocfs2 with 4.14 kernel, and we finding a deadlock with umount and ocfs2 workqueue triggered by ocfs2rec thread. The stack as follows:
-> >>>>>>>>> journal recovery work:
-> >>>>>>>>> [<ffffffff8a8c0694>] call_rwsem_down_read_failed+0x14/0x30
-> >>>>>>>>> [<ffffffffc0d5d652>] ocfs2_finish_quota_recovery+0x62/0x450 [ocfs2]
-> >>>>>>>>> [<ffffffffc0d21221>] ocfs2_complete_recovery+0xc1/0x440 [ocfs2]
-> >>>>>>>>> [<ffffffff8a09a1f0>] process_one_work+0x130/0x350
-> >>>>>>>>> [<ffffffff8a09a946>] worker_thread+0x46/0x3b0
-> >>>>>>>>> [<ffffffff8a0a0e51>] kthread+0x101/0x140
-> >>>>>>>>> [<ffffffff8aa002ff>] ret_from_fork+0x1f/0x30
-> >>>>>>>>> [<ffffffffffffffff>] 0xffffffffffffffff
-> >>>>>>>>>
-> >>>>>>>>> /bin/umount:
-> >>>>>>>>> [<ffffffff8a099b24>] flush_workqueue+0x104/0x3e0
-> >>>>>>>>> [<ffffffffc0cf18db>] ocfs2_truncate_log_shutdown+0x3b/0xc0 [ocfs2]
-> >>>>>>>>> [<ffffffffc0d4fd6c>] ocfs2_dismount_volume+0x8c/0x3d0 [ocfs2]
-> >>>>>>>>> [<ffffffffc0d500e1>] ocfs2_put_super+0x31/0xa0 [ocfs2]
-> >>>>>>>>> [<ffffffff8a2445bd>] generic_shutdown_super+0x6d/0x120
-> >>>>>>>>> [<ffffffff8a24469d>] kill_block_super+0x2d/0x60
-> >>>>>>>>> [<ffffffff8a244e71>] deactivate_locked_super+0x51/0x90
-> >>>>>>>>> [<ffffffff8a263a1b>] cleanup_mnt+0x3b/0x70
-> >>>>>>>>> [<ffffffff8a09e9c6>] task_work_run+0x86/0xa0
-> >>>>>>>>> [<ffffffff8a003d70>] exit_to_usermode_loop+0x6d/0xa9
-> >>>>>>>>> [<ffffffff8a003a2d>] do_syscall_64+0x11d/0x130
-> >>>>>>>>> [<ffffffff8aa00113>] entry_SYSCALL64_slow_path+0x25/0x25
-> >>>>>>>>> [<ffffffffffffffff>] 0xffffffffffffffff
-> >>>>>>>>> ??
-> >>>>>>>>> Function ocfs2_finish_quota_recovery try to get sb->s_umount, which was already locked by umount thread, then get a deadlock.
-> >>>>>>>>
-> >>>>>>>> Good catch, thanks for reporting.  Is it reproducible? Can you please share
-> >>>>>>>> the steps for reproducing this issue?
-> >>>>>>>>> This issue was introduced by c3b004460d77bf3f980d877be539016f2df4df12 and 5f530de63cfc6ca8571cbdf58af63fb166cc6517.
-> >>>>>>>>> I think we cannot use :: s_umount, but the mutex ::dqonoff_mutex was already removed.
-> >>>>>>>>> Shall we add a new mutex?
-> >>>>>>>>
-> >>>>>>>> @Jan, I don't look into the code yet, could you help me understand why we
-> >>>>>>>> need to get sb->s_umount in ocfs2_finish_quota_recovery?
-> >>>>>>>> Is it because that the quota recovery process will start at umounting? or
-> >>>>>>>> some where else?
-> >>>>>>>
-> >>>>>>> I was refreshing my memory wrt how ocfs2 quota recovery works. The problem
-> >>>>>>> is the following: We load information about all quota information that
-> >>>>>>> needs recovering (this is possibly for other nodes) in
-> >>>>>>> ocfs2_begin_quota_recovery() that gets called during mount. Real quota
-> >>>>>>> recovery happens from the recovery thread in ocfs2_finish_quota_recovery().
-> >>>>>>> We need to protect code running there from dquot_disable() calls as that
-> >>>>>>> will free structures we use for updating quota information etc. Currently
-> >>>>>>> we use sb->s_umount for that protection.
-> >>>>>>>
-> >>>>>>> The problem above apparently happens when someone calls umount before the
-> >>>>>>> recovery thread can finish quota recovery. I will think more about how to
-> >>>>>>> fix the locking so that this lock inversion does not happen...
-> >>>>>>
-> >>>>>> So could we move ocfs2_recovery_exit() call in ocfs2_dismount_volume() up
-> >>>>>> before ocfs2_disable_quotas()? It seems possible to me, I'm just not sure
-> >>>>>> if there are not some hidden dependencies on recovery being shut down only
-> >>>>>> after truncate log / local alloc. If we can do that, we could remove
-> >>>>>> s_umount protection from ocfs2_finish_quota_recovery() and thus resolve the
-> >>>>>> race.
-> >>>>>>
-> >>>>>> 								Honza
-> >>>>>
-> >>>>> Thanks for looking into this.
-> >>>>> I am not quite familiar with quota part.:)
-> >>>>>
-> >>>>> Or can we move ocfs2_disable_quotas() in ocfs2_dismount_volume down
-> >>>>> after ocfs2_recovery_exit() with ::invoking down_read(&sb->s_umount)
-> >>>>> eliminated?
-> >>>>>
-> >>>>> Another way I can figure out is:
-> >>>>> I think we might get inspired from qsync_work_fn().
-> >>>>> In that function if current work is under running context of umount with
-> >>>>> ::s_umount held, it just delays current work to next time.
-> >>>>>
-> >>>>> So can we also _try lock_ in ocfs2_finish_quota_recovery() and recover
-> >>>>> quota by other ocfs2 cluster member nodes or local node's next time of
-> >>>>> mount?
-> >>>>>
-> >>>> I guess we need analyse the impact of _try lock_. Such as no other node
-> >>>> will help recovering quota when I'm the only node in cluster.
-> >>>
-> >>> I don't see any risk for now. I will think about it more, later.
-> >>>
-> >>> Thanks,
-> >>> Changwei
-> >>>>
-> >>>> thanks,
-> >>>> Jun
-> >>>>
-> >>>>> Thanks,
-> >>>>> Changwei
-> >>>>>
-> >>>>>
-> >>>>>>
-> >>>>> _______________________________________________
-> >>>>> Ocfs2-devel mailing list
-> >>>>> Ocfs2-devel at oss.oracle.com
-> >>>>> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
-> >>>>>
-> >>>>
-> >>> .
-> >>>
-> >>
-> > .
-> > 
--- 
-Jan Kara <jack@suse.com>
-SUSE Labs, CR
+Thanks a lot.
+Gang
