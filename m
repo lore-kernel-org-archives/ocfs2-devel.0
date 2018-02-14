@@ -1,14 +1,21 @@
-From: Jia Guo <guojia12@huawei.com>
-Date: Wed, 14 Feb 2018 12:52:12 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: keep the trace point consistent with
-	the function name
-Message-ID: <02609aba-84b2-a22d-3f3b-bc1944b94260@huawei.com>
+From: Gang He <ghe@suse.com>
+Date: Tue, 13 Feb 2018 23:29:06 -0700
+Subject: [Ocfs2-devel] [PATCH] ocfs2: keep the trace point consistent
+ with the function name
+In-Reply-To: <02609aba-84b2-a22d-3f3b-bc1944b94260@huawei.com>
+References: <02609aba-84b2-a22d-3f3b-bc1944b94260@huawei.com>
+Message-ID: <5A83D732020000F9001C8D78@prv-mh.provo.novell.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
+Looks good to me.
+Thanks
+Gang
+
+>>> Jia Guo <guojia12@huawei.com> 02/14/18 12:53 PM >>>
 keep the trace point consistent with the function name
 
 Fixes: 3ef045c3d8ae ("ocfs2: switch to ->write_iter()")
@@ -17,6 +24,8 @@ Signed-off-by: Jia Guo <guojia12@huawei.com>
 Reviewed-by: Jun Piao <piaojun@huawei.com>
 Reviewed-by: Yiwen Jiang <jiangyiwen@huawei.com>
 Reviewed-by: Alex Chen <alex.chen@huawei.com>
+Reviewed-by: Gang He <ghe@suse.com>
+
 ---
  fs/ocfs2/aops.h        | 2 +-
  fs/ocfs2/file.c        | 8 ++++----
@@ -106,3 +115,9 @@ index e2a11aa..2ee76a9 100644
 -- 
 
 .
+
+
+_______________________________________________
+Ocfs2-devel mailing list
+Ocfs2-devel at oss.oracle.com
+https://oss.oracle.com/mailman/listinfo/ocfs2-devel
