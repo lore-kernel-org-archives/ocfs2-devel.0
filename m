@@ -1,45 +1,108 @@
-From: alex chen <alex.chen@huawei.com>
-Date: Tue, 13 Feb 2018 09:54:36 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: clean up some unused function
-	declaration
-In-Reply-To: <5A7D1034.7050807@huawei.com>
-References: <5A7D1034.7050807@huawei.com>
-Message-ID: <5A82455C.2070203@huawei.com>
+From: Jia Guo <guojia12@huawei.com>
+Date: Wed, 14 Feb 2018 12:52:12 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: keep the trace point consistent with
+	the function name
+Message-ID: <02609aba-84b2-a22d-3f3b-bc1944b94260@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Jun,
-Looks good to me.
+keep the trace point consistent with the function name
 
-On 2018/2/9 11:06, piaojun wrote:
-> Clean up some unused function declaration in dlmcommon.h
-> 
-> Signed-off-by: Jun Piao <piaojun@huawei.com>
-> Reviewed-by: Yiwen Jiang <jiangyiwen@huawei.com>
+Fixes: 3ef045c3d8ae ("ocfs2: switch to ->write_iter()")
+
+Signed-off-by: Jia Guo <guojia12@huawei.com>
+Reviewed-by: Jun Piao <piaojun@huawei.com>
+Reviewed-by: Yiwen Jiang <jiangyiwen@huawei.com>
 Reviewed-by: Alex Chen <alex.chen@huawei.com>
+---
+ fs/ocfs2/aops.h        | 2 +-
+ fs/ocfs2/file.c        | 8 ++++----
+ fs/ocfs2/ocfs2_trace.h | 6 +++---
+ 3 files changed, 8 insertions(+), 8 deletions(-)
 
-> ---
->  fs/ocfs2/dlm/dlmcommon.h | 3 ---
->  1 file changed, 3 deletions(-)
-> 
-> diff --git a/fs/ocfs2/dlm/dlmcommon.h b/fs/ocfs2/dlm/dlmcommon.h
-> index e9f3705..953c200 100644
-> --- a/fs/ocfs2/dlm/dlmcommon.h
-> +++ b/fs/ocfs2/dlm/dlmcommon.h
-> @@ -960,13 +960,10 @@ static inline int dlm_send_proxy_ast(struct dlm_ctxt *dlm,
->  void dlm_print_one_lock_resource(struct dlm_lock_resource *res);
->  void __dlm_print_one_lock_resource(struct dlm_lock_resource *res);
-> 
-> -u8 dlm_nm_this_node(struct dlm_ctxt *dlm);
->  void dlm_kick_thread(struct dlm_ctxt *dlm, struct dlm_lock_resource *res);
->  void __dlm_dirty_lockres(struct dlm_ctxt *dlm, struct dlm_lock_resource *res);
-> 
-> 
-> -int dlm_nm_init(struct dlm_ctxt *dlm);
-> -int dlm_heartbeat_init(struct dlm_ctxt *dlm);
->  void dlm_hb_node_down_cb(struct o2nm_node *node, int idx, void *data);
->  void dlm_hb_node_up_cb(struct o2nm_node *node, int idx, void *data);
-> 
+diff --git a/fs/ocfs2/aops.h b/fs/ocfs2/aops.h
+index 8614ff0..3494a62 100644
+--- a/fs/ocfs2/aops.h
++++ b/fs/ocfs2/aops.h
+@@ -78,7 +78,7 @@ static inline void ocfs2_iocb_set_rw_locked(struct kiocb *iocb, int level)
+ /*
+  * Using a named enum representing lock types in terms of #N bit stored in
+  * iocb->private, which is going to be used for communication between
+- * ocfs2_dio_end_io() and ocfs2_file_aio_write/read().
++ * ocfs2_dio_end_io() and ocfs2_file_write/read_iter().
+  */
+ enum ocfs2_iocb_lock_bits {
+ 	OCFS2_IOCB_RW_LOCK = 0,
+diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+index 5d1784a..85aef34 100644
+--- a/fs/ocfs2/file.c
++++ b/fs/ocfs2/file.c
+@@ -2257,7 +2257,7 @@ static ssize_t ocfs2_file_write_iter(struct kiocb *iocb,
+ 	int direct_io = iocb->ki_flags & IOCB_DIRECT ? 1 : 0;
+ 	int nowait = iocb->ki_flags & IOCB_NOWAIT ? 1 : 0;
+
+-	trace_ocfs2_file_aio_write(inode, file, file->f_path.dentry,
++	trace_ocfs2_file_write_iter(inode, file, file->f_path.dentry,
+ 		(unsigned long long)OCFS2_I(inode)->ip_blkno,
+ 		file->f_path.dentry->d_name.len,
+ 		file->f_path.dentry->d_name.name,
+@@ -2405,7 +2405,7 @@ static ssize_t ocfs2_file_read_iter(struct kiocb *iocb,
+ 	int direct_io = iocb->ki_flags & IOCB_DIRECT ? 1 : 0;
+ 	int nowait = iocb->ki_flags & IOCB_NOWAIT ? 1 : 0;
+
+-	trace_ocfs2_file_aio_read(inode, filp, filp->f_path.dentry,
++	trace_ocfs2_file_read_iter(inode, filp, filp->f_path.dentry,
+ 			(unsigned long long)OCFS2_I(inode)->ip_blkno,
+ 			filp->f_path.dentry->d_name.len,
+ 			filp->f_path.dentry->d_name.name,
+@@ -2448,7 +2448,7 @@ static ssize_t ocfs2_file_read_iter(struct kiocb *iocb,
+ 	 *
+ 	 * Take and drop the meta data lock to update inode fields
+ 	 * like i_size. This allows the checks down below
+-	 * generic_file_aio_read() a chance of actually working.
++	 * generic_file_read_iter() a chance of actually working.
+ 	 */
+ 	ret = ocfs2_inode_lock_atime(inode, filp->f_path.mnt, &lock_level,
+ 				     !nowait);
+@@ -2460,7 +2460,7 @@ static ssize_t ocfs2_file_read_iter(struct kiocb *iocb,
+ 	ocfs2_inode_unlock(inode, lock_level);
+
+ 	ret = generic_file_read_iter(iocb, to);
+-	trace_generic_file_aio_read_ret(ret);
++	trace_generic_file_read_iter_ret(ret);
+
+ 	/* buffered aio wouldn't have proper lock coverage today */
+ 	BUG_ON(ret == -EIOCBQUEUED && !(iocb->ki_flags & IOCB_DIRECT));
+diff --git a/fs/ocfs2/ocfs2_trace.h b/fs/ocfs2/ocfs2_trace.h
+index e2a11aa..2ee76a9 100644
+--- a/fs/ocfs2/ocfs2_trace.h
++++ b/fs/ocfs2/ocfs2_trace.h
+@@ -1311,11 +1311,11 @@ DEFINE_OCFS2_FILE_OPS(ocfs2_file_release);
+
+ DEFINE_OCFS2_FILE_OPS(ocfs2_sync_file);
+
+-DEFINE_OCFS2_FILE_OPS(ocfs2_file_aio_write);
++DEFINE_OCFS2_FILE_OPS(ocfs2_file_write_iter);
+
+ DEFINE_OCFS2_FILE_OPS(ocfs2_file_splice_write);
+
+-DEFINE_OCFS2_FILE_OPS(ocfs2_file_aio_read);
++DEFINE_OCFS2_FILE_OPS(ocfs2_file_read_iter);
+
+ DEFINE_OCFS2_ULL_ULL_ULL_EVENT(ocfs2_truncate_file);
+
+@@ -1467,7 +1467,7 @@ TRACE_EVENT(ocfs2_prepare_inode_for_write,
+ 		  __entry->saved_pos, __entry->count, __entry->wait)
+ );
+
+-DEFINE_OCFS2_INT_EVENT(generic_file_aio_read_ret);
++DEFINE_OCFS2_INT_EVENT(generic_file_read_iter_ret);
+
+ /* End of trace events for fs/ocfs2/file.c. */
+
+-- 
+
+.
