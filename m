@@ -1,58 +1,27 @@
-From: Changwei Ge <ge.changwei@h3c.com>
-Date: Fri, 23 Feb 2018 09:55:39 +0000
+From: Joseph Qi <jiangqi903@gmail.com>
+Date: Fri, 23 Feb 2018 18:16:29 +0800
 Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: clean unrelated comment
+In-Reply-To: <1519371054-4648-1-git-send-email-ge.changwei@h3c.com>
 References: <1519371054-4648-1-git-send-email-ge.changwei@h3c.com>
-	<5A8FDB1E.6040900@huawei.com>
-Message-ID: <63ADC13FD55D6546B7DECE290D39E373F2925A5A@H3CMLB12-EX.srv.huawei-3com.com>
+Message-ID: <61fea229-531f-0051-9174-63eb14f8cdad@gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Jun,
 
-On 2018/2/23 17:13, piaojun wrote:
-> Hi changwei,
-> 
-> On 2018/2/23 15:30, ge.changwei at h3c.com wrote:
->> From: Changwei Ge <ge.changwei@h3c.com>
-> This line seems unnecessary, others looks good to me.
-I used git send-email, thus this line was added by parameter --from.
-I suppose you could ignore it if it seems strange to you:-)
 
-Thanks,
-Changwei
+On 18/2/23 15:30, ge.changwei at h3c.com wrote:
+> From: Changwei Ge <ge.changwei@h3c.com>
+> 
+> Obviously, the comment before dlm_do_local_recovery_cleanup() has
+> nothing to do with it. So remove it.
+> 
+> Signed-off-by: Changwei Ge <ge.changwei@h3c.com>
 
-> 
-> thanks,
-> Jun
->>
->> Obviously, the comment before dlm_do_local_recovery_cleanup() has
->> nothing to do with it. So remove it.
->>
->> Signed-off-by: Changwei Ge <ge.changwei@h3c.com>
->> ---
->>   fs/ocfs2/dlm/dlmrecovery.c | 7 -------
->>   1 file changed, 7 deletions(-)
->>
->> diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
->> index ec8f758..65f0c54 100644
->> --- a/fs/ocfs2/dlm/dlmrecovery.c
->> +++ b/fs/ocfs2/dlm/dlmrecovery.c
->> @@ -2331,13 +2331,6 @@ static void dlm_free_dead_locks(struct dlm_ctxt *dlm,
->>   	__dlm_dirty_lockres(dlm, res);
->>   }
->>   
->> -/* if this node is the recovery master, and there are no
->> - * locks for a given lockres owned by this node that are in
->> - * either PR or EX mode, zero out the lvb before requesting.
->> - *
->> - */
->> -
->> -
->>   static void dlm_do_local_recovery_cleanup(struct dlm_ctxt *dlm, u8 dead_node)
->>   {
->>   	struct dlm_lock_resource *res;
->>
-> 
+It seems to say we can no longer trust the lvb in this case. Maybe it
+should be placed somewhere to call dlm_revalidate_lvb()?
+
+Anyway, this cleanup looks good to me.
+Acked-by: Joseph Qi <jiangqi903@gmail.com>
