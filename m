@@ -1,70 +1,87 @@
-From: piaojun <piaojun@huawei.com>
-Date: Sat, 24 Feb 2018 14:42:19 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: clean unrelated comment
-In-Reply-To: <63ADC13FD55D6546B7DECE290D39E373F2925A5A@H3CMLB12-EX.srv.huawei-3com.com>
-References: <1519371054-4648-1-git-send-email-ge.changwei@h3c.com>
-	<5A8FDB1E.6040900@huawei.com>
-	<63ADC13FD55D6546B7DECE290D39E373F2925A5A@H3CMLB12-EX.srv.huawei-3com.com>
-Message-ID: <5A91094B.5000108@huawei.com>
+From: Changwei Ge <ge.changwei@h3c.com>
+Date: Mon, 26 Feb 2018 09:46:35 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: clean up two unused functions in
+	suballoc.c
+Message-ID: <1519609595-26229-1-git-send-email-ge.changwei@h3c.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Changwei,
+The two functions are no longer used.
 
-On 2018/2/23 17:55, Changwei Ge wrote:
-> Hi Jun,
-> 
-> On 2018/2/23 17:13, piaojun wrote:
->> Hi changwei,
->>
->> On 2018/2/23 15:30, ge.changwei at h3c.com wrote:
->>> From: Changwei Ge <ge.changwei@h3c.com>
->> This line seems unnecessary, others looks good to me.
-> I used git send-email, thus this line was added by parameter --from.
-> I suppose you could ignore it if it seems strange to you:-)
-If this won't affect the patch format, you could add:
-Reviewed-by: Jun Piao <piaojun@huawei.com>
+Signed-off-by: Changwei Ge <ge.changwei@h3c.com>
+---
+ fs/ocfs2/suballoc.c | 49 -------------------------------------------------
+ 1 file changed, 49 deletions(-)
 
-thanks,
-Jun
-> 
-> Thanks,
-> Changwei
-> 
->>
->> thanks,
->> Jun
->>>
->>> Obviously, the comment before dlm_do_local_recovery_cleanup() has
->>> nothing to do with it. So remove it.
->>>
->>> Signed-off-by: Changwei Ge <ge.changwei@h3c.com>
->>> ---
->>>   fs/ocfs2/dlm/dlmrecovery.c | 7 -------
->>>   1 file changed, 7 deletions(-)
->>>
->>> diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
->>> index ec8f758..65f0c54 100644
->>> --- a/fs/ocfs2/dlm/dlmrecovery.c
->>> +++ b/fs/ocfs2/dlm/dlmrecovery.c
->>> @@ -2331,13 +2331,6 @@ static void dlm_free_dead_locks(struct dlm_ctxt *dlm,
->>>   	__dlm_dirty_lockres(dlm, res);
->>>   }
->>>   
->>> -/* if this node is the recovery master, and there are no
->>> - * locks for a given lockres owned by this node that are in
->>> - * either PR or EX mode, zero out the lvb before requesting.
->>> - *
->>> - */
->>> -
->>> -
->>>   static void dlm_do_local_recovery_cleanup(struct dlm_ctxt *dlm, u8 dead_node)
->>>   {
->>>   	struct dlm_lock_resource *res;
->>>
->>
-> .
-> 
+diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
+index 9f0b95a..328be8b 100644
+--- a/fs/ocfs2/suballoc.c
++++ b/fs/ocfs2/suballoc.c
+@@ -79,8 +79,6 @@ static u64 ocfs2_group_from_res(struct ocfs2_suballoc_result *res)
+ 	return ocfs2_which_suballoc_group(res->sr_blkno, res->sr_bit_offset);
+ }
+ 
+-static inline void ocfs2_debug_bg(struct ocfs2_group_desc *bg);
+-static inline void ocfs2_debug_suballoc_inode(struct ocfs2_dinode *fe);
+ static inline u16 ocfs2_find_victim_chain(struct ocfs2_chain_list *cl);
+ static int ocfs2_block_group_fill(handle_t *handle,
+ 				  struct inode *alloc_inode,
+@@ -2624,53 +2622,6 @@ int ocfs2_release_clusters(handle_t *handle,
+ 				    _ocfs2_clear_bit);
+ }
+ 
+-static inline void ocfs2_debug_bg(struct ocfs2_group_desc *bg)
+-{
+-	printk("Block Group:\n");
+-	printk("bg_signature:       %s\n", bg->bg_signature);
+-	printk("bg_size:            %u\n", bg->bg_size);
+-	printk("bg_bits:            %u\n", bg->bg_bits);
+-	printk("bg_free_bits_count: %u\n", bg->bg_free_bits_count);
+-	printk("bg_chain:           %u\n", bg->bg_chain);
+-	printk("bg_generation:      %u\n", le32_to_cpu(bg->bg_generation));
+-	printk("bg_next_group:      %llu\n",
+-	       (unsigned long long)bg->bg_next_group);
+-	printk("bg_parent_dinode:   %llu\n",
+-	       (unsigned long long)bg->bg_parent_dinode);
+-	printk("bg_blkno:           %llu\n",
+-	       (unsigned long long)bg->bg_blkno);
+-}
+-
+-static inline void ocfs2_debug_suballoc_inode(struct ocfs2_dinode *fe)
+-{
+-	int i;
+-
+-	printk("Suballoc Inode %llu:\n", (unsigned long long)fe->i_blkno);
+-	printk("i_signature:                  %s\n", fe->i_signature);
+-	printk("i_size:                       %llu\n",
+-	       (unsigned long long)fe->i_size);
+-	printk("i_clusters:                   %u\n", fe->i_clusters);
+-	printk("i_generation:                 %u\n",
+-	       le32_to_cpu(fe->i_generation));
+-	printk("id1.bitmap1.i_used:           %u\n",
+-	       le32_to_cpu(fe->id1.bitmap1.i_used));
+-	printk("id1.bitmap1.i_total:          %u\n",
+-	       le32_to_cpu(fe->id1.bitmap1.i_total));
+-	printk("id2.i_chain.cl_cpg:           %u\n", fe->id2.i_chain.cl_cpg);
+-	printk("id2.i_chain.cl_bpc:           %u\n", fe->id2.i_chain.cl_bpc);
+-	printk("id2.i_chain.cl_count:         %u\n", fe->id2.i_chain.cl_count);
+-	printk("id2.i_chain.cl_next_free_rec: %u\n",
+-	       fe->id2.i_chain.cl_next_free_rec);
+-	for(i = 0; i < fe->id2.i_chain.cl_next_free_rec; i++) {
+-		printk("fe->id2.i_chain.cl_recs[%d].c_free:  %u\n", i,
+-		       fe->id2.i_chain.cl_recs[i].c_free);
+-		printk("fe->id2.i_chain.cl_recs[%d].c_total: %u\n", i,
+-		       fe->id2.i_chain.cl_recs[i].c_total);
+-		printk("fe->id2.i_chain.cl_recs[%d].c_blkno: %llu\n", i,
+-		       (unsigned long long)fe->id2.i_chain.cl_recs[i].c_blkno);
+-	}
+-}
+-
+ /*
+  * For a given allocation, determine which allocators will need to be
+  * accessed, and lock them, reserving the appropriate number of bits.
+-- 
+2.7.4
