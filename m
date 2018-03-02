@@ -1,229 +1,83 @@
 From: piaojun <piaojun@huawei.com>
-Date: Fri, 2 Mar 2018 17:37:40 +0800
+Date: Fri, 2 Mar 2018 17:40:54 +0800
 Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: don't handle migrate lockres
  if already in shutdown
-In-Reply-To: <63ADC13FD55D6546B7DECE290D39E373F292C2FC@H3CMLB12-EX.srv.huawei-3com.com>
+In-Reply-To: <20180301152931.f878871c36e9e92e03529685@linux-foundation.org>
 References: <5A97C734.5020705@huawei.com>
 	<63ADC13FD55D6546B7DECE290D39E373F292B279@H3CMLB12-EX.srv.huawei-3com.com>
 	<5A97F41E.5090800@huawei.com>
-	<63ADC13FD55D6546B7DECE290D39E373F292C0D3@H3CMLB12-EX.srv.huawei-3com.com>
-	<5A98B22E.2010308@huawei.com>
-	<63ADC13FD55D6546B7DECE290D39E373F292C2FC@H3CMLB12-EX.srv.huawei-3com.com>
-Message-ID: <5A991B64.1030605@huawei.com>
+	<20180301152931.f878871c36e9e92e03529685@linux-foundation.org>
+Message-ID: <5A991C26.7050305@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Changwei,
+Hi Andrew,
 
-On 2018/3/2 13:53, Changwei Ge wrote:
-> On 2018/3/2 10:09, piaojun wrote:
+Thanks for your suggestion, I will give a more comprehensive changelog in
+patch v2 later.
+
+thanks,
+Jun
+
+On 2018/3/2 7:29, Andrew Morton wrote:
+> On Thu, 1 Mar 2018 20:37:50 +0800 piaojun <piaojun@huawei.com> wrote:
+> 
 >> Hi Changwei,
 >>
->> On 2018/3/2 9:49, Changwei Ge wrote:
+>> Thanks for your quick reply, please see my comments below.
+>>
+>> On 2018/3/1 17:39, Changwei Ge wrote:
 >>> Hi Jun,
->>> I still have some doubts about your problematic situation description .
->>> Please check my reply inline your sequence diagram.
 >>>
->>> On 2018/3/1 20:38, piaojun wrote:
->>>> Hi Changwei,
+>>> On 2018/3/1 17:27, piaojun wrote:
+>>>> We should not handle migrate lockres if we are already in
+>>>> 'DLM_CTXT_IN_SHUTDOWN', as that will cause lockres remains after
+>>>> leaving dlm domain. At last other nodes will get stuck into infinite
+>>>> loop when requsting lock from us.
 >>>>
->>>> Thanks for your quick reply, please see my comments below.
->>>>
->>>> On 2018/3/1 17:39, Changwei Ge wrote:
->>>>> Hi Jun,
->>>>>
->>>>> On 2018/3/1 17:27, piaojun wrote:
->>>>>> We should not handle migrate lockres if we are already in
->>>>>> 'DLM_CTXT_IN_SHUTDOWN', as that will cause lockres remains after
->>>>>> leaving dlm domain. At last other nodes will get stuck into infinite
->>>>>> loop when requsting lock from us.
->>>>>>
->>>>>>        N1                             N2 (owner)
->>>>>>                                       touch file
->>>>>>
->>>>>> access the file,
->>>>>> and get pr lock
->>>>>>
->>>>>> umount
->>>>>>
->>>>>
->>>>> Before migrating all lock resources, N1 should have already sent
->>>>> DLM_BEGIN_EXIT_DOMAIN_MSG in dlm_begin_exit_domain().
->>>>> N2 will set ->exit_domain_map later.
->>>>> So N2 can't take N1 as migration target.
->>>> Before receiveing N1's DLM_BEGIN_EXIT_DOMAIN_MSG, N2 has picked up N1 as
->>>> the migrate target. So N2 will continue sending lockres to N1 even though
->>>> N1 has left domain. Sorry for making you misunderstanding, I will give a
->>>> more detailed description.
->>>>
->>>>       N1                             N2 (owner)
->>>>                                      touch file
+>>>>      N1                             N2 (owner)
+>>>>                                     touch file
 >>>>
 >>>> access the file,
 >>>> and get pr lock
 >>>>
->>>>                                      begin leave domain and
->>>>                                      pick up N1 as new owner
+>>>> umount
 >>>>
->>>> begin leave domain and
->>> Here will clear N1 from N2's dlm->domain_map
 >>>
->>>> migrate all lockres do >
->>>>                                      begin migrate lockres to N1
->>> As N1 has been cleared, migrating for this lock resource can't continue.
->> N2 has picked up N1 as new owner in dlm_pick_migration_target() before
->> setting N1 in N2's dlm->exit_domain_map, so N2 will continue migrating
->> lock resource.
-> 
-> Do you mean that DLM_BEGIN_EXIT_DOMAIN_MSG arrives just before 
-> dlm_send_one_lockres() in dlm_migrate_lockres() and after 
-> dlm_mark_lockres_migrating()?
-Yes, I meant that.
-
-> If so there is race that your problem can happen.
-> 
-> Well let's move to your code.
-> 
->>>
->>> Besides,
->>> I wonder what kind of problem you encountered?
->>> A bug crash? A hang situation?
->>> It's better to share some issue appearance.So perhaps I can help to analyze.:)
->> I encountered a stuck case which described in my changelog.
+>>> Before migrating all lock resources, N1 should have already sent 
+>>> DLM_BEGIN_EXIT_DOMAIN_MSG in dlm_begin_exit_domain().
+>>> N2 will set ->exit_domain_map later.
+>>> So N2 can't take N1 as migration target.
+>> Before receiveing N1's DLM_BEGIN_EXIT_DOMAIN_MSG, N2 has picked up N1 as
+>> the migrate target. So N2 will continue sending lockres to N1 even though
+>> N1 has left domain. Sorry for making you misunderstanding, I will give a
+>> more detailed description.
 >>
->> "
->> At last other nodes will get stuck into infinite loop when requsting lock
->> from us.
->> "
+>>     N1                             N2 (owner)
+>>                                    touch file
 >>
->> thanks,
->> Jun
->>>
->>> Thanks,
->>> Changwei
->>>
->>>>
->>>> end leave domain, but
->>>> the lockres left
->>>> unexpectedly, because
->>>> migrate task has passed
->>>>
->>>> thanks,
->>>> Jun
->>>>>
->>>>> How can the scenario your changelog describing happen?
->>>>> Or if miss something?
->>>>>
->>>>> Thanks,
->>>>> Changwei
->>>>>
->>>>>> migrate all lockres
->>>>>>
->>>>>>                                       umount and migrate lockres to N1
->>>>>>
->>>>>> leave dlm domain, but
->>>>>> the lockres left
->>>>>> unexpectedly, because
->>>>>> migrate task has passed
->>>>>>
->>>>>> Signed-off-by: Jun Piao <piaojun@huawei.com>
->>>>>> Reviewed-by: Yiwen Jiang <jiangyiwen@huawei.com>
->>>>>> ---
->>>>>>     fs/ocfs2/dlm/dlmdomain.c   | 14 ++++++++++++++
->>>>>>     fs/ocfs2/dlm/dlmdomain.h   |  1 +
->>>>>>     fs/ocfs2/dlm/dlmrecovery.c |  9 +++++++++
->>>>>>     3 files changed, 24 insertions(+)
->>>>>>
->>>>>> diff --git a/fs/ocfs2/dlm/dlmdomain.c b/fs/ocfs2/dlm/dlmdomain.c
->>>>>> index e1fea14..3b7ec51 100644
->>>>>> --- a/fs/ocfs2/dlm/dlmdomain.c
->>>>>> +++ b/fs/ocfs2/dlm/dlmdomain.c
->>>>>> @@ -675,6 +675,20 @@ static void dlm_leave_domain(struct dlm_ctxt *dlm)
->>>>>>     	spin_unlock(&dlm->spinlock);
->>>>>>     }
->>>>>>
->>>>>> +int dlm_joined(struct dlm_ctxt *dlm)
->>>>>> +{
->>>>>> +	int ret = 0;
->>>>>> +
->>>>>> +	spin_lock(&dlm_domain_lock);
->>>>>> +
->>>>>> +	if (dlm->dlm_state == DLM_CTXT_JOINED)
->>>>>> +		ret = 1;
->>>>>> +
->>>>>> +	spin_unlock(&dlm_domain_lock);
->>>>>> +
->>>>>> +	return ret;
->>>>>> +}
->>>>>> +
-> How about use directly use existed function dlm_shutting_down()
-I'm afraid that we can't use dlm_shutting_down() directly, as
-dlm->dlm_state will be set DLM_CTXT_LEAVING in dlm_mark_domain_leaving()
-after N1 migrate all lockres.
-
-> 
->>>>>>     int dlm_shutting_down(struct dlm_ctxt *dlm)
->>>>>>     {
->>>>>>     	int ret = 0;
->>>>>> diff --git a/fs/ocfs2/dlm/dlmdomain.h b/fs/ocfs2/dlm/dlmdomain.h
->>>>>> index fd6122a..2f7f60b 100644
->>>>>> --- a/fs/ocfs2/dlm/dlmdomain.h
->>>>>> +++ b/fs/ocfs2/dlm/dlmdomain.h
->>>>>> @@ -28,6 +28,7 @@
->>>>>>     extern spinlock_t dlm_domain_lock;
->>>>>>     extern struct list_head dlm_domains;
->>>>>>
->>>>>> +int dlm_joined(struct dlm_ctxt *dlm);
->>>>>>     int dlm_shutting_down(struct dlm_ctxt *dlm);
->>>>>>     void dlm_fire_domain_eviction_callbacks(struct dlm_ctxt *dlm,
->>>>>>     					int node_num);
->>>>>> diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
->>>>>> index ec8f758..9b3bc66 100644
->>>>>> --- a/fs/ocfs2/dlm/dlmrecovery.c
->>>>>> +++ b/fs/ocfs2/dlm/dlmrecovery.c
->>>>>> @@ -1378,6 +1378,15 @@ int dlm_mig_lockres_handler(struct o2net_msg *msg, u32 len, void *data,
->>>>>>     	if (!dlm_grab(dlm))
->>>>>>     		return -EINVAL;
->>>>>>
->>>>>> +	if (!dlm_joined(dlm)) {
-> Here can be if (dlm_shutting_down(dlm)) ?
->>>>>> +		mlog(ML_ERROR, "Domain %s not joined! "
-> The log is not accurate. Domain is shutting down will be better, I suppose.
-Actually domain is in DLM_CTXT_IN_SHUTDOWN or DLM_CTXT_LEAVING, so we can hardly distinguish here.
-So we can only judge domain is not in DLM_CTXT_JOINED.
-> 
->>>>>> +				"lockres %.*s, master %u\n",
->>>>>> +				dlm->name, mres->lockname_len,
-> I don't like the alignment style.
-> How about?
-> mlog(ML_ERROR, "Domain %s not joined! "
->       "lockres %.*s, master %u\n",
-OK, I will fix this.
-
-thanks,
-Jun
-> 
-> 
-> Thanks,
-> Changwei
-> 
->>>>>> +				mres->lockname, mres->master);
->>>>>> +		dlm_put(dlm);
->>>>>> +		return -EINVAL;
->>>>>> +	}
->>>>>> +
->>>>>>     	BUG_ON(!(mres->flags & (DLM_MRES_RECOVERY|DLM_MRES_MIGRATION)));
->>>>>>
->>>>>>     	real_master = mres->master;
->>>>>>
->>>>> .
->>>>>
->>>>
->>> .
->>>
+>> access the file,
+>> and get pr lock
 >>
+>>                                    begin leave domain and
+>>                                    pick up N1 as new owner
+>>
+>> begin leave domain and
+>> migrate all lockres done
+>>
+>>                                    begin migrate lockres to N1
+>>
+>> end leave domain, but
+>> the lockres left
+>> unexpectedly, because
+>> migrate task has passed
+> 
+> If someone asked a question then this is a sign that the changelog was
+> missing details.  So please do send along a v2 with a more
+> comprehensive changelog.
+> 
 > .
 > 
