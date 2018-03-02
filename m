@@ -1,26 +1,23 @@
-From: Larry Chen <lchen@suse.com>
-Date: Fri, 2 Mar 2018 10:37:04 +0800
+From: Changwei Ge <ge.changwei@h3c.com>
+Date: Fri, 2 Mar 2018 02:38:46 +0000
 Subject: [Ocfs2-devel] [PATCH] Correct a comment error
-In-Reply-To: <5A98B3BB.3040408@huawei.com>
 References: <20180228101720.20725-1-lchen@suse.com>
 	<5A97F88E.4010303@huawei.com>
 	<63ADC13FD55D6546B7DECE290D39E373F292C0FC@H3CMLB12-EX.srv.huawei-3com.com>
 	<5A98B3BB.3040408@huawei.com>
-Message-ID: <40b08149-1a35-0dcc-116a-9df71b629950@suse.com>
+Message-ID: <63ADC13FD55D6546B7DECE290D39E373F292C163@H3CMLB12-EX.srv.huawei-3com.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: piaojun <piaojun@huawei.com>, Changwei Ge <ge.changwei@h3c.com>, "mfasheh@versity.com" <mfasheh@versity.com>, "jlbec@evilplan.org" <jlbec@evilplan.org>
+To: piaojun <piaojun@huawei.com>, Larry Chen <lchen@suse.com>, "mfasheh@versity.com" <mfasheh@versity.com>, "jlbec@evilplan.org" <jlbec@evilplan.org>
 Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>
 
-Hi Changwei and Jun,
+Hi Jun,
 
-Thanks for your advice.
-
-On 03/02/2018 10:15 AM, piaojun wrote:
+On 2018/3/2 10:16, piaojun wrote:
 > Hi Changwei,
->
+> 
 > On 2018/3/2 9:59, Changwei Ge wrote:
 >> Hi Jun,
 >> I think the comments for both two functions are OK.
@@ -29,19 +26,17 @@ On 03/02/2018 10:15 AM, piaojun wrote:
 >> block number.
 > I looked though the comments involved 'lockid', and found 'lockid' is a
 > concept in dlm level, so ocfs2 level should not be aware of it.
-When reading source code of ocfs2 level, you'll find that 'lockid' is a new
-concept that has not occurred or be explained before.
+I don't agree.
+Please refer to ocfs2_build_lock_name().
+DLM should not know how ocfs2 distinguishes objects it wants to protected.
+Moreover, ocfs2 has a abstraction layer called dlmglue.
 
-It's kind of difficult to understand.
+-Changwei
 
-Maybe 'blockno' or 'blockid' is more sensible than 'lockid'
-
-I'm willing to fix them all.
-
-Thanks
-Larry
+> 
 > thanks,
 > Jun
+>>
 >> Thanks,
 >> Changw2ei
 >>
@@ -77,6 +72,7 @@ Larry
 >>>>    	if (oi1->ip_blkno != oi2->ip_blkno) {
 >>>>    		inode1_is_ancestor = ocfs2_check_if_ancestor(osb, oi2->ip_blkno,
 >>>>
+>>>
 >>> _______________________________________________
 >>> Ocfs2-devel mailing list
 >>> Ocfs2-devel at oss.oracle.com
@@ -84,3 +80,4 @@ Larry
 >>>
 >> .
 >>
+> 
