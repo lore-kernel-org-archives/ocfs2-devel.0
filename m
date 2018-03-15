@@ -1,30 +1,39 @@
-From: Shichangkuo <shi.changkuo@h3c.com>
-Date: Wed, 14 Mar 2018 10:13:00 +0000
-Subject: [Ocfs2-devel]  Two questions about ocfs2_extent_map_insert_rec
-Message-ID: <D1E4D02760513D4B90DC3B40FF32AF35E22F3EC6@H3CMLB14-EX.srv.huawei-3com.com>
+From: Changwei Ge <ge.changwei@h3c.com>
+Date: Thu, 15 Mar 2018 20:24:41 +0800
+Subject: [Ocfs2-devel] [PATCH 2/2] ocfs2/dlm: clean up unused stack variable
+	in dlm_do_local_ast()
+In-Reply-To: <1521116681-14602-1-git-send-email-ge.changwei@h3c.com>
+References: <1521116681-14602-1-git-send-email-ge.changwei@h3c.com>
+Message-ID: <1521116681-14602-2-git-send-email-ge.changwei@h3c.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi All,
-    When the extent_rec cannot be merged, we allocate a new item and add it into the em_list, then set it to NULL.
-    It looks strange, and may cause null pointer exception if we access it again.
-    Another doubt is the ip_lock was unlocked before allocating and was re-locked before searching again, does it necessary?
-    I have no idea about the initial purpose and also don't know how to test it if I changed the code.
-    Does someone help me?
+Signed-off-by: Changwei Ge <ge.changwei@h3c.com>
+---
+ fs/ocfs2/dlm/dlmast.c | 2 --
+ 1 file changed, 2 deletions(-)
 
-Thanks.
-Changkuo
--------------------------------------------------------------------------------------------------------------------------------------
-?????????????????????????????????????
-????????????????????????????????????????
-????????????????????????????????????????
-???
-This e-mail and its attachments contain confidential information from New H3C, which is
-intended only for the person or entity whose address is listed above. Any use of the
-information contained herein in any way (including, but not limited to, total or partial
-disclosure, reproduction, or dissemination) by persons other than the intended
-recipient(s) is prohibited. If you receive this e-mail in error, please notify the sender
-by phone or email immediately and delete it!
+diff --git a/fs/ocfs2/dlm/dlmast.c b/fs/ocfs2/dlm/dlmast.c
+index fd6bbbb..39831fc 100644
+--- a/fs/ocfs2/dlm/dlmast.c
++++ b/fs/ocfs2/dlm/dlmast.c
+@@ -224,14 +224,12 @@ void dlm_do_local_ast(struct dlm_ctxt *dlm, struct dlm_lock_resource *res,
+ 		      struct dlm_lock *lock)
+ {
+ 	dlm_astlockfunc_t *fn;
+-	struct dlm_lockstatus *lksb;
+ 
+ 	mlog(0, "%s: res %.*s, lock %u:%llu, Local AST\n", dlm->name,
+ 	     res->lockname.len, res->lockname.name,
+ 	     dlm_get_lock_cookie_node(be64_to_cpu(lock->ml.cookie)),
+ 	     dlm_get_lock_cookie_seq(be64_to_cpu(lock->ml.cookie)));
+ 
+-	lksb = lock->lksb;
+ 	fn = lock->ast;
+ 	BUG_ON(lock->ml.node != dlm->node_num);
+ 
+-- 
+2.7.4
