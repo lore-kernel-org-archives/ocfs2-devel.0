@@ -1,95 +1,43 @@
-From: Jan Kara <jack@suse.cz>
-Date: Wed, 21 Mar 2018 12:09:31 +0100
-Subject: [Ocfs2-devel] [PATCH 2/6] ocfs2: Fix quota recovery failure on
-	unmount
-In-Reply-To: <D1E4D02760513D4B90DC3B40FF32AF35E22F45D2@H3CMLB14-EX.srv.huawei-3com.com>
-References: <20180228111802.23967-1-jack@suse.cz>
-	<20180228111802.23967-3-jack@suse.cz>
-	<D1E4D02760513D4B90DC3B40FF32AF35E22F45D2@H3CMLB14-EX.srv.huawei-3com.com>
-Message-ID: <20180321110931.xsmqc54vsosgcuay@quack2.suse.cz>
+From: piaojun <piaojun@huawei.com>
+Date: Wed, 28 Mar 2018 11:50:34 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2/o2hb: check len for bio_add_page() to
+ avoid submitting incorrect bio
+Message-ID: <5ABB110A.3050808@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Changkuo!
+We need check len for bio_add_page() to make sure the bio has been set up
+correctly, otherwise we may submit incorrect data to device.
 
-On Mon 19-03-18 09:02:42, Shichangkuo wrote:
-> Hi Jan,
->     This patch will cause kernel crashes while umounting ocfs2.
->     After parsing the core file, I find the root reason is as follows:
->     osb->recovery_map is freed when recovery thread exited, but following functions still access it by calling ocfs2_inode_lock.
->     So, we should disable quotas between ocfs2_truncate_log_shutdown and ocfs2_recovery_exit.
->     Am I right?
+Signed-off-by: Jun Piao <piaojun@huawei.com>
+Reviewed-by: Yiwen Jiang <jiangyiwen@huawei.com>
+---
+ fs/ocfs2/cluster/heartbeat.c | 11 ++++++++++-
+ 1 file changed, 10 insertions(+), 1 deletion(-)
 
-Thanks a lot for testing and the analysis. Sadly fixing this is not that
-easy. We have to have recovery thread still working so that we can acquire
-locks to sync and disable quotas. OTOH we need to stop recovery thread from
-racing of quota recovery with disabling of quotas. Drat. I need to go back
-and rethink this...
+diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
+index ea8c551..43ad79f 100644
+--- a/fs/ocfs2/cluster/heartbeat.c
++++ b/fs/ocfs2/cluster/heartbeat.c
+@@ -570,7 +570,16 @@ static struct bio *o2hb_setup_one_bio(struct o2hb_region *reg,
+ 		     current_page, vec_len, vec_start);
 
-								Honza
+ 		len = bio_add_page(bio, page, vec_len, vec_start);
+-		if (len != vec_len) break;
++		if (len != vec_len) {
++			mlog(ML_ERROR, "Adding page[%d] to bio failed, "
++			     "page %p, len %d, vec_len %u, vec_start %u, "
++			     "bi_sector %llu\n", current_page, page, len,
++			     vec_len, vec_start,
++			     (unsigned long long)bio->bi_iter.bi_sector);
++			bio_put(bio);
++			bio = ERR_PTR(-EFAULT);
++			return bio;
++		}
 
-> 
-> Thanks
-> Changkuo
-> 
-> >>>
-> > When filesystem is unmounted while there is still some recovery work going
-> > on, it can happen that quotas get disabled before quota recovery is complete
-> > resulting in failed quota recovery and inconsistent quota accounting. Move
-> > disabling of recovery in ocfs2_dismount_volume() before disabling of quotas
-> > to fix this race.
-> >
-> > Signed-off-by: Jan Kara <jack@suse.cz>
-> > ---
-> >  fs/ocfs2/super.c | 10 +++++++---
-> >  1 file changed, 7 insertions(+), 3 deletions(-)
-> >
-> > diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c index
-> > ffa4952d432b..14c3d5ee6e24 100644
-> > --- a/fs/ocfs2/super.c
-> > +++ b/fs/ocfs2/super.c
-> > @@ -1904,6 +1904,13 @@ static void ocfs2_dismount_volume(struct
-> > super_block *sb, int mnt_err)
-> >       /* Orphan scan should be stopped as early as possible */
-> >       ocfs2_orphan_scan_stop(osb);
-> >
-> > +     /*
-> > +      * This will disable recovery and flush any recovery work. This needs
-> > +      * to happen before disabling quotas as quota recovery needs quotas
-> > +      * enabled.
-> > +      */
-> > +     ocfs2_recovery_exit(osb);
-> > +
-> >       ocfs2_disable_quotas(osb);
-> >
-> >       /* All dquots should be freed by now */ @@ -1915,9 +1922,6 @@
-> > static void ocfs2_dismount_volume(struct super_block *sb, int mnt_err)
-> >
-> >       ocfs2_truncate_log_shutdown(osb);
-> >
-> > -     /* This will disable recovery and flush any recovery work. */
-> > -     ocfs2_recovery_exit(osb);
-> > -
-> >       ocfs2_journal_shutdown(osb);
-> >
-> >       ocfs2_sync_blockdev(sb);
-> > --
-> > 2.13.6
-> 
-> -------------------------------------------------------------------------------------------------------------------------------------
-> ?????????????????????????????????????
-> ????????????????????????????????????????
-> ????????????????????????????????????????
-> ???
-> This e-mail and its attachments contain confidential information from New H3C, which is
-> intended only for the person or entity whose address is listed above. Any use of the
-> information contained herein in any way (including, but not limited to, total or partial
-> disclosure, reproduction, or dissemination) by persons other than the intended
-> recipient(s) is prohibited. If you receive this e-mail in error, please notify the sender
-> by phone or email immediately and delete it!
+ 		cs += vec_len / (PAGE_SIZE/spp);
+ 		vec_start = 0;
 -- 
-Jan Kara <jack@suse.com>
-SUSE Labs, CR
