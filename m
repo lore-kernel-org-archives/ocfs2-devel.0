@@ -1,51 +1,100 @@
-From: Joseph Qi <jiangqi903@gmail.com>
-Date: Thu, 29 Mar 2018 09:33:18 +0800
-Subject: [Ocfs2-devel] [PATCH v2] ocfs2/o2hb: check len for
- bio_add_page() to avoid getting incorrect bio
-In-Reply-To: <5ABC3EBE.5020807@huawei.com>
-References: <5ABC3EBE.5020807@huawei.com>
-Message-ID: <8a6155f9-9f50-9c48-74f9-9d586b7b8fb2@gmail.com>
+From: Changwei Ge <ge.changwei@h3c.com>
+Date: Thu, 29 Mar 2018 10:06:02 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: don't evaluate buffer head to NULL
+	managed by caller
+Message-ID: <1522289162-31693-1-git-send-email-ge.changwei@h3c.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
+ocfs2_read_blocks() is used to read several blocks from disk.
+Currently, the input argument *bhs* can be NULL or NOT. It depends on
+the caller's behavior. If the function fails in reading blocks from
+disk, the corresponding bh will be assigned to NULL and put.
 
+Obviously, above process for non-NULL input bh is not appropriate.
+Because the caller doesn't even know its bhs are put and re-assigned.
 
-On 18/3/29 09:17, piaojun wrote:
-> We need check len for bio_add_page() to make sure the bio has been set up
-> correctly, otherwise we may submit incorrect data to device.
-> 
-> Signed-off-by: Jun Piao <piaojun@huawei.com>
-> Reviewed-by: Yiwen Jiang <jiangyiwen@huawei.com>
-> Reviewed-by: Changwei Ge <ge.changwei@h3c.com>
+If buffer head is managed by caller, ocfs2_read_blocks should not
+evaluate it to NULL. It will cause caller accessing illegal memory,
+thus crash.
 
-Acked-by: Joseph Qi <jiangqi903@gmail.com>
-> ---
->  fs/ocfs2/cluster/heartbeat.c | 11 ++++++++++-
->  1 file changed, 10 insertions(+), 1 deletion(-)
-> 
-> diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
-> index ea8c551..91a8889 100644
-> --- a/fs/ocfs2/cluster/heartbeat.c
-> +++ b/fs/ocfs2/cluster/heartbeat.c
-> @@ -570,7 +570,16 @@ static struct bio *o2hb_setup_one_bio(struct o2hb_region *reg,
->  		     current_page, vec_len, vec_start);
-> 
->  		len = bio_add_page(bio, page, vec_len, vec_start);
-> -		if (len != vec_len) break;
-> +		if (len != vec_len) {
-> +			mlog(ML_ERROR, "Adding page[%d] to bio failed, "
-> +			     "page %p, len %d, vec_len %u, vec_start %u, "
-> +			     "bi_sector %llu\n", current_page, page, len,
-> +			     vec_len, vec_start,
-> +			     (unsigned long long)bio->bi_iter.bi_sector);
-> +			bio_put(bio);
-> +			bio = ERR_PTR(-EIO);
-> +			return bio;
-> +		}
-> 
->  		cs += vec_len / (PAGE_SIZE/spp);
->  		vec_start = 0;
-> 
+Signed-off-by: Changwei Ge <ge.changwei@h3c.com>
+---
+ fs/ocfs2/buffer_head_io.c | 31 +++++++++++++++++++++++++------
+ 1 file changed, 25 insertions(+), 6 deletions(-)
+
+diff --git a/fs/ocfs2/buffer_head_io.c b/fs/ocfs2/buffer_head_io.c
+index d9ebe11..17329b6 100644
+--- a/fs/ocfs2/buffer_head_io.c
++++ b/fs/ocfs2/buffer_head_io.c
+@@ -188,6 +188,7 @@ int ocfs2_read_blocks(struct ocfs2_caching_info *ci, u64 block, int nr,
+ 	int i, ignore_cache = 0;
+ 	struct buffer_head *bh;
+ 	struct super_block *sb = ocfs2_metadata_cache_get_super(ci);
++	int new_bh = 0;
+ 
+ 	trace_ocfs2_read_blocks_begin(ci, (unsigned long long)block, nr, flags);
+ 
+@@ -213,6 +214,18 @@ int ocfs2_read_blocks(struct ocfs2_caching_info *ci, u64 block, int nr,
+ 		goto bail;
+ 	}
+ 
++	/* Use below trick to check if all bhs are NULL or assigned.
++	 * Basically, we hope all bhs are consistent so that we can
++	 * handle exception easily.
++	 */
++	new_bh = (bhs[0] == NULL);
++	for (i = 1 ; i < nr ; i++) {
++		if ((new_bh && bhs[i]) || (!new_bh && !bhs[i])) {
++			WARN(1, "Not all bhs are consistent\n");
++			break;
++		}
++	}
++
+ 	ocfs2_metadata_cache_io_lock(ci);
+ 	for (i = 0 ; i < nr ; i++) {
+ 		if (bhs[i] == NULL) {
+@@ -324,8 +337,10 @@ int ocfs2_read_blocks(struct ocfs2_caching_info *ci, u64 block, int nr,
+ 		if (!(flags & OCFS2_BH_READAHEAD)) {
+ 			if (status) {
+ 				/* Clear the rest of the buffers on error */
+-				put_bh(bh);
+-				bhs[i] = NULL;
++				if (new_bh) {
++					put_bh(bh);
++					bhs[i] = NULL;
++				}
+ 				continue;
+ 			}
+ 			/* We know this can't have changed as we hold the
+@@ -342,8 +357,10 @@ int ocfs2_read_blocks(struct ocfs2_caching_info *ci, u64 block, int nr,
+ 				 * for this bh as it's not marked locally
+ 				 * uptodate. */
+ 				status = -EIO;
+-				put_bh(bh);
+-				bhs[i] = NULL;
++				if (new_bh) {
++					put_bh(bh);
++					bhs[i] = NULL;
++				}
+ 				continue;
+ 			}
+ 
+@@ -355,8 +372,10 @@ int ocfs2_read_blocks(struct ocfs2_caching_info *ci, u64 block, int nr,
+ 				clear_buffer_needs_validate(bh);
+ 				status = validate(sb, bh);
+ 				if (status) {
+-					put_bh(bh);
+-					bhs[i] = NULL;
++					if (new_bh) {
++						put_bh(bh);
++						bhs[i] = NULL;
++					}
+ 					continue;
+ 				}
+ 			}
+-- 
+2.7.4
