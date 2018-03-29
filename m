@@ -1,22 +1,21 @@
-From: Larry Chen <lchen@suse.com>
-Date: Thu, 29 Mar 2018 18:32:44 +0800
+From: Changwei Ge <ge.changwei@h3c.com>
+Date: Thu, 29 Mar 2018 12:03:16 +0000
 Subject: [Ocfs2-devel] [PATCH] ocfs2: don't evaluate buffer head to NULL
  managed by caller
-In-Reply-To: <5ABCB6EC.4080108@huawei.com>
 References: <1522289162-31693-1-git-send-email-ge.changwei@h3c.com>
 	<5ABCB6EC.4080108@huawei.com>
-Message-ID: <68a1c544-f62e-dc89-79da-185ecde84afe@suse.com>
+Message-ID: <63ADC13FD55D6546B7DECE290D39E373F29586FE@H3CMLB12-EX.srv.huawei-3com.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Changwei,
+Hi Jun,
 
-On 03/29/2018 05:50 PM, piaojun wrote:
+On 2018/3/29 17:51, piaojun wrote:
 > Hi Changwei,
->
+> 
 > On 2018/3/29 10:06, Changwei Ge wrote:
 >> ocfs2_read_blocks() is used to read several blocks from disk.
 >> Currently, the input argument *bhs* can be NULL or NOT. It depends on
@@ -92,12 +91,20 @@ On 03/29/2018 05:50 PM, piaojun wrote:
 > How to make suer 'bhs[i]' is not allocated by user according to 'new_bh'?
 > 'new_bh' equis 1 only means 'bhs[0]' is allocated by ocfs2_read_blocks()
 > and we should put it here, right?
-Does your patch assumes that bhs refers to either an all-NULL-elements 
-array or
-an all-preallocated-elements array?
 
-Thanks
-Larry
+Thanks for your review.
+If I understand correctly, you mean *new_bh* only represents that only bhs[0] is 
+allocated by ocfs2_read_blocks() while other bhs[i] can't be ensured NULL as 
+well as input arugment?
+I suppose every single elements in bhs[i] should be NULL or non-NULL.
+This should be guaranteed by caller.
+
+So I add a trick to check if condition is met, which you can find under a comment.
+
+Thanks,
+Changwei
+
+> 
 > thanks,
 > Jun
 >>   				continue;
@@ -117,9 +124,4 @@ Larry
 >>   				}
 >>   			}
 >>
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
->
->
+> 
