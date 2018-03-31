@@ -1,94 +1,78 @@
-From: Ashish Samant <ashish.samant@oracle.com>
-Date: Fri, 30 Mar 2018 10:42:17 -0700
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Take inode cluster lock before moving
-	reflinked inode from orphan dir
-Message-ID: <1522431737-4134-1-git-send-email-ashish.samant@oracle.com>
+From: Changwei Ge <ge.changwei@h3c.com>
+Date: Sat, 31 Mar 2018 02:06:32 +0000
+Subject: [Ocfs2-devel] [PATCH] ocfs2: don't evaluate buffer head to NULL
+ managed by caller
+References: <1522289162-31693-1-git-send-email-ge.changwei@h3c.com>
+	<9e21437e-0c16-4bc7-2e87-a8310b2172ea@gmail.com>
+	<63ADC13FD55D6546B7DECE290D39E373F2958D95@H3CMLB12-EX.srv.huawei-3com.com>
+	<f08b4265-6c49-489f-6168-1ac966f96bbf@gmail.com>
+	<63ADC13FD55D6546B7DECE290D39E373F2958E1B@H3CMLB12-EX.srv.huawei-3com.com>
+	<2be324cc-2a77-6b17-3441-1f17d6e24b24@gmail.com>
+Message-ID: <63ADC13FD55D6546B7DECE290D39E373F295A6C8@H3CMLB12-EX.srv.huawei-3com.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-While reflinking an inode, we create a new inode in orphan directory, then
-take EX lock on it, reflink the original inode to orphan inode and release
-EX lock. Once the lock is released another node might request it in PR mode
-which causes downconvert of the lock to PR mode.
+On 2018/3/30 10:38, Joseph Qi wrote:
+> 
+> 
+> On 18/3/30 10:17, Changwei Ge wrote:
+>>>>> Since we assume caller has to pass either all NULL or all non-NULL,
+>>>>> here we will only put bh internal allocated. Am I missing something?
+>>>> Thanks for your review.
+>>>> Yes, we will only put bh internally allocated.
+>>>> If bh is reserved in advance, we will not put it and re-assign it to NULL.
+>>>>
+>>> So this branch won't have risk, right?
+>> Sorry... I'm not sure if I understand you correctly.
+>> This branch will be walked through when previous part of bhs[] faces a read
+>> failure in order to put bh allocated in ocfs2_read_blocks().
+>> And we assume all bh should be NULL or non-NULL, if new_bh is set, the back part
+>> should also be put to release those buffer heads.
+>>
+>> If I made a mistake or misunderstand you, please let me know.
+> 
+> 
+> I'm saying that sb_getblk() will only be called if bh hasn't been
+> allocated yet. That means if it fails, the bh to be put can be
+> guaranteed internal allocated.
 
-Later we attempt to initialize security acl for the orphan inode and move
-it to the reflink destination. However, while doing this we dont take EX
-lock on the inode. So effectively, we are doing this and accessing the
-journal for this inode while holding PR lock. While accessing the journal,
-we make
+If sb_getblk() fails, code will bail out rather than goes into this branch 
+check. Particularly speaking, the *second* for loop will be jumped.
+And I do think we need to check new_bh here to put the rest of buffer heads if 
+one buffer head encounters read failure. If below code snippet is walked in, the 
+mentioned code branch can work.
+			
+			if (!buffer_uptodate(bh)) {
+				/* Status won't be cleared from here on out,
+				 * so we can safely record this and loop back
+				 * to cleanup the other buffers. Don't need to
+				 * remove the clustered uptodate information
+				 * for this bh as it's not marked locally
+				 * uptodate. */
+				status = -EIO;
+				put_bh(bh);
+				bhs[i] = NULL;
+				continue;
+			}
 
-ci->ci_last_trans = journal->j_trans_id
+After our discussion I find another problem residing in ocfs2_read_blocks() too.
+I will send a patch set to fix them all later.
 
-At this point, if there is another downconvert request on this inode from
-another node (PR->NL), we will trip on the following condition in
-ocfs2_ci_checkpointed()
+> Also I don't think the WARN check is necessary as this is common path
+> and will bring additional cpu consumption. We can make it clear at
+> comments of ocfs2_read_blocks() that either all NULL or non-NULL bhs
+> is prerequisite for the caller. And then we make sure we won't put bh
+> that is allocated outside.
 
-BUG_ON(lockres->l_level != DLM_LOCK_EX && !checkpointed);
+Agree.
 
-because we hold the lock in PR mode and journal->j_trans_id is not greater
-than ci_last_trans for the inode.
+Thanks,
+Changwei
 
-Fix this by taking orphan inode cluster lock in EX mode before
-initializing security and moving orphan inode to reflink destination.
-Use the __tracker variant while taking inode lock to avoid recursive
-locking in the ocfs2_init_security_and_acl() call chain.
-
-Signed-off-by: Ashish Samant <ashish.samant@oracle.com>
----
- fs/ocfs2/refcounttree.c | 14 ++++++++++++--
- 1 file changed, 12 insertions(+), 2 deletions(-)
-
-diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
-index ab156e3..1b1283f 100644
---- a/fs/ocfs2/refcounttree.c
-+++ b/fs/ocfs2/refcounttree.c
-@@ -4250,10 +4250,11 @@ static int __ocfs2_reflink(struct dentry *old_dentry,
- static int ocfs2_reflink(struct dentry *old_dentry, struct inode *dir,
- 			 struct dentry *new_dentry, bool preserve)
- {
--	int error;
-+	int error, had_lock;
- 	struct inode *inode = d_inode(old_dentry);
- 	struct buffer_head *old_bh = NULL;
- 	struct inode *new_orphan_inode = NULL;
-+	struct ocfs2_lock_holder oh;
- 
- 	if (!ocfs2_refcount_tree(OCFS2_SB(inode->i_sb)))
- 		return -EOPNOTSUPP;
-@@ -4295,6 +4296,14 @@ static int ocfs2_reflink(struct dentry *old_dentry, struct inode *dir,
- 		goto out;
- 	}
- 
-+	had_lock = ocfs2_inode_lock_tracker(new_orphan_inode, NULL, 1,
-+					    &oh);
-+	if (had_lock < 0) {
-+		error = had_lock;
-+		mlog_errno(error);
-+		goto out;
-+	}
-+
- 	/* If the security isn't preserved, we need to re-initialize them. */
- 	if (!preserve) {
- 		error = ocfs2_init_security_and_acl(dir, new_orphan_inode,
-@@ -4302,14 +4311,15 @@ static int ocfs2_reflink(struct dentry *old_dentry, struct inode *dir,
- 		if (error)
- 			mlog_errno(error);
- 	}
--out:
- 	if (!error) {
- 		error = ocfs2_mv_orphaned_inode_to_new(dir, new_orphan_inode,
- 						       new_dentry);
- 		if (error)
- 			mlog_errno(error);
- 	}
-+	ocfs2_inode_unlock_tracker(new_orphan_inode, 1, &oh, had_lock);
- 
-+out:
- 	if (new_orphan_inode) {
- 		/*
- 		 * We need to open_unlock the inode no matter whether we
--- 
-1.9.1
+> 
+> Thanks,
+> Joseph
+> 
