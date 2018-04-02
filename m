@@ -1,60 +1,47 @@
-From: Changwei Ge <ge.changwei@h3c.com>
-Date: Mon, 2 Apr 2018 06:15:30 +0000
-Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: wait for dlm recovery done
- when migrating all lock resources
-References: <5AAA6E25.7090303@huawei.com>
-	<63ADC13FD55D6546B7DECE290D39E373F295AB8A@H3CMLB12-EX.srv.huawei-3com.com>
-	<5AC1B230.4070409@huawei.com>
-Message-ID: <63ADC13FD55D6546B7DECE290D39E373F295AD08@H3CMLB12-EX.srv.huawei-3com.com>
+From: Joseph Qi <jiangqi903@gmail.com>
+Date: Mon, 2 Apr 2018 17:17:08 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Take inode cluster lock before
+ moving reflinked inode from orphan dir
+In-Reply-To: <1522431737-4134-1-git-send-email-ashish.samant@oracle.com>
+References: <1522431737-4134-1-git-send-email-ashish.samant@oracle.com>
+Message-ID: <40eba26d-15f2-1795-bbe4-1fd47f721a08@gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 2018/4/2 12:32, piaojun wrote:
-> Hi Changwei,
+
+
+On 18/3/31 01:42, Ashish Samant wrote:
+> While reflinking an inode, we create a new inode in orphan directory, then
+> take EX lock on it, reflink the original inode to orphan inode and release
+> EX lock. Once the lock is released another node might request it in PR mode
+> which causes downconvert of the lock to PR mode.
 > 
-> On 2018/4/2 10:59, Changwei Ge wrote:
->> Hi Jun,
->>
->> It seems that you have ever posted this patch, If I remember correctly.
->> My concern is still if you disable dlm recovery via ::migrate_done. Then flag
->> DLM_LOCK_RES_RECOVERING can't be cleared.
-> After I set migrate_done, all lockres had been migrated. So there won't be
-> any lockres with DLM_LOCK_RES_RECOVERING. And I have tested this patch for
-> a few months.
-
-Oops,
-Yes, it makes sense.
-
+> Later we attempt to initialize security acl for the orphan inode and move
+> it to the reflink destination. However, while doing this we dont take EX
+> lock on the inode. So effectively, we are doing this and accessing the
+> journal for this inode while holding PR lock. While accessing the journal,
+> we make
 > 
-> thanks,
-> Jun
->>
->> So we can't purge the problematic lock resource since __dlm_lockres_unused()
->> needs to check that flag.
->>
->> Finally, umount will run the while loop in dlm_migrate_all_locks() infinitely.
->> Or if I miss something?
->>
->> Thanks,
->> Changwei
->>
->> On 2018/3/15 21:00, piaojun wrote:
+> ci->ci_last_trans = journal->j_trans_id
+> 
+> At this point, if there is another downconvert request on this inode from
+> another node (PR->NL), we will trip on the following condition in
+> ocfs2_ci_checkpointed()
+> 
+> BUG_ON(lockres->l_level != DLM_LOCK_EX && !checkpointed);
+> 
+> because we hold the lock in PR mode and journal->j_trans_id is not greater
+> than ci_last_trans for the inode.
+> 
+> Fix this by taking orphan inode cluster lock in EX mode before
+> initializing security and moving orphan inode to reflink destination.
+> Use the __tracker variant while taking inode lock to avoid recursive
+> locking in the ocfs2_init_security_and_acl() call chain.
+> 
+> Signed-off-by: Ashish Samant <ashish.samant@oracle.com>
 
->>>
->>> Fixes: bc9838c4d44a ("dlm: allow dlm do recovery during shutdown")
->>>
->>> Signed-off-by: Jun Piao <piaojun@huawei.com>
->>> Reviewed-by: Alex Chen <alex.chen@huawei.com>
->>> Reviewed-by: Yiwen Jiang <jiangyiwen@huawei.com>
-Acked-by: Changwei Ge <ge.changwei@h3c.com>
-
->>> ---
->>>    fs/ocfs2/dlm/dlmcommon.h   |  1 +
->>>    fs/ocfs2/dlm/dlmdomain.c   | 15 +++++++++++++++
->>>    fs/ocfs2/dlm/dlmrecovery.c | 13 ++++++++++---
->>>    3 files changed, 26 insertions(+), 3 deletions(-)
->>>
->>> diff --git a/fs/ocfs2/dlm/dlmcommon.h b/fs/ocfs2/dlm/dlmcommon.h
+Looks good.
+Reviewed-by: Joseph Qi <jiangqi903@gmail.com>
