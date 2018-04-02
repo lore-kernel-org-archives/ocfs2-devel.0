@@ -1,10 +1,10 @@
 From: Joseph Qi <jiangqi903@gmail.com>
-Date: Mon, 2 Apr 2018 17:17:08 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Take inode cluster lock before
- moving reflinked inode from orphan dir
-In-Reply-To: <1522431737-4134-1-git-send-email-ashish.samant@oracle.com>
-References: <1522431737-4134-1-git-send-email-ashish.samant@oracle.com>
-Message-ID: <40eba26d-15f2-1795-bbe4-1fd47f721a08@gmail.com>
+Date: Mon, 2 Apr 2018 17:31:37 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: wait for dlm recovery done
+ when migrating all lock resources
+In-Reply-To: <5AAA6E25.7090303@huawei.com>
+References: <5AAA6E25.7090303@huawei.com>
+Message-ID: <62de800e-5068-97b7-1483-7aab370500ae@gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -13,35 +13,64 @@ To: ocfs2-devel@oss.oracle.com
 
 
 
-On 18/3/31 01:42, Ashish Samant wrote:
-> While reflinking an inode, we create a new inode in orphan directory, then
-> take EX lock on it, reflink the original inode to orphan inode and release
-> EX lock. Once the lock is released another node might request it in PR mode
-> which causes downconvert of the lock to PR mode.
+On 18/3/15 20:59, piaojun wrote:
+> Wait for dlm recovery done when migrating all lock resources in case that
+> new lock resource left after leaving dlm domain. And the left lock
+> resource will cause other nodes BUG.
 > 
-> Later we attempt to initialize security acl for the orphan inode and move
-> it to the reflink destination. However, while doing this we dont take EX
-> lock on the inode. So effectively, we are doing this and accessing the
-> journal for this inode while holding PR lock. While accessing the journal,
-> we make
+>       NodeA                       NodeB                NodeC
 > 
-> ci->ci_last_trans = journal->j_trans_id
+> umount:
+>   dlm_unregister_domain()
+>     dlm_migrate_all_locks()
 > 
-> At this point, if there is another downconvert request on this inode from
-> another node (PR->NL), we will trip on the following condition in
-> ocfs2_ci_checkpointed()
+>                                  NodeB down
 > 
-> BUG_ON(lockres->l_level != DLM_LOCK_EX && !checkpointed);
+> do recovery for NodeB
+> and collect a new lockres
+> form other live nodes:
 > 
-> because we hold the lock in PR mode and journal->j_trans_id is not greater
-> than ci_last_trans for the inode.
+>   dlm_do_recovery
+>     dlm_remaster_locks
+>       dlm_request_all_locks:
 > 
-> Fix this by taking orphan inode cluster lock in EX mode before
-> initializing security and moving orphan inode to reflink destination.
-> Use the __tracker variant while taking inode lock to avoid recursive
-> locking in the ocfs2_init_security_and_acl() call chain.
+>   dlm_mig_lockres_handler
+>     dlm_new_lockres
+>       __dlm_insert_lockres
 > 
-> Signed-off-by: Ashish Samant <ashish.samant@oracle.com>
+> at last NodeA become the
+> master of the new lockres
+> and leave domain:
+>   dlm_leave_domain()
+> 
+>                                                   mount:
+>                                                     dlm_join_domain()
+> 
+>                                                   touch file and request
+>                                                   for the owner of the new
+>                                                   lockres, but all the
+>                                                   other nodes said 'NO',
+>                                                   so NodeC decide to be
+>                                                   the owner, and send do
+>                                                   assert msg to other
+>                                                   nodes:
+>                                                   dlmlock()
+>                                                     dlm_get_lock_resource()
+>                                                       dlm_do_assert_master()
+> 
+>                                                   other nodes receive the msg
+>                                                   and found two masters exist.
+>                                                   at last cause BUG in
+>                                                   dlm_assert_master_handler()
+>                                                   -->BUG();
+> 
+> Fixes: bc9838c4d44a ("dlm: allow dlm do recovery during shutdown")
+> 
+Redundant blank line here.
+But I've found Andrew has already fix this when adding to -mm tree.
 
-Looks good.
-Reviewed-by: Joseph Qi <jiangqi903@gmail.com>
+Acked-by: Joseph Qi <jiangqi903@gmail.com>
+
+> Signed-off-by: Jun Piao <piaojun@huawei.com>
+> Reviewed-by: Alex Chen <alex.chen@huawei.com>
+> Reviewed-by: Yiwen Jiang <jiangyiwen@huawei.com>
