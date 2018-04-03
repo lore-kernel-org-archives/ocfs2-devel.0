@@ -1,21 +1,22 @@
-From: piaojun <piaojun@huawei.com>
-Date: Tue, 3 Apr 2018 13:48:31 +0800
+From: Joseph Qi <jiangqi903@gmail.com>
+Date: Tue, 3 Apr 2018 16:47:00 +0800
 Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: clean up unused variable in
  dlm_process_recovery_data
 In-Reply-To: <1522734135-7933-1-git-send-email-ge.changwei@h3c.com>
 References: <1522734135-7933-1-git-send-email-ge.changwei@h3c.com>
-Message-ID: <5AC315AF.8050306@huawei.com>
+Message-ID: <f44c8833-f296-9d1d-c87f-6bb5362fdd3d@gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-LGTM
 
-On 2018/4/3 13:42, Changwei Ge wrote:
+
+On 18/4/3 13:42, Changwei Ge wrote:
 > Signed-off-by: Changwei Ge <ge.changwei@h3c.com>
-Reviewed-by: Jun Piao <piaojun@huawei.com>
+
+Acked-by: Joseph Qi <jiangqi903@gmail.com>
 > ---
 >  fs/ocfs2/dlm/dlmrecovery.c | 4 ----
 >  1 file changed, 4 deletions(-)
