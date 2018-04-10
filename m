@@ -1,65 +1,65 @@
-From: Changwei Ge <ge.changwei@h3c.com>
-Date: Tue, 10 Apr 2018 20:00:53 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: don't use iocb when EIOCBQUEUED returns
-Message-ID: <1523361653-14439-1-git-send-email-ge.changwei@h3c.com>
+From: Ashish Samant <ashish.samant@oracle.com>
+Date: Tue, 10 Apr 2018 10:46:36 -0700
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Take inode cluster lock before
+ moving reflinked inode from orphan dir
+In-Reply-To: <40eba26d-15f2-1795-bbe4-1fd47f721a08@gmail.com>
+References: <1522431737-4134-1-git-send-email-ashish.samant@oracle.com>
+	<40eba26d-15f2-1795-bbe4-1fd47f721a08@gmail.com>
+Message-ID: <5ACCF87C.7010608@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-When -EIOCBQUEUED returns, it means that aio_complete() will be called
-from dio_complete(), which is an asynchronous progress against write_iter.
-Generally, IO is a very slow progress than executing instruction, but we
-still can't take the risk to access a freed iocb.
 
-And we do face a BUG crash issue.
-From crash tool, iocb is obviously freed already.
-crash> struct -x kiocb ffff881a350f5900
-struct kiocb {
-  ki_filp = 0xffff881a350f5a80,
-  ki_pos = 0x0,
-  ki_complete = 0x0,
-  private = 0x0,
-  ki_flags = 0x0
-}
 
-And the backtrace shows:
-ocfs2_file_write_iter+0xcaa/0xd00 [ocfs2]
-? ocfs2_check_range_for_refcount+0x150/0x150 [ocfs2]
-aio_run_iocb+0x229/0x2f0
-? try_to_wake_up+0x380/0x380
-do_io_submit+0x291/0x540
-? syscall_trace_leave+0xad/0x130
-SyS_io_submit+0x10/0x20
-system_call_fastpath+0x16/0x75
+On 04/02/2018 02:17 AM, Joseph Qi wrote:
+>
+> On 18/3/31 01:42, Ashish Samant wrote:
+>> While reflinking an inode, we create a new inode in orphan directory, then
+>> take EX lock on it, reflink the original inode to orphan inode and release
+>> EX lock. Once the lock is released another node might request it in PR mode
+>> which causes downconvert of the lock to PR mode.
+>>
+>> Later we attempt to initialize security acl for the orphan inode and move
+>> it to the reflink destination. However, while doing this we dont take EX
+>> lock on the inode. So effectively, we are doing this and accessing the
+>> journal for this inode while holding PR lock. While accessing the journal,
+>> we make
+>>
+>> ci->ci_last_trans = journal->j_trans_id
+>>
+>> At this point, if there is another downconvert request on this inode from
+>> another node (PR->NL), we will trip on the following condition in
+>> ocfs2_ci_checkpointed()
+>>
+>> BUG_ON(lockres->l_level != DLM_LOCK_EX && !checkpointed);
+>>
+>> because we hold the lock in PR mode and journal->j_trans_id is not greater
+>> than ci_last_trans for the inode.
+>>
+>> Fix this by taking orphan inode cluster lock in EX mode before
+>> initializing security and moving orphan inode to reflink destination.
+>> Use the __tracker variant while taking inode lock to avoid recursive
+>> locking in the ocfs2_init_security_and_acl() call chain.
+>>
+>> Signed-off-by: Ashish Samant <ashish.samant@oracle.com>
+> Looks good.
+> Reviewed-by: Joseph Qi <jiangqi903@gmail.com>
+Hi Joseph,
 
-Signed-off-by: Changwei Ge <ge.changwei@h3c.com>
----
- fs/ocfs2/file.c | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+Looks like mainline kernel has removed the inode lock call
+in PR mode for orphan inode in ocfs2_recover_orphans()
+and it directly takes the lock in EX mode. So, the patch commit log does 
+not
+reflect the exact problem for mainline kernel. However,
+it is still possible that we might end up accessing the journal for the 
+inode
+while holding inode lock in NL mode (instead of PR). It might not cause
+the same problem as described above, but it seems wrong to
+modify inode metadata with NL lock held and could potentially cause similar
+problems later. So, i'll submit v2 with modified commit message.
 
-diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-index 5d1784a..1393ff2 100644
---- a/fs/ocfs2/file.c
-+++ b/fs/ocfs2/file.c
-@@ -2343,7 +2343,7 @@ static ssize_t ocfs2_file_write_iter(struct kiocb *iocb,
- 
- 	written = __generic_file_write_iter(iocb, from);
- 	/* buffered aio wouldn't have proper lock coverage today */
--	BUG_ON(written == -EIOCBQUEUED && !(iocb->ki_flags & IOCB_DIRECT));
-+	BUG_ON(written == -EIOCBQUEUED && !direct_io);
- 
- 	/*
- 	 * deep in g_f_a_w_n()->ocfs2_direct_IO we pass in a ocfs2_dio_end_io
-@@ -2463,7 +2463,7 @@ static ssize_t ocfs2_file_read_iter(struct kiocb *iocb,
- 	trace_generic_file_aio_read_ret(ret);
- 
- 	/* buffered aio wouldn't have proper lock coverage today */
--	BUG_ON(ret == -EIOCBQUEUED && !(iocb->ki_flags & IOCB_DIRECT));
-+	BUG_ON(ret == -EIOCBQUEUED && !direct_io);
- 
- 	/* see ocfs2_file_write_iter */
- 	if (ret == -EIOCBQUEUED || !ocfs2_iocb_is_rw_locked(iocb)) {
--- 
-2.7.4
+Thanks,
+Ashish
