@@ -1,93 +1,104 @@
-From: piaojun <piaojun@huawei.com>
-Date: Thu, 12 Apr 2018 09:37:32 +0800
-Subject: [Ocfs2-devel] [PATCH V2] ocfs2: Take inode cluster lock before
- moving reflinked inode from orphan dir
-In-Reply-To: <1523475107-7639-1-git-send-email-ashish.samant@oracle.com>
-References: <1523475107-7639-1-git-send-email-ashish.samant@oracle.com>
-Message-ID: <5ACEB85C.1060403@huawei.com>
+From: Larry Chen <lchen@suse.com>
+Date: Thu, 12 Apr 2018 11:17:18 +0800
+Subject: [Ocfs2-devel] OCFS2 BUG with 2 different kernels
+In-Reply-To: <HE1PR0401MB2538E747C7443019BF22F0FCEDBD0@HE1PR0401MB2538.eurprd04.prod.outlook.com>
+References: <HE1PR0401MB25389DFE7BFEC86453C3CB21EDBE0@HE1PR0401MB2538.eurprd04.prod.outlook.com>
+	<HE1PR0401MB2538AC4F7C387503A082235FEDBD0@HE1PR0401MB2538.eurprd04.prod.outlook.com>
+	<cded7750-a411-3bd8-9728-c86e41d37295@suse.com>
+	<HE1PR0401MB2538C6A144D96B2B567B1710EDBD0@HE1PR0401MB2538.eurprd04.prod.outlook.com>
+	<7a6b0949-d564-8443-c232-b3b76c86b193@suse.com>
+	<HE1PR0401MB2538E747C7443019BF22F0FCEDBD0@HE1PR0401MB2538.eurprd04.prod.outlook.com>
+Message-ID: <17d70b73-14d9-ea07-229a-89d17c97df88@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
+Hi Daniel,
+
+Thanks for your report.
+I'll try to reproduce this bug as you did.
+
+I'm afraid there may be some bugs on the collaboration of cgroups and ocfs2.
+
+Thanks
+Larry
 
 
-On 2018/4/12 3:31, Ashish Samant wrote:
-> While reflinking an inode, we create a new inode in orphan directory, then
-> take EX lock on it, reflink the original inode to orphan inode and release
-> EX lock. Once the lock is released another node could request it in EX mode
-> from ocfs2_recover_orphans() which causes downconvert of the lock, on this
-> node, to NL mode.
-> 
-> Later we attempt to initialize security acl for the orphan inode and move
-> it to the reflink destination. However, while doing this we dont take EX
-> lock on the inode. This could potentially cause problems because we could
-> be starting transaction, accessing journal and modifying metadata of the
-> inode while holding NL lock and with another node holding EX lock on the
-> inode.
-> 
-> Fix this by taking orphan inode cluster lock in EX mode before
-> initializing security and moving orphan inode to reflink destination.
-> Use the __tracker variant while taking inode lock to avoid recursive
-> locking in the ocfs2_init_security_and_acl() call chain.
-> 
-> Signed-off-by: Ashish Samant <ashish.samant@oracle.com>
-Acked-by: Jun Piao <piaojun@huawei.com>
-> 
-> V1->V2:
-> Modify commit message to better reflect the problem in upstream kernel.
-> ---
->  fs/ocfs2/refcounttree.c | 14 ++++++++++++--
->  1 file changed, 12 insertions(+), 2 deletions(-)
-> 
-> diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
-> index ab156e3..1b1283f 100644
-> --- a/fs/ocfs2/refcounttree.c
-> +++ b/fs/ocfs2/refcounttree.c
-> @@ -4250,10 +4250,11 @@ static int __ocfs2_reflink(struct dentry *old_dentry,
->  static int ocfs2_reflink(struct dentry *old_dentry, struct inode *dir,
->  			 struct dentry *new_dentry, bool preserve)
->  {
-> -	int error;
-> +	int error, had_lock;
->  	struct inode *inode = d_inode(old_dentry);
->  	struct buffer_head *old_bh = NULL;
->  	struct inode *new_orphan_inode = NULL;
-> +	struct ocfs2_lock_holder oh;
->  
->  	if (!ocfs2_refcount_tree(OCFS2_SB(inode->i_sb)))
->  		return -EOPNOTSUPP;
-> @@ -4295,6 +4296,14 @@ static int ocfs2_reflink(struct dentry *old_dentry, struct inode *dir,
->  		goto out;
->  	}
->  
-> +	had_lock = ocfs2_inode_lock_tracker(new_orphan_inode, NULL, 1,
-> +					    &oh);
-> +	if (had_lock < 0) {
-> +		error = had_lock;
-> +		mlog_errno(error);
-> +		goto out;
-> +	}
-> +
->  	/* If the security isn't preserved, we need to re-initialize them. */
->  	if (!preserve) {
->  		error = ocfs2_init_security_and_acl(dir, new_orphan_inode,
-> @@ -4302,14 +4311,15 @@ static int ocfs2_reflink(struct dentry *old_dentry, struct inode *dir,
->  		if (error)
->  			mlog_errno(error);
->  	}
-> -out:
->  	if (!error) {
->  		error = ocfs2_mv_orphaned_inode_to_new(dir, new_orphan_inode,
->  						       new_dentry);
->  		if (error)
->  			mlog_errno(error);
->  	}
-> +	ocfs2_inode_unlock_tracker(new_orphan_inode, 1, &oh, had_lock);
->  
-> +out:
->  	if (new_orphan_inode) {
->  		/*
->  		 * We need to open_unlock the inode no matter whether we
-> 
+On 04/11/2018 08:24 PM, Daniel Sobe wrote:
+> Hi Larry,
+>
+> below is an example config file like I use it for LXC containers. I followed the instructions (https://urldefense.proofpoint.com/v2/url?u=https-3A__wiki.debian.org_LXC&d=DwIDaQ&c=RoP1YumCXCgaWHvlZYR8PZh8Bv7qIrMUB65eapI_JnE&r=C7gAd4uDxlAvTdc0vmU6X8CMk6L2iDY8-HD0qT6Fo7Y&m=g0D3je5kgCEJiDPFKQ1Yw-c8S8eNY8KJhFC8PNVcGZM&s=k1_NjIjuXW6KE2FAAuAd77CTAy09r-nVBvnfMYcsAEw&e=) and downloaded a Debian 8 container as user (unprivileged) and adapted the config file. Several of those containers run on one host and share the OCFS2 directory as you can see at the "lxc.mount.entry" line.
+>
+> Meanwhile I'm trying whether the problem can be reproduced with shared mounts in one namespace, as you suggested. So far with no success, will report once anything happens.
+>
+> Regards,
+>
+> Daniel
+>
+> ----
+>
+> # Distribution configuration
+> lxc.include = /usr/share/lxc/config/debian.common.conf
+> lxc.include = /usr/share/lxc/config/debian.userns.conf
+> lxc.arch = x86_64
+>
+> # Container specific configuration
+> lxc.id_map = u 0 624288 65536
+> lxc.id_map = g 0 624288 65536
+>
+> lxc.utsname = container1
+> lxc.rootfs = /storage/uvirtuals/unpriv/container1/rootfs
+>
+> lxc.network.type = veth
+> lxc.network.flags = up
+> lxc.network.link = bridge1
+> lxc.network.name = eth0
+> lxc.network.veth.pair = aabbccddeeff
+> lxc.network.ipv4 = XX.XX.XX.XX/YY
+> lxc.network.ipv4.gateway = ZZ.ZZ.ZZ.ZZ
+>
+> lxc.cgroup.cpuset.cpus = 63-86
+>
+> lxc.mount.entry = /storage/ocfs2/sw            sw            none bind 0 0
+>
+> lxc.cgroup.memory.limit_in_bytes       = 240G
+> lxc.cgroup.memory.memsw.limit_in_bytes = 240G
+>
+> lxc.include = /usr/share/lxc/config/common.conf.d/00-lxcfs.conf
+>
+> ----
+>
+>
+>
+>
+> -----Original Message-----
+> From: Larry Chen [mailto:lchen at suse.com]
+> Sent: Mittwoch, 11. April 2018 13:31
+> To: Daniel Sobe <daniel.sobe@nxp.com>; ocfs2-devel at oss.oracle.com
+> Subject: Re: [Ocfs2-devel] OCFS2 BUG with 2 different kernels
+>
+>
+>
+> On 04/11/2018 07:17 PM, Daniel Sobe wrote:
+>> Hi Larry,
+>>
+>> this is what I was doing. The 2nd node, while being "declared" in the cluster.conf, does not exist yet, and thus everything was happening on one node only.
+>>
+>> I do not know in detail how LXC does the mount sharing, but I assume it simply calls "mount --bind /original/mount/point /new/mount/point" in a separate namespace (or, somehow unshares the mount from the original namespace afterwards).
+> I thought of there is a way to share a directory between host and docker container, like
+>   ?? docker run -v /host/directory:/container/directory -other -options image_name command_to_run That's different from yours.
+>
+> How did you setup your lxc or container?
+>
+> If you could, show me the procedure, I'll try to reproduce it.
+>
+> And by the way, if you get rid of lxc, and just mount ocfs2 on several different mount point of local host, will the problem recur?
+>
+> Regards,
+> Larry
+>> Regards,
+>>
+>> Daniel
+>>
