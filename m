@@ -1,81 +1,43 @@
-From: piaojun <piaojun@huawei.com>
-Date: Thu, 26 Apr 2018 08:39:35 +0800
-Subject: [Ocfs2-devel] [PATCH v3] ocfs2: clean up redundant function
- declarations
-In-Reply-To: <09cf7125-6f12-e53e-20f5-e606b2c16b48@huawei.com>
-References: <09cf7125-6f12-e53e-20f5-e606b2c16b48@huawei.com>
-Message-ID: <5AE11FC7.5000903@huawei.com>
+From: Andrew Morton <akpm@linux-foundation.org>
+Date: Tue, 1 May 2018 17:08:57 -0700
+Subject: [Ocfs2-devel] [PATCH V2] ocfs2: Take inode cluster lock before
+ moving reflinked inode from orphan dir
+In-Reply-To: <1523475107-7639-1-git-send-email-ashish.samant@oracle.com>
+References: <1523475107-7639-1-git-send-email-ashish.samant@oracle.com>
+Message-ID: <20180501170857.0cc4e94f7de64640b7deaeff@linux-foundation.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-LGTM
+On Wed, 11 Apr 2018 12:31:47 -0700 Ashish Samant <ashish.samant@oracle.com> wrote:
 
-On 2018/4/25 19:21, Jia Guo wrote:
-> The function ocfs2_extend_allocation has been deleted, clean up its
-> declaration. Also change the static function name from
-> __ocfs2_extend_allocation() to ocfs2_extend_allocation() to be
-> consistent with the corresponding trace events as well as comments
-> for ocfs2_lock_allocators().
+> While reflinking an inode, we create a new inode in orphan directory, then
+> take EX lock on it, reflink the original inode to orphan inode and release
+> EX lock. Once the lock is released another node could request it in EX mode
+> from ocfs2_recover_orphans() which causes downconvert of the lock, on this
+> node, to NL mode.
 > 
-> Fixes: 964f14a0d350 ("ocfs2: clean up some dead code")
-> 
-> Signed-off-by: Jia Guo <guojia12@huawei.com>
-> Acked-by: Joseph Qi <jiangqi903@gmail.com>
-Reviewed-by: Jun Piao <piaojun@huawei.com>
-> ---
->  fs/ocfs2/file.c | 10 +++++-----
->  fs/ocfs2/file.h |  2 --
->  2 files changed, 5 insertions(+), 7 deletions(-)
-> 
-> diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-> index 6ee94bc..a2a8603 100644
-> --- a/fs/ocfs2/file.c
-> +++ b/fs/ocfs2/file.c
-> @@ -563,8 +563,8 @@ int ocfs2_add_inode_data(struct ocfs2_super *osb,
->  	return ret;
->  }
-> 
-> -static int __ocfs2_extend_allocation(struct inode *inode, u32 logical_start,
-> -				     u32 clusters_to_add, int mark_unwritten)
-> +static int ocfs2_extend_allocation(struct inode *inode, u32 logical_start,
-> +				   u32 clusters_to_add, int mark_unwritten)
->  {
->  	int status = 0;
->  	int restart_func = 0;
-> @@ -1035,8 +1035,8 @@ int ocfs2_extend_no_holes(struct inode *inode, struct buffer_head *di_bh,
->  		clusters_to_add -= oi->ip_clusters;
-> 
->  	if (clusters_to_add) {
-> -		ret = __ocfs2_extend_allocation(inode, oi->ip_clusters,
-> -						clusters_to_add, 0);
-> +		ret = ocfs2_extend_allocation(inode, oi->ip_clusters,
-> +					      clusters_to_add, 0);
->  		if (ret) {
->  			mlog_errno(ret);
->  			goto out;
-> @@ -1493,7 +1493,7 @@ static int ocfs2_allocate_unwritten_extents(struct inode *inode,
->  			goto next;
->  		}
-> 
-> -		ret = __ocfs2_extend_allocation(inode, cpos, alloc_size, 1);
-> +		ret = ocfs2_extend_allocation(inode, cpos, alloc_size, 1);
->  		if (ret) {
->  			if (ret != -ENOSPC)
->  				mlog_errno(ret);
-> diff --git a/fs/ocfs2/file.h b/fs/ocfs2/file.h
-> index 1fdc983..7eb7f03 100644
-> --- a/fs/ocfs2/file.h
-> +++ b/fs/ocfs2/file.h
-> @@ -65,8 +65,6 @@ int ocfs2_extend_no_holes(struct inode *inode, struct buffer_head *di_bh,
->  			  u64 new_i_size, u64 zero_to);
->  int ocfs2_zero_extend(struct inode *inode, struct buffer_head *di_bh,
->  		      loff_t zero_to);
-> -int ocfs2_extend_allocation(struct inode *inode, u32 logical_start,
-> -		u32 clusters_to_add, int mark_unwritten);
->  int ocfs2_setattr(struct dentry *dentry, struct iattr *attr);
->  int ocfs2_getattr(const struct path *path, struct kstat *stat,
->  		  u32 request_mask, unsigned int flags);
-> 
+> Later we attempt to initialize security acl for the orphan inode and move
+> it to the reflink destination. However, while doing this we dont take EX
+> lock on the inode. This could potentially cause problems because we could
+> be starting transaction, accessing journal and modifying metadata of the
+> inode while holding NL lock and with another node holding EX lock on the
+> inode.
+
+Someone (eg, me) needs to decide which kernel version(s) need the
+patch.  And all I have is "this could potentially cause problems".
+
+Can you please be more specific about the end-user impact?  *Does* it
+cause problems?  Is the problem sufficiently urgent to warrant a merge
+into 4.17?  Into -stable kernels?
+
+Please always include all the end-user-impact info when fixing bugs.
+
+Thanks.
+
+> Fix this by taking orphan inode cluster lock in EX mode before
+> initializing security and moving orphan inode to reflink destination.
+> Use the __tracker variant while taking inode lock to avoid recursive
+> locking in the ocfs2_init_security_and_acl() call chain.
