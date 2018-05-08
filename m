@@ -1,53 +1,36 @@
-From: Larry Chen <lchen@suse.com>
-Date: Mon, 7 May 2018 11:06:21 +0800
-Subject: [Ocfs2-devel] [PATCH] fix a compiling warning
-In-Reply-To: <5AEFA361.8060400@huawei.com>
-References: <20180506094903.4331-1-lchen@suse.com>
-	<5AEFA361.8060400@huawei.com>
-Message-ID: <eacbbf90-797f-46b6-9f68-1b8f8a67b456@suse.com>
+From: Guozhonghua <guozhonghua@h3c.com>
+Date: Tue, 8 May 2018 09:46:55 +0000
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Correct the offset comments of the
+ structure ocfs2_dir_block_trailer.
+Message-ID: <71604351584F6A4EBAE558C676F37CA401071C2456@H3CMLB12-EX.srv.huawei-3com.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Jun
+Correct the offset comments of the structure ocfs2_dir_block_trailer.
 
-Yeah,I know your logic is right.
-It's just a compile warning that made me feel uncomfortable.
+Signed-off-by: guozhonghua <guozhonghua@h3c.com>
+---
+ fs/ocfs2/ocfs2_fs.h |    4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-:)
-
-
-
-On 05/07/2018 08:52 AM, piaojun wrote:
-> Hi Larry,
->
-> 'had_lock' will be initialized by ocfs2_inode_lock_tracker(), and the
-> 'bail' branch above won't use it either as 'inode_locked' is still zero.
->
-> thanks,
-> Jun
->
-> On 2018/5/6 17:49, Larry Chen wrote:
->> The variable had_lock might be used uninitialized.
->>
->> Signed-off-by: Larry Chen <lchen@suse.com>
->> ---
->>   fs/ocfs2/file.c | 2 +-
->>   1 file changed, 1 insertion(+), 1 deletion(-)
->>
->> diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
->> index 6ee94bc23f5b..50f17f56db36 100644
->> --- a/fs/ocfs2/file.c
->> +++ b/fs/ocfs2/file.c
->> @@ -1133,7 +1133,7 @@ int ocfs2_setattr(struct dentry *dentry, struct iattr *attr)
->>   	handle_t *handle = NULL;
->>   	struct dquot *transfer_to[MAXQUOTAS] = { };
->>   	int qtype;
->> -	int had_lock;
->> +	int had_lock = 0;
->>   	struct ocfs2_lock_holder oh;
->>   
->>   	trace_ocfs2_setattr(inode, dentry,
->>
+diff --git a/fs/ocfs2/ocfs2_fs.h b/fs/ocfs2/ocfs2_fs.h index 5bb4a89..14c60b0 100644
+--- a/fs/ocfs2/ocfs2_fs.h
++++ b/fs/ocfs2/ocfs2_fs.h
+@@ -808,10 +808,10 @@ struct ocfs2_dir_block_trailer {
+ /*10*/	__u8		db_signature[8];	/* Signature for verification */
+ 	__le64		db_reserved2;
+ 	__le64		db_free_next;		/* Next block in list (unused) */
+-/*20*/	__le64		db_blkno;		/* Offset on disk, in blocks */
++/*28*/	__le64		db_blkno;		/* Offset on disk, in blocks */
+ 	__le64		db_parent_dinode;	/* dinode which owns me, in
+ 						   blocks */
+-/*30*/	struct ocfs2_block_check db_check;	/* Error checking */
++/*38*/	struct ocfs2_block_check db_check;	/* Error checking */
+ /*40*/
+ };
+ 
+--
+1.7.9.5
