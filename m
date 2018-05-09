@@ -1,81 +1,132 @@
-From: Changwei Ge <gechangwei@live.cn>
-Date: Wed, 9 May 2018 03:09:13 +0000
-Subject: [Ocfs2-devel]
- =?utf-8?b?562U5aSNOiBbUEFUQ0hdIG9jZnMyOiBDb3JyZWN0?=
- =?utf-8?q?_the_offset_comments_of_the_structure_ocfs2=5Fdir=5Fblock=5Ftra?=
- =?utf-8?q?iler=2E?=
-In-Reply-To: <71604351584F6A4EBAE558C676F37CA401071C2CC6@H3CMLB12-EX.srv.huawei-3com.com>
-References: <71604351584F6A4EBAE558C676F37CA401071C2456@H3CMLB12-EX.srv.huawei-3com.com>
-	<3992b678-170b-353c-85f7-117299d1c527@gmail.com>
-	<71604351584F6A4EBAE558C676F37CA401071C2CC6@H3CMLB12-EX.srv.huawei-3com.com>
-Message-ID: <HK2PR06MB0452D4C59A2DCD1FFC20AFE5D5990@HK2PR06MB0452.apcprd06.prod.outlook.com>
+From: piaojun <piaojun@huawei.com>
+Date: Wed, 9 May 2018 16:50:33 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: submit another bio if current bio
+ is full
+In-Reply-To: <HK2PR06MB045228701E9D7C584B71471FD59A0@HK2PR06MB0452.apcprd06.prod.outlook.com>
+References: <1523598667-29401-1-git-send-email-ge.changwei@h3c.com>
+	<5AD41C20.6080907@huawei.com>
+	<HK2PR06MB045228701E9D7C584B71471FD59A0@HK2PR06MB0452.apcprd06.prod.outlook.com>
+Message-ID: <5AF2B659.9020105@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Zhonghua and Jospeh,
+Hi Changwei,
 
-I'm afraid that it can't be easy to find the offest 0x20 since 
-::db_signature only occupy 8 bytes.
-
-Thanks,
-Changwei
-
-On 2018/5/9 10:50, Guozhonghua wrote:
-> Good Idea, I will send patch v2 for review.
->
-> Thanks.
->
-> Guozhonghua.
->
-> -----????-----
-> ???: Joseph Qi [mailto:jiangqi903 at gmail.com]
-> ????: 2018?5?9? 9:01
-> ???: guozhonghua (Cloud); Andrew Morton (akpm at linux-foundation.org)
-> ??: 'ocfs2-devel at oss.oracle.com' (ocfs2-devel at oss.oracle.com)
-> ??: Re: [Ocfs2-devel] [PATCH] ocfs2: Correct the offset comments of the structure ocfs2_dir_block_trailer.
->
-> Umm... We always explicitly comment out the shift of 0x10, 0x20, ..., IMO, we'd better move the comments to the correct place instead of change it to something like 0x28.
->
+On 2018/5/8 23:57, Changwei Ge wrote:
+> Hi Jun,
+> 
+> Sorry for this so late reply since I was very busy those days.
+> 
+> 
+> On 04/16/2018 11:44 AM, piaojun wrote:
+>> Hi Changwei,
+>>
+>> Do you mean that if the slotnum exceed 16 like 'mkfs.ocfs2 -N 17', you
+>> still let it go rather than reture error?
+> 
+> If your assumption is right, do you mean that ocfs2 slots can't exceed 16?
+> 
+> If you return error once slots exceed 16, mkfs will never succeed.
+> 
+> So if we can ensure that bio is full in current iteration, we should run 
+> into next iteration and allocate a
+> new bio adding pages and continue.
+> 
+> And your patch makes my ocfs2-test fail.
+> 
+> 
 > Thanks,
-> Joseph
->
-> On 18/5/8 17:46, Guozhonghua wrote:
->> Correct the offset comments of the structure ocfs2_dir_block_trailer.
+> Changwei
+> 
 >>
->> Signed-off-by: guozhonghua <guozhonghua@h3c.com>
->> ---
->>   fs/ocfs2/ocfs2_fs.h |    4 ++--
->>   1 file changed, 2 insertions(+), 2 deletions(-)
+>> thanks,
+>> Jun
 >>
->> diff --git a/fs/ocfs2/ocfs2_fs.h b/fs/ocfs2/ocfs2_fs.h index
->> 5bb4a89..14c60b0 100644
->> --- a/fs/ocfs2/ocfs2_fs.h
->> +++ b/fs/ocfs2/ocfs2_fs.h
->> @@ -808,10 +808,10 @@ struct ocfs2_dir_block_trailer {
->>   /*10*/	__u8		db_signature[8];	/* Signature for verification */
->>   	__le64		db_reserved2;
->>   	__le64		db_free_next;		/* Next block in list (unused) */
->> -/*20*/	__le64		db_blkno;		/* Offset on disk, in blocks */
->> +/*28*/	__le64		db_blkno;		/* Offset on disk, in blocks */
->>   	__le64		db_parent_dinode;	/* dinode which owns me, in
->>   						   blocks */
->> -/*30*/	struct ocfs2_block_check db_check;	/* Error checking */
->> +/*38*/	struct ocfs2_block_check db_check;	/* Error checking */
->>   /*40*/
->>   };
->>   
->> --
->> 1.7.9.5
->>
+>> On 2018/4/13 13:51, Changwei Ge wrote:
+>>> If cluster scale exceeds 16 nodes, bio will be full and bio_add_page()
+
+Sorry for misunderstanding your fix, and do you mean that the node num is
+a little big which could not be covered by 16 pages, such as 129?
+
+"one page could cover 8 node's slots"
+
+thanks,
+Jun
+
+>>> returns 0 when adding pages to bio. Returning -EIO to o2hb_read_slots()
+>>> from o2hb_setup_one_bio() will lead to losing chance to allocate more
+>>> bios to present all heartbeat region.
+>>>
+>>> So o2hb_read_slots() fails.
+>>>
+>>> In my test, making fs fails in starting o2cb service.
+>>>
+>>> Attach error log:
+>>> (mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 0, vec_len = 4096, vec_start = 0
+>>> (mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 1, vec_len = 4096, vec_start = 0
+>>> (mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 2, vec_len = 4096, vec_start = 0
+>>> (mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 3, vec_len = 4096, vec_start = 0
+>>> (mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 4, vec_len = 4096, vec_start = 0
+>>> (mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 5, vec_len = 4096, vec_start = 0
+>>> (mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 6, vec_len = 4096, vec_start = 0
+>>> (mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 7, vec_len = 4096, vec_start = 0
+>>> (mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 8, vec_len = 4096, vec_start = 0
+>>> (mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 9, vec_len = 4096, vec_start = 0
+>>> (mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 10, vec_len = 4096, vec_start = 0
+>>> (mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 11, vec_len = 4096, vec_start = 0
+>>> (mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 12, vec_len = 4096, vec_start = 0
+>>> (mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 13, vec_len = 4096, vec_start = 0
+>>> (mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 14, vec_len = 4096, vec_start = 0
+>>> (mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 15, vec_len = 4096, vec_start = 0
+>>> (mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 16, vec_len = 4096, vec_start = 0
+>>> (mkfs.ocfs2,27479,2):o2hb_setup_one_bio:471 ERROR: Adding page[16] to bio failed, page ffffea0002d7ed40, len 0, vec_len 4096, vec_start 0, bi_sector 8192
+>>> (mkfs.ocfs2,27479,2):o2hb_read_slots:500 ERROR: status = -5
+>>> (mkfs.ocfs2,27479,2):o2hb_populate_slot_data:1911 ERROR: status = -5
+>>> (mkfs.ocfs2,27479,2):o2hb_region_dev_write:2012 ERROR: status = -5
+>>>
+>>> Fixes: ba16ddfbeb9d ("ocfs2/o2hb: check len for bio_add_page() to avoid getting incorrect bio"
+>>>
+>>> Signed-off-by: Changwei Ge <ge.changwei@h3c.com>
+>>> ---
+>>>   fs/ocfs2/cluster/heartbeat.c | 8 ++++++--
+>>>   1 file changed, 6 insertions(+), 2 deletions(-)
+>>>
+>>> diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
+>>> index 91a8889abf9b..2809e29d612d 100644
+>>> --- a/fs/ocfs2/cluster/heartbeat.c
+>>> +++ b/fs/ocfs2/cluster/heartbeat.c
+>>> @@ -540,11 +540,12 @@ static struct bio *o2hb_setup_one_bio(struct o2hb_region *reg,
+>>>   	struct bio *bio;
+>>>   	struct page *page;
+>>>   
+>>> +#define O2HB_BIO_VECS 16
+>>>   	/* Testing has shown this allocation to take long enough under
+>>>   	 * GFP_KERNEL that the local node can get fenced. It would be
+>>>   	 * nicest if we could pre-allocate these bios and avoid this
+>>>   	 * all together. */
+>>> -	bio = bio_alloc(GFP_ATOMIC, 16);
+>>> +	bio = bio_alloc(GFP_ATOMIC, O2HB_BIO_VECS);
+>>>   	if (!bio) {
+>>>   		mlog(ML_ERROR, "Could not alloc slots BIO!\n");
+>>>   		bio = ERR_PTR(-ENOMEM);
+>>> @@ -570,7 +571,10 @@ static struct bio *o2hb_setup_one_bio(struct o2hb_region *reg,
+>>>   		     current_page, vec_len, vec_start);
+>>>   
+>>>   		len = bio_add_page(bio, page, vec_len, vec_start);
+>>> -		if (len != vec_len) {
+>>> +		if (len == 0 && current_page == O2HB_BIO_VECS) {
+>>> +			/* bio is full now. */
+>>> +			goto bail;
+>>> +		} else if (len != vec_len) {
+>>>   			mlog(ML_ERROR, "Adding page[%d] to bio failed, "
+>>>   			     "page %p, len %d, vec_len %u, vec_start %u, "
+>>>   			     "bi_sector %llu\n", current_page, page, len,
+>>>
 >> _______________________________________________
 >> Ocfs2-devel mailing list
 >> Ocfs2-devel at oss.oracle.com
 >> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
->>
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+> 
