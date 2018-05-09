@@ -1,140 +1,157 @@
-From: Joseph Qi <jiangqi903@gmail.com>
-Date: Wed, 9 May 2018 09:41:28 +0800
+From: Changwei Ge <gechangwei@live.cn>
+Date: Wed, 9 May 2018 02:14:50 +0000
 Subject: [Ocfs2-devel] [PATCH] ocfs2: don't use iocb when EIOCBQUEUED
  returns
-In-Reply-To: <HK2PR06MB045235DE1534185411A5CBC1D59A0@HK2PR06MB0452.apcprd06.prod.outlook.com>
+In-Reply-To: <95193eff-262b-1c57-6b66-3a700ab5313a@gmail.com>
 References: <1523361653-14439-1-git-send-email-ge.changwei@h3c.com>
 	<5ACD5C27.4080205@huawei.com>
 	<63ADC13FD55D6546B7DECE290D39E373F295F7DA@H3CMLB12-EX.srv.huawei-3com.com>
 	<5ACDE8C8020000F9000B5125@prv1-mh.provo.novell.com>
 	<HK2PR06MB045235DE1534185411A5CBC1D59A0@HK2PR06MB0452.apcprd06.prod.outlook.com>
-Message-ID: <95193eff-262b-1c57-6b66-3a700ab5313a@gmail.com>
+	<95193eff-262b-1c57-6b66-3a700ab5313a@gmail.com>
+Message-ID: <HK2PR06MB0452A74B87C5FA31FF944C80D5990@HK2PR06MB0452.apcprd06.prod.outlook.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Changwei,
+Hi Joseph,
 
-I agree with Gang that currently we still haven't figured out why iocb
-was freed. Though you fix won't bring any side effect, it looks like a
-workaround.
-That means, the freed iocb may still have risk in other place.
+Thanks a lot for your comments.
+Actually, I think I have found the root cause why the iocb is freed.
+
+As __generic_file_write_iter() returns -EIOCBQUEUED, aio_complete() will 
+be invoked asynchronously
+against write_iter()->ocfs2_file_write_iter().
+
+If -EIOCBQUEUED is not returned, aio_complete() should be invoked after 
+return from ocfs2_file_write_iter(), which is a synchronous progress.
+
+If I still don't make my point clear, please let me know.
 
 Thanks,
-Joseph
+Changwei
 
-On 18/5/8 23:23, Changwei Ge wrote:
-> Hi Gang,
-> 
-> I don't think this patch is a workaround trick.
-> 
-> We do face the risk using freed iocb although it is actually indeed hard 
-> to encounter, it still exists.
-> 
-> So I propose to fix it making ocfs2 more reliable.
-> 
-> 
-> Moreover, this patch has been kept in -mm tree for one month. Can anyone 
-> help review it with ack or nack? So I can do some improvement for it. :-)
-> 
-> 
+On 2018/5/9 9:41, Joseph Qi wrote:
+> Hi Changwei,
+>
+> I agree with Gang that currently we still haven't figured out why iocb
+> was freed. Though you fix won't bring any side effect, it looks like a
+> workaround.
+> That means, the freed iocb may still have risk in other place.
+>
 > Thanks,
-> 
-> Changwei
-> 
-> 
-> On 04/11/2018 10:51 AM, Gang He wrote:
->> Hi Changwei,
+> Joseph
+>
+> On 18/5/8 23:23, Changwei Ge wrote:
+>> Hi Gang,
 >>
->> The code change just works around the problem, but theoretically the IOCB object should not be freed before which is handled.
->> Anyway, if we can find the root cause behind via some way (e.g. inject delay in some place), the result is more perfect.
+>> I don't think this patch is a workaround trick.
 >>
+>> We do face the risk using freed iocb although it is actually indeed hard
+>> to encounter, it still exists.
 >>
->> Thanks
->> Gang
+>> So I propose to fix it making ocfs2 more reliable.
 >>
 >>
->>> Hi Jun,
+>> Moreover, this patch has been kept in -mm tree for one month. Can anyone
+>> help review it with ack or nack? So I can do some improvement for it. :-)
+>>
+>>
+>> Thanks,
+>>
+>> Changwei
+>>
+>>
+>> On 04/11/2018 10:51 AM, Gang He wrote:
+>>> Hi Changwei,
 >>>
->>> On 2018/4/11 8:52, piaojun wrote:
->>>> Hi Changwei,
+>>> The code change just works around the problem, but theoretically the IOCB object should not be freed before which is handled.
+>>> Anyway, if we can find the root cause behind via some way (e.g. inject delay in some place), the result is more perfect.
+>>>
+>>>
+>>> Thanks
+>>> Gang
+>>>
+>>>
+>>>> Hi Jun,
 >>>>
->>>> It looks like a code bug, and 'iocb' should not be freed at this place.
->>>> Could this BUG reproduced easily?
->>> Actually, it's not easy to be reproduced since IO is much slower than CPU
->>> executing instructions. But the logic here is broken, we'd better fix this.
->>>
->>> Thanks,
->>> Changwei
->>>
->>>> thanks,
->>>> Jun
+>>>> On 2018/4/11 8:52, piaojun wrote:
+>>>>> Hi Changwei,
+>>>>>
+>>>>> It looks like a code bug, and 'iocb' should not be freed at this place.
+>>>>> Could this BUG reproduced easily?
+>>>> Actually, it's not easy to be reproduced since IO is much slower than CPU
+>>>> executing instructions. But the logic here is broken, we'd better fix this.
 >>>>
->>>> On 2018/4/10 20:00, Changwei Ge wrote:
->>>>> When -EIOCBQUEUED returns, it means that aio_complete() will be called
->>>>> from dio_complete(), which is an asynchronous progress against write_iter.
->>>>> Generally, IO is a very slow progress than executing instruction, but we
->>>>> still can't take the risk to access a freed iocb.
+>>>> Thanks,
+>>>> Changwei
+>>>>
+>>>>> thanks,
+>>>>> Jun
 >>>>>
->>>>> And we do face a BUG crash issue.
->>>>> >From crash tool, iocb is obviously freed already.
->>>>> crash> struct -x kiocb ffff881a350f5900
->>>>> struct kiocb {
->>>>>     ki_filp = 0xffff881a350f5a80,
->>>>>     ki_pos = 0x0,
->>>>>     ki_complete = 0x0,
->>>>>     private = 0x0,
->>>>>     ki_flags = 0x0
->>>>> }
->>>>>
->>>>> And the backtrace shows:
->>>>> ocfs2_file_write_iter+0xcaa/0xd00 [ocfs2]
->>>>> ? ocfs2_check_range_for_refcount+0x150/0x150 [ocfs2]
->>>>> aio_run_iocb+0x229/0x2f0
->>>>> ? try_to_wake_up+0x380/0x380
->>>>> do_io_submit+0x291/0x540
->>>>> ? syscall_trace_leave+0xad/0x130
->>>>> SyS_io_submit+0x10/0x20
->>>>> system_call_fastpath+0x16/0x75
->>>>>
->>>>> Signed-off-by: Changwei Ge <ge.changwei@h3c.com>
->>>>> ---
->>>>>    fs/ocfs2/file.c | 4 ++--
->>>>>    1 file changed, 2 insertions(+), 2 deletions(-)
->>>>>
->>>>> diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
->>>>> index 5d1784a..1393ff2 100644
->>>>> --- a/fs/ocfs2/file.c
->>>>> +++ b/fs/ocfs2/file.c
->>>>> @@ -2343,7 +2343,7 @@ static ssize_t ocfs2_file_write_iter(struct kiocb
->>> *iocb,
->>>>>    
->>>>>    	written = __generic_file_write_iter(iocb, from);
->>>>>    	/* buffered aio wouldn't have proper lock coverage today */
->>>>> -	BUG_ON(written == -EIOCBQUEUED && !(iocb->ki_flags & IOCB_DIRECT));
->>>>> +	BUG_ON(written == -EIOCBQUEUED && !direct_io);
->>>>>    
->>>>>    	/*
->>>>>    	 * deep in g_f_a_w_n()->ocfs2_direct_IO we pass in a ocfs2_dio_end_io
->>>>> @@ -2463,7 +2463,7 @@ static ssize_t ocfs2_file_read_iter(struct kiocb *iocb,
->>>>>    	trace_generic_file_aio_read_ret(ret);
->>>>>    
->>>>>    	/* buffered aio wouldn't have proper lock coverage today */
->>>>> -	BUG_ON(ret == -EIOCBQUEUED && !(iocb->ki_flags & IOCB_DIRECT));
->>>>> +	BUG_ON(ret == -EIOCBQUEUED && !direct_io);
->>>>>    
->>>>>    	/* see ocfs2_file_write_iter */
->>>>>    	if (ret == -EIOCBQUEUED || !ocfs2_iocb_is_rw_locked(iocb)) {
->>>>>
+>>>>> On 2018/4/10 20:00, Changwei Ge wrote:
+>>>>>> When -EIOCBQUEUED returns, it means that aio_complete() will be called
+>>>>>> from dio_complete(), which is an asynchronous progress against write_iter.
+>>>>>> Generally, IO is a very slow progress than executing instruction, but we
+>>>>>> still can't take the risk to access a freed iocb.
+>>>>>>
+>>>>>> And we do face a BUG crash issue.
+>>>>>> >From crash tool, iocb is obviously freed already.
+>>>>>> crash> struct -x kiocb ffff881a350f5900
+>>>>>> struct kiocb {
+>>>>>>      ki_filp = 0xffff881a350f5a80,
+>>>>>>      ki_pos = 0x0,
+>>>>>>      ki_complete = 0x0,
+>>>>>>      private = 0x0,
+>>>>>>      ki_flags = 0x0
+>>>>>> }
+>>>>>>
+>>>>>> And the backtrace shows:
+>>>>>> ocfs2_file_write_iter+0xcaa/0xd00 [ocfs2]
+>>>>>> ? ocfs2_check_range_for_refcount+0x150/0x150 [ocfs2]
+>>>>>> aio_run_iocb+0x229/0x2f0
+>>>>>> ? try_to_wake_up+0x380/0x380
+>>>>>> do_io_submit+0x291/0x540
+>>>>>> ? syscall_trace_leave+0xad/0x130
+>>>>>> SyS_io_submit+0x10/0x20
+>>>>>> system_call_fastpath+0x16/0x75
+>>>>>>
+>>>>>> Signed-off-by: Changwei Ge <ge.changwei@h3c.com>
+>>>>>> ---
+>>>>>>     fs/ocfs2/file.c | 4 ++--
+>>>>>>     1 file changed, 2 insertions(+), 2 deletions(-)
+>>>>>>
+>>>>>> diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+>>>>>> index 5d1784a..1393ff2 100644
+>>>>>> --- a/fs/ocfs2/file.c
+>>>>>> +++ b/fs/ocfs2/file.c
+>>>>>> @@ -2343,7 +2343,7 @@ static ssize_t ocfs2_file_write_iter(struct kiocb
+>>>> *iocb,
+>>>>>>     
+>>>>>>     	written = __generic_file_write_iter(iocb, from);
+>>>>>>     	/* buffered aio wouldn't have proper lock coverage today */
+>>>>>> -	BUG_ON(written == -EIOCBQUEUED && !(iocb->ki_flags & IOCB_DIRECT));
+>>>>>> +	BUG_ON(written == -EIOCBQUEUED && !direct_io);
+>>>>>>     
+>>>>>>     	/*
+>>>>>>     	 * deep in g_f_a_w_n()->ocfs2_direct_IO we pass in a ocfs2_dio_end_io
+>>>>>> @@ -2463,7 +2463,7 @@ static ssize_t ocfs2_file_read_iter(struct kiocb *iocb,
+>>>>>>     	trace_generic_file_aio_read_ret(ret);
+>>>>>>     
+>>>>>>     	/* buffered aio wouldn't have proper lock coverage today */
+>>>>>> -	BUG_ON(ret == -EIOCBQUEUED && !(iocb->ki_flags & IOCB_DIRECT));
+>>>>>> +	BUG_ON(ret == -EIOCBQUEUED && !direct_io);
+>>>>>>     
+>>>>>>     	/* see ocfs2_file_write_iter */
+>>>>>>     	if (ret == -EIOCBQUEUED || !ocfs2_iocb_is_rw_locked(iocb)) {
+>>>>>>
+>>>> _______________________________________________
+>>>> Ocfs2-devel mailing list
+>>>> Ocfs2-devel at oss.oracle.com
+>>>> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
 >>> _______________________________________________
 >>> Ocfs2-devel mailing list
 >>> Ocfs2-devel at oss.oracle.com
 >>> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
->>
->> _______________________________________________
->> Ocfs2-devel mailing list
->> Ocfs2-devel at oss.oracle.com
->> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
-> 
