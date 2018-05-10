@@ -1,126 +1,252 @@
-From: Changwei Ge <gechangwei@live.cn>
-Date: Thu, 10 May 2018 01:02:39 +0000
-Subject: [Ocfs2-devel] [PATCH] ocfs2: submit another bio if current bio
- is full
-In-Reply-To: <5AF3912C.6090900@huawei.com>
-References: <1523598667-29401-1-git-send-email-ge.changwei@h3c.com>
-	<5AF2C8A5.1020902@huawei.com>
-	<HK2PR06MB0452F6BDFA71FABA6084FAA1D5990@HK2PR06MB0452.apcprd06.prod.outlook.com>
-	<5AF3912C.6090900@huawei.com>
-Message-ID: <HK2PR06MB04521A692C08DB3875C5884ED5980@HK2PR06MB0452.apcprd06.prod.outlook.com>
+From: Larry Chen <lchen@suse.com>
+Date: Thu, 10 May 2018 13:32:30 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: ocfs2_inode_lock_tracker does not
+	distinguish lock level
+Message-ID: <20180510053230.17217-1-lchen@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: mfasheh@versity.com, jlbec@evilplan.org
+Cc: linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com, akpm@linux-foundation.org
 
+ocfs2_inode_lock_tracker as a variant of ocfs2_inode_lock,
+is used to prevent deadlock due to recursive lock acquisition.
 
+But this function does not distinguish
+whether the requested level is EX or PR.
 
-On 2018/5/10 8:24, piaojun wrote:
->
-> On 2018/5/9 20:01, Changwei Ge wrote:
->> Hi Jun,
->>
->>
->> On 2018/5/9 18:08, piaojun wrote:
->>> Hi Changwei,
->>>
->>> On 2018/4/13 13:51, Changwei Ge wrote:
->>>> If cluster scale exceeds 16 nodes, bio will be full and bio_add_page()
->>>> returns 0 when adding pages to bio. Returning -EIO to o2hb_read_slots()
->>>> from o2hb_setup_one_bio() will lead to losing chance to allocate more
->>>> bios to present all heartbeat region.
->>>>
->>>> So o2hb_read_slots() fails.
->>>>
->>>> In my test, making fs fails in starting o2cb service.
->>>>
->>>> Attach error log:
->>>> (mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 0, vec_len = 4096, vec_start = 0
->>>> (mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 1, vec_len = 4096, vec_start = 0
->>>> (mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 2, vec_len = 4096, vec_start = 0
->>>> (mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 3, vec_len = 4096, vec_start = 0
->>>> (mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 4, vec_len = 4096, vec_start = 0
->>>> (mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 5, vec_len = 4096, vec_start = 0
->>>> (mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 6, vec_len = 4096, vec_start = 0
->>>> (mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 7, vec_len = 4096, vec_start = 0
->>>> (mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 8, vec_len = 4096, vec_start = 0
->>>> (mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 9, vec_len = 4096, vec_start = 0
->>>> (mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 10, vec_len = 4096, vec_start = 0
->>>> (mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 11, vec_len = 4096, vec_start = 0
->>>> (mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 12, vec_len = 4096, vec_start = 0
->>>> (mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 13, vec_len = 4096, vec_start = 0
->>>> (mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 14, vec_len = 4096, vec_start = 0
->>>> (mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 15, vec_len = 4096, vec_start = 0
->>>> (mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 16, vec_len = 4096, vec_start = 0
->>>> (mkfs.ocfs2,27479,2):o2hb_setup_one_bio:471 ERROR: Adding page[16] to bio failed, page ffffea0002d7ed40, len 0, vec_len 4096, vec_start 0, bi_sector 8192
->>>> (mkfs.ocfs2,27479,2):o2hb_read_slots:500 ERROR: status = -5
->>>> (mkfs.ocfs2,27479,2):o2hb_populate_slot_data:1911 ERROR: status = -5
->>>> (mkfs.ocfs2,27479,2):o2hb_region_dev_write:2012 ERROR: status = -5
->>>>
->>>> Fixes: ba16ddfbeb9d ("ocfs2/o2hb: check len for bio_add_page() to avoid getting incorrect bio"
->>>>
->>>> Signed-off-by: Changwei Ge <ge.changwei@h3c.com>
->>>> ---
->>>>    fs/ocfs2/cluster/heartbeat.c | 8 ++++++--
->>>>    1 file changed, 6 insertions(+), 2 deletions(-)
->>>>
->>>> diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
->>>> index 91a8889abf9b..2809e29d612d 100644
->>>> --- a/fs/ocfs2/cluster/heartbeat.c
->>>> +++ b/fs/ocfs2/cluster/heartbeat.c
->>>> @@ -540,11 +540,12 @@ static struct bio *o2hb_setup_one_bio(struct o2hb_region *reg,
->>>>    	struct bio *bio;
->>>>    	struct page *page;
->>>>    
->>>> +#define O2HB_BIO_VECS 16
->>>>    	/* Testing has shown this allocation to take long enough under
->>>>    	 * GFP_KERNEL that the local node can get fenced. It would be
->>>>    	 * nicest if we could pre-allocate these bios and avoid this
->>>>    	 * all together. */
->>>> -	bio = bio_alloc(GFP_ATOMIC, 16);
->>>> +	bio = bio_alloc(GFP_ATOMIC, O2HB_BIO_VECS);
->>>>    	if (!bio) {
->>>>    		mlog(ML_ERROR, "Could not alloc slots BIO!\n");
->>>>    		bio = ERR_PTR(-ENOMEM);
->>>> @@ -570,7 +571,10 @@ static struct bio *o2hb_setup_one_bio(struct o2hb_region *reg,
->>>>    		     current_page, vec_len, vec_start);
->>>>    
->>> Should we check the validity of 'current_page' before bio_add_page()? And
->>> that will prevent error happen. Others looks OK.
->> If I understand correctly, you mean we should check current page  is
->> NULL or not?
->> If so I think there is no need since o2hb should guarantee that it has
->> already reserved enough pages for disk heartbeat read/write behalf.
-> I mean we could check if 'current_page' equals O2HB_BIO_VECS before
-> bio_add_page() to avoid NULL pointer referrence.
-Yes, that might work.
-I find another problem within this patch.
-I will post v2 patch later to fix them all with consideration about your 
-suggestion.
+If a RP lock has been attained, this function
+will immediately return success afterwards even
+an EX lock is requested.
 
-Thanks,
-Changwei
+But actually the return value does not mean that
+the process got a EX lock, because ocfs2_inode_lock
+has not been called.
 
->
-> thanks,
-> Jun
->
->> Thanks,
->> Changwei
->>> thanks,
->>> Jun
->>>>    		len = bio_add_page(bio, page, vec_len, vec_start);
->>>> -		if (len != vec_len) {
->>>> +		if (len == 0 && current_page == O2HB_BIO_VECS) {
->>>> +			/* bio is full now. */
->>>> +			goto bail;
->>>> +		} else if (len != vec_len) {
->>>>    			mlog(ML_ERROR, "Adding page[%d] to bio failed, "
->>>>    			     "page %p, len %d, vec_len %u, vec_start %u, "
->>>>    			     "bi_sector %llu\n", current_page, page, len,
->>>>
->>> _______________________________________________
->>> Ocfs2-devel mailing list
->>> Ocfs2-devel at oss.oracle.com
->>> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+When taking lock levels into account, we face some different situations.
+1. no lock is held
+   In this case, just lock the inode and return 0
+
+2. We are holding a lock
+   For this situation, things diverges into several cases
+
+   wanted     holding	     what to do
+   ex		ex	    see 2.1 below
+   ex		pr	    see 2.2 below
+   pr		ex	    see 2.1 below
+   pr		pr	    see 2.1 below
+
+   2.1 lock level that is been held is compatible
+   with the wanted level, so no lock action will be tacken.
+
+   2.2 Otherwise, an upgrade is needed, but it is forbidden.
+
+Reason why upgrade within a process is forbidden is that
+lock upgrade may cause dead lock. The following illustrate
+how it happens.
+
+        process 1                             process 2
+ocfs2_inode_lock_tracker(ex=0)
+                               <======   ocfs2_inode_lock_tracker(ex=1)
+
+ocfs2_inode_lock_tracker(ex=1)
+
+Signed-off-by: Larry Chen <lchen@suse.com>
+Reviewed-by: Gang He <ghe@suse.com>
+---
+ fs/ocfs2/dlmglue.c | 119 +++++++++++++++++++++++++++++++++++++++--------------
+ fs/ocfs2/dlmglue.h |   1 +
+ 2 files changed, 90 insertions(+), 30 deletions(-)
+
+diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
+index 97a972efab83..68728de12864 100644
+--- a/fs/ocfs2/dlmglue.c
++++ b/fs/ocfs2/dlmglue.c
+@@ -788,35 +788,34 @@ static inline void ocfs2_add_holder(struct ocfs2_lock_res *lockres,
+ 	spin_unlock(&lockres->l_lock);
+ }
+ 
+-static inline void ocfs2_remove_holder(struct ocfs2_lock_res *lockres,
+-				       struct ocfs2_lock_holder *oh)
+-{
+-	spin_lock(&lockres->l_lock);
+-	list_del(&oh->oh_list);
+-	spin_unlock(&lockres->l_lock);
+-
+-	put_pid(oh->oh_owner_pid);
+-}
+-
+-static inline int ocfs2_is_locked_by_me(struct ocfs2_lock_res *lockres)
++static struct ocfs2_lock_holder *
++ocfs2_pid_holder(struct ocfs2_lock_res *lockres,
++		struct pid *pid)
+ {
+ 	struct ocfs2_lock_holder *oh;
+-	struct pid *pid;
+ 
+-	/* look in the list of holders for one with the current task as owner */
+ 	spin_lock(&lockres->l_lock);
+-	pid = task_pid(current);
+ 	list_for_each_entry(oh, &lockres->l_holders, oh_list) {
+ 		if (oh->oh_owner_pid == pid) {
+ 			spin_unlock(&lockres->l_lock);
+-			return 1;
++			return oh;
+ 		}
+ 	}
+ 	spin_unlock(&lockres->l_lock);
++	return NULL;
++}
+ 
+-	return 0;
++static inline void ocfs2_remove_holder(struct ocfs2_lock_res *lockres,
++				       struct ocfs2_lock_holder *oh)
++{
++	spin_lock(&lockres->l_lock);
++	list_del(&oh->oh_list);
++	spin_unlock(&lockres->l_lock);
++
++	put_pid(oh->oh_owner_pid);
+ }
+ 
++
+ static inline void ocfs2_inc_holders(struct ocfs2_lock_res *lockres,
+ 				     int level)
+ {
+@@ -2610,34 +2609,93 @@ void ocfs2_inode_unlock(struct inode *inode,
+  *
+  * return < 0 on error, return == 0 if there's no lock holder on the stack
+  * before this call, return == 1 if this call would be a recursive locking.
++ * return == -1 if this lock attempt will cause an upgrade which is forbidden.
++ *
++ * When taking lock levels into account,we face some different situations.
++ *
++ * 1. no lock is held
++ *    In this case, just lock the inode as requested and return 0
++ *
++ * 2. We are holding a lock
++ *    For this situation, things diverges into several cases
++ *
++ *    wanted     holding	     what to do
++ *    ex		ex	    see 2.1 below
++ *    ex		pr	    see 2.2 below
++ *    pr		ex	    see 2.1 below
++ *    pr		pr	    see 2.1 below
++ *
++ *    2.1 lock level that is been held is compatible
++ *    with the wanted level, so no lock action will be tacken.
++ *
++ *    2.2 Otherwise, an upgrade is needed, but it is forbidden.
++ *
++ * Reason why upgrade within a process is forbidden is that
++ * lock upgrade may cause dead lock. The following illustrates
++ * how it happens.
++ *
++ *         thread on node1                             thread on node2
++ * ocfs2_inode_lock_tracker(ex=0)
++ *
++ *                                <======   ocfs2_inode_lock_tracker(ex=1)
++ *
++ * ocfs2_inode_lock_tracker(ex=1)
+  */
+ int ocfs2_inode_lock_tracker(struct inode *inode,
+ 			     struct buffer_head **ret_bh,
+ 			     int ex,
+ 			     struct ocfs2_lock_holder *oh)
+ {
+-	int status;
+-	int arg_flags = 0, has_locked;
++	int status = 0;
+ 	struct ocfs2_lock_res *lockres;
++	struct ocfs2_lock_holder *tmp_oh;
++	struct pid *pid = task_pid(current);
++
+ 
+ 	lockres = &OCFS2_I(inode)->ip_inode_lockres;
+-	has_locked = ocfs2_is_locked_by_me(lockres);
+-	/* Just get buffer head if the cluster lock has been taken */
+-	if (has_locked)
+-		arg_flags = OCFS2_META_LOCK_GETBH;
++	tmp_oh = ocfs2_pid_holder(lockres, pid);
+ 
+-	if (likely(!has_locked || ret_bh)) {
+-		status = ocfs2_inode_lock_full(inode, ret_bh, ex, arg_flags);
++	if (!tmp_oh) {
++		/*
++		 * This corresponds to the case 1.
++		 * We haven't got any lock before.
++		 */
++		status = ocfs2_inode_lock_full(inode, ret_bh, ex, 0);
+ 		if (status < 0) {
+ 			if (status != -ENOENT)
+ 				mlog_errno(status);
+ 			return status;
+ 		}
+-	}
+-	if (!has_locked)
++
++		oh->oh_ex = ex;
+ 		ocfs2_add_holder(lockres, oh);
++		return 0;
++	}
+ 
+-	return has_locked;
++	if (unlikely(ex && !tmp_oh->oh_ex)) {
++		/*
++		 * case 2.2 upgrade may cause dead lock, forbid it.
++		 */
++		mlog(ML_ERROR, "Recursive locking is not permitted to "
++		     "upgrade to EX level from PR level.\n");
++		dump_stack();
++		return -EINVAL;
++	}
++
++	/*
++	 *  case 2.1 OCFS2_META_LOCK_GETBH flag make ocfs2_inode_lock_full.
++	 *  ignore the lock level and just update it.
++	 */
++	if (ret_bh) {
++		status = ocfs2_inode_lock_full(inode, ret_bh, ex,
++					       OCFS2_META_LOCK_GETBH);
++		if (status < 0) {
++			if (status != -ENOENT)
++				mlog_errno(status);
++			return status;
++		}
++	}
++	return tmp_oh ? 1 : 0;
+ }
+ 
+ void ocfs2_inode_unlock_tracker(struct inode *inode,
+@@ -2649,12 +2707,13 @@ void ocfs2_inode_unlock_tracker(struct inode *inode,
+ 
+ 	lockres = &OCFS2_I(inode)->ip_inode_lockres;
+ 	/* had_lock means that the currect process already takes the cluster
+-	 * lock previously. If had_lock is 1, we have nothing to do here, and
+-	 * it will get unlocked where we got the lock.
++	 * lock previously.
++	 * If had_lock is 1, we have nothing to do here.
++	 * If had_lock is 0, we will release the lock.
+ 	 */
+ 	if (!had_lock) {
++		ocfs2_inode_unlock(inode, oh->oh_ex);
+ 		ocfs2_remove_holder(lockres, oh);
+-		ocfs2_inode_unlock(inode, ex);
+ 	}
+ }
+ 
+diff --git a/fs/ocfs2/dlmglue.h b/fs/ocfs2/dlmglue.h
+index 256e0a9067b8..4ec1c828f6e0 100644
+--- a/fs/ocfs2/dlmglue.h
++++ b/fs/ocfs2/dlmglue.h
+@@ -96,6 +96,7 @@ struct ocfs2_trim_fs_info {
+ struct ocfs2_lock_holder {
+ 	struct list_head oh_list;
+ 	struct pid *oh_owner_pid;
++	int oh_ex;
+ };
+ 
+ /* ocfs2_inode_lock_full() 'arg_flags' flags */
+-- 
+2.13.6
