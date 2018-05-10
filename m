@@ -1,15 +1,28 @@
-From: Larry Chen <lchen@suse.com>
-Date: Thu, 10 May 2018 13:32:30 +0800
+From: Gang He <ghe@suse.com>
+Date: Thu, 10 May 2018 01:49:29 -0600
 Subject: [Ocfs2-devel] [PATCH] ocfs2: ocfs2_inode_lock_tracker does not
-	distinguish lock level
-Message-ID: <20180510053230.17217-1-lchen@suse.com>
+ distinguish lock level
+In-Reply-To: <20180510053230.17217-1-lchen@suse.com>
+References: <20180510053230.17217-1-lchen@suse.com>
+Message-ID: <5AF3F989020000F90001A482@prv1-mh.provo.novell.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: mfasheh@versity.com, jlbec@evilplan.org
-Cc: linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com, akpm@linux-foundation.org
+To: jlbec@evilplan.org, jiangqi903@gmail.com, piaojun@huawei.com, ge changwei <gechangwei@live.cn>, Lei Chen <lchen@suse.com>, mfasheh@versity.com
+Cc: ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
 
+Hello Joseph, Changwei and Jun/Alex,
+
+Please help to take a look at this patch, 
+since the previous patch really has vulnerability in logic, although our test cases did not hit it.
+
+Thanks
+Gang
+ 
+
+
+>>> Larry Chen <lchen@suse.com> 2018/5/10 13:32 >>>
 ocfs2_inode_lock_tracker as a variant of ocfs2_inode_lock,
 is used to prevent deadlock due to recursive lock acquisition.
 
@@ -250,3 +263,9 @@ index 256e0a9067b8..4ec1c828f6e0 100644
  /* ocfs2_inode_lock_full() 'arg_flags' flags */
 -- 
 2.13.6
+
+
+_______________________________________________
+Ocfs2-devel mailing list
+Ocfs2-devel at oss.oracle.com 
+https://oss.oracle.com/mailman/listinfo/ocfs2-devel 
