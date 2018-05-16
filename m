@@ -1,22 +1,22 @@
-From: David Sterba <dsterba@suse.cz>
-Date: Wed, 16 May 2018 13:13:29 +0200
-Subject: [Ocfs2-devel] [PATCH 06/14] btrfs: separate errno from
+From: Christoph Hellwig <hch@lst.de>
+Date: Wed, 16 May 2018 15:01:59 +0200
+Subject: [Ocfs2-devel] [PATCH 10/14] vgem: separate errno from
 	VM_FAULT_* values
-In-Reply-To: <20180516054348.15950-7-hch@lst.de>
+In-Reply-To: <20180516095303.GH3438@phenom.ffwll.local>
 References: <20180516054348.15950-1-hch@lst.de>
-	<20180516054348.15950-7-hch@lst.de>
-Message-ID: <20180516111329.GZ6649@twin.jikos.cz>
+	<20180516054348.15950-11-hch@lst.de>
+	<20180516095303.GH3438@phenom.ffwll.local>
+Message-ID: <20180516130159.GA32454@lst.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
-Cc: linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-s390-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-btrfs-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, dri-devel-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Matthew Wilcox <willy-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, ocfs2-devel-N0ozoZBvEnrZJqsBc5GL+g@public.gmane.org, Souptick Joarder <jrdr.linux-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, linux-fsdevel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-mtd-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, ceph-devel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-ext4-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, devel-urhm25FSIHzptaDgeN77Px2eb7JE58TQ@public.gmane.org, lustre-devel-aLEFhgZF4x6X6Mz3xDxJMA@public.gmane.org
+To: Christoph Hellwig <hch@lst.de>, Souptick Joarder <jrdr.linux@gmail.com>, Matthew Wilcox <willy@infradead.org>, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, devel@lists.orangefs.org, ceph-devel@vger.kernel.org, linux-btrfs@vger.kernel.org, linux-ext4@vger.kernel.org, ocfs2-devel@oss.oracle.com, linux-mtd@lists.infradead.org, dri-devel@lists.freedesktop.org, lustre-devel@lists.lustre.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org
 
-On Wed, May 16, 2018 at 07:43:40AM +0200, Christoph Hellwig wrote:
-> Signed-off-by: Christoph Hellwig <hch@lst.de>
+On Wed, May 16, 2018 at 11:53:03AM +0200, Daniel Vetter wrote:
+> Reviewed-by: Daniel Vetter <daniel.vetter@ffwll.ch>
+> 
+> Want me to merge this through drm-misc or plan to pick it up yourself?
 
-Reviewed-by: David Sterba <dsterba@suse.com>
-
-I can add it to the btrfs queue now, unless you need the patch for the
-rest of the series.
+For now I just want a honest discussion if people really actually
+want the vm_fault_t change with the whole picture in place.
