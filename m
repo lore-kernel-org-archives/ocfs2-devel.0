@@ -1,92 +1,241 @@
 From: Changwei Ge <gechangwei@live.cn>
-Date: Wed, 16 May 2018 15:39:31 +0000
-Subject: [Ocfs2-devel] [PATCH] Revert "ocfs2/o2hb: check len for
- bio_add_page() to avoid getting incorrect bio"
-Message-ID: <SIXPR06MB0461721F398A5A92FC68C39ED5920@SIXPR06MB0461.apcprd06.prod.outlook.com>
+Date: Wed, 16 May 2018 15:46:32 +0000
+Subject: [Ocfs2-devel] [PATCH] ocfs2: don't put and assign null to bh
+ allocated outside
+In-Reply-To: <71604351584F6A4EBAE558C676F37CA401071C8A7C@H3CMLB12-EX.srv.huawei-3com.com>
+References: <71604351584F6A4EBAE558C676F37CA401071C8A7C@H3CMLB12-EX.srv.huawei-3com.com>
+Message-ID: <SIXPR06MB046101F35D90CB25EB74E91FD5920@SIXPR06MB0461.apcprd06.prod.outlook.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-From: Changwei Ge <ge.changwei@h3c.com>
+Hi Zhonghua,
 
-This reverts commit ba16ddfbeb9dde0df67cdb2006820e9cf4d99386.
 
-From my test, this patch introduces a problem that mkfs can't have slots
-more than 16 with 4k block size.
+On 05/16/2018 02:42 PM, Guozhonghua wrote:
+>> ocfs2_read_blocks() and ocfs2_read_blocks_sync() are both used to read
+>> several blocks from disk. Currently, the input argument *bhs* can be
+>> NULL or NOT. It depends on the caller's behavior. If the function
+>> fails in reading blocks from disk, the corresponding bh will be
+>> assigned to NULL and put.
+>>
+>> Obviously, above process for non-NULL input bh is not appropriate.
+>> Because the caller doesn't even know its bhs are put and re-assigned.
+>>
+>> If buffer head is managed by caller, ocfs2_read_blocks and
+>> ocfs2_read_blocks_sync()  should not evaluate it to NULL. It will
+>> cause caller accessing illegal memory, thus crash.
+>>
+>> Also, we should put bhs which have succeeded in reading before current
+>> read failure.
+>>
+>> Signed-off-by: Changwei Ge <ge.changwei@h3c.com>
+>> ---
+>>    fs/ocfs2/buffer_head_io.c | 77 ++++++++++++++++++++++++++++++++++++-----------
+>>    1 file changed, 59 insertions(+), 18 deletions(-)
+>>
+>> diff --git a/fs/ocfs2/buffer_head_io.c b/fs/ocfs2/buffer_head_io.c
+>> index d9ebe11..7ae4147 100644
+>> --- a/fs/ocfs2/buffer_head_io.c
+>> +++ b/fs/ocfs2/buffer_head_io.c
+>> @@ -99,25 +99,34 @@ int ocfs2_write_block(struct ocfs2_super *osb, struct buffer_head *bh,
+>>    	return ret;
+>>    }
+>>    
+>> +/* Caller must provide a bhs[] with all NULL or non-NULL entries, so
+>> +it
+>> + * will be easier to handle read failure.
+>> + */
+>>    int ocfs2_read_blocks_sync(struct ocfs2_super *osb, u64 block,
+>>    			   unsigned int nr, struct buffer_head *bhs[])
+>>    {
+>>    	int status = 0;
+>>    	unsigned int i;
+>>    	struct buffer_head *bh;
+>> +	int new_bh = 0;
+>>    
+>>    	trace_ocfs2_read_blocks_sync((unsigned long long)block, nr);
+>>    
+>>    	if (!nr)
+>>    		goto bail;
+>>    
+>> +	/* Don't put buffer head and re-assign it to NULL if it is allocated
+>> +	 * outside since the call can't be aware of this alternation!
+>> +	 */
+>> +	new_bh = (bhs[0] == NULL);
+>> +
+>>    	for (i = 0 ; i < nr ; i++) {
+>>    		if (bhs[i] == NULL) {
+>>    			bhs[i] = sb_getblk(osb->sb, block++);
+>>    			if (bhs[i] == NULL) {
+>>    				status = -ENOMEM;
+>>    				mlog_errno(status);
+>> -				goto bail;
+>> +				break;
+>>    			}
+>>    		}
+>>    		bh = bhs[i];
+>> @@ -158,9 +167,26 @@ int ocfs2_read_blocks_sync(struct ocfs2_super *osb, u64 block,
+>>    		submit_bh(REQ_OP_READ, 0, bh);
+>>    	}
+>>    
+>> +read_failure:
+>>    	for (i = nr; i > 0; i--) {
+>>    		bh = bhs[i - 1];
+>>    
+>> +		if (unlikely(status)) {
+>> +			if (new_bh && !bh) {
+> If bh is NULL, the below works may be NULL pointer access exceptionally.  I think it should be  && bh.
+> So does with the "else if" statement.
+Good catch.
 
-And the original logic is safe actually with the situation it mentions
-so revert this commit.
+>
+>> +				/* If middle bh fails, let previous bh
+>> +				 * finish its read and then put it to
+>> +				 * aovoid bh leak
+>> +				 */
+>> +				if (!buffer_jbd(bh))
+>> +					wait_on_buffer(bh);
+>> +				put_bh(bh);
+>> +				bhs[i - 1] = NULL;
+>> +			} else if (buffer_uptodate(bh)) {
+>> +				clear_buffer_uptodate(bh);
+>> +			}
+>> +			continue;
+>> +		}
+>> +
+>>    		/* No need to wait on the buffer if it's managed by JBD. */
+>>    		if (!buffer_jbd(bh))
+>>    			wait_on_buffer(bh);
+>> @@ -170,8 +196,7 @@ int ocfs2_read_blocks_sync(struct ocfs2_super *osb, u64 block,
+>>    			 * so we can safely record this and loop back
+>>    			 * to cleanup the other buffers. */
+>>    			status = -EIO;
+>> -			put_bh(bh);
+>> -			bhs[i - 1] = NULL;
+>> +			goto read_failure;
+>>    		}
+>>    	}
+>>    
+>> @@ -179,6 +204,9 @@ int ocfs2_read_blocks_sync(struct ocfs2_super *osb, u64 block,
+>>    	return status;
+>>    }
+>>    
+>> +/* Caller must provide a bhs[] with all NULL or non-NULL entries, so
+>> +it
+>> + * will be easier to handle read failure.
+>> + */
+>>    int ocfs2_read_blocks(struct ocfs2_caching_info *ci, u64 block, int nr,
+>>    		      struct buffer_head *bhs[], int flags,
+>>    		      int (*validate)(struct super_block *sb, @@ -188,6 +216,7 @@
+>> int ocfs2_read_blocks(struct ocfs2_caching_info *ci, u64 block, int nr,
+>>    	int i, ignore_cache = 0;
+>>    	struct buffer_head *bh;
+>>    	struct super_block *sb = ocfs2_metadata_cache_get_super(ci);
+>> +	int new_bh = 0;
+>>    
+>>    	trace_ocfs2_read_blocks_begin(ci, (unsigned long long)block, nr,
+>> flags);
+>>    
+>> @@ -213,6 +242,11 @@ int ocfs2_read_blocks(struct ocfs2_caching_info *ci, u64 block, int nr,
+>>    		goto bail;
+>>    	}
+>>    
+>> +	/* Don't put buffer head and re-assign it to NULL if it is allocated
+>> +	 * outside since the call can't be aware of this alternation!
+>> +	 */
+>> +	new_bh = (bhs[0] == NULL);
+>> +
+>>    	ocfs2_metadata_cache_io_lock(ci);
+>>    	for (i = 0 ; i < nr ; i++) {
+>>    		if (bhs[i] == NULL) {
+>> @@ -221,7 +255,8 @@ int ocfs2_read_blocks(struct ocfs2_caching_info *ci, u64 block, int nr,
+>>    				ocfs2_metadata_cache_io_unlock(ci);
+>>    				status = -ENOMEM;
+>>    				mlog_errno(status);
+>> -				goto bail;
+>> +				/* Don't forget to put previous bh! */
+>> +				break;
+>>    			}
+>>    		}
+>>    		bh = bhs[i];
+>> @@ -316,16 +351,27 @@ int ocfs2_read_blocks(struct ocfs2_caching_info *ci, u64 block, int nr,
+>>    		}
+>>    	}
+>>    
+>> -	status = 0;
+>> -
+>> +read_failure:
+>>    	for (i = (nr - 1); i >= 0; i--) {
+>>    		bh = bhs[i];
+>>    
+>>    		if (!(flags & OCFS2_BH_READAHEAD)) {
+>> -			if (status) {
+>> -				/* Clear the rest of the buffers on error */
+>> -				put_bh(bh);
+>> -				bhs[i] = NULL;
+>> +			if (unlikely(status)) {
+>> +				/* Clear the buffers on error including those
+>> +				 * ever succeeded in reading
+>> +				 */
+>> +				if (new_bh && !bh) {
+> I think here should be if (new_bh && bh) {.
+> Also the else statement should be adjusted to "else if (bh && buffer_uptodate(bh)) {" to avoid the NULL pointer of bh.
+Yes, non-NULL bh should be the condition going into if branch.
 
-Attach test log:
-mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 0, vec_len = 4096,
-vec_start = 0
-(mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 1, vec_len = 4096,
-vec_start = 0
-(mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 2, vec_len = 4096,
-vec_start = 0
-(mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 3, vec_len = 4096,
-vec_start = 0
-(mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 4, vec_len = 4096,
-vec_start = 0
-(mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 5, vec_len = 4096,
-vec_start = 0
-(mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 6, vec_len = 4096,
-vec_start = 0
-(mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 7, vec_len = 4096,
-vec_start = 0
-(mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 8, vec_len = 4096,
-vec_start = 0
-(mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 9, vec_len = 4096,
-vec_start = 0
-(mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 10, vec_len = 4096,
-vec_start = 0
-(mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 11, vec_len = 4096,
-vec_start = 0
-(mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 12, vec_len = 4096,
-vec_start = 0
-(mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 13, vec_len = 4096,
-vec_start = 0
-(mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 14, vec_len = 4096,
-vec_start = 0
-(mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 15, vec_len = 4096,
-vec_start = 0
-(mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 16, vec_len = 4096,
-vec_start = 0
-(mkfs.ocfs2,27479,2):o2hb_setup_one_bio:471 ERROR: Adding page[16] to
-bio failed, page ffffea0002d7ed40, len 0, vec_len 4096, vec_start 0,
-bi_sector 8192
-(mkfs.ocfs2,27479,2):o2hb_read_slots:500 ERROR: status = -5
-(mkfs.ocfs2,27479,2):o2hb_populate_slot_data:1911 ERROR: status = -5
-(mkfs.ocfs2,27479,2):o2hb_region_dev_write:2012 ERROR: status = -5
+I will post v2 later.
 
-Signed-off-by: Changwei Ge <ge.changwei@h3c.com>
----
- fs/ocfs2/cluster/heartbeat.c | 11 +----------
- 1 file changed, 1 insertion(+), 10 deletions(-)
+Thanks,
+Changwei
 
-diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
-index 91a8889..ea8c551 100644
---- a/fs/ocfs2/cluster/heartbeat.c
-+++ b/fs/ocfs2/cluster/heartbeat.c
-@@ -570,16 +570,7 @@ static struct bio *o2hb_setup_one_bio(struct o2hb_region *reg,
- 		     current_page, vec_len, vec_start);
- 
- 		len = bio_add_page(bio, page, vec_len, vec_start);
--		if (len != vec_len) {
--			mlog(ML_ERROR, "Adding page[%d] to bio failed, "
--			     "page %p, len %d, vec_len %u, vec_start %u, "
--			     "bi_sector %llu\n", current_page, page, len,
--			     vec_len, vec_start,
--			     (unsigned long long)bio->bi_iter.bi_sector);
--			bio_put(bio);
--			bio = ERR_PTR(-EIO);
--			return bio;
--		}
-+		if (len != vec_len) break;
- 
- 		cs += vec_len / (PAGE_SIZE/spp);
- 		vec_start = 0;
--- 
-2.7.4
+>
+>> +					/* If middle bh fails, let previous bh
+>> +					 * finish its read and then put it to
+>> +					 * aovoid bh leak
+>> +					 */
+>> +					if (!buffer_jbd(bh))
+>> +						wait_on_buffer(bh);
+>> +					put_bh(bh);
+>> +					bhs[i] = NULL;
+>> +				} else if (buffer_uptodate(bh)) {
+>> +					clear_buffer_uptodate(bh);
+>> +				}
+>>    				continue;
+>>    			}
+>>    			/* We know this can't have changed as we hold the @@ -342,9
+>> +388,7 @@ int ocfs2_read_blocks(struct ocfs2_caching_info *ci, u64
+>> +block, int nr,
+>>    				 * for this bh as it's not marked locally
+>>    				 * uptodate. */
+>>    				status = -EIO;
+>> -				put_bh(bh);
+>> -				bhs[i] = NULL;
+>> -				continue;
+>> +				goto read_failure;
+>>    			}
+>>    
+>>    			if (buffer_needs_validate(bh)) {
+>> @@ -354,11 +398,8 @@ int ocfs2_read_blocks(struct ocfs2_caching_info *ci, u64 block, int nr,
+>>    				BUG_ON(buffer_jbd(bh));
+>>    				clear_buffer_needs_validate(bh);
+>>    				status = validate(sb, bh);
+>> -				if (status) {
+>> -					put_bh(bh);
+>> -					bhs[i] = NULL;
+>> -					continue;
+>> -				}
+>> +				if (status)
+>> +					goto read_failure;
+>>    			}
+>>    		}
+>>    
+> If the input bh is NULL, the bh can be released with some exceptions for it had been allocate locally, or inside the function.
+> The bhs which had allocated outside should not be released while reading blocks from disk. If parts of them released, so segment exception may be occurred on other places, such as slot info, xattr blocks.
+> I think the patch is to solve the issues with new_bh flag to indicate inside or outside.
+>
+> Thank You.
+> Guozhonghua.
+>
+> ------------------------------
