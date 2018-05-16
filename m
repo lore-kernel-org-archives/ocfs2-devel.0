@@ -1,67 +1,92 @@
-From: Darrick J. Wong <darrick.wong@oracle.com>
-Date: Wed, 16 May 2018 08:08:29 -0700
-Subject: [Ocfs2-devel] [PATCH 14/14] mm: turn on vm_fault_t type checking
-In-Reply-To: <20180516054348.15950-15-hch@lst.de>
-References: <20180516054348.15950-1-hch@lst.de>
-	<20180516054348.15950-15-hch@lst.de>
-Message-ID: <20180516150829.GA4904@magnolia>
+From: Changwei Ge <gechangwei@live.cn>
+Date: Wed, 16 May 2018 15:39:31 +0000
+Subject: [Ocfs2-devel] [PATCH] Revert "ocfs2/o2hb: check len for
+ bio_add_page() to avoid getting incorrect bio"
+Message-ID: <SIXPR06MB0461721F398A5A92FC68C39ED5920@SIXPR06MB0461.apcprd06.prod.outlook.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Christoph Hellwig <hch@lst.de>
-Cc: linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, linux-btrfs@vger.kernel.org, dri-devel@lists.freedesktop.org, linux-kernel@vger.kernel.org, Matthew Wilcox <willy@infradead.org>, linux-mm@kvack.org, ocfs2-devel@oss.oracle.com, Souptick Joarder <jrdr.linux@gmail.com>, linux-fsdevel@vger.kernel.org, linux-mtd@lists.infradead.org, ceph-devel@vger.kernel.org, linux-ext4@vger.kernel.org, devel@lists.orangefs.org, lustre-devel@lists.lustre.org
+To: ocfs2-devel@oss.oracle.com
 
-On Wed, May 16, 2018 at 07:43:48AM +0200, Christoph Hellwig wrote:
-> Switch vm_fault_t to point to an unsigned int with __b?twise annotations.
-> This both catches any old ->fault or ->page_mkwrite instance with plain
-> compiler type checking, as well as finding more intricate problems with
-> sparse.
-> 
-> Signed-off-by: Christoph Hellwig <hch@lst.de>
-> ---
+From: Changwei Ge <ge.changwei@h3c.com>
 
-<ULTRASNIP>
+This reverts commit ba16ddfbeb9dde0df67cdb2006820e9cf4d99386.
 
-For the iomap and xfs parts,
-Reviewed-by: Darrick J. Wong <darrick.wong@oracle.com>
+From my test, this patch introduces a problem that mkfs can't have slots
+more than 16 with 4k block size.
 
-That said...
+And the original logic is safe actually with the situation it mentions
+so revert this commit.
 
-> diff --git a/include/linux/mm_types.h b/include/linux/mm_types.h
-> index 54f1e05ecf3e..da2b77a19911 100644
-> --- a/include/linux/mm_types.h
-> +++ b/include/linux/mm_types.h
-> @@ -22,7 +22,8 @@
->  #endif
->  #define AT_VECTOR_SIZE (2*(AT_VECTOR_SIZE_ARCH + AT_VECTOR_SIZE_BASE + 1))
->  
-> -typedef int vm_fault_t;
-> +typedef unsigned __bitwise vm_fault_t;
-> +
->  
->  struct address_space;
->  struct mem_cgroup;
-> @@ -619,7 +620,7 @@ struct vm_special_mapping {
->  	 * If non-NULL, then this is called to resolve page faults
->  	 * on the special mapping.  If used, .pages is not checked.
->  	 */
-> -	int (*fault)(const struct vm_special_mapping *sm,
-> +	vm_fault_t (*fault)(const struct vm_special_mapping *sm,
+Attach test log:
+mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 0, vec_len = 4096,
+vec_start = 0
+(mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 1, vec_len = 4096,
+vec_start = 0
+(mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 2, vec_len = 4096,
+vec_start = 0
+(mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 3, vec_len = 4096,
+vec_start = 0
+(mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 4, vec_len = 4096,
+vec_start = 0
+(mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 5, vec_len = 4096,
+vec_start = 0
+(mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 6, vec_len = 4096,
+vec_start = 0
+(mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 7, vec_len = 4096,
+vec_start = 0
+(mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 8, vec_len = 4096,
+vec_start = 0
+(mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 9, vec_len = 4096,
+vec_start = 0
+(mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 10, vec_len = 4096,
+vec_start = 0
+(mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 11, vec_len = 4096,
+vec_start = 0
+(mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 12, vec_len = 4096,
+vec_start = 0
+(mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 13, vec_len = 4096,
+vec_start = 0
+(mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 14, vec_len = 4096,
+vec_start = 0
+(mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 15, vec_len = 4096,
+vec_start = 0
+(mkfs.ocfs2,27479,2):o2hb_setup_one_bio:463 page 16, vec_len = 4096,
+vec_start = 0
+(mkfs.ocfs2,27479,2):o2hb_setup_one_bio:471 ERROR: Adding page[16] to
+bio failed, page ffffea0002d7ed40, len 0, vec_len 4096, vec_start 0,
+bi_sector 8192
+(mkfs.ocfs2,27479,2):o2hb_read_slots:500 ERROR: status = -5
+(mkfs.ocfs2,27479,2):o2hb_populate_slot_data:1911 ERROR: status = -5
+(mkfs.ocfs2,27479,2):o2hb_region_dev_write:2012 ERROR: status = -5
 
-Uh, we're changing function signatures /and/ redefinining vm_fault_t?
-All in the same 90K patch?
+Signed-off-by: Changwei Ge <ge.changwei@h3c.com>
+---
+ fs/ocfs2/cluster/heartbeat.c | 11 +----------
+ 1 file changed, 1 insertion(+), 10 deletions(-)
 
-I /was/ expecting a series of "convert XXXXX and all callers/users"
-patches followed by a trivial one to switch the definition, not a giant
-pile of change.  FWIW I don't mind so much if you make a patch
-containing a change for some super-common primitive and a hojillion
-little diff hunks tree-wide, but only one logical change at a time for a
-big patch, please...
-
-I quite prefer seeing the whole series from start to finish all packaged
-up in one series, but wow this was overwhelming. :/
-
---D
-
-<ULTRASNIP>
+diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
+index 91a8889..ea8c551 100644
+--- a/fs/ocfs2/cluster/heartbeat.c
++++ b/fs/ocfs2/cluster/heartbeat.c
+@@ -570,16 +570,7 @@ static struct bio *o2hb_setup_one_bio(struct o2hb_region *reg,
+ 		     current_page, vec_len, vec_start);
+ 
+ 		len = bio_add_page(bio, page, vec_len, vec_start);
+-		if (len != vec_len) {
+-			mlog(ML_ERROR, "Adding page[%d] to bio failed, "
+-			     "page %p, len %d, vec_len %u, vec_start %u, "
+-			     "bi_sector %llu\n", current_page, page, len,
+-			     vec_len, vec_start,
+-			     (unsigned long long)bio->bi_iter.bi_sector);
+-			bio_put(bio);
+-			bio = ERR_PTR(-EIO);
+-			return bio;
+-		}
++		if (len != vec_len) break;
+ 
+ 		cs += vec_len / (PAGE_SIZE/spp);
+ 		vec_start = 0;
+-- 
+2.7.4
