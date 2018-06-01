@@ -1,53 +1,47 @@
-From: Changwei Ge <gechangwei@live.cn>
-Date: Mon, 28 May 2018 14:40:11 +0000
-Subject: [Ocfs2-devel] [PATCH RESEND] ocfs2: fix a misuse a of brelse after
- failing ocfs2_check_dir_entry
-Message-ID: <HK2PR06MB045211675B43EED794E597B6D56E0@HK2PR06MB0452.apcprd06.prod.outlook.com>
+From: Andrew Morton <akpm@linux-foundation.org>
+Date: Fri, 1 Jun 2018 16:47:52 -0700
+Subject: [Ocfs2-devel] [PATCH v2] fs: ocfs2: Adding new return type
+	vm_fault_t
+In-Reply-To: <20180523153258.GA28451@jordon-HP-15-Notebook-PC>
+References: <20180523153258.GA28451@jordon-HP-15-Notebook-PC>
+Message-ID: <20180601164752.027e4f087da1b545f15c6832@linux-foundation.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Andrew Morton <akpm@linux-foundation.org>, "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>, "junxiao.bi@oracle.com" <junxiao.bi@oracle.com>, "jiangqi903@gmail.com" <jiangqi903@gmail.com>
-Cc: Changwei Ge <ge.changwei@h3c.com>, "stable@vger.kernel.org" <stable@vger.kernel.org>
+To: Souptick Joarder <jrdr.linux@gmail.com>
+Cc: mfasheh@versity.com, jlbec@evilplan.org, willy@infradead.org, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
 
-From: Changwei Ge <ge.changwei@h3c.com>
+On Wed, 23 May 2018 21:02:58 +0530 Souptick Joarder <jrdr.linux@gmail.com> wrote:
 
-Somehow, file system metadata was corrupted, which causes
-ocfs2_check_dir_entry() to fail in function ocfs2_dir_foreach_blk_el().
+> Use new return type vm_fault_t for fault handler. For
+> now, this is just documenting that the function returns
+> a VM_FAULT value rather than an errno. Once all instances
+> are converted, vm_fault_t will become a distinct type.
+> 
+> Ref-> commit 1c8f422059ae ("mm: change return type to vm_fault_t")
+> 
+> vmf_error() is the newly introduce inline function
+> in 4.18.
+> 
+> Fix one checkpatch.pl warning by replacing BUG_ON()
+> with WARN_ON()
 
-According to the original design intention, if above happens we should
-skip the problematic block and continue to retrieve dir entry. But there
-is obviouse misuse of brelse around related code.
+err, no, I'll revert that part.
 
-After failure of ocfs2_check_dir_entry(), currunt code just moves to next
-position and uses the problematic buffer head again and again during
-which the problematic buffer head is released for multiple times. I
-suppose, this a serious issue which is long-lived in ocfs2. This may
-cause other file systems which is also used in a the same host insane.
+It could be that if this assertion triggers then filesystem corruption
+would ensue, in which case a BUG_ON() is the appropriate handling. 
+Such a change should be submitted separately, please.
 
-So we should also consider about bakcporting this patch into
-linux -stable.
-
-Suggested-by: Changkuo Shi <shi.changkuo@h3c.com>
-Cc: stable at vger.kernel.org
-Signed-off-by: Changwei Ge <ge.changwei@h3c.com>
----
- fs/ocfs2/dir.c | 3 +--
- 1 file changed, 1 insertion(+), 2 deletions(-)
-
-diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
-index b048d4f..c121abb 100644
---- a/fs/ocfs2/dir.c
-+++ b/fs/ocfs2/dir.c
-@@ -1897,8 +1897,7 @@ static int ocfs2_dir_foreach_blk_el(struct inode *inode,
- 				/* On error, skip the f_pos to the
- 				   next block. */
- 				ctx->pos = (ctx->pos | (sb->s_blocksize - 1)) + 1;
--				brelse(bh);
--				continue;
-+				break;
- 			}
- 			if (le64_to_cpu(de->inode)) {
- 				unsigned char d_type = DT_UNKNOWN;
--- 
-2.7.4
+--- a/fs/ocfs2/mmap.c~fs-ocfs2-adding-new-return-type-vm_fault_t-fix
++++ a/fs/ocfs2/mmap.c
+@@ -120,7 +120,7 @@ static vm_fault_t __ocfs2_page_mkwrite(s
+ 		goto out;
+ 	}
+ 	err = ocfs2_write_end_nolock(mapping, pos, len, len, fsdata);
+-	WARN_ON(err != len);
++	BUG_ON(err != len);
+ 	ret = VM_FAULT_LOCKED;
+ out:
+ 	return ret;
+_
