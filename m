@@ -1,25 +1,50 @@
-From: Christoph Hellwig <hch@infradead.org>
-Date: Mon, 4 Jun 2018 01:43:36 -0700
-Subject: [Ocfs2-devel] [PATCH 01/39] vfs: dedpue: return loff_t
-In-Reply-To: <20180529144339.16538-2-mszeredi@redhat.com>
-References: <20180529144339.16538-1-mszeredi@redhat.com>
-	<20180529144339.16538-2-mszeredi@redhat.com>
-Message-ID: <20180604084336.GA11333@infradead.org>
+From: Andrew Morton <akpm@linux-foundation.org>
+Date: Mon, 4 Jun 2018 16:05:34 -0700
+Subject: [Ocfs2-devel] [PATCH v2] fs: ocfs2: Adding new return type
+	vm_fault_t
+In-Reply-To: <CAFqt6zbLPG3h66LMEqzPPrW+BWQQZsSTriegfXFVproMpz3-LQ@mail.gmail.com>
+References: <20180523153258.GA28451@jordon-HP-15-Notebook-PC>
+	<20180601164752.027e4f087da1b545f15c6832@linux-foundation.org>
+	<CAFqt6zbLPG3h66LMEqzPPrW+BWQQZsSTriegfXFVproMpz3-LQ@mail.gmail.com>
+Message-ID: <20180604160534.e393dacec8967294ab143135@linux-foundation.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Miklos Szeredi <mszeredi@redhat.com>
-Cc: linux-unionfs@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-xfs@vger.kernel.org, ocfs2-devel@oss.oracle.com
+To: Souptick Joarder <jrdr.linux@gmail.com>
+Cc: mfasheh@versity.com, Joel Becker <jlbec@evilplan.org>, Matthew Wilcox <willy@infradead.org>, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
 
-On Tue, May 29, 2018 at 04:43:01PM +0200, Miklos Szeredi wrote:
-> f_op->dedupe_file_range() gets a u64 length to dedup and returns an ssize_t
-> actual length deduped.  This breaks badly on 32bit archs since the returned
-> length will be truncated and possibly overflow into the sign bit (xfs and
-> ocfs2 are affected, btrfs limits actual length to 16MiB).
+On Sat, 2 Jun 2018 11:46:17 +0530 Souptick Joarder <jrdr.linux@gmail.com> wrote:
 
-Can we just make it return 0 vs errno?  The only time we return
-a different length than the one passed in is due to the btrfs cap.
+> On Sat, Jun 2, 2018 at 5:17 AM, Andrew Morton <akpm@linux-foundation.org> wrote:
+> > On Wed, 23 May 2018 21:02:58 +0530 Souptick Joarder <jrdr.linux@gmail.com> wrote:
+> >
+> >> Use new return type vm_fault_t for fault handler. For
+> >> now, this is just documenting that the function returns
+> >> a VM_FAULT value rather than an errno. Once all instances
+> >> are converted, vm_fault_t will become a distinct type.
+> >>
+> >> Ref-> commit 1c8f422059ae ("mm: change return type to vm_fault_t")
+> >>
+> >> vmf_error() is the newly introduce inline function
+> >> in 4.18.
+> >>
+> >> Fix one checkpatch.pl warning by replacing BUG_ON()
+> >> with WARN_ON()
+> >
+> > err, no, I'll revert that part.
+> >
+> > It could be that if this assertion triggers then filesystem corruption
+> > would ensue, in which case a BUG_ON() is the appropriate handling.
+> > Such a change should be submitted separately, please.
+> >
+> 
+> In few places checkpatch.pl throwing warning to replace BUG_ON()
+> with WARN_ON(). Shall we ignore these warning or it will vary across
+> patches ?
 
-Given that this API started out on btrfs we should just do the cap
-everywhere to not confuse userspace.
+Such changes are unrelated to the vm_fault_t migration, so please don't
+make them in this context.
+
+It is true that we tend to be too eager to use BUG_ON(), but addressing
+such things should be done one-at-a-time, as a separate project.
