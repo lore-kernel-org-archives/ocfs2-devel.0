@@ -1,47 +1,122 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Date: Fri, 1 Jun 2018 16:47:52 -0700
-Subject: [Ocfs2-devel] [PATCH v2] fs: ocfs2: Adding new return type
-	vm_fault_t
-In-Reply-To: <20180523153258.GA28451@jordon-HP-15-Notebook-PC>
-References: <20180523153258.GA28451@jordon-HP-15-Notebook-PC>
-Message-ID: <20180601164752.027e4f087da1b545f15c6832@linux-foundation.org>
+From: wangyan <wangyan122@huawei.com>
+Date: Mon, 4 Jun 2018 14:42:58 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: clean up some unnecessary code
+Message-ID: <5B14DF72.5020800@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Souptick Joarder <jrdr.linux@gmail.com>
-Cc: mfasheh@versity.com, jlbec@evilplan.org, willy@infradead.org, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
+To: ocfs2-devel@oss.oracle.com
 
-On Wed, 23 May 2018 21:02:58 +0530 Souptick Joarder <jrdr.linux@gmail.com> wrote:
+Several functions have some unnecessary code, clean up these code.
 
-> Use new return type vm_fault_t for fault handler. For
-> now, this is just documenting that the function returns
-> a VM_FAULT value rather than an errno. Once all instances
-> are converted, vm_fault_t will become a distinct type.
-> 
-> Ref-> commit 1c8f422059ae ("mm: change return type to vm_fault_t")
-> 
-> vmf_error() is the newly introduce inline function
-> in 4.18.
-> 
-> Fix one checkpatch.pl warning by replacing BUG_ON()
-> with WARN_ON()
+Signed-off-by: Yan Wang <wangyan122@huawei.com>
+Reviewed-by: Jun Piao <piaojun@huawei.com>
+---
+ fs/ocfs2/alloc.c       | 17 ++++-------------
+ fs/ocfs2/cluster/tcp.c |  2 --
+ fs/ocfs2/inode.c       |  5 +----
+ 3 files changed, 5 insertions(+), 19 deletions(-)
 
-err, no, I'll revert that part.
-
-It could be that if this assertion triggers then filesystem corruption
-would ensue, in which case a BUG_ON() is the appropriate handling. 
-Such a change should be submitted separately, please.
-
---- a/fs/ocfs2/mmap.c~fs-ocfs2-adding-new-return-type-vm_fault_t-fix
-+++ a/fs/ocfs2/mmap.c
-@@ -120,7 +120,7 @@ static vm_fault_t __ocfs2_page_mkwrite(s
- 		goto out;
+diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
+index 0f157bb..6cb8db7 100644
+--- a/fs/ocfs2/alloc.c
++++ b/fs/ocfs2/alloc.c
+@@ -932,13 +932,11 @@ static int ocfs2_validate_extent_block(struct super_block *sb,
+ 		goto bail;
  	}
- 	err = ocfs2_write_end_nolock(mapping, pos, len, len, fsdata);
--	WARN_ON(err != len);
-+	BUG_ON(err != len);
- 	ret = VM_FAULT_LOCKED;
+ 
+-	if (le32_to_cpu(eb->h_fs_generation) != OCFS2_SB(sb)->fs_generation) {
++	if (le32_to_cpu(eb->h_fs_generation) != OCFS2_SB(sb)->fs_generation)
+ 		rc = ocfs2_error(sb,
+ 				 "Extent block #%llu has an invalid h_fs_generation of #%u\n",
+ 				 (unsigned long long)bh->b_blocknr,
+ 				 le32_to_cpu(eb->h_fs_generation));
+-		goto bail;
+-	}
+ bail:
+ 	return rc;
+ }
+@@ -1598,10 +1596,8 @@ static int ocfs2_grow_tree(handle_t *handle, struct ocfs2_extent_tree *et,
+ 	 * the new data. */
+ 	ret = ocfs2_add_branch(handle, et, bh, last_eb_bh,
+ 			       meta_ac);
+-	if (ret < 0) {
++	if (ret < 0)
+ 		mlog_errno(ret);
+-		goto out;
+-	}
+ 
  out:
- 	return ret;
-_
+ 	if (final_depth)
+@@ -5523,10 +5519,8 @@ static int ocfs2_truncate_rec(handle_t *handle,
+ 	ocfs2_journal_dirty(handle, path_leaf_bh(path));
+ 
+ 	ret = ocfs2_rotate_tree_left(handle, et, path, dealloc);
+-	if (ret) {
++	if (ret)
+ 		mlog_errno(ret);
+-		goto out;
+-	}
+ 
+ out:
+ 	ocfs2_free_path(left_path);
+@@ -5659,10 +5653,8 @@ int ocfs2_remove_extent(handle_t *handle,
+ 
+ 		ret = ocfs2_truncate_rec(handle, et, path, index, dealloc,
+ 					 cpos, len);
+-		if (ret) {
++		if (ret)
+ 			mlog_errno(ret);
+-			goto out;
+-		}
+ 	}
+ 
+ out:
+@@ -5707,7 +5699,6 @@ static int ocfs2_reserve_blocks_for_rec_trunc(struct inode *inode,
+ 		if (ret < 0) {
+ 			if (ret != -ENOSPC)
+ 				mlog_errno(ret);
+-			goto out;
+ 		}
+ 	}
+ 
+diff --git a/fs/ocfs2/cluster/tcp.c b/fs/ocfs2/cluster/tcp.c
+index e507618..b6ec4ae 100644
+--- a/fs/ocfs2/cluster/tcp.c
++++ b/fs/ocfs2/cluster/tcp.c
+@@ -872,8 +872,6 @@ int o2net_register_handler(u32 msg_type, u32 key, u32 max_len,
+ 				"for type %u key %08x\n", msg_type, key);
+ 	}
+ 	write_unlock(&o2net_handler_lock);
+-	if (ret)
+-		goto out;
+ 
+ out:
+ 	if (ret)
+diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
+index ddc3e94..7927924 100644
+--- a/fs/ocfs2/inode.c
++++ b/fs/ocfs2/inode.c
+@@ -637,10 +637,8 @@ static int ocfs2_truncate_for_delete(struct ocfs2_super *osb,
+ 		handle = NULL;
+ 
+ 		status = ocfs2_commit_truncate(osb, inode, fe_bh);
+-		if (status < 0) {
++		if (status < 0)
+ 			mlog_errno(status);
+-			goto out;
+-		}
+ 	}
+ 
+ out:
+@@ -1499,7 +1497,6 @@ static int ocfs2_filecheck_validate_inode_block(struct super_block *sb,
+ 		     (unsigned long long)bh->b_blocknr,
+ 		     le32_to_cpu(di->i_fs_generation));
+ 		rc = -OCFS2_FILECHECK_ERR_GENERATION;
+-		goto bail;
+ 	}
+ 
+ bail:
+-- 
+1.8.3.1
