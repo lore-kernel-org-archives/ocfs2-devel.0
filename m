@@ -1,156 +1,116 @@
-From: Joseph Qi <jiangqi903@gmail.com>
-Date: Fri, 8 Jun 2018 11:17:04 +0800
-Subject: [Ocfs2-devel] [PATCH v2] ocfs2: return -EROFS when filesystem
-	becomes read-only
-In-Reply-To: <5B191B26.9010501@huawei.com>
-References: <5B191B26.9010501@huawei.com>
-Message-ID: <228cfcfb-d57e-2125-adcf-033810aae164@gmail.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Tue, 19 Jun 2018 17:58:07 +0200
+Subject: [Ocfs2-devel] [PATCH] ocfs2: dlmglue: clean up timestamp handling
+Message-ID: <20180619155826.4106487-1-arnd@arndb.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>
+Cc: y2038@lists.linaro.org, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Gang He <ghe@suse.com>, Alex Chen <alex.chen@huawei.com>, piaojun <piaojun@huawei.com>, Eric Ren <zren@suse.com>, Deepa Dinamani <deepa.kernel@gmail.com>, Larry Chen <lchen@suse.com>, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
 
+The handling of timestamps outside of the 1970..2038 range in the dlm
+glue is rather inconsistent: on 32-bit architectures, this has always
+wrapped around to negative timestamps in the 1902..1969 range, while on
+64-bit kernels all timestamps are interpreted as positive 34 bit numbers
+in the 1970..2514 year range.
 
+Now that the VFS code handles 64-bit timestamps on all architectures,
+we can make the behavior more consistent here, and return the same result
+that we had on 64-bit already, making the file system y2038 safe in the
+process. Outside of dlmglue, it already uses 64-bit on-disk timestamps
+anway, so that part is fine.
 
-On 18/6/7 19:46, piaojun wrote:
-> We should return -EROFS rather than other errno if filesystem becomes
-> read-only.
-> 
-> Signed-off-by: Jun Piao <piaojun@huawei.com>
-> Reviewed-by: Yiwen Jiang <jiangyiwen@huawei.com>
+For consistency, I'm changing ocfs2_pack_timespec() to clamp
+anything outside of the supported range to the minimum and maximum
+values. This avoids a possible ambiguity of values before 1970
+in particular, which used to be interpreted as times at the end of the
+2514 range previously.
 
-Acked-by: Joseph Qi <jiangqi903@gmail.com>
-> ---
->  fs/ocfs2/alloc.c       | 43 +++++++++++++++++++------------------------
->  fs/ocfs2/localalloc.c  |  9 ++++-----
->  fs/ocfs2/quota_local.c | 15 +++++++--------
->  3 files changed, 30 insertions(+), 37 deletions(-)
-> 
-> diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-> index 0f157bb..ccf8093 100644
-> --- a/fs/ocfs2/alloc.c
-> +++ b/fs/ocfs2/alloc.c
-> @@ -1481,19 +1481,17 @@ static int ocfs2_find_branch_target(struct ocfs2_extent_tree *et,
-> 
->  	while(le16_to_cpu(el->l_tree_depth) > 1) {
->  		if (le16_to_cpu(el->l_next_free_rec) == 0) {
-> -			ocfs2_error(ocfs2_metadata_cache_get_super(et->et_ci),
-> -				    "Owner %llu has empty extent list (next_free_rec == 0)\n",
-> -				    (unsigned long long)ocfs2_metadata_cache_owner(et->et_ci));
-> -			status = -EIO;
-> +			status = ocfs2_error(ocfs2_metadata_cache_get_super(et->et_ci),
-> +				             "Owner %llu has empty extent list (next_free_rec == 0)\n",
-> +				             (unsigned long long)ocfs2_metadata_cache_owner(et->et_ci));
->  			goto bail;
->  		}
->  		i = le16_to_cpu(el->l_next_free_rec) - 1;
->  		blkno = le64_to_cpu(el->l_recs[i].e_blkno);
->  		if (!blkno) {
-> -			ocfs2_error(ocfs2_metadata_cache_get_super(et->et_ci),
-> -				    "Owner %llu has extent list where extent # %d has no physical block start\n",
-> -				    (unsigned long long)ocfs2_metadata_cache_owner(et->et_ci), i);
-> -			status = -EIO;
-> +			status = ocfs2_error(ocfs2_metadata_cache_get_super(et->et_ci),
-> +				             "Owner %llu has extent list where extent # %d has no physical block start\n",
-> +				             (unsigned long long)ocfs2_metadata_cache_owner(et->et_ci), i);
->  			goto bail;
->  		}
-> 
-> @@ -3214,11 +3212,10 @@ static int ocfs2_rotate_tree_left(handle_t *handle,
->  			goto rightmost_no_delete;
-> 
->  		if (le16_to_cpu(el->l_next_free_rec) == 0) {
-> -			ret = -EIO;
-> -			ocfs2_error(ocfs2_metadata_cache_get_super(et->et_ci),
-> -				    "Owner %llu has empty extent block at %llu\n",
-> -				    (unsigned long long)ocfs2_metadata_cache_owner(et->et_ci),
-> -				    (unsigned long long)le64_to_cpu(eb->h_blkno));
-> +			ret = ocfs2_error(ocfs2_metadata_cache_get_super(et->et_ci),
-> +				          "Owner %llu has empty extent block at %llu\n",
-> +				          (unsigned long long)ocfs2_metadata_cache_owner(et->et_ci),
-> +				          (unsigned long long)le64_to_cpu(eb->h_blkno));
->  			goto out;
->  		}
-> 
-> @@ -4411,12 +4408,11 @@ static int ocfs2_figure_merge_contig_type(struct ocfs2_extent_tree *et,
->  			    le16_to_cpu(new_el->l_count)) {
->  				bh = path_leaf_bh(left_path);
->  				eb = (struct ocfs2_extent_block *)bh->b_data;
-> -				ocfs2_error(sb,
-> -					    "Extent block #%llu has an invalid l_next_free_rec of %d.  It should have matched the l_count of %d\n",
-> -					    (unsigned long long)le64_to_cpu(eb->h_blkno),
-> -					    le16_to_cpu(new_el->l_next_free_rec),
-> -					    le16_to_cpu(new_el->l_count));
-> -				status = -EINVAL;
-> +				status = ocfs2_error(sb,
-> +					             "Extent block #%llu has an invalid l_next_free_rec of %d.  It should have matched the l_count of %d\n",
-> +					             (unsigned long long)le64_to_cpu(eb->h_blkno),
-> +					             le16_to_cpu(new_el->l_next_free_rec),
-> +					             le16_to_cpu(new_el->l_count));
->  				goto free_left_path;
->  			}
->  			rec = &new_el->l_recs[
-> @@ -4466,11 +4462,10 @@ static int ocfs2_figure_merge_contig_type(struct ocfs2_extent_tree *et,
->  			if (le16_to_cpu(new_el->l_next_free_rec) <= 1) {
->  				bh = path_leaf_bh(right_path);
->  				eb = (struct ocfs2_extent_block *)bh->b_data;
-> -				ocfs2_error(sb,
-> -					    "Extent block #%llu has an invalid l_next_free_rec of %d\n",
-> -					    (unsigned long long)le64_to_cpu(eb->h_blkno),
-> -					    le16_to_cpu(new_el->l_next_free_rec));
-> -				status = -EINVAL;
-> +				status = ocfs2_error(sb,
-> +					             "Extent block #%llu has an invalid l_next_free_rec of %d\n",
-> +					             (unsigned long long)le64_to_cpu(eb->h_blkno),
-> +					             le16_to_cpu(new_el->l_next_free_rec));
->  				goto free_right_path;
->  			}
->  			rec = &new_el->l_recs[1];
-> diff --git a/fs/ocfs2/localalloc.c b/fs/ocfs2/localalloc.c
-> index fe0d1f9..1b56c22 100644
-> --- a/fs/ocfs2/localalloc.c
-> +++ b/fs/ocfs2/localalloc.c
-> @@ -663,11 +663,10 @@ int ocfs2_reserve_local_alloc_bits(struct ocfs2_super *osb,
->  #ifdef CONFIG_OCFS2_DEBUG_FS
->  	if (le32_to_cpu(alloc->id1.bitmap1.i_used) !=
->  	    ocfs2_local_alloc_count_bits(alloc)) {
-> -		ocfs2_error(osb->sb, "local alloc inode %llu says it has %u used bits, but a count shows %u\n",
-> -			    (unsigned long long)le64_to_cpu(alloc->i_blkno),
-> -			    le32_to_cpu(alloc->id1.bitmap1.i_used),
-> -			    ocfs2_local_alloc_count_bits(alloc));
-> -		status = -EIO;
-> +		status = ocfs2_error(osb->sb, "local alloc inode %llu says it has %u used bits, but a count shows %u\n",
-> +			             (unsigned long long)le64_to_cpu(alloc->i_blkno),
-> +			             le32_to_cpu(alloc->id1.bitmap1.i_used),
-> +			             ocfs2_local_alloc_count_bits(alloc));
->  		goto bail;
->  	}
->  #endif
-> diff --git a/fs/ocfs2/quota_local.c b/fs/ocfs2/quota_local.c
-> index 16c42ed..9c2e4fa 100644
-> --- a/fs/ocfs2/quota_local.c
-> +++ b/fs/ocfs2/quota_local.c
-> @@ -137,14 +137,13 @@ static int ocfs2_read_quota_block(struct inode *inode, u64 v_block,
->  	int rc = 0;
->  	struct buffer_head *tmp = *bh;
-> 
-> -	if (i_size_read(inode) >> inode->i_sb->s_blocksize_bits <= v_block) {
-> -		ocfs2_error(inode->i_sb,
-> -			    "Quota file %llu is probably corrupted! Requested to read block %Lu but file has size only %Lu\n",
-> -			    (unsigned long long)OCFS2_I(inode)->ip_blkno,
-> -			    (unsigned long long)v_block,
-> -			    (unsigned long long)i_size_read(inode));
-> -		return -EIO;
-> -	}
-> +	if (i_size_read(inode) >> inode->i_sb->s_blocksize_bits <= v_block)
-> +		return ocfs2_error(inode->i_sb,
-> +			           "Quota file %llu is probably corrupted! Requested to read block %Lu but file has size only %Lu\n",
-> +			           (unsigned long long)OCFS2_I(inode)->ip_blkno,
-> +			           (unsigned long long)v_block,
-> +			           (unsigned long long)i_size_read(inode));
-> +
->  	rc = ocfs2_read_virt_blocks(inode, v_block, 1, &tmp, 0,
->  				    ocfs2_validate_quota_block);
->  	if (rc)
-> 
+Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+---
+ fs/ocfs2/dlmglue.c | 26 +++++++++-----------------
+ 1 file changed, 9 insertions(+), 17 deletions(-)
+
+diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
+index 0ff424c6d17c..50610a9ed9f4 100644
+--- a/fs/ocfs2/dlmglue.c
++++ b/fs/ocfs2/dlmglue.c
+@@ -2121,10 +2121,10 @@ static void ocfs2_downconvert_on_unlock(struct ocfs2_super *osb,
+ 
+ /* LVB only has room for 64 bits of time here so we pack it for
+  * now. */
+-static u64 ocfs2_pack_timespec(struct timespec *spec)
++static u64 ocfs2_pack_timespec(struct timespec64 *spec)
+ {
+ 	u64 res;
+-	u64 sec = spec->tv_sec;
++	u64 sec = clamp_t(time64_t, spec->tv_sec, 0, 0x3ffffffffull);
+ 	u32 nsec = spec->tv_nsec;
+ 
+ 	res = (sec << OCFS2_SEC_SHIFT) | (nsec & OCFS2_NSEC_MASK);
+@@ -2140,7 +2140,6 @@ static void __ocfs2_stuff_meta_lvb(struct inode *inode)
+ 	struct ocfs2_inode_info *oi = OCFS2_I(inode);
+ 	struct ocfs2_lock_res *lockres = &oi->ip_inode_lockres;
+ 	struct ocfs2_meta_lvb *lvb;
+-	struct timespec ts;
+ 
+ 	lvb = ocfs2_dlm_lvb(&lockres->l_lksb);
+ 
+@@ -2161,15 +2160,12 @@ static void __ocfs2_stuff_meta_lvb(struct inode *inode)
+ 	lvb->lvb_igid      = cpu_to_be32(i_gid_read(inode));
+ 	lvb->lvb_imode     = cpu_to_be16(inode->i_mode);
+ 	lvb->lvb_inlink    = cpu_to_be16(inode->i_nlink);
+-	ts = timespec64_to_timespec(inode->i_atime);
+ 	lvb->lvb_iatime_packed  =
+-		cpu_to_be64(ocfs2_pack_timespec(&ts));
+-	ts = timespec64_to_timespec(inode->i_ctime);
++		cpu_to_be64(ocfs2_pack_timespec(&inode->i_atime));
+ 	lvb->lvb_ictime_packed =
+-		cpu_to_be64(ocfs2_pack_timespec(&ts));
+-	ts = timespec64_to_timespec(inode->i_mtime);
++		cpu_to_be64(ocfs2_pack_timespec(&inode->i_ctime));
+ 	lvb->lvb_imtime_packed =
+-		cpu_to_be64(ocfs2_pack_timespec(&ts));
++		cpu_to_be64(ocfs2_pack_timespec(&inode->i_mtime));
+ 	lvb->lvb_iattr    = cpu_to_be32(oi->ip_attr);
+ 	lvb->lvb_idynfeatures = cpu_to_be16(oi->ip_dyn_features);
+ 	lvb->lvb_igeneration = cpu_to_be32(inode->i_generation);
+@@ -2178,7 +2174,7 @@ static void __ocfs2_stuff_meta_lvb(struct inode *inode)
+ 	mlog_meta_lvb(0, lockres);
+ }
+ 
+-static void ocfs2_unpack_timespec(struct timespec *spec,
++static void ocfs2_unpack_timespec(struct timespec64 *spec,
+ 				  u64 packed_time)
+ {
+ 	spec->tv_sec = packed_time >> OCFS2_SEC_SHIFT;
+@@ -2187,7 +2183,6 @@ static void ocfs2_unpack_timespec(struct timespec *spec,
+ 
+ static void ocfs2_refresh_inode_from_lvb(struct inode *inode)
+ {
+-	struct timespec ts;
+ 	struct ocfs2_inode_info *oi = OCFS2_I(inode);
+ 	struct ocfs2_lock_res *lockres = &oi->ip_inode_lockres;
+ 	struct ocfs2_meta_lvb *lvb;
+@@ -2215,15 +2210,12 @@ static void ocfs2_refresh_inode_from_lvb(struct inode *inode)
+ 	i_gid_write(inode, be32_to_cpu(lvb->lvb_igid));
+ 	inode->i_mode    = be16_to_cpu(lvb->lvb_imode);
+ 	set_nlink(inode, be16_to_cpu(lvb->lvb_inlink));
+-	ocfs2_unpack_timespec(&ts,
++	ocfs2_unpack_timespec(&inode->i_atime,
+ 			      be64_to_cpu(lvb->lvb_iatime_packed));
+-	inode->i_atime = timespec_to_timespec64(ts);
+-	ocfs2_unpack_timespec(&ts,
++	ocfs2_unpack_timespec(&inode->i_mtime,
+ 			      be64_to_cpu(lvb->lvb_imtime_packed));
+-	inode->i_mtime = timespec_to_timespec64(ts);
+-	ocfs2_unpack_timespec(&ts,
++	ocfs2_unpack_timespec(&inode->i_ctime,
+ 			      be64_to_cpu(lvb->lvb_ictime_packed));
+-	inode->i_ctime = timespec_to_timespec64(ts);
+ 	spin_unlock(&oi->ip_lock);
+ }
+ 
+-- 
+2.9.0
