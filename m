@@ -1,137 +1,55 @@
-From: Goldwyn Rodrigues <rgoldwyn@suse.de>
-Date: Tue, 19 Jun 2018 12:14:07 -0500
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Tue, 19 Jun 2018 21:11:27 +0200
 Subject: [Ocfs2-devel] [PATCH] ocfs2: dlmglue: clean up timestamp
 	handling
-In-Reply-To: <20180619155826.4106487-1-arnd@arndb.de>
+In-Reply-To: <20180619171407.yoncg72ed2vncf62@merlin>
 References: <20180619155826.4106487-1-arnd@arndb.de>
-Message-ID: <20180619171407.yoncg72ed2vncf62@merlin>
+	<20180619171407.yoncg72ed2vncf62@merlin>
+Message-ID: <CAK8P3a0Mcm+AxBPxouMZJKXfbEyX-UD3=_speEj7bsW9nmnjzA@mail.gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, y2038@lists.linaro.org, Eric Ren <zren@suse.com>, linux-kernel@vger.kernel.org, Deepa Dinamani <deepa.kernel@gmail.com>, ocfs2-devel@oss.oracle.com
+To: Goldwyn Rodrigues <rgoldwyn@suse.de>
+Cc: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, y2038 Mailman List <y2038@lists.linaro.org>, Eric Ren <zren@suse.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, ocfs2-devel@oss.oracle.com
 
+On Tue, Jun 19, 2018 at 7:14 PM, Goldwyn Rodrigues <rgoldwyn@suse.de> wrote:
+>
+>
+> On 06-19 17:58, Arnd Bergmann wrote:
+>> The handling of timestamps outside of the 1970..2038 range in the dlm
+>> glue is rather inconsistent: on 32-bit architectures, this has always
+>> wrapped around to negative timestamps in the 1902..1969 range, while on
+>> 64-bit kernels all timestamps are interpreted as positive 34 bit numbers
+>> in the 1970..2514 year range.
+...
+>
+> Will all values written to LVB be the same with or without the patch?
+> I am considering the situation where in a cluster some machines have this
+> patch and some don't. Depending on that, this may require a version
+> change.
 
+There is one part that may change:
 
-On 06-19 17:58, Arnd Bergmann wrote:
-> The handling of timestamps outside of the 1970..2038 range in the dlm
-> glue is rather inconsistent: on 32-bit architectures, this has always
-> wrapped around to negative timestamps in the 1902..1969 range, while on
-> 64-bit kernels all timestamps are interpreted as positive 34 bit numbers
-> in the 1970..2514 year range.
-> 
-> Now that the VFS code handles 64-bit timestamps on all architectures,
-> we can make the behavior more consistent here, and return the same result
-> that we had on 64-bit already, making the file system y2038 safe in the
-> process. Outside of dlmglue, it already uses 64-bit on-disk timestamps
-> anway, so that part is fine.
-> 
-> For consistency, I'm changing ocfs2_pack_timespec() to clamp
-> anything outside of the supported range to the minimum and maximum
-> values. This avoids a possible ambiguity of values before 1970
-> in particular, which used to be interpreted as times at the end of the
-> 2514 range previously.
-> 
-> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+>> -static u64 ocfs2_pack_timespec(struct timespec *spec)
+>> +static u64 ocfs2_pack_timespec(struct timespec64 *spec)
+>>  {
+>>       u64 res;
+>> -     u64 sec = spec->tv_sec;
+>> +     u64 sec = clamp_t(time64_t, spec->tv_sec, 0, 0x3ffffffffull);
+>>       u32 nsec = spec->tv_nsec;
+>>
+>>       res = (sec << OCFS2_SEC_SHIFT) | (nsec & OCFS2_NSEC_MASK);
 
-Will all values written to LVB be the same with or without the patch?
-I am considering the situation where in a cluster some machines have this
-patch and some don't. Depending on that, this may require a version
-change.
+Here, setting a timestamp before 1970 or after 2514 will get wrapped
+around in unpatched kernels, but will be clamped to the minimum
+and maximum times after the patch.
 
-> ---
->  fs/ocfs2/dlmglue.c | 26 +++++++++-----------------
->  1 file changed, 9 insertions(+), 17 deletions(-)
-> 
-> diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-> index 0ff424c6d17c..50610a9ed9f4 100644
-> --- a/fs/ocfs2/dlmglue.c
-> +++ b/fs/ocfs2/dlmglue.c
-> @@ -2121,10 +2121,10 @@ static void ocfs2_downconvert_on_unlock(struct ocfs2_super *osb,
->  
->  /* LVB only has room for 64 bits of time here so we pack it for
->   * now. */
-> -static u64 ocfs2_pack_timespec(struct timespec *spec)
-> +static u64 ocfs2_pack_timespec(struct timespec64 *spec)
->  {
->  	u64 res;
-> -	u64 sec = spec->tv_sec;
-> +	u64 sec = clamp_t(time64_t, spec->tv_sec, 0, 0x3ffffffffull);
->  	u32 nsec = spec->tv_nsec;
->  
->  	res = (sec << OCFS2_SEC_SHIFT) | (nsec & OCFS2_NSEC_MASK);
-> @@ -2140,7 +2140,6 @@ static void __ocfs2_stuff_meta_lvb(struct inode *inode)
->  	struct ocfs2_inode_info *oi = OCFS2_I(inode);
->  	struct ocfs2_lock_res *lockres = &oi->ip_inode_lockres;
->  	struct ocfs2_meta_lvb *lvb;
-> -	struct timespec ts;
->  
->  	lvb = ocfs2_dlm_lvb(&lockres->l_lksb);
->  
-> @@ -2161,15 +2160,12 @@ static void __ocfs2_stuff_meta_lvb(struct inode *inode)
->  	lvb->lvb_igid      = cpu_to_be32(i_gid_read(inode));
->  	lvb->lvb_imode     = cpu_to_be16(inode->i_mode);
->  	lvb->lvb_inlink    = cpu_to_be16(inode->i_nlink);
-> -	ts = timespec64_to_timespec(inode->i_atime);
->  	lvb->lvb_iatime_packed  =
-> -		cpu_to_be64(ocfs2_pack_timespec(&ts));
-> -	ts = timespec64_to_timespec(inode->i_ctime);
-> +		cpu_to_be64(ocfs2_pack_timespec(&inode->i_atime));
->  	lvb->lvb_ictime_packed =
-> -		cpu_to_be64(ocfs2_pack_timespec(&ts));
-> -	ts = timespec64_to_timespec(inode->i_mtime);
-> +		cpu_to_be64(ocfs2_pack_timespec(&inode->i_ctime));
->  	lvb->lvb_imtime_packed =
-> -		cpu_to_be64(ocfs2_pack_timespec(&ts));
-> +		cpu_to_be64(ocfs2_pack_timespec(&inode->i_mtime));
->  	lvb->lvb_iattr    = cpu_to_be32(oi->ip_attr);
->  	lvb->lvb_idynfeatures = cpu_to_be16(oi->ip_dyn_features);
->  	lvb->lvb_igeneration = cpu_to_be32(inode->i_generation);
-> @@ -2178,7 +2174,7 @@ static void __ocfs2_stuff_meta_lvb(struct inode *inode)
->  	mlog_meta_lvb(0, lockres);
->  }
->  
-> -static void ocfs2_unpack_timespec(struct timespec *spec,
-> +static void ocfs2_unpack_timespec(struct timespec64 *spec,
->  				  u64 packed_time)
->  {
->  	spec->tv_sec = packed_time >> OCFS2_SEC_SHIFT;
-> @@ -2187,7 +2183,6 @@ static void ocfs2_unpack_timespec(struct timespec *spec,
->  
->  static void ocfs2_refresh_inode_from_lvb(struct inode *inode)
->  {
-> -	struct timespec ts;
->  	struct ocfs2_inode_info *oi = OCFS2_I(inode);
->  	struct ocfs2_lock_res *lockres = &oi->ip_inode_lockres;
->  	struct ocfs2_meta_lvb *lvb;
-> @@ -2215,15 +2210,12 @@ static void ocfs2_refresh_inode_from_lvb(struct inode *inode)
->  	i_gid_write(inode, be32_to_cpu(lvb->lvb_igid));
->  	inode->i_mode    = be16_to_cpu(lvb->lvb_imode);
->  	set_nlink(inode, be16_to_cpu(lvb->lvb_inlink));
-> -	ocfs2_unpack_timespec(&ts,
-> +	ocfs2_unpack_timespec(&inode->i_atime,
->  			      be64_to_cpu(lvb->lvb_iatime_packed));
-> -	inode->i_atime = timespec_to_timespec64(ts);
-> -	ocfs2_unpack_timespec(&ts,
-> +	ocfs2_unpack_timespec(&inode->i_mtime,
->  			      be64_to_cpu(lvb->lvb_imtime_packed));
-> -	inode->i_mtime = timespec_to_timespec64(ts);
-> -	ocfs2_unpack_timespec(&ts,
-> +	ocfs2_unpack_timespec(&inode->i_ctime,
->  			      be64_to_cpu(lvb->lvb_ictime_packed));
-> -	inode->i_ctime = timespec_to_timespec64(ts);
->  	spin_unlock(&oi->ip_lock);
->  }
->  
-> -- 
-> 2.9.0
-> 
-> 
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+It is extremely rare for correct code to need timestamps outside of that
+range, but it is also trivial to trigger that with a manual 'touch' command
+from user space.
 
--- 
-Goldwyn
+If the change is a problem, I can resend the patch without that one
+line change.
+
+         Arnd
