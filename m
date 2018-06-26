@@ -1,19 +1,19 @@
-From: Joseph Qi <jiangqi903@gmail.com>
-Date: Tue, 26 Jun 2018 09:22:39 +0800
+From: piaojun <piaojun@huawei.com>
+Date: Tue, 26 Jun 2018 13:39:54 +0800
 Subject: [Ocfs2-devel] [PATCH V2] ocfs2: Fix locking for res->tracking
  and dlm->tracking_list
 In-Reply-To: <1529951192-4686-1-git-send-email-ashish.samant@oracle.com>
 References: <1529951192-4686-1-git-send-email-ashish.samant@oracle.com>
-Message-ID: <cd73ac79-2f6c-d93a-7bb0-0df43a68f538@gmail.com>
+Message-ID: <5B31D1AA.3010607@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
+LGTM
 
-
-On 18/6/26 02:26, Ashish Samant wrote:
+On 2018/6/26 2:26, Ashish Samant wrote:
 > In dlm_init_lockres() we access and modify res->tracking and
 > dlm->tracking_list without holding dlm->track_lock. This can cause list
 > corruptions and can end up in kernel panic.
@@ -22,9 +22,8 @@ On 18/6/26 02:26, Ashish Samant wrote:
 > dlm->track_lock instead of dlm->spinlock.
 > 
 > Signed-off-by: Ashish Samant <ashish.samant@oracle.com>
+Acked-by: Jun Piao <piaojun@huawei.com>
 > CC: stable at vger.kernel.org
-
-Acked-by: Joseph Qi <jiangqi903@gmail.com>
 > ---
 >  fs/ocfs2/dlm/dlmmaster.c | 4 ++--
 >  1 file changed, 2 insertions(+), 2 deletions(-)
