@@ -1,7 +1,7 @@
 From: Larry Chen <lchen@suse.com>
-Date: Fri, 13 Jul 2018 17:48:42 +0800
+Date: Fri, 13 Jul 2018 17:51:41 +0800
 Subject: [Ocfs2-devel] OCFS2 BUG with 2 different kernels
-In-Reply-To: <DB6PR0402MB2902049BE3B855B334E2DB65ED590@DB6PR0402MB2902.eurprd04.prod.outlook.com>
+In-Reply-To: <DB6PR0402MB2902121C129DC83697D4CE6CED580@DB6PR0402MB2902.eurprd04.prod.outlook.com>
 References: <HE1PR0401MB25389DFE7BFEC86453C3CB21EDBE0@HE1PR0401MB2538.eurprd04.prod.outlook.com>
 	<HE1PR0401MB2538AC4F7C387503A082235FEDBD0@HE1PR0401MB2538.eurprd04.prod.outlook.com>
 	<cded7750-a411-3bd8-9728-c86e41d37295@suse.com>
@@ -14,7 +14,8 @@ References: <HE1PR0401MB25389DFE7BFEC86453C3CB21EDBE0@HE1PR0401MB2538.eurprd04.p
 	<HE1PR0401MB2538AE0195A130AD527C2B31EDBC0@HE1PR0401MB2538.eurprd04.prod.outlook.com>
 	<dcd88f8c-7f0f-f232-3c3b-19290128be26@suse.com>
 	<DB6PR0402MB2902049BE3B855B334E2DB65ED590@DB6PR0402MB2902.eurprd04.prod.outlook.com>
-Message-ID: <09ea1b7f-00e0-cbd7-e484-22e6bb956ddd@suse.com>
+	<DB6PR0402MB2902121C129DC83697D4CE6CED580@DB6PR0402MB2902.eurprd04.prod.outlook.com>
+Message-ID: <a440f9ee-03ea-0403-ecbc-c6dd5e57fdc9@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -23,67 +24,86 @@ To: ocfs2-devel@oss.oracle.com
 
 Hi Daniel,
 
-Thanks for your effort to reproduce the bug.
-I can confirm that there exist more than one bug.
-I'll focus on this interesting issue.
+Could you please describe your environment and the way to reproduce the bug.
 
-
-On 07/12/2018 10:24 PM, Daniel Sobe wrote:
+Thanks
+Larry
+On 07/13/2018 05:35 PM, Daniel Sobe wrote:
+> 
+> This is a stacktrace from 4.16.16. All I was doing this time was a "git checkout" which probably led to a lot of file system activity.
+> 
+> 
+> Jul 13 11:31:00 drs1p001 kernel: [  849.213765] ------------[ cut here ]------------
+> Jul 13 11:31:00 drs1p001 kernel: [  849.213766] kernel BUG at /build/linux-Sci2oS/linux-4.16.16/fs/ocfs2/dlmglue.c:848!
+> Jul 13 11:31:00 drs1p001 kernel: [  849.213774] invalid opcode: 0000 [#1] SMP PTI
+> Jul 13 11:31:00 drs1p001 kernel: [  849.213776] Modules linked in: tcp_diag inet_diag unix_diag veth ocfs2 quota_tree bridge stp llc ocfs2_dlmfs ocfs2_stack_o2cb ocfs2_dlm ocfs2_nodemanager ocfs2_stackglue configfs iptable_filter fuse snd_hda_codec_hdmi rfkill snd_hda_codec_realtek snd_hda_codec_generic intel_rapl x86_pkg_temp_thermal intel_powerclamp coretemp kvm_intel kvm i915 irqbypass crct10dif_pclmul dell_wmi crc32_pclmul sparse_keymap wmi_bmof dell_smbios dell_wmi_descriptor ghash_clmulni_intel snd_hda_intel evdev snd_hda_codec intel_cstate dcdbas drm_kms_helper snd_hda_core snd_hwdep intel_uncore intel_rapl_perf snd_pcm snd_timer drm mei_me iTCO_wdt snd pcspkr mei soundcore iTCO_vendor_support i2c_algo_bit sg shpchp intel_pch_thermal wmi serio_raw button video acpi_pad drbd lru_cache libcrc32c ip_tables x_tables autofs4 ext4
+> Jul 13 11:31:00 drs1p001 kernel: [  849.213808]  crc16 mbcache jbd2 crc32c_generic fscrypto ecb dm_mod sr_mod cdrom sd_mod crc32c_intel aesni_intel aes_x86_64 crypto_simd cryptd glue_helper psmouse ahci libahci e1000e libata xhci_pci e1000 xhci_hcd i2c_i801 scsi_mod usbcore usb_common fan thermal
+> Jul 13 11:31:00 drs1p001 kernel: [  849.213823] CPU: 1 PID: 4266 Comm: git Not tainted 4.16.0-0.bpo.2-amd64 #1 Debian 4.16.16-2~bpo9+1
+> Jul 13 11:31:00 drs1p001 kernel: [  849.213825] Hardware name: Dell Inc. OptiPlex 5040/0R790T, BIOS 1.2.7 01/15/2016
+> Jul 13 11:31:00 drs1p001 kernel: [  849.213851] RIP: 0010:__ocfs2_cluster_unlock.isra.36+0x9d/0xb0 [ocfs2]
+> Jul 13 11:31:00 drs1p001 kernel: [  849.213865] RSP: 0000:ffffab4243c73b20 EFLAGS: 00010046
+> Jul 13 11:31:00 drs1p001 kernel: [  849.213867] RAX: 0000000000000282 RBX: ffff9b5fb19d1818 RCX: 0000000000000000
+> Jul 13 11:31:00 drs1p001 kernel: [  849.213869] RDX: 0000000000000000 RSI: ffff9b5fb19d1818 RDI: ffff9b5fb19d1894
+> Jul 13 11:31:00 drs1p001 kernel: [  849.213870] RBP: 0000000000000003 R08: ffff9b5fd9ca22e0 R09: ffff9b5fcf1ac400
+> Jul 13 11:31:00 drs1p001 kernel: [  849.213872] R10: ffffab4243c73b08 R11: 0000000000000000 R12: ffff9b5fb19d1894
+> Jul 13 11:31:00 drs1p001 kernel: [  849.213874] R13: ffff9b5fcd2cd000 R14: 0000000000000000 R15: ffffffffc0b2d940
+> Jul 13 11:31:00 drs1p001 kernel: [  849.213876] FS:  00007f62f1fa4700(0000) GS:ffff9b5fd9c80000(0000) knlGS:0000000000000000
+> Jul 13 11:31:00 drs1p001 kernel: [  849.213878] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+> Jul 13 11:31:00 drs1p001 kernel: [  849.213879] CR2: 00007f62cc000010 CR3: 000000022abd2003 CR4: 00000000003606e0
+> Jul 13 11:31:00 drs1p001 kernel: [  849.213881] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+> Jul 13 11:31:00 drs1p001 kernel: [  849.213883] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+> Jul 13 11:31:00 drs1p001 kernel: [  849.213884] Call Trace:
+> Jul 13 11:31:00 drs1p001 kernel: [  849.213897]  ? ocfs2_dentry_unlock+0x35/0x80 [ocfs2]
+> Jul 13 11:31:00 drs1p001 kernel: [  849.213908]  ocfs2_dentry_attach_lock+0x2cb/0x420 [ocfs2]
+> Jul 13 11:31:00 drs1p001 kernel: [  849.213921]  ocfs2_lookup+0x199/0x2e0 [ocfs2]
+> Jul 13 11:31:00 drs1p001 kernel: [  849.213925]  ? _cond_resched+0x16/0x40
+> Jul 13 11:31:00 drs1p001 kernel: [  849.213928]  lookup_slow+0xa9/0x170
+> Jul 13 11:31:00 drs1p001 kernel: [  849.213930]  walk_component+0x1c6/0x350
+> Jul 13 11:31:00 drs1p001 kernel: [  849.213932]  path_lookupat+0x73/0x220
+> Jul 13 11:31:00 drs1p001 kernel: [  849.213935]  ? ___bpf_prog_run+0xba7/0x1260
+> Jul 13 11:31:00 drs1p001 kernel: [  849.213937]  filename_lookup+0xb8/0x1a0
+> Jul 13 11:31:00 drs1p001 kernel: [  849.213940]  ? seccomp_run_filters+0x58/0xb0
+> Jul 13 11:31:00 drs1p001 kernel: [  849.213942]  ? __check_object_size+0x98/0x1a0
+> Jul 13 11:31:00 drs1p001 kernel: [  849.213945]  ? strncpy_from_user+0x48/0x160
+> Jul 13 11:31:00 drs1p001 kernel: [  849.213947]  ? getname_flags+0x6a/0x1e0
+> Jul 13 11:31:00 drs1p001 kernel: [  849.213950]  ? vfs_statx+0x73/0xe0
+> Jul 13 11:31:00 drs1p001 kernel: [  849.213952]  vfs_statx+0x73/0xe0
+> Jul 13 11:31:00 drs1p001 kernel: [  849.213954]  SYSC_newlstat+0x39/0x70
+> Jul 13 11:31:00 drs1p001 kernel: [  849.213957]  ? syscall_trace_enter+0x117/0x2c0
+> Jul 13 11:31:00 drs1p001 kernel: [  849.213959]  do_syscall_64+0x6c/0x130
+> Jul 13 11:31:00 drs1p001 kernel: [  849.213961]  entry_SYSCALL_64_after_hwframe+0x3d/0xa2
+> Jul 13 11:31:00 drs1p001 kernel: [  849.213964] RIP: 0033:0x7f62f20800f5
+> Jul 13 11:31:00 drs1p001 kernel: [  849.213965] RSP: 002b:00007f62f1fa3d08 EFLAGS: 00000246 ORIG_RAX: 0000000000000006
+> Jul 13 11:31:00 drs1p001 kernel: [  849.213967] RAX: ffffffffffffffda RBX: 00007f62f1fa3e50 RCX: 00007f62f20800f5
+> Jul 13 11:31:00 drs1p001 kernel: [  849.213969] RDX: 00007f62f1fa3d40 RSI: 00007f62f1fa3d40 RDI: 00007f62e80008c0
+> Jul 13 11:31:00 drs1p001 kernel: [  849.213971] RBP: 0000000000000033 R08: 0000000000000003 R09: 0000000000000000
+> Jul 13 11:31:00 drs1p001 kernel: [  849.213972] R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000005
+> Jul 13 11:31:00 drs1p001 kernel: [  849.213974] R13: 0000000000000000 R14: 0000000000000003 R15: 0000564ea29f2878
+> Jul 13 11:31:00 drs1p001 kernel: [  849.213976] Code: 89 c6 5b 5d 41 5c 41 5d e9 01 b8 e4 ea 0f 0b 8b 53 68 85 d2 74 15 83 ea 01 89 53 68 eb af 8b 53 6c 85 d2 74 c3 eb d1 0f 0b 0f 0b <0f> 0b 0f 0b 0f 1f 44 00 00 66 2e 0f 1f 84 00 00 00 00 00 0f 1f
+> Jul 13 11:31:00 drs1p001 kernel: [  849.214007] RIP: __ocfs2_cluster_unlock.isra.36+0x9d/0xb0 [ocfs2] RSP: ffffab4243c73b20
+> Jul 13 11:31:00 drs1p001 kernel: [  849.214010] ---[ end trace 99c07b7b69ee7717 ]---
+> 
+> I'll see to have a backported 4.17 installed soon to verify whether it happens with newer kernels at all.
+> 
+> Regards,
+> 
+> Daniel
+> 
+> -----Original Message-----
+> From: ocfs2-devel-bounces at oss.oracle.com [mailto:ocfs2-devel-bounces at oss.oracle.com] On Behalf Of Daniel Sobe
+> Sent: Donnerstag, 12. Juli 2018 16:24
+> To: Larry Chen <lchen@suse.com>; ocfs2-devel at oss.oracle.com
+> Subject: Re: [Ocfs2-devel] OCFS2 BUG with 2 different kernels
+> 
 > Hi Larry,
 > 
 > sorry for not responding any earlier. It took me quite a while to reproduce the issue on a "playground" installation. Here's todays kernel BUG log:
 > 
-> Jul 12 15:29:08 drs1p001 kernel: [1300619.423826] ------------[ cut here ]------------
-> Jul 12 15:29:08 drs1p001 kernel: [1300619.423827] kernel BUG at /build/linux-6BBPzq/linux-4.16.5/fs/ocfs2/dlmglue.c:848!
-> Jul 12 15:29:08 drs1p001 kernel: [1300619.423835] invalid opcode: 0000 [#1] SMP PTI
-> Jul 12 15:29:08 drs1p001 kernel: [1300619.423836] Modules linked in: btrfs zstd_compress zstd_decompress xxhash xor raid6_pq ufs qnx4 hfsplus hfs minix ntfs vfat msdos fat jfs xfs tcp_diag inet_diag unix_diag appletalk ax25 ipx(C) p8023 p8022 psnap veth ocfs2 quota_tree ocfs2_dlmfs ocfs2_stack_o2cb ocfs2_dlm ocfs2_nodemanager ocfs2_stackglue configfs bridge stp llc iptable_filter fuse snd_hda_codec_hdmi rfkill intel_rapl x86_pkg_temp_thermal intel_powerclamp coretemp kvm_intel snd_hda_codec_realtek snd_hda_codec_generic kvm snd_hda_intel dell_wmi dell_smbios sparse_keymap irqbypass snd_hda_codec wmi_bmof dell_wmi_descriptor crct10dif_pclmul evdev crc32_pclmul i915 dcdbas snd_hda_core ghash_clmulni_intel intel_cstate snd_hwdep drm_kms_helper snd_pcm intel_uncore intel_rapl_perf snd_timer drm snd serio_raw pcspkr mei_me iTCO_wdt i2c_algo_bit
-> Jul 12 15:29:08 drs1p001 kernel: [1300619.423870]  soundcore iTCO_vendor_support mei shpchp sg intel_pch_thermal wmi video acpi_pad button drbd lru_cache libcrc32c ip_tables x_tables autofs4 ext4 crc16 mbcache jbd2 crc32c_generic fscrypto ecb dm_mod sr_mod cdrom sd_mod crc32c_intel aesni_intel aes_x86_64 crypto_simd cryptd glue_helper psmouse ahci libahci xhci_pci libata e1000e xhci_hcd i2c_i801 e1000 scsi_mod usbcore usb_common fan thermal [last unloaded: configfs]
+> Jul 12 15:29:08 drs1p001 kernel: [1300619.423826] ------------[ cut here ]------------ Jul 12 15:29:08 drs1p001 kernel: [1300619.423827] kernel BUG at /build/linux-6BBPzq/linux-4.16.5/fs/ocfs2/dlmglue.c:848!
+> Jul 12 15:29:08 drs1p001 kernel: [1300619.423835] invalid opcode: 0000 [#1] SMP PTI Jul 12 15:29:08 drs1p001 kernel: [1300619.423836] Modules linked in: btrfs zstd_compress zstd_decompress xxhash xor raid6_pq ufs qnx4 hfsplus hfs minix ntfs vfat msdos fat jfs xfs tcp_diag inet_diag unix_diag appletalk ax25 ipx(C) p8023 p8022 psnap veth ocfs2 quota_tree ocfs2_dlmfs ocfs2_stack_o2cb ocfs2_dlm ocfs2_nodemanager ocfs2_stackglue configfs bridge stp llc iptable_filter fuse snd_hda_codec_hdmi rfkill intel_rapl x86_pkg_temp_thermal intel_powerclamp coretemp kvm_intel snd_hda_codec_realtek snd_hda_codec_generic kvm snd_hda_intel dell_wmi dell_smbios sparse_keymap irqbypass snd_hda_codec wmi_bmof dell_wmi_descriptor crct10dif_pclmul evdev crc32_pclmul i915 dcdbas snd_hda_core ghash_clmulni_intel intel_cstate snd_hwdep drm_kms_helper snd_pcm intel_uncore intel_rapl_perf snd_timer drm snd serio_raw pcspkr mei_me iTCO_wdt i2c_algo_bit Jul 12 15:29:08 drs1p001 kernel: [1300619.423870]  soundcore iTCO_vendor_support mei shpchp sg intel_pch_thermal wmi video acpi_pad button drbd lru_cache libcrc32c ip_tables x_tables autofs4 ext4 crc16 mbcache jbd2 crc32c_generic fscrypto ecb dm_mod sr_mod cdrom sd_mod crc32c_intel aesni_intel aes_x86_64 crypto_simd cryptd glue_helper psmouse ahci libahci xhci_pci libata e1000e xhci_hcd i2c_i801 e1000 scsi_mod usbcore usb_common fan thermal [last unloaded: configfs]
 > Jul 12 15:29:08 drs1p001 kernel: [1300619.423892] CPU: 2 PID: 13603 Comm: cc1 Tainted: G         C       4.16.0-0.bpo.1-amd64 #1 Debian 4.16.5-1~bpo9+1
-> Jul 12 15:29:08 drs1p001 kernel: [1300619.423894] Hardware name: Dell Inc. OptiPlex 5040/0R790T, BIOS 1.2.7 01/15/2016
-> Jul 12 15:29:08 drs1p001 kernel: [1300619.423923] RIP: 0010:__ocfs2_cluster_unlock.isra.36+0x9d/0xb0 [ocfs2]
-> Jul 12 15:29:08 drs1p001 kernel: [1300619.423925] RSP: 0018:ffffb14b4a133b10 EFLAGS: 00010046
-> Jul 12 15:29:08 drs1p001 kernel: [1300619.423927] RAX: 0000000000000282 RBX: ffff9d269d990018 RCX: 0000000000000000
-> Jul 12 15:29:08 drs1p001 kernel: [1300619.423929] RDX: 0000000000000000 RSI: ffff9d269d990018 RDI: ffff9d269d990094
-> Jul 12 15:29:08 drs1p001 kernel: [1300619.423931] RBP: 0000000000000003 R08: 000062d940000000 R09: 000000000000036a
-> Jul 12 15:29:08 drs1p001 kernel: [1300619.423933] R10: ffffb14b4a133af8 R11: 0000000000000068 R12: ffff9d269d990094
-> Jul 12 15:29:08 drs1p001 kernel: [1300619.423934] R13: ffff9d2882baa000 R14: 0000000000000000 R15: ffffffffc0bf3940
-> Jul 12 15:29:08 drs1p001 kernel: [1300619.423936] FS:  0000000000000000(0000) GS:ffff9d2899d00000(0063) knlGS:00000000f7c99d00
-> Jul 12 15:29:08 drs1p001 kernel: [1300619.423938] CS:  0010 DS: 002b ES: 002b CR0: 0000000080050033
-> Jul 12 15:29:08 drs1p001 kernel: [1300619.423940] CR2: 00007ff9c7f3e8dc CR3: 00000001725f0002 CR4: 00000000003606e0
-> Jul 12 15:29:08 drs1p001 kernel: [1300619.423942] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
-> Jul 12 15:29:08 drs1p001 kernel: [1300619.423944] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
-> Jul 12 15:29:08 drs1p001 kernel: [1300619.423945] Call Trace:
-> Jul 12 15:29:08 drs1p001 kernel: [1300619.423958]  ? ocfs2_dentry_unlock+0x35/0x80 [ocfs2]
-> Jul 12 15:29:08 drs1p001 kernel: [1300619.423969]  ocfs2_dentry_attach_lock+0x2cb/0x420 [ocfs2]
-
-Here is caused by ocfs2_dentry_lock failed.
-I'll fix it by prevent ocfs2 from calling ocfs2_dentry_unlock on the 
-failure of ocfs2_dentry_lock.
-
-But why it failed still confuses me.
-
-
-> Jul 12 15:29:08 drs1p001 kernel: [1300619.423981]  ocfs2_lookup+0x199/0x2e0 [ocfs2]
-> Jul 12 15:29:08 drs1p001 kernel: [1300619.423986]  ? _cond_resched+0x16/0x40
-> Jul 12 15:29:08 drs1p001 kernel: [1300619.423989]  lookup_slow+0xa9/0x170
-> Jul 12 15:29:08 drs1p001 kernel: [1300619.423991]  walk_component+0x1c6/0x350
-> Jul 12 15:29:08 drs1p001 kernel: [1300619.423993]  ? path_init+0x1bd/0x300
-> Jul 12 15:29:08 drs1p001 kernel: [1300619.423995]  path_lookupat+0x73/0x220
-> Jul 12 15:29:08 drs1p001 kernel: [1300619.423998]  ? ___bpf_prog_run+0xba7/0x1260
-> Jul 12 15:29:08 drs1p001 kernel: [1300619.424000]  filename_lookup+0xb8/0x1a0
-> Jul 12 15:29:08 drs1p001 kernel: [1300619.424003]  ? seccomp_run_filters+0x58/0xb0
-> Jul 12 15:29:08 drs1p001 kernel: [1300619.424005]  ? __check_object_size+0x98/0x1a0
-> Jul 12 15:29:08 drs1p001 kernel: [1300619.424008]  ? strncpy_from_user+0x48/0x160
-> Jul 12 15:29:08 drs1p001 kernel: [1300619.424010]  ? vfs_statx+0x73/0xe0
-> Jul 12 15:29:08 drs1p001 kernel: [1300619.424012]  vfs_statx+0x73/0xe0
-> Jul 12 15:29:08 drs1p001 kernel: [1300619.424015]  C_SYSC_x86_stat64+0x39/0x70
-> Jul 12 15:29:08 drs1p001 kernel: [1300619.424018]  ? syscall_trace_enter+0x117/0x2c0
-> Jul 12 15:29:08 drs1p001 kernel: [1300619.424020]  do_fast_syscall_32+0xab/0x1f0
-> Jul 12 15:29:08 drs1p001 kernel: [1300619.424022]  entry_SYSENTER_compat+0x7f/0x8e
-> Jul 12 15:29:08 drs1p001 kernel: [1300619.424025] Code: 89 c6 5b 5d 41 5c 41 5d e9 a1 77 78 db 0f 0b 8b 53 68 85 d2 74 15 83 ea 01 89 53 68 eb af 8b 53 6c 85 d2 74 c3 eb d1 0f 0b 0f 0b <0f> 0b 0f 0b 0f 1f 44 00 00 66 2e 0f 1f 84 00 00 00 00 00 0f 1f
-> Jul 12 15:29:08 drs1p001 kernel: [1300619.424055] RIP: __ocfs2_cluster_unlock.isra.36+0x9d/0xb0 [ocfs2] RSP: ffffb14b4a133b10
-> Jul 12 15:29:08 drs1p001 kernel: [1300619.424057] ---[ end trace aea789961795b75f ]---
-> Jul 12 15:29:08 drs1p001 kernel: [1300628.967649] ------------[ cut here ]------------
+> Jul 12 15:29:08 drs1p001 kernel: [1300619.423894] Hardware name: Dell Inc. OptiPlex 5040/0R790T, BIOS 1.2.7 01/15/2016 Jul 12 15:29:08 drs1p001 kernel: [1300619.423923] RIP: 0010:__ocfs2_cluster_unlock.isra.36+0x9d/0xb0 [ocfs2] Jul 12 15:29:08 drs1p001 kernel: [1300619.423925] RSP: 0018:ffffb14b4a133b10 EFLAGS: 00010046 Jul 12 15:29:08 drs1p001 kernel: [1300619.423927] RAX: 0000000000000282 RBX: ffff9d269d990018 RCX: 0000000000000000 Jul 12 15:29:08 drs1p001 kernel: [1300619.423929] RDX: 0000000000000000 RSI: ffff9d269d990018 RDI: ffff9d269d990094 Jul 12 15:29:08 drs1p001 kernel: [1300619.423931] RBP: 0000000000000003 R08: 000062d940000000 R09: 000000000000036a Jul 12 15:29:08 drs1p001 kernel: [1300619.423933] R10: ffffb14b4a133af8 R11: 0000000000000068 R12: ffff9d269d990094 Jul 12 15:29:08 drs1p001 kernel: [1300619.423934] R13: ffff9d2882baa000 R14: 0000000000000000 R15: ffffffffc0bf3940 Jul 12 15:29:08 drs1p001 kernel: [1300619.423936] FS:  0000000000000000(0000) GS:ffff9d2899d00000(0063) knlGS:00000000f7c99d00 Jul 12 15:29:08 drs1p001 kernel: [1300619.423938] CS:  0010 DS: 002b ES: 002b CR0: 0000000080050033 Jul 12 15:29:08 drs1p001 kernel: [1300619.423940] CR2: 00007ff9c7f3e8dc CR3: 00000001725f0002 CR4: 00000000003606e0 Jul 12 15:29:08 drs1p001 kernel: [1300619.423942] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000 Jul 12 15:29:08 drs1p001 kernel: [1300619.423944] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400 Jul 12 15:29:08 drs1p001 kernel: [1300619.423945] Call Trace:
+> Jul 12 15:29:08 drs1p001 kernel: [1300619.423958]  ? ocfs2_dentry_unlock+0x35/0x80 [ocfs2] Jul 12 15:29:08 drs1p001 kernel: [1300619.423969]  ocfs2_dentry_attach_lock+0x2cb/0x420 [ocfs2] Jul 12 15:29:08 drs1p001 kernel: [1300619.423981]  ocfs2_lookup+0x199/0x2e0 [ocfs2] Jul 12 15:29:08 drs1p001 kernel: [1300619.423986]  ? _cond_resched+0x16/0x40 Jul 12 15:29:08 drs1p001 kernel: [1300619.423989]  lookup_slow+0xa9/0x170 Jul 12 15:29:08 drs1p001 kernel: [1300619.423991]  walk_component+0x1c6/0x350 Jul 12 15:29:08 drs1p001 kernel: [1300619.423993]  ? path_init+0x1bd/0x300 Jul 12 15:29:08 drs1p001 kernel: [1300619.423995]  path_lookupat+0x73/0x220 Jul 12 15:29:08 drs1p001 kernel: [1300619.423998]  ? ___bpf_prog_run+0xba7/0x1260 Jul 12 15:29:08 drs1p001 kernel: [1300619.424000]  filename_lookup+0xb8/0x1a0 Jul 12 15:29:08 drs1p001 kernel: [1300619.424003]  ? seccomp_run_filters+0x58/0xb0 Jul 12 15:29:08 drs1p001 kernel: [1300619.424005]  ? __check_object_size+0x98/0x1a0 Jul 12 15:29:08 drs1p001 kernel: [1300619.424008]  ? strncpy_from_user+0x48/0x160 Jul 12 15:29:08 drs1p001 kernel: [1300619.424010]  ? vfs_statx+0x73/0xe0 Jul 12 15:29:08 drs1p001 kernel: [1300619.424012]  vfs_statx+0x73/0xe0 Jul 12 15:29:08 drs1p001 kernel: [1300619.424015]  C_SYSC_x86_stat64+0x39/0x70 Jul 12 15:29:08 drs1p001 kernel: [1300619.424018]  ? syscall_trace_enter+0x117/0x2c0 Jul 12 15:29:08 drs1p001 kernel: [1300619.424020]  do_fast_syscall_32+0xab/0x1f0 Jul 12 15:29:08 drs1p001 kernel: [1300619.424022]  entry_SYSENTER_compat+0x7f/0x8e Jul 12 15:29:08 drs1p001 kernel: [1300619.424025] Code: 89 c6 5b 5d 41 5c 41 5d e9 a1 77 78 db 0f 0b 8b 53 68 85 d2 74 15 83 ea 01 89 53 68 eb af 8b 53 6c 85 d2 74 c3 eb d1 0f 0b 0f 0b <0f> 0b 0f 0b 0f 1f 44 00 00 66 2e 0f 1f 84 00 00 00 00 00 0f 1f Jul 12 15:29:08 drs1p001 kernel: [1300619.424055] RIP: __ocfs2_cluster_unlock.isra.36+0x9d/0xb0 [ocfs2] RSP: ffffb14b4a133b10 Jul 12 15:29:08 drs1p001 kernel: [1300619.424057] ---[ end trace aea789961795b75f ]--- Jul 12 15:29:08 drs1p001 kernel: [1300628.967649] ------------[ cut here ]------------
 > 
 > As this occurred while compiling C code with "-j" I think we were on the wrong track, it is not about mount sharing, but rather a multicore issue. That would be in line with the other report that I found (I referenced it when I was reporting my issue), who claimed the issue went away after he restricted to 1 active CPU core.
 > 
@@ -186,7 +206,7 @@ But why it failed still confuses me.
 >>> On 04/11/2018 08:24 PM, Daniel Sobe wrote:
 >>>> Hi Larry,
 >>>>
->>>> below is an example config file like I use it for LXC containers. I followed the instructions (https://urldefense.proofpoint.com/v2/url?u=https-3A__emea01.safelinks.protection.outlook.com_-3Furl-3Dhttps-253A-252F-252Fwiki.debian.org-252FLXC-26data-3D02-257C01-257Cdaniel.sobe-2540nxp.com-257C11fd4f062e694faa287a08d5a023f22b-257C686ea1d3bc2b4c6fa92cd99c5c301635-257C0-257C0-257C636590998614059943-26sdata-3DZSqSTx3Vjxy-252FbfKrXdIVGvUqieRFxVl4FFnr-252FPTGAhc-253D-26reserved-3D0&d=DwIDaQ&c=RoP1YumCXCgaWHvlZYR8PZh8Bv7qIrMUB65eapI_JnE&r=C7gAd4uDxlAvTdc0vmU6X8CMk6L2iDY8-HD0qT6Fo7Y&m=ZyZJHyS-hpOt5cG5HUXWP4DMTlWsFjNC24kNNJrQP7Y&s=p6IBQtAwi0mNcKsq2KQH96D2xRdWu7HXtgXDOtDYq28&e=) and downloaded a Debian 8 container as user (unprivileged) and adapted the config file. Several of those containers run on one host and share the OCFS2 directory as you can see at the "lxc.mount.entry" line.
+>>>> below is an example config file like I use it for LXC containers. I followed the instructions (https://emea01.safelinks.protection.outlook.com/?url=https%3A%2F%2Furldefense.proofpoint.com%2Fv2%2Furl%3Fu%3Dhttps-3A__emea01.safelinks.protection.outlook.com_-3Furl-3Dhttps-253A-252F-252Fwiki.debian.org-252FLXC-26data-3D02-257C01-257Cdaniel.sobe-2540nxp.com-257C11fd4f062e694faa287a08d5a023f22b-257C686ea1d3bc2b4c6fa92cd99c5c301635-257C0-257C0-257C636590998614059943-26sdata-3DZSqSTx3Vjxy-252FbfKrXdIVGvUqieRFxVl4FFnr-252FPTGAhc-253D-26reserved-3D0%26d%3DDwIGaQ%26c%3DRoP1YumCXCgaWHvlZYR8PZh8Bv7qIrMUB65eapI_JnE%26r%3DC7gAd4uDxlAvTdc0vmU6X8CMk6L2iDY8-HD0qT6Fo7Y%26m%3Dd8YTOI365uammRcpTuXDoQhwuGDm0CyQ-QNJxQAZczs%26s%3DcrzdJkF_u3rBf8xZ1cHEce1LBwHIrVIDads0aP6CP74%26e&amp;data=02%7C01%7Cdaniel.sobe%40nxp.com%7C1f1b5d6a87334604103108d5e803507b%7C686ea1d3bc2b4c6fa92cd99c5c301635%7C0%7C0%7C636670023298552201&amp;sdata=fB%2BH2oqPXUFCWoAO%2BlZ1Qg8jJkKpM0rf39AgJ1ObWJQ%3D&amp;reserved=0=) and downloaded a Debian 8 container as user (unprivileged) and adapted the config file. Several of those containers run on one host and share the OCFS2 directory as you can see at the "lxc.mount.entry" line.
 >>>>
 >>>> Meanwhile I'm trying whether the problem can be reproduced with shared mounts in one namespace, as you suggested. So far with no success, will report once anything happens.
 >>>>
@@ -290,4 +310,10 @@ But why it failed still confuses me.
 > 
 > Thanks
 > Larry
+> 
+> 
+> _______________________________________________
+> Ocfs2-devel mailing list
+> Ocfs2-devel at oss.oracle.com
+> https://urldefense.proofpoint.com/v2/url?u=https-3A__emea01.safelinks.protection.outlook.com_-3Furl-3Dhttps-253A-252F-252Foss.oracle.com-252Fmailman-252Flistinfo-252Focfs2-2Ddevel-26amp-3Bdata-3D02-257C01-257Cdaniel.sobe-2540nxp.com-257C1f1b5d6a87334604103108d5e803507b-257C686ea1d3bc2b4c6fa92cd99c5c301635-257C0-257C0-257C636670023298552201-26amp-3Bsdata-3DSMj8hOyr2U1FctgW76Vei7KqVxNnVDXLmZYhNSKEhGc-253D-26amp-3Breserved-3D0&d=DwIGaQ&c=RoP1YumCXCgaWHvlZYR8PZh8Bv7qIrMUB65eapI_JnE&r=C7gAd4uDxlAvTdc0vmU6X8CMk6L2iDY8-HD0qT6Fo7Y&m=jxv7mc6IKJoCli8onTYptgqtB2F0pH85mBSm_siNaW0&s=MroZwPKlWi9mMDMNLiVspA1V9oS6VBAxi12k-7Epp2E&e=
 > 
