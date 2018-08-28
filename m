@@ -1,103 +1,97 @@
-From: Larry Chen <lchen@suse.com>
-Date: Tue, 28 Aug 2018 09:37:30 +0800
+From: Changwei Ge <gechangwei@live.cn>
+Date: Tue, 28 Aug 2018 02:00:49 +0000
 Subject: [Ocfs2-devel] [PATCH] fix dead lock caused by
 	ocfs2_defrag_extent
-In-Reply-To: <804e11ca-39e3-575b-2e25-a00c95cf1311@gmail.com>
+In-Reply-To: <20180827080121.31145-1-lchen@suse.com>
 References: <20180827080121.31145-1-lchen@suse.com>
-	<804e11ca-39e3-575b-2e25-a00c95cf1311@gmail.com>
-Message-ID: <63ea78c8-d708-ea56-2b61-81e1e8d02e91@suse.com>
+Message-ID: <HK0PR06MB2561EFE93735AE62A0F5A559D50A0@HK0PR06MB2561.apcprd06.prod.outlook.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Larry Chen <lchen@suse.com>, "mfasheh@suse.com" <mfasheh@suse.com>, "jlbec@evilplan.org" <jlbec@evilplan.org>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>
 
-Hi Joseph,
+Hi Larry,
 
-Thanks for your review, I'll remove it later.
+I'd like to propose another way to fix this issue, which might be easier.
+Actually, ocfs2_reserve_clusters() inside will flush truncate log if 
+there is no enough clusters left.
+So how about just remove __ocfs2_flush_truncate_log() in 
+ocfs2_defrag_extent()?
 
 Thanks,
-Larry
+Changwei
 
-On 08/28/2018 09:02 AM, Joseph Qi wrote:
-> Hi Larry,
-> 
-> On 18/8/27 16:01, Larry Chen wrote:
->> ocfs2_defrag_extent may fall into dead lock.
->>
->> ocfs2_ioctl_move_extents
->>    ocfs2_ioctl_move_extents	
->>      ocfs2_move_extents
->>        ocfs2_defrag_extent
->>          ocfs2_lock_allocators_move_extents
->>
->>            ocfs2_reserve_clusters
->>              inode_lock GLOBAL_BITMAP_SYSTEM_INODE
->>
->> 	  __ocfs2_flush_truncate_log
->>              inode_lock GLOBAL_BITMAP_SYSTEM_INODE
->>
->> As back trace shows above, ocfs2_reserve_clusters will call inode_lock
->> against the global bitmap if local allocator has not sufficient cluters.
->> Once global bitmap could meet the demand, ocfs2_reserve_cluster will
->> return success with global bitmap locked.
->>
->> After ocfs2_reserve_cluster, if truncate log is full,
->> __ocfs2_flush_truncate_log will definitely fall into dead lock
->> because it needs to inode_lock global bitmap, which has
->> already been locked.
->>
->> To fix this bug, we could remove from ocfs2_lock_allocators_move_extents
->> the code which intends to lock global allocator, and put the removed
->> code after __ocfs2_flush_truncate_log
->>
->> The ocfs2_lock_allocators_move_extents has been refered by 2 places, one
->> is here, the other does not need the data allocator context, which means
->> this patch does not affect the caller so far.
->>
-> After this change, data_ac in ocfs2_lock_allocators_move_extents() is
-> no longer used. So I'd prefer we also clean it up.
-> 
-> Thanks,
-> Joseph
-> 
->>
->>
->> Signed-off-by: Larry Chen <lchen@suse.com>
->> ---
->>   fs/ocfs2/move_extents.c | 13 ++++++-------
->>   1 file changed, 6 insertions(+), 7 deletions(-)
->>
->> diff --git a/fs/ocfs2/move_extents.c b/fs/ocfs2/move_extents.c
->> index 7eb3b0a6347e..064dedf40d74 100644
->> --- a/fs/ocfs2/move_extents.c
->> +++ b/fs/ocfs2/move_extents.c
->> @@ -192,13 +192,6 @@ static int ocfs2_lock_allocators_move_extents(struct inode *inode,
->>   		goto out;
->>   	}
->>   
->> -	if (data_ac) {
->> -		ret = ocfs2_reserve_clusters(osb, clusters_to_move, data_ac);
->> -		if (ret) {
->> -			mlog_errno(ret);
->> -			goto out;
->> -		}
->> -	}
->>   
->>   	*credits += ocfs2_calc_extend_credits(osb->sb, et->et_root_el);
->>   
->> @@ -283,6 +276,12 @@ static int ocfs2_defrag_extent(struct ocfs2_move_extents_context *context,
->>   		}
->>   	}
->>   
->> +	ret = ocfs2_reserve_clusters(osb, *len, &context->data_ac);
->> +	if (ret) {
->> +		mlog_errno(ret);
->> +		goto out_unlock_mutex;
->> +	}
->> +
->>   	handle = ocfs2_start_trans(osb, credits);
->>   	if (IS_ERR(handle)) {
->>   		ret = PTR_ERR(handle);
->>
-> 
+
+On 2018/8/27 16:01, Larry Chen wrote:
+> ocfs2_defrag_extent may fall into dead lock.
+>
+> ocfs2_ioctl_move_extents
+>    ocfs2_ioctl_move_extents	
+>      ocfs2_move_extents
+>        ocfs2_defrag_extent
+>          ocfs2_lock_allocators_move_extents
+>
+>            ocfs2_reserve_clusters
+>              inode_lock GLOBAL_BITMAP_SYSTEM_INODE
+>
+> 	  __ocfs2_flush_truncate_log
+>              inode_lock GLOBAL_BITMAP_SYSTEM_INODE
+>
+> As back trace shows above, ocfs2_reserve_clusters will call inode_lock
+> against the global bitmap if local allocator has not sufficient cluters.
+> Once global bitmap could meet the demand, ocfs2_reserve_cluster will
+> return success with global bitmap locked.
+>
+> After ocfs2_reserve_cluster, if truncate log is full,
+> __ocfs2_flush_truncate_log will definitely fall into dead lock
+> because it needs to inode_lock global bitmap, which has
+> already been locked.
+>
+> To fix this bug, we could remove from ocfs2_lock_allocators_move_extents
+> the code which intends to lock global allocator, and put the removed
+> code after __ocfs2_flush_truncate_log
+>
+> The ocfs2_lock_allocators_move_extents has been refered by 2 places, one
+> is here, the other does not need the data allocator context, which means
+> this patch does not affect the caller so far.
+>
+>
+>
+> Signed-off-by: Larry Chen <lchen@suse.com>
+> ---
+>   fs/ocfs2/move_extents.c | 13 ++++++-------
+>   1 file changed, 6 insertions(+), 7 deletions(-)
+>
+> diff --git a/fs/ocfs2/move_extents.c b/fs/ocfs2/move_extents.c
+> index 7eb3b0a6347e..064dedf40d74 100644
+> --- a/fs/ocfs2/move_extents.c
+> +++ b/fs/ocfs2/move_extents.c
+> @@ -192,13 +192,6 @@ static int ocfs2_lock_allocators_move_extents(struct inode *inode,
+>   		goto out;
+>   	}
+>   
+> -	if (data_ac) {
+> -		ret = ocfs2_reserve_clusters(osb, clusters_to_move, data_ac);
+> -		if (ret) {
+> -			mlog_errno(ret);
+> -			goto out;
+> -		}
+> -	}
+>   
+>   	*credits += ocfs2_calc_extend_credits(osb->sb, et->et_root_el);
+>   
+> @@ -283,6 +276,12 @@ static int ocfs2_defrag_extent(struct ocfs2_move_extents_context *context,
+>   		}
+>   	}
+>   
+> +	ret = ocfs2_reserve_clusters(osb, *len, &context->data_ac);
+> +	if (ret) {
+> +		mlog_errno(ret);
+> +		goto out_unlock_mutex;
+> +	}
+> +
+>   	handle = ocfs2_start_trans(osb, credits);
+>   	if (IS_ERR(handle)) {
+>   		ret = PTR_ERR(handle);
