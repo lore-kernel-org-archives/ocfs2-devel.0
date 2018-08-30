@@ -1,90 +1,190 @@
-From: Larry Chen <lchen@suse.com>
-Date: Thu, 30 Aug 2018 15:50:41 +0800
-Subject: [Ocfs2-devel] [PATCH V5] ocfs2: fix crash on
-	ocfs2_duplicate_clusters_by_page
-Message-ID: <20180830075041.14879-1-lchen@suse.com>
+From: Changwei Ge <gechangwei@live.cn>
+Date: Thu, 30 Aug 2018 07:52:23 +0000
+Subject: [Ocfs2-devel] [PATCH] fix dead lock caused by
+	ocfs2_defrag_extent
+In-Reply-To: <42f7fbf5-9b7c-966e-887d-3b5ae51511e8@suse.com>
+References: <20180827080121.31145-1-lchen@suse.com>
+	<HK0PR06MB2561A612E5A95B60E7F8E22FD50A0@HK0PR06MB2561.apcprd06.prod.outlook.com>
+	<4265c81b-26bf-fb54-e911-59773c40f788@suse.com>
+	<HK0PR06MB2561632790BCD8DCD5936F47D5080@HK0PR06MB2561.apcprd06.prod.outlook.com>
+	<42f7fbf5-9b7c-966e-887d-3b5ae51511e8@suse.com>
+Message-ID: <HK0PR06MB256185E6D7A3330541D5D3E2D5080@HK0PR06MB2561.apcprd06.prod.outlook.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: mark@fasheh.com, jlbec@evilplan.org
-Cc: linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com, akpm@linux-foundation.org
+To: ocfs2-devel@oss.oracle.com
 
-ocfs2_duplicate_clusters_by_page may crash if one of extent's pages is dirty.
-When a page has not been written back, it is still in dirty state. If
-ocfs2_duplicate_clusters_by_page is called against the
-dirty page, the crash happens.
-
-To fix this bug, we can write back the page rather than just wait.
-
-The following is the back trace dump:
-
-kernel BUG at /root/code/ocfs2/refcounttree.c:2961! 
-	BUG_ON(PageDirty(page));
-[exception RIP: ocfs2_duplicate_clusters_by_page+822]
-__ocfs2_move_extent+0x80/0x450 [ocfs2]
-? __ocfs2_claim_clusters+0x130/0x250 [ocfs2]
-ocfs2_defrag_extent+0x5b8/0x5e0 [ocfs2]
-__ocfs2_move_extents_range+0x2a4/0x470 [ocfs2]
-ocfs2_move_extents+0x180/0x3b0 [ocfs2]
-? ocfs2_wait_for_recovery+0x13/0x70 [ocfs2]
-ocfs2_ioctl_move_extents+0x133/0x2d0 [ocfs2]
-ocfs2_ioctl+0x253/0x640 [ocfs2]
-do_vfs_ioctl+0x90/0x5f0
-SyS_ioctl+0x74/0x80
-do_syscall_64+0x74/0x140
-entry_SYSCALL_64_after_hwframe+0x3d/0xa2
+Hi Larry,
 
 
-Change-log:
-1. Once we find the page is dirty, we do not wait until it's clean,
-   but rather we use write_one_page to write it back
+On 2018/8/30 14:26, Larry Chen wrote:
+> Hi Changwei,
+>
+> Maybe we need more investigation.
+>
+> The following is your fix:
+> lock truncate log inode
+> ??? __ocfs2_flush_truncate_log()
+> ????ocfs2_lock_allocators_move_extents()
+> ??????? unlock truncate log inode
+>
+> The lock action will happen like following:
+> lock(truncate_inode)
+> ????lock(sub allocat)
+> ????lock(local_alloc) or lock(global_bitmap)
 
-2. write_one_page arguments list changed, adjust and retest this patch. 
+I don't think we have to worry much about mixed order? of cluster lock 
+and inode mutex since cluster lock granted node will directly succeed 
+instead of waiting for itself.
 
-3. Comments has been changed
+>
+> I'm not sure if there is another code path that tries to get the same 
+> locks but in different order, which may causes dead locks.
+>
+> Indeed ocfs2 involves too many locks, I would like to reduce the 
+> deadlock risk at max extent.
+>
+> Another way is to add an new argument for __ocfs2_flush_truncate which 
+> indicates whether global bitmap is needed to be locked.
 
-4. Sorry, miss "ocfs2" prefix in patch title
+Sounds a feasible way :)
 
-Signed-off-by: Larry Chen <lchen@suse.com>
----
- fs/ocfs2/refcounttree.c | 16 ++++++++++++----
- 1 file changed, 12 insertions(+), 4 deletions(-)
+Thanks,
+Changwei
 
-diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
-index 7869622af22a..ed84d05c7d00 100644
---- a/fs/ocfs2/refcounttree.c
-+++ b/fs/ocfs2/refcounttree.c
-@@ -2946,6 +2946,7 @@ int ocfs2_duplicate_clusters_by_page(handle_t *handle,
- 		if (map_end & (PAGE_SIZE - 1))
- 			to = map_end & (PAGE_SIZE - 1);
- 
-+retry:
- 		page = find_or_create_page(mapping, page_index, GFP_NOFS);
- 		if (!page) {
- 			ret = -ENOMEM;
-@@ -2954,11 +2955,18 @@ int ocfs2_duplicate_clusters_by_page(handle_t *handle,
- 		}
- 
- 		/*
--		 * In case PAGE_SIZE <= CLUSTER_SIZE, This page
--		 * can't be dirtied before we CoW it out.
-+		 * In case PAGE_SIZE <= CLUSTER_SIZE, we do not expect a dirty page,
-+		 * so write it back.
- 		 */
--		if (PAGE_SIZE <= OCFS2_SB(sb)->s_clustersize)
--			BUG_ON(PageDirty(page));
-+		if (PAGE_SIZE <= OCFS2_SB(sb)->s_clustersize) {
-+			if (PageDirty(page)) {
-+				/*
-+				 * write_on_page will unlock the page on return
-+				 */
-+				ret = write_one_page(page);
-+				goto retry;
-+			}
-+		}
- 
- 		if (!PageUptodate(page)) {
- 			ret = block_read_full_page(page, ocfs2_get_block);
--- 
-2.13.7
+>
+>
+> Thanks,
+> Larry
+>
+>
+>
+>
+>
+> On 08/30/2018 10:05 AM, Changwei Ge wrote:
+>> Hi Larry,
+>>
+>> Sorry for this late reply.
+>>
+>>
+>> On 2018/8/28 12:46, Larry Chen wrote:
+>>> Hi Changwei,
+>>>
+>>> I think there might be some logic error.
+>>>
+>>> Imagine that we remove __ocfs2_flush_truncate_log() in
+>>> ocfs2_defrag_extent().
+>>>
+>>> In ocfs2_reserve_clusters might skip freeing truncate log if there is
+>>> enough clusters in local. Then __ocfs2_move_extent might return error
+>>> because ocfs2_truncate_log_append might fail.
+>> I think changing ocfs2 infrastructure methods like your way is not a
+>> good idea.
+>> So how about this way?
+>> ->lock truncate log inode
+>> ->__ocfs2_flush_truncate_log()
+>> ->ocfs2_lock_allocators_move_extents()
+>> ->unlock truncate log inode
+>>
+>> Thanks
+>> Changwei
+>>
+>>>
+>>> Thanks,
+>>> Larry
+>>>
+>>>
+>>> On 08/28/2018 09:59 AM, Changwei Ge wrote:
+>>>> Hi Larry,
+>>>>
+>>>> I'd like to propose another way to fix this issue, which might be
+>>>> easier. :-)
+>>>> Actually, ocfs2_reserve_clusters() inside will flush truncate log if
+>>>> there is no enough clusters left.
+>>>> So how about just remove __ocfs2_flush_truncate_log() in
+>>>> ocfs2_defrag_extent()?
+>>>>
+>>>> Thanks,
+>>>> Changwei
+>>>>
+>>>> On 2018/8/27 16:01, Larry Chen wrote:
+>>>>> ocfs2_defrag_extent may fall into dead lock.
+>>>>>
+>>>>> ocfs2_ioctl_move_extents
+>>>>> ???? ocfs2_ioctl_move_extents
+>>>>> ?????? ocfs2_move_extents
+>>>>> ???????? ocfs2_defrag_extent
+>>>>> ?????????? ocfs2_lock_allocators_move_extents
+>>>>>
+>>>>> ???????????? ocfs2_reserve_clusters
+>>>>> ?????????????? inode_lock GLOBAL_BITMAP_SYSTEM_INODE
+>>>>>
+>>>>> ?????? __ocfs2_flush_truncate_log
+>>>>> ?????????????? inode_lock GLOBAL_BITMAP_SYSTEM_INODE
+>>>>>
+>>>>> As back trace shows above, ocfs2_reserve_clusters will call 
+>>>>> inode_lock
+>>>>> against the global bitmap if local allocator has not sufficient
+>>>>> cluters.
+>>>>> Once global bitmap could meet the demand, ocfs2_reserve_cluster will
+>>>>> return success with global bitmap locked.
+>>>>>
+>>>>> After ocfs2_reserve_cluster, if truncate log is full,
+>>>>> __ocfs2_flush_truncate_log will definitely fall into dead lock
+>>>>> because it needs to inode_lock global bitmap, which has
+>>>>> already been locked.
+>>>>>
+>>>>> To fix this bug, we could remove from
+>>>>> ocfs2_lock_allocators_move_extents
+>>>>> the code which intends to lock global allocator, and put the removed
+>>>>> code after __ocfs2_flush_truncate_log
+>>>>>
+>>>>> The ocfs2_lock_allocators_move_extents has been refered by 2 places,
+>>>>> one
+>>>>> is here, the other does not need the data allocator context, which
+>>>>> means
+>>>>> this patch does not affect the caller so far.
+>>>>>
+>>>>>
+>>>>>
+>>>>> Signed-off-by: Larry Chen <lchen@suse.com>
+>>>>> ---
+>>>>> ??? fs/ocfs2/move_extents.c | 13 ++++++-------
+>>>>> ??? 1 file changed, 6 insertions(+), 7 deletions(-)
+>>>>>
+>>>>> diff --git a/fs/ocfs2/move_extents.c b/fs/ocfs2/move_extents.c
+>>>>> index 7eb3b0a6347e..064dedf40d74 100644
+>>>>> --- a/fs/ocfs2/move_extents.c
+>>>>> +++ b/fs/ocfs2/move_extents.c
+>>>>> @@ -192,13 +192,6 @@ static int
+>>>>> ocfs2_lock_allocators_move_extents(struct inode *inode,
+>>>>> ??????????? goto out;
+>>>>> ??????? }
+>>>>> ??? -??? if (data_ac) {
+>>>>> -??????? ret = ocfs2_reserve_clusters(osb, clusters_to_move, 
+>>>>> data_ac);
+>>>>> -??????? if (ret) {
+>>>>> -??????????? mlog_errno(ret);
+>>>>> -??????????? goto out;
+>>>>> -??????? }
+>>>>> -??? }
+>>>>> ??? ?????? *credits += ocfs2_calc_extend_credits(osb->sb,
+>>>>> et->et_root_el);
+>>>>> ??? @@ -283,6 +276,12 @@ static int ocfs2_defrag_extent(struct
+>>>>> ocfs2_move_extents_context *context,
+>>>>> ??????????? }
+>>>>> ??????? }
+>>>>> ??? +??? ret = ocfs2_reserve_clusters(osb, *len, &context->data_ac);
+>>>>> +??? if (ret) {
+>>>>> +??????? mlog_errno(ret);
+>>>>> +??????? goto out_unlock_mutex;
+>>>>> +??? }
+>>>>> +
+>>>>> ??????? handle = ocfs2_start_trans(osb, credits);
+>>>>> ??????? if (IS_ERR(handle)) {
+>>>>> ??????????? ret = PTR_ERR(handle);
+>>>>
+>>>
+>>
+>
