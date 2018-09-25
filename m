@@ -1,64 +1,49 @@
-From: Gang He <ghe@suse.com>
-Date: Tue, 25 Sep 2018 09:40:25 -0600
-Subject: [Ocfs2-devel] [bug report] ocfs2: fix a static checker warning
-In-Reply-To: <20180925125347.GA1300@mwanda>
-References: <20180925125347.GA1300@mwanda>
-Message-ID: <5BAA56E9020000F9000362DF@prv1-mh.provo.novell.com>
+From: Stephen Smalley <sds@tycho.nsa.gov>
+Date: Tue, 25 Sep 2018 14:44:23 -0400
+Subject: [Ocfs2-devel] Leaking path or inconsistency LSM checking observed
+	in fs/net
+In-Reply-To: <8004D467-2F24-4E9F-A429-AA4EE5D2E366@vt.edu>
+References: <8004D467-2F24-4E9F-A429-AA4EE5D2E366@vt.edu>
+Message-ID: <e6ef53a8-187e-d030-9246-3de2a9a79265@tycho.nsa.gov>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: linux-security-module@vger.kernel.org
 
-Hello Dan,
+On 09/25/2018 01:27 PM, Tong Zhang wrote:
+> Kernel Version: 4.18.5
+> 
+> Problem Description:
+> 
+> We found several leaking path or inconsistency LSM design issue in fs/net.
+> 
+> Currently we can only observe sock creation from kernel and all bind/listen/connect are not sent to LSM.
+> So, we think that those net/socket related stuff should all go through LSM check and being audited
+> even it is not a user thread or process.
+> 
+> 
+> Here?s an example where we have a check:
+> in fs/ocfs2/cluster/tcp.c:2035 o2net_open_listening_sock() a sock is created using sock_create(),
+> where a LSM check security_socket_create is called(net/socket.c:1242)
+> 
+> 
+> And where we don?t have a check
+> 
+> fs/ocfs2/cluster/tcp.c:2052 bind
+> fs/ocfs2/cluster/tcp.c:2059 listen
+> 
+> fs/dlm/lowcomms.c:1264 bind
+> fs/dlm/lowcomms.c:1278 listen
+> fs/dlm/lowcomms.c:1354 listen
+> 
+> several places that use kernel_bind/kernel_listen/kernel_connect
+> 
+> net/socket.c:3231 kernel_bind
+> net/socket.c:3237 kernel_listen
+> net/socket.c:3286 kernel_connect
 
-Thank for your finding, I will fix this warning.
-
--Gang
-
->>> On 2018/9/25 at 14:53, in message <20180925125347.GA1300@mwanda>, Dan Carpenter
-<dan.carpenter@oracle.com> wrote:
-> Sorry, Gang He,
-> 
-> The error message is still there.
-> 
-> The patch 8c4d5a438716: "ocfs2: fix a static checker warning" from
-> Jul 6, 2017, leads to the following static checker warning:
-> 
-> 	fs/ocfs2/export.c:127 ocfs2_get_dentry()
-> 	warn: 'inode' can also be NULL
-> 
-> fs/ocfs2/inode.c
->    161          args.fi_sysfile_type = sysfile_type;
->    162  
->    163          inode = iget5_locked(sb, args.fi_ino, ocfs2_find_actor,
->    164                               ocfs2_init_locked_inode, &args);
->    165          /* inode was *not* in the inode cache. 2.6.x requires
->    166           * us to do our own read_inode call and unlock it
->    167           * afterwards. */
->    168          if (inode == NULL) {
->    169                  inode = ERR_PTR(-ENOMEM);
->    170                  mlog_errno(PTR_ERR(inode));
->    171                  goto bail;
->    172          }
->    173          trace_ocfs2_iget5_locked(inode->i_state);
->    174          if (inode->i_state & I_NEW) {
->    175                  rc = ocfs2_read_locked_inode(inode, &args);
->                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-> Imagine this succeeds.
-> 
->    176                  unlock_new_inode(inode);
->    177          }
->    178          if (is_bad_inode(inode)) {
->    179                  iput(inode);
->    180                  inode = ERR_PTR(rc);
->                         ^^^^^^^^^^^^^^^^^^^
-> We're returning ERR_PTR(0) which is NULL which leads to a NULL
-> dereference in the caller.
-> 
->    181                  goto bail;
->    182          }
->    183  
-> 
-> regards,
-> dan carpenter
+That's intentional.  LSM isn't trying to mediate kernel-internal 
+operations, and we do not want to apply permission checks against the 
+credentials of the current userspace process for such operations.  ocfs2 
+should likely be using sock_create_kern.
