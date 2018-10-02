@@ -1,55 +1,80 @@
 From: Andrew Morton <akpm@linux-foundation.org>
-Date: Tue, 2 Oct 2018 15:43:47 -0700
-Subject: [Ocfs2-devel] [PATCH] fs: ocfs2: dlm: Fix a
- sleep-in-atomic-context bug in dlm_print_one_mle()
-In-Reply-To: <20180901112528.27025-1-baijiaju1990@gmail.com>
-References: <20180901112528.27025-1-baijiaju1990@gmail.com>
-Message-ID: <20181002154347.01e026b4e644d6b7efc76180@linux-foundation.org>
+Date: Tue, 2 Oct 2018 15:53:17 -0700
+Subject: [Ocfs2-devel] [PATCH] ocfs2: clean up some data_ac usage
+In-Reply-To: <20180907122500.azbll3byq4hdnrlw@kili.mountain>
+References: <20180907122500.azbll3byq4hdnrlw@kili.mountain>
+Message-ID: <20181002155317.f3d3ff3f3d4d1787b5e3121d@linux-foundation.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Jia-Ju Bai <baijiaju1990@gmail.com>
-Cc: mark@fasheh.com, jlbec@evilplan.org, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
+To: ocfs2-devel@oss.oracle.com
 
-On Sat,  1 Sep 2018 19:25:28 +0800 Jia-Ju Bai <baijiaju1990@gmail.com> wrote:
+On Fri, 7 Sep 2018 15:25:01 +0300 Dan Carpenter <dan.carpenter@oracle.com> wrote:
 
-> The kernel module may sleep with holding a spinlock.
+> I started looking at this code because of a Smatch false positive:
 > 
-> The function call paths (from bottom to top) in Linux-4.16 are:
+>     fs/ocfs2/move_extents.c:347 ocfs2_defrag_extent()
+>     warn: variable dereferenced before check 'context->data_ac' (see line 304)
 > 
-> [FUNC] get_zeroed_page(GFP_NOFS)
-> fs/ocfs2/dlm/dlmdebug.c, 332: get_zeroed_page in dlm_print_one_mle
-> fs/ocfs2/dlm/dlmmaster.c, 240: dlm_print_one_mle in __dlm_put_mle
-> fs/ocfs2/dlm/dlmmaster.c, 255: __dlm_put_mle in dlm_put_mle
-> fs/ocfs2/dlm/dlmmaster.c, 254: spin_lock in dlm_put_ml
+> context->data_ac can't be NULL so I removed the check.  I changed the
+> next lines to use "data_ac" instead of "context->data_ac" for
+> consistency.  And we don't need to pass "data_ac" to
+> ocfs2_lock_meta_allocator_move_extents() any more so I removed that.
 > 
-> [FUNC] get_zeroed_page(GFP_NOFS)
-> fs/ocfs2/dlm/dlmdebug.c, 332: get_zeroed_page in dlm_print_one_mle
-> fs/ocfs2/dlm/dlmmaster.c, 240: dlm_print_one_mle in __dlm_put_mle
-> fs/ocfs2/dlm/dlmmaster.c, 222: __dlm_put_mle in dlm_put_mle_inuse
-> fs/ocfs2/dlm/dlmmaster.c, 219: spin_lock in dlm_put_mle_inuse
+> Signed-off-by: Dan Carpenter <dan.carpenter@oracle.com>
 > 
-> To fix this bug, GFP_NOFS is replaced with GFP_ATOMIC.
-> 
-> This bug is found by my static analysis tool DSAC.
-> 
-> ...
->
-> --- a/fs/ocfs2/dlm/dlmdebug.c
-> +++ b/fs/ocfs2/dlm/dlmdebug.c
-> @@ -329,7 +329,7 @@ void dlm_print_one_mle(struct dlm_master_list_entry *mle)
+
+Please don't forget the ^---$ at end-of-changelog.
+
+> --- a/fs/ocfs2/move_extents.c
+> +++ b/fs/ocfs2/move_extents.c
+> @@ -160,15 +160,12 @@ static int __ocfs2_move_extent(handle_t *handle,
+>   * lock allocators, and reserving appropriate number of bits for
+>   * meta blocks and data clusters.
+>   *
+> - * in some cases, we don't need to reserve clusters, just let data_ac
+> - * be NULL.
+>   */
+>  static int ocfs2_lock_meta_allocator_move_extents(struct inode *inode,
+>  					struct ocfs2_extent_tree *et,
+>  					u32 clusters_to_move,
+>  					u32 extents_to_split,
+>  					struct ocfs2_alloc_context **meta_ac,
+> -					struct ocfs2_alloc_context **data_ac,
+>  					int extra_blocks,
+>  					int *credits)
 >  {
->  	char *buf;
+> @@ -255,7 +252,6 @@ static int ocfs2_defrag_extent(struct ocfs2_move_extents_context *context,
+>  	ret = ocfs2_lock_meta_allocator_move_extents(inode, &context->et,
+>  						*len, 1,
+>  						&context->meta_ac,
+> -						&context->data_ac,
+>  						extra_blocks, &credits);
+>  	if (ret) {
+>  		mlog_errno(ret);
+> @@ -344,10 +340,10 @@ static int ocfs2_defrag_extent(struct ocfs2_move_extents_context *context,
+>  		mlog_errno(ret);
 >  
-> -	buf = (char *) get_zeroed_page(GFP_NOFS);
-> +	buf = (char *) get_zeroed_page(GFP_ATOMIC);
->  	if (buf) {
->  		dump_mle(mle, buf, PAGE_SIZE - 1);
->  		free_page((unsigned long)buf);
+>  out_commit:
+> -	if (need_free && context->data_ac) {
+> +	if (need_free) {
 
-Fair enough.  It's pretty sad code here, replying on the page allocator
-in this situation.  But it's only debug stuff so nobody is likely to
-care much.
+Current mainline is different here.
 
-(And that page didn't need to be zeroed!)
+>  		struct ocfs2_alloc_context *data_ac = context->data_ac;
+>  
+> -		if (context->data_ac->ac_which == OCFS2_AC_USE_LOCAL)
+> +		if (data_ac->ac_which == OCFS2_AC_USE_LOCAL)
+>  			ocfs2_free_local_alloc_bits(osb, handle, data_ac,
+>  					new_phys_cpos, new_len);
+>  		else
+> @@ -629,7 +625,7 @@ static int ocfs2_move_extent(struct ocfs2_move_extents_context *context,
+>  	ret = ocfs2_lock_meta_allocator_move_extents(inode, &context->et,
+>  						len, 1,
+>  						&context->meta_ac,
+> -						NULL, extra_blocks, &credits);
+> +						extra_blocks, &credits);
+>  	if (ret) {
+>  		mlog_errno(ret);
+>  		goto out;
