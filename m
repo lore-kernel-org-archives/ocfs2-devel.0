@@ -1,49 +1,55 @@
-From: Stephen Smalley <sds@tycho.nsa.gov>
-Date: Tue, 25 Sep 2018 14:44:23 -0400
-Subject: [Ocfs2-devel] Leaking path or inconsistency LSM checking observed
-	in fs/net
-In-Reply-To: <8004D467-2F24-4E9F-A429-AA4EE5D2E366@vt.edu>
-References: <8004D467-2F24-4E9F-A429-AA4EE5D2E366@vt.edu>
-Message-ID: <e6ef53a8-187e-d030-9246-3de2a9a79265@tycho.nsa.gov>
+From: Andrew Morton <akpm@linux-foundation.org>
+Date: Tue, 2 Oct 2018 15:43:47 -0700
+Subject: [Ocfs2-devel] [PATCH] fs: ocfs2: dlm: Fix a
+ sleep-in-atomic-context bug in dlm_print_one_mle()
+In-Reply-To: <20180901112528.27025-1-baijiaju1990@gmail.com>
+References: <20180901112528.27025-1-baijiaju1990@gmail.com>
+Message-ID: <20181002154347.01e026b4e644d6b7efc76180@linux-foundation.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: linux-security-module@vger.kernel.org
+To: Jia-Ju Bai <baijiaju1990@gmail.com>
+Cc: mark@fasheh.com, jlbec@evilplan.org, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
 
-On 09/25/2018 01:27 PM, Tong Zhang wrote:
-> Kernel Version: 4.18.5
-> 
-> Problem Description:
-> 
-> We found several leaking path or inconsistency LSM design issue in fs/net.
-> 
-> Currently we can only observe sock creation from kernel and all bind/listen/connect are not sent to LSM.
-> So, we think that those net/socket related stuff should all go through LSM check and being audited
-> even it is not a user thread or process.
-> 
-> 
-> Here?s an example where we have a check:
-> in fs/ocfs2/cluster/tcp.c:2035 o2net_open_listening_sock() a sock is created using sock_create(),
-> where a LSM check security_socket_create is called(net/socket.c:1242)
-> 
-> 
-> And where we don?t have a check
-> 
-> fs/ocfs2/cluster/tcp.c:2052 bind
-> fs/ocfs2/cluster/tcp.c:2059 listen
-> 
-> fs/dlm/lowcomms.c:1264 bind
-> fs/dlm/lowcomms.c:1278 listen
-> fs/dlm/lowcomms.c:1354 listen
-> 
-> several places that use kernel_bind/kernel_listen/kernel_connect
-> 
-> net/socket.c:3231 kernel_bind
-> net/socket.c:3237 kernel_listen
-> net/socket.c:3286 kernel_connect
+On Sat,  1 Sep 2018 19:25:28 +0800 Jia-Ju Bai <baijiaju1990@gmail.com> wrote:
 
-That's intentional.  LSM isn't trying to mediate kernel-internal 
-operations, and we do not want to apply permission checks against the 
-credentials of the current userspace process for such operations.  ocfs2 
-should likely be using sock_create_kern.
+> The kernel module may sleep with holding a spinlock.
+> 
+> The function call paths (from bottom to top) in Linux-4.16 are:
+> 
+> [FUNC] get_zeroed_page(GFP_NOFS)
+> fs/ocfs2/dlm/dlmdebug.c, 332: get_zeroed_page in dlm_print_one_mle
+> fs/ocfs2/dlm/dlmmaster.c, 240: dlm_print_one_mle in __dlm_put_mle
+> fs/ocfs2/dlm/dlmmaster.c, 255: __dlm_put_mle in dlm_put_mle
+> fs/ocfs2/dlm/dlmmaster.c, 254: spin_lock in dlm_put_ml
+> 
+> [FUNC] get_zeroed_page(GFP_NOFS)
+> fs/ocfs2/dlm/dlmdebug.c, 332: get_zeroed_page in dlm_print_one_mle
+> fs/ocfs2/dlm/dlmmaster.c, 240: dlm_print_one_mle in __dlm_put_mle
+> fs/ocfs2/dlm/dlmmaster.c, 222: __dlm_put_mle in dlm_put_mle_inuse
+> fs/ocfs2/dlm/dlmmaster.c, 219: spin_lock in dlm_put_mle_inuse
+> 
+> To fix this bug, GFP_NOFS is replaced with GFP_ATOMIC.
+> 
+> This bug is found by my static analysis tool DSAC.
+> 
+> ...
+>
+> --- a/fs/ocfs2/dlm/dlmdebug.c
+> +++ b/fs/ocfs2/dlm/dlmdebug.c
+> @@ -329,7 +329,7 @@ void dlm_print_one_mle(struct dlm_master_list_entry *mle)
+>  {
+>  	char *buf;
+>  
+> -	buf = (char *) get_zeroed_page(GFP_NOFS);
+> +	buf = (char *) get_zeroed_page(GFP_ATOMIC);
+>  	if (buf) {
+>  		dump_mle(mle, buf, PAGE_SIZE - 1);
+>  		free_page((unsigned long)buf);
+
+Fair enough.  It's pretty sad code here, replying on the page allocator
+in this situation.  But it's only debug stuff so nobody is likely to
+care much.
+
+(And that page didn't need to be zeroed!)
