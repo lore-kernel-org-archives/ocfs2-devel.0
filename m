@@ -1,90 +1,73 @@
 From: Darrick J. Wong <darrick.wong@oracle.com>
-Date: Fri, 5 Oct 2018 10:42:47 -0700
-Subject: [Ocfs2-devel] [PATCH 12/15] vfs: implement opportunistic short
-	dedupe
-In-Reply-To: <CAOQ4uxgqQ9ovr1i5+uGz1hq=fedFGKK7TpPCUvXkYPXhoPji3g@mail.gmail.com>
+Date: Fri, 5 Oct 2018 10:50:08 -0700
+Subject: [Ocfs2-devel] [PATCH 09/15] vfs: pass operation flags to {clone,
+ dedupe}_file_range implementations
+In-Reply-To: <CAOQ4uxhDhyx-SnyJ5mmsKMvvb883reCWgvyNbABKyC4-SO+1EA@mail.gmail.com>
 References: <153870027422.29072.7433543674436957232.stgit@magnolia>
-	<153870036143.29072.11970142092673351715.stgit@magnolia>
-	<CAOQ4uxgqQ9ovr1i5+uGz1hq=fedFGKK7TpPCUvXkYPXhoPji3g@mail.gmail.com>
-Message-ID: <20181005174247.GX19324@magnolia>
+	<153870034158.29072.8943691140742142494.stgit@magnolia>
+	<CAOQ4uxhDhyx-SnyJ5mmsKMvvb883reCWgvyNbABKyC4-SO+1EA@mail.gmail.com>
+Message-ID: <20181005175008.GY19324@magnolia>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: Amir Goldstein <amir73il@gmail.com>
-Cc: Dave Chinner <david@fromorbit.com>, linux-xfs <linux-xfs@vger.kernel.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, Linux Btrfs <linux-btrfs@vger.kernel.org>, ocfs2-devel@oss.oracle.com, Eric Sandeen <sandeen@redhat.com>
+Cc: Dave Chinner <david@fromorbit.com>, linux-xfs <linux-xfs@vger.kernel.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, Linux Btrfs <linux-btrfs@vger.kernel.org>, ocfs2-devel@oss.oracle.com, Eric Sandeen <sandeen@redhat.com>, Miklos Szeredi <miklos@szeredi.hu>
 
-On Fri, Oct 05, 2018 at 09:40:44AM +0300, Amir Goldstein wrote:
+On Fri, Oct 05, 2018 at 10:07:43AM +0300, Amir Goldstein wrote:
 > On Fri, Oct 5, 2018 at 3:46 AM Darrick J. Wong <darrick.wong@oracle.com> wrote:
 > >
 > > From: Darrick J. Wong <darrick.wong@oracle.com>
 > >
-> > For a given dedupe request, the bytes_deduped field in the control
-> > structure tells userspace if we managed to deduplicate some, but not all
-> > of, the requested regions starting from the file offsets supplied.
-> > However, due to sloppy coding, the current dedupe code returns
-> > FILE_DEDUPE_RANGE_DIFFERS if any part of the range is different.
-> > Fix this so that we can actually support partial request completion.
+> > Pass operational flags to the per-filesystem clone and dedupe
+> > implementations.  This enables the vfs to signal when it can deal with
+> > short clone and short dedupe operations.
 > >
 > > Signed-off-by: Darrick J. Wong <darrick.wong@oracle.com>
 > > ---
-> >  fs/read_write.c    |   44 +++++++++++++++++++++++++++++++++++---------
-> >  include/linux/fs.h |    2 +-
-> >  2 files changed, 36 insertions(+), 10 deletions(-)
-> >
-> >
-> > diff --git a/fs/read_write.c b/fs/read_write.c
-> > index 292d68c2f47c..9be9f261edd2 100644
-> > --- a/fs/read_write.c
-> > +++ b/fs/read_write.c
-> > @@ -1781,13 +1781,11 @@ int vfs_clone_file_prep(struct file *file_in, loff_t pos_in,
-> >          * Check that the extents are the same.
-> >          */
-> >         if (is_dedupe) {
-> > -               bool            is_same = false;
-> > -
-> >                 ret = vfs_dedupe_file_range_compare(inode_in, pos_in,
-> > -                               inode_out, pos_out, *len, &is_same);
-> > +                               inode_out, pos_out, len);
-> >                 if (ret)
-> >                         return ret;
-> > -               if (!is_same)
-> > +               if (*len == 0)
-> >                         return -EBADE;
-> >         }
-> >
-> > @@ -1872,13 +1870,30 @@ static struct page *vfs_dedupe_get_page(struct inode *inode, loff_t offset)
-> >         return page;
-> >  }
-> >
-> > +static unsigned int vfs_dedupe_memcmp(const char *s1, const char *s2,
-> > +                                     unsigned int cmp_len)
-> > +{
-> > +       const char *orig_s1 = s1;
-> > +       const char *e1 = s1 + cmp_len;
-> > +       const char *e2 = s2 + cmp_len;
-> > +
-> > +       while (s1 < e1 && s2 < e2) {
-> > +               if (*s1 != *s2)
-> > +                       break;
-> > +               s1++;
-> > +               s2++;
-> > +       }
-> > +
-> > +       return s1 - orig_s1;
-> > +}
-> > +
+> [...]
+> > --- a/include/linux/fs.h
+> > +++ b/include/linux/fs.h
+> > @@ -1761,7 +1761,7 @@ struct file_operations {
+> >                         loff_t, size_t, unsigned int);
+> >         s64 (*clone_file_range)(struct file *file_in, loff_t pos_in,
+> >                                 struct file *file_out, loff_t pos_out,
+> > -                               u64 count);
+> > +                               u64 count, unsigned int flags);
+> >         s64 (*dedupe_file_range)(struct file *file_in, loff_t pos_in,
+> >                                  struct file *file_out, loff_t pos_out,
+> >                                  u64 count);
+> > @@ -1827,9 +1827,15 @@ extern ssize_t vfs_readv(struct file *, const struct iovec __user *,
+> >                 unsigned long, loff_t *, rwf_t);
+> >  extern ssize_t vfs_copy_file_range(struct file *, loff_t , struct file *,
+> >                                    loff_t, size_t, unsigned int);
+> > +/* Caller can handle a shortened operation. */
+> > +#define CLONERANGE_SHORT       (1 << 0)
+> > +/* End operation at the source file's EOF. */
+> > +#define CLONERANGE_EOF         (1 << 1)
+> > +/* Operation is actually dedupe, not clone. */
+> > +#define CLONERANGE_DEDUPE      (1 << 2)
 > 
-> A few nits:
-> 'len' wouldn't have been ambiguous in this context.
-> I find the for loop in memcmp more elegant. It is definitely shorter.
-> Not sure how differently the variants compile, but decrementing
-> count/len seems much more sane then checking 2 conditions that
-> always have the same result.
+> That's cool. But you know what's going to be the next step, right?
+> Merging the 3 file operation interfaces into a single one.
+> copy_file_range() already has the flags arg for future extensions
+> and as you wrote somewhere, clone is really an optimized copy.
+> ovl_copyfile() already does that internally.
+> 
+> So the only take away for this patch series, please use constant
+> names COPYRANGE_* and also explicitly define:
+> 
+> /* Operation is actually clone, not copy. */
+> #define COPYRANGE_CLONE      (1 << 2)
+> /* Operation is actually dedupe, not copy. */
+> #define COPYRANGE_DEDUPE      (1 << 3)
 
-Fair enough; will fix.
+Yeah, I was too tired to try to throw that one on top of the flaming
+garbage pile.  But I guess since I have a bunch more work to do to the
+previous patch I might as well do that...
 
 --D
 
+> 
 > Thanks,
 > Amir.
