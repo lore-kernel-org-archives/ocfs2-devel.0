@@ -1,172 +1,85 @@
 From: Darrick J. Wong <darrick.wong@oracle.com>
-Date: Thu, 04 Oct 2018 17:44:47 -0700
-Subject: [Ocfs2-devel] [PATCH 02/15] xfs: refactor clonerange preparation
- into a separate helper
+Date: Thu, 04 Oct 2018 17:44:54 -0700
+Subject: [Ocfs2-devel] [PATCH 03/15] xfs: zero posteof blocks when cloning
+	above eof
 In-Reply-To: <153870027422.29072.7433543674436957232.stgit@magnolia>
 References: <153870027422.29072.7433543674436957232.stgit@magnolia>
-Message-ID: <153870028762.29072.5369530877410002226.stgit@magnolia>
+Message-ID: <153870029414.29072.6572683664719818617.stgit@magnolia>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: david@fromorbit.com, darrick.wong@oracle.com
-Cc: linux-xfs@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-btrfs@vger.kernel.org, ocfs2-devel@oss.oracle.com, sandeen@redhat.com
+Cc: sandeen@redhat.com, Zorro Lang <zlang@redhat.com>, linux-xfs@vger.kernel.org, ocfs2-devel@oss.oracle.com, linux-fsdevel@vger.kernel.org, linux-btrfs@vger.kernel.org
 
 From: Darrick J. Wong <darrick.wong@oracle.com>
 
-Refactor all the reflink preparation steps into a separate helper that
-we'll use to land all the upcoming fixes for insufficient input checks.
+When we're reflinking between two files and the destination file range
+is well beyond the destination file's EOF marker, zero any posteof
+speculative preallocations in the destination file so that we don't
+expose stale disk contents.  The previous strategy of trying to clear
+the preallocations does not work if the destination file has the
+PREALLOC flag set.
 
+Uncovered by shared/010.
+
+Reported-by: Zorro Lang <zlang@redhat.com>
+Bugzilla-id: https://bugzilla.kernel.org/show_bug.cgi?id=201259
 Signed-off-by: Darrick J. Wong <darrick.wong@oracle.com>
 ---
- fs/xfs/xfs_reflink.c |   96 +++++++++++++++++++++++++++++++++++++-------------
- 1 file changed, 71 insertions(+), 25 deletions(-)
+ fs/xfs/xfs_reflink.c |   33 +++++++++++++++++++++++++--------
+ 1 file changed, 25 insertions(+), 8 deletions(-)
 
 
 diff --git a/fs/xfs/xfs_reflink.c b/fs/xfs/xfs_reflink.c
-index 38f405415b88..80ca9b6793cd 100644
+index 80ca9b6793cd..55da7e1154f4 100644
 --- a/fs/xfs/xfs_reflink.c
 +++ b/fs/xfs/xfs_reflink.c
-@@ -1195,11 +1195,33 @@ xfs_iolock_two_inodes_and_break_layout(
- 	return 0;
+@@ -1215,6 +1215,26 @@ xfs_reflink_remap_unlock(
+ 		inode_unlock_shared(inode_in);
  }
  
-+/* Unlock both inodes after they've been prepped for a range clone. */
-+STATIC void
-+xfs_reflink_remap_unlock(
-+	struct file		*file_in,
-+	struct file		*file_out)
++/*
++ * If we're reflinking to a point past the destination file's EOF, we must
++ * zero any speculative post-EOF preallocations that sit between the old EOF
++ * and the destination file offset.
++ */
++static int
++xfs_reflink_zero_posteof(
++	struct xfs_inode	*ip,
++	loff_t			pos)
 +{
-+	struct inode		*inode_in = file_inode(file_in);
-+	struct xfs_inode	*src = XFS_I(inode_in);
-+	struct inode		*inode_out = file_inode(file_out);
-+	struct xfs_inode	*dest = XFS_I(inode_out);
-+	bool			same_inode = (inode_in == inode_out);
++	loff_t			isize = i_size_read(VFS_I(ip));
 +
-+	xfs_iunlock(dest, XFS_MMAPLOCK_EXCL);
-+	if (!same_inode)
-+		xfs_iunlock(src, XFS_MMAPLOCK_SHARED);
-+	inode_unlock(inode_out);
-+	if (!same_inode)
-+		inode_unlock_shared(inode_in);
++	if (pos <= isize)
++		return 0;
++
++	trace_xfs_zero_eof(ip, isize, pos - isize);
++	return iomap_zero_range(VFS_I(ip), isize, pos - isize, NULL,
++			&xfs_iomap_ops);
 +}
 +
  /*
-- * Link a range of blocks from one file to another.
-+ * Prepare two files for range cloning.  Upon a successful return both inodes
-+ * will have the iolock and mmaplock held, the page cache of the out file
-+ * will be truncated, and any leases on the out file will have been broken.
-  */
--int
--xfs_reflink_remap_range(
-+STATIC int
-+xfs_reflink_remap_prep(
- 	struct file		*file_in,
- 	loff_t			pos_in,
- 	struct file		*file_out,
-@@ -1211,19 +1233,9 @@ xfs_reflink_remap_range(
- 	struct xfs_inode	*src = XFS_I(inode_in);
- 	struct inode		*inode_out = file_inode(file_out);
- 	struct xfs_inode	*dest = XFS_I(inode_out);
--	struct xfs_mount	*mp = src->i_mount;
- 	bool			same_inode = (inode_in == inode_out);
--	xfs_fileoff_t		sfsbno, dfsbno;
--	xfs_filblks_t		fsblen;
--	xfs_extlen_t		cowextsize;
- 	ssize_t			ret;
- 
--	if (!xfs_sb_version_hasreflink(&mp->m_sb))
--		return -EOPNOTSUPP;
--
--	if (XFS_FORCED_SHUTDOWN(mp))
--		return -EIO;
--
- 	/* Lock both files against IO */
- 	ret = xfs_iolock_two_inodes_and_break_layout(inode_in, inode_out);
- 	if (ret)
-@@ -1254,8 +1266,6 @@ xfs_reflink_remap_range(
- 	if (ret)
+  * Prepare two files for range cloning.  Upon a successful return both inodes
+  * will have the iolock and mmaplock held, the page cache of the out file
+@@ -1267,15 +1287,12 @@ xfs_reflink_remap_prep(
  		goto out_unlock;
  
--	trace_xfs_reflink_remap_range(src, pos_in, len, dest, pos_out);
--
  	/*
- 	 * Clear out post-eof preallocations because we don't have page cache
- 	 * backing the delayed allocations and they'll never get freed on
-@@ -1272,6 +1282,51 @@ xfs_reflink_remap_range(
- 	if (ret)
- 		goto out_unlock;
- 
-+	/* Zap any page cache for the destination file's range. */
-+	truncate_inode_pages_range(&inode_out->i_data, pos_out,
-+				   PAGE_ALIGN(pos_out + len) - 1);
-+	return 0;
-+out_unlock:
-+	xfs_reflink_remap_unlock(file_in, file_out);
-+	return ret;
-+}
-+
-+/*
-+ * Link a range of blocks from one file to another.
-+ */
-+int
-+xfs_reflink_remap_range(
-+	struct file		*file_in,
-+	loff_t			pos_in,
-+	struct file		*file_out,
-+	loff_t			pos_out,
-+	u64			len,
-+	bool			is_dedupe)
-+{
-+	struct inode		*inode_in = file_inode(file_in);
-+	struct xfs_inode	*src = XFS_I(inode_in);
-+	struct inode		*inode_out = file_inode(file_out);
-+	struct xfs_inode	*dest = XFS_I(inode_out);
-+	struct xfs_mount	*mp = src->i_mount;
-+	xfs_fileoff_t		sfsbno, dfsbno;
-+	xfs_filblks_t		fsblen;
-+	xfs_extlen_t		cowextsize;
-+	ssize_t			ret;
-+
-+	if (!xfs_sb_version_hasreflink(&mp->m_sb))
-+		return -EOPNOTSUPP;
-+
-+	if (XFS_FORCED_SHUTDOWN(mp))
-+		return -EIO;
-+
-+	/* Prepare and then clone file data. */
-+	ret = xfs_reflink_remap_prep(file_in, pos_in, file_out, pos_out,
-+			len, is_dedupe);
+-	 * Clear out post-eof preallocations because we don't have page cache
+-	 * backing the delayed allocations and they'll never get freed on
+-	 * their own.
++	 * Zero existing post-eof speculative preallocations in the destination
++	 * file.
+ 	 */
+-	if (xfs_can_free_eofblocks(dest, true)) {
+-		ret = xfs_free_eofblocks(dest);
+-		if (ret)
+-			goto out_unlock;
+-	}
++	ret = xfs_reflink_zero_posteof(dest, pos_out);
 +	if (ret)
-+		return ret;
-+
-+	trace_xfs_reflink_remap_range(src, pos_in, len, dest, pos_out);
-+
- 	dfsbno = XFS_B_TO_FSBT(mp, pos_out);
- 	sfsbno = XFS_B_TO_FSBT(mp, pos_in);
- 	fsblen = XFS_B_TO_FSB(mp, len);
-@@ -1280,10 +1335,6 @@ xfs_reflink_remap_range(
- 	if (ret)
- 		goto out_unlock;
++		goto out_unlock;
  
--	/* Zap any page cache for the destination file's range. */
--	truncate_inode_pages_range(&inode_out->i_data, pos_out,
--				   PAGE_ALIGN(pos_out + len) - 1);
--
- 	/*
- 	 * Carry the cowextsize hint from src to dest if we're sharing the
- 	 * entire source file to the entire destination file, the source file
-@@ -1300,12 +1351,7 @@ xfs_reflink_remap_range(
- 			is_dedupe);
- 
- out_unlock:
--	xfs_iunlock(dest, XFS_MMAPLOCK_EXCL);
--	if (!same_inode)
--		xfs_iunlock(src, XFS_MMAPLOCK_SHARED);
--	inode_unlock(inode_out);
--	if (!same_inode)
--		inode_unlock_shared(inode_in);
-+	xfs_reflink_remap_unlock(file_in, file_out);
- 	if (ret)
- 		trace_xfs_reflink_remap_range_error(dest, ret, _RET_IP_);
- 	return ret;
+ 	/* Set flags and remap blocks. */
+ 	ret = xfs_reflink_set_inode_flag(src, dest);
