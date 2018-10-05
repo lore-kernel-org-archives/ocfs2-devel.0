@@ -1,80 +1,43 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Date: Tue, 2 Oct 2018 15:53:17 -0700
-Subject: [Ocfs2-devel] [PATCH] ocfs2: clean up some data_ac usage
-In-Reply-To: <20180907122500.azbll3byq4hdnrlw@kili.mountain>
-References: <20180907122500.azbll3byq4hdnrlw@kili.mountain>
-Message-ID: <20181002155317.f3d3ff3f3d4d1787b5e3121d@linux-foundation.org>
+From: Darrick J. Wong <darrick.wong@oracle.com>
+Date: Thu, 04 Oct 2018 17:44:34 -0700
+Subject: [Ocfs2-devel] [PATCH 00/15] fs: fixes for serious clone/dedupe
+	problems
+Message-ID: <153870027422.29072.7433543674436957232.stgit@magnolia>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: david@fromorbit.com, darrick.wong@oracle.com
+Cc: linux-xfs@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-btrfs@vger.kernel.org, ocfs2-devel@oss.oracle.com, sandeen@redhat.com
 
-On Fri, 7 Sep 2018 15:25:01 +0300 Dan Carpenter <dan.carpenter@oracle.com> wrote:
+Hi all,
 
-> I started looking at this code because of a Smatch false positive:
-> 
->     fs/ocfs2/move_extents.c:347 ocfs2_defrag_extent()
->     warn: variable dereferenced before check 'context->data_ac' (see line 304)
-> 
-> context->data_ac can't be NULL so I removed the check.  I changed the
-> next lines to use "data_ac" instead of "context->data_ac" for
-> consistency.  And we don't need to pass "data_ac" to
-> ocfs2_lock_meta_allocator_move_extents() any more so I removed that.
-> 
-> Signed-off-by: Dan Carpenter <dan.carpenter@oracle.com>
-> 
+Dave, Eric, and I have been chasing a stale data exposure bug in the XFS
+reflink implementation, and tracked it down to reflink forgetting to do
+some of the file-extending activities that must happen for regular
+writes.
 
-Please don't forget the ^---$ at end-of-changelog.
+We then started auditing the clone, dedupe, and copyfile code and
+realized that from a file contents perspective, clonerange isn't any
+different from a regular file write.  Unfortunately, we also noticed
+that *unlike* a regular write, clonerange skips a ton of overflow
+checks, such as validating the ranges against s_maxbytes, MAX_NON_LFS,
+and RLIMIT_FSIZE.  We also observed that cloning into a file did not
+strip security privileges (suid, capabilities) like a regular write
+would.  I also noticed that xfs and ocfs2 need to dump the page cache
+before remapping blocks, not after.
 
-> --- a/fs/ocfs2/move_extents.c
-> +++ b/fs/ocfs2/move_extents.c
-> @@ -160,15 +160,12 @@ static int __ocfs2_move_extent(handle_t *handle,
->   * lock allocators, and reserving appropriate number of bits for
->   * meta blocks and data clusters.
->   *
-> - * in some cases, we don't need to reserve clusters, just let data_ac
-> - * be NULL.
->   */
->  static int ocfs2_lock_meta_allocator_move_extents(struct inode *inode,
->  					struct ocfs2_extent_tree *et,
->  					u32 clusters_to_move,
->  					u32 extents_to_split,
->  					struct ocfs2_alloc_context **meta_ac,
-> -					struct ocfs2_alloc_context **data_ac,
->  					int extra_blocks,
->  					int *credits)
->  {
-> @@ -255,7 +252,6 @@ static int ocfs2_defrag_extent(struct ocfs2_move_extents_context *context,
->  	ret = ocfs2_lock_meta_allocator_move_extents(inode, &context->et,
->  						*len, 1,
->  						&context->meta_ac,
-> -						&context->data_ac,
->  						extra_blocks, &credits);
->  	if (ret) {
->  		mlog_errno(ret);
-> @@ -344,10 +340,10 @@ static int ocfs2_defrag_extent(struct ocfs2_move_extents_context *context,
->  		mlog_errno(ret);
->  
->  out_commit:
-> -	if (need_free && context->data_ac) {
-> +	if (need_free) {
+In fixing the range checking problems I also realized that both dedupe
+and copyfile tell userspace how much of the requested operation was
+acted upon.  Since the range validation can shorten a clone request (or
+we can ENOSPC midway through), we might as well plumb the short
+operation reporting back through the VFS indirection code to userspace.
 
-Current mainline is different here.
+So, here's the whole giant pile of patches[1] that fix all the problems.
+The patch "generic: test reflink side effects" recently sent to fstests
+exercises the fixes in this series.  Tests are in [2].
 
->  		struct ocfs2_alloc_context *data_ac = context->data_ac;
->  
-> -		if (context->data_ac->ac_which == OCFS2_AC_USE_LOCAL)
-> +		if (data_ac->ac_which == OCFS2_AC_USE_LOCAL)
->  			ocfs2_free_local_alloc_bits(osb, handle, data_ac,
->  					new_phys_cpos, new_len);
->  		else
-> @@ -629,7 +625,7 @@ static int ocfs2_move_extent(struct ocfs2_move_extents_context *context,
->  	ret = ocfs2_lock_meta_allocator_move_extents(inode, &context->et,
->  						len, 1,
->  						&context->meta_ac,
-> -						NULL, extra_blocks, &credits);
-> +						extra_blocks, &credits);
->  	if (ret) {
->  		mlog_errno(ret);
->  		goto out;
+--D
+
+[1] https://git.kernel.org/pub/scm/linux/kernel/git/djwong/xfs-linux.git/log/?h=djwong-devel
+[2] https://git.kernel.org/pub/scm/linux/kernel/git/djwong/xfstests-dev.git/log/?h=djwong-devel
