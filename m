@@ -1,71 +1,32 @@
-From: Dave Chinner <david@fromorbit.com>
-Date: Sat, 6 Oct 2018 09:42:33 +1000
+From: Christoph Hellwig <hch@infradead.org>
+Date: Sat, 6 Oct 2018 03:30:30 -0700
 Subject: [Ocfs2-devel] [PATCH 02/15] xfs: refactor clonerange
  preparation into a separate helper
-In-Reply-To: <20181005172159.GV19324@magnolia>
+In-Reply-To: <20181005052809.GB12041@dastard>
 References: <153870027422.29072.7433543674436957232.stgit@magnolia>
 	<153870028762.29072.5369530877410002226.stgit@magnolia>
-	<20181005070228.GE12041@dastard> <20181005090242.GF12041@dastard>
-	<20181005172159.GV19324@magnolia>
-Message-ID: <20181005234233.GK12041@dastard>
+	<20181005052809.GB12041@dastard>
+Message-ID: <20181006103030.GA25747@infradead.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: "Darrick J. Wong" <darrick.wong@oracle.com>
-Cc: linux-xfs@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-btrfs@vger.kernel.org, ocfs2-devel@oss.oracle.com, sandeen@redhat.com
+To: Dave Chinner <david@fromorbit.com>
+Cc: "Darrick J. Wong" <darrick.wong@oracle.com>, linux-xfs@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-btrfs@vger.kernel.org, ocfs2-devel@oss.oracle.com, sandeen@redhat.com
 
-On Fri, Oct 05, 2018 at 10:21:59AM -0700, Darrick J. Wong wrote:
-> On Fri, Oct 05, 2018 at 07:02:42PM +1000, Dave Chinner wrote:
-> > On Fri, Oct 05, 2018 at 05:02:28PM +1000, Dave Chinner wrote:
-> > > On Thu, Oct 04, 2018 at 05:44:47PM -0700, Darrick J. Wong wrote:
-> > > > From: Darrick J. Wong <darrick.wong@oracle.com>
-> > > > 
-> > > > Refactor all the reflink preparation steps into a separate helper that
-> > > > we'll use to land all the upcoming fixes for insufficient input checks.
-> > > > 
-> > > > Signed-off-by: Darrick J. Wong <darrick.wong@oracle.com>
-> > > .....
-> > > 
-> > > > +xfs_reflink_remap_range(
-> > > > +	struct file		*file_in,
-> > > > +	loff_t			pos_in,
-> > > > +	struct file		*file_out,
-> > > > +	loff_t			pos_out,
-> > > > +	u64			len,
-> > > > +	bool			is_dedupe)
-> > > > +{
-> > > > +	struct inode		*inode_in = file_inode(file_in);
-> > > > +	struct xfs_inode	*src = XFS_I(inode_in);
-> > > > +	struct inode		*inode_out = file_inode(file_out);
-> > > > +	struct xfs_inode	*dest = XFS_I(inode_out);
-> > > > +	struct xfs_mount	*mp = src->i_mount;
-> > > > +	xfs_fileoff_t		sfsbno, dfsbno;
-> > > > +	xfs_filblks_t		fsblen;
-> > > > +	xfs_extlen_t		cowextsize;
-> > > > +	ssize_t			ret;
-> > > > +
-> > > > +	if (!xfs_sb_version_hasreflink(&mp->m_sb))
-> > > > +		return -EOPNOTSUPP;
-> > > > +
-> > > > +	if (XFS_FORCED_SHUTDOWN(mp))
-> > > > +		return -EIO;
-> > > > +
-> > > > +	/* Prepare and then clone file data. */
-> > > > +	ret = xfs_reflink_remap_prep(file_in, pos_in, file_out, pos_out,
-> > > > +			len, is_dedupe);
-> > 
-> > More than one bug. vfs_clone_file_prep_inodes() modifes the length
-> > parameter in the case of whole file reflink by way of "len == 0"
-> > on a non-zero length file. So I fixed this, too.
+On Fri, Oct 05, 2018 at 03:28:09PM +1000, Dave Chinner wrote:
+> I've added:
 > 
-> Did your patch look something like the attached?
+> --
+> This rework also moves the invalidation of the destination range to
+> the prep function so that it is done before the range is remapped.
+> This ensures that nobody can access the data in range being remapped
+> until the remap is complete.
+> --
+> 
+> Sound OK?
+> 
+> Otherwise this looks fine.
 
-Identical. I folded it back in once it tested ok, though.
-
-Cheers,
-
-Dave.
--- 
-Dave Chinner
-david at fromorbit.com
+Given that the patch will need a respin anyway I'd rather split the
+move of the pagecache invalidation into a separate patch.
