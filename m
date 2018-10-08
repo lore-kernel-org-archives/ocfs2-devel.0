@@ -1,39 +1,39 @@
-From: Christoph Hellwig <hch@infradead.org>
-Date: Sat, 6 Oct 2018 03:44:02 -0700
-Subject: [Ocfs2-devel] [PATCH 09/15] vfs: pass operation flags to {clone,
- dedupe}_file_range implementations
-In-Reply-To: <20181005175008.GY19324@magnolia>
+From: Darrick J. Wong <darrick.wong@oracle.com>
+Date: Mon, 8 Oct 2018 11:59:51 -0700
+Subject: [Ocfs2-devel] [PATCH 08/15] vfs: change clone and dedupe range
+ function pointers to return bytes completed
+In-Reply-To: <20181006104134.GF25747@infradead.org>
 References: <153870027422.29072.7433543674436957232.stgit@magnolia>
-	<153870034158.29072.8943691140742142494.stgit@magnolia>
-	<CAOQ4uxhDhyx-SnyJ5mmsKMvvb883reCWgvyNbABKyC4-SO+1EA@mail.gmail.com>
-	<20181005175008.GY19324@magnolia>
-Message-ID: <20181006104402.GG25747@infradead.org>
+	<153870033496.29072.3660384210745578982.stgit@magnolia>
+	<20181006104134.GF25747@infradead.org>
+Message-ID: <20181008185951.GF28243@magnolia>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: "Darrick J. Wong" <darrick.wong@oracle.com>
-Cc: Amir Goldstein <amir73il@gmail.com>, Dave Chinner <david@fromorbit.com>, linux-xfs <linux-xfs@vger.kernel.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, Linux Btrfs <linux-btrfs@vger.kernel.org>, ocfs2-devel@oss.oracle.com, Eric Sandeen <sandeen@redhat.com>, Miklos Szeredi <miklos@szeredi.hu>
+To: Christoph Hellwig <hch@infradead.org>
+Cc: david@fromorbit.com, linux-xfs@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-btrfs@vger.kernel.org, ocfs2-devel@oss.oracle.com, sandeen@redhat.com
 
-On Fri, Oct 05, 2018 at 10:50:08AM -0700, Darrick J. Wong wrote:
-> > That's cool. But you know what's going to be the next step, right?
-> > Merging the 3 file operation interfaces into a single one.
-> > copy_file_range() already has the flags arg for future extensions
-> > and as you wrote somewhere, clone is really an optimized copy.
-> > ovl_copyfile() already does that internally.
+On Sat, Oct 06, 2018 at 03:41:34AM -0700, Christoph Hellwig wrote:
+> On Thu, Oct 04, 2018 at 05:45:35PM -0700, Darrick J. Wong wrote:
+> > From: Darrick J. Wong <darrick.wong@oracle.com>
 > > 
-> > So the only take away for this patch series, please use constant
-> > names COPYRANGE_* and also explicitly define:
-> > 
-> > /* Operation is actually clone, not copy. */
-> > #define COPYRANGE_CLONE      (1 << 2)
-> > /* Operation is actually dedupe, not copy. */
-> > #define COPYRANGE_DEDUPE      (1 << 3)
+> > Change the clone_file_range and dedupe_file_range functions to return
+> > the number of bytes they operated on.  This is the precursor to allowing
+> > fs implementations to return short clone/dedupe results to the user,
+> > which will enable us to obey resource limits in a graceful manner.
 > 
-> Yeah, I was too tired to try to throw that one on top of the flaming
-> garbage pile.  But I guess since I have a bunch more work to do to the
-> previous patch I might as well do that...
+> For clone this doesn't make any sense, as we don't allow 'short clones'.
 
-I'm not totally sold on just merging everything, but I very much despise
-what is done in this patch, as it creates a completely confusing
-interface.
+That's correct.  The overall goal is that copy_file_range will be able
+to call ->clone_file_range with a "I can handle a short clone" flag so
+that the fs (and the prep functions) know that they're allowed to
+shorten the request length, and we have a way to communicate the actual
+results back to userspace.
+
+Neither FS_IOC_CLONE nor FS_IOC_CLONERANGE will be able to take
+advantage of this, of course.  They won't pass in the flag, and any
+implementation that wants to shorten the length will pass back -EINVAL
+instead.
+
+--D
