@@ -1,61 +1,49 @@
 From: Darrick J. Wong <darrick.wong@oracle.com>
-Date: Tue, 9 Oct 2018 18:06:52 -0700
-Subject: [Ocfs2-devel] [PATCH v2 00/25] fs: fixes for serious
-	clone/dedupe problems
-In-Reply-To: <20181010010208.GI6311@dastard>
+Date: Wed, 10 Oct 2018 08:00:13 -0700
+Subject: [Ocfs2-devel] [PATCH v2 01/25] xfs: add a per-xfs trace_printk macro
+In-Reply-To: <153913024554.32295.8692450593333636905.stgit@magnolia>
 References: <153913023835.32295.13962696655740190941.stgit@magnolia>
-	<20181010010208.GI6311@dastard>
-Message-ID: <20181010010652.GK28243@magnolia>
+	<153913024554.32295.8692450593333636905.stgit@magnolia>
+Message-ID: <20181010150013.GP28243@magnolia>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Dave Chinner <david@fromorbit.com>
+To: david@fromorbit.com
 Cc: sandeen@redhat.com, linux-nfs@vger.kernel.org, linux-cifs@vger.kernel.org, linux-unionfs@vger.kernel.org, linux-xfs@vger.kernel.org, linux-mm@kvack.org, linux-btrfs@vger.kernel.org, linux-fsdevel@vger.kernel.org, ocfs2-devel@oss.oracle.com
 
-On Wed, Oct 10, 2018 at 12:02:08PM +1100, Dave Chinner wrote:
-> On Tue, Oct 09, 2018 at 05:10:38PM -0700, Darrick J. Wong wrote:
-> > Hi all,
-> > 
-> > Dave, Eric, and I have been chasing a stale data exposure bug in the XFS
-> > reflink implementation, and tracked it down to reflink forgetting to do
-> > some of the file-extending activities that must happen for regular
-> > writes.
-> > 
-> > We then started auditing the clone, dedupe, and copyfile code and
-> > realized that from a file contents perspective, clonerange isn't any
-> > different from a regular file write.  Unfortunately, we also noticed
-> > that *unlike* a regular write, clonerange skips a ton of overflow
-> > checks, such as validating the ranges against s_maxbytes, MAX_NON_LFS,
-> > and RLIMIT_FSIZE.  We also observed that cloning into a file did not
-> > strip security privileges (suid, capabilities) like a regular write
-> > would.  I also noticed that xfs and ocfs2 need to dump the page cache
-> > before remapping blocks, not after.
-> > 
-> > In fixing the range checking problems I also realized that both dedupe
-> > and copyfile tell userspace how much of the requested operation was
-> > acted upon.  Since the range validation can shorten a clone request (or
-> > we can ENOSPC midway through), we might as well plumb the short
-> > operation reporting back through the VFS indirection code to userspace.
-> > 
-> > So, here's the whole giant pile of patches[1] that fix all the problems.
-> > The patch "generic: test reflink side effects" recently sent to fstests
-> > exercises the fixes in this series.  Tests are in [2].
-> 
-> Can you rebase this on the for-next branch on the xfs tree which
-> already contains some of the initial fixes in the series and a
-> couple of other reflink/dedupe data corruption fixes? I'm planning
-> on pushing them to Greg tomorrow, so you'll have to do this soon
-> anyway....
+From: Darrick J. Wong <darrick.wong@oracle.com>
 
-<nod> I was planning to do that tomorrow, but figured I might as well
-scrape for review comments in the mean time.
+Add a "xfs_tprintk" macro so that developers can use trace_printk to
+print out arbitrary debugging information with the XFS device name
+attached to the trace output.
 
---D
+Signed-off-by: Darrick J. Wong <darrick.wong@oracle.com>
+---
+ fs/xfs/xfs_error.h |    6 ++++++
+ 1 file changed, 6 insertions(+)
 
-> Cheers,
-> 
-> Dave.
-> -- 
-> Dave Chinner
-> david at fromorbit.com
+diff --git a/fs/xfs/xfs_error.h b/fs/xfs/xfs_error.h
+index 246d3e989c6c..5caa8bdf6c38 100644
+--- a/fs/xfs/xfs_error.h
++++ b/fs/xfs/xfs_error.h
+@@ -76,6 +76,11 @@ extern int xfs_errortag_set(struct xfs_mount *mp, unsigned int error_tag,
+ 		unsigned int tag_value);
+ extern int xfs_errortag_add(struct xfs_mount *mp, unsigned int error_tag);
+ extern int xfs_errortag_clearall(struct xfs_mount *mp);
++
++/* trace printk version of xfs_err and friends */
++#define xfs_tprintk(mp, fmt, args...) \
++	trace_printk("dev %d:%d " fmt, MAJOR((mp)->m_super->s_dev), \
++			MINOR((mp)->m_super->s_dev), ##args)
+ #else
+ #define xfs_errortag_init(mp)			(0)
+ #define xfs_errortag_del(mp)
+@@ -83,6 +88,7 @@ extern int xfs_errortag_clearall(struct xfs_mount *mp);
+ #define xfs_errortag_set(mp, tag, val)		(ENOSYS)
+ #define xfs_errortag_add(mp, tag)		(ENOSYS)
+ #define xfs_errortag_clearall(mp)		(ENOSYS)
++#define xfs_tprintk(mp, fmt, args...)		do { } while (0)
+ #endif /* DEBUG */
+ 
+ /*
