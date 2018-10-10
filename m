@@ -1,8 +1,9 @@
 From: Darrick J. Wong <darrick.wong@oracle.com>
-Date: Tue, 09 Oct 2018 17:10:38 -0700
-Subject: [Ocfs2-devel] [PATCH v2 00/25] fs: fixes for serious clone/dedupe
-	problems
-Message-ID: <153913023835.32295.13962696655740190941.stgit@magnolia>
+Date: Tue, 09 Oct 2018 17:10:45 -0700
+Subject: [Ocfs2-devel] [PATCH 01/25] xfs: add a per-xfs trace_printk macro
+In-Reply-To: <153913023835.32295.13962696655740190941.stgit@magnolia>
+References: <153913023835.32295.13962696655740190941.stgit@magnolia>
+Message-ID: <153913024554.32295.8692450593333636905.stgit@magnolia>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -10,34 +11,29 @@ Content-Transfer-Encoding: 7bit
 To: david@fromorbit.com, darrick.wong@oracle.com
 Cc: sandeen@redhat.com, linux-nfs@vger.kernel.org, linux-cifs@vger.kernel.org, linux-unionfs@vger.kernel.org, linux-xfs@vger.kernel.org, linux-mm@kvack.org, linux-btrfs@vger.kernel.org, linux-fsdevel@vger.kernel.org, ocfs2-devel@oss.oracle.com
 
-Hi all,
+From: Darrick J. Wong <darrick.wong@oracle.com>
 
-Dave, Eric, and I have been chasing a stale data exposure bug in the XFS
-reflink implementation, and tracked it down to reflink forgetting to do
-some of the file-extending activities that must happen for regular
-writes.
+Add a "xfs_tprintk" macro so that developers can use trace_printk to
+print out arbitrary debugging information with the XFS device name
+attached to the trace output.
 
-We then started auditing the clone, dedupe, and copyfile code and
-realized that from a file contents perspective, clonerange isn't any
-different from a regular file write.  Unfortunately, we also noticed
-that *unlike* a regular write, clonerange skips a ton of overflow
-checks, such as validating the ranges against s_maxbytes, MAX_NON_LFS,
-and RLIMIT_FSIZE.  We also observed that cloning into a file did not
-strip security privileges (suid, capabilities) like a regular write
-would.  I also noticed that xfs and ocfs2 need to dump the page cache
-before remapping blocks, not after.
+Signed-off-by: Darrick J. Wong <darrick.wong@oracle.com>
+---
+ fs/xfs/xfs_error.h |    5 +++++
+ 1 file changed, 5 insertions(+)
 
-In fixing the range checking problems I also realized that both dedupe
-and copyfile tell userspace how much of the requested operation was
-acted upon.  Since the range validation can shorten a clone request (or
-we can ENOSPC midway through), we might as well plumb the short
-operation reporting back through the VFS indirection code to userspace.
 
-So, here's the whole giant pile of patches[1] that fix all the problems.
-The patch "generic: test reflink side effects" recently sent to fstests
-exercises the fixes in this series.  Tests are in [2].
-
---D
-
-[1] https://git.kernel.org/pub/scm/linux/kernel/git/djwong/xfs-linux.git/log/?h=djwong-devel
-[2] https://git.kernel.org/pub/scm/linux/kernel/git/djwong/xfstests-dev.git/log/?h=djwong-devel
+diff --git a/fs/xfs/xfs_error.h b/fs/xfs/xfs_error.h
+index 246d3e989c6c..c3d9546b138c 100644
+--- a/fs/xfs/xfs_error.h
++++ b/fs/xfs/xfs_error.h
+@@ -99,4 +99,9 @@ extern int xfs_errortag_clearall(struct xfs_mount *mp);
+ #define		XFS_PTAG_SHUTDOWN_LOGERROR	0x00000040
+ #define		XFS_PTAG_FSBLOCK_ZERO		0x00000080
+ 
++/* trace printk version of xfs_err and friends */
++#define xfs_tprintk(mp, fmt, args...) \
++	trace_printk("dev %d:%d " fmt, MAJOR((mp)->m_super->s_dev), \
++			MINOR((mp)->m_super->s_dev), ##args)
++
+ #endif	/* __XFS_ERROR_H__ */
