@@ -1,12 +1,12 @@
 From: Darrick J. Wong <darrick.wong@oracle.com>
-Date: Wed, 10 Oct 2018 08:13:21 -0700
-Subject: [Ocfs2-devel] [PATCH 08/25] vfs: combine the clone and dedupe
- into a single remap_file_range
-In-Reply-To: <CAOQ4uxj_wftoGvub9n_6X3Qc64LKxs+8TB-opUiq59sGQ=YoKw@mail.gmail.com>
+Date: Wed, 10 Oct 2018 08:50:55 -0700
+Subject: [Ocfs2-devel] [PATCH 14/25] vfs: make remap_file_range
+ functions take and return bytes completed
+In-Reply-To: <CAOQ4uxg0=EJp1WJXmUeHT05yF1txRKKhPHVTWeG+rdtRD5FfHA@mail.gmail.com>
 References: <153913023835.32295.13962696655740190941.stgit@magnolia>
-	<153913029885.32295.7399525233513945673.stgit@magnolia>
-	<CAOQ4uxj_wftoGvub9n_6X3Qc64LKxs+8TB-opUiq59sGQ=YoKw@mail.gmail.com>
-Message-ID: <20181010151321.GR28243@magnolia>
+	<153913040858.32295.9474188640729118153.stgit@magnolia>
+	<CAOQ4uxg0=EJp1WJXmUeHT05yF1txRKKhPHVTWeG+rdtRD5FfHA@mail.gmail.com>
+Message-ID: <20181010155055.GS28243@magnolia>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -14,192 +14,112 @@ Content-Transfer-Encoding: 7bit
 To: Amir Goldstein <amir73il@gmail.com>
 Cc: Dave Chinner <david@fromorbit.com>, Eric Sandeen <sandeen@redhat.com>, Linux NFS Mailing List <linux-nfs@vger.kernel.org>, linux-cifs@vger.kernel.org, overlayfs <linux-unionfs@vger.kernel.org>, linux-xfs <linux-xfs@vger.kernel.org>, Linux MM <linux-mm@kvack.org>, Linux Btrfs <linux-btrfs@vger.kernel.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, ocfs2-devel@oss.oracle.com
 
-On Wed, Oct 10, 2018 at 08:54:44AM +0300, Amir Goldstein wrote:
-> On Wed, Oct 10, 2018 at 3:12 AM Darrick J. Wong <darrick.wong@oracle.com> wrote:
+On Wed, Oct 10, 2018 at 09:47:00AM +0300, Amir Goldstein wrote:
+> On Wed, Oct 10, 2018 at 3:14 AM Darrick J. Wong <darrick.wong@oracle.com> wrote:
 > >
 > > From: Darrick J. Wong <darrick.wong@oracle.com>
 > >
-> > Combine the clone_file_range and dedupe_file_range operations into a
-> > single remap_file_range file operation dispatch since they're
-> > fundamentally the same operation.  The differences between the two can
-> > be made in the prep functions.
+> > Change the remap_file_range functions to take a number of bytes to
+> > operate upon and return the number of bytes they operated on.  This is a
+> > requirement for allowing fs implementations to return short clone/dedupe
+> > results to the user, which will enable us to obey resource limits in a
+> > graceful manner.
+> >
+> > A subsequent patch will enable copy_file_range to signal to the
+> > ->clone_file_range implementation that it can handle a short length,
+> > which will be returned in the function's return value.  Neither clone
+> > ioctl can take advantage of this, alas.
 > >
 > > Signed-off-by: Darrick J. Wong <darrick.wong@oracle.com>
 > > ---
-> 
-> I like this. Nits below.
-> 
 > [...]
-> 
-> > diff --git a/fs/btrfs/ioctl.c b/fs/btrfs/ioctl.c
-> > index d60b6caf09e8..e22b294fa25b 100644
-> > --- a/fs/btrfs/ioctl.c
-> > +++ b/fs/btrfs/ioctl.c
-> > @@ -3627,26 +3627,6 @@ static int btrfs_extent_same(struct inode *src, u64 loff, u64 olen,
-> >         return ret;
-> >  }
+> > @@ -141,8 +142,8 @@ static int ovl_copy_up_data(struct path *old, struct path *new, loff_t len)
+> >         }
 > >
-> > -int btrfs_dedupe_file_range(struct file *src_file, loff_t src_loff,
-> > -                           struct file *dst_file, loff_t dst_loff,
-> > -                           u64 olen)
-> > -{
-> > -       struct inode *src = file_inode(src_file);
-> > -       struct inode *dst = file_inode(dst_file);
-> > -       u64 bs = BTRFS_I(src)->root->fs_info->sb->s_blocksize;
-> > -
-> > -       if (WARN_ON_ONCE(bs < PAGE_SIZE)) {
-> > -               /*
-> > -                * Btrfs does not support blocksize < page_size. As a
-> > -                * result, btrfs_cmp_data() won't correctly handle
-> > -                * this situation without an update.
-> > -                */
-> > -               return -EINVAL;
-> > -       }
-> > -
-> > -       return btrfs_extent_same(src, src_loff, olen, dst, dst_loff);
-> > -}
-> > -
-> >  static int clone_finish_inode_update(struct btrfs_trans_handle *trans,
-> >                                      struct inode *inode,
-> >                                      u64 endoff,
-> > @@ -4348,9 +4328,27 @@ static noinline int btrfs_clone_files(struct file *file, struct file *file_src,
-> >         return ret;
-> >  }
-> >
-> > -int btrfs_clone_file_range(struct file *src_file, loff_t off,
-> > -               struct file *dst_file, loff_t destoff, u64 len)
-> > +int btrfs_remap_file_range(struct file *src_file, loff_t off,
-> > +               struct file *dst_file, loff_t destoff, u64 len,
-> > +               unsigned int flags)
-> >  {
-> > +       if (flags & RFR_IDENTICAL_DATA) {
-> > +               struct inode *src = file_inode(src_file);
-> > +               struct inode *dst = file_inode(dst_file);
-> > +               u64 bs = BTRFS_I(src)->root->fs_info->sb->s_blocksize;
-> > +
-> > +               if (WARN_ON_ONCE(bs < PAGE_SIZE)) {
-> > +                       /*
-> > +                        * Btrfs does not support blocksize < page_size. As a
-> > +                        * result, btrfs_cmp_data() won't correctly handle
-> > +                        * this situation without an update.
-> > +                        */
-> > +                       return -EINVAL;
-> > +               }
-> > +
-> > +               return btrfs_extent_same(src, off, len, dst, destoff);
-> > +       }
-> > +
+> >         /* Try to use clone_file_range to clone up within the same fs */
+> > -       error = do_clone_file_range(old_file, 0, new_file, 0, len);
+> > -       if (!error)
+> > +       cloned = do_clone_file_range(old_file, 0, new_file, 0, len);
+> > +       if (cloned == len)
+> >                 goto out;
+> >         /* Couldn't clone, so now we try to copy the data */
+> >         error = 0;
 > 
-> Seems weird that you would do that instead of:
-> 
-> +    if (flags & ~RFR_IDENTICAL_DATA)
-> +        return -EINVAL;
-> +    if (flags & RFR_IDENTICAL_DATA)
-> +        return btrfs_dedupe_file_range(src, off, dst, destoff, len);
+> This error = 0 not needed anymore, but not a big deal...
 
-Hmm.  The flags validation thing is kind of a mess here.  There should be a:
+Fixed.
 
-#define RFR_VALID_FLAGS	(RFR_IDENTICAL_DATA | /* add other RFR flags */)
-
-And all these functions should also gate on:
-
-if (remap_flags & ~RFR_VALID_FLAGS) {
-	WARN_ON(...);
-	return -EINVAL;
-}
-
-Though FWIW the btrfs implementation actually will support all three
-flags, so the particular structure of these checks here are correct if
-you add in my self-criticism above.
-
-> 
-> >         return btrfs_clone_files(dst_file, src_file, off, len, destoff);
-> >  }
-> >
-> > diff --git a/fs/cifs/cifsfs.c b/fs/cifs/cifsfs.c
-> > index 7065426b3280..bf971fd7cab2 100644
-> > --- a/fs/cifs/cifsfs.c
-> > +++ b/fs/cifs/cifsfs.c
-> > @@ -975,8 +975,9 @@ const struct inode_operations cifs_symlink_inode_ops = {
-> >         .listxattr = cifs_listxattr,
-> >  };
-> >
-> > -static int cifs_clone_file_range(struct file *src_file, loff_t off,
-> > -               struct file *dst_file, loff_t destoff, u64 len)
-> > +static int cifs_remap_file_range(struct file *src_file, loff_t off,
-> > +               struct file *dst_file, loff_t destoff, u64 len,
-> > +               unsigned int flags)
-> >  {
-> >         struct inode *src_inode = file_inode(src_file);
-> >         struct inode *target_inode = file_inode(dst_file);
-> > @@ -986,6 +987,9 @@ static int cifs_clone_file_range(struct file *src_file, loff_t off,
-> >         unsigned int xid;
-> >         int rc;
-> >
-> > +       if (flags & RFR_IDENTICAL_DATA)
-> > +               return -EOPNOTSUPP;
-> > +
-> 
-> I think everyone would be better off with:
-> +       if (flags)
-> +               return -EINVAL;
-> 
-> This way you won't need to change all filesystem implementations
-> every time that you add a new RFR flag.
-> Lucky for us, dedup already return -EINVAL if (!f_op->dedupe_file_range)
-> (and not -EOPNOTSUPP).
-
-Ugh, right, I forgot about that, um, quirk of the interface. :(
-
-> [...]
 > > diff --git a/fs/overlayfs/file.c b/fs/overlayfs/file.c
-> > index 986313da0c88..693bd0620a81 100644
+> > index 693bd0620a81..c8c890c22898 100644
 > > --- a/fs/overlayfs/file.c
 > > +++ b/fs/overlayfs/file.c
-> > @@ -489,26 +489,28 @@ static ssize_t ovl_copy_file_range(struct file *file_in, loff_t pos_in,
+> > @@ -434,14 +434,14 @@ enum ovl_copyop {
+> >         OVL_DEDUPE,
+> >  };
+> >
+> > -static ssize_t ovl_copyfile(struct file *file_in, loff_t pos_in,
+> > +static loff_t ovl_copyfile(struct file *file_in, loff_t pos_in,
+> >                             struct file *file_out, loff_t pos_out,
+> > -                           u64 len, unsigned int flags, enum ovl_copyop op)
+> > +                           loff_t len, unsigned int flags, enum ovl_copyop op)
+> >  {
+> >         struct inode *inode_out = file_inode(file_out);
+> >         struct fd real_in, real_out;
+> >         const struct cred *old_cred;
+> > -       ssize_t ret;
+> > +       loff_t ret;
+> >
+> >         ret = ovl_real_fdget(file_out, &real_out);
+> >         if (ret)
+> > @@ -489,9 +489,9 @@ static ssize_t ovl_copy_file_range(struct file *file_in, loff_t pos_in,
 > >                             OVL_COPY);
 > >  }
 > >
-> > -static int ovl_clone_file_range(struct file *file_in, loff_t pos_in,
-> > -                               struct file *file_out, loff_t pos_out, u64 len)
-> > +static int ovl_remap_file_range(struct file *file_in, loff_t pos_in,
-> > +                               struct file *file_out, loff_t pos_out,
-> > +                               u64 len, unsigned int flags)
+> > -static int ovl_remap_file_range(struct file *file_in, loff_t pos_in,
+> > -                               struct file *file_out, loff_t pos_out,
+> > -                               u64 len, unsigned int flags)
+> > +static loff_t ovl_remap_file_range(struct file *file_in, loff_t pos_in,
+> > +                                  struct file *file_out, loff_t pos_out,
+> > +                                  loff_t len, unsigned int flags)
 > >  {
-> > -       return ovl_copyfile(file_in, pos_in, file_out, pos_out, len, 0,
-> > -                           OVL_CLONE);
-> > -}
-> > +       enum ovl_copyop op;
-> > +
-> > +       if (flags & RFR_IDENTICAL_DATA)
-> > +               op = OVL_DEDUPE;
-> > +       else
-> > +               op = OVL_CLONE;
+> >         enum ovl_copyop op;
 > >
-> > -static int ovl_dedupe_file_range(struct file *file_in, loff_t pos_in,
-> > -                                struct file *file_out, loff_t pos_out, u64 len)
-> > -{
-> >         /*
-> >          * Don't copy up because of a dedupe request, this wouldn't make sense
-> >          * most of the time (data would be duplicated instead of deduplicated).
+> > diff --git a/fs/read_write.c b/fs/read_write.c
+> > index 917934770b08..f43b0620afd4 100644
+> > --- a/fs/read_write.c
+> > +++ b/fs/read_write.c
+> > @@ -1589,10 +1589,13 @@ ssize_t vfs_copy_file_range(struct file *file_in, loff_t pos_in,
+> >          * more efficient if both clone and copy are supported (e.g. NFS).
 > >          */
-> > -       if (!ovl_inode_upper(file_inode(file_in)) ||
-> > -           !ovl_inode_upper(file_inode(file_out)))
-> > +       if (op == OVL_DEDUPE &&
-> > +           (!ovl_inode_upper(file_inode(file_in)) ||
-> > +            !ovl_inode_upper(file_inode(file_out))))
-> >                 return -EPERM;
-> >
-> >         return ovl_copyfile(file_in, pos_in, file_out, pos_out, len, 0,
-> > -                           OVL_DEDUPE);
-> > +                           op);
-> >  }
-> >
+> >         if (file_in->f_op->remap_file_range) {
+> > -               ret = file_in->f_op->remap_file_range(file_in, pos_in,
+> > -                               file_out, pos_out, len, 0);
+> > -               if (ret == 0) {
+> > -                       ret = len;
+> > +               s64 cloned;
 > 
-> Apart from the generic check invalid flags comment - ACK on ovl part.
+> loff_t?
 
-Thanks for the review!  Is that an official Acked-by to add to the
-commit message, or an informal ACK?
+Fixed.
+
+> > +
+> > +               cloned = file_in->f_op->remap_file_range(file_in, pos_in,
+> > +                               file_out, pos_out,
+> > +                               min_t(loff_t, MAX_RW_COUNT, len), 0);
+> > +               if (cloned >= 0) {
+> > +                       ret = cloned;
+> >                         goto done;
+> >                 }
+> >         }
+> 
+> Commit message wasn't clear enough on the behavior of copy_file_range()
+> before and after the patch IMO. Maybe it would be better to pospone this
+> semantic change to the RFR_SHORTEN patch and keep if (cloned == len)
+> in this patch?
+
+There shouldn't be any behavior change here -- all implementations
+return a negative error code or the length that was passed in.  I'll
+clarify that in the commit message.
 
 --D
 
