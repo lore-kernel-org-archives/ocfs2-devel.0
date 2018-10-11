@@ -1,92 +1,24 @@
-From: Dan Carpenter <dan.carpenter@oracle.com>
-Date: Thu, 11 Oct 2018 12:59:50 +0300
-Subject: [Ocfs2-devel] [PATCH] ocfs2: clean up some data_ac usage
-In-Reply-To: <20181002155317.f3d3ff3f3d4d1787b5e3121d@linux-foundation.org>
-References: <20180907122500.azbll3byq4hdnrlw@kili.mountain>
-	<20181002155317.f3d3ff3f3d4d1787b5e3121d@linux-foundation.org>
-Message-ID: <20181011095950.drb2j3enjxizorn2@mwanda>
+From: Christoph Hellwig <hch@infradead.org>
+Date: Thu, 11 Oct 2018 06:39:34 -0700
+Subject: [Ocfs2-devel] [PATCH 01/25] xfs: add a per-xfs trace_printk
+	macro
+In-Reply-To: <153923114361.5546.11838344265359068530.stgit@magnolia>
+References: <153923113649.5546.9840926895953408273.stgit@magnolia>
+	<153923114361.5546.11838344265359068530.stgit@magnolia>
+Message-ID: <20181011133934.GA23424@infradead.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: "Darrick J. Wong" <darrick.wong@oracle.com>
+Cc: david@fromorbit.com, sandeen@redhat.com, linux-nfs@vger.kernel.org, linux-cifs@vger.kernel.org, linux-unionfs@vger.kernel.org, linux-xfs@vger.kernel.org, linux-mm@kvack.org, linux-btrfs@vger.kernel.org, linux-fsdevel@vger.kernel.org, ocfs2-devel@oss.oracle.com
 
-On Tue, Oct 02, 2018 at 03:53:17PM -0700, Andrew Morton wrote:
-> On Fri, 7 Sep 2018 15:25:01 +0300 Dan Carpenter <dan.carpenter@oracle.com> wrote:
+On Wed, Oct 10, 2018 at 09:12:23PM -0700, Darrick J. Wong wrote:
+> From: Darrick J. Wong <darrick.wong@oracle.com>
 > 
-> > I started looking at this code because of a Smatch false positive:
-> > 
-> >     fs/ocfs2/move_extents.c:347 ocfs2_defrag_extent()
-> >     warn: variable dereferenced before check 'context->data_ac' (see line 304)
-> > 
-> > context->data_ac can't be NULL so I removed the check.  I changed the
-> > next lines to use "data_ac" instead of "context->data_ac" for
-> > consistency.  And we don't need to pass "data_ac" to
-> > ocfs2_lock_meta_allocator_move_extents() any more so I removed that.
-> > 
-> > Signed-off-by: Dan Carpenter <dan.carpenter@oracle.com>
-> > 
-> 
-> Please don't forget the ^---$ at end-of-changelog.
-> 
-> > --- a/fs/ocfs2/move_extents.c
-> > +++ b/fs/ocfs2/move_extents.c
-> > @@ -160,15 +160,12 @@ static int __ocfs2_move_extent(handle_t *handle,
-> >   * lock allocators, and reserving appropriate number of bits for
-> >   * meta blocks and data clusters.
-> >   *
-> > - * in some cases, we don't need to reserve clusters, just let data_ac
-> > - * be NULL.
-> >   */
-> >  static int ocfs2_lock_meta_allocator_move_extents(struct inode *inode,
-> >  					struct ocfs2_extent_tree *et,
-> >  					u32 clusters_to_move,
-> >  					u32 extents_to_split,
-> >  					struct ocfs2_alloc_context **meta_ac,
-> > -					struct ocfs2_alloc_context **data_ac,
-> >  					int extra_blocks,
-> >  					int *credits)
-> >  {
-> > @@ -255,7 +252,6 @@ static int ocfs2_defrag_extent(struct ocfs2_move_extents_context *context,
-> >  	ret = ocfs2_lock_meta_allocator_move_extents(inode, &context->et,
-> >  						*len, 1,
-> >  						&context->meta_ac,
-> > -						&context->data_ac,
-> >  						extra_blocks, &credits);
-> >  	if (ret) {
-> >  		mlog_errno(ret);
-> > @@ -344,10 +340,10 @@ static int ocfs2_defrag_extent(struct ocfs2_move_extents_context *context,
-> >  		mlog_errno(ret);
-> >  
-> >  out_commit:
-> > -	if (need_free && context->data_ac) {
-> > +	if (need_free) {
-> 
-> Current mainline is different here.
-> 
+> Add a "xfs_tprintk" macro so that developers can use trace_printk to
+> print out arbitrary debugging information with the XFS device name
+> attached to the trace output.
 
-Huh...  I wrote it against linux-next, on top of commit 66897d21fa76
-("ocfs2: fix clusters leak in ocfs2_defrag_extent()").  But now git says
-that patch was applied on Oct 4, two days later after your reply.
-
-Anway, it should apply now again.  Would you like me to resend?
-
-regarsd,
-dan carpenter
-
-> >  		struct ocfs2_alloc_context *data_ac = context->data_ac;
-> >  
-> > -		if (context->data_ac->ac_which == OCFS2_AC_USE_LOCAL)
-> > +		if (data_ac->ac_which == OCFS2_AC_USE_LOCAL)
-> >  			ocfs2_free_local_alloc_bits(osb, handle, data_ac,
-> >  					new_phys_cpos, new_len);
-> >  		else
-> > @@ -629,7 +625,7 @@ static int ocfs2_move_extent(struct ocfs2_move_extents_context *context,
-> >  	ret = ocfs2_lock_meta_allocator_move_extents(inode, &context->et,
-> >  						len, 1,
-> >  						&context->meta_ac,
-> > -						NULL, extra_blocks, &credits);
-> > +						extra_blocks, &credits);
-> >  	if (ret) {
-> >  		mlog_errno(ret);
-> >  		goto out;
+I can't say I'm a fan of this.  trace_printk is a debugging aid,
+and opencoding the file system name really isn't much of a burden.
