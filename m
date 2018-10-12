@@ -1,52 +1,32 @@
-From: Darrick J. Wong <darrick.wong@oracle.com>
-Date: Fri, 12 Oct 2018 09:07:59 -0700
-Subject: [Ocfs2-devel] [PATCH 05/25] vfs: avoid problematic remapping
- requests into partial EOF block
-In-Reply-To: <20181012001615.GR6311@dastard>
-References: <153923113649.5546.9840926895953408273.stgit@magnolia>
-	<153923117420.5546.13317703807467393934.stgit@magnolia>
-	<20181012001615.GR6311@dastard>
-Message-ID: <20181012160759.GF28243@magnolia>
+From: Andrew Morton <akpm@linux-foundation.org>
+Date: Fri, 12 Oct 2018 16:04:58 -0700
+Subject: [Ocfs2-devel] [PATCH] ocfs2: clean up some data_ac usage
+In-Reply-To: <20181011095950.drb2j3enjxizorn2@mwanda>
+References: <20180907122500.azbll3byq4hdnrlw@kili.mountain>
+	<20181002155317.f3d3ff3f3d4d1787b5e3121d@linux-foundation.org>
+	<20181011095950.drb2j3enjxizorn2@mwanda>
+Message-ID: <20181012160458.8c5e8850fe9ec673596366f9@linux-foundation.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Dave Chinner <david@fromorbit.com>
-Cc: sandeen@redhat.com, linux-nfs@vger.kernel.org, linux-cifs@vger.kernel.org, linux-unionfs@vger.kernel.org, linux-xfs@vger.kernel.org, linux-mm@kvack.org, linux-btrfs@vger.kernel.org, linux-fsdevel@vger.kernel.org, ocfs2-devel@oss.oracle.com
+To: ocfs2-devel@oss.oracle.com
 
-On Fri, Oct 12, 2018 at 11:16:16AM +1100, Dave Chinner wrote:
-> On Wed, Oct 10, 2018 at 09:12:54PM -0700, Darrick J. Wong wrote:
-> > From: Darrick J. Wong <darrick.wong@oracle.com>
+On Thu, 11 Oct 2018 12:59:50 +0300 Dan Carpenter <dan.carpenter@oracle.com> wrote:
+
+> > >  out_commit:
+> > > -	if (need_free && context->data_ac) {
+> > > +	if (need_free) {
 > > 
-> > A deduplication data corruption is exposed by fstests generic/505 on
-> > XFS. It is caused by extending the block match range to include the
-> > partial EOF block, but then allowing unknown data beyond EOF to be
-> > considered a "match" to data in the destination file because the
-> > comparison is only made to the end of the source file. This corrupts the
-> > destination file when the source extent is shared with it.
+> > Current mainline is different here.
 > > 
-> > The VFS remapping prep functions only support whole block dedupe, but
-> > we still need to appear to support whole file dedupe correctly.  Hence
-> > if the dedupe request includes the last block of the souce file, don't
-> > include it in the actual dedupe operation. If the rest of the range
-> > dedupes successfully, then reject the entire request.  A subsequent
-> > patch will enable us to shorten dedupe requests correctly.
 > 
-> Ok, so this patch rejects whole file dedupe requests, and then a
-> later patch adds support back in for it?
+> Huh...  I wrote it against linux-next, on top of commit 66897d21fa76
+> ("ocfs2: fix clusters leak in ocfs2_defrag_extent()").  But now git says
+> that patch was applied on Oct 4, two days later after your reply.
 > 
-> Doesn't that leave a bisect landmine behind? Why separate the
-> functionality like this?
+> Anway, it should apply now again.  Would you like me to resend?
 
-Heh, it's a leftover from when I was trying to undo the behavior that
-bytes_deduped == len even if we rounded down.  I gave up on that, so
-this can match the xfs patch.
-
---D
-
-> Cheers,
-> 
-> Dave.
-> -- 
-> Dave Chinner
-> david at fromorbit.com
+Yes please.  I've managed to lose the original email thanks to
+ocfs2-devel's tendency to think it knows best about where emails should
+be sent :(
