@@ -1,18 +1,84 @@
 From: Christoph Hellwig <hch@infradead.org>
-Date: Sun, 14 Oct 2018 10:11:49 -0700
-Subject: [Ocfs2-devel] [PATCH 05/25] vfs: avoid problematic remapping
- requests into partial EOF block
-In-Reply-To: <153938917765.8361.15966712047859994604.stgit@magnolia>
+Date: Sun, 14 Oct 2018 10:19:27 -0700
+Subject: [Ocfs2-devel] [PATCH 07/25] vfs: combine the clone and dedupe
+ into a single remap_file_range
+In-Reply-To: <153938919123.8361.13059492965161549195.stgit@magnolia>
 References: <153938912912.8361.13446310416406388958.stgit@magnolia>
-	<153938917765.8361.15966712047859994604.stgit@magnolia>
-Message-ID: <20181014171149.GC30673@infradead.org>
+	<153938919123.8361.13059492965161549195.stgit@magnolia>
+Message-ID: <20181014171927.GD30673@infradead.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: "Darrick J. Wong" <darrick.wong@oracle.com>
-Cc: david@fromorbit.com, sandeen@redhat.com, linux-nfs@vger.kernel.org, linux-cifs@vger.kernel.org, linux-unionfs@vger.kernel.org, linux-xfs@vger.kernel.org, linux-mm@kvack.org, linux-btrfs@vger.kernel.org, linux-fsdevel@vger.kernel.org, ocfs2-devel@oss.oracle.com
+Cc: david@fromorbit.com, sandeen@redhat.com, linux-nfs@vger.kernel.org, linux-cifs@vger.kernel.org, Amir Goldstein <amir73il@gmail.com>, linux-unionfs@vger.kernel.org, linux-xfs@vger.kernel.org, linux-mm@kvack.org, linux-btrfs@vger.kernel.org, linux-fsdevel@vger.kernel.org, ocfs2-devel@oss.oracle.com
 
-Looks fine,
+>  	unsigned (*mmap_capabilities)(struct file *);
+>  #endif
+>  	ssize_t (*copy_file_range)(struct file *, loff_t, struct file *, loff_t, size_t, unsigned int);
+> -	int (*clone_file_range)(struct file *, loff_t, struct file *, loff_t, u64);
+> -	int (*dedupe_file_range)(struct file *, loff_t, struct file *, loff_t, u64);
+> +	int (*remap_file_range)(struct file *file_in, loff_t pos_in,
+> +				struct file *file_out, loff_t pos_out,
+> +				u64 len, unsigned int remap_flags);
 
-Reviewed-by: Christoph Hellwig <hch@lst.de>
+None of the other methods in this file name their parameters.  While
+I generally don't like people leaving them out, in the end consistency
+is even more important.
+
+> +int btrfs_remap_file_range(struct file *src_file, loff_t off,
+> +		struct file *dst_file, loff_t destoff, u64 len,
+> +		unsigned int remap_flags)
+>  {
+> +	if (!remap_check_flags(remap_flags, RFR_SAME_DATA))
+> +		return -EINVAL;
+> +
+> +	if (remap_flags & RFR_SAME_DATA) {
+
+So at least for btrfs there seems to be no shared code at all below
+the function calls.  This kinda speaks against the argument that
+they fundamentally are the same..
+
+> +/*
+> + * These flags control the behavior of the remap_file_range function pointer.
+> + *
+> + * RFR_SAME_DATA: only remap if contents identical (i.e. deduplicate)
+> + */
+> +#define RFR_SAME_DATA		(1 << 0)
+> +
+> +#define RFR_VALID_FLAGS		(RFR_SAME_DATA)
+
+RFR?  Why not REMAP_FILE_*  Also why not the well understood
+REMAP_FILE_DEDUP instead of the odd SAME_DATA?
+
+> +
+> +/*
+> + * Filesystem remapping implementations should call this helper on their
+> + * remap flags to filter out flags that the implementation doesn't support.
+> + *
+> + * Returns true if the flags are ok, false otherwise.
+> + */
+> +static inline bool remap_check_flags(unsigned int remap_flags,
+> +				     unsigned int supported_flags)
+> +{
+> +	return (remap_flags & ~(supported_flags & RFR_VALID_FLAGS)) == 0;
+> +}
+
+Any reason to even bother with a helper for this?  ->fallocate
+seems to be doing fine without the helper, and the resulting code
+seems a lot easier to understand to me.
+
+> @@ -1759,10 +1779,9 @@ struct file_operations {
+>  #endif
+>  	ssize_t (*copy_file_range)(struct file *, loff_t, struct file *,
+>  			loff_t, size_t, unsigned int);
+> -	int (*clone_file_range)(struct file *, loff_t, struct file *, loff_t,
+> -			u64);
+> -	int (*dedupe_file_range)(struct file *, loff_t, struct file *, loff_t,
+> -			u64);
+> +	int (*remap_file_range)(struct file *file_in, loff_t pos_in,
+> +				struct file *file_out, loff_t pos_out,
+> +				u64 len, unsigned int remap_flags);
+
+Same comment here.  Didn't we have some nice doc tools to avoid this
+duplication? :)
