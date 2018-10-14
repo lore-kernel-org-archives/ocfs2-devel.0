@@ -1,11 +1,11 @@
 From: Christoph Hellwig <hch@infradead.org>
-Date: Sun, 14 Oct 2018 10:22:37 -0700
-Subject: [Ocfs2-devel] [PATCH 11/25] vfs: pass remap flags to
- generic_remap_file_range_prep
-In-Reply-To: <153938921860.8361.1983470639945895613.stgit@magnolia>
+Date: Sun, 14 Oct 2018 10:24:33 -0700
+Subject: [Ocfs2-devel] [PATCH 16/25] vfs: make remapping to source file
+ eof more explicit
+In-Reply-To: <153938925737.8361.3995899966552253527.stgit@magnolia>
 References: <153938912912.8361.13446310416406388958.stgit@magnolia>
-	<153938921860.8361.1983470639945895613.stgit@magnolia>
-Message-ID: <20181014172237.GF30673@infradead.org>
+	<153938925737.8361.3995899966552253527.stgit@magnolia>
+Message-ID: <20181014172433.GG30673@infradead.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -13,16 +13,14 @@ Content-Transfer-Encoding: 7bit
 To: "Darrick J. Wong" <darrick.wong@oracle.com>
 Cc: david@fromorbit.com, sandeen@redhat.com, linux-nfs@vger.kernel.org, linux-cifs@vger.kernel.org, Amir Goldstein <amir73il@gmail.com>, linux-unionfs@vger.kernel.org, linux-xfs@vger.kernel.org, linux-mm@kvack.org, linux-btrfs@vger.kernel.org, linux-fsdevel@vger.kernel.org, ocfs2-devel@oss.oracle.com
 
-On Fri, Oct 12, 2018 at 05:06:58PM -0700, Darrick J. Wong wrote:
+On Fri, Oct 12, 2018 at 05:07:37PM -0700, Darrick J. Wong wrote:
 > From: Darrick J. Wong <darrick.wong@oracle.com>
 > 
-> Plumb the remap flags through the filesystem from the vfs function
-> dispatcher all the way to the prep function to prepare for behavior
-> changes in subsequent patches.
-> 
-> Signed-off-by: Darrick J. Wong <darrick.wong@oracle.com>
-> Reviewed-by: Amir Goldstein <amir73il@gmail.com>
+> Create a RFR_TO_SRC_EOF flag to explicitly declare that the caller wants
+> the remap implementation to remap to the end of the source file, once
+> the files are locked.
 
-It seems like we should have passed this down earlier before all
-the renaing and adding new helpers that could have easily started
-out with the flags.
+The name looks like a cat threw up on your keyboard :)
+
+From reading the code this seems to ask for a whole file remap, right?
+Why not put that in the name to make it more descriptive?
