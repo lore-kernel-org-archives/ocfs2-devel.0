@@ -1,59 +1,51 @@
-From: Christoph Hellwig <hch@infradead.org>
-Date: Mon, 15 Oct 2018 05:47:19 -0700
-Subject: [Ocfs2-devel] [PATCH 07/25] vfs: combine the clone and dedupe
- into a single remap_file_range
-In-Reply-To: <CAOQ4uxiReFJRxKJbsoUgWWNP75_Qsoh1fWC_dLYV_zBU_jaGbA@mail.gmail.com>
+From: Darrick J. Wong <darrick.wong@oracle.com>
+Date: Mon, 15 Oct 2018 08:32:19 -0700
+Subject: [Ocfs2-devel] [PATCH 16/25] vfs: make remapping to source file
+ eof more explicit
+In-Reply-To: <20181014172433.GG30673@infradead.org>
 References: <153938912912.8361.13446310416406388958.stgit@magnolia>
-	<153938919123.8361.13059492965161549195.stgit@magnolia>
-	<20181014171927.GD30673@infradead.org>
-	<CAOQ4uxiReFJRxKJbsoUgWWNP75_Qsoh1fWC_dLYV_zBU_jaGbA@mail.gmail.com>
-Message-ID: <20181015124719.GA15379@infradead.org>
+	<153938925737.8361.3995899966552253527.stgit@magnolia>
+	<20181014172433.GG30673@infradead.org>
+Message-ID: <20181015153219.GG28243@magnolia>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Amir Goldstein <amir73il@gmail.com>
-Cc: Christoph Hellwig <hch@infradead.org>, "Darrick J. Wong" <darrick.wong@oracle.com>, Dave Chinner <david@fromorbit.com>, Eric Sandeen <sandeen@redhat.com>, Linux NFS Mailing List <linux-nfs@vger.kernel.org>, linux-cifs@vger.kernel.org, overlayfs <linux-unionfs@vger.kernel.org>, linux-xfs <linux-xfs@vger.kernel.org>, Linux MM <linux-mm@kvack.org>, Linux Btrfs <linux-btrfs@vger.kernel.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, ocfs2-devel@oss.oracle.com
+To: Christoph Hellwig <hch@infradead.org>
+Cc: david@fromorbit.com, sandeen@redhat.com, linux-nfs@vger.kernel.org, linux-cifs@vger.kernel.org, Amir Goldstein <amir73il@gmail.com>, linux-unionfs@vger.kernel.org, linux-xfs@vger.kernel.org, linux-mm@kvack.org, linux-btrfs@vger.kernel.org, linux-fsdevel@vger.kernel.org, ocfs2-devel@oss.oracle.com
 
-On Mon, Oct 15, 2018 at 09:04:13AM +0300, Amir Goldstein wrote:
-> I supposed you figured out the reason already.
+On Sun, Oct 14, 2018 at 10:24:33AM -0700, Christoph Hellwig wrote:
+> On Fri, Oct 12, 2018 at 05:07:37PM -0700, Darrick J. Wong wrote:
+> > From: Darrick J. Wong <darrick.wong@oracle.com>
+> > 
+> > Create a RFR_TO_SRC_EOF flag to explicitly declare that the caller wants
+> > the remap implementation to remap to the end of the source file, once
+> > the files are locked.
+> 
+> The name looks like a cat threw up on your keyboard :)
 
-No, I hadn't.
+Yeah... :(
 
-> It makes it appearance in patch 16/25 as RFR_VFS_FLAGS.
-> All those "advisory" flags, we want to pass them in to filesystem as FYI,
-> but we don't want to explicitly add support for e.g. RFR_CAN_SHORTEN
-> to every filesystem, when vfs has already taken care of the advice.
+> From reading the code this seems to ask for a whole file remap, right?
 
-I don't think this model makes sense.  If they really are purely
-handled in the VFS we can mask them before passing them to the file
-system, if not we need to check them, or the they are avisory and
-we can have a simple #define instead of the helper.
+Nope.  In the original btrfs clonerange ioctl, length == 0 meant "to EOF".
+If you made a call like this:
 
-RFR_TO_SRC_EOF is checked in generic_remap_file_range_prep,
-so the file system should know about it  Also looking at it again now
-it seems entirely superflous - we can just pass down then len == we
-use in higher level code instead of having a flag and will side step
-the issue here.
+struct btrfs_ioctl_clone_range_args x = {
+	.src_offset = 16384,
+	.src_length = 0,
+	.dest_offset = 0,
+	.src_fd = whatever,
+};
+ftruncate(dest_fd, 0);
+ioctl(dest_fd, BTRFS_IOC_CLONE, &x);
 
-RFR_CAN_SHORTEN is advisory as no one has to shorten, but that can
-easily be solved by including it everywhere.
+Then dest_fd ends up with the contents of [16k...EOF] from src_fd.
+It's annoying to have the magic length number (and no flags?) but we're
+stuck with this quirk of the interface.
 
-RFR_SHORT_DEDUPE is as far as I can tell entirely superflous to
-start with, as RFR_CAN_SHORTEN can be used instead.
+> Why not put that in the name to make it more descriptive?
 
-So something like this in fs.h:
+I'm all ears for better suggestions. :)
 
-#define REMAP_FILE_ADVISORY_FLAGS	REMAP_FILE_CAN_SHORTEN
-
-And then in the file system:
-
-	if (flags & ~REMAP_FILE_ADVISORY_FLAGS)
-		-EINVAL;
-
-or
-
-	if (flags & ~(REMAP_FILE_ADVISORY_FLAGS | REMAP_FILE_DEDUP))
-		-EINVAL;
-
-should be all that is needed.
+--D
