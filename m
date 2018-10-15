@@ -1,40 +1,59 @@
-From: Dave Chinner <david@fromorbit.com>
-Date: Mon, 15 Oct 2018 11:31:39 +1100
-Subject: [Ocfs2-devel] [PATCH 05/25] vfs: avoid problematic remapping
- requests into partial EOF block
-In-Reply-To: <CAL3q7H7mLvCGpyitJhQ=To-aDvG9k9rxSVi2jSpcALQVj3myzg@mail.gmail.com>
-References: <153923113649.5546.9840926895953408273.stgit@magnolia>
-	<153923117420.5546.13317703807467393934.stgit@magnolia>
-	<CAL3q7H7mLvCGpyitJhQ=To-aDvG9k9rxSVi2jSpcALQVj3myzg@mail.gmail.com>
-Message-ID: <20181015003139.GZ6311@dastard>
+From: Christoph Hellwig <hch@infradead.org>
+Date: Mon, 15 Oct 2018 05:47:19 -0700
+Subject: [Ocfs2-devel] [PATCH 07/25] vfs: combine the clone and dedupe
+ into a single remap_file_range
+In-Reply-To: <CAOQ4uxiReFJRxKJbsoUgWWNP75_Qsoh1fWC_dLYV_zBU_jaGbA@mail.gmail.com>
+References: <153938912912.8361.13446310416406388958.stgit@magnolia>
+	<153938919123.8361.13059492965161549195.stgit@magnolia>
+	<20181014171927.GD30673@infradead.org>
+	<CAOQ4uxiReFJRxKJbsoUgWWNP75_Qsoh1fWC_dLYV_zBU_jaGbA@mail.gmail.com>
+Message-ID: <20181015124719.GA15379@infradead.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Filipe Manana <fdmanana@gmail.com>
-Cc: "Darrick J. Wong" <darrick.wong@oracle.com>, Eric Sandeen <sandeen@redhat.com>, linux-nfs@vger.kernel.org, linux-cifs@vger.kernel.org, linux-unionfs@vger.kernel.org, linux-xfs@vger.kernel.org, linux-mm@kvack.org, linux-btrfs <linux-btrfs@vger.kernel.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, ocfs2-devel@oss.oracle.com
+To: Amir Goldstein <amir73il@gmail.com>
+Cc: Christoph Hellwig <hch@infradead.org>, "Darrick J. Wong" <darrick.wong@oracle.com>, Dave Chinner <david@fromorbit.com>, Eric Sandeen <sandeen@redhat.com>, Linux NFS Mailing List <linux-nfs@vger.kernel.org>, linux-cifs@vger.kernel.org, overlayfs <linux-unionfs@vger.kernel.org>, linux-xfs <linux-xfs@vger.kernel.org>, Linux MM <linux-mm@kvack.org>, Linux Btrfs <linux-btrfs@vger.kernel.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, ocfs2-devel@oss.oracle.com
 
-On Fri, Oct 12, 2018 at 09:22:18PM +0100, Filipe Manana wrote:
-> On Thu, Oct 11, 2018 at 5:13 AM Darrick J. Wong <darrick.wong@oracle.com> wrote:
-> >
-> > From: Darrick J. Wong <darrick.wong@oracle.com>
-> >
-> > A deduplication data corruption is exposed by fstests generic/505 on
-> > XFS.
-> 
-> (and btrfs)
-> 
-> Btw, the generic test I wrote was indeed numbered 505, however it was
-> never committed and there's now a generic/505 which has nothing to do
-> with deduplication.
-> So you should update the changelog to avoid confusion.
+On Mon, Oct 15, 2018 at 09:04:13AM +0300, Amir Goldstein wrote:
+> I supposed you figured out the reason already.
 
-What test is it now? And if it hasn't been committed, are you going
-to update it and repost as it clearly had value....
+No, I hadn't.
 
-Cheers,
+> It makes it appearance in patch 16/25 as RFR_VFS_FLAGS.
+> All those "advisory" flags, we want to pass them in to filesystem as FYI,
+> but we don't want to explicitly add support for e.g. RFR_CAN_SHORTEN
+> to every filesystem, when vfs has already taken care of the advice.
 
-Dave.
--- 
-Dave Chinner
-david at fromorbit.com
+I don't think this model makes sense.  If they really are purely
+handled in the VFS we can mask them before passing them to the file
+system, if not we need to check them, or the they are avisory and
+we can have a simple #define instead of the helper.
+
+RFR_TO_SRC_EOF is checked in generic_remap_file_range_prep,
+so the file system should know about it  Also looking at it again now
+it seems entirely superflous - we can just pass down then len == we
+use in higher level code instead of having a flag and will side step
+the issue here.
+
+RFR_CAN_SHORTEN is advisory as no one has to shorten, but that can
+easily be solved by including it everywhere.
+
+RFR_SHORT_DEDUPE is as far as I can tell entirely superflous to
+start with, as RFR_CAN_SHORTEN can be used instead.
+
+So something like this in fs.h:
+
+#define REMAP_FILE_ADVISORY_FLAGS	REMAP_FILE_CAN_SHORTEN
+
+And then in the file system:
+
+	if (flags & ~REMAP_FILE_ADVISORY_FLAGS)
+		-EINVAL;
+
+or
+
+	if (flags & ~(REMAP_FILE_ADVISORY_FLAGS | REMAP_FILE_DEDUP))
+		-EINVAL;
+
+should be all that is needed.
