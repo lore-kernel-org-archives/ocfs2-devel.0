@@ -1,79 +1,99 @@
-From: Dan Carpenter <dan.carpenter@oracle.com>
-Date: Wed, 24 Oct 2018 13:05:31 +0300
-Subject: [Ocfs2-devel] [PATCH RESEND] ocfs2: clean up some data_ac usage
-Message-ID: <20181024100531.wxdstp77isbyo4rk@kili.mountain>
+From: Joseph Qi <jiangqi903@gmail.com>
+Date: Wed, 24 Oct 2018 18:36:28 +0800
+Subject: [Ocfs2-devel] [PATCH v2] ocfs2: Optimize the reading of
+	heartbeat data
+In-Reply-To: <99fe4988-69ac-3615-a218-3042fe6fbe72@huawei.com>
+References: <99fe4988-69ac-3615-a218-3042fe6fbe72@huawei.com>
+Message-ID: <b13fe171-2b8e-76b2-6928-d4ec1ac473d6@gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-I started looking at this code because of a Smatch false positive:
 
-    fs/ocfs2/move_extents.c:347 ocfs2_defrag_extent()
-    warn: variable dereferenced before check 'context->data_ac' (see line 304)
+On 18/10/24 11:47, Jia Guo wrote:
+> Reading heartbeat data from lowest node rather than from zero, in
+> cases where the node is not defined from zero, can reduce the number
+> of sectors read.
+> 
+> Here is a simple test data obtained with 'iostat -dmx dm-5 2', with
+> two nodes in the cluster, node number 10, 20, respectively.
+> Before optimization:
+> Device:         rrqm/s   wrqm/s     r/s     w/s    rMB/s    wMB/s avgrq-sz avgqu-sz   await r_await w_await  svctm  %util
+> dm-5              0.00     0.00    0.50    0.50     0.01     0.00    11.00     0.00    1.00    1.00    1.00   1.50   0.15
+> After the optimization:
+> Device:         rrqm/s   wrqm/s     r/s     w/s    rMB/s    wMB/s avgrq-sz avgqu-sz   await r_await w_await  svctm  %util
+> dm-5              0.00     0.00    0.50    0.50     0.00     0.00     6.00     0.00    0.50    1.00    0.00   0.50   0.05
+> 
+> Signed-off-by: Jia Guo <guojia12@huawei.com>
+> Reviewed-by: Jun Piao <piaojun@huawei.com>
+> Reviewed-by: Yiwen Jiang <jiangyiwen@huawei.com>
 
-context->data_ac can't be NULL so I removed the check.  I changed the
-next lines to use "data_ac" instead of "context->data_ac" for
-consistency.  And we don't need to pass "data_ac" to
-ocfs2_lock_meta_allocator_move_extents() any more so I removed that.
+Looks good.
+Acked-by: Joseph Qi <jiangqi903@gmail.com>
 
-Signed-off-by: Dan Carpenter <dan.carpenter@oracle.com>
----
-It should apply now.
-
- fs/ocfs2/move_extents.c | 10 +++-------
- 1 file changed, 3 insertions(+), 7 deletions(-)
-
-diff --git a/fs/ocfs2/move_extents.c b/fs/ocfs2/move_extents.c
-index 099016c9644e..9ee89d6816bc 100644
---- a/fs/ocfs2/move_extents.c
-+++ b/fs/ocfs2/move_extents.c
-@@ -160,15 +160,12 @@ static int __ocfs2_move_extent(handle_t *handle,
-  * lock allocators, and reserving appropriate number of bits for
-  * meta blocks and data clusters.
-  *
-- * in some cases, we don't need to reserve clusters, just let data_ac
-- * be NULL.
-  */
- static int ocfs2_lock_meta_allocator_move_extents(struct inode *inode,
- 					struct ocfs2_extent_tree *et,
- 					u32 clusters_to_move,
- 					u32 extents_to_split,
- 					struct ocfs2_alloc_context **meta_ac,
--					struct ocfs2_alloc_context **data_ac,
- 					int extra_blocks,
- 					int *credits)
- {
-@@ -255,7 +252,6 @@ static int ocfs2_defrag_extent(struct ocfs2_move_extents_context *context,
- 	ret = ocfs2_lock_meta_allocator_move_extents(inode, &context->et,
- 						*len, 1,
- 						&context->meta_ac,
--						&context->data_ac,
- 						extra_blocks, &credits);
- 	if (ret) {
- 		mlog_errno(ret);
-@@ -344,10 +340,10 @@ static int ocfs2_defrag_extent(struct ocfs2_move_extents_context *context,
- 		mlog_errno(ret);
- 
- out_commit:
--	if (need_free && context->data_ac) {
-+	if (need_free) {
- 		struct ocfs2_alloc_context *data_ac = context->data_ac;
- 
--		if (context->data_ac->ac_which == OCFS2_AC_USE_LOCAL)
-+		if (data_ac->ac_which == OCFS2_AC_USE_LOCAL)
- 			ocfs2_free_local_alloc_bits(osb, handle, data_ac,
- 					new_phys_cpos, new_len);
- 		else
-@@ -629,7 +625,7 @@ static int ocfs2_move_extent(struct ocfs2_move_extents_context *context,
- 	ret = ocfs2_lock_meta_allocator_move_extents(inode, &context->et,
- 						len, 1,
- 						&context->meta_ac,
--						NULL, extra_blocks, &credits);
-+						extra_blocks, &credits);
- 	if (ret) {
- 		mlog_errno(ret);
- 		goto out;
--- 
-2.11.0
+> ---
+>  fs/ocfs2/cluster/heartbeat.c | 17 ++++++++++++-----
+>  1 file changed, 12 insertions(+), 5 deletions(-)
+> 
+> diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
+> index 9b2ed62..f3c20b2 100644
+> --- a/fs/ocfs2/cluster/heartbeat.c
+> +++ b/fs/ocfs2/cluster/heartbeat.c
+> @@ -582,9 +582,10 @@ static struct bio *o2hb_setup_one_bio(struct o2hb_region *reg,
+>  }
+> 
+>  static int o2hb_read_slots(struct o2hb_region *reg,
+> +			   unsigned int begin_slot,
+>  			   unsigned int max_slots)
+>  {
+> -	unsigned int current_slot=0;
+> +	unsigned int current_slot = begin_slot;
+>  	int status;
+>  	struct o2hb_bio_wait_ctxt wc;
+>  	struct bio *bio;
+> @@ -1093,9 +1094,14 @@ static int o2hb_highest_node(unsigned long *nodes, int numbits)
+>  	return find_last_bit(nodes, numbits);
+>  }
+> 
+> +static int o2hb_lowest_node(unsigned long *nodes, int numbits)
+> +{
+> +	return find_first_bit(nodes, numbits);
+> +}
+> +
+>  static int o2hb_do_disk_heartbeat(struct o2hb_region *reg)
+>  {
+> -	int i, ret, highest_node;
+> +	int i, ret, highest_node, lowest_node;
+>  	int membership_change = 0, own_slot_ok = 0;
+>  	unsigned long configured_nodes[BITS_TO_LONGS(O2NM_MAX_NODES)];
+>  	unsigned long live_node_bitmap[BITS_TO_LONGS(O2NM_MAX_NODES)];
+> @@ -1120,7 +1126,8 @@ static int o2hb_do_disk_heartbeat(struct o2hb_region *reg)
+>  	}
+> 
+>  	highest_node = o2hb_highest_node(configured_nodes, O2NM_MAX_NODES);
+> -	if (highest_node >= O2NM_MAX_NODES) {
+> +	lowest_node = o2hb_lowest_node(configured_nodes, O2NM_MAX_NODES);
+> +	if (highest_node >= O2NM_MAX_NODES || lowest_node >= O2NM_MAX_NODES) {
+>  		mlog(ML_NOTICE, "o2hb: No configured nodes found!\n");
+>  		ret = -EINVAL;
+>  		goto bail;
+> @@ -1130,7 +1137,7 @@ static int o2hb_do_disk_heartbeat(struct o2hb_region *reg)
+>  	 * yet. Of course, if the node definitions have holes in them
+>  	 * then we're reading an empty slot anyway... Consider this
+>  	 * best-effort. */
+> -	ret = o2hb_read_slots(reg, highest_node + 1);
+> +	ret = o2hb_read_slots(reg, lowest_node, highest_node + 1);
+>  	if (ret < 0) {
+>  		mlog_errno(ret);
+>  		goto bail;
+> @@ -1801,7 +1808,7 @@ static int o2hb_populate_slot_data(struct o2hb_region *reg)
+>  	struct o2hb_disk_slot *slot;
+>  	struct o2hb_disk_heartbeat_block *hb_block;
+> 
+> -	ret = o2hb_read_slots(reg, reg->hr_blocks);
+> +	ret = o2hb_read_slots(reg, 0, reg->hr_blocks);
+>  	if (ret)
+>  		goto out;
+> 
