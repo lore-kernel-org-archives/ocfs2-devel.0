@@ -1,50 +1,31 @@
-From: Joseph Qi <jiangqi903@gmail.com>
-Date: Wed, 24 Oct 2018 18:37:49 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: dlmfs: remove set but not used
-	variable 'status'
-In-Reply-To: <1540300179-26697-1-git-send-email-zhongjiang@huawei.com>
-References: <1540300179-26697-1-git-send-email-zhongjiang@huawei.com>
-Message-ID: <ffed747e-b06e-d691-0df0-e0d39ae4ac5c@gmail.com>
+From: piaojun <piaojun@huawei.com>
+Date: Thu, 25 Oct 2018 18:31:15 +0800
+Subject: [Ocfs2-devel] [RFC PATCH 0/5] ocfs2: support IPv6 communication in
+	o2cb cluster
+Message-ID: <5BD19B73.7050607@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: zhong jiang <zhongjiang@huawei.com>, akpm@linux-foundation.org, mark@fasheh.com, jlbec@evilplan.org
-Cc: dhowells@redhat.com, piaojun@huawei.com, viro@zeniv.linux.org.uk, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
+To: ocfs2-devel@oss.oracle.com
 
+o2cb cluster only support IPv4 node configuration nowadays. Along with IPv6
+used more widely, ocfs2 should also keep up with the pace. This patch
+series add configfs attribute for IPv6 configure and build connnection
+between nodes with IPv6 socket. So the nodes in cluster could send dlm
+messages through IPv6 network protocol.
 
+Jun Piao (5):
+  ocfs2/cluster: add configfs attributes for IPv6 address and port
+  ocfs2/cluster: implement show & store method for IPv6 attribute
+  ocfs2/cluster: support IPv6 socket connection between nodes
+  ocfs2/dlm: modify message DLM_QUERY_NODEINFO to adapt IPv6 node
+  ocfs2/cluster: modify socket container macro to adapt IPv6
 
-On 18/10/23 21:09, zhong jiang wrote:
-> status is not used after setting its value. It is safe to remove
-> the unused variable.
-> 
-> Signed-off-by: zhong jiang <zhongjiang@huawei.com>
-
-Acked-by: Joseph Qi <jiangqi903@gmail.com>
-
-> ---
->  fs/ocfs2/dlmfs/dlmfs.c | 3 +--
->  1 file changed, 1 insertion(+), 2 deletions(-)
-> 
-> diff --git a/fs/ocfs2/dlmfs/dlmfs.c b/fs/ocfs2/dlmfs/dlmfs.c
-> index 642e471..b03dd46 100644
-> --- a/fs/ocfs2/dlmfs/dlmfs.c
-> +++ b/fs/ocfs2/dlmfs/dlmfs.c
-> @@ -179,7 +179,7 @@ static int dlmfs_file_open(struct inode *inode,
->  static int dlmfs_file_release(struct inode *inode,
->  			      struct file *file)
->  {
-> -	int level, status;
-> +	int level;
->  	struct dlmfs_inode_private *ip = DLMFS_I(inode);
->  	struct dlmfs_filp_private *fp = file->private_data;
->  
-> @@ -188,7 +188,6 @@ static int dlmfs_file_release(struct inode *inode,
->  
->  	mlog(0, "close called on inode %lu\n", inode->i_ino);
->  
-> -	status = 0;
->  	if (fp) {
->  		level = fp->fp_lock_level;
->  		if (level != DLM_LOCK_IV)
-> 
+ cluster/nodemanager.c |  157 +++++++++++++++++++-----
+ cluster/nodemanager.h |   11 +
+ cluster/tcp.c         |  323 ++++++++++++++++++++++++++++++++++++--------------
+ cluster/tcp.h         |    2
+ dlm/dlmcommon.h       |   12 +
+ dlm/dlmdomain.c       |   93 ++++++++++----
+ 6 files changed, 450 insertions(+), 148 deletions(-)
