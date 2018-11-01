@@ -1,25 +1,25 @@
 From: Changwei Ge <ge.changwei@h3c.com>
-Date: Thu, 1 Nov 2018 12:34:58 +0000
+Date: Thu, 1 Nov 2018 12:48:47 +0000
 Subject: [Ocfs2-devel] [PATCH V3] ocfs2: fix dead lock caused by
  ocfs2_defrag_extent
 References: <20181101071422.14470-1-lchen@suse.com>
 	<c07c65cb-8492-d866-6a1f-ffa64b293ea0@gmail.com>
 	<63ADC13FD55D6546B7DECE290D39E37301277DE397@H3CMLB12-EX.srv.huawei-3com.com>
-	<4f96339a-6209-eee1-3792-4720eca35688@gmail.com>
-Message-ID: <63ADC13FD55D6546B7DECE290D39E37301277DE3FE@H3CMLB12-EX.srv.huawei-3com.com>
+	<24a08d67-dd33-7fc1-628a-af55cd2de1fe@suse.com>
+Message-ID: <63ADC13FD55D6546B7DECE290D39E37301277DE42D@H3CMLB12-EX.srv.huawei-3com.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Joseph Qi <jiangqi903@gmail.com>, Larry Chen <lchen@suse.com>, "mark@fasheh.com" <mark@fasheh.com>, "jlbec@evilplan.org" <jlbec@evilplan.org>
+To: Larry Chen <lchen@suse.com>, Joseph Qi <jiangqi903@gmail.com>
 Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>, Andrew Morton <akpm@linux-foundation.org>
 
-Hello Joseph,
+Hi Larry,
 
-On 2018/11/1 20:16, Joseph Qi wrote:
+On 2018/11/1 20:39, Larry Chen wrote:
+> Hi Joseph,
 > 
-> 
-> On 18/11/1 19:52, Changwei Ge wrote:
+> On 11/1/18 7:52 PM, Changwei Ge wrote:
 >> Hello Joseph,
 >>
 >> On 2018/11/1 17:01, Joseph Qi wrote:
@@ -29,16 +29,16 @@ On 2018/11/1 20:16, Joseph Qi wrote:
 >>>> ocfs2_defrag_extent may fall into deadlock.
 >>>>
 >>>> ocfs2_ioctl_move_extents
->>>>       ocfs2_ioctl_move_extents
->>>>         ocfs2_move_extents
->>>>           ocfs2_defrag_extent
->>>>             ocfs2_lock_allocators_move_extents
+>>>>        ocfs2_ioctl_move_extents
+>>>>          ocfs2_move_extents
+>>>>            ocfs2_defrag_extent
+>>>>              ocfs2_lock_allocators_move_extents
 >>>>
->>>>               ocfs2_reserve_clusters
->>>>                 inode_lock GLOBAL_BITMAP_SYSTEM_INODE
+>>>>                ocfs2_reserve_clusters
+>>>>                  inode_lock GLOBAL_BITMAP_SYSTEM_INODE
 >>>>
 >>>> 	  __ocfs2_flush_truncate_log
->>>>                 inode_lock GLOBAL_BITMAP_SYSTEM_INODE
+>>>>                  inode_lock GLOBAL_BITMAP_SYSTEM_INODE
 >>>>
 >>>> As backtrace shows above, ocfs2_reserve_clusters() will call inode_lock
 >>>> against the global bitmap if local allocator has not sufficient cluters.
@@ -63,8 +63,8 @@ On 2018/11/1 20:16, Joseph Qi wrote:
 >>>>
 >>>> Signed-off-by: Larry Chen <lchen@suse.com>
 >>>> ---
->>>>    fs/ocfs2/move_extents.c | 47 ++++++++++++++++++++++++++---------------------
->>>>    1 file changed, 26 insertions(+), 21 deletions(-)
+>>>>     fs/ocfs2/move_extents.c | 47 ++++++++++++++++++++++++++---------------------
+>>>>     1 file changed, 26 insertions(+), 21 deletions(-)
 >>>>
 >>
 >>> IMO, here clusters_to_move is only for data_ac, since we change this
@@ -75,43 +75,41 @@ On 2018/11/1 20:16, Joseph Qi wrote:
 >> still have to reserve metadata(extents) in advance.
 >> So we need that argument.
 >>
-> I was not saying just remove it.
-> IIUC, clusters_to_move is for reserving data clusters (for meta_ac, we
+> 
+> Yeah, I think clusters_to_move should be reserved, in order to keep the
+> original logic as it was.
+> 
+> But I'm curious about why max_recs_needed should be equal to
+> 2 * extents_to_split + cluster_to_move?
+> Does that mean that each cluster might form an extent??
 
-Um...
-*cluster_to_move* is not only used for reserving data clusters.
-It is also an effecting input for calculating if existed extents still have enough free records for later
-tree operation like attaching clusters to extents.
-
-Please refer to below code:
-  175         unsigned int max_recs_needed = 2 * extents_to_split + clusters_to_move;
-
-
-
-> mostly talk about blocks). Since we have moved data cluster reserve
-> logic out of ocfs2_lock_allocators_move_extents() now, then left
-> clusters_to_move related logic here is odd.
-
-Like my preceding elaboration, it is used for telling if we need more extents.
-Anyway, I think we must keep *cluster_to_move* here as it used to. :-)
+It's because in the worst case that the file is of great fragment and one extent record can only represent one cluster.
+And we might encounter extents split during merging and rotation so we also need _2 * extents_to_split_.
 
 Thanks,
 Changwei
 
-
-
-
 > 
->>>>    					u32 extents_to_split,
->>>>    					struct ocfs2_alloc_context **meta_ac,
+> Thanks,
+> Larry
+> 
+> 
+>> Thanks,
+>> Changwei
+>>
+>>>
+>>> Thanks,
+>>> Joseph
+>>>>     					u32 extents_to_split,
+>>>>     					struct ocfs2_alloc_context **meta_ac,
 >>>> -					struct ocfs2_alloc_context **data_ac,
->>>>    					int extra_blocks,
->>>>    					int *credits)
->>>>    {
+>>>>     					int extra_blocks,
+>>>>     					int *credits)
+>>>>     {
 >>>> @@ -192,13 +188,6 @@ static int ocfs2_lock_allocators_move_extents(struct inode *inode,
->>>>    		goto out;
->>>>    	}
->>>>    
+>>>>     		goto out;
+>>>>     	}
+>>>>     
 >>>> -	if (data_ac) {
 >>>> -		ret = ocfs2_reserve_clusters(osb, clusters_to_move, data_ac);
 >>>> -		if (ret) {
@@ -119,13 +117,13 @@ Changwei
 >>>> -			goto out;
 >>>> -		}
 >>>> -	}
->>>>    
->>>>    	*credits += ocfs2_calc_extend_credits(osb->sb, et->et_root_el);
->>>>    
+>>>>     
+>>>>     	*credits += ocfs2_calc_extend_credits(osb->sb, et->et_root_el);
+>>>>     
 >>>> @@ -257,10 +246,10 @@ static int ocfs2_defrag_extent(struct ocfs2_move_extents_context *context,
->>>>    		}
->>>>    	}
->>>>    
+>>>>     		}
+>>>>     	}
+>>>>     
 >>>> -	ret = ocfs2_lock_allocators_move_extents(inode, &context->et, *len, 1,
 >>>> -						 &context->meta_ac,
 >>>> -						 &context->data_ac,
@@ -134,13 +132,13 @@ Changwei
 >>>> +						*len, 1,
 >>>> +						&context->meta_ac,
 >>>> +						extra_blocks, &credits);
->>>>    	if (ret) {
->>>>    		mlog_errno(ret);
->>>>    		goto out;
+>>>>     	if (ret) {
+>>>>     		mlog_errno(ret);
+>>>>     		goto out;
 >>>> @@ -283,6 +272,21 @@ static int ocfs2_defrag_extent(struct ocfs2_move_extents_context *context,
->>>>    		}
->>>>    	}
->>>>    
+>>>>     		}
+>>>>     	}
+>>>>     
 >>>> +	/*
 >>>> +	 * Make sure ocfs2_reserve_cluster is called after
 >>>> +	 * __ocfs2_flush_truncate_log, otherwise, dead lock may happen.
@@ -156,13 +154,13 @@ Changwei
 >>>> +		goto out_unlock_mutex;
 >>>> +	}
 >>>> +
->>>>    	handle = ocfs2_start_trans(osb, credits);
->>>>    	if (IS_ERR(handle)) {
->>>>    		ret = PTR_ERR(handle);
+>>>>     	handle = ocfs2_start_trans(osb, credits);
+>>>>     	if (IS_ERR(handle)) {
+>>>>     		ret = PTR_ERR(handle);
 >>>> @@ -600,9 +604,10 @@ static int ocfs2_move_extent(struct ocfs2_move_extents_context *context,
->>>>    		}
->>>>    	}
->>>>    
+>>>>     		}
+>>>>     	}
+>>>>     
 >>>> -	ret = ocfs2_lock_allocators_move_extents(inode, &context->et, len, 1,
 >>>> -						 &context->meta_ac,
 >>>> -						 NULL, extra_blocks, &credits);
@@ -170,9 +168,9 @@ Changwei
 >>>> +						len, 1,
 >>>> +						&context->meta_ac,
 >>>> +						extra_blocks, &credits);
->>>>    	if (ret) {
->>>>    		mlog_errno(ret);
->>>>    		goto out;
+>>>>     	if (ret) {
+>>>>     		mlog_errno(ret);
+>>>>     		goto out;
 >>>>
 >>>
 >>> _______________________________________________
@@ -180,4 +178,6 @@ Changwei
 >>> Ocfs2-devel at oss.oracle.com
 >>> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
 >>>
+>>
+> 
 > 
