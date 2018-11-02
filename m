@@ -1,23 +1,22 @@
-From: Joseph Qi <jiangqi903@gmail.com>
-Date: Fri, 2 Nov 2018 09:35:57 +0800
+From: Junxiao Bi <junxiao.bi@oracle.com>
+Date: Fri, 2 Nov 2018 10:51:06 +0800
 Subject: [Ocfs2-devel] [PATCH] ocfs2: free up write context when direct
  IO failed
 In-Reply-To: <20181101211531.21036-1-wen.gang.wang@oracle.com>
 References: <20181101211531.21036-1-wen.gang.wang@oracle.com>
-Message-ID: <c48aeb64-0db0-4522-043a-40974343ec55@gmail.com>
+Message-ID: <f5137f2d-e3af-c718-ac75-219b854d33ac@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
+On 11/02/2018 05:15 AM, Wengang Wang wrote:
 
-
-On 18/11/2 05:15, Wengang Wang wrote:
 > The write context should also be freed even when direct IO failed.
 > Otherwise a memory leak is introduced and entries remain in
 > oi->ip_unwritten_list causing the following BUG later in unlink path:
-> 
+>
 > ERROR: bug expression: !list_empty(&oi->ip_unwritten_list)
 > ERROR: Clear inode of 215043, inode has unwritten extents
 > ...
@@ -31,26 +30,20 @@ On 18/11/2 05:15, Wengang Wang wrote:
 > SyS_unlinkat+0x1b/0x2f
 > do_syscall_64+0x79/0x1ae
 > entry_SYSCALL_64_after_hwframe+0x151/0x0
-> 
+>
 > Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
-
-Looks good.
-We'd better cc stable as well (4.10+ ?).
-
-Acked-by: Joseph Qi <jiangqi903@gmail.com>
-
 > ---
->  fs/ocfs2/aops.c | 11 +++++++++--
->  1 file changed, 9 insertions(+), 2 deletions(-)
-> 
+>   fs/ocfs2/aops.c | 11 +++++++++--
+>   1 file changed, 9 insertions(+), 2 deletions(-)
+>
 > diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
 > index 302cd7c..a87ca42d 100644
 > --- a/fs/ocfs2/aops.c
 > +++ b/fs/ocfs2/aops.c
 > @@ -2412,8 +2412,15 @@ static int ocfs2_dio_end_io(struct kiocb *iocb,
->  	/* this io's submitter should not have unlocked this before we could */
->  	BUG_ON(!ocfs2_iocb_is_rw_locked(iocb));
->  
+>   	/* this io's submitter should not have unlocked this before we could */
+>   	BUG_ON(!ocfs2_iocb_is_rw_locked(iocb));
+>   
 > -	if (bytes > 0 && private)
 > -		ret = ocfs2_dio_end_io_write(inode, private, offset, bytes);
 > +	if (private) {
@@ -59,10 +52,13 @@ Acked-by: Joseph Qi <jiangqi903@gmail.com>
 > +						     bytes);
 > +		} else {
 > +			mlog(ML_ERROR, "Direct IO failed, free write ctx");
+Is it useful to leave the "bytes" value here? It could be some error code.
+
+Thanks,
+Junxiao.
 > +			ocfs2_dio_free_write_ctx(inode, private);
 > +		}
 > +	}
->  
->  	ocfs2_iocb_clear_rw_locked(iocb);
->  
-> 
+>   
+>   	ocfs2_iocb_clear_rw_locked(iocb);
+>   
