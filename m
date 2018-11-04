@@ -1,51 +1,64 @@
-From: Greg KH <gregkh@linuxfoundation.org>
-Date: Sat, 3 Nov 2018 07:44:57 +0100
-Subject: [Ocfs2-devel] [PATCH V2] ocfs2: free up write context when
-	direct IO failed
-In-Reply-To: <20181102170632.25921-1-wen.gang.wang@oracle.com>
-References: <20181102170632.25921-1-wen.gang.wang@oracle.com>
-Message-ID: <20181103064457.GC1517@kroah.com>
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Date: Sun, 4 Nov 2018 07:52:18 +0000
+Subject: [Ocfs2-devel] OCFS2: [ocfs2_rename:1688 ERROR: status = -39]
+ with four syscalls on fresh FS image
+In-Reply-To: <CAE5jQCeFs0_NS9AZwfw+U60jKU5RRPD56THEhCq_jLJkiFy0=A@mail.gmail.com>
+References: <CAE5jQCeFs0_NS9AZwfw+U60jKU5RRPD56THEhCq_jLJkiFy0=A@mail.gmail.com>
+Message-ID: <20181104075204.GD32577@ZenIV.linux.org.uk>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Wengang Wang <wen.gang.wang@oracle.com>
-Cc: ocfs2-devel@oss.oracle.com, stable@vger.kernel.org, gechangwei@live.cn, junxiao.bi@oracle.com, akpm@linux-foundation.org, jiangqi903@gmail.com
+To: Anatoly Trosinenko <anatoly.trosinenko@gmail.com>
+Cc: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
 
-On Fri, Nov 02, 2018 at 10:06:32AM -0700, Wengang Wang wrote:
-> The write context should also be freed even when direct IO failed.
-> Otherwise a memory leak is introduced and entries remain in
-> oi->ip_unwritten_list causing the following BUG later in unlink path:
+On Sun, Nov 04, 2018 at 10:37:34AM +0300, Anatoly Trosinenko wrote:
+> Hello,
 > 
-> ERROR: bug expression: !list_empty(&oi->ip_unwritten_list)
-> ERROR: Clear inode of 215043, inode has unwritten extents
-> ...
-> Call Trace:
-> ? __set_current_blocked+0x42/0x68
-> ocfs2_evict_inode+0x91/0x6a0 [ocfs2]
-> ? bit_waitqueue+0x40/0x33
-> evict+0xdb/0x1af
-> iput+0x1a2/0x1f7
-> do_unlinkat+0x194/0x28f
-> SyS_unlinkat+0x1b/0x2f
-> do_syscall_64+0x79/0x1ae
-> entry_SYSCALL_64_after_hwframe+0x151/0x0
+> When fuzzing OCFS2, I got an ERROR message in dmesg output with
+> several syscalls on completely fresh, uncrafted FS image. From this
+> https://oss.oracle.com/pipermail/ocfs2-devel/2012-August/008683.html
+> it looks like ERROR messages are indicating some unexpected conditions
+> in the driver code, is it right? If so, here it how to reproduce it
+> with kvm-xfstests:
 > 
-> This patch also logs, with frequency limit, direct IO failures.
+> 1) Checkout latest torvalds/master (tested with commit 71e56028), copy
+> x86_64-config-4.14 from fstests to .config, `make olddefconfig`,
+> enable CONFIG_FS then OCFS2 and compile
+> 2) Create fresh OCFS2 image:
+> $ fallocate -l 256M ocfs2
+> $ mkfs.ocfs2 -L test --fs-features=local ./ocfs2
+> $ mv ocfs2 /tmp/kvm-xfstests-$USER/ # mkfs.ocfs2 seems to not operate
+> on tmpfs that can be mounted on /tmp
+> 3) gcc --static ocfs2.c -o /tmp/kvm-xfstests-$USER/repro
+> 4) Inside the ./kvm-xfstests shell
+> root at kvm-xfstests:~# mount /vtmp
+> root at kvm-xfstests:~# mount /vtmp/ocfs2 /mnt
+> [   17.168634] JBD2: Ignoring recovery information on journal
+> [   17.173903] ocfs2: Mounting device (7,0) on (node local, slot 0)
+> with ordered data mode.
+> root at kvm-xfstests:~# /vtmp/repro
+> [   20.597145] (repro,368,1):ocfs2_rename:1688 ERROR: status = -39
+
+That would be -ENOTEMPTY...
+
+> root at kvm-xfstests:~#
 > 
-> Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
-> ---
-> v1 -> v2: log direct IO failures
-> ---
->  fs/ocfs2/aops.c            | 12 ++++++++++--
->  fs/ocfs2/cluster/masklog.h |  9 +++++++++
->  2 files changed, 19 insertions(+), 2 deletions(-)
+> Best regards
+> Anatoly
 
-<formletter>
+> #include <sys/stat.h>
+> #include <sys/types.h>
+> #include <unistd.h>
+> #include <stdio.h>
+> 
+> int main()
+> {
+>   mkdir("/mnt/xyz", 0x700);
+>   mkdir("/mnt/abc", 0x700);
+>   symlink("/mnt", "/mnt/xyz/1");
+>   rename("/mnt/abc", "/mnt/xyz");
 
-This is not the correct way to submit patches for inclusion in the
-stable kernel tree.  Please read:
-    https://urldefense.proofpoint.com/v2/url?u=https-3A__www.kernel.org_doc_html_latest_process_stable-2Dkernel-2Drules.html&d=DwIBAg&c=RoP1YumCXCgaWHvlZYR8PZh8Bv7qIrMUB65eapI_JnE&r=C7gAd4uDxlAvTdc0vmU6X8CMk6L2iDY8-HD0qT6Fo7Y&m=P2I-XIsUfJ0h1jlymjMe7ziTkrs4pJ-sCZYaijMZpWw&s=ygRPYcgBDv1LNZjnBgPzukjEYvJ_sE8jlBo7R_3_b5c&e=
-for how to do this properly.
-
-</formletter>
+... and this would certainly warrant that - the victim is not empty, indeed.
+AFAICS, ocfs2_rename() yells on _any_ error it's about to return.  Including
+-EMLINK, etc.
