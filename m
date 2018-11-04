@@ -1,64 +1,87 @@
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Date: Sun, 4 Nov 2018 07:52:18 +0000
-Subject: [Ocfs2-devel] OCFS2: [ocfs2_rename:1688 ERROR: status = -39]
- with four syscalls on fresh FS image
-In-Reply-To: <CAE5jQCeFs0_NS9AZwfw+U60jKU5RRPD56THEhCq_jLJkiFy0=A@mail.gmail.com>
-References: <CAE5jQCeFs0_NS9AZwfw+U60jKU5RRPD56THEhCq_jLJkiFy0=A@mail.gmail.com>
-Message-ID: <20181104075204.GD32577@ZenIV.linux.org.uk>
+From: Junxiao Bi <junxiao.bi@oracle.com>
+Date: Mon, 5 Nov 2018 07:54:27 +0800
+Subject: [Ocfs2-devel] [PATCH V2] ocfs2: free up write context when
+	direct IO failed
+In-Reply-To: <20181102170632.25921-1-wen.gang.wang@oracle.com>
+References: <20181102170632.25921-1-wen.gang.wang@oracle.com>
+Message-ID: <9a5a41f1-c148-22ce-5413-7e2e21fca515@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Anatoly Trosinenko <anatoly.trosinenko@gmail.com>
-Cc: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
+To: ocfs2-devel@oss.oracle.com
 
-On Sun, Nov 04, 2018 at 10:37:34AM +0300, Anatoly Trosinenko wrote:
-> Hello,
-> 
-> When fuzzing OCFS2, I got an ERROR message in dmesg output with
-> several syscalls on completely fresh, uncrafted FS image. From this
-> https://oss.oracle.com/pipermail/ocfs2-devel/2012-August/008683.html
-> it looks like ERROR messages are indicating some unexpected conditions
-> in the driver code, is it right? If so, here it how to reproduce it
-> with kvm-xfstests:
-> 
-> 1) Checkout latest torvalds/master (tested with commit 71e56028), copy
-> x86_64-config-4.14 from fstests to .config, `make olddefconfig`,
-> enable CONFIG_FS then OCFS2 and compile
-> 2) Create fresh OCFS2 image:
-> $ fallocate -l 256M ocfs2
-> $ mkfs.ocfs2 -L test --fs-features=local ./ocfs2
-> $ mv ocfs2 /tmp/kvm-xfstests-$USER/ # mkfs.ocfs2 seems to not operate
-> on tmpfs that can be mounted on /tmp
-> 3) gcc --static ocfs2.c -o /tmp/kvm-xfstests-$USER/repro
-> 4) Inside the ./kvm-xfstests shell
-> root at kvm-xfstests:~# mount /vtmp
-> root at kvm-xfstests:~# mount /vtmp/ocfs2 /mnt
-> [   17.168634] JBD2: Ignoring recovery information on journal
-> [   17.173903] ocfs2: Mounting device (7,0) on (node local, slot 0)
-> with ordered data mode.
-> root at kvm-xfstests:~# /vtmp/repro
-> [   20.597145] (repro,368,1):ocfs2_rename:1688 ERROR: status = -39
+On 11/03/2018 01:06 AM, Wengang Wang wrote:
 
-That would be -ENOTEMPTY...
-
-> root at kvm-xfstests:~#
-> 
-> Best regards
-> Anatoly
-
-> #include <sys/stat.h>
-> #include <sys/types.h>
-> #include <unistd.h>
-> #include <stdio.h>
-> 
-> int main()
-> {
->   mkdir("/mnt/xyz", 0x700);
->   mkdir("/mnt/abc", 0x700);
->   symlink("/mnt", "/mnt/xyz/1");
->   rename("/mnt/abc", "/mnt/xyz");
-
-... and this would certainly warrant that - the victim is not empty, indeed.
-AFAICS, ocfs2_rename() yells on _any_ error it's about to return.  Including
--EMLINK, etc.
+> The write context should also be freed even when direct IO failed.
+> Otherwise a memory leak is introduced and entries remain in
+> oi->ip_unwritten_list causing the following BUG later in unlink path:
+>
+> ERROR: bug expression: !list_empty(&oi->ip_unwritten_list)
+> ERROR: Clear inode of 215043, inode has unwritten extents
+> ...
+> Call Trace:
+> ? __set_current_blocked+0x42/0x68
+> ocfs2_evict_inode+0x91/0x6a0 [ocfs2]
+> ? bit_waitqueue+0x40/0x33
+> evict+0xdb/0x1af
+> iput+0x1a2/0x1f7
+> do_unlinkat+0x194/0x28f
+> SyS_unlinkat+0x1b/0x2f
+> do_syscall_64+0x79/0x1ae
+> entry_SYSCALL_64_after_hwframe+0x151/0x0
+>
+> This patch also logs, with frequency limit, direct IO failures.
+>
+> Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
+Reviewed-by: Junxiao Bi <junxiao.bi@oracle.com>
+> ---
+> v1 -> v2: log direct IO failures
+> ---
+>   fs/ocfs2/aops.c            | 12 ++++++++++--
+>   fs/ocfs2/cluster/masklog.h |  9 +++++++++
+>   2 files changed, 19 insertions(+), 2 deletions(-)
+>
+> diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+> index 302cd7c..7578bd5 100644
+> --- a/fs/ocfs2/aops.c
+> +++ b/fs/ocfs2/aops.c
+> @@ -2412,8 +2412,16 @@ static int ocfs2_dio_end_io(struct kiocb *iocb,
+>   	/* this io's submitter should not have unlocked this before we could */
+>   	BUG_ON(!ocfs2_iocb_is_rw_locked(iocb));
+>   
+> -	if (bytes > 0 && private)
+> -		ret = ocfs2_dio_end_io_write(inode, private, offset, bytes);
+> +	if (bytes <= 0)
+> +		mlog_ratelimited(ML_ERROR, "Direct IO failed, bytes = %lld",
+> +				 (long long)bytes);
+> +	if (private) {
+> +		if (bytes > 0)
+> +			ret = ocfs2_dio_end_io_write(inode, private, offset,
+> +						     bytes);
+> +		else
+> +			ocfs2_dio_free_write_ctx(inode, private);
+> +	}
+>   
+>   	ocfs2_iocb_clear_rw_locked(iocb);
+>   
+> diff --git a/fs/ocfs2/cluster/masklog.h b/fs/ocfs2/cluster/masklog.h
+> index 308ea0e..a396096 100644
+> --- a/fs/ocfs2/cluster/masklog.h
+> +++ b/fs/ocfs2/cluster/masklog.h
+> @@ -178,6 +178,15 @@ do {									\
+>   			      ##__VA_ARGS__);				\
+>   } while (0)
+>   
+> +#define mlog_ratelimited(mask, fmt, ...)				\
+> +do {									\
+> +	static DEFINE_RATELIMIT_STATE(_rs,				\
+> +				      DEFAULT_RATELIMIT_INTERVAL,	\
+> +				      DEFAULT_RATELIMIT_BURST);		\
+> +	if (__ratelimit(&_rs))						\
+> +		mlog(mask, fmt, ##__VA_ARGS__);				\
+> +} while (0)
+> +
+>   #define mlog_errno(st) ({						\
+>   	int _st = (st);							\
+>   	if (_st != -ERESTARTSYS && _st != -EINTR &&			\
