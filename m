@@ -1,9 +1,10 @@
-From: Changwei Ge <ge.changwei@h3c.com>
-Date: Mon, 5 Nov 2018 01:59:08 +0000
+From: Joseph Qi <jiangqi903@gmail.com>
+Date: Mon, 5 Nov 2018 10:05:26 +0800
 Subject: [Ocfs2-devel] [PATCH V2] ocfs2: free up write context when
- direct IO failed
+	direct IO failed
+In-Reply-To: <20181102170632.25921-1-wen.gang.wang@oracle.com>
 References: <20181102170632.25921-1-wen.gang.wang@oracle.com>
-Message-ID: <63ADC13FD55D6546B7DECE290D39E37301277DFAB2@H3CMLB12-EX.srv.huawei-3com.com>
+Message-ID: <e667ef37-46b3-887a-6998-a787e2e23ae3@gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -11,14 +12,8 @@ Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
 
-This version also added a nice mlog infrastructure.
 
-Looks good to me.
-
-Thanks,
-Changwei
-
-On 2018/11/3 1:08, Wengang Wang wrote:
+On 18/11/3 01:06, Wengang Wang wrote:
 > The write context should also be freed even when direct IO failed.
 > Otherwise a memory leak is introduced and entries remain in
 > oi->ip_unwritten_list causing the following BUG later in unlink path:
@@ -41,23 +36,23 @@ On 2018/11/3 1:08, Wengang Wang wrote:
 > 
 > Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
 
-Reviewed-by: Changwei Ge <ge.changwei@h3c.com>
+Reviewed-by: Joseph Qi <jiangqi903@gmail.com>
 
 > ---
 > v1 -> v2: log direct IO failures
 > ---
->   fs/ocfs2/aops.c            | 12 ++++++++++--
->   fs/ocfs2/cluster/masklog.h |  9 +++++++++
->   2 files changed, 19 insertions(+), 2 deletions(-)
+>  fs/ocfs2/aops.c            | 12 ++++++++++--
+>  fs/ocfs2/cluster/masklog.h |  9 +++++++++
+>  2 files changed, 19 insertions(+), 2 deletions(-)
 > 
 > diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
 > index 302cd7c..7578bd5 100644
 > --- a/fs/ocfs2/aops.c
 > +++ b/fs/ocfs2/aops.c
 > @@ -2412,8 +2412,16 @@ static int ocfs2_dio_end_io(struct kiocb *iocb,
->   	/* this io's submitter should not have unlocked this before we could */
->   	BUG_ON(!ocfs2_iocb_is_rw_locked(iocb));
->   
+>  	/* this io's submitter should not have unlocked this before we could */
+>  	BUG_ON(!ocfs2_iocb_is_rw_locked(iocb));
+>  
 > -	if (bytes > 0 && private)
 > -		ret = ocfs2_dio_end_io_write(inode, private, offset, bytes);
 > +	if (bytes <= 0)
@@ -70,17 +65,17 @@ Reviewed-by: Changwei Ge <ge.changwei@h3c.com>
 > +		else
 > +			ocfs2_dio_free_write_ctx(inode, private);
 > +	}
->   
->   	ocfs2_iocb_clear_rw_locked(iocb);
->   
+>  
+>  	ocfs2_iocb_clear_rw_locked(iocb);
+>  
 > diff --git a/fs/ocfs2/cluster/masklog.h b/fs/ocfs2/cluster/masklog.h
 > index 308ea0e..a396096 100644
 > --- a/fs/ocfs2/cluster/masklog.h
 > +++ b/fs/ocfs2/cluster/masklog.h
 > @@ -178,6 +178,15 @@ do {									\
->   			      ##__VA_ARGS__);				\
->   } while (0)
->   
+>  			      ##__VA_ARGS__);				\
+>  } while (0)
+>  
 > +#define mlog_ratelimited(mask, fmt, ...)				\
 > +do {									\
 > +	static DEFINE_RATELIMIT_STATE(_rs,				\
@@ -90,7 +85,7 @@ Reviewed-by: Changwei Ge <ge.changwei@h3c.com>
 > +		mlog(mask, fmt, ##__VA_ARGS__);				\
 > +} while (0)
 > +
->   #define mlog_errno(st) ({						\
->   	int _st = (st);							\
->   	if (_st != -ERESTARTSYS && _st != -EINTR &&			\
+>  #define mlog_errno(st) ({						\
+>  	int _st = (st);							\
+>  	if (_st != -ERESTARTSYS && _st != -EINTR &&			\
 > 
