@@ -1,22 +1,28 @@
-From: Junxiao Bi <junxiao.bi@oracle.com>
-Date: Mon, 5 Nov 2018 07:54:27 +0800
+From: Changwei Ge <ge.changwei@h3c.com>
+Date: Mon, 5 Nov 2018 01:59:08 +0000
 Subject: [Ocfs2-devel] [PATCH V2] ocfs2: free up write context when
-	direct IO failed
-In-Reply-To: <20181102170632.25921-1-wen.gang.wang@oracle.com>
+ direct IO failed
 References: <20181102170632.25921-1-wen.gang.wang@oracle.com>
-Message-ID: <9a5a41f1-c148-22ce-5413-7e2e21fca515@oracle.com>
+Message-ID: <63ADC13FD55D6546B7DECE290D39E37301277DFAB2@H3CMLB12-EX.srv.huawei-3com.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 11/03/2018 01:06 AM, Wengang Wang wrote:
 
+This version also added a nice mlog infrastructure.
+
+Looks good to me.
+
+Thanks,
+Changwei
+
+On 2018/11/3 1:08, Wengang Wang wrote:
 > The write context should also be freed even when direct IO failed.
 > Otherwise a memory leak is introduced and entries remain in
 > oi->ip_unwritten_list causing the following BUG later in unlink path:
->
+> 
 > ERROR: bug expression: !list_empty(&oi->ip_unwritten_list)
 > ERROR: Clear inode of 215043, inode has unwritten extents
 > ...
@@ -30,18 +36,20 @@ On 11/03/2018 01:06 AM, Wengang Wang wrote:
 > SyS_unlinkat+0x1b/0x2f
 > do_syscall_64+0x79/0x1ae
 > entry_SYSCALL_64_after_hwframe+0x151/0x0
->
+> 
 > This patch also logs, with frequency limit, direct IO failures.
->
+> 
 > Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
-Reviewed-by: Junxiao Bi <junxiao.bi@oracle.com>
+
+Reviewed-by: Changwei Ge <ge.changwei@h3c.com>
+
 > ---
 > v1 -> v2: log direct IO failures
 > ---
 >   fs/ocfs2/aops.c            | 12 ++++++++++--
 >   fs/ocfs2/cluster/masklog.h |  9 +++++++++
 >   2 files changed, 19 insertions(+), 2 deletions(-)
->
+> 
 > diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
 > index 302cd7c..7578bd5 100644
 > --- a/fs/ocfs2/aops.c
@@ -85,3 +93,4 @@ Reviewed-by: Junxiao Bi <junxiao.bi@oracle.com>
 >   #define mlog_errno(st) ({						\
 >   	int _st = (st);							\
 >   	if (_st != -ERESTARTSYS && _st != -EINTR &&			\
+> 
