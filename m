@@ -1,106 +1,33 @@
-From: Wengang Wang <wen.gang.wang@oracle.com>
-Date: Tue, 6 Nov 2018 12:02:25 -0800
-Subject: [Ocfs2-devel] [PATCH V2] ocfs2: free up write context when
-	direct IO failed
-In-Reply-To: <e667ef37-46b3-887a-6998-a787e2e23ae3@gmail.com>
-References: <20181102170632.25921-1-wen.gang.wang@oracle.com>
-	<e667ef37-46b3-887a-6998-a787e2e23ae3@gmail.com>
-Message-ID: <19b7b6b5-6573-60e9-2a1f-a53398377c3d@oracle.com>
+From: Andrew Morton <akpm@linux-foundation.org>
+Date: Wed, 7 Nov 2018 14:56:54 -0800
+Subject: [Ocfs2-devel] [RFC PATCH 0/5] ocfs2: support IPv6 communication
+ in o2cb cluster
+In-Reply-To: <5BD19B73.7050607@huawei.com>
+References: <5BD19B73.7050607@huawei.com>
+Message-ID: <20181107145654.151723a2fe9a44e9c7e3a8de@linux-foundation.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi AKPM,
+On Thu, 25 Oct 2018 18:31:15 +0800 piaojun <piaojun@huawei.com> wrote:
 
-Now we have three reviewed-bys for this patch:
+> o2cb cluster only support IPv4 node configuration nowadays. Along with IPv6
+> used more widely, ocfs2 should also keep up with the pace. This patch
+> series add configfs attribute for IPv6 configure and build connnection
+> between nodes with IPv6 socket. So the nodes in cluster could send dlm
+> messages through IPv6 network protocol.
 
-Reviewed-by: Junxiao Bi <junxiao.bi@oracle.com>
-Reviewed-by: Changwei Ge <ge.changwei@h3c.com>
-Reviewed-by: Joseph Qi <jiangqi903@gmail.com>
+Big patchset.  I'll await some reviewer input before looking at merging
+this, I think.
 
-Could you please merge it to mainline code?
+Please update Documentation/filesystems/ocfs2.txt to document all the
+new userspace interfaces and the overall feature, etc.
 
-Also thanks Junxiao, Changwei and Joseph for the reviews!
+Should the new code be hidden behind `#ifdef CONFIG_IPV6'?  That would
+avoid some code bloat.
 
-Thanks,
-Wengang
-
-On 2018/11/4 18:05, Joseph Qi wrote:
->
-> On 18/11/3 01:06, Wengang Wang wrote:
->> The write context should also be freed even when direct IO failed.
->> Otherwise a memory leak is introduced and entries remain in
->> oi->ip_unwritten_list causing the following BUG later in unlink path:
->>
->> ERROR: bug expression: !list_empty(&oi->ip_unwritten_list)
->> ERROR: Clear inode of 215043, inode has unwritten extents
->> ...
->> Call Trace:
->> ? __set_current_blocked+0x42/0x68
->> ocfs2_evict_inode+0x91/0x6a0 [ocfs2]
->> ? bit_waitqueue+0x40/0x33
->> evict+0xdb/0x1af
->> iput+0x1a2/0x1f7
->> do_unlinkat+0x194/0x28f
->> SyS_unlinkat+0x1b/0x2f
->> do_syscall_64+0x79/0x1ae
->> entry_SYSCALL_64_after_hwframe+0x151/0x0
->>
->> This patch also logs, with frequency limit, direct IO failures.
->>
->> Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
-> Reviewed-by: Joseph Qi <jiangqi903@gmail.com>
->
->> ---
->> v1 -> v2: log direct IO failures
->> ---
->>   fs/ocfs2/aops.c            | 12 ++++++++++--
->>   fs/ocfs2/cluster/masklog.h |  9 +++++++++
->>   2 files changed, 19 insertions(+), 2 deletions(-)
->>
->> diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
->> index 302cd7c..7578bd5 100644
->> --- a/fs/ocfs2/aops.c
->> +++ b/fs/ocfs2/aops.c
->> @@ -2412,8 +2412,16 @@ static int ocfs2_dio_end_io(struct kiocb *iocb,
->>   	/* this io's submitter should not have unlocked this before we could */
->>   	BUG_ON(!ocfs2_iocb_is_rw_locked(iocb));
->>   
->> -	if (bytes > 0 && private)
->> -		ret = ocfs2_dio_end_io_write(inode, private, offset, bytes);
->> +	if (bytes <= 0)
->> +		mlog_ratelimited(ML_ERROR, "Direct IO failed, bytes = %lld",
->> +				 (long long)bytes);
->> +	if (private) {
->> +		if (bytes > 0)
->> +			ret = ocfs2_dio_end_io_write(inode, private, offset,
->> +						     bytes);
->> +		else
->> +			ocfs2_dio_free_write_ctx(inode, private);
->> +	}
->>   
->>   	ocfs2_iocb_clear_rw_locked(iocb);
->>   
->> diff --git a/fs/ocfs2/cluster/masklog.h b/fs/ocfs2/cluster/masklog.h
->> index 308ea0e..a396096 100644
->> --- a/fs/ocfs2/cluster/masklog.h
->> +++ b/fs/ocfs2/cluster/masklog.h
->> @@ -178,6 +178,15 @@ do {									\
->>   			      ##__VA_ARGS__);				\
->>   } while (0)
->>   
->> +#define mlog_ratelimited(mask, fmt, ...)				\
->> +do {									\
->> +	static DEFINE_RATELIMIT_STATE(_rs,				\
->> +				      DEFAULT_RATELIMIT_INTERVAL,	\
->> +				      DEFAULT_RATELIMIT_BURST);		\
->> +	if (__ratelimit(&_rs))						\
->> +		mlog(mask, fmt, ##__VA_ARGS__);				\
->> +} while (0)
->> +
->>   #define mlog_errno(st) ({						\
->>   	int _st = (st);							\
->>   	if (_st != -ERESTARTSYS && _st != -EINTR &&			\
->>
+(That being said, if ocfs2 was concerned about code bloat, it would do
+something about the fact that mlog() and mlog_errno() more than double
+the file system's object code size).
