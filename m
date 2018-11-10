@@ -1,65 +1,77 @@
-From: Larry Chen <lchen@suse.com>
-Date: Thu,  8 Nov 2018 16:55:46 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Improve ocfs2 Makefile
-Message-ID: <20181108085546.15149-1-lchen@suse.com>
+From: piaojun <piaojun@huawei.com>
+Date: Sat, 10 Nov 2018 14:33:56 +0800
+Subject: [Ocfs2-devel] [PATCH RESEND] ocfs2: fix a misuse a of brelse
+ after failing ocfs2_check_dir_entry
+In-Reply-To: <HK2PR06MB045211675B43EED794E597B6D56E0@HK2PR06MB0452.apcprd06.prod.outlook.com>
+References: <HK2PR06MB045211675B43EED794E597B6D56E0@HK2PR06MB0452.apcprd06.prod.outlook.com>
+Message-ID: <5BE67BD4.2020703@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: mark@fasheh.com, jlbec@evilplan.org
-Cc: linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com, akpm@linux-foundation.org
+To: Changwei Ge <gechangwei@live.cn>, Andrew Morton <akpm@linux-foundation.org>, "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>, "junxiao.bi@oracle.com" <junxiao.bi@oracle.com>, "jiangqi903@gmail.com" <jiangqi903@gmail.com>
+Cc: "stable@vger.kernel.org" <stable@vger.kernel.org>
 
-Included file path was fixed in ocfs2 makefile, which might causes some
-confusion when compiling ocfs2 as an external module.
+Hi Changwei,
 
-Say if we compile ocfs2 module as following.
-cp -r /kernel/tree/fs/ocfs2 /other/dir/ocfs2
-cd /other/dir/ocfs2
-make -C /path/to/kernel_source M=`pwd` modules
+On 2018/5/28 22:40, Changwei Ge wrote:
+> From: Changwei Ge <ge.changwei@h3c.com>
+> 
+> Somehow, file system metadata was corrupted, which causes
+> ocfs2_check_dir_entry() to fail in function ocfs2_dir_foreach_blk_el().
+> 
+> According to the original design intention, if above happens we should
+> skip the problematic block and continue to retrieve dir entry. But there
+> is obviouse misuse of brelse around related code.
+> 
+> After failure of ocfs2_check_dir_entry(), currunt code just moves to next
+> position and uses the problematic buffer head again and again during
+> which the problematic buffer head is released for multiple times. I
+> suppose, this a serious issue which is long-lived in ocfs2. This may
+> cause other file systems which is also used in a the same host insane.
+> 
+> So we should also consider about bakcporting this patch into
+> linux -stable.
+> 
+> Suggested-by: Changkuo Shi <shi.changkuo@h3c.com>
+> Cc: stable at vger.kernel.org
+> Signed-off-by: Changwei Ge <ge.changwei@h3c.com>
+> ---
+>  fs/ocfs2/dir.c | 3 +--
+>  1 file changed, 1 insertion(+), 2 deletions(-)
+> 
+> diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
+> index b048d4f..c121abb 100644
+> --- a/fs/ocfs2/dir.c
+> +++ b/fs/ocfs2/dir.c
+> @@ -1897,8 +1897,7 @@ static int ocfs2_dir_foreach_blk_el(struct inode *inode,
+>  				/* On error, skip the f_pos to the
+>  				   next block. */
+>  				ctx->pos = (ctx->pos | (sb->s_blocksize - 1)) + 1;
+> -				brelse(bh);
+> -				continue;
+> +				break;
 
-Acutally, the compiler wil try to find included file in
-/kernel/tree/fs/ocfs2, rather than the directory /other/dir/ocfs2.
+I guess return is more appropriate than break here as it will cause double
+free buffer:
 
-To fix this little bug, we introduce the var $(src) provided by kbuild.
-$(src) means the absolute path of the running kbuild file.
+"
+ctx->pos = (ctx->pos | (sb->s_blocksize - 1)) + 1;
+brelse(bh);
+break;
+"
 
-Signed-off-by: Larry Chen <lchen@suse.com>
----
- fs/ocfs2/Makefile       | 2 +-
- fs/ocfs2/dlm/Makefile   | 2 +-
- fs/ocfs2/dlmfs/Makefile | 2 +-
- 3 files changed, 3 insertions(+), 3 deletions(-)
+"
+brelse(bh);
+bh = NULL;
+if (!persist && stored)
+	break;
+"
 
-diff --git a/fs/ocfs2/Makefile b/fs/ocfs2/Makefile
-index 99ee093182cb..cc9b32b9db7c 100644
---- a/fs/ocfs2/Makefile
-+++ b/fs/ocfs2/Makefile
-@@ -1,5 +1,5 @@
- # SPDX-License-Identifier: GPL-2.0
--ccflags-y := -Ifs/ocfs2
-+ccflags-y := -I$(src)
- 
- obj-$(CONFIG_OCFS2_FS) += 	\
- 	ocfs2.o			\
-diff --git a/fs/ocfs2/dlm/Makefile b/fs/ocfs2/dlm/Makefile
-index bd1aab1f49a4..ef2854422a6e 100644
---- a/fs/ocfs2/dlm/Makefile
-+++ b/fs/ocfs2/dlm/Makefile
-@@ -1,4 +1,4 @@
--ccflags-y := -Ifs/ocfs2
-+ccflags-y := -I$(src)/..
- 
- obj-$(CONFIG_OCFS2_FS_O2CB) += ocfs2_dlm.o
- 
-diff --git a/fs/ocfs2/dlmfs/Makefile b/fs/ocfs2/dlmfs/Makefile
-index eed3db8c5b49..33431a0296a3 100644
---- a/fs/ocfs2/dlmfs/Makefile
-+++ b/fs/ocfs2/dlmfs/Makefile
-@@ -1,4 +1,4 @@
--ccflags-y := -Ifs/ocfs2
-+ccflags-y := -I$(src)/..
- 
- obj-$(CONFIG_OCFS2_FS) += ocfs2_dlmfs.o
- 
--- 
-2.16.4
+Thanks,
+Jun
+
+>  			}
+>  			if (le64_to_cpu(de->inode)) {
+>  				unsigned char d_type = DT_UNKNOWN;
+> 
