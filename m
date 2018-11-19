@@ -1,18 +1,20 @@
-From: jiangyiwen <jiangyiwen@huawei.com>
-Date: Mon, 19 Nov 2018 20:29:13 +0800
+From: Joseph Qi <jiangqi903@gmail.com>
+Date: Mon, 19 Nov 2018 20:34:14 +0800
 Subject: [Ocfs2-devel] [PATCH V2 2/2] ocfs2: clear journal dirty flag
  after shutdown journal
 In-Reply-To: <20181119080725.13059-2-junxiao.bi@oracle.com>
 References: <20181119080725.13059-1-junxiao.bi@oracle.com>
 	<20181119080725.13059-2-junxiao.bi@oracle.com>
-Message-ID: <5BF2AC99.3030007@huawei.com>
+Message-ID: <f9e29a25-0f05-4660-aad5-01e1c967d585@gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 2018/11/19 16:07, Junxiao Bi wrote:
+Hi Junxiao,
+
+On 18/11/19 16:07, Junxiao Bi wrote:
 > Dirty flag of the journal should be cleared at the last stage of umount,
 > if do it before jbd2_journal_destroy(), then some metadata in uncommitted
 > transaction could be lost due to io error, but as dirty flag of journal
@@ -20,9 +22,6 @@ On 2018/11/19 16:07, Junxiao Bi wrote:
 > cause system panic or other corruption.
 > 
 > Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
-
-Reviewed-by: Yiwen Jiang <jiangyiwen@huawei.com>
-
 > Cc: Yiwen Jiang <jiangyiwen@huawei.com>
 > Cc: Jun Piao <piaojun@huawei.com>
 > ---
@@ -53,6 +52,13 @@ Reviewed-by: Yiwen Jiang <jiangyiwen@huawei.com>
 > -
 > -	/* Shutdown the kernel journal system */
 > -	jbd2_journal_destroy(journal->j_journal);
+
+Now we will write journal inode after journal has been destroyed.
+I wonder if it the right way as expected.
+
+Thanks,
+Joseph
+
 >  	journal->j_journal = NULL;
 >  
 >  	OCFS2_I(inode)->ip_open_count--;
