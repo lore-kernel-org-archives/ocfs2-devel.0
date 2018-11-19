@@ -1,17 +1,19 @@
-From: jiangyiwen <jiangyiwen@huawei.com>
-Date: Mon, 19 Nov 2018 20:19:59 +0800
+From: Joseph Qi <jiangqi903@gmail.com>
+Date: Mon, 19 Nov 2018 20:25:53 +0800
 Subject: [Ocfs2-devel] [PATCH 1/2] ocfs2: fix panic due to unrecovered
-	local alloc
+ local alloc
 In-Reply-To: <20181119080725.13059-1-junxiao.bi@oracle.com>
 References: <20181119080725.13059-1-junxiao.bi@oracle.com>
-Message-ID: <5BF2AA6F.7040607@huawei.com>
+Message-ID: <4c0c7083-0e09-7bb3-48c7-7c9862bd6ba2@gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 2018/11/19 16:07, Junxiao Bi wrote:
+
+
+On 18/11/19 16:07, Junxiao Bi wrote:
 > mount.ocfs2 ignore the inconsistent error that journal is clean but
 > local alloc is unrecovered. After mount, local alloc not empty, then
 > reserver cluster didn't alloc a new local alloc window, reserveration
@@ -98,9 +100,6 @@ On 2018/11/19 16:07, Junxiao Bi wrote:
 > [  838.205656] Kernel Offset: disabled
 > 
 > Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
-
-Reviewed-by: Yiwen Jiang <jiangyiwen@huawei.com>
-
 > Cc: Yiwen Jiang <jiangyiwen@huawei.com>
 > Cc: Jun Piao <piaojun@huawei.com>
 > ---
@@ -119,6 +118,13 @@ Reviewed-by: Yiwen Jiang <jiangyiwen@huawei.com>
 > -		mlog(ML_ERROR, "Local alloc hasn't been recovered!\n"
 > +	    || la->la_bm_off) {
 > +		mlog(ML_ERROR, "inconsistent detected, clean journal with"
+
+Better to leave a blank space between "with" and "unrecovered" for readability.
+Other looks good.
+
+With the above comments addressed,
+Acked-by: Joseph Qi <jiangqi903@gmail.com>
+
 > +		     "unrecovered local alloc, please run fsck.ocfs2!\n"
 >  		     "found = %u, set = %u, taken = %u, off = %u\n",
 >  		     num_used, le32_to_cpu(alloc->id1.bitmap1.i_used),
