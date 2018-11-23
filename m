@@ -1,83 +1,51 @@
-From: Jia Guo <guojia12@huawei.com>
-Date: Thu, 22 Nov 2018 23:54:50 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: clear zero in unaligned direct IO
-Message-ID: <5292e287-8f1a-fd4a-1a14-661e555e0bed@huawei.com>
+From: Andrew Morton <akpm@linux-foundation.org>
+Date: Fri, 23 Nov 2018 15:44:15 -0800
+Subject: [Ocfs2-devel] [PATCH] mm: Replace all open encodings for
+	NUMA_NO_NODE
+In-Reply-To: <1542966856-12619-1-git-send-email-anshuman.khandual@arm.com>
+References: <1542966856-12619-1-git-send-email-anshuman.khandual@arm.com>
+Message-ID: <20181123154415.42898a42e28a31488749738a@linux-foundation.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Anshuman Khandual <anshuman.khandual@arm.com>
+Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com, linux-fbdev@vger.kernel.org, dri-devel@lists.freedesktop.org, netdev@vger.kernel.org, intel-wired-lan@lists.osuosl.org, linux-media@vger.kernel.org, iommu@lists.linux-foundation.org, linux-rdma@vger.kernel.org, dmaengine@vger.kernel.org, linux-block@vger.kernel.org, sparclinux@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-ia64@vger.kernel.org, linux-alpha@vger.kernel.org, jiangqi903@gmail.com, hverkuil@xs4all.nl
 
-Unused portion of a part-written fs-block-sized block is not set to
-zero in unaligned append direct write.This can lead to serious data
-inconsistencies.
+On Fri, 23 Nov 2018 15:24:16 +0530 Anshuman Khandual <anshuman.khandual@arm.com> wrote:
 
-Ocfs2 manage disk with cluster size(for example, 1M), part-written in
-one cluster will change the cluster state from UN-WRITTEN to WRITTEN,
-VFS(function dio_zero_block) doesn't do the cleaning because bh's state
-is not set to NEW in function ocfs2_dio_wr_get_block when we write a
-WRITTEN cluster. For example, the cluster size is 1M, file size is 8k
-and we direct write from 14k to 15k, then 12k~14k and 15k~16k will
-contain dirty data.
+> At present there are multiple places where invalid node number is encoded
+> as -1. Even though implicitly understood it is always better to have macros
+> in there. Replace these open encodings for an invalid node number with the
+> global macro NUMA_NO_NODE. This helps remove NUMA related assumptions like
+> 'invalid node' from various places redirecting them to a common definition.
+> 
+> ...
+> 
+> Build tested this with multiple cross compiler options like alpha, sparc,
+> arm64, x86, powerpc, powerpc64le etc with their default config which might
+> not have compiled tested all driver related changes. I will appreciate
+> folks giving this a test in their respective build environment.
+> 
+> All these places for replacement were found by running the following grep
+> patterns on the entire kernel code. Please let me know if this might have
+> missed some instances. This might also have replaced some false positives.
+> I will appreciate suggestions, inputs and review.
+> 
+> 1. git grep "nid == -1"
+> 2. git grep "node == -1"
+> 3. git grep "nid = -1"
+> 4. git grep "node = -1"
 
-We have to deal with two cases:
-1.The starting position of direct write is outside the file.
-2.The starting position of direct write is located in the file.
+The build testing is good, but I worry that some of the affected files
+don't clearly have numa.h in their include paths, for the NUMA_NO_NODE
+definition.
 
-We need set bh's state to NEW in the first case. In the second case,
-we need mapped twice because bh's state of area out file should be set
-to NEW while area in file not.
+The first thing I looked it is arch/powerpc/include/asm/pci-bridge.h. 
+Maybe it somehow manages to include numa.h via some nested include, but
+if so, is that reliable across all config combinations and as code
+evolves?
 
-Signed-off-by: Jia Guo <guojia12@huawei.com>
-Reviewed-by: Yiwen Jiang <jiangyiwen@huawei.com>
----
- fs/ocfs2/aops.c | 22 +++++++++++++++++++++-
- 1 file changed, 21 insertions(+), 1 deletion(-)
-
-diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-index eb1ce30..6e1f902 100644
---- a/fs/ocfs2/aops.c
-+++ b/fs/ocfs2/aops.c
-@@ -2152,13 +2152,30 @@ static int ocfs2_dio_wr_get_block(struct inode *inode, sector_t iblock,
- 	struct ocfs2_dio_write_ctxt *dwc = NULL;
- 	struct buffer_head *di_bh = NULL;
- 	u64 p_blkno;
--	loff_t pos = iblock << inode->i_sb->s_blocksize_bits;
-+	unsigned i_blkbits = inode->i_sb->s_blocksize_bits;
-+	loff_t pos = iblock << i_blkbits;
-+	sector_t endblk = (i_size_read(inode) - 1) >> i_blkbits;
- 	unsigned len, total_len = bh_result->b_size;
- 	int ret = 0, first_get_block = 0;
-
- 	len = osb->s_clustersize - (pos & (osb->s_clustersize - 1));
- 	len = min(total_len, len);
-
-+	/*
-+	 * bh_result->b_size is count in get_more_blocks according to write
-+ 	 * "pos" and "end", we need map twice to return different buffer state:
-+ 	 * 1. area in file size, not set NEW;
-+ 	 * 2. area out file size, set  NEW.
-+ 	 *
-+ 	 *		   iblock    endblk
-+ 	 * |--------|---------|---------|---------
-+ 	 * |<-------area in file------->|
-+ 	 */
-+
-+	if ((iblock <= endblk) &&
-+	    ((iblock + ((len - 1) >> i_blkbits)) > endblk))
-+		len = (endblk - iblock + 1) << i_blkbits;
-+
- 	mlog(0, "get block of %lu@%llu:%u req %u\n",
- 			inode->i_ino, pos, len, total_len);
-
-@@ -2242,6 +2259,9 @@ static int ocfs2_dio_wr_get_block(struct inode *inode, sector_t iblock,
- 	if (desc->c_needs_zero)
- 		set_buffer_new(bh_result);
-
-+	if (iblock > endblk)
-+		set_buffer_new(bh_result);
-+
- 	/* May sleep in end_io. It should not happen in a irq context. So defer
- 	 * it to dio work queue. */
- 	set_buffer_defer_completion(bh_result);
--- 
+So I think that the patch should have added an explicit include of
+numa.h, especially in cases where the affected file previously had no
+references to any of the things which numa.h defines.
