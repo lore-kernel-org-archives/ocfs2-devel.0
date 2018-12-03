@@ -1,120 +1,166 @@
 From: wangjian <wangjian161@huawei.com>
-Date: Mon, 3 Dec 2018 20:06:05 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: Clean DLM_LKSB_GET_LVB and
- DLM_LKSB_PUT_LVB when the cancel_pending is set
-Message-ID: <bffbe5a5-acb6-652d-eb8a-99fb051e6631@huawei.com>
+Date: Mon, 3 Dec 2018 20:20:58 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: return DLM_CANCELGRANT if the lock
+ is on granted list and the operation is canceled
+Message-ID: <98f0e80c-9c13-dbb6-047c-b40e100082b1@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Function dlm_move_lockres_to_recovery_list should clean
-DLM_LKSB_GET_LVB and DLM_LKSB_PUT_LVB when the cancel_pending
-is set. Otherwise node may panic in dlm_proxy_ast_handler.
+In the dlm_move_lockres_to_recovery_list function, if the lock
+is in the granted queue and cancel_pending is set, it will
+encounter a BUG. I think this is a meaningless BUG,
+so be prepared to remove it. A scenario that causes
+this BUG will be given below.
 
-Here is the situation: At the beginning, Node1 is the master
-of the lock resource and has NL lock, Node2 has PR lock,
-Node3 has PR lock, Node4 has NL lock.
+At the beginning, Node 1 is the master and has NL lock,
+Node 2 has PR lock, Node 3 has PR lock too.
 
-Node1        Node2            Node3            Node4
-              convert lock_2 from
-              PR to EX.
+Node 1          Node 2          Node 3
+             want to get EX lock.
 
-the mode of lock_3 is
-PR, which blocks the
-conversion request of
-Node2. move lock_2 to
-conversion list.
+                             want to get EX lock.
 
-                           convert lock_3 from
-                           PR to EX.
+Node 3 hinder
+Node 2 to get
+EX lock, send
+Node 3 a BAST.
 
-move lock_3 to conversion
-list. send BAST to Node3.
+                             receive BAST from
+                             Node 1. downconvert
+                             thread begin to
+                             cancel PR to EX conversion.
+                             In dlmunlock_common function,
+                             downconvert thread has set
+                             lock->cancel_pending,
+                             but did not enter
+                             dlm_send_remote_unlock_request
+                             function.
 
-                           receive BAST from Node1.
-                           downconvert thread execute
-                           canceling convert operation.
+             Node2 dies because
+             the host is powered down.
+
+In recovery process,
+clean the lock that
+related to Node2.
+then finish Node 3
+PR to EX request.
+give Node 3 a AST.
+
+                             receive AST from Node 1.
+                             change lock level to EX,
+                             move lock to granted list.
+
+Node1 dies because
+the host is powered down.
+
+                             In dlm_move_lockres_to_recovery_list
+                             function. the lock is in the
+                             granted queue and cancel_pending
+                             is set. BUG_ON.
+
+But after clearing this BUG, process will encounter
+the second BUG in the ocfs2_unlock_ast function.
+Here is a scenario that will cause the second BUG
+in ocfs2_unlock_ast as follows:
+
+At the beginning, Node 1 is the master and has NL lock,
+Node 2 has PR lock, Node 3 has PR lock too.
+
+Node 1          Node 2          Node 3
+             want to get EX lock.
+
+                             want to get EX lock.
+
+Node 3 hinder
+Node 2 to get
+EX lock, send
+Node 3 a BAST.
+
+                             receive BAST from
+                             Node 1. downconvert
+                             thread begin to
+                             cancel PR to EX conversion.
+                             In dlmunlock_common function,
+                             downconvert thread has released
+                             lock->spinlock and res->spinlock,
+                             but did not enter
+                             dlm_send_remote_unlock_request
+                             function.
+
+             Node2 dies because
+             the host is powered down.
+
+In recovery process,
+clean the lock that
+related to Node2.
+then finish Node 3
+PR to EX request.
+give Node 3 a AST.
+
+                             receive AST from Node 1.
+                             change lock level to EX,
+                             move lock to granted list,
+                             set lockres->l_unlock_action
+                             as OCFS2_UNLOCK_INVALID
+                             in ocfs2_locking_ast function.
 
 Node2 dies because
 the host is powered down.
 
-                           in dlmunlock_common function,
-                           the downconvert thread set
-                           cancel_pending. at the same
-                           time, Node 3 realized that
-                           Node 1 is dead, so move lock_3
-                           back to granted list in
-                           dlm_move_lockres_to_recovery_list
-                           function and remove Node 1 from
-                           the domain_map in
-                           __dlm_hb_node_down function.
-                           then downconvert thread failed
-                           to send the lock cancellation
-                           request to Node1 and return
-                           DLM_NORMAL from
-                           dlm_send_remote_unlock_request
-                           function.
+                             Node 3 realize that Node 1
+                             is dead, remove Node 1 from
+                             domain_map. downconvert thread
+                             get DLM_NORMAL from
+                             dlm_send_remote_unlock_request
+                             function and set *call_ast as 1.
+                             Then downconvert thread meet
+                             BUG in ocfs2_unlock_ast function.
 
-                                                 become recovery master.
-
-              during the recovery
-              process, send
-              lock_2 that is
-              converting form
-              PR to EX to Node4.
-
-                           during the recovery process,
-                           send lock_3 in the granted list and
-                           cantain the DLM_LKSB_GET_LVB
-                           flag to Node4. Then downconvert thread
-                           delete DLM_LKSB_GET_LVB flag in
-                           dlmunlock_common function.
-
-                                                 Node4 finish recovery.
-                                                 the mode of lock_3 is
-                                                 PR, which blocks the
-                                                 conversion request of
-                                                 Node2, so send BAST
-                                                 to Node3.
-
-                           receive BAST from Node4.
-                           convert lock_3 from PR to NL.
-
-                                                 change the mode of lock_3
-                                                 from PR to NL and send
-                                                 message to Node3.
-
-                           receive message from
-                           Node4. The message contain
-                           LKM_GET_LVB flag, but the
-                           lock->lksb->flags does not
-                           contain DLM_LKSB_GET_LVB,
-                           BUG_ON in dlm_proxy_ast_handler
-                           function.
+To avoid meet the second BUG, function dlmunlock_common shuold
+return DLM_CANCELGRANT if the lock is on granted list and
+the operation is canceled.
 
 Signed-off-by: Jian Wang <wangjian161@huawei.com>
 Reviewed-by: Yiwen Jiang <jiangyiwen@huawei.com>
 ---
-  fs/ocfs2/dlm/dlmunlock.c | 1 +
-  1 file changed, 1 insertion(+)
+  fs/ocfs2/dlm/dlmrecovery.c | 1 -
+  fs/ocfs2/dlm/dlmunlock.c   | 5 +++++
+  2 files changed, 5 insertions(+), 1 deletion(-)
 
+diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
+index 802636d..7489652 100644
+--- a/fs/ocfs2/dlm/dlmrecovery.c
++++ b/fs/ocfs2/dlm/dlmrecovery.c
+@@ -2134,7 +2134,6 @@ void dlm_move_lockres_to_recovery_list(struct dlm_ctxt *dlm,
+  				 * if this had completed successfully
+  				 * before sending this lock state to the
+  				 * new master */
+-				BUG_ON(i != DLM_CONVERTING_LIST);
+  				mlog(0, "node died with cancel pending "
+  				     "on %.*s. move back to granted list.\n",
+  				     res->lockname.len, res->lockname.name);
 diff --git a/fs/ocfs2/dlm/dlmunlock.c b/fs/ocfs2/dlm/dlmunlock.c
-index 63d701c..6e04fc7 100644
+index 63d701c..505bb6c 100644
 --- a/fs/ocfs2/dlm/dlmunlock.c
 +++ b/fs/ocfs2/dlm/dlmunlock.c
-@@ -277,6 +277,7 @@ void dlm_commit_pending_cancel(struct dlm_lock_resource *res,
-  {
-  	list_move_tail(&lock->list, &res->granted);
-  	lock->ml.convert_type = LKM_IVMODE;
-+	lock->lksb->flags &= ~(DLM_LKSB_GET_LVB|DLM_LKSB_PUT_LVB);
-  }
-  
-  
+@@ -183,6 +183,11 @@ static enum dlm_status dlmunlock_common(struct dlm_ctxt *dlm,
+  							flags, owner);
+  		spin_lock(&res->spinlock);
+  		spin_lock(&lock->spinlock);
++
++		if ((flags & LKM_CANCEL) &&
++				dlm_lock_on_list(&res->granted, lock))
++			status = DLM_CANCELGRANT;
++
+  		/* if the master told us the lock was already granted,
+  		 * let the ast handle all of these actions */
+  		if (status == DLM_CANCELGRANT) {
 -- 
 1.8.3.1
 
 -------------- next part --------------
 An HTML attachment was scrubbed...
-URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20181203/8f927337/attachment.html 
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20181203/845049c8/attachment.html 
