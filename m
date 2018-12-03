@@ -1,178 +1,120 @@
-From: Larry Chen <lchen@suse.com>
-Date: Thu, 1 Nov 2018 12:12:05 +0800
-Subject: [Ocfs2-devel] [PATCH V2] ocfs2: fix dead lock caused by
- ocfs2_defrag_extent
-In-Reply-To: <63ADC13FD55D6546B7DECE290D39E37301277DDF02@H3CMLB12-EX.srv.huawei-3com.com>
-References: <20180902091455.23862-1-lchen@suse.com>
-	<20181031142632.c523108bc137caa8cb1c6282@linux-foundation.org>
-	<63ADC13FD55D6546B7DECE290D39E37301277DDF02@H3CMLB12-EX.srv.huawei-3com.com>
-Message-ID: <c01c0e95-0964-aab1-1758-a66439e619ba@suse.com>
+From: wangjian <wangjian161@huawei.com>
+Date: Mon, 3 Dec 2018 20:06:05 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: Clean DLM_LKSB_GET_LVB and
+ DLM_LKSB_PUT_LVB when the cancel_pending is set
+Message-ID: <bffbe5a5-acb6-652d-eb8a-99fb051e6631@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Changwei Ge <ge.changwei@h3c.com>, Andrew Morton <akpm@linux-foundation.org>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>
+To: ocfs2-devel@oss.oracle.com
 
-Hi Changwei,
+Function dlm_move_lockres_to_recovery_list should clean
+DLM_LKSB_GET_LVB and DLM_LKSB_PUT_LVB when the cancel_pending
+is set. Otherwise node may panic in dlm_proxy_ast_handler.
 
-Thanks for your review, I'll improve my patch and resend it later.
+Here is the situation: At the beginning, Node1 is the master
+of the lock resource and has NL lock, Node2 has PR lock,
+Node3 has PR lock, Node4 has NL lock.
 
-Thanks
-Larry
+Node1        Node2            Node3            Node4
+              convert lock_2 from
+              PR to EX.
 
-On 11/1/18 11:11 AM, Changwei Ge wrote:
-> Hi Larry,
-> 
-> I still have a few tiny comments for your patch, please refer to them.
-> 
-> On 2018/11/1 5:28, Andrew Morton wrote:
->>
->> Folks, could we please review this patch for upstream inclusion?
->>
->> Thanks.
->>
->>
->> From: Larry Chen <lchen@suse.com>
->> Subject: ocfs2: fix deadlock caused by ocfs2_defrag_extent
->>
->> ocfs2_defrag_extent may fall into deadlock.
->>
->> ocfs2_ioctl_move_extents
->>     ocfs2_ioctl_move_extents
->>       ocfs2_move_extents
->>         ocfs2_defrag_extent
->>           ocfs2_lock_allocators_move_extents
->>
->>             ocfs2_reserve_clusters
->>               inode_lock GLOBAL_BITMAP_SYSTEM_INODE
->>
->> 	  __ocfs2_flush_truncate_log
->>               inode_lock GLOBAL_BITMAP_SYSTEM_INODE
->>
->> As backtrace shows above, ocfs2_reserve_clusters() will call inode_lock
->> against the global bitmap if local allocator has not sufficient cluters.
->> Once global bitmap could meet the demand, ocfs2_reserve_cluster will
->> return success with global bitmap locked.
->>
->> After ocfs2_reserve_cluster(), if truncate log is full,
->> __ocfs2_flush_truncate_log() will definitely fall into deadlock because it
->> needs to inode_lock global bitmap, which has already been locked.
->>
->> To fix this bug, we could remove from ocfs2_lock_allocators_move_extents()
->> the code which intends to lock global allocator, and put the removed code
->> after __ocfs2_flush_truncate_log().
->>
->> ocfs2_lock_allocators_move_extents() is refered by 2 places, one is here,
->> the other does not need the data allocator context, which means this patch
->> does not affect the caller so far.
->>
->> [lchen at suse.com: rename ocfs2_lock_allocators_move_extents() to ocfs2_lock_meta_allocator_move_extents(), add some comments]
->>     Link: https://urldefense.proofpoint.com/v2/url?u=http-3A__lkml.kernel.org_r_20180902091455.23862-2D1-2Dlchen-40suse.com&d=DwICAg&c=RoP1YumCXCgaWHvlZYR8PZh8Bv7qIrMUB65eapI_JnE&r=C7gAd4uDxlAvTdc0vmU6X8CMk6L2iDY8-HD0qT6Fo7Y&m=K8aRgOiMescamJW-IuHq-cW4mWedGQv2JTT-2KPy1RI&s=3fQHFtwgixirPeQ5Px4fRBnd_UcSx3rvSsLKLidwESo&e=
->> Link: https://urldefense.proofpoint.com/v2/url?u=http-3A__lkml.kernel.org_r_20180827080121.31145-2D1-2Dlchen-40suse.com&d=DwICAg&c=RoP1YumCXCgaWHvlZYR8PZh8Bv7qIrMUB65eapI_JnE&r=C7gAd4uDxlAvTdc0vmU6X8CMk6L2iDY8-HD0qT6Fo7Y&m=K8aRgOiMescamJW-IuHq-cW4mWedGQv2JTT-2KPy1RI&s=PQOJREyeElsg_1IlINdSGefNqA6w_cUrI1ezdVxyi7o&e=
->> Signed-off-by: Larry Chen <lchen@suse.com>
->> Cc: Mark Fasheh <mark@fasheh.com>
->> Cc: Joel Becker <jlbec@evilplan.org>
->> Cc: Junxiao Bi <junxiao.bi@oracle.com>
->> Cc: Joseph Qi <jiangqi903@gmail.com>
->> Cc: Changwei Ge <ge.changwei@h3c.com>
->> Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
->> ---
->>
->>    fs/ocfs2/move_extents.c |   40 +++++++++++++++++++++++---------------
->>    1 file changed, 25 insertions(+), 15 deletions(-)
->>
->> --- a/fs/ocfs2/move_extents.c~fix-dead-lock-caused-by-ocfs2_defrag_extent
->> +++ a/fs/ocfs2/move_extents.c
->> @@ -162,7 +162,7 @@ out:
->>     * in some cases, we don't need to reserve clusters, just let data_ac
->>     * be NULL.
->>     */
->> -static int ocfs2_lock_allocators_move_extents(struct inode *inode,
->> +static int ocfs2_lock_meta_allocator_move_extents(struct inode *inode,
->>    					struct ocfs2_extent_tree *et,
->>    					u32 clusters_to_move,
->>    					u32 extents_to_split,
-> 
-> After removing 'reserving clusters logic' out of this function, I suggest to also change the function header comments.
-> And I think there is no need for arguments _data_ac_ now.
-> Otherwise this patch looks sane to me.
-> 
-> Thanks,
-> Changwei
-> 
->> @@ -192,13 +192,6 @@ static int ocfs2_lock_allocators_move_ex
->>    		goto out;
->>    	}
->>    
->> -	if (data_ac) {
->> -		ret = ocfs2_reserve_clusters(osb, clusters_to_move, data_ac);
->> -		if (ret) {
->> -			mlog_errno(ret);
->> -			goto out;
->> -		}
->> -	}
->>    
->>    	*credits += ocfs2_calc_extend_credits(osb->sb, et->et_root_el);
->>    
->> @@ -257,10 +250,11 @@ static int ocfs2_defrag_extent(struct oc
->>    		}
->>    	}
->>    
->> -	ret = ocfs2_lock_allocators_move_extents(inode, &context->et, *len, 1,
->> -						 &context->meta_ac,
->> -						 &context->data_ac,
->> -						 extra_blocks, &credits);
->> +	ret = ocfs2_lock_meta_allocator_move_extents(inode, &context->et,
->> +						*len, 1,
->> +						&context->meta_ac,
->> +						&context->data_ac,
->> +						extra_blocks, &credits);
->>    	if (ret) {
->>    		mlog_errno(ret);
->>    		goto out;
->> @@ -283,6 +277,21 @@ static int ocfs2_defrag_extent(struct oc
->>    		}
->>    	}
->>    
->> +	/*
->> +	 * Make sure ocfs2_reserve_cluster is called after
->> +	 * __ocfs2_flush_truncate_log, otherwise, dead lock may happen.
->> +	 *
->> +	 * If ocfs2_reserve_cluster is called
->> +	 * before __ocfs2_flush_truncate_log, dead lock on global bitmap
->> +	 * may happen.
->> +	 *
->> +	 */
->> +	ret = ocfs2_reserve_clusters(osb, *len, &context->data_ac);
->> +	if (ret) {
->> +		mlog_errno(ret);
->> +		goto out_unlock_mutex;
->> +	}
->> +
->>    	handle = ocfs2_start_trans(osb, credits);
->>    	if (IS_ERR(handle)) {
->>    		ret = PTR_ERR(handle);
->> @@ -600,9 +609,10 @@ static int ocfs2_move_extent(struct ocfs
->>    		}
->>    	}
->>    
->> -	ret = ocfs2_lock_allocators_move_extents(inode, &context->et, len, 1,
->> -						 &context->meta_ac,
->> -						 NULL, extra_blocks, &credits);
->> +	ret = ocfs2_lock_meta_allocator_move_extents(inode, &context->et,
->> +						len, 1,
->> +						&context->meta_ac,
->> +						NULL, extra_blocks, &credits);
->>    	if (ret) {
->>    		mlog_errno(ret);
->>    		goto out;
->> _
->>
->>
->> _______________________________________________
->> Ocfs2-devel mailing list
->> Ocfs2-devel at oss.oracle.com
->> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
->>
-> 
+the mode of lock_3 is
+PR, which blocks the
+conversion request of
+Node2. move lock_2 to
+conversion list.
+
+                           convert lock_3 from
+                           PR to EX.
+
+move lock_3 to conversion
+list. send BAST to Node3.
+
+                           receive BAST from Node1.
+                           downconvert thread execute
+                           canceling convert operation.
+
+Node2 dies because
+the host is powered down.
+
+                           in dlmunlock_common function,
+                           the downconvert thread set
+                           cancel_pending. at the same
+                           time, Node 3 realized that
+                           Node 1 is dead, so move lock_3
+                           back to granted list in
+                           dlm_move_lockres_to_recovery_list
+                           function and remove Node 1 from
+                           the domain_map in
+                           __dlm_hb_node_down function.
+                           then downconvert thread failed
+                           to send the lock cancellation
+                           request to Node1 and return
+                           DLM_NORMAL from
+                           dlm_send_remote_unlock_request
+                           function.
+
+                                                 become recovery master.
+
+              during the recovery
+              process, send
+              lock_2 that is
+              converting form
+              PR to EX to Node4.
+
+                           during the recovery process,
+                           send lock_3 in the granted list and
+                           cantain the DLM_LKSB_GET_LVB
+                           flag to Node4. Then downconvert thread
+                           delete DLM_LKSB_GET_LVB flag in
+                           dlmunlock_common function.
+
+                                                 Node4 finish recovery.
+                                                 the mode of lock_3 is
+                                                 PR, which blocks the
+                                                 conversion request of
+                                                 Node2, so send BAST
+                                                 to Node3.
+
+                           receive BAST from Node4.
+                           convert lock_3 from PR to NL.
+
+                                                 change the mode of lock_3
+                                                 from PR to NL and send
+                                                 message to Node3.
+
+                           receive message from
+                           Node4. The message contain
+                           LKM_GET_LVB flag, but the
+                           lock->lksb->flags does not
+                           contain DLM_LKSB_GET_LVB,
+                           BUG_ON in dlm_proxy_ast_handler
+                           function.
+
+Signed-off-by: Jian Wang <wangjian161@huawei.com>
+Reviewed-by: Yiwen Jiang <jiangyiwen@huawei.com>
+---
+  fs/ocfs2/dlm/dlmunlock.c | 1 +
+  1 file changed, 1 insertion(+)
+
+diff --git a/fs/ocfs2/dlm/dlmunlock.c b/fs/ocfs2/dlm/dlmunlock.c
+index 63d701c..6e04fc7 100644
+--- a/fs/ocfs2/dlm/dlmunlock.c
++++ b/fs/ocfs2/dlm/dlmunlock.c
+@@ -277,6 +277,7 @@ void dlm_commit_pending_cancel(struct dlm_lock_resource *res,
+  {
+  	list_move_tail(&lock->list, &res->granted);
+  	lock->ml.convert_type = LKM_IVMODE;
++	lock->lksb->flags &= ~(DLM_LKSB_GET_LVB|DLM_LKSB_PUT_LVB);
+  }
+  
+  
+-- 
+1.8.3.1
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20181203/8f927337/attachment.html 
