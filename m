@@ -1,68 +1,183 @@
-From: Doug Ledford <dledford@redhat.com>
-Date: Mon, 03 Dec 2018 13:59:08 -0500
-Subject: [Ocfs2-devel] [PATCH V2] mm: Replace all open encodings for
-	NUMA_NO_NODE
-In-Reply-To: <1543235202-9075-1-git-send-email-anshuman.khandual@arm.com>
-References: <1543235202-9075-1-git-send-email-anshuman.khandual@arm.com>
-Message-ID: <e295bca26fce6408c7265292e81107b04a1a144d.camel@redhat.com>
+From: Changwei Ge <ge.changwei@h3c.com>
+Date: Wed, 5 Dec 2018 01:49:57 +0000
+Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: return DLM_CANCELGRANT if the
+ lock is on granted list and the operation is canceled
+References: <98f0e80c-9c13-dbb6-047c-b40e100082b1@huawei.com>
+Message-ID: <63ADC13FD55D6546B7DECE290D39E37301277EFAA1@H3CMLB12-EX.srv.huawei-3com.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Anshuman Khandual <anshuman.khandual@arm.com>, linux-mm@kvack.org, linux-kernel@vger.kernel.org
-Cc: ocfs2-devel@oss.oracle.com, linux-fbdev@vger.kernel.org, dri-devel@lists.freedesktop.org, netdev@vger.kernel.org, intel-wired-lan@lists.osuosl.org, linux-media@vger.kernel.org, iommu@lists.linux-foundation.org, linux-rdma@vger.kernel.org, dmaengine@vger.kernel.org, linux-block@vger.kernel.org, sparclinux@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-ia64@vger.kernel.org, linux-alpha@vger.kernel.org, akpm@linux-foundation.org, jiangqi903@gmail.com, hverkuil@xs4all.nl, vkoul@kernel.org
+To: ocfs2-devel@oss.oracle.com
 
-On Mon, 2018-11-26 at 17:56 +0530, Anshuman Khandual wrote:
-> At present there are multiple places where invalid node number is encoded
-> as -1. Even though implicitly understood it is always better to have macros
-> in there. Replace these open encodings for an invalid node number with the
-> global macro NUMA_NO_NODE. This helps remove NUMA related assumptions like
-> 'invalid node' from various places redirecting them to a common definition.
+Hi Jian,
+
+I suppose you can't just remove the BUG_ON() check.
+If you remove it, below code violates the original logic.
+
+'''
+2141                                 dlm_commit_pending_cancel(res, lock);  
+'''
+
+What's more important is *locking cancel* must be against a *locking conversion* progress.
+So it makes sense to check if this lock is on converting list.
+
+So I have to NACK to this patch.
+
+Thanks,
+Changwei
+
+
+On 2018/12/3 20:23, wangjian wrote:
+> In the dlm_move_lockres_to_recovery_list function, if the lock
+> is in the granted queue and cancel_pending is set, it will
+> encounter a BUG. I think this is a meaningless BUG,
+> so be prepared to remove it. A scenario that causes
+> this BUG will be given below.
 > 
-> Signed-off-by: Anshuman Khandual <anshuman.khandual@arm.com>
+> At the beginning, Node 1 is the master and has NL lock,
+> Node 2 has PR lock, Node 3 has PR lock too.
+> 
+> Node 1          Node 2          Node 3
+>              want to get EX lock.
+> 
+>                              want to get EX lock.
+> 
+> Node 3 hinder
+> Node 2 to get
+> EX lock, send
+> Node 3 a BAST.
+> 
+>                              receive BAST from
+>                              Node 1. downconvert
+>                              thread begin to
+>                              cancel PR to EX conversion.
+>                              In dlmunlock_common function,
+>                              downconvert thread has set
+>                              lock->cancel_pending,
+>                              but did not enter
+>                              dlm_send_remote_unlock_request
+>                              function.
+> 
+>              Node2 dies because
+>              the host is powered down.
+> 
+> In recovery process,
+> clean the lock that
+> related to Node2.
+> then finish Node 3
+> PR to EX request.
+> give Node 3 a AST.
+> 
+>                              receive AST from Node 1.
+>                              change lock level to EX,
+>                              move lock to granted list.
+> 
+> Node1 dies because
+> the host is powered down.
+> 
+>                              In dlm_move_lockres_to_recovery_list
+>                              function. the lock is in the
+>                              granted queue and cancel_pending
+>                              is set. BUG_ON.
+> 
+> But after clearing this BUG, process will encounter
+> the second BUG in the ocfs2_unlock_ast function.
+> Here is a scenario that will cause the second BUG
+> in ocfs2_unlock_ast as follows:
+> 
+> At the beginning, Node 1 is the master and has NL lock,
+> Node 2 has PR lock, Node 3 has PR lock too.
+> 
+> Node 1          Node 2          Node 3
+>              want to get EX lock.
+> 
+>                              want to get EX lock.
+> 
+> Node 3 hinder
+> Node 2 to get
+> EX lock, send
+> Node 3 a BAST.
+> 
+>                              receive BAST from
+>                              Node 1. downconvert
+>                              thread begin to
+>                              cancel PR to EX conversion.
+>                              In dlmunlock_common function,
+>                              downconvert thread has released
+>                              lock->spinlock and res->spinlock,
+>                              but did not enter
+>                              dlm_send_remote_unlock_request
+>                              function.
+> 
+>              Node2 dies because
+>              the host is powered down.
+> 
+> In recovery process,
+> clean the lock that
+> related to Node2.
+> then finish Node 3
+> PR to EX request.
+> give Node 3 a AST.
+> 
+>                              receive AST from Node 1.
+>                              change lock level to EX,
+>                              move lock to granted list,
+>                              set lockres->l_unlock_action
+>                              as OCFS2_UNLOCK_INVALID
+>                              in ocfs2_locking_ast function.
+> 
+> Node2 dies because
+> the host is powered down.
+> 
+>                              Node 3 realize that Node 1
+>                              is dead, remove Node 1 from
+>                              domain_map. downconvert thread
+>                              get DLM_NORMAL from
+>                              dlm_send_remote_unlock_request
+>                              function and set *call_ast as 1.
+>                              Then downconvert thread meet
+>                              BUG in ocfs2_unlock_ast function.
+> 
+> To avoid meet the second BUG, function dlmunlock_common shuold
+> return DLM_CANCELGRANT if the lock is on granted list and
+> the operation is canceled.
+> 
+> Signed-off-by: Jian Wang<wangjian161@huawei.com>
+> Reviewed-by: Yiwen Jiang<jiangyiwen@huawei.com>
 > ---
-> Changes in V2:
+>   fs/ocfs2/dlm/dlmrecovery.c | 1 -
+>   fs/ocfs2/dlm/dlmunlock.c   | 5 +++++
+>   2 files changed, 5 insertions(+), 1 deletion(-)
 > 
-> - Added inclusion of 'numa.h' header at various places per Andrew
-> - Updated 'dev_to_node' to use NUMA_NO_NODE instead per Vinod
+> diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
+> index 802636d..7489652 100644
+> --- a/fs/ocfs2/dlm/dlmrecovery.c
+> +++ b/fs/ocfs2/dlm/dlmrecovery.c
+> @@ -2134,7 +2134,6 @@ void dlm_move_lockres_to_recovery_list(struct dlm_ctxt *dlm,
+>   				 * if this had completed successfully
+>   				 * before sending this lock state to the
+>   				 * new master */
+> -				BUG_ON(i != DLM_CONVERTING_LIST);
+>   				mlog(0, "node died with cancel pending "
+>   				     "on %.*s. move back to granted list.\n",
+>   				     res->lockname.len, res->lockname.name);
+> diff --git a/fs/ocfs2/dlm/dlmunlock.c b/fs/ocfs2/dlm/dlmunlock.c
+> index 63d701c..505bb6c 100644
+> --- a/fs/ocfs2/dlm/dlmunlock.c
+> +++ b/fs/ocfs2/dlm/dlmunlock.c
+> @@ -183,6 +183,11 @@ static enum dlm_status dlmunlock_common(struct dlm_ctxt *dlm,
+>   							flags, owner);
+>   		spin_lock(&res->spinlock);
+>   		spin_lock(&lock->spinlock);
+> +
+> +		if ((flags & LKM_CANCEL) &&
+> +				dlm_lock_on_list(&res->granted, lock))
+> +			status = DLM_CANCELGRANT;
+> +
+>   		/* if the master told us the lock was already granted,
+>   		 * let the ast handle all of these actions */
+>   		if (status == DLM_CANCELGRANT) {
+> -- 
+> 1.8.3.1
 > 
-> Changes in V1: (https://lkml.org/lkml/2018/11/23/485)
-> 
-> - Dropped OCFS2 changes per Joseph
-> - Dropped media/video drivers changes per Hans
-> 
-> RFC - https://patchwork.kernel.org/patch/10678035/
-> 
-> Build tested this with multiple cross compiler options like alpha, sparc,
-> arm64, x86, powerpc, powerpc64le etc with their default config which might
-> not have compiled tested all driver related changes. I will appreciate
-> folks giving this a test in their respective build environment.
-> 
-> All these places for replacement were found by running the following grep
-> patterns on the entire kernel code. Please let me know if this might have
-> missed some instances. This might also have replaced some false positives.
-> I will appreciate suggestions, inputs and review.
-> 
-> 1. git grep "nid == -1"
-> 2. git grep "node == -1"
-> 3. git grep "nid = -1"
-> 4. git grep "node = -1"
-> 
->  drivers/infiniband/hw/hfi1/affinity.c         |  3 ++-
->  drivers/infiniband/hw/hfi1/init.c             |  3 ++-
-
-For the drivers/infiniband changes,
-
-Acked-by: Doug Ledford <dledford@redhat.com>
-
--- 
-Doug Ledford <dledford@redhat.com>
-    GPG KeyID: B826A3330E572FDD
-    Key fingerprint = AE6B 1BDA 122B 23B4 265B  1274 B826 A333 0E57 2FDD
--------------- next part --------------
-A non-text attachment was scrubbed...
-Name: not available
-Type: application/pgp-signature
-Size: 833 bytes
-Desc: This is a digitally signed message part
-Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20181203/64639e8e/attachment-0001.bin 
