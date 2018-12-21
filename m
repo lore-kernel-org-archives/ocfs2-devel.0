@@ -1,98 +1,128 @@
-From: jiangyiwen <jiangyiwen@huawei.com>
-Date: Thu, 20 Dec 2018 14:41:34 +0800
+From: Gang He <ghe@suse.com>
+Date: Thu, 20 Dec 2018 18:51:07 -0700
 Subject: [Ocfs2-devel] About ocfs2 inode/extent meta file allocation
  problem
-In-Reply-To: <5C1B0BBA020000F9000499F2@prv1-mh.provo.novell.com>
+In-Reply-To: <5C1B399E.8040402@huawei.com>
 References: <5C19DB62020000F90004970B@prv1-mh.provo.novell.com>
 	<5C1B04DA.4080104@huawei.com>
 	<5C1B0BBA020000F9000499F2@prv1-mh.provo.novell.com>
-Message-ID: <5C1B399E.8040402@huawei.com>
+	<5C1B399E.8040402@huawei.com>
+Message-ID: <5C1C470B020000F900049CF3@prv1-mh.provo.novell.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 2018/12/20 11:25, Gang He wrote:
-> Hi Yiwen,
-> 
->>>> On 2018/12/20 at 10:56, in message <5C1B04DA.4080104@huawei.com>, jiangyiwen
-> <jiangyiwen@huawei.com> wrote:
->> On 2018/12/19 13:47, Gang He wrote:
->>> Hello Guys,
->>>
->>> When you read ocfs2 kernel code, you can find that ocfs2 uses inode_alloc:N 
->> / extent_alloc:N meta files to manage inode block/extent block allocation.
->>> The meta file per node will be increased via getting some blocks from 
->> global_bitmap meta file when the user create new files(inodes).
->>> But the meta files ( inode_alloc:N or extent_alloc:N) will not shrink back 
->> when these inode/extent blocks are deleted (e.g. these files are removed by 
->> the user).
->>> Then, if the user creates lots of files until the file system is full, next, 
->> the user deletes all the files.
->>> At this moment, the inode_alloc:N file is very big and occupy the whole file 
->> system, since this meta file can not shrink back.
->>> The user can not create a file with some data clusters, since the 
->> global_bitmap meta file has not more available cluster bits. 
->>> I did not do this testing in my machine, but from the code logic, I feel my 
->> idea should be true.
->>> Do you have any ideas for this problem? 
->>> My suggestion is, 
->>> we should return some blocks to global_bitmap meta file from inode_alloc:N / 
->> extent_alloc:N meta files when there are enough free blocks.
->>>
->>> Thanks
->>> Gang      
->>>
->>>
->>>
->>> _______________________________________________
->>> Ocfs2-devel mailing list
->>> Ocfs2-devel at oss.oracle.com 
->>> https://oss.oracle.com/mailman/listinfo/ocfs2-devel 
->>>
->>>
->>
->> Hi Gang,
->>
->> I feel the problem what you described will be exist. When there
->> are a lot of small files in the ocfs2 volume, it will use plentiful
->> enough space as inode/extent allocs' group descriptors.
->> I agree your idea, in addition, I think we need to fix it use
->> two steps as follows:
->> - Online fix, start a delayed work to check inode/extent alloc if
->>   exceeding a certain percentage, then return spaces to global_bitmap.
-> 
-> Yes, my initial thought is,
-> 1) when ocfs2 releases inode/extent block to the own inode_alloc:N/extent_alloc:N meta files (e.g. the user removes a file), 
-> or when ocfs2 steals inode/extent block from the other inode_alloc:N/extent_alloc:N meta files (e.g. the user creates a file),
-> we can do some additional checks, if there are too many free blocks in inode_alloc:N/extent_alloc:N meta files,
-> we can trigger a work(asynchronous) to move some blocks back to global_bitmap meta files.
 
-Great, but it can be another problem, if we use async mode to
-free spaces, current process will return fail, then it can not
-very friendly to user.
 
-Thanks,
-Yiwen.
+>>> On 2018/12/20 at 14:41, in message <5C1B399E.8040402@huawei.com>, jiangyiwen
+<jiangyiwen@huawei.com> wrote:
+> On 2018/12/20 11:25, Gang He wrote:
+>> Hi Yiwen,
+>> 
+>>>>> On 2018/12/20 at 10:56, in message <5C1B04DA.4080104@huawei.com>, jiangyiwen
+>> <jiangyiwen@huawei.com> wrote:
+>>> On 2018/12/19 13:47, Gang He wrote:
+>>>> Hello Guys,
+>>>>
+>>>> When you read ocfs2 kernel code, you can find that ocfs2 uses inode_alloc:N 
+>>> / extent_alloc:N meta files to manage inode block/extent block allocation.
+>>>> The meta file per node will be increased via getting some blocks from 
+>>> global_bitmap meta file when the user create new files(inodes).
+>>>> But the meta files ( inode_alloc:N or extent_alloc:N) will not shrink back 
+>>> when these inode/extent blocks are deleted (e.g. these files are removed by 
+>>> the user).
+>>>> Then, if the user creates lots of files until the file system is full, next, 
+> 
+>>> the user deletes all the files.
+>>>> At this moment, the inode_alloc:N file is very big and occupy the whole file 
+> 
+>>> system, since this meta file can not shrink back.
+>>>> The user can not create a file with some data clusters, since the 
+>>> global_bitmap meta file has not more available cluster bits. 
+>>>> I did not do this testing in my machine, but from the code logic, I feel my 
+>>> idea should be true.
+>>>> Do you have any ideas for this problem? 
+>>>> My suggestion is, 
+>>>> we should return some blocks to global_bitmap meta file from inode_alloc:N / 
+> 
+>>> extent_alloc:N meta files when there are enough free blocks.
+>>>>
+>>>> Thanks
+>>>> Gang      
+>>>>
+>>>>
+>>>>
+>>>> _______________________________________________
+>>>> Ocfs2-devel mailing list
+>>>> Ocfs2-devel at oss.oracle.com 
+>>>> https://oss.oracle.com/mailman/listinfo/ocfs2-devel 
+>>>>
+>>>>
+>>>
+>>> Hi Gang,
+>>>
+>>> I feel the problem what you described will be exist. When there
+>>> are a lot of small files in the ocfs2 volume, it will use plentiful
+>>> enough space as inode/extent allocs' group descriptors.
+>>> I agree your idea, in addition, I think we need to fix it use
+>>> two steps as follows:
+>>> - Online fix, start a delayed work to check inode/extent alloc if
+>>>   exceeding a certain percentage, then return spaces to global_bitmap.
+>> 
+>> Yes, my initial thought is,
+>> 1) when ocfs2 releases inode/extent block to the own 
+> inode_alloc:N/extent_alloc:N meta files (e.g. the user removes a file), 
+>> or when ocfs2 steals inode/extent block from the other 
+> inode_alloc:N/extent_alloc:N meta files (e.g. the user creates a file),
+>> we can do some additional checks, if there are too many free blocks in 
+> inode_alloc:N/extent_alloc:N meta files,
+>> we can trigger a work(asynchronous) to move some blocks back to 
+> global_bitmap meta files.
+> 
+> Great, but it can be another problem, if we use async mode to
+> free spaces, current process will return fail, then it can not
+> very friendly to user.
+My means is, when ocfs2 returns the block bit back to inode_alloc:N/extent_alloc:N meta files, 
+or when ocfs2 steals the block bit from the other inode_alloc:N/extent_alloc:N meta files,
+the function can do more check, if the condition is true (too many free blocks in inode_alloc:N/extent_alloc:N meta files),
+we can trigger a work, which will move some blocks back to global_bitmap meta files asynchronous.
+this will not impact the existing delete/create operation performance.
+I wrote a shell script, which can reproduce this problem.
+The result is the same with our expectation.
+The related files were uploaded to https://urldefense.proofpoint.com/v2/url?u=https-3A__gist.github.com_ganghe_9e0dc937d7c4f4cd23a930065e01604c&d=DwIFAg&c=RoP1YumCXCgaWHvlZYR8PZh8Bv7qIrMUB65eapI_JnE&r=C7gAd4uDxlAvTdc0vmU6X8CMk6L2iDY8-HD0qT6Fo7Y&m=nVt8qLYZtT8FaDUkwlQqZuRkTv1elVq3k8huZ4ekgzo&s=r6dvKl1mdIFLd0m5YPBYI0pKuDxxYh7wFe8QN67MgIQ&e= 
 
-> 2) when ocfs2 ask for clusters from global_bitmap meta files, but can not find enough free bits,
-> we can check if there are too many free blocks in inode_alloc:N/extent_alloc:N meta files on each node,
-> if yes, we can move some blocks back to global_bitmap meta files synchronously (but need to check if there will be any deadlock case),
-> then, ocfs2 can continue to allocate cluster bits via addressing this unbalanced bits problem.
-> In short, the idea is a bit of similar with virtual memory mechanism.
+Thanks
+Gang
+
+
+
 > 
-> Thanks
-> Gang
+> Thanks,
+> Yiwen.
 > 
-> 
->> - Offline fix, to some extreme scenario, inode/extent alloc occupy
->>   enough spaces but none of gd can be freed, metadata should be
->>   moved in this case.
->>
->> Thanks,
->> Yiwen.
-> 
-> 
-> .
-> 
+>> 2) when ocfs2 ask for clusters from global_bitmap meta files, but can not 
+> find enough free bits,
+>> we can check if there are too many free blocks in 
+> inode_alloc:N/extent_alloc:N meta files on each node,
+>> if yes, we can move some blocks back to global_bitmap meta files 
+> synchronously (but need to check if there will be any deadlock case),
+>> then, ocfs2 can continue to allocate cluster bits via addressing this 
+> unbalanced bits problem.
+>> In short, the idea is a bit of similar with virtual memory mechanism.
+>> 
+>> Thanks
+>> Gang
+>> 
+>> 
+>>> - Offline fix, to some extreme scenario, inode/extent alloc occupy
+>>>   enough spaces but none of gd can be freed, metadata should be
+>>>   moved in this case.
+>>>
+>>> Thanks,
+>>> Yiwen.
+>> 
+>> 
+>> .
+>> 
