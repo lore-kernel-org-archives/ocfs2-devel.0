@@ -1,128 +1,191 @@
-From: Gang He <ghe@suse.com>
-Date: Thu, 20 Dec 2018 18:51:07 -0700
-Subject: [Ocfs2-devel] About ocfs2 inode/extent meta file allocation
- problem
-In-Reply-To: <5C1B399E.8040402@huawei.com>
-References: <5C19DB62020000F90004970B@prv1-mh.provo.novell.com>
-	<5C1B04DA.4080104@huawei.com>
-	<5C1B0BBA020000F9000499F2@prv1-mh.provo.novell.com>
-	<5C1B399E.8040402@huawei.com>
-Message-ID: <5C1C470B020000F900049CF3@prv1-mh.provo.novell.com>
+From: Jia Guo <guojia12@huawei.com>
+Date: Thu, 27 Dec 2018 19:10:33 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: flush truncate log when main bitmap
+	run out of space
+Message-ID: <75d7f03e-61cd-60c9-dd2c-2cef8bbc214e@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
+Truncate log problem has been described in
+commit 50308d813bf2 ("ocfs2: Try to free truncate log when meeting
+ENOSPC in write.") and
+commit 2070ad1aebff ("ocfs2: retry on ENOSPC if sufficient space in
+truncate log"), but the following situations cannot be solved:
 
+case 1:
+Main bitmap has been updated, but the transaction of the deleted blocks has
+not been committed completely. In this case, function
+ocfs2_reserve_cluster_bitmap_bits() returns success while function
+__ocfs2_claim_clusters return ENOSPC because we cannot reuse the deleted
+blocks before the transaction committed(test by function
+ocfs2_test_bg_bit_allocatable()). One can reproduce this by following
+steps:
+a, prepare a file which size is 50G, and volume still have 30G free space
+b, open the file with O_TRUNC flag
+c, sleep 5 seconds
+e, fallocate a 50G file.
 
->>> On 2018/12/20 at 14:41, in message <5C1B399E.8040402@huawei.com>, jiangyiwen
-<jiangyiwen@huawei.com> wrote:
-> On 2018/12/20 11:25, Gang He wrote:
->> Hi Yiwen,
->> 
->>>>> On 2018/12/20 at 10:56, in message <5C1B04DA.4080104@huawei.com>, jiangyiwen
->> <jiangyiwen@huawei.com> wrote:
->>> On 2018/12/19 13:47, Gang He wrote:
->>>> Hello Guys,
->>>>
->>>> When you read ocfs2 kernel code, you can find that ocfs2 uses inode_alloc:N 
->>> / extent_alloc:N meta files to manage inode block/extent block allocation.
->>>> The meta file per node will be increased via getting some blocks from 
->>> global_bitmap meta file when the user create new files(inodes).
->>>> But the meta files ( inode_alloc:N or extent_alloc:N) will not shrink back 
->>> when these inode/extent blocks are deleted (e.g. these files are removed by 
->>> the user).
->>>> Then, if the user creates lots of files until the file system is full, next, 
-> 
->>> the user deletes all the files.
->>>> At this moment, the inode_alloc:N file is very big and occupy the whole file 
-> 
->>> system, since this meta file can not shrink back.
->>>> The user can not create a file with some data clusters, since the 
->>> global_bitmap meta file has not more available cluster bits. 
->>>> I did not do this testing in my machine, but from the code logic, I feel my 
->>> idea should be true.
->>>> Do you have any ideas for this problem? 
->>>> My suggestion is, 
->>>> we should return some blocks to global_bitmap meta file from inode_alloc:N / 
-> 
->>> extent_alloc:N meta files when there are enough free blocks.
->>>>
->>>> Thanks
->>>> Gang      
->>>>
->>>>
->>>>
->>>> _______________________________________________
->>>> Ocfs2-devel mailing list
->>>> Ocfs2-devel at oss.oracle.com 
->>>> https://oss.oracle.com/mailman/listinfo/ocfs2-devel 
->>>>
->>>>
->>>
->>> Hi Gang,
->>>
->>> I feel the problem what you described will be exist. When there
->>> are a lot of small files in the ocfs2 volume, it will use plentiful
->>> enough space as inode/extent allocs' group descriptors.
->>> I agree your idea, in addition, I think we need to fix it use
->>> two steps as follows:
->>> - Online fix, start a delayed work to check inode/extent alloc if
->>>   exceeding a certain percentage, then return spaces to global_bitmap.
->> 
->> Yes, my initial thought is,
->> 1) when ocfs2 releases inode/extent block to the own 
-> inode_alloc:N/extent_alloc:N meta files (e.g. the user removes a file), 
->> or when ocfs2 steals inode/extent block from the other 
-> inode_alloc:N/extent_alloc:N meta files (e.g. the user creates a file),
->> we can do some additional checks, if there are too many free blocks in 
-> inode_alloc:N/extent_alloc:N meta files,
->> we can trigger a work(asynchronous) to move some blocks back to 
-> global_bitmap meta files.
-> 
-> Great, but it can be another problem, if we use async mode to
-> free spaces, current process will return fail, then it can not
-> very friendly to user.
-My means is, when ocfs2 returns the block bit back to inode_alloc:N/extent_alloc:N meta files, 
-or when ocfs2 steals the block bit from the other inode_alloc:N/extent_alloc:N meta files,
-the function can do more check, if the condition is true (too many free blocks in inode_alloc:N/extent_alloc:N meta files),
-we can trigger a work, which will move some blocks back to global_bitmap meta files asynchronous.
-this will not impact the existing delete/create operation performance.
-I wrote a shell script, which can reproduce this problem.
-The result is the same with our expectation.
-The related files were uploaded to https://urldefense.proofpoint.com/v2/url?u=https-3A__gist.github.com_ganghe_9e0dc937d7c4f4cd23a930065e01604c&d=DwIFAg&c=RoP1YumCXCgaWHvlZYR8PZh8Bv7qIrMUB65eapI_JnE&r=C7gAd4uDxlAvTdc0vmU6X8CMk6L2iDY8-HD0qT6Fo7Y&m=nVt8qLYZtT8FaDUkwlQqZuRkTv1elVq3k8huZ4ekgzo&s=r6dvKl1mdIFLd0m5YPBYI0pKuDxxYh7wFe8QN67MgIQ&e= 
+case 2:
+Main bitmap doesn't have enough free bits, so does truncate log. But main
+bitmap plus truncate log has enough free bits. We are not gonging to try
+flush truncate log in this case, which is not reasonable.
 
-Thanks
-Gang
+So force commit the transaction when flushing the truncate log for case 1.
+For case 2, the value of osb->truncated_clusters doesn't seem to make
+sense, do the flush whenever we run out of space seems to be more
+reasonable.
 
+Signed-off-by: Jia Guo <guojia12@huawei.com>
+---
+ fs/ocfs2/alloc.c    | 43 +++----------------------------------------
+ fs/ocfs2/alloc.h    |  2 --
+ fs/ocfs2/aops.c     |  4 ++--
+ fs/ocfs2/ocfs2.h    |  5 -----
+ fs/ocfs2/suballoc.c |  6 +++---
+ 5 files changed, 8 insertions(+), 52 deletions(-)
 
+diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
+index d1cbb27..8b6938d 100644
+--- a/fs/ocfs2/alloc.c
++++ b/fs/ocfs2/alloc.c
+@@ -5921,7 +5921,6 @@ int ocfs2_truncate_log_append(struct ocfs2_super *osb,
 
-> 
-> Thanks,
-> Yiwen.
-> 
->> 2) when ocfs2 ask for clusters from global_bitmap meta files, but can not 
-> find enough free bits,
->> we can check if there are too many free blocks in 
-> inode_alloc:N/extent_alloc:N meta files on each node,
->> if yes, we can move some blocks back to global_bitmap meta files 
-> synchronously (but need to check if there will be any deadlock case),
->> then, ocfs2 can continue to allocate cluster bits via addressing this 
-> unbalanced bits problem.
->> In short, the idea is a bit of similar with virtual memory mechanism.
->> 
->> Thanks
->> Gang
->> 
->> 
->>> - Offline fix, to some extreme scenario, inode/extent alloc occupy
->>>   enough spaces but none of gd can be freed, metadata should be
->>>   moved in this case.
->>>
->>> Thanks,
->>> Yiwen.
->> 
->> 
->> .
->> 
+ 	ocfs2_journal_dirty(handle, tl_bh);
+
+-	osb->truncated_clusters += num_clusters;
+ bail:
+ 	return status;
+ }
+@@ -5940,6 +5939,7 @@ static int ocfs2_replay_truncate_records(struct ocfs2_super *osb,
+ 	struct inode *tl_inode = osb->osb_tl_inode;
+ 	struct buffer_head *tl_bh = osb->osb_tl_bh;
+ 	handle_t *handle;
++	tid_t target;
+
+ 	di = (struct ocfs2_dinode *) tl_bh->b_data;
+ 	tl = &di->id2.i_dealloc;
+@@ -5989,8 +5989,8 @@ static int ocfs2_replay_truncate_records(struct ocfs2_super *osb,
+ 		ocfs2_commit_trans(osb, handle);
+ 		i--;
+ 	}
+-
+-	osb->truncated_clusters = 0;
++	if (jbd2_journal_start_commit(osb->journal->j_journal, &target))
++		jbd2_log_wait_commit(osb->journal->j_journal, target);
+
+ bail:
+ 	return status;
+@@ -6102,43 +6102,6 @@ void ocfs2_schedule_truncate_log_flush(struct ocfs2_super *osb,
+ 	}
+ }
+
+-/*
+- * Try to flush truncate logs if we can free enough clusters from it.
+- * As for return value, "< 0" means error, "0" no space and "1" means
+- * we have freed enough spaces and let the caller try to allocate again.
+- */
+-int ocfs2_try_to_free_truncate_log(struct ocfs2_super *osb,
+-					unsigned int needed)
+-{
+-	tid_t target;
+-	int ret = 0;
+-	unsigned int truncated_clusters;
+-
+-	inode_lock(osb->osb_tl_inode);
+-	truncated_clusters = osb->truncated_clusters;
+-	inode_unlock(osb->osb_tl_inode);
+-
+-	/*
+-	 * Check whether we can succeed in allocating if we free
+-	 * the truncate log.
+-	 */
+-	if (truncated_clusters < needed)
+-		goto out;
+-
+-	ret = ocfs2_flush_truncate_log(osb);
+-	if (ret) {
+-		mlog_errno(ret);
+-		goto out;
+-	}
+-
+-	if (jbd2_journal_start_commit(osb->journal->j_journal, &target)) {
+-		jbd2_log_wait_commit(osb->journal->j_journal, target);
+-		ret = 1;
+-	}
+-out:
+-	return ret;
+-}
+-
+ static int ocfs2_get_truncate_log_info(struct ocfs2_super *osb,
+ 				       int slot_num,
+ 				       struct inode **tl_inode,
+diff --git a/fs/ocfs2/alloc.h b/fs/ocfs2/alloc.h
+index 250bcac..b343a6f 100644
+--- a/fs/ocfs2/alloc.h
++++ b/fs/ocfs2/alloc.h
+@@ -188,8 +188,6 @@ int ocfs2_truncate_log_append(struct ocfs2_super *osb,
+ 			      u64 start_blk,
+ 			      unsigned int num_clusters);
+ int __ocfs2_flush_truncate_log(struct ocfs2_super *osb);
+-int ocfs2_try_to_free_truncate_log(struct ocfs2_super *osb,
+-				   unsigned int needed);
+
+ /*
+  * Process local structure which describes the block unlinks done
+diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+index eb1ce30..a9ca7cc 100644
+--- a/fs/ocfs2/aops.c
++++ b/fs/ocfs2/aops.c
+@@ -1893,8 +1893,8 @@ int ocfs2_write_begin_nolock(struct address_space *mapping,
+ 		 */
+ 		try_free = 0;
+
+-		ret1 = ocfs2_try_to_free_truncate_log(osb, clusters_need);
+-		if (ret1 == 1)
++		ret1 = ocfs2_flush_truncate_log(osb);
++		if (!ret1)
+ 			goto try_again;
+
+ 		if (ret1 < 0)
+diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
+index 4f86ac0..f913647 100644
+--- a/fs/ocfs2/ocfs2.h
++++ b/fs/ocfs2/ocfs2.h
+@@ -440,11 +440,6 @@ struct ocfs2_super
+ 	struct buffer_head		*osb_tl_bh;
+ 	struct delayed_work		osb_truncate_log_wq;
+ 	atomic_t			osb_tl_disable;
+-	/*
+-	 * How many clusters in our truncate log.
+-	 * It must be protected by osb_tl_inode->i_mutex.
+-	 */
+-	unsigned int truncated_clusters;
+
+ 	struct ocfs2_node_map		osb_recovering_orphan_dirs;
+ 	unsigned int			*osb_orphan_wipes;
+diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
+index f7c972f..d086bb9 100644
+--- a/fs/ocfs2/suballoc.c
++++ b/fs/ocfs2/suballoc.c
+@@ -1187,14 +1187,14 @@ static int ocfs2_reserve_clusters_with_limit(struct ocfs2_super *osb,
+ 	if (status == -ENOSPC) {
+ retry:
+ 		status = ocfs2_reserve_cluster_bitmap_bits(osb, *ac);
+-		/* Retry if there is sufficient space cached in truncate log */
++		/* Retry after flush truncate log */
+ 		if (status == -ENOSPC && !retried) {
+ 			retried = 1;
+ 			ocfs2_inode_unlock((*ac)->ac_inode, 1);
+ 			inode_unlock((*ac)->ac_inode);
+
+-			ret = ocfs2_try_to_free_truncate_log(osb, bits_wanted);
+-			if (ret == 1) {
++			ret = ocfs2_flush_truncate_log(osb);
++			if (!ret) {
+ 				iput((*ac)->ac_inode);
+ 				(*ac)->ac_inode = NULL;
+ 				goto retry;
+-- 
