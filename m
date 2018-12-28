@@ -1,19 +1,21 @@
-From: Joseph Qi <jiangqi903@gmail.com>
-Date: Fri, 28 Dec 2018 16:39:15 +0800
+From: piaojun <piaojun@huawei.com>
+Date: Fri, 28 Dec 2018 17:34:16 +0800
 Subject: [Ocfs2-devel] [PATCH v2] ocfs2: flush truncate log when main
  bitmap run out of space
 In-Reply-To: <fdb16638-3d83-c065-2e49-996fb6310643@huawei.com>
 References: <fdb16638-3d83-c065-2e49-996fb6310643@huawei.com>
-Message-ID: <72d8a6ca-59e7-8f8f-8d45-cc70de558a32@gmail.com>
+Message-ID: <5C25EE18.6050303@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
+Hi Jia,
 
+This patch looks good to me, but I have a suggestion as below:
 
-On 18/12/28 16:29, Jia Guo wrote:
+On 2018/12/28 16:29, Jia Guo wrote:
 > Truncate log problem has been described in
 > commit 50308d813bf2 ("ocfs2: Try to free truncate log when meeting
 > ENOSPC in write.") and
@@ -46,5 +48,185 @@ On 18/12/28 16:29, Jia Guo wrote:
 > Signed-off-by: Jia Guo <guojia12@huawei.com>
 > Reviewed-by: Yiwen Jiang <jiangyiwen@huawei.com>
 > Reviewed-by: Gang He <ghe@suse.com>
+> ---
+>  fs/ocfs2/alloc.c    | 43 +++----------------------------------------
+>  fs/ocfs2/alloc.h    |  2 --
+>  fs/ocfs2/aops.c     |  8 +++-----
+>  fs/ocfs2/ocfs2.h    |  5 -----
+>  fs/ocfs2/suballoc.c |  6 +++---
+>  5 files changed, 9 insertions(+), 55 deletions(-)
+> 
+> diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
+> index d1cbb27..8b6938d 100644
+> --- a/fs/ocfs2/alloc.c
+> +++ b/fs/ocfs2/alloc.c
+> @@ -5921,7 +5921,6 @@ int ocfs2_truncate_log_append(struct ocfs2_super *osb,
+> 
+>  	ocfs2_journal_dirty(handle, tl_bh);
+> 
+> -	osb->truncated_clusters += num_clusters;
+>  bail:
+>  	return status;
+>  }
+> @@ -5940,6 +5939,7 @@ static int ocfs2_replay_truncate_records(struct ocfs2_super *osb,
+>  	struct inode *tl_inode = osb->osb_tl_inode;
+>  	struct buffer_head *tl_bh = osb->osb_tl_bh;
+>  	handle_t *handle;
+> +	tid_t target;
+> 
+>  	di = (struct ocfs2_dinode *) tl_bh->b_data;
+>  	tl = &di->id2.i_dealloc;
+> @@ -5989,8 +5989,8 @@ static int ocfs2_replay_truncate_records(struct ocfs2_super *osb,
+>  		ocfs2_commit_trans(osb, handle);
+>  		i--;
+>  	}
+> -
+> -	osb->truncated_clusters = 0;
+> +	if (jbd2_journal_start_commit(osb->journal->j_journal, &target))
+> +		jbd2_log_wait_commit(osb->journal->j_journal, target);
 
-Acked-by: Joseph Qi <jiangqi903@gmail.com>
+Catch the errno of jbd2_log_wait_commit here. And this will inform
+uppper caller no need to retry.
+
+Thanks,
+Jun
+
+> 
+>  bail:
+>  	return status;
+> @@ -6102,43 +6102,6 @@ void ocfs2_schedule_truncate_log_flush(struct ocfs2_super *osb,
+>  	}
+>  }
+> 
+> -/*
+> - * Try to flush truncate logs if we can free enough clusters from it.
+> - * As for return value, "< 0" means error, "0" no space and "1" means
+> - * we have freed enough spaces and let the caller try to allocate again.
+> - */
+> -int ocfs2_try_to_free_truncate_log(struct ocfs2_super *osb,
+> -					unsigned int needed)
+> -{
+> -	tid_t target;
+> -	int ret = 0;
+> -	unsigned int truncated_clusters;
+> -
+> -	inode_lock(osb->osb_tl_inode);
+> -	truncated_clusters = osb->truncated_clusters;
+> -	inode_unlock(osb->osb_tl_inode);
+> -
+> -	/*
+> -	 * Check whether we can succeed in allocating if we free
+> -	 * the truncate log.
+> -	 */
+> -	if (truncated_clusters < needed)
+> -		goto out;
+> -
+> -	ret = ocfs2_flush_truncate_log(osb);
+> -	if (ret) {
+> -		mlog_errno(ret);
+> -		goto out;
+> -	}
+> -
+> -	if (jbd2_journal_start_commit(osb->journal->j_journal, &target)) {
+> -		jbd2_log_wait_commit(osb->journal->j_journal, target);
+> -		ret = 1;
+> -	}
+> -out:
+> -	return ret;
+> -}
+> -
+>  static int ocfs2_get_truncate_log_info(struct ocfs2_super *osb,
+>  				       int slot_num,
+>  				       struct inode **tl_inode,
+> diff --git a/fs/ocfs2/alloc.h b/fs/ocfs2/alloc.h
+> index 250bcac..b343a6f 100644
+> --- a/fs/ocfs2/alloc.h
+> +++ b/fs/ocfs2/alloc.h
+> @@ -188,8 +188,6 @@ int ocfs2_truncate_log_append(struct ocfs2_super *osb,
+>  			      u64 start_blk,
+>  			      unsigned int num_clusters);
+>  int __ocfs2_flush_truncate_log(struct ocfs2_super *osb);
+> -int ocfs2_try_to_free_truncate_log(struct ocfs2_super *osb,
+> -				   unsigned int needed);
+> 
+>  /*
+>   * Process local structure which describes the block unlinks done
+> diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+> index eb1ce30..1a1af0c 100644
+> --- a/fs/ocfs2/aops.c
+> +++ b/fs/ocfs2/aops.c
+> @@ -1674,7 +1674,7 @@ int ocfs2_write_begin_nolock(struct address_space *mapping,
+>  			     struct buffer_head *di_bh, struct page *mmap_page)
+>  {
+>  	int ret, cluster_of_pages, credits = OCFS2_INODE_UPDATE_CREDITS;
+> -	unsigned int clusters_to_alloc, extents_to_split, clusters_need = 0;
+> +	unsigned int clusters_to_alloc, extents_to_split;
+>  	struct ocfs2_write_ctxt *wc;
+>  	struct inode *inode = mapping->host;
+>  	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+> @@ -1723,7 +1723,6 @@ int ocfs2_write_begin_nolock(struct address_space *mapping,
+>  		mlog_errno(ret);
+>  		goto out;
+>  	} else if (ret == 1) {
+> -		clusters_need = wc->w_clen;
+>  		ret = ocfs2_refcount_cow(inode, di_bh,
+>  					 wc->w_cpos, wc->w_clen, UINT_MAX);
+>  		if (ret) {
+> @@ -1738,7 +1737,6 @@ int ocfs2_write_begin_nolock(struct address_space *mapping,
+>  		mlog_errno(ret);
+>  		goto out;
+>  	}
+> -	clusters_need += clusters_to_alloc;
+> 
+>  	di = (struct ocfs2_dinode *)wc->w_di_bh->b_data;
+> 
+> @@ -1893,8 +1891,8 @@ int ocfs2_write_begin_nolock(struct address_space *mapping,
+>  		 */
+>  		try_free = 0;
+> 
+> -		ret1 = ocfs2_try_to_free_truncate_log(osb, clusters_need);
+> -		if (ret1 == 1)
+> +		ret1 = ocfs2_flush_truncate_log(osb);
+> +		if (!ret1)
+>  			goto try_again;
+> 
+>  		if (ret1 < 0)
+> diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
+> index 4f86ac0..f913647 100644
+> --- a/fs/ocfs2/ocfs2.h
+> +++ b/fs/ocfs2/ocfs2.h
+> @@ -440,11 +440,6 @@ struct ocfs2_super
+>  	struct buffer_head		*osb_tl_bh;
+>  	struct delayed_work		osb_truncate_log_wq;
+>  	atomic_t			osb_tl_disable;
+> -	/*
+> -	 * How many clusters in our truncate log.
+> -	 * It must be protected by osb_tl_inode->i_mutex.
+> -	 */
+> -	unsigned int truncated_clusters;
+> 
+>  	struct ocfs2_node_map		osb_recovering_orphan_dirs;
+>  	unsigned int			*osb_orphan_wipes;
+> diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
+> index f7c972f..d086bb9 100644
+> --- a/fs/ocfs2/suballoc.c
+> +++ b/fs/ocfs2/suballoc.c
+> @@ -1187,14 +1187,14 @@ static int ocfs2_reserve_clusters_with_limit(struct ocfs2_super *osb,
+>  	if (status == -ENOSPC) {
+>  retry:
+>  		status = ocfs2_reserve_cluster_bitmap_bits(osb, *ac);
+> -		/* Retry if there is sufficient space cached in truncate log */
+> +		/* Retry after flush truncate log */
+>  		if (status == -ENOSPC && !retried) {
+>  			retried = 1;
+>  			ocfs2_inode_unlock((*ac)->ac_inode, 1);
+>  			inode_unlock((*ac)->ac_inode);
+> 
+> -			ret = ocfs2_try_to_free_truncate_log(osb, bits_wanted);
+> -			if (ret == 1) {
+> +			ret = ocfs2_flush_truncate_log(osb);
+> +			if (!ret) {
+>  				iput((*ac)->ac_inode);
+>  				(*ac)->ac_inode = NULL;
+>  				goto retry;
+> 
