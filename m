@@ -1,232 +1,309 @@
-From: piaojun <piaojun@huawei.com>
-Date: Fri, 28 Dec 2018 17:34:16 +0800
-Subject: [Ocfs2-devel] [PATCH v2] ocfs2: flush truncate log when main
- bitmap run out of space
-In-Reply-To: <fdb16638-3d83-c065-2e49-996fb6310643@huawei.com>
-References: <fdb16638-3d83-c065-2e49-996fb6310643@huawei.com>
-Message-ID: <5C25EE18.6050303@huawei.com>
+From: Gang He <ghe@suse.com>
+Date: Fri, 11 Jan 2019 17:00:14 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: fix the application IO timeout when
+	fstrim is running
+Message-ID: <20190111090014.31645-1-ghe@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: mark@fasheh.com, jlbec@evilplan.org, jiangqi903@gmail.com
+Cc: Gang He <ghe@suse.com>, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com, akpm@linux-foundation.org
 
-Hi Jia,
+The user reported this problem, the upper application IO was
+timeout when fstrim was running on this ocfs2 partition. the
+application monitoring resource agent considered that this
+application did not work, then this node was fenced by the cluster
+brain (e.g. pacemaker).
+The root cause is that fstrim thread always holds main_bm meta-file
+related locks until all the cluster groups are trimmed.
+This patch will make fstrim thread release main_bm meta-file
+related locks when each cluster group is trimmed, this will let
+the current application IO has a chance to claim the clusters from
+main_bm meta-file.
 
-This patch looks good to me, but I have a suggestion as below:
+Signed-off-by: Gang He <ghe@suse.com>
+---
+ fs/ocfs2/alloc.c       | 159 +++++++++++++++++++++++++----------------
+ fs/ocfs2/dlmglue.c     |   5 ++
+ fs/ocfs2/ocfs2.h       |   1 +
+ fs/ocfs2/ocfs2_trace.h |   2 +
+ fs/ocfs2/super.c       |   2 +
+ 5 files changed, 106 insertions(+), 63 deletions(-)
 
-On 2018/12/28 16:29, Jia Guo wrote:
-> Truncate log problem has been described in
-> commit 50308d813bf2 ("ocfs2: Try to free truncate log when meeting
-> ENOSPC in write.") and
-> commit 2070ad1aebff ("ocfs2: retry on ENOSPC if sufficient space in
-> truncate log"), but the following situations cannot be solved:
-> 
-> case 1:
-> Main bitmap has been updated, but the transaction of the deleted blocks has
-> not been committed completely. In this case, function
-> ocfs2_reserve_cluster_bitmap_bits() returns success while function
-> __ocfs2_claim_clusters return ENOSPC because we cannot reuse the deleted
-> blocks before the transaction committed(test by function
-> ocfs2_test_bg_bit_allocatable()). One can reproduce this by following
-> steps:
-> a, prepare a file which size is 50G, and volume still have 30G free space
-> b, open the file with O_TRUNC flag
-> c, sleep 5 seconds
-> d, fallocate a 50G file, fallocate will fail.
-> 
-> case 2:
-> Main bitmap doesn't have enough free bits, so does truncate log. But main
-> bitmap plus truncate log has enough free bits. We are not gonging to try
-> flush truncate log in this case, which is not reasonable.
-> 
-> So force commit the transaction when flushing the truncate log for case 1.
-> For case 2, the value of osb->truncated_clusters doesn't seem to make
-> sense, do the flush whenever we run out of space seems to be more
-> reasonable.
-> 
-> Signed-off-by: Jia Guo <guojia12@huawei.com>
-> Reviewed-by: Yiwen Jiang <jiangyiwen@huawei.com>
-> Reviewed-by: Gang He <ghe@suse.com>
-> ---
->  fs/ocfs2/alloc.c    | 43 +++----------------------------------------
->  fs/ocfs2/alloc.h    |  2 --
->  fs/ocfs2/aops.c     |  8 +++-----
->  fs/ocfs2/ocfs2.h    |  5 -----
->  fs/ocfs2/suballoc.c |  6 +++---
->  5 files changed, 9 insertions(+), 55 deletions(-)
-> 
-> diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-> index d1cbb27..8b6938d 100644
-> --- a/fs/ocfs2/alloc.c
-> +++ b/fs/ocfs2/alloc.c
-> @@ -5921,7 +5921,6 @@ int ocfs2_truncate_log_append(struct ocfs2_super *osb,
-> 
->  	ocfs2_journal_dirty(handle, tl_bh);
-> 
-> -	osb->truncated_clusters += num_clusters;
->  bail:
->  	return status;
->  }
-> @@ -5940,6 +5939,7 @@ static int ocfs2_replay_truncate_records(struct ocfs2_super *osb,
->  	struct inode *tl_inode = osb->osb_tl_inode;
->  	struct buffer_head *tl_bh = osb->osb_tl_bh;
->  	handle_t *handle;
-> +	tid_t target;
-> 
->  	di = (struct ocfs2_dinode *) tl_bh->b_data;
->  	tl = &di->id2.i_dealloc;
-> @@ -5989,8 +5989,8 @@ static int ocfs2_replay_truncate_records(struct ocfs2_super *osb,
->  		ocfs2_commit_trans(osb, handle);
->  		i--;
->  	}
-> -
-> -	osb->truncated_clusters = 0;
-> +	if (jbd2_journal_start_commit(osb->journal->j_journal, &target))
-> +		jbd2_log_wait_commit(osb->journal->j_journal, target);
-
-Catch the errno of jbd2_log_wait_commit here. And this will inform
-uppper caller no need to retry.
-
-Thanks,
-Jun
-
-> 
->  bail:
->  	return status;
-> @@ -6102,43 +6102,6 @@ void ocfs2_schedule_truncate_log_flush(struct ocfs2_super *osb,
->  	}
->  }
-> 
-> -/*
-> - * Try to flush truncate logs if we can free enough clusters from it.
-> - * As for return value, "< 0" means error, "0" no space and "1" means
-> - * we have freed enough spaces and let the caller try to allocate again.
-> - */
-> -int ocfs2_try_to_free_truncate_log(struct ocfs2_super *osb,
-> -					unsigned int needed)
-> -{
-> -	tid_t target;
-> -	int ret = 0;
-> -	unsigned int truncated_clusters;
-> -
-> -	inode_lock(osb->osb_tl_inode);
-> -	truncated_clusters = osb->truncated_clusters;
-> -	inode_unlock(osb->osb_tl_inode);
-> -
-> -	/*
-> -	 * Check whether we can succeed in allocating if we free
-> -	 * the truncate log.
-> -	 */
-> -	if (truncated_clusters < needed)
-> -		goto out;
-> -
-> -	ret = ocfs2_flush_truncate_log(osb);
-> -	if (ret) {
-> -		mlog_errno(ret);
-> -		goto out;
-> -	}
-> -
-> -	if (jbd2_journal_start_commit(osb->journal->j_journal, &target)) {
-> -		jbd2_log_wait_commit(osb->journal->j_journal, target);
-> -		ret = 1;
-> -	}
-> -out:
-> -	return ret;
-> -}
-> -
->  static int ocfs2_get_truncate_log_info(struct ocfs2_super *osb,
->  				       int slot_num,
->  				       struct inode **tl_inode,
-> diff --git a/fs/ocfs2/alloc.h b/fs/ocfs2/alloc.h
-> index 250bcac..b343a6f 100644
-> --- a/fs/ocfs2/alloc.h
-> +++ b/fs/ocfs2/alloc.h
-> @@ -188,8 +188,6 @@ int ocfs2_truncate_log_append(struct ocfs2_super *osb,
->  			      u64 start_blk,
->  			      unsigned int num_clusters);
->  int __ocfs2_flush_truncate_log(struct ocfs2_super *osb);
-> -int ocfs2_try_to_free_truncate_log(struct ocfs2_super *osb,
-> -				   unsigned int needed);
-> 
->  /*
->   * Process local structure which describes the block unlinks done
-> diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-> index eb1ce30..1a1af0c 100644
-> --- a/fs/ocfs2/aops.c
-> +++ b/fs/ocfs2/aops.c
-> @@ -1674,7 +1674,7 @@ int ocfs2_write_begin_nolock(struct address_space *mapping,
->  			     struct buffer_head *di_bh, struct page *mmap_page)
->  {
->  	int ret, cluster_of_pages, credits = OCFS2_INODE_UPDATE_CREDITS;
-> -	unsigned int clusters_to_alloc, extents_to_split, clusters_need = 0;
-> +	unsigned int clusters_to_alloc, extents_to_split;
->  	struct ocfs2_write_ctxt *wc;
->  	struct inode *inode = mapping->host;
->  	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
-> @@ -1723,7 +1723,6 @@ int ocfs2_write_begin_nolock(struct address_space *mapping,
->  		mlog_errno(ret);
->  		goto out;
->  	} else if (ret == 1) {
-> -		clusters_need = wc->w_clen;
->  		ret = ocfs2_refcount_cow(inode, di_bh,
->  					 wc->w_cpos, wc->w_clen, UINT_MAX);
->  		if (ret) {
-> @@ -1738,7 +1737,6 @@ int ocfs2_write_begin_nolock(struct address_space *mapping,
->  		mlog_errno(ret);
->  		goto out;
->  	}
-> -	clusters_need += clusters_to_alloc;
-> 
->  	di = (struct ocfs2_dinode *)wc->w_di_bh->b_data;
-> 
-> @@ -1893,8 +1891,8 @@ int ocfs2_write_begin_nolock(struct address_space *mapping,
->  		 */
->  		try_free = 0;
-> 
-> -		ret1 = ocfs2_try_to_free_truncate_log(osb, clusters_need);
-> -		if (ret1 == 1)
-> +		ret1 = ocfs2_flush_truncate_log(osb);
-> +		if (!ret1)
->  			goto try_again;
-> 
->  		if (ret1 < 0)
-> diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
-> index 4f86ac0..f913647 100644
-> --- a/fs/ocfs2/ocfs2.h
-> +++ b/fs/ocfs2/ocfs2.h
-> @@ -440,11 +440,6 @@ struct ocfs2_super
->  	struct buffer_head		*osb_tl_bh;
->  	struct delayed_work		osb_truncate_log_wq;
->  	atomic_t			osb_tl_disable;
-> -	/*
-> -	 * How many clusters in our truncate log.
-> -	 * It must be protected by osb_tl_inode->i_mutex.
-> -	 */
-> -	unsigned int truncated_clusters;
-> 
->  	struct ocfs2_node_map		osb_recovering_orphan_dirs;
->  	unsigned int			*osb_orphan_wipes;
-> diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
-> index f7c972f..d086bb9 100644
-> --- a/fs/ocfs2/suballoc.c
-> +++ b/fs/ocfs2/suballoc.c
-> @@ -1187,14 +1187,14 @@ static int ocfs2_reserve_clusters_with_limit(struct ocfs2_super *osb,
->  	if (status == -ENOSPC) {
->  retry:
->  		status = ocfs2_reserve_cluster_bitmap_bits(osb, *ac);
-> -		/* Retry if there is sufficient space cached in truncate log */
-> +		/* Retry after flush truncate log */
->  		if (status == -ENOSPC && !retried) {
->  			retried = 1;
->  			ocfs2_inode_unlock((*ac)->ac_inode, 1);
->  			inode_unlock((*ac)->ac_inode);
-> 
-> -			ret = ocfs2_try_to_free_truncate_log(osb, bits_wanted);
-> -			if (ret == 1) {
-> +			ret = ocfs2_flush_truncate_log(osb);
-> +			if (!ret) {
->  				iput((*ac)->ac_inode);
->  				(*ac)->ac_inode = NULL;
->  				goto retry;
-> 
+diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
+index d1cbb27808e2..6f0999015a44 100644
+--- a/fs/ocfs2/alloc.c
++++ b/fs/ocfs2/alloc.c
+@@ -7532,10 +7532,11 @@ static int ocfs2_trim_group(struct super_block *sb,
+ 	return count;
+ }
+ 
+-int ocfs2_trim_fs(struct super_block *sb, struct fstrim_range *range)
++static
++int ocfs2_trim_mainbm(struct super_block *sb, struct fstrim_range *range)
+ {
+ 	struct ocfs2_super *osb = OCFS2_SB(sb);
+-	u64 start, len, trimmed, first_group, last_group, group;
++	u64 start, len, trimmed = 0, first_group, last_group = 0, group = 0;
+ 	int ret, cnt;
+ 	u32 first_bit, last_bit, minlen;
+ 	struct buffer_head *main_bm_bh = NULL;
+@@ -7543,7 +7544,6 @@ int ocfs2_trim_fs(struct super_block *sb, struct fstrim_range *range)
+ 	struct buffer_head *gd_bh = NULL;
+ 	struct ocfs2_dinode *main_bm;
+ 	struct ocfs2_group_desc *gd = NULL;
+-	struct ocfs2_trim_fs_info info, *pinfo = NULL;
+ 
+ 	start = range->start >> osb->s_clustersize_bits;
+ 	len = range->len >> osb->s_clustersize_bits;
+@@ -7552,6 +7552,9 @@ int ocfs2_trim_fs(struct super_block *sb, struct fstrim_range *range)
+ 	if (minlen >= osb->bitmap_cpg || range->len < sb->s_blocksize)
+ 		return -EINVAL;
+ 
++	trace_ocfs2_trim_mainbm(start, len, minlen);
++
++next_group:
+ 	main_bm_inode = ocfs2_get_system_file_inode(osb,
+ 						    GLOBAL_BITMAP_SYSTEM_INODE,
+ 						    OCFS2_INVALID_SLOT);
+@@ -7570,64 +7573,34 @@ int ocfs2_trim_fs(struct super_block *sb, struct fstrim_range *range)
+ 	}
+ 	main_bm = (struct ocfs2_dinode *)main_bm_bh->b_data;
+ 
+-	if (start >= le32_to_cpu(main_bm->i_clusters)) {
+-		ret = -EINVAL;
+-		goto out_unlock;
+-	}
+-
+-	len = range->len >> osb->s_clustersize_bits;
+-	if (start + len > le32_to_cpu(main_bm->i_clusters))
+-		len = le32_to_cpu(main_bm->i_clusters) - start;
+-
+-	trace_ocfs2_trim_fs(start, len, minlen);
+-
+-	ocfs2_trim_fs_lock_res_init(osb);
+-	ret = ocfs2_trim_fs_lock(osb, NULL, 1);
+-	if (ret < 0) {
+-		if (ret != -EAGAIN) {
+-			mlog_errno(ret);
+-			ocfs2_trim_fs_lock_res_uninit(osb);
++	/*
++	 * Do some check before trim the first group.
++	 */
++	if (!group) {
++		if (start >= le32_to_cpu(main_bm->i_clusters)) {
++			ret = -EINVAL;
+ 			goto out_unlock;
+ 		}
+ 
+-		mlog(ML_NOTICE, "Wait for trim on device (%s) to "
+-		     "finish, which is running from another node.\n",
+-		     osb->dev_str);
+-		ret = ocfs2_trim_fs_lock(osb, &info, 0);
+-		if (ret < 0) {
+-			mlog_errno(ret);
+-			ocfs2_trim_fs_lock_res_uninit(osb);
+-			goto out_unlock;
+-		}
++		if (start + len > le32_to_cpu(main_bm->i_clusters))
++			len = le32_to_cpu(main_bm->i_clusters) - start;
+ 
+-		if (info.tf_valid && info.tf_success &&
+-		    info.tf_start == start && info.tf_len == len &&
+-		    info.tf_minlen == minlen) {
+-			/* Avoid sending duplicated trim to a shared device */
+-			mlog(ML_NOTICE, "The same trim on device (%s) was "
+-			     "just done from node (%u), return.\n",
+-			     osb->dev_str, info.tf_nodenum);
+-			range->len = info.tf_trimlen;
+-			goto out_trimunlock;
+-		}
++		/*
++		 * Determine first and last group to examine based on
++		 * start and len
++		 */
++		first_group = ocfs2_which_cluster_group(main_bm_inode, start);
++		if (first_group == osb->first_cluster_group_blkno)
++			first_bit = start;
++		else
++			first_bit = start - ocfs2_blocks_to_clusters(sb,
++								first_group);
++		last_group = ocfs2_which_cluster_group(main_bm_inode,
++						       start + len - 1);
++		group = first_group;
+ 	}
+ 
+-	info.tf_nodenum = osb->node_num;
+-	info.tf_start = start;
+-	info.tf_len = len;
+-	info.tf_minlen = minlen;
+-
+-	/* Determine first and last group to examine based on start and len */
+-	first_group = ocfs2_which_cluster_group(main_bm_inode, start);
+-	if (first_group == osb->first_cluster_group_blkno)
+-		first_bit = start;
+-	else
+-		first_bit = start - ocfs2_blocks_to_clusters(sb, first_group);
+-	last_group = ocfs2_which_cluster_group(main_bm_inode, start + len - 1);
+-	last_bit = osb->bitmap_cpg;
+-
+-	trimmed = 0;
+-	for (group = first_group; group <= last_group;) {
++	do {
+ 		if (first_bit + len >= osb->bitmap_cpg)
+ 			last_bit = osb->bitmap_cpg;
+ 		else
+@@ -7659,21 +7632,81 @@ int ocfs2_trim_fs(struct super_block *sb, struct fstrim_range *range)
+ 			group = ocfs2_clusters_to_blocks(sb, osb->bitmap_cpg);
+ 		else
+ 			group += ocfs2_clusters_to_blocks(sb, osb->bitmap_cpg);
+-	}
+-	range->len = trimmed * sb->s_blocksize;
++	} while (0);
+ 
+-	info.tf_trimlen = range->len;
+-	info.tf_success = (ret ? 0 : 1);
+-	pinfo = &info;
+-out_trimunlock:
+-	ocfs2_trim_fs_unlock(osb, pinfo);
+-	ocfs2_trim_fs_lock_res_uninit(osb);
+ out_unlock:
+ 	ocfs2_inode_unlock(main_bm_inode, 0);
+ 	brelse(main_bm_bh);
++	main_bm_bh = NULL;
+ out_mutex:
+ 	inode_unlock(main_bm_inode);
+ 	iput(main_bm_inode);
++
++	/*
++	 * If all the groups trim are not done or failed, but we should release
++	 * main_bm related locks for avoiding the current IO starve, then go to
++	 * trim the next group
++	 */
++	if (ret >= 0 && group <= last_group)
++		goto next_group;
+ out:
++	range->len = trimmed * sb->s_blocksize;
++	return ret;
++}
++
++int ocfs2_trim_fs(struct super_block *sb, struct fstrim_range *range)
++{
++	int ret;
++	struct ocfs2_super *osb = OCFS2_SB(sb);
++	struct ocfs2_trim_fs_info info, *pinfo = NULL;
++
++	ocfs2_trim_fs_lock_res_init(osb);
++
++	trace_ocfs2_trim_fs(range->start, range->len, range->minlen);
++
++	ret = ocfs2_trim_fs_lock(osb, NULL, 1);
++	if (ret < 0) {
++		if (ret != -EAGAIN) {
++			mlog_errno(ret);
++			ocfs2_trim_fs_lock_res_uninit(osb);
++			return ret;
++		}
++
++		mlog(ML_NOTICE, "Wait for trim on device (%s) to "
++		     "finish, which is running from another node.\n",
++		     osb->dev_str);
++		ret = ocfs2_trim_fs_lock(osb, &info, 0);
++		if (ret < 0) {
++			mlog_errno(ret);
++			ocfs2_trim_fs_lock_res_uninit(osb);
++			return ret;
++		}
++
++		if (info.tf_valid && info.tf_success &&
++		    info.tf_start == range->start &&
++		    info.tf_len == range->len &&
++		    info.tf_minlen == range->minlen) {
++			/* Avoid sending duplicated trim to a shared device */
++			mlog(ML_NOTICE, "The same trim on device (%s) was "
++			     "just done from node (%u), return.\n",
++			     osb->dev_str, info.tf_nodenum);
++			range->len = info.tf_trimlen;
++			goto out;
++		}
++	}
++
++	info.tf_nodenum = osb->node_num;
++	info.tf_start = range->start;
++	info.tf_len = range->len;
++	info.tf_minlen = range->minlen;
++
++	ret = ocfs2_trim_mainbm(sb, range);
++
++	info.tf_trimlen = range->len;
++	info.tf_success = (ret < 0 ? 0 : 1);
++	pinfo = &info;
++out:
++	ocfs2_trim_fs_unlock(osb, pinfo);
++	ocfs2_trim_fs_lock_res_uninit(osb);
+ 	return ret;
+ }
+diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
+index 7c835824247e..af405586c5b1 100644
+--- a/fs/ocfs2/dlmglue.c
++++ b/fs/ocfs2/dlmglue.c
+@@ -686,6 +686,9 @@ void ocfs2_trim_fs_lock_res_init(struct ocfs2_super *osb)
+ {
+ 	struct ocfs2_lock_res *lockres = &osb->osb_trim_fs_lockres;
+ 
++	/* Only one trimfs thread are allowed to work at the same time. */
++	mutex_lock(&osb->obs_trim_fs_mutex);
++
+ 	ocfs2_lock_res_init_once(lockres);
+ 	ocfs2_build_lock_name(OCFS2_LOCK_TYPE_TRIM_FS, 0, 0, lockres->l_name);
+ 	ocfs2_lock_res_init_common(osb, lockres, OCFS2_LOCK_TYPE_TRIM_FS,
+@@ -698,6 +701,8 @@ void ocfs2_trim_fs_lock_res_uninit(struct ocfs2_super *osb)
+ 
+ 	ocfs2_simple_drop_lockres(osb, lockres);
+ 	ocfs2_lock_res_free(lockres);
++
++	mutex_unlock(&osb->obs_trim_fs_mutex);
+ }
+ 
+ static void ocfs2_orphan_scan_lock_res_init(struct ocfs2_lock_res *res,
+diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
+index 4f86ac0027b5..1f029fbe8b8d 100644
+--- a/fs/ocfs2/ocfs2.h
++++ b/fs/ocfs2/ocfs2.h
+@@ -407,6 +407,7 @@ struct ocfs2_super
+ 	struct ocfs2_lock_res osb_rename_lockres;
+ 	struct ocfs2_lock_res osb_nfs_sync_lockres;
+ 	struct ocfs2_lock_res osb_trim_fs_lockres;
++	struct mutex obs_trim_fs_mutex;
+ 	struct ocfs2_dlm_debug *osb_dlm_debug;
+ 
+ 	struct dentry *osb_debug_root;
+diff --git a/fs/ocfs2/ocfs2_trace.h b/fs/ocfs2/ocfs2_trace.h
+index 2ee76a90ba8f..dc4bce1649c1 100644
+--- a/fs/ocfs2/ocfs2_trace.h
++++ b/fs/ocfs2/ocfs2_trace.h
+@@ -712,6 +712,8 @@ TRACE_EVENT(ocfs2_trim_extent,
+ 
+ DEFINE_OCFS2_ULL_UINT_UINT_UINT_EVENT(ocfs2_trim_group);
+ 
++DEFINE_OCFS2_ULL_ULL_ULL_EVENT(ocfs2_trim_mainbm);
++
+ DEFINE_OCFS2_ULL_ULL_ULL_EVENT(ocfs2_trim_fs);
+ 
+ /* End of trace events for fs/ocfs2/alloc.c. */
+diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+index 3415e0b09398..96ae7cedd487 100644
+--- a/fs/ocfs2/super.c
++++ b/fs/ocfs2/super.c
+@@ -1847,6 +1847,8 @@ static int ocfs2_mount_volume(struct super_block *sb)
+ 	if (ocfs2_is_hard_readonly(osb))
+ 		goto leave;
+ 
++	mutex_init(&osb->obs_trim_fs_mutex);
++
+ 	status = ocfs2_dlm_init(osb);
+ 	if (status < 0) {
+ 		mlog_errno(status);
+-- 
+2.19.2
