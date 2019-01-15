@@ -1,17 +1,19 @@
 From: Changwei Ge <ge.changwei@h3c.com>
-Date: Fri, 11 Jan 2019 09:54:58 +0000
+Date: Tue, 15 Jan 2019 03:50:04 +0000
 Subject: [Ocfs2-devel] [PATCH] ocfs2: fix the application IO timeout
  when fstrim is running
 References: <20190111090014.31645-1-ghe@suse.com>
-Message-ID: <63ADC13FD55D6546B7DECE290D39E37301278242EB@H3CMLB12-EX.srv.huawei-3com.com>
+Message-ID: <63ADC13FD55D6546B7DECE290D39E3730127825EFD@H3CMLB12-EX.srv.huawei-3com.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: Gang He <ghe@suse.com>, "mark@fasheh.com" <mark@fasheh.com>, "jlbec@evilplan.org" <jlbec@evilplan.org>, "jiangqi903@gmail.com" <jiangqi903@gmail.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>, Andrew Morton <akpm@linux-foundation.org>
 
 Hi Gang,
+
+Most parts of this patch look sane to me, just a tiny question...
 
 On 2019/1/11 17:01, Gang He wrote:
 > The user reported this problem, the upper application IO was
@@ -25,12 +27,6 @@ On 2019/1/11 17:01, Gang He wrote:
 > related locks when each cluster group is trimmed, this will let
 > the current application IO has a chance to claim the clusters from
 > main_bm meta-file.
-
-Sounds a good idea, I will look into this.
-
-Thanks,
-Changwei
-
 > 
 > Signed-off-by: Gang He <ghe@suse.com>
 > ---
@@ -265,6 +261,12 @@ Changwei
 > +	/* Only one trimfs thread are allowed to work at the same time. */
 > +	mutex_lock(&osb->obs_trim_fs_mutex);
 > +
+
+Cluster lock of fstrim have a trylock behavior, will it be better if we trylock here?
+
+Thanks,
+Changwei
+
 >   	ocfs2_lock_res_init_once(lockres);
 >   	ocfs2_build_lock_name(OCFS2_LOCK_TYPE_TRIM_FS, 0, 0, lockres->l_name);
 >   	ocfs2_lock_res_init_common(osb, lockres, OCFS2_LOCK_TYPE_TRIM_FS,
