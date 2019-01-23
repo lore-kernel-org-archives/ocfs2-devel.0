@@ -1,385 +1,150 @@
-From: Changwei Ge <ge.changwei@h3c.com>
-Date: Tue, 15 Jan 2019 09:33:11 +0000
-Subject: [Ocfs2-devel] [PATCH] ocfs2: fix the application IO timeout
- when fstrim is running
-References: <20190111090014.31645-1-ghe@suse.com>
-	<63ADC13FD55D6546B7DECE290D39E3730127825EFD@H3CMLB12-EX.srv.huawei-3com.com>
-	<5C3D7453020000F90004D7BD@prv1-mh.provo.novell.com>
-	<63ADC13FD55D6546B7DECE290D39E37301278265F3@H3CMLB12-EX.srv.huawei-3com.com>
-	<5C3D984B020000F90004D843@prv1-mh.provo.novell.com>
-Message-ID: <63ADC13FD55D6546B7DECE290D39E3730127829443@H3CMLB12-EX.srv.huawei-3com.com>
+From: Jan Kara <jack@suse.cz>
+Date: Wed, 23 Jan 2019 12:48:03 +0100
+Subject: [Ocfs2-devel] [RFC][PATCH v5 05/09] ocfs2: use common file type
+	conversion
+In-Reply-To: <20190121005432.GA32351@pathfinder>
+References: <20190121005432.GA32351@pathfinder>
+Message-ID: <20190123114803.GB20927@quack2.suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Gang He <ghe@suse.com>, "jlbec@evilplan.org" <jlbec@evilplan.org>, "mark@fasheh.com" <mark@fasheh.com>, "jiangqi903@gmail.com" <jiangqi903@gmail.com>
-Cc: "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>Andrew Morton <akpm@linux-foundation.org>
+To: Phillip Potter <phil@philpotter.co.uk>
+Cc: mark@fasheh.com, amir73il@gmail.com, viro@zeniv.linux.org.uk, jlbec@evilplan.org, linux-fsdevel@vger.kernel.org, ocfs2-devel@oss.oracle.com
 
-Hi Gang,
-
-It looks good to me.
-
-On 2019/1/15 16:23, Gang He wrote:
-> Hello ChangWei,
+On Mon 21-01-19 00:54:32, Phillip Potter wrote:
+> Deduplicate the ocfs2 file type conversion implementation and remove
+> OCFS2_FT_* definitions - file systems that use the same file types
+> as defined by POSIX do not need to define their own versions and can
+> use the common helper functions decared in fs_types.h and implemented
+> in fs_types.c
 > 
->>>> On 2019/1/15 at 16:00, in message
-> <63ADC13FD55D6546B7DECE290D39E37301278265F3@H3CMLB12-EX.srv.huawei-3com.com>,
-> Changwei Ge <ge.changwei@h3c.com> wrote:
->> On 2019/1/15 13:49, Gang He wrote:
->>> Hello Changewei,
->>>
->>>>>> On 2019/1/15 at 11:50, in message
->>> <63ADC13FD55D6546B7DECE290D39E3730127825EFD@H3CMLB12-EX.srv.huawei-3com.com>,
->>> Changwei Ge <ge.changwei@h3c.com> wrote:
->>>> Hi Gang,
->>>>
->>>> Most parts of this patch look sane to me, just a tiny question...
->>>>
->>>> On 2019/1/11 17:01, Gang He wrote:
->>>>> The user reported this problem, the upper application IO was
->>>>> timeout when fstrim was running on this ocfs2 partition. the
->>>>> application monitoring resource agent considered that this
->>>>> application did not work, then this node was fenced by the cluster
->>>>> brain (e.g. pacemaker).
->>>>> The root cause is that fstrim thread always holds main_bm meta-file
->>>>> related locks until all the cluster groups are trimmed.
->>>>> This patch will make fstrim thread release main_bm meta-file
->>>>> related locks when each cluster group is trimmed, this will let
->>>>> the current application IO has a chance to claim the clusters from
->>>>> main_bm meta-file.
->>>>>
->>>>> Signed-off-by: Gang He <ghe@suse.com>
+> Signed-off-by: Amir Goldstein <amir73il@gmail.com>
+> Signed-off-by: Phillip Potter <phil@philpotter.co.uk>
 
-Reviewed-by: Changwei Ge <ge.changwei@h3c.com>
+The patch looks good to me. You can add:
 
->>>>> ---
->>>>>     fs/ocfs2/alloc.c       | 159 +++++++++++++++++++++++++----------------
->>>>>     fs/ocfs2/dlmglue.c     |   5 ++
->>>>>     fs/ocfs2/ocfs2.h       |   1 +
->>>>>     fs/ocfs2/ocfs2_trace.h |   2 +
->>>>>     fs/ocfs2/super.c       |   2 +
->>>>>     5 files changed, 106 insertions(+), 63 deletions(-)
->>>>>
->>>>> diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
->>>>> index d1cbb27808e2..6f0999015a44 100644
->>>>> --- a/fs/ocfs2/alloc.c
->>>>> +++ b/fs/ocfs2/alloc.c
->>>>> @@ -7532,10 +7532,11 @@ static int ocfs2_trim_group(struct super_block *sb,
->>>>>     	return count;
->>>>>     }
->>>>>     
->>>>> -int ocfs2_trim_fs(struct super_block *sb, struct fstrim_range *range)
->>>>> +static
->>>>> +int ocfs2_trim_mainbm(struct super_block *sb, struct fstrim_range *range)
->>>>>     {
->>>>>     	struct ocfs2_super *osb = OCFS2_SB(sb);
->>>>> -	u64 start, len, trimmed, first_group, last_group, group;
->>>>> +	u64 start, len, trimmed = 0, first_group, last_group = 0, group = 0;
->>>>>     	int ret, cnt;
->>>>>     	u32 first_bit, last_bit, minlen;
->>>>>     	struct buffer_head *main_bm_bh = NULL;
->>>>> @@ -7543,7 +7544,6 @@ int ocfs2_trim_fs(struct super_block *sb, struct
->>>> fstrim_range *range)
->>>>>     	struct buffer_head *gd_bh = NULL;
->>>>>     	struct ocfs2_dinode *main_bm;
->>>>>     	struct ocfs2_group_desc *gd = NULL;
->>>>> -	struct ocfs2_trim_fs_info info, *pinfo = NULL;
->>>>>     
->>>>>     	start = range->start >> osb->s_clustersize_bits;
->>>>>     	len = range->len >> osb->s_clustersize_bits;
->>>>> @@ -7552,6 +7552,9 @@ int ocfs2_trim_fs(struct super_block *sb, struct
->>>> fstrim_range *range)
->>>>>     	if (minlen >= osb->bitmap_cpg || range->len < sb->s_blocksize)
->>>>>     		return -EINVAL;
->>>>>     
->>>>> +	trace_ocfs2_trim_mainbm(start, len, minlen);
->>>>> +
->>>>> +next_group:
->>>>>     	main_bm_inode = ocfs2_get_system_file_inode(osb,
->>>>>     						    GLOBAL_BITMAP_SYSTEM_INODE,
->>>>>     						    OCFS2_INVALID_SLOT);
->>>>> @@ -7570,64 +7573,34 @@ int ocfs2_trim_fs(struct super_block *sb, struct
->>>> fstrim_range *range)
->>>>>     	}
->>>>>     	main_bm = (struct ocfs2_dinode *)main_bm_bh->b_data;
->>>>>     
->>>>> -	if (start >= le32_to_cpu(main_bm->i_clusters)) {
->>>>> -		ret = -EINVAL;
->>>>> -		goto out_unlock;
->>>>> -	}
->>>>> -
->>>>> -	len = range->len >> osb->s_clustersize_bits;
->>>>> -	if (start + len > le32_to_cpu(main_bm->i_clusters))
->>>>> -		len = le32_to_cpu(main_bm->i_clusters) - start;
->>>>> -
->>>>> -	trace_ocfs2_trim_fs(start, len, minlen);
->>>>> -
->>>>> -	ocfs2_trim_fs_lock_res_init(osb);
->>>>> -	ret = ocfs2_trim_fs_lock(osb, NULL, 1);
->>>>> -	if (ret < 0) {
->>>>> -		if (ret != -EAGAIN) {
->>>>> -			mlog_errno(ret);
->>>>> -			ocfs2_trim_fs_lock_res_uninit(osb);
->>>>> +	/*
->>>>> +	 * Do some check before trim the first group.
->>>>> +	 */
->>>>> +	if (!group) {
->>>>> +		if (start >= le32_to_cpu(main_bm->i_clusters)) {
->>>>> +			ret = -EINVAL;
->>>>>     			goto out_unlock;
->>>>>     		}
->>>>>     
->>>>> -		mlog(ML_NOTICE, "Wait for trim on device (%s) to "
->>>>> -		     "finish, which is running from another node.\n",
->>>>> -		     osb->dev_str);
->>>>> -		ret = ocfs2_trim_fs_lock(osb, &info, 0);
->>>>> -		if (ret < 0) {
->>>>> -			mlog_errno(ret);
->>>>> -			ocfs2_trim_fs_lock_res_uninit(osb);
->>>>> -			goto out_unlock;
->>>>> -		}
->>>>> +		if (start + len > le32_to_cpu(main_bm->i_clusters))
->>>>> +			len = le32_to_cpu(main_bm->i_clusters) - start;
->>>>>     
->>>>> -		if (info.tf_valid && info.tf_success &&
->>>>> -		    info.tf_start == start && info.tf_len == len &&
->>>>> -		    info.tf_minlen == minlen) {
->>>>> -			/* Avoid sending duplicated trim to a shared device */
->>>>> -			mlog(ML_NOTICE, "The same trim on device (%s) was "
->>>>> -			     "just done from node (%u), return.\n",
->>>>> -			     osb->dev_str, info.tf_nodenum);
->>>>> -			range->len = info.tf_trimlen;
->>>>> -			goto out_trimunlock;
->>>>> -		}
->>>>> +		/*
->>>>> +		 * Determine first and last group to examine based on
->>>>> +		 * start and len
->>>>> +		 */
->>>>> +		first_group = ocfs2_which_cluster_group(main_bm_inode, start);
->>>>> +		if (first_group == osb->first_cluster_group_blkno)
->>>>> +			first_bit = start;
->>>>> +		else
->>>>> +			first_bit = start - ocfs2_blocks_to_clusters(sb,
->>>>> +								first_group);
->>>>> +		last_group = ocfs2_which_cluster_group(main_bm_inode,
->>>>> +						       start + len - 1);
->>>>> +		group = first_group;
->>>>>     	}
->>>>>     
->>>>> -	info.tf_nodenum = osb->node_num;
->>>>> -	info.tf_start = start;
->>>>> -	info.tf_len = len;
->>>>> -	info.tf_minlen = minlen;
->>>>> -
->>>>> -	/* Determine first and last group to examine based on start and len */
->>>>> -	first_group = ocfs2_which_cluster_group(main_bm_inode, start);
->>>>> -	if (first_group == osb->first_cluster_group_blkno)
->>>>> -		first_bit = start;
->>>>> -	else
->>>>> -		first_bit = start - ocfs2_blocks_to_clusters(sb, first_group);
->>>>> -	last_group = ocfs2_which_cluster_group(main_bm_inode, start + len - 1);
->>>>> -	last_bit = osb->bitmap_cpg;
->>>>> -
->>>>> -	trimmed = 0;
->>>>> -	for (group = first_group; group <= last_group;) {
->>>>> +	do {
->>>>>     		if (first_bit + len >= osb->bitmap_cpg)
->>>>>     			last_bit = osb->bitmap_cpg;
->>>>>     		else
->>>>> @@ -7659,21 +7632,81 @@ int ocfs2_trim_fs(struct super_block *sb, struct
->>>> fstrim_range *range)
->>>>>     			group = ocfs2_clusters_to_blocks(sb, osb->bitmap_cpg);
->>>>>     		else
->>>>>     			group += ocfs2_clusters_to_blocks(sb, osb->bitmap_cpg);
->>>>> -	}
->>>>> -	range->len = trimmed * sb->s_blocksize;
->>>>> +	} while (0);
->>>>>     
->>>>> -	info.tf_trimlen = range->len;
->>>>> -	info.tf_success = (ret ? 0 : 1);
->>>>> -	pinfo = &info;
->>>>> -out_trimunlock:
->>>>> -	ocfs2_trim_fs_unlock(osb, pinfo);
->>>>> -	ocfs2_trim_fs_lock_res_uninit(osb);
->>>>>     out_unlock:
->>>>>     	ocfs2_inode_unlock(main_bm_inode, 0);
->>>>>     	brelse(main_bm_bh);
->>>>> +	main_bm_bh = NULL;
->>>>>     out_mutex:
->>>>>     	inode_unlock(main_bm_inode);
->>>>>     	iput(main_bm_inode);
->>>>> +
->>>>> +	/*
->>>>> +	 * If all the groups trim are not done or failed, but we should release
->>>>> +	 * main_bm related locks for avoiding the current IO starve, then go to
->>>>> +	 * trim the next group
->>>>> +	 */
->>>>> +	if (ret >= 0 && group <= last_group)
->>>>> +		goto next_group;
->>>>>     out:
->>>>> +	range->len = trimmed * sb->s_blocksize;
->>>>> +	return ret;
->>>>> +}
->>>>> +
->>>>> +int ocfs2_trim_fs(struct super_block *sb, struct fstrim_range *range)
->>>>> +{
->>>>> +	int ret;
->>>>> +	struct ocfs2_super *osb = OCFS2_SB(sb);
->>>>> +	struct ocfs2_trim_fs_info info, *pinfo = NULL;
->>>>> +
->>>>> +	ocfs2_trim_fs_lock_res_init(osb);
->>>>> +
->>>>> +	trace_ocfs2_trim_fs(range->start, range->len, range->minlen);
->>>>> +
->>>>> +	ret = ocfs2_trim_fs_lock(osb, NULL, 1);
->>>>> +	if (ret < 0) {
->>>>> +		if (ret != -EAGAIN) {
->>>>> +			mlog_errno(ret);
->>>>> +			ocfs2_trim_fs_lock_res_uninit(osb);
->>>>> +			return ret;
->>>>> +		}
->>>>> +
->>>>> +		mlog(ML_NOTICE, "Wait for trim on device (%s) to "
->>>>> +		     "finish, which is running from another node.\n",
->>>>> +		     osb->dev_str);
->>>>> +		ret = ocfs2_trim_fs_lock(osb, &info, 0);
->>>>> +		if (ret < 0) {
->>>>> +			mlog_errno(ret);
->>>>> +			ocfs2_trim_fs_lock_res_uninit(osb);
->>>>> +			return ret;
->>>>> +		}
->>>>> +
->>>>> +		if (info.tf_valid && info.tf_success &&
->>>>> +		    info.tf_start == range->start &&
->>>>> +		    info.tf_len == range->len &&
->>>>> +		    info.tf_minlen == range->minlen) {
->>>>> +			/* Avoid sending duplicated trim to a shared device */
->>>>> +			mlog(ML_NOTICE, "The same trim on device (%s) was "
->>>>> +			     "just done from node (%u), return.\n",
->>>>> +			     osb->dev_str, info.tf_nodenum);
->>>>> +			range->len = info.tf_trimlen;
->>>>> +			goto out;
->>>>> +		}
->>>>> +	}
->>>>> +
->>>>> +	info.tf_nodenum = osb->node_num;
->>>>> +	info.tf_start = range->start;
->>>>> +	info.tf_len = range->len;
->>>>> +	info.tf_minlen = range->minlen;
->>>>> +
->>>>> +	ret = ocfs2_trim_mainbm(sb, range);
->>>>> +
->>>>> +	info.tf_trimlen = range->len;
->>>>> +	info.tf_success = (ret < 0 ? 0 : 1);
->>>>> +	pinfo = &info;
->>>>> +out:
->>>>> +	ocfs2_trim_fs_unlock(osb, pinfo);
->>>>> +	ocfs2_trim_fs_lock_res_uninit(osb);
->>>>>     	return ret;
->>>>>     }
->>>>> diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
->>>>> index 7c835824247e..af405586c5b1 100644
->>>>> --- a/fs/ocfs2/dlmglue.c
->>>>> +++ b/fs/ocfs2/dlmglue.c
->>>>> @@ -686,6 +686,9 @@ void ocfs2_trim_fs_lock_res_init(struct ocfs2_super *osb)
->>>>>     {
->>>>>     	struct ocfs2_lock_res *lockres = &osb->osb_trim_fs_lockres;
->>>>>     
->>>>> +	/* Only one trimfs thread are allowed to work at the same time. */
->>>>> +	mutex_lock(&osb->obs_trim_fs_mutex);
->>>>> +
->>>>
->>>> Cluster lock of fstrim have a trylock behavior, will it be better if we
->>>> trylock here?
->>> Here, I prefer to just serialize fstrim threads on the local node to
->> simplify the code logic,
->>> maybe the user want to do like that, although this behavior is not
->> recommended.
->>> You know, on one node, ideally, the user should call  fstrim command once
->> regularly.
->>> If he calls fstrim command more times in a very short time,
->>> the code will not make each fstrim command return to failure, just do the
->> fstrim task one by one.
->>
->> I have a thought having nothing to do with your patch.
->> Do you think it's possible for us to implement *discard on unlink file* like
->> ext4 does.
->> So the application doesn't have to invoke fstrim periodically.
-> Yes, we can do some investigation for adding a mount option "discard" to support discard a file when it is deleted.
-> This can be considered as another feature, since its discard occasion and granularity is different with fstrim.
-> The scheduled fstrim command can considered as a traditional file system level trim.
-> If the file system supports the on-demand discard when some blocks were released, that's better.
-> Of course. these two features can coexist.
+Reviewed-by: Jan Kara <jack@suse.cz>
 
-Good to hear this. :-)
+								Honza
 
+> ---
+>  fs/ocfs2/dir.c      | 20 ++++----------------
+>  fs/ocfs2/ocfs2_fs.h | 28 +---------------------------
+>  2 files changed, 5 insertions(+), 43 deletions(-)
 > 
-> Thanks
-> Gang
+> diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
+> index c121abbdfc7d..85f21caaa6ec 100644
+> --- a/fs/ocfs2/dir.c
+> +++ b/fs/ocfs2/dir.c
+> @@ -69,10 +69,6 @@
+>  #define NAMEI_RA_BLOCKS  4
+>  #define NAMEI_RA_SIZE        (NAMEI_RA_CHUNKS * NAMEI_RA_BLOCKS)
+>  
+> -static unsigned char ocfs2_filetype_table[] = {
+> -	DT_UNKNOWN, DT_REG, DT_DIR, DT_CHR, DT_BLK, DT_FIFO, DT_SOCK, DT_LNK
+> -};
+> -
+>  static int ocfs2_do_extend_dir(struct super_block *sb,
+>  			       handle_t *handle,
+>  			       struct inode *dir,
+> @@ -1718,7 +1714,7 @@ int __ocfs2_add_entry(handle_t *handle,
+>  				de->rec_len = cpu_to_le16(OCFS2_DIR_REC_LEN(de->name_len));
+>  				de = de1;
+>  			}
+> -			de->file_type = OCFS2_FT_UNKNOWN;
+> +			de->file_type = FT_UNKNOWN;
+>  			if (blkno) {
+>  				de->inode = cpu_to_le64(blkno);
+>  				ocfs2_set_de_type(de, inode->i_mode);
+> @@ -1803,13 +1799,9 @@ static int ocfs2_dir_foreach_blk_id(struct inode *inode,
+>  		}
+>  		offset += le16_to_cpu(de->rec_len);
+>  		if (le64_to_cpu(de->inode)) {
+> -			unsigned char d_type = DT_UNKNOWN;
+> -
+> -			if (de->file_type < OCFS2_FT_MAX)
+> -				d_type = ocfs2_filetype_table[de->file_type];
+> -
+>  			if (!dir_emit(ctx, de->name, de->name_len,
+> -				      le64_to_cpu(de->inode), d_type))
+> +				      le64_to_cpu(de->inode),
+> +				      fs_ftype_to_dtype(de->file_type)))
+>  				goto out;
+>  		}
+>  		ctx->pos += le16_to_cpu(de->rec_len);
+> @@ -1900,14 +1892,10 @@ static int ocfs2_dir_foreach_blk_el(struct inode *inode,
+>  				break;
+>  			}
+>  			if (le64_to_cpu(de->inode)) {
+> -				unsigned char d_type = DT_UNKNOWN;
+> -
+> -				if (de->file_type < OCFS2_FT_MAX)
+> -					d_type = ocfs2_filetype_table[de->file_type];
+>  				if (!dir_emit(ctx, de->name,
+>  						de->name_len,
+>  						le64_to_cpu(de->inode),
+> -						d_type)) {
+> +					fs_ftype_to_dtype(de->file_type))) {
+>  					brelse(bh);
+>  					return 0;
+>  				}
+> diff --git a/fs/ocfs2/ocfs2_fs.h b/fs/ocfs2/ocfs2_fs.h
+> index 7071ad0dec90..b86bf5e74348 100644
+> --- a/fs/ocfs2/ocfs2_fs.h
+> +++ b/fs/ocfs2/ocfs2_fs.h
+> @@ -391,21 +391,6 @@ static struct ocfs2_system_inode_info ocfs2_system_inodes[NUM_SYSTEM_INODES] = {
+>  #define OCFS2_HB_LOCAL			"heartbeat=local"
+>  #define OCFS2_HB_GLOBAL			"heartbeat=global"
+>  
+> -/*
+> - * OCFS2 directory file types.  Only the low 3 bits are used.  The
+> - * other bits are reserved for now.
+> - */
+> -#define OCFS2_FT_UNKNOWN	0
+> -#define OCFS2_FT_REG_FILE	1
+> -#define OCFS2_FT_DIR		2
+> -#define OCFS2_FT_CHRDEV		3
+> -#define OCFS2_FT_BLKDEV		4
+> -#define OCFS2_FT_FIFO		5
+> -#define OCFS2_FT_SOCK		6
+> -#define OCFS2_FT_SYMLINK	7
+> -
+> -#define OCFS2_FT_MAX		8
+> -
+>  /*
+>   * OCFS2_DIR_PAD defines the directory entries boundaries
+>   *
+> @@ -424,17 +409,6 @@ static struct ocfs2_system_inode_info ocfs2_system_inodes[NUM_SYSTEM_INODES] = {
+>  #define	OCFS2_LINKS_HI_SHIFT	16
+>  #define	OCFS2_DX_ENTRIES_MAX	(0xffffffffU)
+>  
+> -#define S_SHIFT			12
+> -static unsigned char ocfs2_type_by_mode[S_IFMT >> S_SHIFT] = {
+> -	[S_IFREG >> S_SHIFT]  = OCFS2_FT_REG_FILE,
+> -	[S_IFDIR >> S_SHIFT]  = OCFS2_FT_DIR,
+> -	[S_IFCHR >> S_SHIFT]  = OCFS2_FT_CHRDEV,
+> -	[S_IFBLK >> S_SHIFT]  = OCFS2_FT_BLKDEV,
+> -	[S_IFIFO >> S_SHIFT]  = OCFS2_FT_FIFO,
+> -	[S_IFSOCK >> S_SHIFT] = OCFS2_FT_SOCK,
+> -	[S_IFLNK >> S_SHIFT]  = OCFS2_FT_SYMLINK,
+> -};
+> -
+>  
+>  /*
+>   * Convenience casts
+> @@ -1629,7 +1603,7 @@ static inline int ocfs2_sprintf_system_inode_name(char *buf, int len,
+>  static inline void ocfs2_set_de_type(struct ocfs2_dir_entry *de,
+>  				    umode_t mode)
+>  {
+> -	de->file_type = ocfs2_type_by_mode[(mode & S_IFMT)>>S_SHIFT];
+> +	de->file_type = fs_umode_to_ftype(mode);
+>  }
+>  
+>  static inline int ocfs2_gd_is_discontig(struct ocfs2_group_desc *gd)
+> -- 
+> 2.20.1
 > 
->>
->> Thanks,
->> Changwei
->>
->>>
->>> Thanks
->>> Gang
->>>
->>>>
->>>> Thanks,
->>>> Changwei
->>>>
->>>>>     	ocfs2_lock_res_init_once(lockres);
->>>>>     	ocfs2_build_lock_name(OCFS2_LOCK_TYPE_TRIM_FS, 0, 0, lockres->l_name);
->>>>>     	ocfs2_lock_res_init_common(osb, lockres, OCFS2_LOCK_TYPE_TRIM_FS,
->>>>> @@ -698,6 +701,8 @@ void ocfs2_trim_fs_lock_res_uninit(struct ocfs2_super
->>>> *osb)
->>>>>     
->>>>>     	ocfs2_simple_drop_lockres(osb, lockres);
->>>>>     	ocfs2_lock_res_free(lockres);
->>>>> +
->>>>> +	mutex_unlock(&osb->obs_trim_fs_mutex);
->>>>>     }
->>>>>     
->>>>>     static void ocfs2_orphan_scan_lock_res_init(struct ocfs2_lock_res *res,
->>>>> diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
->>>>> index 4f86ac0027b5..1f029fbe8b8d 100644
->>>>> --- a/fs/ocfs2/ocfs2.h
->>>>> +++ b/fs/ocfs2/ocfs2.h
->>>>> @@ -407,6 +407,7 @@ struct ocfs2_super
->>>>>     	struct ocfs2_lock_res osb_rename_lockres;
->>>>>     	struct ocfs2_lock_res osb_nfs_sync_lockres;
->>>>>     	struct ocfs2_lock_res osb_trim_fs_lockres;
->>>>> +	struct mutex obs_trim_fs_mutex;
->>>>>     	struct ocfs2_dlm_debug *osb_dlm_debug;
->>>>>     
->>>>>     	struct dentry *osb_debug_root;
->>>>> diff --git a/fs/ocfs2/ocfs2_trace.h b/fs/ocfs2/ocfs2_trace.h
->>>>> index 2ee76a90ba8f..dc4bce1649c1 100644
->>>>> --- a/fs/ocfs2/ocfs2_trace.h
->>>>> +++ b/fs/ocfs2/ocfs2_trace.h
->>>>> @@ -712,6 +712,8 @@ TRACE_EVENT(ocfs2_trim_extent,
->>>>>     
->>>>>     DEFINE_OCFS2_ULL_UINT_UINT_UINT_EVENT(ocfs2_trim_group);
->>>>>     
->>>>> +DEFINE_OCFS2_ULL_ULL_ULL_EVENT(ocfs2_trim_mainbm);
->>>>> +
->>>>>     DEFINE_OCFS2_ULL_ULL_ULL_EVENT(ocfs2_trim_fs);
->>>>>     
->>>>>     /* End of trace events for fs/ocfs2/alloc.c. */
->>>>> diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
->>>>> index 3415e0b09398..96ae7cedd487 100644
->>>>> --- a/fs/ocfs2/super.c
->>>>> +++ b/fs/ocfs2/super.c
->>>>> @@ -1847,6 +1847,8 @@ static int ocfs2_mount_volume(struct super_block *sb)
->>>>>     	if (ocfs2_is_hard_readonly(osb))
->>>>>     		goto leave;
->>>>>     
->>>>> +	mutex_init(&osb->obs_trim_fs_mutex);
->>>>> +
->>>>>     	status = ocfs2_dlm_init(osb);
->>>>>     	if (status < 0) {
->>>>>     		mlog_errno(status);
->>>>>
->>>
-> 
+-- 
+Jan Kara <jack@suse.com>
+SUSE Labs, CR
