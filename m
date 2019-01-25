@@ -1,150 +1,67 @@
-From: Jan Kara <jack@suse.cz>
-Date: Wed, 23 Jan 2019 12:48:03 +0100
-Subject: [Ocfs2-devel] [RFC][PATCH v5 05/09] ocfs2: use common file type
-	conversion
-In-Reply-To: <20190121005432.GA32351@pathfinder>
-References: <20190121005432.GA32351@pathfinder>
-Message-ID: <20190123114803.GB20927@quack2.suse.cz>
+From: Jia Guo <guojia12@huawei.com>
+Date: Fri, 25 Jan 2019 14:05:51 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: fix a panic problem caused by o2cb_ctl
+Message-ID: <00174f72-6e5f-e049-2144-d0bb177e24a5@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Phillip Potter <phil@philpotter.co.uk>
-Cc: mark@fasheh.com, amir73il@gmail.com, viro@zeniv.linux.org.uk, jlbec@evilplan.org, linux-fsdevel@vger.kernel.org, ocfs2-devel@oss.oracle.com
+To: ocfs2-devel@oss.oracle.com
 
-On Mon 21-01-19 00:54:32, Phillip Potter wrote:
-> Deduplicate the ocfs2 file type conversion implementation and remove
-> OCFS2_FT_* definitions - file systems that use the same file types
-> as defined by POSIX do not need to define their own versions and can
-> use the common helper functions decared in fs_types.h and implemented
-> in fs_types.c
-> 
-> Signed-off-by: Amir Goldstein <amir73il@gmail.com>
-> Signed-off-by: Phillip Potter <phil@philpotter.co.uk>
+In the process of creating a node, it will cause NULL pointer reference
+in kernel if o2cb_ctl failed in the interval
+(mkdir, o2cb_set_node_attribute(node_num)] in function o2cb_add_node.
 
-The patch looks good to me. You can add:
+The node num is initialized to 0 in function o2nm_node_group_make_item,
+o2nm_node_group_drop_item will mistake the node number 0 for a
+valid node number when we delete the node before the node number is set
+correctly. If the local node number of the current host happens to be 0,
+cluster->cl_local_node will be set to O2NM_INVALID_NODE_NUM while
+o2hb_thread still running. The panic stack is generated as follows:
 
-Reviewed-by: Jan Kara <jack@suse.cz>
+o2hb_thread
+    \-o2hb_do_disk_heartbeat
+        \-o2hb_check_own_slot
+            |-slot = &reg->hr_slots[o2nm_this_node()];
+            //o2nm_this_node() return O2NM_INVALID_NODE_NUM
 
-								Honza
+We need to check whether the node number is set when we delete the node.
 
-> ---
->  fs/ocfs2/dir.c      | 20 ++++----------------
->  fs/ocfs2/ocfs2_fs.h | 28 +---------------------------
->  2 files changed, 5 insertions(+), 43 deletions(-)
-> 
-> diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
-> index c121abbdfc7d..85f21caaa6ec 100644
-> --- a/fs/ocfs2/dir.c
-> +++ b/fs/ocfs2/dir.c
-> @@ -69,10 +69,6 @@
->  #define NAMEI_RA_BLOCKS  4
->  #define NAMEI_RA_SIZE        (NAMEI_RA_CHUNKS * NAMEI_RA_BLOCKS)
->  
-> -static unsigned char ocfs2_filetype_table[] = {
-> -	DT_UNKNOWN, DT_REG, DT_DIR, DT_CHR, DT_BLK, DT_FIFO, DT_SOCK, DT_LNK
-> -};
-> -
->  static int ocfs2_do_extend_dir(struct super_block *sb,
->  			       handle_t *handle,
->  			       struct inode *dir,
-> @@ -1718,7 +1714,7 @@ int __ocfs2_add_entry(handle_t *handle,
->  				de->rec_len = cpu_to_le16(OCFS2_DIR_REC_LEN(de->name_len));
->  				de = de1;
->  			}
-> -			de->file_type = OCFS2_FT_UNKNOWN;
-> +			de->file_type = FT_UNKNOWN;
->  			if (blkno) {
->  				de->inode = cpu_to_le64(blkno);
->  				ocfs2_set_de_type(de, inode->i_mode);
-> @@ -1803,13 +1799,9 @@ static int ocfs2_dir_foreach_blk_id(struct inode *inode,
->  		}
->  		offset += le16_to_cpu(de->rec_len);
->  		if (le64_to_cpu(de->inode)) {
-> -			unsigned char d_type = DT_UNKNOWN;
-> -
-> -			if (de->file_type < OCFS2_FT_MAX)
-> -				d_type = ocfs2_filetype_table[de->file_type];
-> -
->  			if (!dir_emit(ctx, de->name, de->name_len,
-> -				      le64_to_cpu(de->inode), d_type))
-> +				      le64_to_cpu(de->inode),
-> +				      fs_ftype_to_dtype(de->file_type)))
->  				goto out;
->  		}
->  		ctx->pos += le16_to_cpu(de->rec_len);
-> @@ -1900,14 +1892,10 @@ static int ocfs2_dir_foreach_blk_el(struct inode *inode,
->  				break;
->  			}
->  			if (le64_to_cpu(de->inode)) {
-> -				unsigned char d_type = DT_UNKNOWN;
-> -
-> -				if (de->file_type < OCFS2_FT_MAX)
-> -					d_type = ocfs2_filetype_table[de->file_type];
->  				if (!dir_emit(ctx, de->name,
->  						de->name_len,
->  						le64_to_cpu(de->inode),
-> -						d_type)) {
-> +					fs_ftype_to_dtype(de->file_type))) {
->  					brelse(bh);
->  					return 0;
->  				}
-> diff --git a/fs/ocfs2/ocfs2_fs.h b/fs/ocfs2/ocfs2_fs.h
-> index 7071ad0dec90..b86bf5e74348 100644
-> --- a/fs/ocfs2/ocfs2_fs.h
-> +++ b/fs/ocfs2/ocfs2_fs.h
-> @@ -391,21 +391,6 @@ static struct ocfs2_system_inode_info ocfs2_system_inodes[NUM_SYSTEM_INODES] = {
->  #define OCFS2_HB_LOCAL			"heartbeat=local"
->  #define OCFS2_HB_GLOBAL			"heartbeat=global"
->  
-> -/*
-> - * OCFS2 directory file types.  Only the low 3 bits are used.  The
-> - * other bits are reserved for now.
-> - */
-> -#define OCFS2_FT_UNKNOWN	0
-> -#define OCFS2_FT_REG_FILE	1
-> -#define OCFS2_FT_DIR		2
-> -#define OCFS2_FT_CHRDEV		3
-> -#define OCFS2_FT_BLKDEV		4
-> -#define OCFS2_FT_FIFO		5
-> -#define OCFS2_FT_SOCK		6
-> -#define OCFS2_FT_SYMLINK	7
-> -
-> -#define OCFS2_FT_MAX		8
-> -
->  /*
->   * OCFS2_DIR_PAD defines the directory entries boundaries
->   *
-> @@ -424,17 +409,6 @@ static struct ocfs2_system_inode_info ocfs2_system_inodes[NUM_SYSTEM_INODES] = {
->  #define	OCFS2_LINKS_HI_SHIFT	16
->  #define	OCFS2_DX_ENTRIES_MAX	(0xffffffffU)
->  
-> -#define S_SHIFT			12
-> -static unsigned char ocfs2_type_by_mode[S_IFMT >> S_SHIFT] = {
-> -	[S_IFREG >> S_SHIFT]  = OCFS2_FT_REG_FILE,
-> -	[S_IFDIR >> S_SHIFT]  = OCFS2_FT_DIR,
-> -	[S_IFCHR >> S_SHIFT]  = OCFS2_FT_CHRDEV,
-> -	[S_IFBLK >> S_SHIFT]  = OCFS2_FT_BLKDEV,
-> -	[S_IFIFO >> S_SHIFT]  = OCFS2_FT_FIFO,
-> -	[S_IFSOCK >> S_SHIFT] = OCFS2_FT_SOCK,
-> -	[S_IFLNK >> S_SHIFT]  = OCFS2_FT_SYMLINK,
-> -};
-> -
->  
->  /*
->   * Convenience casts
-> @@ -1629,7 +1603,7 @@ static inline int ocfs2_sprintf_system_inode_name(char *buf, int len,
->  static inline void ocfs2_set_de_type(struct ocfs2_dir_entry *de,
->  				    umode_t mode)
->  {
-> -	de->file_type = ocfs2_type_by_mode[(mode & S_IFMT)>>S_SHIFT];
-> +	de->file_type = fs_umode_to_ftype(mode);
->  }
->  
->  static inline int ocfs2_gd_is_discontig(struct ocfs2_group_desc *gd)
-> -- 
-> 2.20.1
-> 
--- 
-Jan Kara <jack@suse.com>
-SUSE Labs, CR
+Signed-off-by: Jia Guo <guojia12@huawei.com>
+---
+ fs/ocfs2/cluster/nodemanager.c | 13 +++++++++----
+ 1 file changed, 9 insertions(+), 4 deletions(-)
+
+diff --git a/fs/ocfs2/cluster/nodemanager.c b/fs/ocfs2/cluster/nodemanager.c
+index 0e4166c..992ccc0 100644
+--- a/fs/ocfs2/cluster/nodemanager.c
++++ b/fs/ocfs2/cluster/nodemanager.c
+@@ -620,10 +620,16 @@ static void o2nm_node_group_drop_item(struct config_group *group,
+ {
+ 	struct o2nm_node *node = to_o2nm_node(item);
+ 	struct o2nm_cluster *cluster = to_o2nm_cluster(group->cg_item.ci_parent);
++	int nd_num_set = 0;
+
+-	o2net_disconnect_node(node);
++	/* nd_num might be 0 if the node number hasn't been set.. */
++	if (cluster->cl_nodes[node->nd_num] == node) {
++		nd_num_set = 1;
++
++	if (nd_num_set)
++		o2net_disconnect_node(node);
+
+-	if (cluster->cl_has_local &&
++	if (nd_num_set && cluster->cl_has_local &&
+ 	    (cluster->cl_local_node == node->nd_num)) {
+ 		cluster->cl_has_local = 0;
+ 		cluster->cl_local_node = O2NM_INVALID_NODE_NUM;
+@@ -638,8 +644,7 @@ static void o2nm_node_group_drop_item(struct config_group *group,
+ 	if (node->nd_ipv4_address)
+ 		rb_erase(&node->nd_ip_node, &cluster->cl_node_ip_tree);
+
+-	/* nd_num might be 0 if the node number hasn't been set.. */
+-	if (cluster->cl_nodes[node->nd_num] == node) {
++	if (nd_num_set) {
+ 		cluster->cl_nodes[node->nd_num] = NULL;
+ 		clear_bit(node->nd_num, cluster->cl_nodes_bitmap);
+ 	}
