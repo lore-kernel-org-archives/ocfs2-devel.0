@@ -1,115 +1,134 @@
-From: piaojun <piaojun@huawei.com>
-Date: Fri, 15 Feb 2019 14:19:38 +0800
+From: Changwei Ge <ge.changwei@h3c.com>
+Date: Fri, 15 Feb 2019 06:29:17 +0000
 Subject: [Ocfs2-devel] [PATCH] ocfs2: wait for recovering done after
  direct unlock request
-In-Reply-To: <1550124866-20367-1-git-send-email-ge.changwei@h3c.com>
 References: <1550124866-20367-1-git-send-email-ge.changwei@h3c.com>
-Message-ID: <5C6659FA.2000100@huawei.com>
+	<5C6659FA.2000100@huawei.com>
+Message-ID: <63ADC13FD55D6546B7DECE290D39E3730127854170@H3CMLB14-EX.srv.huawei-3com.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Changwei,
+Hi Jun,
 
-The DLM process is a little bit complex, so I suggest pasting the code
-path. And I wonder if my code is right?
+On 2019/2/15 14:20, piaojun wrote:
+> Hi Changwei,
+> 
+> The DLM process is a little bit complex, so I suggest pasting the code
+> path. And I wonder if my code is right?
+> 
+> Thanks,
+> Jun
+> 
+> On 2019/2/14 14:14, Changwei Ge wrote:
+>> There is scenario causing ocfs2 umount hang when multiple hosts are
+>> rebooting at the same time.
+>>
+>> NODE1                           NODE2               NODE3
+>> send unlock requset to NODE2
+>>                                  dies
+>>                                                      become recovery master
+>>                                                      recover NODE2
+>> find NODE2 dead
+>> mark resource RECOVERING
+>> directly remove lock from grant list
+> dlm_do_local_recovery_cleanup
+>    dlm_move_lockres_to_recovery_list
+>      res->state |= DLM_LOCK_RES_RECOVERING;
+>      list_add_tail(&res->recovering, &dlm->reco.resources);
+> 
+>> calculate usage but RECOVERING marked
+>> **miss the window of purging
+> dlmunlock
+>    dlmunlock_remote
+>      dlmunlock_common // unlock successfully directly
+> 
+>    dlm_lockres_calc_usage
+>      __dlm_lockres_calc_usage
+>        __dlm_lockres_unused
+>          if (res->state & (DLM_LOCK_RES_RECOVERING| // won't purge lock as DLM_LOCK_RES_RECOVERING is set
+
+True.
+
+> 
+>> clear RECOVERING
+> dlm_finish_local_lockres_recovery
+>    res->state &= ~DLM_LOCK_RES_RECOVERING;
+> 
+> Could you help explaining where getting stuck?
+
+Sure,
+As dlm missed the window to purge lock resource, it can't be unhashed.
+
+During umount:
+dlm_unregister_domain
+   dlm_migrate_all_locks -> there is always a lock resource hashed, so can't return from dlm_migrate_all_locks() thus hang during umount.
 
 Thanks,
-Jun
-
-On 2019/2/14 14:14, Changwei Ge wrote:
-> There is scenario causing ocfs2 umount hang when multiple hosts are
-> rebooting at the same time.
-> 
-> NODE1                           NODE2               NODE3
-> send unlock requset to NODE2
->                                 dies
->                                                     become recovery master
->                                                     recover NODE2
-> find NODE2 dead
-> mark resource RECOVERING
-> directly remove lock from grant list
-dlm_do_local_recovery_cleanup
-  dlm_move_lockres_to_recovery_list
-    res->state |= DLM_LOCK_RES_RECOVERING;
-    list_add_tail(&res->recovering, &dlm->reco.resources);
-
-> calculate usage but RECOVERING marked
-> **miss the window of purging
-dlmunlock
-  dlmunlock_remote
-    dlmunlock_common // unlock successfully directly
-
-  dlm_lockres_calc_usage
-    __dlm_lockres_calc_usage
-      __dlm_lockres_unused
-        if (res->state & (DLM_LOCK_RES_RECOVERING| // won't purge lock as DLM_LOCK_RES_RECOVERING is set
-
-> clear RECOVERING
-dlm_finish_local_lockres_recovery
-  res->state &= ~DLM_LOCK_RES_RECOVERING;
-
-Could you help explaining where getting stuck?
+Changwei
+	
 
 > 
-> To reproduce this iusse, crash a host and then umount ocfs2
-> from another node.
-> 
-> To sovle this, just let unlock progress wait for recovery done.
-> 
-> Signed-off-by: Changwei Ge <ge.changwei@h3c.com>
-> ---
->  fs/ocfs2/dlm/dlmunlock.c | 23 +++++++++++++++++++----
->  1 file changed, 19 insertions(+), 4 deletions(-)
-> 
-> diff --git a/fs/ocfs2/dlm/dlmunlock.c b/fs/ocfs2/dlm/dlmunlock.c
-> index 63d701c..c8e9b70 100644
-> --- a/fs/ocfs2/dlm/dlmunlock.c
-> +++ b/fs/ocfs2/dlm/dlmunlock.c
-> @@ -105,7 +105,8 @@ static enum dlm_status dlmunlock_common(struct dlm_ctxt *dlm,
->  	enum dlm_status status;
->  	int actions = 0;
->  	int in_use;
-> -        u8 owner;
-> +	u8 owner;
-> +	int recovery_wait = 0;
->  
->  	mlog(0, "master_node = %d, valblk = %d\n", master_node,
->  	     flags & LKM_VALBLK);
-> @@ -208,9 +209,12 @@ static enum dlm_status dlmunlock_common(struct dlm_ctxt *dlm,
->  		}
->  		if (flags & LKM_CANCEL)
->  			lock->cancel_pending = 0;
-> -		else
-> -			lock->unlock_pending = 0;
-> -
-> +		else {
-> +			if (!lock->unlock_pending)
-> +				recovery_wait = 1;
-> +			else
-> +				lock->unlock_pending = 0;
-> +		}
->  	}
->  
->  	/* get an extra ref on lock.  if we are just switching
-> @@ -244,6 +248,17 @@ static enum dlm_status dlmunlock_common(struct dlm_ctxt *dlm,
->  	spin_unlock(&res->spinlock);
->  	wake_up(&res->wq);
->  
-> +	if (recovery_wait) {
-> +		spin_lock(&res->spinlock);
-> +		/* Unlock request will directly succeed after owner dies,
-> +		 * and the lock is already removed from grant list. We have to
-> +		 * wait for RECOVERING done or we miss the chance to purge it
-> +		 * since the removement is much faster than RECOVERING proc.
-> +		 */
-> +		__dlm_wait_on_lockres_flags(res, DLM_LOCK_RES_RECOVERING);
-> +		spin_unlock(&res->spinlock);
-> +	}
-> +
->  	/* let the caller's final dlm_lock_put handle the actual kfree */
->  	if (actions & DLM_UNLOCK_FREE_LOCK) {
->  		/* this should always be coupled with list removal */
+>>
+>> To reproduce this iusse, crash a host and then umount ocfs2
+>> from another node.
+>>
+>> To sovle this, just let unlock progress wait for recovery done.
+>>
+>> Signed-off-by: Changwei Ge <ge.changwei@h3c.com>
+>> ---
+>>   fs/ocfs2/dlm/dlmunlock.c | 23 +++++++++++++++++++----
+>>   1 file changed, 19 insertions(+), 4 deletions(-)
+>>
+>> diff --git a/fs/ocfs2/dlm/dlmunlock.c b/fs/ocfs2/dlm/dlmunlock.c
+>> index 63d701c..c8e9b70 100644
+>> --- a/fs/ocfs2/dlm/dlmunlock.c
+>> +++ b/fs/ocfs2/dlm/dlmunlock.c
+>> @@ -105,7 +105,8 @@ static enum dlm_status dlmunlock_common(struct dlm_ctxt *dlm,
+>>   	enum dlm_status status;
+>>   	int actions = 0;
+>>   	int in_use;
+>> -        u8 owner;
+>> +	u8 owner;
+>> +	int recovery_wait = 0;
+>>   
+>>   	mlog(0, "master_node = %d, valblk = %d\n", master_node,
+>>   	     flags & LKM_VALBLK);
+>> @@ -208,9 +209,12 @@ static enum dlm_status dlmunlock_common(struct dlm_ctxt *dlm,
+>>   		}
+>>   		if (flags & LKM_CANCEL)
+>>   			lock->cancel_pending = 0;
+>> -		else
+>> -			lock->unlock_pending = 0;
+>> -
+>> +		else {
+>> +			if (!lock->unlock_pending)
+>> +				recovery_wait = 1;
+>> +			else
+>> +				lock->unlock_pending = 0;
+>> +		}
+>>   	}
+>>   
+>>   	/* get an extra ref on lock.  if we are just switching
+>> @@ -244,6 +248,17 @@ static enum dlm_status dlmunlock_common(struct dlm_ctxt *dlm,
+>>   	spin_unlock(&res->spinlock);
+>>   	wake_up(&res->wq);
+>>   
+>> +	if (recovery_wait) {
+>> +		spin_lock(&res->spinlock);
+>> +		/* Unlock request will directly succeed after owner dies,
+>> +		 * and the lock is already removed from grant list. We have to
+>> +		 * wait for RECOVERING done or we miss the chance to purge it
+>> +		 * since the removement is much faster than RECOVERING proc.
+>> +		 */
+>> +		__dlm_wait_on_lockres_flags(res, DLM_LOCK_RES_RECOVERING);
+>> +		spin_unlock(&res->spinlock);
+>> +	}
+>> +
+>>   	/* let the caller's final dlm_lock_put handle the actual kfree */
+>>   	if (actions & DLM_UNLOCK_FREE_LOCK) {
+>>   		/* this should always be coupled with list removal */
+>>
 > 
