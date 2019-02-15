@@ -1,151 +1,151 @@
-From: Changwei Ge <ge.changwei@h3c.com>
-Date: Fri, 15 Feb 2019 08:27:27 +0000
-Subject: [Ocfs2-devel] [PATCH] ocfs2: checkpoint appending truncate log
- transaction before flushing
-References: <1550116993-17084-1-git-send-email-ge.changwei@h3c.com>
-	<5C6525AB.2020603@huawei.com>
-	<63ADC13FD55D6546B7DECE290D39E3730127853771@H3CMLB14-EX.srv.huawei-3com.com>
-	<5C653D96.1030508@huawei.com>
-	<63ADC13FD55D6546B7DECE290D39E3730127853911@H3CMLB14-EX.srv.huawei-3com.com>
-Message-ID: <63ADC13FD55D6546B7DECE290D39E373012785431C@H3CMLB14-EX.srv.huawei-3com.com>
+From: piaojun <piaojun@huawei.com>
+Date: Fri, 15 Feb 2019 16:36:03 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: wait for recovering done after
+ direct unlock request
+In-Reply-To: <63ADC13FD55D6546B7DECE290D39E3730127854170@H3CMLB14-EX.srv.huawei-3com.com>
+References: <1550124866-20367-1-git-send-email-ge.changwei@h3c.com>
+	<5C6659FA.2000100@huawei.com>
+	<63ADC13FD55D6546B7DECE290D39E3730127854170@H3CMLB14-EX.srv.huawei-3com.com>
+Message-ID: <5C6679F3.3020306@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Jun,
+Hi Changwei,
 
-Do you have any other question, advise or concern?
-I am expecting an explicit feedback(ack/nack) if you already understand the problem and my way fixing it.
+Thanks for your explaination, and I still have a question below.
 
-Thanks,
-Changwei
-
-On 2019/2/14 18:25, Changwei Ge wrote:
-> On 2019/2/14 18:06, piaojun wrote:
+On 2019/2/15 14:29, Changwei Ge wrote:
+> Hi Jun,
+> 
+> On 2019/2/15 14:20, piaojun wrote:
 >> Hi Changwei,
 >>
->> On 2019/2/14 16:53, Changwei Ge wrote:
->>> Hi Jun,
->>>
->>> Thanks for looking into this :-)
->>>
->>> On 2019/2/14 16:24, piaojun wrote:
->>>> Hi Changwei,
->>>>
->>>> On 2019/2/14 12:03, Changwei Ge wrote:
->>>>> Appending truncate log(TA) and and flushing truncate log(TF) are
->>>>> two separated transactions. They can be both committed but not
->>>>> checkpointed. If crash occurs then, both two transaction will be
->>>>> replayed with several already released to global bitmap clusters.
->>>>
->>>> Do you mean that both the two transactions will release cluster to
->>>> global bitmap? But I think the TA won't give back clusters to global
->>>> bitmap.
->>>>
->>>
->>> No, I don't mean that both TA and TF are releasing clusters to global bitmap.
->>>
->>> But consideration into clusters reclaim , clusters will first be recorded in truncate
->>> log and then be returned to global bitmap, which involves TA and TF jdb2/transactions.
->>>
->>> TA's job is to append cluster records to truncate log, by which we can overcome a potential space leak problem.
->>> TF's job is to return clusters to global bitmap.
->>>
->>> It's possible that TA and TF are both committed to JBD but sadly none of them is check-pointed.
->>> So journal replaying need to replay both TA and TF during next mount.
->>> Then there is a record residing in truncate log representing the already released cluster
->>> which has been returned to global bitmap by replaying TF.
->>>
->>> Now the double free shows up.
->>
->> Do you mean that when mount again, truncate log recovery will find
->> record residing in truncate log which already released? But after the
->> TF transaction replayed during mount, truncate log won't be recovered
->> as tl->tl_used is less than tl->tl_count.
-> 
-> Um, not just truncate log relaying but also involves a jbd2 transaction recording its last append operation.
-> That operation may meet the flush condition (ocfs2_truncate_log_needs_flush)
-> 
-> Thanks,
-> Changwei
-> 
+>> The DLM process is a little bit complex, so I suggest pasting the code
+>> path. And I wonder if my code is right?
 >>
 >> Thanks,
 >> Jun
 >>
+>> On 2019/2/14 14:14, Changwei Ge wrote:
+>>> There is scenario causing ocfs2 umount hang when multiple hosts are
+>>> rebooting at the same time.
 >>>
+>>> NODE1                           NODE2               NODE3
+>>> send unlock requset to NODE2
+>>>                                  dies
+>>>                                                      become recovery master
+>>>                                                      recover NODE2
+>>> find NODE2 dead
+>>> mark resource RECOVERING
+>>> directly remove lock from grant list
+>> dlm_do_local_recovery_cleanup
+>>    dlm_move_lockres_to_recovery_list
+>>      res->state |= DLM_LOCK_RES_RECOVERING;
+>>      list_add_tail(&res->recovering, &dlm->reco.resources);
+>>
+>>> calculate usage but RECOVERING marked
+>>> **miss the window of purging
+>> dlmunlock
+>>    dlmunlock_remote
+>>      dlmunlock_common // unlock successfully directly
+>>
+>>    dlm_lockres_calc_usage
+>>      __dlm_lockres_calc_usage
+>>        __dlm_lockres_unused
+>>          if (res->state & (DLM_LOCK_RES_RECOVERING| // won't purge lock as DLM_LOCK_RES_RECOVERING is set
+> 
+> True.
+> 
+>>
+>>> clear RECOVERING
+>> dlm_finish_local_lockres_recovery
+>>    res->state &= ~DLM_LOCK_RES_RECOVERING;
+>>
+>> Could you help explaining where getting stuck?
+> 
+> Sure,
+> As dlm missed the window to purge lock resource, it can't be unhashed.
+> 
+> During umount:
+> dlm_unregister_domain
+>    dlm_migrate_all_locks -> there is always a lock resource hashed, so can't return from dlm_migrate_all_locks() thus hang during umount.
+
+In dlm_migrate_all_locks, lockres will be move to purge_list and purged again:
+dlm_migrate_all_locks
+  __dlm_lockres_calc_usage
+    list_add_tail(&res->purge, &dlm->purge_list);
+
+Do you mean this process does not work?
+
+> 
+> Thanks,
+> Changwei
+> 	
+> 
+>>
 >>>
->>>>> Then truncate log will be replayed resulting in cluster double free.
->>>>
->>>> Does this problem only cause some error log? As below:
->>>>
->>>> ocfs2_replay_truncate_records
->>>>      ocfs2_free_clusters
->>>>        _ocfs2_free_clusters
->>>>          _ocfs2_free_suballoc_bits
->>>>            ocfs2_block_group_clear_bits
->>>>              "Trying to clear %u bits at offset %u in group descriptor"
->>>>
+>>> To reproduce this iusse, crash a host and then umount ocfs2
+>>> from another node.
 >>>
->>> Exactly, when the issue occurs, it will be printed as above.
+>>> To sovle this, just let unlock progress wait for recovery done.
 >>>
->>> Thanks,
->>> Changwei
+>>> Signed-off-by: Changwei Ge <ge.changwei@h3c.com>
+>>> ---
+>>>   fs/ocfs2/dlm/dlmunlock.c | 23 +++++++++++++++++++----
+>>>   1 file changed, 19 insertions(+), 4 deletions(-)
 >>>
->>>> Thanks,
->>>> Jun
->>>>
->>>>>
->>>>> To reproduce this issue, just crash the host while punching hole to files.
->>>>>
->>>>> Signed-off-by: Changwei Ge <ge.changwei@h3c.com>
->>>>> ---
->>>>>     fs/ocfs2/alloc.c | 15 +++++++++++++++
->>>>>     1 file changed, 15 insertions(+)
->>>>>
->>>>> diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
->>>>> index d1cbb27..29bc777 100644
->>>>> --- a/fs/ocfs2/alloc.c
->>>>> +++ b/fs/ocfs2/alloc.c
->>>>> @@ -6007,6 +6007,7 @@ int __ocfs2_flush_truncate_log(struct ocfs2_super *osb)
->>>>>     	struct buffer_head *data_alloc_bh = NULL;
->>>>>     	struct ocfs2_dinode *di;
->>>>>     	struct ocfs2_truncate_log *tl;
->>>>> +	struct ocfs2_journal *journal = osb->journal;
->>>>>     
->>>>>     	BUG_ON(inode_trylock(tl_inode));
->>>>>     
->>>>> @@ -6027,6 +6028,20 @@ int __ocfs2_flush_truncate_log(struct ocfs2_super *osb)
->>>>>     		goto out;
->>>>>     	}
->>>>>     
->>>>> +	/* Appending truncate log(TA) and and flushing truncate log(TF) are
->>>>> +	 * two separated transactions. They can be both committed but not
->>>>> +	 * checkpointed. If crash occurs then, both two transaction will be
->>>>> +	 * replayed with several already released to global bitmap clusters.
->>>>> +	 * Then truncate log will be replayed resulting in cluster double free.
->>>>> +	 */
->>>>> +	jbd2_journal_lock_updates(journal->j_journal);
->>>>> +	status = jbd2_journal_flush(journal->j_journal);
->>>>> +	jbd2_journal_unlock_updates(journal->j_journal);
->>>>> +	if (status < 0) {
->>>>> +		mlog_errno(status);
->>>>> +		goto out;
->>>>> +	}
->>>>> +
->>>>>     	data_alloc_inode = ocfs2_get_system_file_inode(osb,
->>>>>     						       GLOBAL_BITMAP_SYSTEM_INODE,
->>>>>     						       OCFS2_INVALID_SLOT);
->>>>>
->>>>
->>> .
+>>> diff --git a/fs/ocfs2/dlm/dlmunlock.c b/fs/ocfs2/dlm/dlmunlock.c
+>>> index 63d701c..c8e9b70 100644
+>>> --- a/fs/ocfs2/dlm/dlmunlock.c
+>>> +++ b/fs/ocfs2/dlm/dlmunlock.c
+>>> @@ -105,7 +105,8 @@ static enum dlm_status dlmunlock_common(struct dlm_ctxt *dlm,
+>>>   	enum dlm_status status;
+>>>   	int actions = 0;
+>>>   	int in_use;
+>>> -        u8 owner;
+>>> +	u8 owner;
+>>> +	int recovery_wait = 0;
+>>>   
+>>>   	mlog(0, "master_node = %d, valblk = %d\n", master_node,
+>>>   	     flags & LKM_VALBLK);
+>>> @@ -208,9 +209,12 @@ static enum dlm_status dlmunlock_common(struct dlm_ctxt *dlm,
+>>>   		}
+>>>   		if (flags & LKM_CANCEL)
+>>>   			lock->cancel_pending = 0;
+>>> -		else
+>>> -			lock->unlock_pending = 0;
+>>> -
+>>> +		else {
+>>> +			if (!lock->unlock_pending)
+>>> +				recovery_wait = 1;
+>>> +			else
+>>> +				lock->unlock_pending = 0;
+>>> +		}
+>>>   	}
+>>>   
+>>>   	/* get an extra ref on lock.  if we are just switching
+>>> @@ -244,6 +248,17 @@ static enum dlm_status dlmunlock_common(struct dlm_ctxt *dlm,
+>>>   	spin_unlock(&res->spinlock);
+>>>   	wake_up(&res->wq);
+>>>   
+>>> +	if (recovery_wait) {
+>>> +		spin_lock(&res->spinlock);
+>>> +		/* Unlock request will directly succeed after owner dies,
+>>> +		 * and the lock is already removed from grant list. We have to
+>>> +		 * wait for RECOVERING done or we miss the chance to purge it
+>>> +		 * since the removement is much faster than RECOVERING proc.
+>>> +		 */
+>>> +		__dlm_wait_on_lockres_flags(res, DLM_LOCK_RES_RECOVERING);
+>>> +		spin_unlock(&res->spinlock);
+>>> +	}
+>>> +
+>>>   	/* let the caller's final dlm_lock_put handle the actual kfree */
+>>>   	if (actions & DLM_UNLOCK_FREE_LOCK) {
+>>>   		/* this should always be coupled with list removal */
 >>>
 >>
-> 
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+> .
 > 
