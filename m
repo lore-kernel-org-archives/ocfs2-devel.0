@@ -1,20 +1,15 @@
 From: piaojun <piaojun@huawei.com>
-Date: Fri, 15 Feb 2019 17:19:57 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: return DLM_CANCELGRANT if the
- lock is on granted list and the operation is canceled
-In-Reply-To: <63ADC13FD55D6546B7DECE290D39E37301278542B3@H3CMLB14-EX.srv.huawei-3com.com>
-References: <98f0e80c-9c13-dbb6-047c-b40e100082b1@huawei.com>
-	<63ADC13FD55D6546B7DECE290D39E37301277EFAA1@H3CMLB12-EX.srv.huawei-3com.com>
-	<00607177-cb1b-d380-e6d3-3d5cb9b3c991@huawei.com>
-	<63ADC13FD55D6546B7DECE290D39E37301277F1589@H3CMLB12-EX.srv.huawei-3com.com>
-	<7420155e-f7d6-520c-5134-4a681399a68a@huawei.com>
-	<5C652F12.9010408@huawei.com>
-	<63ADC13FD55D6546B7DECE290D39E37301278538DD@H3CMLB14-EX.srv.huawei-3com.com>
-	<5C666142.7000100@huawei.com>
-	<63ADC13FD55D6546B7DECE290D39E37301278541E8@H3CMLB14-EX.srv.huawei-3com.com>
-	<5C666BA8.4030403@huawei.com>
-	<63ADC13FD55D6546B7DECE290D39E37301278542B3@H3CMLB14-EX.srv.huawei-3com.com>
-Message-ID: <5C66843D.60603@huawei.com>
+Date: Fri, 15 Feb 2019 17:21:07 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: checkpoint appending truncate log
+ transaction before flushing
+In-Reply-To: <63ADC13FD55D6546B7DECE290D39E373012785431C@H3CMLB14-EX.srv.huawei-3com.com>
+References: <1550116993-17084-1-git-send-email-ge.changwei@h3c.com>
+	<5C6525AB.2020603@huawei.com>
+	<63ADC13FD55D6546B7DECE290D39E3730127853771@H3CMLB14-EX.srv.huawei-3com.com>
+	<5C653D96.1030508@huawei.com>
+	<63ADC13FD55D6546B7DECE290D39E3730127853911@H3CMLB14-EX.srv.huawei-3com.com>
+	<63ADC13FD55D6546B7DECE290D39E373012785431C@H3CMLB14-EX.srv.huawei-3com.com>
+Message-ID: <5C668483.5050501@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -23,399 +18,146 @@ To: ocfs2-devel@oss.oracle.com
 
 Hi Changwei,
 
-On 2019/2/15 15:56, Changwei Ge wrote:
-> Hi Jun
-> 
-> I just read the code around unlock/cancel.
-> 
-> On 2019/2/15 15:35, piaojun wrote:
->> Hi Changwei,
->>
->> On 2019/2/15 15:06, Changwei Ge wrote:
->>> Hi Jun,
->>>
->>> On 2019/2/15 14:51, piaojun wrote:
->>>> Hi Changwei,
->>>>
->>>> On 2019/2/14 18:13, Changwei Ge wrote:
->>>>> On 2019/2/14 17:09, piaojun wrote:
->>>>>> Hi Changwei,
->>>>>>
->>>>>> The problem can't be solved completely if clear ::cancel_pending in
->>>>>> dlm_proxy_ast_handler, as AST will come at anytime just before
->>>>>
->>>>> So how about also add check here bere setting ::cancel_pending in dlmunlock_common() before invoking dlm_send_remote_unlock_request().
->>>>> If already on grant list just return DLM_CANCELGRANT
->>>>>
->>>>> Then a further reference code might look like:
->>>>>
->>>>> root at ubuntu16:/home/chge/linux[master]# git diff
->>>>> diff --git a/fs/ocfs2/dlm/dlmast.c b/fs/ocfs2/dlm/dlmast.c
->>>>> index 39831fc..812843b 100644
->>>>> --- a/fs/ocfs2/dlm/dlmast.c
->>>>> +++ b/fs/ocfs2/dlm/dlmast.c
->>>>> @@ -372,8 +372,11 @@ int dlm_proxy_ast_handler(struct o2net_msg *msg, u32 len, void *data,
->>>>>            head = &res->converting;
->>>>>            lock = NULL;
->>>>>            list_for_each_entry(lock, head, list) {
->>>>> -               if (lock->ml.cookie == cookie)
->>>>> +               if (lock->ml.cookie == cookie) {
->>>>> +                       if (lock->cancel_pending)
->>>>> +                               lock->cancel_pending = 0;
->>>>>                            goto do_ast;
->>>>> +               }
->>>>>            }
->>>>>
->>>>>            /* if not on convert, try blocked for ast, granted for bast */
->>>>> diff --git a/fs/ocfs2/dlm/dlmunlock.c b/fs/ocfs2/dlm/dlmunlock.c
->>>>> index c8e9b70..b4728b5 100644
->>>>> --- a/fs/ocfs2/dlm/dlmunlock.c
->>>>> +++ b/fs/ocfs2/dlm/dlmunlock.c
->>>>> @@ -174,9 +174,14 @@ static enum dlm_status dlmunlock_common(struct dlm_ctxt *dlm,
->>>>>            if (!master_node) {
->>>>>                    owner = res->owner;
->>>>>                    /* drop locks and send message */
->>>>> -               if (flags & LKM_CANCEL)
->>>>> +               if (flags & LKM_CANCEL) {
->>>>> +                       if (dlm_lock_on_list(&res->granted, lock)) {
->>>>> +                               status = DLM_CANCELGRANT;
->>>>> +                               goto leave;
-> 
-> I found that above code should be useless.
-> As upstream code already take it into consideration that AST has come before cancellation.
-> In dlm_get_cancel_actions()
-> 	'''
-> 	} else if (dlm_lock_on_list(&res->granted, lock)) {
-> 		/* too late, already granted. */
-> 		status = DLM_CANCELGRANT;
-> 		*actions = DLM_UNLOCK_CALL_AST;
-> 	} else {
-> 	'''
-> 
->>>>
->>>> If master dead and then lockres is moved to granted list in
->>>> dlm_move_lockres_to_recovery_list, the OCFS2_LOCK_BUSY is not cleared.
->>>
->>> OCFS2_LOCK_BUSY  should be cleared in ocfs2_locking_ast() since previous locking AST has come back(moving lock to grant list).
->>> That's why we return DLM_CANCELGRANT to caller to avoid calling AST. Otherwise ast() will be called twice, which is obviously a BUG.
->>
->> I mean master is already dead and ast won't come. So the
->> OCFS2_LOCK_BUSY is not cleared. And there are two cases that lockres is
->> moved to grant list:
->> 1. AST comes back and OCFS2_LOCK_BUSY is cleared.
->> 2. AST does not come back and OCFS2_LOCK_BUSY remains, recovery process
->>     move it to grant list. In this case, we need do AST for it.
-> 
-> For point 2, ocfs2 can handle it, so you still don't have to worry. It's no problem.
-> In dlmconvert_remote()
+I just need more time to review this.
 
-What I worry about is that OCFS2_LOCK_BUSY won't be cleared if remote
-master is dead, as OCFS2_LOCK_BUSY is cleared in two cases:
-1. remote AST come, clear it in dlm_proxy_ast_handler.
-2. remote AST does not come when master dead, clear it in
-   o2dlm_unlock_ast_wrapper.
+Thanks,
+Jun
 
-For case 2, if DLM_CANCELGRANT is set, o2dlm_unlock_ast_wrapper just
-return and won't clear OCFS2_LOCK_BUSY. So in this case, I think we
-should do AST again for it.
-
+On 2019/2/15 16:27, Changwei Ge wrote:
+> Hi Jun,
 > 
-> 
-> 341         if (status != DLM_NORMAL) {
-> 342                 if (status != DLM_NOTQUEUED)
-> 343                         dlm_error(status);
-> 344                 dlm_revert_pending_convert(res, lock);
-> 345         } else if (!lock->convert_pending) {
-> 346                 mlog(0, "%s: res %.*s, owner died and lock has been moved back "
-> 347                                 "to granted list, retry convert.\n",
-> 348                                 dlm->name, res->lockname.len, res->lockname.name);
-> 349                 status = DLM_RECOVERING;
-> 350         }
-> 
-> Thus, dlmlock() will wait until RECOVERY is done.
-> And for ocfs2 layer, it's apparent, it doesn't have to be aware of what happened to DLM.
-
-I do not think the waiting can solve this problem.
-
+> Do you have any other question, advise or concern?
+> I am expecting an explicit feedback(ack/nack) if you already understand the problem and my way fixing it.
 > 
 > Thanks,
 > Changwei
 > 
-> 
->>
->> Perhaps we need do AST again for it.
->>
+> On 2019/2/14 18:25, Changwei Ge wrote:
+>> On 2019/2/14 18:06, piaojun wrote:
+>>> Hi Changwei,
 >>>
->>>> And this will cause stuck problem when ocfs2_drop_lock. The reason is
->>>> that unlock ast won't be done when DLM_CANCELGRANT is set. So I think
+>>> On 2019/2/14 16:53, Changwei Ge wrote:
+>>>> Hi Jun,
+>>>>
+>>>> Thanks for looking into this :-)
+>>>>
+>>>> On 2019/2/14 16:24, piaojun wrote:
+>>>>> Hi Changwei,
+>>>>>
+>>>>> On 2019/2/14 12:03, Changwei Ge wrote:
+>>>>>> Appending truncate log(TA) and and flushing truncate log(TF) are
+>>>>>> two separated transactions. They can be both committed but not
+>>>>>> checkpointed. If crash occurs then, both two transaction will be
+>>>>>> replayed with several already released to global bitmap clusters.
+>>>>>
+>>>>> Do you mean that both the two transactions will release cluster to
+>>>>> global bitmap? But I think the TA won't give back clusters to global
+>>>>> bitmap.
+>>>>>
+>>>>
+>>>> No, I don't mean that both TA and TF are releasing clusters to global bitmap.
+>>>>
+>>>> But consideration into clusters reclaim , clusters will first be recorded in truncate
+>>>> log and then be returned to global bitmap, which involves TA and TF jdb2/transactions.
+>>>>
+>>>> TA's job is to append cluster records to truncate log, by which we can overcome a potential space leak problem.
+>>>> TF's job is to return clusters to global bitmap.
+>>>>
+>>>> It's possible that TA and TF are both committed to JBD but sadly none of them is check-pointed.
+>>>> So journal replaying need to replay both TA and TF during next mount.
+>>>> Then there is a record residing in truncate log representing the already released cluster
+>>>> which has been returned to global bitmap by replaying TF.
+>>>>
+>>>> Now the double free shows up.
 >>>
->>> With above elaboration, you don't have to worry the hang issue anymore.
+>>> Do you mean that when mount again, truncate log recovery will find
+>>> record residing in truncate log which already released? But after the
+>>> TF transaction replayed during mount, truncate log won't be recovered
+>>> as tl->tl_used is less than tl->tl_count.
+>>
+>> Um, not just truncate log relaying but also involves a jbd2 transaction recording its last append operation.
+>> That operation may meet the flush condition (ocfs2_truncate_log_needs_flush)
+>>
+>> Thanks,
+>> Changwei
+>>
 >>>
 >>> Thanks,
->>> Changwei
+>>> Jun
 >>>
->>>> we need distinguish all the cases of moving lockres to grant list.
 >>>>
->>>>> +                       }
->>>>> +
->>>>>                            lock->cancel_pending = 1;
->>>>> -               else
->>>>> +               } else
->>>>>                            lock->unlock_pending = 1;
->>>>>                    spin_unlock(&lock->spinlock);
->>>>>                    spin_unlock(&res->spinlock);
+>>>>
+>>>>>> Then truncate log will be replayed resulting in cluster double free.
 >>>>>
+>>>>> Does this problem only cause some error log? As below:
 >>>>>
+>>>>> ocfs2_replay_truncate_records
+>>>>>      ocfs2_free_clusters
+>>>>>        _ocfs2_free_clusters
+>>>>>          _ocfs2_free_suballoc_bits
+>>>>>            ocfs2_block_group_clear_bits
+>>>>>              "Trying to clear %u bits at offset %u in group descriptor"
 >>>>>
+>>>>
+>>>> Exactly, when the issue occurs, it will be printed as above.
+>>>>
+>>>> Thanks,
+>>>> Changwei
+>>>>
 >>>>> Thanks,
->>>>> Changwei
+>>>>> Jun
 >>>>>
->>>>>> ::cancel_pendig is set. If there is not any other better solutions,
->>>>>> could we accept this patch? This bug is very harmful.
 >>>>>>
->>>>>> Thanks,
->>>>>> Jun
+>>>>>> To reproduce this issue, just crash the host while punching hole to files.
 >>>>>>
->>>>>> On 2018/12/8 18:05, wangjian wrote:
->>>>>>> Hi Changwei,
->>>>>>>
->>>>>>> I understand your idea. But we should be aware that the cancel_convert process and
->>>>>>> other processes (accepting the AST process, the recovery process) are asynchronous.
->>>>>>> For example, according to your idea, check if the lock is in the grant queue before
->>>>>>> calling the dlm_send_remote_unlock_request function in the dlm_proxy_ast_handler function.
->>>>>>> Then decide whether to clear cancel_pending. But if the AST does not come at this time,
->>>>>>> the check passes and cancel_pendig will not be cleared. Then AST immediately came over again,
->>>>>>> which also led to a bug. I personally think that for asynchronous processes we can't guarantee
->>>>>>> the speed of execution of each process. All we can do is to avoid the BUG scene.
->>>>>>>
->>>>>>> As for the question you said ("If you remove the BUG check why you still call dlm_commit_pending_cancel()
->>>>>>> to move the lock back to grant on matter it's on converting list or not?").
->>>>>>> I think we should first check if the lock is in the grant queue
->>>>>>> (at this time, dlm->spinlock and res->spinlock have been added), then decide whether to call
->>>>>>> dlm_commit_pending_cancel function.
->>>>>>>
->>>>>>> Thanks,
->>>>>>> Jian
->>>>>>>
->>>>>>> On 12/7/2018 11:12 AM, Changwei Ge wrote:
->>>>>>>> Hi Jian,
->>>>>>>>
->>>>>>>> I suppose that the situation you described truly exists.
->>>>>>>> But the way you fix the issue is not in my favor.
->>>>>>>>
->>>>>>>> If you remove the BUG check why you still call dlm_commit_pending_cancel() to
->>>>>>>> move the lock back to grant on matter it's on converting list or not?
->>>>>>>>
->>>>>>>> So how about keeping the BUG check in dlm_move_lockres_to_recovery_list().
->>>>>>>> If the locking _ast_ comes back very fast just check ::cancel_pending in dlm_proxy_ast_handler() and clear it.
->>>>>>>> Then with the logic checking if the lock is on grant list (in dlmunlock_common() more less like your current method)
->>>>>>>> or not we can easily tell if the cancellation succeeds or not.
->>>>>>>>
->>>>>>>> That complies the original dlm design, which I think is better and easier for maintainers to understand.
->>>>>>>>
->>>>>>>> Thanks,
->>>>>>>> Changwei
->>>>>>>>
->>>>>>>> On 2018/12/6 20:06, wangjian wrote:
->>>>>>>>> Hi Changwei,
->>>>>>>>>
->>>>>>>>> I don't fully agree with your point of view. In my opinion, the lock cancellation process and the lock
->>>>>>>>> conversion process are asynchronous. We can't guarantee that the lock must be in the convert list
->>>>>>>>> during the lock conversion process, otherwise this BUG will not happen.
->>>>>>>>> So, I think this is a meaningless BUG.
->>>>>>>>>
->>>>>>>>> Thanks,
->>>>>>>>> Jian
->>>>>>>>>
->>>>>>>>> On 12/5/2018 9:49 AM, Changwei Ge wrote:
->>>>>>>>>> Hi Jian,
->>>>>>>>>>
->>>>>>>>>> I suppose you can't just remove the BUG_ON() check.
->>>>>>>>>> If you remove it, below code violates the original logic.
->>>>>>>>>>
->>>>>>>>>> '''
->>>>>>>>>> 2141                                 dlm_commit_pending_cancel(res, lock);
->>>>>>>>>> '''
->>>>>>>>>>
->>>>>>>>>> What's more important is *locking cancel* must be against a *locking conversion* progress.
->>>>>>>>>> So it makes sense to check if this lock is on converting list.
->>>>>>>>>>
->>>>>>>>>> So I have to NACK to this patch.
->>>>>>>>>>
->>>>>>>>>> Thanks,
->>>>>>>>>> Changwei
->>>>>>>>>>
->>>>>>>>>>
->>>>>>>>>> On 2018/12/3 20:23, wangjian wrote:
->>>>>>>>>>> In the dlm_move_lockres_to_recovery_list function, if the lock
->>>>>>>>>>> is in the granted queue and cancel_pending is set, it will
->>>>>>>>>>> encounter a BUG. I think this is a meaningless BUG,
->>>>>>>>>>> so be prepared to remove it. A scenario that causes
->>>>>>>>>>> this BUG will be given below.
->>>>>>>>>>>
->>>>>>>>>>> At the beginning, Node 1 is the master and has NL lock,
->>>>>>>>>>> Node 2 has PR lock, Node 3 has PR lock too.
->>>>>>>>>>>
->>>>>>>>>>> Node 1          Node 2          Node 3
->>>>>>>>>>>                  want to get EX lock.
->>>>>>>>>>>
->>>>>>>>>>>                                  want to get EX lock.
->>>>>>>>>>>
->>>>>>>>>>> Node 3 hinder
->>>>>>>>>>> Node 2 to get
->>>>>>>>>>> EX lock, send
->>>>>>>>>>> Node 3 a BAST.
->>>>>>>>>>>
->>>>>>>>>>>                                  receive BAST from
->>>>>>>>>>>                                  Node 1. downconvert
->>>>>>>>>>>                                  thread begin to
->>>>>>>>>>>                                  cancel PR to EX conversion.
->>>>>>>>>>>                                  In dlmunlock_common function,
->>>>>>>>>>>                                  downconvert thread has set
->>>>>>>>>>>                                  lock->cancel_pending,
->>>>>>>>>>>                                  but did not enter
->>>>>>>>>>>                                  dlm_send_remote_unlock_request
->>>>>>>>>>>                                  function.
->>>>>>>>>>>
->>>>>>>>>>>                  Node2 dies because
->>>>>>>>>>>                  the host is powered down.
->>>>>>>>>>>
->>>>>>>>>>> In recovery process,
->>>>>>>>>>> clean the lock that
->>>>>>>>>>> related to Node2.
->>>>>>>>>>> then finish Node 3
->>>>>>>>>>> PR to EX request.
->>>>>>>>>>> give Node 3 a AST.
->>>>>>>>>>>
->>>>>>>>>>>                                  receive AST from Node 1.
->>>>>>>>>>>                                  change lock level to EX,
->>>>>>>>>>>                                  move lock to granted list.
->>>>>>>>>>>
->>>>>>>>>>> Node1 dies because
->>>>>>>>>>> the host is powered down.
->>>>>>>>>>>
->>>>>>>>>>>                                  In dlm_move_lockres_to_recovery_list
->>>>>>>>>>>                                  function. the lock is in the
->>>>>>>>>>>                                  granted queue and cancel_pending
->>>>>>>>>>>                                  is set. BUG_ON.
->>>>>>>>>>>
->>>>>>>>>>> But after clearing this BUG, process will encounter
->>>>>>>>>>> the second BUG in the ocfs2_unlock_ast function.
->>>>>>>>>>> Here is a scenario that will cause the second BUG
->>>>>>>>>>> in ocfs2_unlock_ast as follows:
->>>>>>>>>>>
->>>>>>>>>>> At the beginning, Node 1 is the master and has NL lock,
->>>>>>>>>>> Node 2 has PR lock, Node 3 has PR lock too.
->>>>>>>>>>>
->>>>>>>>>>> Node 1          Node 2          Node 3
->>>>>>>>>>>                  want to get EX lock.
->>>>>>>>>>>
->>>>>>>>>>>                                  want to get EX lock.
->>>>>>>>>>>
->>>>>>>>>>> Node 3 hinder
->>>>>>>>>>> Node 2 to get
->>>>>>>>>>> EX lock, send
->>>>>>>>>>> Node 3 a BAST.
->>>>>>>>>>>
->>>>>>>>>>>                                  receive BAST from
->>>>>>>>>>>                                  Node 1. downconvert
->>>>>>>>>>>                                  thread begin to
->>>>>>>>>>>                                  cancel PR to EX conversion.
->>>>>>>>>>>                                  In dlmunlock_common function,
->>>>>>>>>>>                                  downconvert thread has released
->>>>>>>>>>>                                  lock->spinlock and res->spinlock,
->>>>>>>>>>>                                  but did not enter
->>>>>>>>>>>                                  dlm_send_remote_unlock_request
->>>>>>>>>>>                                  function.
->>>>>>>>>>>
->>>>>>>>>>>                  Node2 dies because
->>>>>>>>>>>                  the host is powered down.
->>>>>>>>>>>
->>>>>>>>>>> In recovery process,
->>>>>>>>>>> clean the lock that
->>>>>>>>>>> related to Node2.
->>>>>>>>>>> then finish Node 3
->>>>>>>>>>> PR to EX request.
->>>>>>>>>>> give Node 3 a AST.
->>>>>>>>>>>
->>>>>>>>>>>                                  receive AST from Node 1.
->>>>>>>>>>>                                  change lock level to EX,
->>>>>>>>>>>                                  move lock to granted list,
->>>>>>>>>>>                                  set lockres->l_unlock_action
->>>>>>>>>>>                                  as OCFS2_UNLOCK_INVALID
->>>>>>>>>>>                                  in ocfs2_locking_ast function.
->>>>>>>>>>>
->>>>>>>>>>> Node2 dies because
->>>>>>>>>>> the host is powered down.
->>>>>>>>>>>
->>>>>>>>>>>                                  Node 3 realize that Node 1
->>>>>>>>>>>                                  is dead, remove Node 1 from
->>>>>>>>>>>                                  domain_map. downconvert thread
->>>>>>>>>>>                                  get DLM_NORMAL from
->>>>>>>>>>>                                  dlm_send_remote_unlock_request
->>>>>>>>>>>                                  function and set *call_ast as 1.
->>>>>>>>>>>                                  Then downconvert thread meet
->>>>>>>>>>>                                  BUG in ocfs2_unlock_ast function.
->>>>>>>>>>>
->>>>>>>>>>> To avoid meet the second BUG, function dlmunlock_common shuold
->>>>>>>>>>> return DLM_CANCELGRANT if the lock is on granted list and
->>>>>>>>>>> the operation is canceled.
->>>>>>>>>>>
->>>>>>>>>>> Signed-off-by: Jian Wang<wangjian161@huawei.com>
->>>>>>>>>>> Reviewed-by: Yiwen Jiang<jiangyiwen@huawei.com>
->>>>>>>>>>> ---
->>>>>>>>>>>       fs/ocfs2/dlm/dlmrecovery.c | 1 -
->>>>>>>>>>>       fs/ocfs2/dlm/dlmunlock.c   | 5 +++++
->>>>>>>>>>>       2 files changed, 5 insertions(+), 1 deletion(-)
->>>>>>>>>>>
->>>>>>>>>>> diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
->>>>>>>>>>> index 802636d..7489652 100644
->>>>>>>>>>> --- a/fs/ocfs2/dlm/dlmrecovery.c
->>>>>>>>>>> +++ b/fs/ocfs2/dlm/dlmrecovery.c
->>>>>>>>>>> @@ -2134,7 +2134,6 @@ void dlm_move_lockres_to_recovery_list(struct dlm_ctxt *dlm,
->>>>>>>>>>>       				 * if this had completed successfully
->>>>>>>>>>>       				 * before sending this lock state to the
->>>>>>>>>>>       				 * new master */
->>>>>>>>>>> -				BUG_ON(i != DLM_CONVERTING_LIST);
->>>>>>>>>>>       				mlog(0, "node died with cancel pending "
->>>>>>>>>>>       				     "on %.*s. move back to granted list.\n",
->>>>>>>>>>>       				     res->lockname.len, res->lockname.name);
->>>>>>>>>>> diff --git a/fs/ocfs2/dlm/dlmunlock.c b/fs/ocfs2/dlm/dlmunlock.c
->>>>>>>>>>> index 63d701c..505bb6c 100644
->>>>>>>>>>> --- a/fs/ocfs2/dlm/dlmunlock.c
->>>>>>>>>>> +++ b/fs/ocfs2/dlm/dlmunlock.c
->>>>>>>>>>> @@ -183,6 +183,11 @@ static enum dlm_status dlmunlock_common(struct dlm_ctxt *dlm,
->>>>>>>>>>>       							flags, owner);
->>>>>>>>>>>       		spin_lock(&res->spinlock);
->>>>>>>>>>>       		spin_lock(&lock->spinlock);
->>>>>>>>>>> +
->>>>>>>>>>> +		if ((flags & LKM_CANCEL) &&
->>>>>>>>>>> +				dlm_lock_on_list(&res->granted, lock))
->>>>>>>>>>> +			status = DLM_CANCELGRANT;
->>>>>>>>>>> +
->>>>>>>>>>>       		/* if the master told us the lock was already granted,
->>>>>>>>>>>       		 * let the ast handle all of these actions */
->>>>>>>>>>>       		if (status == DLM_CANCELGRANT) {
->>>>>>>>>>> -- 
->>>>>>>>>>> 1.8.3.1
->>>>>>>>>>>
->>>>>>>>>> .
->>>>>>>>>>
->>>>>>>> .
->>>>>>>>
->>>>>>>
->>>>>>>
->>>>>>> _______________________________________________
->>>>>>> Ocfs2-devel mailing list
->>>>>>> Ocfs2-devel at oss.oracle.com
->>>>>>> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
->>>>>>>
+>>>>>> Signed-off-by: Changwei Ge <ge.changwei@h3c.com>
+>>>>>> ---
+>>>>>>     fs/ocfs2/alloc.c | 15 +++++++++++++++
+>>>>>>     1 file changed, 15 insertions(+)
 >>>>>>
->>>>> .
+>>>>>> diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
+>>>>>> index d1cbb27..29bc777 100644
+>>>>>> --- a/fs/ocfs2/alloc.c
+>>>>>> +++ b/fs/ocfs2/alloc.c
+>>>>>> @@ -6007,6 +6007,7 @@ int __ocfs2_flush_truncate_log(struct ocfs2_super *osb)
+>>>>>>     	struct buffer_head *data_alloc_bh = NULL;
+>>>>>>     	struct ocfs2_dinode *di;
+>>>>>>     	struct ocfs2_truncate_log *tl;
+>>>>>> +	struct ocfs2_journal *journal = osb->journal;
+>>>>>>     
+>>>>>>     	BUG_ON(inode_trylock(tl_inode));
+>>>>>>     
+>>>>>> @@ -6027,6 +6028,20 @@ int __ocfs2_flush_truncate_log(struct ocfs2_super *osb)
+>>>>>>     		goto out;
+>>>>>>     	}
+>>>>>>     
+>>>>>> +	/* Appending truncate log(TA) and and flushing truncate log(TF) are
+>>>>>> +	 * two separated transactions. They can be both committed but not
+>>>>>> +	 * checkpointed. If crash occurs then, both two transaction will be
+>>>>>> +	 * replayed with several already released to global bitmap clusters.
+>>>>>> +	 * Then truncate log will be replayed resulting in cluster double free.
+>>>>>> +	 */
+>>>>>> +	jbd2_journal_lock_updates(journal->j_journal);
+>>>>>> +	status = jbd2_journal_flush(journal->j_journal);
+>>>>>> +	jbd2_journal_unlock_updates(journal->j_journal);
+>>>>>> +	if (status < 0) {
+>>>>>> +		mlog_errno(status);
+>>>>>> +		goto out;
+>>>>>> +	}
+>>>>>> +
+>>>>>>     	data_alloc_inode = ocfs2_get_system_file_inode(osb,
+>>>>>>     						       GLOBAL_BITMAP_SYSTEM_INODE,
+>>>>>>     						       OCFS2_INVALID_SLOT);
+>>>>>>
 >>>>>
+>>>> .
 >>>>
->>> .
 >>>
+>>
+>> _______________________________________________
+>> Ocfs2-devel mailing list
+>> Ocfs2-devel at oss.oracle.com
+>> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
 >>
 > .
 > 
