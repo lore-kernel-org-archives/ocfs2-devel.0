@@ -1,11 +1,11 @@
-From: piaojun <piaojun@huawei.com>
-Date: Mon, 25 Mar 2019 09:32:54 +0800
+From: sunny.s.zhang <sunny.s.zhang@oracle.com>
+Date: Mon, 25 Mar 2019 10:18:10 +0800
 Subject: [Ocfs2-devel] [PATCH] ocfs2: fix ocfs2 read inode data panic in
  ocfs2_iget
 In-Reply-To: <01433584-44d5-5b27-a0c9-fff4bff74864@gmail.com>
 References: <1553477217-2736-1-git-send-email-sunny.s.zhang@oracle.com>
 	<01433584-44d5-5b27-a0c9-fff4bff74864@gmail.com>
-Message-ID: <5C982FC6.6050900@huawei.com>
+Message-ID: <ab0a6ca7-2f6a-b738-72ce-4ffb6787aad2@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -13,10 +13,8 @@ Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
 
-
-On 2019/3/25 9:31, Joseph Qi wrote:
-> 
-> 
+? 2019?03?25? 09:31, Joseph Qi ??:
+>
 > On 19/3/25 09:26, Shuning Zhang wrote:
 >> In some cases, the function ocfs2_iget read the data of inode, which has
 >> been deleted for some reason. That will make the system panic. So We
@@ -26,16 +24,24 @@ On 2019/3/25 9:31, Joseph Qi wrote:
 >> [283465.542049] OCFS2: ERROR (device sdp): ocfs2_validate_inode_block:
 >> Invalid dinode #580640: OCFS2_VALID_FL not set
 >>
-> 
 > Looks like it is a filesystem corruption bug.
 > So we'd better find where it is introduced and try to fix it there.
+Thank you for reviewing
+In that case, the ocfs2 was used as rear end of NFS(V3), which is 
+stateless as we know.? NFS can't protect parent
+directory from being deleted, when child is being accessed.? We can find 
+the description at Documentation/filesystems/nfs/Exporting.
+I have reproduced this issue by adding some delay codes.? This issue can 
+be reproduced in the production environment in case of heavy load .
+Of course this is a defect of NFS(V3),? But I think ocfs2 should have 
+some fault tolerance. ocfs2 should not panic, if it try to get a 
+nonexistent inode.
 
-Agreed, sounds like read-only problem.
-
-> 
+Thanks,
+Sunny
 > Thanks,
 > Joseph
-> 
+>
 >> [283465.545490] Kernel panic - not syncing: OCFS2: (device sdp): panic forced
 >> after error
 >>
@@ -82,20 +88,20 @@ Agreed, sounds like read-only problem.
 >> [283465.572114]  [<ffffffff816f11b8>] ret_from_fork+0x58/0x90
 >> [283465.573156]  [<ffffffff810a6160>] ? kthread_create_on_node+0x180/0x180
 >> ---
->>  fs/ocfs2/inode.c |   22 ++++++++++++++++++++++
->>  1 files changed, 22 insertions(+), 0 deletions(-)
+>>   fs/ocfs2/inode.c |   22 ++++++++++++++++++++++
+>>   1 files changed, 22 insertions(+), 0 deletions(-)
 >>
 >> diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
 >> index b254416..a7f8160 100644
 >> --- a/fs/ocfs2/inode.c
 >> +++ b/fs/ocfs2/inode.c
 >> @@ -513,6 +513,16 @@ static int ocfs2_read_locked_inode(struct inode *inode,
->>  	status = -EINVAL;
->>  	fe = (struct ocfs2_dinode *) bh->b_data;
->>  
->> +	/* 
->> +	 * In some cases, this inode has been deleted, but the data of 
->> +	 * inode is read directly. So We should judge whether this inode 
+>>   	status = -EINVAL;
+>>   	fe = (struct ocfs2_dinode *) bh->b_data;
+>>   
+>> +	/*
+>> +	 * In some cases, this inode has been deleted, but the data of
+>> +	 * inode is read directly. So We should judge whether this inode
 >> +	 * has been deleted.
 >> +	 * */
 >> +	if (unlikely(fe->i_dtime != 0)) {
@@ -103,16 +109,16 @@ Agreed, sounds like read-only problem.
 >> +		     le64_to_cpu(fe->i_blkno));
 >> +	        goto bail;
 >> +	}
->>  	/*
->>  	 * This is a code bug. Right now the caller needs to
->>  	 * understand whether it is asking for a system file inode or
+>>   	/*
+>>   	 * This is a code bug. Right now the caller needs to
+>>   	 * understand whether it is asking for a system file inode or
 >> @@ -1331,6 +1341,18 @@ int ocfs2_validate_inode_block(struct super_block *sb,
->>  
->>  	BUG_ON(!buffer_uptodate(bh));
->>  
->> +	/* 
->> +	 * In some cases, this inode has been deleted, but the data of 
->> +	 * inode is read directly. This is not a data corruption.So 
+>>   
+>>   	BUG_ON(!buffer_uptodate(bh));
+>>   
+>> +	/*
+>> +	 * In some cases, this inode has been deleted, but the data of
+>> +	 * inode is read directly. This is not a data corruption.So
 >> +	 * We should judge whether this inode has been deleted.
 >> +	 * */
 >> +	if (unlikely(di->i_dtime != 0)) {
@@ -122,13 +128,7 @@ Agreed, sounds like read-only problem.
 >> +	        goto bail;
 >> +	}
 >> +
->>  	/*
->>  	 * If the ecc fails, we return the error but otherwise
->>  	 * leave the filesystem running.  We know any error is
+>>   	/*
+>>   	 * If the ecc fails, we return the error but otherwise
+>>   	 * leave the filesystem running.  We know any error is
 >>
-> 
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
-> 
