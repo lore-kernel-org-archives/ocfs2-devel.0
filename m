@@ -1,213 +1,885 @@
-From: sunny.s.zhang <sunny.s.zhang@oracle.com>
-Date: Mon, 25 Mar 2019 14:15:59 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: fix ocfs2 read inode data panic in
- ocfs2_iget
-In-Reply-To: <5C9846C7020000F90005B029@prv1-mh.provo.novell.com>
-References: <1553477217-2736-1-git-send-email-sunny.s.zhang@oracle.com>
-	<01433584-44d5-5b27-a0c9-fff4bff74864@gmail.com>
-	<ab0a6ca7-2f6a-b738-72ce-4ffb6787aad2@oracle.com>
-	<5C9846C7020000F90005B029@prv1-mh.provo.novell.com>
-Message-ID: <4b7dee86-52fe-d383-296e-5ce1bb7ef178@oracle.com>
+From: Darrick J. Wong <darrick.wong@oracle.com>
+Date: Mon, 25 Mar 2019 16:49:26 -0700
+Subject: [Ocfs2-devel] [RFC PATCH] clonerange: test remapping the rainbow
+In-Reply-To: <20190323071438.GQ2824@desktop>
+References: <20190312214910.GK20533@magnolia> <20190313164600.GA4657@magnolia>
+	<20190323071438.GQ2824@desktop>
+Message-ID: <20190325234926.GB15524@magnolia>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Eryu Guan <guaneryu@gmail.com>
+Cc: akpm@linux-foundation.org, ocfs2-devel@oss.oracle.com, mark@fasheh.com, jlbec@evilplan.org, linux-fsdevel@vger.kernel.org, mfasheh@versity.com, fstests <fstests@vger.kernel.org>
 
-Hi Gang,
+On Sat, Mar 23, 2019 at 03:14:38PM +0800, Eryu Guan wrote:
+> On Wed, Mar 13, 2019 at 09:46:00AM -0700, Darrick J. Wong wrote:
+> > From: Darrick J. Wong <darrick.wong@oracle.com>
+> > 
+> > Add some more clone range tests that missed various "wacky" combinations
+> > of file state.  Specifically, we test reflinking into and out of rainbow
+> > ranges (a mix of real, unwritten, hole, delalloc, and shared extents),
+> > and also we test that we can correctly handle double-inode locking no
+> > matter what order of inodes or the filesystem's locking rules.
+> > 
+> > Signed-off-by: Darrick J. Wong <darrick.wong@oracle.com>
+> 
+> Sorry for the late review.. The tests look good to me overall, only some
+> really minor comments inline.
 
+<nod> Thanks for reviewing!
 
-? 2019?03?25? 11:11, Gang He ??:
-> Hi Sunny,
->
->
->>>> On 2019/3/25 at 10:18, in message
-> <ab0a6ca7-2f6a-b738-72ce-4ffb6787aad2@oracle.com>, "sunny.s.zhang"
-> <sunny.s.zhang@oracle.com> wrote:
->
->> ? 2019?03?25? 09:31, Joseph Qi ??:
->>> On 19/3/25 09:26, Shuning Zhang wrote:
->>>> In some cases, the function ocfs2_iget read the data of inode, which has
->>>> been deleted for some reason. That will make the system panic. So We
->>>> should judge whether this inode has been deleted, and tell the caller
->>>> that the inode is a bad inode.
->>>>
->>>> [283465.542049] OCFS2: ERROR (device sdp): ocfs2_validate_inode_block:
->>>> Invalid dinode #580640: OCFS2_VALID_FL not set
->>>>
->>> Looks like it is a filesystem corruption bug.
->>> So we'd better find where it is introduced and try to fix it there.
->> Thank you for reviewing
->> In that case, the ocfs2 was used as rear end of NFS(V3), which is
->> stateless as we know.  NFS can't protect parent
->> directory from being deleted, when child is being accessed.  We can find
->> the description at Documentation/filesystems/nfs/Exporting.
->> I have reproduced this issue by adding some delay codes.  This issue can
->> be reproduced in the production environment in case of heavy load .
->> Of course this is a defect of NFS(V3),  But I think ocfs2 should have
->> some fault tolerance. ocfs2 should not panic, if it try to get a
->> nonexistent inode.
-> I feel ocfs2_test_inode_bit() can avoid the problem, but why do we still encounter this problem?
-> Maybe there are some potential logic(or race condition) problem.
-ocfs2_test_inode_bit() can test whether the inode have been deleted, but 
-can't avoid this issue.
-The key of this issue is ocfs2_get_parent() calls ocfs2_iget(inode) , 
-but does not check if the inode exists.
-I think this issue alse can be fixed, If ocfs2_get_parent() call 
-ocfs2_test_inode_bit before? calling ocfs2_iget().
-But this will have a little impact on performance.
+> > ---
+> >  common/reflink        |    7 ++
+> >  tests/generic/940     |   94 ++++++++++++++++++++++++
+> >  tests/generic/940.out |   14 ++++
+> >  tests/generic/941     |   99 +++++++++++++++++++++++++
+> >  tests/generic/941.out |   16 ++++
+> >  tests/generic/942     |   95 ++++++++++++++++++++++++
+> >  tests/generic/942.out |   14 ++++
+> >  tests/generic/943     |   99 +++++++++++++++++++++++++
+> >  tests/generic/943.out |   16 ++++
+> >  tests/generic/944     |  196 +++++++++++++++++++++++++++++++++++++++++++++++++
+> >  tests/generic/944.out |   62 ++++++++++++++++
+> >  tests/generic/group   |    5 +
+> >  12 files changed, 716 insertions(+), 1 deletion(-)
+> >  create mode 100755 tests/generic/940
+> >  create mode 100644 tests/generic/940.out
+> >  create mode 100755 tests/generic/941
+> >  create mode 100644 tests/generic/941.out
+> >  create mode 100755 tests/generic/942
+> >  create mode 100644 tests/generic/942.out
+> >  create mode 100755 tests/generic/943
+> >  create mode 100644 tests/generic/943.out
+> >  create mode 100755 tests/generic/944
+> >  create mode 100644 tests/generic/944.out
+> > 
+> > diff --git a/common/reflink b/common/reflink
+> > index 11561a76..598f0877 100644
+> > --- a/common/reflink
+> > +++ b/common/reflink
+> > @@ -14,9 +14,14 @@ _require_cp_reflink()
+> >  # Can we reflink between arbitrary file sets?
+> >  # i.e. if we reflink a->b and c->d, can we later share
+> >  # blocks between b & c?
+> > +_supports_arbitrary_fileset_reflink()
+> > +{
+> > +	test "$FSTYP" != "ocfs2"
+> > +}
+> > +
+> >  _require_arbitrary_fileset_reflink()
+> >  {
+> > -	test "$FSTYP" = "ocfs2" && \
+> > +	_supports_arbitrary_fileset_reflink ||
+> >  		_notrun "reflink between arbitrary file groups not supported in $FSTYP"
+> >  }
+> >  
+> > diff --git a/tests/generic/940 b/tests/generic/940
+> > new file mode 100755
+> > index 00000000..4573cbae
+> > --- /dev/null
+> > +++ b/tests/generic/940
+> > @@ -0,0 +1,94 @@
+> > +#! /bin/bash
+> > +# SPDX-License-Identifier: GPL-2.0+
+> > +# Copyright (c) 2019, Oracle and/or its affiliates.  All Rights Reserved.
+> > +#
+> > +# FS QA Test No. 940
+> > +#
+> > +# Ensuring that reflinking works when the destination range covers multiple
+> > +# extents, some unwritten, some not:
+> > +#
+> > +#   - Create a file with the following repeating sequence of blocks:
+> > +#     1. reflinked
+> > +#     2. unwritten
+> > +#     3. hole
+> > +#     4. regular block
+> > +#     5. delalloc
+> > +#   - reflink across the halfway mark, starting with the unwritten extent.
+> > +#   - Check that the files are now different where we say they're different.
+> > +#
+> > +seq=`basename $0`
+> > +seqres=$RESULT_DIR/$seq
+> > +echo "QA output created by $seq"
+> > +
+> > +here=`pwd`
+> > +tmp=/tmp/$$
+> > +status=1    # failure is the default!
+> > +trap "_cleanup; exit \$status" 0 1 2 3 15
+> > +
+> > +_cleanup()
+> > +{
+> > +    cd /
+> > +    rm -rf $tmp.* $testdir
+> 
+> Seems there's no need to remove $testdir, as it's created in
+> $SCRATCH_MNT. And use tab for indention here :)
 
-This issue can be reproduce by the following steps.
-on the nfs server side,
-..../patha/pathb
+Will fix.
 
-Step 1: The process A was scheduled before calling the function fh_verify.
+> > +}
+> > +
+> > +# get standard environment, filters and checks
+> > +. ./common/rc
+> > +. ./common/filter
+> > +. ./common/reflink
+> > +
+> > +# real QA test starts here
+> > +_supported_os Linux
+> 
+> _supported_fs generic
 
-Step 2: The process B is removing the 'pathb', and just completed the 
-call to
-function dput.
-Then the dentry of 'pathb' has been deleted from the dcache, and all
-ancestors have been deleted also.
-The relationship of dentry and inode was deleted through the function
-hlist_del_init. The following is the call stack.
-dentry_iput->hlist_del_init(&dentry->d_u.d_alias)
+Fixed.
 
-At this time, the inode is still in the dcache.
+> > +_require_scratch_reflink
+> > +_require_xfs_io_command "falloc"
+> > +_require_xfs_io_command "fpunch"
+> > +_require_cp_reflink
+> > +_require_odirect
+> 
+> Are above three requires really needed? I don't see the use of 'fpunch'
+> 'cp --reflink' and direct I/O in the test.
+> 
+> Above comments apply to generic/94[123] as well.
 
-Step 3: The process A call the function ocfs2_get_dentry, which get the 
-inode
-from dcache. Then the refcount of inode is 1. The following is the call
-stack.
-nfsd3_proc_getacl->fh_verify->exportfs_decode_fh->fh_to_dentry(ocfs2_get_dentr 
+Fixed.
 
-y)
+> > +
+> > +rm -f $seqres.full
+> > +
+> > +echo "Format and mount"
+> > +_scratch_mkfs > $seqres.full 2>&1
+> > +_scratch_mount >> $seqres.full 2>&1
+> > +
+> > +testdir=$SCRATCH_MNT/test-$seq
+> > +mkdir $testdir
+> > +
+> > +echo "Create the original files"
+> > +blksz=65536
+> > +nr=64
+> > +filesize=$((blksz * nr))
+> > +_pwrite_byte 0x64 0 $((blksz * nr)) $testdir/file2 >> $seqres.full
+> > +_weave_reflink_rainbow $blksz $nr $testdir/file1 $testdir/file3 >> $seqres.full
+> > +_scratch_cycle_mount
+> > +
+> > +echo "Compare files"
+> > +md5sum $testdir/file1 | _filter_scratch
+> > +md5sum $testdir/file2 | _filter_scratch
+> > +md5sum $testdir/file3 | _filter_scratch
+> > +md5sum $testdir/file3.chk | _filter_scratch
+> > +
+> > +echo "reflink across the transition"
+> > +roff=$((filesize / 4))
+> > +rsz=$((filesize / 2))
+> > +_weave_reflink_rainbow_delalloc $blksz $nr $testdir/file3 >> $seqres.full
+> > +
+> > +# now reflink into the rainbow
+> > +echo "before reflink" >> $seqres.full
+> > +$FILEFRAG_PROG -v $testdir/file2 >> $seqres.full
+> > +$FILEFRAG_PROG -v $testdir/file3 >> $seqres.full
+> > +$XFS_IO_PROG -f -c "reflink $testdir/file2 $roff $roff $rsz" $testdir/file3 >> $seqres.full
+> > +_pwrite_byte 0x64 $roff $rsz $testdir/file3.chk >> $seqres.full
+> > +_scratch_cycle_mount
+> > +
+> > +echo "Compare files"
+> > +echo "after reflink" >> $seqres.full
+> > +$FILEFRAG_PROG -v $testdir/file2 >> $seqres.full
+> > +$FILEFRAG_PROG -v $testdir/file3 >> $seqres.full
+> > +md5sum $testdir/file1 | _filter_scratch
+> > +md5sum $testdir/file2 | _filter_scratch
+> > +md5sum $testdir/file3 | _filter_scratch
+> > +md5sum $testdir/file3.chk | _filter_scratch
+> > +
+> > +# success, all done
+> > +status=0
+> > +exit
+> > diff --git a/tests/generic/940.out b/tests/generic/940.out
+> > new file mode 100644
+> > index 00000000..d34c7b50
+> > --- /dev/null
+> > +++ b/tests/generic/940.out
+> > @@ -0,0 +1,14 @@
+> > +QA output created by 940
+> > +Format and mount
+> > +Create the original files
+> > +Compare files
+> > +bdbcf02ee0aa977795a79d25fcfdccb1  SCRATCH_MNT/test-940/file1
+> > +5a5221017d3ab8fd7583312a14d2ba80  SCRATCH_MNT/test-940/file2
+> > +6366fd359371414186688a0ef6988893  SCRATCH_MNT/test-940/file3
+> > +6366fd359371414186688a0ef6988893  SCRATCH_MNT/test-940/file3.chk
+> > +reflink across the transition
+> > +Compare files
+> > +bdbcf02ee0aa977795a79d25fcfdccb1  SCRATCH_MNT/test-940/file1
+> > +5a5221017d3ab8fd7583312a14d2ba80  SCRATCH_MNT/test-940/file2
+> > +5d47954e2336b2547afde6e44d2f13cc  SCRATCH_MNT/test-940/file3
+> > +5d47954e2336b2547afde6e44d2f13cc  SCRATCH_MNT/test-940/file3.chk
+> > diff --git a/tests/generic/941 b/tests/generic/941
+> > new file mode 100755
+> > index 00000000..145b8585
+> > --- /dev/null
+> > +++ b/tests/generic/941
+> > @@ -0,0 +1,99 @@
+> > +#! /bin/bash
+> > +# SPDX-License-Identifier: GPL-2.0+
+> > +# Copyright (c) 2019, Oracle and/or its affiliates.  All Rights Reserved.
+> > +#
+> > +# FS QA Test No. 941
+> > +#
+> > +# Ensuring that reflinking works when the source range covers multiple
+> > +# extents, some unwritten, some not:
+> > +#
+> > +#   - Create a file with the following repeating sequence of blocks:
+> > +#     1. reflinked
+> > +#     2. unwritten
+> > +#     3. hole
+> > +#     4. regular block
+> > +#     5. delalloc
+> > +#   - reflink across the halfway mark, starting with the unwritten extent.
+> > +#   - Check that the files are now different where we say they're different.
+> > +#
+> > +seq=`basename $0`
+> > +seqres=$RESULT_DIR/$seq
+> > +echo "QA output created by $seq"
+> > +
+> > +here=`pwd`
+> > +tmp=/tmp/$$
+> > +status=1    # failure is the default!
+> > +trap "_cleanup; exit \$status" 0 1 2 3 15
+> > +
+> > +_cleanup()
+> > +{
+> > +    cd /
+> > +    rm -rf $tmp.* $testdir
+> > +}
+> > +
+> > +# get standard environment, filters and checks
+> > +. ./common/rc
+> > +. ./common/filter
+> > +. ./common/reflink
+> > +
+> > +# real QA test starts here
+> > +_supported_os Linux
+> > +_require_scratch_reflink
+> > +_require_xfs_io_command "falloc"
+> > +_require_xfs_io_command "fpunch"
+> > +_require_cp_reflink
+> > +_require_odirect
+> > +
+> > +rm -f $seqres.full
+> > +
+> > +echo "Format and mount"
+> > +_scratch_mkfs > $seqres.full 2>&1
+> > +_scratch_mount >> $seqres.full 2>&1
+> > +
+> > +testdir=$SCRATCH_MNT/test-$seq
+> > +mkdir $testdir
+> > +
+> > +echo "Create the original files"
+> > +blksz=65536
+> > +nr=64
+> > +filesize=$((blksz * nr))
+> > +_pwrite_byte 0x64 0 $((blksz * nr)) $testdir/file2 >> $seqres.full
+> > +_pwrite_byte 0x64 0 $((blksz * nr)) $testdir/file2.chk >> $seqres.full
+> > +_weave_reflink_rainbow $blksz $nr $testdir/file1 $testdir/file3 >> $seqres.full
+> > +_scratch_cycle_mount
+> > +
+> > +echo "Compare files"
+> > +md5sum $testdir/file1 | _filter_scratch
+> > +md5sum $testdir/file2 | _filter_scratch
+> > +md5sum $testdir/file2.chk | _filter_scratch
+> > +md5sum $testdir/file3 | _filter_scratch
+> > +md5sum $testdir/file3.chk | _filter_scratch
+> > +
+> > +echo "reflink across the transition"
+> > +roff=$((filesize / 4))
+> > +rsz=$((filesize / 2))
+> > +_weave_reflink_rainbow_delalloc $blksz $nr $testdir/file3 >> $seqres.full
+> > +
+> > +# now reflink the rainbow
+> > +echo "before reflink" >> $seqres.full
+> > +$FILEFRAG_PROG -v $testdir/file2 >> $seqres.full
+> > +$FILEFRAG_PROG -v $testdir/file3 >> $seqres.full
+> > +$XFS_IO_PROG -f -c "reflink $testdir/file3 $roff $roff $rsz" $testdir/file2 >> $seqres.full
+> > +cp $testdir/file3.chk $testdir/file2.chk
+> > +_pwrite_byte 0x64 0 $roff $testdir/file2.chk >> $seqres.full
+> > +_pwrite_byte 0x64 $((roff + rsz)) $((filesize - (roff + rsz) )) $testdir/file2.chk >> $seqres.full
+> > +_scratch_cycle_mount
+> > +
+> > +echo "Compare files"
+> > +echo "after reflink" >> $seqres.full
+> > +$FILEFRAG_PROG -v $testdir/file2 >> $seqres.full
+> > +$FILEFRAG_PROG -v $testdir/file3 >> $seqres.full
+> > +md5sum $testdir/file1 | _filter_scratch
+> > +md5sum $testdir/file2 | _filter_scratch
+> > +md5sum $testdir/file2.chk | _filter_scratch
+> > +md5sum $testdir/file3 | _filter_scratch
+> > +md5sum $testdir/file3.chk | _filter_scratch
+> > +
+> > +# success, all done
+> > +status=0
+> > +exit
+> > diff --git a/tests/generic/941.out b/tests/generic/941.out
+> > new file mode 100644
+> > index 00000000..a76e6c62
+> > --- /dev/null
+> > +++ b/tests/generic/941.out
+> > @@ -0,0 +1,16 @@
+> > +QA output created by 941
+> > +Format and mount
+> > +Create the original files
+> > +Compare files
+> > +bdbcf02ee0aa977795a79d25fcfdccb1  SCRATCH_MNT/test-941/file1
+> > +5a5221017d3ab8fd7583312a14d2ba80  SCRATCH_MNT/test-941/file2
+> > +5a5221017d3ab8fd7583312a14d2ba80  SCRATCH_MNT/test-941/file2.chk
+> > +6366fd359371414186688a0ef6988893  SCRATCH_MNT/test-941/file3
+> > +6366fd359371414186688a0ef6988893  SCRATCH_MNT/test-941/file3.chk
+> > +reflink across the transition
+> > +Compare files
+> > +bdbcf02ee0aa977795a79d25fcfdccb1  SCRATCH_MNT/test-941/file1
+> > +51a300aae3a4b4eaa023876a397e01ef  SCRATCH_MNT/test-941/file2
+> > +51a300aae3a4b4eaa023876a397e01ef  SCRATCH_MNT/test-941/file2.chk
+> > +7bf7a779a0a54647b41753206c5218b1  SCRATCH_MNT/test-941/file3
+> > +7bf7a779a0a54647b41753206c5218b1  SCRATCH_MNT/test-941/file3.chk
+> > diff --git a/tests/generic/942 b/tests/generic/942
+> > new file mode 100755
+> > index 00000000..92b0f298
+> > --- /dev/null
+> > +++ b/tests/generic/942
+> > @@ -0,0 +1,95 @@
+> > +#! /bin/bash
+> > +# SPDX-License-Identifier: GPL-2.0+
+> > +# Copyright (c) 2019, Oracle and/or its affiliates.  All Rights Reserved.
+> > +#
+> > +# FS QA Test No. 942
+> > +#
+> > +# Ensuring that reflinking works when the destination range covers multiple
+> > +# extents, some unwritten, some not:
+> > +#
+> > +#   - Create a file with the following repeating sequence of blocks:
+> > +#     1. reflinked
+> > +#     2. unwritten
+> > +#     3. hole
+> > +#     4. regular block
+> > +#     5. delalloc
+> > +#   - reflink across the halfway mark, starting with the unwritten extent.
+> > +#   - Check that the files are now different where we say they're different.
+> > +#
+> > +seq=`basename $0`
+> > +seqres=$RESULT_DIR/$seq
+> > +echo "QA output created by $seq"
+> > +
+> > +here=`pwd`
+> > +tmp=/tmp/$$
+> > +status=1    # failure is the default!
+> > +trap "_cleanup; exit \$status" 0 1 2 3 15
+> > +
+> > +_cleanup()
+> > +{
+> > +    cd /
+> > +    rm -rf $tmp.* $testdir
+> > +}
+> > +
+> > +# get standard environment, filters and checks
+> > +. ./common/rc
+> > +. ./common/filter
+> > +. ./common/reflink
+> > +
+> > +# real QA test starts here
+> > +_supported_os Linux
+> > +_require_scratch_reflink
+> > +_require_xfs_io_command "falloc"
+> > +_require_xfs_io_command "fpunch"
+> > +_require_cp_reflink
+> > +_require_odirect
+> > +
+> > +rm -f $seqres.full
+> > +
+> > +echo "Format and mount"
+> > +_scratch_mkfs > $seqres.full 2>&1
+> > +_scratch_mount >> $seqres.full 2>&1
+> > +
+> > +testdir=$SCRATCH_MNT/test-$seq
+> > +mkdir $testdir
+> > +
+> > +echo "Create the original files"
+> > +blksz=65536
+> > +nr=64
+> > +filesize=$((blksz * nr))
+> > +_pwrite_byte 0x64 0 $((blksz * nr)) $testdir/file2 >> $seqres.full
+> > +_weave_reflink_rainbow $blksz $nr $testdir/file1 $testdir/file3 >> $seqres.full
+> > +_scratch_cycle_mount
+> > +
+> > +echo "Compare files"
+> > +md5sum $testdir/file1 | _filter_scratch
+> > +md5sum $testdir/file2 | _filter_scratch
+> > +md5sum $testdir/file3 | _filter_scratch
+> > +md5sum $testdir/file3.chk | _filter_scratch
+> > +
+> > +echo "reflink across the transition"
+> > +soff=$((filesize / 4))
+> > +doff=$((filesize / 2))
+> > +rsz=$((filesize / 2))
+> > +_weave_reflink_rainbow_delalloc $blksz $nr $testdir/file3 >> $seqres.full
+> > +
+> > +# now reflink into the rainbow
+> > +echo "before reflink" >> $seqres.full
+> > +$FILEFRAG_PROG -v $testdir/file2 >> $seqres.full
+> > +$FILEFRAG_PROG -v $testdir/file3 >> $seqres.full
+> > +$XFS_IO_PROG -f -c "reflink $testdir/file2 $soff $doff $rsz" $testdir/file3 >> $seqres.full
+> > +_pwrite_byte 0x64 $doff $rsz $testdir/file3.chk >> $seqres.full
+> > +_scratch_cycle_mount
+> > +
+> > +echo "Compare files"
+> > +echo "after reflink" >> $seqres.full
+> > +$FILEFRAG_PROG -v $testdir/file2 >> $seqres.full
+> > +$FILEFRAG_PROG -v $testdir/file3 >> $seqres.full
+> > +md5sum $testdir/file1 | _filter_scratch
+> > +md5sum $testdir/file2 | _filter_scratch
+> > +md5sum $testdir/file3 | _filter_scratch
+> > +md5sum $testdir/file3.chk | _filter_scratch
+> > +
+> > +# success, all done
+> > +status=0
+> > +exit
+> > diff --git a/tests/generic/942.out b/tests/generic/942.out
+> > new file mode 100644
+> > index 00000000..529ecff2
+> > --- /dev/null
+> > +++ b/tests/generic/942.out
+> > @@ -0,0 +1,14 @@
+> > +QA output created by 942
+> > +Format and mount
+> > +Create the original files
+> > +Compare files
+> > +bdbcf02ee0aa977795a79d25fcfdccb1  SCRATCH_MNT/test-942/file1
+> > +5a5221017d3ab8fd7583312a14d2ba80  SCRATCH_MNT/test-942/file2
+> > +6366fd359371414186688a0ef6988893  SCRATCH_MNT/test-942/file3
+> > +6366fd359371414186688a0ef6988893  SCRATCH_MNT/test-942/file3.chk
+> > +reflink across the transition
+> > +Compare files
+> > +bdbcf02ee0aa977795a79d25fcfdccb1  SCRATCH_MNT/test-942/file1
+> > +5a5221017d3ab8fd7583312a14d2ba80  SCRATCH_MNT/test-942/file2
+> > +52bb341f992de6ef4bf5e5d61177eddc  SCRATCH_MNT/test-942/file3
+> > +52bb341f992de6ef4bf5e5d61177eddc  SCRATCH_MNT/test-942/file3.chk
+> > diff --git a/tests/generic/943 b/tests/generic/943
+> > new file mode 100755
+> > index 00000000..91dfa75b
+> > --- /dev/null
+> > +++ b/tests/generic/943
+> > @@ -0,0 +1,99 @@
+> > +#! /bin/bash
+> > +# SPDX-License-Identifier: GPL-2.0+
+> > +# Copyright (c) 2019, Oracle and/or its affiliates.  All Rights Reserved.
+> > +#
+> > +# FS QA Test No. 943
+> > +#
+> > +# Ensuring that reflinking works when the source range covers multiple
+> > +# extents, some unwritten, some not:
+> > +#
+> > +#   - Create a file with the following repeating sequence of blocks:
+> > +#     1. reflinked
+> > +#     2. unwritten
+> > +#     3. hole
+> > +#     4. regular block
+> > +#     5. delalloc
+> > +#   - reflink across the halfway mark, starting with the unwritten extent.
+> > +#   - Check that the files are now different where we say they're different.
+> > +#
+> > +seq=`basename $0`
+> > +seqres=$RESULT_DIR/$seq
+> > +echo "QA output created by $seq"
+> > +
+> > +here=`pwd`
+> > +tmp=/tmp/$$
+> > +status=1    # failure is the default!
+> > +trap "_cleanup; exit \$status" 0 1 2 3 15
+> > +
+> > +_cleanup()
+> > +{
+> > +    cd /
+> > +    rm -rf $tmp.* $testdir
+> > +}
+> > +
+> > +# get standard environment, filters and checks
+> > +. ./common/rc
+> > +. ./common/filter
+> > +. ./common/reflink
+> > +
+> > +# real QA test starts here
+> > +_supported_os Linux
+> > +_require_scratch_reflink
+> > +_require_xfs_io_command "falloc"
+> > +_require_xfs_io_command "fpunch"
+> > +_require_cp_reflink
+> > +_require_odirect
+> > +
+> > +rm -f $seqres.full
+> > +
+> > +echo "Format and mount"
+> > +_scratch_mkfs > $seqres.full 2>&1
+> > +_scratch_mount >> $seqres.full 2>&1
+> > +
+> > +testdir=$SCRATCH_MNT/test-$seq
+> > +mkdir $testdir
+> > +
+> > +echo "Create the original files"
+> > +blksz=65536
+> > +nr=64
+> > +filesize=$((blksz * nr))
+> > +_pwrite_byte 0x64 0 $((blksz * nr)) $testdir/file2 >> $seqres.full
+> > +_pwrite_byte 0x64 0 $((blksz * nr)) $testdir/file2.chk >> $seqres.full
+> > +_weave_reflink_rainbow $blksz $nr $testdir/file1 $testdir/file3 >> $seqres.full
+> > +_scratch_cycle_mount
+> > +
+> > +echo "Compare files"
+> > +md5sum $testdir/file1 | _filter_scratch
+> > +md5sum $testdir/file2 | _filter_scratch
+> > +md5sum $testdir/file2.chk | _filter_scratch
+> > +md5sum $testdir/file3 | _filter_scratch
+> > +md5sum $testdir/file3.chk | _filter_scratch
+> > +
+> > +echo "reflink across the transition"
+> > +soff=$((filesize / 4))
+> > +doff=$((filesize / 2))
+> > +rsz=$((filesize / 2))
+> > +_weave_reflink_rainbow_delalloc $blksz $nr $testdir/file3 >> $seqres.full
+> > +
+> > +# now reflink the rainbow
+> > +echo "before reflink" >> $seqres.full
+> > +$FILEFRAG_PROG -v $testdir/file2 >> $seqres.full
+> > +$FILEFRAG_PROG -v $testdir/file3 >> $seqres.full
+> > +$XFS_IO_PROG -f -c "reflink $testdir/file3 $soff $doff $rsz" $testdir/file2 >> $seqres.full
+> > +truncate -s $doff $testdir/file2.chk
+> 
+> $XFS_IO_PROG -c "truncate $doff" $testdir/file2.chk
 
-Step 4: Dirty pages are flushed by bdi threads. So the inode of 'patha' is
-evicted, and this directory was deleted.
-But the inode of 'pathb' can't be evicted, because the refcount of the 
-inode
-was 1.
+Fixed.
 
-Step 5: The process A keep running, and call the function 
-reconnect_path(in exportfs_decode_fh),
-which call function ocfs2_get_parent of ocfs2. Get the block number of 
-parent
-directory(patha) by the name of "..". Then read the data from disk by the
-block number. Bug this inode has been deleted, so the system panic.
+> > +dd if=$testdir/file3.chk skip=$((soff / blksz)) count=$((rsz / blksz)) bs=$blksz >> $testdir/file2.chk 2> /dev/null
+> > +_scratch_cycle_mount
+> > +
+> > +echo "Compare files"
+> > +echo "after reflink" >> $seqres.full
+> > +$FILEFRAG_PROG -v $testdir/file2 >> $seqres.full
+> > +$FILEFRAG_PROG -v $testdir/file3 >> $seqres.full
+> > +md5sum $testdir/file1 | _filter_scratch
+> > +md5sum $testdir/file2 | _filter_scratch
+> > +md5sum $testdir/file2.chk | _filter_scratch
+> > +md5sum $testdir/file3 | _filter_scratch
+> > +md5sum $testdir/file3.chk | _filter_scratch
+> > +
+> > +# success, all done
+> > +status=0
+> > +exit
+> > diff --git a/tests/generic/943.out b/tests/generic/943.out
+> > new file mode 100644
+> > index 00000000..471c3f34
+> > --- /dev/null
+> > +++ b/tests/generic/943.out
+> > @@ -0,0 +1,16 @@
+> > +QA output created by 943
+> > +Format and mount
+> > +Create the original files
+> > +Compare files
+> > +bdbcf02ee0aa977795a79d25fcfdccb1  SCRATCH_MNT/test-943/file1
+> > +5a5221017d3ab8fd7583312a14d2ba80  SCRATCH_MNT/test-943/file2
+> > +5a5221017d3ab8fd7583312a14d2ba80  SCRATCH_MNT/test-943/file2.chk
+> > +6366fd359371414186688a0ef6988893  SCRATCH_MNT/test-943/file3
+> > +6366fd359371414186688a0ef6988893  SCRATCH_MNT/test-943/file3.chk
+> > +reflink across the transition
+> > +Compare files
+> > +bdbcf02ee0aa977795a79d25fcfdccb1  SCRATCH_MNT/test-943/file1
+> > +d93123af536c8c012f866ea383a905ce  SCRATCH_MNT/test-943/file2
+> > +d93123af536c8c012f866ea383a905ce  SCRATCH_MNT/test-943/file2.chk
+> > +7bf7a779a0a54647b41753206c5218b1  SCRATCH_MNT/test-943/file3
+> > +7bf7a779a0a54647b41753206c5218b1  SCRATCH_MNT/test-943/file3.chk
+> > diff --git a/tests/generic/944 b/tests/generic/944
+> > new file mode 100755
+> > index 00000000..237cd2da
+> > --- /dev/null
+> > +++ b/tests/generic/944
+> > @@ -0,0 +1,196 @@
+> > +#! /bin/bash
+> > +# SPDX-License-Identifier: GPL-2.0+
+> > +# Copyright (c) 2019, Oracle and/or its affiliates.  All Rights Reserved.
+> > +#
+> > +# FS QA Test No. 944
+> > +#
+> > +# Ensure that we can reflink from a file with a higher inode number to a lower
+> > +# inode number and vice versa.  Mix it up by doing this test with inodes that
+> > +# already share blocks and inodes that don't share blocks.  This tests both
+> > +# double-inode locking order correctness as well as stressing things like ocfs2
+> > +# which have per-inode sharing groups and therefore have to check that we don't
+> > +# try to link data between disjoint sharing groups.
+> > +seq=`basename $0`
+> > +seqres=$RESULT_DIR/$seq
+> > +echo "QA output created by $seq"
+> > +
+> > +here=`pwd`
+> > +tmp=/tmp/$$
+> > +status=1    # failure is the default!
+> > +trap "_cleanup; exit \$status" 0 1 2 3 15
+> > +
+> > +_cleanup()
+> > +{
+> > +    cd /
+> > +    rm -rf $tmp.* $testdir
+> > +}
+> > +
+> > +# get standard environment, filters and checks
+> > +. ./common/rc
+> > +. ./common/filter
+> > +. ./common/reflink
+> > +
+> > +# real QA test starts here
+> > +_supported_os Linux
+> > +_require_scratch_reflink
+> > +_require_cp_reflink
+> > +
+> > +rm -f $seqres.full
+> > +
+> > +echo "Format and mount"
+> > +_scratch_mkfs > $seqres.full 2>&1
+> > +_scratch_mount >> $seqres.full 2>&1
+> > +
+> > +blksz=65536
+> > +nr=2
+> > +filesize=$((blksz * nr))
+> > +testdir=$SCRATCH_MNT/test-$seq
+> > +dummy_file=$testdir/dummy
+> > +low_file=$testdir/low
+> > +high_file=$testdir/high
+> > +scenario=1
+> > +mkdir $testdir
+> > +
+> > +# Return inode number
+> > +inum() {
+> > +	stat -c '%i' $1
+> > +}
+> > +
+> > +# Create two test files, make $low_file the file with the lower inode
+> > +# number, and make $high_file the file with the higher inode number.
+> > +create_files() {
+> > +	_pwrite_byte 0x60 0 $filesize $testdir/file1 >> $seqres.full
+> > +	_pwrite_byte 0x61 0 $filesize $testdir/file2 >> $seqres.full
+> > +	if [ "$(inum $testdir/file1)" -lt "$(inum $testdir/file2)" ]; then
+> > +		mv $testdir/file1 $low_file
+> > +		mv $testdir/file2 $high_file
+> > +	else
+> > +		mv $testdir/file2 $low_file
+> > +		mv $testdir/file1 $high_file
+> > +	fi
+> > +}
+> > +
+> > +# Check md5sum of both files, but keep results sorted by inode order
+> > +check_files() {
+> > +	md5sum $low_file | _filter_scratch
+> > +	md5sum $high_file | _filter_scratch
+> > +}
+> > +
+> > +# Test reflinking data from the first file to the second file
+> > +test_files() {
+> > +	local src="$1"
+> > +	local dest="$2"
+> > +	local off=$((filesize / 2))
+> > +	local sz=$((filesize / 2))
+> > +
+> > +	check_files
+> > +	_reflink_range $src $off $dest $off $sz >> $seqres.full
+> > +	_scratch_cycle_mount
+> > +	check_files
+> > +}
+> > +
+> > +# Make a file shared with a dummy file
+> > +dummy_share() {
+> > +	local which="$2"
+> > +	test -z "$which" && which=1
+> > +	local dummy=$dummy_file.$which
+> > +
+> > +	rm -f $dummy
+> > +	_cp_reflink $1 $dummy
+> > +}
+> > +
+> > +# Make two files share (different ranges) with a dummy file
+> > +mutual_dummy_share() {
+> > +	rm -f $dummy_file
+> > +	_cp_reflink $1 $dummy_file
+> > +	_reflink_range $2 0 $dummy_file $blksz $blksz >> $seqres.full
+> > +}
+> > +
+> > +# Announce ourselves, remembering which scenario we've tried
+> > +ann() {
+> > +	echo "$scenario: $@" | tee -a $seqres.full
+> > +	scenario=$((scenario + 1))
+> > +}
+> > +
+> > +# Scenario 1: low to high, neither file shares
+> > +ann "low to high, neither share"
+> > +create_files
+> > +test_files $low_file $high_file
+> > +
+> > +# Scenario 2: high to low, neither file shares
+> > +ann "high to low, neither share"
+> > +create_files
+> > +test_files $high_file $low_file
+> > +
+> > +# Scenario 3: low to high, only source file shares
+> > +ann "low to high, only source shares"
+> > +create_files
+> > +dummy_share $low_file
+> > +test_files $low_file $high_file
+> > +
+> > +# Scenario 4: high to low, only source file shares
+> > +ann "high to low, only source shares"
+> > +create_files
+> > +dummy_share $high_file
+> > +test_files $high_file $low_file
+> > +
+> > +# Scenario 5: low to high, only dest file shares
+> > +ann "low to high, only dest shares"
+> > +create_files
+> > +dummy_share $high_file
+> > +test_files $low_file $high_file
+> > +
+> > +# Scenario 6: high to low, only dest file shares
+> > +ann "high to low, only dest shares"
+> > +create_files
+> > +dummy_share $low_file
+> > +test_files $high_file $low_file
+> > +
+> > +# Scenario 7: low to high, both files share with each other
+> > +ann "low to high, both files share with each other"
+> > +create_files
+> > +_reflink_range $low_file 0 $high_file 0 $blksz >> $seqres.full
+> > +test_files $low_file $high_file
+> > +
+> > +# Scenario 8: high to low, both files share with each other
+> > +ann "high to low, both files share with each other"
+> > +create_files
+> > +_reflink_range $low_file 0 $high_file 0 $blksz >> $seqres.full
+> > +test_files $high_file $low_file
+> > +
+> > +# Scenario 9: low to high, both files share but not with each other
+> > +ann "low to high, both files share but not with each other"
+> > +create_files
+> > +# ocfs2 can only reflink between files sharing a refcount tree, so for
+> > +# this test (and #10) we skip the dummy file because we'd rather not split
+> > +# the test code just to mask off the /one/ weird fs like this...
+> > +if _supports_arbitrary_fileset_reflink; then
+> > +	dummy_share $low_file 1
+> > +	dummy_share $high_file 2
+> > +fi
+> > +test_files $low_file $high_file
+> > +
+> > +# Scenario 10: high to low, both files share but not with each other
+> > +ann "high to low, both files share but not with each other"
+> > +create_files
+> > +if _supports_arbitrary_fileset_reflink; then
+> > +	dummy_share $low_file 1
+> > +	dummy_share $high_file 2
+> > +fi
+> > +test_files $high_file $low_file
+> > +
+> > +# Scenario 11: low to high, both files share mutually
+> > +ann "low to high, both files share mutually"
+> > +create_files
+> > +mutual_dummy_share $low_file $high_file
+> > +test_files $low_file $high_file
+> > +
+> > +# Scenario 12: high to low, both files share mutually
+> > +ann "high to low, both files share mutually"
+> > +create_files
+> > +mutual_dummy_share $low_file $high_file
+> > +test_files $high_file $low_file
+> > +
+> > +# success, all done
+> > +status=0
+> > +exit
+> > diff --git a/tests/generic/944.out b/tests/generic/944.out
+> > new file mode 100644
+> > index 00000000..aa53fdce
+> > --- /dev/null
+> > +++ b/tests/generic/944.out
+> > @@ -0,0 +1,62 @@
+> > +QA output created by 944
+> > +Format and mount
+> > +1: low to high, neither share
+> > +07d9f5b0e07f22bff26e39f929cfc460  SCRATCH_MNT/test-944/low
+> > +81615449a98aaaad8dc179b3bec87f38  SCRATCH_MNT/test-944/high
+> > +07d9f5b0e07f22bff26e39f929cfc460  SCRATCH_MNT/test-944/low
+> > +de1d43fbed633326daed6f71912e09e1  SCRATCH_MNT/test-944/high
+> > +2: high to low, neither share
+> > +07d9f5b0e07f22bff26e39f929cfc460  SCRATCH_MNT/test-944/low
+> > +81615449a98aaaad8dc179b3bec87f38  SCRATCH_MNT/test-944/high
+> > +0d2ce48b6a4527783bd30ce21f09fec0  SCRATCH_MNT/test-944/low
+> > +81615449a98aaaad8dc179b3bec87f38  SCRATCH_MNT/test-944/high
+> > +3: low to high, only source shares
+> > +07d9f5b0e07f22bff26e39f929cfc460  SCRATCH_MNT/test-944/low
+> > +81615449a98aaaad8dc179b3bec87f38  SCRATCH_MNT/test-944/high
+> > +07d9f5b0e07f22bff26e39f929cfc460  SCRATCH_MNT/test-944/low
+> > +de1d43fbed633326daed6f71912e09e1  SCRATCH_MNT/test-944/high
+> > +4: high to low, only source shares
+> > +07d9f5b0e07f22bff26e39f929cfc460  SCRATCH_MNT/test-944/low
+> > +81615449a98aaaad8dc179b3bec87f38  SCRATCH_MNT/test-944/high
+> > +0d2ce48b6a4527783bd30ce21f09fec0  SCRATCH_MNT/test-944/low
+> > +81615449a98aaaad8dc179b3bec87f38  SCRATCH_MNT/test-944/high
+> > +5: low to high, only dest shares
+> > +07d9f5b0e07f22bff26e39f929cfc460  SCRATCH_MNT/test-944/low
+> > +81615449a98aaaad8dc179b3bec87f38  SCRATCH_MNT/test-944/high
+> > +07d9f5b0e07f22bff26e39f929cfc460  SCRATCH_MNT/test-944/low
+> > +de1d43fbed633326daed6f71912e09e1  SCRATCH_MNT/test-944/high
+> > +6: high to low, only dest shares
+> > +07d9f5b0e07f22bff26e39f929cfc460  SCRATCH_MNT/test-944/low
+> > +81615449a98aaaad8dc179b3bec87f38  SCRATCH_MNT/test-944/high
+> > +0d2ce48b6a4527783bd30ce21f09fec0  SCRATCH_MNT/test-944/low
+> > +81615449a98aaaad8dc179b3bec87f38  SCRATCH_MNT/test-944/high
+> > +7: low to high, both files share with each other
+> > +07d9f5b0e07f22bff26e39f929cfc460  SCRATCH_MNT/test-944/low
+> > +0d2ce48b6a4527783bd30ce21f09fec0  SCRATCH_MNT/test-944/high
+> > +07d9f5b0e07f22bff26e39f929cfc460  SCRATCH_MNT/test-944/low
+> > +07d9f5b0e07f22bff26e39f929cfc460  SCRATCH_MNT/test-944/high
+> > +8: high to low, both files share with each other
+> > +07d9f5b0e07f22bff26e39f929cfc460  SCRATCH_MNT/test-944/low
+> > +0d2ce48b6a4527783bd30ce21f09fec0  SCRATCH_MNT/test-944/high
+> > +0d2ce48b6a4527783bd30ce21f09fec0  SCRATCH_MNT/test-944/low
+> > +0d2ce48b6a4527783bd30ce21f09fec0  SCRATCH_MNT/test-944/high
+> > +9: low to high, both files share but not with each other
+> > +07d9f5b0e07f22bff26e39f929cfc460  SCRATCH_MNT/test-944/low
+> > +81615449a98aaaad8dc179b3bec87f38  SCRATCH_MNT/test-944/high
+> > +07d9f5b0e07f22bff26e39f929cfc460  SCRATCH_MNT/test-944/low
+> > +de1d43fbed633326daed6f71912e09e1  SCRATCH_MNT/test-944/high
+> > +10: high to low, both files share but not with each other
+> > +07d9f5b0e07f22bff26e39f929cfc460  SCRATCH_MNT/test-944/low
+> > +81615449a98aaaad8dc179b3bec87f38  SCRATCH_MNT/test-944/high
+> > +0d2ce48b6a4527783bd30ce21f09fec0  SCRATCH_MNT/test-944/low
+> > +81615449a98aaaad8dc179b3bec87f38  SCRATCH_MNT/test-944/high
+> > +11: low to high, both files share mutually
+> > +07d9f5b0e07f22bff26e39f929cfc460  SCRATCH_MNT/test-944/low
+> > +81615449a98aaaad8dc179b3bec87f38  SCRATCH_MNT/test-944/high
+> > +07d9f5b0e07f22bff26e39f929cfc460  SCRATCH_MNT/test-944/low
+> > +de1d43fbed633326daed6f71912e09e1  SCRATCH_MNT/test-944/high
+> > +12: high to low, both files share mutually
+> > +07d9f5b0e07f22bff26e39f929cfc460  SCRATCH_MNT/test-944/low
+> > +81615449a98aaaad8dc179b3bec87f38  SCRATCH_MNT/test-944/high
+> > +0d2ce48b6a4527783bd30ce21f09fec0  SCRATCH_MNT/test-944/low
+> > +81615449a98aaaad8dc179b3bec87f38  SCRATCH_MNT/test-944/high
+> > diff --git a/tests/generic/group b/tests/generic/group
+> > index 78b9b45d..2e4341fb 100644
+> > --- a/tests/generic/group
+> > +++ b/tests/generic/group
+> > @@ -538,3 +538,8 @@
+> >  533 auto quick attr
+> >  534 auto quick log
+> >  535 auto quick log
+> > +940 auto quick clone punch
+> > +941 auto quick clone punch
+> > +942 auto quick clone punch
+> > +943 auto quick clone punch
+> > +944 auto quick clone punch
+> 
+> And they don't belong to 'punch' group.
 
+Ok, will fix all these for the next submission.
 
-Process A???????????????????????????????????????????? ? ?? Process B
-1. in nfsd3_proc_getacl???????????????? ?? ? |
-2. |??????? dput
-3. fh_to_dentry(ocfs2_get_dentry)? |
-4. bdi flush dirty cache?????????????????????? |
-5. ocfs2_iget???????????????????? ? ? ?? ????????????? |
-
-Thanks,
-Sunny
-> Thanks
-> Gang
->
->
->> Thanks,
->> Sunny
->>> Thanks,
->>> Joseph
->>>
->>>> [283465.545490] Kernel panic - not syncing: OCFS2: (device sdp): panic
->> forced
->>>> after error
->>>>
->>>> [283465.546889] CPU: 5 PID: 12416 Comm: nfsd Tainted: G        W
->>>> 4.1.12-124.18.6.el6uek.bug28762940v3.x86_64 #2
->>>> [283465.548382] Hardware name: VMware, Inc. VMware Virtual Platform/440BX
->>>> Desktop Reference Platform, BIOS 6.00 09/21/2015
->>>> [283465.549657]  0000000000000000 ffff8800a56fb7b8 ffffffff816e839c
->>>> ffffffffa0514758
->>>> [283465.550392]  000000000008dc20 ffff8800a56fb838 ffffffff816e62d3
->>>> 0000000000000008
->>>> [283465.551056]  ffff880000000010 ffff8800a56fb848 ffff8800a56fb7e8
->>>> ffff88005df9f000
->>>> [283465.551710] Call Trace:
->>>> [283465.552516]  [<ffffffff816e839c>] dump_stack+0x63/0x81
->>>> [283465.553291]  [<ffffffff816e62d3>] panic+0xcb/0x21b
->>>> [283465.554037]  [<ffffffffa04e66b0>] ocfs2_handle_error+0xf0/0xf0 [ocfs2]
->>>> [283465.554882]  [<ffffffffa04e7737>] __ocfs2_error+0x67/0x70 [ocfs2]
->>>> [283465.555768]  [<ffffffffa049c0f9>] ocfs2_validate_inode_block+0x229/0x230
->>>> [ocfs2]
->>>> [283465.556683]  [<ffffffffa047bcbc>] ocfs2_read_blocks+0x46c/0x7b0 [ocfs2]
->>>> [283465.557408]  [<ffffffffa049bed0>] ? ocfs2_inode_cache_io_unlock+0x20/0x20
->>>> [ocfs2]
->>>> [283465.557973]  [<ffffffffa049f0eb>] ocfs2_read_inode_block_full+0x3b/0x60
->>>> [ocfs2]
->>>> [283465.558525]  [<ffffffffa049f5ba>] ocfs2_iget+0x4aa/0x880 [ocfs2]
->>>> [283465.559082]  [<ffffffffa049146e>] ocfs2_get_parent+0x9e/0x220 [ocfs2]
->>>> [283465.559622]  [<ffffffff81297c05>] reconnect_path+0xb5/0x300
->>>> [283465.560156]  [<ffffffff81297f46>] exportfs_decode_fh+0xf6/0x2b0
->>>> [283465.560708]  [<ffffffffa062faf0>] ? nfsd_proc_getattr+0xa0/0xa0 [nfsd]
->>>> [283465.561262]  [<ffffffff810a8196>] ? prepare_creds+0x26/0x110
->>>> [283465.561932]  [<ffffffffa0630860>] fh_verify+0x350/0x660 [nfsd]
->>>> [283465.562862]  [<ffffffffa0637804>] ? nfsd_cache_lookup+0x44/0x630 [nfsd]
->>>> [283465.563697]  [<ffffffffa063a8b9>] nfsd3_proc_getattr+0x69/0xf0 [nfsd]
->>>> [283465.564510]  [<ffffffffa062cf60>] nfsd_dispatch+0xe0/0x290 [nfsd]
->>>> [283465.565358]  [<ffffffffa05eb892>] ? svc_tcp_adjust_wspace+0x12/0x30
->>>> [sunrpc]
->>>> [283465.566272]  [<ffffffffa05ea652>] svc_process_common+0x412/0x6a0 [sunrpc]
->>>> [283465.567155]  [<ffffffffa05eaa03>] svc_process+0x123/0x210 [sunrpc]
->>>> [283465.568020]  [<ffffffffa062c90f>] nfsd+0xff/0x170 [nfsd]
->>>> [283465.568962]  [<ffffffffa062c810>] ? nfsd_destroy+0x80/0x80 [nfsd]
->>>> [283465.570112]  [<ffffffff810a622b>] kthread+0xcb/0xf0
->>>> [283465.571099]  [<ffffffff810a6160>] ? kthread_create_on_node+0x180/0x180
->>>> [283465.572114]  [<ffffffff816f11b8>] ret_from_fork+0x58/0x90
->>>> [283465.573156]  [<ffffffff810a6160>] ? kthread_create_on_node+0x180/0x180
->>>> ---
->>>>    fs/ocfs2/inode.c |   22 ++++++++++++++++++++++
->>>>    1 files changed, 22 insertions(+), 0 deletions(-)
->>>>
->>>> diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
->>>> index b254416..a7f8160 100644
->>>> --- a/fs/ocfs2/inode.c
->>>> +++ b/fs/ocfs2/inode.c
->>>> @@ -513,6 +513,16 @@ static int ocfs2_read_locked_inode(struct inode *inode,
->>>>    	status = -EINVAL;
->>>>    	fe = (struct ocfs2_dinode *) bh->b_data;
->>>>    
->>>> +	/*
->>>> +	 * In some cases, this inode has been deleted, but the data of
->>>> +	 * inode is read directly. So We should judge whether this inode
->>>> +	 * has been deleted.
->>>> +	 * */
->>>> +	if (unlikely(fe->i_dtime != 0)) {
->>>> +		mlog(ML_NOTICE, "The inode %llu has been deleted\n",
->>>> +		     le64_to_cpu(fe->i_blkno));
->>>> +	        goto bail;
->>>> +	}
->>>>    	/*
->>>>    	 * This is a code bug. Right now the caller needs to
->>>>    	 * understand whether it is asking for a system file inode or
->>>> @@ -1331,6 +1341,18 @@ int ocfs2_validate_inode_block(struct super_block
->> *sb,
->>>>    
->>>>    	BUG_ON(!buffer_uptodate(bh));
->>>>    
->>>> +	/*
->>>> +	 * In some cases, this inode has been deleted, but the data of
->>>> +	 * inode is read directly. This is not a data corruption.So
->>>> +	 * We should judge whether this inode has been deleted.
->>>> +	 * */
->>>> +	if (unlikely(di->i_dtime != 0)) {
->>>> +		rc = -EINVAL;
->>>> +		mlog(ML_NOTICE, "The inode %llu has been deleted\n",
->>>> +		     le64_to_cpu(di->i_blkno));
->>>> +	        goto bail;
->>>> +	}
->>>> +
->>>>    	/*
->>>>    	 * If the ecc fails, we return the error but otherwise
->>>>    	 * leave the filesystem running.  We know any error is
->>>>
->>
->> _______________________________________________
->> Ocfs2-devel mailing list
->> Ocfs2-devel at oss.oracle.com
->> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+> Thanks,
+> Eryu
