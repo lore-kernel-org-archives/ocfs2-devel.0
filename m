@@ -1,26 +1,31 @@
 From: sunny.s.zhang <sunny.s.zhang@oracle.com>
-Date: Wed, 3 Apr 2019 14:42:50 +0800
-Subject: [Ocfs2-devel] [PATCH v2] ocfs2: fix ocfs2 read inode data panic
-	in ocfs2_iget
-In-Reply-To: <mailman.3.1554231601.19300.ocfs2-devel@oss.oracle.com>
-References: <mailman.3.1554231601.19300.ocfs2-devel@oss.oracle.com>
-Message-ID: <2e09a66e-8fbc-2b51-6cce-f2caf8db2828@oracle.com>
+Date: Mon, 8 Apr 2019 09:18:05 +0800
+Subject: [Ocfs2-devel] ocfs2: fix ocfs2 read inode data panic in
+	ocfs2_iget
+In-Reply-To: <mailman.1.1554318002.20294.ocfs2-devel@oss.oracle.com>
+References: <mailman.1.1554318002.20294.ocfs2-devel@oss.oracle.com>
+Message-ID: <d9824a9b-a695-7b7b-30bd-761ed7743cc7@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Friends,
+Hi Gang,? Jiang Qi,? Joseph,
 
-Can someone help me review this patch?
+Can you help me review this patch?
+The changes are as follows:
+
+1. Added more detailed descriptions.
+2. Used a relatively normal way as suggested by Gang and Joseph.
+3. Considering that there may be a slight impact on performance,
+    I made changes in ocfs2_get_parent, not in ocsf2_iget.
 
 Thanks,
-
 Sunny
 
 
-? 2019?04?03? 03:00, ocfs2-devel-request at oss.oracle.com ??:
+? 2019?04?04? 03:00, ocfs2-devel-request at oss.oracle.com ??:
 > Send Ocfs2-devel mailing list submissions to
 > 	ocfs2-devel at oss.oracle.com
 >
@@ -38,185 +43,239 @@ Sunny
 >
 > Today's Topics:
 >
->     1. [PATCH v2] ocfs2: fix ocfs2 read inode data panic in
->        ocfs2_iget (Shuning Zhang)
+>     1. Re: [PATCH v2] ocfs2: fix ocfs2 read inode data panic	in
+>        ocfs2_iget (sunny.s.zhang)
 >
 >
 > ----------------------------------------------------------------------
 >
 > Message: 1
-> Date: Tue,  2 Apr 2019 14:18:39 +0800
-> From: Shuning Zhang <sunny.s.zhang@oracle.com>
-> Subject: [Ocfs2-devel] [PATCH v2] ocfs2: fix ocfs2 read inode data
-> 	panic in	ocfs2_iget
+> Date: Wed, 3 Apr 2019 14:42:50 +0800
+> From: "sunny.s.zhang" <sunny.s.zhang@oracle.com>
+> Subject: Re: [Ocfs2-devel] [PATCH v2] ocfs2: fix ocfs2 read inode data
+> 	panic	in ocfs2_iget
 > To: ocfs2-devel at oss.oracle.com
-> Message-ID:
-> 	<1554185919-3010-1-git-send-email-sunny.s.zhang@oracle.com>
+> Message-ID: <2e09a66e-8fbc-2b51-6cce-f2caf8db2828@oracle.com>
+> Content-Type: text/plain; charset=gbk; format=flowed
 >
-> In some cases, the function ocfs2_iget read the data of inode, which has
-> been deleted for some reason. That will make the system panic. So We
-> should judge whether this inode has been deleted, and tell the caller
-> that the inode is a bad inode.
+> Hi Friends,
 >
-> For example, the ocfs2 is used as the backed of nfs, and the client is
-> nfsv3. This issue can be reproduced by the following steps.
+> Can someone help me review this patch?
 >
-> on the nfs server side,
-> ..../patha/pathb
+> Thanks,
 >
-> Step 1: The process A was scheduled before calling the function
-> fh_verify.
+> Sunny
 >
-> Step 2: The process B is removing the 'pathb', and just completed the
-> call to function dput.
-> Then the dentry of 'pathb' has been deleted from the dcache, and all
-> ancestors have been deleted also.
-> The relationship of dentry and inode was deleted through the function
-> hlist_del_init. The following is the call stack.
-> dentry_iput->hlist_del_init(&dentry->d_u.d_alias)
 >
-> At this time, the inode is still in the dcache.
+> ? 2019?04?03? 03:00, ocfs2-devel-request at oss.oracle.com ??:
+>> Send Ocfs2-devel mailing list submissions to
+>> 	ocfs2-devel at oss.oracle.com
+>>
+>> To subscribe or unsubscribe via the World Wide Web, visit
+>> 	https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+>> or, via email, send a message with subject or body 'help' to
+>> 	ocfs2-devel-request at oss.oracle.com
+>>
+>> You can reach the person managing the list at
+>> 	ocfs2-devel-owner at oss.oracle.com
+>>
+>> When replying, please edit your Subject line so it is more specific
+>> than "Re: Contents of Ocfs2-devel digest..."
+>>
+>>
+>> Today's Topics:
+>>
+>>      1. [PATCH v2] ocfs2: fix ocfs2 read inode data panic in
+>>         ocfs2_iget (Shuning Zhang)
+>>
+>>
+>> ----------------------------------------------------------------------
+>>
+>> Message: 1
+>> Date: Tue,  2 Apr 2019 14:18:39 +0800
+>> From: Shuning Zhang <sunny.s.zhang@oracle.com>
+>> Subject: [Ocfs2-devel] [PATCH v2] ocfs2: fix ocfs2 read inode data
+>> 	panic in	ocfs2_iget
+>> To: ocfs2-devel at oss.oracle.com
+>> Message-ID:
+>> 	<1554185919-3010-1-git-send-email-sunny.s.zhang@oracle.com>
+>>
+>> In some cases, the function ocfs2_iget read the data of inode, which has
+>> been deleted for some reason. That will make the system panic. So We
+>> should judge whether this inode has been deleted, and tell the caller
+>> that the inode is a bad inode.
+>>
+>> For example, the ocfs2 is used as the backed of nfs, and the client is
+>> nfsv3. This issue can be reproduced by the following steps.
+>>
+>> on the nfs server side,
+>> ..../patha/pathb
+>>
+>> Step 1: The process A was scheduled before calling the function
+>> fh_verify.
+>>
+>> Step 2: The process B is removing the 'pathb', and just completed the
+>> call to function dput.
+>> Then the dentry of 'pathb' has been deleted from the dcache, and all
+>> ancestors have been deleted also.
+>> The relationship of dentry and inode was deleted through the function
+>> hlist_del_init. The following is the call stack.
+>> dentry_iput->hlist_del_init(&dentry->d_u.d_alias)
+>>
+>> At this time, the inode is still in the dcache.
+>>
+>> Step 3: The process A call the function ocfs2_get_dentry, which get
+>> the inode from dcache. Then the refcount of inode is 1. The following
+>> is the call stack.
+>> nfsd3_proc_getacl->fh_verify->exportfs_decode_fh->fh_to_dentry(ocfs2_get_dentry)
+>>
+>> Step 4: Dirty pages are flushed by bdi threads. So the inode of
+>> 'patha' is evicted, and this directory was deleted.
+>> But the inode of 'pathb' can't be evicted, because the refcount of the
+>> inode was 1.
+>>
+>> Step 5: The process A keep running, and call the function
+>> reconnect_path(in exportfs_decode_fh), which call function
+>> ocfs2_get_parent of ocfs2. Get the block number of parent
+>> directory(patha) by the name of ... Then read the data from disk by the
+>> block number. But this inode has been deleted, so the system panic.
+>>
+>> Process A                                             Process B
+>> 1. in nfsd3_proc_getacl                   |
+>> 2.                                        |        dput
+>> 3. fh_to_dentry(ocfs2_get_dentry)         |
+>> 4. bdi flush dirty cache                  |
+>> 5. ocfs2_iget                             |
+>>
+>> [283465.542049] OCFS2: ERROR (device sdp): ocfs2_validate_inode_block:
+>> Invalid dinode #580640: OCFS2_VALID_FL not set
+>>
+>> [283465.545490] Kernel panic - not syncing: OCFS2: (device sdp): panic forced
+>> after error
+>>
+>> [283465.546889] CPU: 5 PID: 12416 Comm: nfsd Tainted: G        W
+>> 4.1.12-124.18.6.el6uek.bug28762940v3.x86_64 #2
+>> [283465.548382] Hardware name: VMware, Inc. VMware Virtual Platform/440BX
+>> Desktop Reference Platform, BIOS 6.00 09/21/2015
+>> [283465.549657]  0000000000000000 ffff8800a56fb7b8 ffffffff816e839c
+>> ffffffffa0514758
+>> [283465.550392]  000000000008dc20 ffff8800a56fb838 ffffffff816e62d3
+>> 0000000000000008
+>> [283465.551056]  ffff880000000010 ffff8800a56fb848 ffff8800a56fb7e8
+>> ffff88005df9f000
+>> [283465.551710] Call Trace:
+>> [283465.552516]  [<ffffffff816e839c>] dump_stack+0x63/0x81
+>> [283465.553291]  [<ffffffff816e62d3>] panic+0xcb/0x21b
+>> [283465.554037]  [<ffffffffa04e66b0>] ocfs2_handle_error+0xf0/0xf0 [ocfs2]
+>> [283465.554882]  [<ffffffffa04e7737>] __ocfs2_error+0x67/0x70 [ocfs2]
+>> [283465.555768]  [<ffffffffa049c0f9>] ocfs2_validate_inode_block+0x229/0x230
+>> [ocfs2]
+>> [283465.556683]  [<ffffffffa047bcbc>] ocfs2_read_blocks+0x46c/0x7b0 [ocfs2]
+>> [283465.557408]  [<ffffffffa049bed0>] ? ocfs2_inode_cache_io_unlock+0x20/0x20
+>> [ocfs2]
+>> [283465.557973]  [<ffffffffa049f0eb>] ocfs2_read_inode_block_full+0x3b/0x60
+>> [ocfs2]
+>> [283465.558525]  [<ffffffffa049f5ba>] ocfs2_iget+0x4aa/0x880 [ocfs2]
+>> [283465.559082]  [<ffffffffa049146e>] ocfs2_get_parent+0x9e/0x220 [ocfs2]
+>> [283465.559622]  [<ffffffff81297c05>] reconnect_path+0xb5/0x300
+>> [283465.560156]  [<ffffffff81297f46>] exportfs_decode_fh+0xf6/0x2b0
+>> [283465.560708]  [<ffffffffa062faf0>] ? nfsd_proc_getattr+0xa0/0xa0 [nfsd]
+>> [283465.561262]  [<ffffffff810a8196>] ? prepare_creds+0x26/0x110
+>> [283465.561932]  [<ffffffffa0630860>] fh_verify+0x350/0x660 [nfsd]
+>> [283465.562862]  [<ffffffffa0637804>] ? nfsd_cache_lookup+0x44/0x630 [nfsd]
+>> [283465.563697]  [<ffffffffa063a8b9>] nfsd3_proc_getattr+0x69/0xf0 [nfsd]
+>> [283465.564510]  [<ffffffffa062cf60>] nfsd_dispatch+0xe0/0x290 [nfsd]
+>> [283465.565358]  [<ffffffffa05eb892>] ? svc_tcp_adjust_wspace+0x12/0x30
+>> [sunrpc]
+>> [283465.566272]  [<ffffffffa05ea652>] svc_process_common+0x412/0x6a0 [sunrpc]
+>> [283465.567155]  [<ffffffffa05eaa03>] svc_process+0x123/0x210 [sunrpc]
+>> [283465.568020]  [<ffffffffa062c90f>] nfsd+0xff/0x170 [nfsd]
+>> [283465.568962]  [<ffffffffa062c810>] ? nfsd_destroy+0x80/0x80 [nfsd]
+>> [283465.570112]  [<ffffffff810a622b>] kthread+0xcb/0xf0
+>> [283465.571099]  [<ffffffff810a6160>] ? kthread_create_on_node+0x180/0x180
+>> [283465.572114]  [<ffffffff816f11b8>] ret_from_fork+0x58/0x90
+>> [283465.573156]  [<ffffffff810a6160>] ? kthread_create_on_node+0x180/0x180
+>>
+>> Changes in v2:
+>>    - add description of reporducing this issue
+>>    - use ocfs2_test_inode_bit instead of i_dtime
+>>
+>> Signed-off-by: Shuning Zhang <sunny.s.zhang@oracle.com>
+>> ---
+>>    fs/ocfs2/export.c |   30 +++++++++++++++++++++++++++++-
+>>    1 files changed, 29 insertions(+), 1 deletions(-)
+>>
+>> diff --git a/fs/ocfs2/export.c b/fs/ocfs2/export.c
+>> index 827fc98..da17aa6 100644
+>> --- a/fs/ocfs2/export.c
+>> +++ b/fs/ocfs2/export.c
+>> @@ -148,16 +148,24 @@ static struct dentry *ocfs2_get_parent(struct dentry *child)
+>>    	u64 blkno;
+>>    	struct dentry *parent;
+>>    	struct inode *dir = d_inode(child);
+>> +	int set;
+>>    
+>>    	trace_ocfs2_get_parent(child, child->d_name.len, child->d_name.name,
+>>    			       (unsigned long long)OCFS2_I(dir)->ip_blkno);
+>>    
+>> +	status = ocfs2_nfs_sync_lock(OCFS2_SB(dir->i_sb), 1);
+>> +	if (status < 0) {
+>> +		mlog(ML_ERROR, "getting nfs sync lock(EX) failed %d\n", status);
+>> +		parent = ERR_PTR(status);
+>> +		goto bail;
+>> +	}
+>> +
+>>    	status = ocfs2_inode_lock(dir, NULL, 0);
+>>    	if (status < 0) {
+>>    		if (status != -ENOENT)
+>>    			mlog_errno(status);
+>>    		parent = ERR_PTR(status);
+>> -		goto bail;
+>> +		goto unlock_nfs_sync;
+>>    	}
+>>    
+>>    	status = ocfs2_lookup_ino_from_name(dir, "..", 2, &blkno);
+>> @@ -166,11 +174,31 @@ static struct dentry *ocfs2_get_parent(struct dentry *child)
+>>    		goto bail_unlock;
+>>    	}
+>>    
+>> +	status = ocfs2_test_inode_bit(OCFS2_SB(dir->i_sb), blkno, &set);
+>> +	if (status < 0) {
+>> +		if (status == -EINVAL) {
+>> +			status = -ESTALE;
+>> +		} else
+>> +			mlog(ML_ERROR, "test inode bit failed %d\n", status);
+>> +		parent = ERR_PTR(status);
+>> +		goto bail_unlock;
+>> +	}
+>> +
+>> +	trace_ocfs2_get_dentry_test_bit(status, set);
+>> +	if (!set) {
+>> +		status = -ESTALE;
+>> +		parent = ERR_PTR(status);
+>> +		goto bail_unlock;
+>> +	}
+>> +
+>>    	parent = d_obtain_alias(ocfs2_iget(OCFS2_SB(dir->i_sb), blkno, 0, 0));
+>>    
+>>    bail_unlock:
+>>    	ocfs2_inode_unlock(dir, 0);
+>>    
+>> +unlock_nfs_sync:
+>> +	ocfs2_nfs_sync_unlock(OCFS2_SB(dir->i_sb), 1);
+>> +
+>>    bail:
+>>    	trace_ocfs2_get_parent_end(parent);
+>>    
 >
-> Step 3: The process A call the function ocfs2_get_dentry, which get
-> the inode from dcache. Then the refcount of inode is 1. The following
-> is the call stack.
-> nfsd3_proc_getacl->fh_verify->exportfs_decode_fh->fh_to_dentry(ocfs2_get_dentry)
 >
-> Step 4: Dirty pages are flushed by bdi threads. So the inode of
-> 'patha' is evicted, and this directory was deleted.
-> But the inode of 'pathb' can't be evicted, because the refcount of the
-> inode was 1.
 >
-> Step 5: The process A keep running, and call the function
-> reconnect_path(in exportfs_decode_fh), which call function
-> ocfs2_get_parent of ocfs2. Get the block number of parent
-> directory(patha) by the name of ... Then read the data from disk by the
-> block number. But this inode has been deleted, so the system panic.
+> ------------------------------
 >
-> Process A                                             Process B
-> 1. in nfsd3_proc_getacl                   |
-> 2.                                        |        dput
-> 3. fh_to_dentry(ocfs2_get_dentry)         |
-> 4. bdi flush dirty cache                  |
-> 5. ocfs2_iget                             |
+> _______________________________________________
+> Ocfs2-devel mailing list
+> Ocfs2-devel at oss.oracle.com
+> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
 >
-> [283465.542049] OCFS2: ERROR (device sdp): ocfs2_validate_inode_block:
-> Invalid dinode #580640: OCFS2_VALID_FL not set
->
-> [283465.545490] Kernel panic - not syncing: OCFS2: (device sdp): panic forced
-> after error
->
-> [283465.546889] CPU: 5 PID: 12416 Comm: nfsd Tainted: G        W
-> 4.1.12-124.18.6.el6uek.bug28762940v3.x86_64 #2
-> [283465.548382] Hardware name: VMware, Inc. VMware Virtual Platform/440BX
-> Desktop Reference Platform, BIOS 6.00 09/21/2015
-> [283465.549657]  0000000000000000 ffff8800a56fb7b8 ffffffff816e839c
-> ffffffffa0514758
-> [283465.550392]  000000000008dc20 ffff8800a56fb838 ffffffff816e62d3
-> 0000000000000008
-> [283465.551056]  ffff880000000010 ffff8800a56fb848 ffff8800a56fb7e8
-> ffff88005df9f000
-> [283465.551710] Call Trace:
-> [283465.552516]  [<ffffffff816e839c>] dump_stack+0x63/0x81
-> [283465.553291]  [<ffffffff816e62d3>] panic+0xcb/0x21b
-> [283465.554037]  [<ffffffffa04e66b0>] ocfs2_handle_error+0xf0/0xf0 [ocfs2]
-> [283465.554882]  [<ffffffffa04e7737>] __ocfs2_error+0x67/0x70 [ocfs2]
-> [283465.555768]  [<ffffffffa049c0f9>] ocfs2_validate_inode_block+0x229/0x230
-> [ocfs2]
-> [283465.556683]  [<ffffffffa047bcbc>] ocfs2_read_blocks+0x46c/0x7b0 [ocfs2]
-> [283465.557408]  [<ffffffffa049bed0>] ? ocfs2_inode_cache_io_unlock+0x20/0x20
-> [ocfs2]
-> [283465.557973]  [<ffffffffa049f0eb>] ocfs2_read_inode_block_full+0x3b/0x60
-> [ocfs2]
-> [283465.558525]  [<ffffffffa049f5ba>] ocfs2_iget+0x4aa/0x880 [ocfs2]
-> [283465.559082]  [<ffffffffa049146e>] ocfs2_get_parent+0x9e/0x220 [ocfs2]
-> [283465.559622]  [<ffffffff81297c05>] reconnect_path+0xb5/0x300
-> [283465.560156]  [<ffffffff81297f46>] exportfs_decode_fh+0xf6/0x2b0
-> [283465.560708]  [<ffffffffa062faf0>] ? nfsd_proc_getattr+0xa0/0xa0 [nfsd]
-> [283465.561262]  [<ffffffff810a8196>] ? prepare_creds+0x26/0x110
-> [283465.561932]  [<ffffffffa0630860>] fh_verify+0x350/0x660 [nfsd]
-> [283465.562862]  [<ffffffffa0637804>] ? nfsd_cache_lookup+0x44/0x630 [nfsd]
-> [283465.563697]  [<ffffffffa063a8b9>] nfsd3_proc_getattr+0x69/0xf0 [nfsd]
-> [283465.564510]  [<ffffffffa062cf60>] nfsd_dispatch+0xe0/0x290 [nfsd]
-> [283465.565358]  [<ffffffffa05eb892>] ? svc_tcp_adjust_wspace+0x12/0x30
-> [sunrpc]
-> [283465.566272]  [<ffffffffa05ea652>] svc_process_common+0x412/0x6a0 [sunrpc]
-> [283465.567155]  [<ffffffffa05eaa03>] svc_process+0x123/0x210 [sunrpc]
-> [283465.568020]  [<ffffffffa062c90f>] nfsd+0xff/0x170 [nfsd]
-> [283465.568962]  [<ffffffffa062c810>] ? nfsd_destroy+0x80/0x80 [nfsd]
-> [283465.570112]  [<ffffffff810a622b>] kthread+0xcb/0xf0
-> [283465.571099]  [<ffffffff810a6160>] ? kthread_create_on_node+0x180/0x180
-> [283465.572114]  [<ffffffff816f11b8>] ret_from_fork+0x58/0x90
-> [283465.573156]  [<ffffffff810a6160>] ? kthread_create_on_node+0x180/0x180
->
-> Changes in v2:
->   - add description of reporducing this issue
->   - use ocfs2_test_inode_bit instead of i_dtime
->
-> Signed-off-by: Shuning Zhang <sunny.s.zhang@oracle.com>
-> ---
->   fs/ocfs2/export.c |   30 +++++++++++++++++++++++++++++-
->   1 files changed, 29 insertions(+), 1 deletions(-)
->
-> diff --git a/fs/ocfs2/export.c b/fs/ocfs2/export.c
-> index 827fc98..da17aa6 100644
-> --- a/fs/ocfs2/export.c
-> +++ b/fs/ocfs2/export.c
-> @@ -148,16 +148,24 @@ static struct dentry *ocfs2_get_parent(struct dentry *child)
->   	u64 blkno;
->   	struct dentry *parent;
->   	struct inode *dir = d_inode(child);
-> +	int set;
->   
->   	trace_ocfs2_get_parent(child, child->d_name.len, child->d_name.name,
->   			       (unsigned long long)OCFS2_I(dir)->ip_blkno);
->   
-> +	status = ocfs2_nfs_sync_lock(OCFS2_SB(dir->i_sb), 1);
-> +	if (status < 0) {
-> +		mlog(ML_ERROR, "getting nfs sync lock(EX) failed %d\n", status);
-> +		parent = ERR_PTR(status);
-> +		goto bail;
-> +	}
-> +
->   	status = ocfs2_inode_lock(dir, NULL, 0);
->   	if (status < 0) {
->   		if (status != -ENOENT)
->   			mlog_errno(status);
->   		parent = ERR_PTR(status);
-> -		goto bail;
-> +		goto unlock_nfs_sync;
->   	}
->   
->   	status = ocfs2_lookup_ino_from_name(dir, "..", 2, &blkno);
-> @@ -166,11 +174,31 @@ static struct dentry *ocfs2_get_parent(struct dentry *child)
->   		goto bail_unlock;
->   	}
->   
-> +	status = ocfs2_test_inode_bit(OCFS2_SB(dir->i_sb), blkno, &set);
-> +	if (status < 0) {
-> +		if (status == -EINVAL) {
-> +			status = -ESTALE;
-> +		} else
-> +			mlog(ML_ERROR, "test inode bit failed %d\n", status);
-> +		parent = ERR_PTR(status);
-> +		goto bail_unlock;
-> +	}
-> +
-> +	trace_ocfs2_get_dentry_test_bit(status, set);
-> +	if (!set) {
-> +		status = -ESTALE;
-> +		parent = ERR_PTR(status);
-> +		goto bail_unlock;
-> +	}
-> +
->   	parent = d_obtain_alias(ocfs2_iget(OCFS2_SB(dir->i_sb), blkno, 0, 0));
->   
->   bail_unlock:
->   	ocfs2_inode_unlock(dir, 0);
->   
-> +unlock_nfs_sync:
-> +	ocfs2_nfs_sync_unlock(OCFS2_SB(dir->i_sb), 1);
-> +
->   bail:
->   	trace_ocfs2_get_parent_end(parent);
->   
+> End of Ocfs2-devel Digest, Vol 182, Issue 2
+> *******************************************
