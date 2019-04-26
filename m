@@ -1,136 +1,33 @@
 From: Joseph Qi <jiangqi903@gmail.com>
-Date: Fri, 26 Apr 2019 09:21:17 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: add last unlock times in
-	locking_state
-In-Reply-To: <20190425091250.3625-1-ghe@suse.com>
-References: <20190425091250.3625-1-ghe@suse.com>
-Message-ID: <c855abce-d62c-5fe0-3b31-c252077b4530@gmail.com>
+Date: Fri, 26 Apr 2019 09:47:35 +0800
+Subject: [Ocfs2-devel] [PATCH] MAINTAINERS: add myself as ocfs2 co-maintainer
+Message-ID: <f56d75b3-2be5-25c2-51f2-c3f5423d4f14@gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Gang He <ghe@suse.com>, mark@fasheh.com, jlbec@evilplan.org
-Cc: linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com, akpm@linux-foundation.org
+To: ocfs2-devel@oss.oracle.com
 
-Hi Gang,
+I have been contributing and reviewing to the ocfs2 filesystem for
+recent years and I'm willing to continue doing so.
+Volunteer as a co-maintainer for ocfs2 filesystem.
 
-On 19/4/25 17:12, Gang He wrote:
-> ocfs2 file system uses locking_state file under debugfs to dump
-> each ocfs2 file system's dlm lock resources, but the dlm lock
-> resources in memory are becoming more and more after the files
-> were touched by the user. it will become a bit difficult to analyze
-> these dlm lock resource records in locking_state file by the upper
-> scripts, though some files are not active for now, which were
-> accessed long time ago.
-> Then, I'd like to add last pr/ex unlock times in locking_state file
-> for each dlm lock resource record, the the upper scripts can use
-> last unlock time to filter inactive dlm lock resource record.
-> 
-> Signed-off-by: Gang He <ghe@suse.com>
-> ---
->  fs/ocfs2/dlmglue.c | 21 +++++++++++++++++----
->  fs/ocfs2/ocfs2.h   |  1 +
->  2 files changed, 18 insertions(+), 4 deletions(-)
-> 
-> diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-> index af405586c5b1..dccf4136f8c1 100644
-> --- a/fs/ocfs2/dlmglue.c
-> +++ b/fs/ocfs2/dlmglue.c
-> @@ -448,7 +448,7 @@ static void ocfs2_update_lock_stats(struct ocfs2_lock_res *res, int level,
->  				    struct ocfs2_mask_waiter *mw, int ret)
->  {
->  	u32 usec;
-> -	ktime_t kt;
-> +	ktime_t last, kt;
->  	struct ocfs2_lock_stats *stats;
->  
->  	if (level == LKM_PRMODE)
-> @@ -458,7 +458,8 @@ static void ocfs2_update_lock_stats(struct ocfs2_lock_res *res, int level,
->  	else
->  		return;
->  
-> -	kt = ktime_sub(ktime_get(), mw->mw_lock_start);
-> +	last = ktime_get();
-> +	kt = ktime_sub(last, mw->mw_lock_start);
->  	usec = ktime_to_us(kt);
->  
->  	stats->ls_gets++;
-> @@ -474,6 +475,8 @@ static void ocfs2_update_lock_stats(struct ocfs2_lock_res *res, int level,
->  
->  	if (ret)
->  		stats->ls_fail++;
-> +
-> +	stats->ls_last = ktime_to_timespec(last).tv_sec;
->  }
->  
->  static inline void ocfs2_track_lock_refresh(struct ocfs2_lock_res *lockres)
-> @@ -3093,8 +3096,10 @@ static void *ocfs2_dlm_seq_next(struct seq_file *m, void *v, loff_t *pos)
->   *	- Lock stats printed
->   * New in version 3
->   *	- Max time in lock stats is in usecs (instead of nsecs)
-> + * New in version 4
-> + *	- Add last pr/ex unlock times in secs
+Signed-off-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+---
+ MAINTAINERS | 1 +
+ 1 file changed, 1 insertion(+)
 
-Why not usecs?
-BTW, should we change tools side like debugfs as well?
-
-Thanks,
-Joseph
-
->   */
-> -#define OCFS2_DLM_DEBUG_STR_VERSION 3
-> +#define OCFS2_DLM_DEBUG_STR_VERSION 4
->  static int ocfs2_dlm_seq_show(struct seq_file *m, void *v)
->  {
->  	int i;
-> @@ -3145,6 +3150,8 @@ static int ocfs2_dlm_seq_show(struct seq_file *m, void *v)
->  # define lock_max_prmode(_l)		((_l)->l_lock_prmode.ls_max)
->  # define lock_max_exmode(_l)		((_l)->l_lock_exmode.ls_max)
->  # define lock_refresh(_l)		((_l)->l_lock_refresh)
-> +# define lock_last_prmode(_l)		((_l)->l_lock_prmode.ls_last)
-> +# define lock_last_exmode(_l)		((_l)->l_lock_exmode.ls_last)
->  #else
->  # define lock_num_prmode(_l)		(0)
->  # define lock_num_exmode(_l)		(0)
-> @@ -3155,6 +3162,8 @@ static int ocfs2_dlm_seq_show(struct seq_file *m, void *v)
->  # define lock_max_prmode(_l)		(0)
->  # define lock_max_exmode(_l)		(0)
->  # define lock_refresh(_l)		(0)
-> +# define lock_last_prmode(_l)		(0)
-> +# define lock_last_exmode(_l)		(0)
->  #endif
->  	/* The following seq_print was added in version 2 of this output */
->  	seq_printf(m, "%u\t"
-> @@ -3165,6 +3174,8 @@ static int ocfs2_dlm_seq_show(struct seq_file *m, void *v)
->  		   "%llu\t"
->  		   "%u\t"
->  		   "%u\t"
-> +		   "%u\t"
-> +		   "%u\t"
->  		   "%u\t",
->  		   lock_num_prmode(lockres),
->  		   lock_num_exmode(lockres),
-> @@ -3174,7 +3185,9 @@ static int ocfs2_dlm_seq_show(struct seq_file *m, void *v)
->  		   lock_total_exmode(lockres),
->  		   lock_max_prmode(lockres),
->  		   lock_max_exmode(lockres),
-> -		   lock_refresh(lockres));
-> +		   lock_refresh(lockres),
-> +		   lock_last_prmode(lockres),
-> +		   lock_last_exmode(lockres));
->  
->  	/* End the line */
->  	seq_printf(m, "\n");
-> diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
-> index 1f029fbe8b8d..8efa022684f4 100644
-> --- a/fs/ocfs2/ocfs2.h
-> +++ b/fs/ocfs2/ocfs2.h
-> @@ -164,6 +164,7 @@ struct ocfs2_lock_stats {
->  
->  	/* Storing max wait in usecs saves 24 bytes per inode */
->  	u32		ls_max;		/* Max wait in USEC */
-> +	u32		ls_last;	/* Last unlock time in SEC */
->  };
->  #endif
->  
-> 
+diff --git a/MAINTAINERS b/MAINTAINERS
+index 5c38f21aee78..3266235ddc82 100644
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -11620,6 +11620,7 @@ F:	include/linux/oprofile.h
+ ORACLE CLUSTER FILESYSTEM 2 (OCFS2)
+ M:	Mark Fasheh <mark@fasheh.com>
+ M:	Joel Becker <jlbec@evilplan.org>
++M:	Joseph Qi <joseph.qi@linux.alibaba.com>
+ L:	ocfs2-devel at oss.oracle.com (moderated for non-subscribers)
+ W:	https://urldefense.proofpoint.com/v2/url?u=http-3A__ocfs2.wiki.kernel.org&d=DwICaQ&c=RoP1YumCXCgaWHvlZYR8PZh8Bv7qIrMUB65eapI_JnE&r=C7gAd4uDxlAvTdc0vmU6X8CMk6L2iDY8-HD0qT6Fo7Y&m=elLFHOcpCalj4TjyBD6-NCZBQyOVcP0S_Fe0HZF36XU&s=1t3p2e0xFOIXXc-ihlNMWEtje6bhsXQ3T_8xjdQas4I&e=
+ S:	Supported
+-- 
+2.19.1.856.g8858448bb
