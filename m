@@ -1,9 +1,7 @@
 From: Gang He <ghe@suse.com>
-Date: Mon, 29 Apr 2019 14:46:13 +0800
-Subject: [Ocfs2-devel] [PATCH 2/2] ocfs2: add locking filter debugfs file
-In-Reply-To: <20190429064613.29365-1-ghe@suse.com>
-References: <20190429064613.29365-1-ghe@suse.com>
-Message-ID: <20190429064613.29365-2-ghe@suse.com>
+Date: Mon, 29 Apr 2019 16:33:53 +0800
+Subject: [Ocfs2-devel] [PATCH V2 2/2] ocfs2: add locking filter debugfs file
+Message-ID: <20190429083353.1410-1-ghe@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -19,14 +17,17 @@ otherwise, only dump the last N seconds active lock resources.
 This enhancement can avoid dumping lots of old records.
 The d_filter_secs value can be changed via locking_filter file.
 
+Compared with v1, the main change is to add CONFIG_OCFS2_FS_STATS
+macro definition judgment.
+
 Signed-off-by: Gang He <ghe@suse.com>
 ---
- fs/ocfs2/dlmglue.c | 33 +++++++++++++++++++++++++++++++++
+ fs/ocfs2/dlmglue.c | 38 ++++++++++++++++++++++++++++++++++++++
  fs/ocfs2/ocfs2.h   |  2 ++
- 2 files changed, 35 insertions(+)
+ 2 files changed, 40 insertions(+)
 
 diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-index dccf4136f8c1..2f36fe40295c 100644
+index dccf4136f8c1..554d37d52510 100644
 --- a/fs/ocfs2/dlmglue.c
 +++ b/fs/ocfs2/dlmglue.c
 @@ -3006,6 +3006,8 @@ struct ocfs2_dlm_debug *ocfs2_new_dlm_debug(void)
@@ -38,11 +39,11 @@ index dccf4136f8c1..2f36fe40295c 100644
  out:
  	return dlm_debug;
  }
-@@ -3104,11 +3106,28 @@ static int ocfs2_dlm_seq_show(struct seq_file *m, void *v)
+@@ -3104,11 +3106,33 @@ static int ocfs2_dlm_seq_show(struct seq_file *m, void *v)
  {
  	int i;
  	char *lvb;
-+	u32 now, last;
++	u32 now, last = 0;
  	struct ocfs2_lock_res *lockres = v;
 +	struct ocfs2_dlm_debug *dlm_debug =
 +			((struct ocfs2_dlm_seq_priv *)m->private)->p_dlm_debug;
@@ -50,24 +51,29 @@ index dccf4136f8c1..2f36fe40295c 100644
  	if (!lockres)
  		return -EINVAL;
  
-+	now = ktime_to_timespec(ktime_get()).tv_sec;
-+	if (lockres->l_lock_prmode.ls_last > lockres->l_lock_exmode.ls_last)
-+		last = lockres->l_lock_prmode.ls_last;
-+	else
-+		last = lockres->l_lock_exmode.ls_last;
-+
-+	/*
-+	 * Use d_filter_secs field to filter lock resources dump,
-+	 * the default d_filter_secs(0) value filters nothing,
-+	 * otherwise, only dump the last N seconds active lock resources.
-+	 */
-+	if (dlm_debug->d_filter_secs && (now - last) > dlm_debug->d_filter_secs)
-+		return 0;
++	if (dlm_debug->d_filter_secs) {
++		now = ktime_to_timespec(ktime_get()).tv_sec;
++#ifdef CONFIG_OCFS2_FS_STATS
++		if (lockres->l_lock_prmode.ls_last >
++		    lockres->l_lock_exmode.ls_last)
++			last = lockres->l_lock_prmode.ls_last;
++		else
++			last = lockres->l_lock_exmode.ls_last;
++#endif
++		/*
++		 * Use d_filter_secs field to filter lock resources dump,
++		 * the default d_filter_secs(0) value filters nothing,
++		 * otherwise, only dump the last N seconds active lock
++		 * resources.
++		 */
++		if ((now - last) > dlm_debug->d_filter_secs)
++			return 0;
++	}
 +
  	seq_printf(m, "0x%x\t", OCFS2_DLM_DEBUG_STR_VERSION);
  
  	if (lockres->l_type == OCFS2_LOCK_TYPE_DENTRY)
-@@ -3258,6 +3277,19 @@ static int ocfs2_dlm_init_debug(struct ocfs2_super *osb)
+@@ -3258,6 +3282,19 @@ static int ocfs2_dlm_init_debug(struct ocfs2_super *osb)
  		goto out;
  	}
  
@@ -87,7 +93,7 @@ index dccf4136f8c1..2f36fe40295c 100644
  	ocfs2_get_dlm_debug(dlm_debug);
  out:
  	return ret;
-@@ -3269,6 +3301,7 @@ static void ocfs2_dlm_shutdown_debug(struct ocfs2_super *osb)
+@@ -3269,6 +3306,7 @@ static void ocfs2_dlm_shutdown_debug(struct ocfs2_super *osb)
  
  	if (dlm_debug) {
  		debugfs_remove(dlm_debug->d_locking_state);
