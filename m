@@ -1,7 +1,7 @@
-From: Wengang Wang <wen.gang.wang@oracle.com>
-Date: Mon, 29 Apr 2019 08:57:30 -0700
-Subject: [Ocfs2-devel] OCFS2 BUG with 2 different kernels
-In-Reply-To: <AM6PR04MB5605E2671C96A4BC7455D4AAED390@AM6PR04MB5605.eurprd04.prod.outlook.com>
+From: Daniel Sobe <daniel.sobe@nxp.com>
+Date: Fri, 3 May 2019 07:10:25 +0000
+Subject: [Ocfs2-devel] [EXT] Re:  OCFS2 BUG with 2 different kernels
+In-Reply-To: <dce2de27-4bf2-5bd0-c261-825a60ad2407@oracle.com>
 References: <HE1PR0401MB25389DFE7BFEC86453C3CB21EDBE0@HE1PR0401MB2538.eurprd04.prod.outlook.com>
 	<DB6PR0402MB2902763397E62C60288E34B8ED5D0@DB6PR0402MB2902.eurprd04.prod.outlook.com>
 	<a1383ec0-a140-4de3-432b-da3044e038c7@suse.com>
@@ -15,16 +15,33 @@ References: <HE1PR0401MB25389DFE7BFEC86453C3CB21EDBE0@HE1PR0401MB2538.eurprd04.p
 	<AM6PR04MB56055FC3821310CC2428EE32ED580@AM6PR04MB5605.eurprd04.prod.outlook.com>
 	<cc3ae5a3-6758-8963-cd58-59578d016e5b@oracle.com>
 	<AM6PR04MB5605E2671C96A4BC7455D4AAED390@AM6PR04MB5605.eurprd04.prod.outlook.com>
-Message-ID: <dce2de27-4bf2-5bd0-c261-825a60ad2407@oracle.com>
+	<dce2de27-4bf2-5bd0-c261-825a60ad2407@oracle.com>
+Message-ID: <AM6PR04MB56053ADE0630BC179E41970BED350@AM6PR04MB5605.eurprd04.prod.outlook.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
+Hi Wengang,
+
+that is great news! I'd like to test the patch on my environment as well, can you make it available somehow?
+
+Regards,
+
+Daniel
+
+-----Original Message-----
+From: Wengang Wang <wen.gang.wang@oracle.com> 
+Sent: Montag, 29. April 2019 17:58
+To: Daniel Sobe <daniel.sobe@nxp.com>; 'ocfs2-devel at oss.oracle.com' <ocfs2-devel@oss.oracle.com>
+Subject: [EXT] Re: [Ocfs2-devel] OCFS2 BUG with 2 different kernels
+
+Caution: EXT Email
+
 Hi Daniel,
 
-No worries, I was lucky to get a vmcore for this issue.? A patch was 
+No worries, I was lucky to get a vmcore for this issue.  A patch was
 under testing. Will update it here shortly.
 
 Thanks,
@@ -120,7 +137,7 @@ On 2019/4/29 6:47, Daniel Sobe wrote:
 > then usually reboot the machine.
 >
 > Kexec (when kdump is installed and configured properly) would, when
-> production kernel panic,? start a new kernel (dump kernel) from a
+> production kernel panic,  start a new kernel (dump kernel) from a
 > reserved block of memory and keep the other memory untouched. when dump
 > kernel booted up, it performs memory collecting procedure against the
 > untouched memory and save it to disk file (usually called "vmcore").
@@ -129,7 +146,7 @@ On 2019/4/29 6:47, Daniel Sobe wrote:
 >
 > Here is an example regarding kdump configuration:
 >
-> https://eur01.safelinks.protection.outlook.com/?url=https%3A%2F%2Ffedoraproject.org%2Fwiki%2FHow_to_use_kdump_to_debug_kernel_crashes&amp;data=02%7C01%7Cdaniel.sobe%40nxp.com%7Ce9afd2a203f240fb16cc08d6b2e02b9f%7C686ea1d3bc2b4c6fa92cd99c5c301635%7C0%7C0%7C636893073215576998&amp;sdata=Cm%2BSrNs0fHSHqYYnMorfw2sE9g9WOkwHB%2Fvoa8GtWSE%3D&amp;reserved=0
+> https://urldefense.proofpoint.com/v2/url?u=https-3A__eur01.safelinks.protection.outlook.com_-3Furl-3Dhttps-253A-252F-252Ffedoraproject.org-252Fwiki-252FHow-5Fto-5Fuse-5Fkdump-5Fto-5Fdebug-5Fkernel-5Fcrashes-26amp-3Bdata-3D02-257C01-257Cdaniel.sobe-2540nxp.com-257C507772380fe040c9a3d508d6ccbb6768-257C686ea1d3bc2b4c6fa92cd99c5c301635-257C0-257C0-257C636921502610713576-26amp-3Bsdata-3Dl-252Fjh-252B1WvPim-252B-252Ffit4GadRvXsUfYANhVpaSvDl3Z-252BNkg-253D-26amp-3Breserved-3D0&d=DwIGaQ&c=RoP1YumCXCgaWHvlZYR8PZh8Bv7qIrMUB65eapI_JnE&r=C7gAd4uDxlAvTdc0vmU6X8CMk6L2iDY8-HD0qT6Fo7Y&m=ZjlJicmNhARQFWtlvSHjG4GpCwgSx-rzbzr-0_Eib0Y&s=LnJ4P4f1O4eMy7DI799IXP7q8JxEUGLr6GuDO8iQ_EE&e=
 >
 > thanks,
 > wengang
@@ -174,7 +191,7 @@ On 2019/4/29 6:47, Daniel Sobe wrote:
 >>>
 >>> I also see this problem on a lower version at 4.1.12.xxx.
 >>>
->>> The l_ro_holders is changed in ocfs2 layer, not DLM layer. And another thing is that the dentry lock is just used to get notification for file remote deleting. So the code is requesting PR lock and then releasing the it after PR is granted.? I am not sure, but I feel this is not a DLM issue, but a memory issue on the ocfs2_lock_res.? Do you have a vmcore available for this problem?
+>>> The l_ro_holders is changed in ocfs2 layer, not DLM layer. And another thing is that the dentry lock is just used to get notification for file remote deleting. So the code is requesting PR lock and then releasing the it after PR is granted.  I am not sure, but I feel this is not a DLM issue, but a memory issue on the ocfs2_lock_res.  Do you have a vmcore available for this problem?
 >>>
 >>> Thanks,
 >>> Wengang
@@ -840,7 +857,7 @@ On 2019/4/29 6:47, Daniel Sobe wrote:
 >>>>>>>>> On 04/11/2018 08:24 PM, Daniel Sobe wrote:
 >>>>>>>>>> Hi Larry,
 >>>>>>>>>>
->>>>>>>>>> below is an example config file like I use it for LXC containers. I followed the instructions (https://eur01.safelinks.protection.outlook.com/?url=https%3A%2F%2Furldefense.proofpoint.com%2Fv2%2Furl%3Fu%3Dhttps-3A__emea01.safelinks.protection.outlook.com_-3Furl-3Dhttps-253A-252F-252Fwiki.debian.org-252FLXC-26data-3D02-257C01-257Cdaniel.sobe-2540nxp.com-257C11fd4f062e694faa287a08d5a023f22b-257C686ea1d3bc2b4c6fa92cd99c5c301635-257C0-257C0-257C636590998614059943-26sdata-3DZSqSTx3Vjxy-252FbfKrXdIVGvUqieRFxVl4FFnr-252FPTGAhc-253D-26reserved-3D0%26d%3DDwIGaQ%26c%3DRoP1YumCXCgaWHvlZYR8PZh8Bv7qIrMUB65eapI_JnE%26r%3DC7gAd4uDxlAvTdc0vmU6X8CMk6L2iDY8-HD0qT6Fo7Y%26m%3DVTW6gNWhTVlF5KmjZv2fMhm45jgdtPllvAbYDQ0PNYA%26s%3DtGYkPHaAU3tSeeEGrlORRLY9rDQAl6YdYtD0RJ7HBHw%26e&amp;data=02%7C01%7Cdaniel.sobe%40nxp.com%7Ce9afd2a203f240fb16cc08d6b2e02b9f%7C686ea1d3bc2b4c6fa92cd99c5c301635%7C0%7C0%7C636893073215576998&amp;sdata=GLTcu1UurT9UGgdNAa%2B71EMWWwC82ZD5tPl4lDY8460%3D&amp;reserved=0=) and downloaded a Debian 8 container as user (unprivileged) and adapted the config file. Several of those containers run on one host and share the OCFS2 directory as you can see at the "lxc.mount.entry" line.
+>>>>>>>>>> below is an example config file like I use it for LXC containers. I followed the instructions (https://eur01.safelinks.protection.outlook.com/?url=https%3A%2F%2Furldefense.proofpoint.com%2Fv2%2Furl%3Fu%3Dhttps-3A__emea01.safelinks.protection.outlook.com_-3Furl-3Dhttps-253A-252F-252Fwiki.debian.org-252FLXC-26data-3D02-257C01-257Cdaniel.sobe-2540nxp.com-257C11fd4f062e694faa287a08d5a023f22b-257C686ea1d3bc2b4c6fa92cd99c5c301635-257C0-257C0-257C636590998614059943-26sdata-3DZSqSTx3Vjxy-252FbfKrXdIVGvUqieRFxVl4FFnr-252FPTGAhc-253D-26reserved-3D0%26d%3DDwIGaQ%26c%3DRoP1YumCXCgaWHvlZYR8PZh8Bv7qIrMUB65eapI_JnE%26r%3DC7gAd4uDxlAvTdc0vmU6X8CMk6L2iDY8-HD0qT6Fo7Y%26m%3DVTW6gNWhTVlF5KmjZv2fMhm45jgdtPllvAbYDQ0PNYA%26s%3DtGYkPHaAU3tSeeEGrlORRLY9rDQAl6YdYtD0RJ7HBHw%26e&amp;data=02%7C01%7Cdaniel.sobe%40nxp.com%7C507772380fe040c9a3d508d6ccbb6768%7C686ea1d3bc2b4c6fa92cd99c5c301635%7C0%7C0%7C636921502610713576&amp;sdata=8B19GwXEAoyZdpv7LU3HMqvoFo9odeaFYh2ZlcBuZ5w%3D&amp;reserved=0=) and downloaded a Debian 8 container as user (unprivileged) and adapted the config file. Several of those containers run on one host and share the OCFS2 directory as you can see at the "lxc.mount.entry" line.
 >>>>>>>>>>
 >>>>>>>>>> Meanwhile I'm trying whether the problem can be reproduced with shared mounts in one namespace, as you suggested. So far with no success, will report once anything happens.
 >>>>>>>>>>
@@ -899,7 +916,7 @@ On 2019/4/29 6:47, Daniel Sobe wrote:
 >>>>>>>>>>>
 >>>>>>>>>>> I do not know in detail how LXC does the mount sharing, but I assume it simply calls "mount --bind /original/mount/point /new/mount/point" in a separate namespace (or, somehow unshares the mount from the original namespace afterwards).
 >>>>>>>>>> I thought of there is a way to share a directory between host and docker container, like
->>>>>>>>>>            ?? docker run -v /host/directory:/container/directory -other -options image_name command_to_run That's different from yours.
+>>>>>>>>>>               docker run -v /host/directory:/container/directory -other -options image_name command_to_run That's different from yours.
 >>>>>>>>>>
 >>>>>>>>>> How did you setup your lxc or container?
 >>>>>>>>>>
@@ -923,21 +940,21 @@ On 2019/4/29 6:47, Daniel Sobe wrote:
 >>>>>>>
 >>>>>>> The procedure I try to reproduce your bugs:
 >>>>>>> 0. set-up ha cluster stack and mount ocfs2 fs on host's /mnt with command
->>>>>>>         ?? mount /dev/xxx /mnt
->>>>>>>         ?? then it shows
->>>>>>>         ?? 207 65 254:16 / /mnt rw,relatime shared:94
->>>>>>>         ?? I think this *shared* is what you want. And this mount point will be shared within multiple namespaces.
+>>>>>>>            mount /dev/xxx /mnt
+>>>>>>>            then it shows
+>>>>>>>            207 65 254:16 / /mnt rw,relatime shared:94
+>>>>>>>            I think this *shared* is what you want. And this mount point will be shared within multiple namespaces.
 >>>>>>>
 >>>>>>> 1. Start Virtual Machine Manager.
 >>>>>>> 2. add a local LXC connection by clicking File ? Add Connection.
->>>>>>>         ?? Select LXC (Linux Containers) as the hypervisor and click Connect.
+>>>>>>>            Select LXC (Linux Containers) as the hypervisor and click Connect.
 >>>>>>> 3. Select the localhost (LXC) connection and click File New Virtual Machine menu.
 >>>>>>> 4. Activate Application container and click Forward.
->>>>>>>         ?? Set the path to the application to be launched. As an example, the field is filled with /bin/sh, which is fine to create a first container.
+>>>>>>>            Set the path to the application to be launched. As an example, the field is filled with /bin/sh, which is fine to create a first container.
 >>>>>>> Click Forward.
 >>>>>>> 5. Choose the maximum amount of memory and CPUs to allocate to the container. Click Forward.
 >>>>>>> 6. Type in a name for the container. This name will be used for all virsh commands on the container.
->>>>>>>         ?? Click Advanced options. Select the network to connect the container to and click Finish. The container will be created and started. A console will be opened automatically.
+>>>>>>>            Click Advanced options. Select the network to connect the container to and click Finish. The container will be created and started. A console will be opened automatically.
 >>>>>>>
 >>>>>>> If possible, could you please provide a shell script to show what you did with you mount point.
 >>>>>>>
@@ -947,7 +964,7 @@ On 2019/4/29 6:47, Daniel Sobe wrote:
 >>>>>> _______________________________________________
 >>>>>> Ocfs2-devel mailing list
 >>>>>> Ocfs2-devel at oss.oracle.com
->>>>>> https://eur01.safelinks.protection.outlook.com/?url=https%3A%2F%2Fu
+>>>>>> https://urldefense.proofpoint.com/v2/url?u=https-3A__eur01.safelinks.protection.outlook.com_-3Furl-3Dhttps-253A-252F-252Fu&d=DwIGaQ&c=RoP1YumCXCgaWHvlZYR8PZh8Bv7qIrMUB65eapI_JnE&r=C7gAd4uDxlAvTdc0vmU6X8CMk6L2iDY8-HD0qT6Fo7Y&m=ZjlJicmNhARQFWtlvSHjG4GpCwgSx-rzbzr-0_Eib0Y&s=rbJibUiG5BAnwCUCuui6Fw1PHSV_-rYqa86QrzkbVqk&e=
 >>>>>> r
 >>>>>> ldefense.proofpoint.com%2Fv2%2Furl%3Fu%3Dhttps-3A__emea01.safelinks.
 >>>>>> protection.outlook.com_-3Furl-3Dhttps-253A-252F-252Fos%26d%3DDwIGaQ
@@ -983,7 +1000,7 @@ On 2019/4/29 6:47, Daniel Sobe wrote:
 >>>> _______________________________________________
 >>>> Ocfs2-devel mailing list
 >>>> Ocfs2-devel at oss.oracle.com
->>>> https://eur01.safelinks.protection.outlook.com/?url=https%3A%2F%2Foss.
+>>>> https://urldefense.proofpoint.com/v2/url?u=https-3A__eur01.safelinks.protection.outlook.com_-3Furl-3Dhttps-253A-252F-252Foss&d=DwIGaQ&c=RoP1YumCXCgaWHvlZYR8PZh8Bv7qIrMUB65eapI_JnE&r=C7gAd4uDxlAvTdc0vmU6X8CMk6L2iDY8-HD0qT6Fo7Y&m=ZjlJicmNhARQFWtlvSHjG4GpCwgSx-rzbzr-0_Eib0Y&s=AEjXFB3FmKYglGARwvhcJdncwGS2M0tjQ8JTlBqe2b8&e=.
 >>>> oracle.com%2Fmailman%2Flistinfo%2Focfs2-devel&amp;data=02%7C01%7Cdani
 >>>> e
 >>>> l.sobe%40nxp.com%7C083d3c6f8d5847b9ba2508d6abc9b8e4%7C686ea1d3bc2b4c6
@@ -994,7 +1011,7 @@ On 2019/4/29 6:47, Daniel Sobe wrote:
 >>> _______________________________________________
 >>> Ocfs2-devel mailing list
 >>> Ocfs2-devel at oss.oracle.com
->>> https://eur01.safelinks.protection.outlook.com/?url=https%3A%2F%2Foss.
+>>> https://urldefense.proofpoint.com/v2/url?u=https-3A__eur01.safelinks.protection.outlook.com_-3Furl-3Dhttps-253A-252F-252Foss&d=DwIGaQ&c=RoP1YumCXCgaWHvlZYR8PZh8Bv7qIrMUB65eapI_JnE&r=C7gAd4uDxlAvTdc0vmU6X8CMk6L2iDY8-HD0qT6Fo7Y&m=ZjlJicmNhARQFWtlvSHjG4GpCwgSx-rzbzr-0_Eib0Y&s=AEjXFB3FmKYglGARwvhcJdncwGS2M0tjQ8JTlBqe2b8&e=.
 >>> oracle.com%2Fmailman%2Flistinfo%2Focfs2-devel&amp;data=02%7C01%7Cdanie
 >>> l.sobe%40nxp.com%7C2fb7269bdec843a53cf208d6b2316ba1%7C686ea1d3bc2b4c6f
 >>> a92cd99c5c301635%7C0%7C0%7C636892322672188859&amp;sdata=U6zpvh4ISrQDCG
