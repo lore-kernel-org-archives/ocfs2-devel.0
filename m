@@ -1,114 +1,136 @@
-From: Wengang Wang <wen.gang.wang@oracle.com>
-Date: Fri, 3 May 2019 10:06:31 -0700
-Subject: [Ocfs2-devel] [PATCH] fs/ocfs2: fix race in
- ocfs2_dentry_attach_lock
-In-Reply-To: <42f392d4-4678-ec0f-751f-02a91d5746a4@oracle.com>
-References: <20190503170102.14775-1-wen.gang.wang@oracle.com>
-	<42f392d4-4678-ec0f-751f-02a91d5746a4@oracle.com>
-Message-ID: <500cbf3b-41eb-bcd8-25c9-ac07b6a799dc@oracle.com>
+From: Gang He <ghe@suse.com>
+Date: Sat, 04 May 2019 21:17:42 -0600
+Subject: [Ocfs2-devel] [PATCH V2 2/2] ocfs2: add locking filter debugfs
+	file
+In-Reply-To: <20190429083353.1410-1-ghe@suse.com>
+References: <20190429083353.1410-1-ghe@suse.com>
+Message-ID: <5CCE55D6020000F900063F38@prv1-mh.provo.novell.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: jlbec@evilplan.org, mark@fasheh.com, jiangqi903@gmail.com, Gang He <GHe@suse.com>
+Cc: akpm@linux-foundation.org, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
 
-The pr_err() line would help verify if this patch helped and it is for 
-debugging purpose only.? It would be removed in final patch version.
+Hello Guys,
 
-thanks,
-wengang
+If you have time, please help to review these two patches.
+The patch logic is very simple, but it can help us to control lock resource dump length.
+In product environment, there are lots of lock resources in memory as time goes by.
 
-On 2019/5/3 10:03, Wengang Wang wrote:
-> Daneil,
->
-> You could try this patch.
-> I didn't confirm yet if the patch helped or the problem didn't happen
-> again where it happened (though I am sure the racing is there).
->
-> Anyone who is interested could take a pre-review on this patch.
->
-> Thanks,
-> Wengang
->
-> On 2019/5/3 10:01, Wengang Wang wrote:
->> ocfs2_dentry_attach_lock() can be executed in parallel threads against the
->> same dentry. Make that race safe.
->>
->> Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
->> ---
->>    fs/ocfs2/dcache.c | 27 +++++++++++++++++++++------
->>    1 file changed, 21 insertions(+), 6 deletions(-)
->>
->> diff --git a/fs/ocfs2/dcache.c b/fs/ocfs2/dcache.c
->> index 290373024d9d..980e571c163c 100644
->> --- a/fs/ocfs2/dcache.c
->> +++ b/fs/ocfs2/dcache.c
->> @@ -227,12 +227,13 @@ int ocfs2_dentry_attach_lock(struct dentry *dentry,
->>    			     struct inode *inode,
->>    			     u64 parent_blkno)
->>    {
->> -	int ret;
->> +	int ret, new_dl = 0;
->>    	struct dentry *alias;
->> -	struct ocfs2_dentry_lock *dl = dentry->d_fsdata;
->> +	struct ocfs2_dentry_lock *dl, *dl_free_on_race = NULL;
->>    
->>    	trace_ocfs2_dentry_attach_lock(dentry->d_name.len, dentry->d_name.name,
->> -				       (unsigned long long)parent_blkno, dl);
->> +				       (unsigned long long)parent_blkno,
->> +				       dentry->d_fsdata);
->>    
->>    	/*
->>    	 * Negative dentry. We ignore these for now.
->> @@ -243,11 +244,15 @@ int ocfs2_dentry_attach_lock(struct dentry *dentry,
->>    	if (!inode)
->>    		return 0;
->>    
->> +	spin_lock(&dentry_attach_lock);
->>    	if (d_really_is_negative(dentry) && dentry->d_fsdata) {
->>    		/* Converting a negative dentry to positive
->>    		   Clear dentry->d_fsdata */
->>    		dentry->d_fsdata = dl = NULL;
->> +	} else {
->> +		dl = dentry->d_fsdata;
->>    	}
->> +	spin_unlock(&dentry_attach_lock);
->>    
->>    	if (dl) {
->>    		mlog_bug_on_msg(dl->dl_parent_blkno != parent_blkno,
->> @@ -310,10 +315,20 @@ int ocfs2_dentry_attach_lock(struct dentry *dentry,
->>    
->>    out_attach:
->>    	spin_lock(&dentry_attach_lock);
->> -	dentry->d_fsdata = dl;
->> -	dl->dl_count++;
->> +	/* d_fsdata could be set by parallel thread */
->> +	if (unlikely(dentry->d_fsdata)) {
->> +		pr_err("race found in ocfs2_dentry_attach_lock dentry=%p\n", dentry);
->> +		if (!alias)
->> +			dl_free_on_race = dl;
->> +	} else {
->> +		dentry->d_fsdata = dl;
->> +		dl->dl_count++;
->> +		if (!alias)
->> +			new_dl = 1;
->> +	}
->>    	spin_unlock(&dentry_attach_lock);
->>    
->> +	kfree(dl_free_on_race);
->>    	/*
->>    	 * This actually gets us our PRMODE level lock. From now on,
->>    	 * we'll have a notification if one of these names is
->> @@ -330,7 +345,7 @@ int ocfs2_dentry_attach_lock(struct dentry *dentry,
->>    	 * We need to do this because error here means no d_instantiate(),
->>    	 * which means iput() will not be called during dput(dentry).
->>    	 */
->> -	if (ret < 0 && !alias) {
->> +	if (ret < 0 && new_dl) {
->>    		ocfs2_lock_res_free(&dl->dl_lockres);
->>    		BUG_ON(dl->dl_count != 1);
->>    		spin_lock(&dentry_attach_lock);
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+
+Thanks
+Gang
+
+>>> On 2019/4/29 at 16:33, in message <20190429083353.1410-1-ghe@suse.com>, Gang He
+<ghe@suse.com> wrote:
+> Add locking filter debugfs file, which is used to filter lock
+> resources dump from locking_state debugfs file.
+> We use d_filter_secs field to filter lock resources dump,
+> the default d_filter_secs(0) value filters nothing,
+> otherwise, only dump the last N seconds active lock resources.
+> This enhancement can avoid dumping lots of old records.
+> The d_filter_secs value can be changed via locking_filter file.
+> 
+> Compared with v1, the main change is to add CONFIG_OCFS2_FS_STATS
+> macro definition judgment.
+> 
+> Signed-off-by: Gang He <ghe@suse.com>
+> ---
+>  fs/ocfs2/dlmglue.c | 38 ++++++++++++++++++++++++++++++++++++++
+>  fs/ocfs2/ocfs2.h   |  2 ++
+>  2 files changed, 40 insertions(+)
+> 
+> diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
+> index dccf4136f8c1..554d37d52510 100644
+> --- a/fs/ocfs2/dlmglue.c
+> +++ b/fs/ocfs2/dlmglue.c
+> @@ -3006,6 +3006,8 @@ struct ocfs2_dlm_debug *ocfs2_new_dlm_debug(void)
+>  	kref_init(&dlm_debug->d_refcnt);
+>  	INIT_LIST_HEAD(&dlm_debug->d_lockres_tracking);
+>  	dlm_debug->d_locking_state = NULL;
+> +	dlm_debug->d_locking_filter = NULL;
+> +	dlm_debug->d_filter_secs = 0;
+>  out:
+>  	return dlm_debug;
+>  }
+> @@ -3104,11 +3106,33 @@ static int ocfs2_dlm_seq_show(struct seq_file *m, 
+> void *v)
+>  {
+>  	int i;
+>  	char *lvb;
+> +	u32 now, last = 0;
+>  	struct ocfs2_lock_res *lockres = v;
+> +	struct ocfs2_dlm_debug *dlm_debug =
+> +			((struct ocfs2_dlm_seq_priv *)m->private)->p_dlm_debug;
+>  
+>  	if (!lockres)
+>  		return -EINVAL;
+>  
+> +	if (dlm_debug->d_filter_secs) {
+> +		now = ktime_to_timespec(ktime_get()).tv_sec;
+> +#ifdef CONFIG_OCFS2_FS_STATS
+> +		if (lockres->l_lock_prmode.ls_last >
+> +		    lockres->l_lock_exmode.ls_last)
+> +			last = lockres->l_lock_prmode.ls_last;
+> +		else
+> +			last = lockres->l_lock_exmode.ls_last;
+> +#endif
+> +		/*
+> +		 * Use d_filter_secs field to filter lock resources dump,
+> +		 * the default d_filter_secs(0) value filters nothing,
+> +		 * otherwise, only dump the last N seconds active lock
+> +		 * resources.
+> +		 */
+> +		if ((now - last) > dlm_debug->d_filter_secs)
+> +			return 0;
+> +	}
+> +
+>  	seq_printf(m, "0x%x\t", OCFS2_DLM_DEBUG_STR_VERSION);
+>  
+>  	if (lockres->l_type == OCFS2_LOCK_TYPE_DENTRY)
+> @@ -3258,6 +3282,19 @@ static int ocfs2_dlm_init_debug(struct ocfs2_super 
+> *osb)
+>  		goto out;
+>  	}
+>  
+> +	dlm_debug->d_locking_filter = debugfs_create_u32("locking_filter",
+> +						0600,
+> +						osb->osb_debug_root,
+> +						&dlm_debug->d_filter_secs);
+> +	if (!dlm_debug->d_locking_filter) {
+> +		ret = -EINVAL;
+> +		mlog(ML_ERROR,
+> +		     "Unable to create locking filter debugfs file.\n");
+> +		debugfs_remove(dlm_debug->d_locking_state);
+> +		dlm_debug->d_locking_state = NULL;
+> +		goto out;
+> +	}
+> +
+>  	ocfs2_get_dlm_debug(dlm_debug);
+>  out:
+>  	return ret;
+> @@ -3269,6 +3306,7 @@ static void ocfs2_dlm_shutdown_debug(struct ocfs2_super 
+> *osb)
+>  
+>  	if (dlm_debug) {
+>  		debugfs_remove(dlm_debug->d_locking_state);
+> +		debugfs_remove(dlm_debug->d_locking_filter);
+>  		ocfs2_put_dlm_debug(dlm_debug);
+>  	}
+>  }
+> diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
+> index 8efa022684f4..f4da51099889 100644
+> --- a/fs/ocfs2/ocfs2.h
+> +++ b/fs/ocfs2/ocfs2.h
+> @@ -237,6 +237,8 @@ struct ocfs2_orphan_scan {
+>  struct ocfs2_dlm_debug {
+>  	struct kref d_refcnt;
+>  	struct dentry *d_locking_state;
+> +	struct dentry *d_locking_filter;
+> +	u32 d_filter_secs;
+>  	struct list_head d_lockres_tracking;
+>  };
+>  
+> -- 
+> 2.21.0
