@@ -1,198 +1,126 @@
-From: Wengang <wen.gang.wang@oracle.com>
-Date: Tue, 21 May 2019 10:06:36 -0700
-Subject: [Ocfs2-devel] [PATCH v3] fs/ocfs2: fix race in
- ocfs2_dentry_attach_lock
-In-Reply-To: <f0ff8f42-438b-55e9-7499-24c3b0a19e74@gmail.com>
-References: <20190517161004.3002-1-wen.gang.wang@oracle.com>
-	<b4a3ae12-930e-3cab-adeb-d00522528f68@gmail.com>
-	<51743275-8a94-4297-319d-2ee6c28e06fd@oracle.com>
-	<01efc0cf-bc71-210b-c6d9-fe5e4563644e@oracle.com>
-	<f0ff8f42-438b-55e9-7499-24c3b0a19e74@gmail.com>
-Message-ID: <88e1d9f9-d74c-614a-9374-e318af3a92f5@oracle.com>
+From: Gang He <ghe@suse.com>
+Date: Thu, 23 May 2019 18:40:46 +0800
+Subject: [Ocfs2-devel] [PATCH 1/2] ocfs2: add last unlock times in
+	locking_state
+Message-ID: <20190523104047.14794-1-ghe@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: mark@fasheh.com, jlbec@evilplan.org, jiangqi903@gmail.com
+Cc: Gang He <ghe@suse.com>, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com, akpm@linux-foundation.org
 
+ocfs2 file system uses locking_state file under debugfs to dump
+each ocfs2 file system's dlm lock resources, but the dlm lock
+resources in memory are becoming more and more after the files
+were touched by the user. it will become a bit difficult to analyze
+these dlm lock resource records in locking_state file by the upper
+scripts, though some files are not active for now, which were
+accessed long time ago.
+Then, I'd like to add last pr/ex unlock times in locking_state file
+for each dlm lock resource record, the the upper scripts can use
+last unlock time to filter inactive dlm lock resource record.
 
+Signed-off-by: Gang He <ghe@suse.com>
+Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+---
+ fs/ocfs2/dlmglue.c | 21 +++++++++++++++++----
+ fs/ocfs2/ocfs2.h   |  1 +
+ 2 files changed, 18 insertions(+), 4 deletions(-)
 
-On 05/20/2019 06:26 PM, Joseph Qi wrote:
->
-> On 19/5/21 07:18, Wengang Wang wrote:
->> On 2019/5/20 15:55, Wengang Wang wrote:
->>> Hi Joseph,
->>>
->>> On 2019/5/19 18:35, Joseph Qi wrote:
->>>> Hi Wengang,
->>>>
->>>> On 19/5/18 00:10, Wengang Wang wrote:
->>>>> ocfs2_dentry_attach_lock() can be executed in parallel threads against the
->>>>> same dentry. Make that race safe.
->>>>> The race is like this:
->>>>>
->>>>>  ????????????? thread A?????????????????????????????? thread B
->>>>>
->>>>> (A1) enter ocfs2_dentry_attach_lock,
->>>>> seeing dentry->d_fsdata is NULL,
->>>>> and no alias found by
->>>>> ocfs2_find_local_alias, so kmalloc
->>>>> a new ocfs2_dentry_lock structure
->>>>> to local variable "dl", dl1
->>>>>
->>>>>  ???????????????? .....
->>>>>
->>>>>  ????????????????????????????????????? (B1) enter ocfs2_dentry_attach_lock,
->>>>>  ????????????????????????????????????? seeing dentry->d_fsdata is NULL,
->>>>>  ????????????????????????????????????? and no alias found by
->>>>>  ????????????????????????????????????? ocfs2_find_local_alias so kmalloc
->>>>>  ????????????????????????????????????? a new ocfs2_dentry_lock structure
->>>>>  ????????????????????????????????????? to local variable "dl", dl2.
->>>>>
->>>>>  ???????????????????????????????????????????????????? ......
->>>>>
->>>>> (A2) set dentry->d_fsdata with dl1,
->>>>> call ocfs2_dentry_lock() and increase
->>>>> dl1->dl_lockres.l_ro_holders to 1 on
->>>>> success.
->>>>>  ??????????????? ......
->>>>>
->>>>>  ????????????????????????????????????? (B2) set dentry->d_fsdata with dl2
->>>>>  ????????????????????????????????????? call ocfs2_dentry_lock() and increase
->>>>>  ??????????????????? dl2->dl_lockres.l_ro_holders to 1 on
->>>>>  ??????????????????? success.
->>>>>
->>>>>  ??????????????????????????????????????????????????? ......
->>>>>
->>>>> (A3) call ocfs2_dentry_unlock()
->>>>> and decrease
->>>>> dl2->dl_lockres.l_ro_holders to 0
->>>>> on success.
->>>>>  ?????????????? ....
->>>>>
->>>>>  ????????????????????????????????????? (B3) call ocfs2_dentry_unlock(),
->>>>>  ????????????????????????????????????? decreasing
->>>>>  ??????????????????? dl2->dl_lockres.l_ro_holders, but
->>>>>  ??????????????????? see it's zero now, panic
->>>>>
->>>>> Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
->>>>> Reported-by: Daniel Sobe <daniel.sobe@nxp.com>
->>>>> Tested-by: Daniel Sobe <daniel.sobe@nxp.com>
->>>>> Reviewed-by: Changwei Ge <gechangwei@live.cn>
->>>> Thanks for the detailed description.
->>>> IIUC, you are trying to identify the race case and free the second
->>>> dentry lock.
->>> Yes.
->>>> So would the following be more clear? Something like:
->>>>
->>>> if (unlikely(dentry->d_fsdata && !alias)) {
->>>>  ????dl_attached = true;
->> Oh, seems "dl_attached" means d_fsdata is set with a dentry lock.
-> Yes, it means we've already attached the dentry lock.
-> We can add some comments before setting it to true for code
-> readability.
->
->> Well, this name may can't reflect the racing.? It can't tell it's set with new allocated dentry lock or with the one from alias dentry either, but it's set true when it's set with a new lock. Also, at the beginning of the function, we are checking if d_fsdata is set, in the d_fsdata set case, we don't set dl_attached, so I get the feeling that that variable is inconsistent.
->>
->> But I don't care much about the this.? If you feel this way is better, choose a better name to replace dl_free_on_race.
-> I don't meant 'dl_free_on_race' is not good.
-> I just don't want to introduce another dentry lock here since it's in
-> fact the local dl itself.
-OK. I'd like another vote for this. If other guys also think introducing 
-a bool variable is better than a dentry lock, I am going to revise it as 
-v4; Otherwise, I'd like to keep it as v3.
-
-thanks,
-wengang
-> Thanks,
-> Joseph
->
->> thanks,
->> wengang
->>
->>
->>>> } else
->>>>  ????...
->>>> }
->>>>
->>>> ...
->>>>
->>>> if (unlikely(dl_attached)) {
->>>>  ????ocfs2_lock_res_free(&dl->dl_lockres);
->>>>  ????kfree(dl);
->>>>  ????iput(inode);
->>>>  ????return 0;
->>>> }
->>> Seems your idea is to rename the variable "dl_free_on_race" to
->>> "dl_attached".
->>>
->>> I think "dl_free_on_race" is more meaningful than "dl_attached" :D
->>> "dl_free_on_race" includes the following meanings:
->>> 0) is a dentry lock
->>> 1) need to be freed
->>> 2) on race condition only
->>>
->>> By this name, we know it's a dentry lock that needs to be freed when race condition hits.
->>>
->>> I don't exactly understand what "dl_attached" stands for, but from it's name, I am guessing the following:
->>> 0) it's dentry lock
->>> 1) it's attached to something
->>>
->>> I don't think the dentry lock is attached anywhere yet, it's a local variable, no other reference so far. And why we want to free an "attached" object?
->>> Can you shall your thought for "dl_attached"?
->>>
->>> thanks,
->>> wengang
->>>
->>>> Thanks,
->>>> Joseph
->>>>
->>>>> ---
->>>>> v3: add Reviewed-by, Reported-by and Tested-by only
->>>>>
->>>>> v2: 1) removed lock on dentry_attach_lock at the first access of
->>>>>  ???????? dentry->d_fsdata since it helps very little.
->>>>>  ????? 2) do cleanups before freeing the duplicated dl
->>>>>  ????? 3) return after freeing the duplicated dl found.
->>>>> ---
->>>>>  ?? fs/ocfs2/dcache.c | 16 ++++++++++++++--
->>>>>  ?? 1 file changed, 14 insertions(+), 2 deletions(-)
->>>>>
->>>>> diff --git a/fs/ocfs2/dcache.c b/fs/ocfs2/dcache.c
->>>>> index 290373024d9d..0d220a66297e 100644
->>>>> --- a/fs/ocfs2/dcache.c
->>>>> +++ b/fs/ocfs2/dcache.c
->>>>> @@ -230,6 +230,7 @@ int ocfs2_dentry_attach_lock(struct dentry *dentry,
->>>>>  ?????? int ret;
->>>>>  ?????? struct dentry *alias;
->>>>>  ?????? struct ocfs2_dentry_lock *dl = dentry->d_fsdata;
->>>>> +??? struct ocfs2_dentry_lock *dl_free_on_race = NULL;
->>>>>  ?? ?????? trace_ocfs2_dentry_attach_lock(dentry->d_name.len, dentry->d_name.name,
->>>>>  ????????????????????????? (unsigned long long)parent_blkno, dl);
->>>>> @@ -310,10 +311,21 @@ int ocfs2_dentry_attach_lock(struct dentry *dentry,
->>>>>  ?? ?? out_attach:
->>>>>  ?????? spin_lock(&dentry_attach_lock);
->>>>> -??? dentry->d_fsdata = dl;
->>>>> -??? dl->dl_count++;
->>>>> +??? /* d_fsdata could be set by parallel thread */
->>>>> +??? if (unlikely(dentry->d_fsdata && !alias)) {
->>>>> +??????? dl_free_on_race = dl;
->>>>> +??? } else {
->>>>> +??????? dentry->d_fsdata = dl;
->>>>> +??????? dl->dl_count++;
->>>>> +??? }
->>>>>  ?????? spin_unlock(&dentry_attach_lock);
->>>>>  ?? +??? if (unlikely(dl_free_on_race)) {
->>>>> +??????? iput(dl_free_on_race->dl_inode);
->>>>> +??????? ocfs2_lock_res_free(&dl_free_on_race->dl_lockres);
->>>>> +??????? kfree(dl_free_on_race);
->>>>> +??????? return 0;
->>>>> +??? }
->>>>>  ?????? /*
->>>>>  ??????? * This actually gets us our PRMODE level lock. From now on,
->>>>>  ??????? * we'll have a notification if one of these names is
->>>>>
->>> _______________________________________________
->>> Ocfs2-devel mailing list
->>> Ocfs2-devel at oss.oracle.com
->>> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
+index af405586c5b1..dccf4136f8c1 100644
+--- a/fs/ocfs2/dlmglue.c
++++ b/fs/ocfs2/dlmglue.c
+@@ -448,7 +448,7 @@ static void ocfs2_update_lock_stats(struct ocfs2_lock_res *res, int level,
+ 				    struct ocfs2_mask_waiter *mw, int ret)
+ {
+ 	u32 usec;
+-	ktime_t kt;
++	ktime_t last, kt;
+ 	struct ocfs2_lock_stats *stats;
+ 
+ 	if (level == LKM_PRMODE)
+@@ -458,7 +458,8 @@ static void ocfs2_update_lock_stats(struct ocfs2_lock_res *res, int level,
+ 	else
+ 		return;
+ 
+-	kt = ktime_sub(ktime_get(), mw->mw_lock_start);
++	last = ktime_get();
++	kt = ktime_sub(last, mw->mw_lock_start);
+ 	usec = ktime_to_us(kt);
+ 
+ 	stats->ls_gets++;
+@@ -474,6 +475,8 @@ static void ocfs2_update_lock_stats(struct ocfs2_lock_res *res, int level,
+ 
+ 	if (ret)
+ 		stats->ls_fail++;
++
++	stats->ls_last = ktime_to_timespec(last).tv_sec;
+ }
+ 
+ static inline void ocfs2_track_lock_refresh(struct ocfs2_lock_res *lockres)
+@@ -3093,8 +3096,10 @@ static void *ocfs2_dlm_seq_next(struct seq_file *m, void *v, loff_t *pos)
+  *	- Lock stats printed
+  * New in version 3
+  *	- Max time in lock stats is in usecs (instead of nsecs)
++ * New in version 4
++ *	- Add last pr/ex unlock times in secs
+  */
+-#define OCFS2_DLM_DEBUG_STR_VERSION 3
++#define OCFS2_DLM_DEBUG_STR_VERSION 4
+ static int ocfs2_dlm_seq_show(struct seq_file *m, void *v)
+ {
+ 	int i;
+@@ -3145,6 +3150,8 @@ static int ocfs2_dlm_seq_show(struct seq_file *m, void *v)
+ # define lock_max_prmode(_l)		((_l)->l_lock_prmode.ls_max)
+ # define lock_max_exmode(_l)		((_l)->l_lock_exmode.ls_max)
+ # define lock_refresh(_l)		((_l)->l_lock_refresh)
++# define lock_last_prmode(_l)		((_l)->l_lock_prmode.ls_last)
++# define lock_last_exmode(_l)		((_l)->l_lock_exmode.ls_last)
+ #else
+ # define lock_num_prmode(_l)		(0)
+ # define lock_num_exmode(_l)		(0)
+@@ -3155,6 +3162,8 @@ static int ocfs2_dlm_seq_show(struct seq_file *m, void *v)
+ # define lock_max_prmode(_l)		(0)
+ # define lock_max_exmode(_l)		(0)
+ # define lock_refresh(_l)		(0)
++# define lock_last_prmode(_l)		(0)
++# define lock_last_exmode(_l)		(0)
+ #endif
+ 	/* The following seq_print was added in version 2 of this output */
+ 	seq_printf(m, "%u\t"
+@@ -3165,6 +3174,8 @@ static int ocfs2_dlm_seq_show(struct seq_file *m, void *v)
+ 		   "%llu\t"
+ 		   "%u\t"
+ 		   "%u\t"
++		   "%u\t"
++		   "%u\t"
+ 		   "%u\t",
+ 		   lock_num_prmode(lockres),
+ 		   lock_num_exmode(lockres),
+@@ -3174,7 +3185,9 @@ static int ocfs2_dlm_seq_show(struct seq_file *m, void *v)
+ 		   lock_total_exmode(lockres),
+ 		   lock_max_prmode(lockres),
+ 		   lock_max_exmode(lockres),
+-		   lock_refresh(lockres));
++		   lock_refresh(lockres),
++		   lock_last_prmode(lockres),
++		   lock_last_exmode(lockres));
+ 
+ 	/* End the line */
+ 	seq_printf(m, "\n");
+diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
+index 1f029fbe8b8d..8efa022684f4 100644
+--- a/fs/ocfs2/ocfs2.h
++++ b/fs/ocfs2/ocfs2.h
+@@ -164,6 +164,7 @@ struct ocfs2_lock_stats {
+ 
+ 	/* Storing max wait in usecs saves 24 bytes per inode */
+ 	u32		ls_max;		/* Max wait in USEC */
++	u32		ls_last;	/* Last unlock time in SEC */
+ };
+ #endif
+ 
+-- 
+2.21.0
