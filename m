@@ -1,18 +1,19 @@
-From: Greg KH <gregkh@linuxfoundation.org>
-Date: Wed, 29 May 2019 10:52:42 -0700
+From: Joseph Qi <jiangqi903@gmail.com>
+Date: Thu, 30 May 2019 09:04:04 +0800
 Subject: [Ocfs2-devel] [PATCH v4] fs/ocfs2: fix race in
 	ocfs2_dentry_attach_lock
 In-Reply-To: <20190529174636.22364-1-wen.gang.wang@oracle.com>
 References: <20190529174636.22364-1-wen.gang.wang@oracle.com>
-Message-ID: <20190529175242.GA4431@kroah.com>
+Message-ID: <b2cb4fa6-2e07-4861-0003-a5b1db86fe73@gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Wengang Wang <wen.gang.wang@oracle.com>
-Cc: ocfs2-devel@oss.oracle.com, gechangwei@live.cn, daniel.sobe@nxp.com, akpm@linux-foundation.org, stable@vger.kernel.org, jiangqi903@gmail.com
+To: ocfs2-devel@oss.oracle.com
 
-On Wed, May 29, 2019 at 10:46:36AM -0700, Wengang Wang wrote:
+
+
+On 19/5/30 01:46, Wengang Wang wrote:
 > ocfs2_dentry_attach_lock() can be executed in parallel threads against the
 > same dentry. Make that race safe.
 > The race is like this:
@@ -65,6 +66,10 @@ On Wed, May 29, 2019 at 10:46:36AM -0700, Wengang Wang wrote:
 > Reported-by: Daniel Sobe <daniel.sobe@nxp.com>
 > Tested-by: Daniel Sobe <daniel.sobe@nxp.com>
 > Reviewed-by: Changwei Ge <gechangwei@live.cn>
+
+Looks fine.
+
+Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
 > ---
 > v4: return in place on race detection.
 > 
@@ -78,12 +83,28 @@ On Wed, May 29, 2019 at 10:46:36AM -0700, Wengang Wang wrote:
 > 
 >  fs/ocfs2/dcache.c | 12 ++++++++++++
 >  1 file changed, 12 insertions(+)
-
-<formletter>
-
-This is not the correct way to submit patches for inclusion in the
-stable kernel tree.  Please read:
-    https://urldefense.proofpoint.com/v2/url?u=https-3A__www.kernel.org_doc_html_latest_process_stable-2Dkernel-2Drules.html&d=DwIBAg&c=RoP1YumCXCgaWHvlZYR8PZh8Bv7qIrMUB65eapI_JnE&r=C7gAd4uDxlAvTdc0vmU6X8CMk6L2iDY8-HD0qT6Fo7Y&m=k2_veS6gfouGEyAl_KYtO3stkXp1T-mThycjG-C3nVQ&s=qEdFSVeGJPPVIB9XpFnnu7fibsroE5YUT5oujKq10b8&e=
-for how to do this properly.
-
-</formletter>
+> 
+> diff --git a/fs/ocfs2/dcache.c b/fs/ocfs2/dcache.c
+> index 290373024d9d..e8ace3b54e9c 100644
+> --- a/fs/ocfs2/dcache.c
+> +++ b/fs/ocfs2/dcache.c
+> @@ -310,6 +310,18 @@ int ocfs2_dentry_attach_lock(struct dentry *dentry,
+>  
+>  out_attach:
+>  	spin_lock(&dentry_attach_lock);
+> +	if (unlikely(dentry->d_fsdata && !alias)) {
+> +		/* d_fsdata is set by a racing thread which is doing
+> +		 * the same thing as this thread is doing. Leave the racing
+> +		 * thread going ahead and we return here.
+> +		 */
+> +		spin_unlock(&dentry_attach_lock);
+> +		iput(dl->dl_inode);
+> +		ocfs2_lock_res_free(&dl->dl_lockres);
+> +		kfree(dl);
+> +		return 0;
+> +	}
+> +
+>  	dentry->d_fsdata = dl;
+>  	dl->dl_count++;
+>  	spin_unlock(&dentry_attach_lock);
+> 
