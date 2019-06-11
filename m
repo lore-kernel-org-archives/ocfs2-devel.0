@@ -1,10 +1,9 @@
 From: Darrick J. Wong <darrick.wong@oracle.com>
-Date: Mon, 10 Jun 2019 21:46:53 -0700
-Subject: [Ocfs2-devel] [PATCH 5/6] xfs: refactor setflags to use setattr
-	code directly
+Date: Mon, 10 Jun 2019 21:47:01 -0700
+Subject: [Ocfs2-devel] [PATCH 6/6] xfs: clean up xfs_merge_ioc_xflags
 In-Reply-To: <156022836912.3227213.13598042497272336695.stgit@magnolia>
 References: <156022836912.3227213.13598042497272336695.stgit@magnolia>
-Message-ID: <156022841356.3227213.6932589992914531998.stgit@magnolia>
+Message-ID: <156022842153.3227213.3285668171167534801.stgit@magnolia>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -14,80 +13,74 @@ Cc: reiserfs-devel@vger.kernel.org, linux-efi@vger.kernel.org, devel@lists.orang
 
 From: Darrick J. Wong <darrick.wong@oracle.com>
 
-Refactor the SETFLAGS implementation to use the SETXATTR code directly
-instead of partially constructing a struct fsxattr and calling bits and
-pieces of the setxattr code.  This reduces code size and becomes
-necessary in the next patch to maintain the behavior of allowing
-userspace to set immutable on an immutable file so long as nothing
-/else/ about the attributes change.
+Clean up the calling convention since we're editing the fsxattr struct
+anyway.
 
 Signed-off-by: Darrick J. Wong <darrick.wong@oracle.com>
 ---
- fs/xfs/xfs_ioctl.c |   40 +++-------------------------------------
- 1 file changed, 3 insertions(+), 37 deletions(-)
+ fs/xfs/xfs_ioctl.c |   32 ++++++++++++++------------------
+ 1 file changed, 14 insertions(+), 18 deletions(-)
 
 
 diff --git a/fs/xfs/xfs_ioctl.c b/fs/xfs/xfs_ioctl.c
-index 88583b3e1e76..7b19ba2956ad 100644
+index 7b19ba2956ad..a67bc9afdd0b 100644
 --- a/fs/xfs/xfs_ioctl.c
 +++ b/fs/xfs/xfs_ioctl.c
-@@ -1491,11 +1491,8 @@ xfs_ioc_setxflags(
- 	struct file		*filp,
- 	void			__user *arg)
- {
--	struct xfs_trans	*tp;
- 	struct fsxattr		fa;
--	struct fsxattr		old_fa;
- 	unsigned int		flags;
--	int			join_flags = 0;
- 	int			error;
+@@ -829,35 +829,31 @@ xfs_ioc_ag_geometry(
+  * Linux extended inode flags interface.
+  */
  
- 	if (copy_from_user(&flags, arg, sizeof(flags)))
-@@ -1506,44 +1503,13 @@ xfs_ioc_setxflags(
- 		      FS_SYNC_FL))
+-STATIC unsigned int
++static inline void
+ xfs_merge_ioc_xflags(
+-	unsigned int	flags,
+-	unsigned int	start)
++	struct fsxattr	*fa,
++	unsigned int	flags)
+ {
+-	unsigned int	xflags = start;
+-
+ 	if (flags & FS_IMMUTABLE_FL)
+-		xflags |= FS_XFLAG_IMMUTABLE;
++		fa->fsx_xflags |= FS_XFLAG_IMMUTABLE;
+ 	else
+-		xflags &= ~FS_XFLAG_IMMUTABLE;
++		fa->fsx_xflags &= ~FS_XFLAG_IMMUTABLE;
+ 	if (flags & FS_APPEND_FL)
+-		xflags |= FS_XFLAG_APPEND;
++		fa->fsx_xflags |= FS_XFLAG_APPEND;
+ 	else
+-		xflags &= ~FS_XFLAG_APPEND;
++		fa->fsx_xflags &= ~FS_XFLAG_APPEND;
+ 	if (flags & FS_SYNC_FL)
+-		xflags |= FS_XFLAG_SYNC;
++		fa->fsx_xflags |= FS_XFLAG_SYNC;
+ 	else
+-		xflags &= ~FS_XFLAG_SYNC;
++		fa->fsx_xflags &= ~FS_XFLAG_SYNC;
+ 	if (flags & FS_NOATIME_FL)
+-		xflags |= FS_XFLAG_NOATIME;
++		fa->fsx_xflags |= FS_XFLAG_NOATIME;
+ 	else
+-		xflags &= ~FS_XFLAG_NOATIME;
++		fa->fsx_xflags &= ~FS_XFLAG_NOATIME;
+ 	if (flags & FS_NODUMP_FL)
+-		xflags |= FS_XFLAG_NODUMP;
++		fa->fsx_xflags |= FS_XFLAG_NODUMP;
+ 	else
+-		xflags &= ~FS_XFLAG_NODUMP;
+-
+-	return xflags;
++		fa->fsx_xflags &= ~FS_XFLAG_NODUMP;
+ }
+ 
+ STATIC unsigned int
+@@ -1504,7 +1500,7 @@ xfs_ioc_setxflags(
  		return -EOPNOTSUPP;
  
--	fa.fsx_xflags = xfs_merge_ioc_xflags(flags, xfs_ip2xflags(ip));
-+	__xfs_ioc_fsgetxattr(ip, false, &fa);
-+	fa.fsx_xflags = xfs_merge_ioc_xflags(flags, fa.fsx_xflags);
+ 	__xfs_ioc_fsgetxattr(ip, false, &fa);
+-	fa.fsx_xflags = xfs_merge_ioc_xflags(flags, fa.fsx_xflags);
++	xfs_merge_ioc_xflags(&fa, flags);
  
  	error = mnt_want_write_file(filp);
  	if (error)
- 		return error;
--
--	/*
--	 * Changing DAX config may require inode locking for mapping
--	 * invalidation. These need to be held all the way to transaction commit
--	 * or cancel time, so need to be passed through to
--	 * xfs_ioctl_setattr_get_trans() so it can apply them to the join call
--	 * appropriately.
--	 */
--	error = xfs_ioctl_setattr_dax_invalidate(ip, &fa, &join_flags);
--	if (error)
--		goto out_drop_write;
--
--	tp = xfs_ioctl_setattr_get_trans(ip, join_flags);
--	if (IS_ERR(tp)) {
--		error = PTR_ERR(tp);
--		goto out_drop_write;
--	}
--
--	__xfs_ioc_fsgetxattr(ip, false, &old_fa);
--	error = vfs_ioc_fssetxattr_check(VFS_I(ip), &old_fa, &fa);
--	if (error) {
--		xfs_trans_cancel(tp);
--		goto out_drop_write;
--	}
--
--	error = xfs_ioctl_setattr_xflags(tp, ip, &fa);
--	if (error) {
--		xfs_trans_cancel(tp);
--		goto out_drop_write;
--	}
--
--	error = xfs_trans_commit(tp);
--out_drop_write:
-+	error = xfs_ioctl_setattr(ip, &fa);
- 	mnt_drop_write_file(filp);
- 	return error;
- }
