@@ -1,75 +1,83 @@
-From: Gang He <ghe@suse.com>
-Date: Wed, 12 Jun 2019 21:36:45 -0600
-Subject: [Ocfs2-devel] mmotm 2019-06-11-16-59 uploaded (ocfs2)
-In-Reply-To: <20190612181813.48ad05832e05f767e7116d7b@linux-foundation.org>
-References: <20190611235956.4FZF6%akpm@linux-foundation.org>
-	<492b4bcc-4760-7cbb-7083-9f22e7ab4b82@infradead.org>
-	<20190612181813.48ad05832e05f767e7116d7b@linux-foundation.org>
-Message-ID: <5D01C4CD020000F90006C06A@prv1-mh.provo.novell.com>
+From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Date: Thu, 13 Jun 2019 07:51:31 +0200
+Subject: [Ocfs2-devel] [PATCH] ocfs: no need to check return value of
+ debugfs_create functions
+In-Reply-To: <23e08cff-6a97-b583-5dfb-652a51f92d8d@linux.alibaba.com>
+References: <20190612152912.GA19151@kroah.com>
+	<23e08cff-6a97-b583-5dfb-652a51f92d8d@linux.alibaba.com>
+Message-ID: <20190613055131.GD19717@kroah.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Randy Dunlap <rdunlap@infradead.org>, akpm@linux-foundation.org
-Cc: sfr@canb.auug.org.au, broonie@kernel.org, linux-mm@kvack.org, Joseph Qi <joseph.qi@linux.alibaba.com>, ocfs2-devel@oss.oracle.com, mhocko@suse.cz, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org, mm-commits@vger.kernel.org
+To: ocfs2-devel@oss.oracle.com
 
-Hello Randy and Andrew,
+On Thu, Jun 13, 2019 at 09:36:38AM +0800, Joseph Qi wrote:
+> 
+> 
+> On 19/6/12 23:29, Greg Kroah-Hartman wrote:
+> > When calling debugfs functions, there is no need to ever check the
+> > return value.  The function can work or not, but the code logic should
+> > never do something different based on this.
+> > 
+> > Also, because there is no need to save the file dentry, remove all of
+> > the variables that were being saved, and just recursively delete the
+> > whole directory when shutting down, saving a lot of logic and local
+> > variables.
+> > 
+> > Cc: Mark Fasheh <mark@fasheh.com>
+> > Cc: Joel Becker <jlbec@evilplan.org>
+> > Cc: Joseph Qi <joseph.qi@linux.alibaba.com>
+> > Cc: Andrew Morton <akpm@linux-foundation.org>
+> > Cc: Jia Guo <guojia12@huawei.com>
+> > Cc: ocfs2-devel at oss.oracle.com
+> > Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+> > ---
+> >  fs/ocfs2/blockcheck.c          | 54 +++++--------------
+> >  fs/ocfs2/blockcheck.h          |  7 +--
+> >  fs/ocfs2/cluster/heartbeat.c   | 98 +++++++++-------------------------
+> >  fs/ocfs2/cluster/heartbeat.h   |  2 +-
+> >  fs/ocfs2/cluster/netdebug.c    | 39 ++++----------
+> >  fs/ocfs2/cluster/nodemanager.c |  4 +-
+> >  fs/ocfs2/cluster/tcp.c         |  3 +-
+> >  fs/ocfs2/cluster/tcp.h         |  5 +-
+> >  fs/ocfs2/dlm/dlmdebug.c        | 44 ++-------------
+> >  fs/ocfs2/dlm/dlmdebug.h        | 10 ++--
+> >  fs/ocfs2/dlm/dlmdomain.c       | 10 +---
+> >  fs/ocfs2/dlmglue.c             | 18 +------
+> >  fs/ocfs2/super.c               | 29 ++--------
+> >  13 files changed, 73 insertions(+), 250 deletions(-)
+> > 
+> > diff --git a/fs/ocfs2/blockcheck.c b/fs/ocfs2/blockcheck.c
+> > index 005b813a56b6..08ef6c70fc68 100644
+> > --- a/fs/ocfs2/blockcheck.c
+> > +++ b/fs/ocfs2/blockcheck.c
+> > @@ -242,57 +242,31 @@ static struct dentry *blockcheck_debugfs_create(const char *name,
+> >  static void ocfs2_blockcheck_debug_remove(struct ocfs2_blockcheck_stats *stats)
+> >  {
+> >  	if (stats) {
+> > -		debugfs_remove(stats->b_debug_check);
+> > -		stats->b_debug_check = NULL;
+> > -		debugfs_remove(stats->b_debug_failure);
+> > -		stats->b_debug_failure = NULL;
+> > -		debugfs_remove(stats->b_debug_recover);
+> > -		stats->b_debug_recover = NULL;
+> > -		debugfs_remove(stats->b_debug_dir);
+> > +		debugfs_remove_recursive(stats->b_debug_dir);
+> >  		stats->b_debug_dir = NULL;
+> >  	}
+> >  }
+> >  
+> > -static int ocfs2_blockcheck_debug_install(struct ocfs2_blockcheck_stats *stats,
+> > -					  struct dentry *parent)
+> > +static void ocfs2_blockcheck_debug_install(struct ocfs2_blockcheck_stats *stats,
+> > +					   struct dentry *parent)
+> >  {
+> >  	int rc = -EINVAL;
+> 
+> Here rc is no longer be used, should be removed as well.
 
->>> On 6/13/2019 at  9:18 am, in message
-<20190612181813.48ad05832e05f767e7116d7b@linux-foundation.org>, Andrew Morton
-<akpm@linux-foundation.org> wrote:
-> On Wed, 12 Jun 2019 07:15:30 -0700 Randy Dunlap <rdunlap@infradead.org> wrote:
-> 
->> On 6/11/19 4:59 PM, akpm at linux-foundation.org wrote:
->> > The mm-of-the-moment snapshot 2019-06-11-16-59 has been uploaded to
->> > 
->> >    
-> https://urldefense.proofpoint.com/v2/url?u=http-3A__www.ozlabs.org_-7Eakpm_ 
-> mmotm_&d=DwICAg&c=RoP1YumCXCgaWHvlZYR8PZh8Bv7qIrMUB65eapI_JnE&r=C7gAd4uDxlAvTdc0
-> vmU6X8CMk6L2iDY8-HD0qT6Fo7Y&m=zWoF0Bft4OzQeAaZXMGI56DN7p9MjLynOay4PZYAlhQ&s=vYme
-> DBOk3Nv08-ZA7IweIdaUk094Ldvmgzc20fjjzDs&e=
->> > 
->> > mmotm-readme.txt says
->> > 
->> > README for mm-of-the-moment:
->> > 
->> > 
-> https://urldefense.proofpoint.com/v2/url?u=http-3A__www.ozlabs.org_-7Eakpm_mmo 
-> tm_&d=DwICAg&c=RoP1YumCXCgaWHvlZYR8PZh8Bv7qIrMUB65eapI_JnE&r=C7gAd4uDxlAvTdc0vmU
-> 6X8CMk6L2iDY8-HD0qT6Fo7Y&m=zWoF0Bft4OzQeAaZXMGI56DN7p9MjLynOay4PZYAlhQ&s=vYmeDBO
-> k3Nv08-ZA7IweIdaUk094Ldvmgzc20fjjzDs&e=
->> > 
->> > This is a snapshot of my -mm patch queue.  Uploaded at random hopefully
->> > more than once a week.
->> 
->> 
->> on i386:
->> 
->> ld: fs/ocfs2/dlmglue.o: in function `ocfs2_dlm_seq_show':
->> dlmglue.c:(.text+0x46e4): undefined reference to `__udivdi3'
-> 
-> Thanks.  This, I guess:
-> 
-> --- a/fs/ocfs2/dlmglue.c~ocfs2-add-locking-filter-debugfs-file-fix
-> +++ a/fs/ocfs2/dlmglue.c
-> @@ -3115,7 +3115,7 @@ static int ocfs2_dlm_seq_show(struct seq
->  		 * otherwise, only dump the last N seconds active lock
->  		 * resources.
->  		 */
-> -		if ((now - last) / 1000000 > dlm_debug->d_filter_secs)
-> +		if (div_u64(now - last, 1000000) > dlm_debug->d_filter_secs)
->  			return 0;
->  	}
->  #endif
-> 
-> review and test, please?
-Thank for this fix, the change is OK for my testing on x86_64.
+Sorry about those, I wonder how 0-day was ignoring those warning
+messages.  I'll go fix this and post a v2, thanks for the review!
 
-Thanks
-Gang
-
-> 
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com 
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+greg k-h
