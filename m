@@ -1,54 +1,108 @@
-From: Theodore Ts'o <tytso@mit.edu>
-Date: Thu, 20 Jun 2019 17:52:12 -0400
-Subject: [Ocfs2-devel] [PATCH 1/6] mm/fs: don't allow writes to
-	immutable files
-In-Reply-To: <156022837711.3227213.11787906519006016743.stgit@magnolia>
+From: Darrick J. Wong <darrick.wong@oracle.com>
+Date: Thu, 20 Jun 2019 15:09:40 -0700
+Subject: [Ocfs2-devel] [PATCH 2/6] vfs: flush and wait for io when
+ setting the immutable flag via SETFLAGS
+In-Reply-To: <20190620140028.GH30243@quack2.suse.cz>
 References: <156022836912.3227213.13598042497272336695.stgit@magnolia>
-	<156022837711.3227213.11787906519006016743.stgit@magnolia>
-Message-ID: <20190620215212.GG4650@mit.edu>
+	<156022838496.3227213.3771632042609589318.stgit@magnolia>
+	<20190620140028.GH30243@quack2.suse.cz>
+Message-ID: <20190620220940.GC5375@magnolia>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: "Darrick J. Wong" <darrick.wong@oracle.com>
-Cc: matthew.garrett@nebula.com, yuchao0@huawei.com, ard.biesheuvel@linaro.org, josef@toxicpanda.com, clm@fb.com, adilger.kernel@dilger.ca, viro@zeniv.linux.org.uk, jack@suse.com, dsterba@suse.com, jaegeuk@kernel.org, jk@ozlabs.org, reiserfs-devel@vger.kernel.org, linux-efi@vger.kernel.org, devel@lists.orangefs.org, linux-kernel@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, linux-xfs@vger.kernel.org, linux-mm@kvack.org, linux-nilfs@vger.kernel.org, linux-mtd@lists.infradead.org, ocfs2-devel@oss.oracle.com, linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org, linux-btrfs@vger.kernel.org
+To: Jan Kara <jack@suse.cz>
+Cc: matthew.garrett@nebula.com, yuchao0@huawei.com, tytso@mit.edu, ard.biesheuvel@linaro.org, josef@toxicpanda.com, clm@fb.com, adilger.kernel@dilger.ca, viro@zeniv.linux.org.uk, jack@suse.com, dsterba@suse.com, jaegeuk@kernel.org, jk@ozlabs.org, reiserfs-devel@vger.kernel.org, linux-efi@vger.kernel.org, devel@lists.orangefs.org, linux-kernel@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, linux-xfs@vger.kernel.org, linux-mm@kvack.org, linux-nilfs@vger.kernel.org, linux-mtd@lists.infradead.org, ocfs2-devel@oss.oracle.com, linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org, linux-btrfs@vger.kernel.org
 
-On Mon, Jun 10, 2019 at 09:46:17PM -0700, Darrick J. Wong wrote:
-> From: Darrick J. Wong <darrick.wong@oracle.com>
+On Thu, Jun 20, 2019 at 04:00:28PM +0200, Jan Kara wrote:
+> On Mon 10-06-19 21:46:25, Darrick J. Wong wrote:
+> > From: Darrick J. Wong <darrick.wong@oracle.com>
+> > 
+> > When we're using FS_IOC_SETFLAGS to set the immutable flag on a file, we
+> > need to ensure that userspace can't continue to write the file after the
+> > file becomes immutable.  To make that happen, we have to flush all the
+> > dirty pagecache pages to disk to ensure that we can fail a page fault on
+> > a mmap'd region, wait for pending directio to complete, and hope the
+> > caller locked out any new writes by holding the inode lock.
+> > 
+> > Signed-off-by: Darrick J. Wong <darrick.wong@oracle.com>
 > 
-> The chattr manpage has this to say about immutable files:
+> ...
 > 
-> "A file with the 'i' attribute cannot be modified: it cannot be deleted
-> or renamed, no link can be created to this file, most of the file's
-> metadata can not be modified, and the file can not be opened in write
-> mode."
+> > diff --git a/fs/ext4/ioctl.c b/fs/ext4/ioctl.c
+> > index 6aa1df1918f7..a05341b94d98 100644
+> > --- a/fs/ext4/ioctl.c
+> > +++ b/fs/ext4/ioctl.c
+> > @@ -290,6 +290,9 @@ static int ext4_ioctl_setflags(struct inode *inode,
+> >  	jflag = flags & EXT4_JOURNAL_DATA_FL;
+> >  
+> >  	err = vfs_ioc_setflags_check(inode, oldflags, flags);
+> > +	if (err)
+> > +		goto flags_out;
+> > +	err = vfs_ioc_setflags_flush_data(inode, flags);
+> >  	if (err)
+> >  		goto flags_out;
+> >  
 > 
-> Once the flag is set, it is enforced for quite a few file operations,
-> such as fallocate, fpunch, fzero, rm, touch, open, etc.  However, we
-> don't check for immutability when doing a write(), a PROT_WRITE mmap(),
-> a truncate(), or a write to a previously established mmap.
+> ...
 > 
-> If a program has an open write fd to a file that the administrator
-> subsequently marks immutable, the program still can change the file
-> contents.  Weird!
+> > diff --git a/include/linux/fs.h b/include/linux/fs.h
+> > index 8dad3c80b611..9c899c63957e 100644
+> > --- a/include/linux/fs.h
+> > +++ b/include/linux/fs.h
+> > @@ -3548,7 +3548,41 @@ static inline struct sock *io_uring_get_socket(struct file *file)
+> >  
+> >  int vfs_ioc_setflags_check(struct inode *inode, int oldflags, int flags);
+> >  
+> > +/*
+> > + * Do we need to flush the file data before changing attributes?  When we're
+> > + * setting the immutable flag we must stop all directio writes and flush the
+> > + * dirty pages so that we can fail the page fault on the next write attempt.
+> > + */
+> > +static inline bool vfs_ioc_setflags_need_flush(struct inode *inode, int flags)
+> > +{
+> > +	if (S_ISREG(inode->i_mode) && !IS_IMMUTABLE(inode) &&
+> > +	    (flags & FS_IMMUTABLE_FL))
+> > +		return true;
+> > +
+> > +	return false;
+> > +}
+> > +
+> > +/*
+> > + * Flush file data before changing attributes.  Caller must hold any locks
+> > + * required to prevent further writes to this file until we're done setting
+> > + * flags.
+> > + */
+> > +static inline int inode_flush_data(struct inode *inode)
+> > +{
+> > +	inode_dio_wait(inode);
+> > +	return filemap_write_and_wait(inode->i_mapping);
+> > +}
+> > +
+> > +/* Flush file data before changing attributes, if necessary. */
+> > +static inline int vfs_ioc_setflags_flush_data(struct inode *inode, int flags)
+> > +{
+> > +	if (vfs_ioc_setflags_need_flush(inode, flags))
+> > +		return inode_flush_data(inode);
+> > +	return 0;
+> > +}
+> > +
 > 
-> The ability to write to an immutable file does not follow the manpage
-> promise that immutable files cannot be modified.  Worse yet it's
-> inconsistent with the behavior of other syscalls which don't allow
-> modifications of immutable files.
-> 
-> Therefore, add the necessary checks to make the write, mmap, and
-> truncate behavior consistent with what the manpage says and consistent
-> with other syscalls on filesystems which support IMMUTABLE.
-> 
-> Signed-off-by: Darrick J. Wong <darrick.wong@oracle.com>
+> But this is racy at least for page faults, isn't it? What protects you
+> against write faults just after filemap_write_and_wait() has finished?
+> So either you need to set FS_IMMUTABLE_FL before flushing data or you need
+> to get more protection from the fs than just i_rwsem. In the case of ext4
+> that would be i_mmap_rwsem but other filesystems don't have equivalent
+> protection...
 
-I note that this patch doesn't allow writes to swap files.  So Amir's
-generic/554 test will still fail for those file systems that don't use
-copy_file_range.
+Yes, I see that now.  I think it'll work to set S_IMMUTABLE before
+trying the flush, so long as I am careful to put the call sites right
+before we update the inode flags.
 
-I'm indifferent as to whether you add a new patch, or include that
-change in this patch, but perhaps we should fix this while we're
-making changes in these code paths?
+--D
 
-				- Ted
+> 
+> 								Honza
+> -- 
+> Jan Kara <jack@suse.com>
+> SUSE Labs, CR
