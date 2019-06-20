@@ -1,700 +1,523 @@
-From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Date: Thu, 13 Jun 2019 07:54:55 +0200
-Subject: [Ocfs2-devel] [PATCH v2] ocfs: no need to check return value of
- debugfs_create functions
-In-Reply-To: <23e08cff-6a97-b583-5dfb-652a51f92d8d@linux.alibaba.com>
-References: <20190612152912.GA19151@kroah.com>
-	<23e08cff-6a97-b583-5dfb-652a51f92d8d@linux.alibaba.com>
-Message-ID: <20190613055455.GE19717@kroah.com>
+From: Jan Kara <jack@suse.cz>
+Date: Thu, 20 Jun 2019 15:34:20 +0200
+Subject: [Ocfs2-devel] [PATCH v2 1/4] vfs: create a generic checking
+ function for FS_IOC_SETFLAGS
+In-Reply-To: <20190612004258.GX1871505@magnolia>
+References: <156022833285.3227089.11990489625041926920.stgit@magnolia>
+	<156022834076.3227089.14763553158562888103.stgit@magnolia>
+	<20190612004258.GX1871505@magnolia>
+Message-ID: <20190620133420.GD30243@quack2.suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: "Darrick J. Wong" <darrick.wong@oracle.com>
+Cc: matthew.garrett@nebula.com, yuchao0@huawei.com, tytso@mit.edu, shaggy@kernel.org, ard.biesheuvel@linaro.org, josef@toxicpanda.com, clm@fb.com, adilger.kernel@dilger.ca, jk@ozlabs.org, jack@suse.com, dsterba@suse.com, jaegeuk@kernel.org, viro@zeniv.linux.org.uk, cluster-devel@redhat.com, jfs-discussion@lists.sourceforge.net, linux-efi@vger.kernel.org, reiserfs-devel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, linux-xfs@vger.kernel.org, linux-nilfs@vger.kernel.org, linux-mtd@lists.infradead.org, ocfs2-devel@oss.oracle.com, linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org, linux-btrfs@vger.kernel.org
 
-When calling debugfs functions, there is no need to ever check the
-return value.  The function can work or not, but the code logic should
-never do something different based on this.
+On Tue 11-06-19 17:42:58, Darrick J. Wong wrote:
+> From: Darrick J. Wong <darrick.wong@oracle.com>
+> 
+> Create a generic checking function for the incoming FS_IOC_SETFLAGS flag
+> values so that we can standardize the implementations that follow ext4's
+> flag values.
+> 
+> Signed-off-by: Darrick J. Wong <darrick.wong@oracle.com>
 
-Also, because there is no need to save the file dentry, remove all of
-the variables that were being saved, and just recursively delete the
-whole directory when shutting down, saving a lot of logic and local
-variables.
+The patch looks good to me. You can add:
 
-Cc: Mark Fasheh <mark@fasheh.com>
-Cc: Joel Becker <jlbec@evilplan.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Jia Guo <guojia12@huawei.com>
-Cc: ocfs2-devel at oss.oracle.com
-Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
----
-v2: fix up some build warnings pointed out by Joseph.
+Reviewed-by: Jan Kara <jack@suse.cz>
 
- fs/ocfs2/blockcheck.c          |  56 +++++-------------
- fs/ocfs2/blockcheck.h          |   7 +--
- fs/ocfs2/cluster/heartbeat.c   | 100 +++++++++------------------------
- fs/ocfs2/cluster/heartbeat.h   |   2 +-
- fs/ocfs2/cluster/netdebug.c    |  39 ++++---------
- fs/ocfs2/cluster/nodemanager.c |   4 +-
- fs/ocfs2/cluster/tcp.c         |   3 +-
- fs/ocfs2/cluster/tcp.h         |   5 +-
- fs/ocfs2/dlm/dlmdebug.c        |  44 ++-------------
- fs/ocfs2/dlm/dlmdebug.h        |  10 ++--
- fs/ocfs2/dlm/dlmdomain.c       |  10 +---
- fs/ocfs2/dlmglue.c             |  18 +-----
- fs/ocfs2/super.c               |  29 +---------
- 13 files changed, 73 insertions(+), 254 deletions(-)
+								Honza
 
-diff --git a/fs/ocfs2/blockcheck.c b/fs/ocfs2/blockcheck.c
-index 005b813a56b6..429e6a8359a5 100644
---- a/fs/ocfs2/blockcheck.c
-+++ b/fs/ocfs2/blockcheck.c
-@@ -242,57 +242,29 @@ static struct dentry *blockcheck_debugfs_create(const char *name,
- static void ocfs2_blockcheck_debug_remove(struct ocfs2_blockcheck_stats *stats)
- {
- 	if (stats) {
--		debugfs_remove(stats->b_debug_check);
--		stats->b_debug_check = NULL;
--		debugfs_remove(stats->b_debug_failure);
--		stats->b_debug_failure = NULL;
--		debugfs_remove(stats->b_debug_recover);
--		stats->b_debug_recover = NULL;
--		debugfs_remove(stats->b_debug_dir);
-+		debugfs_remove_recursive(stats->b_debug_dir);
- 		stats->b_debug_dir = NULL;
- 	}
- }
- 
--static int ocfs2_blockcheck_debug_install(struct ocfs2_blockcheck_stats *stats,
--					  struct dentry *parent)
-+static void ocfs2_blockcheck_debug_install(struct ocfs2_blockcheck_stats *stats,
-+					   struct dentry *parent)
- {
--	int rc = -EINVAL;
--
--	if (!stats)
--		goto out;
--
- 	stats->b_debug_dir = debugfs_create_dir("blockcheck", parent);
--	if (!stats->b_debug_dir)
--		goto out;
- 
--	stats->b_debug_check =
--		blockcheck_debugfs_create("blocks_checked",
--					  stats->b_debug_dir,
--					  &stats->b_check_count);
-+	blockcheck_debugfs_create("blocks_checked", stats->b_debug_dir,
-+				  &stats->b_check_count);
- 
--	stats->b_debug_failure =
--		blockcheck_debugfs_create("checksums_failed",
--					  stats->b_debug_dir,
--					  &stats->b_failure_count);
-+	blockcheck_debugfs_create("checksums_failed", stats->b_debug_dir,
-+				  &stats->b_failure_count);
- 
--	stats->b_debug_recover =
--		blockcheck_debugfs_create("ecc_recoveries",
--					  stats->b_debug_dir,
--					  &stats->b_recover_count);
--	if (stats->b_debug_check && stats->b_debug_failure &&
--	    stats->b_debug_recover)
--		rc = 0;
--
--out:
--	if (rc)
--		ocfs2_blockcheck_debug_remove(stats);
--	return rc;
-+	blockcheck_debugfs_create("ecc_recoveries", stats->b_debug_dir,
-+				  &stats->b_recover_count);
- }
- #else
--static inline int ocfs2_blockcheck_debug_install(struct ocfs2_blockcheck_stats *stats,
--						 struct dentry *parent)
-+static inline void ocfs2_blockcheck_debug_install(struct ocfs2_blockcheck_stats *stats,
-+						  struct dentry *parent)
- {
--	return 0;
- }
- 
- static inline void ocfs2_blockcheck_debug_remove(struct ocfs2_blockcheck_stats *stats)
-@@ -301,10 +273,10 @@ static inline void ocfs2_blockcheck_debug_remove(struct ocfs2_blockcheck_stats *
- #endif  /* CONFIG_DEBUG_FS */
- 
- /* Always-called wrappers for starting and stopping the debugfs files */
--int ocfs2_blockcheck_stats_debugfs_install(struct ocfs2_blockcheck_stats *stats,
--					   struct dentry *parent)
-+void ocfs2_blockcheck_stats_debugfs_install(struct ocfs2_blockcheck_stats *stats,
-+					    struct dentry *parent)
- {
--	return ocfs2_blockcheck_debug_install(stats, parent);
-+	ocfs2_blockcheck_debug_install(stats, parent);
- }
- 
- void ocfs2_blockcheck_stats_debugfs_remove(struct ocfs2_blockcheck_stats *stats)
-diff --git a/fs/ocfs2/blockcheck.h b/fs/ocfs2/blockcheck.h
-index f2d2689407fa..8f17d2c85f40 100644
---- a/fs/ocfs2/blockcheck.h
-+++ b/fs/ocfs2/blockcheck.h
-@@ -25,9 +25,6 @@ struct ocfs2_blockcheck_stats {
- 	 * ocfs2_blockcheck_stats_debugfs_install()
- 	 */
- 	struct dentry *b_debug_dir;	/* Parent of the debugfs  files */
--	struct dentry *b_debug_check;	/* Exposes b_check_count */
--	struct dentry *b_debug_failure;	/* Exposes b_failure_count */
--	struct dentry *b_debug_recover;	/* Exposes b_recover_count */
- };
- 
- 
-@@ -56,8 +53,8 @@ int ocfs2_block_check_validate_bhs(struct buffer_head **bhs, int nr,
- 				   struct ocfs2_blockcheck_stats *stats);
- 
- /* Debug Initialization */
--int ocfs2_blockcheck_stats_debugfs_install(struct ocfs2_blockcheck_stats *stats,
--					   struct dentry *parent);
-+void ocfs2_blockcheck_stats_debugfs_install(struct ocfs2_blockcheck_stats *stats,
-+					    struct dentry *parent);
- void ocfs2_blockcheck_stats_debugfs_remove(struct ocfs2_blockcheck_stats *stats);
- 
- /*
-diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
-index 7a3a096856a8..9d2fcb476f2b 100644
---- a/fs/ocfs2/cluster/heartbeat.c
-+++ b/fs/ocfs2/cluster/heartbeat.c
-@@ -92,10 +92,6 @@ static struct o2hb_debug_buf *o2hb_db_failedregions;
- #define O2HB_DEBUG_REGION_PINNED	"pinned"
- 
- static struct dentry *o2hb_debug_dir;
--static struct dentry *o2hb_debug_livenodes;
--static struct dentry *o2hb_debug_liveregions;
--static struct dentry *o2hb_debug_quorumregions;
--static struct dentry *o2hb_debug_failedregions;
- 
- static LIST_HEAD(o2hb_all_regions);
- 
-@@ -1391,11 +1387,7 @@ static const struct file_operations o2hb_debug_fops = {
- 
- void o2hb_exit(void)
- {
--	debugfs_remove(o2hb_debug_failedregions);
--	debugfs_remove(o2hb_debug_quorumregions);
--	debugfs_remove(o2hb_debug_liveregions);
--	debugfs_remove(o2hb_debug_livenodes);
--	debugfs_remove(o2hb_debug_dir);
-+	debugfs_remove_recursive(o2hb_debug_dir);
- 	kfree(o2hb_db_livenodes);
- 	kfree(o2hb_db_liveregions);
- 	kfree(o2hb_db_quorumregions);
-@@ -1419,79 +1411,37 @@ static struct dentry *o2hb_debug_create(const char *name, struct dentry *dir,
- 				   &o2hb_debug_fops);
- }
- 
--static int o2hb_debug_init(void)
-+static void o2hb_debug_init(void)
- {
--	int ret = -ENOMEM;
--
- 	o2hb_debug_dir = debugfs_create_dir(O2HB_DEBUG_DIR, NULL);
--	if (!o2hb_debug_dir) {
--		mlog_errno(ret);
--		goto bail;
--	}
- 
--	o2hb_debug_livenodes = o2hb_debug_create(O2HB_DEBUG_LIVENODES,
--						 o2hb_debug_dir,
--						 &o2hb_db_livenodes,
--						 sizeof(*o2hb_db_livenodes),
--						 O2HB_DB_TYPE_LIVENODES,
--						 sizeof(o2hb_live_node_bitmap),
--						 O2NM_MAX_NODES,
--						 o2hb_live_node_bitmap);
--	if (!o2hb_debug_livenodes) {
--		mlog_errno(ret);
--		goto bail;
--	}
-+	o2hb_debug_create(O2HB_DEBUG_LIVENODES, o2hb_debug_dir,
-+			  &o2hb_db_livenodes, sizeof(*o2hb_db_livenodes),
-+			  O2HB_DB_TYPE_LIVENODES, sizeof(o2hb_live_node_bitmap),
-+			  O2NM_MAX_NODES, o2hb_live_node_bitmap);
- 
--	o2hb_debug_liveregions = o2hb_debug_create(O2HB_DEBUG_LIVEREGIONS,
--						   o2hb_debug_dir,
--						   &o2hb_db_liveregions,
--						   sizeof(*o2hb_db_liveregions),
--						   O2HB_DB_TYPE_LIVEREGIONS,
--						   sizeof(o2hb_live_region_bitmap),
--						   O2NM_MAX_REGIONS,
--						   o2hb_live_region_bitmap);
--	if (!o2hb_debug_liveregions) {
--		mlog_errno(ret);
--		goto bail;
--	}
-+	o2hb_debug_create(O2HB_DEBUG_LIVEREGIONS, o2hb_debug_dir,
-+			  &o2hb_db_liveregions, sizeof(*o2hb_db_liveregions),
-+			  O2HB_DB_TYPE_LIVEREGIONS,
-+			  sizeof(o2hb_live_region_bitmap), O2NM_MAX_REGIONS,
-+			  o2hb_live_region_bitmap);
- 
--	o2hb_debug_quorumregions =
--			o2hb_debug_create(O2HB_DEBUG_QUORUMREGIONS,
--					  o2hb_debug_dir,
--					  &o2hb_db_quorumregions,
--					  sizeof(*o2hb_db_quorumregions),
--					  O2HB_DB_TYPE_QUORUMREGIONS,
--					  sizeof(o2hb_quorum_region_bitmap),
--					  O2NM_MAX_REGIONS,
--					  o2hb_quorum_region_bitmap);
--	if (!o2hb_debug_quorumregions) {
--		mlog_errno(ret);
--		goto bail;
--	}
--
--	o2hb_debug_failedregions =
--			o2hb_debug_create(O2HB_DEBUG_FAILEDREGIONS,
--					  o2hb_debug_dir,
--					  &o2hb_db_failedregions,
--					  sizeof(*o2hb_db_failedregions),
--					  O2HB_DB_TYPE_FAILEDREGIONS,
--					  sizeof(o2hb_failed_region_bitmap),
--					  O2NM_MAX_REGIONS,
--					  o2hb_failed_region_bitmap);
--	if (!o2hb_debug_failedregions) {
--		mlog_errno(ret);
--		goto bail;
--	}
-+	o2hb_debug_create(O2HB_DEBUG_QUORUMREGIONS, o2hb_debug_dir,
-+			  &o2hb_db_quorumregions,
-+			  sizeof(*o2hb_db_quorumregions),
-+			  O2HB_DB_TYPE_QUORUMREGIONS,
-+			  sizeof(o2hb_quorum_region_bitmap), O2NM_MAX_REGIONS,
-+			  o2hb_quorum_region_bitmap);
- 
--	ret = 0;
--bail:
--	if (ret)
--		o2hb_exit();
--
--	return ret;
-+	o2hb_debug_create(O2HB_DEBUG_FAILEDREGIONS, o2hb_debug_dir,
-+			  &o2hb_db_failedregions,
-+			  sizeof(*o2hb_db_failedregions),
-+			  O2HB_DB_TYPE_FAILEDREGIONS,
-+			  sizeof(o2hb_failed_region_bitmap), O2NM_MAX_REGIONS,
-+			  o2hb_failed_region_bitmap);
- }
- 
--int o2hb_init(void)
-+void o2hb_init(void)
- {
- 	int i;
- 
-@@ -1511,7 +1461,7 @@ int o2hb_init(void)
- 
- 	o2hb_dependent_users = 0;
- 
--	return o2hb_debug_init();
-+	o2hb_debug_init();
- }
- 
- /* if we're already in a callback then we're already serialized by the sem */
-diff --git a/fs/ocfs2/cluster/heartbeat.h b/fs/ocfs2/cluster/heartbeat.h
-index 7f37540ac4ab..beed31ea86cf 100644
---- a/fs/ocfs2/cluster/heartbeat.h
-+++ b/fs/ocfs2/cluster/heartbeat.h
-@@ -63,7 +63,7 @@ void o2hb_unregister_callback(const char *region_uuid,
- void o2hb_fill_node_map(unsigned long *map,
- 			unsigned bytes);
- void o2hb_exit(void);
--int o2hb_init(void);
-+void o2hb_init(void);
- int o2hb_check_node_heartbeating_no_sem(u8 node_num);
- int o2hb_check_node_heartbeating_from_callback(u8 node_num);
- void o2hb_stop_all_regions(void);
-diff --git a/fs/ocfs2/cluster/netdebug.c b/fs/ocfs2/cluster/netdebug.c
-index 0784575f4c2a..02bf4a1774cc 100644
---- a/fs/ocfs2/cluster/netdebug.c
-+++ b/fs/ocfs2/cluster/netdebug.c
-@@ -38,10 +38,6 @@
- #define SHOW_SOCK_STATS		1
- 
- static struct dentry *o2net_dentry;
--static struct dentry *sc_dentry;
--static struct dentry *nst_dentry;
--static struct dentry *stats_dentry;
--static struct dentry *nodes_dentry;
- 
- static DEFINE_SPINLOCK(o2net_debug_lock);
- 
-@@ -490,36 +486,23 @@ static const struct file_operations nodes_fops = {
- 
- void o2net_debugfs_exit(void)
- {
--	debugfs_remove(nodes_dentry);
--	debugfs_remove(stats_dentry);
--	debugfs_remove(sc_dentry);
--	debugfs_remove(nst_dentry);
--	debugfs_remove(o2net_dentry);
-+	debugfs_remove_recursive(o2net_dentry);
- }
- 
--int o2net_debugfs_init(void)
-+void o2net_debugfs_init(void)
- {
- 	umode_t mode = S_IFREG|S_IRUSR;
- 
- 	o2net_dentry = debugfs_create_dir(O2NET_DEBUG_DIR, NULL);
--	if (o2net_dentry)
--		nst_dentry = debugfs_create_file(NST_DEBUG_NAME, mode,
--					o2net_dentry, NULL, &nst_seq_fops);
--	if (nst_dentry)
--		sc_dentry = debugfs_create_file(SC_DEBUG_NAME, mode,
--					o2net_dentry, NULL, &sc_seq_fops);
--	if (sc_dentry)
--		stats_dentry = debugfs_create_file(STATS_DEBUG_NAME, mode,
--					o2net_dentry, NULL, &stats_seq_fops);
--	if (stats_dentry)
--		nodes_dentry = debugfs_create_file(NODES_DEBUG_NAME, mode,
--					o2net_dentry, NULL, &nodes_fops);
--	if (nodes_dentry)
--		return 0;
--
--	o2net_debugfs_exit();
--	mlog_errno(-ENOMEM);
--	return -ENOMEM;
-+
-+	debugfs_create_file(NST_DEBUG_NAME, mode, o2net_dentry, NULL,
-+			    &nst_seq_fops);
-+	debugfs_create_file(SC_DEBUG_NAME, mode, o2net_dentry, NULL,
-+			    &sc_seq_fops);
-+	debugfs_create_file(STATS_DEBUG_NAME, mode, o2net_dentry, NULL,
-+			    &stats_seq_fops);
-+	debugfs_create_file(NODES_DEBUG_NAME, mode, o2net_dentry, NULL,
-+			    &nodes_fops);
- }
- 
- #endif	/* CONFIG_DEBUG_FS */
-diff --git a/fs/ocfs2/cluster/nodemanager.c b/fs/ocfs2/cluster/nodemanager.c
-index 2234f7fd1f7c..7a7640c59f3c 100644
---- a/fs/ocfs2/cluster/nodemanager.c
-+++ b/fs/ocfs2/cluster/nodemanager.c
-@@ -828,9 +828,7 @@ static int __init init_o2nm(void)
- {
- 	int ret = -1;
- 
--	ret = o2hb_init();
--	if (ret)
--		goto out;
-+	o2hb_init();
- 
- 	ret = o2net_init();
- 	if (ret)
-diff --git a/fs/ocfs2/cluster/tcp.c b/fs/ocfs2/cluster/tcp.c
-index c599463d0694..80df75227c97 100644
---- a/fs/ocfs2/cluster/tcp.c
-+++ b/fs/ocfs2/cluster/tcp.c
-@@ -2129,8 +2129,7 @@ int o2net_init(void)
- 
- 	o2quo_init();
- 
--	if (o2net_debugfs_init())
--		goto out;
-+	o2net_debugfs_init();
- 
- 	o2net_hand = kzalloc(sizeof(struct o2net_handshake), GFP_KERNEL);
- 	o2net_keep_req = kzalloc(sizeof(struct o2net_msg), GFP_KERNEL);
-diff --git a/fs/ocfs2/cluster/tcp.h b/fs/ocfs2/cluster/tcp.h
-index dd4242be3f1f..de87cbffd175 100644
---- a/fs/ocfs2/cluster/tcp.h
-+++ b/fs/ocfs2/cluster/tcp.h
-@@ -109,16 +109,15 @@ struct o2net_send_tracking;
- struct o2net_sock_container;
- 
- #ifdef CONFIG_DEBUG_FS
--int o2net_debugfs_init(void);
-+void o2net_debugfs_init(void);
- void o2net_debugfs_exit(void);
- void o2net_debug_add_nst(struct o2net_send_tracking *nst);
- void o2net_debug_del_nst(struct o2net_send_tracking *nst);
- void o2net_debug_add_sc(struct o2net_sock_container *sc);
- void o2net_debug_del_sc(struct o2net_sock_container *sc);
- #else
--static inline int o2net_debugfs_init(void)
-+static inline void o2net_debugfs_init(void)
- {
--	return 0;
- }
- static inline void o2net_debugfs_exit(void)
- {
-diff --git a/fs/ocfs2/dlm/dlmdebug.c b/fs/ocfs2/dlm/dlmdebug.c
-index c8af5bc9e980..a4b58ba99927 100644
---- a/fs/ocfs2/dlm/dlmdebug.c
-+++ b/fs/ocfs2/dlm/dlmdebug.c
-@@ -851,7 +851,7 @@ static const struct file_operations debug_state_fops = {
- /* end  - debug state funcs */
- 
- /* files in subroot */
--int dlm_debug_init(struct dlm_ctxt *dlm)
-+void dlm_debug_init(struct dlm_ctxt *dlm)
- {
- 	struct dlm_debug_ctxt *dc = dlm->dlm_debug_ctxt;
- 
-@@ -860,10 +860,6 @@ int dlm_debug_init(struct dlm_ctxt *dlm)
- 						     S_IFREG|S_IRUSR,
- 						     dlm->dlm_debugfs_subroot,
- 						     dlm, &debug_state_fops);
--	if (!dc->debug_state_dentry) {
--		mlog_errno(-ENOMEM);
--		goto bail;
--	}
- 
- 	/* for dumping lockres */
- 	dc->debug_lockres_dentry =
-@@ -871,20 +867,12 @@ int dlm_debug_init(struct dlm_ctxt *dlm)
- 					    S_IFREG|S_IRUSR,
- 					    dlm->dlm_debugfs_subroot,
- 					    dlm, &debug_lockres_fops);
--	if (!dc->debug_lockres_dentry) {
--		mlog_errno(-ENOMEM);
--		goto bail;
--	}
- 
- 	/* for dumping mles */
- 	dc->debug_mle_dentry = debugfs_create_file(DLM_DEBUGFS_MLE_STATE,
- 						   S_IFREG|S_IRUSR,
- 						   dlm->dlm_debugfs_subroot,
- 						   dlm, &debug_mle_fops);
--	if (!dc->debug_mle_dentry) {
--		mlog_errno(-ENOMEM);
--		goto bail;
--	}
- 
- 	/* for dumping lockres on the purge list */
- 	dc->debug_purgelist_dentry =
-@@ -892,15 +880,6 @@ int dlm_debug_init(struct dlm_ctxt *dlm)
- 					    S_IFREG|S_IRUSR,
- 					    dlm->dlm_debugfs_subroot,
- 					    dlm, &debug_purgelist_fops);
--	if (!dc->debug_purgelist_dentry) {
--		mlog_errno(-ENOMEM);
--		goto bail;
--	}
--
--	return 0;
--
--bail:
--	return -ENOMEM;
- }
- 
- void dlm_debug_shutdown(struct dlm_ctxt *dlm)
-@@ -920,24 +899,16 @@ void dlm_debug_shutdown(struct dlm_ctxt *dlm)
- /* subroot - domain dir */
- int dlm_create_debugfs_subroot(struct dlm_ctxt *dlm)
- {
--	dlm->dlm_debugfs_subroot = debugfs_create_dir(dlm->name,
--						      dlm_debugfs_root);
--	if (!dlm->dlm_debugfs_subroot) {
--		mlog_errno(-ENOMEM);
--		goto bail;
--	}
--
- 	dlm->dlm_debug_ctxt = kzalloc(sizeof(struct dlm_debug_ctxt),
- 				      GFP_KERNEL);
- 	if (!dlm->dlm_debug_ctxt) {
- 		mlog_errno(-ENOMEM);
--		goto bail;
-+		return -ENOMEM;
- 	}
- 
-+	dlm->dlm_debugfs_subroot = debugfs_create_dir(dlm->name,
-+						      dlm_debugfs_root);
- 	return 0;
--bail:
--	dlm_destroy_debugfs_subroot(dlm);
--	return -ENOMEM;
- }
- 
- void dlm_destroy_debugfs_subroot(struct dlm_ctxt *dlm)
-@@ -946,14 +917,9 @@ void dlm_destroy_debugfs_subroot(struct dlm_ctxt *dlm)
- }
- 
- /* debugfs root */
--int dlm_create_debugfs_root(void)
-+void dlm_create_debugfs_root(void)
- {
- 	dlm_debugfs_root = debugfs_create_dir(DLM_DEBUGFS_DIR, NULL);
--	if (!dlm_debugfs_root) {
--		mlog_errno(-ENOMEM);
--		return -ENOMEM;
--	}
--	return 0;
- }
- 
- void dlm_destroy_debugfs_root(void)
-diff --git a/fs/ocfs2/dlm/dlmdebug.h b/fs/ocfs2/dlm/dlmdebug.h
-index 74d019694c7e..7d0c7c9013ce 100644
---- a/fs/ocfs2/dlm/dlmdebug.h
-+++ b/fs/ocfs2/dlm/dlmdebug.h
-@@ -28,20 +28,19 @@ struct debug_lockres {
- 	struct dlm_lock_resource *dl_res;
- };
- 
--int dlm_debug_init(struct dlm_ctxt *dlm);
-+void dlm_debug_init(struct dlm_ctxt *dlm);
- void dlm_debug_shutdown(struct dlm_ctxt *dlm);
- 
- int dlm_create_debugfs_subroot(struct dlm_ctxt *dlm);
- void dlm_destroy_debugfs_subroot(struct dlm_ctxt *dlm);
- 
--int dlm_create_debugfs_root(void);
-+void dlm_create_debugfs_root(void);
- void dlm_destroy_debugfs_root(void);
- 
- #else
- 
--static inline int dlm_debug_init(struct dlm_ctxt *dlm)
-+static inline void dlm_debug_init(struct dlm_ctxt *dlm)
- {
--	return 0;
- }
- static inline void dlm_debug_shutdown(struct dlm_ctxt *dlm)
- {
-@@ -53,9 +52,8 @@ static inline int dlm_create_debugfs_subroot(struct dlm_ctxt *dlm)
- static inline void dlm_destroy_debugfs_subroot(struct dlm_ctxt *dlm)
- {
- }
--static inline int dlm_create_debugfs_root(void)
-+static inline void dlm_create_debugfs_root(void)
- {
--	return 0;
- }
- static inline void dlm_destroy_debugfs_root(void)
- {
-diff --git a/fs/ocfs2/dlm/dlmdomain.c b/fs/ocfs2/dlm/dlmdomain.c
-index 9021e72e1f98..7338b5d4647c 100644
---- a/fs/ocfs2/dlm/dlmdomain.c
-+++ b/fs/ocfs2/dlm/dlmdomain.c
-@@ -1881,11 +1881,7 @@ static int dlm_join_domain(struct dlm_ctxt *dlm)
- 		goto bail;
- 	}
- 
--	status = dlm_debug_init(dlm);
--	if (status < 0) {
--		mlog_errno(status);
--		goto bail;
--	}
-+	dlm_debug_init(dlm);
- 
- 	snprintf(wq_name, O2NM_MAX_NAME_LEN, "dlm_wq-%s", dlm->name);
- 	dlm->dlm_worker = alloc_workqueue(wq_name, WQ_MEM_RECLAIM, 0);
-@@ -2346,9 +2342,7 @@ static int __init dlm_init(void)
- 		goto error;
- 	}
- 
--	status = dlm_create_debugfs_root();
--	if (status)
--		goto error;
-+	dlm_create_debugfs_root();
- 
- 	return 0;
- error:
-diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-index b5fc5d3c7525..fbae3488a8e9 100644
---- a/fs/ocfs2/dlmglue.c
-+++ b/fs/ocfs2/dlmglue.c
-@@ -3214,9 +3214,8 @@ static const struct file_operations ocfs2_dlm_debug_fops = {
- 	.llseek =	seq_lseek,
- };
- 
--static int ocfs2_dlm_init_debug(struct ocfs2_super *osb)
-+static void ocfs2_dlm_init_debug(struct ocfs2_super *osb)
- {
--	int ret = 0;
- 	struct ocfs2_dlm_debug *dlm_debug = osb->osb_dlm_debug;
- 
- 	dlm_debug->d_locking_state = debugfs_create_file("locking_state",
-@@ -3224,16 +3223,7 @@ static int ocfs2_dlm_init_debug(struct ocfs2_super *osb)
- 							 osb->osb_debug_root,
- 							 osb,
- 							 &ocfs2_dlm_debug_fops);
--	if (!dlm_debug->d_locking_state) {
--		ret = -EINVAL;
--		mlog(ML_ERROR,
--		     "Unable to create locking state debugfs file.\n");
--		goto out;
--	}
--
- 	ocfs2_get_dlm_debug(dlm_debug);
--out:
--	return ret;
- }
- 
- static void ocfs2_dlm_shutdown_debug(struct ocfs2_super *osb)
-@@ -3256,11 +3246,7 @@ int ocfs2_dlm_init(struct ocfs2_super *osb)
- 		goto local;
- 	}
- 
--	status = ocfs2_dlm_init_debug(osb);
--	if (status < 0) {
--		mlog_errno(status);
--		goto bail;
--	}
-+	ocfs2_dlm_init_debug(osb);
- 
- 	/* launch downconvert thread */
- 	osb->dc_task = kthread_run(ocfs2_downconvert_thread, osb, "ocfs2dc-%s",
-diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-index a201f9780b35..8b2f39506648 100644
---- a/fs/ocfs2/super.c
-+++ b/fs/ocfs2/super.c
-@@ -1079,33 +1079,15 @@ static int ocfs2_fill_super(struct super_block *sb, void *data, int silent)
- 
- 	osb->osb_debug_root = debugfs_create_dir(osb->uuid_str,
- 						 ocfs2_debugfs_root);
--	if (!osb->osb_debug_root) {
--		status = -EINVAL;
--		mlog(ML_ERROR, "Unable to create per-mount debugfs root.\n");
--		goto read_super_error;
--	}
- 
- 	osb->osb_ctxt = debugfs_create_file("fs_state", S_IFREG|S_IRUSR,
- 					    osb->osb_debug_root,
- 					    osb,
- 					    &ocfs2_osb_debug_fops);
--	if (!osb->osb_ctxt) {
--		status = -EINVAL;
--		mlog_errno(status);
--		goto read_super_error;
--	}
- 
--	if (ocfs2_meta_ecc(osb)) {
--		status = ocfs2_blockcheck_stats_debugfs_install(
--						&osb->osb_ecc_stats,
--						osb->osb_debug_root);
--		if (status) {
--			mlog(ML_ERROR,
--			     "Unable to create blockcheck statistics "
--			     "files\n");
--			goto read_super_error;
--		}
--	}
-+	if (ocfs2_meta_ecc(osb))
-+		ocfs2_blockcheck_stats_debugfs_install( &osb->osb_ecc_stats,
-+							osb->osb_debug_root);
- 
- 	status = ocfs2_mount_volume(sb);
- 	if (status < 0)
-@@ -1592,11 +1574,6 @@ static int __init ocfs2_init(void)
- 		goto out2;
- 
- 	ocfs2_debugfs_root = debugfs_create_dir("ocfs2", NULL);
--	if (!ocfs2_debugfs_root) {
--		status = -ENOMEM;
--		mlog(ML_ERROR, "Unable to create ocfs2 debugfs root.\n");
--		goto out3;
--	}
- 
- 	ocfs2_set_locking_protocol();
- 
+> ---
+> v2: fix jfs locking and remove its opencoded flags check
+> ---
+>  fs/btrfs/ioctl.c    |   13 +++++--------
+>  fs/efivarfs/file.c  |   18 +++++++++++++-----
+>  fs/ext2/ioctl.c     |   16 ++++------------
+>  fs/ext4/ioctl.c     |   13 +++----------
+>  fs/f2fs/file.c      |    7 ++++---
+>  fs/gfs2/file.c      |   42 +++++++++++++++++++++++++++++-------------
+>  fs/hfsplus/ioctl.c  |   21 ++++++++++++---------
+>  fs/inode.c          |   17 +++++++++++++++++
+>  fs/jfs/ioctl.c      |   22 +++++++---------------
+>  fs/nilfs2/ioctl.c   |    9 ++-------
+>  fs/ocfs2/ioctl.c    |   13 +++----------
+>  fs/reiserfs/ioctl.c |   10 ++++------
+>  fs/ubifs/ioctl.c    |   13 +++----------
+>  include/linux/fs.h  |    2 ++
+>  14 files changed, 108 insertions(+), 108 deletions(-)
+> 
+> diff --git a/fs/btrfs/ioctl.c b/fs/btrfs/ioctl.c
+> index 6dafa857bbb9..f408aa93b0cf 100644
+> --- a/fs/btrfs/ioctl.c
+> +++ b/fs/btrfs/ioctl.c
+> @@ -187,7 +187,7 @@ static int btrfs_ioctl_setflags(struct file *file, void __user *arg)
+>  	struct btrfs_inode *binode = BTRFS_I(inode);
+>  	struct btrfs_root *root = binode->root;
+>  	struct btrfs_trans_handle *trans;
+> -	unsigned int fsflags;
+> +	unsigned int fsflags, old_fsflags;
+>  	int ret;
+>  	const char *comp = NULL;
+>  	u32 binode_flags = binode->flags;
+> @@ -212,13 +212,10 @@ static int btrfs_ioctl_setflags(struct file *file, void __user *arg)
+>  	inode_lock(inode);
+>  
+>  	fsflags = btrfs_mask_fsflags_for_type(inode, fsflags);
+> -	if ((fsflags ^ btrfs_inode_flags_to_fsflags(binode->flags)) &
+> -	    (FS_APPEND_FL | FS_IMMUTABLE_FL)) {
+> -		if (!capable(CAP_LINUX_IMMUTABLE)) {
+> -			ret = -EPERM;
+> -			goto out_unlock;
+> -		}
+> -	}
+> +	old_fsflags = btrfs_inode_flags_to_fsflags(binode->flags);
+> +	ret = vfs_ioc_setflags_check(inode, old_fsflags, fsflags);
+> +	if (ret)
+> +		goto out_unlock;
+>  
+>  	if (fsflags & FS_SYNC_FL)
+>  		binode_flags |= BTRFS_INODE_SYNC;
+> diff --git a/fs/efivarfs/file.c b/fs/efivarfs/file.c
+> index 8e568428c88b..f4f6c1bec132 100644
+> --- a/fs/efivarfs/file.c
+> +++ b/fs/efivarfs/file.c
+> @@ -110,16 +110,22 @@ static ssize_t efivarfs_file_read(struct file *file, char __user *userbuf,
+>  	return size;
+>  }
+>  
+> -static int
+> -efivarfs_ioc_getxflags(struct file *file, void __user *arg)
+> +static inline unsigned int efivarfs_getflags(struct inode *inode)
+>  {
+> -	struct inode *inode = file->f_mapping->host;
+>  	unsigned int i_flags;
+>  	unsigned int flags = 0;
+>  
+>  	i_flags = inode->i_flags;
+>  	if (i_flags & S_IMMUTABLE)
+>  		flags |= FS_IMMUTABLE_FL;
+> +	return flags;
+> +}
+> +
+> +static int
+> +efivarfs_ioc_getxflags(struct file *file, void __user *arg)
+> +{
+> +	struct inode *inode = file->f_mapping->host;
+> +	unsigned int flags = efivarfs_getflags(inode);
+>  
+>  	if (copy_to_user(arg, &flags, sizeof(flags)))
+>  		return -EFAULT;
+> @@ -132,6 +138,7 @@ efivarfs_ioc_setxflags(struct file *file, void __user *arg)
+>  	struct inode *inode = file->f_mapping->host;
+>  	unsigned int flags;
+>  	unsigned int i_flags = 0;
+> +	unsigned int oldflags = efivarfs_getflags(inode);
+>  	int error;
+>  
+>  	if (!inode_owner_or_capable(inode))
+> @@ -143,8 +150,9 @@ efivarfs_ioc_setxflags(struct file *file, void __user *arg)
+>  	if (flags & ~FS_IMMUTABLE_FL)
+>  		return -EOPNOTSUPP;
+>  
+> -	if (!capable(CAP_LINUX_IMMUTABLE))
+> -		return -EPERM;
+> +	error = vfs_ioc_setflags_check(inode, oldflags, flags);
+> +	if (error)
+> +		return error;
+>  
+>  	if (flags & FS_IMMUTABLE_FL)
+>  		i_flags |= S_IMMUTABLE;
+> diff --git a/fs/ext2/ioctl.c b/fs/ext2/ioctl.c
+> index 0367c0039e68..88b3b9720023 100644
+> --- a/fs/ext2/ioctl.c
+> +++ b/fs/ext2/ioctl.c
+> @@ -60,18 +60,10 @@ long ext2_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
+>  		}
+>  		oldflags = ei->i_flags;
+>  
+> -		/*
+> -		 * The IMMUTABLE and APPEND_ONLY flags can only be changed by
+> -		 * the relevant capability.
+> -		 *
+> -		 * This test looks nicer. Thanks to Pauline Middelink
+> -		 */
+> -		if ((flags ^ oldflags) & (EXT2_APPEND_FL | EXT2_IMMUTABLE_FL)) {
+> -			if (!capable(CAP_LINUX_IMMUTABLE)) {
+> -				inode_unlock(inode);
+> -				ret = -EPERM;
+> -				goto setflags_out;
+> -			}
+> +		ret = vfs_ioc_setflags_check(inode, oldflags, flags);
+> +		if (ret) {
+> +			inode_unlock(inode);
+> +			goto setflags_out;
+>  		}
+>  
+>  		flags = flags & EXT2_FL_USER_MODIFIABLE;
+> diff --git a/fs/ext4/ioctl.c b/fs/ext4/ioctl.c
+> index e486e49b31ed..5126ee351a84 100644
+> --- a/fs/ext4/ioctl.c
+> +++ b/fs/ext4/ioctl.c
+> @@ -289,16 +289,9 @@ static int ext4_ioctl_setflags(struct inode *inode,
+>  	/* The JOURNAL_DATA flag is modifiable only by root */
+>  	jflag = flags & EXT4_JOURNAL_DATA_FL;
+>  
+> -	/*
+> -	 * The IMMUTABLE and APPEND_ONLY flags can only be changed by
+> -	 * the relevant capability.
+> -	 *
+> -	 * This test looks nicer. Thanks to Pauline Middelink
+> -	 */
+> -	if ((flags ^ oldflags) & (EXT4_APPEND_FL | EXT4_IMMUTABLE_FL)) {
+> -		if (!capable(CAP_LINUX_IMMUTABLE))
+> -			goto flags_out;
+> -	}
+> +	err = vfs_ioc_setflags_check(inode, oldflags, flags);
+> +	if (err)
+> +		goto flags_out;
+>  
+>  	/*
+>  	 * The JOURNAL_DATA flag can only be changed by
+> diff --git a/fs/f2fs/file.c b/fs/f2fs/file.c
+> index 45b45f37d347..a969d5497e03 100644
+> --- a/fs/f2fs/file.c
+> +++ b/fs/f2fs/file.c
+> @@ -1670,6 +1670,7 @@ static int __f2fs_ioc_setflags(struct inode *inode, unsigned int flags)
+>  {
+>  	struct f2fs_inode_info *fi = F2FS_I(inode);
+>  	unsigned int oldflags;
+> +	int err;
+>  
+>  	/* Is it quota file? Do not allow user to mess with it */
+>  	if (IS_NOQUOTA(inode))
+> @@ -1679,9 +1680,9 @@ static int __f2fs_ioc_setflags(struct inode *inode, unsigned int flags)
+>  
+>  	oldflags = fi->i_flags;
+>  
+> -	if ((flags ^ oldflags) & (F2FS_APPEND_FL | F2FS_IMMUTABLE_FL))
+> -		if (!capable(CAP_LINUX_IMMUTABLE))
+> -			return -EPERM;
+> +	err = vfs_ioc_setflags_check(inode, oldflags, flags);
+> +	if (err)
+> +		return err;
+>  
+>  	flags = flags & F2FS_FL_USER_MODIFIABLE;
+>  	flags |= oldflags & ~F2FS_FL_USER_MODIFIABLE;
+> diff --git a/fs/gfs2/file.c b/fs/gfs2/file.c
+> index d174b1f8fd08..99f53cf699c6 100644
+> --- a/fs/gfs2/file.c
+> +++ b/fs/gfs2/file.c
+> @@ -136,27 +136,36 @@ static struct {
+>  	{FS_JOURNAL_DATA_FL, GFS2_DIF_JDATA | GFS2_DIF_INHERIT_JDATA},
+>  };
+>  
+> +static inline u32 gfs2_gfsflags_to_fsflags(struct inode *inode, u32 gfsflags)
+> +{
+> +	int i;
+> +	u32 fsflags = 0;
+> +
+> +	if (S_ISDIR(inode->i_mode))
+> +		gfsflags &= ~GFS2_DIF_JDATA;
+> +	else
+> +		gfsflags &= ~GFS2_DIF_INHERIT_JDATA;
+> +
+> +	for (i = 0; i < ARRAY_SIZE(fsflag_gfs2flag); i++)
+> +		if (gfsflags & fsflag_gfs2flag[i].gfsflag)
+> +			fsflags |= fsflag_gfs2flag[i].fsflag;
+> +	return fsflags;
+> +}
+> +
+>  static int gfs2_get_flags(struct file *filp, u32 __user *ptr)
+>  {
+>  	struct inode *inode = file_inode(filp);
+>  	struct gfs2_inode *ip = GFS2_I(inode);
+>  	struct gfs2_holder gh;
+> -	int i, error;
+> -	u32 gfsflags, fsflags = 0;
+> +	int error;
+> +	u32 fsflags;
+>  
+>  	gfs2_holder_init(ip->i_gl, LM_ST_SHARED, 0, &gh);
+>  	error = gfs2_glock_nq(&gh);
+>  	if (error)
+>  		goto out_uninit;
+>  
+> -	gfsflags = ip->i_diskflags;
+> -	if (S_ISDIR(inode->i_mode))
+> -		gfsflags &= ~GFS2_DIF_JDATA;
+> -	else
+> -		gfsflags &= ~GFS2_DIF_INHERIT_JDATA;
+> -	for (i = 0; i < ARRAY_SIZE(fsflag_gfs2flag); i++)
+> -		if (gfsflags & fsflag_gfs2flag[i].gfsflag)
+> -			fsflags |= fsflag_gfs2flag[i].fsflag;
+> +	fsflags = gfs2_gfsflags_to_fsflags(inode, ip->i_diskflags);
+>  
+>  	if (put_user(fsflags, ptr))
+>  		error = -EFAULT;
+> @@ -200,9 +209,11 @@ void gfs2_set_inode_flags(struct inode *inode)
+>   * @filp: file pointer
+>   * @reqflags: The flags to set
+>   * @mask: Indicates which flags are valid
+> + * @fsflags: The FS_* inode flags passed in
+>   *
+>   */
+> -static int do_gfs2_set_flags(struct file *filp, u32 reqflags, u32 mask)
+> +static int do_gfs2_set_flags(struct file *filp, u32 reqflags, u32 mask,
+> +			     const u32 fsflags)
+>  {
+>  	struct inode *inode = file_inode(filp);
+>  	struct gfs2_inode *ip = GFS2_I(inode);
+> @@ -210,7 +221,7 @@ static int do_gfs2_set_flags(struct file *filp, u32 reqflags, u32 mask)
+>  	struct buffer_head *bh;
+>  	struct gfs2_holder gh;
+>  	int error;
+> -	u32 new_flags, flags;
+> +	u32 new_flags, flags, oldflags;
+>  
+>  	error = mnt_want_write_file(filp);
+>  	if (error)
+> @@ -220,6 +231,11 @@ static int do_gfs2_set_flags(struct file *filp, u32 reqflags, u32 mask)
+>  	if (error)
+>  		goto out_drop_write;
+>  
+> +	oldflags = gfs2_gfsflags_to_fsflags(inode, ip->i_diskflags);
+> +	error = vfs_ioc_setflags_check(inode, oldflags, fsflags);
+> +	if (error)
+> +		goto out;
+> +
+>  	error = -EACCES;
+>  	if (!inode_owner_or_capable(inode))
+>  		goto out;
+> @@ -308,7 +324,7 @@ static int gfs2_set_flags(struct file *filp, u32 __user *ptr)
+>  		mask &= ~(GFS2_DIF_TOPDIR | GFS2_DIF_INHERIT_JDATA);
+>  	}
+>  
+> -	return do_gfs2_set_flags(filp, gfsflags, mask);
+> +	return do_gfs2_set_flags(filp, gfsflags, mask, fsflags);
+>  }
+>  
+>  static int gfs2_getlabel(struct file *filp, char __user *label)
+> diff --git a/fs/hfsplus/ioctl.c b/fs/hfsplus/ioctl.c
+> index 5e6502ef7415..862a3c9481d7 100644
+> --- a/fs/hfsplus/ioctl.c
+> +++ b/fs/hfsplus/ioctl.c
+> @@ -57,9 +57,8 @@ static int hfsplus_ioctl_bless(struct file *file, int __user *user_flags)
+>  	return 0;
+>  }
+>  
+> -static int hfsplus_ioctl_getflags(struct file *file, int __user *user_flags)
+> +static inline unsigned int hfsplus_getflags(struct inode *inode)
+>  {
+> -	struct inode *inode = file_inode(file);
+>  	struct hfsplus_inode_info *hip = HFSPLUS_I(inode);
+>  	unsigned int flags = 0;
+>  
+> @@ -69,6 +68,13 @@ static int hfsplus_ioctl_getflags(struct file *file, int __user *user_flags)
+>  		flags |= FS_APPEND_FL;
+>  	if (hip->userflags & HFSPLUS_FLG_NODUMP)
+>  		flags |= FS_NODUMP_FL;
+> +	return flags;
+> +}
+> +
+> +static int hfsplus_ioctl_getflags(struct file *file, int __user *user_flags)
+> +{
+> +	struct inode *inode = file_inode(file);
+> +	unsigned int flags = hfsplus_getflags(inode);
+>  
+>  	return put_user(flags, user_flags);
+>  }
+> @@ -78,6 +84,7 @@ static int hfsplus_ioctl_setflags(struct file *file, int __user *user_flags)
+>  	struct inode *inode = file_inode(file);
+>  	struct hfsplus_inode_info *hip = HFSPLUS_I(inode);
+>  	unsigned int flags, new_fl = 0;
+> +	unsigned int oldflags = hfsplus_getflags(inode);
+>  	int err = 0;
+>  
+>  	err = mnt_want_write_file(file);
+> @@ -96,13 +103,9 @@ static int hfsplus_ioctl_setflags(struct file *file, int __user *user_flags)
+>  
+>  	inode_lock(inode);
+>  
+> -	if ((flags & (FS_IMMUTABLE_FL|FS_APPEND_FL)) ||
+> -	    inode->i_flags & (S_IMMUTABLE|S_APPEND)) {
+> -		if (!capable(CAP_LINUX_IMMUTABLE)) {
+> -			err = -EPERM;
+> -			goto out_unlock_inode;
+> -		}
+> -	}
+> +	err = vfs_ioc_setflags_check(inode, oldflags, flags);
+> +	if (err)
+> +		goto out_unlock_inode;
+>  
+>  	/* don't silently ignore unsupported ext2 flags */
+>  	if (flags & ~(FS_IMMUTABLE_FL|FS_APPEND_FL|FS_NODUMP_FL)) {
+> diff --git a/fs/inode.c b/fs/inode.c
+> index df6542ec3b88..0ce60b720608 100644
+> --- a/fs/inode.c
+> +++ b/fs/inode.c
+> @@ -2170,3 +2170,20 @@ struct timespec64 current_time(struct inode *inode)
+>  	return timespec64_trunc(now, inode->i_sb->s_time_gran);
+>  }
+>  EXPORT_SYMBOL(current_time);
+> +
+> +/* Generic function to check FS_IOC_SETFLAGS values. */
+> +int vfs_ioc_setflags_check(struct inode *inode, int oldflags, int flags)
+> +{
+> +	/*
+> +	 * The IMMUTABLE and APPEND_ONLY flags can only be changed by
+> +	 * the relevant capability.
+> +	 *
+> +	 * This test looks nicer. Thanks to Pauline Middelink
+> +	 */
+> +	if ((flags ^ oldflags) & (FS_APPEND_FL | FS_IMMUTABLE_FL) &&
+> +	    !capable(CAP_LINUX_IMMUTABLE))
+> +		return -EPERM;
+> +
+> +	return 0;
+> +}
+> +EXPORT_SYMBOL(vfs_ioc_setflags_check);
+> diff --git a/fs/jfs/ioctl.c b/fs/jfs/ioctl.c
+> index ba34dae8bd9f..b485c2d7620f 100644
+> --- a/fs/jfs/ioctl.c
+> +++ b/fs/jfs/ioctl.c
+> @@ -98,24 +98,16 @@ long jfs_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
+>  		/* Lock against other parallel changes of flags */
+>  		inode_lock(inode);
+>  
+> -		oldflags = jfs_inode->mode2;
+> -
+> -		/*
+> -		 * The IMMUTABLE and APPEND_ONLY flags can only be changed by
+> -		 * the relevant capability.
+> -		 */
+> -		if ((oldflags & JFS_IMMUTABLE_FL) ||
+> -			((flags ^ oldflags) &
+> -			(JFS_APPEND_FL | JFS_IMMUTABLE_FL))) {
+> -			if (!capable(CAP_LINUX_IMMUTABLE)) {
+> -				inode_unlock(inode);
+> -				err = -EPERM;
+> -				goto setflags_out;
+> -			}
+> +		oldflags = jfs_map_ext2(jfs_inode->mode2 & JFS_FL_USER_VISIBLE,
+> +					0);
+> +		err = vfs_ioc_setflags_check(inode, oldflags, flags);
+> +		if (err) {
+> +			inode_unlock(inode);
+> +			goto setflags_out;
+>  		}
+>  
+>  		flags = flags & JFS_FL_USER_MODIFIABLE;
+> -		flags |= oldflags & ~JFS_FL_USER_MODIFIABLE;
+> +		flags |= jfs_inode->mode2 & ~JFS_FL_USER_MODIFIABLE;
+>  		jfs_inode->mode2 = flags;
+>  
+>  		jfs_set_inode_flags(inode);
+> diff --git a/fs/nilfs2/ioctl.c b/fs/nilfs2/ioctl.c
+> index 9b96d79eea6c..0632336d2515 100644
+> --- a/fs/nilfs2/ioctl.c
+> +++ b/fs/nilfs2/ioctl.c
+> @@ -148,13 +148,8 @@ static int nilfs_ioctl_setflags(struct inode *inode, struct file *filp,
+>  
+>  	oldflags = NILFS_I(inode)->i_flags;
+>  
+> -	/*
+> -	 * The IMMUTABLE and APPEND_ONLY flags can only be changed by the
+> -	 * relevant capability.
+> -	 */
+> -	ret = -EPERM;
+> -	if (((flags ^ oldflags) & (FS_APPEND_FL | FS_IMMUTABLE_FL)) &&
+> -	    !capable(CAP_LINUX_IMMUTABLE))
+> +	ret = vfs_ioc_setflags_check(inode, oldflags, flags);
+> +	if (ret)
+>  		goto out;
+>  
+>  	ret = nilfs_transaction_begin(inode->i_sb, &ti, 0);
+> diff --git a/fs/ocfs2/ioctl.c b/fs/ocfs2/ioctl.c
+> index 994726ada857..467a2faf0305 100644
+> --- a/fs/ocfs2/ioctl.c
+> +++ b/fs/ocfs2/ioctl.c
+> @@ -106,16 +106,9 @@ static int ocfs2_set_inode_attr(struct inode *inode, unsigned flags,
+>  	flags = flags & mask;
+>  	flags |= oldflags & ~mask;
+>  
+> -	/*
+> -	 * The IMMUTABLE and APPEND_ONLY flags can only be changed by
+> -	 * the relevant capability.
+> -	 */
+> -	status = -EPERM;
+> -	if ((oldflags & OCFS2_IMMUTABLE_FL) || ((flags ^ oldflags) &
+> -		(OCFS2_APPEND_FL | OCFS2_IMMUTABLE_FL))) {
+> -		if (!capable(CAP_LINUX_IMMUTABLE))
+> -			goto bail_unlock;
+> -	}
+> +	status = vfs_ioc_setflags_check(inode, oldflags, flags);
+> +	if (status)
+> +		goto bail_unlock;
+>  
+>  	handle = ocfs2_start_trans(osb, OCFS2_INODE_UPDATE_CREDITS);
+>  	if (IS_ERR(handle)) {
+> diff --git a/fs/reiserfs/ioctl.c b/fs/reiserfs/ioctl.c
+> index acbbaf7a0bb2..92bcb1ecd994 100644
+> --- a/fs/reiserfs/ioctl.c
+> +++ b/fs/reiserfs/ioctl.c
+> @@ -74,13 +74,11 @@ long reiserfs_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
+>  				err = -EPERM;
+>  				goto setflags_out;
+>  			}
+> -			if (((flags ^ REISERFS_I(inode)->
+> -			      i_attrs) & (REISERFS_IMMUTABLE_FL |
+> -					  REISERFS_APPEND_FL))
+> -			    && !capable(CAP_LINUX_IMMUTABLE)) {
+> -				err = -EPERM;
+> +			err = vfs_ioc_setflags_check(inode,
+> +						     REISERFS_I(inode)->i_attrs,
+> +						     flags);
+> +			if (err)
+>  				goto setflags_out;
+> -			}
+>  			if ((flags & REISERFS_NOTAIL_FL) &&
+>  			    S_ISREG(inode->i_mode)) {
+>  				int result;
+> diff --git a/fs/ubifs/ioctl.c b/fs/ubifs/ioctl.c
+> index 4f1a397fda69..bdea836fc38b 100644
+> --- a/fs/ubifs/ioctl.c
+> +++ b/fs/ubifs/ioctl.c
+> @@ -107,18 +107,11 @@ static int setflags(struct inode *inode, int flags)
+>  	if (err)
+>  		return err;
+>  
+> -	/*
+> -	 * The IMMUTABLE and APPEND_ONLY flags can only be changed by
+> -	 * the relevant capability.
+> -	 */
+>  	mutex_lock(&ui->ui_mutex);
+>  	oldflags = ubifs2ioctl(ui->flags);
+> -	if ((flags ^ oldflags) & (FS_APPEND_FL | FS_IMMUTABLE_FL)) {
+> -		if (!capable(CAP_LINUX_IMMUTABLE)) {
+> -			err = -EPERM;
+> -			goto out_unlock;
+> -		}
+> -	}
+> +	err = vfs_ioc_setflags_check(inode, oldflags, flags);
+> +	if (err)
+> +		goto out_unlock;
+>  
+>  	ui->flags = ioctl2ubifs(flags);
+>  	ubifs_set_inode_flags(inode);
+> diff --git a/include/linux/fs.h b/include/linux/fs.h
+> index f7fdfe93e25d..1825d055808c 100644
+> --- a/include/linux/fs.h
+> +++ b/include/linux/fs.h
+> @@ -3546,4 +3546,6 @@ static inline struct sock *io_uring_get_socket(struct file *file)
+>  }
+>  #endif
+>  
+> +int vfs_ioc_setflags_check(struct inode *inode, int oldflags, int flags);
+> +
+>  #endif /* _LINUX_FS_H */
+> 
 -- 
-2.22.0
+Jan Kara <jack@suse.com>
+SUSE Labs, CR
