@@ -1,10 +1,10 @@
 From: Darrick J. Wong <darrick.wong@oracle.com>
-Date: Fri, 21 Jun 2019 16:57:23 -0700
-Subject: [Ocfs2-devel] [PATCH 4/7] vfs: don't allow most setxattr to
-	immutable files
+Date: Fri, 21 Jun 2019 16:57:30 -0700
+Subject: [Ocfs2-devel] [PATCH 5/7] xfs: refactor setflags to use setattr
+	code directly
 In-Reply-To: <156116141046.1664939.11424021489724835645.stgit@magnolia>
 References: <156116141046.1664939.11424021489724835645.stgit@magnolia>
-Message-ID: <156116144305.1664939.3544724373475771930.stgit@magnolia>
+Message-ID: <156116145090.1664939.13744166286109265130.stgit@magnolia>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -14,67 +14,80 @@ Cc: reiserfs-devel@vger.kernel.org, linux-efi@vger.kernel.org, devel@lists.orang
 
 From: Darrick J. Wong <darrick.wong@oracle.com>
 
-The chattr manpage has this to say about immutable files:
-
-"A file with the 'i' attribute cannot be modified: it cannot be deleted
-or renamed, no link can be created to this file, most of the file's
-metadata can not be modified, and the file can not be opened in write
-mode."
-
-However, we don't actually check the immutable flag in the setattr code,
-which means that we can update inode flags and project ids and extent
-size hints on supposedly immutable files.  Therefore, reject setflags
-and fssetxattr calls on an immutable file if the file is immutable and
-will remain that way.
+Refactor the SETFLAGS implementation to use the SETXATTR code directly
+instead of partially constructing a struct fsxattr and calling bits and
+pieces of the setxattr code.  This reduces code size and becomes
+necessary in the next patch to maintain the behavior of allowing
+userspace to set immutable on an immutable file so long as nothing
+/else/ about the attributes change.
 
 Signed-off-by: Darrick J. Wong <darrick.wong@oracle.com>
 ---
- fs/inode.c |   27 +++++++++++++++++++++++++++
- 1 file changed, 27 insertions(+)
+ fs/xfs/xfs_ioctl.c |   40 +++-------------------------------------
+ 1 file changed, 3 insertions(+), 37 deletions(-)
 
 
-diff --git a/fs/inode.c b/fs/inode.c
-index 6374ad2ef25b..220caefc31f7 100644
---- a/fs/inode.c
-+++ b/fs/inode.c
-@@ -2204,6 +2204,14 @@ int vfs_ioc_setflags_check(struct inode *inode, int oldflags, int flags)
- 	    !capable(CAP_LINUX_IMMUTABLE))
- 		return -EPERM;
+diff --git a/fs/xfs/xfs_ioctl.c b/fs/xfs/xfs_ioctl.c
+index 88583b3e1e76..7b19ba2956ad 100644
+--- a/fs/xfs/xfs_ioctl.c
++++ b/fs/xfs/xfs_ioctl.c
+@@ -1491,11 +1491,8 @@ xfs_ioc_setxflags(
+ 	struct file		*filp,
+ 	void			__user *arg)
+ {
+-	struct xfs_trans	*tp;
+ 	struct fsxattr		fa;
+-	struct fsxattr		old_fa;
+ 	unsigned int		flags;
+-	int			join_flags = 0;
+ 	int			error;
  
-+	/*
-+	 * We aren't allowed to change any other flags if the immutable flag is
-+	 * already set and is not being unset.
-+	 */
-+	if ((oldflags & FS_IMMUTABLE_FL) && (flags & FS_IMMUTABLE_FL) &&
-+	    oldflags != flags)
-+		return -EPERM;
-+
- 	return 0;
+ 	if (copy_from_user(&flags, arg, sizeof(flags)))
+@@ -1506,44 +1503,13 @@ xfs_ioc_setxflags(
+ 		      FS_SYNC_FL))
+ 		return -EOPNOTSUPP;
+ 
+-	fa.fsx_xflags = xfs_merge_ioc_xflags(flags, xfs_ip2xflags(ip));
++	__xfs_ioc_fsgetxattr(ip, false, &fa);
++	fa.fsx_xflags = xfs_merge_ioc_xflags(flags, fa.fsx_xflags);
+ 
+ 	error = mnt_want_write_file(filp);
+ 	if (error)
+ 		return error;
+-
+-	/*
+-	 * Changing DAX config may require inode locking for mapping
+-	 * invalidation. These need to be held all the way to transaction commit
+-	 * or cancel time, so need to be passed through to
+-	 * xfs_ioctl_setattr_get_trans() so it can apply them to the join call
+-	 * appropriately.
+-	 */
+-	error = xfs_ioctl_setattr_dax_invalidate(ip, &fa, &join_flags);
+-	if (error)
+-		goto out_drop_write;
+-
+-	tp = xfs_ioctl_setattr_get_trans(ip, join_flags);
+-	if (IS_ERR(tp)) {
+-		error = PTR_ERR(tp);
+-		goto out_drop_write;
+-	}
+-
+-	__xfs_ioc_fsgetxattr(ip, false, &old_fa);
+-	error = vfs_ioc_fssetxattr_check(VFS_I(ip), &old_fa, &fa);
+-	if (error) {
+-		xfs_trans_cancel(tp);
+-		goto out_drop_write;
+-	}
+-
+-	error = xfs_ioctl_setattr_xflags(tp, ip, &fa);
+-	if (error) {
+-		xfs_trans_cancel(tp);
+-		goto out_drop_write;
+-	}
+-
+-	error = xfs_trans_commit(tp);
+-out_drop_write:
++	error = xfs_ioctl_setattr(ip, &fa);
+ 	mnt_drop_write_file(filp);
+ 	return error;
  }
- EXPORT_SYMBOL(vfs_ioc_setflags_check);
-@@ -2246,6 +2254,25 @@ int vfs_ioc_fssetxattr_check(struct inode *inode, const struct fsxattr *old_fa,
- 	    !S_ISREG(inode->i_mode) && !S_ISDIR(inode->i_mode))
- 		return -EINVAL;
- 
-+	/*
-+	 * We aren't allowed to change any fields if the immutable flag is
-+	 * already set and is not being unset.
-+	 */
-+	if ((old_fa->fsx_xflags & FS_XFLAG_IMMUTABLE) &&
-+	    (fa->fsx_xflags & FS_XFLAG_IMMUTABLE)) {
-+		if (old_fa->fsx_xflags != fa->fsx_xflags)
-+			return -EPERM;
-+		if (old_fa->fsx_projid != fa->fsx_projid)
-+			return -EPERM;
-+		if ((fa->fsx_xflags & (FS_XFLAG_EXTSIZE |
-+				       FS_XFLAG_EXTSZINHERIT)) &&
-+		    old_fa->fsx_extsize != fa->fsx_extsize)
-+			return -EPERM;
-+		if ((old_fa->fsx_xflags & FS_XFLAG_COWEXTSIZE) &&
-+		    old_fa->fsx_cowextsize != fa->fsx_cowextsize)
-+			return -EPERM;
-+	}
-+
- 	/* Extent size hints of zero turn off the flags. */
- 	if (fa->fsx_extsize == 0)
- 		fa->fsx_xflags &= ~(FS_XFLAG_EXTSIZE | FS_XFLAG_EXTSZINHERIT);
