@@ -1,161 +1,61 @@
 From: Darrick J. Wong <darrick.wong@oracle.com>
-Date: Fri, 21 Jun 2019 16:56:45 -0700
-Subject: [Ocfs2-devel] [PATCH 4/4] vfs: teach vfs_ioc_fssetxattr_check to
- check extent size hints
-In-Reply-To: <156116136742.1664814.17093419199766834123.stgit@magnolia>
-References: <156116136742.1664814.17093419199766834123.stgit@magnolia>
-Message-ID: <156116140570.1664814.4607468365269898575.stgit@magnolia>
+Date: Fri, 21 Jun 2019 16:56:50 -0700
+Subject: [Ocfs2-devel] [PATCH v4 0/7] vfs: make immutable files actually
+	immutable
+Message-ID: <156116141046.1664939.11424021489724835645.stgit@magnolia>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: matthew.garrett@nebula.com, yuchao0@huawei.com, tytso@mit.edu, darrick.wong@oracle.com, shaggy@kernel.org, ard.biesheuvel@linaro.org, josef@toxicpanda.com, clm@fb.com, adilger.kernel@dilger.ca, jk@ozlabs.org, jack@suse.com, dsterba@suse.com, jaegeuk@kernel.org, viro@zeniv.linux.org.uk
-Cc: cluster-devel@redhat.com, jfs-discussion@lists.sourceforge.net, linux-efi@vger.kernel.org, Jan Kara <jack@suse.cz>, reiserfs-devel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, linux-xfs@vger.kernel.org, linux-nilfs@vger.kernel.org, linux-mtd@lists.infradead.org, ocfs2-devel@oss.oracle.com, linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org, linux-btrfs@vger.kernel.org
+To: matthew.garrett@nebula.com, yuchao0@huawei.com, tytso@mit.edu, darrick.wong@oracle.com, ard.biesheuvel@linaro.org, josef@toxicpanda.com, clm@fb.com, adilger.kernel@dilger.ca, viro@zeniv.linux.org.uk, jack@suse.com, dsterba@suse.com, jaegeuk@kernel.org, jk@ozlabs.org
+Cc: reiserfs-devel@vger.kernel.org, linux-efi@vger.kernel.org, devel@lists.orangefs.org, linux-kernel@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, linux-xfs@vger.kernel.org, linux-mm@kvack.org, linux-nilfs@vger.kernel.org, linux-mtd@lists.infradead.org, ocfs2-devel@oss.oracle.com, linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org, linux-btrfs@vger.kernel.org
 
-From: Darrick J. Wong <darrick.wong@oracle.com>
+Hi all,
 
-Move the extent size hint checks that aren't xfs-specific to the vfs.
+The chattr(1) manpage has this to say about the immutable bit that
+system administrators can set on files:
 
-Signed-off-by: Darrick J. Wong <darrick.wong@oracle.com>
-Reviewed-by: Jan Kara <jack@suse.cz>
----
- fs/inode.c         |   18 +++++++++++++
- fs/xfs/xfs_ioctl.c |   70 ++++++++++++++++++++++------------------------------
- 2 files changed, 47 insertions(+), 41 deletions(-)
+"A file with the 'i' attribute cannot be modified: it cannot be deleted
+or renamed, no link can be created to this file, most of the file's
+metadata can not be modified, and the file can not be opened in write
+mode."
 
+Given the clause about how the file 'cannot be modified', it is
+surprising that programs holding writable file descriptors can continue
+to write to and truncate files after the immutable flag has been set,
+but they cannot call other things such as utimes, fallocate, unlink,
+link, setxattr, or reflink.
 
-diff --git a/fs/inode.c b/fs/inode.c
-index f1ffa9605078..6374ad2ef25b 100644
---- a/fs/inode.c
-+++ b/fs/inode.c
-@@ -2234,6 +2234,24 @@ int vfs_ioc_fssetxattr_check(struct inode *inode, const struct fsxattr *old_fa,
- 			return -EINVAL;
- 	}
- 
-+	/* Check extent size hints. */
-+	if ((fa->fsx_xflags & FS_XFLAG_EXTSIZE) && !S_ISREG(inode->i_mode))
-+		return -EINVAL;
-+
-+	if ((fa->fsx_xflags & FS_XFLAG_EXTSZINHERIT) &&
-+			!S_ISDIR(inode->i_mode))
-+		return -EINVAL;
-+
-+	if ((fa->fsx_xflags & FS_XFLAG_COWEXTSIZE) &&
-+	    !S_ISREG(inode->i_mode) && !S_ISDIR(inode->i_mode))
-+		return -EINVAL;
-+
-+	/* Extent size hints of zero turn off the flags. */
-+	if (fa->fsx_extsize == 0)
-+		fa->fsx_xflags &= ~(FS_XFLAG_EXTSIZE | FS_XFLAG_EXTSZINHERIT);
-+	if (fa->fsx_cowextsize == 0)
-+		fa->fsx_xflags &= ~FS_XFLAG_COWEXTSIZE;
-+
- 	return 0;
- }
- EXPORT_SYMBOL(vfs_ioc_fssetxattr_check);
-diff --git a/fs/xfs/xfs_ioctl.c b/fs/xfs/xfs_ioctl.c
-index 82961de98900..b494e7e881e3 100644
---- a/fs/xfs/xfs_ioctl.c
-+++ b/fs/xfs/xfs_ioctl.c
-@@ -1201,39 +1201,31 @@ xfs_ioctl_setattr_check_extsize(
- 	struct fsxattr		*fa)
- {
- 	struct xfs_mount	*mp = ip->i_mount;
--
--	if ((fa->fsx_xflags & FS_XFLAG_EXTSIZE) && !S_ISREG(VFS_I(ip)->i_mode))
--		return -EINVAL;
--
--	if ((fa->fsx_xflags & FS_XFLAG_EXTSZINHERIT) &&
--	    !S_ISDIR(VFS_I(ip)->i_mode))
--		return -EINVAL;
-+	xfs_extlen_t		size;
-+	xfs_fsblock_t		extsize_fsb;
- 
- 	if (S_ISREG(VFS_I(ip)->i_mode) && ip->i_d.di_nextents &&
- 	    ((ip->i_d.di_extsize << mp->m_sb.sb_blocklog) != fa->fsx_extsize))
- 		return -EINVAL;
- 
--	if (fa->fsx_extsize != 0) {
--		xfs_extlen_t    size;
--		xfs_fsblock_t   extsize_fsb;
--
--		extsize_fsb = XFS_B_TO_FSB(mp, fa->fsx_extsize);
--		if (extsize_fsb > MAXEXTLEN)
--			return -EINVAL;
-+	if (fa->fsx_extsize == 0)
-+		return 0;
- 
--		if (XFS_IS_REALTIME_INODE(ip) ||
--		    (fa->fsx_xflags & FS_XFLAG_REALTIME)) {
--			size = mp->m_sb.sb_rextsize << mp->m_sb.sb_blocklog;
--		} else {
--			size = mp->m_sb.sb_blocksize;
--			if (extsize_fsb > mp->m_sb.sb_agblocks / 2)
--				return -EINVAL;
--		}
-+	extsize_fsb = XFS_B_TO_FSB(mp, fa->fsx_extsize);
-+	if (extsize_fsb > MAXEXTLEN)
-+		return -EINVAL;
- 
--		if (fa->fsx_extsize % size)
-+	if (XFS_IS_REALTIME_INODE(ip) ||
-+	    (fa->fsx_xflags & FS_XFLAG_REALTIME)) {
-+		size = mp->m_sb.sb_rextsize << mp->m_sb.sb_blocklog;
-+	} else {
-+		size = mp->m_sb.sb_blocksize;
-+		if (extsize_fsb > mp->m_sb.sb_agblocks / 2)
- 			return -EINVAL;
--	} else
--		fa->fsx_xflags &= ~(FS_XFLAG_EXTSIZE | FS_XFLAG_EXTSZINHERIT);
-+	}
-+
-+	if (fa->fsx_extsize % size)
-+		return -EINVAL;
- 
- 	return 0;
- }
-@@ -1259,6 +1251,8 @@ xfs_ioctl_setattr_check_cowextsize(
- 	struct fsxattr		*fa)
- {
- 	struct xfs_mount	*mp = ip->i_mount;
-+	xfs_extlen_t		size;
-+	xfs_fsblock_t		cowextsize_fsb;
- 
- 	if (!(fa->fsx_xflags & FS_XFLAG_COWEXTSIZE))
- 		return 0;
-@@ -1267,25 +1261,19 @@ xfs_ioctl_setattr_check_cowextsize(
- 	    ip->i_d.di_version != 3)
- 		return -EINVAL;
- 
--	if (!S_ISREG(VFS_I(ip)->i_mode) && !S_ISDIR(VFS_I(ip)->i_mode))
--		return -EINVAL;
--
--	if (fa->fsx_cowextsize != 0) {
--		xfs_extlen_t    size;
--		xfs_fsblock_t   cowextsize_fsb;
-+	if (fa->fsx_cowextsize == 0)
-+		return 0;
- 
--		cowextsize_fsb = XFS_B_TO_FSB(mp, fa->fsx_cowextsize);
--		if (cowextsize_fsb > MAXEXTLEN)
--			return -EINVAL;
-+	cowextsize_fsb = XFS_B_TO_FSB(mp, fa->fsx_cowextsize);
-+	if (cowextsize_fsb > MAXEXTLEN)
-+		return -EINVAL;
- 
--		size = mp->m_sb.sb_blocksize;
--		if (cowextsize_fsb > mp->m_sb.sb_agblocks / 2)
--			return -EINVAL;
-+	size = mp->m_sb.sb_blocksize;
-+	if (cowextsize_fsb > mp->m_sb.sb_agblocks / 2)
-+		return -EINVAL;
- 
--		if (fa->fsx_cowextsize % size)
--			return -EINVAL;
--	} else
--		fa->fsx_xflags &= ~FS_XFLAG_COWEXTSIZE;
-+	if (fa->fsx_cowextsize % size)
-+		return -EINVAL;
- 
- 	return 0;
- }
+Since the immutable flag is only settable by administrators, resolve
+this inconsistent behavior in favor of the documented behavior -- once
+the flag is set, the file cannot be modified, period.  We presume that
+administrators must be trusted to know what they're doing, and that
+cutting off programs with writable fds will probably break them.
+
+Therefore, add immutability checks to the relevant VFS functions, then
+refactor the SETFLAGS and FSSETXATTR implementations to use common
+argument checking functions so that we can then force pagefaults on all
+the file data when setting immutability.
+
+Note that various distro manpages points out the inconsistent behavior
+of the various Linux filesystems w.r.t. immutable.  This fixes all that.
+
+I also discovered that userspace programs can write and create writable
+memory mappings to active swap files.  This is extremely bad because
+this allows anyone with write privileges to corrupt system memory.  The
+final patch in this series closes off that hole, at least for swap
+files.
+
+If you're going to start using this mess, you probably ought to just
+pull from my git trees, which are linked below.
+
+This has been lightly tested with fstests.  Enjoy!
+Comments and questions are, as always, welcome.
+
+--D
+
+kernel git tree:
+https://git.kernel.org/cgit/linux/kernel/git/djwong/xfs-linux.git/log/?h=immutable-files
+
+fstests git tree:
+https://git.kernel.org/cgit/linux/kernel/git/djwong/xfstests-dev.git/log/?h=immutable-files
