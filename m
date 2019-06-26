@@ -1,84 +1,373 @@
-From: Andreas Dilger <adilger@dilger.ca>
-Date: Tue, 25 Jun 2019 14:37:37 -0600
-Subject: [Ocfs2-devel] [PATCH v4 0/7] vfs: make immutable files actually
-	immutable
-In-Reply-To: <20190625180326.GC2230847@magnolia>
-References: <156116141046.1664939.11424021489724835645.stgit@magnolia>
-	<20190625103631.GB30156@infradead.org>
-	<20190625180326.GC2230847@magnolia>
-Message-ID: <E84C8EBC-8341-49E5-8EED-0980D158CD50@dilger.ca>
+From: Darrick J. Wong <darrick.wong@oracle.com>
+Date: Tue, 25 Jun 2019 19:32:18 -0700
+Subject: [Ocfs2-devel] [PATCH 2/5] vfs: create a generic checking function
+ for FS_IOC_FSSETXATTR
+In-Reply-To: <156151632209.2283456.3592379873620132456.stgit@magnolia>
+References: <156151632209.2283456.3592379873620132456.stgit@magnolia>
+Message-ID: <156151633829.2283456.834142172527987802.stgit@magnolia>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: "Darrick J. Wong" <darrick.wong@oracle.com>
-Cc: Christoph Hellwig <hch@infradead.org>, matthew.garrett@nebula.com, yuchao0@huawei.com, Theodore Ts'o <tytso@mit.edu>, ard.biesheuvel@linaro.org, Josef Bacik <josef@toxicpanda.com>, Chris Mason <clm@fb.com>, Alexander Viro <viro@zeniv.linux.org.uk>, Jan Kara <jack@suse.com>, dsterba@suse.com, Jaegeuk Kim <jaegeuk@kernel.org>, jk@ozlabs.org, reiserfs-devel@vger.kernel.org, linux-efi@vger.kernel.org, devel@lists.orangefs.org, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, linux-f2fs-devel@lists.sourceforge.net, linux-xfs <linux-xfs@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, linux-nilfs@vger.kernel.org, linux-mtd@lists.infradead.org, ocfs2-devel@oss.oracle.com, linux-fsdevel <linux-fsdevel@vger.kernel.org>, Ext4 Developers List <linux-ext4@vger.kernel.org>, linux-btrfs <linux-btrfs@vger.kernel.org>
+To: matthew.garrett@nebula.com, yuchao0@huawei.com, tytso@mit.edu, darrick.wong@oracle.com, shaggy@kernel.org, ard.biesheuvel@linaro.org, josef@toxicpanda.com, hch@infradead.org, clm@fb.com, adilger.kernel@dilger.ca, jk@ozlabs.org, jack@suse.com, dsterba@suse.com, jaegeuk@kernel.org, viro@zeniv.linux.org.uk
+Cc: cluster-devel@redhat.com, jfs-discussion@lists.sourceforge.net, linux-efi@vger.kernel.org, Jan Kara <jack@suse.cz>, reiserfs-devel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, linux-xfs@vger.kernel.org, linux-nilfs@vger.kernel.org, linux-mtd@lists.infradead.org, ocfs2-devel@oss.oracle.com, linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org, linux-btrfs@vger.kernel.org
 
-On Jun 25, 2019, at 12:03 PM, Darrick J. Wong <darrick.wong@oracle.com> wrote:
-> 
-> On Tue, Jun 25, 2019 at 03:36:31AM -0700, Christoph Hellwig wrote:
->> On Fri, Jun 21, 2019 at 04:56:50PM -0700, Darrick J. Wong wrote:
->>> Hi all,
->>> 
->>> The chattr(1) manpage has this to say about the immutable bit that
->>> system administrators can set on files:
->>> 
->>> "A file with the 'i' attribute cannot be modified: it cannot be deleted
->>> or renamed, no link can be created to this file, most of the file's
->>> metadata can not be modified, and the file can not be opened in write
->>> mode."
->>> 
->>> Given the clause about how the file 'cannot be modified', it is
->>> surprising that programs holding writable file descriptors can continue
->>> to write to and truncate files after the immutable flag has been set,
->>> but they cannot call other things such as utimes, fallocate, unlink,
->>> link, setxattr, or reflink.
->> 
->> I still think living code beats documentation.  And as far as I can
->> tell the immutable bit never behaved as documented or implemented
->> in this series on Linux, and it originated on Linux.
-> 
-> The behavior has never been consistent -- since the beginning you can
-> keep write()ing to a fd after the file becomes immutable, but you can't
-> ftruncate() it.  I would really like to make the behavior consistent.
-> Since the authors of nearly every new system call and ioctl since the
-> late 1990s have interpreted S_IMMUTABLE to mean "immutable takes effect
-> everywhere immediately" I resolved the inconsistency in favor of that
-> interpretation.
-> 
-> I asked Ted what he thought that that userspace having the ability to
-> continue writing to an immutable file, and he thought it was an
-> implementation bug that had been there for 25 years.  Even he thought
-> that immutable should take effect immediately everywhere.
-> 
->> If you want  hard cut off style immutable flag it should really be a
->> new API, but I don't really see the point.  It isn't like the usual
->> workload is to set the flag on a file actively in use.
-> 
-> FWIW Ted also thought that since it's rare for admins to set +i on a
-> file actively in use we could just change it without forcing everyone
-> onto a new api.
+From: Darrick J. Wong <darrick.wong@oracle.com>
 
-On the flip side, it is possible to continue to write to an open fd
-after removing the write permission, and this is a problem we've hit
-in the real world with NFS export, so real applications do this.
+Create a generic checking function for the incoming FS_IOC_FSSETXATTR
+fsxattr values so that we can standardize some of the implementation
+behaviors.
 
-It may be the same case with immutable files, where an application sets
-the immutable flag immediately after creation, but continues to write
-until it closes the file, so that the file can't be modified by other
-processes, and there isn't a risk that the file is missing the immutable
-flag if the writing process dies before setting it at the end.
-
-Cheers, Andreas
+Signed-off-by: Darrick J. Wong <darrick.wong@oracle.com>
+Reviewed-by: Jan Kara <jack@suse.cz>
+---
+ fs/btrfs/ioctl.c   |   18 ++++++-------
+ fs/ext4/ioctl.c    |   27 +++++++++++++-------
+ fs/f2fs/file.c     |   28 ++++++++++++++-------
+ fs/inode.c         |   23 +++++++++++++++++
+ fs/xfs/xfs_ioctl.c |   70 ++++++++++++++++++++++++++++++----------------------
+ include/linux/fs.h |    3 ++
+ 6 files changed, 112 insertions(+), 57 deletions(-)
 
 
-
-
-
--------------- next part --------------
-A non-text attachment was scrubbed...
-Name: signature.asc
-Type: application/pgp-signature
-Size: 873 bytes
-Desc: Message signed with OpenPGP
-Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20190625/bbdf3c99/attachment.bin 
+diff --git a/fs/btrfs/ioctl.c b/fs/btrfs/ioctl.c
+index d3d9b4abb09b..0f5af7c5f66b 100644
+--- a/fs/btrfs/ioctl.c
++++ b/fs/btrfs/ioctl.c
+@@ -373,10 +373,9 @@ static int check_xflags(unsigned int flags)
+ static int btrfs_ioctl_fsgetxattr(struct file *file, void __user *arg)
+ {
+ 	struct btrfs_inode *binode = BTRFS_I(file_inode(file));
+-	struct fsxattr fa;
+-
+-	memset(&fa, 0, sizeof(fa));
+-	fa.fsx_xflags = btrfs_inode_flags_to_xflags(binode->flags);
++	struct fsxattr fa = {
++		.fsx_xflags = btrfs_inode_flags_to_xflags(binode->flags),
++	};
+ 
+ 	if (copy_to_user(arg, &fa, sizeof(fa)))
+ 		return -EFAULT;
+@@ -391,6 +390,9 @@ static int btrfs_ioctl_fssetxattr(struct file *file, void __user *arg)
+ 	struct btrfs_root *root = binode->root;
+ 	struct btrfs_trans_handle *trans;
+ 	struct fsxattr fa;
++	struct fsxattr old_fa = {
++		.fsx_xflags = btrfs_inode_flags_to_xflags(binode->flags),
++	};
+ 	unsigned old_flags;
+ 	unsigned old_i_flags;
+ 	int ret = 0;
+@@ -421,13 +423,9 @@ static int btrfs_ioctl_fssetxattr(struct file *file, void __user *arg)
+ 	old_flags = binode->flags;
+ 	old_i_flags = inode->i_flags;
+ 
+-	/* We need the capabilities to change append-only or immutable inode */
+-	if (((old_flags & (BTRFS_INODE_APPEND | BTRFS_INODE_IMMUTABLE)) ||
+-	     (fa.fsx_xflags & (FS_XFLAG_APPEND | FS_XFLAG_IMMUTABLE))) &&
+-	    !capable(CAP_LINUX_IMMUTABLE)) {
+-		ret = -EPERM;
++	ret = vfs_ioc_fssetxattr_check(inode, &old_fa, &fa);
++	if (ret)
+ 		goto out_unlock;
+-	}
+ 
+ 	if (fa.fsx_xflags & FS_XFLAG_SYNC)
+ 		binode->flags |= BTRFS_INODE_SYNC;
+diff --git a/fs/ext4/ioctl.c b/fs/ext4/ioctl.c
+index 272b6e44191b..ebcc173d1e7d 100644
+--- a/fs/ext4/ioctl.c
++++ b/fs/ext4/ioctl.c
+@@ -721,6 +721,17 @@ static int ext4_ioctl_check_project(struct inode *inode, struct fsxattr *fa)
+ 	return 0;
+ }
+ 
++static void ext4_fill_fsxattr(struct inode *inode, struct fsxattr *fa)
++{
++	struct ext4_inode_info *ei = EXT4_I(inode);
++
++	fa->fsx_xflags = ext4_iflags_to_xflags(ei->i_flags &
++					       EXT4_FL_USER_VISIBLE);
++
++	if (ext4_has_feature_project(inode->i_sb))
++		fa->fsx_projid = from_kprojid(&init_user_ns, ei->i_projid);
++}
++
+ long ext4_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
+ {
+ 	struct inode *inode = file_inode(filp);
+@@ -1087,15 +1098,9 @@ long ext4_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
+ 
+ 	case EXT4_IOC_FSGETXATTR:
+ 	{
+-		struct fsxattr fa;
+-
+-		memset(&fa, 0, sizeof(struct fsxattr));
+-		fa.fsx_xflags = ext4_iflags_to_xflags(ei->i_flags & EXT4_FL_USER_VISIBLE);
++		struct fsxattr fa = { 0 };
+ 
+-		if (ext4_has_feature_project(inode->i_sb)) {
+-			fa.fsx_projid = (__u32)from_kprojid(&init_user_ns,
+-				EXT4_I(inode)->i_projid);
+-		}
++		ext4_fill_fsxattr(inode, &fa);
+ 
+ 		if (copy_to_user((struct fsxattr __user *)arg,
+ 				 &fa, sizeof(fa)))
+@@ -1104,7 +1109,7 @@ long ext4_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
+ 	}
+ 	case EXT4_IOC_FSSETXATTR:
+ 	{
+-		struct fsxattr fa;
++		struct fsxattr fa, old_fa = { 0 };
+ 		int err;
+ 
+ 		if (copy_from_user(&fa, (struct fsxattr __user *)arg,
+@@ -1127,7 +1132,11 @@ long ext4_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
+ 			return err;
+ 
+ 		inode_lock(inode);
++		ext4_fill_fsxattr(inode, &old_fa);
+ 		err = ext4_ioctl_check_project(inode, &fa);
++		if (err)
++			goto out;
++		err = vfs_ioc_fssetxattr_check(inode, &old_fa, &fa);
+ 		if (err)
+ 			goto out;
+ 		flags = (ei->i_flags & ~EXT4_FL_XFLAG_VISIBLE) |
+diff --git a/fs/f2fs/file.c b/fs/f2fs/file.c
+index 845ae6f43ebc..555b970f7945 100644
+--- a/fs/f2fs/file.c
++++ b/fs/f2fs/file.c
+@@ -2773,19 +2773,24 @@ static inline unsigned long f2fs_xflags_to_iflags(__u32 xflags)
+ 	return iflags;
+ }
+ 
+-static int f2fs_ioc_fsgetxattr(struct file *filp, unsigned long arg)
++static void f2fs_fill_fsxattr(struct inode *inode,
++				  struct fsxattr *fa)
+ {
+-	struct inode *inode = file_inode(filp);
+ 	struct f2fs_inode_info *fi = F2FS_I(inode);
+-	struct fsxattr fa;
+ 
+-	memset(&fa, 0, sizeof(struct fsxattr));
+-	fa.fsx_xflags = f2fs_iflags_to_xflags(fi->i_flags &
+-				F2FS_FL_USER_VISIBLE);
++	fa->fsx_xflags = f2fs_iflags_to_xflags(fi->i_flags &
++					       F2FS_FL_USER_VISIBLE);
+ 
+ 	if (f2fs_sb_has_project_quota(F2FS_I_SB(inode)))
+-		fa.fsx_projid = (__u32)from_kprojid(&init_user_ns,
+-							fi->i_projid);
++		fa->fsx_projid = from_kprojid(&init_user_ns, fi->i_projid);
++}
++
++static int f2fs_ioc_fsgetxattr(struct file *filp, unsigned long arg)
++{
++	struct inode *inode = file_inode(filp);
++	struct fsxattr fa = { 0 };
++
++	f2fs_fill_fsxattr(inode, &fa);
+ 
+ 	if (copy_to_user((struct fsxattr __user *)arg, &fa, sizeof(fa)))
+ 		return -EFAULT;
+@@ -2820,7 +2825,7 @@ static int f2fs_ioc_fssetxattr(struct file *filp, unsigned long arg)
+ {
+ 	struct inode *inode = file_inode(filp);
+ 	struct f2fs_inode_info *fi = F2FS_I(inode);
+-	struct fsxattr fa;
++	struct fsxattr fa, old_fa = { 0 };
+ 	unsigned int flags;
+ 	int err;
+ 
+@@ -2844,6 +2849,11 @@ static int f2fs_ioc_fssetxattr(struct file *filp, unsigned long arg)
+ 
+ 	inode_lock(inode);
+ 	err = f2fs_ioctl_check_project(inode, &fa);
++	if (err)
++		goto out;
++
++	f2fs_fill_fsxattr(inode, &old_fa);
++	err = vfs_ioc_fssetxattr_check(inode, &old_fa, &fa);
+ 	if (err)
+ 		goto out;
+ 	flags = (fi->i_flags & ~F2FS_FL_XFLAG_VISIBLE) |
+diff --git a/fs/inode.c b/fs/inode.c
+index 9cd1b6501e97..fdd6c5d3e48d 100644
+--- a/fs/inode.c
++++ b/fs/inode.c
+@@ -2214,3 +2214,26 @@ int vfs_ioc_setflags_prepare(struct inode *inode, unsigned int oldflags,
+ 	return 0;
+ }
+ EXPORT_SYMBOL(vfs_ioc_setflags_prepare);
++
++/*
++ * Generic function to check FS_IOC_FSSETXATTR values and reject any invalid
++ * configurations.
++ *
++ * Note: the caller should be holding i_mutex, or else be sure that they have
++ * exclusive access to the inode structure.
++ */
++int vfs_ioc_fssetxattr_check(struct inode *inode, const struct fsxattr *old_fa,
++			     struct fsxattr *fa)
++{
++	/*
++	 * Can't modify an immutable/append-only file unless we have
++	 * appropriate permission.
++	 */
++	if ((old_fa->fsx_xflags ^ fa->fsx_xflags) &
++			(FS_XFLAG_IMMUTABLE | FS_XFLAG_APPEND) &&
++	    !capable(CAP_LINUX_IMMUTABLE))
++		return -EPERM;
++
++	return 0;
++}
++EXPORT_SYMBOL(vfs_ioc_fssetxattr_check);
+diff --git a/fs/xfs/xfs_ioctl.c b/fs/xfs/xfs_ioctl.c
+index d7dfc13f30f5..08ec1e458865 100644
+--- a/fs/xfs/xfs_ioctl.c
++++ b/fs/xfs/xfs_ioctl.c
+@@ -879,37 +879,45 @@ xfs_di2lxflags(
+ 	return flags;
+ }
+ 
+-STATIC int
+-xfs_ioc_fsgetxattr(
+-	xfs_inode_t		*ip,
+-	int			attr,
+-	void			__user *arg)
++static void
++xfs_fill_fsxattr(
++	struct xfs_inode	*ip,
++	bool			attr,
++	struct fsxattr		*fa)
+ {
+-	struct fsxattr		fa;
+-
+-	memset(&fa, 0, sizeof(struct fsxattr));
+-
+-	xfs_ilock(ip, XFS_ILOCK_SHARED);
+-	fa.fsx_xflags = xfs_ip2xflags(ip);
+-	fa.fsx_extsize = ip->i_d.di_extsize << ip->i_mount->m_sb.sb_blocklog;
+-	fa.fsx_cowextsize = ip->i_d.di_cowextsize <<
++	memset(fa, 0, sizeof(struct fsxattr));
++	fa->fsx_xflags = xfs_ip2xflags(ip);
++	fa->fsx_extsize = ip->i_d.di_extsize << ip->i_mount->m_sb.sb_blocklog;
++	fa->fsx_cowextsize = ip->i_d.di_cowextsize <<
+ 			ip->i_mount->m_sb.sb_blocklog;
+-	fa.fsx_projid = xfs_get_projid(ip);
++	fa->fsx_projid = xfs_get_projid(ip);
+ 
+ 	if (attr) {
+ 		if (ip->i_afp) {
+ 			if (ip->i_afp->if_flags & XFS_IFEXTENTS)
+-				fa.fsx_nextents = xfs_iext_count(ip->i_afp);
++				fa->fsx_nextents = xfs_iext_count(ip->i_afp);
+ 			else
+-				fa.fsx_nextents = ip->i_d.di_anextents;
++				fa->fsx_nextents = ip->i_d.di_anextents;
+ 		} else
+-			fa.fsx_nextents = 0;
++			fa->fsx_nextents = 0;
+ 	} else {
+ 		if (ip->i_df.if_flags & XFS_IFEXTENTS)
+-			fa.fsx_nextents = xfs_iext_count(&ip->i_df);
++			fa->fsx_nextents = xfs_iext_count(&ip->i_df);
+ 		else
+-			fa.fsx_nextents = ip->i_d.di_nextents;
++			fa->fsx_nextents = ip->i_d.di_nextents;
+ 	}
++}
++
++STATIC int
++xfs_ioc_fsgetxattr(
++	xfs_inode_t		*ip,
++	int			attr,
++	void			__user *arg)
++{
++	struct fsxattr		fa;
++
++	xfs_ilock(ip, XFS_ILOCK_SHARED);
++	xfs_fill_fsxattr(ip, attr, &fa);
+ 	xfs_iunlock(ip, XFS_ILOCK_SHARED);
+ 
+ 	if (copy_to_user(arg, &fa, sizeof(fa)))
+@@ -1035,15 +1043,6 @@ xfs_ioctl_setattr_xflags(
+ 	if ((fa->fsx_xflags & FS_XFLAG_DAX) && xfs_is_reflink_inode(ip))
+ 		return -EINVAL;
+ 
+-	/*
+-	 * Can't modify an immutable/append-only file unless
+-	 * we have appropriate permission.
+-	 */
+-	if (((ip->i_d.di_flags & (XFS_DIFLAG_IMMUTABLE | XFS_DIFLAG_APPEND)) ||
+-	     (fa->fsx_xflags & (FS_XFLAG_IMMUTABLE | FS_XFLAG_APPEND))) &&
+-	    !capable(CAP_LINUX_IMMUTABLE))
+-		return -EPERM;
+-
+ 	/* diflags2 only valid for v3 inodes. */
+ 	di_flags2 = xfs_flags2diflags2(ip, fa->fsx_xflags);
+ 	if (di_flags2 && ip->i_d.di_version < 3)
+@@ -1323,6 +1322,7 @@ xfs_ioctl_setattr(
+ 	xfs_inode_t		*ip,
+ 	struct fsxattr		*fa)
+ {
++	struct fsxattr		old_fa;
+ 	struct xfs_mount	*mp = ip->i_mount;
+ 	struct xfs_trans	*tp;
+ 	struct xfs_dquot	*udqp = NULL;
+@@ -1370,7 +1370,6 @@ xfs_ioctl_setattr(
+ 		goto error_free_dquots;
+ 	}
+ 
+-
+ 	if (XFS_IS_QUOTA_RUNNING(mp) && XFS_IS_PQUOTA_ON(mp) &&
+ 	    xfs_get_projid(ip) != fa->fsx_projid) {
+ 		code = xfs_qm_vop_chown_reserve(tp, ip, udqp, NULL, pdqp,
+@@ -1379,6 +1378,11 @@ xfs_ioctl_setattr(
+ 			goto error_trans_cancel;
+ 	}
+ 
++	xfs_fill_fsxattr(ip, false, &old_fa);
++	code = vfs_ioc_fssetxattr_check(VFS_I(ip), &old_fa, fa);
++	if (code)
++		goto error_trans_cancel;
++
+ 	code = xfs_ioctl_setattr_check_extsize(ip, fa);
+ 	if (code)
+ 		goto error_trans_cancel;
+@@ -1489,6 +1493,7 @@ xfs_ioc_setxflags(
+ {
+ 	struct xfs_trans	*tp;
+ 	struct fsxattr		fa;
++	struct fsxattr		old_fa;
+ 	unsigned int		flags;
+ 	int			join_flags = 0;
+ 	int			error;
+@@ -1524,6 +1529,13 @@ xfs_ioc_setxflags(
+ 		goto out_drop_write;
+ 	}
+ 
++	xfs_fill_fsxattr(ip, false, &old_fa);
++	error = vfs_ioc_fssetxattr_check(VFS_I(ip), &old_fa, &fa);
++	if (error) {
++		xfs_trans_cancel(tp);
++		goto out_drop_write;
++	}
++
+ 	error = xfs_ioctl_setattr_xflags(tp, ip, &fa);
+ 	if (error) {
+ 		xfs_trans_cancel(tp);
+diff --git a/include/linux/fs.h b/include/linux/fs.h
+index 3f74066d3f44..48322bfd7299 100644
+--- a/include/linux/fs.h
++++ b/include/linux/fs.h
+@@ -3558,4 +3558,7 @@ static inline struct sock *io_uring_get_socket(struct file *file)
+ int vfs_ioc_setflags_prepare(struct inode *inode, unsigned int oldflags,
+ 			     unsigned int flags);
+ 
++int vfs_ioc_fssetxattr_check(struct inode *inode, const struct fsxattr *old_fa,
++			     struct fsxattr *fa);
++
+ #endif /* _LINUX_FS_H */
