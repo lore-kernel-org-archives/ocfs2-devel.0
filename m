@@ -1,10 +1,9 @@
 From: Darrick J. Wong <darrick.wong@oracle.com>
-Date: Tue, 25 Jun 2019 19:33:24 -0700
-Subject: [Ocfs2-devel] [PATCH 4/5] vfs: don't allow most setxattr to
-	immutable files
+Date: Tue, 25 Jun 2019 19:33:31 -0700
+Subject: [Ocfs2-devel] [PATCH 5/5] vfs: don't allow writes to swap files
 In-Reply-To: <156151637248.2283603.8458727861336380714.stgit@magnolia>
 References: <156151637248.2283603.8458727861336380714.stgit@magnolia>
-Message-ID: <156151640402.2283603.11025968584452701508.stgit@magnolia>
+Message-ID: <156151641177.2283603.7806026378321236401.stgit@magnolia>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -14,67 +13,106 @@ Cc: reiserfs-devel@vger.kernel.org, linux-efi@vger.kernel.org, devel@lists.orang
 
 From: Darrick J. Wong <darrick.wong@oracle.com>
 
-The chattr manpage has this to say about immutable files:
-
-"A file with the 'i' attribute cannot be modified: it cannot be deleted
-or renamed, no link can be created to this file, most of the file's
-metadata can not be modified, and the file can not be opened in write
-mode."
-
-However, we don't actually check the immutable flag in the setattr code,
-which means that we can update inode flags and project ids and extent
-size hints on supposedly immutable files.  Therefore, reject setflags
-and fssetxattr calls on an immutable file if the file is immutable and
-will remain that way.
+Don't let userspace write to an active swap file because the kernel
+effectively has a long term lease on the storage and things could get
+seriously corrupted if we let this happen.
 
 Signed-off-by: Darrick J. Wong <darrick.wong@oracle.com>
 ---
- fs/inode.c |   27 +++++++++++++++++++++++++++
- 1 file changed, 27 insertions(+)
+ fs/attr.c     |    3 +++
+ mm/filemap.c  |    3 +++
+ mm/memory.c   |    4 +++-
+ mm/mmap.c     |    2 ++
+ mm/swapfile.c |   15 +++++++++++++--
+ 5 files changed, 24 insertions(+), 3 deletions(-)
 
 
-diff --git a/fs/inode.c b/fs/inode.c
-index cf07378e5731..4261c709e50e 100644
---- a/fs/inode.c
-+++ b/fs/inode.c
-@@ -2214,6 +2214,14 @@ int vfs_ioc_setflags_prepare(struct inode *inode, unsigned int oldflags,
- 	    !capable(CAP_LINUX_IMMUTABLE))
+diff --git a/fs/attr.c b/fs/attr.c
+index 1fcfdcc5b367..42f4d4fb0631 100644
+--- a/fs/attr.c
++++ b/fs/attr.c
+@@ -236,6 +236,9 @@ int notify_change(struct dentry * dentry, struct iattr * attr, struct inode **de
+ 	if (IS_IMMUTABLE(inode))
  		return -EPERM;
  
-+	/*
-+	 * We aren't allowed to change any other flags if the immutable flag is
-+	 * already set and is not being unset.
-+	 */
-+	if ((oldflags & FS_IMMUTABLE_FL) && (flags & FS_IMMUTABLE_FL) &&
-+	    oldflags != flags)
-+		return -EPERM;
++	if (IS_SWAPFILE(inode))
++		return -ETXTBSY;
 +
- 	/*
- 	 * Now that we're done checking the new flags, flush all pending IO and
- 	 * dirty mappings before setting S_IMMUTABLE on an inode via
-@@ -2284,6 +2292,25 @@ int vfs_ioc_fssetxattr_check(struct inode *inode, const struct fsxattr *old_fa,
- 	    !(S_ISREG(inode->i_mode) || S_ISDIR(inode->i_mode)))
- 		return -EINVAL;
+ 	if ((ia_valid & (ATTR_MODE | ATTR_UID | ATTR_GID | ATTR_TIMES_SET)) &&
+ 	    IS_APPEND(inode))
+ 		return -EPERM;
+diff --git a/mm/filemap.c b/mm/filemap.c
+index dad85e10f5f8..fd80bc20e30a 100644
+--- a/mm/filemap.c
++++ b/mm/filemap.c
+@@ -2938,6 +2938,9 @@ inline ssize_t generic_write_checks(struct kiocb *iocb, struct iov_iter *from)
+ 	if (IS_IMMUTABLE(inode))
+ 		return -EPERM;
+ 
++	if (IS_SWAPFILE(inode))
++		return -ETXTBSY;
++
+ 	if (!iov_iter_count(from))
+ 		return 0;
+ 
+diff --git a/mm/memory.c b/mm/memory.c
+index 4311cfdade90..c04c6a689995 100644
+--- a/mm/memory.c
++++ b/mm/memory.c
+@@ -2235,7 +2235,9 @@ static vm_fault_t do_page_mkwrite(struct vm_fault *vmf)
+ 
+ 	vmf->flags = FAULT_FLAG_WRITE|FAULT_FLAG_MKWRITE;
+ 
+-	if (vmf->vma->vm_file && IS_IMMUTABLE(file_inode(vmf->vma->vm_file)))
++	if (vmf->vma->vm_file &&
++	    (IS_IMMUTABLE(file_inode(vmf->vma->vm_file)) ||
++	     IS_SWAPFILE(file_inode(vmf->vma->vm_file))))
+ 		return VM_FAULT_SIGBUS;
+ 
+ 	ret = vmf->vma->vm_ops->page_mkwrite(vmf);
+diff --git a/mm/mmap.c b/mm/mmap.c
+index ac1e32205237..031807339869 100644
+--- a/mm/mmap.c
++++ b/mm/mmap.c
+@@ -1488,6 +1488,8 @@ unsigned long do_mmap(struct file *file, unsigned long addr,
+ 					return -EACCES;
+ 				if (IS_IMMUTABLE(file_inode(file)))
+ 					return -EPERM;
++				if (IS_SWAPFILE(file_inode(file)))
++					return -ETXTBSY;
+ 			}
+ 
+ 			/*
+diff --git a/mm/swapfile.c b/mm/swapfile.c
+index 596ac98051c5..1ca4ee8c2d60 100644
+--- a/mm/swapfile.c
++++ b/mm/swapfile.c
+@@ -3165,6 +3165,19 @@ SYSCALL_DEFINE2(swapon, const char __user *, specialfile, int, swap_flags)
+ 	if (error)
+ 		goto bad_swap;
  
 +	/*
-+	 * We aren't allowed to change any fields if the immutable flag is
-+	 * already set and is not being unset.
++	 * Flush any pending IO and dirty mappings before we start using this
++	 * swap file.
 +	 */
-+	if ((old_fa->fsx_xflags & FS_XFLAG_IMMUTABLE) &&
-+	    (fa->fsx_xflags & FS_XFLAG_IMMUTABLE)) {
-+		if (old_fa->fsx_xflags != fa->fsx_xflags)
-+			return -EPERM;
-+		if (old_fa->fsx_projid != fa->fsx_projid)
-+			return -EPERM;
-+		if ((fa->fsx_xflags & (FS_XFLAG_EXTSIZE |
-+				       FS_XFLAG_EXTSZINHERIT)) &&
-+		    old_fa->fsx_extsize != fa->fsx_extsize)
-+			return -EPERM;
-+		if ((old_fa->fsx_xflags & FS_XFLAG_COWEXTSIZE) &&
-+		    old_fa->fsx_cowextsize != fa->fsx_cowextsize)
-+			return -EPERM;
++	if (S_ISREG(inode->i_mode)) {
++		inode->i_flags |= S_SWAPFILE;
++		error = inode_drain_writes(inode);
++		if (error) {
++			inode->i_flags &= ~S_SWAPFILE;
++			goto bad_swap;
++		}
 +	}
 +
- 	/* Extent size hints of zero turn off the flags. */
- 	if (fa->fsx_extsize == 0)
- 		fa->fsx_xflags &= ~(FS_XFLAG_EXTSIZE | FS_XFLAG_EXTSZINHERIT);
+ 	mutex_lock(&swapon_mutex);
+ 	prio = -1;
+ 	if (swap_flags & SWAP_FLAG_PREFER)
+@@ -3185,8 +3198,6 @@ SYSCALL_DEFINE2(swapon, const char __user *, specialfile, int, swap_flags)
+ 	atomic_inc(&proc_poll_event);
+ 	wake_up_interruptible(&proc_poll_wait);
+ 
+-	if (S_ISREG(inode->i_mode))
+-		inode->i_flags |= S_SWAPFILE;
+ 	error = 0;
+ 	goto out;
+ bad_swap:
