@@ -1,48 +1,35 @@
 From: Darrick J. Wong <darrick.wong@oracle.com>
-Date: Wed, 26 Jun 2019 17:19:26 -0700
-Subject: [Ocfs2-devel] [PATCH 2/5] vfs: create a generic checking
- function for FS_IOC_FSSETXATTR
-In-Reply-To: <20190626154302.GA31445@infradead.org>
-References: <156151632209.2283456.3592379873620132456.stgit@magnolia>
-	<156151633829.2283456.834142172527987802.stgit@magnolia>
-	<20190626041133.GB32272@ZenIV.linux.org.uk>
-	<20190626153542.GE5171@magnolia>
-	<20190626154302.GA31445@infradead.org>
-Message-ID: <20190627001926.GL5171@magnolia>
+Date: Fri, 28 Jun 2019 11:33:49 -0700
+Subject: [Ocfs2-devel] [PATCH v4 0/5] vfs: clean up SETFLAGS and FSSETXATTR
+ option processing
+Message-ID: <156174682897.1557318.14418894077683701275.stgit@magnolia>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Christoph Hellwig <hch@infradead.org>
-Cc: Al Viro <viro@zeniv.linux.org.uk>, matthew.garrett@nebula.com, yuchao0@huawei.com, tytso@mit.edu, shaggy@kernel.org, ard.biesheuvel@linaro.org, josef@toxicpanda.com, clm@fb.com, adilger.kernel@dilger.ca, jk@ozlabs.org, jack@suse.com, dsterba@suse.com, jaegeuk@kernel.org, cluster-devel@redhat.com, jfs-discussion@lists.sourceforge.net, linux-efi@vger.kernel.org, Jan Kara <jack@suse.cz>, reiserfs-devel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, linux-xfs@vger.kernel.org, linux-nilfs@vger.kernel.org, linux-mtd@lists.infradead.org, ocfs2-devel@oss.oracle.com, linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org, linux-btrfs@vger.kernel.org
+To: matthew.garrett@nebula.com, yuchao0@huawei.com, tytso@mit.edu, darrick.wong@oracle.com, shaggy@kernel.org, ard.biesheuvel@linaro.org, josef@toxicpanda.com, hch@infradead.org, clm@fb.com, adilger.kernel@dilger.ca, jk@ozlabs.org, jack@suse.com, dsterba@suse.com, jaegeuk@kernel.org, viro@zeniv.linux.org.uk
+Cc: cluster-devel@redhat.com, jfs-discussion@lists.sourceforge.net, linux-efi@vger.kernel.org, reiserfs-devel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, linux-xfs@vger.kernel.org, linux-nilfs@vger.kernel.org, linux-mtd@lists.infradead.org, ocfs2-devel@oss.oracle.com, linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org, linux-btrfs@vger.kernel.org
 
-On Wed, Jun 26, 2019 at 08:43:02AM -0700, Christoph Hellwig wrote:
-> On Wed, Jun 26, 2019 at 08:35:42AM -0700, Darrick J. Wong wrote:
-> > > static inline void simple_fill_fsxattr(struct fsxattr *fa, unsigned xflags)
-> > > {
-> > > 	memset(fa, 0, sizeof(*fa));
-> > > 	fa->fsx_xflags = xflags;
-> > > }
-> > > 
-> > > and let the compiler optimize the crap out?
-> > 
-> > The v2 series used to do that, but Christoph complained that having a
-> > helper for a two-line memset and initialization was silly[1] so now we
-> > have this version.
-> > 
-> > I don't mind reinstating it as a static inline helper, but I'd like some
-> > input from any of the btrfs developers (or you, Al) about which form is
-> > preferred.
-> 
-> I complained having that helper in btrfs.  I think Al wants a generic
-> one, which at least makes a little more sense.
+Hi all,
 
-Ok.
+The FS_IOC_SETFLAGS and FS_IOC_FSSETXATTR ioctls were promoted from ext4
+and XFS, respectively, into the VFS.  However, we didn't promote any of
+the parameter checking code from those filesystems, which lead to a mess
+where each filesystem open-codes whatever parameter checks they want and
+the behavior across filesystems is no longer consistent.
 
-> That being said I wonder if we should lift these attr ioctls to
-> file op methods and deal with all that crap in VFS code instead of
-> having all those duplicated ioctl parsers.
+Therefore, create some generic checking functions in the VFS and remove
+all the open-coded pieces in each filesystem.  This preserves the
+current behavior where a filesystem can choose to ignore fields it
+doesn't understand.
 
-That sounds like an excellent next patchset. :)
+If you're going to start using this mess, you probably ought to just
+pull from my git trees, which are linked below.
+
+This has been lightly tested with fstests.  Enjoy!
+Comments and questions are, as always, welcome.
 
 --D
+
+kernel git tree:
+https://git.kernel.org/cgit/linux/kernel/git/djwong/xfs-linux.git/log/?h=file-ioctl-cleanups
