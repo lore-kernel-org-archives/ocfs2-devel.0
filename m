@@ -1,61 +1,129 @@
 From: Darrick J. Wong <darrick.wong@oracle.com>
-Date: Fri, 28 Jun 2019 11:34:35 -0700
-Subject: [Ocfs2-devel] [PATCH v6 0/4] vfs: make immutable files actually
-	immutable
-Message-ID: <156174687561.1557469.7505651950825460767.stgit@magnolia>
+Date: Fri, 28 Jun 2019 11:34:43 -0700
+Subject: [Ocfs2-devel] [PATCH 1/4] mm/fs: don't allow writes to immutable
+	files
+In-Reply-To: <156174687561.1557469.7505651950825460767.stgit@magnolia>
+References: <156174687561.1557469.7505651950825460767.stgit@magnolia>
+Message-ID: <156174688345.1557469.793195935067841912.stgit@magnolia>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: matthew.garrett@nebula.com, yuchao0@huawei.com, tytso@mit.edu, darrick.wong@oracle.com, ard.biesheuvel@linaro.org, josef@toxicpanda.com, hch@infradead.org, clm@fb.com, adilger.kernel@dilger.ca, viro@zeniv.linux.org.uk, jack@suse.com, dsterba@suse.com, jaegeuk@kernel.org, jk@ozlabs.org
-Cc: reiserfs-devel@vger.kernel.org, linux-efi@vger.kernel.org, devel@lists.orangefs.org, linux-kernel@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, linux-xfs@vger.kernel.org, linux-mm@kvack.org, linux-nilfs@vger.kernel.org, linux-mtd@lists.infradead.org, ocfs2-devel@oss.oracle.com, linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org, linux-btrfs@vger.kernel.org
+Cc: reiserfs-devel@vger.kernel.org, linux-efi@vger.kernel.org, Jan Kara <jack@suse.cz>, devel@lists.orangefs.org, linux-kernel@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, linux-xfs@vger.kernel.org, linux-mm@kvack.org, linux-nilfs@vger.kernel.org, linux-mtd@lists.infradead.org, ocfs2-devel@oss.oracle.com, linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org, linux-btrfs@vger.kernel.org
 
-Hi all,
+From: Darrick J. Wong <darrick.wong@oracle.com>
 
-The chattr(1) manpage has this to say about the immutable bit that
-system administrators can set on files:
+The chattr manpage has this to say about immutable files:
 
 "A file with the 'i' attribute cannot be modified: it cannot be deleted
 or renamed, no link can be created to this file, most of the file's
 metadata can not be modified, and the file can not be opened in write
 mode."
 
-Given the clause about how the file 'cannot be modified', it is
-surprising that programs holding writable file descriptors can continue
-to write to and truncate files after the immutable flag has been set,
-but they cannot call other things such as utimes, fallocate, unlink,
-link, setxattr, or reflink.
+Once the flag is set, it is enforced for quite a few file operations,
+such as fallocate, fpunch, fzero, rm, touch, open, etc.  However, we
+don't check for immutability when doing a write(), a PROT_WRITE mmap(),
+a truncate(), or a write to a previously established mmap.
 
-Since the immutable flag is only settable by administrators, resolve
-this inconsistent behavior in favor of the documented behavior -- once
-the flag is set, the file cannot be modified, period.  We presume that
-administrators must be trusted to know what they're doing, and that
-cutting off programs with writable fds will probably break them.
+If a program has an open write fd to a file that the administrator
+subsequently marks immutable, the program still can change the file
+contents.  Weird!
 
-Therefore, add immutability checks to the relevant VFS functions, then
-refactor the SETFLAGS and FSSETXATTR implementations to use common
-argument checking functions so that we can then force pagefaults on all
-the file data when setting immutability.
+The ability to write to an immutable file does not follow the manpage
+promise that immutable files cannot be modified.  Worse yet it's
+inconsistent with the behavior of other syscalls which don't allow
+modifications of immutable files.
 
-Note that various distro manpages points out the inconsistent behavior
-of the various Linux filesystems w.r.t. immutable.  This fixes all that.
+Therefore, add the necessary checks to make the write, mmap, and
+truncate behavior consistent with what the manpage says and consistent
+with other syscalls on filesystems which support IMMUTABLE.
 
-I also discovered that userspace programs can write and create writable
-memory mappings to active swap files.  This is extremely bad because
-this allows anyone with write privileges to corrupt system memory.  The
-final patch in this series closes off that hole, at least for swap
-files.
+Signed-off-by: Darrick J. Wong <darrick.wong@oracle.com>
+Reviewed-by: Jan Kara <jack@suse.cz>
+---
+ fs/attr.c    |   13 ++++++-------
+ mm/filemap.c |    3 +++
+ mm/memory.c  |    4 ++++
+ mm/mmap.c    |    8 ++++++--
+ 4 files changed, 19 insertions(+), 9 deletions(-)
 
-If you're going to start using this mess, you probably ought to just
-pull from my git trees, which are linked below.
 
-This has been lightly tested with fstests.  Enjoy!
-Comments and questions are, as always, welcome.
-
---D
-
-kernel git tree:
-https://git.kernel.org/cgit/linux/kernel/git/djwong/xfs-linux.git/log/?h=immutable-files
-
-fstests git tree:
-https://git.kernel.org/cgit/linux/kernel/git/djwong/xfstests-dev.git/log/?h=immutable-files
+diff --git a/fs/attr.c b/fs/attr.c
+index d22e8187477f..1fcfdcc5b367 100644
+--- a/fs/attr.c
++++ b/fs/attr.c
+@@ -233,19 +233,18 @@ int notify_change(struct dentry * dentry, struct iattr * attr, struct inode **de
+ 
+ 	WARN_ON_ONCE(!inode_is_locked(inode));
+ 
+-	if (ia_valid & (ATTR_MODE | ATTR_UID | ATTR_GID | ATTR_TIMES_SET)) {
+-		if (IS_IMMUTABLE(inode) || IS_APPEND(inode))
+-			return -EPERM;
+-	}
++	if (IS_IMMUTABLE(inode))
++		return -EPERM;
++
++	if ((ia_valid & (ATTR_MODE | ATTR_UID | ATTR_GID | ATTR_TIMES_SET)) &&
++	    IS_APPEND(inode))
++		return -EPERM;
+ 
+ 	/*
+ 	 * If utimes(2) and friends are called with times == NULL (or both
+ 	 * times are UTIME_NOW), then we need to check for write permission
+ 	 */
+ 	if (ia_valid & ATTR_TOUCH) {
+-		if (IS_IMMUTABLE(inode))
+-			return -EPERM;
+-
+ 		if (!inode_owner_or_capable(inode)) {
+ 			error = inode_permission(inode, MAY_WRITE);
+ 			if (error)
+diff --git a/mm/filemap.c b/mm/filemap.c
+index aac71aef4c61..dad85e10f5f8 100644
+--- a/mm/filemap.c
++++ b/mm/filemap.c
+@@ -2935,6 +2935,9 @@ inline ssize_t generic_write_checks(struct kiocb *iocb, struct iov_iter *from)
+ 	loff_t count;
+ 	int ret;
+ 
++	if (IS_IMMUTABLE(inode))
++		return -EPERM;
++
+ 	if (!iov_iter_count(from))
+ 		return 0;
+ 
+diff --git a/mm/memory.c b/mm/memory.c
+index ddf20bd0c317..abf795277f36 100644
+--- a/mm/memory.c
++++ b/mm/memory.c
+@@ -2235,6 +2235,10 @@ static vm_fault_t do_page_mkwrite(struct vm_fault *vmf)
+ 
+ 	vmf->flags = FAULT_FLAG_WRITE|FAULT_FLAG_MKWRITE;
+ 
++	if (vmf->vma->vm_file &&
++	    IS_IMMUTABLE(vmf->vma->vm_file->f_mapping->host))
++		return VM_FAULT_SIGBUS;
++
+ 	ret = vmf->vma->vm_ops->page_mkwrite(vmf);
+ 	/* Restore original flags so that caller is not surprised */
+ 	vmf->flags = old_flags;
+diff --git a/mm/mmap.c b/mm/mmap.c
+index 7e8c3e8ae75f..b3ebca2702bf 100644
+--- a/mm/mmap.c
++++ b/mm/mmap.c
+@@ -1483,8 +1483,12 @@ unsigned long do_mmap(struct file *file, unsigned long addr,
+ 		case MAP_SHARED_VALIDATE:
+ 			if (flags & ~flags_mask)
+ 				return -EOPNOTSUPP;
+-			if ((prot&PROT_WRITE) && !(file->f_mode&FMODE_WRITE))
+-				return -EACCES;
++			if (prot & PROT_WRITE) {
++				if (!(file->f_mode & FMODE_WRITE))
++					return -EACCES;
++				if (IS_IMMUTABLE(file->f_mapping->host))
++					return -EPERM;
++			}
+ 
+ 			/*
+ 			 * Make sure we don't allow writing to an append-only
