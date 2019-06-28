@@ -1,44 +1,61 @@
 From: Darrick J. Wong <darrick.wong@oracle.com>
-Date: Fri, 28 Jun 2019 11:34:31 -0700
-Subject: [Ocfs2-devel] [PATCH 5/5] vfs: only allow FSSETXATTR to set DAX
- flag on files and dirs
-In-Reply-To: <156174682897.1557318.14418894077683701275.stgit@magnolia>
-References: <156174682897.1557318.14418894077683701275.stgit@magnolia>
-Message-ID: <156174687185.1557318.13703922197244050336.stgit@magnolia>
+Date: Fri, 28 Jun 2019 11:34:35 -0700
+Subject: [Ocfs2-devel] [PATCH v6 0/4] vfs: make immutable files actually
+	immutable
+Message-ID: <156174687561.1557469.7505651950825460767.stgit@magnolia>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: matthew.garrett@nebula.com, yuchao0@huawei.com, tytso@mit.edu, darrick.wong@oracle.com, shaggy@kernel.org, ard.biesheuvel@linaro.org, josef@toxicpanda.com, hch@infradead.org, clm@fb.com, adilger.kernel@dilger.ca, jk@ozlabs.org, jack@suse.com, dsterba@suse.com, jaegeuk@kernel.org, viro@zeniv.linux.org.uk
-Cc: cluster-devel@redhat.com, jfs-discussion@lists.sourceforge.net, linux-efi@vger.kernel.org, reiserfs-devel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, linux-xfs@vger.kernel.org, linux-nilfs@vger.kernel.org, linux-mtd@lists.infradead.org, ocfs2-devel@oss.oracle.com, linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org, linux-btrfs@vger.kernel.org
+To: matthew.garrett@nebula.com, yuchao0@huawei.com, tytso@mit.edu, darrick.wong@oracle.com, ard.biesheuvel@linaro.org, josef@toxicpanda.com, hch@infradead.org, clm@fb.com, adilger.kernel@dilger.ca, viro@zeniv.linux.org.uk, jack@suse.com, dsterba@suse.com, jaegeuk@kernel.org, jk@ozlabs.org
+Cc: reiserfs-devel@vger.kernel.org, linux-efi@vger.kernel.org, devel@lists.orangefs.org, linux-kernel@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, linux-xfs@vger.kernel.org, linux-mm@kvack.org, linux-nilfs@vger.kernel.org, linux-mtd@lists.infradead.org, ocfs2-devel@oss.oracle.com, linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org, linux-btrfs@vger.kernel.org
 
-From: Darrick J. Wong <darrick.wong@oracle.com>
+Hi all,
 
-The DAX flag only applies to files and directories, so don't let it get
-set for other types of files.
+The chattr(1) manpage has this to say about the immutable bit that
+system administrators can set on files:
 
-Signed-off-by: Darrick J. Wong <darrick.wong@oracle.com>
----
- fs/inode.c |    8 ++++++++
- 1 file changed, 8 insertions(+)
+"A file with the 'i' attribute cannot be modified: it cannot be deleted
+or renamed, no link can be created to this file, most of the file's
+metadata can not be modified, and the file can not be opened in write
+mode."
 
+Given the clause about how the file 'cannot be modified', it is
+surprising that programs holding writable file descriptors can continue
+to write to and truncate files after the immutable flag has been set,
+but they cannot call other things such as utimes, fallocate, unlink,
+link, setxattr, or reflink.
 
-diff --git a/fs/inode.c b/fs/inode.c
-index 670d5408d022..f08711b34341 100644
---- a/fs/inode.c
-+++ b/fs/inode.c
-@@ -2259,6 +2259,14 @@ int vfs_ioc_fssetxattr_check(struct inode *inode, const struct fsxattr *old_fa,
- 	    !S_ISREG(inode->i_mode) && !S_ISDIR(inode->i_mode))
- 		return -EINVAL;
- 
-+	/*
-+	 * It is only valid to set the DAX flag on regular files and
-+	 * directories on filesystems.
-+	 */
-+	if ((fa->fsx_xflags & FS_XFLAG_DAX) &&
-+	    !(S_ISREG(inode->i_mode) || S_ISDIR(inode->i_mode)))
-+		return -EINVAL;
-+
- 	/* Extent size hints of zero turn off the flags. */
- 	if (fa->fsx_extsize == 0)
- 		fa->fsx_xflags &= ~(FS_XFLAG_EXTSIZE | FS_XFLAG_EXTSZINHERIT);
+Since the immutable flag is only settable by administrators, resolve
+this inconsistent behavior in favor of the documented behavior -- once
+the flag is set, the file cannot be modified, period.  We presume that
+administrators must be trusted to know what they're doing, and that
+cutting off programs with writable fds will probably break them.
+
+Therefore, add immutability checks to the relevant VFS functions, then
+refactor the SETFLAGS and FSSETXATTR implementations to use common
+argument checking functions so that we can then force pagefaults on all
+the file data when setting immutability.
+
+Note that various distro manpages points out the inconsistent behavior
+of the various Linux filesystems w.r.t. immutable.  This fixes all that.
+
+I also discovered that userspace programs can write and create writable
+memory mappings to active swap files.  This is extremely bad because
+this allows anyone with write privileges to corrupt system memory.  The
+final patch in this series closes off that hole, at least for swap
+files.
+
+If you're going to start using this mess, you probably ought to just
+pull from my git trees, which are linked below.
+
+This has been lightly tested with fstests.  Enjoy!
+Comments and questions are, as always, welcome.
+
+--D
+
+kernel git tree:
+https://git.kernel.org/cgit/linux/kernel/git/djwong/xfs-linux.git/log/?h=immutable-files
+
+fstests git tree:
+https://git.kernel.org/cgit/linux/kernel/git/djwong/xfstests-dev.git/log/?h=immutable-files
