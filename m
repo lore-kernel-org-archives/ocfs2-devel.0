@@ -1,54 +1,127 @@
 From: Joseph Qi <joseph.qi@linux.alibaba.com>
-Date: Fri, 5 Jul 2019 10:06:12 +0800
-Subject: [Ocfs2-devel] [PATCH] fs: ocfs2: dlmglue: Unneeded variable:
-	"status"
-In-Reply-To: <20190702183237.GA13975@hari-Inspiron-1545>
-References: <20190702183237.GA13975@hari-Inspiron-1545>
-Message-ID: <6a6ae279-9d35-0c00-d3db-72e11cda3838@linux.alibaba.com>
+Date: Fri, 12 Jul 2019 15:02:51 +0800
+Subject: [Ocfs2-devel] [PATCH 1/2] ocfs2: use jbd2_inode dirty range scoping
+Message-ID: <1562914972-97318-1-git-send-email-joseph.qi@linux.alibaba.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Hariprasad Kelam <hariprasad.kelam@gmail.com>, Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
-Cc: Andrew Morton <akpm@linux-foundation.org>
+To: akpm@linux-foundation.org
+Cc: Theodore Ts'o <tytso@mit.edu>, Ross Zwisler <zwisler@chromium.org>, linux-ext4@vger.kernel.org, ocfs2-devel@oss.oracle.com
 
+commit 6ba0e7dc64a5 ("jbd2: introduce jbd2_inode dirty range scoping")
+allow us scoping each of the inode dirty ranges associated with a given
+transaction, and ext4 already does this way.
+Now let's also use the newly introduced jbd2_inode dirty range scoping
+to prevent us from waiting forever when trying to complete a journal
+transaction in ocfs2.
 
+Signed-off-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+---
+ fs/ocfs2/alloc.c   |  4 +++-
+ fs/ocfs2/aops.c    |  6 ++++--
+ fs/ocfs2/file.c    | 10 +++++++---
+ fs/ocfs2/journal.h |  6 ++++--
+ 4 files changed, 18 insertions(+), 8 deletions(-)
 
-On 19/7/3 02:32, Hariprasad Kelam wrote:
-> fix below issue reported by coccicheck
-> fs/ocfs2/dlmglue.c:4410:5-11: Unneeded variable: "status". Return "0" on
-> line 4428
-> 
-> We can not change return type of ocfs2_downconvert_thread as its
-> registered as callback of kthread_create.
-> 
-> Signed-off-by: Hariprasad Kelam <hariprasad.kelam@gmail.com>
-
-Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-
-> ---
->  fs/ocfs2/dlmglue.c | 3 +--
->  1 file changed, 1 insertion(+), 2 deletions(-)
-> 
-> diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-> index dc987f5..1420723 100644
-> --- a/fs/ocfs2/dlmglue.c
-> +++ b/fs/ocfs2/dlmglue.c
-> @@ -4407,7 +4407,6 @@ static int ocfs2_downconvert_thread_should_wake(struct ocfs2_super *osb)
->  
->  static int ocfs2_downconvert_thread(void *arg)
->  {
-> -	int status = 0;
->  	struct ocfs2_super *osb = arg;
->  
->  	/* only quit once we've been asked to stop and there is no more
-> @@ -4425,7 +4424,7 @@ static int ocfs2_downconvert_thread(void *arg)
->  	}
->  
->  	osb->dc_task = NULL;
-> -	return status;
-> +	return 0;
->  }
->  
->  void ocfs2_wake_downconvert_thread(struct ocfs2_super *osb)
-> 
+diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
+index d1348fc..2a58ca4 100644
+--- a/fs/ocfs2/alloc.c
++++ b/fs/ocfs2/alloc.c
+@@ -6792,6 +6792,8 @@ void ocfs2_map_and_dirty_page(struct inode *inode, handle_t *handle,
+ 			      struct page *page, int zero, u64 *phys)
+ {
+ 	int ret, partial = 0;
++	loff_t start_byte = ((loff_t)page->index << PAGE_SHIFT) + from;
++	loff_t length = to - from;
+ 
+ 	ret = ocfs2_map_page_blocks(page, phys, inode, from, to, 0);
+ 	if (ret)
+@@ -6811,7 +6813,7 @@ void ocfs2_map_and_dirty_page(struct inode *inode, handle_t *handle,
+ 	if (ret < 0)
+ 		mlog_errno(ret);
+ 	else if (ocfs2_should_order_data(inode)) {
+-		ret = ocfs2_jbd2_file_inode(handle, inode);
++		ret = ocfs2_jbd2_file_inode(handle, inode, start_byte, length);
+ 		if (ret < 0)
+ 			mlog_errno(ret);
+ 	}
+diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+index a4c905d..bbb508a 100644
+--- a/fs/ocfs2/aops.c
++++ b/fs/ocfs2/aops.c
+@@ -942,7 +942,7 @@ static void ocfs2_write_failure(struct inode *inode,
+ 
+ 		if (tmppage && page_has_buffers(tmppage)) {
+ 			if (ocfs2_should_order_data(inode))
+-				ocfs2_jbd2_file_inode(wc->w_handle, inode);
++				ocfs2_jbd2_file_inode(wc->w_handle, inode, user_pos, user_len);
+ 
+ 			block_commit_write(tmppage, from, to);
+ 		}
+@@ -2024,7 +2024,9 @@ int ocfs2_write_end_nolock(struct address_space *mapping,
+ 
+ 		if (page_has_buffers(tmppage)) {
+ 			if (handle && ocfs2_should_order_data(inode))
+-				ocfs2_jbd2_file_inode(handle, inode);
++				ocfs2_jbd2_file_inode(handle, inode,
++						      ((loff_t)tmppage->index << PAGE_SHIFT) + from,
++						      to - from);
+ 			block_commit_write(tmppage, from, to);
+ 		}
+ 	}
+diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+index 4435df3..43e6c28 100644
+--- a/fs/ocfs2/file.c
++++ b/fs/ocfs2/file.c
+@@ -706,7 +706,9 @@ static int ocfs2_extend_allocation(struct inode *inode, u32 logical_start,
+  * Thus, we need to explicitly order the zeroed pages.
+  */
+ static handle_t *ocfs2_zero_start_ordered_transaction(struct inode *inode,
+-						struct buffer_head *di_bh)
++						      struct buffer_head *di_bh,
++						      loff_t start_bytes,
++						      loff_t length)
+ {
+ 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+ 	handle_t *handle = NULL;
+@@ -722,7 +724,7 @@ static handle_t *ocfs2_zero_start_ordered_transaction(struct inode *inode,
+ 		goto out;
+ 	}
+ 
+-	ret = ocfs2_jbd2_file_inode(handle, inode);
++	ret = ocfs2_jbd2_file_inode(handle, inode, start_bytes, length);
+ 	if (ret < 0) {
+ 		mlog_errno(ret);
+ 		goto out;
+@@ -761,7 +763,9 @@ static int ocfs2_write_zero_page(struct inode *inode, u64 abs_from,
+ 	BUG_ON(abs_to > (((u64)index + 1) << PAGE_SHIFT));
+ 	BUG_ON(abs_from & (inode->i_blkbits - 1));
+ 
+-	handle = ocfs2_zero_start_ordered_transaction(inode, di_bh);
++	handle = ocfs2_zero_start_ordered_transaction(inode, di_bh,
++						      abs_from,
++						      abs_to - abs_from);
+ 	if (IS_ERR(handle)) {
+ 		ret = PTR_ERR(handle);
+ 		goto out;
+diff --git a/fs/ocfs2/journal.h b/fs/ocfs2/journal.h
+index c0fe6ed..932e6a8 100644
+--- a/fs/ocfs2/journal.h
++++ b/fs/ocfs2/journal.h
+@@ -603,9 +603,11 @@ static inline int ocfs2_calc_tree_trunc_credits(struct super_block *sb,
+ 	return credits;
+ }
+ 
+-static inline int ocfs2_jbd2_file_inode(handle_t *handle, struct inode *inode)
++static inline int ocfs2_jbd2_file_inode(handle_t *handle, struct inode *inode,
++					loff_t start_byte, loff_t length)
+ {
+-	return jbd2_journal_inode_add_write(handle, &OCFS2_I(inode)->ip_jinode);
++	return jbd2_journal_inode_ranged_write(handle, &OCFS2_I(inode)->ip_jinode,
++					       start_byte, length);
+ }
+ 
+ static inline int ocfs2_begin_ordered_truncate(struct inode *inode,
+-- 
+1.8.3.1
