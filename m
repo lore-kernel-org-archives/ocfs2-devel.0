@@ -1,15 +1,24 @@
-From: Daniel Sobe <daniel.sobe@nxp.com>
-Date: Thu, 25 Jul 2019 07:28:51 +0000
+From: Gang He <GHe@suse.com>
+Date: Thu, 25 Jul 2019 08:47:08 +0000
 Subject: [Ocfs2-devel] [EXT] RE: OCFS2 triggered kernel BUG in 4.19.37
-In-Reply-To: <BY5PR18MB320280FF04A7666B21F06713CFC10@BY5PR18MB3202.namprd18.prod.outlook.com>
-References: <AM6PR04MB56057BC1AED8077EDACA853AEDC60@AM6PR04MB5605.eurprd04.prod.outlook.com>
-	<BY5PR18MB320280FF04A7666B21F06713CFC10@BY5PR18MB3202.namprd18.prod.outlook.com>
-Message-ID: <AM6PR04MB560502E22BBDF1675B76BCABEDC10@AM6PR04MB5605.eurprd04.prod.outlook.com>
+In-Reply-To: <AM6PR04MB560502E22BBDF1675B76BCABEDC10@AM6PR04MB5605.eurprd04.prod.outlook.com>
+References: <AM6PR04MB560502E22BBDF1675B76BCABEDC10@AM6PR04MB5605.eurprd04.prod.outlook.com>
+Message-ID: <BY5PR18MB3202BDF7CEAFFC528BDEFA02CFC10@BY5PR18MB3202.namprd18.prod.outlook.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
+
+Hi Daniel,
+
+Please see my comments inline.
+
+
+From: Daniel Sobe [mailto:daniel.sobe at nxp.com]
+Sent: 2019?7?25? 15:29
+To: ocfs2-devel at oss.oracle.com; Gang He <GHe@suse.com>
+Subject: RE: [EXT] RE: OCFS2 triggered kernel BUG in 4.19.37
 
 Hi Gang,
 
@@ -19,15 +28,23 @@ It is the first time ever that I see this problem. I was using OCFS2 for years w
 
 During recovery I found a data inconsistency on one of the DRBD volumes that the OCFS2 is operating on. Not sure if it could be a cause for this problem, or a consequence of the crash. The volume in question was sync?ed recently, so I doubt it became inconsistent over such a short time though.
 
+I do not think DRDB is suitable for ocfs2 case, although DRDB supports two-primary mode. I feel DRDB is suitable Primary-salve user case.
+
 The commit you refer to explicitly excludes o2cb, which looks like it was done on purpose. I don?t know whether enabling the special handling for o2cb also will help.
+
+At that moment, Huawei people (o2cb stack based main developers) told us that o2cb stack hasn?t such problem, then  we only made this code change was effective for pmck stack.
+From your description, I feel DRDB data consistency in two primary mode is not enough for ocfs2, this maybe the root cause.
+
+Thanks
+Gang
 
 Regards,
 
 Daniel
 
-From: Gang He <GHe@suse.com>
+From: Gang He <GHe at suse.com<mailto:GHe@suse.com>>
 Sent: Donnerstag, 25. Juli 2019 04:14
-To: Daniel Sobe <daniel.sobe@nxp.com>; ocfs2-devel at oss.oracle.com
+To: Daniel Sobe <daniel.sobe at nxp.com<mailto:daniel.sobe@nxp.com>>; ocfs2-devel at oss.oracle.com<mailto:ocfs2-devel@oss.oracle.com>
 Subject: [EXT] RE: OCFS2 triggered kernel BUG in 4.19.37
 
 
@@ -160,4 +177,4 @@ Jul 23 18:01:01 drs1s001 kernel: [1590966.350821] ---[ end trace 7db650644ae16c2
 
 -------------- next part --------------
 An HTML attachment was scrubbed...
-URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20190725/82aacb29/attachment-0001.html 
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20190725/9087ade8/attachment-0001.html 
