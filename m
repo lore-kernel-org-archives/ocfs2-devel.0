@@ -1,12 +1,37 @@
-From: Daniel Sobe <daniel.sobe@nxp.com>
-Date: Wed, 24 Jul 2019 12:42:17 +0000
+From: Gang He <GHe@suse.com>
+Date: Thu, 25 Jul 2019 02:13:57 +0000
 Subject: [Ocfs2-devel] OCFS2 triggered kernel BUG in 4.19.37
-Message-ID: <AM6PR04MB56057BC1AED8077EDACA853AEDC60@AM6PR04MB5605.eurprd04.prod.outlook.com>
+In-Reply-To: <AM6PR04MB56057BC1AED8077EDACA853AEDC60@AM6PR04MB5605.eurprd04.prod.outlook.com>
+References: <AM6PR04MB56057BC1AED8077EDACA853AEDC60@AM6PR04MB5605.eurprd04.prod.outlook.com>
+Message-ID: <BY5PR18MB320280FF04A7666B21F06713CFC10@BY5PR18MB3202.namprd18.prod.outlook.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
+
+Hi Daniel,
+
+Which ocfs2 stack did you use? o2cb or pmck.
+In the past, we met the similar crash, then we submitted a patch to fix that bug only for pmck stack (not sure if o2cb stack has the similar problem).
+Please see the commit,
+commit e7ee2c089e94067d68475990bdeed211c8852917
+Author: Eric Ren <zren@suse.com>
+Date:   Tue Jan 10 16:57:33 2017 -0800
+
+    ocfs2: fix crash caused by stale lvb with fsdlm plugin
+
+    The crash happens rather often when we reset some cluster nodes while
+nodes contend fiercely to do truncate and append.
+
+
+Thanks
+Gang
+
+From: ocfs2-devel-bounces@oss.oracle.com [mailto:ocfs2-devel-bounces at oss.oracle.com] On Behalf Of Daniel Sobe
+Sent: 2019?7?24? 20:42
+To: ocfs2-devel at oss.oracle.com
+Subject: [Ocfs2-devel] OCFS2 triggered kernel BUG in 4.19.37
 
 Hi,
 
@@ -113,4 +138,4 @@ Jul 23 18:01:01 drs1s001 kernel: [1590966.350821] ---[ end trace 7db650644ae16c2
 
 -------------- next part --------------
 An HTML attachment was scrubbed...
-URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20190724/76693dac/attachment-0001.html 
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20190725/a034ecb5/attachment-0001.html 
