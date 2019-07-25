@@ -1,22 +1,44 @@
-From: Gang He <GHe@suse.com>
-Date: Thu, 25 Jul 2019 02:13:57 +0000
-Subject: [Ocfs2-devel] OCFS2 triggered kernel BUG in 4.19.37
-In-Reply-To: <AM6PR04MB56057BC1AED8077EDACA853AEDC60@AM6PR04MB5605.eurprd04.prod.outlook.com>
+From: Daniel Sobe <daniel.sobe@nxp.com>
+Date: Thu, 25 Jul 2019 07:28:51 +0000
+Subject: [Ocfs2-devel] [EXT] RE: OCFS2 triggered kernel BUG in 4.19.37
+In-Reply-To: <BY5PR18MB320280FF04A7666B21F06713CFC10@BY5PR18MB3202.namprd18.prod.outlook.com>
 References: <AM6PR04MB56057BC1AED8077EDACA853AEDC60@AM6PR04MB5605.eurprd04.prod.outlook.com>
-Message-ID: <BY5PR18MB320280FF04A7666B21F06713CFC10@BY5PR18MB3202.namprd18.prod.outlook.com>
+	<BY5PR18MB320280FF04A7666B21F06713CFC10@BY5PR18MB3202.namprd18.prod.outlook.com>
+Message-ID: <AM6PR04MB560502E22BBDF1675B76BCABEDC10@AM6PR04MB5605.eurprd04.prod.outlook.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
+Hi Gang,
+
+I?m using o2cb.
+
+It is the first time ever that I see this problem. I was using OCFS2 for years while on kernel 3.16 where this issue never appeared. I only switched to kernel 4.19 a couple of months ago.
+
+During recovery I found a data inconsistency on one of the DRBD volumes that the OCFS2 is operating on. Not sure if it could be a cause for this problem, or a consequence of the crash. The volume in question was sync?ed recently, so I doubt it became inconsistent over such a short time though.
+
+The commit you refer to explicitly excludes o2cb, which looks like it was done on purpose. I don?t know whether enabling the special handling for o2cb also will help.
+
+Regards,
+
+Daniel
+
+From: Gang He <GHe@suse.com>
+Sent: Donnerstag, 25. Juli 2019 04:14
+To: Daniel Sobe <daniel.sobe@nxp.com>; ocfs2-devel at oss.oracle.com
+Subject: [EXT] RE: OCFS2 triggered kernel BUG in 4.19.37
+
+
+Caution: EXT Email
 Hi Daniel,
 
 Which ocfs2 stack did you use? o2cb or pmck.
 In the past, we met the similar crash, then we submitted a patch to fix that bug only for pmck stack (not sure if o2cb stack has the similar problem).
 Please see the commit,
 commit e7ee2c089e94067d68475990bdeed211c8852917
-Author: Eric Ren <zren@suse.com>
+Author: Eric Ren <zren at suse.com<mailto:zren@suse.com>>
 Date:   Tue Jan 10 16:57:33 2017 -0800
 
     ocfs2: fix crash caused by stale lvb with fsdlm plugin
@@ -28,9 +50,9 @@ nodes contend fiercely to do truncate and append.
 Thanks
 Gang
 
-From: ocfs2-devel-bounces@oss.oracle.com [mailto:ocfs2-devel-bounces at oss.oracle.com] On Behalf Of Daniel Sobe
+From: ocfs2-devel-bounces@oss.oracle.com<mailto:ocfs2-devel-bounces@oss.oracle.com> [mailto:ocfs2-devel-bounces at oss.oracle.com] On Behalf Of Daniel Sobe
 Sent: 2019?7?24? 20:42
-To: ocfs2-devel at oss.oracle.com
+To: ocfs2-devel at oss.oracle.com<mailto:ocfs2-devel@oss.oracle.com>
 Subject: [Ocfs2-devel] OCFS2 triggered kernel BUG in 4.19.37
 
 Hi,
@@ -138,4 +160,4 @@ Jul 23 18:01:01 drs1s001 kernel: [1590966.350821] ---[ end trace 7db650644ae16c2
 
 -------------- next part --------------
 An HTML attachment was scrubbed...
-URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20190725/a034ecb5/attachment-0001.html 
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20190725/82aacb29/attachment-0001.html 
