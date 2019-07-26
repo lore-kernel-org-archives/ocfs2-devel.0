@@ -1,10 +1,10 @@
 From: Joseph Qi <joseph.qi@linux.alibaba.com>
-Date: Fri, 26 Jul 2019 17:37:30 +0800
-Subject: [Ocfs2-devel] [PATCH 1/3] fs: ocfs2: Fix possible null-pointer
- dereferences in ocfs2_xa_prepare_entry()
-In-Reply-To: <20190726033655.32253-1-baijiaju1990@gmail.com>
-References: <20190726033655.32253-1-baijiaju1990@gmail.com>
-Message-ID: <b6aef7d8-9884-7349-bcec-0c8654d1b062@linux.alibaba.com>
+Date: Fri, 26 Jul 2019 17:38:10 +0800
+Subject: [Ocfs2-devel] [PATCH 2/3] fs: ocfs2: Fix a possible
+ null-pointer dereference in ocfs2_write_end_nolock()
+In-Reply-To: <20190726033705.32307-1-baijiaju1990@gmail.com>
+References: <20190726033705.32307-1-baijiaju1990@gmail.com>
+Message-ID: <cdec8b79-a854-e9b0-21af-897c7eedc454@linux.alibaba.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -14,64 +14,43 @@ Cc: ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
 
 
 
-On 19/7/26 11:36, Jia-Ju Bai wrote:
-> In ocfs2_xa_prepare_entry(), there is an if statement on line 2136 to
-> check whether loc->xl_entry is NULL:
->     if (loc->xl_entry)
+On 19/7/26 11:37, Jia-Ju Bai wrote:
+> In ocfs2_write_end_nolock(), there are an if statement on lines 1976, 
+> 2047 and 2058, to check whether handle is NULL:
+>     if (handle)
 > 
-> When loc->xl_entry is NULL, it is used on line 2158:
->     ocfs2_xa_add_entry(loc, name_hash);
->         loc->xl_entry->xe_name_hash = cpu_to_le32(name_hash);
->         loc->xl_entry->xe_name_offset = cpu_to_le16(loc->xl_size);
-> and line 2164:
-> 	ocfs2_xa_add_namevalue(loc, xi);
->         loc->xl_entry->xe_value_size = cpu_to_le64(xi->xi_value_len);
->         loc->xl_entry->xe_name_len = xi->xi_name_len;
+> When handle is NULL, it is used on line 2045:
+> 	ocfs2_update_inode_fsync_trans(handle, inode, 1);
+>         oi->i_sync_tid = handle->h_transaction->t_tid;
 > 
-> Thus, possible null-pointer dereferences may occur.
+> Thus, a possible null-pointer dereference may occur.
 > 
-> To fix these bugs, if loc-xl_entry is NULL, ocfs2_xa_prepare_entry() 
-> abnormally returns with -EINVAL.
+> To fix this bug, handle is checked before calling
+> ocfs2_update_inode_fsync_trans().
 > 
-> These bugs are found by a static analysis tool STCheck written by us.
+> This bug is found by a static analysis tool STCheck written by us.
 > 
 > Signed-off-by: Jia-Ju Bai <baijiaju1990@gmail.com>
+
+Looks good.
+Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+
 > ---
->  fs/ocfs2/xattr.c | 6 ++++--
->  1 file changed, 4 insertions(+), 2 deletions(-)
+>  fs/ocfs2/aops.c | 3 ++-
+>  1 file changed, 2 insertions(+), 1 deletion(-)
 > 
-> diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-> index 385f3aaa2448..f690502daf3c 100644
-> --- a/fs/ocfs2/xattr.c
-> +++ b/fs/ocfs2/xattr.c
-> @@ -2154,8 +2154,10 @@ static int ocfs2_xa_prepare_entry(struct ocfs2_xa_loc *loc,
->  			}
->  		}
->  		ocfs2_xa_wipe_namevalue(loc);
-> -	} else
-> -		ocfs2_xa_add_entry(loc, name_hash);
-> +	} else {
-> +		rc = -EINVAL;
-> +		goto out;
-> +	}
-
-Since entry not found, so there is nothing to do in
-ocfs2_xa_prepare_entry(). We may change it like:
-
-if (!loc->xl_entry) {
-	rc = -EINVAL;
-	goto out;
-}	
-
-if (ocfs2_xa_can_reuse_entry(loc, xi)) {
-	......
-}
-.....
-
-
-Thanks,
-Joseph
->  
->  	/*
->  	 * If we get here, we have a blank entry.  Fill it.  We grow our
+> diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+> index a4c905d6b575..5473bd99043e 100644
+> --- a/fs/ocfs2/aops.c
+> +++ b/fs/ocfs2/aops.c
+> @@ -2042,7 +2042,8 @@ int ocfs2_write_end_nolock(struct address_space *mapping,
+>  		inode->i_mtime = inode->i_ctime = current_time(inode);
+>  		di->i_mtime = di->i_ctime = cpu_to_le64(inode->i_mtime.tv_sec);
+>  		di->i_mtime_nsec = di->i_ctime_nsec = cpu_to_le32(inode->i_mtime.tv_nsec);
+> -		ocfs2_update_inode_fsync_trans(handle, inode, 1);
+> +		if (handle)
+> +			ocfs2_update_inode_fsync_trans(handle, inode, 1);
+>  	}
+>  	if (handle)
+>  		ocfs2_journal_dirty(handle, wc->w_di_bh);
 > 
