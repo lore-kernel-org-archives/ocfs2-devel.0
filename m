@@ -1,10 +1,10 @@
 From: Joseph Qi <joseph.qi@linux.alibaba.com>
-Date: Fri, 26 Jul 2019 17:38:10 +0800
-Subject: [Ocfs2-devel] [PATCH 2/3] fs: ocfs2: Fix a possible
- null-pointer dereference in ocfs2_write_end_nolock()
-In-Reply-To: <20190726033705.32307-1-baijiaju1990@gmail.com>
-References: <20190726033705.32307-1-baijiaju1990@gmail.com>
-Message-ID: <cdec8b79-a854-e9b0-21af-897c7eedc454@linux.alibaba.com>
+Date: Fri, 26 Jul 2019 17:39:37 +0800
+Subject: [Ocfs2-devel] [PATCH 3/3] fs: ocfs2: Fix a possible
+ null-pointer dereference in ocfs2_info_scan_inode_alloc()
+In-Reply-To: <20190726033717.32359-1-baijiaju1990@gmail.com>
+References: <20190726033717.32359-1-baijiaju1990@gmail.com>
+Message-ID: <3db34626-a87f-9de8-6f9c-e4a35f863cd6@linux.alibaba.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -15,42 +15,40 @@ Cc: ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
 
 
 On 19/7/26 11:37, Jia-Ju Bai wrote:
-> In ocfs2_write_end_nolock(), there are an if statement on lines 1976, 
-> 2047 and 2058, to check whether handle is NULL:
->     if (handle)
+> In ocfs2_info_scan_inode_alloc(), there is an if statement on line 283
+> to check whether inode_alloc is NULL:
+>     if (inode_alloc)
 > 
-> When handle is NULL, it is used on line 2045:
-> 	ocfs2_update_inode_fsync_trans(handle, inode, 1);
->         oi->i_sync_tid = handle->h_transaction->t_tid;
+> When inode_alloc is NULL, it is used on line 287:
+>     ocfs2_inode_lock(inode_alloc, &bh, 0);
+>         ocfs2_inode_lock_full_nested(inode, ...)
+>             struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
 > 
 > Thus, a possible null-pointer dereference may occur.
 > 
-> To fix this bug, handle is checked before calling
-> ocfs2_update_inode_fsync_trans().
+> To fix this bug, inode_alloc is checked on line 286.
 > 
-> This bug is found by a static analysis tool STCheck written by us.
+> This bug is found by a static analysis tool STCheck written by us.       
 > 
 > Signed-off-by: Jia-Ju Bai <baijiaju1990@gmail.com>
 
 Looks good.
 Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-
 > ---
->  fs/ocfs2/aops.c | 3 ++-
->  1 file changed, 2 insertions(+), 1 deletion(-)
+>  fs/ocfs2/ioctl.c | 2 +-
+>  1 file changed, 1 insertion(+), 1 deletion(-)
 > 
-> diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-> index a4c905d6b575..5473bd99043e 100644
-> --- a/fs/ocfs2/aops.c
-> +++ b/fs/ocfs2/aops.c
-> @@ -2042,7 +2042,8 @@ int ocfs2_write_end_nolock(struct address_space *mapping,
->  		inode->i_mtime = inode->i_ctime = current_time(inode);
->  		di->i_mtime = di->i_ctime = cpu_to_le64(inode->i_mtime.tv_sec);
->  		di->i_mtime_nsec = di->i_ctime_nsec = cpu_to_le32(inode->i_mtime.tv_nsec);
-> -		ocfs2_update_inode_fsync_trans(handle, inode, 1);
-> +		if (handle)
-> +			ocfs2_update_inode_fsync_trans(handle, inode, 1);
->  	}
->  	if (handle)
->  		ocfs2_journal_dirty(handle, wc->w_di_bh);
+> diff --git a/fs/ocfs2/ioctl.c b/fs/ocfs2/ioctl.c
+> index d6f7b299eb23..efeea208fdeb 100644
+> --- a/fs/ocfs2/ioctl.c
+> +++ b/fs/ocfs2/ioctl.c
+> @@ -283,7 +283,7 @@ static int ocfs2_info_scan_inode_alloc(struct ocfs2_super *osb,
+>  	if (inode_alloc)
+>  		inode_lock(inode_alloc);
+>  
+> -	if (o2info_coherent(&fi->ifi_req)) {
+> +	if (inode_alloc && o2info_coherent(&fi->ifi_req)) {
+>  		status = ocfs2_inode_lock(inode_alloc, &bh, 0);
+>  		if (status < 0) {
+>  			mlog_errno(status);
 > 
