@@ -1,81 +1,28 @@
 From: Changwei Ge <chge@linux.alibaba.com>
-Date: Mon, 5 Aug 2019 10:17:04 +0800
-Subject: [Ocfs2-devel] [PATCH 3/3] fs: ocfs2: Fix a possible
- null-pointer dereference in ocfs2_info_scan_inode_alloc()
-In-Reply-To: <3db34626-a87f-9de8-6f9c-e4a35f863cd6@linux.alibaba.com>
-References: <20190726033717.32359-1-baijiaju1990@gmail.com>
-	<3db34626-a87f-9de8-6f9c-e4a35f863cd6@linux.alibaba.com>
-Message-ID: <b7e74003-48e0-aed9-2167-bd2a3dc3ffcd@linux.alibaba.com>
+Date: Mon, 5 Aug 2019 10:38:55 +0800
+Subject: [Ocfs2-devel] [PATCH 2/3] fs: ocfs2: Fix a possible
+ null-pointer dereference in ocfs2_write_end_nolock()
+In-Reply-To: <cdec8b79-a854-e9b0-21af-897c7eedc454@linux.alibaba.com>
+References: <20190726033705.32307-1-baijiaju1990@gmail.com>
+	<cdec8b79-a854-e9b0-21af-897c7eedc454@linux.alibaba.com>
+Message-ID: <20d02767-6e14-c04f-4fcf-11ed2cbd63a2@linux.alibaba.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Joseph Qi <joseph.qi@linux.alibaba.com>, Jia-Ju Bai <baijiaju1990@gmail.com>, mark@fasheh.com, jlbec@evilplan.org
+Cc: linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com, Andrew Morton <akpm@linux-foundation.org>
 
-Hi Jia-Ju and Joseph,
-
-
-Busy with a training session last week, so late for reviewing this patch.
-
-I think this patch might not be necessary and a little violates original 
-logic.
-
-Please check out my comments inline.
+Hi Jia-ju,
 
 
-On 2019/7/26 5:39 ??, Joseph Qi wrote:
->
-> On 19/7/26 11:37, Jia-Ju Bai wrote:
->> In ocfs2_info_scan_inode_alloc(), there is an if statement on line 283
->> to check whether inode_alloc is NULL:
->>      if (inode_alloc)
->>
->> When inode_alloc is NULL, it is used on line 287:
->>      ocfs2_inode_lock(inode_alloc, &bh, 0);
->>          ocfs2_inode_lock_full_nested(inode, ...)
->>              struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
->>
->> Thus, a possible null-pointer dereference may occur.
->>
->> To fix this bug, inode_alloc is checked on line 286.
->>
->> This bug is found by a static analysis tool STCheck written by us.
->>
->> Signed-off-by: Jia-Ju Bai <baijiaju1990@gmail.com>
-> Looks good.
-> Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
->> ---
->>   fs/ocfs2/ioctl.c | 2 +-
->>   1 file changed, 1 insertion(+), 1 deletion(-)
->>
->> diff --git a/fs/ocfs2/ioctl.c b/fs/ocfs2/ioctl.c
->> index d6f7b299eb23..efeea208fdeb 100644
->> --- a/fs/ocfs2/ioctl.c
->> +++ b/fs/ocfs2/ioctl.c
->> @@ -283,7 +283,7 @@ static int ocfs2_info_scan_inode_alloc(struct ocfs2_super *osb,
->>   	if (inode_alloc)
->>   		inode_lock(inode_alloc);
->>   
->> -	if (o2info_coherent(&fi->ifi_req)) {
->> +	if (inode_alloc && o2info_coherent(&fi->ifi_req)) {
+Could you please point out how ->w_handle can be NULL if we are changing 
+disk inode?
 
+I just checked the ocfs2 code but can't find any clue ...
 
-If caller is asking for strict coherency but *inode_alloc* is NULL, we 
-fallback to non-coherency branch?
-
-I think this is destroying the file semantics. Returning error to caller 
-is better?
-
-
-On the other hand, from the code path:
-
-ocfs2_info_handle_freeinode()
-
- ??? if o2info_coherent() then inode_alloc = 
-ocfs2_get_system_file_inode() ---> here we can ensure that being passed 
-*inode_alloc* can't be NULL
-
- ??? ocfs2_info_scan_inode_alloc()
+In my opinion, it's impossible to change disk inode without an existed 
+journal transaction. If truly so, it's a another problem.
 
 
 Thanks,
@@ -83,9 +30,46 @@ Thanks,
 Changwei
 
 
->>   		status = ocfs2_inode_lock(inode_alloc, &bh, 0);
->>   		if (status < 0) {
->>   			mlog_errno(status);
+On 2019/7/26 5:38 ??, Joseph Qi wrote:
+>
+> On 19/7/26 11:37, Jia-Ju Bai wrote:
+>> In ocfs2_write_end_nolock(), there are an if statement on lines 1976,
+>> 2047 and 2058, to check whether handle is NULL:
+>>      if (handle)
+>>
+>> When handle is NULL, it is used on line 2045:
+>> 	ocfs2_update_inode_fsync_trans(handle, inode, 1);
+>>          oi->i_sync_tid = handle->h_transaction->t_tid;
+>>
+>> Thus, a possible null-pointer dereference may occur.
+>>
+>> To fix this bug, handle is checked before calling
+>> ocfs2_update_inode_fsync_trans().
+>>
+>> This bug is found by a static analysis tool STCheck written by us.
+>>
+>> Signed-off-by: Jia-Ju Bai <baijiaju1990@gmail.com>
+> Looks good.
+> Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+>
+>> ---
+>>   fs/ocfs2/aops.c | 3 ++-
+>>   1 file changed, 2 insertions(+), 1 deletion(-)
+>>
+>> diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+>> index a4c905d6b575..5473bd99043e 100644
+>> --- a/fs/ocfs2/aops.c
+>> +++ b/fs/ocfs2/aops.c
+>> @@ -2042,7 +2042,8 @@ int ocfs2_write_end_nolock(struct address_space *mapping,
+>>   		inode->i_mtime = inode->i_ctime = current_time(inode);
+>>   		di->i_mtime = di->i_ctime = cpu_to_le64(inode->i_mtime.tv_sec);
+>>   		di->i_mtime_nsec = di->i_ctime_nsec = cpu_to_le32(inode->i_mtime.tv_nsec);
+>> -		ocfs2_update_inode_fsync_trans(handle, inode, 1);
+>> +		if (handle)
+>> +			ocfs2_update_inode_fsync_trans(handle, inode, 1);
+>>   	}
+>>   	if (handle)
+>>   		ocfs2_journal_dirty(handle, wc->w_di_bh);
 >>
 > _______________________________________________
 > Ocfs2-devel mailing list
