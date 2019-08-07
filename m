@@ -1,103 +1,57 @@
-From: Changwei Ge <chge@linux.alibaba.com>
-Date: Tue, 6 Aug 2019 09:24:40 +0800
-Subject: [Ocfs2-devel] [PATCH 3/3] fs: ocfs2: Fix a possible
- null-pointer dereference in ocfs2_info_scan_inode_alloc()
-In-Reply-To: <cb2b60cb-16fa-75b6-68fb-e865976fb5b2@linux.alibaba.com>
-References: <20190726033717.32359-1-baijiaju1990@gmail.com>
-	<3db34626-a87f-9de8-6f9c-e4a35f863cd6@linux.alibaba.com>
-	<b7e74003-48e0-aed9-2167-bd2a3dc3ffcd@linux.alibaba.com>
-	<cb2b60cb-16fa-75b6-68fb-e865976fb5b2@linux.alibaba.com>
-Message-ID: <0b875625-bf82-aedc-a224-9eaa8245679f@linux.alibaba.com>
+From: Joseph Qi <jiangqi903@gmail.com>
+Date: Wed, 7 Aug 2019 20:35:26 +0800
+Subject: [Ocfs2-devel] [PATCH][ocfs2-next] ocfs2: ensure ret is set to
+ zero before returning
+In-Reply-To: <20190807121929.28918-1-colin.king@canonical.com>
+References: <20190807121929.28918-1-colin.king@canonical.com>
+Message-ID: <fb3d7441-93ea-b619-52fc-00da950c9201@gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
-
-Morning,
-
-On 2019/8/6 9:00 ??, Joseph Qi wrote:
->
-> On 19/8/5 10:17, Changwei Ge wrote:
->> Hi Jia-Ju and Joseph,
->>
->>
->> Busy with a training session last week, so late for reviewing this patch.
->>
->> I think this patch might not be necessary and a little violates original logic.
->>
->> Please check out my comments inline.
->>
->>
->> On 2019/7/26 5:39 ??, Joseph Qi wrote:
->>> On 19/7/26 11:37, Jia-Ju Bai wrote:
->>>> In ocfs2_info_scan_inode_alloc(), there is an if statement on line 283
->>>> to check whether inode_alloc is NULL:
->>>>  ???? if (inode_alloc)
->>>>
->>>> When inode_alloc is NULL, it is used on line 287:
->>>>  ???? ocfs2_inode_lock(inode_alloc, &bh, 0);
->>>>  ???????? ocfs2_inode_lock_full_nested(inode, ...)
->>>>  ???????????? struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
->>>>
->>>> Thus, a possible null-pointer dereference may occur.
->>>>
->>>> To fix this bug, inode_alloc is checked on line 286.
->>>>
->>>> This bug is found by a static analysis tool STCheck written by us.
->>>>
->>>> Signed-off-by: Jia-Ju Bai <baijiaju1990@gmail.com>
->>> Looks good.
->>> Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
->>>> ---
->>>>  ? fs/ocfs2/ioctl.c | 2 +-
->>>>  ? 1 file changed, 1 insertion(+), 1 deletion(-)
->>>>
->>>> diff --git a/fs/ocfs2/ioctl.c b/fs/ocfs2/ioctl.c
->>>> index d6f7b299eb23..efeea208fdeb 100644
->>>> --- a/fs/ocfs2/ioctl.c
->>>> +++ b/fs/ocfs2/ioctl.c
->>>> @@ -283,7 +283,7 @@ static int ocfs2_info_scan_inode_alloc(struct ocfs2_super *osb,
->>>>  ????? if (inode_alloc)
->>>>  ????????? inode_lock(inode_alloc);
->>>>  ? -??? if (o2info_coherent(&fi->ifi_req)) {
->>>> +??? if (inode_alloc && o2info_coherent(&fi->ifi_req)) {
->>
->> If caller is asking for strict coherency but *inode_alloc* is NULL, we fallback to non-coherency branch?
->>
->> I think this is destroying the file semantics. Returning error to caller is better?
->>
->>
->> On the other hand, from the code path:
->>
->> ocfs2_info_handle_freeinode()
->>
->>  ??? if o2info_coherent() then inode_alloc = ocfs2_get_system_file_inode() ---> here we can ensure that being passed *inode_alloc* can't be NULL
->>
->>  ??? ocfs2_info_scan_inode_alloc()
->>
-> You are right, the caller make sure inode_alloc won't be NULL if o2info_coherent().
-> So adding this check just make it more explicitly, right?
-> I don't get how it breaks the original logic.
+To: Colin King <colin.king@canonical.com>, Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, Joseph Qi <joseph.qi@linux.alibaba.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, ocfs2-devel@oss.oracle.com
+Cc: kernel-janitors@vger.kernel.org, linux-kernel@vger.kernel.org
 
 
-As user? is asking for a strict coherent filesystem info with 
-OCFS2_INFO_FL_NON_COHERENT cleared, we have to lock the inode 
-cluster-wide via DLM.
 
-If somehow, *inode_alloc* is NULL(actually it can't be), I think, we 
-should still comply above strict coherency sentiments and can't just 
-jump to the non-coherency branch.
+On 19/8/7 20:19, Colin King wrote:
+> From: Colin Ian King <colin.king@canonical.com>
+> 
+> A previous commit introduced a regression where variable ret was
+> originally being set from the return from a call to function
+> dlm_create_debugfs_subroot and this set was removed. Currently
+> ret is now uninitialized if no alloction errors are found which
+> may end up with a bogus check on ret < 0 on the 'leave:' return
+> path.  Fix this by setting ret to zero on a successful execution
+> path.
 
-Perhaps, return error to caller is better under above situation(can't 
-exist)?
+Good catch.
+Or shall we just initialize 'ret' at first?
 
+> 
+> Addresses-Coverity: ("Uninitialzed scalar variable")
+
+Typo here. 
 
 Thanks,
+Joseph
 
-Changwei
-
-
->
-> Thanks,
-> Joseph
+> Fixes: cba322160ef0 ("ocfs2: further debugfs cleanups")
+> Signed-off-by: Colin Ian King <colin.king@canonical.com>
+> ---
+>  fs/ocfs2/dlm/dlmdomain.c | 1 +
+>  1 file changed, 1 insertion(+)
+> 
+> diff --git a/fs/ocfs2/dlm/dlmdomain.c b/fs/ocfs2/dlm/dlmdomain.c
+> index 5c4218d66dd2..ee6f459f9770 100644
+> --- a/fs/ocfs2/dlm/dlmdomain.c
+> +++ b/fs/ocfs2/dlm/dlmdomain.c
+> @@ -2052,6 +2052,7 @@ static struct dlm_ctxt *dlm_alloc_ctxt(const char *domain,
+>  	mlog(0, "context init: refcount %u\n",
+>  		  kref_read(&dlm->dlm_refs));
+>  
+> +	ret = 0;
+>  leave:
+>  	if (ret < 0 && dlm) {
+>  		if (dlm->master_hash)
+> 
