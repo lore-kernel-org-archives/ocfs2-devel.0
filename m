@@ -1,54 +1,61 @@
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-Date: Thu, 8 Aug 2019 09:08:46 +0800
-Subject: [Ocfs2-devel] [PATCH][ocfs2-next] ocfs2: ensure ret is set to
- zero before returning
-In-Reply-To: <bf4d059a-94fc-d8cf-78c7-8606644185a5@canonical.com>
-References: <20190807121929.28918-1-colin.king@canonical.com>
-	<fb3d7441-93ea-b619-52fc-00da950c9201@gmail.com>
-	<bf4d059a-94fc-d8cf-78c7-8606644185a5@canonical.com>
-Message-ID: <0cee7ca9-8704-171a-ec82-ee6c16e3381b@linux.alibaba.com>
+From: Guozhonghua <guozhonghua@h3c.com>
+Date: Fri, 9 Aug 2019 08:26:59 +0000
+Subject: [Ocfs2-devel] [PATCH] ocfs2: The function
+ ocfs2_calc_tree_trunc_credits is not used anymore, so as to be removed.
+Message-ID: <71604351584F6A4EBAE558C676F37CA4014FC2050F@H3CMLB12-EX.srv.huawei-3com.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Colin Ian King <colin.king@canonical.com>, Joseph Qi <jiangqi903@gmail.com>, Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, ocfs2-devel@oss.oracle.com, Andrew Morton <akpm@linux-foundation.org>
-Cc: kernel-janitors@vger.kernel.org, linux-kernel@vger.kernel.org
+To: ocfs2-devel@oss.oracle.com
 
 
+ocfs2: The function ocfs2_calc_tree_trunc_credits is not called anywhere, it is not used anymore, so as to be removed.
 
-On 19/8/7 20:42, Colin Ian King wrote:
-> On 07/08/2019 13:35, Joseph Qi wrote:
->>
->>
->> On 19/8/7 20:19, Colin King wrote:
->>> From: Colin Ian King <colin.king@canonical.com>
->>>
->>> A previous commit introduced a regression where variable ret was
->>> originally being set from the return from a call to function
->>> dlm_create_debugfs_subroot and this set was removed. Currently
->>> ret is now uninitialized if no alloction errors are found which
->>> may end up with a bogus check on ret < 0 on the 'leave:' return
->>> path.  Fix this by setting ret to zero on a successful execution
->>> path.
->>
->> Good catch.
->> Or shall we just initialize 'ret' at first?
-> 
-> Initialized ret first may not catch subsequent coding errors where error
-> returns paths have not initialized ret, so my preference is when it is
-> required and not before.
-> 
-Okay, looks good to me.
-Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+Signed-off-by: guozhonghua <guozhonghua@h3c.com>
 
->>
->>>
->>> Addresses-Coverity: ("Uninitialzed scalar variable")
-> 
-> Can this be fixed up when applied rather sending a V2?
->>
-Currently ocfs2 patches are maintained in Andrew's mm tree.
-So it depends on Andrew.
+---
+ fs/ocfs2/journal.h | 28 ----------------------------
+ 1 file changed, 28 deletions(-)
 
-Thanks,
-Joseph
+diff --git a/fs/ocfs2/journal.h b/fs/ocfs2/journal.h
+index c0fe6ed08ab1..ad766a7761ad 100644
+--- a/fs/ocfs2/journal.h
++++ b/fs/ocfs2/journal.h
+@@ -575,34 +575,6 @@ static inline int ocfs2_calc_bg_discontig_credits(struct super_block *sb)
+ 	return ocfs2_extent_recs_per_gd(sb);
+ }
+ 
+-static inline int ocfs2_calc_tree_trunc_credits(struct super_block *sb,
+-						unsigned int clusters_to_del,
+-						struct ocfs2_dinode *fe,
+-						struct ocfs2_extent_list *last_el)
+-{
+- 	/* for dinode + all headers in this pass + update to next leaf */
+-	u16 next_free = le16_to_cpu(last_el->l_next_free_rec);
+-	u16 tree_depth = le16_to_cpu(fe->id2.i_list.l_tree_depth);
+-	int credits = 1 + tree_depth + 1;
+-	int i;
+-
+-	i = next_free - 1;
+-	BUG_ON(i < 0);
+-
+-	/* We may be deleting metadata blocks, so metadata alloc dinode +
+-	   one desc. block for each possible delete. */
+-	if (tree_depth && next_free == 1 &&
+-	    ocfs2_rec_clusters(last_el, &last_el->l_recs[i]) == clusters_to_del)
+-		credits += 1 + tree_depth;
+-
+-	/* update to the truncate log. */
+-	credits += OCFS2_TRUNCATE_LOG_UPDATE;
+-
+-	credits += ocfs2_quota_trans_credits(sb);
+-
+-	return credits;
+-}
+-
+ static inline int ocfs2_jbd2_file_inode(handle_t *handle, struct inode *inode)
+ {
+ 	return jbd2_journal_inode_add_write(handle, &OCFS2_I(inode)->ip_jinode);
+-- 
+2.12.1.windows.1
