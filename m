@@ -1,127 +1,72 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Wed, 14 Aug 2019 22:42:31 +0200
-Subject: [Ocfs2-devel] [PATCH v5 04/18] fs: compat_ioctl: move FITRIM
-	emulation into file systems
-In-Reply-To: <20190814204259.120942-1-arnd@arndb.de>
-References: <20190814204259.120942-1-arnd@arndb.de>
-Message-ID: <20190814204259.120942-5-arnd@arndb.de>
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+Date: Wed, 21 Aug 2019 09:29:04 +0800
+Subject: [Ocfs2-devel] [PATCH v1] ocfs2/dlm: Move BITS_TO_BYTES() to
+ bitops.h for wider use
+In-Reply-To: <20190820163112.50818-1-andriy.shevchenko@linux.intel.com>
+References: <20190820163112.50818-1-andriy.shevchenko@linux.intel.com>
+Message-ID: <1a3e6660-10d2-e66c-2880-24af64c7f120@linux.alibaba.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: linux-kernel@vger.kernel.org, viro@zeniv.linux.org.uk, linux-fsdevel@vger.kernel.org, Tyler Hicks <tyhicks@canonical.com>, Theodore Ts'o <tytso@mit.edu>, Andreas Dilger <adilger.kernel@dilger.ca>, Jaegeuk Kim <jaegeuk@kernel.org>, Chao Yu <yuchao0@huawei.com>, Mikulas Patocka <mikulas@artax.karlin.mff.cuni.cz>, Ryusuke Konishi <konishi.ryusuke@gmail.com>, Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, Joseph Qi <joseph.qi@linux.alibaba.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, "Darrick J. Wong" <darrick.wong@oracle.com>, yangerkun <yangerkun@huawei.com>, Jan Kara <jack@suse.cz>, Wang Shilong <wshilong@ddn.com>, Chandan Rajendra <chandan@linux.vnet.ibm.com>, Eric Biggers <ebiggers@google.com>, ecryptfs@vger.kernel.org, linux-ext4@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, linux-nilfs@vger.kernel.org, ocfs2-devel@oss.oracle.com
+To: Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@oss.oracle.com, Ariel Elior <aelior@marvell.com>, Sudarsana Kalluru <skalluru@marvell.com>, GR-everest-linux-l2@marvell.com, "David S. Miller" <davem@davemloft.net>, netdev@vger.kernel.org, Colin Ian King <colin.king@canonical.com>
 
-Remove the special case for FITRIM, and make file systems
-handle that like all other ioctl commands with their own
-handlers.
 
-Signed-off-by: Arnd Bergmann <arnd@arndb.de>
----
- fs/compat_ioctl.c  | 2 --
- fs/ecryptfs/file.c | 1 +
- fs/ext4/ioctl.c    | 1 +
- fs/f2fs/file.c     | 1 +
- fs/hpfs/dir.c      | 1 +
- fs/hpfs/file.c     | 1 +
- fs/nilfs2/ioctl.c  | 1 +
- fs/ocfs2/ioctl.c   | 1 +
- 8 files changed, 7 insertions(+), 2 deletions(-)
 
-diff --git a/fs/compat_ioctl.c b/fs/compat_ioctl.c
-index 1e740f4406d3..b20228c19ccd 100644
---- a/fs/compat_ioctl.c
-+++ b/fs/compat_ioctl.c
-@@ -345,8 +345,6 @@ static int ppp_scompress(struct file *file, unsigned int cmd,
- static unsigned int ioctl_pointer[] = {
- /* Little t */
- COMPATIBLE_IOCTL(TIOCOUTQ)
--/* 'X' - originally XFS but some now in the VFS */
--COMPATIBLE_IOCTL(FITRIM)
- #ifdef CONFIG_BLOCK
- /* Big S */
- COMPATIBLE_IOCTL(SCSI_IOCTL_GET_IDLUN)
-diff --git a/fs/ecryptfs/file.c b/fs/ecryptfs/file.c
-index feecb57defa7..5fb45d865ce5 100644
---- a/fs/ecryptfs/file.c
-+++ b/fs/ecryptfs/file.c
-@@ -378,6 +378,7 @@ ecryptfs_compat_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
- 		return rc;
- 
- 	switch (cmd) {
-+	case FITRIM:
- 	case FS_IOC32_GETFLAGS:
- 	case FS_IOC32_SETFLAGS:
- 	case FS_IOC32_GETVERSION:
-diff --git a/fs/ext4/ioctl.c b/fs/ext4/ioctl.c
-index 442f7ef873fc..7a6e0f0f69e2 100644
---- a/fs/ext4/ioctl.c
-+++ b/fs/ext4/ioctl.c
-@@ -1227,6 +1227,7 @@ long ext4_compat_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
- 	}
- 	case EXT4_IOC_MOVE_EXT:
- 	case EXT4_IOC_RESIZE_FS:
-+	case FITRIM:
- 	case EXT4_IOC_PRECACHE_EXTENTS:
- 	case EXT4_IOC_SET_ENCRYPTION_POLICY:
- 	case EXT4_IOC_GET_ENCRYPTION_PWSALT:
-diff --git a/fs/f2fs/file.c b/fs/f2fs/file.c
-index 3e58a6f697dd..befd2692160c 100644
---- a/fs/f2fs/file.c
-+++ b/fs/f2fs/file.c
-@@ -3216,6 +3216,7 @@ long f2fs_compat_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
- 	case F2FS_IOC_RELEASE_VOLATILE_WRITE:
- 	case F2FS_IOC_ABORT_VOLATILE_WRITE:
- 	case F2FS_IOC_SHUTDOWN:
-+	case FITRIM:
- 	case F2FS_IOC_SET_ENCRYPTION_POLICY:
- 	case F2FS_IOC_GET_ENCRYPTION_PWSALT:
- 	case F2FS_IOC_GET_ENCRYPTION_POLICY:
-diff --git a/fs/hpfs/dir.c b/fs/hpfs/dir.c
-index d85230c84ef2..f32f15669996 100644
---- a/fs/hpfs/dir.c
-+++ b/fs/hpfs/dir.c
-@@ -325,4 +325,5 @@ const struct file_operations hpfs_dir_ops =
- 	.release	= hpfs_dir_release,
- 	.fsync		= hpfs_file_fsync,
- 	.unlocked_ioctl	= hpfs_ioctl,
-+	.compat_ioctl	= compat_ptr_ioctl,
- };
-diff --git a/fs/hpfs/file.c b/fs/hpfs/file.c
-index 1ecec124e76f..b36abf9cb345 100644
---- a/fs/hpfs/file.c
-+++ b/fs/hpfs/file.c
-@@ -215,6 +215,7 @@ const struct file_operations hpfs_file_ops =
- 	.fsync		= hpfs_file_fsync,
- 	.splice_read	= generic_file_splice_read,
- 	.unlocked_ioctl	= hpfs_ioctl,
-+	.compat_ioctl	= compat_ptr_ioctl,
- };
- 
- const struct inode_operations hpfs_file_iops =
-diff --git a/fs/nilfs2/ioctl.c b/fs/nilfs2/ioctl.c
-index 91b9dac6b2cc..4ba73dbf3e8d 100644
---- a/fs/nilfs2/ioctl.c
-+++ b/fs/nilfs2/ioctl.c
-@@ -1354,6 +1354,7 @@ long nilfs_compat_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
- 	case NILFS_IOCTL_SYNC:
- 	case NILFS_IOCTL_RESIZE:
- 	case NILFS_IOCTL_SET_ALLOC_RANGE:
-+	case FITRIM:
- 		break;
- 	default:
- 		return -ENOIOCTLCMD;
-diff --git a/fs/ocfs2/ioctl.c b/fs/ocfs2/ioctl.c
-index d6f7b299eb23..2d517b5ec6ac 100644
---- a/fs/ocfs2/ioctl.c
-+++ b/fs/ocfs2/ioctl.c
-@@ -985,6 +985,7 @@ long ocfs2_compat_ioctl(struct file *file, unsigned cmd, unsigned long arg)
- 			return -EFAULT;
- 
- 		return ocfs2_info_handle(inode, &info, 1);
-+	case FITRIM:
- 	case OCFS2_IOC_MOVE_EXT:
- 		break;
- 	default:
--- 
-2.20.0
+On 19/8/21 00:31, Andy Shevchenko wrote:
+> There are users already and will be more of BITS_TO_BYTES() macro.
+> Move it to bitops.h for wider use.
+> 
+> Signed-off-by: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
+> ---
+>  drivers/net/ethernet/broadcom/bnx2x/bnx2x_init.h | 1 -
+>  fs/ocfs2/dlm/dlmcommon.h                         | 4 ----
+>  include/linux/bitops.h                           | 1 +
+>  3 files changed, 1 insertion(+), 5 deletions(-)
+> 
+> diff --git a/drivers/net/ethernet/broadcom/bnx2x/bnx2x_init.h b/drivers/net/ethernet/broadcom/bnx2x/bnx2x_init.h
+> index 066765fbef06..0a59a09ef82f 100644
+> --- a/drivers/net/ethernet/broadcom/bnx2x/bnx2x_init.h
+> +++ b/drivers/net/ethernet/broadcom/bnx2x/bnx2x_init.h
+> @@ -296,7 +296,6 @@ static inline void bnx2x_dcb_config_qm(struct bnx2x *bp, enum cos_mode mode,
+>   *    possible, the driver should only write the valid vnics into the internal
+>   *    ram according to the appropriate port mode.
+>   */
+> -#define BITS_TO_BYTES(x) ((x)/8)>
+I don't think this is a equivalent replace, or it is in fact
+wrong before?
+
+  
+>  /* CMNG constants, as derived from system spec calculations */
+>  
+> diff --git a/fs/ocfs2/dlm/dlmcommon.h b/fs/ocfs2/dlm/dlmcommon.h
+> index aaf24548b02a..0463dce65bb2 100644
+> --- a/fs/ocfs2/dlm/dlmcommon.h
+> +++ b/fs/ocfs2/dlm/dlmcommon.h
+> @@ -688,10 +688,6 @@ struct dlm_begin_reco
+>  	__be32 pad2;
+>  };
+>  
+> -
+> -#define BITS_PER_BYTE 8
+> -#define BITS_TO_BYTES(bits) (((bits)+BITS_PER_BYTE-1)/BITS_PER_BYTE)
+> -
+For ocfs2 part, it looks good to me.
+Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+
+>  struct dlm_query_join_request
+>  {
+>  	u8 node_idx;
+> diff --git a/include/linux/bitops.h b/include/linux/bitops.h
+> index cf074bce3eb3..79d80f5ddf7b 100644
+> --- a/include/linux/bitops.h
+> +++ b/include/linux/bitops.h
+> @@ -5,6 +5,7 @@
+>  #include <linux/bits.h>
+>  
+>  #define BITS_PER_TYPE(type) (sizeof(type) * BITS_PER_BYTE)
+> +#define BITS_TO_BYTES(nr)	DIV_ROUND_UP(nr, BITS_PER_BYTE)
+>  #define BITS_TO_LONGS(nr)	DIV_ROUND_UP(nr, BITS_PER_TYPE(long))
+>  
+>  extern unsigned int __sw_hweight8(unsigned int w);
+> 
