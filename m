@@ -1,12 +1,12 @@
 From: Changwei Ge <chge@linux.alibaba.com>
-Date: Thu, 22 Aug 2019 14:00:17 +0800
-Subject: [Ocfs2-devel] [PATCH 1/3] fs/ocfs2/namei.c: remove set but not
+Date: Thu, 22 Aug 2019 14:00:44 +0800
+Subject: [Ocfs2-devel] [PATCH 2/3] fs/ocfs2/file.c: remove set but not
  used variables
-In-Reply-To: <59283b16-8e47-938d-9d28-af17e55b6256@linux.alibaba.com>
+In-Reply-To: <4cb1ecda-b8a1-29d0-d013-f8a5e9953c43@linux.alibaba.com>
 References: <1566393326-25371-1-git-send-email-zhengbin13@huawei.com>
-	<1566393326-25371-2-git-send-email-zhengbin13@huawei.com>
-	<59283b16-8e47-938d-9d28-af17e55b6256@linux.alibaba.com>
-Message-ID: <7ab24e9e-a724-a6ac-f004-bf632e7dc624@linux.alibaba.com>
+	<1566393326-25371-3-git-send-email-zhengbin13@huawei.com>
+	<4cb1ecda-b8a1-29d0-d013-f8a5e9953c43@linux.alibaba.com>
+Message-ID: <b9c895f8-8580-f245-0302-2b63ad2f5a2b@linux.alibaba.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -14,13 +14,13 @@ Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
 
-On 2019/8/22 9:05 ??, Joseph Qi wrote:
+On 2019/8/22 9:07 ??, Joseph Qi wrote:
 >
 > On 19/8/21 21:15, zhengbin wrote:
 >> Fixes gcc '-Wunused-but-set-variable' warning:
 >>
->> fs/ocfs2/namei.c: In function ocfs2_create_inode_in_orphan:
->> fs/ocfs2/namei.c:2503:23: warning: variable di set but not used [-Wunused-but-set-variable]
+>> fs/ocfs2/file.c: In function ocfs2_prepare_inode_for_write:
+>> fs/ocfs2/file.c:2143:9: warning: variable end set but not used [-Wunused-but-set-variable]
 >>
 >> Reported-by: Hulk Robot <hulkci@huawei.com>
 >> Signed-off-by: zhengbin <zhengbin13@huawei.com>
@@ -29,30 +29,32 @@ On 2019/8/22 9:05 ??, Joseph Qi wrote:
 
 Reviewed-by: Changwei Ge <chge@linux.alibaba.com>
 
+
 >> ---
->>   fs/ocfs2/namei.c | 2 --
->>   1 file changed, 2 deletions(-)
+>>   fs/ocfs2/file.c | 3 ---
+>>   1 file changed, 3 deletions(-)
 >>
->> diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
->> index 6f8e1c4..8ea51cf 100644
->> --- a/fs/ocfs2/namei.c
->> +++ b/fs/ocfs2/namei.c
->> @@ -2486,7 +2486,6 @@ int ocfs2_create_inode_in_orphan(struct inode *dir,
->>   	struct inode *inode = NULL;
->>   	struct inode *orphan_dir = NULL;
->>   	struct ocfs2_super *osb = OCFS2_SB(dir->i_sb);
->> -	struct ocfs2_dinode *di = NULL;
->>   	handle_t *handle = NULL;
->>   	char orphan_name[OCFS2_ORPHAN_NAMELEN + 1];
->>   	struct buffer_head *parent_di_bh = NULL;
->> @@ -2552,7 +2551,6 @@ int ocfs2_create_inode_in_orphan(struct inode *dir,
->>   		goto leave;
->>   	}
+>> diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+>> index 4435df3..aeb3362 100644
+>> --- a/fs/ocfs2/file.c
+>> +++ b/fs/ocfs2/file.c
+>> @@ -2126,7 +2126,6 @@ static int ocfs2_prepare_inode_for_write(struct file *file,
+>>   	struct dentry *dentry = file->f_path.dentry;
+>>   	struct inode *inode = d_inode(dentry);
+>>   	struct buffer_head *di_bh = NULL;
+>> -	loff_t end;
 >>
->> -	di = (struct ocfs2_dinode *)new_di_bh->b_data;
->>   	status = ocfs2_orphan_add(osb, handle, inode, new_di_bh, orphan_name,
->>   				  &orphan_insert, orphan_dir, false);
->>   	if (status < 0) {
+>>   	/*
+>>   	 * We start with a read level meta lock and only jump to an ex
+>> @@ -2190,8 +2189,6 @@ static int ocfs2_prepare_inode_for_write(struct file *file,
+>>   			}
+>>   		}
+>>
+>> -		end = pos + count;
+>> -
+>>   		ret = ocfs2_check_range_for_refcount(inode, pos, count);
+>>   		if (ret == 1) {
+>>   			ocfs2_inode_unlock(inode, meta_level);
 >> --
 >> 2.7.4
 >>
