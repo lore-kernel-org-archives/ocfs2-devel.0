@@ -1,37 +1,44 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Date: Tue, 3 Sep 2019 21:14:12 -0700
-Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: clean up deadcode in
- dlm_master_request_handler()
-In-Reply-To: <58174C91.3040004@huawei.com>
-References: <58174C91.3040004@huawei.com>
-Message-ID: <20190903211412.9fa850ed2c231665e1967e2f@linux-foundation.org>
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+Date: Tue, 10 Sep 2019 14:45:03 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Fix passing zero to 'PTR_ERR'
+	warning
+In-Reply-To: <1568023466-1486-1-git-send-email-dingxiang@cmss.chinamobile.com>
+References: <1568023466-1486-1-git-send-email-dingxiang@cmss.chinamobile.com>
+Message-ID: <1dee278b-6c96-eec2-ce76-fe6e07c6e20f@linux.alibaba.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Ding Xiang <dingxiang@cmss.chinamobile.com>, mark@fasheh.com, jlbec@evilplan.org, Andrew Morton <akpm@linux-foundation.org>
+Cc: ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
 
-On Mon, 31 Oct 2016 21:52:17 +0800 piaojun <piaojun@huawei.com> wrote:
 
-> when 'dispatch_assert' is set, 'response' must be DLM_MASTER_RESP_YES,
-> and 'res' won't be null, so execution can't reach these two branch.
+On 19/9/9 18:04, Ding Xiang wrote:
+> Fix a static code checker warning:
+> fs/ocfs2/acl.c:331
+> 	ocfs2_acl_chmod() warn: passing zero to 'PTR_ERR'
 > 
-> ...
->
-> --- a/fs/ocfs2/dlm/dlmmaster.c
-> +++ b/fs/ocfs2/dlm/dlmmaster.c
-> @@ -1644,12 +1644,6 @@ int dlm_master_request_handler(struct o2net_msg *msg, u32 len, void *data,
->  	 * dlm_assert_master_worker() isn't called, we drop it here.
->  	 */
->  	if (dispatch_assert) {
-> -		if (response != DLM_MASTER_RESP_YES)
-> -			mlog(ML_ERROR, "invalid response %d\n", response);
-> -		if (!res) {
-> -			mlog(ML_ERROR, "bad lockres while trying to assert!\n");
-> -			BUG();
-> -		}
->  		mlog(0, "%u is the owner of %.*s, cleaning everyone else\n",
->  			     dlm->node_num, res->lockname.len, res->lockname.name);
->  		spin_lock(&res->spinlock);
+> Fixes: 5ee0fbd50fd ("ocfs2: revert using ocfs2_acl_chmod to avoid inode cluster lock hang")
+> Signed-off-by: Ding Xiang <dingxiang@cmss.chinamobile.com>
 
-This code is quite different in Linus's current tree.
+Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+> ---
+>  fs/ocfs2/acl.c | 4 ++--
+>  1 file changed, 2 insertions(+), 2 deletions(-)
+> 
+> diff --git a/fs/ocfs2/acl.c b/fs/ocfs2/acl.c
+> index 3e7da39..bb981ec 100644
+> --- a/fs/ocfs2/acl.c
+> +++ b/fs/ocfs2/acl.c
+> @@ -327,8 +327,8 @@ int ocfs2_acl_chmod(struct inode *inode, struct buffer_head *bh)
+>  	down_read(&OCFS2_I(inode)->ip_xattr_sem);
+>  	acl = ocfs2_get_acl_nolock(inode, ACL_TYPE_ACCESS, bh);
+>  	up_read(&OCFS2_I(inode)->ip_xattr_sem);
+> -	if (IS_ERR(acl) || !acl)
+> -		return PTR_ERR(acl);
+> +	if (IS_ERR_OR_NULL(acl))
+> +		return PTR_ERR_OR_ZERO(acl);
+>  	ret = __posix_acl_chmod(&acl, GFP_KERNEL, inode->i_mode);
+>  	if (ret)
+>  		return ret;
+> 
