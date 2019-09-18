@@ -1,92 +1,61 @@
-From: Joseph Qi <jiangqi903@gmail.com>
-Date: Tue, 17 Sep 2019 09:09:23 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: wait for recovering done after
- direct unlock request
-In-Reply-To: <1550124866-20367-1-git-send-email-ge.changwei@h3c.com>
-References: <1550124866-20367-1-git-send-email-ge.changwei@h3c.com>
-Message-ID: <27acc8ef-1146-20cc-893f-f9bb06cc8835@gmail.com>
+From: Shuning Zhang <sunny.s.zhang@oracle.com>
+Date: Wed, 18 Sep 2019 10:02:55 +0800
+Subject: [Ocfs2-devel] [PATCH V2 2/2] ocfs2: remove unused function
+	ocfs2_prepare_inode_for_refcount
+In-Reply-To: <1568772175-2906-1-git-send-email-sunny.s.zhang@oracle.com>
+References: <1568772175-2906-1-git-send-email-sunny.s.zhang@oracle.com>
+Message-ID: <1568772175-2906-3-git-send-email-sunny.s.zhang@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
+The function of ocfs2_prepare_inode_for_refcount is no longer
+being used. I remove this function.
 
+Signed-off-by: Shuning Zhang <sunny.s.zhang@oracle.com>
+---
+ fs/ocfs2/file.c | 27 ---------------------------
+ 1 file changed, 27 deletions(-)
 
-On 19/2/14 14:14, Changwei Ge wrote:
-> There is scenario causing ocfs2 umount hang when multiple hosts are
-> rebooting at the same time.
-> 
-> NODE1                           NODE2               NODE3
-> send unlock requset to NODE2
->                                 dies
->                                                     become recovery master
->                                                     recover NODE2
-> find NODE2 dead
-> mark resource RECOVERING
-> directly remove lock from grant list
-> calculate usage but RECOVERING marked
-> **miss the window of purging
-> clear RECOVERING
-> 
-> To reproduce this iusse, crash a host and then umount ocfs2
-> from another node.
-> 
-> To sovle this, just let unlock progress wait for recovery done.
-> 
-> Signed-off-by: Changwei Ge <ge.changwei@h3c.com>
-
-Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-> ---
->  fs/ocfs2/dlm/dlmunlock.c | 23 +++++++++++++++++++----
->  1 file changed, 19 insertions(+), 4 deletions(-)
-> 
-> diff --git a/fs/ocfs2/dlm/dlmunlock.c b/fs/ocfs2/dlm/dlmunlock.c
-> index 63d701c..c8e9b70 100644
-> --- a/fs/ocfs2/dlm/dlmunlock.c
-> +++ b/fs/ocfs2/dlm/dlmunlock.c
-> @@ -105,7 +105,8 @@ static enum dlm_status dlmunlock_common(struct dlm_ctxt *dlm,
->  	enum dlm_status status;
->  	int actions = 0;
->  	int in_use;
-> -        u8 owner;
-> +	u8 owner;
-> +	int recovery_wait = 0;
->  
->  	mlog(0, "master_node = %d, valblk = %d\n", master_node,
->  	     flags & LKM_VALBLK);
-> @@ -208,9 +209,12 @@ static enum dlm_status dlmunlock_common(struct dlm_ctxt *dlm,
->  		}
->  		if (flags & LKM_CANCEL)
->  			lock->cancel_pending = 0;
-> -		else
-> -			lock->unlock_pending = 0;
-> -
-> +		else {
-> +			if (!lock->unlock_pending)
-> +				recovery_wait = 1;
-> +			else
-> +				lock->unlock_pending = 0;
-> +		}
->  	}
->  
->  	/* get an extra ref on lock.  if we are just switching
-> @@ -244,6 +248,17 @@ static enum dlm_status dlmunlock_common(struct dlm_ctxt *dlm,
->  	spin_unlock(&res->spinlock);
->  	wake_up(&res->wq);
->  
-> +	if (recovery_wait) {
-> +		spin_lock(&res->spinlock);
-> +		/* Unlock request will directly succeed after owner dies,
-> +		 * and the lock is already removed from grant list. We have to
-> +		 * wait for RECOVERING done or we miss the chance to purge it
-> +		 * since the removement is much faster than RECOVERING proc.
-> +		 */
-> +		__dlm_wait_on_lockres_flags(res, DLM_LOCK_RES_RECOVERING);
-> +		spin_unlock(&res->spinlock);
-> +	}
-> +
->  	/* let the caller's final dlm_lock_put handle the actual kfree */
->  	if (actions & DLM_UNLOCK_FREE_LOCK) {
->  		/* this should always be coupled with list removal */
-> 
+diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+index dff4ab2..dadc35a 100644
+--- a/fs/ocfs2/file.c
++++ b/fs/ocfs2/file.c
+@@ -2092,33 +2092,6 @@ static int ocfs2_is_io_unaligned(struct inode *inode, size_t count, loff_t pos)
+ 	return 0;
+ }
+ 
+-static int ocfs2_prepare_inode_for_refcount(struct inode *inode,
+-					    struct file *file,
+-					    loff_t pos, size_t count,
+-					    int *meta_level)
+-{
+-	int ret;
+-	struct buffer_head *di_bh = NULL;
+-	u32 cpos = pos >> OCFS2_SB(inode->i_sb)->s_clustersize_bits;
+-	u32 clusters =
+-		ocfs2_clusters_for_bytes(inode->i_sb, pos + count) - cpos;
+-
+-	ret = ocfs2_inode_lock(inode, &di_bh, 1);
+-	if (ret) {
+-		mlog_errno(ret);
+-		goto out;
+-	}
+-
+-	*meta_level = 1;
+-
+-	ret = ocfs2_refcount_cow(inode, di_bh, cpos, clusters, UINT_MAX);
+-	if (ret)
+-		mlog_errno(ret);
+-out:
+-	brelse(di_bh);
+-	return ret;
+-}
+-
+ static int ocfs2_inode_lock_for_extent_tree(struct inode *inode,
+ 					    struct buffer_head **di_bh,
+ 					    int meta_level,
+-- 
+2.7.4
