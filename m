@@ -1,132 +1,48 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Wed,  9 Oct 2019 21:10:31 +0200
-Subject: [Ocfs2-devel] [PATCH v6 30/43] fs: compat_ioctl: move FITRIM
-	emulation into file systems
-In-Reply-To: <20191009190853.245077-1-arnd@arndb.de>
-References: <20191009190853.245077-1-arnd@arndb.de>
-Message-ID: <20191009191044.308087-31-arnd@arndb.de>
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+Date: Thu, 10 Oct 2019 09:32:24 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2:fix potential Null Ptr Dereference
+In-Reply-To: <20191010010752.25941-1-yzhai003@ucr.edu>
+References: <20191010010752.25941-1-yzhai003@ucr.edu>
+Message-ID: <76706fdf-6758-991c-de94-fe823251a3a3@linux.alibaba.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Al Viro <viro@zeniv.linux.org.uk>
-Cc: linux-kernel@vger.kernel.org, y2038@lists.linaro.org, linux-fsdevel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-ext4@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, Mikulas Patocka <mikulas@artax.karlin.mff.cuni.cz>, linux-nilfs@vger.kernel.org, ocfs2-devel@oss.oracle.com
+To: Yizhuo <yzhai003@ucr.edu>
+Cc: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, Andrew Morton <akpm@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, ChenGang <cg.chen@huawei.com>, Richard Fontana <rfontana@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Jia Guo <guojia12@huawei.com>, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
 
-Remove the special case for FITRIM, and make file systems
-handle that like all other ioctl commands with their own
-handlers.
 
-Cc: linux-ext4 at vger.kernel.org
-Cc: linux-f2fs-devel at lists.sourceforge.net
-Cc: Mikulas Patocka <mikulas@artax.karlin.mff.cuni.cz>
-Cc: linux-nilfs at vger.kernel.org
-Cc: ocfs2-devel at oss.oracle.com
-Signed-off-by: Arnd Bergmann <arnd@arndb.de>
----
- fs/compat_ioctl.c  | 2 --
- fs/ecryptfs/file.c | 1 +
- fs/ext4/ioctl.c    | 1 +
- fs/f2fs/file.c     | 1 +
- fs/hpfs/dir.c      | 1 +
- fs/hpfs/file.c     | 1 +
- fs/nilfs2/ioctl.c  | 1 +
- fs/ocfs2/ioctl.c   | 1 +
- 8 files changed, 7 insertions(+), 2 deletions(-)
 
-diff --git a/fs/compat_ioctl.c b/fs/compat_ioctl.c
-index 1e740f4406d3..b20228c19ccd 100644
---- a/fs/compat_ioctl.c
-+++ b/fs/compat_ioctl.c
-@@ -345,8 +345,6 @@ static int ppp_scompress(struct file *file, unsigned int cmd,
- static unsigned int ioctl_pointer[] = {
- /* Little t */
- COMPATIBLE_IOCTL(TIOCOUTQ)
--/* 'X' - originally XFS but some now in the VFS */
--COMPATIBLE_IOCTL(FITRIM)
- #ifdef CONFIG_BLOCK
- /* Big S */
- COMPATIBLE_IOCTL(SCSI_IOCTL_GET_IDLUN)
-diff --git a/fs/ecryptfs/file.c b/fs/ecryptfs/file.c
-index feecb57defa7..5fb45d865ce5 100644
---- a/fs/ecryptfs/file.c
-+++ b/fs/ecryptfs/file.c
-@@ -378,6 +378,7 @@ ecryptfs_compat_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
- 		return rc;
- 
- 	switch (cmd) {
-+	case FITRIM:
- 	case FS_IOC32_GETFLAGS:
- 	case FS_IOC32_SETFLAGS:
- 	case FS_IOC32_GETVERSION:
-diff --git a/fs/ext4/ioctl.c b/fs/ext4/ioctl.c
-index 0b7f316fd30f..e8870fff8224 100644
---- a/fs/ext4/ioctl.c
-+++ b/fs/ext4/ioctl.c
-@@ -1360,6 +1360,7 @@ long ext4_compat_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
- 	}
- 	case EXT4_IOC_MOVE_EXT:
- 	case EXT4_IOC_RESIZE_FS:
-+	case FITRIM:
- 	case EXT4_IOC_PRECACHE_EXTENTS:
- 	case EXT4_IOC_SET_ENCRYPTION_POLICY:
- 	case EXT4_IOC_GET_ENCRYPTION_PWSALT:
-diff --git a/fs/f2fs/file.c b/fs/f2fs/file.c
-index 29bc0a542759..57d82f2d2ebd 100644
---- a/fs/f2fs/file.c
-+++ b/fs/f2fs/file.c
-@@ -3403,6 +3403,7 @@ long f2fs_compat_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
- 	case F2FS_IOC_RELEASE_VOLATILE_WRITE:
- 	case F2FS_IOC_ABORT_VOLATILE_WRITE:
- 	case F2FS_IOC_SHUTDOWN:
-+	case FITRIM:
- 	case F2FS_IOC_SET_ENCRYPTION_POLICY:
- 	case F2FS_IOC_GET_ENCRYPTION_PWSALT:
- 	case F2FS_IOC_GET_ENCRYPTION_POLICY:
-diff --git a/fs/hpfs/dir.c b/fs/hpfs/dir.c
-index d85230c84ef2..f32f15669996 100644
---- a/fs/hpfs/dir.c
-+++ b/fs/hpfs/dir.c
-@@ -325,4 +325,5 @@ const struct file_operations hpfs_dir_ops =
- 	.release	= hpfs_dir_release,
- 	.fsync		= hpfs_file_fsync,
- 	.unlocked_ioctl	= hpfs_ioctl,
-+	.compat_ioctl	= compat_ptr_ioctl,
- };
-diff --git a/fs/hpfs/file.c b/fs/hpfs/file.c
-index 1ecec124e76f..b36abf9cb345 100644
---- a/fs/hpfs/file.c
-+++ b/fs/hpfs/file.c
-@@ -215,6 +215,7 @@ const struct file_operations hpfs_file_ops =
- 	.fsync		= hpfs_file_fsync,
- 	.splice_read	= generic_file_splice_read,
- 	.unlocked_ioctl	= hpfs_ioctl,
-+	.compat_ioctl	= compat_ptr_ioctl,
- };
- 
- const struct inode_operations hpfs_file_iops =
-diff --git a/fs/nilfs2/ioctl.c b/fs/nilfs2/ioctl.c
-index 91b9dac6b2cc..4ba73dbf3e8d 100644
---- a/fs/nilfs2/ioctl.c
-+++ b/fs/nilfs2/ioctl.c
-@@ -1354,6 +1354,7 @@ long nilfs_compat_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
- 	case NILFS_IOCTL_SYNC:
- 	case NILFS_IOCTL_RESIZE:
- 	case NILFS_IOCTL_SET_ALLOC_RANGE:
-+	case FITRIM:
- 		break;
- 	default:
- 		return -ENOIOCTLCMD;
-diff --git a/fs/ocfs2/ioctl.c b/fs/ocfs2/ioctl.c
-index d6f7b299eb23..2d517b5ec6ac 100644
---- a/fs/ocfs2/ioctl.c
-+++ b/fs/ocfs2/ioctl.c
-@@ -985,6 +985,7 @@ long ocfs2_compat_ioctl(struct file *file, unsigned cmd, unsigned long arg)
- 			return -EFAULT;
- 
- 		return ocfs2_info_handle(inode, &info, 1);
-+	case FITRIM:
- 	case OCFS2_IOC_MOVE_EXT:
- 		break;
- 	default:
--- 
-2.20.0
+On 19/10/10 09:07, Yizhuo wrote:
+> Inside function o2hb_region_blocks_store(), to_o2hb_region()
+> could return NULL but there's no check before its dereference,
+> which is potentially unsafe.
+
+As I described before, this won't happen IMHO.
+configfs item is initialized after loading module, so region should
+be valid here.
+
+
+Thanks,
+Joseph
+
+> 
+> Signed-off-by: Yizhuo <yzhai003@ucr.edu>
+> ---
+>  fs/ocfs2/cluster/heartbeat.c | 2 +-
+>  1 file changed, 1 insertion(+), 1 deletion(-)
+> 
+> diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
+> index a368350d4c27..93f2b540f245 100644
+> --- a/fs/ocfs2/cluster/heartbeat.c
+> +++ b/fs/ocfs2/cluster/heartbeat.c
+> @@ -1628,7 +1628,7 @@ static ssize_t o2hb_region_blocks_store(struct config_item *item,
+>  	unsigned long tmp;
+>  	char *p = (char *)page;
+>  
+> -	if (reg->hr_bdev)
+> +	if (!reg || reg->hr_bdev)
+>  		return -EINVAL;
+>  
+>  	tmp = simple_strtoul(p, &p, 0);
+> 
