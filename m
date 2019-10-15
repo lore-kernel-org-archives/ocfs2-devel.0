@@ -1,91 +1,77 @@
-From: Steven Whitehouse <swhiteho@redhat.com>
-Date: Fri, 11 Oct 2019 11:14:31 +0100
-Subject: [Ocfs2-devel] [Cluster-devel] Interest in DAX for OCFS2 and/or
-	GFS2?
-In-Reply-To: <CH2PR18MB3206F78AC614EAC963AF8203CF970@CH2PR18MB3206.namprd18.prod.outlook.com>
-References: <AT5PR8401MB1025DFAE60F5A5A4BCC5D2038B940@AT5PR8401MB1025.NAMPRD84.PROD.OUTLOOK.COM>
-	<CH2PR18MB3206F78AC614EAC963AF8203CF970@CH2PR18MB3206.namprd18.prod.outlook.com>
-Message-ID: <8d0de038-9127-3a95-ab1d-e0ac2cc483de@redhat.com>
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+Date: Tue, 15 Oct 2019 19:49:30 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: fix panic due to ocfs2_wq is null
+In-Reply-To: <b934372f-2769-0ae3-910f-9e65c3614d30@linux.alibaba.com>
+References: <1571130330-3944-1-git-send-email-yili@winhong.com>
+	<b934372f-2769-0ae3-910f-9e65c3614d30@linux.alibaba.com>
+Message-ID: <e1337f34-c807-4b59-6f90-63e18f42ef3f@linux.alibaba.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Yi Li <yili@winhong.com>, linux-kernel@vger.kernel.org
+Cc: Yi Li <yilikernel@gmail.com>, "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>
 
-Hi,
+Cc ocfs2-devel
 
-On 11/10/2019 08:21, Gang He wrote:
-> Hello hayes,
->
->> -----Original Message-----
->> From: cluster-devel-bounces at redhat.com
->> [mailto:cluster-devel-bounces at redhat.com] On Behalf Of Hayes, Bill
->> Sent: 2019?10?11? 0:42
->> To: ocfs2-devel at oss.oracle.com; cluster-devel at redhat.com
->> Cc: Rocky (The good-looking one) Craig <rocky.craig@hpe.com>
->> Subject: [Cluster-devel] Interest in DAX for OCFS2 and/or GFS2?
+On 19/10/15 19:03, Joseph Qi wrote:
+> 
+> 
+> On 19/10/15 17:05, Yi Li wrote:
+>> mount.ocfs2 failed when read ocfs2 filesystem super error.
+>> the func ocfs2_initialize_super will return before allocate ocfs2_wq.
+>> ocfs2_dismount_volume will flush the ocfs2_wq, that triggered the following panic.
 >>
->> We have been experimenting with distributed file systems across multiple
->> Linux instances connected to a shared block device.  In our setup, the "disk" is
->> not a legacy SAN or iSCSI.  Instead it is a shared memory-semantic fabric
->> that is being presented as a Linux block device.
+>> Oct 15 16:09:27 cnwarekv-205120 kernel: OCFS2: ERROR (device dm-34): ocfs2_validate_inode_block: Invalid dinode #513: fs_generation is 1837764116
+>> Oct 15 16:09:27 cnwarekv-205120 kernel: On-disk corruption discovered. Please run fsck.ocfs2 once the filesystem is unmounted.
+>> Oct 15 16:09:27 cnwarekv-205120 kernel: OCFS2: File system is now read-only.
+>> Oct 15 16:09:27 cnwarekv-205120 kernel: (mount.ocfs2,22804,44):ocfs2_read_locked_inode:537 ERROR: status = -30
+>> Oct 15 16:09:27 cnwarekv-205120 kernel: (mount.ocfs2,22804,44):ocfs2_init_global_system_inodes:458 ERROR: status = -30
+>> Oct 15 16:09:27 cnwarekv-205120 kernel: (mount.ocfs2,22804,44):ocfs2_init_global_system_inodes:491 ERROR: status = -30
+>> Oct 15 16:09:27 cnwarekv-205120 kernel: (mount.ocfs2,22804,44):ocfs2_initialize_super:2313 ERROR: status = -30
+>> Oct 15 16:09:27 cnwarekv-205120 kernel: (mount.ocfs2,22804,44):ocfs2_fill_super:1033 ERROR: status = -30
+>> ------------[ cut here ]------------
+>> Oops: 0002 [#1] SMP NOPTI
+>> Modules linked in: ocfs2 rpcsec_gss_krb5 auth_rpcgss nfsv4 nfs fscache lockd grace ocfs2_dlmfs ocfs2_stack_o2cb ocfs2_dlm ocfs2_nodemanager ocfs2_stackglue configfs sunrpc ipt_REJECT nf_reject_ipv4 nf_conntrack_ipv4 nf_defrag_ipv4 iptable_filter ip_tables ip6t_REJECT nf_reject_ipv6 nf_conntrack_ipv6 nf_defrag_ipv6 xt_state nf_conntrack ip6table_filter ip6_tables ib_ipoib rdma_ucm ib_ucm ib_uverbs ib_umad rdma_cm ib_cm iw_cm ib_sa ib_mad ib_core ib_addr ipv6 ovmapi ppdev parport_pc parport xen_netfront fb_sys_fops sysimgblt sysfillrect syscopyarea acpi_cpufreq pcspkr i2c_piix4 i2c_core sg ext4 jbd2 mbcache2 sr_mod cdrom xen_blkfront pata_acpi ata_generic ata_piix floppy dm_mirror dm_region_hash dm_log dm_mod
+>> CPU: 1 PID: 11753 Comm: mount.ocfs2 Tainted: G  E	4.14.148-200.ckv.x86_64 #1
+>> Hardware name: Sugon H320-G30/35N16-US, BIOS 0SSDX017 12/21/2018
+>> task: ffff967af0520000 task.stack: ffffa5f05484000
+>> RIP: 0010:mutex_lock+0x19/0x20
+>> Call Trace:
+>>   flush_workqueue+0x81/0x460
+>>   ocfs2_shutdown_local_alloc+0x47/0x440 [ocfs2]
+>>   ocfs2_dismount_volume+0x84/0x400 [ocfs2]
+>>   ocfs2_fill_super+0xa4/0x1270 [ocfs2]
+>>   ? ocfs2_initialize_super.isa.211+0xf20/0xf20 [ocfs2]
+>>   mount_bdev+0x17f/0x1c0
+>>   mount_fs+0x3a/0x160
 >>
->> We have been working with both GFS2 and OCFS2 to evaluate the suitability
->> to work on our shared memory configuration.  Right now we have gotten
->> both GFS2 and OCFS2 to work with block driver but each file system still does
->> block copies.  Our goal is to extend mmap() of the file system(s) to allow true
->> zero-copy load/store access directly to the memory fabric.  We believe
->> adding DAX support into the OCFS2 and/or GFS2 is an expedient path to use a
->> block device that fronts our memory fabric with DAX.
+>> Signed-off-by: Yi Li <yilikernel@gmail.com>
+>> ---
+>>  fs/ocfs2/localalloc.c | 4 +++-
+>>  1 file changed, 3 insertions(+), 1 deletion(-)
 >>
->> Based on the HW that OCFS2 and GFS2 were built for (iSCSI, FC, DRDB, etc)
->> there probably has been no reason to implement DAX to date.  The advent of
->> various memory semantic fabrics (Gen-Z, NUMAlink, etc) is driving our
->> interest in extending OCFS2 and/or GFS2 to take advantage of DAX.  We
->> have two platforms set up, one based on actual hardware and another based
->> on VMs and are eager to begin deeper work.
+>> diff --git a/fs/ocfs2/localalloc.c b/fs/ocfs2/localalloc.c
+>> index 158e5af..943e5c3 100644
+>> --- a/fs/ocfs2/localalloc.c
+>> +++ b/fs/ocfs2/localalloc.c
+>> @@ -377,7 +377,9 @@ void ocfs2_shutdown_local_alloc(struct ocfs2_super *osb)
+>>  	struct ocfs2_dinode *alloc = NULL;
+>>  
+>>  	cancel_delayed_work(&osb->la_enable_wq);
+>> -	flush_workqueue(osb->ocfs2_wq);
+>> +	if (osb->ocfs2_wq) {
+>> +	    flush_workqueue(osb->ocfs2_wq);
+>> +	}
+> 
+> No need braces here.
+> I think this fix is not enough since ocfs2_recovery_exit() will also
+> do flush_workqueue().
+> 
+> Thanks,
+> Joseph
+> 
+>>  
+>>  	if (osb->local_alloc_state == OCFS2_LA_UNUSED)
+>>  		goto out;
 >>
->> Has there been any discussion or interest in DAX support in OCFS2?
-> No, but I think this is very interesting topic/feature.
-> I hope we can take some efforts in investigating how to make OCFS2 support DAX, since some local file systems have supported this feature for long time.
-
-Well, I think it is more accurate to say that the feature has been 
-evolving in local filesystems for some time. However, it is moving 
-towards time where it makes sense to think about this for clustered 
-filesystems, so this is a timely topic for discussion in that sense.
-
-
->> Is there interest from the OCFS2 development community to see DAX support
->> developed and put upstream?
-> >From my personal view, it is very attractive.
-> But we also aware cluster file systems are usually based on DLM, DLM usually communicates with each other via the network.
-> That means network latency should be considered.
->
-> Thanks
-> Gang
-
-Hopefully we can come up with a design which avoids the network latency, 
-at least in most cases. With GFS2 direct_io for example, the locking is 
-designed such that DLM lock requests are only needed in case of block 
-allocation/deallocation. Extending the same concept to DAX should allow 
-(after the initial page fault) true DSM via the filesystem. It may be 
-able to do even better eventually, but that would be a good starting point.
-
-It has not been something that the GFS2 developers have looked at in any 
-detail recently, however it is something that would be interesting, and 
-we'd be very happy for someone to work on this and send patches in due 
-course,
-
-Steve.
-
-
->
->> Has there been any discussion or interest in DAX support in GFS2?
->> Is there interest from the GFS2 development community to see DAX support
->> developed and put upstream?
->>
->> Regards,
->> Bill
->>
->
->
