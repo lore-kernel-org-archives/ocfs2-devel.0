@@ -1,8 +1,8 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Date: Thu, 24 Oct 2019 17:06:30 -0700
+From: sunnyZhang <sunny.s.zhang@oracle.com>
+Date: Fri, 25 Oct 2019 08:52:40 +0800
 Subject: [Ocfs2-devel] [PATCH V2 1/2] ocfs2: protect extent tree in the
  ocfs2_prepare_inode_for_write
-In-Reply-To: <7db0b888-d885-7e5c-810c-714db6ce63c6@oracle.com>
+In-Reply-To: <20191024170630.684d170b6da79080b28fc1a5@linux-foundation.org>
 References: <1568772175-2906-1-git-send-email-sunny.s.zhang@oracle.com>
 	<1568772175-2906-2-git-send-email-sunny.s.zhang@oracle.com>
 	<CH2PR18MB3206EE61C6BEC30C68EE5AE6CF870@CH2PR18MB3206.namprd18.prod.outlook.com>
@@ -10,26 +10,42 @@ References: <1568772175-2906-1-git-send-email-sunny.s.zhang@oracle.com>
 	<92e25022-9d63-92f5-d3cf-08423c5c97b7@oracle.com>
 	<CH2PR18MB320662998E1EC2BA01BA0B88CF6A0@CH2PR18MB3206.namprd18.prod.outlook.com>
 	<7db0b888-d885-7e5c-810c-714db6ce63c6@oracle.com>
-Message-ID: <20191024170630.684d170b6da79080b28fc1a5@linux-foundation.org>
+	<20191024170630.684d170b6da79080b28fc1a5@linux-foundation.org>
+Message-ID: <c6e2549a-0e8d-b27b-7716-02266cc89db1@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, 24 Oct 2019 12:34:11 +0800 sunnyZhang <sunny.s.zhang@oracle.com> wrote:
 
-> @Gang
-> 
-> Thank you very much!
-> 
-> I have fixed this issue through upgrading the openmpi.
-> 
-> I have tested this patch using ocfs2-test. It can work fine.
-> 
-> @Andrew Please can you help me to summit this patch?
+? 2019/10/25 ??8:06, Andrew Morton ??:
+> On Thu, 24 Oct 2019 12:34:11 +0800 sunnyZhang <sunny.s.zhang@oracle.com> wrote:
+>
+>> @Gang
+>>
+>> Thank you very much!
+>>
+>> I have fixed this issue through upgrading the openmpi.
+>>
+>> I have tested this patch using ocfs2-test. It can work fine.
+>>
+>> @Andrew Please can you help me to summit this patch?
+> OK, I'll send it in to Linus for 5.4.
+>
+> Is the problem serious enough to justify also tagging it for
+> backporting into -stable kernels?
 
-OK, I'll send it in to Linus for 5.4.
+I think it's best to backport into stable kernels.
 
-Is the problem serious enough to justify also tagging it for
-backporting into -stable kernels?
+This issue can be reproduced every week in a production environment.
+
+This issue is related to the usage mode. If others use ocfs2 in this 
+mode, the kernel will
+
+panic frequently.
+
+
+Thanks,
+
+Sunny
