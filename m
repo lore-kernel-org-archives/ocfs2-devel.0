@@ -1,51 +1,105 @@
-From: sunnyZhang <sunny.s.zhang@oracle.com>
-Date: Fri, 25 Oct 2019 08:52:40 +0800
-Subject: [Ocfs2-devel] [PATCH V2 1/2] ocfs2: protect extent tree in the
- ocfs2_prepare_inode_for_write
-In-Reply-To: <20191024170630.684d170b6da79080b28fc1a5@linux-foundation.org>
-References: <1568772175-2906-1-git-send-email-sunny.s.zhang@oracle.com>
-	<1568772175-2906-2-git-send-email-sunny.s.zhang@oracle.com>
-	<CH2PR18MB3206EE61C6BEC30C68EE5AE6CF870@CH2PR18MB3206.namprd18.prod.outlook.com>
-	<20873961-3d27-2f0c-47ec-acf275647074@oracle.com>
-	<92e25022-9d63-92f5-d3cf-08423c5c97b7@oracle.com>
-	<CH2PR18MB320662998E1EC2BA01BA0B88CF6A0@CH2PR18MB3206.namprd18.prod.outlook.com>
-	<7db0b888-d885-7e5c-810c-714db6ce63c6@oracle.com>
-	<20191024170630.684d170b6da79080b28fc1a5@linux-foundation.org>
-Message-ID: <c6e2549a-0e8d-b27b-7716-02266cc89db1@oracle.com>
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+Date: Wed, 13 Nov 2019 14:01:56 +0800
+Subject: [Ocfs2-devel] [PATCH] Revert "fs: ocfs2: fix possible null-pointer
+	dereferences in ocfs2_xa_prepare_entry()"
+Message-ID: <1573624916-83825-1-git-send-email-joseph.qi@linux.alibaba.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
+This reverts commit 56e94ea132bb5c2c1d0b60a6aeb34dcb7d71a53d.
 
-? 2019/10/25 ??8:06, Andrew Morton ??:
-> On Thu, 24 Oct 2019 12:34:11 +0800 sunnyZhang <sunny.s.zhang@oracle.com> wrote:
->
->> @Gang
->>
->> Thank you very much!
->>
->> I have fixed this issue through upgrading the openmpi.
->>
->> I have tested this patch using ocfs2-test. It can work fine.
->>
->> @Andrew Please can you help me to summit this patch?
-> OK, I'll send it in to Linus for 5.4.
->
-> Is the problem serious enough to justify also tagging it for
-> backporting into -stable kernels?
+commit 56e94ea132bb "fs: ocfs2: fix possible null-pointer dereferences
+in ocfs2_xa_prepare_entry()" introduces a regression that fail to create
+directory with mount option user_xattr and acl.
+Actually the reported NULL pointer dereference case can be correctly
+handled by loc->xl_ops->xlo_add_entry(), so revert it.
 
-I think it's best to backport into stable kernels.
+Reported-by: Thomas Voegtle <tv@lio96.de>
+Cc: Jia-Ju Bai <baijiaju1990@gmail.com>
+Cc: stable at vger.kernel.org
+Signed-off-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+---
+ fs/ocfs2/xattr.c | 56 +++++++++++++++++++++++++++++++++-----------------------
+ 1 file changed, 33 insertions(+), 23 deletions(-)
 
-This issue can be reproduced every week in a production environment.
-
-This issue is related to the usage mode. If others use ocfs2 in this 
-mode, the kernel will
-
-panic frequently.
-
-
-Thanks,
-
-Sunny
+diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
+index d850797..90c830e3 100644
+--- a/fs/ocfs2/xattr.c
++++ b/fs/ocfs2/xattr.c
+@@ -1490,6 +1490,18 @@ static int ocfs2_xa_check_space(struct ocfs2_xa_loc *loc,
+ 	return loc->xl_ops->xlo_check_space(loc, xi);
+ }
+ 
++static void ocfs2_xa_add_entry(struct ocfs2_xa_loc *loc, u32 name_hash)
++{
++	loc->xl_ops->xlo_add_entry(loc, name_hash);
++	loc->xl_entry->xe_name_hash = cpu_to_le32(name_hash);
++	/*
++	 * We can't leave the new entry's xe_name_offset at zero or
++	 * add_namevalue() will go nuts.  We set it to the size of our
++	 * storage so that it can never be less than any other entry.
++	 */
++	loc->xl_entry->xe_name_offset = cpu_to_le16(loc->xl_size);
++}
++
+ static void ocfs2_xa_add_namevalue(struct ocfs2_xa_loc *loc,
+ 				   struct ocfs2_xattr_info *xi)
+ {
+@@ -2121,31 +2133,29 @@ static int ocfs2_xa_prepare_entry(struct ocfs2_xa_loc *loc,
+ 	if (rc)
+ 		goto out;
+ 
+-	if (!loc->xl_entry) {
+-		rc = -EINVAL;
+-		goto out;
+-	}
+-
+-	if (ocfs2_xa_can_reuse_entry(loc, xi)) {
+-		orig_value_size = loc->xl_entry->xe_value_size;
+-		rc = ocfs2_xa_reuse_entry(loc, xi, ctxt);
+-		if (rc)
+-			goto out;
+-		goto alloc_value;
+-	}
++	if (loc->xl_entry) {
++		if (ocfs2_xa_can_reuse_entry(loc, xi)) {
++			orig_value_size = loc->xl_entry->xe_value_size;
++			rc = ocfs2_xa_reuse_entry(loc, xi, ctxt);
++			if (rc)
++				goto out;
++			goto alloc_value;
++		}
+ 
+-	if (!ocfs2_xattr_is_local(loc->xl_entry)) {
+-		orig_clusters = ocfs2_xa_value_clusters(loc);
+-		rc = ocfs2_xa_value_truncate(loc, 0, ctxt);
+-		if (rc) {
+-			mlog_errno(rc);
+-			ocfs2_xa_cleanup_value_truncate(loc,
+-							"overwriting",
+-							orig_clusters);
+-			goto out;
++		if (!ocfs2_xattr_is_local(loc->xl_entry)) {
++			orig_clusters = ocfs2_xa_value_clusters(loc);
++			rc = ocfs2_xa_value_truncate(loc, 0, ctxt);
++			if (rc) {
++				mlog_errno(rc);
++				ocfs2_xa_cleanup_value_truncate(loc,
++								"overwriting",
++								orig_clusters);
++				goto out;
++			}
+ 		}
+-	}
+-	ocfs2_xa_wipe_namevalue(loc);
++		ocfs2_xa_wipe_namevalue(loc);
++	} else
++		ocfs2_xa_add_entry(loc, name_hash);
+ 
+ 	/*
+ 	 * If we get here, we have a blank entry.  Fill it.  We grow our
+-- 
+1.8.3.1
