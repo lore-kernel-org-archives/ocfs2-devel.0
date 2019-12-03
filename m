@@ -1,59 +1,45 @@
-From: Jan Kara <jack@suse.cz>
-Date: Thu, 28 Nov 2019 12:21:34 +0100
-Subject: [Ocfs2-devel] [QUESTION] deadlock during umount and quota
- recovery
-In-Reply-To: <8ed6847c-26f4-4019-c5b8-77ac7c34d4bb@linux.alibaba.com>
-References: <5DDF7852.3060403@huawei.com>
-	<8ed6847c-26f4-4019-c5b8-77ac7c34d4bb@linux.alibaba.com>
-Message-ID: <20191128112134.GC20395@quack2.suse.cz>
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+Date: Tue, 3 Dec 2019 09:05:05 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: remove redundant assignment to
+	ret
+In-Reply-To: <20191202164833.62865-1-colin.king@canonical.com>
+References: <20191202164833.62865-1-colin.king@canonical.com>
+Message-ID: <787d96be-b750-9fa2-19c6-30c1af86cc3c@linux.alibaba.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Colin King <colin.king@canonical.com>, Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@oss.oracle.com, Andrew Morton <akpm@linux-foundation.org>
+Cc: kernel-janitors@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Thu 28-11-19 17:05:58, Changwei Ge wrote:
-> Hi Jun,
-> 
-> For your information, with this patch(21158ca85b73 ("ocfs2: without quota
-> support, avoid calling quota recovery")) applied which was already merged
-> into mainline, given that you are not using disk quota, recovery hang can be
-> workaound.
-> 
-> IIRC, Jan's patches somehow didn't reach completion and might cause
-> side-effect.
-> 
-> Of course, if Jan can finish it, that would be better.
 
-Yeah, I'm sorry for that. There were some deadlock issues with my patches
-if I remember right and I never got to fixing those... I'll try to get back
-to this.
 
-								Honza
-> On 2019/11/28 3:33 ??, piaojun wrote:
-> > Hi Jan,
-> > 
-> > Umount will get hang with quota recovery, as sb->s_umount will be held
-> > in ocfs2_finish_quota_recovery(). This patch series seem to solve this
-> > problem but they have not merged into mainline. So I wonder if they
-> > have been tested enough?
-> > 
-> > https://oss.oracle.com/pipermail/ocfs2-devel/2018-February/013355.html
-> > https://oss.oracle.com/pipermail/ocfs2-devel/2018-February/013358.html
-> > https://oss.oracle.com/pipermail/ocfs2-devel/2018-February/013354.html
-> > https://oss.oracle.com/pipermail/ocfs2-devel/2018-February/013356.html
-> > https://oss.oracle.com/pipermail/ocfs2-devel/2018-February/013359.html
-> > https://oss.oracle.com/pipermail/ocfs2-devel/2018-February/013360.html
-> > https://oss.oracle.com/pipermail/ocfs2-devel/2018-February/013357.html
-> > 
-> > Thanks,
-> > Jun
-> > 
-> > _______________________________________________
-> > Ocfs2-devel mailing list
-> > Ocfs2-devel at oss.oracle.com
-> > https://oss.oracle.com/mailman/listinfo/ocfs2-devel
-> > 
--- 
-Jan Kara <jack@suse.com>
-SUSE Labs, CR
+On 19/12/3 00:48, Colin King wrote:
+> From: Colin Ian King <colin.king@canonical.com>
+> 
+> The variable ret is being initialized with a value that is never
+> read and it is being updated later with a new value.  The initialization
+> is redundant and can be removed.
+> 
+> Addresses-Coverity: ("Unused value")
+> Signed-off-by: Colin Ian King <colin.king@canonical.com>
+
+Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+> ---
+>  fs/ocfs2/dlm/dlmrecovery.c | 2 +-
+>  1 file changed, 1 insertion(+), 1 deletion(-)
+> 
+> diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
+> index 064ce5bbc3f6..2734867473a6 100644
+> --- a/fs/ocfs2/dlm/dlmrecovery.c
+> +++ b/fs/ocfs2/dlm/dlmrecovery.c
+> @@ -1668,7 +1668,7 @@ static int dlm_lockres_master_requery(struct dlm_ctxt *dlm,
+>  int dlm_do_master_requery(struct dlm_ctxt *dlm, struct dlm_lock_resource *res,
+>  			  u8 nodenum, u8 *real_master)
+>  {
+> -	int ret = -EINVAL;
+> +	int ret;
+>  	struct dlm_master_requery req;
+>  	int status = DLM_LOCK_RES_OWNER_UNKNOWN;
+>  
+> 
