@@ -1,120 +1,116 @@
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-Date: Wed, 11 Dec 2019 14:59:57 +0800
-Subject: [Ocfs2-devel] [PATCH v2] ocfs2/dlm: Move BITS_TO_BYTES() to
- bitops.h for wider use
-In-Reply-To: <MN2PR18MB25282DFB28BB92626C6C8C37D35A0@MN2PR18MB2528.namprd18.prod.outlook.com>
-References: <20190827163717.44101-1-andriy.shevchenko@linux.intel.com>
-	<20191209164338.GO32742@smile.fi.intel.com>
-	<MN2PR18MB25282DFB28BB92626C6C8C37D35A0@MN2PR18MB2528.namprd18.prod.outlook.com>
-Message-ID: <f3fbe9bc-9ef7-6639-a21a-58fb4f0ca55c@linux.alibaba.com>
+From: Kai Li <li.kai4@h3c.com>
+Date: Wed, 11 Dec 2019 18:03:38 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: call journal flush to mark journal as
+	empty after journal recovery when mount
+Message-ID: <20191211100338.510-1-li.kai4@h3c.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Sudarsana Reddy Kalluru <skalluru@marvell.com>, Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>, Ariel Elior <aelior@marvell.com>, GR-everest-linux-l2 <GR-everest-linux-l2@marvell.com>, "David S. Miller" <davem@davemloft.net>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, Colin Ian King <colin.king@canonical.com>, Andrew Morton <akpm@linux-foundation.org>
+To: mark@fasheh.com, jlbec@evilplan.org, joseph.qi@linux.alibaba.com, chge@linux.alibaba.com
+Cc: ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org, Kai Li <li.kai4@h3c.com>
 
-Add akpm as well.
+If journal is dirty when mount, it will be replayed but jbd2 sb
+log tail cannot be updated to mark a new start because
+journal->j_flag has already been set with JBD2_ABORT first
+in journal_init_common. When a new transaction is committed, it
+will be recored in block 1 first(journal->j_tail is set to 1 in
+journal_reset).
 
-On 19/12/11 11:32, Sudarsana Reddy Kalluru wrote:
->> -----Original Message-----
->> From: netdev-owner at vger.kernel.org <netdev-owner@vger.kernel.org> On
->> Behalf Of Andy Shevchenko
->> Sent: Monday, December 9, 2019 10:14 PM
->> To: Mark Fasheh <mark@fasheh.com>; Joel Becker <jlbec@evilplan.org>;
->> Joseph Qi <joseph.qi@linux.alibaba.com>; ocfs2-devel at oss.oracle.com; Ariel
->> Elior <aelior@marvell.com>; Sudarsana Reddy Kalluru
->> <skalluru@marvell.com>; GR-everest-linux-l2 <GR-everest-linux-
->> l2 at marvell.com>; David S. Miller <davem@davemloft.net>;
->> netdev at vger.kernel.org; Colin Ian King <colin.king@canonical.com>
->> Subject: Re: [PATCH v2] ocfs2/dlm: Move BITS_TO_BYTES() to bitops.h for
->> wider use
->>
->> On Tue, Aug 27, 2019 at 07:37:17PM +0300, Andy Shevchenko wrote:
->>> There are users already and will be more of BITS_TO_BYTES() macro.
->>> Move it to bitops.h for wider use.
->>>
->>> In the case of ocfs2 the replacement is identical.
->>>
->>> As for bnx2x, there are two places where floor version is used.
->>> In the first case to calculate the amount of structures that can fit
->>> one memory page. In this case obviously the ceiling variant is correct
->>> and original code might have a potential bug, if amount of bits % 8 is not 0.
->>> In the second case the macro is used to calculate bytes transmitted in
->>> one microsecond. This will work for all speeds which is multiply of
->>> 1Gbps without any change, for the rest new code will give ceiling
->>> value, for instance 100Mbps will give 13 bytes, while old code gives
->>> 12 bytes and the arithmetically correct one is 12.5 bytes. Further the
->>> value is used to setup timer threshold which in any case has its own
->>> margins due to certain resolution. I don't see here an issue with
->>> slightly shifting thresholds for low speed connections, the card is supposed
->> to utilize highest available rate, which is usually 10Gbps.
->>
->> Anybody to comment on bnx2 change?
->> Can we survive with this applied?
->>
->>>
->>> Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
->>> Signed-off-by: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
->>> ---
->>> - described bnx2x cases in the commit message
->>> - appended Rb (for ocfs2)
->>>
->>>  drivers/net/ethernet/broadcom/bnx2x/bnx2x_init.h | 1 -
->>>  fs/ocfs2/dlm/dlmcommon.h                         | 4 ----
->>>  include/linux/bitops.h                           | 1 +
->>>  3 files changed, 1 insertion(+), 5 deletions(-)
->>>
->>> diff --git a/drivers/net/ethernet/broadcom/bnx2x/bnx2x_init.h
->>> b/drivers/net/ethernet/broadcom/bnx2x/bnx2x_init.h
->>> index 066765fbef06..0a59a09ef82f 100644
->>> --- a/drivers/net/ethernet/broadcom/bnx2x/bnx2x_init.h
->>> +++ b/drivers/net/ethernet/broadcom/bnx2x/bnx2x_init.h
->>> @@ -296,7 +296,6 @@ static inline void bnx2x_dcb_config_qm(struct bnx2x
->> *bp, enum cos_mode mode,
->>>   *    possible, the driver should only write the valid vnics into the internal
->>>   *    ram according to the appropriate port mode.
->>>   */
->>> -#define BITS_TO_BYTES(x) ((x)/8)
->>>
->>>  /* CMNG constants, as derived from system spec calculations */
->>>
->>> diff --git a/fs/ocfs2/dlm/dlmcommon.h b/fs/ocfs2/dlm/dlmcommon.h index
->>> aaf24548b02a..0463dce65bb2 100644
->>> --- a/fs/ocfs2/dlm/dlmcommon.h
->>> +++ b/fs/ocfs2/dlm/dlmcommon.h
->>> @@ -688,10 +688,6 @@ struct dlm_begin_reco
->>>  	__be32 pad2;
->>>  };
->>>
->>> -
->>> -#define BITS_PER_BYTE 8
->>> -#define BITS_TO_BYTES(bits) (((bits)+BITS_PER_BYTE-1)/BITS_PER_BYTE)
->>> -
->>>  struct dlm_query_join_request
->>>  {
->>>  	u8 node_idx;
->>> diff --git a/include/linux/bitops.h b/include/linux/bitops.h index
->>> cf074bce3eb3..79d80f5ddf7b 100644
->>> --- a/include/linux/bitops.h
->>> +++ b/include/linux/bitops.h
->>> @@ -5,6 +5,7 @@
->>>  #include <linux/bits.h>
->>>
->>>  #define BITS_PER_TYPE(type) (sizeof(type) * BITS_PER_BYTE)
->>> +#define BITS_TO_BYTES(nr)	DIV_ROUND_UP(nr, BITS_PER_BYTE)
->>>  #define BITS_TO_LONGS(nr)	DIV_ROUND_UP(nr, BITS_PER_TYPE(long))
->>>
->>>  extern unsigned int __sw_hweight8(unsigned int w);
->>> --
->>> 2.23.0.rc1
->>>
->>
->> --
->> With Best Regards,
->> Andy Shevchenko
->>
-> 
-> Thanks for the changes.
-> 
-> Acked-by: Sudarsana Reddy Kalluru <skalluru@marvell.com>
-> 
+If emergency restart happens again before journal super block is
+updated unfortunately, the new recorded trans will not be replayed
+in the next mount.
+
+This exception happens when this lun is used by only one node. If it
+is used by multi-nodes, other node will replay its journal and its
+journal sb block will be updated after recovery.
+
+To fix this problem, use jbd2_journal_flush to mark journal as empty as
+ocfs2_replay_journal has done.
+
+The following jbd2 journal can be generated by touching a new file after
+journal is replayed, and seq 15 is the first valid commit, but first seq
+is 13 in journal super block.
+logdump:
+Block 0: Journal Superblock
+Seq: 0   Type: 4 (JBD2_SUPERBLOCK_V2)
+Blocksize: 4096   Total Blocks: 32768   First Block: 1
+First Commit ID: 13   Start Log Blknum: 1
+Error: 0
+Feature Compat: 0
+Feature Incompat: 2 block64
+Feature RO compat: 0
+Journal UUID: 4ED3822C54294467A4F8E87D2BA4BC36
+FS Share Cnt: 1   Dynamic Superblk Blknum: 0
+Per Txn Block Limit    Journal: 0    Data: 0
+
+Block 1: Journal Commit Block
+Seq: 14   Type: 2 (JBD2_COMMIT_BLOCK)
+
+Block 2: Journal Descriptor
+Seq: 15   Type: 1 (JBD2_DESCRIPTOR_BLOCK)
+No. Blocknum        Flags
+ 0. 587             none
+UUID: 00000000000000000000000000000000
+ 1. 8257792         JBD2_FLAG_SAME_UUID
+ 2. 619             JBD2_FLAG_SAME_UUID
+ 3. 24772864        JBD2_FLAG_SAME_UUID
+ 4. 8257802         JBD2_FLAG_SAME_UUID
+ 5. 513             JBD2_FLAG_SAME_UUID JBD2_FLAG_LAST_TAG
+...
+Block 7: Inode
+Inode: 8257802   Mode: 0640   Generation: 57157641 (0x3682809)
+FS Generation: 2839773110 (0xa9437fb6)
+CRC32: 00000000   ECC: 0000
+Type: Regular   Attr: 0x0   Flags: Valid
+Dynamic Features: (0x1) InlineData
+User: 0 (root)   Group: 0 (root)   Size: 7
+Links: 1   Clusters: 0
+ctime: 0x5de5d870 0x11104c61 -- Tue Dec  3 11:37:20.286280801 2019
+atime: 0x5de5d870 0x113181a1 -- Tue Dec  3 11:37:20.288457121 2019
+mtime: 0x5de5d870 0x11104c61 -- Tue Dec  3 11:37:20.286280801 2019
+dtime: 0x0 -- Thu Jan  1 08:00:00 1970
+...
+Block 9: Journal Commit Block
+Seq: 15   Type: 2 (JBD2_COMMIT_BLOCK)
+
+The following is jouranl recovery log when recovering the upper jbd2
+journal when mount again.
+syslog:
+[ 2265.648622] ocfs2: File system on device (252,1) was not unmounted cleanly, recovering it.
+[ 2265.649695] fs/jbd2/recovery.c:(do_one_pass, 449): Starting recovery pass 0
+[ 2265.650407] fs/jbd2/recovery.c:(do_one_pass, 449): Starting recovery pass 1
+[ 2265.650409] fs/jbd2/recovery.c:(do_one_pass, 449): Starting recovery pass 2
+[ 2265.650410] fs/jbd2/recovery.c:(jbd2_journal_recover, 278): JBD2: recovery, exit status 0, recovered transactions 13 to 13
+
+Due to first commit seq 13 recorded in journal super is not consistent
+with the value recorded in block 1(seq is 14), journal recovery will be
+terminated before seq 15 even though it is an unbroken commit, inode
+8257802 is a new file and it will be lost.
+
+Signed-off-by: Kai Li <li.kai4@h3c.com>
+---
+ fs/ocfs2/journal.c | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
+index 1afe57f425a0..b8b9d26fa731 100644
+--- a/fs/ocfs2/journal.c
++++ b/fs/ocfs2/journal.c
+@@ -1066,6 +1066,14 @@ int ocfs2_journal_load(struct ocfs2_journal *journal, int local, int replayed)
+ 
+ 	ocfs2_clear_journal_error(osb->sb, journal->j_journal, osb->slot_num);
+ 
++	if (replayed) {
++		/* wipe the journal */
++		jbd2_journal_lock_updates(journal->j_journal);
++		status = jbd2_journal_flush(journal->j_journal);
++		jbd2_journal_unlock_updates(journal->j_journal);
++		mlog(ML_NOTICE, "journal recovery complete, status=%d", status);
++	}
++
+ 	status = ocfs2_journal_toggle_dirty(osb, 1, replayed);
+ 	if (status < 0) {
+ 		mlog_errno(status);
+-- 
+2.24.0.windows.2
