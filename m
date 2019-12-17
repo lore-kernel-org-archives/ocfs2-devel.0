@@ -1,20 +1,20 @@
-From: Joseph Qi <jiangqi903@gmail.com>
-Date: Tue, 17 Dec 2019 10:12:14 +0800
+From: Changwei Ge <gechangwei@live.cn>
+Date: Tue, 17 Dec 2019 02:42:29 +0000
 Subject: [Ocfs2-devel] [PATCH v3] ocfs2: call journal flush to mark
  journal as empty after journal recovery when mount
 In-Reply-To: <20191217020140.2197-1-li.kai4@h3c.com>
 References: <20191217020140.2197-1-li.kai4@h3c.com>
-Message-ID: <339c2bfc-fc40-77f1-3515-eb90e34854f6@gmail.com>
+Message-ID: <HK0PR02MB37808FEC666656B329EE3F16D5500@HK0PR02MB3780.apcprd02.prod.outlook.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Kai Li <li.kai4@h3c.com>, mark@fasheh.com, jlbec@evilplan.org, joseph.qi@linux.alibaba.com, chge@linux.alibaba.com, Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
+To: Kai Li <li.kai4@h3c.com>, "mark@fasheh.com" <mark@fasheh.com>, "jlbec@evilplan.org" <jlbec@evilplan.org>, "joseph.qi@linux.alibaba.com" <joseph.qi@linux.alibaba.com>
+Cc: "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>
 
+Reviewed-by: Changwei Ge <gechangwei@live.cn>
 
-
-On 19/12/17 10:01, Kai Li wrote:
+On 12/17/19 10:01 AM, Kai Li wrote:
 > If journal is dirty when mount, it will be replayed but jbd2 sb
 > log tail cannot be updated to mark a new start because
 > journal->j_flag has already been set with JBD2_ABORT first
@@ -64,13 +64,13 @@ On 19/12/17 10:01, Kai Li wrote:
 > Block 2: Journal Descriptor
 > Seq: 15   Type: 1 (JBD2_DESCRIPTOR_BLOCK)
 > No. Blocknum        Flags
->  0. 587             none
+>   0. 587             none
 > UUID: 00000000000000000000000000000000
->  1. 8257792         JBD2_FLAG_SAME_UUID
->  2. 619             JBD2_FLAG_SAME_UUID
->  3. 24772864        JBD2_FLAG_SAME_UUID
->  4. 8257802         JBD2_FLAG_SAME_UUID
->  5. 513             JBD2_FLAG_SAME_UUID JBD2_FLAG_LAST_TAG
+>   1. 8257792         JBD2_FLAG_SAME_UUID
+>   2. 619             JBD2_FLAG_SAME_UUID
+>   3. 24772864        JBD2_FLAG_SAME_UUID
+>   4. 8257802         JBD2_FLAG_SAME_UUID
+>   5. 513             JBD2_FLAG_SAME_UUID JBD2_FLAG_LAST_TAG
 > ...
 > Block 7: Inode
 > Inode: 8257802   Mode: 0640   Generation: 57157641 (0x3682809)
@@ -103,20 +103,18 @@ On 19/12/17 10:01, Kai Li wrote:
 > 8257802 is a new file and it will be lost.
 > 
 > Signed-off-by: Kai Li <li.kai4@h3c.com>
-
-Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
 > ---
->  fs/ocfs2/journal.c | 8 ++++++++
->  1 file changed, 8 insertions(+)
+>   fs/ocfs2/journal.c | 8 ++++++++
+>   1 file changed, 8 insertions(+)
 > 
 > diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
 > index 1afe57f425a0..68ba354cf361 100644
 > --- a/fs/ocfs2/journal.c
 > +++ b/fs/ocfs2/journal.c
 > @@ -1066,6 +1066,14 @@ int ocfs2_journal_load(struct ocfs2_journal *journal, int local, int replayed)
->  
->  	ocfs2_clear_journal_error(osb->sb, journal->j_journal, osb->slot_num);
->  
+>   
+>   	ocfs2_clear_journal_error(osb->sb, journal->j_journal, osb->slot_num);
+>   
 > +	if (replayed) {
 > +		jbd2_journal_lock_updates(journal->j_journal);
 > +		status = jbd2_journal_flush(journal->j_journal);
@@ -125,7 +123,7 @@ Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
 > +			mlog_errno(status);
 > +	}
 > +
->  	status = ocfs2_journal_toggle_dirty(osb, 1, replayed);
->  	if (status < 0) {
->  		mlog_errno(status);
+>   	status = ocfs2_journal_toggle_dirty(osb, 1, replayed);
+>   	if (status < 0) {
+>   		mlog_errno(status);
 > 
