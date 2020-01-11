@@ -1,39 +1,129 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Date: Thu, 9 Jan 2020 16:27:13 -0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: remove unneeded header include
- path in fs/ocfs2/Makefile
-In-Reply-To: <20200105070023.27806-1-masahiroy@kernel.org>
-References: <20200105070023.27806-1-masahiroy@kernel.org>
-Message-ID: <20200109162713.2054e05ff4545c30b0fa168f@linux-foundation.org>
+From: wangyan <wangyan122@huawei.com>
+Date: Sat, 11 Jan 2020 16:45:24 +0800
+Subject: [Ocfs2-devel] [PATCH v2 1/2] ocfs2: fix a NULL pointer dereference
+ when call ocfs2_update_inode_fsync_trans()
+Message-ID: <03e750ab-9ade-83aa-b000-b9e81e34e539@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Masahiro Yamada <masahiroy@kernel.org>
-Cc: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, Joseph Qi <joseph.qi@linux.alibaba.com>, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
+To: ocfs2-devel@oss.oracle.com
 
-On Sun,  5 Jan 2020 16:00:23 +0900 Masahiro Yamada <masahiroy@kernel.org> wrote:
+I found a NULL pointer dereference in ocfs2_update_inode_fsync_trans(),
+handle->h_transaction may be NULL in this situation:
+ocfs2_file_write_iter
+  ->__generic_file_write_iter
+      ->generic_perform_write
+        ->ocfs2_write_begin
+          ->ocfs2_write_begin_nolock
+            ->ocfs2_write_cluster_by_desc
+              ->ocfs2_write_cluster
+                ->ocfs2_mark_extent_written
+                  ->ocfs2_change_extent_flag
+                    ->ocfs2_split_extent
+                      ->ocfs2_try_to_merge_extent
+                        ->ocfs2_extend_rotate_transaction
+                          ->ocfs2_extend_trans
+                            ->jbd2_journal_restart
+                              ->jbd2__journal_restart
+                                // handle->h_transaction is NULL here
+                                ->handle->h_transaction = NULL;
+                                ->start_this_handle
+                                  /* journal aborted due to storage
+                                     network disconnection, return error */
+                                  ->return -EROFS;
+                         /* line 3806 in ocfs2_try_to_merge_extent (),
+                            it will ignore ret error. */
+                        ->ret = 0;
+        ->...
+        ->ocfs2_write_end
+          ->ocfs2_write_end_nolock
+            ->ocfs2_update_inode_fsync_trans
+              // NULL pointer dereference
+              ->oi->i_sync_tid = handle->h_transaction->t_tid;
 
-> You can build fs/ocfs2 without this.
-> 
-> Signed-off-by: Masahiro Yamada <masahiroy@kernel.org>
-> ---
-> 
->  fs/ocfs2/Makefile | 1 -
->  1 file changed, 1 deletion(-)
-> 
-> diff --git a/fs/ocfs2/Makefile b/fs/ocfs2/Makefile
-> index cc9b32b9db7c..46381d9dd890 100644
-> --- a/fs/ocfs2/Makefile
-> +++ b/fs/ocfs2/Makefile
-> @@ -1,5 +1,4 @@
->  # SPDX-License-Identifier: GPL-2.0
-> -ccflags-y := -I$(src)
->  
->  obj-$(CONFIG_OCFS2_FS) += 	\
->  	ocfs2.o			\
+The information of NULL pointer dereference as follows:
+    JBD2: Detected IO errors while flushing file data on dm-11-45
+    Aborting journal on device dm-11-45.
+    JBD2: Error -5 detected when updating journal superblock for dm-11-45.
+    (dd,22081,3):ocfs2_extend_trans:474 ERROR: status = -30
+    (dd,22081,3):ocfs2_try_to_merge_extent:3877 ERROR: status = -30
+    Unable to handle kernel NULL pointer dereference at
+    virtual address 0000000000000008
+    Mem abort info:
+      ESR = 0x96000004
+      Exception class = DABT (current EL), IL = 32 bits
+      SET = 0, FnV = 0
+      EA = 0, S1PTW = 0
+    Data abort info:
+      ISV = 0, ISS = 0x00000004
+      CM = 0, WnR = 0
+    user pgtable: 4k pages, 48-bit VAs, pgdp = 00000000e74e1338
+    [0000000000000008] pgd=0000000000000000
+    Internal error: Oops: 96000004 [#1] SMP
+    Process dd (pid: 22081, stack limit = 0x00000000584f35a9)
+    CPU: 3 PID: 22081 Comm: dd Kdump: loaded
+    Hardware name: Huawei TaiShan 2280 V2/BC82AMDD, BIOS 0.98 08/25/2019
+    pstate: 60400009 (nZCv daif +PAN -UAO)
+    pc : ocfs2_write_end_nolock+0x2b8/0x550 [ocfs2]
+    lr : ocfs2_write_end_nolock+0x2a0/0x550 [ocfs2]
+    sp : ffff0000459fba70
+    x29: ffff0000459fba70 x28: 0000000000000000
+    x27: ffff807ccf7f1000 x26: 0000000000000001
+    x25: ffff807bdff57970 x24: ffff807caf1d4000
+    x23: ffff807cc79e9000 x22: 0000000000001000
+    x21: 000000006c6cd000 x20: ffff0000091d9000
+    x19: ffff807ccb239db0 x18: ffffffffffffffff
+    x17: 000000000000000e x16: 0000000000000007
+    x15: ffff807c5e15bd78 x14: 0000000000000000
+    x13: 0000000000000000 x12: 0000000000000000
+    x11: 0000000000000000 x10: 0000000000000001
+    x9 : 0000000000000228 x8 : 000000000000000c
+    x7 : 0000000000000fff x6 : ffff807a308ed6b0
+    x5 : ffff7e01f10967c0 x4 : 0000000000000018
+    x3 : d0bc661572445600 x2 : 0000000000000000
+    x1 : 000000001b2e0200 x0 : 0000000000000000
+    Call trace:
+     ocfs2_write_end_nolock+0x2b8/0x550 [ocfs2]
+     ocfs2_write_end+0x4c/0x80 [ocfs2]
+     generic_perform_write+0x108/0x1a8
+     __generic_file_write_iter+0x158/0x1c8
+     ocfs2_file_write_iter+0x668/0x950 [ocfs2]
+     __vfs_write+0x11c/0x190
+     vfs_write+0xac/0x1c0
+     ksys_write+0x6c/0xd8
+     __arm64_sys_write+0x24/0x30
+     el0_svc_common+0x78/0x130
+     el0_svc_handler+0x38/0x78
+     el0_svc+0x8/0xc
 
-I get
+To prevent NULL pointer dereference in this situation, we use
+is_handle_aborted() before using handle->h_transaction->t_tid.
 
-fs/ocfs2/alloc.c:21:10: fatal error: cluster/masklog.h: No such file or directory
- #include <cluster/masklog.h>
+Signed-off-by: Yan Wang <wangyan122@huawei.com>
+Reviewed-by: Jun Piao <piaojun@huawei.com>
+---
+ fs/ocfs2/journal.h | 8 +++++---
+ 1 file changed, 5 insertions(+), 3 deletions(-)
+
+diff --git a/fs/ocfs2/journal.h b/fs/ocfs2/journal.h
+index 3103ba7f97a2..bfe611ed1b1d 100644
+--- a/fs/ocfs2/journal.h
++++ b/fs/ocfs2/journal.h
+@@ -597,9 +597,11 @@ static inline void ocfs2_update_inode_fsync_trans(handle_t *handle,
+ {
+ 	struct ocfs2_inode_info *oi = OCFS2_I(inode);
+
+-	oi->i_sync_tid = handle->h_transaction->t_tid;
+-	if (datasync)
+-		oi->i_datasync_tid = handle->h_transaction->t_tid;
++	if (!is_handle_aborted(handle)) {
++		oi->i_sync_tid = handle->h_transaction->t_tid;
++		if (datasync)
++			oi->i_datasync_tid = handle->h_transaction->t_tid;
++	}
+ }
+
+ #endif /* OCFS2_JOURNAL_H */
+-- 
+2.19.1
