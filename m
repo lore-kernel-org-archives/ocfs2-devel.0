@@ -1,65 +1,128 @@
-From: Steve French <smfrench@gmail.com>
-Date: Mon, 20 Jan 2020 18:58:05 -0600
-Subject: [Ocfs2-devel] [LFS/MM TOPIC] fs reflink issues,
-	fs online scrub/check, etc
-In-Reply-To: <20160210191848.GC6346@birch.djwong.org>
-References: <20160210191715.GB6339@birch.djwong.org>
-	<20160210191848.GC6346@birch.djwong.org>
-Message-ID: <CAH2r5mtM2nCicTKGFAjYtOG92TKKQdTbZxaD-_-RsWYL=Tn2Nw@mail.gmail.com>
+From: Gang He <GHe@suse.com>
+Date: Tue, 21 Jan 2020 05:02:25 +0000
+Subject: [Ocfs2-devel] [PATCH] ocfs2: fix the oops problem when write cloned
+	file
+Message-ID: <20200121050153.13290-1-ghe@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: "Darrick J. Wong" <darrick.wong@oracle.com>
-Cc: lsf-pc@lists.linux-foundation.org, xfs <xfs@oss.sgi.com>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-ext4 <linux-ext4@vger.kernel.org>, linux-btrfs <linux-btrfs@vger.kernel.org>, ocfs2-devel@oss.oracle.com
+To: "mark@fasheh.com" <mark@fasheh.com>, "jlbec@evilplan.org" <jlbec@evilplan.org>, "joseph.qi@linux.alibaba.com" <joseph.qi@linux.alibaba.com>
+Cc: Gang He <GHe@suse.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>
 
-Since SMB3 protocol has at least three ways to do copy offload (server
-side copy),
-the reflink topic is of interest to me and likely useful to discuss
-for Samba server as
-well as client (cifs.ko)
+Writing a cloned file triggers a kernel oops and the user-space
+command process is also killed by the system.
+The bug can be reproduced stably, e.g.
+1)create a file under ocfs2 file system directory.
+  journalctl -b > aa.txt
+2)create a cloned file for this file.
+  reflink aa.txt bb.txt
+3)write the cloned file with dd command.
+  dd if=/dev/zero of=bb.txt bs=512 count=1 conv=notrunc
 
-On Wed, Feb 10, 2016 at 1:19 PM Darrick J. Wong <darrick.wong@oracle.com> wrote:
->
-> [resend, email exploded, sorry...]
->
-> Hi,
->
-> I want to discuss a few FS related topics that I haven't already seen on
-> the mailing lists:
->
->  * Shared pagecache pages for reflinked files (and by extension making dax
->    work with reflink on xfs)
->
->  * Providing a simple interface for scrubbing filesystem metadata in the
->    background (the online check thing).  Ideally we'd make it easy to discover
->    what kind of metadata there is to check and provide a simple interface to
->    check the metadata, once discovered.  This is a tricky interface topic
->    since FS design differs pretty widely.
->
->  * Rudimentary online repair and rebuilding (xfs) from secondary metadata
->
->  * Working out the variances in the btrfs/xfs/ocfs2/nfs reflink implementations
->    and making sure they all get test coverage
->
-> I would also like participate in some of the proposed discussions:
->
->  * The ext4 summit (and whatever meeting of XFS devs may happen)
->
->  * Integrating existing filesystems into pmem, or hallway bofs about designing
->    new filesystems for pmem
->
->  * Actually seeing the fs developers (well, everyone!) in person again :)
->
-> --Darrick
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-fsdevel" in
-> the body of a message to majordomo at vger.kernel.org
-> More majordomo info at  https://urldefense.proofpoint.com/v2/url?u=http-3A__vger.kernel.org_majordomo-2Dinfo.html&d=DwIBaQ&c=RoP1YumCXCgaWHvlZYR8PZh8Bv7qIrMUB65eapI_JnE&r=C7gAd4uDxlAvTdc0vmU6X8CMk6L2iDY8-HD0qT6Fo7Y&m=q8l3XFIJYuhNKEvJLvPgg8PS0iHhoWvEsy3tK5D714U&s=pI3OMIMeV9-GoE4ncu5_LxznmF3yuGFBmeKaf7Td2Wo&e= 
+The dd command is killed by the kernel, then you can see the oops
+message via dmesg command.
 
+[  463.875404] BUG: kernel NULL pointer dereference, address: 0000000000000028
+[  463.875413] #PF: supervisor read access in kernel mode
+[  463.875416] #PF: error_code(0x0000) - not-present page
+[  463.875418] PGD 0 P4D 0
+[  463.875425] Oops: 0000 [#1] SMP PTI
+[  463.875431] CPU: 1 PID: 2291 Comm: dd Tainted: G           OE     5.3.16-2-default
+[  463.875433] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS Bochs 01/01/2011
+[  463.875500] RIP: 0010:ocfs2_refcount_cow+0xa4/0x5d0 [ocfs2]
+[  463.875505] Code: 06 89 6c 24 38 89 eb f6 44 24 3c 02 74 be 49 8b 47 28
+[  463.875508] RSP: 0018:ffffa2cb409dfce8 EFLAGS: 00010202
+[  463.875512] RAX: ffff8b1ebdca8000 RBX: 0000000000000001 RCX: ffff8b1eb73a9df0
+[  463.875515] RDX: 0000000000056a01 RSI: 0000000000000000 RDI: 0000000000000000
+[  463.875517] RBP: 0000000000000001 R08: ffff8b1eb73a9de0 R09: 0000000000000000
+[  463.875520] R10: 0000000000000001 R11: 0000000000000000 R12: 0000000000000000
+[  463.875522] R13: ffff8b1eb922f048 R14: 0000000000000000 R15: ffff8b1eb922f048
+[  463.875526] FS:  00007f8f44d15540(0000) GS:ffff8b1ebeb00000(0000) knlGS:0000000000000000
+[  463.875529] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[  463.875532] CR2: 0000000000000028 CR3: 000000003c17a000 CR4: 00000000000006e0
+[  463.875546] Call Trace:
+[  463.875596]  ? ocfs2_inode_lock_full_nested+0x18b/0x960 [ocfs2]
+[  463.875648]  ocfs2_file_write_iter+0xaf8/0xc70 [ocfs2]
+[  463.875672]  new_sync_write+0x12d/0x1d0
+[  463.875688]  vfs_write+0xad/0x1a0
+[  463.875697]  ksys_write+0xa1/0xe0
+[  463.875710]  do_syscall_64+0x60/0x1f0
+[  463.875743]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  463.875758] RIP: 0033:0x7f8f4482ed44
+[  463.875762] Code: 00 f7 d8 64 89 02 48 c7 c0 ff ff ff ff eb b7 0f 1f 80 00 00 00
+[  463.875765] RSP: 002b:00007fff300a79d8 EFLAGS: 00000246 ORIG_RAX: 0000000000000001
+[  463.875769] RAX: ffffffffffffffda RBX: 0000000000000000 RCX: 00007f8f4482ed44
+[  463.875771] RDX: 0000000000000200 RSI: 000055f771b5c000 RDI: 0000000000000001
+[  463.875774] RBP: 0000000000000200 R08: 00007f8f44af9c78 R09: 0000000000000003
+[  463.875776] R10: 000000000000089f R11: 0000000000000246 R12: 000055f771b5c000
+[  463.875779] R13: 0000000000000200 R14: 0000000000000000 R15: 000055f771b5c000
 
+This regression problem was introduced by commit e74540b28556 ("ocfs2:
+protect extent tree in ocfs2_prepare_inode_for_write()").
 
+Fixes: e74540b28556 ("ocfs2: protect extent tree in ocfs2_prepare_inode_for_write()").
+Signed-off-by: Gang He <ghe@suse.com>
+---
+ fs/ocfs2/file.c | 14 ++++++--------
+ 1 file changed, 6 insertions(+), 8 deletions(-)
+
+diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+index 9876db52913a..6cd5e4924e4d 100644
+--- a/fs/ocfs2/file.c
++++ b/fs/ocfs2/file.c
+@@ -2101,17 +2101,15 @@ static int ocfs2_is_io_unaligned(struct inode *inode, size_t count, loff_t pos)
+ static int ocfs2_inode_lock_for_extent_tree(struct inode *inode,
+ 					    struct buffer_head **di_bh,
+ 					    int meta_level,
+-					    int overwrite_io,
+ 					    int write_sem,
+ 					    int wait)
+ {
+ 	int ret = 0;
+ 
+ 	if (wait)
+-		ret = ocfs2_inode_lock(inode, NULL, meta_level);
++		ret = ocfs2_inode_lock(inode, di_bh, meta_level);
+ 	else
+-		ret = ocfs2_try_inode_lock(inode,
+-			overwrite_io ? NULL : di_bh, meta_level);
++		ret = ocfs2_try_inode_lock(inode, di_bh, meta_level);
+ 	if (ret < 0)
+ 		goto out;
+ 
+@@ -2136,6 +2134,7 @@ static int ocfs2_inode_lock_for_extent_tree(struct inode *inode,
+ 
+ out_unlock:
+ 	brelse(*di_bh);
++	*di_bh = NULL;
+ 	ocfs2_inode_unlock(inode, meta_level);
+ out:
+ 	return ret;
+@@ -2177,7 +2176,6 @@ static int ocfs2_prepare_inode_for_write(struct file *file,
+ 		ret = ocfs2_inode_lock_for_extent_tree(inode,
+ 						       &di_bh,
+ 						       meta_level,
+-						       overwrite_io,
+ 						       write_sem,
+ 						       wait);
+ 		if (ret < 0) {
+@@ -2233,13 +2231,13 @@ static int ocfs2_prepare_inode_for_write(struct file *file,
+ 							   &di_bh,
+ 							   meta_level,
+ 							   write_sem);
++			meta_level = 1;
++			write_sem = 1;
+ 			ret = ocfs2_inode_lock_for_extent_tree(inode,
+ 							       &di_bh,
+ 							       meta_level,
+-							       overwrite_io,
+-							       1,
++							       write_sem,
+ 							       wait);
+-			write_sem = 1;
+ 			if (ret < 0) {
+ 				if (ret != -EAGAIN)
+ 					mlog_errno(ret);
 -- 
-Thanks,
-
-Steve
+2.12.3
