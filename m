@@ -1,44 +1,49 @@
 From: Joseph Qi <joseph.qi@linux.alibaba.com>
-Date: Sun, 26 Jan 2020 09:47:06 +0800
-Subject: [Ocfs2-devel] [PATCH] OCFS2: use OCFS2_SEC_BITS in macro
-In-Reply-To: <1579577840-251956-1-git-send-email-alex.shi@linux.alibaba.com>
-References: <1579577840-251956-1-git-send-email-alex.shi@linux.alibaba.com>
-Message-ID: <ac7f6b5e-f62a-38a8-2511-e254c282e012@linux.alibaba.com>
+Date: Sun, 26 Jan 2020 09:48:41 +0800
+Subject: [Ocfs2-devel] [PATCH] OCFS2: remove dlm_lock_is_remote
+In-Reply-To: <1579578203-254451-1-git-send-email-alex.shi@linux.alibaba.com>
+References: <1579578203-254451-1-git-send-email-alex.shi@linux.alibaba.com>
+Message-ID: <c1096f77-6c5a-2f3d-e11f-a93173e3ff31@linux.alibaba.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Alex Shi <alex.shi@linux.alibaba.com>
-Cc: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
+To: Alex Shi <alex.shi@linux.alibaba.com>, Andrew Morton <akpm@linux-foundation.org>
+Cc: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, Kate Stewart <kstewart@linuxfoundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Thomas Gleixner <tglx@linutronix.de>, Richard Fontana <rfontana@redhat.com>, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
 
 
 
-On 20/1/21 11:37, Alex Shi wrote:
-> This macros should be used as it.
+On 20/1/21 11:43, Alex Shi wrote:
+> This macros is also not used from it was introduced. better to remove
+> it.
 > 
 > Signed-off-by: Alex Shi <alex.shi@linux.alibaba.com>
 > Cc: Mark Fasheh <mark@fasheh.com> 
 > Cc: Joel Becker <jlbec@evilplan.org> 
 > Cc: Joseph Qi <joseph.qi@linux.alibaba.com> 
+> Cc: Kate Stewart <kstewart@linuxfoundation.org> 
+> Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org> 
+> Cc: Thomas Gleixner <tglx@linutronix.de> 
+> Cc: Richard Fontana <rfontana@redhat.com> 
 > Cc: ocfs2-devel at oss.oracle.com 
 > Cc: linux-kernel at vger.kernel.org
 
-Acked-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+Acked-by: Joseph Qi <joseph.qi@linux.alibaba.com> 
 > ---
->  fs/ocfs2/dlmglue.c | 2 +-
->  1 file changed, 1 insertion(+), 1 deletion(-)
+>  fs/ocfs2/dlm/dlmthread.c | 2 --
+>  1 file changed, 2 deletions(-)
 > 
-> diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-> index cda1027d0819..0d6daf49b72a 100644
-> --- a/fs/ocfs2/dlmglue.c
-> +++ b/fs/ocfs2/dlmglue.c
-> @@ -2133,7 +2133,7 @@ static void ocfs2_downconvert_on_unlock(struct ocfs2_super *osb,
->  }
+> diff --git a/fs/ocfs2/dlm/dlmthread.c b/fs/ocfs2/dlm/dlmthread.c
+> index 2dd9727537fe..0da9ffc40a88 100644
+> --- a/fs/ocfs2/dlm/dlmthread.c
+> +++ b/fs/ocfs2/dlm/dlmthread.c
+> @@ -39,8 +39,6 @@
+>  static int dlm_thread(void *data);
+>  static void dlm_flush_asts(struct dlm_ctxt *dlm);
 >  
->  #define OCFS2_SEC_BITS   34
-> -#define OCFS2_SEC_SHIFT  (64 - 34)
-> +#define OCFS2_SEC_SHIFT  (64 - OCFS2_SEC_BITS)
->  #define OCFS2_NSEC_MASK  ((1ULL << OCFS2_SEC_SHIFT) - 1)
->  
->  /* LVB only has room for 64 bits of time here so we pack it for
+> -#define dlm_lock_is_remote(dlm, lock)     ((lock)->ml.node != (dlm)->node_num)
+> -
+>  /* will exit holding res->spinlock, but may drop in function */
+>  /* waits until flags are cleared on res->state */
+>  void __dlm_wait_on_lockres_flags(struct dlm_lock_resource *res, int flags)
 > 
