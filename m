@@ -1,43 +1,51 @@
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-Date: Sun, 26 Jan 2020 10:21:21 +0800
-Subject: [Ocfs2-devel] [PATCH 1/4] lockres_seq_next should increase
-	position index
-In-Reply-To: <ca1497b7-6a6e-8043-63c7-b17c094ebc05@virtuozzo.com>
-References: <ca1497b7-6a6e-8043-63c7-b17c094ebc05@virtuozzo.com>
-Message-ID: <109025ac-74e9-6afe-3790-c7adbdaa3053@linux.alibaba.com>
+From: Dave Chinner <david@fromorbit.com>
+Date: Wed, 29 Jan 2020 11:24:56 +1100
+Subject: [Ocfs2-devel] [PATCH 04/12] mm: Add readahead address space
+	operation
+In-Reply-To: <20200125013553.24899-5-willy@infradead.org>
+References: <20200125013553.24899-1-willy@infradead.org>
+	<20200125013553.24899-5-willy@infradead.org>
+Message-ID: <20200129002456.GH18610@dread.disaster.area>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Matthew Wilcox <willy@infradead.org>
+Cc: linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-btrfs@vger.kernel.org, linux-erofs@lists.ozlabs.org, linux-ext4@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, linux-xfs@vger.kernel.org, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com
 
-
-
-On 20/1/23 15:39, Vasily Averin wrote:
-> if seq_file .next fuction does not change position index,
-> read after some lseek can generate unexpected output.
+On Fri, Jan 24, 2020 at 05:35:45PM -0800, Matthew Wilcox wrote:
+> From: "Matthew Wilcox (Oracle)" <willy@infradead.org>
 > 
-> https://urldefense.proofpoint.com/v2/url?u=https-3A__bugzilla.kernel.org_show-5Fbug.cgi-3Fid-3D206283&d=DwICaQ&c=RoP1YumCXCgaWHvlZYR8PZh8Bv7qIrMUB65eapI_JnE&r=C7gAd4uDxlAvTdc0vmU6X8CMk6L2iDY8-HD0qT6Fo7Y&m=lFWWo4w3KGQSd5EANoUFCp9aybqo1xeFs5MD0dgTnkA&s=dFZ-8He72Ffi8NGZB7iFik1nYOMs9wfzjDFpATCr72I&e= 
-> Signed-off-by: Vasily Averin <vvs@virtuozzo.com>
-
-We'd better add the missing tag:
-
-Fixes: 1f4aace60b0e ("fs/seq_file.c: simplify seq_file iteration code and interface")
-
-> ---
->  fs/ocfs2/dlm/dlmdebug.c | 1 +
->  1 file changed, 1 insertion(+)
-> 
-> diff --git a/fs/ocfs2/dlm/dlmdebug.c b/fs/ocfs2/dlm/dlmdebug.c
-> index 4d0b452..08a19c9 100644
-> --- a/fs/ocfs2/dlm/dlmdebug.c
-> +++ b/fs/ocfs2/dlm/dlmdebug.c
-> @@ -590,6 +590,7 @@ static void lockres_seq_stop(struct seq_file *m, void *v)
+> This replaces ->readpages with a saner interface:
+>  - Return the number of pages not read instead of an ignored error code.
+>  - Pages are already in the page cache when ->readahead is called.
+>  - Implementation looks up the pages in the page cache instead of
+>    having them passed in a linked list.
+....
+> diff --git a/mm/readahead.c b/mm/readahead.c
+> index 5a6676640f20..6d65dae6dad0 100644
+> --- a/mm/readahead.c
+> +++ b/mm/readahead.c
+> @@ -121,7 +121,18 @@ static void read_pages(struct address_space *mapping, struct file *filp,
 >  
->  static void *lockres_seq_next(struct seq_file *m, void *v, loff_t *pos)
->  {
-> +	(*pos)++;
->  	return NULL;
->  }
+>  	blk_start_plug(&plug);
 >  
-> 
+> -	if (mapping->a_ops->readpages) {
+> +	if (mapping->a_ops->readahead) {
+> +		unsigned left = mapping->a_ops->readahead(filp, mapping,
+> +				start, nr_pages);
+> +
+> +		while (left) {
+> +			struct page *page = readahead_page(mapping,
+> +					start + nr_pages - left - 1);
+
+Off by one? start = 2, nr_pages = 2, left = 1, this looks up the
+page at index 2, which is the one we issued IO on, not the one we
+"left behind" which is at index 3.
+
+Cheers,
+
+Dave.
+-- 
+Dave Chinner
+david at fromorbit.com
