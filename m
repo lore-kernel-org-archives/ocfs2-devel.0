@@ -1,42 +1,65 @@
-From: Likai <li.kai4@h3c.com>
-Date: Thu, 6 Feb 2020 09:53:54 +0000
-Subject: [Ocfs2-devel] [QUESTION] A problem about calling journal flush
- to mark journal as empty after journal recovery when mount
-References: <b05e6190-c9e9-5151-5f04-c39d863a6316@huawei.com>
-Message-ID: <c1fc3359eb954def8ad3b23eea33d39f@h3c.com>
+From: Dave Chinner <david@fromorbit.com>
+Date: Tue, 11 Feb 2020 15:52:30 +1100
+Subject: [Ocfs2-devel] [PATCH v5 04/13] mm: Add readahead address space
+	operation
+In-Reply-To: <20200211010348.6872-5-willy@infradead.org>
+References: <20200211010348.6872-1-willy@infradead.org>
+	<20200211010348.6872-5-willy@infradead.org>
+Message-ID: <20200211045230.GD10776@dread.disaster.area>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 2020/2/6 17:24, wangyan wrote:
-> Hi all,
->
-> I met a problem when I applied this patch:
-> https://urldefense.proofpoint.com/v2/url?u=https-3A__github.com_torvalds_linux_commit_397eac17f86f404f5ba31d8c3e39ec3124b39fd3&d=DwIFAg&c=RoP1YumCXCgaWHvlZYR8PZh8Bv7qIrMUB65eapI_JnE&r=C7gAd4uDxlAvTdc0vmU6X8CMk6L2iDY8-HD0qT6Fo7Y&m=6mOuSCY0uVj1EQsCulE745DiAdBp7k1dPPfLsJC72ws&s=FO5NwgZUjnfd_fnVyVGu8h-qRlrJcjAr7LF6GdbrhHA&e= 
->
-> It didn't update jbd2 sb log tail when mount as follows:
-> ocfs2_journal_load
-> 	->jbd2_journal_load
-> 		->journal_reset
-> 			->journal->j_tail_sequence = journal->j_transaction_sequence;
-> 	->jbd2_journal_flush
-> 		->jbd2_cleanup_journal_tail
-> 			->jbd2_journal_get_log_tail // if ret is 0, it will return 1
-> 				->*tid = journal->j_transaction_sequence;
-> 				->*block = journal->j_head;
-> 				/* ret is 0 due to "*tid == journal->j_tail_sequence */
-> 				->ret = tid_gt(*tid, journal->j_tail_sequence);
-> 			->__jbd2_update_log_tail // cann't not reach this place
->
-> How does this patch solve the problem mentioned
-> in this patch by calling jbd2_journal_flush?
->
-> Thanks,
-> Yan Wang
->
->
-jbd2_journal_flush->jbd2_mark_journal_empty will work.
+On Mon, Feb 10, 2020 at 05:03:39PM -0800, Matthew Wilcox wrote:
+> From: "Matthew Wilcox (Oracle)" <willy@infradead.org>
+> 
+> This replaces ->readpages with a saner interface:
+>  - Return void instead of an ignored error code.
+>  - Pages are already in the page cache when ->readahead is called.
+>  - Implementation looks up the pages in the page cache instead of
+>    having them passed in a linked list.
+> 
+> Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
 
-Thanks
+....
+
+>  
+> +/*
+> + * Readahead is of a block of consecutive pages.
+> + */
+> +struct readahead_control {
+> +	struct file *file;
+> +	struct address_space *mapping;
+> +/* private: use the readahead_* accessors instead */
+> +	pgoff_t start;
+> +	unsigned int nr_pages;
+> +	unsigned int batch_count;
+> +};
+> +
+> +static inline struct page *readahead_page(struct readahead_control *rac)
+> +{
+> +	struct page *page;
+> +
+> +	if (!rac->nr_pages)
+> +		return NULL;
+> +
+> +	page = xa_load(&rac->mapping->i_pages, rac->start);
+> +	VM_BUG_ON_PAGE(!PageLocked(page), page);
+> +	rac->batch_count = hpage_nr_pages(page);
+> +	rac->start += rac->batch_count;
+
+There's no mention of large page support in the patch description
+and I don't recall this sort of large page batching in previous
+iterations.
+
+This seems like new functionality to me, not directly related to
+the initial ->readahead API change? What have I missed?
+
+Cheers,
+
+Dave.
+-- 
+Dave Chinner
+david at fromorbit.com
