@@ -1,10 +1,10 @@
 From: Sasha Levin <sashal@kernel.org>
-Date: Fri, 14 Feb 2020 11:01:23 -0500
-Subject: [Ocfs2-devel] [PATCH AUTOSEL 5.4 433/459] ocfs2: fix a NULL pointer
-	dereference when call ocfs2_update_inode_fsync_trans()
-In-Reply-To: <20200214160149.11681-1-sashal@kernel.org>
-References: <20200214160149.11681-1-sashal@kernel.org>
-Message-ID: <20200214160149.11681-433-sashal@kernel.org>
+Date: Fri, 14 Feb 2020 11:11:32 -0500
+Subject: [Ocfs2-devel] [PATCH AUTOSEL 4.19 237/252] ocfs2: fix a NULL
+	pointer dereference when call ocfs2_update_inode_fsync_trans()
+In-Reply-To: <20200214161147.15842-1-sashal@kernel.org>
+References: <20200214161147.15842-1-sashal@kernel.org>
+Message-ID: <20200214161147.15842-237-sashal@kernel.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -107,7 +107,7 @@ The information of NULL pointer dereference as follows:
 To prevent NULL pointer dereference in this situation, we use
 is_handle_aborted() before using handle->h_transaction->t_tid.
 
-Link: https://urldefense.com/v3/__http://lkml.kernel.org/r/03e750ab-9ade-83aa-b000-b9e81e34e539 at huawei.com__;!!GqivPVa7Brio!OEfFt6PjJ3oOEpsrwK012MdaT988S8xakFvHQo2l9Xsk96N8EmcoOP_nACASQQmxUgoOcA$ 
+Link: https://urldefense.com/v3/__http://lkml.kernel.org/r/03e750ab-9ade-83aa-b000-b9e81e34e539 at huawei.com__;!!GqivPVa7Brio!IFH7spETJdM9YFd5x36q7VtXx_bQdNWGFVQKqifju_agCPCVovs0tj_ySQGki-X-i2mz5Q$ 
 Signed-off-by: Yan Wang <wangyan122@huawei.com>
 Reviewed-by: Jun Piao <piaojun@huawei.com>
 Cc: Mark Fasheh <mark@fasheh.com>
@@ -124,10 +124,10 @@ Signed-off-by: Sasha Levin <sashal@kernel.org>
  1 file changed, 5 insertions(+), 3 deletions(-)
 
 diff --git a/fs/ocfs2/journal.h b/fs/ocfs2/journal.h
-index 3103ba7f97a28..bfe611ed1b1d7 100644
+index 497a4171ef61f..bfb50fc51528f 100644
 --- a/fs/ocfs2/journal.h
 +++ b/fs/ocfs2/journal.h
-@@ -597,9 +597,11 @@ static inline void ocfs2_update_inode_fsync_trans(handle_t *handle,
+@@ -637,9 +637,11 @@ static inline void ocfs2_update_inode_fsync_trans(handle_t *handle,
  {
  	struct ocfs2_inode_info *oi = OCFS2_I(inode);
  
