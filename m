@@ -1,10 +1,10 @@
 From: Sasha Levin <sashal@kernel.org>
-Date: Fri, 14 Feb 2020 10:48:17 -0500
-Subject: [Ocfs2-devel] [PATCH AUTOSEL 5.5 505/542] ocfs2: make local header
+Date: Fri, 14 Feb 2020 11:01:22 -0500
+Subject: [Ocfs2-devel] [PATCH AUTOSEL 5.4 432/459] ocfs2: make local header
 	paths relative to C files
-In-Reply-To: <20200214154854.6746-1-sashal@kernel.org>
-References: <20200214154854.6746-1-sashal@kernel.org>
-Message-ID: <20200214154854.6746-505-sashal@kernel.org>
+In-Reply-To: <20200214160149.11681-1-sashal@kernel.org>
+References: <20200214160149.11681-1-sashal@kernel.org>
+Message-ID: <20200214160149.11681-432-sashal@kernel.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -25,7 +25,7 @@ If you want to make it work reliably, I'd recommend to remove ccflags-y
 from the Makefiles, and to make header paths relative to the C files.  I
 think this is the correct usage of the #include "..." directive.
 
-Link: https://urldefense.com/v3/__http://lkml.kernel.org/r/20191227022950.14804-1-ghe at suse.com__;!!GqivPVa7Brio!M25yCrfN3YrY7OelromShungn_9cXSCQd1qLfIZuHgnSAvG6zyMWaX7LyIYuTCJsWt-zUQ$ 
+Link: https://urldefense.com/v3/__http://lkml.kernel.org/r/20191227022950.14804-1-ghe at suse.com__;!!GqivPVa7Brio!MZhaLNHOAOfTBG_hcFD_QC88pIyHja8eaXHJQQ9qYOmg7ERym8ABU5GxdhojCqUFeRiKLw$ 
 Signed-off-by: Masahiro Yamada <masahiroy@kernel.org>
 Signed-off-by: Gang He <ghe@suse.com>
 Reported-by: Gang He <ghe@suse.com>
