@@ -1,10 +1,10 @@
 From: Sasha Levin <sashal@kernel.org>
-Date: Fri, 14 Feb 2020 11:21:12 -0500
-Subject: [Ocfs2-devel] [PATCH AUTOSEL 4.9 132/141] ocfs2: fix a NULL pointer
+Date: Fri, 14 Feb 2020 11:24:18 -0500
+Subject: [Ocfs2-devel] [PATCH AUTOSEL 4.4 094/100] ocfs2: fix a NULL pointer
 	dereference when call ocfs2_update_inode_fsync_trans()
-In-Reply-To: <20200214162122.19794-1-sashal@kernel.org>
-References: <20200214162122.19794-1-sashal@kernel.org>
-Message-ID: <20200214162122.19794-132-sashal@kernel.org>
+In-Reply-To: <20200214162425.21071-1-sashal@kernel.org>
+References: <20200214162425.21071-1-sashal@kernel.org>
+Message-ID: <20200214162425.21071-94-sashal@kernel.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -107,7 +107,7 @@ The information of NULL pointer dereference as follows:
 To prevent NULL pointer dereference in this situation, we use
 is_handle_aborted() before using handle->h_transaction->t_tid.
 
-Link: https://urldefense.com/v3/__http://lkml.kernel.org/r/03e750ab-9ade-83aa-b000-b9e81e34e539 at huawei.com__;!!GqivPVa7Brio!PYKkbNP5UXERItyeVjXwhfv6opN1K7GNxYQ9HOM8E233wNVwU8p0wfHUKOJjRp3sLCoHSg$ 
+Link: https://urldefense.com/v3/__http://lkml.kernel.org/r/03e750ab-9ade-83aa-b000-b9e81e34e539 at huawei.com__;!!GqivPVa7Brio!Kzul-cCIicqMuhtkXf9Rcwx6xnV6inI-8lBPRlVn7RCqbmFBZiS9kLUXQ5ZChRLks7jTOA$ 
 Signed-off-by: Yan Wang <wangyan122@huawei.com>
 Reviewed-by: Jun Piao <piaojun@huawei.com>
 Cc: Mark Fasheh <mark@fasheh.com>
@@ -124,7 +124,7 @@ Signed-off-by: Sasha Levin <sashal@kernel.org>
  1 file changed, 5 insertions(+), 3 deletions(-)
 
 diff --git a/fs/ocfs2/journal.h b/fs/ocfs2/journal.h
-index 497a4171ef61f..bfb50fc51528f 100644
+index f4cd3c3e9fb70..0a4d2cbf512f8 100644
 --- a/fs/ocfs2/journal.h
 +++ b/fs/ocfs2/journal.h
 @@ -637,9 +637,11 @@ static inline void ocfs2_update_inode_fsync_trans(handle_t *handle,
