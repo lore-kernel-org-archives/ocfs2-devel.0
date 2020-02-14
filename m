@@ -1,179 +1,51 @@
 From: John Hubbard <jhubbard@nvidia.com>
-Date: Thu, 13 Feb 2020 19:36:38 -0800
-Subject: [Ocfs2-devel] [PATCH v5 03/13] mm: Put readahead pages in cache
-	earlier
-In-Reply-To: <20200211010348.6872-4-willy@infradead.org>
+Date: Thu, 13 Feb 2020 20:33:23 -0800
+Subject: [Ocfs2-devel] [PATCH v5 01/13] mm: Fix the return type of
+ __do_page_cache_readahead
+In-Reply-To: <20200214042137.GX7778@bombadil.infradead.org>
 References: <20200211010348.6872-1-willy@infradead.org>
-	<20200211010348.6872-4-willy@infradead.org>
-Message-ID: <b0cdd7b4-e103-a884-d8f7-2378905f7b3b@nvidia.com>
+	<20200211010348.6872-2-willy@infradead.org>
+	<e0f459af-bb5d-58b9-78be-5adf687477c0@nvidia.com>
+	<20200214042137.GX7778@bombadil.infradead.org>
+Message-ID: <ab9d0e43-3fb4-cb14-4974-ad4a8ab57a83@nvidia.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 2/10/20 5:03 PM, Matthew Wilcox wrote:
-> From: "Matthew Wilcox (Oracle)" <willy@infradead.org>
+On 2/13/20 8:21 PM, Matthew Wilcox wrote:
+> On Thu, Feb 13, 2020 at 07:19:53PM -0800, John Hubbard wrote:
+>> On 2/10/20 5:03 PM, Matthew Wilcox wrote:
+>>> @@ -161,7 +161,7 @@ unsigned int __do_page_cache_readahead(struct address_space *mapping,
+>>>  	unsigned long end_index;	/* The last page we want to read */
+>>>  	LIST_HEAD(page_pool);
+>>>  	int page_idx;
+>>
+>>
+>> What about page_idx, too? It should also have the same data type as nr_pages, as long as
+>> we're trying to be consistent on this point.
+>>
+>> Just want to ensure we're ready to handle those 2^33+ page readaheads... :)
 > 
-> At allocation time, put the pages in the cache unless we're using
-> ->readpages.
+> Nah, this is just a type used internally to the function.  Getting the
+> API right for the callers is the important part.
 > 
-> Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
-> ---
->  mm/readahead.c | 66 ++++++++++++++++++++++++++++++++------------------
->  1 file changed, 42 insertions(+), 24 deletions(-)
-> 
-> diff --git a/mm/readahead.c b/mm/readahead.c
-> index fc77d13af556..96c6ca68a174 100644
-> --- a/mm/readahead.c
-> +++ b/mm/readahead.c
-> @@ -114,10 +114,10 @@ int read_cache_pages(struct address_space *mapping, struct list_head *pages,
->  EXPORT_SYMBOL(read_cache_pages);
->  
->  static void read_pages(struct address_space *mapping, struct file *filp,
-> -		struct list_head *pages, unsigned int nr_pages, gfp_t gfp)
-> +		struct list_head *pages, pgoff_t start,
-> +		unsigned int nr_pages)
->  {
->  	struct blk_plug plug;
-> -	unsigned page_idx;
->  
->  	blk_start_plug(&plug);
->  
-> @@ -125,18 +125,17 @@ static void read_pages(struct address_space *mapping, struct file *filp,
->  		mapping->a_ops->readpages(filp, mapping, pages, nr_pages);
->  		/* Clean up the remaining pages */
->  		put_pages_list(pages);
-> -		goto out;
-> -	}
-> +	} else {
-> +		struct page *page;
-> +		unsigned long index;
->  
-> -	for (page_idx = 0; page_idx < nr_pages; page_idx++) {
-> -		struct page *page = lru_to_page(pages);
-> -		list_del(&page->lru);
-> -		if (!add_to_page_cache_lru(page, mapping, page->index, gfp))
-> +		xa_for_each_range(&mapping->i_pages, index, page, start,
-> +				start + nr_pages - 1) {
->  			mapping->a_ops->readpage(filp, page);
-> -		put_page(page);
-> +			put_page(page);
-> +		}
->  	}
->  
-> -out:
->  	blk_finish_plug(&plug);
->  }
->  
-> @@ -149,17 +148,18 @@ static void read_pages(struct address_space *mapping, struct file *filp,
->   * Returns the number of pages requested, or the maximum amount of I/O allowed.
->   */
->  unsigned long __do_page_cache_readahead(struct address_space *mapping,
-> -		struct file *filp, pgoff_t offset, unsigned long nr_to_read,
-> +		struct file *filp, pgoff_t start, unsigned long nr_to_read,
->  		unsigned long lookahead_size)
->  {
->  	struct inode *inode = mapping->host;
-> -	struct page *page;
->  	unsigned long end_index;	/* The last page we want to read */
->  	LIST_HEAD(page_pool);
->  	int page_idx;
-> +	pgoff_t page_offset = start;
->  	unsigned long nr_pages = 0;
->  	loff_t isize = i_size_read(inode);
->  	gfp_t gfp_mask = readahead_gfp_mask(mapping);
-> +	bool use_list = mapping->a_ops->readpages;
->  
->  	if (isize == 0)
->  		goto out;
-> @@ -170,7 +170,7 @@ unsigned long __do_page_cache_readahead(struct address_space *mapping,
->  	 * Preallocate as many pages as we will need.
->  	 */
->  	for (page_idx = 0; page_idx < nr_to_read; page_idx++) {
-> -		pgoff_t page_offset = offset + page_idx;
-> +		struct page *page;
 
-I see two distinct things happening in this patch, and I think they want to each be
-in their own patch:
+Agreed that the real point of this is to match up the API, but why not finish the job
+by going all the way through? It's certainly not something we need to lose sleep over,
+but it does seem like you don't want to have code like this:
 
-1) A significant refactoring of the page loop, and
+        for (page_idx = 0; page_idx < nr_to_read; page_idx++) {
 
-2) Changing the place where the page is added to the page cache. (Only this one is 
-   mentioned in the commit description.)
+...with the ability, technically, to overflow page_idx due to it being an int,
+while nr_to_read is an unsigned long. (And the new sanitizers and checkers are
+apt to complain about it, btw.)
 
-We'll be more likely to spot any errors if these are teased apart.
-
+(Apologies if there is some kernel coding idiom that I still haven't learned, about this 
+sort of thing.)
 
 thanks,
 -- 
 John Hubbard
 NVIDIA
-
->  
->  		if (page_offset > end_index)
->  			break;
-> @@ -178,25 +178,43 @@ unsigned long __do_page_cache_readahead(struct address_space *mapping,
->  		page = xa_load(&mapping->i_pages, page_offset);
->  		if (page && !xa_is_value(page)) {
->  			/*
-> -			 * Page already present?  Kick off the current batch of
-> -			 * contiguous pages before continuing with the next
-> -			 * batch.
-> +			 * Page already present?  Kick off the current batch
-> +			 * of contiguous pages before continuing with the
-> +			 * next batch.
-> +			 * It's possible this page is the page we should
-> +			 * be marking with PageReadahead.  However, we
-> +			 * don't have a stable ref to this page so it might
-> +			 * be reallocated to another user before we can set
-> +			 * the bit.  There's probably another page in the
-> +			 * cache marked with PageReadahead from the other
-> +			 * process which accessed this file.
->  			 */
-> -			if (nr_pages)
-> -				read_pages(mapping, filp, &page_pool, nr_pages,
-> -						gfp_mask);
-> -			nr_pages = 0;
-> -			continue;
-> +			goto skip;
->  		}
->  
->  		page = __page_cache_alloc(gfp_mask);
->  		if (!page)
->  			break;
-> -		page->index = page_offset;
-> -		list_add(&page->lru, &page_pool);
-> +		if (use_list) {
-> +			page->index = page_offset;
-> +			list_add(&page->lru, &page_pool);
-> +		} else if (add_to_page_cache_lru(page, mapping, page_offset,
-> +					gfp_mask) < 0) {
-> +			put_page(page);
-> +			goto skip;
-> +		}
-> +
->  		if (page_idx == nr_to_read - lookahead_size)
->  			SetPageReadahead(page);
->  		nr_pages++;
-> +		page_offset++;
-> +		continue;
-> +skip:
-> +		if (nr_pages)
-> +			read_pages(mapping, filp, &page_pool, start, nr_pages);
-> +		nr_pages = 0;
-> +		page_offset++;
-> +		start = page_offset;
->  	}
->  
->  	/*
-> @@ -205,7 +223,7 @@ unsigned long __do_page_cache_readahead(struct address_space *mapping,
->  	 * will then handle the error.
->  	 */
->  	if (nr_pages)
-> -		read_pages(mapping, filp, &page_pool, nr_pages, gfp_mask);
-> +		read_pages(mapping, filp, &page_pool, start, nr_pages);
->  	BUG_ON(!list_empty(&page_pool));
->  out:
->  	return nr_pages;
-> 
