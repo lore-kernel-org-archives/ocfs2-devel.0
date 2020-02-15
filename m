@@ -1,27 +1,46 @@
 From: Matthew Wilcox <willy@infradead.org>
-Date: Fri, 14 Feb 2020 11:50:46 -0800
-Subject: [Ocfs2-devel] [PATCH v5 01/13] mm: Fix the return type of
- __do_page_cache_readahead
-In-Reply-To: <20200211010348.6872-2-willy@infradead.org>
+Date: Fri, 14 Feb 2020 17:15:05 -0800
+Subject: [Ocfs2-devel] [PATCH v5 04/13] mm: Add readahead address space
+	operation
+In-Reply-To: <755399a8-8fdf-bfac-9f23-81579ff63ddf@nvidia.com>
 References: <20200211010348.6872-1-willy@infradead.org>
-	<20200211010348.6872-2-willy@infradead.org>
-Message-ID: <20200214195046.GC7778@bombadil.infradead.org>
+	<20200211010348.6872-5-willy@infradead.org>
+	<755399a8-8fdf-bfac-9f23-81579ff63ddf@nvidia.com>
+Message-ID: <20200215011505.GD7778@bombadil.infradead.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Mon, Feb 10, 2020 at 05:03:36PM -0800, Matthew Wilcox wrote:
-> From: "Matthew Wilcox (Oracle)" <willy@infradead.org>
+On Thu, Feb 13, 2020 at 09:36:25PM -0800, John Hubbard wrote:
+> > +static inline struct page *readahead_page(struct readahead_control *rac)
+> > +{
+> > +	struct page *page;
+> > +
+> > +	if (!rac->nr_pages)
+> > +		return NULL;
+> > +
+> > +	page = xa_load(&rac->mapping->i_pages, rac->start);
 > 
-> ra_submit() which is a wrapper around __do_page_cache_readahead() already
-> returns an unsigned long, and the 'nr_to_read' parameter is an unsigned
-> long, so fix __do_page_cache_readahead() to return an unsigned long,
-> even though I'm pretty sure we're not going to readahead more than 2^32
-> pages ever.
+> 
+> Is it worth asserting that the page was found:
+> 
+> 	VM_BUG_ON_PAGE(!page || xa_is_value(page), page);
+> 
+> ? Or is that overkill here?
 
-I was going through this and realised it's completely pointless -- the
-returned value from ra_submit() and __do_page_cache_readahead() is
-eventually ignored through all paths.  So I'm replacing this patch with
-one that makes everything return void.
+It shouldn't be possible since they were just added in a locked state.
+If it did happen, it'll be caught by the assert below -- dereferencing
+a NULL pointer or a shadow entry is not going to go well.
+
+> > +	VM_BUG_ON_PAGE(!PageLocked(page), page);
+> > +	rac->batch_count = hpage_nr_pages(page);
+> > +	rac->start += rac->batch_count;
+> 
+> The above was surprising, until I saw the other thread with Dave and you.
+> I was reviewing this patchset in order to have a chance at understanding the 
+> follow-on patchset ("Large pages in the page cache"), and it seems like that
+> feature has a solid head start here. :)  
+
+Right, I'll document that.
