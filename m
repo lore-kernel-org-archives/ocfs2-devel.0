@@ -1,10 +1,10 @@
 From: Matthew Wilcox <willy@infradead.org>
-Date: Mon, 17 Feb 2020 10:45:49 -0800
-Subject: [Ocfs2-devel] [PATCH v6 06/16] mm: Add readahead address space
-	operation
+Date: Mon, 17 Feb 2020 10:46:00 -0800
+Subject: [Ocfs2-devel] [PATCH v6 11/16] erofs: Convert compressed files from
+	readpages to readahead
 In-Reply-To: <20200217184613.19668-1-willy@infradead.org>
 References: <20200217184613.19668-1-willy@infradead.org>
-Message-ID: <20200217184613.19668-9-willy@infradead.org>
+Message-ID: <20200217184613.19668-20-willy@infradead.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -13,156 +13,78 @@ To: ocfs2-devel@oss.oracle.com
 
 From: "Matthew Wilcox (Oracle)" <willy@infradead.org>
 
-This replaces ->readpages with a saner interface:
- - Return void instead of an ignored error code.
- - Pages are already in the page cache when ->readahead is called.
- - Implementation looks up the pages in the page cache instead of
-   having them passed in a linked list.
+Use the new readahead operation in erofs.
 
 Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
 ---
- Documentation/filesystems/locking.rst |  6 +++++-
- Documentation/filesystems/vfs.rst     | 13 +++++++++++++
- include/linux/fs.h                    |  2 ++
- include/linux/pagemap.h               | 18 ++++++++++++++++++
- mm/readahead.c                        |  8 +++++++-
- 5 files changed, 45 insertions(+), 2 deletions(-)
+ fs/erofs/zdata.c | 29 +++++++++--------------------
+ 1 file changed, 9 insertions(+), 20 deletions(-)
 
-diff --git a/Documentation/filesystems/locking.rst b/Documentation/filesystems/locking.rst
-index 5057e4d9dcd1..0ebc4491025a 100644
---- a/Documentation/filesystems/locking.rst
-+++ b/Documentation/filesystems/locking.rst
-@@ -239,6 +239,7 @@ prototypes::
- 	int (*readpage)(struct file *, struct page *);
- 	int (*writepages)(struct address_space *, struct writeback_control *);
- 	int (*set_page_dirty)(struct page *page);
-+	void (*readahead)(struct readahead_control *);
- 	int (*readpages)(struct file *filp, struct address_space *mapping,
- 			struct list_head *pages, unsigned nr_pages);
- 	int (*write_begin)(struct file *, struct address_space *mapping,
-@@ -271,7 +272,8 @@ writepage:		yes, unlocks (see below)
- readpage:		yes, unlocks
- writepages:
- set_page_dirty		no
--readpages:
-+readahead:		yes, unlocks
-+readpages:		no
- write_begin:		locks the page		 exclusive
- write_end:		yes, unlocks		 exclusive
- bmap:
-@@ -295,6 +297,8 @@ the request handler (/dev/loop).
- ->readpage() unlocks the page, either synchronously or via I/O
- completion.
+diff --git a/fs/erofs/zdata.c b/fs/erofs/zdata.c
+index 17f45fcb8c5c..7c02015d501d 100644
+--- a/fs/erofs/zdata.c
++++ b/fs/erofs/zdata.c
+@@ -1303,28 +1303,23 @@ static bool should_decompress_synchronously(struct erofs_sb_info *sbi,
+ 	return nr <= sbi->max_sync_decompress_pages;
+ }
  
-+->readahead() unlocks the pages like ->readpage().
-+
- ->readpages() populates the pagecache with the passed pages and starts
- I/O against them.  They come unlocked upon I/O completion.
- 
-diff --git a/Documentation/filesystems/vfs.rst b/Documentation/filesystems/vfs.rst
-index 7d4d09dd5e6d..81ab30fbe45c 100644
---- a/Documentation/filesystems/vfs.rst
-+++ b/Documentation/filesystems/vfs.rst
-@@ -706,6 +706,7 @@ cache in your filesystem.  The following members are defined:
- 		int (*readpage)(struct file *, struct page *);
- 		int (*writepages)(struct address_space *, struct writeback_control *);
- 		int (*set_page_dirty)(struct page *page);
-+		void (*readahead)(struct readahead_control *);
- 		int (*readpages)(struct file *filp, struct address_space *mapping,
- 				 struct list_head *pages, unsigned nr_pages);
- 		int (*write_begin)(struct file *, struct address_space *mapping,
-@@ -781,12 +782,24 @@ cache in your filesystem.  The following members are defined:
- 	If defined, it should set the PageDirty flag, and the
- 	PAGECACHE_TAG_DIRTY tag in the radix tree.
- 
-+``readahead``
-+	Called by the VM to read pages associated with the address_space
-+	object.  The pages are consecutive in the page cache and are
-+	locked.  The implementation should decrement the page refcount
-+	after starting I/O on each page.  Usually the page will be
-+	unlocked by the I/O completion handler.  If the function does
-+	not attempt I/O on some pages, the caller will decrement the page
-+	refcount and unlock the pages for you.	Set PageUptodate if the
-+	I/O completes successfully.  Setting PageError on any page will
-+	be ignored; simply unlock the page if an I/O error occurs.
-+
- ``readpages``
- 	called by the VM to read pages associated with the address_space
- 	object.  This is essentially just a vector version of readpage.
- 	Instead of just one page, several pages are requested.
- 	readpages is only used for read-ahead, so read errors are
- 	ignored.  If anything goes wrong, feel free to give up.
-+	This interface is deprecated; implement readahead instead.
- 
- ``write_begin``
- 	Called by the generic buffered write code to ask the filesystem
-diff --git a/include/linux/fs.h b/include/linux/fs.h
-index 3cd4fe6b845e..d4e2d2964346 100644
---- a/include/linux/fs.h
-+++ b/include/linux/fs.h
-@@ -292,6 +292,7 @@ enum positive_aop_returns {
- struct page;
- struct address_space;
- struct writeback_control;
-+struct readahead_control;
- 
- /*
-  * Write life time hint values.
-@@ -375,6 +376,7 @@ struct address_space_operations {
- 	 */
- 	int (*readpages)(struct file *filp, struct address_space *mapping,
- 			struct list_head *pages, unsigned nr_pages);
-+	void (*readahead)(struct readahead_control *);
- 
- 	int (*write_begin)(struct file *, struct address_space *mapping,
- 				loff_t pos, unsigned len, unsigned flags,
-diff --git a/include/linux/pagemap.h b/include/linux/pagemap.h
-index 3613154e79e4..bd4291f78f41 100644
---- a/include/linux/pagemap.h
-+++ b/include/linux/pagemap.h
-@@ -665,6 +665,24 @@ static inline void readahead_next(struct readahead_control *rac)
- #define readahead_for_each(rac, page)					\
- 	for (; (page = readahead_page(rac)); readahead_next(rac))
- 
-+/* The byte offset into the file of this readahead block */
-+static inline loff_t readahead_offset(struct readahead_control *rac)
-+{
-+	return (loff_t)rac->_start * PAGE_SIZE;
-+}
-+
-+/* The number of bytes in this readahead block */
-+static inline loff_t readahead_length(struct readahead_control *rac)
-+{
-+	return (loff_t)rac->_nr_pages * PAGE_SIZE;
-+}
-+
-+/* The index of the first page in this readahead block */
-+static inline unsigned int readahead_index(struct readahead_control *rac)
-+{
-+	return rac->_start;
-+}
-+
- /* The number of pages in this readahead block */
- static inline unsigned int readahead_count(struct readahead_control *rac)
+-static int z_erofs_readpages(struct file *filp, struct address_space *mapping,
+-			     struct list_head *pages, unsigned int nr_pages)
++static void z_erofs_readahead(struct readahead_control *rac)
  {
-diff --git a/mm/readahead.c b/mm/readahead.c
-index 7663de534734..5be7e1cb8666 100644
---- a/mm/readahead.c
-+++ b/mm/readahead.c
-@@ -121,7 +121,13 @@ static void read_pages(struct readahead_control *rac, struct list_head *pages)
+-	struct inode *const inode = mapping->host;
++	struct inode *const inode = rac->mapping->host;
+ 	struct erofs_sb_info *const sbi = EROFS_I_SB(inode);
  
- 	blk_start_plug(&plug);
+-	bool sync = should_decompress_synchronously(sbi, nr_pages);
++	bool sync = should_decompress_synchronously(sbi, readahead_count(rac));
+ 	struct z_erofs_decompress_frontend f = DECOMPRESS_FRONTEND_INIT(inode);
+-	gfp_t gfp = mapping_gfp_constraint(mapping, GFP_KERNEL);
+-	struct page *head = NULL;
++	struct page *page, *head = NULL;
+ 	LIST_HEAD(pagepool);
  
--	if (aops->readpages) {
-+	if (aops->readahead) {
-+		aops->readahead(rac);
-+		readahead_for_each(rac, page) {
-+			unlock_page(page);
-+			put_page(page);
-+		}
-+	} else if (aops->readpages) {
- 		aops->readpages(rac->file, rac->mapping, pages,
- 				readahead_count(rac));
- 		/* Clean up the remaining pages */
+-	trace_erofs_readpages(mapping->host, lru_to_page(pages)->index,
+-			      nr_pages, false);
++	trace_erofs_readpages(inode, readahead_index(rac),
++			readahead_count(rac), false);
+ 
+-	f.headoffset = (erofs_off_t)lru_to_page(pages)->index << PAGE_SHIFT;
+-
+-	for (; nr_pages; --nr_pages) {
+-		struct page *page = lru_to_page(pages);
++	f.headoffset = readahead_offset(rac);
+ 
++	readahead_for_each(rac, page) {
+ 		prefetchw(&page->flags);
+-		list_del(&page->lru);
+ 
+ 		/*
+ 		 * A pure asynchronous readahead is indicated if
+@@ -1333,11 +1328,6 @@ static int z_erofs_readpages(struct file *filp, struct address_space *mapping,
+ 		 */
+ 		sync &= !(PageReadahead(page) && !head);
+ 
+-		if (add_to_page_cache_lru(page, mapping, page->index, gfp)) {
+-			list_add(&page->lru, &pagepool);
+-			continue;
+-		}
+-
+ 		set_page_private(page, (unsigned long)head);
+ 		head = page;
+ 	}
+@@ -1366,11 +1356,10 @@ static int z_erofs_readpages(struct file *filp, struct address_space *mapping,
+ 
+ 	/* clean up the remaining free pages */
+ 	put_pages_list(&pagepool);
+-	return 0;
+ }
+ 
+ const struct address_space_operations z_erofs_aops = {
+ 	.readpage = z_erofs_readpage,
+-	.readpages = z_erofs_readpages,
++	.readahead = z_erofs_readahead,
+ };
+ 
 -- 
 2.25.0
