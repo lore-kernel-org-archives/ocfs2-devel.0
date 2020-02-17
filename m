@@ -1,157 +1,127 @@
-From: Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
-Date: Mon, 17 Feb 2020 17:11:46 +0100
-Subject: [Ocfs2-devel] [PATCH 00/44] Manually convert filesystem FS
-	documents to ReST
-Message-ID: <cover.1581955849.git.mchehab+huawei@kernel.org>
+From: Matthew Wilcox <willy@infradead.org>
+Date: Mon, 17 Feb 2020 10:46:09 -0800
+Subject: [Ocfs2-devel] [PATCH v6 16/19] fuse: Convert from readpages to
+	readahead
+In-Reply-To: <20200217184613.19668-1-willy@infradead.org>
+References: <20200217184613.19668-1-willy@infradead.org>
+Message-ID: <20200217184613.19668-29-willy@infradead.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-There are lots of plain text documents under Documentation/filesystems.
+From: "Matthew Wilcox (Oracle)" <willy@infradead.org>
 
-Manually convert several of those to ReST and add them to the index file.
+Use the new readahead operation in fuse.  Switching away from the
+read_cache_pages() helper gets rid of an implicit call to put_page(),
+so we can get rid of the get_page() call in fuse_readpages_fill().
 
-Mauro Carvalho Chehab (44):
-  docs: filesystems: convert 9p.txt to ReST
-  docs: filesystems: convert adfs.txt to ReST
-  docs: filesystems: convert affs.txt to ReST
-  docs: filesystems: convert afs.txt to ReST
-  docs: filesystems: convert autofs-mount-control.txt to ReST
-  docs: filesystems: convert befs.txt to ReST
-  docs: filesystems: convert bfs.txt to ReST
-  docs: filesystems: convert btrfs.txt to ReST
-  docs: filesystems: convert ceph.txt to ReST
-  docs: filesystems: convert cramfs.txt to ReST
-  docs: filesystems: convert debugfs.txt to ReST
-  docs: filesystems: convert dlmfs.txt to ReST
-  docs: filesystems: convert ecryptfs.txt to ReST
-  docs: filesystems: convert efivarfs.txt to ReST
-  docs: filesystems: convert erofs.txt to ReST
-  docs: filesystems: convert ext2.txt to ReST
-  docs: filesystems: convert ext3.txt to ReST
-  docs: filesystems: convert f2fs.txt to ReST
-  docs: filesystems: convert gfs2.txt to ReST
-  docs: filesystems: convert gfs2-uevents.txt to ReST
-  docs: filesystems: convert hfsplus.txt to ReST
-  docs: filesystems: convert hfs.txt to ReST
-  docs: filesystems: convert hpfs.txt to ReST
-  docs: filesystems: convert inotify.txt to ReST
-  docs: filesystems: convert isofs.txt to ReST
-  docs: filesystems: convert nilfs2.txt to ReST
-  docs: filesystems: convert ntfs.txt to ReST
-  docs: filesystems: convert ocfs2-online-filecheck.txt to ReST
-  docs: filesystems: convert ocfs2.txt to ReST
-  docs: filesystems: convert omfs.txt to ReST
-  docs: filesystems: convert orangefs.txt to ReST
-  docs: filesystems: convert proc.txt to ReST
-  docs: filesystems: convert qnx6.txt to ReST
-  docs: filesystems: convert ramfs-rootfs-initramfs.txt to ReST
-  docs: filesystems: convert relay.txt to ReST
-  docs: filesystems: convert romfs.txt to ReST
-  docs: filesystems: convert squashfs.txt to ReST
-  docs: filesystems: convert sysfs.txt to ReST
-  docs: filesystems: convert sysv-fs.txt to ReST
-  docs: filesystems: convert tmpfs.txt to ReST
-  docs: filesystems: convert ubifs-authentication.rst.txt to ReST
-  docs: filesystems: convert ubifs.txt to ReST
-  docs: filesystems: convert udf.txt to ReST
-  docs: filesystems: convert zonefs.txt to ReST
+Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
+---
+ fs/fuse/file.c | 46 +++++++++++++++++++---------------------------
+ 1 file changed, 19 insertions(+), 27 deletions(-)
 
- Documentation/filesystems/{9p.txt => 9p.rst}  |  114 +-
- .../filesystems/{adfs.txt => adfs.rst}        |   29 +-
- .../filesystems/{affs.txt => affs.rst}        |   62 +-
- .../filesystems/{afs.txt => afs.rst}          |   73 +-
- ...t-control.txt => autofs-mount-control.rst} |  102 +-
- .../filesystems/{befs.txt => befs.rst}        |   59 +-
- .../filesystems/{bfs.txt => bfs.rst}          |   37 +-
- .../filesystems/{btrfs.txt => btrfs.rst}      |    3 +
- .../filesystems/{ceph.txt => ceph.rst}        |   26 +-
- .../filesystems/{cramfs.txt => cramfs.rst}    |   19 +-
- .../filesystems/{debugfs.txt => debugfs.rst}  |   54 +-
- .../filesystems/{dlmfs.txt => dlmfs.rst}      |   28 +-
- .../{ecryptfs.txt => ecryptfs.rst}            |   44 +-
- .../{efivarfs.txt => efivarfs.rst}            |    5 +-
- .../filesystems/{erofs.txt => erofs.rst}      |  175 +-
- .../filesystems/{ext2.txt => ext2.rst}        |   41 +-
- .../filesystems/{ext3.txt => ext3.rst}        |    2 +
- .../filesystems/{f2fs.txt => f2fs.rst}        |  252 +--
- .../{gfs2-uevents.txt => gfs2-uevents.rst}    |   20 +-
- .../filesystems/{gfs2.txt => gfs2.rst}        |   20 +-
- .../filesystems/{hfs.txt => hfs.rst}          |   23 +-
- .../filesystems/{hfsplus.txt => hfsplus.rst}  |    2 +
- .../filesystems/{hpfs.txt => hpfs.rst}        |  239 ++-
- Documentation/filesystems/index.rst           |   46 +-
- .../filesystems/{inotify.txt => inotify.rst}  |   33 +-
- Documentation/filesystems/isofs.rst           |   64 +
- Documentation/filesystems/isofs.txt           |   48 -
- .../filesystems/{nilfs2.txt => nilfs2.rst}    |   40 +-
- .../filesystems/{ntfs.txt => ntfs.rst}        |  143 +-
- ...lecheck.txt => ocfs2-online-filecheck.rst} |   45 +-
- .../filesystems/{ocfs2.txt => ocfs2.rst}      |   31 +-
- Documentation/filesystems/omfs.rst            |  112 ++
- Documentation/filesystems/omfs.txt            |  106 --
- .../{orangefs.txt => orangefs.rst}            |  187 +-
- .../filesystems/{proc.txt => proc.rst}        | 1498 +++++++++--------
- .../filesystems/{qnx6.txt => qnx6.rst}        |   22 +
- ...itramfs.txt => ramfs-rootfs-initramfs.rst} |   54 +-
- .../filesystems/{relay.txt => relay.rst}      |  129 +-
- .../filesystems/{romfs.txt => romfs.rst}      |   42 +-
- .../{squashfs.txt => squashfs.rst}            |   60 +-
- .../filesystems/{sysfs.txt => sysfs.rst}      |  324 ++--
- .../filesystems/{sysv-fs.txt => sysv-fs.rst}  |  155 +-
- .../filesystems/{tmpfs.txt => tmpfs.rst}      |   44 +-
- .../filesystems/ubifs-authentication.rst      |   10 +-
- .../filesystems/{ubifs.txt => ubifs.rst}      |   25 +-
- .../filesystems/{udf.txt => udf.rst}          |   21 +-
- .../filesystems/{zonefs.txt => zonefs.rst}    |  106 +-
- 47 files changed, 2739 insertions(+), 2035 deletions(-)
- rename Documentation/filesystems/{9p.txt => 9p.rst} (63%)
- rename Documentation/filesystems/{adfs.txt => adfs.rst} (85%)
- rename Documentation/filesystems/{affs.txt => affs.rst} (86%)
- rename Documentation/filesystems/{afs.txt => afs.rst} (90%)
- rename Documentation/filesystems/{autofs-mount-control.txt => autofs-mount-control.rst} (89%)
- rename Documentation/filesystems/{befs.txt => befs.rst} (83%)
- rename Documentation/filesystems/{bfs.txt => bfs.rst} (71%)
- rename Documentation/filesystems/{btrfs.txt => btrfs.rst} (96%)
- rename Documentation/filesystems/{ceph.txt => ceph.rst} (91%)
- rename Documentation/filesystems/{cramfs.txt => cramfs.rst} (88%)
- rename Documentation/filesystems/{debugfs.txt => debugfs.rst} (91%)
- rename Documentation/filesystems/{dlmfs.txt => dlmfs.rst} (86%)
- rename Documentation/filesystems/{ecryptfs.txt => ecryptfs.rst} (70%)
- rename Documentation/filesystems/{efivarfs.txt => efivarfs.rst} (85%)
- rename Documentation/filesystems/{erofs.txt => erofs.rst} (54%)
- rename Documentation/filesystems/{ext2.txt => ext2.rst} (91%)
- rename Documentation/filesystems/{ext3.txt => ext3.rst} (88%)
- rename Documentation/filesystems/{f2fs.txt => f2fs.rst} (84%)
- rename Documentation/filesystems/{gfs2-uevents.txt => gfs2-uevents.rst} (94%)
- rename Documentation/filesystems/{gfs2.txt => gfs2.rst} (76%)
- rename Documentation/filesystems/{hfs.txt => hfs.rst} (80%)
- rename Documentation/filesystems/{hfsplus.txt => hfsplus.rst} (95%)
- rename Documentation/filesystems/{hpfs.txt => hpfs.rst} (66%)
- rename Documentation/filesystems/{inotify.txt => inotify.rst} (83%)
- create mode 100644 Documentation/filesystems/isofs.rst
- delete mode 100644 Documentation/filesystems/isofs.txt
- rename Documentation/filesystems/{nilfs2.txt => nilfs2.rst} (89%)
- rename Documentation/filesystems/{ntfs.txt => ntfs.rst} (85%)
- rename Documentation/filesystems/{ocfs2-online-filecheck.txt => ocfs2-online-filecheck.rst} (77%)
- rename Documentation/filesystems/{ocfs2.txt => ocfs2.rst} (88%)
- create mode 100644 Documentation/filesystems/omfs.rst
- delete mode 100644 Documentation/filesystems/omfs.txt
- rename Documentation/filesystems/{orangefs.txt => orangefs.rst} (83%)
- rename Documentation/filesystems/{proc.txt => proc.rst} (65%)
- rename Documentation/filesystems/{qnx6.txt => qnx6.rst} (98%)
- rename Documentation/filesystems/{ramfs-rootfs-initramfs.txt => ramfs-rootfs-initramfs.rst} (91%)
- rename Documentation/filesystems/{relay.txt => relay.rst} (91%)
- rename Documentation/filesystems/{romfs.txt => romfs.rst} (86%)
- rename Documentation/filesystems/{squashfs.txt => squashfs.rst} (91%)
- rename Documentation/filesystems/{sysfs.txt => sysfs.rst} (56%)
- rename Documentation/filesystems/{sysv-fs.txt => sysv-fs.rst} (73%)
- rename Documentation/filesystems/{tmpfs.txt => tmpfs.rst} (86%)
- rename Documentation/filesystems/{ubifs.txt => ubifs.rst} (91%)
- rename Documentation/filesystems/{udf.txt => udf.rst} (83%)
- rename Documentation/filesystems/{zonefs.txt => zonefs.rst} (90%)
-
+diff --git a/fs/fuse/file.c b/fs/fuse/file.c
+index 9d67b830fb7a..f64f98708b5e 100644
+--- a/fs/fuse/file.c
++++ b/fs/fuse/file.c
+@@ -923,9 +923,8 @@ struct fuse_fill_data {
+ 	unsigned int max_pages;
+ };
+ 
+-static int fuse_readpages_fill(void *_data, struct page *page)
++static int fuse_readpages_fill(struct fuse_fill_data *data, struct page *page)
+ {
+-	struct fuse_fill_data *data = _data;
+ 	struct fuse_io_args *ia = data->ia;
+ 	struct fuse_args_pages *ap = &ia->ap;
+ 	struct inode *inode = data->inode;
+@@ -941,10 +940,8 @@ static int fuse_readpages_fill(void *_data, struct page *page)
+ 					fc->max_pages);
+ 		fuse_send_readpages(ia, data->file);
+ 		data->ia = ia = fuse_io_alloc(NULL, data->max_pages);
+-		if (!ia) {
+-			unlock_page(page);
++		if (!ia)
+ 			return -ENOMEM;
+-		}
+ 		ap = &ia->ap;
+ 	}
+ 
+@@ -954,7 +951,6 @@ static int fuse_readpages_fill(void *_data, struct page *page)
+ 		return -EIO;
+ 	}
+ 
+-	get_page(page);
+ 	ap->pages[ap->num_pages] = page;
+ 	ap->descs[ap->num_pages].length = PAGE_SIZE;
+ 	ap->num_pages++;
+@@ -962,37 +958,33 @@ static int fuse_readpages_fill(void *_data, struct page *page)
+ 	return 0;
+ }
+ 
+-static int fuse_readpages(struct file *file, struct address_space *mapping,
+-			  struct list_head *pages, unsigned nr_pages)
++static void fuse_readahead(struct readahead_control *rac)
+ {
+-	struct inode *inode = mapping->host;
++	struct inode *inode = rac->mapping->host;
+ 	struct fuse_conn *fc = get_fuse_conn(inode);
+ 	struct fuse_fill_data data;
+-	int err;
++	struct page *page;
+ 
+-	err = -EIO;
+ 	if (is_bad_inode(inode))
+-		goto out;
++		return;
+ 
+-	data.file = file;
++	data.file = rac->file;
+ 	data.inode = inode;
+-	data.nr_pages = nr_pages;
+-	data.max_pages = min_t(unsigned int, nr_pages, fc->max_pages);
+-;
++	data.nr_pages = readahead_count(rac);
++	data.max_pages = min_t(unsigned int, data.nr_pages, fc->max_pages);
+ 	data.ia = fuse_io_alloc(NULL, data.max_pages);
+-	err = -ENOMEM;
+ 	if (!data.ia)
+-		goto out;
++		return;
+ 
+-	err = read_cache_pages(mapping, pages, fuse_readpages_fill, &data);
+-	if (!err) {
+-		if (data.ia->ap.num_pages)
+-			fuse_send_readpages(data.ia, file);
+-		else
+-			fuse_io_free(data.ia);
++	readahead_for_each(rac, page) {
++		if (fuse_readpages_fill(&data, page) != 0)
++			return;
+ 	}
+-out:
+-	return err;
++
++	if (data.ia->ap.num_pages)
++		fuse_send_readpages(data.ia, rac->file);
++	else
++		fuse_io_free(data.ia);
+ }
+ 
+ static ssize_t fuse_cache_read_iter(struct kiocb *iocb, struct iov_iter *to)
+@@ -3373,10 +3365,10 @@ static const struct file_operations fuse_file_operations = {
+ 
+ static const struct address_space_operations fuse_file_aops  = {
+ 	.readpage	= fuse_readpage,
++	.readahead	= fuse_readahead,
+ 	.writepage	= fuse_writepage,
+ 	.writepages	= fuse_writepages,
+ 	.launder_page	= fuse_launder_page,
+-	.readpages	= fuse_readpages,
+ 	.set_page_dirty	= __set_page_dirty_nobuffers,
+ 	.bmap		= fuse_bmap,
+ 	.direct_IO	= fuse_direct_IO,
 -- 
-2.24.1
+2.25.0
