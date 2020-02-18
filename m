@@ -1,191 +1,51 @@
 From: Matthew Wilcox <willy@infradead.org>
-Date: Tue, 18 Feb 2020 13:12:28 -0800
-Subject: [Ocfs2-devel] [PATCH v6 11/19] btrfs: Convert from readpages to
-	readahead
-In-Reply-To: <20200218065758.GQ10776@dread.disaster.area>
+Date: Tue, 18 Feb 2020 13:21:15 -0800
+Subject: [Ocfs2-devel] [PATCH v6 01/19] mm: Return void from various
+	readahead functions
+In-Reply-To: <29d2d7ca-7f2b-7eb4-78bc-f2af36c4c426@nvidia.com>
 References: <20200217184613.19668-1-willy@infradead.org>
-	<20200217184613.19668-19-willy@infradead.org>
-	<20200218065758.GQ10776@dread.disaster.area>
-Message-ID: <20200218211228.GF24185@bombadil.infradead.org>
+	<20200217184613.19668-2-willy@infradead.org>
+	<29d2d7ca-7f2b-7eb4-78bc-f2af36c4c426@nvidia.com>
+Message-ID: <20200218212115.GG24185@bombadil.infradead.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Dave Chinner <david@fromorbit.com>
+To: John Hubbard <jhubbard@nvidia.com>
 Cc: linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-btrfs@vger.kernel.org, linux-erofs@lists.ozlabs.org, linux-ext4@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, linux-xfs@vger.kernel.org
 
-On Tue, Feb 18, 2020 at 05:57:58PM +1100, Dave Chinner wrote:
-> On Mon, Feb 17, 2020 at 10:45:59AM -0800, Matthew Wilcox wrote:
-> > From: "Matthew Wilcox (Oracle)" <willy@infradead.org>
-> > 
-> > Use the new readahead operation in btrfs.  Add a
-> > readahead_for_each_batch() iterator to optimise the loop in the XArray.
-> > 
-> > Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
-> > ---
-> >  fs/btrfs/extent_io.c    | 46 +++++++++++++----------------------------
-> >  fs/btrfs/extent_io.h    |  3 +--
-> >  fs/btrfs/inode.c        | 16 +++++++-------
-> >  include/linux/pagemap.h | 27 ++++++++++++++++++++++++
-> >  4 files changed, 49 insertions(+), 43 deletions(-)
-> > 
-> > diff --git a/fs/btrfs/extent_io.c b/fs/btrfs/extent_io.c
-> > index c0f202741e09..e97a6acd6f5d 100644
-> > --- a/fs/btrfs/extent_io.c
-> > +++ b/fs/btrfs/extent_io.c
-> > @@ -4278,52 +4278,34 @@ int extent_writepages(struct address_space *mapping,
-> >  	return ret;
-> >  }
-> >  
-> > -int extent_readpages(struct address_space *mapping, struct list_head *pages,
-> > -		     unsigned nr_pages)
-> > +void extent_readahead(struct readahead_control *rac)
-> >  {
-> >  	struct bio *bio = NULL;
-> >  	unsigned long bio_flags = 0;
-> >  	struct page *pagepool[16];
-> >  	struct extent_map *em_cached = NULL;
-> > -	struct extent_io_tree *tree = &BTRFS_I(mapping->host)->io_tree;
-> > -	int nr = 0;
-> > +	struct extent_io_tree *tree = &BTRFS_I(rac->mapping->host)->io_tree;
-> >  	u64 prev_em_start = (u64)-1;
-> > +	int nr;
-> >  
-> > -	while (!list_empty(pages)) {
-> > -		u64 contig_end = 0;
-> > -
-> > -		for (nr = 0; nr < ARRAY_SIZE(pagepool) && !list_empty(pages);) {
-> > -			struct page *page = lru_to_page(pages);
-> > -
-> > -			prefetchw(&page->flags);
-> > -			list_del(&page->lru);
-> > -			if (add_to_page_cache_lru(page, mapping, page->index,
-> > -						readahead_gfp_mask(mapping))) {
-> > -				put_page(page);
-> > -				break;
-> > -			}
-> > -
-> > -			pagepool[nr++] = page;
-> > -			contig_end = page_offset(page) + PAGE_SIZE - 1;
-> > -		}
-> > +	readahead_for_each_batch(rac, pagepool, ARRAY_SIZE(pagepool), nr) {
-> > +		u64 contig_start = page_offset(pagepool[0]);
-> > +		u64 contig_end = page_offset(pagepool[nr - 1]) + PAGE_SIZE - 1;
+On Tue, Feb 18, 2020 at 01:05:29PM -0800, John Hubbard wrote:
+> This is an easy review and obviously correct, so:
 > 
-> So this assumes a contiguous page range is returned, right?
+>     Reviewed-by: John Hubbard <jhubbard@nvidia.com>
 
-Yes.  That's documented in the readahead API and is the behaviour of
-the code.  I mean, btrfs asserts it's true while most of the rest of
-the kernel is indifferent to it, but it's the documented and actual
-behaviour.
+Thanks
 
-> >  
-> > -		if (nr) {
-> > -			u64 contig_start = page_offset(pagepool[0]);
-> > +		ASSERT(contig_start + nr * PAGE_SIZE - 1 == contig_end);
+> Thoughts for the future of the API:
 > 
-> Ok, yes it does. :)
-> 
-> I don't see how readahead_for_each_batch() guarantees that, though.
+> I will add that I could envision another patchset that went in the
+> opposite direction, and attempted to preserve the information about
+> how many pages were successfully read ahead. And that would be nice
+> to have (at least IMHO), even all the way out to the syscall level,
+> especially for the readahead syscall.
 
-I ... don't see how it doesn't?  We start at rac->_start and iterate
-through the consecutive pages in the page cache.  readahead_for_each_batch()
-does assume that __do_page_cache_readahead() has its current behaviour
-of putting the pages in the page cache in order, and kicks off a new
-call to ->readahead() every time it has to skip an index for whatever
-reason (eg page already in page cache).
+Right, and that was where I went initially.  It turns out to be a
+non-trivial aount of work to do the book-keeping to find out how many
+pages were _attempted_, and since we don't wait for the I/O to complete,
+we don't know how many _succeeded_, and we also don't know how many
+weren't attempted because they were already there, and how many weren't
+attempted because somebody else has raced with us and is going to attempt
+them themselves, and how many weren't attempted because we just ran out
+of memory, and decided to give up.
 
-> > -	if (bio)
-> > -		return submit_one_bio(bio, 0, bio_flags);
-> > -	return 0;
-> > +	if (bio) {
-> > +		if (submit_one_bio(bio, 0, bio_flags))
-> > +			return;
-> > +	}
-> >  }
-> 
-> Shouldn't that just be
-> 
-> 	if (bio)
-> 		submit_one_bio(bio, 0, bio_flags);
+Also, we don't know how many pages were successfully read, and then the
+system decided to evict before the program found out how many were read,
+let alone before it did any action based on that.
 
-It should, but some overzealous person decided to mark submit_one_bio()
-as __must_check, so I have to work around that.
-
-> > +static inline unsigned int readahead_page_batch(struct readahead_control *rac,
-> > +		struct page **array, unsigned int size)
-> > +{
-> > +	unsigned int batch = 0;
-> 
-> Confusing when put alongside rac->_batch_count counting the number
-> of pages in the batch, and "batch" being the index into the page
-> array, and they aren't the same counts....
-
-Yes.  Renamed to 'i'.
-
-> > +	XA_STATE(xas, &rac->mapping->i_pages, rac->_start);
-> > +	struct page *page;
-> > +
-> > +	rac->_batch_count = 0;
-> > +	xas_for_each(&xas, page, rac->_start + rac->_nr_pages - 1) {
-> 
-> That just iterates pages in the start,end doesn't it? What
-> guarantees that this fills the array with a contiguous page range?
-
-The behaviour of __do_page_cache_readahead().  Dave Howells also has a
-usecase for xas_for_each_contig(), so I'm going to add that soon.
-
-> > +		VM_BUG_ON_PAGE(!PageLocked(page), page);
-> > +		VM_BUG_ON_PAGE(PageTail(page), page);
-> > +		array[batch++] = page;
-> > +		rac->_batch_count += hpage_nr_pages(page);
-> > +		if (PageHead(page))
-> > +			xas_set(&xas, rac->_start + rac->_batch_count);
-> 
-> What on earth does this do? Comments please!
-
-		/*
-		 * The page cache isn't using multi-index entries yet,
-		 * so xas_for_each() won't do the right thing for
-		 * large pages.  This can be removed once the page cache
-		 * is converted.
-		 */
-
-> > +
-> > +		if (batch == size)
-> > +			break;
-> > +	}
-> > +
-> > +	return batch;
-> > +}
-> 
-> Seems a bit big for an inline function.
-
-It's only called by btrfs at the moment.  If it gets more than one caller,
-then sure, let's move it out of line.
-
-> > +
-> > +#define readahead_for_each_batch(rac, array, size, nr)			\
-> > +	for (; (nr = readahead_page_batch(rac, array, size));		\
-> > +			readahead_next(rac))
-> 
-> I had to go look at the caller to work out what "size" refered to
-> here.
-> 
-> This is complex enough that it needs proper API documentation.
-
-How about just:
-
--#define readahead_for_each_batch(rac, array, size, nr)                 \
--       for (; (nr = readahead_page_batch(rac, array, size));           \
-+#define readahead_for_each_batch(rac, array, array_sz, nr)             \
-+       for (; (nr = readahead_page_batch(rac, array, array_sz));       \
-
-(corresponding rename in readahead_page_batch).  I mean, we could also
-do:
-
-#define readahead_for_each_batch(rac, array, nr)			\
-	for (; (nr = readahead_page_batch(rac, array, ARRAY_SIZE(array)); \
-			readahead_next(rac))
-
-making it less flexible, but easier to use.
+So, given all that complexity, and the fact that nobody actually does
+anything with the limited and incorrect information we tried to provide
+today, I think it's fair to say that anybody who wants to start to do
+anything with that information can delve into all the complexity around
+"what number should we return, and what does it really mean".  In the
+meantime, let's just ditch the complexity and pretense that this number
+means anything.
