@@ -1,99 +1,86 @@
-From: John Hubbard <jhubbard@nvidia.com>
-Date: Tue, 18 Feb 2020 14:33:19 -0800
-Subject: [Ocfs2-devel] [PATCH v6 04/19] mm: Rearrange readahead loop
-In-Reply-To: <20200217184613.19668-5-willy@infradead.org>
+From: Dave Chinner <david@fromorbit.com>
+Date: Wed, 19 Feb 2020 09:46:10 +1100
+Subject: [Ocfs2-devel] [PATCH v6 03/19] mm: Use readahead_control to
+	pass arguments
+In-Reply-To: <20200218135618.GO7778@bombadil.infradead.org>
 References: <20200217184613.19668-1-willy@infradead.org>
-	<20200217184613.19668-5-willy@infradead.org>
-Message-ID: <6ecedc28-a999-8673-e4b1-349b0c23fdfd@nvidia.com>
+	<20200217184613.19668-4-willy@infradead.org>
+	<20200218050300.GI10776@dread.disaster.area>
+	<20200218135618.GO7778@bombadil.infradead.org>
+Message-ID: <20200218224610.GT10776@dread.disaster.area>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Matthew Wilcox <willy@infradead.org>, linux-fsdevel@vger.kernel.org
-Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-btrfs@vger.kernel.org, linux-erofs@lists.ozlabs.org, linux-ext4@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, linux-xfs@vger.kernel.org
+To: Matthew Wilcox <willy@infradead.org>
+Cc: linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-btrfs@vger.kernel.org, linux-erofs@lists.ozlabs.org, linux-ext4@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, linux-xfs@vger.kernel.org, Christoph Hellwig <hch@lst.de>
 
-On 2/17/20 10:45 AM, Matthew Wilcox wrote:
-> From: "Matthew Wilcox (Oracle)" <willy@infradead.org>
+On Tue, Feb 18, 2020 at 05:56:18AM -0800, Matthew Wilcox wrote:
+> On Tue, Feb 18, 2020 at 04:03:00PM +1100, Dave Chinner wrote:
+> > On Mon, Feb 17, 2020 at 10:45:44AM -0800, Matthew Wilcox wrote:
+> > > +static void read_pages(struct readahead_control *rac, struct list_head *pages,
+> > > +		gfp_t gfp)
+> > >  {
+> > > +	const struct address_space_operations *aops = rac->mapping->a_ops;
+> > >  	struct blk_plug plug;
+> > >  	unsigned page_idx;
+> > 
+> > Splitting out the aops rather than the mapping here just looks
+> > weird, especially as you need the mapping later in the function.
+> > Using aops doesn't even reduce the code side....
 > 
-> Move the declaration of 'page' to inside the loop and move the 'kick
-> off a fresh batch' code to the end of the function for easier use in
-> subsequent patches.
+> It does in subsequent patches ... I agree it looks a little weird here,
+> but I think in the final form, it makes sense:
+
+Ok. Perhaps just an additional commit comment to say "read_pages() is
+changed to be aops centric as @rac abstracts away all other
+implementation details by the end of the patchset."
+
+> > > +			if (readahead_count(&rac))
+> > > +				read_pages(&rac, &page_pool, gfp_mask);
+> > > +			rac._nr_pages = 0;
+> > 
+> > Hmmm. Wondering ig it make sense to move the gfp_mask to the readahead
+> > control structure - if we have to pass the gfp_mask down all the
+> > way along side the rac, then I think it makes sense to do that...
 > 
-> Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
-> ---
->  mm/readahead.c | 21 +++++++++++++--------
->  1 file changed, 13 insertions(+), 8 deletions(-)
+> So we end up removing it later on in this series, but I do wonder if
+> it would make sense anyway.  By the end of the series, we still have
+> this in iomap:
 > 
-> diff --git a/mm/readahead.c b/mm/readahead.c
-> index 15329309231f..3eca59c43a45 100644
-> --- a/mm/readahead.c
-> +++ b/mm/readahead.c
-> @@ -154,7 +154,6 @@ void __do_page_cache_readahead(struct address_space *mapping,
->  		unsigned long lookahead_size)
->  {
->  	struct inode *inode = mapping->host;
-> -	struct page *page;
->  	unsigned long end_index;	/* The last page we want to read */
->  	LIST_HEAD(page_pool);
->  	int page_idx;
-> @@ -175,6 +174,7 @@ void __do_page_cache_readahead(struct address_space *mapping,
->  	 * Preallocate as many pages as we will need.
->  	 */
->  	for (page_idx = 0; page_idx < nr_to_read; page_idx++) {
-> +		struct page *page;
->  		pgoff_t page_offset = offset + page_idx;
->  
->  		if (page_offset > end_index)
-> @@ -183,14 +183,14 @@ void __do_page_cache_readahead(struct address_space *mapping,
->  		page = xa_load(&mapping->i_pages, page_offset);
->  		if (page && !xa_is_value(page)) {
->  			/*
-> -			 * Page already present?  Kick off the current batch of
-> -			 * contiguous pages before continuing with the next
-> -			 * batch.
-> +			 * Page already present?  Kick off the current batch
-> +			 * of contiguous pages before continuing with the
-> +			 * next batch.  This page may be the one we would
-> +			 * have intended to mark as Readahead, but we don't
-> +			 * have a stable reference to this page, and it's
-> +			 * not worth getting one just for that.
->  			 */
-> -			if (readahead_count(&rac))
-> -				read_pages(&rac, &page_pool, gfp_mask);
-> -			rac._nr_pages = 0;
-> -			continue;
-
-
-A fine point:  you'll get better readability and a less complex function by
-factoring that into a static subroutine, instead of jumping around with 
-goto's. (This clearly wants to be a subroutine, and in fact you've effectively 
-created one inside this function, at the "read:" label. Either way, though...
-
-
-> +			goto read;
->  		}
->  
->  		page = __page_cache_alloc(gfp_mask);
-> @@ -201,6 +201,11 @@ void __do_page_cache_readahead(struct address_space *mapping,
->  		if (page_idx == nr_to_read - lookahead_size)
->  			SetPageReadahead(page);
->  		rac._nr_pages++;
-> +		continue;
-> +read:
-> +		if (readahead_count(&rac))
-> +			read_pages(&rac, &page_pool, gfp_mask);
-> +		rac._nr_pages = 0;
->  	}
->  
->  	/*
+>                 if (ctx->rac) /* same as readahead_gfp_mask */
+>                         gfp |= __GFP_NORETRY | __GFP_NOWARN;
 > 
+> and we could get rid of that by passing gfp flags down in the rac.  On the
+> other hand, I don't know why it doesn't just use readahead_gfp_mask()
+> here anyway ... Christoph?
 
-...no errors spotted, I'm confident that this patch is correct,
+mapping->gfp_mask is awful. Is it a mask, or is it a valid set of
+allocation flags? Or both?  Some callers to mapping_gfp_constraint()
+uses it as a mask, some callers to mapping_gfp_constraint() use it
+as base flags that context specific flags get masked out of,
+readahead_gfp_mask() callers use it as the entire set of gfp flags
+for allocation.
 
-    Reviewed-by: John Hubbard <jhubbard@nvidia.com>
+That whole API sucks - undocumented as to what it's suposed to do
+and how it's supposed to be used. Hence it's difficult to use
+correctly or understand whether it's being used correctly. And
+reading callers only leads to more confusion and crazy code like in
+do_mpage_readpage() where readahead returns a mask that are used as
+base flags and normal reads return a masked set of base flags...
 
+The iomap code is obviously correct when it comes to gfp flag
+manipulation. We start with GFP_KERNEL context, then constrain it
+via the mask held in mapping->gfp_mask, then if it's readahead we
+allow the allocation to silently fail.
 
-thanks,
+Simple to read and understand code, versus having weird code that
+requires the reader to decipher an undocumented and inconsistent API
+to understand how the gfp flags have been calculated and are valid.
+
+Cheers,
+
+Dave.
 -- 
-John Hubbard
-NVIDIA
+Dave Chinner
+david at fromorbit.com
