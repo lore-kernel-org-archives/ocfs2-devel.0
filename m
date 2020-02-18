@@ -1,75 +1,73 @@
 From: John Hubbard <jhubbard@nvidia.com>
-Date: Tue, 18 Feb 2020 13:33:19 -0800
-Subject: [Ocfs2-devel] [PATCH v6 02/19] mm: Ignore return value of
-	->readpages
-In-Reply-To: <20200217184613.19668-3-willy@infradead.org>
+Date: Tue, 18 Feb 2020 13:52:48 -0800
+Subject: [Ocfs2-devel] [PATCH v6 01/19] mm: Return void from various
+	readahead functions
+In-Reply-To: <20200218212115.GG24185@bombadil.infradead.org>
 References: <20200217184613.19668-1-willy@infradead.org>
-	<20200217184613.19668-3-willy@infradead.org>
-Message-ID: <ed5b3635-be1b-c290-0e19-b516e7af2aca@nvidia.com>
+	<20200217184613.19668-2-willy@infradead.org>
+	<29d2d7ca-7f2b-7eb4-78bc-f2af36c4c426@nvidia.com>
+	<20200218212115.GG24185@bombadil.infradead.org>
+Message-ID: <df31e4a4-fe1a-5826-c8e1-c66e5197e071@nvidia.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Matthew Wilcox <willy@infradead.org>, linux-fsdevel@vger.kernel.org
-Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-btrfs@vger.kernel.org, linux-erofs@lists.ozlabs.org, linux-ext4@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, linux-xfs@vger.kernel.org, Christoph Hellwig <hch@lst.de>
+To: Matthew Wilcox <willy@infradead.org>
+Cc: linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-btrfs@vger.kernel.org, linux-erofs@lists.ozlabs.org, linux-ext4@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, linux-xfs@vger.kernel.org
 
-On 2/17/20 10:45 AM, Matthew Wilcox wrote:
-> From: "Matthew Wilcox (Oracle)" <willy@infradead.org>
+On 2/18/20 1:21 PM, Matthew Wilcox wrote:
+> On Tue, Feb 18, 2020 at 01:05:29PM -0800, John Hubbard wrote:
+>> This is an easy review and obviously correct, so:
+>>
+>>     Reviewed-by: John Hubbard <jhubbard@nvidia.com>
 > 
-> We used to assign the return value to a variable, which we then ignored.
-> Remove the pretence of caring.
+> Thanks
 > 
-> Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
-> Reviewed-by: Christoph Hellwig <hch@lst.de>
-> ---
->  mm/readahead.c | 8 ++------
->  1 file changed, 2 insertions(+), 6 deletions(-)
+>> Thoughts for the future of the API:
+>>
+>> I will add that I could envision another patchset that went in the
+>> opposite direction, and attempted to preserve the information about
+>> how many pages were successfully read ahead. And that would be nice
+>> to have (at least IMHO), even all the way out to the syscall level,
+>> especially for the readahead syscall.
+> 
+> Right, and that was where I went initially.  It turns out to be a
+> non-trivial aount of work to do the book-keeping to find out how many
+> pages were _attempted_, and since we don't wait for the I/O to complete,
+> we don't know how many _succeeded_, and we also don't know how many
+> weren't attempted because they were already there, and how many weren't
+> attempted because somebody else has raced with us and is going to attempt
+> them themselves, and how many weren't attempted because we just ran out
+> of memory, and decided to give up.
+> 
+> Also, we don't know how many pages were successfully read, and then the
+> system decided to evict before the program found out how many were read,
+> let alone before it did any action based on that.
+> 
 
-Looks good,
 
-    Reviewed-by: John Hubbard <jhubbard@nvidia.com>
+That is even worse than I initially thought. :)
+
+
+> So, given all that complexity, and the fact that nobody actually does
+> anything with the limited and incorrect information we tried to provide
+> today, I think it's fair to say that anybody who wants to start to do
+> anything with that information can delve into all the complexity around
+> "what number should we return, and what does it really mean".  In the
+
+
+Yes, and now that you mention it, it's really tough to pick a single number
+that answers the right questions that the user space caller might have. whew.
+
+
+> meantime, let's just ditch the complexity and pretense that this number
+> means anything.
+> 
+
+Definitely. Thanks for the notes here.
+
 
 thanks,
 -- 
 John Hubbard
 NVIDIA
-
-> 
-> diff --git a/mm/readahead.c b/mm/readahead.c
-> index 8ce46d69e6ae..12d13b7792da 100644
-> --- a/mm/readahead.c
-> +++ b/mm/readahead.c
-> @@ -113,17 +113,16 @@ int read_cache_pages(struct address_space *mapping, struct list_head *pages,
->  
->  EXPORT_SYMBOL(read_cache_pages);
->  
-> -static int read_pages(struct address_space *mapping, struct file *filp,
-> +static void read_pages(struct address_space *mapping, struct file *filp,
->  		struct list_head *pages, unsigned int nr_pages, gfp_t gfp)
->  {
->  	struct blk_plug plug;
->  	unsigned page_idx;
-> -	int ret;
->  
->  	blk_start_plug(&plug);
->  
->  	if (mapping->a_ops->readpages) {
-> -		ret = mapping->a_ops->readpages(filp, mapping, pages, nr_pages);
-> +		mapping->a_ops->readpages(filp, mapping, pages, nr_pages);
->  		/* Clean up the remaining pages */
->  		put_pages_list(pages);
->  		goto out;
-> @@ -136,12 +135,9 @@ static int read_pages(struct address_space *mapping, struct file *filp,
->  			mapping->a_ops->readpage(filp, page);
->  		put_page(page);
->  	}
-> -	ret = 0;
->  
->  out:
->  	blk_finish_plug(&plug);
-> -
-> -	return ret;
->  }
->  
->  /*
-> 
