@@ -1,44 +1,99 @@
 From: Matthew Wilcox <willy@infradead.org>
-Date: Tue, 18 Feb 2020 05:42:30 -0800
-Subject: [Ocfs2-devel] [PATCH v6 00/19] Change readahead API
-In-Reply-To: <20200218045633.GH10776@dread.disaster.area>
+Date: Tue, 18 Feb 2020 05:56:18 -0800
+Subject: [Ocfs2-devel] [PATCH v6 03/19] mm: Use readahead_control to
+	pass arguments
+In-Reply-To: <20200218050300.GI10776@dread.disaster.area>
 References: <20200217184613.19668-1-willy@infradead.org>
-	<20200218045633.GH10776@dread.disaster.area>
-Message-ID: <20200218134230.GN7778@bombadil.infradead.org>
+	<20200217184613.19668-4-willy@infradead.org>
+	<20200218050300.GI10776@dread.disaster.area>
+Message-ID: <20200218135618.GO7778@bombadil.infradead.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: Dave Chinner <david@fromorbit.com>
-Cc: linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-btrfs@vger.kernel.org, linux-erofs@lists.ozlabs.org, linux-ext4@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, linux-xfs@vger.kernel.org
+Cc: linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-btrfs@vger.kernel.org, linux-erofs@lists.ozlabs.org, linux-ext4@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, linux-xfs@vger.kernel.org, Christoph Hellwig <hch@lst.de>
 
-On Tue, Feb 18, 2020 at 03:56:33PM +1100, Dave Chinner wrote:
-> Latest version in your git tree:
+On Tue, Feb 18, 2020 at 04:03:00PM +1100, Dave Chinner wrote:
+> On Mon, Feb 17, 2020 at 10:45:44AM -0800, Matthew Wilcox wrote:
+> > +static void read_pages(struct readahead_control *rac, struct list_head *pages,
+> > +		gfp_t gfp)
+> >  {
+> > +	const struct address_space_operations *aops = rac->mapping->a_ops;
+> >  	struct blk_plug plug;
+> >  	unsigned page_idx;
 > 
-> $ ? glo -n 5 willy/readahead
-> 4be497096c04 mm: Use memalloc_nofs_save in readahead path
-> ff63497fcb98 iomap: Convert from readpages to readahead
-> 26aee60e89b5 iomap: Restructure iomap_readpages_actor
-> 8115bcca7312 fuse: Convert from readpages to readahead
-> 3db3d10d9ea1 f2fs: Convert from readpages to readahead
-> $
-> 
-> merged into a 5.6-rc2 tree fails at boot on my test vm:
-> 
-> [    2.423116] ------------[ cut here ]------------
-> [    2.424957] list_add double add: new=ffffea000efff4c8, prev=ffff8883bfffee60, next=ffffea000efff4c8.
-> [    2.428259] WARNING: CPU: 4 PID: 1 at lib/list_debug.c:29 __list_add_valid+0x67/0x70
-> [    2.457484] Call Trace:
-> [    2.458171]  __pagevec_lru_add_fn+0x15f/0x2c0
-> [    2.459376]  pagevec_lru_move_fn+0x87/0xd0
-> [    2.460500]  ? pagevec_move_tail_fn+0x2d0/0x2d0
-> [    2.461712]  lru_add_drain_cpu+0x8d/0x160
-> [    2.462787]  lru_add_drain+0x18/0x20
+> Splitting out the aops rather than the mapping here just looks
+> weird, especially as you need the mapping later in the function.
+> Using aops doesn't even reduce the code side....
 
-Are you sure that was 4be497096c04 ?  I ask because there was a
-version pushed to that git tree that did contain a list double-add
-(due to a mismerge when shuffling patches).  I noticed it and fixed
-it, and 4be497096c04 doesn't have that problem.  I also test with
-CONFIG_DEBUG_LIST turned on, but this problem you hit is going to be
-probabilistic because it'll depend on the timing between whatever other
-list is being used and the page actually being added to the LRU.
+It does in subsequent patches ... I agree it looks a little weird here,
+but I think in the final form, it makes sense:
+
+static void read_pages(struct readahead_control *rac, struct list_head *pages)
+{
+        const struct address_space_operations *aops = rac->mapping->a_ops;
+        struct page *page;
+        struct blk_plug plug;
+
+        blk_start_plug(&plug);
+
+        if (aops->readahead) {
+                aops->readahead(rac);
+                readahead_for_each(rac, page) {
+                        unlock_page(page);
+                        put_page(page);
+                }
+        } else if (aops->readpages) {
+                aops->readpages(rac->file, rac->mapping, pages,
+                                readahead_count(rac));
+                /* Clean up the remaining pages */
+                put_pages_list(pages);
+        } else {
+                readahead_for_each(rac, page) {
+                        aops->readpage(rac->file, page);
+                        put_page(page);
+                }
+        }
+
+        blk_finish_plug(&plug);
+}
+
+It'll look even better once ->readpages goes away.
+
+> > @@ -155,9 +158,13 @@ void __do_page_cache_readahead(struct address_space *mapping,
+> >  	unsigned long end_index;	/* The last page we want to read */
+> >  	LIST_HEAD(page_pool);
+> >  	int page_idx;
+> > -	unsigned int nr_pages = 0;
+> >  	loff_t isize = i_size_read(inode);
+> >  	gfp_t gfp_mask = readahead_gfp_mask(mapping);
+> > +	struct readahead_control rac = {
+> > +		.mapping = mapping,
+> > +		.file = filp,
+> > +		._nr_pages = 0,
+> > +	};
+> 
+> No need to initialise _nr_pages to zero, leaving it out will do the
+> same thing.
+
+Yes, it does, but I wanted to make it explicit here.
+
+> > +			if (readahead_count(&rac))
+> > +				read_pages(&rac, &page_pool, gfp_mask);
+> > +			rac._nr_pages = 0;
+> 
+> Hmmm. Wondering ig it make sense to move the gfp_mask to the readahead
+> control structure - if we have to pass the gfp_mask down all the
+> way along side the rac, then I think it makes sense to do that...
+
+So we end up removing it later on in this series, but I do wonder if
+it would make sense anyway.  By the end of the series, we still have
+this in iomap:
+
+                if (ctx->rac) /* same as readahead_gfp_mask */
+                        gfp |= __GFP_NORETRY | __GFP_NOWARN;
+
+and we could get rid of that by passing gfp flags down in the rac.  On the
+other hand, I don't know why it doesn't just use readahead_gfp_mask()
+here anyway ... Christoph?
