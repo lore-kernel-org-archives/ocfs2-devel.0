@@ -1,47 +1,119 @@
-From: John Hubbard <jhubbard@nvidia.com>
-Date: Wed, 19 Feb 2020 12:24:26 -0800
-Subject: [Ocfs2-devel] [PATCH v6 07/19] mm: Put readahead pages in cache
-	earlier
-In-Reply-To: <20200219150103.GQ24185@bombadil.infradead.org>
-References: <20200217184613.19668-1-willy@infradead.org>
-	<20200217184613.19668-12-willy@infradead.org>
-	<e3671faa-dfb3-ceba-3120-a445b2982a95@nvidia.com>
-	<20200219144117.GP24185@bombadil.infradead.org>
-	<20200219145246.GA29869@infradead.org>
-	<20200219150103.GQ24185@bombadil.infradead.org>
-Message-ID: <a5f8ba4c-8413-2633-9523-5b5941c0762b@nvidia.com>
+From: Matthew Wilcox <willy@infradead.org>
+Date: Wed, 19 Feb 2020 13:00:40 -0800
+Subject: [Ocfs2-devel] [PATCH v7 01/24] mm: Move readahead prototypes from
+	mm.h
+In-Reply-To: <20200219210103.32400-1-willy@infradead.org>
+References: <20200219210103.32400-1-willy@infradead.org>
+Message-ID: <20200219210103.32400-2-willy@infradead.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Matthew Wilcox <willy@infradead.org>, Christoph Hellwig <hch@infradead.org>
-Cc: linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-btrfs@vger.kernel.org, linux-erofs@lists.ozlabs.org, linux-ext4@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, linux-xfs@vger.kernel.org
+To: linux-fsdevel@vger.kernel.org
+Cc: "Matthew Wilcox (Oracle)" <willy@infradead.org>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-btrfs@vger.kernel.org, linux-erofs@lists.ozlabs.org, linux-ext4@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, linux-xfs@vger.kernel.org
 
-On 2/19/20 7:01 AM, Matthew Wilcox wrote:
-> On Wed, Feb 19, 2020 at 06:52:46AM -0800, Christoph Hellwig wrote:
->> On Wed, Feb 19, 2020 at 06:41:17AM -0800, Matthew Wilcox wrote:
->>> #define readahead_for_each(rac, page)                                   \
->>>         while ((page = readahead_page(rac)))
->>>
->>> No more readahead_next() to forget to add to filesystems which don't use
->>> the readahead_for_each() iterator.  Ahem.
+From: "Matthew Wilcox (Oracle)" <willy@infradead.org>
 
+The readahead code is part of the page cache so should be found in the
+pagemap.h file.  force_page_cache_readahead is only used within mm,
+so move it to mm/internal.h instead.  Remove the parameter names where
+they add no value, and rename the ones which were actively misleading.
 
-Yes, this looks very clean. And less error-prone, which I definitely
-appreciate too. :)
+Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
+---
+ block/blk-core.c        |  1 +
+ include/linux/mm.h      | 19 -------------------
+ include/linux/pagemap.h |  8 ++++++++
+ mm/fadvise.c            |  2 ++
+ mm/internal.h           |  2 ++
+ 5 files changed, 13 insertions(+), 19 deletions(-)
 
-
->>
->> And then kill readahead_for_each and open code the above to make it
->> even more obvious?
-> 
-> Makes sense.
-> 
-
-Great!
-
-
-thanks,
+diff --git a/block/blk-core.c b/block/blk-core.c
+index 089e890ab208..41417bb93634 100644
+--- a/block/blk-core.c
++++ b/block/blk-core.c
+@@ -20,6 +20,7 @@
+ #include <linux/blk-mq.h>
+ #include <linux/highmem.h>
+ #include <linux/mm.h>
++#include <linux/pagemap.h>
+ #include <linux/kernel_stat.h>
+ #include <linux/string.h>
+ #include <linux/init.h>
+diff --git a/include/linux/mm.h b/include/linux/mm.h
+index 52269e56c514..68dcda9a2112 100644
+--- a/include/linux/mm.h
++++ b/include/linux/mm.h
+@@ -2401,25 +2401,6 @@ extern vm_fault_t filemap_page_mkwrite(struct vm_fault *vmf);
+ int __must_check write_one_page(struct page *page);
+ void task_dirty_inc(struct task_struct *tsk);
+ 
+-/* readahead.c */
+-#define VM_READAHEAD_PAGES	(SZ_128K / PAGE_SIZE)
+-
+-int force_page_cache_readahead(struct address_space *mapping, struct file *filp,
+-			pgoff_t offset, unsigned long nr_to_read);
+-
+-void page_cache_sync_readahead(struct address_space *mapping,
+-			       struct file_ra_state *ra,
+-			       struct file *filp,
+-			       pgoff_t offset,
+-			       unsigned long size);
+-
+-void page_cache_async_readahead(struct address_space *mapping,
+-				struct file_ra_state *ra,
+-				struct file *filp,
+-				struct page *pg,
+-				pgoff_t offset,
+-				unsigned long size);
+-
+ extern unsigned long stack_guard_gap;
+ /* Generic expand stack which grows the stack according to GROWS{UP,DOWN} */
+ extern int expand_stack(struct vm_area_struct *vma, unsigned long address);
+diff --git a/include/linux/pagemap.h b/include/linux/pagemap.h
+index ccb14b6a16b5..24894b9b90c9 100644
+--- a/include/linux/pagemap.h
++++ b/include/linux/pagemap.h
+@@ -614,6 +614,14 @@ int replace_page_cache_page(struct page *old, struct page *new, gfp_t gfp_mask);
+ void delete_from_page_cache_batch(struct address_space *mapping,
+ 				  struct pagevec *pvec);
+ 
++#define VM_READAHEAD_PAGES	(SZ_128K / PAGE_SIZE)
++
++void page_cache_sync_readahead(struct address_space *, struct file_ra_state *,
++		struct file *, pgoff_t index, unsigned long req_count);
++void page_cache_async_readahead(struct address_space *, struct file_ra_state *,
++		struct file *, struct page *, pgoff_t index,
++		unsigned long req_count);
++
+ /*
+  * Like add_to_page_cache_locked, but used to add newly allocated pages:
+  * the page is new, so we can just run __SetPageLocked() against it.
+diff --git a/mm/fadvise.c b/mm/fadvise.c
+index 4f17c83db575..3efebfb9952c 100644
+--- a/mm/fadvise.c
++++ b/mm/fadvise.c
+@@ -22,6 +22,8 @@
+ 
+ #include <asm/unistd.h>
+ 
++#include "internal.h"
++
+ /*
+  * POSIX_FADV_WILLNEED could set PG_Referenced, and POSIX_FADV_NOREUSE could
+  * deactivate the pages and clear PG_Referenced.
+diff --git a/mm/internal.h b/mm/internal.h
+index 3cf20ab3ca01..83f353e74654 100644
+--- a/mm/internal.h
++++ b/mm/internal.h
+@@ -49,6 +49,8 @@ void unmap_page_range(struct mmu_gather *tlb,
+ 			     unsigned long addr, unsigned long end,
+ 			     struct zap_details *details);
+ 
++int force_page_cache_readahead(struct address_space *, struct file *,
++		pgoff_t index, unsigned long nr_to_read);
+ extern unsigned int __do_page_cache_readahead(struct address_space *mapping,
+ 		struct file *filp, pgoff_t offset, unsigned long nr_to_read,
+ 		unsigned long lookahead_size);
 -- 
-John Hubbard
-NVIDIA
+2.25.0
