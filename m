@@ -1,110 +1,30 @@
-From: John Hubbard <jhubbard@nvidia.com>
-Date: Tue, 18 Feb 2020 19:17:18 -0800
-Subject: [Ocfs2-devel] [PATCH v6 17/19] iomap: Restructure
-	iomap_readpages_actor
-In-Reply-To: <20200217184613.19668-31-willy@infradead.org>
+From: Dave Chinner <david@fromorbit.com>
+Date: Wed, 19 Feb 2020 14:22:25 +1100
+Subject: [Ocfs2-devel] [PATCH v6 16/19] fuse: Convert from readpages to
+	readahead
+In-Reply-To: <20200217184613.19668-29-willy@infradead.org>
 References: <20200217184613.19668-1-willy@infradead.org>
-	<20200217184613.19668-31-willy@infradead.org>
-Message-ID: <d4803ef9-7a2f-965f-8f0f-c5e15396d892@nvidia.com>
+	<20200217184613.19668-29-willy@infradead.org>
+Message-ID: <20200219032225.GD10776@dread.disaster.area>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Matthew Wilcox <willy@infradead.org>, linux-fsdevel@vger.kernel.org
-Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-btrfs@vger.kernel.org, linux-erofs@lists.ozlabs.org, linux-ext4@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, linux-xfs@vger.kernel.org
+To: Matthew Wilcox <willy@infradead.org>
+Cc: linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-btrfs@vger.kernel.org, linux-erofs@lists.ozlabs.org, linux-ext4@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, linux-xfs@vger.kernel.org
 
-On 2/17/20 10:46 AM, Matthew Wilcox wrote:
+On Mon, Feb 17, 2020 at 10:46:09AM -0800, Matthew Wilcox wrote:
 > From: "Matthew Wilcox (Oracle)" <willy@infradead.org>
 > 
-> By putting the 'have we reached the end of the page' condition at the end
-> of the loop instead of the beginning, we can remove the 'submit the last
-> page' code from iomap_readpages().  Also check that iomap_readpage_actor()
-> didn't return 0, which would lead to an endless loop.
-
-
-Also added a new WARN_ON() and BUG(), although I'm wondering about the BUG
-below...
-
-
+> Use the new readahead operation in fuse.  Switching away from the
+> read_cache_pages() helper gets rid of an implicit call to put_page(),
+> so we can get rid of the get_page() call in fuse_readpages_fill().
 > 
 > Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
-> ---
->  fs/iomap/buffered-io.c | 25 ++++++++++++-------------
->  1 file changed, 12 insertions(+), 13 deletions(-)
-> 
-> diff --git a/fs/iomap/buffered-io.c b/fs/iomap/buffered-io.c
-> index cb3511eb152a..44303f370b2d 100644
-> --- a/fs/iomap/buffered-io.c
-> +++ b/fs/iomap/buffered-io.c
-> @@ -400,15 +400,9 @@ iomap_readpages_actor(struct inode *inode, loff_t pos, loff_t length,
->  		void *data, struct iomap *iomap, struct iomap *srcmap)
->  {
->  	struct iomap_readpage_ctx *ctx = data;
-> -	loff_t done, ret;
-> +	loff_t ret, done = 0;
->  
-> -	for (done = 0; done < length; done += ret) {
 
+Looks OK.
 
-nit: this "for" loop was perfect just the way it was. :) I'd vote here for reverting
-the change to a "while" loop. Because with this change, now the code has to 
-separately initialize "done", separately increment "done", and the beauty of a
-for loop is that the loop init and control is all clearly in one place. For things
-that follow that model (as in this case!), that's a Good Thing.
-
-And I don't see any technical reason (even in the following patch) that requires 
-this change.
-
-
-> -		if (ctx->cur_page && offset_in_page(pos + done) == 0) {
-> -			if (!ctx->cur_page_in_bio)
-> -				unlock_page(ctx->cur_page);
-> -			put_page(ctx->cur_page);
-> -			ctx->cur_page = NULL;
-> -		}
-> +	while (done < length) {
->  		if (!ctx->cur_page) {
->  			ctx->cur_page = iomap_next_page(inode, ctx->pages,
->  					pos, length, &done);
-> @@ -418,6 +412,15 @@ iomap_readpages_actor(struct inode *inode, loff_t pos, loff_t length,
->  		}
->  		ret = iomap_readpage_actor(inode, pos + done, length - done,
->  				ctx, iomap, srcmap);
-> +		if (WARN_ON(ret == 0))
-> +			break;
-> +		done += ret;
-> +		if (offset_in_page(pos + done) == 0) {
-> +			if (!ctx->cur_page_in_bio)
-> +				unlock_page(ctx->cur_page);
-> +			put_page(ctx->cur_page);
-> +			ctx->cur_page = NULL;
-> +		}
->  	}
->  
->  	return done;
-> @@ -451,11 +454,7 @@ iomap_readpages(struct address_space *mapping, struct list_head *pages,
->  done:
->  	if (ctx.bio)
->  		submit_bio(ctx.bio);
-> -	if (ctx.cur_page) {
-> -		if (!ctx.cur_page_in_bio)
-> -			unlock_page(ctx.cur_page);
-> -		put_page(ctx.cur_page);
-> -	}
-> +	BUG_ON(ctx.cur_page);
-
-
-Is a full BUG_ON() definitely called for here? Seems like a WARN might suffice...
-
-
->  
->  	/*
->  	 * Check that we didn't lose a page due to the arcance calling
-> 
-
-
-
-thanks,
+Reviewed-by: Dave Chinner <dchinner@redhat.com>
 -- 
-John Hubbard
-NVIDIA
+Dave Chinner
+david at fromorbit.com
