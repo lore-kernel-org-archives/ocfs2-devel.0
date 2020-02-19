@@ -1,298 +1,93 @@
-From: John Hubbard <jhubbard@nvidia.com>
-Date: Tue, 18 Feb 2020 17:32:31 -0800
+From: Matthew Wilcox <willy@infradead.org>
+Date: Tue, 18 Feb 2020 18:23:00 -0800
 Subject: [Ocfs2-devel] [PATCH v6 09/19] mm: Add
 	page_cache_readahead_limit
-In-Reply-To: <20200217184613.19668-16-willy@infradead.org>
+In-Reply-To: <1263603d-f446-c447-2eac-697d105fa76c@nvidia.com>
 References: <20200217184613.19668-1-willy@infradead.org>
 	<20200217184613.19668-16-willy@infradead.org>
-Message-ID: <1263603d-f446-c447-2eac-697d105fa76c@nvidia.com>
+	<1263603d-f446-c447-2eac-697d105fa76c@nvidia.com>
+Message-ID: <20200219022300.GJ24185@bombadil.infradead.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Matthew Wilcox <willy@infradead.org>, linux-fsdevel@vger.kernel.org
-Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-btrfs@vger.kernel.org, linux-erofs@lists.ozlabs.org, linux-ext4@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, linux-xfs@vger.kernel.org
+To: John Hubbard <jhubbard@nvidia.com>
+Cc: linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-btrfs@vger.kernel.org, linux-erofs@lists.ozlabs.org, linux-ext4@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, linux-xfs@vger.kernel.org
 
-On 2/17/20 10:45 AM, Matthew Wilcox wrote:
-> From: "Matthew Wilcox (Oracle)" <willy@infradead.org>
+On Tue, Feb 18, 2020 at 05:32:31PM -0800, John Hubbard wrote:
+> > +			page_cache_readahead_limit(inode->i_mapping, NULL,
+> > +					index, LONG_MAX, num_ra_pages, 0);
 > 
-> ext4 and f2fs have duplicated the guts of the readahead code so
-> they can read past i_size.  Instead, separate out the guts of the
-> readahead code so they can call it directly.
 > 
-> Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
-> ---
->  fs/ext4/verity.c        | 35 ++---------------------
->  fs/f2fs/verity.c        | 35 ++---------------------
->  include/linux/pagemap.h |  4 +++
->  mm/readahead.c          | 61 +++++++++++++++++++++++++++++------------
->  4 files changed, 52 insertions(+), 83 deletions(-)
+> LONG_MAX seems bold at first, but then again I can't think of anything smaller 
+> that makes any sense, and the previous code didn't have a limit either...OK.
 
+Probably worth looking at Dave's review of this and what we've just
+negotiated on the other subthread ... LONG_MAX is gone.
 
-Just some minor ideas below, mostly documentation, so:
+> I also wondered about the NULL file parameter, and wonder if we're stripping out
+> information that is needed for authentication, given that that's what the newly
+> written kerneldoc says the "file" arg is for. But it seems that if we're this 
+> deep in the fs code's read routines, file system authentication has long since 
+> been addressed.
 
-    Reviewed-by: John Hubbard <jhubbard@nvidia.com>
+The authentication is for network filesystems.  Local filesystems
+generally don't use the 'file' parameter, and since we're going to be
+calling back into the filesystem's own readahead routine, we know it's
+not needed.
 
+> Any actually I don't yet (still working through the patches) see any authentication,
+> so maybe that parameter will turn out to be unnecessary.
 > 
-> diff --git a/fs/ext4/verity.c b/fs/ext4/verity.c
-> index dc5ec724d889..f6e0bf05933e 100644
-> --- a/fs/ext4/verity.c
-> +++ b/fs/ext4/verity.c
-> @@ -342,37 +342,6 @@ static int ext4_get_verity_descriptor(struct inode *inode, void *buf,
->  	return desc_size;
->  }
->  
-> -/*
-> - * Prefetch some pages from the file's Merkle tree.
-> - *
-> - * This is basically a stripped-down version of __do_page_cache_readahead()
-> - * which works on pages past i_size.
-> - */
-> -static void ext4_merkle_tree_readahead(struct address_space *mapping,
-> -				       pgoff_t start_index, unsigned long count)
-> -{
-> -	LIST_HEAD(pages);
-> -	unsigned int nr_pages = 0;
-> -	struct page *page;
-> -	pgoff_t index;
-> -	struct blk_plug plug;
-> -
-> -	for (index = start_index; index < start_index + count; index++) {
-> -		page = xa_load(&mapping->i_pages, index);
-> -		if (!page || xa_is_value(page)) {
-> -			page = __page_cache_alloc(readahead_gfp_mask(mapping));
-> -			if (!page)
-> -				break;
-> -			page->index = index;
-> -			list_add(&page->lru, &pages);
-> -			nr_pages++;
-> -		}
-> -	}
-> -	blk_start_plug(&plug);
-> -	ext4_mpage_readpages(mapping, &pages, NULL, nr_pages, true);
-> -	blk_finish_plug(&plug);
-> -}
-> -
->  static struct page *ext4_read_merkle_tree_page(struct inode *inode,
->  					       pgoff_t index,
->  					       unsigned long num_ra_pages)
-> @@ -386,8 +355,8 @@ static struct page *ext4_read_merkle_tree_page(struct inode *inode,
->  		if (page)
->  			put_page(page);
->  		else if (num_ra_pages > 1)
-> -			ext4_merkle_tree_readahead(inode->i_mapping, index,
-> -						   num_ra_pages);
-> +			page_cache_readahead_limit(inode->i_mapping, NULL,
-> +					index, LONG_MAX, num_ra_pages, 0);
+> Anyway, It's nice to see this factored out into a single routine.
 
+I'm kind of thinking about pushing the rac in the other direction too,
+so page_cache_readahead_unlimited(rac, nr_to_read, lookahead_size).
 
-LONG_MAX seems bold at first, but then again I can't think of anything smaller 
-that makes any sense, and the previous code didn't have a limit either...OK.
-
-I also wondered about the NULL file parameter, and wonder if we're stripping out
-information that is needed for authentication, given that that's what the newly
-written kerneldoc says the "file" arg is for. But it seems that if we're this 
-deep in the fs code's read routines, file system authentication has long since 
-been addressed.
-
-Any actually I don't yet (still working through the patches) see any authentication,
-so maybe that parameter will turn out to be unnecessary.
-
-Anyway, It's nice to see this factored out into a single routine.
-
-
->  		page = read_mapping_page(inode->i_mapping, index, NULL);
->  	}
->  	return page;
-> diff --git a/fs/f2fs/verity.c b/fs/f2fs/verity.c
-> index d7d430a6f130..71a3e36721fa 100644
-> --- a/fs/f2fs/verity.c
-> +++ b/fs/f2fs/verity.c
-> @@ -222,37 +222,6 @@ static int f2fs_get_verity_descriptor(struct inode *inode, void *buf,
->  	return size;
->  }
->  
-> -/*
-> - * Prefetch some pages from the file's Merkle tree.
-> - *
-> - * This is basically a stripped-down version of __do_page_cache_readahead()
-> - * which works on pages past i_size.
-> - */
-> -static void f2fs_merkle_tree_readahead(struct address_space *mapping,
-> -				       pgoff_t start_index, unsigned long count)
-> -{
-> -	LIST_HEAD(pages);
-> -	unsigned int nr_pages = 0;
-> -	struct page *page;
-> -	pgoff_t index;
-> -	struct blk_plug plug;
-> -
-> -	for (index = start_index; index < start_index + count; index++) {
-> -		page = xa_load(&mapping->i_pages, index);
-> -		if (!page || xa_is_value(page)) {
-> -			page = __page_cache_alloc(readahead_gfp_mask(mapping));
-> -			if (!page)
-> -				break;
-> -			page->index = index;
-> -			list_add(&page->lru, &pages);
-> -			nr_pages++;
-> -		}
-> -	}
-> -	blk_start_plug(&plug);
-> -	f2fs_mpage_readpages(mapping, &pages, NULL, nr_pages, true);
-> -	blk_finish_plug(&plug);
-> -}
-> -
->  static struct page *f2fs_read_merkle_tree_page(struct inode *inode,
->  					       pgoff_t index,
->  					       unsigned long num_ra_pages)
-> @@ -266,8 +235,8 @@ static struct page *f2fs_read_merkle_tree_page(struct inode *inode,
->  		if (page)
->  			put_page(page);
->  		else if (num_ra_pages > 1)
-> -			f2fs_merkle_tree_readahead(inode->i_mapping, index,
-> -						   num_ra_pages);
-> +			page_cache_readahead_limit(inode->i_mapping, NULL,
-> +					index, LONG_MAX, num_ra_pages, 0);
->  		page = read_mapping_page(inode->i_mapping, index, NULL);
->  	}
->  	return page;
-> diff --git a/include/linux/pagemap.h b/include/linux/pagemap.h
-> index bd4291f78f41..4f36c06d064d 100644
-> --- a/include/linux/pagemap.h
-> +++ b/include/linux/pagemap.h
-> @@ -389,6 +389,10 @@ extern struct page * read_cache_page_gfp(struct address_space *mapping,
->  				pgoff_t index, gfp_t gfp_mask);
->  extern int read_cache_pages(struct address_space *mapping,
->  		struct list_head *pages, filler_t *filler, void *data);
-> +void page_cache_readahead_limit(struct address_space *mapping,
-> +		struct file *file, pgoff_t offset, pgoff_t end_index,
-> +		unsigned long nr_to_read, unsigned long lookahead_size);
-> +
->  
->  static inline struct page *read_mapping_page(struct address_space *mapping,
->  				pgoff_t index, void *data)
-> diff --git a/mm/readahead.c b/mm/readahead.c
-> index 975ff5e387be..94d499cfb657 100644
-> --- a/mm/readahead.c
-> +++ b/mm/readahead.c
-> @@ -142,35 +142,38 @@ static void read_pages(struct readahead_control *rac, struct list_head *pages)
->  	blk_finish_plug(&plug);
->  }
->  
-> -/*
-> - * __do_page_cache_readahead() actually reads a chunk of disk.  It allocates
-> - * the pages first, then submits them for I/O. This avoids the very bad
-> - * behaviour which would occur if page allocations are causing VM writeback.
-> - * We really don't want to intermingle reads and writes like that.
-> +/**
-> + * page_cache_readahead_limit - Start readahead beyond a file's i_size.
-
-
-Maybe: 
-
-    "Start readahead to a caller-specified end point" ?
-
-(It's only *potentially* beyond files's i_size.)
-
-
-> + * @mapping: File address space.
-> + * @file: This instance of the open file; used for authentication.
-> + * @offset: First page index to read.
-> + * @end_index: The maximum page index to read.
-> + * @nr_to_read: The number of pages to read.
-
-
-How about:
-
-    "The number of pages to read, as long as end_index is not exceeded."
-
-
-> + * @lookahead_size: Where to start the next readahead.
-
-
-Pre-existing, but...it's hard to understand how a size is "where to start".
-Should we rename this arg?
-
-> + *
-> + * This function is for filesystems to call when they want to start
-> + * readahead potentially beyond a file's stated i_size.  If you want
-> + * to start readahead on a normal file, you probably want to call
-> + * page_cache_async_readahead() or page_cache_sync_readahead() instead.
-> + *
-> + * Context: File is referenced by caller.  Mutexes may be held by caller.
-> + * May sleep, but will not reenter filesystem to reclaim memory.
-
-
-In fact, can we say "must not reenter filesystem"? 
-
-
->   */
-> -void __do_page_cache_readahead(struct address_space *mapping,
-> -		struct file *filp, pgoff_t offset, unsigned long nr_to_read,
-> -		unsigned long lookahead_size)
-> +void page_cache_readahead_limit(struct address_space *mapping,
-> +		struct file *file, pgoff_t offset, pgoff_t end_index,
-> +		unsigned long nr_to_read, unsigned long lookahead_size)
->  {
-> -	struct inode *inode = mapping->host;
-> -	unsigned long end_index;	/* The last page we want to read */
->  	LIST_HEAD(page_pool);
->  	unsigned long i;
-> -	loff_t isize = i_size_read(inode);
->  	gfp_t gfp_mask = readahead_gfp_mask(mapping);
->  	bool use_list = mapping->a_ops->readpages;
->  	struct readahead_control rac = {
->  		.mapping = mapping,
-> -		.file = filp,
-> +		.file = file,
->  		._start = offset,
->  		._nr_pages = 0,
->  	};
->  
-> -	if (isize == 0)
-> -		return;
-> -
-> -	end_index = ((isize - 1) >> PAGE_SHIFT);
-> -
->  	/*
->  	 * Preallocate as many pages as we will need.
->  	 */
-> @@ -225,6 +228,30 @@ void __do_page_cache_readahead(struct address_space *mapping,
->  		read_pages(&rac, &page_pool);
->  	BUG_ON(!list_empty(&page_pool));
->  }
-> +EXPORT_SYMBOL_GPL(page_cache_readahead_limit);
-> +
-> +/*
-> + * __do_page_cache_readahead() actually reads a chunk of disk.  It allocates
-> + * the pages first, then submits them for I/O. This avoids the very bad
-> + * behaviour which would occur if page allocations are causing VM writeback.
-> + * We really don't want to intermingle reads and writes like that.
-> + */
-> +void __do_page_cache_readahead(struct address_space *mapping,
-> +		struct file *file, pgoff_t offset, unsigned long nr_to_read,
-> +		unsigned long lookahead_size)
-> +{
-> +	struct inode *inode = mapping->host;
-> +	unsigned long end_index;	/* The last page we want to read */
-> +	loff_t isize = i_size_read(inode);
-> +
-> +	if (isize == 0)
-> +		return;
-> +
-> +	end_index = ((isize - 1) >> PAGE_SHIFT);
-> +
-> +	page_cache_readahead_limit(mapping, file, offset, end_index,
-> +			nr_to_read, lookahead_size);
-> +}
->  
->  /*
->   * Chunk the readahead into 2 megabyte units, so that we don't pin too much
+> > +/**
+> > + * page_cache_readahead_limit - Start readahead beyond a file's i_size.
 > 
+> 
+> Maybe: 
+> 
+>     "Start readahead to a caller-specified end point" ?
+> 
+> (It's only *potentially* beyond files's i_size.)
+
+My current tree has:
+ * page_cache_readahead_exceed - Start unchecked readahead.
 
 
-thanks,
--- 
-John Hubbard
-NVIDIA
+> > + * @mapping: File address space.
+> > + * @file: This instance of the open file; used for authentication.
+> > + * @offset: First page index to read.
+> > + * @end_index: The maximum page index to read.
+> > + * @nr_to_read: The number of pages to read.
+> 
+> 
+> How about:
+> 
+>     "The number of pages to read, as long as end_index is not exceeded."
+
+API change makes this irrelevant ;-)
+
+> > + * @lookahead_size: Where to start the next readahead.
+> 
+> Pre-existing, but...it's hard to understand how a size is "where to start".
+> Should we rename this arg?
+
+It should probably be lookahead_count.
+
+> > + *
+> > + * This function is for filesystems to call when they want to start
+> > + * readahead potentially beyond a file's stated i_size.  If you want
+> > + * to start readahead on a normal file, you probably want to call
+> > + * page_cache_async_readahead() or page_cache_sync_readahead() instead.
+> > + *
+> > + * Context: File is referenced by caller.  Mutexes may be held by caller.
+> > + * May sleep, but will not reenter filesystem to reclaim memory.
+> 
+> In fact, can we say "must not reenter filesystem"? 
+
+I think it depends which side of the API you're looking at which wording
+you prefer ;-)
