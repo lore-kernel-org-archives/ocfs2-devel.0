@@ -1,69 +1,53 @@
 From: Matthew Wilcox <willy@infradead.org>
-Date: Wed, 19 Feb 2020 13:01:03 -0800
-Subject: [Ocfs2-devel] [PATCH v7 24/24] mm: Use memalloc_nofs_save in
-	readahead path
+Date: Wed, 19 Feb 2020 13:00:47 -0800
+Subject: [Ocfs2-devel] [PATCH v7 08/24] mm: Remove 'page_offset' from
+	readahead loop
 In-Reply-To: <20200219210103.32400-1-willy@infradead.org>
 References: <20200219210103.32400-1-willy@infradead.org>
-Message-ID: <20200219210103.32400-25-willy@infradead.org>
+Message-ID: <20200219210103.32400-9-willy@infradead.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: linux-fsdevel@vger.kernel.org
-Cc: "Matthew Wilcox (Oracle)" <willy@infradead.org>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-btrfs@vger.kernel.org, linux-erofs@lists.ozlabs.org, linux-ext4@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, linux-xfs@vger.kernel.org, Cong Wang <xiyou.wangcong@gmail.com>, Michal Hocko <mhocko@suse.com>
+Cc: "Matthew Wilcox (Oracle)" <willy@infradead.org>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-btrfs@vger.kernel.org, linux-erofs@lists.ozlabs.org, linux-ext4@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, linux-xfs@vger.kernel.org
 
 From: "Matthew Wilcox (Oracle)" <willy@infradead.org>
 
-Ensure that memory allocations in the readahead path do not attempt to
-reclaim file-backed pages, which could lead to a deadlock.  It is
-possible, though unlikely this is the root cause of a problem observed
-by Cong Wang.
+Replace the page_offset variable with 'index + i'.
 
 Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
-Reported-by: Cong Wang <xiyou.wangcong@gmail.com>
-Suggested-by: Michal Hocko <mhocko@suse.com>
 ---
- mm/readahead.c | 14 ++++++++++++++
- 1 file changed, 14 insertions(+)
+ mm/readahead.c | 8 +++-----
+ 1 file changed, 3 insertions(+), 5 deletions(-)
 
 diff --git a/mm/readahead.c b/mm/readahead.c
-index bbe7208fcc2d..9fb5f77dcf69 100644
+index 8a25fc7e2bf2..83df5c061d33 100644
 --- a/mm/readahead.c
 +++ b/mm/readahead.c
-@@ -22,6 +22,7 @@
- #include <linux/mm_inline.h>
- #include <linux/blk-cgroup.h>
- #include <linux/fadvise.h>
-+#include <linux/sched/mm.h>
- 
- #include "internal.h"
- 
-@@ -186,6 +187,18 @@ void page_cache_readahead_unbounded(struct address_space *mapping,
- 	};
- 	unsigned long i;
- 
-+	/*
-+	 * Partway through the readahead operation, we will have added
-+	 * locked pages to the page cache, but will not yet have submitted
-+	 * them for I/O.  Adding another page may need to allocate memory,
-+	 * which can trigger memory reclaim.  Telling the VM we're in
-+	 * the middle of a filesystem operation will cause it to not
-+	 * touch file-backed pages, preventing a deadlock.  Most (all?)
-+	 * filesystems already specify __GFP_NOFS in their mapping's
-+	 * gfp_mask, but let's be explicit here.
-+	 */
-+	unsigned int nofs = memalloc_nofs_save();
-+
- 	/*
+@@ -181,12 +181,10 @@ void __do_page_cache_readahead(struct address_space *mapping,
  	 * Preallocate as many pages as we will need.
  	 */
-@@ -230,6 +243,7 @@ void page_cache_readahead_unbounded(struct address_space *mapping,
- 	 * will then handle the error.
- 	 */
- 	read_pages(&rac, &page_pool);
-+	memalloc_nofs_restore(nofs);
- }
- EXPORT_SYMBOL_GPL(page_cache_readahead_unbounded);
+ 	for (i = 0; i < nr_to_read; i++) {
+-		pgoff_t page_offset = index + i;
+-
+-		if (page_offset > end_index)
++		if (index + i > end_index)
+ 			break;
  
+-		page = xa_load(&mapping->i_pages, page_offset);
++		page = xa_load(&mapping->i_pages, index + i);
+ 		if (page && !xa_is_value(page)) {
+ 			/*
+ 			 * Page already present?  Kick off the current batch of
+@@ -200,7 +198,7 @@ void __do_page_cache_readahead(struct address_space *mapping,
+ 		page = __page_cache_alloc(gfp_mask);
+ 		if (!page)
+ 			break;
+-		page->index = page_offset;
++		page->index = index + i;
+ 		list_add(&page->lru, &page_pool);
+ 		if (i == nr_to_read - lookahead_size)
+ 			SetPageReadahead(page);
 -- 
 2.25.0
