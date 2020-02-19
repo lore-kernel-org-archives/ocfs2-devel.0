@@ -1,80 +1,70 @@
-From: Dave Chinner <david@fromorbit.com>
-Date: Wed, 19 Feb 2020 14:57:20 +1100
-Subject: [Ocfs2-devel] [PATCH v6 00/19] Change readahead API
-In-Reply-To: <20200219034832.GL24185@bombadil.infradead.org>
+From: Matthew Wilcox <willy@infradead.org>
+Date: Tue, 18 Feb 2020 21:22:30 -0800
+Subject: [Ocfs2-devel] [PATCH v6 19/19] mm: Use memalloc_nofs_save in
+	readahead path
+In-Reply-To: <20200219034324.GG10776@dread.disaster.area>
 References: <20200217184613.19668-1-willy@infradead.org>
-	<20200218045633.GH10776@dread.disaster.area>
-	<20200218134230.GN7778@bombadil.infradead.org>
-	<20200218212652.GR10776@dread.disaster.area>
-	<20200219034525.GH10776@dread.disaster.area>
-	<20200219034832.GL24185@bombadil.infradead.org>
-Message-ID: <20200219035720.GI10776@dread.disaster.area>
+	<20200217184613.19668-33-willy@infradead.org>
+	<20200219034324.GG10776@dread.disaster.area>
+Message-ID: <20200219052230.GM24185@bombadil.infradead.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Matthew Wilcox <willy@infradead.org>
-Cc: linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-btrfs@vger.kernel.org, linux-erofs@lists.ozlabs.org, linux-ext4@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, linux-xfs@vger.kernel.org
+To: Dave Chinner <david@fromorbit.com>
+Cc: linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-btrfs@vger.kernel.org, linux-erofs@lists.ozlabs.org, linux-ext4@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, linux-xfs@vger.kernel.org, Cong Wang <xiyou.wangcong@gmail.com>, Michal Hocko <mhocko@suse.com>
 
-On Tue, Feb 18, 2020 at 07:48:32PM -0800, Matthew Wilcox wrote:
-> On Wed, Feb 19, 2020 at 02:45:25PM +1100, Dave Chinner wrote:
-> > On Wed, Feb 19, 2020 at 08:26:52AM +1100, Dave Chinner wrote:
-> > > On Tue, Feb 18, 2020 at 05:42:30AM -0800, Matthew Wilcox wrote:
-> > > > On Tue, Feb 18, 2020 at 03:56:33PM +1100, Dave Chinner wrote:
-> > > > > Latest version in your git tree:
-> > > > > 
-> > > > > $ ? glo -n 5 willy/readahead
-> > > > > 4be497096c04 mm: Use memalloc_nofs_save in readahead path
-> > > > > ff63497fcb98 iomap: Convert from readpages to readahead
-> > > > > 26aee60e89b5 iomap: Restructure iomap_readpages_actor
-> > > > > 8115bcca7312 fuse: Convert from readpages to readahead
-> > > > > 3db3d10d9ea1 f2fs: Convert from readpages to readahead
-> > > > > $
-> > > > > 
-> > > > > merged into a 5.6-rc2 tree fails at boot on my test vm:
-> > > > > 
-> > > > > [    2.423116] ------------[ cut here ]------------
-> > > > > [    2.424957] list_add double add: new=ffffea000efff4c8, prev=ffff8883bfffee60, next=ffffea000efff4c8.
-> > > > > [    2.428259] WARNING: CPU: 4 PID: 1 at lib/list_debug.c:29 __list_add_valid+0x67/0x70
-> > > > > [    2.457484] Call Trace:
-> > > > > [    2.458171]  __pagevec_lru_add_fn+0x15f/0x2c0
-> > > > > [    2.459376]  pagevec_lru_move_fn+0x87/0xd0
-> > > > > [    2.460500]  ? pagevec_move_tail_fn+0x2d0/0x2d0
-> > > > > [    2.461712]  lru_add_drain_cpu+0x8d/0x160
-> > > > > [    2.462787]  lru_add_drain+0x18/0x20
-> > > > 
-> > > > Are you sure that was 4be497096c04 ?  I ask because there was a
-> > > 
-> > > Yes, because it's the only version I've actually merged into my
-> > > working tree, compiled and tried to run. :P
-> > > 
-> > > > version pushed to that git tree that did contain a list double-add
-> > > > (due to a mismerge when shuffling patches).  I noticed it and fixed
-> > > > it, and 4be497096c04 doesn't have that problem.  I also test with
-> > > > CONFIG_DEBUG_LIST turned on, but this problem you hit is going to be
-> > > > probabilistic because it'll depend on the timing between whatever other
-> > > > list is being used and the page actually being added to the LRU.
-> > > 
-> > > I'll see if I can reproduce it.
+On Wed, Feb 19, 2020 at 02:43:24PM +1100, Dave Chinner wrote:
+> On Mon, Feb 17, 2020 at 10:46:13AM -0800, Matthew Wilcox wrote:
+> > From: "Matthew Wilcox (Oracle)" <willy@infradead.org>
 > > 
-> > Just updated to a current TOT Linus kernel and your latest branch,
-> > and so far this is 100% reproducable.
+> > Ensure that memory allocations in the readahead path do not attempt to
+> > reclaim file-backed pages, which could lead to a deadlock.  It is
+> > possible, though unlikely this is the root cause of a problem observed
+> > by Cong Wang.
 > > 
-> > Not sure how I'm going to debug it yet, because it's init that is
-> > triggering it....
+> > Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
+> > Reported-by: Cong Wang <xiyou.wangcong@gmail.com>
+> > Suggested-by: Michal Hocko <mhocko@suse.com>
+> > ---
+> >  mm/readahead.c | 14 ++++++++++++++
+> >  1 file changed, 14 insertions(+)
+> > 
+> > diff --git a/mm/readahead.c b/mm/readahead.c
+> > index 94d499cfb657..8f9c0dba24e7 100644
+> > --- a/mm/readahead.c
+> > +++ b/mm/readahead.c
+> > @@ -22,6 +22,7 @@
+> >  #include <linux/mm_inline.h>
+> >  #include <linux/blk-cgroup.h>
+> >  #include <linux/fadvise.h>
+> > +#include <linux/sched/mm.h>
+> >  
+> >  #include "internal.h"
+> >  
+> > @@ -174,6 +175,18 @@ void page_cache_readahead_limit(struct address_space *mapping,
+> >  		._nr_pages = 0,
+> >  	};
+> >  
+> > +	/*
+> > +	 * Partway through the readahead operation, we will have added
+> > +	 * locked pages to the page cache, but will not yet have submitted
+> > +	 * them for I/O.  Adding another page may need to allocate memory,
+> > +	 * which can trigger memory reclaim.  Telling the VM we're in
+> > +	 * the middle of a filesystem operation will cause it to not
+> > +	 * touch file-backed pages, preventing a deadlock.  Most (all?)
+> > +	 * filesystems already specify __GFP_NOFS in their mapping's
+> > +	 * gfp_mask, but let's be explicit here.
+> > +	 */
+> > +	unsigned int nofs = memalloc_nofs_save();
+> > +
 > 
-> Eric found it ...
+> So doesn't this largely remove the need for all the gfp flag futzing
+> in the readahead path? i.e. almost all readahead allocations are now
+> going to be GFP_NOFS | GFP_NORETRY | GFP_NOWARN ?
 
-Yeah, just saw that and am applying his patch to test it...
+I don't think it ensures the GFP_NORETRY | GFP_NOWARN, just the GFP_NOFS
+part.  IOW, we'll still need a readahead_gfp() macro at some point ... I
+don't want to add that to this already large series though.
 
-> still not sure why I don't see it.
-
-No readahead configured on your device?
-
-
-Cheers,
-
-Dave.
--- 
-Dave Chinner
-david at fromorbit.com
+Michal also wants to kill mapping->gfp_mask, btw.
