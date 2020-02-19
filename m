@@ -1,299 +1,93 @@
 From: Matthew Wilcox <willy@infradead.org>
-Date: Wed, 19 Feb 2020 13:00:45 -0800
-Subject: [Ocfs2-devel] [PATCH v7 06/24] mm: Rename various 'offset'
-	parameters to 'index'
+Date: Wed, 19 Feb 2020 13:00:55 -0800
+Subject: [Ocfs2-devel] [PATCH v7 16/24] erofs: Convert compressed files from
+	readpages to readahead
 In-Reply-To: <20200219210103.32400-1-willy@infradead.org>
 References: <20200219210103.32400-1-willy@infradead.org>
-Message-ID: <20200219210103.32400-7-willy@infradead.org>
+Message-ID: <20200219210103.32400-17-willy@infradead.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: linux-fsdevel@vger.kernel.org
-Cc: "Matthew Wilcox (Oracle)" <willy@infradead.org>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-btrfs@vger.kernel.org, linux-erofs@lists.ozlabs.org, linux-ext4@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, linux-xfs@vger.kernel.org
+Cc: "Matthew Wilcox (Oracle)" <willy@infradead.org>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-btrfs@vger.kernel.org, linux-erofs@lists.ozlabs.org, linux-ext4@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, linux-xfs@vger.kernel.org, Gao Xiang <gaoxiang25@huawei.com>, Dave Chinner <dchinner@redhat.com>
 
 From: "Matthew Wilcox (Oracle)" <willy@infradead.org>
 
-The word 'offset' is used ambiguously to mean 'byte offset within
-a page', 'byte offset from the start of the file' and 'page offset
-from the start of the file'.  Use 'index' to mean 'page offset
-from the start of the file' throughout the readahead code.
+Use the new readahead operation in erofs.
 
 Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
+Acked-by: Gao Xiang <gaoxiang25@huawei.com>
+Reviewed-by: Dave Chinner <dchinner@redhat.com>
 ---
- mm/readahead.c | 86 ++++++++++++++++++++++++--------------------------
- 1 file changed, 42 insertions(+), 44 deletions(-)
+ fs/erofs/zdata.c | 29 +++++++++--------------------
+ 1 file changed, 9 insertions(+), 20 deletions(-)
 
-diff --git a/mm/readahead.c b/mm/readahead.c
-index 6a9d99229bd6..096cf9020648 100644
---- a/mm/readahead.c
-+++ b/mm/readahead.c
-@@ -156,7 +156,7 @@ static void read_pages(struct readahead_control *rac, struct list_head *pages,
-  * We really don't want to intermingle reads and writes like that.
-  */
- void __do_page_cache_readahead(struct address_space *mapping,
--		struct file *filp, pgoff_t offset, unsigned long nr_to_read,
-+		struct file *filp, pgoff_t index, unsigned long nr_to_read,
- 		unsigned long lookahead_size)
+diff --git a/fs/erofs/zdata.c b/fs/erofs/zdata.c
+index 17f45fcb8c5c..e64d8ab0900d 100644
+--- a/fs/erofs/zdata.c
++++ b/fs/erofs/zdata.c
+@@ -1303,28 +1303,23 @@ static bool should_decompress_synchronously(struct erofs_sb_info *sbi,
+ 	return nr <= sbi->max_sync_decompress_pages;
+ }
+ 
+-static int z_erofs_readpages(struct file *filp, struct address_space *mapping,
+-			     struct list_head *pages, unsigned int nr_pages)
++static void z_erofs_readahead(struct readahead_control *rac)
  {
- 	struct inode *inode = mapping->host;
-@@ -181,7 +181,7 @@ void __do_page_cache_readahead(struct address_space *mapping,
- 	 * Preallocate as many pages as we will need.
- 	 */
- 	for (page_idx = 0; page_idx < nr_to_read; page_idx++) {
--		pgoff_t page_offset = offset + page_idx;
-+		pgoff_t page_offset = index + page_idx;
+-	struct inode *const inode = mapping->host;
++	struct inode *const inode = rac->mapping->host;
+ 	struct erofs_sb_info *const sbi = EROFS_I_SB(inode);
  
- 		if (page_offset > end_index)
- 			break;
-@@ -220,7 +220,7 @@ void __do_page_cache_readahead(struct address_space *mapping,
-  * memory at once.
-  */
- void force_page_cache_readahead(struct address_space *mapping,
--		struct file *filp, pgoff_t offset, unsigned long nr_to_read)
-+		struct file *filp, pgoff_t index, unsigned long nr_to_read)
- {
- 	struct backing_dev_info *bdi = inode_to_bdi(mapping->host);
- 	struct file_ra_state *ra = &filp->f_ra;
-@@ -240,9 +240,9 @@ void force_page_cache_readahead(struct address_space *mapping,
+-	bool sync = should_decompress_synchronously(sbi, nr_pages);
++	bool sync = should_decompress_synchronously(sbi, readahead_count(rac));
+ 	struct z_erofs_decompress_frontend f = DECOMPRESS_FRONTEND_INIT(inode);
+-	gfp_t gfp = mapping_gfp_constraint(mapping, GFP_KERNEL);
+-	struct page *head = NULL;
++	struct page *page, *head = NULL;
+ 	LIST_HEAD(pagepool);
  
- 		if (this_chunk > nr_to_read)
- 			this_chunk = nr_to_read;
--		__do_page_cache_readahead(mapping, filp, offset, this_chunk, 0);
-+		__do_page_cache_readahead(mapping, filp, index, this_chunk, 0);
+-	trace_erofs_readpages(mapping->host, lru_to_page(pages)->index,
+-			      nr_pages, false);
++	trace_erofs_readpages(inode, readahead_index(rac),
++			readahead_count(rac), false);
  
--		offset += this_chunk;
-+		index += this_chunk;
- 		nr_to_read -= this_chunk;
+-	f.headoffset = (erofs_off_t)lru_to_page(pages)->index << PAGE_SHIFT;
+-
+-	for (; nr_pages; --nr_pages) {
+-		struct page *page = lru_to_page(pages);
++	f.headoffset = readahead_pos(rac);
+ 
++	while ((page = readahead_page(rac))) {
+ 		prefetchw(&page->flags);
+-		list_del(&page->lru);
+ 
+ 		/*
+ 		 * A pure asynchronous readahead is indicated if
+@@ -1333,11 +1328,6 @@ static int z_erofs_readpages(struct file *filp, struct address_space *mapping,
+ 		 */
+ 		sync &= !(PageReadahead(page) && !head);
+ 
+-		if (add_to_page_cache_lru(page, mapping, page->index, gfp)) {
+-			list_add(&page->lru, &pagepool);
+-			continue;
+-		}
+-
+ 		set_page_private(page, (unsigned long)head);
+ 		head = page;
  	}
- }
-@@ -323,21 +323,21 @@ static unsigned long get_next_ra_size(struct file_ra_state *ra,
-  */
+@@ -1366,11 +1356,10 @@ static int z_erofs_readpages(struct file *filp, struct address_space *mapping,
  
- /*
-- * Count contiguously cached pages from @offset-1 to @offset- at max,
-+ * Count contiguously cached pages from @index-1 to @index- at max,
-  * this count is a conservative estimation of
-  * 	- length of the sequential read sequence, or
-  * 	- thrashing threshold in memory tight systems
-  */
- static pgoff_t count_history_pages(struct address_space *mapping,
--				   pgoff_t offset, unsigned long max)
-+				   pgoff_t index, unsigned long max)
- {
- 	pgoff_t head;
- 
- 	rcu_read_lock();
--	head = page_cache_prev_miss(mapping, offset - 1, max);
-+	head = page_cache_prev_miss(mapping, index - 1, max);
- 	rcu_read_unlock();
- 
--	return offset - 1 - head;
-+	return index - 1 - head;
+ 	/* clean up the remaining free pages */
+ 	put_pages_list(&pagepool);
+-	return 0;
  }
  
- /*
-@@ -345,13 +345,13 @@ static pgoff_t count_history_pages(struct address_space *mapping,
-  */
- static int try_context_readahead(struct address_space *mapping,
- 				 struct file_ra_state *ra,
--				 pgoff_t offset,
-+				 pgoff_t index,
- 				 unsigned long req_size,
- 				 unsigned long max)
- {
- 	pgoff_t size;
- 
--	size = count_history_pages(mapping, offset, max);
-+	size = count_history_pages(mapping, index, max);
- 
- 	/*
- 	 * not enough history pages:
-@@ -364,10 +364,10 @@ static int try_context_readahead(struct address_space *mapping,
- 	 * starts from beginning of file:
- 	 * it is a strong indication of long-run stream (or whole-file-read)
- 	 */
--	if (size >= offset)
-+	if (size >= index)
- 		size *= 2;
- 
--	ra->start = offset;
-+	ra->start = index;
- 	ra->size = min(size + req_size, max);
- 	ra->async_size = 1;
- 
-@@ -379,13 +379,13 @@ static int try_context_readahead(struct address_space *mapping,
-  */
- static void ondemand_readahead(struct address_space *mapping,
- 		struct file_ra_state *ra, struct file *filp,
--		bool hit_readahead_marker, pgoff_t offset,
-+		bool hit_readahead_marker, pgoff_t index,
- 		unsigned long req_size)
- {
- 	struct backing_dev_info *bdi = inode_to_bdi(mapping->host);
- 	unsigned long max_pages = ra->ra_pages;
- 	unsigned long add_pages;
--	pgoff_t prev_offset;
-+	pgoff_t prev_index;
- 
- 	/*
- 	 * If the request exceeds the readahead window, allow the read to
-@@ -397,15 +397,15 @@ static void ondemand_readahead(struct address_space *mapping,
- 	/*
- 	 * start of file
- 	 */
--	if (!offset)
-+	if (!index)
- 		goto initial_readahead;
- 
- 	/*
--	 * It's the expected callback offset, assume sequential access.
-+	 * It's the expected callback index, assume sequential access.
- 	 * Ramp up sizes, and push forward the readahead window.
- 	 */
--	if ((offset == (ra->start + ra->size - ra->async_size) ||
--	     offset == (ra->start + ra->size))) {
-+	if ((index == (ra->start + ra->size - ra->async_size) ||
-+	     index == (ra->start + ra->size))) {
- 		ra->start += ra->size;
- 		ra->size = get_next_ra_size(ra, max_pages);
- 		ra->async_size = ra->size;
-@@ -422,14 +422,14 @@ static void ondemand_readahead(struct address_space *mapping,
- 		pgoff_t start;
- 
- 		rcu_read_lock();
--		start = page_cache_next_miss(mapping, offset + 1, max_pages);
-+		start = page_cache_next_miss(mapping, index + 1, max_pages);
- 		rcu_read_unlock();
- 
--		if (!start || start - offset > max_pages)
-+		if (!start || start - index > max_pages)
- 			return;
- 
- 		ra->start = start;
--		ra->size = start - offset;	/* old async_size */
-+		ra->size = start - index;	/* old async_size */
- 		ra->size += req_size;
- 		ra->size = get_next_ra_size(ra, max_pages);
- 		ra->async_size = ra->size;
-@@ -444,29 +444,29 @@ static void ondemand_readahead(struct address_space *mapping,
- 
- 	/*
- 	 * sequential cache miss
--	 * trivial case: (offset - prev_offset) == 1
--	 * unaligned reads: (offset - prev_offset) == 0
-+	 * trivial case: (index - prev_index) == 1
-+	 * unaligned reads: (index - prev_index) == 0
- 	 */
--	prev_offset = (unsigned long long)ra->prev_pos >> PAGE_SHIFT;
--	if (offset - prev_offset <= 1UL)
-+	prev_index = (unsigned long long)ra->prev_pos >> PAGE_SHIFT;
-+	if (index - prev_index <= 1UL)
- 		goto initial_readahead;
- 
- 	/*
- 	 * Query the page cache and look for the traces(cached history pages)
- 	 * that a sequential stream would leave behind.
- 	 */
--	if (try_context_readahead(mapping, ra, offset, req_size, max_pages))
-+	if (try_context_readahead(mapping, ra, index, req_size, max_pages))
- 		goto readit;
- 
- 	/*
- 	 * standalone, small random read
- 	 * Read as is, and do not pollute the readahead state.
- 	 */
--	__do_page_cache_readahead(mapping, filp, offset, req_size, 0);
-+	__do_page_cache_readahead(mapping, filp, index, req_size, 0);
- 	return;
- 
- initial_readahead:
--	ra->start = offset;
-+	ra->start = index;
- 	ra->size = get_init_ra_size(req_size, max_pages);
- 	ra->async_size = ra->size > req_size ? ra->size - req_size : ra->size;
- 
-@@ -477,7 +477,7 @@ static void ondemand_readahead(struct address_space *mapping,
- 	 * the resulted next readahead window into the current one.
- 	 * Take care of maximum IO pages as above.
- 	 */
--	if (offset == ra->start && ra->size == ra->async_size) {
-+	if (index == ra->start && ra->size == ra->async_size) {
- 		add_pages = get_next_ra_size(ra, max_pages);
- 		if (ra->size + add_pages <= max_pages) {
- 			ra->async_size = add_pages;
-@@ -496,9 +496,8 @@ static void ondemand_readahead(struct address_space *mapping,
-  * @mapping: address_space which holds the pagecache and I/O vectors
-  * @ra: file_ra_state which holds the readahead state
-  * @filp: passed on to ->readpage() and ->readpages()
-- * @offset: start offset into @mapping, in pagecache page-sized units
-- * @req_size: hint: total size of the read which the caller is performing in
-- *            pagecache pages
-+ * @index: Index of first page to be read.
-+ * @req_count: Total number of pages being read by the caller.
-  *
-  * page_cache_sync_readahead() should be called when a cache miss happened:
-  * it will submit the read.  The readahead logic may decide to piggyback more
-@@ -507,7 +506,7 @@ static void ondemand_readahead(struct address_space *mapping,
-  */
- void page_cache_sync_readahead(struct address_space *mapping,
- 			       struct file_ra_state *ra, struct file *filp,
--			       pgoff_t offset, unsigned long req_size)
-+			       pgoff_t index, unsigned long req_count)
- {
- 	/* no read-ahead */
- 	if (!ra->ra_pages)
-@@ -518,12 +517,12 @@ void page_cache_sync_readahead(struct address_space *mapping,
- 
- 	/* be dumb */
- 	if (filp && (filp->f_mode & FMODE_RANDOM)) {
--		force_page_cache_readahead(mapping, filp, offset, req_size);
-+		force_page_cache_readahead(mapping, filp, index, req_count);
- 		return;
- 	}
- 
- 	/* do read-ahead */
--	ondemand_readahead(mapping, ra, filp, false, offset, req_size);
-+	ondemand_readahead(mapping, ra, filp, false, index, req_count);
- }
- EXPORT_SYMBOL_GPL(page_cache_sync_readahead);
- 
-@@ -532,21 +531,20 @@ EXPORT_SYMBOL_GPL(page_cache_sync_readahead);
-  * @mapping: address_space which holds the pagecache and I/O vectors
-  * @ra: file_ra_state which holds the readahead state
-  * @filp: passed on to ->readpage() and ->readpages()
-- * @page: the page at @offset which has the PG_readahead flag set
-- * @offset: start offset into @mapping, in pagecache page-sized units
-- * @req_size: hint: total size of the read which the caller is performing in
-- *            pagecache pages
-+ * @page: The page at @index which triggered the readahead call.
-+ * @index: Index of first page to be read.
-+ * @req_count: Total number of pages being read by the caller.
-  *
-  * page_cache_async_readahead() should be called when a page is used which
-- * has the PG_readahead flag; this is a marker to suggest that the application
-+ * is marked as PageReadahead; this is a marker to suggest that the application
-  * has used up enough of the readahead window that we should start pulling in
-  * more pages.
-  */
- void
- page_cache_async_readahead(struct address_space *mapping,
- 			   struct file_ra_state *ra, struct file *filp,
--			   struct page *page, pgoff_t offset,
--			   unsigned long req_size)
-+			   struct page *page, pgoff_t index,
-+			   unsigned long req_count)
- {
- 	/* no read-ahead */
- 	if (!ra->ra_pages)
-@@ -570,7 +568,7 @@ page_cache_async_readahead(struct address_space *mapping,
- 		return;
- 
- 	/* do read-ahead */
--	ondemand_readahead(mapping, ra, filp, true, offset, req_size);
-+	ondemand_readahead(mapping, ra, filp, true, index, req_count);
- }
- EXPORT_SYMBOL_GPL(page_cache_async_readahead);
+ const struct address_space_operations z_erofs_aops = {
+ 	.readpage = z_erofs_readpage,
+-	.readpages = z_erofs_readpages,
++	.readahead = z_erofs_readahead,
+ };
  
 -- 
 2.25.0
