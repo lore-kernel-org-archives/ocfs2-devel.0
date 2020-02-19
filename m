@@ -1,10 +1,10 @@
 From: Matthew Wilcox <willy@infradead.org>
-Date: Wed, 19 Feb 2020 13:00:43 -0800
-Subject: [Ocfs2-devel] [PATCH v7 04/24] mm: Move readahead nr_pages check
-	into read_pages
+Date: Wed, 19 Feb 2020 13:00:50 -0800
+Subject: [Ocfs2-devel] [PATCH v7 11/24] mm: Move end_index check out of
+	readahead loop
 In-Reply-To: <20200219210103.32400-1-willy@infradead.org>
 References: <20200219210103.32400-1-willy@infradead.org>
-Message-ID: <20200219210103.32400-5-willy@infradead.org>
+Message-ID: <20200219210103.32400-12-willy@infradead.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -14,57 +14,57 @@ Cc: "Matthew Wilcox (Oracle)" <willy@infradead.org>, linux-mm@kvack.org, linux-k
 
 From: "Matthew Wilcox (Oracle)" <willy@infradead.org>
 
-Simplify the callers by moving the check for nr_pages and the BUG_ON
-into read_pages().
+By reducing nr_to_read, we can eliminate this check from inside the loop.
 
 Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
 ---
- mm/readahead.c | 12 +++++++-----
- 1 file changed, 7 insertions(+), 5 deletions(-)
+ mm/readahead.c | 15 +++++++++------
+ 1 file changed, 9 insertions(+), 6 deletions(-)
 
 diff --git a/mm/readahead.c b/mm/readahead.c
-index 61b15b6b9e72..9fcd4e32b62d 100644
+index 07cdfbf00f4b..ace611f4bf05 100644
 --- a/mm/readahead.c
 +++ b/mm/readahead.c
-@@ -119,6 +119,9 @@ static void read_pages(struct address_space *mapping, struct file *filp,
- 	struct blk_plug plug;
- 	unsigned page_idx;
+@@ -166,8 +166,6 @@ void __do_page_cache_readahead(struct address_space *mapping,
+ 		unsigned long lookahead_size)
+ {
+ 	struct inode *inode = mapping->host;
+-	struct page *page;
+-	unsigned long end_index;	/* The last page we want to read */
+ 	LIST_HEAD(page_pool);
+ 	loff_t isize = i_size_read(inode);
+ 	gfp_t gfp_mask = readahead_gfp_mask(mapping);
+@@ -179,22 +177,27 @@ void __do_page_cache_readahead(struct address_space *mapping,
+ 		._nr_pages = 0,
+ 	};
+ 	unsigned long i;
++	pgoff_t end_index;	/* The last page we want to read */
  
-+	if (!nr_pages)
+ 	if (isize == 0)
+ 		return;
+ 
+-	end_index = ((isize - 1) >> PAGE_SHIFT);
++	end_index = (isize - 1) >> PAGE_SHIFT;
++	if (index > end_index)
 +		return;
-+
- 	blk_start_plug(&plug);
++	if (index + nr_to_read < index)
++		nr_to_read = ULONG_MAX - index + 1;
++	if (index + nr_to_read >= end_index)
++		nr_to_read = end_index - index + 1;
  
- 	if (mapping->a_ops->readpages) {
-@@ -138,6 +141,8 @@ static void read_pages(struct address_space *mapping, struct file *filp,
- 
- out:
- 	blk_finish_plug(&plug);
-+
-+	BUG_ON(!list_empty(pages));
- }
- 
- /*
-@@ -180,8 +185,7 @@ void __do_page_cache_readahead(struct address_space *mapping,
- 			 * contiguous pages before continuing with the next
- 			 * batch.
- 			 */
--			if (nr_pages)
--				read_pages(mapping, filp, &page_pool, nr_pages,
-+			read_pages(mapping, filp, &page_pool, nr_pages,
- 						gfp_mask);
- 			nr_pages = 0;
- 			continue;
-@@ -202,9 +206,7 @@ void __do_page_cache_readahead(struct address_space *mapping,
- 	 * uptodate then the caller will launch readpage again, and
- 	 * will then handle the error.
+ 	/*
+ 	 * Preallocate as many pages as we will need.
  	 */
--	if (nr_pages)
--		read_pages(mapping, filp, &page_pool, nr_pages, gfp_mask);
--	BUG_ON(!list_empty(&page_pool));
-+	read_pages(mapping, filp, &page_pool, nr_pages, gfp_mask);
- }
+ 	for (i = 0; i < nr_to_read; i++) {
+-		if (index + i > end_index)
+-			break;
++		struct page *page = xa_load(&mapping->i_pages, index + i);
  
- /*
+ 		BUG_ON(index + i != rac._index + rac._nr_pages);
+ 
+-		page = xa_load(&mapping->i_pages, index + i);
+ 		if (page && !xa_is_value(page)) {
+ 			/*
+ 			 * Page already present?  Kick off the current batch of
 -- 
 2.25.0
