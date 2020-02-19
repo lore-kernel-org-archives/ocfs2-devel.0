@@ -1,77 +1,106 @@
-From: Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
-Date: Tue, 18 Feb 2020 11:04:06 +0100
-Subject: [Ocfs2-devel] [PATCH 00/44] Manually convert filesystem FS
-	documents to ReST
-In-Reply-To: <20200218040146.GM7778@bombadil.infradead.org>
-References: <cover.1581955849.git.mchehab+huawei@kernel.org>
-	<20200218040146.GM7778@bombadil.infradead.org>
-Message-ID: <20200218110406.098fdc09@kernel.org>
+From: Gao Xiang <gaoxiang25@huawei.com>
+Date: Wed, 19 Feb 2020 10:34:22 +0800
+Subject: [Ocfs2-devel] [PATCH v6 11/16] erofs: Convert compressed files
+ from readpages to readahead
+In-Reply-To: <20200217184613.19668-20-willy@infradead.org>
+References: <20200217184613.19668-1-willy@infradead.org>
+	<20200217184613.19668-20-willy@infradead.org>
+Message-ID: <20200219023422.GA83440@architecture4>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: Matthew Wilcox <willy@infradead.org>
-Cc: Latchesar Ionkov <lucho@ionkov.net>, Martin Brandenburg <martin@omnibond.com>, Jan Kara <jack@suse.cz>, Linux Doc Mailing List <linux-doc@vger.kernel.org>, Dominique Martinet <asmadeus@codewreck.org>, Amir Goldstein <amir73il@gmail.com>, Bob Copeland <me@bobcopeland.com>, David Howells <dhowells@redhat.com>, Chris Mason <clm@fb.com>, linux-mtd@lists.infradead.org, Ilya Dryomov <idryomov@gmail.com>, linux-afs@lists.infradead.org, Mike Marshall <hubcap@omnibond.com>, Naohiro Aota <naohiro.aota@wdc.com>, Christoph Hellwig <hch@infradead.org>, linux-nilfs@vger.kernel.org, Andreas Gruenbacher <agruenba@redhat.com>, Sage Weil <sage@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Richard Weinberger <richard@nod.at>, Tyler Hicks <code@tyhicks.com>, cluster-devel@redhat.com, v9fs-developer@lists.sourceforge.net, Gao Xiang <xiang@kernel.org>, linux-ext4@vger.kernel.org, Salah
+Cc: linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-btrfs@vger.kernel.org, linux-erofs@lists.ozlabs.org, linux-ext4@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, linux-xfs@vger.kernel.org
 
-Em Mon, 17 Feb 2020 20:01:46 -0800
-Matthew Wilcox <willy@infradead.org> escreveu:
-
-> On Mon, Feb 17, 2020 at 05:11:46PM +0100, Mauro Carvalho Chehab wrote:
-> > There are lots of plain text documents under Documentation/filesystems.
-> > 
-> > Manually convert several of those to ReST and add them to the index file.  
+On Mon, Feb 17, 2020 at 10:46:00AM -0800, Matthew Wilcox wrote:
+> From: "Matthew Wilcox (Oracle)" <willy@infradead.org>
 > 
-> I think at least 90% of this material needs to be in admin-guide.  Should
-> we create Documentation/admin-guide/filesystems/ and move most of these
-> files there?
+> Use the new readahead operation in erofs.
+> 
+> Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
 
-It makes sense to me. Yet, there are some of those files that contains
-both user-facing and kernel-facing docs at the same place. 
+It looks good to me, although some further optimization exists
+but we could make a straight-forward transform first, and
+I haven't tested the whole series for now...
+Will test it later.
 
-Btw, I found the same pattern on *several* other subsystems: when
-someone is documenting some feature, it tends to document both kAPI,
-uAPI and admin.
+Acked-by: Gao Xiang <gaoxiang25@huawei.com>
 
-Right now, what we did so far on most places were to keep the stuff 
-together, as splitting them could sometimes be painful.
+Thanks,
+Gao Xiang
 
-As we are too close to finish the ReST conversion[1], I would prefer to
-first finish it. 
-
-Then, do a second pass at files outside the new directories (like
-admin-guide), in order to better organize things, eventually splitting
-some files into kAPI, uAPI and/or admin-guide.
-
-[1] Looking at next-20200217, after my last doc patches applied on this tree:
-
-	https://urldefense.com/v3/__https://git.linuxtv.org/mchehab/experimental.git/log/?h=all_docs_merged__;!!GqivPVa7Brio!PN17iKHJ9Upo42OevdJbg0MsoPoDzjKk42i88P-Eeph6Y9GmY9gBs_HXyiyhltIy5GV3Fw$ 
-
-excluding (most) false positives, we have now only ~50 text files left to
-convert:
-
-$ dirname $(find Documentation/ -type f|grep -vE '\.(rst|svg|dot|py|awk|sh|pl|gitignore|S|yaml|c|inf|vim|modes)'|grep -vE '(Makefile|Kconfig|LICENSE|COPYING-logo|ChangeLog|CREDITS)'|grep -v devicetree/bindings|grep -vE 'Documentation/(ABI|features|output|SubmittingPatches|CodingStyle|logo.gif|dontdiff|sphinx/requirements.txt|admin-guide/kdump/gdbmacros.txt|admin-guide/aoe/udev.txt|EDID/hex|netlabel/draft-ietf-cipso-ipsecurity-01.txt|firmware_class/hotplug-script|target/target-export-device|networking/mac80211-auth-assoc-deauth.txt|sparc/oradax/dax-hv-api.txt)'|grep -v translations)|sort|uniq -c|sort -n
-$ echo -n "Total: "
-$ dirname $(find Documentation/ -type f|grep -vE '\.(rst|svg|dot|py|awk|sh|pl|gitignore|S|yaml|c|inf|vim|modes)'|grep -vE '(Makefile|Kconfig|LICENSE|COPYING-logo|ChangeLog|CREDITS)'|grep -v devicetree/bindings|grep -vE 'Documentation/(ABI|features|output|SubmittingPatches|CodingStyle|logo.gif|dontdiff|sphinx/requirements.txt|admin-guide/kdump/gdbmacros.txt|admin-guide/aoe/udev.txt|EDID/hex|netlabel/draft-ietf-cipso-ipsecurity-01.txt|firmware_class/hotplug-script|target/target-export-device|networking/mac80211-auth-assoc-deauth.txt|sparc/oradax/dax-hv-api.txt)'|grep -v translations)|wc -l
-
-      1 Documentation/filesystems/cifs
-      1 Documentation/filesystems/configfs
-      1 Documentation/scsi
-      1 Documentation/virt/kvm/devices
-      2 Documentation/admin-guide
-      3 Documentation
-      6 Documentation/devicetree
-      6 Documentation/filesystems/caching
-      8 Documentation/RCU
-     21 Documentation/filesystems
-Total: 50
-
-Once we get this series merged, I'm planning to prepare and submit a second
-series doing the conversion for the other ~20 filesystem files.
-
-Btw, if you want to look how things will become after my patch series,
-I'm keeping a html build after all my patch series at:
-
-	https://urldefense.com/v3/__https://www.infradead.org/*mchehab/kernel_docs/__;fg!!GqivPVa7Brio!PN17iKHJ9Upo42OevdJbg0MsoPoDzjKk42i88P-Eeph6Y9GmY9gBs_HXyiyhltL51oe3qA$ 
-
-Cheers,
-Mauro
+> ---
+>  fs/erofs/zdata.c | 29 +++++++++--------------------
+>  1 file changed, 9 insertions(+), 20 deletions(-)
+> 
+> diff --git a/fs/erofs/zdata.c b/fs/erofs/zdata.c
+> index 17f45fcb8c5c..7c02015d501d 100644
+> --- a/fs/erofs/zdata.c
+> +++ b/fs/erofs/zdata.c
+> @@ -1303,28 +1303,23 @@ static bool should_decompress_synchronously(struct erofs_sb_info *sbi,
+>  	return nr <= sbi->max_sync_decompress_pages;
+>  }
+>  
+> -static int z_erofs_readpages(struct file *filp, struct address_space *mapping,
+> -			     struct list_head *pages, unsigned int nr_pages)
+> +static void z_erofs_readahead(struct readahead_control *rac)
+>  {
+> -	struct inode *const inode = mapping->host;
+> +	struct inode *const inode = rac->mapping->host;
+>  	struct erofs_sb_info *const sbi = EROFS_I_SB(inode);
+>  
+> -	bool sync = should_decompress_synchronously(sbi, nr_pages);
+> +	bool sync = should_decompress_synchronously(sbi, readahead_count(rac));
+>  	struct z_erofs_decompress_frontend f = DECOMPRESS_FRONTEND_INIT(inode);
+> -	gfp_t gfp = mapping_gfp_constraint(mapping, GFP_KERNEL);
+> -	struct page *head = NULL;
+> +	struct page *page, *head = NULL;
+>  	LIST_HEAD(pagepool);
+>  
+> -	trace_erofs_readpages(mapping->host, lru_to_page(pages)->index,
+> -			      nr_pages, false);
+> +	trace_erofs_readpages(inode, readahead_index(rac),
+> +			readahead_count(rac), false);
+>  
+> -	f.headoffset = (erofs_off_t)lru_to_page(pages)->index << PAGE_SHIFT;
+> -
+> -	for (; nr_pages; --nr_pages) {
+> -		struct page *page = lru_to_page(pages);
+> +	f.headoffset = readahead_offset(rac);
+>  
+> +	readahead_for_each(rac, page) {
+>  		prefetchw(&page->flags);
+> -		list_del(&page->lru);
+>  
+>  		/*
+>  		 * A pure asynchronous readahead is indicated if
+> @@ -1333,11 +1328,6 @@ static int z_erofs_readpages(struct file *filp, struct address_space *mapping,
+>  		 */
+>  		sync &= !(PageReadahead(page) && !head);
+>  
+> -		if (add_to_page_cache_lru(page, mapping, page->index, gfp)) {
+> -			list_add(&page->lru, &pagepool);
+> -			continue;
+> -		}
+> -
+>  		set_page_private(page, (unsigned long)head);
+>  		head = page;
+>  	}
+> @@ -1366,11 +1356,10 @@ static int z_erofs_readpages(struct file *filp, struct address_space *mapping,
+>  
+>  	/* clean up the remaining free pages */
+>  	put_pages_list(&pagepool);
+> -	return 0;
+>  }
+>  
+>  const struct address_space_operations z_erofs_aops = {
+>  	.readpage = z_erofs_readpage,
+> -	.readpages = z_erofs_readpages,
+> +	.readahead = z_erofs_readahead,
+>  };
+>  
+> -- 
+> 2.25.0
+> 
+> 
