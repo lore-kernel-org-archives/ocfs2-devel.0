@@ -1,159 +1,165 @@
-From: Jan Kara <jack@suse.cz>
-Date: Thu, 20 Feb 2020 11:06:10 +0100
+From: wangyan <wangyan122@huawei.com>
+Date: Thu, 20 Feb 2020 18:25:27 +0800
 Subject: [Ocfs2-devel] [QUESTION] An NULL pointer dereference problem
  which was caused when dereference journal head
-In-Reply-To: <94931222-b185-2a8c-2819-7d3d47b369a9@huawei.com>
+In-Reply-To: <20200220100610.GC13232@quack2.suse.cz>
 References: <94931222-b185-2a8c-2819-7d3d47b369a9@huawei.com>
-Message-ID: <20200220100610.GC13232@quack2.suse.cz>
+	<20200220100610.GC13232@quack2.suse.cz>
+Message-ID: <0a524e3b-9f04-7b5a-ddc2-60590caac569@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu 20-02-20 16:48:56, wangyan wrote:
-> Hi all,
+Thanks a lot!
+
+I will send a patch to help you fix this later.
+
+Thanks,
+Yan Wang
+
+On 2020/2/20 18:06, Jan Kara wrote:
+> On Thu 20-02-20 16:48:56, wangyan wrote:
+>> Hi all,
+>>
+>> I met an null pointer dereference problem, the running environment:
+>> 	kernel version: 4.19
+>> 	A cluster with two nodes, 5 luns mounted on two nodes, and do some
+>> 	file operations like dd/fallocate/truncate/rm on every lun with storage
+>> 	network disconnection.
+>>
+>> The fallocate operation on dm-23-45 caused an null pointer dereference.
+>> 	
+>> The information of NULL pointer dereference as follows:
+>> 	[577992.878282] JBD2: Error -5 detected when updating journal superblock for dm-23-45.
+>> 	[577992.878290] Aborting journal on device dm-23-45.
+>> 	...
+>> 	[577992.890778] JBD2: Error -5 detected when updating journal superblock for dm-24-46.
+>> 	[577992.890908] __journal_remove_journal_head: freeing b_committed_data
+>> 	[577992.890916] (fallocate,88392,52):ocfs2_extend_trans:474 ERROR: status = -30
+>> 	[577992.890918] __journal_remove_journal_head: freeing b_committed_data
+>> 	[577992.890920] (fallocate,88392,52):ocfs2_rotate_tree_right:2500 ERROR: status = -30
+>> 	[577992.890922] __journal_remove_journal_head: freeing b_committed_data
+>> 	[577992.890924] (fallocate,88392,52):ocfs2_do_insert_extent:4382 ERROR: status = -30
+>> 	[577992.890928] (fallocate,88392,52):ocfs2_insert_extent:4842 ERROR: status = -30
+>> 	[577992.890928] __journal_remove_journal_head: freeing b_committed_data
+>> 	[577992.890930] (fallocate,88392,52):ocfs2_add_clusters_in_btree:4947 ERROR: status = -30
+>> 	[577992.890933] __journal_remove_journal_head: freeing b_committed_data
+>> 	[577992.890939] __journal_remove_journal_head: freeing b_committed_data
+>> 	[577992.890949] Unable to handle kernel NULL pointer dereference at virtual address 0000000000000020
+>> 	[577992.890950] Mem abort info:
+>> 	[577992.890951]   ESR = 0x96000004
+>> 	[577992.890952]   Exception class = DABT (current EL), IL = 32 bits
+>> 	[577992.890952]   SET = 0, FnV = 0
+>> 	[577992.890953]   EA = 0, S1PTW = 0
+>> 	[577992.890954] Data abort info:
+>> 	[577992.890955]   ISV = 0, ISS = 0x00000004
+>> 	[577992.890956]   CM = 0, WnR = 0
+>> 	[577992.890958] user pgtable: 4k pages, 48-bit VAs, pgdp = 00000000f8da07a9
+>> 	[577992.890960] [0000000000000020] pgd=0000000000000000
+>> 	[577992.890964] Internal error: Oops: 96000004 [#1] SMP
+>> 	[577992.890965] Process fallocate (pid: 88392, stack limit = 0x00000000013db2fd)
+>> 	[577992.890968] CPU: 52 PID: 88392 Comm: fallocate Kdump: loaded Tainted: G        W  OE     4.19.36 #1
+>> 	[577992.890969] Hardware name: Huawei TaiShan 2280 V2/BC82AMDD, BIOS 0.98 08/25/2019
+>> 	[577992.890971] pstate: 60400009 (nZCv daif +PAN -UAO)
+>> 	[577992.891054] pc : _ocfs2_free_suballoc_bits+0x63c/0x968 [ocfs2]
+>> 	[577992.891082] lr : _ocfs2_free_suballoc_bits+0x618/0x968 [ocfs2]
+>> 	[577992.891084] sp : ffff0000c8e2b810
+>> 	[577992.891085] x29: ffff0000c8e2b820 x28: 0000000000000000
+>> 	[577992.891087] x27: 00000000000006f3 x26: ffffa07957b02e70
+>> 	[577992.891089] x25: ffff807c59d50000 x24: 00000000000006f2
+>> 	[577992.891091] x23: 0000000000000001 x22: ffff807bd39abc30
+>> 	[577992.891093] x21: ffff0000811d9000 x20: ffffa07535d6a000
+>> 	[577992.891097] x19: ffff000001681638 x18: ffffffffffffffff
+>> 	[577992.891098] x17: 0000000000000000 x16: ffff000080a03df0
+>> 	[577992.891100] x15: ffff0000811d9708 x14: 203d207375746174
+>> 	[577992.891101] x13: 73203a524f525245 x12: 20373439343a6565
+>> 	[577992.891103] x11: 0000000000000038 x10: 0101010101010101
+>> 	[577992.891106] x9 : ffffa07c68a85d70 x8 : 7f7f7f7f7f7f7f7f
+>> 	[577992.891109] x7 : 0000000000000000 x6 : 0000000000000080
+>> 	[577992.891110] x5 : 0000000000000000 x4 : 0000000000000002
+>> 	[577992.891112] x3 : ffff000001713390 x2 : 2ff90f88b1c22f00
+>> 	[577992.891114] x1 : ffff807bd39abc30 x0 : 0000000000000000
+>> 	[577992.891116] Call trace:
+>> 	[577992.891139]  _ocfs2_free_suballoc_bits+0x63c/0x968 [ocfs2]
+>> 	[577992.891162]  _ocfs2_free_clusters+0x100/0x290 [ocfs2]
+>> 	[577992.891185]  ocfs2_free_clusters+0x50/0x68 [ocfs2]
+>> 	[577992.891206]  ocfs2_add_clusters_in_btree+0x198/0x5e0 [ocfs2]
+>> 	[577992.891227]  ocfs2_add_inode_data+0x94/0xc8 [ocfs2]
+>> 	[577992.891248]  ocfs2_extend_allocation+0x1bc/0x7a8 [ocfs2]
+>> 	[577992.891269]  ocfs2_allocate_extents+0x14c/0x338 [ocfs2]
+>> 	[577992.891290]  __ocfs2_change_file_space+0x3f8/0x610 [ocfs2]
+>> 	[577992.891309]  ocfs2_fallocate+0xe4/0x128 [ocfs2]
+>> 	[577992.891316]  vfs_fallocate+0x11c/0x250
+>> 	[577992.891317]  ksys_fallocate+0x54/0x88
+>> 	[577992.891319]  __arm64_sys_fallocate+0x28/0x38
+>> 	[577992.891323]  el0_svc_common+0x78/0x130
+>> 	[577992.891325]  el0_svc_handler+0x38/0x78
+>> 	[577992.891327]  el0_svc+0x8/0xc
+>> 	
+>> My analysis process as follows:
+>> ocfs2_fallocate
+>>   __ocfs2_change_file_space
+>>     ocfs2_allocate_extents
+>>       ocfs2_extend_allocation
+>>         ocfs2_add_inode_data
+>>           ocfs2_add_clusters_in_btree
+>>             ocfs2_insert_extent
+>>               ocfs2_do_insert_extent
+>>                 ocfs2_rotate_tree_right
+>>                   ocfs2_extend_rotate_transaction
+>>                     ocfs2_extend_trans
+>>                       jbd2_journal_restart
+>>                         jbd2__journal_restart
+>>                           /* handle->h_transaction is NULL,
+>>                            * is_handle_aborted(handle) is true
+>>                            */
+>>                           handle->h_transaction = NULL;
+>>                           start_this_handle
+>>                             return -EROFS;
+>>             ocfs2_free_clusters
+>>               _ocfs2_free_clusters
+>>                 _ocfs2_free_suballoc_bits
+>>                   ocfs2_block_group_clear_bits
+>>                     ocfs2_journal_access_gd
+>>                       __ocfs2_journal_access
+>>                         jbd2_journal_get_undo_access
+>>                           /* I think jbd2_write_access_granted() will
+>>                            * return true, because do_get_write_access()
+>>                            * will return -EROFS.
+>>                            */
+>>                           if (jbd2_write_access_granted(...)) return 0;
+>>                           do_get_write_access
+>>                             /* handle->h_transaction is NULL, it will
+>>                              * return -EROFS here, so do_get_write_access()
+>>                              * was not called.
+>>                              */
+>>                             if (is_handle_aborted(handle)) return -EROFS;
+>>                     /* bh2jh(group_bh) is NULL, caused NULL
+>>                        pointer dereference */
+>>                     undo_bg = (struct ocfs2_group_desc *)
+>>                                 bh2jh(group_bh)->b_committed_data;
+>>
+>> I found the log "__journal_remove_journal_head: freeing b_committed_data"
+>> before causing NULL pointer dereference which will be printed when remove
+>> journal head.
+>>
+>> So, I think bh2jh(group_bh) is removed after ocfs2_journal_access_gd() and
+>> before call "bh2jh(group_bh)->b_committed_data", I don't know if this
+>> condition will happen and if the analysis result is right?
 > 
-> I met an null pointer dereference problem, the running environment:
-> 	kernel version: 4.19
-> 	A cluster with two nodes, 5 luns mounted on two nodes, and do some
-> 	file operations like dd/fallocate/truncate/rm on every lun with storage
-> 	network disconnection.
+> Thanks for the analysis! Yes, what you write seems to be possible because
+> if handle->h_transaction == NULL, then jbd2_write_access_granted() does not
+> really guarantee that journal_head will stay around, not even speaking of
+> its b_committed_data.
 > 
-> The fallocate operation on dm-23-45 caused an null pointer dereference.
-> 	
-> The information of NULL pointer dereference as follows:
-> 	[577992.878282] JBD2: Error -5 detected when updating journal superblock for dm-23-45.
-> 	[577992.878290] Aborting journal on device dm-23-45.
-> 	...
-> 	[577992.890778] JBD2: Error -5 detected when updating journal superblock for dm-24-46.
-> 	[577992.890908] __journal_remove_journal_head: freeing b_committed_data
-> 	[577992.890916] (fallocate,88392,52):ocfs2_extend_trans:474 ERROR: status = -30
-> 	[577992.890918] __journal_remove_journal_head: freeing b_committed_data
-> 	[577992.890920] (fallocate,88392,52):ocfs2_rotate_tree_right:2500 ERROR: status = -30
-> 	[577992.890922] __journal_remove_journal_head: freeing b_committed_data
-> 	[577992.890924] (fallocate,88392,52):ocfs2_do_insert_extent:4382 ERROR: status = -30
-> 	[577992.890928] (fallocate,88392,52):ocfs2_insert_extent:4842 ERROR: status = -30
-> 	[577992.890928] __journal_remove_journal_head: freeing b_committed_data
-> 	[577992.890930] (fallocate,88392,52):ocfs2_add_clusters_in_btree:4947 ERROR: status = -30
-> 	[577992.890933] __journal_remove_journal_head: freeing b_committed_data
-> 	[577992.890939] __journal_remove_journal_head: freeing b_committed_data
-> 	[577992.890949] Unable to handle kernel NULL pointer dereference at virtual address 0000000000000020
-> 	[577992.890950] Mem abort info:
-> 	[577992.890951]   ESR = 0x96000004
-> 	[577992.890952]   Exception class = DABT (current EL), IL = 32 bits
-> 	[577992.890952]   SET = 0, FnV = 0
-> 	[577992.890953]   EA = 0, S1PTW = 0
-> 	[577992.890954] Data abort info:
-> 	[577992.890955]   ISV = 0, ISS = 0x00000004
-> 	[577992.890956]   CM = 0, WnR = 0
-> 	[577992.890958] user pgtable: 4k pages, 48-bit VAs, pgdp = 00000000f8da07a9
-> 	[577992.890960] [0000000000000020] pgd=0000000000000000
-> 	[577992.890964] Internal error: Oops: 96000004 [#1] SMP
-> 	[577992.890965] Process fallocate (pid: 88392, stack limit = 0x00000000013db2fd)
-> 	[577992.890968] CPU: 52 PID: 88392 Comm: fallocate Kdump: loaded Tainted: G        W  OE     4.19.36 #1
-> 	[577992.890969] Hardware name: Huawei TaiShan 2280 V2/BC82AMDD, BIOS 0.98 08/25/2019
-> 	[577992.890971] pstate: 60400009 (nZCv daif +PAN -UAO)
-> 	[577992.891054] pc : _ocfs2_free_suballoc_bits+0x63c/0x968 [ocfs2]
-> 	[577992.891082] lr : _ocfs2_free_suballoc_bits+0x618/0x968 [ocfs2]
-> 	[577992.891084] sp : ffff0000c8e2b810
-> 	[577992.891085] x29: ffff0000c8e2b820 x28: 0000000000000000
-> 	[577992.891087] x27: 00000000000006f3 x26: ffffa07957b02e70
-> 	[577992.891089] x25: ffff807c59d50000 x24: 00000000000006f2
-> 	[577992.891091] x23: 0000000000000001 x22: ffff807bd39abc30
-> 	[577992.891093] x21: ffff0000811d9000 x20: ffffa07535d6a000
-> 	[577992.891097] x19: ffff000001681638 x18: ffffffffffffffff
-> 	[577992.891098] x17: 0000000000000000 x16: ffff000080a03df0
-> 	[577992.891100] x15: ffff0000811d9708 x14: 203d207375746174
-> 	[577992.891101] x13: 73203a524f525245 x12: 20373439343a6565
-> 	[577992.891103] x11: 0000000000000038 x10: 0101010101010101
-> 	[577992.891106] x9 : ffffa07c68a85d70 x8 : 7f7f7f7f7f7f7f7f
-> 	[577992.891109] x7 : 0000000000000000 x6 : 0000000000000080
-> 	[577992.891110] x5 : 0000000000000000 x4 : 0000000000000002
-> 	[577992.891112] x3 : ffff000001713390 x2 : 2ff90f88b1c22f00
-> 	[577992.891114] x1 : ffff807bd39abc30 x0 : 0000000000000000
-> 	[577992.891116] Call trace:
-> 	[577992.891139]  _ocfs2_free_suballoc_bits+0x63c/0x968 [ocfs2]
-> 	[577992.891162]  _ocfs2_free_clusters+0x100/0x290 [ocfs2]
-> 	[577992.891185]  ocfs2_free_clusters+0x50/0x68 [ocfs2]
-> 	[577992.891206]  ocfs2_add_clusters_in_btree+0x198/0x5e0 [ocfs2]
-> 	[577992.891227]  ocfs2_add_inode_data+0x94/0xc8 [ocfs2]
-> 	[577992.891248]  ocfs2_extend_allocation+0x1bc/0x7a8 [ocfs2]
-> 	[577992.891269]  ocfs2_allocate_extents+0x14c/0x338 [ocfs2]
-> 	[577992.891290]  __ocfs2_change_file_space+0x3f8/0x610 [ocfs2]
-> 	[577992.891309]  ocfs2_fallocate+0xe4/0x128 [ocfs2]
-> 	[577992.891316]  vfs_fallocate+0x11c/0x250
-> 	[577992.891317]  ksys_fallocate+0x54/0x88
-> 	[577992.891319]  __arm64_sys_fallocate+0x28/0x38
-> 	[577992.891323]  el0_svc_common+0x78/0x130
-> 	[577992.891325]  el0_svc_handler+0x38/0x78
-> 	[577992.891327]  el0_svc+0x8/0xc
-> 	
-> My analysis process as follows:
-> ocfs2_fallocate
->   __ocfs2_change_file_space
->     ocfs2_allocate_extents
->       ocfs2_extend_allocation
->         ocfs2_add_inode_data
->           ocfs2_add_clusters_in_btree
->             ocfs2_insert_extent
->               ocfs2_do_insert_extent
->                 ocfs2_rotate_tree_right
->                   ocfs2_extend_rotate_transaction
->                     ocfs2_extend_trans
->                       jbd2_journal_restart
->                         jbd2__journal_restart
->                           /* handle->h_transaction is NULL,
->                            * is_handle_aborted(handle) is true
->                            */
->                           handle->h_transaction = NULL;
->                           start_this_handle
->                             return -EROFS;
->             ocfs2_free_clusters
->               _ocfs2_free_clusters
->                 _ocfs2_free_suballoc_bits
->                   ocfs2_block_group_clear_bits
->                     ocfs2_journal_access_gd
->                       __ocfs2_journal_access
->                         jbd2_journal_get_undo_access
->                           /* I think jbd2_write_access_granted() will
->                            * return true, because do_get_write_access()
->                            * will return -EROFS.
->                            */
->                           if (jbd2_write_access_granted(...)) return 0;
->                           do_get_write_access
->                             /* handle->h_transaction is NULL, it will
->                              * return -EROFS here, so do_get_write_access()
->                              * was not called.
->                              */
->                             if (is_handle_aborted(handle)) return -EROFS;
->                     /* bh2jh(group_bh) is NULL, caused NULL
->                        pointer dereference */
->                     undo_bg = (struct ocfs2_group_desc *)
->                                 bh2jh(group_bh)->b_committed_data;
+> I think a proper fix is to move is_handle_aborted() check from
+> do_get_write_access() into jbd2_journal_get_undo_access() and
+> jbd2_journal_get_write_access() before the call to
+> jbd2_write_access_granted().
 > 
-> I found the log "__journal_remove_journal_head: freeing b_committed_data"
-> before causing NULL pointer dereference which will be printed when remove
-> journal head.
+> Will you send a patch to fix this or should I do it?
 > 
-> So, I think bh2jh(group_bh) is removed after ocfs2_journal_access_gd() and
-> before call "bh2jh(group_bh)->b_committed_data", I don't know if this
-> condition will happen and if the analysis result is right?
-
-Thanks for the analysis! Yes, what you write seems to be possible because
-if handle->h_transaction == NULL, then jbd2_write_access_granted() does not
-really guarantee that journal_head will stay around, not even speaking of
-its b_committed_data.
-
-I think a proper fix is to move is_handle_aborted() check from
-do_get_write_access() into jbd2_journal_get_undo_access() and
-jbd2_journal_get_write_access() before the call to
-jbd2_write_access_granted().
-
-Will you send a patch to fix this or should I do it?
-
-								Honza
-
--- 
-Jan Kara <jack@suse.com>
-SUSE Labs, CR
+> 								Honza
+> 
