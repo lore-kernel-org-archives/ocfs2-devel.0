@@ -1,11 +1,11 @@
 From: John Hubbard <jhubbard@nvidia.com>
-Date: Thu, 20 Feb 2020 18:43:31 -0800
-Subject: [Ocfs2-devel] [PATCH v7 01/24] mm: Move readahead prototypes
-	from mm.h
-In-Reply-To: <20200219210103.32400-2-willy@infradead.org>
+Date: Thu, 20 Feb 2020 18:48:45 -0800
+Subject: [Ocfs2-devel] [PATCH v7 08/24] mm: Remove 'page_offset' from
+	readahead loop
+In-Reply-To: <20200219210103.32400-9-willy@infradead.org>
 References: <20200219210103.32400-1-willy@infradead.org>
-	<20200219210103.32400-2-willy@infradead.org>
-Message-ID: <e065679e-222f-7323-9782-0c4471bb9233@nvidia.com>
+	<20200219210103.32400-9-willy@infradead.org>
+Message-ID: <f4b720f3-9084-e767-8983-2b6c3d1b9c5a@nvidia.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -16,95 +16,30 @@ Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-btrfs@vger.kernel.or
 On 2/19/20 1:00 PM, Matthew Wilcox wrote:
 > From: "Matthew Wilcox (Oracle)" <willy@infradead.org>
 > 
-> The readahead code is part of the page cache so should be found in the
-> pagemap.h file.  force_page_cache_readahead is only used within mm,
-> so move it to mm/internal.h instead.  Remove the parameter names where
-> they add no value, and rename the ones which were actively misleading.
+> Replace the page_offset variable with 'index + i'.
 > 
 > Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
 > ---
->  block/blk-core.c        |  1 +
->  include/linux/mm.h      | 19 -------------------
->  include/linux/pagemap.h |  8 ++++++++
->  mm/fadvise.c            |  2 ++
->  mm/internal.h           |  2 ++
->  5 files changed, 13 insertions(+), 19 deletions(-)
+>  mm/readahead.c | 8 +++-----
+>  1 file changed, 3 insertions(+), 5 deletions(-)
 > 
-> diff --git a/block/blk-core.c b/block/blk-core.c
-> index 089e890ab208..41417bb93634 100644
-> --- a/block/blk-core.c
-> +++ b/block/blk-core.c
-> @@ -20,6 +20,7 @@
->  #include <linux/blk-mq.h>
->  #include <linux/highmem.h>
->  #include <linux/mm.h>
-> +#include <linux/pagemap.h>
-
-Yes. But I think these files also need a similar change:
-
-    fs/btrfs/disk-io.c
-    fs/nfs/super.c
-    
-
-...because they also use VM_READAHEAD_PAGES, and do not directly include
-pagemap.h yet.
+> diff --git a/mm/readahead.c b/mm/readahead.c
+> index 8a25fc7e2bf2..83df5c061d33 100644
+> --- a/mm/readahead.c
+> +++ b/mm/readahead.c
+> @@ -181,12 +181,10 @@ void __do_page_cache_readahead(struct address_space *mapping,
+>  	 * Preallocate as many pages as we will need.
+>  	 */
+>  	for (i = 0; i < nr_to_read; i++) {
+> -		pgoff_t page_offset = index + i;
 
 
->  #include <linux/kernel_stat.h>
->  #include <linux/string.h>
->  #include <linux/init.h>
-> diff --git a/include/linux/mm.h b/include/linux/mm.h
-> index 52269e56c514..68dcda9a2112 100644
-> --- a/include/linux/mm.h
-> +++ b/include/linux/mm.h
-> @@ -2401,25 +2401,6 @@ extern vm_fault_t filemap_page_mkwrite(struct vm_fault *vmf);
->  int __must_check write_one_page(struct page *page);
->  void task_dirty_inc(struct task_struct *tsk);
->  
-> -/* readahead.c */
-> -#define VM_READAHEAD_PAGES	(SZ_128K / PAGE_SIZE)
-> -
-> -int force_page_cache_readahead(struct address_space *mapping, struct file *filp,
-> -			pgoff_t offset, unsigned long nr_to_read);
-> -
-> -void page_cache_sync_readahead(struct address_space *mapping,
-> -			       struct file_ra_state *ra,
-> -			       struct file *filp,
-> -			       pgoff_t offset,
-> -			       unsigned long size);
-> -
-> -void page_cache_async_readahead(struct address_space *mapping,
-> -				struct file_ra_state *ra,
-> -				struct file *filp,
-> -				struct page *pg,
-> -				pgoff_t offset,
-> -				unsigned long size);
-> -
->  extern unsigned long stack_guard_gap;
->  /* Generic expand stack which grows the stack according to GROWS{UP,DOWN} */
->  extern int expand_stack(struct vm_area_struct *vma, unsigned long address);
-> diff --git a/include/linux/pagemap.h b/include/linux/pagemap.h
-> index ccb14b6a16b5..24894b9b90c9 100644
-> --- a/include/linux/pagemap.h
-> +++ b/include/linux/pagemap.h
-> @@ -614,6 +614,14 @@ int replace_page_cache_page(struct page *old, struct page *new, gfp_t gfp_mask);
->  void delete_from_page_cache_batch(struct address_space *mapping,
->  				  struct pagevec *pvec);
->  
-> +#define VM_READAHEAD_PAGES	(SZ_128K / PAGE_SIZE)
-> +
-> +void page_cache_sync_readahead(struct address_space *, struct file_ra_state *,
-> +		struct file *, pgoff_t index, unsigned long req_count);
+ha, the naming mismatch I complained about in an earlier patch gets deleted
+here, so we're good after all. :)
 
+Looks good,
 
-Yes, "struct address_space *mapping" is weird, but I don't know if it's
-"misleading", given that it's actually one of the things you have to learn
-right from the beginning, with linux-mm, right? Or is that about to change?
-
-I'm not asking to restore this to "struct address_space *mapping", but I thought
-it's worth mentioning out loud, especially if you or others are planning on
-changing those names or something. Just curious.
-
+    Reviewed-by: John Hubbard <jhubbard@nvidia.com>
 
 
 thanks,
@@ -112,38 +47,23 @@ thanks,
 John Hubbard
 NVIDIA
 
-
-> +void page_cache_async_readahead(struct address_space *, struct file_ra_state *,
-> +		struct file *, struct page *, pgoff_t index,
-> +		unsigned long req_count);
-> +
->  /*
->   * Like add_to_page_cache_locked, but used to add newly allocated pages:
->   * the page is new, so we can just run __SetPageLocked() against it.
-> diff --git a/mm/fadvise.c b/mm/fadvise.c
-> index 4f17c83db575..3efebfb9952c 100644
-> --- a/mm/fadvise.c
-> +++ b/mm/fadvise.c
-> @@ -22,6 +22,8 @@
+> -
+> -		if (page_offset > end_index)
+> +		if (index + i > end_index)
+>  			break;
 >  
->  #include <asm/unistd.h>
->  
-> +#include "internal.h"
-> +
->  /*
->   * POSIX_FADV_WILLNEED could set PG_Referenced, and POSIX_FADV_NOREUSE could
->   * deactivate the pages and clear PG_Referenced.
-> diff --git a/mm/internal.h b/mm/internal.h
-> index 3cf20ab3ca01..83f353e74654 100644
-> --- a/mm/internal.h
-> +++ b/mm/internal.h
-> @@ -49,6 +49,8 @@ void unmap_page_range(struct mmu_gather *tlb,
->  			     unsigned long addr, unsigned long end,
->  			     struct zap_details *details);
->  
-> +int force_page_cache_readahead(struct address_space *, struct file *,
-> +		pgoff_t index, unsigned long nr_to_read);
->  extern unsigned int __do_page_cache_readahead(struct address_space *mapping,
->  		struct file *filp, pgoff_t offset, unsigned long nr_to_read,
->  		unsigned long lookahead_size);
+> -		page = xa_load(&mapping->i_pages, page_offset);
+> +		page = xa_load(&mapping->i_pages, index + i);
+>  		if (page && !xa_is_value(page)) {
+>  			/*
+>  			 * Page already present?  Kick off the current batch of
+> @@ -200,7 +198,7 @@ void __do_page_cache_readahead(struct address_space *mapping,
+>  		page = __page_cache_alloc(gfp_mask);
+>  		if (!page)
+>  			break;
+> -		page->index = page_offset;
+> +		page->index = index + i;
+>  		list_add(&page->lru, &page_pool);
+>  		if (i == nr_to_read - lookahead_size)
+>  			SetPageReadahead(page);
 > 
