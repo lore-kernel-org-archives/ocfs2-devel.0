@@ -1,128 +1,105 @@
-From: Matthew Wilcox <willy@infradead.org>
-Date: Thu, 20 Feb 2020 19:43:04 -0800
-Subject: [Ocfs2-devel] [PATCH v7 09/24] mm: Put readahead pages in cache
-	earlier
-In-Reply-To: <5691442b-56c7-7b0d-d91b-275be52abb42@nvidia.com>
+From: John Hubbard <jhubbard@nvidia.com>
+Date: Thu, 20 Feb 2020 19:50:39 -0800
+Subject: [Ocfs2-devel] [PATCH v7 11/24] mm: Move end_index check out of
+	readahead loop
+In-Reply-To: <20200219210103.32400-12-willy@infradead.org>
 References: <20200219210103.32400-1-willy@infradead.org>
-	<20200219210103.32400-10-willy@infradead.org>
-	<5691442b-56c7-7b0d-d91b-275be52abb42@nvidia.com>
-Message-ID: <20200221034304.GC24185@bombadil.infradead.org>
+	<20200219210103.32400-12-willy@infradead.org>
+Message-ID: <e6ef2075-b849-299e-0f11-c6ee82b0a3c7@nvidia.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: John Hubbard <jhubbard@nvidia.com>
-Cc: linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-btrfs@vger.kernel.org, linux-erofs@lists.ozlabs.org, linux-ext4@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, linux-xfs@vger.kernel.org
+To: Matthew Wilcox <willy@infradead.org>, linux-fsdevel@vger.kernel.org
+Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-btrfs@vger.kernel.org, linux-erofs@lists.ozlabs.org, linux-ext4@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, linux-xfs@vger.kernel.org
 
-On Thu, Feb 20, 2020 at 07:19:58PM -0800, John Hubbard wrote:
-> > +static inline struct page *readahead_page(struct readahead_control *rac)
-> > +{
-> > +	struct page *page;
-> > +
-> > +	BUG_ON(rac->_batch_count > rac->_nr_pages);
-> > +	rac->_nr_pages -= rac->_batch_count;
-> > +	rac->_index += rac->_batch_count;
-> > +	rac->_batch_count = 0;
+On 2/19/20 1:00 PM, Matthew Wilcox wrote:
+> From: "Matthew Wilcox (Oracle)" <willy@infradead.org>
 > 
+> By reducing nr_to_read, we can eliminate this check from inside the loop.
 > 
-> Is it intentional, to set rac->_batch_count twice (here, and below)? The
-> only reason I can see is if a caller needs to use ->_batch_count in the
-> "return NULL" case, which doesn't seem to come up...
-
-Ah, but it does.  Not in this patch, but the next one ...
-
-+       if (aops->readahead) {
-+               aops->readahead(rac);
-+               /* Clean up the remaining pages */
-+               while ((page = readahead_page(rac))) {
-+                       unlock_page(page);
-+                       put_page(page);
-+               }
-
-In the normal case, the ->readahead method will consume all the pages,
-and we need readahead_page() to do nothing if it is called again.
-
-> > +	if (!rac->_nr_pages)
-> > +		return NULL;
-
-... admittedly I could do:
-
-	if (!rac->_nr_pages) {
-		rac->_batch_count = 0;
-		return NULL;
-	}
-
-which might be less confusing.
-
-> > @@ -130,23 +129,23 @@ static void read_pages(struct readahead_control *rac, struct list_head *pages,
-> >  				readahead_count(rac));
-> >  		/* Clean up the remaining pages */
-> >  		put_pages_list(pages);
-> > -		goto out;
-> > -	}
-> > -
-> > -	for (page_idx = 0; page_idx < readahead_count(rac); page_idx++) {
-> > -		struct page *page = lru_to_page(pages);
-> > -		list_del(&page->lru);
-> > -		if (!add_to_page_cache_lru(page, rac->mapping, page->index,
-> > -				gfp))
-> > +		rac->_index += rac->_nr_pages;
-> > +		rac->_nr_pages = 0;
-> > +	} else {
-> > +		while ((page = readahead_page(rac))) {
-> >  			aops->readpage(rac->file, page);
-> > -		put_page(page);
-> > +			put_page(page);
-> > +		}
-> >  	}
-> >  
-> > -out:
-> >  	blk_finish_plug(&plug);
-> >  
-> >  	BUG_ON(!list_empty(pages));
-> > -	rac->_nr_pages = 0;
-> > +	BUG_ON(readahead_count(rac));
-> > +
-> > +out:
-> > +	/* If we were called due to a conflicting page, skip over it */
+> Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
+> ---
+>  mm/readahead.c | 15 +++++++++------
+>  1 file changed, 9 insertions(+), 6 deletions(-)
 > 
-> Tiny documentation nit: What if we were *not* called due to a conflicting page? 
-> (And what is a "conflicting page", in this context, btw?) The next line unconditionally 
-> moves the index ahead, so the "if" part of the comment really confuses me.
+> diff --git a/mm/readahead.c b/mm/readahead.c
+> index 07cdfbf00f4b..ace611f4bf05 100644
+> --- a/mm/readahead.c
+> +++ b/mm/readahead.c
+> @@ -166,8 +166,6 @@ void __do_page_cache_readahead(struct address_space *mapping,
+>  		unsigned long lookahead_size)
+>  {
+>  	struct inode *inode = mapping->host;
+> -	struct page *page;
+> -	unsigned long end_index;	/* The last page we want to read */
+>  	LIST_HEAD(page_pool);
+>  	loff_t isize = i_size_read(inode);
+>  	gfp_t gfp_mask = readahead_gfp_mask(mapping);
+> @@ -179,22 +177,27 @@ void __do_page_cache_readahead(struct address_space *mapping,
+>  		._nr_pages = 0,
+>  	};
+>  	unsigned long i;
+> +	pgoff_t end_index;	/* The last page we want to read */
+>  
+>  	if (isize == 0)
+>  		return;
+>  
+> -	end_index = ((isize - 1) >> PAGE_SHIFT);
+> +	end_index = (isize - 1) >> PAGE_SHIFT;
+> +	if (index > end_index)
+> +		return;
+> +	if (index + nr_to_read < index)
+> +		nr_to_read = ULONG_MAX - index + 1;
+> +	if (index + nr_to_read >= end_index)
+> +		nr_to_read = end_index - index + 1;
 
-By the end of the series, read_pages() is called in three places:
 
-1.              if (page && !xa_is_value(page)) {
-                        read_pages(&rac, &page_pool);
+This tiny patch made me pause, because I wasn't sure at first of the exact
+intent of the lines above. Once I worked it out, it seemed like it might
+be helpful (or overkill??) to add a few hints for the reader, especially since
+there are no hints in the function's (minimal) documentation header. What
+do you think of this?
 
-2.              } else if (add_to_page_cache_lru(page, mapping, index + i,
-                                        gfp_mask) < 0) {
-                        put_page(page);
-                        read_pages(&rac, &page_pool);
+	/*
+	 * If we can't read *any* pages without going past the inodes's isize
+	 * limit, give up entirely:
+	 */
+	if (index > end_index)
+		return;
 
-3.      read_pages(&rac, &page_pool);
+	/* Cap nr_to_read, in order to avoid overflowing the ULONG type: */
+	if (index + nr_to_read < index)
+		nr_to_read = ULONG_MAX - index + 1;
 
-In the first two cases, there's an existing page in the page cache
-(which conflicts with this readahead operation), and so we need to
-advance index.  In the third case, we're exiting the function, so it
-does no harm to advance index one further.
+	/* Cap nr_to_read, to avoid reading past the inode's isize limit: */
+	if (index + nr_to_read >= end_index)
+		nr_to_read = end_index - index + 1;
 
-> > +		} else if (add_to_page_cache_lru(page, mapping, index + i,
-> > +					gfp_mask) < 0) {
+
+Either way, it looks corrected written to me, so:
+
+    Reviewed-by: John Hubbard <jhubbard@nvidia.com>
+
+
+thanks,
+-- 
+John Hubbard
+NVIDIA
+
+>  
+>  	/*
+>  	 * Preallocate as many pages as we will need.
+>  	 */
+>  	for (i = 0; i < nr_to_read; i++) {
+> -		if (index + i > end_index)
+> -			break;
+> +		struct page *page = xa_load(&mapping->i_pages, index + i);
+>  
+>  		BUG_ON(index + i != rac._index + rac._nr_pages);
+>  
+> -		page = xa_load(&mapping->i_pages, index + i);
+>  		if (page && !xa_is_value(page)) {
+>  			/*
+>  			 * Page already present?  Kick off the current batch of
 > 
-> I still think you'll want to compare against !=0, rather than < 0, here.
-
-I tend to prefer < 0 when checking for an error value in case the function
-decides to start using positive numbers to mean something.  I don't think
-it's a particularly important preference though (after all, returning 1
-might mean "failed, but for this weird reason rather than an errno").
-
-> > +			put_page(page);
-> > +			read_pages(&rac, &page_pool);
-> 
-> Doing a read_pages() in the error case is because...actually, I'm not sure yet.
-> Why do we do this? Effectively it's a retry?
-
-Same as the reason we call read_pages() if we found a page in the page
-cache earlier -- we're sending down a set of pages which are consecutive
-in the file's address space, and now we have to skip one.  At least one ;-)
