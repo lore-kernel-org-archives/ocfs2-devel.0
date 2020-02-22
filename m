@@ -1,97 +1,61 @@
 From: Darrick J. Wong <darrick.wong@oracle.com>
-Date: Fri, 21 Feb 2020 16:44:25 -0800
-Subject: [Ocfs2-devel] [PATCH v7 21/24] iomap: Restructure
-	iomap_readpages_actor
-In-Reply-To: <20200219210103.32400-22-willy@infradead.org>
+Date: Fri, 21 Feb 2020 17:00:13 -0800
+Subject: [Ocfs2-devel] [PATCH v7 22/24] iomap: Convert from readpages to
+	readahead
+In-Reply-To: <20200220165734.GZ24185@bombadil.infradead.org>
 References: <20200219210103.32400-1-willy@infradead.org>
-	<20200219210103.32400-22-willy@infradead.org>
-Message-ID: <20200222004425.GG9506@magnolia>
+	<20200219210103.32400-23-willy@infradead.org>
+	<20200220154912.GC19577@infradead.org>
+	<20200220165734.GZ24185@bombadil.infradead.org>
+Message-ID: <20200222010013.GH9506@magnolia>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: Matthew Wilcox <willy@infradead.org>
-Cc: linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-btrfs@vger.kernel.org, linux-erofs@lists.ozlabs.org, linux-ext4@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, linux-xfs@vger.kernel.org
+Cc: Christoph Hellwig <hch@infradead.org>, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-btrfs@vger.kernel.org, linux-erofs@lists.ozlabs.org, linux-ext4@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, linux-xfs@vger.kernel.org
 
-On Wed, Feb 19, 2020 at 01:01:00PM -0800, Matthew Wilcox wrote:
-> From: "Matthew Wilcox (Oracle)" <willy@infradead.org>
+On Thu, Feb 20, 2020 at 08:57:34AM -0800, Matthew Wilcox wrote:
+> On Thu, Feb 20, 2020 at 07:49:12AM -0800, Christoph Hellwig wrote:
+> > > +/**
+> > > + * iomap_readahead - Attempt to read pages from a file.
+> > > + * @rac: Describes the pages to be read.
+> > > + * @ops: The operations vector for the filesystem.
+> > > + *
+> > > + * This function is for filesystems to call to implement their readahead
+> > > + * address_space operation.
+> > > + *
+> > > + * Context: The file is pinned by the caller, and the pages to be read are
+> > > + * all locked and have an elevated refcount.  This function will unlock
+> > > + * the pages (once I/O has completed on them, or I/O has been determined to
+> > > + * not be necessary).  It will also decrease the refcount once the pages
+> > > + * have been submitted for I/O.  After this point, the page may be removed
+> > > + * from the page cache, and should not be referenced.
+> > > + */
+> > 
+> > Isn't the context documentation something that belongs into the aop
+> > documentation?  I've never really seen the value of duplicating this
+> > information in method instances, as it is just bound to be out of date
+> > rather sooner than later.
 > 
-> By putting the 'have we reached the end of the page' condition at the end
-> of the loop instead of the beginning, we can remove the 'submit the last
-> page' code from iomap_readpages().  Also check that iomap_readpage_actor()
-> didn't return 0, which would lead to an endless loop.
+> I'm in two minds about it as well.  There's definitely no value in
+> providing kernel-doc for implementations of a common interface ... so
+> rather than fixing the nilfs2 kernel-doc, I just deleted it.  But this
+> isn't just the implementation, like nilfs2_readahead() is, it's a library
+> function for filesystems to call, so it deserves documentation.  On the
+> other hand, there's no real thought to this on the part of the filesystem;
+> the implementation just calls this with the appropriate ops pointer.
 > 
-> Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
-> ---
->  fs/iomap/buffered-io.c | 32 ++++++++++++++++++--------------
->  1 file changed, 18 insertions(+), 14 deletions(-)
-> 
-> diff --git a/fs/iomap/buffered-io.c b/fs/iomap/buffered-io.c
-> index cb3511eb152a..31899e6cb0f8 100644
-> --- a/fs/iomap/buffered-io.c
-> +++ b/fs/iomap/buffered-io.c
-> @@ -400,15 +400,9 @@ iomap_readpages_actor(struct inode *inode, loff_t pos, loff_t length,
->  		void *data, struct iomap *iomap, struct iomap *srcmap)
->  {
->  	struct iomap_readpage_ctx *ctx = data;
-> -	loff_t done, ret;
-> -
-> -	for (done = 0; done < length; done += ret) {
-> -		if (ctx->cur_page && offset_in_page(pos + done) == 0) {
-> -			if (!ctx->cur_page_in_bio)
-> -				unlock_page(ctx->cur_page);
-> -			put_page(ctx->cur_page);
-> -			ctx->cur_page = NULL;
-> -		}
-> +	loff_t ret, done = 0;
-> +
-> +	while (done < length) {
->  		if (!ctx->cur_page) {
->  			ctx->cur_page = iomap_next_page(inode, ctx->pages,
->  					pos, length, &done);
-> @@ -418,6 +412,20 @@ iomap_readpages_actor(struct inode *inode, loff_t pos, loff_t length,
->  		}
->  		ret = iomap_readpage_actor(inode, pos + done, length - done,
->  				ctx, iomap, srcmap);
-> +		done += ret;
-> +
-> +		/* Keep working on a partial page */
-> +		if (ret && offset_in_page(pos + done))
-> +			continue;
-> +
-> +		if (!ctx->cur_page_in_bio)
-> +			unlock_page(ctx->cur_page);
-> +		put_page(ctx->cur_page);
-> +		ctx->cur_page = NULL;
-> +
-> +		/* Don't loop forever if we made no progress */
-> +		if (WARN_ON(!ret))
-> +			break;
->  	}
->  
->  	return done;
-> @@ -451,11 +459,7 @@ iomap_readpages(struct address_space *mapping, struct list_head *pages,
->  done:
->  	if (ctx.bio)
->  		submit_bio(ctx.bio);
-> -	if (ctx.cur_page) {
-> -		if (!ctx.cur_page_in_bio)
-> -			unlock_page(ctx.cur_page);
-> -		put_page(ctx.cur_page);
-> -	}
-> +	BUG_ON(ctx.cur_page);
+> Then again, I kind of feel like we need more documentation of iomap to
+> help filesystems convert to using it.  But maybe kernel-doc isn't the
+> mechanism to provide that.
 
-Whoah, is the system totally unrecoverably hosed at this point?
+I think we need more documentation of the parts of iomap where it can
+call back into the filesystem (looking at you, iomap_dio_ops).
 
-I get that this /shouldn't/ happen, but should we somehow end up with a
-page here, are we unable either to release it or even just leak it?  I'd
-have thought a WARN_ON would be just fine here.
+I'm not opposed to letting this comment stay, though I don't see it as
+all that necessary since iomap_readahead implements a callout that's
+documented in vfs.rst and is thus subject to all the constraints listed
+in the (*readahead) documentation.
 
 --D
-
->  
->  	/*
->  	 * Check that we didn't lose a page due to the arcance calling
-> -- 
-> 2.25.0
-> 
