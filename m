@@ -1,13 +1,11 @@
-From: John Hubbard <jhubbard@nvidia.com>
-Date: Fri, 21 Feb 2020 16:15:27 -0800
-Subject: [Ocfs2-devel] [PATCH v7 01/24] mm: Move readahead prototypes
-	from mm.h
-In-Reply-To: <20200221214853.GF24185@bombadil.infradead.org>
+From: Darrick J. Wong <darrick.wong@oracle.com>
+Date: Fri, 21 Feb 2020 16:44:25 -0800
+Subject: [Ocfs2-devel] [PATCH v7 21/24] iomap: Restructure
+	iomap_readpages_actor
+In-Reply-To: <20200219210103.32400-22-willy@infradead.org>
 References: <20200219210103.32400-1-willy@infradead.org>
-	<20200219210103.32400-2-willy@infradead.org>
-	<e065679e-222f-7323-9782-0c4471bb9233@nvidia.com>
-	<20200221214853.GF24185@bombadil.infradead.org>
-Message-ID: <69fa8779-3433-9d35-a1f4-f115dc86c6d8@nvidia.com>
+	<20200219210103.32400-22-willy@infradead.org>
+Message-ID: <20200222004425.GG9506@magnolia>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -15,68 +13,85 @@ Content-Transfer-Encoding: 7bit
 To: Matthew Wilcox <willy@infradead.org>
 Cc: linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-btrfs@vger.kernel.org, linux-erofs@lists.ozlabs.org, linux-ext4@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, linux-xfs@vger.kernel.org
 
-On 2/21/20 1:48 PM, Matthew Wilcox wrote:
-> On Thu, Feb 20, 2020 at 06:43:31PM -0800, John Hubbard wrote:
->> Yes. But I think these files also need a similar change:
->>
->>     fs/btrfs/disk-io.c
+On Wed, Feb 19, 2020 at 01:01:00PM -0800, Matthew Wilcox wrote:
+> From: "Matthew Wilcox (Oracle)" <willy@infradead.org>
 > 
-> That gets pagemap.h through ctree.h, so I think it's fine.  It's
-> already using mapping_set_gfp_mask(), so it already depends on pagemap.h.
+> By putting the 'have we reached the end of the page' condition at the end
+> of the loop instead of the beginning, we can remove the 'submit the last
+> page' code from iomap_readpages().  Also check that iomap_readpage_actor()
+> didn't return 0, which would lead to an endless loop.
 > 
->>     fs/nfs/super.c
+> Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
+> ---
+>  fs/iomap/buffered-io.c | 32 ++++++++++++++++++--------------
+>  1 file changed, 18 insertions(+), 14 deletions(-)
 > 
-> That gets it through linux/nfs_fs.h.
-> 
-> I was reluctant to not add it to blk-core.c because it doesn't seem
-> necessarily intuitive that the block device core would include pagemap.h.
-> 
-> That said, blkdev.h does include pagemap.h, so maybe I don't need to
-> include it here.
+> diff --git a/fs/iomap/buffered-io.c b/fs/iomap/buffered-io.c
+> index cb3511eb152a..31899e6cb0f8 100644
+> --- a/fs/iomap/buffered-io.c
+> +++ b/fs/iomap/buffered-io.c
+> @@ -400,15 +400,9 @@ iomap_readpages_actor(struct inode *inode, loff_t pos, loff_t length,
+>  		void *data, struct iomap *iomap, struct iomap *srcmap)
+>  {
+>  	struct iomap_readpage_ctx *ctx = data;
+> -	loff_t done, ret;
+> -
+> -	for (done = 0; done < length; done += ret) {
+> -		if (ctx->cur_page && offset_in_page(pos + done) == 0) {
+> -			if (!ctx->cur_page_in_bio)
+> -				unlock_page(ctx->cur_page);
+> -			put_page(ctx->cur_page);
+> -			ctx->cur_page = NULL;
+> -		}
+> +	loff_t ret, done = 0;
+> +
+> +	while (done < length) {
+>  		if (!ctx->cur_page) {
+>  			ctx->cur_page = iomap_next_page(inode, ctx->pages,
+>  					pos, length, &done);
+> @@ -418,6 +412,20 @@ iomap_readpages_actor(struct inode *inode, loff_t pos, loff_t length,
+>  		}
+>  		ret = iomap_readpage_actor(inode, pos + done, length - done,
+>  				ctx, iomap, srcmap);
+> +		done += ret;
+> +
+> +		/* Keep working on a partial page */
+> +		if (ret && offset_in_page(pos + done))
+> +			continue;
+> +
+> +		if (!ctx->cur_page_in_bio)
+> +			unlock_page(ctx->cur_page);
+> +		put_page(ctx->cur_page);
+> +		ctx->cur_page = NULL;
+> +
+> +		/* Don't loop forever if we made no progress */
+> +		if (WARN_ON(!ret))
+> +			break;
+>  	}
+>  
+>  	return done;
+> @@ -451,11 +459,7 @@ iomap_readpages(struct address_space *mapping, struct list_head *pages,
+>  done:
+>  	if (ctx.bio)
+>  		submit_bio(ctx.bio);
+> -	if (ctx.cur_page) {
+> -		if (!ctx.cur_page_in_bio)
+> -			unlock_page(ctx.cur_page);
+> -		put_page(ctx.cur_page);
+> -	}
+> +	BUG_ON(ctx.cur_page);
 
-OK. Looks good (either through blkdev.h or as-is), so:
+Whoah, is the system totally unrecoverably hosed at this point?
 
-    Reviewed-by: John Hubbard <jhubbard@nvidia.com>
+I get that this /shouldn't/ happen, but should we somehow end up with a
+page here, are we unable either to release it or even just leak it?  I'd
+have thought a WARN_ON would be just fine here.
 
+--D
 
+>  
+>  	/*
+>  	 * Check that we didn't lose a page due to the arcance calling
+> -- 
+> 2.25.0
 > 
->> ...because they also use VM_READAHEAD_PAGES, and do not directly include
->> pagemap.h yet.
-> 
->>> +#define VM_READAHEAD_PAGES	(SZ_128K / PAGE_SIZE)
->>> +
->>> +void page_cache_sync_readahead(struct address_space *, struct file_ra_state *,
->>> +		struct file *, pgoff_t index, unsigned long req_count);
->>
->> Yes, "struct address_space *mapping" is weird, but I don't know if it's
->> "misleading", given that it's actually one of the things you have to learn
->> right from the beginning, with linux-mm, right? Or is that about to change?
->>
->> I'm not asking to restore this to "struct address_space *mapping", but I thought
->> it's worth mentioning out loud, especially if you or others are planning on
->> changing those names or something. Just curious.
-> 
-> No plans (on my part) to change the name, although I have heard people
-> grumbling that there's very little need for it to be a separate struct
-> from inode, except for the benefit of coda, which is not exactly a
-> filesystem with a lot of users ...
-> 
-> Anyway, no plans to change it.  If there were something _special_ about
-> it like a theoretical:
-> 
-> void mapping_dedup(struct address_space *canonical,
-> 		struct address_space *victim);
-> 
-> then that's useful information and shouldn't be deleted.  But I don't
-> think the word 'mapping' there conveys anything useful (other than the
-> convention is to call a 'struct address_space' a mapping, which you'll
-> see soon enough once you look at any of the .c files).
-> 
-
-OK, that's consistent and makes sense.
-
-
-thanks,
--- 
-John Hubbard
-NVIDIA
