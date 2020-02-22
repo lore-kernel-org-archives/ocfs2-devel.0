@@ -1,34 +1,103 @@
-From: wangyan <wangyan122@huawei.com>
-Date: Sat, 22 Feb 2020 09:54:18 +0800
-Subject: [Ocfs2-devel] [PATCH 2/2] ocfs2: correct annotation from
- "l_next_rec" to "l_next_free_rec"
-Message-ID: <5e76c953-3479-1280-023c-ad05e4c75608@huawei.com>
+From: Matthew Wilcox <willy@infradead.org>
+Date: Fri, 21 Feb 2020 17:54:35 -0800
+Subject: [Ocfs2-devel] [PATCH v7 21/24] iomap: Restructure
+	iomap_readpages_actor
+In-Reply-To: <20200222004425.GG9506@magnolia>
+References: <20200219210103.32400-1-willy@infradead.org>
+	<20200219210103.32400-22-willy@infradead.org>
+	<20200222004425.GG9506@magnolia>
+Message-ID: <20200222015435.GH24185@bombadil.infradead.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: "Darrick J. Wong" <darrick.wong@oracle.com>
+Cc: linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-btrfs@vger.kernel.org, linux-erofs@lists.ozlabs.org, linux-ext4@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, linux-xfs@vger.kernel.org
 
-Correct annotation from "l_next_rec" to "l_next_free_rec"
+On Fri, Feb 21, 2020 at 04:44:25PM -0800, Darrick J. Wong wrote:
+> On Wed, Feb 19, 2020 at 01:01:00PM -0800, Matthew Wilcox wrote:
+> > From: "Matthew Wilcox (Oracle)" <willy@infradead.org>
+> > 
+> > By putting the 'have we reached the end of the page' condition at the end
+> > of the loop instead of the beginning, we can remove the 'submit the last
+> > page' code from iomap_readpages().  Also check that iomap_readpage_actor()
+> > didn't return 0, which would lead to an endless loop.
+> > 
+> > Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
+> > ---
+> >  fs/iomap/buffered-io.c | 32 ++++++++++++++++++--------------
+> >  1 file changed, 18 insertions(+), 14 deletions(-)
+> > 
+> > diff --git a/fs/iomap/buffered-io.c b/fs/iomap/buffered-io.c
+> > index cb3511eb152a..31899e6cb0f8 100644
+> > --- a/fs/iomap/buffered-io.c
+> > +++ b/fs/iomap/buffered-io.c
+> > @@ -400,15 +400,9 @@ iomap_readpages_actor(struct inode *inode, loff_t pos, loff_t length,
+> >  		void *data, struct iomap *iomap, struct iomap *srcmap)
+> >  {
+> >  	struct iomap_readpage_ctx *ctx = data;
+> > -	loff_t done, ret;
+> > -
+> > -	for (done = 0; done < length; done += ret) {
+> > -		if (ctx->cur_page && offset_in_page(pos + done) == 0) {
+> > -			if (!ctx->cur_page_in_bio)
+> > -				unlock_page(ctx->cur_page);
+> > -			put_page(ctx->cur_page);
+> > -			ctx->cur_page = NULL;
+> > -		}
+> > +	loff_t ret, done = 0;
+> > +
+> > +	while (done < length) {
+> >  		if (!ctx->cur_page) {
+> >  			ctx->cur_page = iomap_next_page(inode, ctx->pages,
+> >  					pos, length, &done);
+> > @@ -418,6 +412,20 @@ iomap_readpages_actor(struct inode *inode, loff_t pos, loff_t length,
+> >  		}
+> >  		ret = iomap_readpage_actor(inode, pos + done, length - done,
+> >  				ctx, iomap, srcmap);
+> > +		done += ret;
+> > +
+> > +		/* Keep working on a partial page */
+> > +		if (ret && offset_in_page(pos + done))
+> > +			continue;
+> > +
+> > +		if (!ctx->cur_page_in_bio)
+> > +			unlock_page(ctx->cur_page);
+> > +		put_page(ctx->cur_page);
+> > +		ctx->cur_page = NULL;
+> > +
+> > +		/* Don't loop forever if we made no progress */
+> > +		if (WARN_ON(!ret))
+> > +			break;
+> >  	}
+> >  
+> >  	return done;
+> > @@ -451,11 +459,7 @@ iomap_readpages(struct address_space *mapping, struct list_head *pages,
+> >  done:
+> >  	if (ctx.bio)
+> >  		submit_bio(ctx.bio);
+> > -	if (ctx.cur_page) {
+> > -		if (!ctx.cur_page_in_bio)
+> > -			unlock_page(ctx.cur_page);
+> > -		put_page(ctx.cur_page);
+> > -	}
+> > +	BUG_ON(ctx.cur_page);
+> 
+> Whoah, is the system totally unrecoverably hosed at this point?
+> 
+> I get that this /shouldn't/ happen, but should we somehow end up with a
+> page here, are we unable either to release it or even just leak it?  I'd
+> have thought a WARN_ON would be just fine here.
 
-Signed-off-by: Yan Wang <wangyan122@huawei.com>
-Reviewed-by: Jun Piao <piaojun@huawei.com>
----
- fs/ocfs2/alloc.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+If we do find a page here, we don't actually know what to do with it.
+It might be (currently) locked, it might have the wrong refcount.
+Whatever is going on, it's probably better that we stop everything right
+here rather than allow things to go further and possibly present bad
+data to the application.  I mean, we could even be leaking the previous
+contents of this page to userspace.  Or maybe the future contents of a
+page which shouldn't be in the page cache any more, but userspace gets
+a mapping to it.
 
-diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-index 1e3b06fa4785..65b3abbcce4e 100644
---- a/fs/ocfs2/alloc.c
-+++ b/fs/ocfs2/alloc.c
-@@ -3941,7 +3941,7 @@ static void ocfs2_insert_at_leaf(struct ocfs2_extent_tree *et,
- 	 * above.
- 	 *
- 	 * This leaf needs to have space, either by the empty 1st
--	 * extent record, or by virtue of an l_next_rec < l_count.
-+	 * extent record, or by virtue of an l_next_free_rec < l_count.
- 	 */
- 	ocfs2_rotate_leaf(el, insert_rec);
- }
--- 
-2.19.1
+I'm not enthusiastic about putting in some code here to try to handle
+a "can't happen" case, since it's never going to be tested, and might
+end up causing more problems than it tries to solve.  Let's just stop.
