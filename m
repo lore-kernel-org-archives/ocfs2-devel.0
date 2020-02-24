@@ -1,68 +1,62 @@
 From: Joseph Qi <joseph.qi@linux.alibaba.com>
-Date: Mon, 24 Feb 2020 09:52:39 +0800
-Subject: [Ocfs2-devel] [PATCH 30/30] sgi-xp: Add missing annotation for
- ocfs2_inode_cache_lock() and ocfs2_inode_cache_unlock()
-In-Reply-To: <20200223231711.157699-31-jbi.octave@gmail.com>
-References: <0/30> <20200223231711.157699-1-jbi.octave@gmail.com>
-	<20200223231711.157699-31-jbi.octave@gmail.com>
-Message-ID: <fd7abad1-1bbe-8dc7-3aef-2ab5b4c359bf@linux.alibaba.com>
+Date: Mon, 24 Feb 2020 11:00:12 +0800
+Subject: [Ocfs2-devel] [PATCH 1/2] ocfs2: there is no need to log twice
+ in several functions
+In-Reply-To: <77eec86a-f634-5b98-4f7d-0cd15185a37b@huawei.com>
+References: <77eec86a-f634-5b98-4f7d-0cd15185a37b@huawei.com>
+Message-ID: <562704fd-9af9-e4f4-7891-7ac25bb1f6fa@linux.alibaba.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Jules Irenge <jbi.octave@gmail.com>, boqun.feng@gmail.com
-Cc: linux-kernel@vger.kernel.org, Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, "moderated list:ORACLE CLUSTER FILESYSTEM 2 (OCFS2)" <ocfs2-devel@oss.oracle.com>, Andrew Morton <akpm@linux-foundation.org>
+To: ocfs2-devel@oss.oracle.com
 
 
 
-On 2020/2/24 07:17, Jules Irenge wrote:
-> Sparse reports a warning at ocfs2_inode_cache_lock()
-> and ocfs2_inode_cache_unlock()
-> warning: context imbalance in ocfs2_inode_cache_lock()
-> 	- wrong count at exit
+On 2020/2/22 09:52, wangyan wrote:
+> There is no need to log twice in several functions.
 > 
-> warning: context imbalance in ocfs2_inode_cache_unlock()
-> 	- unexpected unlock
-> The root cause is a missing annotation at ocfs2_inode_cache_lock()
-> and at ocfs2_inode_cache_unlock()
-> 
-> Add the missing __acquires(&oi->ip_lock) annotation
-> Add the missing __releases(&oi->ip_lock) annotation
-> 
-> Signed-off-by: Jules Irenge <jbi.octave@gmail.com>
+> Signed-off-by: Yan Wang <wangyan122@huawei.com>
+> Reviewed-by: Jun Piao <piaojun@huawei.com>
 
-Looks good.
-BTW, there are another co_cache_[lock|unlock] implementations also
-miss the annotations:
-ocfs2_refcount_cache_lock
-ocfs2_refcount_cache_unlock
-So could we add the missing annotations as well?
-
-Thanks,
-Joseph
-
+Acked-by: Joseph Qi <joseph.qi@linux.alibaba.com>
 > ---
->  fs/ocfs2/inode.c | 2 ++
->  1 file changed, 2 insertions(+)
+>  fs/ocfs2/alloc.c    | 1 -
+>  fs/ocfs2/suballoc.c | 5 -----
+>  2 files changed, 6 deletions(-)
 > 
-> diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-> index 7c9dfd50c1c1..0b87e0a63ab9 100644
-> --- a/fs/ocfs2/inode.c
-> +++ b/fs/ocfs2/inode.c
-> @@ -1623,6 +1623,7 @@ static struct super_block *ocfs2_inode_cache_get_super(struct ocfs2_caching_info
+> diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
+> index 88534eb0e7c2..1e3b06fa4785 100644
+> --- a/fs/ocfs2/alloc.c
+> +++ b/fs/ocfs2/alloc.c
+> @@ -1060,7 +1060,6 @@ static int ocfs2_create_new_meta_bhs(handle_t *handle,
+>  			brelse(bhs[i]);
+>  			bhs[i] = NULL;
+>  		}
+> -		mlog_errno(status);
+>  	}
+>  	return status;
 >  }
->  
->  static void ocfs2_inode_cache_lock(struct ocfs2_caching_info *ci)
-> +	__acquires(&oi->ip_lock)
->  {
->  	struct ocfs2_inode_info *oi = cache_info_to_inode(ci);
->  
-> @@ -1630,6 +1631,7 @@ static void ocfs2_inode_cache_lock(struct ocfs2_caching_info *ci)
+> diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
+> index 939df99d2dec..4836becb7578 100644
+> --- a/fs/ocfs2/suballoc.c
+> +++ b/fs/ocfs2/suballoc.c
+> @@ -2509,9 +2509,6 @@ static int _ocfs2_free_suballoc_bits(handle_t *handle,
+> 
+>  bail:
+>  	brelse(group_bh);
+> -
+> -	if (status)
+> -		mlog_errno(status);
+>  	return status;
 >  }
->  
->  static void ocfs2_inode_cache_unlock(struct ocfs2_caching_info *ci)
-> +	__releases(&oi->ip_lock)
->  {
->  	struct ocfs2_inode_info *oi = cache_info_to_inode(ci);
->  
+> 
+> @@ -2582,8 +2579,6 @@ static int _ocfs2_free_clusters(handle_t *handle,
+>  					 num_clusters);
+> 
+>  out:
+> -	if (status)
+> -		mlog_errno(status);
+>  	return status;
+>  }
 > 
