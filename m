@@ -1,25 +1,33 @@
 From: Christoph Hellwig <hch@infradead.org>
-Date: Mon, 24 Feb 2020 13:54:42 -0800
-Subject: [Ocfs2-devel] [Cluster-devel] [PATCH v7 13/24] fs: Convert
- mpage_readpages to mpage_readahead
-In-Reply-To: <20200219210103.32400-14-willy@infradead.org>
+Date: Mon, 24 Feb 2020 13:57:43 -0800
+Subject: [Ocfs2-devel] [PATCH v7 14/24] btrfs: Convert from readpages to
+	readahead
+In-Reply-To: <20200224215414.GR24185@bombadil.infradead.org>
 References: <20200219210103.32400-1-willy@infradead.org>
-	<20200219210103.32400-14-willy@infradead.org>
-Message-ID: <20200224215442.GB16051@infradead.org>
+	<20200219210103.32400-15-willy@infradead.org>
+	<SN4PR0401MB35987D7B76007B93B1C5CE5E9B130@SN4PR0401MB3598.namprd04.prod.outlook.com>
+	<20200220134849.GV24185@bombadil.infradead.org>
+	<20200220154658.GA19577@infradead.org>
+	<20200220155452.GX24185@bombadil.infradead.org>
+	<20200220155727.GA32232@infradead.org>
+	<20200224214347.GH13895@infradead.org>
+	<20200224215414.GR24185@bombadil.infradead.org>
+Message-ID: <20200224215743.GA24044@infradead.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: Matthew Wilcox <willy@infradead.org>
-Cc: linux-fsdevel@vger.kernel.org, linux-xfs@vger.kernel.org, Junxiao Bi <junxiao.bi@oracle.com>, Joseph Qi <joseph.qi@linux.alibaba.com>, John Hubbard <jhubbard@nvidia.com>, linux-kernel@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, cluster-devel@redhat.com, linux-mm@kvack.org, ocfs2-devel@oss.oracle.com, linux-ext4@vger.kernel.org, linux-erofs@lists.ozlabs.org, linux-btrfs@vger.kernel.org
+Cc: Christoph Hellwig <hch@infradead.org>, Johannes Thumshirn <Johannes.Thumshirn@wdc.com>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-btrfs@vger.kernel.org" <linux-btrfs@vger.kernel.org>, "linux-erofs@lists.ozlabs.org" <linux-erofs@lists.ozlabs.org>, "linux-ext4@vger.kernel.org" <linux-ext4@vger.kernel.org>, "linux-f2fs-devel@lists.sourceforge.net" <linux-f2fs-devel@lists.sourceforge.net>, "cluster-devel@redhat.com" <cluster-devel@redhat.com>, "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>, "linux-xfs@vger.kernel.org" <linux-xfs@vger.kernel.org>
 
-On Wed, Feb 19, 2020 at 01:00:52PM -0800, Matthew Wilcox wrote:
-> From: "Matthew Wilcox (Oracle)" <willy@infradead.org>
+On Mon, Feb 24, 2020 at 01:54:14PM -0800, Matthew Wilcox wrote:
+> > First I think the implicit ARRAY_SIZE in readahead_page_batch is highly
+> > dangerous, as it will do the wrong thing when passing a pointer or
+> > function argument.
 > 
-> Implement the new readahead aop and convert all callers (block_dev,
-> exfat, ext2, fat, gfs2, hpfs, isofs, jfs, nilfs2, ocfs2, omfs, qnx6,
-> reiserfs & udf).  The callers are all trivial except for GFS2 & OCFS2.
+> somebody already thought of that ;-)
+> 
+> #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]) + __must_be_array(arr))
 
-Looks sensible:
-
-Reviewed-by: Christoph Hellwig <hch@lst.de>
+Ok.  Still find it pretty weird to design a primary interface that
+just works with an array type.
