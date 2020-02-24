@@ -1,33 +1,38 @@
 From: Christoph Hellwig <hch@infradead.org>
-Date: Mon, 24 Feb 2020 13:57:43 -0800
-Subject: [Ocfs2-devel] [PATCH v7 14/24] btrfs: Convert from readpages to
-	readahead
-In-Reply-To: <20200224215414.GR24185@bombadil.infradead.org>
+Date: Mon, 24 Feb 2020 14:17:49 -0800
+Subject: [Ocfs2-devel] [PATCH v7 21/24] iomap: Restructure
+	iomap_readpages_actor
+In-Reply-To: <20200220162404.GY24185@bombadil.infradead.org>
 References: <20200219210103.32400-1-willy@infradead.org>
-	<20200219210103.32400-15-willy@infradead.org>
-	<SN4PR0401MB35987D7B76007B93B1C5CE5E9B130@SN4PR0401MB3598.namprd04.prod.outlook.com>
-	<20200220134849.GV24185@bombadil.infradead.org>
-	<20200220154658.GA19577@infradead.org>
-	<20200220155452.GX24185@bombadil.infradead.org>
-	<20200220155727.GA32232@infradead.org>
-	<20200224214347.GH13895@infradead.org>
-	<20200224215414.GR24185@bombadil.infradead.org>
-Message-ID: <20200224215743.GA24044@infradead.org>
+	<20200219210103.32400-22-willy@infradead.org>
+	<20200220154741.GB19577@infradead.org>
+	<20200220162404.GY24185@bombadil.infradead.org>
+Message-ID: <20200224221749.GA22231@infradead.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: Matthew Wilcox <willy@infradead.org>
-Cc: Christoph Hellwig <hch@infradead.org>, Johannes Thumshirn <Johannes.Thumshirn@wdc.com>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-btrfs@vger.kernel.org" <linux-btrfs@vger.kernel.org>, "linux-erofs@lists.ozlabs.org" <linux-erofs@lists.ozlabs.org>, "linux-ext4@vger.kernel.org" <linux-ext4@vger.kernel.org>, "linux-f2fs-devel@lists.sourceforge.net" <linux-f2fs-devel@lists.sourceforge.net>, "cluster-devel@redhat.com" <cluster-devel@redhat.com>, "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>, "linux-xfs@vger.kernel.org" <linux-xfs@vger.kernel.org>
+Cc: Christoph Hellwig <hch@infradead.org>, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-btrfs@vger.kernel.org, linux-erofs@lists.ozlabs.org, linux-ext4@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, linux-xfs@vger.kernel.org
 
-On Mon, Feb 24, 2020 at 01:54:14PM -0800, Matthew Wilcox wrote:
-> > First I think the implicit ARRAY_SIZE in readahead_page_batch is highly
-> > dangerous, as it will do the wrong thing when passing a pointer or
-> > function argument.
+On Thu, Feb 20, 2020 at 08:24:04AM -0800, Matthew Wilcox wrote:
+> On Thu, Feb 20, 2020 at 07:47:41AM -0800, Christoph Hellwig wrote:
+> > On Wed, Feb 19, 2020 at 01:01:00PM -0800, Matthew Wilcox wrote:
+> > > From: "Matthew Wilcox (Oracle)" <willy@infradead.org>
+> > > 
+> > > By putting the 'have we reached the end of the page' condition at the end
+> > > of the loop instead of the beginning, we can remove the 'submit the last
+> > > page' code from iomap_readpages().  Also check that iomap_readpage_actor()
+> > > didn't return 0, which would lead to an endless loop.
+> > 
+> > I'm obviously biassed a I wrote the original code, but I find the new
+> > very much harder to understand (not that the previous one was easy, this
+> > is tricky code..).
 > 
-> somebody already thought of that ;-)
-> 
-> #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]) + __must_be_array(arr))
+> Agreed, I found the original code hard to understand.  I think this is
+> easier because now cur_page doesn't leak outside this loop, so it has
+> an obvious lifecycle.
 
-Ok.  Still find it pretty weird to design a primary interface that
-just works with an array type.
+I really don't like this patch, and would prefer if the series goes
+ahead without it, as the current sctructure works just fine even
+with the readahead changes.
