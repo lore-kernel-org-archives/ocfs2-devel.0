@@ -1,56 +1,56 @@
 From: Jules Irenge <jbi.octave@gmail.com>
-Date: Sun, 23 Feb 2020 23:17:11 +0000
-Subject: [Ocfs2-devel] [PATCH 30/30] sgi-xp: Add missing annotation for
-	ocfs2_inode_cache_lock() and ocfs2_inode_cache_unlock()
-In-Reply-To: <20200223231711.157699-1-jbi.octave@gmail.com>
-References: <0/30>
- <20200223231711.157699-1-jbi.octave@gmail.com>
-Message-ID: <20200223231711.157699-31-jbi.octave@gmail.com>
+Date: Mon, 24 Feb 2020 20:41:30 +0000
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Add missing annotations for
+	ocfs2_refcount_cache_lock() and ocfs2_refcount_cache_unlock()
+Message-ID: <20200224204130.18178-1-jbi.octave@gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: boqun.feng@gmail.com
-Cc: jbi.octave@gmail.com, linux-kernel@vger.kernel.org, Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, Joseph Qi <joseph.qi@linux.alibaba.com>, "moderated list:ORACLE CLUSTER FILESYSTEM 2
-        OCFS2" <ocfs2-devel@oss.oracle.com>
+Cc: joseph.qi@linux.alibab.com, Jules Irenge <jbi.octave@gmail.com>, Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, Joseph Qi <joseph.qi@linux.alibaba.com>, "moderated list:ORACLE CLUSTER FILESYSTEM 2
+        OCFS2" <ocfs2-devel@oss.oracle.com>, open list <linux-kernel@vger.kernel.org>
 
-Sparse reports a warning at ocfs2_inode_cache_lock()
-and ocfs2_inode_cache_unlock()
-warning: context imbalance in ocfs2_inode_cache_lock()
+Sparse reports warnings at ocfs2_refcount_cache_lock()
+	and ocfs2_refcount_cache_unlock()
+
+warning: context imbalance in ocfs2_refcount_cache_lock()
 	- wrong count at exit
-
-warning: context imbalance in ocfs2_inode_cache_unlock()
+warning: context imbalance in ocfs2_refcount_cache_unlock()
 	- unexpected unlock
-The root cause is a missing annotation at ocfs2_inode_cache_lock()
-and at ocfs2_inode_cache_unlock()
 
-Add the missing __acquires(&oi->ip_lock) annotation
-Add the missing __releases(&oi->ip_lock) annotation
+The root cause is the missing annotation at ocfs2_refcount_cache_lock()
+	and at ocfs2_refcount_cache_unlock()
+
+Add the missing __acquires(&rf->rf_lock) annotation
+	to ocfs2_refcount_cache_lock()
+Add the missing __releases(&rf->rf_lock) annotation
+	to ocfs2_refcount_cache_unlock()
 
 Signed-off-by: Jules Irenge <jbi.octave@gmail.com>
 ---
- fs/ocfs2/inode.c | 2 ++
+ fs/ocfs2/refcounttree.c | 2 ++
  1 file changed, 2 insertions(+)
 
-diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-index 7c9dfd50c1c1..0b87e0a63ab9 100644
---- a/fs/ocfs2/inode.c
-+++ b/fs/ocfs2/inode.c
-@@ -1623,6 +1623,7 @@ static struct super_block *ocfs2_inode_cache_get_super(struct ocfs2_caching_info
+diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
+index ee43e51188be..da99c80f49da 100644
+--- a/fs/ocfs2/refcounttree.c
++++ b/fs/ocfs2/refcounttree.c
+@@ -154,6 +154,7 @@ ocfs2_refcount_cache_get_super(struct ocfs2_caching_info *ci)
  }
  
- static void ocfs2_inode_cache_lock(struct ocfs2_caching_info *ci)
-+	__acquires(&oi->ip_lock)
+ static void ocfs2_refcount_cache_lock(struct ocfs2_caching_info *ci)
++	__acquires(&rf->rf_lock)
  {
- 	struct ocfs2_inode_info *oi = cache_info_to_inode(ci);
+ 	struct ocfs2_refcount_tree *rf = cache_info_to_refcount(ci);
  
-@@ -1630,6 +1631,7 @@ static void ocfs2_inode_cache_lock(struct ocfs2_caching_info *ci)
+@@ -161,6 +162,7 @@ static void ocfs2_refcount_cache_lock(struct ocfs2_caching_info *ci)
  }
  
- static void ocfs2_inode_cache_unlock(struct ocfs2_caching_info *ci)
-+	__releases(&oi->ip_lock)
+ static void ocfs2_refcount_cache_unlock(struct ocfs2_caching_info *ci)
++	__releases(&rf->rf_lock)
  {
- 	struct ocfs2_inode_info *oi = cache_info_to_inode(ci);
+ 	struct ocfs2_refcount_tree *rf = cache_info_to_refcount(ci);
  
 -- 
 2.24.1
