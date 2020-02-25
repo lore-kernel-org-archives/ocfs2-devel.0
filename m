@@ -1,59 +1,43 @@
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-Date: Tue, 25 Feb 2020 08:54:04 +0800
-Subject: [Ocfs2-devel] [PATCH 30/30] sgi-xp: Add missing annotation for
- ocfs2_inode_cache_lock() and ocfs2_inode_cache_unlock()
-In-Reply-To: <20200223231711.157699-31-jbi.octave@gmail.com>
-References: <0/30> <20200223231711.157699-1-jbi.octave@gmail.com>
-	<20200223231711.157699-31-jbi.octave@gmail.com>
-Message-ID: <4c565e87-30c4-4a5a-ae9f-cd12a449f8a9@linux.alibaba.com>
+From: Matthew Wilcox <willy@infradead.org>
+Date: Mon, 24 Feb 2020 17:49:49 -0800
+Subject: [Ocfs2-devel] [PATCH v7 21/24] iomap: Restructure
+	iomap_readpages_actor
+In-Reply-To: <20200224221749.GA22231@infradead.org>
+References: <20200219210103.32400-1-willy@infradead.org>
+	<20200219210103.32400-22-willy@infradead.org>
+	<20200220154741.GB19577@infradead.org>
+	<20200220162404.GY24185@bombadil.infradead.org>
+	<20200224221749.GA22231@infradead.org>
+Message-ID: <20200225014949.GS24185@bombadil.infradead.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Jules Irenge <jbi.octave@gmail.com>, boqun.feng@gmail.com
-Cc: linux-kernel@vger.kernel.org, Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, "moderated list:ORACLE CLUSTER FILESYSTEM 2 (OCFS2)" <ocfs2-devel@oss.oracle.com>
+To: Christoph Hellwig <hch@infradead.org>
+Cc: linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-btrfs@vger.kernel.org, linux-erofs@lists.ozlabs.org, linux-ext4@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, linux-xfs@vger.kernel.org
 
+On Mon, Feb 24, 2020 at 02:17:49PM -0800, Christoph Hellwig wrote:
+> On Thu, Feb 20, 2020 at 08:24:04AM -0800, Matthew Wilcox wrote:
+> > On Thu, Feb 20, 2020 at 07:47:41AM -0800, Christoph Hellwig wrote:
+> > > On Wed, Feb 19, 2020 at 01:01:00PM -0800, Matthew Wilcox wrote:
+> > > > From: "Matthew Wilcox (Oracle)" <willy@infradead.org>
+> > > > 
+> > > > By putting the 'have we reached the end of the page' condition at the end
+> > > > of the loop instead of the beginning, we can remove the 'submit the last
+> > > > page' code from iomap_readpages().  Also check that iomap_readpage_actor()
+> > > > didn't return 0, which would lead to an endless loop.
+> > > 
+> > > I'm obviously biassed a I wrote the original code, but I find the new
+> > > very much harder to understand (not that the previous one was easy, this
+> > > is tricky code..).
+> > 
+> > Agreed, I found the original code hard to understand.  I think this is
+> > easier because now cur_page doesn't leak outside this loop, so it has
+> > an obvious lifecycle.
+> 
+> I really don't like this patch, and would prefer if the series goes
+> ahead without it, as the current sctructure works just fine even
+> with the readahead changes.
 
-
-On 2020/2/24 07:17, Jules Irenge wrote:
-> Sparse reports a warning at ocfs2_inode_cache_lock()
-> and ocfs2_inode_cache_unlock()
-> warning: context imbalance in ocfs2_inode_cache_lock()
-> 	- wrong count at exit
-> 
-> warning: context imbalance in ocfs2_inode_cache_unlock()
-> 	- unexpected unlock
-> The root cause is a missing annotation at ocfs2_inode_cache_lock()
-> and at ocfs2_inode_cache_unlock()
-> 
-> Add the missing __acquires(&oi->ip_lock) annotation
-> Add the missing __releases(&oi->ip_lock) annotation
-> 
-> Signed-off-by: Jules Irenge <jbi.octave@gmail.com>
-
-Acked-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-> ---
->  fs/ocfs2/inode.c | 2 ++
->  1 file changed, 2 insertions(+)
-> 
-> diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-> index 7c9dfd50c1c1..0b87e0a63ab9 100644
-> --- a/fs/ocfs2/inode.c
-> +++ b/fs/ocfs2/inode.c
-> @@ -1623,6 +1623,7 @@ static struct super_block *ocfs2_inode_cache_get_super(struct ocfs2_caching_info
->  }
->  
->  static void ocfs2_inode_cache_lock(struct ocfs2_caching_info *ci)
-> +	__acquires(&oi->ip_lock)
->  {
->  	struct ocfs2_inode_info *oi = cache_info_to_inode(ci);
->  
-> @@ -1630,6 +1631,7 @@ static void ocfs2_inode_cache_lock(struct ocfs2_caching_info *ci)
->  }
->  
->  static void ocfs2_inode_cache_unlock(struct ocfs2_caching_info *ci)
-> +	__releases(&oi->ip_lock)
->  {
->  	struct ocfs2_inode_info *oi = cache_info_to_inode(ci);
->  
-> 
+Dave Chinner specifically asked me to do it this way, so please fight
+amongst yourselves.
