@@ -1,43 +1,93 @@
 From: Matthew Wilcox <willy@infradead.org>
-Date: Mon, 24 Feb 2020 17:49:49 -0800
-Subject: [Ocfs2-devel] [PATCH v7 21/24] iomap: Restructure
-	iomap_readpages_actor
-In-Reply-To: <20200224221749.GA22231@infradead.org>
-References: <20200219210103.32400-1-willy@infradead.org>
-	<20200219210103.32400-22-willy@infradead.org>
-	<20200220154741.GB19577@infradead.org>
-	<20200220162404.GY24185@bombadil.infradead.org>
-	<20200224221749.GA22231@infradead.org>
-Message-ID: <20200225014949.GS24185@bombadil.infradead.org>
+Date: Tue, 25 Feb 2020 13:48:32 -0800
+Subject: [Ocfs2-devel] [PATCH v8 19/25] erofs: Convert compressed files from
+	readpages to readahead
+In-Reply-To: <20200225214838.30017-1-willy@infradead.org>
+References: <20200225214838.30017-1-willy@infradead.org>
+Message-ID: <20200225214838.30017-20-willy@infradead.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Christoph Hellwig <hch@infradead.org>
-Cc: linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-btrfs@vger.kernel.org, linux-erofs@lists.ozlabs.org, linux-ext4@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, linux-xfs@vger.kernel.org
+To: linux-fsdevel@vger.kernel.org
+Cc: "Matthew Wilcox (Oracle)" <willy@infradead.org>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-btrfs@vger.kernel.org, linux-erofs@lists.ozlabs.org, linux-ext4@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, linux-xfs@vger.kernel.org, Gao Xiang <gaoxiang25@huawei.com>, Dave Chinner <dchinner@redhat.com>
 
-On Mon, Feb 24, 2020 at 02:17:49PM -0800, Christoph Hellwig wrote:
-> On Thu, Feb 20, 2020 at 08:24:04AM -0800, Matthew Wilcox wrote:
-> > On Thu, Feb 20, 2020 at 07:47:41AM -0800, Christoph Hellwig wrote:
-> > > On Wed, Feb 19, 2020 at 01:01:00PM -0800, Matthew Wilcox wrote:
-> > > > From: "Matthew Wilcox (Oracle)" <willy@infradead.org>
-> > > > 
-> > > > By putting the 'have we reached the end of the page' condition at the end
-> > > > of the loop instead of the beginning, we can remove the 'submit the last
-> > > > page' code from iomap_readpages().  Also check that iomap_readpage_actor()
-> > > > didn't return 0, which would lead to an endless loop.
-> > > 
-> > > I'm obviously biassed a I wrote the original code, but I find the new
-> > > very much harder to understand (not that the previous one was easy, this
-> > > is tricky code..).
-> > 
-> > Agreed, I found the original code hard to understand.  I think this is
-> > easier because now cur_page doesn't leak outside this loop, so it has
-> > an obvious lifecycle.
-> 
-> I really don't like this patch, and would prefer if the series goes
-> ahead without it, as the current sctructure works just fine even
-> with the readahead changes.
+From: "Matthew Wilcox (Oracle)" <willy@infradead.org>
 
-Dave Chinner specifically asked me to do it this way, so please fight
-amongst yourselves.
+Use the new readahead operation in erofs.
+
+Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
+Acked-by: Gao Xiang <gaoxiang25@huawei.com>
+Reviewed-by: Dave Chinner <dchinner@redhat.com>
+---
+ fs/erofs/zdata.c | 29 +++++++++--------------------
+ 1 file changed, 9 insertions(+), 20 deletions(-)
+
+diff --git a/fs/erofs/zdata.c b/fs/erofs/zdata.c
+index 17f45fcb8c5c..e64d8ab0900d 100644
+--- a/fs/erofs/zdata.c
++++ b/fs/erofs/zdata.c
+@@ -1303,28 +1303,23 @@ static bool should_decompress_synchronously(struct erofs_sb_info *sbi,
+ 	return nr <= sbi->max_sync_decompress_pages;
+ }
+ 
+-static int z_erofs_readpages(struct file *filp, struct address_space *mapping,
+-			     struct list_head *pages, unsigned int nr_pages)
++static void z_erofs_readahead(struct readahead_control *rac)
+ {
+-	struct inode *const inode = mapping->host;
++	struct inode *const inode = rac->mapping->host;
+ 	struct erofs_sb_info *const sbi = EROFS_I_SB(inode);
+ 
+-	bool sync = should_decompress_synchronously(sbi, nr_pages);
++	bool sync = should_decompress_synchronously(sbi, readahead_count(rac));
+ 	struct z_erofs_decompress_frontend f = DECOMPRESS_FRONTEND_INIT(inode);
+-	gfp_t gfp = mapping_gfp_constraint(mapping, GFP_KERNEL);
+-	struct page *head = NULL;
++	struct page *page, *head = NULL;
+ 	LIST_HEAD(pagepool);
+ 
+-	trace_erofs_readpages(mapping->host, lru_to_page(pages)->index,
+-			      nr_pages, false);
++	trace_erofs_readpages(inode, readahead_index(rac),
++			readahead_count(rac), false);
+ 
+-	f.headoffset = (erofs_off_t)lru_to_page(pages)->index << PAGE_SHIFT;
+-
+-	for (; nr_pages; --nr_pages) {
+-		struct page *page = lru_to_page(pages);
++	f.headoffset = readahead_pos(rac);
+ 
++	while ((page = readahead_page(rac))) {
+ 		prefetchw(&page->flags);
+-		list_del(&page->lru);
+ 
+ 		/*
+ 		 * A pure asynchronous readahead is indicated if
+@@ -1333,11 +1328,6 @@ static int z_erofs_readpages(struct file *filp, struct address_space *mapping,
+ 		 */
+ 		sync &= !(PageReadahead(page) && !head);
+ 
+-		if (add_to_page_cache_lru(page, mapping, page->index, gfp)) {
+-			list_add(&page->lru, &pagepool);
+-			continue;
+-		}
+-
+ 		set_page_private(page, (unsigned long)head);
+ 		head = page;
+ 	}
+@@ -1366,11 +1356,10 @@ static int z_erofs_readpages(struct file *filp, struct address_space *mapping,
+ 
+ 	/* clean up the remaining free pages */
+ 	put_pages_list(&pagepool);
+-	return 0;
+ }
+ 
+ const struct address_space_operations z_erofs_aops = {
+ 	.readpage = z_erofs_readpage,
+-	.readpages = z_erofs_readpages,
++	.readahead = z_erofs_readahead,
+ };
+ 
+-- 
+2.25.0
