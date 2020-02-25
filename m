@@ -1,38 +1,61 @@
-From: Christoph Hellwig <hch@infradead.org>
-Date: Mon, 24 Feb 2020 14:17:49 -0800
-Subject: [Ocfs2-devel] [PATCH v7 21/24] iomap: Restructure
-	iomap_readpages_actor
-In-Reply-To: <20200220162404.GY24185@bombadil.infradead.org>
-References: <20200219210103.32400-1-willy@infradead.org>
-	<20200219210103.32400-22-willy@infradead.org>
-	<20200220154741.GB19577@infradead.org>
-	<20200220162404.GY24185@bombadil.infradead.org>
-Message-ID: <20200224221749.GA22231@infradead.org>
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+Date: Tue, 25 Feb 2020 08:53:21 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Add missing annotations for
+ ocfs2_refcount_cache_lock() and ocfs2_refcount_cache_unlock()
+In-Reply-To: <20200224204130.18178-1-jbi.octave@gmail.com>
+References: <20200224204130.18178-1-jbi.octave@gmail.com>
+Message-ID: <0f1b869e-080a-2785-e4c1-01f308f246bb@linux.alibaba.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Matthew Wilcox <willy@infradead.org>
-Cc: Christoph Hellwig <hch@infradead.org>, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-btrfs@vger.kernel.org, linux-erofs@lists.ozlabs.org, linux-ext4@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, linux-xfs@vger.kernel.org
+To: Jules Irenge <jbi.octave@gmail.com>, boqun.feng@gmail.com
+Cc: joseph.qi@linux.alibab.com, Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, "moderated list:ORACLE CLUSTER FILESYSTEM 2 (OCFS2)" <ocfs2-devel@oss.oracle.com>, open list <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>
 
-On Thu, Feb 20, 2020 at 08:24:04AM -0800, Matthew Wilcox wrote:
-> On Thu, Feb 20, 2020 at 07:47:41AM -0800, Christoph Hellwig wrote:
-> > On Wed, Feb 19, 2020 at 01:01:00PM -0800, Matthew Wilcox wrote:
-> > > From: "Matthew Wilcox (Oracle)" <willy@infradead.org>
-> > > 
-> > > By putting the 'have we reached the end of the page' condition at the end
-> > > of the loop instead of the beginning, we can remove the 'submit the last
-> > > page' code from iomap_readpages().  Also check that iomap_readpage_actor()
-> > > didn't return 0, which would lead to an endless loop.
-> > 
-> > I'm obviously biassed a I wrote the original code, but I find the new
-> > very much harder to understand (not that the previous one was easy, this
-> > is tricky code..).
+
+
+On 2020/2/25 04:41, Jules Irenge wrote:
+> Sparse reports warnings at ocfs2_refcount_cache_lock()
+> 	and ocfs2_refcount_cache_unlock()
 > 
-> Agreed, I found the original code hard to understand.  I think this is
-> easier because now cur_page doesn't leak outside this loop, so it has
-> an obvious lifecycle.
+> warning: context imbalance in ocfs2_refcount_cache_lock()
+> 	- wrong count at exit
+> warning: context imbalance in ocfs2_refcount_cache_unlock()
+> 	- unexpected unlock
+> 
+> The root cause is the missing annotation at ocfs2_refcount_cache_lock()
+> 	and at ocfs2_refcount_cache_unlock()
+> 
+> Add the missing __acquires(&rf->rf_lock) annotation
+> 	to ocfs2_refcount_cache_lock()
+> Add the missing __releases(&rf->rf_lock) annotation
+> 	to ocfs2_refcount_cache_unlock()
+> 
+> Signed-off-by: Jules Irenge <jbi.octave@gmail.com>
 
-I really don't like this patch, and would prefer if the series goes
-ahead without it, as the current sctructure works just fine even
-with the readahead changes.
+Acked-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+> ---
+>  fs/ocfs2/refcounttree.c | 2 ++
+>  1 file changed, 2 insertions(+)
+> 
+> diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
+> index ee43e51188be..da99c80f49da 100644
+> --- a/fs/ocfs2/refcounttree.c
+> +++ b/fs/ocfs2/refcounttree.c
+> @@ -154,6 +154,7 @@ ocfs2_refcount_cache_get_super(struct ocfs2_caching_info *ci)
+>  }
+>  
+>  static void ocfs2_refcount_cache_lock(struct ocfs2_caching_info *ci)
+> +	__acquires(&rf->rf_lock)
+>  {
+>  	struct ocfs2_refcount_tree *rf = cache_info_to_refcount(ci);
+>  
+> @@ -161,6 +162,7 @@ static void ocfs2_refcount_cache_lock(struct ocfs2_caching_info *ci)
+>  }
+>  
+>  static void ocfs2_refcount_cache_unlock(struct ocfs2_caching_info *ci)
+> +	__releases(&rf->rf_lock)
+>  {
+>  	struct ocfs2_refcount_tree *rf = cache_info_to_refcount(ci);
+>  
+> 
