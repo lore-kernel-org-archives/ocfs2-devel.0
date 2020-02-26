@@ -1,39 +1,57 @@
 From: Vasily Averin <vvs@virtuozzo.com>
-Date: Wed, 26 Feb 2020 09:53:08 +0300
-Subject: [Ocfs2-devel] [PATCH v2 1/4] lockres_seq_next should increase
-	position index
+Date: Wed, 26 Feb 2020 09:52:41 +0300
+Subject: [Ocfs2-devel] [PATCH v2 0/4] ocfs2: seq_file .next functions should
+ increase position index
 In-Reply-To: <109025ac-74e9-6afe-3790-c7adbdaa3053@linux.alibaba.com>
 References: <109025ac-74e9-6afe-3790-c7adbdaa3053@linux.alibaba.com>
-Message-ID: <a04e19a1-eb43-4a15-b6f8-b09a97a58ca4@virtuozzo.com>
+Message-ID: <f9827f6e-e30d-4582-e16b-498335a2144c@virtuozzo.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-If .next function does not change position index,
-following .show function will repeat output related
-to current position index.
+v2: resend with improved patch description
 
-Cc: stable at vger.kernel.org
-Fixes: 1f4aace60b0e ("fs/seq_file.c: simplify seq_file iteration code ...")
-Link: https://urldefense.com/v3/__https://bugzilla.kernel.org/show_bug.cgi?id=206283__;!!GqivPVa7Brio!L2HMxpDQh7db9dQNbu_Tp0uSxEzRVFvZ0bxczbKOsvt3hiKOnWevYToiSclR_wkhhve7qA$ 
-Signed-off-by: Vasily Averin <vvs@virtuozzo.com>
----
- fs/ocfs2/dlm/dlmdebug.c | 1 +
- 1 file changed, 1 insertion(+)
+In Aug 2018 NeilBrown noticed 
+commit 1f4aace60b0e ("fs/seq_file.c: simplify seq_file iteration code and interface")
+"Some ->next functions do not increment *pos when they return NULL...
+Note that such ->next functions are buggy and should be fixed. 
+A simple demonstration is
+   
+dd if=/proc/swaps bs=1000 skip=1
+    
+Choose any block size larger than the size of /proc/swaps.  This will
+always show the whole last line of /proc/swaps"
 
-diff --git a/fs/ocfs2/dlm/dlmdebug.c b/fs/ocfs2/dlm/dlmdebug.c
-index c5c6efb..3e395cd 100644
---- a/fs/ocfs2/dlm/dlmdebug.c
-+++ b/fs/ocfs2/dlm/dlmdebug.c
-@@ -590,6 +590,7 @@ static void lockres_seq_stop(struct seq_file *m, void *v)
- 
- static void *lockres_seq_next(struct seq_file *m, void *v, loff_t *pos)
- {
-+	(*pos)++;
- 	return NULL;
- }
- 
+/proc/swaps output was fixed recently, however there are lot of other
+affected files and 4 of them are related to ocfs2.
+
+Unfortunately I'm not familiar with ocfs2 and cannot verify the patches locally.
+
+Usually you can observe following related problems:
+- read after lseek beyond end of file, described above by NeilBrown
+ "dd if=<AFFECTED_FILE> bs=1000 skip=1" will incorrectly generate whole last line
+
+- read after lseek on into middle of last line will output expected rest of
+ last line but then repeat whole last line once again. 
+
+- If .show() function generates multi-line output following bash script will never finish.
+
+ $ q=;while read -r r;do echo "$((++q)) $r";done < AFFECTED_FILE
+
+Link: https://urldefense.com/v3/__https://bugzilla.kernel.org/show_bug.cgi?id=206283__;!!GqivPVa7Brio!Jq0fspl3uRa_Xiu-ifjc60ajewi308CVdv8Dq-9kHzOjkRYAd1YKlDU1a1TQdmMTBPWO8g$ 
+
+Vasily Averin (4):
+  lockres_seq_next should increase position index
+  ocfs2_dlm_seq_next should increase position index
+  nst_seq_next should increase position index
+  sc_seq_next should increase position index
+
+ fs/ocfs2/cluster/netdebug.c | 2 ++
+ fs/ocfs2/dlm/dlmdebug.c     | 1 +
+ fs/ocfs2/dlmglue.c          | 1 +
+ 3 files changed, 4 insertions(+)
+
 -- 
 1.8.3.1
