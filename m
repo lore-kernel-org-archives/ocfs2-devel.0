@@ -1,56 +1,39 @@
-From: Jules Irenge <jbi.octave@gmail.com>
-Date: Mon, 24 Feb 2020 20:41:30 +0000
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Add missing annotations for
-	ocfs2_refcount_cache_lock() and ocfs2_refcount_cache_unlock()
-Message-ID: <20200224204130.18178-1-jbi.octave@gmail.com>
+From: Vasily Averin <vvs@virtuozzo.com>
+Date: Wed, 26 Feb 2020 09:53:08 +0300
+Subject: [Ocfs2-devel] [PATCH v2 1/4] lockres_seq_next should increase
+	position index
+In-Reply-To: <109025ac-74e9-6afe-3790-c7adbdaa3053@linux.alibaba.com>
+References: <109025ac-74e9-6afe-3790-c7adbdaa3053@linux.alibaba.com>
+Message-ID: <a04e19a1-eb43-4a15-b6f8-b09a97a58ca4@virtuozzo.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: boqun.feng@gmail.com
-Cc: joseph.qi@linux.alibab.com, Jules Irenge <jbi.octave@gmail.com>, Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, Joseph Qi <joseph.qi@linux.alibaba.com>, "moderated list:ORACLE CLUSTER FILESYSTEM 2
-        OCFS2" <ocfs2-devel@oss.oracle.com>, open list <linux-kernel@vger.kernel.org>
+To: ocfs2-devel@oss.oracle.com
 
-Sparse reports warnings at ocfs2_refcount_cache_lock()
-	and ocfs2_refcount_cache_unlock()
+If .next function does not change position index,
+following .show function will repeat output related
+to current position index.
 
-warning: context imbalance in ocfs2_refcount_cache_lock()
-	- wrong count at exit
-warning: context imbalance in ocfs2_refcount_cache_unlock()
-	- unexpected unlock
-
-The root cause is the missing annotation at ocfs2_refcount_cache_lock()
-	and at ocfs2_refcount_cache_unlock()
-
-Add the missing __acquires(&rf->rf_lock) annotation
-	to ocfs2_refcount_cache_lock()
-Add the missing __releases(&rf->rf_lock) annotation
-	to ocfs2_refcount_cache_unlock()
-
-Signed-off-by: Jules Irenge <jbi.octave@gmail.com>
+Cc: stable at vger.kernel.org
+Fixes: 1f4aace60b0e ("fs/seq_file.c: simplify seq_file iteration code ...")
+Link: https://urldefense.com/v3/__https://bugzilla.kernel.org/show_bug.cgi?id=206283__;!!GqivPVa7Brio!L2HMxpDQh7db9dQNbu_Tp0uSxEzRVFvZ0bxczbKOsvt3hiKOnWevYToiSclR_wkhhve7qA$ 
+Signed-off-by: Vasily Averin <vvs@virtuozzo.com>
 ---
- fs/ocfs2/refcounttree.c | 2 ++
- 1 file changed, 2 insertions(+)
+ fs/ocfs2/dlm/dlmdebug.c | 1 +
+ 1 file changed, 1 insertion(+)
 
-diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
-index ee43e51188be..da99c80f49da 100644
---- a/fs/ocfs2/refcounttree.c
-+++ b/fs/ocfs2/refcounttree.c
-@@ -154,6 +154,7 @@ ocfs2_refcount_cache_get_super(struct ocfs2_caching_info *ci)
- }
+diff --git a/fs/ocfs2/dlm/dlmdebug.c b/fs/ocfs2/dlm/dlmdebug.c
+index c5c6efb..3e395cd 100644
+--- a/fs/ocfs2/dlm/dlmdebug.c
++++ b/fs/ocfs2/dlm/dlmdebug.c
+@@ -590,6 +590,7 @@ static void lockres_seq_stop(struct seq_file *m, void *v)
  
- static void ocfs2_refcount_cache_lock(struct ocfs2_caching_info *ci)
-+	__acquires(&rf->rf_lock)
+ static void *lockres_seq_next(struct seq_file *m, void *v, loff_t *pos)
  {
- 	struct ocfs2_refcount_tree *rf = cache_info_to_refcount(ci);
- 
-@@ -161,6 +162,7 @@ static void ocfs2_refcount_cache_lock(struct ocfs2_caching_info *ci)
++	(*pos)++;
+ 	return NULL;
  }
- 
- static void ocfs2_refcount_cache_unlock(struct ocfs2_caching_info *ci)
-+	__releases(&rf->rf_lock)
- {
- 	struct ocfs2_refcount_tree *rf = cache_info_to_refcount(ci);
  
 -- 
-2.24.1
+1.8.3.1
