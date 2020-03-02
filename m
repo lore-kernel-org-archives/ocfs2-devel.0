@@ -1,25 +1,70 @@
-From: Jonathan Corbet <corbet@lwn.net>
-Date: Mon, 2 Mar 2020 14:13:16 -0700
-Subject: [Ocfs2-devel] [PATCH 00/44] Manually convert filesystem FS
-	documents to ReST
-In-Reply-To: <cover.1581955849.git.mchehab+huawei@kernel.org>
-References: <cover.1581955849.git.mchehab+huawei@kernel.org>
-Message-ID: <20200302141316.4269b22d@lwn.net>
+From: Gustavo A. R. Silva <gustavo@embeddedor.com>
+Date: Mon, 2 Mar 2020 17:57:11 -0600
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Replace zero-length array with
+ flexible-array member
+In-Reply-To: <20200213160244.GA6088@embeddedor>
+References: <20200213160244.GA6088@embeddedor>
+Message-ID: <1b78acd5-2b5f-55f1-5571-73f45d3c87f7@embeddedor.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
-Cc: Latchesar Ionkov <lucho@ionkov.net>, Martin Brandenburg <martin@omnibond.com>, Jan Kara <jack@suse.cz>, Linux Doc Mailing List <linux-doc@vger.kernel.org>, Dominique Martinet <asmadeus@codewreck.org>, Amir Goldstein <amir73il@gmail.com>, Bob Copeland <me@bobcopeland.com>, David Howells <dhowells@redhat.com>, Joseph Qi <joseph.qi@linux.alibaba.com>, linux-mtd@lists.infradead.org, Tyler Hicks <code@tyhicks.com>, linux-afs@lists.infradead.org, Mike Marshall <hubcap@omnibond.com>, Naohiro Aota <naohiro.aota@wdc.com>, Christoph Hellwig <hch@infradead.org>, linux-nilfs@vger.kernel.org, Andreas Gruenbacher <agruenba@redhat.com>, Sage Weil <sage@redhat.com>, Richard Weinberger <richard@nod.at>, Mark Fasheh <mark@fasheh.com>, Chris Mason <clm@fb.com>, Ryusuke Konishi <konishi.ryusuke@gmail.com>, cluster-devel@redhat.com, v9fs-developer@lists.sourceforge.net, Gao Xiang <xiang@kern>
+To: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, Joseph Qi <joseph.qi@linux.alibaba.com>
+Cc: ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
 
-On Mon, 17 Feb 2020 17:11:46 +0100
-Mauro Carvalho Chehab <mchehab+huawei@kernel.org> wrote:
+Hi all,
 
-> There are lots of plain text documents under Documentation/filesystems.
+Friendly ping: Who can take this?
+
+Thanks
+--
+Gustavo
+
+On 2/13/20 10:02, Gustavo A. R. Silva wrote:
+> The current codebase makes use of the zero-length array language
+> extension to the C90 standard, but the preferred mechanism to declare
+> variable-length types such as these ones is a flexible array member[1][2],
+> introduced in C99:
 > 
-> Manually convert several of those to ReST and add them to the index file.
-
-OK, I've finally managed to add all the acks and wrestle this pile into
-docs-next - thanks.
-
-jon
+> struct foo {
+>         int stuff;
+>         struct boo array[];
+> };
+> 
+> By making use of the mechanism above, we will get a compiler warning
+> in case the flexible array does not occur last in the structure, which
+> will help us prevent some kind of undefined behavior bugs from being
+> inadvertently introduced[3] to the codebase from now on.
+> 
+> Also, notice that, dynamic memory allocations won't be affected by
+> this change:
+> 
+> "Flexible array members have incomplete type, and so the sizeof operator
+> may not be applied. As a quirk of the original implementation of
+> zero-length arrays, sizeof evaluates to zero."[1]
+> 
+> This issue was found with the help of Coccinelle.
+> 
+> [1] https://urldefense.com/v3/__https://gcc.gnu.org/onlinedocs/gcc/Zero-Length.html__;!!GqivPVa7Brio!KeuD5UeTm4D1RuZqlBVvBffhBRNEEwJOBI8LdMGIuVeEYbe0bDBSBxhjTSSTAQswDk2rEQ$ 
+> [2] https://urldefense.com/v3/__https://github.com/KSPP/linux/issues/21__;!!GqivPVa7Brio!KeuD5UeTm4D1RuZqlBVvBffhBRNEEwJOBI8LdMGIuVeEYbe0bDBSBxhjTSSTAQuwAeng5Q$ 
+> [3] commit 76497732932f ("cxgb3/l2t: Fix undefined behaviour")
+> 
+> Signed-off-by: Gustavo A. R. Silva <gustavo@embeddedor.com>
+> ---
+>  fs/ocfs2/journal.c | 2 +-
+>  1 file changed, 1 insertion(+), 1 deletion(-)
+> 
+> diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
+> index 68ba354cf361..b425f0b01dce 100644
+> --- a/fs/ocfs2/journal.c
+> +++ b/fs/ocfs2/journal.c
+> @@ -91,7 +91,7 @@ enum ocfs2_replay_state {
+>  struct ocfs2_replay_map {
+>  	unsigned int rm_slots;
+>  	enum ocfs2_replay_state rm_state;
+> -	unsigned char rm_replay_slots[0];
+> +	unsigned char rm_replay_slots[];
+>  };
+>  
+>  static void ocfs2_replay_map_set_state(struct ocfs2_super *osb, int state)
+> 
