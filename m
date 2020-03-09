@@ -1,8 +1,8 @@
 From: Gustavo A. R. Silva <gustavo@embeddedor.com>
-Date: Mon, 9 Mar 2020 15:19:07 -0500
-Subject: [Ocfs2-devel] [PATCH][next] ocfs2: cluster: Replace zero-length
- array with flexible-array member
-Message-ID: <20200309201907.GA8005@embeddedor>
+Date: Mon, 9 Mar 2020 15:20:16 -0500
+Subject: [Ocfs2-devel] [PATCH][next] ocfs2: dlm: Replace zero-length array
+ with flexible-array member
+Message-ID: <20200309202016.GA8210@embeddedor>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -34,27 +34,54 @@ zero-length arrays, sizeof evaluates to zero."[1]
 
 This issue was found with the help of Coccinelle.
 
-[1] https://urldefense.com/v3/__https://gcc.gnu.org/onlinedocs/gcc/Zero-Length.html__;!!GqivPVa7Brio!NzMr-YRl2zy-K3lwLVVatz7x0uD2z7-ykQag4GrGigxmfWU8TWzDy6xrkTiW3hYl00czlw$ 
-[2] https://urldefense.com/v3/__https://github.com/KSPP/linux/issues/21__;!!GqivPVa7Brio!NzMr-YRl2zy-K3lwLVVatz7x0uD2z7-ykQag4GrGigxmfWU8TWzDy6xrkTiW3hYHG1nAnw$ 
+[1] https://urldefense.com/v3/__https://gcc.gnu.org/onlinedocs/gcc/Zero-Length.html__;!!GqivPVa7Brio!OVOYL_CouISa5L1Lw-20EEFQntw6cKMx-j8UdY4z78uYgzKBUFcfpn50GaurvbV5v7YiUA$ 
+[2] https://urldefense.com/v3/__https://github.com/KSPP/linux/issues/21__;!!GqivPVa7Brio!OVOYL_CouISa5L1Lw-20EEFQntw6cKMx-j8UdY4z78uYgzKBUFcfpn50GaurvbXs8Eh8eg$ 
 [3] commit 76497732932f ("cxgb3/l2t: Fix undefined behaviour")
 
 Signed-off-by: Gustavo A. R. Silva <gustavo@embeddedor.com>
 ---
- fs/ocfs2/cluster/tcp.h | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ fs/ocfs2/dlm/dlmcommon.h | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
 
-diff --git a/fs/ocfs2/cluster/tcp.h b/fs/ocfs2/cluster/tcp.h
-index de87cbffd175..736338f45c59 100644
---- a/fs/ocfs2/cluster/tcp.h
-+++ b/fs/ocfs2/cluster/tcp.h
-@@ -32,7 +32,7 @@ struct o2net_msg
- 	__be32 status;
- 	__be32 key;
- 	__be32 msg_num;
--	__u8  buf[0];
-+	__u8  buf[];
+diff --git a/fs/ocfs2/dlm/dlmcommon.h b/fs/ocfs2/dlm/dlmcommon.h
+index 0463dce65bb2..c8a444622faa 100644
+--- a/fs/ocfs2/dlm/dlmcommon.h
++++ b/fs/ocfs2/dlm/dlmcommon.h
+@@ -564,7 +564,7 @@ struct dlm_migratable_lockres
+ 	// 48 bytes
+ 	u8 lvb[DLM_LVB_LEN];
+ 	// 112 bytes
+-	struct dlm_migratable_lock ml[0];  // 16 bytes each, begins at byte 112
++	struct dlm_migratable_lock ml[];  // 16 bytes each, begins at byte 112
  };
+ #define DLM_MIG_LOCKRES_MAX_LEN  \
+ 	(sizeof(struct dlm_migratable_lockres) + \
+@@ -601,7 +601,7 @@ struct dlm_convert_lock
  
- typedef int (o2net_msg_handler_func)(struct o2net_msg *msg, u32 len, void *data,
+ 	u8 name[O2NM_MAX_NAME_LEN];
+ 
+-	s8 lvb[0];
++	s8 lvb[];
+ };
+ #define DLM_CONVERT_LOCK_MAX_LEN  (sizeof(struct dlm_convert_lock)+DLM_LVB_LEN)
+ 
+@@ -616,7 +616,7 @@ struct dlm_unlock_lock
+ 
+ 	u8 name[O2NM_MAX_NAME_LEN];
+ 
+-	s8 lvb[0];
++	s8 lvb[];
+ };
+ #define DLM_UNLOCK_LOCK_MAX_LEN  (sizeof(struct dlm_unlock_lock)+DLM_LVB_LEN)
+ 
+@@ -632,7 +632,7 @@ struct dlm_proxy_ast
+ 
+ 	u8 name[O2NM_MAX_NAME_LEN];
+ 
+-	s8 lvb[0];
++	s8 lvb[];
+ };
+ #define DLM_PROXY_AST_MAX_LEN  (sizeof(struct dlm_proxy_ast)+DLM_LVB_LEN)
+ 
 -- 
 2.25.0
