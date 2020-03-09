@@ -1,104 +1,120 @@
-From: wangjian <wangjian161@huawei.com>
-Date: Mon, 16 Mar 2020 15:27:25 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: the parent directory reference
- count should be increased only after the ocfs2_add_entry function is
- successfully called
-In-Reply-To: <c12a7ca0-ced4-74f2-54d0-4b841d6b773a@linux.alibaba.com>
-References: <27b32a04-d3f5-4a14-ec0e-11816c42c9a2@huawei.com>
-	<c12a7ca0-ced4-74f2-54d0-4b841d6b773a@linux.alibaba.com>
-Message-ID: <29f65849-c84a-ba02-5a2d-705762807765@huawei.com>
+From: lishan <lishan24@huawei.com>
+Date: Mon, 9 Mar 2020 16:26:17 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: fix a null pointer derefrence in
+ ocfs2_block_group_clear_bits()
+In-Reply-To: <c56390f0-9f01-cd71-0b8e-b83d746bab74@huawei.com>
+References: <1d38573d-61c7-be60-334e-c263caf7465c@huawei.com>
+	<c56390f0-9f01-cd71-0b8e-b83d746bab74@huawei.com>
+Message-ID: <f702081e-1953-c2c1-76e4-f441302ab2f3@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-good suggestion. Can we just move the three statements 
-ocfs2_add_links_count (dirfe, 1),
-ocfs2_journal_dirty (handle, parent_fe_bh), inc_nlink (dir) to the 
-following?
-This seems to be no problem. Or reset the reference count back in case 
-of failure?
+A NULL pointer panic dereference in ocfs2_block_group_clear_bits() happen again.
+The information of NULL pointer stack as follows:
 
-Thanks,
-Jian
+PID: 81866  TASK: ffffa07c3c21ae80  CPU: 66  COMMAND: "fallocate"
+  #0 [ffff0000b4d6b0b0] machine_kexec at ffff0000800a2954
+  #1 [ffff0000b4d6b110] __crash_kexec at ffff0000801bab34
+  #2 [ffff0000b4d6b2a0] panic at ffff0000800f02cc
+  #3 [ffff0000b4d6b380] die at ffff00008008f6ac
+  #4 [ffff0000b4d6b3d0] bug_handler at ffff00008008f744
+  #5 [ffff0000b4d6b400] brk_handler at ffff000080085d1c
+  #6 [ffff0000b4d6b420] do_debug_exception at ffff000080081194
+  #7 [ffff0000b4d6b630] el1_dbg at ffff00008008332c
+      PC: ffff00000190e9c0  [_ocfs2_free_suballoc_bits+1608]
+      LR: ffff00000190e990  [_ocfs2_free_suballoc_bits+1560]
+      SP: ffff0000b4d6b640  PSTATE: 60400009
+     X29: ffff0000b4d6b650  X28: 0000000000000000  X27: 00000000000052f3
+     X26: ffff807c511a9570  X25: ffff807ca0054000  X24: 00000000000052f2
+     X23: 0000000000000001  X22: ffff807c7cde7a90  X21: ffff0000811d9000
+     X20: ffff807c5e7d2000  X19: ffff00000190c768  X18: 0000000000000000
+     X17: 0000000000000000  X16: ffff000080a032f0  X15: 0000000000000000
+     X14: ffffffffffffffff  X13: fffffffffffffff7  X12: ffffffffffffffff
+     X11: 0000000000000038  X10: 0101010101010101   X9: ffffffffffffffff
+      X8: 7f7f7f7f7f7f7f7f   X7: 0000000000000000   X6: 0000000000000080
+      X5: 0000000000000000   X4: 0000000000000002   X3: ffff00000199f390
+      X2: a603c08321456e00   X1: ffff807c7cde7a90   X0: 0000000000000000
+  #8 [ffff0000b4d6b650] _ocfs2_free_suballoc_bits at ffff00000190e9bc [ocfs2]
+  #9 [ffff0000b4d6b710] _ocfs2_free_clusters at ffff0000019110d4 [ocfs2]
+ #10 [ffff0000b4d6b790] ocfs2_free_clusters at ffff000001913e94 [ocfs2]
+ #11 [ffff0000b4d6b7d0] __ocfs2_flush_truncate_log at ffff0000018b5294 [ocfs2]
+ #12 [ffff0000b4d6b8a0] ocfs2_remove_btree_range at ffff0000018bb34c [ocfs2]
+ #13 [ffff0000b4d6b960] ocfs2_commit_truncate at ffff0000018bc76c [ocfs2]
+ #14 [ffff0000b4d6ba60] ocfs2_wipe_inode at ffff0000018e57bc [ocfs2]
+ #15 [ffff0000b4d6bb00] ocfs2_evict_inode at ffff0000018e5db8 [ocfs2]
+ #16 [ffff0000b4d6bb70] evict at ffff000080365040
+ #17 [ffff0000b4d6bba0] iput at ffff0000803655d8
+ #18 [ffff0000b4d6bbe0] ocfs2_dentry_iput at ffff0000018c60a0 [ocfs2]
+ #19 [ffff0000b4d6bc30] dentry_unlink_inode at ffff00008035ef58
+ #20 [ffff0000b4d6bc50] __dentry_kill at ffff000080360384
+ #21 [ffff0000b4d6bc80] dentry_kill at ffff000080360670
+ #22 [ffff0000b4d6bcb0] dput at ffff00008036093c
+ #23 [ffff0000b4d6bcf0] __fput at ffff000080343930
+ #24 [ffff0000b4d6bd40] ____fput at ffff000080343aac
+ #25 [ffff0000b4d6bd60] task_work_run at ffff0000801172fc
 
-On 3/16/2020 12:46 PM, Joseph Qi wrote:
->
-> On 2020/3/16 00:59, wangjian wrote:
->> Under some conditions, the directory cannot be deleted.
->> The specific scenarios are as follows: (for example,
->> /mnt/ocfs2 is the mount point)
->>
->> 1. Create the /mnt/ocfs2/p_dir directory. At this time,
->> the i_nlink corresponding to the inode of
->> the /mnt/ocfs2/p_dir directory is equal to 2.
->>
->> 2. During the process of creating the
->> /mnt/ocfs2/p_dir/s_dir directory, if the call to the inc_nlink
->> function in ocfs2_mknod succeeds, the functions such as
->> ocfs2_init_acl, ocfs2_init_security_set, and ocfs2_dentry_attach_lock fail.
->> At this time, the i_nlink corresponding to the inode of the
->> /mnt/ocfs2/p_dir directory is equal to 3, but /mnt/ocfs2/p_dir/s_dir
->> is not added to the /mnt/ocfs2/p_dir directory entry.
->>
->> 3. Delete the /mnt/ocfs2/p_dir directory (rm -rf /mnt/ocfs2/p_dir).
->> At this time, it is found that the i_nlink corresponding to
->> the inode corresponding to the /mnt/ocfs2/p_dir directory is equal to 3.
->> Therefore, the /mnt/ocfs2/p_dir directory cannot be deleted.
->>
->> Signed-off-by: Jian wang <wangjian161@huawei.com>
->> ---
->>  ?ocfs2/namei.c | 24 +++++++++++++-----------
->>  ?1 file changed, 13 insertions(+), 11 deletions(-)
->>
->> diff --git a/ocfs2/namei.c b/ocfs2/namei.c
->> index 8ea51cf..19543b4 100644
->> --- a/ocfs2/namei.c
->> +++ b/ocfs2/namei.c
->> @@ -388,17 +388,6 @@ static int ocfs2_mknod(struct inode *dir,
->>  ???????????? mlog_errno(status);
->>  ???????????? goto leave;
->>  ???????? }
->> -
->> -??????? status = ocfs2_journal_access_di(handle, INODE_CACHE(dir),
->> -???????????????????????? parent_fe_bh,
->> -???????????????????????? OCFS2_JOURNAL_ACCESS_WRITE);
->> -??????? if (status < 0) {
->> -??????????? mlog_errno(status);
->> -??????????? goto leave;
->> -??????? }
-> We can't simply move it down since we should get journal access before
-> modification.
->
-> Thanks,
-> Joseph
->
->> -??????? ocfs2_add_links_count(dirfe, 1);
->> -??????? ocfs2_journal_dirty(handle, parent_fe_bh);
->> -??????? inc_nlink(dir);
->>  ???? }
->>   
->>  ???? status = ocfs2_init_acl(handle, inode, dir, new_fe_bh, parent_fe_bh,
->> @@ -440,6 +429,19 @@ static int ocfs2_mknod(struct inode *dir,
->>  ???????? goto leave;
->>  ???? }
->>   
->> +??? if (S_ISDIR(mode)) {
->> +??????? status = ocfs2_journal_access_di(handle, INODE_CACHE(dir),
->> +???????????????????????? parent_fe_bh,
->> +???????????????????????? OCFS2_JOURNAL_ACCESS_WRITE);
->> +??????? if (status < 0) {
->> +??????????? mlog_errno(status);
->> +??????????? goto leave;
->> +??????? }
->> +??????? ocfs2_add_links_count(dirfe, 1);
->> +??????? ocfs2_journal_dirty(handle, parent_fe_bh);
->> +??????? inc_nlink(dir);
->> +??? }
->> +
->>  ???? insert_inode_hash(inode);
->>  ???? d_instantiate(dentry, inode);
->>  ???? status = 0;
-> .
->
+The direct panic reason is that bh2jh (group_bh)-> b_committed_data is null.
+It is presumed that the network was disconnected during the write process,
+causing the transaction abort. as follows:
+jbd2_journal_abort
+  .......
+  jbd2_journal_commit_transaction
+    jh->b_committed_data = NULL;
+
+_ocfs2_free_suballoc_bits
+  ocfs2_block_group_clear_bits
+    // undo_bg is now set to null
+    BUG_ON(!undo_bg);
+
+When applying for free space, if b_committed_data is null,
+it will be directly occupied, as follows:
+ocfs2_cluster_group_search
+  ocfs2_block_group_find_clear_bits
+    ocfs2_test_bg_bit_allocatable:
+      bg = (struct ocfs2_group_desc *) bh2jh(bg_bh)->b_committed_data;
+      if (bg)
+        ret = !ocfs2_test_bit(nr, (unsigned long *)bg->bg_bitmap);
+      else
+        ret = 1;
+b_committed_data is an intermediate state backup for bitmap transaction commits,
+newly applied space can overwrite previous dirty data,
+so, I think, while free clusters, if b_committed_data is null, ignore it.
+Host panic directly, too violent.
+
+Signed-off-by: Shan Li <lishan24@huawei.com>
+Reviewed-by: Jun Piao <piaojun@huawei.com>
+---
+ fs/ocfs2/suballoc.c | 9 +++++++--
+ 1 file changed, 7 insertions(+), 2 deletions(-)
+
+diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
+index 939df99d2dec..aaf1b3cbd984 100644
+--- a/fs/ocfs2/suballoc.c
++++ b/fs/ocfs2/suballoc.c
+@@ -2412,14 +2412,19 @@ static int ocfs2_block_group_clear_bits(handle_t *handle,
+ 	if (undo_fn) {
+ 		spin_lock(&jh->b_state_lock);
+ 		undo_bg = (struct ocfs2_group_desc *) jh->b_committed_data;
+-		BUG_ON(!undo_bg);
++		if (!undo_bg)
++			mlog(ML_NOTICE, "%s: group descriptor # %llu (device %s) journal "
++					"b_committed_data had been cleared.\n",
++					OCFS2_SB(alloc_inode->i_sb)->uuid_str,
++					(unsigned long long)le64_to_cpu(bg->bg_blkno),
++					alloc_inode->i_sb->s_id);
+ 	}
+
+ 	tmp = num_bits;
+ 	while(tmp--) {
+ 		ocfs2_clear_bit((bit_off + tmp),
+ 				(unsigned long *) bg->bg_bitmap);
+-		if (undo_fn)
++		if (undo_fn && undo_bg)
+ 			undo_fn(bit_off + tmp,
+ 				(unsigned long *) undo_bg->bg_bitmap);
+ 	}
+-- 
+2.19.1
