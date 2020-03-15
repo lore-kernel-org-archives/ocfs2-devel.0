@@ -1,59 +1,86 @@
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-Date: Thu, 12 Mar 2020 10:01:51 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: fix a null pointer derefrence in
- ocfs2_block_group_clear_bits()
-In-Reply-To: <20200311184031.a850f8e3dbd664b599654303@linux-foundation.org>
-References: <1d38573d-61c7-be60-334e-c263caf7465c@huawei.com>
-	<c56390f0-9f01-cd71-0b8e-b83d746bab74@huawei.com>
-	<f702081e-1953-c2c1-76e4-f441302ab2f3@huawei.com>
-	<32e99737-b992-d9b7-5a97-a17168dde88f@huawei.com>
-	<20200311184031.a850f8e3dbd664b599654303@linux-foundation.org>
-Message-ID: <c073296c-ac3b-6e56-0786-5dac16cc1feb@linux.alibaba.com>
+From: wangjian <wangjian161@huawei.com>
+Date: Mon, 16 Mar 2020 00:59:53 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: the parent directory reference count
+ should be increased only after the ocfs2_add_entry function is successfully
+ called
+Message-ID: <27b32a04-d3f5-4a14-ec0e-11816c42c9a2@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Andrew,
+Under some conditions, the directory cannot be deleted.
+The specific scenarios are as follows: (for example,
+/mnt/ocfs2 is the mount point)
 
-On 2020/3/12 09:40, Andrew Morton wrote:
+1. Create the /mnt/ocfs2/p_dir directory. At this time,
+the i_nlink corresponding to the inode of
+the /mnt/ocfs2/p_dir directory is equal to 2.
 
-<snip>
+2. During the process of creating the
+/mnt/ocfs2/p_dir/s_dir directory, if the call to the inc_nlink
+function in ocfs2_mknod succeeds, the functions such as
+ocfs2_init_acl, ocfs2_init_security_set, and ocfs2_dentry_attach_lock fail.
+At this time, the i_nlink corresponding to the inode of the
+/mnt/ocfs2/p_dir directory is equal to 3, but /mnt/ocfs2/p_dir/s_dir
+is not added to the /mnt/ocfs2/p_dir directory entry.
 
-> 
-> (top-posting repaired)
-> 
->> ping ?
->> cc Andrew Morton
-> 
-> There's something dreadfully wrong with the ocfs2-devel mailing list. 
-> I almost never receive patches when people add me to cc.  I've never
-> seen much of a pattern to it - it just drops stuff everywhere.
-> 
-> Who is the admin for this list?  Can we please move it to kernel.org?
-> 
+3. Delete the /mnt/ocfs2/p_dir directory (rm -rf /mnt/ocfs2/p_dir).
+At this time, it is found that the i_nlink corresponding to
+the inode corresponding to the /mnt/ocfs2/p_dir directory is equal to 3.
+Therefore, the /mnt/ocfs2/p_dir directory cannot be deleted.
 
-From the web page info, it was run by Srinivas Eeda, but I am not sure
-whether he still maintains the list now.
-So current workaround may be, sending to you directly along with cc to
-the mail list.
+Signed-off-by: Jian wang <wangjian161@huawei.com>
+---
+  ocfs2/namei.c | 24 +++++++++++++-----------
+  1 file changed, 13 insertions(+), 11 deletions(-)
 
-Thanks,
-Joseph
+diff --git a/ocfs2/namei.c b/ocfs2/namei.c
+index 8ea51cf..19543b4 100644
+--- a/ocfs2/namei.c
++++ b/ocfs2/namei.c
+@@ -388,17 +388,6 @@ static int ocfs2_mknod(struct inode *dir,
+  			mlog_errno(status);
+  			goto leave;
+  		}
+-
+-		status = ocfs2_journal_access_di(handle, INODE_CACHE(dir),
+-						 parent_fe_bh,
+-						 OCFS2_JOURNAL_ACCESS_WRITE);
+-		if (status < 0) {
+-			mlog_errno(status);
+-			goto leave;
+-		}
+-		ocfs2_add_links_count(dirfe, 1);
+-		ocfs2_journal_dirty(handle, parent_fe_bh);
+-		inc_nlink(dir);
+  	}
+  
+  	status = ocfs2_init_acl(handle, inode, dir, new_fe_bh, parent_fe_bh,
+@@ -440,6 +429,19 @@ static int ocfs2_mknod(struct inode *dir,
+  		goto leave;
+  	}
+  
++	if (S_ISDIR(mode)) {
++		status = ocfs2_journal_access_di(handle, INODE_CACHE(dir),
++						 parent_fe_bh,
++						 OCFS2_JOURNAL_ACCESS_WRITE);
++		if (status < 0) {
++			mlog_errno(status);
++			goto leave;
++		}
++		ocfs2_add_links_count(dirfe, 1);
++		ocfs2_journal_dirty(handle, parent_fe_bh);
++		inc_nlink(dir);
++	}
++
+  	insert_inode_hash(inode);
+  	d_instantiate(dentry, inode);
+  	status = 0;
+-- 
+1.8.3.1
 
-> Regarding this patch, I did actually receive one email from the server.
-> From Joseph:
-> 
-> : > +		if (!undo_bg)
-> : > +			mlog(ML_NOTICE, "%s: group descriptor # %llu (device %s) journal "
-> : > +					"b_committed_data had been cleared.\n",
-> : > +					OCFS2_SB(alloc_inode->i_sb)->uuid_str,
-> : > +					(unsigned long long)le64_to_cpu(bg->bg_blkno),
-> : > +					alloc_inode->i_sb->s_id);
-> : 
-> : Seems a kind of workaround.
-> : I am worrying about other abnormal cases of NULL b_committed_data, it
-> : may lead to a corrupt filesystem.
-> : So how about isolating the journal abort case?
-> 
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20200316/12549b30/attachment.html 
