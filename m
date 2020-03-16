@@ -1,11 +1,11 @@
-From: piaojun <piaojun@huawei.com>
-Date: Mon, 16 Mar 2020 11:56:04 +0800
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+Date: Mon, 16 Mar 2020 12:46:55 +0800
 Subject: [Ocfs2-devel] [PATCH] ocfs2: the parent directory reference
  count should be increased only after the ocfs2_add_entry function is
  successfully called
 In-Reply-To: <27b32a04-d3f5-4a14-ec0e-11816c42c9a2@huawei.com>
 References: <27b32a04-d3f5-4a14-ec0e-11816c42c9a2@huawei.com>
-Message-ID: <a5d51513-4c55-7b28-d667-07ab55ca2c51@huawei.com>
+Message-ID: <c12a7ca0-ced4-74f2-54d0-4b841d6b773a@linux.alibaba.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -14,7 +14,7 @@ To: ocfs2-devel@oss.oracle.com
 
 
 
-On 2020/3/16 0:59, wangjian wrote:
+On 2020/3/16 00:59, wangjian wrote:
 > Under some conditions, the directory cannot be deleted.
 > The specific scenarios are as follows: (for example,
 > /mnt/ocfs2 is the mount point)
@@ -38,64 +38,55 @@ On 2020/3/16 0:59, wangjian wrote:
 > 
 > Signed-off-by: Jian wang <wangjian161@huawei.com>
 > ---
->  ocfs2/namei.c | 24 +++++++++++++-----------
->  1 file changed, 13 insertions(+), 11 deletions(-)
+> ?ocfs2/namei.c | 24 +++++++++++++-----------
+> ?1 file changed, 13 insertions(+), 11 deletions(-)
 > 
 > diff --git a/ocfs2/namei.c b/ocfs2/namei.c
 > index 8ea51cf..19543b4 100644
 > --- a/ocfs2/namei.c
 > +++ b/ocfs2/namei.c
 > @@ -388,17 +388,6 @@ static int ocfs2_mknod(struct inode *dir,
->  			mlog_errno(status);
->  			goto leave;
->  		}
+> ???????????? mlog_errno(status);
+> ???????????? goto leave;
+> ???????? }
 > -
-> -		status = ocfs2_journal_access_di(handle, INODE_CACHE(dir),
-> -						 parent_fe_bh,
-> -						 OCFS2_JOURNAL_ACCESS_WRITE);
-> -		if (status < 0) {
-> -			mlog_errno(status);
-> -			goto leave;
-> -		}
-> -		ocfs2_add_links_count(dirfe, 1);
-> -		ocfs2_journal_dirty(handle, parent_fe_bh);
-> -		inc_nlink(dir);
->  	}
->  
->  	status = ocfs2_init_acl(handle, inode, dir, new_fe_bh, parent_fe_bh,
+> -??????? status = ocfs2_journal_access_di(handle, INODE_CACHE(dir),
+> -???????????????????????? parent_fe_bh,
+> -???????????????????????? OCFS2_JOURNAL_ACCESS_WRITE);
+> -??????? if (status < 0) {
+> -??????????? mlog_errno(status);
+> -??????????? goto leave;
+> -??????? }
+
+We can't simply move it down since we should get journal access before
+modification.
+
+Thanks,
+Joseph 
+
+> -??????? ocfs2_add_links_count(dirfe, 1);
+> -??????? ocfs2_journal_dirty(handle, parent_fe_bh);
+> -??????? inc_nlink(dir);
+> ???? }
+> ?
+> ???? status = ocfs2_init_acl(handle, inode, dir, new_fe_bh, parent_fe_bh,
 > @@ -440,6 +429,19 @@ static int ocfs2_mknod(struct inode *dir,
->  		goto leave;
->  	}
->  
-> +	if (S_ISDIR(mode)) {
-> +		status = ocfs2_journal_access_di(handle, INODE_CACHE(dir),
-> +						 parent_fe_bh,
-> +						 OCFS2_JOURNAL_ACCESS_WRITE);
-> +		if (status < 0) {
-
-I wonder if we should rollback the inode's new_fe_bh if getting failed
-here?
-
-Jun
-
-> +			mlog_errno(status);
-> +			goto leave;
-> +		}
-> +		ocfs2_add_links_count(dirfe, 1);
-> +		ocfs2_journal_dirty(handle, parent_fe_bh);
-> +		inc_nlink(dir);
-> +	}
+> ???????? goto leave;
+> ???? }
+> ?
+> +??? if (S_ISDIR(mode)) {
+> +??????? status = ocfs2_journal_access_di(handle, INODE_CACHE(dir),
+> +???????????????????????? parent_fe_bh,
+> +???????????????????????? OCFS2_JOURNAL_ACCESS_WRITE);
+> +??????? if (status < 0) {
+> +??????????? mlog_errno(status);
+> +??????????? goto leave;
+> +??????? }
+> +??????? ocfs2_add_links_count(dirfe, 1);
+> +??????? ocfs2_journal_dirty(handle, parent_fe_bh);
+> +??????? inc_nlink(dir);
+> +??? }
 > +
->  	insert_inode_hash(inode);
->  	d_instantiate(dentry, inode);
->  	status = 0;
-> -- 
-> 1.8.3.1
-> 
-> 
-> 
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
-> 
+> ???? insert_inode_hash(inode);
+> ???? d_instantiate(dentry, inode);
+> ???? status = 0;
