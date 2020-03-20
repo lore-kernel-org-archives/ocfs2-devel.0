@@ -1,10 +1,10 @@
 From: Matthew Wilcox <willy@infradead.org>
-Date: Fri, 20 Mar 2020 07:22:08 -0700
-Subject: [Ocfs2-devel] [PATCH v9 02/25] mm: Return void from various
-	readahead functions
+Date: Fri, 20 Mar 2020 07:22:12 -0700
+Subject: [Ocfs2-devel] [PATCH v9 06/25] mm: Use readahead_control to pass
+	arguments
 In-Reply-To: <20200320142231.2402-1-willy@infradead.org>
 References: <20200320142231.2402-1-willy@infradead.org>
-Message-ID: <20200320142231.2402-3-willy@infradead.org>
+Message-ID: <20200320142231.2402-7-willy@infradead.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -13,173 +13,114 @@ To: ocfs2-devel@oss.oracle.com
 
 From: "Matthew Wilcox (Oracle)" <willy@infradead.org>
 
-ondemand_readahead has two callers, neither of which use the return value.
-That means that both ra_submit and __do_page_cache_readahead() can return
-void, and we don't need to worry that a present page in the readahead
-window causes us to return a smaller nr_pages than we ought to have.
-
-Similarly, no caller uses the return value from force_page_cache_readahead().
+In this patch, only between __do_page_cache_readahead() and read_pages(),
+but it will be extended in upcoming patches.  The read_pages() function
+becomes aops centric, as this makes the most sense by the end of the
+patchset.
 
 Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
-Reviewed-by: Dave Chinner <dchinner@redhat.com>
 Reviewed-by: John Hubbard <jhubbard@nvidia.com>
 Reviewed-by: Christoph Hellwig <hch@lst.de>
 Reviewed-by: William Kucharski <william.kucharski@oracle.com>
 ---
- mm/fadvise.c   |  4 ----
- mm/internal.h  | 12 ++++++------
- mm/readahead.c | 31 +++++++++++++------------------
- 3 files changed, 19 insertions(+), 28 deletions(-)
+ mm/readahead.c | 33 +++++++++++++++++++--------------
+ 1 file changed, 19 insertions(+), 14 deletions(-)
 
-diff --git a/mm/fadvise.c b/mm/fadvise.c
-index 3efebfb9952c..0e66f2aaeea3 100644
---- a/mm/fadvise.c
-+++ b/mm/fadvise.c
-@@ -104,10 +104,6 @@ int generic_fadvise(struct file *file, loff_t offset, loff_t len, int advice)
- 		if (!nrpages)
- 			nrpages = ~0UL;
- 
--		/*
--		 * Ignore return value because fadvise() shall return
--		 * success even if filesystem can't retrieve a hint,
--		 */
- 		force_page_cache_readahead(mapping, file, start_index, nrpages);
- 		break;
- 	case POSIX_FADV_NOREUSE:
-diff --git a/mm/internal.h b/mm/internal.h
-index 83f353e74654..15aaebebd768 100644
---- a/mm/internal.h
-+++ b/mm/internal.h
-@@ -49,20 +49,20 @@ void unmap_page_range(struct mmu_gather *tlb,
- 			     unsigned long addr, unsigned long end,
- 			     struct zap_details *details);
- 
--int force_page_cache_readahead(struct address_space *, struct file *,
-+void force_page_cache_readahead(struct address_space *, struct file *,
- 		pgoff_t index, unsigned long nr_to_read);
--extern unsigned int __do_page_cache_readahead(struct address_space *mapping,
--		struct file *filp, pgoff_t offset, unsigned long nr_to_read,
-+void __do_page_cache_readahead(struct address_space *, struct file *,
-+		pgoff_t index, unsigned long nr_to_read,
- 		unsigned long lookahead_size);
- 
- /*
-  * Submit IO for the read-ahead request in file_ra_state.
-  */
--static inline unsigned long ra_submit(struct file_ra_state *ra,
-+static inline void ra_submit(struct file_ra_state *ra,
- 		struct address_space *mapping, struct file *filp)
- {
--	return __do_page_cache_readahead(mapping, filp,
--					ra->start, ra->size, ra->async_size);
-+	__do_page_cache_readahead(mapping, filp,
-+			ra->start, ra->size, ra->async_size);
- }
- 
- /*
 diff --git a/mm/readahead.c b/mm/readahead.c
-index 2fe72cd29b47..41a592886da7 100644
+index 9fcd4e32b62d..9d9aa4ffc7d4 100644
 --- a/mm/readahead.c
 +++ b/mm/readahead.c
-@@ -149,10 +149,8 @@ static int read_pages(struct address_space *mapping, struct file *filp,
-  * the pages first, then submits them for I/O. This avoids the very bad
-  * behaviour which would occur if page allocations are causing VM writeback.
-  * We really don't want to intermingle reads and writes like that.
-- *
-- * Returns the number of pages requested, or the maximum amount of I/O allowed.
-  */
--unsigned int __do_page_cache_readahead(struct address_space *mapping,
-+void __do_page_cache_readahead(struct address_space *mapping,
- 		struct file *filp, pgoff_t offset, unsigned long nr_to_read,
- 		unsigned long lookahead_size)
+@@ -113,29 +113,32 @@ int read_cache_pages(struct address_space *mapping, struct list_head *pages,
+ 
+ EXPORT_SYMBOL(read_cache_pages);
+ 
+-static void read_pages(struct address_space *mapping, struct file *filp,
+-		struct list_head *pages, unsigned int nr_pages, gfp_t gfp)
++static void read_pages(struct readahead_control *rac, struct list_head *pages,
++		gfp_t gfp)
  {
-@@ -166,7 +164,7 @@ unsigned int __do_page_cache_readahead(struct address_space *mapping,
++	const struct address_space_operations *aops = rac->mapping->a_ops;
+ 	struct blk_plug plug;
+ 	unsigned page_idx;
+ 
+-	if (!nr_pages)
++	if (!readahead_count(rac))
+ 		return;
+ 
+ 	blk_start_plug(&plug);
+ 
+-	if (mapping->a_ops->readpages) {
+-		mapping->a_ops->readpages(filp, mapping, pages, nr_pages);
++	if (aops->readpages) {
++		aops->readpages(rac->file, rac->mapping, pages,
++				readahead_count(rac));
+ 		/* Clean up the remaining pages */
+ 		put_pages_list(pages);
+ 		goto out;
+ 	}
+ 
+-	for (page_idx = 0; page_idx < nr_pages; page_idx++) {
++	for (page_idx = 0; page_idx < readahead_count(rac); page_idx++) {
+ 		struct page *page = lru_to_page(pages);
+ 		list_del(&page->lru);
+-		if (!add_to_page_cache_lru(page, mapping, page->index, gfp))
+-			mapping->a_ops->readpage(filp, page);
++		if (!add_to_page_cache_lru(page, rac->mapping, page->index,
++				gfp))
++			aops->readpage(rac->file, page);
+ 		put_page(page);
+ 	}
+ 
+@@ -143,6 +146,7 @@ static void read_pages(struct address_space *mapping, struct file *filp,
+ 	blk_finish_plug(&plug);
+ 
+ 	BUG_ON(!list_empty(pages));
++	rac->_nr_pages = 0;
+ }
+ 
+ /*
+@@ -160,9 +164,12 @@ void __do_page_cache_readahead(struct address_space *mapping,
+ 	unsigned long end_index;	/* The last page we want to read */
+ 	LIST_HEAD(page_pool);
+ 	int page_idx;
+-	unsigned int nr_pages = 0;
+ 	loff_t isize = i_size_read(inode);
  	gfp_t gfp_mask = readahead_gfp_mask(mapping);
++	struct readahead_control rac = {
++		.mapping = mapping,
++		.file = filp,
++	};
  
  	if (isize == 0)
--		goto out;
-+		return;
+ 		return;
+@@ -185,9 +192,7 @@ void __do_page_cache_readahead(struct address_space *mapping,
+ 			 * contiguous pages before continuing with the next
+ 			 * batch.
+ 			 */
+-			read_pages(mapping, filp, &page_pool, nr_pages,
+-						gfp_mask);
+-			nr_pages = 0;
++			read_pages(&rac, &page_pool, gfp_mask);
+ 			continue;
+ 		}
  
- 	end_index = ((isize - 1) >> PAGE_SHIFT);
- 
-@@ -211,23 +209,21 @@ unsigned int __do_page_cache_readahead(struct address_space *mapping,
- 	if (nr_pages)
- 		read_pages(mapping, filp, &page_pool, nr_pages, gfp_mask);
- 	BUG_ON(!list_empty(&page_pool));
--out:
--	return nr_pages;
- }
- 
- /*
-  * Chunk the readahead into 2 megabyte units, so that we don't pin too much
-  * memory at once.
-  */
--int force_page_cache_readahead(struct address_space *mapping, struct file *filp,
--			       pgoff_t offset, unsigned long nr_to_read)
-+void force_page_cache_readahead(struct address_space *mapping,
-+		struct file *filp, pgoff_t offset, unsigned long nr_to_read)
- {
- 	struct backing_dev_info *bdi = inode_to_bdi(mapping->host);
- 	struct file_ra_state *ra = &filp->f_ra;
- 	unsigned long max_pages;
- 
- 	if (unlikely(!mapping->a_ops->readpage && !mapping->a_ops->readpages))
--		return -EINVAL;
-+		return;
+@@ -198,7 +203,7 @@ void __do_page_cache_readahead(struct address_space *mapping,
+ 		list_add(&page->lru, &page_pool);
+ 		if (page_idx == nr_to_read - lookahead_size)
+ 			SetPageReadahead(page);
+-		nr_pages++;
++		rac._nr_pages++;
+ 	}
  
  	/*
- 	 * If the request exceeds the readahead window, allow the read to
-@@ -245,7 +241,6 @@ int force_page_cache_readahead(struct address_space *mapping, struct file *filp,
- 		offset += this_chunk;
- 		nr_to_read -= this_chunk;
- 	}
--	return 0;
- }
- 
- /*
-@@ -378,11 +373,10 @@ static int try_context_readahead(struct address_space *mapping,
- /*
-  * A minimal readahead algorithm for trivial sequential/random reads.
-  */
--static unsigned long
--ondemand_readahead(struct address_space *mapping,
--		   struct file_ra_state *ra, struct file *filp,
--		   bool hit_readahead_marker, pgoff_t offset,
--		   unsigned long req_size)
-+static void ondemand_readahead(struct address_space *mapping,
-+		struct file_ra_state *ra, struct file *filp,
-+		bool hit_readahead_marker, pgoff_t offset,
-+		unsigned long req_size)
- {
- 	struct backing_dev_info *bdi = inode_to_bdi(mapping->host);
- 	unsigned long max_pages = ra->ra_pages;
-@@ -428,7 +422,7 @@ ondemand_readahead(struct address_space *mapping,
- 		rcu_read_unlock();
- 
- 		if (!start || start - offset > max_pages)
--			return 0;
-+			return;
- 
- 		ra->start = start;
- 		ra->size = start - offset;	/* old async_size */
-@@ -464,7 +458,8 @@ ondemand_readahead(struct address_space *mapping,
- 	 * standalone, small random read
- 	 * Read as is, and do not pollute the readahead state.
+@@ -206,7 +211,7 @@ void __do_page_cache_readahead(struct address_space *mapping,
+ 	 * uptodate then the caller will launch readpage again, and
+ 	 * will then handle the error.
  	 */
--	return __do_page_cache_readahead(mapping, filp, offset, req_size, 0);
-+	__do_page_cache_readahead(mapping, filp, offset, req_size, 0);
-+	return;
- 
- initial_readahead:
- 	ra->start = offset;
-@@ -489,7 +484,7 @@ ondemand_readahead(struct address_space *mapping,
- 		}
- 	}
- 
--	return ra_submit(ra, mapping, filp);
-+	ra_submit(ra, mapping, filp);
+-	read_pages(mapping, filp, &page_pool, nr_pages, gfp_mask);
++	read_pages(&rac, &page_pool, gfp_mask);
  }
  
- /**
+ /*
 -- 
 2.25.1
