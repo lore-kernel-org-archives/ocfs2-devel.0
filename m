@@ -1,83 +1,48 @@
-From: Matthew Wilcox <willy@infradead.org>
-Date: Sun, 22 Mar 2020 09:28:18 -0700
-Subject: [Ocfs2-devel] [PATCH v9 12/25] mm: Move end_index check out of
-	readahead loop
-In-Reply-To: <20200320182452.GF851@sol.localdomain>
+From: Namjae Jeon <linkinjeon@gmail.com>
+Date: Sat, 21 Mar 2020 08:24:18 +0900
+Subject: [Ocfs2-devel] [PATCH v9 16/25] fs: Convert mpage_readpages to
+	mpage_readahead
+In-Reply-To: <20200320142231.2402-17-willy@infradead.org>
 References: <20200320142231.2402-1-willy@infradead.org>
-	<20200320142231.2402-13-willy@infradead.org>
-	<20200320165828.GB851@sol.localdomain>
-	<20200320173040.GB4971@bombadil.infradead.org>
-	<20200320180017.GE851@sol.localdomain>
-	<20200320181132.GD4971@bombadil.infradead.org>
-	<20200320182452.GF851@sol.localdomain>
-Message-ID: <20200322162818.GG4971@bombadil.infradead.org>
+	<20200320142231.2402-17-willy@infradead.org>
+Message-ID: <CAKYAXd-NGQvMoYg=TV1T=8OZdQcYwcncK_Hix8OkF0GqmYr9Wg@mail.gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Fri, Mar 20, 2020 at 11:24:52AM -0700, Eric Biggers wrote:
-> On Fri, Mar 20, 2020 at 11:11:32AM -0700, Matthew Wilcox wrote:
-> > On Fri, Mar 20, 2020 at 11:00:17AM -0700, Eric Biggers wrote:
-> > > But then if someone passes index=0 and nr_to_read=0, this underflows and the
-> > > entire file gets read.
-> > 
-> > nr_to_read == 0 doesn't make sense ... I thought we filtered that out
-> > earlier, but I can't find anywhere that does that right now.  I'd
-> > rather return early from __do_page_cache_readahead() to fix that.
-> > 
-> > > The page cache isn't actually supposed to contain a page at index ULONG_MAX,
-> > > since MAX_LFS_FILESIZE is at most ((loff_t)ULONG_MAX << PAGE_SHIFT), right?  So
-> > > I don't think we need to worry about reading the page with index ULONG_MAX.
-> > > I.e. I think it's fine to limit nr_to_read to 'ULONG_MAX - index', if that makes
-> > > it easier to avoid an overflow or underflow in the next check.
-> > 
-> > I think we can get a page at ULONG_MAX on 32-bit systems?  I mean, we can buy
-> > hard drives which are larger than 16TiB these days:
-> > https://urldefense.com/v3/__https://www.pcmag.com/news/seagate-will-ship-18tb-and-20tb-hard-drives-in-2020__;!!GqivPVa7Brio!L7xlt0Bc3UJj9WvjwV_1kM-VNfEivMFdxE2oXx4JHuyRXABzcNgypM3QMttNumL5O0HQwA$ 
-> > (even ignoring RAID devices)
-> 
-> The max file size is ((loff_t)ULONG_MAX << PAGE_SHIFT) which means the maximum
-> page *index* is ULONG_MAX - 1, not ULONG_MAX.
+> diff --git a/drivers/staging/exfat/exfat_super.c
+> b/drivers/staging/exfat/exfat_super.c
+> index b81d2a87b82e..96aad9b16d31 100644
+> --- a/drivers/staging/exfat/exfat_super.c
+> +++ b/drivers/staging/exfat/exfat_super.c
+Maybe, You should change fs/exfat instead of staging/exfat that is
+gone from -next ?
 
-I see where we set that for _files_ ... I can't find anywhere that we prevent
-i_size getting that big for block devices.  Maybe I'm missing something.
-
-> Anyway, I think we may be making this much too complicated.  How about just:
-> 
-> 	pgoff_t i_nrpages = DIV_ROUND_UP(i_size_read(inode), PAGE_SIZE);
-> 
-> 	if (index >= i_nrpages)
-> 		return;
-> 	/* Don't read past the end of the file */
-> 	nr_to_read = min(nr_to_read, i_nrpages - index);
-> 
-> That's 2 branches instead of 4.  (Note that assigning to i_nrpages can't
-> overflow, since the max number of pages is ULONG_MAX not ULONG_MAX + 1.)
-
-I like where you're going with this.  Just to be on the safe side, I'd
-prefer to do this:
-
-@@ -266,11 +266,8 @@ void __do_page_cache_readahead(struct address_space *mapping,
-        end_index = (isize - 1) >> PAGE_SHIFT;
-        if (index > end_index)
-                return;
--       /* Avoid wrapping to the beginning of the file */
--       if (index + nr_to_read < index)
--               nr_to_read = ULONG_MAX - index + 1;
-        /* Don't read past the page containing the last byte of the file */
--       if (index + nr_to_read >= end_index)
-+       if (nr_to_read > end_index - index)
-                nr_to_read = end_index - index + 1;
- 
-        page_cache_readahead_unbounded(mapping, file, index, nr_to_read,
-
-end_index - index + 1 could only overflow if end_index is ULONG_MAX
-and index is 0.  But if end_index is ULONG_MAX and index is 0, then
-nr_to_read is necessarily <= ULONG_MAX, so the condition is false.
-And if nr_to_read is 0, then the condition is also false, so it won't
-increase nr_to_read from 0 to 1.  It might assign x to nr_to_read when
-nr_to_read is already x, but that's harmless.
-
-Thanks!
+> @@ -3002,10 +3002,9 @@ static int exfat_readpage(struct file *file, struct
+> page *page)
+>  	return  mpage_readpage(page, exfat_get_block);
+>  }
+>
+> -static int exfat_readpages(struct file *file, struct address_space
+> *mapping,
+> -			   struct list_head *pages, unsigned int nr_pages)
+> +static void exfat_readahead(struct readahead_control *rac)
+>  {
+> -	return  mpage_readpages(mapping, pages, nr_pages, exfat_get_block);
+> +	mpage_readahead(rac, exfat_get_block);
+>  }
+>
+>  static int exfat_writepage(struct page *page, struct writeback_control
+> *wbc)
+> @@ -3104,7 +3103,7 @@ static sector_t _exfat_bmap(struct address_space
+> *mapping, sector_t block)
+>
+>  static const struct address_space_operations exfat_aops = {
+>  	.readpage    = exfat_readpage,
+> -	.readpages   = exfat_readpages,
+> +	.readahead   = exfat_readahead,
+>  	.writepage   = exfat_writepage,
+>  	.writepages  = exfat_writepages,
+>  	.write_begin = exfat_write_begin,
