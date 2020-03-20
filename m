@@ -1,90 +1,59 @@
 From: Eric Biggers <ebiggers@kernel.org>
-Date: Fri, 20 Mar 2020 11:24:52 -0700
-Subject: [Ocfs2-devel] [PATCH v9 12/25] mm: Move end_index check out of
-	readahead loop
-In-Reply-To: <20200320181132.GD4971@bombadil.infradead.org>
+Date: Fri, 20 Mar 2020 11:40:41 -0700
+Subject: [Ocfs2-devel] [PATCH v9 20/25] ext4: Convert from readpages to
+	readahead
+In-Reply-To: <20200320174848.GC4971@bombadil.infradead.org>
 References: <20200320142231.2402-1-willy@infradead.org>
-	<20200320142231.2402-13-willy@infradead.org>
-	<20200320165828.GB851@sol.localdomain>
-	<20200320173040.GB4971@bombadil.infradead.org>
-	<20200320180017.GE851@sol.localdomain>
-	<20200320181132.GD4971@bombadil.infradead.org>
-Message-ID: <20200320182452.GF851@sol.localdomain>
+	<20200320142231.2402-21-willy@infradead.org>
+	<20200320173734.GD851@sol.localdomain>
+	<20200320174848.GC4971@bombadil.infradead.org>
+Message-ID: <20200320184041.GG851@sol.localdomain>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Fri, Mar 20, 2020 at 11:11:32AM -0700, Matthew Wilcox wrote:
-> On Fri, Mar 20, 2020 at 11:00:17AM -0700, Eric Biggers wrote:
-> > On Fri, Mar 20, 2020 at 10:30:40AM -0700, Matthew Wilcox wrote:
-> > > On Fri, Mar 20, 2020 at 09:58:28AM -0700, Eric Biggers wrote:
-> > > > On Fri, Mar 20, 2020 at 07:22:18AM -0700, Matthew Wilcox wrote:
-> > > > > +	/* Avoid wrapping to the beginning of the file */
-> > > > > +	if (index + nr_to_read < index)
-> > > > > +		nr_to_read = ULONG_MAX - index + 1;
-> > > > > +	/* Don't read past the page containing the last byte of the file */
-> > > > > +	if (index + nr_to_read >= end_index)
-> > > > > +		nr_to_read = end_index - index + 1;
-> > > > 
-> > > > There seem to be a couple off-by-one errors here.  Shouldn't it be:
-> > > > 
-> > > > 	/* Avoid wrapping to the beginning of the file */
-> > > > 	if (index + nr_to_read < index)
-> > > > 		nr_to_read = ULONG_MAX - index;
+On Fri, Mar 20, 2020 at 10:48:48AM -0700, Matthew Wilcox wrote:
+> On Fri, Mar 20, 2020 at 10:37:34AM -0700, Eric Biggers wrote:
+> > On Fri, Mar 20, 2020 at 07:22:26AM -0700, Matthew Wilcox wrote:
+> > > From: "Matthew Wilcox (Oracle)" <willy@infradead.org>
 > > > 
-> > > I think it's right.  Imagine that index is ULONG_MAX.  We should read one
-> > > page (the one at ULONG_MAX).  That would be ULONG_MAX - ULONG_MAX + 1.
+> > > Use the new readahead operation in ext4
 > > > 
-> > > > 	/* Don't read past the page containing the last byte of the file */
-> > > > 	if (index + nr_to_read > end_index)
-> > > > 		nr_to_read = end_index - index + 1;
-> > > > 
-> > > > I.e., 'ULONG_MAX - index' rather than 'ULONG_MAX - index + 1', so that
-> > > > 'index + nr_to_read' is then ULONG_MAX rather than overflowed to 0.
-> > > > 
-> > > > Then 'index + nr_to_read > end_index' rather 'index + nr_to_read >= end_index',
-> > > > since otherwise nr_to_read can be increased by 1 rather than decreased or stay
-> > > > the same as expected.
-> > > 
-> > > Ooh, I missed the overflow case here.  It should be:
-> > > 
-> > > +	if (index + nr_to_read - 1 > end_index)
-> > > +		nr_to_read = end_index - index + 1;
+> > > Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
+> > > Reviewed-by: William Kucharski <william.kucharski@oracle.com>
+> > > ---
+> > >  fs/ext4/ext4.h     |  3 +--
+> > >  fs/ext4/inode.c    | 21 +++++++++------------
+> > >  fs/ext4/readpage.c | 22 ++++++++--------------
+> > >  3 files changed, 18 insertions(+), 28 deletions(-)
 > > > 
 > > 
-> > But then if someone passes index=0 and nr_to_read=0, this underflows and the
-> > entire file gets read.
+> > Reviewed-by: Eric Biggers <ebiggers@google.com>
+> > 
+> > > +		if (rac) {
+> > > +			page = readahead_page(rac);
+> > >  			prefetchw(&page->flags);
+> > > -			list_del(&page->lru);
+> > > -			if (add_to_page_cache_lru(page, mapping, page->index,
+> > > -				  readahead_gfp_mask(mapping)))
+> > > -				goto next_page;
+> > >  		}
+> > 
+> > Maybe the prefetchw(&page->flags) should be included in readahead_page()?
+> > Most of the callers do it.
 > 
-> nr_to_read == 0 doesn't make sense ... I thought we filtered that out
-> earlier, but I can't find anywhere that does that right now.  I'd
-> rather return early from __do_page_cache_readahead() to fix that.
-> 
-> > The page cache isn't actually supposed to contain a page at index ULONG_MAX,
-> > since MAX_LFS_FILESIZE is at most ((loff_t)ULONG_MAX << PAGE_SHIFT), right?  So
-> > I don't think we need to worry about reading the page with index ULONG_MAX.
-> > I.e. I think it's fine to limit nr_to_read to 'ULONG_MAX - index', if that makes
-> > it easier to avoid an overflow or underflow in the next check.
-> 
-> I think we can get a page at ULONG_MAX on 32-bit systems?  I mean, we can buy
-> hard drives which are larger than 16TiB these days:
-> https://urldefense.com/v3/__https://www.pcmag.com/news/seagate-will-ship-18tb-and-20tb-hard-drives-in-2020__;!!GqivPVa7Brio!LFsQswZ6AyWF5lBDZ391XoAdkVGBQaL9EPY2a23LVRIMTXgLFTSdQvxS72vFKQ4xddONNg$ 
-> (even ignoring RAID devices)
+> I did notice that a lot of callers do that.  I wonder whether it (still)
+> helps or whether it's just cargo-cult programming.  It can't possibly
+> have helped before because we did list_del(&page->lru) as the very next
+> instruction after prefetchw(), and they're in the same cacheline.  It'd
+> be interesting to take it out and see what happens to performance.
 
-The max file size is ((loff_t)ULONG_MAX << PAGE_SHIFT) which means the maximum
-page *index* is ULONG_MAX - 1, not ULONG_MAX.
-
-Anyway, I think we may be making this much too complicated.  How about just:
-
-	pgoff_t i_nrpages = DIV_ROUND_UP(i_size_read(inode), PAGE_SIZE);
-
-	if (index >= i_nrpages)
-		return;
-	/* Don't read past the end of the file */
-	nr_to_read = min(nr_to_read, i_nrpages - index);
-
-That's 2 branches instead of 4.  (Note that assigning to i_nrpages can't
-overflow, since the max number of pages is ULONG_MAX not ULONG_MAX + 1.)
+Yeah, it does look like the list_del() made the prefetchw() useless, so it
+should just be removed.  The prefetchw() dates all the way back to
+mpage_readpages() being added in 2002, but even then the list_del() was
+immediately afterwards, and 'flags' and 'lru' were in the same cache line in
+'struct page' even then (assuming at least a 32-byte cache line size), so...
 
 - Eric
