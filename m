@@ -1,179 +1,76 @@
-From: Matthew Wilcox <willy@infradead.org>
-Date: Fri, 20 Mar 2020 07:22:11 -0700
-Subject: [Ocfs2-devel] [PATCH v9 05/25] mm: Add new readahead_control API
-In-Reply-To: <20200320142231.2402-1-willy@infradead.org>
+From: Eric Biggers <ebiggers@kernel.org>
+Date: Fri, 20 Mar 2020 09:58:28 -0700
+Subject: [Ocfs2-devel] [PATCH v9 12/25] mm: Move end_index check out of
+	readahead loop
+In-Reply-To: <20200320142231.2402-13-willy@infradead.org>
 References: <20200320142231.2402-1-willy@infradead.org>
-Message-ID: <20200320142231.2402-6-willy@infradead.org>
+	<20200320142231.2402-13-willy@infradead.org>
+Message-ID: <20200320165828.GB851@sol.localdomain>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-From: "Matthew Wilcox (Oracle)" <willy@infradead.org>
+On Fri, Mar 20, 2020 at 07:22:18AM -0700, Matthew Wilcox wrote:
+> From: "Matthew Wilcox (Oracle)" <willy@infradead.org>
+> 
+> By reducing nr_to_read, we can eliminate this check from inside the loop.
+> 
+> Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
+> Reviewed-by: John Hubbard <jhubbard@nvidia.com>
+> Reviewed-by: William Kucharski <william.kucharski@oracle.com>
+> ---
+>  mm/readahead.c | 17 +++++++++++------
+>  1 file changed, 11 insertions(+), 6 deletions(-)
+> 
+> diff --git a/mm/readahead.c b/mm/readahead.c
+> index d01531ef9f3c..a37b68f66233 100644
+> --- a/mm/readahead.c
+> +++ b/mm/readahead.c
+> @@ -167,8 +167,6 @@ void __do_page_cache_readahead(struct address_space *mapping,
+>  		unsigned long lookahead_size)
+>  {
+>  	struct inode *inode = mapping->host;
+> -	struct page *page;
+> -	unsigned long end_index;	/* The last page we want to read */
+>  	LIST_HEAD(page_pool);
+>  	loff_t isize = i_size_read(inode);
+>  	gfp_t gfp_mask = readahead_gfp_mask(mapping);
+> @@ -178,22 +176,29 @@ void __do_page_cache_readahead(struct address_space *mapping,
+>  		._index = index,
+>  	};
+>  	unsigned long i;
+> +	pgoff_t end_index;	/* The last page we want to read */
+>  
+>  	if (isize == 0)
+>  		return;
+>  
+> -	end_index = ((isize - 1) >> PAGE_SHIFT);
+> +	end_index = (isize - 1) >> PAGE_SHIFT;
+> +	if (index > end_index)
+> +		return;
+> +	/* Avoid wrapping to the beginning of the file */
+> +	if (index + nr_to_read < index)
+> +		nr_to_read = ULONG_MAX - index + 1;
+> +	/* Don't read past the page containing the last byte of the file */
+> +	if (index + nr_to_read >= end_index)
+> +		nr_to_read = end_index - index + 1;
 
-Filesystems which implement the upcoming ->readahead method will get
-their pages by calling readahead_page() or readahead_page_batch().
-These functions support large pages, even though none of the filesystems
-to be converted do yet.
+There seem to be a couple off-by-one errors here.  Shouldn't it be:
 
-Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
-Reviewed-by: Christoph Hellwig <hch@lst.de>
-Reviewed-by: William Kucharski <william.kucharski@oracle.com>
----
- include/linux/pagemap.h | 140 ++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 140 insertions(+)
+	/* Avoid wrapping to the beginning of the file */
+	if (index + nr_to_read < index)
+		nr_to_read = ULONG_MAX - index;
+	/* Don't read past the page containing the last byte of the file */
+	if (index + nr_to_read > end_index)
+		nr_to_read = end_index - index + 1;
 
-diff --git a/include/linux/pagemap.h b/include/linux/pagemap.h
-index 24894b9b90c9..232892d37071 100644
---- a/include/linux/pagemap.h
-+++ b/include/linux/pagemap.h
-@@ -638,6 +638,146 @@ static inline int add_to_page_cache(struct page *page,
- 	return error;
- }
- 
-+/**
-+ * struct readahead_control - Describes a readahead request.
-+ *
-+ * A readahead request is for consecutive pages.  Filesystems which
-+ * implement the ->readahead method should call readahead_page() or
-+ * readahead_page_batch() in a loop and attempt to start I/O against
-+ * each page in the request.
-+ *
-+ * Most of the fields in this struct are private and should be accessed
-+ * by the functions below.
-+ *
-+ * @file: The file, used primarily by network filesystems for authentication.
-+ *	  May be NULL if invoked internally by the filesystem.
-+ * @mapping: Readahead this filesystem object.
-+ */
-+struct readahead_control {
-+	struct file *file;
-+	struct address_space *mapping;
-+/* private: use the readahead_* accessors instead */
-+	pgoff_t _index;
-+	unsigned int _nr_pages;
-+	unsigned int _batch_count;
-+};
-+
-+/**
-+ * readahead_page - Get the next page to read.
-+ * @rac: The current readahead request.
-+ *
-+ * Context: The page is locked and has an elevated refcount.  The caller
-+ * should decreases the refcount once the page has been submitted for I/O
-+ * and unlock the page once all I/O to that page has completed.
-+ * Return: A pointer to the next page, or %NULL if we are done.
-+ */
-+static inline struct page *readahead_page(struct readahead_control *rac)
-+{
-+	struct page *page;
-+
-+	BUG_ON(rac->_batch_count > rac->_nr_pages);
-+	rac->_nr_pages -= rac->_batch_count;
-+	rac->_index += rac->_batch_count;
-+
-+	if (!rac->_nr_pages) {
-+		rac->_batch_count = 0;
-+		return NULL;
-+	}
-+
-+	page = xa_load(&rac->mapping->i_pages, rac->_index);
-+	VM_BUG_ON_PAGE(!PageLocked(page), page);
-+	rac->_batch_count = hpage_nr_pages(page);
-+
-+	return page;
-+}
-+
-+static inline unsigned int __readahead_batch(struct readahead_control *rac,
-+		struct page **array, unsigned int array_sz)
-+{
-+	unsigned int i = 0;
-+	XA_STATE(xas, &rac->mapping->i_pages, 0);
-+	struct page *page;
-+
-+	BUG_ON(rac->_batch_count > rac->_nr_pages);
-+	rac->_nr_pages -= rac->_batch_count;
-+	rac->_index += rac->_batch_count;
-+	rac->_batch_count = 0;
-+
-+	xas_set(&xas, rac->_index);
-+	rcu_read_lock();
-+	xas_for_each(&xas, page, rac->_index + rac->_nr_pages - 1) {
-+		VM_BUG_ON_PAGE(!PageLocked(page), page);
-+		VM_BUG_ON_PAGE(PageTail(page), page);
-+		array[i++] = page;
-+		rac->_batch_count += hpage_nr_pages(page);
-+
-+		/*
-+		 * The page cache isn't using multi-index entries yet,
-+		 * so the xas cursor needs to be manually moved to the
-+		 * next index.  This can be removed once the page cache
-+		 * is converted.
-+		 */
-+		if (PageHead(page))
-+			xas_set(&xas, rac->_index + rac->_batch_count);
-+
-+		if (i == array_sz)
-+			break;
-+	}
-+	rcu_read_unlock();
-+
-+	return i;
-+}
-+
-+/**
-+ * readahead_page_batch - Get a batch of pages to read.
-+ * @rac: The current readahead request.
-+ * @array: An array of pointers to struct page.
-+ *
-+ * Context: The pages are locked and have an elevated refcount.  The caller
-+ * should decreases the refcount once the page has been submitted for I/O
-+ * and unlock the page once all I/O to that page has completed.
-+ * Return: The number of pages placed in the array.  0 indicates the request
-+ * is complete.
-+ */
-+#define readahead_page_batch(rac, array)				\
-+	__readahead_batch(rac, array, ARRAY_SIZE(array))
-+
-+/**
-+ * readahead_pos - The byte offset into the file of this readahead request.
-+ * @rac: The readahead request.
-+ */
-+static inline loff_t readahead_pos(struct readahead_control *rac)
-+{
-+	return (loff_t)rac->_index * PAGE_SIZE;
-+}
-+
-+/**
-+ * readahead_length - The number of bytes in this readahead request.
-+ * @rac: The readahead request.
-+ */
-+static inline loff_t readahead_length(struct readahead_control *rac)
-+{
-+	return (loff_t)rac->_nr_pages * PAGE_SIZE;
-+}
-+
-+/**
-+ * readahead_index - The index of the first page in this readahead request.
-+ * @rac: The readahead request.
-+ */
-+static inline pgoff_t readahead_index(struct readahead_control *rac)
-+{
-+	return rac->_index;
-+}
-+
-+/**
-+ * readahead_count - The number of pages in this readahead request.
-+ * @rac: The readahead request.
-+ */
-+static inline unsigned int readahead_count(struct readahead_control *rac)
-+{
-+	return rac->_nr_pages;
-+}
-+
- static inline unsigned long dir_pages(struct inode *inode)
- {
- 	return (unsigned long)(inode->i_size + PAGE_SIZE - 1) >>
--- 
-2.25.1
+I.e., 'ULONG_MAX - index' rather than 'ULONG_MAX - index + 1', so that
+'index + nr_to_read' is then ULONG_MAX rather than overflowed to 0.
+
+Then 'index + nr_to_read > end_index' rather 'index + nr_to_read >= end_index',
+since otherwise nr_to_read can be increased by 1 rather than decreased or stay
+the same as expected.
+
+- Eric
