@@ -1,10 +1,10 @@
 From: Matthew Wilcox <willy@infradead.org>
-Date: Mon, 23 Mar 2020 13:22:43 -0700
-Subject: [Ocfs2-devel] [PATCH v10 09/25] mm: Remove 'page_offset' from
-	readahead loop
+Date: Mon, 23 Mar 2020 13:22:55 -0700
+Subject: [Ocfs2-devel] [PATCH v10 21/25] ext4: Pass the inode to
+	ext4_mpage_readpages
 In-Reply-To: <20200323202259.13363-1-willy@infradead.org>
 References: <20200323202259.13363-1-willy@infradead.org>
-Message-ID: <20200323202259.13363-10-willy@infradead.org>
+Message-ID: <20200323202259.13363-22-willy@infradead.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -13,43 +13,72 @@ To: ocfs2-devel@oss.oracle.com
 
 From: "Matthew Wilcox (Oracle)" <willy@infradead.org>
 
-Replace the page_offset variable with 'index + i'.
+This function now only uses the mapping argument to look up the inode,
+and both callers already have the inode, so just pass the inode instead
+of the mapping.
 
 Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
-Reviewed-by: John Hubbard <jhubbard@nvidia.com>
-Reviewed-by: Christoph Hellwig <hch@lst.de>
 Reviewed-by: William Kucharski <william.kucharski@oracle.com>
+Reviewed-by: Eric Biggers <ebiggers@google.com>
 ---
- mm/readahead.c | 8 +++-----
- 1 file changed, 3 insertions(+), 5 deletions(-)
+ fs/ext4/ext4.h     | 2 +-
+ fs/ext4/inode.c    | 4 ++--
+ fs/ext4/readpage.c | 3 +--
+ 3 files changed, 4 insertions(+), 5 deletions(-)
 
-diff --git a/mm/readahead.c b/mm/readahead.c
-index 7ce320854bad..ddc63d3b07b8 100644
---- a/mm/readahead.c
-+++ b/mm/readahead.c
-@@ -180,12 +180,10 @@ void __do_page_cache_readahead(struct address_space *mapping,
- 	 * Preallocate as many pages as we will need.
- 	 */
- 	for (i = 0; i < nr_to_read; i++) {
--		pgoff_t page_offset = index + i;
--
--		if (page_offset > end_index)
-+		if (index + i > end_index)
- 			break;
+diff --git a/fs/ext4/ext4.h b/fs/ext4/ext4.h
+index 95b4bb2cc44c..a9c133e6f786 100644
+--- a/fs/ext4/ext4.h
++++ b/fs/ext4/ext4.h
+@@ -3298,7 +3298,7 @@ static inline void ext4_set_de_type(struct super_block *sb,
+ }
  
--		page = xa_load(&mapping->i_pages, page_offset);
-+		page = xa_load(&mapping->i_pages, index + i);
- 		if (page && !xa_is_value(page)) {
- 			/*
- 			 * Page already present?  Kick off the current batch of
-@@ -199,7 +197,7 @@ void __do_page_cache_readahead(struct address_space *mapping,
- 		page = __page_cache_alloc(gfp_mask);
- 		if (!page)
- 			break;
--		page->index = page_offset;
-+		page->index = index + i;
- 		list_add(&page->lru, &page_pool);
- 		if (i == nr_to_read - lookahead_size)
- 			SetPageReadahead(page);
+ /* readpages.c */
+-extern int ext4_mpage_readpages(struct address_space *mapping,
++extern int ext4_mpage_readpages(struct inode *inode,
+ 		struct readahead_control *rac, struct page *page);
+ extern int __init ext4_init_post_read_processing(void);
+ extern void ext4_exit_post_read_processing(void);
+diff --git a/fs/ext4/inode.c b/fs/ext4/inode.c
+index a867835bca2d..27b35a79f99c 100644
+--- a/fs/ext4/inode.c
++++ b/fs/ext4/inode.c
+@@ -3226,7 +3226,7 @@ static int ext4_readpage(struct file *file, struct page *page)
+ 		ret = ext4_readpage_inline(inode, page);
+ 
+ 	if (ret == -EAGAIN)
+-		return ext4_mpage_readpages(page->mapping, NULL, page);
++		return ext4_mpage_readpages(inode, NULL, page);
+ 
+ 	return ret;
+ }
+@@ -3239,7 +3239,7 @@ static void ext4_readahead(struct readahead_control *rac)
+ 	if (ext4_has_inline_data(inode))
+ 		return;
+ 
+-	ext4_mpage_readpages(rac->mapping, rac, NULL);
++	ext4_mpage_readpages(inode, rac, NULL);
+ }
+ 
+ static void ext4_invalidatepage(struct page *page, unsigned int offset,
+diff --git a/fs/ext4/readpage.c b/fs/ext4/readpage.c
+index 66275f25235d..5761e9961682 100644
+--- a/fs/ext4/readpage.c
++++ b/fs/ext4/readpage.c
+@@ -221,13 +221,12 @@ static inline loff_t ext4_readpage_limit(struct inode *inode)
+ 	return i_size_read(inode);
+ }
+ 
+-int ext4_mpage_readpages(struct address_space *mapping,
++int ext4_mpage_readpages(struct inode *inode,
+ 		struct readahead_control *rac, struct page *page)
+ {
+ 	struct bio *bio = NULL;
+ 	sector_t last_block_in_bio = 0;
+ 
+-	struct inode *inode = mapping->host;
+ 	const unsigned blkbits = inode->i_blkbits;
+ 	const unsigned blocks_per_page = PAGE_SIZE >> blkbits;
+ 	const unsigned blocksize = 1 << blkbits;
 -- 
 2.25.1
