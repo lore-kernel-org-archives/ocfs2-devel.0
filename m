@@ -1,9 +1,10 @@
 From: Matthew Wilcox <willy@infradead.org>
-Date: Mon, 23 Mar 2020 13:22:39 -0700
-Subject: [Ocfs2-devel] [PATCH v10 05/25] mm: Add new readahead_control API
+Date: Mon, 23 Mar 2020 13:22:37 -0700
+Subject: [Ocfs2-devel] [PATCH v10 03/25] mm: Ignore return value of
+	->readpages
 In-Reply-To: <20200323202259.13363-1-willy@infradead.org>
 References: <20200323202259.13363-1-willy@infradead.org>
-Message-ID: <20200323202259.13363-6-willy@infradead.org>
+Message-ID: <20200323202259.13363-4-willy@infradead.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -12,168 +13,54 @@ To: ocfs2-devel@oss.oracle.com
 
 From: "Matthew Wilcox (Oracle)" <willy@infradead.org>
 
-Filesystems which implement the upcoming ->readahead method will get
-their pages by calling readahead_page() or readahead_page_batch().
-These functions support large pages, even though none of the filesystems
-to be converted do yet.
+We used to assign the return value to a variable, which we then ignored.
+Remove the pretence of caring.
 
 Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
 Reviewed-by: Christoph Hellwig <hch@lst.de>
+Reviewed-by: Dave Chinner <dchinner@redhat.com>
+Reviewed-by: John Hubbard <jhubbard@nvidia.com>
 Reviewed-by: William Kucharski <william.kucharski@oracle.com>
 ---
- include/linux/pagemap.h | 140 ++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 140 insertions(+)
+ mm/readahead.c | 8 ++------
+ 1 file changed, 2 insertions(+), 6 deletions(-)
 
-diff --git a/include/linux/pagemap.h b/include/linux/pagemap.h
-index 7d43a464b2a4..89fd6a62bfa5 100644
---- a/include/linux/pagemap.h
-+++ b/include/linux/pagemap.h
-@@ -636,6 +636,146 @@ static inline int add_to_page_cache(struct page *page,
- 	return error;
+diff --git a/mm/readahead.c b/mm/readahead.c
+index 41a592886da7..61b15b6b9e72 100644
+--- a/mm/readahead.c
++++ b/mm/readahead.c
+@@ -113,17 +113,16 @@ int read_cache_pages(struct address_space *mapping, struct list_head *pages,
+ 
+ EXPORT_SYMBOL(read_cache_pages);
+ 
+-static int read_pages(struct address_space *mapping, struct file *filp,
++static void read_pages(struct address_space *mapping, struct file *filp,
+ 		struct list_head *pages, unsigned int nr_pages, gfp_t gfp)
+ {
+ 	struct blk_plug plug;
+ 	unsigned page_idx;
+-	int ret;
+ 
+ 	blk_start_plug(&plug);
+ 
+ 	if (mapping->a_ops->readpages) {
+-		ret = mapping->a_ops->readpages(filp, mapping, pages, nr_pages);
++		mapping->a_ops->readpages(filp, mapping, pages, nr_pages);
+ 		/* Clean up the remaining pages */
+ 		put_pages_list(pages);
+ 		goto out;
+@@ -136,12 +135,9 @@ static int read_pages(struct address_space *mapping, struct file *filp,
+ 			mapping->a_ops->readpage(filp, page);
+ 		put_page(page);
+ 	}
+-	ret = 0;
+ 
+ out:
+ 	blk_finish_plug(&plug);
+-
+-	return ret;
  }
  
-+/**
-+ * struct readahead_control - Describes a readahead request.
-+ *
-+ * A readahead request is for consecutive pages.  Filesystems which
-+ * implement the ->readahead method should call readahead_page() or
-+ * readahead_page_batch() in a loop and attempt to start I/O against
-+ * each page in the request.
-+ *
-+ * Most of the fields in this struct are private and should be accessed
-+ * by the functions below.
-+ *
-+ * @file: The file, used primarily by network filesystems for authentication.
-+ *	  May be NULL if invoked internally by the filesystem.
-+ * @mapping: Readahead this filesystem object.
-+ */
-+struct readahead_control {
-+	struct file *file;
-+	struct address_space *mapping;
-+/* private: use the readahead_* accessors instead */
-+	pgoff_t _index;
-+	unsigned int _nr_pages;
-+	unsigned int _batch_count;
-+};
-+
-+/**
-+ * readahead_page - Get the next page to read.
-+ * @rac: The current readahead request.
-+ *
-+ * Context: The page is locked and has an elevated refcount.  The caller
-+ * should decreases the refcount once the page has been submitted for I/O
-+ * and unlock the page once all I/O to that page has completed.
-+ * Return: A pointer to the next page, or %NULL if we are done.
-+ */
-+static inline struct page *readahead_page(struct readahead_control *rac)
-+{
-+	struct page *page;
-+
-+	BUG_ON(rac->_batch_count > rac->_nr_pages);
-+	rac->_nr_pages -= rac->_batch_count;
-+	rac->_index += rac->_batch_count;
-+
-+	if (!rac->_nr_pages) {
-+		rac->_batch_count = 0;
-+		return NULL;
-+	}
-+
-+	page = xa_load(&rac->mapping->i_pages, rac->_index);
-+	VM_BUG_ON_PAGE(!PageLocked(page), page);
-+	rac->_batch_count = hpage_nr_pages(page);
-+
-+	return page;
-+}
-+
-+static inline unsigned int __readahead_batch(struct readahead_control *rac,
-+		struct page **array, unsigned int array_sz)
-+{
-+	unsigned int i = 0;
-+	XA_STATE(xas, &rac->mapping->i_pages, 0);
-+	struct page *page;
-+
-+	BUG_ON(rac->_batch_count > rac->_nr_pages);
-+	rac->_nr_pages -= rac->_batch_count;
-+	rac->_index += rac->_batch_count;
-+	rac->_batch_count = 0;
-+
-+	xas_set(&xas, rac->_index);
-+	rcu_read_lock();
-+	xas_for_each(&xas, page, rac->_index + rac->_nr_pages - 1) {
-+		VM_BUG_ON_PAGE(!PageLocked(page), page);
-+		VM_BUG_ON_PAGE(PageTail(page), page);
-+		array[i++] = page;
-+		rac->_batch_count += hpage_nr_pages(page);
-+
-+		/*
-+		 * The page cache isn't using multi-index entries yet,
-+		 * so the xas cursor needs to be manually moved to the
-+		 * next index.  This can be removed once the page cache
-+		 * is converted.
-+		 */
-+		if (PageHead(page))
-+			xas_set(&xas, rac->_index + rac->_batch_count);
-+
-+		if (i == array_sz)
-+			break;
-+	}
-+	rcu_read_unlock();
-+
-+	return i;
-+}
-+
-+/**
-+ * readahead_page_batch - Get a batch of pages to read.
-+ * @rac: The current readahead request.
-+ * @array: An array of pointers to struct page.
-+ *
-+ * Context: The pages are locked and have an elevated refcount.  The caller
-+ * should decreases the refcount once the page has been submitted for I/O
-+ * and unlock the page once all I/O to that page has completed.
-+ * Return: The number of pages placed in the array.  0 indicates the request
-+ * is complete.
-+ */
-+#define readahead_page_batch(rac, array)				\
-+	__readahead_batch(rac, array, ARRAY_SIZE(array))
-+
-+/**
-+ * readahead_pos - The byte offset into the file of this readahead request.
-+ * @rac: The readahead request.
-+ */
-+static inline loff_t readahead_pos(struct readahead_control *rac)
-+{
-+	return (loff_t)rac->_index * PAGE_SIZE;
-+}
-+
-+/**
-+ * readahead_length - The number of bytes in this readahead request.
-+ * @rac: The readahead request.
-+ */
-+static inline loff_t readahead_length(struct readahead_control *rac)
-+{
-+	return (loff_t)rac->_nr_pages * PAGE_SIZE;
-+}
-+
-+/**
-+ * readahead_index - The index of the first page in this readahead request.
-+ * @rac: The readahead request.
-+ */
-+static inline pgoff_t readahead_index(struct readahead_control *rac)
-+{
-+	return rac->_index;
-+}
-+
-+/**
-+ * readahead_count - The number of pages in this readahead request.
-+ * @rac: The readahead request.
-+ */
-+static inline unsigned int readahead_count(struct readahead_control *rac)
-+{
-+	return rac->_nr_pages;
-+}
-+
- static inline unsigned long dir_pages(struct inode *inode)
- {
- 	return (unsigned long)(inode->i_size + PAGE_SIZE - 1) >>
+ /*
 -- 
 2.25.1
