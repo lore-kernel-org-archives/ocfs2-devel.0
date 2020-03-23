@@ -1,10 +1,10 @@
 From: Matthew Wilcox <willy@infradead.org>
-Date: Mon, 23 Mar 2020 13:22:57 -0700
-Subject: [Ocfs2-devel] [PATCH v10 23/25] f2fs: Pass the inode to
-	f2fs_mpage_readpages
+Date: Mon, 23 Mar 2020 13:22:42 -0700
+Subject: [Ocfs2-devel] [PATCH v10 08/25] mm: rename readahead loop variable
+	to 'i'
 In-Reply-To: <20200323202259.13363-1-willy@infradead.org>
 References: <20200323202259.13363-1-willy@infradead.org>
-Message-ID: <20200323202259.13363-24-willy@infradead.org>
+Message-ID: <20200323202259.13363-9-willy@infradead.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -13,54 +13,55 @@ To: ocfs2-devel@oss.oracle.com
 
 From: "Matthew Wilcox (Oracle)" <willy@infradead.org>
 
-This function now only uses the mapping argument to look up the inode,
-and both callers already have the inode, so just pass the inode instead
-of the mapping.
+Change the type of page_idx to unsigned long, and rename it -- it's
+just a loop counter, not a page index.
 
+Suggested-by: John Hubbard <jhubbard@nvidia.com>
 Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
+Reviewed-by: Dave Chinner <dchinner@redhat.com>
 Reviewed-by: William Kucharski <william.kucharski@oracle.com>
-Reviewed-by: Eric Biggers <ebiggers@google.com>
-Reviewed-by: Chao Yu <yuchao0@huawei.com>
-Acked-by: Jaegeuk Kim <jaegeuk@kernel.org>
 ---
- fs/f2fs/data.c | 7 +++----
- 1 file changed, 3 insertions(+), 4 deletions(-)
+ mm/readahead.c | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
 
-diff --git a/fs/f2fs/data.c b/fs/f2fs/data.c
-index 2109ce23076d..4cd76973e6c8 100644
---- a/fs/f2fs/data.c
-+++ b/fs/f2fs/data.c
-@@ -2148,12 +2148,11 @@ int f2fs_read_multi_pages(struct compress_ctx *cc, struct bio **bio_ret,
-  * use ->readpage() or do the necessary surgery to decouple ->readpages()
-  * from read-ahead.
-  */
--static int f2fs_mpage_readpages(struct address_space *mapping,
-+static int f2fs_mpage_readpages(struct inode *inode,
- 		struct readahead_control *rac, struct page *page)
- {
- 	struct bio *bio = NULL;
- 	sector_t last_block_in_bio = 0;
--	struct inode *inode = mapping->host;
- 	struct f2fs_map_blocks map;
- #ifdef CONFIG_F2FS_FS_COMPRESSION
- 	struct compress_ctx cc = {
-@@ -2265,7 +2264,7 @@ static int f2fs_read_data_page(struct file *file, struct page *page)
- 	if (f2fs_has_inline_data(inode))
- 		ret = f2fs_read_inline_data(inode, page);
- 	if (ret == -EAGAIN)
--		ret = f2fs_mpage_readpages(page_file_mapping(page), NULL, page);
-+		ret = f2fs_mpage_readpages(inode, NULL, page);
- 	return ret;
- }
+diff --git a/mm/readahead.c b/mm/readahead.c
+index 8a65d6bd97e0..7ce320854bad 100644
+--- a/mm/readahead.c
++++ b/mm/readahead.c
+@@ -163,13 +163,13 @@ void __do_page_cache_readahead(struct address_space *mapping,
+ 	struct page *page;
+ 	unsigned long end_index;	/* The last page we want to read */
+ 	LIST_HEAD(page_pool);
+-	int page_idx;
+ 	loff_t isize = i_size_read(inode);
+ 	gfp_t gfp_mask = readahead_gfp_mask(mapping);
+ 	struct readahead_control rac = {
+ 		.mapping = mapping,
+ 		.file = filp,
+ 	};
++	unsigned long i;
  
-@@ -2282,7 +2281,7 @@ static void f2fs_readahead(struct readahead_control *rac)
- 	if (f2fs_has_inline_data(inode))
+ 	if (isize == 0)
  		return;
+@@ -179,8 +179,8 @@ void __do_page_cache_readahead(struct address_space *mapping,
+ 	/*
+ 	 * Preallocate as many pages as we will need.
+ 	 */
+-	for (page_idx = 0; page_idx < nr_to_read; page_idx++) {
+-		pgoff_t page_offset = index + page_idx;
++	for (i = 0; i < nr_to_read; i++) {
++		pgoff_t page_offset = index + i;
  
--	f2fs_mpage_readpages(rac->mapping, rac, NULL);
-+	f2fs_mpage_readpages(inode, rac, NULL);
- }
- 
- int f2fs_encrypt_one_page(struct f2fs_io_info *fio)
+ 		if (page_offset > end_index)
+ 			break;
+@@ -201,7 +201,7 @@ void __do_page_cache_readahead(struct address_space *mapping,
+ 			break;
+ 		page->index = page_offset;
+ 		list_add(&page->lru, &page_pool);
+-		if (page_idx == nr_to_read - lookahead_size)
++		if (i == nr_to_read - lookahead_size)
+ 			SetPageReadahead(page);
+ 		rac._nr_pages++;
+ 	}
 -- 
 2.25.1
