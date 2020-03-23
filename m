@@ -1,10 +1,10 @@
 From: Matthew Wilcox <willy@infradead.org>
-Date: Mon, 23 Mar 2020 13:22:36 -0700
-Subject: [Ocfs2-devel] [PATCH v10 02/25] mm: Return void from various
-	readahead functions
+Date: Mon, 23 Mar 2020 13:22:51 -0700
+Subject: [Ocfs2-devel] [PATCH v10 17/25] btrfs: Convert from readpages to
+	readahead
 In-Reply-To: <20200323202259.13363-1-willy@infradead.org>
 References: <20200323202259.13363-1-willy@infradead.org>
-Message-ID: <20200323202259.13363-3-willy@infradead.org>
+Message-ID: <20200323202259.13363-18-willy@infradead.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -13,173 +13,150 @@ To: ocfs2-devel@oss.oracle.com
 
 From: "Matthew Wilcox (Oracle)" <willy@infradead.org>
 
-ondemand_readahead has two callers, neither of which use the return value.
-That means that both ra_submit and __do_page_cache_readahead() can return
-void, and we don't need to worry that a present page in the readahead
-window causes us to return a smaller nr_pages than we ought to have.
-
-Similarly, no caller uses the return value from force_page_cache_readahead().
+Implement the new readahead method in btrfs using the new
+readahead_page_batch() function.
 
 Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
-Reviewed-by: Dave Chinner <dchinner@redhat.com>
-Reviewed-by: John Hubbard <jhubbard@nvidia.com>
-Reviewed-by: Christoph Hellwig <hch@lst.de>
 Reviewed-by: William Kucharski <william.kucharski@oracle.com>
 ---
- mm/fadvise.c   |  4 ----
- mm/internal.h  | 12 ++++++------
- mm/readahead.c | 31 +++++++++++++------------------
- 3 files changed, 19 insertions(+), 28 deletions(-)
+ fs/btrfs/extent_io.c | 43 ++++++++++++-------------------------------
+ fs/btrfs/extent_io.h |  3 +--
+ fs/btrfs/inode.c     | 16 +++++++---------
+ 3 files changed, 20 insertions(+), 42 deletions(-)
 
-diff --git a/mm/fadvise.c b/mm/fadvise.c
-index 3efebfb9952c..0e66f2aaeea3 100644
---- a/mm/fadvise.c
-+++ b/mm/fadvise.c
-@@ -104,10 +104,6 @@ int generic_fadvise(struct file *file, loff_t offset, loff_t len, int advice)
- 		if (!nrpages)
- 			nrpages = ~0UL;
- 
--		/*
--		 * Ignore return value because fadvise() shall return
--		 * success even if filesystem can't retrieve a hint,
--		 */
- 		force_page_cache_readahead(mapping, file, start_index, nrpages);
- 		break;
- 	case POSIX_FADV_NOREUSE:
-diff --git a/mm/internal.h b/mm/internal.h
-index 25fee17c7334..f762a34b0c57 100644
---- a/mm/internal.h
-+++ b/mm/internal.h
-@@ -49,20 +49,20 @@ void unmap_page_range(struct mmu_gather *tlb,
- 			     unsigned long addr, unsigned long end,
- 			     struct zap_details *details);
- 
--int force_page_cache_readahead(struct address_space *, struct file *,
-+void force_page_cache_readahead(struct address_space *, struct file *,
- 		pgoff_t index, unsigned long nr_to_read);
--extern unsigned int __do_page_cache_readahead(struct address_space *mapping,
--		struct file *filp, pgoff_t offset, unsigned long nr_to_read,
-+void __do_page_cache_readahead(struct address_space *, struct file *,
-+		pgoff_t index, unsigned long nr_to_read,
- 		unsigned long lookahead_size);
- 
- /*
-  * Submit IO for the read-ahead request in file_ra_state.
-  */
--static inline unsigned long ra_submit(struct file_ra_state *ra,
-+static inline void ra_submit(struct file_ra_state *ra,
- 		struct address_space *mapping, struct file *filp)
- {
--	return __do_page_cache_readahead(mapping, filp,
--					ra->start, ra->size, ra->async_size);
-+	__do_page_cache_readahead(mapping, filp,
-+			ra->start, ra->size, ra->async_size);
+diff --git a/fs/btrfs/extent_io.c b/fs/btrfs/extent_io.c
+index 39e45b8a5031..fc46adf2f5bf 100644
+--- a/fs/btrfs/extent_io.c
++++ b/fs/btrfs/extent_io.c
+@@ -4367,51 +4367,32 @@ int extent_writepages(struct address_space *mapping,
+ 	return ret;
  }
  
- /**
-diff --git a/mm/readahead.c b/mm/readahead.c
-index 2fe72cd29b47..41a592886da7 100644
---- a/mm/readahead.c
-+++ b/mm/readahead.c
-@@ -149,10 +149,8 @@ static int read_pages(struct address_space *mapping, struct file *filp,
-  * the pages first, then submits them for I/O. This avoids the very bad
-  * behaviour which would occur if page allocations are causing VM writeback.
-  * We really don't want to intermingle reads and writes like that.
-- *
-- * Returns the number of pages requested, or the maximum amount of I/O allowed.
-  */
--unsigned int __do_page_cache_readahead(struct address_space *mapping,
-+void __do_page_cache_readahead(struct address_space *mapping,
- 		struct file *filp, pgoff_t offset, unsigned long nr_to_read,
- 		unsigned long lookahead_size)
+-int extent_readpages(struct address_space *mapping, struct list_head *pages,
+-		     unsigned nr_pages)
++void extent_readahead(struct readahead_control *rac)
  {
-@@ -166,7 +164,7 @@ unsigned int __do_page_cache_readahead(struct address_space *mapping,
- 	gfp_t gfp_mask = readahead_gfp_mask(mapping);
+ 	struct bio *bio = NULL;
+ 	unsigned long bio_flags = 0;
+ 	struct page *pagepool[16];
+ 	struct extent_map *em_cached = NULL;
+-	int nr = 0;
+ 	u64 prev_em_start = (u64)-1;
++	int nr;
  
- 	if (isize == 0)
--		goto out;
-+		return;
+-	while (!list_empty(pages)) {
+-		u64 contig_end = 0;
+-
+-		for (nr = 0; nr < ARRAY_SIZE(pagepool) && !list_empty(pages);) {
+-			struct page *page = lru_to_page(pages);
+-
+-			prefetchw(&page->flags);
+-			list_del(&page->lru);
+-			if (add_to_page_cache_lru(page, mapping, page->index,
+-						readahead_gfp_mask(mapping))) {
+-				put_page(page);
+-				break;
+-			}
+-
+-			pagepool[nr++] = page;
+-			contig_end = page_offset(page) + PAGE_SIZE - 1;
+-		}
+-
+-		if (nr) {
+-			u64 contig_start = page_offset(pagepool[0]);
++	while ((nr = readahead_page_batch(rac, pagepool))) {
++		u64 contig_start = page_offset(pagepool[0]);
++		u64 contig_end = page_offset(pagepool[nr - 1]) + PAGE_SIZE - 1;
  
- 	end_index = ((isize - 1) >> PAGE_SHIFT);
+-			ASSERT(contig_start + nr * PAGE_SIZE - 1 == contig_end);
++		ASSERT(contig_start + nr * PAGE_SIZE - 1 == contig_end);
  
-@@ -211,23 +209,21 @@ unsigned int __do_page_cache_readahead(struct address_space *mapping,
- 	if (nr_pages)
- 		read_pages(mapping, filp, &page_pool, nr_pages, gfp_mask);
- 	BUG_ON(!list_empty(&page_pool));
--out:
--	return nr_pages;
+-			contiguous_readpages(pagepool, nr, contig_start,
+-				     contig_end, &em_cached, &bio, &bio_flags,
+-				     &prev_em_start);
+-		}
++		contiguous_readpages(pagepool, nr, contig_start, contig_end,
++				&em_cached, &bio, &bio_flags, &prev_em_start);
+ 	}
+ 
+ 	if (em_cached)
+ 		free_extent_map(em_cached);
+ 
+-	if (bio)
+-		return submit_one_bio(bio, 0, bio_flags);
+-	return 0;
++	if (bio) {
++		if (submit_one_bio(bio, 0, bio_flags))
++			return;
++	}
  }
  
  /*
-  * Chunk the readahead into 2 megabyte units, so that we don't pin too much
-  * memory at once.
-  */
--int force_page_cache_readahead(struct address_space *mapping, struct file *filp,
--			       pgoff_t offset, unsigned long nr_to_read)
-+void force_page_cache_readahead(struct address_space *mapping,
-+		struct file *filp, pgoff_t offset, unsigned long nr_to_read)
- {
- 	struct backing_dev_info *bdi = inode_to_bdi(mapping->host);
- 	struct file_ra_state *ra = &filp->f_ra;
- 	unsigned long max_pages;
- 
- 	if (unlikely(!mapping->a_ops->readpage && !mapping->a_ops->readpages))
--		return -EINVAL;
-+		return;
+diff --git a/fs/btrfs/extent_io.h b/fs/btrfs/extent_io.h
+index 2ed65bd0760e..25594e09fdcd 100644
+--- a/fs/btrfs/extent_io.h
++++ b/fs/btrfs/extent_io.h
+@@ -198,8 +198,7 @@ int extent_writepages(struct address_space *mapping,
+ 		      struct writeback_control *wbc);
+ int btree_write_cache_pages(struct address_space *mapping,
+ 			    struct writeback_control *wbc);
+-int extent_readpages(struct address_space *mapping, struct list_head *pages,
+-		     unsigned nr_pages);
++void extent_readahead(struct readahead_control *rac);
+ int extent_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo,
+ 		__u64 start, __u64 len);
+ void set_page_extent_mapped(struct page *page);
+diff --git a/fs/btrfs/inode.c b/fs/btrfs/inode.c
+index 320d1062068d..ba0aa8b4ad09 100644
+--- a/fs/btrfs/inode.c
++++ b/fs/btrfs/inode.c
+@@ -4856,8 +4856,8 @@ static void evict_inode_truncate_pages(struct inode *inode)
  
  	/*
- 	 * If the request exceeds the readahead window, allow the read to
-@@ -245,7 +241,6 @@ int force_page_cache_readahead(struct address_space *mapping, struct file *filp,
- 		offset += this_chunk;
- 		nr_to_read -= this_chunk;
- 	}
--	return 0;
+ 	 * Keep looping until we have no more ranges in the io tree.
+-	 * We can have ongoing bios started by readpages (called from readahead)
+-	 * that have their endio callback (extent_io.c:end_bio_extent_readpage)
++	 * We can have ongoing bios started by readahead that have
++	 * their endio callback (extent_io.c:end_bio_extent_readpage)
+ 	 * still in progress (unlocked the pages in the bio but did not yet
+ 	 * unlocked the ranges in the io tree). Therefore this means some
+ 	 * ranges can still be locked and eviction started because before
+@@ -7050,11 +7050,11 @@ static int lock_extent_direct(struct inode *inode, u64 lockstart, u64 lockend,
+ 			 * for it to complete) and then invalidate the pages for
+ 			 * this range (through invalidate_inode_pages2_range()),
+ 			 * but that can lead us to a deadlock with a concurrent
+-			 * call to readpages() (a buffered read or a defrag call
++			 * call to readahead (a buffered read or a defrag call
+ 			 * triggered a readahead) on a page lock due to an
+ 			 * ordered dio extent we created before but did not have
+ 			 * yet a corresponding bio submitted (whence it can not
+-			 * complete), which makes readpages() wait for that
++			 * complete), which makes readahead wait for that
+ 			 * ordered extent to complete while holding a lock on
+ 			 * that page.
+ 			 */
+@@ -8293,11 +8293,9 @@ static int btrfs_writepages(struct address_space *mapping,
+ 	return extent_writepages(mapping, wbc);
  }
  
- /*
-@@ -378,11 +373,10 @@ static int try_context_readahead(struct address_space *mapping,
- /*
-  * A minimal readahead algorithm for trivial sequential/random reads.
-  */
--static unsigned long
--ondemand_readahead(struct address_space *mapping,
--		   struct file_ra_state *ra, struct file *filp,
--		   bool hit_readahead_marker, pgoff_t offset,
--		   unsigned long req_size)
-+static void ondemand_readahead(struct address_space *mapping,
-+		struct file_ra_state *ra, struct file *filp,
-+		bool hit_readahead_marker, pgoff_t offset,
-+		unsigned long req_size)
+-static int
+-btrfs_readpages(struct file *file, struct address_space *mapping,
+-		struct list_head *pages, unsigned nr_pages)
++static void btrfs_readahead(struct readahead_control *rac)
  {
- 	struct backing_dev_info *bdi = inode_to_bdi(mapping->host);
- 	unsigned long max_pages = ra->ra_pages;
-@@ -428,7 +422,7 @@ ondemand_readahead(struct address_space *mapping,
- 		rcu_read_unlock();
- 
- 		if (!start || start - offset > max_pages)
--			return 0;
-+			return;
- 
- 		ra->start = start;
- 		ra->size = start - offset;	/* old async_size */
-@@ -464,7 +458,8 @@ ondemand_readahead(struct address_space *mapping,
- 	 * standalone, small random read
- 	 * Read as is, and do not pollute the readahead state.
- 	 */
--	return __do_page_cache_readahead(mapping, filp, offset, req_size, 0);
-+	__do_page_cache_readahead(mapping, filp, offset, req_size, 0);
-+	return;
- 
- initial_readahead:
- 	ra->start = offset;
-@@ -489,7 +484,7 @@ ondemand_readahead(struct address_space *mapping,
- 		}
- 	}
- 
--	return ra_submit(ra, mapping, filp);
-+	ra_submit(ra, mapping, filp);
+-	return extent_readpages(mapping, pages, nr_pages);
++	extent_readahead(rac);
  }
  
- /**
+ static int __btrfs_releasepage(struct page *page, gfp_t gfp_flags)
+@@ -10553,7 +10551,7 @@ static const struct address_space_operations btrfs_aops = {
+ 	.readpage	= btrfs_readpage,
+ 	.writepage	= btrfs_writepage,
+ 	.writepages	= btrfs_writepages,
+-	.readpages	= btrfs_readpages,
++	.readahead	= btrfs_readahead,
+ 	.direct_IO	= btrfs_direct_IO,
+ 	.invalidatepage = btrfs_invalidatepage,
+ 	.releasepage	= btrfs_releasepage,
 -- 
 2.25.1
