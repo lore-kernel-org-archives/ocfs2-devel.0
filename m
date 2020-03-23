@@ -1,10 +1,10 @@
 From: Matthew Wilcox <willy@infradead.org>
-Date: Mon, 23 Mar 2020 13:22:40 -0700
-Subject: [Ocfs2-devel] [PATCH v10 06/25] mm: Use readahead_control to pass
-	arguments
+Date: Mon, 23 Mar 2020 13:22:54 -0700
+Subject: [Ocfs2-devel] [PATCH v10 20/25] ext4: Convert from readpages to
+	readahead
 In-Reply-To: <20200323202259.13363-1-willy@infradead.org>
 References: <20200323202259.13363-1-willy@infradead.org>
-Message-ID: <20200323202259.13363-7-willy@infradead.org>
+Message-ID: <20200323202259.13363-21-willy@infradead.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -13,114 +13,162 @@ To: ocfs2-devel@oss.oracle.com
 
 From: "Matthew Wilcox (Oracle)" <willy@infradead.org>
 
-In this patch, only between __do_page_cache_readahead() and read_pages(),
-but it will be extended in upcoming patches.  The read_pages() function
-becomes aops centric, as this makes the most sense by the end of the
-patchset.
+Use the new readahead operation in ext4
 
 Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
-Reviewed-by: John Hubbard <jhubbard@nvidia.com>
-Reviewed-by: Christoph Hellwig <hch@lst.de>
 Reviewed-by: William Kucharski <william.kucharski@oracle.com>
+Reviewed-by: Eric Biggers <ebiggers@google.com>
 ---
- mm/readahead.c | 33 +++++++++++++++++++--------------
- 1 file changed, 19 insertions(+), 14 deletions(-)
+ fs/ext4/ext4.h     |  3 +--
+ fs/ext4/inode.c    | 21 +++++++++------------
+ fs/ext4/readpage.c | 22 ++++++++--------------
+ 3 files changed, 18 insertions(+), 28 deletions(-)
 
-diff --git a/mm/readahead.c b/mm/readahead.c
-index 9fcd4e32b62d..9d9aa4ffc7d4 100644
---- a/mm/readahead.c
-+++ b/mm/readahead.c
-@@ -113,29 +113,32 @@ int read_cache_pages(struct address_space *mapping, struct list_head *pages,
+diff --git a/fs/ext4/ext4.h b/fs/ext4/ext4.h
+index 54f0a003053b..95b4bb2cc44c 100644
+--- a/fs/ext4/ext4.h
++++ b/fs/ext4/ext4.h
+@@ -3299,8 +3299,7 @@ static inline void ext4_set_de_type(struct super_block *sb,
  
- EXPORT_SYMBOL(read_cache_pages);
+ /* readpages.c */
+ extern int ext4_mpage_readpages(struct address_space *mapping,
+-				struct list_head *pages, struct page *page,
+-				unsigned nr_pages, bool is_readahead);
++		struct readahead_control *rac, struct page *page);
+ extern int __init ext4_init_post_read_processing(void);
+ extern void ext4_exit_post_read_processing(void);
  
--static void read_pages(struct address_space *mapping, struct file *filp,
--		struct list_head *pages, unsigned int nr_pages, gfp_t gfp)
-+static void read_pages(struct readahead_control *rac, struct list_head *pages,
-+		gfp_t gfp)
- {
-+	const struct address_space_operations *aops = rac->mapping->a_ops;
- 	struct blk_plug plug;
- 	unsigned page_idx;
+diff --git a/fs/ext4/inode.c b/fs/ext4/inode.c
+index 27d009bf183f..a867835bca2d 100644
+--- a/fs/ext4/inode.c
++++ b/fs/ext4/inode.c
+@@ -3226,23 +3226,20 @@ static int ext4_readpage(struct file *file, struct page *page)
+ 		ret = ext4_readpage_inline(inode, page);
  
--	if (!nr_pages)
-+	if (!readahead_count(rac))
- 		return;
+ 	if (ret == -EAGAIN)
+-		return ext4_mpage_readpages(page->mapping, NULL, page, 1,
+-						false);
++		return ext4_mpage_readpages(page->mapping, NULL, page);
  
- 	blk_start_plug(&plug);
- 
--	if (mapping->a_ops->readpages) {
--		mapping->a_ops->readpages(filp, mapping, pages, nr_pages);
-+	if (aops->readpages) {
-+		aops->readpages(rac->file, rac->mapping, pages,
-+				readahead_count(rac));
- 		/* Clean up the remaining pages */
- 		put_pages_list(pages);
- 		goto out;
- 	}
- 
--	for (page_idx = 0; page_idx < nr_pages; page_idx++) {
-+	for (page_idx = 0; page_idx < readahead_count(rac); page_idx++) {
- 		struct page *page = lru_to_page(pages);
- 		list_del(&page->lru);
--		if (!add_to_page_cache_lru(page, mapping, page->index, gfp))
--			mapping->a_ops->readpage(filp, page);
-+		if (!add_to_page_cache_lru(page, rac->mapping, page->index,
-+				gfp))
-+			aops->readpage(rac->file, page);
- 		put_page(page);
- 	}
- 
-@@ -143,6 +146,7 @@ static void read_pages(struct address_space *mapping, struct file *filp,
- 	blk_finish_plug(&plug);
- 
- 	BUG_ON(!list_empty(pages));
-+	rac->_nr_pages = 0;
+ 	return ret;
  }
  
- /*
-@@ -160,9 +164,12 @@ void __do_page_cache_readahead(struct address_space *mapping,
- 	unsigned long end_index;	/* The last page we want to read */
- 	LIST_HEAD(page_pool);
- 	int page_idx;
--	unsigned int nr_pages = 0;
- 	loff_t isize = i_size_read(inode);
- 	gfp_t gfp_mask = readahead_gfp_mask(mapping);
-+	struct readahead_control rac = {
-+		.mapping = mapping,
-+		.file = filp,
-+	};
+-static int
+-ext4_readpages(struct file *file, struct address_space *mapping,
+-		struct list_head *pages, unsigned nr_pages)
++static void ext4_readahead(struct readahead_control *rac)
+ {
+-	struct inode *inode = mapping->host;
++	struct inode *inode = rac->mapping->host;
  
- 	if (isize == 0)
- 		return;
-@@ -185,9 +192,7 @@ void __do_page_cache_readahead(struct address_space *mapping,
- 			 * contiguous pages before continuing with the next
- 			 * batch.
- 			 */
--			read_pages(mapping, filp, &page_pool, nr_pages,
--						gfp_mask);
--			nr_pages = 0;
-+			read_pages(&rac, &page_pool, gfp_mask);
- 			continue;
+-	/* If the file has inline data, no need to do readpages. */
++	/* If the file has inline data, no need to do readahead. */
+ 	if (ext4_has_inline_data(inode))
+-		return 0;
++		return;
+ 
+-	return ext4_mpage_readpages(mapping, pages, NULL, nr_pages, true);
++	ext4_mpage_readpages(rac->mapping, rac, NULL);
+ }
+ 
+ static void ext4_invalidatepage(struct page *page, unsigned int offset,
+@@ -3587,7 +3584,7 @@ static int ext4_set_page_dirty(struct page *page)
+ 
+ static const struct address_space_operations ext4_aops = {
+ 	.readpage		= ext4_readpage,
+-	.readpages		= ext4_readpages,
++	.readahead		= ext4_readahead,
+ 	.writepage		= ext4_writepage,
+ 	.writepages		= ext4_writepages,
+ 	.write_begin		= ext4_write_begin,
+@@ -3604,7 +3601,7 @@ static const struct address_space_operations ext4_aops = {
+ 
+ static const struct address_space_operations ext4_journalled_aops = {
+ 	.readpage		= ext4_readpage,
+-	.readpages		= ext4_readpages,
++	.readahead		= ext4_readahead,
+ 	.writepage		= ext4_writepage,
+ 	.writepages		= ext4_writepages,
+ 	.write_begin		= ext4_write_begin,
+@@ -3620,7 +3617,7 @@ static const struct address_space_operations ext4_journalled_aops = {
+ 
+ static const struct address_space_operations ext4_da_aops = {
+ 	.readpage		= ext4_readpage,
+-	.readpages		= ext4_readpages,
++	.readahead		= ext4_readahead,
+ 	.writepage		= ext4_writepage,
+ 	.writepages		= ext4_writepages,
+ 	.write_begin		= ext4_da_write_begin,
+diff --git a/fs/ext4/readpage.c b/fs/ext4/readpage.c
+index c1769afbf799..66275f25235d 100644
+--- a/fs/ext4/readpage.c
++++ b/fs/ext4/readpage.c
+@@ -7,8 +7,8 @@
+  *
+  * This was originally taken from fs/mpage.c
+  *
+- * The intent is the ext4_mpage_readpages() function here is intended
+- * to replace mpage_readpages() in the general case, not just for
++ * The ext4_mpage_readpages() function here is intended to
++ * replace mpage_readahead() in the general case, not just for
+  * encrypted files.  It has some limitations (see below), where it
+  * will fall back to read_block_full_page(), but these limitations
+  * should only be hit when page_size != block_size.
+@@ -222,8 +222,7 @@ static inline loff_t ext4_readpage_limit(struct inode *inode)
+ }
+ 
+ int ext4_mpage_readpages(struct address_space *mapping,
+-			 struct list_head *pages, struct page *page,
+-			 unsigned nr_pages, bool is_readahead)
++		struct readahead_control *rac, struct page *page)
+ {
+ 	struct bio *bio = NULL;
+ 	sector_t last_block_in_bio = 0;
+@@ -241,6 +240,7 @@ int ext4_mpage_readpages(struct address_space *mapping,
+ 	int length;
+ 	unsigned relative_block = 0;
+ 	struct ext4_map_blocks map;
++	unsigned int nr_pages = rac ? readahead_count(rac) : 1;
+ 
+ 	map.m_pblk = 0;
+ 	map.m_lblk = 0;
+@@ -251,14 +251,9 @@ int ext4_mpage_readpages(struct address_space *mapping,
+ 		int fully_mapped = 1;
+ 		unsigned first_hole = blocks_per_page;
+ 
+-		if (pages) {
+-			page = lru_to_page(pages);
+-
++		if (rac) {
++			page = readahead_page(rac);
+ 			prefetchw(&page->flags);
+-			list_del(&page->lru);
+-			if (add_to_page_cache_lru(page, mapping, page->index,
+-				  readahead_gfp_mask(mapping)))
+-				goto next_page;
  		}
  
-@@ -198,7 +203,7 @@ void __do_page_cache_readahead(struct address_space *mapping,
- 		list_add(&page->lru, &page_pool);
- 		if (page_idx == nr_to_read - lookahead_size)
- 			SetPageReadahead(page);
--		nr_pages++;
-+		rac._nr_pages++;
+ 		if (page_has_buffers(page))
+@@ -381,7 +376,7 @@ int ext4_mpage_readpages(struct address_space *mapping,
+ 			bio->bi_iter.bi_sector = blocks[0] << (blkbits - 9);
+ 			bio->bi_end_io = mpage_end_io;
+ 			bio_set_op_attrs(bio, REQ_OP_READ,
+-						is_readahead ? REQ_RAHEAD : 0);
++						rac ? REQ_RAHEAD : 0);
+ 		}
+ 
+ 		length = first_hole << blkbits;
+@@ -406,10 +401,9 @@ int ext4_mpage_readpages(struct address_space *mapping,
+ 		else
+ 			unlock_page(page);
+ 	next_page:
+-		if (pages)
++		if (rac)
+ 			put_page(page);
  	}
- 
- 	/*
-@@ -206,7 +211,7 @@ void __do_page_cache_readahead(struct address_space *mapping,
- 	 * uptodate then the caller will launch readpage again, and
- 	 * will then handle the error.
- 	 */
--	read_pages(mapping, filp, &page_pool, nr_pages, gfp_mask);
-+	read_pages(&rac, &page_pool, gfp_mask);
- }
- 
- /*
+-	BUG_ON(pages && !list_empty(pages));
+ 	if (bio)
+ 		submit_bio(bio);
+ 	return 0;
 -- 
 2.25.1
