@@ -1,121 +1,78 @@
 From: Matthew Wilcox <willy@infradead.org>
-Date: Wed, 25 Mar 2020 05:02:54 -0700
+Date: Wed, 25 Mar 2020 08:32:28 -0700
 Subject: [Ocfs2-devel] [PATCH v10 24/25] fuse: Convert from readpages to
 	readahead
-In-Reply-To: <CAJfpegu7EFcWrg3bP+-2BX_kb52RrzBCo_U3QKYzUkZfe4EjDA@mail.gmail.com>
+In-Reply-To: <CAJfpegshssCJiA8PBcq2XvBj3mR8dufHb0zWRFvvKKv82VQYsw@mail.gmail.com>
 References: <20200323202259.13363-1-willy@infradead.org>
 	<20200323202259.13363-25-willy@infradead.org>
 	<CAJfpegu7EFcWrg3bP+-2BX_kb52RrzBCo_U3QKYzUkZfe4EjDA@mail.gmail.com>
-Message-ID: <20200325120254.GA22483@bombadil.infradead.org>
+	<20200325120254.GA22483@bombadil.infradead.org>
+	<CAJfpegshssCJiA8PBcq2XvBj3mR8dufHb0zWRFvvKKv82VQYsw@mail.gmail.com>
+Message-ID: <20200325153228.GB22483@bombadil.infradead.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Wed, Mar 25, 2020 at 10:42:56AM +0100, Miklos Szeredi wrote:
-> > +       while ((page = readahead_page(rac))) {
-> > +               if (fuse_readpages_fill(&data, page) != 0)
+On Wed, Mar 25, 2020 at 03:43:02PM +0100, Miklos Szeredi wrote:
+> >
+> > -       while ((page = readahead_page(rac))) {
+> > -               if (fuse_readpages_fill(&data, page) != 0)
+> > +               nr_pages = min(readahead_count(rac), fc->max_pages);
 > 
-> Shouldn't this unlock + put page on error?
+> Missing fc->max_read clamp.
 
-We're certainly inconsistent between the two error exits from
-fuse_readpages_fill().  But I think we can simplify the whole thing
-... how does this look to you?
+Yeah, I realised that.  I ended up doing ...
 
-diff --git a/fs/fuse/file.c b/fs/fuse/file.c
-index 5749505bcff6..57ea9a364e62 100644
---- a/fs/fuse/file.c
-+++ b/fs/fuse/file.c
-@@ -915,76 +915,32 @@ static void fuse_send_readpages(struct fuse_io_args *ia, struct file *file)
- 	fuse_readpages_end(fc, &ap->args, err);
- }
- 
--struct fuse_fill_data {
--	struct fuse_io_args *ia;
--	struct file *file;
--	struct inode *inode;
--	unsigned int nr_pages;
--	unsigned int max_pages;
--};
--
--static int fuse_readpages_fill(struct fuse_fill_data *data, struct page *page)
--{
--	struct fuse_io_args *ia = data->ia;
--	struct fuse_args_pages *ap = &ia->ap;
--	struct inode *inode = data->inode;
--	struct fuse_conn *fc = get_fuse_conn(inode);
--
--	fuse_wait_on_page_writeback(inode, page->index);
--
--	if (ap->num_pages &&
--	    (ap->num_pages == fc->max_pages ||
--	     (ap->num_pages + 1) * PAGE_SIZE > fc->max_read ||
--	     ap->pages[ap->num_pages - 1]->index + 1 != page->index)) {
--		data->max_pages = min_t(unsigned int, data->nr_pages,
--					fc->max_pages);
--		fuse_send_readpages(ia, data->file);
--		data->ia = ia = fuse_io_alloc(NULL, data->max_pages);
--		if (!ia)
--			return -ENOMEM;
--		ap = &ia->ap;
--	}
--
--	if (WARN_ON(ap->num_pages >= data->max_pages)) {
--		unlock_page(page);
--		fuse_io_free(ia);
--		return -EIO;
--	}
--
--	ap->pages[ap->num_pages] = page;
--	ap->descs[ap->num_pages].length = PAGE_SIZE;
--	ap->num_pages++;
--	data->nr_pages--;
--	return 0;
--}
--
- static void fuse_readahead(struct readahead_control *rac)
- {
- 	struct inode *inode = rac->mapping->host;
- 	struct fuse_conn *fc = get_fuse_conn(inode);
--	struct fuse_fill_data data;
--	struct page *page;
- 
- 	if (is_bad_inode(inode))
- 		return;
- 
--	data.file = rac->file;
--	data.inode = inode;
--	data.nr_pages = readahead_count(rac);
--	data.max_pages = min_t(unsigned int, data.nr_pages, fc->max_pages);
--	data.ia = fuse_io_alloc(NULL, data.max_pages);
--	if (!data.ia)
--		return;
-+	while (readahead_count(rac)) {
-+		struct fuse_io_args *ia;
-+		struct fuse_args_pages *ap;
-+		unsigned int i, nr_pages;
- 
--	while ((page = readahead_page(rac))) {
--		if (fuse_readpages_fill(&data, page) != 0)
-+		nr_pages = min(readahead_count(rac), fc->max_pages);
-+		ia = fuse_io_alloc(NULL, nr_pages);
-+		if (!ia)
- 			return;
-+		ap = &ia->ap;
-+		__readahead_batch(rac, ap->pages, nr_pages);
-+		for (i = 0; i < nr_pages; i++) {
-+			fuse_wait_on_page_writeback(inode, ap->pages[i]->index);
-+			ap->descs[i].length = PAGE_SIZE;
-+		}
-+		ap->num_pages = nr_pages;
-+		fuse_send_readpages(ia, rac->file);
- 	}
--
--	if (data.ia->ap.num_pages)
--		fuse_send_readpages(data.ia, rac->file);
--	else
--		fuse_io_free(data.ia);
- }
- 
- static ssize_t fuse_cache_read_iter(struct kiocb *iocb, struct iov_iter *to)
++       unsigned int i, max_pages, nr_pages = 0;
+...
++       max_pages = min(fc->max_pages, fc->max_read / PAGE_SIZE);
+
+> > +               ia = fuse_io_alloc(NULL, nr_pages);
+> > +               if (!ia)
+> >                         return;
+> > +               ap = &ia->ap;
+> > +               __readahead_batch(rac, ap->pages, nr_pages);
+> 
+> nr_pages = __readahead_batch(...)?
+
+That's the other bug ... this was designed for btrfs which has a fixed-size
+buffer.  But you want to dynamically allocate fuse_io_args(), so we need to
+figure out the number of pages beforehand, which is a little awkward.  I've
+settled on this for the moment:
+
+        for (;;) {
+               struct fuse_io_args *ia;
+                struct fuse_args_pages *ap;
+
+                nr_pages = readahead_count(rac) - nr_pages;
+                if (nr_pages > max_pages)
+                        nr_pages = max_pages;
+                if (nr_pages == 0)
+                        break;
+                ia = fuse_io_alloc(NULL, nr_pages);
+                if (!ia)
+                        return;
+                ap = &ia->ap;
+                __readahead_batch(rac, ap->pages, nr_pages);
+                for (i = 0; i < nr_pages; i++) {
+                        fuse_wait_on_page_writeback(inode,
+                                                    readahead_index(rac) + i);
+                        ap->descs[i].length = PAGE_SIZE;
+                }
+                ap->num_pages = nr_pages;
+                fuse_send_readpages(ia, rac->file);
+        }
+
+but I'm not entirely happy with that either.  Pondering better options.
+
+> This will give consecutive pages, right?
+
+readpages() was already being called with consecutive pages.  Several
+filesystems had code to cope with the pages being non-consecutive, but
+that wasn't how the core code worked; if there was a discontiguity it
+would send off the pages that were consecutive and start a new batch.
+
+__readahead_batch() can't return fewer than nr_pages, so you don't need
+to check for that.
