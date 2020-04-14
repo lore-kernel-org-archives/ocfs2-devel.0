@@ -1,72 +1,60 @@
-From: Vasily Averin <vvs@virtuozzo.com>
-Date: Tue, 14 Apr 2020 09:17:09 +0300
-Subject: [Ocfs2-devel] [PATCH v3 2/4] ocfs2: ocfs2_dlm_seq_ops should
- properly handle position index
-In-Reply-To: <085dc97b-de01-1d95-799d-dc795eec7818@virtuozzo.com>
-References: <085dc97b-de01-1d95-799d-dc795eec7818@virtuozzo.com>
-Message-ID: <7c0ed8e6-c3bc-9ec9-3136-c1b24a49f78e@virtuozzo.com>
+From: Emanuele Giuseppe Esposito <eesposit@redhat.com>
+Date: Tue, 14 Apr 2020 14:42:55 +0200
+Subject: [Ocfs2-devel] [PATCH 1/8] apparmor: just use vfs_kern_mount to make
+	.null
+In-Reply-To: <20200414124304.4470-1-eesposit@redhat.com>
+References: <20200414124304.4470-1-eesposit@redhat.com>
+Message-ID: <20200414124304.4470-2-eesposit@redhat.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: linux-nfs@vger.kernel.org
+Cc: Song Liu <songliubraving@fb.com>, linux-usb@vger.kernel.org, bpf@vger.kernel.org, "Rafael J. Wysocki" <rafael@kernel.org>, David Airlie <airlied@linux.ie>, Heiko Carstens <heiko.carstens@de.ibm.com>, Alexei Starovoitov <ast@kernel.org>, dri-devel@lists.freedesktop.org, "J. Bruce Fields" <bfields@fieldses.org>, Joseph Qi <joseph.qi@linux.alibaba.com>, Hugh Dickins <hughd@google.com>, Paul Mackerras <paulus@samba.org>, John Johansen <john.johansen@canonical.com>, linux-s390@vger.kernel.org, Christoph Hellwig <hch@lst.de>, Andrew Donnellan <ajd@linux.ibm.com>, Emanuele Giuseppe Esposito <eesposit@redhat.com>, Matthew Garrett <matthew.garrett@nebula.com>, linux-efi@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Daniel Borkmann <daniel@iogearbox.net>, Christian Borntraeger <borntraeger@de.ibm.com>, linux-rdma@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, Mark Fasheh <mark@fasheh.com>, Anton Vorontsov <anton@enomsg.org>, John Fastabend <john.fastabend@gmail.com>, James Morris <jmorris@namei.org>, Ard Biesheuvel <ardb@kernel.org>, Jason Gunthorpe <jgg@ziepe.ca>, Doug Ledford <dledford@redhat.com>, oprofile-list@lists.sf.net, Yonghong Song <yhs@fb.com>, Ian Kent <raven@themaw.net>, Andrii Nakryiko <andriin@fb.com>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, netdev@vger.kernel.org, Robert Richter <rric@kernel.org>, Thomas Zimmermann <tzimmermann@suse.de>, Vasily Gorbik <gor@linux.ibm.com>, Tony Luck <tony.luck@intel.com>, Kees Cook <keescook@chromium.org>, "James E.J. Bottomley" <jejb@linux.ibm.com>, autofs@vger.kernel.org, Uma Krishnan <ukrishn@linux.ibm.com>, linux-fsdevel@vger.kernel.org, "Manoj N. Kumar" <manoj@linux.ibm.com>, Alexander Viro <viro@zeniv.linux.org.uk>, Jakub Kicinski <kuba@kernel.org>, KP Singh <kpsingh@chromium.org>, Trond Myklebust <trond.myklebust@hammerspace.com>, "Matthew R. Ochs" <mrochs@linux.ibm.com>, "David S. Miller" <davem@davemloft.net>, Felipe Balbi <balbi@kernel.org>, Mike Marciniszyn <mike.marciniszyn@intel.com>, Iurii Zaikin <yzaikin@google.com>, linux-scsi@vger.kernel.org, "Martin K. Petersen" <martin.petersen@oracle.com>, linux-mm@kvack.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Dennis Dalessandro <dennis.dalessandro@intel.com>, Miklos Szeredi <miklos@szeredi.hu>, linux-security-module@vger.kernel.org, linux-kernel@vger.kernel.org, Anna Schumaker <anna.schumaker@netapp.com>, Luis Chamberlain <mcgrof@kernel.org>, Chuck Lever <chuck.lever@oracle.com>, Jeremy Kerr <jk@ozlabs.org>, Colin Cross <ccross@android.com>, Frederic Barrat <fbarrat@linux.ibm.com>, Paolo Bonzini <pbonzini@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, Mike Kravetz <mike.kravetz@oracle.com>, linuxppc-dev@lists.ozlabs.org, Martin KaFai Lau <kafai@fb.com>, ocfs2-devel@oss.oracle.com, Joel Becker <jlbec@evilplan.org>
 
-Currently ocfs2_dlm_seq_ops ignores position index argument,
-and it leads to incorrect output in case of read with offset.
+aa_mk_null_file is using simple_pin_fs/simple_release_fs with local
+variables as arguments, for what would amount to a simple
+vfs_kern_mount/mntput pair if everything was inlined.  Just use
+the normal filesystem API since the reference counting is not needed
+here.
 
-By design .start function should skip first *pos elements,
-and .next function must update position index unconditionally.
-
-Cc: stable at vger.kernel.org
-Fixes: 1f4aace60b0e ("fs/seq_file.c: simplify seq_file iteration code ...")
-Link: https://urldefense.com/v3/__https://bugzilla.kernel.org/show_bug.cgi?id=206283__;!!GqivPVa7Brio!MW4at7q5bwj5ULIntJ6umw403Evx0mZ3_sIwjVdK1ltQi595oNDR7IyKESTtl61485TN7g$ 
-Signed-off-by: Vasily Averin <vvs@virtuozzo.com>
+Signed-off-by: Emanuele Giuseppe Esposito <eesposit@redhat.com>
 ---
- fs/ocfs2/dlmglue.c | 10 ++++++----
- 1 file changed, 6 insertions(+), 4 deletions(-)
+ security/apparmor/apparmorfs.c | 12 ++++++------
+ 1 file changed, 6 insertions(+), 6 deletions(-)
 
-diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-index 152a0fc4e905..3f5fe6af9f3a 100644
---- a/fs/ocfs2/dlmglue.c
-+++ b/fs/ocfs2/dlmglue.c
-@@ -3022,7 +3022,8 @@ struct ocfs2_dlm_seq_priv {
- };
+diff --git a/security/apparmor/apparmorfs.c b/security/apparmor/apparmorfs.c
+index 280741fc0f5f..828bb1eb77ea 100644
+--- a/security/apparmor/apparmorfs.c
++++ b/security/apparmor/apparmorfs.c
+@@ -2525,14 +2525,14 @@ struct path aa_null;
  
- static struct ocfs2_lock_res *ocfs2_dlm_next_res(struct ocfs2_lock_res *start,
--						 struct ocfs2_dlm_seq_priv *priv)
-+						 struct ocfs2_dlm_seq_priv *priv,
-+						 loff_t pos)
+ static int aa_mk_null_file(struct dentry *parent)
  {
- 	struct ocfs2_lock_res *iter, *ret = NULL;
- 	struct ocfs2_dlm_debug *dlm_debug = priv->p_dlm_debug;
-@@ -3038,7 +3039,7 @@ static struct ocfs2_lock_res *ocfs2_dlm_next_res(struct ocfs2_lock_res *start,
+-	struct vfsmount *mount = NULL;
++	struct file_system_type *type = parent->d_sb->s_type;
++	struct vfsmount *mount;
+ 	struct dentry *dentry;
+ 	struct inode *inode;
+-	int count = 0;
+-	int error = simple_pin_fs(parent->d_sb->s_type, &mount, &count);
  
- 		/* We track our "dummy" iteration lockres' by a NULL
- 		 * l_ops field. */
--		if (iter->l_ops != NULL) {
-+		if ((iter->l_ops != NULL) && (pos-- == 0)) {
- 			ret = iter;
- 			break;
- 		}
-@@ -3053,7 +3054,7 @@ static void *ocfs2_dlm_seq_start(struct seq_file *m, loff_t *pos)
- 	struct ocfs2_lock_res *iter;
+-	if (error)
+-		return error;
++	mount = vfs_kern_mount(type, SB_KERNMOUNT, type->name, NULL);
++	if (IS_ERR(mount))
++		return PTR_ERR(mount);
  
- 	spin_lock(&ocfs2_dlm_tracking_lock);
--	iter = ocfs2_dlm_next_res(&priv->p_iter_res, priv);
-+	iter = ocfs2_dlm_next_res(&priv->p_iter_res, priv, *pos);
- 	if (iter) {
- 		/* Since lockres' have the lifetime of their container
- 		 * (which can be inodes, ocfs2_supers, etc) we want to
-@@ -3080,8 +3081,9 @@ static void *ocfs2_dlm_seq_next(struct seq_file *m, void *v, loff_t *pos)
- 	struct ocfs2_lock_res *iter = v;
- 	struct ocfs2_lock_res *dummy = &priv->p_iter_res;
+ 	inode_lock(d_inode(parent));
+ 	dentry = lookup_one_len(NULL_FILE_NAME, parent, strlen(NULL_FILE_NAME));
+@@ -2561,7 +2561,7 @@ static int aa_mk_null_file(struct dentry *parent)
+ 	dput(dentry);
+ out:
+ 	inode_unlock(d_inode(parent));
+-	simple_release_fs(&mount, &count);
++	mntput(mount);
+ 	return error;
+ }
  
-+	(*pos)++;
- 	spin_lock(&ocfs2_dlm_tracking_lock);
--	iter = ocfs2_dlm_next_res(iter, priv);
-+	iter = ocfs2_dlm_next_res(iter, priv, 0);
- 	list_del_init(&dummy->l_debug_list);
- 	if (iter) {
- 		list_add(&dummy->l_debug_list, &iter->l_debug_list);
 -- 
-2.17.1
+2.25.2
