@@ -1,156 +1,175 @@
 From: Matthew Wilcox <willy@infradead.org>
-Date: Tue, 14 Apr 2020 08:02:32 -0700
-Subject: [Ocfs2-devel] [PATCH v11 24/25] fuse: Convert from readpages to
+Date: Tue, 14 Apr 2020 08:02:28 -0700
+Subject: [Ocfs2-devel] [PATCH v11 20/25] ext4: Convert from readpages to
 	readahead
 In-Reply-To: <20200414150233.24495-1-willy@infradead.org>
 References: <20200414150233.24495-1-willy@infradead.org>
-Message-ID: <20200414150233.24495-25-willy@infradead.org>
+Message-ID: <20200414150233.24495-21-willy@infradead.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: "Matthew Wilcox (Oracle)" <willy@infradead.org>, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-btrfs@vger.kernel.org, linux-erofs@lists.ozlabs.org, linux-ext4@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, linux-xfs@vger.kernel.org, Dave Chinner <dchinner@redhat.com>, William Kucharski <william.kucharski@oracle.com>
+Cc: "Matthew Wilcox (Oracle)" <willy@infradead.org>, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-btrfs@vger.kernel.org, linux-erofs@lists.ozlabs.org, linux-ext4@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, linux-xfs@vger.kernel.org, William Kucharski <william.kucharski@oracle.com>, Eric Biggers <ebiggers@google.com>
 
 From: "Matthew Wilcox (Oracle)" <willy@infradead.org>
 
-Implement the new readahead operation in fuse by using __readahead_batch()
-to fill the array of pages in fuse_args_pages directly.  This lets us
-inline fuse_readpages_fill() into fuse_readahead().
+Use the new readahead operation in ext4
 
 Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
-Reviewed-by: Dave Chinner <dchinner@redhat.com>
 Reviewed-by: William Kucharski <william.kucharski@oracle.com>
+Reviewed-by: Eric Biggers <ebiggers@google.com>
 ---
- fs/fuse/file.c | 99 ++++++++++++++------------------------------------
- 1 file changed, 27 insertions(+), 72 deletions(-)
+ fs/ext4/ext4.h     |  3 +--
+ fs/ext4/inode.c    | 21 +++++++++------------
+ fs/ext4/readpage.c | 22 ++++++++--------------
+ 3 files changed, 18 insertions(+), 28 deletions(-)
 
-diff --git a/fs/fuse/file.c b/fs/fuse/file.c
-index 9d67b830fb7a..db82fb29dd39 100644
---- a/fs/fuse/file.c
-+++ b/fs/fuse/file.c
-@@ -915,84 +915,39 @@ static void fuse_send_readpages(struct fuse_io_args *ia, struct file *file)
- 	fuse_readpages_end(fc, &ap->args, err);
+diff --git a/fs/ext4/ext4.h b/fs/ext4/ext4.h
+index 91eb4381cae5..9f2d3cd1df81 100644
+--- a/fs/ext4/ext4.h
++++ b/fs/ext4/ext4.h
+@@ -3317,8 +3317,7 @@ static inline void ext4_set_de_type(struct super_block *sb,
+ 
+ /* readpages.c */
+ extern int ext4_mpage_readpages(struct address_space *mapping,
+-				struct list_head *pages, struct page *page,
+-				unsigned nr_pages, bool is_readahead);
++		struct readahead_control *rac, struct page *page);
+ extern int __init ext4_init_post_read_processing(void);
+ extern void ext4_exit_post_read_processing(void);
+ 
+diff --git a/fs/ext4/inode.c b/fs/ext4/inode.c
+index e416096fc081..fafd2862d7cd 100644
+--- a/fs/ext4/inode.c
++++ b/fs/ext4/inode.c
+@@ -3224,23 +3224,20 @@ static int ext4_readpage(struct file *file, struct page *page)
+ 		ret = ext4_readpage_inline(inode, page);
+ 
+ 	if (ret == -EAGAIN)
+-		return ext4_mpage_readpages(page->mapping, NULL, page, 1,
+-						false);
++		return ext4_mpage_readpages(page->mapping, NULL, page);
+ 
+ 	return ret;
  }
  
--struct fuse_fill_data {
--	struct fuse_io_args *ia;
--	struct file *file;
--	struct inode *inode;
--	unsigned int nr_pages;
--	unsigned int max_pages;
--};
--
--static int fuse_readpages_fill(void *_data, struct page *page)
-+static void fuse_readahead(struct readahead_control *rac)
+-static int
+-ext4_readpages(struct file *file, struct address_space *mapping,
+-		struct list_head *pages, unsigned nr_pages)
++static void ext4_readahead(struct readahead_control *rac)
  {
--	struct fuse_fill_data *data = _data;
--	struct fuse_io_args *ia = data->ia;
--	struct fuse_args_pages *ap = &ia->ap;
--	struct inode *inode = data->inode;
-+	struct inode *inode = rac->mapping->host;
- 	struct fuse_conn *fc = get_fuse_conn(inode);
-+	unsigned int i, max_pages, nr_pages = 0;
- 
--	fuse_wait_on_page_writeback(inode, page->index);
--
--	if (ap->num_pages &&
--	    (ap->num_pages == fc->max_pages ||
--	     (ap->num_pages + 1) * PAGE_SIZE > fc->max_read ||
--	     ap->pages[ap->num_pages - 1]->index + 1 != page->index)) {
--		data->max_pages = min_t(unsigned int, data->nr_pages,
--					fc->max_pages);
--		fuse_send_readpages(ia, data->file);
--		data->ia = ia = fuse_io_alloc(NULL, data->max_pages);
--		if (!ia) {
--			unlock_page(page);
--			return -ENOMEM;
--		}
--		ap = &ia->ap;
--	}
--
--	if (WARN_ON(ap->num_pages >= data->max_pages)) {
--		unlock_page(page);
--		fuse_io_free(ia);
--		return -EIO;
--	}
--
--	get_page(page);
--	ap->pages[ap->num_pages] = page;
--	ap->descs[ap->num_pages].length = PAGE_SIZE;
--	ap->num_pages++;
--	data->nr_pages--;
--	return 0;
--}
--
--static int fuse_readpages(struct file *file, struct address_space *mapping,
--			  struct list_head *pages, unsigned nr_pages)
--{
 -	struct inode *inode = mapping->host;
--	struct fuse_conn *fc = get_fuse_conn(inode);
--	struct fuse_fill_data data;
--	int err;
--
--	err = -EIO;
- 	if (is_bad_inode(inode))
--		goto out;
++	struct inode *inode = rac->mapping->host;
+ 
+-	/* If the file has inline data, no need to do readpages. */
++	/* If the file has inline data, no need to do readahead. */
+ 	if (ext4_has_inline_data(inode))
+-		return 0;
 +		return;
  
--	data.file = file;
--	data.inode = inode;
--	data.nr_pages = nr_pages;
--	data.max_pages = min_t(unsigned int, nr_pages, fc->max_pages);
--;
--	data.ia = fuse_io_alloc(NULL, data.max_pages);
--	err = -ENOMEM;
--	if (!data.ia)
--		goto out;
-+	max_pages = min(fc->max_pages, fc->max_read / PAGE_SIZE);
- 
--	err = read_cache_pages(mapping, pages, fuse_readpages_fill, &data);
--	if (!err) {
--		if (data.ia->ap.num_pages)
--			fuse_send_readpages(data.ia, file);
--		else
--			fuse_io_free(data.ia);
-+	for (;;) {
-+		struct fuse_io_args *ia;
-+		struct fuse_args_pages *ap;
-+
-+		nr_pages = readahead_count(rac) - nr_pages;
-+		if (nr_pages > max_pages)
-+			nr_pages = max_pages;
-+		if (nr_pages == 0)
-+			break;
-+		ia = fuse_io_alloc(NULL, nr_pages);
-+		if (!ia)
-+			return;
-+		ap = &ia->ap;
-+		nr_pages = __readahead_batch(rac, ap->pages, nr_pages);
-+		for (i = 0; i < nr_pages; i++) {
-+			fuse_wait_on_page_writeback(inode,
-+						    readahead_index(rac) + i);
-+			ap->descs[i].length = PAGE_SIZE;
-+		}
-+		ap->num_pages = nr_pages;
-+		fuse_send_readpages(ia, rac->file);
- 	}
--out:
--	return err;
+-	return ext4_mpage_readpages(mapping, pages, NULL, nr_pages, true);
++	ext4_mpage_readpages(rac->mapping, rac, NULL);
  }
  
- static ssize_t fuse_cache_read_iter(struct kiocb *iocb, struct iov_iter *to)
-@@ -3373,10 +3328,10 @@ static const struct file_operations fuse_file_operations = {
+ static void ext4_invalidatepage(struct page *page, unsigned int offset,
+@@ -3605,7 +3602,7 @@ static int ext4_set_page_dirty(struct page *page)
  
- static const struct address_space_operations fuse_file_aops  = {
- 	.readpage	= fuse_readpage,
-+	.readahead	= fuse_readahead,
- 	.writepage	= fuse_writepage,
- 	.writepages	= fuse_writepages,
- 	.launder_page	= fuse_launder_page,
--	.readpages	= fuse_readpages,
- 	.set_page_dirty	= __set_page_dirty_nobuffers,
- 	.bmap		= fuse_bmap,
- 	.direct_IO	= fuse_direct_IO,
+ static const struct address_space_operations ext4_aops = {
+ 	.readpage		= ext4_readpage,
+-	.readpages		= ext4_readpages,
++	.readahead		= ext4_readahead,
+ 	.writepage		= ext4_writepage,
+ 	.writepages		= ext4_writepages,
+ 	.write_begin		= ext4_write_begin,
+@@ -3622,7 +3619,7 @@ static const struct address_space_operations ext4_aops = {
+ 
+ static const struct address_space_operations ext4_journalled_aops = {
+ 	.readpage		= ext4_readpage,
+-	.readpages		= ext4_readpages,
++	.readahead		= ext4_readahead,
+ 	.writepage		= ext4_writepage,
+ 	.writepages		= ext4_writepages,
+ 	.write_begin		= ext4_write_begin,
+@@ -3638,7 +3635,7 @@ static const struct address_space_operations ext4_journalled_aops = {
+ 
+ static const struct address_space_operations ext4_da_aops = {
+ 	.readpage		= ext4_readpage,
+-	.readpages		= ext4_readpages,
++	.readahead		= ext4_readahead,
+ 	.writepage		= ext4_writepage,
+ 	.writepages		= ext4_writepages,
+ 	.write_begin		= ext4_da_write_begin,
+diff --git a/fs/ext4/readpage.c b/fs/ext4/readpage.c
+index c1769afbf799..66275f25235d 100644
+--- a/fs/ext4/readpage.c
++++ b/fs/ext4/readpage.c
+@@ -7,8 +7,8 @@
+  *
+  * This was originally taken from fs/mpage.c
+  *
+- * The intent is the ext4_mpage_readpages() function here is intended
+- * to replace mpage_readpages() in the general case, not just for
++ * The ext4_mpage_readpages() function here is intended to
++ * replace mpage_readahead() in the general case, not just for
+  * encrypted files.  It has some limitations (see below), where it
+  * will fall back to read_block_full_page(), but these limitations
+  * should only be hit when page_size != block_size.
+@@ -222,8 +222,7 @@ static inline loff_t ext4_readpage_limit(struct inode *inode)
+ }
+ 
+ int ext4_mpage_readpages(struct address_space *mapping,
+-			 struct list_head *pages, struct page *page,
+-			 unsigned nr_pages, bool is_readahead)
++		struct readahead_control *rac, struct page *page)
+ {
+ 	struct bio *bio = NULL;
+ 	sector_t last_block_in_bio = 0;
+@@ -241,6 +240,7 @@ int ext4_mpage_readpages(struct address_space *mapping,
+ 	int length;
+ 	unsigned relative_block = 0;
+ 	struct ext4_map_blocks map;
++	unsigned int nr_pages = rac ? readahead_count(rac) : 1;
+ 
+ 	map.m_pblk = 0;
+ 	map.m_lblk = 0;
+@@ -251,14 +251,9 @@ int ext4_mpage_readpages(struct address_space *mapping,
+ 		int fully_mapped = 1;
+ 		unsigned first_hole = blocks_per_page;
+ 
+-		if (pages) {
+-			page = lru_to_page(pages);
+-
++		if (rac) {
++			page = readahead_page(rac);
+ 			prefetchw(&page->flags);
+-			list_del(&page->lru);
+-			if (add_to_page_cache_lru(page, mapping, page->index,
+-				  readahead_gfp_mask(mapping)))
+-				goto next_page;
+ 		}
+ 
+ 		if (page_has_buffers(page))
+@@ -381,7 +376,7 @@ int ext4_mpage_readpages(struct address_space *mapping,
+ 			bio->bi_iter.bi_sector = blocks[0] << (blkbits - 9);
+ 			bio->bi_end_io = mpage_end_io;
+ 			bio_set_op_attrs(bio, REQ_OP_READ,
+-						is_readahead ? REQ_RAHEAD : 0);
++						rac ? REQ_RAHEAD : 0);
+ 		}
+ 
+ 		length = first_hole << blkbits;
+@@ -406,10 +401,9 @@ int ext4_mpage_readpages(struct address_space *mapping,
+ 		else
+ 			unlock_page(page);
+ 	next_page:
+-		if (pages)
++		if (rac)
+ 			put_page(page);
+ 	}
+-	BUG_ON(pages && !list_empty(pages));
+ 	if (bio)
+ 		submit_bio(bio);
+ 	return 0;
 -- 
 2.25.1
