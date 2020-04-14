@@ -1,81 +1,61 @@
 From: Vasily Averin <vvs@virtuozzo.com>
-Date: Tue, 14 Apr 2020 09:17:30 +0300
-Subject: [Ocfs2-devel] [PATCH v3 4/4] ocfs2: sc_seq_ops should properly
+Date: Tue, 14 Apr 2020 09:16:53 +0300
+Subject: [Ocfs2-devel] [PATCH v3 0/4] ocfs2: seq_operation should properly
  handle position index
 In-Reply-To: <085dc97b-de01-1d95-799d-dc795eec7818@virtuozzo.com>
 References: <085dc97b-de01-1d95-799d-dc795eec7818@virtuozzo.com>
-Message-ID: <9994b940-bb66-3334-9a47-f821cc197e5d@virtuozzo.com>
+Message-ID: <af031d8d-d2d5-5393-cda7-a0001bddd66b@virtuozzo.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Currently sc_seq_ops ignores position index argument,
-and it leads to incorrect output in case of read with offset.
+v3: rework of ocfs2-related seq_operation functions to properly handle position index argument
 
-By design .start function should skip first *pos elements,
-and .next function must update position index unconditionally.
+v2: resend with improved patch description
 
-Cc: stable at vger.kernel.org
-Fixes: 1f4aace60b0e ("fs/seq_file.c: simplify seq_file iteration code ...")
-Link: https://urldefense.com/v3/__https://bugzilla.kernel.org/show_bug.cgi?id=206283__;!!GqivPVa7Brio!MJIyl9g4rZXkCRJpUtfNR70zABIYk0zKHrl00gKDdYZpx41lpyanlE7z50esOWCIqgd95w$ 
-Signed-off-by: Vasily Averin <vvs@virtuozzo.com>
----
- fs/ocfs2/cluster/netdebug.c | 12 +++++++-----
- 1 file changed, 7 insertions(+), 5 deletions(-)
+In Aug 2018 NeilBrown noticed
+commit 1f4aace60b0e ("fs/seq_file.c: simplify seq_file iteration code and interface")
+"Some ->next functions do not increment *pos when they return NULL...
+Note that such ->next functions are buggy and should be fixed.
+A simple demonstration is
+   
+dd if=/proc/swaps bs=1000 skip=1
+  
+Choose any block size larger than the size of /proc/swaps.  This will
+always show the whole last line of /proc/swaps"
 
-diff --git a/fs/ocfs2/cluster/netdebug.c b/fs/ocfs2/cluster/netdebug.c
-index 8ca8a407781b..832fd762e4ef 100644
---- a/fs/ocfs2/cluster/netdebug.c
-+++ b/fs/ocfs2/cluster/netdebug.c
-@@ -213,7 +213,8 @@ struct o2net_sock_debug {
- };
- 
- static struct o2net_sock_container
--			*next_sc(struct o2net_sock_container *sc_start)
-+			*next_sc(struct o2net_sock_container *sc_start,
-+				 loff_t pos)
- {
- 	struct o2net_sock_container *sc, *ret = NULL;
- 
-@@ -226,7 +227,7 @@ static struct o2net_sock_container
- 			break;
- 
- 		/* use sc_page to detect real scs in the list */
--		if (sc->sc_page != NULL) {
-+		if ((sc->sc_page != NULL) && (pos-- == 0)) {
- 			ret = sc;
- 			break;
- 		}
-@@ -241,7 +242,7 @@ static void *sc_seq_start(struct seq_file *seq, loff_t *pos)
- 	struct o2net_sock_container *sc, *dummy_sc = sd->dbg_sock;
- 
- 	spin_lock(&o2net_debug_lock);
--	sc = next_sc(dummy_sc);
-+	sc = next_sc(dummy_sc, *pos);
- 	spin_unlock(&o2net_debug_lock);
- 
- 	return sc;
-@@ -252,8 +253,9 @@ static void *sc_seq_next(struct seq_file *seq, void *v, loff_t *pos)
- 	struct o2net_sock_debug *sd = seq->private;
- 	struct o2net_sock_container *sc, *dummy_sc = sd->dbg_sock;
- 
-+	++(*pos);
- 	spin_lock(&o2net_debug_lock);
--	sc = next_sc(dummy_sc);
-+	sc = next_sc(dummy_sc, 0);
- 	list_del_init(&dummy_sc->sc_net_debug_item);
- 	if (sc)
- 		list_add(&dummy_sc->sc_net_debug_item, &sc->sc_net_debug_item);
-@@ -354,7 +356,7 @@ static int sc_seq_show(struct seq_file *seq, void *v)
- 	struct o2net_sock_container *sc, *dummy_sc = sd->dbg_sock;
- 
- 	spin_lock(&o2net_debug_lock);
--	sc = next_sc(dummy_sc);
-+	sc = next_sc(dummy_sc, 0);
- 
- 	if (sc) {
- 		if (sd->dbg_ctxt == SHOW_SOCK_CONTAINERS)
+/proc/swaps output was fixed recently [1], however there are lot of other
+affected files and 4 of them are related to ocfs2.
+
+Moreover lishan@ experiments showed that ocfs2-related seq_operations
+completely ignores position index argument and it leads to incorrect output. [2]
+
+Usually you can observe following related problems:
+- read after lseek beyond end of file, described above by NeilBrown
+ "dd if=<AFFECTED_FILE> bs=1000 skip=1" will incorrectly generate whole last line
+
+- read after lseek on into middle of last line will output expected rest of
+ last line but then repeat whole last line once again.
+
+- If .show() function generates multi-line output following bash script will never finish.
+
+ $ q=;while read -r r;do echo "$((++q)) $r";done < AFFECTED_FILE
+
+[1] Link: https://urldefense.com/v3/__https://bugzilla.kernel.org/show_bug.cgi?id=206283__;!!GqivPVa7Brio!M3Zvpw7fOUG9cadeYNB9Nc7yQqx_CxPjQKa1xVL-HV09pGqXsi_4x0J6l5LuvKgjTUVSrQ$ 
+[2] Link: https://oss.oracle.com/pipermail/ocfs2-devel/2020-March/014822.html
+
+Vasily Averin (4):
+  ocfs2: debug_lockres_ops should properly handle position index
+  ocfs2: ocfs2_dlm_seq_ops should properly handle position index
+  ocfs2: nst_seq_ops should properly handle position index
+  ocfs2: sc_seq_ops should properly handle position index
+
+ fs/ocfs2/cluster/netdebug.c | 24 +++++++-----
+ fs/ocfs2/dlm/dlmdebug.c     | 78 ++++++++++++++++++-------------------
+ fs/ocfs2/dlmglue.c          | 10 +++--
+ 3 files changed, 59 insertions(+), 53 deletions(-)
+
 -- 
 2.17.1
