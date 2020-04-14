@@ -1,47 +1,74 @@
 From: Matthew Wilcox <willy@infradead.org>
-Date: Tue, 14 Apr 2020 08:02:22 -0700
-Subject: [Ocfs2-devel] [PATCH v11 14/25] mm: Document why we don't set
-	PageReadahead
+Date: Tue, 14 Apr 2020 08:02:12 -0700
+Subject: [Ocfs2-devel] [PATCH v11 04/25] mm: Move readahead nr_pages check
+	into read_pages
 In-Reply-To: <20200414150233.24495-1-willy@infradead.org>
 References: <20200414150233.24495-1-willy@infradead.org>
-Message-ID: <20200414150233.24495-15-willy@infradead.org>
+Message-ID: <20200414150233.24495-5-willy@infradead.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: "Matthew Wilcox (Oracle)" <willy@infradead.org>, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-btrfs@vger.kernel.org, linux-erofs@lists.ozlabs.org, linux-ext4@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, linux-xfs@vger.kernel.org, Christoph Hellwig <hch@lst.de>, William Kucharski <william.kucharski@oracle.com>
+Cc: "Matthew Wilcox (Oracle)" <willy@infradead.org>, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-btrfs@vger.kernel.org, linux-erofs@lists.ozlabs.org, linux-ext4@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, linux-xfs@vger.kernel.org, Zi Yan <ziy@nvidia.com>, John Hubbard <jhubbard@nvidia.com>, Christoph Hellwig <hch@lst.de>, William Kucharski <william.kucharski@oracle.com>
 
 From: "Matthew Wilcox (Oracle)" <willy@infradead.org>
 
-If the page is already in cache, we don't set PageReadahead on it.
+Simplify the callers by moving the check for nr_pages and the BUG_ON
+into read_pages().
 
 Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
+Reviewed-by: Zi Yan <ziy@nvidia.com>
+Reviewed-by: John Hubbard <jhubbard@nvidia.com>
 Reviewed-by: Christoph Hellwig <hch@lst.de>
 Reviewed-by: William Kucharski <william.kucharski@oracle.com>
 ---
- mm/readahead.c | 9 ++++++---
- 1 file changed, 6 insertions(+), 3 deletions(-)
+ mm/readahead.c | 12 +++++++-----
+ 1 file changed, 7 insertions(+), 5 deletions(-)
 
 diff --git a/mm/readahead.c b/mm/readahead.c
-index ae231a5312cb..73cb59ed5cff 100644
+index 61b15b6b9e72..9fcd4e32b62d 100644
 --- a/mm/readahead.c
 +++ b/mm/readahead.c
-@@ -195,9 +195,12 @@ void page_cache_readahead_unbounded(struct address_space *mapping,
+@@ -119,6 +119,9 @@ static void read_pages(struct address_space *mapping, struct file *filp,
+ 	struct blk_plug plug;
+ 	unsigned page_idx;
  
- 		if (page && !xa_is_value(page)) {
- 			/*
--			 * Page already present?  Kick off the current batch of
--			 * contiguous pages before continuing with the next
--			 * batch.
-+			 * Page already present?  Kick off the current batch
-+			 * of contiguous pages before continuing with the
-+			 * next batch.  This page may be the one we would
-+			 * have intended to mark as Readahead, but we don't
-+			 * have a stable reference to this page, and it's
-+			 * not worth getting one just for that.
++	if (!nr_pages)
++		return;
++
+ 	blk_start_plug(&plug);
+ 
+ 	if (mapping->a_ops->readpages) {
+@@ -138,6 +141,8 @@ static void read_pages(struct address_space *mapping, struct file *filp,
+ 
+ out:
+ 	blk_finish_plug(&plug);
++
++	BUG_ON(!list_empty(pages));
+ }
+ 
+ /*
+@@ -180,8 +185,7 @@ void __do_page_cache_readahead(struct address_space *mapping,
+ 			 * contiguous pages before continuing with the next
+ 			 * batch.
  			 */
- 			read_pages(&rac, &page_pool, true);
+-			if (nr_pages)
+-				read_pages(mapping, filp, &page_pool, nr_pages,
++			read_pages(mapping, filp, &page_pool, nr_pages,
+ 						gfp_mask);
+ 			nr_pages = 0;
  			continue;
+@@ -202,9 +206,7 @@ void __do_page_cache_readahead(struct address_space *mapping,
+ 	 * uptodate then the caller will launch readpage again, and
+ 	 * will then handle the error.
+ 	 */
+-	if (nr_pages)
+-		read_pages(mapping, filp, &page_pool, nr_pages, gfp_mask);
+-	BUG_ON(!list_empty(&page_pool));
++	read_pages(mapping, filp, &page_pool, nr_pages, gfp_mask);
+ }
+ 
+ /*
 -- 
 2.25.1
