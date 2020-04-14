@@ -1,61 +1,81 @@
 From: Vasily Averin <vvs@virtuozzo.com>
-Date: Tue, 14 Apr 2020 09:16:53 +0300
-Subject: [Ocfs2-devel] [PATCH v3 0/4] ocfs2: seq_operation should properly
+Date: Tue, 14 Apr 2020 09:17:19 +0300
+Subject: [Ocfs2-devel] [PATCH v3 3/4] ocfs2: nst_seq_ops should properly
  handle position index
 In-Reply-To: <085dc97b-de01-1d95-799d-dc795eec7818@virtuozzo.com>
 References: <085dc97b-de01-1d95-799d-dc795eec7818@virtuozzo.com>
-Message-ID: <af031d8d-d2d5-5393-cda7-a0001bddd66b@virtuozzo.com>
+Message-ID: <ab62a217-2ff9-8a60-eade-6349afae917c@virtuozzo.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-v3: rework of ocfs2-related seq_operation functions to properly handle position index argument
+Currently nst_seq_ops ignores position index argument,
+and it leads to incorrect output in case of read with offset.
 
-v2: resend with improved patch description
+By design .start function should skip first *pos elements,
+and .next function must update position index unconditionally.
 
-In Aug 2018 NeilBrown noticed
-commit 1f4aace60b0e ("fs/seq_file.c: simplify seq_file iteration code and interface")
-"Some ->next functions do not increment *pos when they return NULL...
-Note that such ->next functions are buggy and should be fixed.
-A simple demonstration is
-   
-dd if=/proc/swaps bs=1000 skip=1
-  
-Choose any block size larger than the size of /proc/swaps.  This will
-always show the whole last line of /proc/swaps"
+Cc: stable at vger.kernel.org
+Fixes: 1f4aace60b0e ("fs/seq_file.c: simplify seq_file iteration code ...")
+Link: https://urldefense.com/v3/__https://bugzilla.kernel.org/show_bug.cgi?id=206283__;!!GqivPVa7Brio!McCQFYlmRnNmoAtY2bRAeiRzKSgC0c8B5r-Oy1meJpaRZaM5TbD5lECuzD96ZyERbIiA3Q$ 
+Signed-off-by: Vasily Averin <vvs@virtuozzo.com>
+---
+ fs/ocfs2/cluster/netdebug.c | 12 +++++++-----
+ 1 file changed, 7 insertions(+), 5 deletions(-)
 
-/proc/swaps output was fixed recently [1], however there are lot of other
-affected files and 4 of them are related to ocfs2.
-
-Moreover lishan@ experiments showed that ocfs2-related seq_operations
-completely ignores position index argument and it leads to incorrect output. [2]
-
-Usually you can observe following related problems:
-- read after lseek beyond end of file, described above by NeilBrown
- "dd if=<AFFECTED_FILE> bs=1000 skip=1" will incorrectly generate whole last line
-
-- read after lseek on into middle of last line will output expected rest of
- last line but then repeat whole last line once again.
-
-- If .show() function generates multi-line output following bash script will never finish.
-
- $ q=;while read -r r;do echo "$((++q)) $r";done < AFFECTED_FILE
-
-[1] Link: https://urldefense.com/v3/__https://bugzilla.kernel.org/show_bug.cgi?id=206283__;!!GqivPVa7Brio!M3Zvpw7fOUG9cadeYNB9Nc7yQqx_CxPjQKa1xVL-HV09pGqXsi_4x0J6l5LuvKgjTUVSrQ$ 
-[2] Link: https://oss.oracle.com/pipermail/ocfs2-devel/2020-March/014822.html
-
-Vasily Averin (4):
-  ocfs2: debug_lockres_ops should properly handle position index
-  ocfs2: ocfs2_dlm_seq_ops should properly handle position index
-  ocfs2: nst_seq_ops should properly handle position index
-  ocfs2: sc_seq_ops should properly handle position index
-
- fs/ocfs2/cluster/netdebug.c | 24 +++++++-----
- fs/ocfs2/dlm/dlmdebug.c     | 78 ++++++++++++++++++-------------------
- fs/ocfs2/dlmglue.c          | 10 +++--
- 3 files changed, 59 insertions(+), 53 deletions(-)
-
+diff --git a/fs/ocfs2/cluster/netdebug.c b/fs/ocfs2/cluster/netdebug.c
+index 667a5c5e1f66..8ca8a407781b 100644
+--- a/fs/ocfs2/cluster/netdebug.c
++++ b/fs/ocfs2/cluster/netdebug.c
+@@ -60,7 +60,8 @@ void o2net_debug_del_nst(struct o2net_send_tracking *nst)
+ }
+ 
+ static struct o2net_send_tracking
+-			*next_nst(struct o2net_send_tracking *nst_start)
++			*next_nst(struct o2net_send_tracking *nst_start,
++				  loff_t pos)
+ {
+ 	struct o2net_send_tracking *nst, *ret = NULL;
+ 
+@@ -73,7 +74,7 @@ static struct o2net_send_tracking
+ 			break;
+ 
+ 		/* use st_task to detect real nsts in the list */
+-		if (nst->st_task != NULL) {
++		if ((nst->st_task != NULL) && (pos-- == 0)) {
+ 			ret = nst;
+ 			break;
+ 		}
+@@ -87,7 +88,7 @@ static void *nst_seq_start(struct seq_file *seq, loff_t *pos)
+ 	struct o2net_send_tracking *nst, *dummy_nst = seq->private;
+ 
+ 	spin_lock(&o2net_debug_lock);
+-	nst = next_nst(dummy_nst);
++	nst = next_nst(dummy_nst, *pos);
+ 	spin_unlock(&o2net_debug_lock);
+ 
+ 	return nst;
+@@ -97,8 +98,9 @@ static void *nst_seq_next(struct seq_file *seq, void *v, loff_t *pos)
+ {
+ 	struct o2net_send_tracking *nst, *dummy_nst = seq->private;
+ 
++	(*pos)++;
+ 	spin_lock(&o2net_debug_lock);
+-	nst = next_nst(dummy_nst);
++	nst = next_nst(dummy_nst, 0);
+ 	list_del_init(&dummy_nst->st_net_debug_item);
+ 	if (nst)
+ 		list_add(&dummy_nst->st_net_debug_item,
+@@ -115,7 +117,7 @@ static int nst_seq_show(struct seq_file *seq, void *v)
+ 	s64 sock, send, status;
+ 
+ 	spin_lock(&o2net_debug_lock);
+-	nst = next_nst(dummy_nst);
++	nst = next_nst(dummy_nst, 0);
+ 	if (!nst)
+ 		goto out;
+ 
 -- 
 2.17.1
