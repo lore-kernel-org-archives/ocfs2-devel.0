@@ -1,10 +1,10 @@
 From: Sasha Levin <sashal@kernel.org>
-Date: Sat, 18 Apr 2020 10:43:21 -0400
-Subject: [Ocfs2-devel] [PATCH AUTOSEL 4.14 21/28] ocfs2: no need try to
+Date: Sat, 18 Apr 2020 10:44:00 -0400
+Subject: [Ocfs2-devel] [PATCH AUTOSEL 4.9 18/23] ocfs2: no need try to
 	truncate file beyond i_size
-In-Reply-To: <20200418144328.10265-1-sashal@kernel.org>
-References: <20200418144328.10265-1-sashal@kernel.org>
-Message-ID: <20200418144328.10265-21-sashal@kernel.org>
+In-Reply-To: <20200418144405.10565-1-sashal@kernel.org>
+References: <20200418144405.10565-1-sashal@kernel.org>
+Message-ID: <20200418144405.10565-18-sashal@kernel.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -45,7 +45,7 @@ Cc: Changwei Ge <gechangwei@live.cn>
 Cc: Gang He <ghe@suse.com>
 Cc: Jun Piao <piaojun@huawei.com>
 Cc: <stable@vger.kernel.org>
-Link: https://urldefense.com/v3/__http://lkml.kernel.org/r/20200407082754.17565-1-chge at linux.alibaba.com__;!!GqivPVa7Brio!Os-8xnpD9Iy0kWg4g2smGbTFgpUhxOQ0aN-Be4wCVwcvuBGFtDTaSOM8EGXg2dcbgzgcBQ$ 
+Link: https://urldefense.com/v3/__http://lkml.kernel.org/r/20200407082754.17565-1-chge at linux.alibaba.com__;!!GqivPVa7Brio!LUrD352okiIdCwv4iKGw97iYKybbPF1-QjfRg5fG-SokF5WyTtdqcd3OvwvG0URGXuFPNg$ 
 Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
 Signed-off-by: Sasha Levin <sashal@kernel.org>
 ---
@@ -53,10 +53,10 @@ Signed-off-by: Sasha Levin <sashal@kernel.org>
  1 file changed, 4 insertions(+)
 
 diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-index addd7c5f2d3e5..bed54e8adcf99 100644
+index 06089becca607..dfb8a923921e0 100644
 --- a/fs/ocfs2/alloc.c
 +++ b/fs/ocfs2/alloc.c
-@@ -7240,6 +7240,10 @@ int ocfs2_truncate_inline(struct inode *inode, struct buffer_head *di_bh,
+@@ -7246,6 +7246,10 @@ int ocfs2_truncate_inline(struct inode *inode, struct buffer_head *di_bh,
  	struct ocfs2_dinode *di = (struct ocfs2_dinode *)di_bh->b_data;
  	struct ocfs2_inline_data *idata = &di->id2.i_data;
  
