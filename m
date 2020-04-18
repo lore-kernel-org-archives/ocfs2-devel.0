@@ -1,10 +1,10 @@
 From: Sasha Levin <sashal@kernel.org>
-Date: Sat, 18 Apr 2020 09:47:57 -0400
-Subject: [Ocfs2-devel] [PATCH AUTOSEL 5.6 55/73] ocfs2: no need try to
+Date: Sat, 18 Apr 2020 10:08:46 -0400
+Subject: [Ocfs2-devel] [PATCH AUTOSEL 5.5 51/75] ocfs2: no need try to
 	truncate file beyond i_size
-In-Reply-To: <20200418134815.6519-1-sashal@kernel.org>
-References: <20200418134815.6519-1-sashal@kernel.org>
-Message-ID: <20200418134815.6519-55-sashal@kernel.org>
+In-Reply-To: <20200418140910.8280-1-sashal@kernel.org>
+References: <20200418140910.8280-1-sashal@kernel.org>
+Message-ID: <20200418140910.8280-51-sashal@kernel.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -45,7 +45,7 @@ Cc: Changwei Ge <gechangwei@live.cn>
 Cc: Gang He <ghe@suse.com>
 Cc: Jun Piao <piaojun@huawei.com>
 Cc: <stable@vger.kernel.org>
-Link: https://urldefense.com/v3/__http://lkml.kernel.org/r/20200407082754.17565-1-chge at linux.alibaba.com__;!!GqivPVa7Brio!J8OTDi4_RMzjCZKw1J4hkPFCV_umwW5spx03qm_F4UX5AU04Ev6dvxMJj64RRod4ECLAkQ$ 
+Link: https://urldefense.com/v3/__http://lkml.kernel.org/r/20200407082754.17565-1-chge at linux.alibaba.com__;!!GqivPVa7Brio!KZZrGW26OLoti718gCEJhQjYe-B4sBBsaYgRYZETZlE8Tiv2sbY0lmzH52M7oouYdQl2PA$ 
 Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
 Signed-off-by: Sasha Levin <sashal@kernel.org>
 ---
