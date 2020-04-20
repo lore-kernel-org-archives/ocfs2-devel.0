@@ -1,35 +1,45 @@
-From: Paolo Bonzini <pbonzini@redhat.com>
-Date: Mon, 20 Apr 2020 16:33:04 +0200
-Subject: [Ocfs2-devel] [PATCH 6/8] simplefs: add file creation functions
-In-Reply-To: <20200420142842.GA4125486@kroah.com>
-References: <20200414124304.4470-1-eesposit@redhat.com>
-	<20200414124304.4470-7-eesposit@redhat.com>
-	<20200414125626.GC720679@kroah.com>
-	<f371bcc0-266a-cb0b-3bde-fed336b8c9b5@redhat.com>
-	<20200420142842.GA4125486@kroah.com>
-Message-ID: <7d7a9ccc-022d-f60d-d28a-f063ab9494bc@redhat.com>
+From: Jonathan Corbet <corbet@lwn.net>
+Date: Mon, 20 Apr 2020 15:43:16 -0600
+Subject: [Ocfs2-devel] [PATCH v2 00/33] Documentation fixes for Kernel
+	5.8
+In-Reply-To: <cover.1586881715.git.mchehab+huawei@kernel.org>
+References: <cover.1586881715.git.mchehab+huawei@kernel.org>
+Message-ID: <20200420154316.28e42905@lwn.net>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Emanuele Giuseppe Esposito <eesposit@redhat.com>
-Cc: Song Liu <songliubraving@fb.com>, linux-usb@vger.kernel.org, bpf@vger.kernel.org, "Rafael J. Wysocki" <rafael@kernel.org>, David Airlie <airlied@linux.ie>, Heiko Carstens <heiko.carstens@de.ibm.com>, Alexei Starovoitov <ast@kernel.org>, dri-devel@lists.freedesktop.org, "J. Bruce Fields" <bfields@fieldses.org>, Joseph Qi <joseph.qi@linux.alibaba.com>, Hugh Dickins <hughd@google.com>, Paul Mackerras <paulus@samba.org>, John Johansen <john.johansen@canonical.com>, netdev@vger.kernel.org, ocfs2-devel@oss.oracle.com, Christoph Hellwig <hch@lst.de>, Andrew Donnellan <ajd@linux.ibm.com>, Matthew Garrett <matthew.garrett@nebula.com>, linux-efi@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Daniel Borkmann <daniel@iogearbox.net>, Christian Borntraeger <borntraeger@de.ibm.com>, linux-rdma@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, Mark Fasheh <mark@fasheh.com>, Anton Vorontsov <anton@enomsg.org>, John Fastabend <john.fastabend@gmail.com>, James Morris <jmorris@namei.org>, Ard Biesheuvel <ardb@kernel.org>, Jason Gunthorpe <jgg@ziepe.ca>, Doug Ledford <dledford@redhat.com>, oprofile-list@lists.sf.net, Yonghong Song <yhs@fb.com>, Ian Kent <raven@themaw.net>, Andrii Nakryiko <andriin@fb.com>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, Robert Richter <rric@kernel.org>, Vasily Gorbik <gor@linux.ibm.com>, Tony Luck <tony.luck@intel.com>, Kees Cook <keescook@chromium.org>, "James E.J. Bottomley" <jejb@linux.ibm.com>, autofs@vger.kernel.org, Mike Marciniszyn <mike.marciniszyn@intel.com>, linux-fsdevel@vger.kernel.org, "Manoj N. Kumar" <manoj@linux.ibm.com>, Uma Krishnan <ukrishn@linux.ibm.com>, Jakub Kicinski <kuba@kernel.org>, KP Singh <kpsingh@chromium.org>, Trond Myklebust <trond.myklebust@hammerspace.com>, "Matthew R. Ochs" <mrochs@linux.ibm.com>, "David S. Miller" <davem@davemloft.net>, Felipe Balbi <balbi@kernel.org>, linux-nfs@vger.kernel.org, Iurii Zaikin <yzaikin@google.com>, linux-scsi@vger.kernel.org, "Martin K. Petersen" <martin.petersen@oracle.com>, linux-mm@kvack.org, linux-s390@vger.kernel.org, Dennis Dalessandro <dennis.dalessandro@intel.com>, Miklos Szeredi <miklos@szeredi.hu>, linux-security-module@vger.kernel.org, linux-kernel@vger.kernel.org, Anna Schumaker <anna.schumaker@netapp.com>, Luis Chamberlain <mcgrof@kernel.org>, Chuck Lever <chuck.lever@oracle.com>, Jeremy Kerr <jk@ozlabs.org>, Thomas Zimmermann <tzimmermann@suse.de>, Colin Cross <ccross@android.com>, Frederic Barrat <fbarrat@linux.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Mike Kravetz <mike.kravetz@oracle.com>, linuxppc-dev@lists.ozlabs.org, Martin KaFai Lau <kafai@fb.com>, Joel Becker <jlbec@evilplan.org>, Alexander Viro <viro@zeniv.linux.org.uk>
+To: Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
+Cc: kvm@vger.kernel.org, Linux Doc Mailing List <linux-doc@vger.kernel.org>, linux-pci@vger.kernel.org, dri-devel@lists.freedesktop.org, linux-unionfs@vger.kernel.org, linux-mm@kvack.org, netdev@vger.kernel.org, linux-i2c@vger.kernel.org, linux1394-devel@lists.sourceforge.net, kvmarm@lists.cs.columbia.edu, linux-arch@vger.kernel.org, Geert Uytterhoeven <geert+renesas@glider.be>, linux-rdma@vger.kernel.org, Kishon Vijay Abraham I <kishon@ti.com>, linux-rockchip@lists.infradead.org, Matthias Kaehlcke <mka@chromium.org>, Sandeep Maheswaram <sanm@codeaurora.org>, linux-media@vger.kernel.org, devicetree@vger.kernel.org, linux-afs@lists.infradead.org, linux-arm-msm@vger.kernel.org, ecryptfs@vger.kernel.org, kvm-ppc@vger.kernel.org, Stephen Boyd <swboyd@chromium.org>, Maxime Ripard <maxime@cerno.tech>, linux-arm-kernel@lists.infradead.org, linux-edac@vger.kernel.org, Matthias Brugger <mbrugger@suse.com>, Yuti Amonkar <yamonkar@cadence.com>, linux-ide@vger.kernel.org, linux-ntfs-dev@lists.sourceforge.net, freedreno@lists.freedesktop.org, linux-usb@vger.kernel.org, linux-kernel@vger.kernel.org, linux-spi@vger.kernel.org, linux-crypto@vger.kernel.org, Sudeep Holla <sudeep.holla@arm.com>, linux-fsdevel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, ocfs2-devel@oss.oracle.com
 
-On 20/04/20 16:28, Greg Kroah-Hartman wrote:
->> I assume you meant a new file. These new functions are used only by a few
->> filesystems, and I didn't want to include them in vmlinux unconditionally,
->> so I introduced simplefs.c and CONFIG_SIMPLEFS instead of extending libfs.c.
->> In this way only fs that need this code like debugfs and tracefs will load
->> it.
-> Nothing "loads it", why not just make these libfs functions instead?  As
-> the difference between the two is not obvious at all, please don't make
-> things confusing.
+On Tue, 14 Apr 2020 18:48:26 +0200
+Mauro Carvalho Chehab <mchehab+huawei@kernel.org> wrote:
 
-I think Emanuele meant "will link it" not "will load it".
+> Patches 1 to 5 contain changes to the documentation toolset:
+> 
+> - The first 3 patches help to reduce a lot the number of reported
+>   kernel-doc issues, by making the tool more smart.
+> 
+> - Patches 4 and 5 are meant to partially address the PDF
+>   build, with now requires Sphinx version 2.4 or upper.
+> 
+> The remaining patches fix broken references detected by
+> this tool:
+> 
+>         ./scripts/documentation-file-ref-check
+> 
+> and address other random errors due to tags being mis-interpreted
+> or mis-used.
+> 
+> They are independent each other, but some may depend on
+> the kernel-doc improvements.
+> 
+> PS.: Due to the large number of C/C, I opted to keep a smaller
+> set of C/C at this first e-mail (only e-mails with "L:" tag from
+> MAINTAINERS file).
 
-Emanuele, you can just move everything to libfs.c and get rid of
-CONFIG_SIMPLEFS too.  "Do less" is not an offer you want to turn down!
+OK, I've applied this set, minus #17 which was applied elsewhere.
 
 Thanks,
 
-Paolo
+jon
