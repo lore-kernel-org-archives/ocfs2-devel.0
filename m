@@ -1,11 +1,11 @@
 From: Emanuele Giuseppe Esposito <eesposit@redhat.com>
-Date: Mon, 20 Apr 2020 15:57:48 +0200
-Subject: [Ocfs2-devel] [PATCH 6/8] simplefs: add file creation functions
-In-Reply-To: <20200414125626.GC720679@kroah.com>
+Date: Mon, 20 Apr 2020 15:58:02 +0200
+Subject: [Ocfs2-devel] [PATCH 4/8] fs: introduce simple_new_inode
+In-Reply-To: <20200414130140.GD720679@kroah.com>
 References: <20200414124304.4470-1-eesposit@redhat.com>
-	<20200414124304.4470-7-eesposit@redhat.com>
-	<20200414125626.GC720679@kroah.com>
-Message-ID: <f371bcc0-266a-cb0b-3bde-fed336b8c9b5@redhat.com>
+	<20200414124304.4470-5-eesposit@redhat.com>
+	<20200414130140.GD720679@kroah.com>
+Message-ID: <e87e032e-32cf-a6fc-af8f-3bcece2fcff7@redhat.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -15,33 +15,43 @@ Cc: Song Liu <songliubraving@fb.com>, linux-usb@vger.kernel.org, bpf@vger.kernel
 
 
 
-On 4/14/20 2:56 PM, Greg Kroah-Hartman wrote:
-> On Tue, Apr 14, 2020 at 02:43:00PM +0200, Emanuele Giuseppe Esposito wrote:
->> A bunch of code is duplicated between debugfs and tracefs, unify it to the
->> simplefs library.
->>
->> The code is very similar, except that dentry and inode creation are unified
->> into a single function (unlike start_creating in debugfs and tracefs, which
->> only takes care of dentries).  This adds an output parameter to the creation
->> functions, but pushes all error recovery into fs/simplefs.c.
->>
->> Signed-off-by: Emanuele Giuseppe Esposito <eesposit@redhat.com>
->> ---
->>   fs/simplefs.c            | 150 +++++++++++++++++++++++++++++++++++++++
->>   include/linux/simplefs.h |  19 +++++
->>   2 files changed, 169 insertions(+)
+On 4/14/20 3:01 PM, Greg Kroah-Hartman wrote:
+> On Tue, Apr 14, 2020 at 02:42:58PM +0200, Emanuele Giuseppe Esposito wrote:
+>> It is a common special case for new_inode to initialize the
+>> time to the current time and the inode to get_next_ino().
+>> Introduce a core function that does it and use it throughout
+>> Linux.
 > 
-> What's wrong with libfs, isn't that supposed to be for these types of
-> "common" filesystem interactions?
+> Shouldn't this just be called new_inode_current_time()?
 > 
-> Why create a whole "new" fs for this?
+> How is anyone going to remember what simple_new_inode() does to the
+> inode structure?
 
-I assume you meant a new file. These new functions are used only by a 
-few filesystems, and I didn't want to include them in vmlinux 
-unconditionally, so I introduced simplefs.c and CONFIG_SIMPLEFS instead 
-of extending libfs.c. In this way only fs that need this code like 
-debugfs and tracefs will load it.
+I noticed that most functions in libfs.c are called "simple_*" when they 
+do the right thing for the majority of simple use cases (e.g., 
+simple_symlink_inode_operations or simple_dir_operations). I can 
+certainly rename the function.
 
-Thank you,
+Thank you for all the feedback, I will incorporate it and send a new 
+patch series soon.
+
 
 Emanuele
+> 
+>> --- a/fs/libfs.c
+>> +++ b/fs/libfs.c
+>> @@ -595,6 +595,18 @@ int simple_write_end(struct file *file, struct address_space *mapping,
+>>   }
+>>   EXPORT_SYMBOL(simple_write_end);
+>>   
+>> +struct inode *simple_new_inode(struct super_block *sb)
+>> +{
+>> +	struct inode *inode = new_inode(sb);
+>> +	if (inode) {
+>> +		inode->i_ino = get_next_ino();
+>> +		inode->i_atime = inode->i_mtime =
+>> +			inode->i_ctime = current_time(inode);
+>> +	}
+>> +	return inode;
+>> +}
+>> +EXPORT_SYMBOL(simple_new_inode);
