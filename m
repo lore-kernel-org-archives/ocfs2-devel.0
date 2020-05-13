@@ -1,272 +1,189 @@
-From: Gang He <GHe@suse.com>
-Date: Tue, 28 Apr 2020 08:12:18 +0000
-Subject: [Ocfs2-devel] [PATCH] ocfs2: mount shared volume without ha
-	stack
-In-Reply-To: <ec4f098b-f043-85d5-6717-66c4f611146d@linux.alibaba.com>
-References: <20200423053300.22661-1-ghe@suse.com>
-	<ec4f098b-f043-85d5-6717-66c4f611146d@linux.alibaba.com>
-Message-ID: <CH2PR18MB32064CCD80FE98F03B82A816CFAC0@CH2PR18MB3206.namprd18.prod.outlook.com>
+From: Christoph Hellwig <hch@lst.de>
+Date: Wed, 13 May 2020 08:26:16 +0200
+Subject: [Ocfs2-devel] [PATCH 01/33] net: add sock_set_reuseaddr
+In-Reply-To: <20200513062649.2100053-1-hch@lst.de>
+References: <20200513062649.2100053-1-hch@lst.de>
+Message-ID: <20200513062649.2100053-2-hch@lst.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Joseph Qi <joseph.qi@linux.alibaba.com>, "mark@fasheh.com" <mark@fasheh.com>, "jlbec@evilplan.org" <jlbec@evilplan.org>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>
+To: "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>
+Cc: Eric Dumazet <edumazet@google.com>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, Vlad Yasevich <vyasevich@gmail.com>, Neil Horman <nhorman@tuxdriver.com>, Marcelo Ricardo Leitner <marcelo.leitner@gmail.com>, Jon Maloy <jmaloy@redhat.com>, Ying Xue <ying.xue@windriver.com>, drbd-dev@lists.linbit.com, linux-block@vger.kernel.org, linux-kernel@vger.kernel.org, linux-rdma@vger.kernel.org, linux-nvme@lists.infradead.org, target-devel@vger.kernel.org, linux-afs@lists.infradead.org, linux-cifs@vger.kernel.org, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, netdev@vger.kernel.org, linux-sctp@vger.kernel.org, ceph-devel@vger.kernel.org, rds-devel@oss.oracle.com, linux-nfs@vger.kernel.org
 
-Hello Joseph,
+Add a helper to directly set the SO_REUSEADDR sockopt from kernel space
+without going through a fake uaccess.
 
-Thank for your taking the time to review the patch.
-Please see my comments inline.
+For this the iscsi target now has to formally depend on inet to avoid
+a mostly theoretical compile failure.  For actual operation it already
+did depend on having ipv4 or ipv6 support.
 
-> -----Original Message-----
-> From: Joseph Qi [mailto:joseph.qi at linux.alibaba.com]
-> Sent: 2020?4?27? 17:48
-> To: Gang He <GHe@suse.com>; mark at fasheh.com; jlbec at evilplan.org
-> Cc: linux-kernel at vger.kernel.org; ocfs2-devel at oss.oracle.com;
-> akpm at linux-foundation.org
-> Subject: Re: [PATCH] ocfs2: mount shared volume without ha stack
-> 
-> Hi Gang,
-> 
-> On 2020/4/23 13:33, Gang He wrote:
-> > Usually we create and use a ocfs2 shared volume on the top of ha
-> > stack. For pcmk based ha stack, which includes DLM, corosync and
-> > pacemaker services.
-> > The customers complained they could not mount existent ocfs2 volume in
-> > the single node without ha stack, e.g. single node backup/restore
-> > scenario.
-> > Like this case, the customers just want to access the data from the
-> > existent ocfs2 volume quickly, but do not want to restart or setup ha
-> > stack.
-> > Then, I'd like to add a mount option "nocluster", if the users use
-> > this option to mount a ocfs2 shared volume, the whole mount will not
-> > depend on the ha related services. the command will mount the existent
-> > ocfs2 volume directly (like local mount), for avoiding setup the ha
-> > stack.
-> >
-> > Signed-off-by: Gang He <ghe@suse.com>
-> > ---
-> >  fs/ocfs2/ocfs2.h    |  4 +++-
-> >  fs/ocfs2/slot_map.c | 46
-> ++++++++++++++++++++++++++-------------------
-> >  fs/ocfs2/super.c    | 21 +++++++++++++++++++++
-> >  3 files changed, 51 insertions(+), 20 deletions(-)
-> >
-> > diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h index
-> > 9150cfa4df7d..ee5d98516212 100644
-> > --- a/fs/ocfs2/ocfs2.h
-> > +++ b/fs/ocfs2/ocfs2.h
-> > @@ -279,6 +279,7 @@ enum ocfs2_mount_options
-> >  	OCFS2_MOUNT_JOURNAL_ASYNC_COMMIT = 1 << 15,  /* Journal
-> Async Commit */
-> >  	OCFS2_MOUNT_ERRORS_CONT = 1 << 16, /* Return EIO to the
-> calling process on error */
-> >  	OCFS2_MOUNT_ERRORS_ROFS = 1 << 17, /* Change filesystem to
-> read-only
-> > on error */
-> > +	OCFS2_MOUNT_NOCLUSTER = 1 << 18, /* No cluster aware filesystem
-> > +mount */
-> >  };
-> >
-> >  #define OCFS2_OSB_SOFT_RO	0x0001
-> > @@ -673,7 +674,8 @@ static inline int
-> > ocfs2_cluster_o2cb_global_heartbeat(struct ocfs2_super *osb)
-> >
-> >  static inline int ocfs2_mount_local(struct ocfs2_super *osb)  {
-> > -	return (osb->s_feature_incompat &
-> OCFS2_FEATURE_INCOMPAT_LOCAL_MOUNT);
-> > +	return ((osb->s_feature_incompat &
-> OCFS2_FEATURE_INCOMPAT_LOCAL_MOUNT)
-> > +		|| (osb->s_mount_opt & OCFS2_MOUNT_NOCLUSTER));
-> 
-> Could we set the feature bit when mount with "nocluster"?
-I feel this code change should belong to mount behavior, we do not change disk layout.
-Then, I feel we should not set this option to the feature bit, since the feature bit is usually saved/loaded to/from the disk.
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+---
+ drivers/infiniband/sw/siw/siw_cm.c        | 18 +++++-------------
+ drivers/nvme/target/tcp.c                 |  8 +-------
+ drivers/target/iscsi/Kconfig              |  2 +-
+ drivers/target/iscsi/iscsi_target_login.c |  9 +--------
+ fs/dlm/lowcomms.c                         |  6 +-----
+ include/net/sock.h                        |  1 +
+ net/core/sock.c                           |  8 ++++++++
+ 7 files changed, 18 insertions(+), 34 deletions(-)
 
-> 
-> >  }
-> >
-> >  static inline int ocfs2_uses_extended_slot_map(struct ocfs2_super
-> > *osb) diff --git a/fs/ocfs2/slot_map.c b/fs/ocfs2/slot_map.c index
-> > 8caeceeaeda7..4da0e4b1e79b 100644
-> > --- a/fs/ocfs2/slot_map.c
-> > +++ b/fs/ocfs2/slot_map.c
-> > @@ -254,14 +254,16 @@ static int __ocfs2_find_empty_slot(struct
-> ocfs2_slot_info *si,
-> >  	int i, ret = -ENOSPC;
-> >
-> >  	if ((preferred >= 0) && (preferred < si->si_num_slots)) {
-> > -		if (!si->si_slots[preferred].sl_valid) {
-> > +		if (!si->si_slots[preferred].sl_valid ||
-> > +		    !si->si_slots[preferred].sl_node_num) {
-> 
-> Why specially handle node num 0 here?
-> It seems breaks original logic.
-Since in local(or nocluster) mode, the code will not invoke any DLM/cluster related interfaces.
-The node_num is set to 0 directly.
-In the past, local mount/cluster mount will not happen on the same volume.
-But, after nocluster option is introduced, local(nocluster) mount/cluster mount will possibly happen(not at the same time) on the same volume. 
-If we mount the shared volume with the cluster mode after a local (nocluster mode) mount crash,
-We have to use that slot(slot 0, which was used by the last local mount), otherwise, there is possibly not more slot available.
-
-> 
-> >  			ret = preferred;
-> >  			goto out;
-> >  		}
-> >  	}
-> >
-> >  	for(i = 0; i < si->si_num_slots; i++) {
-> > -		if (!si->si_slots[i].sl_valid) {
-> > +		if (!si->si_slots[i].sl_valid ||
-> > +		    !si->si_slots[i].sl_node_num) {
-> >  			ret = i;
-> >  			break;
-> >  		}
-> > @@ -456,24 +458,30 @@ int ocfs2_find_slot(struct ocfs2_super *osb)
-> >  	spin_lock(&osb->osb_lock);
-> >  	ocfs2_update_slot_info(si);
-> >
-> > -	/* search for ourselves first and take the slot if it already
-> > -	 * exists. Perhaps we need to mark this in a variable for our
-> > -	 * own journal recovery? Possibly not, though we certainly
-> > -	 * need to warn to the user */
-> > -	slot = __ocfs2_node_num_to_slot(si, osb->node_num);
-> > -	if (slot < 0) {
-> > -		/* if no slot yet, then just take 1st available
-> > -		 * one. */
-> > -		slot = __ocfs2_find_empty_slot(si, osb->preferred_slot);
-> > +	if (ocfs2_mount_local(osb))
-> > +		/* use slot 0 directly in local mode */
-> > +		slot = 0;
-> 
-> Could you please elaborate more why we need this?
-I do not change the existed logic. 
-In the past, in local mode, the code always use slot 0, even if there are more than one slots.
-Now, I just make the logic more clear.
-In nocluster mode, we do the same logic, use slot 0 directly, need not to find any available slot.
-Because we know only this node will use the file system. 
-Secondly, we cannot get the DLM node_num(since no dlm service) here, we need not to match node_num like cluster mode.
-
-Thanks
-Gang
-
-> 
-> Thanks,
-> Joseph
-> 
-> > +	else {
-> > +		/* search for ourselves first and take the slot if it already
-> > +		 * exists. Perhaps we need to mark this in a variable for our
-> > +		 * own journal recovery? Possibly not, though we certainly
-> > +		 * need to warn to the user */
-> > +		slot = __ocfs2_node_num_to_slot(si, osb->node_num);
-> >  		if (slot < 0) {
-> > -			spin_unlock(&osb->osb_lock);
-> > -			mlog(ML_ERROR, "no free slots available!\n");
-> > -			status = -EINVAL;
-> > -			goto bail;
-> > -		}
-> > -	} else
-> > -		printk(KERN_INFO "ocfs2: Slot %d on device (%s) was already "
-> > -		       "allocated to this node!\n", slot, osb->dev_str);
-> > +			/* if no slot yet, then just take 1st available
-> > +			 * one. */
-> > +			slot = __ocfs2_find_empty_slot(si, osb->preferred_slot);
-> > +			if (slot < 0) {
-> > +				spin_unlock(&osb->osb_lock);
-> > +				mlog(ML_ERROR, "no free slots available!\n");
-> > +				status = -EINVAL;
-> > +				goto bail;
-> > +			}
-> > +		} else
-> > +			printk(KERN_INFO "ocfs2: Slot %d on device (%s) was "
-> > +			       "already allocated to this node!\n",
-> > +			       slot, osb->dev_str);
-> > +	}
-> >
-> >  	ocfs2_set_slot(si, slot, osb->node_num);
-> >  	osb->slot_num = slot;
-> > diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c index
-> > ac61eeaf3837..71ea9ce71a6b 100644
-> > --- a/fs/ocfs2/super.c
-> > +++ b/fs/ocfs2/super.c
-> > @@ -175,6 +175,7 @@ enum {
-> >  	Opt_dir_resv_level,
-> >  	Opt_journal_async_commit,
-> >  	Opt_err_cont,
-> > +	Opt_nocluster,
-> >  	Opt_err,
-> >  };
-> >
-> > @@ -208,6 +209,7 @@ static const match_table_t tokens = {
-> >  	{Opt_dir_resv_level, "dir_resv_level=%u"},
-> >  	{Opt_journal_async_commit, "journal_async_commit"},
-> >  	{Opt_err_cont, "errors=continue"},
-> > +	{Opt_nocluster, "nocluster"},
-> >  	{Opt_err, NULL}
-> >  };
-> >
-> > @@ -619,6 +621,13 @@ static int ocfs2_remount(struct super_block *sb,
-> int *flags, char *data)
-> >  		goto out;
-> >  	}
-> >
-> > +	tmp = OCFS2_MOUNT_NOCLUSTER;
-> > +	if ((osb->s_mount_opt & tmp) != (parsed_options.mount_opt & tmp)) {
-> > +		ret = -EINVAL;
-> > +		mlog(ML_ERROR, "Cannot change nocluster option on remount\n");
-> > +		goto out;
-> > +	}
-> > +
-> >  	tmp = OCFS2_MOUNT_HB_LOCAL | OCFS2_MOUNT_HB_GLOBAL |
-> >  		OCFS2_MOUNT_HB_NONE;
-> >  	if ((osb->s_mount_opt & tmp) != (parsed_options.mount_opt & tmp))
-> {
-> > @@ -859,6 +868,7 @@ static int ocfs2_verify_userspace_stack(struct
-> ocfs2_super *osb,
-> >  	}
-> >
-> >  	if (ocfs2_userspace_stack(osb) &&
-> > +	    !(osb->s_mount_opt & OCFS2_MOUNT_NOCLUSTER) &&
-> >  	    strncmp(osb->osb_cluster_stack, mopt->cluster_stack,
-> >  		    OCFS2_STACK_LABEL_LEN)) {
-> >  		mlog(ML_ERROR,
-> > @@ -1139,6 +1149,11 @@ static int ocfs2_fill_super(struct super_block *sb,
-> void *data, int silent)
-> >  	       osb->s_mount_opt & OCFS2_MOUNT_DATA_WRITEBACK ?
-> "writeback" :
-> >  	       "ordered");
-> >
-> > +	if ((osb->s_mount_opt & OCFS2_MOUNT_NOCLUSTER) &&
-> > +	   !(osb->s_feature_incompat &
-> OCFS2_FEATURE_INCOMPAT_LOCAL_MOUNT))
-> > +		printk(KERN_NOTICE "ocfs2: The shared device (%s) is mounted "
-> > +		       "without cluster aware mode.\n", osb->dev_str);
-> > +
-> >  	atomic_set(&osb->vol_state, VOLUME_MOUNTED);
-> >  	wake_up(&osb->osb_mount_event);
-> >
-> > @@ -1445,6 +1460,9 @@ static int ocfs2_parse_options(struct super_block
-> *sb,
-> >  		case Opt_journal_async_commit:
-> >  			mopt->mount_opt |=
-> OCFS2_MOUNT_JOURNAL_ASYNC_COMMIT;
-> >  			break;
-> > +		case Opt_nocluster:
-> > +			mopt->mount_opt |= OCFS2_MOUNT_NOCLUSTER;
-> > +			break;
-> >  		default:
-> >  			mlog(ML_ERROR,
-> >  			     "Unrecognized mount option \"%s\" "
-> > @@ -1556,6 +1574,9 @@ static int ocfs2_show_options(struct seq_file *s,
-> struct dentry *root)
-> >  	if (opts & OCFS2_MOUNT_JOURNAL_ASYNC_COMMIT)
-> >  		seq_printf(s, ",journal_async_commit");
-> >
-> > +	if (opts & OCFS2_MOUNT_NOCLUSTER)
-> > +		seq_printf(s, ",nocluster");
-> > +
-> >  	return 0;
-> >  }
-> >
-> >
+diff --git a/drivers/infiniband/sw/siw/siw_cm.c b/drivers/infiniband/sw/siw/siw_cm.c
+index 559e5fd3bad8b..6d7c8c933736c 100644
+--- a/drivers/infiniband/sw/siw/siw_cm.c
++++ b/drivers/infiniband/sw/siw/siw_cm.c
+@@ -1312,17 +1312,14 @@ static void siw_cm_llp_state_change(struct sock *sk)
+ static int kernel_bindconnect(struct socket *s, struct sockaddr *laddr,
+ 			      struct sockaddr *raddr)
+ {
+-	int rv, flags = 0, s_val = 1;
++	int rv, flags = 0;
+ 	size_t size = laddr->sa_family == AF_INET ?
+ 		sizeof(struct sockaddr_in) : sizeof(struct sockaddr_in6);
+ 
+ 	/*
+ 	 * Make address available again asap.
+ 	 */
+-	rv = kernel_setsockopt(s, SOL_SOCKET, SO_REUSEADDR, (char *)&s_val,
+-			       sizeof(s_val));
+-	if (rv < 0)
+-		return rv;
++	sock_set_reuseaddr(s->sk, SK_CAN_REUSE);
+ 
+ 	rv = s->ops->bind(s, laddr, size);
+ 	if (rv < 0)
+@@ -1781,7 +1778,7 @@ int siw_create_listen(struct iw_cm_id *id, int backlog)
+ 	struct siw_cep *cep = NULL;
+ 	struct siw_device *sdev = to_siw_dev(id->device);
+ 	int addr_family = id->local_addr.ss_family;
+-	int rv = 0, s_val;
++	int rv = 0;
+ 
+ 	if (addr_family != AF_INET && addr_family != AF_INET6)
+ 		return -EAFNOSUPPORT;
+@@ -1793,13 +1790,8 @@ int siw_create_listen(struct iw_cm_id *id, int backlog)
+ 	/*
+ 	 * Allow binding local port when still in TIME_WAIT from last close.
+ 	 */
+-	s_val = 1;
+-	rv = kernel_setsockopt(s, SOL_SOCKET, SO_REUSEADDR, (char *)&s_val,
+-			       sizeof(s_val));
+-	if (rv) {
+-		siw_dbg(id->device, "setsockopt error: %d\n", rv);
+-		goto error;
+-	}
++	sock_set_reuseaddr(s->sk, SK_CAN_REUSE);
++
+ 	if (addr_family == AF_INET) {
+ 		struct sockaddr_in *laddr = &to_sockaddr_in(id->local_addr);
+ 
+diff --git a/drivers/nvme/target/tcp.c b/drivers/nvme/target/tcp.c
+index f0da04e960f40..791aa32beeb98 100644
+--- a/drivers/nvme/target/tcp.c
++++ b/drivers/nvme/target/tcp.c
+@@ -1632,6 +1632,7 @@ static int nvmet_tcp_add_port(struct nvmet_port *nport)
+ 	port->sock->sk->sk_user_data = port;
+ 	port->data_ready = port->sock->sk->sk_data_ready;
+ 	port->sock->sk->sk_data_ready = nvmet_tcp_listen_data_ready;
++	sock_set_reuseaddr(port->sock->sk, SK_CAN_REUSE);
+ 
+ 	opt = 1;
+ 	ret = kernel_setsockopt(port->sock, IPPROTO_TCP,
+@@ -1641,13 +1642,6 @@ static int nvmet_tcp_add_port(struct nvmet_port *nport)
+ 		goto err_sock;
+ 	}
+ 
+-	ret = kernel_setsockopt(port->sock, SOL_SOCKET, SO_REUSEADDR,
+-			(char *)&opt, sizeof(opt));
+-	if (ret) {
+-		pr_err("failed to set SO_REUSEADDR sock opt %d\n", ret);
+-		goto err_sock;
+-	}
+-
+ 	if (so_priority > 0) {
+ 		ret = kernel_setsockopt(port->sock, SOL_SOCKET, SO_PRIORITY,
+ 				(char *)&so_priority, sizeof(so_priority));
+diff --git a/drivers/target/iscsi/Kconfig b/drivers/target/iscsi/Kconfig
+index 1f93ea3813536..922484ea4e304 100644
+--- a/drivers/target/iscsi/Kconfig
++++ b/drivers/target/iscsi/Kconfig
+@@ -1,7 +1,7 @@
+ # SPDX-License-Identifier: GPL-2.0-only
+ config ISCSI_TARGET
+ 	tristate "Linux-iSCSI.org iSCSI Target Mode Stack"
+-	depends on NET
++	depends on INET
+ 	select CRYPTO
+ 	select CRYPTO_CRC32C
+ 	select CRYPTO_CRC32C_INTEL if X86
+diff --git a/drivers/target/iscsi/iscsi_target_login.c b/drivers/target/iscsi/iscsi_target_login.c
+index 731ee67fe914b..7da59ece3eb99 100644
+--- a/drivers/target/iscsi/iscsi_target_login.c
++++ b/drivers/target/iscsi/iscsi_target_login.c
+@@ -909,14 +909,7 @@ int iscsit_setup_np(
+ 		}
+ 	}
+ 
+-	/* FIXME: Someone please explain why this is endian-safe */
+-	ret = kernel_setsockopt(sock, SOL_SOCKET, SO_REUSEADDR,
+-			(char *)&opt, sizeof(opt));
+-	if (ret < 0) {
+-		pr_err("kernel_setsockopt() for SO_REUSEADDR"
+-			" failed\n");
+-		goto fail;
+-	}
++	sock_set_reuseaddr(sock->sk, SK_CAN_REUSE);
+ 
+ 	ret = kernel_setsockopt(sock, IPPROTO_IP, IP_FREEBIND,
+ 			(char *)&opt, sizeof(opt));
+diff --git a/fs/dlm/lowcomms.c b/fs/dlm/lowcomms.c
+index cdfaf4f0e11a0..48e7ba796c6fb 100644
+--- a/fs/dlm/lowcomms.c
++++ b/fs/dlm/lowcomms.c
+@@ -1244,12 +1244,8 @@ static struct socket *tcp_create_listen_sock(struct connection *con,
+ 	kernel_setsockopt(sock, SOL_TCP, TCP_NODELAY, (char *)&one,
+ 			  sizeof(one));
+ 
+-	result = kernel_setsockopt(sock, SOL_SOCKET, SO_REUSEADDR,
+-				   (char *)&one, sizeof(one));
++	sock_set_reuseaddr(sock->sk, SK_CAN_REUSE);
+ 
+-	if (result < 0) {
+-		log_print("Failed to set SO_REUSEADDR on socket: %d", result);
+-	}
+ 	write_lock_bh(&sock->sk->sk_callback_lock);
+ 	sock->sk->sk_user_data = con;
+ 	save_listen_callbacks(sock);
+diff --git a/include/net/sock.h b/include/net/sock.h
+index 3e8c6d4b4b59f..e801a147ad746 100644
+--- a/include/net/sock.h
++++ b/include/net/sock.h
+@@ -2687,5 +2687,6 @@ static inline bool sk_dev_equal_l3scope(struct sock *sk, int dif)
+ }
+ 
+ void sock_def_readable(struct sock *sk);
++void sock_set_reuseaddr(struct sock *sk, unsigned char reuse);
+ 
+ #endif	/* _SOCK_H */
+diff --git a/net/core/sock.c b/net/core/sock.c
+index fd85e651ce284..ff4faa3e68ac4 100644
+--- a/net/core/sock.c
++++ b/net/core/sock.c
+@@ -712,6 +712,14 @@ bool sk_mc_loop(struct sock *sk)
+ }
+ EXPORT_SYMBOL(sk_mc_loop);
+ 
++void sock_set_reuseaddr(struct sock *sk, unsigned char reuse)
++{
++	lock_sock(sk);
++	sk->sk_reuse = reuse;
++	release_sock(sk);
++}
++EXPORT_SYMBOL(sock_set_reuseaddr);
++
+ /*
+  *	This is meant for all protocols to use and covers goings on
+  *	at the socket level. Everything here is generic.
+-- 
+2.26.2
