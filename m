@@ -1,148 +1,102 @@
 From: Christoph Hellwig <hch@lst.de>
-Date: Wed, 13 May 2020 08:26:47 +0200
-Subject: [Ocfs2-devel] [PATCH 32/33] sctp: add sctp_sock_get_primary_addr
+Date: Wed, 13 May 2020 08:26:37 +0200
+Subject: [Ocfs2-devel] [PATCH 22/33] ipv6: add ip6_sock_set_v6only
 In-Reply-To: <20200513062649.2100053-1-hch@lst.de>
 References: <20200513062649.2100053-1-hch@lst.de>
-Message-ID: <20200513062649.2100053-33-hch@lst.de>
+Message-ID: <20200513062649.2100053-23-hch@lst.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>
-Cc: Marcelo Ricardo Leitner <marcelo.leitner@gmail.com>, Eric Dumazet <edumazet@google.com>, linux-nvme@lists.infradead.org, linux-sctp@vger.kernel.org, target-devel@vger.kernel.org, linux-afs@lists.infradead.org, linux-cifs@vger.kernel.org, rds-devel@oss.oracle.com, linux-rdma@vger.kernel.org, cluster-devel@redhat.com, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, linux-block@vger.kernel.org, drbd-dev@tron.linbit.com, ceph-devel@vger.kernel.org, linux-nfs@vger.kernel.org, Neil Horman <nhorman@tuxdriver.com>, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, netdev@vger.kernel.org, Vlad Yasevich <vyasevich@gmail.com>, linux-kernel@vger.kernel.org, Jon Maloy <jmaloy@redhat.com>, Ying Xue <ying.xue@windriver.com>, ocfs2-devel@oss.oracle.com
+Cc: Eric Dumazet <edumazet@google.com>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, Vlad Yasevich <vyasevich@gmail.com>, Neil Horman <nhorman@tuxdriver.com>, Marcelo Ricardo Leitner <marcelo.leitner@gmail.com>, Jon Maloy <jmaloy@redhat.com>, Ying Xue <ying.xue@windriver.com>, drbd-dev@lists.linbit.com, linux-block@vger.kernel.org, linux-kernel@vger.kernel.org, linux-rdma@vger.kernel.org, linux-nvme@lists.infradead.org, target-devel@vger.kernel.org, linux-afs@lists.infradead.org, linux-cifs@vger.kernel.org, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, netdev@vger.kernel.org, linux-sctp@vger.kernel.org, ceph-devel@vger.kernel.org, rds-devel@oss.oracle.com, linux-nfs@vger.kernel.org
 
-Add a helper to directly get the SCTP_PRIMARY_ADDR sockopt from kernel
-space without going through a fake uaccess.
+Add a helper to directly set the IPV6_V6ONLY sockopt from kernel space
+without going through a fake uaccess.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- fs/dlm/lowcomms.c       | 11 +++-----
- include/net/sctp/sctp.h |  1 +
- net/sctp/socket.c       | 57 +++++++++++++++++++++++++----------------
- 3 files changed, 39 insertions(+), 30 deletions(-)
+ include/net/ipv6.h        |  3 +++
+ net/ipv6/ip6_udp_tunnel.c |  5 +----
+ net/ipv6/ipv6_sockglue.c  | 11 +++++++++++
+ net/sunrpc/svcsock.c      |  8 ++------
+ 4 files changed, 17 insertions(+), 10 deletions(-)
 
-diff --git a/fs/dlm/lowcomms.c b/fs/dlm/lowcomms.c
-index 6fa45365666a8..46d2d71b62c57 100644
---- a/fs/dlm/lowcomms.c
-+++ b/fs/dlm/lowcomms.c
-@@ -855,10 +855,9 @@ static int tcp_accept_from_sock(struct connection *con)
- static int sctp_accept_from_sock(struct connection *con)
- {
- 	/* Check that the new node is in the lockspace */
--	struct sctp_prim prim;
-+	struct sctp_prim prim = { };
- 	int nodeid;
--	int prim_len, ret;
--	int addr_len;
-+	int addr_len, ret;
- 	struct connection *newcon;
- 	struct connection *addcon;
- 	struct socket *newsock;
-@@ -876,11 +875,7 @@ static int sctp_accept_from_sock(struct connection *con)
- 	if (ret < 0)
- 		goto accept_err;
+diff --git a/include/net/ipv6.h b/include/net/ipv6.h
+index 955badd1e8ffc..e24b59201a00d 100644
+--- a/include/net/ipv6.h
++++ b/include/net/ipv6.h
+@@ -1174,4 +1174,7 @@ int ipv6_sock_mc_join_ssm(struct sock *sk, int ifindex,
+ 			  const struct in6_addr *addr, unsigned int mode);
+ int ipv6_sock_mc_drop(struct sock *sk, int ifindex,
+ 		      const struct in6_addr *addr);
++
++int ip6_sock_set_v6only(struct sock *sk, bool val);
++
+ #endif /* _NET_IPV6_H */
+diff --git a/net/ipv6/ip6_udp_tunnel.c b/net/ipv6/ip6_udp_tunnel.c
+index 6523609516d25..bc4ee5cb14c8b 100644
+--- a/net/ipv6/ip6_udp_tunnel.c
++++ b/net/ipv6/ip6_udp_tunnel.c
+@@ -25,10 +25,7 @@ int udp_sock_create6(struct net *net, struct udp_port_cfg *cfg,
+ 		goto error;
  
--	memset(&prim, 0, sizeof(struct sctp_prim));
--	prim_len = sizeof(struct sctp_prim);
+ 	if (cfg->ipv6_v6only) {
+-		int val = 1;
 -
--	ret = kernel_getsockopt(newsock, IPPROTO_SCTP, SCTP_PRIMARY_ADDR,
--				(char *)&prim, &prim_len);
-+	ret = sctp_sock_get_primary_addr(con->sock->sk, &prim);
- 	if (ret < 0) {
- 		log_print("getsockopt/sctp_primary_addr failed: %d", ret);
- 		goto accept_err;
-diff --git a/include/net/sctp/sctp.h b/include/net/sctp/sctp.h
-index b505fa082f254..c98b1d14db853 100644
---- a/include/net/sctp/sctp.h
-+++ b/include/net/sctp/sctp.h
-@@ -618,5 +618,6 @@ static inline bool sctp_newsk_ready(const struct sock *sk)
- int sctp_setsockopt_bindx(struct sock *sk, struct sockaddr *kaddrs,
- 		int addrs_size, int op);
- void sctp_sock_set_nodelay(struct sock *sk, bool val);
-+int sctp_sock_get_primary_addr(struct sock *sk, struct sctp_prim *prim);
- 
- #endif /* __net_sctp_h__ */
-diff --git a/net/sctp/socket.c b/net/sctp/socket.c
-index 64c395f7a86d5..39bf8090dbe1e 100644
---- a/net/sctp/socket.c
-+++ b/net/sctp/socket.c
-@@ -6411,6 +6411,35 @@ static int sctp_getsockopt_local_addrs(struct sock *sk, int len,
- 	return err;
+-		err = kernel_setsockopt(sock, IPPROTO_IPV6, IPV6_V6ONLY,
+-					(char *) &val, sizeof(val));
++		err = ip6_sock_set_v6only(sock->sk, true);
+ 		if (err < 0)
+ 			goto error;
+ 	}
+diff --git a/net/ipv6/ipv6_sockglue.c b/net/ipv6/ipv6_sockglue.c
+index 18d05403d3b52..f26224bb3e098 100644
+--- a/net/ipv6/ipv6_sockglue.c
++++ b/net/ipv6/ipv6_sockglue.c
+@@ -136,6 +136,17 @@ static bool setsockopt_needs_rtnl(int optname)
+ 	return false;
  }
  
-+static int __sctp_sock_get_primary_addr(struct sock *sk, struct sctp_prim *prim)
++int ip6_sock_set_v6only(struct sock *sk, bool val)
 +{
-+	struct sctp_association *asoc;
-+
-+	asoc = sctp_id2assoc(sk, prim->ssp_assoc_id);
-+	if (!asoc)
++	if (inet_sk(sk)->inet_num)
 +		return -EINVAL;
-+	if (!asoc->peer.primary_path)
-+		return -ENOTCONN;
-+
-+	memcpy(&prim->ssp_addr, &asoc->peer.primary_path->ipaddr,
-+		asoc->peer.primary_path->af_specific->sockaddr_len);
-+
-+	sctp_get_pf_specific(sk->sk_family)->addr_to_user(sctp_sk(sk),
-+			(union sctp_addr *)&prim->ssp_addr);
++	lock_sock(sk);
++	sk->sk_ipv6only = val;
++	release_sock(sk);
 +	return 0;
 +}
++EXPORT_SYMBOL(ip6_sock_set_v6only);
 +
-+int sctp_sock_get_primary_addr(struct sock *sk, struct sctp_prim *prim)
-+{
-+	int ret;
-+
-+	lock_sock(sk);
-+	ret = __sctp_sock_get_primary_addr(sk, prim);
-+	release_sock(sk);
-+	return ret;
-+}
-+EXPORT_SYMBOL(sctp_sock_get_primary_addr);
-+
- /* 7.1.10 Set Primary Address (SCTP_PRIMARY_ADDR)
-  *
-  * Requests that the local SCTP stack use the enclosed peer address as
-@@ -6421,35 +6450,19 @@ static int sctp_getsockopt_primary_addr(struct sock *sk, int len,
- 					char __user *optval, int __user *optlen)
+ static int do_ipv6_setsockopt(struct sock *sk, int level, int optname,
+ 		    char __user *optval, unsigned int optlen)
  {
- 	struct sctp_prim prim;
--	struct sctp_association *asoc;
--	struct sctp_sock *sp = sctp_sk(sk);
-+	int ret;
+diff --git a/net/sunrpc/svcsock.c b/net/sunrpc/svcsock.c
+index 7a4f01c79e0f1..7fa7fedec3c5a 100644
+--- a/net/sunrpc/svcsock.c
++++ b/net/sunrpc/svcsock.c
+@@ -1328,7 +1328,6 @@ static struct svc_xprt *svc_create_socket(struct svc_serv *serv,
+ 	struct sockaddr *newsin = (struct sockaddr *)&addr;
+ 	int		newlen;
+ 	int		family;
+-	int		val;
+ 	RPC_IFDEBUG(char buf[RPC_MAX_ADDRBUFLEN]);
  
- 	if (len < sizeof(struct sctp_prim))
- 		return -EINVAL;
+ 	dprintk("svc: svc_create_socket(%s, %d, %s)\n",
+@@ -1364,11 +1363,8 @@ static struct svc_xprt *svc_create_socket(struct svc_serv *serv,
+ 	 * getting requests from IPv4 remotes.  Those should
+ 	 * be shunted to a PF_INET listener via rpcbind.
+ 	 */
+-	val = 1;
+-	if (family == PF_INET6)
+-		kernel_setsockopt(sock, SOL_IPV6, IPV6_V6ONLY,
+-					(char *)&val, sizeof(val));
 -
--	len = sizeof(struct sctp_prim);
--
--	if (copy_from_user(&prim, optval, len))
-+	if (copy_from_user(&prim, optval, sizeof(struct sctp_prim)))
- 		return -EFAULT;
- 
--	asoc = sctp_id2assoc(sk, prim.ssp_assoc_id);
--	if (!asoc)
--		return -EINVAL;
--
--	if (!asoc->peer.primary_path)
--		return -ENOTCONN;
--
--	memcpy(&prim.ssp_addr, &asoc->peer.primary_path->ipaddr,
--		asoc->peer.primary_path->af_specific->sockaddr_len);
--
--	sctp_get_pf_specific(sk->sk_family)->addr_to_user(sp,
--			(union sctp_addr *)&prim.ssp_addr);
-+	ret = __sctp_sock_get_primary_addr(sk, &prim);
-+	if (ret)
-+		return ret;
- 
--	if (put_user(len, optlen))
-+	if (put_user(len, optlen) || copy_to_user(optval, &prim, len))
- 		return -EFAULT;
--	if (copy_to_user(optval, &prim, len))
--		return -EFAULT;
--
- 	return 0;
- }
- 
++	if (family == PF_INET6 && IS_REACHABLE(CONFIG_IPV6))
++		ip6_sock_set_v6only(sock->sk, true);
+ 	if (type == SOCK_STREAM)
+ 		sock->sk->sk_reuse = SK_CAN_REUSE; /* allow address reuse */
+ 	error = kernel_bind(sock, sin, len);
 -- 
 2.26.2
