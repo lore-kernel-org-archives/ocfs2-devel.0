@@ -1,49 +1,44 @@
-From: Joe Perches <joe@perches.com>
-Date: Wed, 13 May 2020 10:38:59 -0700
-Subject: [Ocfs2-devel] remove kernel_setsockopt and kernel_getsockopt
-In-Reply-To: <20200513062649.2100053-1-hch@lst.de>
+From: Jason Gunthorpe <jgg@ziepe.ca>
+Date: Wed, 13 May 2020 09:51:44 -0300
+Subject: [Ocfs2-devel] [PATCH 11/33] tcp: tcp_sock_set_nodelay
+In-Reply-To: <20200513062649.2100053-12-hch@lst.de>
 References: <20200513062649.2100053-1-hch@lst.de>
-Message-ID: <ecc165c33962d964d518c80de605af632eee0474.camel@perches.com>
+	<20200513062649.2100053-12-hch@lst.de>
+Message-ID: <20200513125144.GC29989@ziepe.ca>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Christoph Hellwig <hch@lst.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>
-Cc: Eric Dumazet <edumazet@google.com>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, Vlad Yasevich <vyasevich@gmail.com>, Neil Horman <nhorman@tuxdriver.com>, Marcelo Ricardo Leitner <marcelo.leitner@gmail.com>, Jon Maloy <jmaloy@redhat.com>, Ying Xue <ying.xue@windriver.com>, drbd-dev@lists.linbit.com, linux-block@vger.kernel.org, linux-kernel@vger.kernel.org, linux-rdma@vger.kernel.org, linux-nvme@lists.infradead.org, target-devel@vger.kernel.org, linux-afs@lists.infradead.org, linux-cifs@vger.kernel.org, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, netdev@vger.kernel.org, linux-sctp@vger.kernel.org, ceph-devel@vger.kernel.org, rds-devel@oss.oracle.com, linux-nfs@vger.kernel.org
+To: Christoph Hellwig <hch@lst.de>
+Cc: "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, Eric Dumazet <edumazet@google.com>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, Vlad Yasevich <vyasevich@gmail.com>, Neil Horman <nhorman@tuxdriver.com>, Marcelo Ricardo Leitner <marcelo.leitner@gmail.com>, Jon Maloy <jmaloy@redhat.com>, Ying Xue <ying.xue@windriver.com>, drbd-dev@lists.linbit.com, linux-block@vger.kernel.org, linux-kernel@vger.kernel.org, linux-rdma@vger.kernel.org, linux-nvme@lists.infradead.org, target-devel@vger.kernel.org, linux-afs@lists.infradead.org, linux-cifs@vger.kernel.org, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, netdev@vger.kernel.org, linux-sctp@vger.kernel.org, ceph-devel@vger.kernel.org, rds-devel
 
-On Wed, 2020-05-13 at 08:26 +0200, Christoph Hellwig wrote:
-> this series removes the kernel_setsockopt and kernel_getsockopt
-> functions, and instead switches their users to small functions that
-> implement setting (or in one case getting) a sockopt directly using
-> a normal kernel function call with type safety and all the other
-> benefits of not having a function call.
+On Wed, May 13, 2020 at 08:26:26AM +0200, Christoph Hellwig wrote:
+> Add a helper to directly set the TCP_NODELAY sockopt from kernel space
+> without going through a fake uaccess.  Cleanup the callers to avoid
+> pointless wrappers now that this is a simple function call.
 > 
-> In some cases these functions seem pretty heavy handed as they do
-> a lock_sock even for just setting a single variable, but this mirrors
-> the real setsockopt implementation - counter to that a few kernel
-> drivers just set the fields directly already.
-> 
-> Nevertheless the diffstat looks quite promising:
-> 
->  42 files changed, 721 insertions(+), 799 deletions(-)
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
+> ---
+>  drivers/block/drbd/drbd_int.h             |  7 ----
+>  drivers/block/drbd/drbd_main.c            |  2 +-
+>  drivers/block/drbd/drbd_receiver.c        |  4 +--
+>  drivers/infiniband/sw/siw/siw_cm.c        | 24 +++-----------
+>  drivers/nvme/host/tcp.c                   |  9 +-----
+>  drivers/nvme/target/tcp.c                 | 12 ++-----
+>  drivers/target/iscsi/iscsi_target_login.c | 15 ++-------
+>  fs/cifs/connect.c                         | 10 ++----
+>  fs/dlm/lowcomms.c                         |  8 ++---
+>  fs/ocfs2/cluster/tcp.c                    | 20 ++----------
+>  include/linux/tcp.h                       |  1 +
+>  net/ceph/messenger.c                      | 11 ++-----
+>  net/ipv4/tcp.c                            | 39 +++++++++++++++--------
+>  net/rds/tcp.c                             | 11 +------
+>  net/rds/tcp.h                             |  1 -
+>  net/rds/tcp_listen.c                      |  2 +-
+>  16 files changed, 49 insertions(+), 127 deletions(-)
 
-trivia:
+No problem with the siw change
 
-It might be useful to show overall object size change.
+Acked-by: Jason Gunthorpe <jgg@mellanox.com>
 
-More EXPORT_SYMBOL uses increase object size a little.
-
-And not sure it matters much except it reduces overall object
-size, but these patches remove (unnecessary) logging on error
-and that could be mentioned in the cover letter too.
-
-e.g.:
-
--       ret = kernel_setsockopt(queue->sock, SOL_SOCKET, SO_LINGER,
--                       (char *)&sol, sizeof(sol));
--       if (ret) {
--               dev_err(nctrl->device,
--                       "failed to set SO_LINGER sock opt %d\n", ret);
--               goto err_sock;
--       }
-+       sock_set_linger(queue->sock->sk, true, 0);
+Jason
