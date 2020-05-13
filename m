@@ -1,9 +1,9 @@
 From: Christoph Hellwig <hch@lst.de>
-Date: Wed, 13 May 2020 08:26:32 +0200
-Subject: [Ocfs2-devel] [PATCH 17/33] tcp: add tcp_sock_set_keepcnt
+Date: Wed, 13 May 2020 08:26:27 +0200
+Subject: [Ocfs2-devel] [PATCH 12/33] tcp: add tcp_sock_set_quickack
 In-Reply-To: <20200513062649.2100053-1-hch@lst.de>
 References: <20200513062649.2100053-1-hch@lst.de>
-Message-ID: <20200513062649.2100053-18-hch@lst.de>
+Message-ID: <20200513062649.2100053-13-hch@lst.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -11,124 +11,126 @@ Content-Transfer-Encoding: 7bit
 To: "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>
 Cc: Eric Dumazet <edumazet@google.com>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, Vlad Yasevich <vyasevich@gmail.com>, Neil Horman <nhorman@tuxdriver.com>, Marcelo Ricardo Leitner <marcelo.leitner@gmail.com>, Jon Maloy <jmaloy@redhat.com>, Ying Xue <ying.xue@windriver.com>, drbd-dev@lists.linbit.com, linux-block@vger.kernel.org, linux-kernel@vger.kernel.org, linux-rdma@vger.kernel.org, linux-nvme@lists.infradead.org, target-devel@vger.kernel.org, linux-afs@lists.infradead.org, linux-cifs@vger.kernel.org, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, netdev@vger.kernel.org, linux-sctp@vger.kernel.org, ceph-devel@vger.kernel.org, rds-devel@oss.oracle.com, linux-nfs@vger.kernel.org
 
-Add a helper to directly set the TCP_KEEPCNT sockopt from kernel space
-without going through a fake uaccess.
+Add a helper to directly set the TCP_QUICKACK sockopt from kernel space
+without going through a fake uaccess.  Cleanup the callers to avoid
+pointless wrappers now that this is a simple function call.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- include/linux/tcp.h   |  1 +
- net/ipv4/tcp.c        | 12 ++++++++++++
- net/rds/tcp.h         |  2 +-
- net/rds/tcp_listen.c  | 17 +++--------------
- net/sunrpc/xprtsock.c |  3 +--
- 5 files changed, 18 insertions(+), 17 deletions(-)
+ drivers/block/drbd/drbd_int.h      |  7 ------
+ drivers/block/drbd/drbd_receiver.c |  5 ++--
+ include/linux/tcp.h                |  1 +
+ net/ipv4/tcp.c                     | 39 ++++++++++++++++++++----------
+ 4 files changed, 29 insertions(+), 23 deletions(-)
 
+diff --git a/drivers/block/drbd/drbd_int.h b/drivers/block/drbd/drbd_int.h
+index e24bba87c8e02..14345a87c7cc5 100644
+--- a/drivers/block/drbd/drbd_int.h
++++ b/drivers/block/drbd/drbd_int.h
+@@ -1570,13 +1570,6 @@ extern void drbd_set_recv_tcq(struct drbd_device *device, int tcq_enabled);
+ extern void _drbd_clear_done_ee(struct drbd_device *device, struct list_head *to_be_freed);
+ extern int drbd_connected(struct drbd_peer_device *);
+ 
+-static inline void drbd_tcp_quickack(struct socket *sock)
+-{
+-	int val = 2;
+-	(void) kernel_setsockopt(sock, SOL_TCP, TCP_QUICKACK,
+-			(char*)&val, sizeof(val));
+-}
+-
+ /* sets the number of 512 byte sectors of our virtual device */
+ void drbd_set_my_capacity(struct drbd_device *device, sector_t size);
+ 
+diff --git a/drivers/block/drbd/drbd_receiver.c b/drivers/block/drbd/drbd_receiver.c
+index da5a9ee896a43..cdd317ae97021 100644
+--- a/drivers/block/drbd/drbd_receiver.c
++++ b/drivers/block/drbd/drbd_receiver.c
+@@ -1223,7 +1223,7 @@ static int drbd_recv_header_maybe_unplug(struct drbd_connection *connection, str
+ 		 * quickly as possible, and let remote TCP know what we have
+ 		 * received so far. */
+ 		if (err == -EAGAIN) {
+-			drbd_tcp_quickack(connection->data.socket);
++			tcp_sock_set_quickack(connection->data.socket->sk, 2);
+ 			drbd_unplug_all_devices(connection);
+ 		}
+ 		if (err > 0) {
+@@ -4959,8 +4959,7 @@ static int receive_UnplugRemote(struct drbd_connection *connection, struct packe
+ {
+ 	/* Make sure we've acked all the TCP data associated
+ 	 * with the data requests being unplugged */
+-	drbd_tcp_quickack(connection->data.socket);
+-
++	tcp_sock_set_quickack(connection->data.socket->sk, 2);
+ 	return 0;
+ }
+ 
 diff --git a/include/linux/tcp.h b/include/linux/tcp.h
-index dad18ca361c01..ff2aa165b5c02 100644
+index 533610b6ae420..e7ab6da5111b5 100644
 --- a/include/linux/tcp.h
 +++ b/include/linux/tcp.h
-@@ -501,5 +501,6 @@ int tcp_sock_set_syncnt(struct sock *sk, int val);
- void tcp_sock_set_user_timeout(struct sock *sk, u32 val);
- int tcp_sock_set_keepidle(struct sock *sk, int val);
- int tcp_sock_set_keepintvl(struct sock *sk, int val);
-+int tcp_sock_set_keepcnt(struct sock *sk, int val);
+@@ -496,5 +496,6 @@ int tcp_skb_shift(struct sk_buff *to, struct sk_buff *from, int pcount,
+ 
+ void tcp_sock_set_cork(struct sock *sk, bool on);
+ void tcp_sock_set_nodelay(struct sock *sk, bool on);
++void tcp_sock_set_quickack(struct sock *sk, int val);
  
  #endif	/* _LINUX_TCP_H */
 diff --git a/net/ipv4/tcp.c b/net/ipv4/tcp.c
-index b714f2b2fa54e..a0406df42ef39 100644
+index 300ce622607d8..c681f43f0bb85 100644
 --- a/net/ipv4/tcp.c
 +++ b/net/ipv4/tcp.c
-@@ -2935,6 +2935,18 @@ int tcp_sock_set_keepintvl(struct sock *sk, int val)
+@@ -2845,6 +2845,31 @@ void tcp_sock_set_nodelay(struct sock *sk, bool on)
  }
- EXPORT_SYMBOL(tcp_sock_set_keepintvl);
+ EXPORT_SYMBOL(tcp_sock_set_nodelay);
  
-+int tcp_sock_set_keepcnt(struct sock *sk, int val)
++static void __tcp_sock_set_quickack(struct sock *sk, int val)
 +{
-+	if (val < 1 || val > MAX_TCP_KEEPCNT)
-+		return -EINVAL;
++	if (!val) {
++		inet_csk_enter_pingpong_mode(sk);
++		return;
++	}
 +
-+	lock_sock(sk);
-+	tcp_sk(sk)->keepalive_probes = val;
-+	release_sock(sk);
-+	return 0;
++	inet_csk_exit_pingpong_mode(sk);
++	if ((1 << sk->sk_state) & (TCPF_ESTABLISHED | TCPF_CLOSE_WAIT) &&
++	    inet_csk_ack_scheduled(sk)) {
++		inet_csk(sk)->icsk_ack.pending |= ICSK_ACK_PUSHED;
++		tcp_cleanup_rbuf(sk, 1);
++		if (!(val & 1))
++			inet_csk_enter_pingpong_mode(sk);
++	}
 +}
-+EXPORT_SYMBOL(tcp_sock_set_keepcnt);
++
++void tcp_sock_set_quickack(struct sock *sk, int val)
++{
++	lock_sock(sk);
++	__tcp_sock_set_quickack(sk, val);
++	release_sock(sk);
++}
++EXPORT_SYMBOL(tcp_sock_set_quickack);
 +
  /*
   *	Socket option code for TCP.
   */
-diff --git a/net/rds/tcp.h b/net/rds/tcp.h
-index 39ac666d09c6c..ae18568bce233 100644
---- a/net/rds/tcp.h
-+++ b/net/rds/tcp.h
-@@ -70,7 +70,7 @@ struct socket *rds_tcp_listen_init(struct net *net, bool isv6);
- void rds_tcp_listen_stop(struct socket *sock, struct work_struct *acceptor);
- void rds_tcp_listen_data_ready(struct sock *sk);
- int rds_tcp_accept_one(struct socket *sock);
--int rds_tcp_keepalive(struct socket *sock);
-+void rds_tcp_keepalive(struct socket *sock);
- void *rds_tcp_listen_sock_def_readable(struct net *net);
- void rds_tcp_set_linger(struct socket *sock);
+@@ -3085,19 +3110,7 @@ static int do_tcp_setsockopt(struct sock *sk, int level,
+ 		break;
  
-diff --git a/net/rds/tcp_listen.c b/net/rds/tcp_listen.c
-index a5db2f8bb7339..f6d2b4c9f445a 100644
---- a/net/rds/tcp_listen.c
-+++ b/net/rds/tcp_listen.c
-@@ -38,27 +38,19 @@
- #include "rds.h"
- #include "tcp.h"
+ 	case TCP_QUICKACK:
+-		if (!val) {
+-			inet_csk_enter_pingpong_mode(sk);
+-		} else {
+-			inet_csk_exit_pingpong_mode(sk);
+-			if ((1 << sk->sk_state) &
+-			    (TCPF_ESTABLISHED | TCPF_CLOSE_WAIT) &&
+-			    inet_csk_ack_scheduled(sk)) {
+-				icsk->icsk_ack.pending |= ICSK_ACK_PUSHED;
+-				tcp_cleanup_rbuf(sk, 1);
+-				if (!(val & 1))
+-					inet_csk_enter_pingpong_mode(sk);
+-			}
+-		}
++		__tcp_sock_set_quickack(sk, val);
+ 		break;
  
--int rds_tcp_keepalive(struct socket *sock)
-+void rds_tcp_keepalive(struct socket *sock)
- {
- 	/* values below based on xs_udp_default_timeout */
- 	int keepidle = 5; /* send a probe 'keepidle' secs after last data */
- 	int keepcnt = 5; /* number of unack'ed probes before declaring dead */
--	int ret = 0;
- 
- 	sock_set_keepalive(sock->sk, true);
--
--	ret = kernel_setsockopt(sock, IPPROTO_TCP, TCP_KEEPCNT,
--				(char *)&keepcnt, sizeof(keepcnt));
--	if (ret < 0)
--		goto bail;
--
-+	tcp_sock_set_keepcnt(sock->sk, keepcnt);
- 	tcp_sock_set_keepidle(sock->sk, keepidle);
- 	/* KEEPINTVL is the interval between successive probes. We follow
- 	 * the model in xs_tcp_finish_connecting() and re-use keepidle.
- 	 */
- 	tcp_sock_set_keepintvl(sock->sk, keepidle);
--bail:
--	return ret;
- }
- 
- /* rds_tcp_accept_one_path(): if accepting on cp_index > 0, make sure the
-@@ -145,10 +137,7 @@ int rds_tcp_accept_one(struct socket *sock)
- 	new_sock->ops = sock->ops;
- 	__module_get(new_sock->ops->owner);
- 
--	ret = rds_tcp_keepalive(new_sock);
--	if (ret < 0)
--		goto out;
--
-+	rds_tcp_keepalive(new_sock);
- 	rds_tcp_tune(new_sock);
- 
- 	inet = inet_sk(new_sock->sk);
-diff --git a/net/sunrpc/xprtsock.c b/net/sunrpc/xprtsock.c
-index e20de4a52edb7..88aa198456858 100644
---- a/net/sunrpc/xprtsock.c
-+++ b/net/sunrpc/xprtsock.c
-@@ -2109,8 +2109,7 @@ static void xs_tcp_set_socket_timeouts(struct rpc_xprt *xprt,
- 	sock_set_keepalive(sock->sk, 1);
- 	tcp_sock_set_keepidle(sock->sk, keepidle);
- 	tcp_sock_set_keepintvl(sock->sk, keepidle);
--	kernel_setsockopt(sock, SOL_TCP, TCP_KEEPCNT,
--			(char *)&keepcnt, sizeof(keepcnt));
-+	tcp_sock_set_keepcnt(sock->sk, keepcnt);
- 
- 	/* TCP user timeout (see RFC5482) */
- 	tcp_sock_set_user_timeout(sock->sk, timeo);
+ #ifdef CONFIG_TCP_MD5SIG
 -- 
 2.26.2
