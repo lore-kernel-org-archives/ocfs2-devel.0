@@ -1,22 +1,49 @@
-From: David Howells <dhowells@redhat.com>
-Date: Wed, 13 May 2020 14:27:05 +0100
-Subject: [Ocfs2-devel] [PATCH 06/33] net: add sock_set_timestamps
-In-Reply-To: <20200513062649.2100053-7-hch@lst.de>
-References: <20200513062649.2100053-7-hch@lst.de>
-	<20200513062649.2100053-1-hch@lst.de>
-Message-ID: <3124744.1589376425@warthog.procyon.org.uk>
+From: Joe Perches <joe@perches.com>
+Date: Wed, 13 May 2020 10:38:59 -0700
+Subject: [Ocfs2-devel] remove kernel_setsockopt and kernel_getsockopt
+In-Reply-To: <20200513062649.2100053-1-hch@lst.de>
+References: <20200513062649.2100053-1-hch@lst.de>
+Message-ID: <ecc165c33962d964d518c80de605af632eee0474.camel@perches.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Christoph Hellwig <hch@lst.de>
-Cc: dhowells@redhat.com, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, Marcelo Ricardo Leitner <marcelo.leitner@gmail.com>, Eric Dumazet <edumazet@google.com>, linux-nvme@lists.infradead.org, linux-sctp@vger.kernel.org, target-devel@vger.kernel.org, linux-afs@lists.infradead.org, drbd-dev@lists.linbit.com, linux-cifs@vger.kernel.org, rds-devel@oss.oracle.com, linux-rdma@vger.kernel.org, cluster-devel@redhat.com, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, linux-block@vger.kernel.org, ceph-devel@vger.kernel.org, linux-nfs@vger.kernel.org, Neil Horman <nhorman@tuxdriver.com>, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, netdev@vger.kernel.org, Vlad Yasevich <vyasevich@gmail.com>, linux-kernel@vger.kernel.org, Jon Maloy <jmaloy@redhat.com>, Ying Xue <ying>
+To: Christoph Hellwig <hch@lst.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>
+Cc: Eric Dumazet <edumazet@google.com>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, Vlad Yasevich <vyasevich@gmail.com>, Neil Horman <nhorman@tuxdriver.com>, Marcelo Ricardo Leitner <marcelo.leitner@gmail.com>, Jon Maloy <jmaloy@redhat.com>, Ying Xue <ying.xue@windriver.com>, drbd-dev@lists.linbit.com, linux-block@vger.kernel.org, linux-kernel@vger.kernel.org, linux-rdma@vger.kernel.org, linux-nvme@lists.infradead.org, target-devel@vger.kernel.org, linux-afs@lists.infradead.org, linux-cifs@vger.kernel.org, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, netdev@vger.kernel.org, linux-sctp@vger.kernel.org, ceph-devel@vger.kernel.org, rds-devel@oss.oracle.com, linux-nfs@vger.kernel.org
 
-Christoph Hellwig <hch@lst.de> wrote:
-
-> Add a helper to directly set the SO_TIMESTAMP* sockopts from kernel space
-> without going through a fake uaccess.
+On Wed, 2020-05-13 at 08:26 +0200, Christoph Hellwig wrote:
+> this series removes the kernel_setsockopt and kernel_getsockopt
+> functions, and instead switches their users to small functions that
+> implement setting (or in one case getting) a sockopt directly using
+> a normal kernel function call with type safety and all the other
+> benefits of not having a function call.
 > 
-> Signed-off-by: Christoph Hellwig <hch@lst.de>
+> In some cases these functions seem pretty heavy handed as they do
+> a lock_sock even for just setting a single variable, but this mirrors
+> the real setsockopt implementation - counter to that a few kernel
+> drivers just set the fields directly already.
+> 
+> Nevertheless the diffstat looks quite promising:
+> 
+>  42 files changed, 721 insertions(+), 799 deletions(-)
 
-Reviewed-by: David Howells <dhowells@redhat.com>
+trivia:
+
+It might be useful to show overall object size change.
+
+More EXPORT_SYMBOL uses increase object size a little.
+
+And not sure it matters much except it reduces overall object
+size, but these patches remove (unnecessary) logging on error
+and that could be mentioned in the cover letter too.
+
+e.g.:
+
+-       ret = kernel_setsockopt(queue->sock, SOL_SOCKET, SO_LINGER,
+-                       (char *)&sol, sizeof(sol));
+-       if (ret) {
+-               dev_err(nctrl->device,
+-                       "failed to set SO_LINGER sock opt %d\n", ret);
+-               goto err_sock;
+-       }
++       sock_set_linger(queue->sock->sk, true, 0);
