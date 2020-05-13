@@ -1,45 +1,70 @@
-From: David Miller <davem@davemloft.net>
-Date: Wed, 13 May 2020 12:12:10 -0700 (PDT)
-Subject: [Ocfs2-devel] remove kernel_setsockopt and kernel_getsockopt
-In-Reply-To: <20200513062649.2100053-1-hch@lst.de>
+From: Joe Perches <joe@perches.com>
+Date: Wed, 13 May 2020 14:00:43 -0700
+Subject: [Ocfs2-devel] [PATCH 20/33] ipv4: add ip_sock_set_recverr
+In-Reply-To: <20200513062649.2100053-21-hch@lst.de>
 References: <20200513062649.2100053-1-hch@lst.de>
-Message-ID: <20200513.121210.1508400748648949138.davem@davemloft.net>
+	<20200513062649.2100053-21-hch@lst.de>
+Message-ID: <0ee5acfaca4cf32d4efad162046b858981a4dae3.camel@perches.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: hch@lst.de
-Cc: kuba@kernel.org, edumazet@google.com, kuznet@ms2.inr.ac.ru, yoshfuji@linux-ipv6.org, vyasevich@gmail.com, nhorman@tuxdriver.com, marcelo.leitner@gmail.com, jmaloy@redhat.com, ying.xue@windriver.com, drbd-dev@lists.linbit.com, linux-block@vger.kernel.org, linux-kernel@vger.kernel.org, linux-rdma@vger.kernel.org, linux-nvme@lists.infradead.org, target-devel@vger.kernel.org, linux-afs@lists.infradead.org, linux-cifs@vger.kernel.org, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, netdev@vger.kernel.org, linux-sctp@vger.kernel.org, ceph-devel@vger.kernel.org, rds-devel@oss.oracle.com, linux-nfs@vger.kernel.org
+To: Christoph Hellwig <hch@lst.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>
+Cc: Eric Dumazet <edumazet@google.com>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, Vlad Yasevich <vyasevich@gmail.com>, Neil Horman <nhorman@tuxdriver.com>, Marcelo Ricardo Leitner <marcelo.leitner@gmail.com>, Jon Maloy <jmaloy@redhat.com>, Ying Xue <ying.xue@windriver.com>, drbd-dev@lists.linbit.com, linux-block@vger.kernel.org, linux-kernel@vger.kernel.org, linux-rdma@vger.kernel.org, linux-nvme@lists.infradead.org, target-devel@vger.kernel.org, linux-afs@lists.infradead.org, linux-cifs@vger.kernel.org, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, netdev@vger.kernel.org, linux-sctp@vger.kernel.org, ceph-devel@vger.kernel.org, rds-devel@oss.oracle.com, linux-nfs@vger.kernel.org
 
-From: Christoph Hellwig <hch@lst.de>
-Date: Wed, 13 May 2020 08:26:15 +0200
+On Wed, 2020-05-13 at 08:26 +0200, Christoph Hellwig wrote:
+> Add a helper to directly set the IP_RECVERR sockopt from kernel space
+> without going through a fake uaccess.
 
-> Hi Dave,
-> 
-> this series removes the kernel_setsockopt and kernel_getsockopt
-> functions, and instead switches their users to small functions that
-> implement setting (or in one case getting) a sockopt directly using
-> a normal kernel function call with type safety and all the other
-> benefits of not having a function call.
-> 
-> In some cases these functions seem pretty heavy handed as they do
-> a lock_sock even for just setting a single variable, but this mirrors
-> the real setsockopt implementation - counter to that a few kernel
-> drivers just set the fields directly already.
-> 
-> Nevertheless the diffstat looks quite promising:
-> 
->  42 files changed, 721 insertions(+), 799 deletions(-)
+This seems used only with true as the second arg.
+Is there reason to have that argument at all?
 
-Overall I'm fine with these changes, but three things need to happen
-before I can think about applying this:
-
-1) Address David's feedback about the ip_mtu*() calls that can occur
-   on ipv6 sockets too.
-
-2) Handle the feedback about dlm now bringing in sctp even if sctp
-   sockets are not even used because of the symbol dependency.
-
-3) Add the rxrpc documentation requested by David.
-
-Thank you.
+> diff --git a/include/net/ip.h b/include/net/ip.h
+[]
+> @@ -767,5 +767,6 @@ static inline bool inetdev_valid_mtu(unsigned int mtu)
+>  
+>  void ip_sock_set_tos(struct sock *sk, int val);
+>  void ip_sock_set_freebind(struct sock *sk, bool val);
+> +void ip_sock_set_recverr(struct sock *sk, bool val);
+>  
+>  #endif	/* _IP_H */
+> diff --git a/net/ipv4/ip_sockglue.c b/net/ipv4/ip_sockglue.c
+> index 0c40887a817f8..9abecc3195520 100644
+> --- a/net/ipv4/ip_sockglue.c
+> +++ b/net/ipv4/ip_sockglue.c
+> @@ -589,6 +589,16 @@ void ip_sock_set_freebind(struct sock *sk, bool val)
+>  }
+>  EXPORT_SYMBOL(ip_sock_set_freebind);
+>  
+> +void ip_sock_set_recverr(struct sock *sk, bool val)
+> +{
+> +	lock_sock(sk);
+> +	inet_sk(sk)->recverr = val;
+> +	if (!val)
+> +		skb_queue_purge(&sk->sk_error_queue);
+> +	release_sock(sk);
+> +}
+> +EXPORT_SYMBOL(ip_sock_set_recverr);
+> +
+>  /*
+>   *	Socket option code for IP. This is the end of the line after any
+>   *	TCP,UDP etc options on an IP socket.
+> diff --git a/net/rxrpc/local_object.c b/net/rxrpc/local_object.c
+> index 562ea36c96b0f..1b87b8a9ff725 100644
+> --- a/net/rxrpc/local_object.c
+> +++ b/net/rxrpc/local_object.c
+> @@ -171,13 +171,7 @@ static int rxrpc_open_socket(struct rxrpc_local *local, struct net *net)
+>  		/* Fall through */
+>  	case AF_INET:
+>  		/* we want to receive ICMP errors */
+> -		opt = 1;
+> -		ret = kernel_setsockopt(local->socket, SOL_IP, IP_RECVERR,
+> -					(char *) &opt, sizeof(opt));
+> -		if (ret < 0) {
+> -			_debug("setsockopt failed");
+> -			goto error;
+> -		}
+> +		ip_sock_set_recverr(local->socket->sk, true);
+>  
+>  		/* we want to set the don't fragment bit */
+>  		opt = IP_PMTUDISC_DO;
