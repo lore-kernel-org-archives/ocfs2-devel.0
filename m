@@ -1,117 +1,124 @@
 From: Christoph Hellwig <hch@lst.de>
-Date: Wed, 13 May 2020 08:26:29 +0200
-Subject: [Ocfs2-devel] [PATCH 14/33] tcp: add tcp_sock_set_user_timeout
+Date: Wed, 13 May 2020 08:26:21 +0200
+Subject: [Ocfs2-devel] [PATCH 06/33] net: add sock_set_timestamps
 In-Reply-To: <20200513062649.2100053-1-hch@lst.de>
 References: <20200513062649.2100053-1-hch@lst.de>
-Message-ID: <20200513062649.2100053-15-hch@lst.de>
+Message-ID: <20200513062649.2100053-7-hch@lst.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: "David S. Miller" <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>, Jakub Kicinski <kuba-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
-Cc: Marcelo Ricardo Leitner <marcelo.leitner-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Eric Dumazet <edumazet-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, linux-nvme-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-sctp-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, target-devel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-afs-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, drbd-dev-cunTk1MwBs8qoQakbn7OcQ@public.gmane.org, linux-cifs-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, rds-devel-N0ozoZBvEnrZJqsBc5GL+g@public.gmane.org, linux-rdma-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, cluster-devel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, Alexey Kuznetsov <kuznet-v/Mj1YrvjDBInbfyfbPRSQ@public.gmane.org>, linux-block-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, ceph-devel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-nfs-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Neil Horman <nhorman-2XuSBdqkA4R54TAoqtyWWQ@public.gmane.org>, Hideaki YOSHIFUJI <yoshfuji-VfPWfsRibaP+Ru+s062T9g@public.gmane.org>, netdev-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Vlad Yasevich <vyasevich-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Jon Maloy <jmaloy-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Ying Xue <ying.xue-CWA4WttNNZF54TAoqtyWWQ@public.gmane.org>, ocfs2-devel-N0ozoZBvEnrZJqsBc5GL+g@public.gmane.org
+To: "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>
+Cc: Eric Dumazet <edumazet@google.com>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, Vlad Yasevich <vyasevich@gmail.com>, Neil Horman <nhorman@tuxdriver.com>, Marcelo Ricardo Leitner <marcelo.leitner@gmail.com>, Jon Maloy <jmaloy@redhat.com>, Ying Xue <ying.xue@windriver.com>, drbd-dev@lists.linbit.com, linux-block@vger.kernel.org, linux-kernel@vger.kernel.org, linux-rdma@vger.kernel.org, linux-nvme@lists.infradead.org, target-devel@vger.kernel.org, linux-afs@lists.infradead.org, linux-cifs@vger.kernel.org, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, netdev@vger.kernel.org, linux-sctp@vger.kernel.org, ceph-devel@vger.kernel.org, rds-devel@oss.oracle.com, linux-nfs@vger.kernel.org
 
-Add a helper to directly set the TCP_USER_TIMEOUT sockopt from kernel
-space without going through a fake uaccess.
+Add a helper to directly set the SO_TIMESTAMP* sockopts from kernel space
+without going through a fake uaccess.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- fs/ocfs2/cluster/tcp.c | 22 ++--------------------
- include/linux/tcp.h    |  1 +
- net/ipv4/tcp.c         |  8 ++++++++
- net/sunrpc/xprtsock.c  |  3 +--
- 4 files changed, 12 insertions(+), 22 deletions(-)
+ include/net/sock.h       |  1 +
+ net/core/sock.c          | 47 +++++++++++++++++++++++++---------------
+ net/rxrpc/local_object.c |  8 +------
+ 3 files changed, 31 insertions(+), 25 deletions(-)
 
-diff --git a/fs/ocfs2/cluster/tcp.c b/fs/ocfs2/cluster/tcp.c
-index 7936e22e39f34..5776df10d11f9 100644
---- a/fs/ocfs2/cluster/tcp.c
-+++ b/fs/ocfs2/cluster/tcp.c
-@@ -1441,14 +1441,6 @@ static void o2net_rx_until_empty(struct work_struct *work)
- 	sc_put(sc);
+diff --git a/include/net/sock.h b/include/net/sock.h
+index b63ea15362065..cf8a30e0168de 100644
+--- a/include/net/sock.h
++++ b/include/net/sock.h
+@@ -2692,5 +2692,6 @@ void sock_set_linger(struct sock *sk, bool onoff, unsigned int linger);
+ void sock_set_priority(struct sock *sk, u32 priority);
+ void sock_set_sndtimeo(struct sock *sk, unsigned int secs);
+ int sock_bindtoindex(struct sock *sk, int ifindex);
++void sock_set_timestamps(struct sock *sk, bool val, bool new, bool ns);
+ 
+ #endif	/* _SOCK_H */
+diff --git a/net/core/sock.c b/net/core/sock.c
+index 4b7439308caec..1589f242ecc7e 100644
+--- a/net/core/sock.c
++++ b/net/core/sock.c
+@@ -772,6 +772,28 @@ void sock_set_sndtimeo(struct sock *sk, unsigned int secs)
  }
+ EXPORT_SYMBOL(sock_set_sndtimeo);
  
--static int o2net_set_usertimeout(struct socket *sock)
--{
--	int user_timeout = O2NET_TCP_USER_TIMEOUT;
--
--	return kernel_setsockopt(sock, SOL_TCP, TCP_USER_TIMEOUT,
--				(void *)&user_timeout, sizeof(user_timeout));
--}
--
- static void o2net_initialize_handshake(void)
- {
- 	o2net_hand->o2hb_heartbeat_timeout_ms = cpu_to_be32(
-@@ -1629,12 +1621,7 @@ static void o2net_start_connect(struct work_struct *work)
- 	}
- 
- 	tcp_sock_set_nodelay(sc->sc_sock->sk, true);
--
--	ret = o2net_set_usertimeout(sock);
--	if (ret) {
--		mlog(ML_ERROR, "set TCP_USER_TIMEOUT failed with %d\n", ret);
--		goto out;
--	}
-+	tcp_sock_set_user_timeout(sock->sk, O2NET_TCP_USER_TIMEOUT);
- 
- 	o2net_register_callbacks(sc->sc_sock->sk, sc);
- 
-@@ -1821,12 +1808,7 @@ static int o2net_accept_one(struct socket *sock, int *more)
- 	new_sock->sk->sk_allocation = GFP_ATOMIC;
- 
- 	tcp_sock_set_nodelay(new_sock->sk, true);
--
--	ret = o2net_set_usertimeout(new_sock);
--	if (ret) {
--		mlog(ML_ERROR, "set TCP_USER_TIMEOUT failed with %d\n", ret);
--		goto out;
--	}
-+	tcp_sock_set_user_timeout(new_sock->sk, O2NET_TCP_USER_TIMEOUT);
- 
- 	ret = new_sock->ops->getname(new_sock, (struct sockaddr *) &sin, 1);
- 	if (ret < 0)
-diff --git a/include/linux/tcp.h b/include/linux/tcp.h
-index 77b832acf3398..69c988f84a184 100644
---- a/include/linux/tcp.h
-+++ b/include/linux/tcp.h
-@@ -498,5 +498,6 @@ void tcp_sock_set_cork(struct sock *sk, bool on);
- void tcp_sock_set_nodelay(struct sock *sk, bool on);
- void tcp_sock_set_quickack(struct sock *sk, int val);
- int tcp_sock_set_syncnt(struct sock *sk, int val);
-+void tcp_sock_set_user_timeout(struct sock *sk, u32 val);
- 
- #endif	/* _LINUX_TCP_H */
-diff --git a/net/ipv4/tcp.c b/net/ipv4/tcp.c
-index 773b5cd366ab7..9a8d062b17a48 100644
---- a/net/ipv4/tcp.c
-+++ b/net/ipv4/tcp.c
-@@ -2882,6 +2882,14 @@ int tcp_sock_set_syncnt(struct sock *sk, int val)
- }
- EXPORT_SYMBOL(tcp_sock_set_syncnt);
- 
-+void tcp_sock_set_user_timeout(struct sock *sk, u32 val)
++static void __sock_set_timestamps(struct sock *sk, bool val, bool new, bool ns)
++{
++	if (val)  {
++		sock_valbool_flag(sk, SOCK_TSTAMP_NEW, new);
++		sock_valbool_flag(sk, SOCK_RCVTSTAMPNS, ns);
++		sock_set_flag(sk, SOCK_RCVTSTAMP);
++		sock_enable_timestamp(sk, SOCK_TIMESTAMP);
++	} else {
++		sock_reset_flag(sk, SOCK_RCVTSTAMP);
++		sock_reset_flag(sk, SOCK_RCVTSTAMPNS);
++		sock_reset_flag(sk, SOCK_TSTAMP_NEW);
++	}
++}
++
++void sock_set_timestamps(struct sock *sk, bool val, bool new, bool ns)
 +{
 +	lock_sock(sk);
-+	inet_csk(sk)->icsk_user_timeout = val;
++	__sock_set_timestamps(sk, val, new, ns);
 +	release_sock(sk);
 +}
-+EXPORT_SYMBOL(tcp_sock_set_user_timeout);
++EXPORT_SYMBOL(sock_set_timestamps);
 +
  /*
-  *	Socket option code for TCP.
-  */
-diff --git a/net/sunrpc/xprtsock.c b/net/sunrpc/xprtsock.c
-index 3dc2d52371a0e..30d4c4fcd3e38 100644
---- a/net/sunrpc/xprtsock.c
-+++ b/net/sunrpc/xprtsock.c
-@@ -2115,8 +2115,7 @@ static void xs_tcp_set_socket_timeouts(struct rpc_xprt *xprt,
- 			(char *)&keepcnt, sizeof(keepcnt));
+  *	This is meant for all protocols to use and covers goings on
+  *	at the socket level. Everything here is generic.
+@@ -953,28 +975,17 @@ int sock_setsockopt(struct socket *sock, int level, int optname,
+ 		break;
  
- 	/* TCP user timeout (see RFC5482) */
--	kernel_setsockopt(sock, SOL_TCP, TCP_USER_TIMEOUT,
--			(char *)&timeo, sizeof(timeo));
-+	tcp_sock_set_user_timeout(sock->sk, timeo);
- }
+ 	case SO_TIMESTAMP_OLD:
++		__sock_set_timestamps(sk, valbool, false, false);
++		break;
+ 	case SO_TIMESTAMP_NEW:
++		__sock_set_timestamps(sk, valbool, true, false);
++		break;
+ 	case SO_TIMESTAMPNS_OLD:
++		__sock_set_timestamps(sk, valbool, false, true);
++		break;
+ 	case SO_TIMESTAMPNS_NEW:
+-		if (valbool)  {
+-			if (optname == SO_TIMESTAMP_NEW || optname == SO_TIMESTAMPNS_NEW)
+-				sock_set_flag(sk, SOCK_TSTAMP_NEW);
+-			else
+-				sock_reset_flag(sk, SOCK_TSTAMP_NEW);
+-
+-			if (optname == SO_TIMESTAMP_OLD || optname == SO_TIMESTAMP_NEW)
+-				sock_reset_flag(sk, SOCK_RCVTSTAMPNS);
+-			else
+-				sock_set_flag(sk, SOCK_RCVTSTAMPNS);
+-			sock_set_flag(sk, SOCK_RCVTSTAMP);
+-			sock_enable_timestamp(sk, SOCK_TIMESTAMP);
+-		} else {
+-			sock_reset_flag(sk, SOCK_RCVTSTAMP);
+-			sock_reset_flag(sk, SOCK_RCVTSTAMPNS);
+-			sock_reset_flag(sk, SOCK_TSTAMP_NEW);
+-		}
++		__sock_set_timestamps(sk, valbool, true, true);
+ 		break;
+-
+ 	case SO_TIMESTAMPING_NEW:
+ 		sock_set_flag(sk, SOCK_TSTAMP_NEW);
+ 		/* fall through */
+diff --git a/net/rxrpc/local_object.c b/net/rxrpc/local_object.c
+index 01135e54d95d2..562ea36c96b0f 100644
+--- a/net/rxrpc/local_object.c
++++ b/net/rxrpc/local_object.c
+@@ -189,13 +189,7 @@ static int rxrpc_open_socket(struct rxrpc_local *local, struct net *net)
+ 		}
  
- static void xs_tcp_set_connect_timeout(struct rpc_xprt *xprt,
+ 		/* We want receive timestamps. */
+-		opt = 1;
+-		ret = kernel_setsockopt(local->socket, SOL_SOCKET, SO_TIMESTAMPNS_OLD,
+-					(char *)&opt, sizeof(opt));
+-		if (ret < 0) {
+-			_debug("setsockopt failed");
+-			goto error;
+-		}
++		sock_set_timestamps(local->socket->sk, true, false, true);
+ 		break;
+ 
+ 	default:
 -- 
 2.26.2
