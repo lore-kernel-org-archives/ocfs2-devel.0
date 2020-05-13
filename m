@@ -1,10 +1,10 @@
 From: David Howells <dhowells@redhat.com>
-Date: Wed, 13 May 2020 14:17:41 +0100
-Subject: [Ocfs2-devel] [PATCH 21/33] ipv4: add ip_sock_set_mtu_discover
-In-Reply-To: <20200513062649.2100053-22-hch@lst.de>
-References: <20200513062649.2100053-22-hch@lst.de>
+Date: Wed, 13 May 2020 14:24:26 +0100
+Subject: [Ocfs2-devel] [PATCH 20/33] ipv4: add ip_sock_set_recverr
+In-Reply-To: <20200513062649.2100053-21-hch@lst.de>
+References: <20200513062649.2100053-21-hch@lst.de>
 	<20200513062649.2100053-1-hch@lst.de>
-Message-ID: <3123898.1589375861@warthog.procyon.org.uk>
+Message-ID: <3124489.1589376266@warthog.procyon.org.uk>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -14,10 +14,10 @@ Cc: Marcelo Ricardo Leitner <marcelo.leitner@gmail.com>, linux-nvme@lists.infrad
 
 Christoph Hellwig <hch@lst.de> wrote:
 
-> +		ip_sock_set_mtu_discover(conn->params.local->socket->sk,
-> +				IP_PMTUDISC_DONT);
+> Add a helper to directly set the IP_RECVERR sockopt from kernel space
+> without going through a fake uaccess.
 
-Um... The socket in question could be an AF_INET6 socket, not an AF_INET4
-socket - I presume it will work in that case.  If so:
+It looks like if this is an AF_INET6 socket, it will just pass the message
+straight through to AF_INET4, so:
 
-Reviewed-by: David Howells <dhowells@redhat.com> [rxrpc bits]
+Reviewed-by: David Howells <dhowells@redhat.com>
