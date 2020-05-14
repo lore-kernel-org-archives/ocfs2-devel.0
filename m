@@ -1,70 +1,26 @@
-From: Joe Perches <joe@perches.com>
-Date: Wed, 13 May 2020 14:00:43 -0700
-Subject: [Ocfs2-devel] [PATCH 20/33] ipv4: add ip_sock_set_recverr
-In-Reply-To: <20200513062649.2100053-21-hch@lst.de>
-References: <20200513062649.2100053-1-hch@lst.de>
-	<20200513062649.2100053-21-hch@lst.de>
-Message-ID: <0ee5acfaca4cf32d4efad162046b858981a4dae3.camel@perches.com>
+From: Christoph Hellwig <hch@lst.de>
+Date: Thu, 14 May 2020 08:26:22 +0200
+Subject: [Ocfs2-devel] [PATCH 21/33] ipv4: add ip_sock_set_mtu_discover
+In-Reply-To: <3123898.1589375861@warthog.procyon.org.uk>
+References: <20200513062649.2100053-22-hch@lst.de>
+	<20200513062649.2100053-1-hch@lst.de>
+	<3123898.1589375861@warthog.procyon.org.uk>
+Message-ID: <20200514062622.GA8564@lst.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Christoph Hellwig <hch@lst.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>
-Cc: Eric Dumazet <edumazet@google.com>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, Vlad Yasevich <vyasevich@gmail.com>, Neil Horman <nhorman@tuxdriver.com>, Marcelo Ricardo Leitner <marcelo.leitner@gmail.com>, Jon Maloy <jmaloy@redhat.com>, Ying Xue <ying.xue@windriver.com>, drbd-dev@lists.linbit.com, linux-block@vger.kernel.org, linux-kernel@vger.kernel.org, linux-rdma@vger.kernel.org, linux-nvme@lists.infradead.org, target-devel@vger.kernel.org, linux-afs@lists.infradead.org, linux-cifs@vger.kernel.org, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, netdev@vger.kernel.org, linux-sctp@vger.kernel.org, ceph-devel@vger.kernel.org, rds-devel@oss.oracle.com, linux-nfs@vger.kernel.org
+To: David Howells <dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
+Cc: Marcelo Ricardo Leitner <marcelo.leitner-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, linux-nvme-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-sctp-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, target-devel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-afs-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, drbd-dev-cunTk1MwBs8qoQakbn7OcQ@public.gmane.org, linux-cifs-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, rds-devel-N0ozoZBvEnrZJqsBc5GL+g@public.gmane.org, linux-rdma-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>, cluster-devel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, Alexey Kuznetsov <kuznet-v/Mj1YrvjDBInbfyfbPRSQ@public.gmane.org>, linux-block-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Jakub Kicinski <kuba-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, ceph-devel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-nfs-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Neil Horman <nhorman-2XuSBdqkA4R54TAoqtyWWQ@public.gmane.org>, Hideaki YOSHIFUJI <yoshfuji-VfPWfsRibaP+Ru+s062T9g@public.gmane.org>, netdev-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Vlad Yasevich <vyasevich-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Eric Dumazet <edumazet-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, Jon Maloy <jmaloy-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Ying Xue <ying.xue-CWA4WttNNZF54TAoqtyWWQ@public.gmane.org>, "David S. Miller" <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>, ocfs2-devel-N0ozoZBvEnrZJqsBc5GL+g@public.gmane.org
 
-On Wed, 2020-05-13 at 08:26 +0200, Christoph Hellwig wrote:
-> Add a helper to directly set the IP_RECVERR sockopt from kernel space
-> without going through a fake uaccess.
+On Wed, May 13, 2020 at 02:17:41PM +0100, David Howells wrote:
+> Christoph Hellwig <hch@lst.de> wrote:
+> 
+> > +		ip_sock_set_mtu_discover(conn->params.local->socket->sk,
+> > +				IP_PMTUDISC_DONT);
+> 
+> Um... The socket in question could be an AF_INET6 socket, not an AF_INET4
+> socket - I presume it will work in that case.  If so:
 
-This seems used only with true as the second arg.
-Is there reason to have that argument at all?
-
-> diff --git a/include/net/ip.h b/include/net/ip.h
-[]
-> @@ -767,5 +767,6 @@ static inline bool inetdev_valid_mtu(unsigned int mtu)
->  
->  void ip_sock_set_tos(struct sock *sk, int val);
->  void ip_sock_set_freebind(struct sock *sk, bool val);
-> +void ip_sock_set_recverr(struct sock *sk, bool val);
->  
->  #endif	/* _IP_H */
-> diff --git a/net/ipv4/ip_sockglue.c b/net/ipv4/ip_sockglue.c
-> index 0c40887a817f8..9abecc3195520 100644
-> --- a/net/ipv4/ip_sockglue.c
-> +++ b/net/ipv4/ip_sockglue.c
-> @@ -589,6 +589,16 @@ void ip_sock_set_freebind(struct sock *sk, bool val)
->  }
->  EXPORT_SYMBOL(ip_sock_set_freebind);
->  
-> +void ip_sock_set_recverr(struct sock *sk, bool val)
-> +{
-> +	lock_sock(sk);
-> +	inet_sk(sk)->recverr = val;
-> +	if (!val)
-> +		skb_queue_purge(&sk->sk_error_queue);
-> +	release_sock(sk);
-> +}
-> +EXPORT_SYMBOL(ip_sock_set_recverr);
-> +
->  /*
->   *	Socket option code for IP. This is the end of the line after any
->   *	TCP,UDP etc options on an IP socket.
-> diff --git a/net/rxrpc/local_object.c b/net/rxrpc/local_object.c
-> index 562ea36c96b0f..1b87b8a9ff725 100644
-> --- a/net/rxrpc/local_object.c
-> +++ b/net/rxrpc/local_object.c
-> @@ -171,13 +171,7 @@ static int rxrpc_open_socket(struct rxrpc_local *local, struct net *net)
->  		/* Fall through */
->  	case AF_INET:
->  		/* we want to receive ICMP errors */
-> -		opt = 1;
-> -		ret = kernel_setsockopt(local->socket, SOL_IP, IP_RECVERR,
-> -					(char *) &opt, sizeof(opt));
-> -		if (ret < 0) {
-> -			_debug("setsockopt failed");
-> -			goto error;
-> -		}
-> +		ip_sock_set_recverr(local->socket->sk, true);
->  
->  		/* we want to set the don't fragment bit */
->  		opt = IP_PMTUDISC_DO;
+Yes, the implementation of that sockopt, including the inet_sock
+structure where these options are set is shared between ipv4 and ipv6.
