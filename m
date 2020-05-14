@@ -1,39 +1,26 @@
-From: Matthew Wilcox <willy@infradead.org>
-Date: Thu, 14 May 2020 12:35:27 -0700
+From: David Miller <davem@davemloft.net>
+Date: Thu, 14 May 2020 12:57:51 -0700 (PDT)
 Subject: [Ocfs2-devel] remove kernel_setsockopt and kernel_getsockopt
-In-Reply-To: <c2034daa0a23454abb5e5c5714807735@AcuMS.aculab.com>
+In-Reply-To: <756758e8f0e34e2e97db470609f5fbba@AcuMS.aculab.com>
 References: <20200513062649.2100053-1-hch@lst.de>
 	<ecc165c33962d964d518c80de605af632eee0474.camel@perches.com>
 	<756758e8f0e34e2e97db470609f5fbba@AcuMS.aculab.com>
-	<20200514101838.GA12548@lst.de>
-	<a76440f7305c4653877ff2abff499f4e@AcuMS.aculab.com>
-	<20200514103450.GA12901@lst.de>
-	<c2034daa0a23454abb5e5c5714807735@AcuMS.aculab.com>
-Message-ID: <20200514193527.GB16070@bombadil.infradead.org>
+Message-ID: <20200514.125751.2175402701800030395.davem@davemloft.net>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: David Laight <David.Laight@aculab.com>
-Cc: 'Christoph Hellwig' <hch@lst.de>, Marcelo Ricardo Leitner <marcelo.leitner@gmail.com>, "linux-nvme@lists.infradead.org" <linux-nvme@lists.infradead.org>, Eric Dumazet <edumazet@google.com>, "target-devel@vger.kernel.org" <target-devel@vger.kernel.org>, "linux-afs@lists.infradead.org" <linux-afs@lists.infradead.org>, "drbd-dev@lists.linbit.com" <drbd-dev@lists.linbit.com>, "linux-cifs@vger.kernel.org" <linux-cifs@vger.kernel.org>, "rds-devel@oss.oracle.com" <rds-devel@oss.oracle.com>, "linux-rdma@vger.kernel.org" <linux-rdma@vger.kernel.org>, "cluster-devel@redhat.com" <cluster-devel@redhat.com>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, "linux-block@vger.kernel.org" <linux-block@vger.kernel.org>, 'Joe Perches' <joe@perches.com>, Jakub Kicinski <kuba@kernel.org>, cep
+To: David.Laight-ZS65k/vG3HxXrIkS9f7CXA@public.gmane.org
+Cc: joe-6d6DIl74uiNBDgjK7y7TUQ@public.gmane.org, hch-jcswGhMUV9g@public.gmane.org, kuba-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, edumazet-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org, kuznet-v/Mj1YrvjDBInbfyfbPRSQ@public.gmane.org, yoshfuji-VfPWfsRibaP+Ru+s062T9g@public.gmane.org, vyasevich-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, nhorman-2XuSBdqkA4R54TAoqtyWWQ@public.gmane.org, marcelo.leitner-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, jmaloy-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, ying.xue-CWA4WttNNZF54TAoqtyWWQ@public.gmane.org, drbd-dev-cunTk1MwBs8qoQakbn7OcQ@public.gmane.org, linux-block-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-rdma-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-nvme-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, target-devel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-afs-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-cifs-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, cluster-devel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, ocfs2-devel-N0ozoZBvEnrZJqsBc5GL+g@public.gmane.org, netdev-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-sctp-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, ceph-devel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, rds-devel-N0ozoZBvEnrZJqsBc5GL+g@public.gmane.org, linux-nfs-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 
-On Thu, May 14, 2020 at 11:11:34AM +0000, David Laight wrote:
-> From: 'Christoph Hellwig'
-> > Sent: 14 May 2020 11:35
-> > On Thu, May 14, 2020 at 10:26:41AM +0000, David Laight wrote:
-> > > From: Christoph Hellwig
-> > > > Only for those were we have users, and all those are covered.
-> > >
-> > > What do we tell all our users when our kernel SCTP code
-> > > no longer works?
-> > 
-> > We only care about in-tree modules, just like for every other interface
-> > in the kernel.
-> 
-> Even if our management agreed to release the code and the code
-> layout matched the kernel guidelines you still wouldn't want
-> two large drivers that implement telephony functionality
-> for hardware that very few people actually have.
+From: David Laight <David.Laight@ACULAB.COM>
+Date: Thu, 14 May 2020 08:29:30 +0000
 
-Oh, good point, we'll change the policy for all modules and make every
-interface in the kernel stable from now on to cater to your special case.
+> You need to export functions that do most of the socket options
+> for all protocols.
+
+If all in-tree users of this stuff are converted, there is no argument
+for keeping these routines.
+
+You seemed to be concerned about out of tree stuff.  If so, that's not
+of our concern.
