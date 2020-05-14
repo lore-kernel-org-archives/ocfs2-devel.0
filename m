@@ -1,25 +1,31 @@
 From: Christoph Hellwig <hch@lst.de>
-Date: Thu, 14 May 2020 08:27:06 +0200
-Subject: [Ocfs2-devel] remove kernel_setsockopt and kernel_getsockopt
-In-Reply-To: <ecc165c33962d964d518c80de605af632eee0474.camel@perches.com>
+Date: Thu, 14 May 2020 08:28:20 +0200
+Subject: [Ocfs2-devel] [PATCH 27/33] sctp: export sctp_setsockopt_bindx
+In-Reply-To: <20200513180058.GB2491@localhost.localdomain>
 References: <20200513062649.2100053-1-hch@lst.de>
-	<ecc165c33962d964d518c80de605af632eee0474.camel@perches.com>
-Message-ID: <20200514062706.GB8564@lst.de>
+	<20200513062649.2100053-28-hch@lst.de>
+	<20200513180058.GB2491@localhost.localdomain>
+Message-ID: <20200514062820.GC8564@lst.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Joe Perches <joe-6d6DIl74uiNBDgjK7y7TUQ@public.gmane.org>
-Cc: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>, "David S. Miller" <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>, Jakub Kicinski <kuba-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Eric Dumazet <edumazet-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, Alexey Kuznetsov <kuznet-v/Mj1YrvjDBInbfyfbPRSQ@public.gmane.org>, Hideaki YOSHIFUJI <yoshfuji-VfPWfsRibaP+Ru+s062T9g@public.gmane.org>, Vlad Yasevich <vyasevich-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Neil Horman <nhorman-2XuSBdqkA4R54TAoqtyWWQ@public.gmane.org>, Marcelo Ricardo Leitner <marcelo.leitner-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Jon Maloy <jmaloy-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Ying Xue <ying.xue-CWA4WttNNZF54TAoqtyWWQ@public.gmane.org>, drbd-dev-cunTk1MwBs8qoQakbn7OcQ@public.gmane.org, linux-block-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-rdma-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-nvme-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, target-devel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-afs-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-cifs-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, cluster-devel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, ocfs2-devel-N0ozoZBvEnrZJqsBc5GL+g@public.gmane.org, netdev-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-sctp-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, ceph-
+To: Marcelo Ricardo Leitner <marcelo.leitner@gmail.com>
+Cc: Christoph Hellwig <hch@lst.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, Eric Dumazet <edumazet@google.com>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, Vlad Yasevich <vyasevich@gmail.com>, Neil Horman <nhorman@tuxdriver.com>, Jon Maloy <jmaloy@redhat.com>, Ying Xue <ying.xue@windriver.com>, drbd-dev@lists.linbit.com, linux-block@vger.kernel.org, linux-kernel@vger.kernel.org, linux-rdma@vger.kernel.org, linux-nvme@lists.infradead.org, target-devel@vger.kernel.org, linux-afs@lists.infradead.org, linux-cifs@vger.kernel.org, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, netdev@vger.kernel.org, linux-sctp@vger.kernel.org, ceph-devel@vger.kernel.org, rds-devel@oss.oracle.comlinu
 
-On Wed, May 13, 2020 at 10:38:59AM -0700, Joe Perches wrote:
-> It might be useful to show overall object size change.
+On Wed, May 13, 2020 at 03:00:58PM -0300, Marcelo Ricardo Leitner wrote:
+> On Wed, May 13, 2020 at 08:26:42AM +0200, Christoph Hellwig wrote:
+> > And call it directly from dlm instead of going through kernel_setsockopt.
 > 
-> More EXPORT_SYMBOL uses increase object size a little.
-> 
-> And not sure it matters much except it reduces overall object
-> size, but these patches remove (unnecessary) logging on error
-> and that could be mentioned in the cover letter too.
+> The advantage on using kernel_setsockopt here is that sctp module will
+> only be loaded if dlm actually creates a SCTP socket.  With this
+> change, sctp will be loaded on setups that may not be actually using
+> it. It's a quite big module and might expose the system.
 
-The intent here is not to reduce code size.  The intent is to kill of
-set_fs users so that we can eventually remove set_fs entirely.
+True.  Not that the intent is to kill kernel space callers of setsockopt,
+as I plan to remove the set_fs address space override used for it.  So
+if always pulling in sctp is not an option for the DLM maintainers we'd
+have to do tricks using symbol_get() or similar.
+
+The same would also apply for ipv6, although I'm not sure how common
+modular ipv6 is in practice.
