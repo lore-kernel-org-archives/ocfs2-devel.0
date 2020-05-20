@@ -1,86 +1,116 @@
 From: Christoph Hellwig <hch@lst.de>
-Date: Wed, 20 May 2020 21:55:01 +0200
-Subject: [Ocfs2-devel] [PATCH 25/33] ipv6: add ip6_sock_set_v6only
+Date: Wed, 20 May 2020 21:54:59 +0200
+Subject: [Ocfs2-devel] [PATCH 23/33] ipv4: add ip_sock_set_mtu_discover
 In-Reply-To: <20200520195509.2215098-1-hch@lst.de>
 References: <20200520195509.2215098-1-hch@lst.de>
-Message-ID: <20200520195509.2215098-26-hch@lst.de>
+Message-ID: <20200520195509.2215098-24-hch@lst.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: "David S. Miller" <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>, Jakub Kicinski <kuba-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
-Cc: Eric Dumazet <edumazet-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, Alexey Kuznetsov <kuznet-v/Mj1YrvjDBInbfyfbPRSQ@public.gmane.org>, Hideaki YOSHIFUJI <yoshfuji-VfPWfsRibaP+Ru+s062T9g@public.gmane.org>, Vlad Yasevich <vyasevich-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Neil Horman <nhorman-2XuSBdqkA4R54TAoqtyWWQ@public.gmane.org>, Marcelo Ricardo Leitner <marcelo.leitner-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Jon Maloy <jmaloy-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Ying Xue <ying.xue-CWA4WttNNZF54TAoqtyWWQ@public.gmane.org>, drbd-dev-cunTk1MwBs8qoQakbn7OcQ@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-rdma-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-nvme-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, target-devel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-afs-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-cifs-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, cluster-devel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, ocfs2-devel-N0ozoZBvEnrZJqsBc5GL+g@public.gmane.org, netdev-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-sctp-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, ceph-devel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, rds-devel-N0ozoZBvEnrZJqsBc5GL+g@public.gmane.org, linux-nfs-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>
+Cc: Marcelo Ricardo Leitner <marcelo.leitner@gmail.com>, Eric Dumazet <edumazet@google.com>, linux-nvme@lists.infradead.org, David Howells <dhowells@redhat.com>, linux-sctp@vger.kernel.org, target-devel@vger.kernel.org, linux-afs@lists.infradead.org, linux-cifs@vger.kernel.org, rds-devel@oss.oracle.com, linux-rdma@vger.kernel.org, cluster-devel@redhat.com, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, drbd-dev@tron.linbit.com, ceph-devel@vger.kernel.org, linux-nfs@vger.kernel.org, Neil Horman <nhorman@tuxdriver.com>, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, netdev@vger.kernel.org, Vlad Yasevich <vyasevich@gmail.com>, linux-kernel@vger.kernel.org, Jon Maloy <jmaloy@redhat.com>, Ying Xue <ying.xue@windriver.com>, ocfs2-devel@oss.oracle.com
 
-Add a helper to directly set the IPV6_V6ONLY sockopt from kernel space
-without going through a fake uaccess.
+Add a helper to directly set the IP_MTU_DISCOVER sockopt from kernel
+space without going through a fake uaccess.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
+Reviewed-by: David Howells <dhowells@redhat.com> [rxrpc bits]
 ---
- include/net/ipv6.h        | 11 +++++++++++
- net/ipv6/ip6_udp_tunnel.c |  5 +----
- net/sunrpc/svcsock.c      |  6 +-----
- 3 files changed, 13 insertions(+), 9 deletions(-)
+ include/net/ip.h         |  1 +
+ net/ipv4/ip_sockglue.c   | 11 +++++++++++
+ net/rxrpc/local_object.c |  8 +-------
+ net/rxrpc/output.c       | 14 +++++---------
+ 4 files changed, 18 insertions(+), 16 deletions(-)
 
-diff --git a/include/net/ipv6.h b/include/net/ipv6.h
-index 5fc3a9d7b053e..7d1cb9f0f5388 100644
---- a/include/net/ipv6.h
-+++ b/include/net/ipv6.h
-@@ -1176,4 +1176,15 @@ int ipv6_sock_mc_join_ssm(struct sock *sk, int ifindex,
- 			  const struct in6_addr *addr, unsigned int mode);
- int ipv6_sock_mc_drop(struct sock *sk, int ifindex,
- 		      const struct in6_addr *addr);
-+
-+static inline int ip6_sock_set_v6only(struct sock *sk)
+diff --git a/include/net/ip.h b/include/net/ip.h
+index f063a491b9063..d3649c49dd333 100644
+--- a/include/net/ip.h
++++ b/include/net/ip.h
+@@ -766,6 +766,7 @@ static inline bool inetdev_valid_mtu(unsigned int mtu)
+ }
+ 
+ void ip_sock_set_freebind(struct sock *sk);
++int ip_sock_set_mtu_discover(struct sock *sk, int val);
+ void ip_sock_set_recverr(struct sock *sk);
+ void ip_sock_set_tos(struct sock *sk, int val);
+ 
+diff --git a/net/ipv4/ip_sockglue.c b/net/ipv4/ip_sockglue.c
+index 9a6a65b66f9d3..a3c46ec95a756 100644
+--- a/net/ipv4/ip_sockglue.c
++++ b/net/ipv4/ip_sockglue.c
+@@ -597,6 +597,17 @@ void ip_sock_set_recverr(struct sock *sk)
+ }
+ EXPORT_SYMBOL(ip_sock_set_recverr);
+ 
++int ip_sock_set_mtu_discover(struct sock *sk, int val)
 +{
-+	if (inet_sk(sk)->inet_num)
++	if (val < IP_PMTUDISC_DONT || val > IP_PMTUDISC_OMIT)
 +		return -EINVAL;
 +	lock_sock(sk);
-+	sk->sk_ipv6only = true;
++	inet_sk(sk)->pmtudisc = val;
 +	release_sock(sk);
 +	return 0;
 +}
++EXPORT_SYMBOL(ip_sock_set_mtu_discover);
 +
- #endif /* _NET_IPV6_H */
-diff --git a/net/ipv6/ip6_udp_tunnel.c b/net/ipv6/ip6_udp_tunnel.c
-index 6523609516d25..2e0ad1bc84a83 100644
---- a/net/ipv6/ip6_udp_tunnel.c
-+++ b/net/ipv6/ip6_udp_tunnel.c
-@@ -25,10 +25,7 @@ int udp_sock_create6(struct net *net, struct udp_port_cfg *cfg,
- 		goto error;
+ /*
+  *	Socket option code for IP. This is the end of the line after any
+  *	TCP,UDP etc options on an IP socket.
+diff --git a/net/rxrpc/local_object.c b/net/rxrpc/local_object.c
+index 4c0e8fe5ec1fb..6f4e6b4817cf2 100644
+--- a/net/rxrpc/local_object.c
++++ b/net/rxrpc/local_object.c
+@@ -174,13 +174,7 @@ static int rxrpc_open_socket(struct rxrpc_local *local, struct net *net)
+ 		ip_sock_set_recverr(local->socket->sk);
  
- 	if (cfg->ipv6_v6only) {
--		int val = 1;
--
--		err = kernel_setsockopt(sock, IPPROTO_IPV6, IPV6_V6ONLY,
--					(char *) &val, sizeof(val));
-+		err = ip6_sock_set_v6only(sock->sk);
- 		if (err < 0)
- 			goto error;
- 	}
-diff --git a/net/sunrpc/svcsock.c b/net/sunrpc/svcsock.c
-index 7a805d165689c..a391892977cd2 100644
---- a/net/sunrpc/svcsock.c
-+++ b/net/sunrpc/svcsock.c
-@@ -1328,7 +1328,6 @@ static struct svc_xprt *svc_create_socket(struct svc_serv *serv,
- 	struct sockaddr *newsin = (struct sockaddr *)&addr;
- 	int		newlen;
- 	int		family;
--	int		val;
- 	RPC_IFDEBUG(char buf[RPC_MAX_ADDRBUFLEN]);
+ 		/* we want to set the don't fragment bit */
+-		opt = IP_PMTUDISC_DO;
+-		ret = kernel_setsockopt(local->socket, SOL_IP, IP_MTU_DISCOVER,
+-					(char *) &opt, sizeof(opt));
+-		if (ret < 0) {
+-			_debug("setsockopt failed");
+-			goto error;
+-		}
++		ip_sock_set_mtu_discover(local->socket->sk, IP_PMTUDISC_DO);
  
- 	dprintk("svc: svc_create_socket(%s, %d, %s)\n",
-@@ -1364,11 +1363,8 @@ static struct svc_xprt *svc_create_socket(struct svc_serv *serv,
- 	 * getting requests from IPv4 remotes.  Those should
- 	 * be shunted to a PF_INET listener via rpcbind.
- 	 */
--	val = 1;
- 	if (family == PF_INET6)
--		kernel_setsockopt(sock, SOL_IPV6, IPV6_V6ONLY,
--					(char *)&val, sizeof(val));
--
-+		ip6_sock_set_v6only(sock->sk);
- 	if (type == SOCK_STREAM)
- 		sock->sk->sk_reuse = SK_CAN_REUSE; /* allow address reuse */
- 	error = kernel_bind(sock, sin, len);
+ 		/* We want receive timestamps. */
+ 		sock_enable_timestamps(local->socket->sk);
+diff --git a/net/rxrpc/output.c b/net/rxrpc/output.c
+index 90e263c6aa69e..ad0234e1e1713 100644
+--- a/net/rxrpc/output.c
++++ b/net/rxrpc/output.c
+@@ -321,7 +321,7 @@ int rxrpc_send_data_packet(struct rxrpc_call *call, struct sk_buff *skb,
+ 	struct kvec iov[2];
+ 	rxrpc_serial_t serial;
+ 	size_t len;
+-	int ret, opt;
++	int ret;
+ 
+ 	_enter(",{%d}", skb->len);
+ 
+@@ -476,18 +476,14 @@ int rxrpc_send_data_packet(struct rxrpc_call *call, struct sk_buff *skb,
+ 	switch (conn->params.local->srx.transport.family) {
+ 	case AF_INET6:
+ 	case AF_INET:
+-		opt = IP_PMTUDISC_DONT;
+-		kernel_setsockopt(conn->params.local->socket,
+-				  SOL_IP, IP_MTU_DISCOVER,
+-				  (char *)&opt, sizeof(opt));
++		ip_sock_set_mtu_discover(conn->params.local->socket->sk,
++				IP_PMTUDISC_DONT);
+ 		ret = kernel_sendmsg(conn->params.local->socket, &msg,
+ 				     iov, 2, len);
+ 		conn->params.peer->last_tx_at = ktime_get_seconds();
+ 
+-		opt = IP_PMTUDISC_DO;
+-		kernel_setsockopt(conn->params.local->socket,
+-				  SOL_IP, IP_MTU_DISCOVER,
+-				  (char *)&opt, sizeof(opt));
++		ip_sock_set_mtu_discover(conn->params.local->socket->sk,
++				IP_PMTUDISC_DO);
+ 		break;
+ 
+ 	default:
 -- 
 2.26.2
