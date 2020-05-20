@@ -1,94 +1,86 @@
 From: Christoph Hellwig <hch@lst.de>
-Date: Wed, 20 May 2020 21:54:57 +0200
-Subject: [Ocfs2-devel] [PATCH 21/33] ipv4: add ip_sock_set_freebind
+Date: Wed, 20 May 2020 21:55:01 +0200
+Subject: [Ocfs2-devel] [PATCH 25/33] ipv6: add ip6_sock_set_v6only
 In-Reply-To: <20200520195509.2215098-1-hch@lst.de>
 References: <20200520195509.2215098-1-hch@lst.de>
-Message-ID: <20200520195509.2215098-22-hch@lst.de>
+Message-ID: <20200520195509.2215098-26-hch@lst.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>
-Cc: Marcelo Ricardo Leitner <marcelo.leitner@gmail.com>, Eric Dumazet <edumazet@google.com>, linux-nvme@lists.infradead.org, linux-sctp@vger.kernel.org, target-devel@vger.kernel.org, linux-afs@lists.infradead.org, linux-cifs@vger.kernel.org, rds-devel@oss.oracle.com, linux-rdma@vger.kernel.org, cluster-devel@redhat.com, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, drbd-dev@tron.linbit.com, ceph-devel@vger.kernel.org, linux-nfs@vger.kernel.org, Neil Horman <nhorman@tuxdriver.com>, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, netdev@vger.kernel.org, Vlad Yasevich <vyasevich@gmail.com>, linux-kernel@vger.kernel.org, Jon Maloy <jmaloy@redhat.com>, Ying Xue <ying.xue@windriver.com>, ocfs2-devel@oss.oracle.com
+To: "David S. Miller" <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>, Jakub Kicinski <kuba-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
+Cc: Eric Dumazet <edumazet-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, Alexey Kuznetsov <kuznet-v/Mj1YrvjDBInbfyfbPRSQ@public.gmane.org>, Hideaki YOSHIFUJI <yoshfuji-VfPWfsRibaP+Ru+s062T9g@public.gmane.org>, Vlad Yasevich <vyasevich-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Neil Horman <nhorman-2XuSBdqkA4R54TAoqtyWWQ@public.gmane.org>, Marcelo Ricardo Leitner <marcelo.leitner-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Jon Maloy <jmaloy-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Ying Xue <ying.xue-CWA4WttNNZF54TAoqtyWWQ@public.gmane.org>, drbd-dev-cunTk1MwBs8qoQakbn7OcQ@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-rdma-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-nvme-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, target-devel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-afs-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-cifs-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, cluster-devel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, ocfs2-devel-N0ozoZBvEnrZJqsBc5GL+g@public.gmane.org, netdev-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-sctp-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, ceph-devel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, rds-devel-N0ozoZBvEnrZJqsBc5GL+g@public.gmane.org, linux-nfs-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 
-Add a helper to directly set the IP_FREEBIND sockopt from kernel space
+Add a helper to directly set the IPV6_V6ONLY sockopt from kernel space
 without going through a fake uaccess.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- drivers/target/iscsi/iscsi_target_login.c | 13 +++----------
- include/net/ip.h                          |  1 +
- net/ipv4/ip_sockglue.c                    |  8 ++++++++
- 3 files changed, 12 insertions(+), 10 deletions(-)
+ include/net/ipv6.h        | 11 +++++++++++
+ net/ipv6/ip6_udp_tunnel.c |  5 +----
+ net/sunrpc/svcsock.c      |  6 +-----
+ 3 files changed, 13 insertions(+), 9 deletions(-)
 
-diff --git a/drivers/target/iscsi/iscsi_target_login.c b/drivers/target/iscsi/iscsi_target_login.c
-index b561b07a869a0..85748e3388582 100644
---- a/drivers/target/iscsi/iscsi_target_login.c
-+++ b/drivers/target/iscsi/iscsi_target_login.c
-@@ -15,6 +15,7 @@
- #include <linux/sched/signal.h>
- #include <linux/idr.h>
- #include <linux/tcp.h>        /* TCP_NODELAY */
-+#include <net/ip.h>
- #include <net/ipv6.h>         /* ipv6_addr_v4mapped() */
- #include <scsi/iscsi_proto.h>
- #include <target/target_core_base.h>
-@@ -855,7 +856,7 @@ int iscsit_setup_np(
- 	struct sockaddr_storage *sockaddr)
- {
- 	struct socket *sock = NULL;
--	int backlog = ISCSIT_TCP_BACKLOG, ret, opt = 0, len;
-+	int backlog = ISCSIT_TCP_BACKLOG, ret, len;
- 
- 	switch (np->np_network_transport) {
- 	case ISCSI_TCP:
-@@ -900,15 +901,7 @@ int iscsit_setup_np(
- 	if (np->np_network_transport == ISCSI_TCP)
- 		tcp_sock_set_nodelay(sock->sk);
- 	sock_set_reuseaddr(sock->sk);
--
--	opt = 1;
--	ret = kernel_setsockopt(sock, IPPROTO_IP, IP_FREEBIND,
--			(char *)&opt, sizeof(opt));
--	if (ret < 0) {
--		pr_err("kernel_setsockopt() for IP_FREEBIND"
--			" failed\n");
--		goto fail;
--	}
-+	ip_sock_set_freebind(sock->sk);
- 
- 	ret = kernel_bind(sock, (struct sockaddr *)&np->np_sockaddr, len);
- 	if (ret < 0) {
-diff --git a/include/net/ip.h b/include/net/ip.h
-index 2fc52e26fa88b..5f5d8226b6abc 100644
---- a/include/net/ip.h
-+++ b/include/net/ip.h
-@@ -765,6 +765,7 @@ static inline bool inetdev_valid_mtu(unsigned int mtu)
- 	return likely(mtu >= IPV4_MIN_MTU);
- }
- 
-+void ip_sock_set_freebind(struct sock *sk);
- void ip_sock_set_tos(struct sock *sk, int val);
- 
- #endif	/* _IP_H */
-diff --git a/net/ipv4/ip_sockglue.c b/net/ipv4/ip_sockglue.c
-index 1733ac78c21aa..62e642ab80126 100644
---- a/net/ipv4/ip_sockglue.c
-+++ b/net/ipv4/ip_sockglue.c
-@@ -581,6 +581,14 @@ void ip_sock_set_tos(struct sock *sk, int val)
- }
- EXPORT_SYMBOL(ip_sock_set_tos);
- 
-+void ip_sock_set_freebind(struct sock *sk)
-+{
-+	lock_sock(sk);
-+	inet_sk(sk)->freebind = true;
-+	release_sock(sk);
-+}
-+EXPORT_SYMBOL(ip_sock_set_freebind);
+diff --git a/include/net/ipv6.h b/include/net/ipv6.h
+index 5fc3a9d7b053e..7d1cb9f0f5388 100644
+--- a/include/net/ipv6.h
++++ b/include/net/ipv6.h
+@@ -1176,4 +1176,15 @@ int ipv6_sock_mc_join_ssm(struct sock *sk, int ifindex,
+ 			  const struct in6_addr *addr, unsigned int mode);
+ int ipv6_sock_mc_drop(struct sock *sk, int ifindex,
+ 		      const struct in6_addr *addr);
 +
- /*
-  *	Socket option code for IP. This is the end of the line after any
-  *	TCP,UDP etc options on an IP socket.
++static inline int ip6_sock_set_v6only(struct sock *sk)
++{
++	if (inet_sk(sk)->inet_num)
++		return -EINVAL;
++	lock_sock(sk);
++	sk->sk_ipv6only = true;
++	release_sock(sk);
++	return 0;
++}
++
+ #endif /* _NET_IPV6_H */
+diff --git a/net/ipv6/ip6_udp_tunnel.c b/net/ipv6/ip6_udp_tunnel.c
+index 6523609516d25..2e0ad1bc84a83 100644
+--- a/net/ipv6/ip6_udp_tunnel.c
++++ b/net/ipv6/ip6_udp_tunnel.c
+@@ -25,10 +25,7 @@ int udp_sock_create6(struct net *net, struct udp_port_cfg *cfg,
+ 		goto error;
+ 
+ 	if (cfg->ipv6_v6only) {
+-		int val = 1;
+-
+-		err = kernel_setsockopt(sock, IPPROTO_IPV6, IPV6_V6ONLY,
+-					(char *) &val, sizeof(val));
++		err = ip6_sock_set_v6only(sock->sk);
+ 		if (err < 0)
+ 			goto error;
+ 	}
+diff --git a/net/sunrpc/svcsock.c b/net/sunrpc/svcsock.c
+index 7a805d165689c..a391892977cd2 100644
+--- a/net/sunrpc/svcsock.c
++++ b/net/sunrpc/svcsock.c
+@@ -1328,7 +1328,6 @@ static struct svc_xprt *svc_create_socket(struct svc_serv *serv,
+ 	struct sockaddr *newsin = (struct sockaddr *)&addr;
+ 	int		newlen;
+ 	int		family;
+-	int		val;
+ 	RPC_IFDEBUG(char buf[RPC_MAX_ADDRBUFLEN]);
+ 
+ 	dprintk("svc: svc_create_socket(%s, %d, %s)\n",
+@@ -1364,11 +1363,8 @@ static struct svc_xprt *svc_create_socket(struct svc_serv *serv,
+ 	 * getting requests from IPv4 remotes.  Those should
+ 	 * be shunted to a PF_INET listener via rpcbind.
+ 	 */
+-	val = 1;
+ 	if (family == PF_INET6)
+-		kernel_setsockopt(sock, SOL_IPV6, IPV6_V6ONLY,
+-					(char *)&val, sizeof(val));
+-
++		ip6_sock_set_v6only(sock->sk);
+ 	if (type == SOCK_STREAM)
+ 		sock->sk->sk_reuse = SK_CAN_REUSE; /* allow address reuse */
+ 	error = kernel_bind(sock, sin, len);
 -- 
 2.26.2
