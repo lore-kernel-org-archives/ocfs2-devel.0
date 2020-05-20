@@ -1,69 +1,82 @@
 From: Christoph Hellwig <hch@lst.de>
-Date: Wed, 20 May 2020 21:55:02 +0200
-Subject: [Ocfs2-devel] [PATCH 26/33] ipv6: add ip6_sock_set_recverr
+Date: Wed, 20 May 2020 21:55:07 +0200
+Subject: [Ocfs2-devel] [PATCH 31/33] sctp: add sctp_sock_set_nodelay
 In-Reply-To: <20200520195509.2215098-1-hch@lst.de>
 References: <20200520195509.2215098-1-hch@lst.de>
-Message-ID: <20200520195509.2215098-27-hch@lst.de>
+Message-ID: <20200520195509.2215098-32-hch@lst.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>
-Cc: Marcelo Ricardo Leitner <marcelo.leitner@gmail.com>, Eric Dumazet <edumazet@google.com>, linux-nvme@lists.infradead.org, David Howells <dhowells@redhat.com>, linux-sctp@vger.kernel.org, target-devel@vger.kernel.org, linux-afs@lists.infradead.org, linux-cifs@vger.kernel.org, rds-devel@oss.oracle.com, linux-rdma@vger.kernel.org, cluster-devel@redhat.com, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, drbd-dev@tron.linbit.com, ceph-devel@vger.kernel.org, linux-nfs@vger.kernel.org, Neil Horman <nhorman@tuxdriver.com>, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, netdev@vger.kernel.org, Vlad Yasevich <vyasevich@gmail.com>, linux-kernel@vger.kernel.org, Jon Maloy <jmaloy@redhat.com>, Ying Xue <ying.xue@windriver.com>, ocfs2-devel@oss.oracle.com
+To: "David S. Miller" <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>, Jakub Kicinski <kuba-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
+Cc: Eric Dumazet <edumazet-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, Alexey Kuznetsov <kuznet-v/Mj1YrvjDBInbfyfbPRSQ@public.gmane.org>, Hideaki YOSHIFUJI <yoshfuji-VfPWfsRibaP+Ru+s062T9g@public.gmane.org>, Vlad Yasevich <vyasevich-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Neil Horman <nhorman-2XuSBdqkA4R54TAoqtyWWQ@public.gmane.org>, Marcelo Ricardo Leitner <marcelo.leitner-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Jon Maloy <jmaloy-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Ying Xue <ying.xue-CWA4WttNNZF54TAoqtyWWQ@public.gmane.org>, drbd-dev-cunTk1MwBs8qoQakbn7OcQ@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-rdma-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-nvme-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, target-devel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-afs-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-cifs-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, cluster-devel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, ocfs2-devel-N0ozoZBvEnrZJqsBc5GL+g@public.gmane.org, netdev-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-sctp-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, ceph-devel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, rds-devel-N0ozoZBvEnrZJqsBc5GL+g@public.gmane.org, linux-nfs-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 
-Add a helper to directly set the IPV6_RECVERR sockopt from kernel space
+Add a helper to directly set the SCTP_NODELAY sockopt from kernel space
 without going through a fake uaccess.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
-Reviewed-by: David Howells <dhowells@redhat.com>
 ---
- include/net/ipv6.h       |  7 +++++++
- net/rxrpc/local_object.c | 10 ++--------
+ fs/dlm/lowcomms.c       | 10 ++--------
+ include/net/sctp/sctp.h |  7 +++++++
  2 files changed, 9 insertions(+), 8 deletions(-)
 
-diff --git a/include/net/ipv6.h b/include/net/ipv6.h
-index 7d1cb9f0f5388..3b02049d2e582 100644
---- a/include/net/ipv6.h
-+++ b/include/net/ipv6.h
-@@ -1187,4 +1187,11 @@ static inline int ip6_sock_set_v6only(struct sock *sk)
- 	return 0;
+diff --git a/fs/dlm/lowcomms.c b/fs/dlm/lowcomms.c
+index 69333728d871b..9f1c3cdc9d653 100644
+--- a/fs/dlm/lowcomms.c
++++ b/fs/dlm/lowcomms.c
+@@ -914,7 +914,6 @@ static int sctp_bind_addrs(struct connection *con, uint16_t port)
+ static void sctp_connect_to_sock(struct connection *con)
+ {
+ 	struct sockaddr_storage daddr;
+-	int one = 1;
+ 	int result;
+ 	int addr_len;
+ 	struct socket *sock;
+@@ -961,8 +960,7 @@ static void sctp_connect_to_sock(struct connection *con)
+ 	log_print("connecting to %d", con->nodeid);
+ 
+ 	/* Turn off Nagle's algorithm */
+-	kernel_setsockopt(sock, SOL_SCTP, SCTP_NODELAY, (char *)&one,
+-			  sizeof(one));
++	sctp_sock_set_nodelay(sock->sk);
+ 
+ 	/*
+ 	 * Make sock->ops->connect() function return in specified time,
+@@ -1176,7 +1174,6 @@ static int sctp_listen_for_all(void)
+ 	struct socket *sock = NULL;
+ 	int result = -EINVAL;
+ 	struct connection *con = nodeid2con(0, GFP_NOFS);
+-	int one = 1;
+ 
+ 	if (!con)
+ 		return -ENOMEM;
+@@ -1191,10 +1188,7 @@ static int sctp_listen_for_all(void)
+ 	}
+ 
+ 	sock_set_rcvbuf(sock->sk, NEEDED_RMEM);
+-	result = kernel_setsockopt(sock, SOL_SCTP, SCTP_NODELAY, (char *)&one,
+-				   sizeof(one));
+-	if (result < 0)
+-		log_print("Could not set SCTP NODELAY error %d\n", result);
++	sctp_sock_set_nodelay(sock->sk);
+ 
+ 	write_lock_bh(&sock->sk->sk_callback_lock);
+ 	/* Init con struct */
+diff --git a/include/net/sctp/sctp.h b/include/net/sctp/sctp.h
+index 3ab5c6bbb90bd..f8bcb75bb0448 100644
+--- a/include/net/sctp/sctp.h
++++ b/include/net/sctp/sctp.h
+@@ -615,4 +615,11 @@ static inline bool sctp_newsk_ready(const struct sock *sk)
+ 	return sock_flag(sk, SOCK_DEAD) || sk->sk_socket;
  }
  
-+static inline void ip6_sock_set_recverr(struct sock *sk)
++static inline void sctp_sock_set_nodelay(struct sock *sk)
 +{
 +	lock_sock(sk);
-+	inet6_sk(sk)->recverr = true;
++	sctp_sk(sk)->nodelay = true;
 +	release_sock(sk);
 +}
 +
- #endif /* _NET_IPV6_H */
-diff --git a/net/rxrpc/local_object.c b/net/rxrpc/local_object.c
-index 6f4e6b4817cf2..c8b2097f499c0 100644
---- a/net/rxrpc/local_object.c
-+++ b/net/rxrpc/local_object.c
-@@ -107,7 +107,7 @@ static struct rxrpc_local *rxrpc_alloc_local(struct rxrpc_net *rxnet,
- static int rxrpc_open_socket(struct rxrpc_local *local, struct net *net)
- {
- 	struct sock *usk;
--	int ret, opt;
-+	int ret;
- 
- 	_enter("%p{%d,%d}",
- 	       local, local->srx.transport_type, local->srx.transport.family);
-@@ -157,13 +157,7 @@ static int rxrpc_open_socket(struct rxrpc_local *local, struct net *net)
- 	switch (local->srx.transport.family) {
- 	case AF_INET6:
- 		/* we want to receive ICMPv6 errors */
--		opt = 1;
--		ret = kernel_setsockopt(local->socket, SOL_IPV6, IPV6_RECVERR,
--					(char *) &opt, sizeof(opt));
--		if (ret < 0) {
--			_debug("setsockopt failed");
--			goto error;
--		}
-+		ip6_sock_set_recverr(local->socket->sk);
- 
- 		/* Fall through and set IPv4 options too otherwise we don't get
- 		 * errors from IPv4 packets sent through the IPv6 socket.
+ #endif /* __net_sctp_h__ */
 -- 
 2.26.2
