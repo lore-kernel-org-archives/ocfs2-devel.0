@@ -1,117 +1,139 @@
 From: Christoph Hellwig <hch@lst.de>
-Date: Wed, 20 May 2020 21:54:52 +0200
-Subject: [Ocfs2-devel] [PATCH 16/33] tcp: add tcp_sock_set_user_timeout
+Date: Wed, 20 May 2020 21:54:56 +0200
+Subject: [Ocfs2-devel] [PATCH 20/33] ipv4: add ip_sock_set_tos
 In-Reply-To: <20200520195509.2215098-1-hch@lst.de>
 References: <20200520195509.2215098-1-hch@lst.de>
-Message-ID: <20200520195509.2215098-17-hch@lst.de>
+Message-ID: <20200520195509.2215098-21-hch@lst.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: "David S. Miller" <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>, Jakub Kicinski <kuba-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
-Cc: Eric Dumazet <edumazet-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, Alexey Kuznetsov <kuznet-v/Mj1YrvjDBInbfyfbPRSQ@public.gmane.org>, Hideaki YOSHIFUJI <yoshfuji-VfPWfsRibaP+Ru+s062T9g@public.gmane.org>, Vlad Yasevich <vyasevich-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Neil Horman <nhorman-2XuSBdqkA4R54TAoqtyWWQ@public.gmane.org>, Marcelo Ricardo Leitner <marcelo.leitner-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Jon Maloy <jmaloy-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Ying Xue <ying.xue-CWA4WttNNZF54TAoqtyWWQ@public.gmane.org>, drbd-dev-cunTk1MwBs8qoQakbn7OcQ@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-rdma-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-nvme-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, target-devel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-afs-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-cifs-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, cluster-devel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, ocfs2-devel-N0ozoZBvEnrZJqsBc5GL+g@public.gmane.org, netdev-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-sctp-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, ceph-devel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, rds-devel-N0ozoZBvEnrZJqsBc5GL+g@public.gmane.org, linux-nfs-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>
+Cc: Marcelo Ricardo Leitner <marcelo.leitner@gmail.com>, Eric Dumazet <edumazet@google.com>, linux-nvme@lists.infradead.org, linux-sctp@vger.kernel.org, target-devel@vger.kernel.org, linux-afs@lists.infradead.org, linux-cifs@vger.kernel.org, rds-devel@oss.oracle.com, Sagi Grimberg <sagi@grimberg.me>, linux-rdma@vger.kernel.org, cluster-devel@redhat.com, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, drbd-dev@tron.linbit.com, ceph-devel@vger.kernel.org, linux-nfs@vger.kernel.org, Neil Horman <nhorman@tuxdriver.com>, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, netdev@vger.kernel.org, Vlad Yasevich <vyasevich@gmail.com>, linux-kernel@vger.kernel.org, Jon Maloy <jmaloy@redhat.com>, Ying Xue <ying.xue@windriver.com>, ocfs2-devel@oss.oracle.com
 
-Add a helper to directly set the TCP_USER_TIMEOUT sockopt from kernel
-space without going through a fake uaccess.
+Add a helper to directly set the IP_TOS sockopt from kernel space without
+going through a fake uaccess.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
+Acked-by: Sagi Grimberg <sagi@grimberg.me>
 ---
- fs/ocfs2/cluster/tcp.c | 22 ++--------------------
- include/linux/tcp.h    |  1 +
- net/ipv4/tcp.c         |  8 ++++++++
- net/sunrpc/xprtsock.c  |  3 +--
- 4 files changed, 12 insertions(+), 22 deletions(-)
+ drivers/nvme/host/tcp.c   | 14 +++-----------
+ drivers/nvme/target/tcp.c | 10 ++--------
+ include/net/ip.h          |  2 ++
+ net/ipv4/ip_sockglue.c    | 30 +++++++++++++++++++++---------
+ 4 files changed, 28 insertions(+), 28 deletions(-)
 
-diff --git a/fs/ocfs2/cluster/tcp.c b/fs/ocfs2/cluster/tcp.c
-index 4c70fe9d19ab2..79a2317194600 100644
---- a/fs/ocfs2/cluster/tcp.c
-+++ b/fs/ocfs2/cluster/tcp.c
-@@ -1441,14 +1441,6 @@ static void o2net_rx_until_empty(struct work_struct *work)
- 	sc_put(sc);
- }
- 
--static int o2net_set_usertimeout(struct socket *sock)
--{
--	int user_timeout = O2NET_TCP_USER_TIMEOUT;
--
--	return kernel_setsockopt(sock, SOL_TCP, TCP_USER_TIMEOUT,
--				(void *)&user_timeout, sizeof(user_timeout));
--}
--
- static void o2net_initialize_handshake(void)
+diff --git a/drivers/nvme/host/tcp.c b/drivers/nvme/host/tcp.c
+index 2872584f52f63..4c972d8abf317 100644
+--- a/drivers/nvme/host/tcp.c
++++ b/drivers/nvme/host/tcp.c
+@@ -1313,7 +1313,7 @@ static int nvme_tcp_alloc_queue(struct nvme_ctrl *nctrl,
  {
- 	o2net_hand->o2hb_heartbeat_timeout_ms = cpu_to_be32(
-@@ -1629,12 +1621,7 @@ static void o2net_start_connect(struct work_struct *work)
- 	}
+ 	struct nvme_tcp_ctrl *ctrl = to_tcp_ctrl(nctrl);
+ 	struct nvme_tcp_queue *queue = &ctrl->queues[qid];
+-	int ret, opt, rcv_pdu_size;
++	int ret, rcv_pdu_size;
  
- 	tcp_sock_set_nodelay(sc->sc_sock->sk);
--
--	ret = o2net_set_usertimeout(sock);
--	if (ret) {
--		mlog(ML_ERROR, "set TCP_USER_TIMEOUT failed with %d\n", ret);
--		goto out;
+ 	queue->ctrl = ctrl;
+ 	INIT_LIST_HEAD(&queue->send_list);
+@@ -1352,16 +1352,8 @@ static int nvme_tcp_alloc_queue(struct nvme_ctrl *nctrl,
+ 		sock_set_priority(queue->sock->sk, so_priority);
+ 
+ 	/* Set socket type of service */
+-	if (nctrl->opts->tos >= 0) {
+-		opt = nctrl->opts->tos;
+-		ret = kernel_setsockopt(queue->sock, SOL_IP, IP_TOS,
+-				(char *)&opt, sizeof(opt));
+-		if (ret) {
+-			dev_err(nctrl->device,
+-				"failed to set IP_TOS sock opt %d\n", ret);
+-			goto err_sock;
+-		}
 -	}
-+	tcp_sock_set_user_timeout(sock->sk, O2NET_TCP_USER_TIMEOUT);
++	if (nctrl->opts->tos >= 0)
++		ip_sock_set_tos(queue->sock->sk, nctrl->opts->tos);
  
- 	o2net_register_callbacks(sc->sc_sock->sk, sc);
+ 	queue->sock->sk->sk_allocation = GFP_ATOMIC;
+ 	nvme_tcp_set_queue_io_cpu(queue);
+diff --git a/drivers/nvme/target/tcp.c b/drivers/nvme/target/tcp.c
+index 55bc4c3c0a74a..4546049a96b37 100644
+--- a/drivers/nvme/target/tcp.c
++++ b/drivers/nvme/target/tcp.c
+@@ -1452,14 +1452,8 @@ static int nvmet_tcp_set_queue_sock(struct nvmet_tcp_queue *queue)
+ 		sock_set_priority(sock->sk, so_priority);
  
-@@ -1821,12 +1808,7 @@ static int o2net_accept_one(struct socket *sock, int *more)
- 	new_sock->sk->sk_allocation = GFP_ATOMIC;
- 
- 	tcp_sock_set_nodelay(new_sock->sk);
+ 	/* Set socket type of service */
+-	if (inet->rcv_tos > 0) {
+-		int tos = inet->rcv_tos;
 -
--	ret = o2net_set_usertimeout(new_sock);
--	if (ret) {
--		mlog(ML_ERROR, "set TCP_USER_TIMEOUT failed with %d\n", ret);
--		goto out;
+-		ret = kernel_setsockopt(sock, SOL_IP, IP_TOS,
+-				(char *)&tos, sizeof(tos));
+-		if (ret)
+-			return ret;
 -	}
-+	tcp_sock_set_user_timeout(new_sock->sk, O2NET_TCP_USER_TIMEOUT);
++	if (inet->rcv_tos > 0)
++		ip_sock_set_tos(sock->sk, inet->rcv_tos);
  
- 	ret = new_sock->ops->getname(new_sock, (struct sockaddr *) &sin, 1);
- 	if (ret < 0)
-diff --git a/include/linux/tcp.h b/include/linux/tcp.h
-index 6aa4ae5ebf3d5..de682143efe4d 100644
---- a/include/linux/tcp.h
-+++ b/include/linux/tcp.h
-@@ -501,5 +501,6 @@ void tcp_sock_set_cork(struct sock *sk, bool on);
- void tcp_sock_set_nodelay(struct sock *sk);
- void tcp_sock_set_quickack(struct sock *sk, int val);
- int tcp_sock_set_syncnt(struct sock *sk, int val);
-+void tcp_sock_set_user_timeout(struct sock *sk, u32 val);
- 
- #endif	/* _LINUX_TCP_H */
-diff --git a/net/ipv4/tcp.c b/net/ipv4/tcp.c
-index d2c67ae1da07a..0004bd9ae7b0a 100644
---- a/net/ipv4/tcp.c
-+++ b/net/ipv4/tcp.c
-@@ -2893,6 +2893,14 @@ int tcp_sock_set_syncnt(struct sock *sk, int val)
+ 	write_lock_bh(&sock->sk->sk_callback_lock);
+ 	sock->sk->sk_user_data = queue;
+diff --git a/include/net/ip.h b/include/net/ip.h
+index 5b317c9f4470a..2fc52e26fa88b 100644
+--- a/include/net/ip.h
++++ b/include/net/ip.h
+@@ -765,4 +765,6 @@ static inline bool inetdev_valid_mtu(unsigned int mtu)
+ 	return likely(mtu >= IPV4_MIN_MTU);
  }
- EXPORT_SYMBOL(tcp_sock_set_syncnt);
  
-+void tcp_sock_set_user_timeout(struct sock *sk, u32 val)
++void ip_sock_set_tos(struct sock *sk, int val);
++
+ #endif	/* _IP_H */
+diff --git a/net/ipv4/ip_sockglue.c b/net/ipv4/ip_sockglue.c
+index 8206047d70b6b..1733ac78c21aa 100644
+--- a/net/ipv4/ip_sockglue.c
++++ b/net/ipv4/ip_sockglue.c
+@@ -560,6 +560,26 @@ int ip_recv_error(struct sock *sk, struct msghdr *msg, int len, int *addr_len)
+ 	return err;
+ }
+ 
++static void __ip_sock_set_tos(struct sock *sk, int val)
++{
++	if (sk->sk_type == SOCK_STREAM) {
++		val &= ~INET_ECN_MASK;
++		val |= inet_sk(sk)->tos & INET_ECN_MASK;
++	}
++	if (inet_sk(sk)->tos != val) {
++		inet_sk(sk)->tos = val;
++		sk->sk_priority = rt_tos2priority(val);
++		sk_dst_reset(sk);
++	}
++}
++
++void ip_sock_set_tos(struct sock *sk, int val)
 +{
 +	lock_sock(sk);
-+	inet_csk(sk)->icsk_user_timeout = val;
++	__ip_sock_set_tos(sk, val);
 +	release_sock(sk);
 +}
-+EXPORT_SYMBOL(tcp_sock_set_user_timeout);
-+
++EXPORT_SYMBOL(ip_sock_set_tos);
+ 
  /*
-  *	Socket option code for TCP.
-  */
-diff --git a/net/sunrpc/xprtsock.c b/net/sunrpc/xprtsock.c
-index 399848c2bcb29..231fd6162f68d 100644
---- a/net/sunrpc/xprtsock.c
-+++ b/net/sunrpc/xprtsock.c
-@@ -2115,8 +2115,7 @@ static void xs_tcp_set_socket_timeouts(struct rpc_xprt *xprt,
- 			(char *)&keepcnt, sizeof(keepcnt));
- 
- 	/* TCP user timeout (see RFC5482) */
--	kernel_setsockopt(sock, SOL_TCP, TCP_USER_TIMEOUT,
--			(char *)&timeo, sizeof(timeo));
-+	tcp_sock_set_user_timeout(sock->sk, timeo);
- }
- 
- static void xs_tcp_set_connect_timeout(struct rpc_xprt *xprt,
+  *	Socket option code for IP. This is the end of the line after any
+@@ -743,15 +763,7 @@ static int do_ip_setsockopt(struct sock *sk, int level,
+ 			inet->cmsg_flags &= ~IP_CMSG_RECVFRAGSIZE;
+ 		break;
+ 	case IP_TOS:	/* This sets both TOS and Precedence */
+-		if (sk->sk_type == SOCK_STREAM) {
+-			val &= ~INET_ECN_MASK;
+-			val |= inet->tos & INET_ECN_MASK;
+-		}
+-		if (inet->tos != val) {
+-			inet->tos = val;
+-			sk->sk_priority = rt_tos2priority(val);
+-			sk_dst_reset(sk);
+-		}
++		__ip_sock_set_tos(sk, val);
+ 		break;
+ 	case IP_TTL:
+ 		if (optlen < 1)
 -- 
 2.26.2
