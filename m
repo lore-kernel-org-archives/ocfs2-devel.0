@@ -1,81 +1,146 @@
 From: Christoph Hellwig <hch@lst.de>
-Date: Wed, 20 May 2020 21:54:38 +0200
-Subject: [Ocfs2-devel] [PATCH 02/33] net: remove kernel_getsockopt
+Date: Wed, 20 May 2020 21:54:46 +0200
+Subject: [Ocfs2-devel] [PATCH 10/33] net: add sock_set_rcvbuf
 In-Reply-To: <20200520195509.2215098-1-hch@lst.de>
 References: <20200520195509.2215098-1-hch@lst.de>
-Message-ID: <20200520195509.2215098-3-hch@lst.de>
+Message-ID: <20200520195509.2215098-11-hch@lst.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: "David S. Miller" <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>, Jakub Kicinski <kuba-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
-Cc: Eric Dumazet <edumazet-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, Alexey Kuznetsov <kuznet-v/Mj1YrvjDBInbfyfbPRSQ@public.gmane.org>, Hideaki YOSHIFUJI <yoshfuji-VfPWfsRibaP+Ru+s062T9g@public.gmane.org>, Vlad Yasevich <vyasevich-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Neil Horman <nhorman-2XuSBdqkA4R54TAoqtyWWQ@public.gmane.org>, Marcelo Ricardo Leitner <marcelo.leitner-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Jon Maloy <jmaloy-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Ying Xue <ying.xue-CWA4WttNNZF54TAoqtyWWQ@public.gmane.org>, drbd-dev-cunTk1MwBs8qoQakbn7OcQ@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-rdma-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-nvme-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, target-devel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-afs-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-cifs-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, cluster-devel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, ocfs2-devel-N0ozoZBvEnrZJqsBc5GL+g@public.gmane.org, netdev-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-sctp-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, ceph-devel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, rds-devel-N0ozoZBvEnrZJqsBc5GL+g@public.gmane.org, linux-nfs-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>
+Cc: Eric Dumazet <edumazet@google.com>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, Vlad Yasevich <vyasevich@gmail.com>, Neil Horman <nhorman@tuxdriver.com>, Marcelo Ricardo Leitner <marcelo.leitner@gmail.com>, Jon Maloy <jmaloy@redhat.com>, Ying Xue <ying.xue@windriver.com>, drbd-dev@lists.linbit.com, linux-kernel@vger.kernel.org, linux-rdma@vger.kernel.org, linux-nvme@lists.infradead.org, target-devel@vger.kernel.org, linux-afs@lists.infradead.org, linux-cifs@vger.kernel.org, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, netdev@vger.kernel.org, linux-sctp@vger.kernel.org, ceph-devel@vger.kernel.org, rds-devel@oss.oracle.com, linux-nfs@vger.kernel.org
 
-No users left.
+Add a helper to directly set the SO_RCVBUFFORCE sockopt from kernel space
+without going through a fake uaccess.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- include/linux/net.h |  2 --
- net/socket.c        | 34 ----------------------------------
- 2 files changed, 36 deletions(-)
+ fs/dlm/lowcomms.c  |  7 +-----
+ include/net/sock.h |  1 +
+ net/core/sock.c    | 59 +++++++++++++++++++++++++---------------------
+ 3 files changed, 34 insertions(+), 33 deletions(-)
 
-diff --git a/include/linux/net.h b/include/linux/net.h
-index 6451425e828f5..74ef5d7315f70 100644
---- a/include/linux/net.h
-+++ b/include/linux/net.h
-@@ -303,8 +303,6 @@ int kernel_connect(struct socket *sock, struct sockaddr *addr, int addrlen,
- 		   int flags);
- int kernel_getsockname(struct socket *sock, struct sockaddr *addr);
- int kernel_getpeername(struct socket *sock, struct sockaddr *addr);
--int kernel_getsockopt(struct socket *sock, int level, int optname, char *optval,
--		      int *optlen);
- int kernel_setsockopt(struct socket *sock, int level, int optname, char *optval,
- 		      unsigned int optlen);
- int kernel_sendpage(struct socket *sock, struct page *page, int offset,
-diff --git a/net/socket.c b/net/socket.c
-index 80422fc3c836e..81a98b6cbd087 100644
---- a/net/socket.c
-+++ b/net/socket.c
-@@ -3624,40 +3624,6 @@ int kernel_getpeername(struct socket *sock, struct sockaddr *addr)
- }
- EXPORT_SYMBOL(kernel_getpeername);
+diff --git a/fs/dlm/lowcomms.c b/fs/dlm/lowcomms.c
+index b6e6dba281547..2822a430a2b49 100644
+--- a/fs/dlm/lowcomms.c
++++ b/fs/dlm/lowcomms.c
+@@ -1180,7 +1180,6 @@ static int sctp_listen_for_all(void)
+ 	struct socket *sock = NULL;
+ 	int result = -EINVAL;
+ 	struct connection *con = nodeid2con(0, GFP_NOFS);
+-	int bufsize = NEEDED_RMEM;
+ 	int one = 1;
  
--/**
-- *	kernel_getsockopt - get a socket option (kernel space)
-- *	@sock: socket
-- *	@level: API level (SOL_SOCKET, ...)
-- *	@optname: option tag
-- *	@optval: option value
-- *	@optlen: option length
-- *
-- *	Assigns the option length to @optlen.
-- *	Returns 0 or an error.
-- */
+ 	if (!con)
+@@ -1195,11 +1194,7 @@ static int sctp_listen_for_all(void)
+ 		goto out;
+ 	}
+ 
+-	result = kernel_setsockopt(sock, SOL_SOCKET, SO_RCVBUFFORCE,
+-				 (char *)&bufsize, sizeof(bufsize));
+-	if (result)
+-		log_print("Error increasing buffer space on socket %d", result);
 -
--int kernel_getsockopt(struct socket *sock, int level, int optname,
--			char *optval, int *optlen)
--{
--	mm_segment_t oldfs = get_fs();
--	char __user *uoptval;
--	int __user *uoptlen;
--	int err;
--
--	uoptval = (char __user __force *) optval;
--	uoptlen = (int __user __force *) optlen;
--
--	set_fs(KERNEL_DS);
--	if (level == SOL_SOCKET)
--		err = sock_getsockopt(sock, level, optname, uoptval, uoptlen);
--	else
--		err = sock->ops->getsockopt(sock, level, optname, uoptval,
--					    uoptlen);
--	set_fs(oldfs);
--	return err;
--}
--EXPORT_SYMBOL(kernel_getsockopt);
--
- /**
-  *	kernel_setsockopt - set a socket option (kernel space)
-  *	@sock: socket
++	sock_set_rcvbuf(sock->sk, NEEDED_RMEM);
+ 	result = kernel_setsockopt(sock, SOL_SCTP, SCTP_NODELAY, (char *)&one,
+ 				   sizeof(one));
+ 	if (result < 0)
+diff --git a/include/net/sock.h b/include/net/sock.h
+index dc08c176238fd..c997289aabbf9 100644
+--- a/include/net/sock.h
++++ b/include/net/sock.h
+@@ -2693,6 +2693,7 @@ void sock_enable_timestamps(struct sock *sk);
+ void sock_no_linger(struct sock *sk);
+ void sock_set_keepalive(struct sock *sk);
+ void sock_set_priority(struct sock *sk, u32 priority);
++void sock_set_rcvbuf(struct sock *sk, int val);
+ void sock_set_reuseaddr(struct sock *sk);
+ void sock_set_sndtimeo(struct sock *sk, s64 secs);
+ 
+diff --git a/net/core/sock.c b/net/core/sock.c
+index 728f5fb156a0c..3c6ebf952e9ad 100644
+--- a/net/core/sock.c
++++ b/net/core/sock.c
+@@ -789,6 +789,35 @@ void sock_set_keepalive(struct sock *sk)
+ }
+ EXPORT_SYMBOL(sock_set_keepalive);
+ 
++static void __sock_set_rcvbuf(struct sock *sk, int val)
++{
++	/* Ensure val * 2 fits into an int, to prevent max_t() from treating it
++	 * as a negative value.
++	 */
++	val = min_t(int, val, INT_MAX / 2);
++	sk->sk_userlocks |= SOCK_RCVBUF_LOCK;
++
++	/* We double it on the way in to account for "struct sk_buff" etc.
++	 * overhead.   Applications assume that the SO_RCVBUF setting they make
++	 * will allow that much actual data to be received on that socket.
++	 *
++	 * Applications are unaware that "struct sk_buff" and other overheads
++	 * allocate from the receive buffer during socket buffer allocation.
++	 *
++	 * And after considering the possible alternatives, returning the value
++	 * we actually used in getsockopt is the most desirable behavior.
++	 */
++	WRITE_ONCE(sk->sk_rcvbuf, max_t(int, val * 2, SOCK_MIN_RCVBUF));
++}
++
++void sock_set_rcvbuf(struct sock *sk, int val)
++{
++	lock_sock(sk);
++	__sock_set_rcvbuf(sk, val);
++	release_sock(sk);
++}
++EXPORT_SYMBOL(sock_set_rcvbuf);
++
+ /*
+  *	This is meant for all protocols to use and covers goings on
+  *	at the socket level. Everything here is generic.
+@@ -885,30 +914,7 @@ int sock_setsockopt(struct socket *sock, int level, int optname,
+ 		 * play 'guess the biggest size' games. RCVBUF/SNDBUF
+ 		 * are treated in BSD as hints
+ 		 */
+-		val = min_t(u32, val, sysctl_rmem_max);
+-set_rcvbuf:
+-		/* Ensure val * 2 fits into an int, to prevent max_t()
+-		 * from treating it as a negative value.
+-		 */
+-		val = min_t(int, val, INT_MAX / 2);
+-		sk->sk_userlocks |= SOCK_RCVBUF_LOCK;
+-		/*
+-		 * We double it on the way in to account for
+-		 * "struct sk_buff" etc. overhead.   Applications
+-		 * assume that the SO_RCVBUF setting they make will
+-		 * allow that much actual data to be received on that
+-		 * socket.
+-		 *
+-		 * Applications are unaware that "struct sk_buff" and
+-		 * other overheads allocate from the receive buffer
+-		 * during socket buffer allocation.
+-		 *
+-		 * And after considering the possible alternatives,
+-		 * returning the value we actually used in getsockopt
+-		 * is the most desirable behavior.
+-		 */
+-		WRITE_ONCE(sk->sk_rcvbuf,
+-			   max_t(int, val * 2, SOCK_MIN_RCVBUF));
++		__sock_set_rcvbuf(sk, min_t(u32, val, sysctl_rmem_max));
+ 		break;
+ 
+ 	case SO_RCVBUFFORCE:
+@@ -920,9 +926,8 @@ int sock_setsockopt(struct socket *sock, int level, int optname,
+ 		/* No negative values (to prevent underflow, as val will be
+ 		 * multiplied by 2).
+ 		 */
+-		if (val < 0)
+-			val = 0;
+-		goto set_rcvbuf;
++		__sock_set_rcvbuf(sk, max(val, 0));
++		break;
+ 
+ 	case SO_KEEPALIVE:
+ 		if (sk->sk_prot->keepalive)
 -- 
 2.26.2
