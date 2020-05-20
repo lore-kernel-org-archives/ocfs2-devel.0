@@ -1,78 +1,174 @@
-From: Christoph Hellwig <hch@lst.de>
-Date: Wed, 20 May 2020 21:55:09 +0200
-Subject: [Ocfs2-devel] [PATCH 33/33] net: remove kernel_setsockopt
-In-Reply-To: <20200520195509.2215098-1-hch@lst.de>
+From: Marcelo Ricardo Leitner <marcelo.leitner@gmail.com>
+Date: Wed, 20 May 2020 20:00:25 -0300
+Subject: [Ocfs2-devel] [PATCH 32/33] net: add a new bind_add method
+In-Reply-To: <20200520195509.2215098-33-hch@lst.de>
 References: <20200520195509.2215098-1-hch@lst.de>
-Message-ID: <20200520195509.2215098-34-hch@lst.de>
+	<20200520195509.2215098-33-hch@lst.de>
+Message-ID: <20200520230025.GT2491@localhost.localdomain>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>
-Cc: Marcelo Ricardo Leitner <marcelo.leitner@gmail.com>, Eric Dumazet <edumazet@google.com>, linux-nvme@lists.infradead.org, linux-sctp@vger.kernel.org, target-devel@vger.kernel.org, linux-afs@lists.infradead.org, linux-cifs@vger.kernel.org, rds-devel@oss.oracle.com, linux-rdma@vger.kernel.org, cluster-devel@redhat.com, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, drbd-dev@tron.linbit.com, ceph-devel@vger.kernel.org, linux-nfs@vger.kernel.org, Neil Horman <nhorman@tuxdriver.com>, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, netdev@vger.kernel.org, Vlad Yasevich <vyasevich@gmail.com>, linux-kernel@vger.kernel.org, Jon Maloy <jmaloy@redhat.com>, Ying Xue <ying.xue@windriver.com>, ocfs2-devel@oss.oracle.com
+To: Christoph Hellwig <hch@lst.de>
+Cc: "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, Eric Dumazet <edumazet@google.com>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, Vlad Yasevich <vyasevich@gmail.com>, Neil Horman <nhorman@tuxdriver.com>, Jon Maloy <jmaloy@redhat.com>, Ying Xue <ying.xue@windriver.com>, drbd-dev@lists.linbit.com, linux-kernel@vger.kernel.org, linux-rdma@vger.kernel.org, linux-nvme@lists.infradead.org, target-devel@vger.kernel.org, linux-afs@lists.infradead.org, linux-cifs@vger.kernel.org, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, netdev@vger.kernel.org, linux-sctp@vger.kernel.org, ceph-devel@vger.kernel.org, rds-devel@oss.oracle.com, linux-nfs@vger.kernel.org
 
-No users left.
+On Wed, May 20, 2020 at 09:55:08PM +0200, Christoph Hellwig wrote:
+> The SCTP protocol allows to bind multiple address to a socket.  That
+> feature is currently only exposed as a socket option.  Add a bind_add
+> method struct proto that allows to bind additional addresses, and
+> switch the dlm code to use the method instead of going through the
+> socket option from kernel space.
+> 
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
+> ---
+>  fs/dlm/lowcomms.c  |  9 +++------
+>  include/net/sock.h |  6 +++++-
+>  net/core/sock.c    |  8 ++++++++
+>  net/sctp/socket.c  | 23 +++++++++++++++++++++++
+>  4 files changed, 39 insertions(+), 7 deletions(-)
+> 
+> diff --git a/fs/dlm/lowcomms.c b/fs/dlm/lowcomms.c
+> index 9f1c3cdc9d653..3543a8fec9075 100644
+> --- a/fs/dlm/lowcomms.c
+> +++ b/fs/dlm/lowcomms.c
+> @@ -882,6 +882,7 @@ static void writequeue_entry_complete(struct writequeue_entry *e, int completed)
+>  static int sctp_bind_addrs(struct connection *con, uint16_t port)
+>  {
+>  	struct sockaddr_storage localaddr;
+> +	struct sockaddr *addr = (struct sockaddr *)&localaddr;
+>  	int i, addr_len, result = 0;
+>  
+>  	for (i = 0; i < dlm_local_count; i++) {
+> @@ -889,13 +890,9 @@ static int sctp_bind_addrs(struct connection *con, uint16_t port)
+>  		make_sockaddr(&localaddr, port, &addr_len);
+>  
+>  		if (!i)
+> -			result = kernel_bind(con->sock,
+> -					     (struct sockaddr *)&localaddr,
+> -					     addr_len);
+> +			result = kernel_bind(con->sock, addr, addr_len);
+>  		else
+> -			result = kernel_setsockopt(con->sock, SOL_SCTP,
+> -						   SCTP_SOCKOPT_BINDX_ADD,
+> -						   (char *)&localaddr, addr_len);
+> +			result = sock_bind_add(con->sock->sk, addr, addr_len);
+>  
+>  		if (result < 0) {
+>  			log_print("Can't bind to %d addr number %d, %d.\n",
+> diff --git a/include/net/sock.h b/include/net/sock.h
+> index d994daa418ec2..6e9f713a78607 100644
+> --- a/include/net/sock.h
+> +++ b/include/net/sock.h
+> @@ -1156,7 +1156,9 @@ struct proto {
+>  	int			(*sendpage)(struct sock *sk, struct page *page,
+>  					int offset, size_t size, int flags);
+>  	int			(*bind)(struct sock *sk,
+> -					struct sockaddr *uaddr, int addr_len);
+> +					struct sockaddr *addr, int addr_len);
+> +	int			(*bind_add)(struct sock *sk,
+> +					struct sockaddr *addr, int addr_len);
+>  
+>  	int			(*backlog_rcv) (struct sock *sk,
+>  						struct sk_buff *skb);
+> @@ -2698,4 +2700,6 @@ void sock_set_reuseaddr(struct sock *sk);
+>  void sock_set_reuseport(struct sock *sk);
+>  void sock_set_sndtimeo(struct sock *sk, s64 secs);
+>  
+> +int sock_bind_add(struct sock *sk, struct sockaddr *addr, int addr_len);
+> +
+>  #endif	/* _SOCK_H */
+> diff --git a/net/core/sock.c b/net/core/sock.c
+> index 2ca3425b519c0..61ec573221a60 100644
+> --- a/net/core/sock.c
+> +++ b/net/core/sock.c
+> @@ -3712,3 +3712,11 @@ bool sk_busy_loop_end(void *p, unsigned long start_time)
+>  }
+>  EXPORT_SYMBOL(sk_busy_loop_end);
+>  #endif /* CONFIG_NET_RX_BUSY_POLL */
+> +
+> +int sock_bind_add(struct sock *sk, struct sockaddr *addr, int addr_len)
+> +{
+> +	if (!sk->sk_prot->bind_add)
+> +		return -EOPNOTSUPP;
+> +	return sk->sk_prot->bind_add(sk, addr, addr_len);
+> +}
+> +EXPORT_SYMBOL(sock_bind_add);
+> diff --git a/net/sctp/socket.c b/net/sctp/socket.c
+> index 827a9903ee288..8a0b9258f65c0 100644
+> --- a/net/sctp/socket.c
+> +++ b/net/sctp/socket.c
+> @@ -1057,6 +1057,27 @@ static int sctp_setsockopt_bindx(struct sock *sk,
+>  	return err;
+>  }
+>  
+> +static int sctp_bind_add(struct sock *sk, struct sockaddr *addr,
+> +		int addrlen)
+> +{
+> +	struct sctp_af *af = sctp_get_af_specific(addr->sa_family);
+> +	int err;
+> +
+> +	if (!af || af->sockaddr_len > addrlen)
+> +		return -EINVAL;
+> +	err = security_sctp_bind_connect(sk, SCTP_SOCKOPT_BINDX_ADD, addr,
+> +			addrlen);
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
- include/linux/net.h |  2 --
- net/socket.c        | 31 -------------------------------
- 2 files changed, 33 deletions(-)
+The security_ call above is done today within the sock lock.
+I couldn't find any issue through a code review, though, so I'm fine
+with leaving it as is. Just highlighting it..
 
-diff --git a/include/linux/net.h b/include/linux/net.h
-index 74ef5d7315f70..e10f378194a59 100644
---- a/include/linux/net.h
-+++ b/include/linux/net.h
-@@ -303,8 +303,6 @@ int kernel_connect(struct socket *sock, struct sockaddr *addr, int addrlen,
- 		   int flags);
- int kernel_getsockname(struct socket *sock, struct sockaddr *addr);
- int kernel_getpeername(struct socket *sock, struct sockaddr *addr);
--int kernel_setsockopt(struct socket *sock, int level, int optname, char *optval,
--		      unsigned int optlen);
- int kernel_sendpage(struct socket *sock, struct page *page, int offset,
- 		    size_t size, int flags);
- int kernel_sendpage_locked(struct sock *sk, struct page *page, int offset,
-diff --git a/net/socket.c b/net/socket.c
-index 81a98b6cbd087..976426d03f099 100644
---- a/net/socket.c
-+++ b/net/socket.c
-@@ -3624,37 +3624,6 @@ int kernel_getpeername(struct socket *sock, struct sockaddr *addr)
- }
- EXPORT_SYMBOL(kernel_getpeername);
- 
--/**
-- *	kernel_setsockopt - set a socket option (kernel space)
-- *	@sock: socket
-- *	@level: API level (SOL_SOCKET, ...)
-- *	@optname: option tag
-- *	@optval: option value
-- *	@optlen: option length
-- *
-- *	Returns 0 or an error.
-- */
--
--int kernel_setsockopt(struct socket *sock, int level, int optname,
--			char *optval, unsigned int optlen)
--{
--	mm_segment_t oldfs = get_fs();
--	char __user *uoptval;
--	int err;
--
--	uoptval = (char __user __force *) optval;
--
--	set_fs(KERNEL_DS);
--	if (level == SOL_SOCKET)
--		err = sock_setsockopt(sock, level, optname, uoptval, optlen);
--	else
--		err = sock->ops->setsockopt(sock, level, optname, uoptval,
--					    optlen);
--	set_fs(oldfs);
--	return err;
--}
--EXPORT_SYMBOL(kernel_setsockopt);
--
- /**
-  *	kernel_sendpage - send a &page through a socket (kernel space)
-  *	@sock: socket
--- 
-2.26.2
+> +	if (err)
+> +		return err;
+> +
+> +	lock_sock(sk);
+> +	err = sctp_do_bind(sk, (union sctp_addr *)addr, af->sockaddr_len);
+> +	if (!err)
+> +		err = sctp_send_asconf_add_ip(sk, addr, 1);
+
+Some problems here.
+- addr may contain a list of addresses
+- the addresses, then, are not being validated
+- sctp_do_bind may fail, on which it requires some undoing
+  (like sctp_bindx_add does)
+- code duplication with sctp_setsockopt_bindx.
+
+This patch will conflict with David's one,
+[PATCH net-next] sctp: Pull the user copies out of the individual sockopt functions.
+(I'll finish reviewing it in the sequence)
+
+AFAICT, this patch could reuse/build on his work in there. The goal is
+pretty much the same and would avoid the issues above.
+
+This patch could, then, point the new bind_add proto op to the updated
+sctp_setsockopt_bindx almost directly.
+
+Question then is: dlm never removes an addr from the bind list. Do we
+want to add ops for both? Or one that handles both operations?
+Anyhow, having the add operation but not the del seems very weird to
+me.
+
+> +	release_sock(sk);
+> +	return err;
+> +}
+> +
+>  static int sctp_connect_new_asoc(struct sctp_endpoint *ep,
+>  				 const union sctp_addr *daddr,
+>  				 const struct sctp_initmsg *init,
+> @@ -9625,6 +9646,7 @@ struct proto sctp_prot = {
+>  	.sendmsg     =	sctp_sendmsg,
+>  	.recvmsg     =	sctp_recvmsg,
+>  	.bind        =	sctp_bind,
+> +	.bind_add    =  sctp_bind_add,
+>  	.backlog_rcv =	sctp_backlog_rcv,
+>  	.hash        =	sctp_hash,
+>  	.unhash      =	sctp_unhash,
+> @@ -9667,6 +9689,7 @@ struct proto sctpv6_prot = {
+>  	.sendmsg	= sctp_sendmsg,
+>  	.recvmsg	= sctp_recvmsg,
+>  	.bind		= sctp_bind,
+> +	.bind_add	= sctp_bind_add,
+>  	.backlog_rcv	= sctp_backlog_rcv,
+>  	.hash		= sctp_hash,
+>  	.unhash		= sctp_unhash,
+> -- 
+> 2.26.2
+> 
