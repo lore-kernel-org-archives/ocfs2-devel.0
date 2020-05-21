@@ -1,57 +1,85 @@
 From: Marcelo Ricardo Leitner <marcelo.leitner@gmail.com>
-Date: Thu, 21 May 2020 10:33:48 -0300
-Subject: [Ocfs2-devel] [PATCH 31/33] sctp: add sctp_sock_set_nodelay
-In-Reply-To: <20200521083442.GA7771@lst.de>
+Date: Thu, 21 May 2020 10:54:43 -0300
+Subject: [Ocfs2-devel] [PATCH 32/33] net: add a new bind_add method
+In-Reply-To: <20200521084224.GA7859@lst.de>
 References: <20200520195509.2215098-1-hch@lst.de>
-	<20200520195509.2215098-32-hch@lst.de>
-	<20200520231001.GU2491@localhost.localdomain>
-	<20200520.162355.2212209708127373208.davem@davemloft.net>
-	<20200520233913.GV2491@localhost.localdomain>
-	<20200521083442.GA7771@lst.de>
-Message-ID: <20200521133348.GX2491@localhost.localdomain>
+	<20200520195509.2215098-33-hch@lst.de>
+	<20200520230025.GT2491@localhost.localdomain>
+	<20200521084224.GA7859@lst.de>
+Message-ID: <20200521135443.GY2491@localhost.localdomain>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
-Cc: David Miller <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>, kuba-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, edumazet-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org, kuznet-v/Mj1YrvjDBInbfyfbPRSQ@public.gmane.org, yoshfuji-VfPWfsRibaP+Ru+s062T9g@public.gmane.org, vyasevich-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, nhorman-2XuSBdqkA4R54TAoqtyWWQ@public.gmane.org, jmaloy-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, ying.xue-CWA4WttNNZF54TAoqtyWWQ@public.gmane.org, drbd-dev-cunTk1MwBs8qoQakbn7OcQ@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-rdma-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-nvme-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, target-devel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-afs-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-cifs-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, cluster-devel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, ocfs2-devel-N0ozoZBvEnrZJqsBc5GL+g@public.gmane.org, netdev-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-sctp-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, ceph-devel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, rds-devel-N0ozoZBvEnrZJqsBc5GL+g@public.gmane.org, linux-nfs-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Christoph Hellwig <hch@lst.de>
+Cc: "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, Eric Dumazet <edumazet@google.com>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, Vlad Yasevich <vyasevich@gmail.com>, Neil Horman <nhorman@tuxdriver.com>, Jon Maloy <jmaloy@redhat.com>, Ying Xue <ying.xue@windriver.com>, drbd-dev@lists.linbit.com, linux-kernel@vger.kernel.org, linux-rdma@vger.kernel.org, linux-nvme@lists.infradead.org, target-devel@vger.kernel.org, linux-afs@lists.infradead.org, linux-cifs@vger.kernel.org, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, netdev@vger.kernel.org, linux-sctp@vger.kernel.org, ceph-devel@vger.kernel.org, rds-devel@oss.oracle.com, linux-nfs@vger.kernel.org
 
-On Thu, May 21, 2020 at 10:34:42AM +0200, Christoph Hellwig wrote:
-> On Wed, May 20, 2020 at 08:39:13PM -0300, Marcelo Ricardo Leitner wrote:
-> > On Wed, May 20, 2020 at 04:23:55PM -0700, David Miller wrote:
-> > > From: Marcelo Ricardo Leitner <marcelo.leitner@gmail.com>
-> > > Date: Wed, 20 May 2020 20:10:01 -0300
-> > > 
-> > > > The duplication with sctp_setsockopt_nodelay() is quite silly/bad.
-> > > > Also, why have the 'true' hardcoded? It's what dlm uses, yes, but the
-> > > > API could be a bit more complete than that.
-> > > 
-> > > The APIs are being designed based upon what in-tree users actually
-> > > make use of.  We can expand things later if necessary.
+On Thu, May 21, 2020 at 10:42:24AM +0200, Christoph Hellwig wrote:
+> On Wed, May 20, 2020 at 08:00:25PM -0300, Marcelo Ricardo Leitner wrote:
+> > > +	if (err)
+> > > +		return err;
+> > > +
+> > > +	lock_sock(sk);
+> > > +	err = sctp_do_bind(sk, (union sctp_addr *)addr, af->sockaddr_len);
+> > > +	if (!err)
+> > > +		err = sctp_send_asconf_add_ip(sk, addr, 1);
 > > 
-> > Sometimes expanding things later can be though, thus why the worry.
-> > But ok, I get it. Thanks.
-> > 
-> > The comment still applies, though. (re the duplication)
+> > Some problems here.
+> > - addr may contain a list of addresses
+> > - the addresses, then, are not being validated
+> > - sctp_do_bind may fail, on which it requires some undoing
+> >   (like sctp_bindx_add does)
+> > - code duplication with sctp_setsockopt_bindx.
 > 
-> Where do you see duplication?
-> 
-> sctp_setsockopt_nodelay does the following things:
-> 
->  - verifies optlen, returns -EINVAL if it doesn't match
->  - calls get_user, returns -EFAULT on error
->  - converts the value from get_user to a boolean and assigns it
->    to sctp_sk(sk)->nodelay
->  - returns 0.
-> 
-> sctp_sock_set_nodelay does:
-> 
->  - call lock_sock
->  - assign true to sctp_sk(sk)->nodelay
->  - call release_sock
->  - does not return an error code
+> sctp_do_bind and thus this function only support a single address, as
+> that is the only thing that the DLM code requires.  I could move the
 
-With the patch there are now two ways of enabling nodelay. It may be
-just a boolean set today, but if one wants to probe on it or if we
-want to extend it with anything, say a debug msg, we have to do it in
-two (very different) places.
+I see.
+
+> user copy out of sctp_setsockopt_bindx and reuse that, but it is a
+> rather rcane API.
+
+Yes. With David's patch, which is doing that, it can be as simple as:
+
+static int sctp_bind_add(struct sock *sk, struct sockaddr *addr,
+               int addrlen)
+{
+	int ret;
+	lock_sock(sk);
+	ret = sctp_setsockopt_bindx(sk, addr, addrlen, SCTP_BINDX_ADD_ADDR);
+	release_sock(sk);
+	return ret;
+}
+
+and then dlm would be using code that we can test through sctp-only tests as
+well.
+
+> 
+> > 
+> > This patch will conflict with David's one,
+> > [PATCH net-next] sctp: Pull the user copies out of the individual sockopt functions.
+> 
+> Do you have a link?  A quick google search just finds your mail that
+> I'm replying to.
+
+https://urldefense.com/v3/__https://lore.kernel.org/netdev/fd94b5e41a7c4edc8f743c56a04ed2c9*40AcuMS.aculab.com/T/__;JQ!!GqivPVa7Brio!Lgxu7UvwG6RgnqFrucW9nK6-GqLhTlv-cYVGEySht2lrPwxW7ttM5Su6TJJS7SeHCSOINw$ 
+
+> 
+> > (I'll finish reviewing it in the sequence)
+> > 
+> > AFAICT, this patch could reuse/build on his work in there. The goal is
+> > pretty much the same and would avoid the issues above.
+> > 
+> > This patch could, then, point the new bind_add proto op to the updated
+> > sctp_setsockopt_bindx almost directly.
+> > 
+> > Question then is: dlm never removes an addr from the bind list. Do we
+> > want to add ops for both? Or one that handles both operations?
+> > Anyhow, having the add operation but not the del seems very weird to
+> > me.
+> 
+> We generally only add operations for things that we actually use.
+> bind_del is another logical op, but we can trivially add that when we
+> need it.
+
+Right, okay.
