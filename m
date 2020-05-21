@@ -1,25 +1,59 @@
-From: David Howells <dhowells@redhat.com>
-Date: Thu, 21 May 2020 08:44:11 +0100
-Subject: [Ocfs2-devel] [PATCH 29/33] rxrpc: add
-	rxrpc_sock_set_min_security_level
-In-Reply-To: <20200520195509.2215098-30-hch@lst.de>
-References: <20200520195509.2215098-30-hch@lst.de>
-	<20200520195509.2215098-1-hch@lst.de>
-Message-ID: <71191.1590047051@warthog.procyon.org.uk>
+From: David Laight <David.Laight@ACULAB.COM>
+Date: Thu, 21 May 2020 08:01:33 +0000
+Subject: [Ocfs2-devel] remove kernel_setsockopt and kernel_getsockopt v2
+In-Reply-To: <20200520195509.2215098-1-hch@lst.de>
+References: <20200520195509.2215098-1-hch@lst.de>
+Message-ID: <138a17dfff244c089b95f129e4ea2f66@AcuMS.aculab.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
-Cc: dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, "David S. Miller" <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>, Jakub Kicinski <kuba-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Marcelo Ricardo Leitner <marcelo.leitner-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Eric Dumazet <edumazet-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, linux-nvme-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-sctp-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, target-devel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-afs-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, drbd-dev-cunTk1MwBs8qoQakbn7OcQ@public.gmane.org, linux-cifs-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, rds-devel-N0ozoZBvEnrZJqsBc5GL+g@public.gmane.org, linux-rdma-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, cluster-devel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, Alexey Kuznetsov <kuznet-v/Mj1YrvjDBInbfyfbPRSQ@public.gmane.org>, ceph-devel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-nfs-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Neil Horman <nhorman-2XuSBdqkA4R54TAoqtyWWQ@public.gmane.org>, Hideaki YOSHIFUJI <yoshfuji-VfPWfsRibaP+Ru+s062T9g@public.gmane.org>, netdev-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Vlad Yasevich <vyasevich-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Jon Maloy <jmaloy-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Ying Xue <ying.xue-CWA4WttNNZF54TAoqtyWWQ@public.gmane.org>, ocfs2-de
+To: 'Christoph Hellwig' <hch@lst.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>
+Cc: Eric Dumazet <edumazet@google.com>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, Vlad Yasevich <vyasevich@gmail.com>, Neil Horman <nhorman@tuxdriver.com>, Marcelo Ricardo Leitner <marcelo.leitner@gmail.com>, Jon Maloy <jmaloy@redhat.com>, Ying Xue <ying.xue@windriver.com>, "drbd-dev@lists.linbit.com" <drbd-dev@lists.linbit.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-rdma@vger.kernel.org" <linux-rdma@vger.kernel.org>, "linux-nvme@lists.infradead.org" <linux-nvme@lists.infradead.org>, "target-devel@vger.kernel.org" <target-devel@vger.kernel.org>, "linux-afs@lists.infradead.org" <linux-afs@lists.infradead.org>, "linux-cifs@vger.kernel.org" <linux-cifs@vger.kernel.org>, cluster-devel@redhat.co
 
-Christoph Hellwig <hch@lst.de> wrote:
-
-> Add a helper to directly set the RXRPC_MIN_SECURITY_LEVEL sockopt from
-> kernel space without going through a fake uaccess.
+From: Christoph Hellwig
+> Sent: 20 May 2020 20:55
 > 
-> Thanks to David Howells for the documentation updates.
+> this series removes the kernel_setsockopt and kernel_getsockopt
+> functions, and instead switches their users to small functions that
+> implement setting (or in one case getting) a sockopt directly using
+> a normal kernel function call with type safety and all the other
+> benefits of not having a function call.
 > 
-> Signed-off-by: Christoph Hellwig <hch@lst.de>
+> In some cases these functions seem pretty heavy handed as they do
+> a lock_sock even for just setting a single variable, but this mirrors
+> the real setsockopt implementation unlike a few drivers that just set
+> set the fields directly.
 
-Acked-by: David Howells <dhowells@redhat.com>
+How much does this increase the kernel code by?
+
+You are also replicating a lot of code making it more
+difficult to maintain.
+
+I don't think the performance of an socket option code
+really matters - it is usually done once when a socket
+is initialised and the other costs of establishing a
+connection will dominate.
+
+Pulling the user copies outside the [gs]etsocksopt switch
+statement not only reduces the code size (source and object)
+and trivially allows kernel_[sg]sockopt() to me added to
+the list of socket calls.
+
+It probably isn't possible to pull the usercopies right
+out into the syscall wrapper because of some broken
+requests.
+
+I worried about whether getsockopt() should read the entire
+user buffer first. SCTP needs the some of it often (including a
+sockaddr_storage in one case), TCP needs it once.
+However the cost of reading a few words is small, and a big
+buffer probably needs setting to avoid leaking kernel
+memory if the structure has holes or fields that don't get set.
+Reading from userspace solves both issues.
+
+	David
+
+-
+Registered Address Lakeside, Bramley Road, Mount Farm, Milton Keynes, MK1 1PT, UK
+Registration No: 1397386 (Wales)
