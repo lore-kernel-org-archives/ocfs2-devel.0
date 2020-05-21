@@ -1,59 +1,50 @@
-From: David Laight <David.Laight@ACULAB.COM>
-Date: Thu, 21 May 2020 08:01:33 +0000
-Subject: [Ocfs2-devel] remove kernel_setsockopt and kernel_getsockopt v2
-In-Reply-To: <20200520195509.2215098-1-hch@lst.de>
+From: Christoph Hellwig <hch@lst.de>
+Date: Thu, 21 May 2020 10:34:42 +0200
+Subject: [Ocfs2-devel] [PATCH 31/33] sctp: add sctp_sock_set_nodelay
+In-Reply-To: <20200520233913.GV2491@localhost.localdomain>
 References: <20200520195509.2215098-1-hch@lst.de>
-Message-ID: <138a17dfff244c089b95f129e4ea2f66@AcuMS.aculab.com>
+	<20200520195509.2215098-32-hch@lst.de>
+	<20200520231001.GU2491@localhost.localdomain>
+	<20200520.162355.2212209708127373208.davem@davemloft.net>
+	<20200520233913.GV2491@localhost.localdomain>
+Message-ID: <20200521083442.GA7771@lst.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: 'Christoph Hellwig' <hch@lst.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>
-Cc: Eric Dumazet <edumazet@google.com>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, Vlad Yasevich <vyasevich@gmail.com>, Neil Horman <nhorman@tuxdriver.com>, Marcelo Ricardo Leitner <marcelo.leitner@gmail.com>, Jon Maloy <jmaloy@redhat.com>, Ying Xue <ying.xue@windriver.com>, "drbd-dev@lists.linbit.com" <drbd-dev@lists.linbit.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-rdma@vger.kernel.org" <linux-rdma@vger.kernel.org>, "linux-nvme@lists.infradead.org" <linux-nvme@lists.infradead.org>, "target-devel@vger.kernel.org" <target-devel@vger.kernel.org>, "linux-afs@lists.infradead.org" <linux-afs@lists.infradead.org>, "linux-cifs@vger.kernel.org" <linux-cifs@vger.kernel.org>, cluster-devel@redhat.co
+To: Marcelo Ricardo Leitner <marcelo.leitner-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Cc: edumazet-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org, linux-nvme-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-sctp-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, target-devel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-afs-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, drbd-dev-cunTk1MwBs8qoQakbn7OcQ@public.gmane.org, linux-cifs-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, rds-devel-N0ozoZBvEnrZJqsBc5GL+g@public.gmane.org, linux-rdma-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, hch-jcswGhMUV9g@public.gmane.org, cluster-devel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, kuznet-v/Mj1YrvjDBInbfyfbPRSQ@public.gmane.org, kuba-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, ceph-devel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-nfs-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, nhorman-2XuSBdqkA4R54TAoqtyWWQ@public.gmane.org, yoshfuji-VfPWfsRibaP+Ru+s062T9g@public.gmane.org, netdev-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, vyasevich-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, jmaloy-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, ying.xue-CWA4WttNNZF54TAoqtyWWQ@public.gmane.org, David Miller <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>, ocfs2-devel-N0ozoZBvEnrZJqsBc5GL+g@public.gmane.org
 
-From: Christoph Hellwig
-> Sent: 20 May 2020 20:55
+On Wed, May 20, 2020 at 08:39:13PM -0300, Marcelo Ricardo Leitner wrote:
+> On Wed, May 20, 2020 at 04:23:55PM -0700, David Miller wrote:
+> > From: Marcelo Ricardo Leitner <marcelo.leitner@gmail.com>
+> > Date: Wed, 20 May 2020 20:10:01 -0300
+> > 
+> > > The duplication with sctp_setsockopt_nodelay() is quite silly/bad.
+> > > Also, why have the 'true' hardcoded? It's what dlm uses, yes, but the
+> > > API could be a bit more complete than that.
+> > 
+> > The APIs are being designed based upon what in-tree users actually
+> > make use of.  We can expand things later if necessary.
 > 
-> this series removes the kernel_setsockopt and kernel_getsockopt
-> functions, and instead switches their users to small functions that
-> implement setting (or in one case getting) a sockopt directly using
-> a normal kernel function call with type safety and all the other
-> benefits of not having a function call.
+> Sometimes expanding things later can be though, thus why the worry.
+> But ok, I get it. Thanks.
 > 
-> In some cases these functions seem pretty heavy handed as they do
-> a lock_sock even for just setting a single variable, but this mirrors
-> the real setsockopt implementation unlike a few drivers that just set
-> set the fields directly.
+> The comment still applies, though. (re the duplication)
 
-How much does this increase the kernel code by?
+Where do you see duplication?
 
-You are also replicating a lot of code making it more
-difficult to maintain.
+sctp_setsockopt_nodelay does the following things:
 
-I don't think the performance of an socket option code
-really matters - it is usually done once when a socket
-is initialised and the other costs of establishing a
-connection will dominate.
+ - verifies optlen, returns -EINVAL if it doesn't match
+ - calls get_user, returns -EFAULT on error
+ - converts the value from get_user to a boolean and assigns it
+   to sctp_sk(sk)->nodelay
+ - returns 0.
 
-Pulling the user copies outside the [gs]etsocksopt switch
-statement not only reduces the code size (source and object)
-and trivially allows kernel_[sg]sockopt() to me added to
-the list of socket calls.
+sctp_sock_set_nodelay does:
 
-It probably isn't possible to pull the usercopies right
-out into the syscall wrapper because of some broken
-requests.
-
-I worried about whether getsockopt() should read the entire
-user buffer first. SCTP needs the some of it often (including a
-sockaddr_storage in one case), TCP needs it once.
-However the cost of reading a few words is small, and a big
-buffer probably needs setting to avoid leaking kernel
-memory if the structure has holes or fields that don't get set.
-Reading from userspace solves both issues.
-
-	David
-
--
-Registered Address Lakeside, Bramley Road, Mount Farm, Milton Keynes, MK1 1PT, UK
-Registration No: 1397386 (Wales)
+ - call lock_sock
+ - assign true to sctp_sk(sk)->nodelay
+ - call release_sock
+ - does not return an error code
