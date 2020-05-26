@@ -1,33 +1,83 @@
-From: Christoph Hellwig <hch@lst.de>
-Date: Sat, 23 May 2020 09:23:16 +0200
-Subject: [Ocfs2-devel] remove kernel_setsockopt and kernel_getsockopt v2
-In-Reply-To: <20200520195509.2215098-1-hch@lst.de>
-References: <20200520195509.2215098-1-hch@lst.de>
-Message-ID: <20200523072316.GA10575@lst.de>
+From: Wangyan <wangyan122@huawei.com>
+Date: Tue, 26 May 2020 15:45:35 +0800
+Subject: [Ocfs2-devel] [PATCH 1/2] ocfs2: clear links count in ocfs2_mknod()
+ if an error occurs
+Message-ID: <d8147c41-fb2b-bdf7-b660-1f3c8448c33f@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>
-Cc: Marcelo Ricardo Leitner <marcelo.leitner@gmail.com>, Eric Dumazet <edumazet@google.com>, linux-nvme@lists.infradead.org, linux-sctp@vger.kernel.org, target-devel@vger.kernel.org, linux-afs@lists.infradead.org, drbd-dev@lists.linbit.com, linux-cifs@vger.kernel.org, rds-devel@oss.oracle.com, linux-rdma@vger.kernel.org, cluster-devel@redhat.com, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, ceph-devel@vger.kernel.org, linux-nfs@vger.kernel.org, Neil Horman <nhorman@tuxdriver.com>, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, netdev@vger.kernel.org, Vlad Yasevich <vyasevich@gmail.com>, linux-kernel@vger.kernel.org, Jon Maloy <jmaloy@redhat.com>, Ying Xue <ying.xue@windriver.com>, ocfs2-devel@oss.oracle.com
+To: ocfs2-devel@oss.oracle.com
 
-On Wed, May 20, 2020 at 09:54:36PM +0200, Christoph Hellwig wrote:
-> Hi Dave,
-> 
-> this series removes the kernel_setsockopt and kernel_getsockopt
-> functions, and instead switches their users to small functions that
-> implement setting (or in one case getting) a sockopt directly using
-> a normal kernel function call with type safety and all the other
-> benefits of not having a function call.
-> 
-> In some cases these functions seem pretty heavy handed as they do
-> a lock_sock even for just setting a single variable, but this mirrors
-> the real setsockopt implementation unlike a few drivers that just set
-> set the fields directly.
+In this condition, the inode can not be wiped when error happened.
+ocfs2_mkdir()
+  ->ocfs2_mknod()
+    ->ocfs2_mknod_locked()
+      ->__ocfs2_mknod_locked()
+        ->ocfs2_set_links_count() // i_links_count is 2
+    -> ... // an error accrue, goto roll_back or leave.
+    ->ocfs2_commit_trans()
+    ->iput(inode)
+      ->evict()
+        ->ocfs2_evict_inode()
+          ->ocfs2_delete_inode()
+            ->ocfs2_inode_lock()
+              ->ocfs2_inode_lock_update()
+                ->ocfs2_refresh_inode()
+                  ->set_nlink();    // inode->i_nlink is 2 now.
+            /* if wipe is 0, it will goto bail_unlock_inode */
+            ->ocfs2_query_inode_wipe()
+              ->if (inode->i_nlink) return; // wipe is 0.
+            /* inode can not be wiped */
+            ->ocfs2_wipe_inode()
+So, we need clear links before the transaction committed.
 
-Hi Dave and other maintainers,
+Signed-off-by: Yan Wang <wangyan122@huawei.com>
+Reviewed-by: Jun Piao <piaojun@huawei.com>
+---
+ fs/ocfs2/namei.c | 14 ++++++++++++--
+ 1 file changed, 12 insertions(+), 2 deletions(-)
 
-can you take a look at and potentially merge patches 1-30 while we
-discuss the sctp refactoring?  It would get a nice headstart by removing
-kernel_getsockopt and most kernel_setsockopt users, and for the next
-follow on I wouldn't need to spam lots of lists with 30+ patches again.
+diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
+index 5381020aaa9a..e61fdd8972ec 100644
+--- a/fs/ocfs2/namei.c
++++ b/fs/ocfs2/namei.c
+@@ -453,8 +453,12 @@ static int ocfs2_mknod(struct inode *dir,
+ leave:
+ 	if (status < 0 && did_quota_inode)
+ 		dquot_free_inode(inode);
+-	if (handle)
++	if (handle) {
++		if (status < 0 && new_fe_bh != NULL)
++			ocfs2_set_links_count((struct ocfs2_dinode *)
++					new_fe_bh->b_data, 0);
+ 		ocfs2_commit_trans(osb, handle);
++	}
+
+ 	ocfs2_inode_unlock(dir, 1);
+ 	if (did_block_signals)
+@@ -598,6 +602,8 @@ static int __ocfs2_mknod_locked(struct inode *dir,
+ leave:
+ 	if (status < 0) {
+ 		if (*new_fe_bh) {
++			if (fe)
++				ocfs2_set_links_count(fe, 0);
+ 			brelse(*new_fe_bh);
+ 			*new_fe_bh = NULL;
+ 		}
+@@ -2023,8 +2029,12 @@ static int ocfs2_symlink(struct inode *dir,
+ 					ocfs2_clusters_to_bytes(osb->sb, 1));
+ 	if (status < 0 && did_quota_inode)
+ 		dquot_free_inode(inode);
+-	if (handle)
++	if (handle) {
++		if (status < 0 && new_fe_bh != NULL)
++			ocfs2_set_links_count((struct ocfs2_dinode *)
++					new_fe_bh->b_data, 0);
+ 		ocfs2_commit_trans(osb, handle);
++	}
+
+ 	ocfs2_inode_unlock(dir, 1);
+ 	if (did_block_signals)
+-- 
+2.23.0
