@@ -1,117 +1,93 @@
 From: Christoph Hellwig <hch@lst.de>
-Date: Thu, 28 May 2020 07:12:22 +0200
-Subject: [Ocfs2-devel] [PATCH 14/28] tcp: add tcp_sock_set_user_timeout
+Date: Thu, 28 May 2020 07:12:24 +0200
+Subject: [Ocfs2-devel] [PATCH 16/28] tcp: add tcp_sock_set_keepintvl
 In-Reply-To: <20200528051236.620353-1-hch@lst.de>
 References: <20200528051236.620353-1-hch@lst.de>
-Message-ID: <20200528051236.620353-15-hch@lst.de>
+Message-ID: <20200528051236.620353-17-hch@lst.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: "David S. Miller" <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>, Jakub Kicinski <kuba-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
-Cc: Eric Dumazet <edumazet-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, Alexey Kuznetsov <kuznet-v/Mj1YrvjDBInbfyfbPRSQ@public.gmane.org>, Hideaki YOSHIFUJI <yoshfuji-VfPWfsRibaP+Ru+s062T9g@public.gmane.org>, Jon Maloy <jmaloy-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Ying Xue <ying.xue-CWA4WttNNZF54TAoqtyWWQ@public.gmane.org>, drbd-dev-cunTk1MwBs8qoQakbn7OcQ@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-rdma-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-nvme-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, target-devel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-afs-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-cifs-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, cluster-devel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, ocfs2-devel-N0ozoZBvEnrZJqsBc5GL+g@public.gmane.org, netdev-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, ceph-devel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, rds-devel-N0ozoZBvEnrZJqsBc5GL+g@public.gmane.org, linux-nfs-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, tipc-discussion-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org
+To: "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>
+Cc: Eric Dumazet <edumazet@google.com>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, Jon Maloy <jmaloy@redhat.com>, Ying Xue <ying.xue@windriver.com>, drbd-dev@lists.linbit.com, linux-kernel@vger.kernel.org, linux-rdma@vger.kernel.org, linux-nvme@lists.infradead.org, target-devel@vger.kernel.org, linux-afs@lists.infradead.org, linux-cifs@vger.kernel.org, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, netdev@vger.kernel.org, ceph-devel@vger.kernel.org, rds-devel@oss.oracle.com, linux-nfs@vger.kernel.org, tipc-discussion@lists.sourceforge.net
 
-Add a helper to directly set the TCP_USER_TIMEOUT sockopt from kernel
-space without going through a fake uaccess.
+Add a helper to directly set the TCP_KEEPINTVL sockopt from kernel space
+without going through a fake uaccess.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- fs/ocfs2/cluster/tcp.c | 22 ++--------------------
- include/linux/tcp.h    |  1 +
- net/ipv4/tcp.c         |  8 ++++++++
- net/sunrpc/xprtsock.c  |  3 +--
- 4 files changed, 12 insertions(+), 22 deletions(-)
+ include/linux/tcp.h   |  1 +
+ net/ipv4/tcp.c        | 12 ++++++++++++
+ net/rds/tcp_listen.c  |  4 +---
+ net/sunrpc/xprtsock.c |  3 +--
+ 4 files changed, 15 insertions(+), 5 deletions(-)
 
-diff --git a/fs/ocfs2/cluster/tcp.c b/fs/ocfs2/cluster/tcp.c
-index 4c70fe9d19ab2..79a2317194600 100644
---- a/fs/ocfs2/cluster/tcp.c
-+++ b/fs/ocfs2/cluster/tcp.c
-@@ -1441,14 +1441,6 @@ static void o2net_rx_until_empty(struct work_struct *work)
- 	sc_put(sc);
- }
- 
--static int o2net_set_usertimeout(struct socket *sock)
--{
--	int user_timeout = O2NET_TCP_USER_TIMEOUT;
--
--	return kernel_setsockopt(sock, SOL_TCP, TCP_USER_TIMEOUT,
--				(void *)&user_timeout, sizeof(user_timeout));
--}
--
- static void o2net_initialize_handshake(void)
- {
- 	o2net_hand->o2hb_heartbeat_timeout_ms = cpu_to_be32(
-@@ -1629,12 +1621,7 @@ static void o2net_start_connect(struct work_struct *work)
- 	}
- 
- 	tcp_sock_set_nodelay(sc->sc_sock->sk);
--
--	ret = o2net_set_usertimeout(sock);
--	if (ret) {
--		mlog(ML_ERROR, "set TCP_USER_TIMEOUT failed with %d\n", ret);
--		goto out;
--	}
-+	tcp_sock_set_user_timeout(sock->sk, O2NET_TCP_USER_TIMEOUT);
- 
- 	o2net_register_callbacks(sc->sc_sock->sk, sc);
- 
-@@ -1821,12 +1808,7 @@ static int o2net_accept_one(struct socket *sock, int *more)
- 	new_sock->sk->sk_allocation = GFP_ATOMIC;
- 
- 	tcp_sock_set_nodelay(new_sock->sk);
--
--	ret = o2net_set_usertimeout(new_sock);
--	if (ret) {
--		mlog(ML_ERROR, "set TCP_USER_TIMEOUT failed with %d\n", ret);
--		goto out;
--	}
-+	tcp_sock_set_user_timeout(new_sock->sk, O2NET_TCP_USER_TIMEOUT);
- 
- 	ret = new_sock->ops->getname(new_sock, (struct sockaddr *) &sin, 1);
- 	if (ret < 0)
 diff --git a/include/linux/tcp.h b/include/linux/tcp.h
-index 6aa4ae5ebf3d5..de682143efe4d 100644
+index 5724dd84a85ed..1f9bada00faab 100644
 --- a/include/linux/tcp.h
 +++ b/include/linux/tcp.h
-@@ -501,5 +501,6 @@ void tcp_sock_set_cork(struct sock *sk, bool on);
+@@ -499,6 +499,7 @@ int tcp_skb_shift(struct sk_buff *to, struct sk_buff *from, int pcount,
+ 
+ void tcp_sock_set_cork(struct sock *sk, bool on);
+ int tcp_sock_set_keepidle(struct sock *sk, int val);
++int tcp_sock_set_keepintvl(struct sock *sk, int val);
  void tcp_sock_set_nodelay(struct sock *sk);
  void tcp_sock_set_quickack(struct sock *sk, int val);
  int tcp_sock_set_syncnt(struct sock *sk, int val);
-+void tcp_sock_set_user_timeout(struct sock *sk, u32 val);
- 
- #endif	/* _LINUX_TCP_H */
 diff --git a/net/ipv4/tcp.c b/net/ipv4/tcp.c
-index d2c67ae1da07a..0004bd9ae7b0a 100644
+index bdf0ff9333514..7eb083e09786a 100644
 --- a/net/ipv4/tcp.c
 +++ b/net/ipv4/tcp.c
-@@ -2893,6 +2893,14 @@ int tcp_sock_set_syncnt(struct sock *sk, int val)
+@@ -2934,6 +2934,18 @@ int tcp_sock_set_keepidle(struct sock *sk, int val)
  }
- EXPORT_SYMBOL(tcp_sock_set_syncnt);
+ EXPORT_SYMBOL(tcp_sock_set_keepidle);
  
-+void tcp_sock_set_user_timeout(struct sock *sk, u32 val)
++int tcp_sock_set_keepintvl(struct sock *sk, int val)
 +{
++	if (val < 1 || val > MAX_TCP_KEEPINTVL)
++		return -EINVAL;
++
 +	lock_sock(sk);
-+	inet_csk(sk)->icsk_user_timeout = val;
++	tcp_sk(sk)->keepalive_intvl = val * HZ;
 +	release_sock(sk);
++	return 0;
 +}
-+EXPORT_SYMBOL(tcp_sock_set_user_timeout);
++EXPORT_SYMBOL(tcp_sock_set_keepintvl);
 +
  /*
   *	Socket option code for TCP.
   */
+diff --git a/net/rds/tcp_listen.c b/net/rds/tcp_listen.c
+index 79f9adc008114..9ad555c48d15d 100644
+--- a/net/rds/tcp_listen.c
++++ b/net/rds/tcp_listen.c
+@@ -53,12 +53,10 @@ int rds_tcp_keepalive(struct socket *sock)
+ 		goto bail;
+ 
+ 	tcp_sock_set_keepidle(sock->sk, keepidle);
+-
+ 	/* KEEPINTVL is the interval between successive probes. We follow
+ 	 * the model in xs_tcp_finish_connecting() and re-use keepidle.
+ 	 */
+-	ret = kernel_setsockopt(sock, IPPROTO_TCP, TCP_KEEPINTVL,
+-				(char *)&keepidle, sizeof(keepidle));
++	tcp_sock_set_keepintvl(sock->sk, keepidle);
+ bail:
+ 	return ret;
+ }
 diff --git a/net/sunrpc/xprtsock.c b/net/sunrpc/xprtsock.c
-index 399848c2bcb29..231fd6162f68d 100644
+index 473290f7c5c0a..5ca64e12af0c5 100644
 --- a/net/sunrpc/xprtsock.c
 +++ b/net/sunrpc/xprtsock.c
-@@ -2115,8 +2115,7 @@ static void xs_tcp_set_socket_timeouts(struct rpc_xprt *xprt,
+@@ -2108,8 +2108,7 @@ static void xs_tcp_set_socket_timeouts(struct rpc_xprt *xprt,
+ 	/* TCP Keepalive options */
+ 	sock_set_keepalive(sock->sk);
+ 	tcp_sock_set_keepidle(sock->sk, keepidle);
+-	kernel_setsockopt(sock, SOL_TCP, TCP_KEEPINTVL,
+-			(char *)&keepidle, sizeof(keepidle));
++	tcp_sock_set_keepintvl(sock->sk, keepidle);
+ 	kernel_setsockopt(sock, SOL_TCP, TCP_KEEPCNT,
  			(char *)&keepcnt, sizeof(keepcnt));
  
- 	/* TCP user timeout (see RFC5482) */
--	kernel_setsockopt(sock, SOL_TCP, TCP_USER_TIMEOUT,
--			(char *)&timeo, sizeof(timeo));
-+	tcp_sock_set_user_timeout(sock->sk, timeo);
- }
- 
- static void xs_tcp_set_connect_timeout(struct rpc_xprt *xprt,
 -- 
 2.26.2
