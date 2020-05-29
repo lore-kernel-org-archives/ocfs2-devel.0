@@ -1,10 +1,10 @@
 From: Luis Chamberlain <mcgrof@kernel.org>
-Date: Fri, 29 May 2020 07:40:59 +0000
-Subject: [Ocfs2-devel] [PATCH 04/13] i915: use new sysctl subdir helper
-	register_sysctl_subdir()
+Date: Fri, 29 May 2020 07:41:00 +0000
+Subject: [Ocfs2-devel] [PATCH 05/13] macintosh/mac_hid.c: use new sysctl
+	subdir helper register_sysctl_subdir()
 In-Reply-To: <20200529074108.16928-1-mcgrof@kernel.org>
 References: <20200529074108.16928-1-mcgrof@kernel.org>
-Message-ID: <20200529074108.16928-5-mcgrof@kernel.org>
+Message-ID: <20200529074108.16928-6-mcgrof@kernel.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -15,7 +15,7 @@ Cc: intel-gfx@lists.freedesktop.org, linux-kernel@vger.kernel.org, dri-devel@lis
 This simplifies the code considerably. The following coccinelle
 SmPL grammar rule was used to transform this code.
 
-// pycocci sysctl-subdir.cocci drivers/gpu/drm/i915/i915_perf.c
+// pycocci sysctl-subdir.cocci drivers/macintosh/mac_hid.c
 
 @c1@
 expression E1;
@@ -100,50 +100,51 @@ header =
 +register_sysctl_subdir(E2, E1, sysctls);
 
 Generated-by: Coccinelle SmPL
+
 Signed-off-by: Luis Chamberlain <mcgrof@kernel.org>
 ---
- drivers/gpu/drm/i915/i915_perf.c | 22 +---------------------
- 1 file changed, 1 insertion(+), 21 deletions(-)
+ drivers/macintosh/mac_hid.c | 25 ++-----------------------
+ 1 file changed, 2 insertions(+), 23 deletions(-)
 
-diff --git a/drivers/gpu/drm/i915/i915_perf.c b/drivers/gpu/drm/i915/i915_perf.c
-index 665bb076e84d..52509b573794 100644
---- a/drivers/gpu/drm/i915/i915_perf.c
-+++ b/drivers/gpu/drm/i915/i915_perf.c
-@@ -4203,26 +4203,6 @@ static struct ctl_table oa_table[] = {
- 	{}
+diff --git a/drivers/macintosh/mac_hid.c b/drivers/macintosh/mac_hid.c
+index 28b8581b44dd..736d0e151716 100644
+--- a/drivers/macintosh/mac_hid.c
++++ b/drivers/macintosh/mac_hid.c
+@@ -239,33 +239,12 @@ static struct ctl_table mac_hid_files[] = {
+ 	{ }
  };
  
--static struct ctl_table i915_root[] = {
+-/* dir in /proc/sys/dev */
+-static struct ctl_table mac_hid_dir[] = {
 -	{
--	 .procname = "i915",
--	 .maxlen = 0,
--	 .mode = 0555,
--	 .child = oa_table,
--	 },
--	{}
+-		.procname	= "mac_hid",
+-		.maxlen		= 0,
+-		.mode		= 0555,
+-		.child		= mac_hid_files,
+-	},
+-	{ }
 -};
 -
--static struct ctl_table dev_root[] = {
+-/* /proc/sys/dev itself, in case that is not there yet */
+-static struct ctl_table mac_hid_root_dir[] = {
 -	{
--	 .procname = "dev",
--	 .maxlen = 0,
--	 .mode = 0555,
--	 .child = i915_root,
--	 },
--	{}
+-		.procname	= "dev",
+-		.maxlen		= 0,
+-		.mode		= 0555,
+-		.child		= mac_hid_dir,
+-	},
+-	{ }
 -};
 -
- /**
-  * i915_perf_init - initialize i915-perf state on module bind
-  * @i915: i915 device instance
-@@ -4383,7 +4363,7 @@ static int destroy_config(int id, void *p, void *data)
+ static struct ctl_table_header *mac_hid_sysctl_header;
  
- void i915_perf_sysctl_register(void)
+ static int __init mac_hid_init(void)
  {
--	sysctl_header = register_sysctl_table(dev_root);
-+	sysctl_header = register_sysctl_subdir("dev", "i915", oa_table);
- }
+-	mac_hid_sysctl_header = register_sysctl_table(mac_hid_root_dir);
++	mac_hid_sysctl_header = register_sysctl_subdir("dev", "mac_hid",
++						       mac_hid_files);
+ 	if (!mac_hid_sysctl_header)
+ 		return -ENOMEM;
  
- void i915_perf_sysctl_unregister(void)
 -- 
 2.26.2
