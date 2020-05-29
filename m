@@ -1,10 +1,10 @@
 From: Luis Chamberlain <mcgrof@kernel.org>
-Date: Fri, 29 May 2020 07:41:00 +0000
-Subject: [Ocfs2-devel] [PATCH 05/13] macintosh/mac_hid.c: use new sysctl
-	subdir helper register_sysctl_subdir()
+Date: Fri, 29 May 2020 07:41:01 +0000
+Subject: [Ocfs2-devel] [PATCH 06/13] ocfs2: use new sysctl subdir helper
+	register_sysctl_subdir()
 In-Reply-To: <20200529074108.16928-1-mcgrof@kernel.org>
 References: <20200529074108.16928-1-mcgrof@kernel.org>
-Message-ID: <20200529074108.16928-6-mcgrof@kernel.org>
+Message-ID: <20200529074108.16928-7-mcgrof@kernel.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -15,7 +15,7 @@ Cc: intel-gfx@lists.freedesktop.org, linux-kernel@vger.kernel.org, dri-devel@lis
 This simplifies the code considerably. The following coccinelle
 SmPL grammar rule was used to transform this code.
 
-// pycocci sysctl-subdir.cocci drivers/macintosh/mac_hid.c
+// pycocci sysctl-subdir.cocci fs/ocfs2/stackglue.c
 
 @c1@
 expression E1;
@@ -103,48 +103,53 @@ Generated-by: Coccinelle SmPL
 
 Signed-off-by: Luis Chamberlain <mcgrof@kernel.org>
 ---
- drivers/macintosh/mac_hid.c | 25 ++-----------------------
- 1 file changed, 2 insertions(+), 23 deletions(-)
+ fs/ocfs2/stackglue.c | 27 ++++-----------------------
+ 1 file changed, 4 insertions(+), 23 deletions(-)
 
-diff --git a/drivers/macintosh/mac_hid.c b/drivers/macintosh/mac_hid.c
-index 28b8581b44dd..736d0e151716 100644
---- a/drivers/macintosh/mac_hid.c
-+++ b/drivers/macintosh/mac_hid.c
-@@ -239,33 +239,12 @@ static struct ctl_table mac_hid_files[] = {
+diff --git a/fs/ocfs2/stackglue.c b/fs/ocfs2/stackglue.c
+index a191094694c6..addafced7f59 100644
+--- a/fs/ocfs2/stackglue.c
++++ b/fs/ocfs2/stackglue.c
+@@ -677,28 +677,8 @@ static struct ctl_table ocfs2_mod_table[] = {
+ 	},
  	{ }
  };
- 
--/* dir in /proc/sys/dev */
--static struct ctl_table mac_hid_dir[] = {
+-
+-static struct ctl_table ocfs2_kern_table[] = {
 -	{
--		.procname	= "mac_hid",
+-		.procname	= "ocfs2",
+-		.data		= NULL,
 -		.maxlen		= 0,
 -		.mode		= 0555,
--		.child		= mac_hid_files,
+-		.child		= ocfs2_mod_table
 -	},
 -	{ }
 -};
 -
--/* /proc/sys/dev itself, in case that is not there yet */
--static struct ctl_table mac_hid_root_dir[] = {
+-static struct ctl_table ocfs2_root_table[] = {
 -	{
--		.procname	= "dev",
+-		.procname	= "fs",
+-		.data		= NULL,
 -		.maxlen		= 0,
 -		.mode		= 0555,
--		.child		= mac_hid_dir,
+-		.child		= ocfs2_kern_table
 -	},
 -	{ }
 -};
--
- static struct ctl_table_header *mac_hid_sysctl_header;
++	.data		= NULL,
++	.data		= NULL,
  
- static int __init mac_hid_init(void)
+ static struct ctl_table_header *ocfs2_table_header;
+ 
+@@ -711,7 +691,8 @@ static int __init ocfs2_stack_glue_init(void)
  {
--	mac_hid_sysctl_header = register_sysctl_table(mac_hid_root_dir);
-+	mac_hid_sysctl_header = register_sysctl_subdir("dev", "mac_hid",
-+						       mac_hid_files);
- 	if (!mac_hid_sysctl_header)
- 		return -ENOMEM;
+ 	strcpy(cluster_stack_name, OCFS2_STACK_PLUGIN_O2CB);
  
+-	ocfs2_table_header = register_sysctl_table(ocfs2_root_table);
++	ocfs2_table_header = register_sysctl_subdir("fs", "ocfs2",
++						    ocfs2_mod_table);
+ 	if (!ocfs2_table_header) {
+ 		printk(KERN_ERR
+ 		       "ocfs2 stack glue: unable to register sysctl\n");
 -- 
 2.26.2
