@@ -1,10 +1,10 @@
 From: Luis Chamberlain <mcgrof@kernel.org>
-Date: Fri, 29 May 2020 07:40:57 +0000
-Subject: [Ocfs2-devel] [PATCH 02/13] cdrom: use new sysctl subdir helper
+Date: Fri, 29 May 2020 07:40:58 +0000
+Subject: [Ocfs2-devel] [PATCH 03/13] hpet: use new sysctl subdir helper
 	register_sysctl_subdir()
 In-Reply-To: <20200529074108.16928-1-mcgrof@kernel.org>
 References: <20200529074108.16928-1-mcgrof@kernel.org>
-Message-ID: <20200529074108.16928-3-mcgrof@kernel.org>
+Message-ID: <20200529074108.16928-4-mcgrof@kernel.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -15,7 +15,7 @@ Cc: intel-gfx@lists.freedesktop.org, linux-kernel@vger.kernel.org, dri-devel@lis
 This simplifies the code considerably. The following coccinelle
 SmPL grammar rule was used to transform this code.
 
-// pycocci sysctl-subdir.cocci drivers/cdrom/cdrom.c
+// pycocci sysctl-subdir.cocci drivers/char/hpet.c
 
 @c1@
 expression E1;
@@ -100,51 +100,51 @@ header =
 +register_sysctl_subdir(E2, E1, sysctls);
 
 Generated-by: Coccinelle SmPL
+
 Signed-off-by: Luis Chamberlain <mcgrof@kernel.org>
 ---
- drivers/cdrom/cdrom.c | 23 ++---------------------
- 1 file changed, 2 insertions(+), 21 deletions(-)
+ drivers/char/hpet.c | 22 +---------------------
+ 1 file changed, 1 insertion(+), 21 deletions(-)
 
-diff --git a/drivers/cdrom/cdrom.c b/drivers/cdrom/cdrom.c
-index a0a7ae705de8..3c638f464cef 100644
---- a/drivers/cdrom/cdrom.c
-+++ b/drivers/cdrom/cdrom.c
-@@ -3719,26 +3719,6 @@ static struct ctl_table cdrom_table[] = {
- 	{ }
+diff --git a/drivers/char/hpet.c b/drivers/char/hpet.c
+index ed3b7dab678d..169c970d5ff8 100644
+--- a/drivers/char/hpet.c
++++ b/drivers/char/hpet.c
+@@ -746,26 +746,6 @@ static struct ctl_table hpet_table[] = {
+ 	{}
  };
  
--static struct ctl_table cdrom_cdrom_table[] = {
+-static struct ctl_table hpet_root[] = {
 -	{
--		.procname	= "cdrom",
--		.maxlen		= 0,
--		.mode		= 0555,
--		.child		= cdrom_table,
--	},
--	{ }
+-	 .procname = "hpet",
+-	 .maxlen = 0,
+-	 .mode = 0555,
+-	 .child = hpet_table,
+-	 },
+-	{}
 -};
 -
--/* Make sure that /proc/sys/dev is there */
--static struct ctl_table cdrom_root_table[] = {
+-static struct ctl_table dev_root[] = {
 -	{
--		.procname	= "dev",
--		.maxlen		= 0,
--		.mode		= 0555,
--		.child		= cdrom_cdrom_table,
--	},
--	{ }
+-	 .procname = "dev",
+-	 .maxlen = 0,
+-	 .mode = 0555,
+-	 .child = hpet_root,
+-	 },
+-	{}
 -};
- static struct ctl_table_header *cdrom_sysctl_header;
+-
+ static struct ctl_table_header *sysctl_header;
  
- static void cdrom_sysctl_register(void)
-@@ -3748,7 +3728,8 @@ static void cdrom_sysctl_register(void)
- 	if (!atomic_add_unless(&initialized, 1, 1))
- 		return;
+ /*
+@@ -1059,7 +1039,7 @@ static int __init hpet_init(void)
+ 	if (result < 0)
+ 		return -ENODEV;
  
--	cdrom_sysctl_header = register_sysctl_table(cdrom_root_table);
-+	cdrom_sysctl_header = register_sysctl_subdir("dev", "cdrom",
-+						     cdrom_table);
+-	sysctl_header = register_sysctl_table(dev_root);
++	sysctl_header = register_sysctl_subdir("dev", "hpet", hpet_table);
  
- 	/* set the defaults */
- 	cdrom_sysctl_settings.autoclose = autoclose;
+ 	result = acpi_bus_register_driver(&hpet_acpi_driver);
+ 	if (result < 0) {
 -- 
 2.26.2
