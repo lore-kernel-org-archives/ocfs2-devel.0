@@ -1,55 +1,33 @@
-From: Luis Chamberlain <mcgrof@kernel.org>
-Date: Fri, 29 May 2020 07:41:08 +0000
-Subject: [Ocfs2-devel] [PATCH 13/13] fs: move binfmt_misc sysctl to its own
-	file
-In-Reply-To: <20200529074108.16928-1-mcgrof@kernel.org>
+From: Jani Nikula <jani.nikula@linux.intel.com>
+Date: Fri, 29 May 2020 11:13:21 +0300
+Subject: [Ocfs2-devel] [PATCH 01/13] sysctl: add new
+	register_sysctl_subdir() helper
+In-Reply-To: <20200529074108.16928-2-mcgrof@kernel.org>
 References: <20200529074108.16928-1-mcgrof@kernel.org>
-Message-ID: <20200529074108.16928-14-mcgrof@kernel.org>
+	<20200529074108.16928-2-mcgrof@kernel.org>
+Message-ID: <87d06n17mm.fsf@intel.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: keescook@chromium.org, yzaikin@google.com, nixiaoming@huawei.com, ebiederm@xmission.com, axboe@kernel.dk, clemens@ladisch.de, arnd@arndb.de, gregkh@linuxfoundation.org, jani.nikula@linux.intel.com, joonas.lahtinen@linux.intel.com, rodrigo.vivi@intel.com, airlied@linux.ie, daniel@ffwll.ch, benh@kernel.crashing.org, rdna@fb.com, viro@zeniv.linux.org.uk, mark@fasheh.com, jlbec@evilplan.org, joseph.qi@linux.alibaba.com, vbabka@suse.cz, sfr@canb.auug.org.au, jack@suse.cz, amir73il@gmail.com, rafael@kernel.org, tytso@mit.edu
-Cc: intel-gfx@lists.freedesktop.org, linux-kernel@vger.kernel.org, dri-devel@lists.freedesktop.org, julia.lawall@lip6.fr, Luis Chamberlain <mcgrof@kernel.org>, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org, ocfs2-devel@oss.oracle.com
+To: Luis Chamberlain <mcgrof@kernel.org>, keescook@chromium.org, yzaikin@google.com, nixiaoming@huawei.com, ebiederm@xmission.com, axboe@kernel.dk, clemens@ladisch.de, arnd@arndb.de, gregkh@linuxfoundation.org, joonas.lahtinen@linux.intel.com, rodrigo.vivi@intel.com, airlied@linux.ie, daniel@ffwll.ch, benh@kernel.crashing.org, rdna@fb.com, viro@zeniv.linux.org.uk, mark@fasheh.com, jlbec@evilplan.org, joseph.qi@linux.alibaba.com, vbabka@suse.cz, sfr@canb.auug.org.au, jack@suse.cz, amir73il@gmail.com, rafael@kernel.org, tytso@mit.edu
+Cc: intel-gfx@lists.freedesktop.org, linux-kernel@vger.kernel.org, dri-devel@lists.freedesktop.org, julia.lawall@lip6.fr, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org, ocfs2-devel@oss.oracle.com
 
-This moves the binfmt_misc sysctl to its own file to help remove
-clutter from kernel/sysctl.c.
+On Fri, 29 May 2020, Luis Chamberlain <mcgrof@kernel.org> wrote:
+> Often enough all we need to do is create a subdirectory so that
+> we can stuff sysctls underneath it. However, *if* that directory
+> was already created early on the boot sequence we really have no
+> need to use the full boiler plate code for it, we can just use
+> local variables to help us guide sysctl to place the new leaf files.
 
-Signed-off-by: Luis Chamberlain <mcgrof@kernel.org>
----
- fs/binfmt_misc.c | 1 +
- kernel/sysctl.c  | 7 -------
- 2 files changed, 1 insertion(+), 7 deletions(-)
+I find it hard to figure out the lifetime requirements for the tables
+passed in; when it's okay to use local variables and when you need
+longer lifetimes. It's not documented, everyone appears to be using
+static tables for this. It's far from obvious.
 
-diff --git a/fs/binfmt_misc.c b/fs/binfmt_misc.c
-index f69a043f562b..656b3f5f3bbf 100644
---- a/fs/binfmt_misc.c
-+++ b/fs/binfmt_misc.c
-@@ -821,6 +821,7 @@ static int __init init_misc_binfmt(void)
- 	int err = register_filesystem(&bm_fs_type);
- 	if (!err)
- 		insert_binfmt(&misc_format);
-+	register_sysctl_empty_subdir("fs", "binfmt_misc");
- 	return err;
- }
- 
-diff --git a/kernel/sysctl.c b/kernel/sysctl.c
-index 460532cd5ac8..7714e7b476c2 100644
---- a/kernel/sysctl.c
-+++ b/kernel/sysctl.c
-@@ -3042,13 +3042,6 @@ static struct ctl_table fs_table[] = {
- 		.extra1		= SYSCTL_ZERO,
- 		.extra2		= SYSCTL_TWO,
- 	},
--#if defined(CONFIG_BINFMT_MISC) || defined(CONFIG_BINFMT_MISC_MODULE)
--	{
--		.procname	= "binfmt_misc",
--		.mode		= 0555,
--		.child		= sysctl_mount_point,
--	},
--#endif
- 	{
- 		.procname	= "pipe-max-size",
- 		.data		= &pipe_max_size,
+BR,
+Jani.
+
+
 -- 
-2.26.2
+Jani Nikula, Intel Open Source Graphics Center
