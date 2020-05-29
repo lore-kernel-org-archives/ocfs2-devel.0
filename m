@@ -1,10 +1,10 @@
 From: Luis Chamberlain <mcgrof@kernel.org>
-Date: Fri, 29 May 2020 07:41:05 +0000
-Subject: [Ocfs2-devel] [PATCH 10/13] eventpoll: simplify sysctl declaration
+Date: Fri, 29 May 2020 07:41:06 +0000
+Subject: [Ocfs2-devel] [PATCH 11/13] random: simplify sysctl declaration
 	with register_sysctl_subdir()
 In-Reply-To: <20200529074108.16928-1-mcgrof@kernel.org>
 References: <20200529074108.16928-1-mcgrof@kernel.org>
-Message-ID: <20200529074108.16928-11-mcgrof@kernel.org>
+Message-ID: <20200529074108.16928-12-mcgrof@kernel.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -14,99 +14,77 @@ Cc: intel-gfx@lists.freedesktop.org, linux-kernel@vger.kernel.org, dri-devel@lis
 
 From: Xiaoming Ni <nixiaoming@huawei.com>
 
-Move epoll_table sysctl to fs/eventpoll.c and remove the
-clutter out of kernel/sysctl.c by using register_sysctl_subdir()..
+Move random_table sysctl from kernel/sysctl.c to drivers/char/random.c
+and use register_sysctl_subdir() to help remove the clutter out of
+kernel/sysctl.c.
 
 Signed-off-by: Xiaoming Ni <nixiaoming@huawei.com>
 Signed-off-by: Luis Chamberlain <mcgrof@kernel.org>
 ---
- fs/eventpoll.c         | 10 +++++++++-
- include/linux/poll.h   |  2 --
+ drivers/char/random.c  | 14 ++++++++++++--
  include/linux/sysctl.h |  1 -
- kernel/sysctl.c        |  7 -------
- 4 files changed, 9 insertions(+), 11 deletions(-)
+ kernel/sysctl.c        |  5 -----
+ 3 files changed, 12 insertions(+), 8 deletions(-)
 
-diff --git a/fs/eventpoll.c b/fs/eventpoll.c
-index 12eebcdea9c8..957ebc9700e3 100644
---- a/fs/eventpoll.c
-+++ b/fs/eventpoll.c
-@@ -299,7 +299,7 @@ static LIST_HEAD(tfile_check_list);
- static long long_zero;
- static long long_max = LONG_MAX;
+diff --git a/drivers/char/random.c b/drivers/char/random.c
+index a7cf6aa65908..73fd4b6e9c18 100644
+--- a/drivers/char/random.c
++++ b/drivers/char/random.c
+@@ -2101,8 +2101,7 @@ static int proc_do_entropy(struct ctl_table *table, int write,
+ }
  
--struct ctl_table epoll_table[] = {
-+static struct ctl_table epoll_table[] = {
+ static int sysctl_poolsize = INPUT_POOL_WORDS * 32;
+-extern struct ctl_table random_table[];
+-struct ctl_table random_table[] = {
++static struct ctl_table random_table[] = {
  	{
- 		.procname	= "max_user_watches",
- 		.data		= &max_user_watches,
-@@ -311,6 +311,13 @@ struct ctl_table epoll_table[] = {
- 	},
+ 		.procname	= "poolsize",
+ 		.data		= &sysctl_poolsize,
+@@ -2164,6 +2163,17 @@ struct ctl_table random_table[] = {
+ #endif
  	{ }
  };
 +
-+static void __init epoll_sysctls_init(void)
++/*
++ * rand_initialize() is called before sysctl_init(),
++ * so we cannot call register_sysctl_init() in rand_initialize()
++ */
++static int __init random_sysctls_init(void)
 +{
-+	register_sysctl_subdir("fs", "epoll", epoll_table);
++	register_sysctl_subdir("kernel", "random", random_table);
++	return 0;
 +}
-+#else
-+#define epoll_sysctls_init() do { } while (0)
- #endif /* CONFIG_SYSCTL */
++device_initcall(random_sysctls_init);
+ #endif 	/* CONFIG_SYSCTL */
  
- static const struct file_operations eventpoll_fops;
-@@ -2422,6 +2429,7 @@ static int __init eventpoll_init(void)
- 	/* Allocates slab cache used to allocate "struct eppoll_entry" */
- 	pwq_cache = kmem_cache_create("eventpoll_pwq",
- 		sizeof(struct eppoll_entry), 0, SLAB_PANIC|SLAB_ACCOUNT, NULL);
-+	epoll_sysctls_init();
- 
- 	return 0;
- }
-diff --git a/include/linux/poll.h b/include/linux/poll.h
-index 1cdc32b1f1b0..a9e0e1c2d1f2 100644
---- a/include/linux/poll.h
-+++ b/include/linux/poll.h
-@@ -8,12 +8,10 @@
- #include <linux/wait.h>
- #include <linux/string.h>
- #include <linux/fs.h>
--#include <linux/sysctl.h>
- #include <linux/uaccess.h>
- #include <uapi/linux/poll.h>
- #include <uapi/linux/eventpoll.h>
- 
--extern struct ctl_table epoll_table[]; /* for sysctl */
- /* ~832 bytes of stack space used max in sys_select/sys_poll before allocating
-    additional memory. */
- #ifdef __clang__
+ struct batched_entropy {
 diff --git a/include/linux/sysctl.h b/include/linux/sysctl.h
-index aa01f54d0442..e5364b69dd95 100644
+index e5364b69dd95..33a471b56345 100644
 --- a/include/linux/sysctl.h
 +++ b/include/linux/sysctl.h
-@@ -217,7 +217,6 @@ extern int no_unaligned_warning;
+@@ -216,7 +216,6 @@ extern int unaligned_dump_stack;
+ extern int no_unaligned_warning;
  
  extern struct ctl_table sysctl_mount_point[];
- extern struct ctl_table random_table[];
--extern struct ctl_table epoll_table[];
+-extern struct ctl_table random_table[];
  
  #else /* CONFIG_SYSCTL */
  static inline struct ctl_table_header *register_sysctl_table(struct ctl_table * table)
 diff --git a/kernel/sysctl.c b/kernel/sysctl.c
-index e007375c8a11..5c116904feb7 100644
+index 5c116904feb7..f9a35325d5d5 100644
 --- a/kernel/sysctl.c
 +++ b/kernel/sysctl.c
-@@ -3001,13 +3001,6 @@ static struct ctl_table fs_table[] = {
- 		.proc_handler	= proc_dointvec,
+@@ -2078,11 +2078,6 @@ static struct ctl_table kern_table[] = {
+ 		.mode		= 0644,
+ 		.proc_handler	= sysctl_max_threads,
  	},
- #endif
--#ifdef CONFIG_EPOLL
 -	{
--		.procname	= "epoll",
+-		.procname	= "random",
 -		.mode		= 0555,
--		.child		= epoll_table,
+-		.child		= random_table,
 -	},
--#endif
- #endif
  	{
- 		.procname	= "protected_symlinks",
+ 		.procname	= "usermodehelper",
+ 		.mode		= 0555,
 -- 
 2.26.2
