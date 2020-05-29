@@ -1,10 +1,10 @@
 From: Luis Chamberlain <mcgrof@kernel.org>
-Date: Fri, 29 May 2020 07:41:06 +0000
-Subject: [Ocfs2-devel] [PATCH 11/13] random: simplify sysctl declaration
-	with register_sysctl_subdir()
+Date: Fri, 29 May 2020 07:41:04 +0000
+Subject: [Ocfs2-devel] [PATCH 09/13] firmware_loader: simplify sysctl
+	declaration with register_sysctl_subdir()
 In-Reply-To: <20200529074108.16928-1-mcgrof@kernel.org>
 References: <20200529074108.16928-1-mcgrof@kernel.org>
-Message-ID: <20200529074108.16928-12-mcgrof@kernel.org>
+Message-ID: <20200529074108.16928-10-mcgrof@kernel.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -14,77 +14,129 @@ Cc: intel-gfx@lists.freedesktop.org, linux-kernel@vger.kernel.org, dri-devel@lis
 
 From: Xiaoming Ni <nixiaoming@huawei.com>
 
-Move random_table sysctl from kernel/sysctl.c to drivers/char/random.c
-and use register_sysctl_subdir() to help remove the clutter out of
+Move the firmware config sysctl table to fallback_table.c and use the
+new register_sysctl_subdir() helper. This removes the clutter from
 kernel/sysctl.c.
 
 Signed-off-by: Xiaoming Ni <nixiaoming@huawei.com>
 Signed-off-by: Luis Chamberlain <mcgrof@kernel.org>
 ---
- drivers/char/random.c  | 14 ++++++++++++--
- include/linux/sysctl.h |  1 -
- kernel/sysctl.c        |  5 -----
- 3 files changed, 12 insertions(+), 8 deletions(-)
+ drivers/base/firmware_loader/fallback.c       |  4 ++++
+ drivers/base/firmware_loader/fallback.h       | 11 ++++++++++
+ drivers/base/firmware_loader/fallback_table.c | 22 +++++++++++++++++--
+ include/linux/sysctl.h                        |  1 -
+ kernel/sysctl.c                               |  7 ------
+ 5 files changed, 35 insertions(+), 10 deletions(-)
 
-diff --git a/drivers/char/random.c b/drivers/char/random.c
-index a7cf6aa65908..73fd4b6e9c18 100644
---- a/drivers/char/random.c
-+++ b/drivers/char/random.c
-@@ -2101,8 +2101,7 @@ static int proc_do_entropy(struct ctl_table *table, int write,
+diff --git a/drivers/base/firmware_loader/fallback.c b/drivers/base/firmware_loader/fallback.c
+index d9ac7296205e..8190653ae9a3 100644
+--- a/drivers/base/firmware_loader/fallback.c
++++ b/drivers/base/firmware_loader/fallback.c
+@@ -200,12 +200,16 @@ static struct class firmware_class = {
+ 
+ int register_sysfs_loader(void)
+ {
++	int ret = register_firmware_config_sysctl();
++	if (ret != 0)
++		return ret;
+ 	return class_register(&firmware_class);
  }
  
- static int sysctl_poolsize = INPUT_POOL_WORDS * 32;
--extern struct ctl_table random_table[];
--struct ctl_table random_table[] = {
-+static struct ctl_table random_table[] = {
- 	{
- 		.procname	= "poolsize",
- 		.data		= &sysctl_poolsize,
-@@ -2164,6 +2163,17 @@ struct ctl_table random_table[] = {
- #endif
- 	{ }
- };
-+
-+/*
-+ * rand_initialize() is called before sysctl_init(),
-+ * so we cannot call register_sysctl_init() in rand_initialize()
-+ */
-+static int __init random_sysctls_init(void)
+ void unregister_sysfs_loader(void)
+ {
+ 	class_unregister(&firmware_class);
++	unregister_firmware_config_sysctl();
+ }
+ 
+ static ssize_t firmware_loading_show(struct device *dev,
+diff --git a/drivers/base/firmware_loader/fallback.h b/drivers/base/firmware_loader/fallback.h
+index 06f4577733a8..7d2cb5f6ceb8 100644
+--- a/drivers/base/firmware_loader/fallback.h
++++ b/drivers/base/firmware_loader/fallback.h
+@@ -42,6 +42,17 @@ void fw_fallback_set_default_timeout(void);
+ 
+ int register_sysfs_loader(void);
+ void unregister_sysfs_loader(void);
++#ifdef CONFIG_SYSCTL
++extern int register_firmware_config_sysctl(void);
++extern void unregister_firmware_config_sysctl(void);
++#else
++static inline int register_firmware_config_sysctl(void)
 +{
-+	register_sysctl_subdir("kernel", "random", random_table);
 +	return 0;
 +}
-+device_initcall(random_sysctls_init);
- #endif 	/* CONFIG_SYSCTL */
++static inline void unregister_firmware_config_sysctl(void) { }
++#endif /* CONFIG_SYSCTL */
++
+ #else /* CONFIG_FW_LOADER_USER_HELPER */
+ static inline int firmware_fallback_sysfs(struct firmware *fw, const char *name,
+ 					  struct device *device,
+diff --git a/drivers/base/firmware_loader/fallback_table.c b/drivers/base/firmware_loader/fallback_table.c
+index 46a731dede6f..4234aa5ee5df 100644
+--- a/drivers/base/firmware_loader/fallback_table.c
++++ b/drivers/base/firmware_loader/fallback_table.c
+@@ -24,7 +24,7 @@ struct firmware_fallback_config fw_fallback_config = {
+ EXPORT_SYMBOL_NS_GPL(fw_fallback_config, FIRMWARE_LOADER_PRIVATE);
  
- struct batched_entropy {
+ #ifdef CONFIG_SYSCTL
+-struct ctl_table firmware_config_table[] = {
++static struct ctl_table firmware_config_table[] = {
+ 	{
+ 		.procname	= "force_sysfs_fallback",
+ 		.data		= &fw_fallback_config.force_sysfs_fallback,
+@@ -45,4 +45,22 @@ struct ctl_table firmware_config_table[] = {
+ 	},
+ 	{ }
+ };
+-#endif
++
++static struct ctl_table_header *hdr;
++int register_firmware_config_sysctl(void)
++{
++	if (hdr)
++		return -EEXIST;
++	hdr = register_sysctl_subdir("kernel", "firmware_config",
++				     firmware_config_table);
++	if (!hdr)
++		return -ENOMEM;
++	return 0;
++}
++
++void unregister_firmware_config_sysctl(void)
++{
++	if (hdr)
++		unregister_sysctl_table(hdr);
++}
++#endif /* CONFIG_SYSCTL */
 diff --git a/include/linux/sysctl.h b/include/linux/sysctl.h
-index e5364b69dd95..33a471b56345 100644
+index 58bc978d4f03..aa01f54d0442 100644
 --- a/include/linux/sysctl.h
 +++ b/include/linux/sysctl.h
-@@ -216,7 +216,6 @@ extern int unaligned_dump_stack;
- extern int no_unaligned_warning;
+@@ -217,7 +217,6 @@ extern int no_unaligned_warning;
  
  extern struct ctl_table sysctl_mount_point[];
--extern struct ctl_table random_table[];
+ extern struct ctl_table random_table[];
+-extern struct ctl_table firmware_config_table[];
+ extern struct ctl_table epoll_table[];
  
  #else /* CONFIG_SYSCTL */
- static inline struct ctl_table_header *register_sysctl_table(struct ctl_table * table)
 diff --git a/kernel/sysctl.c b/kernel/sysctl.c
-index 5c116904feb7..f9a35325d5d5 100644
+index 30c2d521502a..e007375c8a11 100644
 --- a/kernel/sysctl.c
 +++ b/kernel/sysctl.c
-@@ -2078,11 +2078,6 @@ static struct ctl_table kern_table[] = {
- 		.mode		= 0644,
- 		.proc_handler	= sysctl_max_threads,
- 	},
--	{
--		.procname	= "random",
--		.mode		= 0555,
--		.child		= random_table,
--	},
- 	{
- 		.procname	= "usermodehelper",
+@@ -2088,13 +2088,6 @@ static struct ctl_table kern_table[] = {
  		.mode		= 0555,
+ 		.child		= usermodehelper_table,
+ 	},
+-#ifdef CONFIG_FW_LOADER_USER_HELPER
+-	{
+-		.procname	= "firmware_config",
+-		.mode		= 0555,
+-		.child		= firmware_config_table,
+-	},
+-#endif
+ 	{
+ 		.procname	= "overflowuid",
+ 		.data		= &overflowuid,
 -- 
 2.26.2
