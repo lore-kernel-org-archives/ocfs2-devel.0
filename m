@@ -1,7 +1,10 @@
 From: Luis Chamberlain <mcgrof@kernel.org>
-Date: Fri, 29 May 2020 07:40:55 +0000
-Subject: [Ocfs2-devel] [PATCH 00/13] sysctl: spring cleaning
-Message-ID: <20200529074108.16928-1-mcgrof@kernel.org>
+Date: Fri, 29 May 2020 07:40:57 +0000
+Subject: [Ocfs2-devel] [PATCH 02/13] cdrom: use new sysctl subdir helper
+	register_sysctl_subdir()
+In-Reply-To: <20200529074108.16928-1-mcgrof@kernel.org>
+References: <20200529074108.16928-1-mcgrof@kernel.org>
+Message-ID: <20200529074108.16928-3-mcgrof@kernel.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -9,68 +12,139 @@ Content-Transfer-Encoding: 7bit
 To: keescook@chromium.org, yzaikin@google.com, nixiaoming@huawei.com, ebiederm@xmission.com, axboe@kernel.dk, clemens@ladisch.de, arnd@arndb.de, gregkh@linuxfoundation.org, jani.nikula@linux.intel.com, joonas.lahtinen@linux.intel.com, rodrigo.vivi@intel.com, airlied@linux.ie, daniel@ffwll.ch, benh@kernel.crashing.org, rdna@fb.com, viro@zeniv.linux.org.uk, mark@fasheh.com, jlbec@evilplan.org, joseph.qi@linux.alibaba.com, vbabka@suse.cz, sfr@canb.auug.org.au, jack@suse.cz, amir73il@gmail.com, rafael@kernel.org, tytso@mit.edu
 Cc: intel-gfx@lists.freedesktop.org, linux-kernel@vger.kernel.org, dri-devel@lists.freedesktop.org, julia.lawall@lip6.fr, Luis Chamberlain <mcgrof@kernel.org>, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org, ocfs2-devel@oss.oracle.com
 
-Me and Xiaoming are working on some kernel/sysctl.c spring cleaning.
-During a recent linux-next merge conflict it became clear that
-the kitchen sink on kernel/sysctl.c creates too many conflicts,
-and so we need to do away with stuffing everyone's knobs on this
-one file.
+This simplifies the code considerably. The following coccinelle
+SmPL grammar rule was used to transform this code.
 
-This is part of that work. This is not expected to get merged yet, but
-since our delta is pretty considerable at this point, we need to piece
-meal this and collect reviews for what we have so far. This follows up
-on some of his recent work.
+// pycocci sysctl-subdir.cocci drivers/cdrom/cdrom.c
 
-This series focuses on a new helper to deal with subdirectories and
-empty subdirectories. The terminology that we will embrace will be
-that things like "fs", "kernel", "debug" are based directories, and
-directories underneath this are subdirectories.
+@c1@
+expression E1;
+identifier subdir, sysctls;
+@@
 
-In this case, the cleanup ends up also trimming the amount of
-code we have for sysctls.
+static struct ctl_table subdir[] = {
+	{
+		.procname = E1,
+		.maxlen = 0,
+		.mode = 0555,
+		.child = sysctls,
+	},
+	{ }
+};
 
-If this seems reasonable we'll kdocify this a bit too.
+@c2@
+identifier c1.subdir;
 
-This code has been boot tested without issues, and I'm letting 0day do
-its thing to test against many kconfig builds. If you however spot
-any issues please let us know.
+expression E2;
+identifier base;
+@@
 
-Luis Chamberlain (9):
-  sysctl: add new register_sysctl_subdir() helper
-  cdrom: use new sysctl subdir helper register_sysctl_subdir()
-  hpet: use new sysctl subdir helper register_sysctl_subdir()
-  i915: use new sysctl subdir helper register_sysctl_subdir()
-  macintosh/mac_hid.c: use new sysctl subdir helper
-    register_sysctl_subdir()
-  ocfs2: use new sysctl subdir helper register_sysctl_subdir()
-  test_sysctl: use new sysctl subdir helper register_sysctl_subdir()
-  sysctl: add helper to register empty subdir
-  fs: move binfmt_misc sysctl to its own file
+static struct ctl_table base[] = {
+	{
+		.procname = E2,
+		.maxlen = 0,
+		.mode = 0555,
+		.child = subdir,
+	},
+	{ }
+};
 
-Xiaoming Ni (4):
-  inotify: simplify sysctl declaration with register_sysctl_subdir()
-  firmware_loader: simplify sysctl declaration with
-    register_sysctl_subdir()
-  eventpoll: simplify sysctl declaration with register_sysctl_subdir()
-  random: simplify sysctl declaration with register_sysctl_subdir()
+@c3@
+identifier c2.base;
+identifier header;
+@@
 
- drivers/base/firmware_loader/fallback.c       |  4 +
- drivers/base/firmware_loader/fallback.h       | 11 +++
- drivers/base/firmware_loader/fallback_table.c | 22 ++++-
- drivers/cdrom/cdrom.c                         | 23 +----
- drivers/char/hpet.c                           | 22 +----
- drivers/char/random.c                         | 14 +++-
- drivers/gpu/drm/i915/i915_perf.c              | 22 +----
- drivers/macintosh/mac_hid.c                   | 25 +-----
- fs/binfmt_misc.c                              |  1 +
- fs/eventpoll.c                                | 10 ++-
- fs/notify/inotify/inotify_user.c              | 11 ++-
- fs/ocfs2/stackglue.c                          | 27 +-----
- include/linux/inotify.h                       |  3 -
- include/linux/poll.h                          |  2 -
- include/linux/sysctl.h                        | 21 ++++-
- kernel/sysctl.c                               | 84 +++++++++++--------
- lib/test_sysctl.c                             | 23 +----
- 17 files changed, 144 insertions(+), 181 deletions(-)
+header = register_sysctl_table(base);
 
+@r1 depends on c1 && c2 && c3@
+expression c1.E1;
+identifier c1.subdir, c1.sysctls;
+@@
+
+-static struct ctl_table subdir[] = {
+-	{
+-		.procname = E1,
+-		.maxlen = 0,
+-		.mode = 0555,
+-		.child = sysctls,
+-	},
+-	{ }
+-};
+
+@r2 depends on c1 && c2 && c3@
+identifier c1.subdir;
+
+expression c2.E2;
+identifier c2.base;
+@@
+-static struct ctl_table base[] = {
+-	{
+-		.procname = E2,
+-		.maxlen = 0,
+-		.mode = 0555,
+-		.child = subdir,
+-	},
+-	{ }
+-};
+
+@r3 depends on c1 && c2 && c3@
+expression c1.E1;
+identifier c1.sysctls;
+expression c2.E2;
+identifier c2.base;
+identifier c3.header;
+@@
+
+header =
+-register_sysctl_table(base);
++register_sysctl_subdir(E2, E1, sysctls);
+
+Generated-by: Coccinelle SmPL
+Signed-off-by: Luis Chamberlain <mcgrof@kernel.org>
+---
+ drivers/cdrom/cdrom.c | 23 ++---------------------
+ 1 file changed, 2 insertions(+), 21 deletions(-)
+
+diff --git a/drivers/cdrom/cdrom.c b/drivers/cdrom/cdrom.c
+index a0a7ae705de8..3c638f464cef 100644
+--- a/drivers/cdrom/cdrom.c
++++ b/drivers/cdrom/cdrom.c
+@@ -3719,26 +3719,6 @@ static struct ctl_table cdrom_table[] = {
+ 	{ }
+ };
+ 
+-static struct ctl_table cdrom_cdrom_table[] = {
+-	{
+-		.procname	= "cdrom",
+-		.maxlen		= 0,
+-		.mode		= 0555,
+-		.child		= cdrom_table,
+-	},
+-	{ }
+-};
+-
+-/* Make sure that /proc/sys/dev is there */
+-static struct ctl_table cdrom_root_table[] = {
+-	{
+-		.procname	= "dev",
+-		.maxlen		= 0,
+-		.mode		= 0555,
+-		.child		= cdrom_cdrom_table,
+-	},
+-	{ }
+-};
+ static struct ctl_table_header *cdrom_sysctl_header;
+ 
+ static void cdrom_sysctl_register(void)
+@@ -3748,7 +3728,8 @@ static void cdrom_sysctl_register(void)
+ 	if (!atomic_add_unless(&initialized, 1, 1))
+ 		return;
+ 
+-	cdrom_sysctl_header = register_sysctl_table(cdrom_root_table);
++	cdrom_sysctl_header = register_sysctl_subdir("dev", "cdrom",
++						     cdrom_table);
+ 
+ 	/* set the defaults */
+ 	cdrom_sysctl_settings.autoclose = autoclose;
 -- 
 2.26.2
