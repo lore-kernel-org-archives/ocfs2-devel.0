@@ -1,10 +1,10 @@
 From: Luis Chamberlain <mcgrof@kernel.org>
-Date: Fri, 29 May 2020 07:40:58 +0000
-Subject: [Ocfs2-devel] [PATCH 03/13] hpet: use new sysctl subdir helper
-	register_sysctl_subdir()
+Date: Fri, 29 May 2020 07:40:56 +0000
+Subject: [Ocfs2-devel] [PATCH 01/13] sysctl: add new
+	register_sysctl_subdir() helper
 In-Reply-To: <20200529074108.16928-1-mcgrof@kernel.org>
 References: <20200529074108.16928-1-mcgrof@kernel.org>
-Message-ID: <20200529074108.16928-4-mcgrof@kernel.org>
+Message-ID: <20200529074108.16928-2-mcgrof@kernel.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -12,139 +12,96 @@ Content-Transfer-Encoding: 7bit
 To: keescook@chromium.org, yzaikin@google.com, nixiaoming@huawei.com, ebiederm@xmission.com, axboe@kernel.dk, clemens@ladisch.de, arnd@arndb.de, gregkh@linuxfoundation.org, jani.nikula@linux.intel.com, joonas.lahtinen@linux.intel.com, rodrigo.vivi@intel.com, airlied@linux.ie, daniel@ffwll.ch, benh@kernel.crashing.org, rdna@fb.com, viro@zeniv.linux.org.uk, mark@fasheh.com, jlbec@evilplan.org, joseph.qi@linux.alibaba.com, vbabka@suse.cz, sfr@canb.auug.org.au, jack@suse.cz, amir73il@gmail.com, rafael@kernel.org, tytso@mit.edu
 Cc: intel-gfx@lists.freedesktop.org, linux-kernel@vger.kernel.org, dri-devel@lists.freedesktop.org, julia.lawall@lip6.fr, Luis Chamberlain <mcgrof@kernel.org>, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org, ocfs2-devel@oss.oracle.com
 
-This simplifies the code considerably. The following coccinelle
-SmPL grammar rule was used to transform this code.
+Often enough all we need to do is create a subdirectory so that
+we can stuff sysctls underneath it. However, *if* that directory
+was already created early on the boot sequence we really have no
+need to use the full boiler plate code for it, we can just use
+local variables to help us guide sysctl to place the new leaf files.
 
-// pycocci sysctl-subdir.cocci drivers/char/hpet.c
-
-@c1@
-expression E1;
-identifier subdir, sysctls;
-@@
-
-static struct ctl_table subdir[] = {
-	{
-		.procname = E1,
-		.maxlen = 0,
-		.mode = 0555,
-		.child = sysctls,
-	},
-	{ }
-};
-
-@c2@
-identifier c1.subdir;
-
-expression E2;
-identifier base;
-@@
-
-static struct ctl_table base[] = {
-	{
-		.procname = E2,
-		.maxlen = 0,
-		.mode = 0555,
-		.child = subdir,
-	},
-	{ }
-};
-
-@c3@
-identifier c2.base;
-identifier header;
-@@
-
-header = register_sysctl_table(base);
-
-@r1 depends on c1 && c2 && c3@
-expression c1.E1;
-identifier c1.subdir, c1.sysctls;
-@@
-
--static struct ctl_table subdir[] = {
--	{
--		.procname = E1,
--		.maxlen = 0,
--		.mode = 0555,
--		.child = sysctls,
--	},
--	{ }
--};
-
-@r2 depends on c1 && c2 && c3@
-identifier c1.subdir;
-
-expression c2.E2;
-identifier c2.base;
-@@
--static struct ctl_table base[] = {
--	{
--		.procname = E2,
--		.maxlen = 0,
--		.mode = 0555,
--		.child = subdir,
--	},
--	{ }
--};
-
-@r3 depends on c1 && c2 && c3@
-expression c1.E1;
-identifier c1.sysctls;
-expression c2.E2;
-identifier c2.base;
-identifier c3.header;
-@@
-
-header =
--register_sysctl_table(base);
-+register_sysctl_subdir(E2, E1, sysctls);
-
-Generated-by: Coccinelle SmPL
+So use a helper to do precisely this.
 
 Signed-off-by: Luis Chamberlain <mcgrof@kernel.org>
 ---
- drivers/char/hpet.c | 22 +---------------------
- 1 file changed, 1 insertion(+), 21 deletions(-)
+ include/linux/sysctl.h | 11 +++++++++++
+ kernel/sysctl.c        | 37 +++++++++++++++++++++++++++++++++++++
+ 2 files changed, 48 insertions(+)
 
-diff --git a/drivers/char/hpet.c b/drivers/char/hpet.c
-index ed3b7dab678d..169c970d5ff8 100644
---- a/drivers/char/hpet.c
-+++ b/drivers/char/hpet.c
-@@ -746,26 +746,6 @@ static struct ctl_table hpet_table[] = {
- 	{}
- };
+diff --git a/include/linux/sysctl.h b/include/linux/sysctl.h
+index ddaa06ddd852..58bc978d4f03 100644
+--- a/include/linux/sysctl.h
++++ b/include/linux/sysctl.h
+@@ -205,6 +205,9 @@ void unregister_sysctl_table(struct ctl_table_header * table);
+ extern int sysctl_init(void);
+ extern void register_sysctl_init(const char *path, struct ctl_table *table,
+ 				 const char *table_name);
++extern struct ctl_table_header *register_sysctl_subdir(const char *base,
++						       const char *subdir,
++						       struct ctl_table *table);
+ void do_sysctl_args(void);
  
--static struct ctl_table hpet_root[] = {
--	{
--	 .procname = "hpet",
--	 .maxlen = 0,
--	 .mode = 0555,
--	 .child = hpet_table,
--	 },
--	{}
--};
--
--static struct ctl_table dev_root[] = {
--	{
--	 .procname = "dev",
--	 .maxlen = 0,
--	 .mode = 0555,
--	 .child = hpet_root,
--	 },
--	{}
--};
--
- static struct ctl_table_header *sysctl_header;
+ extern int pwrsw_enabled;
+@@ -223,6 +226,14 @@ static inline struct ctl_table_header *register_sysctl_table(struct ctl_table *
+ 	return NULL;
+ }
  
++static
++inline struct ctl_table_header *register_sysctl_subdir(const char *base,
++						       const char *subdir,
++						       struct ctl_table *table)
++{
++	return NULL;
++}
++
+ static inline struct ctl_table_header *register_sysctl_paths(
+ 			const struct ctl_path *path, struct ctl_table *table)
+ {
+diff --git a/kernel/sysctl.c b/kernel/sysctl.c
+index 008ac0576ae5..04ff032f2863 100644
+--- a/kernel/sysctl.c
++++ b/kernel/sysctl.c
+@@ -3195,6 +3195,43 @@ void __init register_sysctl_init(const char *path, struct ctl_table *table,
+ 	}
+ 	kmemleak_not_leak(hdr);
+ }
++
++struct ctl_table_header *register_sysctl_subdir(const char *base,
++						const char *subdir,
++						struct ctl_table *table)
++{
++	struct ctl_table_header *hdr = NULL;
++	struct ctl_table subdir_table[] = {
++		{
++			.procname	= subdir,
++			.mode		= 0555,
++			.child		= table,
++		},
++		{ }
++	};
++	struct ctl_table base_table[] = {
++		{
++			.procname	= base,
++			.mode		= 0555,
++			.child		= subdir_table,
++		},
++		{ }
++	};
++
++	if (!table->procname)
++		goto out;
++
++	hdr = register_sysctl_table(base_table);
++	if (unlikely(!hdr)) {
++		pr_err("failed when creating subdirectory sysctl %s/%s/%s\n",
++		       base, subdir, table->procname);
++		goto out;
++	}
++	kmemleak_not_leak(hdr);
++out:
++	return hdr;
++}
++EXPORT_SYMBOL_GPL(register_sysctl_subdir);
+ #endif /* CONFIG_SYSCTL */
  /*
-@@ -1059,7 +1039,7 @@ static int __init hpet_init(void)
- 	if (result < 0)
- 		return -ENODEV;
- 
--	sysctl_header = register_sysctl_table(dev_root);
-+	sysctl_header = register_sysctl_subdir("dev", "hpet", hpet_table);
- 
- 	result = acpi_bus_register_driver(&hpet_acpi_driver);
- 	if (result < 0) {
+  * No sense putting this after each symbol definition, twice,
 -- 
 2.26.2
