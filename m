@@ -1,63 +1,96 @@
-From: Jens Axboe <axboe@kernel.dk>
-Date: Fri, 29 May 2020 16:39:26 -0600
-Subject: [Ocfs2-devel] [PATCH v2] blkdev: Replace blksize_bits() with
-	ilog2()
-In-Reply-To: <c7a5bbc4-ffc2-6a63-fed3-9874969afc31@acm.org>
-References: <20200529141100.37519-1-pilgrimtao@gmail.com>
-	<20200529202713.GC19604@bombadil.infradead.org>
-	<c7a5bbc4-ffc2-6a63-fed3-9874969afc31@acm.org>
-Message-ID: <fe0fc36e-fa67-a6b9-cc7a-d86d3f21cf2c@kernel.dk>
+From: Joseph Qi <jiangqi903@gmail.com>
+Date: Mon, 1 Jun 2020 16:30:30 +0800
+Subject: [Ocfs2-devel] [PATCH 1/2] ocfs2: clear links count in
+ ocfs2_mknod() if an error occurs
+In-Reply-To: <d8147c41-fb2b-bdf7-b660-1f3c8448c33f@huawei.com>
+References: <d8147c41-fb2b-bdf7-b660-1f3c8448c33f@huawei.com>
+Message-ID: <09b83918-89aa-2f5c-bbbf-ea4470386bfe@gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Bart Van Assche <bvanassche@acm.org>, Matthew Wilcox <willy@infradead.org>, Kaitao Cheng <pilgrimtao@gmail.com>
-Cc: hch@lst.de, sth@linux.ibm.com, viro@zeniv.linux.org.uk, clm@fb.com, jaegeuk@kernel.org, hch@infradead.org, mark@fasheh.com, dhowells@redhat.com, balbi@kernel.org, damien.lemoal@wdc.com, ming.lei@redhat.com, martin.petersen@oracle.com, satyat@google.com, chaitanya.kulkarni@wdc.com, houtao1@huawei.com, asml.silence@gmail.com, ajay.joshi@wdc.com, linux-kernel@vger.kernel.org, songmuchun@bytedance.com, hoeppner@linux.ibm.com, heiko.carstens@de.ibm.com, gor@linux.ibm.com, borntraeger@de.ibm.com, linux-s390@vger.kernel.org, sagi@grimberg.me, linux-nvme@lists.infradead.org, gregkh@linuxfoundation.org, linux-usb@vger.kernel.org, josef@toxicpanda.com, dsterba@suse.com, linux-btrfs@vger.kernel.org, chao@kernel.org, linux-f2fs-devel@lists.sourceforge.net, darrick.wong@oracle.com, linux-xfs@vger.kernel.org, linux-fsdevel@vger.kernel.org, jlbec@evilplan.org, joseph.qi@linux.alibaba.com, ocfs2-devel@oss.oracle.com, deepa.kernel@gmail.com
+To: ocfs2-devel@oss.oracle.com
 
-On 5/29/20 4:27 PM, Bart Van Assche wrote:
-> On 2020-05-29 13:27, Matthew Wilcox wrote:
->> On Fri, May 29, 2020 at 10:11:00PM +0800, Kaitao Cheng wrote:
->>> There is a function named ilog2() exist which can replace blksize.
->>> The generated code will be shorter and more efficient on some
->>> architecture, such as arm64. And ilog2() can be optimized according
->>> to different architecture.
->>
->> We'd get the same benefit from a smaller patch with just:
->>
->> --- a/include/linux/blkdev.h
->> +++ b/include/linux/blkdev.h
->> @@ -1502,15 +1502,9 @@ static inline int blk_rq_aligned(struct request_queue *q, unsigned long addr,
->>  	return !(addr & alignment) && !(len & alignment);
->>  }
->>  
->> -/* assumes size > 256 */
->>  static inline unsigned int blksize_bits(unsigned int size)
->>  {
->> -	unsigned int bits = 8;
->> -	do {
->> -		bits++;
->> -		size >>= 1;
->> -	} while (size > 256);
->> -	return bits;
->> +	return ilog2(size);
->>  }
->>  
->>  static inline unsigned int block_size(struct block_device *bdev)
+Hi,
+
+On 2020/5/26 15:45, Wangyan wrote:
+> In this condition, the inode can not be wiped when error happened.
+> ocfs2_mkdir()
+>   ->ocfs2_mknod()
+>     ->ocfs2_mknod_locked()
+>       ->__ocfs2_mknod_locked()
+>         ->ocfs2_set_links_count() // i_links_count is 2
+>     -> ... // an error accrue, goto roll_back or leave.
+>     ->ocfs2_commit_trans()
+>     ->iput(inode)
+>       ->evict()
+>         ->ocfs2_evict_inode()
+>           ->ocfs2_delete_inode()
+>             ->ocfs2_inode_lock()
+>               ->ocfs2_inode_lock_update()
+>                 ->ocfs2_refresh_inode()
+>                   ->set_nlink();    // inode->i_nlink is 2 now.
+>             /* if wipe is 0, it will goto bail_unlock_inode */
+>             ->ocfs2_query_inode_wipe()
+>               ->if (inode->i_nlink) return; // wipe is 0.
+>             /* inode can not be wiped */
+>             ->ocfs2_wipe_inode()
+> So, we need clear links before the transaction committed.
 > 
-> Hi Matthew,
+> Signed-off-by: Yan Wang <wangyan122@huawei.com>
+> Reviewed-by: Jun Piao <piaojun@huawei.com>
+> ---
+>  fs/ocfs2/namei.c | 14 ++++++++++++--
+>  1 file changed, 12 insertions(+), 2 deletions(-)
 > 
-> I had suggested to change all blksize_bits() calls into ilog2() calls
-> because I think that a single function to calculate the logarithm base 2
-> is sufficient.
+> diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
+> index 5381020aaa9a..e61fdd8972ec 100644
+> --- a/fs/ocfs2/namei.c
+> +++ b/fs/ocfs2/namei.c
+> @@ -453,8 +453,12 @@ static int ocfs2_mknod(struct inode *dir,
+>  leave:
+>  	if (status < 0 && did_quota_inode)
+>  		dquot_free_inode(inode);
+> -	if (handle)
+> +	if (handle) {
+> +		if (status < 0 && new_fe_bh != NULL)
+> +			ocfs2_set_links_count((struct ocfs2_dinode *)
+> +					new_fe_bh->b_data, 0);
 
-I think this should be a two-parter:
+Seems no need to do this rollback under handle?
+Only if (status < 0 && new_fe_bh) will be okay.
 
-1) Use the inode blkbits where appropriate
-2) Then do this change
+>  		ocfs2_commit_trans(osb, handle);
+> +	}
+> 
+>  	ocfs2_inode_unlock(dir, 1);
+>  	if (did_block_signals)
+> @@ -598,6 +602,8 @@ static int __ocfs2_mknod_locked(struct inode *dir,
+>  leave:
+>  	if (status < 0) {
+>  		if (*new_fe_bh) {
+> +			if (fe)
+> +				ocfs2_set_links_count(fe, 0);
 
-I'm leaning towards just doing it in blksize_bits() instead of updating
-every caller, unless there aren't that many left once we've gone
-through patch 1.
+Leave this to caller will be enough.
 
--- 
-Jens Axboe
+Thanks,
+Joseph
+
+>  			brelse(*new_fe_bh);>  			*new_fe_bh = NULL;
+>  		}
+> @@ -2023,8 +2029,12 @@ static int ocfs2_symlink(struct inode *dir,
+>  					ocfs2_clusters_to_bytes(osb->sb, 1));
+>  	if (status < 0 && did_quota_inode)
+>  		dquot_free_inode(inode);
+> -	if (handle)
+> +	if (handle) {
+> +		if (status < 0 && new_fe_bh != NULL)
+> +			ocfs2_set_links_count((struct ocfs2_dinode *)
+> +					new_fe_bh->b_data, 0);
+>  		ocfs2_commit_trans(osb, handle);
+> +	}
+> 
+>  	ocfs2_inode_unlock(dir, 1);
+>  	if (did_block_signals)
+> 
