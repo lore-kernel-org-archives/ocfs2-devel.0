@@ -1,96 +1,79 @@
 From: Joseph Qi <jiangqi903@gmail.com>
-Date: Mon, 1 Jun 2020 16:30:30 +0800
-Subject: [Ocfs2-devel] [PATCH 1/2] ocfs2: clear links count in
- ocfs2_mknod() if an error occurs
-In-Reply-To: <d8147c41-fb2b-bdf7-b660-1f3c8448c33f@huawei.com>
-References: <d8147c41-fb2b-bdf7-b660-1f3c8448c33f@huawei.com>
-Message-ID: <09b83918-89aa-2f5c-bbbf-ea4470386bfe@gmail.com>
+Date: Mon, 1 Jun 2020 17:01:51 +0800
+Subject: [Ocfs2-devel] [PATCH 2/2] ocfs2: fix ocfs2 corrupt when
+ iputting an inode
+In-Reply-To: <ef080ca3-5d74-e276-17a1-d9e7c7e662c9@huawei.com>
+References: <ef080ca3-5d74-e276-17a1-d9e7c7e662c9@huawei.com>
+Message-ID: <e24ca852-7c37-f12e-ed38-0fa0ac7c5c93@gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi,
 
-On 2020/5/26 15:45, Wangyan wrote:
-> In this condition, the inode can not be wiped when error happened.
+
+On 2020/5/26 15:55, Wangyan wrote:
+> In this condition, it will cause an bug on error.
 > ocfs2_mkdir()
 >   ->ocfs2_mknod()
 >     ->ocfs2_mknod_locked()
 >       ->__ocfs2_mknod_locked()
->         ->ocfs2_set_links_count() // i_links_count is 2
->     -> ... // an error accrue, goto roll_back or leave.
->     ->ocfs2_commit_trans()
+>         //Assume inode->i_generation is genN.
+>         ->inode->i_generation = osb->s_next_generation++;
+>         // The inode lockres has been initialized.
+>         ->ocfs2_populate_inode()
+>         ->ocfs2_create_new_inode_locks()
+>             ->An error happened, returned value is non-zero
+>       // free the start_bit x in bg_blkno
+>       ->ocfs2_free_suballoc_bits()
+>     ->...  /* Another process execute mkdir success in this place,
+>               and it occupied the start_bit x in bg_blkno
+>               which has been freed before. Its inode->i_generation
+>               is genN + 1 */
 >     ->iput(inode)
 >       ->evict()
 >         ->ocfs2_evict_inode()
 >           ->ocfs2_delete_inode()
 >             ->ocfs2_inode_lock()
 >               ->ocfs2_inode_lock_update()
->                 ->ocfs2_refresh_inode()
->                   ->set_nlink();    // inode->i_nlink is 2 now.
->             /* if wipe is 0, it will goto bail_unlock_inode */
->             ->ocfs2_query_inode_wipe()
->               ->if (inode->i_nlink) return; // wipe is 0.
->             /* inode can not be wiped */
->             ->ocfs2_wipe_inode()
-> So, we need clear links before the transaction committed.
+>                 /* Bug on here, genN != genN + 1 */
+>                 ->mlog_bug_on_msg(inode->i_generation !=
+>                   le32_to_cpu(fe->i_generation))
+> 
+> So, we need not to reclaim the inode when the inode->ip_inode_lockres
+> has been initialized. It will be freed in iput().
 > 
 > Signed-off-by: Yan Wang <wangyan122@huawei.com>
 > Reviewed-by: Jun Piao <piaojun@huawei.com>
 > ---
->  fs/ocfs2/namei.c | 14 ++++++++++++--
->  1 file changed, 12 insertions(+), 2 deletions(-)
+>  fs/ocfs2/namei.c | 3 ++-
+>  1 file changed, 2 insertions(+), 1 deletion(-)
 > 
 > diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
-> index 5381020aaa9a..e61fdd8972ec 100644
+> index e61fdd8972ec..5302992d2bee 100644
 > --- a/fs/ocfs2/namei.c
 > +++ b/fs/ocfs2/namei.c
-> @@ -453,8 +453,12 @@ static int ocfs2_mknod(struct inode *dir,
->  leave:
->  	if (status < 0 && did_quota_inode)
->  		dquot_free_inode(inode);
-> -	if (handle)
-> +	if (handle) {
-> +		if (status < 0 && new_fe_bh != NULL)
-> +			ocfs2_set_links_count((struct ocfs2_dinode *)
-> +					new_fe_bh->b_data, 0);
+> @@ -640,7 +640,8 @@ static int ocfs2_mknod_locked(struct ocfs2_super *osb,
+>  	status = __ocfs2_mknod_locked(dir, inode, dev, new_fe_bh,
+>  				    parent_fe_bh, handle, inode_ac,
+>  				    fe_blkno, suballoc_loc, suballoc_bit);
+> -	if (status < 0) {
+> +	if (status < 0 && !(OCFS2_I(inode)->ip_inode_lockres.l_flags &
+> +				OCFS2_LOCK_INITIALIZED)) {
 
-Seems no need to do this rollback under handle?
-Only if (status < 0 && new_fe_bh) will be okay.
+Each condition in separate line may be better:
 
->  		ocfs2_commit_trans(osb, handle);
-> +	}
-> 
->  	ocfs2_inode_unlock(dir, 1);
->  	if (did_block_signals)
-> @@ -598,6 +602,8 @@ static int __ocfs2_mknod_locked(struct inode *dir,
->  leave:
->  	if (status < 0) {
->  		if (*new_fe_bh) {
-> +			if (fe)
-> +				ocfs2_set_links_count(fe, 0);
+if (status < 0 &&
+    !(OCFS2_I(inode)->ip_inode_lockres.l_flags & OCFS2_LOCK_INITIALIZED))
 
-Leave this to caller will be enough.
+And you've missed a fixed tag:
+Fixes: b1529a41f777 ("ocfs2: should reclaim the inode if '__ocfs2_mknod_locked' returns an error")
 
 Thanks,
 Joseph
 
->  			brelse(*new_fe_bh);>  			*new_fe_bh = NULL;
->  		}
-> @@ -2023,8 +2029,12 @@ static int ocfs2_symlink(struct inode *dir,
->  					ocfs2_clusters_to_bytes(osb->sb, 1));
->  	if (status < 0 && did_quota_inode)
->  		dquot_free_inode(inode);
-> -	if (handle)
-> +	if (handle) {
-> +		if (status < 0 && new_fe_bh != NULL)
-> +			ocfs2_set_links_count((struct ocfs2_dinode *)
-> +					new_fe_bh->b_data, 0);
->  		ocfs2_commit_trans(osb, handle);
-> +	}
-> 
->  	ocfs2_inode_unlock(dir, 1);
->  	if (did_block_signals)
+>  		u64 bg_blkno = ocfs2_which_suballoc_group(fe_blkno, suballoc_bit);
+>  		int tmp = ocfs2_free_suballoc_bits(handle, inode_ac->ac_inode,
+>  				inode_ac->ac_bh, suballoc_bit, bg_blkno, 1);
 > 
