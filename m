@@ -1,79 +1,76 @@
-From: Joseph Qi <jiangqi903@gmail.com>
-Date: Mon, 1 Jun 2020 17:01:51 +0800
-Subject: [Ocfs2-devel] [PATCH 2/2] ocfs2: fix ocfs2 corrupt when
- iputting an inode
-In-Reply-To: <ef080ca3-5d74-e276-17a1-d9e7c7e662c9@huawei.com>
-References: <ef080ca3-5d74-e276-17a1-d9e7c7e662c9@huawei.com>
-Message-ID: <e24ca852-7c37-f12e-ed38-0fa0ac7c5c93@gmail.com>
+From: Tao pilgrim <pilgrimtao@gmail.com>
+Date: Mon, 1 Jun 2020 15:22:01 +0800
+Subject: [Ocfs2-devel] [PATCH v2] blkdev: Replace blksize_bits() with
+	ilog2()
+In-Reply-To: <c8412d98-0328-0976-e5f9-5beddc148a35@kernel.dk>
+References: <20200529141100.37519-1-pilgrimtao@gmail.com>
+	<c8412d98-0328-0976-e5f9-5beddc148a35@kernel.dk>
+Message-ID: <CAAWJmAZOQQQeNiTr48OSRRdO2pG+q4c=6gjT55CkWC5FN=HXmA@mail.gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Jens Axboe <axboe@kernel.dk>
+Cc: hch@lst.de, sth@linux.ibm.com, viro@zeniv.linux.org.uk, clm@fb.com, jaegeuk@kernel.org, hch@infradead.org, Mark Fasheh <mark@fasheh.com>, dhowells@redhat.com, balbi@kernel.org, damien.lemoal@wdc.com, bvanassche@acm.org, ming.lei@redhat.com, martin.petersen@oracle.com, satyat@google.com, chaitanya.kulkarni@wdc.com, houtao1@huawei.com, asml.silence@gmail.com, ajay.joshi@wdc.com, linux-kernel@vger.kernel.org, Muchun Song <songmuchun@bytedance.com>, hoeppner@linux.ibm.com, heiko.carstens@de.ibm.com, gor@linux.ibm.com, borntraeger@de.ibm.com, linux-s390@vger.kernel.org, sagi@grimberg.me, linux-nvme@lists.infradead.org, gregkh@linuxfoundation.org, linux-usb@vger.kernel.org, Josef Bacik <josef@toxicpanda.com>, dsterba@suse.com, linux-btrfs@vger.kernel.org, chao@kernel.org, linux-f2fs-devel@lists.sourceforge.net, darrick.wong@oracle.com, linux-xfs@vger.kernel.org, linux-fsdevel@vger.kernel.org, jlbec@evilplan.org, joseph.qi@linux.alibaba.com, ocfs2-devel@oss.oracle.com, deepa.kernel@gmail.com
+
+On Fri, May 29, 2020 at 10:13 PM Jens Axboe <axboe@kernel.dk> wrote:
+>
+> On 5/29/20 8:11 AM, Kaitao Cheng wrote:
+> > There is a function named ilog2() exist which can replace blksize.
+> > The generated code will be shorter and more efficient on some
+> > architecture, such as arm64. And ilog2() can be optimized according
+> > to different architecture.
+>
+> When you posted this last time, I said:
+>
+> "I like the simplification, but do you have any results to back up
+>  that claim? Is the generated code shorter? Runs faster?"
+>
+
+Hi  Jens Axboe:
+
+I did a test on ARM64.
+unsigned int ckt_blksize(int size)
+{
+   return blksize_bits(size);
+}
+unsigned int ckt_ilog2(int size)
+{
+    return ilog2(size);
+}
+
+When I compiled it into assembly code, I got the following result,
+
+0000000000000088 <ckt_blksize>:
+      88: 2a0003e8 mov w8, w0
+      8c: 321d03e0 orr w0, wzr, #0x8
+      90: 11000400 add w0, w0, #0x1
+      94: 7108051f cmp w8, #0x201
+      98: 53017d08 lsr w8, w8, #1
+      9c: 54ffffa8 b.hi 90 <ckt_blksize+0x8>
+      a0: d65f03c0 ret
+      a4: d503201f nop
+
+00000000000000a8 <ckt_ilog2>:
+      a8: 320013e8 orr w8, wzr, #0x1f
+      ac: 5ac01009 clz w9, w0
+      b0: 4b090108 sub w8, w8, w9
+      b4: 7100001f cmp w0, #0x0
+      b8: 5a9f1100 csinv w0, w8, wzr, ne
+      bc: d65f03c0 ret
+
+The generated code of ilog2  is shorter , and  runs faster
+
+
+> which you handily ignored, yet sending out a new version. I'm not
+> going to apply this without justification, your commit message is
+> handwavy at best.
+>
+
+Do I need to write the test content into commit message?
 
 
 
-On 2020/5/26 15:55, Wangyan wrote:
-> In this condition, it will cause an bug on error.
-> ocfs2_mkdir()
->   ->ocfs2_mknod()
->     ->ocfs2_mknod_locked()
->       ->__ocfs2_mknod_locked()
->         //Assume inode->i_generation is genN.
->         ->inode->i_generation = osb->s_next_generation++;
->         // The inode lockres has been initialized.
->         ->ocfs2_populate_inode()
->         ->ocfs2_create_new_inode_locks()
->             ->An error happened, returned value is non-zero
->       // free the start_bit x in bg_blkno
->       ->ocfs2_free_suballoc_bits()
->     ->...  /* Another process execute mkdir success in this place,
->               and it occupied the start_bit x in bg_blkno
->               which has been freed before. Its inode->i_generation
->               is genN + 1 */
->     ->iput(inode)
->       ->evict()
->         ->ocfs2_evict_inode()
->           ->ocfs2_delete_inode()
->             ->ocfs2_inode_lock()
->               ->ocfs2_inode_lock_update()
->                 /* Bug on here, genN != genN + 1 */
->                 ->mlog_bug_on_msg(inode->i_generation !=
->                   le32_to_cpu(fe->i_generation))
-> 
-> So, we need not to reclaim the inode when the inode->ip_inode_lockres
-> has been initialized. It will be freed in iput().
-> 
-> Signed-off-by: Yan Wang <wangyan122@huawei.com>
-> Reviewed-by: Jun Piao <piaojun@huawei.com>
-> ---
->  fs/ocfs2/namei.c | 3 ++-
->  1 file changed, 2 insertions(+), 1 deletion(-)
-> 
-> diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
-> index e61fdd8972ec..5302992d2bee 100644
-> --- a/fs/ocfs2/namei.c
-> +++ b/fs/ocfs2/namei.c
-> @@ -640,7 +640,8 @@ static int ocfs2_mknod_locked(struct ocfs2_super *osb,
->  	status = __ocfs2_mknod_locked(dir, inode, dev, new_fe_bh,
->  				    parent_fe_bh, handle, inode_ac,
->  				    fe_blkno, suballoc_loc, suballoc_bit);
-> -	if (status < 0) {
-> +	if (status < 0 && !(OCFS2_I(inode)->ip_inode_lockres.l_flags &
-> +				OCFS2_LOCK_INITIALIZED)) {
-
-Each condition in separate line may be better:
-
-if (status < 0 &&
-    !(OCFS2_I(inode)->ip_inode_lockres.l_flags & OCFS2_LOCK_INITIALIZED))
-
-And you've missed a fixed tag:
-Fixes: b1529a41f777 ("ocfs2: should reclaim the inode if '__ocfs2_mknod_locked' returns an error")
-
-Thanks,
-Joseph
-
->  		u64 bg_blkno = ocfs2_which_suballoc_group(fe_blkno, suballoc_bit);
->  		int tmp = ocfs2_free_suballoc_bits(handle, inode_ac->ac_inode,
->  				inode_ac->ac_bh, suballoc_bit, bg_blkno, 1);
-> 
+-- 
+Yours,
+Kaitao Cheng
