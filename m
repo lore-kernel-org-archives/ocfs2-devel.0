@@ -1,55 +1,51 @@
-From: Xiaoming Ni <nixiaoming@huawei.com>
-Date: Thu, 4 Jun 2020 16:45:20 +0800
-Subject: [Ocfs2-devel] [PATCH 13/13] fs: move binfmt_misc sysctl to its
-	own file
-In-Reply-To: <20200529074108.16928-14-mcgrof@kernel.org>
-References: <20200529074108.16928-1-mcgrof@kernel.org>
-	<20200529074108.16928-14-mcgrof@kernel.org>
-Message-ID: <6cbba430-a768-72db-bd45-bcbba0376219@huawei.com>
+From: Tom Seewald <tseewald@gmail.com>
+Date: Sat,  6 Jun 2020 14:08:26 -0500
+Subject: [Ocfs2-devel] [PATCH] Fix build failure of OCFS2 when TCP/IP is
+	disabled
+Message-ID: <20200606190827.23954-1-tseewald@gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Luis Chamberlain <mcgrof@kernel.org>, keescook@chromium.org, yzaikin@google.com, ebiederm@xmission.com, axboe@kernel.dk, clemens@ladisch.de, arnd@arndb.de, gregkh@linuxfoundation.org, jani.nikula@linux.intel.com, joonas.lahtinen@linux.intel.com, rodrigo.vivi@intel.com, airlied@linux.ie, daniel@ffwll.ch, benh@kernel.crashing.org, rdna@fb.com, viro@zeniv.linux.org.uk, mark@fasheh.com, jlbec@evilplan.org, joseph.qi@linux.alibaba.com, vbabka@suse.cz, sfr@canb.auug.org.au, jack@suse.cz, amir73il@gmail.com, rafael@kernel.org, tytso@mit.edu
-Cc: wangle6@huawei.com, intel-gfx@lists.freedesktop.org, linux-kernel@vger.kernel.org, dri-devel@lists.freedesktop.org, julia.lawall@lip6.fr, alex.huangjianhui@huawei.com, laiyuanyuan.lai@huawei.com, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org, ocfs2-devel@oss.oracle.com
+To: linux-kernel@vger.kernel.org
+Cc: tseewald@gmail.com, Christoph Hellwig <hch@lst.de>, netdev@vger.kernel.org, ocfs2-devel@oss.oracle.com, Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, Joseph Qi <joseph.qi@linux.alibaba.com>
 
-On 2020/5/29 15:41, Luis Chamberlain wrote:
-> This moves the binfmt_misc sysctl to its own file to help remove
-> clutter from kernel/sysctl.c.
-> 
-> Signed-off-by: Luis Chamberlain <mcgrof@kernel.org>
-> ---
->   fs/binfmt_misc.c | 1 +
->   kernel/sysctl.c  | 7 -------
->   2 files changed, 1 insertion(+), 7 deletions(-)
-> 
-> diff --git a/fs/binfmt_misc.c b/fs/binfmt_misc.c
-> index f69a043f562b..656b3f5f3bbf 100644
-> --- a/fs/binfmt_misc.c
-> +++ b/fs/binfmt_misc.c
-> @@ -821,6 +821,7 @@ static int __init init_misc_binfmt(void)
->   	int err = register_filesystem(&bm_fs_type);
->   	if (!err)
->   		insert_binfmt(&misc_format);
-> +	register_sysctl_empty_subdir("fs", "binfmt_misc");
->   	return err;
->   }
-build error when CONFIG_BINFMT_MISC=m
+After commit 12abc5ee7873 ("tcp: add tcp_sock_set_nodelay") and
+commit c488aeadcbd0 ("tcp: add tcp_sock_set_user_timeout"), building the
+kernel with OCFS2_FS=y but without INET=y causes it to fail with:
 
-ERROR: modpost: "register_sysctl_empty_subdir" [fs/binfmt_misc.ko] 
-undefined!
+ld: fs/ocfs2/cluster/tcp.o: in function `o2net_accept_many':
+tcp.c:(.text+0x21b1): undefined reference to `tcp_sock_set_nodelay'
+ld: tcp.c:(.text+0x21c1): undefined reference to `tcp_sock_set_user_timeout
+'
+ld: fs/ocfs2/cluster/tcp.o: in function `o2net_start_connect':
+tcp.c:(.text+0x2633): undefined reference to `tcp_sock_set_nodelay'
+ld: tcp.c:(.text+0x2643): undefined reference to `tcp_sock_set_user_timeout
+'
 
-diff --git a/kernel/sysctl.c b/kernel/sysctl.c
-index 27f0c9ea..4129dfb 100644
---- a/kernel/sysctl.c
-+++ b/kernel/sysctl.c
-@@ -2853,6 +2853,7 @@ void register_sysctl_empty_subdir(const char *base,
-  {
-         register_sysctl_subdir(base, subdir, sysctl_mount_point);
-  }
-+EXPORT_SYMBOL_GPL(register_sysctl_empty_subdir);
-  #endif /* CONFIG_SYSCTL */
+This is due to tcp_sock_set_nodelay() and tcp_sock_set_user_timeout() being
+declared in linux/tcp.h and defined in net/ipv4/tcp.c, which depend on
+TCP/IP being enabled.
 
+To fix this, make OCFS2_FS depend on INET=y which already requires NET=y.
 
-Thanks
-Xiaoming Ni
+Signed-off-by: Tom Seewald <tseewald@gmail.com>
+---
+ fs/ocfs2/Kconfig | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/fs/ocfs2/Kconfig b/fs/ocfs2/Kconfig
+index 1177c33df895..aca16624b370 100644
+--- a/fs/ocfs2/Kconfig
++++ b/fs/ocfs2/Kconfig
+@@ -1,7 +1,7 @@
+ # SPDX-License-Identifier: GPL-2.0-only
+ config OCFS2_FS
+ 	tristate "OCFS2 file system support"
+-	depends on NET && SYSFS && CONFIGFS_FS
++	depends on INET && SYSFS && CONFIGFS_FS
+ 	select JBD2
+ 	select CRC32
+ 	select QUOTA
+-- 
+2.20.1
