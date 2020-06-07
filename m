@@ -1,51 +1,45 @@
-From: Tom Seewald <tseewald@gmail.com>
-Date: Sat,  6 Jun 2020 14:08:26 -0500
-Subject: [Ocfs2-devel] [PATCH] Fix build failure of OCFS2 when TCP/IP is
-	disabled
-Message-ID: <20200606190827.23954-1-tseewald@gmail.com>
+From: Randy Dunlap <rdunlap@infradead.org>
+Date: Sun, 7 Jun 2020 14:50:13 -0700
+Subject: [Ocfs2-devel] [PATCH] fs: ocfs2: fix spelling mistake
+In-Reply-To: <20200607212115.99278-1-iamkeyur96@gmail.com>
+References: <20200607212115.99278-1-iamkeyur96@gmail.com>
+Message-ID: <037d3c9a-2abe-1e4e-eb91-a14f2e84e629@infradead.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: linux-kernel@vger.kernel.org
-Cc: tseewald@gmail.com, Christoph Hellwig <hch@lst.de>, netdev@vger.kernel.org, ocfs2-devel@oss.oracle.com, Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, Joseph Qi <joseph.qi@linux.alibaba.com>
+To: Keyur Patel <iamkeyur96@gmail.com>
+Cc: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, Joseph Qi <joseph.qi@linux.alibaba.com>, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
 
-After commit 12abc5ee7873 ("tcp: add tcp_sock_set_nodelay") and
-commit c488aeadcbd0 ("tcp: add tcp_sock_set_user_timeout"), building the
-kernel with OCFS2_FS=y but without INET=y causes it to fail with:
+On 6/7/20 2:21 PM, Keyur Patel wrote:
+> ./ocfs2/mmap.c:65: bebongs ==> belongs
+> 
+> Signed-off-by: Keyur Patel <iamkeyur96@gmail.com>
+> ---
+>  fs/ocfs2/mmap.c | 2 +-
+>  1 file changed, 1 insertion(+), 1 deletion(-)
+> 
+> diff --git a/fs/ocfs2/mmap.c b/fs/ocfs2/mmap.c
+> index 3a44e461828a..39a77e903fdf 100644
+> --- a/fs/ocfs2/mmap.c
+> +++ b/fs/ocfs2/mmap.c
+> @@ -62,7 +62,7 @@ static vm_fault_t __ocfs2_page_mkwrite(struct file *file,
+>  	last_index = (size - 1) >> PAGE_SHIFT;
+>  
+>  	/*
+> -	 * There are cases that lead to the page no longer bebongs to the
+> +	 * There are cases that lead to the page no longer belongs to the
 
-ld: fs/ocfs2/cluster/tcp.o: in function `o2net_accept_many':
-tcp.c:(.text+0x21b1): undefined reference to `tcp_sock_set_nodelay'
-ld: tcp.c:(.text+0x21c1): undefined reference to `tcp_sock_set_user_timeout
-'
-ld: fs/ocfs2/cluster/tcp.o: in function `o2net_start_connect':
-tcp.c:(.text+0x2633): undefined reference to `tcp_sock_set_nodelay'
-ld: tcp.c:(.text+0x2643): undefined reference to `tcp_sock_set_user_timeout
-'
+I would say                                      no longer belonging to the
 
-This is due to tcp_sock_set_nodelay() and tcp_sock_set_user_timeout() being
-declared in linux/tcp.h and defined in net/ipv4/tcp.c, which depend on
-TCP/IP being enabled.
+>  	 * mapping.
+>  	 * 1) pagecache truncates locally due to memory pressure.
+>  	 * 2) pagecache truncates when another is taking EX lock against 
+> 
 
-To fix this, make OCFS2_FS depend on INET=y which already requires NET=y.
+Please fix your To: line:
 
-Signed-off-by: Tom Seewald <tseewald@gmail.com>
----
- fs/ocfs2/Kconfig | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+(no To-header on input) <>
 
-diff --git a/fs/ocfs2/Kconfig b/fs/ocfs2/Kconfig
-index 1177c33df895..aca16624b370 100644
---- a/fs/ocfs2/Kconfig
-+++ b/fs/ocfs2/Kconfig
-@@ -1,7 +1,7 @@
- # SPDX-License-Identifier: GPL-2.0-only
- config OCFS2_FS
- 	tristate "OCFS2 file system support"
--	depends on NET && SYSFS && CONFIGFS_FS
-+	depends on INET && SYSFS && CONFIGFS_FS
- 	select JBD2
- 	select CRC32
- 	select QUOTA
 -- 
-2.20.1
+~Randy
