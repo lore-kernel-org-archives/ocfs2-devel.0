@@ -1,28 +1,25 @@
 From: Joseph Qi <joseph.qi@linux.alibaba.com>
-Date: Mon, 8 Jun 2020 09:44:24 +0800
-Subject: [Ocfs2-devel] [PATCH v2] fs: ocfs2: fix spelling mistake and
+Date: Mon, 8 Jun 2020 09:53:49 +0800
+Subject: [Ocfs2-devel] [PATCH v3] fs: ocfs2: fix spelling mistake and
 	grammar
-In-Reply-To: <20200607220716.101243-1-iamkeyur96@gmail.com>
+In-Reply-To: <20200608014818.102358-1-iamkeyur96@gmail.com>
 References: <20200607212115.99278-1-iamkeyur96@gmail.com>
-	<20200607220716.101243-1-iamkeyur96@gmail.com>
-Message-ID: <6b909e4c-3f33-2795-6045-991b09ced525@linux.alibaba.com>
+	<20200608014818.102358-1-iamkeyur96@gmail.com>
+Message-ID: <84cbc852-740b-7f8f-051e-b8c532ab70a4@linux.alibaba.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Keyur Patel <iamkeyur96@gmail.com>, mark@fasheh.com, jlbec@evilplan.org, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
+To: Keyur Patel <iamkeyur96@gmail.com>, mark@fasheh.com, jlbec@evilplan.org, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
 
 
 
-On 2020/6/8 06:07, Keyur Patel wrote:
-> ./ocfs2/mmap.c:65: bebongs ==> belongs
+On 2020/6/8 09:48, Keyur Patel wrote:
+> ./ocfs2/mmap.c:65: bebongs ==> belonging
 > 
-This should be updated with your new change.
-
-Thanks,
-Joseph
-
 > Signed-off-by: Keyur Patel <iamkeyur96@gmail.com>
+
+Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
 > ---
 >  fs/ocfs2/mmap.c | 2 +-
 >  1 file changed, 1 insertion(+), 1 deletion(-)
