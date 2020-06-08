@@ -1,9 +1,9 @@
 From: Keyur Patel <iamkeyur96@gmail.com>
-Date: Sun,  7 Jun 2020 18:07:16 -0400
-Subject: [Ocfs2-devel] [PATCH v2] fs: ocfs2: fix spelling mistake and grammar
+Date: Sun,  7 Jun 2020 21:48:18 -0400
+Subject: [Ocfs2-devel] [PATCH v3] fs: ocfs2: fix spelling mistake and grammar
 In-Reply-To: <20200607212115.99278-1-iamkeyur96@gmail.com>
 References: <20200607212115.99278-1-iamkeyur96@gmail.com>
-Message-ID: <20200607220716.101243-1-iamkeyur96@gmail.com>
+Message-ID: <20200608014818.102358-1-iamkeyur96@gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -11,7 +11,7 @@ Content-Transfer-Encoding: 7bit
 To: mark@fasheh.com, jlbec@evilplan.org, joseph.qi@linux.alibaba.com, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
 Cc: iamkeyur96@gmail.com
 
-./ocfs2/mmap.c:65: bebongs ==> belongs
+./ocfs2/mmap.c:65: bebongs ==> belonging
 
 Signed-off-by: Keyur Patel <iamkeyur96@gmail.com>
 ---
