@@ -1,31 +1,92 @@
-From: Michael Ellerman <patch-notifications@ellerman.id.au>
-Date: Tue,  9 Jun 2020 15:58:30 +1000 (AEST)
-Subject: [Ocfs2-devel] [PATCH v3 2/5] powerpc: module_[32|64].c: replace
-	swap function with built-in one
-In-Reply-To: <994931554238042@iva8-b333b7f98ab0.qloud-c.yandex.net>
-Message-ID: <49gzvB1bJMz9sSy@ozlabs.org>
+From: Junxiao Bi <junxiao.bi@oracle.com>
+Date: Thu, 11 Jun 2020 17:19:54 -0700
+Subject: [Ocfs2-devel] [PATCH 1/3] ocfs2: avoid inode removed while nfsd
+	access it
+Message-ID: <20200612001956.57851-1-junxiao.bi@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Andrey Abramov <st5pub@yandex.ru>, vgupta <vgupta@synopsys.com>, benh <benh@kernel.crashing.org>, paulus <paulus@samba.org>, tglx <tglx@linutronix.de>, mingo <mingo@redhat.com>, bp <bp@alien8.de>, hpa <hpa@zytor.com>, x86 <x86@kernel.org>, mark <mark@fasheh.com>, jlbec <jlbec@evilplan.org>, richard <richard@nod.at>, dedekind1 <dedekind1@gmail.com>, "adrian.hunter" <adrian.hunter@intel.com>, gregkh <gregkh@linuxfoundation.org>, "naveen.n.rao" <naveen.n.rao@linux.vnet.ibm.com>, jpoimboe <jpoimboe@redhat.com>, Dave Chinner <dchinner@redhat.com>, "darrick.wong" <darrick.wong@oracle.com>, "ard.biesheuvel" <ard.biesheuvel@linaro.org>, George Spelvin <lkml@sdf.org>, linux-snps-arc <linux-snps-arc@lists.infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, ocfs2-devel <ocfs2-devel@oss.oracle.com>, linux-mtd <linux-mtd@lists.infradead.org>, sfr <sfr@canb.auug.org.au>
-Cc: malat <malat@debian.org>, "yamada.masahiro" <yamada.masahiro@socionext.com>, npiggin <npiggin@gmail.com>
+To: ocfs2-devel@oss.oracle.com
 
-On Tue, 2019-04-02 at 20:47:22 UTC, Andrey Abramov wrote:
-> Replace relaswap with built-in one, because relaswap
-> does a simple byte to byte swap.
-> 
-> Since Spectre mitigations have made indirect function calls more
-> expensive, and the default simple byte copies swap is implemented
-> without them, an "optimized" custom swap function is now
-> a waste of time as well as code.
-> 
-> Signed-off-by: Andrey Abramov <st5pub@yandex.ru>
-> Reviewed by: George Spelvin <lkml@sdf.org>
-> Acked-by: Michael Ellerman <mpe@ellerman.id.au> (powerpc)
+When nfsd is getting file dentry using handle or parent dentry of some
+dentry, one cluster lock is used to avoid inode removed from other node,
+but it still could be removed from local node, so use a rw lock to avoid
+this.
 
-Applied to powerpc next, thanks.
+Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
+---
+ fs/ocfs2/dlmglue.c | 17 ++++++++++++++---
+ fs/ocfs2/ocfs2.h   |  1 +
+ 2 files changed, 15 insertions(+), 3 deletions(-)
 
-https://urldefense.com/v3/__https://git.kernel.org/powerpc/c/bac7ca7b985b72873bd4ac2553b13b5af5b1f08a__;!!GqivPVa7Brio!LocsSQ-zlIql0GWmmMG2Ry4W0wSo1gzfh36_pvi7Zc-ccRgumoV9gaJm3n89_0RPl8Z-mQ$ 
-
-cheers
+diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
+index 152a0fc4e905..c5e84314e203 100644
+--- a/fs/ocfs2/dlmglue.c
++++ b/fs/ocfs2/dlmglue.c
+@@ -678,15 +678,17 @@ static void ocfs2_rename_lock_res_init(struct ocfs2_lock_res *res,
+ 				   &ocfs2_rename_lops, osb);
+ }
+ 
+-static void ocfs2_nfs_sync_lock_res_init(struct ocfs2_lock_res *res,
+-					 struct ocfs2_super *osb)
++static void ocfs2_nfs_sync_lock_res_init(struct ocfs2_super *osb)
+ {
++	struct ocfs2_lock_res *res = &osb->osb_nfs_sync_lockres;
++
+ 	/* nfs_sync lockres doesn't come from a slab so we call init
+ 	 * once on it manually.  */
+ 	ocfs2_lock_res_init_once(res);
+ 	ocfs2_build_lock_name(OCFS2_LOCK_TYPE_NFS_SYNC, 0, 0, res->l_name);
+ 	ocfs2_lock_res_init_common(osb, res, OCFS2_LOCK_TYPE_NFS_SYNC,
+ 				   &ocfs2_nfs_sync_lops, osb);
++	init_rwsem(&osb->nfs_sync_rwlock);
+ }
+ 
+ void ocfs2_trim_fs_lock_res_init(struct ocfs2_super *osb)
+@@ -2855,6 +2857,11 @@ int ocfs2_nfs_sync_lock(struct ocfs2_super *osb, int ex)
+ 	if (ocfs2_is_hard_readonly(osb))
+ 		return -EROFS;
+ 
++	if (ex)
++		down_write(&osb->nfs_sync_rwlock);
++	else
++		down_read(&osb->nfs_sync_rwlock);
++
+ 	if (ocfs2_mount_local(osb))
+ 		return 0;
+ 
+@@ -2873,6 +2880,10 @@ void ocfs2_nfs_sync_unlock(struct ocfs2_super *osb, int ex)
+ 	if (!ocfs2_mount_local(osb))
+ 		ocfs2_cluster_unlock(osb, lockres,
+ 				     ex ? LKM_EXMODE : LKM_PRMODE);
++	if (ex)
++		up_write(&osb->nfs_sync_rwlock);
++	else
++		up_read(&osb->nfs_sync_rwlock);
+ }
+ 
+ int ocfs2_trim_fs_lock(struct ocfs2_super *osb,
+@@ -3340,7 +3351,7 @@ int ocfs2_dlm_init(struct ocfs2_super *osb)
+ local:
+ 	ocfs2_super_lock_res_init(&osb->osb_super_lockres, osb);
+ 	ocfs2_rename_lock_res_init(&osb->osb_rename_lockres, osb);
+-	ocfs2_nfs_sync_lock_res_init(&osb->osb_nfs_sync_lockres, osb);
++	ocfs2_nfs_sync_lock_res_init(osb);
+ 	ocfs2_orphan_scan_lock_res_init(&osb->osb_orphan_scan.os_lockres, osb);
+ 
+ 	osb->cconn = conn;
+diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
+index ee5d98516212..2dd71d626196 100644
+--- a/fs/ocfs2/ocfs2.h
++++ b/fs/ocfs2/ocfs2.h
+@@ -395,6 +395,7 @@ struct ocfs2_super
+ 	struct ocfs2_lock_res osb_super_lockres;
+ 	struct ocfs2_lock_res osb_rename_lockres;
+ 	struct ocfs2_lock_res osb_nfs_sync_lockres;
++	struct rw_semaphore nfs_sync_rwlock;
+ 	struct ocfs2_lock_res osb_trim_fs_lockres;
+ 	struct mutex obs_trim_fs_mutex;
+ 	struct ocfs2_dlm_debug *osb_dlm_debug;
+-- 
+2.20.1 (Apple Git-117)
