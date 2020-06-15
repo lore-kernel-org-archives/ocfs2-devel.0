@@ -1,158 +1,119 @@
 From: Junxiao Bi <junxiao.bi@oracle.com>
-Date: Sun, 14 Jun 2020 20:27:19 -0700
-Subject: [Ocfs2-devel] [PATCH 3/3] ocfs2: fix panic on nfs server over
- ocfs2
-In-Reply-To: <9857d4a8-7879-4f58-b2c4-fa8489c2b232@linux.alibaba.com>
+Date: Sun, 14 Jun 2020 20:45:04 -0700
+Subject: [Ocfs2-devel] [PATCH 1/3] ocfs2: avoid inode removed while nfsd
+ access it
+In-Reply-To: <1675b72f-2c8f-d375-d1ad-87c2930a7b85@linux.alibaba.com>
 References: <20200612001956.57851-1-junxiao.bi@oracle.com>
-	<20200612001956.57851-3-junxiao.bi@oracle.com>
-	<9857d4a8-7879-4f58-b2c4-fa8489c2b232@linux.alibaba.com>
-Message-ID: <1cc7aac9-2103-d860-05b6-ac2663121256@oracle.com>
+	<1675b72f-2c8f-d375-d1ad-87c2930a7b85@linux.alibaba.com>
+Message-ID: <2c94090d-78e4-cf54-3c81-96aba833b9ff@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Joseph,
+On 6/14/20 5:26 AM, Joseph Qi wrote:
 
-Good catch. That's because suballoc_bit was u16(-1), and the check in 
-get_local_system_inode() is comparing with u32(-1). I can make a patch 
-to fix it.
-
-Thanks,
-
-Junxiao.
-
-On 6/14/20 5:44 AM, Joseph Qi wrote:
 > Hi Junxiao,
 >
 > On 2020/6/12 08:19, Junxiao Bi wrote:
->> The following kernel panic was captured when running nfs server over ocfs2,
->> at that time ocfs2_test_inode_bit() was checking whether one inode locating
->> at "blkno" 5 was valid, that is ocfs2 root inode, its "suballoc_slot" was
->> OCFS2_INVALID_SLOT(65535) and it was allocted from //global_inode_alloc,
->> but here it wrongly assumed that it was got from per slot inode alloctor
->> which would cause array overflow and trigger kernel panic.
->>
-> As you described, in this case suballoc_slot is OCFS2_INVALID_SLOT.
-> Why it hasn't trigger the "BUG_ON(slot == OCFS2_INVALID_SLOT)" in
-> get_local_system_inode()?
->
-> Thanks,
-> Joseph
->   
->> [430033.469151] BUG: unable to handle kernel paging request at
->> 0000000000001088
->> [430033.469367] IP: [<ffffffff816f6898>] _raw_spin_lock+0x18/0xf0
->> [430033.469567] PGD 1e06ba067 PUD 1e9e7d067 PMD 0
->> [430033.469769] Oops: 0002 [#1] SMP
->> [430033.469975] Modules linked in: tun nfsd lockd grace nfs_acl auth_rpcgss
->> ocfs2 xen_netback xen_blkback xen_gntalloc xen_gntdev xen_evtchn xenfs
->> xen_privcmd ocfs2_dlmfs ocfs2_stack_o2cb ocfs2_dlm ocfs2_nodemanager
->> ocfs2_stackglue configfs bnx2fc fcoe libfcoe libfc sunrpc bridge 8021q mrp
->> garp stp llc bonding dm_round_robin scsi_dh_emc dm_multipath iTCO_wdt
->> iTCO_vendor_support pcspkr sb_edac edac_core i2c_i801 i2c_core lpc_ich
->> mfd_core sg ext4 jbd2 mbcache2 sd_mod ahci libahci lpfc scsi_transport_fc
->> be2net vxlan udp_tunnel ip6_udp_tunnel mpt3sas scsi_transport_sas raid_class
->> crc32c_intel be2iscsi bnx2i cnic uio cxgb4i cxgb4 cxgb3i libcxgbi ipv6 cxgb3
->> mdio libiscsi_tcp qla4xxx iscsi_boot_sysfs libiscsi scsi_transport_iscsi
->> dm_mirror dm_region_hash dm_log dm_mod
->> [430033.472350] CPU: 6 PID: 24873 Comm: nfsd Not tainted
->> 4.1.12-124.36.1.el6uek.x86_64 #2
->> [430033.472719] Hardware name: Huawei CH121 V3/IT11SGCA1, BIOS 3.87
->> 02/02/2018
->> [430033.472910] task: ffff88005ae98000 ti: ffff88005ae94000 task.ti:
->> ffff88005ae94000
->> [430033.473277] RIP: e030:[<ffffffff816f6898>]  [<ffffffff816f6898>]
->> _raw_spin_lock+0x18/0xf0
->> [430033.473655] RSP: e02b:ffff88005ae97908  EFLAGS: 00010206
->> [430033.473850] RAX: ffff88005ae98000 RBX: 0000000000001088 RCX:
->> 0000000000000000
->> [430033.474205] RDX: 0000000000020000 RSI: 0000000000000009 RDI:
->> 0000000000001088
->> [430033.474574] RBP: ffff88005ae97928 R08: 0000000000000000 R09:
->> ffff880212878e00
->> [430033.474938] R10: 0000000000007ff0 R11: 0000000000000000 R12:
->> 0000000000001088
->> [430033.475324] R13: ffff8800063c0aa8 R14: ffff8800650c27d0 R15:
->> 000000000000ffff
->> [430033.475721] FS:  0000000000000000(0000) GS:ffff880218180000(0000)
->> knlGS:ffff880218180000
->> [430033.476199] CS:  e033 DS: 0000 ES: 0000 CR0: 0000000080050033
->> [430033.476390] CR2: 0000000000001088 CR3: 00000002033d0000 CR4:
->> 0000000000042660
->> [430033.476760] Stack:
->> [430033.476942]  0000000000001000 0000000000001088 ffff8800063c0aa8
->> ffff8800650c27d0
->> [430033.477329]  ffff88005ae97948 ffffffff8122a3de 0000000000000009
->> ffff8800063c0000
->> [430033.477718]  ffff88005ae979e8 ffffffffc0714e43 ffff88005ae97968
->> ffff88019de8f958
->> [430033.478104] Call Trace:
->> [430033.478286]  [<ffffffff8122a3de>] igrab+0x1e/0x60
->> [430033.478494]  [<ffffffffc0714e43>] ocfs2_get_system_file_inode+0x63/0x3a0
->> [ocfs2]
->> [430033.478870]  [<ffffffffc06a87df>] ? ocfs2_read_blocks_sync+0x13f/0x3c0
->> [ocfs2]
->> [430033.479267]  [<ffffffffc06ff2d8>] ocfs2_test_inode_bit+0x328/0xa00
->> [ocfs2]
->> [430033.479498]  [<ffffffffc06bef5a>] ocfs2_get_parent+0xba/0x3e0 [ocfs2]
->> [430033.479730]  [<ffffffff8129b305>] reconnect_path+0xb5/0x300
->> [430033.479933]  [<ffffffff8129b646>] exportfs_decode_fh+0xf6/0x2b0
->> [430033.480124]  [<ffffffffc0814af0>] ? nfsd_proc_getattr+0xa0/0xa0 [nfsd]
->> [430033.480294]  [<ffffffffc081a682>] ? exp_find+0xe2/0x190 [nfsd]
->> [430033.480461]  [<ffffffff810e5a7e>] ? irq_get_irq_data+0xe/0x10
->> [430033.480627]  [<ffffffff810ea1a7>] ? __call_rcu_nocb_enqueue+0xd7/0xe0
->> [430033.480794]  [<ffffffff810eb9e8>] ? __call_rcu+0xe8/0x360
->> [430033.480959]  [<ffffffffc0815860>] fh_verify+0x350/0x660 [nfsd]
->> [430033.481134]  [<ffffffffc0535076>] ? cache_check+0x56/0x3a0 [sunrpc]
->> [430033.481317]  [<ffffffffc0823a4d>] nfsd4_putfh+0x4d/0x60 [nfsd]
->> [430033.481505]  [<ffffffffc0826003>] nfsd4_proc_compound+0x3d3/0x6f0 [nfsd]
->> [430033.481730]  [<ffffffffc0811f60>] nfsd_dispatch+0xe0/0x290 [nfsd]
->> [430033.481950]  [<ffffffffc052b752>] ? svc_tcp_adjust_wspace+0x12/0x30
->> [sunrpc]
->> [430033.482152]  [<ffffffffc052a512>] svc_process_common+0x412/0x6a0 [sunrpc]
->> [430033.482351]  [<ffffffffc052a8c3>] svc_process+0x123/0x210 [sunrpc]
->> [430033.482550]  [<ffffffffc081190f>] nfsd+0xff/0x170 [nfsd]
->> [430033.482744]  [<ffffffffc0811810>] ? nfsd_destroy+0x80/0x80 [nfsd]
->> [430033.482943]  [<ffffffff810a7aeb>] kthread+0xcb/0xf0
->> [430033.483151]  [<ffffffff816f10ea>] ? __schedule+0x24a/0x810
->> [430033.483354]  [<ffffffff816f10ea>] ? __schedule+0x24a/0x810
->> [430033.483553]  [<ffffffff810a7a20>] ? kthread_create_on_node+0x180/0x180
->> [430033.483777]  [<ffffffff816f72a1>] ret_from_fork+0x61/0x90
->> [430033.483976]  [<ffffffff810a7a20>] ? kthread_create_on_node+0x180/0x180
->> [430033.484191] Code: 83 c2 02 0f b7 f2 e8 18 dc 91 ff 66 90 eb bf 0f 1f 40
->> 00 55 48 89 e5 41 56 41 55 41 54 53 0f 1f 44 00 00 48 89 fb ba 00 00 02 00
->> <f0> 0f c1 17 89 d0 45 31 e4 45 31 ed c1 e8 10 66 39 d0 41 89 c6
->> [430033.485174] RIP  [<ffffffff816f6898>] _raw_spin_lock+0x18/0xf0
->> [430033.485370]  RSP <ffff88005ae97908>
->> [430033.485566] CR2: 0000000000001088
->> [430033.486223] ---[ end trace 7264463cd1aac8f9 ]---
->> [430033.666368] Kernel panic - not syncing: Fatal exception
+>> When nfsd is getting file dentry using handle or parent dentry of some
+>> dentry, one cluster lock is used to avoid inode removed from other node,
+>> but it still could be removed from local node, so use a rw lock to avoid
+>> this.
 >>
 >> Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
 >> ---
->>   fs/ocfs2/suballoc.c | 9 ++++++---
->>   1 file changed, 6 insertions(+), 3 deletions(-)
+>>   fs/ocfs2/dlmglue.c | 17 ++++++++++++++---
+>>   fs/ocfs2/ocfs2.h   |  1 +
+>>   2 files changed, 15 insertions(+), 3 deletions(-)
 >>
->> diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
->> index 4836becb7578..45745cc3408a 100644
->> --- a/fs/ocfs2/suballoc.c
->> +++ b/fs/ocfs2/suballoc.c
->> @@ -2825,9 +2825,12 @@ int ocfs2_test_inode_bit(struct ocfs2_super *osb, u64 blkno, int *res)
->>   		goto bail;
->>   	}
+>> diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
+>> index 152a0fc4e905..c5e84314e203 100644
+>> --- a/fs/ocfs2/dlmglue.c
+>> +++ b/fs/ocfs2/dlmglue.c
+>> @@ -678,15 +678,17 @@ static void ocfs2_rename_lock_res_init(struct ocfs2_lock_res *res,
+>>   				   &ocfs2_rename_lops, osb);
+>>   }
 >>   
->> -	inode_alloc_inode =
->> -		ocfs2_get_system_file_inode(osb, INODE_ALLOC_SYSTEM_INODE,
->> -					    suballoc_slot);
->> +	if (suballoc_slot == (u16)OCFS2_INVALID_SLOT)
->> +		inode_alloc_inode = ocfs2_get_system_file_inode(osb,
->> +			GLOBAL_INODE_ALLOC_SYSTEM_INODE, suballoc_slot);
+>> -static void ocfs2_nfs_sync_lock_res_init(struct ocfs2_lock_res *res,
+>> -					 struct ocfs2_super *osb)
+>> +static void ocfs2_nfs_sync_lock_res_init(struct ocfs2_super *osb)
+>>   {
+>> +	struct ocfs2_lock_res *res = &osb->osb_nfs_sync_lockres;
+>> +
+>>   	/* nfs_sync lockres doesn't come from a slab so we call init
+>>   	 * once on it manually.  */
+>>   	ocfs2_lock_res_init_once(res);
+>>   	ocfs2_build_lock_name(OCFS2_LOCK_TYPE_NFS_SYNC, 0, 0, res->l_name);
+>>   	ocfs2_lock_res_init_common(osb, res, OCFS2_LOCK_TYPE_NFS_SYNC,
+>>   				   &ocfs2_nfs_sync_lops, osb);
+>> +	init_rwsem(&osb->nfs_sync_rwlock);
+>>   }
+> Can we leave this and introduce a new one to initialize both
+> osb_nfs_sync_lockres and nfs_sync_rwlock? Then we can let all
+> lockres initialization look the same.
+> Something like:
+> static void ocfs2_nfs_sync_lock_init(struct ocfs2_super *osb)
+> {
+> 	ocfs2_nfs_sync_lock_res_init(&osb->osb_nfs_sync_lockres, osb);
+> 	init_rwsem(&osb->nfs_sync_rwlock);
+> }
+
+No problem, will do it in v2.
+
+Thanks,
+
+Junxiao,.
+
+>
+> Thanks,
+> Joseph
+>
+>>   
+>>   void ocfs2_trim_fs_lock_res_init(struct ocfs2_super *osb)
+>> @@ -2855,6 +2857,11 @@ int ocfs2_nfs_sync_lock(struct ocfs2_super *osb, int ex)
+>>   	if (ocfs2_is_hard_readonly(osb))
+>>   		return -EROFS;
+>>   
+>> +	if (ex)
+>> +		down_write(&osb->nfs_sync_rwlock);
 >> +	else
->> +		inode_alloc_inode = ocfs2_get_system_file_inode(osb,
->> +			INODE_ALLOC_SYSTEM_INODE, suballoc_slot);
->>   	if (!inode_alloc_inode) {
->>   		/* the error code could be inaccurate, but we are not able to
->>   		 * get the correct one. */
+>> +		down_read(&osb->nfs_sync_rwlock);
+>> +
+>>   	if (ocfs2_mount_local(osb))
+>>   		return 0;
+>>   
+>> @@ -2873,6 +2880,10 @@ void ocfs2_nfs_sync_unlock(struct ocfs2_super *osb, int ex)
+>>   	if (!ocfs2_mount_local(osb))
+>>   		ocfs2_cluster_unlock(osb, lockres,
+>>   				     ex ? LKM_EXMODE : LKM_PRMODE);
+>> +	if (ex)
+>> +		up_write(&osb->nfs_sync_rwlock);
+>> +	else
+>> +		up_read(&osb->nfs_sync_rwlock);
+>>   }
+>>   
+>>   int ocfs2_trim_fs_lock(struct ocfs2_super *osb,
+>> @@ -3340,7 +3351,7 @@ int ocfs2_dlm_init(struct ocfs2_super *osb)
+>>   local:
+>>   	ocfs2_super_lock_res_init(&osb->osb_super_lockres, osb);
+>>   	ocfs2_rename_lock_res_init(&osb->osb_rename_lockres, osb);
+>> -	ocfs2_nfs_sync_lock_res_init(&osb->osb_nfs_sync_lockres, osb);
+>> +	ocfs2_nfs_sync_lock_res_init(osb);
+>>   	ocfs2_orphan_scan_lock_res_init(&osb->osb_orphan_scan.os_lockres, osb);
+>>   
+>>   	osb->cconn = conn;
+>> diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
+>> index ee5d98516212..2dd71d626196 100644
+>> --- a/fs/ocfs2/ocfs2.h
+>> +++ b/fs/ocfs2/ocfs2.h
+>> @@ -395,6 +395,7 @@ struct ocfs2_super
+>>   	struct ocfs2_lock_res osb_super_lockres;
+>>   	struct ocfs2_lock_res osb_rename_lockres;
+>>   	struct ocfs2_lock_res osb_nfs_sync_lockres;
+>> +	struct rw_semaphore nfs_sync_rwlock;
+>>   	struct ocfs2_lock_res osb_trim_fs_lockres;
+>>   	struct mutex obs_trim_fs_mutex;
+>>   	struct ocfs2_dlm_debug *osb_dlm_debug;
 >>
