@@ -1,47 +1,39 @@
-From: Junxiao Bi <junxiao.bi@oracle.com>
-Date: Tue, 16 Jun 2020 11:38:29 -0700
-Subject: [Ocfs2-devel] [PATCH 4/4] ocfs2: fix value of OCFS2_INVALID_SLOT
-In-Reply-To: <20200616183829.87211-1-junxiao.bi@oracle.com>
-References: <20200616183829.87211-1-junxiao.bi@oracle.com>
-Message-ID: <20200616183829.87211-5-junxiao.bi@oracle.com>
+From: Andreas Gruenbacher <agruenba@redhat.com>
+Date: Wed, 17 Jun 2020 00:36:13 +0200
+Subject: [Ocfs2-devel] [Cluster-devel] [PATCH v11 16/25] fs: Convert
+	mpage_readpages to mpage_readahead
+In-Reply-To: <20200414150233.24495-17-willy@infradead.org>
+References: <20200414150233.24495-1-willy@infradead.org>
+	<20200414150233.24495-17-willy@infradead.org>
+Message-ID: <CAHc6FU4m1M7Tv4scX0UxSiVBqkL=Vcw_z-R7SufL8k7Bw=qPOw@mail.gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Matthew Wilcox <willy@infradead.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-xfs@vger.kernel.org, Junxiao Bi <junxiao.bi@oracle.com>, William Kucharski <william.kucharski@oracle.com>, Joseph Qi <joseph.qi@linux.alibaba.com>, John Hubbard <jhubbard@nvidia.com>, LKML <linux-kernel@vger.kernel.org>, linux-f2fs-devel@lists.sourceforge.net, cluster-devel <cluster-devel@redhat.com>, Linux-MM <linux-mm@kvack.org>, ocfs2-devel@oss.oracle.com, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-ext4 <linux-ext4@vger.kernel.org>, linux-erofs@lists.ozlabs.org, Christoph Hellwig <hch@lst.de>, linux-btrfs@vger.kernel.org, Steven Whitehouse <swhiteho@redhat.com>, Bob Peterson <rpeterso@redhat.com>
 
-From ocfs2 disk layout, slot number is 16 bits, but in ocfs2 implemtation,
-slot number is 32 bits, usually this will not cause any issue, because
-slot number is converting from u16 to u32, but OCFS2_INVALID_SLOT was
-defined as -1, when an invalid slot number from disk was got, it value
-was (u16)-1, and it was converted to u32, then the following checking
-in get_local_system_inode will be always skipped.
+Am Mi., 15. Apr. 2020 um 23:39 Uhr schrieb Matthew Wilcox <willy@infradead.org>:
+> From: "Matthew Wilcox (Oracle)" <willy@infradead.org>
+>
+> Implement the new readahead aop and convert all callers (block_dev,
+> exfat, ext2, fat, gfs2, hpfs, isofs, jfs, nilfs2, ocfs2, omfs, qnx6,
+> reiserfs & udf).  The callers are all trivial except for GFS2 & OCFS2.
 
- static struct inode **get_local_system_inode(struct ocfs2_super *osb,
-                                               int type,
-                                               u32 slot)
- {
- 	BUG_ON(slot == OCFS2_INVALID_SLOT);
-	...
- }
+This patch leads to an ABBA deadlock in xfstest generic/095 on gfs2.
 
-Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
----
- fs/ocfs2/ocfs2_fs.h | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+Our lock hierarchy is such that the inode cluster lock ("inode glock")
+for an inode needs to be taken before any page locks in that inode's
+address space. However, the readahead address space operation is
+called with the pages already locked. When we try to grab the inode
+glock inside gfs2_readahead, we'll deadlock with processes that are
+holding that inode glock and trying to lock one of those same pages.
 
-diff --git a/fs/ocfs2/ocfs2_fs.h b/fs/ocfs2/ocfs2_fs.h
-index 3fc99659ed09..19137c6d087b 100644
---- a/fs/ocfs2/ocfs2_fs.h
-+++ b/fs/ocfs2/ocfs2_fs.h
-@@ -290,7 +290,7 @@
- #define OCFS2_MAX_SLOTS			255
- 
- /* Slot map indicator for an empty slot */
--#define OCFS2_INVALID_SLOT		-1
-+#define OCFS2_INVALID_SLOT		((u16)-1)
- 
- #define OCFS2_VOL_UUID_LEN		16
- #define OCFS2_MAX_VOL_LABEL_LEN		64
--- 
-2.20.1 (Apple Git-117)
+One possible solution is to use a trylock on the glock in
+gfs2_readahead, and to give up the readahead in case of a locking
+conflict. I have no idea how this is going to affect performance.
+
+Any other ideas?
+
+Thanks,
+Andreas
