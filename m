@@ -1,73 +1,91 @@
 From: Andreas Gruenbacher <agruenba@redhat.com>
-Date: Thu, 18 Jun 2020 18:40:15 +0200
-Subject: [Ocfs2-devel] [Cluster-devel] [PATCH v11 16/25] fs: Convert
-	mpage_readpages to mpage_readahead
-In-Reply-To: <20200618150309.GP8681@bombadil.infradead.org>
-References: <20200414150233.24495-1-willy@infradead.org>
-	<20200414150233.24495-17-willy@infradead.org>
-	<CAHc6FU4m1M7Tv4scX0UxSiVBqkL=Vcw_z-R7SufL8k7Bw=qPOw@mail.gmail.com>
-	<20200617003216.GC8681@bombadil.infradead.org>
-	<CAHpGcMK6Yu0p-FO8CciiySqh+qcWLG-t3hEaUg-rqJnS=2uhqg@mail.gmail.com>
-	<20200617022157.GF8681@bombadil.infradead.org>
-	<CAHc6FU7NLRHKRJJ6c2kQT0ig8ed1n+3qR-YcSCWzXOeJCUsLbA@mail.gmail.com>
-	<20200618150309.GP8681@bombadil.infradead.org>
-Message-ID: <CAHc6FU6TYTiQ0a0GkN1dhh3VeQKVKrL+eALvuYzZ8nq5jvNHjg@mail.gmail.com>
+Date: Fri, 19 Jun 2020 11:39:15 +0200
+Subject: [Ocfs2-devel] [PATCH 1/2] fs: Add IOCB_CACHED flag for
+	generic_file_read_iter
+In-Reply-To: <20200619093916.1081129-1-agruenba@redhat.com>
+References: <20200619093916.1081129-1-agruenba@redhat.com>
+Message-ID: <20200619093916.1081129-2-agruenba@redhat.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Matthew Wilcox <willy@infradead.org>
-Cc: =?UTF-8?Q?Andreas_Gr=C3=BCnbacher?= <andreas.gruenbacher@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, linux-xfs <linux-xfs@vger.kernel.org>, Junxiao Bi <junxiao.bi@oracle.com>, William Kucharski <william.kucharski@oracle.com>, Joseph Qi <joseph.qi@linux.alibaba.com>, John Hubbard <jhubbard@nvidia.com>, LKML <linux-kernel@vger.kernel.org>, linux-f2fs-devel@lists.sourceforge.net, cluster-devel <cluster-devel@redhat.com>, Linux-MM <linux-mm@kvack.org>, ocfs2-devel@oss.oracle.com, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-ext4 <linux-ext4@vger.kernel.org>, linux-erofs@lists.ozlabs.org, Christoph Hellwig <hch@lst.de>, linux-btrfs@vger.kernel.org, Steven Whitehouse <swhiteho@redhat.com>, Bob Peterson <rpeterso@redhat.com>
+To: Matthew Wilcox <willy@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Andreas Gruenbacher <agruenba@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, linux-xfs <linux-xfs@vger.kernel.org>, Junxiao Bi <junxiao.bi@oracle.com>, William Kucharski <william.kucharski@oracle.com>, Joseph Qi <joseph.qi@linux.alibaba.com>, John Hubbard <jhubbard@nvidia.com>, linux-kernel@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, cluster-devel@redhat.com, linux-mm@kvack.org, ocfs2-devel@oss.oracle.com, linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org, linux-erofs@lists.ozlabs.org, Christoph Hellwig <hch@lst.de>, linux-btrfs@vger.kernel.org
 
-On Thu, Jun 18, 2020 at 5:03 PM Matthew Wilcox <willy@infradead.org> wrote:
->
-> On Thu, Jun 18, 2020 at 02:46:03PM +0200, Andreas Gruenbacher wrote:
-> > On Wed, Jun 17, 2020 at 4:22 AM Matthew Wilcox <willy@infradead.org> wrote:
-> > > On Wed, Jun 17, 2020 at 02:57:14AM +0200, Andreas Gr??nbacher wrote:
-> > > > Right, the approach from the following thread might fix this:
-> > > >
-> > > > https://urldefense.com/v3/__https://lore.kernel.org/linux-fsdevel/20191122235324.17245-1-agruenba at redhat.com/T/*t__;Iw!!GqivPVa7Brio!OQW6RpbfPbj1Ov_G7IFgDMsNvz3u9-AxL2C-B5NVzGgeFS-5th97UOFsvz4eGOx7CkkhCA$ 
-> > >
-> > > In general, I think this is a sound approach.
-> > >
-> > > Specifically, I think FAULT_FLAG_CACHED can go away.  map_pages()
-> > > will bring in the pages which are in the page cache, so when we get to
-> > > gfs2_fault(), we know there's a reason to acquire the glock.
-> >
-> > We'd still be grabbing a glock while holding a dependent page lock.
-> > Another process could be holding the glock and could try to grab the
-> > same page lock (i.e., a concurrent writer), leading to the same kind
-> > of deadlock.
->
-> What I'm saying is that gfs2_fault should just be:
->
-> +static vm_fault_t gfs2_fault(struct vm_fault *vmf)
-> +{
-> +       struct inode *inode = file_inode(vmf->vma->vm_file);
-> +       struct gfs2_inode *ip = GFS2_I(inode);
-> +       struct gfs2_holder gh;
-> +       vm_fault_t ret;
-> +       int err;
-> +
-> +       gfs2_holder_init(ip->i_gl, LM_ST_SHARED, 0, &gh);
-> +       err = gfs2_glock_nq(&gh);
-> +       if (err) {
-> +               ret = block_page_mkwrite_return(err);
-> +               goto out_uninit;
-> +       }
-> +       ret = filemap_fault(vmf);
-> +       gfs2_glock_dq(&gh);
-> +out_uninit:
-> +       gfs2_holder_uninit(&gh);
-> +       return ret;
-> +}
->
-> because by the time gfs2_fault() is called, map_pages() has already been
-> called and has failed to insert the necessary page, so we should just
-> acquire the glock now instead of trying again to look for the page in
-> the page cache.
+Add an IOCB_CACHED flag which indicates to generic_file_read_iter that
+it should only regard the page cache, without triggering any filesystem
+I/O for the actual request or for readahead.  With this flag, -EAGAIN is
+returned when regular I/O would be triggered similar to the IOCB_NOWAIT
+flag, and -ECANCELED is returned when readahead would be triggered.
 
-Okay, that's great.
+This allows the caller to perform a tentative read out of the page
+cache, and to retry the read if the requested pages are not cached.
 
-Thanks,
-Andreas
+Please see the next commit for what this is used for.
+
+Signed-off-by: Andreas Gruenbacher <agruenba@redhat.com>
+---
+ include/linux/fs.h |  1 +
+ mm/filemap.c       | 16 ++++++++++++++--
+ 2 files changed, 15 insertions(+), 2 deletions(-)
+
+diff --git a/include/linux/fs.h b/include/linux/fs.h
+index 6c4ab4dc1cd7..74eade571b1c 100644
+--- a/include/linux/fs.h
++++ b/include/linux/fs.h
+@@ -315,6 +315,7 @@ enum rw_hint {
+ #define IOCB_SYNC		(1 << 5)
+ #define IOCB_WRITE		(1 << 6)
+ #define IOCB_NOWAIT		(1 << 7)
++#define IOCB_CACHED		(1 << 8)
+ 
+ struct kiocb {
+ 	struct file		*ki_filp;
+diff --git a/mm/filemap.c b/mm/filemap.c
+index f0ae9a6308cb..bd11f27bf6ae 100644
+--- a/mm/filemap.c
++++ b/mm/filemap.c
+@@ -2028,7 +2028,7 @@ ssize_t generic_file_buffered_read(struct kiocb *iocb,
+ 
+ 		page = find_get_page(mapping, index);
+ 		if (!page) {
+-			if (iocb->ki_flags & IOCB_NOWAIT)
++			if (iocb->ki_flags & (IOCB_NOWAIT | IOCB_CACHED))
+ 				goto would_block;
+ 			page_cache_sync_readahead(mapping,
+ 					ra, filp,
+@@ -2038,12 +2038,17 @@ ssize_t generic_file_buffered_read(struct kiocb *iocb,
+ 				goto no_cached_page;
+ 		}
+ 		if (PageReadahead(page)) {
++			if (iocb->ki_flags & IOCB_CACHED) {
++				put_page(page);
++				error = -ECANCELED;
++				goto out;
++			}
+ 			page_cache_async_readahead(mapping,
+ 					ra, filp, page,
+ 					index, last_index - index);
+ 		}
+ 		if (!PageUptodate(page)) {
+-			if (iocb->ki_flags & IOCB_NOWAIT) {
++			if (iocb->ki_flags & (IOCB_NOWAIT | IOCB_CACHED)) {
+ 				put_page(page);
+ 				goto would_block;
+ 			}
+@@ -2249,6 +2254,13 @@ EXPORT_SYMBOL_GPL(generic_file_buffered_read);
+  *
+  * This is the "read_iter()" routine for all filesystems
+  * that can use the page cache directly.
++ *
++ * In the IOCB_NOWAIT flag in iocb->ki_flags indicates that -EAGAIN should be
++ * returned if completing the request would require I/O; this does not prevent
++ * readahead.  The IOCB_CACHED flag indicates that -EAGAIN should be returned
++ * as under the IOCB_NOWAIT flag, and that -ECANCELED should be returned when
++ * readhead would be triggered.
++ *
+  * Return:
+  * * number of bytes copied, even for partial reads
+  * * negative error code if nothing was read
+-- 
+2.26.2
