@@ -1,145 +1,56 @@
-From: Matthew Wilcox <willy@infradead.org>
-Date: Fri, 19 Jun 2020 04:55:50 -0700
-Subject: [Ocfs2-devel] [PATCH 2/2] gfs2: Rework read and page fault
-	locking
-In-Reply-To: <20200619093916.1081129-3-agruenba@redhat.com>
-References: <20200619093916.1081129-1-agruenba@redhat.com>
-	<20200619093916.1081129-3-agruenba@redhat.com>
-Message-ID: <20200619115550.GY8681@bombadil.infradead.org>
+From: Dan Carpenter <dan.carpenter@oracle.com>
+Date: Tue, 23 Jun 2020 14:05:58 +0300
+Subject: [Ocfs2-devel] [bug report] ocfs2: fix value of OCFS2_INVALID_SLOT
+Message-ID: <20200623110558.GA27810@mwanda>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Andreas Gruenbacher <agruenba@redhat.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, linux-xfs <linux-xfs@vger.kernel.org>, Junxiao Bi <junxiao.bi@oracle.com>, William Kucharski <william.kucharski@oracle.com>, Joseph Qi <joseph.qi@linux.alibaba.com>, John Hubbard <jhubbard@nvidia.com>, linux-kernel@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, cluster-devel@redhat.com, linux-mm@kvack.org, ocfs2-devel@oss.oracle.com, linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org, linux-erofs@lists.ozlabs.org, Christoph Hellwig <hch@lst.de>, linux-btrfs@vger.kernel.org
+To: ocfs2-devel@oss.oracle.com
 
-On Fri, Jun 19, 2020 at 11:39:16AM +0200, Andreas Gruenbacher wrote:
->  static int gfs2_readpage(struct file *file, struct page *page)
->  {
-> -	struct address_space *mapping = page->mapping;
-> -	struct gfs2_inode *ip = GFS2_I(mapping->host);
-> -	struct gfs2_holder gh;
->  	int error;
->  
-> -	unlock_page(page);
-> -	gfs2_holder_init(ip->i_gl, LM_ST_SHARED, 0, &gh);
-> -	error = gfs2_glock_nq(&gh);
-> -	if (unlikely(error))
-> -		goto out;
-> -	error = AOP_TRUNCATED_PAGE;
-> -	lock_page(page);
-> -	if (page->mapping == mapping && !PageUptodate(page))
-> -		error = __gfs2_readpage(file, page);
-> -	else
-> -		unlock_page(page);
-> -	gfs2_glock_dq(&gh);
-> -out:
-> -	gfs2_holder_uninit(&gh);
-> -	if (error && error != AOP_TRUNCATED_PAGE)
-> +	error = __gfs2_readpage(file, page);
-> +	if (error)
->  		lock_page(page);
->  	return error;
+Hello Junxiao Bi,
 
-I don't think this is right.  If you return an error from ->readpage, I'm
-pretty sure you're supposed to unlock that page.  Looking at
-generic_file_buffered_read():
+The patch c824ce1feffa: "ocfs2: fix value of OCFS2_INVALID_SLOT" from
+Jun 21, 2020, leads to the following static checker warning:
 
-                error = mapping->a_ops->readpage(filp, page);
-                if (unlikely(error)) {
-                        if (error == AOP_TRUNCATED_PAGE) {
-                                put_page(page);
-                                error = 0;
-                                goto find_page;
-                        }
-                        goto readpage_error;
-                }
-...
-readpage_error:
-                put_page(page);
-                goto out;
-...
-out:
-        ra->prev_pos = prev_index;
-        ra->prev_pos <<= PAGE_SHIFT;
-        ra->prev_pos |= prev_offset;
+	fs/ocfs2/super.c:1269 ocfs2_parse_options()
+	warn: '(-1)' 65535 can't fit into 32767 'mopt->slot'
 
-        *ppos = ((loff_t)index << PAGE_SHIFT) + offset;
-        file_accessed(filp);
-        return written ? written : error;
+fs/ocfs2/super.c
+  1253  static int ocfs2_parse_options(struct super_block *sb,
+  1254                                 char *options,
+  1255                                 struct mount_options *mopt,
+  1256                                 int is_remount)
+  1257  {
+  1258          int status, user_stack = 0;
+  1259          char *p;
+  1260          u32 tmp;
+  1261          int token, option;
+  1262          substring_t args[MAX_OPT_ARGS];
+  1263  
+  1264          trace_ocfs2_parse_options(is_remount, options ? options : "(none)");
+  1265  
+  1266          mopt->commit_interval = 0;
+  1267          mopt->mount_opt = OCFS2_MOUNT_NOINTR;
+  1268          mopt->atime_quantum = OCFS2_DEFAULT_ATIME_QUANTUM;
+  1269          mopt->slot = OCFS2_INVALID_SLOT;
+                ^^^^^^^^^^   ^^^^^^^^^^^^^^^^^^
+OCFS2_INVALID_SLOT used to be -1, but the patch changed it to USHRT_MAX.
+mopt->slot is a s16 so it becomes -1 again.
+We assign it to osb->preferred_slot which is an int so it's still -1.
+Then we do:
 
-so we don't call unlock_page() in generic code, which means the next time
-we try to get this page, we'll do ...
+	if (osb->preferred_slot != OCFS2_INVALID_SLOT)
 
-                page = find_get_page(mapping, index);
-...
-                if (!PageUptodate(page)) {
-                        error = wait_on_page_locked_killable(page);
-and presumably we'll wait forever because nobody is going to unlock this
-page?
+Since -1 is not equal to USHRT_MAX then this condition is not true.
 
-> @@ -598,16 +582,9 @@ static void gfs2_readahead(struct readahead_control *rac)
->  {
->  	struct inode *inode = rac->mapping->host;
->  	struct gfs2_inode *ip = GFS2_I(inode);
-> -	struct gfs2_holder gh;
->  
-> -	gfs2_holder_init(ip->i_gl, LM_ST_SHARED, 0, &gh);
-> -	if (gfs2_glock_nq(&gh))
-> -		goto out_uninit;
->  	if (!gfs2_is_stuffed(ip))
->  		mpage_readahead(rac, gfs2_block_map);
-> -	gfs2_glock_dq(&gh);
-> -out_uninit:
-> -	gfs2_holder_uninit(&gh);
->  }
+  1270          mopt->localalloc_opt = -1;
+  1271          mopt->cluster_stack[0] = '\0';
+  1272          mopt->resv_level = OCFS2_DEFAULT_RESV_LEVEL;
+  1273          mopt->dir_resv_level = -1;
+  1274  
+  1275          if (!options) {
+  1276                  status = 1;
 
-Not for this patch, obviously, but why do you go to the effort of using
-iomap_readpage() to implement gfs2_readpage(), but don't use iomap for
-gfs2_readahead()?  Far more pages are brought in through ->readahead
-than are brought in through ->readpage.
-
->  static ssize_t gfs2_file_read_iter(struct kiocb *iocb, struct iov_iter *to)
->  {
-> +	struct gfs2_inode *ip;
-> +	struct gfs2_holder gh;
-> +	size_t written = 0;
->  	ssize_t ret;
->  
-> +	gfs2_holder_mark_uninitialized(&gh);
->  	if (iocb->ki_flags & IOCB_DIRECT) {
->  		ret = gfs2_file_direct_read(iocb, to);
-
-Again, future work, but you probably want to pass in &gh here so you
-don't have to eat up another 32 bytes or so of stack space on an unused
-gfs2_holder.
-
->  		if (likely(ret != -ENOTBLK))
->  			return ret;
->  		iocb->ki_flags &= ~IOCB_DIRECT;
->  	}
-> -	return generic_file_read_iter(iocb, to);
-> +	iocb->ki_flags |= IOCB_CACHED;
-> +	ret = generic_file_read_iter(iocb, to);
-> +	iocb->ki_flags &= ~IOCB_CACHED;
-> +	if (ret >= 0) {
-> +		if (!iov_iter_count(to))
-> +			return ret;
-> +		written = ret;
-> +	} else {
-> +		switch(ret) {
-> +		case -EAGAIN:
-> +			if (iocb->ki_flags & IOCB_NOWAIT)
-> +				return ret;
-> +			break;
-> +		case -ECANCELED:
-> +			break;
-> +		default:
-> +			return ret;
-> +		}
-> +	}
-
-I'm wondering if we want to do this in common code rather than making it
-something special only a few filesystems do (either because they care
-about workloads with many threads accessing the same file, or because
-their per-file locks are very heavy-weight).
+regards,
+dan carpenter
