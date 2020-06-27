@@ -1,92 +1,82 @@
-From: Dan Carpenter <dan.carpenter@oracle.com>
-Date: Wed, 24 Jun 2020 17:57:04 +0300
-Subject: [Ocfs2-devel] [bug report] ocfs2: fix value of
-	OCFS2_INVALID_SLOT
-In-Reply-To: <83182084-7bb9-93bb-ee44-8cfd25315940@oracle.com>
-References: <20200623110558.GA27810@mwanda>
-	<83182084-7bb9-93bb-ee44-8cfd25315940@oracle.com>
-Message-ID: <20200624145704.GA31008@kadam>
+From: Junxiao Bi <junxiao.bi@oracle.com>
+Date: Fri, 26 Jun 2020 17:12:59 -0700
+Subject: [Ocfs2-devel] [PATCH] ocfs2: change slot number type s16 to u16
+Message-ID: <20200627001259.19757-1-junxiao.bi@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Tue, Jun 23, 2020 at 01:26:11PM -0700, Junxiao Bi wrote:
-> On 6/23/20 4:05 AM, Dan Carpenter wrote:
-> 
-> > Hello Junxiao Bi,
-> > 
-> > The patch c824ce1feffa: "ocfs2: fix value of OCFS2_INVALID_SLOT" from
-> > Jun 21, 2020, leads to the following static checker warning:
-> > 
-> > 	fs/ocfs2/super.c:1269 ocfs2_parse_options()
-> > 	warn: '(-1)' 65535 can't fit into 32767 'mopt->slot'
-> > 
-> > fs/ocfs2/super.c
-> >    1253  static int ocfs2_parse_options(struct super_block *sb,
-> >    1254                                 char *options,
-> >    1255                                 struct mount_options *mopt,
-> >    1256                                 int is_remount)
-> >    1257  {
-> >    1258          int status, user_stack = 0;
-> >    1259          char *p;
-> >    1260          u32 tmp;
-> >    1261          int token, option;
-> >    1262          substring_t args[MAX_OPT_ARGS];
-> >    1263
-> >    1264          trace_ocfs2_parse_options(is_remount, options ? options : "(none)");
-> >    1265
-> >    1266          mopt->commit_interval = 0;
-> >    1267          mopt->mount_opt = OCFS2_MOUNT_NOINTR;
-> >    1268          mopt->atime_quantum = OCFS2_DEFAULT_ATIME_QUANTUM;
-> >    1269          mopt->slot = OCFS2_INVALID_SLOT;
-> >                  ^^^^^^^^^^   ^^^^^^^^^^^^^^^^^^
-> > OCFS2_INVALID_SLOT used to be -1, but the patch changed it to USHRT_MAX.
-> > mopt->slot is a s16 so it becomes -1 again.
-> > We assign it to osb->preferred_slot which is an int so it's still -1.
-> 
-> hmm, i think osb->perferred_slot should be 65535, not -1. I test with the
-> following small program.
-> 
-> #include <stdlib.h>
-> #include <stdio.h>
-> 
-> int main(void)
-> {
-> ??? int i;
-> ??? short s;
-> ??? unsigned short us;
-> 
-> ??? us = -1;
-> ??? s = us;
-> ??? i = s;
-> ??? printf("i %d s %d us %d\n", i, s, us);
-> }
+Dan Carpenter reported the following static checker warning.
 
-I'm looking at linux-next.  The only thing which is unsigend short is
-the OCFS2_INVALID_SLOT define itself.  The other variables are either
-signed short or int.  In this case what we care about is the
-preferred_slot which is an int.
+	fs/ocfs2/super.c:1269 ocfs2_parse_options() warn: '(-1)' 65535 can't fit into 32767 'mopt->slot'
+	fs/ocfs2/suballoc.c:859 ocfs2_init_inode_steal_slot() warn: '(-1)' 65535 can't fit into 32767 'osb->s_inode_steal_slot'
+	fs/ocfs2/suballoc.c:867 ocfs2_init_meta_steal_slot() warn: '(-1)' 65535 can't fit into 32767 'osb->s_meta_steal_slot'
 
-#define OCFS2_INVALID_SLOT ((unsigned short)-1)
+That's because OCFS2_INVALID_SLOT is (u16)-1. Slot number in ocfs2 can be
+never negative, so change s16 to u16.
 
-int main(void)
-{
-	short slot = OCFS2_INVALID_SLOT;
-	int perferred_slot = slot;
+Reported-by: Dan Carpenter <dan.carpenter@oracle.com>
+Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
+---
+ fs/ocfs2/ocfs2.h    | 4 ++--
+ fs/ocfs2/suballoc.c | 4 ++--
+ fs/ocfs2/super.c    | 4 ++--
+ 3 files changed, 6 insertions(+), 6 deletions(-)
 
-	if (perferred_slot == OCFS2_INVALID_SLOT)
-		printf("Works\n");
-	else
-		printf("nope\n");
-}
-
-There are a few other place where the types cause an issue.
-
-fs/ocfs2/super.c:1269 ocfs2_parse_options() warn: '(-1)' 65535 can't fit into 32767 'mopt->slot'
-fs/ocfs2/suballoc.c:859 ocfs2_init_inode_steal_slot() warn: '(-1)' 65535 can't fit into 32767 'osb->s_inode_steal_slot'
-fs/ocfs2/suballoc.c:867 ocfs2_init_meta_steal_slot() warn: '(-1)' 65535 can't fit into 32767 'osb->s_meta_steal_slot'
-
-regards,
-dan carpenter
+diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
+index 2dd71d626196..7993d527edae 100644
+--- a/fs/ocfs2/ocfs2.h
++++ b/fs/ocfs2/ocfs2.h
+@@ -327,8 +327,8 @@ struct ocfs2_super
+ 	spinlock_t osb_lock;
+ 	u32 s_next_generation;
+ 	unsigned long osb_flags;
+-	s16 s_inode_steal_slot;
+-	s16 s_meta_steal_slot;
++	u16 s_inode_steal_slot;
++	u16 s_meta_steal_slot;
+ 	atomic_t s_num_inodes_stolen;
+ 	atomic_t s_num_meta_stolen;
+ 
+diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
+index 45745cc3408a..8c8cf7f4eb34 100644
+--- a/fs/ocfs2/suballoc.c
++++ b/fs/ocfs2/suballoc.c
+@@ -879,9 +879,9 @@ static void __ocfs2_set_steal_slot(struct ocfs2_super *osb, int slot, int type)
+ {
+ 	spin_lock(&osb->osb_lock);
+ 	if (type == INODE_ALLOC_SYSTEM_INODE)
+-		osb->s_inode_steal_slot = slot;
++		osb->s_inode_steal_slot = (u16)slot;
+ 	else if (type == EXTENT_ALLOC_SYSTEM_INODE)
+-		osb->s_meta_steal_slot = slot;
++		osb->s_meta_steal_slot = (u16)slot;
+ 	spin_unlock(&osb->osb_lock);
+ }
+ 
+diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+index 71ea9ce71a6b..1d91dd1e8711 100644
+--- a/fs/ocfs2/super.c
++++ b/fs/ocfs2/super.c
+@@ -78,7 +78,7 @@ struct mount_options
+ 	unsigned long	commit_interval;
+ 	unsigned long	mount_opt;
+ 	unsigned int	atime_quantum;
+-	signed short	slot;
++	unsigned short	slot;
+ 	int		localalloc_opt;
+ 	unsigned int	resv_level;
+ 	int		dir_resv_level;
+@@ -1349,7 +1349,7 @@ static int ocfs2_parse_options(struct super_block *sb,
+ 				goto bail;
+ 			}
+ 			if (option)
+-				mopt->slot = (s16)option;
++				mopt->slot = (u16)option;
+ 			break;
+ 		case Opt_commit:
+ 			if (match_int(&args[0], &option)) {
+-- 
+2.20.1 (Apple Git-117)
