@@ -1,33 +1,38 @@
-From: Junxiao Bi <junxiao.bi@oracle.com>
-Date: Thu, 2 Jul 2020 10:51:43 -0700
+From: Gang He <ghe@suse.com>
+Date: Fri, 3 Jul 2020 11:41:46 +0800
 Subject: [Ocfs2-devel] [PATCH 4/4] ocfs2: fix value of OCFS2_INVALID_SLOT
 In-Reply-To: <d7f52299-e806-4741-76b5-8e4f8aa9f437@linux.alibaba.com>
 References: <20200616183829.87211-1-junxiao.bi@oracle.com>
 	<20200616183829.87211-5-junxiao.bi@oracle.com>
 	<64dedfcb-e0be-c387-fbca-888549a05bcf@suse.com>
 	<d7f52299-e806-4741-76b5-8e4f8aa9f437@linux.alibaba.com>
-Message-ID: <998f1ad2-d148-f27f-0130-87eca64150de@oracle.com>
+Message-ID: <68a9be0d-c415-4bda-f077-dd704eef4bdb@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Yeah, commit 88b4270f4999 may help.
+Hi Joseph and All,
 
-Thanks,
-
-Junxiao.
-
-On 7/2/20 7:13 AM, Joseph Qi wrote:
+On 7/2/2020 10:13 PM, Joseph Qi wrote:
 > Hi Gang,
 >  From the call tree it seems has relation with steal slot.
 > Could you try the following patch in linux-next:
 > 88b4270f4999 ("ocfs2: change slot number type s16 to u16")
->
+When I delete the commit(9277f8 ocfs2: fix value of OCFS2_INVALID_SLOT), 
+the problem (as below) does not happen again.
+I will try the patch(88b4270f4999 ocfs2: change slot number type s16 to 
+u16), to see if which can help the commit 9277f8.
+
+Thanks
+Gang
+
+
+> 
 > Thanks,
 > Joseph
->
+> 
 > On 2020/7/2 16:48, Gang He wrote:
 >> Hello Junxiao,
 >>
@@ -132,8 +137,10 @@ On 7/2/20 7:13 AM, Joseph Qi wrote:
 >>>    #define OCFS2_MAX_VOL_LABEL_LEN		64
 >>>
 >>
+>>
 >> _______________________________________________
 >> Ocfs2-devel mailing list
 >> Ocfs2-devel at oss.oracle.com
 >> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
 >>
+> 
