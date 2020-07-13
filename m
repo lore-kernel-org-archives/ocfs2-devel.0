@@ -1,183 +1,113 @@
-From: Gang He <ghe@suse.com>
-Date: Fri, 3 Jul 2020 21:12:21 +0800
-Subject: [Ocfs2-devel] [PATCH 4/4] ocfs2: fix value of OCFS2_INVALID_SLOT
-In-Reply-To: <823fe6f8-49d3-af82-bab5-9f106fc5a1a6@linux.alibaba.com>
-References: <20200616183829.87211-1-junxiao.bi@oracle.com>
-	<20200616183829.87211-5-junxiao.bi@oracle.com>
-	<64dedfcb-e0be-c387-fbca-888549a05bcf@suse.com>
-	<d7f52299-e806-4741-76b5-8e4f8aa9f437@linux.alibaba.com>
-	<68a9be0d-c415-4bda-f077-dd704eef4bdb@suse.com>
-	<0f5eb9d8-db68-59ba-1581-b6b1e1c10aee@suse.com>
-	<823fe6f8-49d3-af82-bab5-9f106fc5a1a6@linux.alibaba.com>
-Message-ID: <1ee94bd6-9e62-daff-9ed2-33678f69b217@suse.com>
+From: Alexander A. Klimov <grandmaster@al2klimov.de>
+Date: Mon, 13 Jul 2020 19:44:56 +0200
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Replace HTTP links with HTTPS ones
+Message-ID: <20200713174456.36596-1-grandmaster@al2klimov.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: mark@fasheh.com, jlbec@evilplan.org, joseph.qi@linux.alibaba.com, corbet@lwn.net, ocfs2-devel@oss.oracle.com, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: "Alexander A. Klimov" <grandmaster@al2klimov.de>
+
+Rationale:
+Reduces attack surface on kernel devs opening the links for MITM
+as HTTPS traffic is much harder to manipulate.
+
+Deterministic algorithm:
+For each file:
+  If not .svg:
+    For each line:
+      If doesn't contain `\bxmlns\b`:
+        For each link, `\bhttp://[^# \t\r\n]*(?:\w|/)`:
+	  If neither `\bgnu\.org/license`, nor `\bmozilla\.org/MPL\b`:
+            If both the HTTP and HTTPS versions
+            return 200 OK and serve the same content:
+              Replace HTTP with HTTPS.
+
+Signed-off-by: Alexander A. Klimov <grandmaster@al2klimov.de>
+---
+ Continuing my work started at 93431e0607e5.
+ See also: git log --oneline '--author=Alexander A. Klimov <grandmaster@al2klimov.de>' v5.7..master
+ (Actually letting a shell for loop submit all this stuff for me.)
+
+ If there are any URLs to be removed completely or at least not just HTTPSified:
+ Just clearly say so and I'll *undo my change*.
+ See also: https://urldefense.com/v3/__https://lkml.org/lkml/2020/6/27/64__;!!GqivPVa7Brio!IxVORQfo7aimR8hhiitiMK7Joz5mwZnuOhNTDJz6S3TD9Uh12-UBYKHAq4J7ksKRwx0pNQ$ 
+
+ If there are any valid, but yet not changed URLs:
+ See: https://urldefense.com/v3/__https://lkml.org/lkml/2020/6/26/837__;!!GqivPVa7Brio!IxVORQfo7aimR8hhiitiMK7Joz5mwZnuOhNTDJz6S3TD9Uh12-UBYKHAq4J7ksJob8dyrg$ 
+
+ If you apply the patch, please let me know.
+
+ Sorry again to all maintainers who complained about subject lines.
+ Now I realized that you want an actually perfect prefixes,
+ not just subsystem ones.
+ I tried my best...
+ And yes, *I could* (at least half-)automate it.
+ Impossible is nothing! :)
 
 
+ Documentation/filesystems/dlmfs.rst | 2 +-
+ Documentation/filesystems/ocfs2.rst | 2 +-
+ fs/ocfs2/Kconfig                    | 6 +++---
+ fs/ocfs2/blockcheck.c               | 2 +-
+ 4 files changed, 6 insertions(+), 6 deletions(-)
 
-On 7/3/2020 8:03 PM, Joseph Qi wrote:
-> 
-> 
-> On 2020/7/3 16:41, Gang He wrote:
->> Hi Guys,
->>
->> On 7/3/2020 11:41 AM, Gang He wrote:
->>> Hi Joseph and All,
->>>
->>> On 7/2/2020 10:13 PM, Joseph Qi wrote:
->>>> Hi Gang,
->>>>    From the call tree it seems has relation with steal slot.
->>>> Could you try the following patch in linux-next:
->>>> 88b4270f4999 ("ocfs2: change slot number type s16 to u16")
->>> When I delete the commit(9277f8 ocfs2: fix value of OCFS2_INVALID_SLOT),
->>> the problem (as below) does not happen again.
->>> I will try the patch(88b4270f4999 ocfs2: change slot number type s16 to
->>> u16), to see if which can help the commit 9277f8.
->> Apply the patch (88b4270f4999 ocfs2: change slot number type s16 to
->> u16), the problem does not happen.
->> That means this patch fixed the patch (9277f8334ffc ocfs2: fix value of
->> OCFS2_INVALID_SLOT).
->>
-> 
-> So this patch should also cc stable, right?
-Depend on the patch 9277f8334ffc ("ocfs2: fix value of 
-OCFS2_INVALID_SLOT"), the patch 88b4270f4999 must go along with the 
-patch 9277f8334ffc.
-
-Thanks
-Gang
-
-> 
-> Thanks,
-> Joseph
-> 
->>>>
->>>> On 2020/7/2 16:48, Gang He wrote:
->>>>> Hello Junxiao,
->>>>>
->>>>> Thank for your patches, which looks to fix the nfsd access problem.
->>>>> But the patches bring a new bug, like below,
->>>>>
->>>>> [  251.406698] BUG: unable to handle kernel paging request at
->>>>> 0000565336a6bdf8
->>>>> [  251.406706] #PF error: [WRITE]
->>>>> [  251.406710] PGD 0 P4D 0
->>>>> [  251.406717] Oops: 0002 [#1] SMP PTI
->>>>> [  251.406724] CPU: 3 PID: 3758 Comm: mkdir Tainted: G           OE
->>>>> 5.0.6-1-default #1 openSUSE Tumbleweed (unreleased)
->>>>> [  251.406729] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996),
->>>>> BIOS rel-1.8.1-0-g4adadbd-20151112_172657-sheep25 04/01/2014
->>>>> [  251.406739] RIP: 0010:_raw_spin_lock+0xc/0x20
->>>>> [  251.406743] Code: 02 00 00 f0 0f c1 03 a9 ff 01 00 00 75 06 48 89 e8
->>>>> 5b 5d c3 48 89 df e8 a2 4f 87 ff eb f0 0f 1f 44 00 00 31 c0 ba 01 00 00
->>>>> 00 <f0> 0f b1 17 75 01 c3 89 c6 e8 76 3a 87 ff 66 90 c3 0f 1f 00 0f 1f
->>>>> [  251.406750] RSP: 0018:ffffb65401087bf0 EFLAGS: 00010246
->>>>> [  251.406755] RAX: 0000000000000000 RBX: 0000565336a6bd70 RCX:
->>>>> 00000000ffffffff
->>>>> [  251.406759] RDX: 0000000000000001 RSI: 0000000000000009 RDI:
->>>>> 0000565336a6bdf8
->>>>> [  251.406763] RBP: 0000565336a6bdf8 R08: 0000000000000000 R09:
->>>>> 0000000000000000
->>>>> [  251.406767] R10: 0000000000000005 R11: ffff9d7ded1bb000 R12:
->>>>> ffff9d7e38c559d0
->>>>> [  251.406771] R13: ffff9d7e39354be8 R14: ffff9d7e393540c8 R15:
->>>>> 00000000ffffffff
->>>>> [  251.406777] FS:  00007f32d9e39c40(0000) GS:ffff9d7e3db80000(0000)
->>>>> knlGS:0000000000000000
->>>>> [  251.406782] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
->>>>> [  251.406788] CR2: 0000565336a6bdf8 CR3: 0000000076496000 CR4:
->>>>> 00000000000006e0
->>>>> [  251.406801] Call Trace:
->>>>> [  251.406824]  igrab+0x19/0x50
->>>>> [  251.406941]  ocfs2_get_system_file_inode+0x65/0x2e0 [ocfs2]
->>>>> [  251.406980]  ? ocfs2_find_entry+0x354/0x7f0 [ocfs2]
->>>>> [  251.407025]  ocfs2_reserve_suballoc_bits+0x3b/0x450 [ocfs2]
->>>>> [  251.407070]  ocfs2_steal_resource+0x8d/0x100 [ocfs2]
->>>>> [  251.407113]  ocfs2_reserve_new_inode+0x97/0x3d0 [ocfs2]
->>>>> [  251.407154]  ocfs2_mknod+0x3a7/0xe70 [ocfs2]
->>>>> [  251.407191]  ? __ocfs2_cluster_unlock.isra.47+0x24/0xd0 [ocfs2]
->>>>> [  251.407231]  ocfs2_mkdir+0x33/0x120 [ocfs2]
->>>>> [  251.407239]  ? inode_permission+0xbe/0x180
->>>>> [  251.407244]  vfs_mkdir+0x102/0x1b0
->>>>> [  251.407250]  do_mkdirat+0xd9/0x100
->>>>> [  251.407258]  do_syscall_64+0x60/0x110
->>>>> [  251.407265]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
->>>>> [  251.407271] RIP: 0033:0x7f32d9fbf307
->>>>> [  251.407276] Code: 1f 40 00 48 8b 05 91 eb 0c 00 64 c7 00 5f 00 00 00
->>>>> b8 ff ff ff ff c3 66 2e 0f 1f 84 00 00 00 00 00 66 90 b8 53 00 00 00 0f
->>>>> 05 <48> 3d 01 f0 ff ff 73 01 c3 48 8b 0d 61 eb 0c 00 f7 d8 64 89 01 48
->>>>> [  251.407283] RSP: 002b:00007fff36999c98 EFLAGS: 00000202 ORIG_RAX:
->>>>> 0000000000000053
->>>>> [  251.407289] RAX: ffffffffffffffda RBX: 00007fff3699b618 RCX:
->>>>> 00007f32d9fbf307
->>>>> [  251.407294] RDX: 0000000000000000 RSI: 00000000000001ff RDI:
->>>>> 00007fff3699b618
->>>>> [  251.407298] RBP: 00007fff3699b618 R08: 00000000000001ff R09:
->>>>> 000055a9fe8b2c00
->>>>>
->>>>> I feel the problem looks related to this patch.
->>>>>
->>>>> Thanks
->>>>> Gang
->>>>>
->>>>> On 6/17/2020 2:38 AM, Junxiao Bi wrote:
->>>>>> >From ocfs2 disk layout, slot number is 16 bits, but in ocfs2 implemtation,
->>>>>> slot number is 32 bits, usually this will not cause any issue, because
->>>>>> slot number is converting from u16 to u32, but OCFS2_INVALID_SLOT was
->>>>>> defined as -1, when an invalid slot number from disk was got, it value
->>>>>> was (u16)-1, and it was converted to u32, then the following checking
->>>>>> in get_local_system_inode will be always skipped.
->>>>>>
->>>>>>      static struct inode **get_local_system_inode(struct ocfs2_super *osb,
->>>>>>                                                    int type,
->>>>>>                                                    u32 slot)
->>>>>>      {
->>>>>>      	BUG_ON(slot == OCFS2_INVALID_SLOT);
->>>>>> 	...
->>>>>>      }
->>>>>>
->>>>>> Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
->>>>>> ---
->>>>>>      fs/ocfs2/ocfs2_fs.h | 2 +-
->>>>>>      1 file changed, 1 insertion(+), 1 deletion(-)
->>>>>>
->>>>>> diff --git a/fs/ocfs2/ocfs2_fs.h b/fs/ocfs2/ocfs2_fs.h
->>>>>> index 3fc99659ed09..19137c6d087b 100644
->>>>>> --- a/fs/ocfs2/ocfs2_fs.h
->>>>>> +++ b/fs/ocfs2/ocfs2_fs.h
->>>>>> @@ -290,7 +290,7 @@
->>>>>>      #define OCFS2_MAX_SLOTS			255
->>>>>>      
->>>>>>      /* Slot map indicator for an empty slot */
->>>>>> -#define OCFS2_INVALID_SLOT		-1
->>>>>> +#define OCFS2_INVALID_SLOT		((u16)-1)
->>>>>>      
->>>>>>      #define OCFS2_VOL_UUID_LEN		16
->>>>>>      #define OCFS2_MAX_VOL_LABEL_LEN		64
->>>>>>
->>>>>
->>>>>
->>>>> _______________________________________________
->>>>> Ocfs2-devel mailing list
->>>>> Ocfs2-devel at oss.oracle.com
->>>>> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
->>>>>
->>>>
->>>
->>>
->>> _______________________________________________
->>> Ocfs2-devel mailing list
->>> Ocfs2-devel at oss.oracle.com
->>> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
->>>
->>
->>
->> _______________________________________________
->> Ocfs2-devel mailing list
->> Ocfs2-devel at oss.oracle.com
->> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
->>
-> 
+diff --git a/Documentation/filesystems/dlmfs.rst b/Documentation/filesystems/dlmfs.rst
+index 68daaa7facf9..28dd41a63be2 100644
+--- a/Documentation/filesystems/dlmfs.rst
++++ b/Documentation/filesystems/dlmfs.rst
+@@ -12,7 +12,7 @@ dlmfs is built with OCFS2 as it requires most of its infrastructure.
+ 
+ :Project web page:    https://urldefense.com/v3/__http://ocfs2.wiki.kernel.org__;!!GqivPVa7Brio!IxVORQfo7aimR8hhiitiMK7Joz5mwZnuOhNTDJz6S3TD9Uh12-UBYKHAq4J7ksLqpfKe7Q$ 
+ :Tools web page:      https://urldefense.com/v3/__https://github.com/markfasheh/ocfs2-tools__;!!GqivPVa7Brio!IxVORQfo7aimR8hhiitiMK7Joz5mwZnuOhNTDJz6S3TD9Uh12-UBYKHAq4J7ksJukxZznA$ 
+-:OCFS2 mailing lists: http://oss.oracle.com/projects/ocfs2/mailman/
++:OCFS2 mailing lists: https://oss.oracle.com/projects/ocfs2/mailman/
+ 
+ All code copyright 2005 Oracle except when otherwise noted.
+ 
+diff --git a/Documentation/filesystems/ocfs2.rst b/Documentation/filesystems/ocfs2.rst
+index 412386bc6506..42ca9a3d4c6e 100644
+--- a/Documentation/filesystems/ocfs2.rst
++++ b/Documentation/filesystems/ocfs2.rst
+@@ -14,7 +14,7 @@ get "mount.ocfs2" and "ocfs2_hb_ctl".
+ 
+ Project web page:    https://urldefense.com/v3/__http://ocfs2.wiki.kernel.org__;!!GqivPVa7Brio!IxVORQfo7aimR8hhiitiMK7Joz5mwZnuOhNTDJz6S3TD9Uh12-UBYKHAq4J7ksLqpfKe7Q$ 
+ Tools git tree:      https://urldefense.com/v3/__https://github.com/markfasheh/ocfs2-tools__;!!GqivPVa7Brio!IxVORQfo7aimR8hhiitiMK7Joz5mwZnuOhNTDJz6S3TD9Uh12-UBYKHAq4J7ksJukxZznA$ 
+-OCFS2 mailing lists: http://oss.oracle.com/projects/ocfs2/mailman/
++OCFS2 mailing lists: https://oss.oracle.com/projects/ocfs2/mailman/
+ 
+ All code copyright 2005 Oracle except when otherwise noted.
+ 
+diff --git a/fs/ocfs2/Kconfig b/fs/ocfs2/Kconfig
+index aca16624b370..5d11380d8724 100644
+--- a/fs/ocfs2/Kconfig
++++ b/fs/ocfs2/Kconfig
+@@ -16,9 +16,9 @@ config OCFS2_FS
+ 	  You'll want to install the ocfs2-tools package in order to at least
+ 	  get "mount.ocfs2".
+ 
+-	  Project web page:    http://oss.oracle.com/projects/ocfs2
+-	  Tools web page:      http://oss.oracle.com/projects/ocfs2-tools
+-	  OCFS2 mailing lists: http://oss.oracle.com/projects/ocfs2/mailman/
++	  Project web page:    https://oss.oracle.com/projects/ocfs2
++	  Tools web page:      https://oss.oracle.com/projects/ocfs2-tools
++	  OCFS2 mailing lists: https://oss.oracle.com/projects/ocfs2/mailman/
+ 
+ 	  For more information on OCFS2, see the file
+ 	  <file:Documentation/filesystems/ocfs2.rst>.
+diff --git a/fs/ocfs2/blockcheck.c b/fs/ocfs2/blockcheck.c
+index eaf042feaf5e..6e07ddb0e3c0 100644
+--- a/fs/ocfs2/blockcheck.c
++++ b/fs/ocfs2/blockcheck.c
+@@ -124,7 +124,7 @@ u32 ocfs2_hamming_encode(u32 parity, void *data, unsigned int d, unsigned int nr
+ 		 * parity bits that are part of the bit number
+ 		 * representation.  Huh?
+ 		 *
+-		 * <wikipedia href="https://urldefense.com/v3/__http://en.wikipedia.org/wiki/Hamming_code__;!!GqivPVa7Brio!IxVORQfo7aimR8hhiitiMK7Joz5mwZnuOhNTDJz6S3TD9Uh12-UBYKHAq4J7ksIahnMs0g$ ">
++		 * <wikipedia href="https://urldefense.com/v3/__https://en.wikipedia.org/wiki/Hamming_code__;!!GqivPVa7Brio!IxVORQfo7aimR8hhiitiMK7Joz5mwZnuOhNTDJz6S3TD9Uh12-UBYKHAq4J7ksIENeKhLw$ ">
+ 		 * In other words, the parity bit at position 2^k
+ 		 * checks bits in positions having bit k set in
+ 		 * their binary representation.  Conversely, for
+-- 
+2.27.0
