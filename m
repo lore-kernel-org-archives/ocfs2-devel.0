@@ -1,43 +1,50 @@
-From: Junxiao Bi <junxiao.bi@oracle.com>
-Date: Thu, 16 Jul 2020 08:55:48 -0700
-Subject: [Ocfs2-devel] missing patch in recent kernels?
-In-Reply-To: <alpine.LSU.2.21.2007161726340.21202@er-systems.de>
-References: <alpine.LSU.2.21.2007161726340.21202@er-systems.de>
-Message-ID: <827a3bc7-fbb7-6b8f-816f-2f8174d11456@oracle.com>
+From: Gang He <ghe@suse.com>
+Date: Fri, 17 Jul 2020 10:37:51 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: fix remounting needed after setfacl
+	command
+Message-ID: <20200717023751.9922-1-ghe@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: mark@fasheh.com, jlbec@evilplan.org, joseph.qi@linux.alibaba.com
+Cc: Gang He <ghe@suse.com>, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com, akpm@linux-foundation.org
 
-It's in mm and linux-next, i think it will be soon merged by Andrew.
+When use setfacl command to change a file's acl, the user cannot
+get the latest acl information from the file via getfacl command,
+until remounting the file system.
+e.g.
+setfacl -m u:ivan:rw /ocfs2/ivan
+getfacl /ocfs2/ivan
+getfacl: Removing leading '/' from absolute path names
+file: ocfs2/ivan
+owner: root
+group: root
+user::rw-
+group::r--
+mask::r--
+other::r--
 
-Thanks,
+The latest acl record("u:ivan:rw") cannot be returned via getfacl
+command until remounting.
 
-Junxiao.
+Signed-off-by: Gang He <ghe@suse.com>
+---
+ fs/ocfs2/acl.c | 2 ++
+ 1 file changed, 2 insertions(+)
 
-On 7/16/20 8:32 AM, Thomas Voegtle wrote:
->
-> Hello,
->
->
-> I see the same Oops on my system as in:
-> https://oss.oracle.com/pipermail/ocfs2-devel/2020-July/015232.html
->
-> I used v4.9.230 which included (in 4.9.229):
-> ocfs2-fix-panic-on-nfs-server-over-ocfs2.patch
-> ocfs2-fix-value-of-ocfs2_invalid_slot.patch
-> ocfs2-load-global_inode_alloc.patch
->
-> Isn't then that patch named "ocfs2: change slot number type s16 to
-> u16" missing mentioned in that mail thread?
->
-> I even don't find it in the main linux branch?
->
->
-> ?? Thomas
->
->
->
->
->
+diff --git a/fs/ocfs2/acl.c b/fs/ocfs2/acl.c
+index bb981ec76456..7b07f5df3a29 100644
+--- a/fs/ocfs2/acl.c
++++ b/fs/ocfs2/acl.c
+@@ -256,6 +256,8 @@ static int ocfs2_set_acl(handle_t *handle,
+ 		ret = ocfs2_xattr_set(inode, name_index, "", value, size, 0);
+ 
+ 	kfree(value);
++	if (!ret)
++		set_cached_acl(inode, type, acl);
+ 
+ 	return ret;
+ }
+-- 
+2.12.3
