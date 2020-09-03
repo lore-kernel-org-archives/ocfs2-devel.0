@@ -1,61 +1,49 @@
-From: Joseph Qi <jiangqi903@gmail.com>
-Date: Tue, 11 Aug 2020 10:35:21 +0800
-Subject: [Ocfs2-devel] [PATCH] fs: ocfs2: delete repeated words in
- comments
-In-Reply-To: <20200811021845.25134-1-rdunlap@infradead.org>
-References: <20200811021845.25134-1-rdunlap@infradead.org>
-Message-ID: <bae514ce-1cd6-0a60-9117-b8c7f2827940@gmail.com>
+From: Darrick J. Wong <darrick.wong@oracle.com>
+Date: Wed, 2 Sep 2020 20:52:25 -0700
+Subject: [Ocfs2-devel] Broken O_{D,}SYNC behavior with FICLONE*?
+Message-ID: <20200903035225.GJ6090@magnolia>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Randy Dunlap <rdunlap@infradead.org>, linux-kernel@vger.kernel.org
-Cc: ocfs2-devel@oss.oracle.com
+To: linux-fsdevel <linux-fsdevel@vger.kernel.org>, xfs <linux-xfs@vger.kernel.org>, linux-btrfs <linux-btrfs@vger.kernel.org>, linux-ext4 <linux-ext4@vger.kernel.org>, ocfs2 list <ocfs2-devel@oss.oracle.com>
+Cc: Christoph Hellwig <hch@infradead.org>, Dave Chinner <david@fromorbit.com>, Eric Sandeen <sandeen@redhat.com>, Theodore Ts'o <tytso@mit.edu>
 
+Hi,
 
+I have a question for everyone-- do FICLONE and FICLONERANGE count as a
+"write operation" for the purposes of reasoning about O_SYNC and
+O_DSYNC?  In other words, is it supposed to be the case that
+(paraphrasing the open(2) manpage) "By the time ioctl(FICLONE) returns,
+the output data and associated file metadata have been transferred to
+the underlying hardware (i.e., as though each ioctl(FICLONE) was
+followed by a call to fsync(2))."?
 
-On 2020/8/11 10:18, Randy Dunlap wrote:
-> Drop duplicated words {the, and} in comments.
-> 
-> Signed-off-by: Randy Dunlap <rdunlap@infradead.org>
-> Cc: Mark Fasheh <mark@fasheh.com>
-> Cc: Joel Becker <jlbec@evilplan.org>
-> Cc: Joseph Qi <joseph.qi@linux.alibaba.com>
-> Cc: Andrew Morton <akpm@linux-foundation.org>
-> Cc: ocfs2-devel at oss.oracle.com
+If I open a file with O_SYNC, call FICLONE to reflink some data blocks
+into that file, and hit the reset button as soon as the ioctl call
+returns, should I expect that I will always see the new file contents in
+that file after the system comes back up?  Or am I required to fsync()
+the file despite O_SYNC being set?
 
-Acked-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+The reason I ask is that (a) reflinking can definitely change the file
+contents which seems like a write operation; and (b) we wrote a test to
+examine the copy_file_range() semantics wrt O_SYNC and discovered that
+an unaligned c_f_r through the splice code does indeed honor the
+documented O_SYNC semantics, but a block-aligned c_f_r that uses reflink
+does *not* honor this.
 
-> ---
->  fs/ocfs2/alloc.c      |    2 +-
->  fs/ocfs2/localalloc.c |    2 +-
->  2 files changed, 2 insertions(+), 2 deletions(-)
-> 
-> --- linux-next-20200807.orig/fs/ocfs2/alloc.c
-> +++ linux-next-20200807/fs/ocfs2/alloc.c
-> @@ -6013,7 +6013,7 @@ int __ocfs2_flush_truncate_log(struct oc
->  		goto out;
->  	}
->  
-> -	/* Appending truncate log(TA) and and flushing truncate log(TF) are
-> +	/* Appending truncate log(TA) and flushing truncate log(TF) are
->  	 * two separated transactions. They can be both committed but not
->  	 * checkpointed. If crash occurs then, both two transaction will be
->  	 * replayed with several already released to global bitmap clusters.
-> --- linux-next-20200807.orig/fs/ocfs2/localalloc.c
-> +++ linux-next-20200807/fs/ocfs2/localalloc.c
-> @@ -677,7 +677,7 @@ int ocfs2_reserve_local_alloc_bits(struc
->  		/*
->  		 * Under certain conditions, the window slide code
->  		 * might have reduced the number of bits available or
-> -		 * disabled the the local alloc entirely. Re-check
-> +		 * disabled the local alloc entirely. Re-check
->  		 * here and return -ENOSPC if necessary.
->  		 */
->  		status = -ENOSPC;
-> 
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
-> 
+So, that's inconsistent behavior and I want to know if remap_file_range
+is broken or if we all just don't care about O_SYNC for these fancy
+IO accelerators?
+
+I tend to think reflink is broken on XFS, but I converted that O_SYNC
+test into a fstest and discovered that none of XFS, btrfs, or ocfs2
+actually force the fs to persist metadata changes after reflinking into
+an O_SYNC file.  The manpages for the clone ioctls and copy_file_range
+don't explicitly declare those calls to be "write operations".
+
+FWIW I repeated the analysis with a file that had FS_XFLAG_SYNC or
+FS_SYNC_FL set on the inode but O_SYNC was not set on the fd, and
+observed the same results.
+
+--D
