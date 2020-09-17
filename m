@@ -1,43 +1,40 @@
-From: Dave Chinner <david@fromorbit.com>
-Date: Fri, 4 Sep 2020 07:13:06 +1000
-Subject: [Ocfs2-devel] Broken O_{D,}SYNC behavior with FICLONE*?
-In-Reply-To: <20200903035225.GJ6090@magnolia>
-References: <20200903035225.GJ6090@magnolia>
-Message-ID: <20200903211306.GE12131@dread.disaster.area>
+From: Christoph Hellwig <hch@lst.de>
+Date: Thu, 17 Sep 2020 18:57:06 +0200
+Subject: [Ocfs2-devel] remove blkdev_get as a public API
+Message-ID: <20200917165720.3285256-1-hch@lst.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: "Darrick J. Wong" <darrick.wong@oracle.com>
-Cc: linux-fsdevel <linux-fsdevel@vger.kernel.org>, xfs <linux-xfs@vger.kernel.org>, linux-btrfs <linux-btrfs@vger.kernel.org>, linux-ext4 <linux-ext4@vger.kernel.org>, ocfs2 list <ocfs2-devel@oss.oracle.com>, Christoph Hellwig <hch@infradead.org>, Eric Sandeen <sandeen@redhat.com>, Theodore Ts'o <tytso@mit.edu>
+To: Jens Axboe <axboe@kernel.dk>
+Cc: Josef Bacik <josef@toxicpanda.com>, Minchan Kim <minchan@kernel.org>, Stefan Haberland <sth@linux.ibm.com>, Jan Hoeppner <hoeppner@linux.ibm.com>, Joseph Qi <joseph.qi@linux.alibaba.com>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Pavel Machek <pavel@ucw.cz>, Len Brown <len.brown@intel.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, nbd@other.debian.org, linux-ide@vger.kernel.org, linux-s390@vger.kernel.org, linux-fsdevel@vger.kernel.org, ocfs2-devel@oss.oracle.com, linux-pm@vger.kernel.org, linux-mm@kvack.org, linux-block@vger.kernel.org
 
-On Wed, Sep 02, 2020 at 08:52:25PM -0700, Darrick J. Wong wrote:
-> Hi,
-> 
-> I have a question for everyone-- do FICLONE and FICLONERANGE count as a
-> "write operation" for the purposes of reasoning about O_SYNC and
-> O_DSYNC?
+Hi Jens,
 
-I'd say yes, because we are changing metadata that is used to
-directly reference the data in the file. O_DSYNC implies all the
-metadata needed to access the data is on stable storage when the
-operation returns....
+this series removes blkdev_get as a public API, leaving it as just an
+implementation detail of blkdev_get_by_path and blkdev_get_by_dev.  The
+reason for that is that blkdev_get is a very confusing API that requires
+a struct block_device to be fed in, but then actually consumes the
+reference.  And it turns out just using the two above mentioned APIs
+actually significantly simplifies the code as well.
 
-> So, that's inconsistent behavior and I want to know if remap_file_range
-> is broken or if we all just don't care about O_SYNC for these fancy
-> IO accelerators?
-
-Perhaps we should pay attention to the NFSD implementation of CloneFR -
-if the operation is sync then it will run fsync on the destination
-and commit_metadata on the source inode. See
-nfsd4_clone_file_range().
-
-So, yeah, I think clone operations need to pay attention to
-O_DSYNC/O_SYNC/IS_SYNC()....
-
-Cheers,
-
-Dave.
--- 
-Dave Chinner
-david at fromorbit.com
+Diffstat:
+ block/genhd.c                   |   11 ++--
+ block/ioctl.c                   |   13 ++---
+ drivers/block/nbd.c             |    8 +--
+ drivers/block/pktcdvd.c         |   92 +++++-----------------------------------
+ drivers/block/zram/zram_drv.c   |    7 +--
+ drivers/char/raw.c              |   51 ++++++++--------------
+ drivers/ide/ide-gd.c            |    2 
+ drivers/s390/block/dasd_genhd.c |   13 +----
+ fs/block_dev.c                  |   12 ++---
+ fs/ocfs2/cluster/heartbeat.c    |   28 ++++--------
+ include/linux/blk_types.h       |    4 -
+ include/linux/blkdev.h          |    1 
+ include/linux/genhd.h           |    2 
+ include/linux/suspend.h         |    4 -
+ include/linux/swap.h            |    3 -
+ kernel/power/swap.c             |   21 +++------
+ kernel/power/user.c             |   26 +++--------
+ mm/swapfile.c                   |   45 ++++++++++---------
+ 18 files changed, 119 insertions(+), 224 deletions(-)
