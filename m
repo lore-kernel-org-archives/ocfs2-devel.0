@@ -1,89 +1,50 @@
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-Date: Fri, 18 Sep 2020 10:11:07 +0800
-Subject: [Ocfs2-devel] [PATCH 09/14] ocfs2: cleanup o2hb_region_dev_store
-In-Reply-To: <20200917165720.3285256-10-hch@lst.de>
+From: Rafael J. Wysocki <rafael@kernel.org>
+Date: Fri, 18 Sep 2020 18:01:59 +0200
+Subject: [Ocfs2-devel] [PATCH 13/14] PM: mm: cleanup swsusp_swap_check
+In-Reply-To: <20200917165720.3285256-14-hch@lst.de>
 References: <20200917165720.3285256-1-hch@lst.de>
-	<20200917165720.3285256-10-hch@lst.de>
-Message-ID: <1c8a3a5a-aa59-f30e-4865-6777436c4225@linux.alibaba.com>
+	<20200917165720.3285256-14-hch@lst.de>
+Message-ID: <CAJZ5v0jAQnEHedZs7kQmfHx4KTw9G1wrObuEpid_m5uVk5qoJQ@mail.gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Christoph Hellwig <hch@lst.de>, Jens Axboe <axboe@kernel.dk>
-Cc: Josef Bacik <josef@toxicpanda.com>, Minchan Kim <minchan@kernel.org>, Stefan Haberland <sth@linux.ibm.com>, Jan Hoeppner <hoeppner@linux.ibm.com>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Pavel Machek <pavel@ucw.cz>, Len Brown <len.brown@intel.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, nbd@other.debian.org, linux-ide@vger.kernel.org, linux-s390@vger.kernel.org, linux-fsdevel@vger.kernel.org, ocfs2-devel@oss.oracle.com, linux-pm@vger.kernel.org, linux-mm@kvack.org, linux-block@vger.kernel.org
+To: Christoph Hellwig <hch@lst.de>
+Cc: Jens Axboe <axboe@kernel.dk>, Josef Bacik <josef@toxicpanda.com>, Minchan Kim <minchan@kernel.org>, Stefan Haberland <sth@linux.ibm.com>, Jan Hoeppner <hoeppner@linux.ibm.com>, Joseph Qi <joseph.qi@linux.alibaba.com>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Pavel Machek <pavel@ucw.cz>, Len Brown <len.brown@intel.com>, Andrew Morton <akpm@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, nbd@other.debian.org, "open list:LIBATA SUBSYSTEM (Serial and Parallel ATA drivers)" <linux-ide@vger.kernel.org>, linux-s390@vger.kernel.org, linux-fsdevel@vger.kernel.org, ocfs2-devel@oss.oracle.com, Linux PM <linux-pm@vger.kernel.org>, Linux Memory Management List <linux-mm@kvack.org>, linux-block@vger.kernel.org
 
-
-
-On 2020/9/18 00:57, Christoph Hellwig wrote:
-> Use blkdev_get_by_dev instead of igrab (aka open coded bdgrab) +
-> blkdev_get.
-> 
+On Thu, Sep 17, 2020 at 7:39 PM Christoph Hellwig <hch@lst.de> wrote:
+>
+> Use blkdev_get_by_dev instead of bdget + blkdev_get.
+>
 > Signed-off-by: Christoph Hellwig <hch@lst.de>
 
-Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+Acked-by: Rafael J. Wysocki <rafael.j.wysocki@intel.com>
 
 > ---
->  fs/ocfs2/cluster/heartbeat.c | 28 ++++++++++------------------
->  1 file changed, 10 insertions(+), 18 deletions(-)
-> 
-> diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
-> index 89d13e0705fe7b..0179a73a3fa2c4 100644
-> --- a/fs/ocfs2/cluster/heartbeat.c
-> +++ b/fs/ocfs2/cluster/heartbeat.c
-> @@ -1766,7 +1766,6 @@ static ssize_t o2hb_region_dev_store(struct config_item *item,
->  	int sectsize;
->  	char *p = (char *)page;
->  	struct fd f;
-> -	struct inode *inode;
->  	ssize_t ret = -EINVAL;
->  	int live_threshold;
->  
-> @@ -1793,20 +1792,16 @@ static ssize_t o2hb_region_dev_store(struct config_item *item,
->  	    reg->hr_block_bytes == 0)
->  		goto out2;
->  
-> -	inode = igrab(f.file->f_mapping->host);
-> -	if (inode == NULL)
-> +	if (!S_ISBLK(f.file->f_mapping->host->i_mode))
->  		goto out2;
->  
-> -	if (!S_ISBLK(inode->i_mode))
-> -		goto out3;
-> -
-> -	reg->hr_bdev = I_BDEV(f.file->f_mapping->host);
-> -	ret = blkdev_get(reg->hr_bdev, FMODE_WRITE | FMODE_READ, NULL);
-> -	if (ret) {
-> +	reg->hr_bdev = blkdev_get_by_dev(f.file->f_mapping->host->i_rdev,
-> +					 FMODE_WRITE | FMODE_READ, NULL);
-> +	if (IS_ERR(reg->hr_bdev)) {
-> +		ret = PTR_ERR(reg->hr_bdev);
->  		reg->hr_bdev = NULL;
-> -		goto out3;
-> +		goto out2;
->  	}
-> -	inode = NULL;
->  
->  	bdevname(reg->hr_bdev, reg->hr_dev_name);
->  
-> @@ -1909,16 +1904,13 @@ static ssize_t o2hb_region_dev_store(struct config_item *item,
->  		       config_item_name(&reg->hr_item), reg->hr_dev_name);
->  
->  out3:
-> -	iput(inode);
-> +	if (ret < 0) {
-> +		blkdev_put(reg->hr_bdev, FMODE_READ | FMODE_WRITE);
-> +		reg->hr_bdev = NULL;
-> +	}
->  out2:
->  	fdput(f);
->  out:
-> -	if (ret < 0) {
-> -		if (reg->hr_bdev) {
-> -			blkdev_put(reg->hr_bdev, FMODE_READ|FMODE_WRITE);
-> -			reg->hr_bdev = NULL;
-> -		}
-> -	}
->  	return ret;
->  }
->  
-> 
+>  kernel/power/swap.c | 10 ++++------
+>  1 file changed, 4 insertions(+), 6 deletions(-)
+>
+> diff --git a/kernel/power/swap.c b/kernel/power/swap.c
+> index 9d3ffbfe08dbf6..71385bedcc3a49 100644
+> --- a/kernel/power/swap.c
+> +++ b/kernel/power/swap.c
+> @@ -343,12 +343,10 @@ static int swsusp_swap_check(void)
+>                 return res;
+>         root_swap = res;
+>
+> -       hib_resume_bdev = bdget(swsusp_resume_device);
+> -       if (!hib_resume_bdev)
+> -               return -ENOMEM;
+> -       res = blkdev_get(hib_resume_bdev, FMODE_WRITE, NULL);
+> -       if (res)
+> -               return res;
+> +       hib_resume_bdev = blkdev_get_by_dev(swsusp_resume_device, FMODE_WRITE,
+> +                       NULL);
+> +       if (IS_ERR(hib_resume_bdev))
+> +               return PTR_ERR(hib_resume_bdev);
+>
+>         res = set_blocksize(hib_resume_bdev, PAGE_SIZE);
+>         if (res < 0)
+> --
+> 2.28.0
+>
