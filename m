@@ -1,7 +1,9 @@
 From: Christoph Hellwig <hch@lst.de>
-Date: Mon, 21 Sep 2020 09:19:44 +0200
-Subject: [Ocfs2-devel] remove blkdev_get as a public API v2
-Message-ID: <20200921071958.307589-1-hch@lst.de>
+Date: Mon, 21 Sep 2020 09:19:52 +0200
+Subject: [Ocfs2-devel] [PATCH 08/14] dasd: cleanup dasd_scan_partitions
+In-Reply-To: <20200921071958.307589-1-hch@lst.de>
+References: <20200921071958.307589-1-hch@lst.de>
+Message-ID: <20200921071958.307589-9-hch@lst.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -9,37 +11,39 @@ Content-Transfer-Encoding: 7bit
 To: Jens Axboe <axboe@kernel.dk>
 Cc: Josef Bacik <josef@toxicpanda.com>, Minchan Kim <minchan@kernel.org>, Stefan Haberland <sth@linux.ibm.com>, Jan Hoeppner <hoeppner@linux.ibm.com>, Joseph Qi <joseph.qi@linux.alibaba.com>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Pavel Machek <pavel@ucw.cz>, Len Brown <len.brown@intel.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, nbd@other.debian.org, linux-ide@vger.kernel.org, linux-s390@vger.kernel.org, linux-fsdevel@vger.kernel.org, ocfs2-devel@oss.oracle.com, linux-pm@vger.kernel.org, linux-mm@kvack.org, linux-block@vger.kernel.org
 
-Hi Jens,
+Use blkdev_get_by_dev instead of bdget_disk + blkdev_get.
 
-this series removes blkdev_get as a public API, leaving it as just an
-implementation detail of blkdev_get_by_path and blkdev_get_by_dev.  The
-reason for that is that blkdev_get is a very confusing API that requires
-a struct block_device to be fed in, but then actually consumes the
-reference.  And it turns out just using the two above mentioned APIs
-actually significantly simplifies the code as well.
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+---
+ drivers/s390/block/dasd_genhd.c | 15 ++++-----------
+ 1 file changed, 4 insertions(+), 11 deletions(-)
 
-Changes since v1:
- - fix a mismerged that left a stray bdget_disk around
- - factour the partition scan at registration time code into a new
-   helper.
-
-Diffstat:
- block/genhd.c                   |   35 ++++++---------
- block/ioctl.c                   |   13 ++---
- drivers/block/nbd.c             |    8 +--
- drivers/block/pktcdvd.c         |   92 +++++-----------------------------------
- drivers/block/zram/zram_drv.c   |    7 +--
- drivers/char/raw.c              |   51 ++++++++--------------
- drivers/ide/ide-gd.c            |    2 
- drivers/s390/block/dasd_genhd.c |   15 +-----
- fs/block_dev.c                  |   12 ++---
- fs/ocfs2/cluster/heartbeat.c    |   28 ++++--------
- include/linux/blk_types.h       |    4 -
- include/linux/blkdev.h          |    1 
- include/linux/genhd.h           |    2 
- include/linux/suspend.h         |    4 -
- include/linux/swap.h            |    3 -
- kernel/power/swap.c             |   21 +++------
- kernel/power/user.c             |   26 +++--------
- mm/swapfile.c                   |   45 ++++++++++---------
- 18 files changed, 130 insertions(+), 239 deletions(-)
+diff --git a/drivers/s390/block/dasd_genhd.c b/drivers/s390/block/dasd_genhd.c
+index af5b0ecb8f8923..a9698fba9b76ce 100644
+--- a/drivers/s390/block/dasd_genhd.c
++++ b/drivers/s390/block/dasd_genhd.c
+@@ -101,18 +101,11 @@ int dasd_scan_partitions(struct dasd_block *block)
+ 	struct block_device *bdev;
+ 	int rc;
+ 
+-	bdev = bdget_disk(block->gdp, 0);
+-	if (!bdev) {
+-		DBF_DEV_EVENT(DBF_ERR, block->base, "%s",
+-			      "scan partitions error, bdget returned NULL");
+-		return -ENODEV;
+-	}
+-
+-	rc = blkdev_get(bdev, FMODE_READ, NULL);
+-	if (rc < 0) {
++	bdev = blkdev_get_by_dev(disk_devt(block->gdp), FMODE_READ, NULL);
++	if (IS_ERR(bdev)) {
+ 		DBF_DEV_EVENT(DBF_ERR, block->base,
+-			      "scan partitions error, blkdev_get returned %d",
+-			      rc);
++			      "scan partitions error, blkdev_get returned %ld",
++			      PTR_ERR(bdev));
+ 		return -ENODEV;
+ 	}
+ 
+-- 
+2.28.0
