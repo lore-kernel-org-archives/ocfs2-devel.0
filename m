@@ -1,31 +1,40 @@
-From: Pavel Machek <pavel@ucw.cz>
-Date: Sat, 19 Sep 2020 11:06:58 +0200
-Subject: [Ocfs2-devel] [PATCH 13/14] PM: mm: cleanup swsusp_swap_check
-In-Reply-To: <20200917165720.3285256-14-hch@lst.de>
-References: <20200917165720.3285256-1-hch@lst.de>
-	<20200917165720.3285256-14-hch@lst.de>
-Message-ID: <20200919090658.GB12294@duo.ucw.cz>
+From: Christoph Hellwig <hch@lst.de>
+Date: Mon, 21 Sep 2020 09:19:50 +0200
+Subject: [Ocfs2-devel] [PATCH 06/14] zram: cleanup backing_dev_store
+In-Reply-To: <20200921071958.307589-1-hch@lst.de>
+References: <20200921071958.307589-1-hch@lst.de>
+Message-ID: <20200921071958.307589-7-hch@lst.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Christoph Hellwig <hch@lst.de>
-Cc: Jens Axboe <axboe@kernel.dk>, Josef Bacik <josef@toxicpanda.com>, Minchan Kim <minchan@kernel.org>, Stefan Haberland <sth@linux.ibm.com>, Jan Hoeppner <hoeppner@linux.ibm.com>, Joseph Qi <joseph.qi@linux.alibaba.com>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Len Brown <len.brown@intel.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, nbd@other.debian.org, linux-ide@vger.kernel.org, linux-s390@vger.kernel.org, linux-fsdevel@vger.kernel.org, ocfs2-devel@oss.oracle.com, linux-pm@vger.kernel.org, linux-mm@kvack.org, linux-block@vger.kernel.org
+To: Jens Axboe <axboe@kernel.dk>
+Cc: Josef Bacik <josef@toxicpanda.com>, Minchan Kim <minchan@kernel.org>, Stefan Haberland <sth@linux.ibm.com>, Jan Hoeppner <hoeppner@linux.ibm.com>, Joseph Qi <joseph.qi@linux.alibaba.com>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Pavel Machek <pavel@ucw.cz>, Len Brown <len.brown@intel.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, nbd@other.debian.org, linux-ide@vger.kernel.org, linux-s390@vger.kernel.org, linux-fsdevel@vger.kernel.org, ocfs2-devel@oss.oracle.com, linux-pm@vger.kernel.org, linux-mm@kvack.org, linux-block@vger.kernel.org
 
-On Thu 2020-09-17 18:57:19, Christoph Hellwig wrote:
-> Use blkdev_get_by_dev instead of bdget + blkdev_get.
-> 
-> Signed-off-by: Christoph Hellwig <hch@lst.de>
+Use blkdev_get_by_dev instead of bdgrab + blkdev_get.
 
-Acked-by: Pavel Machek <pavel@ucw.cz>
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+---
+ drivers/block/zram/zram_drv.c | 7 ++++---
+ 1 file changed, 4 insertions(+), 3 deletions(-)
 
+diff --git a/drivers/block/zram/zram_drv.c b/drivers/block/zram/zram_drv.c
+index a356275605b104..91ccfe444525b4 100644
+--- a/drivers/block/zram/zram_drv.c
++++ b/drivers/block/zram/zram_drv.c
+@@ -491,9 +491,10 @@ static ssize_t backing_dev_store(struct device *dev,
+ 		goto out;
+ 	}
+ 
+-	bdev = bdgrab(I_BDEV(inode));
+-	err = blkdev_get(bdev, FMODE_READ | FMODE_WRITE | FMODE_EXCL, zram);
+-	if (err < 0) {
++	bdev = blkdev_get_by_dev(inode->i_rdev,
++			FMODE_READ | FMODE_WRITE | FMODE_EXCL, zram);
++	if (IS_ERR(bdev)) {
++		err = PTR_ERR(bdev);
+ 		bdev = NULL;
+ 		goto out;
+ 	}
 -- 
-(english) http://www.livejournal.com/~pavelmachek
-(cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blog.html
--------------- next part --------------
-A non-text attachment was scrubbed...
-Name: not available
-Type: application/pgp-signature
-Size: 195 bytes
-Desc: not available
-Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20200919/22f0fcf2/attachment.bin 
+2.28.0
