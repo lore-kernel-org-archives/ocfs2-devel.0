@@ -1,11 +1,10 @@
 From: Sergei Shtylyov <sergei.shtylyov@gmail.com>
-Date: Fri, 18 Sep 2020 11:52:39 +0300
-Subject: [Ocfs2-devel] [PATCH 02/14] block: switch register_disk to use
- blkdev_get_by_dev
-In-Reply-To: <20200917165720.3285256-3-hch@lst.de>
-References: <20200917165720.3285256-1-hch@lst.de>
-	<20200917165720.3285256-3-hch@lst.de>
-Message-ID: <091931b1-eb9c-e45e-c9e8-501554618508@gmail.com>
+Date: Mon, 21 Sep 2020 11:45:46 +0300
+Subject: [Ocfs2-devel] [PATCH 08/14] dasd: cleanup dasd_scan_partitions
+In-Reply-To: <20200921071958.307589-9-hch@lst.de>
+References: <20200921071958.307589-1-hch@lst.de>
+	<20200921071958.307589-9-hch@lst.de>
+Message-ID: <28f7f012-2787-2959-394e-cda480786ea9@gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -15,36 +14,44 @@ Cc: Josef Bacik <josef@toxicpanda.com>, Minchan Kim <minchan@kernel.org>, Stefan
 
 Hello!
 
-On 17.09.2020 19:57, Christoph Hellwig wrote:
+On 21.09.2020 10:19, Christoph Hellwig wrote:
 
-> Use blkdev_get_by_dev instead of open coding it using bdget_disk +
-> blkdev_get.
-
-    I don't see where you are removing bdget_disk() call (situated just before
-the below code?)...
-
+> Use blkdev_get_by_dev instead of bdget_disk + blkdev_get.
+> 
 > Signed-off-by: Christoph Hellwig <hch@lst.de>
 > ---
->   block/genhd.c | 7 +++----
->   1 file changed, 3 insertions(+), 4 deletions(-)
+>   drivers/s390/block/dasd_genhd.c | 15 ++++-----------
+>   1 file changed, 4 insertions(+), 11 deletions(-)
 > 
-> diff --git a/block/genhd.c b/block/genhd.c
-> index 7b56203c90a303..f778716fac6cde 100644
-> --- a/block/genhd.c
-> +++ b/block/genhd.c
-> @@ -732,10 +732,9 @@ static void register_disk(struct device *parent, struct gendisk *disk,
->   		goto exit;
+> diff --git a/drivers/s390/block/dasd_genhd.c b/drivers/s390/block/dasd_genhd.c
+> index af5b0ecb8f8923..a9698fba9b76ce 100644
+> --- a/drivers/s390/block/dasd_genhd.c
+> +++ b/drivers/s390/block/dasd_genhd.c
+> @@ -101,18 +101,11 @@ int dasd_scan_partitions(struct dasd_block *block)
+>   	struct block_device *bdev;
+>   	int rc;
 >   
->   	set_bit(GD_NEED_PART_SCAN, &disk->state);
-> -	err = blkdev_get(bdev, FMODE_READ, NULL);
-> -	if (err < 0)
-> -		goto exit;
-> -	blkdev_put(bdev, FMODE_READ);
-> +	bdev = blkdev_get_by_dev(disk_devt(disk), FMODE_READ, NULL);
-> +	if (!IS_ERR(bdev))
-> +		blkdev_put(bdev, FMODE_READ);
+> -	bdev = bdget_disk(block->gdp, 0);
+> -	if (!bdev) {
+> -		DBF_DEV_EVENT(DBF_ERR, block->base, "%s",
+> -			      "scan partitions error, bdget returned NULL");
+> -		return -ENODEV;
+> -	}
+> -
+> -	rc = blkdev_get(bdev, FMODE_READ, NULL);
+> -	if (rc < 0) {
+> +	bdev = blkdev_get_by_dev(disk_devt(block->gdp), FMODE_READ, NULL);
+> +	if (IS_ERR(bdev)) {
+>   		DBF_DEV_EVENT(DBF_ERR, block->base,
+> -			      "scan partitions error, blkdev_get returned %d",
+> -			      rc);
+> +			      "scan partitions error, blkdev_get returned %ld",
+
+    blkdev_get_by_dev() now?
+
+> +			      PTR_ERR(bdev));
+>   		return -ENODEV;
+>   	}
 >   
->   exit:
->   	/* announce disk after possible partitions are created */
 
 MBR, Sergei
