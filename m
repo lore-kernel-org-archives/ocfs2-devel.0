@@ -1,9 +1,10 @@
 From: Christoph Hellwig <hch@lst.de>
-Date: Mon, 21 Sep 2020 09:19:53 +0200
-Subject: [Ocfs2-devel] [PATCH 09/14] ocfs2: cleanup o2hb_region_dev_store
+Date: Mon, 21 Sep 2020 09:19:45 +0200
+Subject: [Ocfs2-devel] [PATCH 01/14] block: move the NEED_PART_SCAN flag to
+	struct gendisk
 In-Reply-To: <20200921071958.307589-1-hch@lst.de>
 References: <20200921071958.307589-1-hch@lst.de>
-Message-ID: <20200921071958.307589-10-hch@lst.de>
+Message-ID: <20200921071958.307589-2-hch@lst.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -11,74 +12,161 @@ Content-Transfer-Encoding: 7bit
 To: Jens Axboe <axboe@kernel.dk>
 Cc: Josef Bacik <josef@toxicpanda.com>, Minchan Kim <minchan@kernel.org>, Stefan Haberland <sth@linux.ibm.com>, Jan Hoeppner <hoeppner@linux.ibm.com>, Joseph Qi <joseph.qi@linux.alibaba.com>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Pavel Machek <pavel@ucw.cz>, Len Brown <len.brown@intel.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, nbd@other.debian.org, linux-ide@vger.kernel.org, linux-s390@vger.kernel.org, linux-fsdevel@vger.kernel.org, ocfs2-devel@oss.oracle.com, linux-pm@vger.kernel.org, linux-mm@kvack.org, linux-block@vger.kernel.org
 
-Use blkdev_get_by_dev instead of igrab (aka open coded bdgrab) +
-blkdev_get.
+We can only scan for partitions on the whole disk, so move the flag
+from struct block_device to struct gendisk.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
-Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
 ---
- fs/ocfs2/cluster/heartbeat.c | 28 ++++++++++------------------
- 1 file changed, 10 insertions(+), 18 deletions(-)
+ block/genhd.c             | 4 ++--
+ drivers/block/nbd.c       | 8 ++++----
+ drivers/ide/ide-gd.c      | 2 +-
+ fs/block_dev.c            | 7 +++----
+ include/linux/blk_types.h | 4 +---
+ include/linux/genhd.h     | 2 ++
+ 6 files changed, 13 insertions(+), 14 deletions(-)
 
-diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
-index 89d13e0705fe7b..0179a73a3fa2c4 100644
---- a/fs/ocfs2/cluster/heartbeat.c
-+++ b/fs/ocfs2/cluster/heartbeat.c
-@@ -1766,7 +1766,6 @@ static ssize_t o2hb_region_dev_store(struct config_item *item,
- 	int sectsize;
- 	char *p = (char *)page;
- 	struct fd f;
--	struct inode *inode;
- 	ssize_t ret = -EINVAL;
- 	int live_threshold;
+diff --git a/block/genhd.c b/block/genhd.c
+index 9d060e79eb31d8..7b56203c90a303 100644
+--- a/block/genhd.c
++++ b/block/genhd.c
+@@ -731,7 +731,7 @@ static void register_disk(struct device *parent, struct gendisk *disk,
+ 	if (!bdev)
+ 		goto exit;
  
-@@ -1793,20 +1792,16 @@ static ssize_t o2hb_region_dev_store(struct config_item *item,
- 	    reg->hr_block_bytes == 0)
- 		goto out2;
- 
--	inode = igrab(f.file->f_mapping->host);
--	if (inode == NULL)
-+	if (!S_ISBLK(f.file->f_mapping->host->i_mode))
- 		goto out2;
- 
--	if (!S_ISBLK(inode->i_mode))
--		goto out3;
--
--	reg->hr_bdev = I_BDEV(f.file->f_mapping->host);
--	ret = blkdev_get(reg->hr_bdev, FMODE_WRITE | FMODE_READ, NULL);
--	if (ret) {
-+	reg->hr_bdev = blkdev_get_by_dev(f.file->f_mapping->host->i_rdev,
-+					 FMODE_WRITE | FMODE_READ, NULL);
-+	if (IS_ERR(reg->hr_bdev)) {
-+		ret = PTR_ERR(reg->hr_bdev);
- 		reg->hr_bdev = NULL;
--		goto out3;
-+		goto out2;
- 	}
--	inode = NULL;
- 
- 	bdevname(reg->hr_bdev, reg->hr_dev_name);
- 
-@@ -1909,16 +1904,13 @@ static ssize_t o2hb_region_dev_store(struct config_item *item,
- 		       config_item_name(&reg->hr_item), reg->hr_dev_name);
- 
- out3:
--	iput(inode);
-+	if (ret < 0) {
-+		blkdev_put(reg->hr_bdev, FMODE_READ | FMODE_WRITE);
-+		reg->hr_bdev = NULL;
-+	}
- out2:
- 	fdput(f);
- out:
--	if (ret < 0) {
--		if (reg->hr_bdev) {
--			blkdev_put(reg->hr_bdev, FMODE_READ|FMODE_WRITE);
--			reg->hr_bdev = NULL;
--		}
--	}
- 	return ret;
+-	set_bit(BDEV_NEED_PART_SCAN, &bdev->bd_flags);
++	set_bit(GD_NEED_PART_SCAN, &disk->state);
+ 	err = blkdev_get(bdev, FMODE_READ, NULL);
+ 	if (err < 0)
+ 		goto exit;
+@@ -2112,7 +2112,7 @@ bool bdev_check_media_change(struct block_device *bdev)
+ 	if (__invalidate_device(bdev, true))
+ 		pr_warn("VFS: busy inodes on changed media %s\n",
+ 			bdev->bd_disk->disk_name);
+-	set_bit(BDEV_NEED_PART_SCAN, &bdev->bd_flags);
++	set_bit(GD_NEED_PART_SCAN, &bdev->bd_disk->state);
+ 	return true;
  }
+ EXPORT_SYMBOL(bdev_check_media_change);
+diff --git a/drivers/block/nbd.c b/drivers/block/nbd.c
+index 15eed210feeff4..2dca0aab0a9a25 100644
+--- a/drivers/block/nbd.c
++++ b/drivers/block/nbd.c
+@@ -315,7 +315,7 @@ static void nbd_size_update(struct nbd_device *nbd)
+ 			bd_set_nr_sectors(bdev, nr_sectors);
+ 			set_blocksize(bdev, config->blksize);
+ 		} else
+-			set_bit(BDEV_NEED_PART_SCAN, &bdev->bd_flags);
++			set_bit(GD_NEED_PART_SCAN, &nbd->disk->state);
+ 		bdput(bdev);
+ 	}
+ 	kobject_uevent(&nbd_to_dev(nbd)->kobj, KOBJ_CHANGE);
+@@ -1322,7 +1322,7 @@ static int nbd_start_device_ioctl(struct nbd_device *nbd, struct block_device *b
+ 		return ret;
+ 
+ 	if (max_part)
+-		set_bit(BDEV_NEED_PART_SCAN, &bdev->bd_flags);
++		set_bit(GD_NEED_PART_SCAN, &nbd->disk->state);
+ 	mutex_unlock(&nbd->config_lock);
+ 	ret = wait_event_interruptible(config->recv_wq,
+ 					 atomic_read(&config->recv_threads) == 0);
+@@ -1500,9 +1500,9 @@ static int nbd_open(struct block_device *bdev, fmode_t mode)
+ 		refcount_set(&nbd->config_refs, 1);
+ 		refcount_inc(&nbd->refs);
+ 		mutex_unlock(&nbd->config_lock);
+-		set_bit(BDEV_NEED_PART_SCAN, &bdev->bd_flags);
++		set_bit(GD_NEED_PART_SCAN, &bdev->bd_disk->state);
+ 	} else if (nbd_disconnected(nbd->config)) {
+-		set_bit(BDEV_NEED_PART_SCAN, &bdev->bd_flags);
++		set_bit(GD_NEED_PART_SCAN, &bdev->bd_disk->state);
+ 	}
+ out:
+ 	mutex_unlock(&nbd_index_mutex);
+diff --git a/drivers/ide/ide-gd.c b/drivers/ide/ide-gd.c
+index 661e2aa9c96784..e2b6c82586ce8b 100644
+--- a/drivers/ide/ide-gd.c
++++ b/drivers/ide/ide-gd.c
+@@ -230,7 +230,7 @@ static int ide_gd_open(struct block_device *bdev, fmode_t mode)
+ 				bdev->bd_disk->disk_name);
+ 		drive->disk_ops->get_capacity(drive);
+ 		set_capacity(disk, ide_gd_capacity(drive));
+-		set_bit(BDEV_NEED_PART_SCAN, &bdev->bd_flags);
++		set_bit(GD_NEED_PART_SCAN, &disk->state);
+ 	} else if (drive->dev_flags & IDE_DFLAG_FORMAT_IN_PROGRESS) {
+ 		ret = -EBUSY;
+ 		goto out_put_idkp;
+diff --git a/fs/block_dev.c b/fs/block_dev.c
+index 0b34955b9e360f..1a9325f4315769 100644
+--- a/fs/block_dev.c
++++ b/fs/block_dev.c
+@@ -910,7 +910,6 @@ struct block_device *bdget(dev_t dev)
+ 		bdev->bd_super = NULL;
+ 		bdev->bd_inode = inode;
+ 		bdev->bd_part_count = 0;
+-		bdev->bd_flags = 0;
+ 		inode->i_mode = S_IFBLK;
+ 		inode->i_rdev = dev;
+ 		inode->i_bdev = bdev;
+@@ -1385,7 +1384,7 @@ int bdev_disk_changed(struct block_device *bdev, bool invalidate)
+ 
+ 	lockdep_assert_held(&bdev->bd_mutex);
+ 
+-	clear_bit(BDEV_NEED_PART_SCAN, &bdev->bd_flags);
++	clear_bit(GD_NEED_PART_SCAN, &bdev->bd_disk->state);
+ 
+ rescan:
+ 	ret = blk_drop_partitions(bdev);
+@@ -1509,7 +1508,7 @@ static int __blkdev_get(struct block_device *bdev, fmode_t mode, void *holder,
+ 			 * The latter is necessary to prevent ghost
+ 			 * partitions on a removed medium.
+ 			 */
+-			if (test_bit(BDEV_NEED_PART_SCAN, &bdev->bd_flags) &&
++			if (test_bit(GD_NEED_PART_SCAN, &disk->state) &&
+ 			    (!ret || ret == -ENOMEDIUM))
+ 				bdev_disk_changed(bdev, ret == -ENOMEDIUM);
+ 
+@@ -1539,7 +1538,7 @@ static int __blkdev_get(struct block_device *bdev, fmode_t mode, void *holder,
+ 			if (bdev->bd_disk->fops->open)
+ 				ret = bdev->bd_disk->fops->open(bdev, mode);
+ 			/* the same as first opener case, read comment there */
+-			if (test_bit(BDEV_NEED_PART_SCAN, &bdev->bd_flags) &&
++			if (test_bit(GD_NEED_PART_SCAN, &disk->state) &&
+ 			    (!ret || ret == -ENOMEDIUM))
+ 				bdev_disk_changed(bdev, ret == -ENOMEDIUM);
+ 			if (ret)
+diff --git a/include/linux/blk_types.h b/include/linux/blk_types.h
+index 6ffa783e16335e..eb20e28184ab19 100644
+--- a/include/linux/blk_types.h
++++ b/include/linux/blk_types.h
+@@ -19,8 +19,6 @@ struct cgroup_subsys_state;
+ typedef void (bio_end_io_t) (struct bio *);
+ struct bio_crypt_ctx;
+ 
+-#define BDEV_NEED_PART_SCAN		0
+-
+ struct block_device {
+ 	dev_t			bd_dev;
+ 	int			bd_openers;
+@@ -39,7 +37,7 @@ struct block_device {
+ 	struct hd_struct *	bd_part;
+ 	/* number of times partitions within this device have been opened. */
+ 	unsigned		bd_part_count;
+-	unsigned long		bd_flags;
++
+ 	spinlock_t		bd_size_lock; /* for bd_inode->i_size updates */
+ 	struct gendisk *	bd_disk;
+ 	struct backing_dev_info *bd_bdi;
+diff --git a/include/linux/genhd.h b/include/linux/genhd.h
+index 1c97cf84f011a7..38f23d75701379 100644
+--- a/include/linux/genhd.h
++++ b/include/linux/genhd.h
+@@ -191,6 +191,8 @@ struct gendisk {
+ 	void *private_data;
+ 
+ 	int flags;
++	unsigned long state;
++#define GD_NEED_PART_SCAN		0
+ 	struct rw_semaphore lookup_sem;
+ 	struct kobject *slave_dir;
  
 -- 
 2.28.0
