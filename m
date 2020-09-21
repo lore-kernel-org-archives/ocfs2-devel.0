@@ -1,102 +1,137 @@
 From: Christoph Hellwig <hch@lst.de>
-Date: Mon, 21 Sep 2020 09:19:55 +0200
-Subject: [Ocfs2-devel] [PATCH 11/14] PM: rewrite is_hibernate_resume_dev to
-	not require an inode
+Date: Mon, 21 Sep 2020 09:19:51 +0200
+Subject: [Ocfs2-devel] [PATCH 07/14] raw: don't keep unopened block device
+	around
 In-Reply-To: <20200921071958.307589-1-hch@lst.de>
 References: <20200921071958.307589-1-hch@lst.de>
-Message-ID: <20200921071958.307589-12-hch@lst.de>
+Message-ID: <20200921071958.307589-8-hch@lst.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: Jens Axboe <axboe@kernel.dk>
-Cc: Josef Bacik <josef@toxicpanda.com>, Minchan Kim <minchan@kernel.org>, Stefan Haberland <sth@linux.ibm.com>, Jan Hoeppner <hoeppner@linux.ibm.com>, Joseph Qi <joseph.qi@linux.alibaba.com>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Pavel Machek <pavel@ucw.cz>, Len Brown <len.brown@intel.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, nbd@other.debian.org, linux-ide@vger.kernel.org, linux-s390@vger.kernel.org, linux-fsdevel@vger.kernel.org, ocfs2-devel@oss.oracle.com, linux-pm@vger.kernel.org, linux-mm@kvack.org, linux-block@vger.kernel.org, "Rafael J . Wysocki" <rafael.j.wysocki@intel.com>
+Cc: Josef Bacik <josef@toxicpanda.com>, Minchan Kim <minchan@kernel.org>, Stefan Haberland <sth@linux.ibm.com>, Jan Hoeppner <hoeppner@linux.ibm.com>, Joseph Qi <joseph.qi@linux.alibaba.com>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Pavel Machek <pavel@ucw.cz>, Len Brown <len.brown@intel.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, nbd@other.debian.org, linux-ide@vger.kernel.org, linux-s390@vger.kernel.org, linux-fsdevel@vger.kernel.org, ocfs2-devel@oss.oracle.com, linux-pm@vger.kernel.org, linux-mm@kvack.org, linux-block@vger.kernel.org
 
-Just check the dev_t to help simplifying the code.
+Turn binding into a normal dev_t as the struct block device doesn't
+buy us anything and use blkdev_open_by_dev to actually open it.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
-Acked-by: Rafael J. Wysocki <rafael.j.wysocki@intel.com>
 ---
- fs/block_dev.c          |  2 +-
- include/linux/suspend.h |  4 ++--
- kernel/power/user.c     | 12 ++++++------
- 3 files changed, 9 insertions(+), 9 deletions(-)
+ drivers/char/raw.c | 51 +++++++++++++++++-----------------------------
+ 1 file changed, 19 insertions(+), 32 deletions(-)
 
-diff --git a/fs/block_dev.c b/fs/block_dev.c
-index 1a9325f4315769..2898d69be6b3e4 100644
---- a/fs/block_dev.c
-+++ b/fs/block_dev.c
-@@ -1885,7 +1885,7 @@ ssize_t blkdev_write_iter(struct kiocb *iocb, struct iov_iter *from)
- 	if (bdev_read_only(I_BDEV(bd_inode)))
- 		return -EPERM;
+diff --git a/drivers/char/raw.c b/drivers/char/raw.c
+index ccf5bd528642da..5d52a1f4738c76 100644
+--- a/drivers/char/raw.c
++++ b/drivers/char/raw.c
+@@ -28,7 +28,8 @@
+ #include <linux/uaccess.h>
  
--	if (IS_SWAPFILE(bd_inode) && !is_hibernate_resume_dev(bd_inode))
-+	if (IS_SWAPFILE(bd_inode) && !is_hibernate_resume_dev(bd_inode->i_rdev))
- 		return -ETXTBSY;
+ struct raw_device_data {
+-	struct block_device *binding;
++	dev_t binding;
++	struct block_device *bdev;
+ 	int inuse;
+ };
  
- 	if (!iov_iter_count(from))
-diff --git a/include/linux/suspend.h b/include/linux/suspend.h
-index cb9afad82a90c8..8af13ba60c7e45 100644
---- a/include/linux/suspend.h
-+++ b/include/linux/suspend.h
-@@ -473,9 +473,9 @@ static inline int hibernate_quiet_exec(int (*func)(void *data), void *data) {
- #endif /* CONFIG_HIBERNATION */
+@@ -73,14 +74,15 @@ static int raw_open(struct inode *inode, struct file *filp)
+ 	/*
+ 	 * All we need to do on open is check that the device is bound.
+ 	 */
+-	bdev = raw_devices[minor].binding;
+ 	err = -ENODEV;
+-	if (!bdev)
++	if (!raw_devices[minor].binding)
+ 		goto out;
+-	bdgrab(bdev);
+-	err = blkdev_get(bdev, filp->f_mode | FMODE_EXCL, raw_open);
+-	if (err)
++	bdev = blkdev_get_by_dev(raw_devices[minor].binding,
++				 filp->f_mode | FMODE_EXCL, raw_open);
++	if (IS_ERR(bdev)) {
++		err = PTR_ERR(bdev);
+ 		goto out;
++	}
+ 	err = set_blocksize(bdev, bdev_logical_block_size(bdev));
+ 	if (err)
+ 		goto out1;
+@@ -90,6 +92,7 @@ static int raw_open(struct inode *inode, struct file *filp)
+ 		file_inode(filp)->i_mapping =
+ 			bdev->bd_inode->i_mapping;
+ 	filp->private_data = bdev;
++	raw_devices[minor].bdev = bdev;
+ 	mutex_unlock(&raw_mutex);
+ 	return 0;
  
- #ifdef CONFIG_HIBERNATION_SNAPSHOT_DEV
--int is_hibernate_resume_dev(const struct inode *);
-+int is_hibernate_resume_dev(dev_t dev);
- #else
--static inline int is_hibernate_resume_dev(const struct inode *i) { return 0; }
-+static inline int is_hibernate_resume_dev(dev_t dev) { return 0; }
- #endif
+@@ -110,7 +113,7 @@ static int raw_release(struct inode *inode, struct file *filp)
+ 	struct block_device *bdev;
  
- /* Hibernation and suspend events */
-diff --git a/kernel/power/user.c b/kernel/power/user.c
-index d5eedc2baa2a10..b5815685b944fe 100644
---- a/kernel/power/user.c
-+++ b/kernel/power/user.c
-@@ -35,12 +35,12 @@ static struct snapshot_data {
- 	bool ready;
- 	bool platform_support;
- 	bool free_bitmaps;
--	struct inode *bd_inode;
-+	dev_t dev;
- } snapshot_state;
- 
--int is_hibernate_resume_dev(const struct inode *bd_inode)
-+int is_hibernate_resume_dev(dev_t dev)
+ 	mutex_lock(&raw_mutex);
+-	bdev = raw_devices[minor].binding;
++	bdev = raw_devices[minor].bdev;
+ 	if (--raw_devices[minor].inuse == 0)
+ 		/* Here  inode->i_mapping == bdev->bd_inode->i_mapping  */
+ 		inode->i_mapping = &inode->i_data;
+@@ -133,6 +136,7 @@ raw_ioctl(struct file *filp, unsigned int command, unsigned long arg)
+ static int bind_set(int number, u64 major, u64 minor)
  {
--	return hibernation_available() && snapshot_state.bd_inode == bd_inode;
-+	return hibernation_available() && snapshot_state.dev == dev;
- }
+ 	dev_t dev = MKDEV(major, minor);
++	dev_t raw = MKDEV(RAW_MAJOR, number);
+ 	struct raw_device_data *rawdev;
+ 	int err = 0;
  
- static int snapshot_open(struct inode *inode, struct file *filp)
-@@ -101,7 +101,7 @@ static int snapshot_open(struct inode *inode, struct file *filp)
- 	data->frozen = false;
- 	data->ready = false;
- 	data->platform_support = false;
--	data->bd_inode = NULL;
-+	data->dev = 0;
+@@ -166,25 +170,17 @@ static int bind_set(int number, u64 major, u64 minor)
+ 		mutex_unlock(&raw_mutex);
+ 		return -EBUSY;
+ 	}
+-	if (rawdev->binding) {
+-		bdput(rawdev->binding);
++	if (rawdev->binding)
+ 		module_put(THIS_MODULE);
+-	}
++
++	rawdev->binding = dev;
+ 	if (!dev) {
+ 		/* unbind */
+-		rawdev->binding = NULL;
+-		device_destroy(raw_class, MKDEV(RAW_MAJOR, number));
++		device_destroy(raw_class, raw);
+ 	} else {
+-		rawdev->binding = bdget(dev);
+-		if (rawdev->binding == NULL) {
+-			err = -ENOMEM;
+-		} else {
+-			dev_t raw = MKDEV(RAW_MAJOR, number);
+-			__module_get(THIS_MODULE);
+-			device_destroy(raw_class, raw);
+-			device_create(raw_class, NULL, raw, NULL,
+-				      "raw%d", number);
+-		}
++		__module_get(THIS_MODULE);
++		device_destroy(raw_class, raw);
++		device_create(raw_class, NULL, raw, NULL, "raw%d", number);
+ 	}
+ 	mutex_unlock(&raw_mutex);
+ 	return err;
+@@ -192,18 +188,9 @@ static int bind_set(int number, u64 major, u64 minor)
  
-  Unlock:
- 	unlock_system_sleep();
-@@ -117,7 +117,7 @@ static int snapshot_release(struct inode *inode, struct file *filp)
- 
- 	swsusp_free();
- 	data = filp->private_data;
--	data->bd_inode = NULL;
-+	data->dev = 0;
- 	free_all_swap_pages(data->swap);
- 	if (data->frozen) {
- 		pm_restore_gfp_mask();
-@@ -245,7 +245,7 @@ static int snapshot_set_swap_area(struct snapshot_data *data,
- 	if (data->swap < 0)
- 		return -ENODEV;
- 
--	data->bd_inode = bdev->bd_inode;
-+	data->dev = bdev->bd_dev;
- 	bdput(bdev);
+ static int bind_get(int number, dev_t *dev)
+ {
+-	struct raw_device_data *rawdev;
+-	struct block_device *bdev;
+-
+ 	if (number <= 0 || number >= max_raw_minors)
+ 		return -EINVAL;
+-
+-	rawdev = &raw_devices[number];
+-
+-	mutex_lock(&raw_mutex);
+-	bdev = rawdev->binding;
+-	*dev = bdev ? bdev->bd_dev : 0;
+-	mutex_unlock(&raw_mutex);
++	*dev = raw_devices[number].binding;
  	return 0;
  }
+ 
 -- 
 2.28.0
