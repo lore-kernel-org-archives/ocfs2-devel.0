@@ -1,50 +1,82 @@
 From: Joseph Qi <joseph.qi@linux.alibaba.com>
-Date: Sun, 27 Sep 2020 10:59:38 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: fix potential soft lockup during
-	fstrim
-In-Reply-To: <20200927015815.14904-1-ghe@suse.com>
-References: <20200927015815.14904-1-ghe@suse.com>
-Message-ID: <cd133863-e81e-69f3-74da-bac4f52beb21@linux.alibaba.com>
+Date: Sun, 4 Oct 2020 11:52:16 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: ratelimit the 'max lookup times
+	reached' notice
+In-Reply-To: <20201001224417.478263-1-mfo@canonical.com>
+References: <20201001224417.478263-1-mfo@canonical.com>
+Message-ID: <85ab91b4-00c3-ce0f-2848-a19464337a56@linux.alibaba.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Gang He <ghe@suse.com>, mark@fasheh.com, jlbec@evilplan.org
-Cc: linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com, akpm@linux-foundation.org
+To: Mauricio Faria de Oliveira <mfo@canonical.com>, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
+Cc: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>
 
 
 
-On 2020/9/27 09:58, Gang He wrote:
-> When we discard unused blocks on a mounted ocfs2 filesystem, fstrim
-> handles each block goup with locking/unlocking global bitmap meta-file
-> repeatedly. we should let fstrim thread take a break(if need) between
-> unlock and lock, this will avoid the potential soft lockup problem,
-> and also gives the upper applications more IO opportunities, these
-> applications are not blocked for too long at writing files.
+On 2020/10/2 06:44, Mauricio Faria de Oliveira wrote:
+> Running stress-ng on ocfs2 completely fills the kernel log with
+> 'max lookup times reached, filesystem may have nested directories.'
 > 
-> Signed-off-by: Gang He <ghe@suse.com>
+> Let's ratelimit this message as done with others in the code.
+> 
+> Test-case:
+> 
+>   # mkfs.ocfs2 --mount local $DEV
+>   # mount $DEV $MNT
+>   # cd $MNT
+> 
+>   # dmesg -C
+>   # stress-ng --dirdeep 1 --dirdeep-ops 1000
+>   # dmesg | grep -c 'max lookup times reached'
+> 
+> Before:
+> 
+>   # dmesg -C
+>   # stress-ng --dirdeep 1 --dirdeep-ops 1000
+>   ...
+>   stress-ng: info:  [11116] successful run completed in 3.03s
+> 
+>   # dmesg | grep -c 'max lookup times reached'
+>   967
+> 
+> After:
+> 
+>   # dmesg -C
+>   # stress-ng --dirdeep 1 --dirdeep-ops 1000
+>   ...
+>   stress-ng: info:  [739] successful run completed in 0.96s
+> 
+>   # dmesg | grep -c 'max lookup times reached'
+>   10
+> 
+>   # dmesg
+>   [  259.086086] ocfs2_check_if_ancestor: 1990 callbacks suppressed
+>   [  259.086092] (stress-ng-dirde,740,1):ocfs2_check_if_ancestor:1091 max lookup times reached, filesystem may have nested directories, src inode: 18007, dest inode: 17940.
+>   ...
+> 
+> Signed-off-by: Mauricio Faria de Oliveira <mfo@canonical.com>
 
-It makes sense.
+Looks good to me.
 Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
 
 > ---
->  fs/ocfs2/alloc.c | 4 +++-
->  1 file changed, 3 insertions(+), 1 deletion(-)
+>  fs/ocfs2/namei.c | 4 ++--
+>  1 file changed, 2 insertions(+), 2 deletions(-)
 > 
-> diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-> index 4c1b90442d6f..2cf9321919b5 100644
-> --- a/fs/ocfs2/alloc.c
-> +++ b/fs/ocfs2/alloc.c
-> @@ -7654,8 +7654,10 @@ int ocfs2_trim_mainbm(struct super_block *sb, struct fstrim_range *range)
->  	 * main_bm related locks for avoiding the current IO starve, then go to
->  	 * trim the next group
->  	 */
-> -	if (ret >= 0 && group <= last_group)
-> +	if (ret >= 0 && group <= last_group) {
-> +		cond_resched();
->  		goto next_group;
-> +	}
->  out:
->  	range->len = trimmed * sb->s_blocksize;
->  	return ret;
+> diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
+> index 3c908e9416af..0043eddabdb8 100644
+> --- a/fs/ocfs2/namei.c
+> +++ b/fs/ocfs2/namei.c
+> @@ -1095,8 +1095,8 @@ static int ocfs2_check_if_ancestor(struct ocfs2_super *osb,
+>  		child_inode_no = parent_inode_no;
+>  
+>  		if (++i >= MAX_LOOKUP_TIMES) {
+> -			mlog(ML_NOTICE, "max lookup times reached, filesystem "
+> -					"may have nested directories, "
+> +			mlog_ratelimited(ML_NOTICE, "max lookup times reached, "
+> +					"filesystem may have nested directories, "
+>  					"src inode: %llu, dest inode: %llu.\n",
+>  					(unsigned long long)src_inode_no,
+>  					(unsigned long long)dest_inode_no);
 > 
