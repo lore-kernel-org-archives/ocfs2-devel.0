@@ -1,10 +1,10 @@
 From: Matthew Wilcox (Oracle) <willy@infradead.org>
-Date: Sun,  4 Oct 2020 19:04:24 +0100
-Subject: [Ocfs2-devel] [PATCH 3/7] ceph: Promote to unsigned long long
+Date: Sun,  4 Oct 2020 19:04:25 +0100
+Subject: [Ocfs2-devel] [PATCH 4/7] ocfs2: Promote to unsigned long long
 	before shifting
 In-Reply-To: <20201004180428.14494-1-willy@infradead.org>
 References: <20201004180428.14494-1-willy@infradead.org>
-Message-ID: <20201004180428.14494-4-willy@infradead.org>
+Message-ID: <20201004180428.14494-5-willy@infradead.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -15,24 +15,24 @@ Cc: "Matthew Wilcox (Oracle)" <willy@infradead.org>, ericvh@gmail.com, lucho@ion
 On 32-bit systems, this shift will overflow for files larger than 4GB.
 
 Cc: stable at vger.kernel.org
-Fixes: 61f68816211e ("ceph: check caps in filemap_fault and page_mkwrite")
+Fixes: 35edec1d52c0 ("ocfs2: update truncate handling of partial clusters")
 Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
 ---
- fs/ceph/addr.c | 2 +-
+ fs/ocfs2/alloc.c | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/fs/ceph/addr.c b/fs/ceph/addr.c
-index 6ea761c84494..970e5a094035 100644
---- a/fs/ceph/addr.c
-+++ b/fs/ceph/addr.c
-@@ -1522,7 +1522,7 @@ static vm_fault_t ceph_filemap_fault(struct vm_fault *vmf)
- 	struct ceph_inode_info *ci = ceph_inode(inode);
- 	struct ceph_file_info *fi = vma->vm_file->private_data;
- 	struct page *pinned_page = NULL;
--	loff_t off = vmf->pgoff << PAGE_SHIFT;
-+	loff_t off = (loff_t)vmf->pgoff << PAGE_SHIFT;
- 	int want, got, err;
- 	sigset_t oldset;
- 	vm_fault_t ret = VM_FAULT_SIGBUS;
+diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
+index 4c1b90442d6f..26eff79ecb50 100644
+--- a/fs/ocfs2/alloc.c
++++ b/fs/ocfs2/alloc.c
+@@ -6867,7 +6867,7 @@ static void ocfs2_zero_cluster_pages(struct inode *inode, loff_t start,
+ 		ocfs2_map_and_dirty_page(inode, handle, from, to, page, 1,
+ 					 &phys);
+ 
+-		start = (page->index + 1) << PAGE_SHIFT;
++		start = (page->index + 1ULL) << PAGE_SHIFT;
+ 	}
+ out:
+ 	if (pages)
 -- 
 2.28.0
