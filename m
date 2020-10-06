@@ -1,17 +1,17 @@
 From: Jeff Layton <jlayton@kernel.org>
-Date: Tue, 06 Oct 2020 07:29:00 -0400
+Date: Tue, 06 Oct 2020 13:20:42 -0400
 Subject: [Ocfs2-devel] [PATCH 3/7] ceph: Promote to unsigned long long
 	before shifting
 In-Reply-To: <20201004180428.14494-4-willy@infradead.org>
 References: <20201004180428.14494-1-willy@infradead.org>
 	<20201004180428.14494-4-willy@infradead.org>
-Message-ID: <c00f08a9891c878ee9483aa9d05b4e28c2a5791a.camel@kernel.org>
+Message-ID: <f10381885b6e3ea8af828f1b7be5c2f7035e82df.camel@kernel.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: "Matthew Wilcox (Oracle)" <willy@infradead.org>, linux-fsdevel@vger.kernel.org
-Cc: ericvh@gmail.com, lucho@ionkov.net, viro@zeniv.linux.org.uk, idryomov@gmail.com, mark@fasheh.com, jlbec@evilplan.org, joseph.qi@linux.alibaba.com, v9fs-developer@lists.sourceforge.net, linux-kernel@vger.kernel.org, ceph-devel@vger.kernel.org, ocfs2-devel@oss.oracle.com, linux-btrfs@vger.kernel.org, clm@fb.com, josef@toxicpanda.com, dsterba@suse.com, stable@vger.kernel.org
+To: "Matthew Wilcox (Oracle)" <willy@infradead.org>, linux-fsdevel@vger.kernel.org, Ilya Dryomov <idryomov@gmail.com>
+Cc: ericvh@gmail.com, lucho@ionkov.net, viro@zeniv.linux.org.uk, mark@fasheh.com, jlbec@evilplan.org, joseph.qi@linux.alibaba.com, v9fs-developer@lists.sourceforge.net, linux-kernel@vger.kernel.org, ceph-devel@vger.kernel.org, ocfs2-devel@oss.oracle.com, linux-btrfs@vger.kernel.org, clm@fb.com, josef@toxicpanda.com, dsterba@suse.com, stable@vger.kernel.org
 
 On Sun, 2020-10-04 at 19:04 +0100, Matthew Wilcox (Oracle) wrote:
 > On 32-bit systems, this shift will overflow for files larger than 4GB.
@@ -37,7 +37,10 @@ On Sun, 2020-10-04 at 19:04 +0100, Matthew Wilcox (Oracle) wrote:
 >  	sigset_t oldset;
 >  	vm_fault_t ret = VM_FAULT_SIGBUS;
 
-Good catch! Would you like us to take this in via the ceph tree, or are
-you planning to submit altogether upstream? Either way:
 
-Reviewed-by: Jeff Layton <jlayton@kernel.org>
+I went ahead and merged this into the ceph-client/testing branch. Given
+how old this bug is, I don't see a real need to rush this into v5.9, but
+if we have any other patches going in before that ships, then it might
+be good to send this one along too.
+-- 
+Jeff Layton <jlayton@kernel.org>
