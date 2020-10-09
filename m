@@ -1,11 +1,11 @@
 From: Josef Bacik <josef@toxicpanda.com>
-Date: Fri, 9 Oct 2020 10:18:01 -0400
-Subject: [Ocfs2-devel] [PATCH 5/7] btrfs: Promote to unsigned long long
+Date: Fri, 9 Oct 2020 10:18:27 -0400
+Subject: [Ocfs2-devel] [PATCH 6/7] btrfs: Promote to unsigned long long
 	before shifting
-In-Reply-To: <20201004180428.14494-6-willy@infradead.org>
+In-Reply-To: <20201004180428.14494-7-willy@infradead.org>
 References: <20201004180428.14494-1-willy@infradead.org>
-	<20201004180428.14494-6-willy@infradead.org>
-Message-ID: <b36885cc-0c4b-ee03-bcd3-56f94800d84e@toxicpanda.com>
+	<20201004180428.14494-7-willy@infradead.org>
+Message-ID: <84f3800c-445e-6dbf-2381-56840d7bba69@toxicpanda.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -17,7 +17,7 @@ On 10/4/20 2:04 PM, Matthew Wilcox (Oracle) wrote:
 > On 32-bit systems, this shift will overflow for files larger than 4GB.
 > 
 > Cc: stable at vger.kernel.org
-> Fixes: df480633b891 ("btrfs: extent-tree: Switch to new delalloc space reserve and release")
+> Fixes: 53b381b3abeb ("Btrfs: RAID5 and RAID6")
 > Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
 
 Reviewed-by: Josef Bacik <josef@toxicpanda.com>
