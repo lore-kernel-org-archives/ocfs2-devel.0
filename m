@@ -1,12 +1,11 @@
 From: Theodore Y. Ts'o <tytso@mit.edu>
-Date: Thu, 8 Oct 2020 22:08:00 -0400
-Subject: [Ocfs2-devel] [PATCH v5 2/4] jbd2, ext4,
- ocfs2: introduce/use journal callbacks
- j_submit|finish_inode_data_buffers()
-In-Reply-To: <20201006004841.600488-3-mfo@canonical.com>
+Date: Thu, 8 Oct 2020 22:10:11 -0400
+Subject: [Ocfs2-devel] [PATCH v5 3/4] ext4: data=journal: fixes for
+	ext4_page_mkwrite()
+In-Reply-To: <20201006004841.600488-4-mfo@canonical.com>
 References: <20201006004841.600488-1-mfo@canonical.com>
-	<20201006004841.600488-3-mfo@canonical.com>
-Message-ID: <20201009020800.GF235506@mit.edu>
+	<20201006004841.600488-4-mfo@canonical.com>
+Message-ID: <20201009021011.GG235506@mit.edu>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -14,21 +13,47 @@ Content-Transfer-Encoding: 7bit
 To: Mauricio Faria de Oliveira <mfo@canonical.com>
 Cc: linux-ext4@vger.kernel.org, ocfs2-devel@oss.oracle.com, Jan Kara <jack@suse.cz>, Andreas Dilger <adilger@dilger.ca>, dann frazier <dann.frazier@canonical.com>, Joseph Qi <joseph.qi@linux.alibaba.com>
 
-On Mon, Oct 05, 2020 at 09:48:39PM -0300, Mauricio Faria de Oliveira wrote:
-> Introduce journal callbacks to allow different behaviors
-> for an inode in journal_submit|finish_inode_data_buffers().
+On Mon, Oct 05, 2020 at 09:48:40PM -0300, Mauricio Faria de Oliveira wrote:
+> These are two fixes for data journalling required by
+> the next patch, discovered while testing it.
 > 
-> The existing users of the current behavior (ext4, ocfs2)
-> are adapted to use the previously exported functions
-> that implement the current behavior.
+> First, the optimization to return early if all buffers
+> are mapped is not appropriate for the next patch:
 > 
-> Users are callers of jbd2_journal_inode_ranged_write|wait(),
-> which adds the inode to the transaction's inode list with
-> the JI_WRITE|WAIT_DATA flags. Only ext4 and ocfs2 in-tree.
+> The inode _must_ be added to the transaction's list in
+> data=journal mode (so to write-protect pages on commit)
+> thus we cannot return early there.
 > 
-> Both CONFIG_EXT4_FS and CONFIG_OCSFS2_FS select CONFIG_JBD2,
-> which builds fs/jbd2/commit.c and journal.c that define and
-> export the functions, so we can call directly in ext4/ocfs2.
+> Second, once that optimization to reduce transactions
+> was disabled for data=journal mode, more transactions
+> happened, and occasionally hit this warning message:
+> 'JBD2: Spotted dirty metadata buffer'.
+> 
+> Reason is, block_page_mkwrite() will set_buffer_dirty()
+> before do_journal_get_write_access() that is there to
+> prevent it. This issue was masked by the optimization.
+> 
+> So, on data=journal use __block_write_begin() instead.
+> This also requires page locking and len recalculation.
+> (see block_page_mkwrite() for implementation details.)
+> 
+> Finally, as Jan noted there is little sharing between
+> data=journal and other modes in ext4_page_mkwrite().
+> 
+> However, a prototype of ext4_journalled_page_mkwrite()
+> showed there still would be lots of duplicated lines
+> (tens of) that didn't seem worth it.
+> 
+> Thus this patch ends up with an ugly goto to skip all
+> non-data journalling code (to avoid long indentations,
+> but that can be changed..) in the beginning, and just
+> a conditional in the transaction section.
+> 
+> Well, we skip a common part to data journalling which
+> is the page truncated check, but we do it again after
+> ext4_journal_start() when we re-acquire the page lock
+> (so not to acquire the page lock twice needlessly for
+> data journalling.)
 > 
 > Signed-off-by: Mauricio Faria de Oliveira <mfo@canonical.com>
 > Suggested-by: Jan Kara <jack@suse.cz>
@@ -37,4 +62,4 @@ On Mon, Oct 05, 2020 at 09:48:39PM -0300, Mauricio Faria de Oliveira wrote:
 
 Thanks, applied.
 
-					- Ted
+				- Ted
