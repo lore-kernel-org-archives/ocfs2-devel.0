@@ -1,51 +1,27 @@
-From: Theodore Y. Ts'o <tytso@mit.edu>
-Date: Thu, 8 Oct 2020 22:10:50 -0400
-Subject: [Ocfs2-devel] [PATCH v5 4/4] ext4: data=journal: write-protect
- pages on j_submit_inode_data_buffers()
-In-Reply-To: <20201006004841.600488-5-mfo@canonical.com>
-References: <20201006004841.600488-1-mfo@canonical.com>
-	<20201006004841.600488-5-mfo@canonical.com>
-Message-ID: <20201009021050.GH235506@mit.edu>
+From: Josef Bacik <josef@toxicpanda.com>
+Date: Fri, 9 Oct 2020 10:18:01 -0400
+Subject: [Ocfs2-devel] [PATCH 5/7] btrfs: Promote to unsigned long long
+	before shifting
+In-Reply-To: <20201004180428.14494-6-willy@infradead.org>
+References: <20201004180428.14494-1-willy@infradead.org>
+	<20201004180428.14494-6-willy@infradead.org>
+Message-ID: <b36885cc-0c4b-ee03-bcd3-56f94800d84e@toxicpanda.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Mauricio Faria de Oliveira <mfo@canonical.com>
-Cc: linux-ext4@vger.kernel.org, ocfs2-devel@oss.oracle.com, Jan Kara <jack@suse.cz>, Andreas Dilger <adilger@dilger.ca>, dann frazier <dann.frazier@canonical.com>, Joseph Qi <joseph.qi@linux.alibaba.com>
+To: "Matthew Wilcox (Oracle)" <willy@infradead.org>, linux-fsdevel@vger.kernel.org
+Cc: ericvh@gmail.com, lucho@ionkov.net, viro@zeniv.linux.org.uk, jlayton@kernel.org, idryomov@gmail.com, mark@fasheh.com, jlbec@evilplan.org, joseph.qi@linux.alibaba.com, v9fs-developer@lists.sourceforge.net, linux-kernel@vger.kernel.org, ceph-devel@vger.kernel.org, ocfs2-devel@oss.oracle.com, linux-btrfs@vger.kernel.org, clm@fb.com, dsterba@suse.com, stable@vger.kernel.org
 
-On Mon, Oct 05, 2020 at 09:48:41PM -0300, Mauricio Faria de Oliveira wrote:
-> This implements journal callbacks j_submit|finish_inode_data_buffers()
-> with different behavior for data=journal: to write-protect pages under
-> commit, preventing changes to buffers writeably mapped to userspace.
+On 10/4/20 2:04 PM, Matthew Wilcox (Oracle) wrote:
+> On 32-bit systems, this shift will overflow for files larger than 4GB.
 > 
-> If a buffer's content changes between commit's checksum calculation
-> and write-out to disk, it can cause journal recovery/mount failures
-> upon a kernel crash or power loss.
-> 
->     [   27.334874] EXT4-fs: Warning: mounting with data=journal disables delayed allocation, dioread_nolock, and O_DIRECT support!
->     [   27.339492] JBD2: Invalid checksum recovering data block 8705 in log
->     [   27.342716] JBD2: recovery failed
->     [   27.343316] EXT4-fs (loop0): error loading journal
->     mount: /ext4: can't read superblock on /dev/loop0.
-> 
-> In j_submit_inode_data_buffers() we write-protect the inode's pages
-> with write_cache_pages() and redirty w/ writepage callback if needed.
-> 
-> In j_finish_inode_data_buffers() there is nothing do to.
-> 
-> And in order to use the callbacks, inodes are added to the inode list
-> in transaction in __ext4_journalled_writepage() and ext4_page_mkwrite().
-> 
-> In ext4_page_mkwrite() we must make sure that the buffers are attached
-> to the transaction as jbddirty with write_end_fn(), as already done in
-> __ext4_journalled_writepage().
-> 
-> Signed-off-by: Mauricio Faria de Oliveira <mfo@canonical.com>
-> Reported-by: Dann Frazier <dann.frazier@canonical.com>
-> Reported-by: kernel test robot <lkp@intel.com> # wbc.nr_to_write
-> Suggested-by: Jan Kara <jack@suse.cz>
-> Reviewed-by: Jan Kara <jack@suse.cz>
+> Cc: stable at vger.kernel.org
+> Fixes: df480633b891 ("btrfs: extent-tree: Switch to new delalloc space reserve and release")
+> Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
 
-Thanks, applied.
+Reviewed-by: Josef Bacik <josef@toxicpanda.com>
 
-					- Ted
+Thanks,
+
+Josef
