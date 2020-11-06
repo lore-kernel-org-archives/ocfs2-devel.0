@@ -1,5 +1,5 @@
 From: Wengang Wang <wen.gang.wang@oracle.com>
-Date: Tue, 3 Nov 2020 13:53:48 -0800
+Date: Fri, 6 Nov 2020 08:47:30 -0800
 Subject: [Ocfs2-devel] [PATCH] ocfs2: initialize ip_next_orphan
 In-Reply-To: <cf989eb6-dfda-4f04-7cd8-46dbb0775b97@oracle.com>
 References: <20201029210455.15587-1-wen.gang.wang@oracle.com>
@@ -7,17 +7,12 @@ References: <20201029210455.15587-1-wen.gang.wang@oracle.com>
 	<04a41689-835b-5a6f-a2bd-f5c8df7a8b32@oracle.com>
 	<d0045479-2766-b1e5-d664-5a6ba95f29f9@linux.alibaba.com>
 	<cf989eb6-dfda-4f04-7cd8-46dbb0775b97@oracle.com>
-Message-ID: <28b9048e-d3ed-e2b4-2731-c88805dbeec9@oracle.com>
+Message-ID: <6802ecee-83a6-4d27-d725-75d062773a07@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
-
-Anyone else please review this patch?
-
-thanks,
-wengang
 
 On 11/2/20 8:40 AM, Wengang Wang wrote:
 > On 11/1/20 5:40 PM, Joseph Qi wrote:
@@ -108,13 +103,16 @@ On 11/2/20 8:40 AM, Wengang Wang wrote:
 > Those reflink operations are found hang for very long time.
 >
 > Let's wait for some more ideas.
->    
->
-> thanks,
-> wengang
->
->
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+
+Seems others are not interested in patch.
+
+Additional information: My customer confirmed my patch fixed their 
+problem after 1.5 months' testing of that patch.
+
+Joseph,
+
+Would you please give a reviewed-by or you want to wait longer for more 
+comments from others?
+
+Thanks,
+Wengang
