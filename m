@@ -7,81 +7,81 @@ X-Spam-Status: No, score=-16.7 required=3.0 tests=BAYES_00,
 	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
 	autolearn=ham autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 59232C43381
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 119DBC433E6
 	for <ocfs2-devel@archiver.kernel.org>; Thu, 28 Jan 2021 07:29:13 +0000 (UTC)
-Received: from aserp2130.oracle.com (aserp2130.oracle.com [141.146.126.79])
+Received: from aserp2120.oracle.com (aserp2120.oracle.com [141.146.126.78])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by mail.kernel.org (Postfix) with ESMTPS id E0A3F64DD6
+	by mail.kernel.org (Postfix) with ESMTPS id 948B864DD1
 	for <ocfs2-devel@archiver.kernel.org>; Thu, 28 Jan 2021 07:29:12 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.3.2 mail.kernel.org E0A3F64DD6
+DMARC-Filter: OpenDMARC Filter v1.3.2 mail.kernel.org 948B864DD1
 Authentication-Results: mail.kernel.org; dmarc=fail (p=none dis=none) header.from=wdc.com
 Authentication-Results: mail.kernel.org; spf=pass smtp.mailfrom=ocfs2-devel-bounces@oss.oracle.com
-Received: from pps.filterd (aserp2130.oracle.com [127.0.0.1])
-	by aserp2130.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 10S7QB1Y115305;
+Received: from pps.filterd (aserp2120.oracle.com [127.0.0.1])
+	by aserp2120.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 10S7OuCi064346;
 	Thu, 28 Jan 2021 07:29:11 GMT
 Received: from userp3020.oracle.com (userp3020.oracle.com [156.151.31.79])
-	by aserp2130.oracle.com with ESMTP id 3689aatw15-1
+	by aserp2120.oracle.com with ESMTP id 368brktms6-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
 	Thu, 28 Jan 2021 07:29:11 +0000
 Received: from pps.filterd (userp3020.oracle.com [127.0.0.1])
-	by userp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 10S7PoER103492;
+	by userp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 10S7PoC7103516;
 	Thu, 28 Jan 2021 07:27:10 GMT
 Received: from oss.oracle.com (oss-old-reserved.oracle.com [137.254.22.2])
-	by userp3020.oracle.com with ESMTP id 368wjtn38f-1
+	by userp3020.oracle.com with ESMTP id 368wjtn38j-1
 	(version=TLSv1 cipher=AES256-SHA bits=256 verify=NO);
 	Thu, 28 Jan 2021 07:27:10 +0000
 Received: from localhost ([127.0.0.1] helo=lb-oss.oracle.com)
 	by oss.oracle.com with esmtp (Exim 4.63)
 	(envelope-from <ocfs2-devel-bounces@oss.oracle.com>)
-	id 1l51ht-0003Ps-Gz; Wed, 27 Jan 2021 23:27:09 -0800
+	id 1l51ht-0003QN-KU; Wed, 27 Jan 2021 23:27:09 -0800
 Received: from userp3030.oracle.com ([156.151.31.80])
 	by oss.oracle.com with esmtp (Exim 4.63)
 	(envelope-from <prvs=655a99766=chaitanya.kulkarni@wdc.com>)
-	id 1l51UP-0002bU-JZ
-	for ocfs2-devel@oss.oracle.com; Wed, 27 Jan 2021 23:13:13 -0800
+	id 1l51Ub-0002ce-Ub
+	for ocfs2-devel@oss.oracle.com; Wed, 27 Jan 2021 23:13:26 -0800
 Received: from pps.filterd (userp3030.oracle.com [127.0.0.1])
 	by userp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
-	10S70GQU012492
-	for <ocfs2-devel@oss.oracle.com>; Thu, 28 Jan 2021 07:13:13 GMT
-Received: from userp2030.oracle.com (userp2030.oracle.com [156.151.31.89])
-	by userp3030.oracle.com with ESMTP id 368wqyvqwk-1
+	10S70GQV012522
+	for <ocfs2-devel@oss.oracle.com>; Thu, 28 Jan 2021 07:13:25 GMT
+Received: from userp2040.oracle.com (userp2040.oracle.com [156.151.31.90])
+	by userp3030.oracle.com with ESMTP id 368wqyvr5c-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Thu, 28 Jan 2021 07:13:13 +0000
-Received: from pps.filterd (userp2030.oracle.com [127.0.0.1])
-	by userp2030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
-	10S74KBn040544
-	for <ocfs2-devel@oss.oracle.com>; Thu, 28 Jan 2021 07:13:12 GMT
-Received: from esa1.hgst.iphmx.com (esa1.hgst.iphmx.com [68.232.141.245])
-	by userp2030.oracle.com with ESMTP id 36bqd38x2k-1
+	for <ocfs2-devel@oss.oracle.com>; Thu, 28 Jan 2021 07:13:25 +0000
+Received: from pps.filterd (userp2040.oracle.com [127.0.0.1])
+	by userp2040.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
+	10S74Uuc014164
+	for <ocfs2-devel@oss.oracle.com>; Thu, 28 Jan 2021 07:13:25 GMT
+Received: from esa5.hgst.iphmx.com (esa5.hgst.iphmx.com [216.71.153.144])
+	by userp2040.oracle.com with ESMTP id 36bpgxhkg4-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256
 	verify=FAIL)
-	for <ocfs2-devel@oss.oracle.com>; Thu, 28 Jan 2021 07:13:12 +0000
-IronPort-SDR: NbkV/yWx08zFU2oX7LHToowxXR/XM9sOo99LVvngr4Czy8j3AzS9amIjviq8lDfKpENTqlrqAC
-	FdV++lO57N359UbPJ7RuiHZSkNNVS403oHW+tgI6z0a0ToCotfr4IMOcjy3rdjSjaxNhmkhvjm
-	mLrvQRPrXbmXcN1Ybze3l1b92mlfTT/mAswH+Jdjo1ROFn76ZcVgzmrufFowoLbhWdOH8Vy5O1
-	CcaRXoQbMOgvomlGg99VbYQJ4DhyUdkUn+uNjhDPFwo00UhnFCEV+FA8sAQu63/3usvPcs/lpS
-	mdY=
-X-IronPort-AV: E=Sophos;i="5.79,381,1602518400"; d="scan'208";a="268892440"
-Received: from uls-op-cesaip01.wdc.com (HELO uls-op-cesaep01.wdc.com)
-	([199.255.45.14])
-	by ob1.hgst.iphmx.com with ESMTP; 28 Jan 2021 15:13:11 +0800
-IronPort-SDR: 7Zht9O/M3+m8v5R6oj4mW19L96Vpm1qHd5H6kudPkros1KHufa+le1yniKIiFHwDbBVqz2zn7g
-	WAVQL1wT/xqqWdZVCwF5x43VyeollTWwJljaqDT0GxwSejpxO0Apn7kxHcgeo0mCfqkFy7QfX/
-	ZC6QRMiKPbbWRUqBGvhVD6UMR61qxL2GqBV7INNitDoG3x18on7p+wd7x3YTRkoYzwr9j1ZQ7L
-	mOqb5xFxC0CQuZYE14edE3sOzCNs9zij3lmgUUUadQis1TQ74az9ho4rYyr0DRe9D4xkrQ88Qv
-	sAeYFXGNPCT7Lj4TEb6aDv3n
+	for <ocfs2-devel@oss.oracle.com>; Thu, 28 Jan 2021 07:13:24 +0000
+IronPort-SDR: a/TlQwril2UZxK1b/P/stHK5ZxzCtB1xMB4DAK62GtjpAP4kuSVw1g6zXAccmJM4dMm0OsUBmE
+	Kwd1Qb1CFMVTXXTVg6izmdT6EGI6944QoM/FsUhghDWS9YnGRBmr98vxFlsTaDFEHXXvBtAZ+4
+	Bxf3/nqYJALD+TWPaQEiRVLXywknqKfvcqSbuKLmXf50+FRsz0R5Wrxcxlmwc9KamwJVo/1SuE
+	VhaIu4cxfEGUfOYyg1ff/jFyyKcpje+FklIzw6AbTf+tYS3InrkB1spKEdFPKbW7v73WgS0u+c
+	w4Y=
+X-IronPort-AV: E=Sophos;i="5.79,381,1602518400"; d="scan'208";a="158518175"
+Received: from uls-op-cesaip02.wdc.com (HELO uls-op-cesaep02.wdc.com)
+	([199.255.45.15])
+	by ob1.hgst.iphmx.com with ESMTP; 28 Jan 2021 15:13:23 +0800
+IronPort-SDR: OhGjDlj8iyhfC8JQOUngYw5ODcf/NI3cYbf+gh4Sytc1Oew4etbGZivqcqhh5GOcxzmqdb4qKO
+	oO5dBd0VhUFDMFFrpsu+UcHo4GP+VEhf/xgcv+6n2FI1rhc+LePGm9oCrbOxoToznUfIhqhYhU
+	O7azSeEnO2RybqQ8dt/VxotqlCn/jAnyTgBiByjTSWVy4vymD+Y/w8aetRyLAGWmfvw6QwPyle
+	bxZGmw+UiBXQZ+wn53xqZy0PQqgU3ifFjXUELM7V1eW3T2jp38FjwwbnxqRO76Wh6RpACWTOWl
+	ZR9Fd24X0pL3o7elaP5Makn/
 Received: from uls-op-cesaip02.wdc.com ([10.248.3.37])
-	by uls-op-cesaep01.wdc.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384;
-	27 Jan 2021 22:57:31 -0800
-IronPort-SDR: B3g2yURiLlkRDJQjiSw5Axb2Dh2vXpaNrKE/QAQl3YC0d9KYF6ZY/2WEGrs8Ad4s6CTMSYijlI
-	As81DRh7fxTUcG6XscFZ0dEUGMxghLXCUSNbFTul1lhg8N84M173b0zoMSc59+C6RPGCZyVbXT
-	e5q9NGchuukS+6n/XolnPl9CgZkf3lpSTdPe2xwj7IsZkLY+Q3H2m4972b6vr4aHe8P7F7VrjW
-	YTjKY9EpCmYYdyolrCzI7bP6MpRPHgjkbRdfoyYEpwC7inxXY41c/i8ke9uNT4EC8+Q8lA/Kgh
-	6rI=
+	by uls-op-cesaep02.wdc.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384;
+	27 Jan 2021 22:55:41 -0800
+IronPort-SDR: S7K4kJLXzJBN+TtdhPMN6TP/Dffs+zSa3G/de5+S1/PIJxe5GMDYhILg7ObwZaeQtAx8NJxvkl
+	nIc5LC+mPpv7TI+pptGOuvqvgXc2tzfVFCEyc5+LFgl+ipYQILMS5NCsDr+0Wgl54XSWETlfzh
+	gHkg4ZggWJkUuTGFtq5ayNdqurKZ4tOlkNjJtnTH4tbAn7NSWqg+Ok++T//Bdn23FoUZxk+NbJ
+	AQUU7LKb9NmxAxDMj2VCc1ROkgf8sOKgTR+MW0zxXzuua4VhN6N1CvrlPe6fa6RhDqhXPf7MuT
+	aTA=
 WDCIronportException: Internal
 Received: from vm.labspan.wdc.com (HELO vm.sc.wdc.com) ([10.6.137.102])
-	by uls-op-cesaip02.wdc.com with ESMTP; 27 Jan 2021 23:13:11 -0800
+	by uls-op-cesaip02.wdc.com with ESMTP; 27 Jan 2021 23:13:23 -0800
 From: Chaitanya Kulkarni <chaitanya.kulkarni@wdc.com>
 To: linux-xfs@vger.kernel.org, linux-fsdevel@vger.kernel.org,
         dm-devel@redhat.com, linux-block@vger.kernel.org,
@@ -91,15 +91,15 @@ To: linux-xfs@vger.kernel.org, linux-fsdevel@vger.kernel.org,
         linux-fscrypt@vger.kernel.org, jfs-discussion@lists.sourceforge.net,
         linux-nilfs@vger.kernel.org, ocfs2-devel@oss.oracle.com,
         linux-pm@vger.kernel.org, linux-mm@kvack.org
-Date: Wed, 27 Jan 2021 23:11:09 -0800
-Message-Id: <20210128071133.60335-11-chaitanya.kulkarni@wdc.com>
+Date: Wed, 27 Jan 2021 23:11:10 -0800
+Message-Id: <20210128071133.60335-12-chaitanya.kulkarni@wdc.com>
 X-Mailer: git-send-email 2.22.1
 In-Reply-To: <20210128071133.60335-1-chaitanya.kulkarni@wdc.com>
 References: <20210128071133.60335-1-chaitanya.kulkarni@wdc.com>
 MIME-Version: 1.0
 X-PDR: PASS
-X-Source-IP: 68.232.141.245
-X-ServerName: esa1.hgst.iphmx.com
+X-Source-IP: 216.71.153.144
+X-ServerName: esa5.hgst.iphmx.com
 X-Proofpoint-SPF-Result: pass
 X-Proofpoint-SPF-Record: v=spf1 ptr ip4:35.160.12.30 ip4:52.34.195.46
 	ip4:35.162.181.10
@@ -113,11 +113,11 @@ X-Proofpoint-SPF-Record: v=spf1 ptr ip4:35.160.12.30 ip4:52.34.195.46
 	include:servers.mcsv.net include:spf.protection.outlook.com -all
 X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9877
 	signatures=668683
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 phishscore=0
-	clxscore=226
-	mlxlogscore=851 spamscore=0 bulkscore=0 mlxscore=0 adultscore=0
-	lowpriorityscore=0 malwarescore=0 impostorscore=0 suspectscore=0
-	priorityscore=78 classifier=spam adjust=0 reason=mlx scancount=1
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 bulkscore=0
+	adultscore=0 mlxscore=0
+	priorityscore=160 phishscore=0 spamscore=0 clxscore=233 mlxlogscore=694
+	impostorscore=0 suspectscore=0 malwarescore=0 lowpriorityscore=0
+	classifier=spam adjust=0 reason=mlx scancount=1
 	engine=8.12.0-2009150000 definitions=main-2101280034
 X-Spam: Clean
 X-Mailman-Approved-At: Wed, 27 Jan 2021 23:27:08 -0800
@@ -133,8 +133,8 @@ Cc: shaggy@kernel.org, sergey.senozhatsky.work@gmail.com, snitzer@redhat.com,
         rjw@rjwysocki.net, philipp.reisner@linbit.com, minchan@kernel.org,
         tj@kernel.org, lars.ellenberg@linbit.com, jth@kernel.org,
         asml.silence@gmail.com, roger.pau@citrix.com
-Subject: [Ocfs2-devel] [RFC PATCH 10/34] dm-zoned: use bio_new in
-	dmz_rdwr_block
+Subject: [Ocfs2-devel] [RFC PATCH 11/34] nvmet: use bio_new in
+	nvmet_bdev_execute_rw
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.9
 Precedence: list
@@ -156,37 +156,51 @@ X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 phishscore=0 susp
  bulkscore=0 classifier=spam adjust=0 reason=mlx scancount=1
  engine=8.12.0-2009150000 definitions=main-2101280035
 X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9877 signatures=668683
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 malwarescore=0 adultscore=0
- lowpriorityscore=0 mlxlogscore=999 clxscore=1015 phishscore=0 bulkscore=0
- spamscore=0 priorityscore=1501 mlxscore=0 suspectscore=0 impostorscore=0
- classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2009150000
- definitions=main-2101280035
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 adultscore=0 impostorscore=0
+ phishscore=0 bulkscore=0 priorityscore=1501 mlxlogscore=999
+ lowpriorityscore=0 spamscore=0 mlxscore=0 suspectscore=0 malwarescore=0
+ clxscore=1015 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2009150000 definitions=main-2101280035
 
 Signed-off-by: Chaitanya Kulkarni <chaitanya.kulkarni@wdc.com>
 ---
- drivers/md/dm-zoned-metadata.c | 6 ++----
- 1 file changed, 2 insertions(+), 4 deletions(-)
+ drivers/nvme/target/io-cmd-bdev.c | 9 +++------
+ 1 file changed, 3 insertions(+), 6 deletions(-)
 
-diff --git a/drivers/md/dm-zoned-metadata.c b/drivers/md/dm-zoned-metadata.c
-index fa0ee732c6e9..5b5ed5fce2ed 100644
---- a/drivers/md/dm-zoned-metadata.c
-+++ b/drivers/md/dm-zoned-metadata.c
-@@ -755,13 +755,11 @@ static int dmz_rdwr_block(struct dmz_dev *dev, int op,
- 	if (dmz_bdev_is_dying(dev))
- 		return -EIO;
+diff --git a/drivers/nvme/target/io-cmd-bdev.c b/drivers/nvme/target/io-cmd-bdev.c
+index bf6e0ac9ad28..f5fd93a796a6 100644
+--- a/drivers/nvme/target/io-cmd-bdev.c
++++ b/drivers/nvme/target/io-cmd-bdev.c
+@@ -225,6 +225,7 @@ static int nvmet_bdev_alloc_bip(struct nvmet_req *req, struct bio *bio,
  
--	bio = bio_alloc(GFP_NOIO, 1);
-+	bio = bio_new(dev->bdev, dmz_blk2sect(block), op,
-+		      REQ_SYNC | REQ_META | REQ_PRIO, 1, GFP_NOIO);
- 	if (!bio)
- 		return -ENOMEM;
+ static void nvmet_bdev_execute_rw(struct nvmet_req *req)
+ {
++	struct block_device *bdev = req->ns->bdev;
+ 	int sg_cnt = req->sg_cnt;
+ 	struct bio *bio;
+ 	struct scatterlist *sg;
+@@ -265,7 +266,7 @@ static void nvmet_bdev_execute_rw(struct nvmet_req *req)
+ 	} else {
+ 		bio = bio_alloc(GFP_KERNEL, min(sg_cnt, BIO_MAX_PAGES));
+ 	}
+-	bio_set_dev(bio, req->ns->bdev);
++	bio_set_dev(bio, bdev);
+ 	bio->bi_iter.bi_sector = sector;
+ 	bio->bi_private = req;
+ 	bio->bi_end_io = nvmet_bio_done;
+@@ -290,11 +291,7 @@ static void nvmet_bdev_execute_rw(struct nvmet_req *req)
+ 				}
+ 			}
  
--	bio->bi_iter.bi_sector = dmz_blk2sect(block);
--	bio_set_dev(bio, dev->bdev);
--	bio_set_op_attrs(bio, op, REQ_SYNC | REQ_META | REQ_PRIO);
- 	bio_add_page(bio, page, DMZ_BLOCK_SIZE, 0);
- 	ret = submit_bio_wait(bio);
- 	bio_put(bio);
+-			bio = bio_alloc(GFP_KERNEL, min(sg_cnt, BIO_MAX_PAGES));
+-			bio_set_dev(bio, req->ns->bdev);
+-			bio->bi_iter.bi_sector = sector;
+-			bio->bi_opf = op;
+-
++			bio = bio_new(bdev, sector, op, 0, sg_cnt, GFP_KERNEL);
+ 			bio_chain(bio, prev);
+ 			submit_bio(prev);
+ 		}
 -- 
 2.22.1
 
