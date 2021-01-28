@@ -6,65 +6,65 @@ X-Spam-Status: No, score=-14.0 required=3.0 tests=BAYES_00,INCLUDES_CR_TRAILER,
 	INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED
 	autolearn=ham autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C6E36C43381
-	for <ocfs2-devel@archiver.kernel.org>; Thu, 28 Jan 2021 17:24:22 +0000 (UTC)
-Received: from aserp2130.oracle.com (aserp2130.oracle.com [141.146.126.79])
+	by smtp.lore.kernel.org (Postfix) with ESMTP id F2843C433DB
+	for <ocfs2-devel@archiver.kernel.org>; Thu, 28 Jan 2021 17:26:22 +0000 (UTC)
+Received: from aserp2120.oracle.com (aserp2120.oracle.com [141.146.126.78])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by mail.kernel.org (Postfix) with ESMTPS id 6DD6361481
-	for <ocfs2-devel@archiver.kernel.org>; Thu, 28 Jan 2021 17:24:22 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.3.2 mail.kernel.org 6DD6361481
+	by mail.kernel.org (Postfix) with ESMTPS id 62F6861481
+	for <ocfs2-devel@archiver.kernel.org>; Thu, 28 Jan 2021 17:26:22 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.3.2 mail.kernel.org 62F6861481
 Authentication-Results: mail.kernel.org; dmarc=fail (p=none dis=none) header.from=kernel.org
 Authentication-Results: mail.kernel.org; spf=pass smtp.mailfrom=ocfs2-devel-bounces@oss.oracle.com
-Received: from pps.filterd (aserp2130.oracle.com [127.0.0.1])
-	by aserp2130.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 10SH9HtX036100;
-	Thu, 28 Jan 2021 17:24:21 GMT
-Received: from userp3020.oracle.com (userp3020.oracle.com [156.151.31.79])
-	by aserp2130.oracle.com with ESMTP id 3689aawg6h-1
+Received: from pps.filterd (aserp2120.oracle.com [127.0.0.1])
+	by aserp2120.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 10SHAlng184769;
+	Thu, 28 Jan 2021 17:26:21 GMT
+Received: from userp3030.oracle.com (userp3030.oracle.com [156.151.31.80])
+	by aserp2120.oracle.com with ESMTP id 368brkw8yv-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Thu, 28 Jan 2021 17:24:21 +0000
-Received: from pps.filterd (userp3020.oracle.com [127.0.0.1])
-	by userp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 10SH9rLA027636;
+	Thu, 28 Jan 2021 17:26:21 +0000
+Received: from pps.filterd (userp3030.oracle.com [127.0.0.1])
+	by userp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 10SHAG9C010988;
 	Thu, 28 Jan 2021 17:24:20 GMT
 Received: from oss.oracle.com (oss-old-reserved.oracle.com [137.254.22.2])
-	by userp3020.oracle.com with ESMTP id 368wjucmxf-1
+	by userp3030.oracle.com with ESMTP id 368wr0n6t8-1
 	(version=TLSv1 cipher=AES256-SHA bits=256 verify=NO);
 	Thu, 28 Jan 2021 17:24:20 +0000
 Received: from localhost ([127.0.0.1] helo=lb-oss.oracle.com)
 	by oss.oracle.com with esmtp (Exim 4.63)
 	(envelope-from <ocfs2-devel-bounces@oss.oracle.com>)
-	id 1l5B1n-0002oG-Aa; Thu, 28 Jan 2021 09:24:19 -0800
-Received: from aserp3020.oracle.com ([141.146.126.70])
+	id 1l5B1n-0002ol-Ct; Thu, 28 Jan 2021 09:24:19 -0800
+Received: from aserp3030.oracle.com ([141.146.126.71])
 	by oss.oracle.com with esmtp (Exim 4.63)
-	(envelope-from <djwong@kernel.org>) id 1l5AzT-0002il-Jv
-	for ocfs2-devel@oss.oracle.com; Thu, 28 Jan 2021 09:21:55 -0800
-Received: from pps.filterd (aserp3020.oracle.com [127.0.0.1])
-	by aserp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
-	10SHAeK6112522
-	for <ocfs2-devel@oss.oracle.com>; Thu, 28 Jan 2021 17:21:55 GMT
+	(envelope-from <djwong@kernel.org>) id 1l5B1Z-0002m6-Mw
+	for ocfs2-devel@oss.oracle.com; Thu, 28 Jan 2021 09:24:05 -0800
+Received: from pps.filterd (aserp3030.oracle.com [127.0.0.1])
+	by aserp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
+	10SHBKAa169689
+	for <ocfs2-devel@oss.oracle.com>; Thu, 28 Jan 2021 17:24:05 GMT
 Received: from userp2030.oracle.com (userp2030.oracle.com [156.151.31.89])
-	by aserp3020.oracle.com with ESMTP id 368wq205xy-1
+	by aserp3030.oracle.com with ESMTP id 368wcr06r3-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Thu, 28 Jan 2021 17:21:55 +0000
+	for <ocfs2-devel@oss.oracle.com>; Thu, 28 Jan 2021 17:24:05 +0000
 Received: from pps.filterd (userp2030.oracle.com [127.0.0.1])
 	by userp2030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
-	10SHEStc001376
-	for <ocfs2-devel@oss.oracle.com>; Thu, 28 Jan 2021 17:21:54 GMT
+	10SHEQVH001309
+	for <ocfs2-devel@oss.oracle.com>; Thu, 28 Jan 2021 17:24:04 GMT
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by userp2030.oracle.com with ESMTP id 36c0pa8ypk-1
+	by userp2030.oracle.com with ESMTP id 36c0pa90fh-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NO)
-	for <ocfs2-devel@oss.oracle.com>; Thu, 28 Jan 2021 17:21:54 +0000
-Received: by mail.kernel.org (Postfix) with ESMTPSA id 14BA564E14;
-	Thu, 28 Jan 2021 17:21:52 +0000 (UTC)
-Date: Thu, 28 Jan 2021 09:21:51 -0800
+	for <ocfs2-devel@oss.oracle.com>; Thu, 28 Jan 2021 17:24:04 +0000
+Received: by mail.kernel.org (Postfix) with ESMTPSA id B21F464DF9;
+	Thu, 28 Jan 2021 17:24:02 +0000 (UTC)
+Date: Thu, 28 Jan 2021 09:24:02 -0800
 From: "Darrick J. Wong" <djwong@kernel.org>
 To: Chaitanya Kulkarni <chaitanya.kulkarni@wdc.com>
-Message-ID: <20210128172151.GN7698@magnolia>
+Message-ID: <20210128172402.GO7698@magnolia>
 References: <20210128071133.60335-1-chaitanya.kulkarni@wdc.com>
-	<20210128071133.60335-28-chaitanya.kulkarni@wdc.com>
+	<20210128071133.60335-19-chaitanya.kulkarni@wdc.com>
 MIME-Version: 1.0
 Content-Disposition: inline
-In-Reply-To: <20210128071133.60335-28-chaitanya.kulkarni@wdc.com>
+In-Reply-To: <20210128071133.60335-19-chaitanya.kulkarni@wdc.com>
 X-PDR: PASS
 X-Source-IP: 198.145.29.99
 X-ServerName: mail.kernel.org
@@ -98,8 +98,8 @@ Cc: shaggy@kernel.org, jfs-discussion@lists.sourceforge.net,
         minchan@kernel.org, linux-fsdevel@vger.kernel.org,
         lars.ellenberg@linbit.com, jth@kernel.org, asml.silence@gmail.com,
         ocfs2-devel@oss.oracle.com, roger.pau@citrix.com
-Subject: Re: [Ocfs2-devel] [RFC PATCH 27/34] xfs: use bio_new in
-	xfs_buf_ioapply_map
+Subject: Re: [Ocfs2-devel] [RFC PATCH 18/34] iomap: use bio_new in
+	iomap_dio_bio_actor
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.9
 Precedence: list
@@ -116,47 +116,49 @@ Content-Transfer-Encoding: 7bit
 Sender: ocfs2-devel-bounces@oss.oracle.com
 Errors-To: ocfs2-devel-bounces@oss.oracle.com
 X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9878 signatures=668683
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 phishscore=0 suspectscore=0
- adultscore=0 mlxscore=0 malwarescore=0 spamscore=0 mlxlogscore=999
- bulkscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2009150000 definitions=main-2101280083
-X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9878 signatures=668683
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 malwarescore=0 adultscore=0
- lowpriorityscore=0 mlxlogscore=999 clxscore=1015 phishscore=0 bulkscore=0
- spamscore=0 priorityscore=1501 mlxscore=0 suspectscore=0 impostorscore=0
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 mlxscore=0 spamscore=0 phishscore=0
+ adultscore=0 mlxlogscore=999 malwarescore=0 suspectscore=0 bulkscore=0
  classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2009150000
  definitions=main-2101280083
+X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9878 signatures=668683
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 adultscore=0 impostorscore=0
+ phishscore=0 bulkscore=0 priorityscore=1501 mlxlogscore=999
+ lowpriorityscore=0 spamscore=0 mlxscore=0 suspectscore=0 malwarescore=0
+ clxscore=1015 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2009150000 definitions=main-2101280083
 
-On Wed, Jan 27, 2021 at 11:11:26PM -0800, Chaitanya Kulkarni wrote:
+On Wed, Jan 27, 2021 at 11:11:17PM -0800, Chaitanya Kulkarni wrote:
 > Signed-off-by: Chaitanya Kulkarni <chaitanya.kulkarni@wdc.com>
+> ---
+>  fs/iomap/direct-io.c | 5 ++---
+>  1 file changed, 2 insertions(+), 3 deletions(-)
+> 
+> diff --git a/fs/iomap/direct-io.c b/fs/iomap/direct-io.c
+> index f6c557a1bd25..0737192f7e5c 100644
+> --- a/fs/iomap/direct-io.c
+> +++ b/fs/iomap/direct-io.c
+> @@ -267,9 +267,8 @@ iomap_dio_bio_actor(struct inode *inode, loff_t pos, loff_t length,
+>  			goto out;
+>  		}
+>  
+> -		bio = bio_alloc(GFP_KERNEL, nr_pages);
+> -		bio_set_dev(bio, iomap->bdev);
+> -		bio->bi_iter.bi_sector = iomap_sector(iomap, pos);
+> +		bio = bio_new(iomap->bdev, iomap_sector(iomap, pos), 0, 0,
+> +			      nr_pages, GFP_KERNEL);
 
-Reviewed-by: Darrick J. Wong <djwong@kernel.org>
+op == 0?  It seems a little odd to me that we'd set the field to zero
+and then construct bi_opf later.
+
+It also strikes me as a little strange that bi_opf is combined from the
+third and fourth parameters, but maybe some day you'll want to do some
+parameter verification on debug kernels or something...?
 
 --D
 
-> ---
->  fs/xfs/xfs_buf.c | 6 ++----
->  1 file changed, 2 insertions(+), 4 deletions(-)
-> 
-> diff --git a/fs/xfs/xfs_buf.c b/fs/xfs/xfs_buf.c
-> index f8400bbd6473..3ff6235e4f94 100644
-> --- a/fs/xfs/xfs_buf.c
-> +++ b/fs/xfs/xfs_buf.c
-> @@ -1507,12 +1507,10 @@ xfs_buf_ioapply_map(
->  	atomic_inc(&bp->b_io_remaining);
->  	nr_pages = min(total_nr_pages, BIO_MAX_PAGES);
->  
-> -	bio = bio_alloc(GFP_NOIO, nr_pages);
-> -	bio_set_dev(bio, bp->b_target->bt_bdev);
-> -	bio->bi_iter.bi_sector = sector;
-> +	bio = bio_new(bp->b_target->bt_bdev, sector, op, 0, nr_pages,
-> +		      GFP_NOIO);
->  	bio->bi_end_io = xfs_buf_bio_end_io;
->  	bio->bi_private = bp;
-> -	bio->bi_opf = op;
->  
->  	for (; size && nr_pages; nr_pages--, page_index++) {
->  		int	rbytes, nbytes = PAGE_SIZE - offset;
+>  		bio->bi_write_hint = dio->iocb->ki_hint;
+>  		bio->bi_ioprio = dio->iocb->ki_ioprio;
+>  		bio->bi_private = dio;
 > -- 
 > 2.22.1
 > 
