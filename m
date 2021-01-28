@@ -2,105 +2,111 @@ Return-Path: <SRS0=lfe4=G7=oss.oracle.com=ocfs2-devel-bounces@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=0.2 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,HTML_MESSAGE,MAILING_LIST_MULTI,
-	PDS_BAD_THREAD_QP_64,SPF_HELO_NONE,SPF_PASS autolearn=no autolearn_force=no
-	version=3.4.0
+X-Spam-Status: No, score=-13.7 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=unavailable
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 98D25C433E9
-	for <ocfs2-devel@archiver.kernel.org>; Thu, 28 Jan 2021 16:25:12 +0000 (UTC)
-Received: from userp2130.oracle.com (userp2130.oracle.com [156.151.31.86])
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 18791C43381
+	for <ocfs2-devel@archiver.kernel.org>; Thu, 28 Jan 2021 16:25:13 +0000 (UTC)
+Received: from aserp2130.oracle.com (aserp2130.oracle.com [141.146.126.79])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by mail.kernel.org (Postfix) with ESMTPS id 1779364E0B
-	for <ocfs2-devel@archiver.kernel.org>; Thu, 28 Jan 2021 16:25:11 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.3.2 mail.kernel.org 1779364E0B
+	by mail.kernel.org (Postfix) with ESMTPS id 8B7B264DF2
+	for <ocfs2-devel@archiver.kernel.org>; Thu, 28 Jan 2021 16:25:12 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.3.2 mail.kernel.org 8B7B264DF2
 Authentication-Results: mail.kernel.org; dmarc=fail (p=none dis=none) header.from=wdc.com
 Authentication-Results: mail.kernel.org; spf=pass smtp.mailfrom=ocfs2-devel-bounces@oss.oracle.com
-Received: from pps.filterd (userp2130.oracle.com [127.0.0.1])
-	by userp2130.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 10SG9veV019191;
+Received: from pps.filterd (aserp2130.oracle.com [127.0.0.1])
+	by aserp2130.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 10SG9FQd109753;
 	Thu, 28 Jan 2021 16:25:11 GMT
-Received: from userp3030.oracle.com (userp3030.oracle.com [156.151.31.80])
-	by userp2130.oracle.com with ESMTP id 368b7r504g-1
+Received: from userp3020.oracle.com (userp3020.oracle.com [156.151.31.79])
+	by aserp2130.oracle.com with ESMTP id 3689aaw55b-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Thu, 28 Jan 2021 16:25:10 +0000
-Received: from pps.filterd (userp3030.oracle.com [127.0.0.1])
-	by userp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 10SGAHt0132899;
+	Thu, 28 Jan 2021 16:25:11 +0000
+Received: from pps.filterd (userp3020.oracle.com [127.0.0.1])
+	by userp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 10SG9rGo151962;
 	Thu, 28 Jan 2021 16:25:10 GMT
 Received: from oss.oracle.com (oss-old-reserved.oracle.com [137.254.22.2])
-	by userp3030.oracle.com with ESMTP id 368wr0j8uq-1
+	by userp3020.oracle.com with ESMTP id 368wju9ruc-1
 	(version=TLSv1 cipher=AES256-SHA bits=256 verify=NO);
-	Thu, 28 Jan 2021 16:25:10 +0000
+	Thu, 28 Jan 2021 16:25:09 +0000
 Received: from localhost ([127.0.0.1] helo=lb-oss.oracle.com)
 	by oss.oracle.com with esmtp (Exim 4.63)
 	(envelope-from <ocfs2-devel-bounces@oss.oracle.com>)
-	id 1l5A6X-00080N-18; Thu, 28 Jan 2021 08:25:09 -0800
-Received: from aserp3030.oracle.com ([141.146.126.71])
+	id 1l5A6W-0007zN-Qs; Thu, 28 Jan 2021 08:25:08 -0800
+Received: from userp3020.oracle.com ([156.151.31.79])
 	by oss.oracle.com with esmtp (Exim 4.63)
-	(envelope-from <prvs=655a99766=Chaitanya.Kulkarni@wdc.com>)
-	id 1l52lD-0007HQ-Gb
-	for ocfs2-devel@oss.oracle.com; Thu, 28 Jan 2021 00:34:39 -0800
-Received: from pps.filterd (aserp3030.oracle.com [127.0.0.1])
-	by aserp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
-	10S8P9F7166128
-	for <ocfs2-devel@oss.oracle.com>; Thu, 28 Jan 2021 08:34:39 GMT
-Received: from userp2040.oracle.com (userp2040.oracle.com [156.151.31.90])
-	by aserp3030.oracle.com with ESMTP id 368wcqc734-1
+	(envelope-from <prvs=6551138a8=Damien.LeMoal@wdc.com>)
+	id 1l51n4-0003xM-36
+	for ocfs2-devel@oss.oracle.com; Wed, 27 Jan 2021 23:32:30 -0800
+Received: from pps.filterd (userp3020.oracle.com [127.0.0.1])
+	by userp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
+	10S7Pp5Y103740
+	for <ocfs2-devel@oss.oracle.com>; Thu, 28 Jan 2021 07:32:29 GMT
+Received: from userp2030.oracle.com (userp2030.oracle.com [156.151.31.89])
+	by userp3020.oracle.com with ESMTP id 368wjtnayw-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Thu, 28 Jan 2021 08:34:39 +0000
-Received: from pps.filterd (userp2040.oracle.com [127.0.0.1])
-	by userp2040.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
-	10S8YPch018271
-	for <ocfs2-devel@oss.oracle.com>; Thu, 28 Jan 2021 08:34:38 GMT
-Received: from esa5.hgst.iphmx.com (esa5.hgst.iphmx.com [216.71.153.144])
-	by userp2040.oracle.com with ESMTP id 36bs0mrnpw-1
+	for <ocfs2-devel@oss.oracle.com>; Thu, 28 Jan 2021 07:32:29 +0000
+Received: from pps.filterd (userp2030.oracle.com [127.0.0.1])
+	by userp2030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
+	10S7OL2A012213
+	for <ocfs2-devel@oss.oracle.com>; Thu, 28 Jan 2021 07:32:29 GMT
+Received: from esa1.hgst.iphmx.com (esa1.hgst.iphmx.com [68.232.141.245])
+	by userp2030.oracle.com with ESMTP id 36bqd393r6-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256
 	verify=FAIL)
-	for <ocfs2-devel@oss.oracle.com>; Thu, 28 Jan 2021 08:34:37 +0000
-IronPort-SDR: QuIdPdzLWuhuVH3zjdD3FSgUzpNWdsPRMeYPxHo/0XlU4gVdQh2z/JddOGT9zQzwJLAD3iEAw2
-	XibjOAFwAmoyB+Xzg6Na+1VuTsd1VJYRN6tTumqolKHZ0kQ3maRvNlomfA4o+BH7wbVVPYgnef
-	/7RTlzymEiHhNfp8L2thUSxmBr3rzg7BfJnLPhYBxqUqF1PTFSHFODMyUc2VJA+ywkm3jXO/F+
-	qe+y7iCxi9ett70HempLYAo0heBe3/D90+erIC6XtBPzNpmXzFaZJUHMHM4enMLUtK8tpzwwZ4
-	LkY=
-X-IronPort-AV: E=Sophos;i="5.79,381,1602518400"; 
-	d="scan'208,217";a="158525790"
-Received: from mail-dm6nam10lp2104.outbound.protection.outlook.com (HELO
-	NAM10-DM6-obe.outbound.protection.outlook.com) ([104.47.58.104])
-	by ob1.hgst.iphmx.com with ESMTP; 28 Jan 2021 16:34:32 +0800
+	for <ocfs2-devel@oss.oracle.com>; Thu, 28 Jan 2021 07:32:28 +0000
+IronPort-SDR: 5meZAAXbPsZyMOd9RQOAURE7ue4N8I0GylPazNiN4F+IkU2Nf7CrEdUTmPOyFzJi7zfeggOiiu
+	Gt5Od7xhy+yHk7m31eLzfrafTPyIE2+841Tdhjt9RuKfy1UwsAhsaJEc7TrPpyeonTG5OoNRbW
+	jYwfp8qY1//btPd2uEMJY+wlNQ6hUZhFAaCgz+oVCXV8JG1R++3gaALgNG32rpHLVCAPpUvSm5
+	ZnyqhIjEF7MhfKsrin8SIf9C2tCW+9kugysfCU7OmxJSUh1jT50kH6wLdq3lVUWVW9JSAnaEIT
+	sQI=
+X-IronPort-AV: E=Sophos;i="5.79,381,1602518400"; d="scan'208";a="268893463"
+Received: from mail-sn1nam02lp2053.outbound.protection.outlook.com (HELO
+	NAM02-SN1-obe.outbound.protection.outlook.com) ([104.47.36.53])
+	by ob1.hgst.iphmx.com with ESMTP; 28 Jan 2021 15:27:23 +0800
 ARC-Seal: i=1; a=rsa-sha256; s=arcselector9901; d=microsoft.com; cv=none;
-	b=bCo5/SJvFmZclaIxrbairwYR7Fx5xNedUqZGRii6zx22h2oLIJmi3QvcZffTIOgqrtQynH/dr9SdNeW+tc9ty+Agd1KJ9SWx1zEvhXN0NY2JEPTEXyOaUi0EIIdHyaqZyYivEBiv1oauQcKjCajzkIpJnQtW60KKkiBmuTjn2NnFpJBMY7ukdT1AbdV9bz65OwW51BHjMm8WgQUuJ32RQa35TbflWanKBnYqt5FvmjALQTmEADnUHbtzx79nsv3rHg7BkOmmiBcrFasxQiVF9BKIADia5pCMKnLxwRM9Y/aXacA8XFOLwFMv7MYJ1a4MD/0nheNJaxC4FdlduhuWOQ==
+	b=B83E+AQw1n8nLaPpws6ZVk2Dvv0JowLzEH6tW4QBIZHQO5bOyKoRkl9zce6LAfAcYeKNBnUqMBuqWKPapazajsM6mugFl46pUPnH27w2MyNgzfB2U64tU7/YQtksU04S+GWbxUwv7ua6jeuaCXw0Q2a/INcuYW1pZmbpSmGcHX0jgHrsfKIziwmv/KoIW40wdsUPJfmkSsIjxMNkqU8mSH3CYfS72OI5u+QFvQXzGlRrot81kEsbS6zPF3R+md3jI0xbLOthW81i6HkUhnZFc7n6i76TjivEJep1dTrNSJmAcZacixJJoHL5R1ayC6mgKhmUp43MFeS2JhA8RHsWLw==
 ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com; 
 	s=arcselector9901;
 	h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
-	bh=3mgDQNQRRXtFVwM4GmqX8oF5/l8qUac6jUbD4sbQilg=;
-	b=d0FZfreeg0FkB5ZHh9gtWoN4Dx3wAsEXactKWZJjMYUCweJNOjgZuR5ITjunYKdfNVmW48LpWw8IXr8AFNWkKbf//o9JPZT3PeIJys6cC/tSOrgGdpgXY7Po2oPAykPq7RGutU+RfMlLQKpW6JLecwS2SONCHRV2pJbQNXCJhMlhtw2oNBSvRnKBBOO3fkp3HNwFB/UdeQObf7IHsTJjHplRHZkuW7JyPT7ZY+C6iDTTLCBdbb8Ng+atW2z9zjYcn9xnVbIs2Tn/K9z80JDbGG9BUJtXfWIWi6j/7UI42VAwSO5YZ6XwDyRLoxwMtqUTmUS4tmc3IBzRVsvKeSy4BQ==
+	bh=7dHgs/1VLBXJ5Fid/0F/6cbHkJ0A+oW1xrqX9+A0GgQ=;
+	b=WpVsW1S/kKhHgGTEzveH/WBQWziddYzWdBCW+5peeK2CMYzuM35ikhiL93qQisaU2sh5XUUpBGRi/TFqqx3OmGIe24yyfIzJAQbSDPUcgJl828BlV9USdpsDOoEeDZtHgttMYKmGI1gJsSt+V6kxWrCrBRnN8lSCWDpfiroaO+QmE16osB2eevjAkuP0qNTfCZo6bo3ZQRwiDwhweVFwoM8Ww9mA8MT5yPoo5QtVqHYpRPAG0NbaJNanr+SI0Duz8hOTcNB65u4JLwKXGhuJHAalGmP1VOd5oTVjmseyILk+5VEQB5HpwincSvcGZkpYEkN24oBog5tfK+cn6HqdlA==
 ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
 	smtp.mailfrom=wdc.com; dmarc=pass action=none header.from=wdc.com;
 	dkim=pass header.d=wdc.com; arc=none
-Received: from DM6PR04MB4972.namprd04.prod.outlook.com (2603:10b6:5:fc::10) by
-	DM5PR04MB1114.namprd04.prod.outlook.com (2603:10b6:3:9f::23) with
-	Microsoft SMTP Server (version=TLS1_2,
-	cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id
-	15.20.3805.16; Thu, 28 Jan 2021 08:34:29 +0000
-Received: from DM6PR04MB4972.namprd04.prod.outlook.com
-	([fe80::9a1:f2ba:2679:8188]) by DM6PR04MB4972.namprd04.prod.outlook.com
-	([fe80::9a1:f2ba:2679:8188%7]) with mapi id 15.20.3784.017;
-	Thu, 28 Jan 2021 08:34:28 +0000
-From: Chaitanya Kulkarni <Chaitanya.Kulkarni@wdc.com>
-To: Damien Le Moal <Damien.LeMoal@wdc.com>,
-        "linux-xfs@vger.kernel.org"
-	<linux-xfs@vger.kernel.org>,
-        "linux-fsdevel@vger.kernel.org"
-	<linux-fsdevel@vger.kernel.org>,
+Received: from BL0PR04MB6514.namprd04.prod.outlook.com (2603:10b6:208:1ca::23)
+	by BL0PR04MB4852.namprd04.prod.outlook.com (2603:10b6:208:59::33)
+	with Microsoft SMTP Server (version=TLS1_2,
+	cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.3784.15;
+	Thu, 28 Jan 2021 07:27:21 +0000
+Received: from BL0PR04MB6514.namprd04.prod.outlook.com
+	([fe80::b880:19d5:c7fe:329d]) by
+	BL0PR04MB6514.namprd04.prod.outlook.com
+	([fe80::b880:19d5:c7fe:329d%7]) with mapi id 15.20.3784.017;
+	Thu, 28 Jan 2021 07:27:21 +0000
+From: Damien Le Moal <Damien.LeMoal@wdc.com>
+To: Chaitanya Kulkarni <Chaitanya.Kulkarni@wdc.com>,
+        "linux-xfs@vger.kernel.org" <linux-xfs@vger.kernel.org>,
+        "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>,
         "dm-devel@redhat.com" <dm-devel@redhat.com>,
-        "linux-block@vger.kernel.org" <linux-block@vger.kernel.org>,
-        "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
-        "drbd-dev@lists.linbit.com" <drbd-dev@lists.linbit.com>,
-        "xen-devel@lists.xenproject.org" <xen-devel@lists.xenproject.org>,
-        "linux-nvme@lists.infradead.org" <linux-nvme@lists.infradead.org>,
-        "linux-scsi@vger.kernel.org" <linux-scsi@vger.kernel.org>,
-        "target-devel@vger.kernel.org" <target-devel@vger.kernel.org>,
-        "linux-fscrypt@vger.kernel.org" <linux-fscrypt@vger.kernel.org>,
+        "linux-block@vger.kernel.org"
+	<linux-block@vger.kernel.org>,
+        "linux-kernel@vger.kernel.org"
+	<linux-kernel@vger.kernel.org>,
+        "drbd-dev@lists.linbit.com"
+	<drbd-dev@lists.linbit.com>,
+        "xen-devel@lists.xenproject.org"
+	<xen-devel@lists.xenproject.org>,
+        "linux-nvme@lists.infradead.org"
+	<linux-nvme@lists.infradead.org>,
+        "linux-scsi@vger.kernel.org"
+	<linux-scsi@vger.kernel.org>,
+        "target-devel@vger.kernel.org"
+	<target-devel@vger.kernel.org>,
+        "linux-fscrypt@vger.kernel.org"
+	<linux-fscrypt@vger.kernel.org>,
         "jfs-discussion@lists.sourceforge.net"
 	<jfs-discussion@lists.sourceforge.net>,
         "linux-nilfs@vger.kernel.org"
@@ -111,69 +117,68 @@ To: Damien Le Moal <Damien.LeMoal@wdc.com>,
 	<linux-pm@vger.kernel.org>,
         "linux-mm@kvack.org" <linux-mm@kvack.org>
 Thread-Topic: [RFC PATCH 02/34] block: introduce and use bio_new
-Thread-Index: AQHW9UTnc64/mAmIvESrRLPcPpiQkQ==
-Date: Thu, 28 Jan 2021 08:34:28 +0000
-Message-ID: <DM6PR04MB497297B2D0CB8DF8894EB65386BA9@DM6PR04MB4972.namprd04.prod.outlook.com>
+Thread-Index: AQHW9UTnP+XqlvwCeEC+5iodtWSeNA==
+Date: Thu, 28 Jan 2021 07:27:21 +0000
+Message-ID: <BL0PR04MB6514DBA7EDB8EC87A1C20871E7BA9@BL0PR04MB6514.namprd04.prod.outlook.com>
 References: <20210128071133.60335-1-chaitanya.kulkarni@wdc.com>
 	<20210128071133.60335-3-chaitanya.kulkarni@wdc.com>
 	<BL0PR04MB6514C554B4AC96866BC1B16FE7BA9@BL0PR04MB6514.namprd04.prod.outlook.com>
-	<BL0PR04MB6514DBA7EDB8EC87A1C20871E7BA9@BL0PR04MB6514.namprd04.prod.outlook.com>
 Accept-Language: en-US
 Content-Language: en-US
 X-MS-Has-Attach: 
 X-MS-TNEF-Correlator: 
 authentication-results: wdc.com; dkim=none (message not signed)
 	header.d=none;wdc.com; dmarc=none action=none header.from=wdc.com;
-x-originating-ip: [2600:8802:270c:4b00:19c6:a569:8749:44eb]
+x-originating-ip: [2400:2411:43c0:6000:47a:7b5a:7dfa:1b1e]
 x-ms-publictraffictype: Email
 x-ms-office365-filtering-ht: Tenant
-x-ms-office365-filtering-correlation-id: 978d65e2-3d4e-4c21-5cef-08d8c3678717
-x-ms-traffictypediagnostic: DM5PR04MB1114:
+x-ms-office365-filtering-correlation-id: 98283964-c91e-431c-9fb9-08d8c35e268c
+x-ms-traffictypediagnostic: BL0PR04MB4852:
 x-ms-exchange-transport-forked: True
-x-microsoft-antispam-prvs: <DM5PR04MB111464693CD23FB80E8B2D0A86BA9@DM5PR04MB1114.namprd04.prod.outlook.com>
+x-microsoft-antispam-prvs: <BL0PR04MB485290861AB8AD7380809BB0E7BA9@BL0PR04MB4852.namprd04.prod.outlook.com>
 wdcipoutbound: EOP-TRUE
-x-ms-oob-tlc-oobclassifiers: OLM:6108;
+x-ms-oob-tlc-oobclassifiers: OLM:8273;
 x-ms-exchange-senderadcheck: 1
 x-microsoft-antispam: BCL:0;
-x-microsoft-antispam-message-info: YtVNe3W2+2aLfLtfSA9OA8bKUS5EuzRymacqrPW/HhxrlcagogsgxPJ4goHocMHcrquFy4WsNzAC2zIwBruP7m7IthnSUmI5j3ISeaVxrWXx2BpOL73T4TMVJwjiKmju8hK7SQF+6OBKeWerelHJue84qxCD6Evq8BaVTHK2Pfn/zfawC6Qh5cnudJHua7/EdJc19wtAiBub96zdzBOP7SeckBw9Jl7fVZ+mg8flDzG4r0b04OYAsc+EgKacZG79AoYvz2T16vnB0SuzaVCN1fNoMTyCpgYbZfcb+25HhL6G9ZYVTGUzGOajGvpXL9dQa+tl5271dRn1SX2i591F783+g43zsz305DdvUPuXBOeLw7XLQKVwQqynq4uMJA4aPlVezpZUpys/AzSvT8//eLVyMBabHolU07RKciw3m7k75mUvrqE0xH7qxJF5SKiCIp1iwFsy7HF7y8DDM9zV6Rx1kWZz5AnEF2pBy5Ys/mDNV+4IrwglV3wakeM2PvEQk5LTMQgSo3XZAKL3QLtaSubQYBccSwho6T1wUjcwH/zzNTMI+9ViNSj4Hb17niq6
+x-microsoft-antispam-message-info: Hxj4fa4GkcBNNCunfMw7J9/b9iCM3fJznMuhOWkCQfvwJ0NrAIluFKg3+jXWfl1tLzPUJCh7B78dGsB53Gqk1Z2m7MWGTazT/q4pi5bAn+XOAilmmSdZvZ9sqjmQNXhEiTj4kt72t+S3/drX6amXX9FT+FK55adEN2vnuJcgUNqzT4TxQrX+LcNNGQZnWc1Tlo1+uTv04dXECuuh7Tu9LBWclBuE7jek77LbLzIUJdaPhgbGq6L/Pdx0JqnyYF+FEQPM8881yuui+kueEXVoqlzgBqK5vaKAqGJTqa0aBFevZqZNENtO6og/LDPr5d9E1UWTTP7/Da2oTdLL+35iaIOLalRmCHBRvUY6cEGhYxURyVSG+g4j64QtJxsEF71Nji99U+trtgurQXiLlnDTDGxf+MDnSLAb7nLKVPD/4Kml1pvdzPIUKukEtZD2GxrzabB/3418cwibWgs+12obfmiGrBfi16NV2BeC0p+Se0p+BmqHDY/WZr2ITJIpH7HBw28kQg7FWHu0BZbkFGLyZ1vhLckxE+yPI8cR0tXHr+nJtxvmCqxf3bBjfbGb7Q3/k4D1vq2cQ3zlnKpMfEgb0g==
 x-forefront-antispam-report: CIP:255.255.255.255; CTRY:; LANG:en; SCL:1; SRV:; IPV:NLI; SFV:NSPM;
-	H:DM6PR04MB4972.namprd04.prod.outlook.com; PTR:; CAT:NONE;
-	SFS:(4636009)(39860400002)(366004)(346002)(396003)(136003)(376002)(66446008)(64756008)(66556008)(66476007)(4744005)(6506007)(7696005)(66946007)(86362001)(53546011)(91956017)(71200400001)(52536014)(316002)(186003)(110136005)(54906003)(478600001)(5660300002)(76116006)(4326008)(7406005)(7366002)(8676002)(9686003)(33656002)(55016002)(8936002)(921005)(7416002)(2906002);
+	H:BL0PR04MB6514.namprd04.prod.outlook.com; PTR:; CAT:NONE;
+	SFS:(4636009)(396003)(346002)(39860400002)(366004)(136003)(376002)(186003)(66476007)(83380400001)(53546011)(5660300002)(66446008)(316002)(8676002)(71200400001)(66556008)(91956017)(86362001)(64756008)(6506007)(2906002)(66946007)(52536014)(7366002)(7406005)(9686003)(33656002)(110136005)(7416002)(55016002)(54906003)(4326008)(76116006)(7696005)(921005)(8936002)(478600001)(21314003);
 	DIR:OUT; SFP:1102; 
-x-ms-exchange-antispam-messagedata: =?us-ascii?Q?nSjkiLq41zm0esQ8DDVUjPRPdmiq+ZbmIlsnbqCwt1NtPaq0Vnw9tw0jJg2z?=
-	=?us-ascii?Q?sDiU1HrP5BNUewiGy7sSTKtzaRWQZmzLbmjIYOgi7G+hupKaF8E24yQG8xn1?=
-	=?us-ascii?Q?DFjccCYAV99t3fBvOrTsjES76919/Xf8YtTEL+6a9ZOC5QDvcE9Gvxd/xCaB?=
-	=?us-ascii?Q?449uYM+bvQf8Vc6BRr4MHFXnuCXpnus2QkiddynyW859h+oOKwzcRj6Tt3qI?=
-	=?us-ascii?Q?Zg2LJcr09KqEm0m4wWFf38Qa7m+JEeOjzaPq4TwXRwE99Ei/lHt/a4fCnhqH?=
-	=?us-ascii?Q?8UgH9ri9g7pOHQTt6LLLZGVJlJq/xcFZxrBjTlxF4jsA3nk1N5BjpA6qrKFL?=
-	=?us-ascii?Q?UH1o+UnIXgEKjLmHZEeQpqoBtq9ECmvnZJVxZ+/SZzS5bTVuEzIlGDm09zJk?=
-	=?us-ascii?Q?VEtFy/O2l3quwBuf77r7M9pXg6w9sOJlR2DPC/aNvaMIIXM6t2d/Jxi+9aSW?=
-	=?us-ascii?Q?i0uXTLcUWasH1YKRz8lzyvN9Mn2H6NUZk9eTsYWF5M0MKXo1141VOsq9rRrZ?=
-	=?us-ascii?Q?IiUQrevuIeKABqnVn5dchwrO9SIt3xOqUQro5zAhfUuJ4m4OUIDq/WOaSmL2?=
-	=?us-ascii?Q?nP1F0s+wGYZEy4w1yWNxUfHPJBsvTX9ViL1pjc/acoijwp6xxZjfmMgfOzWN?=
-	=?us-ascii?Q?GHNVTjeRb+RX9uwUaXx9i177L7BI/SO3I5VJDR/DrWjfmR+l3mhfiODJ4pQC?=
-	=?us-ascii?Q?XlB6yc/qxrmEn0bX522NFPhx+N4DzELTAfjANe3PDLm/n+aWbn32UKJLBXLt?=
-	=?us-ascii?Q?EL4q5dCcVULTCrY4hs68lfH5fcB/UGMGRF/bDzUtmuKV66HUPNAJjKYwpvXf?=
-	=?us-ascii?Q?zpIaVz5LqP27oMNzNIggx4lbjBN0r1179K+qQgHRclk/Ttt/qp30A00PRAW0?=
-	=?us-ascii?Q?ycXqqUT6drdcQGugzQKIgPw+qWPMEJrgjFW9Sg7svB+RX+nfmDQiPerIOfw5?=
-	=?us-ascii?Q?/sFIiJJW56LxNwun204iaP5BaSIG9L13YCkMqxR6P83M074jeVhA13fahQ1v?=
-	=?us-ascii?Q?xeVmeBlVEGZzup2Uj/AFOjuupztWNoZITAUDhRbuJ/EwGqXzxeGRYtyfqPfh?=
-	=?us-ascii?Q?+Vc+amKk2etB3zRKzD3W3vzUVwIvorFhC/vkg6MB9LkptasEmLn4eahh5iJD?=
-	=?us-ascii?Q?Gx/VTA3cjut4iiwSlAUhlMnxsnxfIvMpbg=3D=3D?=
+x-ms-exchange-antispam-messagedata: =?us-ascii?Q?sgomRkWS3uJS/HM3uKXHylAhoSZM+lVQWdt2dHx9bjA8NQXvXFM6Dfv8MW1A?=
+	=?us-ascii?Q?iCsEXvQot8m+wWe1prFL3N6W4X/zd4E4zBQMqtLQEJA5H+WTWLCNwdvng6U5?=
+	=?us-ascii?Q?SkD6CC9MBeyZGtVMnjn2C+bStrwfe/6T4Mh4yY7H804uejWxG1MgZhnXTjqp?=
+	=?us-ascii?Q?f36HcMhJa8fqBRYTB616pNnmAuoeQyPrXZYwSIUFh1bkSg5h3DWdvFdnge8/?=
+	=?us-ascii?Q?O9MCM+eECuYQXcaVSUcc0tBlY9mVO1xLxaHa+pFR3r6GyIUZVhAFKPD8DMJf?=
+	=?us-ascii?Q?WqsPp+KkYw2miQ2VWu7CKnb5XE/WZZK8NjFYrO+UvBi0zDKD7ZerGy3ioMo0?=
+	=?us-ascii?Q?d5CGojo5bVlNDYR39iusEWUd7T18JfU4UoWDmqvKw9astFDt7GxuiNAHMcX0?=
+	=?us-ascii?Q?yyVIMk2hKHQYRROUDYWJXFKFYeCK5lmmjxBt04cM+t3AhLH2tTJ8jpap65/Y?=
+	=?us-ascii?Q?8A/ijV/T2IbajTQmqxd38MsAkL8lLy0sB7zTUHpkXikXfHmE6OhpRLxglctK?=
+	=?us-ascii?Q?/aViM41m44269sQxLJudPSQx/yzA7+nPRic11ihTWQ2xQYSelMI6oY07tQjC?=
+	=?us-ascii?Q?hVnAD1Qaet3As9B+ynly4BGIECf/ZcPbSzc+Oocke/rsdoUZIRCx9A5o9NPg?=
+	=?us-ascii?Q?7g0qYPFGa112F08uWlKr8jI4vxPqF3DcPOVvoayIcVqK9XZoqxF6lkGygG5v?=
+	=?us-ascii?Q?YJDU5PuEe/Bm7FrQH0EsVCPz9aYpSofnlInNuhSpB7hk8gf+GLuZQe8ZAkA7?=
+	=?us-ascii?Q?lLd1unSvvMeP5ssLoUJow6t03g2CrTllNyQmec0sH/jgAMA2cCCp8r8xmKu0?=
+	=?us-ascii?Q?Gg+Dly15s3nODQmsmpsV0f+GypiBJPNVpzMiB5Rnrtqy507XVwyx/YdLVrRR?=
+	=?us-ascii?Q?7DSFyDH/Gxm1k2D/VzvvIJvHY1LnFzctkrr2UgpR99aD9dEGB6hzTFgdaIQZ?=
+	=?us-ascii?Q?nCCmPvdeJum19k9qpYis5Ika8c3StyujyDXHLcdbNXrwFYeKpNzciRcoJEUu?=
+	=?us-ascii?Q?eP4u0Tzg0LWQzv92vuaJ8NPyfWg9Lh2zkr0bUa/54WZ0wuoaMHYXuXRE9cLO?=
+	=?us-ascii?Q?raOcqCp92WeqiaDleK2EmL+MyhJdBYKk0193myzV8+3E9alBggQTIB9lKXUE?=
+	=?us-ascii?Q?7KMBpTg7b29BlR2LscuWM6WzgIjSyYfNWQ=3D=3D?=
 MIME-Version: 1.0
 X-OriginatorOrg: wdc.com
 X-MS-Exchange-CrossTenant-AuthAs: Internal
-X-MS-Exchange-CrossTenant-AuthSource: DM6PR04MB4972.namprd04.prod.outlook.com
-X-MS-Exchange-CrossTenant-Network-Message-Id: 978d65e2-3d4e-4c21-5cef-08d8c3678717
-X-MS-Exchange-CrossTenant-originalarrivaltime: 28 Jan 2021 08:34:28.7664 (UTC)
+X-MS-Exchange-CrossTenant-AuthSource: BL0PR04MB6514.namprd04.prod.outlook.com
+X-MS-Exchange-CrossTenant-Network-Message-Id: 98283964-c91e-431c-9fb9-08d8c35e268c
+X-MS-Exchange-CrossTenant-originalarrivaltime: 28 Jan 2021 07:27:21.2324 (UTC)
 X-MS-Exchange-CrossTenant-fromentityheader: Hosted
 X-MS-Exchange-CrossTenant-id: b61c8803-16f3-4c35-9b17-6f65f441df86
 X-MS-Exchange-CrossTenant-mailboxtype: HOSTED
-X-MS-Exchange-CrossTenant-userprincipalname: 9Xam546gszbEFO8oYDat64TQDlpIs22yxwb+LuFp88Uvtlt+RJdak/GCQfIXADtruGdwXVfdDrsBSMftWAQsbepic9n+7nRZHvVV+mryu7Y=
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: DM5PR04MB1114
+X-MS-Exchange-CrossTenant-userprincipalname: /2IrgMXm3pcAMmUWJ3iRNrQ3DcnbFiB1YBVtQXVgzQ2J9zyuh/I6YXHgjhJr8lFi69x2/0yQ3ft/PTFeop9ktQ==
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: BL0PR04MB4852
 X-PDR: PASS
-X-Source-IP: 216.71.153.144
-X-ServerName: esa5.hgst.iphmx.com
+X-Source-IP: 68.232.141.245
+X-ServerName: esa1.hgst.iphmx.com
 X-Proofpoint-SPF-Result: pass
 X-Proofpoint-SPF-Record: v=spf1 ptr ip4:35.160.12.30 ip4:52.34.195.46
 	ip4:35.162.181.10
@@ -188,11 +193,11 @@ X-Proofpoint-SPF-Record: v=spf1 ptr ip4:35.160.12.30 ip4:52.34.195.46
 X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9877
 	signatures=668683
 X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 phishscore=0
-	priorityscore=250
-	lowpriorityscore=0 suspectscore=0 clxscore=203 impostorscore=0
-	mlxlogscore=604 malwarescore=0 spamscore=0 mlxscore=0 adultscore=0
-	bulkscore=0 classifier=spam adjust=0 reason=mlx scancount=1
-	engine=8.12.0-2009150000 definitions=main-2101280043
+	clxscore=208
+	mlxlogscore=999 spamscore=0 bulkscore=0 mlxscore=0 adultscore=0
+	lowpriorityscore=0 malwarescore=0 impostorscore=0 suspectscore=0
+	priorityscore=186 classifier=spam adjust=0 reason=mlx scancount=1
+	engine=8.12.0-2009150000 definitions=main-2101280035
 X-Spam: Clean
 X-Mailman-Approved-At: Thu, 28 Jan 2021 08:25:07 -0800
 Cc: "shaggy@kernel.org" <shaggy@kernel.org>,
@@ -239,104 +244,114 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
 	<mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-Content-Type: multipart/mixed; boundary="===============3983974004070262569=="
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
 Sender: ocfs2-devel-bounces@oss.oracle.com
 Errors-To: ocfs2-devel-bounces@oss.oracle.com
 X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9878 signatures=668683
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 mlxscore=0 spamscore=0 phishscore=0
- adultscore=0 mlxlogscore=999 malwarescore=0 suspectscore=0 bulkscore=0
- classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2009150000
- definitions=main-2101280081
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 phishscore=0 suspectscore=0
+ adultscore=0 mlxscore=0 malwarescore=0 spamscore=0 mlxlogscore=999
+ bulkscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2009150000 definitions=main-2101280081
 X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9878 signatures=668683
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 suspectscore=0 spamscore=0 phishscore=0
- adultscore=0 impostorscore=0 malwarescore=0 lowpriorityscore=0 bulkscore=0
- priorityscore=1501 mlxscore=0 clxscore=1015 mlxlogscore=999
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 malwarescore=0 adultscore=0
+ lowpriorityscore=0 mlxlogscore=999 clxscore=1015 phishscore=0 bulkscore=0
+ spamscore=0 priorityscore=1501 mlxscore=0 suspectscore=0 impostorscore=0
  classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2009150000
  definitions=main-2101280081
 
---===============3983974004070262569==
-Content-Language: en-US
-Content-Type: multipart/alternative;
-	boundary="_000_DM6PR04MB497297B2D0CB8DF8894EB65386BA9DM6PR04MB4972namp_"
+On 2021/01/28 16:21, Damien Le Moal wrote:
+> On 2021/01/28 16:12, Chaitanya Kulkarni wrote:
+>> Introduce bio_new() helper and use it in blk-lib.c to allocate and
+>> initialize various non-optional or semi-optional members of the bio
+>> along with bio allocation done with bio_alloc(). Here we also calmp the
+>> max_bvecs for bio with BIO_MAX_PAGES before we pass to bio_alloc().
+>>
+>> Signed-off-by: Chaitanya Kulkarni <chaitanya.kulkarni@wdc.com>
+>> ---
+>>  block/blk-lib.c     |  6 +-----
+>>  include/linux/bio.h | 25 +++++++++++++++++++++++++
+>>  2 files changed, 26 insertions(+), 5 deletions(-)
+>>
+>> diff --git a/block/blk-lib.c b/block/blk-lib.c
+>> index fb486a0bdb58..ec29415f00dd 100644
+>> --- a/block/blk-lib.c
+>> +++ b/block/blk-lib.c
+>> @@ -14,17 +14,13 @@ struct bio *blk_next_bio(struct bio *bio, struct block_device *bdev,
+>>  			sector_t sect, unsigned op, unsigned opf,
+>>  			unsigned int nr_pages, gfp_t gfp)
+>>  {
+>> -	struct bio *new = bio_alloc(gfp, nr_pages);
+>> +	struct bio *new = bio_new(bdev, sect, op, opf, gfp, nr_pages);
+>>  
+>>  	if (bio) {
+>>  		bio_chain(bio, new);
+>>  		submit_bio(bio);
+>>  	}
+>>  
+>> -	new->bi_iter.bi_sector = sect;
+>> -	bio_set_dev(new, bdev);
+>> -	bio_set_op_attrs(new, op, opf);
+>> -
+>>  	return new;
+>>  }
+>>  
+>> diff --git a/include/linux/bio.h b/include/linux/bio.h
+>> index c74857cf1252..2a09ba100546 100644
+>> --- a/include/linux/bio.h
+>> +++ b/include/linux/bio.h
+>> @@ -826,5 +826,30 @@ static inline void bio_set_polled(struct bio *bio, struct kiocb *kiocb)
+>>  	if (!is_sync_kiocb(kiocb))
+>>  		bio->bi_opf |= REQ_NOWAIT;
+>>  }
+>> +/**
+>> + * bio_new -	allcate and initialize new bio
+>> + * @bdev:	blockdev to issue discard for
+>> + * @sector:	start sector
+>> + * @op:		REQ_OP_XXX from enum req_opf
+>> + * @op_flags:	REQ_XXX from enum req_flag_bits
+>> + * @max_bvecs:	maximum bvec to be allocated for this bio
+>> + * @gfp_mask:	memory allocation flags (for bio_alloc)
+>> + *
+>> + * Description:
+>> + *    Allocates, initializes common members, and returns a new bio.
+>> + */
+>> +static inline struct bio *bio_new(struct block_device *bdev, sector_t sector,
+>> +				  unsigned int op, unsigned int op_flags,
+>> +				  unsigned int max_bvecs, gfp_t gfp_mask)
+>> +{
+>> +	unsigned nr_bvec = clamp_t(unsigned int, max_bvecs, 0, BIO_MAX_PAGES);
+>> +	struct bio *bio = bio_alloc(gfp_mask, nr_bvec);
+> 
+> I think that depending on the gfp_mask passed, bio can be NULL. So this should
+> be checked.
+> 
+>> +
+>> +	bio_set_dev(bio, bdev);
+>> +	bio->bi_iter.bi_sector = sector;
+>> +	bio_set_op_attrs(bio, op, op_flags);
+> 
+> This function is obsolete. Open code this.
 
---_000_DM6PR04MB497297B2D0CB8DF8894EB65386BA9DM6PR04MB4972namp_
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: quoted-printable
-
-On 1/27/21 11:27 PM, Damien Le Moal wrote:
-
-+
-+       bio_set_dev(bio, bdev);
-+       bio->bi_iter.bi_sector =3D sector;
-+       bio_set_op_attrs(bio, op, op_flags);
-
-
-This function is obsolete. Open code this.
-
-
-And that also mean that you could remove one argument to bio_new(): combine=
- op
+And that also mean that you could remove one argument to bio_new(): combine op
 and op_flags into "unsigned int opf"
 
+> 
+>> +
+>> +	return bio;
+>> +}
+>>  
+>>  #endif /* __LINUX_BIO_H */
+>>
+> 
+> 
 
 
-I did that initially but kept it separate for RFC, that is much easier than=
- having
-
-an extra arg, will change it in V1.
-
---_000_DM6PR04MB497297B2D0CB8DF8894EB65386BA9DM6PR04MB4972namp_
-Content-Type: text/html; charset="us-ascii"
-Content-Transfer-Encoding: quoted-printable
-
-<html>
-<head>
-<meta http-equiv=3D"Content-Type" content=3D"text/html; charset=3Dus-ascii"=
->
-</head>
-<body>
-<div class=3D"moz-cite-prefix">On 1/27/21 11:27 PM, Damien Le Moal wrote:<b=
-r>
-</div>
-<blockquote type=3D"cite" cite=3D"mid:BL0PR04MB6514DBA7EDB8EC87A1C20871E7BA=
-9@BL0PR04MB6514.namprd04.prod.outlook.com">
-<blockquote type=3D"cite" style=3D"color: #007cff;">
-<blockquote type=3D"cite" style=3D"color: #007cff;">
-<pre class=3D"moz-quote-pre" wrap=3D"">+=0A=
-+	bio_set_dev(bio, bdev);=0A=
-+	bio-&gt;bi_iter.bi_sector =3D sector;=0A=
-+	bio_set_op_attrs(bio, op, op_flags);=0A=
-</pre>
-</blockquote>
-<pre class=3D"moz-quote-pre" wrap=3D"">This function is obsolete. Open code=
- this.=0A=
-</pre>
-</blockquote>
-<pre class=3D"moz-quote-pre" wrap=3D"">And that also mean that you could re=
-move one argument to bio_new(): combine op=0A=
-and op_flags into &quot;unsigned int opf&quot;=0A=
-=0A=
-</pre>
-</blockquote>
-<p><font face=3D"monospace">I did that initially but kept it separate for R=
-FC, that is much easier than having</font></p>
-<p><font face=3D"monospace">an extra arg, will change it in V1.</font><br>
-</p>
-</body>
-</html>
-
---_000_DM6PR04MB497297B2D0CB8DF8894EB65386BA9DM6PR04MB4972namp_--
-
-
---===============3983974004070262569==
-Content-Type: text/plain; charset="us-ascii"
-MIME-Version: 1.0
-Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
+-- 
+Damien Le Moal
+Western Digital Research
 
 _______________________________________________
 Ocfs2-devel mailing list
 Ocfs2-devel@oss.oracle.com
 https://oss.oracle.com/mailman/listinfo/ocfs2-devel
---===============3983974004070262569==--
-
