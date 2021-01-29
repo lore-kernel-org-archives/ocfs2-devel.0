@@ -1,105 +1,161 @@
-Return-Path: <SRS0=lfe4=G7=oss.oracle.com=ocfs2-devel-bounces@kernel.org>
+Return-Path: <SRS0=G199=HA=oss.oracle.com=ocfs2-devel-bounces@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-14.0 required=3.0 tests=BAYES_00,INCLUDES_CR_TRAILER,
-	INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED
-	autolearn=ham autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-3.8 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS
+	autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id F2843C433DB
-	for <ocfs2-devel@archiver.kernel.org>; Thu, 28 Jan 2021 17:26:22 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 8C031C433DB
+	for <ocfs2-devel@archiver.kernel.org>; Fri, 29 Jan 2021 03:03:02 +0000 (UTC)
 Received: from aserp2120.oracle.com (aserp2120.oracle.com [141.146.126.78])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by mail.kernel.org (Postfix) with ESMTPS id 62F6861481
-	for <ocfs2-devel@archiver.kernel.org>; Thu, 28 Jan 2021 17:26:22 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.3.2 mail.kernel.org 62F6861481
-Authentication-Results: mail.kernel.org; dmarc=fail (p=none dis=none) header.from=kernel.org
+	by mail.kernel.org (Postfix) with ESMTPS id 1B12764DFA
+	for <ocfs2-devel@archiver.kernel.org>; Fri, 29 Jan 2021 03:03:01 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.3.2 mail.kernel.org 1B12764DFA
+Authentication-Results: mail.kernel.org; dmarc=fail (p=quarantine dis=none) header.from=suse.com
 Authentication-Results: mail.kernel.org; spf=pass smtp.mailfrom=ocfs2-devel-bounces@oss.oracle.com
 Received: from pps.filterd (aserp2120.oracle.com [127.0.0.1])
-	by aserp2120.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 10SHAlng184769;
-	Thu, 28 Jan 2021 17:26:21 GMT
-Received: from userp3030.oracle.com (userp3030.oracle.com [156.151.31.80])
-	by aserp2120.oracle.com with ESMTP id 368brkw8yv-1
+	by aserp2120.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 10T2uN9d107715;
+	Fri, 29 Jan 2021 03:03:01 GMT
+Received: from userp3020.oracle.com (userp3020.oracle.com [156.151.31.79])
+	by aserp2120.oracle.com with ESMTP id 368brky0cu-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Thu, 28 Jan 2021 17:26:21 +0000
-Received: from pps.filterd (userp3030.oracle.com [127.0.0.1])
-	by userp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 10SHAG9C010988;
-	Thu, 28 Jan 2021 17:24:20 GMT
+	Fri, 29 Jan 2021 03:03:00 +0000
+Received: from pps.filterd (userp3020.oracle.com [127.0.0.1])
+	by userp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 10T2xtWG148267;
+	Fri, 29 Jan 2021 03:03:00 GMT
 Received: from oss.oracle.com (oss-old-reserved.oracle.com [137.254.22.2])
-	by userp3030.oracle.com with ESMTP id 368wr0n6t8-1
+	by userp3020.oracle.com with ESMTP id 368wjux4dj-1
 	(version=TLSv1 cipher=AES256-SHA bits=256 verify=NO);
-	Thu, 28 Jan 2021 17:24:20 +0000
+	Fri, 29 Jan 2021 03:02:59 +0000
 Received: from localhost ([127.0.0.1] helo=lb-oss.oracle.com)
 	by oss.oracle.com with esmtp (Exim 4.63)
 	(envelope-from <ocfs2-devel-bounces@oss.oracle.com>)
-	id 1l5B1n-0002ol-Ct; Thu, 28 Jan 2021 09:24:19 -0800
-Received: from aserp3030.oracle.com ([141.146.126.71])
+	id 1l5K0j-0006ZZ-OJ; Thu, 28 Jan 2021 18:59:49 -0800
+Received: from aserp3020.oracle.com ([141.146.126.70])
 	by oss.oracle.com with esmtp (Exim 4.63)
-	(envelope-from <djwong@kernel.org>) id 1l5B1Z-0002m6-Mw
-	for ocfs2-devel@oss.oracle.com; Thu, 28 Jan 2021 09:24:05 -0800
-Received: from pps.filterd (aserp3030.oracle.com [127.0.0.1])
-	by aserp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
-	10SHBKAa169689
-	for <ocfs2-devel@oss.oracle.com>; Thu, 28 Jan 2021 17:24:05 GMT
+	(envelope-from <ghe@suse.com>) id 1l5K0J-0006WS-H3
+	for ocfs2-devel@oss.oracle.com; Thu, 28 Jan 2021 18:59:23 -0800
+Received: from pps.filterd (aserp3020.oracle.com [127.0.0.1])
+	by aserp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
+	10T2sfYI002202
+	for <ocfs2-devel@oss.oracle.com>; Fri, 29 Jan 2021 02:59:23 GMT
 Received: from userp2030.oracle.com (userp2030.oracle.com [156.151.31.89])
-	by aserp3030.oracle.com with ESMTP id 368wcr06r3-1
+	by aserp3020.oracle.com with ESMTP id 368wq2h2cr-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Thu, 28 Jan 2021 17:24:05 +0000
+	for <ocfs2-devel@oss.oracle.com>; Fri, 29 Jan 2021 02:59:21 +0000
 Received: from pps.filterd (userp2030.oracle.com [127.0.0.1])
 	by userp2030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
-	10SHEQVH001309
-	for <ocfs2-devel@oss.oracle.com>; Thu, 28 Jan 2021 17:24:04 GMT
-Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by userp2030.oracle.com with ESMTP id 36c0pa90fh-1
-	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NO)
-	for <ocfs2-devel@oss.oracle.com>; Thu, 28 Jan 2021 17:24:04 +0000
-Received: by mail.kernel.org (Postfix) with ESMTPSA id B21F464DF9;
-	Thu, 28 Jan 2021 17:24:02 +0000 (UTC)
-Date: Thu, 28 Jan 2021 09:24:02 -0800
-From: "Darrick J. Wong" <djwong@kernel.org>
-To: Chaitanya Kulkarni <chaitanya.kulkarni@wdc.com>
-Message-ID: <20210128172402.GO7698@magnolia>
-References: <20210128071133.60335-1-chaitanya.kulkarni@wdc.com>
-	<20210128071133.60335-19-chaitanya.kulkarni@wdc.com>
+	10T2sgLB026817
+	for <ocfs2-devel@oss.oracle.com>; Fri, 29 Jan 2021 02:59:21 GMT
+Received: from de-smtp-delivery-102.mimecast.com
+	(de-smtp-delivery-102.mimecast.com [62.140.7.102])
+	by userp2030.oracle.com with ESMTP id 36c990ghfr-1
+	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-SHA384 bits=256 verify=OK)
+	for <ocfs2-devel@oss.oracle.com>; Fri, 29 Jan 2021 02:59:20 +0000
+Received: from EUR02-HE1-obe.outbound.protection.outlook.com
+	(mail-he1eur02lp2052.outbound.protection.outlook.com [104.47.5.52])
+	(Using TLS) by relay.mimecast.com with ESMTP id
+	de-mta-4-JKikKRrNPMK6oXbl6HH04Q-1; Fri, 29 Jan 2021 03:59:15 +0100
+X-MC-Unique: JKikKRrNPMK6oXbl6HH04Q-1
+ARC-Seal: i=1; a=rsa-sha256; s=arcselector9901; d=microsoft.com; cv=none;
+	b=F4ofPl8vvN3ybjUtWlrUUlPKzg1OcYLq2+6zzJYT3D7bmA80RMQwqusKq1mexYdlMqyzagb7GhGcnbJAloWqv1ZkLig4+weJ+3LG/dD452vCqEc89rGIBB4sgSpfrfg4oxPVsUnfcbz9acuLP7XVC2/VrF9sclxDizVhnOkpo9GOIjwVLwPmCj5Y5HcYZexN/58qhfuMIuaEJdCy26HRVe/9ZzEdcuVdU+FNKYWAYrNW4YMu3Ln3HEA0bToDSrVScfWemtKJDPIdsLEfi6d2nvFqvRdljJQxhp9wd9BNVPIaUNXe2tpXxiVWbkUFqSQHC+A2NgFrcZuDdF6JgLirYQ==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com; 
+	s=arcselector9901;
+	h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
+	bh=yD5Tt5ibR3QsDrXgK5OWxj0G+Ahf3o2oe4D0K3OnlDE=;
+	b=WQPbHw3gD6AAl3ux1DnB4hhyQW/jT8bpaafhuW9acGKs0U0dwCqpJoH8Xhc6LI6p/535Hqp12b13H99JYf2PhC66YKE3as9Z/Cygqao7yWRuz9LK66nCWewl4mPbCvFPXwhiw4dAqvKuyzEQUe2wAAiDDviBJ4vq055X9h4NyO29mfJVTPKQyvMYHx1kwmo+eB9J4KQZg0aibgZci7ZySCMNoIT0TS/CoB8F9etT8h2onw/AKBXll7ZkYa2ksKMNQmG+WpmUTZQbul34iMGnTZzpwcYJwz0VMKEm4QVSSWyXUifiMnf21qVafQQfniuU+mk+q4lBFp8g7w22MEbY8g==
+ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
+	smtp.mailfrom=suse.com; dmarc=pass action=none header.from=suse.com;
+	dkim=pass header.d=suse.com; arc=none
+Received: from AM6PR04MB6488.eurprd04.prod.outlook.com (2603:10a6:20b:f8::21)
+	by AM6PR04MB6599.eurprd04.prod.outlook.com (2603:10a6:20b:fd::16)
+	with Microsoft SMTP Server (version=TLS1_2,
+	cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.3805.17;
+	Fri, 29 Jan 2021 02:59:13 +0000
+Received: from AM6PR04MB6488.eurprd04.prod.outlook.com
+	([fe80::6935:22c5:766a:a024]) by
+	AM6PR04MB6488.eurprd04.prod.outlook.com
+	([fe80::6935:22c5:766a:a024%6]) with mapi id 15.20.3784.019;
+	Fri, 29 Jan 2021 02:59:13 +0000
+From: Gang He <GHe@suse.com>
+To: "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>,
+        "ocfs2-tools@oss.oracle.com" <ocfs2-tools@oss.oracle.com>
+Thread-Topic: About the status of reflink-tools
+Thread-Index: AQHW9eoHk9vNPZLg6kys0MprgFWE8A==
+Date: Fri, 29 Jan 2021 02:59:13 +0000
+Message-ID: <AM6PR04MB6488440A41759D9FF9A3C5A6CFB99@AM6PR04MB6488.eurprd04.prod.outlook.com>
+Accept-Language: en-US, zh-CN
+Content-Language: en-US
+X-MS-Has-Attach: 
+X-MS-TNEF-Correlator: 
+authentication-results: oss.oracle.com; dkim=none (message not signed)
+	header.d=none; oss.oracle.com;
+	dmarc=none action=none header.from=suse.com; 
+x-originating-ip: [111.205.14.62]
+x-ms-publictraffictype: Email
+x-ms-office365-filtering-correlation-id: 2a5cdea6-71b3-42d5-6622-08d8c401dbc9
+x-ms-traffictypediagnostic: AM6PR04MB6599:
+x-microsoft-antispam-prvs: <AM6PR04MB6599DBA4A5FECFC98EE70095CFB99@AM6PR04MB6599.eurprd04.prod.outlook.com>
+x-ms-oob-tlc-oobclassifiers: OLM:3276;
+x-ms-exchange-senderadcheck: 1
+x-microsoft-antispam: BCL:0;
+x-microsoft-antispam-message-info: NAonpuq8fyYbgDqQ2dNwjByiLWQJJ7pKMTgUoEdDTzI7FRo8ijwRkw8BVWUL9t7eCVSvaBpJoCCcT55Fr+w9u1akUHM9IfGkaRQpjN7qqyag5BgkVKAx/DCP64QI7nS8OoKoW70cJ6REjGMJYMntoI5sbYDJUBbOitLNcvT/baqZp5J+/Sx6vEM2X4WQm3uqeYspBKTdCIjotGibNCw9KeY6Zcl8mE3udIHqKIiGgPQCHuL/HiRolsWvLX+lTzFY+NiVGQlt7ZFzoF2aIMc3LIYg1NOxffqCsBcnJWQ0PFXhD3UOQd7wfYQZaaWvgInEEnKGTszKXOlOnEBmkqT0b0iMD0FWIX2K1Tu010jwhjUo0XwphCE4LYp64aZyDCNKZnv6VBv4Q1PF+PeP0kDq2sKrITTmTbcqb6JyVt4z5EwAODdSBle3dKC7MpVSCT0NyCnm+qfz/ugX+eY6V59EV5a+bTtG60F7jmHs+IvCLGKlVrDjkczUkWjwAJ8D/ZK2gTOOtnJ2VXDLaUowepSEmkA2/2EvS+rWEEMJOpY9aW8I3nI/vUwqNqG9iyupafFT
+x-forefront-antispam-report: CIP:255.255.255.255; CTRY:; LANG:en; SCL:1; SRV:; IPV:NLI; SFV:NSPM;
+	H:AM6PR04MB6488.eurprd04.prod.outlook.com; PTR:; CAT:NONE;
+	SFS:(136003)(346002)(396003)(366004)(376002)(39860400002)(450100002)(110136005)(7696005)(478600001)(5660300002)(71200400001)(52536014)(91956017)(66946007)(76116006)(8676002)(316002)(83380400001)(66446008)(64756008)(66556008)(66476007)(26005)(6506007)(33656002)(55016002)(9686003)(86362001)(8936002)(558084003)(2906002)(186003)(13296008);
+	DIR:OUT; SFP:1101; 
+x-ms-exchange-antispam-messagedata: =?iso-8859-1?Q?Li1lbbClMw75T8EhQo1e5oEVA+niIf43klAJ6ln9SSUORidABgCYSZQHXO?=
+	=?iso-8859-1?Q?YSRW4E5PYD7yT0jj6DCc+uamoESMzOUiImACAmca9SpNV0qees7S1b/Elq?=
+	=?iso-8859-1?Q?JuxsNdv4HqxjCWTgclRBmK42MY2vemyTdvTblCkmojihU25ellljzQG26u?=
+	=?iso-8859-1?Q?LYrXDScAwPK8mkzUVlmAL5Tx5SvZ8J+2EVFLqxp5fFWPQc6TODk8w+FkGR?=
+	=?iso-8859-1?Q?yP1Kais2XsEVgBQPbyUhg2dj5rkLERLsH1oXEoWMRvcQ/ACoymHM38+iE/?=
+	=?iso-8859-1?Q?ULNgXxdc24Yqmb5uwplHTTW84OdcSb1qaDMDd825V0nJCbNqskH+xt67gn?=
+	=?iso-8859-1?Q?zxrH0PZLQFBYRNu9PG+XNkU+QFNTtusQOTMlCMbxvc1emzbB20L9pPag4u?=
+	=?iso-8859-1?Q?1Rs6mdx20v/lJD6RyX0ltUHkOTLuqtvvbfksQjxlsXtB3la9L0YmYvAr+U?=
+	=?iso-8859-1?Q?X7m8x2JOLcKJhoyaLWM4wVMtRg7FkFSNePYMwpR+z9Sxmn+SxNcfRQwflX?=
+	=?iso-8859-1?Q?H1lVEaad4oBbYvFcSlUYyDzVp0YSFa9ZhGklKyu/BG/iLM2VyO0aVcunii?=
+	=?iso-8859-1?Q?14xUgHP4mdpKsf9QDXlY3S2FSJJtZ2Pd5iKyBFr3kE5tkt3seDTBOht+RD?=
+	=?iso-8859-1?Q?prhoVzUXgCwmzYNSUV70GoGkEHIBe30NziqThp4sMBUlEU7ME+0+j4K8ve?=
+	=?iso-8859-1?Q?daUAvi96BnyUYDShOwUeafnks3eGhZg6Hldg77RnQIsbmINF8blRvw+ff2?=
+	=?iso-8859-1?Q?T04Ff+zkN8qGADi/EqeM4MYc1ECUIiRU2OHoKmLia8nNIF1AP/F/3jsYho?=
+	=?iso-8859-1?Q?eB7VMxTAJHkz+OdGveym1vCPKfA/gM9U36BDFMZ2E/4NHRXCfOdSo/Me9G?=
+	=?iso-8859-1?Q?K7e3i6QophGbGXJLEbT9+0nXh3w6habKWz7FA57jNz5noy/lKJW52FWfiE?=
+	=?iso-8859-1?Q?NTLkY9PxAay9AKhXoOEVzJ4O528ZTUTfGFbQ+BnTFYRe+Zmyo35EVBjosZ?=
+	=?iso-8859-1?Q?owW8sGTCkWutJcdJaxR2X6uKAjrImHHpa5lkylDOknY9ODYufTUxBe6YYS?=
+	=?iso-8859-1?Q?O1iaQGMUD48GgzWg6F/FX2w=3D?=
+x-ms-exchange-transport-forked: True
 MIME-Version: 1.0
-Content-Disposition: inline
-In-Reply-To: <20210128071133.60335-19-chaitanya.kulkarni@wdc.com>
+X-OriginatorOrg: suse.com
+X-MS-Exchange-CrossTenant-AuthAs: Internal
+X-MS-Exchange-CrossTenant-AuthSource: AM6PR04MB6488.eurprd04.prod.outlook.com
+X-MS-Exchange-CrossTenant-Network-Message-Id: 2a5cdea6-71b3-42d5-6622-08d8c401dbc9
+X-MS-Exchange-CrossTenant-originalarrivaltime: 29 Jan 2021 02:59:13.3666 (UTC)
+X-MS-Exchange-CrossTenant-fromentityheader: Hosted
+X-MS-Exchange-CrossTenant-id: f7a17af6-1c5c-4a36-aa8b-f5be247aa4ba
+X-MS-Exchange-CrossTenant-mailboxtype: HOSTED
+X-MS-Exchange-CrossTenant-userprincipalname: qGlbrWwGaGBBizLLaH6vjvV2/+G7cRWr116sveTsBjmKX/kiL8Gr+iS81dRbYSda
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: AM6PR04MB6599
 X-PDR: PASS
-X-Source-IP: 198.145.29.99
-X-ServerName: mail.kernel.org
+X-Source-IP: 62.140.7.102
+X-ServerName: de-smtp-delivery-102.mimecast.com
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 mx a:vger.kernel.org
-	a:mail.wl.linuxfoundation.org ~all
+X-Proofpoint-SPF-Record: v=spf1 include:spf.suse.com
+	include:de._netblocks.mimecast.com
+	include:amazonses.com include:spf.protection.outlook.com
+	include:_spf.qemailserver.com -all
 X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9878
 	signatures=668683
-X-Proofpoint-Spam-Details: rule=tap_safe policy=tap score=0 classifier=
-	adjust=0 reason=safe
-	scancount=1 engine=8.12.0-2009150000 definitions=main-2101280083
-X-Spam: OrgSafeList
-X-SpamRule: orgsafelist
-X-Mailman-Approved-At: Thu, 28 Jan 2021 09:24:17 -0800
-Cc: shaggy@kernel.org, jfs-discussion@lists.sourceforge.net,
-        gustavoars@kernel.org, sergey.senozhatsky.work@gmail.com,
-        snitzer@redhat.com, tiwai@suse.de, linux-nvme@lists.infradead.org,
-        philipp.reisner@linbit.com, linux-mm@kvack.org, dm-devel@redhat.com,
-        target-devel@vger.kernel.org, pavel@ucw.cz, alex.shi@linux.alibaba.com,
-        agk@redhat.com, drbd-dev@lists.linbit.com, naohiro.aota@wdc.com,
-        linux-nilfs@vger.kernel.org, sagi@grimberg.me,
-        linux-scsi@vger.kernel.org, konrad.wilk@oracle.com, osandov@fb.com,
-        ebiggers@kernel.org, xen-devel@lists.xenproject.org, ngupta@vflare.org,
-        len.brown@intel.com, linux-pm@vger.kernel.org, hare@suse.de,
-        ming.lei@redhat.com, linux-block@vger.kernel.org, tj@kernel.org,
-        linux-fscrypt@vger.kernel.org, viro@zeniv.linux.org.uk,
-        jefflexu@linux.alibaba.com, jaegeuk@kernel.org,
-        konishi.ryusuke@gmail.com, bvanassche@acm.org, axboe@kernel.dk,
-        damien.lemoal@wdc.com, tytso@mit.edu, rjw@rjwysocki.net,
-        linux-kernel@vger.kernel.org, linux-xfs@vger.kernel.org,
-        minchan@kernel.org, linux-fsdevel@vger.kernel.org,
-        lars.ellenberg@linbit.com, jth@kernel.org, asml.silence@gmail.com,
-        ocfs2-devel@oss.oracle.com, roger.pau@citrix.com
-Subject: Re: [Ocfs2-devel] [RFC PATCH 18/34] iomap: use bio_new in
-	iomap_dio_bio_actor
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 phishscore=0
+	mlxscore=0 malwarescore=0
+	suspectscore=0 clxscore=200 impostorscore=0 lowpriorityscore=0
+	mlxlogscore=617 priorityscore=0 bulkscore=0 spamscore=0 adultscore=0
+	classifier=spam adjust=0 reason=mlx scancount=1
+	engine=8.12.0-2009150000 definitions=main-2101290014
+X-Spam: Clean
+Subject: [Ocfs2-devel] About the status of reflink-tools
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.9
 Precedence: list
@@ -116,52 +172,25 @@ Content-Transfer-Encoding: 7bit
 Sender: ocfs2-devel-bounces@oss.oracle.com
 Errors-To: ocfs2-devel-bounces@oss.oracle.com
 X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9878 signatures=668683
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 mlxscore=0 spamscore=0 phishscore=0
- adultscore=0 mlxlogscore=999 malwarescore=0 suspectscore=0 bulkscore=0
- classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2009150000
- definitions=main-2101280083
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 phishscore=0 suspectscore=0
+ adultscore=0 mlxscore=0 malwarescore=0 spamscore=0 mlxlogscore=999
+ bulkscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2009150000 definitions=main-2101290015
 X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9878 signatures=668683
 X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 adultscore=0 impostorscore=0
  phishscore=0 bulkscore=0 priorityscore=1501 mlxlogscore=999
  lowpriorityscore=0 spamscore=0 mlxscore=0 suspectscore=0 malwarescore=0
  clxscore=1015 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2009150000 definitions=main-2101280083
+ engine=8.12.0-2009150000 definitions=main-2101290014
 
-On Wed, Jan 27, 2021 at 11:11:17PM -0800, Chaitanya Kulkarni wrote:
-> Signed-off-by: Chaitanya Kulkarni <chaitanya.kulkarni@wdc.com>
-> ---
->  fs/iomap/direct-io.c | 5 ++---
->  1 file changed, 2 insertions(+), 3 deletions(-)
-> 
-> diff --git a/fs/iomap/direct-io.c b/fs/iomap/direct-io.c
-> index f6c557a1bd25..0737192f7e5c 100644
-> --- a/fs/iomap/direct-io.c
-> +++ b/fs/iomap/direct-io.c
-> @@ -267,9 +267,8 @@ iomap_dio_bio_actor(struct inode *inode, loff_t pos, loff_t length,
->  			goto out;
->  		}
->  
-> -		bio = bio_alloc(GFP_KERNEL, nr_pages);
-> -		bio_set_dev(bio, iomap->bdev);
-> -		bio->bi_iter.bi_sector = iomap_sector(iomap, pos);
-> +		bio = bio_new(iomap->bdev, iomap_sector(iomap, pos), 0, 0,
-> +			      nr_pages, GFP_KERNEL);
+Hi Guys,
 
-op == 0?  It seems a little odd to me that we'd set the field to zero
-and then construct bi_opf later.
+You know, ocfs2 reflink related utilities were maintained by a seperated project reflink-tools,
+What is this project's status? e.g. who is maintaining it, where can we download the latest source code?
 
-It also strikes me as a little strange that bi_opf is combined from the
-third and fourth parameters, but maybe some day you'll want to do some
-parameter verification on debug kernels or something...?
 
---D
-
->  		bio->bi_write_hint = dio->iocb->ki_hint;
->  		bio->bi_ioprio = dio->iocb->ki_ioprio;
->  		bio->bi_private = dio;
-> -- 
-> 2.22.1
-> 
+Thanks
+Gang
 
 _______________________________________________
 Ocfs2-devel mailing list
