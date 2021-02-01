@@ -1,163 +1,170 @@
-Return-Path: <SRS0=G199=HA=oss.oracle.com=ocfs2-devel-bounces@kernel.org>
+Return-Path: <SRS0=MDmv=HD=oss.oracle.com=ocfs2-devel-bounces@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-4.5 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
-	HTML_MESSAGE,MAILING_LIST_MULTI,MSGID_FROM_MTA_HEADER,NICE_REPLY_A,
-	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_SANE_1 autolearn=no
-	autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-5.3 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,MSGID_FROM_MTA_HEADER,
+	NICE_REPLY_A,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_SANE_1
+	autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 4DB4AC433DB
-	for <ocfs2-devel@archiver.kernel.org>; Fri, 29 Jan 2021 18:34:54 +0000 (UTC)
-Received: from userp2130.oracle.com (userp2130.oracle.com [156.151.31.86])
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 3138FC433E0
+	for <ocfs2-devel@archiver.kernel.org>; Mon,  1 Feb 2021 03:43:41 +0000 (UTC)
+Received: from aserp2120.oracle.com (aserp2120.oracle.com [141.146.126.78])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by mail.kernel.org (Postfix) with ESMTPS id A362760C3D
-	for <ocfs2-devel@archiver.kernel.org>; Fri, 29 Jan 2021 18:34:53 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.3.2 mail.kernel.org A362760C3D
-Authentication-Results: mail.kernel.org; dmarc=pass (p=none dis=none) header.from=oracle.com
+	by mail.kernel.org (Postfix) with ESMTPS id 8DBF960231
+	for <ocfs2-devel@archiver.kernel.org>; Mon,  1 Feb 2021 03:43:40 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.3.2 mail.kernel.org 8DBF960231
+Authentication-Results: mail.kernel.org; dmarc=fail (p=quarantine dis=none) header.from=suse.com
 Authentication-Results: mail.kernel.org; spf=pass smtp.mailfrom=ocfs2-devel-bounces@oss.oracle.com
-Received: from pps.filterd (userp2130.oracle.com [127.0.0.1])
-	by userp2130.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 10TIYArD027558;
-	Fri, 29 Jan 2021 18:34:52 GMT
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=oracle.com; h=to : references :
- from : message-id : date : in-reply-to : mime-version : subject : list-id
- : list-unsubscribe : list-archive : list-post : list-help : list-subscribe
- : content-type : sender; s=corp-2020-01-29;
- bh=QE6NmokhnH+ueGjLACP12j99XBE96lYy8I5zG+LmRFE=;
- b=BwNABrLuaFxG5Q/H4/5gRWIozhOj63B97aGy0SCAcBN2JhNWJm9ztoQkO+lKJUEX3lAO
- BU7vY3MCFGKI1ihKFBD6FZ7Wn5ZUw9UBCbmvoJn8sHdkH90uW1C6mrCQ9sJ+hbKYpIS4
- ZgqmtHrfmuuYyb9AlRXGIhmqoX+FR14rKB8++32rqLUEbEr6jFVl2UazXyf/i38W3Ahc
- tku4UQlR+mELQYQzCr2/VTd5foi6h4e+QW+rE2yRuBPursr9RJkrneA6hsy4SBUV0voD
- ugq6E63ylwGG9PmOWNZg3jYoWQ2UzZ5Jf2AGtC8SRfBDOLZXBiHf23n7CskBmkoEfqIU yQ== 
+Received: from pps.filterd (aserp2120.oracle.com [127.0.0.1])
+	by aserp2120.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 1113TsfK109428;
+	Mon, 1 Feb 2021 03:43:39 GMT
 Received: from userp3020.oracle.com (userp3020.oracle.com [156.151.31.79])
-	by userp2130.oracle.com with ESMTP id 368b7rarp8-1
+	by aserp2120.oracle.com with ESMTP id 36cydkk81u-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Fri, 29 Jan 2021 18:34:52 +0000
+	Mon, 01 Feb 2021 03:43:39 +0000
 Received: from pps.filterd (userp3020.oracle.com [127.0.0.1])
-	by userp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 10TITxEL157786;
-	Fri, 29 Jan 2021 18:34:51 GMT
+	by userp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 1113U5se098098;
+	Mon, 1 Feb 2021 03:43:38 GMT
 Received: from oss.oracle.com (oss-old-reserved.oracle.com [137.254.22.2])
-	by userp3020.oracle.com with ESMTP id 36ceuh1ub1-1
+	by userp3020.oracle.com with ESMTP id 36dh7p4q0t-1
 	(version=TLSv1 cipher=AES256-SHA bits=256 verify=NO);
-	Fri, 29 Jan 2021 18:34:51 +0000
+	Mon, 01 Feb 2021 03:43:38 +0000
 Received: from localhost ([127.0.0.1] helo=lb-oss.oracle.com)
 	by oss.oracle.com with esmtp (Exim 4.63)
 	(envelope-from <ocfs2-devel-bounces@oss.oracle.com>)
-	id 1l5Yba-0004jp-FE; Fri, 29 Jan 2021 10:34:50 -0800
+	id 1l6Q7l-0003Qt-4l; Sun, 31 Jan 2021 19:43:37 -0800
 Received: from aserp3030.oracle.com ([141.146.126.71])
 	by oss.oracle.com with esmtp (Exim 4.63)
-	(envelope-from <wen.gang.wang@oracle.com>) id 1l5Yb6-0004iz-WD
-	for ocfs2-devel@oss.oracle.com; Fri, 29 Jan 2021 10:34:21 -0800
+	(envelope-from <ghe@suse.com>) id 1l6Q7H-0003Pv-TO
+	for ocfs2-devel@oss.oracle.com; Sun, 31 Jan 2021 19:43:07 -0800
 Received: from pps.filterd (aserp3030.oracle.com [127.0.0.1])
 	by aserp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
-	10TIVGvS186041
-	for <ocfs2-devel@oss.oracle.com>; Fri, 29 Jan 2021 18:34:20 GMT
-Received: from nam10-mw2-obe.outbound.protection.outlook.com
-	(mail-mw2nam10lp2104.outbound.protection.outlook.com [104.47.55.104])
-	by aserp3030.oracle.com with ESMTP id 368wcsjk82-1
+	1113VOCa076557
+	for <ocfs2-devel@oss.oracle.com>; Mon, 1 Feb 2021 03:43:07 GMT
+Received: from userp2030.oracle.com (userp2030.oracle.com [156.151.31.89])
+	by aserp3030.oracle.com with ESMTP id 36dh1ktp5q-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Fri, 29 Jan 2021 18:34:20 +0000
+	for <ocfs2-devel@oss.oracle.com>; Mon, 01 Feb 2021 03:43:07 +0000
+Received: from pps.filterd (userp2030.oracle.com [127.0.0.1])
+	by userp2030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
+	1113Ye5W017933
+	for <ocfs2-devel@oss.oracle.com>; Mon, 1 Feb 2021 03:43:06 GMT
+Received: from de-smtp-delivery-102.mimecast.com
+	(de-smtp-delivery-102.mimecast.com [62.140.7.102])
+	by userp2030.oracle.com with ESMTP id 36dut9qweh-1
+	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-SHA384 bits=256 verify=OK)
+	for <ocfs2-devel@oss.oracle.com>; Mon, 01 Feb 2021 03:43:06 +0000
+Received: from EUR01-VE1-obe.outbound.protection.outlook.com
+	(mail-ve1eur01lp2057.outbound.protection.outlook.com [104.47.1.57])
+	(Using TLS) by relay.mimecast.com with ESMTP id
+	de-mta-26-rFwxXWC4M_mnD-Br50YL9w-1; Mon, 01 Feb 2021 04:43:02 +0100
+X-MC-Unique: rFwxXWC4M_mnD-Br50YL9w-1
+ARC-Seal: i=1; a=rsa-sha256; s=arcselector9901; d=microsoft.com; cv=none;
+	b=HJH8CFPYZCthScuXoFaEQUygKCWsO6TkAlpwoYKERpR1+E+eFE4N2mJU3rtCIh40NtfznbSKH3DOYWwtqMX0mLoGZuc8AH/8uTPygR8wxs3j2S4ThBe5wEXdH6QLpUYpgt/XsPnVYilx6qGaECJ1Q3muhoQwZjXckHrN3Hyfe4cOlQcBso+K6U7kX5ZTQmsV8HBQUHeEGDK8ir6zSy5NcVTJROU6h4PMEoiw4s/K+1z8vnOF18jkZ+flOJ5RntkZCwkuibk03aI2ARxpvW9PfM1L7M9HYeNbv1EFVMqnsujOAwbAjE9KtW/xYpLJKYU7qwBWgbmF6NFvbYq7tbSS+w==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com; 
+	s=arcselector9901;
+	h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
+	bh=A071KD7zF6R+9T7f/IB8eOELJS6t5J1Zj4d+F5jfWyE=;
+	b=N+zSHzy7flpIkbXGfgAQpb69WcivrDTWuwN/SbDWXsmKcNd1MSHpnvM+VkWzO4WDhIvXDrXPH+lXfCB2j0uXw8uVrD1FHb/mVOQN0Tk6c137zfCtSvvaDz7bXq0wZTGKag0CFnDF+qFFn3ZEfT1NNoYffG2q7ltNuNgd/Q7LkbP2rNjdfL4MAcMANoJd1nyPK/FXr5LxmkH7d5rrj7r/qyb2/FBdBp70RUfW6T5Rctgd62xyXJX8VKtYsslQ5PLasADuhzsKZHj7Gvmmq859xJ81LNjrHXeLqOjrLaam/zRaDVWzpLVrX6A/w4iiMCWJcgaJuAdoj9f24a/NCnAm2A==
+ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
+	smtp.mailfrom=suse.com; dmarc=pass action=none header.from=suse.com;
+	dkim=pass header.d=suse.com; arc=none
 Authentication-Results: oss.oracle.com; dkim=none (message not signed)
 	header.d=none; oss.oracle.com;
-	dmarc=none action=none header.from=oracle.com; 
-Received: from SN6PR10MB2701.namprd10.prod.outlook.com (2603:10b6:805:45::20)
-	by SN6PR10MB2910.namprd10.prod.outlook.com (2603:10b6:805:d8::12)
+	dmarc=none action=none header.from=suse.com; 
+Received: from AM6PR04MB6488.eurprd04.prod.outlook.com (2603:10a6:20b:f8::21)
+	by AM6PR04MB5432.eurprd04.prod.outlook.com (2603:10a6:20b:93::33)
 	with Microsoft SMTP Server (version=TLS1_2,
-	cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.3784.13;
-	Fri, 29 Jan 2021 18:34:18 +0000
-Received: from SN6PR10MB2701.namprd10.prod.outlook.com
-	([fe80::944e:1242:5e95:a93f]) by
-	SN6PR10MB2701.namprd10.prod.outlook.com
-	([fe80::944e:1242:5e95:a93f%5]) with mapi id 15.20.3784.020;
-	Fri, 29 Jan 2021 18:34:18 +0000
+	cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.3805.19;
+	Mon, 1 Feb 2021 03:43:00 +0000
+Received: from AM6PR04MB6488.eurprd04.prod.outlook.com
+	([fe80::9481:476f:7337:5da6]) by
+	AM6PR04MB6488.eurprd04.prod.outlook.com
+	([fe80::9481:476f:7337:5da6%6]) with mapi id 15.20.3805.024;
+	Mon, 1 Feb 2021 03:43:00 +0000
 To: ocfs2-devel@oss.oracle.com
 References: <AM6PR04MB6488440A41759D9FF9A3C5A6CFB99@AM6PR04MB6488.eurprd04.prod.outlook.com>
 	<3E55B25E-76CC-4FFE-BF98-0637BCB4D9CC@ORACLE.COM>
 	<ce23a917-0cb1-065a-59b1-3e4789fb0d79@suse.com>
-From: Wengang Wang <wen.gang.wang@oracle.com>
-Message-ID: <e0d299d1-21f1-0738-ff73-7cc3031cd581@oracle.com>
-Date: Fri, 29 Jan 2021 10:34:16 -0800
-User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.16; rv:78.0)
-	Gecko/20100101 Thunderbird/78.7.0
-In-Reply-To: <ce23a917-0cb1-065a-59b1-3e4789fb0d79@suse.com>
+	<e0d299d1-21f1-0738-ff73-7cc3031cd581@oracle.com>
+From: Gang He <ghe@suse.com>
+Message-ID: <34a041e3-1db5-d8fe-f683-08978f23ebf9@suse.com>
+Date: Mon, 1 Feb 2021 11:42:52 +0800
+User-Agent: Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:78.0) Gecko/20100101
+	Thunderbird/78.7.0
+In-Reply-To: <e0d299d1-21f1-0738-ff73-7cc3031cd581@oracle.com>
 Content-Language: en-US
-X-Originating-IP: [71.198.166.82]
-X-ClientProxiedBy: BYAPR05CA0086.namprd05.prod.outlook.com
-	(2603:10b6:a03:e0::27) To SN6PR10MB2701.namprd10.prod.outlook.com
-	(2603:10b6:805:45::20)
+X-Originating-IP: [111.205.14.62]
+X-ClientProxiedBy: HK2PR02CA0171.apcprd02.prod.outlook.com
+	(2603:1096:201:1f::31) To AM6PR04MB6488.eurprd04.prod.outlook.com
+	(2603:10a6:20b:f8::21)
 MIME-Version: 1.0
 X-MS-Exchange-MessageSentRepresentingType: 1
-Received: from dhcp-10-159-141-7.vpn.oracle.com (71.198.166.82) by
-	BYAPR05CA0086.namprd05.prod.outlook.com (2603:10b6:a03:e0::27)
+Received: from [192.168.1.105] (111.205.14.62) by
+	HK2PR02CA0171.apcprd02.prod.outlook.com (2603:1096:201:1f::31)
 	with Microsoft SMTP Server (version=TLS1_2,
-	cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.3825.8
-	via Frontend Transport; Fri, 29 Jan 2021 18:34:17 +0000
+	cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.3805.17
+	via Frontend Transport; Mon, 1 Feb 2021 03:42:59 +0000
 X-MS-PublicTrafficType: Email
-X-MS-Office365-Filtering-Correlation-Id: 2ca5bb56-3487-4602-4c8b-08d8c4847cbd
-X-MS-TrafficTypeDiagnostic: SN6PR10MB2910:
-X-Oracle-Tenancy: 1
-X-MS-Oob-TLC-OOBClassifiers: OLM:7691;
+X-MS-Office365-Filtering-Correlation-Id: 76960d2c-92e2-495c-bfea-08d8c66378ab
+X-MS-TrafficTypeDiagnostic: AM6PR04MB5432:
+X-Microsoft-Antispam-PRVS: <AM6PR04MB5432C96795526E78C30195E8CFB69@AM6PR04MB5432.eurprd04.prod.outlook.com>
+X-MS-Oob-TLC-OOBClassifiers: OLM:8882;
+X-MS-Exchange-SenderADCheck: 1
 X-Microsoft-Antispam: BCL:0;
-X-Microsoft-Antispam-Message-Info: jYvLj3o9lnzGXK61h7i4IuldvsVPxVDd73+D6GoiZ1a0fZf5jXsNap0mbMKZFaU//B0UUPhVM/jUbAUd30As/dO0Q+sNjnMke4LzHNI+RNDzStki+ns6qUJYsVzvjbputV8xSUXDt5E5F2i3Xjb1jWk3jDvVu4/zuG6NSWteYQvEqXdYpY6oJDvjhIKvGLVvh2aEnhDI1otYMKpoj1NWMqwSdiooUh7KYuwKDErveRClNuV4fU1RSaVJbyFjIDfYuGFRegjPYD3xPR85XUgd8wiJGJQkfeJclPLpsG+v+CEZf3kVrsCa1iuHL5EhmBs2DoNOkGsDg+XoBCp2mrgYrn+h+iqNG6KRD1c6In/LGFKuJvv6H1A6c+j5nYeRYbQ5mXH75ezXKHJB2IaL+eOq+8hH4krlcGxztKkyQ8RzyQPThDkFcQLpOF4IOtmYL/Jqqvmf/zYnVnYnS6bNtFlX34KKiqzSjvGKSMuUqFjGH1yGFxeuo57hDr9UI3IRe9uFk2JGJvaQOsTX+/LSdxSh74eSO3RSt+0PNG/otUEugWN6PXcIPsL7O3fIkZy9uV5e
-X-Forefront-Antispam-Report: CIP:255.255.255.255; CTRY:; LANG:en; SCL:-1; SRV:; IPV:NLI; SFV:SKI;
-	H:SN6PR10MB2701.namprd10.prod.outlook.com; PTR:; CAT:NONE; SFS:;
-	DIR:INB; 
-X-MS-Exchange-AntiSpam-MessageData: =?utf-8?B?OFJrQWE3Z2dSaWgxSzYvOUtkUUJFNXFsdGsxTGduemJCRVg5RWdKOW9meGtY?=
-	=?utf-8?B?c0VUZjB1V0J1R3YzazVLNmZGNkl5Zy81MXFOaUY5LzJhQWwrT3JEY2lEbzVS?=
-	=?utf-8?B?eTduNWp5ZjVieVdTa1drS090WmE2UFEvaGhBTERhRW5EaEhFaVBpbW9SWjc0?=
-	=?utf-8?B?bEZjSjJZNitKMlNHd2lhQmYydmoxVlMrcHlqQm9BeXB5dC85cSs0S3dpNitJ?=
-	=?utf-8?B?RjgvM0NZSU9LNjF2Y294N29VUTkvNytFRUhXNHo0MHVSQVQ3M2x3MCtTWFFs?=
-	=?utf-8?B?cmZaQi84aDFWdHRzb2JaVGU3dTRYd3JyY1ExOG0wd0FvdVJ1Q0JEWHZ6c0FI?=
-	=?utf-8?B?Vmp1YTc4R25rMko0NGRFWUM0ejJPVHJtdzl5eEoxOWZXVzBYVFlOWi8va1Ir?=
-	=?utf-8?B?ZHo1NGpRMlpyVlBIenJoRCszWUJQaWc1YlgwaHcxV1VITlduTU95Ni9IN2dv?=
-	=?utf-8?B?Q0RjK3pXZFd5dWlCTFU4V3haQ0NWNW01RktqY2p0Y0h2dXhrNU5Yamhneko0?=
-	=?utf-8?B?S1ZEcENuRzl1NC9EWm9NR2hoR3h5a29wMUVvTVVEUWVBSUs0eVlSS1o3L01v?=
-	=?utf-8?B?M0NoK0tNVGw3Q0Jub2RuQzdCUU45UC9LRnlNRHJ0Z1ZPVkNjd1pwZFhqZ1Nh?=
-	=?utf-8?B?V3MvVkMycjRzKzlpemNkRmVROFFRRUxaNDFSbC9HQjFWekFsbVRqdmd4V3d1?=
-	=?utf-8?B?VGZLMFVRczNhZnUxQWlpNXdjTFZJTHg2amlzUWF2RUZYYVc4dXRaTmQvck5W?=
-	=?utf-8?B?YkhjSjdSa3cydVZjQ1Y5S0ltaHB1NHA4OVljamd2VDFPR1oyN2tzaGRPUmE3?=
-	=?utf-8?B?Y0Y0Wk9DTjVtZG5JMnZxWXlkV3pzenRXdFV1NjNkZkwxMXhyeTdXdzY0OGtZ?=
-	=?utf-8?B?Qk0yNENsQWFPbGxwb0xQOEcxL05CNmJ1SEcxVzh1Y2EvcnNaVFptKytteklr?=
-	=?utf-8?B?RTMwNG4yYW8yRmhGbXE2enBpWVVySGR5Z1JqUTZoa3pKbk5xK0JMaktHU3lJ?=
-	=?utf-8?B?U0pCM3N2c3g5YWx0bzlZV2Z5MWZ2eEx4cjYzQnlFQTRSU0xCM09uVVpHcVM5?=
-	=?utf-8?B?OGZJeEx3Z2xyaTdJWnRCTFFjUExlNU5SYi81bEhJYlBPd0ZPSlRzNmdQbVhC?=
-	=?utf-8?B?RHJSS0ZmazBHZ0tzczJsMjhPRG9zMGpNNk4rMnZYUUpnYUNDa0QzRmtGaWQx?=
-	=?utf-8?B?cjBwK3hXYTFqeTJ4QTd3Z1hKMUdVcEdYSDBxcy9pYzA0SnEwK0s1R1kxV3Zp?=
-	=?utf-8?B?NlBUa0ZOVDgxa0c1cG1xeFV4d1g2TUkwYU5YWVYxWnpDSHZDcFlVcTVuam5K?=
-	=?utf-8?B?UmR2djVZK3lDK3A1cGpYMDF5YVh0dXo2aGYxSFdsUTN0bXFvVkorN2p0NkVM?=
-	=?utf-8?B?R0RVK1Z5dVVWWWtLeGdGcCtCWHdHQTBPVEJqdmVva0pkb3EyWHc3eUFnSzMz?=
-	=?utf-8?Q?L3pyD5lw?=
-X-OriginatorOrg: oracle.com
-X-MS-Exchange-CrossTenant-Network-Message-Id: 2ca5bb56-3487-4602-4c8b-08d8c4847cbd
-X-MS-Exchange-CrossTenant-AuthSource: SN6PR10MB2701.namprd10.prod.outlook.com
+X-Microsoft-Antispam-Message-Info: Tr6nW22QAXOpvUJ6YL829SFAHbK7GldzTU6C13wWq9EI+YZtqAPuuwDDa+7lfM6kZFsFPPyLisl9t3zVkw+OShcMMIzb3qfCyNnw2UqXv7bmRSnpXnouIT/5wPoRLObrGcEySr7IuhNECGrh+Of7PWJteL3JhKHJ4kMuQzlRAnb0uqHyObyFj8FHwQiQcRsK9QOLOfIbbPR7RCbehtLwz/Ttdz9rJSdVSpw1yvFEGwyHlwUAoVivBL+zQKigXO2ltQjISW44EDhtqrKhhwiZWEwNtRwpv/mpFGRp4Z4GsMOdqcATx/cTMRe3bMU9aMlFjbAsSkP/Iiv48AP+89KT/mUxsJJW+xDK2G2GTDzv2QErxudCjfEgilCvFxJszyP9ei4B3poz2txQq2GgPKCg8c6HCIzXijVZLypIG+wF2e6PLD12xMqYd3A5/REFzY5fm/Ha688GNhZ2F7XGVqR8XDG2Q5EH3XOKEnkfptqWvgaDFpexEXiSPPGpj2Z51S39ebXPFq8N9if4JPrjz1T31+CMDj3RdWlRqunKG1xn51jBE29nzkWf9v7e0uS5vXtAy7oay9lR7Cw5sxC83cC11iXRQ3QBbyt9KXP4b04uCLg5BH/Ylunt073AP0nNt4+r4qTwjMZa5+8hmD9c35ZVYFjJOGBCLDvC1trhrK13/bFl7uo6blLL81RtZ46BRFIgJBvmSfYzFa+WUs4nsXWSNQ==
+X-Forefront-Antispam-Report: CIP:255.255.255.255; CTRY:; LANG:en; SCL:1; SRV:; IPV:NLI; SFV:NSPM;
+	H:AM6PR04MB6488.eurprd04.prod.outlook.com; PTR:; CAT:NONE;
+	SFS:(396003)(376002)(366004)(39860400002)(136003)(346002)(478600001)(36756003)(2906002)(966005)(16526019)(31686004)(86362001)(6486002)(8936002)(53546011)(66946007)(66476007)(66556008)(26005)(186003)(5660300002)(83380400001)(6666004)(316002)(8676002)(52116002)(16576012)(31696002)(6916009)(2616005)(956004)(13296008)(43740500002)(45980500001);
+	DIR:OUT; SFP:1101; 
+X-MS-Exchange-AntiSpam-MessageData: =?us-ascii?Q?v8A1aAYRn2KL3yz2KTEA5GoBdOnFah5YqkPYdtsRPTbgxbr/CBPE5hMPDOTU?=
+	=?us-ascii?Q?nuWcoNvFEDVnKDX/iYF4BgSBzzm6TVCLTTYPWpMCjAL1/f3LscGazfwQcurT?=
+	=?us-ascii?Q?NqzGmPIIHV44hHWkznwD4e0GvlDRrO6gK2d58egXP78sSJd7oy5+ZK7OIQWT?=
+	=?us-ascii?Q?yLVKcZ1CyhNFy7czOSVAH73diV0H2BUO1UILWIqjJzm0jLXfxxYmxyoZOv2u?=
+	=?us-ascii?Q?b5KZ+9DunxlY/t10e7q0lran4dNQnTta/xoB+OkEOrPNwyLnuKDC1+40GwVN?=
+	=?us-ascii?Q?iWSp1Z8p1O1X7ScpYS5dDamZPsGMGvyDYJDyij/AhTGfRNwM9rDzFxm+wQES?=
+	=?us-ascii?Q?IPVuz1tUMvToxxDh7fFAD8V7cWQanyR/tkH2j/dx5UwousMTjqLisll5I3e1?=
+	=?us-ascii?Q?lq4PNXgNHjEoq4pYvgPgeIL12oqeeJ8LQaQn9/5C2BV2IT09qj4BFLchNphc?=
+	=?us-ascii?Q?gF6VmLcoRV0sr60VMSjCyWcU1G5krG3WB7iGvjR5nI0vKA0T2F3Hxrn21fk9?=
+	=?us-ascii?Q?7WgHZre5UfldjhqU/M7szsVdlh3o5M7iR+FHrwYqU350WtDVBQRwKFGbQHMo?=
+	=?us-ascii?Q?/Orhn1srtgWxfivQzZprDnuzmrTpYwTUGRYhbRJZuaXeAK5H9M4+lhyXC8h/?=
+	=?us-ascii?Q?GDCGUsAz87c6aySXs99pW7EHcIxxH9CruXmJBIs3+qP/86oNCIKpekuxZluM?=
+	=?us-ascii?Q?NPa/NXL7+GNUwOVd0GFmrlfP9Nuu7mlY+HvaV5dDSfjSNiAVgmdNuwv2oYm6?=
+	=?us-ascii?Q?+t1eLVlcIPGUZih7i67oa2Jad467O7steh0EDUf5WoSvnjv0LdshP4PYCmKy?=
+	=?us-ascii?Q?SUGanlYICeEhVODy1m72V1IShtRSlgQa8nO6olRjv9OLUF/2O0gfox24hX16?=
+	=?us-ascii?Q?JudGigX8KJS4t9N9764Ug0h29PcNcB26lV+K1pVSGEp66laXzsFBIhemr3zJ?=
+	=?us-ascii?Q?tlmvu7jdQHH4i8hkAVsP5yCatl1qLkPhpOzVzcfg6y09YH+QtjOl7d0ov2X3?=
+	=?us-ascii?Q?aFem4i22Kasa3Mj8j8OlOcVjlQZGEQtK2zmK/T1QbCmSCovgD8K0hRZs5xyy?=
+	=?us-ascii?Q?2CQJB6ks?=
+X-OriginatorOrg: suse.com
+X-MS-Exchange-CrossTenant-Network-Message-Id: 76960d2c-92e2-495c-bfea-08d8c66378ab
+X-MS-Exchange-CrossTenant-AuthSource: AM6PR04MB6488.eurprd04.prod.outlook.com
 X-MS-Exchange-CrossTenant-AuthAs: Internal
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 29 Jan 2021 18:34:18.2341 (UTC)
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 01 Feb 2021 03:43:00.2888 (UTC)
 X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
-X-MS-Exchange-CrossTenant-Id: 4e2c6054-71cb-48f1-bd6c-3a9705aca71b
+X-MS-Exchange-CrossTenant-Id: f7a17af6-1c5c-4a36-aa8b-f5be247aa4ba
 X-MS-Exchange-CrossTenant-MailboxType: HOSTED
-X-MS-Exchange-CrossTenant-UserPrincipalName: TIIP29JbgsNkNL+OhPCBidLeN8b7GnI9fudCqINGEa51KmEUJiCd1rp9QMqrUKeo9I+doUDIYjcwVbqERcFMhVZ0+Di2uxLSh1YKZP/uQjQ=
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: SN6PR10MB2910
-X-MS-Exchange-CrossPremises-AuthSource: SN6PR10MB2701.namprd10.prod.outlook.com
-X-MS-Exchange-CrossPremises-AuthAs: Internal
-X-MS-Exchange-CrossPremises-AuthMechanism: 06
-X-MS-Exchange-CrossPremises-Mapi-Admin-Submission: 
-X-MS-Exchange-CrossPremises-MessageSource: StoreDriver
-X-MS-Exchange-CrossPremises-BCC: 
-X-MS-Exchange-CrossPremises-OriginalClientIPAddress: 71.198.166.82
-X-MS-Exchange-CrossPremises-TransportTrafficType: Email
-X-MS-Exchange-CrossPremises-Antispam-ScanContext: DIR:Originating;SFV:SKI;SKIP:0;
-X-MS-Exchange-CrossPremises-SCL: -1
-X-MS-Exchange-CrossPremises-Processed-By-Journaling: Journal Agent
-X-OrganizationHeadersPreserved: SN6PR10MB2910.namprd10.prod.outlook.com
-X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9879
+X-MS-Exchange-CrossTenant-UserPrincipalName: jWbTWaiajha/weu3YqFdoDAkaxyb1Hd27RD6QEKFSReboahI8RGL+H+XodPc+LZ2
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: AM6PR04MB5432
+X-PDR: PASS
+X-Source-IP: 62.140.7.102
+X-ServerName: de-smtp-delivery-102.mimecast.com
+X-Proofpoint-SPF-Result: pass
+X-Proofpoint-SPF-Record: v=spf1 include:spf.suse.com
+	include:de._netblocks.mimecast.com
+	include:amazonses.com include:spf.protection.outlook.com
+	include:_spf.qemailserver.com -all
+X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9881
 	signatures=668683
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 adultscore=0
-	mlxscore=0 suspectscore=0
-	phishscore=0 mlxlogscore=999 bulkscore=0 malwarescore=0 spamscore=0
-	classifier=spam adjust=0 reason=mlx scancount=1
-	engine=8.12.0-2009150000 definitions=main-2101290091
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 suspectscore=0
+	impostorscore=0
+	phishscore=0 mlxlogscore=999 mlxscore=0 bulkscore=0 adultscore=0
+	lowpriorityscore=0 clxscore=233 malwarescore=0 spamscore=0
+	priorityscore=48 classifier=spam adjust=0 reason=mlx scancount=1
+	engine=8.12.0-2009150000 definitions=main-2102010016
+X-Spam: Clean
 Subject: Re: [Ocfs2-devel] About the status of reflink-tools
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.9
@@ -170,246 +177,69 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
 	<mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-Content-Type: multipart/mixed; boundary="===============1325759243352856491=="
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
 Sender: ocfs2-devel-bounces@oss.oracle.com
 Errors-To: ocfs2-devel-bounces@oss.oracle.com
-X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9879 signatures=668683
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 mlxlogscore=999 malwarescore=0
- bulkscore=0 suspectscore=0 mlxscore=0 spamscore=0 phishscore=0
- adultscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2009150000 definitions=main-2101290091
-X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9879 signatures=668683
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 suspectscore=0 spamscore=0 phishscore=0
- adultscore=0 impostorscore=0 malwarescore=0 lowpriorityscore=0 bulkscore=0
- priorityscore=1501 mlxscore=0 clxscore=1011 mlxlogscore=999
- classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2009150000
- definitions=main-2101290091
+X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9881 signatures=668683
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 malwarescore=0 mlxscore=0
+ suspectscore=0 spamscore=0 mlxlogscore=999 phishscore=0 adultscore=0
+ bulkscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2009150000 definitions=main-2102010016
+X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9881 signatures=668683
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 bulkscore=0 adultscore=0
+ priorityscore=1501 impostorscore=0 malwarescore=0 clxscore=1015
+ spamscore=0 lowpriorityscore=0 phishscore=0 mlxlogscore=999 mlxscore=0
+ suspectscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2009150000 definitions=main-2102010016
 
---===============1325759243352856491==
-Content-Type: multipart/alternative;
-	boundary="------------E73456916CB6B8559C1ADDED"
-Content-Language: en-US
-
---------------E73456916CB6B8559C1ADDED
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: quoted-printable
-X-MIME-Autoconverted: from 8bit to quoted-printable by aserp3030.oracle.com id
-	10TIVGvS186041
-
-
-On 1/28/21 11:46 PM, Gang He wrote:
-> Hi Herbert,
->
->
-> On 2021/1/29 15:33, Herbert Van Den Bergh wrote:
->> Hi Gang,
->>
->> The reflink functionality has been merged into the coreutils package/p=
-roject. The cp command now has a =E2=80=94reflink option. Check it out. I=
-f this isn=E2=80=99t what you=E2=80=99re looking for, then please elabora=
-te.
-> For the other tools, e.g. shared-du, shared-filefrag, where do you
-> download the related source code? still coreutils? that means this part
-> code is included/maintained by coreutils project?
->
-    $ rpm -qi reflink
-    Name=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 : reflink
-    Version=C2=A0=C2=A0=C2=A0=C2=A0 : 0.1.0
-    Release=C2=A0=C2=A0=C2=A0=C2=A0 : 3.el7
-    Architecture: x86_64
-    Install Date: Mon 21 Sep 2020 05:57:56 PM GMT
-    Group=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 : System Environment/Kernel
-    Size=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 : 55003
-    License=C2=A0=C2=A0=C2=A0=C2=A0 : GPL
-    Signature=C2=A0=C2=A0 : RSA/SHA256, Sun 04 May 2014 06:33:00 AM GMT, =
-Key ID
-    72f97b74ec551f03
-    Source RPM=C2=A0 : reflink-0.1.0-3.el7.src.rpm
-    Build Date=C2=A0 : Sun 04 May 2014 06:32:55 AM GMT
-    Build Host=C2=A0 : ca-build56.us.oracle.com
-    Relocations : (not relocatable)
-    Packager=C2=A0=C2=A0=C2=A0 : nobody <nobody@oracle.com>
-    Vendor=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 : Oracle
-    URL=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 : http://oss.orac=
-le.com/git/?p=3Djlbec/reflink.git;a=3Dsummary
-    Summary=C2=A0=C2=A0=C2=A0=C2=A0 : Tool to create reflinks on ocfs2/bt=
-rfs.
-    Description :
-
-    The reflink tool creates a reflink on an ocfs2 or a btrfs filesystem.
-
-Maybe the URL part gives you some idea.
-
-Cheers,
-Wengang
-
-> Thanks
-> Gang
->
->> Thanks,
->> Herbert.
->>
->>> On Jan 28, 2021, at 6:59 PM, Gang He <GHe@suse.com> wrote:
->>>
->>> Hi Guys,
->>>
->>> You know, ocfs2 reflink related utilities were maintained by a sepera=
-ted project reflink-tools,
->>> What is this project's status? e.g. who is maintaining it, where can =
-we download the latest source code?
->>>
->>>
->>> Thanks
->>> Gang
->>>
->>> _______________________________________________
->>> Ocfs2-devel mailing list
->>> Ocfs2-devel@oss.oracle.com
->>> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
->
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel@oss.oracle.com
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
-
---------------E73456916CB6B8559C1ADDED
-Content-Type: text/html; charset=utf-8
-Content-Transfer-Encoding: quoted-printable
-X-MIME-Autoconverted: from 8bit to quoted-printable by aserp3030.oracle.com id
-	10TIVGvS186041
-
-<html><head>
-<meta http-equiv=3D"Content-Type" content=3D"text/html; charset=3Dutf-8">
-  </head>
-  <body>
-    <p><br>
-    </p>
-    <div class=3D"moz-cite-prefix">On 1/28/21 11:46 PM, Gang He wrote:<br=
->
-    </div>
-    <blockquote type=3D"cite" cite=3D"mid:ce23a917-0cb1-065a-59b1-3e4789f=
-b0d79@suse.com">
-      <pre class=3D"moz-quote-pre" wrap=3D"">Hi Herbert,
-
-
-On 2021/1/29 15:33, Herbert Van Den Bergh wrote:
-</pre>
-      <blockquote type=3D"cite">
-        <pre class=3D"moz-quote-pre" wrap=3D"">Hi Gang,
-
-The reflink functionality has been merged into the coreutils package/proj=
-ect. The cp command now has a =E2=80=94reflink option. Check it out. If t=
-his isn=E2=80=99t what you=E2=80=99re looking for, then please elaborate.
-</pre>
-      </blockquote>
-      <pre class=3D"moz-quote-pre" wrap=3D"">For the other tools, e.g. sh=
-ared-du, shared-filefrag, where do you=20
-download the related source code? still coreutils? that means this part=20
-code is included/maintained by coreutils project?
-
-</pre>
-    </blockquote>
-    <blockquote><font color=3D"#a25944">$ rpm -qi reflink <br>
-        Name&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; : reflink<br>
-        Version&nbsp;&nbsp;&nbsp;&nbsp; : 0.1.0<br>
-        Release&nbsp;&nbsp;&nbsp;&nbsp; : 3.el7<br>
-        Architecture: x86_64<br>
-        Install Date: Mon 21 Sep 2020 05:57:56 PM GMT<br>
-        Group&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; : System Environment/Ke=
-rnel<br>
-        Size&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; : 55003<br>
-        License&nbsp;&nbsp;&nbsp;&nbsp; : GPL<br>
-        Signature&nbsp;&nbsp; : RSA/SHA256, Sun 04 May 2014 06:33:00 AM G=
-MT, Key
-        ID 72f97b74ec551f03<br>
-        Source RPM&nbsp; : reflink-0.1.0-3.el7.src.rpm<br>
-        Build Date&nbsp; : Sun 04 May 2014 06:32:55 AM GMT<br>
-        Build Host&nbsp; : ca-build56.us.oracle.com<br>
-        Relocations : (not relocatable)<br>
-        Packager&nbsp;&nbsp;&nbsp; : nobody <a class=3D"moz-txt-link-rfc2=
-396E" href=3D"mailto:nobody@oracle.com">&lt;nobody@oracle.com&gt;</a><br>
-        Vendor&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; : Oracle<br>
-        URL&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; :
-        <a class=3D"moz-txt-link-freetext" href=3D"http://oss.oracle.com/=
-git/?p=3Djlbec/reflink.git;a=3Dsummary">http://oss.oracle.com/git/?p=3Djl=
-bec/reflink.git;a=3Dsummary</a><br>
-        Summary&nbsp;&nbsp;&nbsp;&nbsp; : Tool to create reflinks on ocfs=
-2/btrfs.<br>
-        Description :<br>
-      </font>
-      <p><font color=3D"#a25944">The reflink tool creates a reflink on an
-          ocfs2 or a btrfs filesystem.</font></p>
-    </blockquote>
-    <p>Maybe the URL part gives you some idea.</p>
-    <p>Cheers,<br>
-      Wengang<br>
-    </p>
-    <blockquote type=3D"cite" cite=3D"mid:ce23a917-0cb1-065a-59b1-3e4789f=
-b0d79@suse.com">
-      <pre class=3D"moz-quote-pre" wrap=3D"">
-Thanks
-Gang
-
-</pre>
-      <blockquote type=3D"cite">
-        <pre class=3D"moz-quote-pre" wrap=3D"">
-Thanks,
-Herbert.
-
-</pre>
-        <blockquote type=3D"cite">
-          <pre class=3D"moz-quote-pre" wrap=3D"">On Jan 28, 2021, at 6:59=
- PM, Gang He <a class=3D"moz-txt-link-rfc2396E" href=3D"mailto:GHe@suse.c=
-om">&lt;GHe@suse.com&gt;</a> wrote:
-
-Hi Guys,
-
-You know, ocfs2 reflink related utilities were maintained by a seperated =
-project reflink-tools,
-What is this project's status? e.g. who is maintaining it, where can we d=
-ownload the latest source code?
-
-
-Thanks
-Gang
-
-_______________________________________________
-Ocfs2-devel mailing list
-<a class=3D"moz-txt-link-abbreviated" href=3D"mailto:Ocfs2-devel@oss.orac=
-le.com">Ocfs2-devel@oss.oracle.com</a>
-<a class=3D"moz-txt-link-freetext" href=3D"https://oss.oracle.com/mailman=
-/listinfo/ocfs2-devel">https://oss.oracle.com/mailman/listinfo/ocfs2-deve=
-l</a>
-</pre>
-        </blockquote>
-        <pre class=3D"moz-quote-pre" wrap=3D"">
-</pre>
-      </blockquote>
-      <pre class=3D"moz-quote-pre" wrap=3D"">
-
-_______________________________________________
-Ocfs2-devel mailing list
-<a class=3D"moz-txt-link-abbreviated" href=3D"mailto:Ocfs2-devel@oss.orac=
-le.com">Ocfs2-devel@oss.oracle.com</a>
-<a class=3D"moz-txt-link-freetext" href=3D"https://oss.oracle.com/mailman=
-/listinfo/ocfs2-devel">https://oss.oracle.com/mailman/listinfo/ocfs2-deve=
-l</a></pre>
-    </blockquote>
-  </body>
-</html>
-
---------------E73456916CB6B8559C1ADDED--
-
-
---===============1325759243352856491==
-Content-Type: text/plain; charset="us-ascii"
-MIME-Version: 1.0
-Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-
-_______________________________________________
-Ocfs2-devel mailing list
-Ocfs2-devel@oss.oracle.com
-https://oss.oracle.com/mailman/listinfo/ocfs2-devel
---===============1325759243352856491==--
-
+SGkgV2VuZ2FuZywKClRoYW5rIGZvciB5b3VyIGluZm9ybWF0aW9uLgpBY2NvcmRpbmcgdG8gRGFy
+cmljaydzIG1haWwsIHRoZSByZWZsaW5rIHJlbGF0ZWQgdG9vbHMgaGF2ZSBiZWVuIG1lcmdlZCAK
+aW50byBjb3JldXRpbHMgcHJvamVjdCwgdGhhdCBtZWFucyB3ZSBjYW4gZm9yZ2V0IHJlZmxpbmst
+dG9vbHMgcHJvamVjdC4KClRoYW5rcwpHYW5nCgpPbiAyMDIxLzEvMzAgMjozNCwgV2VuZ2FuZyBX
+YW5nIHdyb3RlOgo+IAo+IE9uIDEvMjgvMjEgMTE6NDYgUE0sIEdhbmcgSGUgd3JvdGU6Cj4+IEhp
+IEhlcmJlcnQsCj4+Cj4+Cj4+IE9uIDIwMjEvMS8yOSAxNTozMywgSGVyYmVydCBWYW4gRGVuIEJl
+cmdoIHdyb3RlOgo+Pj4gSGkgR2FuZywKPj4+Cj4+PiBUaGUgcmVmbGluayBmdW5jdGlvbmFsaXR5
+IGhhcyBiZWVuIG1lcmdlZCBpbnRvIHRoZSBjb3JldXRpbHMgcGFja2FnZS9wcm9qZWN0LiBUaGUg
+Y3AgY29tbWFuZCBub3cgaGFzIGEg4oCUcmVmbGluayBvcHRpb24uIENoZWNrIGl0IG91dC4gSWYg
+dGhpcyBpc27igJl0IHdoYXQgeW914oCZcmUgbG9va2luZyBmb3IsIHRoZW4gcGxlYXNlIGVsYWJv
+cmF0ZS4KPj4gRm9yIHRoZSBvdGhlciB0b29scywgZS5nLiBzaGFyZWQtZHUsIHNoYXJlZC1maWxl
+ZnJhZywgd2hlcmUgZG8geW91Cj4+IGRvd25sb2FkIHRoZSByZWxhdGVkIHNvdXJjZSBjb2RlPyBz
+dGlsbCBjb3JldXRpbHM/IHRoYXQgbWVhbnMgdGhpcyBwYXJ0Cj4+IGNvZGUgaXMgaW5jbHVkZWQv
+bWFpbnRhaW5lZCBieSBjb3JldXRpbHMgcHJvamVjdD8KPj4KPiAgICAgJCBycG0gLXFpIHJlZmxp
+bmsKPiAgICAgTmFtZcKgwqDCoMKgwqDCoMKgIDogcmVmbGluawo+ICAgICBWZXJzaW9uwqDCoMKg
+wqAgOiAwLjEuMAo+ICAgICBSZWxlYXNlwqDCoMKgwqAgOiAzLmVsNwo+ICAgICBBcmNoaXRlY3R1
+cmU6IHg4Nl82NAo+ICAgICBJbnN0YWxsIERhdGU6IE1vbiAyMSBTZXAgMjAyMCAwNTo1Nzo1NiBQ
+TSBHTVQKPiAgICAgR3JvdXDCoMKgwqDCoMKgwqAgOiBTeXN0ZW0gRW52aXJvbm1lbnQvS2VybmVs
+Cj4gICAgIFNpemXCoMKgwqDCoMKgwqDCoCA6IDU1MDAzCj4gICAgIExpY2Vuc2XCoMKgwqDCoCA6
+IEdQTAo+ICAgICBTaWduYXR1cmXCoMKgIDogUlNBL1NIQTI1NiwgU3VuIDA0IE1heSAyMDE0IDA2
+OjMzOjAwIEFNIEdNVCwgS2V5IElECj4gICAgIDcyZjk3Yjc0ZWM1NTFmMDMKPiAgICAgU291cmNl
+IFJQTcKgIDogcmVmbGluay0wLjEuMC0zLmVsNy5zcmMucnBtCj4gICAgIEJ1aWxkIERhdGXCoCA6
+IFN1biAwNCBNYXkgMjAxNCAwNjozMjo1NSBBTSBHTVQKPiAgICAgQnVpbGQgSG9zdMKgIDogY2Et
+YnVpbGQ1Ni51cy5vcmFjbGUuY29tCj4gICAgIFJlbG9jYXRpb25zIDogKG5vdCByZWxvY2F0YWJs
+ZSkKPiAgICAgUGFja2FnZXLCoMKgwqAgOiBub2JvZHkgPG5vYm9keUBvcmFjbGUuY29tPgo+ICAg
+ICBWZW5kb3LCoMKgwqDCoMKgIDogT3JhY2xlCj4gICAgIFVSTMKgwqDCoMKgwqDCoMKgwqAgOiBo
+dHRwOi8vb3NzLm9yYWNsZS5jb20vZ2l0Lz9wPWpsYmVjL3JlZmxpbmsuZ2l0O2E9c3VtbWFyeQo+
+ICAgICBTdW1tYXJ5wqDCoMKgwqAgOiBUb29sIHRvIGNyZWF0ZSByZWZsaW5rcyBvbiBvY2ZzMi9i
+dHJmcy4KPiAgICAgRGVzY3JpcHRpb24gOgo+IAo+ICAgICBUaGUgcmVmbGluayB0b29sIGNyZWF0
+ZXMgYSByZWZsaW5rIG9uIGFuIG9jZnMyIG9yIGEgYnRyZnMgZmlsZXN5c3RlbS4KPiAKPiBNYXli
+ZSB0aGUgVVJMIHBhcnQgZ2l2ZXMgeW91IHNvbWUgaWRlYS4KPiAKPiBDaGVlcnMsCj4gV2VuZ2Fu
+Zwo+IAo+PiBUaGFua3MKPj4gR2FuZwo+Pgo+Pj4gVGhhbmtzLAo+Pj4gSGVyYmVydC4KPj4+Cj4+
+Pj4gT24gSmFuIDI4LCAyMDIxLCBhdCA2OjU5IFBNLCBHYW5nIEhlPEdIZUBzdXNlLmNvbT4gIHdy
+b3RlOgo+Pj4+Cj4+Pj4gSGkgR3V5cywKPj4+Pgo+Pj4+IFlvdSBrbm93LCBvY2ZzMiByZWZsaW5r
+IHJlbGF0ZWQgdXRpbGl0aWVzIHdlcmUgbWFpbnRhaW5lZCBieSBhIHNlcGVyYXRlZCBwcm9qZWN0
+IHJlZmxpbmstdG9vbHMsCj4+Pj4gV2hhdCBpcyB0aGlzIHByb2plY3QncyBzdGF0dXM/IGUuZy4g
+d2hvIGlzIG1haW50YWluaW5nIGl0LCB3aGVyZSBjYW4gd2UgZG93bmxvYWQgdGhlIGxhdGVzdCBz
+b3VyY2UgY29kZT8KPj4+Pgo+Pj4+Cj4+Pj4gVGhhbmtzCj4+Pj4gR2FuZwo+Pj4+Cj4+Pj4gX19f
+X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX18KPj4+PiBPY2ZzMi1k
+ZXZlbCBtYWlsaW5nIGxpc3QKPj4+PiBPY2ZzMi1kZXZlbEBvc3Mub3JhY2xlLmNvbQo+Pj4+IGh0
+dHBzOi8vb3NzLm9yYWNsZS5jb20vbWFpbG1hbi9saXN0aW5mby9vY2ZzMi1kZXZlbAo+PiBfX19f
+X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fXwo+PiBPY2ZzMi1kZXZl
+bCBtYWlsaW5nIGxpc3QKPj4gT2NmczItZGV2ZWxAb3NzLm9yYWNsZS5jb20KPj4gaHR0cHM6Ly9v
+c3Mub3JhY2xlLmNvbS9tYWlsbWFuL2xpc3RpbmZvL29jZnMyLWRldmVsCj4gCj4gX19fX19fX19f
+X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX18KPiBPY2ZzMi1kZXZlbCBtYWls
+aW5nIGxpc3QKPiBPY2ZzMi1kZXZlbEBvc3Mub3JhY2xlLmNvbQo+IGh0dHBzOi8vb3NzLm9yYWNs
+ZS5jb20vbWFpbG1hbi9saXN0aW5mby9vY2ZzMi1kZXZlbAo+IAoKCl9fX19fX19fX19fX19fX19f
+X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fCk9jZnMyLWRldmVsIG1haWxpbmcgbGlzdApP
+Y2ZzMi1kZXZlbEBvc3Mub3JhY2xlLmNvbQpodHRwczovL29zcy5vcmFjbGUuY29tL21haWxtYW4v
+bGlzdGluZm8vb2NmczItZGV2ZWw=
