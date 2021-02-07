@@ -2,101 +2,105 @@ Return-Path: <SRS0=X2TA=HK=oss.oracle.com=ocfs2-devel-bounces@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-10.2 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,
-	SPF_PASS,URIBL_BLOCKED,USER_AGENT_SANE_1 autolearn=unavailable
-	autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
+	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id E1DAEC433DB
-	for <ocfs2-devel@archiver.kernel.org>; Mon,  8 Feb 2021 15:39:21 +0000 (UTC)
-Received: from aserp2120.oracle.com (aserp2120.oracle.com [141.146.126.78])
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 26D63C433E0
+	for <ocfs2-devel@archiver.kernel.org>; Mon,  8 Feb 2021 16:54:12 +0000 (UTC)
+Received: from userp2120.oracle.com (userp2120.oracle.com [156.151.31.85])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by mail.kernel.org (Postfix) with ESMTPS id 6523964E30
-	for <ocfs2-devel@archiver.kernel.org>; Mon,  8 Feb 2021 15:39:21 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.3.2 mail.kernel.org 6523964E30
-Authentication-Results: mail.kernel.org; dmarc=none (p=none dis=none) header.from=suse.cz
+	by mail.kernel.org (Postfix) with ESMTPS id 8B7B964E9C
+	for <ocfs2-devel@archiver.kernel.org>; Mon,  8 Feb 2021 16:54:11 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.3.2 mail.kernel.org 8B7B964E9C
+Authentication-Results: mail.kernel.org; dmarc=none (p=none dis=none) header.from=cn.fujitsu.com
 Authentication-Results: mail.kernel.org; spf=pass smtp.mailfrom=ocfs2-devel-bounces@oss.oracle.com
-Received: from pps.filterd (aserp2120.oracle.com [127.0.0.1])
-	by aserp2120.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 118FTFem080434;
-	Mon, 8 Feb 2021 15:39:20 GMT
-Received: from userp3020.oracle.com (userp3020.oracle.com [156.151.31.79])
-	by aserp2120.oracle.com with ESMTP id 36hk2kc9vf-1
+Received: from pps.filterd (userp2120.oracle.com [127.0.0.1])
+	by userp2120.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 118GXfUi156727;
+	Mon, 8 Feb 2021 16:54:10 GMT
+Received: from userp3030.oracle.com (userp3030.oracle.com [156.151.31.80])
+	by userp2120.oracle.com with ESMTP id 36hkrmvh3w-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Mon, 08 Feb 2021 15:39:20 +0000
-Received: from pps.filterd (userp3020.oracle.com [127.0.0.1])
-	by userp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 118FUblW006355;
-	Mon, 8 Feb 2021 15:39:19 GMT
+	Mon, 08 Feb 2021 16:54:10 +0000
+Received: from pps.filterd (userp3030.oracle.com [127.0.0.1])
+	by userp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 118GYvDO010056;
+	Mon, 8 Feb 2021 16:54:10 GMT
 Received: from oss.oracle.com (oss-old-reserved.oracle.com [137.254.22.2])
-	by userp3020.oracle.com with ESMTP id 36j4vq27e5-1
+	by userp3030.oracle.com with ESMTP id 36j51uwv69-1
 	(version=TLSv1 cipher=AES256-SHA bits=256 verify=NO);
-	Mon, 08 Feb 2021 15:39:19 +0000
+	Mon, 08 Feb 2021 16:54:09 +0000
 Received: from localhost ([127.0.0.1] helo=lb-oss.oracle.com)
 	by oss.oracle.com with esmtp (Exim 4.63)
 	(envelope-from <ocfs2-devel-bounces@oss.oracle.com>)
-	id 1l98dC-0000jI-Bf; Mon, 08 Feb 2021 07:39:18 -0800
+	id 1l99nc-0005hF-SF; Mon, 08 Feb 2021 08:54:08 -0800
 Received: from aserp3020.oracle.com ([141.146.126.70])
 	by oss.oracle.com with esmtp (Exim 4.63)
-	(envelope-from <jack@suse.cz>) id 1l98dB-0000iw-2O
-	for ocfs2-devel@oss.oracle.com; Mon, 08 Feb 2021 07:39:17 -0800
+	(envelope-from <ruansy.fnst@cn.fujitsu.com>) id 1l8nZ3-0007Mv-Kx
+	for ocfs2-devel@oss.oracle.com; Sun, 07 Feb 2021 09:09:37 -0800
 Received: from pps.filterd (aserp3020.oracle.com [127.0.0.1])
 	by aserp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
-	118FVLUc148530
-	for <ocfs2-devel@oss.oracle.com>; Mon, 8 Feb 2021 15:39:17 GMT
+	117H1ILJ159289
+	for <ocfs2-devel@oss.oracle.com>; Sun, 7 Feb 2021 17:09:37 GMT
 Received: from userp2030.oracle.com (userp2030.oracle.com [156.151.31.89])
-	by aserp3020.oracle.com with ESMTP id 36j51005g8-1
+	by aserp3020.oracle.com with ESMTP id 36j50xyy1q-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Mon, 08 Feb 2021 15:39:16 +0000
+	for <ocfs2-devel@oss.oracle.com>; Sun, 07 Feb 2021 17:09:37 +0000
 Received: from pps.filterd (userp2030.oracle.com [127.0.0.1])
 	by userp2030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
-	118FXMRd028211
-	for <ocfs2-devel@oss.oracle.com>; Mon, 8 Feb 2021 15:39:16 GMT
-Received: from mx2.suse.de (mx2.suse.de [195.135.220.15])
-	by userp2030.oracle.com with ESMTP id 36hh5h2nff-1
-	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256
-	verify=FAIL)
-	for <ocfs2-devel@oss.oracle.com>; Mon, 08 Feb 2021 15:39:15 +0000
-X-Virus-Scanned: by amavisd-new at test-mx.suse.de
-Received: from relay2.suse.de (unknown [195.135.221.27])
-	by mx2.suse.de (Postfix) with ESMTP id 03D05ADDD;
-	Mon,  8 Feb 2021 15:39:12 +0000 (UTC)
-Received: by quack2.suse.cz (Postfix, from userid 1000)
-	id AD8FD1E13F9; Mon,  8 Feb 2021 16:39:11 +0100 (CET)
-Date: Mon, 8 Feb 2021 16:39:11 +0100
-From: Jan Kara <jack@suse.cz>
-To: Shiyang Ruan <ruansy.fnst@cn.fujitsu.com>
-Message-ID: <20210208153911.GE30081@quack2.suse.cz>
+	117H4DDO022151
+	for <ocfs2-devel@oss.oracle.com>; Sun, 7 Feb 2021 17:09:36 GMT
+Received: from heian.cn.fujitsu.com (mail.cn.fujitsu.com [183.91.158.132])
+	by userp2030.oracle.com with ESMTP id 36hh5gj0pd-1
+	for <ocfs2-devel@oss.oracle.com>; Sun, 07 Feb 2021 17:09:35 +0000
+X-IronPort-AV: E=Sophos;i="5.81,160,1610380800"; d="scan'208";a="104299365"
+Received: from unknown (HELO cn.fujitsu.com) ([10.167.33.5])
+	by heian.cn.fujitsu.com with ESMTP; 08 Feb 2021 01:09:32 +0800
+Received: from G08CNEXMBPEKD04.g08.fujitsu.local (unknown [10.167.33.201])
+	by cn.fujitsu.com (Postfix) with ESMTP id C6D914CE6033;
+	Mon,  8 Feb 2021 01:09:29 +0800 (CST)
+Received: from G08CNEXJMPEKD02.g08.fujitsu.local (10.167.33.202) by
+	G08CNEXMBPEKD04.g08.fujitsu.local (10.167.33.201) with Microsoft SMTP
+	Server (TLS) id 15.0.1497.2; Mon, 8 Feb 2021 01:09:32 +0800
+Received: from G08CNEXCHPEKD04.g08.fujitsu.local (10.167.33.200) by
+	G08CNEXJMPEKD02.g08.fujitsu.local (10.167.33.202) with Microsoft SMTP
+	Server (TLS) id 15.0.1497.2; Mon, 8 Feb 2021 01:09:31 +0800
+Received: from irides.mr.mr.mr (10.167.225.141) by
+	G08CNEXCHPEKD04.g08.fujitsu.local (10.167.33.209) with Microsoft SMTP
+	Server
+	id 15.0.1497.2 via Frontend Transport; Mon, 8 Feb 2021 01:09:30 +0800
+From: Shiyang Ruan <ruansy.fnst@cn.fujitsu.com>
+To: <linux-kernel@vger.kernel.org>, <linux-xfs@vger.kernel.org>,
+        <linux-nvdimm@lists.01.org>, <linux-fsdevel@vger.kernel.org>
+Date: Mon, 8 Feb 2021 01:09:18 +0800
+Message-ID: <20210207170924.2933035-2-ruansy.fnst@cn.fujitsu.com>
+X-Mailer: git-send-email 2.30.0
+In-Reply-To: <20210207170924.2933035-1-ruansy.fnst@cn.fujitsu.com>
 References: <20210207170924.2933035-1-ruansy.fnst@cn.fujitsu.com>
 MIME-Version: 1.0
-Content-Disposition: inline
-In-Reply-To: <20210207170924.2933035-1-ruansy.fnst@cn.fujitsu.com>
-User-Agent: Mutt/1.10.1 (2018-07-13)
+X-yoursite-MailScanner-ID: C6D914CE6033.AD132
+X-yoursite-MailScanner: Found to be clean
+X-yoursite-MailScanner-From: ruansy.fnst@cn.fujitsu.com
 X-PDR: PASS
-X-Source-IP: 195.135.220.15
-X-ServerName: mx2.suse.de
-X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 ip4:137.65.0.0/16 ip4:151.155.28.0/17
-	ip4:149.44.0.0/16
-	ip4:147.2.0.0/16 ip4:164.99.0.0/16 ip4:130.57.0.0/16
-	ip4:192.31.114.0/24
-	ip4:195.135.221.0/24 ip4:195.135.220.0/24 ip4:69.7.179.0/24
-	ip4:150.215.214.0/24 include:mailcontrol.com ~all
+X-Source-IP: 183.91.158.132
+X-ServerName: mail.cn.fujitsu.com
+X-Proofpoint-SPF-Result: None
 X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9888
 	signatures=668683
 X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 phishscore=0
 	malwarescore=0 mlxscore=0
-	adultscore=0 spamscore=0 lowpriorityscore=0 priorityscore=48
-	suspectscore=0 clxscore=314 bulkscore=0 mlxlogscore=676 impostorscore=0
+	adultscore=0 spamscore=0 lowpriorityscore=0 priorityscore=95
+	suspectscore=0 clxscore=162 bulkscore=0 mlxlogscore=999 impostorscore=0
 	classifier=spam adjust=0 reason=mlx scancount=1
-	engine=8.12.0-2009150000 definitions=main-2102080105
+	engine=8.12.0-2009150000 definitions=main-2102070121
 X-Spam: Clean
-Cc: jack@suse.cz, darrick.wong@oracle.com, linux-nvdimm@lists.01.org,
-        david@fromorbit.com, linux-kernel@vger.kernel.org,
-        linux-xfs@vger.kernel.org, ocfs2-devel@oss.oracle.com,
-        viro@zeniv.linux.org.uk, linux-fsdevel@vger.kernel.org,
+X-Mailman-Approved-At: Mon, 08 Feb 2021 08:54:07 -0800
+Cc: jack@suse.cz, darrick.wong@oracle.com, david@fromorbit.com,
+        ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk,
         dan.j.williams@intel.com, linux-btrfs@vger.kernel.org
-Subject: Re: [Ocfs2-devel] [PATCH 0/7] fsdax,
-	xfs: Add reflink&dedupe support for fsdax
+Subject: [Ocfs2-devel] [PATCH 1/7] fsdax: Output address in dax_iomap_pfn()
+	and rename it
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.9
 Precedence: list
@@ -112,79 +116,95 @@ Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 Sender: ocfs2-devel-bounces@oss.oracle.com
 Errors-To: ocfs2-devel-bounces@oss.oracle.com
-X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9888 signatures=668683
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 bulkscore=0 adultscore=0
- mlxlogscore=999 mlxscore=0 suspectscore=0 malwarescore=0 phishscore=0
- spamscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2009150000 definitions=main-2102080105
-X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9888 signatures=668683
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 mlxscore=0 malwarescore=0
- priorityscore=1501 clxscore=1034 impostorscore=0 lowpriorityscore=0
- bulkscore=0 suspectscore=0 spamscore=0 mlxlogscore=999 adultscore=0
- phishscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2009150000 definitions=main-2102080105
+X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9889 signatures=668683
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 suspectscore=0 spamscore=0 phishscore=0
+ mlxscore=0 malwarescore=0 mlxlogscore=999 bulkscore=0 adultscore=0
+ classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2009150000
+ definitions=main-2102080107
+X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9889 signatures=668683
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 phishscore=0 malwarescore=0
+ priorityscore=1501 bulkscore=0 spamscore=0 impostorscore=0 mlxscore=0
+ suspectscore=0 mlxlogscore=999 adultscore=0 clxscore=1034
+ lowpriorityscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2009150000 definitions=main-2102080107
 
-On Mon 08-02-21 01:09:17, Shiyang Ruan wrote:
-> This patchset is attempt to add CoW support for fsdax, and take XFS,
-> which has both reflink and fsdax feature, as an example.
-> 
-> One of the key mechanism need to be implemented in fsdax is CoW.  Copy
-> the data from srcmap before we actually write data to the destance
-> iomap.  And we just copy range in which data won't be changed.
-> 
-> Another mechanism is range comparison .  In page cache case, readpage()
-> is used to load data on disk to page cache in order to be able to
-> compare data.  In fsdax case, readpage() does not work.  So, we need
-> another compare data with direct access support.
-> 
-> With the two mechanism implemented in fsdax, we are able to make reflink
-> and fsdax work together in XFS.
-> 
-> Some of the patches are picked up from Goldwyn's patchset.  I made some
-> changes to adapt to this patchset.
+Add address output in dax_iomap_pfn() in order to perform a memcpy() in
+CoW case.  Since this function both output address and pfn, rename it to
+dax_iomap_direct_access().
 
-How do you deal with HWPoison code trying to reverse-map struct page back
-to inode-offset pair? This also needs to be fixed for reflink to work with
-DAX.
+Signed-off-by: Shiyang Ruan <ruansy.fnst@cn.fujitsu.com>
+---
+ fs/dax.c | 20 +++++++++++++++-----
+ 1 file changed, 15 insertions(+), 5 deletions(-)
 
-								Honza
-
-> 
-> (Rebased on v5.10)
-> ==
-> 
-> Shiyang Ruan (7):
->   fsdax: Output address in dax_iomap_pfn() and rename it
->   fsdax: Introduce dax_copy_edges() for CoW
->   fsdax: Copy data before write
->   fsdax: Replace mmap entry in case of CoW
->   fsdax: Dedup file range to use a compare function
->   fs/xfs: Handle CoW for fsdax write() path
->   fs/xfs: Add dedupe support for fsdax
-> 
->  fs/btrfs/reflink.c     |   3 +-
->  fs/dax.c               | 188 ++++++++++++++++++++++++++++++++++++++---
->  fs/ocfs2/file.c        |   2 +-
->  fs/remap_range.c       |  14 +--
->  fs/xfs/xfs_bmap_util.c |   6 +-
->  fs/xfs/xfs_file.c      |  30 ++++++-
->  fs/xfs/xfs_inode.c     |   8 +-
->  fs/xfs/xfs_inode.h     |   1 +
->  fs/xfs/xfs_iomap.c     |   3 +-
->  fs/xfs/xfs_iops.c      |  11 ++-
->  fs/xfs/xfs_reflink.c   |  23 ++++-
->  include/linux/dax.h    |   5 ++
->  include/linux/fs.h     |   9 +-
->  13 files changed, 270 insertions(+), 33 deletions(-)
-> 
-> -- 
-> 2.30.0
-> 
-> 
-> 
+diff --git a/fs/dax.c b/fs/dax.c
+index 5b47834f2e1b..b012b2db7ba2 100644
+--- a/fs/dax.c
++++ b/fs/dax.c
+@@ -998,8 +998,8 @@ static sector_t dax_iomap_sector(struct iomap *iomap, loff_t pos)
+ 	return (iomap->addr + (pos & PAGE_MASK) - iomap->offset) >> 9;
+ }
+ 
+-static int dax_iomap_pfn(struct iomap *iomap, loff_t pos, size_t size,
+-			 pfn_t *pfnp)
++static int dax_iomap_direct_access(struct iomap *iomap, loff_t pos, size_t size,
++		void **kaddr, pfn_t *pfnp)
+ {
+ 	const sector_t sector = dax_iomap_sector(iomap, pos);
+ 	pgoff_t pgoff;
+@@ -1011,11 +1011,13 @@ static int dax_iomap_pfn(struct iomap *iomap, loff_t pos, size_t size,
+ 		return rc;
+ 	id = dax_read_lock();
+ 	length = dax_direct_access(iomap->dax_dev, pgoff, PHYS_PFN(size),
+-				   NULL, pfnp);
++				   kaddr, pfnp);
+ 	if (length < 0) {
+ 		rc = length;
+ 		goto out;
+ 	}
++	if (!pfnp)
++		goto out_check_addr;
+ 	rc = -EINVAL;
+ 	if (PFN_PHYS(length) < size)
+ 		goto out;
+@@ -1025,6 +1027,12 @@ static int dax_iomap_pfn(struct iomap *iomap, loff_t pos, size_t size,
+ 	if (length > 1 && !pfn_t_devmap(*pfnp))
+ 		goto out;
+ 	rc = 0;
++
++out_check_addr:
++	if (!kaddr)
++		goto out;
++	if (!*kaddr)
++		rc = -EFAULT;
+ out:
+ 	dax_read_unlock(id);
+ 	return rc;
+@@ -1348,7 +1356,8 @@ static vm_fault_t dax_iomap_pte_fault(struct vm_fault *vmf, pfn_t *pfnp,
+ 			count_memcg_event_mm(vma->vm_mm, PGMAJFAULT);
+ 			major = VM_FAULT_MAJOR;
+ 		}
+-		error = dax_iomap_pfn(&iomap, pos, PAGE_SIZE, &pfn);
++		error = dax_iomap_direct_access(&iomap, pos, PAGE_SIZE,
++						NULL, &pfn);
+ 		if (error < 0)
+ 			goto error_finish_iomap;
+ 
+@@ -1566,7 +1575,8 @@ static vm_fault_t dax_iomap_pmd_fault(struct vm_fault *vmf, pfn_t *pfnp,
+ 
+ 	switch (iomap.type) {
+ 	case IOMAP_MAPPED:
+-		error = dax_iomap_pfn(&iomap, pos, PMD_SIZE, &pfn);
++		error = dax_iomap_direct_access(&iomap, pos, PMD_SIZE,
++						NULL, &pfn);
+ 		if (error < 0)
+ 			goto finish_iomap;
+ 
 -- 
-Jan Kara <jack@suse.com>
-SUSE Labs, CR
+2.30.0
+
+
+
 
 _______________________________________________
 Ocfs2-devel mailing list
