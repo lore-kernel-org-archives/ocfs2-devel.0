@@ -2,198 +2,106 @@ Return-Path: <SRS0=7w/S=H4=oss.oracle.com=ocfs2-devel-bounces@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-10.5 required=3.0 tests=BAYES_00,
-	CHARSET_FARAWAY_HEADER,HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,
-	INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED
-	autolearn=unavailable autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-15.6 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,NICE_REPLY_A,SPF_HELO_NONE,SPF_PASS,UNPARSEABLE_RELAY,
+	URIBL_BLOCKED,USER_AGENT_SANE_1 autolearn=unavailable autolearn_force=no
+	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id E18ADC433E9
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 6C91FC433E6
 	for <ocfs2-devel@archiver.kernel.org>; Fri, 26 Feb 2021 16:55:36 +0000 (UTC)
-Received: from userp2120.oracle.com (userp2120.oracle.com [156.151.31.85])
+Received: from aserp2120.oracle.com (aserp2120.oracle.com [141.146.126.78])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by mail.kernel.org (Postfix) with ESMTPS id 7A27A64E85
-	for <ocfs2-devel@archiver.kernel.org>; Fri, 26 Feb 2021 16:55:36 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.3.2 mail.kernel.org 7A27A64E85
-Authentication-Results: mail.kernel.org; dmarc=none (p=none dis=none) header.from=fujitsu.com
+	by mail.kernel.org (Postfix) with ESMTPS id 0326C64ED2
+	for <ocfs2-devel@archiver.kernel.org>; Fri, 26 Feb 2021 16:55:35 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.3.2 mail.kernel.org 0326C64ED2
+Authentication-Results: mail.kernel.org; dmarc=fail (p=none dis=none) header.from=linux.alibaba.com
 Authentication-Results: mail.kernel.org; spf=pass smtp.mailfrom=ocfs2-devel-bounces@oss.oracle.com
-Received: from pps.filterd (userp2120.oracle.com [127.0.0.1])
-	by userp2120.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 11QGsdpm103916;
+Received: from pps.filterd (aserp2120.oracle.com [127.0.0.1])
+	by aserp2120.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 11QGs75F132979;
 	Fri, 26 Feb 2021 16:55:35 GMT
 Received: from userp3020.oracle.com (userp3020.oracle.com [156.151.31.79])
-	by userp2120.oracle.com with ESMTP id 36ugq3sh6e-1
+	by aserp2120.oracle.com with ESMTP id 36xqkfa5te-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Fri, 26 Feb 2021 16:55:35 +0000
+	Fri, 26 Feb 2021 16:55:34 +0000
 Received: from pps.filterd (userp3020.oracle.com [127.0.0.1])
-	by userp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 11QGoHxn004581;
-	Fri, 26 Feb 2021 16:55:35 GMT
+	by userp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 11QGoKT0005073;
+	Fri, 26 Feb 2021 16:55:34 GMT
 Received: from oss.oracle.com (oss-old-reserved.oracle.com [137.254.22.2])
-	by userp3020.oracle.com with ESMTP id 36uc6w48t8-1
+	by userp3020.oracle.com with ESMTP id 36uc6w48sm-1
 	(version=TLSv1 cipher=AES256-SHA bits=256 verify=NO);
-	Fri, 26 Feb 2021 16:55:35 +0000
+	Fri, 26 Feb 2021 16:55:33 +0000
 Received: from localhost ([127.0.0.1] helo=lb-oss.oracle.com)
 	by oss.oracle.com with esmtp (Exim 4.63)
 	(envelope-from <ocfs2-devel-bounces@oss.oracle.com>)
-	id 1lFgOs-0000ZU-0A; Fri, 26 Feb 2021 08:55:34 -0800
-Received: from aserp3020.oracle.com ([141.146.126.70])
+	id 1lFgOq-0000Yu-S3; Fri, 26 Feb 2021 08:55:32 -0800
+Received: from aserp3030.oracle.com ([141.146.126.71])
 	by oss.oracle.com with esmtp (Exim 4.63)
-	(envelope-from <ruansy.fnst@fujitsu.com>) id 1lEMYo-0006k6-RW
-	for ocfs2-devel@oss.oracle.com; Mon, 22 Feb 2021 17:32:22 -0800
-Received: from pps.filterd (aserp3020.oracle.com [127.0.0.1])
-	by aserp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
-	11N1Ub31156595
-	for <ocfs2-devel@oss.oracle.com>; Tue, 23 Feb 2021 01:32:22 GMT
-Received: from userp2030.oracle.com (userp2030.oracle.com [156.151.31.89])
-	by aserp3020.oracle.com with ESMTP id 36ucaxr83d-1
+	(envelope-from <xiaoguang.wang@linux.alibaba.com>)
+	id 1lE5w1-0001E7-TQ
+	for ocfs2-devel@oss.oracle.com; Sun, 21 Feb 2021 23:47:13 -0800
+Received: from pps.filterd (aserp3030.oracle.com [127.0.0.1])
+	by aserp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
+	11M7eeaW051434
+	for <ocfs2-devel@oss.oracle.com>; Mon, 22 Feb 2021 07:47:13 GMT
+Received: from userp2040.oracle.com (userp2040.oracle.com [156.151.31.90])
+	by aserp3030.oracle.com with ESMTP id 36uc0kxca5-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Tue, 23 Feb 2021 01:32:22 +0000
-Received: from pps.filterd (userp2030.oracle.com [127.0.0.1])
-	by userp2030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
-	11N1ElxV013271
-	for <ocfs2-devel@oss.oracle.com>; Tue, 23 Feb 2021 01:32:21 GMT
-Received: from esa18.fujitsucc.c3s2.iphmx.com (esa18.fujitsucc.c3s2.iphmx.com
-	[216.71.158.38]) by userp2030.oracle.com with ESMTP id 36trfh4evq-1
-	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Tue, 23 Feb 2021 01:32:20 +0000
-IronPort-SDR: Y8UHaLvXo0HCKwxsBA85ThP4xXd2+k5dZ+QJ/ovjO1O3vHuT7deFEx2E1E6BMY4xQwv4qPklKa
-	Kkv71nnuKnE28g6FdTwxcqJP7Hna96hFpN+7iTVeRz/dePpYFgW06Xr0UtEEe8IdFYH1q6fDh+
-	BlQA6MM8o1DouPmg51IlligyRhs4cTEnkS84zixVXQlp41zT1cSVqPnOowOTTvvaQXpFTWM5ZX
-	yhI0g9nHEodoeOuQA4XV65I0d9H9u5162IiZ8fhklCBs14ZNNDTZSRg4//cc61YdLtxzgWvq8q
-	Q4U=
-X-IronPort-AV: E=McAfee;i="6000,8403,9903"; a="26942697"
-X-IronPort-AV: E=Sophos;i="5.81,198,1610377200"; d="scan'208";a="26942697"
-Received: from mail-os2jpn01lp2051.outbound.protection.outlook.com (HELO
-	JPN01-OS2-obe.outbound.protection.outlook.com) ([104.47.92.51])
-	by ob1.fujitsucc.c3s2.iphmx.com with
-	ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 23 Feb 2021 10:32:15 +0900
-ARC-Seal: i=1; a=rsa-sha256; s=arcselector9901; d=microsoft.com; cv=none;
-	b=LN7Imi+v4hy5inYQmL7U4KqU8rH/jJrEftJZiyueWgh0gb3a92x4lTpyMW/D/x+jgAcGp/Ei3YOGD6SA62ZYmP6B0OoPqp6+sO2z4f9rKwQxTKY3EJd9dESbqBihf5P5VOoWZOLzEHeYocsqkgCd+nIGWVUDMfWI/wvTjOUx4rpTeUCjIKc6E73hPxlOHSVDQCSeyV+CHb84RCVSXMX55EP2e2japrEHTbXDnizbAUMDcC30zRIAhndRmYl1q/3AxTMw5AYd7162javBxT3iVe4qiw+t7lcNMr2HX3cKznUjIc/zoG3zOntyzUsH+cmlsVTxlaIcUKqldZfZf3gukg==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com; 
-	s=arcselector9901;
-	h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
-	bh=UZOrbr2QQES6DPVS+8wsT6rYGThY5CU/2vKcjKDbih8=;
-	b=jhktDQwG9JgoQ3nSfHy4FDLXA+7dvS8h5wBTYSA3vWD/CNbJ4WIoDpuc4Bm1pv/CuQSr10bDXf0KJKt0ue1RsA+IPtgMguftuVk2+mBt0ylHNQE9FHGxkDAqeogpjCjXpstssFFhBklaiBRnJ2VsdLu1zuv832SKBgxX423QtW5Ytq1IVDQptUdxrdC9O9F04O5A2N4Gp+7BCLPjrosuRAyfgWs4kF+0OL2Lho4ilZd5aWb2xsxlQlyqBOFV6UsEF/PMTFTkxEtFlga2anxJrhZwZddyp8FG1OPUoA2C6a63Gly/nULqAEGz4GdJRFLGHpXlLqyxdVyDu5T2CkkJqQ==
-ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
-	smtp.mailfrom=fujitsu.com;
-	dmarc=pass action=none header.from=fujitsu.com; 
-	dkim=pass header.d=fujitsu.com; arc=none
-Received: from OSBPR01MB2920.jpnprd01.prod.outlook.com (2603:1096:604:18::16)
-	by OS3PR01MB6039.jpnprd01.prod.outlook.com (2603:1096:604:d0::14)
-	with Microsoft SMTP Server (version=TLS1_2,
-	cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.3868.27;
-	Tue, 23 Feb 2021 01:32:11 +0000
-Received: from OSBPR01MB2920.jpnprd01.prod.outlook.com
-	([fe80::7de7:2ce8:ffc0:d098]) by
-	OSBPR01MB2920.jpnprd01.prod.outlook.com
-	([fe80::7de7:2ce8:ffc0:d098%7]) with mapi id 15.20.3868.032;
-	Tue, 23 Feb 2021 01:32:11 +0000
-From: "ruansy.fnst@fujitsu.com" <ruansy.fnst@fujitsu.com>
-To: Xiaoguang Wang <xiaoguang.wang@linux.alibaba.com>
-Thread-Topic: [PATCH 1/7] fsdax: Output address in dax_iomap_pfn() and rename
-	it
-Thread-Index: AQHW/XQKfp6kuelFCk2zvQMEsL6iU6pj4i4AgAEoxBI=
-Date: Tue, 23 Feb 2021 01:32:11 +0000
-Message-ID: <OSBPR01MB2920F7474667D6D73A681D98F4809@OSBPR01MB2920.jpnprd01.prod.outlook.com>
+	for <ocfs2-devel@oss.oracle.com>; Mon, 22 Feb 2021 07:47:13 +0000
+Received: from pps.filterd (userp2040.oracle.com [127.0.0.1])
+	by userp2040.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
+	11M7iUgl005911
+	for <ocfs2-devel@oss.oracle.com>; Mon, 22 Feb 2021 07:47:12 GMT
+Received: from out30-54.freemail.mail.aliyun.com
+	(out30-54.freemail.mail.aliyun.com [115.124.30.54])
+	by userp2040.oracle.com with ESMTP id 36ts1v4j0s-1
+	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NO)
+	for <ocfs2-devel@oss.oracle.com>; Mon, 22 Feb 2021 07:47:12 +0000
+X-Alimail-AntiSpam: AC=PASS; BC=-1|-1; BR=01201311R651e4; CH=green; DM=||false|;
+	DS=||; FP=0|-1|-1|-1|0|-1|-1|-1; HT=e01e04394;
+	MF=xiaoguang.wang@linux.alibaba.com; NM=1; PH=DS; RN=15; SR=0;
+	TI=SMTPD_---0UPD0JAf_1613980020; 
+Received: from 30.225.32.201(mailfrom:xiaoguang.wang@linux.alibaba.com
+	fp:SMTPD_---0UPD0JAf_1613980020) by smtp.aliyun-inc.com(127.0.0.1);
+	Mon, 22 Feb 2021 15:47:00 +0800
+To: Shiyang Ruan <ruansy.fnst@cn.fujitsu.com>, linux-kernel@vger.kernel.org,
+        linux-xfs@vger.kernel.org, linux-nvdimm@lists.01.org,
+        linux-fsdevel@vger.kernel.org
 References: <20210207170924.2933035-1-ruansy.fnst@cn.fujitsu.com>
-	<20210207170924.2933035-2-ruansy.fnst@cn.fujitsu.com>,
-	<cd067457-5aaf-a2a9-06b0-953f49437500@linux.alibaba.com>
-In-Reply-To: <cd067457-5aaf-a2a9-06b0-953f49437500@linux.alibaba.com>
-Accept-Language: zh-CN, en-US
-Content-Language: zh-CN
-X-MS-Has-Attach: 
-X-MS-TNEF-Correlator: 
-authentication-results: linux.alibaba.com; dkim=none (message not signed)
-	header.d=none;linux.alibaba.com; dmarc=none action=none
-	header.from=fujitsu.com;
-x-originating-ip: [49.74.161.241]
-x-ms-publictraffictype: Email
-x-ms-office365-filtering-correlation-id: 6b9d27bf-23a9-496a-fb60-08d8d79ad7aa
-x-ms-traffictypediagnostic: OS3PR01MB6039:
-x-microsoft-antispam-prvs: <OS3PR01MB6039FB526BEB63D321A022CDF4809@OS3PR01MB6039.jpnprd01.prod.outlook.com>
-x-ms-oob-tlc-oobclassifiers: OLM:6430;
-x-ms-exchange-senderadcheck: 1
-x-microsoft-antispam: BCL:0;
-x-microsoft-antispam-message-info: w1i/uP4ES66PL/zOEIKtryJhe2y+B3TorW59BKDyCFR71Rcbsw1Fe6dJFVhkSKukGKKLqQFi82oPH/u/7ArNdIyqska5KgpG7rZwlueBNzJETxyQtITR9jVMWprCb2nNdV5mfk6ERy93G0u9tyXJdnr4KZYMSB6mq/93dFfH3iiT1fKzAIrW3Yd/Q7PLZhU8jDiJfeJRo6lfD67MzkyrMnO4818K3pn3jZTSrKnM0eXxJxm2rwN7HQbTMPHgylpPSMjvX1h9+6Gxyn9e9mMIPVigkHgistt//7RkmcyLDKwChTxMXlP4OnU8On3udOeJlLnq8bMMQo4JYuuBR7+zJFE8/6XmQWH5TQuntGypQCXLFKD3bAW00njWFmOikctIzP6KDiWzSfFWAx/wcf/wXzrfI4LqIhXbzNDYY6/IdL65T0o2EMGpEb1qDUOU2BuJag5TEJMexBhn0mM6PmlcGqSel731RRp69cx9QgaPwZrpXuYorpKujQV35U37/l+DmjBRXrMEWYkfTiYKHTqX/A==
-x-forefront-antispam-report: CIP:255.255.255.255; CTRY:; LANG:en; SCL:1; SRV:; IPV:NLI; SFV:NSPM;
-	H:OSBPR01MB2920.jpnprd01.prod.outlook.com; PTR:; CAT:NONE;
-	SFS:(4636009)(396003)(376002)(366004)(346002)(136003)(39860400002)(86362001)(9686003)(7696005)(26005)(478600001)(66476007)(186003)(66556008)(2906002)(83380400001)(4326008)(6916009)(55016002)(224303003)(76116006)(66946007)(66446008)(64756008)(33656002)(71200400001)(7416002)(52536014)(5660300002)(8936002)(316002)(85182001)(6506007)(54906003);
-	DIR:OUT; SFP:1101; 
-x-ms-exchange-antispam-messagedata: =?gb2312?B?TkVKaGpkY1pqWmlUUmtEZmJEcGRtNXVlR0Y1bXIzb0twSWtyVnJNMGxWWXVO?=
-	=?gb2312?B?a0VOT3I5bUF3SE5ZdVZ1b3dkcmFRUklNcHYvaHBGdGpmeXRqak1WaXl2VElZ?=
-	=?gb2312?B?dkRreDYycWRJdVgrUjBLMzExTU9MeVpSL1J6Q2tnVUtEejV4WnJsa0dvN0FM?=
-	=?gb2312?B?aUNXZFJwendUSENaZHZtbGV3TkI3djlMMjZBQjR1UTJSMmNCc1c3VnVBZklF?=
-	=?gb2312?B?WThvQWpRQ0N4UEs2dEJrTjYyTHNFQXBOY01TWHFKQTFhOWdScjN3L1dyVlB5?=
-	=?gb2312?B?eC9qVDI0eTdRYXl4VllxbHJ2M0tKdHZJWXk2SjlxTEIzczM4d3Z2dnE1Y1lt?=
-	=?gb2312?B?N0VNTmc4eEhqSmdsQ0o3cEZFWWc5R3ovS3hKamlwRjc2YWtHbTRodTJsSWwr?=
-	=?gb2312?B?TkcycWZGOElWTGZ6M1h2aFVpZk9WNUVSeGpYSlFuTGNpL2RLSHNHU0hNUXJQ?=
-	=?gb2312?B?M1RMZDlEVlZLaWtsR3F5YUllQUJ6aXE1TzM0SmMxNUlxTHRlN1YvUzZzMkd2?=
-	=?gb2312?B?MXd4dmJsQTFiMGsyMXBSeS9UbnQ5SjZqUW5iQ20vbnNuQUNnUDJtNnB1cHFK?=
-	=?gb2312?B?VzFUWDFTa2pJYnU3dGh4K3Bha3dmT1drc0RGYU1sZjB4NjEzVnFPcDBrOFNX?=
-	=?gb2312?B?ZGRGZng4ZHc1dFFpdWNhMzF3U1ErSjBNcEFqajJQcmhXSm95WHdnd3A0c2dQ?=
-	=?gb2312?B?K1VFRW1rcnhUdVQrajdYY2RxeW1UMkdXZVVqM20yZjI5QytyeUtIUDBvMDJv?=
-	=?gb2312?B?YmlON3hlUk9WWW5mcTVaek5MbjJkZWxKTWd3bDlPZk8zdFNtb3ViNG40ZkpZ?=
-	=?gb2312?B?TUVsV3BUMFdpY0RlRFZBZkZhMVhlZHJTZExXZThZTTBjRFdjNURVdTh6dUVW?=
-	=?gb2312?B?dXNUZDZmRExreFJIVFhJaitPS0Q0UHFFbCtERUJPWkY5UmRKU2Y2b3pGelRQ?=
-	=?gb2312?B?eUd6dzlsVXBoNllYVzRzc0ttNHVsRVYwRGpuUlUrS1diVjc0NlErK3JKK1lF?=
-	=?gb2312?B?NU5yYXRkcTNIWGNDVlRFdkFERURPZTV6YWZMSFBGN2R0cEhwalBtK292Vm02?=
-	=?gb2312?B?czZ5SnF1UDFVelZ1eFV2T0FBN3p6NE1EOXEwNHo5NlhJa0ZRSFJoTk15VXh5?=
-	=?gb2312?B?NnVvelRCeWdaTTNLNnBPNHlmMVdSR1B5Yk50YlpVTUY1N1lLejNsd2ZMVXhE?=
-	=?gb2312?B?ZGVRSVgzNzBDVVZQRzBFK3pBZEMzajliS05oSC9VZExlQ1M5cWJTN1l0NXU1?=
-	=?gb2312?B?amVYYlRtWjBUeU90L1NhODVFOHdLQVA4N0ZGNnFLUmI5UVJ4bzBmcDNEcnBD?=
-	=?gb2312?B?dlFkc0hBQ3F2dEcxaS9SeURKNTRzKzRGa2xzUzJJQmQ1TW01RW9nRUkrZjRR?=
-	=?gb2312?B?aWswWmg4RGpGeXRncTBlb3hIU1JsYmZNYmQzYlkrK0xhOFVxNDV3dnpTcmQx?=
-	=?gb2312?B?L0U5MHI0bzVITkJUVW1EK3AvVUdwNXhKdHAxM2pkOW9NcFdwZWE3M3p1cXNP?=
-	=?gb2312?B?b2g2cFQ4L0FSMFdJc0VkV2hMbktic1o4Rk10YTYwTXFtclZiTWVZd1N1Yncw?=
-	=?gb2312?B?L2FqZFJiRVR3WWNueWRQV1V5cjJiYVlObXhSYk5zWTN5MEpqTTg2NVhlN05B?=
-	=?gb2312?B?bkZRSTdackk0R09wWVpsNjhtcFVsMXB5Tld0YkszY1JwSUxMZmtPYS9NaDJn?=
-	=?gb2312?B?c04zTlVFMyszWEpYRnZCV3h6Y2ppUEpvZmFMT016WXJmZzEvMS9hL3J5Mll2?=
-	=?gb2312?Q?p5iP0J+BdmjGP7BojM=3D?=
-x-ms-exchange-transport-forked: True
+	<20210207170924.2933035-2-ruansy.fnst@cn.fujitsu.com>
+From: Xiaoguang Wang <xiaoguang.wang@linux.alibaba.com>
+Message-ID: <cd067457-5aaf-a2a9-06b0-953f49437500@linux.alibaba.com>
+Date: Mon, 22 Feb 2021 15:44:26 +0800
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:78.0) Gecko/20100101
+	Thunderbird/78.7.1
 MIME-Version: 1.0
-X-OriginatorOrg: fujitsu.com
-X-MS-Exchange-CrossTenant-AuthAs: Internal
-X-MS-Exchange-CrossTenant-AuthSource: OSBPR01MB2920.jpnprd01.prod.outlook.com
-X-MS-Exchange-CrossTenant-Network-Message-Id: 6b9d27bf-23a9-496a-fb60-08d8d79ad7aa
-X-MS-Exchange-CrossTenant-originalarrivaltime: 23 Feb 2021 01:32:11.5587 (UTC)
-X-MS-Exchange-CrossTenant-fromentityheader: Hosted
-X-MS-Exchange-CrossTenant-id: a19f121d-81e1-4858-a9d8-736e267fd4c7
-X-MS-Exchange-CrossTenant-mailboxtype: HOSTED
-X-MS-Exchange-CrossTenant-userprincipalname: bhXqoG8vxtYGXoMAOKNGw1hSLHx0vnnJAAGNqcI6ov+LV0e8U2600Stbb5UGnVFpTfICVAkGHXTqtliqfEsTHg==
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: OS3PR01MB6039
+In-Reply-To: <20210207170924.2933035-2-ruansy.fnst@cn.fujitsu.com>
 X-PDR: PASS
-X-Source-IP: 216.71.158.38
-X-ServerName: esa18.fujitsucc.c3s2.iphmx.com
+X-Source-IP: 115.124.30.54
+X-ServerName: out30-54.freemail.mail.aliyun.com
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 ip4:211.128.242.0/26 ip4:202.219.69.128/26
-	ip4:207.54.90.47
-	ip4:207.54.90.48 ip4:207.54.90.49 ip4:68.232.139.117 ip4:68.232.139.130
-	ip4:68.232.139.139 include:spf.protection.outlook.com
-	include:mktomail.com
-	mx:fujitsu.com include:spf.messagelabs.com ?all
-X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9903
+X-Proofpoint-SPF-Record: v=spf1 include:spf1.service.alibaba.com
+	include:spf2.service.alibaba.com
+	include:spf1.ocm.aliyun.com  include:spf2.ocm.aliyun.com
+	include:spf1.staff.mail.aliyun.com include:a.hichina.mail.aliyun.com
+	include:b.hichina.mail.aliyun.com -all
+X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9902
 	signatures=668683
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 spamscore=0
-	priorityscore=373
-	lowpriorityscore=0 malwarescore=0 impostorscore=0 clxscore=275
-	mlxscore=0
-	adultscore=0 phishscore=0 bulkscore=0 mlxlogscore=999 suspectscore=0
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 bulkscore=0
+	mlxlogscore=999 mlxscore=0
+	suspectscore=0 priorityscore=111 phishscore=0 spamscore=0
+	impostorscore=0
+	malwarescore=0 lowpriorityscore=0 clxscore=184 adultscore=0
 	classifier=spam adjust=0 reason=mlx scancount=1
-	engine=8.12.0-2009150000 definitions=main-2102230006
+	engine=8.12.0-2009150000 definitions=main-2102220068
 X-Spam: Clean
 X-Mailman-Approved-At: Fri, 26 Feb 2021 08:55:31 -0800
-Cc: "jack@suse.cz" <jack@suse.cz>,
-        "darrick.wong@oracle.com" <darrick.wong@oracle.com>,
-        "linux-nvdimm@lists.01.org" <linux-nvdimm@lists.01.org>,
-        "david@fromorbit.com" <david@fromorbit.com>,
-        "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
-        "linux-xfs@vger.kernel.org" <linux-xfs@vger.kernel.org>,
-        "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>,
-        "viro@zeniv.linux.org.uk" <viro@zeniv.linux.org.uk>,
-        "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>,
-        "dan.j.williams@intel.com" <dan.j.williams@intel.com>,
-        "linux-btrfs@vger.kernel.org" <linux-btrfs@vger.kernel.org>
-Subject: [Ocfs2-devel] =?gb2312?b?ILvYuLQ6IFtQQVRDSCAxLzddIGZzZGF4OiBPdXRw?=
- =?gb2312?b?dXQgYWRkcmVzcyBpbiBkYXhfaW9tYXBfcGZuKCkgYW5kIHJlbmFtZSBpdA==?=
+Cc: jack@suse.cz, darrick.wong@oracle.com, david@fromorbit.com,
+        ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk,
+        dan.j.williams@intel.com, linux-btrfs@vger.kernel.org
+Subject: Re: [Ocfs2-devel] [PATCH 1/7] fsdax: Output address in
+ dax_iomap_pfn() and rename it
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.9
 Precedence: list
@@ -215,82 +123,92 @@ X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 suspectscore=0 ml
  classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2009150000
  definitions=main-2102260124
 X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9907 signatures=668683
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 adultscore=0 phishscore=0
- malwarescore=0 spamscore=0 mlxscore=0 suspectscore=0 priorityscore=1501
- clxscore=1011 impostorscore=0 lowpriorityscore=0 mlxlogscore=999
- bulkscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2009150000 definitions=main-2102260125
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 lowpriorityscore=0 clxscore=1034
+ malwarescore=0 suspectscore=0 impostorscore=0 phishscore=0 mlxscore=0
+ spamscore=0 mlxlogscore=999 bulkscore=0 priorityscore=1501 adultscore=0
+ classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2009150000
+ definitions=main-2102260125
 
-> hi,
+hi,
+
+> Add address output in dax_iomap_pfn() in order to perform a memcpy() in
+> CoW case.  Since this function both output address and pfn, rename it to
+> dax_iomap_direct_access().
 > 
-> > Add address output in dax_iomap_pfn() in order to perform a memcpy() in
-> > CoW case.  Since this function both output address and pfn, rename it to
-> > dax_iomap_direct_access().
-> >
-> > Signed-off-by: Shiyang Ruan <ruansy.fnst@cn.fujitsu.com>
-> > ---
-> >   fs/dax.c | 20 +++++++++++++++-----
-> >   1 file changed, 15 insertions(+), 5 deletions(-)
-> >
-> > diff --git a/fs/dax.c b/fs/dax.c
-> > index 5b47834f2e1b..b012b2db7ba2 100644
-> > --- a/fs/dax.c
-> > +++ b/fs/dax.c
-> > @@ -998,8 +998,8 @@ static sector_t dax_iomap_sector(struct iomap *iomap, loff_t pos)
-> >        return (iomap->addr + (pos & PAGE_MASK) - iomap->offset) >> 9;
-> >   }
-> >  
-> > -static int dax_iomap_pfn(struct iomap *iomap, loff_t pos, size_t size,
-> > -                      pfn_t *pfnp)
-> > +static int dax_iomap_direct_access(struct iomap *iomap, loff_t pos, size_t size,
-> > +             void **kaddr, pfn_t *pfnp)
-> >   {
-> >        const sector_t sector = dax_iomap_sector(iomap, pos);
-> >        pgoff_t pgoff;
-> > @@ -1011,11 +1011,13 @@ static int dax_iomap_pfn(struct iomap *iomap, loff_t pos, size_t size,
-> >                return rc;
-> >        id = dax_read_lock();
-> >        length = dax_direct_access(iomap->dax_dev, pgoff, PHYS_PFN(size),
-> > -                                NULL, pfnp);
-> > +                                kaddr, pfnp);
-> >        if (length < 0) {
-> >                rc = length;
-> >                goto out;
-> >        }
-> > +     if (!pfnp)
-> Should this be "if (!*pfnp)"?
-
-pfnp may be NULL if we only need a kaddr output.
-  `dax_iomap_direct_access(iomap, pos, size, &kaddr, NULL);`
-
-So, it's a NULL pointer check here.
-
-
---
-Thanks,
-Ruan Shiyang.
-
+> Signed-off-by: Shiyang Ruan <ruansy.fnst@cn.fujitsu.com>
+> ---
+>   fs/dax.c | 20 +++++++++++++++-----
+>   1 file changed, 15 insertions(+), 5 deletions(-)
 > 
-> Regards,
-> Xiaoguang Wang
-> > +             goto out_check_addr;
-> >        rc = -EINVAL;
-> >        if (PFN_PHYS(length) < size)
-> >                goto out;
-> > @@ -1025,6 +1027,12 @@ static int dax_iomap_pfn(struct iomap *iomap, loff_t pos, size_t size,
-> >        if (length > 1 && !pfn_t_devmap(*pfnp))
-> >                goto out;
-> >        rc = 0;
-> > +
-> > +out_check_addr:
-> > +     if (!kaddr)
-> > +             goto out;
-> > +     if (!*kaddr)
-> > +             rc = -EFAULT;
-> >   out:
-> >        dax_read_unlock(id);
-> >        return rc;
+> diff --git a/fs/dax.c b/fs/dax.c
+> index 5b47834f2e1b..b012b2db7ba2 100644
+> --- a/fs/dax.c
+> +++ b/fs/dax.c
+> @@ -998,8 +998,8 @@ static sector_t dax_iomap_sector(struct iomap *iomap, loff_t pos)
+>   	return (iomap->addr + (pos & PAGE_MASK) - iomap->offset) >> 9;
+>   }
+>   
+> -static int dax_iomap_pfn(struct iomap *iomap, loff_t pos, size_t size,
+> -			 pfn_t *pfnp)
+> +static int dax_iomap_direct_access(struct iomap *iomap, loff_t pos, size_t size,
+> +		void **kaddr, pfn_t *pfnp)
+>   {
+>   	const sector_t sector = dax_iomap_sector(iomap, pos);
+>   	pgoff_t pgoff;
+> @@ -1011,11 +1011,13 @@ static int dax_iomap_pfn(struct iomap *iomap, loff_t pos, size_t size,
+>   		return rc;
+>   	id = dax_read_lock();
+>   	length = dax_direct_access(iomap->dax_dev, pgoff, PHYS_PFN(size),
+> -				   NULL, pfnp);
+> +				   kaddr, pfnp);
+>   	if (length < 0) {
+>   		rc = length;
+>   		goto out;
+>   	}
+> +	if (!pfnp)
+Should this be "if (!*pfnp)"?
+
+Regards,
+Xiaoguang Wang
+> +		goto out_check_addr;
+>   	rc = -EINVAL;
+>   	if (PFN_PHYS(length) < size)
+>   		goto out;
+> @@ -1025,6 +1027,12 @@ static int dax_iomap_pfn(struct iomap *iomap, loff_t pos, size_t size,
+>   	if (length > 1 && !pfn_t_devmap(*pfnp))
+>   		goto out;
+>   	rc = 0;
+> +
+> +out_check_addr:
+> +	if (!kaddr)
+> +		goto out;
+> +	if (!*kaddr)
+> +		rc = -EFAULT;
+>   out:
+>   	dax_read_unlock(id);
+>   	return rc;
+> @@ -1348,7 +1356,8 @@ static vm_fault_t dax_iomap_pte_fault(struct vm_fault *vmf, pfn_t *pfnp,
+>   			count_memcg_event_mm(vma->vm_mm, PGMAJFAULT);
+>   			major = VM_FAULT_MAJOR;
+>   		}
+> -		error = dax_iomap_pfn(&iomap, pos, PAGE_SIZE, &pfn);
+> +		error = dax_iomap_direct_access(&iomap, pos, PAGE_SIZE,
+> +						NULL, &pfn);
+>   		if (error < 0)
+>   			goto error_finish_iomap;
+>   
+> @@ -1566,7 +1575,8 @@ static vm_fault_t dax_iomap_pmd_fault(struct vm_fault *vmf, pfn_t *pfnp,
+>   
+>   	switch (iomap.type) {
+>   	case IOMAP_MAPPED:
+> -		error = dax_iomap_pfn(&iomap, pos, PMD_SIZE, &pfn);
+> +		error = dax_iomap_direct_access(&iomap, pos, PMD_SIZE,
+> +						NULL, &pfn);
+>   		if (error < 0)
+>   			goto finish_iomap;
+>   
 > 
+
 _______________________________________________
 Ocfs2-devel mailing list
 Ocfs2-devel@oss.oracle.com
