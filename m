@@ -2,99 +2,100 @@ Return-Path: <SRS0=/Yqq=H3=oss.oracle.com=ocfs2-devel-bounces@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-15.2 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,NICE_REPLY_A,SPF_HELO_NONE,SPF_PASS,UNPARSEABLE_RELAY,
-	USER_AGENT_SANE_1 autolearn=ham autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-5.3 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
+	USER_AGENT_SANE_1 autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 6F122C433DB
-	for <ocfs2-devel@archiver.kernel.org>; Thu, 25 Feb 2021 01:58:28 +0000 (UTC)
-Received: from aserp2120.oracle.com (aserp2120.oracle.com [141.146.126.78])
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 6F6B9C433E0
+	for <ocfs2-devel@archiver.kernel.org>; Thu, 25 Feb 2021 07:35:45 +0000 (UTC)
+Received: from aserp2130.oracle.com (aserp2130.oracle.com [141.146.126.79])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by mail.kernel.org (Postfix) with ESMTPS id AA76864E02
-	for <ocfs2-devel@archiver.kernel.org>; Thu, 25 Feb 2021 01:58:27 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.3.2 mail.kernel.org AA76864E02
-Authentication-Results: mail.kernel.org; dmarc=fail (p=none dis=none) header.from=linux.alibaba.com
+	by mail.kernel.org (Postfix) with ESMTPS id B524A64ED9
+	for <ocfs2-devel@archiver.kernel.org>; Thu, 25 Feb 2021 07:35:44 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.3.2 mail.kernel.org B524A64ED9
+Authentication-Results: mail.kernel.org; dmarc=none (p=none dis=none) header.from=lst.de
 Authentication-Results: mail.kernel.org; spf=pass smtp.mailfrom=ocfs2-devel-bounces@oss.oracle.com
-Received: from pps.filterd (aserp2120.oracle.com [127.0.0.1])
-	by aserp2120.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 11P1sVlB124607;
-	Thu, 25 Feb 2021 01:58:26 GMT
+Received: from pps.filterd (aserp2130.oracle.com [127.0.0.1])
+	by aserp2130.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 11P7ZRGV107789;
+	Thu, 25 Feb 2021 07:35:43 GMT
 Received: from userp3030.oracle.com (userp3030.oracle.com [156.151.31.80])
-	by aserp2120.oracle.com with ESMTP id 36ttcmcwmu-1
+	by aserp2130.oracle.com with ESMTP id 36vr627ts1-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Thu, 25 Feb 2021 01:58:26 +0000
+	Thu, 25 Feb 2021 07:35:43 +0000
 Received: from pps.filterd (userp3030.oracle.com [127.0.0.1])
-	by userp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 11P1sYl4089621;
-	Thu, 25 Feb 2021 01:58:25 GMT
+	by userp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 11P7UbtY078255;
+	Thu, 25 Feb 2021 07:35:42 GMT
 Received: from oss.oracle.com (oss-old-reserved.oracle.com [137.254.22.2])
-	by userp3030.oracle.com with ESMTP id 36ucc0m7n6-1
+	by userp3030.oracle.com with ESMTP id 36ucc0vdv4-1
 	(version=TLSv1 cipher=AES256-SHA bits=256 verify=NO);
-	Thu, 25 Feb 2021 01:58:25 +0000
+	Thu, 25 Feb 2021 07:35:42 +0000
 Received: from localhost ([127.0.0.1] helo=lb-oss.oracle.com)
 	by oss.oracle.com with esmtp (Exim 4.63)
 	(envelope-from <ocfs2-devel-bounces@oss.oracle.com>)
-	id 1lF5v6-0004mb-DN; Wed, 24 Feb 2021 17:58:24 -0800
-Received: from aserp3030.oracle.com ([141.146.126.71])
-	by oss.oracle.com with esmtp (Exim 4.63)
-	(envelope-from <joseph.qi@linux.alibaba.com>) id 1lF5v2-0004mA-Tb
-	for ocfs2-devel@oss.oracle.com; Wed, 24 Feb 2021 17:58:20 -0800
-Received: from pps.filterd (aserp3030.oracle.com [127.0.0.1])
-	by aserp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
-	11P1sb5Q056208
-	for <ocfs2-devel@oss.oracle.com>; Thu, 25 Feb 2021 01:58:20 GMT
-Received: from userp2030.oracle.com (userp2030.oracle.com [156.151.31.89])
-	by aserp3030.oracle.com with ESMTP id 36v9m6pah2-1
+	id 1lFBBV-0004u2-JJ; Wed, 24 Feb 2021 23:35:41 -0800
+Received: from aserp3020.oracle.com ([141.146.126.70])
+	by oss.oracle.com with esmtp (Exim 4.63) (envelope-from <hch@lst.de>)
+	id 1lFBBN-0004ta-NM
+	for ocfs2-devel@oss.oracle.com; Wed, 24 Feb 2021 23:35:33 -0800
+Received: from pps.filterd (aserp3020.oracle.com [127.0.0.1])
+	by aserp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
+	11P7Ufvl107641
+	for <ocfs2-devel@oss.oracle.com>; Thu, 25 Feb 2021 07:35:33 GMT
+Received: from userp2040.oracle.com (userp2040.oracle.com [156.151.31.90])
+	by aserp3020.oracle.com with ESMTP id 36ucb1py8r-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Thu, 25 Feb 2021 01:58:20 +0000
-Received: from pps.filterd (userp2030.oracle.com [127.0.0.1])
-	by userp2030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
-	11P1sq37039297
-	for <ocfs2-devel@oss.oracle.com>; Thu, 25 Feb 2021 01:58:19 GMT
-Received: from out30-133.freemail.mail.aliyun.com
-	(out30-133.freemail.mail.aliyun.com [115.124.30.133])
-	by userp2030.oracle.com with ESMTP id 36wqdxvh5q-1
+	for <ocfs2-devel@oss.oracle.com>; Thu, 25 Feb 2021 07:35:33 +0000
+Received: from pps.filterd (userp2040.oracle.com [127.0.0.1])
+	by userp2040.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
+	11P7X4bq036048
+	for <ocfs2-devel@oss.oracle.com>; Thu, 25 Feb 2021 07:35:32 GMT
+Received: from verein.lst.de (verein.lst.de [213.95.11.211])
+	by userp2040.oracle.com with ESMTP id 36wskey4mc-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NO)
-	for <ocfs2-devel@oss.oracle.com>; Thu, 25 Feb 2021 01:58:19 +0000
-X-Alimail-AntiSpam: AC=PASS; BC=-1|-1; BR=01201311R651e4; CH=green; DM=||false|;
-	DS=||; FP=0|-1|-1|-1|0|-1|-1|-1; HT=e01e04423;
-	MF=joseph.qi@linux.alibaba.com; NM=1; PH=DS; RN=6; SR=0;
-	TI=SMTPD_---0UPV7NGF_1614218291; 
-Received: from B-D1K7ML85-0059.local(mailfrom:joseph.qi@linux.alibaba.com
-	fp:SMTPD_---0UPV7NGF_1614218291) by smtp.aliyun-inc.com(127.0.0.1);
-	Thu, 25 Feb 2021 09:58:12 +0800
-To: Yang Li <yang.lee@linux.alibaba.com>, akpm <akpm@linux-foundation.org>
-References: <1614155230-57292-1-git-send-email-yang.lee@linux.alibaba.com>
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-Message-ID: <c51e3d66-5ffa-d0ed-1dd2-b2a59e7f4173@linux.alibaba.com>
-Date: Thu, 25 Feb 2021 09:58:11 +0800
-User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:78.0)
-	Gecko/20100101 Thunderbird/78.7.0
+	for <ocfs2-devel@oss.oracle.com>; Thu, 25 Feb 2021 07:35:32 +0000
+Received: by verein.lst.de (Postfix, from userid 2407)
+	id D893868B05; Thu, 25 Feb 2021 08:35:25 +0100 (CET)
+Date: Thu, 25 Feb 2021 08:35:25 +0100
+From: Christoph Hellwig <hch@lst.de>
+To: "Darrick J. Wong" <djwong@kernel.org>
+Message-ID: <20210225073525.GA3448@lst.de>
+References: <20210207170924.2933035-1-ruansy.fnst@cn.fujitsu.com>
+	<20210207170924.2933035-6-ruansy.fnst@cn.fujitsu.com>
+	<20210208151920.GE12872@lst.de>
+	<9193e305-22a1-3928-0675-af1cecd28942@cn.fujitsu.com>
+	<20210209093438.GA630@lst.de>
+	<79b0d65c-95dd-4821-e412-ab27c8cb6942@cn.fujitsu.com>
+	<20210210131928.GA30109@lst.de>
+	<b00cfda5-464c-6161-77c6-6a25b1cc7a77@cn.fujitsu.com>
+	<20210218162018.GT7193@magnolia>
 MIME-Version: 1.0
-In-Reply-To: <1614155230-57292-1-git-send-email-yang.lee@linux.alibaba.com>
-Content-Language: en-US
+Content-Disposition: inline
+In-Reply-To: <20210218162018.GT7193@magnolia>
+User-Agent: Mutt/1.5.17 (2007-11-01)
 X-PDR: PASS
-X-Source-IP: 115.124.30.133
-X-ServerName: out30-133.freemail.mail.aliyun.com
-X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 include:spf1.service.alibaba.com
-	include:spf2.service.alibaba.com
-	include:spf1.ocm.aliyun.com  include:spf2.ocm.aliyun.com
-	include:spf1.staff.mail.aliyun.com include:a.hichina.mail.aliyun.com
-	include:b.hichina.mail.aliyun.com -all
+X-Source-IP: 213.95.11.211
+X-ServerName: verein.lst.de
+X-Proofpoint-SPF-Result: None
 X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9905
 	signatures=668683
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0
-	lowpriorityscore=0 spamscore=0
-	malwarescore=0 bulkscore=0 impostorscore=0 mlxscore=0 adultscore=0
-	suspectscore=0 priorityscore=0 mlxlogscore=839 phishscore=0
-	clxscore=181
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 spamscore=0
+	adultscore=0
+	lowpriorityscore=0 bulkscore=0 mlxscore=0 mlxlogscore=809 phishscore=0
+	priorityscore=0 suspectscore=0 malwarescore=0 clxscore=277
+	impostorscore=0
 	classifier=spam adjust=0 reason=mlx scancount=1
-	engine=8.12.0-2009150000 definitions=main-2102250013
+	engine=8.12.0-2009150000 definitions=main-2102250062
 X-Spam: Clean
-Cc: ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
-Subject: Re: [Ocfs2-devel] [PATCH] ocfs2: Replace DEFINE_SIMPLE_ATTRIBUTE
- with DEFINE_DEBUGFS_ATTRIBUTE
+Cc: jack@suse.cz, Ruan Shiyang <ruansy.fnst@cn.fujitsu.com>,
+        linux-nvdimm@lists.01.org, darrick.wong@oracle.com,
+        david@fromorbit.com, linux-kernel@vger.kernel.org,
+        linux-xfs@vger.kernel.org, ocfs2-devel@oss.oracle.com,
+        viro@zeniv.linux.org.uk, Goldwyn Rodrigues <rgoldwyn@suse.com>,
+        linux-fsdevel@vger.kernel.org, dan.j.williams@intel.com,
+        linux-btrfs@vger.kernel.org
+Subject: Re: [Ocfs2-devel] [PATCH 5/7] fsdax: Dedup file range to use a
+	compare function
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.9
 Precedence: list
@@ -114,43 +115,28 @@ X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9905 signatures=6
 X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 mlxlogscore=999 adultscore=0
  phishscore=0 spamscore=0 suspectscore=0 bulkscore=0 malwarescore=0
  mlxscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2009150000 definitions=main-2102250013
+ engine=8.12.0-2009150000 definitions=main-2102250062
 X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9905 signatures=668683
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 mlxlogscore=999 adultscore=0
- lowpriorityscore=0 spamscore=0 mlxscore=0 bulkscore=0 clxscore=1034
- priorityscore=1501 malwarescore=0 impostorscore=0 suspectscore=0
- phishscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2009150000 definitions=main-2102250013
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 suspectscore=0 bulkscore=0
+ clxscore=1034 mlxlogscore=999 lowpriorityscore=0 phishscore=0
+ impostorscore=0 adultscore=0 mlxscore=0 priorityscore=1501 malwarescore=0
+ spamscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2009150000 definitions=main-2102250062
 
-
-
-On 2/24/21 4:27 PM, Yang Li wrote:
-> Fix the following coccicheck warning:
-> ./fs/ocfs2/blockcheck.c:232:0-23: WARNING: blockcheck_fops should be
-> defined with DEFINE_DEBUGFS_ATTRIBUTE
+On Thu, Feb 18, 2021 at 08:20:18AM -0800, Darrick J. Wong wrote:
+> > I think a nested call like this is necessary.  That's why I use the open
+> > code way.
 > 
-> Reported-by: Abaci Robot <abaci@linux.alibaba.com>
-> Signed-off-by: Yang Li <yang.lee@linux.alibaba.com>
+> This might be a good place to implement an iomap_apply2() loop that
+> actually /does/ walk all the extents of file1 and file2.  There's now
+> two users of this idiom.
 
-Acked-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-> ---
->  fs/ocfs2/blockcheck.c | 2 +-
->  1 file changed, 1 insertion(+), 1 deletion(-)
-> 
-> diff --git a/fs/ocfs2/blockcheck.c b/fs/ocfs2/blockcheck.c
-> index 6e07ddb..dabfef9 100644
-> --- a/fs/ocfs2/blockcheck.c
-> +++ b/fs/ocfs2/blockcheck.c
-> @@ -229,7 +229,7 @@ static int blockcheck_u64_get(void *data, u64 *val)
->  	*val = *(u64 *)data;
->  	return 0;
->  }
-> -DEFINE_SIMPLE_ATTRIBUTE(blockcheck_fops, blockcheck_u64_get, NULL, "%llu\n");
-> +DEFINE_DEBUGFS_ATTRIBUTE(blockcheck_fops, blockcheck_u64_get, NULL, "%llu\n");
->  
->  static void ocfs2_blockcheck_debug_remove(struct ocfs2_blockcheck_stats *stats)
->  {
-> 
+Why do we need a special helper for that?
+
+> (Possibly structured as a "get next mappings from both" generator
+> function like Matthew Wilcox keeps asking for. :))
+
+OTOH this might be a good first use for that.
 
 _______________________________________________
 Ocfs2-devel mailing list
