@@ -2,90 +2,109 @@ Return-Path: <SRS0=7w/S=H4=oss.oracle.com=ocfs2-devel-bounces@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-14.0 required=3.0 tests=BAYES_00,INCLUDES_CR_TRAILER,
-	INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED
+X-Spam-Status: No, score=-16.7 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
 	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 2E3C3C43603
+	by smtp.lore.kernel.org (Postfix) with ESMTP id B0461C4321A
 	for <ocfs2-devel@archiver.kernel.org>; Fri, 26 Feb 2021 16:55:39 +0000 (UTC)
-Received: from aserp2120.oracle.com (aserp2120.oracle.com [141.146.126.78])
+Received: from userp2130.oracle.com (userp2130.oracle.com [156.151.31.86])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by mail.kernel.org (Postfix) with ESMTPS id CD306601FB
-	for <ocfs2-devel@archiver.kernel.org>; Fri, 26 Feb 2021 16:55:38 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.3.2 mail.kernel.org CD306601FB
-Authentication-Results: mail.kernel.org; dmarc=fail (p=none dis=none) header.from=kernel.org
+	by mail.kernel.org (Postfix) with ESMTPS id 43345601FB
+	for <ocfs2-devel@archiver.kernel.org>; Fri, 26 Feb 2021 16:55:39 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.3.2 mail.kernel.org 43345601FB
+Authentication-Results: mail.kernel.org; dmarc=none (p=none dis=none) header.from=fujitsu.com
 Authentication-Results: mail.kernel.org; spf=pass smtp.mailfrom=ocfs2-devel-bounces@oss.oracle.com
-Received: from pps.filterd (aserp2120.oracle.com [127.0.0.1])
-	by aserp2120.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 11QGsRsu133080;
+Received: from pps.filterd (userp2130.oracle.com [127.0.0.1])
+	by userp2130.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 11QGtV7s085597;
 	Fri, 26 Feb 2021 16:55:38 GMT
 Received: from userp3030.oracle.com (userp3030.oracle.com [156.151.31.80])
-	by aserp2120.oracle.com with ESMTP id 36xqkfa5tt-1
+	by userp2130.oracle.com with ESMTP id 36tsuranvh-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
 	Fri, 26 Feb 2021 16:55:38 +0000
 Received: from pps.filterd (userp3030.oracle.com [127.0.0.1])
-	by userp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 11QGsfMI118492;
-	Fri, 26 Feb 2021 16:55:37 GMT
+	by userp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 11QGsf6t118525;
+	Fri, 26 Feb 2021 16:55:38 GMT
 Received: from oss.oracle.com (oss-old-reserved.oracle.com [137.254.22.2])
-	by userp3030.oracle.com with ESMTP id 36ucc2uqsk-1
+	by userp3030.oracle.com with ESMTP id 36ucc2uqsv-1
 	(version=TLSv1 cipher=AES256-SHA bits=256 verify=NO);
 	Fri, 26 Feb 2021 16:55:37 +0000
 Received: from localhost ([127.0.0.1] helo=lb-oss.oracle.com)
 	by oss.oracle.com with esmtp (Exim 4.63)
 	(envelope-from <ocfs2-devel-bounces@oss.oracle.com>)
-	id 1lFgOt-0000dx-Pi; Fri, 26 Feb 2021 08:55:35 -0800
-Received: from userp3020.oracle.com ([156.151.31.79])
+	id 1lFgOu-0000gz-0i; Fri, 26 Feb 2021 08:55:36 -0800
+Received: from aserp3030.oracle.com ([141.146.126.71])
 	by oss.oracle.com with esmtp (Exim 4.63)
-	(envelope-from <djwong@kernel.org>) id 1lFUWq-0001jR-CQ
-	for ocfs2-devel@oss.oracle.com; Thu, 25 Feb 2021 20:15:00 -0800
-Received: from pps.filterd (userp3020.oracle.com [127.0.0.1])
-	by userp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
-	11Q4AHZk155903
-	for <ocfs2-devel@oss.oracle.com>; Fri, 26 Feb 2021 04:15:00 GMT
+	(envelope-from <ruansy.fnst@fujitsu.com>) id 1lFYTu-0006fa-FY
+	for ocfs2-devel@oss.oracle.com; Fri, 26 Feb 2021 00:28:14 -0800
+Received: from pps.filterd (aserp3030.oracle.com [127.0.0.1])
+	by aserp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
+	11Q8QhvO118173
+	for <ocfs2-devel@oss.oracle.com>; Fri, 26 Feb 2021 08:28:14 GMT
 Received: from userp2040.oracle.com (userp2040.oracle.com [156.151.31.90])
-	by userp3020.oracle.com with ESMTP id 36uc6vdf14-1
+	by aserp3030.oracle.com with ESMTP id 36v9m8bqkr-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Fri, 26 Feb 2021 04:15:00 +0000
+	for <ocfs2-devel@oss.oracle.com>; Fri, 26 Feb 2021 08:28:14 +0000
 Received: from pps.filterd (userp2040.oracle.com [127.0.0.1])
 	by userp2040.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
-	11Q4ExxE011298
-	for <ocfs2-devel@oss.oracle.com>; Fri, 26 Feb 2021 04:14:59 GMT
-Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by userp2040.oracle.com with ESMTP id 36wskfjau7-1
-	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NO)
-	for <ocfs2-devel@oss.oracle.com>; Fri, 26 Feb 2021 04:14:59 +0000
-Received: by mail.kernel.org (Postfix) with ESMTPSA id 9227864EDC;
-	Fri, 26 Feb 2021 04:14:45 +0000 (UTC)
-Date: Thu, 25 Feb 2021 20:14:46 -0800
-From: "Darrick J. Wong" <djwong@kernel.org>
-To: Shiyang Ruan <ruansy.fnst@fujitsu.com>
-Message-ID: <20210226041446.GV7272@magnolia>
-References: <20210226002030.653855-1-ruansy.fnst@fujitsu.com>
-	<20210226002030.653855-8-ruansy.fnst@fujitsu.com>
+	11Q8Or7h022187
+	for <ocfs2-devel@oss.oracle.com>; Fri, 26 Feb 2021 08:28:13 GMT
+Received: from heian.cn.fujitsu.com (mail.cn.fujitsu.com [183.91.158.132])
+	by userp2040.oracle.com with ESMTP id 36wskfnh9w-1
+	for <ocfs2-devel@oss.oracle.com>; Fri, 26 Feb 2021 08:28:13 +0000
+X-IronPort-AV: E=Sophos;i="5.81,208,1610380800"; d="scan'208";a="104901398"
+Received: from unknown (HELO cn.fujitsu.com) ([10.167.33.5])
+	by heian.cn.fujitsu.com with ESMTP; 26 Feb 2021 16:28:10 +0800
+Received: from G08CNEXMBPEKD04.g08.fujitsu.local (unknown [10.167.33.201])
+	by cn.fujitsu.com (Postfix) with ESMTP id D8B8A4CE76F9;
+	Fri, 26 Feb 2021 16:28:04 +0800 (CST)
+Received: from G08CNEXCHPEKD04.g08.fujitsu.local (10.167.33.200) by
+	G08CNEXMBPEKD04.g08.fujitsu.local (10.167.33.201) with Microsoft SMTP
+	Server (TLS) id 15.0.1497.2; Fri, 26 Feb 2021 16:28:05 +0800
+Received: from irides.mr.mr.mr (10.167.225.141) by
+	G08CNEXCHPEKD04.g08.fujitsu.local (10.167.33.209) with Microsoft SMTP
+	Server
+	id 15.0.1497.2 via Frontend Transport; Fri, 26 Feb 2021 16:28:05 +0800
+From: Shiyang Ruan <ruansy.fnst@fujitsu.com>
+To: <linux-kernel@vger.kernel.org>, <linux-xfs@vger.kernel.org>,
+        <linux-nvdimm@lists.01.org>, <linux-fsdevel@vger.kernel.org>
+Date: Fri, 26 Feb 2021 16:28:03 +0800
+Message-ID: <20210226082803.825612-1-ruansy.fnst@fujitsu.com>
+X-Mailer: git-send-email 2.30.1
+In-Reply-To: <20210226002030.653855-9-ruansy.fnst@fujitsu.com>
+References: <20210226002030.653855-9-ruansy.fnst@fujitsu.com>
 MIME-Version: 1.0
-Content-Disposition: inline
-In-Reply-To: <20210226002030.653855-8-ruansy.fnst@fujitsu.com>
+X-yoursite-MailScanner-ID: D8B8A4CE76F9.A5BE0
+X-yoursite-MailScanner: Found to be clean
+X-yoursite-MailScanner-From: ruansy.fnst@fujitsu.com
 X-PDR: PASS
-X-Source-IP: 198.145.29.99
-X-ServerName: mail.kernel.org
-X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 mx a:sjc.edge.kernel.org a:ewr.edge.kernel.org
-	a:ams.edge.kernel.org a:nrt.edge.kernel.org ~all
+X-Source-IP: 183.91.158.132
+X-ServerName: mail.cn.fujitsu.com
+X-Proofpoint-SPF-Result: neutral
+X-Proofpoint-SPF-Record: v=spf1 ip4:211.128.242.0/26 ip4:202.219.69.128/26
+	ip4:207.54.90.47
+	ip4:207.54.90.48 ip4:207.54.90.49 ip4:68.232.139.117 ip4:68.232.139.130
+	ip4:68.232.139.139 include:spf.protection.outlook.com
+	include:mktomail.com
+	mx:fujitsu.com include:spf.messagelabs.com ?all
 X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9906
 	signatures=668683
-X-Proofpoint-Spam-Details: rule=tap_safe policy=tap score=0 classifier=
-	adjust=0 reason=safe
-	scancount=1 engine=8.12.0-2009150000 definitions=main-2102260028
-X-Spam: OrgSafeList
-X-SpamRule: orgsafelist
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 spamscore=0
+	adultscore=0
+	lowpriorityscore=0 bulkscore=0 mlxscore=0 mlxlogscore=999 phishscore=0
+	priorityscore=78 suspectscore=0 malwarescore=0 clxscore=547
+	impostorscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+	engine=8.12.0-2009150000 definitions=main-2102260064
+X-Spam: Clean
 X-Mailman-Approved-At: Fri, 26 Feb 2021 08:55:31 -0800
-Cc: jack@suse.cz, darrick.wong@oracle.com, linux-nvdimm@lists.01.org,
-        david@fromorbit.com, linux-kernel@vger.kernel.org,
-        linux-xfs@vger.kernel.org, ocfs2-devel@oss.oracle.com,
-        viro@zeniv.linux.org.uk, linux-fsdevel@vger.kernel.org,
-        dan.j.williams@intel.com, linux-btrfs@vger.kernel.org
-Subject: Re: [Ocfs2-devel] [PATCH v2 07/10] iomap: Introduce iomap_apply2()
- for operations on two files
+Cc: jack@suse.cz, darrick.wong@oracle.com, david@fromorbit.com,
+        ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk,
+        Goldwyn Rodrigues <rgoldwyn@suse.com>, dan.j.williams@intel.com,
+        linux-btrfs@vger.kernel.org
+Subject: [Ocfs2-devel] [PATCH v2 08/10] fsdax: Dedup file range to use a
+	compare function
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.9
 Precedence: list
@@ -107,114 +126,258 @@ X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 mlxlogscore=999 a
  mlxscore=0 classifier=spam adjust=0 reason=mlx scancount=1
  engine=8.12.0-2009150000 definitions=main-2102260125
 X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9907 signatures=668683
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 lowpriorityscore=0 clxscore=1034
- malwarescore=0 suspectscore=0 impostorscore=0 phishscore=0 mlxscore=0
- spamscore=0 mlxlogscore=999 bulkscore=0 priorityscore=1501 adultscore=0
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 suspectscore=0 spamscore=0
+ priorityscore=1501 impostorscore=0 bulkscore=0 mlxscore=0 malwarescore=0
+ clxscore=1015 phishscore=0 mlxlogscore=999 lowpriorityscore=0 adultscore=0
  classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2009150000
  definitions=main-2102260125
 
-On Fri, Feb 26, 2021 at 08:20:27AM +0800, Shiyang Ruan wrote:
-> Some operations, such as comparing a range of data in two files under
-> fsdax mode, requires nested iomap_open()/iomap_end() on two file.  Thus,
-> we introduce iomap_apply2() to accept arguments from two files and
-> iomap_actor2_t for actions on two files.
-> 
-> Signed-off-by: Shiyang Ruan <ruansy.fnst@fujitsu.com>
-> ---
->  fs/iomap/apply.c      | 51 +++++++++++++++++++++++++++++++++++++++++++
->  include/linux/iomap.h |  7 +++++-
->  2 files changed, 57 insertions(+), 1 deletion(-)
-> 
-> diff --git a/fs/iomap/apply.c b/fs/iomap/apply.c
-> index 26ab6563181f..fd2f8bde5791 100644
-> --- a/fs/iomap/apply.c
-> +++ b/fs/iomap/apply.c
-> @@ -97,3 +97,54 @@ iomap_apply(struct inode *inode, loff_t pos, loff_t length, unsigned flags,
->  
->  	return written ? written : ret;
->  }
-> +
-> +loff_t
-> +iomap_apply2(struct inode *ino1, loff_t pos1, struct inode *ino2, loff_t pos2,
-> +		loff_t length, unsigned int flags, const struct iomap_ops *ops,
-> +		void *data, iomap_actor2_t actor)
-> +{
-> +	struct iomap smap = { .type = IOMAP_HOLE };
-> +	struct iomap dmap = { .type = IOMAP_HOLE };
-> +	loff_t written = 0, ret;
-> +
-> +	ret = ops->iomap_begin(ino1, pos1, length, 0, &smap, NULL);
-> +	if (ret)
-> +		goto out_src;
-> +	if (WARN_ON(smap.offset > pos1)) {
-> +		written = -EIO;
-> +		goto out_src;
-> +	}
-> +	if (WARN_ON(smap.length == 0)) {
-> +		written = -EIO;
-> +		goto out_src;
-> +	}
-> +
-> +	ret = ops->iomap_begin(ino2, pos2, length, 0, &dmap, NULL);
-> +	if (ret)
-> +		goto out_dest;
-> +	if (WARN_ON(dmap.offset > pos2)) {
-> +		written = -EIO;
-> +		goto out_dest;
-> +	}
-> +	if (WARN_ON(dmap.length == 0)) {
-> +		written = -EIO;
-> +		goto out_dest;
-> +	}
-> +
-> +	/* make sure extent length of two file is equal */
-> +	if (WARN_ON(smap.length != dmap.length)) {
+With dax we cannot deal with readpage() etc. So, we create a dax
+comparison funciton which is similar with
+vfs_dedupe_file_range_compare().
+And introduce dax_remap_file_range_prep() for filesystem use.
 
-Why not set smap.length and dmap.length to min(smap.length, dmap.length) ?
+Signed-off-by: Goldwyn Rodrigues <rgoldwyn@suse.com>
+Signed-off-by: Shiyang Ruan <ruansy.fnst@fujitsu.com>
+---
+ fs/dax.c             | 56 ++++++++++++++++++++++++++++++++++++++++++++
+ fs/remap_range.c     | 45 ++++++++++++++++++++++++++++-------
+ fs/xfs/xfs_reflink.c |  9 +++++--
+ include/linux/dax.h  |  4 ++++
+ include/linux/fs.h   | 15 ++++++++----
+ 5 files changed, 115 insertions(+), 14 deletions(-)
 
---D
+diff --git a/fs/dax.c b/fs/dax.c
+index 4f6c6ba68e6f..dbb95f00b38b 100644
+--- a/fs/dax.c
++++ b/fs/dax.c
+@@ -1856,3 +1856,59 @@ vm_fault_t dax_finish_sync_fault(struct vm_fault *vmf,
+ 	return dax_insert_pfn_mkwrite(vmf, pfn, order);
+ }
+ EXPORT_SYMBOL_GPL(dax_finish_sync_fault);
++
++static loff_t dax_range_compare_actor(struct inode *ino1, loff_t pos1,
++		struct inode *ino2, loff_t pos2, loff_t len, void *data,
++		struct iomap *smap, struct iomap *dmap)
++{
++	void *saddr, *daddr;
++	bool *same = data;
++	int ret;
++
++	if (smap->type == IOMAP_HOLE && dmap->type == IOMAP_HOLE) {
++		*same = true;
++		return len;
++	}
++
++	if (smap->type == IOMAP_HOLE || dmap->type == IOMAP_HOLE) {
++		*same = false;
++		return 0;
++	}
++
++	ret = dax_iomap_direct_access(smap, pos1, ALIGN(pos1 + len, PAGE_SIZE),
++				      &saddr, NULL);
++	if (ret < 0)
++		return -EIO;
++
++	ret = dax_iomap_direct_access(dmap, pos2, ALIGN(pos2 + len, PAGE_SIZE),
++				      &daddr, NULL);
++	if (ret < 0)
++		return -EIO;
++
++	*same = !memcmp(saddr, daddr, len);
++	return len;
++}
++
++int dax_dedupe_file_range_compare(struct inode *src, loff_t srcoff,
++		struct inode *dest, loff_t destoff, loff_t len, bool *is_same,
++		const struct iomap_ops *ops)
++{
++	int id, ret = 0;
++
++	id = dax_read_lock();
++	while (len) {
++		ret = iomap_apply2(src, srcoff, dest, destoff, len, 0, ops,
++				   is_same, dax_range_compare_actor);
++		if (ret < 0 || !*is_same)
++			goto out;
++
++		len -= ret;
++		srcoff += ret;
++		destoff += ret;
++	}
++	ret = 0;
++out:
++	dax_read_unlock(id);
++	return ret;
++}
++EXPORT_SYMBOL_GPL(dax_dedupe_file_range_compare);
+diff --git a/fs/remap_range.c b/fs/remap_range.c
+index 77dba3a49e65..9079390edaf3 100644
+--- a/fs/remap_range.c
++++ b/fs/remap_range.c
+@@ -14,6 +14,7 @@
+ #include <linux/compat.h>
+ #include <linux/mount.h>
+ #include <linux/fs.h>
++#include <linux/dax.h>
+ #include "internal.h"
+ 
+ #include <linux/uaccess.h>
+@@ -199,9 +200,9 @@ static void vfs_unlock_two_pages(struct page *page1, struct page *page2)
+  * Compare extents of two files to see if they are the same.
+  * Caller must have locked both inodes to prevent write races.
+  */
+-static int vfs_dedupe_file_range_compare(struct inode *src, loff_t srcoff,
+-					 struct inode *dest, loff_t destoff,
+-					 loff_t len, bool *is_same)
++int vfs_dedupe_file_range_compare(struct inode *src, loff_t srcoff,
++				  struct inode *dest, loff_t destoff,
++				  loff_t len, bool *is_same)
+ {
+ 	loff_t src_poff;
+ 	loff_t dest_poff;
+@@ -280,6 +281,7 @@ static int vfs_dedupe_file_range_compare(struct inode *src, loff_t srcoff,
+ out_error:
+ 	return error;
+ }
++EXPORT_SYMBOL(vfs_dedupe_file_range_compare);
+ 
+ /*
+  * Check that the two inodes are eligible for cloning, the ranges make
+@@ -289,9 +291,11 @@ static int vfs_dedupe_file_range_compare(struct inode *src, loff_t srcoff,
+  * If there's an error, then the usual negative error code is returned.
+  * Otherwise returns 0 with *len set to the request length.
+  */
+-int generic_remap_file_range_prep(struct file *file_in, loff_t pos_in,
+-				  struct file *file_out, loff_t pos_out,
+-				  loff_t *len, unsigned int remap_flags)
++static int
++__generic_remap_file_range_prep(struct file *file_in, loff_t pos_in,
++				struct file *file_out, loff_t pos_out,
++				loff_t *len, unsigned int remap_flags,
++				const struct iomap_ops *ops)
+ {
+ 	struct inode *inode_in = file_inode(file_in);
+ 	struct inode *inode_out = file_inode(file_out);
+@@ -351,8 +355,15 @@ int generic_remap_file_range_prep(struct file *file_in, loff_t pos_in,
+ 	if (remap_flags & REMAP_FILE_DEDUP) {
+ 		bool		is_same = false;
+ 
+-		ret = vfs_dedupe_file_range_compare(inode_in, pos_in,
+-				inode_out, pos_out, *len, &is_same);
++		if (!IS_DAX(inode_in) && !IS_DAX(inode_out))
++			ret = vfs_dedupe_file_range_compare(inode_in, pos_in,
++					inode_out, pos_out, *len, &is_same);
++		else if (IS_DAX(inode_in) && IS_DAX(inode_out) && ops)
++			ret = dax_dedupe_file_range_compare(inode_in, pos_in,
++					inode_out, pos_out, *len, &is_same,
++					ops);
++		else
++			return -EINVAL;
+ 		if (ret)
+ 			return ret;
+ 		if (!is_same)
+@@ -370,6 +381,24 @@ int generic_remap_file_range_prep(struct file *file_in, loff_t pos_in,
+ 
+ 	return ret;
+ }
++
++int dax_remap_file_range_prep(struct file *file_in, loff_t pos_in,
++			      struct file *file_out, loff_t pos_out,
++			      loff_t *len, unsigned int remap_flags,
++			      const struct iomap_ops *ops)
++{
++	return __generic_remap_file_range_prep(file_in, pos_in, file_out,
++					       pos_out, len, remap_flags, ops);
++}
++EXPORT_SYMBOL(dax_remap_file_range_prep);
++
++int generic_remap_file_range_prep(struct file *file_in, loff_t pos_in,
++				  struct file *file_out, loff_t pos_out,
++				  loff_t *len, unsigned int remap_flags)
++{
++	return __generic_remap_file_range_prep(file_in, pos_in, file_out,
++					       pos_out, len, remap_flags, NULL);
++}
+ EXPORT_SYMBOL(generic_remap_file_range_prep);
+ 
+ loff_t do_clone_file_range(struct file *file_in, loff_t pos_in,
+diff --git a/fs/xfs/xfs_reflink.c b/fs/xfs/xfs_reflink.c
+index 6fa05fb78189..f5b3a3da36b7 100644
+--- a/fs/xfs/xfs_reflink.c
++++ b/fs/xfs/xfs_reflink.c
+@@ -1308,8 +1308,13 @@ xfs_reflink_remap_prep(
+ 	if (IS_DAX(inode_in) || IS_DAX(inode_out))
+ 		goto out_unlock;
+ 
+-	ret = generic_remap_file_range_prep(file_in, pos_in, file_out, pos_out,
+-			len, remap_flags);
++	if (IS_DAX(inode_in))
++		ret = generic_remap_file_range_prep(file_in, pos_in, file_out,
++						    pos_out, len, remap_flags);
++	else
++		ret = dax_remap_file_range_prep(file_in, pos_in, file_out,
++						pos_out, len, remap_flags,
++						&xfs_read_iomap_ops);
+ 	if (ret || *len == 0)
+ 		goto out_unlock;
+ 
+diff --git a/include/linux/dax.h b/include/linux/dax.h
+index 3275e01ed33d..32e1c34349f2 100644
+--- a/include/linux/dax.h
++++ b/include/linux/dax.h
+@@ -239,6 +239,10 @@ int dax_invalidate_mapping_entry_sync(struct address_space *mapping,
+ 				      pgoff_t index);
+ s64 dax_iomap_zero(loff_t pos, u64 length, struct iomap *iomap,
+ 		struct iomap *srcmap);
++int dax_dedupe_file_range_compare(struct inode *src, loff_t srcoff,
++				  struct inode *dest, loff_t destoff,
++				  loff_t len, bool *is_same,
++				  const struct iomap_ops *ops);
+ static inline bool dax_mapping(struct address_space *mapping)
+ {
+ 	return mapping->host && IS_DAX(mapping->host);
+diff --git a/include/linux/fs.h b/include/linux/fs.h
+index fd47deea7c17..2e6ec5bdf82a 100644
+--- a/include/linux/fs.h
++++ b/include/linux/fs.h
+@@ -68,6 +68,7 @@ struct fsverity_info;
+ struct fsverity_operations;
+ struct fs_context;
+ struct fs_parameter_spec;
++struct iomap_ops;
+ 
+ extern void __init inode_init(void);
+ extern void __init inode_init_early(void);
+@@ -1910,13 +1911,19 @@ extern ssize_t vfs_read(struct file *, char __user *, size_t, loff_t *);
+ extern ssize_t vfs_write(struct file *, const char __user *, size_t, loff_t *);
+ extern ssize_t vfs_copy_file_range(struct file *, loff_t , struct file *,
+ 				   loff_t, size_t, unsigned int);
++typedef int (*compare_range_t)(struct inode *src, loff_t srcpos,
++			       struct inode *dest, loff_t destpos,
++			       loff_t len, bool *is_same);
+ extern ssize_t generic_copy_file_range(struct file *file_in, loff_t pos_in,
+ 				       struct file *file_out, loff_t pos_out,
+ 				       size_t len, unsigned int flags);
+-extern int generic_remap_file_range_prep(struct file *file_in, loff_t pos_in,
+-					 struct file *file_out, loff_t pos_out,
+-					 loff_t *count,
+-					 unsigned int remap_flags);
++int generic_remap_file_range_prep(struct file *file_in, loff_t pos_in,
++				  struct file *file_out, loff_t pos_out,
++				  loff_t *count, unsigned int remap_flags);
++int dax_remap_file_range_prep(struct file *file_in, loff_t pos_in,
++			      struct file *file_out, loff_t pos_out,
++			      loff_t *len, unsigned int remap_flags,
++			      const struct iomap_ops *ops);
+ extern loff_t do_clone_file_range(struct file *file_in, loff_t pos_in,
+ 				  struct file *file_out, loff_t pos_out,
+ 				  loff_t len, unsigned int remap_flags);
+-- 
+2.30.1
 
-> +		written = -EIO;
-> +		goto out_dest;
-> +	}
-> +
-> +	written = actor(ino1, pos1, ino2, pos2, length, data, &smap, &dmap);
-> +
-> +out_dest:
-> +	if (ops->iomap_end)
-> +		ret = ops->iomap_end(ino2, pos2, length, 0, 0, &dmap);
-> +out_src:
-> +	if (ops->iomap_end)
-> +		ret = ops->iomap_end(ino1, pos1, length, 0, 0, &smap);
-> +
-> +	return ret;
-> +}
-> diff --git a/include/linux/iomap.h b/include/linux/iomap.h
-> index 5bd3cac4df9c..913f98897a77 100644
-> --- a/include/linux/iomap.h
-> +++ b/include/linux/iomap.h
-> @@ -148,10 +148,15 @@ struct iomap_ops {
->   */
->  typedef loff_t (*iomap_actor_t)(struct inode *inode, loff_t pos, loff_t len,
->  		void *data, struct iomap *iomap, struct iomap *srcmap);
-> -
-> +typedef loff_t (*iomap_actor2_t)(struct inode *ino1, loff_t pos1,
-> +		struct inode *ino2, loff_t pos2, loff_t len, void *data,
-> +		struct iomap *smap, struct iomap *dmap);
->  loff_t iomap_apply(struct inode *inode, loff_t pos, loff_t length,
->  		unsigned flags, const struct iomap_ops *ops, void *data,
->  		iomap_actor_t actor);
-> +loff_t iomap_apply2(struct inode *ino1, loff_t pos1, struct inode *ino2,
-> +		loff_t pos2, loff_t length, unsigned int flags,
-> +		const struct iomap_ops *ops, void *data, iomap_actor2_t actor);
->  
->  ssize_t iomap_file_buffered_write(struct kiocb *iocb, struct iov_iter *from,
->  		const struct iomap_ops *ops);
-> -- 
-> 2.30.1
-> 
-> 
-> 
+
+
 
 _______________________________________________
 Ocfs2-devel mailing list
