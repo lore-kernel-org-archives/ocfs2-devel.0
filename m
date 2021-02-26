@@ -2,109 +2,90 @@ Return-Path: <SRS0=7w/S=H4=oss.oracle.com=ocfs2-devel-bounces@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-16.7 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
+X-Spam-Status: No, score=-14.0 required=3.0 tests=BAYES_00,INCLUDES_CR_TRAILER,
+	INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED
 	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 03629C43333
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 2E3C3C43603
 	for <ocfs2-devel@archiver.kernel.org>; Fri, 26 Feb 2021 16:55:39 +0000 (UTC)
 Received: from aserp2120.oracle.com (aserp2120.oracle.com [141.146.126.78])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by mail.kernel.org (Postfix) with ESMTPS id 90D3C64ED2
+	by mail.kernel.org (Postfix) with ESMTPS id CD306601FB
 	for <ocfs2-devel@archiver.kernel.org>; Fri, 26 Feb 2021 16:55:38 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.3.2 mail.kernel.org 90D3C64ED2
-Authentication-Results: mail.kernel.org; dmarc=none (p=none dis=none) header.from=fujitsu.com
+DMARC-Filter: OpenDMARC Filter v1.3.2 mail.kernel.org CD306601FB
+Authentication-Results: mail.kernel.org; dmarc=fail (p=none dis=none) header.from=kernel.org
 Authentication-Results: mail.kernel.org; spf=pass smtp.mailfrom=ocfs2-devel-bounces@oss.oracle.com
 Received: from pps.filterd (aserp2120.oracle.com [127.0.0.1])
-	by aserp2120.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 11QGsgSF133142;
-	Fri, 26 Feb 2021 16:55:37 GMT
+	by aserp2120.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 11QGsRsu133080;
+	Fri, 26 Feb 2021 16:55:38 GMT
 Received: from userp3030.oracle.com (userp3030.oracle.com [156.151.31.80])
-	by aserp2120.oracle.com with ESMTP id 36xqkfa5tr-1
+	by aserp2120.oracle.com with ESMTP id 36xqkfa5tt-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Fri, 26 Feb 2021 16:55:37 +0000
+	Fri, 26 Feb 2021 16:55:38 +0000
 Received: from pps.filterd (userp3030.oracle.com [127.0.0.1])
-	by userp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 11QGsfR4118505;
-	Fri, 26 Feb 2021 16:55:36 GMT
+	by userp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 11QGsfMI118492;
+	Fri, 26 Feb 2021 16:55:37 GMT
 Received: from oss.oracle.com (oss-old-reserved.oracle.com [137.254.22.2])
-	by userp3030.oracle.com with ESMTP id 36ucc2uqsf-1
+	by userp3030.oracle.com with ESMTP id 36ucc2uqsk-1
 	(version=TLSv1 cipher=AES256-SHA bits=256 verify=NO);
-	Fri, 26 Feb 2021 16:55:36 +0000
+	Fri, 26 Feb 2021 16:55:37 +0000
 Received: from localhost ([127.0.0.1] helo=lb-oss.oracle.com)
 	by oss.oracle.com with esmtp (Exim 4.63)
 	(envelope-from <ocfs2-devel-bounces@oss.oracle.com>)
-	id 1lFgOt-0000dR-NK; Fri, 26 Feb 2021 08:55:35 -0800
+	id 1lFgOt-0000dx-Pi; Fri, 26 Feb 2021 08:55:35 -0800
 Received: from userp3020.oracle.com ([156.151.31.79])
 	by oss.oracle.com with esmtp (Exim 4.63)
-	(envelope-from <ruansy.fnst@fujitsu.com>) id 1lFQt2-0006FJ-HI
-	for ocfs2-devel@oss.oracle.com; Thu, 25 Feb 2021 16:21:40 -0800
+	(envelope-from <djwong@kernel.org>) id 1lFUWq-0001jR-CQ
+	for ocfs2-devel@oss.oracle.com; Thu, 25 Feb 2021 20:15:00 -0800
 Received: from pps.filterd (userp3020.oracle.com [127.0.0.1])
 	by userp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
-	11Q0APXI111232
-	for <ocfs2-devel@oss.oracle.com>; Fri, 26 Feb 2021 00:21:40 GMT
-Received: from userp2030.oracle.com (userp2030.oracle.com [156.151.31.89])
-	by userp3020.oracle.com with ESMTP id 36uc6v6ngc-1
+	11Q4AHZk155903
+	for <ocfs2-devel@oss.oracle.com>; Fri, 26 Feb 2021 04:15:00 GMT
+Received: from userp2040.oracle.com (userp2040.oracle.com [156.151.31.90])
+	by userp3020.oracle.com with ESMTP id 36uc6vdf14-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Fri, 26 Feb 2021 00:21:40 +0000
-Received: from pps.filterd (userp2030.oracle.com [127.0.0.1])
-	by userp2030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
-	11Q0DAS2009195
-	for <ocfs2-devel@oss.oracle.com>; Fri, 26 Feb 2021 00:21:39 GMT
-Received: from heian.cn.fujitsu.com (mail.cn.fujitsu.com [183.91.158.132])
-	by userp2030.oracle.com with ESMTP id 36wqdygtqt-1
-	for <ocfs2-devel@oss.oracle.com>; Fri, 26 Feb 2021 00:21:39 +0000
-X-IronPort-AV: E=Sophos;i="5.81,207,1610380800"; d="scan'208";a="104882847"
-Received: from unknown (HELO cn.fujitsu.com) ([10.167.33.5])
-	by heian.cn.fujitsu.com with ESMTP; 26 Feb 2021 08:21:36 +0800
-Received: from G08CNEXMBPEKD04.g08.fujitsu.local (unknown [10.167.33.201])
-	by cn.fujitsu.com (Postfix) with ESMTP id 359364CE6D8A;
-	Fri, 26 Feb 2021 08:21:31 +0800 (CST)
-Received: from G08CNEXCHPEKD04.g08.fujitsu.local (10.167.33.200) by
-	G08CNEXMBPEKD04.g08.fujitsu.local (10.167.33.201) with Microsoft SMTP
-	Server (TLS) id 15.0.1497.2; Fri, 26 Feb 2021 08:21:31 +0800
-Received: from irides.mr.mr.mr (10.167.225.141) by
-	G08CNEXCHPEKD04.g08.fujitsu.local (10.167.33.209) with Microsoft SMTP
-	Server
-	id 15.0.1497.2 via Frontend Transport; Fri, 26 Feb 2021 08:21:31 +0800
-From: Shiyang Ruan <ruansy.fnst@fujitsu.com>
-To: <linux-kernel@vger.kernel.org>, <linux-xfs@vger.kernel.org>,
-        <linux-nvdimm@lists.01.org>, <linux-fsdevel@vger.kernel.org>
-Date: Fri, 26 Feb 2021 08:20:29 +0800
-Message-ID: <20210226002030.653855-10-ruansy.fnst@fujitsu.com>
-X-Mailer: git-send-email 2.30.1
-In-Reply-To: <20210226002030.653855-1-ruansy.fnst@fujitsu.com>
+	for <ocfs2-devel@oss.oracle.com>; Fri, 26 Feb 2021 04:15:00 +0000
+Received: from pps.filterd (userp2040.oracle.com [127.0.0.1])
+	by userp2040.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
+	11Q4ExxE011298
+	for <ocfs2-devel@oss.oracle.com>; Fri, 26 Feb 2021 04:14:59 GMT
+Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
+	by userp2040.oracle.com with ESMTP id 36wskfjau7-1
+	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NO)
+	for <ocfs2-devel@oss.oracle.com>; Fri, 26 Feb 2021 04:14:59 +0000
+Received: by mail.kernel.org (Postfix) with ESMTPSA id 9227864EDC;
+	Fri, 26 Feb 2021 04:14:45 +0000 (UTC)
+Date: Thu, 25 Feb 2021 20:14:46 -0800
+From: "Darrick J. Wong" <djwong@kernel.org>
+To: Shiyang Ruan <ruansy.fnst@fujitsu.com>
+Message-ID: <20210226041446.GV7272@magnolia>
 References: <20210226002030.653855-1-ruansy.fnst@fujitsu.com>
+	<20210226002030.653855-8-ruansy.fnst@fujitsu.com>
 MIME-Version: 1.0
-X-yoursite-MailScanner-ID: 359364CE6D8A.A44C2
-X-yoursite-MailScanner: Found to be clean
-X-yoursite-MailScanner-From: ruansy.fnst@fujitsu.com
+Content-Disposition: inline
+In-Reply-To: <20210226002030.653855-8-ruansy.fnst@fujitsu.com>
 X-PDR: PASS
-X-Source-IP: 183.91.158.132
-X-ServerName: mail.cn.fujitsu.com
-X-Proofpoint-SPF-Result: neutral
-X-Proofpoint-SPF-Record: v=spf1 ip4:211.128.242.0/26 ip4:202.219.69.128/26
-	ip4:207.54.90.47
-	ip4:207.54.90.48 ip4:207.54.90.49 ip4:68.232.139.117 ip4:68.232.139.130
-	ip4:68.232.139.139 include:spf.protection.outlook.com
-	include:mktomail.com
-	mx:fujitsu.com include:spf.messagelabs.com ?all
+X-Source-IP: 198.145.29.99
+X-ServerName: mail.kernel.org
+X-Proofpoint-SPF-Result: pass
+X-Proofpoint-SPF-Record: v=spf1 mx a:sjc.edge.kernel.org a:ewr.edge.kernel.org
+	a:ams.edge.kernel.org a:nrt.edge.kernel.org ~all
 X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9906
 	signatures=668683
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0
-	lowpriorityscore=0 spamscore=0
-	malwarescore=0 bulkscore=0 impostorscore=0 mlxscore=0 adultscore=0
-	suspectscore=0 priorityscore=0 mlxlogscore=843 phishscore=0
-	clxscore=135
-	classifier=spam adjust=0 reason=mlx scancount=1
-	engine=8.12.0-2009150000 definitions=main-2102250184
-X-Spam: Clean
+X-Proofpoint-Spam-Details: rule=tap_safe policy=tap score=0 classifier=
+	adjust=0 reason=safe
+	scancount=1 engine=8.12.0-2009150000 definitions=main-2102260028
+X-Spam: OrgSafeList
+X-SpamRule: orgsafelist
 X-Mailman-Approved-At: Fri, 26 Feb 2021 08:55:31 -0800
-Cc: jack@suse.cz, darrick.wong@oracle.com, david@fromorbit.com,
-        ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk,
+Cc: jack@suse.cz, darrick.wong@oracle.com, linux-nvdimm@lists.01.org,
+        david@fromorbit.com, linux-kernel@vger.kernel.org,
+        linux-xfs@vger.kernel.org, ocfs2-devel@oss.oracle.com,
+        viro@zeniv.linux.org.uk, linux-fsdevel@vger.kernel.org,
         dan.j.williams@intel.com, linux-btrfs@vger.kernel.org
-Subject: [Ocfs2-devel] [PATCH v2 09/10] fs/xfs: Handle CoW for fsdax write()
-	path
+Subject: Re: [Ocfs2-devel] [PATCH v2 07/10] iomap: Introduce iomap_apply2()
+ for operations on two files
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.9
 Precedence: list
@@ -126,184 +107,114 @@ X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 mlxlogscore=999 a
  mlxscore=0 classifier=spam adjust=0 reason=mlx scancount=1
  engine=8.12.0-2009150000 definitions=main-2102260125
 X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9907 signatures=668683
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 lowpriorityscore=0 clxscore=1015
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 lowpriorityscore=0 clxscore=1034
  malwarescore=0 suspectscore=0 impostorscore=0 phishscore=0 mlxscore=0
  spamscore=0 mlxlogscore=999 bulkscore=0 priorityscore=1501 adultscore=0
  classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2009150000
  definitions=main-2102260125
 
-In fsdax mode, WRITE and ZERO on a shared extent need CoW performed. After
-CoW, new allocated extents needs to be remapped to the file.  So, add an
-iomap_end for dax write ops to do the remapping work.
+On Fri, Feb 26, 2021 at 08:20:27AM +0800, Shiyang Ruan wrote:
+> Some operations, such as comparing a range of data in two files under
+> fsdax mode, requires nested iomap_open()/iomap_end() on two file.  Thus,
+> we introduce iomap_apply2() to accept arguments from two files and
+> iomap_actor2_t for actions on two files.
+> 
+> Signed-off-by: Shiyang Ruan <ruansy.fnst@fujitsu.com>
+> ---
+>  fs/iomap/apply.c      | 51 +++++++++++++++++++++++++++++++++++++++++++
+>  include/linux/iomap.h |  7 +++++-
+>  2 files changed, 57 insertions(+), 1 deletion(-)
+> 
+> diff --git a/fs/iomap/apply.c b/fs/iomap/apply.c
+> index 26ab6563181f..fd2f8bde5791 100644
+> --- a/fs/iomap/apply.c
+> +++ b/fs/iomap/apply.c
+> @@ -97,3 +97,54 @@ iomap_apply(struct inode *inode, loff_t pos, loff_t length, unsigned flags,
+>  
+>  	return written ? written : ret;
+>  }
+> +
+> +loff_t
+> +iomap_apply2(struct inode *ino1, loff_t pos1, struct inode *ino2, loff_t pos2,
+> +		loff_t length, unsigned int flags, const struct iomap_ops *ops,
+> +		void *data, iomap_actor2_t actor)
+> +{
+> +	struct iomap smap = { .type = IOMAP_HOLE };
+> +	struct iomap dmap = { .type = IOMAP_HOLE };
+> +	loff_t written = 0, ret;
+> +
+> +	ret = ops->iomap_begin(ino1, pos1, length, 0, &smap, NULL);
+> +	if (ret)
+> +		goto out_src;
+> +	if (WARN_ON(smap.offset > pos1)) {
+> +		written = -EIO;
+> +		goto out_src;
+> +	}
+> +	if (WARN_ON(smap.length == 0)) {
+> +		written = -EIO;
+> +		goto out_src;
+> +	}
+> +
+> +	ret = ops->iomap_begin(ino2, pos2, length, 0, &dmap, NULL);
+> +	if (ret)
+> +		goto out_dest;
+> +	if (WARN_ON(dmap.offset > pos2)) {
+> +		written = -EIO;
+> +		goto out_dest;
+> +	}
+> +	if (WARN_ON(dmap.length == 0)) {
+> +		written = -EIO;
+> +		goto out_dest;
+> +	}
+> +
+> +	/* make sure extent length of two file is equal */
+> +	if (WARN_ON(smap.length != dmap.length)) {
 
-Signed-off-by: Shiyang Ruan <ruansy.fnst@fujitsu.com>
----
- fs/xfs/xfs_bmap_util.c |  3 ++-
- fs/xfs/xfs_file.c      |  9 +++------
- fs/xfs/xfs_iomap.c     | 30 +++++++++++++++++++++++++++++-
- fs/xfs/xfs_iomap.h     |  1 +
- fs/xfs/xfs_iops.c      | 11 ++++++++---
- fs/xfs/xfs_reflink.c   |  2 ++
- 6 files changed, 45 insertions(+), 11 deletions(-)
+Why not set smap.length and dmap.length to min(smap.length, dmap.length) ?
 
-diff --git a/fs/xfs/xfs_bmap_util.c b/fs/xfs/xfs_bmap_util.c
-index 7371a7f7c652..65a8782b6378 100644
---- a/fs/xfs/xfs_bmap_util.c
-+++ b/fs/xfs/xfs_bmap_util.c
-@@ -977,7 +977,8 @@ xfs_free_file_space(
- 	if (offset + len > XFS_ISIZE(ip))
- 		len = XFS_ISIZE(ip) - offset;
- 	error = iomap_zero_range(VFS_I(ip), offset, len, NULL,
--			&xfs_buffered_write_iomap_ops);
-+		  IS_DAX(VFS_I(ip)) ?
-+		  &xfs_dax_write_iomap_ops : &xfs_buffered_write_iomap_ops);
- 	if (error)
- 		return error;
- 
-diff --git a/fs/xfs/xfs_file.c b/fs/xfs/xfs_file.c
-index 5b0f93f73837..1987d15eab61 100644
---- a/fs/xfs/xfs_file.c
-+++ b/fs/xfs/xfs_file.c
-@@ -623,11 +623,8 @@ xfs_file_dax_write(
- 	count = iov_iter_count(from);
- 
- 	trace_xfs_file_dax_write(ip, count, pos);
--	ret = dax_iomap_rw(iocb, from, &xfs_direct_write_iomap_ops);
--	if (ret > 0 && iocb->ki_pos > i_size_read(inode)) {
--		i_size_write(inode, iocb->ki_pos);
--		error = xfs_setfilesize(ip, pos, ret);
--	}
-+	ret = dax_iomap_rw(iocb, from, &xfs_dax_write_iomap_ops);
-+
- out:
- 	xfs_iunlock(ip, iolock);
- 	if (error)
-@@ -1250,7 +1247,7 @@ __xfs_filemap_fault(
- 
- 		ret = dax_iomap_fault(vmf, pe_size, &pfn, NULL,
- 				(write_fault && !vmf->cow_page) ?
--				 &xfs_direct_write_iomap_ops :
-+				 &xfs_dax_write_iomap_ops :
- 				 &xfs_read_iomap_ops);
- 		if (ret & VM_FAULT_NEEDDSYNC)
- 			ret = dax_finish_sync_fault(vmf, pe_size, pfn);
-diff --git a/fs/xfs/xfs_iomap.c b/fs/xfs/xfs_iomap.c
-index 7b9ff824e82d..23c6f8c97047 100644
---- a/fs/xfs/xfs_iomap.c
-+++ b/fs/xfs/xfs_iomap.c
-@@ -771,7 +771,8 @@ xfs_direct_write_iomap_begin(
- 
- 		/* may drop and re-acquire the ilock */
- 		error = xfs_reflink_allocate_cow(ip, &imap, &cmap, &shared,
--				&lockmode, flags & IOMAP_DIRECT);
-+				&lockmode,
-+				flags & IOMAP_DIRECT || IS_DAX(inode));
- 		if (error)
- 			goto out_unlock;
- 		if (shared)
-@@ -850,6 +851,33 @@ const struct iomap_ops xfs_direct_write_iomap_ops = {
- 	.iomap_begin		= xfs_direct_write_iomap_begin,
- };
- 
-+static int
-+xfs_dax_write_iomap_end(
-+	struct inode		*inode,
-+	loff_t			pos,
-+	loff_t			length,
-+	ssize_t			written,
-+	unsigned int		flags,
-+	struct iomap		*iomap)
-+{
-+	int			error = 0;
-+	xfs_inode_t		*ip = XFS_I(inode);
-+
-+	if (pos + written > i_size_read(inode)) {
-+		i_size_write(inode, pos + written);
-+		error = xfs_setfilesize(ip, pos, written);
-+	}
-+	if (xfs_is_cow_inode(ip))
-+		error = xfs_reflink_end_cow(ip, pos, written);
-+
-+	return error;
-+}
-+
-+const struct iomap_ops xfs_dax_write_iomap_ops = {
-+	.iomap_begin		= xfs_direct_write_iomap_begin,
-+	.iomap_end		= xfs_dax_write_iomap_end,
-+};
-+
- static int
- xfs_buffered_write_iomap_begin(
- 	struct inode		*inode,
-diff --git a/fs/xfs/xfs_iomap.h b/fs/xfs/xfs_iomap.h
-index 7d3703556d0e..a361c2f27cf3 100644
---- a/fs/xfs/xfs_iomap.h
-+++ b/fs/xfs/xfs_iomap.h
-@@ -42,6 +42,7 @@ xfs_aligned_fsb_count(
- 
- extern const struct iomap_ops xfs_buffered_write_iomap_ops;
- extern const struct iomap_ops xfs_direct_write_iomap_ops;
-+extern const struct iomap_ops xfs_dax_write_iomap_ops;
- extern const struct iomap_ops xfs_read_iomap_ops;
- extern const struct iomap_ops xfs_seek_iomap_ops;
- extern const struct iomap_ops xfs_xattr_iomap_ops;
-diff --git a/fs/xfs/xfs_iops.c b/fs/xfs/xfs_iops.c
-index 67c8dc9de8aa..adf4467ab862 100644
---- a/fs/xfs/xfs_iops.c
-+++ b/fs/xfs/xfs_iops.c
-@@ -841,6 +841,7 @@ xfs_setattr_size(
- 	int			error;
- 	uint			lock_flags = 0;
- 	bool			did_zeroing = false;
-+	const struct iomap_ops	*ops;
- 
- 	ASSERT(xfs_isilocked(ip, XFS_IOLOCK_EXCL));
- 	ASSERT(xfs_isilocked(ip, XFS_MMAPLOCK_EXCL));
-@@ -887,10 +888,15 @@ xfs_setattr_size(
- 	 * extension, or zeroing out the rest of the block on a downward
- 	 * truncate.
- 	 */
-+	if (IS_DAX(inode))
-+		ops = &xfs_direct_write_iomap_ops;
-+	else
-+		ops = &xfs_buffered_write_iomap_ops;
-+
- 	if (newsize > oldsize) {
- 		trace_xfs_zero_eof(ip, oldsize, newsize - oldsize);
- 		error = iomap_zero_range(inode, oldsize, newsize - oldsize,
--				&did_zeroing, &xfs_buffered_write_iomap_ops);
-+				&did_zeroing, ops);
- 	} else {
- 		/*
- 		 * iomap won't detect a dirty page over an unwritten block (or a
-@@ -902,8 +908,7 @@ xfs_setattr_size(
- 						     newsize);
- 		if (error)
- 			return error;
--		error = iomap_truncate_page(inode, newsize, &did_zeroing,
--				&xfs_buffered_write_iomap_ops);
-+		error = iomap_truncate_page(inode, newsize, &did_zeroing, ops);
- 	}
- 
- 	if (error)
-diff --git a/fs/xfs/xfs_reflink.c b/fs/xfs/xfs_reflink.c
-index f5b3a3da36b7..dfe4e1912ff9 100644
---- a/fs/xfs/xfs_reflink.c
-+++ b/fs/xfs/xfs_reflink.c
-@@ -1246,6 +1246,8 @@ xfs_reflink_zero_posteof(
- 
- 	trace_xfs_zero_eof(ip, isize, pos - isize);
- 	return iomap_zero_range(VFS_I(ip), isize, pos - isize, NULL,
-+			IS_DAX(VFS_I(ip)) ?
-+			&xfs_dax_write_iomap_ops :
- 			&xfs_buffered_write_iomap_ops);
- }
- 
--- 
-2.30.1
+--D
 
-
-
+> +		written = -EIO;
+> +		goto out_dest;
+> +	}
+> +
+> +	written = actor(ino1, pos1, ino2, pos2, length, data, &smap, &dmap);
+> +
+> +out_dest:
+> +	if (ops->iomap_end)
+> +		ret = ops->iomap_end(ino2, pos2, length, 0, 0, &dmap);
+> +out_src:
+> +	if (ops->iomap_end)
+> +		ret = ops->iomap_end(ino1, pos1, length, 0, 0, &smap);
+> +
+> +	return ret;
+> +}
+> diff --git a/include/linux/iomap.h b/include/linux/iomap.h
+> index 5bd3cac4df9c..913f98897a77 100644
+> --- a/include/linux/iomap.h
+> +++ b/include/linux/iomap.h
+> @@ -148,10 +148,15 @@ struct iomap_ops {
+>   */
+>  typedef loff_t (*iomap_actor_t)(struct inode *inode, loff_t pos, loff_t len,
+>  		void *data, struct iomap *iomap, struct iomap *srcmap);
+> -
+> +typedef loff_t (*iomap_actor2_t)(struct inode *ino1, loff_t pos1,
+> +		struct inode *ino2, loff_t pos2, loff_t len, void *data,
+> +		struct iomap *smap, struct iomap *dmap);
+>  loff_t iomap_apply(struct inode *inode, loff_t pos, loff_t length,
+>  		unsigned flags, const struct iomap_ops *ops, void *data,
+>  		iomap_actor_t actor);
+> +loff_t iomap_apply2(struct inode *ino1, loff_t pos1, struct inode *ino2,
+> +		loff_t pos2, loff_t length, unsigned int flags,
+> +		const struct iomap_ops *ops, void *data, iomap_actor2_t actor);
+>  
+>  ssize_t iomap_file_buffered_write(struct kiocb *iocb, struct iov_iter *from,
+>  		const struct iomap_ops *ops);
+> -- 
+> 2.30.1
+> 
+> 
+> 
 
 _______________________________________________
 Ocfs2-devel mailing list
