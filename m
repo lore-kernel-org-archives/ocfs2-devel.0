@@ -2,120 +2,103 @@ Return-Path: <SRS0=HAPo=H7=oss.oracle.com=ocfs2-devel-bounces@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-5.3 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,NICE_REPLY_A,SPF_HELO_NONE,
-	SPF_PASS,USER_AGENT_SANE_1 autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-3.8 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS
+	autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id E6ECDC433E0
-	for <ocfs2-devel@archiver.kernel.org>; Mon,  1 Mar 2021 21:49:05 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 01CCCC433DB
+	for <ocfs2-devel@archiver.kernel.org>; Mon,  1 Mar 2021 22:47:04 +0000 (UTC)
 Received: from userp2130.oracle.com (userp2130.oracle.com [156.151.31.86])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by mail.kernel.org (Postfix) with ESMTPS id 4B7A3600EF
-	for <ocfs2-devel@archiver.kernel.org>; Mon,  1 Mar 2021 21:49:05 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.3.2 mail.kernel.org 4B7A3600EF
-Authentication-Results: mail.kernel.org; dmarc=none (p=none dis=none) header.from=fujitsu.com
+	by mail.kernel.org (Postfix) with ESMTPS id 8F6E160C3E
+	for <ocfs2-devel@archiver.kernel.org>; Mon,  1 Mar 2021 22:47:03 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.3.2 mail.kernel.org 8F6E160C3E
+Authentication-Results: mail.kernel.org; dmarc=none (p=none dis=none) header.from=fromorbit.com
 Authentication-Results: mail.kernel.org; spf=pass smtp.mailfrom=ocfs2-devel-bounces@oss.oracle.com
 Received: from pps.filterd (userp2130.oracle.com [127.0.0.1])
-	by userp2130.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 121LTYD2112497;
-	Mon, 1 Mar 2021 21:49:04 GMT
+	by userp2130.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 121Mhad4015306;
+	Mon, 1 Mar 2021 22:47:02 GMT
 Received: from userp3030.oracle.com (userp3030.oracle.com [156.151.31.80])
-	by userp2130.oracle.com with ESMTP id 36ydgr5gb0-1
+	by userp2130.oracle.com with ESMTP id 36ydgr5m29-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Mon, 01 Mar 2021 21:49:04 +0000
+	Mon, 01 Mar 2021 22:47:02 +0000
 Received: from pps.filterd (userp3030.oracle.com [127.0.0.1])
-	by userp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 121LUtGU113368;
-	Mon, 1 Mar 2021 21:49:04 GMT
+	by userp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 121MislY032073;
+	Mon, 1 Mar 2021 22:47:02 GMT
 Received: from oss.oracle.com (oss-old-reserved.oracle.com [137.254.22.2])
-	by userp3030.oracle.com with ESMTP id 37000w4pq0-1
+	by userp3030.oracle.com with ESMTP id 37000w6apr-1
 	(version=TLSv1 cipher=AES256-SHA bits=256 verify=NO);
-	Mon, 01 Mar 2021 21:49:04 +0000
+	Mon, 01 Mar 2021 22:47:02 +0000
 Received: from localhost ([127.0.0.1] helo=lb-oss.oracle.com)
 	by oss.oracle.com with esmtp (Exim 4.63)
 	(envelope-from <ocfs2-devel-bounces@oss.oracle.com>)
-	id 1lGqPX-0002Xs-37; Mon, 01 Mar 2021 13:49:03 -0800
-Received: from aserp3020.oracle.com ([141.146.126.70])
+	id 1lGrJd-0005aB-6X; Mon, 01 Mar 2021 14:47:01 -0800
+Received: from userp3020.oracle.com ([156.151.31.79])
 	by oss.oracle.com with esmtp (Exim 4.63)
-	(envelope-from <y-goto@fujitsu.com>) id 1lGcxE-00079V-2M
-	for ocfs2-devel@oss.oracle.com; Sun, 28 Feb 2021 23:26:56 -0800
-Received: from pps.filterd (aserp3020.oracle.com [127.0.0.1])
-	by aserp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
-	1217OsgI053907
-	for <ocfs2-devel@oss.oracle.com>; Mon, 1 Mar 2021 07:26:55 GMT
-Received: from userp2040.oracle.com (userp2040.oracle.com [156.151.31.90])
-	by aserp3020.oracle.com with ESMTP id 36yyyx3bax-1
+	(envelope-from <david@fromorbit.com>) id 1lGrJY-0005Zk-QJ
+	for ocfs2-devel@oss.oracle.com; Mon, 01 Mar 2021 14:46:56 -0800
+Received: from pps.filterd (userp3020.oracle.com [127.0.0.1])
+	by userp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
+	121MkT26145943
+	for <ocfs2-devel@oss.oracle.com>; Mon, 1 Mar 2021 22:46:56 GMT
+Received: from userp2030.oracle.com (userp2030.oracle.com [156.151.31.89])
+	by userp3020.oracle.com with ESMTP id 36yyur6pnk-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Mon, 01 Mar 2021 07:26:55 +0000
-Received: from pps.filterd (userp2040.oracle.com [127.0.0.1])
-	by userp2040.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
-	1217NAQ9022453
-	for <ocfs2-devel@oss.oracle.com>; Mon, 1 Mar 2021 07:26:54 GMT
-Received: from esa11.hc1455-7.c3s2.iphmx.com (esa11.hc1455-7.c3s2.iphmx.com
-	[207.54.90.137]) by userp2040.oracle.com with ESMTP id 36ycpu63rs-1
-	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Mon, 01 Mar 2021 07:26:53 +0000
-IronPort-SDR: xHkRAm5doL6iN4c/EDTJisVRrN1S0ZMFlbAW68t/yNX7IOt/Jpj9vCZRT7SuJR7A7o5KoHCIB1
-	TnS9Sq6kwx8ZaCyQzqNF6WbZw1f1N1kfDibDVoR2hYdXjZEg89wDAfRicOOeO/Pu8zGO0BFziC
-	Z+AF9vu4mnFLSPVuj4JBUXTrvCMiV6riSZkBq2JihevyN6YuXIncA6Q9QskRivZXwkzMI/5iVq
-	0X4JIgX4oyeWT2E40LBufJsEqUrLkb4LkOOvw8FAQaCWkq2x+IZDaJw/z0P0x98PXAlvWsuECp
-	uaw=
-X-IronPort-AV: E=McAfee;i="6000,8403,9909"; a="1499185"
-X-IronPort-AV: E=Sophos;i="5.81,214,1610377200"; 
-   d="scan'208";a="1499185"
-Received: from unknown (HELO oym-r1.gw.nic.fujitsu.com) ([210.162.30.89])
-	by esa11.hc1455-7.c3s2.iphmx.com with ESMTP; 01 Mar 2021 16:26:47 +0900
-Received: from oym-m1.gw.nic.fujitsu.com (oym-nat-oym-m1.gw.nic.fujitsu.com
-	[192.168.87.58])
-	by oym-r1.gw.nic.fujitsu.com (Postfix) with ESMTP id B364240D3BC
-	for <ocfs2-devel@oss.oracle.com>; Mon,  1 Mar 2021 16:26:46 +0900 (JST)
-Received: from m3050.s.css.fujitsu.com (msm.b.css.fujitsu.com [10.134.21.208])
-	by oym-m1.gw.nic.fujitsu.com (Postfix) with ESMTP id D0D62B4E24
-	for <ocfs2-devel@oss.oracle.com>; Mon,  1 Mar 2021 16:26:45 +0900 (JST)
-Received: from [10.133.113.145] (VPC-Y08P0560117.g01.fujitsu.local
-	[10.133.113.145])
-	by m3050.s.css.fujitsu.com (Postfix) with ESMTP id A473F2A7;
-	Mon,  1 Mar 2021 16:26:45 +0900 (JST)
-To: Dan Williams <dan.j.williams@intel.com>,
-        "Darrick J. Wong" <djwong@kernel.org>
-References: <20210226002030.653855-1-ruansy.fnst@fujitsu.com>
-	<OSBPR01MB2920899F1D71E7B054A04E39F49D9@OSBPR01MB2920.jpnprd01.prod.outlook.com>
-	<20210226190454.GD7272@magnolia>
+	for <ocfs2-devel@oss.oracle.com>; Mon, 01 Mar 2021 22:46:56 +0000
+Received: from pps.filterd (userp2030.oracle.com [127.0.0.1])
+	by userp2030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
+	121MhaU4044678
+	for <ocfs2-devel@oss.oracle.com>; Mon, 1 Mar 2021 22:46:56 GMT
+Received: from mail106.syd.optusnet.com.au (mail106.syd.optusnet.com.au
+	[211.29.132.42]) by userp2030.oracle.com with ESMTP id 36yc4hhvda-1
+	for <ocfs2-devel@oss.oracle.com>; Mon, 01 Mar 2021 22:46:50 +0000
+Received: from dread.disaster.area (pa49-179-130-210.pa.nsw.optusnet.com.au
+	[49.179.130.210])
+	by mail106.syd.optusnet.com.au (Postfix) with ESMTPS id 96FFC78B08D;
+	Tue,  2 Mar 2021 09:46:41 +1100 (AEDT)
+Received: from dave by dread.disaster.area with local (Exim 4.92.3)
+	(envelope-from <david@fromorbit.com>)
+	id 1lGrJI-00AYOj-RV; Tue, 02 Mar 2021 09:46:40 +1100
+Date: Tue, 2 Mar 2021 09:46:40 +1100
+From: Dave Chinner <david@fromorbit.com>
+To: Dan Williams <dan.j.williams@intel.com>
+Message-ID: <20210301224640.GG4662@dread.disaster.area>
+References: <20210226190454.GD7272@magnolia>
 	<CAPcyv4iJiYsM5FQdpMvCi24aCi7RqUnnxC6sM0umFqiN+Q59cg@mail.gmail.com>
-From: Yasunori Goto <y-goto@fujitsu.com>
-Message-ID: <556921a1-456c-c24d-6d47-e8b15c1d9972@fujitsu.com>
-Date: Mon, 1 Mar 2021 16:26:45 +0900
-User-Agent: Mozilla/5.0 (Windows NT 6.3; WOW64; rv:68.0) Gecko/20100101
-	Thunderbird/68.12.0
+	<20210226205126.GX4662@dread.disaster.area>
+	<CAPcyv4iDefA3Y0wUW=p080SYAsM_2TPJba-V-sxdK_BeJMkmsw@mail.gmail.com>
+	<20210226212748.GY4662@dread.disaster.area>
+	<CAPcyv4jryJ32R5vOwwEdoU3V8C0B7zu_pCt=7f6A3Gk-9h6Dfg@mail.gmail.com>
+	<20210227223611.GZ4662@dread.disaster.area>
+	<CAPcyv4h7XA3Jorcy_J+t9scw0A4KdT2WEwAhE-Nbjc=C2qmkMw@mail.gmail.com>
+	<20210228223846.GA4662@dread.disaster.area>
+	<CAPcyv4jzV2RUij2BEvDJLLiK_67Nf1v3M6-jRLKf32x4iOzqng@mail.gmail.com>
 MIME-Version: 1.0
-In-Reply-To: <CAPcyv4iJiYsM5FQdpMvCi24aCi7RqUnnxC6sM0umFqiN+Q59cg@mail.gmail.com>
-Content-Language: en-US
-X-TM-AS-GCONF: 00
+Content-Disposition: inline
+In-Reply-To: <CAPcyv4jzV2RUij2BEvDJLLiK_67Nf1v3M6-jRLKf32x4iOzqng@mail.gmail.com>
+X-Optus-CM-Score: 0
+X-Optus-CM-Analysis: v=2.3 cv=YKPhNiOx c=1 sm=1 tr=0 cx=a_idp_d
+	a=JD06eNgDs9tuHP7JIKoLzw==:117 a=JD06eNgDs9tuHP7JIKoLzw==:17
+	a=kj9zAlcOel0A:10 a=dESyimp9J3IA:10 a=7-415B0cAAAA:8
+	a=A7xB1iZnyS4vYbptKj0A:9 a=CjuIK1q_8ugA:10 a=biEYGPWJfzWAr4FL6Ov7:22
 X-PDR: PASS
-X-Source-IP: 207.54.90.137
-X-ServerName: esa11.hc1455-7.c3s2.iphmx.com
-X-Proofpoint-SPF-Result: neutral
-X-Proofpoint-SPF-Record: v=spf1 ip4:211.128.242.0/26 ip4:202.219.69.128/26
-	ip4:207.54.90.47
-	ip4:207.54.90.48 ip4:207.54.90.49 ip4:68.232.139.117 ip4:68.232.139.130
-	ip4:68.232.139.139 include:spf.protection.outlook.com
-	include:mktomail.com
-	mx:fujitsu.com include:spf.messagelabs.com ?all
-X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9909
+X-Source-IP: 211.29.132.42
+X-ServerName: mail106.syd.optusnet.com.au
+X-Proofpoint-SPF-Result: None
+X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9910
 	signatures=668683
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 spamscore=0
-	priorityscore=0
-	lowpriorityscore=0 malwarescore=0 mlxscore=0 impostorscore=0
-	phishscore=0
-	bulkscore=0 clxscore=369 mlxlogscore=999 suspectscore=0 adultscore=0
-	classifier=spam adjust=0 reason=mlx scancount=1
-	engine=8.12.0-2009150000 definitions=main-2103010059
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 bulkscore=0
+	adultscore=0
+	mlxlogscore=999 suspectscore=0 malwarescore=0 impostorscore=0
+	lowpriorityscore=0 clxscore=185 spamscore=0 mlxscore=0 phishscore=0
+	priorityscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+	engine=8.12.0-2009150000 definitions=main-2103010184
 X-Spam: Clean
-X-Mailman-Approved-At: Mon, 01 Mar 2021 13:49:02 -0800
-Cc: "jack@suse.cz" <jack@suse.cz>,
+Cc: "y-goto@fujitsu.com" <y-goto@fujitsu.com>, "jack@suse.cz" <jack@suse.cz>,
         "fnstml-iaas@cn.fujitsu.com" <fnstml-iaas@cn.fujitsu.com>,
         "linux-nvdimm@lists.01.org" <linux-nvdimm@lists.01.org>,
         "darrick.wong@oracle.com" <darrick.wong@oracle.com>,
-        "david@fromorbit.com" <david@fromorbit.com>,
         "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
         "ruansy.fnst@fujitsu.com" <ruansy.fnst@fujitsu.com>,
         "linux-xfs@vger.kernel.org" <linux-xfs@vger.kernel.org>,
@@ -145,83 +128,218 @@ X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9910 signatures=6
 X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 adultscore=0 mlxscore=0 phishscore=0
  malwarescore=0 spamscore=0 mlxlogscore=999 suspectscore=0 bulkscore=0
  classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2009150000
- definitions=main-2103010174
+ definitions=main-2103010184
 X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9910 signatures=668683
 X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 spamscore=0 adultscore=0
- impostorscore=0 clxscore=1011 suspectscore=0 malwarescore=0
+ impostorscore=0 clxscore=1034 suspectscore=0 malwarescore=0
  priorityscore=1501 mlxscore=0 phishscore=0 bulkscore=0 mlxlogscore=999
  lowpriorityscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2009150000 definitions=main-2103010174
+ engine=8.12.0-2009150000 definitions=main-2103010184
 
-Hello, Dan-san,
-
-On 2021/02/27 4:24, Dan Williams wrote:
-> On Fri, Feb 26, 2021 at 11:05 AM Darrick J. Wong <djwong@kernel.org> wrote:
->>
->> On Fri, Feb 26, 2021 at 09:45:45AM +0000, ruansy.fnst@fujitsu.com wrote:
->>> Hi, guys
->>>
->>> Beside this patchset, I'd like to confirm something about the
->>> "EXPERIMENTAL" tag for dax in XFS.
->>>
->>> In XFS, the "EXPERIMENTAL" tag, which is reported in waring message
->>> when we mount a pmem device with dax option, has been existed for a
->>> while.  It's a bit annoying when using fsdax feature.  So, my initial
->>> intention was to remove this tag.  And I started to find out and solve
->>> the problems which prevent it from being removed.
->>>
->>> As is talked before, there are 3 main problems.  The first one is "dax
->>> semantics", which has been resolved.  The rest two are "RMAP for
->>> fsdax" and "support dax reflink for filesystem", which I have been
->>> working on.
->>
->> <nod>
->>
->>> So, what I want to confirm is: does it means that we can remove the
->>> "EXPERIMENTAL" tag when the rest two problem are solved?
->>
->> Yes.  I'd keep the experimental tag for a cycle or two to make sure that
->> nothing new pops up, but otherwise the two patchsets you've sent close
->> those two big remaining gaps.  Thank you for working on this!
->>
->>> Or maybe there are other important problems need to be fixed before
->>> removing it?  If there are, could you please show me that?
->>
->> That remains to be seen through QA/validation, but I think that's it.
->>
->> Granted, I still have to read through the two patchsets...
+On Mon, Mar 01, 2021 at 12:55:53PM -0800, Dan Williams wrote:
+> On Sun, Feb 28, 2021 at 2:39 PM Dave Chinner <david@fromorbit.com> wrote:
+> >
+> > On Sat, Feb 27, 2021 at 03:40:24PM -0800, Dan Williams wrote:
+> > > On Sat, Feb 27, 2021 at 2:36 PM Dave Chinner <david@fromorbit.com> wrote:
+> > > > On Fri, Feb 26, 2021 at 02:41:34PM -0800, Dan Williams wrote:
+> > > > > On Fri, Feb 26, 2021 at 1:28 PM Dave Chinner <david@fromorbit.com> wrote:
+> > > > > > On Fri, Feb 26, 2021 at 12:59:53PM -0800, Dan Williams wrote:
+> > > > it points to, check if it points to the PMEM that is being removed,
+> > > > grab the page it points to, map that to the relevant struct page,
+> > > > run collect_procs() on that page, then kill the user processes that
+> > > > map that page.
+> > > >
+> > > > So why can't we walk the ptescheck the physical pages that they
+> > > > map to and if they map to a pmem page we go poison that
+> > > > page and that kills any user process that maps it.
+> > > >
+> > > > i.e. I can't see how unexpected pmem device unplug is any different
+> > > > to an MCE delivering a hwpoison event to a DAX mapped page.
+> > >
+> > > I guess the tradeoff is walking a long list of inodes vs walking a
+> > > large array of pages.
+> >
+> > Not really. You're assuming all a filesystem has to do is invalidate
+> > everything if a device goes away, and that's not true. Finding if an
+> > inode has a mapping that spans a specific device in a multi-device
+> > filesystem can be a lot more complex than that. Just walking inodes
+> > is easy - determining whihc inodes need invalidation is the hard
+> > part.
 > 
-> I've been meaning to circle back here as well.
+> That inode-to-device level of specificity is not needed for the same
+> reason that drop_caches does not need to be specific. If the wrong
+> page is unmapped a re-fault will bring it back, and re-fault will fail
+> for the pages that are successfully removed.
 > 
-> My immediate concern is the issue Jason recently highlighted [1] with
-> respect to invalidating all dax mappings when / if the device is
-> ripped out from underneath the fs. I don't think that will collide
-> with Ruan's implementation, but it does need new communication from
-> driver to fs about removal events.
+> > That's where ->corrupt_range() comes in - the filesystem is already
+> > set up to do reverse mapping from physical range to inode(s)
+> > offsets...
 > 
-> [1]: http://lore.kernel.org/r/CAPcyv4i+PZhYZiePf2PaH0dT5jDfkmkDX-3usQy1fAhf6LPyfw@mail.gmail.com
+> Sure, but what is the need to get to that level of specificity with
+> the filesystem for something that should rarely happen in the course
+> of normal operation outside of a mistake?
+
+Dan, you made this mistake with the hwpoisoning code that we're
+trying to fix that here. Hard coding a 1:1 physical address to
+inode/offset into the DAX mapping was a bad mistake. It's also one
+that should never have occurred because it's *obviously wrong* to
+filesystem developers and has been for a long time.
+
+Now we have the filesytem people providing a mechanism for the pmem
+devices to tell the filesystems about physical device failures so
+they can handle such failures correctly themselves. Having the
+device go away unexpectedly from underneath a mounted and active
+filesystem is a *device failure*, not an "unplug event".
+
+The mistake you made was not understanding how filesystems work,
+nor actually asking filesystem developers what they actually needed.
+You're doing the same thing here - you're telling us what you think
+the solution filesystems need is. Please listen when we say "that is
+not sufficient" because we don't want to be backed into a corner
+that we have to fix ourselves again before we can enable some basic
+filesystem functionality that we should have been able to support on
+DAX from the start...
+
+> > > There's likely always more pages than inodes, but perhaps it's more
+> > > efficient to walk the 'struct page' array than sb->s_inodes?
+> >
+> > I really don't see you seem to be telling us that invalidation is an
+> > either/or choice. There's more ways to convert physical block
+> > address -> inode file offset and mapping index than brute force
+> > inode cache walks....
 > 
+> Yes, but I was trying to map it to an existing mechanism and the
+> internals of drop_pagecache_sb() are, in coarse terms, close to what
+> needs to happen here.
 
-I'm not sure why there is a race condition between unbinding operation 
-and accessing mmaped file on filesystem dax yet.
+No.
 
-May be silly question, but could you tell me why the "unbinding" 
-operation of the namespace which is mounted by filesystem dax must be
-allowed?
-If "unbinding" is rejected when the filesystem is mounted with dax 
-enabled, what is inconvenience?
+drop_pagecache_sb() is not a relevant model for telling a filesystem
+that the block device underneath has gone away, nor for a device to
+ensure that access protections that *are managed by the filesystem*
+are enforced/revoked sanely.
 
-I can imagine if a device like usb memory stick is removed surprisingly, 
-kernel/filesystem need to reject writeback at the time, and discard page 
-cache. Then, I can understand that unbinding operation is essential for 
-such case.
-But I don't know why PMEM device/namespace allows unbinding operation 
-like surprising removal event.
+drop_pagecache_sb() is a brute-force model for invalidating user
+data mappings that the filesystem performs in response to such a
+notification. It only needs this brute-force approach if it has no
+other way to find active DAX mappings across the range of the device
+that has gone away.
 
-Thanks,
+But this model doesn't work for direct mapped metadata, journals or
+any other internal direct filesystem mappings that aren't referenced
+by inodes that the filesytem might be using. The filesystem still
+needs to invalidate all those mappings and prevent further access to
+them, even from within the kernel itself.
 
+Filesystems are way more complex than pure DAX devices, and hence
+handle errors and failure events differently. Unlike DAX devices, we
+have both internal and external references to the DAX device, and we
+can have both external and internal direct maps.  Invalidating user
+data mappings is all dax devices need to do on unplug, but for
+filesystems it is only a small part of what we have to do when a
+range of a device goes bad.
+
+IOWs, there is no "one size fits all" approach that works for all
+filesystems, nor is there one strategy that is is optimal for all
+filesystems. Failure handling in a filesystem is almost always
+filesystem specific...
+
+> > > Ok, I think I set this discussion in the wrong direction implying any
+> > > mapping of this action to a "filesystem dead" event. It's just a "zap
+> > > all ptes" event and upper layers recover from there.
+> >
+> > Yes, that's exactly what ->corrupt_range() is intended for. It
+> > allows the filesystem to lock out access to the bad range
+> > and then recover the data. Or metadata, if that's where the bad
+> > range lands. If that recovery fails, it can then report a data
+> > loss/filesystem shutdown event to userspace and kill user procs that
+> > span the bad range...
+> >
+> > FWIW, is this notification going to occur before or after the device
+> > has been physically unplugged?
+> 
+> Before. This will be operations that happen in the pmem driver
+> ->remove() callback.
+> 
+> > i.e. what do we do about the
+> > time-of-unplug-to-time-of-invalidation window where userspace can
+> > still attempt to access the missing pmem though the
+> > not-yet-invalidated ptes? It may not be likely that people just yank
+> > pmem nvdimms out of machines, but with NVMe persistent memory
+> > spaces, there's every chance that someone pulls the wrong device...
+> 
+> The physical removal aspect is only theoretical today.
+
+For actual pmem, maybe. But hotplug RAM is a thing; big numa
+machines that can hotplug nodes into their fabric and so have CPUs
+and memory able to come and go from a live machine. It's not a small
+stretch to extend that to having PMEM in those nodes. So it's a
+practical design concern right now, even ignoring that NVMe is
+hotplug....
+
+> While the pmem
+> driver has a ->remove() path that's purely a software unbind
+> operation. That said the vulnerability window today is if a process
+> acquires a dax mapping, the pmem device hosting that filesystem goes
+> through an unbind / bind cycle, and then a new filesystem is created /
+> mounted. That old pte may be able to access data that is outside its
+> intended protection domain.
+
+So what is being done to prevent stale DAX mappings from being
+leaked this way right now, seeing as the leak you mention here
+doesn't appear in any way to be filesystem related?
+
+> Going forward, for buses like CXL, there will be a managed physical
+> remove operation via PCIE native hotplug. The flow there is that the
+> PCIE hotplug driver will notify the OS of a pending removal, trigger
+> ->remove() on the pmem driver, and then notify the technician (slot
+> status LED) that the card is safe to pull.
+
+That doesn't protect against pulling the wrong device, or having
+someone pull the device without first running an admin command that
+makes systems using DAX safe to pull the device....
+
+And once you take into account that "pulling the wrong device" can
+happen, how does the filesystem tell tell the difference between a
+device being pulled and a drive cage just dying and so the drive
+just disappear from the system? How are these accidental vs real
+failures any different from the perspective of a filesystem mounted
+on that device?
+
+And then there is the elephant in the room: if there's a "human in
+the loop" step needed to hot unplug a pmem device safely, then
+why the hell is the filesystem on that device still mounted and the
+DAX applications still running?
+
+This just makes no sense at all from an operations perspective - if
+you know that you are about to do an unplug that will result in all
+your DAX apps and filesystems being killed (i.e. fatal production
+environment failure) then why haven't they all been stopped by the
+admin before the device unplug is done? Why does this "human in the
+loop" admin task require the applications and filesystems to handle
+this without warning and have to treat it as a "device failure"
+event when this can all be avoided for normal, scheduled, controlled
+unplug operations? The "unexpected unplug" is a catastrophic failure
+event which may have severe side effects on system operation and
+stability. Why would you design an unplug process that does not
+start with a clean, a controlled shutdown process from the top down?
+If we make the assumption that planned unplugs are well planned,
+organised and scheduled, then the only thing that an unplug event
+needs to mean to a filesystem is "catastrophic device failure has
+occurred".
+
+So from a system level, the way you are describing the way hot
+unplug events are supposed to occur and work looks completely
+screwed up to me. Exactly what use case do you have for pmem device
+hot-unplug from under a live filesystem that isn't considered a
+*catastrophic runtime device failure* by the filesystem?
+
+Cheers,
+
+Dave.
 -- 
-Yasunori Goto
+Dave Chinner
+david@fromorbit.com
 
 _______________________________________________
 Ocfs2-devel mailing list
