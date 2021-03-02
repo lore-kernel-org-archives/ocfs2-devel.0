@@ -6,105 +6,95 @@ X-Spam-Status: No, score=-3.7 required=3.0 tests=BAYES_00,
 	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
 	URIBL_BLOCKED autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id BD905C433E0
-	for <ocfs2-devel@archiver.kernel.org>; Tue,  2 Mar 2021 05:50:39 +0000 (UTC)
-Received: from aserp2120.oracle.com (aserp2120.oracle.com [141.146.126.78])
+	by smtp.lore.kernel.org (Postfix) with ESMTP id BF033C4332E
+	for <ocfs2-devel@archiver.kernel.org>; Tue,  2 Mar 2021 07:57:47 +0000 (UTC)
+Received: from userp2120.oracle.com (userp2120.oracle.com [156.151.31.85])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by mail.kernel.org (Postfix) with ESMTPS id 5D4A86146B
-	for <ocfs2-devel@archiver.kernel.org>; Tue,  2 Mar 2021 05:50:39 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.3.2 mail.kernel.org 5D4A86146B
-Authentication-Results: mail.kernel.org; dmarc=fail (p=none dis=none) header.from=intel.com
+	by mail.kernel.org (Postfix) with ESMTPS id 3A7C461494
+	for <ocfs2-devel@archiver.kernel.org>; Tue,  2 Mar 2021 07:57:47 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.3.2 mail.kernel.org 3A7C461494
+Authentication-Results: mail.kernel.org; dmarc=none (p=none dis=none) header.from=fromorbit.com
 Authentication-Results: mail.kernel.org; spf=pass smtp.mailfrom=ocfs2-devel-bounces@oss.oracle.com
-Received: from pps.filterd (aserp2120.oracle.com [127.0.0.1])
-	by aserp2120.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 1225oXWh153968;
-	Tue, 2 Mar 2021 05:50:38 GMT
-Received: from userp3020.oracle.com (userp3020.oracle.com [156.151.31.79])
-	by aserp2120.oracle.com with ESMTP id 36ye1m67cb-1
+Received: from pps.filterd (userp2120.oracle.com [127.0.0.1])
+	by userp2120.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 1227n6th035938;
+	Tue, 2 Mar 2021 07:57:46 GMT
+Received: from userp3030.oracle.com (userp3030.oracle.com [156.151.31.80])
+	by userp2120.oracle.com with ESMTP id 36yeqmxgfh-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Tue, 02 Mar 2021 05:50:38 +0000
-Received: from pps.filterd (userp3020.oracle.com [127.0.0.1])
-	by userp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 1225oVF5130542;
-	Tue, 2 Mar 2021 05:50:37 GMT
+	Tue, 02 Mar 2021 07:57:46 +0000
+Received: from pps.filterd (userp3030.oracle.com [127.0.0.1])
+	by userp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 1227svnD118897;
+	Tue, 2 Mar 2021 07:57:45 GMT
 Received: from oss.oracle.com (oss-old-reserved.oracle.com [137.254.22.2])
-	by userp3020.oracle.com with ESMTP id 36yyurhkwe-1
+	by userp3030.oracle.com with ESMTP id 37000wmreg-1
 	(version=TLSv1 cipher=AES256-SHA bits=256 verify=NO);
-	Tue, 02 Mar 2021 05:50:37 +0000
+	Tue, 02 Mar 2021 07:57:45 +0000
 Received: from localhost ([127.0.0.1] helo=lb-oss.oracle.com)
 	by oss.oracle.com with esmtp (Exim 4.63)
 	(envelope-from <ocfs2-devel-bounces@oss.oracle.com>)
-	id 1lGxvY-0003Ep-Ep; Mon, 01 Mar 2021 21:50:36 -0800
+	id 1lGzua-00034u-Db; Mon, 01 Mar 2021 23:57:44 -0800
 Received: from aserp3030.oracle.com ([141.146.126.71])
 	by oss.oracle.com with esmtp (Exim 4.63)
-	(envelope-from <dan.j.williams@intel.com>) id 1lGxvW-0003DS-4k
-	for ocfs2-devel@oss.oracle.com; Mon, 01 Mar 2021 21:50:34 -0800
+	(envelope-from <david@fromorbit.com>) id 1lGzuY-00034X-FR
+	for ocfs2-devel@oss.oracle.com; Mon, 01 Mar 2021 23:57:42 -0800
 Received: from pps.filterd (aserp3030.oracle.com [127.0.0.1])
 	by aserp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
-	1225ivTL025090
-	for <ocfs2-devel@oss.oracle.com>; Tue, 2 Mar 2021 05:50:34 GMT
-Received: from userp2040.oracle.com (userp2040.oracle.com [156.151.31.90])
-	by aserp3030.oracle.com with ESMTP id 36yynnpdy5-1
+	1227svls122504
+	for <ocfs2-devel@oss.oracle.com>; Tue, 2 Mar 2021 07:57:42 GMT
+Received: from userp2030.oracle.com (userp2030.oracle.com [156.151.31.89])
+	by aserp3030.oracle.com with ESMTP id 36yynnsuyt-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Tue, 02 Mar 2021 05:50:33 +0000
-Received: from pps.filterd (userp2040.oracle.com [127.0.0.1])
-	by userp2040.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
-	1225hH4A022210
-	for <ocfs2-devel@oss.oracle.com>; Tue, 2 Mar 2021 05:50:33 GMT
-Received: from mail-ej1-f41.google.com (mail-ej1-f41.google.com
-	[209.85.218.41]) by userp2040.oracle.com with ESMTP id 36ycpusmsx-1
-	(version=TLSv1.2 cipher=ECDHE-RSA-AES128-GCM-SHA256 bits=128 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Tue, 02 Mar 2021 05:50:32 +0000
-Received: by mail-ej1-f41.google.com with SMTP id lr13so32892057ejb.8
-	for <ocfs2-devel@oss.oracle.com>; Mon, 01 Mar 2021 21:50:31 -0800 (PST)
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=1e100.net; s=20161025;
-	h=x-gm-message-state:mime-version:references:in-reply-to:from:date
-	:message-id:subject:to:cc;
-	bh=mNZE31gswus170slngXjiwYWAkhOfZUEI/tWqeY6+Ew=;
-	b=ezSr62y/647vSI27G7W1wLLHxzLdiWMKrN/2+Bv00pnxxGLj+8cPPkRMiNPdHcvi4J
-	osQEBr1TwnIfVlDOsT9aW6pvbBEzpCtxfTosz2gFSS33yGbfunKqj3bwGFDVrespUfjU
-	kh6BOD4gWbZGDxRrPpKqSAeek7hzOaM+Ys2BkBlcqOW27eFvEeW0ufx5JXZfwZBuRjnu
-	jmAaet8T+8LbCUlqklawxXSMUN1CkkC9WBS4GCgq2gYuCD20omYvmrjEsAvgV1pFc33j
-	WflyEkofYR3bxfVzfzh8C0LOiOIgRQyf66QhIK8EDfNTeLsdY0qJLPcxbWmhkWV8fuGm
-	r1fA==
-X-Gm-Message-State: AOAM533BuOLV3PB83BlnxdSg/AWSBOifpqVfadKLHZYBLgWp/kX0lTZv
-	4j2fx26R1S1B3EuwLgDw2yg838v7Z+5iQI4xkiDdBw==
-X-Google-Smtp-Source: ABdhPJxLO+hVTmt5Q/tH6FezKM4fb+QRR9ZU9IG9BkPzIKgW3o8mPLtbsk6FDkn6ClsqBLu20m+e0BUjDu7jfCSGcRk=
-X-Received: by 2002:a17:906:6088:: with SMTP id
-	t8mr19715072ejj.323.1614664229502; 
-	Mon, 01 Mar 2021 21:50:29 -0800 (PST)
-MIME-Version: 1.0
-References: <20210226212748.GY4662@dread.disaster.area>
+	for <ocfs2-devel@oss.oracle.com>; Tue, 02 Mar 2021 07:57:42 +0000
+Received: from pps.filterd (userp2030.oracle.com [127.0.0.1])
+	by userp2030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
+	1227rUhM017768
+	for <ocfs2-devel@oss.oracle.com>; Tue, 2 Mar 2021 07:57:41 GMT
+Received: from mail110.syd.optusnet.com.au (mail110.syd.optusnet.com.au
+	[211.29.132.97]) by userp2030.oracle.com with ESMTP id 36yc4hrtxt-1
+	for <ocfs2-devel@oss.oracle.com>; Tue, 02 Mar 2021 07:57:40 +0000
+Received: from dread.disaster.area (pa49-179-130-210.pa.nsw.optusnet.com.au
+	[49.179.130.210])
+	by mail110.syd.optusnet.com.au (Postfix) with ESMTPS id 740D3105F88;
+	Tue,  2 Mar 2021 18:57:37 +1100 (AEDT)
+Received: from dave by dread.disaster.area with local (Exim 4.92.3)
+	(envelope-from <david@fromorbit.com>)
+	id 1lGzuS-00B8zi-8j; Tue, 02 Mar 2021 18:57:36 +1100
+Date: Tue, 2 Mar 2021 18:57:36 +1100
+From: Dave Chinner <david@fromorbit.com>
+To: Dan Williams <dan.j.williams@intel.com>
+Message-ID: <20210302075736.GJ4662@dread.disaster.area>
+References: <20210226205126.GX4662@dread.disaster.area>
+	<CAPcyv4iDefA3Y0wUW=p080SYAsM_2TPJba-V-sxdK_BeJMkmsw@mail.gmail.com>
+	<20210226212748.GY4662@dread.disaster.area>
 	<CAPcyv4jryJ32R5vOwwEdoU3V8C0B7zu_pCt=7f6A3Gk-9h6Dfg@mail.gmail.com>
 	<20210227223611.GZ4662@dread.disaster.area>
 	<CAPcyv4h7XA3Jorcy_J+t9scw0A4KdT2WEwAhE-Nbjc=C2qmkMw@mail.gmail.com>
 	<20210228223846.GA4662@dread.disaster.area>
 	<CAPcyv4jzV2RUij2BEvDJLLiK_67Nf1v3M6-jRLKf32x4iOzqng@mail.gmail.com>
-	<20210301224640.GG4662@dread.disaster.area>
-	<CAPcyv4iTqDJApZY0o_Q0GKn93==d2Gta2NM5x=upf=3JtTia7Q@mail.gmail.com>
-	<20210302024227.GH4662@dread.disaster.area>
-	<CAPcyv4ja8gnTR1E-Ge5etm+y69cHwdWN6Bg79wPPF4M=C-w79A@mail.gmail.com>
-	<20210302053828.GI4662@dread.disaster.area>
-In-Reply-To: <20210302053828.GI4662@dread.disaster.area>
-From: Dan Williams <dan.j.williams@intel.com>
-Date: Mon, 1 Mar 2021 21:50:21 -0800
-Message-ID: <CAPcyv4g03VU8Z8MarMOrW6oJpO-4QFe9-P=CFu3C0z6St3vLuQ@mail.gmail.com>
-To: Dave Chinner <david@fromorbit.com>
+	<20210302032805.GM7272@magnolia>
+	<CAPcyv4jXH0F+aii6ZtYQ3=Rx-mOWM7NFHC9wVxacW-b1o_s20g@mail.gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <CAPcyv4jXH0F+aii6ZtYQ3=Rx-mOWM7NFHC9wVxacW-b1o_s20g@mail.gmail.com>
+X-Optus-CM-Score: 0
+X-Optus-CM-Analysis: v=2.3 cv=F8MpiZpN c=1 sm=1 tr=0 cx=a_idp_d
+	a=JD06eNgDs9tuHP7JIKoLzw==:117 a=JD06eNgDs9tuHP7JIKoLzw==:17
+	a=kj9zAlcOel0A:10 a=dESyimp9J3IA:10 a=VwQbUJbxAAAA:8 a=7-415B0cAAAA:8
+	a=sNTs5Pk-nQt0djJhEW0A:9 a=CjuIK1q_8ugA:10 a=AjGcO6oz07-iQ99wixmX:22
+	a=biEYGPWJfzWAr4FL6Ov7:22
 X-PDR: PASS
-X-Source-IP: 209.85.218.41
-X-ServerName: mail-ej1-f41.google.com
-X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 include:_spf.intel.com include:_spf.google.com
-	-all
+X-Source-IP: 211.29.132.97
+X-ServerName: mail110.syd.optusnet.com.au
+X-Proofpoint-SPF-Result: None
 X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9910
 	signatures=668683
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 spamscore=0
-	priorityscore=0
-	lowpriorityscore=0 malwarescore=0 mlxscore=0 impostorscore=0
-	phishscore=0
-	bulkscore=0 clxscore=191 mlxlogscore=999 suspectscore=0 adultscore=0
-	classifier=spam adjust=0 reason=mlx scancount=1
-	engine=8.12.0-2009150000 definitions=main-2103020046
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 bulkscore=0
+	adultscore=0
+	mlxlogscore=999 suspectscore=0 malwarescore=0 impostorscore=0
+	lowpriorityscore=0 clxscore=152 spamscore=0 mlxscore=0 phishscore=0
+	priorityscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+	engine=8.12.0-2009150000 definitions=main-2103020064
 X-Spam: Clean
 Cc: "y-goto@fujitsu.com" <y-goto@fujitsu.com>, "jack@suse.cz" <jack@suse.cz>,
         "fnstml-iaas@cn.fujitsu.com" <fnstml-iaas@cn.fujitsu.com>,
@@ -136,130 +126,158 @@ Content-Transfer-Encoding: 7bit
 Sender: ocfs2-devel-bounces@oss.oracle.com
 Errors-To: ocfs2-devel-bounces@oss.oracle.com
 X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9910 signatures=668683
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 mlxscore=0 spamscore=0 suspectscore=0
- mlxlogscore=999 bulkscore=0 adultscore=0 phishscore=0 malwarescore=0
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 adultscore=0 mlxscore=0 phishscore=0
+ malwarescore=0 spamscore=0 mlxlogscore=999 suspectscore=0 bulkscore=0
  classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2009150000
- definitions=main-2103020047
+ definitions=main-2103020065
 X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9910 signatures=668683
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 phishscore=0 priorityscore=1501
- mlxlogscore=999 impostorscore=0 suspectscore=0 adultscore=0 malwarescore=0
- mlxscore=0 spamscore=0 bulkscore=0 lowpriorityscore=0 clxscore=1015
- classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2009150000
- definitions=main-2103020047
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 lowpriorityscore=0 clxscore=1034
+ priorityscore=1501 mlxlogscore=999 suspectscore=0 malwarescore=0
+ impostorscore=0 bulkscore=0 adultscore=0 mlxscore=0 phishscore=0
+ spamscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2009150000 definitions=main-2103020064
 
-On Mon, Mar 1, 2021 at 9:38 PM Dave Chinner <david@fromorbit.com> wrote:
->
-> On Mon, Mar 01, 2021 at 07:33:28PM -0800, Dan Williams wrote:
-> > On Mon, Mar 1, 2021 at 6:42 PM Dave Chinner <david@fromorbit.com> wrote:
-> > [..]
-> > > We do not need a DAX specific mechanism to tell us "DAX device
-> > > gone", we need a generic block device interface that tells us "range
-> > > of block device is gone".
+On Mon, Mar 01, 2021 at 09:41:02PM -0800, Dan Williams wrote:
+> On Mon, Mar 1, 2021 at 7:28 PM Darrick J. Wong <djwong@kernel.org> wrote:
+> > > > I really don't see you seem to be telling us that invalidation is an
+> > > > either/or choice. There's more ways to convert physical block
+> > > > address -> inode file offset and mapping index than brute force
+> > > > inode cache walks....
+> > >
+> > > Yes, but I was trying to map it to an existing mechanism and the
+> > > internals of drop_pagecache_sb() are, in coarse terms, close to what
+> > > needs to happen here.
 > >
-> > This is the crux of the disagreement. The block_device is going away
-> > *and* the dax_device is going away.
->
-> No, that is not the disagreement I have with what you are saying.
-> You still haven't understand that it's even more basic and generic
-> than devices going away. At the simplest form, all the filesystem
-> wants is to be notified of is when *unrecoverable media errors*
-> occur in the persistent storage that underlies the filesystem.
->
-> The filesystem does not care what that media is build from - PMEM,
-> flash, corroded spinning disks, MRAM, or any other persistent media
-> you can think off. It just doesn't matter.
->
-> What we care about is that the contents of a *specific LBA range* no
-> longer contain *valid data*. IOWs, the data in that range of the
-> block device has been lost, cannot be retreived and/or cannot be
-> written to any more.
->
-> PMEM taking a MCE because ECC tripped is a media error because data
-> is lost and inaccessible until recovery actions are taken.
->
-> MD RAID failing a scrub is a media error and data is lost and
-> unrecoverable at that layer.
->
-> A device disappearing is a media error because the storage media is
-> now permanently inaccessible to the higher layers.
->
-> This "media error" categorisation is a fundamental property of
-> persistent storage and, as such, is a property of the block devices
-> used to access said persistent storage.
->
-> That's the disagreement here - that you and Christoph are saying
-> ->corrupted_range is not a block device property because only a
-> pmem/DAX device currently generates it.
->
-> You both seem to be NACKing a generic interface because it's only
-> implemented for the first subsystem that needs it. AFAICT, you
-> either don't understand or are completely ignoring the architectural
-> need for it to be provided across the rest of the storage stack that
-> *block device based filesystems depend on*.
+> > Yes.  XFS (with rmap enabled) can do all the iteration and walking in
+> > that function except for the invalidate_mapping_* call itself.  The goal
+> > of this series is first to wire up a callback within both the block and
+> > pmem subsystems so that they can take notifications and reverse-map them
+> > through the storage stack until they reach an fs superblock.
+> 
+> I'm chuckling because this "reverse map all the way up the block
+> layer" is the opposite of what Dave said at the first reaction to my
+> proposal, "can't the mm map pfns to fs inode  address_spaces?".
 
-No I'm NAKing it because it's the wrong interface. See my 'struct
-badblocks' argument in the reply to Darrick. That 'struct badblocks'
-infrastructure arose from MD and is shared with PMEM.
+Ah, no, I never said that the filesystem can't do reverse maps. I
+was asking if the mm could directly (brute-force) invalidate PTEs
+pointing at physical pmem ranges without needing walk the inode
+mappings. That would be far more efficient if it could be done....
 
->
-> Sure, there might be dax device based fielsystems around the corner.
-> They just require a different pmem device ->corrupted_range callout
-> to implement the notification - one that directs to the dax device
-> rather than the block device. That's simple and trivial to
-> implement, but such functionaity for DAX devices  does not replace
-> the need for the same generic functionality to be provided across a
-> *range of different block devices* as required by *block device
-> based filesystems*.
->
-> And that's fundamentally the problem. XFS is block device based, not
-> DAX device based. We require errors to be reported through block
-> device mechanisms. fs-dax does not change this - it is based on pmem
-> being presented as a primarily as a block device to the block device
-> based filesystems and only secondarily as a dax device. Hence if it
-> can be trivially implemented as a block device interface, that's
-> where it should go, because then all the other block devices that
-> the filesytem runs on can provide the same functionality for similar
-> media error events....
+> Today whenever the pmem driver receives new corrupted range
+> notification from the lower level nvdimm
+> infrastructure(nd_pmem_notify) it updates the 'badblocks' instance
+> associated with the pmem gendisk and then notifies userspace that
+> there are new badblocks. This seems a perfect place to signal an upper
+> level stacked block device that may also be watching disk->bb. Then
+> each gendisk in a stacked topology is responsible for watching the
+> badblock notifications of the next level and storing a remapped
+> instance of those blocks until ultimately the filesystem mounted on
+> the top-level block device is responsible for registering for those
+> top-level disk->bb events.
+> 
+> The device gone notification does not map cleanly onto 'struct badblocks'.
 
-Sure, use 'struct badblocks' not struct block_device and
-block_device_operations.
->
-> > The dax_device removal implies one
-> > set of actions (direct accessed pfns invalid) the block device removal
-> > implies another (block layer sector access offline).
->
-> There you go again, saying DAX requires an action, while the block
-> device notification is a -state change- (i.e. goes offline).
+Filesystems are not allowed to interact with the gendisk
+infrastructure - that's for supporting the device side of a block
+device. It's a layering violation, and many a filesytem developer
+has been shouted at for trying to do this. At most we can peek
+through it to query functionality support from the request queue,
+but otherwise filesystems do not interact with anything under
+bdev->bd_disk.
 
-There you go reacting to the least generous interpretation of what I said.
+As it is, badblocks are used by devices to manage internal state.
+e.g. md for recording stripes that need recovery if the system
+crashes while they are being written out.
 
-s/pfns invalid/pfns offline/
+> If an upper level agent really cared about knowing about ->remove()
+> events before they happened it could maybe do something like:
+> 
+> dev = disk_to_dev(bdev->bd_disk)->parent;
+> bus_register_notifier(dev->bus. &disk_host_device_notifier_block)
 
->
-> This is exactly what I said was wrong in my last email.
->
-> > corrupted_range
-> > is blurring the notification for 2 different failure domains. Look at
-> > the nascent idea to mount a filesystem on dax sans a block device.
-> > Look at the existing plumbing for DM to map dax_operations through a
-> > device stack.
->
-> Ummm, it just maps the direct_access call to the underlying device
-> and calls it's ->direct_access method. All it's doing is LBA
-> mapping. That's all it needs to do for ->corrupted_range, too.
-> I have no clue why you think this is a problem for error
-> notification...
->
-> > Look at the pushback Ruan got for adding a new
-> > block_device operation for corrupted_range().
->
-> one person said "no". That's hardly pushback. Especially as I think
-> Christoph's objection about this being dax specific functionality
-> is simply wrong, as per above.
+Yeah, that's exactly the sort of thing that filesystems have been
+aggressively discouraged from doing for years.
 
-It's not wrong when we have a perfectly suitable object for sector
-based error notification and when we're trying to disentangle 'struct
-block_device' from 'struct dax_device'.
+Part of the reason for this is that gendisk based mechanisms are not
+very good for stacked device error reporting. Part of the problem
+here is that every layer of the stacked device has to hook the
+notifier of the block devices underneath it, then translate the
+event to match the upper block device map, then regenerate the
+notification for the next layer up. This isn't an efficient way to
+pass a notification through a series of stacked devices and it is
+messy and cumbersome to maintain.
+
+It can be effective for getting notifications to userspace about
+something that happens to a specific block device. But The userspace
+still ends up having to solve the "what does this error resolve to"
+problem. i.e. Userspace still needs to map that notification to a
+filesystem, and for data loss events map it to objects within the
+filesystem, which can be extremely expensive to do from userspace.
+
+This is exactly the sort of userspace error reporting mess that
+various projects have asked us to try to fix. Plumbing errors
+internally through the kernel up to the filesystem where the
+filesytem can point directly to the user data that is affected is a
+simple, effective solution to the problem. Especially if we then
+have a generic error notification mechanism for filesystems to emit
+errors to registered userspace watchers...
+
+> I still don't think that solves the need for a separate mechanism for
+> global dax_device pte invalidation.
+
+It's just another type of media error because.....
+
+> I think that global dax_device invalidation needs new kernel
+> infrastructure to allow internal users, like dm-writecache and future
+> filesystems using dax for metadata, to take a fault when pmem is
+> offlined.
+
+.... if userspace has directly mapped into the cache, and the cache
+storage goes away, the userspace app has to be killed because we
+have no idea if the device going away has caused data loss or not.
+IOWs, if userspace writes direct to the cache device and it hasn't
+been written back to other storage when it gets yanked, we have just
+caused data corruption to occur.
+
+At minimum, we now have to tell the filesystem that the dirty data
+in the cache is now bad, and direct map applications that map those
+dirty ranges need to be killed because their backing store is no
+longer valid nor does the backup copy contain the data they last
+wrote. Nor is it acessible by direct access, which is going to be
+interesting because dynamically changing dax to non-dax access can't
+be done without forcibly kicking the inode out of the cache. That
+requires all references to the inode to go away. And that means the
+event really has to go up to the filesystem.
+
+But I think the biggest piece of the puzzle that you haven't grokked
+here is that the dm cache device isn't a linear map - it's made up of
+random ranges from the underlying devices. Hence the "remove" of a dm
+cache device turns into a huge number of small, sparse corrupt
+ranges, not a single linear device remove event.
+
+IOWs, device unplug/remove events are not just simple "pass it on"
+events in a stacked storage setup. There can be non-trivial mappings
+through the layers, and device disappearance may in fact manifest to
+the user as data corruption rather than causing data to be
+inaccessible.
+
+Hence "remove" notifications just don't work in the storage stack.
+They need to be translated to block ranges going bad (i.e.  media
+errors), and reported to higher layers as bad ranges, not as device
+removal.
+
+The same goes for DAX devices. The moment they can be placed in
+storage stacks in non-trivial configurations and/or used as cache
+devices that can be directly accessed over tranditional block
+devices, we end up with error conditions that can only be mapped as
+ranges of blocks that have gone bad.
+
+Cheers,
+
+Dave.
+-- 
+Dave Chinner
+david@fromorbit.com
 
 _______________________________________________
 Ocfs2-devel mailing list
