@@ -2,98 +2,195 @@ Return-Path: <SRS0=PQnL=I6=oss.oracle.com=ocfs2-devel-bounces@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-15.3 required=3.0 tests=BAYES_00,
+X-Spam-Status: No, score=-13.8 required=3.0 tests=BAYES_00,
 	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,NICE_REPLY_A,SPF_HELO_NONE,SPF_PASS,UNPARSEABLE_RELAY,
-	USER_AGENT_SANE_1 autolearn=ham autolearn_force=no version=3.4.0
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED autolearn=unavailable
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 2E088C433ED
-	for <ocfs2-devel@archiver.kernel.org>; Thu,  1 Apr 2021 03:11:22 +0000 (UTC)
-Received: from userp2120.oracle.com (userp2120.oracle.com [156.151.31.85])
+	by smtp.lore.kernel.org (Postfix) with ESMTP id A6C30C433B4
+	for <ocfs2-devel@archiver.kernel.org>; Thu,  1 Apr 2021 07:01:21 +0000 (UTC)
+Received: from aserp2130.oracle.com (aserp2130.oracle.com [141.146.126.79])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by mail.kernel.org (Postfix) with ESMTPS id 9C5996105A
-	for <ocfs2-devel@archiver.kernel.org>; Thu,  1 Apr 2021 03:11:21 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.3.2 mail.kernel.org 9C5996105A
-Authentication-Results: mail.kernel.org; dmarc=fail (p=none dis=none) header.from=linux.alibaba.com
+	by mail.kernel.org (Postfix) with ESMTPS id 2A51860FEA
+	for <ocfs2-devel@archiver.kernel.org>; Thu,  1 Apr 2021 07:01:21 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.3.2 mail.kernel.org 2A51860FEA
+Authentication-Results: mail.kernel.org; dmarc=none (p=none dis=none) header.from=fujitsu.com
 Authentication-Results: mail.kernel.org; spf=pass smtp.mailfrom=ocfs2-devel-bounces@oss.oracle.com
-Received: from pps.filterd (userp2120.oracle.com [127.0.0.1])
-	by userp2120.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 1313BKr7050188;
-	Thu, 1 Apr 2021 03:11:20 GMT
-Received: from userp3020.oracle.com (userp3020.oracle.com [156.151.31.79])
-	by userp2120.oracle.com with ESMTP id 37n2a00a8u-1
+Received: from pps.filterd (aserp2130.oracle.com [127.0.0.1])
+	by aserp2130.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 1316jCTV090285;
+	Thu, 1 Apr 2021 07:01:20 GMT
+Received: from userp3030.oracle.com (userp3030.oracle.com [156.151.31.80])
+	by aserp2130.oracle.com with ESMTP id 37n33drmyf-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Thu, 01 Apr 2021 03:11:20 +0000
-Received: from pps.filterd (userp3020.oracle.com [127.0.0.1])
-	by userp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 1313AgqQ051168;
-	Thu, 1 Apr 2021 03:11:20 GMT
+	Thu, 01 Apr 2021 07:01:19 +0000
+Received: from pps.filterd (userp3030.oracle.com [127.0.0.1])
+	by userp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 1316jZgr034759;
+	Thu, 1 Apr 2021 07:01:19 GMT
 Received: from oss.oracle.com (oss-old-reserved.oracle.com [137.254.22.2])
-	by userp3020.oracle.com with ESMTP id 37n2p9wkp0-1
+	by userp3030.oracle.com with ESMTP id 37n2asc9gr-1
 	(version=TLSv1 cipher=AES256-SHA bits=256 verify=NO);
-	Thu, 01 Apr 2021 03:11:20 +0000
+	Thu, 01 Apr 2021 07:01:18 +0000
 Received: from localhost ([127.0.0.1] helo=lb-oss.oracle.com)
 	by oss.oracle.com with esmtp (Exim 4.63)
 	(envelope-from <ocfs2-devel-bounces@oss.oracle.com>)
-	id 1lRnjr-0008EI-7G; Wed, 31 Mar 2021 20:11:19 -0700
-Received: from aserp3030.oracle.com ([141.146.126.71])
+	id 1lRrKP-0002fz-2f; Thu, 01 Apr 2021 00:01:17 -0700
+Received: from aserp3020.oracle.com ([141.146.126.70])
 	by oss.oracle.com with esmtp (Exim 4.63)
-	(envelope-from <joseph.qi@linux.alibaba.com>) id 1lRnjo-0008Dt-HR
-	for ocfs2-devel@oss.oracle.com; Wed, 31 Mar 2021 20:11:16 -0700
-Received: from pps.filterd (aserp3030.oracle.com [127.0.0.1])
-	by aserp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
-	13135gB2114968
-	for <ocfs2-devel@oss.oracle.com>; Thu, 1 Apr 2021 03:11:16 GMT
-Received: from userp2040.oracle.com (userp2040.oracle.com [156.151.31.90])
-	by aserp3030.oracle.com with ESMTP id 37n2arp1wt-1
+	(envelope-from <ruansy.fnst@fujitsu.com>) id 1lRrKL-0002eG-4B
+	for ocfs2-devel@oss.oracle.com; Thu, 01 Apr 2021 00:01:13 -0700
+Received: from pps.filterd (aserp3020.oracle.com [127.0.0.1])
+	by aserp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
+	1316iuuO074714
+	for <ocfs2-devel@oss.oracle.com>; Thu, 1 Apr 2021 07:01:13 GMT
+Received: from userp2030.oracle.com (userp2030.oracle.com [156.151.31.89])
+	by aserp3020.oracle.com with ESMTP id 37n2aauqh4-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Thu, 01 Apr 2021 03:11:16 +0000
-Received: from pps.filterd (userp2040.oracle.com [127.0.0.1])
-	by userp2040.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
-	13134QC2047893
-	for <ocfs2-devel@oss.oracle.com>; Thu, 1 Apr 2021 03:11:15 GMT
-Received: from out30-45.freemail.mail.aliyun.com
-	(out30-45.freemail.mail.aliyun.com [115.124.30.45])
-	by userp2040.oracle.com with ESMTP id 37n2a6kekx-1
-	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NO)
-	for <ocfs2-devel@oss.oracle.com>; Thu, 01 Apr 2021 03:11:14 +0000
-X-Alimail-AntiSpam: AC=PASS; BC=-1|-1; BR=01201311R161e4; CH=green; DM=||false|;
-	DS=||; FP=0|-1|-1|-1|0|-1|-1|-1; HT=e01e04420;
-	MF=joseph.qi@linux.alibaba.com; NM=1; PH=DS; RN=5; SR=0;
-	TI=SMTPD_---0UU.Abbq_1617246669; 
-Received: from B-D1K7ML85-0059.local(mailfrom:joseph.qi@linux.alibaba.com
-	fp:SMTPD_---0UU.Abbq_1617246669) by smtp.aliyun-inc.com(127.0.0.1);
-	Thu, 01 Apr 2021 11:11:09 +0800
-To: Wengang Wang <wen.gang.wang@oracle.com>, ocfs2-devel@oss.oracle.com
-References: <20210331203654.3911-1-wen.gang.wang@oracle.com>
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-Message-ID: <e557eb35-e0ee-2043-efd0-60b3168bfe35@linux.alibaba.com>
-Date: Thu, 1 Apr 2021 11:11:09 +0800
-User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:78.0)
-	Gecko/20100101 Thunderbird/78.8.1
+	for <ocfs2-devel@oss.oracle.com>; Thu, 01 Apr 2021 07:01:12 +0000
+Received: from pps.filterd (userp2030.oracle.com [127.0.0.1])
+	by userp2030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
+	1316sOeX031106
+	for <ocfs2-devel@oss.oracle.com>; Thu, 1 Apr 2021 07:01:11 GMT
+Received: from esa15.fujitsucc.c3s2.iphmx.com (esa15.fujitsucc.c3s2.iphmx.com
+	[68.232.156.107]) by userp2030.oracle.com with ESMTP id 37n2a5pbe8-1
+	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
+	for <ocfs2-devel@oss.oracle.com>; Thu, 01 Apr 2021 07:01:11 +0000
+IronPort-SDR: RmnJhydFbZasSQ1LskITt8J+lQXp8OsIKxZQD8cyMkGfg49LGq3vb2ReNZwyB4KZWWKexlyUwu
+	6wdXBDjwedNMcxh5L5Afd+tUSj2VtQo3Bk6X15SqTP+ZaHC297U3sAHebkEi4TLPPgMk4uDYFm
+	/xZdCBWTLdc7KilZgNvbFTZsi2b4UHw+ljsHSjAgv4QikY6GqEftCgV5Ew/ruMjvlT3x54R468
+	GkYqZDHDpWYcU5ZJHY4k/EyWLmz0JR3lTlP7carMU3RxuXrfsff7PHhZ3oeX00X38z1OszOSi9
+	wa0=
+X-IronPort-AV: E=McAfee;i="6000,8403,9940"; a="28782842"
+X-IronPort-AV: E=Sophos;i="5.81,296,1610377200"; d="scan'208";a="28782842"
+Received: from mail-os2jpn01lp2057.outbound.protection.outlook.com (HELO
+	JPN01-OS2-obe.outbound.protection.outlook.com) ([104.47.92.57])
+	by ob1.fujitsucc.c3s2.iphmx.com with
+	ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 01 Apr 2021 16:00:59 +0900
+ARC-Seal: i=1; a=rsa-sha256; s=arcselector9901; d=microsoft.com; cv=none;
+	b=mMvfzLjsv+K9o5+ZBtV27V3voh8i9nL57hweGf0ElfVXZ0KuSEmk2ixC6qWylp1JcHHAFXNOWz2nGb2QBxCGH/z3kBih1Spn+UCMqts6q0AG2oDXJlbpRupUPEJq1yng8c+vfbiLJAwZh3ihN6sbaoejxNaJIPmTNwZO1J/jtUoDPYQw6N5I7f0nAf7wgZLzm4Jpt1zlHMJ5FL9fUpruir+vIITY4UA/HGNqxqjIWS32zc3vTybqNCAhLZ4w0M6TDg40Arb4r8J8e11dUC0y2thV/3201Qvh8qGHCscrmU8X7+CvPqj6ncDToPYsFLpW+Vg6GSjyFFB/WL4iuQc9xg==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com; 
+	s=arcselector9901;
+	h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
+	bh=8WfKqmT7eVYmofPM3U2KDpt3nefTCfdTOOC0Mb4YIRw=;
+	b=NZAxPsl02eRvOKxTZRsYUnW6MpnfdCvhQWnSeSxTuBO1RHSwKSYVLcrXRP6zjzS0QyD3QdKsOiHr0VctL+BEY55kZqyiij+5gUWDhbXMEZGSNG0UK9V+WOjn0DBWgf+rJi4DfTVwK6CboyRROYl/Xq19re5j28vneeTaDAyCeo44uy8IPudUveL29MTzZ+qggzMXQ10fPqzvVCr0b7FS8kCA8bpLaZopIjV4vBGkh7O4IqjbEYVgR/QvHkzVBtRFaxwR72/Hlxj/TUm+jBFwdEGPmrJ2tPhcbd1B0xHjuQWahdrJrAYlqDnJCZz9ogYNv6DnTESoJts/uoAeuWmJAg==
+ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
+	smtp.mailfrom=fujitsu.com;
+	dmarc=pass action=none header.from=fujitsu.com; 
+	dkim=pass header.d=fujitsu.com; arc=none
+Received: from OSBPR01MB2920.jpnprd01.prod.outlook.com (2603:1096:604:18::16)
+	by OSAPR01MB2178.jpnprd01.prod.outlook.com (2603:1096:603:1a::14)
+	with Microsoft SMTP Server (version=TLS1_2,
+	cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.3977.25;
+	Thu, 1 Apr 2021 07:00:56 +0000
+Received: from OSBPR01MB2920.jpnprd01.prod.outlook.com
+	([fe80::68f4:1e20:827c:a2ca]) by
+	OSBPR01MB2920.jpnprd01.prod.outlook.com
+	([fe80::68f4:1e20:827c:a2ca%4]) with mapi id 15.20.3977.033;
+	Thu, 1 Apr 2021 07:00:56 +0000
+From: "ruansy.fnst@fujitsu.com" <ruansy.fnst@fujitsu.com>
+To: Ritesh Harjani <ritesh.list@gmail.com>
+Thread-Topic: [PATCH v3 06/10] fsdax: Add dax_iomap_cow_copy() for
+	dax_iomap_zero
+Thread-Index: AQHXHGKpPihQKC5ahUGgPX+Z1EC1I6qfTFQAgAAC37A=
+Date: Thu, 1 Apr 2021 07:00:55 +0000
+Message-ID: <OSBPR01MB29206BCD28F769EA87E1609BF47B9@OSBPR01MB2920.jpnprd01.prod.outlook.com>
+References: <20210319015237.993880-1-ruansy.fnst@fujitsu.com>
+	<20210319015237.993880-7-ruansy.fnst@fujitsu.com>
+	<20210401064506.47pz6u2gegp6s2ky@riteshh-domain>
+In-Reply-To: <20210401064506.47pz6u2gegp6s2ky@riteshh-domain>
+Accept-Language: en-US, zh-CN
+Content-Language: zh-CN
+X-MS-Has-Attach: 
+X-MS-TNEF-Correlator: 
+authentication-results: gmail.com; dkim=none (message not signed)
+	header.d=none; gmail.com; dmarc=none action=none header.from=fujitsu.com;
+x-originating-ip: [180.96.28.100]
+x-ms-publictraffictype: Email
+x-ms-office365-filtering-correlation-id: a9e52d4a-99e1-45f4-dcca-08d8f4dbe5ad
+x-ms-traffictypediagnostic: OSAPR01MB2178:
+x-microsoft-antispam-prvs: <OSAPR01MB21785B96A1E2871BBA4D7816F47B9@OSAPR01MB2178.jpnprd01.prod.outlook.com>
+x-ms-oob-tlc-oobclassifiers: OLM:9508;
+x-ms-exchange-senderadcheck: 1
+x-microsoft-antispam: BCL:0;
+x-microsoft-antispam-message-info: lE2uRPsGZu+yYU1dL6XJp9NsEd2JuyUnPinUMNmeyWfRIPBoYzETFfTSXosnIkSj2+V2InZ4HSk/auo96Q8CP+TleKf7S+UxUOF1gjJG3DB73RnskOXPr5bkcZPvuRyQbexjw4WygfNsxF8os/+iiw4DwcVzKsHjw8Mo+l55L74NvKM7RTBtvtxk95GwSImJDUF2ArXqTNbVsRC87SfQq5hobBWp3N7bZuS8YaAFrI1MaJ6pExF7CQVUX2R5hVLkbDCujFFL5XcLZrQvukCUxwKIoF2OUOYvP+eFjVbAEZCFZpGCpg0TMVvA/1eOBZAwhbt5uYW35u5LT1WJT46F0PpD762r3w9hVkQh6rtYRhnSXExUgSmLWGGJcU0M1qJ7JFt7eiz4eayylO0HpOkBCkqI2QTgqN7lYBopKVBPtWlSF86B5OfdhgDbiLpgeA7lNJ4IudF33ux9ktFzq2M5NzmMwBPxYiNI8Hd44lXIKYCaJro1xTuxHkAOsc4omEEVvkkmmGm/1dmfKhR64IOAkyJFF6sswb+ylXa/FJDMj4QNrGvRM9JP/GfRoWSmuI5iuCRhYHyPXQ8LQWtqKJQEA1K8WaewAldERPAfeck++2aNLV7XChJF/W3Dy7gf7Vffl9JLLZbdAd4H5l0qQxCqT8ymsZTCbU1momjg4v1S7w8=
+x-forefront-antispam-report: CIP:255.255.255.255; CTRY:; LANG:en; SCL:1; SRV:; IPV:NLI; SFV:NSPM;
+	H:OSBPR01MB2920.jpnprd01.prod.outlook.com; PTR:; CAT:NONE;
+	SFS:(4636009)(136003)(39860400002)(346002)(366004)(376002)(396003)(26005)(83380400001)(71200400001)(7696005)(54906003)(9686003)(66556008)(52536014)(478600001)(64756008)(53546011)(5660300002)(66946007)(6506007)(66446008)(186003)(55016002)(33656002)(66476007)(2906002)(85182001)(6916009)(8676002)(8936002)(4326008)(38100700001)(76116006)(86362001)(316002)(7416002);
+	DIR:OUT; SFP:1101; 
+x-ms-exchange-antispam-messagedata: =?gb2312?B?MVdFZ1JmMHpYUkM1NDJDTGNuNXo5eldIY09XN21VbVhFRU1PNVNUL1VOU2Nu?=
+	=?gb2312?B?eEU0WkRNMWdWbVorUXVINnJBSVVTSURabC9WenVJL0hUakxpaFhMRWViOWRG?=
+	=?gb2312?B?TExweStsQWVsMGRncFlWejNZUjFFZ0FoU2hsM1NuZUd3Q0dqVkh6Z0VwV2VB?=
+	=?gb2312?B?WDhjU0lzYmgycW5qUEVFVGVoWVQ3NVp0NlYzRGZ2ejg3TnozMm43UFQzU2dk?=
+	=?gb2312?B?RGx1cm1uaE9GWGpQaUU1eU9xRldNdnZyWG1aSVhyalBGT0Y4UUlNZXkvYzNo?=
+	=?gb2312?B?T0xLeGx2TWNqVkVrc2x2YkVRbDFBZDVJM1BDeE1SVTVQN1hPQzhOeHB2eGEy?=
+	=?gb2312?B?Zk1adlJDejhwQ3FhdjVZV2s1NkFNN0NsTzFNUW9oazFPWjN5NkFEQ3V0MlBu?=
+	=?gb2312?B?NkhhMzNodmFTU1hqdDY5M0ZnRXNEVFNnNFZBOTZ0bWJRY0I3Z1NGRlI2S2lX?=
+	=?gb2312?B?ZHpQR3hKT3JuQ3lOYTlNS0hNdlpncU1MU3BzL3ZEVFhtOTZ3blFlWDYrZktJ?=
+	=?gb2312?B?b0ZmTWQxWldGMVRZbXdzdy9hd0I3WDVBTytHSVlsOTdpNXhmdXdoVlNvOHkr?=
+	=?gb2312?B?YUNSKzlTeFhDeThzSG1KQ2FXSzVHNU42YWVmSVlnMXR6MnhGMmdhMUptRUda?=
+	=?gb2312?B?ai9icW1nb3F3WVBTRXVHNVF6TXI5UXBoTjdJbzFiMTF4SzVMc0ZZTjJuRm5l?=
+	=?gb2312?B?THowZTdSQkZmVXR3MFN6T2R5M1NDbG5pYzJWRkh6Q1pyYVJEZnFtZ1VFVFdX?=
+	=?gb2312?B?V0Y2L0pubXp4dDRLbUhGNDdiazNFSHFPdDhjMkdvYWlCdXc1b0xDMXdQT0Nq?=
+	=?gb2312?B?bkRNOUltWjk2OWdoY0FjdE1jME1lb0xDdzJ6MzgxcDh5TzlUdGh5QU8rNFJL?=
+	=?gb2312?B?Nk9ZWWszSm1kbU9YYUtPblI1cDVjZnFJSEIvK2ZidU8ydmx1dG9HV3VqYTVU?=
+	=?gb2312?B?MWpMbVpBNmtjUGJrOWlTUVRDSE1hUFlrNjQzNkx5QmI0aXFaS01EVW9obkN4?=
+	=?gb2312?B?cFpzS1ZLMmxNNHExSzZINkZqWk1xQ3NROEFabCtySnZpYTNYbVlkWVhyamkv?=
+	=?gb2312?B?dmFlNTZUMnR4NTFiTEJINHFoVTFpSWkzVzhOL2dGZUw0UGJqeldsWFdQd083?=
+	=?gb2312?B?MGxnTG9aOGxHYnZwdVhQdC9wTU5OQlhNaVRWeForT2Q3S3Mxd0QrSlU1OWdD?=
+	=?gb2312?B?dWo5MzRYc0VFUzY4Y3BUc3BQQWlPeW9wOHNOakp3azNCNmYwOXIwcXpjVWc1?=
+	=?gb2312?B?R1Qrd2oydDZZTndCWk5BcXhTeWlTdkFoS3g3MCtSeFYyeDM0KzNsVk5CWEt0?=
+	=?gb2312?B?OVBrUjdBY3E1VC92cTRXdlc2ZFBEaXhOM2lXV28vakhTZXgwY1ZRVk9Eb3h0?=
+	=?gb2312?B?TTNvYmw3UXoxZVphRmNnRnhvSVlLT3MwaC9adDcwTkFScjBLOHl0UTRrMFFD?=
+	=?gb2312?B?dG56SVd0Q2h6VmdqM2xOSXd2Q21YU3N2bFFRaFJ6ZVlXQ2hUZmpJWVd3NVhn?=
+	=?gb2312?B?SmtJanhDYUp2cTJVbUZtOHRmWjUySGNkSFM0K3JIQkNxNXIySUcxc0RwM1lZ?=
+	=?gb2312?B?YVFHYkNBVEhkOVBpa0RWRUlXWWlnM3Q0NVdIK09OTmVJaXhVRC9iZDdjUzBS?=
+	=?gb2312?B?eHNHWFR0NGwyMldnTHdRdDBQeXo2ZDZEL1pUZS9zNXdVRFFrMm1iRFFuc3E5?=
+	=?gb2312?B?di9HQ0xUN09Uek1jU3NZMEVIeXcydzBSeE8wRldoUmhQY2FNQlpkM3UyWjBv?=
+	=?gb2312?Q?2d57fq0EPXOWzJPsH+la4KmroGoXhtigKyUA9Kc?=
+x-ms-exchange-transport-forked: True
 MIME-Version: 1.0
-In-Reply-To: <20210331203654.3911-1-wen.gang.wang@oracle.com>
-Content-Language: en-US
+X-OriginatorOrg: fujitsu.com
+X-MS-Exchange-CrossTenant-AuthAs: Internal
+X-MS-Exchange-CrossTenant-AuthSource: OSBPR01MB2920.jpnprd01.prod.outlook.com
+X-MS-Exchange-CrossTenant-Network-Message-Id: a9e52d4a-99e1-45f4-dcca-08d8f4dbe5ad
+X-MS-Exchange-CrossTenant-originalarrivaltime: 01 Apr 2021 07:00:55.8348 (UTC)
+X-MS-Exchange-CrossTenant-fromentityheader: Hosted
+X-MS-Exchange-CrossTenant-id: a19f121d-81e1-4858-a9d8-736e267fd4c7
+X-MS-Exchange-CrossTenant-mailboxtype: HOSTED
+X-MS-Exchange-CrossTenant-userprincipalname: cpH1gFhopND6pEgnDQpTfKHbjYa+PviZ8QX/Zi7VcVRnw3wg6Gpd/b/g7FmuvSrYROt8lAyuR1JoKIY6kWeviQ==
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: OSAPR01MB2178
 X-PDR: PASS
-X-Source-IP: 115.124.30.45
-X-ServerName: out30-45.freemail.mail.aliyun.com
+X-Source-IP: 68.232.156.107
+X-ServerName: esa15.fujitsucc.c3s2.iphmx.com
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 include:spf1.service.alibaba.com
-	include:spf2.service.alibaba.com
-	include:spf1.ocm.aliyun.com  include:spf2.ocm.aliyun.com
-	include:spf1.staff.mail.aliyun.com include:a.hichina.mail.aliyun.com
-	include:b.hichina.mail.aliyun.com -all
+X-Proofpoint-SPF-Record: v=spf1 ip4:211.128.242.0/26 ip4:202.219.69.128/26
+	ip4:207.54.90.47
+	ip4:207.54.90.48 ip4:207.54.90.49 ip4:68.232.139.117 ip4:68.232.139.130
+	ip4:68.232.139.139 include:spf.protection.outlook.com
+	include:mktomail.com
+	mx:fujitsu.com include:spf.messagelabs.com ?all
 X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9940
 	signatures=668683
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 clxscore=191
-	impostorscore=0
-	suspectscore=0 lowpriorityscore=0 adultscore=0 priorityscore=100
-	malwarescore=0 mlxscore=0 phishscore=0 bulkscore=0 spamscore=0
-	mlxlogscore=999 classifier=spam adjust=0 reason=mlx scancount=1
-	engine=8.12.0-2103310000 definitions=main-2104010021
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0
+	lowpriorityscore=0 bulkscore=0
+	priorityscore=165 mlxscore=0 phishscore=0 mlxlogscore=999 spamscore=0
+	clxscore=98 impostorscore=0 adultscore=0 suspectscore=0 malwarescore=0
+	classifier=spam adjust=0 reason=mlx scancount=1
+	engine=8.12.0-2103310000 definitions=main-2104010047
 X-Spam: Clean
-Cc: GHe@suse.com
-Subject: Re: [Ocfs2-devel] [PATCH] ocfs2: fix deadlock between setattr and
-	dio_end_io_write
+Cc: "jack@suse.cz" <jack@suse.cz>,
+        "darrick.wong@oracle.com" <darrick.wong@oracle.com>,
+        "linux-nvdimm@lists.01.org" <linux-nvdimm@lists.01.org>,
+        "david@fromorbit.com" <david@fromorbit.com>,
+        "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
+        "linux-xfs@vger.kernel.org" <linux-xfs@vger.kernel.org>,
+        "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>,
+        "viro@zeniv.linux.org.uk" <viro@zeniv.linux.org.uk>,
+        "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>,
+        "dan.j.williams@intel.com" <dan.j.williams@intel.com>,
+        "linux-btrfs@vger.kernel.org" <linux-btrfs@vger.kernel.org>
+Subject: Re: [Ocfs2-devel] [PATCH v3 06/10] fsdax: Add dax_iomap_cow_copy()
+ for dax_iomap_zero
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.9
 Precedence: list
@@ -110,182 +207,105 @@ Content-Transfer-Encoding: 7bit
 Sender: ocfs2-devel-bounces@oss.oracle.com
 Errors-To: ocfs2-devel-bounces@oss.oracle.com
 X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9940 signatures=668683
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 suspectscore=0 mlxlogscore=999
- adultscore=0 bulkscore=0 mlxscore=0 spamscore=0 malwarescore=0
- phishscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2103310000 definitions=main-2104010022
-X-Proofpoint-GUID: oOwlPPvhc9ApOc5VaRba2EaDUUpQWGEg
-X-Proofpoint-ORIG-GUID: oOwlPPvhc9ApOc5VaRba2EaDUUpQWGEg
-X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9940 signatures=668683
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 impostorscore=0 adultscore=0
- clxscore=1034 mlxlogscore=999 phishscore=0 bulkscore=0 priorityscore=1501
- spamscore=0 malwarescore=0 mlxscore=0 lowpriorityscore=0 suspectscore=0
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 malwarescore=0 phishscore=0 spamscore=0
+ mlxscore=0 mlxlogscore=999 bulkscore=0 adultscore=0 suspectscore=0
  classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2103310000
- definitions=main-2104010022
+ definitions=main-2104010047
+X-Proofpoint-GUID: vCCBZHWVp21__GuR4n_3kIZ2IK484NGN
+X-Proofpoint-ORIG-GUID: vCCBZHWVp21__GuR4n_3kIZ2IK484NGN
+X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9940 signatures=668683
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 spamscore=0 mlxlogscore=999 mlxscore=0
+ lowpriorityscore=0 suspectscore=0 priorityscore=1501 phishscore=0
+ clxscore=1015 impostorscore=0 malwarescore=0 bulkscore=0 adultscore=0
+ classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2103310000
+ definitions=main-2104010047
 
 
 
-On 4/1/21 4:36 AM, Wengang Wang wrote:
-> The following deadlock is detected:
+> -----Original Message-----
+> From: Ritesh Harjani <ritesh.list@gmail.com>
+> Sent: Thursday, April 1, 2021 2:45 PM
+> Subject: Re: [PATCH v3 06/10] fsdax: Add dax_iomap_cow_copy() for
+> dax_iomap_zero
 > 
-> truncate -> setattr path is waiting for pending direct IO to be done (
-> inode->i_dio_count become zero) with inode->i_rwsem held (down_write).
+> On 21/03/19 09:52AM, Shiyang Ruan wrote:
+> > Punch hole on a reflinked file needs dax_copy_edge() too.  Otherwise,
+> > data in not aligned area will be not correct.  So, add the srcmap to
+> > dax_iomap_zero() and replace memset() as dax_copy_edge().
+> >
+> > Signed-off-by: Shiyang Ruan <ruansy.fnst@fujitsu.com>
+> > ---
+> >  fs/dax.c               | 9 +++++++--
+> >  fs/iomap/buffered-io.c | 2 +-
+> >  include/linux/dax.h    | 3 ++-
+> >  3 files changed, 10 insertions(+), 4 deletions(-)
+> >
+> > diff --git a/fs/dax.c b/fs/dax.c
+> > index cfe513eb111e..348297b38f76 100644
+> > --- a/fs/dax.c
+> > +++ b/fs/dax.c
+> > @@ -1174,7 +1174,8 @@ static vm_fault_t dax_pmd_load_hole(struct
+> > xa_state *xas, struct vm_fault *vmf,  }  #endif /* CONFIG_FS_DAX_PMD
+> > */
+> >
+> > -s64 dax_iomap_zero(loff_t pos, u64 length, struct iomap *iomap)
+> > +s64 dax_iomap_zero(loff_t pos, u64 length, struct iomap *iomap,
+> > +		struct iomap *srcmap)
 > 
-> PID: 14827  TASK: ffff881686a9af80  CPU: 20  COMMAND: "ora_p005_hrltd9"
-> #0 [ffffc9000bcf3c08] __schedule at ffffffff818667cc
-> #1 [ffffc9000bcf3ca0] schedule at ffffffff81866de6
-> #2 [ffffc9000bcf3cb8] inode_dio_wait at ffffffff812a2d04
-> #3 [ffffc9000bcf3d28] ocfs2_setattr at ffffffffc05f322e [ocfs2]
-> #4 [ffffc9000bcf3e18] notify_change at ffffffff812a5a09
-> #5 [ffffc9000bcf3e60] do_truncate at ffffffff812808f5
-> #6 [ffffc9000bcf3ed8] do_sys_ftruncate.constprop.18 at ffffffff81280cf2
-> #7 [ffffc9000bcf3f18] sys_ftruncate at ffffffff81280d8e
-> #8 [ffffc9000bcf3f28] do_syscall_64 at ffffffff81003949
-> #9 [ffffc9000bcf3f50] entry_SYSCALL_64_after_hwframe at ffffffff81a001ad
-> 
-> dio completion path is going to complete one direct IO (decrement
-> inode->i_dio_count), but before that it hang at locking inode->i_rwsem.
-> 
->  #0 [ffffc90009b47b40] __schedule+700 at ffffffff818667cc
->  #1 [ffffc90009b47bd8] schedule+54 at ffffffff81866de6
->  #2 [ffffc90009b47bf0] rwsem_down_write_failed+536 at ffffffff8186aa28
->  #3 [ffffc90009b47c88] call_rwsem_down_write_failed+23 at ffffffff8185a1b7
->  #4 [ffffc90009b47cd0] down_write+45 at ffffffff81869c9d
->  #5 [ffffc90009b47ce8] ocfs2_dio_end_io_write+180 at ffffffffc05d5444 [ocfs2]
->  #6 [ffffc90009b47dd8] ocfs2_dio_end_io+85 at ffffffffc05d5a85 [ocfs2]
->  #7 [ffffc90009b47e18] dio_complete+140 at ffffffff812c873c
->  #8 [ffffc90009b47e50] dio_aio_complete_work+25 at ffffffff812c89f9
->  #9 [ffffc90009b47e60] process_one_work+361 at ffffffff810b1889
-> #10 [ffffc90009b47ea8] worker_thread+77 at ffffffff810b233d
-> #11 [ffffc90009b47f08] kthread+261 at ffffffff810b7fd5
-> #12 [ffffc90009b47f50] ret_from_fork+62 at ffffffff81a0035e
-> 
-> Thus above forms ABBA deadlock. The same deadlock was mentioned in
-> upstream commit 28f5a8a7c033cbf3e32277f4cc9c6afd74f05300. well, it seems
-> that that commit just removed cluster lock (the victim of above dead
-> lock) from the ABBA deadlock party.
-> 
-> End-user visible effects:
-> Process hang in truncate -> ocfs2_setattr path and other processes hang at
-> ocfs2_dio_end_io_write path.
-> 
-> This is to fix the deadlock its self. It removes inode_lock() call from dio
-> completion path to remove the deadlock and add ip_alloc_sem lock in setattr
-> path to synchronize the inode modifications.
-> 
-> Cc: stable@vger.kernel.org
-> Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
-> ---
->  fs/ocfs2/aops.c | 11 +----------
->  fs/ocfs2/file.c | 11 ++++++++++-
->  2 files changed, 11 insertions(+), 11 deletions(-)
-> 
-> diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-> index 3bfb4147895a..ad20403b383f 100644
-> --- a/fs/ocfs2/aops.c
-> +++ b/fs/ocfs2/aops.c
-> @@ -2295,7 +2295,7 @@ static int ocfs2_dio_end_io_write(struct inode *inode,
->  	struct ocfs2_alloc_context *meta_ac = NULL;
->  	handle_t *handle = NULL;
->  	loff_t end = offset + bytes;
-> -	int ret = 0, credits = 0, locked = 0;
-> +	int ret = 0, credits = 0;
->  
->  	ocfs2_init_dealloc_ctxt(&dealloc);
->  
-> @@ -2306,13 +2306,6 @@ static int ocfs2_dio_end_io_write(struct inode *inode,
->  	    !dwc->dw_orphaned)
->  		goto out;
->  
-> -	/* ocfs2_file_write_iter will get i_mutex, so we need not lock if we
-> -	 * are in that context. */
-> -	if (dwc->dw_writer_pid != task_pid_nr(current)) {
-> -		inode_lock(inode);
-> -		locked = 1;
-> -	}
-> -
->  	ret = ocfs2_inode_lock(inode, &di_bh, 1);
->  	if (ret < 0) {
->  		mlog_errno(ret);
-> @@ -2393,8 +2386,6 @@ static int ocfs2_dio_end_io_write(struct inode *inode,
->  	if (meta_ac)
->  		ocfs2_free_alloc_context(meta_ac);
->  	ocfs2_run_deallocs(osb, &dealloc);
-> -	if (locked)
-> -		inode_unlock(inode);
->  	ocfs2_dio_free_write_ctx(inode, dwc);
->  
->  	return ret;
-> diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-> index 85979e2214b3..9feaa0d2425a 100644
-> --- a/fs/ocfs2/file.c
-> +++ b/fs/ocfs2/file.c
-> @@ -1123,7 +1123,7 @@ int ocfs2_setattr(struct dentry *dentry, struct iattr *attr)
->  	handle_t *handle = NULL;
->  	struct dquot *transfer_to[MAXQUOTAS] = { };
->  	int qtype;
-> -	int had_lock;
-> +	int had_lock, had_alloc_lock = 0;
->  	struct ocfs2_lock_holder oh;
->  
->  	trace_ocfs2_setattr(inode, dentry,
-> @@ -1244,6 +1244,9 @@ int ocfs2_setattr(struct dentry *dentry, struct iattr *attr)
->  				goto bail_unlock;
->  			}
->  		}
-> +		down_write(&OCFS2_I(inode)->ip_alloc_sem);
-> +		had_alloc_lock = 1;
-> +
->  		handle = ocfs2_start_trans(osb, OCFS2_INODE_UPDATE_CREDITS +
->  					   2 * ocfs2_quota_trans_credits(sb));
->  		if (IS_ERR(handle)) {
-> @@ -1255,6 +1258,9 @@ int ocfs2_setattr(struct dentry *dentry, struct iattr *attr)
->  		if (status < 0)
->  			goto bail_commit;
->  	} else {
-> +		down_write(&OCFS2_I(inode)->ip_alloc_sem);
-> +		had_alloc_lock = 1;
-> +
+> Do we know why does dax_iomap_zero() operates on PAGE_SIZE range?
+> IIUC, dax_zero_page_range() can take nr_pages as a parameter. But we still
+> always use one page at a time. Why is that?
 
-It duplicates the code both in 'if' and 'else', so move it out please.
-Also, I don't like one more flag here to indicate whether we take
-ip_alloc_sem or not.
+I think we can handle more than one page here.  The length can be more than one PAGE_SIZE.
 
-How about do it in the following way?
+> 
+> >  {
+> >  	sector_t sector = iomap_sector(iomap, pos & PAGE_MASK);
+> >  	pgoff_t pgoff;
+> > @@ -1204,7 +1205,11 @@ s64 dax_iomap_zero(loff_t pos, u64 length, struct
+> iomap *iomap)
+> >  	}
+> >
+> >  	if (!page_aligned) {
+> > -		memset(kaddr + offset, 0, size);
+> > +		if (iomap->addr != srcmap->addr)
+> > +			dax_iomap_cow_copy(offset, size, PAGE_SIZE, srcmap,
+> > +					   kaddr, true);
+> > +		else
+> > +			memset(kaddr + offset, 0, size);
+> >  		dax_flush(iomap->dax_dev, kaddr + offset, size);
+> >  	}
+> >  	dax_read_unlock(id);
+> >
+> 
+> Maybe the above could be simplified to this?
+> 
+> 	if (page_aligned) {
+> 		rc = dax_zero_page_range(iomap->dax_dev, pgoff, 1);
+> 	} else {
+> 		rc = dax_direct_access(iomap->dax_dev, pgoff, 1, &kaddr, NULL);
 
-...
-down_write(&OCFS2_I(inode)->ip_alloc_sem);
-if () {
-	...
-	if (err)
-		goto bail_alloc_sem;
-	...
-} else {
-	...
-}
+This looks good.  Need add check for rc here.
 
-...
+> 		if (iomap->addr != srcmap->addr)
+> 			dax_iomap_cow_copy(offset, size, PAGE_SIZE, srcmap,
+> 					   kaddr, true);
+> 		else
+> 			memset(kaddr + offset, 0, size);
+> 		dax_flush(iomap->dax_dev, kaddr + offset, size);
+> 	}
+> 
+> 	dax_read_unlock(id);
+> 	return rc < 0 ? rc : size;
+> 
+> Other than that looks good.
+> Feel free to add.
+> Reviewed-by: Ritesh Harjani <ritesh.list@gmail.com>
+> 
 
-bail_alloc_sem:
-	up_write(&OCFS2_I(inode)->ip_alloc_sem);
-
+--
 Thanks,
-Joseph
-
->  		handle = ocfs2_start_trans(osb, OCFS2_INODE_UPDATE_CREDITS);
->  		if (IS_ERR(handle)) {
->  			status = PTR_ERR(handle);
-> @@ -1273,6 +1279,9 @@ int ocfs2_setattr(struct dentry *dentry, struct iattr *attr)
->  bail_commit:
->  	ocfs2_commit_trans(osb, handle);
->  bail_unlock:
-> +	if (had_alloc_lock)
-> +		up_write(&OCFS2_I(inode)->ip_alloc_sem);
-> +
->  	if (status && inode_locked) {
->  		ocfs2_inode_unlock_tracker(inode, 1, &oh, had_lock);
->  		inode_locked = 0;
-> 
+Ruan Shiyang.
 
 _______________________________________________
 Ocfs2-devel mailing list
