@@ -8,109 +8,110 @@ X-Spam-Status: No, score=-10.7 required=3.0 tests=BAYES_00,
 	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS autolearn=unavailable
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id E8F18C433ED
+	by smtp.lore.kernel.org (Postfix) with ESMTP id E8F48C433B4
 	for <ocfs2-devel@archiver.kernel.org>; Mon, 12 Apr 2021 15:20:49 +0000 (UTC)
 Received: from aserp2120.oracle.com (aserp2120.oracle.com [141.146.126.78])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by mail.kernel.org (Postfix) with ESMTPS id 8D0FA61287
+	by mail.kernel.org (Postfix) with ESMTPS id 8D736611F0
 	for <ocfs2-devel@archiver.kernel.org>; Mon, 12 Apr 2021 15:20:49 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.3.2 mail.kernel.org 8D0FA61287
+DMARC-Filter: OpenDMARC Filter v1.3.2 mail.kernel.org 8D736611F0
 Authentication-Results: mail.kernel.org; dmarc=fail (p=none dis=none) header.from=gmail.com
 Authentication-Results: mail.kernel.org; spf=pass smtp.mailfrom=ocfs2-devel-bounces@oss.oracle.com
 Received: from pps.filterd (aserp2120.oracle.com [127.0.0.1])
-	by aserp2120.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 13CFFhNF092705;
+	by aserp2120.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 13CFEQ0S081056;
 	Mon, 12 Apr 2021 15:20:47 GMT
-Received: from userp3030.oracle.com (userp3030.oracle.com [156.151.31.80])
-	by aserp2120.oracle.com with ESMTP id 37u3ymc1yx-1
+Received: from userp3020.oracle.com (userp3020.oracle.com [156.151.31.79])
+	by aserp2120.oracle.com with ESMTP id 37u3ymc1yw-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
 	Mon, 12 Apr 2021 15:20:47 +0000
-Received: from pps.filterd (userp3030.oracle.com [127.0.0.1])
-	by userp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 13CFGIVa156906;
+Received: from pps.filterd (userp3020.oracle.com [127.0.0.1])
+	by userp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 13CFFQc7185365;
 	Mon, 12 Apr 2021 15:20:46 GMT
 Received: from oss.oracle.com (oss-old-reserved.oracle.com [137.254.22.2])
-	by userp3030.oracle.com with ESMTP id 37unxvhcn5-1
+	by userp3020.oracle.com with ESMTP id 37unsr1yqj-1
 	(version=TLSv1 cipher=AES256-SHA bits=256 verify=NO);
 	Mon, 12 Apr 2021 15:20:46 +0000
 Received: from localhost ([127.0.0.1] helo=lb-oss.oracle.com)
 	by oss.oracle.com with esmtp (Exim 4.63)
 	(envelope-from <ocfs2-devel-bounces@oss.oracle.com>)
-	id 1lVyMn-0003Sa-LE; Mon, 12 Apr 2021 08:20:45 -0700
-Received: from aserp3020.oracle.com ([141.146.126.70])
+	id 1lVyMn-0003Rc-Fd; Mon, 12 Apr 2021 08:20:45 -0700
+Received: from userp3030.oracle.com ([156.151.31.80])
 	by oss.oracle.com with esmtp (Exim 4.63)
-	(envelope-from <ritesh.list@gmail.com>) id 1lRrVL-0003F8-KW
-	for ocfs2-devel@oss.oracle.com; Thu, 01 Apr 2021 00:12:35 -0700
-Received: from pps.filterd (aserp3020.oracle.com [127.0.0.1])
-	by aserp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
-	1317AvCO168441
-	for <ocfs2-devel@oss.oracle.com>; Thu, 1 Apr 2021 07:12:35 GMT
+	(envelope-from <ritesh.list@gmail.com>) id 1lRqzR-0000ng-Mu
+	for ocfs2-devel@oss.oracle.com; Wed, 31 Mar 2021 23:39:37 -0700
+Received: from pps.filterd (userp3030.oracle.com [127.0.0.1])
+	by userp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
+	1316RbV5177558
+	for <ocfs2-devel@oss.oracle.com>; Thu, 1 Apr 2021 06:39:37 GMT
 Received: from userp2040.oracle.com (userp2040.oracle.com [156.151.31.90])
-	by aserp3020.oracle.com with ESMTP id 37n2aav4vm-1
+	by userp3030.oracle.com with ESMTP id 37n2asbpqj-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Thu, 01 Apr 2021 07:12:35 +0000
+	for <ocfs2-devel@oss.oracle.com>; Thu, 01 Apr 2021 06:39:37 +0000
 Received: from pps.filterd (userp2040.oracle.com [127.0.0.1])
 	by userp2040.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
-	1316tKgI048823
-	for <ocfs2-devel@oss.oracle.com>; Thu, 1 Apr 2021 07:12:34 GMT
-Received: from mail-pj1-f44.google.com (mail-pj1-f44.google.com
-	[209.85.216.44]) by userp2040.oracle.com with ESMTP id 37n2a6pw59-1
+	1316YUZk026086
+	for <ocfs2-devel@oss.oracle.com>; Thu, 1 Apr 2021 06:39:37 GMT
+Received: from mail-pj1-f46.google.com (mail-pj1-f46.google.com
+	[209.85.216.46]) by userp2040.oracle.com with ESMTP id 37n2a6pdk4-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES128-GCM-SHA256 bits=128 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Thu, 01 Apr 2021 07:12:34 +0000
-Received: by mail-pj1-f44.google.com with SMTP id
-	x7-20020a17090a2b07b02900c0ea793940so2599551pjc.2
-	for <ocfs2-devel@oss.oracle.com>; Thu, 01 Apr 2021 00:12:34 -0700 (PDT)
+	for <ocfs2-devel@oss.oracle.com>; Thu, 01 Apr 2021 06:39:36 +0000
+Received: by mail-pj1-f46.google.com with SMTP id
+	k23-20020a17090a5917b02901043e35ad4aso2543876pji.3
+	for <ocfs2-devel@oss.oracle.com>; Wed, 31 Mar 2021 23:39:36 -0700 (PDT)
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
 	d=1e100.net; s=20161025;
 	h=x-gm-message-state:date:from:to:cc:subject:message-id:references
 	:mime-version:content-disposition:in-reply-to;
-	bh=nxMNAPqfEecVrR9nsQ3IMQjDvIPPMionqLgGG/C5wWA=;
-	b=IK6Q4tYSBci7ikyQ63fKi/+mUxBZ85snmlMvuAGP/V4LxJhdMGImcLGFAQVGIrjA6f
-	45Or221B6+wG5EAP6ZnHKqv3VUEgzP75i1adgHJMxtli1p5aRwopBO58sP5ySuJahC/r
-	NpgkWI5sMQK854YdQPMLK4aiQTjwjJl9q046nZRoJuzIsECZyu24KXRsHF/oLBukx/wP
-	WnrP/i9VLSwMpt0Lc54a4o2QbnSwhoCoZY2Iq8+DXNzYW24Mmfofe3F0nIFf2jusyXAD
-	Aw4F9CKcbTcouCBjtqVirROXOacMUJ7fwuYlGxSWFCFpoaxekLUTfhsAGPHd3U2jMGc7
-	lRyA==
-X-Gm-Message-State: AOAM5315qz7cFSp34qaZJwbkNSPkfnX9e0zYXfFYcMKXX/D65lwUtp4t
-	7lnZnEhDkqV1vfEPYvD8GJ8=
-X-Google-Smtp-Source: ABdhPJx54GLu44ceRw1VOt4nY0MtGnri8a1v/wQ/JC9/nOhtBatQ1/YNYXNfg6t3Zm5Ef8q/zt/jjA==
-X-Received: by 2002:a17:90a:fa89:: with SMTP id
-	cu9mr7702778pjb.204.1617261152822; 
-	Thu, 01 Apr 2021 00:12:32 -0700 (PDT)
-Received: from localhost ([122.182.250.63])
-	by smtp.gmail.com with ESMTPSA id v2sm4292271pjg.34.2021.04.01.00.12.32
+	bh=Cdhn3hlT1LofiWiq9NSsZXRFtnuTmpkFOIZBKIG5BiA=;
+	b=WWFS5XbS8VNT9NCkTJlCAG56iExb6l92fo//H3b3jVkL+8SPDzKyu31MVjYMW1+qPQ
+	VHQj5kEXV0jTXr4n9CCgRytYHwk+mGfCN+OrCoC+drpelAgPJQ6ceFmP3EYmWrS8dvx/
+	mruXQUX5QByyi32SpZ8AWdDiwcD2aDAkxWZ5miPJqphRprzAoiznnHJdWCpJVWH2VcAQ
+	r8zx3So/6yE5Tn7qsp1AF7cElby/MczNy9+E3yfAv0A1KeM9NueRMAq+1WX6ebUQFpSt
+	hkNWoK3vedfRRLRtxsxyccVJfiMLDvl2XLuxH8ltlzYO4uQzZdX4UvSa1fs0ygwboEOS
+	2YNw==
+X-Gm-Message-State: AOAM5336AZRxjBZ5SueIcNMt4XQrCVcN/Qa7cv7NHoQtwxd+TcPLJxqE
+	n0YODH1yhf6M3i1dXU7oIZA=
+X-Google-Smtp-Source: ABdhPJxV7qnJmiKTK7vMsVhFFpLWa9nVg5l0P/yHHXGvs45jJWGW4/3YJNYe6mcpuHqq0YLrqeBnjw==
+X-Received: by 2002:a17:90a:990a:: with SMTP id
+	b10mr7368818pjp.178.1617259175255; 
+	Wed, 31 Mar 2021 23:39:35 -0700 (PDT)
+Received: from localhost ([122.182.250.63]) by smtp.gmail.com with ESMTPSA id
+	w26sm4326195pfj.58.2021.03.31.23.39.34
 	(version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-	Thu, 01 Apr 2021 00:12:32 -0700 (PDT)
-Date: Thu, 1 Apr 2021 12:42:30 +0530
+	Wed, 31 Mar 2021 23:39:34 -0700 (PDT)
+Date: Thu, 1 Apr 2021 12:09:32 +0530
 From: Ritesh Harjani <ritesh.list@gmail.com>
 To: Shiyang Ruan <ruansy.fnst@fujitsu.com>
-Message-ID: <20210401071230.wbrawpzk3opzmntv@riteshh-domain>
+Message-ID: <20210401063932.tro7a4hhy25zdmho@riteshh-domain>
 References: <20210319015237.993880-1-ruansy.fnst@fujitsu.com>
-	<20210319015237.993880-8-ruansy.fnst@fujitsu.com>
+	<20210319015237.993880-6-ruansy.fnst@fujitsu.com>
 MIME-Version: 1.0
 Content-Disposition: inline
-In-Reply-To: <20210319015237.993880-8-ruansy.fnst@fujitsu.com>
+In-Reply-To: <20210319015237.993880-6-ruansy.fnst@fujitsu.com>
 X-PDR: PASS
-X-Source-IP: 209.85.216.44
-X-ServerName: mail-pj1-f44.google.com
+X-Source-IP: 209.85.216.46
+X-ServerName: mail-pj1-f46.google.com
 X-Proofpoint-SPF-Result: pass
 X-Proofpoint-SPF-Record: v=spf1 redirect=_spf.google.com
 X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9940
 	signatures=668683
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 clxscore=282
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 clxscore=250
 	impostorscore=0
-	suspectscore=0 lowpriorityscore=0 adultscore=0 priorityscore=411
+	suspectscore=0 lowpriorityscore=0 adultscore=0 priorityscore=341
 	malwarescore=0 mlxscore=0 phishscore=0 bulkscore=0 spamscore=0
-	mlxlogscore=900 classifier=spam adjust=0 reason=mlx scancount=1
-	engine=8.12.0-2103310000 definitions=main-2104010047
+	mlxlogscore=999 classifier=spam adjust=0 reason=mlx scancount=1
+	engine=8.12.0-2103310000 definitions=main-2104010046
 X-Spam: Clean
 X-Mailman-Approved-At: Mon, 12 Apr 2021 08:20:43 -0700
 Cc: jack@suse.cz, darrick.wong@oracle.com, linux-nvdimm@lists.01.org,
         david@fromorbit.com, linux-kernel@vger.kernel.org,
         linux-xfs@vger.kernel.org, ocfs2-devel@oss.oracle.com,
-        viro@zeniv.linux.org.uk, linux-fsdevel@vger.kernel.org,
-        dan.j.williams@intel.com, linux-btrfs@vger.kernel.org
-Subject: Re: [Ocfs2-devel] [PATCH v3 07/10] iomap: Introduce iomap_apply2()
- for operations on two files
+        viro@zeniv.linux.org.uk, Goldwyn Rodrigues <rgoldwyn@suse.com>,
+        linux-fsdevel@vger.kernel.org, dan.j.williams@intel.com,
+        linux-btrfs@vger.kernel.org
+Subject: Re: [Ocfs2-devel] [PATCH v3 05/10] fsdax: Replace mmap entry in
+	case of CoW
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.9
 Precedence: list
@@ -127,12 +128,12 @@ Content-Transfer-Encoding: 7bit
 Sender: ocfs2-devel-bounces@oss.oracle.com
 Errors-To: ocfs2-devel-bounces@oss.oracle.com
 X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9952 signatures=668683
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 mlxscore=0 bulkscore=0 malwarescore=0
- spamscore=0 adultscore=0 phishscore=0 mlxlogscore=999 suspectscore=0
- classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2104060000
- definitions=main-2104120100
-X-Proofpoint-GUID: YmXofpsa6ztWeQeu8TCAgxovVRgmxyUT
-X-Proofpoint-ORIG-GUID: YmXofpsa6ztWeQeu8TCAgxovVRgmxyUT
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 mlxlogscore=999 adultscore=0
+ malwarescore=0 suspectscore=0 bulkscore=0 mlxscore=0 spamscore=0
+ phishscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2104060000 definitions=main-2104120100
+X-Proofpoint-GUID: xwuDRctuld6A3SoEczaP-YdCC-4kS3NZ
+X-Proofpoint-ORIG-GUID: xwuDRctuld6A3SoEczaP-YdCC-4kS3NZ
 X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9952 signatures=668683
 X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 mlxscore=0 mlxlogscore=999 spamscore=0
  impostorscore=0 priorityscore=1501 lowpriorityscore=0 adultscore=0
@@ -141,108 +142,151 @@ X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 mlxscore=0 mlxlog
  definitions=main-2104120100
 
 On 21/03/19 09:52AM, Shiyang Ruan wrote:
-> Some operations, such as comparing a range of data in two files under
-> fsdax mode, requires nested iomap_open()/iomap_end() on two file.  Thus,
-> we introduce iomap_apply2() to accept arguments from two files and
-> iomap_actor2_t for actions on two files.
+> We replace the existing entry to the newly allocated one in case of CoW.
+> Also, we mark the entry as PAGECACHE_TAG_TOWRITE so writeback marks this
+> entry as writeprotected.  This helps us snapshots so new write
+> pagefaults after snapshots trigger a CoW.
 >
+
+Please correct me here. So the flow is like this.
+1. In case of CoW or a reflinked file, on an mmaped file if write is attempted,
+   Then in DAX fault handler code, ->iomap_begin() on a given filesystem will
+   populate iomap and srcmap. srcmap being from where the read needs to be
+   attempted from and iomap on where the new write should go to.
+2. So the dax_insert_entry() code as part of the fault handling will take care
+   of removing the old entry and inserting the new pfn entry to xas and mark
+   it with PAGECACHE_TAG_TOWRITE so that dax writeback can mark the entry as
+   write protected.
+Is my above understanding correct?
+
+> Signed-off-by: Goldwyn Rodrigues <rgoldwyn@suse.com>
 > Signed-off-by: Shiyang Ruan <ruansy.fnst@fujitsu.com>
+> Reviewed-by: Christoph Hellwig <hch@lst.de>
 > ---
->  fs/iomap/apply.c      | 56 +++++++++++++++++++++++++++++++++++++++++++
->  include/linux/iomap.h |  7 +++++-
->  2 files changed, 62 insertions(+), 1 deletion(-)
+>  fs/dax.c | 37 ++++++++++++++++++++++++++-----------
+>  1 file changed, 26 insertions(+), 11 deletions(-)
 >
-> diff --git a/fs/iomap/apply.c b/fs/iomap/apply.c
-> index 26ab6563181f..fbc38ce3d5b6 100644
-> --- a/fs/iomap/apply.c
-> +++ b/fs/iomap/apply.c
-> @@ -97,3 +97,59 @@ iomap_apply(struct inode *inode, loff_t pos, loff_t length, unsigned flags,
->
->  	return written ? written : ret;
+> diff --git a/fs/dax.c b/fs/dax.c
+> index 181aad97136a..cfe513eb111e 100644
+> --- a/fs/dax.c
+> +++ b/fs/dax.c
+> @@ -722,6 +722,9 @@ static int copy_cow_page_dax(struct block_device *bdev, struct dax_device *dax_d
+>  	return 0;
 >  }
+>
+> +#define DAX_IF_DIRTY		(1 << 0)
+> +#define DAX_IF_COW		(1 << 1)
 > +
-> +loff_t
-> +iomap_apply2(struct inode *ino1, loff_t pos1, struct inode *ino2, loff_t pos2,
-> +		loff_t length, unsigned int flags, const struct iomap_ops *ops,
-> +		void *data, iomap_actor2_t actor)
-> +{
-> +	struct iomap smap = { .type = IOMAP_HOLE };
-> +	struct iomap dmap = { .type = IOMAP_HOLE };
-> +	loff_t written = 0, ret, ret2 = 0;
-> +	loff_t len1 = length, len2, min_len;
+>
+small comment expalining this means DAX insert flags used in dax_insert_entry()
+
+>
+>  /*
+>   * By this point grab_mapping_entry() has ensured that we have a locked entry
+>   * of the appropriate size so we don't have to worry about downgrading PMDs to
+> @@ -729,16 +732,19 @@ static int copy_cow_page_dax(struct block_device *bdev, struct dax_device *dax_d
+>   * already in the tree, we will skip the insertion and just dirty the PMD as
+>   * appropriate.
+>   */
+> -static void *dax_insert_entry(struct xa_state *xas,
+> -		struct address_space *mapping, struct vm_fault *vmf,
+> -		void *entry, pfn_t pfn, unsigned long flags, bool dirty)
+> +static void *dax_insert_entry(struct xa_state *xas, struct vm_fault *vmf,
+> +		void *entry, pfn_t pfn, unsigned long flags,
+> +		unsigned int insert_flags)
+>  {
+> +	struct address_space *mapping = vmf->vma->vm_file->f_mapping;
+>  	void *new_entry = dax_make_entry(pfn, flags);
+> +	bool dirty = insert_flags & DAX_IF_DIRTY;
+> +	bool cow = insert_flags & DAX_IF_COW;
+>
+>  	if (dirty)
+>  		__mark_inode_dirty(mapping->host, I_DIRTY_PAGES);
+>
+> -	if (dax_is_zero_entry(entry) && !(flags & DAX_ZERO_PAGE)) {
+> +	if (cow || (dax_is_zero_entry(entry) && !(flags & DAX_ZERO_PAGE))) {
+>  		unsigned long index = xas->xa_index;
+>  		/* we are replacing a zero page with block mapping */
+>  		if (dax_is_pmd_entry(entry))
+> @@ -750,7 +756,7 @@ static void *dax_insert_entry(struct xa_state *xas,
+>
+>  	xas_reset(xas);
+>  	xas_lock_irq(xas);
+> -	if (dax_is_zero_entry(entry) || dax_is_empty_entry(entry)) {
+> +	if (cow || dax_is_zero_entry(entry) || dax_is_empty_entry(entry)) {
+>  		void *old;
+>
+>  		dax_disassociate_entry(entry, mapping, false);
+> @@ -774,6 +780,9 @@ static void *dax_insert_entry(struct xa_state *xas,
+>  	if (dirty)
+>  		xas_set_mark(xas, PAGECACHE_TAG_DIRTY);
+>
+> +	if (cow)
+> +		xas_set_mark(xas, PAGECACHE_TAG_TOWRITE);
 > +
-> +	ret = ops->iomap_begin(ino1, pos1, len1, flags, &smap, NULL);
-> +	if (ret)
-> +		goto out_src;
-
-if above call fails we need not call ->iomap_end() on smap.
-
-> +	if (WARN_ON(smap.offset > pos1)) {
-> +		written = -EIO;
-> +		goto out_src;
+>  	xas_unlock_irq(xas);
+>  	return entry;
+>  }
+> @@ -1098,8 +1107,7 @@ static vm_fault_t dax_load_hole(struct xa_state *xas,
+>  	pfn_t pfn = pfn_to_pfn_t(my_zero_pfn(vaddr));
+>  	vm_fault_t ret;
+>
+> -	*entry = dax_insert_entry(xas, mapping, vmf, *entry, pfn,
+> -			DAX_ZERO_PAGE, false);
+> +	*entry = dax_insert_entry(xas, vmf, *entry, pfn, DAX_ZERO_PAGE, 0);
+>
+>  	ret = vmf_insert_mixed(vmf->vma, vaddr, pfn);
+>  	trace_dax_load_hole(inode, vmf, ret);
+> @@ -1126,8 +1134,8 @@ static vm_fault_t dax_pmd_load_hole(struct xa_state *xas, struct vm_fault *vmf,
+>  		goto fallback;
+>
+>  	pfn = page_to_pfn_t(zero_page);
+> -	*entry = dax_insert_entry(xas, mapping, vmf, *entry, pfn,
+> -			DAX_PMD | DAX_ZERO_PAGE, false);
+> +	*entry = dax_insert_entry(xas, vmf, *entry, pfn,
+> +				  DAX_PMD | DAX_ZERO_PAGE, 0);
+>
+>  	if (arch_needs_pgtable_deposit()) {
+>  		pgtable = pte_alloc_one(vma->vm_mm);
+> @@ -1431,6 +1439,7 @@ static vm_fault_t dax_fault_actor(struct vm_fault *vmf, pfn_t *pfnp,
+>  	loff_t pos = (loff_t)xas->xa_offset << PAGE_SHIFT;
+>  	bool write = vmf->flags & FAULT_FLAG_WRITE;
+>  	bool sync = dax_fault_is_synchronous(flags, vmf->vma, iomap);
+> +	unsigned int insert_flags = 0;
+>  	int err = 0;
+>  	pfn_t pfn;
+>  	void *kaddr;
+> @@ -1453,8 +1462,14 @@ static vm_fault_t dax_fault_actor(struct vm_fault *vmf, pfn_t *pfnp,
+>  	if (err)
+>  		return dax_fault_return(err);
+>
+> -	entry = dax_insert_entry(xas, mapping, vmf, entry, pfn, 0,
+> -				 write && !sync);
+> +	if (write) {
+> +		if (!sync)
+> +			insert_flags |= DAX_IF_DIRTY;
+> +		if (iomap->flags & IOMAP_F_SHARED)
+> +			insert_flags |= DAX_IF_COW;
 > +	}
-> +	if (WARN_ON(smap.length == 0)) {
-> +		written = -EIO;
-> +		goto out_src;
-> +	}
-> +	len2 = min_t(loff_t, len1, smap.length);
 > +
-> +	ret = ops->iomap_begin(ino2, pos2, len2, flags, &dmap, NULL);
-> +	if (ret)
-> +		goto out_dest;
+> +	entry = dax_insert_entry(xas, vmf, entry, pfn, 0, insert_flags);
+>
+>  	if (write && srcmap->addr != iomap->addr) {
+>  		err = dax_iomap_cow_copy(pos, size, size, srcmap, kaddr, false);
+>
 
-ditto
+Rest looks good to me. Please feel free to add
+Reviewed-by: Ritesh Harjani <riteshh@gmail.com>
 
-> +	if (WARN_ON(dmap.offset > pos2)) {
-> +		written = -EIO;
-> +		goto out_dest;
-> +	}
-> +	if (WARN_ON(dmap.length == 0)) {
-> +		written = -EIO;
-> +		goto out_dest;
-> +	}
-> +	min_len = min_t(loff_t, len2, dmap.length);
-> +
-> +	written = actor(ino1, pos1, ino2, pos2, min_len, data, &smap, &dmap);
-> +
-> +out_dest:
-> +	if (ops->iomap_end)
-> +		ret2 = ops->iomap_end(ino2, pos2, len2,
-> +				      written > 0 ? written : 0, flags, &dmap);
-> +out_src:
-> +	if (ops->iomap_end)
-> +		ret = ops->iomap_end(ino1, pos1, len1,
-> +				     written > 0 ? written : 0, flags, &smap);
-> +
+sorry about changing my email in between of this code review.
+I am planning to use above gmail id as primary account for all upstream work
+from now.
 
-I guess, this maynot be a problem, but I still think we should be
-consistent w.r.t len argument we are passing in ->iomap_end() for both type of
-iomap_apply* family of functions.
-IIUC, we used to call ->iomap_end() with the length argument filled by the
-filesystem from ->iomap_begin() call.
-
-whereas above breaks that behavior. Although I don't think this is FATAL, but
-still it is better to be consistent with the APIs.
-Thoughts?
-
-
-> +	if (ret)
-> +		return written ? written : ret;
-> +
-> +	if (ret2)
-> +		return written ? written : ret2;
-> +
-> +	return written;
-> +}
-
-	if (written)
-		return written;
-
-	return ret ? ret : ret2;
-
-Is above a simpler version?
-
--ritesh
+> --
+> 2.30.1
+>
+>
+>
 
 _______________________________________________
 Ocfs2-devel mailing list
