@@ -8,87 +8,87 @@ X-Spam-Status: No, score=-10.7 required=3.0 tests=BAYES_00,
 	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS autolearn=unavailable
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id E8F48C433B4
+	by smtp.lore.kernel.org (Postfix) with ESMTP id F2A74C43461
 	for <ocfs2-devel@archiver.kernel.org>; Mon, 12 Apr 2021 15:20:49 +0000 (UTC)
 Received: from aserp2120.oracle.com (aserp2120.oracle.com [141.146.126.78])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by mail.kernel.org (Postfix) with ESMTPS id 8D736611F0
+	by mail.kernel.org (Postfix) with ESMTPS id 8D29E6128C
 	for <ocfs2-devel@archiver.kernel.org>; Mon, 12 Apr 2021 15:20:49 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.3.2 mail.kernel.org 8D736611F0
+DMARC-Filter: OpenDMARC Filter v1.3.2 mail.kernel.org 8D29E6128C
 Authentication-Results: mail.kernel.org; dmarc=fail (p=none dis=none) header.from=gmail.com
 Authentication-Results: mail.kernel.org; spf=pass smtp.mailfrom=ocfs2-devel-bounces@oss.oracle.com
 Received: from pps.filterd (aserp2120.oracle.com [127.0.0.1])
-	by aserp2120.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 13CFEQ0S081056;
-	Mon, 12 Apr 2021 15:20:47 GMT
+	by aserp2120.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 13CFEVkB081106;
+	Mon, 12 Apr 2021 15:20:48 GMT
 Received: from userp3020.oracle.com (userp3020.oracle.com [156.151.31.79])
-	by aserp2120.oracle.com with ESMTP id 37u3ymc1yw-1
+	by aserp2120.oracle.com with ESMTP id 37u3ymc200-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
 	Mon, 12 Apr 2021 15:20:47 +0000
 Received: from pps.filterd (userp3020.oracle.com [127.0.0.1])
-	by userp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 13CFFQc7185365;
+	by userp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 13CFFR1i185469;
 	Mon, 12 Apr 2021 15:20:46 GMT
 Received: from oss.oracle.com (oss-old-reserved.oracle.com [137.254.22.2])
-	by userp3020.oracle.com with ESMTP id 37unsr1yqj-1
+	by userp3020.oracle.com with ESMTP id 37unsr1yqq-1
 	(version=TLSv1 cipher=AES256-SHA bits=256 verify=NO);
 	Mon, 12 Apr 2021 15:20:46 +0000
 Received: from localhost ([127.0.0.1] helo=lb-oss.oracle.com)
 	by oss.oracle.com with esmtp (Exim 4.63)
 	(envelope-from <ocfs2-devel-bounces@oss.oracle.com>)
-	id 1lVyMn-0003Rc-Fd; Mon, 12 Apr 2021 08:20:45 -0700
-Received: from userp3030.oracle.com ([156.151.31.80])
+	id 1lVyMn-0003T5-Nk; Mon, 12 Apr 2021 08:20:45 -0700
+Received: from userp3020.oracle.com ([156.151.31.79])
 	by oss.oracle.com with esmtp (Exim 4.63)
-	(envelope-from <ritesh.list@gmail.com>) id 1lRqzR-0000ng-Mu
-	for ocfs2-devel@oss.oracle.com; Wed, 31 Mar 2021 23:39:37 -0700
-Received: from pps.filterd (userp3030.oracle.com [127.0.0.1])
-	by userp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
-	1316RbV5177558
-	for <ocfs2-devel@oss.oracle.com>; Thu, 1 Apr 2021 06:39:37 GMT
+	(envelope-from <ritesh.list@gmail.com>) id 1lRvET-0007F1-1F
+	for ocfs2-devel@oss.oracle.com; Thu, 01 Apr 2021 04:11:25 -0700
+Received: from pps.filterd (userp3020.oracle.com [127.0.0.1])
+	by userp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
+	131BAhNp191552
+	for <ocfs2-devel@oss.oracle.com>; Thu, 1 Apr 2021 11:11:24 GMT
 Received: from userp2040.oracle.com (userp2040.oracle.com [156.151.31.90])
-	by userp3030.oracle.com with ESMTP id 37n2asbpqj-1
+	by userp3020.oracle.com with ESMTP id 37n2pac0dd-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Thu, 01 Apr 2021 06:39:37 +0000
+	for <ocfs2-devel@oss.oracle.com>; Thu, 01 Apr 2021 11:11:24 +0000
 Received: from pps.filterd (userp2040.oracle.com [127.0.0.1])
 	by userp2040.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
-	1316YUZk026086
-	for <ocfs2-devel@oss.oracle.com>; Thu, 1 Apr 2021 06:39:37 GMT
+	131B4WVt048914
+	for <ocfs2-devel@oss.oracle.com>; Thu, 1 Apr 2021 11:11:24 GMT
 Received: from mail-pj1-f46.google.com (mail-pj1-f46.google.com
-	[209.85.216.46]) by userp2040.oracle.com with ESMTP id 37n2a6pdk4-1
+	[209.85.216.46]) by userp2040.oracle.com with ESMTP id 37n2a6tg52-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES128-GCM-SHA256 bits=128 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Thu, 01 Apr 2021 06:39:36 +0000
+	for <ocfs2-devel@oss.oracle.com>; Thu, 01 Apr 2021 11:11:24 +0000
 Received: by mail-pj1-f46.google.com with SMTP id
-	k23-20020a17090a5917b02901043e35ad4aso2543876pji.3
-	for <ocfs2-devel@oss.oracle.com>; Wed, 31 Mar 2021 23:39:36 -0700 (PDT)
+	j6-20020a17090adc86b02900cbfe6f2c96so847416pjv.1
+	for <ocfs2-devel@oss.oracle.com>; Thu, 01 Apr 2021 04:11:23 -0700 (PDT)
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
 	d=1e100.net; s=20161025;
 	h=x-gm-message-state:date:from:to:cc:subject:message-id:references
 	:mime-version:content-disposition:in-reply-to;
-	bh=Cdhn3hlT1LofiWiq9NSsZXRFtnuTmpkFOIZBKIG5BiA=;
-	b=WWFS5XbS8VNT9NCkTJlCAG56iExb6l92fo//H3b3jVkL+8SPDzKyu31MVjYMW1+qPQ
-	VHQj5kEXV0jTXr4n9CCgRytYHwk+mGfCN+OrCoC+drpelAgPJQ6ceFmP3EYmWrS8dvx/
-	mruXQUX5QByyi32SpZ8AWdDiwcD2aDAkxWZ5miPJqphRprzAoiznnHJdWCpJVWH2VcAQ
-	r8zx3So/6yE5Tn7qsp1AF7cElby/MczNy9+E3yfAv0A1KeM9NueRMAq+1WX6ebUQFpSt
-	hkNWoK3vedfRRLRtxsxyccVJfiMLDvl2XLuxH8ltlzYO4uQzZdX4UvSa1fs0ygwboEOS
-	2YNw==
-X-Gm-Message-State: AOAM5336AZRxjBZ5SueIcNMt4XQrCVcN/Qa7cv7NHoQtwxd+TcPLJxqE
-	n0YODH1yhf6M3i1dXU7oIZA=
-X-Google-Smtp-Source: ABdhPJxV7qnJmiKTK7vMsVhFFpLWa9nVg5l0P/yHHXGvs45jJWGW4/3YJNYe6mcpuHqq0YLrqeBnjw==
-X-Received: by 2002:a17:90a:990a:: with SMTP id
-	b10mr7368818pjp.178.1617259175255; 
-	Wed, 31 Mar 2021 23:39:35 -0700 (PDT)
+	bh=f3T62p65u2S83DXPwAJqrEpWMg9bqfngCOlwnISjfa0=;
+	b=abLc+HD5N7m1dpEMmsY7peCnhhMW2ilX+4/BFVEsTlAepS//BieG6tz17S79eUoJoG
+	r5jyvheJj6vJFWtQodoEKQW7movi2RveMEjkum/L/TCFfAKhHWlnZYElekhqosAZB43l
+	V0U11zizGBBSUA7KLqCDAYFzYrJ119gPUn7jQ1Am+32WdFpZ9+JlkFdQR8fc4K4Fcojq
+	qC1r9i1MpE29E72Itmj9Co80p1wIdGHU63LdJT7E47xmKVm6Xwyvoz5VDeyL7cnKH5Sk
+	mzdz7G/dwSVsm+aOTYu/lAP6Bg3tDHHYWWTxFlT+suIrne4CpBdtMtIrE3BzLeSNTzWZ
+	8ryg==
+X-Gm-Message-State: AOAM530uz0p8QAycs3GWiZPdhM3ssmmjjxZUI0K5WuSc1H8tDlU8+uKW
+	O20Ai/v9zPkqQgEEaHb/M08=
+X-Google-Smtp-Source: ABdhPJwd87RNzh+BfrCBf8eX/5dIR9xk4EAMKPeLjoBbOazcoZ79gljc2I3DoR3sYnn2r/fomTvxIg==
+X-Received: by 2002:a17:90b:38f:: with SMTP id
+	ga15mr8213179pjb.149.1617275482546; 
+	Thu, 01 Apr 2021 04:11:22 -0700 (PDT)
 Received: from localhost ([122.182.250.63]) by smtp.gmail.com with ESMTPSA id
-	w26sm4326195pfj.58.2021.03.31.23.39.34
+	y15sm6499629pgi.31.2021.04.01.04.11.21
 	(version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-	Wed, 31 Mar 2021 23:39:34 -0700 (PDT)
-Date: Thu, 1 Apr 2021 12:09:32 +0530
+	Thu, 01 Apr 2021 04:11:22 -0700 (PDT)
+Date: Thu, 1 Apr 2021 16:41:20 +0530
 From: Ritesh Harjani <ritesh.list@gmail.com>
 To: Shiyang Ruan <ruansy.fnst@fujitsu.com>
-Message-ID: <20210401063932.tro7a4hhy25zdmho@riteshh-domain>
+Message-ID: <20210401111120.2ukog26aoyvyysyz@riteshh-domain>
 References: <20210319015237.993880-1-ruansy.fnst@fujitsu.com>
-	<20210319015237.993880-6-ruansy.fnst@fujitsu.com>
+	<20210319015237.993880-9-ruansy.fnst@fujitsu.com>
 MIME-Version: 1.0
 Content-Disposition: inline
-In-Reply-To: <20210319015237.993880-6-ruansy.fnst@fujitsu.com>
+In-Reply-To: <20210319015237.993880-9-ruansy.fnst@fujitsu.com>
 X-PDR: PASS
 X-Source-IP: 209.85.216.46
 X-ServerName: mail-pj1-f46.google.com
@@ -96,22 +96,23 @@ X-Proofpoint-SPF-Result: pass
 X-Proofpoint-SPF-Record: v=spf1 redirect=_spf.google.com
 X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9940
 	signatures=668683
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 clxscore=250
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 clxscore=249
 	impostorscore=0
-	suspectscore=0 lowpriorityscore=0 adultscore=0 priorityscore=341
+	suspectscore=0 lowpriorityscore=0 adultscore=0 priorityscore=335
 	malwarescore=0 mlxscore=0 phishscore=0 bulkscore=0 spamscore=0
 	mlxlogscore=999 classifier=spam adjust=0 reason=mlx scancount=1
-	engine=8.12.0-2103310000 definitions=main-2104010046
+	engine=8.12.0-2103310000 definitions=main-2104010077
 X-Spam: Clean
 X-Mailman-Approved-At: Mon, 12 Apr 2021 08:20:43 -0700
-Cc: jack@suse.cz, darrick.wong@oracle.com, linux-nvdimm@lists.01.org,
+Cc: Ritesh Harjani <ritesh.list@gmail.com>, jack@suse.cz,
+        darrick.wong@oracle.com, linux-nvdimm@lists.01.org,
         david@fromorbit.com, linux-kernel@vger.kernel.org,
         linux-xfs@vger.kernel.org, ocfs2-devel@oss.oracle.com,
         viro@zeniv.linux.org.uk, Goldwyn Rodrigues <rgoldwyn@suse.com>,
         linux-fsdevel@vger.kernel.org, dan.j.williams@intel.com,
         linux-btrfs@vger.kernel.org
-Subject: Re: [Ocfs2-devel] [PATCH v3 05/10] fsdax: Replace mmap entry in
-	case of CoW
+Subject: Re: [Ocfs2-devel] [PATCH v3 08/10] fsdax: Dedup file range to use a
+ compare function
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.9
 Precedence: list
@@ -132,8 +133,8 @@ X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 mlxlogscore=999 a
  malwarescore=0 suspectscore=0 bulkscore=0 mlxscore=0 spamscore=0
  phishscore=0 classifier=spam adjust=0 reason=mlx scancount=1
  engine=8.12.0-2104060000 definitions=main-2104120100
-X-Proofpoint-GUID: xwuDRctuld6A3SoEczaP-YdCC-4kS3NZ
-X-Proofpoint-ORIG-GUID: xwuDRctuld6A3SoEczaP-YdCC-4kS3NZ
+X-Proofpoint-GUID: p5mSwyT0_W0DGO7XTVyAvkYFDqqxZWuM
+X-Proofpoint-ORIG-GUID: p5mSwyT0_W0DGO7XTVyAvkYFDqqxZWuM
 X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9952 signatures=668683
 X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 mlxscore=0 mlxlogscore=999 spamscore=0
  impostorscore=0 priorityscore=1501 lowpriorityscore=0 adultscore=0
@@ -142,146 +143,265 @@ X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 mlxscore=0 mlxlog
  definitions=main-2104120100
 
 On 21/03/19 09:52AM, Shiyang Ruan wrote:
-> We replace the existing entry to the newly allocated one in case of CoW.
-> Also, we mark the entry as PAGECACHE_TAG_TOWRITE so writeback marks this
-> entry as writeprotected.  This helps us snapshots so new write
-> pagefaults after snapshots trigger a CoW.
+> With dax we cannot deal with readpage() etc. So, we create a dax
+> comparison funciton which is similar with
+> vfs_dedupe_file_range_compare().
+> And introduce dax_remap_file_range_prep() for filesystem use.
 >
-
-Please correct me here. So the flow is like this.
-1. In case of CoW or a reflinked file, on an mmaped file if write is attempted,
-   Then in DAX fault handler code, ->iomap_begin() on a given filesystem will
-   populate iomap and srcmap. srcmap being from where the read needs to be
-   attempted from and iomap on where the new write should go to.
-2. So the dax_insert_entry() code as part of the fault handling will take care
-   of removing the old entry and inserting the new pfn entry to xas and mark
-   it with PAGECACHE_TAG_TOWRITE so that dax writeback can mark the entry as
-   write protected.
-Is my above understanding correct?
-
 > Signed-off-by: Goldwyn Rodrigues <rgoldwyn@suse.com>
 > Signed-off-by: Shiyang Ruan <ruansy.fnst@fujitsu.com>
-> Reviewed-by: Christoph Hellwig <hch@lst.de>
 > ---
->  fs/dax.c | 37 ++++++++++++++++++++++++++-----------
->  1 file changed, 26 insertions(+), 11 deletions(-)
+>  fs/dax.c             | 56 ++++++++++++++++++++++++++++++++++++++++++++
+>  fs/remap_range.c     | 45 ++++++++++++++++++++++++++++-------
+>  fs/xfs/xfs_reflink.c |  9 +++++--
+>  include/linux/dax.h  |  4 ++++
+>  include/linux/fs.h   | 15 ++++++++----
+>  5 files changed, 115 insertions(+), 14 deletions(-)
 >
 > diff --git a/fs/dax.c b/fs/dax.c
-> index 181aad97136a..cfe513eb111e 100644
+> index 348297b38f76..76f81f1d76ec 100644
 > --- a/fs/dax.c
 > +++ b/fs/dax.c
-> @@ -722,6 +722,9 @@ static int copy_cow_page_dax(struct block_device *bdev, struct dax_device *dax_d
->  	return 0;
+> @@ -1833,3 +1833,59 @@ vm_fault_t dax_finish_sync_fault(struct vm_fault *vmf,
+>  	return dax_insert_pfn_mkwrite(vmf, pfn, order);
 >  }
->
-> +#define DAX_IF_DIRTY		(1 << 0)
-> +#define DAX_IF_COW		(1 << 1)
+>  EXPORT_SYMBOL_GPL(dax_finish_sync_fault);
 > +
->
-small comment expalining this means DAX insert flags used in dax_insert_entry()
-
->
->  /*
->   * By this point grab_mapping_entry() has ensured that we have a locked entry
->   * of the appropriate size so we don't have to worry about downgrading PMDs to
-> @@ -729,16 +732,19 @@ static int copy_cow_page_dax(struct block_device *bdev, struct dax_device *dax_d
->   * already in the tree, we will skip the insertion and just dirty the PMD as
->   * appropriate.
->   */
-> -static void *dax_insert_entry(struct xa_state *xas,
-> -		struct address_space *mapping, struct vm_fault *vmf,
-> -		void *entry, pfn_t pfn, unsigned long flags, bool dirty)
-> +static void *dax_insert_entry(struct xa_state *xas, struct vm_fault *vmf,
-> +		void *entry, pfn_t pfn, unsigned long flags,
-> +		unsigned int insert_flags)
->  {
-> +	struct address_space *mapping = vmf->vma->vm_file->f_mapping;
->  	void *new_entry = dax_make_entry(pfn, flags);
-> +	bool dirty = insert_flags & DAX_IF_DIRTY;
-> +	bool cow = insert_flags & DAX_IF_COW;
->
->  	if (dirty)
->  		__mark_inode_dirty(mapping->host, I_DIRTY_PAGES);
->
-> -	if (dax_is_zero_entry(entry) && !(flags & DAX_ZERO_PAGE)) {
-> +	if (cow || (dax_is_zero_entry(entry) && !(flags & DAX_ZERO_PAGE))) {
->  		unsigned long index = xas->xa_index;
->  		/* we are replacing a zero page with block mapping */
->  		if (dax_is_pmd_entry(entry))
-> @@ -750,7 +756,7 @@ static void *dax_insert_entry(struct xa_state *xas,
->
->  	xas_reset(xas);
->  	xas_lock_irq(xas);
-> -	if (dax_is_zero_entry(entry) || dax_is_empty_entry(entry)) {
-> +	if (cow || dax_is_zero_entry(entry) || dax_is_empty_entry(entry)) {
->  		void *old;
->
->  		dax_disassociate_entry(entry, mapping, false);
-> @@ -774,6 +780,9 @@ static void *dax_insert_entry(struct xa_state *xas,
->  	if (dirty)
->  		xas_set_mark(xas, PAGECACHE_TAG_DIRTY);
->
-> +	if (cow)
-> +		xas_set_mark(xas, PAGECACHE_TAG_TOWRITE);
+> +static loff_t dax_range_compare_actor(struct inode *ino1, loff_t pos1,
+> +		struct inode *ino2, loff_t pos2, loff_t len, void *data,
+> +		struct iomap *smap, struct iomap *dmap)
+> +{
+> +	void *saddr, *daddr;
+> +	bool *same = data;
+> +	int ret;
 > +
->  	xas_unlock_irq(xas);
->  	return entry;
->  }
-> @@ -1098,8 +1107,7 @@ static vm_fault_t dax_load_hole(struct xa_state *xas,
->  	pfn_t pfn = pfn_to_pfn_t(my_zero_pfn(vaddr));
->  	vm_fault_t ret;
->
-> -	*entry = dax_insert_entry(xas, mapping, vmf, *entry, pfn,
-> -			DAX_ZERO_PAGE, false);
-> +	*entry = dax_insert_entry(xas, vmf, *entry, pfn, DAX_ZERO_PAGE, 0);
->
->  	ret = vmf_insert_mixed(vmf->vma, vaddr, pfn);
->  	trace_dax_load_hole(inode, vmf, ret);
-> @@ -1126,8 +1134,8 @@ static vm_fault_t dax_pmd_load_hole(struct xa_state *xas, struct vm_fault *vmf,
->  		goto fallback;
->
->  	pfn = page_to_pfn_t(zero_page);
-> -	*entry = dax_insert_entry(xas, mapping, vmf, *entry, pfn,
-> -			DAX_PMD | DAX_ZERO_PAGE, false);
-> +	*entry = dax_insert_entry(xas, vmf, *entry, pfn,
-> +				  DAX_PMD | DAX_ZERO_PAGE, 0);
->
->  	if (arch_needs_pgtable_deposit()) {
->  		pgtable = pte_alloc_one(vma->vm_mm);
-> @@ -1431,6 +1439,7 @@ static vm_fault_t dax_fault_actor(struct vm_fault *vmf, pfn_t *pfnp,
->  	loff_t pos = (loff_t)xas->xa_offset << PAGE_SHIFT;
->  	bool write = vmf->flags & FAULT_FLAG_WRITE;
->  	bool sync = dax_fault_is_synchronous(flags, vmf->vma, iomap);
-> +	unsigned int insert_flags = 0;
->  	int err = 0;
->  	pfn_t pfn;
->  	void *kaddr;
-> @@ -1453,8 +1462,14 @@ static vm_fault_t dax_fault_actor(struct vm_fault *vmf, pfn_t *pfnp,
->  	if (err)
->  		return dax_fault_return(err);
->
-> -	entry = dax_insert_entry(xas, mapping, vmf, entry, pfn, 0,
-> -				 write && !sync);
-> +	if (write) {
-> +		if (!sync)
-> +			insert_flags |= DAX_IF_DIRTY;
-> +		if (iomap->flags & IOMAP_F_SHARED)
-> +			insert_flags |= DAX_IF_COW;
+> +	if (smap->type == IOMAP_HOLE && dmap->type == IOMAP_HOLE) {
+> +		*same = true;
+> +		return len;
 > +	}
 > +
-> +	entry = dax_insert_entry(xas, vmf, entry, pfn, 0, insert_flags);
+> +	if (smap->type == IOMAP_HOLE || dmap->type == IOMAP_HOLE) {
+> +		*same = false;
+> +		return 0;
+> +	}
+> +
+> +	ret = dax_iomap_direct_access(smap, pos1, ALIGN(pos1 + len, PAGE_SIZE),
+> +				      &saddr, NULL);
+
+shouldn't it take len as the second argument?
+
+> +	if (ret < 0)
+> +		return -EIO;
+> +
+> +	ret = dax_iomap_direct_access(dmap, pos2, ALIGN(pos2 + len, PAGE_SIZE),
+> +				      &daddr, NULL);
+
+ditto.
+> +	if (ret < 0)
+> +		return -EIO;
+> +
+> +	*same = !memcmp(saddr, daddr, len);
+> +	return len;
+> +}
+> +
+> +int dax_dedupe_file_range_compare(struct inode *src, loff_t srcoff,
+> +		struct inode *dest, loff_t destoff, loff_t len, bool *is_same,
+> +		const struct iomap_ops *ops)
+> +{
+> +	int id, ret = 0;
+> +
+> +	id = dax_read_lock();
+> +	while (len) {
+> +		ret = iomap_apply2(src, srcoff, dest, destoff, len, 0, ops,
+> +				   is_same, dax_range_compare_actor);
+> +		if (ret < 0 || !*is_same)
+> +			goto out;
+> +
+> +		len -= ret;
+> +		srcoff += ret;
+> +		destoff += ret;
+> +	}
+> +	ret = 0;
+> +out:
+> +	dax_read_unlock(id);
+> +	return ret;
+> +}
+> +EXPORT_SYMBOL_GPL(dax_dedupe_file_range_compare);
+> diff --git a/fs/remap_range.c b/fs/remap_range.c
+> index 77dba3a49e65..9079390edaf3 100644
+> --- a/fs/remap_range.c
+> +++ b/fs/remap_range.c
+> @@ -14,6 +14,7 @@
+>  #include <linux/compat.h>
+>  #include <linux/mount.h>
+>  #include <linux/fs.h>
+> +#include <linux/dax.h>
+>  #include "internal.h"
 >
->  	if (write && srcmap->addr != iomap->addr) {
->  		err = dax_iomap_cow_copy(pos, size, size, srcmap, kaddr, false);
+>  #include <linux/uaccess.h>
+> @@ -199,9 +200,9 @@ static void vfs_unlock_two_pages(struct page *page1, struct page *page2)
+>   * Compare extents of two files to see if they are the same.
+>   * Caller must have locked both inodes to prevent write races.
+>   */
+> -static int vfs_dedupe_file_range_compare(struct inode *src, loff_t srcoff,
+> -					 struct inode *dest, loff_t destoff,
+> -					 loff_t len, bool *is_same)
+> +int vfs_dedupe_file_range_compare(struct inode *src, loff_t srcoff,
+> +				  struct inode *dest, loff_t destoff,
+> +				  loff_t len, bool *is_same)
+>  {
+>  	loff_t src_poff;
+>  	loff_t dest_poff;
+> @@ -280,6 +281,7 @@ static int vfs_dedupe_file_range_compare(struct inode *src, loff_t srcoff,
+>  out_error:
+>  	return error;
+>  }
+> +EXPORT_SYMBOL(vfs_dedupe_file_range_compare);
 >
+>  /*
+>   * Check that the two inodes are eligible for cloning, the ranges make
+> @@ -289,9 +291,11 @@ static int vfs_dedupe_file_range_compare(struct inode *src, loff_t srcoff,
+>   * If there's an error, then the usual negative error code is returned.
+>   * Otherwise returns 0 with *len set to the request length.
+>   */
+> -int generic_remap_file_range_prep(struct file *file_in, loff_t pos_in,
+> -				  struct file *file_out, loff_t pos_out,
+> -				  loff_t *len, unsigned int remap_flags)
+> +static int
+> +__generic_remap_file_range_prep(struct file *file_in, loff_t pos_in,
+> +				struct file *file_out, loff_t pos_out,
+> +				loff_t *len, unsigned int remap_flags,
+> +				const struct iomap_ops *ops)
+>  {
+>  	struct inode *inode_in = file_inode(file_in);
+>  	struct inode *inode_out = file_inode(file_out);
+> @@ -351,8 +355,15 @@ int generic_remap_file_range_prep(struct file *file_in, loff_t pos_in,
+>  	if (remap_flags & REMAP_FILE_DEDUP) {
+>  		bool		is_same = false;
+>
+> -		ret = vfs_dedupe_file_range_compare(inode_in, pos_in,
+> -				inode_out, pos_out, *len, &is_same);
+> +		if (!IS_DAX(inode_in) && !IS_DAX(inode_out))
+> +			ret = vfs_dedupe_file_range_compare(inode_in, pos_in,
+> +					inode_out, pos_out, *len, &is_same);
+> +		else if (IS_DAX(inode_in) && IS_DAX(inode_out) && ops)
+> +			ret = dax_dedupe_file_range_compare(inode_in, pos_in,
+> +					inode_out, pos_out, *len, &is_same,
+> +					ops);
+> +		else
+> +			return -EINVAL;
+>  		if (ret)
+>  			return ret;
+>  		if (!is_same)
 
-Rest looks good to me. Please feel free to add
-Reviewed-by: Ritesh Harjani <riteshh@gmail.com>
+should we consider to check !is_same check b4?
+you should maybe relook at this error handling side of code.
+we still return len from actor function but is_same is set to false.
+So we are essentially returning ret (positive value), instead should be
+returning -EBADE because of !memcmp
 
-sorry about changing my email in between of this code review.
-I am planning to use above gmail id as primary account for all upstream work
-from now.
+> @@ -370,6 +381,24 @@ int generic_remap_file_range_prep(struct file *file_in, loff_t pos_in,
+>
+>  	return ret;
+>  }
+> +
+> +int dax_remap_file_range_prep(struct file *file_in, loff_t pos_in,
+> +			      struct file *file_out, loff_t pos_out,
+> +			      loff_t *len, unsigned int remap_flags,
+> +			      const struct iomap_ops *ops)
+> +{
+> +	return __generic_remap_file_range_prep(file_in, pos_in, file_out,
+> +					       pos_out, len, remap_flags, ops);
+> +}
+> +EXPORT_SYMBOL(dax_remap_file_range_prep);
+> +
+> +int generic_remap_file_range_prep(struct file *file_in, loff_t pos_in,
+> +				  struct file *file_out, loff_t pos_out,
+> +				  loff_t *len, unsigned int remap_flags)
+> +{
+> +	return __generic_remap_file_range_prep(file_in, pos_in, file_out,
+> +					       pos_out, len, remap_flags, NULL);
+> +}
+>  EXPORT_SYMBOL(generic_remap_file_range_prep);
+>
+>  loff_t do_clone_file_range(struct file *file_in, loff_t pos_in,
+> diff --git a/fs/xfs/xfs_reflink.c b/fs/xfs/xfs_reflink.c
+> index 6fa05fb78189..f5b3a3da36b7 100644
+> --- a/fs/xfs/xfs_reflink.c
+> +++ b/fs/xfs/xfs_reflink.c
+> @@ -1308,8 +1308,13 @@ xfs_reflink_remap_prep(
+>  	if (IS_DAX(inode_in) || IS_DAX(inode_out))
+>  		goto out_unlock;
+>
+> -	ret = generic_remap_file_range_prep(file_in, pos_in, file_out, pos_out,
+> -			len, remap_flags);
+> +	if (IS_DAX(inode_in))
 
+if (!IS_DAX(inode_in)) no?
+
+> +		ret = generic_remap_file_range_prep(file_in, pos_in, file_out,
+> +						    pos_out, len, remap_flags);
+> +	else
+> +		ret = dax_remap_file_range_prep(file_in, pos_in, file_out,
+> +						pos_out, len, remap_flags,
+> +						&xfs_read_iomap_ops);
+>  	if (ret || *len == 0)
+>  		goto out_unlock;
+>
+> diff --git a/include/linux/dax.h b/include/linux/dax.h
+> index 3275e01ed33d..32e1c34349f2 100644
+> --- a/include/linux/dax.h
+> +++ b/include/linux/dax.h
+> @@ -239,6 +239,10 @@ int dax_invalidate_mapping_entry_sync(struct address_space *mapping,
+>  				      pgoff_t index);
+>  s64 dax_iomap_zero(loff_t pos, u64 length, struct iomap *iomap,
+>  		struct iomap *srcmap);
+> +int dax_dedupe_file_range_compare(struct inode *src, loff_t srcoff,
+> +				  struct inode *dest, loff_t destoff,
+> +				  loff_t len, bool *is_same,
+> +				  const struct iomap_ops *ops);
+>  static inline bool dax_mapping(struct address_space *mapping)
+>  {
+>  	return mapping->host && IS_DAX(mapping->host);
+> diff --git a/include/linux/fs.h b/include/linux/fs.h
+> index fd47deea7c17..2e6ec5bdf82a 100644
+> --- a/include/linux/fs.h
+> +++ b/include/linux/fs.h
+> @@ -68,6 +68,7 @@ struct fsverity_info;
+>  struct fsverity_operations;
+>  struct fs_context;
+>  struct fs_parameter_spec;
+> +struct iomap_ops;
+>
+>  extern void __init inode_init(void);
+>  extern void __init inode_init_early(void);
+> @@ -1910,13 +1911,19 @@ extern ssize_t vfs_read(struct file *, char __user *, size_t, loff_t *);
+>  extern ssize_t vfs_write(struct file *, const char __user *, size_t, loff_t *);
+>  extern ssize_t vfs_copy_file_range(struct file *, loff_t , struct file *,
+>  				   loff_t, size_t, unsigned int);
+> +typedef int (*compare_range_t)(struct inode *src, loff_t srcpos,
+> +			       struct inode *dest, loff_t destpos,
+> +			       loff_t len, bool *is_same);
+
+Is this used anywhere?
+
+>  extern ssize_t generic_copy_file_range(struct file *file_in, loff_t pos_in,
+>  				       struct file *file_out, loff_t pos_out,
+>  				       size_t len, unsigned int flags);
+> -extern int generic_remap_file_range_prep(struct file *file_in, loff_t pos_in,
+> -					 struct file *file_out, loff_t pos_out,
+> -					 loff_t *count,
+> -					 unsigned int remap_flags);
+> +int generic_remap_file_range_prep(struct file *file_in, loff_t pos_in,
+> +				  struct file *file_out, loff_t pos_out,
+> +				  loff_t *count, unsigned int remap_flags);
+> +int dax_remap_file_range_prep(struct file *file_in, loff_t pos_in,
+> +			      struct file *file_out, loff_t pos_out,
+> +			      loff_t *len, unsigned int remap_flags,
+> +			      const struct iomap_ops *ops);
+>  extern loff_t do_clone_file_range(struct file *file_in, loff_t pos_in,
+>  				  struct file *file_out, loff_t pos_out,
+>  				  loff_t len, unsigned int remap_flags);
 > --
 > 2.30.1
 >
