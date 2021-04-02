@@ -2,193 +2,158 @@ Return-Path: <SRS0=Ssxc=I7=oss.oracle.com=ocfs2-devel-bounces@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-3.8 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS
-	autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-18.8 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
+	INCLUDES_CR_TRAILER,INCLUDES_PATCH,MAILING_LIST_MULTI,MSGID_FROM_MTA_HEADER,
+	SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=ham autolearn_force=no
+	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 8A77DC43460
-	for <ocfs2-devel@archiver.kernel.org>; Fri,  2 Apr 2021 08:19:09 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 093DBC433ED
+	for <ocfs2-devel@archiver.kernel.org>; Fri,  2 Apr 2021 17:14:11 +0000 (UTC)
 Received: from userp2120.oracle.com (userp2120.oracle.com [156.151.31.85])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by mail.kernel.org (Postfix) with ESMTPS id 2E4A361105
-	for <ocfs2-devel@archiver.kernel.org>; Fri,  2 Apr 2021 08:19:09 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.3.2 mail.kernel.org 2E4A361105
-Authentication-Results: mail.kernel.org; dmarc=none (p=none dis=none) header.from=fujitsu.com
+	by mail.kernel.org (Postfix) with ESMTPS id 917AD61151
+	for <ocfs2-devel@archiver.kernel.org>; Fri,  2 Apr 2021 17:14:10 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.3.2 mail.kernel.org 917AD61151
+Authentication-Results: mail.kernel.org; dmarc=pass (p=none dis=none) header.from=oracle.com
 Authentication-Results: mail.kernel.org; spf=pass smtp.mailfrom=ocfs2-devel-bounces@oss.oracle.com
 Received: from pps.filterd (userp2120.oracle.com [127.0.0.1])
-	by userp2120.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 1328IdAe111448;
-	Fri, 2 Apr 2021 08:19:08 GMT
-Received: from userp3020.oracle.com (userp3020.oracle.com [156.151.31.79])
-	by userp2120.oracle.com with ESMTP id 37n2a041ng-1
+	by userp2120.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 132HAe4v151471;
+	Fri, 2 Apr 2021 17:14:09 GMT
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=oracle.com; h=from : to : date :
+ message-id : mime-version : cc : subject : list-id : list-unsubscribe :
+ list-archive : list-post : list-help : list-subscribe : content-type :
+ content-transfer-encoding : sender; s=corp-2020-01-29;
+ bh=wqi3PCbfCpv1vPmwxMRLJT34m22yUdLGSeopArRc+p0=;
+ b=mZNCQCto1LpyzYweuehy/SI71xl6PIJQPnQcy5kq4hC1RnQ3+YhjytjmRmnSq293ex9Y
+ XnLMt3vEVvsG1VeE3GzAqoX6GWTl3vcJyHtvoV25+dFXXfwqyvIo4Y+8XuggGW3ovpqC
+ /1tSCdPZGii0jmH3lMjWq2jy9AfAtzpie/u+45gN1s14cYqcabdaFgzjLWhVab8sacrD
+ Fq4aXeXmu1mS0T2BnErkceGjXhf8LmSb45ApR4WFa5CwoNSDV8yI1paFt0K1igq/mnFc
+ ZXCtyLJJyeVdqROEqBHM16D2f+eunxI49S/uePy6ZlTf9w0dBjPvdHjpanaLbdePKod7 2A== 
+Received: from userp3030.oracle.com (userp3030.oracle.com [156.151.31.80])
+	by userp2120.oracle.com with ESMTP id 37n2a057md-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Fri, 02 Apr 2021 08:19:07 +0000
-Received: from pps.filterd (userp3020.oracle.com [127.0.0.1])
-	by userp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 1328Ajki060767;
-	Fri, 2 Apr 2021 08:19:07 GMT
+	Fri, 02 Apr 2021 17:14:09 +0000
+Received: from pps.filterd (userp3030.oracle.com [127.0.0.1])
+	by userp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 132H9fFY111009;
+	Fri, 2 Apr 2021 17:14:09 GMT
 Received: from oss.oracle.com (oss-old-reserved.oracle.com [137.254.22.2])
-	by userp3020.oracle.com with ESMTP id 37n2pbj4vc-1
+	by userp3030.oracle.com with ESMTP id 37n2au8w6y-1
 	(version=TLSv1 cipher=AES256-SHA bits=256 verify=NO);
-	Fri, 02 Apr 2021 08:19:07 +0000
+	Fri, 02 Apr 2021 17:14:08 +0000
 Received: from localhost ([127.0.0.1] helo=lb-oss.oracle.com)
 	by oss.oracle.com with esmtp (Exim 4.63)
 	(envelope-from <ocfs2-devel-bounces@oss.oracle.com>)
-	id 1lSF1G-00062g-2r; Fri, 02 Apr 2021 01:19:06 -0700
-Received: from userp3030.oracle.com ([156.151.31.80])
+	id 1lSNN1-0005sX-GR; Fri, 02 Apr 2021 10:14:07 -0700
+Received: from aserp3020.oracle.com ([141.146.126.70])
 	by oss.oracle.com with esmtp (Exim 4.63)
-	(envelope-from <ruansy.fnst@fujitsu.com>) id 1lSF1E-00062K-8j
-	for ocfs2-devel@oss.oracle.com; Fri, 02 Apr 2021 01:19:04 -0700
-Received: from pps.filterd (userp3030.oracle.com [127.0.0.1])
-	by userp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
-	13289dtm139741
-	for <ocfs2-devel@oss.oracle.com>; Fri, 2 Apr 2021 08:19:04 GMT
-Received: from userp2030.oracle.com (userp2030.oracle.com [156.151.31.89])
-	by userp3030.oracle.com with ESMTP id 37n2atu4hy-1
+	(envelope-from <wen.gang.wang@oracle.com>) id 1lSNMz-0005rW-1T
+	for ocfs2-devel@oss.oracle.com; Fri, 02 Apr 2021 10:14:05 -0700
+Received: from pps.filterd (aserp3020.oracle.com [127.0.0.1])
+	by aserp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
+	132HB1o6042538
+	for <ocfs2-devel@oss.oracle.com>; Fri, 2 Apr 2021 17:14:04 GMT
+Received: from nam10-bn7-obe.outbound.protection.outlook.com
+	(mail-bn7nam10lp2100.outbound.protection.outlook.com [104.47.70.100])
+	by aserp3020.oracle.com with ESMTP id 37n2acnxmc-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Fri, 02 Apr 2021 08:19:03 +0000
-Received: from pps.filterd (userp2030.oracle.com [127.0.0.1])
-	by userp2030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
-	1328F6S2034481
-	for <ocfs2-devel@oss.oracle.com>; Fri, 2 Apr 2021 08:19:03 GMT
-Received: from esa9.fujitsucc.c3s2.iphmx.com (esa9.fujitsucc.c3s2.iphmx.com
-	[68.232.159.90]) by userp2030.oracle.com with ESMTP id 37n2a6e4s7-1
-	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Fri, 02 Apr 2021 08:19:02 +0000
-IronPort-SDR: HKxPSRS8hySZ5m6V7BjbWLRYcKXfpSXXRyGgOaYRt2iOuV2CAhBU7foqpIE+f4j4NS3BYi/6nI
-	/LAQ2LJHbKiNyRCXQtE849nsRHvgKyAXbZykjxXgS0M1RQy2Q7T8FB/7m5KamI4jeq/Iikbw6y
-	2VLivcct5blphvcUNCTkl4l50T04Mfq/8Lv6rI9tHhnMyX+Yq3OB0Vn1C1oMO3JMq9ikJWqJFq
-	6ADLMoGo7apWcqN7ErWXiQqfEOqAlZ7VpNnGQ+WSm3zMrTI1QvE7XZnKfpOHnXZjVM6s3K/dOF
-	KD0=
-X-IronPort-AV: E=McAfee;i="6000,8403,9941"; a="29033759"
-X-IronPort-AV: E=Sophos;i="5.81,299,1610377200"; d="scan'208";a="29033759"
-Received: from mail-os2jpn01lp2057.outbound.protection.outlook.com (HELO
-	JPN01-OS2-obe.outbound.protection.outlook.com) ([104.47.92.57])
-	by ob1.fujitsucc.c3s2.iphmx.com with
-	ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 02 Apr 2021 17:18:55 +0900
-ARC-Seal: i=1; a=rsa-sha256; s=arcselector9901; d=microsoft.com; cv=none;
-	b=SZ9a8JAoR0qYfZCzj6U4glypxu1vzsAlXDXUK3EBHICSue7+rrZamwh0Js9zx2ZY2EQKbkM3gsL5KdQ4MmqgKFSH3xK5RedbtMkhRXOTENf3YGGEk3TWh1MHHeaaA9u2EHhEVFQsLpNqW391SbwuZmJE5a3M2xv5EmPpfOVpZbHmpMEWouMnQEIt8O60Ul2Nydqm/H0arxUo/AyGwu/yxZ3LIca2SZ30N3vvfewJhtJYnC1lP/K6M7AYXK/W07luOHNj+BoYxDf9+Oge4KgCEck4tpi0NUmMieL0Pikc7+2WWlsibbc51+ripsbgYGPwJFd8egfAnGWaJwSNaF/P/A==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com; 
-	s=arcselector9901;
-	h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
-	bh=Xbiko/8hLx+mPtM6OKoUIuPFaX4Y2wRQtP24JBim/2o=;
-	b=W2VG1zlyhTCx2JLJmBhBwwzx38AGMqzd4D1hT1y8rlOYDLtnPF6ZCjsJcgj5EXUDFP9bugCj9pFQCEyG1TBqbK1NRNyAQ0fsg7nmnsPODfPKPJ9olydhSKoeLVqw+xqMPK/sr4ogw/TfdTdyknD1/jQH8RNQvbPkK2TnvI0hmARed4cc2qVjtauQrN6iNIaDPpeTMYnhiKtIjfPClv7bythSkOMKpppeLqQt2GOGbQYlER0CUTfpLrunO/J1cUlKwxROPcWNc4qGGWrdaXw6jCPDeC3Rb4oR4zzzx1Vjfng9xQdn5PQUzVWYHYQMGM26+/VV7edL4+CsFne/rOJuvg==
-ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
-	smtp.mailfrom=fujitsu.com;
-	dmarc=pass action=none header.from=fujitsu.com; 
-	dkim=pass header.d=fujitsu.com; arc=none
-Received: from OSBPR01MB2920.jpnprd01.prod.outlook.com (2603:1096:604:18::16)
-	by OS3PR01MB6722.jpnprd01.prod.outlook.com (2603:1096:604:f8::11)
+	for <ocfs2-devel@oss.oracle.com>; Fri, 02 Apr 2021 17:14:04 +0000
+Authentication-Results: oss.oracle.com; dkim=none (message not signed)
+	header.d=none; oss.oracle.com;
+	dmarc=none action=none header.from=oracle.com; 
+Received: from SN6PR10MB2701.namprd10.prod.outlook.com (2603:10b6:805:45::20)
+	by SA2PR10MB4779.namprd10.prod.outlook.com (2603:10b6:806:11f::10)
 	with Microsoft SMTP Server (version=TLS1_2,
-	cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.3999.27;
-	Fri, 2 Apr 2021 08:18:53 +0000
-Received: from OSBPR01MB2920.jpnprd01.prod.outlook.com
-	([fe80::68f4:1e20:827c:a2ca]) by
-	OSBPR01MB2920.jpnprd01.prod.outlook.com
-	([fe80::68f4:1e20:827c:a2ca%4]) with mapi id 15.20.3977.033;
-	Fri, 2 Apr 2021 08:18:53 +0000
-From: "ruansy.fnst@fujitsu.com" <ruansy.fnst@fujitsu.com>
-To: Christoph Hellwig <hch@lst.de>,
-        "dan.j.williams@intel.com"
-	<dan.j.williams@intel.com>
-Thread-Topic: [PATCH v3 00/10] fsdax, xfs: Add reflink&dedupe support for fsdax
-Thread-Index: AQHXHGKQk2Eu++5KRkanzs5GTu34M6qg8K4AgAAHZQA=
-Date: Fri, 2 Apr 2021 08:18:53 +0000
-Message-ID: <OSBPR01MB292043A4BEC48C87404084E0F47A9@OSBPR01MB2920.jpnprd01.prod.outlook.com>
-References: <20210319015237.993880-1-ruansy.fnst@fujitsu.com>
-	<20210402074936.GB7057@lst.de>
-In-Reply-To: <20210402074936.GB7057@lst.de>
-Accept-Language: en-US, zh-CN
-Content-Language: zh-CN
-X-MS-Has-Attach: 
-X-MS-TNEF-Correlator: 
-authentication-results: lst.de; dkim=none (message not signed)
-	header.d=none;lst.de; dmarc=none action=none header.from=fujitsu.com;
-x-originating-ip: [180.96.28.100]
-x-ms-publictraffictype: Email
-x-ms-office365-filtering-correlation-id: b3c90c2e-af98-46f1-8d39-08d8f5aff421
-x-ms-traffictypediagnostic: OS3PR01MB6722:
-x-microsoft-antispam-prvs: <OS3PR01MB6722E543F8A392DCD3133C90F47A9@OS3PR01MB6722.jpnprd01.prod.outlook.com>
-x-ms-oob-tlc-oobclassifiers: OLM:8882;
-x-ms-exchange-senderadcheck: 1
-x-microsoft-antispam: BCL:0;
-x-microsoft-antispam-message-info: bdGcrS8NecVXmItl71TwsbTrCdJNODr5UAdPLKx5p3QOFo0OJ76EMfOgg7ZW5LR95vkaoFNmPkz2CY9X2sywfaXYjku4y5q09MXgEs2EyDO2meMJT5dafxW1zlJVg6+ALH329BfvwqHfLBBSSUtJc2YJPPMnyBFfXlzIrGFwH5nN7pDfckHIld18X3+9A+n+SE34Eaee9QE0Dl9afzqQUCwsILiImbGlHKndMSl0tZSShwY9WV8Eowyok9kM5i0PE5VjuE4AN9GMAOMVJOO4Txc8gUwNGtrgVz5ID8WSOdWuzBA5zghq+dFpyzU4wHwhjRH0q9gXdVYdq/IYMNTCUIM8xQH6kjwMZjFVVa8nrMk8aymt5cP4b+/jCWsIJDeQ9/NzYnCBdePMZb258c/6o30jfqaYV8Bkhov9rvi11RSpbL/pfZlqGR7GoWXGBvIJb0MsDG/1xBle9ljNeEp1IbvqXpnckH7psV+ePvIqLRpqn9LjZb0MeWOHFmSLzrJbL8+kXvNypn3GUM2360LMcehJg3+TrGXxwHYQL8JOkt+lNkRaTklXtEhTT01UZZZE8n9B6Tmj3mIUlXR8VFBx/lJYvpRjiFTXMVAFcidkqXMMQv5JViT5PhsYHbPNgw5FGBy/4CmUpiYe1qD61isy4JLZz06uT74STZsywlni0Q8=
-x-forefront-antispam-report: CIP:255.255.255.255; CTRY:; LANG:en; SCL:1; SRV:; IPV:NLI; SFV:NSPM;
-	H:OSBPR01MB2920.jpnprd01.prod.outlook.com; PTR:; CAT:NONE;
-	SFS:(4636009)(366004)(346002)(376002)(396003)(39860400002)(136003)(66476007)(86362001)(66446008)(38100700001)(55016002)(5660300002)(8936002)(2906002)(9686003)(85182001)(83380400001)(6506007)(66946007)(8676002)(26005)(7416002)(64756008)(76116006)(66556008)(186003)(7696005)(478600001)(4326008)(52536014)(54906003)(110136005)(53546011)(71200400001)(4744005)(316002)(33656002);
-	DIR:OUT; SFP:1101; 
-x-ms-exchange-antispam-messagedata: =?gb2312?B?SU5mTWVhQklvSGNDRVpXL1ZrQmJPeUV3ZUMyc1Y1Z0Jvak1tMGFHa3pCc3Iw?=
-	=?gb2312?B?OUdEOHlLczE2bEtiMUlFbDRYenRlNzJYZTdPNExZZTJXSFNPMThCVUtpeFRp?=
-	=?gb2312?B?cUI1ZXpuaDZyR3UrcGt4aGlYaFN6NXpKL2Y4MXVaMmlNbWo0cXViTlMwYmZH?=
-	=?gb2312?B?emt2UkVtVXdDbUk2K1ljVHBpZk9yalI0R3FhdWtFN0c5M21qT3krWDVCSzRF?=
-	=?gb2312?B?U1VjNUNaYzI4MCtxK0I0U1IyVm9uN3FPWi9qbFFBM1Q4VUZPWHUvNlBPaEhO?=
-	=?gb2312?B?K25Wbk1WMzF5ZjJVcnRrVEJFT1ZRS0R0QXhtZTQ1N3AxYUE3ck5YbUtQbGdN?=
-	=?gb2312?B?WXphMVRPR0xib0JaOUxOQmpkNUpxQ2Rwa3hEb1diSGZieU91YUgyL3VaaERx?=
-	=?gb2312?B?bG1LaTdhRjIwTjlERXBWcURZai9wcTRuOXU4akRWT1NWem1QeEpoUFE1QjUx?=
-	=?gb2312?B?R0lhdHlkbTFqU0xsL1JKcG5ZYnl3dzVibmFKNUUxUmhSb3o0R0ZkNlRZTkpW?=
-	=?gb2312?B?RVZFTjB0bGZNd2lYZTdzZW1GSTlpMFRZUDJob3R2K3lEVEpmenE1Mk9ZUURs?=
-	=?gb2312?B?L0FyemY3SVdIYnpTbEpHNCtqRWhET25meHo1Z3hnUGpCdUJqSldzY2xzNFVs?=
-	=?gb2312?B?MUwvVDhjSFkvajRXY1lHSmdkZVVGZnYySFJHRkttRXB3a1Q0YjlKeHlNWkZu?=
-	=?gb2312?B?TkwrSTBkSWNnVklXeHJQS1c1MlZLN2NqQVBvMGJhVVJIRXZtQlBGS0xoY1pS?=
-	=?gb2312?B?b281N282TFRSRmUwdTF5M1Y4QzBRUEd5SndwcmpOZHhxWityVHc2SXhadjRo?=
-	=?gb2312?B?NVBoYzBLV3RSQSt6SkdUQThvQ1d5cUJRUElRL05lbGNoSnpaKzJOQnRVS2M5?=
-	=?gb2312?B?VG5EaktQb0Rmdlc1SjM3bnBtYytxYzY5bEU5elNydFNNMHVoa3MwMUJibVF0?=
-	=?gb2312?B?a2pIQ2JibG81emgvb0wwcGJNZlNSaXFhOTd6UmVYYnlNMithckN6alZIUlJV?=
-	=?gb2312?B?OENjbWVrN055SG1ZNlB5QUtzYTZBRlBnOFBUY3gvR2tiSk9DN1UvanJob0dh?=
-	=?gb2312?B?NDhKV0oxQ05qUjlBT1FyYjRSUy9KeXVRQlBqMmZ3ckJmSzB6MllKZGFaOGEv?=
-	=?gb2312?B?YldjWGxJdGRmS2tQbTRQaFdHNjZ2UG5ldkV0NEJqa3hualJleTFweENmWnVT?=
-	=?gb2312?B?QzBROVdFUWhXQmF4QWpxdHlIQWlDTk9BZmlCdzYxb24vaWFzTVNiSjIrbnJZ?=
-	=?gb2312?B?QVZyS2J3OStpbEVoWHlDcHdCc3dkS21YSXRMai9DT245VmhXWkZyaGthZ04w?=
-	=?gb2312?B?WVJhMDgzMFB5VVRiajZsbUVabHlPVlN3allWWE9IQ3lDa2FJUXdRZEF0NktR?=
-	=?gb2312?B?V2xIaWNrZ3l0VlMxRy91NWU3ank5bTd6YXlhMFpLandmTS8yZWJmcndYT1Vv?=
-	=?gb2312?B?a200Zjd1UDJPYzQvU1BsV1F2SUk0QXo2eVVZZkF0Tkw0b0F1a0tMdER1LzVv?=
-	=?gb2312?B?TWkycEdOS3B0ejAxdFQweU84S3RjQ3loSjNtVmI2R3J2YlRBcW5JajZXNUEz?=
-	=?gb2312?B?c3pkT3RRbXVZeHU2amFRcC9aRjh1YWhqVkRCdFZrNjhQcmFxQTlDWXJacTdM?=
-	=?gb2312?B?K2lmelc1N29iSHRGU3NSRjRsVW1JWGRTcUtzVUpRcjBBVFhSTy9lS0IzcWRD?=
-	=?gb2312?B?UUpuMk1mRlpvSkJmYiswLzd1QzJwRUs2ZHBLdDc5NlZoak1rMTlKOW5NV1N5?=
-	=?gb2312?Q?1p51bath+vTPNKm/+/SU2n6cYzx1rfgWlbNqq/u?=
-x-ms-exchange-transport-forked: True
+	cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.3999.29;
+	Fri, 2 Apr 2021 17:14:03 +0000
+Received: from SN6PR10MB2701.namprd10.prod.outlook.com
+	([fe80::74cc:15dc:8911:4291]) by
+	SN6PR10MB2701.namprd10.prod.outlook.com
+	([fe80::74cc:15dc:8911:4291%4]) with mapi id 15.20.3999.030;
+	Fri, 2 Apr 2021 17:14:03 +0000
+From: Wengang Wang <wen.gang.wang@oracle.com>
+To: ocfs2-devel@oss.oracle.com
+Date: Fri,  2 Apr 2021 10:13:44 -0700
+Message-Id: <20210402171344.1605-1-wen.gang.wang@oracle.com>
+X-Mailer: git-send-email 2.21.0 (Apple Git-122.2)
+X-Originating-IP: [71.198.166.82]
+X-ClientProxiedBy: BYAPR06CA0001.namprd06.prod.outlook.com
+	(2603:10b6:a03:d4::14) To SN6PR10MB2701.namprd10.prod.outlook.com
+	(2603:10b6:805:45::20)
 MIME-Version: 1.0
-X-OriginatorOrg: fujitsu.com
+X-MS-Exchange-MessageSentRepresentingType: 1
+Received: from dhcp-10-159-145-87.vpn.oracle.com (71.198.166.82) by
+	BYAPR06CA0001.namprd06.prod.outlook.com (2603:10b6:a03:d4::14)
+	with Microsoft SMTP Server (version=TLS1_2,
+	cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.3999.26
+	via Frontend Transport; Fri, 2 Apr 2021 17:14:02 +0000
+X-MS-PublicTrafficType: Email
+X-MS-Office365-Filtering-Correlation-Id: 7ef9d59e-9b05-4d36-da57-08d8f5fab6d6
+X-MS-TrafficTypeDiagnostic: SA2PR10MB4779:
+X-MS-Exchange-Transport-Forked: True
+X-Oracle-Tenancy: 1
+X-MS-Oob-TLC-OOBClassifiers: OLM:949;
+X-Microsoft-Antispam: BCL:0;
+X-Microsoft-Antispam-Message-Info: flaUHoqgdGN0j+vtEIT/H5Ay/xoN7ohwhMBJ/b/cf4TYFu32EIIuFhfhUlqZ4qJLYHHvwog1/2wnP0IFDHxqjNoh8aXZvkTrux58FMEg/DawbOOaEUMmZB5JUEt5oCj43G4V8uGWjh9bPaZC/4PsrvESztiWTGdaUpsHDHXAEwNsSDApa2gNgNPdBEiG4kpHawpQZrwKSgoLU8M3XKBd+A7yk4MU72B6O/x189clCeHN1DE7C3PPntkjs3he8jNOOgnb2gmccOIqcl5PUV76PjHCPGWpYgqANJ1FR5MaozVbHe+aJIClAD9dxchTTnA93NgIR5zR/XQ/M58VjU3jK+DfRiwizQN9pDH5K8Ccl0YYa8XEajUW0lCvG09xL068b79GXpqEBJ8SA+qa5cAVWJmccyBT42pwDVl5PHjdNhTfri8a53lrLvcuFjnXKdGWdoWIUadJlstYC6DRFBoLxpe3ECq+bNSOv4moJVf6PiS+oMvuMZkYYaQEw6Vf8P3FIQJPiq+82+LlO24I/8RzndKRwtQ9f0bI4qmISuCcZccrzTaXIMv0w9PnsvQkR2YG
+X-Forefront-Antispam-Report: CIP:255.255.255.255; CTRY:; LANG:en; SCL:-1; SRV:; IPV:NLI; SFV:SKI;
+	H:SN6PR10MB2701.namprd10.prod.outlook.com; PTR:; CAT:NONE; SFS:;
+	DIR:INB; 
+X-MS-Exchange-AntiSpam-MessageData: =?us-ascii?Q?m05N8NT0ApY2MDu94xU79jf5d6OUr/ZV3d5iJVxecAGBAXuTV2683cOwxj3H?=
+	=?us-ascii?Q?eMtBZA3tgn02DU509/NeLSGAgQBXCrBpoh5yN2HTdMCBP9FAIxMV2HkNIOyE?=
+	=?us-ascii?Q?tmFX6T43OxlQqFzblar0f2h9xVgsOL6OzMFKiCwotC/zvEopFUsF/pp7v7fu?=
+	=?us-ascii?Q?JU+eYSTrHpIAePTRvqNySQgtURwSbZYSItZNtuqbzOmnGM+JZP6R+LtyLZdi?=
+	=?us-ascii?Q?WpPnKBlju4NDh2Yhq+TsmVvgiBs94AwL0uo2dmTwGKyX8Ozz3bP9Nl++sjx1?=
+	=?us-ascii?Q?VpqEIfUqbwfU37wsyVvllYa6zffLXC6Fx4YbAayIe03ZbHeIqv0/XHcXRqZK?=
+	=?us-ascii?Q?2b0bfKEueysA3jUCJqduIg82Nf69KRzqxPnr4pywerqOSmQSKb5+ClJ45GiK?=
+	=?us-ascii?Q?EH6vkux5xGfjUDbgUKugExCxboCLdrX0cZSKbcLojQNWuyWXZsVoYrFnCcj4?=
+	=?us-ascii?Q?NB5Y63qnWs94eQM6DqId/EnZq81XqE1TX8Pi7RLDn7qt3iSrJQwzY688ApjL?=
+	=?us-ascii?Q?9rw64yFRtTNMBs8yiUGdlmqXHkKBfFhJasf8KBSImpV0oRRGqiOwZ/Tf+0oI?=
+	=?us-ascii?Q?MGXPVSF//uvkdMfbaOGjEOMjK7xgVk5aVUIKYrqpT/X1P5yWOOXu9HqVGw4P?=
+	=?us-ascii?Q?Ijucer4m2W9VoL84RwGXwGSXeFx9LLgyptVthE9Ami1uxRAwhHeQVB/XYirB?=
+	=?us-ascii?Q?3zo3ITNJa2y4wwLt+w0mBdVjGwX9In+TKFF5cv/M8qJRxZr6KAxljQ5MLRRa?=
+	=?us-ascii?Q?xpU6bR6mOwHEtf55XxN00C5M5SqoViuQ7CLhht02snyVQqWQpNLDu6/u3dUp?=
+	=?us-ascii?Q?YVXUmkpP91RPNBNyi8SJhXoxcpyiOO5TGSGVPZ9JBwKA5vAXBMs6vozJtUMk?=
+	=?us-ascii?Q?gksweKmrcZkK1VhESfDHzUWt220eccXw5yh5qBSeA8tjATjIsRJv0C0lhug9?=
+	=?us-ascii?Q?SQ01hjtYukxEgHSNNCOklLflhimJ6LxEo4jLfPNZmZnOgEhB/xRhwnxQ2gxj?=
+	=?us-ascii?Q?kYIPcm6w63NevX/QM80xR5SEo+ZYl5/SOie2P2FmMqlWq3z+3veqPyTfw9uF?=
+	=?us-ascii?Q?BiAEpZZ1kIukvJ7Moj8qQmTRjHUV+TOQIdDoQyJ+ZsFn8g77rHSAqbKLW5Q9?=
+	=?us-ascii?Q?SBkR5oDt1WewjloMHRdbFBan+JbQ6gmQ5QU1zm6+lto+zhAzZuHvlM0G2pZP?=
+	=?us-ascii?Q?TPfZX2zodpvqGhe5Gl2En9sIBsLwb+QdXSdm8Eqa5W9yvjW8834OG4Llpuqg?=
+	=?us-ascii?Q?XLsZkX/nvSOYjNuszPmObzZMnel4mAA7BaQW79dR9M4aKDR2JAjhK87fYfCO?=
+	=?us-ascii?Q?lwXCOLbyQ4nidTIIIBuzp0N3?=
+X-OriginatorOrg: oracle.com
+X-MS-Exchange-CrossTenant-Network-Message-Id: 7ef9d59e-9b05-4d36-da57-08d8f5fab6d6
+X-MS-Exchange-CrossTenant-AuthSource: SN6PR10MB2701.namprd10.prod.outlook.com
 X-MS-Exchange-CrossTenant-AuthAs: Internal
-X-MS-Exchange-CrossTenant-AuthSource: OSBPR01MB2920.jpnprd01.prod.outlook.com
-X-MS-Exchange-CrossTenant-Network-Message-Id: b3c90c2e-af98-46f1-8d39-08d8f5aff421
-X-MS-Exchange-CrossTenant-originalarrivaltime: 02 Apr 2021 08:18:53.6017 (UTC)
-X-MS-Exchange-CrossTenant-fromentityheader: Hosted
-X-MS-Exchange-CrossTenant-id: a19f121d-81e1-4858-a9d8-736e267fd4c7
-X-MS-Exchange-CrossTenant-mailboxtype: HOSTED
-X-MS-Exchange-CrossTenant-userprincipalname: c3nUR/hHttEu+HBIXc+vGg8H4p41I9plyXqIEUa1psnR8Xbjg+I9UbK/5+zinvXhNxSBjj0YryIftFdp34Da4g==
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: OS3PR01MB6722
-X-PDR: PASS
-X-Source-IP: 68.232.159.90
-X-ServerName: esa9.fujitsucc.c3s2.iphmx.com
-X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 ip4:211.128.242.0/26 ip4:202.219.69.128/26
-	ip4:207.54.90.47
-	ip4:207.54.90.48 ip4:207.54.90.49 ip4:68.232.139.117 ip4:68.232.139.130
-	ip4:68.232.139.139 include:spf.protection.outlook.com
-	include:mktomail.com
-	mx:fujitsu.com include:spf.messagelabs.com ?all
-X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9941
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 02 Apr 2021 17:14:03.2487 (UTC)
+X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
+X-MS-Exchange-CrossTenant-Id: 4e2c6054-71cb-48f1-bd6c-3a9705aca71b
+X-MS-Exchange-CrossTenant-MailboxType: HOSTED
+X-MS-Exchange-CrossTenant-UserPrincipalName: idOSFe+OpNhut4poDXtxEW6X2Z/HhNdW//Hr/8764UkrfwsnZC4uV6tvi8yquGblIBghS8jTlmrwH7I7v5Ssp6OCKlngfNRji1oyKLFX9xc=
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: SA2PR10MB4779
+X-MS-Exchange-CrossPremises-AuthSource: SN6PR10MB2701.namprd10.prod.outlook.com
+X-MS-Exchange-CrossPremises-AuthAs: Internal
+X-MS-Exchange-CrossPremises-AuthMechanism: 06
+X-MS-Exchange-CrossPremises-Mapi-Admin-Submission: 
+X-MS-Exchange-CrossPremises-MessageSource: StoreDriver
+X-MS-Exchange-CrossPremises-BCC: 
+X-MS-Exchange-CrossPremises-OriginalClientIPAddress: 71.198.166.82
+X-MS-Exchange-CrossPremises-TransportTrafficType: Email
+X-MS-Exchange-CrossPremises-Antispam-ScanContext: DIR:Originating;SFV:SKI;SKIP:0;
+X-MS-Exchange-CrossPremises-SCL: -1
+X-MS-Exchange-CrossPremises-Processed-By-Journaling: Journal Agent
+X-OrganizationHeadersPreserved: SA2PR10MB4779.namprd10.prod.outlook.com
+X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9942
 	signatures=668683
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0
-	lowpriorityscore=0 bulkscore=0
-	priorityscore=78 mlxscore=0 phishscore=0 mlxlogscore=999 spamscore=0
-	clxscore=132 impostorscore=0 adultscore=0 suspectscore=0 malwarescore=0
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 adultscore=0
+	mlxscore=0 bulkscore=0
+	suspectscore=0 phishscore=0 malwarescore=0 mlxlogscore=999 spamscore=0
 	classifier=spam adjust=0 reason=mlx scancount=1
-	engine=8.12.0-2103310000 definitions=main-2104020057
-X-Spam: Clean
-Cc: "jack@suse.cz" <jack@suse.cz>,
-        "darrick.wong@oracle.com" <darrick.wong@oracle.com>,
-        "linux-nvdimm@lists.01.org" <linux-nvdimm@lists.01.org>,
-        "david@fromorbit.com" <david@fromorbit.com>,
-        "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
-        "linux-xfs@vger.kernel.org" <linux-xfs@vger.kernel.org>,
-        "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>,
-        "viro@zeniv.linux.org.uk" <viro@zeniv.linux.org.uk>,
-        "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>,
-        "linux-btrfs@vger.kernel.org" <linux-btrfs@vger.kernel.org>
-Subject: Re: [Ocfs2-devel] [PATCH v3 00/10] fsdax,
-	xfs: Add reflink&dedupe support for fsdax
+	engine=8.12.0-2103310000 definitions=main-2104020120
+Cc: GHe@suse.com
+Subject: [Ocfs2-devel] [PATCH V2] ocfs2: fix deadlock between setattr and
+	dio_end_io_write
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.9
 Precedence: list
@@ -204,39 +169,156 @@ Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 Sender: ocfs2-devel-bounces@oss.oracle.com
 Errors-To: ocfs2-devel-bounces@oss.oracle.com
-X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9941 signatures=668683
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 suspectscore=0 mlxlogscore=999
- adultscore=0 bulkscore=0 mlxscore=0 spamscore=0 malwarescore=0
- phishscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2103310000 definitions=main-2104020057
-X-Proofpoint-GUID: ZfXj-y9x0OpP_lZB6U2bqOKvj46hU08z
-X-Proofpoint-ORIG-GUID: ZfXj-y9x0OpP_lZB6U2bqOKvj46hU08z
-X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9941 signatures=668683
+X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9942 signatures=668683
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 malwarescore=0 phishscore=0 spamscore=0
+ mlxscore=0 mlxlogscore=999 bulkscore=0 adultscore=0 suspectscore=0
+ classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2103310000
+ definitions=main-2104020120
+X-Proofpoint-GUID: ur5c03jp0fvIeMEjbXy7G8LYP5m6ijmX
+X-Proofpoint-ORIG-GUID: ur5c03jp0fvIeMEjbXy7G8LYP5m6ijmX
+X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9942 signatures=668683
 X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 impostorscore=0 adultscore=0
  clxscore=1015 mlxlogscore=999 phishscore=0 bulkscore=0 priorityscore=1501
  spamscore=0 malwarescore=0 mlxscore=0 lowpriorityscore=0 suspectscore=0
  classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2103310000
- definitions=main-2104020058
+ definitions=main-2104020120
+
+The following deadlock is detected:
+
+truncate -> setattr path is waiting for pending direct IO to be done (
+inode->i_dio_count become zero) with inode->i_rwsem held (down_write).
+
+PID: 14827  TASK: ffff881686a9af80  CPU: 20  COMMAND: "ora_p005_hrltd9"
+#0 [ffffc9000bcf3c08] __schedule at ffffffff818667cc
+#1 [ffffc9000bcf3ca0] schedule at ffffffff81866de6
+#2 [ffffc9000bcf3cb8] inode_dio_wait at ffffffff812a2d04
+#3 [ffffc9000bcf3d28] ocfs2_setattr at ffffffffc05f322e [ocfs2]
+#4 [ffffc9000bcf3e18] notify_change at ffffffff812a5a09
+#5 [ffffc9000bcf3e60] do_truncate at ffffffff812808f5
+#6 [ffffc9000bcf3ed8] do_sys_ftruncate.constprop.18 at ffffffff81280cf2
+#7 [ffffc9000bcf3f18] sys_ftruncate at ffffffff81280d8e
+#8 [ffffc9000bcf3f28] do_syscall_64 at ffffffff81003949
+#9 [ffffc9000bcf3f50] entry_SYSCALL_64_after_hwframe at ffffffff81a001ad
+
+dio completion path is going to complete one direct IO (decrement
+inode->i_dio_count), but before that it hang at locking inode->i_rwsem.
+
+ #0 [ffffc90009b47b40] __schedule+700 at ffffffff818667cc
+ #1 [ffffc90009b47bd8] schedule+54 at ffffffff81866de6
+ #2 [ffffc90009b47bf0] rwsem_down_write_failed+536 at ffffffff8186aa28
+ #3 [ffffc90009b47c88] call_rwsem_down_write_failed+23 at ffffffff8185a1b7
+ #4 [ffffc90009b47cd0] down_write+45 at ffffffff81869c9d
+ #5 [ffffc90009b47ce8] ocfs2_dio_end_io_write+180 at ffffffffc05d5444 [ocfs2]
+ #6 [ffffc90009b47dd8] ocfs2_dio_end_io+85 at ffffffffc05d5a85 [ocfs2]
+ #7 [ffffc90009b47e18] dio_complete+140 at ffffffff812c873c
+ #8 [ffffc90009b47e50] dio_aio_complete_work+25 at ffffffff812c89f9
+ #9 [ffffc90009b47e60] process_one_work+361 at ffffffff810b1889
+#10 [ffffc90009b47ea8] worker_thread+77 at ffffffff810b233d
+#11 [ffffc90009b47f08] kthread+261 at ffffffff810b7fd5
+#12 [ffffc90009b47f50] ret_from_fork+62 at ffffffff81a0035e
+
+Thus above forms ABBA deadlock. The same deadlock was mentioned in
+upstream commit 28f5a8a7c033cbf3e32277f4cc9c6afd74f05300. well, it seems
+that that commit just removed cluster lock (the victim of above dead
+lock) from the ABBA deadlock party.
+
+End-user visible effects:
+Process hang in truncate -> ocfs2_setattr path and other processes hang at
+ocfs2_dio_end_io_write path.
+
+This is to fix the deadlock its self. It removes inode_lock() call from dio
+completion path to remove the deadlock and add ip_alloc_sem lock in setattr
+path to synchronize the inode modifications.
+
+Cc: stable@vger.kernel.org
+Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
+---
+v1 -> v2: remove the "had_alloc_lock" as suggested.
+---
+ fs/ocfs2/aops.c | 11 +----------
+ fs/ocfs2/file.c |  8 ++++++--
+ 2 files changed, 7 insertions(+), 12 deletions(-)
+
+diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+index 3bfb4147895a..ad20403b383f 100644
+--- a/fs/ocfs2/aops.c
++++ b/fs/ocfs2/aops.c
+@@ -2295,7 +2295,7 @@ static int ocfs2_dio_end_io_write(struct inode *inode,
+ 	struct ocfs2_alloc_context *meta_ac = NULL;
+ 	handle_t *handle = NULL;
+ 	loff_t end = offset + bytes;
+-	int ret = 0, credits = 0, locked = 0;
++	int ret = 0, credits = 0;
+ 
+ 	ocfs2_init_dealloc_ctxt(&dealloc);
+ 
+@@ -2306,13 +2306,6 @@ static int ocfs2_dio_end_io_write(struct inode *inode,
+ 	    !dwc->dw_orphaned)
+ 		goto out;
+ 
+-	/* ocfs2_file_write_iter will get i_mutex, so we need not lock if we
+-	 * are in that context. */
+-	if (dwc->dw_writer_pid != task_pid_nr(current)) {
+-		inode_lock(inode);
+-		locked = 1;
+-	}
+-
+ 	ret = ocfs2_inode_lock(inode, &di_bh, 1);
+ 	if (ret < 0) {
+ 		mlog_errno(ret);
+@@ -2393,8 +2386,6 @@ static int ocfs2_dio_end_io_write(struct inode *inode,
+ 	if (meta_ac)
+ 		ocfs2_free_alloc_context(meta_ac);
+ 	ocfs2_run_deallocs(osb, &dealloc);
+-	if (locked)
+-		inode_unlock(inode);
+ 	ocfs2_dio_free_write_ctx(inode, dwc);
+ 
+ 	return ret;
+diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+index 85979e2214b3..8880071ee4ee 100644
+--- a/fs/ocfs2/file.c
++++ b/fs/ocfs2/file.c
+@@ -1244,22 +1244,24 @@ int ocfs2_setattr(struct dentry *dentry, struct iattr *attr)
+ 				goto bail_unlock;
+ 			}
+ 		}
++		down_write(&OCFS2_I(inode)->ip_alloc_sem);
+ 		handle = ocfs2_start_trans(osb, OCFS2_INODE_UPDATE_CREDITS +
+ 					   2 * ocfs2_quota_trans_credits(sb));
+ 		if (IS_ERR(handle)) {
+ 			status = PTR_ERR(handle);
+ 			mlog_errno(status);
+-			goto bail_unlock;
++			goto bail_unlock_alloc;
+ 		}
+ 		status = __dquot_transfer(inode, transfer_to);
+ 		if (status < 0)
+ 			goto bail_commit;
+ 	} else {
++		down_write(&OCFS2_I(inode)->ip_alloc_sem);
+ 		handle = ocfs2_start_trans(osb, OCFS2_INODE_UPDATE_CREDITS);
+ 		if (IS_ERR(handle)) {
+ 			status = PTR_ERR(handle);
+ 			mlog_errno(status);
+-			goto bail_unlock;
++			goto bail_unlock_alloc;
+ 		}
+ 	}
+ 
+@@ -1272,6 +1274,8 @@ int ocfs2_setattr(struct dentry *dentry, struct iattr *attr)
+ 
+ bail_commit:
+ 	ocfs2_commit_trans(osb, handle);
++bail_unlock_alloc:
++	up_write(&OCFS2_I(inode)->ip_alloc_sem);
+ bail_unlock:
+ 	if (status && inode_locked) {
+ 		ocfs2_inode_unlock_tracker(inode, 1, &oh, had_lock);
+-- 
+2.21.0 (Apple Git-122.2)
 
 
-
-> -----Original Message-----
-> From: Christoph Hellwig <hch@lst.de>
-> Sent: Friday, April 2, 2021 3:50 PM
-> Subject: Re: [PATCH v3 00/10] fsdax,xfs: Add reflink&dedupe support for fsdax
-> 
-> Shiyang, Dan:
-> 
-> given that the whole reflink+dax thing is going to take a while and thus not going
-> to happen for this merge window, what about queueing up the cleanup patches
-> 1,2 and 3 so that we can reduce the patch load a little?
-
-OK.  I'll send a new version of these 3 patches based on latest comment.
-
-
---
-Thanks,
-Ruan Shiyang.
 _______________________________________________
 Ocfs2-devel mailing list
 Ocfs2-devel@oss.oracle.com
