@@ -1,143 +1,153 @@
-Return-Path: <SRS0=5YYK=JX=oss.oracle.com=ocfs2-devel-bounces@kernel.org>
+Return-Path: <SRS0=5yvb=JZ=oss.oracle.com=ocfs2-devel-bounces@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-19.0 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+X-Spam-Status: No, score=-17.5 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
 	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
 	INCLUDES_CR_TRAILER,INCLUDES_PATCH,MAILING_LIST_MULTI,MSGID_FROM_MTA_HEADER,
-	SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=ham autolearn_force=no
-	version=3.4.0
+	NICE_REPLY_A,SPF_HELO_NONE,SPF_PASS,USER_AGENT_SANE_1 autolearn=unavailable
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 2D2C7C433B4
-	for <ocfs2-devel@archiver.kernel.org>; Mon, 26 Apr 2021 22:13:54 +0000 (UTC)
-Received: from userp2130.oracle.com (userp2130.oracle.com [156.151.31.86])
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 07E65C433B4
+	for <ocfs2-devel@archiver.kernel.org>; Wed, 28 Apr 2021 16:01:43 +0000 (UTC)
+Received: from aserp2130.oracle.com (aserp2130.oracle.com [141.146.126.79])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by mail.kernel.org (Postfix) with ESMTPS id A351C61152
-	for <ocfs2-devel@archiver.kernel.org>; Mon, 26 Apr 2021 22:13:53 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.3.2 mail.kernel.org A351C61152
+	by mail.kernel.org (Postfix) with ESMTPS id 67829613D8
+	for <ocfs2-devel@archiver.kernel.org>; Wed, 28 Apr 2021 16:01:42 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.3.2 mail.kernel.org 67829613D8
 Authentication-Results: mail.kernel.org; dmarc=pass (p=none dis=none) header.from=oracle.com
 Authentication-Results: mail.kernel.org; spf=pass smtp.mailfrom=ocfs2-devel-bounces@oss.oracle.com
-Received: from pps.filterd (userp2130.oracle.com [127.0.0.1])
-	by userp2130.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 13QMAF4g070926;
-	Mon, 26 Apr 2021 22:13:52 GMT
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=oracle.com; h=from : to : date :
- message-id : in-reply-to : references : mime-version : subject : list-id :
- list-unsubscribe : list-archive : list-post : list-help : list-subscribe :
- content-type : content-transfer-encoding : sender; s=corp-2020-01-29;
- bh=vQlZxph0Z5mdFWOL3eyOW0biy4DiFyes/EDJuV9r8e4=;
- b=potuW/Vr3iOgJX2IQydeAkYOc+5VHB9olNZS9SGYk3RZlNlI4Lvdpc9efFNZtY5pNo4g
- oFf8WQKRn5ByElkfYzpgfBTlA/l1i2CBv7Hr4H5QS/yhBHbHYhfwKHUU3x3qetLl1V6i
- 6BqYKFRGy2rMSFBZrQ80MOq+u3b7acI+wqOFsSqzODFAYC7V5kyf8hQXEGD1jPiIuXUa
- 8f6ZEkm1OuBFgOAydF9LXeVfneqB4I3XJ9Auw8EPt0uPWO6mCy7MVv9V2kPgZKpYTjYQ
- oL3VKGLNdJD8vlZVozvChAT0oiE0cuClOFiubViCQR5OvJU25abs0aspZ80l/Yyusi+T hw== 
+Received: from pps.filterd (aserp2130.oracle.com [127.0.0.1])
+	by aserp2130.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 13SFihCO071361;
+	Wed, 28 Apr 2021 16:01:41 GMT
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=oracle.com; h=to : references :
+ from : message-id : date : in-reply-to : mime-version : subject : list-id
+ : list-unsubscribe : list-archive : list-post : list-help : list-subscribe
+ : content-type : content-transfer-encoding : sender; s=corp-2020-01-29;
+ bh=pA72bp/KJeZtg6TjtNs1j0IQ+WPRmOWLvKkBVRWpf/E=;
+ b=GtHjF9AOSqIxsIzzj+qw+MyVjseUBI1BV+oVefc607jLrSGcC9e53QolMhrpJuTau0YO
+ U3sdWSbVCQirl5T1eMp+cN0h3GWYsm3vmD3SVZ0DeTOYAovTGAR6fXhOwa1Nfl/vM0FM
+ t+eziyTlqxZZd3ZEIrKjIeMZHwaaKgqjNptvI4l5Ixiz7kiMFwfKZQNRx0YylP6AaWeC
+ huyo43fEwOfpx9yWZZFIrKQb8a2mMCG9j0OKT+AbcdUaj4BRJKYM80k3NsUZZmXTIe4x
+ 7QCs7yk3jXu7SR6oHn3s3tv2GZSaE+B5GXWUJyJYagjUvIk2D5/m9Ky3aBJC+Z8pxjXo 8Q== 
 Received: from userp3020.oracle.com (userp3020.oracle.com [156.151.31.79])
-	by userp2130.oracle.com with ESMTP id 385afsukdq-1
+	by aserp2130.oracle.com with ESMTP id 385afq1d5e-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Mon, 26 Apr 2021 22:13:51 +0000
+	Wed, 28 Apr 2021 16:01:40 +0000
 Received: from pps.filterd (userp3020.oracle.com [127.0.0.1])
-	by userp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 13QM6L20105607;
-	Mon, 26 Apr 2021 22:13:51 GMT
+	by userp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 13SFl825079226;
+	Wed, 28 Apr 2021 16:01:40 GMT
 Received: from oss.oracle.com (oss-old-reserved.oracle.com [137.254.22.2])
-	by userp3020.oracle.com with ESMTP id 384w3s6e17-1
+	by userp3020.oracle.com with ESMTP id 384w3uvcs2-1
 	(version=TLSv1 cipher=AES256-SHA bits=256 verify=NO);
-	Mon, 26 Apr 2021 22:13:51 +0000
+	Wed, 28 Apr 2021 16:01:39 +0000
 Received: from localhost ([127.0.0.1] helo=lb-oss.oracle.com)
 	by oss.oracle.com with esmtp (Exim 4.63)
 	(envelope-from <ocfs2-devel-bounces@oss.oracle.com>)
-	id 1lb9O8-0003u4-H9; Mon, 26 Apr 2021 15:07:32 -0700
-Received: from userp3020.oracle.com ([156.151.31.79])
+	id 1lbmd8-00083d-Lu; Wed, 28 Apr 2021 09:01:38 -0700
+Received: from aserp3020.oracle.com ([141.146.126.70])
 	by oss.oracle.com with esmtp (Exim 4.63)
-	(envelope-from <junxiao.bi@oracle.com>) id 1lb9O5-0003sf-EJ
-	for ocfs2-devel@oss.oracle.com; Mon, 26 Apr 2021 15:07:29 -0700
-Received: from pps.filterd (userp3020.oracle.com [127.0.0.1])
-	by userp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
-	13QM6Klh105544
-	for <ocfs2-devel@oss.oracle.com>; Mon, 26 Apr 2021 22:07:29 GMT
-Received: from nam04-bn3-obe.outbound.protection.outlook.com
-	(mail-bn3nam04lp2054.outbound.protection.outlook.com [104.47.46.54])
-	by userp3020.oracle.com with ESMTP id 384w3s65pu-5
+	(envelope-from <junxiao.bi@oracle.com>) id 1lbmcf-00081m-J1
+	for ocfs2-devel@oss.oracle.com; Wed, 28 Apr 2021 09:01:09 -0700
+Received: from pps.filterd (aserp3020.oracle.com [127.0.0.1])
+	by aserp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
+	13SFmBwF105882
+	for <ocfs2-devel@oss.oracle.com>; Wed, 28 Apr 2021 16:01:09 GMT
+Received: from nam10-dm6-obe.outbound.protection.outlook.com
+	(mail-dm6nam10lp2105.outbound.protection.outlook.com [104.47.58.105])
+	by aserp3020.oracle.com with ESMTP id 384b58rv1y-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Mon, 26 Apr 2021 22:07:29 +0000
-Authentication-Results: oss.oracle.com; dkim=none (message not signed)
-	header.d=none; oss.oracle.com;
-	dmarc=none action=none header.from=oracle.com; 
+	for <ocfs2-devel@oss.oracle.com>; Wed, 28 Apr 2021 16:01:09 +0000
+Authentication-Results: linux.alibaba.com; dkim=none (message not signed)
+	header.d=none;linux.alibaba.com; dmarc=none action=none
+	header.from=oracle.com;
 Received: from SJ0PR10MB4752.namprd10.prod.outlook.com (2603:10b6:a03:2d7::19)
-	by BY5PR10MB4307.namprd10.prod.outlook.com (2603:10b6:a03:212::18)
+	by BYAPR10MB3574.namprd10.prod.outlook.com (2603:10b6:a03:119::11)
 	with Microsoft SMTP Server (version=TLS1_2,
-	cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.4042.19;
-	Mon, 26 Apr 2021 22:07:26 +0000
+	cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.4065.20;
+	Wed, 28 Apr 2021 16:01:07 +0000
 Received: from SJ0PR10MB4752.namprd10.prod.outlook.com
 	([fe80::7865:7d35:9cee:363f]) by
 	SJ0PR10MB4752.namprd10.prod.outlook.com
 	([fe80::7865:7d35:9cee:363f%5]) with mapi id 15.20.4065.027;
-	Mon, 26 Apr 2021 22:07:26 +0000
-From: Junxiao Bi <junxiao.bi@oracle.com>
+	Wed, 28 Apr 2021 16:01:07 +0000
 To: ocfs2-devel@oss.oracle.com, cluster-devel@redhat.com,
         linux-fsdevel@vger.kernel.org
-Date: Mon, 26 Apr 2021 15:05:52 -0700
-Message-Id: <20210426220552.45413-3-junxiao.bi@oracle.com>
-X-Mailer: git-send-email 2.24.3 (Apple Git-128)
-In-Reply-To: <20210426220552.45413-1-junxiao.bi@oracle.com>
 References: <20210426220552.45413-1-junxiao.bi@oracle.com>
+	<20210426220552.45413-2-junxiao.bi@oracle.com>
+From: Junxiao Bi <junxiao.bi@oracle.com>
+Message-ID: <9aeafe69-0bf2-f4cb-431a-1cb4329a178c@oracle.com>
+Date: Wed, 28 Apr 2021 09:00:06 -0700
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:78.0)
+	Gecko/20100101 Thunderbird/78.10.0
+In-Reply-To: <20210426220552.45413-2-junxiao.bi@oracle.com>
+Content-Language: en-US
 X-Originating-IP: [73.231.9.254]
-X-ClientProxiedBy: SN6PR05CA0026.namprd05.prod.outlook.com
-	(2603:10b6:805:de::39) To SJ0PR10MB4752.namprd10.prod.outlook.com
+X-ClientProxiedBy: SN7PR04CA0207.namprd04.prod.outlook.com
+	(2603:10b6:806:126::32) To SJ0PR10MB4752.namprd10.prod.outlook.com
 	(2603:10b6:a03:2d7::19)
 MIME-Version: 1.0
 X-MS-Exchange-MessageSentRepresentingType: 1
-Received: from dhcp-10-159-151-113.vpn.oracle.com (73.231.9.254) by
-	SN6PR05CA0026.namprd05.prod.outlook.com (2603:10b6:805:de::39)
+Received: from dhcp-10-159-154-52.vpn.oracle.com (73.231.9.254) by
+	SN7PR04CA0207.namprd04.prod.outlook.com (2603:10b6:806:126::32)
 	with Microsoft SMTP Server (version=TLS1_2,
-	cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.4087.16
-	via Frontend Transport; Mon, 26 Apr 2021 22:07:25 +0000
+	cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.4087.25
+	via Frontend Transport; Wed, 28 Apr 2021 16:01:06 +0000
 X-MS-PublicTrafficType: Email
-X-MS-Office365-Filtering-Correlation-Id: 437b5311-e205-4d22-619f-08d908ffad33
-X-MS-TrafficTypeDiagnostic: BY5PR10MB4307:
+X-MS-Office365-Filtering-Correlation-Id: 472ccd39-0bb8-4576-802b-08d90a5ed53f
+X-MS-TrafficTypeDiagnostic: BYAPR10MB3574:
 X-MS-Exchange-Transport-Forked: True
 X-Oracle-Tenancy: 1
-X-MS-Oob-TLC-OOBClassifiers: OLM:983;
+X-MS-Oob-TLC-OOBClassifiers: OLM:8882;
 X-Microsoft-Antispam: BCL:0;
-X-Microsoft-Antispam-Message-Info: GsYoCKgVvrm0oFXbxxwbAw/T7JhUB/1WzclmIqMJQ5hHsUfuX1Xz0ubAHXt0nW/EQZhQP+J0m1J0ZAc+yGSN4fEqzCDrwL/ZceGXJ7iA+MqSQvPFhAKzti28mt8fRXcqpu8Gi2gOg7ByD+WZEIiy0JYGz19+JUdGkVwDtWGHkbVvGESutRwbNJuuvDcusnsZDa6ifV56CKBWzC5t3FPJ613HVKv8rHSXcbIrqyltmWCgmNpoVHtNHfziJoeHjhYQuUgm73Dx4hOIn3EgH8MEAD4oGUIL+yYQu0lvkkR1hbJP2f21rN/L8BtpYQwzPLhc6Vd8hD00rXFcCuq5Qi25rchsj83KO9IONK2on0r+Kg3aNO7GvQY0HaGjolthlN8poJIphhoLbEaW4rPX8xzyyp1eul3IIVEzJ4uL9qEOu+HibqICkVX4TXJDiuqSLDMngjfba6r63P4gEMcTINxR/9JJkwGoElizBvLa/j6zwyh0izF3rYs87lrY8sR2qrVdvZ6RT3ZiATBl51lTs+sCGYW1b5DYYa0f4qAMxYvrAvg8tjZSqBomcghnD1LyH5rr
+X-Microsoft-Antispam-Message-Info: JX0d3kUQaMHm7GQsiTZ43ySz6neTI/hl2+T0RA0ugJCfgZGX+hrBb/l51aaDRNW3qgp2SXPmm4c2A6+YD3BdgD30pr/uHpUqBn3TWO8jyQGaBarXR4kigxJpF1hoeEgCmHqobhAUp8gUdZB+F+UU5jT36GLjv/T6oqeHTxtXeevHHQD4xg7FPly9IGE+mBl6qDVC8A9+tByqvQ+sN9zMFv9uudIBX1dcdCTQFp/8GfzZEZ5yxZav7AcfrjiQ1X+xXW7G6E4itp9h13AulSQMmNDPglWrdae6AmtvLOFzlSTRBorQ2ysmunFi4GrsXToAayKwIF0yKm2298joRvae4ikyJW5b+sirykADHCnOjAZXhaVRe1PQ7JgclqnlQ5H8iM5zPJ2xsF0cla65gSbUuJLEUSGS+k2DjI4+4zRm2aamlOHJSL9uuktWXEfaneFJ9ikeE5zXNYqYlDxBXU3k7qVUTZ2jOWB8JNvub+3qOhwQKl14tD/r2X4nA0LocKkRF1VzhENzEkJ9PMPSzcpNkYHcuqEjsLvoY678t9qYfVoWyAOvIsqp01Nt+MB50g9k
 X-Forefront-Antispam-Report: CIP:255.255.255.255; CTRY:; LANG:en; SCL:-1; SRV:; IPV:NLI; SFV:SKI;
 	H:SJ0PR10MB4752.namprd10.prod.outlook.com; PTR:; CAT:NONE; SFS:;
 	DIR:INB; 
-X-MS-Exchange-AntiSpam-MessageData: =?us-ascii?Q?zJB6o5Z/S34hevfuW0aQA+jVyj4OuDPC+H2CQzRA7I4LiqCVL3pEM3NP0kD5?=
-	=?us-ascii?Q?jUPn5HezjKQe5zZysauNJaqJOIih+LnFzWK9JgksPSzUtX76jy8SGDeDLXUo?=
-	=?us-ascii?Q?GwvmhkODwzPqH0jJO5GCW93XKfXeqWpW9L7aA9nra0r4TZN/S6Uz8XW8Fym1?=
-	=?us-ascii?Q?G2JP/skmUfCFNA866mZxcNxElDYrZTZxcXp70ak1S7fv5/yyUe+T7s7QjHSY?=
-	=?us-ascii?Q?PJ4IoIAdYR5C2uMjnypHFGfE0NkV1OKagEL3/J7C3J+YuWol7wUq90pnny9d?=
-	=?us-ascii?Q?Qkf9MAAasnBytsprTgW4PIh50BOc4cFJxBV593cnKscrNu1GM2MTc8iiD/c5?=
-	=?us-ascii?Q?0sDXLgCu98Pb1yQmFrvYxdLGiYKj34+tcJNWgJDObfGJ9mE2PeZfFZR9miSV?=
-	=?us-ascii?Q?UC1ugn1mjsAEpomaG3+BvcpLfxL5tXxPafKUa7p5bx0hcGGs/+rCuMeZ0sbT?=
-	=?us-ascii?Q?C2GTA3wNKD85ECTnuEz/80f+BzZnDX+xJsUVbjzQxOj2Ub3Yri3r4z+vv2Ge?=
-	=?us-ascii?Q?RrEF+orFhWuC4P0WgpSu4x1fCdr8KFqI5P8y/N1sEceiiuqd2/Z82FLYsYBw?=
-	=?us-ascii?Q?dhZccsX7jmIpPXKzQWEAEq5SOf47sN4qdbocpi1omiAcFvjYaQUrCXq7puNy?=
-	=?us-ascii?Q?rROLMK8JJ3pMPTuw9CzQ0NIK2uxS8OeaiWfwECHYY/i9/isrd2ABjgARvZvs?=
-	=?us-ascii?Q?KO6WHoOjjmM1P7tCbBzW78IDChxUwLo8eB3C4o5AiAnPcWw9qUJuUWkiVRPr?=
-	=?us-ascii?Q?BQI6H4efv/1JtCDiAUp0c819Mo7Ze4GeYKXalkji8t/xoJJhOwEcNnIraJ0m?=
-	=?us-ascii?Q?aREIpktI5mlJPuv3Li2SVs7JYbtE14glC/W3tULFj1HI6RcSn1cyyglzHsUT?=
-	=?us-ascii?Q?GiSP05XWKxjGQiug1XlHA1orkBNp8swqsMl7pFVqKDWUA0hSqw3ZbkR4ISMt?=
-	=?us-ascii?Q?oSQVa4pFnqoo/NTVJM8DNaMCBLEBt24nmLOZA+qbEXcvP5Am5IcDXd4/XkNN?=
-	=?us-ascii?Q?lghNbDZQ11Sy8er5+bR+XSRAfh3LQqzqZ/7Lb/nc0cIYTjGSnJO248YQEZGo?=
-	=?us-ascii?Q?G2gbcSCYBtKNlf1Y1b+eP/TAQZj+8KTXhfbfx5BrrsoELikxYLkh+AXkXgYY?=
-	=?us-ascii?Q?KAEmSEWIe4lT0RuzHA3zgdB70bUveMH+oCMKnESnBZSt0PhY9EnOuGNmpMUG?=
-	=?us-ascii?Q?zf74BalR1sTAB/80CMi3Fy1KCPBYavhli7q4n5EBQg1/akDwqSH5WTXZAlHn?=
-	=?us-ascii?Q?/O/Rv9vzpVHomSW82tVcOUYDATZO4KHswgHnzYxFNDHX+tzjTCqjlONAZbMY?=
-	=?us-ascii?Q?Mg31al3SMjF7JZR6kwaILaWz?=
+X-MS-Exchange-AntiSpam-MessageData: =?utf-8?B?bVovSVJESWlsaTJEMFdBMk13S3NwNEprdmQ2aDJhTEcwTXFRajZ2L205VzQv?=
+	=?utf-8?B?MmxVaWpVUHJ2OEJHK08rNEllaFZVMUxuSHdXazgxN3c5WFp2dkpEa3hEeVF2?=
+	=?utf-8?B?VzAyUDNvLzVJZlJzOWUrTVN4cEg2dy93VWtFWE0ybDNMSnJPWFlHcHgwNUNa?=
+	=?utf-8?B?dm4yQ2FTRFA2bHhIcjM4dW5zUkNpSS8zc21lM2E0UnRIS2diK2FWWW1idSsz?=
+	=?utf-8?B?L3hXUk5BbTFMbFRrRTA3VHFQTVIrVStzeDBIVHFJWlk3cFNiTFpFMWlWTVd1?=
+	=?utf-8?B?bHQ1NUs5RXcwNlhYc1pPTXhCeE1zRUVyRHd6ZUtXQzhYQlVweXNGampkVnRa?=
+	=?utf-8?B?MjU2WWVNR0ZsU29odU9RakdmVmphbzNZZmc4bFExaXJYZWZ6b3NRK2NSTUpr?=
+	=?utf-8?B?NGdZL1A4ZU84cnptNW5YZU8vbzZnWEg5TFAxdExXWWY5TjJqd3ErUVVmS25h?=
+	=?utf-8?B?anp1UVRIekdIMW82VjAxNjV3R0ZHVGl4Z2xlVjR5Z1pNOXRQU3RUM3RRanZ5?=
+	=?utf-8?B?SGJtRlQ3aUh0MXVpZDZzR2EzSjR2TkZYL2dPcVRyZnMrODA3Y1ZlbVZBUm9K?=
+	=?utf-8?B?SFQ3a21aa3hybGpLVW5XSEx6dmYxY2N3Sjc0enQ1V0hxVStaNHp5aEc4dUw2?=
+	=?utf-8?B?SDI4ajk4YjJVRFY1Uk0rMkMrL0xDZHIxWHhjbkQ5YVRBektYSlFHWDBaYzFD?=
+	=?utf-8?B?MzR2Wi9SZmI1L01UMTBrSDl3NWhGTStLeFVuMTF5Vy9YS292ak5ESEhwUTBr?=
+	=?utf-8?B?a0liYXdEU0QyV2FITkROQWJxRGpZaHp4aGYyakZ1K09oOWR0aGhYZWJjeXF0?=
+	=?utf-8?B?bTVxb2FRYlhHeU5oZm5PZ2pLckZQQXpRT3FoZG54Z1BuVW5ZTmtmV3VHeWtm?=
+	=?utf-8?B?SWhPMWRpNzh4Wm1yMXBNY0tUWkJsdWM3VmVyVXlEekRwOFZka2YxaExYdmox?=
+	=?utf-8?B?QjRxc1Ixa3J6aGlybUZ0YklYMlgrVVl0ZG1JUEQza0hCNlFwSXNMMTYzNHE3?=
+	=?utf-8?B?YWdnSlRxQU5EcmZnbkZpUHh4V21ibG9BenhmdENtMXdETlMwdmh5UTR6U1dO?=
+	=?utf-8?B?aFRRZ3lMWlhaN05nYW8rT2Uwc1NwNXhXUnN4aGt5OXgxQ29VbFhZQjVLdmg0?=
+	=?utf-8?B?YjlSVVZsYjlxYUxJMHJuYWpWdFVIRDU5WGhVT0tTVWlQT3VYbnQxUkR5Ulc5?=
+	=?utf-8?B?TXJYcGs4aTdGaUx4T2hXeXBxMGwxUzdqUENwR29BTlRadmlkS1RsV2tjRWdk?=
+	=?utf-8?B?K2hsYVVpRWxGRGhFRXY1N1QvZTdFa2pEY1ptcHdKTTY5Zm5XcEcxODMyUjhY?=
+	=?utf-8?B?dVl2ejlpaDk5Um1ZWFdnRlhRUUhBZDFDaGVYVk50N3BSUWhWNURWTkh3d044?=
+	=?utf-8?B?WEEzcXpEZ1dLNnpMNXlXVG0xUTd2ejJiZzBJWjcvVW9FZlNoYmxlcS83RGhY?=
+	=?utf-8?B?ZzVQQ1hSNVdwbi90bHp5MTBld1RNRUhVRjNyQXNtOEJHRVloWTh0bUFaTkdh?=
+	=?utf-8?B?OWdQOHZXR3BjaVpHRi9IYzVJZ1dNZEtPdnZ2Y3Q3U3R6ck12MXBJcXRKQzFK?=
+	=?utf-8?B?Y2JnYUZXZGFpVzAyNDZGVmhZMExNU1phYkNUTndHaUhZaWRNaEtSNXFUZDg5?=
+	=?utf-8?B?NW5MY0gxb25nOVY1RVF0NkViemNoTEFmZ3VudzlwcVJINEVTNHYyNWsydGFn?=
+	=?utf-8?B?bFhDd05FZ216RjlZWUpqYm5NZG1HUGFyRURZZU1CM0xZUXIvZlNodVM0QXhL?=
+	=?utf-8?Q?J4jouihaLQTXY+mwgz275fp2a5BqGbKsJqXmnyb?=
 X-OriginatorOrg: oracle.com
-X-MS-Exchange-CrossTenant-Network-Message-Id: 437b5311-e205-4d22-619f-08d908ffad33
+X-MS-Exchange-CrossTenant-Network-Message-Id: 472ccd39-0bb8-4576-802b-08d90a5ed53f
 X-MS-Exchange-CrossTenant-AuthSource: SJ0PR10MB4752.namprd10.prod.outlook.com
 X-MS-Exchange-CrossTenant-AuthAs: Internal
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 26 Apr 2021 22:07:26.6806 (UTC)
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 28 Apr 2021 16:01:07.1892 (UTC)
 X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
 X-MS-Exchange-CrossTenant-Id: 4e2c6054-71cb-48f1-bd6c-3a9705aca71b
 X-MS-Exchange-CrossTenant-MailboxType: HOSTED
-X-MS-Exchange-CrossTenant-UserPrincipalName: AV2nH1kgmO15bSd33q5EULvTf6tmN7l6AXVOY4eg7O+YjuEZK1TRAVjsiU9PftSbml5PxPsAB6/8l0aTUbZ6uA==
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: BY5PR10MB4307
+X-MS-Exchange-CrossTenant-UserPrincipalName: 4z9NQiEs0hTnuMEdV/G5qpqvEBFKL15grlvJ8D4A1iAaCXucz3ZbqD7xJWRaQ5GswjGFKfrb5/HVDXIRuAE4Ig==
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: BYAPR10MB3574
 X-MS-Exchange-CrossPremises-AuthSource: SJ0PR10MB4752.namprd10.prod.outlook.com
 X-MS-Exchange-CrossPremises-AuthAs: Internal
-X-MS-Exchange-CrossPremises-AuthMechanism: 06
+X-MS-Exchange-CrossPremises-AuthMechanism: 14
 X-MS-Exchange-CrossPremises-Mapi-Admin-Submission: 
 X-MS-Exchange-CrossPremises-MessageSource: StoreDriver
 X-MS-Exchange-CrossPremises-BCC: 
@@ -146,15 +156,16 @@ X-MS-Exchange-CrossPremises-TransportTrafficType: Email
 X-MS-Exchange-CrossPremises-Antispam-ScanContext: DIR:Originating;SFV:SKI;SKIP:0;
 X-MS-Exchange-CrossPremises-SCL: -1
 X-MS-Exchange-CrossPremises-Processed-By-Journaling: Journal Agent
-X-OrganizationHeadersPreserved: BY5PR10MB4307.namprd10.prod.outlook.com
-X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9966
+X-OrganizationHeadersPreserved: BYAPR10MB3574.namprd10.prod.outlook.com
+X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9968
 	signatures=668683
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 adultscore=0
-	malwarescore=0 mlxscore=0
-	mlxlogscore=999 bulkscore=0 phishscore=0 spamscore=0 suspectscore=0
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 spamscore=0
+	bulkscore=0 mlxscore=0
+	malwarescore=0 phishscore=0 adultscore=0 mlxlogscore=999 suspectscore=0
 	classifier=spam adjust=0 reason=mlx scancount=1
-	engine=8.12.0-2104060000 definitions=main-2104260167
-Subject: [Ocfs2-devel] [PATCH 3/3] gfs2: fix out of inode size writeback
+	engine=8.12.0-2104060000 definitions=main-2104280102
+Subject: Re: [Ocfs2-devel] [PATCH 2/3] ocfs2: allow writing back pages out
+	of inode size
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.9
 Precedence: list
@@ -170,47 +181,82 @@ Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 Sender: ocfs2-devel-bounces@oss.oracle.com
 Errors-To: ocfs2-devel-bounces@oss.oracle.com
-X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9966 signatures=668683
+X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9968 signatures=668683
 X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 adultscore=0 malwarescore=0 mlxscore=0
  mlxlogscore=999 bulkscore=0 phishscore=0 spamscore=0 suspectscore=0
  classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2104060000
- definitions=main-2104260167
-X-Proofpoint-GUID: dNnzirzdprlBGgotnObMZbg8QxBsmKQu
-X-Proofpoint-ORIG-GUID: dNnzirzdprlBGgotnObMZbg8QxBsmKQu
-X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9966 signatures=668683
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 impostorscore=0 lowpriorityscore=0
- mlxlogscore=999 malwarescore=0 phishscore=0 priorityscore=1501
- clxscore=1015 spamscore=0 bulkscore=0 suspectscore=0 adultscore=0
- mlxscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2104060000 definitions=main-2104260167
+ definitions=main-2104280102
+X-Proofpoint-ORIG-GUID: 5pniCoHsA_aTE45zy7Emu1LAkAPLwjyD
+X-Proofpoint-GUID: 5pniCoHsA_aTE45zy7Emu1LAkAPLwjyD
+X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9968 signatures=668683
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 bulkscore=0 spamscore=0 phishscore=0
+ clxscore=1015 suspectscore=0 lowpriorityscore=0 mlxlogscore=999 mlxscore=0
+ adultscore=0 malwarescore=0 impostorscore=0 priorityscore=1501
+ classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2104060000
+ definitions=main-2104280102
 
-Dirty flag of buffers out of inode size will be cleared and will not
-be writeback.
+Hi Joseph,
 
-Cc: <stable@vger.kernel.org>
-Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
----
- fs/gfs2/aops.c | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+Can you help review the first two patches?
 
-diff --git a/fs/gfs2/aops.c b/fs/gfs2/aops.c
-index cc4f987687f3..cd8a87555b3a 100644
---- a/fs/gfs2/aops.c
-+++ b/fs/gfs2/aops.c
-@@ -133,8 +133,8 @@ static int gfs2_write_jdata_page(struct page *page,
- 	if (page->index == end_index && offset)
- 		zero_user_segment(page, offset, PAGE_SIZE);
- 
--	return __block_write_full_page(inode, page, gfs2_get_block_noalloc, wbc,
--				       end_buffer_async_write);
-+	return __block_write_full_page_eof(inode, page, gfs2_get_block_noalloc, wbc,
-+				       end_buffer_async_write, true);
- }
- 
- /**
--- 
-2.24.3 (Apple Git-128)
+Thanks,
 
+Junxiao.
+
+On 4/26/21 3:05 PM, Junxiao Bi wrote:
+> When fallocate/truncate extend inode size, if the original isize is in
+> the middle of last cluster, then the part from isize to the end of the
+> cluster needs to be zeroed with buffer write, at that time isize is not
+> yet updated to match the new size, if writeback is kicked in, it will
+> invoke ocfs2_writepage()->block_write_full_page() where the pages out
+> of inode size will be dropped. That will cause file corruption.
+>
+> Running the following command with qemu-image 4.2.1 can get a corrupted
+> coverted image file easily.
+>
+>      qemu-img convert -p -t none -T none -f qcow2 $qcow_image \
+>               -O qcow2 -o compat=1.1 $qcow_image.conv
+>
+> Cc: <stable@vger.kernel.org>
+> Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
+> ---
+>   fs/ocfs2/aops.c | 19 ++++++++++++++++++-
+>   1 file changed, 18 insertions(+), 1 deletion(-)
+>
+> diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+> index ad20403b383f..7a3e3d59f6a9 100644
+> --- a/fs/ocfs2/aops.c
+> +++ b/fs/ocfs2/aops.c
+> @@ -402,11 +402,28 @@ static void ocfs2_readahead(struct readahead_control *rac)
+>    */
+>   static int ocfs2_writepage(struct page *page, struct writeback_control *wbc)
+>   {
+> +	struct inode * const inode = page->mapping->host;
+> +	loff_t i_size = i_size_read(inode);
+> +	const pgoff_t end_index = i_size >> PAGE_SHIFT;
+> +	unsigned int offset;
+> +
+>   	trace_ocfs2_writepage(
+>   		(unsigned long long)OCFS2_I(page->mapping->host)->ip_blkno,
+>   		page->index);
+>   
+> -	return block_write_full_page(page, ocfs2_get_block, wbc);
+> +	/*
+> +	 * The page straddles i_size.  It must be zeroed out on each and every
+> +	 * writepage invocation because it may be mmapped.  "A file is mapped
+> +	 * in multiples of the page size.  For a file that is not a multiple of
+> +	 * the  page size, the remaining memory is zeroed when mapped, and
+> +	 * writes to that region are not written out to the file."
+> +	 */
+> +	offset = i_size & (PAGE_SIZE-1);
+> +	if (page->index == end_index && offset)
+> +		zero_user_segment(page, offset, PAGE_SIZE);
+> +
+> +	return __block_write_full_page_eof(inode, page, ocfs2_get_block, wbc,
+> +			end_buffer_async_write, true);
+>   }
+>   
+>   /* Taken from ext3. We don't necessarily need the full blown
 
 _______________________________________________
 Ocfs2-devel mailing list
