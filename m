@@ -1,87 +1,101 @@
-Return-Path: <SRS0=6hlh=KG=oss.oracle.com=ocfs2-devel-bounces@kernel.org>
+Return-Path: <SRS0=8K4+=KI=oss.oracle.com=ocfs2-devel-bounces@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-17.9 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
-	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,HEADER_FROM_DIFFERENT_DOMAINS,
-	INCLUDES_CR_TRAILER,INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
-	UNPARSEABLE_RELAY,USER_AGENT_SANE_1 autolearn=unavailable autolearn_force=no
-	version=3.4.0
+X-Spam-Status: No, score=-15.3 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,NICE_REPLY_A,SPF_HELO_NONE,SPF_PASS,UNPARSEABLE_RELAY,
+	URIBL_BLOCKED,USER_AGENT_SANE_1 autolearn=ham autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 0D165C433ED
-	for <ocfs2-devel@archiver.kernel.org>; Tue, 11 May 2021 13:57:14 +0000 (UTC)
-Received: from userp2120.oracle.com (userp2120.oracle.com [156.151.31.85])
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 4E8CEC433B4
+	for <ocfs2-devel@archiver.kernel.org>; Thu, 13 May 2021 12:00:48 +0000 (UTC)
+Received: from aserp2120.oracle.com (aserp2120.oracle.com [141.146.126.78])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by mail.kernel.org (Postfix) with ESMTPS id 6F7DB611BF
-	for <ocfs2-devel@archiver.kernel.org>; Tue, 11 May 2021 13:57:13 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.3.2 mail.kernel.org 6F7DB611BF
-Authentication-Results: mail.kernel.org; dmarc=pass (p=none dis=none) header.from=oracle.com
+	by mail.kernel.org (Postfix) with ESMTPS id C40BF6127A
+	for <ocfs2-devel@archiver.kernel.org>; Thu, 13 May 2021 12:00:47 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.3.2 mail.kernel.org C40BF6127A
+Authentication-Results: mail.kernel.org; dmarc=fail (p=none dis=none) header.from=linux.alibaba.com
 Authentication-Results: mail.kernel.org; spf=pass smtp.mailfrom=ocfs2-devel-bounces@oss.oracle.com
-Received: from pps.filterd (userp2120.oracle.com [127.0.0.1])
-	by userp2120.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 14BDsidF156407;
-	Tue, 11 May 2021 13:57:12 GMT
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=oracle.com; h=date : from : to :
- message-id : mime-version : in-reply-to : cc : subject : list-id :
- list-unsubscribe : list-archive : list-post : list-help : list-subscribe :
- content-type : content-transfer-encoding : sender; s=corp-2020-01-29;
- bh=1WkQ/h0JlY7R8QF674vvJVpNVGw/tNpkYLwI1Xf7Ozw=;
- b=Le0uxq+RUXMuUMZNxidBmolrl1/ExQy1iQd/wfQMTwjz3VXYxhNuRkohSgRQAfDWlQkS
- SW8DWOfXh7j5sg07zAti71G7574zEB8Jv7cOtp1xqo1WSb9LCwe7b1InEU2TWfNsKUh3
- bKWjyVSJjeG/lMmGdbl77Qt0Kcy12xWsYWNMelIhS430RsG8iOXNXa4sqGQR5E4W8jCn
- 3cz1BGWKSPV+KdbED5+WHF06/KJFRznU30XxAAxC4xtMEAhbhBo88Lsi+ROqA04KayDH
- 8BMUi5OMjuRKbMbt0lG6A6oEYIikr0nGns0PuD0WBRE7/0R4dAht80Rz+CLrtJr1t8UE 3g== 
+Received: from pps.filterd (aserp2120.oracle.com [127.0.0.1])
+	by aserp2120.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 14DBwbhK047274;
+	Thu, 13 May 2021 12:00:45 GMT
 Received: from userp3030.oracle.com (userp3030.oracle.com [156.151.31.80])
-	by userp2120.oracle.com with ESMTP id 38dk9nes1y-1
+	by aserp2120.oracle.com with ESMTP id 38gpnxseqc-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Tue, 11 May 2021 13:57:12 +0000
+	Thu, 13 May 2021 12:00:45 +0000
 Received: from pps.filterd (userp3030.oracle.com [127.0.0.1])
-	by userp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 14BDpbup018226;
-	Tue, 11 May 2021 13:57:11 GMT
+	by userp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 14DBxjrP029526;
+	Thu, 13 May 2021 12:00:44 GMT
 Received: from oss.oracle.com (oss-old-reserved.oracle.com [137.254.22.2])
-	by userp3030.oracle.com with ESMTP id 38dfrxa8jy-1
+	by userp3030.oracle.com with ESMTP id 38gpq1xx7f-1
 	(version=TLSv1 cipher=AES256-SHA bits=256 verify=NO);
-	Tue, 11 May 2021 13:57:11 +0000
+	Thu, 13 May 2021 12:00:43 +0000
 Received: from localhost ([127.0.0.1] helo=lb-oss.oracle.com)
 	by oss.oracle.com with esmtp (Exim 4.63)
 	(envelope-from <ocfs2-devel-bounces@oss.oracle.com>)
-	id 1lgSpl-0002BN-LV; Tue, 11 May 2021 06:54:01 -0700
-Received: from userp3030.oracle.com ([156.151.31.80])
+	id 1lhA1C-0002mw-PY; Thu, 13 May 2021 05:00:42 -0700
+Received: from aserp3030.oracle.com ([141.146.126.71])
 	by oss.oracle.com with esmtp (Exim 4.63)
-	(envelope-from <dan.carpenter@oracle.com>) id 1lgSpj-0002BA-TW
-	for ocfs2-devel@oss.oracle.com; Tue, 11 May 2021 06:54:00 -0700
-Received: from pps.filterd (userp3030.oracle.com [127.0.0.1])
-	by userp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
-	14BDpbF2018202
-	for <ocfs2-devel@oss.oracle.com>; Tue, 11 May 2021 13:53:59 GMT
-Received: from pps.reinject (localhost [127.0.0.1])
-	by userp3030.oracle.com with ESMTP id 38dfrxa3n0-1
+	(envelope-from <joseph.qi@linux.alibaba.com>) id 1lhA1A-0002lg-0o
+	for ocfs2-devel@oss.oracle.com; Thu, 13 May 2021 05:00:40 -0700
+Received: from pps.filterd (aserp3030.oracle.com [127.0.0.1])
+	by aserp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
+	14DBxuPU001703
+	for <ocfs2-devel@oss.oracle.com>; Thu, 13 May 2021 12:00:39 GMT
+Received: from userp2030.oracle.com (userp2030.oracle.com [156.151.31.89])
+	by aserp3030.oracle.com with ESMTP id 38gppp3ckh-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Tue, 11 May 2021 13:53:59 +0000
-Received: from userp3030.oracle.com (userp3030.oracle.com [127.0.0.1])
-	by pps.reinject (8.16.0.36/8.16.0.36) with SMTP id 14BDrxQD028423
-	for <ocfs2-devel@oss.oracle.com>; Tue, 11 May 2021 13:53:59 GMT
-Received: from userv0121.oracle.com (userv0121.oracle.com [156.151.31.72])
-	by userp3030.oracle.com with ESMTP id 38dfrxa3ks-1
-	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Tue, 11 May 2021 13:53:59 +0000
-Received: from abhmp0008.oracle.com (abhmp0008.oracle.com [141.146.116.14])
-	by userv0121.oracle.com (8.14.4/8.13.8) with ESMTP id 14BDrw1Y004638;
-	Tue, 11 May 2021 13:53:58 GMT
-Received: from kadam (/102.36.221.92) by default (Oracle Beehive Gateway v4.0)
-	with ESMTP ; Tue, 11 May 2021 06:53:57 -0700
-Date: Tue, 11 May 2021 16:53:50 +0300
-From: Dan Carpenter <dan.carpenter@oracle.com>
-To: Mark Fasheh <mark@fasheh.com>
-Message-ID: <20210511135350.GV1955@kadam>
+	for <ocfs2-devel@oss.oracle.com>; Thu, 13 May 2021 12:00:39 +0000
+Received: from pps.filterd (userp2030.oracle.com [127.0.0.1])
+	by userp2030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
+	14DBt8fQ024928
+	for <ocfs2-devel@oss.oracle.com>; Thu, 13 May 2021 12:00:38 GMT
+Received: from out30-42.freemail.mail.aliyun.com
+	(out30-42.freemail.mail.aliyun.com [115.124.30.42])
+	by userp2030.oracle.com with ESMTP id 38gppa6m4g-1
+	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NO)
+	for <ocfs2-devel@oss.oracle.com>; Thu, 13 May 2021 12:00:37 +0000
+X-Alimail-AntiSpam: AC=PASS; BC=-1|-1; BR=01201311R381e4; CH=green; DM=||false|;
+	DS=||; FP=0|-1|-1|-1|0|-1|-1|-1; HT=e01e04394;
+	MF=joseph.qi@linux.alibaba.com; NM=1; PH=DS; RN=7; SR=0;
+	TI=SMTPD_---0UYlBm3y_1620907228; 
+Received: from B-D1K7ML85-0059.local(mailfrom:joseph.qi@linux.alibaba.com
+	fp:SMTPD_---0UYlBm3y_1620907228) by smtp.aliyun-inc.com(127.0.0.1);
+	Thu, 13 May 2021 20:00:29 +0800
+To: Colin King <colin.king@canonical.com>, Mark Fasheh <mark@fasheh.com>,
+        Joel Becker <jlbec@evilplan.org>, ocfs2-devel@oss.oracle.com,
+        akpm <akpm@linux-foundation.org>
+References: <20210513113957.57539-1-colin.king@canonical.com>
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+Message-ID: <c8f57f1f-22f8-8e1b-3c22-e0613feff638@linux.alibaba.com>
+Date: Thu, 13 May 2021 20:00:28 +0800
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:78.0)
+	Gecko/20100101 Thunderbird/78.10.0
 MIME-Version: 1.0
-Content-Disposition: inline
-In-Reply-To: <bd7ddc22-11c4-3e88-120a-d68f153f573d@linux.alibaba.com>
-X-Mailer: git-send-email haha only kidding
-User-Agent: Mutt/1.9.4 (2018-02-28)
-Cc: kernel-janitors@vger.kernel.org, linux-kernel@vger.kernel.org,
-        ocfs2-devel@oss.oracle.com
-Subject: [Ocfs2-devel] [PATCH v2] ocfs2: fix snprintf() checking
+In-Reply-To: <20210513113957.57539-1-colin.king@canonical.com>
+Content-Language: en-US
+X-PDR: PASS
+X-Source-IP: 115.124.30.42
+X-ServerName: out30-42.freemail.mail.aliyun.com
+X-Proofpoint-SPF-Result: pass
+X-Proofpoint-SPF-Record: v=spf1 include:spf1.service.alibaba.com
+	include:spf2.service.alibaba.com
+	include:spf1.ocm.aliyun.com  include:spf2.ocm.aliyun.com
+	include:spf1.staff.mail.aliyun.com include:a.hichina.mail.aliyun.com
+	include:b.hichina.mail.aliyun.com -all
+X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9982
+	signatures=668683
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0
+	lowpriorityscore=0 bulkscore=0
+	suspectscore=0 spamscore=0 phishscore=0 clxscore=232 priorityscore=0
+	impostorscore=0 malwarescore=0 mlxlogscore=999 mlxscore=0 adultscore=0
+	classifier=spam adjust=0 reason=mlx scancount=1
+	engine=8.12.0-2104190000 definitions=main-2105130091
+X-Spam: Clean
+Cc: kernel-janitors@vger.kernel.org, linux-kernel@vger.kernel.org
+Subject: Re: [Ocfs2-devel] [PATCH] ocfs2: remove redundant assignment to
+	pointer queue
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.9
 Precedence: list
@@ -97,87 +111,51 @@ Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 Sender: ocfs2-devel-bounces@oss.oracle.com
 Errors-To: ocfs2-devel-bounces@oss.oracle.com
-X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9980 signatures=668683
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 mlxlogscore=999 phishscore=0
- adultscore=0 bulkscore=0 mlxscore=0 suspectscore=0 malwarescore=0
- spamscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2104190000 definitions=main-2105110107
-X-Proofpoint-ORIG-GUID: zUdF1tXqugkqAAvcpUP1xpwnn9_ZqNpN
-X-Proofpoint-GUID: zUdF1tXqugkqAAvcpUP1xpwnn9_ZqNpN
-X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9980 signatures=668683
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 suspectscore=0 phishscore=0
- adultscore=0 mlxscore=0 impostorscore=0 mlxlogscore=999 lowpriorityscore=0
- malwarescore=0 priorityscore=1501 clxscore=1015 bulkscore=0 spamscore=0
+X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9982 signatures=668683
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 mlxlogscore=999 suspectscore=0
+ malwarescore=0 spamscore=0 mlxscore=0 adultscore=0 bulkscore=0
+ phishscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2104190000 definitions=main-2105130092
+X-Proofpoint-GUID: _7EvsK1d7XBo0IKzC-3YX6AXz5ftxMYk
+X-Proofpoint-ORIG-GUID: _7EvsK1d7XBo0IKzC-3YX6AXz5ftxMYk
+X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9982 signatures=668683
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 lowpriorityscore=0 bulkscore=0
+ adultscore=0 priorityscore=1501 phishscore=0 malwarescore=0 spamscore=0
+ impostorscore=0 mlxlogscore=999 mlxscore=0 clxscore=1034 suspectscore=0
  classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2104190000
- definitions=main-2105110107
+ definitions=main-2105130092
 
-The snprintf() function returns the number of bytes which would have
-been printed if the buffer was large enough.  In other words it can
-return ">= remain" but this code assumes it returns "== remain".
 
-The run time impact of this bug is not very severe.  The next iteration
-through the loop would trigger a WARN() when we pass a negative limit
-to snprintf().  We would then return success instead of -E2BIG.
 
-The kernel implementation of snprintf() will never return negatives so
-there is no need to check and I have deleted that dead code.
+On 5/13/21 7:39 PM, Colin King wrote:
+> From: Colin Ian King <colin.king@canonical.com>
+> 
+> The pointer queue is being initialized with a value that is never read
+> and it is being updated later with a new value. The initialization is
+> redundant and can be removed.
+> 
+> Addresses-Coverity: ("Unused value")
+> Signed-off-by: Colin Ian King <colin.king@canonical.com>
 
-Fixes: a860f6eb4c6a ("ocfs2: sysfile interfaces for online file check")
-Fixes: 74ae4e104dfc ("ocfs2: Create stack glue sysfs files.")
-Signed-off-by: Dan Carpenter <dan.carpenter@oracle.com>
-Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
----
-v2: update the Fixes tag, add Joseph's R-b tag.
-
- fs/ocfs2/filecheck.c | 6 +-----
- fs/ocfs2/stackglue.c | 8 ++------
- 2 files changed, 3 insertions(+), 11 deletions(-)
-
-diff --git a/fs/ocfs2/filecheck.c b/fs/ocfs2/filecheck.c
-index 90b8d300c1ee..de56e6231af8 100644
---- a/fs/ocfs2/filecheck.c
-+++ b/fs/ocfs2/filecheck.c
-@@ -326,11 +326,7 @@ static ssize_t ocfs2_filecheck_attr_show(struct kobject *kobj,
- 		ret = snprintf(buf + total, remain, "%lu\t\t%u\t%s\n",
- 			       p->fe_ino, p->fe_done,
- 			       ocfs2_filecheck_error(p->fe_status));
--		if (ret < 0) {
--			total = ret;
--			break;
--		}
--		if (ret == remain) {
-+		if (ret >= remain) {
- 			/* snprintf() didn't fit */
- 			total = -E2BIG;
- 			break;
-diff --git a/fs/ocfs2/stackglue.c b/fs/ocfs2/stackglue.c
-index d50e8b8dfea4..16f1bfc407f2 100644
---- a/fs/ocfs2/stackglue.c
-+++ b/fs/ocfs2/stackglue.c
-@@ -500,11 +500,7 @@ static ssize_t ocfs2_loaded_cluster_plugins_show(struct kobject *kobj,
- 	list_for_each_entry(p, &ocfs2_stack_list, sp_list) {
- 		ret = snprintf(buf, remain, "%s\n",
- 			       p->sp_name);
--		if (ret < 0) {
--			total = ret;
--			break;
--		}
--		if (ret == remain) {
-+		if (ret >= remain) {
- 			/* snprintf() didn't fit */
- 			total = -E2BIG;
- 			break;
-@@ -531,7 +527,7 @@ static ssize_t ocfs2_active_cluster_plugin_show(struct kobject *kobj,
- 	if (active_stack) {
- 		ret = snprintf(buf, PAGE_SIZE, "%s\n",
- 			       active_stack->sp_name);
--		if (ret == PAGE_SIZE)
-+		if (ret >= PAGE_SIZE)
- 			ret = -E2BIG;
- 	}
- 	spin_unlock(&ocfs2_stack_lock);
--- 
-2.30.2
+Acked-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+> ---
+>  fs/ocfs2/dlm/dlmmaster.c | 2 +-
+>  1 file changed, 1 insertion(+), 1 deletion(-)
+> 
+> diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
+> index 4960a6de768d..9b88219febb5 100644
+> --- a/fs/ocfs2/dlm/dlmmaster.c
+> +++ b/fs/ocfs2/dlm/dlmmaster.c
+> @@ -2977,7 +2977,7 @@ static u8 dlm_pick_migration_target(struct dlm_ctxt *dlm,
+>  				    struct dlm_lock_resource *res)
+>  {
+>  	enum dlm_lockres_list idx;
+> -	struct list_head *queue = &res->granted;
+> +	struct list_head *queue;
+>  	struct dlm_lock *lock;
+>  	int noderef;
+>  	u8 nodenum = O2NM_MAX_NODES;
+> 
 
 _______________________________________________
 Ocfs2-devel mailing list
