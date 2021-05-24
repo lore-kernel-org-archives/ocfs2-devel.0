@@ -1,100 +1,96 @@
-Return-Path: <SRS0=ya7E=KS=oss.oracle.com=ocfs2-devel-bounces@kernel.org>
+Return-Path: <SRS0=V2o+=KT=oss.oracle.com=ocfs2-devel-bounces@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-15.2 required=3.0 tests=BAYES_00,
+X-Spam-Status: No, score=-15.3 required=3.0 tests=BAYES_00,
 	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,NICE_REPLY_A,SPF_HELO_NONE,SPF_PASS,UNPARSEABLE_RELAY,
-	URIBL_BLOCKED,USER_AGENT_SANE_1 autolearn=unavailable autolearn_force=no
-	version=3.4.0
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_SANE_1
+	autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 17085C47080
-	for <ocfs2-devel@archiver.kernel.org>; Sun, 23 May 2021 11:53:45 +0000 (UTC)
-Received: from userp2130.oracle.com (userp2130.oracle.com [156.151.31.86])
+	by smtp.lore.kernel.org (Postfix) with ESMTP id D2D9BC04FF3
+	for <ocfs2-devel@archiver.kernel.org>; Mon, 24 May 2021 08:55:44 +0000 (UTC)
+Received: from userp2120.oracle.com (userp2120.oracle.com [156.151.31.85])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by mail.kernel.org (Postfix) with ESMTPS id 879C361152
-	for <ocfs2-devel@archiver.kernel.org>; Sun, 23 May 2021 11:53:44 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.3.2 mail.kernel.org 879C361152
-Authentication-Results: mail.kernel.org; dmarc=fail (p=none dis=none) header.from=linux.alibaba.com
+	by mail.kernel.org (Postfix) with ESMTPS id 593F1610A5
+	for <ocfs2-devel@archiver.kernel.org>; Mon, 24 May 2021 08:55:44 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.3.2 mail.kernel.org 593F1610A5
+Authentication-Results: mail.kernel.org; dmarc=none (p=none dis=none) header.from=suse.cz
 Authentication-Results: mail.kernel.org; spf=pass smtp.mailfrom=ocfs2-devel-bounces@oss.oracle.com
-Received: from pps.filterd (userp2130.oracle.com [127.0.0.1])
-	by userp2130.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 14NBo2xb116779;
-	Sun, 23 May 2021 11:53:43 GMT
-Received: from userp3030.oracle.com (userp3030.oracle.com [156.151.31.80])
-	by userp2130.oracle.com with ESMTP id 38q3q8rsy5-1
+Received: from pps.filterd (userp2120.oracle.com [127.0.0.1])
+	by userp2120.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 14O8jMNU036985;
+	Mon, 24 May 2021 08:55:43 GMT
+Received: from userp3020.oracle.com (userp3020.oracle.com [156.151.31.79])
+	by userp2120.oracle.com with ESMTP id 38ptkp2c1s-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Sun, 23 May 2021 11:53:42 +0000
-Received: from pps.filterd (userp3030.oracle.com [127.0.0.1])
-	by userp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 14NBinXM167292;
-	Sun, 23 May 2021 11:53:42 GMT
+	Mon, 24 May 2021 08:55:42 +0000
+Received: from pps.filterd (userp3020.oracle.com [127.0.0.1])
+	by userp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 14O8k5sR164696;
+	Mon, 24 May 2021 08:55:41 GMT
 Received: from oss.oracle.com (oss-old-reserved.oracle.com [137.254.22.2])
-	by userp3030.oracle.com with ESMTP id 38pq2sgjhn-1
+	by userp3020.oracle.com with ESMTP id 38qbqr14yr-1
 	(version=TLSv1 cipher=AES256-SHA bits=256 verify=NO);
-	Sun, 23 May 2021 11:53:41 +0000
+	Mon, 24 May 2021 08:55:41 +0000
 Received: from localhost ([127.0.0.1] helo=lb-oss.oracle.com)
 	by oss.oracle.com with esmtp (Exim 4.63)
 	(envelope-from <ocfs2-devel-bounces@oss.oracle.com>)
-	id 1lkmfs-000117-OE; Sun, 23 May 2021 04:53:40 -0700
-Received: from aserp3020.oracle.com ([141.146.126.70])
+	id 1ll6NA-0007Jw-MB; Mon, 24 May 2021 01:55:40 -0700
+Received: from aserp3030.oracle.com ([141.146.126.71])
 	by oss.oracle.com with esmtp (Exim 4.63)
-	(envelope-from <joseph.qi@linux.alibaba.com>) id 1lkmfK-000103-Do
-	for ocfs2-devel@oss.oracle.com; Sun, 23 May 2021 04:53:06 -0700
-Received: from pps.filterd (aserp3020.oracle.com [127.0.0.1])
-	by aserp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
-	14NBiZPT164851
-	for <ocfs2-devel@oss.oracle.com>; Sun, 23 May 2021 11:53:06 GMT
+	(envelope-from <jack@suse.cz>) id 1ll6Mk-0007Ho-3v
+	for ocfs2-devel@oss.oracle.com; Mon, 24 May 2021 01:55:14 -0700
+Received: from pps.filterd (aserp3030.oracle.com [127.0.0.1])
+	by aserp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
+	14O8juQU145489
+	for <ocfs2-devel@oss.oracle.com>; Mon, 24 May 2021 08:55:13 GMT
 Received: from userp2040.oracle.com (userp2040.oracle.com [156.151.31.90])
-	by aserp3020.oracle.com with ESMTP id 38pss3an0q-1
+	by aserp3030.oracle.com with ESMTP id 38pr0av5bj-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Sun, 23 May 2021 11:53:06 +0000
+	for <ocfs2-devel@oss.oracle.com>; Mon, 24 May 2021 08:55:13 +0000
 Received: from pps.filterd (userp2040.oracle.com [127.0.0.1])
 	by userp2040.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
-	14NBi1lw017946
-	for <ocfs2-devel@oss.oracle.com>; Sun, 23 May 2021 11:53:05 GMT
-Received: from out30-45.freemail.mail.aliyun.com
-	(out30-45.freemail.mail.aliyun.com [115.124.30.45])
-	by userp2040.oracle.com with ESMTP id 38prjtmetb-1
-	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NO)
-	for <ocfs2-devel@oss.oracle.com>; Sun, 23 May 2021 11:53:04 +0000
-X-Alimail-AntiSpam: AC=PASS; BC=-1|-1; BR=01201311R171e4; CH=green; DM=||false|;
-	DS=||; FP=0|-1|-1|-1|0|-1|-1|-1; HT=e01e04400;
-	MF=joseph.qi@linux.alibaba.com; NM=1; PH=DS; RN=4; SR=0;
-	TI=SMTPD_---0UZnHIaz_1621770777; 
-Received: from B-D1K7ML85-0059.local(mailfrom:joseph.qi@linux.alibaba.com
-	fp:SMTPD_---0UZnHIaz_1621770777) by smtp.aliyun-inc.com(127.0.0.1);
-	Sun, 23 May 2021 19:52:58 +0800
-To: Junxiao Bi <junxiao.bi@oracle.com>, ocfs2-devel@oss.oracle.com
+	14O8iL9r021527
+	for <ocfs2-devel@oss.oracle.com>; Mon, 24 May 2021 08:55:12 GMT
+Received: from mx2.suse.de (mx2.suse.de [195.135.220.15])
+	by userp2040.oracle.com with ESMTP id 38r6wm9r9d-1
+	(version=TLSv1.2 cipher=ECDHE-RSA-AES128-GCM-SHA256 bits=128 verify=OK)
+	for <ocfs2-devel@oss.oracle.com>; Mon, 24 May 2021 08:55:12 +0000
+X-Virus-Scanned: by amavisd-new at test-mx.suse.de
+Received: from relay2.suse.de (unknown [195.135.221.27])
+	by mx2.suse.de (Postfix) with ESMTP id 85570ABC1;
+	Mon, 24 May 2021 08:55:09 +0000 (UTC)
+Received: by quack2.suse.cz (Postfix, from userid 1000)
+	id EA9DD1F2CA2; Mon, 24 May 2021 10:55:08 +0200 (CEST)
+Date: Mon, 24 May 2021 10:55:08 +0200
+From: Jan Kara <jack@suse.cz>
+To: Junxiao Bi <junxiao.bi@oracle.com>
+Message-ID: <20210524085508.GD32705@quack2.suse.cz>
 References: <20210521233612.75185-1-junxiao.bi@oracle.com>
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-Message-ID: <35a1d32b-b8d7-ea9b-d28c-6b4fd837605d@linux.alibaba.com>
-Date: Sun, 23 May 2021 19:52:57 +0800
-User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:78.0)
-	Gecko/20100101 Thunderbird/78.10.0
 MIME-Version: 1.0
+Content-Disposition: inline
 In-Reply-To: <20210521233612.75185-1-junxiao.bi@oracle.com>
-Content-Language: en-US
+User-Agent: Mutt/1.10.1 (2018-07-13)
 X-PDR: PASS
-X-Source-IP: 115.124.30.45
-X-ServerName: out30-45.freemail.mail.aliyun.com
+X-Source-IP: 195.135.220.15
+X-ServerName: mx2.suse.de
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 include:spf1.service.alibaba.com
-	include:spf2.service.alibaba.com
-	include:spf1.ocm.aliyun.com  include:spf2.ocm.aliyun.com
-	include:spf1.staff.mail.aliyun.com include:a.hichina.mail.aliyun.com
-	include:b.hichina.mail.aliyun.com -all
-X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9992
+X-Proofpoint-SPF-Record: v=spf1 ip4:137.65.0.0/16 ip4:151.155.28.0/17
+	ip4:149.44.0.0/16
+	ip4:147.2.0.0/16 ip4:164.99.0.0/16 ip4:130.57.0.0/16
+	ip4:192.31.114.0/24
+	ip4:195.135.221.0/24 ip4:195.135.220.0/24 ip4:69.7.179.0/24
+	ip4:150.215.214.0/24 include:mailcontrol.com ~all
+X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9993
 	signatures=668682
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 spamscore=0
-	adultscore=0 malwarescore=0
-	clxscore=202 impostorscore=0 suspectscore=0 mlxscore=0
-	lowpriorityscore=0
-	priorityscore=0 mlxlogscore=999 bulkscore=0 phishscore=0
-	classifier=spam
-	adjust=0 reason=mlx scancount=1 engine=8.12.0-2104190000
-	definitions=main-2105230088
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 suspectscore=0
+	malwarescore=0
+	mlxlogscore=999 impostorscore=0 phishscore=0 lowpriorityscore=0
+	mlxscore=0
+	priorityscore=48 spamscore=0 bulkscore=0 clxscore=196 adultscore=0
+	classifier=spam adjust=0 reason=mlx scancount=1
+	engine=8.12.0-2104190000 definitions=main-2105240068
 X-Spam: Clean
-Cc: linux-fsdevel@vger.kernel.org, jack@suse.cz
+Cc: linux-fsdevel@vger.kernel.org, jack@suse.cz, ocfs2-devel@oss.oracle.com
 Subject: Re: [Ocfs2-devel] [PATCH v2] ocfs2: fix data corruption by fallocate
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.9
@@ -111,28 +107,21 @@ Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 Sender: ocfs2-devel-bounces@oss.oracle.com
 Errors-To: ocfs2-devel-bounces@oss.oracle.com
-X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9992 signatures=668682
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 phishscore=0 malwarescore=0 spamscore=0
- adultscore=0 bulkscore=0 mlxlogscore=999 suspectscore=0 mlxscore=0
+X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9993 signatures=668682
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 mlxscore=0 phishscore=0 bulkscore=0
+ mlxlogscore=999 malwarescore=0 spamscore=0 suspectscore=0 adultscore=0
  classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2104190000
- definitions=main-2105230089
-X-Proofpoint-GUID: ltrX62oQGfnSp9Dx8a3seuGu7jE8Wt9J
-X-Proofpoint-ORIG-GUID: ltrX62oQGfnSp9Dx8a3seuGu7jE8Wt9J
-X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9992 signatures=668682
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 suspectscore=0 mlxscore=0 clxscore=1034
- malwarescore=0 bulkscore=0 impostorscore=0 phishscore=0 spamscore=0
- adultscore=0 priorityscore=1501 mlxlogscore=999 lowpriorityscore=0
- classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2104190000
- definitions=main-2105230089
+ definitions=main-2105240068
+X-Proofpoint-GUID: XU2OZLf46AzFgXh7GF-GETXxFbMrYBE7
+X-Proofpoint-ORIG-GUID: XU2OZLf46AzFgXh7GF-GETXxFbMrYBE7
+X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9993 signatures=668682
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 impostorscore=0 mlxscore=0
+ suspectscore=0 bulkscore=0 adultscore=0 mlxlogscore=999 phishscore=0
+ malwarescore=0 clxscore=1034 lowpriorityscore=0 spamscore=0
+ priorityscore=1501 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2104190000 definitions=main-2105240068
 
-Hi Junxiao,
-If change_size is true (!FALLOC_FL_KEEP_SIZE), it will update isize
-in __ocfs2_change_file_space(). Why do we have to zeroout first?
-
-Thanks,
-Joseph
-
-On 5/22/21 7:36 AM, Junxiao Bi wrote:
+On Fri 21-05-21 16:36:12, Junxiao Bi wrote:
 > When fallocate punches holes out of inode size, if original isize is in
 > the middle of last cluster, then the part from isize to the end of the
 > cluster will be zeroed with buffer write, at that time isize is not
@@ -180,6 +169,9 @@ On 5/22/21 7:36 AM, Junxiao Bi wrote:
 > + * start: file offset where zero starts, will be made upper block aligned.
 > + * len: it will be trimmed to the end of current cluster if "start + len"
 > + *      is bigger than it.
+
+You write this here but ...
+
 > + */
 > +static int ocfs2_zeroout_partial_cluster(struct inode *inode,
 > +					u64 start, u64 len)
@@ -193,6 +185,12 @@ On 5/22/21 7:36 AM, Junxiao Bi wrote:
 > +
 > +	if (start + len < end)
 > +		end = start + len;
+
+... here you check actually something else and I don't see where else would
+the trimming happen.
+
+								Honza
+
 > +
 > +	start_block = ocfs2_blocks_for_bytes(sb, start);
 > +	end_block = ocfs2_blocks_for_bytes(sb, end);
@@ -254,7 +252,12 @@ On 5/22/21 7:36 AM, Junxiao Bi wrote:
 >  	up_write(&OCFS2_I(inode)->ip_alloc_sem);
 >  	if (ret) {
 >  		mlog_errno(ret);
+> -- 
+> 2.24.3 (Apple Git-128)
 > 
+-- 
+Jan Kara <jack@suse.com>
+SUSE Labs, CR
 
 _______________________________________________
 Ocfs2-devel mailing list
