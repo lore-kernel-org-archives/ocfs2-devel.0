@@ -7,66 +7,66 @@ X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,
 	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=ham
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id DB7D2C47089
+	by smtp.lore.kernel.org (Postfix) with ESMTP id DC54CC4708A
 	for <ocfs2-devel@archiver.kernel.org>; Wed, 26 May 2021 14:35:51 +0000 (UTC)
 Received: from userp2120.oracle.com (userp2120.oracle.com [156.151.31.85])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by mail.kernel.org (Postfix) with ESMTPS id 7189E611CD
+	by mail.kernel.org (Postfix) with ESMTPS id 71A4161360
 	for <ocfs2-devel@archiver.kernel.org>; Wed, 26 May 2021 14:35:51 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.3.2 mail.kernel.org 7189E611CD
+DMARC-Filter: OpenDMARC Filter v1.3.2 mail.kernel.org 71A4161360
 Authentication-Results: mail.kernel.org; dmarc=fail (p=none dis=none) header.from=huawei.com
 Authentication-Results: mail.kernel.org; spf=pass smtp.mailfrom=ocfs2-devel-bounces@oss.oracle.com
 Received: from pps.filterd (userp2120.oracle.com [127.0.0.1])
-	by userp2120.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 14QEZo0N108169;
+	by userp2120.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 14QEZgdn108132;
 	Wed, 26 May 2021 14:35:50 GMT
 Received: from userp3020.oracle.com (userp3020.oracle.com [156.151.31.79])
-	by userp2120.oracle.com with ESMTP id 38ptkp9521-1
+	by userp2120.oracle.com with ESMTP id 38ptkp951x-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
 	Wed, 26 May 2021 14:35:50 +0000
 Received: from pps.filterd (userp3020.oracle.com [127.0.0.1])
-	by userp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 14QEGFNX171022;
-	Wed, 26 May 2021 14:35:50 GMT
+	by userp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 14QEGFnl171100;
+	Wed, 26 May 2021 14:35:49 GMT
 Received: from oss.oracle.com (oss-old-reserved.oracle.com [137.254.22.2])
-	by userp3020.oracle.com with ESMTP id 38qbqt9pxr-1
+	by userp3020.oracle.com with ESMTP id 38qbqt9pxk-1
 	(version=TLSv1 cipher=AES256-SHA bits=256 verify=NO);
 	Wed, 26 May 2021 14:35:49 +0000
 Received: from localhost ([127.0.0.1] helo=lb-oss.oracle.com)
 	by oss.oracle.com with esmtp (Exim 4.63)
 	(envelope-from <ocfs2-devel-bounces@oss.oracle.com>)
-	id 1lludQ-0007M7-Rr; Wed, 26 May 2021 07:35:48 -0700
-Received: from aserp3030.oracle.com ([141.146.126.71])
+	id 1lludQ-0007Ld-Pr; Wed, 26 May 2021 07:35:48 -0700
+Received: from aserp3020.oracle.com ([141.146.126.70])
 	by oss.oracle.com with esmtp (Exim 4.63)
-	(envelope-from <chenhuang5@huawei.com>) id 1llpYg-0000VB-68
-	for ocfs2-devel@oss.oracle.com; Wed, 26 May 2021 02:10:34 -0700
-Received: from pps.filterd (aserp3030.oracle.com [127.0.0.1])
-	by aserp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
-	14Q9A5kB129956
+	(envelope-from <chenhuang5@huawei.com>) id 1llpYf-0000VK-LP
+	for ocfs2-devel@oss.oracle.com; Wed, 26 May 2021 02:10:33 -0700
+Received: from pps.filterd (aserp3020.oracle.com [127.0.0.1])
+	by aserp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
+	14Q972i9020838
 	for <ocfs2-devel@oss.oracle.com>; Wed, 26 May 2021 09:10:33 GMT
 Received: from userp2030.oracle.com (userp2030.oracle.com [156.151.31.89])
-	by aserp3030.oracle.com with ESMTP id 38pr0cj2qk-1
+	by aserp3020.oracle.com with ESMTP id 38rehcd65f-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Wed, 26 May 2021 09:10:32 +0000
+	for <ocfs2-devel@oss.oracle.com>; Wed, 26 May 2021 09:10:33 +0000
 Received: from pps.filterd (userp2030.oracle.com [127.0.0.1])
 	by userp2030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
-	14Q93O7P008095
+	14Q93QSq008121
 	for <ocfs2-devel@oss.oracle.com>; Wed, 26 May 2021 09:10:32 GMT
-Received: from szxga07-in.huawei.com (szxga07-in.huawei.com [45.249.212.35])
-	by userp2030.oracle.com with ESMTP id 38rnjn73ug-1
+Received: from szxga04-in.huawei.com (szxga04-in.huawei.com [45.249.212.190])
+	by userp2030.oracle.com with ESMTP id 38rnjn73u7-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NO)
 	for <ocfs2-devel@oss.oracle.com>; Wed, 26 May 2021 09:10:30 +0000
-Received: from dggems704-chm.china.huawei.com (unknown [172.30.72.58])
-	by szxga07-in.huawei.com (SkyGuard) with ESMTP id 4FqlTG6lRjzCx9y;
+Received: from dggems701-chm.china.huawei.com (unknown [172.30.72.58])
+	by szxga04-in.huawei.com (SkyGuard) with ESMTP id 4FqlTG3KXMz1BQTF;
 	Wed, 26 May 2021 17:07:30 +0800 (CST)
 Received: from dggema756-chm.china.huawei.com (10.1.198.198) by
-	dggems704-chm.china.huawei.com (10.3.19.181) with Microsoft SMTP Server
+	dggems701-chm.china.huawei.com (10.3.19.178) with Microsoft SMTP Server
 	(version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256) id
-	15.1.2176.2; Wed, 26 May 2021 17:10:18 +0800
+	15.1.2176.2; Wed, 26 May 2021 17:10:22 +0800
 Received: from localhost.localdomain (10.175.112.125) by
 	dggema756-chm.china.huawei.com (10.1.198.198) with Microsoft SMTP
 	Server
 	(version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256_P256) id
-	15.1.2176.2; Wed, 26 May 2021 17:10:17 +0800
+	15.1.2176.2; Wed, 26 May 2021 17:10:21 +0800
 From: Chen Huang <chenhuang5@huawei.com>
 To: Michael Ellerman <mpe@ellerman.id.au>,
         Benjamin Herrenschmidt
@@ -90,17 +90,19 @@ To: Michael Ellerman <mpe@ellerman.id.au>,
         "Masahiro Yamada" <masahiroy@kernel.org>,
         Dan Carpenter
 	<dan.carpenter@oracle.com>
-Date: Wed, 26 May 2021 09:20:18 +0000
-Message-ID: <20210526092020.554341-1-chenhuang5@huawei.com>
+Date: Wed, 26 May 2021 09:20:19 +0000
+Message-ID: <20210526092020.554341-2-chenhuang5@huawei.com>
 X-Mailer: git-send-email 2.25.1
+In-Reply-To: <20210526092020.554341-1-chenhuang5@huawei.com>
+References: <20210526092020.554341-1-chenhuang5@huawei.com>
 MIME-Version: 1.0
 X-Originating-IP: [10.175.112.125]
 X-ClientProxiedBy: dggems703-chm.china.huawei.com (10.3.19.180) To
 	dggema756-chm.china.huawei.com (10.1.198.198)
 X-CFilter-Loop: Reflected
 X-PDR: PASS
-X-Source-IP: 45.249.212.35
-X-ServerName: szxga07-in.huawei.com
+X-Source-IP: 45.249.212.190
+X-ServerName: szxga04-in.huawei.com
 X-Proofpoint-SPF-Result: pass
 X-Proofpoint-SPF-Record: v=spf1 ip4:45.249.212.32 ip4:45.249.212.35
 	ip4:45.249.212.255
@@ -119,7 +121,7 @@ X-Mailman-Approved-At: Wed, 26 May 2021 07:35:47 -0700
 Cc: xen-devel@lists.xenproject.org, Chen Huang <chenhuang5@huawei.com>,
         linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org,
         ocfs2-devel@oss.oracle.com
-Subject: [Ocfs2-devel] [PATCH -next 1/3] powerpc/rtas: Replaced
+Subject: [Ocfs2-devel] [PATCH -next 2/3] xen: balloon: Replaced
 	simple_strtoull() with kstrtoull()
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.9
@@ -141,8 +143,8 @@ X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 mlxscore=0 phishs
  mlxlogscore=999 malwarescore=0 spamscore=0 suspectscore=0 adultscore=0
  classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2104190000
  definitions=main-2105260097
-X-Proofpoint-GUID: zrWh7Jgu68S89mJe7bAZV_wx8ly33E5k
-X-Proofpoint-ORIG-GUID: zrWh7Jgu68S89mJe7bAZV_wx8ly33E5k
+X-Proofpoint-GUID: iPYXQvAmxHs-qw0EQTsocQ-AYCOSKnIK
+X-Proofpoint-ORIG-GUID: iPYXQvAmxHs-qw0EQTsocQ-AYCOSKnIK
 X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9996 signatures=668682
 X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 impostorscore=0 mlxscore=0
  suspectscore=0 bulkscore=0 adultscore=0 mlxlogscore=999 phishscore=0
@@ -155,34 +157,32 @@ it does not check for the range overflow, use kstrtoull() instead.
 
 Signed-off-by: Chen Huang <chenhuang5@huawei.com>
 ---
- arch/powerpc/kernel/rtas-proc.c | 7 +------
- 1 file changed, 1 insertion(+), 6 deletions(-)
+ drivers/xen/xen-balloon.c | 7 +++++--
+ 1 file changed, 5 insertions(+), 2 deletions(-)
 
-diff --git a/arch/powerpc/kernel/rtas-proc.c b/arch/powerpc/kernel/rtas-proc.c
-index 6857a5b0a1c3..117886782ebd 100644
---- a/arch/powerpc/kernel/rtas-proc.c
-+++ b/arch/powerpc/kernel/rtas-proc.c
-@@ -259,7 +259,6 @@ __initcall(proc_rtas_init);
- static int parse_number(const char __user *p, size_t count, u64 *val)
+diff --git a/drivers/xen/xen-balloon.c b/drivers/xen/xen-balloon.c
+index a8d24433c8e9..1fba838963d2 100644
+--- a/drivers/xen/xen-balloon.c
++++ b/drivers/xen/xen-balloon.c
+@@ -163,13 +163,16 @@ static ssize_t store_target_kb(struct device *dev,
+ 			       const char *buf,
+ 			       size_t count)
  {
- 	char buf[40];
--	char *end;
+-	char *endchar;
++	ssize_t ret;
+ 	unsigned long long target_bytes;
  
- 	if (count > 39)
- 		return -EINVAL;
-@@ -269,11 +268,7 @@ static int parse_number(const char __user *p, size_t count, u64 *val)
+ 	if (!capable(CAP_SYS_ADMIN))
+ 		return -EPERM;
  
- 	buf[count] = 0;
+-	target_bytes = simple_strtoull(buf, &endchar, 0) * 1024;
++	ret = kstrtoull(buf, 0, &target_bytes);
++	if (ret)
++		return ret;
++	target_bytes *= 1024;
  
--	*val = simple_strtoull(buf, &end, 10);
--	if (*end && *end != '\n')
--		return -EINVAL;
--
--	return 0;
-+	return kstrtoull(buf, 10, val);
- }
+ 	balloon_set_new_target(target_bytes >> PAGE_SHIFT);
  
- /* ****************************************************************** */
 -- 
 2.25.1
 
