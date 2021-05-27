@@ -1,128 +1,134 @@
-Return-Path: <SRS0=dXbG=KV=oss.oracle.com=ocfs2-devel-bounces@kernel.org>
+Return-Path: <SRS0=xTLC=KW=oss.oracle.com=ocfs2-devel-bounces@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT autolearn=ham
-	autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-3.8 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS
+	autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id DC54CC4708A
-	for <ocfs2-devel@archiver.kernel.org>; Wed, 26 May 2021 14:35:51 +0000 (UTC)
-Received: from userp2120.oracle.com (userp2120.oracle.com [156.151.31.85])
+	by smtp.lore.kernel.org (Postfix) with ESMTP id DBCC1C47089
+	for <ocfs2-devel@archiver.kernel.org>; Thu, 27 May 2021 14:14:20 +0000 (UTC)
+Received: from aserp2120.oracle.com (aserp2120.oracle.com [141.146.126.78])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by mail.kernel.org (Postfix) with ESMTPS id 71A4161360
-	for <ocfs2-devel@archiver.kernel.org>; Wed, 26 May 2021 14:35:51 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.3.2 mail.kernel.org 71A4161360
-Authentication-Results: mail.kernel.org; dmarc=fail (p=none dis=none) header.from=huawei.com
+	by mail.kernel.org (Postfix) with ESMTPS id 8418A613CA
+	for <ocfs2-devel@archiver.kernel.org>; Thu, 27 May 2021 14:14:20 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.3.2 mail.kernel.org 8418A613CA
+Authentication-Results: mail.kernel.org; dmarc=fail (p=none dis=none) header.from=ACULAB.COM
 Authentication-Results: mail.kernel.org; spf=pass smtp.mailfrom=ocfs2-devel-bounces@oss.oracle.com
-Received: from pps.filterd (userp2120.oracle.com [127.0.0.1])
-	by userp2120.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 14QEZgdn108132;
-	Wed, 26 May 2021 14:35:50 GMT
+Received: from pps.filterd (aserp2120.oracle.com [127.0.0.1])
+	by aserp2120.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 14REBoJr192938;
+	Thu, 27 May 2021 14:14:18 GMT
 Received: from userp3020.oracle.com (userp3020.oracle.com [156.151.31.79])
-	by userp2120.oracle.com with ESMTP id 38ptkp951x-1
+	by aserp2120.oracle.com with ESMTP id 38rne47uy6-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Wed, 26 May 2021 14:35:50 +0000
+	Thu, 27 May 2021 14:14:18 +0000
 Received: from pps.filterd (userp3020.oracle.com [127.0.0.1])
-	by userp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 14QEGFnl171100;
-	Wed, 26 May 2021 14:35:49 GMT
+	by userp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 14RECKXK056846;
+	Thu, 27 May 2021 14:14:17 GMT
 Received: from oss.oracle.com (oss-old-reserved.oracle.com [137.254.22.2])
-	by userp3020.oracle.com with ESMTP id 38qbqt9pxk-1
+	by userp3020.oracle.com with ESMTP id 38qbqucbh1-1
 	(version=TLSv1 cipher=AES256-SHA bits=256 verify=NO);
-	Wed, 26 May 2021 14:35:49 +0000
+	Thu, 27 May 2021 14:14:16 +0000
 Received: from localhost ([127.0.0.1] helo=lb-oss.oracle.com)
 	by oss.oracle.com with esmtp (Exim 4.63)
 	(envelope-from <ocfs2-devel-bounces@oss.oracle.com>)
-	id 1lludQ-0007Ld-Pr; Wed, 26 May 2021 07:35:48 -0700
+	id 1lmGj4-0006Mf-Ks; Thu, 27 May 2021 07:11:06 -0700
 Received: from aserp3020.oracle.com ([141.146.126.70])
 	by oss.oracle.com with esmtp (Exim 4.63)
-	(envelope-from <chenhuang5@huawei.com>) id 1llpYf-0000VK-LP
-	for ocfs2-devel@oss.oracle.com; Wed, 26 May 2021 02:10:33 -0700
+	(envelope-from <david.laight@aculab.com>) id 1lmGiW-0006Ld-49
+	for ocfs2-devel@oss.oracle.com; Thu, 27 May 2021 07:10:32 -0700
 Received: from pps.filterd (aserp3020.oracle.com [127.0.0.1])
 	by aserp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
-	14Q972i9020838
-	for <ocfs2-devel@oss.oracle.com>; Wed, 26 May 2021 09:10:33 GMT
+	14RE15G2035461
+	for <ocfs2-devel@oss.oracle.com>; Thu, 27 May 2021 14:10:31 GMT
 Received: from userp2030.oracle.com (userp2030.oracle.com [156.151.31.89])
-	by aserp3020.oracle.com with ESMTP id 38rehcd65f-1
+	by aserp3020.oracle.com with ESMTP id 38rehgdw3q-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Wed, 26 May 2021 09:10:33 +0000
+	for <ocfs2-devel@oss.oracle.com>; Thu, 27 May 2021 14:10:31 +0000
 Received: from pps.filterd (userp2030.oracle.com [127.0.0.1])
 	by userp2030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
-	14Q93QSq008121
-	for <ocfs2-devel@oss.oracle.com>; Wed, 26 May 2021 09:10:32 GMT
-Received: from szxga04-in.huawei.com (szxga04-in.huawei.com [45.249.212.190])
-	by userp2030.oracle.com with ESMTP id 38rnjn73u7-1
-	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NO)
-	for <ocfs2-devel@oss.oracle.com>; Wed, 26 May 2021 09:10:30 +0000
-Received: from dggems701-chm.china.huawei.com (unknown [172.30.72.58])
-	by szxga04-in.huawei.com (SkyGuard) with ESMTP id 4FqlTG3KXMz1BQTF;
-	Wed, 26 May 2021 17:07:30 +0800 (CST)
-Received: from dggema756-chm.china.huawei.com (10.1.198.198) by
-	dggems701-chm.china.huawei.com (10.3.19.178) with Microsoft SMTP Server
-	(version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256) id
-	15.1.2176.2; Wed, 26 May 2021 17:10:22 +0800
-Received: from localhost.localdomain (10.175.112.125) by
-	dggema756-chm.china.huawei.com (10.1.198.198) with Microsoft SMTP
-	Server
-	(version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256_P256) id
-	15.1.2176.2; Wed, 26 May 2021 17:10:21 +0800
-From: Chen Huang <chenhuang5@huawei.com>
-To: Michael Ellerman <mpe@ellerman.id.au>,
-        Benjamin Herrenschmidt
-	<benh@kernel.crashing.org>,
-        Paul Mackerras <paulus@samba.org>,
-        "Boris
-	Ostrovsky" <boris.ostrovsky@oracle.com>,
+	14RE3O0R038428
+	for <ocfs2-devel@oss.oracle.com>; Thu, 27 May 2021 14:10:30 GMT
+Received: from eu-smtp-delivery-151.mimecast.com
+	(eu-smtp-delivery-151.mimecast.com [185.58.85.151])
+	by userp2030.oracle.com with ESMTP id 38smf58xft-1
+	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
+	for <ocfs2-devel@oss.oracle.com>; Thu, 27 May 2021 14:10:29 +0000
+Received: from AcuMS.aculab.com (156.67.243.121 [156.67.243.121]) (Using
+	TLS) by relay.mimecast.com with ESMTP id
+	uk-mta-140-jheLYrfmNJS7VYboBqC6Hg-1; Thu, 27 May 2021 15:10:23 +0100
+X-MC-Unique: jheLYrfmNJS7VYboBqC6Hg-1
+Received: from AcuMS.Aculab.com (fd9f:af1c:a25b:0:994c:f5c2:35d6:9b65) by
+	AcuMS.aculab.com (fd9f:af1c:a25b:0:994c:f5c2:35d6:9b65) with Microsoft
+	SMTP Server (TLS) id 15.0.1497.2; Thu, 27 May 2021 15:10:21 +0100
+Received: from AcuMS.Aculab.com ([fe80::994c:f5c2:35d6:9b65]) by
+	AcuMS.aculab.com ([fe80::994c:f5c2:35d6:9b65%12]) with mapi id
+	15.00.1497.015; Thu, 27 May 2021 15:10:21 +0100
+From: David Laight <David.Laight@ACULAB.COM>
+To: 'Chen Huang' <chenhuang5@huawei.com>,
+        Michael Ellerman
+	<mpe@ellerman.id.au>,
+        Benjamin Herrenschmidt <benh@kernel.crashing.org>,
+        "Paul Mackerras" <paulus@samba.org>,
+        Boris Ostrovsky
+	<boris.ostrovsky@oracle.com>,
         Juergen Gross <jgross@suse.com>,
-        Stefano Stabellini <sstabellini@kernel.org>,
-        Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
+        Stefano
+	Stabellini <sstabellini@kernel.org>,
+        Mark Fasheh <mark@fasheh.com>, Joel
+	Becker <jlbec@evilplan.org>,
         Joseph Qi <joseph.qi@linux.alibaba.com>,
         Nathan Lynch <nathanl@linux.ibm.com>,
-        Andrew Donnellan <ajd@linux.ibm.com>,
-        Alexey Kardashevskiy <aik@ozlabs.ru>,
-        Andrew Morton
-	<akpm@linux-foundation.org>,
-        Stephen Rothwell <sfr@canb.auug.org.au>,
-        "Jens
-	Axboe" <axboe@kernel.dk>,
+        "Andrew Donnellan" <ajd@linux.ibm.com>,
+        Alexey
+	Kardashevskiy <aik@ozlabs.ru>,
+        "Andrew Morton" <akpm@linux-foundation.org>,
+        Stephen Rothwell <sfr@canb.auug.org.au>, Jens Axboe <axboe@kernel.dk>,
         Yang Yingliang <yangyingliang@huawei.com>,
-        "Masahiro Yamada" <masahiroy@kernel.org>,
-        Dan Carpenter
-	<dan.carpenter@oracle.com>
-Date: Wed, 26 May 2021 09:20:19 +0000
-Message-ID: <20210526092020.554341-2-chenhuang5@huawei.com>
-X-Mailer: git-send-email 2.25.1
-In-Reply-To: <20210526092020.554341-1-chenhuang5@huawei.com>
+        Masahiro Yamada <masahiroy@kernel.org>,
+        Dan Carpenter <dan.carpenter@oracle.com>
+Thread-Topic: [PATCH -next 2/3] xen: balloon: Replaced simple_strtoull() with
+	kstrtoull()
+Thread-Index: AQHXUg74rK/OAxNe1kmGDaODmfSqv6r3X4NA
+Date: Thu, 27 May 2021 14:10:21 +0000
+Message-ID: <0f03f9b9ff41460db2935e077f7f80c7@AcuMS.aculab.com>
 References: <20210526092020.554341-1-chenhuang5@huawei.com>
+	<20210526092020.554341-2-chenhuang5@huawei.com>
+In-Reply-To: <20210526092020.554341-2-chenhuang5@huawei.com>
+Accept-Language: en-GB, en-US
+X-MS-Has-Attach: 
+X-MS-TNEF-Correlator: 
+x-ms-exchange-transport-fromentityheader: Hosted
+x-originating-ip: [10.202.205.107]
 MIME-Version: 1.0
-X-Originating-IP: [10.175.112.125]
-X-ClientProxiedBy: dggems703-chm.china.huawei.com (10.3.19.180) To
-	dggema756-chm.china.huawei.com (10.1.198.198)
-X-CFilter-Loop: Reflected
+Authentication-Results: relay.mimecast.com;
+	auth=pass smtp.auth=C51A453 smtp.mailfrom=david.laight@aculab.com
+X-Mimecast-Spam-Score: 0
+X-Mimecast-Originator: aculab.com
+Content-Language: en-US
 X-PDR: PASS
-X-Source-IP: 45.249.212.190
-X-ServerName: szxga04-in.huawei.com
+X-Source-IP: 185.58.85.151
+X-ServerName: eu-smtp-delivery-151.mimecast.com
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 ip4:45.249.212.32 ip4:45.249.212.35
-	ip4:45.249.212.255
-	ip4:45.249.212.187/29 ip4:45.249.212.191 ip4:185.176.76.210
-	ip4:168.195.93.47 ip4:103.69.140.247 ip4:185.176.79.56 -all
-X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9995
+X-Proofpoint-SPF-Record: v=spf1 include:eu._netblocks.mimecast.com
+	include:servers.mcsv.net
+	include:_spf.act-on.net include:aculabcloud.net -all
+X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9996
 	signatures=668682
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 mlxscore=0
-	bulkscore=0 adultscore=0
-	malwarescore=0 phishscore=0 impostorscore=0 suspectscore=0 clxscore=255
-	mlxlogscore=999 priorityscore=288 lowpriorityscore=0 spamscore=0
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0
+	priorityscore=48 malwarescore=0
+	lowpriorityscore=0 clxscore=291 suspectscore=0 bulkscore=0 spamscore=0
+	phishscore=0 impostorscore=0 mlxlogscore=999 mlxscore=0 adultscore=0
 	classifier=spam adjust=0 reason=mlx scancount=1
-	engine=8.12.0-2104190000 definitions=main-2105260060
+	engine=8.12.0-2104190000 definitions=main-2105270092
 X-Spam: Clean
-X-Mailman-Approved-At: Wed, 26 May 2021 07:35:47 -0700
-Cc: xen-devel@lists.xenproject.org, Chen Huang <chenhuang5@huawei.com>,
-        linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org,
-        ocfs2-devel@oss.oracle.com
-Subject: [Ocfs2-devel] [PATCH -next 2/3] xen: balloon: Replaced
-	simple_strtoull() with kstrtoull()
+Cc: "xen-devel@lists.xenproject.org" <xen-devel@lists.xenproject.org>,
+        "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>,
+        "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
+        "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>
+Subject: Re: [Ocfs2-devel] [PATCH -next 2/3] xen: balloon: Replaced
+ simple_strtoull() with kstrtoull()
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.9
 Precedence: list
@@ -142,49 +148,39 @@ X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9996 signatures=6
 X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 mlxscore=0 phishscore=0 bulkscore=0
  mlxlogscore=999 malwarescore=0 spamscore=0 suspectscore=0 adultscore=0
  classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2104190000
- definitions=main-2105260097
-X-Proofpoint-GUID: iPYXQvAmxHs-qw0EQTsocQ-AYCOSKnIK
-X-Proofpoint-ORIG-GUID: iPYXQvAmxHs-qw0EQTsocQ-AYCOSKnIK
+ definitions=main-2105270093
+X-Proofpoint-ORIG-GUID: EsCenFIILeZn-QHjAbWCYawqVvORfqb3
+X-Proofpoint-GUID: EsCenFIILeZn-QHjAbWCYawqVvORfqb3
 X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=9996 signatures=668682
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 impostorscore=0 mlxscore=0
- suspectscore=0 bulkscore=0 adultscore=0 mlxlogscore=999 phishscore=0
- malwarescore=0 clxscore=1015 lowpriorityscore=0 spamscore=0
- priorityscore=1501 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2104190000 definitions=main-2105260098
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 suspectscore=0 bulkscore=0 phishscore=0
+ mlxlogscore=999 spamscore=0 mlxscore=0 priorityscore=1501
+ lowpriorityscore=0 impostorscore=0 adultscore=0 clxscore=1011
+ malwarescore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2104190000 definitions=main-2105270093
 
-The simple_strtoull() function is deprecated in some situation, since
-it does not check for the range overflow, use kstrtoull() instead.
+From: Chen Huang
+> Sent: 26 May 2021 10:20
+> 
+> The simple_strtoull() function is deprecated in some situation, since
+> it does not check for the range overflow, use kstrtoull() instead.
+> 
+...
+> -	target_bytes = simple_strtoull(buf, &endchar, 0) * 1024;
+> +	ret = kstrtoull(buf, 0, &target_bytes);
+> +	if (ret)
+> +		return ret;
+> +	target_bytes *= 1024;
 
-Signed-off-by: Chen Huang <chenhuang5@huawei.com>
----
- drivers/xen/xen-balloon.c | 7 +++++--
- 1 file changed, 5 insertions(+), 2 deletions(-)
+I'd have thought it was more important to check *endchar
+than overflow.
+If you are worried about overflow you need a range check
+before the multiply.
 
-diff --git a/drivers/xen/xen-balloon.c b/drivers/xen/xen-balloon.c
-index a8d24433c8e9..1fba838963d2 100644
---- a/drivers/xen/xen-balloon.c
-+++ b/drivers/xen/xen-balloon.c
-@@ -163,13 +163,16 @@ static ssize_t store_target_kb(struct device *dev,
- 			       const char *buf,
- 			       size_t count)
- {
--	char *endchar;
-+	ssize_t ret;
- 	unsigned long long target_bytes;
- 
- 	if (!capable(CAP_SYS_ADMIN))
- 		return -EPERM;
- 
--	target_bytes = simple_strtoull(buf, &endchar, 0) * 1024;
-+	ret = kstrtoull(buf, 0, &target_bytes);
-+	if (ret)
-+		return ret;
-+	target_bytes *= 1024;
- 
- 	balloon_set_new_target(target_bytes >> PAGE_SHIFT);
- 
--- 
-2.25.1
+	David
+
+-
+Registered Address Lakeside, Bramley Road, Mount Farm, Milton Keynes, MK1 1PT, UK
+Registration No: 1397386 (Wales)
 
 
 _______________________________________________
