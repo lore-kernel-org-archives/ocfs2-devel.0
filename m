@@ -6,63 +6,65 @@ X-Spam-Status: No, score=-3.8 required=3.0 tests=BAYES_00,
 	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS
 	autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C222FC07E95
-	for <ocfs2-devel@archiver.kernel.org>; Mon, 19 Jul 2021 20:22:28 +0000 (UTC)
-Received: from mx0b-00069f02.pphosted.com (mx0b-00069f02.pphosted.com [205.220.177.32])
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 83BD1C07E9B
+	for <ocfs2-devel@archiver.kernel.org>; Mon, 19 Jul 2021 20:23:17 +0000 (UTC)
+Received: from mx0a-00069f02.pphosted.com (mx0a-00069f02.pphosted.com [205.220.165.32])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by mail.kernel.org (Postfix) with ESMTPS id 38DF96024A
-	for <ocfs2-devel@archiver.kernel.org>; Mon, 19 Jul 2021 20:22:28 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.3.2 mail.kernel.org 38DF96024A
+	by mail.kernel.org (Postfix) with ESMTPS id E0C346024A
+	for <ocfs2-devel@archiver.kernel.org>; Mon, 19 Jul 2021 20:23:15 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.3.2 mail.kernel.org E0C346024A
 Authentication-Results: mail.kernel.org; dmarc=none (p=none dis=none) header.from=zeniv.linux.org.uk
 Authentication-Results: mail.kernel.org; spf=pass smtp.mailfrom=ocfs2-devel-bounces@oss.oracle.com
-Received: from pps.filterd (m0246632.ppops.net [127.0.0.1])
-	by mx0b-00069f02.pphosted.com (8.16.0.43/8.16.0.43) with SMTP id 16JKCXaO001931;
-	Mon, 19 Jul 2021 20:22:27 GMT
+Received: from pps.filterd (m0246617.ppops.net [127.0.0.1])
+	by mx0b-00069f02.pphosted.com (8.16.0.43/8.16.0.43) with SMTP id 16JKC0Z3009884;
+	Mon, 19 Jul 2021 20:23:15 GMT
 Received: from userp3020.oracle.com (userp3020.oracle.com [156.151.31.79])
-	by mx0b-00069f02.pphosted.com with ESMTP id 39w8p0s3km-1
+	by mx0b-00069f02.pphosted.com with ESMTP id 39w9hfs1t8-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Mon, 19 Jul 2021 20:22:27 +0000
+	Mon, 19 Jul 2021 20:23:15 +0000
 Received: from pps.filterd (userp3020.oracle.com [127.0.0.1])
-	by userp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 16JKGE4C003995;
-	Mon, 19 Jul 2021 20:22:26 GMT
+	by userp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 16JKGEqi003984;
+	Mon, 19 Jul 2021 20:23:13 GMT
 Received: from oss.oracle.com (oss-old-reserved.oracle.com [137.254.22.2])
-	by userp3020.oracle.com with ESMTP id 39v8ytcup0-1;
-	Mon, 19 Jul 2021 20:22:26 +0000
+	by userp3020.oracle.com with ESMTP id 39v8ytcw5t-1;
+	Mon, 19 Jul 2021 20:23:13 +0000
 Received: from localhost ([127.0.0.1] helo=lb-oss.oracle.com)
 	by oss.oracle.com with esmtp (Exim 4.63)
 	(envelope-from <ocfs2-devel-bounces@oss.oracle.com>)
-	id 1m5ZjQ-0000mS-9j; Mon, 19 Jul 2021 13:19:16 -0700
-Received: from userp3020.oracle.com ([156.151.31.79])
+	id 1m5ZkB-0000tK-CP; Mon, 19 Jul 2021 13:20:03 -0700
+Received: from aserp3020.oracle.com ([141.146.126.70])
 	by oss.oracle.com with esmtp (Exim 4.63)
-	(envelope-from <viro@ftp.linux.org.uk>) id 1m5ZjN-0000m3-13
-	for ocfs2-devel@oss.oracle.com; Mon, 19 Jul 2021 13:19:13 -0700
-Received: from pps.filterd (userp3020.oracle.com [127.0.0.1])
-	by userp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
-	16JKGFpD004058
-	for <ocfs2-devel@oss.oracle.com>; Mon, 19 Jul 2021 20:19:12 GMT
+	(envelope-from <viro@ftp.linux.org.uk>) id 1m5Zk8-0000no-6L
+	for ocfs2-devel@oss.oracle.com; Mon, 19 Jul 2021 13:20:00 -0700
+Received: from pps.filterd (aserp3020.oracle.com [127.0.0.1])
+	by aserp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
+	16JKF3l2160397
+	for <ocfs2-devel@oss.oracle.com>; Mon, 19 Jul 2021 20:20:00 GMT
 Received: from mx0b-00069f01.pphosted.com (mx0b-00069f01.pphosted.com
-	[205.220.177.26]) by userp3020.oracle.com with ESMTP id 39v8ytcn7r-1
+	[205.220.177.26]) by aserp3020.oracle.com with ESMTP id 39uq15c85v-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Mon, 19 Jul 2021 20:19:12 +0000
+	for <ocfs2-devel@oss.oracle.com>; Mon, 19 Jul 2021 20:19:59 +0000
 Received: from pps.filterd (m0246580.ppops.net [127.0.0.1])
 	by mx0b-00069f01.pphosted.com (8.16.0.43/8.16.0.43) with SMTP id
-	16JKDAK9023510
-	for <ocfs2-devel@oss.oracle.com>; Mon, 19 Jul 2021 20:19:11 GMT
+	16JKCIqW022234
+	for <ocfs2-devel@oss.oracle.com>; Mon, 19 Jul 2021 20:19:58 GMT
 Received: from zeniv-ca.linux.org.uk (zeniv-ca.linux.org.uk [142.44.231.140])
-	by mx0b-00069f01.pphosted.com with ESMTP id 39w4k7xcqe-1
+	by mx0b-00069f01.pphosted.com with ESMTP id 39w4k7xcvh-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NO)
-	for <ocfs2-devel@oss.oracle.com>; Mon, 19 Jul 2021 20:19:11 +0000
+	for <ocfs2-devel@oss.oracle.com>; Mon, 19 Jul 2021 20:19:58 +0000
 Received: from viro by zeniv-ca.linux.org.uk with local (Exim 4.94.2 #2 (Red
-	Hat Linux)) id 1m5Zee-0027j9-PG; Mon, 19 Jul 2021 20:14:20 +0000
-Date: Mon, 19 Jul 2021 20:14:20 +0000
+	Hat Linux)) id 1m5Zhu-0027kw-64; Mon, 19 Jul 2021 20:17:42 +0000
+Date: Mon, 19 Jul 2021 20:17:42 +0000
 From: Al Viro <viro@zeniv.linux.org.uk>
-To: Andreas Gruenbacher <agruenba@redhat.com>
-Message-ID: <YPXdHGAH7FbXnAj6@zeniv-ca.linux.org.uk>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Message-ID: <YPXd5gKCjhr3thJ/@zeniv-ca.linux.org.uk>
 References: <20210718223932.2703330-1-agruenba@redhat.com>
+	<20210718223932.2703330-6-agruenba@redhat.com>
+	<CAHk-=wh3p41a-=7FFf36sYBQP750ys6CKi0S7JNiCSatY5-7og@mail.gmail.com>
 MIME-Version: 1.0
 Content-Disposition: inline
-In-Reply-To: <20210718223932.2703330-1-agruenba@redhat.com>
+In-Reply-To: <CAHk-=wh3p41a-=7FFf36sYBQP750ys6CKi0S7JNiCSatY5-7og@mail.gmail.com>
 X-Source-IP: 142.44.231.140
 X-ServerName: zeniv-ca.linux.org.uk
 X-Proofpoint-SPF-Result: None
@@ -70,26 +72,27 @@ X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=10050
 	signatures=668682
 X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 impostorscore=0
 	adultscore=0
-	mlxlogscore=988 mlxscore=0 priorityscore=0 malwarescore=0
-	lowpriorityscore=0 suspectscore=0 bulkscore=0 clxscore=230 phishscore=0
+	mlxlogscore=999 mlxscore=0 priorityscore=70 malwarescore=0
+	lowpriorityscore=0 suspectscore=0 bulkscore=0 clxscore=228 phishscore=0
 	spamscore=0 classifier=spam adjust=0 reason=mlx scancount=1
 	engine=8.12.0-2104190000 definitions=main-2107190115
 	domainage_hfrom=9118
 X-Spam: Clean
 X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=10050
 	signatures=668682
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 spamscore=0
-	mlxscore=0 malwarescore=0
-	adultscore=0 phishscore=0 suspectscore=0 mlxlogscore=999 bulkscore=0
-	classifier=spam adjust=0 reason=mlx scancount=1
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 adultscore=0
+	malwarescore=0
+	mlxlogscore=999 suspectscore=0 bulkscore=0 spamscore=0 phishscore=0
+	mlxscore=0 classifier=spam adjust=0 reason=mlx scancount=1
 	engine=8.12.0-2104190000 definitions=main-2107190115
-Cc: cluster-devel@redhat.com, Jan Kara <jack@suse.cz>,
-        linux-kernel@vger.kernel.org, Christoph Hellwig <hch@infradead.org>,
-        linux-fsdevel@vger.kernel.org,
-        Linus Torvalds <torvalds@linux-foundation.org>,
+Cc: cluster-devel <cluster-devel@redhat.com>, Jan Kara <jack@suse.cz>,
+        Andreas Gruenbacher <agruenba@redhat.com>,
+        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
+        Christoph Hellwig <hch@infradead.org>,
+        linux-fsdevel <linux-fsdevel@vger.kernel.org>,
         ocfs2-devel@oss.oracle.com
-Subject: Re: [Ocfs2-devel] [PATCH v2 0/6] gfs2: Fix mmap + page fault
-	deadlocks
+Subject: Re: [Ocfs2-devel] [PATCH v2 5/6] iov_iter: Introduce
+	ITER_FLAG_FAST_ONLY flag
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.9
 Precedence: list
@@ -110,48 +113,28 @@ X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 spamscore=0 mlxsc
  adultscore=0 phishscore=0 suspectscore=0 mlxlogscore=999 bulkscore=0
  classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2104190000
  definitions=main-2107190115
-X-Proofpoint-GUID: b3BnIzZ0n57ICy8tn2OkbBRxLFL0Qqru
-X-Proofpoint-ORIG-GUID: b3BnIzZ0n57ICy8tn2OkbBRxLFL0Qqru
+X-Proofpoint-GUID: 9_y60r9DTDmGVhI23Dn_wsxfYnjbED1b
+X-Proofpoint-ORIG-GUID: 9_y60r9DTDmGVhI23Dn_wsxfYnjbED1b
 
-On Mon, Jul 19, 2021 at 12:39:26AM +0200, Andreas Gruenbacher wrote:
-> Hi Linus et al.,
+On Mon, Jul 19, 2021 at 12:29:35PM -0700, Linus Torvalds wrote:
+> On Sun, Jul 18, 2021 at 3:40 PM Andreas Gruenbacher <agruenba@redhat.com> wrote:
+> >
+> > Introduce a new ITER_FLAG_FAST_ONLY flag
 > 
-> here's an update to the gfs2 mmap + page faults fix that implements
-> Linus's suggestion of disabling page faults while we're holding the
-> inode glock.
+> I think the code is fine, but I think it might be best to call this
+> "ITER_FLAG_NOIO" or something like that.
 > 
-> This passes fstests except for test generic/095, which fails due to an
-> independent bug in the iov_iter code.  I'm currently trying to get
-> initial feedback from Al and Christoph on that.
-> 
-> Any feedback would be welcome.
+> The "FAST_ONLY" name makes sense in the context of
+> "get_user_pages_fast()" where we have that "fast" naming (and the long
+> history too). But I don't think it makes much sense as a name in the
+> context of iov_iter.
 
-What tree is that against?  Because in mainline your #5 sure as hell
-won't apply...
+This code has never been tested with current lib/iov_iter.c as it is
+in mainline.  Or had been in -next during the last cycle.  It won't
+apply at all.
 
-There uio.h has
-enum iter_type {
-        /* iter types */
-        ITER_IOVEC,
-        ITER_KVEC,
-        ITER_BVEC,
-        ITER_PIPE,
-        ITER_XARRAY,
-        ITER_DISCARD,
-};
-
-and your series assumes
-
-enum iter_type {
-        /* iter types */
-        ITER_IOVEC = 4,
-        ITER_KVEC = 8,
-        ITER_BVEC = 16,
-        ITER_PIPE = 32,
-        ITER_DISCARD = 64,
-};
-
-What had that been tested with?
+Sure, I can try to port that series over to the current mainline, but
+I'd rather see that done (and tested) by the series author...
 
 _______________________________________________
 Ocfs2-devel mailing list
