@@ -2,122 +2,127 @@ Return-Path: <SRS0=Gdlw=MQ=oss.oracle.com=ocfs2-devel-bounces@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-13.8 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS autolearn=unavailable
-	autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-3.8 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS
+	autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 3264DC4338F
-	for <ocfs2-devel@archiver.kernel.org>; Sat, 24 Jul 2021 19:35:57 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id A2898C4338F
+	for <ocfs2-devel@archiver.kernel.org>; Sat, 24 Jul 2021 19:53:04 +0000 (UTC)
 Received: from mx0a-00069f02.pphosted.com (mx0a-00069f02.pphosted.com [205.220.165.32])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by mail.kernel.org (Postfix) with ESMTPS id EECCD60E8B
-	for <ocfs2-devel@archiver.kernel.org>; Sat, 24 Jul 2021 19:35:56 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.1 mail.kernel.org EECCD60E8B
-Authentication-Results: mail.kernel.org; dmarc=fail (p=none dis=none) header.from=redhat.com
+	by mail.kernel.org (Postfix) with ESMTPS id 3641360E96
+	for <ocfs2-devel@archiver.kernel.org>; Sat, 24 Jul 2021 19:53:04 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.1 mail.kernel.org 3641360E96
+Authentication-Results: mail.kernel.org; dmarc=none (p=none dis=none) header.from=linux-foundation.org
 Authentication-Results: mail.kernel.org; spf=pass smtp.mailfrom=oss.oracle.com
 Received: from pps.filterd (m0246629.ppops.net [127.0.0.1])
-	by mx0b-00069f02.pphosted.com (8.16.0.43/8.16.0.43) with SMTP id 16OJVMMJ002569;
-	Sat, 24 Jul 2021 19:35:56 GMT
+	by mx0b-00069f02.pphosted.com (8.16.0.43/8.16.0.43) with SMTP id 16OJmGVF026560;
+	Sat, 24 Jul 2021 19:53:03 GMT
 Received: from userp3030.oracle.com (userp3030.oracle.com [156.151.31.80])
-	by mx0b-00069f02.pphosted.com with ESMTP id 3a0arbgr9n-1
+	by mx0b-00069f02.pphosted.com with ESMTP id 3a0arbgrjb-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Sat, 24 Jul 2021 19:35:56 +0000
+	Sat, 24 Jul 2021 19:53:02 +0000
 Received: from pps.filterd (userp3030.oracle.com [127.0.0.1])
-	by userp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 16OJUiIM041632;
-	Sat, 24 Jul 2021 19:35:55 GMT
+	by userp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 16OJoljf073038;
+	Sat, 24 Jul 2021 19:53:01 GMT
 Received: from oss.oracle.com (oss-old-reserved.oracle.com [137.254.22.2])
-	by userp3030.oracle.com with ESMTP id 3a07yspa5b-1
+	by userp3030.oracle.com with ESMTP id 3a07yspwbv-1
 	(version=TLSv1 cipher=AES256-SHA bits=256 verify=NO);
-	Sat, 24 Jul 2021 19:35:54 +0000
+	Sat, 24 Jul 2021 19:53:01 +0000
 Received: from localhost ([127.0.0.1] helo=lb-oss.oracle.com)
 	by oss.oracle.com with esmtp (Exim 4.63)
 	(envelope-from <ocfs2-devel-bounces@oss.oracle.com>)
-	id 1m7NRB-0000ub-PB; Sat, 24 Jul 2021 12:35:53 -0700
-Received: from aserp3020.oracle.com ([141.146.126.70])
+	id 1m7Nhk-0001xg-Cz; Sat, 24 Jul 2021 12:53:00 -0700
+Received: from userp3030.oracle.com ([156.151.31.80])
 	by oss.oracle.com with esmtp (Exim 4.63)
-	(envelope-from <agruenba@redhat.com>) id 1m7NQo-0000pG-T4
-	for ocfs2-devel@oss.oracle.com; Sat, 24 Jul 2021 12:35:30 -0700
-Received: from pps.filterd (aserp3020.oracle.com [127.0.0.1])
-	by aserp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
-	16OJVJc7120503
-	for <ocfs2-devel@oss.oracle.com>; Sat, 24 Jul 2021 19:35:30 GMT
-Received: from mx0b-00069f01.pphosted.com (mx0b-00069f01.pphosted.com
-	[205.220.177.26]) by aserp3020.oracle.com with ESMTP id 3a0n2dgg1p-1
+	(envelope-from <torvalds@linuxfoundation.org>) id 1m7Nhg-0001xF-82
+	for ocfs2-devel@oss.oracle.com; Sat, 24 Jul 2021 12:52:56 -0700
+Received: from pps.filterd (userp3030.oracle.com [127.0.0.1])
+	by userp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
+	16OJooNh073573
+	for <ocfs2-devel@oss.oracle.com>; Sat, 24 Jul 2021 19:52:55 GMT
+Received: from mx0a-00069f01.pphosted.com (mx0a-00069f01.pphosted.com
+	[205.220.165.26]) by userp3030.oracle.com with ESMTP id 3a07yspw7x-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Sat, 24 Jul 2021 19:35:30 +0000
-Received: from pps.filterd (m0246579.ppops.net [127.0.0.1])
+	for <ocfs2-devel@oss.oracle.com>; Sat, 24 Jul 2021 19:52:55 +0000
+Received: from pps.filterd (m0246574.ppops.net [127.0.0.1])
 	by mx0b-00069f01.pphosted.com (8.16.0.43/8.16.0.43) with SMTP id
-	16OJWcj4025666
-	for <ocfs2-devel@oss.oracle.com>; Sat, 24 Jul 2021 19:35:29 GMT
-Received: from us-smtp-delivery-124.mimecast.com
-	(us-smtp-delivery-124.mimecast.com [216.205.24.124])
-	by mx0b-00069f01.pphosted.com with ESMTP id 3a0aekcqcb-1
-	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Sat, 24 Jul 2021 19:35:29 +0000
-Received: from mimecast-mx01.redhat.com (mimecast-mx01.redhat.com
-	[209.132.183.4]) (Using TLS) by relay.mimecast.com with ESMTP id
-	us-mta-385-MIEzqmLzNWCGxGdARBVmxA-1; Sat, 24 Jul 2021 15:35:27 -0400
-X-MC-Unique: MIEzqmLzNWCGxGdARBVmxA-1
-Received: from smtp.corp.redhat.com (int-mx05.intmail.prod.int.phx2.redhat.com
-	[10.5.11.15])
-	(using TLSv1.2 with cipher AECDH-AES256-SHA (256/256 bits))
-	(No client certificate requested)
-	by mimecast-mx01.redhat.com (Postfix) with ESMTPS id 654C13E745;
-	Sat, 24 Jul 2021 19:35:25 +0000 (UTC)
-Received: from max.com (unknown [10.40.194.164])
-	by smtp.corp.redhat.com (Postfix) with ESMTP id 013A7544F1;
-	Sat, 24 Jul 2021 19:35:22 +0000 (UTC)
-From: Andreas Gruenbacher <agruenba@redhat.com>
-To: Linus Torvalds <torvalds@linux-foundation.org>,
-        Alexander Viro <viro@zeniv.linux.org.uk>,
-        Christoph Hellwig <hch@infradead.org>,
-        "Darrick J. Wong" <djwong@kernel.org>
-Date: Sat, 24 Jul 2021 21:34:49 +0200
-Message-Id: <20210724193449.361667-9-agruenba@redhat.com>
-In-Reply-To: <20210724193449.361667-1-agruenba@redhat.com>
-References: <20210724193449.361667-1-agruenba@redhat.com>
+	16OJlAB2009495
+	for <ocfs2-devel@oss.oracle.com>; Sat, 24 Jul 2021 19:52:54 GMT
+Received: from mail-lf1-f53.google.com (mail-lf1-f53.google.com
+	[209.85.167.53])
+	by mx0b-00069f01.pphosted.com with ESMTP id 3a0ae6cq9a-1
+	(version=TLSv1.2 cipher=ECDHE-RSA-AES128-GCM-SHA256 bits=128 verify=OK)
+	for <ocfs2-devel@oss.oracle.com>; Sat, 24 Jul 2021 19:52:54 +0000
+Received: by mail-lf1-f53.google.com with SMTP id g13so7935385lfj.12
+	for <ocfs2-devel@oss.oracle.com>; Sat, 24 Jul 2021 12:52:53 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=1e100.net; s=20161025;
+	h=x-gm-message-state:mime-version:references:in-reply-to:from:date
+	:message-id:subject:to:cc;
+	bh=lpee2uSXjqYzurXDPtFtjsJbLcrcS7+O9pSXA980Af4=;
+	b=C3A8WbpCO/c45cASC8/B4K6BZCHmA6tKNhWFFXTWQiNObD+DvopITfye2CaIH0c8AI
+	trnRxMGtk38y40hdiv0OAK2BME0r+BOafegHrFcv2BpRKnjMYVSJCwhCwYM+j6ZeEu1U
+	5YO+ewUxt/lIokAq9wAH6Z8j0GqdDjfayXBLDpzsMC1y6C07NIgfgQm4yeVH3/fJgbQy
+	v4+PuZAj6XfcBPn8ba60porJInbcIYRALJfq7CZWyxgRiOpPfzXcJny3YpzoNMsKo2Wc
+	LDwlizpSXN+oXQ9VxEYICTcsx9S3xC9GZ1ULJ3DwFSikv7Z07fKtZVy5IQbS0RcRH/90
+	KmmA==
+X-Gm-Message-State: AOAM532oG5jOSEIbcouXRqAA6Vma372N4IM7nSno1QGjiOCMSwrRyYEZ
+	0m6+P8af9mM/rTIk/Jvx4xaz7gHq5LtGlKuP
+X-Google-Smtp-Source: ABdhPJx9fLvX0TAz1DIP5Ufhb8pB5D+I6rrpJm71Iihi6K6wRhQJMteq1Ak2Fvr46Tbf19F7hOUNcg==
+X-Received: by 2002:a19:5f48:: with SMTP id a8mr7436939lfj.496.1627156371035; 
+	Sat, 24 Jul 2021 12:52:51 -0700 (PDT)
+Received: from mail-lf1-f49.google.com (mail-lf1-f49.google.com.
+	[209.85.167.49]) by smtp.gmail.com with ESMTPSA id
+	x19sm2569744lfc.32.2021.07.24.12.52.50
+	for <ocfs2-devel@oss.oracle.com>
+	(version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+	Sat, 24 Jul 2021 12:52:50 -0700 (PDT)
+Received: by mail-lf1-f49.google.com with SMTP id r17so8015404lfe.2
+	for <ocfs2-devel@oss.oracle.com>; Sat, 24 Jul 2021 12:52:50 -0700 (PDT)
+X-Received: by 2002:a05:6512:3f82:: with SMTP id
+	x2mr7023206lfa.421.1627156370007; 
+	Sat, 24 Jul 2021 12:52:50 -0700 (PDT)
 MIME-Version: 1.0
-X-Scanned-By: MIMEDefang 2.79 on 10.5.11.15
+References: <20210724193449.361667-1-agruenba@redhat.com>
+	<20210724193449.361667-2-agruenba@redhat.com>
+In-Reply-To: <20210724193449.361667-2-agruenba@redhat.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Sat, 24 Jul 2021 12:52:34 -0700
+X-Gmail-Original-Message-ID: <CAHk-=whodi=ZPhoJy_a47VD+-aFtz385B4_GHvQp8Bp9NdTKUg@mail.gmail.com>
+Message-ID: <CAHk-=whodi=ZPhoJy_a47VD+-aFtz385B4_GHvQp8Bp9NdTKUg@mail.gmail.com>
+To: Andreas Gruenbacher <agruenba@redhat.com>
+X-Source-IP: 209.85.167.53
+X-ServerName: mail-lf1-f53.google.com
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 ip4:103.23.64.2 ip4:103.23.65.2
-	ip4:103.23.66.26 ip4:103.23.67.26
-	ip4:107.21.15.141 ip4:108.177.8.0/21 ip4:128.17.0.0/20
-	ip4:128.17.128.0/20
-	ip4:128.17.192.0/20 ip4:128.17.64.0/20 ip4:128.245.0.0/20
-	ip4:128.245.64.0/20 ip4:13.110.208.0/21 ip4:13.111.0.0/16
-	ip4:136.147.128.0/20 ip4:136.147.176.0/20 ip4:148.105.8.0/21
-	ip4:148.139.0.2 include:spf1.redhat.com -all
-X-Proofpoint-SPF-VenPass: Allowed
-X-Source-IP: 216.205.24.124
-X-ServerName: us-smtp-delivery-124.mimecast.com
-X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 ip4:103.23.64.2 ip4:103.23.65.2
-	ip4:103.23.66.26 ip4:103.23.67.26
-	ip4:107.21.15.141 ip4:108.177.8.0/21 ip4:128.17.0.0/20
-	ip4:128.17.128.0/20
-	ip4:128.17.192.0/20 ip4:128.17.64.0/20 ip4:128.245.0.0/20
-	ip4:128.245.64.0/20 ip4:13.110.208.0/21 ip4:13.111.0.0/16
-	ip4:136.147.128.0/20 ip4:136.147.176.0/20 ip4:148.105.8.0/21
-	ip4:148.139.0.2 include:spf1.redhat.com -all
+X-Proofpoint-SPF-Record: v=spf1 ip4:198.145.29.98/31 ip4:72.55.140.81
+	include:_spf.google.com
+	include:amazonses.com include:_spf.salesforce.com ~all
 X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=10055
 	signatures=668682
-X-Proofpoint-Spam-Reason: safe
-X-Spam: OrgSafeList
-X-SpamRule: orgsafelist
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0
+	lowpriorityscore=0 bulkscore=0
+	mlxlogscore=999 mlxscore=0 priorityscore=149 spamscore=0 adultscore=0
+	impostorscore=0 suspectscore=0 malwarescore=0 clxscore=364 phishscore=0
+	classifier=spam adjust=0 reason=mlx scancount=1
+	engine=8.12.0-2104190000 definitions=main-2107240119
+X-Spam: Clean
 X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=10055
 	signatures=668682
 X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 suspectscore=0
-	spamscore=0 bulkscore=0
-	malwarescore=0 adultscore=0 phishscore=0 mlxscore=0 mlxlogscore=999
+	bulkscore=0 phishscore=0
+	malwarescore=0 spamscore=0 mlxlogscore=999 mlxscore=0 adultscore=0
 	classifier=spam adjust=0 reason=mlx scancount=1
-	engine=8.12.0-2104190000 definitions=main-2107240117
-Cc: Jan Kara <jack@suse.cz>, Andreas Gruenbacher <agruenba@redhat.com>,
-        linux-kernel@vger.kernel.org, cluster-devel@redhat.com,
-        linux-fsdevel@vger.kernel.org, ocfs2-devel@oss.oracle.com
-Subject: [Ocfs2-devel] [PATCH v4 8/8] gfs2: Fix mmap + page fault deadlocks
-	for direct I/O
+	engine=8.12.0-2104190000 definitions=main-2107240119
+Cc: cluster-devel <cluster-devel@redhat.com>, Jan Kara <jack@suse.cz>,
+        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
+        Christoph Hellwig <hch@infradead.org>,
+        Alexander Viro <viro@zeniv.linux.org.uk>,
+        linux-fsdevel <linux-fsdevel@vger.kernel.org>,
+        ocfs2-devel@oss.oracle.com
+Subject: Re: [Ocfs2-devel] [PATCH v4 1/8] iov_iter: Introduce
+	iov_iter_fault_in_writeable helper
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.9
 Precedence: list
@@ -137,123 +142,44 @@ X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=10055 signatures=
 X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 suspectscore=0 bulkscore=0 phishscore=0
  malwarescore=0 spamscore=0 mlxlogscore=999 mlxscore=0 adultscore=0
  classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2104190000
- definitions=main-2107240117
-X-Proofpoint-ORIG-GUID: d2rfe4UN7XD2U-5mc9WSnxZshLPw-LHw
-X-Proofpoint-GUID: d2rfe4UN7XD2U-5mc9WSnxZshLPw-LHw
+ definitions=main-2107240119
+X-Proofpoint-ORIG-GUID: v8oO3Ofr2ztfJPTak_aldASEn2bqTu5j
+X-Proofpoint-GUID: v8oO3Ofr2ztfJPTak_aldASEn2bqTu5j
 
-Also disable page faults during direct I/O requests and implement the same
-kind of retry logic as in the buffered I/O case.
+On Sat, Jul 24, 2021 at 12:35 PM Andreas Gruenbacher
+<agruenba@redhat.com> wrote:
+>
+> +int iov_iter_fault_in_writeable(const struct iov_iter *i, size_t bytes)
+> +{
+...
+> +                       if (fault_in_user_pages(start, len, true) != len)
+> +                               return -EFAULT;
 
-Direct I/O requests differ from buffered I/O requests in that they use
-bio_iov_iter_get_pages for grabbing page references and faulting in pages
-instead of triggering physical page faults.  Those manual page faults can be
-disabled with the new iocb->noio flag.
+Looking at this once more, I think this is likely wrong.
 
-Signed-off-by: Andreas Gruenbacher <agruenba@redhat.com>
----
- fs/gfs2/file.c | 47 +++++++++++++++++++++++++++++++++++++++++++++--
- 1 file changed, 45 insertions(+), 2 deletions(-)
+Why?
 
-diff --git a/fs/gfs2/file.c b/fs/gfs2/file.c
-index eea42cc94585..fbdee282185f 100644
---- a/fs/gfs2/file.c
-+++ b/fs/gfs2/file.c
-@@ -782,21 +782,47 @@ static ssize_t gfs2_file_direct_read(struct kiocb *iocb, struct iov_iter *to,
- 	struct file *file = iocb->ki_filp;
- 	struct gfs2_inode *ip = GFS2_I(file->f_mapping->host);
- 	size_t count = iov_iter_count(to);
-+	size_t written = 0;
- 	ssize_t ret;
- 
-+	/*
-+	 * In this function, we disable page faults when we're holding the
-+	 * inode glock while doing I/O.  If a page fault occurs, we drop the
-+	 * inode glock, fault in the pages manually, and then we retry.
-+	 *
-+	 * Unlike generic_file_read_iter, for reads, iomap_dio_rw can trigger
-+	 * physical as well as manual page faults, and we need to disable both
-+	 * kinds.
-+	 */
-+
- 	if (!count)
- 		return 0; /* skip atime */
- 
- 	gfs2_holder_init(ip->i_gl, LM_ST_DEFERRED, 0, gh);
-+retry:
- 	ret = gfs2_glock_nq(gh);
- 	if (ret)
- 		goto out_uninit;
- 
--	ret = iomap_dio_rw(iocb, to, &gfs2_iomap_ops, NULL, 0, 0);
-+	pagefault_disable();
-+	to->noio = true;
-+	ret = iomap_dio_rw(iocb, to, &gfs2_iomap_ops, NULL,
-+			   IOMAP_DIO_FAULT_RETRY, written);
-+	to->noio = false;
-+	pagefault_enable();
-+
- 	gfs2_glock_dq(gh);
-+	if (ret > 0)
-+		written = ret;
-+	if (unlikely(iov_iter_count(to) && (ret > 0 || ret == -EFAULT)) &&
-+	    iter_is_iovec(to) &&
-+	    iov_iter_fault_in_writeable(to, SIZE_MAX) == 0)
-+		goto retry;
- out_uninit:
- 	gfs2_holder_uninit(gh);
--	return ret;
-+	if (ret < 0)
-+		return ret;
-+	return written;
- }
- 
- static ssize_t gfs2_file_direct_write(struct kiocb *iocb, struct iov_iter *from,
-@@ -809,6 +835,15 @@ static ssize_t gfs2_file_direct_write(struct kiocb *iocb, struct iov_iter *from,
- 	loff_t offset = iocb->ki_pos;
- 	ssize_t ret;
- 
-+	/*
-+	 * In this function, we disable page faults when we're holding the
-+	 * inode glock while doing I/O.  If a page fault occurs, we drop the
-+	 * inode glock, fault in the pages manually, and then we retry.
-+	 *
-+	 * For writes, iomap_dio_rw only triggers manual page faults, so we
-+	 * don't need to disable physical ones.
-+	 */
-+
- 	/*
- 	 * Deferred lock, even if its a write, since we do no allocation on
- 	 * this path. All we need to change is the atime, and this lock mode
-@@ -818,6 +853,7 @@ static ssize_t gfs2_file_direct_write(struct kiocb *iocb, struct iov_iter *from,
- 	 * VFS does.
- 	 */
- 	gfs2_holder_init(ip->i_gl, LM_ST_DEFERRED, 0, gh);
-+retry:
- 	ret = gfs2_glock_nq(gh);
- 	if (ret)
- 		goto out_uninit;
-@@ -826,11 +862,18 @@ static ssize_t gfs2_file_direct_write(struct kiocb *iocb, struct iov_iter *from,
- 	if (offset + len > i_size_read(&ip->i_inode))
- 		goto out;
- 
-+	from->noio = true;
- 	ret = iomap_dio_rw(iocb, from, &gfs2_iomap_ops, NULL, 0, 0);
-+	from->noio = false;
-+
- 	if (ret == -ENOTBLK)
- 		ret = 0;
- out:
- 	gfs2_glock_dq(gh);
-+	if (unlikely(ret == -EFAULT) &&
-+	    iter_is_iovec(from) &&
-+	    iov_iter_fault_in_readable(from, SIZE_MAX) == 0)
-+		goto retry;
- out_uninit:
- 	gfs2_holder_uninit(gh);
- 	return ret;
--- 
-2.26.3
+Because any user can/should only care about at least *part* of the
+area being writable.
 
+Imagine that you're doing a large read. If the *first* page is
+writable, you should still return the partial read, not -EFAULT.
+
+So I think the code needs to return 0 if _any_ fault was successful.
+Or perhaps return how much it was able to fault in. Because returning
+-EFAULT if any of it failed seems wrong, and doesn't allow for partial
+success being reported.
+
+The other reaction I have is that you now only do the
+iov_iter_fault_in_writeable, but then you make fault_in_user_pages()
+still have that "bool write" argument.
+
+We already have 'fault_in_pages_readable()', and that one is more
+efficient (well, at least if the fault isn't needed it is). So it
+would make more sense to just implement fault_in_pages_writable()
+instead of that "fault_in_user_pages(, bool write)".
+
+                 Linus
 
 _______________________________________________
 Ocfs2-devel mailing list
