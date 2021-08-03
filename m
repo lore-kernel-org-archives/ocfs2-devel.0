@@ -7,75 +7,76 @@ X-Spam-Status: No, score=-13.8 required=3.0 tests=BAYES_00,
 	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS autolearn=ham autolearn_force=no
 	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id B2D0BC4320A
-	for <ocfs2-devel@archiver.kernel.org>; Tue,  3 Aug 2021 19:19:09 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 8ECF8C4320A
+	for <ocfs2-devel@archiver.kernel.org>; Tue,  3 Aug 2021 19:19:12 +0000 (UTC)
 Received: from mx0a-00069f02.pphosted.com (mx0a-00069f02.pphosted.com [205.220.165.32])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by mail.kernel.org (Postfix) with ESMTPS id 6D6F860F56
-	for <ocfs2-devel@archiver.kernel.org>; Tue,  3 Aug 2021 19:19:09 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.1 mail.kernel.org 6D6F860F56
+	by mail.kernel.org (Postfix) with ESMTPS id 4C99E60F56
+	for <ocfs2-devel@archiver.kernel.org>; Tue,  3 Aug 2021 19:19:12 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.1 mail.kernel.org 4C99E60F56
 Authentication-Results: mail.kernel.org; dmarc=fail (p=none dis=none) header.from=redhat.com
 Authentication-Results: mail.kernel.org; spf=pass smtp.mailfrom=oss.oracle.com
-Received: from pps.filterd (m0246629.ppops.net [127.0.0.1])
-	by mx0b-00069f02.pphosted.com (8.16.0.43/8.16.0.43) with SMTP id 173JBCFp031686;
-	Tue, 3 Aug 2021 19:19:09 GMT
+Received: from pps.filterd (m0246617.ppops.net [127.0.0.1])
+	by mx0b-00069f02.pphosted.com (8.16.0.43/8.16.0.43) with SMTP id 173JCRUG003367;
+	Tue, 3 Aug 2021 19:19:11 GMT
 Received: from userp3020.oracle.com (userp3020.oracle.com [156.151.31.79])
-	by mx0b-00069f02.pphosted.com with ESMTP id 3a65eqcyb1-1
+	by mx0b-00069f02.pphosted.com with ESMTP id 3a6gqdc1vy-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Tue, 03 Aug 2021 19:19:08 +0000
+	Tue, 03 Aug 2021 19:19:11 +0000
 Received: from pps.filterd (userp3020.oracle.com [127.0.0.1])
-	by userp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 173JBM11079727;
-	Tue, 3 Aug 2021 19:19:07 GMT
+	by userp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 173JBNS9079839;
+	Tue, 3 Aug 2021 19:19:09 GMT
 Received: from oss.oracle.com (oss-old-reserved.oracle.com [137.254.22.2])
-	by userp3020.oracle.com with ESMTP id 3a5g9vm69w-1
+	by userp3020.oracle.com with ESMTP id 3a5g9vm6ax-1
 	(version=TLSv1 cipher=AES256-SHA bits=256 verify=NO);
-	Tue, 03 Aug 2021 19:19:07 +0000
+	Tue, 03 Aug 2021 19:19:09 +0000
 Received: from localhost ([127.0.0.1] helo=lb-oss.oracle.com)
 	by oss.oracle.com with esmtp (Exim 4.63)
 	(envelope-from <ocfs2-devel-bounces@oss.oracle.com>)
-	id 1mAzwP-00005l-QK; Tue, 03 Aug 2021 12:19:05 -0700
-Received: from aserp3030.oracle.com ([141.146.126.71])
+	id 1mAzwR-00006o-V4; Tue, 03 Aug 2021 12:19:07 -0700
+Received: from aserp3020.oracle.com ([141.146.126.70])
 	by oss.oracle.com with esmtp (Exim 4.63)
-	(envelope-from <agruenba@redhat.com>) id 1mAzvw-0008UE-C6
-	for ocfs2-devel@oss.oracle.com; Tue, 03 Aug 2021 12:18:36 -0700
-Received: from pps.filterd (aserp3030.oracle.com [127.0.0.1])
-	by aserp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
-	173JA408085274
-	for <ocfs2-devel@oss.oracle.com>; Tue, 3 Aug 2021 19:18:36 GMT
+	(envelope-from <agruenba@redhat.com>) id 1mAzw0-0008Ue-4c
+	for ocfs2-devel@oss.oracle.com; Tue, 03 Aug 2021 12:18:40 -0700
+Received: from pps.filterd (aserp3020.oracle.com [127.0.0.1])
+	by aserp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
+	173J9tPj177733
+	for <ocfs2-devel@oss.oracle.com>; Tue, 3 Aug 2021 19:18:39 GMT
 Received: from mx0b-00069f01.pphosted.com (mx0b-00069f01.pphosted.com
-	[205.220.177.26]) by aserp3030.oracle.com with ESMTP id 3a78d5a3xh-1
+	[205.220.177.26]) by aserp3020.oracle.com with ESMTP id 3a4xb78j2v-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Tue, 03 Aug 2021 19:18:35 +0000
-Received: from pps.filterd (m0246576.ppops.net [127.0.0.1])
+	for <ocfs2-devel@oss.oracle.com>; Tue, 03 Aug 2021 19:18:39 +0000
+Received: from pps.filterd (m0246577.ppops.net [127.0.0.1])
 	by mx0b-00069f01.pphosted.com (8.16.0.43/8.16.0.43) with SMTP id
-	173JDZdc020818
-	for <ocfs2-devel@oss.oracle.com>; Tue, 3 Aug 2021 19:18:34 GMT
+	173JDSkf023529
+	for <ocfs2-devel@oss.oracle.com>; Tue, 3 Aug 2021 19:18:38 GMT
 Received: from us-smtp-delivery-124.mimecast.com
-	(us-smtp-delivery-124.mimecast.com [170.10.133.124])
-	by mx0b-00069f01.pphosted.com with ESMTP id 3a763nm2eh-1
+	(us-smtp-delivery-124.mimecast.com [216.205.24.124])
+	by mx0b-00069f01.pphosted.com with ESMTP id 3a75yav1ng-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Tue, 03 Aug 2021 19:18:34 +0000
+	for <ocfs2-devel@oss.oracle.com>; Tue, 03 Aug 2021 19:18:38 +0000
 Received: from mimecast-mx01.redhat.com (mimecast-mx01.redhat.com
 	[209.132.183.4]) (Using TLS) by relay.mimecast.com with ESMTP id
-	us-mta-174-wmjaZHIfN8m5iYZckG7Xmw-1; Tue, 03 Aug 2021 15:18:32 -0400
-X-MC-Unique: wmjaZHIfN8m5iYZckG7Xmw-1
+	us-mta-187-vsWp9TtcOrevVIR2_y5zBw-1; Tue, 03 Aug 2021 15:18:36 -0400
+X-MC-Unique: vsWp9TtcOrevVIR2_y5zBw-1
 Received: from smtp.corp.redhat.com (int-mx02.intmail.prod.int.phx2.redhat.com
 	[10.5.11.12])
 	(using TLSv1.2 with cipher AECDH-AES256-SHA (256/256 bits))
 	(No client certificate requested)
-	by mimecast-mx01.redhat.com (Postfix) with ESMTPS id 8E14D800489;
-	Tue,  3 Aug 2021 19:18:30 +0000 (UTC)
+	by mimecast-mx01.redhat.com (Postfix) with ESMTPS id D6CDA3E75E;
+	Tue,  3 Aug 2021 19:18:33 +0000 (UTC)
 Received: from max.com (unknown [10.40.193.155])
-	by smtp.corp.redhat.com (Postfix) with ESMTP id 24BAA60C0F;
-	Tue,  3 Aug 2021 19:18:27 +0000 (UTC)
+	by smtp.corp.redhat.com (Postfix) with ESMTP id E72B160C0F;
+	Tue,  3 Aug 2021 19:18:30 +0000 (UTC)
 From: Andreas Gruenbacher <agruenba@redhat.com>
 To: Linus Torvalds <torvalds@linux-foundation.org>,
         Alexander Viro <viro@zeniv.linux.org.uk>,
         Christoph Hellwig <hch@infradead.org>,
-        "Darrick J. Wong" <djwong@kernel.org>
-Date: Tue,  3 Aug 2021 21:18:07 +0200
-Message-Id: <20210803191818.993968-2-agruenba@redhat.com>
+        "Darrick J. Wong" <djwong@kernel.org>,
+        Paul Mackerras <paulus@ozlabs.org>
+Date: Tue,  3 Aug 2021 21:18:08 +0200
+Message-Id: <20210803191818.993968-3-agruenba@redhat.com>
 In-Reply-To: <20210803191818.993968-1-agruenba@redhat.com>
 References: <20210803191818.993968-1-agruenba@redhat.com>
 MIME-Version: 1.0
@@ -90,7 +91,7 @@ X-Proofpoint-SPF-Record: v=spf1 ip4:103.23.64.2 ip4:103.23.65.2
 	ip4:136.147.128.0/20 ip4:136.147.176.0/20 ip4:148.105.8.0/21
 	ip4:148.139.0.2 include:spf1.redhat.com -all
 X-Proofpoint-SPF-VenPass: Allowed
-X-Source-IP: 170.10.133.124
+X-Source-IP: 216.205.24.124
 X-ServerName: us-smtp-delivery-124.mimecast.com
 X-Proofpoint-SPF-Result: pass
 X-Proofpoint-SPF-Record: v=spf1 ip4:103.23.64.2 ip4:103.23.65.2
@@ -108,16 +109,16 @@ X-Spam: OrgSafeList
 X-SpamRule: orgsafelist
 X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=10065
 	signatures=668682
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 mlxlogscore=999
-	mlxscore=0 adultscore=0
-	malwarescore=0 phishscore=0 bulkscore=0 spamscore=0 suspectscore=0
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 mlxscore=0
+	phishscore=0 malwarescore=0
+	bulkscore=0 spamscore=0 adultscore=0 mlxlogscore=999 suspectscore=0
 	classifier=spam adjust=0 reason=mlx scancount=1
 	engine=8.12.0-2107140000 definitions=main-2108030123
 Cc: Jan Kara <jack@suse.cz>, Andreas Gruenbacher <agruenba@redhat.com>,
         linux-kernel@vger.kernel.org, cluster-devel@redhat.com,
-        linux-fsdevel@vger.kernel.org, ocfs2-devel@oss.oracle.com
-Subject: [Ocfs2-devel] [PATCH v5 01/12] iov_iter: Fix iov_iter_get_pages{,
-	_alloc} page fault return value
+        kvm-ppc@vger.kernel.org, linux-fsdevel@vger.kernel.org,
+        stable@vger.kernel.org, ocfs2-devel@oss.oracle.com
+Subject: [Ocfs2-devel] [PATCH v5 02/12] powerpc/kvm: Fix kvm_use_magic_page
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.9
 Precedence: list
@@ -138,50 +139,33 @@ X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 mlxscore=0 malwar
  spamscore=0 adultscore=0 suspectscore=0 mlxlogscore=999 bulkscore=0
  classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2107140000
  definitions=main-2108030123
-X-Proofpoint-ORIG-GUID: mLojaPr4Rf4MNQ1yjrWkv6FIGUA77LPq
-X-Proofpoint-GUID: mLojaPr4Rf4MNQ1yjrWkv6FIGUA77LPq
+X-Proofpoint-ORIG-GUID: NoOxQ8VWU24W0ofmSgETWlGM1H0edlDV
+X-Proofpoint-GUID: NoOxQ8VWU24W0ofmSgETWlGM1H0edlDV
 
-Both iov_iter_get_pages and iov_iter_get_pages_alloc return the number of bytes
-of the iovec they could get the pages for.  When they cannot get any pages,
-they're supposed to return 0, but when the start of the iovec isn't page
-aligned, the calculation goes wrong and they return a negative value.  Fix both
-functions.
+When switching from __get_user to fault_in_pages_readable, commit 9f9eae5ce717
+broke kvm_use_magic_page: fault_in_pages_readable returns 0 on success.  Fix
+that.
 
-In addition, change iov_iter_get_pages_alloc to return NULL in that case to
-prevent resource leaks.
-
-It seems that the cifs and nfs filesystems don't handle the zero case very
-well.  Could the maintainers please have a look?
-
+Fixes: 9f9eae5ce717 ("powerpc/kvm: Prefer fault_in_pages_readable function")
+Cc: stable@vger.kernel.org # v4.18+
 Signed-off-by: Andreas Gruenbacher <agruenba@redhat.com>
 ---
- lib/iov_iter.c | 5 +++--
- 1 file changed, 3 insertions(+), 2 deletions(-)
+ arch/powerpc/kernel/kvm.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/lib/iov_iter.c b/lib/iov_iter.c
-index e23123ae3a13..25dfc48536d7 100644
---- a/lib/iov_iter.c
-+++ b/lib/iov_iter.c
-@@ -1484,7 +1484,7 @@ ssize_t iov_iter_get_pages(struct iov_iter *i,
- 		res = get_user_pages_fast(addr, n,
- 				iov_iter_rw(i) != WRITE ?  FOLL_WRITE : 0,
- 				pages);
--		if (unlikely(res < 0))
-+		if (unlikely(res <= 0))
- 			return res;
- 		return (res == n ? len : res * PAGE_SIZE) - *start;
+diff --git a/arch/powerpc/kernel/kvm.c b/arch/powerpc/kernel/kvm.c
+index 617eba82531c..d89cf802d9aa 100644
+--- a/arch/powerpc/kernel/kvm.c
++++ b/arch/powerpc/kernel/kvm.c
+@@ -669,7 +669,7 @@ static void __init kvm_use_magic_page(void)
+ 	on_each_cpu(kvm_map_magic_page, &features, 1);
+ 
+ 	/* Quick self-test to see if the mapping works */
+-	if (!fault_in_pages_readable((const char *)KVM_MAGIC_PAGE, sizeof(u32))) {
++	if (fault_in_pages_readable((const char *)KVM_MAGIC_PAGE, sizeof(u32))) {
+ 		kvm_patching_worked = false;
+ 		return;
  	}
-@@ -1608,8 +1608,9 @@ ssize_t iov_iter_get_pages_alloc(struct iov_iter *i,
- 			return -ENOMEM;
- 		res = get_user_pages_fast(addr, n,
- 				iov_iter_rw(i) != WRITE ?  FOLL_WRITE : 0, p);
--		if (unlikely(res < 0)) {
-+		if (unlikely(res <= 0)) {
- 			kvfree(p);
-+			*pages = NULL;
- 			return res;
- 		}
- 		*pages = p;
 -- 
 2.26.3
 
