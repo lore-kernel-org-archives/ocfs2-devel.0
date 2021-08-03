@@ -7,75 +7,75 @@ X-Spam-Status: No, score=-13.8 required=3.0 tests=BAYES_00,
 	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS autolearn=unavailable
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 7EE84C43214
-	for <ocfs2-devel@archiver.kernel.org>; Tue,  3 Aug 2021 19:19:13 +0000 (UTC)
-Received: from mx0a-00069f02.pphosted.com (mx0a-00069f02.pphosted.com [205.220.165.32])
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 16806C43216
+	for <ocfs2-devel@archiver.kernel.org>; Tue,  3 Aug 2021 19:19:14 +0000 (UTC)
+Received: from mx0b-00069f02.pphosted.com (mx0b-00069f02.pphosted.com [205.220.177.32])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by mail.kernel.org (Postfix) with ESMTPS id 3AF3A61037
+	by mail.kernel.org (Postfix) with ESMTPS id B29B160F56
 	for <ocfs2-devel@archiver.kernel.org>; Tue,  3 Aug 2021 19:19:13 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.1 mail.kernel.org 3AF3A61037
+DMARC-Filter: OpenDMARC Filter v1.4.1 mail.kernel.org B29B160F56
 Authentication-Results: mail.kernel.org; dmarc=fail (p=none dis=none) header.from=redhat.com
 Authentication-Results: mail.kernel.org; spf=pass smtp.mailfrom=oss.oracle.com
-Received: from pps.filterd (m0246617.ppops.net [127.0.0.1])
-	by mx0b-00069f02.pphosted.com (8.16.0.43/8.16.0.43) with SMTP id 173JCQHk003221;
+Received: from pps.filterd (m0246632.ppops.net [127.0.0.1])
+	by mx0b-00069f02.pphosted.com (8.16.0.43/8.16.0.43) with SMTP id 173JArvT028399;
 	Tue, 3 Aug 2021 19:19:12 GMT
 Received: from userp3030.oracle.com (userp3030.oracle.com [156.151.31.80])
-	by mx0b-00069f02.pphosted.com with ESMTP id 3a6gqdc1w0-1
+	by mx0b-00069f02.pphosted.com with ESMTP id 3a6fxhc2rw-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
 	Tue, 03 Aug 2021 19:19:12 +0000
 Received: from pps.filterd (userp3030.oracle.com [127.0.0.1])
-	by userp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 173JBNxs193825;
-	Tue, 3 Aug 2021 19:19:10 GMT
+	by userp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 173JBOcB193830;
+	Tue, 3 Aug 2021 19:19:11 GMT
 Received: from oss.oracle.com (oss-old-reserved.oracle.com [137.254.22.2])
-	by userp3030.oracle.com with ESMTP id 3a4un07sgk-1
+	by userp3030.oracle.com with ESMTP id 3a4un07sh6-1
 	(version=TLSv1 cipher=AES256-SHA bits=256 verify=NO);
-	Tue, 03 Aug 2021 19:19:10 +0000
+	Tue, 03 Aug 2021 19:19:11 +0000
 Received: from localhost ([127.0.0.1] helo=lb-oss.oracle.com)
 	by oss.oracle.com with esmtp (Exim 4.63)
 	(envelope-from <ocfs2-devel-bounces@oss.oracle.com>)
-	id 1mAzwT-00007t-3x; Tue, 03 Aug 2021 12:19:09 -0700
+	id 1mAzwU-00008x-9l; Tue, 03 Aug 2021 12:19:10 -0700
 Received: from aserp3030.oracle.com ([141.146.126.71])
 	by oss.oracle.com with esmtp (Exim 4.63)
-	(envelope-from <agruenba@redhat.com>) id 1mAzw7-0008VD-Ih
-	for ocfs2-devel@oss.oracle.com; Tue, 03 Aug 2021 12:18:47 -0700
+	(envelope-from <agruenba@redhat.com>) id 1mAzwH-0008Vo-1Y
+	for ocfs2-devel@oss.oracle.com; Tue, 03 Aug 2021 12:18:57 -0700
 Received: from pps.filterd (aserp3030.oracle.com [127.0.0.1])
 	by aserp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
-	173JA5eI085375
-	for <ocfs2-devel@oss.oracle.com>; Tue, 3 Aug 2021 19:18:47 GMT
+	173JA5Uu085377
+	for <ocfs2-devel@oss.oracle.com>; Tue, 3 Aug 2021 19:18:56 GMT
 Received: from mx0a-00069f01.pphosted.com (mx0a-00069f01.pphosted.com
-	[205.220.165.26]) by aserp3030.oracle.com with ESMTP id 3a78d5a44w-1
+	[205.220.165.26]) by aserp3030.oracle.com with ESMTP id 3a78d5a482-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Tue, 03 Aug 2021 19:18:47 +0000
-Received: from pps.filterd (m0246571.ppops.net [127.0.0.1])
+	for <ocfs2-devel@oss.oracle.com>; Tue, 03 Aug 2021 19:18:56 +0000
+Received: from pps.filterd (m0246572.ppops.net [127.0.0.1])
 	by mx0b-00069f01.pphosted.com (8.16.0.43/8.16.0.43) with SMTP id
-	173JD7hQ013095
-	for <ocfs2-devel@oss.oracle.com>; Tue, 3 Aug 2021 19:18:46 GMT
+	173JCHZd026460
+	for <ocfs2-devel@oss.oracle.com>; Tue, 3 Aug 2021 19:18:55 GMT
 Received: from us-smtp-delivery-124.mimecast.com
 	(us-smtp-delivery-124.mimecast.com [170.10.133.124])
-	by mx0b-00069f01.pphosted.com with ESMTP id 3a6avvj81p-1
+	by mx0b-00069f01.pphosted.com with ESMTP id 3a77t92s37-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Tue, 03 Aug 2021 19:18:45 +0000
+	for <ocfs2-devel@oss.oracle.com>; Tue, 03 Aug 2021 19:18:55 +0000
 Received: from mimecast-mx01.redhat.com (mimecast-mx01.redhat.com
 	[209.132.183.4]) (Using TLS) by relay.mimecast.com with ESMTP id
-	us-mta-392-I4hoRkuWOxmVpzPQ0rrEZQ-1; Tue, 03 Aug 2021 15:18:41 -0400
-X-MC-Unique: I4hoRkuWOxmVpzPQ0rrEZQ-1
+	us-mta-528-GIPZ1TGXPMCWBUpDsykEQQ-1; Tue, 03 Aug 2021 15:18:52 -0400
+X-MC-Unique: GIPZ1TGXPMCWBUpDsykEQQ-1
 Received: from smtp.corp.redhat.com (int-mx02.intmail.prod.int.phx2.redhat.com
 	[10.5.11.12])
 	(using TLSv1.2 with cipher AECDH-AES256-SHA (256/256 bits))
 	(No client certificate requested)
-	by mimecast-mx01.redhat.com (Postfix) with ESMTPS id 8D5771802968;
-	Tue,  3 Aug 2021 19:18:39 +0000 (UTC)
+	by mimecast-mx01.redhat.com (Postfix) with ESMTPS id 751B81084F56;
+	Tue,  3 Aug 2021 19:18:51 +0000 (UTC)
 Received: from max.com (unknown [10.40.193.155])
-	by smtp.corp.redhat.com (Postfix) with ESMTP id 271F460C0F;
-	Tue,  3 Aug 2021 19:18:36 +0000 (UTC)
+	by smtp.corp.redhat.com (Postfix) with ESMTP id F1B8E60C0F;
+	Tue,  3 Aug 2021 19:18:48 +0000 (UTC)
 From: Andreas Gruenbacher <agruenba@redhat.com>
 To: Linus Torvalds <torvalds@linux-foundation.org>,
         Alexander Viro <viro@zeniv.linux.org.uk>,
         Christoph Hellwig <hch@infradead.org>,
         "Darrick J. Wong" <djwong@kernel.org>
-Date: Tue,  3 Aug 2021 21:18:10 +0200
-Message-Id: <20210803191818.993968-5-agruenba@redhat.com>
+Date: Tue,  3 Aug 2021 21:18:13 +0200
+Message-Id: <20210803191818.993968-8-agruenba@redhat.com>
 In-Reply-To: <20210803191818.993968-1-agruenba@redhat.com>
 References: <20210803191818.993968-1-agruenba@redhat.com>
 MIME-Version: 1.0
@@ -116,8 +116,8 @@ X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 mlxlogscore=999
 Cc: Jan Kara <jack@suse.cz>, Andreas Gruenbacher <agruenba@redhat.com>,
         linux-kernel@vger.kernel.org, cluster-devel@redhat.com,
         linux-fsdevel@vger.kernel.org, ocfs2-devel@oss.oracle.com
-Subject: [Ocfs2-devel] [PATCH v5 04/12] Turn iov_iter_fault_in_readable into
-	fault_in_iov_iter_readable
+Subject: [Ocfs2-devel] [PATCH v5 07/12] gfs2: Fix mmap + page fault
+	deadlocks for buffered I/O
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.9
 Precedence: list
@@ -138,196 +138,92 @@ X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 bulkscore=0 phish
  suspectscore=0 mlxscore=0 adultscore=0 mlxlogscore=999 spamscore=0
  classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2107140000
  definitions=main-2108030123
-X-Proofpoint-ORIG-GUID: hMh_onbZSdP0EK3hlHt5nWeiT6A2ZLwM
-X-Proofpoint-GUID: hMh_onbZSdP0EK3hlHt5nWeiT6A2ZLwM
+X-Proofpoint-GUID: t1q2D0O6jyUOrG4-pUVn7FpyQ01YV3U4
+X-Proofpoint-ORIG-GUID: t1q2D0O6jyUOrG4-pUVn7FpyQ01YV3U4
 
-Turn iov_iter_fault_in_readable into a function that returns the number of
-bytes faulted in instead of returning a non-zero value when any of the
-requested pages couldn't be faulted in.  This supports the existing users that
-require all pages to be faulted in, but also new users that are happy if any
-pages can be faulted in.
+In the .read_iter and .write_iter file operations, we're accessing
+user-space memory while holding the inodes glock.  There's a possibility
+that the memory is mapped to the same file, in which case we'd recurse on
+the same glock.
 
-Rename iov_iter_fault_in_readable to an unfortunately clumsy
-fault_in_iov_iter_readable to make sure that code that uses it can be fixed
-instead of breaking silently.
+More complex scenarios can involve multiple glocks, processes, and even cluster
+nodes.
 
-Fix up the existing users.
+Avoids these kinds of problems by disabling page faults while holding a glock.
+If a page fault occurs, we either end up with a partial read or write, or with
+-EFAULT if nothing could be read or written.  In that case, we drop the glock,
+fault in the requested pages manually, and repeat the operation.
+
+This locking problem in gfs2 was originally reported by Jan Kara.  Linus came
+up with the proposal to disable page faults.  Many thanks to Al Viro and
+Matthew Wilcox for their feedback as well.
 
 Signed-off-by: Andreas Gruenbacher <agruenba@redhat.com>
 ---
- fs/btrfs/file.c        |  3 ++-
- fs/f2fs/file.c         |  6 +++---
- fs/fuse/file.c         |  2 +-
- fs/iomap/buffered-io.c |  2 +-
- fs/ntfs/file.c         |  2 +-
- include/linux/uio.h    |  2 +-
- lib/iov_iter.c         | 33 ++++++++++++++++++++++-----------
- mm/filemap.c           |  2 +-
- 8 files changed, 32 insertions(+), 20 deletions(-)
+ fs/gfs2/file.c | 26 ++++++++++++++++++++++++++
+ 1 file changed, 26 insertions(+)
 
-diff --git a/fs/btrfs/file.c b/fs/btrfs/file.c
-index ee34497500e1..8ff9e0bb5b0f 100644
---- a/fs/btrfs/file.c
-+++ b/fs/btrfs/file.c
-@@ -1698,7 +1698,8 @@ static noinline ssize_t btrfs_buffered_write(struct kiocb *iocb,
- 		 * Fault pages before locking them in prepare_pages
- 		 * to avoid recursive lock
- 		 */
--		if (unlikely(iov_iter_fault_in_readable(i, write_bytes))) {
-+		if (unlikely(fault_in_iov_iter_readable(i, write_bytes) !=
-+				write_bytes)) {
- 			ret = -EFAULT;
- 			break;
- 		}
-diff --git a/fs/f2fs/file.c b/fs/f2fs/file.c
-index 6afd4562335f..7c172573f18a 100644
---- a/fs/f2fs/file.c
-+++ b/fs/f2fs/file.c
-@@ -4255,16 +4255,16 @@ static ssize_t f2fs_file_write_iter(struct kiocb *iocb, struct iov_iter *from)
+diff --git a/fs/gfs2/file.c b/fs/gfs2/file.c
+index 55ec1cadc9e6..c0f86a28f1bf 100644
+--- a/fs/gfs2/file.c
++++ b/fs/gfs2/file.c
+@@ -843,6 +843,12 @@ static ssize_t gfs2_file_read_iter(struct kiocb *iocb, struct iov_iter *to)
+ 	size_t written = 0;
+ 	ssize_t ret;
  
- 	ret = generic_write_checks(iocb, from);
- 	if (ret > 0) {
-+		size_t count = iov_iter_count(from);
- 		bool preallocated = false;
- 		size_t target_size = 0;
- 		int err;
- 
--		if (iov_iter_fault_in_readable(from, iov_iter_count(from)))
-+		if (fault_in_iov_iter_readable(from, count) != count)
- 			set_inode_flag(inode, FI_NO_PREALLOC);
- 
- 		if ((iocb->ki_flags & IOCB_NOWAIT)) {
--			if (!f2fs_overwrite_io(inode, iocb->ki_pos,
--						iov_iter_count(from)) ||
-+			if (!f2fs_overwrite_io(inode, iocb->ki_pos, count) ||
- 				f2fs_has_inline_data(inode) ||
- 				f2fs_force_buffered_io(inode, iocb, from)) {
- 				clear_inode_flag(inode, FI_NO_PREALLOC);
-diff --git a/fs/fuse/file.c b/fs/fuse/file.c
-index 97f860cfc195..d5dd01f20f1e 100644
---- a/fs/fuse/file.c
-+++ b/fs/fuse/file.c
-@@ -1160,7 +1160,7 @@ static ssize_t fuse_fill_write_pages(struct fuse_io_args *ia,
- 
-  again:
- 		err = -EFAULT;
--		if (iov_iter_fault_in_readable(ii, bytes))
-+		if (fault_in_iov_iter_readable(ii, bytes) != bytes)
- 			break;
- 
- 		err = -ENOMEM;
-diff --git a/fs/iomap/buffered-io.c b/fs/iomap/buffered-io.c
-index 87ccb3438bec..d5de094fef73 100644
---- a/fs/iomap/buffered-io.c
-+++ b/fs/iomap/buffered-io.c
-@@ -749,7 +749,7 @@ iomap_write_actor(struct inode *inode, loff_t pos, loff_t length, void *data,
- 		 * same page as we're writing to, without it being marked
- 		 * up-to-date.
- 		 */
--		if (unlikely(iov_iter_fault_in_readable(i, bytes))) {
-+		if (unlikely(fault_in_iov_iter_readable(i, bytes) != bytes)) {
- 			status = -EFAULT;
- 			break;
- 		}
-diff --git a/fs/ntfs/file.c b/fs/ntfs/file.c
-index ab4f3362466d..cddac274c35a 100644
---- a/fs/ntfs/file.c
-+++ b/fs/ntfs/file.c
-@@ -1829,7 +1829,7 @@ static ssize_t ntfs_perform_write(struct file *file, struct iov_iter *i,
- 		 * pages being swapped out between us bringing them into memory
- 		 * and doing the actual copying.
- 		 */
--		if (unlikely(iov_iter_fault_in_readable(i, bytes))) {
-+		if (unlikely(fault_in_iov_iter_readable(i, bytes) != bytes)) {
- 			status = -EFAULT;
- 			break;
- 		}
-diff --git a/include/linux/uio.h b/include/linux/uio.h
-index 82c3c3e819e0..12d30246c2e9 100644
---- a/include/linux/uio.h
-+++ b/include/linux/uio.h
-@@ -119,7 +119,7 @@ size_t copy_page_from_iter_atomic(struct page *page, unsigned offset,
- 				  size_t bytes, struct iov_iter *i);
- void iov_iter_advance(struct iov_iter *i, size_t bytes);
- void iov_iter_revert(struct iov_iter *i, size_t bytes);
--int iov_iter_fault_in_readable(const struct iov_iter *i, size_t bytes);
-+size_t fault_in_iov_iter_readable(const struct iov_iter *i, size_t bytes);
- size_t iov_iter_single_seg_count(const struct iov_iter *i);
- size_t copy_page_to_iter(struct page *page, size_t offset, size_t bytes,
- 			 struct iov_iter *i);
-diff --git a/lib/iov_iter.c b/lib/iov_iter.c
-index 92d877a698f0..c0fa1618561c 100644
---- a/lib/iov_iter.c
-+++ b/lib/iov_iter.c
-@@ -432,33 +432,44 @@ static size_t copy_page_to_iter_pipe(struct page *page, size_t offset, size_t by
- }
- 
- /*
-+ * fault_in_iov_iter_readable - fault in iov iterator for reading
-+ * @i: iterator
-+ * @size: maximum length
-+ *
-  * Fault in one or more iovecs of the given iov_iter, to a maximum length of
-- * bytes.  For each iovec, fault in each page that constitutes the iovec.
-+ * @size.  For each iovec, fault in each page that constitutes the iovec.
-+ *
-+ * Returns the number of bytes faulted in, or 0 if no bytes could be faulted in
-+ * (i.e., because the address is invalid).
-  *
-- * Return 0 on success, or non-zero if the memory could not be accessed (i.e.
-- * because it is an invalid address).
-+ * Always returns the number of avaliable bytes for non-user space iterators.
-  */
--int iov_iter_fault_in_readable(const struct iov_iter *i, size_t bytes)
-+size_t fault_in_iov_iter_readable(const struct iov_iter *i, size_t size)
- {
-+	if (size > i->count)
-+		size = i->count;
++	/*
++	 * In this function, we disable page faults when we're holding the
++	 * inode glock while doing I/O.  If a page fault occurs, we drop the
++	 * inode glock, fault in the pages manually, and retry.
++	 */
 +
- 	if (iter_is_iovec(i)) {
- 		const struct iovec *p;
-+		size_t bytes = size;
- 		size_t skip;
- 
--		if (bytes > i->count)
--			bytes = i->count;
- 		for (p = i->iov, skip = i->iov_offset; bytes; p++, skip = 0) {
- 			size_t len = min(bytes, p->iov_len - skip);
-+			size_t ret;
- 
- 			if (unlikely(!len))
- 				continue;
--			if (fault_in_readable(p->iov_base + skip, len) != len)
--				return -EFAULT;
--			bytes -= len;
-+			ret = fault_in_readable(p->iov_base + skip, len);
-+			bytes -= ret;
-+			if (ret != len)
-+				break;
- 		}
-+		return size - bytes;
+ 	if (iocb->ki_flags & IOCB_DIRECT) {
+ 		ret = gfs2_file_direct_read(iocb, to, &gh);
+ 		if (likely(ret != -ENOTBLK))
+@@ -864,13 +870,20 @@ static ssize_t gfs2_file_read_iter(struct kiocb *iocb, struct iov_iter *to)
  	}
--	return 0;
-+	return size;
- }
--EXPORT_SYMBOL(iov_iter_fault_in_readable);
-+EXPORT_SYMBOL(fault_in_iov_iter_readable);
+ 	ip = GFS2_I(iocb->ki_filp->f_mapping->host);
+ 	gfs2_holder_init(ip->i_gl, LM_ST_SHARED, 0, &gh);
++retry:
+ 	ret = gfs2_glock_nq(&gh);
+ 	if (ret)
+ 		goto out_uninit;
++	pagefault_disable();
+ 	ret = generic_file_read_iter(iocb, to);
++	pagefault_enable();
+ 	if (ret > 0)
+ 		written += ret;
+ 	gfs2_glock_dq(&gh);
++	if (unlikely(iov_iter_count(to) && (ret > 0 || ret == -EFAULT)) &&
++	    iter_is_iovec(to) &&
++	    fault_in_iov_iter_writeable(to, SIZE_MAX) != 0)
++		goto retry;
+ out_uninit:
+ 	gfs2_holder_uninit(&gh);
+ 	return written ? written : ret;
+@@ -882,9 +895,22 @@ static ssize_t gfs2_file_buffered_write(struct kiocb *iocb, struct iov_iter *fro
+ 	struct inode *inode = file_inode(file);
+ 	ssize_t ret;
  
- void iov_iter_init(struct iov_iter *i, unsigned int direction,
- 			const struct iovec *iov, unsigned long nr_segs,
-diff --git a/mm/filemap.c b/mm/filemap.c
-index 4dec3bc7752e..5f5aed060c9e 100644
---- a/mm/filemap.c
-+++ b/mm/filemap.c
-@@ -3643,7 +3643,7 @@ ssize_t generic_perform_write(struct file *file,
- 		 * same page as we're writing to, without it being marked
- 		 * up-to-date.
- 		 */
--		if (unlikely(iov_iter_fault_in_readable(i, bytes))) {
-+		if (unlikely(fault_in_iov_iter_readable(i, bytes) != bytes)) {
- 			status = -EFAULT;
- 			break;
- 		}
++	/*
++	 * In this function, we disable page faults when we're holding the
++	 * inode glock while doing I/O.  If a page fault occurs, we drop the
++	 * inode glock, fault in the pages manually, and retry.
++	 */
++
++retry:
+ 	current->backing_dev_info = inode_to_bdi(inode);
++	pagefault_disable();
+ 	ret = iomap_file_buffered_write(iocb, from, &gfs2_iomap_ops);
++	pagefault_enable();
+ 	current->backing_dev_info = NULL;
++	if (unlikely(ret == -EFAULT) &&
++	    iter_is_iovec(from) &&
++	    fault_in_iov_iter_readable(from, SIZE_MAX) != 0)
++		goto retry;
+ 	return ret;
+ }
+ 
 -- 
 2.26.3
 
