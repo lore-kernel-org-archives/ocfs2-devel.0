@@ -7,75 +7,75 @@ X-Spam-Status: No, score=-13.8 required=3.0 tests=BAYES_00,
 	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS autolearn=ham autolearn_force=no
 	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id B3C5DC19F3A
-	for <ocfs2-devel@archiver.kernel.org>; Tue,  3 Aug 2021 19:19:15 +0000 (UTC)
-Received: from mx0a-00069f02.pphosted.com (mx0a-00069f02.pphosted.com [205.220.165.32])
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 1C367C4320E
+	for <ocfs2-devel@archiver.kernel.org>; Tue,  3 Aug 2021 19:19:22 +0000 (UTC)
+Received: from mx0b-00069f02.pphosted.com (mx0b-00069f02.pphosted.com [205.220.177.32])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by mail.kernel.org (Postfix) with ESMTPS id 7379760F56
-	for <ocfs2-devel@archiver.kernel.org>; Tue,  3 Aug 2021 19:19:15 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.1 mail.kernel.org 7379760F56
+	by mail.kernel.org (Postfix) with ESMTPS id C98C560F56
+	for <ocfs2-devel@archiver.kernel.org>; Tue,  3 Aug 2021 19:19:21 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.1 mail.kernel.org C98C560F56
 Authentication-Results: mail.kernel.org; dmarc=fail (p=none dis=none) header.from=redhat.com
 Authentication-Results: mail.kernel.org; spf=pass smtp.mailfrom=oss.oracle.com
-Received: from pps.filterd (m0246627.ppops.net [127.0.0.1])
-	by mx0b-00069f02.pphosted.com (8.16.0.43/8.16.0.43) with SMTP id 173JBPg2022435;
-	Tue, 3 Aug 2021 19:19:15 GMT
+Received: from pps.filterd (m0246631.ppops.net [127.0.0.1])
+	by mx0b-00069f02.pphosted.com (8.16.0.43/8.16.0.43) with SMTP id 173JBV13026482;
+	Tue, 3 Aug 2021 19:19:21 GMT
 Received: from userp3020.oracle.com (userp3020.oracle.com [156.151.31.79])
-	by mx0b-00069f02.pphosted.com with ESMTP id 3a7aq0853t-1
+	by mx0b-00069f02.pphosted.com with ESMTP id 3a6cntmhwd-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Tue, 03 Aug 2021 19:19:14 +0000
+	Tue, 03 Aug 2021 19:19:20 +0000
 Received: from pps.filterd (userp3020.oracle.com [127.0.0.1])
-	by userp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 173JBM18079727;
-	Tue, 3 Aug 2021 19:19:13 GMT
+	by userp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 173JBNSC079839;
+	Tue, 3 Aug 2021 19:19:19 GMT
 Received: from oss.oracle.com (oss-old-reserved.oracle.com [137.254.22.2])
-	by userp3020.oracle.com with ESMTP id 3a5g9vm6cy-1
+	by userp3020.oracle.com with ESMTP id 3a5g9vm6g8-1
 	(version=TLSv1 cipher=AES256-SHA bits=256 verify=NO);
-	Tue, 03 Aug 2021 19:19:12 +0000
+	Tue, 03 Aug 2021 19:19:18 +0000
 Received: from localhost ([127.0.0.1] helo=lb-oss.oracle.com)
 	by oss.oracle.com with esmtp (Exim 4.63)
 	(envelope-from <ocfs2-devel-bounces@oss.oracle.com>)
-	id 1mAzwV-0000Br-OA; Tue, 03 Aug 2021 12:19:11 -0700
-Received: from userp3020.oracle.com ([156.151.31.79])
+	id 1mAzwb-0000FM-V0; Tue, 03 Aug 2021 12:19:17 -0700
+Received: from aserp3030.oracle.com ([141.146.126.71])
 	by oss.oracle.com with esmtp (Exim 4.63)
-	(envelope-from <agruenba@redhat.com>) id 1mAzwR-00006a-ON
-	for ocfs2-devel@oss.oracle.com; Tue, 03 Aug 2021 12:19:07 -0700
-Received: from pps.filterd (userp3020.oracle.com [127.0.0.1])
-	by userp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
-	173JBMfK079789
-	for <ocfs2-devel@oss.oracle.com>; Tue, 3 Aug 2021 19:19:07 GMT
+	(envelope-from <agruenba@redhat.com>) id 1mAzwa-0000F7-KP
+	for ocfs2-devel@oss.oracle.com; Tue, 03 Aug 2021 12:19:16 -0700
+Received: from pps.filterd (aserp3030.oracle.com [127.0.0.1])
+	by aserp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
+	173JA3Zg085273
+	for <ocfs2-devel@oss.oracle.com>; Tue, 3 Aug 2021 19:19:16 GMT
 Received: from mx0b-00069f01.pphosted.com (mx0b-00069f01.pphosted.com
-	[205.220.177.26]) by userp3020.oracle.com with ESMTP id 3a5g9vm6a5-1
+	[205.220.177.26]) by aserp3030.oracle.com with ESMTP id 3a78d5a4gw-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Tue, 03 Aug 2021 19:19:07 +0000
-Received: from pps.filterd (m0246580.ppops.net [127.0.0.1])
+	for <ocfs2-devel@oss.oracle.com>; Tue, 03 Aug 2021 19:19:16 +0000
+Received: from pps.filterd (m0246579.ppops.net [127.0.0.1])
 	by mx0b-00069f01.pphosted.com (8.16.0.43/8.16.0.43) with SMTP id
-	173JDnuO022797
-	for <ocfs2-devel@oss.oracle.com>; Tue, 3 Aug 2021 19:19:06 GMT
+	173JDq5c012123
+	for <ocfs2-devel@oss.oracle.com>; Tue, 3 Aug 2021 19:19:15 GMT
 Received: from us-smtp-delivery-124.mimecast.com
-	(us-smtp-delivery-124.mimecast.com [170.10.133.124])
-	by mx0b-00069f01.pphosted.com with ESMTP id 3a77jpb1uk-1
+	(us-smtp-delivery-124.mimecast.com [216.205.24.124])
+	by mx0b-00069f01.pphosted.com with ESMTP id 3a7axergjm-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Tue, 03 Aug 2021 19:19:06 +0000
+	for <ocfs2-devel@oss.oracle.com>; Tue, 03 Aug 2021 19:19:15 +0000
 Received: from mimecast-mx01.redhat.com (mimecast-mx01.redhat.com
 	[209.132.183.4]) (Using TLS) by relay.mimecast.com with ESMTP id
-	us-mta-84-4UJJtRDxPlGWC6fcLelW-g-1; Tue, 03 Aug 2021 15:19:04 -0400
-X-MC-Unique: 4UJJtRDxPlGWC6fcLelW-g-1
+	us-mta-495-L1wwZNlZOW-pGMgnx9sAag-1; Tue, 03 Aug 2021 15:19:10 -0400
+X-MC-Unique: L1wwZNlZOW-pGMgnx9sAag-1
 Received: from smtp.corp.redhat.com (int-mx02.intmail.prod.int.phx2.redhat.com
 	[10.5.11.12])
 	(using TLSv1.2 with cipher AECDH-AES256-SHA (256/256 bits))
 	(No client certificate requested)
-	by mimecast-mx01.redhat.com (Postfix) with ESMTPS id 77F29801B3C;
-	Tue,  3 Aug 2021 19:19:02 +0000 (UTC)
+	by mimecast-mx01.redhat.com (Postfix) with ESMTPS id C6971800489;
+	Tue,  3 Aug 2021 19:19:08 +0000 (UTC)
 Received: from max.com (unknown [10.40.193.155])
-	by smtp.corp.redhat.com (Postfix) with ESMTP id 1858960C0F;
-	Tue,  3 Aug 2021 19:18:59 +0000 (UTC)
+	by smtp.corp.redhat.com (Postfix) with ESMTP id CD6C560C0F;
+	Tue,  3 Aug 2021 19:19:02 +0000 (UTC)
 From: Andreas Gruenbacher <agruenba@redhat.com>
 To: Linus Torvalds <torvalds@linux-foundation.org>,
         Alexander Viro <viro@zeniv.linux.org.uk>,
         Christoph Hellwig <hch@infradead.org>,
         "Darrick J. Wong" <djwong@kernel.org>
-Date: Tue,  3 Aug 2021 21:18:17 +0200
-Message-Id: <20210803191818.993968-12-agruenba@redhat.com>
+Date: Tue,  3 Aug 2021 21:18:18 +0200
+Message-Id: <20210803191818.993968-13-agruenba@redhat.com>
 In-Reply-To: <20210803191818.993968-1-agruenba@redhat.com>
 References: <20210803191818.993968-1-agruenba@redhat.com>
 MIME-Version: 1.0
@@ -90,7 +90,7 @@ X-Proofpoint-SPF-Record: v=spf1 ip4:103.23.64.2 ip4:103.23.65.2
 	ip4:136.147.128.0/20 ip4:136.147.176.0/20 ip4:148.105.8.0/21
 	ip4:148.139.0.2 include:spf1.redhat.com -all
 X-Proofpoint-SPF-VenPass: Allowed
-X-Source-IP: 170.10.133.124
+X-Source-IP: 216.205.24.124
 X-ServerName: us-smtp-delivery-124.mimecast.com
 X-Proofpoint-SPF-Result: pass
 X-Proofpoint-SPF-Record: v=spf1 ip4:103.23.64.2 ip4:103.23.65.2
@@ -108,16 +108,16 @@ X-Spam: OrgSafeList
 X-SpamRule: orgsafelist
 X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=10065
 	signatures=668682
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 mlxscore=0
-	malwarescore=0 phishscore=0
-	spamscore=0 adultscore=0 suspectscore=0 mlxlogscore=985 bulkscore=0
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 mlxlogscore=999
+	mlxscore=0 adultscore=0
+	malwarescore=0 phishscore=0 bulkscore=0 spamscore=0 suspectscore=0
 	classifier=spam adjust=0 reason=mlx scancount=1
 	engine=8.12.0-2107140000 definitions=main-2108030123
 Cc: Jan Kara <jack@suse.cz>, Andreas Gruenbacher <agruenba@redhat.com>,
         linux-kernel@vger.kernel.org, cluster-devel@redhat.com,
         linux-fsdevel@vger.kernel.org, ocfs2-devel@oss.oracle.com
-Subject: [Ocfs2-devel] [PATCH v5 11/12] iov_iter: Introduce noio flag to
-	disable page faults
+Subject: [Ocfs2-devel] [PATCH v5 12/12] gfs2: Fix mmap + page fault
+	deadlocks for direct I/O
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.9
 Precedence: list
@@ -138,91 +138,119 @@ X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 mlxscore=0 malwar
  spamscore=0 adultscore=0 suspectscore=0 mlxlogscore=999 bulkscore=0
  classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2107140000
  definitions=main-2108030123
-X-Proofpoint-ORIG-GUID: ZPRnFMHQYeiz2_iL8hMlUFLgupun9Eqw
-X-Proofpoint-GUID: ZPRnFMHQYeiz2_iL8hMlUFLgupun9Eqw
+X-Proofpoint-ORIG-GUID: mUV2AjRZajdy2oBRx9VpXn7qagabwyIv
+X-Proofpoint-GUID: mUV2AjRZajdy2oBRx9VpXn7qagabwyIv
 
-Introduce a new noio flag to indicate to get_user_pages to use the
-FOLL_FAST_ONLY flag.  This will cause get_user_pages to fail when it
-would otherwise fault in a page.
+Also disable page faults during direct I/O requests and implement the same
+kind of retry logic as in the buffered I/O case.
 
-Currently, the noio flag is only checked in iov_iter_get_pages and
-iov_iter_get_pages_alloc.  This is enough for iomaop_dio_rw, but it
-may make sense to check for this flag in other contexts as well.
+Direct I/O requests differ from buffered I/O requests in that they use
+bio_iov_iter_get_pages for grabbing page references and faulting in pages
+instead of triggering physical page faults.  Those manual page faults can be
+disabled with the new iocb->noio flag.
 
 Signed-off-by: Andreas Gruenbacher <agruenba@redhat.com>
 ---
- include/linux/uio.h |  1 +
- lib/iov_iter.c      | 20 +++++++++++++++-----
- 2 files changed, 16 insertions(+), 5 deletions(-)
+ fs/gfs2/file.c | 47 +++++++++++++++++++++++++++++++++++++++++++++--
+ 1 file changed, 45 insertions(+), 2 deletions(-)
 
-diff --git a/include/linux/uio.h b/include/linux/uio.h
-index ffa431aeb067..679e48454497 100644
---- a/include/linux/uio.h
-+++ b/include/linux/uio.h
-@@ -29,6 +29,7 @@ enum iter_type {
+diff --git a/fs/gfs2/file.c b/fs/gfs2/file.c
+index d98f690097e2..ed42b7675551 100644
+--- a/fs/gfs2/file.c
++++ b/fs/gfs2/file.c
+@@ -782,21 +782,47 @@ static ssize_t gfs2_file_direct_read(struct kiocb *iocb, struct iov_iter *to,
+ 	struct file *file = iocb->ki_filp;
+ 	struct gfs2_inode *ip = GFS2_I(file->f_mapping->host);
+ 	size_t count = iov_iter_count(to);
++	size_t written = 0;
+ 	ssize_t ret;
  
- struct iov_iter {
- 	u8 iter_type;
-+	bool noio;
- 	bool data_source;
- 	size_t iov_offset;
- 	size_t count;
-diff --git a/lib/iov_iter.c b/lib/iov_iter.c
-index 4ffc76801eaa..66f0c9362bb5 100644
---- a/lib/iov_iter.c
-+++ b/lib/iov_iter.c
-@@ -519,6 +519,7 @@ void iov_iter_init(struct iov_iter *i, unsigned int direction,
- 	WARN_ON(direction & ~(READ | WRITE));
- 	*i = (struct iov_iter) {
- 		.iter_type = ITER_IOVEC,
-+		.noio = false,
- 		.data_source = direction,
- 		.iov = iov,
- 		.nr_segs = nr_segs,
-@@ -1529,13 +1530,17 @@ ssize_t iov_iter_get_pages(struct iov_iter *i,
- 		return 0;
- 
- 	if (likely(iter_is_iovec(i))) {
-+		unsigned int gup_flags = 0;
- 		unsigned long addr;
- 
-+		if (iov_iter_rw(i) != WRITE)
-+			gup_flags |= FOLL_WRITE;
-+		if (i->noio)
-+			gup_flags |= FOLL_FAST_ONLY;
++	/*
++	 * In this function, we disable page faults when we're holding the
++	 * inode glock while doing I/O.  If a page fault occurs, we drop the
++	 * inode glock, fault in the pages manually, and retry.
++	 *
++	 * Unlike generic_file_read_iter, for reads, iomap_dio_rw can trigger
++	 * physical as well as manual page faults, and we need to disable both
++	 * kinds.
++	 */
 +
- 		addr = first_iovec_segment(i, &len, start, maxsize, maxpages);
- 		n = DIV_ROUND_UP(len, PAGE_SIZE);
--		res = get_user_pages_fast(addr, n,
--				iov_iter_rw(i) != WRITE ?  FOLL_WRITE : 0,
--				pages);
-+		res = get_user_pages_fast(addr, n, gup_flags, pages);
- 		if (unlikely(res <= 0))
- 			return res;
- 		return (res == n ? len : res * PAGE_SIZE) - *start;
-@@ -1651,15 +1656,20 @@ ssize_t iov_iter_get_pages_alloc(struct iov_iter *i,
- 		return 0;
+ 	if (!count)
+ 		return 0; /* skip atime */
  
- 	if (likely(iter_is_iovec(i))) {
-+		unsigned int gup_flags = 0;
- 		unsigned long addr;
+ 	gfs2_holder_init(ip->i_gl, LM_ST_DEFERRED, 0, gh);
++retry:
+ 	ret = gfs2_glock_nq(gh);
+ 	if (ret)
+ 		goto out_uninit;
  
-+		if (iov_iter_rw(i) != WRITE)
-+			gup_flags |= FOLL_WRITE;
-+		if (i->noio)
-+			gup_flags |= FOLL_FAST_ONLY;
+-	ret = iomap_dio_rw(iocb, to, &gfs2_iomap_ops, NULL, 0, 0);
++	pagefault_disable();
++	to->noio = true;
++	ret = iomap_dio_rw(iocb, to, &gfs2_iomap_ops, NULL,
++			   IOMAP_DIO_PARTIAL, written);
++	to->noio = false;
++	pagefault_enable();
 +
- 		addr = first_iovec_segment(i, &len, start, maxsize, ~0U);
- 		n = DIV_ROUND_UP(len, PAGE_SIZE);
- 		p = get_pages_array(n);
- 		if (!p)
- 			return -ENOMEM;
--		res = get_user_pages_fast(addr, n,
--				iov_iter_rw(i) != WRITE ?  FOLL_WRITE : 0, p);
-+		res = get_user_pages_fast(addr, n, gup_flags, p);
- 		if (unlikely(res <= 0)) {
- 			kvfree(p);
- 			*pages = NULL;
+ 	gfs2_glock_dq(gh);
++	if (ret > 0)
++		written = ret;
++	if (unlikely(iov_iter_count(to) && (ret > 0 || ret == -EFAULT)) &&
++	    iter_is_iovec(to) &&
++	    fault_in_iov_iter_writeable(to, SIZE_MAX) != 0)
++		goto retry;
+ out_uninit:
+ 	gfs2_holder_uninit(gh);
+-	return ret;
++	if (ret < 0)
++		return ret;
++	return written;
+ }
+ 
+ static ssize_t gfs2_file_direct_write(struct kiocb *iocb, struct iov_iter *from,
+@@ -809,6 +835,15 @@ static ssize_t gfs2_file_direct_write(struct kiocb *iocb, struct iov_iter *from,
+ 	loff_t offset = iocb->ki_pos;
+ 	ssize_t ret;
+ 
++	/*
++	 * In this function, we disable page faults when we're holding the
++	 * inode glock while doing I/O.  If a page fault occurs, we drop the
++	 * inode glock, fault in the pages manually, and retry.
++	 *
++	 * For writes, iomap_dio_rw only triggers manual page faults, so we
++	 * don't need to disable physical ones.
++	 */
++
+ 	/*
+ 	 * Deferred lock, even if its a write, since we do no allocation on
+ 	 * this path. All we need to change is the atime, and this lock mode
+@@ -818,6 +853,7 @@ static ssize_t gfs2_file_direct_write(struct kiocb *iocb, struct iov_iter *from,
+ 	 * VFS does.
+ 	 */
+ 	gfs2_holder_init(ip->i_gl, LM_ST_DEFERRED, 0, gh);
++retry:
+ 	ret = gfs2_glock_nq(gh);
+ 	if (ret)
+ 		goto out_uninit;
+@@ -826,11 +862,18 @@ static ssize_t gfs2_file_direct_write(struct kiocb *iocb, struct iov_iter *from,
+ 	if (offset + len > i_size_read(&ip->i_inode))
+ 		goto out;
+ 
++	from->noio = true;
+ 	ret = iomap_dio_rw(iocb, from, &gfs2_iomap_ops, NULL, 0, 0);
++	from->noio = false;
++
+ 	if (ret == -ENOTBLK)
+ 		ret = 0;
+ out:
+ 	gfs2_glock_dq(gh);
++	if (unlikely(ret == -EFAULT) &&
++	    iter_is_iovec(from) &&
++	    fault_in_iov_iter_readable(from, len) == len)
++		goto retry;
+ out_uninit:
+ 	gfs2_holder_uninit(gh);
+ 	return ret;
 -- 
 2.26.3
 
