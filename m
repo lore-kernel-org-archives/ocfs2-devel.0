@@ -2,99 +2,85 @@ Return-Path: <SRS0=eOWJ=NK=oss.oracle.com=ocfs2-devel-bounces@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-3.8 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS
-	autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-13.8 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS autolearn=ham autolearn_force=no
+	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C9A2FC4338F
-	for <ocfs2-devel@archiver.kernel.org>; Thu, 19 Aug 2021 19:41:40 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 0BC90C4320E
+	for <ocfs2-devel@archiver.kernel.org>; Thu, 19 Aug 2021 19:41:48 +0000 (UTC)
 Received: from mx0a-00069f02.pphosted.com (mx0a-00069f02.pphosted.com [205.220.165.32])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by mail.kernel.org (Postfix) with ESMTPS id 7BFAD610A5
-	for <ocfs2-devel@archiver.kernel.org>; Thu, 19 Aug 2021 19:41:40 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.1 mail.kernel.org 7BFAD610A5
+	by mail.kernel.org (Postfix) with ESMTPS id BF59560EBD
+	for <ocfs2-devel@archiver.kernel.org>; Thu, 19 Aug 2021 19:41:47 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.1 mail.kernel.org BF59560EBD
 Authentication-Results: mail.kernel.org; dmarc=fail (p=none dis=none) header.from=redhat.com
 Authentication-Results: mail.kernel.org; spf=pass smtp.mailfrom=oss.oracle.com
 Received: from pps.filterd (m0246617.ppops.net [127.0.0.1])
-	by mx0b-00069f02.pphosted.com (8.16.0.43/8.16.0.43) with SMTP id 17JJVApj014397;
-	Thu, 19 Aug 2021 19:41:40 GMT
+	by mx0b-00069f02.pphosted.com (8.16.0.43/8.16.0.43) with SMTP id 17JJVApm014397;
+	Thu, 19 Aug 2021 19:41:47 GMT
 Received: from userp3030.oracle.com (userp3030.oracle.com [156.151.31.80])
-	by mx0b-00069f02.pphosted.com with ESMTP id 3ahs5cgspv-1
+	by mx0b-00069f02.pphosted.com with ESMTP id 3ahs5cgsqa-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Thu, 19 Aug 2021 19:41:39 +0000
+	Thu, 19 Aug 2021 19:41:47 +0000
 Received: from pps.filterd (userp3030.oracle.com [127.0.0.1])
-	by userp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 17JJVD11072952;
-	Thu, 19 Aug 2021 19:41:38 GMT
+	by userp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 17JJVDvW072975;
+	Thu, 19 Aug 2021 19:41:45 GMT
 Received: from oss.oracle.com (oss-old-reserved.oracle.com [137.254.22.2])
-	by userp3030.oracle.com with ESMTP id 3ae2y524w0-1
+	by userp3030.oracle.com with ESMTP id 3ae2y5255n-1
 	(version=TLSv1 cipher=AES256-SHA bits=256 verify=NO);
-	Thu, 19 Aug 2021 19:41:38 +0000
+	Thu, 19 Aug 2021 19:41:45 +0000
 Received: from localhost ([127.0.0.1] helo=lb-oss.oracle.com)
 	by oss.oracle.com with esmtp (Exim 4.63)
 	(envelope-from <ocfs2-devel-bounces@oss.oracle.com>)
-	id 1mGnuz-00055k-DI; Thu, 19 Aug 2021 12:41:37 -0700
+	id 1mGnv6-00057q-M0; Thu, 19 Aug 2021 12:41:44 -0700
 Received: from userp3030.oracle.com ([156.151.31.80])
 	by oss.oracle.com with esmtp (Exim 4.63)
-	(envelope-from <agruenba@redhat.com>) id 1mGnuV-00053P-2R
-	for ocfs2-devel@oss.oracle.com; Thu, 19 Aug 2021 12:41:07 -0700
+	(envelope-from <agruenba@redhat.com>) id 1mGnuo-00054X-Bs
+	for ocfs2-devel@oss.oracle.com; Thu, 19 Aug 2021 12:41:26 -0700
 Received: from pps.filterd (userp3030.oracle.com [127.0.0.1])
 	by userp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
-	17JJVBPb072887
-	for <ocfs2-devel@oss.oracle.com>; Thu, 19 Aug 2021 19:41:06 GMT
+	17JJVEAx073084
+	for <ocfs2-devel@oss.oracle.com>; Thu, 19 Aug 2021 19:41:26 GMT
 Received: from mx0a-00069f01.pphosted.com (mx0a-00069f01.pphosted.com
-	[205.220.165.26]) by userp3030.oracle.com with ESMTP id 3ae2y523c1-1
+	[205.220.165.26]) by userp3030.oracle.com with ESMTP id 3ae2y5243w-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Thu, 19 Aug 2021 19:41:06 +0000
-Received: from pps.filterd (m0246574.ppops.net [127.0.0.1])
+	for <ocfs2-devel@oss.oracle.com>; Thu, 19 Aug 2021 19:41:25 +0000
+Received: from pps.filterd (m0246572.ppops.net [127.0.0.1])
 	by mx0b-00069f01.pphosted.com (8.16.0.43/8.16.0.43) with SMTP id
-	17JJXW9l022166
-	for <ocfs2-devel@oss.oracle.com>; Thu, 19 Aug 2021 19:41:05 GMT
+	17JJX1oC001673
+	for <ocfs2-devel@oss.oracle.com>; Thu, 19 Aug 2021 19:41:24 GMT
 Received: from us-smtp-delivery-124.mimecast.com
 	(us-smtp-delivery-124.mimecast.com [170.10.133.124])
-	by mx0b-00069f01.pphosted.com with ESMTP id 3ahg4astyh-1
+	by mx0b-00069f01.pphosted.com with ESMTP id 3ahfa4t7wy-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Thu, 19 Aug 2021 19:41:04 +0000
-Received: from mail-wr1-f71.google.com (mail-wr1-f71.google.com
-	[209.85.221.71]) (Using TLS) by relay.mimecast.com with ESMTP id
-	us-mta-128-AuIAbsSWO6CxTRkyGG4pyA-1; Thu, 19 Aug 2021 15:41:02 -0400
-X-MC-Unique: AuIAbsSWO6CxTRkyGG4pyA-1
-Received: by mail-wr1-f71.google.com with SMTP id
-	p10-20020a5d68ca000000b001552bf8b9daso2043254wrw.22
-	for <ocfs2-devel@oss.oracle.com>; Thu, 19 Aug 2021 12:41:01 -0700 (PDT)
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=1e100.net; s=20161025;
-	h=x-gm-message-state:mime-version:references:in-reply-to:from:date
-	:message-id:subject:to:cc;
-	bh=N3r+VfJqTouzOa7Rijd4hTG7Toub9ezhbqH/xKVtdmY=;
-	b=HJfqOeU7AQQCh2ZPa+yKAcxZjjD7bg/gD6ftwh55fGWo16V0kKG13+1jQijGEwj21z
-	q8yNtw1z+C9h7az9iVw/cW64w6JOz4GY3lNJelLh9XQXT6eWMbgFSaictwWg/bB7CBTt
-	BLD/YEHTwgQSjzo3HLecTx0oPKca3krn/WQ8WIyiMafs1FWMkXtwsXNEzzhd9mf0/N0c
-	6knLKLh1jTAXxH8eMaAMDQRjMEuld/5l035UA/f8nl0KlQGOczhRayA2gHZ0GeTGYKWt
-	7oxgYhqWFWQrqhVpRBQbQVRI/uH7lI9YbZldsDBx7gpzVHnCT6Oxj7G8Kem5dSyhQTEF
-	bMUw==
-X-Gm-Message-State: AOAM5321qtFXFm6T2v5n0sNn5RSvDep8cA07fZs712rwRmsYXqSp/812
-	9sRhHGE+lSOfqppLn+GI/39n5MJZVOu1mnpTV/n91saW+ZZ+46WmUUhFsPWYTE0fMBIxt85HToU
-	hpVu0unERhC4dCP32Bc+MJw/sJSR+0xNjthHMQA==
-X-Received: by 2002:a7b:c106:: with SMTP id w6mr296752wmi.152.1629402060761;
-	Thu, 19 Aug 2021 12:41:00 -0700 (PDT)
-X-Google-Smtp-Source: ABdhPJzkJcXH65FWnZ1dP5/HoDmwcsHFn3hPhEUkK7xHddEwx16hWpY7f72bzjUNxESwyU+qX2gMS5ZSiNzWhC/qsKM=
-X-Received: by 2002:a7b:c106:: with SMTP id w6mr296733wmi.152.1629402060505;
-	Thu, 19 Aug 2021 12:41:00 -0700 (PDT)
-MIME-Version: 1.0
-References: <20210803191818.993968-1-agruenba@redhat.com>
-	<CAHk-=wj+_Y7NQ-NhhE0jk52c9ZB0VJbO1AjtMJFB8wP=PO+bdw@mail.gmail.com>
-	<CAHc6FU6H5q20qiQ5FX1726i0FJHyh=Y46huWkCBZTR3sk+3Dhg@mail.gmail.com>
-	<CAHk-=whBCm3G5yibbvQsTn00fA16a688NTU_geQV158DnRy+bQ@mail.gmail.com>
-In-Reply-To: <CAHk-=whBCm3G5yibbvQsTn00fA16a688NTU_geQV158DnRy+bQ@mail.gmail.com>
+	for <ocfs2-devel@oss.oracle.com>; Thu, 19 Aug 2021 19:41:24 +0000
+Received: from mimecast-mx01.redhat.com (mimecast-mx01.redhat.com
+	[209.132.183.4]) (Using TLS) by relay.mimecast.com with ESMTP id
+	us-mta-544-DUy2fFkuM5ePm4thR6-QLw-1; Thu, 19 Aug 2021 15:41:20 -0400
+X-MC-Unique: DUy2fFkuM5ePm4thR6-QLw-1
+Received: from smtp.corp.redhat.com (int-mx03.intmail.prod.int.phx2.redhat.com
+	[10.5.11.13])
+	(using TLSv1.2 with cipher AECDH-AES256-SHA (256/256 bits))
+	(No client certificate requested)
+	by mimecast-mx01.redhat.com (Postfix) with ESMTPS id DC1C11026205;
+	Thu, 19 Aug 2021 19:41:18 +0000 (UTC)
+Received: from max.com (unknown [10.40.194.206])
+	by smtp.corp.redhat.com (Postfix) with ESMTP id 903221B46B;
+	Thu, 19 Aug 2021 19:41:15 +0000 (UTC)
 From: Andreas Gruenbacher <agruenba@redhat.com>
-Date: Thu, 19 Aug 2021 21:40:49 +0200
-Message-ID: <CAHc6FU5HHFwuJBCNuU0e_N0ehaFrzbUrCuTJyaLNC4qxwfazYA@mail.gmail.com>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Authentication-Results: relay.mimecast.com;
-	auth=pass smtp.auth=CUSA124A263 smtp.mailfrom=agruenba@redhat.com
-X-Mimecast-Spam-Score: 0
-X-Mimecast-Originator: redhat.com
+To: Linus Torvalds <torvalds@linux-foundation.org>,
+        Alexander Viro <viro@zeniv.linux.org.uk>,
+        Christoph Hellwig <hch@infradead.org>,
+        "Darrick J. Wong" <djwong@kernel.org>,
+        Paul Mackerras <paulus@ozlabs.org>
+Date: Thu, 19 Aug 2021 21:40:45 +0200
+Message-Id: <20210819194102.1491495-3-agruenba@redhat.com>
+In-Reply-To: <20210819194102.1491495-1-agruenba@redhat.com>
+References: <20210819194102.1491495-1-agruenba@redhat.com>
+MIME-Version: 1.0
+X-Scanned-By: MIMEDefang 2.79 on 10.5.11.13
 X-Proofpoint-SPF-Result: pass
 X-Proofpoint-SPF-Record: v=spf1 ip4:103.23.64.2 ip4:103.23.65.2
 	ip4:103.23.66.26 ip4:103.23.67.26
@@ -128,15 +114,11 @@ X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 bulkscore=0
 	suspectscore=0 phishscore=0 mlxlogscore=999 malwarescore=0 mlxscore=0
 	classifier=spam adjust=0 reason=mlx scancount=1
 	engine=8.12.0-2107140000 definitions=main-2108190114
-Cc: kvm-ppc@vger.kernel.org, Paul Mackerras <paulus@ozlabs.org>,
-        cluster-devel <cluster-devel@redhat.com>, Jan Kara <jack@suse.cz>,
-        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
-        Christoph Hellwig <hch@infradead.org>,
-        Alexander Viro <viro@zeniv.linux.org.uk>,
-        linux-fsdevel <linux-fsdevel@vger.kernel.org>,
-        ocfs2-devel@oss.oracle.com
-Subject: Re: [Ocfs2-devel] [PATCH v5 00/12] gfs2: Fix mmap + page fault
-	deadlocks
+Cc: Jan Kara <jack@suse.cz>, Andreas Gruenbacher <agruenba@redhat.com>,
+        linux-kernel@vger.kernel.org, cluster-devel@redhat.com,
+        kvm-ppc@vger.kernel.org, linux-fsdevel@vger.kernel.org,
+        stable@vger.kernel.org, ocfs2-devel@oss.oracle.com
+Subject: [Ocfs2-devel] [PATCH v6 02/19] powerpc/kvm: Fix kvm_use_magic_page
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.9
 Precedence: list
@@ -157,81 +139,35 @@ X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 bulkscore=0 spams
  suspectscore=0 phishscore=0 mlxlogscore=999 malwarescore=0 mlxscore=0
  classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2107140000
  definitions=main-2108190114
-X-Proofpoint-ORIG-GUID: aIpfrcR_s3EsT-z2zBm2e2QjTyHfKjg-
-X-Proofpoint-GUID: aIpfrcR_s3EsT-z2zBm2e2QjTyHfKjg-
+X-Proofpoint-ORIG-GUID: MDsYUvgueV-q5oA2mTK9ZFC51AzFP7oa
+X-Proofpoint-GUID: MDsYUvgueV-q5oA2mTK9ZFC51AzFP7oa
 
-On Wed, Aug 18, 2021 at 11:49 PM Linus Torvalds
-<torvalds@linux-foundation.org> wrote:
-> [ Sorry for the delay, I was on the road and this fell through the cracks ]
+When switching from __get_user to fault_in_pages_readable, commit
+9f9eae5ce717 broke kvm_use_magic_page: fault_in_pages_readable returns 0
+on success.  Fix that.
 
-No harm done, I was busy enough implementing your previous suggestions.
+Fixes: 9f9eae5ce717 ("powerpc/kvm: Prefer fault_in_pages_readable function")
+Cc: stable@vger.kernel.org # v4.18+
+Signed-off-by: Andreas Gruenbacher <agruenba@redhat.com>
+---
+ arch/powerpc/kernel/kvm.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-> On Mon, Aug 16, 2021 at 12:14 PM Andreas Gruenbacher
-> <agruenba@redhat.com> wrote:
-> >
-> > On Tue, Aug 3, 2021 at 9:45 PM Linus Torvalds
-> > <torvalds@linux-foundation.org> wrote:
-> > >
-> > > Hmm. Have you tried to figure out why that "still returns 0" happens?
-> >
-> > The call stack is:
-> >
-> > gup_pte_range
-> > gup_pmd_range
-> > gup_pud_range
-> > gup_p4d_range
-> > gup_pgd_range
-> > lockless_pages_from_mm
-> > internal_get_user_pages_fast
-> > get_user_pages_fast
-> > iov_iter_get_pages
-> > __bio_iov_iter_get_pages
-> > bio_iov_iter_get_pages
-> > iomap_dio_bio_actor
-> > iomap_dio_actor
-> > iomap_apply
-> > iomap_dio_rw
-> > gfs2_file_direct_write
-> >
-> > In gup_pte_range, pte_special(pte) is true and so we return 0.
->
-> Ok, so that is indeed something that the fast-case can't handle,
-> because some of the special code wants to have the mm_lock so that it
-> can look at the vma flags (eg "vm_normal_page()" and friends.
->
-> That said, some of these cases even the full GUP won't ever handle,
-> simply because a mapping doesn't necessarily even _have_ a 'struct
-> page' associated with it if it's a VM_IO mapping.
->
-> So it turns out that you can't just always do
-> fault_in_iov_iter_readable() and then assume that you can do
-> iov_iter_get_pages() and repeat until successful.
->
-> We could certainly make get_user_pages_fast() handle a few more cases,
-> but I get the feeling that we need to have separate error cases for
-> EFAULT - no page exists - and the "page exists, but cannot be mapped
-> as a 'struct page'" case.
-
-Hmm, what if GUP is made to skip VM_IO vmas without adding anything to
-the pages array? That would match fault_in_iov_iter_writeable, which
-is modeled after __mm_populate and which skips VM_IO and VM_PFNMAP
-vmas.
-
-The other strategy I've added is to scale back the page fault windows
-to a single page if faulting in multiple pages didn't help, and to
-give up if the I/O operation still fails after that. So pathological
-cases won't loop indefinitely anymore at least.
-
-> I also do still think that even regardless of that, we want to just
-> add a FOLL_NOFAULT flag that just disables calling handle_mm_fault(),
-> and then you can use the regular get_user_pages().
->
-> That at least gives us the full _normal_ page handling stuff.
-
-And it does fix the generic/208 failure.
-
-Thanks,
-Andreas
+diff --git a/arch/powerpc/kernel/kvm.c b/arch/powerpc/kernel/kvm.c
+index 617eba82531c..d89cf802d9aa 100644
+--- a/arch/powerpc/kernel/kvm.c
++++ b/arch/powerpc/kernel/kvm.c
+@@ -669,7 +669,7 @@ static void __init kvm_use_magic_page(void)
+ 	on_each_cpu(kvm_map_magic_page, &features, 1);
+ 
+ 	/* Quick self-test to see if the mapping works */
+-	if (!fault_in_pages_readable((const char *)KVM_MAGIC_PAGE, sizeof(u32))) {
++	if (fault_in_pages_readable((const char *)KVM_MAGIC_PAGE, sizeof(u32))) {
+ 		kvm_patching_worked = false;
+ 		return;
+ 	}
+-- 
+2.26.3
 
 
 _______________________________________________
