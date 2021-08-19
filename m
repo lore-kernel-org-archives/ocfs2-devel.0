@@ -2,83 +2,78 @@ Return-Path: <SRS0=eOWJ=NK=oss.oracle.com=ocfs2-devel-bounces@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-7.2 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,NICE_REPLY_A,SPF_HELO_NONE,
-	SPF_PASS,UNPARSEABLE_RELAY,USER_AGENT_SANE_1 autolearn=no autolearn_force=no
-	version=3.4.0
+X-Spam-Status: No, score=-17.2 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,NICE_REPLY_A,SPF_HELO_NONE,SPF_PASS,UNPARSEABLE_RELAY,
+	USER_AGENT_SANE_1 autolearn=unavailable autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id A2CA3C4338F
-	for <ocfs2-devel@archiver.kernel.org>; Thu, 19 Aug 2021 02:03:08 +0000 (UTC)
-Received: from mx0b-00069f02.pphosted.com (mx0b-00069f02.pphosted.com [205.220.177.32])
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 1EF5BC4338F
+	for <ocfs2-devel@archiver.kernel.org>; Thu, 19 Aug 2021 03:52:42 +0000 (UTC)
+Received: from mx0a-00069f02.pphosted.com (mx0a-00069f02.pphosted.com [205.220.165.32])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by mail.kernel.org (Postfix) with ESMTPS id 3B51B60EB5
-	for <ocfs2-devel@archiver.kernel.org>; Thu, 19 Aug 2021 02:03:08 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.1 mail.kernel.org 3B51B60EB5
+	by mail.kernel.org (Postfix) with ESMTPS id 59CD6610A1
+	for <ocfs2-devel@archiver.kernel.org>; Thu, 19 Aug 2021 03:52:41 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.1 mail.kernel.org 59CD6610A1
 Authentication-Results: mail.kernel.org; dmarc=fail (p=none dis=none) header.from=linux.alibaba.com
 Authentication-Results: mail.kernel.org; spf=pass smtp.mailfrom=oss.oracle.com
-Received: from pps.filterd (m0246630.ppops.net [127.0.0.1])
-	by mx0b-00069f02.pphosted.com (8.16.0.43/8.16.0.43) with SMTP id 17J1uZfI006067;
-	Thu, 19 Aug 2021 02:03:07 GMT
+Received: from pps.filterd (m0246629.ppops.net [127.0.0.1])
+	by mx0b-00069f02.pphosted.com (8.16.0.43/8.16.0.43) with SMTP id 17J3jwmv031354;
+	Thu, 19 Aug 2021 03:52:40 GMT
 Received: from userp3020.oracle.com (userp3020.oracle.com [156.151.31.79])
-	by mx0b-00069f02.pphosted.com with ESMTP id 3age7mv603-1
+	by mx0b-00069f02.pphosted.com with ESMTP id 3age7dca4d-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Thu, 19 Aug 2021 02:03:07 +0000
+	Thu, 19 Aug 2021 03:52:40 +0000
 Received: from pps.filterd (userp3020.oracle.com [127.0.0.1])
-	by userp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 17J217n3075852;
-	Thu, 19 Aug 2021 02:03:06 GMT
+	by userp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 17J3j6Hj136907;
+	Thu, 19 Aug 2021 03:52:38 GMT
 Received: from oss.oracle.com (oss-old-reserved.oracle.com [137.254.22.2])
-	by userp3020.oracle.com with ESMTP id 3aeqkxfah4-1
+	by userp3020.oracle.com with ESMTP id 3aeqkxkxkh-1
 	(version=TLSv1 cipher=AES256-SHA bits=256 verify=NO);
-	Thu, 19 Aug 2021 02:03:05 +0000
+	Thu, 19 Aug 2021 03:52:38 +0000
 Received: from localhost ([127.0.0.1] helo=lb-oss.oracle.com)
 	by oss.oracle.com with esmtp (Exim 4.63)
 	(envelope-from <ocfs2-devel-bounces@oss.oracle.com>)
-	id 1mGXOa-00030E-Se; Wed, 18 Aug 2021 19:03:04 -0700
-Received: from userp3020.oracle.com ([156.151.31.79])
+	id 1mGZ0V-0007Lu-9D; Wed, 18 Aug 2021 20:46:19 -0700
+Received: from aserp3020.oracle.com ([141.146.126.70])
 	by oss.oracle.com with esmtp (Exim 4.63)
-	(envelope-from <joseph.qi@linux.alibaba.com>) id 1mGXOY-0002zr-Mw
-	for ocfs2-devel@oss.oracle.com; Wed, 18 Aug 2021 19:03:02 -0700
-Received: from pps.filterd (userp3020.oracle.com [127.0.0.1])
-	by userp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
-	17J2152W075744
-	for <ocfs2-devel@oss.oracle.com>; Thu, 19 Aug 2021 02:03:02 GMT
+	(envelope-from <joseph.qi@linux.alibaba.com>) id 1mGZ0N-0007LR-QQ
+	for ocfs2-devel@oss.oracle.com; Wed, 18 Aug 2021 20:46:11 -0700
+Received: from pps.filterd (aserp3020.oracle.com [127.0.0.1])
+	by aserp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
+	17J3irfU101366
+	for <ocfs2-devel@oss.oracle.com>; Thu, 19 Aug 2021 03:46:11 GMT
 Received: from mx0b-00069f01.pphosted.com (mx0b-00069f01.pphosted.com
-	[205.220.177.26]) by userp3020.oracle.com with ESMTP id 3aeqkxfacm-1
+	[205.220.177.26]) by aserp3020.oracle.com with ESMTP id 3ae5naq4p3-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Thu, 19 Aug 2021 02:03:01 +0000
+	for <ocfs2-devel@oss.oracle.com>; Thu, 19 Aug 2021 03:46:11 +0000
 Received: from pps.filterd (m0246577.ppops.net [127.0.0.1])
 	by mx0b-00069f01.pphosted.com (8.16.0.43/8.16.0.43) with SMTP id
-	17J1vPLm004090
-	for <ocfs2-devel@oss.oracle.com>; Thu, 19 Aug 2021 02:03:00 GMT
+	17J3hneX011364
+	for <ocfs2-devel@oss.oracle.com>; Thu, 19 Aug 2021 03:46:10 GMT
 Received: from out30-43.freemail.mail.aliyun.com
 	(out30-43.freemail.mail.aliyun.com [115.124.30.43])
-	by mx0b-00069f01.pphosted.com with ESMTP id 3ah6vnc54r-1
+	by mx0b-00069f01.pphosted.com with ESMTP id 3ah6vncvsk-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NO)
-	for <ocfs2-devel@oss.oracle.com>; Thu, 19 Aug 2021 02:03:00 +0000
-X-Alimail-AntiSpam: AC=PASS; BC=-1|-1; BR=01201311R481e4; CH=green; DM=||false|;
-	DS=||; FP=0|-1|-1|-1|0|-1|-1|-1; HT=e01e04420;
-	MF=joseph.qi@linux.alibaba.com; NM=1; PH=DS; RN=7; SR=0;
-	TI=SMTPD_---0UjtBWdz_1629338576; 
+	for <ocfs2-devel@oss.oracle.com>; Thu, 19 Aug 2021 03:46:10 +0000
+X-Alimail-AntiSpam: AC=PASS; BC=-1|-1; BR=01201311R991e4; CH=green; DM=||false|;
+	DS=||; FP=0|-1|-1|-1|0|-1|-1|-1;
+	HT=alimailimapcm10staff010182156082;
+	MF=joseph.qi@linux.alibaba.com; NM=1; PH=DS; RN=8; SR=0;
+	TI=SMTPD_---0UjwfJJg_1629344763; 
 Received: from B-D1K7ML85-0059.local(mailfrom:joseph.qi@linux.alibaba.com
-	fp:SMTPD_---0UjtBWdz_1629338576) by smtp.aliyun-inc.com(127.0.0.1);
-	Thu, 19 Aug 2021 10:02:56 +0800
-To: Gang He <ghe@suse.com>, mark@fasheh.com, jlbec@evilplan.org,
-        Wengang Wang <wen.gang.wang@oracle.com>
-References: <20210729110230.18983-1-ghe@suse.com>
-	<5821fd0f-2018-dc1b-a5c0-f948a7debff4@linux.alibaba.com>
-	<c7e1f0a7-e75c-d1e0-870d-dc480d070079@suse.com>
-	<71608a14-58f4-dba0-d695-fee65de89192@linux.alibaba.com>
-	<801438f5-655a-c708-aa25-343d54a2f11e@suse.com>
-	<86e3d724-3147-ccaa-998f-0f857c575f7e@linux.alibaba.com>
-	<a0a9710f-461a-99c8-92f6-a99bb11b3a4e@suse.com>
+	fp:SMTPD_---0UjwfJJg_1629344763) by smtp.aliyun-inc.com(127.0.0.1);
+	Thu, 19 Aug 2021 11:46:03 +0800
 From: Joseph Qi <joseph.qi@linux.alibaba.com>
-Message-ID: <4ba3b404-824b-90a3-ef43-9ab6510ee073@linux.alibaba.com>
-Date: Thu, 19 Aug 2021 10:02:55 +0800
+To: Tuo Li <islituo@gmail.com>, akpm <akpm@linux-foundation.org>
+References: <20210804031832.57154-1-islituo@gmail.com>
+	<d19dd958-93f6-bc42-b419-c60571de9b70@linux.alibaba.com>
+Message-ID: <ee5f3d8b-3781-d04a-b379-40d4df6e1feb@linux.alibaba.com>
+Date: Thu, 19 Aug 2021 11:46:03 +0800
 User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:78.0)
 	Gecko/20100101 Thunderbird/78.13.0
 MIME-Version: 1.0
-In-Reply-To: <a0a9710f-461a-99c8-92f6-a99bb11b3a4e@suse.com>
+In-Reply-To: <d19dd958-93f6-bc42-b419-c60571de9b70@linux.alibaba.com>
 Content-Language: en-US
 X-Source-IP: 115.124.30.43
 X-ServerName: out30-43.freemail.mail.aliyun.com
@@ -91,25 +86,24 @@ X-Proofpoint-SPF-Record: v=spf1 include:spf1.service.alibaba.com
 X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=10080
 	signatures=668682
 X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 suspectscore=0
-	clxscore=215 bulkscore=0
+	clxscore=220 bulkscore=0
 	mlxscore=0 phishscore=0 adultscore=0 mlxlogscore=999 malwarescore=0
-	spamscore=0 lowpriorityscore=0 priorityscore=90 impostorscore=0
+	spamscore=0 lowpriorityscore=0 priorityscore=108 impostorscore=0
 	classifier=spam adjust=0 reason=mlx scancount=1
 	engine=8.12.0-2107140000
-	definitions=main-2108190008 domainage_hfrom=8162
+	definitions=main-2108190019 domainage_hfrom=8162
 X-Spam: Clean
 X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=10080
 	signatures=668682
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 adultscore=0
-	bulkscore=0 malwarescore=0
-	mlxscore=0 spamscore=0 suspectscore=0 mlxlogscore=999 phishscore=0
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 malwarescore=0
+	adultscore=0 bulkscore=0
+	suspectscore=0 mlxlogscore=999 phishscore=0 mlxscore=0 spamscore=0
 	classifier=spam adjust=0 reason=mlx scancount=1
-	engine=8.12.0-2107140000 definitions=main-2108190008
-X-MIME-Autoconverted: from 8bit to quoted-printable by userp3020.oracle.com id
-	17J2152W075744
-Cc: linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
-Subject: Re: [Ocfs2-devel] [PATCH] ocfs2: reflink deadlock when clone file
- to the same directory simultaneously
+	engine=8.12.0-2107140000 definitions=main-2108190020
+Cc: linux-kernel@vger.kernel.org, baijiaju1990@gmail.com,
+        TOTE Robot <oslab@tsinghua.edu.cn>, ocfs2-devel@oss.oracle.com
+Subject: Re: [Ocfs2-devel] [PATCH v3] ocfs2: quota_local: fix possible
+ uninitialized-variable access in ocfs2_local_read_info()
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.9
 Precedence: list
@@ -121,104 +115,93 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
 	<mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
 Sender: ocfs2-devel-bounces@oss.oracle.com
 Errors-To: ocfs2-devel-bounces@oss.oracle.com
 X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=10080 signatures=668682
 X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 adultscore=0 bulkscore=0 malwarescore=0
  mlxscore=0 spamscore=0 suspectscore=0 mlxlogscore=999 phishscore=0
  classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2107140000
- definitions=main-2108190008
-X-Proofpoint-ORIG-GUID: hehDpbxAJWYLNdsmw-Cy4UjC77rVbyf-
-X-Proofpoint-GUID: hehDpbxAJWYLNdsmw-Cy4UjC77rVbyf-
+ definitions=main-2108190020
+X-Proofpoint-GUID: iqjVb3saLICgXAHPXXF2W9Z143iqxrH7
+X-Proofpoint-ORIG-GUID: iqjVb3saLICgXAHPXXF2W9Z143iqxrH7
 
-CgpPbiA4LzE5LzIxIDk6NTEgQU0sIEdhbmcgSGUgd3JvdGU6Cj4gCj4gCj4gT24gMjAyMS84LzE4
-IDE5OjIwLCBKb3NlcGggUWkgd3JvdGU6Cj4+Cj4+Cj4+IE9uIDgvMTgvMjEgNToyMCBQTSwgR2Fu
-ZyBIZSB3cm90ZToKPj4+Cj4+Pgo+Pj4gT24gMjAyMS84LzEzIDE3OjU0LCBKb3NlcGggUWkgd3Jv
-dGU6Cj4+Pj4KPj4+Pgo+Pj4+IE9uIDgvOS8yMSA2OjA4IFBNLCBHYW5nIEhlIHdyb3RlOgo+Pj4+
-PiBIaSBKb3NlcGggYW5kIEFsbCwKPj4+Pj4KPj4+Pj4gVGhlIGRlYWRsb2NrIGlzIGNhdXNlZCBi
-eSBzZWxmLWxvY2tpbmcgb24gb25lIG5vZGUuCj4+Pj4+IFRoZXJlIGlzIHRocmVlIG5vZGUgY2x1
-c3RlciAobW91bnRlZCB0byAvbW50L3NoYXJlZCksIHRoZSB1c2VyIHJ1biByZWZsaW5rIGNvbW1h
-bmQgdG8gY2xvbmUgdGhlIGZpbGUgdG8gdGhlIHNhbWUgZGlyZWN0b3J5IHJlcGVhdGVkbHksCj4+
-Pj4+IGUuZy4KPj4+Pj4gwqDCoMKgcmVmbGluayAiL21udC9zaGFyZWQvdGVzdCIgXAo+Pj4+PiDC
-oMKgwqAiL21udC9zaGFyZWQvLnNuYXBzaG90cy90ZXN0LmBkYXRlICslbSVkJUglTSVTYC5gaG9z
-dG5hbWVgIgo+Pj4+Pgo+Pj4+PiBBZnRlciBhIHdoaWxlLCB0aGUgcmVmbGluayBwcm9jZXNzIG9u
-IGVhY2ggbm9kZSBpcyBodW5nLCB0aGUgZmlsZSBzeXN0ZW0gY2Fubm90IGJlIGxpc3RlZC4KPj4+
-Pj4gVGhlIHByb2JsZW1hdGljIHJlZmxpbmsgY29tbWFuZCBwcm9jZXNzIGlzIGJsb2NrZWQgYnkg
-aXRzZWxmLCBlLmcuIHRoZSByZWZsaW5rIHByb2Nlc3MgaXMgaHVuZyBhdCBnaGUtc2xlMTVzcDIt
-bmQyLAo+Pj4+PiBrZXJuZWw6IHRhc2s6cmVmbGlua8KgwqDCoMKgwqDCoMKgwqAgc3RhdGU6RCBz
-dGFjazrCoMKgwqAgMCBwaWQ6MTY5OTIgcHBpZDrCoCA0NTMwCj4+Pj4+IGtlcm5lbDogQ2FsbCBU
-cmFjZToKPj4+Pj4ga2VybmVsOsKgIF9fc2NoZWR1bGUrMHgyZmQvMHg3NTAKPj4+Pj4ga2VybmVs
-OsKgID8gdHJ5X3RvX3dha2VfdXArMHgxN2IvMHg0ZTAKPj4+Pj4ga2VybmVsOsKgIHNjaGVkdWxl
-KzB4MmYvMHhhMAo+Pj4+PiBrZXJuZWw6wqAgc2NoZWR1bGVfdGltZW91dCsweDFjYy8weDMxMAo+
-Pj4+PiBrZXJuZWw6wqAgPyBfX3dha2VfdXBfY29tbW9uKzB4NzQvMHgxMjAKPj4+Pj4ga2VybmVs
-OsKgIHdhaXRfZm9yX2NvbXBsZXRpb24rMHhiYS8weDE0MAo+Pj4+PiBrZXJuZWw6wqAgPyB3YWtl
-X3VwX3ErMHhhMC8weGEwCj4+Pj4+IGtlcm5lbDrCoCBfX29jZnMyX2NsdXN0ZXJfbG9jay5pc3Jh
-LjQxKzB4M2I1LzB4ODIwIFtvY2ZzMl0KPj4+Pj4ga2VybmVsOsKgID8gb2NmczJfaW5vZGVfbG9j
-a19mdWxsX25lc3RlZCsweDFmYy8weDk2MCBbb2NmczJdCj4+Pj4+IGtlcm5lbDrCoCBvY2ZzMl9p
-bm9kZV9sb2NrX2Z1bGxfbmVzdGVkKzB4MWZjLzB4OTYwIFtvY2ZzMl0KPj4+Pj4ga2VybmVsOsKg
-IG9jZnMyX2luaXRfc2VjdXJpdHlfYW5kX2FjbCsweGJlLzB4MWQwIFtvY2ZzMl0KPj4+Pj4ga2Vy
-bmVsOsKgIG9jZnMyX3JlZmxpbmsrMHg0MzYvMHg0YzAgW29jZnMyXQo+Pj4+PiBrZXJuZWw6wqAg
-PyBvY2ZzMl9yZWZsaW5rX2lvY3RsKzB4MmNhLzB4MzYwIFtvY2ZzMl0KPj4+Pj4ga2VybmVsOsKg
-IG9jZnMyX3JlZmxpbmtfaW9jdGwrMHgyY2EvMHgzNjAgW29jZnMyXQo+Pj4+PiBrZXJuZWw6wqAg
-b2NmczJfaW9jdGwrMHgyNWUvMHg2NzAgW29jZnMyXQo+Pj4+PiBrZXJuZWw6wqAgZG9fdmZzX2lv
-Y3RsKzB4YTAvMHg2ODAKPj4+Pj4ga2VybmVsOsKgIGtzeXNfaW9jdGwrMHg3MC8weDgwCj4+Pj4+
-Cj4+Pj4+IEluIGZhY3QsIHRoZSBkZXN0aW5hdGlvbiBkaXJlY3RvcnkoLnNuYXBzaG90cykgaW5v
-ZGUgZGxtIGxvY2sgd2FzIGFjcXVpcmVkIGJ5IGdoZS1zbGUxNXNwMi1uZDIsIG5leHQgdGhlcmUg
-aXMgYmFzdCBtZXNzYWdlIGZyb20gb3RoZXIgbm9kZXMgdG8gYXNrIGdoZS1zbGUxNXNwMi1uZDIg
-ZG93bmNvbnZlcnQgbG9jaywgYnV0IHRoZSBvcGVyYXRpb24gZmFpbGVkLCB0aGUga2VybmVsIG1l
-c3NhZ2UgaXMgcHJpbnRlZCBsaWtlLAo+Pj4+PiBrZXJuZWw6IChvY2ZzMmRjLUFBMzVERDksMjU2
-MCwzKTpvY2ZzMl9kb3duY29udmVydF9sb2NrOjM2NjAgRVJST1I6IERMTSBlcnJvciAtMTYgd2hp
-bGUgY2FsbGluZyBvY2ZzMl9kbG1fbG9jayBvbiByZXNvdXJjZSBNMDAwMDAwMDAwMDAwMDAwMDA0
-NmUwMjAwMDAwMDAwCj4+Pj4+IGtlcm5lbDogKG9jZnMyZGMtQUEzNUREOSwyNTYwLDMpOm9jZnMy
-X3VuYmxvY2tfbG9jazozOTA0IEVSUk9SOiBzdGF0dXMgPSAtMTYKPj4+Pj4ga2VybmVsOiAob2Nm
-czJkYy1BQTM1REQ5LDI1NjAsMyk6b2NmczJfcHJvY2Vzc19ibG9ja2VkX2xvY2s6NDMwMyBFUlJP
-Ujogc3RhdHVzID0gLTE2Cj4+Pj4+Cj4+Pj4+IFRoZW4sIHRoZSByZWZsaW5rIHByb2Nlc3MgdHJp
-ZXMgdG8gYWNxdWlyZSB0aGlzIGRpcmVjdG9yeSBpbm9kZSBkbG0gbG9jaywgdGhlIHByb2Nlc3Mg
-aXMgYmxvY2tlZCwgdGhlIGRsbSBsb2NrIHJlc291cmNlIGluIG1lbW9yeSBsb29rcyBsaWtlCj4+
-Pj4+Cj4+Pj4+IMKgwqDCoMKgwqAgbF9uYW1lID0gIk0wMDAwMDAwMDAwMDAwMDAwMDQ2ZTAyMDAw
-MDAwMDAiLAo+Pj4+PiDCoMKgwqDCoMKgIGxfcm9faG9sZGVycyA9IDAsCj4+Pj4+IMKgwqDCoMKg
-wqAgbF9leF9ob2xkZXJzID0gMCwKPj4+Pj4gwqDCoMKgwqDCoCBsX2xldmVsID0gNSAnXDAwNScs
-Cj4+Pj4+IMKgwqDCoMKgwqAgbF9yZXF1ZXN0ZWQgPSAwICdcMDAwJywKPj4+Pj4gwqDCoMKgwqDC
-oCBsX2Jsb2NraW5nID0gNSAnXDAwNScsCj4+Pj4+IMKgwqDCoMKgwqAgbF90eXBlID0gMCAnXDAw
-MCcsCj4+Pj4+IMKgwqDCoMKgwqAgbF9hY3Rpb24gPSAwICdcMDAwJywKPj4+Pj4gwqDCoMKgwqDC
-oCBsX3VubG9ja19hY3Rpb24gPSAwICdcMDAwJywKPj4+Pj4gwqDCoMKgwqDCoCBsX3BlbmRpbmdf
-Z2VuID0gNjQ1OTQ4LAo+Pj4+Pgo+Pj4+Pgo+Pj4+PiBTbyBmYXIsIEkgZG8gbm90IGtub3cgd2hh
-dCBtYWtlcyBkbG0gbG9jayBmdW5jdGlvbiBmYWlsZWQsIGl0IGFsc28gbG9va3Mgd2UgZG8gbm90
-IGhhbmRsZSB0aGlzIGZhaWx1cmUgY2FzZSBpbiBkbG1nbHVlIGxheWVyLCBidXQgSSBhbHdheXMg
-cmVwcm9kdWNlIHRoaXMgaGFuZyB3aXRoIG15IHRlc3Qgc2NyaXB0LCBlLmcuCj4+Pj4+Cj4+Pj4+
-IMKgwqDCoCBsb29wPTEKPj4+Pj4gwqDCoMKgIHdoaWxlICgobG9vcCsrKSkgOyBkbwo+Pj4+PiDC
-oMKgwqDCoMKgwqDCoMKgwqAgZm9yIGkgaW4gYHNlcSAxIDEwMGA7IGRvCj4+Pj4+IMKgwqDCoMKg
-wqDCoMKgwqDCoMKgwqAgcmVmbGluayAiL21udC9zaGFyZWQvdGVzdCIgIi9tbnQvc2hhcmVkLy5z
-bmFwc2hvdHMgL3Rlc3QuJHtsb29wfS4ke2l9LmBkYXRlICslbSVkJUglTSVTYC5gaG9zdG5hbWVg
-Igo+Pj4+PiDCoMKgwqDCoMKgwqDCoMKgwqAgZG9uZQo+Pj4+PiDCoMKgwqDCoMKgwqDCoMKgwqAg
-dXNsZWVwIDUwMDAwMAo+Pj4+PiDCoMKgwqDCoMKgwqDCoMKgwqAgcm0gLWYgL21udC9zaGFyZWQv
-LnNuYXBzaG90cy90ZXN0bm9kZTEucWNvdzIuKi5gaG9zdG5hbWVgCj4+Pj4+IMKgwqDCoCBkb25l
-Cj4+Pj4+Cj4+Pj4+IE15IHBhdGNoIGNoYW5nZXMgbXVsdGlwbGUgYWNxdWlyaW5nIGRlc3QgZGly
-ZWN0b3J5IGlub2RlIGRsbSBsb2NrIGR1cmluZyBpbiBvY2ZzMl9yZWZsaW5rIGZ1bmN0aW9uLCBp
-dCBhdm9pZHMgdGhlIGhhbmcgaXNzdWUgaGFwcGVuIGFnYWluLlRoZSBjb2RlIGNoYW5nZSBhbHNv
-IGNhbiBpbXByb3ZlIHJlZmxpbmsgcGVyZm9ybWFuY2UgaW4gdGhpcyBjYXNlLgo+Pj4+Pgo+Pj4+
-PiBUaGFua3MKPj4+Pj4gR2FuZwo+Pj4+Cj4+Pj4gJ3N0YXR1cyA9IC0xNicgaW1wbGllcyBETE1f
-Q0FOQ0VMR1JBTlQuCj4+Pj4gRG8geW91IHVzZSBzdGFjayB1c2VyIGluc3RlYWQgb2YgbzJjYj8g
-SWYgeWVzLCBjYW4geW91IHRyeSBvMmNiIHdpdGgKPj4+PiB5b3VyIHJlcHJvZHVjZXI/Cj4+Pgo+
-Pj4gSSBzZXR1cCBvMmNiIGJhc2VkIG9jZnMyIGNsdXN0ZXJzIHdpdGggc2xlMTVzcDIgYW5kIG9y
-YWNsZUxpbnV4OHU0Lgo+Pj4gQWZ0ZXIgdHdvIGRheSB0ZXN0aW5nIHdpdGggdGhlIHNhbWUgc2Ny
-aXB0LCBJIGRpZCBub3QgZW5jb3VudGVyIGRsbV9sb2NrIGRvd25jb252ZXJ0IGZhaWx1cmUsIHRo
-ZSBoYW5nIGlzc3VlIGRpZCBub3QgaGFwcGVuLgo+Pj4gQWZ0ZXIgbXkgcGF0Y2ggd2FzIGFwcGxp
-ZWQsIHRoZXJlIHdhcyBub3QgYW55IHNpZGUgZWZmZWN0LCB0aGUgcmVmbGluayBwZXJmb3JtYW5j
-ZSB3YXMgZG91YmxlZCBpbiB0aGUgY2FzZS4KPj4+Cj4+Cj4+IERvIHlvdSBtZWFuIHRoZSBoYW5n
-IG9ubHkgaGFwcGVucyBvbiBzdGFjayB1c2VyPwo+IFllcy4KPiBXaHk/IHNpbmNlIG8yY2IgYmFz
-ZWQgZGxtX2xvY2sgZGlkIG5vdCByZXR1cm4gZXJyb3IgLTE2IHdoZW4gZG93bmNvdmVydCBkbG0g
-bG9jayBkdXJpbmcgdGhlIHdob2xlIHRlc3RpbmcuCj4gQnV0IHBtY2sgYmFzZWQgZGxtX2xvY2sg
-cmV0dW5lZCBlcnJvciAtMTYgZHVyaW5nIHRoZSB0ZXN0aW5nLCB0aGVuIHdlIGRpZCBub3QgaGFu
-ZGxlIHRoaXMgZXJyb3IgZnVydGhlciBpbiBkbG1nbHVlIGxheWVyLCBuZXh0IGVuY291bnRlciB0
-aGUgaGFuZyBpc3N1ZSB3aGVuIGRsbV9sb2NrIGFjcXVpcmUgdGhlIGxvY2suIE1heWJlIHRoZXJl
-IGlzIGEgcmFjZSBjb25kaXRpb24gd2hlbiB1c2luZyBkbG1fbG9jay9kbG1fdW5sb2NrKGNhbmNl
-bCkgaW4gZGxtZ2x1ZSBsYXllci4KPiBBbnl3YXksIHRoZSBwcm9ibGVtIGJlbG9uZ3MgdG8gb2Nm
-czIgb3duIHBhcnRzLgo+IApJIG1lYW50IGlmIERMTV9DQU5DRUxHUkFOVCBpcyBub3QgdGhlIGV4
-cGVjdGVkIHJldHVybiBjb2RlLCB3ZSdkCmJldHRlciBmaXggdGhlIGlzc3VlIGluIHN0YWNrX3Vz
-ZXIuYyBidXQgbm90IGRsbWdsdWUsIGUuZy4gc29tZSBzcGVjaWZpYwp3cmFwcGVyLgoKVGhhbmtz
-LApKb3NlcGgKCgpfX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
-XwpPY2ZzMi1kZXZlbCBtYWlsaW5nIGxpc3QKT2NmczItZGV2ZWxAb3NzLm9yYWNsZS5jb20KaHR0
-cHM6Ly9vc3Mub3JhY2xlLmNvbS9tYWlsbWFuL2xpc3RpbmZvL29jZnMyLWRldmVs
+
+Hi Andrew,
+It seems you haven't picked this patch into -mm tree.
+Should we resend it or it's fine now?
+
+Thanks,
+Joseph
+
+On 8/4/21 11:26 AM, Joseph Qi wrote:
+> 
+> 
+> On 8/4/21 11:18 AM, Tuo Li wrote:
+>> A memory block is allocated through kmalloc(), and its return value is
+>> assigned to the pointer oinfo. However, oinfo->dqi_gqinode is not
+>> initialized but it is accessed in:
+>>   iput(oinfo->dqi_gqinode);
+>>
+>> To fix this possible uninitialized-variable access, assign NULL to
+>> oinfo->dqi_gqinode, and add ocfs2_qinfo_lock_res_init()
+>> behind the assignment in ocfs2_local_read_info(). Remove
+>> ocfs2_qinfo_lock_res_init() in ocfs2_global_read_info().
+>>
+> 
+> Or we can simplify the above description to:
+> "To fix the possible uninitialized-variable access, initialize
+> dqi_gqinode and dqi_gqlock first before calling
+> ocfs2_global_read_info()."
+> 
+>> Reported-by: TOTE Robot <oslab@tsinghua.edu.cn>
+>> Signed-off-by: Tuo Li <islituo@gmail.com>
+> 
+> Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+>> ---
+>> v3:
+>> * Update description.
+>> * Assign NULL to oinfo->dqi_gqinode, and add ocfs2_qinfo_lock_res_init()
+>> behind the assignment in ocfs2_local_read_info(). Remove
+>> ocfs2_qinfo_lock_res_init() in ocfs2_global_read_info()
+>>   Thank Joseph Qi for helpful advice.
+>> v2:
+>> * Replace kzalloc() with NULL assignment to oinfo->dqi_gqinode.
+>>   Thank Joseph Qi for helpful advice.
+>> ---
+>>  fs/ocfs2/quota_global.c | 1 -
+>>  fs/ocfs2/quota_local.c  | 2 ++
+>>  2 files changed, 2 insertions(+), 1 deletion(-)
+>>
+>> diff --git a/fs/ocfs2/quota_global.c b/fs/ocfs2/quota_global.c
+>> index eda83487c9ec..f033de733adb 100644
+>> --- a/fs/ocfs2/quota_global.c
+>> +++ b/fs/ocfs2/quota_global.c
+>> @@ -357,7 +357,6 @@ int ocfs2_global_read_info(struct super_block *sb, int type)
+>>  	}
+>>  	oinfo->dqi_gi.dqi_sb = sb;
+>>  	oinfo->dqi_gi.dqi_type = type;
+>> -	ocfs2_qinfo_lock_res_init(&oinfo->dqi_gqlock, oinfo);
+>>  	oinfo->dqi_gi.dqi_entry_size = sizeof(struct ocfs2_global_disk_dqblk);
+>>  	oinfo->dqi_gi.dqi_ops = &ocfs2_global_ops;
+>>  	oinfo->dqi_gqi_bh = NULL;
+>> diff --git a/fs/ocfs2/quota_local.c b/fs/ocfs2/quota_local.c
+>> index b1a8b046f4c2..0e4b16d4c037 100644
+>> --- a/fs/ocfs2/quota_local.c
+>> +++ b/fs/ocfs2/quota_local.c
+>> @@ -702,6 +702,8 @@ static int ocfs2_local_read_info(struct super_block *sb, int type)
+>>  	info->dqi_priv = oinfo;
+>>  	oinfo->dqi_type = type;
+>>  	INIT_LIST_HEAD(&oinfo->dqi_chunk);
+>> +	oinfo->dqi_gqinode = NULL;
+>> +	ocfs2_qinfo_lock_res_init(&oinfo->dqi_gqlock, oinfo);
+>>  	oinfo->dqi_rec = NULL;
+>>  	oinfo->dqi_lqi_bh = NULL;
+>>  	oinfo->dqi_libh = NULL;
+>>
+
+_______________________________________________
+Ocfs2-devel mailing list
+Ocfs2-devel@oss.oracle.com
+https://oss.oracle.com/mailman/listinfo/ocfs2-devel
