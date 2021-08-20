@@ -2,118 +2,139 @@ Return-Path: <SRS0=dlQ5=NL=oss.oracle.com=ocfs2-devel-bounces@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-0.7 required=3.0 tests=BAYES_00,DKIM_ADSP_CUSTOM_MED,
-	FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,HEADER_FROM_DIFFERENT_DOMAINS,
-	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS autolearn=no autolearn_force=no
-	version=3.4.0
+X-Spam-Status: No, score=-3.8 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS
+	autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 6985AC4338F
-	for <ocfs2-devel@archiver.kernel.org>; Fri, 20 Aug 2021 14:47:05 +0000 (UTC)
-Received: from mx0a-00069f02.pphosted.com (mx0a-00069f02.pphosted.com [205.220.165.32])
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 677C3C4338F
+	for <ocfs2-devel@archiver.kernel.org>; Fri, 20 Aug 2021 15:24:13 +0000 (UTC)
+Received: from mx0b-00069f02.pphosted.com (mx0b-00069f02.pphosted.com [205.220.177.32])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by mail.kernel.org (Postfix) with ESMTPS id 14E3261101
-	for <ocfs2-devel@archiver.kernel.org>; Fri, 20 Aug 2021 14:47:05 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.1 mail.kernel.org 14E3261101
-Authentication-Results: mail.kernel.org; dmarc=fail (p=none dis=none) header.from=gmail.com
+	by mail.kernel.org (Postfix) with ESMTPS id EE29461242
+	for <ocfs2-devel@archiver.kernel.org>; Fri, 20 Aug 2021 15:24:12 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.1 mail.kernel.org EE29461242
+Authentication-Results: mail.kernel.org; dmarc=fail (p=none dis=none) header.from=redhat.com
 Authentication-Results: mail.kernel.org; spf=pass smtp.mailfrom=oss.oracle.com
-Received: from pps.filterd (m0246627.ppops.net [127.0.0.1])
-	by mx0b-00069f02.pphosted.com (8.16.0.43/8.16.0.43) with SMTP id 17KEgcBD032015;
-	Fri, 20 Aug 2021 14:47:04 GMT
-Received: from userp3030.oracle.com (userp3030.oracle.com [156.151.31.80])
-	by mx0b-00069f02.pphosted.com with ESMTP id 3aje2j029t-1
+Received: from pps.filterd (m0246630.ppops.net [127.0.0.1])
+	by mx0b-00069f02.pphosted.com (8.16.0.43/8.16.0.43) with SMTP id 17KFCvNX006622;
+	Fri, 20 Aug 2021 15:24:12 GMT
+Received: from userp3020.oracle.com (userp3020.oracle.com [156.151.31.79])
+	by mx0b-00069f02.pphosted.com with ESMTP id 3ahsxd2k3e-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Fri, 20 Aug 2021 14:47:04 +0000
-Received: from pps.filterd (userp3030.oracle.com [127.0.0.1])
-	by userp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 17KEjElE119551;
-	Fri, 20 Aug 2021 14:47:03 GMT
+	Fri, 20 Aug 2021 15:24:11 +0000
+Received: from pps.filterd (userp3020.oracle.com [127.0.0.1])
+	by userp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 17KFBEgM184409;
+	Fri, 20 Aug 2021 15:24:10 GMT
 Received: from oss.oracle.com (oss-old-reserved.oracle.com [137.254.22.2])
-	by userp3030.oracle.com with ESMTP id 3aje12sjd4-1
+	by userp3020.oracle.com with ESMTP id 3aeqm1wp06-1
 	(version=TLSv1 cipher=AES256-SHA bits=256 verify=NO);
-	Fri, 20 Aug 2021 14:47:03 +0000
+	Fri, 20 Aug 2021 15:24:10 +0000
 Received: from localhost ([127.0.0.1] helo=lb-oss.oracle.com)
 	by oss.oracle.com with esmtp (Exim 4.63)
 	(envelope-from <ocfs2-devel-bounces@oss.oracle.com>)
-	id 1mH5kO-0005OE-Ks; Fri, 20 Aug 2021 07:43:52 -0700
-Received: from userp3030.oracle.com ([156.151.31.80])
+	id 1mH6NN-0007bT-Eu; Fri, 20 Aug 2021 08:24:09 -0700
+Received: from aserp3020.oracle.com ([141.146.126.70])
 	by oss.oracle.com with esmtp (Exim 4.63)
-	(envelope-from <andreas.gruenbacher@gmail.com>) id 1mH5kM-0005No-E9
-	for ocfs2-devel@oss.oracle.com; Fri, 20 Aug 2021 07:43:50 -0700
-Received: from pps.filterd (userp3030.oracle.com [127.0.0.1])
-	by userp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
-	17KEZStq083951
-	for <ocfs2-devel@oss.oracle.com>; Fri, 20 Aug 2021 14:43:50 GMT
-Received: from mx0b-00069f01.pphosted.com (mx0b-00069f01.pphosted.com
-	[205.220.177.26]) by userp3030.oracle.com with ESMTP id 3aje12scud-1
+	(envelope-from <agruenba@redhat.com>) id 1mH6NK-0007b4-MY
+	for ocfs2-devel@oss.oracle.com; Fri, 20 Aug 2021 08:24:06 -0700
+Received: from pps.filterd (aserp3020.oracle.com [127.0.0.1])
+	by aserp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
+	17KFB4pH007630
+	for <ocfs2-devel@oss.oracle.com>; Fri, 20 Aug 2021 15:24:06 GMT
+Received: from mx0a-00069f01.pphosted.com (mx0a-00069f01.pphosted.com
+	[205.220.165.26]) by aserp3020.oracle.com with ESMTP id 3ae5ndscyf-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Fri, 20 Aug 2021 14:43:50 +0000
-Received: from pps.filterd (m0246578.ppops.net [127.0.0.1])
+	for <ocfs2-devel@oss.oracle.com>; Fri, 20 Aug 2021 15:24:06 +0000
+Received: from pps.filterd (m0246572.ppops.net [127.0.0.1])
 	by mx0b-00069f01.pphosted.com (8.16.0.43/8.16.0.43) with SMTP id
-	17KEffZY026135
-	for <ocfs2-devel@oss.oracle.com>; Fri, 20 Aug 2021 14:43:49 GMT
-Received: from mail-io1-f41.google.com (mail-io1-f41.google.com
-	[209.85.166.41])
-	by mx0b-00069f01.pphosted.com with ESMTP id 3ahs0n03h6-1
-	(version=TLSv1.2 cipher=ECDHE-RSA-AES128-GCM-SHA256 bits=128 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Fri, 20 Aug 2021 14:43:48 +0000
-Received: by mail-io1-f41.google.com with SMTP id i7so12619579iow.1
-	for <ocfs2-devel@oss.oracle.com>; Fri, 20 Aug 2021 07:43:48 -0700 (PDT)
+	17KFDCTL014542
+	for <ocfs2-devel@oss.oracle.com>; Fri, 20 Aug 2021 15:24:05 GMT
+Received: from us-smtp-delivery-124.mimecast.com
+	(us-smtp-delivery-124.mimecast.com [170.10.133.124])
+	by mx0b-00069f01.pphosted.com with ESMTP id 3ajcxv1np8-1
+	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
+	for <ocfs2-devel@oss.oracle.com>; Fri, 20 Aug 2021 15:24:04 +0000
+Received: from mail-wm1-f72.google.com (mail-wm1-f72.google.com
+	[209.85.128.72]) (Using TLS) by relay.mimecast.com with ESMTP id
+	us-mta-287-wjDZE_BrMLib615vBSs-YA-1; Fri, 20 Aug 2021 11:23:11 -0400
+X-MC-Unique: wjDZE_BrMLib615vBSs-YA-1
+Received: by mail-wm1-f72.google.com with SMTP id
+	c2-20020a7bc8420000b0290238db573ab7so4937228wml.5
+	for <ocfs2-devel@oss.oracle.com>; Fri, 20 Aug 2021 08:23:06 -0700 (PDT)
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
 	d=1e100.net; s=20161025;
 	h=x-gm-message-state:mime-version:references:in-reply-to:from:date
 	:message-id:subject:to:cc;
-	bh=zWMM/5S4dFOu/WD5ECEAYdeBKl4z45VntP0JWXoYfUw=;
-	b=e+ybJQjU/6m2HEFmrmd3VxI2rrMJP7gEm11t5dneEJSdX+H/JcTn1SwGLvbpDPVTmH
-	Bh5tLfu/+Yfn2HWF+X+X11iUz/WRwcR3T2SwwYJolQy1ElVq3nfYmuwZ3VQk6tNyFihX
-	A0B7Xhp+0hXHxZuTt274fCWl/z51uF9ES8Lx5UrEiwOYvcXa1q0xE7kUk5ezjXNcfvz/
-	TtUM9u3aE3Jt7uIFDZCkkBonEJsUPki/bCHrLhuO/WY2L1ZPeXnFCzf0GUSCuHwGM4q5
-	dGcehHuGZvtb+gJUybow+oS/1/C8s2CtVUVMbUmaw9CvDOxQY5jtb7Fiho8M5GpLJQbp
-	ZxrQ==
-X-Gm-Message-State: AOAM532IcWkloAvWEgf8qWL+Jdoh1jGwnuuReZR6GJ6NZE4v97KOjkl2
-	jjzaKasu9xCJhuphfUN6fWBYkhI+krGJFfkWjkU=
-X-Google-Smtp-Source: ABdhPJzOk9dUXsN4s4KGdaDemx/wIgj5uCLKt6CfKvzXNaaMS+7QqZjwN6w29MmItaj9l67c72f3RtIl+DIu84YdWEM=
-X-Received: by 2002:a02:7a15:: with SMTP id a21mr14609694jac.128.1629470627371;
-	Fri, 20 Aug 2021 07:43:47 -0700 (PDT)
+	bh=AlytKq7WyOzUT/K3H+q4IM3u5JgzyFxG/3NBnWm69Pg=;
+	b=E3NrFtdhzXspskwfsBkuMvlBNLyA6TZSBrTkSzprpBHAfUY5+kyr8i6/TlTmJpqWma
+	IZVYK9uWFTedIPVxTbxp6J7imM7NLGCD1rqop1VUBLF2iZCvHWpFxgFzehxBpbkA8Bnr
+	9sl63b197+uJa3regx9KyNpl7EEUm8j3uhO/sl9W+xvoG8G6dPxj6tj2TaC/3IwX6Era
+	MHhj/2pIiWKKBQQA8K8TxitT+l02nC7o/iS4QPvIsMKzDWMzeFCp4wGAbkaWMEAJA9Xs
+	DR4waksoa86WdqoOZp1SKa8F7rJo9cCJRc7m+LeuTRmFbFSUBCFc6Jse+WUUXtOJpSNK
+	07fg==
+X-Gm-Message-State: AOAM531aMl63PFmJ1JFsZwJcMlxHN/ZVojHZhmUtBr0atioI2wy7yb/Q
+	UJ/R3Q6alIPzgQ/zHOl6d42Fz3l3wmaPQRAs5Y8w7umihgYAeZFoZndfczfqIAKFA4nwnNN3Kz+
+	4jdkYq9JK+xllrW0RGJp3VlGHAv21FwiO4hi/eQ==
+X-Received: by 2002:a7b:c106:: with SMTP id w6mr4615323wmi.152.1629472985921; 
+	Fri, 20 Aug 2021 08:23:05 -0700 (PDT)
+X-Google-Smtp-Source: ABdhPJwUvS40eZJ1ySsWNGqcyFBL2tEQZaB8k3Slyb91HTve5oMdHFCyWX4WR3jQt8qnTrXHAXjGShbj4VZTgbuL91g=
+X-Received: by 2002:a7b:c106:: with SMTP id w6mr4615303wmi.152.1629472985719; 
+	Fri, 20 Aug 2021 08:23:05 -0700 (PDT)
 MIME-Version: 1.0
 References: <20210819194102.1491495-1-agruenba@redhat.com>
 	<20210819194102.1491495-11-agruenba@redhat.com>
 	<5e8a20a8d45043e88013c6004636eae5dadc9be3.camel@redhat.com>
-	<CAHc6FU7jz9z9FEu3gY0S2A2Rv6cQJzp7p_5NOnU3b8Zpz+QsVg@mail.gmail.com>
-	<d5fbfeff64cee4a2045e4e53abbd205618888044.camel@redhat.com>
-In-Reply-To: <d5fbfeff64cee4a2045e4e53abbd205618888044.camel@redhat.com>
-From: =?UTF-8?Q?Andreas_Gr=C3=BCnbacher?= <andreas.gruenbacher@gmail.com>
-Date: Fri, 20 Aug 2021 16:43:34 +0200
-Message-ID: <CAHpGcMJTPfJ3M8SjMgv88xkbJLy8mhXTGEkWy8WjXM0NBcsZ1A@mail.gmail.com>
-To: Steven Whitehouse <swhiteho@redhat.com>
-X-Source-IP: 209.85.166.41
-X-ServerName: mail-io1-f41.google.com
+	<cf284633-a9db-9f88-6b60-4377bc33e473@redhat.com>
+In-Reply-To: <cf284633-a9db-9f88-6b60-4377bc33e473@redhat.com>
+From: Andreas Gruenbacher <agruenba@redhat.com>
+Date: Fri, 20 Aug 2021 17:22:54 +0200
+Message-ID: <CAHc6FU7EMOEU7C5ryu5pMMx1v+8CTAOMyGdf=wfaw8=TTA_btQ@mail.gmail.com>
+To: Bob Peterson <rpeterso@redhat.com>
+Authentication-Results: relay.mimecast.com;
+	auth=pass smtp.auth=CUSA124A263 smtp.mailfrom=agruenba@redhat.com
+X-Mimecast-Spam-Score: 0
+X-Mimecast-Originator: redhat.com
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 redirect=_spf.google.com
+X-Proofpoint-SPF-Record: v=spf1 ip4:103.23.64.2 ip4:103.23.65.2
+	ip4:103.23.66.26 ip4:103.23.67.26
+	ip4:107.21.15.141 ip4:108.177.8.0/21 ip4:128.17.0.0/20
+	ip4:128.17.128.0/20
+	ip4:128.17.192.0/20 ip4:128.17.64.0/20 ip4:128.245.0.0/20
+	ip4:128.245.64.0/20 ip4:13.110.208.0/21 ip4:13.110.216.0/22
+	ip4:13.111.0.0/16 ip4:136.147.128.0/20 ip4:136.147.176.0/20
+	include:spf1.redhat.com -all
+X-Proofpoint-SPF-VenPass: Allowed
+X-Source-IP: 170.10.133.124
+X-ServerName: us-smtp-delivery-124.mimecast.com
+X-Proofpoint-SPF-Result: pass
+X-Proofpoint-SPF-Record: v=spf1 ip4:103.23.64.2 ip4:103.23.65.2
+	ip4:103.23.66.26 ip4:103.23.67.26
+	ip4:107.21.15.141 ip4:108.177.8.0/21 ip4:128.17.0.0/20
+	ip4:128.17.128.0/20
+	ip4:128.17.192.0/20 ip4:128.17.64.0/20 ip4:128.245.0.0/20
+	ip4:128.245.64.0/20 ip4:13.110.208.0/21 ip4:13.110.216.0/22
+	ip4:13.111.0.0/16 ip4:136.147.128.0/20 ip4:136.147.176.0/20
+	include:spf1.redhat.com -all
 X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=10082
 	signatures=668682
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 malwarescore=0
-	bulkscore=0
-	mlxlogscore=999 lowpriorityscore=0 impostorscore=0 mlxscore=0
-	phishscore=0
-	spamscore=0 priorityscore=357 clxscore=183 adultscore=0 suspectscore=0
-	classifier=spam adjust=0 reason=mlx scancount=1
-	engine=8.12.0-2107140000 definitions=main-2108200082
-X-Spam: Clean
+X-Proofpoint-Spam-Reason: safe
+X-Spam: OrgSafeList
+X-SpamRule: orgsafelist
 X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=10082
 	signatures=668682
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 bulkscore=0
-	spamscore=0 suspectscore=0
-	phishscore=0 malwarescore=0 mlxscore=0 mlxlogscore=999 adultscore=0
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 malwarescore=0
+	adultscore=0 bulkscore=0
+	suspectscore=0 mlxlogscore=999 phishscore=0 mlxscore=0 spamscore=0
 	classifier=spam adjust=0 reason=mlx scancount=1
-	engine=8.12.0-2107140000 definitions=main-2108200081
+	engine=8.12.0-2107140000 definitions=main-2108200086
 Cc: cluster-devel <cluster-devel@redhat.com>, Jan Kara <jack@suse.cz>,
-        Andreas Gruenbacher <agruenba@redhat.com>,
         LKML <linux-kernel@vger.kernel.org>,
         Christoph Hellwig <hch@infradead.org>,
         Alexander Viro <viro@zeniv.linux.org.uk>,
         linux-fsdevel <linux-fsdevel@vger.kernel.org>,
         Linus Torvalds <torvalds@linux-foundation.org>,
-        ocfs2-devel@oss.oracle.com
+        Steven Whitehouse <swhiteho@redhat.com>, ocfs2-devel@oss.oracle.com
 Subject: Re: [Ocfs2-devel] [Cluster-devel] [PATCH v6 10/19] gfs2: Introduce
  flag for glock holder auto-demotion
 X-BeenThere: ocfs2-devel@oss.oracle.com
@@ -132,33 +153,72 @@ Content-Transfer-Encoding: 7bit
 Sender: ocfs2-devel-bounces@oss.oracle.com
 Errors-To: ocfs2-devel-bounces@oss.oracle.com
 X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=10082 signatures=668682
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 bulkscore=0 spamscore=0 suspectscore=0
- phishscore=0 malwarescore=0 mlxscore=0 mlxlogscore=999 adultscore=0
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 adultscore=0 bulkscore=0 malwarescore=0
+ mlxscore=0 spamscore=0 suspectscore=0 mlxlogscore=999 phishscore=0
  classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2107140000
- definitions=main-2108200082
-X-Proofpoint-GUID: eVZ3R-p7lSJaNi9JqAZr15GWm1BJjRcY
-X-Proofpoint-ORIG-GUID: eVZ3R-p7lSJaNi9JqAZr15GWm1BJjRcY
+ definitions=main-2108200086
+X-Proofpoint-GUID: iBa9zc3eW1Za-BcvzkbWNwwX6ib8x8c6
+X-Proofpoint-ORIG-GUID: iBa9zc3eW1Za-BcvzkbWNwwX6ib8x8c6
 
-Am Fr., 20. Aug. 2021 um 15:49 Uhr schrieb Steven Whitehouse
-<swhiteho@redhat.com>:
-> We always used to manage to avoid holding fs locks when copying to/from userspace
-> to avoid these complications.
+On Fri, Aug 20, 2021 at 3:11 PM Bob Peterson <rpeterso@redhat.com> wrote:
+> On 8/20/21 4:35 AM, Steven Whitehouse wrote:
+> > Hi,
+> >
+> > On Thu, 2021-08-19 at 21:40 +0200, Andreas Gruenbacher wrote:
+> >> From: Bob Peterson <rpeterso@redhat.com>
+> >>
+> >> This patch introduces a new HIF_MAY_DEMOTE flag and infrastructure
+> >> that
+> >> will allow glocks to be demoted automatically on locking conflicts.
+> >> When a locking request comes in that isn't compatible with the
+> >> locking
+> >> state of a holder and that holder has the HIF_MAY_DEMOTE flag set,
+> >> the
+> >> holder will be demoted automatically before the incoming locking
+> >> request
+> >> is granted.
+> >>
+> > I'm not sure I understand what is going on here. When there are locking
+> > conflicts we generate call backs and those result in glock demotion.
+> > There is no need for a flag to indicate that I think, since it is the
+> > default behaviour anyway. Or perhaps the explanation is just a bit
+> > confusing...
+>
+> I agree that the whole concept and explanation are confusing. Andreas
+> and I went through several heated arguments about the semantics,
+> comments, patch descriptions, etc. We played around with many different
+> flag name ideas, etc. We did not agree on the best way to describe the
+> whole concept. He didn't like my explanation and I didn't like his. So
+> yes, it is confusing.
+>
+> My preferred terminology was "DOD" or "Dequeue On Demand"
 
-I realize the intent, but that goal has never actually been achieved.
-Direct I/O has *always* been calling get_user_pages() while holding
-the inode glock in deferred mode.
+... which is useless because it adds no clarity as to whose demand
+we're talking about.
 
-The situation is slightly different for buffered I/O, but we have the
-same problem there at least since switching to iomap. (And it's a
-fundamental property of iomap that we want to hold the inode glock
-across multi-page mappings, not an implementation deficit.)
+> which makes
+> the concept more understandable to me. So basically a process can say
+> "I need to hold this glock, but for an unknown and possibly lengthy
+> period of time, but please feel free to dequeue it if it's in your way."
+> And bear in mind that several processes may do the same, simultaneously.
+>
+> You can almost think of this as a performance enhancement. This concept
+> allows a process to hold a glock for much longer periods of time, at a
+> lower priority, for example, when gfs2_file_read_iter needs to hold the
+> glock for very long-running iterative reads.
 
-Here's a slightly outdated version of a test case that makes all
-versions of gfs2 prior to this patch queue unhappy:
-https://lore.kernel.org/fstests/20210531152604.240462-1-agruenba@redhat.com/
+Consider a process that allocates a somewhat large buffer and reads
+into it in chunks that are not page aligned. The buffer initially
+won't be faulted in, so we fault in the first chunk and write into it.
+Then, when reading the second chunk, we find that the first page of
+the second chunk is already present. We fill it, set the
+HIF_MAY_DEMOTE flag, fault in more pages, and clear the HIF_MAY_DEMOTE
+flag. If we then still have the glock (which is very likely), we
+resume the read. Otherwise, we return a short result.
 
 Thanks,
 Andreas
+
 
 _______________________________________________
 Ocfs2-devel mailing list
