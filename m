@@ -2,100 +2,152 @@ Return-Path: <SRS0=LbgC=OD=oss.oracle.com=ocfs2-devel-bounces@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-10.2 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,
-	SPF_PASS,USER_AGENT_SANE_1 autolearn=ham autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-17.2 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,NICE_REPLY_A,SPF_HELO_NONE,SPF_PASS,USER_AGENT_SANE_1
+	autolearn=ham autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 3AEC8C433EF
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 92FA0C4332F
 	for <ocfs2-devel@archiver.kernel.org>; Mon, 13 Sep 2021 14:28:59 +0000 (UTC)
 Received: from mx0a-00069f02.pphosted.com (mx0a-00069f02.pphosted.com [205.220.165.32])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by mail.kernel.org (Postfix) with ESMTPS id C196F60F44
-	for <ocfs2-devel@archiver.kernel.org>; Mon, 13 Sep 2021 14:28:58 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.1 mail.kernel.org C196F60F44
-Authentication-Results: mail.kernel.org; dmarc=none (p=none dis=none) header.from=fieldses.org
+	by mail.kernel.org (Postfix) with ESMTPS id 3FD9C60F58
+	for <ocfs2-devel@archiver.kernel.org>; Mon, 13 Sep 2021 14:28:59 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.1 mail.kernel.org 3FD9C60F58
+Authentication-Results: mail.kernel.org; dmarc=fail (p=none dis=none) header.from=redhat.com
 Authentication-Results: mail.kernel.org; spf=pass smtp.mailfrom=oss.oracle.com
 Received: from pps.filterd (m0246629.ppops.net [127.0.0.1])
-	by mx0b-00069f02.pphosted.com (8.16.1.2/8.16.1.2) with SMTP id 18DESvg6024785;
+	by mx0b-00069f02.pphosted.com (8.16.1.2/8.16.1.2) with SMTP id 18DESvwf024793;
 	Mon, 13 Sep 2021 14:28:58 GMT
 Received: from userp3030.oracle.com (userp3030.oracle.com [156.151.31.80])
-	by mx0b-00069f02.pphosted.com with ESMTP id 3b1ka92qup-1
+	by mx0b-00069f02.pphosted.com with ESMTP id 3b1ka92qur-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Mon, 13 Sep 2021 14:28:57 +0000
+	Mon, 13 Sep 2021 14:28:58 +0000
 Received: from pps.filterd (userp3030.oracle.com [127.0.0.1])
-	by userp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 18DED7Pq133716;
+	by userp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 18DED9lP133885;
 	Mon, 13 Sep 2021 14:28:48 GMT
 Received: from oss.oracle.com (oss-old-reserved.oracle.com [137.254.22.2])
-	by userp3030.oracle.com with ESMTP id 3b0hjtjvqc-1;
+	by userp3030.oracle.com with ESMTP id 3b0hjtjvqf-1;
 	Mon, 13 Sep 2021 14:28:47 +0000
 Received: from localhost ([127.0.0.1] helo=lb-oss.oracle.com)
 	by oss.oracle.com with esmtp (Exim 4.63)
 	(envelope-from <ocfs2-devel-bounces@oss.oracle.com>)
-	id 1mPmwx-0004YF-2j; Mon, 13 Sep 2021 07:28:47 -0700
-Received: from aserp3030.oracle.com ([141.146.126.71])
+	id 1mPmwx-0004Yj-5N; Mon, 13 Sep 2021 07:28:47 -0700
+Received: from userp3030.oracle.com ([156.151.31.80])
 	by oss.oracle.com with esmtp (Exim 4.63)
-	(envelope-from <bfields@fieldses.org>) id 1mH5Cn-0004HX-Vk
-	for ocfs2-devel@oss.oracle.com; Fri, 20 Aug 2021 07:09:09 -0700
-Received: from pps.filterd (aserp3030.oracle.com [127.0.0.1])
-	by aserp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
-	17KE57BM135517
-	for <ocfs2-devel@oss.oracle.com>; Fri, 20 Aug 2021 14:09:09 GMT
+	(envelope-from <david@redhat.com>) id 1mH6om-0002fG-4b
+	for ocfs2-devel@oss.oracle.com; Fri, 20 Aug 2021 08:52:28 -0700
+Received: from pps.filterd (userp3030.oracle.com [127.0.0.1])
+	by userp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
+	17KFjESu148211
+	for <ocfs2-devel@oss.oracle.com>; Fri, 20 Aug 2021 15:52:27 GMT
 Received: from mx0b-00069f01.pphosted.com (mx0b-00069f01.pphosted.com
-	[205.220.177.26]) by aserp3030.oracle.com with ESMTP id 3ae3vnkw45-1
+	[205.220.177.26]) by userp3030.oracle.com with ESMTP id 3aje12w3fu-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Fri, 20 Aug 2021 14:09:05 +0000
-Received: from pps.filterd (m0246580.ppops.net [127.0.0.1])
+	for <ocfs2-devel@oss.oracle.com>; Fri, 20 Aug 2021 15:52:27 +0000
+Received: from pps.filterd (m0246577.ppops.net [127.0.0.1])
 	by mx0b-00069f01.pphosted.com (8.16.0.43/8.16.0.43) with SMTP id
-	17KE81OV018564
-	for <ocfs2-devel@oss.oracle.com>; Fri, 20 Aug 2021 14:09:04 GMT
-Received: from fieldses.org (fieldses.org [173.255.197.46])
-	by mx0b-00069f01.pphosted.com with ESMTP id 3ahvfvc6d5-1
-	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NO)
-	for <ocfs2-devel@oss.oracle.com>; Fri, 20 Aug 2021 14:09:04 +0000
-Received: by fieldses.org (Postfix, from userid 2815)
-	id 0D0065BAF; Fri, 20 Aug 2021 10:09:03 -0400 (EDT)
-DKIM-Filter: OpenDKIM Filter v2.11.0 fieldses.org 0D0065BAF
-Date: Fri, 20 Aug 2021 10:09:03 -0400
-From: "J. Bruce Fields" <bfields@fieldses.org>
-To: Jeff Layton <jlayton@kernel.org>
-Message-ID: <20210820140903.GA18096@fieldses.org>
+	17KFlXSC005978
+	for <ocfs2-devel@oss.oracle.com>; Fri, 20 Aug 2021 15:52:25 GMT
+Received: from us-smtp-delivery-124.mimecast.com
+	(us-smtp-delivery-124.mimecast.com [170.10.133.124])
+	by mx0b-00069f01.pphosted.com with ESMTP id 3aj0qkjfgy-1
+	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
+	for <ocfs2-devel@oss.oracle.com>; Fri, 20 Aug 2021 15:52:24 +0000
+Received: from mail-wm1-f71.google.com (mail-wm1-f71.google.com
+	[209.85.128.71]) (Using TLS) by relay.mimecast.com with ESMTP id
+	us-mta-142-djilWd31PyudHIL8vFXjvQ-1; Fri, 20 Aug 2021 11:52:22 -0400
+X-MC-Unique: djilWd31PyudHIL8vFXjvQ-1
+Received: by mail-wm1-f71.google.com with SMTP id
+	c2-20020a7bc8420000b0290238db573ab7so4970818wml.5
+	for <ocfs2-devel@oss.oracle.com>; Fri, 20 Aug 2021 08:52:22 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=1e100.net; s=20161025;
+	h=x-gm-message-state:subject:to:cc:references:from:organization
+	:message-id:date:user-agent:mime-version:in-reply-to
+	:content-language:content-transfer-encoding;
+	bh=JlZGKQdLiYduLYkrU1ycwzHzZ/QPrtvBjhejt7xEWxE=;
+	b=nSEC/N6SdDTzMiTSX0wlv92kJwIrjIr3yaxoSOaOZcYLL+hzrI7O0DVO6VVI2WePkR
+	CJ5eR2q50enBwWvVqHW971GBEv5q1pKfdjBHEDSJLDNCmMIxhPgazVHbP1dO7REXe0ql
+	IToArw5LV7UEbmWMegDzn/6hZpiMb+j/g6xrqbMB6AqGxc6JSo/UZYzRZMv8NCR4ctXy
+	V4UjE+nIkoyJ0FqytMUwe72hMhvSvP8mvq1MhlrtzMN/qP4i8hz8ycNpZ8SFUSQNgabr
+	2CY9kvKjNyWHns9hWL8DJPREiaGwICdvaIzoiRn3hIUrCyIYkmMqhbDhlPR5cmvHyJHa
+	IHtQ==
+X-Gm-Message-State: AOAM530XNdoGDwf9VoXaePBrZulNMI6ryElG6NJ2Az2yYJ4v+v1bl/lK
+	UpeHA9WkjylQ4DfCwyBVNqN7+MLJkkYk3QmXJg8LokpPbW+VujmsfzomC0AeI4ZlJLSGqV8q21m
+	orfp6pArXxXkbNAayLcwNfg==
+X-Received: by 2002:a7b:c112:: with SMTP id w18mr4714036wmi.60.1629474741075; 
+	Fri, 20 Aug 2021 08:52:21 -0700 (PDT)
+X-Google-Smtp-Source: ABdhPJyaJBeCrGw4MnIfr+I5SADEkPPbDd6DJwmXEz/DXBgKbV1Dt/yBLdB7ItdMspgW4ZXDhi9QGA==
+X-Received: by 2002:a7b:c112:: with SMTP id w18mr4714020wmi.60.1629474740919; 
+	Fri, 20 Aug 2021 08:52:20 -0700 (PDT)
+Received: from ?IPv6:2003:d8:2f0a:7f00:fad7:3bc9:69d:31f?
+	(p200300d82f0a7f00fad73bc9069d031f.dip0.t-ipconnect.de.
+	[2003:d8:2f0a:7f00:fad7:3bc9:69d:31f])
+	by smtp.gmail.com with ESMTPSA id
+	a18sm10107804wmg.43.2021.08.20.08.52.19
+	(version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+	Fri, 20 Aug 2021 08:52:20 -0700 (PDT)
+To: Jeff Layton <jlayton@kernel.org>, torvalds@linux-foundation.org,
+        linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org
 References: <20210820135707.171001-1-jlayton@kernel.org>
+	<20210820135707.171001-2-jlayton@kernel.org>
+From: David Hildenbrand <david@redhat.com>
+Organization: Red Hat
+Message-ID: <0f4f3e65-1d2d-e512-2a6f-d7d63effc479@redhat.com>
+Date: Fri, 20 Aug 2021 17:52:19 +0200
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101
+	Thunderbird/78.11.0
 MIME-Version: 1.0
-Content-Disposition: inline
-In-Reply-To: <20210820135707.171001-1-jlayton@kernel.org>
-User-Agent: Mutt/1.5.21 (2010-09-15)
-X-Source-IP: 173.255.197.46
-X-ServerName: fieldses.org
+In-Reply-To: <20210820135707.171001-2-jlayton@kernel.org>
+Authentication-Results: relay.mimecast.com;
+	auth=pass smtp.auth=CUSA124A263 smtp.mailfrom=david@redhat.com
+X-Mimecast-Spam-Score: 0
+X-Mimecast-Originator: redhat.com
+Content-Language: en-US
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 mx a:home.fieldses.org -all
-X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=10081
+X-Proofpoint-SPF-Record: v=spf1 ip4:103.23.64.2 ip4:103.23.65.2
+	ip4:103.23.66.26 ip4:103.23.67.26
+	ip4:107.21.15.141 ip4:108.177.8.0/21 ip4:128.17.0.0/20
+	ip4:128.17.128.0/20
+	ip4:128.17.192.0/20 ip4:128.17.64.0/20 ip4:128.245.0.0/20
+	ip4:128.245.64.0/20 ip4:13.110.208.0/21 ip4:13.110.216.0/22
+	ip4:13.111.0.0/16 ip4:136.147.128.0/20 ip4:136.147.176.0/20
+	include:spf1.redhat.com -all
+X-Proofpoint-SPF-VenPass: Allowed
+X-Source-IP: 170.10.133.124
+X-ServerName: us-smtp-delivery-124.mimecast.com
+X-Proofpoint-SPF-Result: pass
+X-Proofpoint-SPF-Record: v=spf1 ip4:103.23.64.2 ip4:103.23.65.2
+	ip4:103.23.66.26 ip4:103.23.67.26
+	ip4:107.21.15.141 ip4:108.177.8.0/21 ip4:128.17.0.0/20
+	ip4:128.17.128.0/20
+	ip4:128.17.192.0/20 ip4:128.17.64.0/20 ip4:128.245.0.0/20
+	ip4:128.245.64.0/20 ip4:13.110.208.0/21 ip4:13.110.216.0/22
+	ip4:13.111.0.0/16 ip4:136.147.128.0/20 ip4:136.147.176.0/20
+	include:spf1.redhat.com -all
+X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=10082
 	signatures=668682
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 priorityscore=0
-	impostorscore=0
-	lowpriorityscore=0 spamscore=0 mlxscore=0 bulkscore=0 clxscore=190
-	mlxlogscore=918 adultscore=0 phishscore=0 suspectscore=0 malwarescore=0
-	classifier=spam adjust=0 reason=mlx scancount=1
-	engine=8.12.0-2107140000
-	definitions=main-2108200079 domainage_hfrom=7291
-X-Spam: Clean
-X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=10081
+X-Proofpoint-Spam-Reason: safe
+X-Spam: OrgSafeList
+X-SpamRule: orgsafelist
+X-Proofpoint-Virus-Version: vendor=nai engine=6200 definitions=10082
 	signatures=668682
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 suspectscore=0
-	adultscore=0 mlxscore=0
-	malwarescore=0 mlxlogscore=999 spamscore=0 bulkscore=0 phishscore=0
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 bulkscore=0
+	spamscore=0 suspectscore=0
+	phishscore=0 malwarescore=0 mlxscore=0 mlxlogscore=999 adultscore=0
 	classifier=spam adjust=0 reason=mlx scancount=1
-	engine=8.12.0-2107140000 definitions=main-2108200079
+	engine=8.12.0-2107140000 definitions=main-2108200089
 X-Mailman-Approved-At: Mon, 13 Sep 2021 07:28:45 -0700
-Cc: linux-nfs@vger.kernel.org, david@redhat.com, linux-doc@vger.kernel.org,
-        linux-kernel@vger.kernel.org, w@1wt.eu, cluster-devel@redhat.com,
+Cc: bfields@fieldses.org, linux-nfs@vger.kernel.org, linux-doc@vger.kernel.org,
+        stable@vger.kernel.org, w@1wt.eu, cluster-devel@redhat.com,
         linux-mm@kvack.org, rostedt@goodmis.org, ebiederm@xmission.com,
-        luto@kernel.org, linux-fsdevel@vger.kernel.org,
-        v9fs-developer@lists.sourceforge.net, torvalds@linux-foundation.org,
+        luto@kernel.org, v9fs-developer@lists.sourceforge.net,
         linux-afs@lists.infradead.org, ocfs2-devel@oss.oracle.com,
         viro@zeniv.linux.org.uk
-Subject: Re: [Ocfs2-devel] [PATCH v2 0/2] fs: remove support for mandatory
-	locking
+Subject: Re: [Ocfs2-devel] [PATCH v2 1/2] fs: warn about impending
+ deprecation of mandatory locks
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.9
 Precedence: list
@@ -116,52 +168,47 @@ X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 mlxscore=0 adults
  mlxlogscore=999 suspectscore=0 spamscore=0 bulkscore=0 malwarescore=0
  classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2109030001
  definitions=main-2109130095
-X-Proofpoint-GUID: ip-EOvNXgZnlJkghQwcX9GHEHzPjZ39t
-X-Proofpoint-ORIG-GUID: ip-EOvNXgZnlJkghQwcX9GHEHzPjZ39t
+X-Proofpoint-GUID: xRk5cmE9kASgzkt-6A8f4fWJ15hRNye6
+X-Proofpoint-ORIG-GUID: xRk5cmE9kASgzkt-6A8f4fWJ15hRNye6
 
-On Fri, Aug 20, 2021 at 09:57:05AM -0400, Jeff Layton wrote:
-> The first patch in this series adds a new warning that should pop on
-> kernels have mandatory locking enabled when someone mounts a filesystem
-> with -o mand. The second patch removes support for mandatory locking
-> altogether.
+On 20.08.21 15:57, Jeff Layton wrote:
+> We've had CONFIG_MANDATORY_FILE_LOCKING since 2015 and a lot of distros
+> have disabled it. Warn the stragglers that still use "-o mand" that
+> we'll be dropping support for that mount option.
 > 
-> What I think we probably want to do is apply the first to v5.14 before
-> it ships and allow the new warning to trickle out into stable kernels.
-> Then we can merge the second patch in v5.15 to go ahead and remove it.
+> Cc: stable@vger.kernel.org
+> Signed-off-by: Jeff Layton <jlayton@kernel.org>
+> ---
+>   fs/namespace.c | 8 ++++++++
+>   1 file changed, 8 insertions(+)
 > 
-> Sound like a plan?
+> diff --git a/fs/namespace.c b/fs/namespace.c
+> index ab4174a3c802..ffab0bb1e649 100644
+> --- a/fs/namespace.c
+> +++ b/fs/namespace.c
+> @@ -1716,8 +1716,16 @@ static inline bool may_mount(void)
+>   }
+>   
+>   #ifdef	CONFIG_MANDATORY_FILE_LOCKING
+> +static bool warned_mand;
+>   static inline bool may_mandlock(void)
+>   {
+> +	if (!warned_mand) {
+> +		warned_mand = true;
+> +		pr_warn("======================================================\n");
+> +		pr_warn("WARNING: the mand mount option is being deprecated and\n");
+> +		pr_warn("         will be removed in v5.15!\n");
+> +		pr_warn("======================================================\n");
+> +	}
 
-Sounds good to me.--b.
+Is there a reason not to use pr_warn_once() ?
 
-> 
-> Jeff Layton (2):
->   fs: warn about impending deprecation of mandatory locks
->   fs: remove mandatory file locking support
-> 
->  .../filesystems/mandatory-locking.rst         | 188 ------------------
->  fs/9p/vfs_file.c                              |  12 --
->  fs/Kconfig                                    |  10 -
->  fs/afs/flock.c                                |   4 -
->  fs/ceph/locks.c                               |   3 -
->  fs/gfs2/file.c                                |   3 -
->  fs/locks.c                                    | 116 +----------
->  fs/namei.c                                    |   4 +-
->  fs/namespace.c                                |  31 +--
->  fs/nfs/file.c                                 |   4 -
->  fs/nfsd/nfs4state.c                           |  13 --
->  fs/nfsd/vfs.c                                 |  15 --
->  fs/ocfs2/locks.c                              |   4 -
->  fs/open.c                                     |   8 +-
->  fs/read_write.c                               |   7 -
->  fs/remap_range.c                              |  10 -
->  include/linux/fs.h                            |  84 --------
->  mm/mmap.c                                     |   6 -
->  mm/nommu.c                                    |   3 -
->  19 files changed, 20 insertions(+), 505 deletions(-)
->  delete mode 100644 Documentation/filesystems/mandatory-locking.rst
-> 
-> -- 
-> 2.31.1
+
+-- 
+Thanks,
+
+David / dhildenb
+
 
 _______________________________________________
 Ocfs2-devel mailing list
