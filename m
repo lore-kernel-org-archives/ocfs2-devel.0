@@ -7,75 +7,75 @@ X-Spam-Status: No, score=-13.8 required=3.0 tests=BAYES_00,
 	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS autolearn=ham autolearn_force=no
 	version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 863CEC432BE
-	for <ocfs2-devel@archiver.kernel.org>; Fri, 27 Aug 2021 16:50:35 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 43834C432BE
+	for <ocfs2-devel@archiver.kernel.org>; Fri, 27 Aug 2021 16:50:54 +0000 (UTC)
 Received: from mx0a-00069f02.pphosted.com (mx0a-00069f02.pphosted.com [205.220.165.32])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by mail.kernel.org (Postfix) with ESMTPS id 374DD60FD8
-	for <ocfs2-devel@archiver.kernel.org>; Fri, 27 Aug 2021 16:50:35 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.1 mail.kernel.org 374DD60FD8
+	by mail.kernel.org (Postfix) with ESMTPS id E464960F35
+	for <ocfs2-devel@archiver.kernel.org>; Fri, 27 Aug 2021 16:50:53 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.1 mail.kernel.org E464960F35
 Authentication-Results: mail.kernel.org; dmarc=fail (p=none dis=none) header.from=redhat.com
 Authentication-Results: mail.kernel.org; spf=pass smtp.mailfrom=oss.oracle.com
 Received: from pps.filterd (m0246629.ppops.net [127.0.0.1])
-	by mx0b-00069f02.pphosted.com (8.16.1.2/8.16.1.2) with SMTP id 17RGbvkU013579;
-	Fri, 27 Aug 2021 16:50:34 GMT
-Received: from userp3020.oracle.com (userp3020.oracle.com [156.151.31.79])
-	by mx0b-00069f02.pphosted.com with ESMTP id 3ap552c20g-1
+	by mx0b-00069f02.pphosted.com (8.16.1.2/8.16.1.2) with SMTP id 17RGdwFB013581;
+	Fri, 27 Aug 2021 16:50:53 GMT
+Received: from userp3030.oracle.com (userp3030.oracle.com [156.151.31.80])
+	by mx0b-00069f02.pphosted.com with ESMTP id 3ap552c219-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Fri, 27 Aug 2021 16:50:34 +0000
-Received: from pps.filterd (userp3020.oracle.com [127.0.0.1])
-	by userp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 17RGjcuR162441;
-	Fri, 27 Aug 2021 16:50:33 GMT
+	Fri, 27 Aug 2021 16:50:52 +0000
+Received: from pps.filterd (userp3030.oracle.com [127.0.0.1])
+	by userp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 17RGnoo0036207;
+	Fri, 27 Aug 2021 16:50:51 GMT
 Received: from oss.oracle.com (oss-old-reserved.oracle.com [137.254.22.2])
-	by userp3020.oracle.com with ESMTP id 3akb92ehn4-1
+	by userp3030.oracle.com with ESMTP id 3ajpm50hgv-1
 	(version=TLSv1 cipher=AES256-SHA bits=256 verify=NO);
-	Fri, 27 Aug 2021 16:50:33 +0000
+	Fri, 27 Aug 2021 16:50:51 +0000
 Received: from localhost ([127.0.0.1] helo=lb-oss.oracle.com)
 	by oss.oracle.com with esmtp (Exim 4.63)
 	(envelope-from <ocfs2-devel-bounces@oss.oracle.com>)
-	id 1mJf3n-0003Sb-UE; Fri, 27 Aug 2021 09:50:31 -0700
+	id 1mJf46-0003ag-3y; Fri, 27 Aug 2021 09:50:50 -0700
 Received: from aserp3030.oracle.com ([141.146.126.71])
 	by oss.oracle.com with esmtp (Exim 4.63)
-	(envelope-from <agruenba@redhat.com>) id 1mJf3m-0003Rj-AO
-	for ocfs2-devel@oss.oracle.com; Fri, 27 Aug 2021 09:50:30 -0700
+	(envelope-from <agruenba@redhat.com>) id 1mJf44-0003a4-IM
+	for ocfs2-devel@oss.oracle.com; Fri, 27 Aug 2021 09:50:48 -0700
 Received: from pps.filterd (aserp3030.oracle.com [127.0.0.1])
 	by aserp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
-	17RGjUJk153935
-	for <ocfs2-devel@oss.oracle.com>; Fri, 27 Aug 2021 16:50:30 GMT
-Received: from mx0b-00069f01.pphosted.com (mx0b-00069f01.pphosted.com
-	[205.220.177.26]) by aserp3030.oracle.com with ESMTP id 3aq2hum6q9-1
+	17RGjUeK153941
+	for <ocfs2-devel@oss.oracle.com>; Fri, 27 Aug 2021 16:50:48 GMT
+Received: from mx0a-00069f01.pphosted.com (mx0a-00069f01.pphosted.com
+	[205.220.165.26]) by aserp3030.oracle.com with ESMTP id 3aq2hum720-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Fri, 27 Aug 2021 16:50:30 +0000
-Received: from pps.filterd (m0246580.ppops.net [127.0.0.1])
+	for <ocfs2-devel@oss.oracle.com>; Fri, 27 Aug 2021 16:50:48 +0000
+Received: from pps.filterd (m0246574.ppops.net [127.0.0.1])
 	by mx0b-00069f01.pphosted.com (8.16.1.2/8.16.0.43) with SMTP id
-	17RDkI3T015554
-	for <ocfs2-devel@oss.oracle.com>; Fri, 27 Aug 2021 16:50:29 GMT
+	17RCpHJ2014225
+	for <ocfs2-devel@oss.oracle.com>; Fri, 27 Aug 2021 16:50:47 GMT
 Received: from us-smtp-delivery-124.mimecast.com
 	(us-smtp-delivery-124.mimecast.com [170.10.133.124])
-	by mx0b-00069f01.pphosted.com with ESMTP id 3aq17p21p0-1
+	by mx0b-00069f01.pphosted.com with ESMTP id 3aq0dwjjed-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Fri, 27 Aug 2021 16:50:29 +0000
+	for <ocfs2-devel@oss.oracle.com>; Fri, 27 Aug 2021 16:50:46 +0000
 Received: from mimecast-mx01.redhat.com (mimecast-mx01.redhat.com
 	[209.132.183.4]) (Using TLS) by relay.mimecast.com with ESMTP id
-	us-mta-418-SawnL1toN0KVs4Tz46JJKQ-1; Fri, 27 Aug 2021 12:50:24 -0400
-X-MC-Unique: SawnL1toN0KVs4Tz46JJKQ-1
+	us-mta-494-M31ZDbdSO2e6eAJH6BioaA-1; Fri, 27 Aug 2021 12:50:43 -0400
+X-MC-Unique: M31ZDbdSO2e6eAJH6BioaA-1
 Received: from smtp.corp.redhat.com (int-mx02.intmail.prod.int.phx2.redhat.com
 	[10.5.11.12])
 	(using TLSv1.2 with cipher AECDH-AES256-SHA (256/256 bits))
 	(No client certificate requested)
-	by mimecast-mx01.redhat.com (Postfix) with ESMTPS id 106348799EC;
-	Fri, 27 Aug 2021 16:50:23 +0000 (UTC)
+	by mimecast-mx01.redhat.com (Postfix) with ESMTPS id ED1281009E23;
+	Fri, 27 Aug 2021 16:50:41 +0000 (UTC)
 Received: from max.com (unknown [10.40.194.206])
-	by smtp.corp.redhat.com (Postfix) with ESMTP id 97C4A60C04;
-	Fri, 27 Aug 2021 16:50:13 +0000 (UTC)
+	by smtp.corp.redhat.com (Postfix) with ESMTP id EB82C60C82;
+	Fri, 27 Aug 2021 16:50:29 +0000 (UTC)
 From: Andreas Gruenbacher <agruenba@redhat.com>
 To: Linus Torvalds <torvalds@linux-foundation.org>,
         Alexander Viro <viro@zeniv.linux.org.uk>,
         Christoph Hellwig <hch@infradead.org>,
         "Darrick J. Wong" <djwong@kernel.org>
-Date: Fri, 27 Aug 2021 18:49:14 +0200
-Message-Id: <20210827164926.1726765-8-agruenba@redhat.com>
+Date: Fri, 27 Aug 2021 18:49:16 +0200
+Message-Id: <20210827164926.1726765-10-agruenba@redhat.com>
 In-Reply-To: <20210827164926.1726765-1-agruenba@redhat.com>
 References: <20210827164926.1726765-1-agruenba@redhat.com>
 MIME-Version: 1.0
@@ -110,13 +110,14 @@ X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10089
 	signatures=668682
 X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 phishscore=0
 	adultscore=0 spamscore=0
-	bulkscore=0 mlxlogscore=999 malwarescore=0 suspectscore=0 mlxscore=0
+	bulkscore=0 mlxlogscore=724 malwarescore=0 suspectscore=0 mlxscore=0
 	classifier=spam adjust=0 reason=mlx scancount=1
 	engine=8.12.0-2107140000 definitions=main-2108270100
-Cc: Jan Kara <jack@suse.cz>, Andreas Gruenbacher <agruenba@redhat.com>,
-        linux-kernel@vger.kernel.org, cluster-devel@redhat.com,
+Cc: Jan Kara <jack@suse.cz>, linux-kernel@vger.kernel.org,
+        cluster-devel@redhat.com, Bob Peterson <rpeterso@redhat.com>,
         linux-fsdevel@vger.kernel.org, ocfs2-devel@oss.oracle.com
-Subject: [Ocfs2-devel] [PATCH v7 07/19] gfs2: Clean up function may_grant
+Subject: [Ocfs2-devel] [PATCH v7 09/19] gfs2: Remove redundant check from
+	gfs2_glock_dq
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.9
 Precedence: list
@@ -133,200 +134,48 @@ Content-Transfer-Encoding: 7bit
 Sender: ocfs2-devel-bounces@oss.oracle.com
 Errors-To: ocfs2-devel-bounces@oss.oracle.com
 X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10089 signatures=668682
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 suspectscore=0 phishscore=0 spamscore=0
- bulkscore=0 mlxlogscore=999 malwarescore=0 adultscore=0 mlxscore=0
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 spamscore=0 phishscore=0 malwarescore=0
+ mlxscore=0 bulkscore=0 mlxlogscore=999 suspectscore=0 adultscore=0
  classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2107140000
- definitions=main-2108270100
-X-Proofpoint-GUID: czc0BlQmxlrLzFHQURBgmgwqd8hqPubu
-X-Proofpoint-ORIG-GUID: czc0BlQmxlrLzFHQURBgmgwqd8hqPubu
+ definitions=main-2108270101
+X-Proofpoint-GUID: doTe5U9CGS_LCZwr7sB7NBWE7G0RSvwZ
+X-Proofpoint-ORIG-GUID: doTe5U9CGS_LCZwr7sB7NBWE7G0RSvwZ
 
-Pass the first current glock holder into function may_grant and
-deobfuscate the logic there.
+From: Bob Peterson <rpeterso@redhat.com>
 
-We're now using function find_first_holder in do_promote, so move the
-function's definition above do_promote.
+In function gfs2_glock_dq, it checks to see if this is the fast path.
+Before this patch, it checked both "find_first_holder(gl) == NULL" and
+list_empty(&gl->gl_holders), which is redundant. If gl_holders is empty
+then find_first_holder must return NULL. This patch removes the
+redundancy.
 
-Signed-off-by: Andreas Gruenbacher <agruenba@redhat.com>
+Signed-off-by: Bob Peterson <rpeterso@redhat.com>
 ---
- fs/gfs2/glock.c | 120 ++++++++++++++++++++++++++++--------------------
- 1 file changed, 70 insertions(+), 50 deletions(-)
+ fs/gfs2/glock.c | 11 +++++------
+ 1 file changed, 5 insertions(+), 6 deletions(-)
 
 diff --git a/fs/gfs2/glock.c b/fs/gfs2/glock.c
-index 1f3902ecdded..545b435f55ea 100644
+index fd280b6c37ce..f24db2ececfb 100644
 --- a/fs/gfs2/glock.c
 +++ b/fs/gfs2/glock.c
-@@ -301,46 +301,59 @@ void gfs2_glock_put(struct gfs2_glock *gl)
- }
+@@ -1514,12 +1514,11 @@ void gfs2_glock_dq(struct gfs2_holder *gh)
  
- /**
-- * may_grant - check if its ok to grant a new lock
-+ * may_grant - check if it's ok to grant a new lock
-  * @gl: The glock
-+ * @current_gh: One of the current holders of @gl
-  * @gh: The lock request which we wish to grant
-  *
-- * Returns: true if its ok to grant the lock
-+ * With our current compatibility rules, if a glock has one or more active
-+ * holders (HIF_HOLDER flag set), any of those holders can be passed in as
-+ * @current_gh; they are all the same as far as compatibility with the new @gh
-+ * goes.
-+ *
-+ * Returns true if it's ok to grant the lock.
-  */
- 
--static inline int may_grant(const struct gfs2_glock *gl, const struct gfs2_holder *gh)
--{
--	const struct gfs2_holder *gh_head = list_first_entry(&gl->gl_holders, const struct gfs2_holder, gh_list);
-+static inline bool may_grant(const struct gfs2_glock *gl,
-+			     const struct gfs2_holder *current_gh,
-+			     const struct gfs2_holder *gh)
-+{
-+	if (current_gh) {
-+		BUG_ON(!test_bit(HIF_HOLDER, &current_gh->gh_iflags));
-+
-+		switch(current_gh->gh_state) {
-+		case LM_ST_EXCLUSIVE:
-+			/*
-+			 * Here we make a special exception to grant holders
-+			 * who agree to share the EX lock with other holders
-+			 * who also have the bit set. If the original holder
-+			 * has the LM_FLAG_NODE_SCOPE bit set, we grant more
-+			 * holders with the bit set.
-+			 */
-+			return gh->gh_state == LM_ST_EXCLUSIVE &&
-+			       (current_gh->gh_flags & LM_FLAG_NODE_SCOPE) &&
-+			       (gh->gh_flags & LM_FLAG_NODE_SCOPE);
- 
--	if (gh != gh_head) {
--		/**
--		 * Here we make a special exception to grant holders who agree
--		 * to share the EX lock with other holders who also have the
--		 * bit set. If the original holder has the LM_FLAG_NODE_SCOPE bit
--		 * is set, we grant more holders with the bit set.
--		 */
--		if (gh_head->gh_state == LM_ST_EXCLUSIVE &&
--		    (gh_head->gh_flags & LM_FLAG_NODE_SCOPE) &&
--		    gh->gh_state == LM_ST_EXCLUSIVE &&
--		    (gh->gh_flags & LM_FLAG_NODE_SCOPE))
--			return 1;
--		if ((gh->gh_state == LM_ST_EXCLUSIVE ||
--		     gh_head->gh_state == LM_ST_EXCLUSIVE))
--			return 0;
-+		case LM_ST_SHARED:
-+		case LM_ST_DEFERRED:
-+			return gh->gh_state == current_gh->gh_state;
-+
-+		default:
-+			return false;
-+		}
- 	}
-+
- 	if (gl->gl_state == gh->gh_state)
--		return 1;
-+		return true;
- 	if (gh->gh_flags & GL_EXACT)
--		return 0;
-+		return false;
- 	if (gl->gl_state == LM_ST_EXCLUSIVE) {
--		if (gh->gh_state == LM_ST_SHARED && gh_head->gh_state == LM_ST_SHARED)
--			return 1;
--		if (gh->gh_state == LM_ST_DEFERRED && gh_head->gh_state == LM_ST_DEFERRED)
--			return 1;
-+		return gh->gh_state == LM_ST_SHARED ||
-+		       gh->gh_state == LM_ST_DEFERRED;
- 	}
--	if (gl->gl_state != LM_ST_UNLOCKED && (gh->gh_flags & LM_FLAG_ANY))
--		return 1;
--	return 0;
-+	if (gh->gh_flags & LM_FLAG_ANY)
-+		return gl->gl_state != LM_ST_UNLOCKED;
-+	return false;
- }
- 
- static void gfs2_holder_wake(struct gfs2_holder *gh)
-@@ -380,6 +393,24 @@ static void do_error(struct gfs2_glock *gl, const int ret)
- 	}
- }
- 
-+/**
-+ * find_first_holder - find the first "holder" gh
-+ * @gl: the glock
-+ */
-+
-+static inline struct gfs2_holder *find_first_holder(const struct gfs2_glock *gl)
-+{
-+	struct gfs2_holder *gh;
-+
-+	if (!list_empty(&gl->gl_holders)) {
-+		gh = list_first_entry(&gl->gl_holders, struct gfs2_holder,
-+				      gh_list);
-+		if (test_bit(HIF_HOLDER, &gh->gh_iflags))
-+			return gh;
-+	}
-+	return NULL;
-+}
-+
- /**
-  * do_promote - promote as many requests as possible on the current queue
-  * @gl: The glock
-@@ -393,14 +424,16 @@ __releases(&gl->gl_lockref.lock)
- __acquires(&gl->gl_lockref.lock)
- {
- 	const struct gfs2_glock_operations *glops = gl->gl_ops;
--	struct gfs2_holder *gh, *tmp;
-+	struct gfs2_holder *gh, *tmp, *first_gh;
- 	int ret;
- 
-+	first_gh = find_first_holder(gl);
-+
- restart:
- 	list_for_each_entry_safe(gh, tmp, &gl->gl_holders, gh_list) {
- 		if (test_bit(HIF_HOLDER, &gh->gh_iflags))
- 			continue;
--		if (may_grant(gl, gh)) {
-+		if (may_grant(gl, first_gh, gh)) {
- 			if (gh->gh_list.prev == &gl->gl_holders &&
- 			    glops->go_lock) {
- 				spin_unlock(&gl->gl_lockref.lock);
-@@ -722,23 +755,6 @@ __acquires(&gl->gl_lockref.lock)
- 	spin_lock(&gl->gl_lockref.lock);
- }
- 
--/**
-- * find_first_holder - find the first "holder" gh
-- * @gl: the glock
-- */
--
--static inline struct gfs2_holder *find_first_holder(const struct gfs2_glock *gl)
--{
--	struct gfs2_holder *gh;
--
--	if (!list_empty(&gl->gl_holders)) {
--		gh = list_first_entry(&gl->gl_holders, struct gfs2_holder, gh_list);
--		if (test_bit(HIF_HOLDER, &gh->gh_iflags))
--			return gh;
+ 	list_del_init(&gh->gh_list);
+ 	clear_bit(HIF_HOLDER, &gh->gh_iflags);
+-	if (find_first_holder(gl) == NULL) {
+-		if (list_empty(&gl->gl_holders) &&
+-		    !test_bit(GLF_PENDING_DEMOTE, &gl->gl_flags) &&
+-		    !test_bit(GLF_DEMOTE, &gl->gl_flags))
+-			fast_path = 1;
 -	}
--	return NULL;
--}
--
- /**
-  * run_queue - do all outstanding tasks related to a glock
-  * @gl: The glock in question
-@@ -1354,8 +1370,12 @@ __acquires(&gl->gl_lockref.lock)
- 		GLOCK_BUG_ON(gl, true);
- 
- 	if (gh->gh_flags & (LM_FLAG_TRY | LM_FLAG_TRY_1CB)) {
--		if (test_bit(GLF_LOCK, &gl->gl_flags))
--			try_futile = !may_grant(gl, gh);
-+		if (test_bit(GLF_LOCK, &gl->gl_flags)) {
-+			struct gfs2_holder *first_gh;
++	if (list_empty(&gl->gl_holders) &&
++	    !test_bit(GLF_PENDING_DEMOTE, &gl->gl_flags) &&
++	    !test_bit(GLF_DEMOTE, &gl->gl_flags))
++		fast_path = 1;
 +
-+			first_gh = find_first_holder(gl);
-+			try_futile = !may_grant(gl, first_gh, gh);
-+		}
- 		if (test_bit(GLF_INVALIDATE_IN_PROGRESS, &gl->gl_flags))
- 			goto fail;
- 	}
+ 	if (!test_bit(GLF_LFLUSH, &gl->gl_flags) && demote_ok(gl))
+ 		gfs2_glock_add_to_lru(gl);
+ 
 -- 
 2.26.3
 
