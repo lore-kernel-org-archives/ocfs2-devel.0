@@ -2,96 +2,122 @@ Return-Path: <SRS0=LbgC=OD=oss.oracle.com=ocfs2-devel-bounces@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-8.8 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,
-	SPF_PASS autolearn=unavailable autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-10.7 required=3.0 tests=BAYES_00,
+	DKIM_ADSP_CUSTOM_MED,FREEMAIL_FORGED_FROMDOMAIN,FREEMAIL_FROM,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS autolearn=unavailable
+	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 323FEC433EF
+	by smtp.lore.kernel.org (Postfix) with ESMTP id A78A6C433FE
 	for <ocfs2-devel@archiver.kernel.org>; Mon, 13 Sep 2021 14:29:03 +0000 (UTC)
 Received: from mx0a-00069f02.pphosted.com (mx0a-00069f02.pphosted.com [205.220.165.32])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by mail.kernel.org (Postfix) with ESMTPS id DADC160F44
-	for <ocfs2-devel@archiver.kernel.org>; Mon, 13 Sep 2021 14:29:02 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.1 mail.kernel.org DADC160F44
-Authentication-Results: mail.kernel.org; dmarc=fail (p=none dis=none) header.from=arm.com
+	by mail.kernel.org (Postfix) with ESMTPS id 695AD60F58
+	for <ocfs2-devel@archiver.kernel.org>; Mon, 13 Sep 2021 14:29:03 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.1 mail.kernel.org 695AD60F58
+Authentication-Results: mail.kernel.org; dmarc=fail (p=none dis=none) header.from=gmail.com
 Authentication-Results: mail.kernel.org; spf=pass smtp.mailfrom=oss.oracle.com
 Received: from pps.filterd (m0246627.ppops.net [127.0.0.1])
-	by mx0b-00069f02.pphosted.com (8.16.1.2/8.16.1.2) with SMTP id 18DESwv6019331;
-	Mon, 13 Sep 2021 14:29:02 GMT
+	by mx0b-00069f02.pphosted.com (8.16.1.2/8.16.1.2) with SMTP id 18DESxb1019337;
+	Mon, 13 Sep 2021 14:29:03 GMT
 Received: from userp3030.oracle.com (userp3030.oracle.com [156.151.31.80])
-	by mx0b-00069f02.pphosted.com with ESMTP id 3b1jkjavaa-1
+	by mx0b-00069f02.pphosted.com with ESMTP id 3b1jkjava4-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
 	Mon, 13 Sep 2021 14:29:01 +0000
 Received: from pps.filterd (userp3030.oracle.com [127.0.0.1])
-	by userp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 18DED8QL133798;
-	Mon, 13 Sep 2021 14:28:50 GMT
+	by userp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 18DED9I9133858;
+	Mon, 13 Sep 2021 14:28:48 GMT
 Received: from oss.oracle.com (oss-old-reserved.oracle.com [137.254.22.2])
-	by userp3030.oracle.com with ESMTP id 3b0hjtjvsg-1;
-	Mon, 13 Sep 2021 14:28:50 +0000
+	by userp3030.oracle.com with ESMTP id 3b0hjtjvr0-1;
+	Mon, 13 Sep 2021 14:28:48 +0000
 Received: from localhost ([127.0.0.1] helo=lb-oss.oracle.com)
 	by oss.oracle.com with esmtp (Exim 4.63)
 	(envelope-from <ocfs2-devel-bounces@oss.oracle.com>)
-	id 1mPmwz-0004gB-IT; Mon, 13 Sep 2021 07:28:49 -0700
-Received: from userp3020.oracle.com ([156.151.31.79])
+	id 1mPmwx-0004bA-Ka; Mon, 13 Sep 2021 07:28:47 -0700
+Received: from userp3030.oracle.com ([156.151.31.80])
 	by oss.oracle.com with esmtp (Exim 4.63)
-	(envelope-from <cmarinas@kernel.org>) id 1mL4E6-0008D5-LM
-	for ocfs2-devel@oss.oracle.com; Tue, 31 Aug 2021 06:54:58 -0700
-Received: from pps.filterd (userp3020.oracle.com [127.0.0.1])
-	by userp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
-	17VDjrMS173792
-	for <ocfs2-devel@oss.oracle.com>; Tue, 31 Aug 2021 13:54:58 GMT
+	(envelope-from <kari.argillander@gmail.com>) id 1mJiuB-0007hH-Oy
+	for ocfs2-devel@oss.oracle.com; Fri, 27 Aug 2021 13:56:51 -0700
+Received: from pps.filterd (userp3030.oracle.com [127.0.0.1])
+	by userp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
+	17RKtob9007355
+	for <ocfs2-devel@oss.oracle.com>; Fri, 27 Aug 2021 20:56:51 GMT
 Received: from mx0b-00069f01.pphosted.com (mx0b-00069f01.pphosted.com
-	[205.220.177.26]) by userp3020.oracle.com with ESMTP id 3aqxwthtfn-1
+	[205.220.177.26]) by userp3030.oracle.com with ESMTP id 3ajpm5bktb-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Tue, 31 Aug 2021 13:54:58 +0000
-Received: from pps.filterd (m0246577.ppops.net [127.0.0.1])
+	for <ocfs2-devel@oss.oracle.com>; Fri, 27 Aug 2021 20:56:51 +0000
+Received: from pps.filterd (m0246576.ppops.net [127.0.0.1])
 	by mx0b-00069f01.pphosted.com (8.16.1.2/8.16.0.43) with SMTP id
-	17VDkjJF032625
-	for <ocfs2-devel@oss.oracle.com>; Tue, 31 Aug 2021 13:54:57 GMT
-Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by mx0b-00069f01.pphosted.com with ESMTP id 3asnm0035p-1
-	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NO)
-	for <ocfs2-devel@oss.oracle.com>; Tue, 31 Aug 2021 13:54:57 +0000
-Received: by mail.kernel.org (Postfix) with ESMTPSA id 6989E6056B;
-	Tue, 31 Aug 2021 13:54:53 +0000 (UTC)
-Date: Tue, 31 Aug 2021 14:54:50 +0100
-From: Catalin Marinas <catalin.marinas@arm.com>
-To: Al Viro <viro@zeniv.linux.org.uk>
-Message-ID: <YS40qqmXL7CMFLGq@arm.com>
+	17RIk5iH015147
+	for <ocfs2-devel@oss.oracle.com>; Fri, 27 Aug 2021 20:56:50 GMT
+Received: from mail-lj1-f178.google.com (mail-lj1-f178.google.com
+	[209.85.208.178])
+	by mx0b-00069f01.pphosted.com with ESMTP id 3aq08un40a-1
+	(version=TLSv1.2 cipher=ECDHE-RSA-AES128-GCM-SHA256 bits=128 verify=OK)
+	for <ocfs2-devel@oss.oracle.com>; Fri, 27 Aug 2021 20:56:49 +0000
+Received: by mail-lj1-f178.google.com with SMTP id w4so13593017ljh.13
+	for <ocfs2-devel@oss.oracle.com>; Fri, 27 Aug 2021 13:56:49 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=1e100.net; s=20161025;
+	h=x-gm-message-state:date:from:to:cc:subject:message-id:references
+	:mime-version:content-disposition:in-reply-to;
+	bh=D1T7WfWNcvzH9Rk51aqcudHNYK1tsZ5bySC0AdDjdzY=;
+	b=VXYj1EQ2LRq4ztCCXc0lZFwhCZD/S+d7Lh6ZGHwUDHWYZ1gyev4h0878EeIhVzFyBR
+	G4M1J0wk7RTN5Z3kJENEfxIFIuE6n+e4cg6cGmTccs+FQ+gANJDeu8RE/4tnHa6Ewq3L
+	r27fpkEVHWzEBq7vmT11sx3FtxV/bD7L4JSVF4u54WmAbdZhlEclhJwuGqRENbzFGsnr
+	ZjM87fXJod0TClxU68SwQNjkDIlNGLqraqIrEogkwbp+lOpIPvqPeTXdDJmoTsgPW59h
+	n9qZlDzdALut4w7KyyVUwfhrU11P6pJJ9ZXljASvtMICzbCB+rIaEtjsHrhWu0ewAcCg
+	CiVQ==
+X-Gm-Message-State: AOAM530r7Yj/euIwL7gjnlK3r+vZevWCLLd0uhDKtc4AM6qrIL/dihkA
+	V5t/+QMY5zWLBq5LX18Fe58=
+X-Google-Smtp-Source: ABdhPJwCJ2OaAUF4gAyq/jrqfb/W8br/EFdiBn99hCJwKvuif4qcT7IwmOBkVG9J+AGjgGor/tS0Ow==
+X-Received: by 2002:a2e:bc1a:: with SMTP id b26mr9289762ljf.218.1630097807229; 
+	Fri, 27 Aug 2021 13:56:47 -0700 (PDT)
+Received: from kari-VirtualBox (87-95-21-3.bb.dnainternet.fi. [87.95.21.3])
+	by smtp.gmail.com with ESMTPSA id f9sm687906lfg.143.2021.08.27.13.56.45
+	(version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+	Fri, 27 Aug 2021 13:56:46 -0700 (PDT)
+Date: Fri, 27 Aug 2021 23:56:44 +0300
+From: Kari Argillander <kari.argillander@gmail.com>
+To: Andreas Gruenbacher <agruenba@redhat.com>,
+        Konstantin Komarov <almaz.alexandrovich@paragon-software.com>
+Message-ID: <20210827205644.lkihrypv27er5km3@kari-VirtualBox>
 References: <20210827164926.1726765-1-agruenba@redhat.com>
-	<20210827164926.1726765-6-agruenba@redhat.com>
-	<YSkz025ncjhyRmlB@zeniv-ca.linux.org.uk>
-	<CAHk-=wh5p6zpgUUoY+O7e74X9BZyODhnsqvv=xqnTaLRNj3d_Q@mail.gmail.com>
-	<YSk7xfcHVc7CxtQO@zeniv-ca.linux.org.uk>
-	<CAHk-=wjMyZLH+ta5SohAViSc10iPj-hRnHc-KPDoj1XZCmxdBg@mail.gmail.com>
-	<YSk+9cTMYi2+BFW7@zeniv-ca.linux.org.uk>
-	<YSldx9uhMYhT/G8X@zeniv-ca.linux.org.uk>
-	<YSqOUb7yZ7kBoKRY@zeniv-ca.linux.org.uk>
+	<20210827164926.1726765-5-agruenba@redhat.com>
 MIME-Version: 1.0
 Content-Disposition: inline
-In-Reply-To: <YSqOUb7yZ7kBoKRY@zeniv-ca.linux.org.uk>
-X-Source-IP: 198.145.29.99
-X-ServerName: mail.kernel.org
+In-Reply-To: <20210827164926.1726765-5-agruenba@redhat.com>
+X-Source-IP: 209.85.208.178
+X-ServerName: mail-lj1-f178.google.com
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 mx include:_spf.kernel.org ~all
-X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10093
+X-Proofpoint-SPF-Record: v=spf1 redirect=_spf.google.com
+X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10089
 	signatures=668682
-X-Proofpoint-Spam-Reason: safe
-X-Spam: OrgSafeList
-X-SpamRule: orgsafelist
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 phishscore=0
+	adultscore=0 clxscore=318
+	malwarescore=0 bulkscore=0 impostorscore=0 mlxlogscore=999
+	priorityscore=345 mlxscore=0 suspectscore=0 spamscore=0
+	lowpriorityscore=0
+	classifier=spam adjust=0 reason=mlx scancount=1
+	engine=8.12.0-2107140000 definitions=main-2108270123
+X-Spam: Clean
+X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10089
+	signatures=668682
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 spamscore=0
+	phishscore=0 malwarescore=0
+	mlxscore=0 bulkscore=0 mlxlogscore=999 suspectscore=0 adultscore=0
+	classifier=spam adjust=0 reason=mlx scancount=1
+	engine=8.12.0-2107140000 definitions=main-2108270123
 X-Mailman-Approved-At: Mon, 13 Sep 2021 07:28:45 -0700
-Cc: cluster-devel <cluster-devel@redhat.com>, Jan Kara <jack@suse.cz>,
-        Andreas Gruenbacher <agruenba@redhat.com>,
-        Will Deacon <will@kernel.org>,
-        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
-        Josef Bacik <josef@toxicpanda.com>,
-        Christoph Hellwig <hch@infradead.org>,
-        linux-fsdevel <linux-fsdevel@vger.kernel.org>,
+Cc: cluster-devel@redhat.com, Jan Kara <jack@suse.cz>,
+        linux-kernel@vger.kernel.org, Christoph Hellwig <hch@infradead.org>,
+        Alexander Viro <viro@zeniv.linux.org.uk>,
+        linux-fsdevel@vger.kernel.org, ntfs3@lists.linux.dev,
         Linus Torvalds <torvalds@linux-foundation.org>,
-        "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>
-Subject: Re: [Ocfs2-devel] [RFC][arm64] possible infinite loop in btrfs
-	search_ioctl()
+        ocfs2-devel@oss.oracle.com
+Subject: Re: [Ocfs2-devel] [PATCH v7 04/19] iov_iter: Turn
+ iov_iter_fault_in_readable into fault_in_iov_iter_readable
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.9
 Precedence: list
@@ -112,132 +138,196 @@ X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 mlxscore=0 adults
  mlxlogscore=999 suspectscore=0 spamscore=0 bulkscore=0 malwarescore=0
  classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2109030001
  definitions=main-2109130095
-X-Proofpoint-GUID: yCgIO1t3ueA_LzRuq6KBMlETMzm8kZiq
-X-Proofpoint-ORIG-GUID: yCgIO1t3ueA_LzRuq6KBMlETMzm8kZiq
+X-Proofpoint-GUID: Waog3eMZQUTbHX84Dov1DueM8c2YhaF4
+X-Proofpoint-ORIG-GUID: Waog3eMZQUTbHX84Dov1DueM8c2YhaF4
 
-On Sat, Aug 28, 2021 at 08:28:17PM +0100, Al Viro wrote:
-> 	AFAICS, a48b73eca4ce "btrfs: fix potential deadlock in the search ioctl"
-> has introduced a bug at least on arm64.
+On Fri, Aug 27, 2021 at 06:49:11PM +0200, Andreas Gruenbacher wrote:
+> Turn iov_iter_fault_in_readable into a function that returns the number
+> of bytes not faulted in (similar to copy_to_user) instead of returning a
+> non-zero value when any of the requested pages couldn't be faulted in.
+> This supports the existing users that require all pages to be faulted in
+> as well as new users that are happy if any pages can be faulted in at
+> all.
 > 
-> Relevant bits: in search_ioctl() we have
->         while (1) {
->                 ret = fault_in_pages_writeable(ubuf + sk_offset,
->                                                *buf_size - sk_offset);
->                 if (ret)
->                         break;
+> Rename iov_iter_fault_in_readable to fault_in_iov_iter_readable to make
+> sure that this change doesn't silently break things.
+
+At least this patch will break ntfs3 which is in next. It has been there
+just couple weeks so I understand. I added Konstantin and ntfs3 list so
+that we know what is going on. Can you please info if and when do we
+need rebase.
+
+We are in situation that ntfs3 might get in 5.15, but it is uncertain so
+it would be best that we solve this. Just info is enough.
+
+Argillander
+
 > 
->                 ret = btrfs_search_forward(root, &key, path, sk->min_transid);
->                 if (ret != 0) {
->                         if (ret > 0)
->                                 ret = 0;
->                         goto err;
->                 }
->                 ret = copy_to_sk(path, &key, sk, buf_size, ubuf,
->                                  &sk_offset, &num_found);
->                 btrfs_release_path(path);
->                 if (ret)
->                         break;
+> Signed-off-by: Andreas Gruenbacher <agruenba@redhat.com>
+> ---
+>  fs/btrfs/file.c        |  2 +-
+>  fs/f2fs/file.c         |  2 +-
+>  fs/fuse/file.c         |  2 +-
+>  fs/iomap/buffered-io.c |  2 +-
+>  fs/ntfs/file.c         |  2 +-
+>  include/linux/uio.h    |  2 +-
+>  lib/iov_iter.c         | 33 +++++++++++++++++++++------------
+>  mm/filemap.c           |  2 +-
+>  8 files changed, 28 insertions(+), 19 deletions(-)
 > 
->         }
-> and in copy_to_sk() -
->                 sh.objectid = key->objectid;
->                 sh.offset = key->offset;
->                 sh.type = key->type;
->                 sh.len = item_len;
->                 sh.transid = found_transid;
+> diff --git a/fs/btrfs/file.c b/fs/btrfs/file.c
+> index ee34497500e1..281c77cfe91a 100644
+> --- a/fs/btrfs/file.c
+> +++ b/fs/btrfs/file.c
+> @@ -1698,7 +1698,7 @@ static noinline ssize_t btrfs_buffered_write(struct kiocb *iocb,
+>  		 * Fault pages before locking them in prepare_pages
+>  		 * to avoid recursive lock
+>  		 */
+> -		if (unlikely(iov_iter_fault_in_readable(i, write_bytes))) {
+> +		if (unlikely(fault_in_iov_iter_readable(i, write_bytes))) {
+>  			ret = -EFAULT;
+>  			break;
+>  		}
+> diff --git a/fs/f2fs/file.c b/fs/f2fs/file.c
+> index 6afd4562335f..b04b6c909a8b 100644
+> --- a/fs/f2fs/file.c
+> +++ b/fs/f2fs/file.c
+> @@ -4259,7 +4259,7 @@ static ssize_t f2fs_file_write_iter(struct kiocb *iocb, struct iov_iter *from)
+>  		size_t target_size = 0;
+>  		int err;
+>  
+> -		if (iov_iter_fault_in_readable(from, iov_iter_count(from)))
+> +		if (fault_in_iov_iter_readable(from, iov_iter_count(from)))
+>  			set_inode_flag(inode, FI_NO_PREALLOC);
+>  
+>  		if ((iocb->ki_flags & IOCB_NOWAIT)) {
+> diff --git a/fs/fuse/file.c b/fs/fuse/file.c
+> index 97f860cfc195..da49ef71dab5 100644
+> --- a/fs/fuse/file.c
+> +++ b/fs/fuse/file.c
+> @@ -1160,7 +1160,7 @@ static ssize_t fuse_fill_write_pages(struct fuse_io_args *ia,
+>  
+>   again:
+>  		err = -EFAULT;
+> -		if (iov_iter_fault_in_readable(ii, bytes))
+> +		if (fault_in_iov_iter_readable(ii, bytes))
+>  			break;
+>  
+>  		err = -ENOMEM;
+> diff --git a/fs/iomap/buffered-io.c b/fs/iomap/buffered-io.c
+> index 87ccb3438bec..7dc42dd3a724 100644
+> --- a/fs/iomap/buffered-io.c
+> +++ b/fs/iomap/buffered-io.c
+> @@ -749,7 +749,7 @@ iomap_write_actor(struct inode *inode, loff_t pos, loff_t length, void *data,
+>  		 * same page as we're writing to, without it being marked
+>  		 * up-to-date.
+>  		 */
+> -		if (unlikely(iov_iter_fault_in_readable(i, bytes))) {
+> +		if (unlikely(fault_in_iov_iter_readable(i, bytes))) {
+>  			status = -EFAULT;
+>  			break;
+>  		}
+> diff --git a/fs/ntfs/file.c b/fs/ntfs/file.c
+> index ab4f3362466d..a43adeacd930 100644
+> --- a/fs/ntfs/file.c
+> +++ b/fs/ntfs/file.c
+> @@ -1829,7 +1829,7 @@ static ssize_t ntfs_perform_write(struct file *file, struct iov_iter *i,
+>  		 * pages being swapped out between us bringing them into memory
+>  		 * and doing the actual copying.
+>  		 */
+> -		if (unlikely(iov_iter_fault_in_readable(i, bytes))) {
+> +		if (unlikely(fault_in_iov_iter_readable(i, bytes))) {
+>  			status = -EFAULT;
+>  			break;
+>  		}
+> diff --git a/include/linux/uio.h b/include/linux/uio.h
+> index 82c3c3e819e0..12d30246c2e9 100644
+> --- a/include/linux/uio.h
+> +++ b/include/linux/uio.h
+> @@ -119,7 +119,7 @@ size_t copy_page_from_iter_atomic(struct page *page, unsigned offset,
+>  				  size_t bytes, struct iov_iter *i);
+>  void iov_iter_advance(struct iov_iter *i, size_t bytes);
+>  void iov_iter_revert(struct iov_iter *i, size_t bytes);
+> -int iov_iter_fault_in_readable(const struct iov_iter *i, size_t bytes);
+> +size_t fault_in_iov_iter_readable(const struct iov_iter *i, size_t bytes);
+>  size_t iov_iter_single_seg_count(const struct iov_iter *i);
+>  size_t copy_page_to_iter(struct page *page, size_t offset, size_t bytes,
+>  			 struct iov_iter *i);
+> diff --git a/lib/iov_iter.c b/lib/iov_iter.c
+> index 069cedd9d7b4..082ab155496d 100644
+> --- a/lib/iov_iter.c
+> +++ b/lib/iov_iter.c
+> @@ -430,33 +430,42 @@ static size_t copy_page_to_iter_pipe(struct page *page, size_t offset, size_t by
+>  }
+>  
+>  /*
+> + * fault_in_iov_iter_readable - fault in iov iterator for reading
+> + * @i: iterator
+> + * @size: maximum length
+> + *
+>   * Fault in one or more iovecs of the given iov_iter, to a maximum length of
+> - * bytes.  For each iovec, fault in each page that constitutes the iovec.
+> + * @size.  For each iovec, fault in each page that constitutes the iovec.
+> + *
+> + * Returns the number of bytes not faulted in (like copy_to_user() and
+> + * copy_from_user()).
+>   *
+> - * Return 0 on success, or non-zero if the memory could not be accessed (i.e.
+> - * because it is an invalid address).
+> + * Always returns 0 for non-userspace iterators.
+>   */
+> -int iov_iter_fault_in_readable(const struct iov_iter *i, size_t bytes)
+> +size_t fault_in_iov_iter_readable(const struct iov_iter *i, size_t size)
+>  {
+>  	if (iter_is_iovec(i)) {
+> +		size_t count = min(size, iov_iter_count(i));
+>  		const struct iovec *p;
+>  		size_t skip;
+>  
+> -		if (bytes > i->count)
+> -			bytes = i->count;
+> -		for (p = i->iov, skip = i->iov_offset; bytes; p++, skip = 0) {
+> -			size_t len = min(bytes, p->iov_len - skip);
+> +		size -= count;
+> +		for (p = i->iov, skip = i->iov_offset; count; p++, skip = 0) {
+> +			size_t len = min(count, p->iov_len - skip);
+> +			size_t ret;
+>  
+>  			if (unlikely(!len))
+>  				continue;
+> -			if (fault_in_readable(p->iov_base + skip, len))
+> -				return -EFAULT;
+> -			bytes -= len;
+> +			ret = fault_in_readable(p->iov_base + skip, len);
+> +			count -= len - ret;
+> +			if (ret)
+> +				break;
+>  		}
+> +		return count + size;
+>  	}
+>  	return 0;
+>  }
+> -EXPORT_SYMBOL(iov_iter_fault_in_readable);
+> +EXPORT_SYMBOL(fault_in_iov_iter_readable);
+>  
+>  void iov_iter_init(struct iov_iter *i, unsigned int direction,
+>  			const struct iovec *iov, unsigned long nr_segs,
+> diff --git a/mm/filemap.c b/mm/filemap.c
+> index 4dec3bc7752e..83af8a534339 100644
+> --- a/mm/filemap.c
+> +++ b/mm/filemap.c
+> @@ -3643,7 +3643,7 @@ ssize_t generic_perform_write(struct file *file,
+>  		 * same page as we're writing to, without it being marked
+>  		 * up-to-date.
+>  		 */
+> -		if (unlikely(iov_iter_fault_in_readable(i, bytes))) {
+> +		if (unlikely(fault_in_iov_iter_readable(i, bytes))) {
+>  			status = -EFAULT;
+>  			break;
+>  		}
+> -- 
+> 2.26.3
 > 
->                 /*
->                  * Copy search result header. If we fault then loop again so we
->                  * can fault in the pages and -EFAULT there if there's a
->                  * problem. Otherwise we'll fault and then copy the buffer in
->                  * properly this next time through
->                  */
->                 if (copy_to_user_nofault(ubuf + *sk_offset, &sh, sizeof(sh))) {
->                         ret = 0;
->                         goto out;
->                 }
-> with sk_offset left unchanged if the very first copy_to_user_nofault() fails.
-> 
-> Now, consider a situation on arm64 where ubuf points to the beginning of page,
-> ubuf[0] can be accessed, but ubuf[16] can not (possible with MTE, AFAICS).  We do
-> fault_in_pages_writeable(), which succeeds.  When we get to copy_to_user_nofault()
-> we fail as soon as it gets past the first 16 bytes.  And we repeat everything from
-> scratch, with no progress made, since short copies are treated as "discard and
-> repeat" here.
-
-So if copy_to_user_nofault() returns -EFAULT, copy_to_sk() returns 0
-(following commit a48b73eca4ce). I think you are right, search_ioctl()
-can get into an infinite loop attempting to write to user if the
-architecture can trigger faults at smaller granularity than the page
-boundary. fault_in_pages_writeable() won't fix it if ubuf[0] is
-writable and doesn't trigger an MTE tag check fault.
-
-An arm64-specific workaround would be for pagefault_disable() to disable
-tag checking. It's a pretty big hammer, weakening the out of bounds
-access detection of MTE. My preference would be a fix in the btrfs code.
-
-A btrfs option would be for copy_to_sk() to return an indication of
-where the fault occurred and get fault_in_pages_writeable() to check
-that location, even if the copying would restart from an earlier offset
-(this requires open-coding copy_to_user_nofault()). An attempt below,
-untested and does not cover read_extent_buffer_to_user_nofault():
-
-diff --git a/fs/btrfs/ioctl.c b/fs/btrfs/ioctl.c
-index 0ba98e08a029..9e74ba1c955d 100644
---- a/fs/btrfs/ioctl.c
-+++ b/fs/btrfs/ioctl.c
-@@ -2079,6 +2079,7 @@ static noinline int copy_to_sk(struct btrfs_path *path,
- 			       size_t *buf_size,
- 			       char __user *ubuf,
- 			       unsigned long *sk_offset,
-+			       unsigned long *fault_offset,
- 			       int *num_found)
- {
- 	u64 found_transid;
-@@ -2143,7 +2144,11 @@ static noinline int copy_to_sk(struct btrfs_path *path,
- 		 * problem. Otherwise we'll fault and then copy the buffer in
- 		 * properly this next time through
- 		 */
--		if (copy_to_user_nofault(ubuf + *sk_offset, &sh, sizeof(sh))) {
-+		pagefault_disable();
-+		ret = __copy_to_user_inatomic(ubuf + *sk_offset, &sh, sizeof(sh));
-+		pagefault_enable();
-+		*fault_offset = *sk_offset + sizeof(sh) - ret;
-+		if (ret) {
- 			ret = 0;
- 			goto out;
- 		}
-@@ -2218,6 +2223,7 @@ static noinline int search_ioctl(struct inode *inode,
- 	int ret;
- 	int num_found = 0;
- 	unsigned long sk_offset = 0;
-+	unsigned long fault_offset = 0;
-
- 	if (*buf_size < sizeof(struct btrfs_ioctl_search_header)) {
- 		*buf_size = sizeof(struct btrfs_ioctl_search_header);
-@@ -2244,8 +2250,8 @@ static noinline int search_ioctl(struct inode *inode,
- 	key.offset = sk->min_offset;
-
- 	while (1) {
--		ret = fault_in_pages_writeable(ubuf + sk_offset,
--					       *buf_size - sk_offset);
-+		ret = fault_in_pages_writeable(ubuf + fault_offset,
-+					       *buf_size - fault_offset);
- 		if (ret)
- 			break;
-
-@@ -2256,7 +2262,7 @@ static noinline int search_ioctl(struct inode *inode,
- 			goto err;
- 		}
- 		ret = copy_to_sk(path, &key, sk, buf_size, ubuf,
--				 &sk_offset, &num_found);
-+				 &sk_offset, &fault_offset, &num_found);
- 		btrfs_release_path(path);
- 		if (ret)
- 			break;
-
--- 
-Catalin
 
 _______________________________________________
 Ocfs2-devel mailing list
