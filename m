@@ -6,67 +6,56 @@ X-Spam-Status: No, score=-3.8 required=3.0 tests=BAYES_00,
 	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS
 	autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 652F9C433FE
-	for <ocfs2-devel@archiver.kernel.org>; Mon, 13 Sep 2021 14:28:51 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 9FDA2C433F5
+	for <ocfs2-devel@archiver.kernel.org>; Mon, 13 Sep 2021 14:28:52 +0000 (UTC)
 Received: from mx0b-00069f02.pphosted.com (mx0b-00069f02.pphosted.com [205.220.177.32])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by mail.kernel.org (Postfix) with ESMTPS id EE0EF60F44
-	for <ocfs2-devel@archiver.kernel.org>; Mon, 13 Sep 2021 14:28:50 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.1 mail.kernel.org EE0EF60F44
-Authentication-Results: mail.kernel.org; dmarc=fail (p=none dis=none) header.from=intel.com
+	by mail.kernel.org (Postfix) with ESMTPS id 400F960F58
+	for <ocfs2-devel@archiver.kernel.org>; Mon, 13 Sep 2021 14:28:52 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.1 mail.kernel.org 400F960F58
+Authentication-Results: mail.kernel.org; dmarc=fail (p=none dis=none) header.from=linutronix.de
 Authentication-Results: mail.kernel.org; spf=pass smtp.mailfrom=oss.oracle.com
-Received: from pps.filterd (m0246631.ppops.net [127.0.0.1])
-	by mx0b-00069f02.pphosted.com (8.16.1.2/8.16.1.2) with SMTP id 18DEFhij008877;
-	Mon, 13 Sep 2021 14:28:50 GMT
+Received: from pps.filterd (m0246632.ppops.net [127.0.0.1])
+	by mx0b-00069f02.pphosted.com (8.16.1.2/8.16.1.2) with SMTP id 18DEFe07027376;
+	Mon, 13 Sep 2021 14:28:51 GMT
 Received: from userp3020.oracle.com (userp3020.oracle.com [156.151.31.79])
-	by mx0b-00069f02.pphosted.com with ESMTP id 3b1k9rtt1q-1
+	by mx0b-00069f02.pphosted.com with ESMTP id 3b1k8sat6j-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Mon, 13 Sep 2021 14:28:49 +0000
+	Mon, 13 Sep 2021 14:28:50 +0000
 Received: from pps.filterd (userp3020.oracle.com [127.0.0.1])
-	by userp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 18DEDP6e034968;
-	Mon, 13 Sep 2021 14:28:48 GMT
+	by userp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 18DEDPJk034901;
+	Mon, 13 Sep 2021 14:28:49 GMT
 Received: from oss.oracle.com (oss-old-reserved.oracle.com [137.254.22.2])
-	by userp3020.oracle.com with ESMTP id 3b167qh6tv-1;
-	Mon, 13 Sep 2021 14:28:48 +0000
+	by userp3020.oracle.com with ESMTP id 3b167qh6uk-1;
+	Mon, 13 Sep 2021 14:28:49 +0000
 Received: from localhost ([127.0.0.1] helo=lb-oss.oracle.com)
 	by oss.oracle.com with esmtp (Exim 4.63)
 	(envelope-from <ocfs2-devel-bounces@oss.oracle.com>)
-	id 1mPmwx-0004bh-Mv; Mon, 13 Sep 2021 07:28:47 -0700
+	id 1mPmwy-0004d2-Jp; Mon, 13 Sep 2021 07:28:48 -0700
 Received: from aserp3020.oracle.com ([141.146.126.70])
 	by oss.oracle.com with esmtp (Exim 4.63)
-	(envelope-from <tony.luck@intel.com>) id 1mJlBT-0006FU-A6
-	for ocfs2-devel@oss.oracle.com; Fri, 27 Aug 2021 16:22:51 -0700
+	(envelope-from <tglx@linutronix.de>) id 1mK6AR-0001Av-0y
+	for ocfs2-devel@oss.oracle.com; Sat, 28 Aug 2021 14:47:11 -0700
 Received: from pps.filterd (aserp3020.oracle.com [127.0.0.1])
 	by aserp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
-	17RNFNbV119083
-	for <ocfs2-devel@oss.oracle.com>; Fri, 27 Aug 2021 23:22:51 GMT
-Received: from mx0b-00069f01.pphosted.com (mx0b-00069f01.pphosted.com
-	[205.220.177.26]) by aserp3020.oracle.com with ESMTP id 3aq5yy968g-1
+	17SLfU3l082587
+	for <ocfs2-devel@oss.oracle.com>; Sat, 28 Aug 2021 21:47:10 GMT
+Received: from mx0a-00069f01.pphosted.com (mx0a-00069f01.pphosted.com
+	[205.220.165.26]) by aserp3020.oracle.com with ESMTP id 3aqcy0pwnk-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Fri, 27 Aug 2021 23:22:50 +0000
-Received: from pps.filterd (m0246580.ppops.net [127.0.0.1])
+	for <ocfs2-devel@oss.oracle.com>; Sat, 28 Aug 2021 21:47:09 +0000
+Received: from pps.filterd (m0246575.ppops.net [127.0.0.1])
 	by mx0b-00069f01.pphosted.com (8.16.1.2/8.16.0.43) with SMTP id
-	17RKfOP6018407
-	for <ocfs2-devel@oss.oracle.com>; Fri, 27 Aug 2021 23:22:49 GMT
-Received: from mga12.intel.com (mga12.intel.com [192.55.52.136])
-	by mx0b-00069f01.pphosted.com with ESMTP id 3aq7a8h9ed-1
-	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Fri, 27 Aug 2021 23:22:49 +0000
-X-IronPort-AV: E=McAfee;i="6200,9189,10089"; a="197608073"
-X-IronPort-AV: E=Sophos;i="5.84,357,1620716400"; d="scan'208";a="197608073"
-Received: from fmsmga002.fm.intel.com ([10.253.24.26])
-	by fmsmga106.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384;
-	27 Aug 2021 16:22:47 -0700
-X-IronPort-AV: E=Sophos;i="5.84,357,1620716400"; d="scan'208";a="538679488"
-Received: from agluck-desk2.sc.intel.com (HELO
-	agluck-desk2.amr.corp.intel.com) ([10.3.52.146])
-	by fmsmga002-auth.fm.intel.com with
-	ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 27 Aug 2021 16:22:47 -0700
-Date: Fri, 27 Aug 2021 16:22:46 -0700
-From: "Luck, Tony" <tony.luck@intel.com>
-To: Al Viro <viro@zeniv.linux.org.uk>
-Message-ID: <20210827232246.GA1668365@agluck-desk2.amr.corp.intel.com>
+	17SGfJdp029405
+	for <ocfs2-devel@oss.oracle.com>; Sat, 28 Aug 2021 21:47:08 GMT
+Received: from galois.linutronix.de (Galois.linutronix.de [193.142.43.55])
+	by mx0b-00069f01.pphosted.com with ESMTP id 3aqrvp1k3x-1
+	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NO)
+	for <ocfs2-devel@oss.oracle.com>; Sat, 28 Aug 2021 21:47:08 +0000
+From: Thomas Gleixner <tglx@linutronix.de>
+To: "Luck, Tony" <tony.luck@intel.com>, Al Viro <viro@zeniv.linux.org.uk>
+In-Reply-To: <20210827232246.GA1668365@agluck-desk2.amr.corp.intel.com>
 References: <20210827164926.1726765-1-agruenba@redhat.com>
 	<20210827164926.1726765-6-agruenba@redhat.com>
 	<YSkz025ncjhyRmlB@zeniv-ca.linux.org.uk>
@@ -76,36 +65,35 @@ References: <20210827164926.1726765-1-agruenba@redhat.com>
 	<YSk+9cTMYi2+BFW7@zeniv-ca.linux.org.uk>
 	<YSldx9uhMYhT/G8X@zeniv-ca.linux.org.uk>
 	<YSlftta38M4FsWUq@zeniv-ca.linux.org.uk>
+	<20210827232246.GA1668365@agluck-desk2.amr.corp.intel.com>
+Date: Sat, 28 Aug 2021 23:47:03 +0200
+Message-ID: <87r1edgs2w.ffs@tglx>
 MIME-Version: 1.0
-Content-Disposition: inline
-In-Reply-To: <YSlftta38M4FsWUq@zeniv-ca.linux.org.uk>
-X-Source-IP: 192.55.52.136
-X-ServerName: mga12.intel.com
+X-Source-IP: 193.142.43.55
+X-ServerName: galois.linutronix.de
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 include:_spf.intel.com include:_spf.google.com
-	-all
-X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10089
+X-Proofpoint-SPF-Record: v=spf1 mx -all
+X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10090
 	signatures=668682
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 impostorscore=0
-	mlxscore=0 spamscore=0
-	malwarescore=0 adultscore=0 suspectscore=0 phishscore=0 bulkscore=0
-	priorityscore=285 mlxlogscore=599 lowpriorityscore=0 clxscore=376
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 mlxlogscore=614
+	impostorscore=0
+	lowpriorityscore=0 malwarescore=0 bulkscore=0 adultscore=0 phishscore=0
+	spamscore=0 clxscore=336 mlxscore=0 suspectscore=0 priorityscore=220
 	classifier=spam adjust=0 reason=mlx scancount=1
-	engine=8.12.0-2107140000
-	definitions=main-2108270139 domainage_hfrom=12939
+	engine=8.12.0-2107140000 definitions=main-2108280152
 X-Spam: Clean
-X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10089
+X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10090
 	signatures=668682
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 spamscore=0
-	malwarescore=0 mlxscore=0
-	phishscore=0 mlxlogscore=744 suspectscore=0 adultscore=0 bulkscore=0
-	classifier=spam adjust=0 reason=mlx scancount=1
-	engine=8.12.0-2107140000 definitions=main-2108270139
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 adultscore=0
+	suspectscore=0
+	phishscore=0 mlxscore=0 malwarescore=0 mlxlogscore=602 bulkscore=0
+	spamscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+	engine=8.12.0-2107140000 definitions=main-2108280151
 X-Mailman-Approved-At: Mon, 13 Sep 2021 07:28:45 -0700
 Cc: cluster-devel <cluster-devel@redhat.com>, Jan Kara <jack@suse.cz>,
-        Andreas Gruenbacher <agruenba@redhat.com>,
+        Andreas Gruenbacher <agruenba@redhat.com>, x86@kernel.org,
         Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
-        Christoph Hellwig <hch@infradead.org>,
+        Christoph Hellwig <hch@infradead.org>, Borislav Petkov <bp@alien8.de>,
         linux-fsdevel <linux-fsdevel@vger.kernel.org>,
         Linus Torvalds <torvalds@linux-foundation.org>,
         ocfs2-devel@oss.oracle.com
@@ -131,56 +119,88 @@ X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 spamscore=0 adult
  phishscore=0 mlxlogscore=999 malwarescore=0 mlxscore=0 bulkscore=0
  classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2109030001
  definitions=main-2109130095
-X-Proofpoint-ORIG-GUID: 4-tZ-zmLFu_aTF2HDy-ED6Ut1ic9MS7U
-X-Proofpoint-GUID: 4-tZ-zmLFu_aTF2HDy-ED6Ut1ic9MS7U
+X-Proofpoint-GUID: OTeV3d-5aBNVVmrXbFNBXE5HENAB0Fpg
+X-Proofpoint-ORIG-GUID: OTeV3d-5aBNVVmrXbFNBXE5HENAB0Fpg
 
-On Fri, Aug 27, 2021 at 09:57:10PM +0000, Al Viro wrote:
-> On Fri, Aug 27, 2021 at 09:48:55PM +0000, Al Viro wrote:
-> 
-> > 	[btrfs]search_ioctl()
-> > Broken with memory poisoning, for either variant of semantics.  Same for
-> > arm64 sub-page permission differences, I think.
-> 
-> 
-> > So we have 3 callers where we want all-or-nothing semantics - two in
-> > arch/x86/kernel/fpu/signal.c and one in btrfs.  HWPOISON will be a problem
-> > for all 3, AFAICS...
-> > 
-> > IOW, it looks like we have two different things mixed here - one that wants
-> > to try and fault stuff in, with callers caring only about having _something_
-> > faulted in (most of the users) and one that wants to make sure we *can* do
-> > stores or loads on each byte in the affected area.
-> > 
-> > Just accessing a byte in each page really won't suffice for the second kind.
-> > Neither will g-u-p use, unless we teach it about HWPOISON and other fun
-> > beasts...  Looks like we want that thing to be a separate primitive; for
-> > btrfs I'd probably replace fault_in_pages_writeable() with clear_user()
-> > as a quick fix for now...
-> > 
-> > Comments?
-> 
-> Wait a sec...  Wasn't HWPOISON a per-page thing?  arm64 definitely does have
-> smaller-than-page areas with different permissions, so btrfs search_ioctl()
-> has a problem there, but arch/x86/kernel/fpu/signal.c doesn't have to deal
-> with that...
-> 
-> Sigh...  I really need more coffee...
+On Fri, Aug 27 2021 at 16:22, Tony Luck wrote:
+> On Fri, Aug 27, 2021 at 09:57:10PM +0000, Al Viro wrote:
+>> On Fri, Aug 27, 2021 at 09:48:55PM +0000, Al Viro wrote:
+>> 
+>> > 	[btrfs]search_ioctl()
+>> > Broken with memory poisoning, for either variant of semantics.  Same for
+>> > arm64 sub-page permission differences, I think.
+>> 
+>> 
+>> > So we have 3 callers where we want all-or-nothing semantics - two in
+>> > arch/x86/kernel/fpu/signal.c and one in btrfs.  HWPOISON will be a problem
+>> > for all 3, AFAICS...
+>> > 
+>> > IOW, it looks like we have two different things mixed here - one that wants
+>> > to try and fault stuff in, with callers caring only about having _something_
+>> > faulted in (most of the users) and one that wants to make sure we *can* do
+>> > stores or loads on each byte in the affected area.
+>> > 
+>> > Just accessing a byte in each page really won't suffice for the second kind.
+>> > Neither will g-u-p use, unless we teach it about HWPOISON and other fun
+>> > beasts...  Looks like we want that thing to be a separate primitive; for
+>> > btrfs I'd probably replace fault_in_pages_writeable() with clear_user()
+>> > as a quick fix for now...
+>> > 
+>> > Comments?
+>> 
+>> Wait a sec...  Wasn't HWPOISON a per-page thing?  arm64 definitely does have
+>> smaller-than-page areas with different permissions, so btrfs search_ioctl()
+>> has a problem there, but arch/x86/kernel/fpu/signal.c doesn't have to deal
+>> with that...
+>> 
+>> Sigh...  I really need more coffee...
+>
+> On Intel poison is tracked at the cache line granularity. Linux
+> inflates that to per-page (because it can only take a whole page away).
+> For faults triggered in ring3 this is pretty much the same thing because
+> mm/memory_failure.c unmaps the page ... so while you see a #MC on first
+> access, you get #PF when you retry. The x86 fault handler sees a magic
+> signature in the page table and sends a SIGBUS.
+>
+> But it's all different if the #MC is triggerd from ring0. The machine
+> check handler can't unmap the page. It just schedules task_work to do
+> the unmap when next returning to the user.
+>
+> But if your kernel code loops and tries again without a return to user,
+> then your get another #MC.
 
-On Intel poison is tracked at the cache line granularity. Linux
-inflates that to per-page (because it can only take a whole page away).
-For faults triggered in ring3 this is pretty much the same thing because
-mm/memory_failure.c unmaps the page ... so while you see a #MC on first
-access, you get #PF when you retry. The x86 fault handler sees a magic
-signature in the page table and sends a SIGBUS.
+But that's not the case for restore_fpregs_from_user() when it hits #MC.
 
-But it's all different if the #MC is triggerd from ring0. The machine
-check handler can't unmap the page. It just schedules task_work to do
-the unmap when next returning to the user.
+restore_fpregs_from_user()
+  ...
+  ret = __restore_fpregs_from_user(buf, xrestore, fx_only)
+  
+  /* Try to handle #PF, but anything else is fatal. */
+  if (ret != -EFAULT)
+     return -EINVAL;
 
-But if your kernel code loops and tries again without a return to user,
-then your get another #MC.
+Now let's look at __restore_fpregs_from_user()
 
--Tony
+__restore_fpregs_from_user()
+   return $FPUVARIANT_rstor_from_user_sigframe()
+
+which all end up in user_insn(). user_insn() returns 0 or the negated
+trap number, which results in -EFAULT for #PF, but for #MC the negated
+trap number is -18 i.e. != -EFAULT. IOW, there is no endless loop.
+
+This used to be a problem before commit:
+
+  aee8c67a4faa ("x86/fpu: Return proper error codes from user access functions")
+
+and as the changelog says the initial reason for this was #GP going into
+the fault path, but I'm pretty sure that I also discussed the #MC angle with
+Borislav back then. Should have added some more comments there
+obviously.
+
+Thanks,
+
+        tglx
+
 
 _______________________________________________
 Ocfs2-devel mailing list
