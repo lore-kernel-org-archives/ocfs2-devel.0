@@ -2,106 +2,107 @@ Return-Path: <SRS0=dMzQ=NU=oss.oracle.com=ocfs2-devel-bounces@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
-X-Spam-Status: No, score=-3.8 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS
-	autolearn=no autolearn_force=no version=3.4.0
+X-Spam-Status: No, score=-15.8 required=3.0 tests=BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,NICE_REPLY_A,SPF_HELO_NONE,SPF_PASS,UNPARSEABLE_RELAY,
+	USER_AGENT_SANE_1 autolearn=ham autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 2A610C432BE
-	for <ocfs2-devel@archiver.kernel.org>; Sun, 29 Aug 2021 01:44:25 +0000 (UTC)
-Received: from mx0b-00069f02.pphosted.com (mx0b-00069f02.pphosted.com [205.220.177.32])
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 60801C432BE
+	for <ocfs2-devel@archiver.kernel.org>; Sun, 29 Aug 2021 13:24:36 +0000 (UTC)
+Received: from mx0a-00069f02.pphosted.com (mx0a-00069f02.pphosted.com [205.220.165.32])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by mail.kernel.org (Postfix) with ESMTPS id 9A1686056C
-	for <ocfs2-devel@archiver.kernel.org>; Sun, 29 Aug 2021 01:44:24 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.1 mail.kernel.org 9A1686056C
-Authentication-Results: mail.kernel.org; dmarc=none (p=none dis=none) header.from=infradead.org
+	by mail.kernel.org (Postfix) with ESMTPS id E3FBF6023F
+	for <ocfs2-devel@archiver.kernel.org>; Sun, 29 Aug 2021 13:24:35 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.1 mail.kernel.org E3FBF6023F
+Authentication-Results: mail.kernel.org; dmarc=fail (p=none dis=none) header.from=linux.alibaba.com
 Authentication-Results: mail.kernel.org; spf=pass smtp.mailfrom=oss.oracle.com
-Received: from pps.filterd (m0246631.ppops.net [127.0.0.1])
-	by mx0b-00069f02.pphosted.com (8.16.1.2/8.16.1.2) with SMTP id 17SCnQJV032040;
-	Sun, 29 Aug 2021 01:44:23 GMT
+Received: from pps.filterd (m0246629.ppops.net [127.0.0.1])
+	by mx0b-00069f02.pphosted.com (8.16.1.2/8.16.1.2) with SMTP id 17T6AvN8014937;
+	Sun, 29 Aug 2021 13:24:35 GMT
 Received: from userp3030.oracle.com (userp3030.oracle.com [156.151.31.80])
-	by mx0b-00069f02.pphosted.com with ESMTP id 3aqbx211eg-1
+	by mx0b-00069f02.pphosted.com with ESMTP id 3aqd1a1hs1-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Sun, 29 Aug 2021 01:44:23 +0000
+	Sun, 29 Aug 2021 13:24:35 +0000
 Received: from pps.filterd (userp3030.oracle.com [127.0.0.1])
-	by userp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 17T1e35k114994;
-	Sun, 29 Aug 2021 01:44:22 GMT
+	by userp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 17TDA5ol195396;
+	Sun, 29 Aug 2021 13:24:33 GMT
 Received: from oss.oracle.com (oss-old-reserved.oracle.com [137.254.22.2])
-	by userp3030.oracle.com with ESMTP id 3aqa8uxqtt-1
+	by userp3030.oracle.com with ESMTP id 3aqa8vm11m-1
 	(version=TLSv1 cipher=AES256-SHA bits=256 verify=NO);
-	Sun, 29 Aug 2021 01:44:22 +0000
+	Sun, 29 Aug 2021 13:24:33 +0000
 Received: from localhost ([127.0.0.1] helo=lb-oss.oracle.com)
 	by oss.oracle.com with esmtp (Exim 4.63)
 	(envelope-from <ocfs2-devel-bounces@oss.oracle.com>)
-	id 1mK9rx-0004ic-Ap; Sat, 28 Aug 2021 18:44:21 -0700
-Received: from userp3030.oracle.com ([156.151.31.80])
+	id 1mKKnY-0008Ip-M6; Sun, 29 Aug 2021 06:24:32 -0700
+Received: from aserp3020.oracle.com ([141.146.126.70])
 	by oss.oracle.com with esmtp (Exim 4.63)
-	(envelope-from <willy@infradead.org>) id 1mK9rr-0004i7-Dr
-	for ocfs2-devel@oss.oracle.com; Sat, 28 Aug 2021 18:44:15 -0700
-Received: from pps.filterd (userp3030.oracle.com [127.0.0.1])
-	by userp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
-	17T1dum8114309
-	for <ocfs2-devel@oss.oracle.com>; Sun, 29 Aug 2021 01:44:15 GMT
-Received: from mx0b-00069f01.pphosted.com (mx0b-00069f01.pphosted.com
-	[205.220.177.26]) by userp3030.oracle.com with ESMTP id 3aqa8uxqrt-1
+	(envelope-from <joseph.qi@linux.alibaba.com>) id 1mKKn5-0008Hu-24
+	for ocfs2-devel@oss.oracle.com; Sun, 29 Aug 2021 06:24:03 -0700
+Received: from pps.filterd (aserp3020.oracle.com [127.0.0.1])
+	by aserp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
+	17TD9Wgx171774
+	for <ocfs2-devel@oss.oracle.com>; Sun, 29 Aug 2021 13:24:02 GMT
+Received: from mx0a-00069f01.pphosted.com (mx0a-00069f01.pphosted.com
+	[205.220.165.26]) by aserp3020.oracle.com with ESMTP id 3aqcy1f2g6-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Sun, 29 Aug 2021 01:44:12 +0000
-Received: from pps.filterd (m0246577.ppops.net [127.0.0.1])
+	for <ocfs2-devel@oss.oracle.com>; Sun, 29 Aug 2021 13:24:02 +0000
+Received: from pps.filterd (m0246575.ppops.net [127.0.0.1])
 	by mx0b-00069f01.pphosted.com (8.16.1.2/8.16.0.43) with SMTP id
-	17SNXQNM027470
-	for <ocfs2-devel@oss.oracle.com>; Sun, 29 Aug 2021 01:44:11 GMT
-Received: from casper.infradead.org (casper.infradead.org [90.155.50.34])
-	by mx0b-00069f01.pphosted.com with ESMTP id 3aqxwrgk92-1
+	17SNMIab018602
+	for <ocfs2-devel@oss.oracle.com>; Sun, 29 Aug 2021 13:24:01 GMT
+Received: from out4436.biz.mail.alibaba.com (out4436.biz.mail.alibaba.com
+	[47.88.44.36])
+	by mx0b-00069f01.pphosted.com with ESMTP id 3aqxrpv5vp-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NO)
-	for <ocfs2-devel@oss.oracle.com>; Sun, 29 Aug 2021 01:44:10 +0000
-Received: from willy by casper.infradead.org with local (Exim 4.94.2 #2 (Red
-	Hat Linux)) id 1mK9oh-00G4HC-HA; Sun, 29 Aug 2021 01:41:13 +0000
-Date: Sun, 29 Aug 2021 02:40:59 +0100
-From: Matthew Wilcox <willy@infradead.org>
-To: Tony Luck <tony.luck@intel.com>
-Message-ID: <YSrlq41Ytw7q8fCR@casper.infradead.org>
-References: <YSk7xfcHVc7CxtQO@zeniv-ca.linux.org.uk>
-	<CAHk-=wjMyZLH+ta5SohAViSc10iPj-hRnHc-KPDoj1XZCmxdBg@mail.gmail.com>
-	<YSk+9cTMYi2+BFW7@zeniv-ca.linux.org.uk>
-	<YSldx9uhMYhT/G8X@zeniv-ca.linux.org.uk>
-	<YSlftta38M4FsWUq@zeniv-ca.linux.org.uk>
-	<20210827232246.GA1668365@agluck-desk2.amr.corp.intel.com>
-	<87r1edgs2w.ffs@tglx> <YSqy+U/3lnF6K0ia@zeniv-ca.linux.org.uk>
-	<YSq0mPAIBfqFC/NE@zeniv-ca.linux.org.uk>
-	<CA+8MBbLLze0siip=h-2hR3XiceBFQCN7uh5BPvqYRyBXgT318g@mail.gmail.com>
+	for <ocfs2-devel@oss.oracle.com>; Sun, 29 Aug 2021 13:24:01 +0000
+X-Alimail-AntiSpam: AC=PASS; BC=-1|-1; BR=01201311R201e4; CH=green; DM=||false|;
+	DS=||; FP=0|-1|-1|-1|0|-1|-1|-1; HT=e01e04420;
+	MF=joseph.qi@linux.alibaba.com; NM=1; PH=DS; RN=8; SR=0;
+	TI=SMTPD_---0UmS9Nax_1630243433; 
+Received: from B-D1K7ML85-0059.local(mailfrom:joseph.qi@linux.alibaba.com
+	fp:SMTPD_---0UmS9Nax_1630243433) by smtp.aliyun-inc.com(127.0.0.1);
+	Sun, 29 Aug 2021 21:23:54 +0800
+To: CGEL <cgel.zte@gmail.com>, Mark Fasheh <mark@fasheh.com>,
+        akpm <akpm@linux-foundation.org>
+References: <20210828010432.11100-1-deng.changcheng@zte.com.cn>
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+Message-ID: <2800786e-dba1-c1fe-158d-92bee8f06acf@linux.alibaba.com>
+Date: Sun, 29 Aug 2021 21:23:52 +0800
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:78.0)
+	Gecko/20100101 Thunderbird/78.13.0
 MIME-Version: 1.0
-Content-Disposition: inline
-In-Reply-To: <CA+8MBbLLze0siip=h-2hR3XiceBFQCN7uh5BPvqYRyBXgT318g@mail.gmail.com>
-X-Source-IP: 90.155.50.34
-X-ServerName: casper.infradead.org
-X-Proofpoint-SPF-Result: None
+In-Reply-To: <20210828010432.11100-1-deng.changcheng@zte.com.cn>
+Content-Language: en-US
+X-Source-IP: 47.88.44.36
+X-ServerName: out4436.biz.mail.alibaba.com
+X-Proofpoint-SPF-Result: pass
+X-Proofpoint-SPF-Record: v=spf1 include:spf1.service.alibaba.com
+	include:spf2.service.alibaba.com
+	include:spf1.ocm.aliyun.com  include:spf2.ocm.aliyun.com
+	include:spf1.staff.mail.aliyun.com include:a.hichina.mail.aliyun.com
+	include:b.hichina.mail.aliyun.com -all
 X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10090
 	signatures=668682
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 mlxscore=0
-	adultscore=0 clxscore=324
-	phishscore=0 spamscore=0 malwarescore=0 bulkscore=0 mlxlogscore=968
-	priorityscore=291 lowpriorityscore=0 impostorscore=0 suspectscore=0
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 spamscore=0
+	clxscore=66 mlxscore=0
+	lowpriorityscore=0 mlxlogscore=999 adultscore=0 malwarescore=0
+	phishscore=0 impostorscore=0 priorityscore=0 bulkscore=0 suspectscore=0
 	classifier=spam adjust=0 reason=mlx scancount=1
-	engine=8.12.0-2107140000 definitions=main-2108290008
+	engine=8.12.0-2107140000
+	definitions=main-2108290081 domainage_hfrom=8172
 X-Spam: Clean
 X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10090
 	signatures=668682
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 mlxscore=0
-	bulkscore=0 spamscore=0
-	adultscore=0 malwarescore=0 mlxlogscore=999 phishscore=0 suspectscore=0
-	classifier=spam adjust=0 reason=mlx scancount=1
-	engine=8.12.0-2107140000 definitions=main-2108290008
-Cc: cluster-devel <cluster-devel@redhat.com>, Jan Kara <jack@suse.cz>,
-        Andreas Gruenbacher <agruenba@redhat.com>, X86-ML <x86@kernel.org>,
-        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
-        Christoph Hellwig <hch@infradead.org>, Borislav Petkov <bp@alien8.de>,
-        Al Viro <viro@zeniv.linux.org.uk>,
-        linux-fsdevel <linux-fsdevel@vger.kernel.org>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Linus Torvalds <torvalds@linux-foundation.org>,
-        ocfs2-devel@oss.oracle.com
-Subject: Re: [Ocfs2-devel] [PATCH v7 05/19] iov_iter: Introduce
-	fault_in_iov_iter_writeable
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 adultscore=0
+	suspectscore=0
+	phishscore=0 mlxscore=0 malwarescore=0 mlxlogscore=999 bulkscore=0
+	spamscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+	engine=8.12.0-2107140000 definitions=main-2108290081
+Cc: Changcheng Deng <deng.changcheng@zte.com.cn>,
+        Zeal Robot <zealci@zte.com.cn>, ocfs2-devel@oss.oracle.com,
+        linux-kernel@vger.kernel.org
+Subject: Re: [Ocfs2-devel] [PATCH linux-next] ocfs2: fix bugon.cocci warnings
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.9
 Precedence: list
@@ -121,25 +122,63 @@ X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10090 signatures=
 X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 mlxscore=0 bulkscore=0 spamscore=0
  adultscore=0 malwarescore=0 mlxlogscore=999 phishscore=0 suspectscore=0
  classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2107140000
- definitions=main-2108290008
-X-Proofpoint-GUID: ajwKQzFQHykkVocVy9sCUKypDsEgYGGW
-X-Proofpoint-ORIG-GUID: ajwKQzFQHykkVocVy9sCUKypDsEgYGGW
+ definitions=main-2108290081
+X-Proofpoint-ORIG-GUID: APaHHDmQclwqnQb_N9Pi3W4T_vBbeSsx
+X-Proofpoint-GUID: APaHHDmQclwqnQb_N9Pi3W4T_vBbeSsx
 
-On Sat, Aug 28, 2021 at 03:20:58PM -0700, Tony Luck wrote:
-> On Sat, Aug 28, 2021 at 3:12 PM Al Viro <viro@zeniv.linux.org.uk> wrote:
-> > BTW, is #MC triggered on stored to a poisoned cacheline?  Existence of CLZERO
-> > would seem to argue against that...
+
+
+On 8/28/21 9:04 AM, CGEL wrote:
+> From: Changcheng Deng <deng.changcheng@zte.com.cn>
 > 
-> No #MC on stores. Just on loads. Note that you can't clear poison
-> state with a series of small writes to the cache line. But a single
-> 64-byte store might do it (architects didn't want to guarantee that
-> it would work when I asked about avx512 stores to clear poison
-> many years ago).
+> Use BUG_ON instead of if condition followed by BUG.
+> 
+> Reported-by: Zeal Robot <zealci@zte.com.cn>
+> Signed-off-by: Changcheng Deng <deng.changcheng@zte.com.cn>
 
-Dave Jiang thinks MOVDIR64B clears poison.
+Acked-by: Joseph Qi <joseph.qi@linux.alibaba.com>
 
-http://archive.lwn.net:8080/linux-kernel/157617505636.42350.1170110675242558018.stgit@djiang5-desk3.ch.intel.com/
+BTW, could you send out a series to clean all in ocfs2?
 
+> ---
+>  fs/ocfs2/journal.c | 9 +++------
+>  1 file changed, 3 insertions(+), 6 deletions(-)
+> 
+> diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
+> index 4f15750..2305aa5 100644
+> --- a/fs/ocfs2/journal.c
+> +++ b/fs/ocfs2/journal.c
+> @@ -974,8 +974,7 @@ void ocfs2_journal_shutdown(struct ocfs2_super *osb)
+>  		goto done;
+>  
+>  	/* need to inc inode use count - jbd2_journal_destroy will iput. */
+> -	if (!igrab(inode))
+> -		BUG();
+> +	BUG_ON(!igrab(inode));
+>  
+>  	num_running_trans = atomic_read(&(osb->journal->j_num_trans));
+>  	trace_ocfs2_journal_shutdown(num_running_trans);
+> @@ -1656,8 +1655,7 @@ static int ocfs2_replay_journal(struct ocfs2_super *osb,
+>  	status = jbd2_journal_load(journal);
+>  	if (status < 0) {
+>  		mlog_errno(status);
+> -		if (!igrab(inode))
+> -			BUG();
+> +		BUG_ON(!igrab(inode));
+>  		jbd2_journal_destroy(journal);
+>  		goto done;
+>  	}
+> @@ -1686,8 +1684,7 @@ static int ocfs2_replay_journal(struct ocfs2_super *osb,
+>  	if (status < 0)
+>  		mlog_errno(status);
+>  
+> -	if (!igrab(inode))
+> -		BUG();
+> +	BUG_ON(!igrab(inode));
+>  
+>  	jbd2_journal_destroy(journal);
+>  
+> 
 
 _______________________________________________
 Ocfs2-devel mailing list
