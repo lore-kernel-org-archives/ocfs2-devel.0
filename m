@@ -1,101 +1,133 @@
-Return-Path: <SRS0=ddK4=NW=oss.oracle.com=ocfs2-devel-bounces@kernel.org>
+Return-Path: <SRS0=Lpf2=NX=oss.oracle.com=ocfs2-devel-bounces@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 X-Spam-Level: 
 X-Spam-Status: No, score=-3.8 required=3.0 tests=BAYES_00,
-	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS
-	autolearn=no autolearn_force=no version=3.4.0
+	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,
+	URIBL_BLOCKED autolearn=no autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 2F6D9C432BE
-	for <ocfs2-devel@archiver.kernel.org>; Tue, 31 Aug 2021 15:33:41 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id E00D1C432BE
+	for <ocfs2-devel@archiver.kernel.org>; Wed,  1 Sep 2021 19:56:55 +0000 (UTC)
 Received: from mx0a-00069f02.pphosted.com (mx0a-00069f02.pphosted.com [205.220.165.32])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by mail.kernel.org (Postfix) with ESMTPS id B0EBA60F42
-	for <ocfs2-devel@archiver.kernel.org>; Tue, 31 Aug 2021 15:33:40 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.1 mail.kernel.org B0EBA60F42
-Authentication-Results: mail.kernel.org; dmarc=none (p=none dis=none) header.from=zeniv.linux.org.uk
+	by mail.kernel.org (Postfix) with ESMTPS id 91A3060F90
+	for <ocfs2-devel@archiver.kernel.org>; Wed,  1 Sep 2021 19:56:55 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.1 mail.kernel.org 91A3060F90
+Authentication-Results: mail.kernel.org; dmarc=fail (p=none dis=none) header.from=redhat.com
 Authentication-Results: mail.kernel.org; spf=pass smtp.mailfrom=oss.oracle.com
-Received: from pps.filterd (m0246627.ppops.net [127.0.0.1])
-	by mx0b-00069f02.pphosted.com (8.16.1.2/8.16.1.2) with SMTP id 17VDETme013065;
-	Tue, 31 Aug 2021 15:33:39 GMT
+Received: from pps.filterd (m0246617.ppops.net [127.0.0.1])
+	by mx0b-00069f02.pphosted.com (8.16.1.2/8.16.1.2) with SMTP id 181I3vCf018863;
+	Wed, 1 Sep 2021 19:56:55 GMT
 Received: from userp3020.oracle.com (userp3020.oracle.com [156.151.31.79])
-	by mx0b-00069f02.pphosted.com with ESMTP id 3ase029j4x-1
+	by mx0b-00069f02.pphosted.com with ESMTP id 3atdvygduh-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Tue, 31 Aug 2021 15:33:38 +0000
+	Wed, 01 Sep 2021 19:56:54 +0000
 Received: from pps.filterd (userp3020.oracle.com [127.0.0.1])
-	by userp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 17VFFoDn002633;
-	Tue, 31 Aug 2021 15:33:37 GMT
+	by userp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 181Jnqk8116916;
+	Wed, 1 Sep 2021 19:56:53 GMT
 Received: from oss.oracle.com (oss-old-reserved.oracle.com [137.254.22.2])
-	by userp3020.oracle.com with ESMTP id 3aqxwtqy2x-1
+	by userp3020.oracle.com with ESMTP id 3atdyxp9xx-1
 	(version=TLSv1 cipher=AES256-SHA bits=256 verify=NO);
-	Tue, 31 Aug 2021 15:33:37 +0000
+	Wed, 01 Sep 2021 19:56:53 +0000
 Received: from localhost ([127.0.0.1] helo=lb-oss.oracle.com)
 	by oss.oracle.com with esmtp (Exim 4.63)
 	(envelope-from <ocfs2-devel-bounces@oss.oracle.com>)
-	id 1mL5lY-0003yk-0r; Tue, 31 Aug 2021 08:33:36 -0700
-Received: from userp3020.oracle.com ([156.151.31.79])
+	id 1mLWIp-00078D-6F; Wed, 01 Sep 2021 12:53:43 -0700
+Received: from aserp3030.oracle.com ([141.146.126.71])
 	by oss.oracle.com with esmtp (Exim 4.63)
-	(envelope-from <viro@ftp.linux.org.uk>) id 1mL5lU-0003yL-4d
-	for ocfs2-devel@oss.oracle.com; Tue, 31 Aug 2021 08:33:32 -0700
-Received: from pps.filterd (userp3020.oracle.com [127.0.0.1])
-	by userp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
-	17VFFoNT002616
-	for <ocfs2-devel@oss.oracle.com>; Tue, 31 Aug 2021 15:33:31 GMT
+	(envelope-from <agruenba@redhat.com>) id 1mLWIH-00070P-F7
+	for ocfs2-devel@oss.oracle.com; Wed, 01 Sep 2021 12:53:09 -0700
+Received: from pps.filterd (aserp3030.oracle.com [127.0.0.1])
+	by aserp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
+	181JpmZR176263
+	for <ocfs2-devel@oss.oracle.com>; Wed, 1 Sep 2021 19:53:09 GMT
 Received: from mx0b-00069f01.pphosted.com (mx0b-00069f01.pphosted.com
-	[205.220.177.26]) by userp3020.oracle.com with ESMTP id 3aqxwtqxy5-1
+	[205.220.177.26]) by aserp3030.oracle.com with ESMTP id 3atdyvwmn6-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Tue, 31 Aug 2021 15:33:30 +0000
-Received: from pps.filterd (m0246579.ppops.net [127.0.0.1])
+	for <ocfs2-devel@oss.oracle.com>; Wed, 01 Sep 2021 19:53:09 +0000
+Received: from pps.filterd (m0246576.ppops.net [127.0.0.1])
 	by mx0b-00069f01.pphosted.com (8.16.1.2/8.16.0.43) with SMTP id
-	17VCth4U014279
-	for <ocfs2-devel@oss.oracle.com>; Tue, 31 Aug 2021 15:33:30 GMT
-Received: from zeniv-ca.linux.org.uk (zeniv-ca.linux.org.uk [142.44.231.140])
-	by mx0b-00069f01.pphosted.com with ESMTP id 3arwr41bbg-1
-	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NO)
-	for <ocfs2-devel@oss.oracle.com>; Tue, 31 Aug 2021 15:33:29 +0000
-Received: from viro by zeniv-ca.linux.org.uk with local (Exim 4.94.2 #2 (Red
-	Hat Linux)) id 1mL5h3-0000RV-T4; Tue, 31 Aug 2021 15:28:58 +0000
-Date: Tue, 31 Aug 2021 15:28:57 +0000
-From: Al Viro <viro@zeniv.linux.org.uk>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Message-ID: <YS5KudP4DBwlbPEp@zeniv-ca.linux.org.uk>
-References: <20210827164926.1726765-1-agruenba@redhat.com>
-	<20210827164926.1726765-6-agruenba@redhat.com>
-	<YSkz025ncjhyRmlB@zeniv-ca.linux.org.uk>
-	<CAHk-=wh5p6zpgUUoY+O7e74X9BZyODhnsqvv=xqnTaLRNj3d_Q@mail.gmail.com>
-	<YSk7xfcHVc7CxtQO@zeniv-ca.linux.org.uk>
-	<CAHk-=wjMyZLH+ta5SohAViSc10iPj-hRnHc-KPDoj1XZCmxdBg@mail.gmail.com>
-	<YSk+9cTMYi2+BFW7@zeniv-ca.linux.org.uk>
-	<YSldx9uhMYhT/G8X@zeniv-ca.linux.org.uk>
-	<YSqOUb7yZ7kBoKRY@zeniv-ca.linux.org.uk> <YS40qqmXL7CMFLGq@arm.com>
+	181JHbt1030591
+	for <ocfs2-devel@oss.oracle.com>; Wed, 1 Sep 2021 19:53:08 GMT
+Received: from us-smtp-delivery-124.mimecast.com
+	(us-smtp-delivery-124.mimecast.com [216.205.24.124])
+	by mx0b-00069f01.pphosted.com with ESMTP id 3atdwxshmr-1
+	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
+	for <ocfs2-devel@oss.oracle.com>; Wed, 01 Sep 2021 19:53:08 +0000
+Received: from mail-wr1-f70.google.com (mail-wr1-f70.google.com
+	[209.85.221.70]) (Using TLS) by relay.mimecast.com with ESMTP id
+	us-mta-395-U1ARPnxeP36uz4BMO8bqyg-1; Wed, 01 Sep 2021 15:53:04 -0400
+X-MC-Unique: U1ARPnxeP36uz4BMO8bqyg-1
+Received: by mail-wr1-f70.google.com with SMTP id
+	p10-20020adfce0a000000b001572d05c970so241909wrn.21
+	for <ocfs2-devel@oss.oracle.com>; Wed, 01 Sep 2021 12:53:04 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=1e100.net; s=20161025;
+	h=x-gm-message-state:mime-version:references:in-reply-to:from:date
+	:message-id:subject:to:cc;
+	bh=bFy1F+QsYxR5COx5bC/TDu7Bi/by603yH1cn5pidm4Q=;
+	b=sfTiOEGijm2vFcGBhktQlezcQ7GNqDN6PVv7i7f/EKJZnvxe/nbjbewvvPZ3o/e1eg
+	R++pPryJnLbWXWpzzVvf1FVKXx3qtjTKmSHxXL+r8nKxKRpnjb5O8cT1BDInzTfHpR9v
+	U5/K6PddxfxBhC+bofvHw66IU8QRX/cDnfXEJDa97CTYiDRSZNCnmesdyuTLO/WLRqHm
+	S2OiEnYjLoa/y74QwD0s6jg0IUIR1z2ygKoJh1l0b8+qlDl76tvMBhAHYRYPLXBuzdgE
+	0weZXknw46ObCatM0ZcnJ9QEqv0Y6XcNTvMRWlRptQOpwPop4R9EBC1LIkIKtf//RGiB
+	OEBw==
+X-Gm-Message-State: AOAM5337r/f3qZuHjjyJfTc6CLcEvJuhL5nKAzKRsPPY1ei376Roh9im
+	HLdy+PWHCOm2r+90Dx6+lQkstW+L20ZhX3DURkw4u0E3Coo6TTke7KqkKrqkvWKn7N42nC8eU4Z
+	ZpIucA6e4Tk2wFA6AU/gdNArn6IXPobKW2Q+yog==
+X-Received: by 2002:a5d:674b:: with SMTP id l11mr1134425wrw.357.1630525983086; 
+	Wed, 01 Sep 2021 12:53:03 -0700 (PDT)
+X-Google-Smtp-Source: ABdhPJy13a9+qZa6g03QLR52J8E62dIEzq7mnQQkvBXnCkrMx+s+g3F4vOoKLHB3KfUO0ib83MII2IoHGfd93bk24N8=
+X-Received: by 2002:a5d:674b:: with SMTP id l11mr1134407wrw.357.1630525982924; 
+	Wed, 01 Sep 2021 12:53:02 -0700 (PDT)
 MIME-Version: 1.0
-Content-Disposition: inline
-In-Reply-To: <YS40qqmXL7CMFLGq@arm.com>
-X-Source-IP: 142.44.231.140
-X-ServerName: zeniv-ca.linux.org.uk
-X-Proofpoint-SPF-Result: None
-X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10093
+References: <20210827164926.1726765-1-agruenba@redhat.com>
+	<CAHk-=wiUtyoTWuzroNJQwQDM9GHRXvq4974VL=y8T_3tUxDbkA@mail.gmail.com>
+In-Reply-To: <CAHk-=wiUtyoTWuzroNJQwQDM9GHRXvq4974VL=y8T_3tUxDbkA@mail.gmail.com>
+From: Andreas Gruenbacher <agruenba@redhat.com>
+Date: Wed, 1 Sep 2021 21:52:51 +0200
+Message-ID: <CAHc6FU7K0Ho=nH6fCK+Amc7zEg2G31v+gE3920ric3NE4MfH=A@mail.gmail.com>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Authentication-Results: relay.mimecast.com;
+	auth=pass smtp.auth=CUSA124A263 smtp.mailfrom=agruenba@redhat.com
+X-Mimecast-Spam-Score: 0
+X-Mimecast-Originator: redhat.com
+X-Proofpoint-SPF-Result: pass
+X-Proofpoint-SPF-Record: v=spf1 ip4:103.23.64.2 ip4:103.23.65.2
+	ip4:103.23.66.26 ip4:103.23.67.26
+	ip4:107.21.15.141 ip4:108.177.8.0/21 ip4:128.17.0.0/20
+	ip4:128.17.128.0/20
+	ip4:128.17.192.0/20 ip4:128.17.64.0/20 ip4:128.245.0.0/20
+	ip4:128.245.64.0/20 ip4:13.110.208.0/21 ip4:13.110.216.0/22
+	ip4:13.111.0.0/16 ip4:136.147.128.0/20 ip4:136.147.176.0/20
+	include:spf1.redhat.com -all
+X-Proofpoint-SPF-VenPass: Allowed
+X-Source-IP: 216.205.24.124
+X-ServerName: us-smtp-delivery-124.mimecast.com
+X-Proofpoint-SPF-Result: pass
+X-Proofpoint-SPF-Record: v=spf1 ip4:103.23.64.2 ip4:103.23.65.2
+	ip4:103.23.66.26 ip4:103.23.67.26
+	ip4:107.21.15.141 ip4:108.177.8.0/21 ip4:128.17.0.0/20
+	ip4:128.17.128.0/20
+	ip4:128.17.192.0/20 ip4:128.17.64.0/20 ip4:128.245.0.0/20
+	ip4:128.245.64.0/20 ip4:13.110.208.0/21 ip4:13.110.216.0/22
+	ip4:13.111.0.0/16 ip4:136.147.128.0/20 ip4:136.147.176.0/20
+	include:spf1.redhat.com -all
+X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10094
 	signatures=668682
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 spamscore=0
-	priorityscore=0 bulkscore=0
-	phishscore=0 impostorscore=0 lowpriorityscore=0 clxscore=344
-	malwarescore=0 mlxscore=0 mlxlogscore=999 adultscore=0 suspectscore=0
-	classifier=spam adjust=0 reason=mlx scancount=1
-	engine=8.12.0-2107140000
-	definitions=main-2108310083 domainage_hfrom=9161
-X-Spam: Clean
-Cc: cluster-devel <cluster-devel@redhat.com>, Jan Kara <jack@suse.cz>,
-        Andreas Gruenbacher <agruenba@redhat.com>,
-        Will Deacon <will@kernel.org>,
+X-Proofpoint-Spam-Reason: safe
+X-Spam: OrgSafeList
+X-SpamRule: orgsafelist
+Cc: kvm-ppc@vger.kernel.org, Paul Mackerras <paulus@ozlabs.org>,
+        cluster-devel <cluster-devel@redhat.com>, Jan Kara <jack@suse.cz>,
         Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
-        Josef Bacik <josef@toxicpanda.com>,
         Christoph Hellwig <hch@infradead.org>,
+        Alexander Viro <viro@zeniv.linux.org.uk>,
         linux-fsdevel <linux-fsdevel@vger.kernel.org>,
-        Linus Torvalds <torvalds@linux-foundation.org>,
-        "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>
-Subject: Re: [Ocfs2-devel] [RFC][arm64] possible infinite loop in btrfs
-	search_ioctl()
+        ocfs2-devel@oss.oracle.com
+Subject: Re: [Ocfs2-devel] [PATCH v7 00/19] gfs2: Fix mmap + page fault
+	deadlocks
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.9
 Precedence: list
@@ -111,32 +143,41 @@ Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 Sender: ocfs2-devel-bounces@oss.oracle.com
 Errors-To: ocfs2-devel-bounces@oss.oracle.com
-X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10093 signatures=668682
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 bulkscore=0 mlxlogscore=999 mlxscore=0
- malwarescore=0 suspectscore=0 spamscore=0 adultscore=0 phishscore=0
- classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2107140000
- definitions=main-2108310082
-X-Proofpoint-GUID: qOtfxiaK20Y1T7VZBE0-YaDiWxyGO-lh
-X-Proofpoint-ORIG-GUID: qOtfxiaK20Y1T7VZBE0-YaDiWxyGO-lh
+X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10094 signatures=668682
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 adultscore=0 bulkscore=0
+ mlxlogscore=999 mlxscore=0 suspectscore=0 spamscore=0 phishscore=0
+ malwarescore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2108310000 definitions=main-2109010115
+X-Proofpoint-GUID: 1NUDbc7X8mLZIvjjUSWQ7PxR0oecxLOu
+X-Proofpoint-ORIG-GUID: 1NUDbc7X8mLZIvjjUSWQ7PxR0oecxLOu
 
-On Tue, Aug 31, 2021 at 02:54:50PM +0100, Catalin Marinas wrote:
+On Fri, Aug 27, 2021 at 7:17 PM Linus Torvalds
+<torvalds@linux-foundation.org> wrote:
+> On Fri, Aug 27, 2021 at 9:49 AM Andreas Gruenbacher <agruenba@redhat.com> wrote:
+> >
+> > here's another update on top of v5.14-rc7.  Changes:
+> >
+> >  * Some of the patch descriptions have been improved.
+> >
+> >  * Patch "gfs2: Eliminate ip->i_gh" has been moved further to the front.
+> >
+> > At this point, I'm not aware of anything that still needs fixing,
+>
+> From a quick scan, I didn't see anything that raised my hackles.
 
-> An arm64-specific workaround would be for pagefault_disable() to disable
-> tag checking. It's a pretty big hammer, weakening the out of bounds
-> access detection of MTE. My preference would be a fix in the btrfs code.
-> 
-> A btrfs option would be for copy_to_sk() to return an indication of
-> where the fault occurred and get fault_in_pages_writeable() to check
-> that location, even if the copying would restart from an earlier offset
-> (this requires open-coding copy_to_user_nofault()). An attempt below,
-> untested and does not cover read_extent_buffer_to_user_nofault():
+So there's a minor merge conflict between Christoph's iomap_iter
+conversion and this patch queue now, and I should probably clarify the
+description of "iomap: Add done_before argument to iomap_dio_rw" that
+Darrick ran into. Then there are the user copy issues that Al has
+pointed out. Fixing those will create superficial conflicts with this
+patch queue, but probably nothing serious.
 
-Umm...  There's another copy_to_user_nofault() call in the same function
-(same story, AFAICS).
+So how should I proceed: do you expect a v8 of this patch queue on top
+of the current mainline?
 
-Can't say I'm fond of their ABI, but then I guess it could've been worse -
-iterating over btree, running a user-supplied chunk of INTERCAL over it,
-with all details of internal representation cast in stone by that exposure...
+Thanks,
+Andreas
+
 
 _______________________________________________
 Ocfs2-devel mailing list
