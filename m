@@ -6,65 +6,65 @@ X-Spam-Status: No, score=-14.0 required=3.0 tests=BAYES_00,INCLUDES_CR_TRAILER,
 	INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS autolearn=ham
 	autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id DE689C433EF
-	for <ocfs2-devel@archiver.kernel.org>; Fri,  3 Sep 2021 18:54:39 +0000 (UTC)
-Received: from mx0b-00069f02.pphosted.com (mx0b-00069f02.pphosted.com [205.220.177.32])
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 2631AC433EF
+	for <ocfs2-devel@archiver.kernel.org>; Fri,  3 Sep 2021 18:54:51 +0000 (UTC)
+Received: from mx0a-00069f02.pphosted.com (mx0a-00069f02.pphosted.com [205.220.165.32])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by mail.kernel.org (Postfix) with ESMTPS id 848BE60EC0
-	for <ocfs2-devel@archiver.kernel.org>; Fri,  3 Sep 2021 18:54:39 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.1 mail.kernel.org 848BE60EC0
+	by mail.kernel.org (Postfix) with ESMTPS id D879A60EC0
+	for <ocfs2-devel@archiver.kernel.org>; Fri,  3 Sep 2021 18:54:50 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.1 mail.kernel.org D879A60EC0
 Authentication-Results: mail.kernel.org; dmarc=fail (p=none dis=none) header.from=kernel.org
 Authentication-Results: mail.kernel.org; spf=pass smtp.mailfrom=oss.oracle.com
-Received: from pps.filterd (m0246630.ppops.net [127.0.0.1])
-	by mx0b-00069f02.pphosted.com (8.16.1.2/8.16.1.2) with SMTP id 183ITirG008914;
-	Fri, 3 Sep 2021 18:54:38 GMT
-Received: from userp3030.oracle.com (userp3030.oracle.com [156.151.31.80])
-	by mx0b-00069f02.pphosted.com with ESMTP id 3aue9fsy07-1
+Received: from pps.filterd (m0246627.ppops.net [127.0.0.1])
+	by mx0b-00069f02.pphosted.com (8.16.1.2/8.16.1.2) with SMTP id 183ITdGb020888;
+	Fri, 3 Sep 2021 18:54:50 GMT
+Received: from userp3020.oracle.com (userp3020.oracle.com [156.151.31.79])
+	by mx0b-00069f02.pphosted.com with ESMTP id 3audq7j1pt-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Fri, 03 Sep 2021 18:54:38 +0000
-Received: from pps.filterd (userp3030.oracle.com [127.0.0.1])
-	by userp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 183IUal3147735;
-	Fri, 3 Sep 2021 18:54:37 GMT
+	Fri, 03 Sep 2021 18:54:50 +0000
+Received: from pps.filterd (userp3020.oracle.com [127.0.0.1])
+	by userp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 183IU11j043659;
+	Fri, 3 Sep 2021 18:54:49 GMT
 Received: from oss.oracle.com (oss-old-reserved.oracle.com [137.254.22.2])
-	by userp3030.oracle.com with ESMTP id 3ate07vxus-1
+	by userp3020.oracle.com with ESMTP id 3ate01xfa5-1
 	(version=TLSv1 cipher=AES256-SHA bits=256 verify=NO);
-	Fri, 03 Sep 2021 18:54:36 +0000
+	Fri, 03 Sep 2021 18:54:48 +0000
 Received: from localhost ([127.0.0.1] helo=lb-oss.oracle.com)
 	by oss.oracle.com with esmtp (Exim 4.63)
 	(envelope-from <ocfs2-devel-bounces@oss.oracle.com>)
-	id 1mMEKh-00076d-Oa; Fri, 03 Sep 2021 11:54:35 -0700
+	id 1mMEKt-00077g-RN; Fri, 03 Sep 2021 11:54:47 -0700
 Received: from aserp3030.oracle.com ([141.146.126.71])
 	by oss.oracle.com with esmtp (Exim 4.63)
-	(envelope-from <djwong@kernel.org>) id 1mMEKf-00076N-DK
-	for ocfs2-devel@oss.oracle.com; Fri, 03 Sep 2021 11:54:33 -0700
+	(envelope-from <djwong@kernel.org>) id 1mMEKr-00077R-T9
+	for ocfs2-devel@oss.oracle.com; Fri, 03 Sep 2021 11:54:45 -0700
 Received: from pps.filterd (aserp3030.oracle.com [127.0.0.1])
 	by aserp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
-	183ITu8N181133
-	for <ocfs2-devel@oss.oracle.com>; Fri, 3 Sep 2021 18:54:33 GMT
-Received: from mx0a-00069f01.pphosted.com (mx0a-00069f01.pphosted.com
-	[205.220.165.26]) by aserp3030.oracle.com with ESMTP id 3atdyyup5k-1
+	183ITtGn181008
+	for <ocfs2-devel@oss.oracle.com>; Fri, 3 Sep 2021 18:54:45 GMT
+Received: from mx0b-00069f01.pphosted.com (mx0b-00069f01.pphosted.com
+	[205.220.177.26]) by aserp3030.oracle.com with ESMTP id 3atdyyup9v-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Fri, 03 Sep 2021 18:54:33 +0000
-Received: from pps.filterd (m0246575.ppops.net [127.0.0.1])
+	for <ocfs2-devel@oss.oracle.com>; Fri, 03 Sep 2021 18:54:45 +0000
+Received: from pps.filterd (m0246577.ppops.net [127.0.0.1])
 	by mx0b-00069f01.pphosted.com (8.16.1.2/8.16.0.43) with SMTP id
-	183GhkSK019779
-	for <ocfs2-devel@oss.oracle.com>; Fri, 3 Sep 2021 18:54:32 GMT
+	183GHWdv030845
+	for <ocfs2-devel@oss.oracle.com>; Fri, 3 Sep 2021 18:54:45 GMT
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by mx0b-00069f01.pphosted.com with ESMTP id 3au7whkvsx-1
+	by mx0b-00069f01.pphosted.com with ESMTP id 3au7wcbwsd-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NO)
-	for <ocfs2-devel@oss.oracle.com>; Fri, 03 Sep 2021 18:54:31 +0000
-Received: by mail.kernel.org (Postfix) with ESMTPSA id C6EEA61051;
-	Fri,  3 Sep 2021 18:54:30 +0000 (UTC)
-Date: Fri, 3 Sep 2021 11:54:30 -0700
+	for <ocfs2-devel@oss.oracle.com>; Fri, 03 Sep 2021 18:54:44 +0000
+Received: by mail.kernel.org (Postfix) with ESMTPSA id 888A661051;
+	Fri,  3 Sep 2021 18:54:43 +0000 (UTC)
+Date: Fri, 3 Sep 2021 11:54:43 -0700
 From: "Darrick J. Wong" <djwong@kernel.org>
 To: Andreas Gruenbacher <agruenba@redhat.com>
-Message-ID: <20210903185430.GE9892@magnolia>
+Message-ID: <20210903185443.GF9892@magnolia>
 References: <20210827164926.1726765-1-agruenba@redhat.com>
-	<20210827164926.1726765-16-agruenba@redhat.com>
+	<20210827164926.1726765-15-agruenba@redhat.com>
 MIME-Version: 1.0
 Content-Disposition: inline
-In-Reply-To: <20210827164926.1726765-16-agruenba@redhat.com>
+In-Reply-To: <20210827164926.1726765-15-agruenba@redhat.com>
 X-Source-IP: 198.145.29.99
 X-ServerName: mail.kernel.org
 X-Proofpoint-SPF-Result: pass
@@ -80,8 +80,8 @@ Cc: cluster-devel@redhat.com, Jan Kara <jack@suse.cz>,
         linux-fsdevel@vger.kernel.org,
         Linus Torvalds <torvalds@linux-foundation.org>,
         ocfs2-devel@oss.oracle.com
-Subject: Re: [Ocfs2-devel] [PATCH v7 15/19] iomap: Support partial direct
- I/O on user copy failures
+Subject: Re: [Ocfs2-devel] [PATCH v7 14/19] iomap: Fix iomap_dio_rw return
+ value for user copies
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.9
 Precedence: list
@@ -98,66 +98,52 @@ Content-Transfer-Encoding: 7bit
 Sender: ocfs2-devel-bounces@oss.oracle.com
 Errors-To: ocfs2-devel-bounces@oss.oracle.com
 X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10096 signatures=668682
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 spamscore=0 adultscore=0 mlxscore=0
- phishscore=0 malwarescore=0 suspectscore=0 bulkscore=0 mlxlogscore=999
- classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2108310000
- definitions=main-2109030110
-X-Proofpoint-GUID: p6tygKdxgej71vgNNxJmsqja4_vCquhi
-X-Proofpoint-ORIG-GUID: p6tygKdxgej71vgNNxJmsqja4_vCquhi
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 adultscore=0 bulkscore=0
+ mlxlogscore=999 mlxscore=0 suspectscore=0 spamscore=0 phishscore=0
+ malwarescore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2108310000 definitions=main-2109030110
+X-Proofpoint-ORIG-GUID: YJ6CTFCF2uzkxBp1bw11uKvCno91v7qv
+X-Proofpoint-GUID: YJ6CTFCF2uzkxBp1bw11uKvCno91v7qv
 
-On Fri, Aug 27, 2021 at 06:49:22PM +0200, Andreas Gruenbacher wrote:
-> In iomap_dio_rw, when iomap_apply returns an -EFAULT error and the
-> IOMAP_DIO_PARTIAL flag is set, complete the request synchronously and
-> return a partial result.  This allows the caller to deal with the page
-> fault and retry the remainder of the request.
+On Fri, Aug 27, 2021 at 06:49:21PM +0200, Andreas Gruenbacher wrote:
+> When a user copy fails in one of the helpers of iomap_dio_rw, fail with
+> -EFAULT instead of returning 0.  This matches what iomap_dio_bio_actor
+> returns when it gets an -EFAULT from bio_iov_iter_get_pages.  With these
+> changes, iomap_dio_actor now consistently fails with -EFAULT when a user
+> page cannot be faulted in.
 > 
 > Signed-off-by: Andreas Gruenbacher <agruenba@redhat.com>
 
-Pretty straightforward.
 Reviewed-by: Darrick J. Wong <djwong@kernel.org>
 
 --D
 
 > ---
->  fs/iomap/direct-io.c  | 6 ++++++
->  include/linux/iomap.h | 7 +++++++
->  2 files changed, 13 insertions(+)
+>  fs/iomap/direct-io.c | 4 ++--
+>  1 file changed, 2 insertions(+), 2 deletions(-)
 > 
 > diff --git a/fs/iomap/direct-io.c b/fs/iomap/direct-io.c
-> index 8054f5d6c273..ba88fe51b77a 100644
+> index 9398b8c31323..8054f5d6c273 100644
 > --- a/fs/iomap/direct-io.c
 > +++ b/fs/iomap/direct-io.c
-> @@ -561,6 +561,12 @@ __iomap_dio_rw(struct kiocb *iocb, struct iov_iter *iter,
->  		ret = iomap_apply(inode, pos, count, iomap_flags, ops, dio,
->  				iomap_dio_actor);
->  		if (ret <= 0) {
-> +			if (ret == -EFAULT && dio->size &&
-> +			    (dio_flags & IOMAP_DIO_PARTIAL)) {
-> +				wait_for_completion = true;
-> +				ret = 0;
-> +			}
-> +
->  			/* magic error code to fall back to buffered I/O */
->  			if (ret == -ENOTBLK) {
->  				wait_for_completion = true;
-> diff --git a/include/linux/iomap.h b/include/linux/iomap.h
-> index 479c1da3e221..bcae4814b8e3 100644
-> --- a/include/linux/iomap.h
-> +++ b/include/linux/iomap.h
-> @@ -267,6 +267,13 @@ struct iomap_dio_ops {
->    */
->  #define IOMAP_DIO_OVERWRITE_ONLY	(1 << 1)
+> @@ -370,7 +370,7 @@ iomap_dio_hole_actor(loff_t length, struct iomap_dio *dio)
+>  {
+>  	length = iov_iter_zero(length, dio->submit.iter);
+>  	dio->size += length;
+> -	return length;
+> +	return length ? length : -EFAULT;
+>  }
 >  
-> +/*
-> + * When a page fault occurs, return a partial synchronous result and allow
-> + * the caller to retry the rest of the operation after dealing with the page
-> + * fault.
-> + */
-> +#define IOMAP_DIO_PARTIAL		(1 << 2)
-> +
->  ssize_t iomap_dio_rw(struct kiocb *iocb, struct iov_iter *iter,
->  		const struct iomap_ops *ops, const struct iomap_dio_ops *dops,
->  		unsigned int dio_flags);
+>  static loff_t
+> @@ -397,7 +397,7 @@ iomap_dio_inline_actor(struct inode *inode, loff_t pos, loff_t length,
+>  		copied = copy_to_iter(iomap->inline_data + pos, length, iter);
+>  	}
+>  	dio->size += copied;
+> -	return copied;
+> +	return copied ? copied : -EFAULT;
+>  }
+>  
+>  static loff_t
 > -- 
 > 2.26.3
 > 
