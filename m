@@ -6,62 +6,62 @@ X-Spam-Status: No, score=-17.0 required=3.0 tests=BAYES_00,INCLUDES_CR_TRAILER,
 	INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT
 	autolearn=ham autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 95B10C433EF
-	for <ocfs2-devel@archiver.kernel.org>; Fri, 10 Sep 2021 00:18:39 +0000 (UTC)
-Received: from mx0b-00069f02.pphosted.com (mx0b-00069f02.pphosted.com [205.220.177.32])
+	by smtp.lore.kernel.org (Postfix) with ESMTP id C91AFC433FE
+	for <ocfs2-devel@archiver.kernel.org>; Fri, 10 Sep 2021 00:20:23 +0000 (UTC)
+Received: from mx0a-00069f02.pphosted.com (mx0a-00069f02.pphosted.com [205.220.165.32])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by mail.kernel.org (Postfix) with ESMTPS id 3107661167
-	for <ocfs2-devel@archiver.kernel.org>; Fri, 10 Sep 2021 00:18:39 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.1 mail.kernel.org 3107661167
+	by mail.kernel.org (Postfix) with ESMTPS id 863E3611AF
+	for <ocfs2-devel@archiver.kernel.org>; Fri, 10 Sep 2021 00:20:23 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.1 mail.kernel.org 863E3611AF
 Authentication-Results: mail.kernel.org; dmarc=fail (p=none dis=none) header.from=kernel.org
 Authentication-Results: mail.kernel.org; spf=pass smtp.mailfrom=oss.oracle.com
-Received: from pps.filterd (m0246631.ppops.net [127.0.0.1])
-	by mx0b-00069f02.pphosted.com (8.16.1.2/8.16.1.2) with SMTP id 189M8nCx007212;
-	Fri, 10 Sep 2021 00:18:38 GMT
+Received: from pps.filterd (m0246629.ppops.net [127.0.0.1])
+	by mx0b-00069f02.pphosted.com (8.16.1.2/8.16.1.2) with SMTP id 189LkGxr023952;
+	Fri, 10 Sep 2021 00:20:23 GMT
 Received: from userp3030.oracle.com (userp3030.oracle.com [156.151.31.80])
-	by mx0b-00069f02.pphosted.com with ESMTP id 3ayttbg6ws-1
+	by mx0b-00069f02.pphosted.com with ESMTP id 3aytfk88m4-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Fri, 10 Sep 2021 00:18:38 +0000
+	Fri, 10 Sep 2021 00:20:22 +0000
 Received: from pps.filterd (userp3030.oracle.com [127.0.0.1])
-	by userp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 18A0ErtT042961;
-	Fri, 10 Sep 2021 00:18:37 GMT
+	by userp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 18A0ErTP042942;
+	Fri, 10 Sep 2021 00:20:21 GMT
 Received: from oss.oracle.com (oss-old-reserved.oracle.com [137.254.22.2])
-	by userp3030.oracle.com with ESMTP id 3aytft55ms-1;
-	Fri, 10 Sep 2021 00:18:36 +0000
+	by userp3030.oracle.com with ESMTP id 3aytft57ng-1;
+	Fri, 10 Sep 2021 00:20:21 +0000
 Received: from localhost ([127.0.0.1] helo=lb-oss.oracle.com)
 	by oss.oracle.com with esmtp (Exim 4.63)
 	(envelope-from <ocfs2-devel-bounces@oss.oracle.com>)
-	id 1mOUFX-0000xZ-Gx; Thu, 09 Sep 2021 17:18:35 -0700
-Received: from userp3020.oracle.com ([156.151.31.79])
+	id 1mOUHE-00017I-MV; Thu, 09 Sep 2021 17:20:20 -0700
+Received: from userp3030.oracle.com ([156.151.31.80])
 	by oss.oracle.com with esmtp (Exim 4.63)
-	(envelope-from <sashal@kernel.org>) id 1mOUF4-0000wG-Qy
-	for ocfs2-devel@oss.oracle.com; Thu, 09 Sep 2021 17:18:06 -0700
-Received: from pps.filterd (userp3020.oracle.com [127.0.0.1])
-	by userp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
-	18A0EuNk126438
-	for <ocfs2-devel@oss.oracle.com>; Fri, 10 Sep 2021 00:18:06 GMT
-Received: from mx0b-00069f01.pphosted.com (mx0b-00069f01.pphosted.com
-	[205.220.177.26]) by userp3020.oracle.com with ESMTP id 3aytfcn81d-1
+	(envelope-from <sashal@kernel.org>) id 1mOUH9-00016h-5J
+	for ocfs2-devel@oss.oracle.com; Thu, 09 Sep 2021 17:20:15 -0700
+Received: from pps.filterd (userp3030.oracle.com [127.0.0.1])
+	by userp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
+	18A0ErOZ042981
+	for <ocfs2-devel@oss.oracle.com>; Fri, 10 Sep 2021 00:20:14 GMT
+Received: from mx0a-00069f01.pphosted.com (mx0a-00069f01.pphosted.com
+	[205.220.165.26]) by userp3030.oracle.com with ESMTP id 3aytft57fy-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Fri, 10 Sep 2021 00:18:06 +0000
-Received: from pps.filterd (m0246579.ppops.net [127.0.0.1])
+	for <ocfs2-devel@oss.oracle.com>; Fri, 10 Sep 2021 00:20:14 +0000
+Received: from pps.filterd (m0246574.ppops.net [127.0.0.1])
 	by mx0b-00069f01.pphosted.com (8.16.1.2/8.16.0.43) with SMTP id
-	189M4X3q021172
-	for <ocfs2-devel@oss.oracle.com>; Fri, 10 Sep 2021 00:18:05 GMT
+	189MQsU4010172
+	for <ocfs2-devel@oss.oracle.com>; Fri, 10 Sep 2021 00:20:13 GMT
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by mx0b-00069f01.pphosted.com with ESMTP id 3aytr8sap2-1
+	by mx0b-00069f01.pphosted.com with ESMTP id 3ayu2k1467-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NO)
-	for <ocfs2-devel@oss.oracle.com>; Fri, 10 Sep 2021 00:18:05 +0000
-Received: by mail.kernel.org (Postfix) with ESMTPSA id 196BB6115A;
-	Fri, 10 Sep 2021 00:18:02 +0000 (UTC)
+	for <ocfs2-devel@oss.oracle.com>; Fri, 10 Sep 2021 00:20:12 +0000
+Received: by mail.kernel.org (Postfix) with ESMTPSA id 721126023D;
+	Fri, 10 Sep 2021 00:20:10 +0000 (UTC)
 From: Sasha Levin <sashal@kernel.org>
 To: linux-kernel@vger.kernel.org, stable@vger.kernel.org
-Date: Thu,  9 Sep 2021 20:15:49 -0400
-Message-Id: <20210910001558.173296-90-sashal@kernel.org>
+Date: Thu,  9 Sep 2021 20:18:11 -0400
+Message-Id: <20210910001820.174272-79-sashal@kernel.org>
 X-Mailer: git-send-email 2.30.2
-In-Reply-To: <20210910001558.173296-1-sashal@kernel.org>
-References: <20210910001558.173296-1-sashal@kernel.org>
+In-Reply-To: <20210910001820.174272-1-sashal@kernel.org>
+References: <20210910001820.174272-1-sashal@kernel.org>
 MIME-Version: 1.0
 X-stable: review
 X-Patchwork-Hint: Ignore
@@ -77,7 +77,7 @@ X-SpamRule: orgsafelist
 Cc: Sasha Levin <sashal@kernel.org>, TOTE Robot <oslab@tsinghua.edu.cn>,
         Linus Torvalds <torvalds@linux-foundation.org>,
         Tuo Li <islituo@gmail.com>, ocfs2-devel@oss.oracle.com
-Subject: [Ocfs2-devel] [PATCH AUTOSEL 5.14 90/99] ocfs2: quota_local: fix
+Subject: [Ocfs2-devel] [PATCH AUTOSEL 5.13 79/88] ocfs2: quota_local: fix
 	possible uninitialized-variable access in ocfs2_local_read_info()
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.9
@@ -99,8 +99,8 @@ X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 adultscore=0 bulk
  spamscore=0 malwarescore=0 suspectscore=0 mlxscore=0 mlxlogscore=999
  classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2109030001
  definitions=main-2109100000
-X-Proofpoint-GUID: u-bIi5eylQYg17MMGCKnStXe0VKjjZ3O
-X-Proofpoint-ORIG-GUID: u-bIi5eylQYg17MMGCKnStXe0VKjjZ3O
+X-Proofpoint-GUID: TJihBPEYAuC7gZN6_HAd5FtEW7fGnh0u
+X-Proofpoint-ORIG-GUID: TJihBPEYAuC7gZN6_HAd5FtEW7fGnh0u
 
 From: Tuo Li <islituo@gmail.com>
 
