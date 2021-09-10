@@ -6,62 +6,62 @@ X-Spam-Status: No, score=-17.0 required=3.0 tests=BAYES_00,INCLUDES_CR_TRAILER,
 	INCLUDES_PATCH,MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,USER_AGENT_GIT
 	autolearn=ham autolearn_force=no version=3.4.0
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 6FF5BC433FE
-	for <ocfs2-devel@archiver.kernel.org>; Fri, 10 Sep 2021 00:21:48 +0000 (UTC)
-Received: from mx0a-00069f02.pphosted.com (mx0a-00069f02.pphosted.com [205.220.165.32])
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 9D877C433EF
+	for <ocfs2-devel@archiver.kernel.org>; Fri, 10 Sep 2021 00:22:42 +0000 (UTC)
+Received: from mx0b-00069f02.pphosted.com (mx0b-00069f02.pphosted.com [205.220.177.32])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by mail.kernel.org (Postfix) with ESMTPS id 2D4E860FC0
-	for <ocfs2-devel@archiver.kernel.org>; Fri, 10 Sep 2021 00:21:48 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.1 mail.kernel.org 2D4E860FC0
+	by mail.kernel.org (Postfix) with ESMTPS id 4A0D6610A3
+	for <ocfs2-devel@archiver.kernel.org>; Fri, 10 Sep 2021 00:22:42 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.1 mail.kernel.org 4A0D6610A3
 Authentication-Results: mail.kernel.org; dmarc=fail (p=none dis=none) header.from=kernel.org
 Authentication-Results: mail.kernel.org; spf=pass smtp.mailfrom=oss.oracle.com
-Received: from pps.filterd (m0246617.ppops.net [127.0.0.1])
-	by mx0b-00069f02.pphosted.com (8.16.1.2/8.16.1.2) with SMTP id 189MJ7Gg013698;
-	Fri, 10 Sep 2021 00:21:47 GMT
+Received: from pps.filterd (m0246631.ppops.net [127.0.0.1])
+	by mx0b-00069f02.pphosted.com (8.16.1.2/8.16.1.2) with SMTP id 189M8njt007227;
+	Fri, 10 Sep 2021 00:22:41 GMT
 Received: from userp3030.oracle.com (userp3030.oracle.com [156.151.31.80])
-	by mx0b-00069f02.pphosted.com with ESMTP id 3ayty486yb-1
+	by mx0b-00069f02.pphosted.com with ESMTP id 3ayttbg73e-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Fri, 10 Sep 2021 00:21:47 +0000
+	Fri, 10 Sep 2021 00:22:41 +0000
 Received: from pps.filterd (userp3030.oracle.com [127.0.0.1])
-	by userp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 18A0EsF2043064;
-	Fri, 10 Sep 2021 00:21:46 GMT
+	by userp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 18A0Erp9042946;
+	Fri, 10 Sep 2021 00:22:40 GMT
 Received: from oss.oracle.com (oss-old-reserved.oracle.com [137.254.22.2])
-	by userp3030.oracle.com with ESMTP id 3aytft59g9-1;
-	Fri, 10 Sep 2021 00:21:45 +0000
+	by userp3030.oracle.com with ESMTP id 3aytft5ah3-1;
+	Fri, 10 Sep 2021 00:22:40 +0000
 Received: from localhost ([127.0.0.1] helo=lb-oss.oracle.com)
 	by oss.oracle.com with esmtp (Exim 4.63)
 	(envelope-from <ocfs2-devel-bounces@oss.oracle.com>)
-	id 1mOUIb-0001C8-1Z; Thu, 09 Sep 2021 17:21:45 -0700
-Received: from aserp3030.oracle.com ([141.146.126.71])
+	id 1mOUJT-0001ET-57; Thu, 09 Sep 2021 17:22:39 -0700
+Received: from userp3020.oracle.com ([156.151.31.79])
 	by oss.oracle.com with esmtp (Exim 4.63)
-	(envelope-from <sashal@kernel.org>) id 1mOUIY-0001AW-Sx
-	for ocfs2-devel@oss.oracle.com; Thu, 09 Sep 2021 17:21:42 -0700
-Received: from pps.filterd (aserp3030.oracle.com [127.0.0.1])
-	by aserp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
-	18A0GHXg160623
-	for <ocfs2-devel@oss.oracle.com>; Fri, 10 Sep 2021 00:21:42 GMT
-Received: from mx0a-00069f01.pphosted.com (mx0a-00069f01.pphosted.com
-	[205.220.165.26]) by aserp3030.oracle.com with ESMTP id 3aytgdvpqt-1
+	(envelope-from <sashal@kernel.org>) id 1mOUJO-0001Dx-9L
+	for ocfs2-devel@oss.oracle.com; Thu, 09 Sep 2021 17:22:34 -0700
+Received: from pps.filterd (userp3020.oracle.com [127.0.0.1])
+	by userp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
+	18A0Ettx126384
+	for <ocfs2-devel@oss.oracle.com>; Fri, 10 Sep 2021 00:22:34 GMT
+Received: from mx0b-00069f01.pphosted.com (mx0b-00069f01.pphosted.com
+	[205.220.177.26]) by userp3020.oracle.com with ESMTP id 3aytfcnf7g-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Fri, 10 Sep 2021 00:21:42 +0000
-Received: from pps.filterd (m0246571.ppops.net [127.0.0.1])
+	for <ocfs2-devel@oss.oracle.com>; Fri, 10 Sep 2021 00:22:33 +0000
+Received: from pps.filterd (m0246580.ppops.net [127.0.0.1])
 	by mx0b-00069f01.pphosted.com (8.16.1.2/8.16.0.43) with SMTP id
-	189MNSQR016413
-	for <ocfs2-devel@oss.oracle.com>; Fri, 10 Sep 2021 00:21:41 GMT
+	189ML1fc018787
+	for <ocfs2-devel@oss.oracle.com>; Fri, 10 Sep 2021 00:22:33 GMT
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by mx0b-00069f01.pphosted.com with ESMTP id 3ayu15s7ev-1
+	by mx0b-00069f01.pphosted.com with ESMTP id 3ayu02s54y-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NO)
-	for <ocfs2-devel@oss.oracle.com>; Fri, 10 Sep 2021 00:21:41 +0000
-Received: by mail.kernel.org (Postfix) with ESMTPSA id F0FD1604DC;
-	Fri, 10 Sep 2021 00:21:38 +0000 (UTC)
+	for <ocfs2-devel@oss.oracle.com>; Fri, 10 Sep 2021 00:22:32 +0000
+Received: by mail.kernel.org (Postfix) with ESMTPSA id C037560FC0;
+	Fri, 10 Sep 2021 00:22:29 +0000 (UTC)
 From: Sasha Levin <sashal@kernel.org>
 To: linux-kernel@vger.kernel.org, stable@vger.kernel.org
-Date: Thu,  9 Sep 2021 20:20:27 -0400
-Message-Id: <20210910002028.175174-52-sashal@kernel.org>
+Date: Thu,  9 Sep 2021 20:21:41 -0400
+Message-Id: <20210910002143.175731-36-sashal@kernel.org>
 X-Mailer: git-send-email 2.30.2
-In-Reply-To: <20210910002028.175174-1-sashal@kernel.org>
-References: <20210910002028.175174-1-sashal@kernel.org>
+In-Reply-To: <20210910002143.175731-1-sashal@kernel.org>
+References: <20210910002143.175731-1-sashal@kernel.org>
 MIME-Version: 1.0
 X-stable: review
 X-Patchwork-Hint: Ignore
@@ -74,11 +74,11 @@ X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10102
 X-Proofpoint-Spam-Reason: safe
 X-Spam: OrgSafeList
 X-SpamRule: orgsafelist
-Cc: Sasha Levin <sashal@kernel.org>,
+Cc: Sasha Levin <sashal@kernel.org>, TOTE Robot <oslab@tsinghua.edu.cn>,
         Linus Torvalds <torvalds@linux-foundation.org>,
-        ocfs2-devel@oss.oracle.com
-Subject: [Ocfs2-devel] [PATCH AUTOSEL 5.10 52/53] ocfs2:
-	ocfs2_downconvert_lock failure results in deadlock
+        Tuo Li <islituo@gmail.com>, ocfs2-devel@oss.oracle.com
+Subject: [Ocfs2-devel] [PATCH AUTOSEL 5.4 36/37] ocfs2: quota_local: fix
+	possible uninitialized-variable access in ocfs2_local_read_info()
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.9
 Precedence: list
@@ -99,28 +99,26 @@ X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 adultscore=0 bulk
  spamscore=0 malwarescore=0 suspectscore=0 mlxscore=0 mlxlogscore=999
  classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2109030001
  definitions=main-2109100000
-X-Proofpoint-ORIG-GUID: w6WPzoFunDPyYSXQXOkzKStGLL3kQH2C
-X-Proofpoint-GUID: w6WPzoFunDPyYSXQXOkzKStGLL3kQH2C
+X-Proofpoint-GUID: t5snikrT8di4Xtn8VpAShbaiCJoMWV-Y
+X-Proofpoint-ORIG-GUID: t5snikrT8di4Xtn8VpAShbaiCJoMWV-Y
 
-From: Gang He <ghe@suse.com>
+From: Tuo Li <islituo@gmail.com>
 
-[ Upstream commit 9673e0050c39b0534d0e2ca431223f52089f4959 ]
+[ Upstream commit 6c85c2c728193d19d6a908ae9fb312d0325e65ca ]
 
-Usually, ocfs2_downconvert_lock() function always downconverts dlm lock to
-the expected level for satisfy dlm bast requests from the other nodes.
+A memory block is allocated through kmalloc(), and its return value is
+assigned to the pointer oinfo. However, oinfo->dqi_gqinode is not
+initialized but it is accessed in:
+  iput(oinfo->dqi_gqinode);
 
-But there is a rare situation.  When dlm lock conversion is being
-canceled, ocfs2_downconvert_lock() function will return -EBUSY.  You need
-to be aware that ocfs2_cancel_convert() function is asynchronous in fsdlm
-implementation.
+To fix this possible uninitialized-variable access, assign NULL to
+oinfo->dqi_gqinode, and add ocfs2_qinfo_lock_res_init() behind the
+assignment in ocfs2_local_read_info().  Remove ocfs2_qinfo_lock_res_init()
+in ocfs2_global_read_info().
 
-If we does not requeue this lockres entry, ocfs2 downconvert thread no
-longer handles this dlm lock bast request.  Then, the other nodes will not
-get the dlm lock again, the current node's process will be blocked when
-acquire this dlm lock again.
-
-Link: https://lkml.kernel.org/r/20210830044621.12544-1-ghe@suse.com
-Signed-off-by: Gang He <ghe@suse.com>
+Link: https://lkml.kernel.org/r/20210804031832.57154-1-islituo@gmail.com
+Signed-off-by: Tuo Li <islituo@gmail.com>
+Reported-by: TOTE Robot <oslab@tsinghua.edu.cn>
 Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
 Cc: Mark Fasheh <mark@fasheh.com>
 Cc: Joel Becker <jlbec@evilplan.org>
@@ -132,39 +130,35 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
 Signed-off-by: Sasha Levin <sashal@kernel.org>
 ---
- fs/ocfs2/dlmglue.c | 12 ++++++++++++
- 1 file changed, 12 insertions(+)
+ fs/ocfs2/quota_global.c | 1 -
+ fs/ocfs2/quota_local.c  | 2 ++
+ 2 files changed, 2 insertions(+), 1 deletion(-)
 
-diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-index 8e3a369086db..01cf5211b5c8 100644
---- a/fs/ocfs2/dlmglue.c
-+++ b/fs/ocfs2/dlmglue.c
-@@ -18,6 +18,7 @@
- #include <linux/debugfs.h>
- #include <linux/seq_file.h>
- #include <linux/time.h>
-+#include <linux/delay.h>
- #include <linux/quotaops.h>
- #include <linux/sched/signal.h>
- 
-@@ -3906,6 +3907,17 @@ static int ocfs2_unblock_lock(struct ocfs2_super *osb,
- 	spin_unlock_irqrestore(&lockres->l_lock, flags);
- 	ret = ocfs2_downconvert_lock(osb, lockres, new_level, set_lvb,
- 				     gen);
-+	/* The dlm lock convert is being cancelled in background,
-+	 * ocfs2_cancel_convert() is asynchronous in fs/dlm,
-+	 * requeue it, try again later.
-+	 */
-+	if (ret == -EBUSY) {
-+		ctl->requeue = 1;
-+		mlog(ML_BASTS, "lockres %s, ReQ: Downconvert busy\n",
-+		     lockres->l_name);
-+		ret = 0;
-+		msleep(20);
-+	}
- 
- leave:
- 	if (ret)
+diff --git a/fs/ocfs2/quota_global.c b/fs/ocfs2/quota_global.c
+index eda83487c9ec..f033de733adb 100644
+--- a/fs/ocfs2/quota_global.c
++++ b/fs/ocfs2/quota_global.c
+@@ -357,7 +357,6 @@ int ocfs2_global_read_info(struct super_block *sb, int type)
+ 	}
+ 	oinfo->dqi_gi.dqi_sb = sb;
+ 	oinfo->dqi_gi.dqi_type = type;
+-	ocfs2_qinfo_lock_res_init(&oinfo->dqi_gqlock, oinfo);
+ 	oinfo->dqi_gi.dqi_entry_size = sizeof(struct ocfs2_global_disk_dqblk);
+ 	oinfo->dqi_gi.dqi_ops = &ocfs2_global_ops;
+ 	oinfo->dqi_gqi_bh = NULL;
+diff --git a/fs/ocfs2/quota_local.c b/fs/ocfs2/quota_local.c
+index b1a8b046f4c2..0e4b16d4c037 100644
+--- a/fs/ocfs2/quota_local.c
++++ b/fs/ocfs2/quota_local.c
+@@ -702,6 +702,8 @@ static int ocfs2_local_read_info(struct super_block *sb, int type)
+ 	info->dqi_priv = oinfo;
+ 	oinfo->dqi_type = type;
+ 	INIT_LIST_HEAD(&oinfo->dqi_chunk);
++	oinfo->dqi_gqinode = NULL;
++	ocfs2_qinfo_lock_res_init(&oinfo->dqi_gqlock, oinfo);
+ 	oinfo->dqi_rec = NULL;
+ 	oinfo->dqi_lqi_bh = NULL;
+ 	oinfo->dqi_libh = NULL;
 -- 
 2.30.2
 
