@@ -1,133 +1,176 @@
-Return-Path: <SRS0=SdAF=OS=oss.oracle.com=ocfs2-devel-bounces@kernel.org>
+Return-Path: <SRS0=i0E0=OT=oss.oracle.com=ocfs2-devel-bounces@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 678BAC433EF
-	for <ocfs2-devel@archiver.kernel.org>; Tue, 28 Sep 2021 20:42:11 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id A0382C433EF
+	for <ocfs2-devel@archiver.kernel.org>; Wed, 29 Sep 2021 00:57:57 +0000 (UTC)
 Received: from mx0a-00069f02.pphosted.com (mx0a-00069f02.pphosted.com [205.220.165.32])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by mail.kernel.org (Postfix) with ESMTPS id 0ECD96138D
-	for <ocfs2-devel@archiver.kernel.org>; Tue, 28 Sep 2021 20:42:10 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.1 mail.kernel.org 0ECD96138D
-Authentication-Results: mail.kernel.org; dmarc=fail (p=none dis=none) header.from=redhat.com
+	by mail.kernel.org (Postfix) with ESMTPS id 4C45960D42
+	for <ocfs2-devel@archiver.kernel.org>; Wed, 29 Sep 2021 00:57:57 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.1 mail.kernel.org 4C45960D42
+Authentication-Results: mail.kernel.org; dmarc=fail (p=quarantine dis=none) header.from=suse.com
 Authentication-Results: mail.kernel.org; spf=pass smtp.mailfrom=oss.oracle.com
-Received: from pps.filterd (m0246627.ppops.net [127.0.0.1])
-	by mx0b-00069f02.pphosted.com (8.16.1.2/8.16.1.2) with SMTP id 18SJxmt8031117;
-	Tue, 28 Sep 2021 20:42:10 GMT
-Received: from userp3020.oracle.com (userp3020.oracle.com [156.151.31.79])
-	by mx0b-00069f02.pphosted.com with ESMTP id 3bbejempjr-1
+Received: from pps.filterd (m0246617.ppops.net [127.0.0.1])
+	by mx0b-00069f02.pphosted.com (8.16.1.2/8.16.1.2) with SMTP id 18T01tXB027662;
+	Wed, 29 Sep 2021 00:57:56 GMT
+Received: from userp3030.oracle.com (userp3030.oracle.com [156.151.31.80])
+	by mx0b-00069f02.pphosted.com with ESMTP id 3bbhvc3snh-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Tue, 28 Sep 2021 20:42:09 +0000
-Received: from pps.filterd (userp3020.oracle.com [127.0.0.1])
-	by userp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 18SKa82M185199;
-	Tue, 28 Sep 2021 20:42:03 GMT
+	Wed, 29 Sep 2021 00:57:56 +0000
+Received: from pps.filterd (userp3030.oracle.com [127.0.0.1])
+	by userp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 18T0uQVe052396;
+	Wed, 29 Sep 2021 00:57:55 GMT
 Received: from oss.oracle.com (oss-old-reserved.oracle.com [137.254.22.2])
-	by userp3020.oracle.com with ESMTP id 3bc3cd61yc-1
+	by userp3030.oracle.com with ESMTP id 3bc3bj5n2g-1
 	(version=TLSv1 cipher=AES256-SHA bits=256 verify=NO);
-	Tue, 28 Sep 2021 20:42:03 +0000
+	Wed, 29 Sep 2021 00:57:54 +0000
 Received: from localhost ([127.0.0.1] helo=lb-oss.oracle.com)
 	by oss.oracle.com with esmtp (Exim 4.63)
 	(envelope-from <ocfs2-devel-bounces@oss.oracle.com>)
-	id 1mVJvO-0003DK-NI; Tue, 28 Sep 2021 13:42:02 -0700
+	id 1mVNuz-00005S-PY; Tue, 28 Sep 2021 17:57:53 -0700
 Received: from userp3030.oracle.com ([156.151.31.80])
 	by oss.oracle.com with esmtp (Exim 4.63)
-	(envelope-from <agruenba@redhat.com>) id 1mVJvK-0003Cu-7A
-	for ocfs2-devel@oss.oracle.com; Tue, 28 Sep 2021 13:41:58 -0700
+	(envelope-from <ghe@suse.com>) id 1mVNuZ-0008WH-7J
+	for ocfs2-devel@oss.oracle.com; Tue, 28 Sep 2021 17:57:27 -0700
 Received: from pps.filterd (userp3030.oracle.com [127.0.0.1])
 	by userp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
-	18SKaSeo174124
-	for <ocfs2-devel@oss.oracle.com>; Tue, 28 Sep 2021 20:41:57 GMT
-Received: from mx0b-00069f01.pphosted.com (mx0b-00069f01.pphosted.com
-	[205.220.177.26]) by userp3030.oracle.com with ESMTP id 3bc3bhwpjc-1
+	18T0uPN0052315
+	for <ocfs2-devel@oss.oracle.com>; Wed, 29 Sep 2021 00:57:26 GMT
+Received: from mx0a-00069f01.pphosted.com (mx0a-00069f01.pphosted.com
+	[205.220.165.26]) by userp3030.oracle.com with ESMTP id 3bc3bj5mrs-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Tue, 28 Sep 2021 20:41:57 +0000
-Received: from pps.filterd (m0246580.ppops.net [127.0.0.1])
+	for <ocfs2-devel@oss.oracle.com>; Wed, 29 Sep 2021 00:57:21 +0000
+Received: from pps.filterd (m0246571.ppops.net [127.0.0.1])
 	by mx0b-00069f01.pphosted.com (8.16.1.2/8.16.1.2) with SMTP id
-	18SJJNhs018805
-	for <ocfs2-devel@oss.oracle.com>; Tue, 28 Sep 2021 20:41:56 GMT
-Received: from us-smtp-delivery-124.mimecast.com
-	(us-smtp-delivery-124.mimecast.com [216.205.24.124])
-	by mx0b-00069f01.pphosted.com with ESMTP id 3bc5grw78p-1
+	18SJJZhC030967
+	for <ocfs2-devel@oss.oracle.com>; Wed, 29 Sep 2021 00:57:20 GMT
+Received: from de-smtp-delivery-102.mimecast.com
+	(de-smtp-delivery-102.mimecast.com [194.104.111.102])
+	by mx0b-00069f01.pphosted.com with ESMTP id 3bc5hcyk96-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Tue, 28 Sep 2021 20:41:56 +0000
-Received: from mail-wr1-f72.google.com (mail-wr1-f72.google.com
-	[209.85.221.72]) (Using TLS) by relay.mimecast.com with ESMTP id
-	us-mta-511-ETMHi_6mOWKeSnwJNYQTww-1; Tue, 28 Sep 2021 16:41:54 -0400
-X-MC-Unique: ETMHi_6mOWKeSnwJNYQTww-1
-Received: by mail-wr1-f72.google.com with SMTP id
-	r15-20020adfce8f000000b0015df1098ccbso106100wrn.4
-	for <ocfs2-devel@oss.oracle.com>; Tue, 28 Sep 2021 13:41:53 -0700 (PDT)
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=1e100.net; s=20210112;
-	h=x-gm-message-state:mime-version:references:in-reply-to:from:date
-	:message-id:subject:to:cc;
-	bh=3jBAm38dwxejV13EKa37YtYOLD3eWnXj6fegh8i3dws=;
-	b=v6FpcXkGNZgjRqN4EjT8Ly4EghGKBwc80rn7bhdXAT++TEyQjgVXUuysW7b6pwBJ9G
-	0lrDpn7sKaTiRjkNUAQvrClIbCIDfX2Lc04+AIxTdH9WcSfXRrIU4/lA1CC2pfT/cdRK
-	TxQI3t6ml+eebOVtsesrpNTPkPmnwl2X3Xx/YevkW86ZOdH/6bkv+ZQ53VXGNybe83GN
-	lidl6rDtmJTmZBqEHnfouFhrzuL1DqL/JtHX5b1gyokBxM1lga2xaBt4UNhCyH69gDnr
-	Phj8d0F9M7TGcBOoE8g8RNRJvQYPkaP1xQJA977uitlkC19VnvJmCl2GGG2O36+batHT
-	KaAQ==
-X-Gm-Message-State: AOAM530AOXIfoY+Hywg2O2uiBGkEFgerAz65bu+HAnOvT2ColCK0arXp
-	RV0BozfMAotpaYNJA4E8J+Seb7gfjdA4VcQGfExn5p2sBlPTuzHIUcpMixK5dUPRThQwlZQCkAE
-	7V5RjiBybMV1VNfnCOq0vr8oXtJ+vDUUZreprKA==
-X-Received: by 2002:adf:fe11:: with SMTP id n17mr2531996wrr.134.1632861712997; 
-	Tue, 28 Sep 2021 13:41:52 -0700 (PDT)
-X-Google-Smtp-Source: ABdhPJzJ3DYdqCR9Z5PcqKHy1xm32GHNEUBLV2gDJNFBOzxHyUdTS2vH5aXkMEboVTXvHTdpTp6sggiL9+bBSwcUm1A=
-X-Received: by 2002:adf:fe11:: with SMTP id n17mr2531978wrr.134.1632861712811; 
-	Tue, 28 Sep 2021 13:41:52 -0700 (PDT)
+	for <ocfs2-devel@oss.oracle.com>; Wed, 29 Sep 2021 00:57:20 +0000
+Received: from EUR05-AM6-obe.outbound.protection.outlook.com
+	(mail-am6eur05lp2110.outbound.protection.outlook.com [104.47.18.110])
+	(Using TLS) by relay.mimecast.com with ESMTP id
+	de-mta-24-CQdCwzECPR-H8V686glkTw-1; Wed, 29 Sep 2021 02:57:16 +0200
+X-MC-Unique: CQdCwzECPR-H8V686glkTw-1
+ARC-Seal: i=1; a=rsa-sha256; s=arcselector9901; d=microsoft.com; cv=none;
+	b=OmDGMLXdZ/EbyStkwtDLspa3c7EmmRzSWHkZVzIB4r7/9Y3dqI5IfpseTH5XP1c/CfvYSdlCZyX+mf0mVySwQLv9X9ojwL7B3DRz9cBEVgtn9xOpq3mknemMfuOIr/nGBJdHo6r6dU+VtewTd0FVcf33ziOaPrhqRZ+tX6/vt16hV08hBwoYnxZ1NgUP1tDLqZqEVA6LZQ5/8rtWwGP4/VyQ4UNzsF/d+aA4mfqXlwfBv7gu4xL3zBRSINmVt0cE0yRY0lgzDmYajmhr3C2o7c/TGNgALHQH+jwCQJvZGgOsQxyG9nYZbnn+hOraagxEvTLqm8PeJ7Xx9XZYbe7UJQ==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com; 
+	s=arcselector9901;
+	h=From:Date:Subject:Message-ID:Content-Type:MIME-Version; 
+	bh=XIG6UtblQ/8F1e7J8OCoCJ75i7mO+cDz6zVnv5v+IzY=;
+	b=FQVg8gS2p8y7xwnVzk/uFChk+twx7hWFdSAYZFBxvHvrkqISQpPsR2/v4oVmHeQisu+jOosD2CrQ7VuM0RlDldCd2piRYCP/hhCUdQVlAu2RZC5VlXIW7wAtQlqW/0n5Ra5gBookyWdbz/ypPybr3N0b92DfPkOPEMcscNxs3FPVLJmpfrqIdYTcHJhf2LVYaFIFHMpLMuE9GeNpZse8rmiDQQlS8DJZMuL06yNv1cJG2OP49Ggfho2HZwfTo0Jj4VtTfwJcJ82TDiAsFzxDgYC+IOkh+uy5jX/Z0ri4pXH47GU/AOUfJgCCG1YSEF7AVEPUH8hAoqBM0nWiPHCeXQ==
+ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
+	smtp.mailfrom=suse.com; dmarc=pass action=none header.from=suse.com;
+	dkim=pass header.d=suse.com; arc=none
+Authentication-Results: oss.oracle.com; dkim=none (message not signed)
+	header.d=none; oss.oracle.com;
+	dmarc=none action=none header.from=suse.com; 
+Received: from AM6PR04MB6488.eurprd04.prod.outlook.com (2603:10a6:20b:f8::21)
+	by AM7PR04MB6790.eurprd04.prod.outlook.com (2603:10a6:20b:dd::12)
+	with Microsoft SMTP Server (version=TLS1_2,
+	cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.4544.13;
+	Wed, 29 Sep 2021 00:57:15 +0000
+Received: from AM6PR04MB6488.eurprd04.prod.outlook.com
+	([fe80::793c:6276:4f2a:4d71]) by
+	AM6PR04MB6488.eurprd04.prod.outlook.com
+	([fe80::793c:6276:4f2a:4d71%4]) with mapi id 15.20.4544.015;
+	Wed, 29 Sep 2021 00:57:15 +0000
+To: ocfs2-devel@oss.oracle.com
+References: <AM6PR04MB6488C35E2103DFC0BF4AF896CFA79@AM6PR04MB6488.eurprd04.prod.outlook.com>
+	<816ee511-5764-aeed-4554-83b91de8e06e@linux.alibaba.com>
+	<1190fbe9-f53d-d35c-6631-ba71f4f92bd1@suse.com>
+From: Gang He <ghe@suse.com>
+Message-ID: <9b1a45f7-ff5d-8c0e-bb72-5b7edb4d7573@suse.com>
+Date: Wed, 29 Sep 2021 08:57:07 +0800
+User-Agent: Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:78.0) Gecko/20100101
+	Thunderbird/78.14.0
+In-Reply-To: <1190fbe9-f53d-d35c-6631-ba71f4f92bd1@suse.com>
+Content-Language: en-US
+X-ClientProxiedBy: HK2PR04CA0067.apcprd04.prod.outlook.com
+	(2603:1096:202:15::11) To AM6PR04MB6488.eurprd04.prod.outlook.com
+	(2603:10a6:20b:f8::21)
 MIME-Version: 1.0
-References: <20210827164926.1726765-1-agruenba@redhat.com>
-	<20210827164926.1726765-4-agruenba@redhat.com>
-	<CAL3q7H7PdBTuK28tN=3fGUyTP9wJU8Ydrq35YtNsfA_3xRQhzQ@mail.gmail.com>
-	<CAHc6FU7rbdJxeuvoz0jov5y_GH_B4AtjkDnbNyOxeeNc1Zw5+A@mail.gmail.com>
-	<YVNE4HGKPb7bw+En@casper.infradead.org>
-In-Reply-To: <YVNE4HGKPb7bw+En@casper.infradead.org>
-From: Andreas Gruenbacher <agruenba@redhat.com>
-Date: Tue, 28 Sep 2021 22:41:41 +0200
-Message-ID: <CAHc6FU47kX=P2VhjAxk-7hqiKoEHUMMzbC-8vRYfWXUVs9zAtQ@mail.gmail.com>
-To: Matthew Wilcox <willy@infradead.org>
-Authentication-Results: relay.mimecast.com;
-	auth=pass smtp.auth=CUSA124A263 smtp.mailfrom=agruenba@redhat.com
-X-Mimecast-Spam-Score: 0
-X-Mimecast-Originator: redhat.com
+Received: from [192.168.1.110] (111.205.14.55) by
+	HK2PR04CA0067.apcprd04.prod.outlook.com (2603:1096:202:15::11)
+	with Microsoft SMTP Server (version=TLS1_2,
+	cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.4544.13
+	via Frontend Transport; Wed, 29 Sep 2021 00:57:14 +0000
+X-MS-PublicTrafficType: Email
+X-MS-Office365-Filtering-Correlation-Id: 78cc4c5a-06f5-4ecc-6f89-08d982e4143b
+X-MS-TrafficTypeDiagnostic: AM7PR04MB6790:
+X-Microsoft-Antispam-PRVS: <AM7PR04MB67901383FEA5DF13A3F96625CFA99@AM7PR04MB6790.eurprd04.prod.outlook.com>
+X-MS-Oob-TLC-OOBClassifiers: OLM:8882;
+X-MS-Exchange-SenderADCheck: 1
+X-MS-Exchange-AntiSpam-Relay: 0
+X-Microsoft-Antispam: BCL:0;
+X-Microsoft-Antispam-Message-Info: V7ApQsIxy5+R1CsBDTuDBeV3SvJ2hFmTznOuVnkZPLgouGOsBSdIrpi4TrrTYdBTCd4aJuOcLXuvteOhQTVpizXGi6z0nbu0f7Ma8CrLQ8kSEP8tiyn/ZrzbvLIGBQCWSZ7ouxt/YggeXg7Fnn5N6Jpb4JPFGtUtigT0CdEPEs+YcS4P5b/c3GHLd+MaqVEL6nO3j6VBH6e3EPtkO6iO1KrUtynCKRAoho0qpE7mrf/44AumUMKL4Sxv/VirlP+DFkDQsknmfKEIhBmTgGXe3WK9udcoJOA74+3r0oU2Uiu3TI/h3fTN2/Up/cH1bZ0i0F8j+g93K7JamGEEuEyyp0TxxoIolf6E2Ge07GXj7JKFKTVbM/QSzFlHcof/7JPjYDpvHHUzsuCpNIZ8si+y7O0wADwNLDtVJXuj7/V/l0lxEWNOS1DOIkUnc16tSncodKnxGwEa79q2l9YqfpctcG1G2FXw1rP6GWApPB7AJ76xGJ75gPVjDk2u/zfLi0WVMXji+rmmsen2TAXn+VwJErVKxDNjPP5qDkzDD7BlwhUkjnLEXRg0s9OZq7HlfUEtLXGmeb+bgouQMjop1D5Zi6LsCJj6Y8bnnKGZX4jvJRIUlV2FBvOUM54V/ciX0cplZSFimCpA8xReq+sNyzkgryCxLIbEtGhdOePVkVdypr7gcW1fvqJ9NtlrI4bJnu8MnsCsonrV5MoiMdhi8sGNfzr2jnG3PAXOjeDERhWXkJKuyhKQHx7nCcFV1r3thfwHZZUfqAd1vtKeZKZ8u64Jp7DO/LjXPfyiv/yjUT1aqmA+yDjAkk99n10xYmlWg40gGXFj1TgQbeEuTPqYkSyg94VlkK45Jhe6LLQWIKBV0pHb5iE0A3ihMI9CijCRpMRiDi6F1JksiWTtxX7q6EE/+Q==
+X-Forefront-Antispam-Report: CIP:255.255.255.255; CTRY:; LANG:en; SCL:1; SRV:; IPV:NLI; SFV:NSPM;
+	H:AM6PR04MB6488.eurprd04.prod.outlook.com; PTR:; CAT:NONE;
+	SFS:(366004)(66946007)(956004)(5660300002)(6486002)(8936002)(66556008)(66476007)(966005)(83380400001)(6666004)(38100700002)(36756003)(316002)(16576012)(31686004)(31696002)(2906002)(2616005)(186003)(508600001)(86362001)(53546011)(8676002)(26005)(6916009)(10126625002)(13296009)(45980500001)(43740500002);
+	DIR:OUT; SFP:1101; 
+X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
+X-MS-Exchange-AntiSpam-MessageData-0: =?utf-8?B?UExhWXY5eEdYNU84UTFkVEJyUTdFNVhXaW52Qlo4ZW9pOHdWKzV2MUM5aklj?=
+	=?utf-8?B?UmxhdFBxNjQzSlBtdUFmS3VyUmhGbkJjV0xSci9jZSszUHVyc3RzYnNlV0hT?=
+	=?utf-8?B?Q0RTRkN0V1oyUElsc0VIMWJmWGc3bytnY2h3K1RSbzAzTndLWElhK0lRNlN6?=
+	=?utf-8?B?K3hYWmtqYUdmbXZ1b21pOU9rUzFkZXQ2bXNleUlhenhOWHkrUUNCYWFIbnNW?=
+	=?utf-8?B?bHd1ZzMxdDVFSWx4TGFqVU1uTXVRWHlhZlkvaDI1UWNhMEVMME92MG9lbVhk?=
+	=?utf-8?B?OE1LMjZhYkdJNDZXRGM3eUFiU2hPU1JKdXdBaUlPV0ZzUlhBVFNqT2FWUmVa?=
+	=?utf-8?B?UFRjUlZoZW9icGZBbFRxZzhmb0ZDUXlVZERVZ2xpL2NhNjdidUR2a3VZTm5C?=
+	=?utf-8?B?RzhLTE1pUnFJSy9mQlZOc3F1U2dRRFdGM1lZR2dxZlV1S0h3TU5TQWpidzZw?=
+	=?utf-8?B?cmlDbDEwUkVIMEZCNy9vQlAwa2V1WkxrRG42R3p4aDNnYStnYVEvQkZJL2FH?=
+	=?utf-8?B?MEFDSDRWa2M2WWo4TmY5cWRnTThUK2pZanA0cFBmNTA4OTdUbVVSUlVpaytx?=
+	=?utf-8?B?NWhSVXAvdU5vT0dZZVdrUHBFMGdJbkZWOG5tTU5jY1RDaHI3ZU5HZDl1TVlY?=
+	=?utf-8?B?K0hyakd3Y0g4UnFuR2E3TWdxMk1OdzQ5WFlzTndBQUd3Z2ZkRDV1WnVicDE1?=
+	=?utf-8?B?OGdzNStBUEdOaHQ4WXNiZVRremZWUVBuRitpM1pFcUVmYjRYWVhMN1pqR0Rx?=
+	=?utf-8?B?SURIZ0lGRjQ2TXpXOGpQajZxSzhYM3YxUEcyR3BBd2hvUERVamlOSGcwNS9m?=
+	=?utf-8?B?OWNpZ3ZmbWpJdHlqR1dkcWpVaU01RTJPRTNCYjN5endmVzJITjZNTHFpQVdZ?=
+	=?utf-8?B?RzNvbUlKVDg4ZmlNSFJzTGZwSFlRa0NmSkZtd1dsRWcwdk5VN0t5V3kzaFgz?=
+	=?utf-8?B?c0VUUlc1bVNqMXJ0bUFHNWhyWjVObjMwdTNFempLNW1VUng5RVJxbmdyU1Yw?=
+	=?utf-8?B?ek1YbXZJcHpxVU9YQjRSY25tWGgrNy9kUUlkVlk3ZjJQMXVvelY5WUxyZnh2?=
+	=?utf-8?B?UnR1amdRRldETWpyQkh0R3p3YlM3VnBmY014NTNHMEdkZkdpeU9HOGdDdTJW?=
+	=?utf-8?B?TDhBNVNON2F2Wm5BdjFic09ReWZ2bGE3dVpPZ0NrQ1VaYXkzNXhpSi9JZGpE?=
+	=?utf-8?B?YjFGN2ZDOVVrdm15Y29kK05VeFFvazlIWHdFYjFoRmtWVktMZVhVTWZwazFB?=
+	=?utf-8?B?QWxrM0ZXRmprdCtiZEg1cUt4U0dRWXdlK0VjZURUc0s4MW1Fa2VMWmx3Q2E1?=
+	=?utf-8?B?bjZZTGZJckwreXVsWThtT2Q2YnNyRzg1VHpuMXNzTk5uMlVWcmd1Z3dSc2Ro?=
+	=?utf-8?B?QU4wdlBRMUNQQ2hFNytmZGdoRnUzZWdNbXJwN3lvUXR6R01HM05DWForK2Ny?=
+	=?utf-8?B?S0xNbkxzR01XNE5yNHZnTjBuRjhiY2lydlZxWHpHUjkrRE9yeHFDNWhzbmJU?=
+	=?utf-8?B?QkdzVllzK1kya1ZaTXVwM0J4YVFrNEJFUlhGenZteGVmKzZGT09jaFhMNWwx?=
+	=?utf-8?B?cW9KWXpEUElyU0Vnc1h2UHRGZjlkbHhqQUtOams3TXAzM2dRV2g0cVg1bjRu?=
+	=?utf-8?B?UXRJTG5hREpKc3RhVmZ3UHBVN08rR2o0UGhFNUw4MXBHZnhkYXpDT1RZUXJu?=
+	=?utf-8?B?MG84NjFqd1ZKMlMxK0trd0xwNjQzQVF5TjI5TFJ1MTJPc0Vxby80Yk1mc0tu?=
+	=?utf-8?Q?vSBEDw5ou4xvRsOGn9nzWZx8HKK9PavFI9M7l5V?=
+X-OriginatorOrg: suse.com
+X-MS-Exchange-CrossTenant-Network-Message-Id: 78cc4c5a-06f5-4ecc-6f89-08d982e4143b
+X-MS-Exchange-CrossTenant-AuthSource: AM6PR04MB6488.eurprd04.prod.outlook.com
+X-MS-Exchange-CrossTenant-AuthAs: Internal
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 29 Sep 2021 00:57:15.6118 (UTC)
+X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
+X-MS-Exchange-CrossTenant-Id: f7a17af6-1c5c-4a36-aa8b-f5be247aa4ba
+X-MS-Exchange-CrossTenant-MailboxType: HOSTED
+X-MS-Exchange-CrossTenant-UserPrincipalName: uzwBm3B8Xsr2PMFkj5uuBKNy1uxt3V7K96dRBz5ZxC8uixvixrTMDXKm5sXxpO88
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: AM7PR04MB6790
+X-Source-IP: 194.104.111.102
+X-ServerName: de-smtp-delivery-102.mimecast.com
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 ip4:103.23.64.2 ip4:103.23.65.2
-	ip4:103.23.66.26 ip4:103.23.67.26
-	ip4:107.21.15.141 ip4:108.177.8.0/21 ip4:128.17.0.0/20
-	ip4:128.17.128.0/20
-	ip4:128.17.192.0/20 ip4:128.17.64.0/20 ip4:128.245.0.0/20
-	ip4:128.245.64.0/20 ip4:13.110.208.0/21 ip4:13.110.216.0/22
-	ip4:13.111.0.0/16 ip4:136.147.128.0/20 ip4:136.147.176.0/20
-	include:spf1.redhat.com -all
-X-Proofpoint-SPF-VenPass: Allowed
-X-Source-IP: 216.205.24.124
-X-ServerName: us-smtp-delivery-124.mimecast.com
-X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 ip4:103.23.64.2 ip4:103.23.65.2
-	ip4:103.23.66.26 ip4:103.23.67.26
-	ip4:107.21.15.141 ip4:108.177.8.0/21 ip4:128.17.0.0/20
-	ip4:128.17.128.0/20
-	ip4:128.17.192.0/20 ip4:128.17.64.0/20 ip4:128.245.0.0/20
-	ip4:128.245.64.0/20 ip4:13.110.208.0/21 ip4:13.110.216.0/22
-	ip4:13.111.0.0/16 ip4:136.147.128.0/20 ip4:136.147.176.0/20
-	include:spf1.redhat.com -all
+X-Proofpoint-SPF-Record: v=spf1 include:spf.suse.com
+	include:de._netblocks.mimecast.com
+	include:amazonses.com include:spf.protection.outlook.com
+	include:_spf.qemailserver.com include:_spf.salesforce.com -all
 X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10121
 	signatures=668683
-X-Proofpoint-Spam-Reason: safe
-X-Spam: OrgSafeList
-X-SpamRule: orgsafelist
-Cc: cluster-devel <cluster-devel@redhat.com>, Jan Kara <jack@suse.cz>,
-        fdmanana@gmail.com,
-        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
-        Christoph Hellwig <hch@infradead.org>,
-        Alexander Viro <viro@zeniv.linux.org.uk>,
-        linux-fsdevel <linux-fsdevel@vger.kernel.org>,
-        Linus Torvalds <torvalds@linux-foundation.org>,
-        ocfs2-devel@oss.oracle.com
-Subject: Re: [Ocfs2-devel] [PATCH v7 03/19] gup: Turn
- fault_in_pages_{readable, writeable} into fault_in_{readable, writeable}
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0
+	priorityscore=134 mlxscore=0
+	clxscore=177 impostorscore=0 mlxlogscore=999 suspectscore=0 spamscore=0
+	bulkscore=0 adultscore=0 phishscore=0 malwarescore=0 lowpriorityscore=0
+	classifier=spam adjust=0 reason=mlx scancount=1
+	engine=8.12.0-2109230001 definitions=main-2109290002
+X-Spam: Clean
+Subject: Re: [Ocfs2-devel] The last part of the file is zeroed out when
+ write N random bytes
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.9
 Precedence: list
@@ -144,71 +187,85 @@ Content-Transfer-Encoding: 7bit
 Sender: ocfs2-devel-bounces@oss.oracle.com
 Errors-To: ocfs2-devel-bounces@oss.oracle.com
 X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10121 signatures=668683
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 adultscore=0 mlxscore=0 mlxlogscore=999
- phishscore=0 bulkscore=0 suspectscore=0 malwarescore=0 spamscore=0
- classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2109230001
- definitions=main-2109280121
-X-Proofpoint-GUID: cWpp_pB5be5FrdLKdHDc4mKFIpDYJnJ5
-X-Proofpoint-ORIG-GUID: cWpp_pB5be5FrdLKdHDc4mKFIpDYJnJ5
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 mlxlogscore=999 suspectscore=0
+ mlxscore=0 spamscore=0 adultscore=0 bulkscore=0 phishscore=0
+ malwarescore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2109230001 definitions=main-2109290002
+X-Proofpoint-ORIG-GUID: ANWpPa6IChwCvK3tBU4I_4tdAhnbP9Wn
+X-Proofpoint-GUID: ANWpPa6IChwCvK3tBU4I_4tdAhnbP9Wn
 
-Hi Willy,
+Hi Guys,
 
-On Tue, Sep 28, 2021 at 6:40 PM Matthew Wilcox <willy@infradead.org> wrote:
-> On Tue, Sep 28, 2021 at 05:02:43PM +0200, Andreas Gruenbacher wrote:
-> > On Fri, Sep 3, 2021 at 4:57 PM Filipe Manana <fdmanana@gmail.com> wrote:
-> > > On Fri, Aug 27, 2021 at 5:52 PM Andreas Gruenbacher <agruenba@redhat.com> wrote:
-> > > > +size_t fault_in_writeable(char __user *uaddr, size_t size)
-> > > > +{
-> > > > +       char __user *start = uaddr, *end;
-> > > > +
-> > > > +       if (unlikely(size == 0))
-> > > > +               return 0;
-> > > > +       if (!PAGE_ALIGNED(uaddr)) {
-> > > > +               if (unlikely(__put_user(0, uaddr) != 0))
-> > > > +                       return size;
-> > > > +               uaddr = (char __user *)PAGE_ALIGN((unsigned long)uaddr);
-> > > > +       }
-> > > > +       end = (char __user *)PAGE_ALIGN((unsigned long)start + size);
-> > > > +       if (unlikely(end < start))
-> > > > +               end = NULL;
-> > > > +       while (uaddr != end) {
-> > > > +               if (unlikely(__put_user(0, uaddr) != 0))
-> > > > +                       goto out;
-> > > > +               uaddr += PAGE_SIZE;
-> > >
-> > > Won't we loop endlessly or corrupt some unwanted page when 'end' was
-> > > set to NULL?
-> >
-> > What do you mean? We set 'end' to NULL when start + size < start
-> > exactly so that the loop will stop when uaddr wraps around.
->
-> But think about x86-64.  The virtual address space (unless you have 5
-> level PTs) looks like:
->
-> [0, 2^47)               userspace
-> [2^47, 2^64 - 2^47)     hole
-> [2^64 - 2^47, 2^64)     kernel space
->
-> If we try to copy from the hole we'll get some kind of fault (I forget
-> the details).  We have to stop at the top of userspace.
+Just give a update.
+Based on our testing, the problem was caused by the comment in fs/buffer.c.
 
-If you look at the before and after state of this patch,
-fault_in_pages_readable and fault_in_pages_writeable did fail an
-attempt to fault in a range that wraps with -EFAULT. That's sensible
-for a function that returns an all-or-nothing result. We now want to
-return how much of the range was (or wasn't) faulted in. We could do
-that and still reject ranges that wrap outright. Or we could try to
-fault in however much we reasonably can even if the range wraps. The
-patch tries the latter, which is where the stopping at NULL is coming
-from: when the range wraps, we *definitely* don't want to go any
-further.
+commit 6dbf7bb555981fb5faf7b691e8f6169fc2b2e63b
+Author: Jan Kara <jack@suse.cz>
+Date:   Fri Sep 4 10:58:51 2020 +0200
 
-If the range extends into the hole, we'll get a failure from
-__get_user or __put_user where that happens. That's entirely the
-expected result, isn't it?
+     fs: Don't invalidate page buffers in block_write_full_page()
 
-Thanks,
-Andreas
+
+Thanks
+Gang
+
+On 2021/9/27 15:57, Gang He wrote:
+> 
+> 
+> On 2021/9/27 15:49, Joseph Qi wrote:
+>>
+>> Last week, Andrey Markov reported a similar issue, but unfortunately not
+>> on mail list.
+>>
+>> And Junxiao has resolved a similar issue recently. So can you reproduce
+>> the bug in latest kernel?
+> Yes, I can reproduce this issue with the latest code.
+> The cluster size must be greater than 4K(e.g. 8K, 1M), this is the key
+> to the problem.
+> 
+> Thanks
+> Gang
+> 
+>>
+>> Thanks,
+>> Joseph
+>>
+>> On 9/27/21 3:16 PM, Gang He wrote:
+>>> Hi List,
+>>>
+>>> I'd like to report a data loss bug when write N random bytes, since I saw there were some related commits in the past weeks.
+>>> I can reproduce this bug stably with the latest ocfs2 kernel module code as below,
+>>> 1) Create a three node(e.g. ghe-tw-nd1, ghe-tw-nd2, ghe-tw-nd3) ocfs2 cluster, attach a shared disk(e.g. /dev/vdb).
+>>> 2) Format the disk with the command "mkfs.ocfs2 -N 4 -b 4096 -C 1048576 /dev/vdb", and mount the disk to /mnt/shared on each node. The cluster size must be greater than 4K, this is the key to the problem.
+>>> 3) Copy the file write/test scripts to /mnt/shared directory, then run test script on node1 to reproduce this bug.
+>>>       file write script ocfs2_fallocate_bug_plain_write.py: https://pastebin.com/QsXcD8rq
+>>>       file test script ocfs2_loop.sh: https://pastebin.com/eTUe2hkW
+>>> 4) Then, you can meet this bug, the file md5sum is different between from node1 and from node2.
+>>>       In fact, the last part of the file is zeroed out from node2.
+>>>       e.g.
+>>>       file dump from node1: https://pastebin.com/HB92TVS0
+>>>       file dump from node2: https://pastebin.com/jBG7HdSz
+>>>
+>>> More information,
+>>> this bug does not exist on some old kernels( e.g. linux-4.12.14-120), but it will happen on some new kernels, I feel this bug is probably NOT caused by ocfs2 commits, since I used old ocfs2 kernel module code on the new kernels, the problem also happened.
+>>> Anyway, if you have any comments, please reply this mail.
+>>>    
+>>> Thanks
+>>> Gang
+>>>
+>>> _______________________________________________
+>>> Ocfs2-devel mailing list
+>>> Ocfs2-devel@oss.oracle.com
+>>> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+>>>
+>>
+> 
+> 
+> _______________________________________________
+> Ocfs2-devel mailing list
+> Ocfs2-devel@oss.oracle.com
+> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+> 
 
 
 _______________________________________________
