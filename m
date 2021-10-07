@@ -1,82 +1,88 @@
-Return-Path: <SRS0=zG0f=OW=oss.oracle.com=ocfs2-devel-bounces@kernel.org>
+Return-Path: <SRS0=LIWT=O3=oss.oracle.com=ocfs2-devel-bounces@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 99282C433EF
-	for <ocfs2-devel@archiver.kernel.org>; Sat,  2 Oct 2021 14:38:13 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id AF6A0C433F5
+	for <ocfs2-devel@archiver.kernel.org>; Thu,  7 Oct 2021 23:35:32 +0000 (UTC)
 Received: from mx0a-00069f02.pphosted.com (mx0a-00069f02.pphosted.com [205.220.165.32])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by mail.kernel.org (Postfix) with ESMTPS id 3BE4261AF7
-	for <ocfs2-devel@archiver.kernel.org>; Sat,  2 Oct 2021 14:38:13 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.1 mail.kernel.org 3BE4261AF7
-Authentication-Results: mail.kernel.org; dmarc=fail (p=reject dis=none) header.from=valentin-vidic.from.hr
+	by mail.kernel.org (Postfix) with ESMTPS id 6C8BF60FD8
+	for <ocfs2-devel@archiver.kernel.org>; Thu,  7 Oct 2021 23:35:32 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.1 mail.kernel.org 6C8BF60FD8
+Authentication-Results: mail.kernel.org; dmarc=fail (p=none dis=none) header.from=canonical.com
 Authentication-Results: mail.kernel.org; spf=pass smtp.mailfrom=oss.oracle.com
-Received: from pps.filterd (m0246627.ppops.net [127.0.0.1])
-	by mx0b-00069f02.pphosted.com (8.16.1.2/8.16.1.2) with SMTP id 1929PwhP025779;
-	Sat, 2 Oct 2021 14:38:12 GMT
+Received: from pps.filterd (m0246629.ppops.net [127.0.0.1])
+	by mx0b-00069f02.pphosted.com (8.16.1.2/8.16.1.2) with SMTP id 197LuYow023220;
+	Thu, 7 Oct 2021 23:35:31 GMT
 Received: from userp3030.oracle.com (userp3030.oracle.com [156.151.31.80])
-	by mx0b-00069f02.pphosted.com with ESMTP id 3bee1313d2-1
+	by mx0b-00069f02.pphosted.com with ESMTP id 3bj02jmhg6-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Sat, 02 Oct 2021 14:38:12 +0000
+	Thu, 07 Oct 2021 23:35:31 +0000
 Received: from pps.filterd (userp3030.oracle.com [127.0.0.1])
-	by userp3030.oracle.com (8.16.0.42/8.16.0.42) with SMTP id 192EUbQY185939;
-	Sat, 2 Oct 2021 14:38:11 GMT
+	by userp3030.oracle.com (8.16.1.2/8.16.1.2) with SMTP id 197NUnYU102202;
+	Thu, 7 Oct 2021 23:35:28 GMT
 Received: from oss.oracle.com (oss-old-reserved.oracle.com [137.254.22.2])
-	by userp3030.oracle.com with ESMTP id 3bechsvkms-1
+	by userp3030.oracle.com with ESMTP id 3bf0sb1r9f-1
 	(version=TLSv1 cipher=AES256-SHA bits=256 verify=NO);
-	Sat, 02 Oct 2021 14:38:10 +0000
+	Thu, 07 Oct 2021 23:35:28 +0000
 Received: from localhost ([127.0.0.1] helo=lb-oss.oracle.com)
 	by oss.oracle.com with esmtp (Exim 4.63)
 	(envelope-from <ocfs2-devel-bounces@oss.oracle.com>)
-	id 1mWg9R-0004hr-Tu; Sat, 02 Oct 2021 07:38:09 -0700
+	id 1mYcv9-0008NZ-3z; Thu, 07 Oct 2021 16:35:27 -0700
 Received: from aserp3020.oracle.com ([141.146.126.70])
 	by oss.oracle.com with esmtp (Exim 4.63)
-	(envelope-from <vvidic@valentin-vidic.from.hr>) id 1mWg8y-0004gw-Bn
-	for ocfs2-devel@oss.oracle.com; Sat, 02 Oct 2021 07:37:40 -0700
+	(envelope-from <colin.king@canonical.com>) id 1mYcuf-0008Mf-Qy
+	for ocfs2-devel@oss.oracle.com; Thu, 07 Oct 2021 16:34:57 -0700
 Received: from pps.filterd (aserp3020.oracle.com [127.0.0.1])
-	by aserp3020.oracle.com (8.16.0.42/8.16.0.42) with SMTP id
-	192EU50K071577
-	for <ocfs2-devel@oss.oracle.com>; Sat, 2 Oct 2021 14:37:40 GMT
-Received: from mx0a-00069f01.pphosted.com (mx0a-00069f01.pphosted.com
-	[205.220.165.26]) by aserp3020.oracle.com with ESMTP id 3bef820uvy-1
+	by aserp3020.oracle.com (8.16.1.2/8.16.1.2) with SMTP id 197NUSL7050831
+	for <ocfs2-devel@oss.oracle.com>; Thu, 7 Oct 2021 23:34:57 GMT
+Received: from mx0b-00069f01.pphosted.com (mx0b-00069f01.pphosted.com
+	[205.220.177.26]) by aserp3020.oracle.com with ESMTP id 3bev91r9x9-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Sat, 02 Oct 2021 14:37:30 +0000
-Received: from pps.filterd (m0246575.ppops.net [127.0.0.1])
+	for <ocfs2-devel@oss.oracle.com>; Thu, 07 Oct 2021 23:34:57 +0000
+Received: from pps.filterd (m0246579.ppops.net [127.0.0.1])
 	by mx0b-00069f01.pphosted.com (8.16.1.2/8.16.1.2) with SMTP id
-	1924a7tT002290
-	for <ocfs2-devel@oss.oracle.com>; Sat, 2 Oct 2021 14:37:29 GMT
-Received: from valentin-vidic.from.hr (valentin-vidic.from.hr [109.200.23.17])
-	by mx0b-00069f01.pphosted.com with ESMTP id 3bef14549h-1
-	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Sat, 02 Oct 2021 14:37:28 +0000
-X-Virus-Scanned: Debian amavisd-new at valentin-vidic.from.hr
-Received: by valentin-vidic.from.hr (Postfix, from userid 1000)
-	id 52F4371A3; Sat,  2 Oct 2021 16:37:18 +0200 (CEST)
-From: Valentin Vidic <vvidic@valentin-vidic.from.hr>
-To: Joseph Qi <joseph.qi@linux.alibaba.com>, Mark Fasheh <mark@fasheh.com>,
-        Joel Becker <jlbec@evilplan.org>, ocfs2-devel@oss.oracle.com,
-        linux-kernel@vger.kernel.org
-Date: Sat,  2 Oct 2021 16:36:40 +0200
-Message-Id: <20211002143640.26512-1-vvidic@valentin-vidic.from.hr>
-X-Mailer: git-send-email 2.20.1
+	197MkOOa023620
+	for <ocfs2-devel@oss.oracle.com>; Thu, 7 Oct 2021 23:34:56 GMT
+Received: from smtp-relay-canonical-1.canonical.com
+	(smtp-relay-canonical-1.canonical.com [185.125.188.121])
+	by mx0b-00069f01.pphosted.com with ESMTP id 3bhybwtqwv-1
+	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NO)
+	for <ocfs2-devel@oss.oracle.com>; Thu, 07 Oct 2021 23:34:56 +0000
+Received: from localhost (1.general.cking.uk.vpn [10.172.193.212])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	key-exchange ECDHE (P-256) server-signature RSA-PSS (2048 bits)
+	server-digest SHA256) (No client certificate requested)
+	by smtp-relay-canonical-1.canonical.com (Postfix) with ESMTPSA id
+	8ACC13FFE8; Thu,  7 Oct 2021 23:34:52 +0000 (UTC)
+From: Colin King <colin.king@canonical.com>
+To: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
+        Joseph Qi <joseph.qi@linux.alibaba.com>, ocfs2-devel@oss.oracle.com
+Date: Fri,  8 Oct 2021 00:34:52 +0100
+Message-Id: <20211007233452.30815-1-colin.king@canonical.com>
+X-Mailer: git-send-email 2.32.0
 MIME-Version: 1.0
-X-Source-IP: 109.200.23.17
-X-ServerName: valentin-vidic.from.hr
+X-Source-IP: 185.125.188.121
+X-ServerName: smtp-relay-canonical-1.canonical.com
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 mx -all
-X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10125
+X-Proofpoint-SPF-Record: v=spf1 ip4:185.125.188.120 ip4:185.125.188.121
+	ip4:185.125.188.122
+	ip4:185.125.188.123 ip4:185.125.188.124 ip4:185.125.188.125
+	ip4:91.189.95.10 ip4:91.189.90.122 ip4:91.189.95.79 ip4:91.189.90.7
+	-all
+X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10130
 	signatures=668683
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 phishscore=0
-	mlxlogscore=999
-	adultscore=0 clxscore=229 suspectscore=0 impostorscore=0 bulkscore=0
-	lowpriorityscore=0 priorityscore=0 malwarescore=0 mlxscore=0
-	spamscore=0
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 malwarescore=0
+	priorityscore=275
+	impostorscore=0 phishscore=0 adultscore=0 clxscore=171 suspectscore=0
+	spamscore=0 bulkscore=0 lowpriorityscore=0 mlxscore=0 mlxlogscore=999
 	classifier=spam adjust=0 reason=mlx scancount=1
-	engine=8.12.0-2109230001 definitions=main-2110020109
+	engine=8.12.0-2109230001 definitions=main-2110070147
 X-Spam: Clean
-Cc: Valentin Vidic <vvidic@valentin-vidic.from.hr>
-Subject: [Ocfs2-devel] [PATCH] ocfs2: cleanup journal init and shutdown
+Cc: kernel-janitors@vger.kernel.org, linux-kernel@vger.kernel.org
+Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: Remove redundant assignment of
+	variable ret
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.9
 Precedence: list
@@ -92,205 +98,40 @@ Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 Sender: ocfs2-devel-bounces@oss.oracle.com
 Errors-To: ocfs2-devel-bounces@oss.oracle.com
-X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10125 signatures=668683
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 bulkscore=0 adultscore=0
- mlxlogscore=999 phishscore=0 suspectscore=0 mlxscore=0 spamscore=0
- malwarescore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2109230001 definitions=main-2110020108
-X-Proofpoint-ORIG-GUID: 3DQBonCOCzGSXkYY33BxyBMnHiqImDkT
-X-Proofpoint-GUID: 3DQBonCOCzGSXkYY33BxyBMnHiqImDkT
+X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10130 signatures=668683
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 spamscore=0 suspectscore=0 adultscore=0
+ mlxscore=0 phishscore=0 bulkscore=0 mlxlogscore=999 malwarescore=0
+ classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2109230001
+ definitions=main-2110070147
+X-Proofpoint-ORIG-GUID: WEx2dbV3yDjyG75H7MEZR55Id80zNSMr
+X-Proofpoint-GUID: WEx2dbV3yDjyG75H7MEZR55Id80zNSMr
 
-Allocate and free struct ocfs2_journal in ocfs2_journal_init and
-ocfs2_journal_shutdown. Init and release of system inodes references
-the journal so reorder calls to make sure they work correctly.
+From: Colin Ian King <colin.king@canonical.com>
 
-Signed-off-by: Valentin Vidic <vvidic@valentin-vidic.from.hr>
+The variable ret is being assigned a value that is never read, it is
+updated later on with a different value. The assignment is redundant and
+can be removed.
+
+Addresses-Coverity: ("Unused value")
+Signed-off-by: Colin Ian King <colin.king@canonical.com>
 ---
- fs/ocfs2/inode.c   |  4 ++--
- fs/ocfs2/journal.c | 25 +++++++++++++++++++++----
- fs/ocfs2/journal.h |  3 +--
- fs/ocfs2/super.c   | 40 +++-------------------------------------
- 4 files changed, 27 insertions(+), 45 deletions(-)
+ fs/ocfs2/dlm/dlmrecovery.c | 1 -
+ 1 file changed, 1 deletion(-)
 
-diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-index bc8f32fab964..c2275895c229 100644
---- a/fs/ocfs2/inode.c
-+++ b/fs/ocfs2/inode.c
-@@ -125,7 +125,6 @@ struct inode *ocfs2_iget(struct ocfs2_super *osb, u64 blkno, unsigned flags,
- 	struct inode *inode = NULL;
- 	struct super_block *sb = osb->sb;
- 	struct ocfs2_find_inode_args args;
--	journal_t *journal = OCFS2_SB(sb)->journal->j_journal;
- 
- 	trace_ocfs2_iget_begin((unsigned long long)blkno, flags,
- 			       sysfile_type);
-@@ -172,10 +171,11 @@ struct inode *ocfs2_iget(struct ocfs2_super *osb, u64 blkno, unsigned flags,
- 	 * part of the transaction - the inode could have been reclaimed and
- 	 * now it is reread from disk.
- 	 */
--	if (journal) {
-+	if (OCFS2_SB(sb)->journal) {
- 		transaction_t *transaction;
- 		tid_t tid;
- 		struct ocfs2_inode_info *oi = OCFS2_I(inode);
-+		journal_t *journal = OCFS2_SB(sb)->journal->j_journal;
- 
- 		read_lock(&journal->j_state_lock);
- 		if (journal->j_running_transaction)
-diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
-index 4f15750aac5d..d50f0ac3fd46 100644
---- a/fs/ocfs2/journal.c
-+++ b/fs/ocfs2/journal.c
-@@ -810,19 +810,34 @@ void ocfs2_set_journal_params(struct ocfs2_super *osb)
- 	write_unlock(&journal->j_state_lock);
- }
- 
--int ocfs2_journal_init(struct ocfs2_journal *journal, int *dirty)
-+int ocfs2_journal_init(struct ocfs2_super *osb, int *dirty)
- {
- 	int status = -1;
- 	struct inode *inode = NULL; /* the journal inode */
- 	journal_t *j_journal = NULL;
-+	struct ocfs2_journal *journal = NULL;
- 	struct ocfs2_dinode *di = NULL;
- 	struct buffer_head *bh = NULL;
--	struct ocfs2_super *osb;
- 	int inode_lock = 0;
- 
--	BUG_ON(!journal);
-+	/* initialize our journal structure */
-+	journal = kzalloc(sizeof(struct ocfs2_journal), GFP_KERNEL);
-+	if (!journal) {
-+		mlog(ML_ERROR, "unable to alloc journal\n");
-+		status = -ENOMEM;
-+		goto done;
-+	}
-+	osb->journal = journal;
-+	journal->j_osb = osb;
- 
--	osb = journal->j_osb;
-+	atomic_set(&journal->j_num_trans, 0);
-+	init_rwsem(&journal->j_trans_barrier);
-+	init_waitqueue_head(&journal->j_checkpointed);
-+	spin_lock_init(&journal->j_lock);
-+	journal->j_trans_id = 1UL;
-+	INIT_LIST_HEAD(&journal->j_la_cleanups);
-+	INIT_WORK(&journal->j_recovery_work, ocfs2_complete_recovery);
-+	journal->j_state = OCFS2_JOURNAL_FREE;
- 
- 	/* already have the inode for our journal */
- 	inode = ocfs2_get_system_file_inode(osb, JOURNAL_SYSTEM_INODE,
-@@ -1031,6 +1046,8 @@ void ocfs2_journal_shutdown(struct ocfs2_super *osb)
- //	up_write(&journal->j_trans_barrier);
- done:
- 	iput(inode);
-+	kfree(journal);
-+	osb->journal = NULL;
- }
- 
- static void ocfs2_clear_journal_error(struct super_block *sb,
-diff --git a/fs/ocfs2/journal.h b/fs/ocfs2/journal.h
-index d158acb8b38a..8dcb2f2cadbc 100644
---- a/fs/ocfs2/journal.h
-+++ b/fs/ocfs2/journal.h
-@@ -167,8 +167,7 @@ int ocfs2_compute_replay_slots(struct ocfs2_super *osb);
-  *  ocfs2_start_checkpoint - Kick the commit thread to do a checkpoint.
-  */
- void   ocfs2_set_journal_params(struct ocfs2_super *osb);
--int    ocfs2_journal_init(struct ocfs2_journal *journal,
--			  int *dirty);
-+int    ocfs2_journal_init(struct ocfs2_super *osb, int *dirty);
- void   ocfs2_journal_shutdown(struct ocfs2_super *osb);
- int    ocfs2_journal_wipe(struct ocfs2_journal *journal,
- 			  int full);
-diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-index 5c914ce9b3ac..1286b88b6fa1 100644
---- a/fs/ocfs2/super.c
-+++ b/fs/ocfs2/super.c
-@@ -1894,8 +1894,6 @@ static void ocfs2_dismount_volume(struct super_block *sb, int mnt_err)
- 	/* This will disable recovery and flush any recovery work. */
- 	ocfs2_recovery_exit(osb);
- 
--	ocfs2_journal_shutdown(osb);
--
- 	ocfs2_sync_blockdev(sb);
- 
- 	ocfs2_purge_refcount_trees(osb);
-@@ -1918,6 +1916,8 @@ static void ocfs2_dismount_volume(struct super_block *sb, int mnt_err)
- 
- 	ocfs2_release_system_inodes(osb);
- 
-+	ocfs2_journal_shutdown(osb);
-+
- 	/*
- 	 * If we're dismounting due to mount error, mount.ocfs2 will clean
- 	 * up heartbeat.  If we're a local mount, there is no heartbeat.
-@@ -2016,7 +2016,6 @@ static int ocfs2_initialize_super(struct super_block *sb,
- 	int i, cbits, bbits;
- 	struct ocfs2_dinode *di = (struct ocfs2_dinode *)bh->b_data;
- 	struct inode *inode = NULL;
--	struct ocfs2_journal *journal;
- 	struct ocfs2_super *osb;
- 	u64 total_blocks;
- 
-@@ -2197,33 +2196,6 @@ static int ocfs2_initialize_super(struct super_block *sb,
- 
- 	get_random_bytes(&osb->s_next_generation, sizeof(u32));
- 
--	/* FIXME
--	 * This should be done in ocfs2_journal_init(), but unknown
--	 * ordering issues will cause the filesystem to crash.
--	 * If anyone wants to figure out what part of the code
--	 * refers to osb->journal before ocfs2_journal_init() is run,
--	 * be my guest.
--	 */
--	/* initialize our journal structure */
--
--	journal = kzalloc(sizeof(struct ocfs2_journal), GFP_KERNEL);
--	if (!journal) {
--		mlog(ML_ERROR, "unable to alloc journal\n");
--		status = -ENOMEM;
--		goto bail;
--	}
--	osb->journal = journal;
--	journal->j_osb = osb;
--
--	atomic_set(&journal->j_num_trans, 0);
--	init_rwsem(&journal->j_trans_barrier);
--	init_waitqueue_head(&journal->j_checkpointed);
--	spin_lock_init(&journal->j_lock);
--	journal->j_trans_id = (unsigned long) 1;
--	INIT_LIST_HEAD(&journal->j_la_cleanups);
--	INIT_WORK(&journal->j_recovery_work, ocfs2_complete_recovery);
--	journal->j_state = OCFS2_JOURNAL_FREE;
--
- 	INIT_WORK(&osb->dquot_drop_work, ocfs2_drop_dquot_refs);
- 	init_llist_head(&osb->dquot_drop_list);
- 
-@@ -2404,7 +2376,7 @@ static int ocfs2_check_volume(struct ocfs2_super *osb)
- 						  * ourselves. */
- 
- 	/* Init our journal object. */
--	status = ocfs2_journal_init(osb->journal, &dirty);
-+	status = ocfs2_journal_init(osb, &dirty);
- 	if (status < 0) {
- 		mlog(ML_ERROR, "Could not initialize journal!\n");
- 		goto finally;
-@@ -2513,12 +2485,6 @@ static void ocfs2_delete_osb(struct ocfs2_super *osb)
- 
- 	kfree(osb->osb_orphan_wipes);
- 	kfree(osb->slot_recovery_generations);
--	/* FIXME
--	 * This belongs in journal shutdown, but because we have to
--	 * allocate osb->journal at the start of ocfs2_initialize_osb(),
--	 * we free it here.
--	 */
--	kfree(osb->journal);
- 	kfree(osb->local_alloc_copy);
- 	kfree(osb->uuid_str);
- 	kfree(osb->vol_label);
+diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
+index e24e327524f8..52ad342fec3e 100644
+--- a/fs/ocfs2/dlm/dlmrecovery.c
++++ b/fs/ocfs2/dlm/dlmrecovery.c
+@@ -2698,7 +2698,6 @@ static int dlm_send_begin_reco_message(struct dlm_ctxt *dlm, u8 dead_node)
+ 			continue;
+ 		}
+ retry:
+-		ret = -EINVAL;
+ 		mlog(0, "attempting to send begin reco msg to %d\n",
+ 			  nodenum);
+ 		ret = o2net_send_message(DLM_BEGIN_RECO_MSG, dlm->key,
 -- 
-2.30.2
+2.32.0
 
 
 _______________________________________________
