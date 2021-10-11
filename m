@@ -1,60 +1,85 @@
-Return-Path: <SRS0=Exlr=O7=oss.oracle.com=ocfs2-devel-bounces@kernel.org>
+Return-Path: <SRS0=+lI3=PA=oss.oracle.com=ocfs2-devel-bounces@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 17AF5C433EF
-	for <ocfs2-devel@archiver.kernel.org>; Mon, 11 Oct 2021 21:08:30 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id E6AB1C433EF
+	for <ocfs2-devel@archiver.kernel.org>; Tue, 12 Oct 2021 00:00:22 +0000 (UTC)
 Received: from mx0b-00069f02.pphosted.com (mx0b-00069f02.pphosted.com [205.220.177.32])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by mail.kernel.org (Postfix) with ESMTPS id A3E57601FC
-	for <ocfs2-devel@archiver.kernel.org>; Mon, 11 Oct 2021 21:08:29 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.1 mail.kernel.org A3E57601FC
-Authentication-Results: mail.kernel.org; dmarc=fail (p=none dis=none) header.from=arm.com
+	by mail.kernel.org (Postfix) with ESMTPS id 5F27460F11
+	for <ocfs2-devel@archiver.kernel.org>; Tue, 12 Oct 2021 00:00:22 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.1 mail.kernel.org 5F27460F11
+Authentication-Results: mail.kernel.org; dmarc=none (p=none dis=none) header.from=linux-foundation.org
 Authentication-Results: mail.kernel.org; spf=pass smtp.mailfrom=oss.oracle.com
-Received: from pps.filterd (m0246630.ppops.net [127.0.0.1])
-	by mx0b-00069f02.pphosted.com (8.16.1.2/8.16.1.2) with SMTP id 19BKbsjD012464;
-	Mon, 11 Oct 2021 21:08:28 GMT
-Received: from userp3030.oracle.com (userp3030.oracle.com [156.151.31.80])
-	by mx0b-00069f02.pphosted.com with ESMTP id 3bmq2vjjsv-1
+Received: from pps.filterd (m0246631.ppops.net [127.0.0.1])
+	by mx0b-00069f02.pphosted.com (8.16.1.2/8.16.1.2) with SMTP id 19BNQ9Ni017592;
+	Tue, 12 Oct 2021 00:00:21 GMT
+Received: from userp3020.oracle.com (userp3020.oracle.com [156.151.31.79])
+	by mx0b-00069f02.pphosted.com with ESMTP id 3bmtmk1ykj-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Mon, 11 Oct 2021 21:08:28 +0000
-Received: from pps.filterd (userp3030.oracle.com [127.0.0.1])
-	by userp3030.oracle.com (8.16.1.2/8.16.1.2) with SMTP id 19BL540Z165712;
-	Mon, 11 Oct 2021 21:08:27 GMT
+	Tue, 12 Oct 2021 00:00:21 +0000
+Received: from pps.filterd (userp3020.oracle.com [127.0.0.1])
+	by userp3020.oracle.com (8.16.1.2/8.16.1.2) with SMTP id 19BNt3mu153569;
+	Tue, 12 Oct 2021 00:00:19 GMT
 Received: from oss.oracle.com (oss-old-reserved.oracle.com [137.254.22.2])
-	by userp3030.oracle.com with ESMTP id 3bkyv7p0fe-1
+	by userp3020.oracle.com with ESMTP id 3bkyv95t5w-1
 	(version=TLSv1 cipher=AES256-SHA bits=256 verify=NO);
-	Mon, 11 Oct 2021 21:08:27 +0000
+	Tue, 12 Oct 2021 00:00:19 +0000
 Received: from localhost ([127.0.0.1] helo=lb-oss.oracle.com)
 	by oss.oracle.com with esmtp (Exim 4.63)
 	(envelope-from <ocfs2-devel-bounces@oss.oracle.com>)
-	id 1ma2X4-0005Zx-Ca; Mon, 11 Oct 2021 14:08:26 -0700
-Received: from aserp3020.oracle.com ([141.146.126.70])
+	id 1ma5DO-00055y-FW; Mon, 11 Oct 2021 17:00:18 -0700
+Received: from userp3030.oracle.com ([156.151.31.80])
 	by oss.oracle.com with esmtp (Exim 4.63)
-	(envelope-from <cmarinas@kernel.org>) id 1ma2X1-0005ZW-Ko
-	for ocfs2-devel@oss.oracle.com; Mon, 11 Oct 2021 14:08:23 -0700
-Received: from pps.filterd (aserp3020.oracle.com [127.0.0.1])
-	by aserp3020.oracle.com (8.16.1.2/8.16.1.2) with SMTP id 19BL4gLm010425
-	for <ocfs2-devel@oss.oracle.com>; Mon, 11 Oct 2021 21:08:23 GMT
-Received: from mx0b-00069f01.pphosted.com (mx0b-00069f01.pphosted.com
-	[205.220.177.26]) by aserp3020.oracle.com with ESMTP id 3bmadwvmyu-1
+	(envelope-from <torvalds@linuxfoundation.org>) id 1ma5Cy-0004ym-Kv
+	for ocfs2-devel@oss.oracle.com; Mon, 11 Oct 2021 16:59:52 -0700
+Received: from pps.filterd (userp3030.oracle.com [127.0.0.1])
+	by userp3030.oracle.com (8.16.1.2/8.16.1.2) with SMTP id 19BNt39x069166
+	for <ocfs2-devel@oss.oracle.com>; Mon, 11 Oct 2021 23:59:52 GMT
+Received: from mx0a-00069f01.pphosted.com (mx0a-00069f01.pphosted.com
+	[205.220.165.26]) by userp3030.oracle.com with ESMTP id 3bkyv7w21j-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Mon, 11 Oct 2021 21:08:23 +0000
-Received: from pps.filterd (m0246579.ppops.net [127.0.0.1])
+	for <ocfs2-devel@oss.oracle.com>; Mon, 11 Oct 2021 23:59:51 +0000
+Received: from pps.filterd (m0246574.ppops.net [127.0.0.1])
 	by mx0b-00069f01.pphosted.com (8.16.1.2/8.16.1.2) with SMTP id
-	19BJIbM9006819
-	for <ocfs2-devel@oss.oracle.com>; Mon, 11 Oct 2021 21:08:22 GMT
-Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by mx0b-00069f01.pphosted.com with ESMTP id 3bmuajsdve-1
-	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NO)
-	for <ocfs2-devel@oss.oracle.com>; Mon, 11 Oct 2021 21:08:22 +0000
-Received: by mail.kernel.org (Postfix) with ESMTPSA id 47FA360F43;
-	Mon, 11 Oct 2021 21:08:18 +0000 (UTC)
-Date: Mon, 11 Oct 2021 22:08:14 +0100
-From: Catalin Marinas <catalin.marinas@arm.com>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Message-ID: <YWSnvq58jDsDuIik@arm.com>
+	19BJXCtb004391
+	for <ocfs2-devel@oss.oracle.com>; Mon, 11 Oct 2021 23:59:50 GMT
+Received: from mail-lf1-f42.google.com (mail-lf1-f42.google.com
+	[209.85.167.42])
+	by mx0b-00069f01.pphosted.com with ESMTP id 3bmuhab0sy-1
+	(version=TLSv1.2 cipher=ECDHE-RSA-AES128-GCM-SHA256 bits=128 verify=OK)
+	for <ocfs2-devel@oss.oracle.com>; Mon, 11 Oct 2021 23:59:50 +0000
+Received: by mail-lf1-f42.google.com with SMTP id r19so77511809lfe.10
+	for <ocfs2-devel@oss.oracle.com>; Mon, 11 Oct 2021 16:59:49 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=1e100.net; s=20210112;
+	h=x-gm-message-state:mime-version:references:in-reply-to:from:date
+	:message-id:subject:to:cc;
+	bh=OgVSO9l8+qaj3s+luNrigHMuS+kRVTnezRpRHPjbW94=;
+	b=299AYyPzHKfOrjPjC5xxW7mUVPrLZNAgW9P9MJngqZ0DQEFATFcdGjlWEsKfz0Tt7w
+	GA1T0CVv/s7ODXUukbDpsPKlwTTrWkDhJiOZQ0p3RqHF7HDigGlB50vseRAcpadbXipn
+	ZDUhssrwBTIP/yhqKDibAGyevgXXlXaOdydDX80JSYwGEiA8HThNaVUrcsi+Bn2Fc2Wi
+	c50F/05zgSIQKYddsjPrS+ZYLpzZQ4pIcfGK4/WXuWP3RmecAiGdpqPQ8+4ILrZ1HHUm
+	W2pE03h0Ef4iG78n+tz9kB3aBG5itBu/EPaJEoqR51MKW5X10ZxuzN5c9axdIX5tcmSw
+	gLPA==
+X-Gm-Message-State: AOAM531FEZRdh0xi4TqXWtHF5UupBVBWzVptrFoXFoojeLpmK/WWmCoj
+	CUlFxnHw8emKzwAF8u8JH6M4IFGssB1k/25s
+X-Google-Smtp-Source: ABdhPJzkBpz1ujwymtm5rJK4yy3CJpINzlWKy1eJN2cxloC8a5VjVE5oTn1jNAo217Rowb1SPOig4g==
+X-Received: by 2002:a19:2d14:: with SMTP id k20mr30010189lfj.56.1633996786899; 
+	Mon, 11 Oct 2021 16:59:46 -0700 (PDT)
+Received: from mail-lf1-f41.google.com (mail-lf1-f41.google.com.
+	[209.85.167.41]) by smtp.gmail.com with ESMTPSA id
+	y25sm836328lfg.179.2021.10.11.16.59.44
+	for <ocfs2-devel@oss.oracle.com>
+	(version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+	Mon, 11 Oct 2021 16:59:44 -0700 (PDT)
+Received: by mail-lf1-f41.google.com with SMTP id i24so78237529lfj.13
+	for <ocfs2-devel@oss.oracle.com>; Mon, 11 Oct 2021 16:59:44 -0700 (PDT)
+X-Received: by 2002:a05:6512:139b:: with SMTP id
+	p27mr30802647lfa.173.1633996784057; 
+	Mon, 11 Oct 2021 16:59:44 -0700 (PDT)
+MIME-Version: 1.0
 References: <CAHk-=wh5p6zpgUUoY+O7e74X9BZyODhnsqvv=xqnTaLRNj3d_Q@mail.gmail.com>
 	<YSk7xfcHVc7CxtQO@zeniv-ca.linux.org.uk>
 	<CAHk-=wjMyZLH+ta5SohAViSc10iPj-hRnHc-KPDoj1XZCmxdBg@mail.gmail.com>
@@ -63,18 +88,29 @@ References: <CAHk-=wh5p6zpgUUoY+O7e74X9BZyODhnsqvv=xqnTaLRNj3d_Q@mail.gmail.com>
 	<YSqOUb7yZ7kBoKRY@zeniv-ca.linux.org.uk> <YS40qqmXL7CMFLGq@arm.com>
 	<YS5KudP4DBwlbPEp@zeniv-ca.linux.org.uk> <YWR2cPKeDrc0uHTK@arm.com>
 	<CAHk-=wjvQWj7mvdrgTedUW50c2fkdn6Hzxtsk-=ckkMrFoTXjQ@mail.gmail.com>
-MIME-Version: 1.0
-Content-Disposition: inline
-In-Reply-To: <CAHk-=wjvQWj7mvdrgTedUW50c2fkdn6Hzxtsk-=ckkMrFoTXjQ@mail.gmail.com>
-X-Source-IP: 198.145.29.99
-X-ServerName: mail.kernel.org
+	<YWSnvq58jDsDuIik@arm.com>
+In-Reply-To: <YWSnvq58jDsDuIik@arm.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Mon, 11 Oct 2021 16:59:28 -0700
+X-Gmail-Original-Message-ID: <CAHk-=wiNWOY5QW5ZJukt_9pHTWvrJhE2=DxPpEtFHAWdzOPDTg@mail.gmail.com>
+Message-ID: <CAHk-=wiNWOY5QW5ZJukt_9pHTWvrJhE2=DxPpEtFHAWdzOPDTg@mail.gmail.com>
+To: Catalin Marinas <catalin.marinas@arm.com>
+X-Source-IP: 209.85.167.42
+X-ServerName: mail-lf1-f42.google.com
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 mx include:_spf.kernel.org ~all
+X-Proofpoint-SPF-Record: v=spf1 ip4:198.145.29.98/31 ip4:72.55.140.81
+	include:_spf.google.com
+	include:amazonses.com include:_spf.salesforce.com ~all
 X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10134
 	signatures=668683
-X-Proofpoint-Spam-Reason: safe
-X-Spam: OrgSafeList
-X-SpamRule: orgsafelist
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 impostorscore=0
+	suspectscore=0
+	mlxscore=0 malwarescore=0 lowpriorityscore=0 bulkscore=0 clxscore=414
+	spamscore=0 mlxlogscore=777 priorityscore=60 adultscore=0 phishscore=0
+	classifier=spam adjust=0 reason=mlx scancount=1
+	engine=8.12.0-2109230001
+	definitions=main-2110110136 domainage_hfrom=5410
+X-Spam: Clean
 Cc: cluster-devel <cluster-devel@redhat.com>, Jan Kara <jack@suse.cz>,
         Andreas Gruenbacher <agruenba@redhat.com>,
         Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
@@ -102,196 +138,41 @@ Content-Transfer-Encoding: 7bit
 Sender: ocfs2-devel-bounces@oss.oracle.com
 Errors-To: ocfs2-devel-bounces@oss.oracle.com
 X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10134 signatures=668683
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 suspectscore=0 phishscore=0 bulkscore=0
- malwarescore=0 adultscore=0 mlxscore=0 spamscore=0 mlxlogscore=999
- classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2109230001
- definitions=main-2110110120
-X-Proofpoint-GUID: 4D_18gN-EoY2WhuW0LXdfPagmdNN8U92
-X-Proofpoint-ORIG-GUID: 4D_18gN-EoY2WhuW0LXdfPagmdNN8U92
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 suspectscore=0 malwarescore=0
+ adultscore=0 bulkscore=0 mlxscore=0 spamscore=0 mlxlogscore=999
+ phishscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2109230001 definitions=main-2110110136
+X-Proofpoint-GUID: LwsUBlV0RyOLzlC_1gK7Blkp-5IUHYJz
+X-Proofpoint-ORIG-GUID: LwsUBlV0RyOLzlC_1gK7Blkp-5IUHYJz
 
-On Mon, Oct 11, 2021 at 12:15:43PM -0700, Linus Torvalds wrote:
-> On Mon, Oct 11, 2021 at 10:38 AM Catalin Marinas
-> <catalin.marinas@arm.com> wrote:
-> > I cleaned up this patch [1] but I realised it still doesn't solve it.
-> > The arm64 __copy_to_user_inatomic(), while ensuring progress if called
-> > in a loop, it does not guarantee precise copy to the fault position.
-> 
-> That should be ok., We've always allowed the user copy to return early
-> if it does word copies and hits a page crosser that causes a fault.
-> 
-> Any user then has the choice of:
-> 
->  - partial copies are bad
-> 
->  - partial copies are handled and then you retry from the place
-> copy_to_user() failed at
-> 
-> and in that second case, the next time around, you'll get the fault
-> immediately (or you'll make some more progress - maybe the user copy
-> loop did something different just because the length and/or alignment
-> was different).
-> 
-> If you get the fault immediately, that's -EFAULT.
-> 
-> And if you make some more progress, it's again up to the caller to
-> rinse and repeat.
-> 
-> End result: user copy functions do not have to report errors exactly.
-> It is the caller that has to handle the situation.
-> 
-> Most importantly: "exact error or not" doesn't actually _matter_ to
-> the caller. If the caller does the right thing for an exact error, it
-> will do the right thing for an inexact one too. See above.
+On Mon, Oct 11, 2021 at 2:08 PM Catalin Marinas <catalin.marinas@arm.com> wrote:
+>
+> +#ifdef CONFIG_ARM64_MTE
+> +#define FAULT_GRANULE_SIZE     (16)
+> +#define FAULT_GRANULE_MASK     (~(FAULT_GRANULE_SIZE-1))
 
-Yes, that's my expectation (though fixed fairly recently in the arm64
-user copy routines).
+[...]
 
-> > The copy_to_sk(), after returning an error, starts again from the previous
-> > sizeof(sh) boundary rather than from where the __copy_to_user_inatomic()
-> > stopped. So it can get stuck attempting to copy the same search header.
-> 
-> That seems to be purely a copy_to_sk() bug.
-> 
-> Or rather, it looks like a bug in the caller. copy_to_sk() itself does
-> 
->                 if (copy_to_user_nofault(ubuf + *sk_offset, &sh, sizeof(sh))) {
->                         ret = 0;
->                         goto out;
->                 }
-> 
-> and the comment says
-> 
->          *  0: all items from this leaf copied, continue with next
-> 
-> but that comment is then obviously not actually true in that it's not
-> "continue with next" at all.
+> If this looks in the right direction, I'll do some proper patches
+> tomorrow.
 
-The comments were correct before commit a48b73eca4ce ("btrfs: fix
-potential deadlock in the search ioctl") which introduced the
-potentially infinite loop.
+Looks fine to me. It's going to be quite expensive and bad for caches, though.
 
-Something like this would make the comments match (I think):
+That said, fault_in_writable() is _supposed_ to all be for the slow
+path when things go south and the normal path didn't work out, so I
+think it's fine.
 
-diff --git a/fs/btrfs/ioctl.c b/fs/btrfs/ioctl.c
-index cc61813213d8..1debf6a124e8 100644
---- a/fs/btrfs/ioctl.c
-+++ b/fs/btrfs/ioctl.c
-@@ -2161,7 +2161,7 @@ static noinline int copy_to_sk(struct btrfs_path *path,
- 		 * properly this next time through
- 		 */
- 		if (copy_to_user_nofault(ubuf + *sk_offset, &sh, sizeof(sh))) {
--			ret = 0;
-+			ret = -EFAULT;
- 			goto out;
- 		}
+I do wonder how the sub-page granularity works. Is it sufficient to
+just read from it? Because then a _slightly_ better option might be to
+do one write per page (to catch page table writability) and then one
+read per "granule" (to catch pointer coloring or cache poisoning
+issues)?
 
-@@ -2175,7 +2175,7 @@ static noinline int copy_to_sk(struct btrfs_path *path,
- 			 */
- 			if (read_extent_buffer_to_user_nofault(leaf, up,
- 						item_off, item_len)) {
--				ret = 0;
-+				ret = -EFAULT;
- 				*sk_offset -= sizeof(sh);
- 				goto out;
- 			}
-@@ -2260,12 +2260,8 @@ static noinline int search_ioctl(struct inode *inode,
- 	key.type = sk->min_type;
- 	key.offset = sk->min_offset;
+That said, since this is all preparatory to us wanting to write to it
+eventually anyway, maybe marking it all dirty in the caches is only
+good.
 
--	while (1) {
--		ret = fault_in_pages_writeable(ubuf + sk_offset,
--					       *buf_size - sk_offset);
--		if (ret)
--			break;
--
-+	ret = fault_in_pages_writeable(ubuf, *buf_size);
-+	while (ret == 0) {
- 		ret = btrfs_search_forward(root, &key, path, sk->min_transid);
- 		if (ret != 0) {
- 			if (ret > 0)
-@@ -2275,9 +2271,14 @@ static noinline int search_ioctl(struct inode *inode,
- 		ret = copy_to_sk(path, &key, sk, buf_size, ubuf,
- 				 &sk_offset, &num_found);
- 		btrfs_release_path(path);
--		if (ret)
--			break;
-
-+		/*
-+		 * Fault in copy_to_sk(), attempt to bring the page in after
-+		 * releasing the locks and retry.
-+		 */
-+		if (ret == -EFAULT)
-+			ret = fault_in_pages_writeable(ubuf + sk_offset,
-+				       sizeof(struct btrfs_ioctl_search_header));
- 	}
- 	if (ret > 0)
- 		ret = 0;
-
-> > An ugly fix is to fall back to byte by byte copying so that we can
-> > attempt the actual fault address in fault_in_pages_writeable().
-> 
-> No, changing the user copy machinery is wrong. The caller really has
-> to do the right thing with partial results.
-> 
-> And I think we need to make fault_in_pages_writeable() match the
-> actual faulting cases - maybe remote the "pages" part of the name?
-
-Ah, good point. Without removing "pages" from the name (too late over
-here to grep the kernel), something like below:
-
-diff --git a/arch/arm64/include/asm/page-def.h b/arch/arm64/include/asm/page-def.h
-index 2403f7b4cdbf..3768ac4a6610 100644
---- a/arch/arm64/include/asm/page-def.h
-+++ b/arch/arm64/include/asm/page-def.h
-@@ -15,4 +15,9 @@
- #define PAGE_SIZE		(_AC(1, UL) << PAGE_SHIFT)
- #define PAGE_MASK		(~(PAGE_SIZE-1))
- 
-+#ifdef CONFIG_ARM64_MTE
-+#define FAULT_GRANULE_SIZE	(16)
-+#define FAULT_GRANULE_MASK	(~(FAULT_GRANULE_SIZE-1))
-+#endif
-+
- #endif /* __ASM_PAGE_DEF_H */
-diff --git a/include/linux/pagemap.h b/include/linux/pagemap.h
-index 62db6b0176b9..7aef732e4fa7 100644
---- a/include/linux/pagemap.h
-+++ b/include/linux/pagemap.h
-@@ -16,6 +16,11 @@
- #include <linux/hardirq.h> /* for in_interrupt() */
- #include <linux/hugetlb_inline.h>
- 
-+#ifndef FAULT_GRANULE_SIZE
-+#define FAULT_GRANULE_SIZE	PAGE_SIZE
-+#define FAULT_GRANULE_MASK	PAGE_MASK
-+#endif
-+
- struct pagevec;
- 
- static inline bool mapping_empty(struct address_space *mapping)
-@@ -751,12 +756,12 @@ static inline int fault_in_pages_writeable(char __user *uaddr, size_t size)
- 	do {
- 		if (unlikely(__put_user(0, uaddr) != 0))
- 			return -EFAULT;
--		uaddr += PAGE_SIZE;
-+		uaddr += FAULT_GRANULE_SIZE;
- 	} while (uaddr <= end);
- 
--	/* Check whether the range spilled into the next page. */
--	if (((unsigned long)uaddr & PAGE_MASK) ==
--			((unsigned long)end & PAGE_MASK))
-+	/* Check whether the range spilled into the next granule. */
-+	if (((unsigned long)uaddr & FAULT_GRANULE_MASK) ==
-+			((unsigned long)end & FAULT_GRANULE_MASK))
- 		return __put_user(0, end);
- 
- 	return 0;
-
-If this looks in the right direction, I'll do some proper patches
-tomorrow.
-
--- 
-Catalin
+                Linus
 
 _______________________________________________
 Ocfs2-devel mailing list
