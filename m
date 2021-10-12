@@ -2,115 +2,79 @@ Return-Path: <SRS0=+lI3=PA=oss.oracle.com=ocfs2-devel-bounces@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id E6AB1C433EF
-	for <ocfs2-devel@archiver.kernel.org>; Tue, 12 Oct 2021 00:00:22 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id CC247C433EF
+	for <ocfs2-devel@archiver.kernel.org>; Tue, 12 Oct 2021 17:31:21 +0000 (UTC)
 Received: from mx0b-00069f02.pphosted.com (mx0b-00069f02.pphosted.com [205.220.177.32])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by mail.kernel.org (Postfix) with ESMTPS id 5F27460F11
-	for <ocfs2-devel@archiver.kernel.org>; Tue, 12 Oct 2021 00:00:22 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.1 mail.kernel.org 5F27460F11
-Authentication-Results: mail.kernel.org; dmarc=none (p=none dis=none) header.from=linux-foundation.org
+	by mail.kernel.org (Postfix) with ESMTPS id 6CBA060EFE
+	for <ocfs2-devel@archiver.kernel.org>; Tue, 12 Oct 2021 17:31:21 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.1 mail.kernel.org 6CBA060EFE
+Authentication-Results: mail.kernel.org; dmarc=fail (p=none dis=none) header.from=arm.com
 Authentication-Results: mail.kernel.org; spf=pass smtp.mailfrom=oss.oracle.com
-Received: from pps.filterd (m0246631.ppops.net [127.0.0.1])
-	by mx0b-00069f02.pphosted.com (8.16.1.2/8.16.1.2) with SMTP id 19BNQ9Ni017592;
-	Tue, 12 Oct 2021 00:00:21 GMT
-Received: from userp3020.oracle.com (userp3020.oracle.com [156.151.31.79])
-	by mx0b-00069f02.pphosted.com with ESMTP id 3bmtmk1ykj-1
+Received: from pps.filterd (m0246630.ppops.net [127.0.0.1])
+	by mx0b-00069f02.pphosted.com (8.16.1.2/8.16.1.2) with SMTP id 19CGo0Um007290;
+	Tue, 12 Oct 2021 17:31:20 GMT
+Received: from userp3030.oracle.com (userp3030.oracle.com [156.151.31.80])
+	by mx0b-00069f02.pphosted.com with ESMTP id 3bmq2vs50e-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Tue, 12 Oct 2021 00:00:21 +0000
-Received: from pps.filterd (userp3020.oracle.com [127.0.0.1])
-	by userp3020.oracle.com (8.16.1.2/8.16.1.2) with SMTP id 19BNt3mu153569;
-	Tue, 12 Oct 2021 00:00:19 GMT
+	Tue, 12 Oct 2021 17:31:13 +0000
+Received: from pps.filterd (userp3030.oracle.com [127.0.0.1])
+	by userp3030.oracle.com (8.16.1.2/8.16.1.2) with SMTP id 19CHFMpw028180;
+	Tue, 12 Oct 2021 17:30:54 GMT
 Received: from oss.oracle.com (oss-old-reserved.oracle.com [137.254.22.2])
-	by userp3020.oracle.com with ESMTP id 3bkyv95t5w-1
+	by userp3030.oracle.com with ESMTP id 3bkyv99df5-1
 	(version=TLSv1 cipher=AES256-SHA bits=256 verify=NO);
-	Tue, 12 Oct 2021 00:00:19 +0000
+	Tue, 12 Oct 2021 17:30:53 +0000
 Received: from localhost ([127.0.0.1] helo=lb-oss.oracle.com)
 	by oss.oracle.com with esmtp (Exim 4.63)
 	(envelope-from <ocfs2-devel-bounces@oss.oracle.com>)
-	id 1ma5DO-00055y-FW; Mon, 11 Oct 2021 17:00:18 -0700
-Received: from userp3030.oracle.com ([156.151.31.80])
+	id 1maLZ1-0003hW-W1; Tue, 12 Oct 2021 10:27:43 -0700
+Received: from aserp3030.oracle.com ([141.146.126.71])
 	by oss.oracle.com with esmtp (Exim 4.63)
-	(envelope-from <torvalds@linuxfoundation.org>) id 1ma5Cy-0004ym-Kv
-	for ocfs2-devel@oss.oracle.com; Mon, 11 Oct 2021 16:59:52 -0700
-Received: from pps.filterd (userp3030.oracle.com [127.0.0.1])
-	by userp3030.oracle.com (8.16.1.2/8.16.1.2) with SMTP id 19BNt39x069166
-	for <ocfs2-devel@oss.oracle.com>; Mon, 11 Oct 2021 23:59:52 GMT
-Received: from mx0a-00069f01.pphosted.com (mx0a-00069f01.pphosted.com
-	[205.220.165.26]) by userp3030.oracle.com with ESMTP id 3bkyv7w21j-1
+	(envelope-from <cmarinas@kernel.org>) id 1maLYZ-0003gc-92
+	for ocfs2-devel@oss.oracle.com; Tue, 12 Oct 2021 10:27:15 -0700
+Received: from pps.filterd (aserp3030.oracle.com [127.0.0.1])
+	by aserp3030.oracle.com (8.16.1.2/8.16.1.2) with SMTP id 19CHGedk183754
+	for <ocfs2-devel@oss.oracle.com>; Tue, 12 Oct 2021 17:27:15 GMT
+Received: from mx0b-00069f01.pphosted.com (mx0b-00069f01.pphosted.com
+	[205.220.177.26]) by aserp3030.oracle.com with ESMTP id 3bkyxs20ju-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Mon, 11 Oct 2021 23:59:51 +0000
-Received: from pps.filterd (m0246574.ppops.net [127.0.0.1])
+	for <ocfs2-devel@oss.oracle.com>; Tue, 12 Oct 2021 17:27:15 +0000
+Received: from pps.filterd (m0246578.ppops.net [127.0.0.1])
 	by mx0b-00069f01.pphosted.com (8.16.1.2/8.16.1.2) with SMTP id
-	19BJXCtb004391
-	for <ocfs2-devel@oss.oracle.com>; Mon, 11 Oct 2021 23:59:50 GMT
-Received: from mail-lf1-f42.google.com (mail-lf1-f42.google.com
-	[209.85.167.42])
-	by mx0b-00069f01.pphosted.com with ESMTP id 3bmuhab0sy-1
-	(version=TLSv1.2 cipher=ECDHE-RSA-AES128-GCM-SHA256 bits=128 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Mon, 11 Oct 2021 23:59:50 +0000
-Received: by mail-lf1-f42.google.com with SMTP id r19so77511809lfe.10
-	for <ocfs2-devel@oss.oracle.com>; Mon, 11 Oct 2021 16:59:49 -0700 (PDT)
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=1e100.net; s=20210112;
-	h=x-gm-message-state:mime-version:references:in-reply-to:from:date
-	:message-id:subject:to:cc;
-	bh=OgVSO9l8+qaj3s+luNrigHMuS+kRVTnezRpRHPjbW94=;
-	b=299AYyPzHKfOrjPjC5xxW7mUVPrLZNAgW9P9MJngqZ0DQEFATFcdGjlWEsKfz0Tt7w
-	GA1T0CVv/s7ODXUukbDpsPKlwTTrWkDhJiOZQ0p3RqHF7HDigGlB50vseRAcpadbXipn
-	ZDUhssrwBTIP/yhqKDibAGyevgXXlXaOdydDX80JSYwGEiA8HThNaVUrcsi+Bn2Fc2Wi
-	c50F/05zgSIQKYddsjPrS+ZYLpzZQ4pIcfGK4/WXuWP3RmecAiGdpqPQ8+4ILrZ1HHUm
-	W2pE03h0Ef4iG78n+tz9kB3aBG5itBu/EPaJEoqR51MKW5X10ZxuzN5c9axdIX5tcmSw
-	gLPA==
-X-Gm-Message-State: AOAM531FEZRdh0xi4TqXWtHF5UupBVBWzVptrFoXFoojeLpmK/WWmCoj
-	CUlFxnHw8emKzwAF8u8JH6M4IFGssB1k/25s
-X-Google-Smtp-Source: ABdhPJzkBpz1ujwymtm5rJK4yy3CJpINzlWKy1eJN2cxloC8a5VjVE5oTn1jNAo217Rowb1SPOig4g==
-X-Received: by 2002:a19:2d14:: with SMTP id k20mr30010189lfj.56.1633996786899; 
-	Mon, 11 Oct 2021 16:59:46 -0700 (PDT)
-Received: from mail-lf1-f41.google.com (mail-lf1-f41.google.com.
-	[209.85.167.41]) by smtp.gmail.com with ESMTPSA id
-	y25sm836328lfg.179.2021.10.11.16.59.44
-	for <ocfs2-devel@oss.oracle.com>
-	(version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-	Mon, 11 Oct 2021 16:59:44 -0700 (PDT)
-Received: by mail-lf1-f41.google.com with SMTP id i24so78237529lfj.13
-	for <ocfs2-devel@oss.oracle.com>; Mon, 11 Oct 2021 16:59:44 -0700 (PDT)
-X-Received: by 2002:a05:6512:139b:: with SMTP id
-	p27mr30802647lfa.173.1633996784057; 
-	Mon, 11 Oct 2021 16:59:44 -0700 (PDT)
-MIME-Version: 1.0
-References: <CAHk-=wh5p6zpgUUoY+O7e74X9BZyODhnsqvv=xqnTaLRNj3d_Q@mail.gmail.com>
-	<YSk7xfcHVc7CxtQO@zeniv-ca.linux.org.uk>
-	<CAHk-=wjMyZLH+ta5SohAViSc10iPj-hRnHc-KPDoj1XZCmxdBg@mail.gmail.com>
+	19CGXCEu023998
+	for <ocfs2-devel@oss.oracle.com>; Tue, 12 Oct 2021 17:27:14 GMT
+Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
+	by mx0b-00069f01.pphosted.com with ESMTP id 3bndyv8u9m-1
+	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NO)
+	for <ocfs2-devel@oss.oracle.com>; Tue, 12 Oct 2021 17:27:13 +0000
+Received: by mail.kernel.org (Postfix) with ESMTPSA id E0EB460EFE;
+	Tue, 12 Oct 2021 17:27:09 +0000 (UTC)
+Date: Tue, 12 Oct 2021 18:27:06 +0100
+From: Catalin Marinas <catalin.marinas@arm.com>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Message-ID: <YWXFagjRVdNanGSy@arm.com>
+References: <CAHk-=wjMyZLH+ta5SohAViSc10iPj-hRnHc-KPDoj1XZCmxdBg@mail.gmail.com>
 	<YSk+9cTMYi2+BFW7@zeniv-ca.linux.org.uk>
 	<YSldx9uhMYhT/G8X@zeniv-ca.linux.org.uk>
 	<YSqOUb7yZ7kBoKRY@zeniv-ca.linux.org.uk> <YS40qqmXL7CMFLGq@arm.com>
 	<YS5KudP4DBwlbPEp@zeniv-ca.linux.org.uk> <YWR2cPKeDrc0uHTK@arm.com>
 	<CAHk-=wjvQWj7mvdrgTedUW50c2fkdn6Hzxtsk-=ckkMrFoTXjQ@mail.gmail.com>
 	<YWSnvq58jDsDuIik@arm.com>
-In-Reply-To: <YWSnvq58jDsDuIik@arm.com>
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Mon, 11 Oct 2021 16:59:28 -0700
-X-Gmail-Original-Message-ID: <CAHk-=wiNWOY5QW5ZJukt_9pHTWvrJhE2=DxPpEtFHAWdzOPDTg@mail.gmail.com>
-Message-ID: <CAHk-=wiNWOY5QW5ZJukt_9pHTWvrJhE2=DxPpEtFHAWdzOPDTg@mail.gmail.com>
-To: Catalin Marinas <catalin.marinas@arm.com>
-X-Source-IP: 209.85.167.42
-X-ServerName: mail-lf1-f42.google.com
+	<CAHk-=wiNWOY5QW5ZJukt_9pHTWvrJhE2=DxPpEtFHAWdzOPDTg@mail.gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <CAHk-=wiNWOY5QW5ZJukt_9pHTWvrJhE2=DxPpEtFHAWdzOPDTg@mail.gmail.com>
+X-Source-IP: 198.145.29.99
+X-ServerName: mail.kernel.org
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 ip4:198.145.29.98/31 ip4:72.55.140.81
-	include:_spf.google.com
-	include:amazonses.com include:_spf.salesforce.com ~all
-X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10134
+X-Proofpoint-SPF-Record: v=spf1 mx include:_spf.kernel.org ~all
+X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10135
 	signatures=668683
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 impostorscore=0
-	suspectscore=0
-	mlxscore=0 malwarescore=0 lowpriorityscore=0 bulkscore=0 clxscore=414
-	spamscore=0 mlxlogscore=777 priorityscore=60 adultscore=0 phishscore=0
-	classifier=spam adjust=0 reason=mlx scancount=1
-	engine=8.12.0-2109230001
-	definitions=main-2110110136 domainage_hfrom=5410
-X-Spam: Clean
+X-Proofpoint-Spam-Reason: safe
+X-Spam: OrgSafeList
+X-SpamRule: orgsafelist
 Cc: cluster-devel <cluster-devel@redhat.com>, Jan Kara <jack@suse.cz>,
         Andreas Gruenbacher <agruenba@redhat.com>,
         Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
@@ -137,42 +101,73 @@ Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 Sender: ocfs2-devel-bounces@oss.oracle.com
 Errors-To: ocfs2-devel-bounces@oss.oracle.com
-X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10134 signatures=668683
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 suspectscore=0 malwarescore=0
- adultscore=0 bulkscore=0 mlxscore=0 spamscore=0 mlxlogscore=999
- phishscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2109230001 definitions=main-2110110136
-X-Proofpoint-GUID: LwsUBlV0RyOLzlC_1gK7Blkp-5IUHYJz
-X-Proofpoint-ORIG-GUID: LwsUBlV0RyOLzlC_1gK7Blkp-5IUHYJz
+X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10135 signatures=668683
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 suspectscore=0 phishscore=0 bulkscore=0
+ malwarescore=0 adultscore=0 mlxscore=0 spamscore=0 mlxlogscore=999
+ classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2109230001
+ definitions=main-2110120095
+X-Proofpoint-GUID: NfUz9mogweQgLF8mKMryMYH0zUuQxpSG
+X-Proofpoint-ORIG-GUID: NfUz9mogweQgLF8mKMryMYH0zUuQxpSG
 
-On Mon, Oct 11, 2021 at 2:08 PM Catalin Marinas <catalin.marinas@arm.com> wrote:
->
-> +#ifdef CONFIG_ARM64_MTE
-> +#define FAULT_GRANULE_SIZE     (16)
-> +#define FAULT_GRANULE_MASK     (~(FAULT_GRANULE_SIZE-1))
+On Mon, Oct 11, 2021 at 04:59:28PM -0700, Linus Torvalds wrote:
+> On Mon, Oct 11, 2021 at 2:08 PM Catalin Marinas <catalin.marinas@arm.com> wrote:
+> > +#ifdef CONFIG_ARM64_MTE
+> > +#define FAULT_GRANULE_SIZE     (16)
+> > +#define FAULT_GRANULE_MASK     (~(FAULT_GRANULE_SIZE-1))
+> 
+> [...]
+> 
+> > If this looks in the right direction, I'll do some proper patches
+> > tomorrow.
+> 
+> Looks fine to me. It's going to be quite expensive and bad for caches,
+> though.
+> 
+> That said, fault_in_writable() is _supposed_ to all be for the slow
+> path when things go south and the normal path didn't work out, so I
+> think it's fine.
+> 
+> I do wonder how the sub-page granularity works. Is it sufficient to
+> just read from it?
 
-[...]
+For arm64 MTE and I think SPARC ADI, just reading should be sufficient.
+There is CHERI in the long run, if it takes off, where the user can set
+independent read/write permissions and uaccess would use the capability
+rather than a match-all pointer (hence checked).
 
-> If this looks in the right direction, I'll do some proper patches
-> tomorrow.
+> Because then a _slightly_ better option might be to
+> do one write per page (to catch page table writability) and then one
+> read per "granule" (to catch pointer coloring or cache poisoning
+> issues)?
+> 
+> That said, since this is all preparatory to us wanting to write to it
+> eventually anyway, maybe marking it all dirty in the caches is only
+> good.
 
-Looks fine to me. It's going to be quite expensive and bad for caches, though.
+It depends on how much would be written in the actual copy. For
+significant memcpy on arm CPUs, write streaming usually kicks in and the
+cache dirtying is skipped. This probably matters more for
+copy_page_to_iter_iovec() than the btrfs search ioctl.
 
-That said, fault_in_writable() is _supposed_ to all be for the slow
-path when things go south and the normal path didn't work out, so I
-think it's fine.
+Apart from fault_in_pages_*(), there's also fault_in_user_writeable()
+called from the futex code which uses the GUP mechanism as the write
+would be destructive. It looks like it could potentially trigger the
+same infinite loop on -EFAULT. For arm64 MTE, we get away with this by
+disabling the tag checking around the arch futex code (we did it for an
+unrelated issue - we don't have LDXR/STXR that would run with user
+permissions in kernel mode like we do with LDTR/STTR).
 
-I do wonder how the sub-page granularity works. Is it sufficient to
-just read from it? Because then a _slightly_ better option might be to
-do one write per page (to catch page table writability) and then one
-read per "granule" (to catch pointer coloring or cache poisoning
-issues)?
+I wonder whether we should actually just disable tag checking around the
+problematic accesses. What these callers seem to have in common is using
+pagefault_disable/enable(). We could abuse this to disable tag checking
+or maybe in_atomic() when handling the exception to lazily disable such
+faults temporarily.
 
-That said, since this is all preparatory to us wanting to write to it
-eventually anyway, maybe marking it all dirty in the caches is only
-good.
+A more invasive change would be to return a different error for such
+faults like -EACCESS and treat them differently in the caller.
 
-                Linus
+-- 
+Catalin
 
 _______________________________________________
 Ocfs2-devel mailing list
