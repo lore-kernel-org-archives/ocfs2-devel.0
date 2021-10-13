@@ -1,127 +1,142 @@
-Return-Path: <SRS0=+lI3=PA=oss.oracle.com=ocfs2-devel-bounces@kernel.org>
+Return-Path: <SRS0=9kC7=PB=oss.oracle.com=ocfs2-devel-bounces@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 237E2C433FE
-	for <ocfs2-devel@archiver.kernel.org>; Tue, 12 Oct 2021 18:02:33 +0000 (UTC)
-Received: from mx0a-00069f02.pphosted.com (mx0a-00069f02.pphosted.com [205.220.165.32])
+	by smtp.lore.kernel.org (Postfix) with ESMTP id A58DDC433F5
+	for <ocfs2-devel@archiver.kernel.org>; Wed, 13 Oct 2021 04:09:07 +0000 (UTC)
+Received: from mx0b-00069f02.pphosted.com (mx0b-00069f02.pphosted.com [205.220.177.32])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by mail.kernel.org (Postfix) with ESMTPS id C7751610CC
-	for <ocfs2-devel@archiver.kernel.org>; Tue, 12 Oct 2021 18:02:32 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.1 mail.kernel.org C7751610CC
-Authentication-Results: mail.kernel.org; dmarc=none (p=none dis=none) header.from=linux-foundation.org
+	by mail.kernel.org (Postfix) with ESMTPS id 31B6D60E09
+	for <ocfs2-devel@archiver.kernel.org>; Wed, 13 Oct 2021 04:09:07 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.1 mail.kernel.org 31B6D60E09
+Authentication-Results: mail.kernel.org; dmarc=pass (p=none dis=none) header.from=oracle.com
 Authentication-Results: mail.kernel.org; spf=pass smtp.mailfrom=oss.oracle.com
-Received: from pps.filterd (m0246629.ppops.net [127.0.0.1])
-	by mx0b-00069f02.pphosted.com (8.16.1.2/8.16.1.2) with SMTP id 19CHxCYb030652;
-	Tue, 12 Oct 2021 18:02:32 GMT
+Received: from pps.filterd (m0246632.ppops.net [127.0.0.1])
+	by mx0b-00069f02.pphosted.com (8.16.1.2/8.16.1.2) with SMTP id 19D2vDoR004221;
+	Wed, 13 Oct 2021 04:09:06 GMT
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=oracle.com; h=from : to : date :
+ message-id : references : in-reply-to : mime-version : cc : subject :
+ list-id : list-unsubscribe : list-archive : list-post : list-help :
+ list-subscribe : content-type : content-transfer-encoding : sender;
+ s=corp-2021-07-09; bh=2SmH8GCXKUcL1CwygH8x3VhcHKRuLkS1p4kBOjBy0S4=;
+ b=GlSzpvZ0gjnVX4d6ndZr4ydrYpVDTTXJl+ZHiJSjLHdepfUnKUiA8XCwiCnXLMfJSP8R
+ sWgZTHMH1Y50oql2T8peMfuxwRhvBxKapJcolghCmtObrNtSnN9/PGaTDraOF3yZ4IAS
+ yNo7KPaPyf2kfuaVfnLatN0h5C1WurnxSZONgvgfmZ2ScYvxCfdeFPwHYYN3h7BE/stF
+ 2c1DHLMRtldhT/teS5OiYiN+apGVuFQZkfzrdL5g1llPsyTVoOEY/73zkQNmn8D1g7lz
+ uNFy9XckgvQvW3jl+qUA0zW3qCMHmip+wSKgKwJgdt7LcmYkqkyZtunSZBYloHlHJOeY Wg== 
 Received: from userp3030.oracle.com (userp3030.oracle.com [156.151.31.80])
-	by mx0b-00069f02.pphosted.com with ESMTP id 3bmq3bhg1u-1
+	by mx0b-00069f02.pphosted.com with ESMTP id 3bnkbu95c4-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Tue, 12 Oct 2021 18:02:26 +0000
+	Wed, 13 Oct 2021 04:09:06 +0000
 Received: from pps.filterd (userp3030.oracle.com [127.0.0.1])
-	by userp3030.oracle.com (8.16.1.2/8.16.1.2) with SMTP id 19CI17Aq046021;
-	Tue, 12 Oct 2021 18:02:21 GMT
+	by userp3030.oracle.com (8.16.1.2/8.16.1.2) with SMTP id 19D457c8048908;
+	Wed, 13 Oct 2021 04:09:05 GMT
 Received: from oss.oracle.com (oss-old-reserved.oracle.com [137.254.22.2])
-	by userp3030.oracle.com with ESMTP id 3bkyv9b7ua-1
+	by userp3030.oracle.com with ESMTP id 3bkyva32p1-1
 	(version=TLSv1 cipher=AES256-SHA bits=256 verify=NO);
-	Tue, 12 Oct 2021 18:02:20 +0000
+	Wed, 13 Oct 2021 04:09:04 +0000
 Received: from localhost ([127.0.0.1] helo=lb-oss.oracle.com)
 	by oss.oracle.com with esmtp (Exim 4.63)
 	(envelope-from <ocfs2-devel-bounces@oss.oracle.com>)
-	id 1maM3S-0005c1-MB; Tue, 12 Oct 2021 10:59:10 -0700
-Received: from userp3030.oracle.com ([156.151.31.80])
+	id 1maVZf-0003fQ-Rn; Tue, 12 Oct 2021 21:09:03 -0700
+Received: from userp3020.oracle.com ([156.151.31.79])
 	by oss.oracle.com with esmtp (Exim 4.63)
-	(envelope-from <torvalds@linuxfoundation.org>) id 1maM3Q-0005be-Pv
-	for ocfs2-devel@oss.oracle.com; Tue, 12 Oct 2021 10:59:08 -0700
-Received: from pps.filterd (userp3030.oracle.com [127.0.0.1])
-	by userp3030.oracle.com (8.16.1.2/8.16.1.2) with SMTP id 19CHf78n145220
-	for <ocfs2-devel@oss.oracle.com>; Tue, 12 Oct 2021 17:59:08 GMT
-Received: from mx0b-00069f01.pphosted.com (mx0b-00069f01.pphosted.com
-	[205.220.177.26]) by userp3030.oracle.com with ESMTP id 3bkyv9aywv-1
+	(envelope-from <gautham.ananthakrishna@oracle.com>)
+	id 1maVZc-0003f0-61
+	for ocfs2-devel@oss.oracle.com; Tue, 12 Oct 2021 21:09:00 -0700
+Received: from pps.filterd (userp3020.oracle.com [127.0.0.1])
+	by userp3020.oracle.com (8.16.1.2/8.16.1.2) with SMTP id 19D459pS059876
+	for <ocfs2-devel@oss.oracle.com>; Wed, 13 Oct 2021 04:08:59 GMT
+Received: from nam11-dm6-obe.outbound.protection.outlook.com
+	(mail-dm6nam11lp2168.outbound.protection.outlook.com [104.47.57.168])
+	by userp3020.oracle.com with ESMTP id 3bkyvbb6hm-2
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Tue, 12 Oct 2021 17:59:08 +0000
-Received: from pps.filterd (m0246578.ppops.net [127.0.0.1])
-	by mx0b-00069f01.pphosted.com (8.16.1.2/8.16.1.2) with SMTP id
-	19CGXC2t024000
-	for <ocfs2-devel@oss.oracle.com>; Tue, 12 Oct 2021 17:59:07 GMT
-Received: from mail-lf1-f53.google.com (mail-lf1-f53.google.com
-	[209.85.167.53])
-	by mx0b-00069f01.pphosted.com with ESMTP id 3bndyv98cm-1
-	(version=TLSv1.2 cipher=ECDHE-RSA-AES128-GCM-SHA256 bits=128 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Tue, 12 Oct 2021 17:59:06 +0000
-Received: by mail-lf1-f53.google.com with SMTP id c16so537822lfb.3
-	for <ocfs2-devel@oss.oracle.com>; Tue, 12 Oct 2021 10:59:06 -0700 (PDT)
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=1e100.net; s=20210112;
-	h=x-gm-message-state:mime-version:references:in-reply-to:from:date
-	:message-id:subject:to:cc;
-	bh=fqSNsVOtXYPiifkp+lepAhAhHgqhsFkG1XDADIpg/Pc=;
-	b=T25KNhtytmIx+XdheO5gt2d1YfDiAX0blFasE/Mm/p+Q94P5cIH8/3Rf1G4GRbKN/6
-	sCIAWhU/PGhDBuIMjjSi8UlVVzHJvfP/YfvXJgKkzmbO5oQnNbh5oG1aDiu05UUO+SJG
-	/mKNz7TmSfnx/pj46ndHCqOqFEx7kOXgBF5Vix2Mx0386qBggiVuOHgzsdv6OON5f7bk
-	+ucRjrwhb338frB+wFwl8eBxvVvf4k/O1iswWckuUWnpOlqcBjYOHJftRFoeBeOTfJFE
-	bRCZ8q12uvxE9W58hk0IRan0JBpli94ZkBAirwa1Rr0ZBg4KRxMUCsGM3G6eQPr0Ktg/
-	Ks8A==
-X-Gm-Message-State: AOAM5327CX4SE7S0xNXHwXyo73DzRZBtAheg76LSa9sA4NzttwR3XEHj
-	mdmQlWWL4l96GTIJGIPjq56bbNrg50BuL8kj
-X-Google-Smtp-Source: ABdhPJw/9gp9duJkKwbLmotwvDGj7wpGz3s1zbeWVNMcgpwFsE9SEuOZg7wxw6LgQFsIipovJOi3MQ==
-X-Received: by 2002:a2e:a815:: with SMTP id l21mr31086918ljq.164.1634061543956;
-	Tue, 12 Oct 2021 10:59:03 -0700 (PDT)
-Received: from mail-lf1-f45.google.com (mail-lf1-f45.google.com.
-	[209.85.167.45]) by smtp.gmail.com with ESMTPSA id
-	w22sm1091253lfl.161.2021.10.12.10.59.02
-	for <ocfs2-devel@oss.oracle.com>
-	(version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-	Tue, 12 Oct 2021 10:59:03 -0700 (PDT)
-Received: by mail-lf1-f45.google.com with SMTP id c16so537344lfb.3
-	for <ocfs2-devel@oss.oracle.com>; Tue, 12 Oct 2021 10:59:02 -0700 (PDT)
-X-Received: by 2002:a05:6512:10d0:: with SMTP id
-	k16mr2835560lfg.150.1634061542163; 
-	Tue, 12 Oct 2021 10:59:02 -0700 (PDT)
+	for <ocfs2-devel@oss.oracle.com>; Wed, 13 Oct 2021 04:08:59 +0000
+ARC-Seal: i=1; a=rsa-sha256; s=arcselector9901; d=microsoft.com; cv=none;
+	b=G/9qiizycersqhMRU8Axd0MMq4m6PnmneAfc/fWR/G/IQSOTBScgc3D3q+3EcgNF4/XG68r7iXkY0o5qqwDpN8t19alQjGI1277abzuTUOsLZSlYimP6PkEFJugJJxcJzTvrB8m1LO1y/PHG6Ff0VH0+hLwcCJS/OZJSrLQH/9HW1SKrnuwoUbbPA/GWuFDjnR6r91sHV0QblVyxFo5X9GN2XVXpLf2a42hTJEQaLluIHCIzVBvMjB6SVdyLKcjCWHVkA2iMR81dBc2ITgMyYFQJpO4bJPzY7KSsXh63xSlgX+QO2dEDk7/rto3gVTPSmPXpN4S9ZqBcoeODr3+ihg==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com; 
+	s=arcselector9901;
+	h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
+	bh=AhHeqgDgsbEkwDuM8va3VOFZ+p6gA5xy2KP1lmD36b4=;
+	b=ODBBaTbwfp4sIrkvxKyJnR43BPVQ+PUs4PLgnqswbimNC/bqe3XyHfg9yrS8a7QsqJMs0JPVxHsP4NlSZUgOERoaYBgWm8OoLxlGr67jpNd/lswm5CMLEEItxl6Ky2cfZvmCpQYjJ/ekoChOspjC1SN18qWg6zov0z2VqChyVPNqpKtePAh/YW+1cFIwdkK9aiuMVimr6UhE+naX92TG7J5uW5IqBVp494aRR2gaVkPZ1k/DeV0SCZuS7GINUjkyeqnina7+Sid+u4CNotcJ/gcH+Xu55/HD01kso1q9DAf42Rk34RQQ+Snp1AN7qioeZUxm+oH5hCJjFlhF6Jlgrw==
+ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
+	smtp.mailfrom=oracle.com; dmarc=pass action=none header.from=oracle.com;
+	dkim=pass header.d=oracle.com; arc=none
+Received: from DS7PR10MB4878.namprd10.prod.outlook.com (2603:10b6:5:3a8::6) by
+	DS7PR10MB5374.namprd10.prod.outlook.com (2603:10b6:5:3aa::7) with
+	Microsoft SMTP Server (version=TLS1_2,
+	cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id
+	15.20.4587.20; Wed, 13 Oct 2021 04:08:57 +0000
+Received: from DS7PR10MB4878.namprd10.prod.outlook.com
+	([fe80::a011:8d3a:6e64:d5d2]) by
+	DS7PR10MB4878.namprd10.prod.outlook.com
+	([fe80::a011:8d3a:6e64:d5d2%5]) with mapi id 15.20.4587.026;
+	Wed, 13 Oct 2021 04:08:57 +0000
+From: Gautham Ananthakrishna <gautham.ananthakrishna@oracle.com>
+To: Joseph Qi <joseph.qi@linux.alibaba.com>,
+        "ocfs2-devel@oss.oracle.com"
+	<ocfs2-devel@oss.oracle.com>
+Thread-Topic: [PATCH RFC 1/1] ocfs2: race between searching chunks and release
+	journal_head from buffer_head
+Thread-Index: AQHXud+74b/hZFJ4XkKJzZqeCw4chqvIqtQAgAexW2A=
+Date: Wed, 13 Oct 2021 04:08:56 +0000
+Message-ID: <DS7PR10MB4878CEFE0D1FEE9BE668A025F7B79@DS7PR10MB4878.namprd10.prod.outlook.com>
+References: <1633434852-26662-1-git-send-email-gautham.ananthakrishna@oracle.com>
+	<af8792a6-cb2a-b529-1262-b0254b407018@linux.alibaba.com>
+In-Reply-To: <af8792a6-cb2a-b529-1262-b0254b407018@linux.alibaba.com>
+Accept-Language: en-US
+Content-Language: en-US
+X-MS-Has-Attach: 
+X-MS-TNEF-Correlator: 
+authentication-results: linux.alibaba.com; dkim=none (message not signed)
+	header.d=none;linux.alibaba.com; dmarc=none action=none
+	header.from=oracle.com;
+x-ms-publictraffictype: Email
+x-ms-office365-filtering-correlation-id: eb5760d7-9f30-4759-733c-08d98dff2dd8
+x-ms-traffictypediagnostic: DS7PR10MB5374:
+x-ms-exchange-transport-forked: True
+x-oracle-tenancy: 1
+x-ms-oob-tlc-oobclassifiers: OLM:8273;
+x-microsoft-antispam: BCL:0;
+x-microsoft-antispam-message-info: p8surAzfSDeXhGDt9fdhObI50yziS8fHc2pbIKR652pT4a3j5jGTkBOT5x1fEoHfrCrZy46MYHFzXGHSoUyTwbCIdpGFL/JDFP145K+WXlmPLdX6AMc+W8dpxkt88KF+DUe5G1tzNat8jU63XvoyYj2vUFHBTqtoy92GiV81c4ws5ZPrDvkmTSOvvVe5i0p5Ye0xXRz9d3otZisvXWM6eHqLttTbg0wUx+RGdfXHWX8DwSyNJFIsZ8J2HZxa5PZTuBDeN8HvZ0vwc1R6wq3KeD9+VOWGYQylGmTcyG08Y/9n6sBNKEuxBidvZYAphxwkWmk+yptFTnciWnVmEUUFRE0GU0Xo1wT60yoIrsM/aqgU2vnqhn/erMZL2UEHGcILhDISuFD39I2Hv3uAQd0EFZ8pIimg+psQJWUx8ezc5LE3F85iWVvFpfqVn8N52JHDsBdT9cIFI+dt74+1U9UvMblSzM3FQuLfrhx7/Gian2650HWxQKHk/UrpdxIiJfbbInnVnyP24qtXMpD++Agli18FbgYcY5QPjpYkj9aEDF5eK1RTwJj0eqPt4iYzRTeP3NLXl9cU7QzNd+Yex6L/wsBhx5r/3bcf9NxQMwKjbOM=
+x-forefront-antispam-report: CIP:255.255.255.255; CTRY:; LANG:en; SCL:-1; SRV:; IPV:NLI; SFV:SKI;
+	H:DS7PR10MB4878.namprd10.prod.outlook.com; PTR:; CAT:NONE; SFS:;
+	DIR:INB; 
 MIME-Version: 1.0
-References: <CAHk-=wjMyZLH+ta5SohAViSc10iPj-hRnHc-KPDoj1XZCmxdBg@mail.gmail.com>
-	<YSk+9cTMYi2+BFW7@zeniv-ca.linux.org.uk>
-	<YSldx9uhMYhT/G8X@zeniv-ca.linux.org.uk>
-	<YSqOUb7yZ7kBoKRY@zeniv-ca.linux.org.uk> <YS40qqmXL7CMFLGq@arm.com>
-	<YS5KudP4DBwlbPEp@zeniv-ca.linux.org.uk> <YWR2cPKeDrc0uHTK@arm.com>
-	<CAHk-=wjvQWj7mvdrgTedUW50c2fkdn6Hzxtsk-=ckkMrFoTXjQ@mail.gmail.com>
-	<YWSnvq58jDsDuIik@arm.com>
-	<CAHk-=wiNWOY5QW5ZJukt_9pHTWvrJhE2=DxPpEtFHAWdzOPDTg@mail.gmail.com>
-	<YWXFagjRVdNanGSy@arm.com>
-In-Reply-To: <YWXFagjRVdNanGSy@arm.com>
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Tue, 12 Oct 2021 10:58:46 -0700
-X-Gmail-Original-Message-ID: <CAHk-=wg3prAnhWZetJvwZdugn7A7CpP4ruz1tdewha=8ZY8AJw@mail.gmail.com>
-Message-ID: <CAHk-=wg3prAnhWZetJvwZdugn7A7CpP4ruz1tdewha=8ZY8AJw@mail.gmail.com>
-To: Catalin Marinas <catalin.marinas@arm.com>
-X-Source-IP: 209.85.167.53
-X-ServerName: mail-lf1-f53.google.com
-X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 ip4:198.145.29.98/31 ip4:72.55.140.81
-	include:_spf.google.com
-	include:amazonses.com include:_spf.salesforce.com ~all
+X-OriginatorOrg: oracle.com
+X-MS-Exchange-CrossTenant-AuthAs: Internal
+X-MS-Exchange-CrossTenant-AuthSource: DS7PR10MB4878.namprd10.prod.outlook.com
+X-MS-Exchange-CrossTenant-Network-Message-Id: eb5760d7-9f30-4759-733c-08d98dff2dd8
+X-MS-Exchange-CrossTenant-originalarrivaltime: 13 Oct 2021 04:08:57.3628 (UTC)
+X-MS-Exchange-CrossTenant-fromentityheader: Hosted
+X-MS-Exchange-CrossTenant-id: 4e2c6054-71cb-48f1-bd6c-3a9705aca71b
+X-MS-Exchange-CrossTenant-mailboxtype: HOSTED
+X-MS-Exchange-CrossTenant-userprincipalname: b3aCRr92KLNAtpssrXCoq3P5ZUiptcimxXMFgoArMvcVoMqzlB9JiUDfCa9gCKlA+z4yv9yVwvJI6MgEpOmTKTGSUnMBMpVn0tQf1we3s12MEd5865p+L1DsjqN5OZ+R
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: DS7PR10MB5374
+X-MS-Exchange-CrossPremises-AuthAs: Internal
+X-MS-Exchange-CrossPremises-AuthMechanism: 04
+X-MS-Exchange-CrossPremises-AuthSource: DS7PR10MB4878.namprd10.prod.outlook.com
+X-MS-Exchange-CrossPremises-TransportTrafficType: Email
+X-MS-Exchange-CrossPremises-SCL: -1
+X-MS-Exchange-CrossPremises-messagesource: StoreDriver
+X-MS-Exchange-CrossPremises-BCC: 
+X-MS-Exchange-CrossPremises-originalclientipaddress: 138.3.205.4
+X-MS-Exchange-CrossPremises-transporttraffictype: Email
+X-MS-Exchange-CrossPremises-antispam-scancontext: DIR:Originating; SFV:SKI;
+	SKIP:0; 
+X-MS-Exchange-CrossPremises-processed-by-journaling: Journal Agent
+X-OrganizationHeadersPreserved: DS7PR10MB5374.namprd10.prod.outlook.com
 X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10135
 	signatures=668683
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 clxscore=398
-	mlxlogscore=231
-	priorityscore=0 adultscore=0 malwarescore=0 suspectscore=0 phishscore=0
-	bulkscore=0 impostorscore=0 spamscore=0 mlxscore=0 lowpriorityscore=0
-	classifier=spam adjust=0 reason=mlx scancount=1
-	engine=8.12.0-2109230001
-	definitions=main-2110120096 domainage_hfrom=5411
-X-Spam: Clean
-Cc: cluster-devel <cluster-devel@redhat.com>, Jan Kara <jack@suse.cz>,
-        Andreas Gruenbacher <agruenba@redhat.com>,
-        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
-        Josef Bacik <josef@toxicpanda.com>,
-        Christoph Hellwig <hch@infradead.org>,
-        Al Viro <viro@zeniv.linux.org.uk>,
-        linux-fsdevel <linux-fsdevel@vger.kernel.org>,
-        Will Deacon <will@kernel.org>,
-        "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>
-Subject: Re: [Ocfs2-devel] [RFC][arm64] possible infinite loop in btrfs
-	search_ioctl()
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 suspectscore=0
+	malwarescore=0
+	adultscore=0 bulkscore=0 mlxscore=0 spamscore=0 mlxlogscore=999
+	phishscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+	engine=8.12.0-2109230001 definitions=main-2110130026
+Cc: Rajesh Sivaramasubramaniom <rajesh.sivaramasubramaniom@oracle.com>
+Subject: Re: [Ocfs2-devel] [PATCH RFC 1/1] ocfs2: race between searching
+ chunks and release journal_head from buffer_head
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.9
 Precedence: list
@@ -139,72 +154,129 @@ Sender: ocfs2-devel-bounces@oss.oracle.com
 Errors-To: ocfs2-devel-bounces@oss.oracle.com
 X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10135 signatures=668683
 X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 suspectscore=0 phishscore=0 bulkscore=0
- malwarescore=0 adultscore=0 mlxscore=0 spamscore=0 mlxlogscore=966
+ malwarescore=0 adultscore=0 mlxscore=0 spamscore=0 mlxlogscore=999
  classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2109230001
- definitions=main-2110120097
-X-Proofpoint-GUID: wgqvBylEh0jOpSYFd-Rq9QaHuVVGV_pN
-X-Proofpoint-ORIG-GUID: wgqvBylEh0jOpSYFd-Rq9QaHuVVGV_pN
+ definitions=main-2110130026
+X-Proofpoint-ORIG-GUID: Gdbqz94xfqzw-OL_XTcFziISW0vNsL5D
+X-Proofpoint-GUID: Gdbqz94xfqzw-OL_XTcFziISW0vNsL5D
 
-On Tue, Oct 12, 2021 at 10:27 AM Catalin Marinas
-<catalin.marinas@arm.com> wrote:
->
-> Apart from fault_in_pages_*(), there's also fault_in_user_writeable()
-> called from the futex code which uses the GUP mechanism as the write
-> would be destructive. It looks like it could potentially trigger the
-> same infinite loop on -EFAULT.
+Hi Joseph.
 
-Hmm.
+In jbd2_journal_put_journal_head(), we decrement jh->b_jcount before calling __journal_remove_journal_head().
 
-I think the reason we do fault_in_user_writeable() using GUP is that
+However in any of the calling functions of ocfs2_test_bg_bit_allocatable(), we dont increment jh->b_jcount.
+Because of this, __journal_remove_journal_head() raced and set bh->b_private to NULL in ocfs2_test_bg_bit_allocatable().
+This race happened after we checked "if (!buffer_jbd(bg_bh))" but before we referenced b_privatelater. This is how we go the
+stack described in this patch. Hence we need to lock bit BH_JournalHead while checking ""if (!buffer_jbd(bg_bh))" as well as referencing b_private.
 
- (a) we can avoid the page fault overhead
+Thanks,
+Gautham.
 
- (b) we don't have any good "atomic_inc_user()" interface or similar
-that could do a write with a zero increment or something like that.
+-----Original Message-----
+From: Joseph Qi <joseph.qi@linux.alibaba.com> 
+Sent: Friday, October 8, 2021 12:10 PM
+To: Gautham Ananthakrishna <gautham.ananthakrishna@oracle.com>; ocfs2-devel@oss.oracle.com
+Cc: Junxiao Bi <junxiao.bi@oracle.com>; Rajesh Sivaramasubramaniom <rajesh.sivaramasubramaniom@oracle.com>
+Subject: Re: [PATCH RFC 1/1] ocfs2: race between searching chunks and release journal_head from buffer_head
 
-We do have that "arch_futex_atomic_op_inuser()" thing, of course. It's
-all kinds of crazy, but we *could* do
+Hi Gautham,
 
-       arch_futex_atomic_op_inuser(FUTEX_OP_ADD, 0, &dummy, uaddr);
+On 10/5/21 7:54 PM, Gautham Ananthakrishna wrote:
+> Encountered a race between ocfs2_test_bg_bit_allocatable() and
+> jbd2_journal_put_journal_head() resulting in the below vmcore.
+> 
+> PID: 106879  TASK: ffff880244ba9c00  CPU: 2   COMMAND: "loop3"
+>  0 [ffff8802435ff1c0] panic at ffffffff816ed175
+>  1 [ffff8802435ff240] oops_end at ffffffff8101a7c9
+>  2 [ffff8802435ff270] no_context at ffffffff8106eccf
+>  3 [ffff8802435ff2e0] __bad_area_nosemaphore at ffffffff8106ef9d
+>  4 [ffff8802435ff330] bad_area_nosemaphore at ffffffff8106f143
+>  5 [ffff8802435ff340] __do_page_fault at ffffffff8106f80b
+>  6 [ffff8802435ff3a0] do_page_fault at ffffffff8106fc2f
+>  7 [ffff8802435ff3e0] page_fault at ffffffff816fd667
+>     [exception RIP: ocfs2_block_group_find_clear_bits+316]
+>     RIP: ffffffffc11ef6fc  RSP: ffff8802435ff498  RFLAGS: 00010206
+>     RAX: 0000000000003918  RBX: 0000000000000001  RCX: 0000000000000018
+>     RDX: 0000000000003918  RSI: 0000000000000000  RDI: ffff880060194040
+>     RBP: ffff8802435ff4f8   R8: ffffffffff000000   R9: ffffffffffffffff
+>     R10: ffff8802435ff730  R11: ffff8802a94e5800  R12: 0000000000000007
+>     R13: 0000000000007e00  R14: 0000000000003918  R15: ffff88017c973a28
+>     ORIG_RAX: ffffffffffffffff  CS: e030  SS: e02b
+>  8 [ffff8802435ff490] ocfs2_block_group_find_clear_bits at 
+> ffffffffc11ef680 [ocfs2]
+>  9 [ffff8802435ff500] ocfs2_cluster_group_search at ffffffffc11ef916 
+> [ocfs2]
+> 10 [ffff8802435ff580] ocfs2_search_chain at ffffffffc11f0fb6 [ocfs2]
+> 11 [ffff8802435ff660] ocfs2_claim_suballoc_bits at ffffffffc11f1b1b 
+> [ocfs2]
+> 12 [ffff8802435ff6f0] __ocfs2_claim_clusters at ffffffffc11f32cb 
+> [ocfs2]
+> 13 [ffff8802435ff770] ocfs2_claim_clusters at ffffffffc11f5caf [ocfs2]
+> 14 [ffff8802435ff780] ocfs2_local_alloc_slide_window at 
+> ffffffffc11cc0db [ocfs2]
+> 15 [ffff8802435ff820] ocfs2_reserve_local_alloc_bits at 
+> ffffffffc11ce53f [ocfs2]
+> 16 [ffff8802435ff890] ocfs2_reserve_clusters_with_limit at 
+> ffffffffc11f59b5 [ocfs2]
+> 17 [ffff8802435ff8e0] ocfs2_reserve_clusters at ffffffffc11f5c88 
+> [ocfs2]
+> 18 [ffff8802435ff8f0] ocfs2_lock_refcount_allocators at 
+> ffffffffc11dc169 [ocfs2]
+> 19 [ffff8802435ff960] ocfs2_make_clusters_writable at ffffffffc11e4274 
+> [ocfs2]
+> 20 [ffff8802435ffa50] ocfs2_replace_cow at ffffffffc11e4df1 [ocfs2]
+> 21 [ffff8802435ffac0] ocfs2_refcount_cow at ffffffffc11e54b1 [ocfs2]
+> 22 [ffff8802435ffb80] ocfs2_file_write_iter at ffffffffc11bf8f4 
+> [ocfs2]
+> 23 [ffff8802435ffcd0] lo_rw_aio at ffffffff814a1b5d
+> 24 [ffff8802435ffd80] loop_queue_work at ffffffff814a2802
+> 25 [ffff8802435ffe60] kthread_worker_fn at ffffffff810a80d2
+> 26 [ffff8802435ffec0] kthread at ffffffff810a7afb
+> 27 [ffff8802435fff50] ret_from_fork at ffffffff816f7da1
+> 
+> When ocfs2_test_bg_bit_allocatable() called bh2jh(bg_bh), the 
+> bg_bh->b_private NULL as jbd2_journal_put_journal_head() raced and 
+> released the jounal head from the buffer head. Needed to take bit lock for the bit 'BH_JournalHead'
+> to fix this race.
+> 
+> Signed-off-by: Gautham Ananthakrishna 
+> <gautham.ananthakrishna@oracle.com>
+> ---
+>  fs/ocfs2/suballoc.c | 6 +++++-
+>  1 file changed, 5 insertions(+), 1 deletion(-)
+> 
+> diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c index 
+> 8521942..0e4e11b 100644
+> --- a/fs/ocfs2/suballoc.c
+> +++ b/fs/ocfs2/suballoc.c
+> @@ -1256,8 +1256,11 @@ static int ocfs2_test_bg_bit_allocatable(struct buffer_head *bg_bh,
+>  	if (ocfs2_test_bit(nr, (unsigned long *)bg->bg_bitmap))
+>  		return 0;
+>  
+> -	if (!buffer_jbd(bg_bh))
+> +	jbd_lock_bh_journal_head(bg_bh);
+> +	if (!buffer_jbd(bg_bh)){
+> +		jbd_unlock_bh_journal_head(bg_bh);
+>  		return 1;
+> +	}
 
-instead of doing the fault_in_user_writeable().
+Seems !buffer_jbd() case we don't have to lock bit BH_JournalHead.
 
-That might be a good idea anyway. I dunno.
+Thanks,
+Joseph
 
-But I agree other options exist:
-
-> I wonder whether we should actually just disable tag checking around the
-> problematic accesses. What these callers seem to have in common is using
-> pagefault_disable/enable(). We could abuse this to disable tag checking
-> or maybe in_atomic() when handling the exception to lazily disable such
-> faults temporarily.
-
-Hmm. That would work for MTE, but possibly be very inconvenient for
-other situations.
-
-> A more invasive change would be to return a different error for such
-> faults like -EACCESS and treat them differently in the caller.
-
-That's _really_ hard for things like "copy_to_user()", that isn't a
-single operation, and is supposed to return the bytes left.
-
-Adding another error return would be nasty.
-
-We've had hacks like "squirrel away the actual error code in the task
-structure", but that tends to be unmaintainable because we have
-interrupts (and NMI's) doing their own possibly nested atomics, so
-even disabling preemption won't actually fix some of the nesting
-issues.
-
-All of these things make me think that the proper fix ends up being to
-make sure that our "fault_in_xyz()" functions simply should always
-handle all faults.
-
-Another option may be to teach the GUP code to actually check
-architecture-specific sub-page ranges.
-
-        Linus
-
+>  
+>  	jh = bh2jh(bg_bh);
+>  	spin_lock(&jh->b_state_lock);
+> @@ -1267,6 +1270,7 @@ static int ocfs2_test_bg_bit_allocatable(struct buffer_head *bg_bh,
+>  	else
+>  		ret = 1;
+>  	spin_unlock(&jh->b_state_lock);
+> +	jbd_unlock_bh_journal_head(bg_bh);
+>  
+>  	return ret;
+>  }
+> 
 _______________________________________________
 Ocfs2-devel mailing list
 Ocfs2-devel@oss.oracle.com
