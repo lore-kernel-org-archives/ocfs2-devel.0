@@ -2,72 +2,71 @@ Return-Path: <SRS0=sznG=PI=oss.oracle.com=ocfs2-devel-bounces@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 65083C433EF
-	for <ocfs2-devel@archiver.kernel.org>; Wed, 20 Oct 2021 05:15:47 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 8C082C433F5
+	for <ocfs2-devel@archiver.kernel.org>; Wed, 20 Oct 2021 05:18:55 +0000 (UTC)
 Received: from mx0b-00069f02.pphosted.com (mx0b-00069f02.pphosted.com [205.220.177.32])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by mail.kernel.org (Postfix) with ESMTPS id E77916109F
-	for <ocfs2-devel@archiver.kernel.org>; Wed, 20 Oct 2021 05:15:46 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.1 mail.kernel.org E77916109F
+	by mail.kernel.org (Postfix) with ESMTPS id 0D86F610A2
+	for <ocfs2-devel@archiver.kernel.org>; Wed, 20 Oct 2021 05:18:54 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.1 mail.kernel.org 0D86F610A2
 Authentication-Results: mail.kernel.org; dmarc=pass (p=none dis=none) header.from=oracle.com
 Authentication-Results: mail.kernel.org; spf=pass smtp.mailfrom=oss.oracle.com
-Received: from pps.filterd (m0246630.ppops.net [127.0.0.1])
-	by mx0b-00069f02.pphosted.com (8.16.1.2/8.16.1.2) with SMTP id 19K2YD5X024884;
-	Wed, 20 Oct 2021 05:15:46 GMT
+Received: from pps.filterd (m0246632.ppops.net [127.0.0.1])
+	by mx0b-00069f02.pphosted.com (8.16.1.2/8.16.1.2) with SMTP id 19K2QT9M009314;
+	Wed, 20 Oct 2021 05:18:54 GMT
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=oracle.com; h=from : to : date :
- message-id : in-reply-to : references : cc : subject : list-id :
- list-unsubscribe : list-archive : list-post : list-help : list-subscribe :
- mime-version : content-type : content-transfer-encoding : sender;
- s=corp-2021-07-09; bh=4NNa/VCNhxVboBx0882lT6yBkmZ3Ce3+tS2VDo7AkHQ=;
- b=MkjAo61/jdPy7kF0BPClHmMIArFkryDg3QZz7f3DLbgEbd7d1dGvOG4wI+EgIqPBVFPw
- +1S9lSmKWTny2sYC5hRTH5pKPn3aq/U1pxZkL1z20IBBwVnmKboyXTkVZkTaQWDXOHCJ
- v4rqCowNlvqTIk5vZ41MKumEm+t896rLxgsgXiKz4iCc/mjCnLCe0+8EQmIPzBHbVCKn
- YReacLepPn9+rEwpxZLmAo42EL8HXTFPVwfqk6xET+d5lc62w/6CisNn+YReZ7qvGpOy
- w3vKnAbvF3r3+7XNeic6G2ttr7uCLlJfWhkGIFVqzYRyBBhK0C+it/TzkcWSwKgStcgd iQ== 
-Received: from userp3030.oracle.com (userp3030.oracle.com [156.151.31.80])
-	by mx0b-00069f02.pphosted.com with ESMTP id 3bsn7kpt9r-1
+ message-id : cc : subject : list-id : list-unsubscribe : list-archive :
+ list-post : list-help : list-subscribe : mime-version : content-type :
+ content-transfer-encoding : sender; s=corp-2021-07-09;
+ bh=4NNa/VCNhxVboBx0882lT6yBkmZ3Ce3+tS2VDo7AkHQ=;
+ b=gM2s+J8NeJamGjmOzhUeTRaf1xAHM/8xNjxWTQa0fcFq/FzrC0samD3mShzVqcr0eHvl
+ uLbGacjAS9qmwenBpl5IhEvn4kYTdViFO5gtMqBdLWQZVu8IKEdIC3IaAq2ALIBQOrp0
+ +Fx6AmDp9YLwawKI+bDSOeS3z4ReWjfRDnJ4TaN1VH8X/9vk4J6Rh1m1Qpgm1wQoQ3sn
+ Y0Sf2wyTgloj3XhjnjnvM6un+JwNix7AoZvo+Er4WeIV+ExKebZ44ERY1zptOwVUmhVC
+ o/ze/TWHQAJThlBzNcdvdIjSMRGP913xEkX9Np593M5vuZdfJDL19d0SgnUtU3Mc/Ybp qA== 
+Received: from userp3020.oracle.com (userp3020.oracle.com [156.151.31.79])
+	by mx0b-00069f02.pphosted.com with ESMTP id 3bsr456rtr-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Wed, 20 Oct 2021 05:15:45 +0000
-Received: from pps.filterd (userp3030.oracle.com [127.0.0.1])
-	by userp3030.oracle.com (8.16.1.2/8.16.1.2) with SMTP id 19K5FXPY096305;
-	Wed, 20 Oct 2021 05:15:44 GMT
+	Wed, 20 Oct 2021 05:18:53 +0000
+Received: from pps.filterd (userp3020.oracle.com [127.0.0.1])
+	by userp3020.oracle.com (8.16.1.2/8.16.1.2) with SMTP id 19K5FYaI016805;
+	Wed, 20 Oct 2021 05:18:53 GMT
 Received: from oss.oracle.com (oss-old-reserved.oracle.com [137.254.22.2])
-	by userp3030.oracle.com with ESMTP id 3bqkuyeqex-1
+	by userp3020.oracle.com with ESMTP id 3br8gtht5s-1
 	(version=TLSv1 cipher=AES256-SHA bits=256 verify=NO);
-	Wed, 20 Oct 2021 05:15:44 +0000
+	Wed, 20 Oct 2021 05:18:52 +0000
 Received: from localhost ([127.0.0.1] helo=lb-oss.oracle.com)
 	by oss.oracle.com with esmtp (Exim 4.63)
 	(envelope-from <ocfs2-devel-bounces@oss.oracle.com>)
-	id 1md3x0-0000K1-TR; Tue, 19 Oct 2021 22:15:42 -0700
+	id 1md3x0-0000JY-Rg; Tue, 19 Oct 2021 22:15:42 -0700
 Received: from userp3030.oracle.com ([156.151.31.80])
 	by oss.oracle.com with esmtp (Exim 4.63)
 	(envelope-from <gautham.ananthakrishna@oracle.com>)
-	id 1md3wz-0000JC-Fa
-	for ocfs2-devel@oss.oracle.com; Tue, 19 Oct 2021 22:15:41 -0700
+	id 1md3ww-0000Il-Pk
+	for ocfs2-devel@oss.oracle.com; Tue, 19 Oct 2021 22:15:38 -0700
 Received: from pps.filterd (userp3030.oracle.com [127.0.0.1])
-	by userp3030.oracle.com (8.16.1.2/8.16.1.2) with SMTP id 19K5FX1I096287;
-	Wed, 20 Oct 2021 05:15:40 GMT
+	by userp3030.oracle.com (8.16.1.2/8.16.1.2) with SMTP id 19K5FYar096464;
+	Wed, 20 Oct 2021 05:15:37 GMT
 Received: from pps.reinject (localhost [127.0.0.1])
-	by userp3030.oracle.com with ESMTP id 3bqkuyeqdp-1
+	by userp3030.oracle.com with ESMTP id 3bqkuyeqcu-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Wed, 20 Oct 2021 05:15:40 +0000
+	Wed, 20 Oct 2021 05:15:37 +0000
 Received: from userp3030.oracle.com (userp3030.oracle.com [127.0.0.1])
-	by pps.reinject (8.16.0.36/8.16.0.36) with SMTP id 19K5FaTI096555;
-	Wed, 20 Oct 2021 05:15:39 GMT
+	by pps.reinject (8.16.0.36/8.16.0.36) with SMTP id 19K5FaTG096555;
+	Wed, 20 Oct 2021 05:15:36 GMT
 Received: from gmananth-linux.oraclecorp.com (dhcp-10-76-40-219.vpn.oracle.com
-	[10.76.40.219]) by userp3030.oracle.com with ESMTP id 3bqkuyeq9q-2;
-	Wed, 20 Oct 2021 05:15:39 +0000
+	[10.76.40.219]) by userp3030.oracle.com with ESMTP id 3bqkuyeq9q-1;
+	Wed, 20 Oct 2021 05:15:36 +0000
 From: Gautham Ananthakrishna <gautham.ananthakrishna@oracle.com>
 To: ocfs2-devel@oss.oracle.com
-Date: Wed, 20 Oct 2021 10:45:26 +0530
-Message-Id: <1634706926-16201-2-git-send-email-gautham.ananthakrishna@oracle.com>
+Date: Wed, 20 Oct 2021 10:45:25 +0530
+Message-Id: <1634706926-16201-1-git-send-email-gautham.ananthakrishna@oracle.com>
 X-Mailer: git-send-email 1.8.3.1
-In-Reply-To: <1634706926-16201-1-git-send-email-gautham.ananthakrishna@oracle.com>
-References: <1634706926-16201-1-git-send-email-gautham.ananthakrishna@oracle.com>
 Cc: rajesh.sivaramasubramaniom@oracle.com, gautham.ananthakrishna@oracle.com
-Subject: [Ocfs2-devel] [PATCH V1 RFC 1/1] ocfs2: race between searching
-	chunks and release journal_head from buffer_head
+Subject: [Ocfs2-devel] [PATCH V1 RFC 1/1] Subject: [[PATCH V1 RFC] 1/1]
+	ocfs2: race between searching chunks and release journal_head
+	from buffer_head
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.9
 Precedence: list
@@ -85,12 +84,12 @@ Content-Transfer-Encoding: 7bit
 Sender: ocfs2-devel-bounces@oss.oracle.com
 Errors-To: ocfs2-devel-bounces@oss.oracle.com
 X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10142 signatures=668683
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 mlxlogscore=999 suspectscore=0
- malwarescore=0 bulkscore=0 phishscore=0 adultscore=0 spamscore=0
- mlxscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2109230001 definitions=main-2110200027
-X-Proofpoint-ORIG-GUID: DwQURKn9cMxqMRdMPYwVisdkwtNyBC8d
-X-Proofpoint-GUID: DwQURKn9cMxqMRdMPYwVisdkwtNyBC8d
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 mlxlogscore=999 mlxscore=0 adultscore=0
+ spamscore=0 phishscore=0 bulkscore=0 suspectscore=0 malwarescore=0
+ classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2109230001
+ definitions=main-2110200027
+X-Proofpoint-ORIG-GUID: ZhpeIM7eNyMltacVkvlI3a23hebKdCQ5
+X-Proofpoint-GUID: ZhpeIM7eNyMltacVkvlI3a23hebKdCQ5
 
 Encountered a race between ocfs2_test_bg_bit_allocatable() and
 jbd2_journal_put_journal_head() resulting in the below vmcore.
