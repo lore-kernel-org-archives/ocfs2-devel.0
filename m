@@ -1,86 +1,138 @@
-Return-Path: <SRS0=sznG=PI=oss.oracle.com=ocfs2-devel-bounces@kernel.org>
+Return-Path: <SRS0=N2wx=PJ=oss.oracle.com=ocfs2-devel-bounces@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id A9AAAC433EF
-	for <ocfs2-devel@archiver.kernel.org>; Wed, 20 Oct 2021 22:50:46 +0000 (UTC)
-Received: from mx0a-00069f02.pphosted.com (mx0a-00069f02.pphosted.com [205.220.165.32])
+	by smtp.lore.kernel.org (Postfix) with ESMTP id E7854C433F5
+	for <ocfs2-devel@archiver.kernel.org>; Thu, 21 Oct 2021 00:46:34 +0000 (UTC)
+Received: from mx0b-00069f02.pphosted.com (mx0b-00069f02.pphosted.com [205.220.177.32])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by mail.kernel.org (Postfix) with ESMTPS id 637AA6128E
-	for <ocfs2-devel@archiver.kernel.org>; Wed, 20 Oct 2021 22:50:46 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.1 mail.kernel.org 637AA6128E
-Authentication-Results: mail.kernel.org; dmarc=fail (p=none dis=none) header.from=arm.com
+	by mail.kernel.org (Postfix) with ESMTPS id 7CB5260FED
+	for <ocfs2-devel@archiver.kernel.org>; Thu, 21 Oct 2021 00:46:34 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.1 mail.kernel.org 7CB5260FED
+Authentication-Results: mail.kernel.org; dmarc=fail (p=none dis=none) header.from=redhat.com
 Authentication-Results: mail.kernel.org; spf=pass smtp.mailfrom=oss.oracle.com
-Received: from pps.filterd (m0246617.ppops.net [127.0.0.1])
-	by mx0b-00069f02.pphosted.com (8.16.1.2/8.16.1.2) with SMTP id 19KLq1EY019159;
-	Wed, 20 Oct 2021 22:50:46 GMT
+Received: from pps.filterd (m0246630.ppops.net [127.0.0.1])
+	by mx0b-00069f02.pphosted.com (8.16.1.2/8.16.1.2) with SMTP id 19L0EYvb000812;
+	Thu, 21 Oct 2021 00:46:33 GMT
 Received: from userp3020.oracle.com (userp3020.oracle.com [156.151.31.79])
-	by mx0b-00069f02.pphosted.com with ESMTP id 3btqyphjej-1
+	by mx0b-00069f02.pphosted.com with ESMTP id 3btkw4udvk-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Wed, 20 Oct 2021 22:50:45 +0000
+	Thu, 21 Oct 2021 00:46:33 +0000
 Received: from pps.filterd (userp3020.oracle.com [127.0.0.1])
-	by userp3020.oracle.com (8.16.1.2/8.16.1.2) with SMTP id 19KMjaBM037572;
-	Wed, 20 Oct 2021 22:50:44 GMT
+	by userp3020.oracle.com (8.16.1.2/8.16.1.2) with SMTP id 19L0fbgn027251;
+	Thu, 21 Oct 2021 00:46:32 GMT
 Received: from oss.oracle.com (oss-old-reserved.oracle.com [137.254.22.2])
-	by userp3020.oracle.com with ESMTP id 3br8guxafv-1
+	by userp3020.oracle.com with ESMTP id 3br8gv2wt1-1
 	(version=TLSv1 cipher=AES256-SHA bits=256 verify=NO);
-	Wed, 20 Oct 2021 22:50:43 +0000
+	Thu, 21 Oct 2021 00:46:31 +0000
 Received: from localhost ([127.0.0.1] helo=lb-oss.oracle.com)
 	by oss.oracle.com with esmtp (Exim 4.63)
 	(envelope-from <ocfs2-devel-bounces@oss.oracle.com>)
-	id 1mdKJs-00083Y-UC; Wed, 20 Oct 2021 15:44:24 -0700
-Received: from userp3020.oracle.com ([156.151.31.79])
+	id 1mdME2-0007mj-SX; Wed, 20 Oct 2021 17:46:30 -0700
+Received: from aserp3030.oracle.com ([141.146.126.71])
 	by oss.oracle.com with esmtp (Exim 4.63)
-	(envelope-from <cmarinas@kernel.org>) id 1mdKJr-00083C-RG
-	for ocfs2-devel@oss.oracle.com; Wed, 20 Oct 2021 15:44:23 -0700
-Received: from pps.filterd (userp3020.oracle.com [127.0.0.1])
-	by userp3020.oracle.com (8.16.1.2/8.16.1.2) with SMTP id 19KMZbFP006099
-	for <ocfs2-devel@oss.oracle.com>; Wed, 20 Oct 2021 22:44:23 GMT
+	(envelope-from <agruenba@redhat.com>) id 1mdMDz-0007mK-Mv
+	for ocfs2-devel@oss.oracle.com; Wed, 20 Oct 2021 17:46:27 -0700
+Received: from pps.filterd (aserp3030.oracle.com [127.0.0.1])
+	by aserp3030.oracle.com (8.16.1.2/8.16.1.2) with SMTP id 19L0erhE158706
+	for <ocfs2-devel@oss.oracle.com>; Thu, 21 Oct 2021 00:46:27 GMT
 Received: from mx0b-00069f01.pphosted.com (mx0b-00069f01.pphosted.com
-	[205.220.177.26]) by userp3020.oracle.com with ESMTP id 3br8gux4rd-1
+	[205.220.177.26]) by aserp3030.oracle.com with ESMTP id 3bqmsh9wry-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Wed, 20 Oct 2021 22:44:23 +0000
-Received: from pps.filterd (m0246579.ppops.net [127.0.0.1])
+	for <ocfs2-devel@oss.oracle.com>; Thu, 21 Oct 2021 00:46:26 +0000
+Received: from pps.filterd (m0246576.ppops.net [127.0.0.1])
 	by mx0b-00069f01.pphosted.com (8.16.1.2/8.16.1.2) with SMTP id
-	19KGt1YQ015369
-	for <ocfs2-devel@oss.oracle.com>; Wed, 20 Oct 2021 22:44:22 GMT
-Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by mx0b-00069f01.pphosted.com with ESMTP id 3btbqddfha-1
-	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NO)
-	for <ocfs2-devel@oss.oracle.com>; Wed, 20 Oct 2021 22:44:22 +0000
-Received: by mail.kernel.org (Postfix) with ESMTPSA id 5CBE26115B;
-	Wed, 20 Oct 2021 22:44:18 +0000 (UTC)
-Date: Wed, 20 Oct 2021 23:44:15 +0100
-From: Catalin Marinas <catalin.marinas@arm.com>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Message-ID: <YXCbv5gdfEEtAYo8@arm.com>
-References: <20211019134204.3382645-1-agruenba@redhat.com>
-	<CAHk-=wh0_3y5s7-G74U0Pcjm7Y_yHB608NYrQSvgogVNBxsWSQ@mail.gmail.com>
-	<YXBFqD9WVuU8awIv@arm.com>
-	<CAHk-=wgv=KPZBJGnx_O5-7hhST8CL9BN4wJwtVuycjhv_1MmvQ@mail.gmail.com>
+	19KNc90L011871
+	for <ocfs2-devel@oss.oracle.com>; Thu, 21 Oct 2021 00:46:25 GMT
+Received: from us-smtp-delivery-124.mimecast.com
+	(us-smtp-delivery-124.mimecast.com [170.10.133.124])
+	by mx0b-00069f01.pphosted.com with ESMTP id 3bt6549umj-1
+	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
+	for <ocfs2-devel@oss.oracle.com>; Thu, 21 Oct 2021 00:46:25 +0000
+Received: from mail-wm1-f70.google.com (mail-wm1-f70.google.com
+	[209.85.128.70]) (Using TLS) by relay.mimecast.com with ESMTP id
+	us-mta-14-f68UMS0pOYC6XKbbzLcNJQ-1; Wed, 20 Oct 2021 20:46:23 -0400
+X-MC-Unique: f68UMS0pOYC6XKbbzLcNJQ-1
+Received: by mail-wm1-f70.google.com with SMTP id
+	a85-20020a1c9858000000b003231f6f95cbso207429wme.0
+	for <ocfs2-devel@oss.oracle.com>; Wed, 20 Oct 2021 17:46:23 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=1e100.net; s=20210112;
+	h=x-gm-message-state:mime-version:references:in-reply-to:from:date
+	:message-id:subject:to:cc;
+	bh=GgRzGZvlhKco4vdRDM+mmGlMh4qaw7uLRwsJYM91KRo=;
+	b=Pd0UkUBG8MxyUOoiNoUZChslHozYYVYaPRscLE4D0ImFo2YoJ7kxe1UpOXOIV0aR/c
+	4uJygUu4t5m9QLZzsA1MxEV7FnUoSt/CDwcJ73a4vNFYaRTo51xDuQuzE2PMjzTrouPV
+	sb1V2ka3bAjXy5A1f1SOa5cJud6Z8Wnd9sZVYNTsZi5TNh5W6yPEUc7wZIU6VCsd3awd
+	fHLiPwAlG3WL4sPCjuI9bztHQNobta5FsCQd7dlY8S4TE1v7m587AZp/TWBha7M8AaL9
+	hxnYUakm+LD06dcW57acJqftPCaBAYkzDcVHXdWoD+1d/K0UO0P5Kk+xYezr7nIrwCHD
+	+vHQ==
+X-Gm-Message-State: AOAM533hNsSLIt12kRw3dS/j4Xhrl2Kb8C2YF6KJ16Do2qqkIRSUJ6Mq
+	qG+ttEpp41D+U9P/lMr07rae0mhzl4gQjPLvuYKIpiuhQj1cQmDqPssX2qfMoPZd9SWLGKt6B1Q
+	VZGNJCvxgbhaZYgOpQu/VjqE0OlV10u31hsC2xQ==
+X-Received: by 2002:a1c:4e10:: with SMTP id g16mr588671wmh.128.1634777182161; 
+	Wed, 20 Oct 2021 17:46:22 -0700 (PDT)
+X-Google-Smtp-Source: ABdhPJxRGyQwuX0RWsnHGQyYi/ngKg0rwoZsofzx0FO8yb5Tm0XYCRffyxkRLT6pbnH1pATha3ETgfDhMtMfli9BWdA=
+X-Received: by 2002:a1c:4e10:: with SMTP id g16mr588649wmh.128.1634777181923; 
+	Wed, 20 Oct 2021 17:46:21 -0700 (PDT)
 MIME-Version: 1.0
-Content-Disposition: inline
-In-Reply-To: <CAHk-=wgv=KPZBJGnx_O5-7hhST8CL9BN4wJwtVuycjhv_1MmvQ@mail.gmail.com>
-X-Source-IP: 198.145.29.99
-X-ServerName: mail.kernel.org
+References: <CAHk-=wh5p6zpgUUoY+O7e74X9BZyODhnsqvv=xqnTaLRNj3d_Q@mail.gmail.com>
+	<YSk7xfcHVc7CxtQO@zeniv-ca.linux.org.uk>
+	<CAHk-=wjMyZLH+ta5SohAViSc10iPj-hRnHc-KPDoj1XZCmxdBg@mail.gmail.com>
+	<YSk+9cTMYi2+BFW7@zeniv-ca.linux.org.uk>
+	<YSldx9uhMYhT/G8X@zeniv-ca.linux.org.uk>
+	<YSqOUb7yZ7kBoKRY@zeniv-ca.linux.org.uk> <YS40qqmXL7CMFLGq@arm.com>
+	<YS5KudP4DBwlbPEp@zeniv-ca.linux.org.uk> <YWR2cPKeDrc0uHTK@arm.com>
+	<CAHk-=wjvQWj7mvdrgTedUW50c2fkdn6Hzxtsk-=ckkMrFoTXjQ@mail.gmail.com>
+	<YWSnvq58jDsDuIik@arm.com>
+	<CAHk-=wiNWOY5QW5ZJukt_9pHTWvrJhE2=DxPpEtFHAWdzOPDTg@mail.gmail.com>
+In-Reply-To: <CAHk-=wiNWOY5QW5ZJukt_9pHTWvrJhE2=DxPpEtFHAWdzOPDTg@mail.gmail.com>
+From: Andreas Gruenbacher <agruenba@redhat.com>
+Date: Thu, 21 Oct 2021 02:46:10 +0200
+Message-ID: <CAHc6FU7bpjAxP+4dfE-C0pzzQJN1p=C2j3vyXwUwf7fF9JF72w@mail.gmail.com>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Authentication-Results: relay.mimecast.com;
+	auth=pass smtp.auth=CUSA124A263 smtp.mailfrom=agruenba@redhat.com
+X-Mimecast-Spam-Score: 0
+X-Mimecast-Originator: redhat.com
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 mx include:_spf.kernel.org ~all
+X-Proofpoint-SPF-Record: v=spf1 ip4:103.23.64.2 ip4:103.23.65.2
+	ip4:103.23.66.26 ip4:103.23.67.26
+	ip4:107.21.15.141 ip4:108.177.8.0/21 ip4:128.17.0.0/20
+	ip4:128.17.128.0/20
+	ip4:128.17.192.0/20 ip4:128.17.64.0/20 ip4:128.245.0.0/20
+	ip4:128.245.64.0/20 ip4:13.110.208.0/21 ip4:13.110.216.0/22
+	ip4:13.110.224.0/20 ip4:13.111.0.0/16 ip4:136.147.128.0/20
+	include:spf1.redhat.com -all
+X-Proofpoint-SPF-VenPass: Allowed
+X-Source-IP: 170.10.133.124
+X-ServerName: us-smtp-delivery-124.mimecast.com
+X-Proofpoint-SPF-Result: pass
+X-Proofpoint-SPF-Record: v=spf1 ip4:103.23.64.2 ip4:103.23.65.2
+	ip4:103.23.66.26 ip4:103.23.67.26
+	ip4:107.21.15.141 ip4:108.177.8.0/21 ip4:128.17.0.0/20
+	ip4:128.17.128.0/20
+	ip4:128.17.192.0/20 ip4:128.17.64.0/20 ip4:128.245.0.0/20
+	ip4:128.245.64.0/20 ip4:13.110.208.0/21 ip4:13.110.216.0/22
+	ip4:13.110.224.0/20 ip4:13.111.0.0/16 ip4:136.147.128.0/20
+	include:spf1.redhat.com -all
 X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10143
 	signatures=668683
 X-Proofpoint-Spam-Reason: safe
 X-Spam: OrgSafeList
 X-SpamRule: orgsafelist
-Cc: kvm-ppc@vger.kernel.org, Christoph Hellwig <hch@infradead.org>,
-        cluster-devel <cluster-devel@redhat.com>, Jan Kara <jack@suse.cz>,
-        Andreas Gruenbacher <agruenba@redhat.com>,
+Cc: cluster-devel <cluster-devel@redhat.com>, Jan Kara <jack@suse.cz>,
+        Catalin Marinas <catalin.marinas@arm.com>,
         Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
-        Paul Mackerras <paulus@ozlabs.org>,
-        Alexander Viro <viro@zeniv.linux.org.uk>,
+        Josef Bacik <josef@toxicpanda.com>,
+        Christoph Hellwig <hch@infradead.org>,
+        Al Viro <viro@zeniv.linux.org.uk>,
         linux-fsdevel <linux-fsdevel@vger.kernel.org>,
-        linux-btrfs <linux-btrfs@vger.kernel.org>, ocfs2-devel@oss.oracle.com
-Subject: Re: [Ocfs2-devel] [PATCH v8 00/17] gfs2: Fix mmap + page fault
-	deadlocks
+        Will Deacon <will@kernel.org>,
+        "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>
+Subject: Re: [Ocfs2-devel] [RFC][arm64] possible infinite loop in btrfs
+	search_ioctl()
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.9
 Precedence: list
@@ -100,50 +152,70 @@ X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10143 signatures=
 X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 mlxlogscore=999 mlxscore=0 adultscore=0
  spamscore=0 phishscore=0 bulkscore=0 suspectscore=0 malwarescore=0
  classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2109230001
- definitions=main-2110200129
-X-Proofpoint-ORIG-GUID: dM1mYDhP7kXPzW1qSxw7aJfwfeRye76J
-X-Proofpoint-GUID: dM1mYDhP7kXPzW1qSxw7aJfwfeRye76J
+ definitions=main-2110210002
+X-Proofpoint-GUID: rXtQ1pZ-I_AyymDacYMffnx7NuoR-eSD
+X-Proofpoint-ORIG-GUID: rXtQ1pZ-I_AyymDacYMffnx7NuoR-eSD
 
-On Wed, Oct 20, 2021 at 10:11:19AM -1000, Linus Torvalds wrote:
-> On Wed, Oct 20, 2021 at 6:37 AM Catalin Marinas <catalin.marinas@arm.com> wrote:
-> > The atomic "add zero" trick isn't that simple for MTE since the arm64
-> > atomic or exclusive instructions run with kernel privileges and
-> > therefore with the kernel tag checking mode.
-> 
-> Are there any instructions that are useful for "probe_user_write()"
-> kind of thing?
+On Tue, Oct 12, 2021 at 1:59 AM Linus Torvalds
+<torvalds@linux-foundation.org> wrote:
+> On Mon, Oct 11, 2021 at 2:08 PM Catalin Marinas <catalin.marinas@arm.com> wrote:
+> >
+> > +#ifdef CONFIG_ARM64_MTE
+> > +#define FAULT_GRANULE_SIZE     (16)
+> > +#define FAULT_GRANULE_MASK     (~(FAULT_GRANULE_SIZE-1))
+>
+> [...]
+>
+> > If this looks in the right direction, I'll do some proper patches
+> > tomorrow.
+>
+> Looks fine to me. It's going to be quite expensive and bad for caches, though.
+>
+> That said, fault_in_writable() is _supposed_ to all be for the slow
+> path when things go south and the normal path didn't work out, so I
+> think it's fine.
 
-If it's on a user address, the only single-instruction that works with
-MTE is STTR (as in put_user()) but that's destructive. Other "add zero"
-constructs require some potentially expensive system register accesses
-just to set the tag checking mode of the current task.
+Let me get back to this; I'm actually not convinced that we need to
+worry about sub-page-size fault granules in fault_in_pages_readable or
+fault_in_pages_writeable.
 
-A probe_user_write() on the kernel linear address involves reading the
-tag from memory and comparing it with the tag in the user pointer. In
-addition, it needs to take into account the current task's tag checking
-mode and the vma vm_flags. We should have most of the information in the
-gup code.
+>From a filesystem point of view, we can get into trouble when a
+user-space read or write triggers a page fault while we're holding
+filesystem locks, and that page fault ends up calling back into the
+filesystem. To deal with that, we're performing those user-space
+accesses with page faults disabled. When a page fault would occur, we
+get back an error instead, and then we try to fault in the offending
+pages. If a page is resident and we still get a fault trying to access
+it, trying to fault in the same page again isn't going to help and we
+have a true error. We're clearly looking at memory at a page
+granularity; faults at a sub-page level don't matter at this level of
+abstraction (but they do show similar error behavior). To avoid
+getting stuck, when it gets a short result or -EFAULT, the filesystem
+implements the following backoff strategy: first, it tries to fault in
+a number of pages. When the read or write still doesn't make progress,
+it scales back and faults in a single page. Finally, when that still
+doesn't help, it gives up. This strategy is needed for actual page
+faults, but it also handles sub-page faults appropriately as long as
+the user-space access functions give sensible results.
 
-> Although at least for MTE, I think the solution was to do a regular
-> read, and that checks the tag, and then we could use the gup machinery
-> for the writability checks.
+What am I missing?
 
-Yes, for MTE this should work. For CHERI I think an "add zero" would
-do the trick (it should have atomics that work on capabilities
-directly). However, with MTE doing both get_user() every 16 bytes and
-gup can get pretty expensive. The problematic code is
-fault_in_safe_writable() in this series.
+Thanks,
+Andreas
 
-I can give this 16-byte probing in gup a try (on top of -next) but IMHO
-we unnecessarily overload the fault_in_*() logic with something the
-kernel cannot fix up. The only reason we do it is so that we get an
-error code and bail out of a loop but the uaccess routines could be
-extended to report the fault type instead. It looks like we pretty much
-duplicate the uaccess in the fault_in_*() functions (four accesses per
-cache line).
+> I do wonder how the sub-page granularity works. Is it sufficient to
+> just read from it? Because then a _slightly_ better option might be to
+> do one write per page (to catch page table writability) and then one
+> read per "granule" (to catch pointer coloring or cache poisoning
+> issues)?
+>
+> That said, since this is all preparatory to us wanting to write to it
+> eventually anyway, maybe marking it all dirty in the caches is only
+> good.
+>
+>                 Linus
+>
 
--- 
-Catalin
 
 _______________________________________________
 Ocfs2-devel mailing list
