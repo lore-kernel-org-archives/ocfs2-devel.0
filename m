@@ -2,91 +2,87 @@ Return-Path: <SRS0=RLPq=PK=oss.oracle.com=ocfs2-devel-bounces@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 04F68C433F5
-	for <ocfs2-devel@archiver.kernel.org>; Fri, 22 Oct 2021 09:34:22 +0000 (UTC)
-Received: from mx0a-00069f02.pphosted.com (mx0a-00069f02.pphosted.com [205.220.165.32])
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 3B6EAC433F5
+	for <ocfs2-devel@archiver.kernel.org>; Fri, 22 Oct 2021 18:10:11 +0000 (UTC)
+Received: from mx0b-00069f02.pphosted.com (mx0b-00069f02.pphosted.com [205.220.177.32])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by mail.kernel.org (Postfix) with ESMTPS id 93C9B610CB
-	for <ocfs2-devel@archiver.kernel.org>; Fri, 22 Oct 2021 09:34:21 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.1 mail.kernel.org 93C9B610CB
+	by mail.kernel.org (Postfix) with ESMTPS id C58626121F
+	for <ocfs2-devel@archiver.kernel.org>; Fri, 22 Oct 2021 18:10:10 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.1 mail.kernel.org C58626121F
 Authentication-Results: mail.kernel.org; dmarc=fail (p=none dis=none) header.from=arm.com
 Authentication-Results: mail.kernel.org; spf=pass smtp.mailfrom=oss.oracle.com
-Received: from pps.filterd (m0246617.ppops.net [127.0.0.1])
-	by mx0b-00069f02.pphosted.com (8.16.1.2/8.16.1.2) with SMTP id 19M8qCXb019206;
-	Fri, 22 Oct 2021 09:34:21 GMT
+Received: from pps.filterd (m0246631.ppops.net [127.0.0.1])
+	by mx0b-00069f02.pphosted.com (8.16.1.2/8.16.1.2) with SMTP id 19MI75M8027918;
+	Fri, 22 Oct 2021 18:10:09 GMT
 Received: from userp3020.oracle.com (userp3020.oracle.com [156.151.31.79])
-	by mx0b-00069f02.pphosted.com with ESMTP id 3but5xg6au-1
+	by mx0b-00069f02.pphosted.com with ESMTP id 3buta8aphs-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Fri, 22 Oct 2021 09:34:20 +0000
+	Fri, 22 Oct 2021 18:10:09 +0000
 Received: from pps.filterd (userp3020.oracle.com [127.0.0.1])
-	by userp3020.oracle.com (8.16.1.2/8.16.1.2) with SMTP id 19M9Ff6J174874;
-	Fri, 22 Oct 2021 09:34:13 GMT
+	by userp3020.oracle.com (8.16.1.2/8.16.1.2) with SMTP id 19MI5grf066708;
+	Fri, 22 Oct 2021 18:10:08 GMT
 Received: from oss.oracle.com (oss-old-reserved.oracle.com [137.254.22.2])
-	by userp3020.oracle.com with ESMTP id 3br8gxng9j-1
+	by userp3020.oracle.com with ESMTP id 3br8gyau3g-1
 	(version=TLSv1 cipher=AES256-SHA bits=256 verify=NO);
-	Fri, 22 Oct 2021 09:34:12 +0000
+	Fri, 22 Oct 2021 18:10:08 +0000
 Received: from localhost ([127.0.0.1] helo=lb-oss.oracle.com)
 	by oss.oracle.com with esmtp (Exim 4.63)
 	(envelope-from <ocfs2-devel-bounces@oss.oracle.com>)
-	id 1mdqwF-0004Ji-Ra; Fri, 22 Oct 2021 02:34:11 -0700
-Received: from aserp3020.oracle.com ([141.146.126.70])
+	id 1mdywU-0006RN-5F; Fri, 22 Oct 2021 11:06:58 -0700
+Received: from userp3030.oracle.com ([156.151.31.80])
 	by oss.oracle.com with esmtp (Exim 4.63)
-	(envelope-from <cmarinas@kernel.org>) id 1mdqwC-0004JJ-PE
-	for ocfs2-devel@oss.oracle.com; Fri, 22 Oct 2021 02:34:08 -0700
-Received: from pps.filterd (aserp3020.oracle.com [127.0.0.1])
-	by aserp3020.oracle.com (8.16.1.2/8.16.1.2) with SMTP id 19M9FIJF159349
-	for <ocfs2-devel@oss.oracle.com>; Fri, 22 Oct 2021 09:34:08 GMT
-Received: from mx0a-00069f01.pphosted.com (mx0a-00069f01.pphosted.com
-	[205.220.165.26]) by aserp3020.oracle.com with ESMTP id 3bqpjac01h-1
+	(envelope-from <cmarinas@kernel.org>) id 1mdywS-0006Qz-MU
+	for ocfs2-devel@oss.oracle.com; Fri, 22 Oct 2021 11:06:56 -0700
+Received: from pps.filterd (userp3030.oracle.com [127.0.0.1])
+	by userp3030.oracle.com (8.16.1.2/8.16.1.2) with SMTP id 19MI5l12158899
+	for <ocfs2-devel@oss.oracle.com>; Fri, 22 Oct 2021 18:06:56 GMT
+Received: from mx0b-00069f01.pphosted.com (mx0b-00069f01.pphosted.com
+	[205.220.177.26]) by userp3030.oracle.com with ESMTP id 3bqkv45kdw-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Fri, 22 Oct 2021 09:34:08 +0000
-Received: from pps.filterd (m0246575.ppops.net [127.0.0.1])
+	for <ocfs2-devel@oss.oracle.com>; Fri, 22 Oct 2021 18:06:56 +0000
+Received: from pps.filterd (m0246578.ppops.net [127.0.0.1])
 	by mx0b-00069f01.pphosted.com (8.16.1.2/8.16.1.2) with SMTP id
-	19M6ZkEn019378
-	for <ocfs2-devel@oss.oracle.com>; Fri, 22 Oct 2021 09:34:07 GMT
+	19MHFjRw001543
+	for <ocfs2-devel@oss.oracle.com>; Fri, 22 Oct 2021 18:06:55 GMT
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by mx0b-00069f01.pphosted.com with ESMTP id 3bur5vhwdg-1
+	by mx0b-00069f01.pphosted.com with ESMTP id 3bv1hu0jk3-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NO)
-	for <ocfs2-devel@oss.oracle.com>; Fri, 22 Oct 2021 09:34:07 +0000
-Received: by mail.kernel.org (Postfix) with ESMTPSA id D4BE761163;
-	Fri, 22 Oct 2021 09:34:03 +0000 (UTC)
-Date: Fri, 22 Oct 2021 10:34:00 +0100
+	for <ocfs2-devel@oss.oracle.com>; Fri, 22 Oct 2021 18:06:54 +0000
+Received: by mail.kernel.org (Postfix) with ESMTPSA id 32ED1610A4;
+	Fri, 22 Oct 2021 18:06:49 +0000 (UTC)
+Date: Fri, 22 Oct 2021 19:06:45 +0100
 From: Catalin Marinas <catalin.marinas@arm.com>
 To: Linus Torvalds <torvalds@linux-foundation.org>
-Message-ID: <YXKFiBzaBcz9EiOI@arm.com>
-References: <YS40qqmXL7CMFLGq@arm.com> <YS5KudP4DBwlbPEp@zeniv-ca.linux.org.uk>
-	<YWR2cPKeDrc0uHTK@arm.com>
-	<CAHk-=wjvQWj7mvdrgTedUW50c2fkdn6Hzxtsk-=ckkMrFoTXjQ@mail.gmail.com>
-	<YWSnvq58jDsDuIik@arm.com>
-	<CAHk-=wiNWOY5QW5ZJukt_9pHTWvrJhE2=DxPpEtFHAWdzOPDTg@mail.gmail.com>
-	<CAHc6FU7bpjAxP+4dfE-C0pzzQJN1p=C2j3vyXwUwf7fF9JF72w@mail.gmail.com>
-	<YXE7fhDkqJbfDk6e@arm.com>
-	<CAHc6FU5xTMOxuiEDyc9VO_V98=bvoDc-0OFi4jsGPgWJWjRJWQ@mail.gmail.com>
-	<CAHk-=wgvnU2PXFMpsNErdwE=tXGymLHe275jWkBhCbGiixWU5g@mail.gmail.com>
+Message-ID: <YXL9tRher7QVmq6N@arm.com>
+References: <20211019134204.3382645-1-agruenba@redhat.com>
+	<CAHk-=wh0_3y5s7-G74U0Pcjm7Y_yHB608NYrQSvgogVNBxsWSQ@mail.gmail.com>
+	<YXBFqD9WVuU8awIv@arm.com>
+	<CAHk-=wgv=KPZBJGnx_O5-7hhST8CL9BN4wJwtVuycjhv_1MmvQ@mail.gmail.com>
+	<YXCbv5gdfEEtAYo8@arm.com>
+	<CAHk-=wgP058PNY8eoWW=5uRMox-PuesDMrLsrCWPS+xXhzbQxQ@mail.gmail.com>
 MIME-Version: 1.0
 Content-Disposition: inline
-In-Reply-To: <CAHk-=wgvnU2PXFMpsNErdwE=tXGymLHe275jWkBhCbGiixWU5g@mail.gmail.com>
+In-Reply-To: <CAHk-=wgP058PNY8eoWW=5uRMox-PuesDMrLsrCWPS+xXhzbQxQ@mail.gmail.com>
 X-Source-IP: 198.145.29.99
 X-ServerName: mail.kernel.org
 X-Proofpoint-SPF-Result: pass
 X-Proofpoint-SPF-Record: v=spf1 mx include:_spf.kernel.org ~all
-X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10144
+X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10145
 	signatures=668683
 X-Proofpoint-Spam-Reason: safe
 X-Spam: OrgSafeList
 X-SpamRule: orgsafelist
-Cc: cluster-devel <cluster-devel@redhat.com>, Jan Kara <jack@suse.cz>,
+Cc: kvm-ppc@vger.kernel.org, Christoph Hellwig <hch@infradead.org>,
+        cluster-devel <cluster-devel@redhat.com>, Jan Kara <jack@suse.cz>,
         Andreas Gruenbacher <agruenba@redhat.com>,
         Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
-        Josef Bacik <josef@toxicpanda.com>,
-        Christoph Hellwig <hch@infradead.org>,
-        Al Viro <viro@zeniv.linux.org.uk>,
+        Paul Mackerras <paulus@ozlabs.org>,
+        Alexander Viro <viro@zeniv.linux.org.uk>,
         linux-fsdevel <linux-fsdevel@vger.kernel.org>,
-        Will Deacon <will@kernel.org>,
-        "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>
-Subject: Re: [Ocfs2-devel] [RFC][arm64] possible infinite loop in btrfs
-	search_ioctl()
+        linux-btrfs <linux-btrfs@vger.kernel.org>, ocfs2-devel@oss.oracle.com
+Subject: Re: [Ocfs2-devel] [PATCH v8 00/17] gfs2: Fix mmap + page fault
+	deadlocks
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.9
 Precedence: list
@@ -102,47 +98,57 @@ Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 Sender: ocfs2-devel-bounces@oss.oracle.com
 Errors-To: ocfs2-devel-bounces@oss.oracle.com
-X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10144 signatures=668683
+X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10145 signatures=668683
 X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 mlxlogscore=999 mlxscore=0 adultscore=0
  spamscore=0 phishscore=0 bulkscore=0 suspectscore=0 malwarescore=0
  classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2109230001
- definitions=main-2110220051
-X-Proofpoint-ORIG-GUID: LZb_p1EG7Xp3LTZGIH8lre7HGcHtrhJS
-X-Proofpoint-GUID: LZb_p1EG7Xp3LTZGIH8lre7HGcHtrhJS
+ definitions=main-2110220105
+X-Proofpoint-GUID: 29UY6q3LpYtNGMEwi0Pme6YB3rSW7LNO
+X-Proofpoint-ORIG-GUID: 29UY6q3LpYtNGMEwi0Pme6YB3rSW7LNO
 
-On Thu, Oct 21, 2021 at 04:30:30PM -1000, Linus Torvalds wrote:
-> On Thu, Oct 21, 2021 at 4:42 AM Andreas Gruenbacher <agruenba@redhat.com> wrote:
-> > But probing the entire memory range in fault domain granularity in the
-> > page fault-in functions still doesn't actually make sense. Those
-> > functions really only need to guarantee that we'll be able to make
-> > progress eventually. From that point of view, it should be enough to
-> > probe the first byte of the requested memory range
+On Wed, Oct 20, 2021 at 08:19:40PM -1000, Linus Torvalds wrote:
+> On Wed, Oct 20, 2021 at 12:44 PM Catalin Marinas
+> <catalin.marinas@arm.com> wrote:
+> >
+> > However, with MTE doing both get_user() every 16 bytes and
+> > gup can get pretty expensive.
 > 
-> That's probably fine.
+> So I really think that anything that is performance-critical had
+> better only do the "fault_in_write()" code path in the cold error path
+> where you took a page fault.
+[...]
+> So I wouldn't worry too much about the performance concerns. It simply
+> shouldn't be a common or hot path.
 > 
-> Although it should be more than one byte - "copy_from_user()" might do
-> word-at-a-time optimizations, so you could have an infinite loop of
+> And yes, I've seen code that does that "fault_in_xyz()" before the
+> critical operation that cannot take page faults, and does it
+> unconditionally.
 > 
->  (a) copy_from_user() fails because the chunk it tried to get failed partly
-> 
->  (b) fault_in() probing succeeds, because the beginning part is fine
-> 
-> so I agree that the fault-in code doesn't need to do the whole area,
-> but it needs to at least do some <N bytes, up to length> thing, to
-> handle the situation where the copy_to/from_user requires more than a
-> single byte.
+> But then it isn't the "fault_in_xyz()" that should be blamed if it is
+> slow, but the caller that does things the wrong way around.
 
->From a discussion with Al some months ago, if there are bytes still
-accessible, copy_from_user() is not allowed to fail fully (i.e. return
-the requested copy size) even when it uses word-at-a-time. In the worst
-case, it should return size - 1. If the fault_in() then continues
-probing from uaddr + 1, it should eventually hit the faulty address.
+Some more thinking out loud. I did some unscientific benchmarks on a
+Raspberry Pi 4 with the filesystem in a RAM block device and a
+"dd if=/dev/zero of=/mnt/test" writing 512MB in 1MB blocks. I changed
+fault_in_readable() in linux-next to probe every 16 bytes:
 
-The problem appears when fault_in() restarts from uaddr rather than
-where copy_from_user() stopped. That's what the btrfs search_ioctl()
-does. I also need to check the direct I/O cases that Andreas mentioned,
-maybe they can be changed not to attempt the fault_in() from the
-beginning of the block.
+- ext4 drops from around 261MB/s to 246MB/s: 5.7% penalty
+
+- btrfs drops from around 360MB/s to 337MB/s: 6.4% penalty
+
+For generic_perform_write() Dave Hansen attempted to move the fault-in
+after the uaccess in commit 998ef75ddb57 ("fs: do not prefault
+sys_write() user buffer pages"). This was reverted as it was exposing an
+ext4 bug. I don't whether it was fixed but re-applying Dave's commit
+avoids the performance drop.
+
+btrfs_buffered_write() has a comment about faulting pages in before
+locking them in prepare_pages(). I suspect it's a similar problem and
+the fault_in() could be moved, though I can't say I understand this code
+well enough.
+
+Probing only the first byte(s) in fault_in() would be ideal, no need to
+go through all filesystems and try to change the uaccess/probing order.
 
 -- 
 Catalin
