@@ -2,98 +2,71 @@ Return-Path: <SRS0=IoPu=PN=oss.oracle.com=ocfs2-devel-bounces@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 95114C4332F
-	for <ocfs2-devel@archiver.kernel.org>; Mon, 25 Oct 2021 15:14:12 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id AABBBC433F5
+	for <ocfs2-devel@archiver.kernel.org>; Mon, 25 Oct 2021 15:55:56 +0000 (UTC)
 Received: from mx0b-00069f02.pphosted.com (mx0b-00069f02.pphosted.com [205.220.177.32])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by mail.kernel.org (Postfix) with ESMTPS id 3320B60EB9
-	for <ocfs2-devel@archiver.kernel.org>; Mon, 25 Oct 2021 15:14:12 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.1 mail.kernel.org 3320B60EB9
-Authentication-Results: mail.kernel.org; dmarc=none (p=none dis=none) header.from=suse.cz
+	by mail.kernel.org (Postfix) with ESMTPS id 4221160E75
+	for <ocfs2-devel@archiver.kernel.org>; Mon, 25 Oct 2021 15:55:56 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.1 mail.kernel.org 4221160E75
+Authentication-Results: mail.kernel.org; dmarc=pass (p=none dis=none) header.from=oracle.com
 Authentication-Results: mail.kernel.org; spf=pass smtp.mailfrom=oss.oracle.com
-Received: from pps.filterd (m0246632.ppops.net [127.0.0.1])
-	by mx0b-00069f02.pphosted.com (8.16.1.2/8.16.1.2) with SMTP id 19PEtoNv030360;
-	Mon, 25 Oct 2021 15:14:11 GMT
-Received: from userp3030.oracle.com (userp3030.oracle.com [156.151.31.80])
-	by mx0b-00069f02.pphosted.com with ESMTP id 3bw6v1ut9f-1
+Received: from pps.filterd (m0246630.ppops.net [127.0.0.1])
+	by mx0b-00069f02.pphosted.com (8.16.1.2/8.16.1.2) with SMTP id 19PFb9B4027155;
+	Mon, 25 Oct 2021 15:55:55 GMT
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=oracle.com; h=from : to : date :
+ message-id : cc : subject : list-id : list-unsubscribe : list-archive :
+ list-post : list-help : list-subscribe : mime-version : content-type :
+ content-transfer-encoding : sender; s=corp-2021-07-09;
+ bh=JMu8fhJwsD9VqOauXMtJ8rlfxZnW9DDomUOeWB5gMxg=;
+ b=RfS4Dy12o+xutvOP7H9b18D9CUBdwEGfkrwqGY4fc7i2sbC1aarfAxewn8FxCuy52uT4
+ dUZH6pCQsJ4q2cVxOb6ie71d1b+Cf4Tqd185V4cmGqFkC7u+j1JJ0ombHSvYgOD/CnbF
+ KpcjvaTvtmWEllajVYPHy5zsChFu6fXbXtJlTxiMbXfQVxRXqK0Qgete5QjcfAUOuwPP
+ JOcwih87+D/laTmyJDU+5plneq0qlZCGrXYgspffAa5BpSXGttRW/Y6lv5F80UiiOAbo
+ iGe1l6yWqkx6BPBuAoiwkZAAwdH/C964HgeywIJY7NJ9G+0KcXYYMAuixyQtu2bzj271 xw== 
+Received: from userp3020.oracle.com (userp3020.oracle.com [156.151.31.79])
+	by mx0b-00069f02.pphosted.com with ESMTP id 3bwx970h8e-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Mon, 25 Oct 2021 15:14:11 +0000
-Received: from pps.filterd (userp3030.oracle.com [127.0.0.1])
-	by userp3030.oracle.com (8.16.1.2/8.16.1.2) with SMTP id 19PF1umF064844;
-	Mon, 25 Oct 2021 15:14:09 GMT
+	Mon, 25 Oct 2021 15:55:55 +0000
+Received: from pps.filterd (userp3020.oracle.com [127.0.0.1])
+	by userp3020.oracle.com (8.16.1.2/8.16.1.2) with SMTP id 19PFtq8l167138;
+	Mon, 25 Oct 2021 15:55:53 GMT
 Received: from oss.oracle.com (oss-old-reserved.oracle.com [137.254.22.2])
-	by userp3030.oracle.com with ESMTP id 3bv7gus9xc-1
+	by userp3020.oracle.com with ESMTP id 3bvv5s7qan-1
 	(version=TLSv1 cipher=AES256-SHA bits=256 verify=NO);
-	Mon, 25 Oct 2021 15:14:09 +0000
+	Mon, 25 Oct 2021 15:55:53 +0000
 Received: from localhost ([127.0.0.1] helo=lb-oss.oracle.com)
 	by oss.oracle.com with esmtp (Exim 4.63)
 	(envelope-from <ocfs2-devel-bounces@oss.oracle.com>)
-	id 1mf1fs-0004OP-Oj; Mon, 25 Oct 2021 08:14:08 -0700
-Received: from aserp3030.oracle.com ([141.146.126.71])
+	id 1mf2KA-0006YA-Ln; Mon, 25 Oct 2021 08:55:46 -0700
+Received: from userp3030.oracle.com ([156.151.31.80])
 	by oss.oracle.com with esmtp (Exim 4.63)
-	(envelope-from <jack@suse.cz>) id 1mf1fO-0004Md-Fu
-	for ocfs2-devel@oss.oracle.com; Mon, 25 Oct 2021 08:13:38 -0700
-Received: from pps.filterd (aserp3030.oracle.com [127.0.0.1])
-	by aserp3030.oracle.com (8.16.1.2/8.16.1.2) with SMTP id 19PF1Cfp173472
-	for <ocfs2-devel@oss.oracle.com>; Mon, 25 Oct 2021 15:13:38 GMT
-Received: from mx0a-00069f01.pphosted.com (mx0a-00069f01.pphosted.com
-	[205.220.165.26]) by aserp3030.oracle.com with ESMTP id 3bv8efhaey-1
-	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Mon, 25 Oct 2021 15:13:38 +0000
-Received: from pps.filterd (m0246572.ppops.net [127.0.0.1])
-	by mx0b-00069f01.pphosted.com (8.16.1.2/8.16.1.2) with SMTP id
-	19PDUYNs012597
-	for <ocfs2-devel@oss.oracle.com>; Mon, 25 Oct 2021 15:13:37 GMT
-Received: from smtp-out1.suse.de (smtp-out1.suse.de [195.135.220.28])
-	by mx0b-00069f01.pphosted.com with ESMTP id 3bwsgk480a-1
-	(version=TLSv1.2 cipher=ECDHE-RSA-AES128-GCM-SHA256 bits=128 verify=NO)
-	for <ocfs2-devel@oss.oracle.com>; Mon, 25 Oct 2021 15:13:36 +0000
-Received: from relay2.suse.de (relay2.suse.de [149.44.160.134])
-	by smtp-out1.suse.de (Postfix) with ESMTP id 4552621956;
-	Mon, 25 Oct 2021 15:13:33 +0000 (UTC)
-Received: from quack2.suse.cz (unknown [10.100.224.230])
-	by relay2.suse.de (Postfix) with ESMTP id 0CBC5A3B8A;
-	Mon, 25 Oct 2021 15:13:32 +0000 (UTC)
-Received: by quack2.suse.cz (Postfix, from userid 1000)
-	id BF6571E06C4; Mon, 25 Oct 2021 17:13:32 +0200 (CEST)
-From: Jan Kara <jack@suse.cz>
-To: Andrew Morton <akpm@linux-foundation.org>
-Date: Mon, 25 Oct 2021 17:13:23 +0200
-Message-Id: <20211025150008.29002-1-jack@suse.cz>
-X-Mailer: git-send-email 2.26.2
-MIME-Version: 1.0
-X-Developer-Signature: v=1; a=openpgp-sha256; l=984; h=from:subject:message-id;
-	bh=Z3aUSq5FVN9uFK1uVKy8Mnyf9+pi8/ZTb2uC1OJoijI=;
-	b=owEBbQGS/pANAwAIAZydqgc/ZEDZAcsmYgBhdslZ3wL6lmgzxN0buPr4fkDBBM9nhXLop4/FZjZd
-	RqHVoM+JATMEAAEIAB0WIQSrWdEr1p4yirVVKBycnaoHP2RA2QUCYXbJWQAKCRCcnaoHP2RA2WtxCA
-	DWw3be8MjJeAB5ATJl6GA9Z4oU23JKG6pYH0lgcuVPVv8ufXhgTHA7MJbIula3JLOvE6MPXtMFNcP0
-	Nkb6W9e7NJ8+HyDDB0ce7LRDmEvRv5BNZC7nACOOI3d8BGjRKjti2sO90Wu9kePLL2j1kyuWGjDj0d
-	iKveTFqVyA/Lue1j0xyTIWePs/wyNNLA+mwpFlzQR/tFOR93nhCO6hsXC2ax5+1yaIcZdEq6SIoruh
-	YPhL5XyPnEvPnakxCJzzbN/wZuhy6UyhQIfgvxFYA65tBzOaJTav29MRbP8cY2rGbahyibWPX84hKl
-	Argca78U8gMis+gEnNb/B2TKJxEYNA
-X-Developer-Key: i=jack@suse.cz; a=openpgp;
-	fpr=93C6099A142276A28BBE35D815BC833443038D8C
-X-Source-IP: 195.135.220.28
-X-ServerName: smtp-out1.suse.de
-X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 ip4:137.65.0.0/16 ip4:151.155.28.0/17
-	ip4:149.44.0.0/16
-	ip4:147.2.0.0/16 ip4:164.99.0.0/16 ip4:130.57.0.0/16
-	ip4:192.31.114.0/24
-	ip4:195.135.221.0/24 ip4:195.135.220.0/24 ip4:69.7.179.0/24
-	ip4:150.215.214.0/24 include:mailcontrol.com ~all
-X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10148
-	signatures=668683
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0
-	lowpriorityscore=0 phishscore=0
-	adultscore=0 impostorscore=0 malwarescore=0 clxscore=203 mlxscore=0
-	priorityscore=48 spamscore=0 suspectscore=0 mlxlogscore=596 bulkscore=0
-	classifier=spam adjust=0 reason=mlx scancount=1
-	engine=8.12.0-2109230001 definitions=main-2110250092
-X-Spam: Clean
-Cc: Jan Kara <jack@suse.cz>, ocfs2-devel@oss.oracle.com
-Subject: [Ocfs2-devel] [PATCH 0/2] ocfs2: Truncate data corruption fix
+	(envelope-from <gautham.ananthakrishna@oracle.com>)
+	id 1mf2K8-0006Xq-7Z
+	for ocfs2-devel@oss.oracle.com; Mon, 25 Oct 2021 08:55:44 -0700
+Received: from pps.filterd (userp3030.oracle.com [127.0.0.1])
+	by userp3030.oracle.com (8.16.1.2/8.16.1.2) with SMTP id 19PFLuP6004514;
+	Mon, 25 Oct 2021 15:55:43 GMT
+Received: from pps.reinject (localhost [127.0.0.1])
+	by userp3030.oracle.com with ESMTP id 3bv7guujm9-1
+	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
+	Mon, 25 Oct 2021 15:55:43 +0000
+Received: from userp3030.oracle.com (userp3030.oracle.com [127.0.0.1])
+	by pps.reinject (8.16.0.36/8.16.0.36) with SMTP id 19PFtgtF141210;
+	Mon, 25 Oct 2021 15:55:42 GMT
+Received: from gmananth-linux.oraclecorp.com
+	(dhcp-10-166-172-248.vpn.oracle.com [10.166.172.248])
+	by userp3030.oracle.com with ESMTP id 3bv7guujfq-1;
+	Mon, 25 Oct 2021 15:55:42 +0000
+From: Gautham Ananthakrishna <gautham.ananthakrishna@oracle.com>
+To: ocfs2-devel@oss.oracle.com
+Date: Mon, 25 Oct 2021 21:25:35 +0530
+Message-Id: <1635177335-23973-1-git-send-email-gautham.ananthakrishna@oracle.com>
+X-Mailer: git-send-email 1.8.3.1
+Cc: rajesh.sivaramasubramaniom@oracle.com, gautham.ananthakrishna@oracle.com
+Subject: [Ocfs2-devel] [PATCH UEK6-U3 1/1] ocfs2: fix race between searching
+	chunks and release journal_head from buffer_head
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.9
 Precedence: list
@@ -105,35 +78,114 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
 	<mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
+MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 Sender: ocfs2-devel-bounces@oss.oracle.com
 Errors-To: ocfs2-devel-bounces@oss.oracle.com
 X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10148 signatures=668683
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 spamscore=0 phishscore=0 adultscore=0
- suspectscore=0 mlxscore=0 bulkscore=0 mlxlogscore=999 malwarescore=0
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 bulkscore=0 mlxscore=0 spamscore=0
+ phishscore=0 suspectscore=0 malwarescore=0 adultscore=0 mlxlogscore=999
  classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2109230001
- definitions=main-2110250092
-X-Proofpoint-GUID: PP6dZzk9qLIBVS_5H8IifHyvkXQ1Tnvm
-X-Proofpoint-ORIG-GUID: PP6dZzk9qLIBVS_5H8IifHyvkXQ1Tnvm
+ definitions=main-2110250094
+X-Proofpoint-GUID: 4-GhjYrFeXTN3YzLa7R4cP0Aknwlzc18
+X-Proofpoint-ORIG-GUID: 4-GhjYrFeXTN3YzLa7R4cP0Aknwlzc18
 
-Hello,
+Encountered a race between ocfs2_test_bg_bit_allocatable() and
+jbd2_journal_put_journal_head() resulting in the below vmcore.
 
-as further testing has shown, the commit 5314454ea3f ("ocfs2: fix data
-corruption after conversion from inline format") didn't fix all the data
-corruption issues the customer started observing after 6dbf7bb55598 ("fs: Don't
-invalidate page buffers in block_write_full_page()"). This time I have tracked
-them down to two bugs in ocfs2 truncation code. One bug (truncating page cache
-before clearing tail cluster and setting i_size) could cause data corruption
-even before 6dbf7bb55598, but before that commit it needed a race with page
-fault, after 6dbf7bb55598 it started to be pretty deterministic. Another
-bug (zeroing pages beyond old i_size) used to be harmless inefficiency before
-commit 6dbf7bb55598. But after commit 6dbf7bb55598 in combination with the
-first bug it resulted in deterministic data corruption. Although fixing only
-the first problem is needed to stop data corruption, I've fixed both issues
-to make the code more robust.
+PID: 106879  TASK: ffff880244ba9c00  CPU: 2   COMMAND: "loop3"
+ 0 [ffff8802435ff1c0] panic at ffffffff816ed175
+ 1 [ffff8802435ff240] oops_end at ffffffff8101a7c9
+ 2 [ffff8802435ff270] no_context at ffffffff8106eccf
+ 3 [ffff8802435ff2e0] __bad_area_nosemaphore at ffffffff8106ef9d
+ 4 [ffff8802435ff330] bad_area_nosemaphore at ffffffff8106f143
+ 5 [ffff8802435ff340] __do_page_fault at ffffffff8106f80b
+ 6 [ffff8802435ff3a0] do_page_fault at ffffffff8106fc2f
+ 7 [ffff8802435ff3e0] page_fault at ffffffff816fd667
+    [exception RIP: ocfs2_block_group_find_clear_bits+316]
+    RIP: ffffffffc11ef6fc  RSP: ffff8802435ff498  RFLAGS: 00010206
+    RAX: 0000000000003918  RBX: 0000000000000001  RCX: 0000000000000018
+    RDX: 0000000000003918  RSI: 0000000000000000  RDI: ffff880060194040
+    RBP: ffff8802435ff4f8   R8: ffffffffff000000   R9: ffffffffffffffff
+    R10: ffff8802435ff730  R11: ffff8802a94e5800  R12: 0000000000000007
+    R13: 0000000000007e00  R14: 0000000000003918  R15: ffff88017c973a28
+    ORIG_RAX: ffffffffffffffff  CS: e030  SS: e02b
+ 8 [ffff8802435ff490] ocfs2_block_group_find_clear_bits at ffffffffc11ef680 [ocfs2]
+ 9 [ffff8802435ff500] ocfs2_cluster_group_search at ffffffffc11ef916 [ocfs2]
+10 [ffff8802435ff580] ocfs2_search_chain at ffffffffc11f0fb6 [ocfs2]
+11 [ffff8802435ff660] ocfs2_claim_suballoc_bits at ffffffffc11f1b1b [ocfs2]
+12 [ffff8802435ff6f0] __ocfs2_claim_clusters at ffffffffc11f32cb [ocfs2]
+13 [ffff8802435ff770] ocfs2_claim_clusters at ffffffffc11f5caf [ocfs2]
+14 [ffff8802435ff780] ocfs2_local_alloc_slide_window at ffffffffc11cc0db [ocfs2]
+15 [ffff8802435ff820] ocfs2_reserve_local_alloc_bits at ffffffffc11ce53f [ocfs2]
+16 [ffff8802435ff890] ocfs2_reserve_clusters_with_limit at ffffffffc11f59b5 [ocfs2]
+17 [ffff8802435ff8e0] ocfs2_reserve_clusters at ffffffffc11f5c88 [ocfs2]
+18 [ffff8802435ff8f0] ocfs2_lock_refcount_allocators at ffffffffc11dc169 [ocfs2]
+19 [ffff8802435ff960] ocfs2_make_clusters_writable at ffffffffc11e4274 [ocfs2]
+20 [ffff8802435ffa50] ocfs2_replace_cow at ffffffffc11e4df1 [ocfs2]
+21 [ffff8802435ffac0] ocfs2_refcount_cow at ffffffffc11e54b1 [ocfs2]
+22 [ffff8802435ffb80] ocfs2_file_write_iter at ffffffffc11bf8f4 [ocfs2]
+23 [ffff8802435ffcd0] lo_rw_aio at ffffffff814a1b5d
+24 [ffff8802435ffd80] loop_queue_work at ffffffff814a2802
+25 [ffff8802435ffe60] kthread_worker_fn at ffffffff810a80d2
+26 [ffff8802435ffec0] kthread at ffffffff810a7afb
+27 [ffff8802435fff50] ret_from_fork at ffffffff816f7da1
 
-								Honza
+When ocfs2_test_bg_bit_allocatable() called bh2jh(bg_bh), the bg_bh->b_private
+NULL as jbd2_journal_put_journal_head() raced and released the jounal head
+from the buffer head. Needed to take bit lock for the bit 'BH_JournalHead'
+to fix this race.
+
+Signed-off-by: Gautham Ananthakrishna <gautham.ananthakrishna@oracle.com>
+Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+---
+ fs/ocfs2/suballoc.c | 22 +++++++++++++---------
+ 1 file changed, 13 insertions(+), 9 deletions(-)
+
+diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
+index 8521942..481017e 100644
+--- a/fs/ocfs2/suballoc.c
++++ b/fs/ocfs2/suballoc.c
+@@ -1251,7 +1251,7 @@ static int ocfs2_test_bg_bit_allocatable(struct buffer_head *bg_bh,
+ {
+ 	struct ocfs2_group_desc *bg = (struct ocfs2_group_desc *) bg_bh->b_data;
+ 	struct journal_head *jh;
+-	int ret;
++	int ret = 1;
+ 
+ 	if (ocfs2_test_bit(nr, (unsigned long *)bg->bg_bitmap))
+ 		return 0;
+@@ -1259,14 +1259,18 @@ static int ocfs2_test_bg_bit_allocatable(struct buffer_head *bg_bh,
+ 	if (!buffer_jbd(bg_bh))
+ 		return 1;
+ 
+-	jh = bh2jh(bg_bh);
+-	spin_lock(&jh->b_state_lock);
+-	bg = (struct ocfs2_group_desc *) jh->b_committed_data;
+-	if (bg)
+-		ret = !ocfs2_test_bit(nr, (unsigned long *)bg->bg_bitmap);
+-	else
+-		ret = 1;
+-	spin_unlock(&jh->b_state_lock);
++	jbd_lock_bh_journal_head(bg_bh);
++	if (buffer_jbd(bg_bh)) {
++		jh = bh2jh(bg_bh);
++		spin_lock(&jh->b_state_lock);
++		bg = (struct ocfs2_group_desc *) jh->b_committed_data;
++		if (bg)
++			ret = !ocfs2_test_bit(nr, (unsigned long *)bg->bg_bitmap);
++		else
++			ret = 1;
++		spin_unlock(&jh->b_state_lock);
++	}
++	jbd_unlock_bh_journal_head(bg_bh);
+ 
+ 	return ret;
+ }
+-- 
+1.8.3.1
+
 
 _______________________________________________
 Ocfs2-devel mailing list
