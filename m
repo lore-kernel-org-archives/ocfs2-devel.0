@@ -2,71 +2,143 @@ Return-Path: <SRS0=IoPu=PN=oss.oracle.com=ocfs2-devel-bounces@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id AABBBC433F5
-	for <ocfs2-devel@archiver.kernel.org>; Mon, 25 Oct 2021 15:55:56 +0000 (UTC)
-Received: from mx0b-00069f02.pphosted.com (mx0b-00069f02.pphosted.com [205.220.177.32])
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 2B464C433EF
+	for <ocfs2-devel@archiver.kernel.org>; Mon, 25 Oct 2021 15:56:48 +0000 (UTC)
+Received: from mx0a-00069f02.pphosted.com (mx0a-00069f02.pphosted.com [205.220.165.32])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by mail.kernel.org (Postfix) with ESMTPS id 4221160E75
-	for <ocfs2-devel@archiver.kernel.org>; Mon, 25 Oct 2021 15:55:56 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.1 mail.kernel.org 4221160E75
+	by mail.kernel.org (Postfix) with ESMTPS id CAABF60E75
+	for <ocfs2-devel@archiver.kernel.org>; Mon, 25 Oct 2021 15:56:47 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.1 mail.kernel.org CAABF60E75
 Authentication-Results: mail.kernel.org; dmarc=pass (p=none dis=none) header.from=oracle.com
 Authentication-Results: mail.kernel.org; spf=pass smtp.mailfrom=oss.oracle.com
-Received: from pps.filterd (m0246630.ppops.net [127.0.0.1])
-	by mx0b-00069f02.pphosted.com (8.16.1.2/8.16.1.2) with SMTP id 19PFb9B4027155;
-	Mon, 25 Oct 2021 15:55:55 GMT
+Received: from pps.filterd (m0246627.ppops.net [127.0.0.1])
+	by mx0b-00069f02.pphosted.com (8.16.1.2/8.16.1.2) with SMTP id 19PFadSx028447;
+	Mon, 25 Oct 2021 15:56:47 GMT
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=oracle.com; h=from : to : date :
- message-id : cc : subject : list-id : list-unsubscribe : list-archive :
- list-post : list-help : list-subscribe : mime-version : content-type :
- content-transfer-encoding : sender; s=corp-2021-07-09;
- bh=JMu8fhJwsD9VqOauXMtJ8rlfxZnW9DDomUOeWB5gMxg=;
- b=RfS4Dy12o+xutvOP7H9b18D9CUBdwEGfkrwqGY4fc7i2sbC1aarfAxewn8FxCuy52uT4
- dUZH6pCQsJ4q2cVxOb6ie71d1b+Cf4Tqd185V4cmGqFkC7u+j1JJ0ombHSvYgOD/CnbF
- KpcjvaTvtmWEllajVYPHy5zsChFu6fXbXtJlTxiMbXfQVxRXqK0Qgete5QjcfAUOuwPP
- JOcwih87+D/laTmyJDU+5plneq0qlZCGrXYgspffAa5BpSXGttRW/Y6lv5F80UiiOAbo
- iGe1l6yWqkx6BPBuAoiwkZAAwdH/C964HgeywIJY7NJ9G+0KcXYYMAuixyQtu2bzj271 xw== 
-Received: from userp3020.oracle.com (userp3020.oracle.com [156.151.31.79])
-	by mx0b-00069f02.pphosted.com with ESMTP id 3bwx970h8e-1
+ message-id : references : in-reply-to : mime-version : cc : subject :
+ list-id : list-unsubscribe : list-archive : list-post : list-help :
+ list-subscribe : content-type : content-transfer-encoding : sender;
+ s=corp-2021-07-09; bh=daWF6jhrELn+b2ryDtV5Ji9QkxlSO1sKsZeCFMw5ims=;
+ b=Pntt8dZJhR1dIhQ9Z54eJfIxdbna/5nwJ6E+6z14dgHAHIOKyvrK8qQ/Q4bvawZHKdpj
+ MaeCbUDt8E2wwp7sWzubcyxjXAqViQ6NBbJ08hRGlWT0EASd8p8HknqEhLimBJKD1oBV
+ 8qiltzvf2cqriQJlY0vEWTVzHQS8iemENrzqnAFbi0T6fdpK1jYxChPLgzVU3SNqHez6
+ 9RJecZ5n/xbeSWpFMpMoM2SEWK9UOHENfqBnIY723hAvolOw9HoI+CL4cnoyyY2ek2uM
+ jjbDaDo6GqfgUCxcucGTO37qz5TjlS1SzLCKizVyueHalOL7yArf20+DELBOPhU+82Rl jg== 
+Received: from userp3030.oracle.com (userp3030.oracle.com [156.151.31.80])
+	by mx0b-00069f02.pphosted.com with ESMTP id 3bwx9k8kf1-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Mon, 25 Oct 2021 15:55:55 +0000
-Received: from pps.filterd (userp3020.oracle.com [127.0.0.1])
-	by userp3020.oracle.com (8.16.1.2/8.16.1.2) with SMTP id 19PFtq8l167138;
-	Mon, 25 Oct 2021 15:55:53 GMT
+	Mon, 25 Oct 2021 15:56:47 +0000
+Received: from pps.filterd (userp3030.oracle.com [127.0.0.1])
+	by userp3030.oracle.com (8.16.1.2/8.16.1.2) with SMTP id 19PFttWG142049;
+	Mon, 25 Oct 2021 15:56:45 GMT
 Received: from oss.oracle.com (oss-old-reserved.oracle.com [137.254.22.2])
-	by userp3020.oracle.com with ESMTP id 3bvv5s7qan-1
+	by userp3030.oracle.com with ESMTP id 3bv7guumb6-1
 	(version=TLSv1 cipher=AES256-SHA bits=256 verify=NO);
-	Mon, 25 Oct 2021 15:55:53 +0000
+	Mon, 25 Oct 2021 15:56:45 +0000
 Received: from localhost ([127.0.0.1] helo=lb-oss.oracle.com)
 	by oss.oracle.com with esmtp (Exim 4.63)
 	(envelope-from <ocfs2-devel-bounces@oss.oracle.com>)
-	id 1mf2KA-0006YA-Ln; Mon, 25 Oct 2021 08:55:46 -0700
-Received: from userp3030.oracle.com ([156.151.31.80])
+	id 1mf2I3-0006ND-G4; Mon, 25 Oct 2021 08:53:35 -0700
+Received: from userp3020.oracle.com ([156.151.31.79])
 	by oss.oracle.com with esmtp (Exim 4.63)
 	(envelope-from <gautham.ananthakrishna@oracle.com>)
-	id 1mf2K8-0006Xq-7Z
-	for ocfs2-devel@oss.oracle.com; Mon, 25 Oct 2021 08:55:44 -0700
-Received: from pps.filterd (userp3030.oracle.com [127.0.0.1])
-	by userp3030.oracle.com (8.16.1.2/8.16.1.2) with SMTP id 19PFLuP6004514;
-	Mon, 25 Oct 2021 15:55:43 GMT
-Received: from pps.reinject (localhost [127.0.0.1])
-	by userp3030.oracle.com with ESMTP id 3bv7guujm9-1
-	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Mon, 25 Oct 2021 15:55:43 +0000
-Received: from userp3030.oracle.com (userp3030.oracle.com [127.0.0.1])
-	by pps.reinject (8.16.0.36/8.16.0.36) with SMTP id 19PFtgtF141210;
-	Mon, 25 Oct 2021 15:55:42 GMT
-Received: from gmananth-linux.oraclecorp.com
-	(dhcp-10-166-172-248.vpn.oracle.com [10.166.172.248])
-	by userp3030.oracle.com with ESMTP id 3bv7guujfq-1;
-	Mon, 25 Oct 2021 15:55:42 +0000
+	id 1mf2I0-0006Le-Fb
+	for ocfs2-devel@oss.oracle.com; Mon, 25 Oct 2021 08:53:32 -0700
+Received: from pps.filterd (userp3020.oracle.com [127.0.0.1])
+	by userp3020.oracle.com (8.16.1.2/8.16.1.2) with SMTP id 19PFLrU9023570
+	for <ocfs2-devel@oss.oracle.com>; Mon, 25 Oct 2021 15:53:32 GMT
+Received: from nam04-mw2-obe.outbound.protection.outlook.com
+	(mail-mw2nam08lp2177.outbound.protection.outlook.com [104.47.73.177])
+	by userp3020.oracle.com with ESMTP id 3bvv5s7ma3-1
+	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
+	for <ocfs2-devel@oss.oracle.com>; Mon, 25 Oct 2021 15:53:32 +0000
+ARC-Seal: i=1; a=rsa-sha256; s=arcselector9901; d=microsoft.com; cv=none;
+	b=BI/xUuJH5RnowPErH3D1fJpxRqa0O+dlwgYn1Y3/2qzaHLTq4G18zBI6J3L+Q47ABwBnS8EZkngRBTvTZ3KYIxmlBljZEtNWpswBIQwCE+hIboxyEXMQu0GpJjsKTsh6zsPR/erj/8rZOariln8hXr7VycStlNiA6ytBEup+acg55zJAuZRsSxIcbrNr+6hPG8Dm3aH89edFAq1pzGBqT2oATRBx3Urwa1RBDgwL7KHuRlOH5Q727u1DBuYpztpQWURu1TdUQH7mU+bn/sitoApVT8y0Ffa6lNnDSDl9S1QLmpxerHAhba3FLoG2Rk4Hm7B2gABe9SxfnmlIVEC/6w==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com; 
+	s=arcselector9901;
+	h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
+	bh=GSXQgJT96TXyDhsxw70QN263vdwIJO9qMSZWDmOJwZY=;
+	b=F/WSSv8XJjaVV38Ui9rzp/DI1X+outIopSNTIyQCc8JiumX3pZE0nJSbaFxDlZBIyM4S1bBONX0n5TLxnz/17lKWQGqZ0fKeMstRg59Ylpx1zXcikcT0NjpiK2OzBJJ5hMIv0dxBaz5R3Auc/9LRAEjCbIEIqqLecTjmZ/VZi9x4zFeUtl7/p9TTkbTndrZFQPBI4roeTKkIo/4FH0Gt1mc6PtVlP4xHJgxVFaixynOGUeLx+mVzMOrWoo6AI0vqdVrs7xmZ/0PRNIn4tJVnOle6KVUfenzBmXov2HZ8YTKK5pYOdsGoftBYVSaobShmCnvxKRUe8KNkhMY1WpdpyQ==
+ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
+	smtp.mailfrom=oracle.com; dmarc=pass action=none header.from=oracle.com;
+	dkim=pass header.d=oracle.com; arc=none
+Received: from DS7PR10MB4878.namprd10.prod.outlook.com (2603:10b6:5:3a8::6) by
+	DM6PR10MB4170.namprd10.prod.outlook.com (2603:10b6:5:213::23) with
+	Microsoft SMTP Server (version=TLS1_2,
+	cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id
+	15.20.4628.16; Mon, 25 Oct 2021 15:53:30 +0000
+Received: from DS7PR10MB4878.namprd10.prod.outlook.com
+	([fe80::a011:8d3a:6e64:d5d2]) by
+	DS7PR10MB4878.namprd10.prod.outlook.com
+	([fe80::a011:8d3a:6e64:d5d2%5]) with mapi id 15.20.4628.020;
+	Mon, 25 Oct 2021 15:53:30 +0000
 From: Gautham Ananthakrishna <gautham.ananthakrishna@oracle.com>
-To: ocfs2-devel@oss.oracle.com
-Date: Mon, 25 Oct 2021 21:25:35 +0530
-Message-Id: <1635177335-23973-1-git-send-email-gautham.ananthakrishna@oracle.com>
-X-Mailer: git-send-email 1.8.3.1
-Cc: rajesh.sivaramasubramaniom@oracle.com, gautham.ananthakrishna@oracle.com
-Subject: [Ocfs2-devel] [PATCH UEK6-U3 1/1] ocfs2: fix race between searching
-	chunks and release journal_head from buffer_head
+To: Joseph Qi <joseph.qi@linux.alibaba.com>,
+        Andrew Morton
+	<akpm@linux-foundation.org>
+Thread-Topic: [PATCH V2 RFC 1/1] ocfs2: race between searching chunks and
+	release journal_head from buffer_head
+Thread-Index: AQHXxnp2x3VV1gw1nUWnZTq04wIQFqvePTeAgAAQLgCAAAGBgIAFlKng
+Date: Mon, 25 Oct 2021 15:53:30 +0000
+Message-ID: <DS7PR10MB4878C3D7E16CFE0ED412285EF7839@DS7PR10MB4878.namprd10.prod.outlook.com>
+References: <1634820718-6043-1-git-send-email-gautham.ananthakrishna@oracle.com>
+	<47e7ddf7-8d0b-0101-69ca-eaecc5fa1813@linux.alibaba.com>
+	<20211021193320.c27376a50d364c1a66a2a0f1@linux-foundation.org>
+	<f0852834-69a1-dfe0-ecca-634ace3fbb0e@linux.alibaba.com>
+In-Reply-To: <f0852834-69a1-dfe0-ecca-634ace3fbb0e@linux.alibaba.com>
+Accept-Language: en-US
+Content-Language: en-US
+X-MS-Has-Attach: 
+X-MS-TNEF-Correlator: 
+authentication-results: linux.alibaba.com; dkim=none (message not signed)
+	header.d=none;linux.alibaba.com; dmarc=none action=none
+	header.from=oracle.com;
+x-ms-publictraffictype: Email
+x-ms-office365-filtering-correlation-id: 15fbd988-b9ea-48b8-3fca-08d997cf974d
+x-ms-traffictypediagnostic: DM6PR10MB4170:
+x-oracle-tenancy: 1
+x-ms-oob-tlc-oobclassifiers: OLM:2657;
+x-microsoft-antispam: BCL:0;
+x-microsoft-antispam-message-info: uimnL+xN8/whD7OnsU0sZUTqWPq4gQBkUDBlyONcPbVBfpWiFXZfsAPlYE0OrfbrkZxVhvWKfycBO1V7KOndViXxw3E/ukHfGYgY5JTFAUKyeyykL1MBmdG+ntpGIzDWItmmwHOK5BHthgX0lcnYuE+oR0qr26j8VMhu+rBLM1xEcQCsRX3DJQT9EaaDqNMJeIz4znd5GsPxaHOvjrLr4lghydT43rxIIRGGr/z3XTsDGiioNTBiZsbfn/tcd8J5PJbk4gVCJoFJW3xKgDMc/nYtHmWqSU+sSD5jb5hFvZa84lmyR8ZsMj4rWecF1XBEINyewFdWps3pEG3Jkj/xSIf4+4RX8zW9tlG4+7cGBhOmtU6RZIujsFoKdWSYcAeYvGabj2MqqlAOTrkj0dnPU+WtEN0PyXleR0plrfHkF3mtpSf1JWTzscKO5ae3cjf4XPhMqPLzNfYooEwRrODskYmzlnLFgJAMTKPnNqrq3LjBspf9Hq7Gv8mGP372MHmqiUGfg/vOPJ6/n/y0pHQpAaHqFrhigiqnOU+0gJz3MchLRaL4MdKXucireiJGrSNGdkA5ZLEh5NWWUc3wn+9/mWckD1ktZLIv19VX5ie4hqw=
+x-forefront-antispam-report: CIP:255.255.255.255; CTRY:; LANG:en; SCL:-1; SRV:; IPV:NLI; SFV:SKI;
+	H:DS7PR10MB4878.namprd10.prod.outlook.com; PTR:; CAT:NONE; SFS:;
+	DIR:INB; 
+MIME-Version: 1.0
+X-OriginatorOrg: oracle.com
+X-MS-Exchange-CrossTenant-AuthAs: Internal
+X-MS-Exchange-CrossTenant-AuthSource: DS7PR10MB4878.namprd10.prod.outlook.com
+X-MS-Exchange-CrossTenant-Network-Message-Id: 15fbd988-b9ea-48b8-3fca-08d997cf974d
+X-MS-Exchange-CrossTenant-originalarrivaltime: 25 Oct 2021 15:53:30.1544 (UTC)
+X-MS-Exchange-CrossTenant-fromentityheader: Hosted
+X-MS-Exchange-CrossTenant-id: 4e2c6054-71cb-48f1-bd6c-3a9705aca71b
+X-MS-Exchange-CrossTenant-mailboxtype: HOSTED
+X-MS-Exchange-CrossTenant-userprincipalname: xvJ8dorCdXHCWM80P8hVu9iPagdpYmCpxzGnWUJC2qb+9btvKeZ4qfmPe/5plXY2uqY0KGbPvi1slKkmstJm3rC+vE8rlipBbWtV/DQmbljgjWYiSXxwIhzq7FeRuXHf
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: DM6PR10MB4170
+X-MS-Exchange-CrossPremises-AuthAs: Internal
+X-MS-Exchange-CrossPremises-AuthMechanism: 04
+X-MS-Exchange-CrossPremises-AuthSource: DS7PR10MB4878.namprd10.prod.outlook.com
+X-MS-Exchange-CrossPremises-TransportTrafficType: Email
+X-MS-Exchange-CrossPremises-SCL: -1
+X-MS-Exchange-CrossPremises-messagesource: StoreDriver
+X-MS-Exchange-CrossPremises-BCC: 
+X-MS-Exchange-CrossPremises-originalclientipaddress: 138.3.205.56
+X-MS-Exchange-CrossPremises-transporttraffictype: Email
+X-MS-Exchange-CrossPremises-antispam-scancontext: DIR:Originating; SFV:SKI;
+	SKIP:0; 
+X-MS-Exchange-CrossPremises-processed-by-journaling: Journal Agent
+X-OrganizationHeadersPreserved: DM6PR10MB4170.namprd10.prod.outlook.com
+X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10148
+	signatures=668683
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 bulkscore=0
+	mlxscore=0 spamscore=0
+	phishscore=0 suspectscore=0 malwarescore=0 adultscore=0 mlxlogscore=999
+	classifier=spam adjust=0 reason=mlx scancount=1
+	engine=8.12.0-2109230001 definitions=main-2110250093
+Cc: Rajesh Sivaramasubramaniom <rajesh.sivaramasubramaniom@oracle.com>,
+        "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>
+Subject: Re: [Ocfs2-devel] [PATCH V2 RFC 1/1] ocfs2: race between searching
+ chunks and release journal_head from buffer_head
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.9
 Precedence: list
@@ -78,115 +150,58 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
 	<mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 Sender: ocfs2-devel-bounces@oss.oracle.com
 Errors-To: ocfs2-devel-bounces@oss.oracle.com
 X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10148 signatures=668683
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 bulkscore=0 mlxscore=0 spamscore=0
- phishscore=0 suspectscore=0 malwarescore=0 adultscore=0 mlxlogscore=999
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 spamscore=0 phishscore=0 adultscore=0
+ suspectscore=0 mlxscore=0 bulkscore=0 mlxlogscore=999 malwarescore=0
  classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2109230001
  definitions=main-2110250094
-X-Proofpoint-GUID: 4-GhjYrFeXTN3YzLa7R4cP0Aknwlzc18
-X-Proofpoint-ORIG-GUID: 4-GhjYrFeXTN3YzLa7R4cP0Aknwlzc18
+X-Proofpoint-GUID: _6lwM791QaY6zVSb80i2bUxg7s6x3MEo
+X-Proofpoint-ORIG-GUID: _6lwM791QaY6zVSb80i2bUxg7s6x3MEo
 
-Encountered a race between ocfs2_test_bg_bit_allocatable() and
-jbd2_journal_put_journal_head() resulting in the below vmcore.
+Hi Joseph.
 
-PID: 106879  TASK: ffff880244ba9c00  CPU: 2   COMMAND: "loop3"
- 0 [ffff8802435ff1c0] panic at ffffffff816ed175
- 1 [ffff8802435ff240] oops_end at ffffffff8101a7c9
- 2 [ffff8802435ff270] no_context at ffffffff8106eccf
- 3 [ffff8802435ff2e0] __bad_area_nosemaphore at ffffffff8106ef9d
- 4 [ffff8802435ff330] bad_area_nosemaphore at ffffffff8106f143
- 5 [ffff8802435ff340] __do_page_fault at ffffffff8106f80b
- 6 [ffff8802435ff3a0] do_page_fault at ffffffff8106fc2f
- 7 [ffff8802435ff3e0] page_fault at ffffffff816fd667
-    [exception RIP: ocfs2_block_group_find_clear_bits+316]
-    RIP: ffffffffc11ef6fc  RSP: ffff8802435ff498  RFLAGS: 00010206
-    RAX: 0000000000003918  RBX: 0000000000000001  RCX: 0000000000000018
-    RDX: 0000000000003918  RSI: 0000000000000000  RDI: ffff880060194040
-    RBP: ffff8802435ff4f8   R8: ffffffffff000000   R9: ffffffffffffffff
-    R10: ffff8802435ff730  R11: ffff8802a94e5800  R12: 0000000000000007
-    R13: 0000000000007e00  R14: 0000000000003918  R15: ffff88017c973a28
-    ORIG_RAX: ffffffffffffffff  CS: e030  SS: e02b
- 8 [ffff8802435ff490] ocfs2_block_group_find_clear_bits at ffffffffc11ef680 [ocfs2]
- 9 [ffff8802435ff500] ocfs2_cluster_group_search at ffffffffc11ef916 [ocfs2]
-10 [ffff8802435ff580] ocfs2_search_chain at ffffffffc11f0fb6 [ocfs2]
-11 [ffff8802435ff660] ocfs2_claim_suballoc_bits at ffffffffc11f1b1b [ocfs2]
-12 [ffff8802435ff6f0] __ocfs2_claim_clusters at ffffffffc11f32cb [ocfs2]
-13 [ffff8802435ff770] ocfs2_claim_clusters at ffffffffc11f5caf [ocfs2]
-14 [ffff8802435ff780] ocfs2_local_alloc_slide_window at ffffffffc11cc0db [ocfs2]
-15 [ffff8802435ff820] ocfs2_reserve_local_alloc_bits at ffffffffc11ce53f [ocfs2]
-16 [ffff8802435ff890] ocfs2_reserve_clusters_with_limit at ffffffffc11f59b5 [ocfs2]
-17 [ffff8802435ff8e0] ocfs2_reserve_clusters at ffffffffc11f5c88 [ocfs2]
-18 [ffff8802435ff8f0] ocfs2_lock_refcount_allocators at ffffffffc11dc169 [ocfs2]
-19 [ffff8802435ff960] ocfs2_make_clusters_writable at ffffffffc11e4274 [ocfs2]
-20 [ffff8802435ffa50] ocfs2_replace_cow at ffffffffc11e4df1 [ocfs2]
-21 [ffff8802435ffac0] ocfs2_refcount_cow at ffffffffc11e54b1 [ocfs2]
-22 [ffff8802435ffb80] ocfs2_file_write_iter at ffffffffc11bf8f4 [ocfs2]
-23 [ffff8802435ffcd0] lo_rw_aio at ffffffff814a1b5d
-24 [ffff8802435ffd80] loop_queue_work at ffffffff814a2802
-25 [ffff8802435ffe60] kthread_worker_fn at ffffffff810a80d2
-26 [ffff8802435ffec0] kthread at ffffffff810a7afb
-27 [ffff8802435fff50] ret_from_fork at ffffffff816f7da1
+Sure.. I will add. I will send a V3 along with your "reviwed by".
 
-When ocfs2_test_bg_bit_allocatable() called bh2jh(bg_bh), the bg_bh->b_private
-NULL as jbd2_journal_put_journal_head() raced and released the jounal head
-from the buffer head. Needed to take bit lock for the bit 'BH_JournalHead'
-to fix this race.
+Thanks,
+Gautham.
 
-Signed-off-by: Gautham Ananthakrishna <gautham.ananthakrishna@oracle.com>
-Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
----
- fs/ocfs2/suballoc.c | 22 +++++++++++++---------
- 1 file changed, 13 insertions(+), 9 deletions(-)
-
-diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
-index 8521942..481017e 100644
---- a/fs/ocfs2/suballoc.c
-+++ b/fs/ocfs2/suballoc.c
-@@ -1251,7 +1251,7 @@ static int ocfs2_test_bg_bit_allocatable(struct buffer_head *bg_bh,
- {
- 	struct ocfs2_group_desc *bg = (struct ocfs2_group_desc *) bg_bh->b_data;
- 	struct journal_head *jh;
--	int ret;
-+	int ret = 1;
- 
- 	if (ocfs2_test_bit(nr, (unsigned long *)bg->bg_bitmap))
- 		return 0;
-@@ -1259,14 +1259,18 @@ static int ocfs2_test_bg_bit_allocatable(struct buffer_head *bg_bh,
- 	if (!buffer_jbd(bg_bh))
- 		return 1;
- 
--	jh = bh2jh(bg_bh);
--	spin_lock(&jh->b_state_lock);
--	bg = (struct ocfs2_group_desc *) jh->b_committed_data;
--	if (bg)
--		ret = !ocfs2_test_bit(nr, (unsigned long *)bg->bg_bitmap);
--	else
--		ret = 1;
--	spin_unlock(&jh->b_state_lock);
-+	jbd_lock_bh_journal_head(bg_bh);
-+	if (buffer_jbd(bg_bh)) {
-+		jh = bh2jh(bg_bh);
-+		spin_lock(&jh->b_state_lock);
-+		bg = (struct ocfs2_group_desc *) jh->b_committed_data;
-+		if (bg)
-+			ret = !ocfs2_test_bit(nr, (unsigned long *)bg->bg_bitmap);
-+		else
-+			ret = 1;
-+		spin_unlock(&jh->b_state_lock);
-+	}
-+	jbd_unlock_bh_journal_head(bg_bh);
- 
- 	return ret;
- }
--- 
-1.8.3.1
+-----Original Message-----
+From: Joseph Qi <joseph.qi@linux.alibaba.com> 
+Sent: Friday, October 22, 2021 8:09 AM
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Gautham Ananthakrishna <gautham.ananthakrishna@oracle.com>; ocfs2-devel@oss.oracle.com; Junxiao Bi <junxiao.bi@oracle.com>; Rajesh Sivaramasubramaniom <rajesh.sivaramasubramaniom@oracle.com>
+Subject: Re: [PATCH V2 RFC 1/1] ocfs2: race between searching chunks and release journal_head from buffer_head
 
 
+
+On 10/22/21 10:33 AM, Andrew Morton wrote:
+> On Fri, 22 Oct 2021 09:35:25 +0800 Joseph Qi <joseph.qi@linux.alibaba.com> wrote:
+> 
+>>
+>>
+>> On 10/21/21 8:51 PM, Gautham Ananthakrishna wrote:
+>>> Encountered a race between ocfs2_test_bg_bit_allocatable() and
+>>> jbd2_journal_put_journal_head() resulting in the below vmcore.
+>>>
+>>
+>> ...
+>>
+>>>
+>>> Signed-off-by: Gautham Ananthakrishna 
+>>> <gautham.ananthakrishna@oracle.com>
+>>
+>> Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+> 
+> I added a cc:stable to this to ensure backporting.
+> 
+
+Thanks for this.
+And I suggest add 'fix' to the subject would be better:
+ocfs2: fix race between searching chunks and release journal_head from buffer_head Sorry for your inconvenience, I would have pointed out earlier.
 _______________________________________________
 Ocfs2-devel mailing list
 Ocfs2-devel@oss.oracle.com
