@@ -2,66 +2,74 @@ Return-Path: <SRS0=myWd=PO=oss.oracle.com=ocfs2-devel-bounces@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 6BF4CC433F5
-	for <ocfs2-devel@archiver.kernel.org>; Tue, 26 Oct 2021 05:16:59 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 2ABADC433EF
+	for <ocfs2-devel@archiver.kernel.org>; Tue, 26 Oct 2021 09:45:00 +0000 (UTC)
 Received: from mx0a-00069f02.pphosted.com (mx0a-00069f02.pphosted.com [205.220.165.32])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by mail.kernel.org (Postfix) with ESMTPS id 0489F6103C
-	for <ocfs2-devel@archiver.kernel.org>; Tue, 26 Oct 2021 05:16:58 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.1 mail.kernel.org 0489F6103C
-Authentication-Results: mail.kernel.org; dmarc=none (p=none dis=none) header.from=mit.edu
+	by mail.kernel.org (Postfix) with ESMTPS id CCA8B60FC2
+	for <ocfs2-devel@archiver.kernel.org>; Tue, 26 Oct 2021 09:44:59 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.1 mail.kernel.org CCA8B60FC2
+Authentication-Results: mail.kernel.org; dmarc=fail (p=none dis=none) header.from=redhat.com
 Authentication-Results: mail.kernel.org; spf=pass smtp.mailfrom=oss.oracle.com
-Received: from pps.filterd (m0246617.ppops.net [127.0.0.1])
-	by mx0b-00069f02.pphosted.com (8.16.1.2/8.16.1.2) with SMTP id 19Q37wjt026948;
-	Tue, 26 Oct 2021 05:16:58 GMT
-Received: from userp3030.oracle.com (userp3030.oracle.com [156.151.31.80])
-	by mx0b-00069f02.pphosted.com with ESMTP id 3bx4fhsbc4-1
+Received: from pps.filterd (m0246629.ppops.net [127.0.0.1])
+	by mx0b-00069f02.pphosted.com (8.16.1.2/8.16.1.2) with SMTP id 19Q9f6bD020036;
+	Tue, 26 Oct 2021 09:44:59 GMT
+Received: from userp3020.oracle.com (userp3020.oracle.com [156.151.31.79])
+	by mx0b-00069f02.pphosted.com with ESMTP id 3bx4g12c16-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Tue, 26 Oct 2021 05:16:58 +0000
-Received: from pps.filterd (userp3030.oracle.com [127.0.0.1])
-	by userp3030.oracle.com (8.16.1.2/8.16.1.2) with SMTP id 19Q5Fsux091930;
-	Tue, 26 Oct 2021 05:16:57 GMT
+	Tue, 26 Oct 2021 09:44:59 +0000
+Received: from pps.filterd (userp3020.oracle.com [127.0.0.1])
+	by userp3020.oracle.com (8.16.1.2/8.16.1.2) with SMTP id 19Q9Zri9056283;
+	Tue, 26 Oct 2021 09:44:57 GMT
 Received: from oss.oracle.com (oss-old-reserved.oracle.com [137.254.22.2])
-	by userp3030.oracle.com with ESMTP id 3bx4gyy117-1
+	by userp3020.oracle.com with ESMTP id 3bx4gp0bhd-1
 	(version=TLSv1 cipher=AES256-SHA bits=256 verify=NO);
-	Tue, 26 Oct 2021 05:16:56 +0000
+	Tue, 26 Oct 2021 09:44:57 +0000
 Received: from localhost ([127.0.0.1] helo=lb-oss.oracle.com)
 	by oss.oracle.com with esmtp (Exim 4.63)
 	(envelope-from <ocfs2-devel-bounces@oss.oracle.com>)
-	id 1mfEmQ-0003Xk-MA; Mon, 25 Oct 2021 22:13:46 -0700
-Received: from userp3030.oracle.com ([156.151.31.80])
+	id 1mfJ0q-0000be-JY; Tue, 26 Oct 2021 02:44:56 -0700
+Received: from userp3020.oracle.com ([156.151.31.79])
 	by oss.oracle.com with esmtp (Exim 4.63)
-	(envelope-from <tytso@mit.edu>) id 1mfEmI-0003XE-UG
-	for ocfs2-devel@oss.oracle.com; Mon, 25 Oct 2021 22:13:39 -0700
-Received: from pps.filterd (userp3030.oracle.com [127.0.0.1])
-	by userp3030.oracle.com (8.16.1.2/8.16.1.2) with SMTP id 19Q5BtlC080691
-	for <ocfs2-devel@oss.oracle.com>; Tue, 26 Oct 2021 05:13:38 GMT
-Received: from mx0a-00069f01.pphosted.com (mx0a-00069f01.pphosted.com
-	[205.220.165.26]) by userp3030.oracle.com with ESMTP id 3bx4gyxvf5-1
+	(envelope-from <agruenba@redhat.com>) id 1mfJ0o-0000bH-Et
+	for ocfs2-devel@oss.oracle.com; Tue, 26 Oct 2021 02:44:54 -0700
+Received: from pps.filterd (userp3020.oracle.com [127.0.0.1])
+	by userp3020.oracle.com (8.16.1.2/8.16.1.2) with SMTP id 19Q9Zr2L056312
+	for <ocfs2-devel@oss.oracle.com>; Tue, 26 Oct 2021 09:44:54 GMT
+Received: from mx0b-00069f01.pphosted.com (mx0b-00069f01.pphosted.com
+	[205.220.177.26]) by userp3020.oracle.com with ESMTP id 3bx4gp0bfb-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Tue, 26 Oct 2021 05:13:37 +0000
-Received: from pps.filterd (m0246571.ppops.net [127.0.0.1])
+	for <ocfs2-devel@oss.oracle.com>; Tue, 26 Oct 2021 09:44:54 +0000
+Received: from pps.filterd (m0246578.ppops.net [127.0.0.1])
 	by mx0b-00069f01.pphosted.com (8.16.1.2/8.16.1.2) with SMTP id
-	19Q4LuVQ013623
-	for <ocfs2-devel@oss.oracle.com>; Tue, 26 Oct 2021 05:13:35 GMT
-Received: from outgoing.mit.edu (outgoing-auth-1.mit.edu [18.9.28.11])
-	by mx0b-00069f01.pphosted.com with ESMTP id 3bxak10ess-1
-	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NO)
-	for <ocfs2-devel@oss.oracle.com>; Tue, 26 Oct 2021 05:13:35 +0000
-Received: from cwcc.thunk.org (pool-72-74-133-215.bstnma.fios.verizon.net
-	[72.74.133.215]) (authenticated bits=0)
-	(User authenticated as tytso@ATHENA.MIT.EDU)
-	by outgoing.mit.edu (8.14.7/8.12.4) with ESMTP id 19Q5Crw3021006
-	(version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-GCM-SHA384 bits=256
-	verify=NOT); Tue, 26 Oct 2021 01:12:54 -0400
-Received: by cwcc.thunk.org (Postfix, from userid 15806)
-	id C967515C3F84; Tue, 26 Oct 2021 01:12:53 -0400 (EDT)
-Date: Tue, 26 Oct 2021 01:12:53 -0400
-From: "Theodore Ts'o" <tytso@mit.edu>
-To: Andreas Gruenbacher <agruenba@redhat.com>
-Message-ID: <YXeOVZqer+GFBkXO@mit.edu>
-References: <20211019134204.3382645-1-agruenba@redhat.com>
+	19Q7Nvjf001888
+	for <ocfs2-devel@oss.oracle.com>; Tue, 26 Oct 2021 09:44:53 GMT
+Received: from us-smtp-delivery-124.mimecast.com
+	(us-smtp-delivery-124.mimecast.com [170.10.129.124])
+	by mx0b-00069f01.pphosted.com with ESMTP id 3bxd8hs9p5-1
+	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
+	for <ocfs2-devel@oss.oracle.com>; Tue, 26 Oct 2021 09:44:52 +0000
+Received: from mimecast-mx01.redhat.com (mimecast-mx01.redhat.com
+	[209.132.183.4]) (Using TLS) by relay.mimecast.com with ESMTP id
+	us-mta-153-saoAI_GvNBugHIjyLU4dsQ-1; Tue, 26 Oct 2021 05:44:42 -0400
+X-MC-Unique: saoAI_GvNBugHIjyLU4dsQ-1
+Received: from smtp.corp.redhat.com (int-mx08.intmail.prod.int.phx2.redhat.com
+	[10.5.11.23])
+	(using TLSv1.2 with cipher AECDH-AES256-SHA (256/256 bits))
+	(No client certificate requested)
+	by mimecast-mx01.redhat.com (Postfix) with ESMTPS id 0955887950D;
+	Tue, 26 Oct 2021 09:44:40 +0000 (UTC)
+Received: from max.com (unknown [10.40.193.143])
+	by smtp.corp.redhat.com (Postfix) with ESMTP id D9B8419C79;
+	Tue, 26 Oct 2021 09:44:31 +0000 (UTC)
+From: Andreas Gruenbacher <agruenba@redhat.com>
+To: "Theodore Ts'o" <tytso@mit.edu>
+Date: Tue, 26 Oct 2021 11:44:30 +0200
+Message-Id: <20211026094430.3669156-1-agruenba@redhat.com>
+In-Reply-To: <YXeOVZqer+GFBkXO@mit.edu>
+References: <YXeOVZqer+GFBkXO@mit.edu>
+	<20211019134204.3382645-1-agruenba@redhat.com>
 	<CAHk-=wh0_3y5s7-G74U0Pcjm7Y_yHB608NYrQSvgogVNBxsWSQ@mail.gmail.com>
 	<YXBFqD9WVuU8awIv@arm.com>
 	<CAHk-=wgv=KPZBJGnx_O5-7hhST8CL9BN4wJwtVuycjhv_1MmvQ@mail.gmail.com>
@@ -70,44 +78,36 @@ References: <20211019134204.3382645-1-agruenba@redhat.com>
 	<YXL9tRher7QVmq6N@arm.com>
 	<CAHc6FU6JC4ZOwA8t854WbNdmuiNL9DPq0FPga8guATaoCtvsaw@mail.gmail.com>
 MIME-Version: 1.0
-Content-Disposition: inline
-In-Reply-To: <CAHc6FU6JC4ZOwA8t854WbNdmuiNL9DPq0FPga8guATaoCtvsaw@mail.gmail.com>
-X-Source-IP: 18.9.28.11
-X-ServerName: outgoing-auth-1.mit.edu
+X-Scanned-By: MIMEDefang 2.84 on 10.5.11.23
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 ip4:18.7.21.0/24 ip4:18.7.34.0/24
-	ip4:18.7.62.0/24 ip4:18.7.68.0/24
-	ip4:18.7.71.0/24 ip4:18.9.1.0/24 ip4:18.9.21.0/24 ip4:18.9.25.0/24
-	ip4:18.9.28.0/24 ip4:37.59.249.0/24 ip4:37.59.69.128/25 ip4:54.88.39.81
-	ip4:64.128.67.16 ip4:64.128.67.20 ip4:69.25.199.0/24 ip4:72.55.140.81
-	ip4:74.62.122.128/25 ip4:75.98.95.161/27 ip4:87.253.232.0/21
-	ip4:87.253.236.214 ip4:96.43.144.64/31 ip4:96.43.148.64/31
-	ip4:128.136.37.0/24 ip4:129.41.172.95 ip4:139.146.146.128/25
-	ip4:139.146.160.0/25 ip4:139.60.0.0/22 ip4:148.105.0.0/16
-	ip4:165.192.56.56 ip4:165.193.101.141 ip4:165.193.101.142
-	ip4:165.193.56.42 ip4:178.33.111.144 ip4:178.33.137.208/28
-	ip4:178.33.221.0/24 ip4:182.50.78.64/28 ip4:184.173.153.216
-	ip4:185.189.236.0/22 ip4:185.211.120.0/22 ip4:198.2.128.0/18
-	ip4:204.14.232.64/28 ip4:204.14.234.64/28 ip4:205.201.128.0/20
-	ip4:205.217.12.155 ip4:205.217.12.177 ip4:205.237.106.0/24
-	ip4:206.25.77.25 ip4:207.211.32.0/24 ip4:207.211.46.192/26
-	ip4:207.211.60.0/24 ip4:207.211.61.0/24 ip4:216.138.238.192/26
-	ip4:216.75.197.192/26 ip4:18.7.16.0/24 ip4:198.2.132.142
-	include:spf.protection.outlook.com include:et._spf.pardot.com
-	include:sendgrid.net include:mail.zendesk.com
-	include:_shortspf.launchmetrics.com include:_spf.salesforce.com -all
+X-Proofpoint-SPF-Record: v=spf1 ip4:103.23.64.2 ip4:103.23.65.2
+	ip4:103.23.66.26 ip4:103.23.67.26
+	ip4:107.21.15.141 ip4:108.177.8.0/21 ip4:128.17.0.0/20
+	ip4:128.17.128.0/20
+	ip4:128.17.192.0/20 ip4:128.17.64.0/20 ip4:128.245.0.0/20
+	ip4:128.245.64.0/20 ip4:13.110.208.0/21 ip4:13.110.216.0/22
+	ip4:13.110.224.0/20 ip4:13.111.0.0/16 ip4:136.147.128.0/20
+	include:spf1.redhat.com -all
+X-Proofpoint-SPF-VenPass: Allowed
+X-Source-IP: 170.10.129.124
+X-ServerName: us-smtp-delivery-124.mimecast.com
+X-Proofpoint-SPF-Result: pass
+X-Proofpoint-SPF-Record: v=spf1 ip4:103.23.64.2 ip4:103.23.65.2
+	ip4:103.23.66.26 ip4:103.23.67.26
+	ip4:107.21.15.141 ip4:108.177.8.0/21 ip4:128.17.0.0/20
+	ip4:128.17.128.0/20
+	ip4:128.17.192.0/20 ip4:128.17.64.0/20 ip4:128.245.0.0/20
+	ip4:128.245.64.0/20 ip4:13.110.208.0/21 ip4:13.110.216.0/22
+	ip4:13.110.224.0/20 ip4:13.111.0.0/16 ip4:136.147.128.0/20
+	include:spf1.redhat.com -all
 X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10148
 	signatures=668683
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 impostorscore=0
-	clxscore=181
-	phishscore=0 mlxlogscore=911 adultscore=0 priorityscore=146
-	malwarescore=0
-	spamscore=0 mlxscore=0 lowpriorityscore=0 bulkscore=0 suspectscore=0
-	classifier=spam adjust=0 reason=mlx scancount=1
-	engine=8.12.0-2110150000 definitions=main-2110260027
-X-Spam: Clean
+X-Proofpoint-Spam-Reason: safe
+X-Spam: OrgSafeList
+X-SpamRule: orgsafelist
 Cc: kvm-ppc@vger.kernel.org, Christoph Hellwig <hch@infradead.org>,
         cluster-devel <cluster-devel@redhat.com>, Jan Kara <jack@suse.cz>,
+        Andreas Gruenbacher <agruenba@redhat.com>,
         Catalin Marinas <catalin.marinas@arm.com>,
         Dave Hansen <dave.hansen@linux.intel.com>,
         Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
@@ -135,50 +135,128 @@ Content-Transfer-Encoding: 7bit
 Sender: ocfs2-devel-bounces@oss.oracle.com
 Errors-To: ocfs2-devel-bounces@oss.oracle.com
 X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10148 signatures=668683
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 spamscore=0 bulkscore=0 suspectscore=0
- mlxscore=0 adultscore=0 malwarescore=0 phishscore=0 mlxlogscore=999
- classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2110150000
- definitions=main-2110260028
-X-Proofpoint-ORIG-GUID: kuZMe3Pg5iEunB_dziaYgblbL9Fyymi0
-X-Proofpoint-GUID: kuZMe3Pg5iEunB_dziaYgblbL9Fyymi0
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 phishscore=0 malwarescore=0
+ adultscore=0 suspectscore=0 bulkscore=0 mlxscore=0 spamscore=0
+ mlxlogscore=999 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2110150000 definitions=main-2110260054
+X-Proofpoint-ORIG-GUID: P7jPRiQGFPBUiuKUBtkB5xNcA9VUFk0q
+X-Proofpoint-GUID: P7jPRiQGFPBUiuKUBtkB5xNcA9VUFk0q
 
-On Mon, Oct 25, 2021 at 08:24:26PM +0200, Andreas Gruenbacher wrote:
-> > For generic_perform_write() Dave Hansen attempted to move the fault-in
-> > after the uaccess in commit 998ef75ddb57 ("fs: do not prefault
-> > sys_write() user buffer pages"). This was reverted as it was exposing an
-> > ext4 bug. I don't [know] whether it was fixed but re-applying Dave's commit
-> > avoids the performance drop.
-> 
-> Interesting. The revert of commit 998ef75ddb57 is in commit
-> 00a3d660cbac. Maybe Dave and Ted can tell us more about what went
-> wrong in ext4 and whether it's still an issue.
+Ted,
 
-The context for the revert can be found here[1].
+here's an updated version of Dave Hansen's original commit, but note
+that generic/208 won't run on ext4 with data journaling enabled:
 
-[1] https://lore.kernel.org/lkml/20151005152236.GA8140@thunk.org/
+  $ MOUNT_OPTIONS='-o data=journal' TEST_DIR=/mnt/test TEST_DEV=/dev/vdb ./tests/generic/208
+  QA output created by 208
+  208 not run: ext4 data journaling doesn't support O_DIRECT
 
-And "what went wrong in ext4" was fixed here[2].
+Thanks,
+Andreas
 
-[2] https://lore.kernel.org/lkml/20151005152236.GA8140@thunk.org/
+--
 
-which landed upstream as commit b90197b65518 ("ext4: use private
-version of page_zero_new_buffers() for data=journal mode").
+Based on commit 998ef75ddb57 ("fs: do not prefault sys_write() user
+buffer pages") by Dave Hansen <dave.hansen@linux.intel.com>, but:
 
-So it looks like the original issue which triggered the revert in 2015
-should be addressed, and we can easily test it by using generic/208
-with data=journal mode.
+* Fix generic_perform_write as well as iomap_write_iter.
 
-There also seems to be a related discussion about whether we should
-unrevert 998ef75ddb57 here[3].  Hmm. there is a mention on that thread
-in [3], "Side note: search for "iov_iter_fault_in_writeable()" on lkml
-for a gfs2 patch-series that is buggy, exactly because it does *not*
-use the atomic user space accesses, and just tries to do the fault-in
-to hide the real bug."  I assume that's related to the discussion on
-this thread?
+* copy_page_from_iter_atomic() doesn't trigger page faults, so there's no need
+  to disable page faults around it [see commit 9e8c2af96e0d ("callers of
+  iov_copy_from_user_atomic() don't need pagecache_disable()")].
 
-[3] https://lore.kernel.org/all/3221175.1624375240@warthog.procyon.org.uk/T/#u
+* If fault_in_iov_iter_readable() fails to fault in the entire buffer,
+  we still want to read everything up to the fault position.  This depends on
+  commit a6294593e8a1 ("iov_iter: Turn iov_iter_fault_in_readable into
+  fault_in_iov_iter_readable").
 
-						- Ted
+Signed-off-by: Andreas Gruenbacher <agruenba@redhat.com>
+---
+ fs/iomap/buffered-io.c | 20 +++++++-------------
+ mm/filemap.c           | 20 +++++++-------------
+ 2 files changed, 14 insertions(+), 26 deletions(-)
+
+diff --git a/fs/iomap/buffered-io.c b/fs/iomap/buffered-io.c
+index 1753c26c8e76..d8809cd9ab31 100644
+--- a/fs/iomap/buffered-io.c
++++ b/fs/iomap/buffered-io.c
+@@ -744,17 +744,6 @@ static loff_t iomap_write_iter(struct iomap_iter *iter, struct iov_iter *i)
+ 		if (bytes > length)
+ 			bytes = length;
+ 
+-		/*
+-		 * Bring in the user page that we'll copy from _first_.
+-		 * Otherwise there's a nasty deadlock on copying from the
+-		 * same page as we're writing to, without it being marked
+-		 * up-to-date.
+-		 */
+-		if (unlikely(fault_in_iov_iter_readable(i, bytes))) {
+-			status = -EFAULT;
+-			break;
+-		}
+-
+ 		status = iomap_write_begin(iter, pos, bytes, &page);
+ 		if (unlikely(status))
+ 			break;
+@@ -777,9 +766,14 @@ static loff_t iomap_write_iter(struct iomap_iter *iter, struct iov_iter *i)
+ 			 * halfway through, might be a race with munmap,
+ 			 * might be severe memory pressure.
+ 			 */
+-			if (copied)
++			if (copied) {
+ 				bytes = copied;
+-			goto again;
++				goto again;
++			}
++			if (fault_in_iov_iter_readable(i, bytes) != bytes)
++				goto again;
++			status = -EFAULT;
++			break;
+ 		}
+ 		pos += status;
+ 		written += status;
+diff --git a/mm/filemap.c b/mm/filemap.c
+index 4dd5edcd39fd..467cdb7d086d 100644
+--- a/mm/filemap.c
++++ b/mm/filemap.c
+@@ -3751,17 +3751,6 @@ ssize_t generic_perform_write(struct file *file,
+ 						iov_iter_count(i));
+ 
+ again:
+-		/*
+-		 * Bring in the user page that we will copy from _first_.
+-		 * Otherwise there's a nasty deadlock on copying from the
+-		 * same page as we're writing to, without it being marked
+-		 * up-to-date.
+-		 */
+-		if (unlikely(fault_in_iov_iter_readable(i, bytes))) {
+-			status = -EFAULT;
+-			break;
+-		}
+-
+ 		if (fatal_signal_pending(current)) {
+ 			status = -EINTR;
+ 			break;
+@@ -3794,9 +3783,14 @@ ssize_t generic_perform_write(struct file *file,
+ 			 * halfway through, might be a race with munmap,
+ 			 * might be severe memory pressure.
+ 			 */
+-			if (copied)
++			if (copied) {
+ 				bytes = copied;
+-			goto again;
++				goto again;
++			}
++			if (fault_in_iov_iter_readable(i, bytes) != bytes)
++				goto again;
++			status = -EFAULT;
++			break;
+ 		}
+ 		pos += status;
+ 		written += status;
+-- 
+2.26.3
+
 
 _______________________________________________
 Ocfs2-devel mailing list
