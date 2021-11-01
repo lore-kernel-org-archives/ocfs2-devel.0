@@ -1,130 +1,94 @@
-Return-Path: <SRS0=AMvx=PR=oss.oracle.com=ocfs2-devel-bounces@kernel.org>
+Return-Path: <SRS0=CNiL=PU=oss.oracle.com=ocfs2-devel-bounces@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id E4112C433F5
-	for <ocfs2-devel@archiver.kernel.org>; Fri, 29 Oct 2021 18:47:59 +0000 (UTC)
-Received: from mx0b-00069f02.pphosted.com (mx0b-00069f02.pphosted.com [205.220.177.32])
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 13723C433EF
+	for <ocfs2-devel@archiver.kernel.org>; Mon,  1 Nov 2021 11:31:41 +0000 (UTC)
+Received: from mx0a-00069f02.pphosted.com (mx0a-00069f02.pphosted.com [205.220.165.32])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by mail.kernel.org (Postfix) with ESMTPS id 7388360F22
-	for <ocfs2-devel@archiver.kernel.org>; Fri, 29 Oct 2021 18:47:59 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.1 mail.kernel.org 7388360F22
-Authentication-Results: mail.kernel.org; dmarc=none (p=none dis=none) header.from=linux-foundation.org
+	by mail.kernel.org (Postfix) with ESMTPS id A60D860E9C
+	for <ocfs2-devel@archiver.kernel.org>; Mon,  1 Nov 2021 11:31:40 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.1 mail.kernel.org A60D860E9C
+Authentication-Results: mail.kernel.org; dmarc=none (p=none dis=none) header.from=suse.cz
 Authentication-Results: mail.kernel.org; spf=pass smtp.mailfrom=oss.oracle.com
-Received: from pps.filterd (m0246631.ppops.net [127.0.0.1])
-	by mx0b-00069f02.pphosted.com (8.16.1.2/8.16.1.2) with SMTP id 19THFojo020595;
-	Fri, 29 Oct 2021 18:47:58 GMT
+Received: from pps.filterd (m0246629.ppops.net [127.0.0.1])
+	by mx0b-00069f02.pphosted.com (8.16.1.2/8.16.1.2) with SMTP id 1A1BVc9I014462;
+	Mon, 1 Nov 2021 11:31:40 GMT
 Received: from userp3030.oracle.com (userp3030.oracle.com [156.151.31.80])
-	by mx0b-00069f02.pphosted.com with ESMTP id 3byjkf9sfh-1
+	by mx0b-00069f02.pphosted.com with ESMTP id 3c2aa392mj-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Fri, 29 Oct 2021 18:47:58 +0000
+	Mon, 01 Nov 2021 11:31:38 +0000
 Received: from pps.filterd (userp3030.oracle.com [127.0.0.1])
-	by userp3030.oracle.com (8.16.1.2/8.16.1.2) with SMTP id 19TIkFWc064397;
-	Fri, 29 Oct 2021 18:47:57 GMT
+	by userp3030.oracle.com (8.16.1.2/8.16.1.2) with SMTP id 1A1BKKUi080562;
+	Mon, 1 Nov 2021 11:31:35 GMT
 Received: from oss.oracle.com (oss-old-reserved.oracle.com [137.254.22.2])
-	by userp3030.oracle.com with ESMTP id 3bx4h693s8-1
+	by userp3030.oracle.com with ESMTP id 3c27k38cj9-1
 	(version=TLSv1 cipher=AES256-SHA bits=256 verify=NO);
-	Fri, 29 Oct 2021 18:47:57 +0000
+	Mon, 01 Nov 2021 11:31:35 +0000
 Received: from localhost ([127.0.0.1] helo=lb-oss.oracle.com)
 	by oss.oracle.com with esmtp (Exim 4.63)
 	(envelope-from <ocfs2-devel-bounces@oss.oracle.com>)
-	id 1mgWuy-0007DP-2K; Fri, 29 Oct 2021 11:47:56 -0700
-Received: from aserp3030.oracle.com ([141.146.126.71])
+	id 1mhVXK-0005AD-Ec; Mon, 01 Nov 2021 04:31:34 -0700
+Received: from userp3020.oracle.com ([156.151.31.79])
 	by oss.oracle.com with esmtp (Exim 4.63)
-	(envelope-from <torvalds@linuxfoundation.org>) id 1mgWuw-0007D4-Qi
-	for ocfs2-devel@oss.oracle.com; Fri, 29 Oct 2021 11:47:54 -0700
-Received: from pps.filterd (aserp3030.oracle.com [127.0.0.1])
-	by aserp3030.oracle.com (8.16.1.2/8.16.1.2) with SMTP id 19TIjOVJ063236
-	for <ocfs2-devel@oss.oracle.com>; Fri, 29 Oct 2021 18:47:54 GMT
+	(envelope-from <jack@suse.cz>) id 1mhVWr-00059F-Ai
+	for ocfs2-devel@oss.oracle.com; Mon, 01 Nov 2021 04:31:05 -0700
+Received: from pps.filterd (userp3020.oracle.com [127.0.0.1])
+	by userp3020.oracle.com (8.16.1.2/8.16.1.2) with SMTP id 1A1BKEbn025826
+	for <ocfs2-devel@oss.oracle.com>; Mon, 1 Nov 2021 11:31:05 GMT
 Received: from mx0b-00069f01.pphosted.com (mx0b-00069f01.pphosted.com
-	[205.220.177.26]) by aserp3030.oracle.com with ESMTP id 3bx4gdh6qc-1
+	[205.220.177.26]) by userp3020.oracle.com with ESMTP id 3c1khrq0n7-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Fri, 29 Oct 2021 18:47:54 +0000
-Received: from pps.filterd (m0246580.ppops.net [127.0.0.1])
+	for <ocfs2-devel@oss.oracle.com>; Mon, 01 Nov 2021 11:31:04 +0000
+Received: from pps.filterd (m0246578.ppops.net [127.0.0.1])
 	by mx0b-00069f01.pphosted.com (8.16.1.2/8.16.1.2) with SMTP id
-	19TGXbYY012512
-	for <ocfs2-devel@oss.oracle.com>; Fri, 29 Oct 2021 18:47:53 GMT
-Received: from mail-lf1-f50.google.com (mail-lf1-f50.google.com
-	[209.85.167.50])
-	by mx0b-00069f01.pphosted.com with ESMTP id 3c0b190cuq-1
-	(version=TLSv1.2 cipher=ECDHE-RSA-AES128-GCM-SHA256 bits=128 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Fri, 29 Oct 2021 18:47:53 +0000
-Received: by mail-lf1-f50.google.com with SMTP id bi35so22762276lfb.9
-	for <ocfs2-devel@oss.oracle.com>; Fri, 29 Oct 2021 11:47:53 -0700 (PDT)
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=1e100.net; s=20210112;
-	h=x-gm-message-state:mime-version:references:in-reply-to:from:date
-	:message-id:subject:to:cc;
-	bh=uGPiPKSphOUEs2fEDAQ1oyHUSr8W7H4wPzT5A6mID2k=;
-	b=Or3EuobKpLnxkvm5kt+rGMXUW0MJRr68yTroG50v8KCyDL8L/jysxuI5EZFXtEcdxf
-	+cUbYvhbq/0TywNhhdEUKwYG1aGFr3BDiAgTZRN9YYb31VKsdrAbqfcMRbElp1bC0Bv7
-	g8mR6StjNEhRwKMzy6qNsf/FaU59tlux5sityKb8G5uOp5Xw68lwbJupGH5XsHp5puua
-	FOJzB1WE2vkIk/bCAubV8pEao9IzOValmMUyBU6vcmZ0ujwYsqFieIIQFEo/Txsm9qMJ
-	FhyWhkFFl6wbdu46a8lVTws8dx1GD7R6bXQ8met7iGfOn4Tk+eFz9aev5NL4SLu9wwdB
-	ZMkQ==
-X-Gm-Message-State: AOAM531UyO5B0tETlUDABPWfou+EW8HY5cZgmYP8iTS27Vxkt7XPmCyc
-	uig71wzwEa6FOEN92lOwaTChtuURpKzJKPDiq24=
-X-Google-Smtp-Source: ABdhPJzswD5NDXXGbMj2+uLAFcPnPvP1iLJrx7Mc3rnuRYju2zrdZkqJzVROXGWZzwNPdKrZC9+M2w==
-X-Received: by 2002:a05:6512:234e:: with SMTP id
-	p14mr11722431lfu.111.1635533270467; 
-	Fri, 29 Oct 2021 11:47:50 -0700 (PDT)
-Received: from mail-lj1-f177.google.com (mail-lj1-f177.google.com.
-	[209.85.208.177])
-	by smtp.gmail.com with ESMTPSA id 187sm681956ljj.80.2021.10.29.11.47.49
-	for <ocfs2-devel@oss.oracle.com>
-	(version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-	Fri, 29 Oct 2021 11:47:49 -0700 (PDT)
-Received: by mail-lj1-f177.google.com with SMTP id 17so15162254ljq.0
-	for <ocfs2-devel@oss.oracle.com>; Fri, 29 Oct 2021 11:47:49 -0700 (PDT)
-X-Received: by 2002:a05:651c:17a6:: with SMTP id
-	bn38mr13088470ljb.56.1635533269069; 
-	Fri, 29 Oct 2021 11:47:49 -0700 (PDT)
+	1A13pfuW029099
+	for <ocfs2-devel@oss.oracle.com>; Mon, 1 Nov 2021 11:31:03 GMT
+Received: from smtp-out2.suse.de (smtp-out2.suse.de [195.135.220.29])
+	by mx0b-00069f01.pphosted.com with ESMTP id 3c28pyc0e0-1
+	(version=TLSv1.2 cipher=ECDHE-RSA-AES128-GCM-SHA256 bits=128 verify=NO)
+	for <ocfs2-devel@oss.oracle.com>; Mon, 01 Nov 2021 11:31:03 +0000
+Received: from relay2.suse.de (relay2.suse.de [149.44.160.134])
+	by smtp-out2.suse.de (Postfix) with ESMTP id D853E1FD6F;
+	Mon,  1 Nov 2021 11:31:00 +0000 (UTC)
+Received: from quack2.suse.cz (unknown [10.163.28.18])
+	by relay2.suse.de (Postfix) with ESMTP id 98EC5A3B84;
+	Mon,  1 Nov 2021 11:31:00 +0000 (UTC)
+Received: by quack2.suse.cz (Postfix, from userid 1000)
+	id 4B3461E0922; Mon,  1 Nov 2021 12:31:00 +0100 (CET)
+Date: Mon, 1 Nov 2021 12:31:00 +0100
+From: Jan Kara <jack@suse.cz>
+To: Joseph Qi <joseph.qi@linux.alibaba.com>
+Message-ID: <20211101113100.GA18487@quack2.suse.cz>
+References: <20211025150008.29002-1-jack@suse.cz>
+	<20211025151332.11301-1-jack@suse.cz>
+	<f8c309cf-ace7-f8c7-33d2-9a5fa39cb21b@linux.alibaba.com>
 MIME-Version: 1.0
-References: <CAHk-=wgP058PNY8eoWW=5uRMox-PuesDMrLsrCWPS+xXhzbQxQ@mail.gmail.com>
-	<YXL9tRher7QVmq6N@arm.com>
-	<CAHk-=wg4t2t1AaBDyMfOVhCCOiLLjCB5TFVgZcV4Pr8X2qptJw@mail.gmail.com>
-	<CAHc6FU7BEfBJCpm8wC3P+8GTBcXxzDWcp6wAcgzQtuaJLHrqZA@mail.gmail.com>
-	<YXhH0sBSyTyz5Eh2@arm.com>
-	<CAHk-=wjWDsB-dDj+x4yr8h8f_VSkyB7MbgGqBzDRMNz125sZxw@mail.gmail.com>
-	<YXmkvfL9B+4mQAIo@arm.com>
-	<CAHk-=wjQqi9cw1Guz6a8oBB0xiQNF_jtFzs3gW0k7+fKN-mB1g@mail.gmail.com>
-	<YXsUNMWFpmT1eQcX@arm.com>
-	<CAHk-=wgzEKEYKRoR_abQRDO=R8xJX_FK+XC3gNhKfu=KLdxt3g@mail.gmail.com>
-	<YXw0a9n+/PLAcObB@arm.com>
-In-Reply-To: <YXw0a9n+/PLAcObB@arm.com>
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Fri, 29 Oct 2021 11:47:33 -0700
-X-Gmail-Original-Message-ID: <CAHk-=wgNV5Ka0yTssic0JbZEcO3wvoTC65budK88k4D-34v0xA@mail.gmail.com>
-Message-ID: <CAHk-=wgNV5Ka0yTssic0JbZEcO3wvoTC65budK88k4D-34v0xA@mail.gmail.com>
-To: Catalin Marinas <catalin.marinas@arm.com>
-X-Source-IP: 209.85.167.50
-X-ServerName: mail-lf1-f50.google.com
+Content-Disposition: inline
+In-Reply-To: <f8c309cf-ace7-f8c7-33d2-9a5fa39cb21b@linux.alibaba.com>
+User-Agent: Mutt/1.10.1 (2018-07-13)
+X-Source-IP: 195.135.220.29
+X-ServerName: smtp-out2.suse.de
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 ip4:198.145.29.98/31 ip4:72.55.140.81
-	include:_spf.google.com
-	include:amazonses.com include:_spf.salesforce.com ~all
-X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10152
+X-Proofpoint-SPF-Record: v=spf1 ip4:137.65.0.0/16 ip4:151.155.28.0/17
+	ip4:149.44.0.0/16
+	ip4:147.2.0.0/16 ip4:164.99.0.0/16 ip4:130.57.0.0/16
+	ip4:192.31.114.0/24
+	ip4:195.135.221.0/24 ip4:195.135.220.0/24 ip4:69.7.179.0/24
+	ip4:150.215.214.0/24 include:mailcontrol.com ~all
+X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10154
 	signatures=668683
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 suspectscore=0
-	lowpriorityscore=0
-	malwarescore=0 phishscore=0 clxscore=426 priorityscore=264 adultscore=0
-	impostorscore=0 bulkscore=0 mlxlogscore=999 spamscore=0 mlxscore=0
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 impostorscore=0
+	mlxscore=0 bulkscore=0
+	clxscore=185 phishscore=0 spamscore=0 lowpriorityscore=0 malwarescore=0
+	adultscore=0 suspectscore=0 mlxlogscore=836 priorityscore=0
 	classifier=spam adjust=0 reason=mlx scancount=1
-	engine=8.12.0-2110150000
-	definitions=main-2110290102 domainage_hfrom=5428
+	engine=8.12.0-2110150000 definitions=main-2111010066
 X-Spam: Clean
-Cc: kvm-ppc@vger.kernel.org, Christoph Hellwig <hch@infradead.org>,
-        cluster-devel <cluster-devel@redhat.com>, Jan Kara <jack@suse.cz>,
-        Andreas Gruenbacher <agruenba@redhat.com>,
-        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
-        Paul Mackerras <paulus@ozlabs.org>, Tony Luck <tony.luck@intel.com>,
-        Alexander Viro <viro@zeniv.linux.org.uk>,
-        Andy Lutomirski <luto@kernel.org>,
-        linux-fsdevel <linux-fsdevel@vger.kernel.org>,
-        linux-btrfs <linux-btrfs@vger.kernel.org>, ocfs2-devel@oss.oracle.com
-Subject: Re: [Ocfs2-devel] [PATCH v8 00/17] gfs2: Fix mmap + page fault
-	deadlocks
+Cc: Jan Kara <jack@suse.cz>, stable@vger.kernel.org,
+        ocfs2-devel@oss.oracle.com
+Subject: Re: [Ocfs2-devel] [PATCH 1/2] ocfs2: Fix data corruption on truncate
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.9
 Precedence: list
@@ -140,84 +104,52 @@ Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 Sender: ocfs2-devel-bounces@oss.oracle.com
 Errors-To: ocfs2-devel-bounces@oss.oracle.com
-X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10152 signatures=668683
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 spamscore=0 bulkscore=0 suspectscore=0
- mlxscore=0 adultscore=0 malwarescore=0 phishscore=0 mlxlogscore=999
+X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10154 signatures=668683
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 suspectscore=0 mlxscore=0 spamscore=0
+ malwarescore=0 mlxlogscore=999 adultscore=0 phishscore=0 bulkscore=0
  classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2110150000
- definitions=main-2110290102
-X-Proofpoint-ORIG-GUID: jC1rjmFOFf2PXtCWSUc_Wt1kfAS53EUA
-X-Proofpoint-GUID: jC1rjmFOFf2PXtCWSUc_Wt1kfAS53EUA
+ definitions=main-2111010066
+X-Proofpoint-GUID: 9HyPZBAmWS4ccVmyxaqHUgCjwsTonqRW
+X-Proofpoint-ORIG-GUID: 9HyPZBAmWS4ccVmyxaqHUgCjwsTonqRW
 
-On Fri, Oct 29, 2021 at 10:50 AM Catalin Marinas
-<catalin.marinas@arm.com> wrote:
->
-> First of all, a uaccess in interrupt should not force such signal as it
-> had nothing to do with the interrupted context. I guess we can do an
-> in_task() check in the fault handler.
+On Thu 28-10-21 15:09:08, Joseph Qi wrote:
+> Hi Jan,
+> 
+> On 10/25/21 11:13 PM, Jan Kara wrote:
+> > ocfs2_truncate_file() did unmap invalidate page cache pages before
+> > zeroing partial tail cluster and setting i_size. Thus some pages could
+> > be left (and likely have left if the cluster zeroing happened) in the
+> > page cache beyond i_size after truncate finished letting user possibly
+> > see stale data once the file was extended again. Also the tail cluster
+> 
+> I don't quite understand the case. 
+> truncate_inode_pages() will truncate pages from new_i_size to i_size,
+> and the following ocfs2_orphan_for_truncate() will zero range and then
+> update i_size for inode as well as dinode.
+> So once truncate finished, how stale data exposing happens? Or do you
+> mean a race case between the above two steps?
 
-Yeah. It ends up being similar to the thread flag in that you still
-end up having to protect against NMI and other users of asynchronous
-page faults.
+Sorry, I was not quite accurate in the above paragraph. There are several
+ways how stale pages in the pagecache can cause problems.
 
-So the suggestion was more of a "mindset" difference and modified
-version of the task flag rather than anything fundamentally different.
+1) Because i_size is reduced after truncating page cache, page fault can
+happen after truncating page cache and zeroing pages but before reducing i_size.
+This will in allow user to arbitrarily modify pages that are used for
+writing zeroes into the cluster tail and after file extension these data
+will become visible.
 
-> Second, is there a chance that we enter the fault-in loop with a SIGSEGV
-> already pending? Maybe it's not a problem, we just bail out of the loop
-> early and deliver the signal, though unrelated to the actual uaccess in
-> the loop.
+2) The tail cluster zeroing in ocfs2_orphan_for_truncate() can actually try
+to write zeroed pages above i_size (e.g. if we have 4k blocksize, 64k
+clustersize, and do truncate(f, 4k) on a 4k file). This will cause exactly
+same problems as already described in commit 5314454ea3f "ocfs2: fix data
+corruption after conversion from inline format".
 
-If we ever run in user space with a pending per-thread SIGSEGV, that
-would already be a fairly bad bug. The intent of "force_sig()" is not
-only to make sure you can't block the signal, but also that it targets
-the particular thread that caused the problem: unlike other random
-"send signal to process", a SIGSEGV caused by a bad memory access is
-really local to that _thread_, not the signal thread group.
+Hope it is clearer now.
 
-So somebody else sending a SIGSEGV asynchronsly is actually very
-different - it goes to the thread group (although you can specify
-individual threads too - but once you do that you're already outside
-of POSIX).
-
-That said, the more I look at it, the more I think I was wrong. I
-think the "we have a SIGSEGV pending" could act as the per-thread
-flag, but the complexity of the signal handling is probably an
-argument against it.
-
-Not because a SIGSEGV could already be pending, but because so many
-other situations could be pending.
-
-In particular, the signal code won't send new signals to a thread if
-that thread group is already exiting. So another thread may have
-already started the exit and core dump sequence, and is in the process
-of killing the shared signal threads, and if one of those threads is
-now in the kernel and goes through the copy_from_user() dance, that
-whole "thread group is exiting" will mean that the signal code won't
-add a new SIGSEGV to the queue.
-
-So the signal could conceptually be used as the flag to stop looping,
-but it ends up being such a complicated flag that I think it's
-probably not worth it after all. Even if it semantically would be
-fairly nice to use pre-existing machinery.
-
-Could it be worked around? Sure. That kernel loop probably has to
-check for fatal_signal_pending() anyway, so it would all work even in
-the presense of the above kinds of issues. But just the fact that I
-went and looked at just how exciting the signal code is made me think
-"ok, conceptually nice, but we take a lot of locks and we do a lot of
-special things even in the 'simple' force_sig() case".
-
-> Third is the sigcontext.pc presented to the signal handler. Normally for
-> SIGSEGV it points to the address of a load/store instruction and a
-> handler could disable MTE and restart from that point. With a syscall we
-> don't want it to point to the syscall place as it shouldn't be restarted
-> in case it copied something.
-
-I think this is actually independent of the whole "how to return
-errors". We'll still need to return an error from the system call,
-even if we also have a signal pending.
-
-                  Linus
+									Honza
+-- 
+Jan Kara <jack@suse.com>
+SUSE Labs, CR
 
 _______________________________________________
 Ocfs2-devel mailing list
