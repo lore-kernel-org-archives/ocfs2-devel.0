@@ -2,71 +2,71 @@ Return-Path: <SRS0=iO0D=PV=oss.oracle.com=ocfs2-devel-bounces@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id A68F7C433EF
-	for <ocfs2-devel@archiver.kernel.org>; Tue,  2 Nov 2021 12:31:15 +0000 (UTC)
-Received: from mx0b-00069f02.pphosted.com (mx0b-00069f02.pphosted.com [205.220.177.32])
+	by smtp.lore.kernel.org (Postfix) with ESMTP id BD996C433EF
+	for <ocfs2-devel@archiver.kernel.org>; Tue,  2 Nov 2021 12:32:01 +0000 (UTC)
+Received: from mx0a-00069f02.pphosted.com (mx0a-00069f02.pphosted.com [205.220.165.32])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by mail.kernel.org (Postfix) with ESMTPS id 4DC6F60C51
-	for <ocfs2-devel@archiver.kernel.org>; Tue,  2 Nov 2021 12:31:15 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.1 mail.kernel.org 4DC6F60C51
+	by mail.kernel.org (Postfix) with ESMTPS id 7188160C51
+	for <ocfs2-devel@archiver.kernel.org>; Tue,  2 Nov 2021 12:32:01 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.1 mail.kernel.org 7188160C51
 Authentication-Results: mail.kernel.org; dmarc=fail (p=none dis=none) header.from=redhat.com
 Authentication-Results: mail.kernel.org; spf=pass smtp.mailfrom=oss.oracle.com
-Received: from pps.filterd (m0246630.ppops.net [127.0.0.1])
-	by mx0b-00069f02.pphosted.com (8.16.1.2/8.16.1.2) with SMTP id 1A2BePKr001771;
-	Tue, 2 Nov 2021 12:31:14 GMT
+Received: from pps.filterd (m0246627.ppops.net [127.0.0.1])
+	by mx0b-00069f02.pphosted.com (8.16.1.2/8.16.1.2) with SMTP id 1A2BdaIs001265;
+	Tue, 2 Nov 2021 12:32:00 GMT
 Received: from userp3020.oracle.com (userp3020.oracle.com [156.151.31.79])
-	by mx0b-00069f02.pphosted.com with ESMTP id 3c27r5er91-1
+	by mx0b-00069f02.pphosted.com with ESMTP id 3c290gxy31-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Tue, 02 Nov 2021 12:31:14 +0000
+	Tue, 02 Nov 2021 12:31:59 +0000
 Received: from pps.filterd (userp3020.oracle.com [127.0.0.1])
-	by userp3020.oracle.com (8.16.1.2/8.16.1.2) with SMTP id 1A2CGGT8079786;
-	Tue, 2 Nov 2021 12:31:13 GMT
+	by userp3020.oracle.com (8.16.1.2/8.16.1.2) with SMTP id 1A2CGHCl079820;
+	Tue, 2 Nov 2021 12:31:55 GMT
 Received: from oss.oracle.com (oss-old-reserved.oracle.com [137.254.22.2])
-	by userp3020.oracle.com with ESMTP id 3c1khtdknb-1
+	by userp3020.oracle.com with ESMTP id 3c1khtdmnh-1
 	(version=TLSv1 cipher=AES256-SHA bits=256 verify=NO);
-	Tue, 02 Nov 2021 12:31:12 +0000
+	Tue, 02 Nov 2021 12:31:55 +0000
 Received: from localhost ([127.0.0.1] helo=lb-oss.oracle.com)
 	by oss.oracle.com with esmtp (Exim 4.63)
 	(envelope-from <ocfs2-devel-bounces@oss.oracle.com>)
-	id 1mhswa-0002E2-0a; Tue, 02 Nov 2021 05:31:12 -0700
-Received: from userp3020.oracle.com ([156.151.31.79])
+	id 1mhsxG-0002Iz-E0; Tue, 02 Nov 2021 05:31:54 -0700
+Received: from aserp3020.oracle.com ([141.146.126.70])
 	by oss.oracle.com with esmtp (Exim 4.63)
-	(envelope-from <agruenba@redhat.com>) id 1mhswY-0002Dl-1t
-	for ocfs2-devel@oss.oracle.com; Tue, 02 Nov 2021 05:31:10 -0700
-Received: from pps.filterd (userp3020.oracle.com [127.0.0.1])
-	by userp3020.oracle.com (8.16.1.2/8.16.1.2) with SMTP id 1A2CGGrM079795
-	for <ocfs2-devel@oss.oracle.com>; Tue, 2 Nov 2021 12:31:09 GMT
-Received: from mx0b-00069f01.pphosted.com (mx0b-00069f01.pphosted.com
-	[205.220.177.26]) by userp3020.oracle.com with ESMTP id 3c1khtdkjf-1
+	(envelope-from <agruenba@redhat.com>) id 1mhsxE-0002Il-VQ
+	for ocfs2-devel@oss.oracle.com; Tue, 02 Nov 2021 05:31:52 -0700
+Received: from pps.filterd (aserp3020.oracle.com [127.0.0.1])
+	by aserp3020.oracle.com (8.16.1.2/8.16.1.2) with SMTP id 1A2CFrwv130622
+	for <ocfs2-devel@oss.oracle.com>; Tue, 2 Nov 2021 12:31:52 GMT
+Received: from mx0a-00069f01.pphosted.com (mx0a-00069f01.pphosted.com
+	[205.220.165.26]) by aserp3020.oracle.com with ESMTP id 3c0wv486cc-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Tue, 02 Nov 2021 12:31:09 +0000
-Received: from pps.filterd (m0246580.ppops.net [127.0.0.1])
+	for <ocfs2-devel@oss.oracle.com>; Tue, 02 Nov 2021 12:31:52 +0000
+Received: from pps.filterd (m0246571.ppops.net [127.0.0.1])
 	by mx0b-00069f01.pphosted.com (8.16.1.2/8.16.1.2) with SMTP id
-	1A2C8jho018306
-	for <ocfs2-devel@oss.oracle.com>; Tue, 2 Nov 2021 12:31:08 GMT
+	1A29tb5w022600
+	for <ocfs2-devel@oss.oracle.com>; Tue, 2 Nov 2021 12:31:51 GMT
 Received: from us-smtp-delivery-124.mimecast.com
 	(us-smtp-delivery-124.mimecast.com [170.10.133.124])
-	by mx0b-00069f01.pphosted.com with ESMTP id 3c3530g834-1
+	by mx0b-00069f01.pphosted.com with ESMTP id 3c28cd2mmw-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
 	for <ocfs2-devel@oss.oracle.com>; Tue, 02 Nov 2021 12:31:08 +0000
 Received: from mimecast-mx01.redhat.com (mimecast-mx01.redhat.com
 	[209.132.183.4]) (Using TLS) by relay.mimecast.com with ESMTP id
-	us-mta-104-agWatDk_Pta2oHOwazM-pg-1; Tue, 02 Nov 2021 08:31:04 -0400
-X-MC-Unique: agWatDk_Pta2oHOwazM-pg-1
+	us-mta-516-ot1fqwRDOzaDGWMGgpq-eA-1; Tue, 02 Nov 2021 08:31:00 -0400
+X-MC-Unique: ot1fqwRDOzaDGWMGgpq-eA-1
 Received: from smtp.corp.redhat.com (int-mx01.intmail.prod.int.phx2.redhat.com
 	[10.5.11.11])
 	(using TLSv1.2 with cipher AECDH-AES256-SHA (256/256 bits))
 	(No client certificate requested)
-	by mimecast-mx01.redhat.com (Postfix) with ESMTPS id C4282120C841;
-	Tue,  2 Nov 2021 12:31:02 +0000 (UTC)
-Received: from max.localdomain (unknown [10.40.195.95])
-	by smtp.corp.redhat.com (Postfix) with ESMTP id 7542919811;
+	by mimecast-mx01.redhat.com (Postfix) with ESMTPS id 1DCE41006AA2;
 	Tue,  2 Nov 2021 12:30:59 +0000 (UTC)
+Received: from max.localdomain (unknown [10.40.195.95])
+	by smtp.corp.redhat.com (Postfix) with ESMTP id EF39467845;
+	Tue,  2 Nov 2021 12:30:35 +0000 (UTC)
 From: Andreas Gruenbacher <agruenba@redhat.com>
 To: cluster-devel@redhat.com
-Date: Tue,  2 Nov 2021 13:29:39 +0100
-Message-Id: <20211102122945.117744-12-agruenba@redhat.com>
+Date: Tue,  2 Nov 2021 13:29:38 +0100
+Message-Id: <20211102122945.117744-11-agruenba@redhat.com>
 In-Reply-To: <20211102122945.117744-1-agruenba@redhat.com>
 References: <20211102122945.117744-1-agruenba@redhat.com>
 MIME-Version: 1.0
@@ -103,8 +103,7 @@ Cc: kvm-ppc@vger.kernel.org, Paul Mackerras <paulus@ozlabs.org>,
         linux-fsdevel@vger.kernel.org, linux-btrfs@vger.kernel.org,
         Linus Torvalds <torvalds@linux-foundation.org>,
         ocfs2-devel@oss.oracle.com
-Subject: [Ocfs2-devel] [PATCH v9 11/17] gfs2: Fix mmap + page fault
-	deadlocks for buffered I/O
+Subject: [Ocfs2-devel] [PATCH v9 10/17] gfs2: Eliminate ip->i_gh
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.9
 Precedence: list
@@ -125,208 +124,123 @@ X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 malwarescore=0 ph
  spamscore=0 adultscore=0 suspectscore=0 mlxlogscore=999 mlxscore=0
  classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2110150000
  definitions=main-2111020073
-X-Proofpoint-ORIG-GUID: pjM455Nqa5yOKCubdgcyBwmDQ7uhoque
-X-Proofpoint-GUID: pjM455Nqa5yOKCubdgcyBwmDQ7uhoque
+X-Proofpoint-GUID: rq70QeAZECOaEVdnYmp7BJwh6_jub-mb
+X-Proofpoint-ORIG-GUID: rq70QeAZECOaEVdnYmp7BJwh6_jub-mb
 
-In the .read_iter and .write_iter file operations, we're accessing
-user-space memory while holding the inode glock.  There is a possibility
-that the memory is mapped to the same file, in which case we'd recurse
-on the same glock.
+Now that gfs2_file_buffered_write is the only remaining user of
+ip->i_gh, we can move the glock holder to the stack (or rather, use the
+one we already have on the stack); there is no need for keeping the
+holder in the inode anymore.
 
-We could detect and work around this simple case of recursive locking,
-but more complex scenarios exist that involve multiple glocks,
-processes, and cluster nodes, and working around all of those cases
-isn't practical or even possible.
-
-Avoid these kinds of problems by disabling page faults while holding the
-inode glock.  If a page fault would occur, we either end up with a
-partial read or write or with -EFAULT if nothing could be read or
-written.  In either case, we know that we're not done with the
-operation, so we indicate that we're willing to give up the inode glock
-and then we fault in the missing pages.  If that made us lose the inode
-glock, we return a partial read or write.  Otherwise, we resume the
-operation.
-
-This locking problem was originally reported by Jan Kara.  Linus came up
-with the idea of disabling page faults.  Many thanks to Al Viro and
-Matthew Wilcox for their feedback.
+This is slightly complicated by the fact that we're using ip->i_gh for
+the statfs inode in gfs2_file_buffered_write as well.  Writing to the
+statfs inode isn't very common, so allocate the statfs holder
+dynamically when needed.
 
 Signed-off-by: Andreas Gruenbacher <agruenba@redhat.com>
 ---
- fs/gfs2/file.c | 99 +++++++++++++++++++++++++++++++++++++++++++++++---
- 1 file changed, 94 insertions(+), 5 deletions(-)
+ fs/gfs2/file.c   | 34 +++++++++++++++++++++-------------
+ fs/gfs2/incore.h |  3 +--
+ 2 files changed, 22 insertions(+), 15 deletions(-)
 
 diff --git a/fs/gfs2/file.c b/fs/gfs2/file.c
-index 8f37e4bab995..d9126e3e6dd6 100644
+index 13282f57da37..8f37e4bab995 100644
 --- a/fs/gfs2/file.c
 +++ b/fs/gfs2/file.c
-@@ -776,6 +776,36 @@ static int gfs2_fsync(struct file *file, loff_t start, loff_t end,
- 	return ret ? ret : ret1;
+@@ -876,16 +876,25 @@ static ssize_t gfs2_file_read_iter(struct kiocb *iocb, struct iov_iter *to)
+ 	return written ? written : ret;
  }
  
-+static inline bool should_fault_in_pages(ssize_t ret, struct iov_iter *i,
-+					 size_t *prev_count,
-+					 size_t *window_size)
-+{
-+	char __user *p = i->iov[0].iov_base + i->iov_offset;
-+	size_t count = iov_iter_count(i);
-+	int pages = 1;
-+
-+	if (likely(!count))
-+		return false;
-+	if (ret <= 0 && ret != -EFAULT)
-+		return false;
-+	if (!iter_is_iovec(i))
-+		return false;
-+
-+	if (*prev_count != count || !*window_size) {
-+		int pages, nr_dirtied;
-+
-+		pages = min_t(int, BIO_MAX_VECS,
-+			      DIV_ROUND_UP(iov_iter_count(i), PAGE_SIZE));
-+		nr_dirtied = max(current->nr_dirtied_pause -
-+				 current->nr_dirtied, 1);
-+		pages = min(pages, nr_dirtied);
-+	}
-+
-+	*prev_count = count;
-+	*window_size = (size_t)PAGE_SIZE * pages - offset_in_page(p);
-+	return true;
-+}
-+
- static ssize_t gfs2_file_direct_read(struct kiocb *iocb, struct iov_iter *to,
- 				     struct gfs2_holder *gh)
+-static ssize_t gfs2_file_buffered_write(struct kiocb *iocb, struct iov_iter *from)
++static ssize_t gfs2_file_buffered_write(struct kiocb *iocb,
++					struct iov_iter *from,
++					struct gfs2_holder *gh)
  {
-@@ -840,9 +870,17 @@ static ssize_t gfs2_file_read_iter(struct kiocb *iocb, struct iov_iter *to)
- {
- 	struct gfs2_inode *ip;
- 	struct gfs2_holder gh;
-+	size_t prev_count = 0, window_size = 0;
- 	size_t written = 0;
- 	ssize_t ret;
- 
-+	/*
-+	 * In this function, we disable page faults when we're holding the
-+	 * inode glock while doing I/O.  If a page fault occurs, we indicate
-+	 * that the inode glock may be dropped, fault in the pages manually,
-+	 * and retry.
-+	 */
-+
- 	if (iocb->ki_flags & IOCB_DIRECT) {
- 		ret = gfs2_file_direct_read(iocb, to, &gh);
- 		if (likely(ret != -ENOTBLK))
-@@ -864,13 +902,34 @@ static ssize_t gfs2_file_read_iter(struct kiocb *iocb, struct iov_iter *to)
- 	}
- 	ip = GFS2_I(iocb->ki_filp->f_mapping->host);
- 	gfs2_holder_init(ip->i_gl, LM_ST_SHARED, 0, &gh);
-+retry:
- 	ret = gfs2_glock_nq(&gh);
- 	if (ret)
- 		goto out_uninit;
-+retry_under_glock:
-+	pagefault_disable();
- 	ret = generic_file_read_iter(iocb, to);
-+	pagefault_enable();
- 	if (ret > 0)
- 		written += ret;
--	gfs2_glock_dq(&gh);
-+
-+	if (should_fault_in_pages(ret, to, &prev_count, &window_size)) {
-+		size_t leftover;
-+
-+		gfs2_holder_allow_demote(&gh);
-+		leftover = fault_in_iov_iter_writeable(to, window_size);
-+		gfs2_holder_disallow_demote(&gh);
-+		if (leftover != window_size) {
-+			if (!gfs2_holder_queued(&gh)) {
-+				if (written)
-+					goto out_uninit;
-+				goto retry;
-+			}
-+			goto retry_under_glock;
-+		}
-+	}
-+	if (gfs2_holder_queued(&gh))
-+		gfs2_glock_dq(&gh);
- out_uninit:
- 	gfs2_holder_uninit(&gh);
- 	return written ? written : ret;
-@@ -885,8 +944,17 @@ static ssize_t gfs2_file_buffered_write(struct kiocb *iocb,
+ 	struct file *file = iocb->ki_filp;
+ 	struct inode *inode = file_inode(file);
  	struct gfs2_inode *ip = GFS2_I(inode);
  	struct gfs2_sbd *sdp = GFS2_SB(inode);
- 	struct gfs2_holder *statfs_gh = NULL;
-+	size_t prev_count = 0, window_size = 0;
-+	size_t read = 0;
++	struct gfs2_holder *statfs_gh = NULL;
  	ssize_t ret;
  
-+	/*
-+	 * In this function, we disable page faults when we're holding the
-+	 * inode glock while doing I/O.  If a page fault occurs, we indicate
-+	 * that the inode glock may be dropped, fault in the pages manually,
-+	 * and retry.
-+	 */
+-	gfs2_holder_init(ip->i_gl, LM_ST_EXCLUSIVE, 0, &ip->i_gh);
+-	ret = gfs2_glock_nq(&ip->i_gh);
++	if (inode == sdp->sd_rindex) {
++		statfs_gh = kmalloc(sizeof(*statfs_gh), GFP_NOFS);
++		if (!statfs_gh)
++			return -ENOMEM;
++	}
 +
- 	if (inode == sdp->sd_rindex) {
- 		statfs_gh = kmalloc(sizeof(*statfs_gh), GFP_NOFS);
- 		if (!statfs_gh)
-@@ -894,10 +962,11 @@ static ssize_t gfs2_file_buffered_write(struct kiocb *iocb,
- 	}
- 
- 	gfs2_holder_init(ip->i_gl, LM_ST_EXCLUSIVE, 0, gh);
-+retry:
- 	ret = gfs2_glock_nq(gh);
++	gfs2_holder_init(ip->i_gl, LM_ST_EXCLUSIVE, 0, gh);
++	ret = gfs2_glock_nq(gh);
  	if (ret)
  		goto out_uninit;
--
-+retry_under_glock:
- 	if (inode == sdp->sd_rindex) {
+ 
+@@ -893,7 +902,7 @@ static ssize_t gfs2_file_buffered_write(struct kiocb *iocb, struct iov_iter *fro
  		struct gfs2_inode *m_ip = GFS2_I(sdp->sd_statfs_inode);
  
-@@ -908,21 +977,41 @@ static ssize_t gfs2_file_buffered_write(struct kiocb *iocb,
+ 		ret = gfs2_glock_nq_init(m_ip->i_gl, LM_ST_EXCLUSIVE,
+-					 GL_NOCACHE, &m_ip->i_gh);
++					 GL_NOCACHE, statfs_gh);
+ 		if (ret)
+ 			goto out_unlock;
  	}
- 
- 	current->backing_dev_info = inode_to_bdi(inode);
-+	pagefault_disable();
- 	ret = iomap_file_buffered_write(iocb, from, &gfs2_iomap_ops);
-+	pagefault_enable();
- 	current->backing_dev_info = NULL;
--	if (ret > 0)
-+	if (ret > 0) {
+@@ -904,16 +913,15 @@ static ssize_t gfs2_file_buffered_write(struct kiocb *iocb, struct iov_iter *fro
+ 	if (ret > 0)
  		iocb->ki_pos += ret;
-+		read += ret;
-+	}
  
- 	if (inode == sdp->sd_rindex)
- 		gfs2_glock_dq_uninit(statfs_gh);
+-	if (inode == sdp->sd_rindex) {
+-		struct gfs2_inode *m_ip = GFS2_I(sdp->sd_statfs_inode);
+-
+-		gfs2_glock_dq_uninit(&m_ip->i_gh);
+-	}
++	if (inode == sdp->sd_rindex)
++		gfs2_glock_dq_uninit(statfs_gh);
  
-+	if (should_fault_in_pages(ret, from, &prev_count, &window_size)) {
-+		size_t leftover;
-+
-+		gfs2_holder_allow_demote(gh);
-+		leftover = fault_in_iov_iter_readable(from, window_size);
-+		gfs2_holder_disallow_demote(gh);
-+		if (leftover != window_size) {
-+			if (!gfs2_holder_queued(gh)) {
-+				if (read)
-+					goto out_uninit;
-+				goto retry;
-+			}
-+			goto retry_under_glock;
-+		}
-+	}
  out_unlock:
--	gfs2_glock_dq(gh);
-+	if (gfs2_holder_queued(gh))
-+		gfs2_glock_dq(gh);
+-	gfs2_glock_dq(&ip->i_gh);
++	gfs2_glock_dq(gh);
  out_uninit:
- 	gfs2_holder_uninit(gh);
- 	if (statfs_gh)
- 		kfree(statfs_gh);
--	return ret;
-+	return read ? read : ret;
+-	gfs2_holder_uninit(&ip->i_gh);
++	gfs2_holder_uninit(gh);
++	if (statfs_gh)
++		kfree(statfs_gh);
+ 	return ret;
  }
  
- /**
+@@ -968,7 +976,7 @@ static ssize_t gfs2_file_write_iter(struct kiocb *iocb, struct iov_iter *from)
+ 			goto out_unlock;
+ 
+ 		iocb->ki_flags |= IOCB_DSYNC;
+-		buffered = gfs2_file_buffered_write(iocb, from);
++		buffered = gfs2_file_buffered_write(iocb, from, &gh);
+ 		if (unlikely(buffered <= 0)) {
+ 			if (!ret)
+ 				ret = buffered;
+@@ -989,7 +997,7 @@ static ssize_t gfs2_file_write_iter(struct kiocb *iocb, struct iov_iter *from)
+ 		if (!ret || ret2 > 0)
+ 			ret += ret2;
+ 	} else {
+-		ret = gfs2_file_buffered_write(iocb, from);
++		ret = gfs2_file_buffered_write(iocb, from, &gh);
+ 		if (likely(ret > 0))
+ 			ret = generic_write_sync(iocb, ret);
+ 	}
+diff --git a/fs/gfs2/incore.h b/fs/gfs2/incore.h
+index 58b7bac501e4..ca42d310fd4d 100644
+--- a/fs/gfs2/incore.h
++++ b/fs/gfs2/incore.h
+@@ -387,9 +387,8 @@ struct gfs2_inode {
+ 	u64 i_generation;
+ 	u64 i_eattr;
+ 	unsigned long i_flags;		/* GIF_... */
+-	struct gfs2_glock *i_gl; /* Move into i_gh? */
++	struct gfs2_glock *i_gl;
+ 	struct gfs2_holder i_iopen_gh;
+-	struct gfs2_holder i_gh; /* for prepare/commit_write only */
+ 	struct gfs2_qadata *i_qadata; /* quota allocation data */
+ 	struct gfs2_holder i_rgd_gh;
+ 	struct gfs2_blkreserv i_res; /* rgrp multi-block reservation */
 -- 
 2.31.1
 
