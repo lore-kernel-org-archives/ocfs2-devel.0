@@ -1,157 +1,240 @@
-Return-Path: <SRS0=R4zn=PY=oss.oracle.com=ocfs2-devel-bounces@kernel.org>
+Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 72845C433F5
-	for <ocfs2-devel@archiver.kernel.org>; Fri,  5 Nov 2021 01:55:11 +0000 (UTC)
-Received: from mx0b-00069f02.pphosted.com (mx0b-00069f02.pphosted.com [205.220.177.32])
+Received: from aib29ajc250.phx1.oracleemaildelivery.com (aib29ajc250.phx1.oracleemaildelivery.com [192.29.103.250])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by mail.kernel.org (Postfix) with ESMTPS id 0B5DB603E7
-	for <ocfs2-devel@archiver.kernel.org>; Fri,  5 Nov 2021 01:55:10 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.1 mail.kernel.org 0B5DB603E7
-Authentication-Results: mail.kernel.org; dmarc=fail (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: mail.kernel.org; spf=pass smtp.mailfrom=oss.oracle.com
-Received: from pps.filterd (m0246632.ppops.net [127.0.0.1])
-	by mx0b-00069f02.pphosted.com (8.16.1.2/8.16.1.2) with SMTP id 1A50a13j007578;
-	Fri, 5 Nov 2021 01:55:10 GMT
-Received: from userp3020.oracle.com (userp3020.oracle.com [156.151.31.79])
-	by mx0b-00069f02.pphosted.com with ESMTP id 3c4t7br9b9-1
-	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Fri, 05 Nov 2021 01:55:09 +0000
-Received: from pps.filterd (userp3020.oracle.com [127.0.0.1])
-	by userp3020.oracle.com (8.16.1.2/8.16.1.2) with SMTP id 1A51oNIM177046;
-	Fri, 5 Nov 2021 01:55:08 GMT
-Received: from oss.oracle.com (oss-old-reserved.oracle.com [137.254.22.2])
-	by userp3020.oracle.com with ESMTP id 3c4t60jctu-1
-	(version=TLSv1 cipher=AES256-SHA bits=256 verify=NO);
-	Fri, 05 Nov 2021 01:55:08 +0000
-Received: from localhost ([127.0.0.1] helo=lb-oss.oracle.com)
-	by oss.oracle.com with esmtp (Exim 4.63)
-	(envelope-from <ocfs2-devel-bounces@oss.oracle.com>)
-	id 1mioRf-0004LT-Mk; Thu, 04 Nov 2021 18:55:07 -0700
-Received: from userp3020.oracle.com ([156.151.31.79])
-	by oss.oracle.com with esmtp (Exim 4.63)
-	(envelope-from <joseph.qi@linux.alibaba.com>) id 1mioRd-0004L3-6K
-	for ocfs2-devel@oss.oracle.com; Thu, 04 Nov 2021 18:55:05 -0700
-Received: from pps.filterd (userp3020.oracle.com [127.0.0.1])
-	by userp3020.oracle.com (8.16.1.2/8.16.1.2) with SMTP id 1A51oO9G177192
-	for <ocfs2-devel@oss.oracle.com>; Fri, 5 Nov 2021 01:55:04 GMT
-Received: from mx0a-00069f01.pphosted.com (mx0a-00069f01.pphosted.com
-	[205.220.165.26]) by userp3020.oracle.com with ESMTP id 3c4t60jcr0-1
-	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
-	for <ocfs2-devel@oss.oracle.com>; Fri, 05 Nov 2021 01:55:04 +0000
-Received: from pps.filterd (m0246574.ppops.net [127.0.0.1])
-	by mx0b-00069f01.pphosted.com (8.16.1.2/8.16.1.2) with SMTP id
-	1A50QqXe005019
-	for <ocfs2-devel@oss.oracle.com>; Fri, 5 Nov 2021 01:55:03 GMT
-Received: from out30-54.freemail.mail.aliyun.com
-	(out30-54.freemail.mail.aliyun.com [115.124.30.54])
-	by mx0b-00069f01.pphosted.com with ESMTP id 3c4t2yryef-1
-	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NO)
-	for <ocfs2-devel@oss.oracle.com>; Fri, 05 Nov 2021 01:55:02 +0000
-X-Alimail-AntiSpam: AC=PASS; BC=-1|-1; BR=01201311R181e4; CH=green; DM=||false|;
-	DS=||; FP=0|-1|-1|-1|0|-1|-1|-1; HT=e01e04400;
-	MF=joseph.qi@linux.alibaba.com; NM=1; PH=DS; RN=8; SR=0;
-	TI=SMTPD_---0Uv5DzfM_1636077294; 
-Received: from B-D1K7ML85-0059.local(mailfrom:joseph.qi@linux.alibaba.com
-	fp:SMTPD_---0Uv5DzfM_1636077294) by smtp.aliyun-inc.com(127.0.0.1);
-	Fri, 05 Nov 2021 09:54:55 +0800
-To: cgel.zte@gmail.com, mark@fasheh.com, akpm <akpm@linux-foundation.org>
-References: <20211105014424.75372-1-zhang.mingyu@zte.com.cn>
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-Message-ID: <58841188-72eb-bde9-12f7-4a3c7ff3e4c4@linux.alibaba.com>
-Date: Fri, 5 Nov 2021 09:54:54 +0800
-User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:78.0)
-	Gecko/20100101 Thunderbird/78.14.0
-MIME-Version: 1.0
-In-Reply-To: <20211105014424.75372-1-zhang.mingyu@zte.com.cn>
-Content-Language: en-US
-X-Source-IP: 115.124.30.54
-X-ServerName: out30-54.freemail.mail.aliyun.com
-X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 include:spf1.service.alibaba.com
-	include:spf2.service.alibaba.com
-	include:spf1.ocm.aliyun.com  include:spf2.ocm.aliyun.com
-	include:spf1.staff.mail.aliyun.com include:a.hichina.mail.aliyun.com
-	include:b.hichina.mail.aliyun.com -all
-X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10158
-	signatures=668683
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 mlxscore=0
-	lowpriorityscore=0
-	bulkscore=0 phishscore=0 mlxlogscore=930 spamscore=0 clxscore=254
-	adultscore=0 priorityscore=30 malwarescore=0 suspectscore=0
-	impostorscore=0 classifier=spam adjust=0 reason=mlx scancount=1
-	engine=8.12.0-2110150000 definitions=main-2111050009
-	domainage_hfrom=8240
-X-Spam: Clean
-Cc: Zeal Robot <zealci@zte.com.cn>, Zhang Mingyu <zhang.mingyu@zte.com.cn>,
-        ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
-Subject: Re: [Ocfs2-devel] [PATCH] ocfs2:Use BUG_ON instead of if condition
-	followed by BUG.
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id C4E8BC433F5
+	for <ocfs2-devel@archiver.kernel.org>; Wed, 24 Nov 2021 09:44:31 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
+ d=oss.oracle.com;
+ h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
+ bh=bhNAzp03MSwDikd/3E2/49iHPI9uEItw44ZO4VSlzjM=;
+ b=eNmq+sq/3BDXjnHhVm8QBJfWf+gxVAZW1smH1Owt7EZNNKZwsBMBpQqSiIW+drvgMTBtsPrwd/4b
+   JlfK/UPLw3ZPowcvp+CfMuC3DmbZwnyvRVq5W6ZSCpxFeGR+cLWKwwMGVewYuB1dBm2NrFo2wFiZ
+   pEuRxd7OSdLdlXJexYsq8db2ADJRCwCYyRPsrZr8ueJwTq0d8Srut0VLPuRI019lPgLYGWEVd1/Y
+   AvyJTL1ZxhE1m3QfYqyDb1F1YFrxhlDIadBvSneQzBBDyrG85APHLsJyB/P8ft4O9OpmUcnIVgne
+   /WtifnG4GnxtyWxAz+AgpWiODiYz7QBc5pGkjQ==
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
+ d=phx1.rp.oracleemaildelivery.com;
+ h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
+ bh=bhNAzp03MSwDikd/3E2/49iHPI9uEItw44ZO4VSlzjM=;
+ b=rsidpqzi4TJvV+6fBvYx/uh57OZ6MpI12RZInUdgBNEtt/6FRD1pTzyTRj/VH/3340w33uk4Hq4P
+   eFG5GhTAucWdcG+Sy79ZSQUMVw1eUZfvkRqqO4I7/LOfPIKM7IvhF9BHAcqLGSgvCnFKghGqHWr8
+   LgXWMIxFd9fp5mA7IeicLItPelZ8g0+Wo02fxNV1caKg2s8GJnBcxZybtn9z49qFqdL8UotW6iOY
+   ydoyQuq3VVyBj1vlbXIDysrHh246sMHiJoRqqtWq4LXlKOtjsY2uHmGSFQ9Y2Bo+860Uu1rr0jUM
+   4XSMd90Y/57PD8D8E/Ura/dRr0K0yr+/xP0Pog==
+Received: by omta-ad2-fd3-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
+ (Oracle Communications Messaging Server 8.1.0.1.20211026 64bit (built Oct 26
+ 2021))
+ with ESMTP id <0R32001LWLQ73PF0@omta-ad2-fd3-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Wed, 24 Nov 2021 09:44:31 +0000 (GMT)
+Authentication-results: aserp3010.oracle.com; spf=softfail
+ smtp.mailfrom=jack@suse.cz; dkim=pass header.d=suse.cz header.s=susede2_rsa;
+ dkim=permerror header.d=suse.cz header.s=susede2_ed25519; dmarc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.cz; s=susede2_rsa;
+ t=1637747050;
+ h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+ mime-version:mime-version:content-type:content-type:
+ in-reply-to:in-reply-to:references:references;
+ bh=xjctS9e3aLk//fWwNzII/UY4G5OnovggWZdyEKD1t34=;
+ b=Fa3DfqPoxkPRyFtLFipUAPsRoQ7583RIvIkjGcirn+ZDIVuZJxTkgHZCWQWJkaYcgx/XTF
+ 6Tg+qvMREmzgGwP+y0PqF0I8yljZj0emBD/1N75E2fyVfhSwuHdlW27Cq87y3T4+dKDpTg
+ m3CDIAdfVxCay7j/D++92R/TIMACYbw=
+DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.cz;
+ s=susede2_ed25519; t=1637747050;
+ h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+ mime-version:mime-version:content-type:content-type:
+ in-reply-to:in-reply-to:references:references;
+ bh=xjctS9e3aLk//fWwNzII/UY4G5OnovggWZdyEKD1t34=;
+ b=jBk0LyCfiE1g4jR+z/f8PsVbXLRirmoGyBWY3eutEhQ8eC54ZtfGnQdZjQkRNSqRSaajn0
+ YL6WjUHTxaO0ZHAA==
+Date: Wed, 24 Nov 2021 10:44:09 +0100
+To: Luis Chamberlain <mcgrof@kernel.org>
+Message-id: <20211124094409.GF8583@quack2.suse.cz>
+References: <20211123202422.819032-1-mcgrof@kernel.org>
+ <20211123202422.819032-7-mcgrof@kernel.org>
+MIME-version: 1.0
+Content-disposition: inline
+In-reply-to: <20211123202422.819032-7-mcgrof@kernel.org>
+User-Agent: Mutt/1.10.1 (2018-07-13)
+X-Source-IP: 195.135.220.28
+X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10177
+ signatures=668683
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 impostorscore=0
+ spamscore=0 adultscore=0 phishscore=0 malwarescore=0 mlxlogscore=898
+ suspectscore=0 clxscore=299 bulkscore=0 lowpriorityscore=0 mlxscore=0
+ priorityscore=270 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2110150000 definitions=main-2111240054
+Cc: jack@suse.cz, airlied@linux.ie, benh@kernel.crashing.org,
+ amir73il@gmail.com, clemens@ladisch.de, dri-devel@lists.freedesktop.org,
+ phil@philpotter.co.uk, yzaikin@google.com, joonas.lahtinen@linux.intel.com,
+ keescook@chromium.org, arnd@arndb.de, intel-gfx@lists.freedesktop.org,
+ jani.nikula@linux.intel.com, viro@zeniv.linux.org.uk, rodrigo.vivi@intel.com,
+ nixiaoming@huawei.com, tvrtko.ursulin@linux.intel.com,
+ gregkh@linuxfoundation.org, linux-kernel@vger.kernel.org,
+ julia.lawall@inria.fr, ebiederm@xmission.com, linux-fsdevel@vger.kernel.org,
+ linuxppc-dev@lists.ozlabs.org, ocfs2-devel@oss.oracle.com
+Subject: Re: [Ocfs2-devel] [PATCH v2 6/8] inotify: simplify subdirectory
+ registration with register_sysctl()
 X-BeenThere: ocfs2-devel@oss.oracle.com
-X-Mailman-Version: 2.1.9
+X-Mailman-Version: 2.1.15
 Precedence: list
 List-Id: <ocfs2-devel.oss.oracle.com>
-List-Unsubscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
-	<mailto:ocfs2-devel-request@oss.oracle.com?subject=unsubscribe>
-List-Archive: <http://oss.oracle.com/pipermail/ocfs2-devel>
+List-Unsubscribe: <https://oss.oracle.com/mailman/options/ocfs2-devel>,
+ <mailto:ocfs2-devel-request@oss.oracle.com?subject=unsubscribe>
+List-Archive: <http://oss.oracle.com/pipermail/ocfs2-devel/>
 List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
-	<mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Sender: ocfs2-devel-bounces@oss.oracle.com
-Errors-To: ocfs2-devel-bounces@oss.oracle.com
-X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10158 signatures=668683
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 phishscore=0 adultscore=0 mlxscore=0
- spamscore=0 malwarescore=0 bulkscore=0 mlxlogscore=999 suspectscore=0
- classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2110150000
- definitions=main-2111050009
-X-Proofpoint-GUID: ztOAnskfbEFEVtxP-sKlWB_Zp0dCg630
-X-Proofpoint-ORIG-GUID: ztOAnskfbEFEVtxP-sKlWB_Zp0dCg630
+ <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
+From: Jan Kara via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: Jan Kara <jack@suse.cz>
+Content-type: text/plain; charset="us-ascii"
+Content-transfer-encoding: 7bit
+Errors-to: ocfs2-devel-bounces@oss.oracle.com
+X-ServerName: smtp-out1.suse.de
+X-Proofpoint-SPF-Result: pass
+X-Proofpoint-SPF-Record: v=spf1 ip4:137.65.0.0/16 ip4:151.155.28.0/17
+ ip4:149.44.0.0/16 ip4:147.2.0.0/16 ip4:164.99.0.0/16 ip4:130.57.0.0/16
+ ip4:192.31.114.0/24 ip4:195.135.221.0/24 ip4:195.135.220.0/24
+ ip4:69.7.179.0/24 ip4:150.215.214.0/24 include:mailcontrol.com ~all
+X-Spam: Clean
+X-Proofpoint-GUID: 11G63GYGjijuQh8PwRz706KmLzPznAZB
+X-Proofpoint-ORIG-GUID: 11G63GYGjijuQh8PwRz706KmLzPznAZB
+Reporting-Meta:
+ AAHR9XZxIzIhXyvWNcsjtiiAbLB15qhI3xa23BMWryO29qJPwq0E4DTWdiZs4dou
+ QOHM/CiF9bLENokQakGDK65YzAeAVHYdonpkI7/M9Vr26q6xxllnUBr3Gu4nZquW
+ vV4IyqGdP7yp+vYcZOaiugWskVkOPHqNvvjZj+WzmmHYNeBNOy+rBovi90ALdEcA
+ f6v3cPKo/SkG0/AufozgnG8GHcVi7JQ53ZnR4eTWuDUmTObgkAJ+sKZ0WSd/YiB4
+ +itcxvUx4nUaDeweJL7bV2J4pXv8Cl+QVWCKM14MZ7nWS11zJk8DFrooV4pumsal
+ B8DNAQpL6P3GgBeFDNt76ffWho0o0ExW9SGLly+9ELPoTWu7Cm4McZN7G6bjGc8U
+ bJiO+hBi8ZHRtsCt3CwCFpWKWbF7xENrF1HWTjJxoiwY9OIf+JunOuM3giyqdTis
+ lU/DWf4gDyPUKgCZATTwAnjkK0IA1M9aSFoY4yd8u9LpTitUJ8D0pUbxKqA+bzid
+ gVLXeTbSDd/BsO0li5sVIlPhVMDY1vX1hHvJ1iLc06Y=
 
-
-
-On 11/5/21 9:44 AM, cgel.zte@gmail.com wrote:
-> From: Zhang Mingyu <zhang.mingyu@zte.com.cn>
+On Tue 23-11-21 12:24:20, Luis Chamberlain wrote:
+> From: Xiaoming Ni <nixiaoming@huawei.com>
 > 
-> This issue was detected with the help of Coccinelle.
+> There is no need to user boiler plate code to specify a set of base
+> directories we're going to stuff sysctls under. Simplify this by using
+> register_sysctl() and specifying the directory path directly.
 > 
-> Reported-by: Zeal Robot <zealci@zte.com.cn>
-> Signed-off-by: Zhang Mingyu <zhang.mingyu@zte.com.cn>
+> Move inotify_user sysctl to inotify_user.c while at it to remove clutter
+> from kernel/sysctl.c.
+> 
+> Signed-off-by: Xiaoming Ni <nixiaoming@huawei.com>
+> [mcgrof: update commit log to reflect new path we decided to take]
+> Signed-off-by: Luis Chamberlain <mcgrof@kernel.org>
 
-Acked-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+This looks fishy. You register inotify_table but not fanotify_table and
+remove both...
+
+								Honza
+
 > ---
->  fs/ocfs2/journal.c | 6 ++----
->  1 file changed, 2 insertions(+), 4 deletions(-)
+>  fs/notify/inotify/inotify_user.c | 11 ++++++++++-
+>  include/linux/inotify.h          |  3 ---
+>  kernel/sysctl.c                  | 21 ---------------------
+>  3 files changed, 10 insertions(+), 25 deletions(-)
 > 
-> diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
-> index dbf9b9e97d74..1887a2708709 100644
-> --- a/fs/ocfs2/journal.c
-> +++ b/fs/ocfs2/journal.c
-> @@ -1669,8 +1669,7 @@ static int ocfs2_replay_journal(struct ocfs2_super *osb,
->  	status = jbd2_journal_load(journal);
->  	if (status < 0) {
->  		mlog_errno(status);
-> -		if (!igrab(inode))
-> -			BUG();
-> +		BUG_ON(!igrab(inode));
->  		jbd2_journal_destroy(journal);
->  		goto done;
->  	}
-> @@ -1699,8 +1698,7 @@ static int ocfs2_replay_journal(struct ocfs2_super *osb,
->  	if (status < 0)
->  		mlog_errno(status);
+> diff --git a/fs/notify/inotify/inotify_user.c b/fs/notify/inotify/inotify_user.c
+> index 29fca3284bb5..54583f62dc44 100644
+> --- a/fs/notify/inotify/inotify_user.c
+> +++ b/fs/notify/inotify/inotify_user.c
+> @@ -58,7 +58,7 @@ struct kmem_cache *inotify_inode_mark_cachep __read_mostly;
+>  static long it_zero = 0;
+>  static long it_int_max = INT_MAX;
 >  
-> -	if (!igrab(inode))
-> -		BUG();
-> +	BUG_ON(!igrab(inode));
+> -struct ctl_table inotify_table[] = {
+> +static struct ctl_table inotify_table[] = {
+>  	{
+>  		.procname	= "max_user_instances",
+>  		.data		= &init_user_ns.ucount_max[UCOUNT_INOTIFY_INSTANCES],
+> @@ -87,6 +87,14 @@ struct ctl_table inotify_table[] = {
+>  	},
+>  	{ }
+>  };
+> +
+> +static void __init inotify_sysctls_init(void)
+> +{
+> +	register_sysctl("fs/inotify", inotify_table);
+> +}
+> +
+> +#else
+> +#define inotify_sysctls_init() do { } while (0)
+>  #endif /* CONFIG_SYSCTL */
 >  
->  	jbd2_journal_destroy(journal);
+>  static inline __u32 inotify_arg_to_mask(struct inode *inode, u32 arg)
+> @@ -849,6 +857,7 @@ static int __init inotify_user_setup(void)
+>  	inotify_max_queued_events = 16384;
+>  	init_user_ns.ucount_max[UCOUNT_INOTIFY_INSTANCES] = 128;
+>  	init_user_ns.ucount_max[UCOUNT_INOTIFY_WATCHES] = watches_max;
+> +	inotify_sysctls_init();
 >  
+>  	return 0;
+>  }
+> diff --git a/include/linux/inotify.h b/include/linux/inotify.h
+> index 6a24905f6e1e..8d20caa1b268 100644
+> --- a/include/linux/inotify.h
+> +++ b/include/linux/inotify.h
+> @@ -7,11 +7,8 @@
+>  #ifndef _LINUX_INOTIFY_H
+>  #define _LINUX_INOTIFY_H
+>  
+> -#include <linux/sysctl.h>
+>  #include <uapi/linux/inotify.h>
+>  
+> -extern struct ctl_table inotify_table[]; /* for sysctl */
+> -
+>  #define ALL_INOTIFY_BITS (IN_ACCESS | IN_MODIFY | IN_ATTRIB | IN_CLOSE_WRITE | \
+>  			  IN_CLOSE_NOWRITE | IN_OPEN | IN_MOVED_FROM | \
+>  			  IN_MOVED_TO | IN_CREATE | IN_DELETE | \
+> diff --git a/kernel/sysctl.c b/kernel/sysctl.c
+> index 7a90a12b9ea4..6aa67c737e4e 100644
+> --- a/kernel/sysctl.c
+> +++ b/kernel/sysctl.c
+> @@ -125,13 +125,6 @@ static const int maxolduid = 65535;
+>  static const int ngroups_max = NGROUPS_MAX;
+>  static const int cap_last_cap = CAP_LAST_CAP;
+>  
+> -#ifdef CONFIG_INOTIFY_USER
+> -#include <linux/inotify.h>
+> -#endif
+> -#ifdef CONFIG_FANOTIFY
+> -#include <linux/fanotify.h>
+> -#endif
+> -
+>  #ifdef CONFIG_PROC_SYSCTL
+>  
+>  /**
+> @@ -3099,20 +3092,6 @@ static struct ctl_table fs_table[] = {
+>  		.proc_handler	= proc_dointvec,
+>  	},
+>  #endif
+> -#ifdef CONFIG_INOTIFY_USER
+> -	{
+> -		.procname	= "inotify",
+> -		.mode		= 0555,
+> -		.child		= inotify_table,
+> -	},
+> -#endif
+> -#ifdef CONFIG_FANOTIFY
+> -	{
+> -		.procname	= "fanotify",
+> -		.mode		= 0555,
+> -		.child		= fanotify_table,
+> -	},
+> -#endif
+>  #ifdef CONFIG_EPOLL
+>  	{
+>  		.procname	= "epoll",
+> -- 
+> 2.33.0
 > 
+-- 
+Jan Kara <jack@suse.com>
+SUSE Labs, CR
 
 _______________________________________________
 Ocfs2-devel mailing list
