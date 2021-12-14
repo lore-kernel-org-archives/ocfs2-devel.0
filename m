@@ -1,53 +1,57 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc250.phx1.oracleemaildelivery.com (aib29ajc250.phx1.oracleemaildelivery.com [192.29.103.250])
+Received: from aib29ajc253.phx1.oracleemaildelivery.com (aib29ajc253.phx1.oracleemaildelivery.com [192.29.103.253])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 9C108C433EF
-	for <ocfs2-devel@archiver.kernel.org>; Mon,  6 Dec 2021 06:51:19 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 2FD87C433EF
+	for <ocfs2-devel@archiver.kernel.org>; Tue, 14 Dec 2021 07:08:59 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=pSZgM3//W3nZCGUYcOptxj1ELhABMxaDb8wkcJqemjo=;
- b=Do3BTKcFaaCJf++eVO0NDZPOJg8Ns84UwuHo3rMeCs4He7dPUS6Uwb5mag53IQyUXUaiiFMunuTl
-   f76o2R1DYMjCagCfMklm4+cNCGnNlE7pDIBcGKWNIBDS1tpMZzezURtHQ9NLIsnl3dPxt/eXfJkF
-   0+ubctqRkp6uNypPLrmyn+JevGyQSaOp1jCvcYkPj1AfGEFQGDOHLzvM3DXXQbYtZXj+OYCC7jDG
-   Kh6YsRDoiUrUeFPFqW850c9rNW1lWaz8O44OmpS0+CWaB3qvcoCQMENmkqkiuf0ash302HG2CSh9
-   95I8zVUjlbHoQEKy42ozCG0VC/LzN7dI8X44yw==
+ bh=aDTNOmFWE3iTe2qR6j3Py1mQkmdzLbVHJ0qSzMALlFs=;
+ b=gF0nBpQ2NRVHW4XOSAYS6+l3QiJzHelpB7/p+kNf7m1wtMYRkmXorCENU40CLbe/JLzDGqZ1UI/Q
+   OtGu024X4+t0EK+mTEuVC1dR7a3hmk60cmI+guAYZ33psrTOhvlGIwU/8lHjL5gDxXBmXofuASMj
+   AtsrbUPq4bijG4oyWrHISOLZBSU3gAFlTd+k7P/Ge1R2OJj5Hstprwb4m47sFLtwYeYFr0p2WJcL
+   bc1jmY2nk2ajxaahFrlDnNxeJY67pW+5cFd1CtVuYgoCNPFeoX6wDWk0ccWkUxi2kHNESx1qxoN2
+   4+F/4fZlpnepVuhEBJaxxEkgBb87f48F80eIQw==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=pSZgM3//W3nZCGUYcOptxj1ELhABMxaDb8wkcJqemjo=;
- b=KyKJXq+W9Xw+O2PVzD5vf7POcNrykkrLhAHpYhMFlwUVg+A7iMkpItXwu3NO7XggNNkAvO3fxdbe
-   QvUzqm6djX+WHkNEq6g+IxE2EOdBpH5ckyKr6ShJ0V3TY0t6p0FAyfx3qv7/jRCKH53nLa2HB1ft
-   YAH/TY6GWkiagLkiF1Kxomq2vtA0B3Grx8EK2gHq/y3P10DFSewBghFOJ9CWRAW5NQSM3Kx/4MFI
-   Ins4iiaEOCMH2eX0jnr73uQD96b14jM/sDYaXsFlGe0Z8DcU+cG9kXdDFAUoAuxoLzX5a6CfBX+4
-   mzXCXcyVQ2BOpg69HpmzxjW773r54p2wYEwk3w==
-Received: by omta-ad2-fd3-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
- (Oracle Communications Messaging Server 8.1.0.1.20211123 64bit (built Nov 23
+ bh=aDTNOmFWE3iTe2qR6j3Py1mQkmdzLbVHJ0qSzMALlFs=;
+ b=bLm7Wxc6C9+TG0PxACe1PMUo/s7ra8/njmWa5LOkoDIa4f3NwzV3pI1SuqYd5Z6JrzZpnmB7KSyC
+   x+2hpLh6kzs8pZ1WzFh87oMK7tDrcv4wCVB+47YL9d7ubv0IR2sjty24p7swQH6XZaT4nKj44LzQ
+   iQy7IvLhB1iDEhbii07lw0yXeqrDVFnCAsBIklex9VWhnyxUvdmWO/MaT3qD84b69QPwcJdnyJJi
+   GHNJsOjzR2j+KVWi0J7chCrWYDwh2trdjdaDIeyTnFmExl90+99LKDjtzfusTXVne1ZaFqQz2sVe
+   3Q17zGG7lVKsIFFD12iPRmXadW9pqxqzOPyfjg==
+Received: by omta-ad3-fd1-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
+ (Oracle Communications Messaging Server 8.1.0.1.20211202 64bit (built Dec  2
  2021))
- with ESMTP id <0R3O002ODLPJWNA0@omta-ad2-fd3-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Mon, 06 Dec 2021 06:51:19 +0000 (GMT)
+ with ESMTP id <0R43000XFFUYYH20@omta-ad3-fd1-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Tue, 14 Dec 2021 07:08:58 +0000 (GMT)
 Authentication-results: aserp3010.oracle.com; spf=fail
  smtp.mailfrom=joseph.qi@linux.alibaba.com; dmarc=none
  header.from=linux.alibaba.com
-To: Dan Carpenter <dan.carpenter@oracle.com>
-Date: Mon,  6 Dec 2021 14:50:51 +0800
-Message-id: <20211206065051.103353-1-joseph.qi@linux.alibaba.com>
-X-Mailer: git-send-email 2.19.1.6.gb485710b
+Message-id: <bd6dfb63-6d3d-c8f6-f401-8bdd5334afed@linux.alibaba.com>
+Date: Tue, 14 Dec 2021 15:08:39 +0800
 MIME-version: 1.0
-X-Source-IP: 115.124.30.43
-X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10189
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:91.0)
+ Gecko/20100101 Thunderbird/91.4.0
+Content-language: en-US
+To: Jia-Ju Bai <baijiaju1990@gmail.com>, mark@fasheh.com, jlbec@evilplan.org
+References: <8ae1bb9c-3e58-c8b6-8823-3d2ea8b241e2@gmail.com>
+In-reply-to: <8ae1bb9c-3e58-c8b6-8823-3d2ea8b241e2@gmail.com>
+X-Source-IP: 115.124.30.54
+X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10197
  signatures=668683
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 spamscore=0
- mlxscore=0 lowpriorityscore=0 malwarescore=0 suspectscore=0 impostorscore=0
- priorityscore=174 adultscore=0 phishscore=0 bulkscore=0 clxscore=283
- mlxlogscore=999 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2110150000 definitions=main-2112060041 domainage_hfrom=8271
-Cc: ocfs2-devel@oss.oracle.com
-Subject: [Ocfs2-devel] [PATCH v2] ocfs2: clearly handle
-	ocfs2_grab_pages_for_write() return value
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 suspectscore=0
+ lowpriorityscore=0 mlxlogscore=999 spamscore=0 clxscore=163 phishscore=0
+ bulkscore=0 priorityscore=60 impostorscore=0 malwarescore=0 mlxscore=0
+ adultscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2110150000 definitions=main-2112140040 domainage_hfrom=8279
+Cc: linux-kernel <linux-kernel@vger.kernel.org>, ocfs2-devel@oss.oracle.com
+Subject: Re: [Ocfs2-devel] [BUG] fs: ocfs2: possible ABBA deadlock in
+ ocfs2_dio_end_io_write() and ocfs2_move_extents()
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -61,91 +65,54 @@ List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
 From: Joseph Qi via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
 Reply-to: Joseph Qi <joseph.qi@linux.alibaba.com>
-Content-type: text/plain; charset="us-ascii"
-Content-transfer-encoding: 7bit
+Content-type: text/plain; charset="utf-8"
+Content-transfer-encoding: base64
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-Alimail-AntiSpam: AC=PASS; BC=-1|-1; BR=01201311R721e4; CH=green;
- DM=||false|; DS=||; FP=0|-1|-1|-1|0|-1|-1|-1; HT=e01e01424;
- MF=joseph.qi@linux.alibaba.com; NM=1; PH=DS; RN=3; SR=0;
- TI=SMTPD_---0UzXObZr_1638773451;
-X-ServerName: out30-43.freemail.mail.aliyun.com
+X-Alimail-AntiSpam: AC=PASS; BC=-1|-1; BR=01201311R201e4; CH=green;
+ DM=||false|; DS=||; FP=0|-1|-1|-1|0|-1|-1|-1; HT=e01e04426;
+ MF=joseph.qi@linux.alibaba.com; NM=1; PH=DS; RN=5; SR=0;
+ TI=SMTPD_---0V-bWsut_1639465719;
+X-ServerName: out30-54.freemail.mail.aliyun.com
 X-Proofpoint-SPF-Result: pass
 X-Proofpoint-SPF-Record: v=spf1 include:spf1.service.alibaba.com
  include:spf2.service.alibaba.com include:spf1.ocm.aliyun.com
  include:spf2.ocm.aliyun.com include:spf1.staff.mail.aliyun.com
  include:a.hichina.mail.aliyun.com include:b.hichina.mail.aliyun.com -all
 X-Spam: Clean
-X-Proofpoint-GUID: QI4HkMrv0_pirL1nzVh3Kwu8GcmApQup
-X-Proofpoint-ORIG-GUID: QI4HkMrv0_pirL1nzVh3Kwu8GcmApQup
+X-Proofpoint-GUID: BD4IDh7bJN-IlcwDaHOGHSw_xoq9fzRo
+X-Proofpoint-ORIG-GUID: BD4IDh7bJN-IlcwDaHOGHSw_xoq9fzRo
 Reporting-Meta:
- AAHRXMyikLJngzRsNeYJI+20s32qpyOY/EZlr7IOZc1LpiuzFhvo1a89dl2o3aZT
- Ez/6axuKxo55arkMNGvgk5C74wAIziWvgdWgPW4wuvS5BnUJ9NtBZjR3DIiPbbRf
- JYWopNSs451icz5xK5dPquBpttAN28/KiQ/irREpfOZr4mi4ofczdmNdXwdHAFVM
- ErrCJ+6Ec3BbPpB/KA3WjUNzKfYfr87FWdw61BSKixDBHCfdgWmpMq2Q+v5WwYsl
- Ql5wmndAbJflQ2xlKR1yzT49pk6rsJiJcDpgdMd3h/c4R1wbfewIiEpjoAfNGJwr
- kEmBOfNxvAKwosyEb4F2pJiQmPZqgRqT6a71VQXdJskn0Ea80e3t+UWfMwTfhEhI
- 2zxP9FaldcJz0o4AArSWSEYNnRzoRLGlvA1zbXm+RXueGz91MQuD1FEPxcMOCiIa
- StyfHDQ99peIMIVzLyy5BqXWGMICQlLlwGcnNGgu/IfbgzEQLb6eoafIpW4cdIUe
- H81HpY7Hq1m9+PatrAkFkRbwS/O8ZY6vMpIAztQGXR8=
+ AAHVOuYghjmEeFcoN7rag/bx4qW/B2EULyCdg/Rev3GXDcoeb/VjNlt28verxUXN
+ DYHE27yn7ySWGea8ZslGFitZDD6W6JQumK5zkJ5vFvKHlnNS0XqQciPA7efIbT3l
+ 2HVkjA6ww34JMUpTMeirPQ4hU+79WwBWXmIBwFTbB5Xn45a8g2GfgCIpnTx+vYOb
+ VauJVAoT05vOYfXFvneH0gmvh9tRQuNxAEU8Z/OhLKgJDLzoKTQAoF7+zgJ+Rm5N
+ 1wXmdCR/1I9dE9Tsl72AAHdRyY1mPvoRxdB/93P4Yy0pAOG5JHaOP0U6iqdUJxyP
+ XccerePgfxJIHwyvBH0I0S2YEpXbkhEFGwTfVSQStBn+52X1v6o6P8obYRt7ZDXO
+ Op/Yl17QSHbAwTpJc/zTU9PbTK/rCtyvhYRcdhnMIw9Wch/NIUtGccMLLu2gTISb
+ kgCJW1ITwJAURb9uYNF9lJedutLrQF8F8r/sx5cgnL6PrAsV97P64NHmoHojXrD3
+ 6zDRu5IRp3rXRbWzPMlBQ0e2AXC4YNfs2ofYw+dKoxQ=
 
-ocfs2_grab_pages_for_write() may return -EAGAIN if write context type is
-mmap and it could not lock the target page. In this case, we exit with
-no error and no target page. And then trigger the caller page_mkwrite()
-to retry.
-Since there are other caller types, e.g. buffer and direct io, so make
-the return value handling more clearly.
-
-Reported-by: Dan Carpenter <dan.carpenter@oracle.com>
-Signed-off-by: Joseph Qi <joseph.qi@linux.alibaba.com>
----
-v2: remove redundant blank line
-
- fs/ocfs2/aops.c | 26 +++++++++++++-------------
- 1 file changed, 13 insertions(+), 13 deletions(-)
-
-diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-index 68d11c295dd3..498da317580a 100644
---- a/fs/ocfs2/aops.c
-+++ b/fs/ocfs2/aops.c
-@@ -1799,20 +1799,20 @@ int ocfs2_write_begin_nolock(struct address_space *mapping,
- 	 */
- 	ret = ocfs2_grab_pages_for_write(mapping, wc, wc->w_cpos, pos, len,
- 					 cluster_of_pages, mmap_page);
--	if (ret && ret != -EAGAIN) {
--		mlog_errno(ret);
--		goto out_quota;
--	}
-+	if (ret) {
-+		/*
-+		 * ocfs2_grab_pages_for_write() returns -EAGAIN if it could not lock
-+		 * the target page. In this case, we exit with no error and no target
-+		 * page. This will trigger the caller, page_mkwrite(), to re-try
-+		 * the operation.
-+		 */
-+		if (type == OCFS2_WRITE_MMAP && ret == -EAGAIN) {
-+			BUG_ON(wc->w_target_page);
-+			ret = 0;
-+			goto out_quota;
-+		}
- 
--	/*
--	 * ocfs2_grab_pages_for_write() returns -EAGAIN if it could not lock
--	 * the target page. In this case, we exit with no error and no target
--	 * page. This will trigger the caller, page_mkwrite(), to re-try
--	 * the operation.
--	 */
--	if (ret == -EAGAIN) {
--		BUG_ON(wc->w_target_page);
--		ret = 0;
-+		mlog_errno(ret);
- 		goto out_quota;
- 	}
- 
--- 
-2.19.1.6.gb485710b
-
-
-_______________________________________________
-Ocfs2-devel mailing list
-Ocfs2-devel@oss.oracle.com
-https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+SGksCgpUaGFua3MgZm9yIHRoZSByZXBvcnQuIEJ1dCBJIGRvbid0IHRoaW5rIHRoaXMgaXMgYSBw
+b3NzaWJsZSBkZWFkbG9jayBpbgpwcmFjdGljZS4gUGxlYXNlIHNlZSBteSBjb21tZW50cyBiZWxv
+dy4KCk9uIDEyLzEwLzIxIDQ6MzggUE0sIEppYS1KdSBCYWkgd3JvdGU6Cj4gSGVsbG8sCj4gCj4g
+TXkgc3RhdGljIGFuYWx5c2lzIHRvb2wgcmVwb3J0cyBhIHBvc3NpYmxlIEFCQkEgZGVhZGxvY2sg
+aW4gdGhlIG9jZnMyIG1vZHVsZSBpbiBMaW51eCA1LjEwOgo+IAo+IG9jZnMyX2Rpb19lbmRfaW9f
+d3JpdGUoKQo+IMKgIGRvd25fd3JpdGUoJm9pLT5pcF9hbGxvY19zZW0pOyAtLT4gTGluZSAyMzIy
+IChMb2NrIEEpCj4gwqAgb2NmczJfZGVsX2lub2RlX2Zyb21fb3JwaGFuKCkKPiDCoMKgwqAgaW5v
+ZGVfbG9jayhvcnBoYW5fZGlyX2lub2RlKTvCoCAtLT4gTGluZSAyNzAxIChMb2NrIEIpCgpKdXN0
+IGFzIHRoZSB2YXJpYWJsZSBuYW1lIGluZGljYXRlcywgaXQgaXMgb3JwaGFuIGRpciBpbm9kZSwg
+d2hpY2ggaXMgYQpzeXN0ZW0gZmlsZSAoc29tZXRoaW5nIGhpZGRlbiBpbnNpZGUgdGhlIGZpbGVz
+eXN0ZW0pIGFuZCBub3QgdmlzaWJsZSBmb3IKZW5kIHVzZXIuCgo+IAo+IG9jZnMyX21vdmVfZXh0
+ZW50cygpCj4gwqAgaW5vZGVfbG9jayhpbm9kZSk7IC0tPiBMaW5lIDkxNiAoTG9jayBCKQoKVGhp
+cyBpcyBjYWxsZWQgZnJvbSBhIGlvY3RsIGZyb20gdXNlciwgaXQgYSBub3JtYWwgZmlsZSBpbm9k
+ZS4KClRoYW5rcywKSm9zZXBoCgo+IMKgIGRvd25fd3JpdGUoJk9DRlMyX0koaW5vZGUpLT5pcF9h
+bGxvY19zZW0pOyAtLT4gTGluZSA5MzYgKExvY2sgQSkKPiAKPiBXaGVuIG9jZnMyX2Rpb19lbmRf
+aW9fd3JpdGUoKSBhbmQgb2NmczJfbW92ZV9leHRlbnRzKCkgYXJlIGNvbmN1cnJlbnRseSBleGVj
+dXRlZCwgdGhlIGRlYWRsb2NrcyBjYW4gb2NjdXIuCj4gCj4gSSBhbSBub3QgcXVpdGUgc3VyZSB3
+aGV0aGVyIHRoaXMgcG9zc2libGUgZGVhZGxvY2sgaXMgcmVhbCBhbmQgaG93IHRvIGZpeCBpdCBp
+ZiBpdCBpcyByZWFsLgo+IEFueSBmZWVkYmFjayB3b3VsZCBiZSBhcHByZWNpYXRlZCwgdGhhbmtz
+IDopCj4gCj4gUmVwb3J0ZWQtYnk6IFRPVEUgUm9ib3QgPG9zbGFiQHRzaW5naHVhLmVkdS5jbj4K
+PiAKPiAKPiBCZXN0IHdpc2hlcywKPiBKaWEtSnUgQmFpCgpfX19fX19fX19fX19fX19fX19fX19f
+X19fX19fX19fX19fX19fX19fX19fX19fXwpPY2ZzMi1kZXZlbCBtYWlsaW5nIGxpc3QKT2NmczIt
+ZGV2ZWxAb3NzLm9yYWNsZS5jb20KaHR0cHM6Ly9vc3Mub3JhY2xlLmNvbS9tYWlsbWFuL2xpc3Rp
+bmZvL29jZnMyLWRldmVs
