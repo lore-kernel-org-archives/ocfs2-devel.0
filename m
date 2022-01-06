@@ -1,57 +1,60 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc250.phx1.oracleemaildelivery.com (aib29ajc250.phx1.oracleemaildelivery.com [192.29.103.250])
+Received: from aib29ajc251.phx1.oracleemaildelivery.com (aib29ajc251.phx1.oracleemaildelivery.com [192.29.103.251])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 02E3AC433F5
-	for <ocfs2-devel@archiver.kernel.org>; Wed,  5 Jan 2022 02:10:24 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id AE6BFC433F5
+	for <ocfs2-devel@archiver.kernel.org>; Thu,  6 Jan 2022 10:20:45 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=5XNAwAMARGLhsQ+9PrIUf78jFHVlBit7VIxFxNpuP0g=;
- b=ZybljrPycPhijPBXmvo21/qAG0lMpSITc+Zr7q4BMRpby4Lw4cXV0bPbnfc72AKuarCPYLQOHCyU
-   Wy04QSwyxMMxK2mfG5pu0S7k2RT5hTfQthFJO5wbcmhKgr8bLVvJJERtWoRXuXMkxH6kb5UCQC19
-   XGzzkQTHRUk0rLqg8aXJUZyJoCIoU+O1lyODFpb4FClcZ5K+K13Rm/Aui4jOu2euU371xZ0Eg3uJ
-   FDzsjb6sgkDGsoSY+PBnONvz015IT3j2Y2475+WvVNbwGyntEmerjWgVNJ4NEhcS/7il1+mqgTeU
-   Rv/2L2a+AFgnhL6vR5fWFiV2zUgUH/nqk7Ap8Q==
+ bh=AIh411P/Bg27C3ptsT22+jWRvoNZ8Nvf6RiYgn44BMY=;
+ b=i/5BdkLPOi+LRO24Erqd3CFGwjiZWdnrzAhT3WRVP5ugdSsmlsYEkXCjF5GEgIAstde8+iKZ+bhF
+   AXmTvKtNTi7qR6upAlF+QWHNBqw82jKOC3hAunLVIHTN9bCo5tbiufUJc20Kc45QlXEgYx7Oktva
+   fM2RiXqcW0oizivxPbBCI+jCaW2GUcQtecpTQGVQOyG5SIH+KZUzIxXzIG63ZD6WyJnOoRvZghvQ
+   dWTQrKNG2C+qKu5KyfXoa7Q+6TNlOlFZVXcw1FDr2ZqDKE9pwXN4R2VR7yvNs/7ponYDRyoMR9H0
+   M71TMudBpxTNZ43LzFsAX4eaRLVdDHFAYQ5PNg==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=5XNAwAMARGLhsQ+9PrIUf78jFHVlBit7VIxFxNpuP0g=;
- b=khXb6Ntg4nC3dIv24fMFY8LYhd8TpOgtZqJkIRMXDHBoENFgBlVq4l4QkDOExg0/+N6mtAaa7C1p
-   c/88Ja1CCqs2YmSXB47DpKhXZ7d7RHXgPSlMa8YCk/VMALllzi2A7tQCEE/PeqC5JWbaqys3D07e
-   PtH0l6RD8BF3Lsqdwp3rL3uYwkISwnW+V/Ivcwd3BU2RtXOuLhSFEEWwCj60znRC26S/9TRuo06g
-   R9uyNURYQET6A+TcGWTGr9q/OZxVAjTiwW62oRoSI8eiro2hthAdCx95dJizgapJTnszFm3pBA5g
-   NtOKzICSK5YPhwR4hJutY0hUviZp4fd0ria3IA==
-Received: by omta-ad2-fd3-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
+ bh=AIh411P/Bg27C3ptsT22+jWRvoNZ8Nvf6RiYgn44BMY=;
+ b=b6qGOn2heMiuHudaSwzCVmVHf0ylBdjFIU/1EY+UfsUiZdiCOYy2VeJRwnREz2Rw7RjK/P5590af
+   RjzpYwjCyVc9WplBk/idubIl6fw50BtfegSepVw1kSdiMiKeYYLS/Udb2wLlBXffiMzgLvOIDcj8
+   pR7/OJLQgfhbddeArqH+/pTXlFcuQCD9V3Ic1Mt+FzSLfJHdUtHziIF5N+qeVUt4Yrqpjzaxeazc
+   v1UDGpVzCqEjpGYV0FpZYPaNKaei66xnCqAlD7DW/XvzI3AGifL9iehkIsGglLcKlpVw5pVaV3GN
+   qOQjIOCwS4fYn/TGLvFGTQSoibCu4qEGQhotLQ==
+Received: by omta-ad2-fd3-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20211209 64bit (built Dec  9
  2021))
- with ESMTP id <0R570069YSPC6350@omta-ad2-fd3-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Wed, 05 Jan 2022 02:10:24 +0000 (GMT)
-Authentication-results: aserp3010.oracle.com; spf=fail
- smtp.mailfrom=joseph.qi@linux.alibaba.com; dmarc=none
- header.from=linux.alibaba.com
-Message-id: <a96a59c2-101c-4576-b76b-d9923fca25af@linux.alibaba.com>
-Date: Wed, 5 Jan 2022 10:04:21 +0800
+ with ESMTP id <0R5A008EXA2LOG00@omta-ad2-fd3-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Thu, 06 Jan 2022 10:20:45 +0000 (GMT)
+Authentication-results: aserp3010.oracle.com; spf=permerror
+ smtp.mailfrom=gregkh@linuxfoundation.org; dkim=pass header.s=korg
+ header.d=linuxfoundation.org; dmarc=pass header.from=linuxfoundation.org
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linuxfoundation.org;
+ s=korg; t=1641464431; bh=W9u8F+egG7FJT2/aw81C8uDLm3ZwqvfOJn6J5z/Jd3Q=;
+ h=From:To:Cc:Subject:Date:From;
+ b=gGY6KgsrLpLgla+eN+5WgKdMkTjJGQIpcB1g1A9mSDmA9l3WGrytXxWsql6zk/PU5
+ xD++mpPci/kq9fGtUTzLXbgp+iaU8nNjb3M1eOHLIUe7H53oi1lwVoiHmIjeDu2qbH
+ nWGqkjm3SYMtSrLJIe3mxq83fYx68zHZplROyB3A=
+To: linux-kernel@vger.kernel.org
+Date: Thu,  6 Jan 2022 11:20:28 +0100
+Message-id: <20220106102028.3345634-1-gregkh@linuxfoundation.org>
+X-Mailer: git-send-email 2.34.1
 MIME-version: 1.0
-User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:91.0)
- Gecko/20100101 Thunderbird/91.4.0
-Content-language: en-US
-To: cgel.zte@gmail.com, mark@fasheh.com
-References: <20220104112332.601834-1-chi.minghao@zte.com.cn>
-In-reply-to: <20220104112332.601834-1-chi.minghao@zte.com.cn>
-X-Source-IP: 115.124.30.133
-X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10217
+X-Source-IP: 139.178.84.217
+X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10218
  signatures=668683
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 bulkscore=0
- phishscore=0 adultscore=0 mlxlogscore=999 clxscore=260 lowpriorityscore=0
- malwarescore=0 priorityscore=211 mlxscore=0 impostorscore=0 suspectscore=0
- spamscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2110150000 definitions=main-2201050013 domainage_hfrom=8301
-Cc: Minghao Chi <chi.minghao@zte.com.cn>, Zeal Robot <zealci@zte.com.cn>,
- ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
-Subject: Re: [Ocfs2-devel] [PATCH] fs/ocfs2: remove redundant ret variable
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 phishscore=0
+ priorityscore=403 suspectscore=0 bulkscore=0 mlxlogscore=775 malwarescore=0
+ mlxscore=0 clxscore=357 lowpriorityscore=0 adultscore=0 spamscore=0
+ impostorscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2112160000 definitions=main-2201060073
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
+ Geert Uytterhoeven <geert@linux-m68k.org>, Miguel Ojeda <ojeda@kernel.org>,
+ Masahiro Yamada <masahiroy@kernel.org>, ocfs2-devel@oss.oracle.com
+Subject: [Ocfs2-devel] [PATCH] ocfs2: cluster: use default_groups in	kobj_type
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -63,91 +66,98 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: Joseph Qi via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: Joseph Qi <joseph.qi@linux.alibaba.com>
+From: Greg Kroah-Hartman via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-Alimail-AntiSpam: AC=PASS; BC=-1|-1; BR=01201311R571e4; CH=green;
- DM=||false|; DS=||; FP=0|-1|-1|-1|0|-1|-1|-1; HT=e01e01424;
- MF=joseph.qi@linux.alibaba.com; NM=1; PH=DS; RN=7; SR=0;
- TI=SMTPD_---0V1-Gl5B_1641348261;
-X-ServerName: out30-133.freemail.mail.aliyun.com
+X-Developer-Signature: v=1; a=openpgp-sha256; l=2200; h=from:subject;
+ bh=W9u8F+egG7FJT2/aw81C8uDLm3ZwqvfOJn6J5z/Jd3Q=;
+ b=owGbwMvMwCRo6H6F97bub03G02pJDInXDuVo7ey6n/KjoHDJd/7fCexs7PFCGwStrm8NbSgK+/Pp
+ 9k3vjlgWBkEmBlkxRZYv23iO7q84pOhlaHsaZg4rE8gQBi5OAZhI6i2G+QGXdhg/1EsusE/bwaES82
+ dn7oSekwzzPcuaBUIjfgfUXzt5vfGTAltVQAwbAA==
+X-Developer-Key: i=gregkh@linuxfoundation.org; a=openpgp;
+ fpr=F4B60CC5BF78C2214A313DCB3147D40DDB2DFB29
+X-ServerName: dfw.source.kernel.org
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 include:spf1.service.alibaba.com
- include:spf2.service.alibaba.com include:spf1.ocm.aliyun.com
- include:spf2.ocm.aliyun.com include:spf1.staff.mail.aliyun.com
- include:a.hichina.mail.aliyun.com include:b.hichina.mail.aliyun.com -all
+X-Proofpoint-SPF-Record: v=spf1 ip4:72.55.140.81 include:_spf.kernel.org
+ include:_spf.google.com include:amazonses.com include:_spf.salesforce.com ~all
 X-Spam: Clean
-X-Proofpoint-ORIG-GUID: 1uF9136m9qxQH-QIJyIv989VT6V5jGhp
-X-Proofpoint-GUID: 1uF9136m9qxQH-QIJyIv989VT6V5jGhp
+X-Proofpoint-ORIG-GUID: ZMBlw2qHdnycVxDLn6ZTogswT1AQTmpE
+X-Proofpoint-GUID: ZMBlw2qHdnycVxDLn6ZTogswT1AQTmpE
 Reporting-Meta:
- AAF+ASBrpPMYH60CHOgWzIKan8P6ubM/kvph04unO/EYAlDUFQeY2MEFY1S/pHut
- vPUJWeXjeFKBWyzmW/xsjnIHQQI6+6VQUV+CGO2C3k/vwswS9CDmleBQS3EJ+dpb
- 3CSz3R0gmOSgRGlh75iEoKN78BvA7bOVCGc2f8Z9qDpM/mW66+eUr5DyoW7XxAPt
- CSF60OjEOxBQAUnEk+1TPaxsNzFK5n0Gp8QuKz3iupQJd4kgEvbToTNkLkdiVrtK
- 0wnl8HmWM+ZpyQ2YG6eZ7PPLxDz0n74h2wJNHtF1o5LtCmGER22uNxRWsaVN/EfC
- dRihEfgTTfBDC/4JDlGuTxwHZmPCJuq2qPh8lVdA5jDZtCfgWdZQJ0htLgO3UBGy
- 76HZEdj6dtGtxSdpSANtrOZApamzxIP4x3t+HVdH/qIWVo17Rj/BuPUztwxfoeoJ
- fwByHd5b8GRA31velQavJInBZUh6FVid6GGQFPtn61iwshjMTFM+2hEh4TND4w1R
- Zbtk2j9mvZ65iXSbp+thSwtOGOfRhsoESu9jwssM/dA=
+ AAF0qP+VMBzc4MiwH+2XdPpw5bPzzaigIyyBGvvadJ1iQ7qJZmaBOb9+zf+H0xg4
+ Rl3TamnjtRxnfEeyUB9kQXEdBwdaHVRGvtcUQTi1Za7T6XHI09hVbOfffQHSmQUs
+ DsQtZZEh71WJ0mj8bwQ3utKycrZaLxDosMsm0SStY2buHpKLP0x6lANbBfq/8U5d
+ 1VqRTH5/L196RCDdgPFJ0Uj7b1D6EVp2HYnkHL8L/kshy6EEL9bD5WJF+nIIAIZJ
+ 10F1j7ux2bIIgiuIjpwkndNCyvD/Ooq3IOOtmEh0wHugx/dLtecfywqUztzs6PbX
+ Oj8RWXt2KWMTeffuxrbcCkF43fOHXjB01BYrvKLoKrecDHq316HSTcrL0BY154Gv
+ c1k3SwvdXunnBbsyvjZSg+8jgMM1XksG7R9cyF9kc1+JRvuho8ZTMuw/VRX5bEb7
+ TwVTAIk05QmUOjWnNl1WXvUedBp8EZPJGrhr6jjPLuYMtUxxPed1msbr1sRLAZ7D
+ X8LtKIYpOhENZfVJnuPoJc0K7Dmo8JM+0e6EnIQCERCU
 
+There are currently 2 ways to create a set of sysfs files for a
+kobj_type, through the default_attrs field, and the default_groups
+field.  Move the ocfs2 cluster sysfs code to use default_groups field
+which has been the preferred way since aa30f47cf666 ("kobject: Add
+support for default attribute groups to kobj_type") so that we can soon
+get rid of the obsolete default_attrs field.
 
+Cc: Mark Fasheh <mark@fasheh.com>
+Cc: Joel Becker <jlbec@evilplan.org>
+Cc: Joseph Qi <joseph.qi@linux.alibaba.com>
+Cc: Masahiro Yamada <masahiroy@kernel.org>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Miguel Ojeda <ojeda@kernel.org>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: ocfs2-devel@oss.oracle.com
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ fs/ocfs2/cluster/masklog.c | 11 ++++++-----
+ 1 file changed, 6 insertions(+), 5 deletions(-)
 
-On 1/4/22 7:23 PM, cgel.zte@gmail.com wrote:
-> From: Minghao Chi <chi.minghao@zte.com.cn>
-> 
-> Return value from dlm_lock() directly instead
-> of taking this in another redundant variable.
-> 
-> Reported-by: Zeal Robot <zealci@zte.com.cn>
-> Signed-off-by: Minghao Chi <chi.minghao@zte.com.cn>
-> Signed-off-by: CGEL ZTE <cgel.zte@gmail.com>
-> ---
->  fs/ocfs2/stack_user.c | 9 ++-------
->  1 file changed, 2 insertions(+), 7 deletions(-)
-> 
-> diff --git a/fs/ocfs2/stack_user.c b/fs/ocfs2/stack_user.c
-> index 85a47621e0c0..3027a6a05668 100644
-> --- a/fs/ocfs2/stack_user.c
-> +++ b/fs/ocfs2/stack_user.c
-> @@ -683,28 +683,23 @@ static int user_dlm_lock(struct ocfs2_cluster_connection *conn,
->  			 void *name,
->  			 unsigned int namelen)
->  {
-> -	int ret;
-> -
->  	if (!lksb->lksb_fsdlm.sb_lvbptr)
->  		lksb->lksb_fsdlm.sb_lvbptr = (char *)lksb +
->  					     sizeof(struct dlm_lksb);
->  
-> -	ret = dlm_lock(conn->cc_lockspace, mode, &lksb->lksb_fsdlm,
-> +	return dlm_lock(conn->cc_lockspace, mode, &lksb->lksb_fsdlm,
->  		       flags|DLM_LKF_NODLCKWT, name, namelen, 0,
->  		       fsdlm_lock_ast_wrapper, lksb,
->  		       fsdlm_blocking_ast_wrapper);
+diff --git a/fs/ocfs2/cluster/masklog.c b/fs/ocfs2/cluster/masklog.c
+index 810d32815593..563881ddbf00 100644
+--- a/fs/ocfs2/cluster/masklog.c
++++ b/fs/ocfs2/cluster/masklog.c
+@@ -120,7 +120,8 @@ static struct mlog_attribute mlog_attrs[MLOG_MAX_BITS] = {
+ 	define_mask(KTHREAD),
+ };
+ 
+-static struct attribute *mlog_attr_ptrs[MLOG_MAX_BITS] = {NULL, };
++static struct attribute *mlog_default_attrs[MLOG_MAX_BITS] = {NULL, };
++ATTRIBUTE_GROUPS(mlog_default);
+ 
+ static ssize_t mlog_show(struct kobject *obj, struct attribute *attr,
+ 			 char *buf)
+@@ -144,8 +145,8 @@ static const struct sysfs_ops mlog_attr_ops = {
+ };
+ 
+ static struct kobj_type mlog_ktype = {
+-	.default_attrs = mlog_attr_ptrs,
+-	.sysfs_ops     = &mlog_attr_ops,
++	.default_groups = mlog_default_groups,
++	.sysfs_ops      = &mlog_attr_ops,
+ };
+ 
+ static struct kset mlog_kset = {
+@@ -157,10 +158,10 @@ int mlog_sys_init(struct kset *o2cb_kset)
+ 	int i = 0;
+ 
+ 	while (mlog_attrs[i].attr.mode) {
+-		mlog_attr_ptrs[i] = &mlog_attrs[i].attr;
++		mlog_default_attrs[i] = &mlog_attrs[i].attr;
+ 		i++;
+ 	}
+-	mlog_attr_ptrs[i] = NULL;
++	mlog_default_attrs[i] = NULL;
+ 
+ 	kobject_set_name(&mlog_kset.kobj, "logmask");
+ 	mlog_kset.kobj.kset = o2cb_kset;
+-- 
+2.34.1
 
-Better to align the parameters as well.
-
-Thanks,
-Joseph
-
-> -	return ret;
->  }
->  
->  static int user_dlm_unlock(struct ocfs2_cluster_connection *conn,
->  			   struct ocfs2_dlm_lksb *lksb,
->  			   u32 flags)
->  {
-> -	int ret;
->  
-> -	ret = dlm_unlock(conn->cc_lockspace, lksb->lksb_fsdlm.sb_lkid,
-> +	return dlm_unlock(conn->cc_lockspace, lksb->lksb_fsdlm.sb_lkid,
->  			 flags, &lksb->lksb_fsdlm, lksb);
-> -	return ret;
->  }
->  
->  static int user_dlm_lock_status(struct ocfs2_dlm_lksb *lksb)
 
 _______________________________________________
 Ocfs2-devel mailing list
