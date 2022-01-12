@@ -4,56 +4,72 @@ X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 Received: from aib29ajc252.phx1.oracleemaildelivery.com (aib29ajc252.phx1.oracleemaildelivery.com [192.29.103.252])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 2CE2DC433F5
-	for <ocfs2-devel@archiver.kernel.org>; Thu,  6 Jan 2022 11:30:55 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id C6595C433F5
+	for <ocfs2-devel@archiver.kernel.org>; Wed, 12 Jan 2022 08:14:27 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=dY+7+jy1TPDSA+rb+L16n4ESk+TbAaZNriX4KkHX/vI=;
- b=y3ltvAu3Of/mrSO4NFZgmayAtZyYtRSOUBg2k+93lDiAXynIXkFFp/N9PTLmaUZFGluz+QPHEabR
-   2U04/KfvZmANWrpzOE/06K/r52T9Zc5tqjPZ9OsChE5L9km/BI4zS4fNaq2kXAsm1gAP0vDPqDx8
-   Cox1oNJsEvoNL+Rqws2Mh8UbzN8U58HHRGLTYfRvtoogDEgP+dHF/cRirJdR3VZrs3UvZMAhOz4k
-   1WvnDgFakC4ELNc6HYJ9VQAHPzZ4JuoLAOBA3LdxLvgfTOPwQF7U1KVvHu3CcM2TYfZOvYKHfeN8
-   Pg+lT4RDw/FablAbKTHGYN4M3OZU34dcDFT/KQ==
+ bh=Z4288Jr7thEVvkn1dZSMz5nXYP6pseXS4AkHms6wJy0=;
+ b=MxwCmue4A83Z5JiyaXNRkg063VaOaZmE9VKWebVsTf97sGpGo8RDnm2QLNOOTlcUQSuMxeox8XrY
+   rJGgs1hnaR+kBS3Yfv56SoTPrLAtVV2vxmFr+Di6r9JCXzSOSwz8FKfn6gZSGAGBRVqQLBNaKvuR
+   ETqEk6ogr9D9n5Bqf0pfp4xfxWRpqIqhU0puxJxbmLxvZ9u/wsTCPRuJ2zw0gx4IO1S/dvWW0Qd0
+   zKhGfpa4vHcs80E1CSpMsB55N1jqtQAI/Tf9C/6vdaZ9UYH5cgJ7tGqSBGFrNfWVxyY5n4F4+m3j
+   K7Q0Yt5T8IFLSI0U6aVAyGHS7Chl+hz7WkQlpQ==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=dY+7+jy1TPDSA+rb+L16n4ESk+TbAaZNriX4KkHX/vI=;
- b=PbnYBOYMj9zYrlg/QrtrD7r5qvT9KOnZShLSsS9GFdT2Y80sYGOg05r28mviKWefcQ7jtiVvp5Px
-   EBMfN64ofrpLeJJnRrgrC+0MZoFKsc5pJCxE/M1Pdbua5QxcduHwve2oBpr329Ly0yx/rBwMgsVv
-   Jj8FY8TXWgBGLEdwDlr4jtgjjdt2pvi/Q3ePvyvnB+5X6PlX7nDOBOLp+mKanjUMGjixm2Snz9Sg
-   J4yap57R0r1I5aBysTotjjEGCd7M+P0PDzW1i0KwBIAtq1WiOhYhgct0aa3BS9SxwVly+Ct0axAV
-   tZBECquE19csigbRalTSTjWHUEuc7+78hH6f+w==
+ bh=Z4288Jr7thEVvkn1dZSMz5nXYP6pseXS4AkHms6wJy0=;
+ b=I80DdQ3a0RZPzmPgHGMPKEyVbtl1M+8ksr1sUiuWVhDuhYGxcq6aw+LKHR/WLHauUlgLs/vOt1GN
+   CV1qejJbMEgHYbOTSLPJq792Q3zOPCnF87m4127KJLWihocgNdNighzl4Xdsf9KWUKPptUe+ijwJ
+   BEih6UPEtg0P0z3HGgmgUVKBA3ehudOMH2wn0i4DHqAC4Zjw7JGoWOBt6bX08eD/yw9reYrs5ZGw
+   OnAwYpnulcJPjG239QpgBJ68eTPeDZKE0RIVPfJNUCotXpn/FZIG16iU3marYBtdiWt0Q3p9qWuF
+   +e7zwsM1l4Y58z7tx5vhPtnNFQS11+C4r62KhQ==
 Received: by omta-ad3-fd1-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20211209 64bit (built Dec  9
  2021))
- with ESMTP id <0R5A00ED6DBIYHC0@omta-ad3-fd1-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Thu, 06 Jan 2022 11:30:54 +0000 (GMT)
-Authentication-results: aserp3010.oracle.com; spf=fail
- smtp.mailfrom=joseph.qi@linux.alibaba.com; dmarc=none
- header.from=linux.alibaba.com
-Message-id: <0dd319cf-8e2e-e378-368f-e419d5f9b6a6@linux.alibaba.com>
-Date: Thu, 6 Jan 2022 19:29:24 +0800
+ with ESMTP id <0R5L0016L883TH50@omta-ad3-fd1-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Wed, 12 Jan 2022 08:14:27 +0000 (GMT)
+Authentication-results: aserp3010.oracle.com; spf=softfail
+ smtp.mailfrom=cgel.zte@gmail.com; dkim=pass header.d=gmail.com
+ header.s=20210112; dmarc=pass header.from=gmail.com
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=20210112;
+ h=from:to:cc:subject:date:message-id:mime-version :content-transfer-encoding;
+ bh=iR0lUnzAD3Q4l81+MH9jHlQ80I7ebpkxiYExJYSnlE0=;
+ b=gTzQAHAm6MZssV7h1/4i/QnrghPm6YFhsce53+RPOhbQVFNspioZ6cj9CjIKqp/aZF
+ Xvae4avqdqM5aDrVvRXQcJP9qJD34QQ3G7esOhEf2wy0hXqf8wxY3V97Cno0kv0Bfh00
+ UHwFgAq27v533l53NjVblm+vQVBzxd25GvEY4vnftwpMAy8hlLp2qdflyPObB0nfg7Uo
+ bFt50AWQ48S9ckMac/y/mJMrGHSnaD0Q0OSuYk+HalBPEUuDvdetQUaYZa5VUrkY7NNL
+ iGKiIBqpIlwbEhB0hE/qkcnvAYbDY93+zpnQZHv6lVf4dIbdlQMFRh1Fr8IGIhAfC5uM W1rA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=1e100.net;
+ s=20210112;
+ h=x-gm-message-state:from:to:cc:subject:date:message-id:mime-version
+ :content-transfer-encoding; bh=iR0lUnzAD3Q4l81+MH9jHlQ80I7ebpkxiYExJYSnlE0=;
+ b=b3CY/b5xkutNzpc4/oAF9hr/ZLxqNK+SN6UXZFrv4eTLPcOGChEgSPs3mfFio4ZZoX
+ CKr6YLauJpYzYZ3aJtTIg+vaQckXgL9DcwPPTowPSrWrN9c2/HEeXOMIu4W/e40cOc5m
+ Hz23gde1oKg97Tqut1BZbbVt7JPZDuNz9n788qZ8QKL+iNEsivpDI692ZQgUKN7oLKO6
+ GgLXiiQ+1Ats68UWzAX6h+o/GU9+Kz4EByIEV1YOfaIp+gj1xZFP9BYirMCUqfwvPmd8
+ Bl305x0UFFAhnHmJR0qF1GZbUl/uHJQEJG2NZWevHvM6D9+nm3704b2SgGjPEzU1Ecgu gSGA==
+X-Gm-Message-State: AOAM533kG1g2hfe2c6Hpy3cqf1cZ8l/EUoPdVXLtziyNXonauVTV1aC3
+ IMVr3qSQVKxSK6eqwkVeRiU=
+X-Received: by 2002:a05:6214:c45:: with SMTP id
+ r5mr7010672qvj.111.1641975255148; Wed, 12 Jan 2022 00:14:15 -0800 (PST)
+To: mark@fasheh.com
+Date: Wed, 12 Jan 2022 08:14:08 +0000
+Message-id: <20220112081408.667411-1-chi.minghao@zte.com.cn>
+X-Mailer: git-send-email 2.25.1
 MIME-version: 1.0
-User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:91.0)
- Gecko/20100101 Thunderbird/91.4.0
-Content-language: en-US
-To: Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
- linux-kernel@vger.kernel.org
-References: <20220106102028.3345634-1-gregkh@linuxfoundation.org>
-In-reply-to: <20220106102028.3345634-1-gregkh@linuxfoundation.org>
-X-Source-IP: 115.124.30.57
-X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10218
+X-Source-IP: 209.85.219.44
+X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10224
  signatures=668683
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0
- lowpriorityscore=0 phishscore=0 malwarescore=0 mlxlogscore=999 clxscore=236
- impostorscore=0 bulkscore=0 adultscore=0 suspectscore=0 mlxscore=0
- priorityscore=178 spamscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2112160000 definitions=main-2201060081 domainage_hfrom=8302
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Miguel Ojeda <ojeda@kernel.org>,
- Masahiro Yamada <masahiroy@kernel.org>, ocfs2-devel@oss.oracle.com
-Subject: Re: [Ocfs2-devel] [PATCH] ocfs2: cluster: use default_groups in
-	kobj_type
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 malwarescore=0
+ priorityscore=465 phishscore=0 clxscore=236 mlxscore=0 suspectscore=0
+ adultscore=0 lowpriorityscore=0 bulkscore=0 mlxlogscore=999 spamscore=0
+ impostorscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2110150000 definitions=main-2201120051 domainage_hfrom=9649
+Cc: CGEL ZTE <cgel.zte@gmail.com>, Zeal Robot <zealci@zte.com.cn>,
+ linux-kernel@vger.kernel.org, Minghao Chi <chi.minghao@zte.com.cn>,
+ ocfs2-devel@oss.oracle.com
+Subject: [Ocfs2-devel] [PATCH] fs/ocfs2: remove redundant ret variable
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -65,97 +81,67 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: Joseph Qi via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: Joseph Qi <joseph.qi@linux.alibaba.com>
+From: "cgel.zte--- via Ocfs2-devel" <ocfs2-devel@oss.oracle.com>
+Reply-to: cgel.zte@gmail.com
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-Alimail-AntiSpam: AC=PASS; BC=-1|-1; BR=01201311R851e4; CH=green;
- DM=||false|; DS=||; FP=0|-1|-1|-1|0|-1|-1|-1; HT=e01e04394;
- MF=joseph.qi@linux.alibaba.com; NM=1; PH=DS; RN=9; SR=0;
- TI=SMTPD_---0V15g75R_1641468564;
-X-ServerName: out30-57.freemail.mail.aliyun.com
+X-Google-Smtp-Source:
+ ABdhPJzOoaH7o0MsxeXn2LqP9mesagpesw1w3+gHERyG7I/2Jjen9r+pRgfBBbflphqx4ttLGAVLVw==
+X-Google-Original-From: chi.minghao@zte.com.cn
+X-ServerName: mail-qv1-f44.google.com
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 include:spf1.service.alibaba.com
- include:spf2.service.alibaba.com include:spf1.ocm.aliyun.com
- include:spf2.ocm.aliyun.com include:spf1.staff.mail.aliyun.com
- include:a.hichina.mail.aliyun.com include:b.hichina.mail.aliyun.com -all
+X-Proofpoint-SPF-Record: v=spf1 redirect=_spf.google.com
 X-Spam: Clean
-X-Proofpoint-ORIG-GUID: _YGzQpQrxMaSbpBft-HBk21gFmmEqAc4
-X-Proofpoint-GUID: _YGzQpQrxMaSbpBft-HBk21gFmmEqAc4
+X-Proofpoint-GUID: FPSZ4u0xK2CaMBWr7aDu2AXPGGZWS-uZ
+X-Proofpoint-ORIG-GUID: FPSZ4u0xK2CaMBWr7aDu2AXPGGZWS-uZ
 Reporting-Meta:
- AAEx6NmhYvXpUYKmka1yfqek/VoR+l+LHib0389Sw+xfuiDeeFSdTkxDAPAPhN2M
- 9giulLAEh4MHALcnw0EPFE96tTDtpW04MY/6UPudbxv0HpEeE1ET2Sd96K7wtclm
- HVhELOC33P/2me4QnI1w4uubDnSD8JBYjFubT3C5+9xOn5IS0q2LOsONPHjhBtHh
- r5hbwe7ixhMy6tfzZgvLnE19UDzLiB3KedwQU0SODGIkkWHCROp6/K/G58Ciq10I
- +ufKMtVXTCPm0CQdaYAFu9VOOmGxzKMCJsi0Ox5Qc4ETyn3nEHKItkQkjzYoGD6M
- P4YS0SAOklfHByS0HP4t1+1obTpcMf0M4Oemkl35TAJxPKA15hLGfP6JTB4ErORK
- hYbB7rqgG2ua+opMZJxMHDLMMxcBWh12AxGtLJdd/tItL9o1I3OZxFusEC+Z4q0H
- oUgAinxHemm3d53WZ7dKJVpmZxLgYL+Ei1pkJ3i0Bjo0d2mA47lDOKx+Aee3hMp8
- X+iLh3wcYxoqMCsddsOpBz/U6Tg1/iZ4wF4Pfv/eqXVM
+ AAHUzFVid6KcysDg6NSAF9Xg8UYExGiNQcNuF9Tgg5hdkMlgglFh2/ApR7xEXLlm
+ Gp5SCagDc0drKhrHBagaJj25o9ujS6b+lKfzXMxwVH9t3q/1ssqLUiR/lV65Rfo/
+ rocN3hMFXuzOMJb6oq0iPbqTOC5gV+UTgmRaPv1FDPr/uq2O0gBYFU+7sW7gWlL4
+ Gj/K1IjQ7cMw3dwRZBTzANrp7g2SfsfjxUmp24vPStWpQCn84T16nJ3J6uh4OjKx
+ FZ8aji+mdjCtPqvPHkIqNQSWfT6Ai+/tdVfrQGCTuSvoyecmKVky4wdWtiegixEw
+ WJt33UkH1HX/QiQbi7aizAEoqcupLq3eZl41+unEOe+snurHR4nDbtWSOr5xO3TP
+ +su/Zw7rPSYMoJA2/hRNC4WTsBXUhjvqUPra9PIIN7ld+5aD2Rd/VOyG+lf7hVJi
+ 1pmvNP33QDyUqCg48PnL+f9tvETSygDhXorQVBS+JefnQ5lT7rOn9opsWhTaQQac
+ Vd9PhLATAZDmDLIrf0XLX9oBzx2G7B+u5FlYZ4ziS84=
 
-Reviewed-and-Tested-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+From: Minghao Chi <chi.minghao@zte.com.cn>
 
-On 1/6/22 6:20 PM, Greg Kroah-Hartman wrote:
-> There are currently 2 ways to create a set of sysfs files for a
-> kobj_type, through the default_attrs field, and the default_groups
-> field.  Move the ocfs2 cluster sysfs code to use default_groups field
-> which has been the preferred way since aa30f47cf666 ("kobject: Add
-> support for default attribute groups to kobj_type") so that we can soon
-> get rid of the obsolete default_attrs field.
-> 
-> Cc: Mark Fasheh <mark@fasheh.com>
-> Cc: Joel Becker <jlbec@evilplan.org>
-> Cc: Joseph Qi <joseph.qi@linux.alibaba.com>
-> Cc: Masahiro Yamada <masahiroy@kernel.org>
-> Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-> Cc: Andrew Morton <akpm@linux-foundation.org>
-> Cc: Miguel Ojeda <ojeda@kernel.org>
-> Cc: Geert Uytterhoeven <geert@linux-m68k.org>
-> Cc: ocfs2-devel@oss.oracle.com
-> Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-> ---
->  fs/ocfs2/cluster/masklog.c | 11 ++++++-----
->  1 file changed, 6 insertions(+), 5 deletions(-)
-> 
-> diff --git a/fs/ocfs2/cluster/masklog.c b/fs/ocfs2/cluster/masklog.c
-> index 810d32815593..563881ddbf00 100644
-> --- a/fs/ocfs2/cluster/masklog.c
-> +++ b/fs/ocfs2/cluster/masklog.c
-> @@ -120,7 +120,8 @@ static struct mlog_attribute mlog_attrs[MLOG_MAX_BITS] = {
->  	define_mask(KTHREAD),
->  };
->  
-> -static struct attribute *mlog_attr_ptrs[MLOG_MAX_BITS] = {NULL, };
-> +static struct attribute *mlog_default_attrs[MLOG_MAX_BITS] = {NULL, };
-> +ATTRIBUTE_GROUPS(mlog_default);
->  
->  static ssize_t mlog_show(struct kobject *obj, struct attribute *attr,
->  			 char *buf)
-> @@ -144,8 +145,8 @@ static const struct sysfs_ops mlog_attr_ops = {
->  };
->  
->  static struct kobj_type mlog_ktype = {
-> -	.default_attrs = mlog_attr_ptrs,
-> -	.sysfs_ops     = &mlog_attr_ops,
-> +	.default_groups = mlog_default_groups,
-> +	.sysfs_ops      = &mlog_attr_ops,
->  };
->  
->  static struct kset mlog_kset = {
-> @@ -157,10 +158,10 @@ int mlog_sys_init(struct kset *o2cb_kset)
->  	int i = 0;
->  
->  	while (mlog_attrs[i].attr.mode) {
-> -		mlog_attr_ptrs[i] = &mlog_attrs[i].attr;
-> +		mlog_default_attrs[i] = &mlog_attrs[i].attr;
->  		i++;
->  	}
-> -	mlog_attr_ptrs[i] = NULL;
-> +	mlog_default_attrs[i] = NULL;
->  
->  	kobject_set_name(&mlog_kset.kobj, "logmask");
->  	mlog_kset.kobj.kset = o2cb_kset;
+Return value from ocfs2_add_clusters_in_btree() directly instead
+of taking this in another redundant variable.
+
+Reported-by: Zeal Robot <zealci@zte.com.cn>
+Signed-off-by: Minghao Chi <chi.minghao@zte.com.cn>
+Signed-off-by: CGEL ZTE <cgel.zte@gmail.com>
+---
+ fs/ocfs2/file.c | 6 +-----
+ 1 file changed, 1 insertion(+), 5 deletions(-)
+
+diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+index fc5f780fa235..9a46dcef448c 100644
+--- a/fs/ocfs2/file.c
++++ b/fs/ocfs2/file.c
+@@ -540,15 +540,11 @@ int ocfs2_add_inode_data(struct ocfs2_super *osb,
+ 			 struct ocfs2_alloc_context *meta_ac,
+ 			 enum ocfs2_alloc_restarted *reason_ret)
+ {
+-	int ret;
+ 	struct ocfs2_extent_tree et;
+ 
+-	ocfs2_init_dinode_extent_tree(&et, INODE_CACHE(inode), fe_bh);
+-	ret = ocfs2_add_clusters_in_btree(handle, &et, logical_offset,
++	return ocfs2_add_clusters_in_btree(handle, &et, logical_offset,
+ 					  clusters_to_add, mark_unwritten,
+ 					  data_ac, meta_ac, reason_ret);
+-
+-	return ret;
+ }
+ 
+ static int ocfs2_extend_allocation(struct inode *inode, u32 logical_start,
+-- 
+2.25.1
+
 
 _______________________________________________
 Ocfs2-devel mailing list
