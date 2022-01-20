@@ -4,75 +4,52 @@ X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 Received: from aib29ajc244.phx1.oracleemaildelivery.com (aib29ajc244.phx1.oracleemaildelivery.com [192.29.103.244])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 4D11DC433F5
-	for <ocfs2-devel@archiver.kernel.org>; Wed, 19 Jan 2022 11:29:57 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 9FAD9C433F5
+	for <ocfs2-devel@archiver.kernel.org>; Thu, 20 Jan 2022 02:14:05 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=Qjcn/u1V5ARrJZ0lWs2twUAS+w+q3ShYuSjJ3wvbKB0=;
- b=EpDGO0bsfOz8ys3oGD1Rv8JycS01Ru1g6YAg0lKBvoAJVjbPqcnztTwVFPNchuREEt3X+AAmF2yV
-   qVlYOGxWNjV4v5L5JJST4KSaIhAEp8AlQM4UkBqYiX96O4+gMg+96oupnF4ZkOLbiGxNs3ej2jLc
-   xYi2E7fGdy9uISvxF8SQYQN0+aFnV1OFqUrUtBsQBothYfXj+hqnFYa2ZYUy8uhbLIpsgjbi7aDE
-   o6LVTdmhW5OcacZYVD98dqoVOknvMhuB0B42h3RXAb3JGy8L570t/IRocvx3rJlNz79VH2zncUXV
-   UPKcd2iwK9/4xUHWdCrM+4PB//QRl2aGUDcKfQ==
+ bh=yjG9QCwzOTaKPqQ354uGxrZR5gZbzR/8gsl7sPOjYHA=;
+ b=NlZTx8/vUa5cRyChKe4EN/Gyi0AN+h70FFmi8q4eU68doERwjZPLfO3DouYCyPaBktr4Aa9EYF6i
+   XihJ4ZWHCkMgR6Z+ZKIZ2Wbno9KB9H+DWy3i+M9EZhxVdm1IHfPZxKjEOfRgXWFRm+Jsc6rMFSMA
+   yBMFudWyjuvjhaBe5iXyhv1ZmutyyJMJQMbBq65IubA3O71ZVaO61LmzwLRvRiIz4XmutCjDANJc
+   hQdRhkjWjPl7qIliBpB7HVp8p6S6HyDRouv2mMLnVms/+k/utPfeKt0+/PHJ9PeFdvoQ/gbwS/uX
+   KlhseEpyXVGEB0E6ETbxlX3TT9oALfOdROlguw==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=Qjcn/u1V5ARrJZ0lWs2twUAS+w+q3ShYuSjJ3wvbKB0=;
- b=camxWzMrT4BlO426NTzbAOrJO8CkQcO3guNz5Si8sF2pWna8689tK0kiQJfGTUz2N2rXNNdmH8/M
-   bEnvzwYUFbean6hwW22H6QGjrAoMKeyzhhNGJObHbHsbZpQ/Xjn45bpgeakeARm/fsfXBCArCeUv
-   e/lCym9jAWgJtDir6ujChe8HKonBFkpz5GECr8jFf/32E8jJ8mhQInzP40rJCncQqKR3wAEqCOBT
-   v0tLokI9vIpiEost7JHudHGew32GIdQqmrMOcoaig2mIw1QYXdii4JVSxuy7cToeTV+f7T2NdjZa
-   2xREGASNAtwEmdoBBOyYzjVqOT2horTG9GMc0w==
+ bh=yjG9QCwzOTaKPqQ354uGxrZR5gZbzR/8gsl7sPOjYHA=;
+ b=nS3K1m3LDFV5wasBO2OVpg0WSS8QblONfoRDJ8KtoQO94c74aNTsr+iGGTa/XR8J1yDeke0iexUN
+   k8YmL7t7qd9bLP/AgfV+i76xnvnxuA5LtJv6dweV3b3HUgLO9YinGR7kV5pg3BqC5/rHR8Yr0CJe
+   Wq41/XUuOd9Ktbp+O6f2/hvnZzewKBcbEq1lMF+0uM/rbhKyne02I243qvowPsKGcmXu1BUBsiu0
+   GhOMroRZT7JRKqXmuo9iVXjvbjdkLz1NbIIy1lLyoTLTMqmj7ta+/jG70MUQ3ZsjATIoVxRhSJuV
+   5Anc+ZXCF9VxOkf/mAAlABWPYIV3xcTbMbQ//A==
 Received: by omta-ad1-fd1-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220104 64bit (built Jan  4
  2022))
- with ESMTPS id <0R5Y00LAQFXWPB30@omta-ad1-fd1-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Wed, 19 Jan 2022 11:29:56 +0000 (GMT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=oracle.com; h=date :
- from : to : subject : message-id : content-type : mime-version;
- s=corp-2021-07-09; bh=ypGbHb838cPwY8Dlac9Ltk88mxR7XpnMj5HAbaNP/dw=;
- b=tlN50jVfAOVbesZSsdafNBW5z7nHygs53BfMU/0GdvHS08E4QTaf751J212tWEkxvZhW
- 2trQaioTZAY5Ice1eDiBTVJEsV4vKTMSZDEWpQZwKhcPVpWdDSjlHgPuUsKQ9XT07wQR
- vTD/VJMCzy+q2GwN+G6XlKCVLLzqXA7nMYZliIN3KkCxZJG/TZMy5XodCZ7XOBcokVYh
- XoHuJR3zzbOs4amL013mXWLsA6nIaRMIQs+sNdmiWoM+iM1nhrucizuy7yG2plGjuywV
- u7sSIPv1cIU526smuupnqZESYbzGEQ3WHZzyI6M6PMBIuTozcZKLkDYcgwbb3rrEbN3j 9w==
-Authentication-results: aserp3010.oracle.com; spf=softfail
- smtp.mailfrom=dan.carpenter@oracle.com; dkim=pass
- header.d=oracle.onmicrosoft.com header.s=selector2-oracle-onmicrosoft-com;
- dmarc=none header.from=oracle.com
-ARC-Seal: i=1; a=rsa-sha256; s=arcselector9901; d=microsoft.com; cv=none;
- b=GsM6Md1lgs2le6n285KH0lrInU7yqOlV2G4HuhfO0OVVUDXYuycSS+L5+GxqYryHkorONIFBKtlJfFPF2NbyO9u24hjWdH9/n3VDW/+Rttj0ikHnFNaFhqzJCyZ+QF336s1ww3IG7+kZoUimczWVTOfxOR5Xu2GLTkeLR79TAqHD5WaG30MbVONGnXxtp/rwegqRv14OmZCc45c0EG5008aqxuLqcuTuFRUNRxgpI6jlha+6wS5ZYv3E0hx6pIF1Xs7dzs626Oi8WYY5gogyQFbcFRa5o9Wa7wmv7Xc3Sn98qrvRENH1GUYQMk1leUe47FK/Fv9z7Jq2noQOulxFaA==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
- s=arcselector9901;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
- bh=ypGbHb838cPwY8Dlac9Ltk88mxR7XpnMj5HAbaNP/dw=;
- b=nvFhYnKra5t5SVufcy3Ybd5eCeeMBJIlNFzSYqgNPjRGUv/RKKb69P9DKylHmNOOc7ey1X3LbdqkX/YyLn5k2Tnd2YiKu+F18WuM0Im5ramz7az/hpYgxiguZJ+f6mksn2V6DRBYSk8bOPUUmwX2iYFD0iAhqn5eZWGwyB9czLBWFZVzQ893jKjiHFdUO0hcp25WQ9S2fJhPT0/JOekERbC8pPpwIb2aESdgBNImX9oGSgNBlFVqE7UvMTFY20OhcvFwHo+cL2hv3U5KQA2ubYxwK8aCxys1RS8pMFdBUbf/+7SBTh5isiAaR8L5EsAnkfWIc0eKuCNnfh4Teo110w==
-ARC-Authentication-results: i=1; mx.microsoft.com 1; spf=none; dmarc=none;
- dkim=none; arc=none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=oracle.onmicrosoft.com;
- s=selector2-oracle-onmicrosoft-com;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
- bh=ypGbHb838cPwY8Dlac9Ltk88mxR7XpnMj5HAbaNP/dw=;
- b=yekBPFydW3TwQgSs2nY5ytgfptrRh9WGPuF1Gt2xJWw+hl6DcoGJfSyxFaQQX+m8A12DfoiWTCQucYc9vmPU9oY2B5xuy2ReKr7vzo7FPeMXo0r2ROFGN+pMjCks/gufsetYM2PFIWnRFVNifph9xuupLhu8DGzBhkaUcvapYpc=
-Date: Wed, 19 Jan 2022 14:29:36 +0300
-To: ocfs2-devel@oss.oracle.com
-Message-id: <20220119112936.GA8111@kili>
-Content-disposition: inline
-User-Agent: Mutt/1.10.1 (2018-07-13)
+ with ESMTPS id <0R5Z00BCKKVHHKF0@omta-ad1-fd1-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Thu, 20 Jan 2022 02:14:05 +0000 (GMT)
+Authentication-results: aserp3010.oracle.com; spf=fail
+ smtp.mailfrom=joseph.qi@linux.alibaba.com; dmarc=none
+ header.from=linux.alibaba.com
+Message-id: <bf115905-28ce-867d-8772-563536987052@linux.alibaba.com>
+Date: Thu, 20 Jan 2022 10:13:46 +0800
 MIME-version: 1.0
-X-Forefront-Antispam-Report: CIP:255.255.255.255; CTRY:; LANG:en; SCL:-1; SRV:;
- IPV:NLI; SFV:SKI; H:MWHPR1001MB2365.namprd10.prod.outlook.com; PTR:; CAT:NONE;
- SFS:; DIR:INB;
-X-OriginatorOrg: oracle.com
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 19 Jan 2022 11:29:46.5344 (UTC)
-X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10231
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:91.0)
+ Gecko/20100101 Thunderbird/91.4.0
+Content-language: en-US
+To: Dan Carpenter <dan.carpenter@oracle.com>, ocfs2-devel@oss.oracle.com
+References: <20220119112936.GA8111@kili>
+In-reply-to: <20220119112936.GA8111@kili>
+X-Source-IP: 115.124.30.130
+X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10232
  signatures=668683
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 adultscore=0
- mlxscore=0 suspectscore=0 phishscore=0 malwarescore=0 mlxlogscore=924
- spamscore=0 bulkscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2110150000 definitions=main-2201190064
-Subject: [Ocfs2-devel] [bug report] ocfs2/cluster: Pin/unpin o2hb regions
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 priorityscore=0
+ spamscore=0 malwarescore=0 mlxscore=0 bulkscore=0 impostorscore=0 clxscore=178
+ suspectscore=0 mlxlogscore=999 lowpriorityscore=0 phishscore=0 adultscore=0
+ classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2110150000
+ definitions=main-2201200012 domainage_hfrom=8316
+Subject: Re: [Ocfs2-devel] [bug report] ocfs2/cluster: Pin/unpin o2hb regions
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -84,134 +61,93 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: Dan Carpenter via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: Dan Carpenter <dan.carpenter@oracle.com>
-Content-type: text/plain; charset="us-ascii"
-Content-transfer-encoding: 7bit
+From: Joseph Qi via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: Joseph Qi <joseph.qi@linux.alibaba.com>
+Content-type: text/plain; charset="utf-8"
+Content-transfer-encoding: base64
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-ClientProxiedBy: ZRAP278CA0008.CHEP278.PROD.OUTLOOK.COM
- (2603:10a6:910:10::18) To MWHPR1001MB2365.namprd10.prod.outlook.com
- (2603:10b6:301:2d::28)
-X-MS-PublicTrafficType: Email
-X-MS-Office365-Filtering-Correlation-Id: 1132b006-47fd-4254-4762-08d9db3eff19
-X-MS-TrafficTypeDiagnostic: CO1PR10MB4545:EE_
-X-Oracle-Tenancy: 1
-X-MS-Oob-TLC-OOBClassifiers: OLM:494;
-X-Microsoft-Antispam: BCL:0;
-X-Microsoft-Antispam-Message-Info:
- KwtCH90tlPPGE6S5coB7mLTmBVe7nLlHdXXQgPeFX8s0H1bnx3ibLJJP+ycJUmNkZLjisu/A0gXhPG9s7c9wHxWuGuPhEXb5VrmPx1+s99RFkO6wGNYIAnaAioB8uOLl+9sjbHsJsXtR3BkFlxVieqg5c6zmTrF4z2KZjH88lsRSNCdb2vGcuu25fFeB2cfZDIguVs/tzyn+B2b3DI1M0R2m3lV93yZ+JmhXIkBDjnV3JqEGb5GiKb2ej9MB+F7Xa0205h2ts9B1dvGc/4iz5qVvFm6xa4XupZ6KrFa7uCkMIiFto5ZmtvEPHqWlaDbpQxidZLofriGjfMIA8c6xSXXxaTGubZ6kFRbZZoMN7AUqCG+axLmO8T8wvUCItpSMyc+b96mTMUPo4ocQucF87+2m56gYxVPXURSM9QJU46INGI/pdTpDIhhqAwoF7dpAOl1N0AlZ1COdSAP20O1utRwrwu1dIJTC5ah/jKrPo0FkhQq4V7NFRyQfucwYT00EfoVDDE5/BPCcL7BIRqCI7PNR3uuNaM2Xcf0DwRkWRsKSt353JR5FnElZp/AXnlcCsRBNWlHTPCvAtM84bAxM1S4t39CFCPh96rHJBn8md08=
-X-MS-Exchange-CrossTenant-Network-Message-Id:
- 1132b006-47fd-4254-4762-08d9db3eff19
-X-MS-Exchange-CrossTenant-AuthSource: MWHPR1001MB2365.namprd10.prod.outlook.com
-X-MS-Exchange-CrossTenant-AuthAs: Internal
-X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
-X-MS-Exchange-CrossTenant-Id: 4e2c6054-71cb-48f1-bd6c-3a9705aca71b
-X-MS-Exchange-CrossTenant-MailboxType: HOSTED
-X-MS-Exchange-CrossTenant-UserPrincipalName:
- gVCLXKZd93y2bXoW4boixIVdRjuMqRZ8udQZWGyPqnlkiHKbfnc3+1i4OmGLHnT2jdCNvsqQipSWfvUVae9C9Pr+ZJd0Oy3jGMPn9q4pShY=
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: CO1PR10MB4545
-X-MS-Exchange-CrossPremises-AuthSource:
- MWHPR1001MB2365.namprd10.prod.outlook.com
-X-MS-Exchange-CrossPremises-AuthAs: Internal
-X-MS-Exchange-CrossPremises-AuthMechanism: 06
-X-MS-Exchange-CrossPremises-Mapi-Admin-Submission:
-X-MS-Exchange-CrossPremises-MessageSource: StoreDriver
-X-MS-Exchange-CrossPremises-BCC: Dan Carpenter <dan.carpenter@oracle.com>
-X-MS-Exchange-CrossPremises-OriginalClientIPAddress: 102.222.70.114
-X-MS-Exchange-CrossPremises-TransportTrafficType: Email
-X-MS-Exchange-CrossPremises-Antispam-ScanContext: DIR:Originating; SFV:SKI;
- SKIP:0;
-X-MS-Exchange-CrossPremises-SCL: -1
-X-MS-Exchange-CrossPremises-Processed-By-Journaling: Journal Agent
-X-OrganizationHeadersPreserved: CO1PR10MB4545.namprd10.prod.outlook.com
-X-Proofpoint-GUID: 5tIbJvkv_Q40nmz4i29H11ZA1EFwED2s
-X-Proofpoint-ORIG-GUID: 5tIbJvkv_Q40nmz4i29H11ZA1EFwED2s
+X-Alimail-AntiSpam: AC=PASS; BC=-1|-1; BR=01201311R841e4; CH=green;
+ DM=||false|; DS=||; FP=0|-1|-1|-1|0|-1|-1|-1; HT=e01e04394;
+ MF=joseph.qi@linux.alibaba.com; NM=1; PH=DS; RN=2; SR=0;
+ TI=SMTPD_---0V2JWoUS_1642644826;
+X-ServerName: out30-130.freemail.mail.aliyun.com
+X-Proofpoint-SPF-Result: pass
+X-Proofpoint-SPF-Record: v=spf1 include:spf1.service.alibaba.com
+ include:spf2.service.alibaba.com include:spf1.ocm.aliyun.com
+ include:spf2.ocm.aliyun.com include:spf1.staff.mail.aliyun.com
+ include:a.hichina.mail.aliyun.com include:b.hichina.mail.aliyun.com -all
+X-Spam: Clean
+X-Proofpoint-GUID: rvvaD3vzYQwrNe4scVljaoaDDeDCXVkK
+X-Proofpoint-ORIG-GUID: rvvaD3vzYQwrNe4scVljaoaDDeDCXVkK
 Reporting-Meta:
- AAENGRjDsDlZkxzGS+t8Uj4g7Dspuu35T24mC1cMjFFPrnbjSxBK95JXB/t702c7
- q/e/hGyANGP9xnHDshN7/R9SFbDklRTjwaPTuxyNRCm7OAZzr6eHWXHqTlllVyXT
- iX5aXmi3ZEiIvp7vz3vETBA8P1ZtEnC+aKO9ZNJThrHIN3SNGuJYurXDqcmQjvkx
- Z60BFxpmJJ+66wsHb0E9RceGUy4Wbhda220EQpYF3hid+4oucA5XXNwt687gBXf4
- /AdIt44p8tz3tVOYH9xXnRi74KHfUQAZdxynrNtyCaAxuudmbzfIuBuUQcrD/OUA
- 8zSWoHDF6PC5q00pwnBAMgJ3VKRRnGr1SRZpqKZYMSI+pgG1bY+epEC/psnPke6U
- 6b0+TchhdNgw7nfBlMLppBS9CvFxb1p6XsUym+YGeOkop5hIrs3v5JDG4VLLVoyH
- LyFrNPOi0DdO/CUXmgJwGUTobq8ZS2W/yu0avWthUy2tAlt7nOZrJIZNf+RG7H9g
- znIkX9yqWnV6KsBsuOYBDl53TDunGNsMlAhT68iky/Y=
+ AAEVEWPIG0bhJX2MJj4P5Xn5XZAJf2ujk3ivrzL8w/VzfltkOIDrPvyxgjuuhblQ
+ Ux+An9g4FLdbwjRcW6Qvb8pEQX257k5Yb4g/PYmqzHSzYSn6luNWYGietT4oSr4F
+ NTLflfwrAwsRlPHC9hsJ3utm0jqbxNln2VuxDFx75D7gErSF1xatq3wo+epD2LNh
+ uRs+6RVHIzMssooRA+i01cwZAodK2sGkh+D0CgqhgEmvFo08Of+DnucBWlV4aCYT
+ ZlyN+l8/xalZPzbsRtODQ1fjYSjKW3lv3R6RK11gZ8lpHfo9wReyzUJ6n/4APv+8
+ sO29XaR+5OvCm5q1DAgBIsyujLXBXz8nyBJaHFcyOb9QYpu+QVhKvtM3GIpaB5iT
+ OtRgSnoLpTnlIcHXkmgrwpNOnYo/Am2JvMZJETGGfqDJHgqcUplDLWuuhV6e6gdD
+ c5pLH4WLCX7Fvt+7HtlLJVd6LcOAy8AEohq0ECdV3vVmXjd7b0Bw7MiMx13i3tKG
+ siXHOz0GYzx/+LnOZGN6zTpMJf6k4CIFVZgZzLyxXZFi
 
-Hello OCFS2 developers,
-
-The patch 58a3158a5d17: "ocfs2/cluster: Pin/unpin o2hb regions" from
-Dec 14, 2010, leads to the following Smatch static checker warning:
-
-	./include/linux/fs.h:777 inode_lock()
-	warn: sleeping in atomic context
-
-The call tree is:
-
-o2hb_heartbeat_group_drop_item() <- disables preempt
-o2hb_region_inc_user() <- disables preempt
--> o2hb_region_pin()
-   -> o2nm_depend_item()
-      -> configfs_depend_item()
-         -> inode_lock()
-
-fs/ocfs2/cluster/heartbeat.c
-  2265        static int o2hb_region_pin(const char *region_uuid)
-  2266        {
-  2267                int ret = 0, found = 0;
-  2268                struct o2hb_region *reg;
-  2269                char *uuid;
-  2270
-  2271                assert_spin_locked(&o2hb_live_lock);
-                      ^^^^^^^^^^^^^^^^^^
-
-This code is holding a spin lock.
-
-  2272
-  2273                list_for_each_entry(reg, &o2hb_all_regions, hr_all_item) {
-  2274                        if (reg->hr_item_dropped)
-  2275                                continue;
-  2276
-  2277                        uuid = config_item_name(&reg->hr_item);
-  2278
-  2279                        /* local heartbeat */
-  2280                        if (region_uuid) {
-  2281                                if (strcmp(region_uuid, uuid))
-  2282                                        continue;
-  2283                                found = 1;
-  2284                        }
-  2285
-  2286                        if (reg->hr_item_pinned || reg->hr_item_dropped)
-  2287                                goto skip_pin;
-  2288
-  2289                        /* Ignore ENOENT only for local hb (userdlm domain) */
-  2290                        ret = o2nm_depend_item(&reg->hr_item);
-                                    ^^^^^^^^^^^^^^^^
-The o2nm_depend_item() fucntion cannot succeed without taking a mutex.
-
-  2291                        if (!ret) {
-  2292                                mlog(ML_CLUSTER, "Pin region %s\n", uuid);
-  2293                                reg->hr_item_pinned = 1;
-  2294                        } else {
-  2295                                if (ret == -ENOENT && found)
-  2296                                        ret = 0;
-  2297                                else {
-  2298                                        mlog(ML_ERROR, "Pin region %s fails with %d\n",
-  2299                                             uuid, ret);
-  2300                                        break;
-  2301                                }
-  2302                        }
-  2303        skip_pin:
-  2304                        if (found)
-  2305                                break;
-  2306                }
-  2307
-  2308                return ret;
-  2309        }
-
-regards,
-dan carpenter
-
-_______________________________________________
-Ocfs2-devel mailing list
-Ocfs2-devel@oss.oracle.com
-https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+SGkgRGFuIENhcnBlbnRlciwKClRoYW5rcyBmb3IgdGhlIHJlcG9ydGluZy4KSXQgc2VlbXMgdGhl
+IGJ1ZyB0cnVseSBleGlzdHMsIGJ1dCBjdXJyZW50bHkgSSBkb24ndCBoYXZlIGFuIGVhc3kgd2F5
+IHRvCmZpeCBpdC4gSSdsbCBsb29rIGl0IGRlZXBseSBsYXRlci4KClRoYW5rc++8jApKb3NlcGgK
+Ck9uIDEvMTkvMjIgNzoyOSBQTSwgRGFuIENhcnBlbnRlciB2aWEgT2NmczItZGV2ZWwgd3JvdGU6
+Cj4gSGVsbG8gT0NGUzIgZGV2ZWxvcGVycywKPiAKPiBUaGUgcGF0Y2ggNThhMzE1OGE1ZDE3OiAi
+b2NmczIvY2x1c3RlcjogUGluL3VucGluIG8yaGIgcmVnaW9ucyIgZnJvbQo+IERlYyAxNCwgMjAx
+MCwgbGVhZHMgdG8gdGhlIGZvbGxvd2luZyBTbWF0Y2ggc3RhdGljIGNoZWNrZXIgd2FybmluZzoK
+PiAKPiAJLi9pbmNsdWRlL2xpbnV4L2ZzLmg6Nzc3IGlub2RlX2xvY2soKQo+IAl3YXJuOiBzbGVl
+cGluZyBpbiBhdG9taWMgY29udGV4dAo+IAo+IFRoZSBjYWxsIHRyZWUgaXM6Cj4gCj4gbzJoYl9o
+ZWFydGJlYXRfZ3JvdXBfZHJvcF9pdGVtKCkgPC0gZGlzYWJsZXMgcHJlZW1wdAo+IG8yaGJfcmVn
+aW9uX2luY191c2VyKCkgPC0gZGlzYWJsZXMgcHJlZW1wdAo+IC0+IG8yaGJfcmVnaW9uX3Bpbigp
+Cj4gICAgLT4gbzJubV9kZXBlbmRfaXRlbSgpCj4gICAgICAgLT4gY29uZmlnZnNfZGVwZW5kX2l0
+ZW0oKQo+ICAgICAgICAgIC0+IGlub2RlX2xvY2soKQo+IAo+IGZzL29jZnMyL2NsdXN0ZXIvaGVh
+cnRiZWF0LmMKPiAgIDIyNjUgICAgICAgIHN0YXRpYyBpbnQgbzJoYl9yZWdpb25fcGluKGNvbnN0
+IGNoYXIgKnJlZ2lvbl91dWlkKQo+ICAgMjI2NiAgICAgICAgewo+ICAgMjI2NyAgICAgICAgICAg
+ICAgICBpbnQgcmV0ID0gMCwgZm91bmQgPSAwOwo+ICAgMjI2OCAgICAgICAgICAgICAgICBzdHJ1
+Y3QgbzJoYl9yZWdpb24gKnJlZzsKPiAgIDIyNjkgICAgICAgICAgICAgICAgY2hhciAqdXVpZDsK
+PiAgIDIyNzAKPiAgIDIyNzEgICAgICAgICAgICAgICAgYXNzZXJ0X3NwaW5fbG9ja2VkKCZvMmhi
+X2xpdmVfbG9jayk7Cj4gICAgICAgICAgICAgICAgICAgICAgIF5eXl5eXl5eXl5eXl5eXl5eXgo+
+IAo+IFRoaXMgY29kZSBpcyBob2xkaW5nIGEgc3BpbiBsb2NrLgo+IAo+ICAgMjI3Mgo+ICAgMjI3
+MyAgICAgICAgICAgICAgICBsaXN0X2Zvcl9lYWNoX2VudHJ5KHJlZywgJm8yaGJfYWxsX3JlZ2lv
+bnMsIGhyX2FsbF9pdGVtKSB7Cj4gICAyMjc0ICAgICAgICAgICAgICAgICAgICAgICAgaWYgKHJl
+Zy0+aHJfaXRlbV9kcm9wcGVkKQo+ICAgMjI3NSAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
+ICAgY29udGludWU7Cj4gICAyMjc2Cj4gICAyMjc3ICAgICAgICAgICAgICAgICAgICAgICAgdXVp
+ZCA9IGNvbmZpZ19pdGVtX25hbWUoJnJlZy0+aHJfaXRlbSk7Cj4gICAyMjc4Cj4gICAyMjc5ICAg
+ICAgICAgICAgICAgICAgICAgICAgLyogbG9jYWwgaGVhcnRiZWF0ICovCj4gICAyMjgwICAgICAg
+ICAgICAgICAgICAgICAgICAgaWYgKHJlZ2lvbl91dWlkKSB7Cj4gICAyMjgxICAgICAgICAgICAg
+ICAgICAgICAgICAgICAgICAgICBpZiAoc3RyY21wKHJlZ2lvbl91dWlkLCB1dWlkKSkKPiAgIDIy
+ODIgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgY29udGludWU7Cj4gICAy
+MjgzICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBmb3VuZCA9IDE7Cj4gICAyMjg0ICAg
+ICAgICAgICAgICAgICAgICAgICAgfQo+ICAgMjI4NQo+ICAgMjI4NiAgICAgICAgICAgICAgICAg
+ICAgICAgIGlmIChyZWctPmhyX2l0ZW1fcGlubmVkIHx8IHJlZy0+aHJfaXRlbV9kcm9wcGVkKQo+
+ICAgMjI4NyAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgZ290byBza2lwX3BpbjsKPiAg
+IDIyODgKPiAgIDIyODkgICAgICAgICAgICAgICAgICAgICAgICAvKiBJZ25vcmUgRU5PRU5UIG9u
+bHkgZm9yIGxvY2FsIGhiICh1c2VyZGxtIGRvbWFpbikgKi8KPiAgIDIyOTAgICAgICAgICAgICAg
+ICAgICAgICAgICByZXQgPSBvMm5tX2RlcGVuZF9pdGVtKCZyZWctPmhyX2l0ZW0pOwo+ICAgICAg
+ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIF5eXl5eXl5eXl5eXl5eXl4KPiBUaGUgbzJu
+bV9kZXBlbmRfaXRlbSgpIGZ1Y250aW9uIGNhbm5vdCBzdWNjZWVkIHdpdGhvdXQgdGFraW5nIGEg
+bXV0ZXguCj4gCj4gICAyMjkxICAgICAgICAgICAgICAgICAgICAgICAgaWYgKCFyZXQpIHsKPiAg
+IDIyOTIgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIG1sb2coTUxfQ0xVU1RFUiwgIlBp
+biByZWdpb24gJXNcbiIsIHV1aWQpOwo+ICAgMjI5MyAgICAgICAgICAgICAgICAgICAgICAgICAg
+ICAgICAgcmVnLT5ocl9pdGVtX3Bpbm5lZCA9IDE7Cj4gICAyMjk0ICAgICAgICAgICAgICAgICAg
+ICAgICAgfSBlbHNlIHsKPiAgIDIyOTUgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGlm
+IChyZXQgPT0gLUVOT0VOVCAmJiBmb3VuZCkKPiAgIDIyOTYgICAgICAgICAgICAgICAgICAgICAg
+ICAgICAgICAgICAgICAgICAgcmV0ID0gMDsKPiAgIDIyOTcgICAgICAgICAgICAgICAgICAgICAg
+ICAgICAgICAgIGVsc2Ugewo+ICAgMjI5OCAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
+ICAgICAgICBtbG9nKE1MX0VSUk9SLCAiUGluIHJlZ2lvbiAlcyBmYWlscyB3aXRoICVkXG4iLAo+
+ICAgMjI5OSAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHV1aWQs
+IHJldCk7Cj4gICAyMzAwICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGJy
+ZWFrOwo+ICAgMjMwMSAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgfQo+ICAgMjMwMiAg
+ICAgICAgICAgICAgICAgICAgICAgIH0KPiAgIDIzMDMgICAgICAgIHNraXBfcGluOgo+ICAgMjMw
+NCAgICAgICAgICAgICAgICAgICAgICAgIGlmIChmb3VuZCkKPiAgIDIzMDUgICAgICAgICAgICAg
+ICAgICAgICAgICAgICAgICAgIGJyZWFrOwo+ICAgMjMwNiAgICAgICAgICAgICAgICB9Cj4gICAy
+MzA3Cj4gICAyMzA4ICAgICAgICAgICAgICAgIHJldHVybiByZXQ7Cj4gICAyMzA5ICAgICAgICB9
+Cj4gCj4gcmVnYXJkcywKPiBkYW4gY2FycGVudGVyCj4gCj4gX19fX19fX19fX19fX19fX19fX19f
+X19fX19fX19fX19fX19fX19fX19fX19fX18KPiBPY2ZzMi1kZXZlbCBtYWlsaW5nIGxpc3QKPiBP
+Y2ZzMi1kZXZlbEBvc3Mub3JhY2xlLmNvbQo+IGh0dHBzOi8vb3NzLm9yYWNsZS5jb20vbWFpbG1h
+bi9saXN0aW5mby9vY2ZzMi1kZXZlbAoKX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
+X19fX19fX19fX19fX18KT2NmczItZGV2ZWwgbWFpbGluZyBsaXN0Ck9jZnMyLWRldmVsQG9zcy5v
+cmFjbGUuY29tCmh0dHBzOi8vb3NzLm9yYWNsZS5jb20vbWFpbG1hbi9saXN0aW5mby9vY2ZzMi1k
+ZXZlbA==
