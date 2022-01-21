@@ -1,56 +1,56 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc248.phx1.oracleemaildelivery.com (aib29ajc248.phx1.oracleemaildelivery.com [192.29.103.248])
+Received: from aib29ajc250.phx1.oracleemaildelivery.com (aib29ajc250.phx1.oracleemaildelivery.com [192.29.103.250])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id E1E55C433EF
-	for <ocfs2-devel@archiver.kernel.org>; Fri, 21 Jan 2022 01:46:56 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 2915CC433F5
+	for <ocfs2-devel@archiver.kernel.org>; Fri, 21 Jan 2022 07:12:24 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=yzlBASBU13AoOe9Ag6VptaezS2Nv0UKTRUIcWX8TaIs=;
- b=dYwV/yjFLJhVp4ELIEjvaR0+8HWpwxi84cL0tvS/OBTy7PiEDij3IrgQrpRUMXzsbXl0rP5VbkbJ
-   +ZZUm21hgxVJrgjBssOPnKCBLzeb9v+KoW3aQf+9v3ZAx2VZ2R8FC1ZsF4CaGYsCDdJ4UwbLDwa5
-   eFZg6Z8B9Ys/V9fC45TgaDWGNnJMnXOUWwE4meBdG41K2OIgFFGqU2WyDw/DlIulyrMpXakf+DqX
-   I0Z/0pqAc/s+k92FSabGyTKInauqYEx9eGQofJqSSGuRzoDowcBQMrrxo4d89KWb0gvwVsL30ZP9
-   nU/1UI7bSk1b7lBgsIVNC1e+iDS7hOzYM5dNzw==
+ bh=ParqYSB6N6jfaWF5DB27t75YCmXWgBkE+b8K8JNl1zo=;
+ b=xUX3rPKdQX5Jciwrmhvg28xkHXunBPfebCp1/dDLKLh1z4wXTUxIhCT7yetY1I5UVMcQhz15olxN
+   iKl77qdHCqY1JhLnbCSBKvsdPjYuRyorzjrrRP8MSWF4RpISoOJalq2cWRq72RLs4nMLRGaha51a
+   uuUrNcYGLfx8v9ZWodQuEdGZPYbOsQi2kowwJ7WYYkbtM/uA21Mejg48s9VfyBJ4ZdIxgJhbjT+A
+   QmHP4mw2INA/ZrDecPrTJn6VzaeKrQPjqqHbZH7PKb/LitjAneVhaGTuplrD8ot9oLHB1FM8TvYo
+   BNnxy3fwETgxUoblMBHKQ1piwaJAdBPmXBOSmQ==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=yzlBASBU13AoOe9Ag6VptaezS2Nv0UKTRUIcWX8TaIs=;
- b=nTQI84o/b5uc7oTWtGCgNZ48J38wmKifYqyZ2J13c36RmMKIF0qUbFDiMGEHznISRg0UAbXHM/ts
-   iZrP0dih7oWiIHJfl243RObiXNdqeX8uRTNvcG0CdrGcDhnFEEkWBkrCxnjGUvZSVvOzozRgdXnr
-   w3nYNKPVisVtX8AJOxeXVEj015ljUP1PcgzBAbDyybPcyG0eSc9wHSAqjp4fx6aOPm1LLSXP58De
-   DwXx4NMRm4nulyGh3t5wIa5I898SA72aQD3MtibaDqcvsrf0wOnV2YkJg1uAd7WhCusDYxfqh4bU
-   yx2bQAeflT0s/At8KKs7OhCR/IPv4cPzivb6Nw==
-Received: by omta-ad2-fd1-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
+ bh=ParqYSB6N6jfaWF5DB27t75YCmXWgBkE+b8K8JNl1zo=;
+ b=GUugb7GN34gLxwetoXYFFpIMUU5Lgd0IWWM+eTYuSubTdWrI1fidDm0RrnohHJG+YlOB0dJGdo3Y
+   V47zKtKLMu1ST9Z3QBGwk8xaZmzcad8unhGer2cxVhR5Y3YOI5FKVzxBD9T5IHE+BXU9jwZ9XKW9
+   9QhYeT6v/f2Sm/JRNWBJ7mkzaYZ3p5VxNQjguTAcMkVaoPVQ4KW4pXcI3SoM1Staszr+txScQF3U
+   bNToa7U2Ve/7gJkg+W5M6YOGUKqgZ3Yjrsae9/LwvbC1EvVjMyxBkYJ/LBsxsZH1XN4TdiH9fNjZ
+   aP+K+tauL5Eh+C5LVpUQ+wMKQBzj7I3WLvf3Sw==
+Received: by omta-ad2-fd3-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220104 64bit (built Jan  4
  2022))
- with ESMTPS id <0R6100LLVEA8AI80@omta-ad2-fd1-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Fri, 21 Jan 2022 01:46:56 +0000 (GMT)
+ with ESMTPS id <0R6100MEATCNVK60@omta-ad2-fd3-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Fri, 21 Jan 2022 07:12:23 +0000 (GMT)
 Authentication-results: aserp3010.oracle.com; spf=fail
  smtp.mailfrom=joseph.qi@linux.alibaba.com; dmarc=none
  header.from=linux.alibaba.com
-Message-id: <9e3793fa-76a9-8190-a090-5655c49a7352@linux.alibaba.com>
-Date: Fri, 21 Jan 2022 09:46:35 +0800
+To: akpm@linux-foundation.org, tytso@mit.edu, adilger.kernel@dilger.ca
+Date: Fri, 21 Jan 2022 15:12:04 +0800
+Message-id: <20220121071205.100648-2-joseph.qi@linux.alibaba.com>
+X-Mailer: git-send-email 2.19.1.6.gb485710b
+In-reply-to: <20220121071205.100648-1-joseph.qi@linux.alibaba.com>
+References: <20220121071205.100648-1-joseph.qi@linux.alibaba.com>
 MIME-version: 1.0
-User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:91.0)
- Gecko/20100101 Thunderbird/91.4.0
-Content-language: en-US
-To: akpm@linux-foundation.org, ocfs2-devel@oss.oracle.com
-References: <20220114021641.13927-1-joseph.qi@linux.alibaba.com>
-In-reply-to: <20220114021641.13927-1-joseph.qi@linux.alibaba.com>
-X-Source-IP: 115.124.30.131
+X-Source-IP: 115.124.30.45
 X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10233
  signatures=668683
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 phishscore=0
- priorityscore=123 lowpriorityscore=0 adultscore=0 malwarescore=0 spamscore=0
- impostorscore=0 mlxlogscore=999 suspectscore=0 bulkscore=0 clxscore=261
- mlxscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2201110000 definitions=main-2201210009 domainage_hfrom=8317
-Cc: CGEL ZTE <cgel.zte@gmail.com>, Minghao Chi <chi.minghao@zte.com.cn>
-Subject: Re: [Ocfs2-devel] [PATCH] ocfs2: cleanup some return variables
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 adultscore=0
+ phishscore=0 spamscore=0 mlxlogscore=999 malwarescore=0 clxscore=264
+ priorityscore=153 impostorscore=0 mlxscore=0 suspectscore=0 lowpriorityscore=0
+ bulkscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2201110000 definitions=main-2201210046 domainage_hfrom=8317
+Cc: linux-ext4@vger.kernel.org, gautham.ananthakrishna@oracle.com,
+ ocfs2-devel@oss.oracle.com
+Subject: [Ocfs2-devel] [PATCH 1/2] jbd2: export
+	jbd2_journal_[grab|put]_journal_head
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -67,111 +67,61 @@ Reply-to: Joseph Qi <joseph.qi@linux.alibaba.com>
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-Alimail-AntiSpam: AC=PASS; BC=-1|-1; BR=01201311R881e4; CH=green;
- DM=||false|; DS=||; FP=0|-1|-1|-1|0|-1|-1|-1; HT=e01e04395;
- MF=joseph.qi@linux.alibaba.com; NM=1; PH=DS; RN=4; SR=0;
- TI=SMTPD_---0V2P3pWS_1642729595;
-X-ServerName: out30-131.freemail.mail.aliyun.com
+X-Alimail-AntiSpam: AC=PASS; BC=-1|-1; BR=01201311R111e4; CH=green;
+ DM=||false|; DS=||; FP=0|-1|-1|-1|0|-1|-1|-1; HT=e01e04426;
+ MF=joseph.qi@linux.alibaba.com; NM=1; PH=DS; RN=6; SR=0;
+ TI=SMTPD_---0V2QTsQP_1642749126;
+X-ServerName: out30-45.freemail.mail.aliyun.com
 X-Proofpoint-SPF-Result: pass
 X-Proofpoint-SPF-Record: v=spf1 include:spf1.service.alibaba.com
  include:spf2.service.alibaba.com include:spf1.ocm.aliyun.com
  include:spf2.ocm.aliyun.com include:spf1.staff.mail.aliyun.com
  include:a.hichina.mail.aliyun.com include:b.hichina.mail.aliyun.com -all
 X-Spam: Clean
-X-Proofpoint-ORIG-GUID: nHx00mdtij2lWNkNAakI_-VBMJBZjQ_v
-X-Proofpoint-GUID: nHx00mdtij2lWNkNAakI_-VBMJBZjQ_v
+X-Proofpoint-ORIG-GUID: qmdkCoez5bZ00tGADbh84qWNwcjOVtFC
+X-Proofpoint-GUID: qmdkCoez5bZ00tGADbh84qWNwcjOVtFC
 Reporting-Meta:
- AAG747GFy50ZIM8OwYoUd/BxDYlYTzn00I6PMuF7U9/Ljx9NiE5TZLXjGcaCbn8x
- aOLWBo4VrMVDJ/J9Vkzv6w5a3rEQI81TU8pHaXCfzXn3vb2zn6kAgRv1jl/kFB5j
- zXBUywueL8IWtJx08d32KRN/cjLisKkun0mHEAbKTsOoceroEupaMHX/P/ACO9Tt
- /uvxldxpQqIUGk3WPAcyUUhDGHoewD+iNi5vlQSnBK+qDIk+MxmAFsvxpAo2WQvY
- hdFqgH9zRCPyiDA5ze0QMejIggJdc5UBZ9q1RsdTEp7w5G/Y1bbt22WAt9vl6eTG
- RZnFK1Dz6j5m8wQpYTx8DcT0KLcSmJfuUw8dr0Bav3ZfBAthLKUgleBlEFx2GVZC
- BTI1Pblq36Y6CqgJEzKCMvMnqRKkzxJHfmmQWsjP7+qx9e73XO/yDINnLEM+Ziiy
- aXET1odeoYZrZlr+qjyPkthXYrosnnotrBLTWxgEKQU5jNlO63YI4ebHmEVFG9y4
- f4hQhLuV/Z1b1mz8M3Qw9JxNgnUSOrDGBYrOoOWR1ts=
+ AAH3HFYnee06EUg+uP6bHbDi0VP4f90L/fzS9LdI6qXLYC1uo507RHeVpXzUDHT6
+ 1qgkwtztb1nTnpQDT2GYnrm0MOMREw+AtpwoYGfcbIxjaEo7r3DSwvgE1TlqaCr0
+ S/dLCMmoU7a9lg0pXTXjzZKJ+qAtiiFKzaUOMtBH8wp9yW5+WeEcgtjVR6QXO7b0
+ cNNcPsS0d0zrnQ1D/LG/xkHphx/WBhIAPl3P+frkd2LVNYHvmPvvLhKTFzQaregU
+ 1i7DUEj9auBmSvGDD6q82rON6A4uOBXQ8xhzFKQgM8j20yu2DL+Fu9ttiwcoG37F
+ s2zAwjCHA5kzsDpsz30dPG9NQRc6DqBmrDftt1wcg6h3YtRulbJAln7425WsrLwr
+ nc/vHCX0JsR18tp1Q7fS0wjoCg9ImUbMtlfhuzZROix6fTDnLoMQthRvMMeY94Y0
+ zBGu8nHojBdzY8gKDX89cs6YVHmVhcCwuAviz3NFArZi2vuFoOuRAs+OGKD0j7Vu
+ jYzlhKpnAOIJNLWqz5ew/iNWHEIZS029gbzxVFWaCzE=
 
-Hi Andrew,
-Could you please consider add this to -mm tree?
+This exports symbols jbd2_journal_[grab|put]_journal_head, which will be
+used outside modules, e.g. ocfs2.
 
-Thanks,
-Joseph
+Signed-off-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+---
+ fs/jbd2/journal.c | 2 ++
+ 1 file changed, 2 insertions(+)
 
-On 1/14/22 10:16 AM, Joseph Qi wrote:
-> Simply return directly instead of assign the return value to another
-> variable.
-> 
-> Reported-by: Zeal Robot <zealci@zte.com.cn>
-> Cc: Minghao Chi <chi.minghao@zte.com.cn>
-> Cc: CGEL ZTE <cgel.zte@gmail.com>
-> Signed-off-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-> ---
->  fs/ocfs2/file.c       |  9 +++------
->  fs/ocfs2/stack_user.c | 18 ++++++------------
->  2 files changed, 9 insertions(+), 18 deletions(-)
-> 
-> diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-> index fc5f780fa235..24321c44cd42 100644
-> --- a/fs/ocfs2/file.c
-> +++ b/fs/ocfs2/file.c
-> @@ -540,15 +540,12 @@ int ocfs2_add_inode_data(struct ocfs2_super *osb,
->  			 struct ocfs2_alloc_context *meta_ac,
->  			 enum ocfs2_alloc_restarted *reason_ret)
->  {
-> -	int ret;
->  	struct ocfs2_extent_tree et;
->  
->  	ocfs2_init_dinode_extent_tree(&et, INODE_CACHE(inode), fe_bh);
-> -	ret = ocfs2_add_clusters_in_btree(handle, &et, logical_offset,
-> -					  clusters_to_add, mark_unwritten,
-> -					  data_ac, meta_ac, reason_ret);
-> -
-> -	return ret;
-> +	return ocfs2_add_clusters_in_btree(handle, &et, logical_offset,
-> +					   clusters_to_add, mark_unwritten,
-> +					   data_ac, meta_ac, reason_ret);
->  }
->  
->  static int ocfs2_extend_allocation(struct inode *inode, u32 logical_start,
-> diff --git a/fs/ocfs2/stack_user.c b/fs/ocfs2/stack_user.c
-> index 85a47621e0c0..a75e2b7d67f5 100644
-> --- a/fs/ocfs2/stack_user.c
-> +++ b/fs/ocfs2/stack_user.c
-> @@ -683,28 +683,22 @@ static int user_dlm_lock(struct ocfs2_cluster_connection *conn,
->  			 void *name,
->  			 unsigned int namelen)
->  {
-> -	int ret;
-> -
->  	if (!lksb->lksb_fsdlm.sb_lvbptr)
->  		lksb->lksb_fsdlm.sb_lvbptr = (char *)lksb +
->  					     sizeof(struct dlm_lksb);
->  
-> -	ret = dlm_lock(conn->cc_lockspace, mode, &lksb->lksb_fsdlm,
-> -		       flags|DLM_LKF_NODLCKWT, name, namelen, 0,
-> -		       fsdlm_lock_ast_wrapper, lksb,
-> -		       fsdlm_blocking_ast_wrapper);
-> -	return ret;
-> +	return dlm_lock(conn->cc_lockspace, mode, &lksb->lksb_fsdlm,
-> +			flags|DLM_LKF_NODLCKWT, name, namelen, 0,
-> +			fsdlm_lock_ast_wrapper, lksb,
-> +			fsdlm_blocking_ast_wrapper);
->  }
->  
->  static int user_dlm_unlock(struct ocfs2_cluster_connection *conn,
->  			   struct ocfs2_dlm_lksb *lksb,
->  			   u32 flags)
->  {
-> -	int ret;
-> -
-> -	ret = dlm_unlock(conn->cc_lockspace, lksb->lksb_fsdlm.sb_lkid,
-> -			 flags, &lksb->lksb_fsdlm, lksb);
-> -	return ret;
-> +	return dlm_unlock(conn->cc_lockspace, lksb->lksb_fsdlm.sb_lkid,
-> +			  flags, &lksb->lksb_fsdlm, lksb);
->  }
->  
->  static int user_dlm_lock_status(struct ocfs2_dlm_lksb *lksb)
+diff --git a/fs/jbd2/journal.c b/fs/jbd2/journal.c
+index 0b86a4365b66..e9f0c72f6664 100644
+--- a/fs/jbd2/journal.c
++++ b/fs/jbd2/journal.c
+@@ -2972,6 +2972,7 @@ struct journal_head *jbd2_journal_grab_journal_head(struct buffer_head *bh)
+ 	jbd_unlock_bh_journal_head(bh);
+ 	return jh;
+ }
++EXPORT_SYMBOL(jbd2_journal_grab_journal_head);
+ 
+ static void __journal_remove_journal_head(struct buffer_head *bh)
+ {
+@@ -3024,6 +3025,7 @@ void jbd2_journal_put_journal_head(struct journal_head *jh)
+ 		jbd_unlock_bh_journal_head(bh);
+ 	}
+ }
++EXPORT_SYMBOL(jbd2_journal_put_journal_head);
+ 
+ /*
+  * Initialize jbd inode head
+-- 
+2.19.1.6.gb485710b
+
 
 _______________________________________________
 Ocfs2-devel mailing list
