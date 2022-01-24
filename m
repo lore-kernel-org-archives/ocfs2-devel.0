@@ -4,56 +4,61 @@ X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 Received: from aib29ajc250.phx1.oracleemaildelivery.com (aib29ajc250.phx1.oracleemaildelivery.com [192.29.103.250])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 43726C433EF
-	for <ocfs2-devel@archiver.kernel.org>; Mon, 24 Jan 2022 02:34:39 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 7227CC43219
+	for <ocfs2-devel@archiver.kernel.org>; Mon, 24 Jan 2022 02:37:49 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=+N3+v3cwiOFGJaY27QNaw8cFkPkXXTSgXrZeLkWJeOg=;
- b=isynMjgZfB/Kl4cdjsN6gi8DwM6car2T1DUxVWqu7NfWBxTUoJBMUWPKVIk2DkNdrWFfhtdg2OeC
-   YnKvJPB7/AcemKI9Xkp6iLUNv5O6kX6FJ7v8Sy2X8xOukUNajtxFeHuLXa5N3oLBU1w2sBEThyNO
-   u+r/q0XLrO84Yv3b34CrlO8oaDkLL7eQmF5UzkKfNFiYxEYkgTvsQYoq/1phkoD6QWOTm9+bvTv/
-   UqqB6jvFKrsyszpVYIBLCW9nC/hVJVuPiFqhsZX0G5AF6Idx67QjqSxLFFShSIDFK/vW2uX8zQi1
-   cqZky5ISxqbj7zrZ2SeC/kzsLMgdnMR8ROtlCQ==
+ bh=boPMtkayv4eniYxsbmCyCAcdkDw/+4upckbZgb0SQlY=;
+ b=ABQ9T8Rr8ZMOErIAybhcJqgCzDAG5E9UnGmGr0jR+51NUy2a3ItRKiPcX5U/LTpIt3KrqKvUcAfg
+   9RRosw4mCAbhlDY9E76dD9VTuNPG0ZQA7fWDs4rE75p62TQfBzXoWXQojTfaQG90KTbterzgcR7J
+   7lk4rxgRGaxx83659Wg6CR8pXAiL1wTJ3NI45DbO06dOjyL2RgSsHQqpMQbT4g0f3GO9sjy/nwcS
+   HvbhxCczHFoEJPe8TrR6OU/5AStZ32RngIG1U5YO+MtJ4+5acpIcuIqB/FpAPwmu2xx8c574Ffcu
+   CLze82CxAQW2G2FZfvYc4uIvpa0XRQ+c5dYevg==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=+N3+v3cwiOFGJaY27QNaw8cFkPkXXTSgXrZeLkWJeOg=;
- b=En5xHQ3Ts66xyXGHEZGT2CXYLAvBZsX+rckvueHLimWIIR88EH6delxgsS5Aj+BctfdLK5wG0j3b
-   JhhX+tis50AFR/ZTbx2kw4pY8UAoRTLs54ovpRhvxLRrdyEjcJw2nhNqzXxxqFV0Zn/u5RGqiNLX
-   5FyjnTgb89mZPxITsVCocrkfX/kpTk+hk27f6QIQFpJtKxNtc7+ZFbx4uXH9xkRGis/kOJ81aeuZ
-   WYyvcn7XNUdn6kG4q1KDKRGYV0ii9Kv5HfszrSA7qx9AYgN/RZc69zHAESWKaT4f9dF+FkrknDyn
-   VGiosTW5Q6A4A9AiP2jioGgIovXDf2MA2VC45g==
+ bh=boPMtkayv4eniYxsbmCyCAcdkDw/+4upckbZgb0SQlY=;
+ b=grYgPHsTQGS89E2PLg8TwXImsjjhgCFCVQZSFfo8rGbgs2AmOtGs1Ex6mRamchPMMKTXCv6fauI4
+   PY1Dp0QgoIGvfM+X2a20bBjadvVTdkjdzy81m2E+UZYX3pBFJawBHPtvRja6BZ4KKhHg3s/jYluk
+   XH1X3zHnqA42OelGHEznk9o5WzfeAZixOT5J4leTw5jPV4Fl4nwCbEtpLOQK8Kb9Al6omaFK7psN
+   8dLNK4rltC8Pp9v7ErTJy9OjaAF6NAXqognuI3ijHgZaIoXgKGYHMS2Gl0SszfZ763oTX1YAcK5O
+   xbIrXjDI2JJyGJJOMYccITebv/Ugyo+h3tlkiA==
 Received: by omta-ad2-fd3-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220104 64bit (built Jan  4
  2022))
- with ESMTPS id <0R6700GKV0HQDM90@omta-ad2-fd3-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Mon, 24 Jan 2022 02:34:38 +0000 (GMT)
+ with ESMTPS id <0R6700GNM0N0DM90@omta-ad2-fd3-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Mon, 24 Jan 2022 02:37:48 +0000 (GMT)
 Authentication-results: aserp3010.oracle.com; spf=fail
  smtp.mailfrom=joseph.qi@linux.alibaba.com; dmarc=none
  header.from=linux.alibaba.com
-Message-id: <0d43ae1c-80b6-be52-0d0f-849aad5392e9@linux.alibaba.com>
-Date: Mon, 24 Jan 2022 10:34:17 +0800
+Message-id: <206899ac-c1af-35bb-820a-62a45d93b52a@linux.alibaba.com>
+Date: Mon, 24 Jan 2022 10:37:30 +0800
 MIME-version: 1.0
 User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:91.0)
  Gecko/20100101 Thunderbird/91.4.0
 Content-language: en-US
-To: kernel test robot <oliver.sang@intel.com>, cgel.zte@gmail.com
-References: <20220123141359.GH19412@xsang-OptiPlex-9020>
-In-reply-to: <20220123141359.GH19412@xsang-OptiPlex-9020>
-X-Source-IP: 115.124.30.57
+To: Gautham Ananthakrishna <gautham.ananthakrishna@oracle.com>,
+ "akpm@linux-foundation.org" <akpm@linux-foundation.org>,
+ "tytso@mit.edu" <tytso@mit.edu>,
+ "adilger.kernel@dilger.ca" <adilger.kernel@dilger.ca>
+References: <20220121071205.100648-1-joseph.qi@linux.alibaba.com>
+ <20220121071205.100648-3-joseph.qi@linux.alibaba.com>
+ <DS7PR10MB487883FE7025BE9FD4623C39F75D9@DS7PR10MB4878.namprd10.prod.outlook.com>
+In-reply-to:
+ <DS7PR10MB487883FE7025BE9FD4623C39F75D9@DS7PR10MB4878.namprd10.prod.outlook.com>
+X-Source-IP: 115.124.30.130
 X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10236
  signatures=668683
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 bulkscore=0
- lowpriorityscore=0 mlxlogscore=999 malwarescore=0 clxscore=213 mlxscore=0
- adultscore=0 impostorscore=0 phishscore=0 suspectscore=0 priorityscore=90
- spamscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2201110000 definitions=main-2201240014 domainage_hfrom=8320
-Cc: 0day robot <lkp@intel.com>, Zeal Robot <zealci@zte.com.cn>,
- LKML <linux-kernel@vger.kernel.org>, Minghao Chi <chi.minghao@zte.com.cn>,
- lkp@lists.01.org, ocfs2-devel@oss.oracle.com
-Subject: Re: [Ocfs2-devel] [fs/ocfs2] 32e1a3dbeb:
-	kernel_BUG_at_fs/ocfs2/uptodate.c
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 suspectscore=0
+ bulkscore=0 adultscore=0 mlxlogscore=999 phishscore=0 spamscore=0
+ impostorscore=0 malwarescore=0 lowpriorityscore=0 clxscore=232
+ priorityscore=128 mlxscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2201110000 definitions=main-2201240015 domainage_hfrom=8320
+Cc: Saeed Mirzamohammadi <saeed.mirzamohammadi@oracle.com>,
+ "linux-ext4@vger.kernel.org" <linux-ext4@vger.kernel.org>,
+ "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>
+Subject: Re: [Ocfs2-devel] [PATCH 2/2] ocfs2: fix a deadlock when commit	trans
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -70,242 +75,115 @@ Reply-to: Joseph Qi <joseph.qi@linux.alibaba.com>
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-Alimail-AntiSpam: AC=PASS; BC=-1|-1; BR=01201311R131e4; CH=green;
- DM=||false|; DS=||; FP=0|-1|-1|-1|0|-1|-1|-1; HT=e01e04357;
- MF=joseph.qi@linux.alibaba.com; NM=1; PH=DS; RN=10; SR=0;
- TI=SMTPD_---0V2cE.SH_1642991657;
-X-ServerName: out30-57.freemail.mail.aliyun.com
+X-Alimail-AntiSpam: AC=PASS; BC=-1|-1; BR=01201311R191e4; CH=green;
+ DM=||false|; DS=||; FP=0|-1|-1|-1|0|-1|-1|-1; HT=e01e04395;
+ MF=joseph.qi@linux.alibaba.com; NM=1; PH=DS; RN=7; SR=0;
+ TI=SMTPD_---0V2cNU4c_1642991850;
+X-ServerName: out30-130.freemail.mail.aliyun.com
 X-Proofpoint-SPF-Result: pass
 X-Proofpoint-SPF-Record: v=spf1 include:spf1.service.alibaba.com
  include:spf2.service.alibaba.com include:spf1.ocm.aliyun.com
  include:spf2.ocm.aliyun.com include:spf1.staff.mail.aliyun.com
  include:a.hichina.mail.aliyun.com include:b.hichina.mail.aliyun.com -all
 X-Spam: Clean
-X-Proofpoint-ORIG-GUID: KnyTFPzquo8cJqINfy9cFaaIpfIufTl1
-X-Proofpoint-GUID: KnyTFPzquo8cJqINfy9cFaaIpfIufTl1
+X-Proofpoint-ORIG-GUID: FRekIorjRrB2qzq1wjVTCwtT7W3iTtZx
+X-Proofpoint-GUID: FRekIorjRrB2qzq1wjVTCwtT7W3iTtZx
 Reporting-Meta:
- AAHECv70g0TzFxsntkwV83z+jcrLKPJFvkeBsq/msbUUAR5QZ8TN9pwEs4svaP+G
- IMS05/3n9gxWllA1kgeP0fqZ6cGO5i6JsFyeFWNNpR1D96aLuey0nqIsDdURougZ
- KSKbM2ZNgWrZ4vfcdlKunVaBw97kHaAKajsI4sPFg1uyfQM3SCK3UXscf4oqKCjk
- sA3r1852JJwCS1P779Jko7ijkLIecT8XoEvXTrQxxzguHdvnZBCBdvnamQakYZ9S
- dx3MrHfpWfvmcZ1lx/a9jQN8qx+8hHE9QOjjB6OKlmMRbYNc4KANAWsd9DVIwdWc
- HXqDoWpGSx/6iwSutm89OSBhBSPQf+Xk35RrQwd42/YJ2fR9YmIvcy43nSfkRrur
- JmB7M3iUfYklwlXXM/VmteOFvxYy+T03qzobZpHRxrrKsYZ2ensz6kWZ5J8wO8MD
- xoMFpm80AxTHeSiovG/hfY2kCRcKgoOWo9lf5xbPcv96iZcTYxHDlEnHK4I4Ehjv
- UzulMwDQDxm9XaDKn51j13y1esVMidXGlkmvullf0vsm
+ AAEzVbuQkqhyHpFd019oL1IHLzm/aNtVWV+Xi35fbN9HmwzxY0kOTTZTg+DRXI0o
+ aJqu/gQVS3vk3tOKJqPq/hQRmBZYHg/pE0h/+XzIgeSAV3N1zpo8mH+pAqODhrZI
+ mc7l/qOgEskcfuz8Dbf6yxGNedoDfwy6QcNZ8PUETtSR19Fjx65bNkRIofS5E+69
+ upfwCeCcFe62Y6ohxDkCsa7nk9lFk2RB2luB89JBnigiPRXO5obdS3x0rgnU5NAI
+ wpqxLzxCrmYopAF674XNT7JPbB3wru4lKqMd523G3Ps4yu7O+50fcpl/vsHPpYDE
+ 5NXRClUkmyzFv4eVeCmmI5DQuPK5v/ltPs6SAwwokCWEXlN/sXKn2xSGKfQhu/eo
+ cngtqyp03KVucpt0fN5PgrHUsltrElNPDmZIm3s4Q0eQHb9hebxznxmIRFElIGPC
+ wqK4vUQlEo8hnioqLuW+fC5hxYHjtgfqa2RIcjZHr0JTm1bjkdt0PPQomZz8ik0b
+ cpEN148hvmGE33dtknScpr4yRN3pn/nWSD4LRX4MXwNE7A==
 
-This patch is NAKed as I've decribed in the original reply.
-And I've sent substituted patch which can be found at:
-https://lore.kernel.org/ocfs2-devel/9e3793fa-76a9-8190-a090-5655c49a7352@linux.alibaba.com/T/#t
+Sure, will do it in v2.
+So could this patch resolve your issue?
 
 Thanks,
 Joseph
 
-On 1/23/22 10:13 PM, kernel test robot wrote:
-> 
-> 
-> Greeting,
-> 
-> FYI, we noticed the following commit (built with gcc-9):
-> 
-> commit: 32e1a3dbeb6b569a29d843426cb163b5fd27a348 ("[PATCH] fs/ocfs2: remove redundant ret variable")
-> url: https://github.com/0day-ci/linux/commits/cgel-zte-gmail-com/fs-ocfs2-remove-redundant-ret-variable/20220112-161525
-> base: https://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git daadb3bd0e8d3e317e36bc2c1542e86c528665e5
-> patch link: https://lore.kernel.org/lkml/20220112081408.667411-1-chi.minghao@zte.com.cn
-> 
-> in testcase: ocfs2test
-> version: ocfs2test-x86_64-d802bf7-1_20210827
-> with following parameters:
-> 
-> 	disk: 1HDD
-> 	test: test-aiostress
-> 	ucode: 0x28
-> 
-> 
-> 
-> on test machine: 8 threads 1 sockets Intel(R) Core(TM) i7-4790T CPU @ 2.70GHz with 16G memory
-> 
-> caused below changes (please refer to attached dmesg/kmsg for entire log/backtrace):
-> 
-> 
-> 
-> If you fix the issue, kindly add following tag
-> Reported-by: kernel test robot <oliver.sang@intel.com>
-> 
-> 
-> [   56.620204][  T970] kernel BUG at fs/ocfs2/uptodate.c:65!
-> [   56.625708][  T970] invalid opcode: 0000 [#1] SMP KASAN PTI
-> [   56.631301][  T970] CPU: 2 PID: 970 Comm: aio-stress Not tainted 5.16.0-06519-g32e1a3dbeb6b #1
-> [   56.639940][  T970] Hardware name: Gigabyte Technology Co., Ltd. Z97X-UD5H/Z97X-UD5H, BIOS F9 04/21/2015
-> [ 56.649465][ T970] RIP: 0010:ocfs2_metadata_cache_get_super (fs/ocfs2/uptodate.c:65 fs/ocfs2/uptodate.c:63) ocfs2
-> [ 56.656764][ T970] Code: 29 48 b8 00 00 00 00 00 fc ff df 48 8d 7b 08 48 89 fa 48 c1 ea 03 80 3c 02 00 75 17 48 8b 43 08 48 89 ef 5b 5d e9 08 01 ae c1 <0f> 0b e8 21 e1 b8 bf eb c5 e8 1a e1 b8 bf eb e2 66 66 2e 0f 1f 84
-> All code
-> ========
->    0:	29 48 b8             	sub    %ecx,-0x48(%rax)
->    3:	00 00                	add    %al,(%rax)
->    5:	00 00                	add    %al,(%rax)
->    7:	00 fc                	add    %bh,%ah
->    9:	ff                   	(bad)  
->    a:	df 48 8d             	fisttps -0x73(%rax)
->    d:	7b 08                	jnp    0x17
->    f:	48 89 fa             	mov    %rdi,%rdx
->   12:	48 c1 ea 03          	shr    $0x3,%rdx
->   16:	80 3c 02 00          	cmpb   $0x0,(%rdx,%rax,1)
->   1a:	75 17                	jne    0x33
->   1c:	48 8b 43 08          	mov    0x8(%rbx),%rax
->   20:	48 89 ef             	mov    %rbp,%rdi
->   23:	5b                   	pop    %rbx
->   24:	5d                   	pop    %rbp
->   25:	e9 08 01 ae c1       	jmpq   0xffffffffc1ae0132
->   2a:*	0f 0b                	ud2    		<-- trapping instruction
->   2c:	e8 21 e1 b8 bf       	callq  0xffffffffbfb8e152
->   31:	eb c5                	jmp    0xfffffffffffffff8
->   33:	e8 1a e1 b8 bf       	callq  0xffffffffbfb8e152
->   38:	eb e2                	jmp    0x1c
->   3a:	66                   	data16
->   3b:	66                   	data16
->   3c:	2e                   	cs
->   3d:	0f                   	.byte 0xf
->   3e:	1f                   	(bad)  
->   3f:	84                   	.byte 0x84
-> 
-> Code starting with the faulting instruction
-> ===========================================
->    0:	0f 0b                	ud2    
->    2:	e8 21 e1 b8 bf       	callq  0xffffffffbfb8e128
->    7:	eb c5                	jmp    0xffffffffffffffce
->    9:	e8 1a e1 b8 bf       	callq  0xffffffffbfb8e128
->    e:	eb e2                	jmp    0xfffffffffffffff2
->   10:	66                   	data16
->   11:	66                   	data16
->   12:	2e                   	cs
->   13:	0f                   	.byte 0xf
->   14:	1f                   	(bad)  
->   15:	84                   	.byte 0x84
-> [   56.676290][  T970] RSP: 0018:ffffc90001b3ecd0 EFLAGS: 00010246
-> [   56.682346][  T970] RAX: dffffc0000000000 RBX: 0000000000000000 RCX: 0000000000000001
-> [   56.690196][  T970] RDX: 1ffff110833fee09 RSI: ffffc90001b3ee20 RDI: ffff888419ff704c
-> [   56.698067][  T970] RBP: ffff888419ff704c R08: 0000000000000001 R09: ffff888183cc8800
-> [   56.705937][  T970] R10: dffffc0000000000 R11: 0000000000000000 R12: ffffc90001b3ee20
-> [   56.713797][  T970] R13: 0000000000000000 R14: 0000000000000000 R15: ffffc90001b3ee38
-> [   56.721631][  T970] FS:  00007f70925db700(0000) GS:ffff8883a7300000(0000) knlGS:0000000000000000
-> [   56.730464][  T970] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-> [   56.736935][  T970] CR2: 00007f70915c8000 CR3: 0000000418668005 CR4: 00000000001706e0
-> [   56.744806][  T970] Call Trace:
-> [   56.747978][  T970]  <TASK>
-> [ 56.750803][ T970] ocfs2_add_clusters_in_btree (fs/ocfs2/alloc.c:4785) ocfs2
-> [ 56.757167][ T970] ? kasan_save_stack (mm/kasan/common.c:38) 
-> [ 56.761895][ T970] ? __kasan_slab_alloc (mm/kasan/common.c:46 mm/kasan/common.c:437 mm/kasan/common.c:470) 
-> [ 56.766984][ T970] ? kmem_cache_alloc (mm/slab.h:739 mm/slub.c:3230 mm/slub.c:3238 mm/slub.c:3243) 
-> [ 56.771898][ T970] ? jbd2__journal_start (include/linux/slab.h:706 include/linux/jbd2.h:1603 fs/jbd2/transaction.c:481 fs/jbd2/transaction.c:508 fs/jbd2/transaction.c:490) 
-> [ 56.777072][ T970] ? ocfs2_insert_extent (fs/ocfs2/alloc.c:4777) ocfs2
-> [ 56.782983][ T970] ? ocfs2_direct_IO (fs/ocfs2/aops.c:2450) ocfs2
-> [ 56.788537][ T970] ? generic_file_direct_write (mm/filemap.c:3678) 
-> [ 56.794239][ T970] ? __generic_file_write_iter (mm/filemap.c:3838) 
-> [ 56.799934][ T970] ? ocfs2_file_write_iter (fs/ocfs2/file.c:2447) ocfs2
-> [ 56.806018][ T970] ? __jbd2_journal_unfile_buffer (fs/jbd2/transaction.c:235) 
-> [ 56.811791][ T970] ? __x64_sys_io_submit (fs/aio.c:2056 fs/aio.c:2026 fs/aio.c:2026) 
-> [ 56.816982][ T970] ? do_syscall_64 (arch/x86/entry/common.c:50 arch/x86/entry/common.c:80) 
-> [ 56.821445][ T970] ? entry_SYSCALL_64_after_hwframe (arch/x86/entry/entry_64.S:113) 
-> [ 56.827416][ T970] ocfs2_add_inode_data (fs/ocfs2/file.c:545) ocfs2
-> [ 56.833051][ T970] ? ocfs2_truncate_file (fs/ocfs2/file.c:542) ocfs2
-> [ 56.839109][ T970] ? start_this_handle (arch/x86/include/asm/atomic.h:165 arch/x86/include/asm/atomic.h:178 include/linux/atomic/atomic-instrumented.h:147 include/asm-generic/qrwlock.h:109 include/linux/rwlock_api_smp.h:224 fs/jbd2/transaction.c:465) 
-> [ 56.844195][ T970] ocfs2_write_cluster+0xb16/0x13c0 ocfs2
-> [ 56.850617][ T970] ? kasan_unpoison (mm/kasan/shadow.c:108 mm/kasan/shadow.c:142) 
-> [ 56.855150][ T970] ? ocfs2_map_page_blocks (fs/ocfs2/aops.c:1115) ocfs2
-> [ 56.861243][ T970] ? mutex_unlock (arch/x86/include/asm/atomic64_64.h:190 include/linux/atomic/atomic-long.h:449 include/linux/atomic/atomic-instrumented.h:1790 kernel/locking/mutex.c:178 kernel/locking/mutex.c:537) 
-> [ 56.865722][ T970] ? jbd2_journal_get_write_access (fs/jbd2/transaction.c:1226) 
-> [ 56.871678][ T970] ? __ocfs2_journal_access (fs/ocfs2/journal.c:703) ocfs2
-> [ 56.877849][ T970] ? ocfs2_complete_recovery (fs/ocfs2/journal.c:638) ocfs2
-> [ 56.884105][ T970] ? _raw_spin_lock (arch/x86/include/asm/atomic.h:202 include/linux/atomic/atomic-instrumented.h:543 include/asm-generic/qspinlock.h:82 include/linux/spinlock.h:185 include/linux/spinlock_api_smp.h:134 kernel/locking/spinlock.c:154) 
-> [ 56.888723][ T970] ocfs2_write_begin_nolock (fs/ocfs2/aops.c:1249 fs/ocfs2/aops.c:1819) ocfs2
-> [ 56.895063][ T970] ? ocfs2_size_fits_inline_data (fs/ocfs2/aops.c:1651) ocfs2
-> [ 56.901458][ T970] ? ocfs2_read_inode_block_full (fs/ocfs2/inode.c:1597) ocfs2
-> [ 56.907975][ T970] ? ocfs2_refresh_inode (fs/ocfs2/inode.c:1589) ocfs2
-> [ 56.913877][ T970] ? __raw_callee_save___native_queued_spin_unlock (??:?) 
-> [ 56.921140][ T970] ? ocfs2_inode_lock_full_nested (fs/ocfs2/dlmglue.c:2412 fs/ocfs2/dlmglue.c:2507) ocfs2
-> [ 56.927847][ T970] ? ocfs2_allocate_extend_trans (fs/ocfs2/journal.c:712) ocfs2
-> [ 56.934787][ T970] ? down_write_killable (kernel/locking/rwsem.c:1512) 
-> [ 56.939927][ T970] ocfs2_dio_wr_get_block (fs/ocfs2/aops.c:2229) ocfs2
-> [ 56.946011][ T970] ? iov_iter_get_pages (lib/iov_iter.c:1543) 
-> [ 56.951063][ T970] ? ocfs2_write_end_nolock (fs/ocfs2/aops.c:2130) ocfs2
-> [ 56.957409][ T970] ? iov_iter_get_pages_alloc (lib/iov_iter.c:1521) 
-> [ 56.963162][ T970] ? __kasan_init_slab_obj (mm/kasan/common.c:327) 
-> [ 56.968329][ T970] ? allocate_slab (mm/slub.c:376 mm/slub.c:1904 mm/slub.c:1970) 
-> [ 56.972967][ T970] do_direct_IO (fs/direct-io.c:673 fs/direct-io.c:955) 
-> [ 56.977446][ T970] ? _raw_write_lock_irq (kernel/locking/spinlock.c:153) 
-> [ 56.982584][ T970] ? kasan_unpoison (mm/kasan/shadow.c:108 mm/kasan/shadow.c:142) 
-> [ 56.987139][ T970] ? do_blockdev_direct_IO (fs/direct-io.c:1152) 
-> [ 56.992542][ T970] do_blockdev_direct_IO (fs/direct-io.c:1270) 
-> [ 56.997794][ T970] ? ocfs2_dio_end_io_write (fs/ocfs2/aops.c:2400) ocfs2
-> [ 57.003931][ T970] ? do_direct_IO (fs/direct-io.c:1129) 
-> [ 57.008655][ T970] ? native_queued_spin_lock_slowpath (arch/x86/include/asm/atomic.h:29 include/linux/atomic/atomic-instrumented.h:28 arch/x86/include/asm/qspinlock.h:25 kernel/locking/qspinlock.c:352) 
-> [ 57.014963][ T970] ? ocfs2_read_blocks_sync (fs/ocfs2/buffer_head_io.c:197) ocfs2
-> [ 57.021110][ T970] ? .slowpath (kernel/locking/qspinlock.c:316) 
-> [ 57.025060][ T970] ? truncate_pagecache_range (mm/truncate.c:625) 
-> [ 57.030493][ T970] ? _raw_spin_lock (arch/x86/include/asm/paravirt.h:591 arch/x86/include/asm/qspinlock.h:51 include/asm-generic/qspinlock.h:85 include/linux/spinlock.h:185 include/linux/spinlock_api_smp.h:134 kernel/locking/spinlock.c:154) 
-> [ 57.035115][ T970] ? _raw_write_lock_irq (kernel/locking/spinlock.c:153) 
-> [ 57.040278][ T970] ? ocfs2_write_end_nolock (fs/ocfs2/aops.c:2130) ocfs2
-> [ 57.046615][ T970] ? filemap_fdatawait_keep_errors (mm/filemap.c:714) 
-> [ 57.052455][ T970] ? __mark_inode_dirty (include/linux/spinlock.h:202 include/linux/spinlock_api_smp.h:142 include/linux/spinlock.h:389 fs/fs-writeback.c:2480) 
-> [ 57.057533][ T970] ? generic_update_time (fs/inode.c:1784) 
-> [ 57.062673][ T970] ocfs2_direct_IO (fs/ocfs2/aops.c:2450) ocfs2
-> [ 57.068057][ T970] generic_file_direct_write (mm/filemap.c:3678) 
-> [ 57.073584][ T970] __generic_file_write_iter (mm/filemap.c:3838) 
-> [ 57.079089][ T970] ocfs2_file_write_iter (fs/ocfs2/file.c:2447) ocfs2
-> [ 57.085018][ T970] ? ocfs2_prepare_inode_for_write+0x880/0x880 ocfs2
-> [ 57.092410][ T970] ? stack_trace_save (kernel/stacktrace.c:123) 
-> [ 57.097141][ T970] aio_write (fs/aio.c:1497 fs/aio.c:1578) 
-> [ 57.101265][ T970] ? aio_prep_rw (fs/aio.c:1545) 
-> [ 57.105713][ T970] ? kasan_save_stack (mm/kasan/common.c:41) 
-> [ 57.110444][ T970] ? kasan_save_stack (mm/kasan/common.c:38) 
-> [ 57.115159][ T970] ? __kasan_slab_alloc (mm/kasan/common.c:46 mm/kasan/common.c:437 mm/kasan/common.c:470) 
-> [ 57.120054][ T970] ? io_submit_one (fs/aio.c:1029 fs/aio.c:1993) 
-> [ 57.124673][ T970] ? __x64_sys_io_submit (fs/aio.c:2056 fs/aio.c:2026 fs/aio.c:2026) 
-> [ 57.129848][ T970] ? do_syscall_64 (arch/x86/entry/common.c:50 arch/x86/entry/common.c:80) 
-> [ 57.134330][ T970] ? tcp_mtu_probe (include/linux/skbuff.h:1464 net/ipv4/tcp_output.c:2393) 
-> [ 57.139148][ T970] ? _raw_spin_lock_irqsave (arch/x86/include/asm/atomic.h:202 include/linux/atomic/atomic-instrumented.h:543 include/asm-generic/qspinlock.h:82 include/linux/spinlock.h:185 include/linux/spinlock_api_smp.h:111 kernel/locking/spinlock.c:162) 
-> [ 57.144496][ T970] ? get_random_u32 (drivers/char/random.c:2219) 
-> [ 57.149150][ T970] ? __kasan_init_slab_obj (mm/kasan/common.c:327) 
-> [ 57.154324][ T970] ? setup_object+0x17/0xc0 
-> [ 57.159307][ T970] ? __io_submit_one+0xa7d/0x1040 
-> [ 57.165233][ T970] __io_submit_one+0xa7d/0x1040 
-> [ 57.170982][ T970] ? aio_poll_complete_work (fs/aio.c:1913) 
-> [ 57.176587][ T970] ? kasan_unpoison (mm/kasan/shadow.c:108 mm/kasan/shadow.c:142) 
-> [ 57.181138][ T970] ? __kasan_slab_alloc (mm/kasan/common.c:46 mm/kasan/common.c:437 mm/kasan/common.c:470) 
-> [ 57.186018][ T970] ? __get_reqs_available (arch/x86/include/asm/atomic.h:196 include/linux/atomic/atomic-instrumented.h:504 fs/aio.c:934) 
-> [ 57.191270][ T970] io_submit_one (include/linux/instrumented.h:101 include/linux/atomic/atomic-instrumented.h:176 include/linux/refcount.h:272 include/linux/refcount.h:315 include/linux/refcount.h:333 fs/aio.c:1162 fs/aio.c:2000) 
-> [ 57.195803][ T970] ? exc_page_fault (arch/x86/include/asm/irqflags.h:40 arch/x86/include/asm/irqflags.h:75 arch/x86/mm/fault.c:1493 arch/x86/mm/fault.c:1541) 
-> [ 57.200361][ T970] ? asm_exc_page_fault (arch/x86/include/asm/idtentry.h:568) 
-> [ 57.205241][ T970] ? __io_submit_one+0x1040/0x1040 
-> [ 57.211282][ T970] ? __get_user_4 (arch/x86/lib/getuser.S:85) 
-> [ 57.215676][ T970] __x64_sys_io_submit (fs/aio.c:2056 fs/aio.c:2026 fs/aio.c:2026) 
-> [ 57.220676][ T970] ? __ia32_compat_sys_io_submit (fs/aio.c:2026) 
-> [ 57.226533][ T970] ? switch_fpu_return (arch/x86/include/asm/bitops.h:75 include/asm-generic/bitops/instrumented-atomic.h:42 include/linux/thread_info.h:94 arch/x86/kernel/fpu/context.h:80 arch/x86/kernel/fpu/core.c:664) 
-> [ 57.231414][ T970] ? exit_to_user_mode_prepare (arch/x86/include/asm/entry-common.h:58 kernel/entry/common.c:209) 
-> [ 57.237108][ T970] do_syscall_64 (arch/x86/entry/common.c:50 arch/x86/entry/common.c:80) 
-> 
-> 
-> To reproduce:
-> 
->         git clone https://github.com/intel/lkp-tests.git
->         cd lkp-tests
->         sudo bin/lkp install job.yaml           # job file is attached in this email
->         bin/lkp split-job --compatible job.yaml # generate the yaml file for lkp run
->         sudo bin/lkp run generated-yaml-file
-> 
->         # if come across any failure that blocks the test,
->         # please remove ~/.lkp and /lkp dir to run from a clean state.
-> 
-> 
-> 
-> ---
-> 0DAY/LKP+ Test Infrastructure                   Open Source Technology Center
-> https://lists.01.org/hyperkitty/list/lkp@lists.01.org       Intel Corporation
+On 1/23/22 1:31 PM, Gautham Ananthakrishna wrote:
+> Hi,
+> This deadlock was originally reported by saeed.mirzamohammadi@oracle.com  Could you please add Saeed as the reportedby.
 > 
 > Thanks,
-> Oliver Sang
+> Gautham.
 > 
+> -----Original Message-----
+> From: Joseph Qi <joseph.qi@linux.alibaba.com> 
+> Sent: Friday, January 21, 2022 12:42 PM
+> To: akpm@linux-foundation.org; tytso@mit.edu; adilger.kernel@dilger.ca
+> Cc: Gautham Ananthakrishna <gautham.ananthakrishna@oracle.com>; ocfs2-devel@oss.oracle.com; linux-ext4@vger.kernel.org
+> Subject: [PATCH 2/2] ocfs2: fix a deadlock when commit trans
+> 
+> commit 6f1b228529ae introduces a regression which can deadlock as
+> follows:
+> 
+> Task1:                              Task2:
+> jbd2_journal_commit_transaction     ocfs2_test_bg_bit_allocatable
+> spin_lock(&jh->b_state_lock)        jbd_lock_bh_journal_head
+> __jbd2_journal_remove_checkpoint    spin_lock(&jh->b_state_lock)
+> jbd2_journal_put_journal_head
+> jbd_lock_bh_journal_head
+> 
+> Task1 and Task2 lock bh->b_state and jh->b_state_lock in different order, which finally result in a deadlock.
+> 
+> So use jbd2_journal_[grab|put]_journal_head instead in
+> ocfs2_test_bg_bit_allocatable() to fix it.
+> 
+> Reported-by: Gautham Ananthakrishna <gautham.ananthakrishna@oracle.com>
+> Fixes: 6f1b228529ae ("ocfs2: fix race between searching chunks and release journal_head from buffer_head")
+> Cc: <stable@vger.kernel.org>
+> Signed-off-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+> ---
+>  fs/ocfs2/suballoc.c | 25 +++++++++++--------------
+>  1 file changed, 11 insertions(+), 14 deletions(-)
+> 
+> diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c index 481017e1dac5..166c8918c825 100644
+> --- a/fs/ocfs2/suballoc.c
+> +++ b/fs/ocfs2/suballoc.c
+> @@ -1251,26 +1251,23 @@ static int ocfs2_test_bg_bit_allocatable(struct buffer_head *bg_bh,  {
+>  	struct ocfs2_group_desc *bg = (struct ocfs2_group_desc *) bg_bh->b_data;
+>  	struct journal_head *jh;
+> -	int ret = 1;
+> +	int ret;
+>  
+>  	if (ocfs2_test_bit(nr, (unsigned long *)bg->bg_bitmap))
+>  		return 0;
+>  
+> -	if (!buffer_jbd(bg_bh))
+> +	jh = jbd2_journal_grab_journal_head(bg_bh);
+> +	if (!jh)
+>  		return 1;
+>  
+> -	jbd_lock_bh_journal_head(bg_bh);
+> -	if (buffer_jbd(bg_bh)) {
+> -		jh = bh2jh(bg_bh);
+> -		spin_lock(&jh->b_state_lock);
+> -		bg = (struct ocfs2_group_desc *) jh->b_committed_data;
+> -		if (bg)
+> -			ret = !ocfs2_test_bit(nr, (unsigned long *)bg->bg_bitmap);
+> -		else
+> -			ret = 1;
+> -		spin_unlock(&jh->b_state_lock);
+> -	}
+> -	jbd_unlock_bh_journal_head(bg_bh);
+> +	spin_lock(&jh->b_state_lock);
+> +	bg = (struct ocfs2_group_desc *) jh->b_committed_data;
+> +	if (bg)
+> +		ret = !ocfs2_test_bit(nr, (unsigned long *)bg->bg_bitmap);
+> +	else
+> +		ret = 1;
+> +	spin_unlock(&jh->b_state_lock);
+> +	jbd2_journal_put_journal_head(jh);
+>  
+>  	return ret;
+>  }
+> --
+> 2.19.1.6.gb485710b
 
 _______________________________________________
 Ocfs2-devel mailing list
