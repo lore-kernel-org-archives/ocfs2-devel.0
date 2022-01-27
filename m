@@ -1,60 +1,90 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc250.phx1.oracleemaildelivery.com (aib29ajc250.phx1.oracleemaildelivery.com [192.29.103.250])
+Received: from aib29ajc245.phx1.oracleemaildelivery.com (aib29ajc245.phx1.oracleemaildelivery.com [192.29.103.245])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 7227CC43219
-	for <ocfs2-devel@archiver.kernel.org>; Mon, 24 Jan 2022 02:37:49 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id DE6B2C433F5
+	for <ocfs2-devel@archiver.kernel.org>; Thu, 27 Jan 2022 12:46:56 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=boPMtkayv4eniYxsbmCyCAcdkDw/+4upckbZgb0SQlY=;
- b=ABQ9T8Rr8ZMOErIAybhcJqgCzDAG5E9UnGmGr0jR+51NUy2a3ItRKiPcX5U/LTpIt3KrqKvUcAfg
-   9RRosw4mCAbhlDY9E76dD9VTuNPG0ZQA7fWDs4rE75p62TQfBzXoWXQojTfaQG90KTbterzgcR7J
-   7lk4rxgRGaxx83659Wg6CR8pXAiL1wTJ3NI45DbO06dOjyL2RgSsHQqpMQbT4g0f3GO9sjy/nwcS
-   HvbhxCczHFoEJPe8TrR6OU/5AStZ32RngIG1U5YO+MtJ4+5acpIcuIqB/FpAPwmu2xx8c574Ffcu
-   CLze82CxAQW2G2FZfvYc4uIvpa0XRQ+c5dYevg==
+ bh=VTYFGq5ApKcTEI7Pot6X/Z84+SOyIDCQQ3OTdhIwTFU=;
+ b=aSNllYqT3xFeqWxdjDnumjmWec/K8OnE9Yfo/+d9S7Te9WuSQYkcy6IfaxdDRCJ5iYca4eAiV5M5
+   Fcm/jIdwa9+ucBk31qlc1KzJh43BkDVpGfjVGFr98mPiE5AKxxmciR0vUMJZGeYFnMSFt5Gpdc+h
+   khMvRmrybPx5GlqUtzTWiwmUhQxjgZ11MoBjdCpDzxFh/5PJNp70tO/lmqbv4SZgfZ/FiB8vhXxk
+   dLzAvzKiGNVT5bdp6OCQEK+N0A/xmabDwp4CGQ5VVBV8kMZDU4zCMtCE5rfL5kyo2snPvUastePM
+   GKvYx3B5VRpeKux8lhcyGEIVW5pt7AnUsbkhwA==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=boPMtkayv4eniYxsbmCyCAcdkDw/+4upckbZgb0SQlY=;
- b=grYgPHsTQGS89E2PLg8TwXImsjjhgCFCVQZSFfo8rGbgs2AmOtGs1Ex6mRamchPMMKTXCv6fauI4
-   PY1Dp0QgoIGvfM+X2a20bBjadvVTdkjdzy81m2E+UZYX3pBFJawBHPtvRja6BZ4KKhHg3s/jYluk
-   XH1X3zHnqA42OelGHEznk9o5WzfeAZixOT5J4leTw5jPV4Fl4nwCbEtpLOQK8Kb9Al6omaFK7psN
-   8dLNK4rltC8Pp9v7ErTJy9OjaAF6NAXqognuI3ijHgZaIoXgKGYHMS2Gl0SszfZ763oTX1YAcK5O
-   xbIrXjDI2JJyGJJOMYccITebv/Ugyo+h3tlkiA==
-Received: by omta-ad2-fd3-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
- (Oracle Communications Messaging Server 8.1.0.1.20220104 64bit (built Jan  4
+ bh=VTYFGq5ApKcTEI7Pot6X/Z84+SOyIDCQQ3OTdhIwTFU=;
+ b=T6vH1fZ5qEcxFvsFd4kMK69acYarNwsfTX4pMabYuiDizb6DQE6a1wEXDwJbtIQNKDCwDeppG/+F
+   c1/jfges6PiUaoODPLhxgoNRpsrQdLzxqMxAvyfoLzxOy+mnWNRZvkmFEy99G/7mIE3aB/pVgxsU
+   JnP3EYI9SkDWU49UG5xDGQ3ljCkQQQEIl725gwExn0EstnGW3zkxuDR8LCvCG5tE6L5sPcQ7lwFW
+   LhLRoNv/dbRy5jj6QoWr0X5bc6+R1kj27TNgRL3WK3K/ccWuIlgEj7ZO/6qwEwdLX9X4/uv0Lg6K
+   mTIhs2rzwRBlVQw5BRWZWlkVdMwxUYpylYrpVQ==
+Received: by omta-ad1-fd1-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
+ (Oracle Communications Messaging Server 8.1.0.1.20220119 64bit (built Jan 19
  2022))
- with ESMTPS id <0R6700GNM0N0DM90@omta-ad2-fd3-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Mon, 24 Jan 2022 02:37:48 +0000 (GMT)
-Authentication-results: aserp3010.oracle.com; spf=fail
- smtp.mailfrom=joseph.qi@linux.alibaba.com; dmarc=none
- header.from=linux.alibaba.com
-Message-id: <206899ac-c1af-35bb-820a-62a45d93b52a@linux.alibaba.com>
-Date: Mon, 24 Jan 2022 10:37:30 +0800
-MIME-version: 1.0
-User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:91.0)
- Gecko/20100101 Thunderbird/91.4.0
-Content-language: en-US
-To: Gautham Ananthakrishna <gautham.ananthakrishna@oracle.com>,
+ with ESMTPS id <0R6D00EJSCU8NX80@omta-ad1-fd1-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Thu, 27 Jan 2022 12:46:56 +0000 (GMT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=oracle.com; h=from : to
+ : cc : subject : date : message-id : references : in-reply-to : content-type :
+ content-transfer-encoding : mime-version; s=corp-2021-07-09;
+ bh=Tf04wbWyIaiEQNjHeo/cIHHjVcO06nD0pDHLjoCnQD4=;
+ b=Cn7PGEf8sJvD4YNKs0h1uhbMZeXE/myz1Z5kNnqNObQTkODTntCa2B3VPsxejuZIjy6V
+ Mezc0MovZOHt/quygaggEXmDfzVlS0cyEIYYhqQJ5jh1t+5v7XbreF8ovBDQH/x5yJeU
+ yG5hw0NG8y7GF1LacccZzWyfCBL0zTwMS0Zr4Vx20+Igt19LmevnTqCM6OjFJQCKHuh0
+ zEtp2OkWvWfYC1GyILKW7Mt1MbD8l6EV0J1FmK1Us8OPz/Y6pwfZlzKajfEegtgg2QfI
+ lfISJdTgvTYhiVVLegC/gfWT2evrT2+vO+wmap8G10aW+Yh+IknBEnAZsbKFdIhEmynZ ng==
+Authentication-results: aserp3010.oracle.com; spf=softfail
+ smtp.mailfrom=gautham.ananthakrishna@oracle.com; dkim=pass
+ header.d=oracle.onmicrosoft.com header.s=selector2-oracle-onmicrosoft-com;
+ dmarc=none header.from=oracle.com
+ARC-Seal: i=1; a=rsa-sha256; s=arcselector9901; d=microsoft.com; cv=none;
+ b=SAXNJvvkKaNE4098LarIewf4xiMPOET4yzmArWVGMatCTdejZgzXk7ImghyR31j3iLodRDFrqqdF5OrNYQy01YAFIPMlNsvcbYDlT1i0WFXytORNMw18K6pcDP+fhpBxNwID/fR1sE1MSuU8hzVLrq3e/v6TVTylBCLfoeo6PfM2/2hJqb/9ktp4Yq2tCAalPgUH3JAul8b6bgF07dgEteQrOglSeTqugZZC6DWiuePiLQzhiUxHLpIrzKIaWnOQpLsad+mReETZiz3Zj3VMrPaOQ2hSXACyFmeH1kjbBR3FrnAxgcg2ZQPZuHha3C5GN1eDomhFsr6BUUXL9iHjOg==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=arcselector9901;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
+ bh=Tf04wbWyIaiEQNjHeo/cIHHjVcO06nD0pDHLjoCnQD4=;
+ b=ZxU9a5VIGSWFwxZb6nvLlMK2ZXNeg9Zu9a46DmfC5j+CR7xjFEL+GVVbzplM9XFiQMRGVhmJwsLFcajtoYQhJuH4tKJdWi6i0+tfFAt8/Vj4tvhlziB27Qev2eIWXgYKnVbVGVbCUJOcB4zG251lrNEvr3ug+pjFaa1mV67yRjTKtUIq33o0InSHTCjGPE3SbKCVFZYs8mMRHqkjo3HVa7p4dAyQacS8E9mk4WxMQZdbZXbFAHwONd0FVMA+2khhueuLOXrASrvQ6k2Kjt3C62E6QFFFTgbI5oh3MSwPXdhvpqCXxmOIUA025p6A/hhILYekphpH6tM+aVSIYvs/Xg==
+ARC-Authentication-results: i=1; mx.microsoft.com 1; spf=none; dmarc=none;
+ dkim=none; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=oracle.onmicrosoft.com;
+ s=selector2-oracle-onmicrosoft-com;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
+ bh=Tf04wbWyIaiEQNjHeo/cIHHjVcO06nD0pDHLjoCnQD4=;
+ b=vN3KDO37XejzwilKqi0m8kRvP2q1xmXRY0XdJhtKtsAs2sPoOXz27V7iXftu6QqRiNnHGVduUEhyM40AZhZidAb4Sy08inTR9qtEBDpb9ehxMYqP6wuuz7Htk5D5fbedT9iv9aOo6JKCqrMAkCA24fUMMcXZkdHwDN2/gEQg8WI=
+To: Joseph Qi <joseph.qi@linux.alibaba.com>,
  "akpm@linux-foundation.org" <akpm@linux-foundation.org>,
  "tytso@mit.edu" <tytso@mit.edu>,
  "adilger.kernel@dilger.ca" <adilger.kernel@dilger.ca>
+Thread-topic: [PATCH 2/2] ocfs2: fix a deadlock when commit trans
+Thread-index: AQHYDpY4QxT3B/KhD0KLG3FGeJTJ0KxwFvKQgAFiiwCABWEEQA==
+Date: Thu, 27 Jan 2022 12:46:41 +0000
+Message-id:
+ <DS7PR10MB487856DF1F951F8ABB7956C8F7219@DS7PR10MB4878.namprd10.prod.outlook.com>
 References: <20220121071205.100648-1-joseph.qi@linux.alibaba.com>
  <20220121071205.100648-3-joseph.qi@linux.alibaba.com>
  <DS7PR10MB487883FE7025BE9FD4623C39F75D9@DS7PR10MB4878.namprd10.prod.outlook.com>
-In-reply-to:
- <DS7PR10MB487883FE7025BE9FD4623C39F75D9@DS7PR10MB4878.namprd10.prod.outlook.com>
-X-Source-IP: 115.124.30.130
-X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10236
+ <206899ac-c1af-35bb-820a-62a45d93b52a@linux.alibaba.com>
+In-reply-to: <206899ac-c1af-35bb-820a-62a45d93b52a@linux.alibaba.com>
+Accept-Language: en-US
+Content-language: en-US
+X-MS-Has-Attach:
+X-Forefront-Antispam-Report: CIP:255.255.255.255; CTRY:; LANG:en; SCL:-1; SRV:;
+ IPV:NLI; SFV:SKI; H:DS7PR10MB4878.namprd10.prod.outlook.com; PTR:; CAT:NONE;
+ SFS:; DIR:INB;
+MIME-version: 1.0
+X-OriginatorOrg: oracle.com
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 27 Jan 2022 12:46:41.9184 (UTC)
+X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10239
  signatures=668683
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 suspectscore=0
- bulkscore=0 adultscore=0 mlxlogscore=999 phishscore=0 spamscore=0
- impostorscore=0 malwarescore=0 lowpriorityscore=0 clxscore=232
- priorityscore=128 mlxscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2201110000 definitions=main-2201240015 domainage_hfrom=8320
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 bulkscore=0
+ mlxscore=0 malwarescore=0 spamscore=0 phishscore=0 suspectscore=0 adultscore=0
+ mlxlogscore=999 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2201110000 definitions=main-2201270076
 Cc: Saeed Mirzamohammadi <saeed.mirzamohammadi@oracle.com>,
  "linux-ext4@vger.kernel.org" <linux-ext4@vger.kernel.org>,
  "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>
@@ -70,34 +100,67 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: Joseph Qi via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: Joseph Qi <joseph.qi@linux.alibaba.com>
+From: Gautham Ananthakrishna via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: Gautham Ananthakrishna <gautham.ananthakrishna@oracle.com>
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-Alimail-AntiSpam: AC=PASS; BC=-1|-1; BR=01201311R191e4; CH=green;
- DM=||false|; DS=||; FP=0|-1|-1|-1|0|-1|-1|-1; HT=e01e04395;
- MF=joseph.qi@linux.alibaba.com; NM=1; PH=DS; RN=7; SR=0;
- TI=SMTPD_---0V2cNU4c_1642991850;
-X-ServerName: out30-130.freemail.mail.aliyun.com
-X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 include:spf1.service.alibaba.com
- include:spf2.service.alibaba.com include:spf1.ocm.aliyun.com
- include:spf2.ocm.aliyun.com include:spf1.staff.mail.aliyun.com
- include:a.hichina.mail.aliyun.com include:b.hichina.mail.aliyun.com -all
-X-Spam: Clean
-X-Proofpoint-ORIG-GUID: FRekIorjRrB2qzq1wjVTCwtT7W3iTtZx
-X-Proofpoint-GUID: FRekIorjRrB2qzq1wjVTCwtT7W3iTtZx
+X-MS-TNEF-Correlator:
+x-ms-publictraffictype: Email
+x-ms-office365-filtering-correlation-id: 9059e1e4-a962-4013-1f3a-08d9e1931186
+x-ms-traffictypediagnostic: DM5PR10MB1481:EE_
+x-oracle-tenancy: 1
+x-ms-oob-tlc-oobclassifiers: OLM:4125;
+x-microsoft-antispam: BCL:0;
+x-microsoft-antispam-message-info:
+ 8T0G0nNPi0nIpct2yfWC3jcufFV1D//LKyZ5EbGVoOpKd8WaIgrhMRLxGLgAE1yWvQraozSbpS5NLR936CBOdGoTDGhis/3qXAic9B92v42820Nr+pt5YNtsFnSTDlBgs2RBR35rVcom0MAaJNJZu7MXlA0dKoppsrc1EKeJSvgDXKCF1hOSCRCmiS8lp3z6icGBdf49ZnVpy36uGpdt4RecKR7pQ4VC2DGqvzUqvLcH75YfLzVxBozy1Sw89TjtPPWau4HWce3wavoggNLefI+3ec3mLDZwz7COPMNhyJ/S5rxf8NthoUpD3Q2P8PwrdA7WBUdjmEcociUyQ/YOWu/vXf85RAWds/kobVYa2zG1BGnDQaZcDR5tT0IGf5yoGvYiLioFLVc772tcWALVMBSGpV5gt0dBNNjpYgrqraZQV6XS/X64vlOEUnCOh5jTf9leWTtGwJhwroQT+x6uMB1nqaLJRiJzUp6DQPGD7yBDk8Kew3qTl6OKFN3HW9p00Si4i35RFZbPMmlwMQcXgTrE7DUaqrHS+8NUiGctCoX0VS+H1cexQlpg68uHClZ2f4lNG2rywIimCl8COGB++OehWfvL4TIt47CkPLFmXmI=
+X-MS-Exchange-CrossTenant-AuthAs: Internal
+X-MS-Exchange-CrossTenant-AuthSource: DS7PR10MB4878.namprd10.prod.outlook.com
+X-MS-Exchange-CrossTenant-Network-Message-Id:
+ 9059e1e4-a962-4013-1f3a-08d9e1931186
+X-MS-Exchange-CrossTenant-fromentityheader: Hosted
+X-MS-Exchange-CrossTenant-id: 4e2c6054-71cb-48f1-bd6c-3a9705aca71b
+X-MS-Exchange-CrossTenant-mailboxtype: HOSTED
+X-MS-Exchange-CrossTenant-userprincipalname:
+ f5R+LesgwbSQQLMIfEaH4Sv60H5EDbtFVyD7ImwfmqeA68k7TlDmANto7S7xQVNhFDvEVuUQPvsJxXdF4Dwq6Qhe3Q/K80drDNmBTokHAyIP0f4uvLeB87XuKB/XPhzA
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: DM5PR10MB1481
+X-MS-Exchange-CrossPremises-AuthAs: Internal
+X-MS-Exchange-CrossPremises-AuthMechanism: 04
+X-MS-Exchange-CrossPremises-AuthSource: DS7PR10MB4878.namprd10.prod.outlook.com
+X-MS-Exchange-CrossPremises-TransportTrafficType: Email
+X-MS-Exchange-CrossPremises-SCL: -1
+X-MS-Exchange-CrossPremises-messagesource: StoreDriver
+X-MS-Exchange-CrossPremises-BCC:
+X-MS-Exchange-CrossPremises-originalclientipaddress: 138.3.205.62
+X-MS-Exchange-CrossPremises-transporttraffictype: Email
+X-MS-Exchange-CrossPremises-antispam-scancontext: DIR:Originating; SFV:SKI;
+ SKIP:0;
+X-MS-Exchange-CrossPremises-processed-by-journaling: Journal Agent
+X-OrganizationHeadersPreserved: DM5PR10MB1481.namprd10.prod.outlook.com
+X-Proofpoint-GUID: QcEOOeWCDMXl9gfJfUsS9g924h13RYU-
+X-Proofpoint-ORIG-GUID: QcEOOeWCDMXl9gfJfUsS9g924h13RYU-
 Reporting-Meta:
- AAEzVbuQkqhyHpFd019oL1IHLzm/aNtVWV+Xi35fbN9HmwzxY0kOTTZTg+DRXI0o
- aJqu/gQVS3vk3tOKJqPq/hQRmBZYHg/pE0h/+XzIgeSAV3N1zpo8mH+pAqODhrZI
- mc7l/qOgEskcfuz8Dbf6yxGNedoDfwy6QcNZ8PUETtSR19Fjx65bNkRIofS5E+69
- upfwCeCcFe62Y6ohxDkCsa7nk9lFk2RB2luB89JBnigiPRXO5obdS3x0rgnU5NAI
- wpqxLzxCrmYopAF674XNT7JPbB3wru4lKqMd523G3Ps4yu7O+50fcpl/vsHPpYDE
- 5NXRClUkmyzFv4eVeCmmI5DQuPK5v/ltPs6SAwwokCWEXlN/sXKn2xSGKfQhu/eo
- cngtqyp03KVucpt0fN5PgrHUsltrElNPDmZIm3s4Q0eQHb9hebxznxmIRFElIGPC
- wqK4vUQlEo8hnioqLuW+fC5hxYHjtgfqa2RIcjZHr0JTm1bjkdt0PPQomZz8ik0b
- cpEN148hvmGE33dtknScpr4yRN3pn/nWSD4LRX4MXwNE7A==
+ AAFKQ9HQPV2nGLlo/izg+mwav3RK+pWBJMkhNHlVKAOwGeEkqY9gmz0K5ss3zIXa
+ m+FHFmTIC9u5DyeiOtSBjiQOWW9XEoJ3bMD3DL6fdrSEjiygxGleSKtpHhGEvKl6
+ 0wD8apBPAgMod4guhiulqt9ZkzLGWlmhyPNe+eyTzbpLDCC35HKkH1K7Ao+sAzBq
+ vBfCyRJhMrSwKV1Byqp4Wdbstk/BXe3MgmrEYSA/V01fVZlIaBAc3UQdqNozjXUJ
+ DL/F7i5BlXlWsTxzN24JF6cs+RAawqTSyZruIrMG1Bpx2xNDsGrZRehiO0S2uQyd
+ PUXte/OX23O0otBsdmtWudwfGTr2WAaL7gP4cCBLpoPJRN+9zbeFXCo0b+4CxhVU
+ r2BK1Da1/vTcftAdVs+GbAKZ4gwlY9QfXoezbANpBIrCU/ljg3Rr6wxqAhA58p8m
+ i2GzE9BJnMJctedi9oY7gfo8cBMzikd1nPYL/a+aWSHvBnxgBQOZ/nRS7NvmA3u4
+ zAw+0iT2dG//rS8limeOPGtPtesd2jbOaUisSeO5zCM=
+
+Yes. The patch has resolved the issue.
+
+Thanks,
+Gautham.
+
+-----Original Message-----
+From: Joseph Qi <joseph.qi@linux.alibaba.com> 
+Sent: Monday, January 24, 2022 8:08 AM
+To: Gautham Ananthakrishna <gautham.ananthakrishna@oracle.com>; akpm@linux-foundation.org; tytso@mit.edu; adilger.kernel@dilger.ca
+Cc: ocfs2-devel@oss.oracle.com; linux-ext4@vger.kernel.org; Saeed Mirzamohammadi <saeed.mirzamohammadi@oracle.com>
+Subject: Re: [PATCH 2/2] ocfs2: fix a deadlock when commit trans
 
 Sure, will do it in v2.
 So could this patch resolve your issue?
@@ -184,7 +247,6 @@ On 1/23/22 1:31 PM, Gautham Ananthakrishna wrote:
 >  }
 > --
 > 2.19.1.6.gb485710b
-
 _______________________________________________
 Ocfs2-devel mailing list
 Ocfs2-devel@oss.oracle.com
