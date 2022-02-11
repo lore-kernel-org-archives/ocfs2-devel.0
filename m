@@ -1,94 +1,56 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc245.phx1.oracleemaildelivery.com (aib29ajc245.phx1.oracleemaildelivery.com [192.29.103.245])
+Received: from aib29ajc249.phx1.oracleemaildelivery.com (aib29ajc249.phx1.oracleemaildelivery.com [192.29.103.249])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id DE6B2C433F5
-	for <ocfs2-devel@archiver.kernel.org>; Thu, 27 Jan 2022 12:46:56 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 1D610C433F5
+	for <ocfs2-devel@archiver.kernel.org>; Fri, 11 Feb 2022 04:02:15 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=VTYFGq5ApKcTEI7Pot6X/Z84+SOyIDCQQ3OTdhIwTFU=;
- b=aSNllYqT3xFeqWxdjDnumjmWec/K8OnE9Yfo/+d9S7Te9WuSQYkcy6IfaxdDRCJ5iYca4eAiV5M5
-   Fcm/jIdwa9+ucBk31qlc1KzJh43BkDVpGfjVGFr98mPiE5AKxxmciR0vUMJZGeYFnMSFt5Gpdc+h
-   khMvRmrybPx5GlqUtzTWiwmUhQxjgZ11MoBjdCpDzxFh/5PJNp70tO/lmqbv4SZgfZ/FiB8vhXxk
-   dLzAvzKiGNVT5bdp6OCQEK+N0A/xmabDwp4CGQ5VVBV8kMZDU4zCMtCE5rfL5kyo2snPvUastePM
-   GKvYx3B5VRpeKux8lhcyGEIVW5pt7AnUsbkhwA==
+ bh=P9mqJaJT183QRnxLvn7MPpEW+yMdSoWZwZiljF94iec=;
+ b=1mRc/nnDcxZmZyzBba2tEroBeOxfkiaLxh8KryDTwPcnrQa2umChHf5+iR7/8TDQq1O1busri0Uf
+   DmpiU/blzL51wUuce28P+jDFa/y8mO3KaPmanAYbZYOiFqWF1eI4VWLL0UFzfAodB2T/MyHxen3f
+   RT2okkKByY83hSHJ4JHuZQkXBmvJevH4AyFne7NhhyPJDG1qh2ktqehN2b7S+Y7tJcVAYGV3DZaS
+   LCRI2bGZvs9OEsxeLxxdKsEjTTiQzyRTxe6QB5PQssOUBFHJt0IMsUaXQSGcEMopm1GHeteTblMH
+   NzUJGKsfLReLGXGytJkr7nPoXmh5rDP3AhaE6Q==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=VTYFGq5ApKcTEI7Pot6X/Z84+SOyIDCQQ3OTdhIwTFU=;
- b=T6vH1fZ5qEcxFvsFd4kMK69acYarNwsfTX4pMabYuiDizb6DQE6a1wEXDwJbtIQNKDCwDeppG/+F
-   c1/jfges6PiUaoODPLhxgoNRpsrQdLzxqMxAvyfoLzxOy+mnWNRZvkmFEy99G/7mIE3aB/pVgxsU
-   JnP3EYI9SkDWU49UG5xDGQ3ljCkQQQEIl725gwExn0EstnGW3zkxuDR8LCvCG5tE6L5sPcQ7lwFW
-   LhLRoNv/dbRy5jj6QoWr0X5bc6+R1kj27TNgRL3WK3K/ccWuIlgEj7ZO/6qwEwdLX9X4/uv0Lg6K
-   mTIhs2rzwRBlVQw5BRWZWlkVdMwxUYpylYrpVQ==
-Received: by omta-ad1-fd1-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
+ bh=P9mqJaJT183QRnxLvn7MPpEW+yMdSoWZwZiljF94iec=;
+ b=ra0xwEabRlDRF5FHBKbiIvmF0c+3Eo7VI2MR+/8WZa2ViKuWZXradX4jj0UQ4HPM5g9XZAulCn77
+   MdczwWvQJCek8XlVOhfn83PRdookAHzs9u2TdHmUgvN3zcYspLQ4tt41vfNDzrV55f9Ttw6IV+Od
+   tiV1L3FXBtbBr3LN/ZwTzw+2EniCWixwMMF+Z894FdAcNwK5Ti19rpLgt2Y9Pwvp5SzNyCaE4uSc
+   Pl3r/LmQDsiHG0dn3xq1Q8GvjAztrnD66OsTMVAe+PAPDk2y4PBUfg1TEbgNhisS/FCoSzlcBcMz
+   ETBZ/rOzJTTQL/O6OBhI4xwfQRMK0pLrq1Hcsw==
+Received: by omta-ad2-fd1-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220119 64bit (built Jan 19
  2022))
- with ESMTPS id <0R6D00EJSCU8NX80@omta-ad1-fd1-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Thu, 27 Jan 2022 12:46:56 +0000 (GMT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=oracle.com; h=from : to
- : cc : subject : date : message-id : references : in-reply-to : content-type :
- content-transfer-encoding : mime-version; s=corp-2021-07-09;
- bh=Tf04wbWyIaiEQNjHeo/cIHHjVcO06nD0pDHLjoCnQD4=;
- b=Cn7PGEf8sJvD4YNKs0h1uhbMZeXE/myz1Z5kNnqNObQTkODTntCa2B3VPsxejuZIjy6V
- Mezc0MovZOHt/quygaggEXmDfzVlS0cyEIYYhqQJ5jh1t+5v7XbreF8ovBDQH/x5yJeU
- yG5hw0NG8y7GF1LacccZzWyfCBL0zTwMS0Zr4Vx20+Igt19LmevnTqCM6OjFJQCKHuh0
- zEtp2OkWvWfYC1GyILKW7Mt1MbD8l6EV0J1FmK1Us8OPz/Y6pwfZlzKajfEegtgg2QfI
- lfISJdTgvTYhiVVLegC/gfWT2evrT2+vO+wmap8G10aW+Yh+IknBEnAZsbKFdIhEmynZ ng==
-Authentication-results: aserp3010.oracle.com; spf=softfail
- smtp.mailfrom=gautham.ananthakrishna@oracle.com; dkim=pass
- header.d=oracle.onmicrosoft.com header.s=selector2-oracle-onmicrosoft-com;
- dmarc=none header.from=oracle.com
-ARC-Seal: i=1; a=rsa-sha256; s=arcselector9901; d=microsoft.com; cv=none;
- b=SAXNJvvkKaNE4098LarIewf4xiMPOET4yzmArWVGMatCTdejZgzXk7ImghyR31j3iLodRDFrqqdF5OrNYQy01YAFIPMlNsvcbYDlT1i0WFXytORNMw18K6pcDP+fhpBxNwID/fR1sE1MSuU8hzVLrq3e/v6TVTylBCLfoeo6PfM2/2hJqb/9ktp4Yq2tCAalPgUH3JAul8b6bgF07dgEteQrOglSeTqugZZC6DWiuePiLQzhiUxHLpIrzKIaWnOQpLsad+mReETZiz3Zj3VMrPaOQ2hSXACyFmeH1kjbBR3FrnAxgcg2ZQPZuHha3C5GN1eDomhFsr6BUUXL9iHjOg==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
- s=arcselector9901;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
- bh=Tf04wbWyIaiEQNjHeo/cIHHjVcO06nD0pDHLjoCnQD4=;
- b=ZxU9a5VIGSWFwxZb6nvLlMK2ZXNeg9Zu9a46DmfC5j+CR7xjFEL+GVVbzplM9XFiQMRGVhmJwsLFcajtoYQhJuH4tKJdWi6i0+tfFAt8/Vj4tvhlziB27Qev2eIWXgYKnVbVGVbCUJOcB4zG251lrNEvr3ug+pjFaa1mV67yRjTKtUIq33o0InSHTCjGPE3SbKCVFZYs8mMRHqkjo3HVa7p4dAyQacS8E9mk4WxMQZdbZXbFAHwONd0FVMA+2khhueuLOXrASrvQ6k2Kjt3C62E6QFFFTgbI5oh3MSwPXdhvpqCXxmOIUA025p6A/hhILYekphpH6tM+aVSIYvs/Xg==
-ARC-Authentication-results: i=1; mx.microsoft.com 1; spf=none; dmarc=none;
- dkim=none; arc=none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=oracle.onmicrosoft.com;
- s=selector2-oracle-onmicrosoft-com;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
- bh=Tf04wbWyIaiEQNjHeo/cIHHjVcO06nD0pDHLjoCnQD4=;
- b=vN3KDO37XejzwilKqi0m8kRvP2q1xmXRY0XdJhtKtsAs2sPoOXz27V7iXftu6QqRiNnHGVduUEhyM40AZhZidAb4Sy08inTR9qtEBDpb9ehxMYqP6wuuz7Htk5D5fbedT9iv9aOo6JKCqrMAkCA24fUMMcXZkdHwDN2/gEQg8WI=
-To: Joseph Qi <joseph.qi@linux.alibaba.com>,
- "akpm@linux-foundation.org" <akpm@linux-foundation.org>,
- "tytso@mit.edu" <tytso@mit.edu>,
- "adilger.kernel@dilger.ca" <adilger.kernel@dilger.ca>
-Thread-topic: [PATCH 2/2] ocfs2: fix a deadlock when commit trans
-Thread-index: AQHYDpY4QxT3B/KhD0KLG3FGeJTJ0KxwFvKQgAFiiwCABWEEQA==
-Date: Thu, 27 Jan 2022 12:46:41 +0000
-Message-id:
- <DS7PR10MB487856DF1F951F8ABB7956C8F7219@DS7PR10MB4878.namprd10.prod.outlook.com>
-References: <20220121071205.100648-1-joseph.qi@linux.alibaba.com>
- <20220121071205.100648-3-joseph.qi@linux.alibaba.com>
- <DS7PR10MB487883FE7025BE9FD4623C39F75D9@DS7PR10MB4878.namprd10.prod.outlook.com>
- <206899ac-c1af-35bb-820a-62a45d93b52a@linux.alibaba.com>
-In-reply-to: <206899ac-c1af-35bb-820a-62a45d93b52a@linux.alibaba.com>
-Accept-Language: en-US
-Content-language: en-US
-X-MS-Has-Attach:
-X-Forefront-Antispam-Report: CIP:255.255.255.255; CTRY:; LANG:en; SCL:-1; SRV:;
- IPV:NLI; SFV:SKI; H:DS7PR10MB4878.namprd10.prod.outlook.com; PTR:; CAT:NONE;
- SFS:; DIR:INB;
+ with ESMTPS id <0R7400GEYGJQJKG0@omta-ad2-fd1-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Fri, 11 Feb 2022 04:02:14 +0000 (GMT)
+Authentication-results: aserp3010.oracle.com; spf=fail
+ smtp.mailfrom=joseph.qi@linux.alibaba.com; dmarc=none
+ header.from=linux.alibaba.com
+Message-id: <4791ccfd-ecf0-ed90-fc4c-b6effd56fbdd@linux.alibaba.com>
+Date: Fri, 11 Feb 2022 12:01:52 +0800
 MIME-version: 1.0
-X-OriginatorOrg: oracle.com
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 27 Jan 2022 12:46:41.9184 (UTC)
-X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10239
- signatures=668683
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 bulkscore=0
- mlxscore=0 malwarescore=0 spamscore=0 phishscore=0 suspectscore=0 adultscore=0
- mlxlogscore=999 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2201110000 definitions=main-2201270076
-Cc: Saeed Mirzamohammadi <saeed.mirzamohammadi@oracle.com>,
- "linux-ext4@vger.kernel.org" <linux-ext4@vger.kernel.org>,
- "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>
-Subject: Re: [Ocfs2-devel] [PATCH 2/2] ocfs2: fix a deadlock when commit	trans
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:91.0)
+ Gecko/20100101 Thunderbird/91.5.1
+Content-language: en-US
+To: Hongnan Li <hongnan.li@linux.alibaba.com>, ocfs2-devel@oss.oracle.com,
+ akpm <akpm@linux-foundation.org>
+References: <20220211031146.106288-1-hongnan.li@linux.alibaba.com>
+In-reply-to: <20220211031146.106288-1-hongnan.li@linux.alibaba.com>
+X-Source-IP: 115.124.30.130
+X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10254
+ signatures=673431
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 suspectscore=0
+ priorityscore=30 clxscore=180 spamscore=0 impostorscore=0 mlxscore=0
+ malwarescore=0 lowpriorityscore=0 mlxlogscore=999 phishscore=0 bulkscore=0
+ adultscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2201110000 definitions=main-2202110019 domainage_hfrom=8338
+Subject: Re: [Ocfs2-devel] [PATCH] fs/ocfs2: fix comments mentioning i_mutex
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -100,153 +62,249 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: Gautham Ananthakrishna via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: Gautham Ananthakrishna <gautham.ananthakrishna@oracle.com>
+From: Joseph Qi via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: Joseph Qi <joseph.qi@linux.alibaba.com>
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-MS-TNEF-Correlator:
-x-ms-publictraffictype: Email
-x-ms-office365-filtering-correlation-id: 9059e1e4-a962-4013-1f3a-08d9e1931186
-x-ms-traffictypediagnostic: DM5PR10MB1481:EE_
-x-oracle-tenancy: 1
-x-ms-oob-tlc-oobclassifiers: OLM:4125;
-x-microsoft-antispam: BCL:0;
-x-microsoft-antispam-message-info:
- 8T0G0nNPi0nIpct2yfWC3jcufFV1D//LKyZ5EbGVoOpKd8WaIgrhMRLxGLgAE1yWvQraozSbpS5NLR936CBOdGoTDGhis/3qXAic9B92v42820Nr+pt5YNtsFnSTDlBgs2RBR35rVcom0MAaJNJZu7MXlA0dKoppsrc1EKeJSvgDXKCF1hOSCRCmiS8lp3z6icGBdf49ZnVpy36uGpdt4RecKR7pQ4VC2DGqvzUqvLcH75YfLzVxBozy1Sw89TjtPPWau4HWce3wavoggNLefI+3ec3mLDZwz7COPMNhyJ/S5rxf8NthoUpD3Q2P8PwrdA7WBUdjmEcociUyQ/YOWu/vXf85RAWds/kobVYa2zG1BGnDQaZcDR5tT0IGf5yoGvYiLioFLVc772tcWALVMBSGpV5gt0dBNNjpYgrqraZQV6XS/X64vlOEUnCOh5jTf9leWTtGwJhwroQT+x6uMB1nqaLJRiJzUp6DQPGD7yBDk8Kew3qTl6OKFN3HW9p00Si4i35RFZbPMmlwMQcXgTrE7DUaqrHS+8NUiGctCoX0VS+H1cexQlpg68uHClZ2f4lNG2rywIimCl8COGB++OehWfvL4TIt47CkPLFmXmI=
-X-MS-Exchange-CrossTenant-AuthAs: Internal
-X-MS-Exchange-CrossTenant-AuthSource: DS7PR10MB4878.namprd10.prod.outlook.com
-X-MS-Exchange-CrossTenant-Network-Message-Id:
- 9059e1e4-a962-4013-1f3a-08d9e1931186
-X-MS-Exchange-CrossTenant-fromentityheader: Hosted
-X-MS-Exchange-CrossTenant-id: 4e2c6054-71cb-48f1-bd6c-3a9705aca71b
-X-MS-Exchange-CrossTenant-mailboxtype: HOSTED
-X-MS-Exchange-CrossTenant-userprincipalname:
- f5R+LesgwbSQQLMIfEaH4Sv60H5EDbtFVyD7ImwfmqeA68k7TlDmANto7S7xQVNhFDvEVuUQPvsJxXdF4Dwq6Qhe3Q/K80drDNmBTokHAyIP0f4uvLeB87XuKB/XPhzA
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: DM5PR10MB1481
-X-MS-Exchange-CrossPremises-AuthAs: Internal
-X-MS-Exchange-CrossPremises-AuthMechanism: 04
-X-MS-Exchange-CrossPremises-AuthSource: DS7PR10MB4878.namprd10.prod.outlook.com
-X-MS-Exchange-CrossPremises-TransportTrafficType: Email
-X-MS-Exchange-CrossPremises-SCL: -1
-X-MS-Exchange-CrossPremises-messagesource: StoreDriver
-X-MS-Exchange-CrossPremises-BCC:
-X-MS-Exchange-CrossPremises-originalclientipaddress: 138.3.205.62
-X-MS-Exchange-CrossPremises-transporttraffictype: Email
-X-MS-Exchange-CrossPremises-antispam-scancontext: DIR:Originating; SFV:SKI;
- SKIP:0;
-X-MS-Exchange-CrossPremises-processed-by-journaling: Journal Agent
-X-OrganizationHeadersPreserved: DM5PR10MB1481.namprd10.prod.outlook.com
-X-Proofpoint-GUID: QcEOOeWCDMXl9gfJfUsS9g924h13RYU-
-X-Proofpoint-ORIG-GUID: QcEOOeWCDMXl9gfJfUsS9g924h13RYU-
+X-Alimail-AntiSpam: AC=PASS; BC=-1|-1; BR=01201311R761e4; CH=green;
+ DM=||false|; DS=||; FP=0|-1|-1|-1|0|-1|-1|-1; HT=e01e04394;
+ MF=joseph.qi@linux.alibaba.com; NM=1; PH=DS; RN=3; SR=0;
+ TI=SMTPD_---0V47F0Wv_1644552112;
+X-ServerName: out30-130.freemail.mail.aliyun.com
+X-Proofpoint-SPF-Result: pass
+X-Proofpoint-SPF-Record: v=spf1 include:spf1.service.alibaba.com
+ include:spf2.service.alibaba.com include:spf1.ocm.aliyun.com
+ include:spf2.ocm.aliyun.com include:spf1.staff.mail.aliyun.com
+ include:a.hichina.mail.aliyun.com include:b.hichina.mail.aliyun.com -all
+X-Spam: Clean
+X-Proofpoint-GUID: B7tZ86aXR7IcW2cuBkqWzmY5evThf-Uu
+X-Proofpoint-ORIG-GUID: B7tZ86aXR7IcW2cuBkqWzmY5evThf-Uu
 Reporting-Meta:
- AAFKQ9HQPV2nGLlo/izg+mwav3RK+pWBJMkhNHlVKAOwGeEkqY9gmz0K5ss3zIXa
- m+FHFmTIC9u5DyeiOtSBjiQOWW9XEoJ3bMD3DL6fdrSEjiygxGleSKtpHhGEvKl6
- 0wD8apBPAgMod4guhiulqt9ZkzLGWlmhyPNe+eyTzbpLDCC35HKkH1K7Ao+sAzBq
- vBfCyRJhMrSwKV1Byqp4Wdbstk/BXe3MgmrEYSA/V01fVZlIaBAc3UQdqNozjXUJ
- DL/F7i5BlXlWsTxzN24JF6cs+RAawqTSyZruIrMG1Bpx2xNDsGrZRehiO0S2uQyd
- PUXte/OX23O0otBsdmtWudwfGTr2WAaL7gP4cCBLpoPJRN+9zbeFXCo0b+4CxhVU
- r2BK1Da1/vTcftAdVs+GbAKZ4gwlY9QfXoezbANpBIrCU/ljg3Rr6wxqAhA58p8m
- i2GzE9BJnMJctedi9oY7gfo8cBMzikd1nPYL/a+aWSHvBnxgBQOZ/nRS7NvmA3u4
- zAw+0iT2dG//rS8limeOPGtPtesd2jbOaUisSeO5zCM=
+ AAHcXrmDM+k9sDDumEXNNox0mLVlgQaELkdPyB/QirIsfjQhz6HgWGHc5b9ftmEr
+ iYZ1q+aXn/diS+JOel+dNIoh/PhfJ5NUokEGQdMiEMxL8k2GS4brBOe50rTDrl4s
+ GtT+ZxgnVmC0cwc0efILu6MX7Nc86hZs/rw0qolYShaJx3f91TxSoBgWhrNKpJFS
+ B/yGxfqAB1quOGcK6ZYUjgsjaiyZ8R230q4hqmfk33jjdwfkY1NigrGosBkfy+Nh
+ fIWxb66Qk5JqE1JV+d13Svut97/89CRZKWyw0W5UhdsiHXsFWw0nDBDdrFFtJq7J
+ P+P7tsLn6JhzfbG5UJeeSVIYz7VYQCbsdaRusd1WIiRcSQTNnVtrkvqYk+W6wWTr
+ 9uVoqK0NRnWzRdCjsuNpNyUB2YvxQrh3jcTyCjxGGNhVP46DopXqcLvdRc3r8PhR
+ ER/+AYSmJZxfHyijAH7f8bCmpWlrY1JJxmQZbduE43dUv6Tfv3OG9UStCg7SURrG
+ NcJBY8Vq4wdbdxPu75yO6abCi9crXgTGjg9t9o4lEa8=
 
-Yes. The patch has resolved the issue.
 
-Thanks,
-Gautham.
 
------Original Message-----
-From: Joseph Qi <joseph.qi@linux.alibaba.com> 
-Sent: Monday, January 24, 2022 8:08 AM
-To: Gautham Ananthakrishna <gautham.ananthakrishna@oracle.com>; akpm@linux-foundation.org; tytso@mit.edu; adilger.kernel@dilger.ca
-Cc: ocfs2-devel@oss.oracle.com; linux-ext4@vger.kernel.org; Saeed Mirzamohammadi <saeed.mirzamohammadi@oracle.com>
-Subject: Re: [PATCH 2/2] ocfs2: fix a deadlock when commit trans
+On 2/11/22 11:11 AM, Hongnan Li wrote:
+> From: hongnanli <hongnan.li@linux.alibaba.com>
+> 
+> inode->i_mutex has been replaced with inode->i_rwsem long ago. Fix
+> comments still mentioning i_mutex.
+> 
+> Signed-off-by: hongnanli <hongnan.li@linux.alibaba.com>
 
-Sure, will do it in v2.
-So could this patch resolve your issue?
-
-Thanks,
-Joseph
-
-On 1/23/22 1:31 PM, Gautham Ananthakrishna wrote:
-> Hi,
-> This deadlock was originally reported by saeed.mirzamohammadi@oracle.com  Could you please add Saeed as the reportedby.
-> 
-> Thanks,
-> Gautham.
-> 
-> -----Original Message-----
-> From: Joseph Qi <joseph.qi@linux.alibaba.com> 
-> Sent: Friday, January 21, 2022 12:42 PM
-> To: akpm@linux-foundation.org; tytso@mit.edu; adilger.kernel@dilger.ca
-> Cc: Gautham Ananthakrishna <gautham.ananthakrishna@oracle.com>; ocfs2-devel@oss.oracle.com; linux-ext4@vger.kernel.org
-> Subject: [PATCH 2/2] ocfs2: fix a deadlock when commit trans
-> 
-> commit 6f1b228529ae introduces a regression which can deadlock as
-> follows:
-> 
-> Task1:                              Task2:
-> jbd2_journal_commit_transaction     ocfs2_test_bg_bit_allocatable
-> spin_lock(&jh->b_state_lock)        jbd_lock_bh_journal_head
-> __jbd2_journal_remove_checkpoint    spin_lock(&jh->b_state_lock)
-> jbd2_journal_put_journal_head
-> jbd_lock_bh_journal_head
-> 
-> Task1 and Task2 lock bh->b_state and jh->b_state_lock in different order, which finally result in a deadlock.
-> 
-> So use jbd2_journal_[grab|put]_journal_head instead in
-> ocfs2_test_bg_bit_allocatable() to fix it.
-> 
-> Reported-by: Gautham Ananthakrishna <gautham.ananthakrishna@oracle.com>
-> Fixes: 6f1b228529ae ("ocfs2: fix race between searching chunks and release journal_head from buffer_head")
-> Cc: <stable@vger.kernel.org>
-> Signed-off-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+Acked-by: Joseph Qi <joseph.qi@linux.alibaba.com>
 > ---
->  fs/ocfs2/suballoc.c | 25 +++++++++++--------------
->  1 file changed, 11 insertions(+), 14 deletions(-)
+>  fs/ocfs2/alloc.c               | 2 +-
+>  fs/ocfs2/aops.c                | 2 +-
+>  fs/ocfs2/cluster/nodemanager.c | 2 +-
+>  fs/ocfs2/dir.c                 | 4 ++--
+>  fs/ocfs2/file.c                | 4 ++--
+>  fs/ocfs2/inode.c               | 2 +-
+>  fs/ocfs2/localalloc.c          | 6 +++---
+>  fs/ocfs2/namei.c               | 2 +-
+>  fs/ocfs2/ocfs2.h               | 4 ++--
+>  fs/ocfs2/quota_global.c        | 2 +-
+>  fs/ocfs2/xattr.c               | 2 +-
+>  11 files changed, 16 insertions(+), 16 deletions(-)
 > 
-> diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c index 481017e1dac5..166c8918c825 100644
-> --- a/fs/ocfs2/suballoc.c
-> +++ b/fs/ocfs2/suballoc.c
-> @@ -1251,26 +1251,23 @@ static int ocfs2_test_bg_bit_allocatable(struct buffer_head *bg_bh,  {
->  	struct ocfs2_group_desc *bg = (struct ocfs2_group_desc *) bg_bh->b_data;
->  	struct journal_head *jh;
-> -	int ret = 1;
-> +	int ret;
->  
->  	if (ocfs2_test_bit(nr, (unsigned long *)bg->bg_bitmap))
->  		return 0;
->  
-> -	if (!buffer_jbd(bg_bh))
-> +	jh = jbd2_journal_grab_journal_head(bg_bh);
-> +	if (!jh)
->  		return 1;
->  
-> -	jbd_lock_bh_journal_head(bg_bh);
-> -	if (buffer_jbd(bg_bh)) {
-> -		jh = bh2jh(bg_bh);
-> -		spin_lock(&jh->b_state_lock);
-> -		bg = (struct ocfs2_group_desc *) jh->b_committed_data;
-> -		if (bg)
-> -			ret = !ocfs2_test_bit(nr, (unsigned long *)bg->bg_bitmap);
-> -		else
-> -			ret = 1;
-> -		spin_unlock(&jh->b_state_lock);
-> -	}
-> -	jbd_unlock_bh_journal_head(bg_bh);
-> +	spin_lock(&jh->b_state_lock);
-> +	bg = (struct ocfs2_group_desc *) jh->b_committed_data;
-> +	if (bg)
-> +		ret = !ocfs2_test_bit(nr, (unsigned long *)bg->bg_bitmap);
-> +	else
-> +		ret = 1;
-> +	spin_unlock(&jh->b_state_lock);
-> +	jbd2_journal_put_journal_head(jh);
->  
->  	return ret;
+> diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
+> index bf9357123bc5..49f41074baad 100644
+> --- a/fs/ocfs2/alloc.c
+> +++ b/fs/ocfs2/alloc.c
+> @@ -5981,7 +5981,7 @@ static int ocfs2_replay_truncate_records(struct ocfs2_super *osb,
+>  	return status;
 >  }
-> --
-> 2.19.1.6.gb485710b
+>  
+> -/* Expects you to already be holding tl_inode->i_mutex */
+> +/* Expects you to already be holding tl_inode->i_rwsem */
+>  int __ocfs2_flush_truncate_log(struct ocfs2_super *osb)
+>  {
+>  	int status;
+> diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+> index 498da317580a..c23e1c243cc6 100644
+> --- a/fs/ocfs2/aops.c
+> +++ b/fs/ocfs2/aops.c
+> @@ -2311,7 +2311,7 @@ static int ocfs2_dio_end_io_write(struct inode *inode,
+>  
+>  	down_write(&oi->ip_alloc_sem);
+>  
+> -	/* Delete orphan before acquire i_mutex. */
+> +	/* Delete orphan before acquire i_rwsem. */
+>  	if (dwc->dw_orphaned) {
+>  		BUG_ON(dwc->dw_writer_pid != task_pid_nr(current));
+>  
+> diff --git a/fs/ocfs2/cluster/nodemanager.c b/fs/ocfs2/cluster/nodemanager.c
+> index 625c92521416..27fee68f860a 100644
+> --- a/fs/ocfs2/cluster/nodemanager.c
+> +++ b/fs/ocfs2/cluster/nodemanager.c
+> @@ -689,7 +689,7 @@ static struct config_group *o2nm_cluster_group_make_group(struct config_group *g
+>  	struct o2nm_node_group *ns = NULL;
+>  	struct config_group *o2hb_group = NULL, *ret = NULL;
+>  
+> -	/* this runs under the parent dir's i_mutex; there can be only
+> +	/* this runs under the parent dir's i_rwsem; there can be only
+>  	 * one caller in here at a time */
+>  	if (o2nm_single_cluster)
+>  		return ERR_PTR(-ENOSPC);
+> diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
+> index f2cc1ff29e6d..81c3d65d68fe 100644
+> --- a/fs/ocfs2/dir.c
+> +++ b/fs/ocfs2/dir.c
+> @@ -1957,7 +1957,7 @@ int ocfs2_readdir(struct file *file, struct dir_context *ctx)
+>  }
+>  
+>  /*
+> - * NOTE: this should always be called with parent dir i_mutex taken.
+> + * NOTE: this should always be called with parent dir i_rwsem taken.
+>   */
+>  int ocfs2_find_files_on_disk(const char *name,
+>  			     int namelen,
+> @@ -2003,7 +2003,7 @@ int ocfs2_lookup_ino_from_name(struct inode *dir, const char *name,
+>   * Return 0 if the name does not exist
+>   * Return -EEXIST if the directory contains the name
+>   *
+> - * Callers should have i_mutex + a cluster lock on dir
+> + * Callers should have i_rwsem + a cluster lock on dir
+>   */
+>  int ocfs2_check_dir_for_entry(struct inode *dir,
+>  			      const char *name,
+> diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+> index fc5f780fa235..d940e1a633a1 100644
+> --- a/fs/ocfs2/file.c
+> +++ b/fs/ocfs2/file.c
+> @@ -270,7 +270,7 @@ int ocfs2_update_inode_atime(struct inode *inode,
+>  
+>  	/*
+>  	 * Don't use ocfs2_mark_inode_dirty() here as we don't always
+> -	 * have i_mutex to guard against concurrent changes to other
+> +	 * have i_rwsem to guard against concurrent changes to other
+>  	 * inode fields.
+>  	 */
+>  	inode->i_atime = current_time(inode);
+> @@ -1068,7 +1068,7 @@ static int ocfs2_extend_file(struct inode *inode,
+>  	/*
+>  	 * The alloc sem blocks people in read/write from reading our
+>  	 * allocation until we're done changing it. We depend on
+> -	 * i_mutex to block other extend/truncate calls while we're
+> +	 * i_rwsem to block other extend/truncate calls while we're
+>  	 * here.  We even have to hold it for sparse files because there
+>  	 * might be some tail zeroing.
+>  	 */
+> diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
+> index 6c2411c2afcf..5739dc301569 100644
+> --- a/fs/ocfs2/inode.c
+> +++ b/fs/ocfs2/inode.c
+> @@ -713,7 +713,7 @@ static int ocfs2_remove_inode(struct inode *inode,
+>  /*
+>   * Serialize with orphan dir recovery. If the process doing
+>   * recovery on this orphan dir does an iget() with the dir
+> - * i_mutex held, we'll deadlock here. Instead we detect this
+> + * i_rwsem held, we'll deadlock here. Instead we detect this
+>   * and exit early - recovery will wipe this inode for us.
+>   */
+>  static int ocfs2_check_orphan_recovery_state(struct ocfs2_super *osb,
+> diff --git a/fs/ocfs2/localalloc.c b/fs/ocfs2/localalloc.c
+> index 5f6bacbeef6b..c4426d12a2ad 100644
+> --- a/fs/ocfs2/localalloc.c
+> +++ b/fs/ocfs2/localalloc.c
+> @@ -606,7 +606,7 @@ int ocfs2_complete_local_alloc_recovery(struct ocfs2_super *osb,
+>  
+>  /*
+>   * make sure we've got at least bits_wanted contiguous bits in the
+> - * local alloc. You lose them when you drop i_mutex.
+> + * local alloc. You lose them when you drop i_rwsem.
+>   *
+>   * We will add ourselves to the transaction passed in, but may start
+>   * our own in order to shift windows.
+> @@ -636,7 +636,7 @@ int ocfs2_reserve_local_alloc_bits(struct ocfs2_super *osb,
+>  
+>  	/*
+>  	 * We must double check state and allocator bits because
+> -	 * another process may have changed them while holding i_mutex.
+> +	 * another process may have changed them while holding i_rwsem.
+>  	 */
+>  	spin_lock(&osb->osb_lock);
+>  	if (!ocfs2_la_state_enabled(osb) ||
+> @@ -1029,7 +1029,7 @@ enum ocfs2_la_event {
+>  /*
+>   * Given an event, calculate the size of our next local alloc window.
+>   *
+> - * This should always be called under i_mutex of the local alloc inode
+> + * This should always be called under i_rwsem of the local alloc inode
+>   * so that local alloc disabling doesn't race with processes trying to
+>   * use the allocator.
+>   *
+> diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
+> index 2c46ff6ba4ea..c75fd54b9185 100644
+> --- a/fs/ocfs2/namei.c
+> +++ b/fs/ocfs2/namei.c
+> @@ -476,7 +476,7 @@ static int ocfs2_mknod(struct user_namespace *mnt_userns,
+>  		ocfs2_free_alloc_context(meta_ac);
+>  
+>  	/*
+> -	 * We should call iput after the i_mutex of the bitmap been
+> +	 * We should call iput after the i_rwsem of the bitmap been
+>  	 * unlocked in ocfs2_free_alloc_context, or the
+>  	 * ocfs2_delete_inode will mutex_lock again.
+>  	 */
+> diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
+> index bb62cc2e0211..337527571461 100644
+> --- a/fs/ocfs2/ocfs2.h
+> +++ b/fs/ocfs2/ocfs2.h
+> @@ -355,7 +355,7 @@ struct ocfs2_super
+>  	struct delayed_work		la_enable_wq;
+>  
+>  	/*
+> -	 * Must hold local alloc i_mutex and osb->osb_lock to change
+> +	 * Must hold local alloc i_rwsem and osb->osb_lock to change
+>  	 * local_alloc_bits. Reads can be done under either lock.
+>  	 */
+>  	unsigned int local_alloc_bits;
+> @@ -430,7 +430,7 @@ struct ocfs2_super
+>  	atomic_t			osb_tl_disable;
+>  	/*
+>  	 * How many clusters in our truncate log.
+> -	 * It must be protected by osb_tl_inode->i_mutex.
+> +	 * It must be protected by osb_tl_inode->i_rwsem.
+>  	 */
+>  	unsigned int truncated_clusters;
+>  
+> diff --git a/fs/ocfs2/quota_global.c b/fs/ocfs2/quota_global.c
+> index f033de733adb..273f65e0aaba 100644
+> --- a/fs/ocfs2/quota_global.c
+> +++ b/fs/ocfs2/quota_global.c
+> @@ -36,7 +36,7 @@
+>   * should be obeyed by all the functions:
+>   * - any write of quota structure (either to local or global file) is protected
+>   *   by dqio_sem or dquot->dq_lock.
+> - * - any modification of global quota file holds inode cluster lock, i_mutex,
+> + * - any modification of global quota file holds inode cluster lock, i_rwsem,
+>   *   and ip_alloc_sem of the global quota file (achieved by
+>   *   ocfs2_lock_global_qf). It also has to hold qinfo_lock.
+>   * - an allocation of new blocks for local quota file is protected by
+> diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
+> index dd784eb0cd7c..95d0611c5fc7 100644
+> --- a/fs/ocfs2/xattr.c
+> +++ b/fs/ocfs2/xattr.c
+> @@ -7205,7 +7205,7 @@ int ocfs2_reflink_xattrs(struct inode *old_inode,
+>   * Used for reflink a non-preserve-security file.
+>   *
+>   * It uses common api like ocfs2_xattr_set, so the caller
+> - * must not hold any lock expect i_mutex.
+> + * must not hold any lock expect i_rwsem.
+>   */
+>  int ocfs2_init_security_and_acl(struct inode *dir,
+>  				struct inode *inode,
+
 _______________________________________________
 Ocfs2-devel mailing list
 Ocfs2-devel@oss.oracle.com
