@@ -1,91 +1,62 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc251.phx1.oracleemaildelivery.com (aib29ajc251.phx1.oracleemaildelivery.com [192.29.103.251])
+Received: from aib29ajc253.phx1.oracleemaildelivery.com (aib29ajc253.phx1.oracleemaildelivery.com [192.29.103.253])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 92093C433F5
-	for <ocfs2-devel@archiver.kernel.org>; Mon, 21 Mar 2022 16:23:00 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 6856AC433F5
+	for <ocfs2-devel@archiver.kernel.org>; Tue, 22 Mar 2022 02:15:55 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=PEOaeYXxNZ7A2aHia/fugUp0ewvAIaTkGEbrBOirc2s=;
- b=B7DJeszJDg+EmQcQJ3FCGD0idmTo3MiiFolwdVd3i6QFssn5Hr4ue9UicFgzZaV5bmTTEmVUkm0a
-   poQWei3Zjsqmxl53US0Oa+Gl0Qr77S7/KpMzZeg+f8+SaCOQeS2p7XbOB+X+pDoOC4hqRIEHoxBN
-   YQGZqZ1d4bDuHiv3XAfiK7dp3/Rei0fBh+gpqJtLpWOw/l685imggo7L/bPYY2o09+Wm9I5PuolC
-   4BC4Rlz5ZSs+ZqgcjsUO6BYANcINg7HQ66kccznGOcPlvOWr6vP3c+wDAuKBx5VdEVCC1K3UErWU
-   xAS/BYa97uTb2akbVYRKsnQXbxBVflzjo9w3VA==
+ bh=4gLMSet23rLOc0A62CBZ+G692fLfqLltaA46cFT6Ptw=;
+ b=s9Gy3iXsvwsHm7onEkgKf9xWZSCcC8oAj5nJExirehbNNWMjGYTb9ST02fYWtvY1CnxR11+icL4y
+   IInq/aMVNCHFPDmDv0Gw7eQfNQs7ZbrRRnwefyukJvPDrYXSec2ZkEgFMMLTYNHCQ5xCEixZWfrx
+   Vks8D9kWccoxTsBrHjyfR4x4/du7+wqHq/5JeBvsmA3FvWUTkBjEhHCXTrk+emILXAB/U/JUSzK6
+   Kvf33gYHiscHvXGzo/bi4sU/ayEIWljJ2tx3w/64BsazxAFQoWbiTxARfu0/j/dH4i/y5aeQJs/m
+   fn4zeK9+BBAGwAkTJhY9HR42vC5vVgCscEv+hg==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=PEOaeYXxNZ7A2aHia/fugUp0ewvAIaTkGEbrBOirc2s=;
- b=fKT2zabXbPqtuTYhPqq3Sz6HVFMWuMyCbRpICegJJUw8eMzJ4/AxaFcXM7viawa9HEh1niczk30U
-   0+JYAupjoFfcmg+n6vAtgN1kh2lKsrA51pxCej0JgR1n7HA4ooCe5zlz7okn1nQp7seR9rBHLKw1
-   WvP7LD7/VWMUDbIMHh5BhoqJaqcavpD5ofNlDERbSifPnmaAit+XxU9PIYRD4r7oInxV8lMAzhCX
-   UIfm1x+FsmtcW2axokLlD4WMipZnK3SeHPenn3l76KiwMMH/702ovmIRfIdQ1zjBcYqbLtQIelyx
-   2GnNHk73eCmRriJK/Z2zjaBJRLl3Jmeq6vKBig==
-Received: by omta-ad2-fd3-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
+ bh=4gLMSet23rLOc0A62CBZ+G692fLfqLltaA46cFT6Ptw=;
+ b=WQGJi+K+rzxkr1pRxBDh20BwDmIPLaCijqDEBrVghInFdEHl+9s6HY8vxR0XU2Lv6x1W0e0Dw8XE
+   9PoPxtoTD7z7Jsa84AHneg9uSEdB+crr91bTbZbQ6LzJl45Smd2indAz/NtkELSHDkUQOt36FpzP
+   rPAG0agx7fKSQuzgI97VmAyQfZzm3rTQeuOrR/DmhPFYxTeOC6AiFh+DgtUSleutBKlkERw41QsL
+   5xhLX/dar7nZPd5YvMa/B/14ugb4egtCE1Oqdr/OJkUJXZChROylnBgA+Zwir6Z5XqFnVm1UFqmH
+   aSynGH+PD1e5p0UZrXJD4GxVh9KPPccBcugBgQ==
+Received: by omta-ad3-fd1-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220222 64bit (built Feb 22
  2022))
- with ESMTPS id <0R9300OBKS6BPP30@omta-ad2-fd3-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Mon, 21 Mar 2022 16:22:59 +0000 (GMT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=oracle.com; h=date :
- from : to : cc : subject : message-id : references : content-type :
- in-reply-to : mime-version; s=corp-2021-07-09;
- bh=vzP2PX4Bxyh4iVfWLKerqFKeOgyFti7tjqeRVPNrMRM=;
- b=PzeGvgm9Msb9e2cjdfQwnqe35Nsi8gOERcWNjmJzKcD/gbTBDgE/9WGYnfP+OkvhoHcU
- 08HqG6WfTSzVh4TkAWorzHLuDOIymJm0txbLlCQRryiOTjS0Pbf5VG+ULaeUDAM9diJ8
- oz+GqZ4h8OqOk221Pi7h88mgnSIgizajfvar65STKwTzw9dMxtm+bRlanOaa5v5sm7i6
- Abt1XBMJY2pn+2lGwSA8UNVQmVahL6sRhmsC3B5/BS8wi0KGcp1Z4Y1or7dHJLSuoNEu
- +uNjYuqa/FogyNpp8Dk7emA707A4uOYDps5WmpkJ42dsphjqTILebi1ZPQnUKPNvLv01 WA==
-Authentication-results: aserp3010.oracle.com; spf=softfail
- smtp.mailfrom=dan.carpenter@oracle.com; dkim=pass
- header.s=selector2-oracle-onmicrosoft-com header.d=oracle.onmicrosoft.com;
- dmarc=none header.from=oracle.com
-ARC-Seal: i=1; a=rsa-sha256; s=arcselector9901; d=microsoft.com; cv=none;
- b=jvCUq50lk0n1chLLN0sJLUB4J7+YefLOCXkLmSroLcCXi4KnzA/lC1ccBi3rDstzDDDbdtMC48lJr8ZRRiMdXuwA0CMZrlBUQwis6+sFlx82Xw6WWzrlIFFdXZfvMML2RqzFlMFK2TzzeWuKxvnPRLuy4G9PMKCx/XK7tZnzL/PZZcT9tCY4Exzc2GuaXegd/trnuha2Csa+pWyLmoNi1Zb1hRvoAft+EdIdc1BfJ/O2nFYUeLSAj8abhfyE9uljfOqENbeS9xvIXPSYlKdrIQP/ZHvBm2Kd3uFUq6rLD9WqmkxJ2QUZAvcGYJHGOJhOtQa6R+A1FYXeZyfkJtQ+GA==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
- s=arcselector9901;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
- bh=vzP2PX4Bxyh4iVfWLKerqFKeOgyFti7tjqeRVPNrMRM=;
- b=a8l4zEvpEgduxafqM1n3iI0j4oHjS1QVIc/M03vZ3nC0z8jAVTd+KN7/SXG+bgRNUgPVygR1ncbeg72Lap9WtJw1fSGN4tEb8gBoRv0nKLwkCCG0cdsBlcUMVVECyA2w66KtwUj/ZJ0rTxKegkPhgHSREgTwDdeqw8XGP9IWON0pN9Aix4KlSp1B3Z0vBsfmCCRKZNiND0qLiLNZXsj6m8njjyYq7YZeRArXjgrmOFOiaJ4Dbs9l+WsjF/cmj2qV4f4Unx3lq0EisqTgbQkiu89MczHUKjpaVjHF9YcszVo+s9NlE7vD8aZnPlPcL7bgnQu6jnOUtyuDnsrOlR9p8A==
-ARC-Authentication-results: i=1; mx.microsoft.com 1; spf=pass
- smtp.mailfrom=oracle.com; dmarc=pass action=none header.from=oracle.com;
- dkim=pass header.d=oracle.com; arc=none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=oracle.onmicrosoft.com;
- s=selector2-oracle-onmicrosoft-com;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
- bh=vzP2PX4Bxyh4iVfWLKerqFKeOgyFti7tjqeRVPNrMRM=;
- b=pMz140mPF6Ewk3Rr7zy6wdoxwzoX+lWXkk5hAkZAt+AkJei2ydXGutN/R71BYLdbEuu9iseGgW5w269AkLUcAv/6SnD4kpdxeelXNLD+TCcfSLHdPqWPL6amZ2uBNfmoCQsRqtafUAmeA99KIwauIFVu0+IT9dK6GnKb5dZn73k=
-Date: Mon, 21 Mar 2022 19:22:21 +0300
-To: David Laight <David.Laight@ACULAB.COM>
-Message-id: <20220321162221.GQ336@kadam>
+ with ESMTPS id <0R9400IL2JMIC480@omta-ad3-fd1-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Tue, 22 Mar 2022 02:15:54 +0000 (GMT)
+Authentication-results: aserp3010.oracle.com; spf=fail
+ smtp.mailfrom=joseph.qi@linux.alibaba.com; dmarc=none
+ header.from=linux.alibaba.com
+Message-id: <5aefc78f-9a75-9b44-9471-87f42011b7c2@linux.alibaba.com>
+Date: Tue, 22 Mar 2022 10:15:34 +0800
+MIME-version: 1.0
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:91.0)
+ Gecko/20100101 Thunderbird/91.6.0
+Content-language: en-US
+To: Jakob Koschel <jakobkoschel@gmail.com>
 References: <20220319203106.2541700-1-jakobkoschel@gmail.com>
  <abcbf5d2-c348-7dc0-cfd3-9bcc6431bc64@linux.alibaba.com>
- <A7AA04AA-6B4C-4211-99A6-0D3C04ED7B26@gmail.com> <20220321135435.GL336@kadam>
- <75180dd18a3f460891cd93f7fcb3aa1c@AcuMS.aculab.com>
-Content-disposition: inline
-In-reply-to: <75180dd18a3f460891cd93f7fcb3aa1c@AcuMS.aculab.com>
-User-Agent: Mutt/1.9.4 (2018-02-28)
-MIME-version: 1.0
-X-Forefront-Antispam-Report: CIP:255.255.255.255; CTRY:; LANG:en; SCL:-1; SRV:;
- IPV:NLI; SFV:SKI; H:MWHPR1001MB2365.namprd10.prod.outlook.com; PTR:; CAT:NONE;
- SFS:; DIR:INB;
-X-OriginatorOrg: oracle.com
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 21 Mar 2022 16:22:45.8599 (UTC)
+ <A7AA04AA-6B4C-4211-99A6-0D3C04ED7B26@gmail.com>
+In-reply-to: <A7AA04AA-6B4C-4211-99A6-0D3C04ED7B26@gmail.com>
+X-Source-IP: 47.90.199.18
 X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10293
  signatures=694221
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 adultscore=0
- suspectscore=0 spamscore=0 mlxlogscore=999 phishscore=0 bulkscore=0
- malwarescore=0 mlxscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2202240000 definitions=main-2203210104
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 suspectscore=0
+ bulkscore=0 impostorscore=0 lowpriorityscore=0 priorityscore=0 adultscore=0
+ malwarescore=0 clxscore=223 spamscore=0 mlxlogscore=999 mlxscore=0
+ phishscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2202240000 definitions=main-2203220010 domainage_hfrom=8377
 Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
  "Bos, H.J." <h.j.bos@vu.nl>, Brian Johannesmeyer <bjohannesmeyer@gmail.com>,
  Cristiano Giuffrida <c.giuffrida@vu.nl>,
  Geert Uytterhoeven <geert@linux-m68k.org>, Mike Rapoport <rppt@kernel.org>,
- Miguel Ojeda <ojeda@kernel.org>, Masahiro Yamada <masahiroy@kernel.org>,
- "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>,
- Jakob Koschel <jakobkoschel@gmail.com>
+ Miguel Ojeda <ojeda@kernel.org>, Dan Carpenter <dan.carpenter@oracle.com>,
+ Masahiro Yamada <masahiroy@kernel.org>, ocfs2-devel@oss.oracle.com
 Subject: Re: [Ocfs2-devel] [PATCH] ocfs2: fix check if list iterator did	find
  an element
 X-BeenThere: ocfs2-devel@oss.oracle.com
@@ -99,86 +70,132 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: Dan Carpenter via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: Dan Carpenter <dan.carpenter@oracle.com>
+From: Joseph Qi via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: Joseph Qi <joseph.qi@linux.alibaba.com>
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-ClientProxiedBy: JNXP275CA0039.ZAFP275.PROD.OUTLOOK.COM (2603:1086:0:18::27)
- To MWHPR1001MB2365.namprd10.prod.outlook.com (2603:10b6:301:2d::28)
-X-MS-PublicTrafficType: Email
-X-MS-Office365-Filtering-Correlation-Id: 731ca3f1-472a-4c4a-1967-08da0b57081f
-X-MS-TrafficTypeDiagnostic: SJ0PR10MB5568:EE_
-X-Oracle-Tenancy: 1
-X-Microsoft-Antispam: BCL:0;
-X-Microsoft-Antispam-Message-Info:
- EWRZoIwoXAzN60+jbO5du6y+vCAgC/wFxY+TtAv6Uu6dPEr633U7c2JiPSVps8ySD69hRx1hQaeVYpF4zR3zoebiv6vCeLo9FHgcoobKEvDzKcPp8Uty7trXY7RScrOsjuu80DnjAWXLQCKOnIRwbdyCZtPYxNs1GkQUw30drblvndoBOOsahOHi3bL76V4v++n771Vt7y/pHI+oSLDQvfk1x+xhr3oduPE+0sIOCF1LxuLa+aUg2VRukKKTpqHd9hHnjiMRND1+4JwPnc3SvU7Scr3+VvX1onaM/OKtAyaIDv3lpyhHh48pLKbTtrNvGyz3OYhsbkCwh5h7euNtCOtTtcTk45SbdSOak2yrkz2/XH/XWWXG8Igor4zCpIcYXA5Y3xpuLjkLvPa6lXs5h0gukXkllH6VEaXa+QSMhowi0tlhJneT4wbJoWuWARDQ4itvOCAcUsGuxpN6zdUXIWycldm/uJxFlO1N72NdTcWaZRX2aZxtm8yHzUErEGOPr5Y5vlMq/MyaLaR3UlKXyzzErxnXCYCCuZ32zSdt/Nbh6gp859Z/i8m9k1FWTF3TrgKo9Qa1DYRZE+4EWqhEVp8ztY231asHo904OETBWwI=
-X-MS-Exchange-CrossTenant-Network-Message-Id:
- 731ca3f1-472a-4c4a-1967-08da0b57081f
-X-MS-Exchange-CrossTenant-AuthSource: MWHPR1001MB2365.namprd10.prod.outlook.com
-X-MS-Exchange-CrossTenant-AuthAs: Internal
-X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
-X-MS-Exchange-CrossTenant-Id: 4e2c6054-71cb-48f1-bd6c-3a9705aca71b
-X-MS-Exchange-CrossTenant-MailboxType: HOSTED
-X-MS-Exchange-CrossTenant-UserPrincipalName:
- +Pfw1YbE6xsdSUccUpN41hqocWOLly5UXYXAO/RD7PxsIYKLczCy3wZsXzXNX2m2ysqS20EKeDZhEBuvqMxXPca34SGOURY9Qt8DUX7h1Bo=
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: SJ0PR10MB5568
-X-MS-Exchange-CrossPremises-AuthSource:
- MWHPR1001MB2365.namprd10.prod.outlook.com
-X-MS-Exchange-CrossPremises-AuthAs: Internal
-X-MS-Exchange-CrossPremises-AuthMechanism: 06
-X-MS-Exchange-CrossPremises-Mapi-Admin-Submission:
-X-MS-Exchange-CrossPremises-MessageSource: StoreDriver
-X-MS-Exchange-CrossPremises-BCC: Dan Carpenter <dan.carpenter@oracle.com>
-X-MS-Exchange-CrossPremises-OriginalClientIPAddress: 62.8.65.185
-X-MS-Exchange-CrossPremises-TransportTrafficType: Email
-X-MS-Exchange-CrossPremises-Antispam-ScanContext: DIR:Originating; SFV:SKI;
- SKIP:0;
-X-MS-Exchange-CrossPremises-SCL: -1
-X-MS-Exchange-CrossPremises-Processed-By-Journaling: Journal Agent
-X-OrganizationHeadersPreserved: SJ0PR10MB5568.namprd10.prod.outlook.com
-X-Proofpoint-GUID: pjtEBzz1mEgTdHNe--Y852N0ytPJJeWQ
-X-Proofpoint-ORIG-GUID: pjtEBzz1mEgTdHNe--Y852N0ytPJJeWQ
+X-Alimail-AntiSpam: AC=PASS; BC=-1|-1; BR=01201311R161e4; CH=green;
+ DM=||false|; DS=||; FP=0|-1|-1|-1|0|-1|-1|-1; HT=e01e04426;
+ MF=joseph.qi@linux.alibaba.com; NM=1; PH=DS; RN=14; SR=0;
+ TI=SMTPD_---0V7tYAbz_1647915334;
+X-ServerName: out199-18.us.a.mail.aliyun.com
+X-Proofpoint-SPF-Result: pass
+X-Proofpoint-SPF-Record: v=spf1 include:spf1.service.alibaba.com
+ include:spf2.service.alibaba.com include:spf1.ocm.aliyun.com
+ include:spf2.ocm.aliyun.com include:spf1.staff.mail.aliyun.com
+ include:a.hichina.mail.aliyun.com include:b.hichina.mail.aliyun.com -all
+X-Spam: Clean
+X-Proofpoint-GUID: Lj96_-LUMHJQQivsE5MRxgPO4t4HKizr
+X-Proofpoint-ORIG-GUID: Lj96_-LUMHJQQivsE5MRxgPO4t4HKizr
 Reporting-Meta:
- AAFlfbocwkjkFEx8yanJA+99Y4n1+RVje9rfsvV6eJQfcf7loG8cg2W0VIiU4iJJ
- AaEfOtwjTH8LGytkFenhZb5/F5xCyj4SzI6MRPbdRXKNjozCLjzYTfcW8xfdUdoR
- m25PCMNJTyRrBjJNTrODGIhLNLxaoapK4lcV2o18I7SDVJvq2wc0bIvWplGKiVVH
- zxha8xOh8lXYiJWBBKl3M/UJoeBvv3OuN/j9D3zY5xeFCK0Jh3aC3J6EN49rZ3yr
- tJoySkfjqgodSTpDjO7vxPW+QxVxe8tJ0HWTaa6RnTV3ruTcvyzxXs4Xecus/w7z
- okPGha6huC+zrJnyo6FoQhsfp/e/zdYDtFvCdNC0GVL8NJwt6G83UDlwloBg7iSP
- q7UN01CLOEBzoQ7AsbRNr7YvKBNDGLdILl1o5LbD0b2nVyfKjet7WRQHc8oa2EOe
- bVMmrfG7MGfWCGbbknVC03Z0BSxyQHeZ6l8te6Cjcc4xGHbIioe99bIkXt3K2DLm
- 1XzrX0v4TMRBbO2OzotmLhw9qxFX4dHTb04olUXcandl
+ AAGuUfGu+BQxYvXymcu+FzRxJ6vQRtI4i56UBHKnKbSJ1Ygmgnewpms9gv1YBLsY
+ NgCyDkLizv64hTs7wiaA9p47HYInT2dPy45P0jkpi6iZP7k0VpwKFNvog8gdK/1H
+ p5A5BPp7wLDWAQ8AKgp3WH+OAWZkg14acqfZToF1DJIlOMkM84h5DrociH8g2K6n
+ zAuRezk0bFobQ+gXTOf0f4gQ2GK9diNnamNW4ufm3Dhu6l5SHjAfd25hRkasmFGd
+ ZQfJXs+qFFpDlfT0NOM1hRSTc3DO+ld8iwVR+fqn7X9ZB/rL0oR+FTMO1wWFPmly
+ fk81nezzBleLibroPfjLcQJmVK91A1awO19+t0LhzLFlsCXltENu5krd95Z0zkpk
+ bucyjFoOB/4eIVKIepuNAJZ82WYpBTyS2K8TC4g+gP6Lenz7BtiHKt8mVy2s0O/a
+ d1RHg+suvngzkYmLHbx6iIIjI/8Ry0JAgHUhu5zgil/fGPXAJJUr/asWfLuF91yO
+ 5CA6TowO3U6GZW6WBMwyy5zhlHydD0cSYtE6KOGPAsE=
 
-On Mon, Mar 21, 2022 at 04:00:10PM +0000, David Laight wrote:
-> From: Dan Carpenter
-> > Sent: 21 March 2022 13:55
-> > On Mon, Mar 21, 2022 at 02:34:34PM +0100, Jakob Koschel wrote:
-> > > >> @@ -556,11 +556,11 @@ static void *lockres_seq_start(struct seq_file *m, loff_t *pos)
-> > > >> 		}
-> > > >> 	}
-> > > >>
-> > > >> -	list_for_each_entry(res, track_list, tracking) {
-> > > >> -		if (&res->tracking == &dlm->tracking_list)
-> > > >> -			res = NULL;
-> > > >> -		else
-> > > >> -			dlm_lockres_get(res);
-> > > >> +	list_for_each_entry(iter, track_list, tracking) {
-> > > >> +		if (&iter->tracking != &dlm->tracking_list) {
-> > 
-> > This is an open coded version of:
-> > 
-> > 	if (!list_entry_is_head(iter, &dlm->tracking_list, tracking)) {
+
+
+On 3/21/22 9:34 PM, Jakob Koschel wrote:
 > 
-> Doesn't list_for_each_entry() terminate before that happens?
-> So this code is probably still horribly broken.
+>> On 21. Mar 2022, at 02:50, Joseph Qi <joseph.qi@linux.alibaba.com> wrote:
+>>
+>>
+>>
+>> On 3/20/22 4:31 AM, Jakob Koschel wrote:
+>>> Instead of setting 'res' to NULL, it should only be set if
+>>> the suitable element was found.
+>>>
+>>> In the original code 'res' would have been set to an incorrect pointer
+>>> if the list is empty.
+>>>
+>> The logic before iteration can make sure track_list won't be empty.
+>> Please refer the discussion via:
+>> https://lore.kernel.org/ocfs2-devel/bd0ec87e-b490-83dc-2363-5e5342c59fa4@linux.alibaba.com/T/#m96d4397930201d83d68677c33a9721ae8dbd8f15
+> 
+> ah yes, I just read up on the discussion there, sorry for having duplicated it
+> here.
+> 
+> Was any conclusion reached there which fixes can/should be merged?
+> 
+> This code obviously can always be safe if the list cannot be empty.
+> That's also not necessarily the reason I'm fixing this. The reason is that
+> we want to get rid of any use of the list iterator variable after the loop
+> ('res' in this case). This will allow moving the list iterator variable
+> into the scope of the list iterator macro to forbid any invalid use of it
+> at compile time. Like this you don't have to rely on assumptions that are
+> hard to validate (e.g. that a certain list is never empty).
+> 
+> The patch here is the minimal change to simply do that but looking at
+> Dan Carpenter patch there might be more things in this code that can
+> be simplified.
+> 
+Agree, so I'm fine with this change.
+So could you please update the description and send v2?
 
-There is ! in the condition.  It's just a complicated way of writing
-if (!0) { so code works fine, it's just messy.
+Thanks,
+Joseph
 
-regards,
-dan carpenter
-
+> [CC'd Dan Carpenter]
+> 
+> See [1] for changes that have already been merged:
+> 
+> [1] https://lore.kernel.org/linux-kernel/20220308171818.384491-3-jakobkoschel@gmail.com/
+> 
+>>
+>> Thanks,
+>> Joseph
+>>
+>>> In preparation to limit the scope of the list iterator to the list
+>>> traversal loop, use a dedicated pointer pointing to the found element [1].
+>>>
+>>> Link: https://lore.kernel.org/all/YhdfEIwI4EdtHdym@kroah.com/
+>>> Signed-off-by: Jakob Koschel <jakobkoschel@gmail.com>
+>>> ---
+>>> fs/ocfs2/dlm/dlmdebug.c | 12 ++++++------
+>>> 1 file changed, 6 insertions(+), 6 deletions(-)
+>>>
+>>> diff --git a/fs/ocfs2/dlm/dlmdebug.c b/fs/ocfs2/dlm/dlmdebug.c
+>>> index d442cf5dda8a..be5e9ed7da8d 100644
+>>> --- a/fs/ocfs2/dlm/dlmdebug.c
+>>> +++ b/fs/ocfs2/dlm/dlmdebug.c
+>>> @@ -541,7 +541,7 @@ static void *lockres_seq_start(struct seq_file *m, loff_t *pos)
+>>> 	struct debug_lockres *dl = m->private;
+>>> 	struct dlm_ctxt *dlm = dl->dl_ctxt;
+>>> 	struct dlm_lock_resource *oldres = dl->dl_res;
+>>> -	struct dlm_lock_resource *res = NULL;
+>>> +	struct dlm_lock_resource *res = NULL, *iter;
+>>> 	struct list_head *track_list;
+>>>
+>>> 	spin_lock(&dlm->track_lock);
+>>> @@ -556,11 +556,11 @@ static void *lockres_seq_start(struct seq_file *m, loff_t *pos)
+>>> 		}
+>>> 	}
+>>>
+>>> -	list_for_each_entry(res, track_list, tracking) {
+>>> -		if (&res->tracking == &dlm->tracking_list)
+>>> -			res = NULL;
+>>> -		else
+>>> -			dlm_lockres_get(res);
+>>> +	list_for_each_entry(iter, track_list, tracking) {
+>>> +		if (&iter->tracking != &dlm->tracking_list) {
+>>> +			dlm_lockres_get(iter);
+>>> +			res = iter;
+>>> +		}
+>>> 		break;
+>>> 	}
+>>> 	spin_unlock(&dlm->track_lock);
+>>>
+>>> base-commit: 34e047aa16c0123bbae8e2f6df33e5ecc1f56601
+>>> --
+>>> 2.25.1
+> 
+> 	Jakob
 
 _______________________________________________
 Ocfs2-devel mailing list
