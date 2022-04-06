@@ -4,44 +4,44 @@ X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 Received: from aib29ajc248.phx1.oracleemaildelivery.com (aib29ajc248.phx1.oracleemaildelivery.com [192.29.103.248])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 96C34C433EF
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id B5A81C4332F
 	for <ocfs2-devel@archiver.kernel.org>; Wed,  6 Apr 2022 06:05:59 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=YFXF2DuWUaiwLSOj0F3AIFYRSjqJ4XBrqC16qXuN+Aw=;
- b=RXqZr6RSrQAKXwfTLbqh3knhawFePVQIhgWN7TonkhNYLNH+tvaJE0a8eoFVoESrL1+9JtWKRzoy
-   8vB8uHeeMvNtVJjzst+4RW6ngyTHOJLTawA7vRV7fUW4qPkIMXpYD4fPDeK7epF2Lvfq0RzendMN
-   3afxHS3NPwmAK8VgfS5rSZulzQGdxC5ujv9yFh+c25Qb1P6HwBNhrVapMMVui4BRklESMvle+ZIt
-   PuCHxMbdRCwdQOBsqJrYMUyPzZ6KoxINHBL3ZOEDiBrtsD5vdjhF9Fwe2+P0BvkCTofWiwg/OFZJ
-   A6o6z6Guk+7s1dJ2xOcC2Bool7vhQwVvxosQ6g==
+ bh=fe+hvVzCklcthVYoUqiEJl4iMblJmE809JahV6eW+eE=;
+ b=exdc91Hw2wksVJeepSrju/abpf/BYKGbmSPqrrz+eUTzTNz+9Unehxtt0t/ach/1VdgWyEZiZSWS
+   J4fDNQdlfeitO2Kc6SKMMaFTheieOU+cNlLy9ITYEY4GPi+FUUPxbjejz8iUsvWFTM2re6kRqlS6
+   ohrNefUb3mH/kTAOpRnpKS1z+58p21r4L8mpBzhf/b/kcvYhVTFIs73kw5iSNZ+0qXr/pSpNs8aE
+   bxVmK0dh780vpNWelkmgWEja/Eb2220a84gtQ/xRhpxRu612x9/ILIDHUE61khofUyv83KGVLYgR
+   AFWIXY/BcnS4+FlN5Pe0iiiOMfJHQOPqctL2cg==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=YFXF2DuWUaiwLSOj0F3AIFYRSjqJ4XBrqC16qXuN+Aw=;
- b=GH9W5q+04nul9aOEe5FziLYCJgLtRaBTYUNKfik6UIfiW1dsS1mFlrwrpm8q0yXWUDLS7d/5PvRK
-   lQHLKfgm0N+GXRwupUVJXwnh+3Xo1l9/nyxMB141FV6sDMg5ibHqdCKVvffcfWcYBjWTnWspPOpw
-   PkNOLz8PXqSKTz99kULpsmI5l06sOFQknY5VaSWjHDp/PZ+CT2m0zXV/GLXoWTqr8IpFB5SroPW9
-   7cmrdlQYvFg21u+0txtVeOt/McrIZRrKW7EvLMXdogj7sYcP9QECV2wYYqKeIhjbLzc9u5HnZu3z
-   /un3MxCvF15AoXPvJuVNbHt/G5gJRPtxhELSWw==
+ bh=fe+hvVzCklcthVYoUqiEJl4iMblJmE809JahV6eW+eE=;
+ b=AFeryPkDz59pdeiiBuoBevo2dkTzvjO5dHQPtH+iE9P4Qh9fOOAS4PeLSb6IDznmbQDalnzagv/U
+   5uBVzDOS8yVdh/2Q8YfyFXDIQCR7llTn1WfkDGoPyx8RgczaJiXuJefQgngopf9es+8hOaQbVgDB
+   JTbFzWwsknSAWRyfzgL+oVgLcbA45b9xIdXoZIe5XfkZ1YbqtS7MwAux43KwRaODbc10MxwPZao9
+   1+lFqYolyrV04tASj9oFwUUYjMREiQYKo619oDr1P6suMYpw3Ad+ASbtYVjbnYNsvQa3Ju1QJTAT
+   wObH1BH7XaGB5luU19cWd0YFDeK0M1/Y1j/R0Q==
 Received: by omta-ad2-fd1-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220319 64bit (built Mar 19
  2022))
- with ESMTPS id <0R9W00HE8M9YU4C0@omta-ad2-fd1-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Wed, 06 Apr 2022 06:05:58 +0000 (GMT)
+ with ESMTPS id <0R9W00HEEM9ZU4C0@omta-ad2-fd1-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Wed, 06 Apr 2022 06:05:59 +0000 (GMT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
  d=infradead.org; s=bombadil.20210309; h=Content-Transfer-Encoding:
- Content-Type:MIME-Version:References:In-Reply-To:Message-Id:Date:Subject:Cc:
- To:From:Sender:Reply-To:Content-ID:Content-Description;
- bh=L9ybHoqkMQFtFgAKSKAUEOlBEraEcHfvZKxNTrnAqQ8=; b=txJ9J4YPrbulci+oxX/K1jvzXj
- 8gms4zn8OqR/RStS8wT9jgDaq6tCr0xQ50GF2QciDZSPopEVcnXqcG9w2/K5XJ1BTwpW2RGCMVDA3
- jmixF0VaBheGVq3jZaojwfuYLAQ4/4Mglf66TIU/khX83gOPm4zJJDJ3ou8TXUFMlSJvyOL8I9hxL
- hx9nNbqp2gLScWmRlyHDlcj4q4nSOat130S2f7AGVfoaMNZ1nXqC2ZbfhhUNn3oLONf4dJ00se0wZ
- /QPbSgFP9I0m9WnIywznAmgQ/IfAzP4kiOxdsv2B4GrBWPwAkOiqBswZsWccIWUz5jFEPpf/f4t6x
- GlFV09uw==;
+ MIME-Version:References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender
+ :Reply-To:Content-Type:Content-ID:Content-Description;
+ bh=sINtR+pRAAWqBCMZRslKVJyakyubEJXVW4tI3wGLsb0=; b=gBrZsvegbTHoIEG5qdijcHzNWW
+ PfzclL3zzl2tB5xhm8Sj7w6skVV8SvvJytC4EH0RoMlbB62c3vMVvjooDHTIWQ3smYKaAuMQ4cOli
+ spZhkrdfcyNNrOGeIUuTpGtX63bYCgqfiIr52xJMA9AGK42nQUGH/2eHVQ3foGEH/zFa8lWfGs7Pp
+ Ay5KyAHLP9DhsOCOpCtbHRVbRjzyQdYUTq4TkVLaYR9+Sga+ljLLLtQo5Hukpu2Q5UAw6RMQTfLQg
+ vt8zwwfekDfQOHpKLK7/INfKF40CQ8temfgKOOdrhB506dWycfStoRSbi1wi6owABwmVkNNzYqcsL
+ kVwVOMFA==;
 To: Jens Axboe <axboe@kernel.dk>
-Date: Wed,  6 Apr 2022 08:04:52 +0200
-Message-id: <20220406060516.409838-4-hch@lst.de>
+Date: Wed,  6 Apr 2022 08:04:50 +0200
+Message-id: <20220406060516.409838-2-hch@lst.de>
 X-Mailer: git-send-email 2.30.2
 In-reply-to: <20220406060516.409838-1-hch@lst.de>
 References: <20220406060516.409838-1-hch@lst.de>
@@ -49,9 +49,9 @@ MIME-version: 1.0
 X-Source-IP: 198.137.202.133
 X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10308
  signatures=695566
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 mlxlogscore=483
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 mlxlogscore=825
  malwarescore=0 impostorscore=0 phishscore=0 spamscore=0 adultscore=0
- suspectscore=0 priorityscore=0 clxscore=261 lowpriorityscore=0 mlxscore=0
+ suspectscore=0 priorityscore=90 clxscore=347 lowpriorityscore=0 mlxscore=0
  bulkscore=0 classifier=spam adjust=0 reason=mlx scancount=1
  engine=8.12.0-2202240000 definitions=main-2204060026
 Cc: jfs-discussion@lists.sourceforge.net, linux-nvme@lists.infradead.org,
@@ -68,7 +68,8 @@ Cc: jfs-discussion@lists.sourceforge.net, linux-nvme@lists.infradead.org,
  linux-xfs@vger.kernel.org, ocfs2-devel@oss.oracle.com,
  linux-fsdevel@vger.kernel.org, ntfs3@lists.linux.dev,
  linux-btrfs@vger.kernel.org
-Subject: [Ocfs2-devel] [PATCH 03/27] target: fix discard alignment on	partitions
+Subject: [Ocfs2-devel] [PATCH 01/27] target: remove an incorrect unmap	zeroes
+ data deduction
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -82,44 +83,57 @@ List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
 From: Christoph Hellwig via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
 Reply-to: Christoph Hellwig <hch@lst.de>
-Content-type: text/plain; charset="utf-8"
-Content-transfer-encoding: base64
+Content-type: text/plain; charset="us-ascii"
+Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
 X-SRS-Rewrite: SMTP reverse-path rewritten from <hch@infradead.org> by
  bombadil.infradead.org. See http://www.infradead.org/rpr.html
 X-ServerName: bombadil.infradead.org
 X-Proofpoint-SPF-Result: None
 X-Spam: Clean
-X-Proofpoint-ORIG-GUID: DaxiFdxWSpZPeN83SQ-IRw-jxUzxSEun
-X-Proofpoint-GUID: DaxiFdxWSpZPeN83SQ-IRw-jxUzxSEun
+X-Proofpoint-GUID: 5xJ_iSnX0z4iuUcBtfqeOelkVqBMkeTn
+X-Proofpoint-ORIG-GUID: 5xJ_iSnX0z4iuUcBtfqeOelkVqBMkeTn
 Reporting-Meta:
- AAFA3RAva8NK0F4DU7GXDKMNv8F81v+/T8cnfcu1pR8JL379nfcep1yVbQ456sbM
- zV01fI0nfl5FvXqvW5OoFi2Uq27gBWiifPScHNShbE8u+KKEuzH3yBxeX7Fl/VOI
- NfzwNxTsW0HRYXKGr4akCuDF6mqG6xXr5srHUwKKCFcg4g2f9eSjNvj0kaKaFRO1
- xh/n+VDcDFBePKWykPye3/T2Rb2cSJDIRtSfs/jpvwsL6HlLvFyDX57KOA8bRNbG
- 8PFqhVKhtMgLCEyLPDFXMpTGnWrO45WCfAantmrdL58tg6Zfk5pglODiYPX6OhbQ
- Nzqmv51roUBASPklf46bWY1j0EEz43lhKtP6nh/GHUW9EadsMiRJcnGeBiYcDXIM
- Go6OE4DsArv2jEcQX1rnlmC1n2krNyl3tw8Z5ZykiJCdroU+spC4vkE725coEgW5
- dYfs2chY3wPYZuOvUBLOWpBgcL7mB9GsDbasv3Rq4RTqQ9fZwKlUKbkef2P10IGz
- ASv2gjbwVIwrKZXYFjrdNNnwMvVvNkW9cB9rVnj9mRf1
+ AAEaKWhG9lXDenwEx7H4q3zjefPW8eX36bLklhMblUJt+nyynfoHQKz7GxJyIeU/
+ idSobG+N5R5kBc3YOTaz/4J4PQM+ddEEdueE+FBAiBzYxYHW9VJ3MQ1GX2dxZrZx
+ Dmpf7lDxfMzIlfB3uARXwN60F/T5/0t7ekkTMiXMpkGF3O/ywBpeTG46DQ6Ih3dH
+ 7DVUm+ERMVed2G0ffvEAj+jCTRMPdWS5EmPx2NJUYyj1zVodNaA/7TC6dKHjgbXO
+ CVfH4D5UNoV7q3rKpZJNb3ACtK0YDYIwnl7IwzoT3ZZVKQQCQRRbzPbP+1k8p78f
+ oGRxd7G7UaE1niY5j02/ok2wjxR3xyL/qDXcgOSbxavoqjG21QG68vFoIKoTF/Q4
+ 2zFv9IVEC4nYLV2lb1NiQ+NmBgQvN7YSIYNSRFkdmwpqeWtnEUlADZgAzUkX5EUp
+ eCwnPmj8n3zSSOAZKahTncjlN/FF+D1TNnwIAp0Ouv9KI3s98XDk82JjXXOL0CSQ
+ q/UX8EFc+gd3Vr2HIbdk1eEeQVLSaIsgja91M1EV5SKj
 
-VXNlIHRoZSBwcm9wZXIgYmRldl9kaXNjYXJkX2FsaWdubWVudCBoZWxwZXIgdGhhdCBhY2NvdW50
-cyBmb3IgcGFydGl0aW9uCm9mZnNldHMuCgpG0ZZ4ZXM6IGM2NmFjOWRiOGQ0YSAoIltTQ1NJXSB0
-YXJnZXQ6IEFkZCBMSU8gdGFyZ2V0IGNvcmUgdjQuMC4wLXJjNiIpClNpZ25lZC1vZmYtYnk6IENo
-cmlzdG9waCBIZWxsd2lnIDxoY2hAbHN0LmRlPgotLS0KIGRyaXZlcnMvdGFyZ2V0L3RhcmdldF9j
-b3JlX2RldmljZS5jIHwgNCArKy0tCiAxIGZpbGUgY2hhbmdlZCwgMiBpbnNlcnRpb25zKCspLCAy
-IGRlbGV0aW9ucygtKQoKZGlmZiAtLWdpdCBhL2RyaXZlcnMvdGFyZ2V0L3RhcmdldF9jb3JlX2Rl
-dmljZS5jIGIvZHJpdmVycy90YXJnZXQvdGFyZ2V0X2NvcmVfZGV2aWNlLmMKaW5kZXggM2ExZWM3
-MDVjZDgwYi4uMTZlNzc1YmNmNGE3YyAxMDA2NDQKLS0tIGEvZHJpdmVycy90YXJnZXQvdGFyZ2V0
-X2NvcmVfZGV2aWNlLmMKKysrIGIvZHJpdmVycy90YXJnZXQvdGFyZ2V0X2NvcmVfZGV2aWNlLmMK
-QEAgLTg0OSw4ICs4NDksOCBAQCBib29sIHRhcmdldF9jb25maWd1cmVfdW5tYXBfZnJvbV9xdWV1
-ZShzdHJ1Y3Qgc2VfZGV2X2F0dHJpYiAqYXR0cmliLAogCSAqLwogCWF0dHJpYi0+bWF4X3VubWFw
-X2Jsb2NrX2Rlc2NfY291bnQgPSAxOwogCWF0dHJpYi0+dW5tYXBfZ3JhbnVsYXJpdHkgPSBxLT5s
-aW1pdHMuZGlzY2FyZF9ncmFudWxhcml0eSAvIGJsb2NrX3NpemU7Ci0JYXR0cmliLT51bm1hcF9n
-cmFudWxhcml0eV9hbGlnbm1lbnQgPSBxLT5saW1pdHMuZGlzY2FyZF9hbGlnbm1lbnQgLwotCQkJ
-CQkJCQlibG9ja19zaXplOworCWF0dHJpYi0+dW5tYXBfZ3JhbnVsYXJpdHlfYWxpZ25tZW50ID0K
-KwkJYmRldl9kaXNjYXJkX2FsaWdubWVudChiZGV2KSAvIGJsb2NrX3NpemU7CiAJcmV0dXJuIHRy
-dWU7CiB9CiBFWFBPUlRfU1lNQk9MKHRhcmdldF9jb25maWd1cmVfdW5tYXBfZnJvbV9xdWV1ZSk7
-Ci0tIAoyLjMwLjIKCgpfX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
-X19fXwpPY2ZzMi1kZXZlbCBtYWlsaW5nIGxpc3QKT2NmczItZGV2ZWxAb3NzLm9yYWNsZS5jb20K
-aHR0cHM6Ly9vc3Mub3JhY2xlLmNvbS9tYWlsbWFuL2xpc3RpbmZvL29jZnMyLWRldmVs
+For block devices the target code implements UNMAP as calls to
+blkdev_issue_discard, which does not guarantee zeroing just because
+Write Zeroes is supported.
+
+Note that this does not affect the file backed path which uses
+fallocate to punch holes.
+
+Fixes: 2237498f0b5c ("target/iblock: Convert WRITE_SAME to blkdev_issue_zeroout")
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+---
+ drivers/target/target_core_device.c | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/drivers/target/target_core_device.c b/drivers/target/target_core_device.c
+index 44bb380e7390c..fa866acef5bb2 100644
+--- a/drivers/target/target_core_device.c
++++ b/drivers/target/target_core_device.c
+@@ -850,7 +850,6 @@ bool target_configure_unmap_from_queue(struct se_dev_attrib *attrib,
+ 	attrib->unmap_granularity = q->limits.discard_granularity / block_size;
+ 	attrib->unmap_granularity_alignment = q->limits.discard_alignment /
+ 								block_size;
+-	attrib->unmap_zeroes_data = !!(q->limits.max_write_zeroes_sectors);
+ 	return true;
+ }
+ EXPORT_SYMBOL(target_configure_unmap_from_queue);
+-- 
+2.30.2
+
+
+_______________________________________________
+Ocfs2-devel mailing list
+Ocfs2-devel@oss.oracle.com
+https://oss.oracle.com/mailman/listinfo/ocfs2-devel
