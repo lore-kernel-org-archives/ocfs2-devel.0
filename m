@@ -1,75 +1,53 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc251.phx1.oracleemaildelivery.com (aib29ajc251.phx1.oracleemaildelivery.com [192.29.103.251])
+Received: from aib29ajc253.phx1.oracleemaildelivery.com (aib29ajc253.phx1.oracleemaildelivery.com [192.29.103.253])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 289BEC433EF
-	for <ocfs2-devel@archiver.kernel.org>; Wed,  6 Apr 2022 06:07:36 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id CF6E0C433EF
+	for <ocfs2-devel@archiver.kernel.org>; Wed,  6 Apr 2022 09:27:35 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=Me+/TP2QmN6Cp8Y7T6nnFNhSjF6eKhb2klg/kszIj/k=;
- b=Psk2lFM1tGV+t8Hg+wyJTTCtj5shmawa6CQrbkcqESimJNXMIlDS3238UUmsp6PavE/eoIt+HSI7
-   4eAzroRl8d7qCsMHotk4iCOpBf6SWA1hulkSvASItbj4TcnIU7rVBR5va4EXw7GAawa3SpNmYwLR
-   ZXwbVdaev+PNB0GJ3ysQUwThQ18p7uT8i85fN+HXgm6vjkpIGc9PFwKQZBa37PeH4q7/d312ZyMY
-   5p53yuSbkqZHCu7FZIqod2AcIzJObyDGlg8vQZ9RxlBTAdcy63aiF0TdBD+CGwVqWTBYHBIqxH9v
-   CGO7aJ+gm+6ROwj9Jlwx58yQqtvbI5qLJ+29yA==
+ bh=y5TAIeVPM9qJn/9AWl9GMUZ+VNjQDiW7FC6TzYQmuA8=;
+ b=Ob6UXVn9HTkv+QdLbV3PnTq4sx0vrZ7rP59WkK2ELUVu2bnMDkVbEVHR+qqyRKiRqU0wYDuqX4RN
+   PwvmzrfJ71DtXp3XvdemqHn0DR0iHU2wl3CMPA1EnY4jdzxHtHpdCFm5OWU/0GxKA+m7vMMErwNu
+   TG2n0Z2fGxn33qhVmVnlDUkoYFonQd3VomfErBmyr2/ssQsYEUQxEUY7+t/rK8mrlqkbVis08/LF
+   zl6LkSk5eaukCXX6WDceNipN4ZoYHzkdBW0PYgTM7WtcRVlbvgZZkIa4iepdZYAVpGWA5Umzqwl/
+   5bZHq/hB3KzIZ4KBJf5QsnDGh3e0QoE5TzXkSw==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=Me+/TP2QmN6Cp8Y7T6nnFNhSjF6eKhb2klg/kszIj/k=;
- b=bi0QZbCFqoSl/DxrlCsMeHwV/qC+dfckOKLI0e+0T0oDvqMIJvD+xyOXu13jNYWTrd6nZReWMj1N
-   T2LG2sW/9v9ZTArtngfvRXdyC/PP9gJZSwfzvtnwbVqIXNEVEz9XTVGvIxrD7WErFUX3vFFnsul/
-   dSu59EXOA9dmPh78gDD3qZUSzpyiUX1yEd2pDZMDZdLFkRkNfGThGROie1qnEqshJHUp06tyzbZN
-   PHdB95QtovRiMLtB5HmXYaiAq+dfIwDfvnn5UOAehKRRqFkLzIYEyWqhtxlrsAizJ/ZibpQTBWaJ
-   XZoflmCC0laquIjUC1aGnC8JxnSyO1MA902DSw==
-Received: by omta-ad2-fd3-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
+ bh=y5TAIeVPM9qJn/9AWl9GMUZ+VNjQDiW7FC6TzYQmuA8=;
+ b=U2MYNUvOeyMnxL18XwbPEsEZ6oN13B15BJWRxCicac3Ga47eTmJ6KHZ4MSTyDaJ/LfVAtft0Sui1
+   3OAGjAv3xZElXGmEEuv7fnccP6dyrFBO94Qalhz9zEB5pUCHY/sfagaeGKVeV4J7rCsW6ZdQwVGQ
+   em3x9Gbix2YW20u+BFd3qxsMU4cCGq8wKEkZXmo9rJJSO9IhCAAcwhALZqSb74OzT611zPLX2v2M
+   2ztnlbabf6N6cDMR1kDtz6MiOqzlE89EqWruxQd7DEcA4n5BJf/DQ3pkorOBACEewOlY2FDkUPEx
+   TzXFDT3JmxsoLC1kRnj5psXEhXUh+LDVQZ9Vyw==
+Received: by omta-ad3-fd1-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220319 64bit (built Mar 19
  2022))
- with ESMTPS id <0R9W00AR2MCN4F80@omta-ad2-fd3-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Wed, 06 Apr 2022 06:07:35 +0000 (GMT)
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
- d=infradead.org; s=bombadil.20210309; h=Content-Transfer-Encoding:
- MIME-Version:References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender
- :Reply-To:Content-Type:Content-ID:Content-Description;
- bh=/YZKTwOyQzztfyqzf/8qSaxDPsSv13HN63ynybvB8C0=; b=04hbTk2PqQjIM4G7Y0k8niUwgg
- 5k+nbNiwzVRtRERo1pq9Js3hI5qAO2X/vnSLbP9TAD6ACjVYTM4ZplP+flp3q1PUzTHQ/XM4V+Auf
- wEr2+UuwPnprKzyV5utTYfmaJx4hQ5DcvruKJJGWIehulvFzU3USNBjqxUvYWPWz8pdztUNESX9zn
- wIAMJozwBT4XMyF9ZLKV5tEghZ62A8X8bz6RcGH/u2Yz5tkkvavlt3z1um5KE1JKgvNdSg0WQyLnq
- pghEbLwhoLYdlgEMaQN+Z0BD0os5Rud8VlnKhpv0EgfQ38AQxvj0r32RBUxzJgDLWADqaAY01aHnS
- sTHsEEuA==;
-To: Jens Axboe <axboe@kernel.dk>
-Date: Wed,  6 Apr 2022 08:05:15 +0200
-Message-id: <20220406060516.409838-27-hch@lst.de>
-X-Mailer: git-send-email 2.30.2
-In-reply-to: <20220406060516.409838-1-hch@lst.de>
-References: <20220406060516.409838-1-hch@lst.de>
+ with ESMTPS id <0R9W0031AVLZD4F0@omta-ad3-fd1-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Wed, 06 Apr 2022 09:27:35 +0000 (GMT)
+Message-id: <f0bee20d-9f3d-0fce-e20b-0a24e3d7025c@linux.alibaba.com>
+Date: Wed, 6 Apr 2022 17:27:07 +0800
 MIME-version: 1.0
-X-Source-IP: 198.137.202.133
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:91.0)
+ Gecko/20100101 Thunderbird/91.7.0
+Content-language: en-US
+To: Heming Zhao <heming.zhao@suse.com>, ocfs2-devel@oss.oracle.com
+References: <20220404164055.1434-1-heming.zhao@suse.com>
+In-reply-to: <20220404164055.1434-1-heming.zhao@suse.com>
+X-Source-IP: 115.124.30.42
 X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10308
  signatures=695566
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 impostorscore=0
- priorityscore=60 spamscore=0 mlxscore=0 adultscore=0 mlxlogscore=999
- suspectscore=0 phishscore=0 bulkscore=0 malwarescore=0 lowpriorityscore=0
- clxscore=299 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2202240000 definitions=main-2204060026
-Cc: jfs-discussion@lists.sourceforge.net, linux-nvme@lists.infradead.org,
- virtualization@lists.linux-foundation.org, linux-mm@kvack.org,
- dm-devel@redhat.com, target-devel@vger.kernel.org,
- linux-mtd@lists.infradead.org, drbd-dev@lists.linbit.com,
- linux-s390@vger.kernel.org, linux-nilfs@vger.kernel.org,
- linux-scsi@vger.kernel.org, cluster-devel@redhat.com,
- xen-devel@lists.xenproject.org, linux-ext4@vger.kernel.org,
- linux-um@lists.infradead.org, nbd@other.debian.org,
- linux-block@vger.kernel.org, linux-bcache@vger.kernel.org,
- ceph-devel@vger.kernel.org, linux-raid@vger.kernel.org,
- linux-mmc@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net,
- linux-xfs@vger.kernel.org, ocfs2-devel@oss.oracle.com,
- linux-fsdevel@vger.kernel.org, ntfs3@lists.linux.dev,
- linux-btrfs@vger.kernel.org
-Subject: [Ocfs2-devel] [PATCH 26/27] block: uncouple REQ_OP_SECURE_ERASE	from
- REQ_OP_DISCARD
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 adultscore=0
+ mlxlogscore=999 lowpriorityscore=0 mlxscore=0 phishscore=0 impostorscore=0
+ bulkscore=0 priorityscore=180 suspectscore=0 spamscore=0 clxscore=130
+ malwarescore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2202240000 definitions=main-2204060043 domainage_hfrom=8392
+Subject: Re: [Ocfs2-devel] [PATCH] ocfs2: fix error handling during mounting
+	stage
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -81,896 +59,538 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: Christoph Hellwig via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: Christoph Hellwig <hch@lst.de>
+From: Joseph Qi via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: Joseph Qi <joseph.qi@linux.alibaba.com>
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-SRS-Rewrite: SMTP reverse-path rewritten from <hch@infradead.org> by
- bombadil.infradead.org. See http://www.infradead.org/rpr.html
-X-ServerName: bombadil.infradead.org
-X-Proofpoint-SPF-Result: None
+X-Alimail-AntiSpam: AC=PASS; BC=-1|-1; BR=01201311R151e4; CH=green;
+ DM=||false|; DS=||; FP=0|-1|-1|-1|0|-1|-1|-1; HT=e01e01424;
+ MF=joseph.qi@linux.alibaba.com; NM=1; PH=DS; RN=2; SR=0;
+ TI=SMTPD_---0V9LOUsJ_1649237227;
+X-ServerName: out30-42.freemail.mail.aliyun.com
+X-Proofpoint-SPF-Result: pass
+X-Proofpoint-SPF-Record: v=spf1 include:spf1.service.alibaba.com
+ include:spf2.service.alibaba.com include:spf1.ocm.aliyun.com
+ include:spf2.ocm.aliyun.com include:spf1.staff.mail.aliyun.com
+ include:a.hichina.mail.aliyun.com include:b.hichina.mail.aliyun.com -all
 X-Spam: Clean
-X-Proofpoint-GUID: 5QxqoKGKw4DsXMdZfMjLNK5jtdgv7SuV
-X-Proofpoint-ORIG-GUID: 5QxqoKGKw4DsXMdZfMjLNK5jtdgv7SuV
+X-Proofpoint-ORIG-GUID: ifrmMA27Yqawn7OYh_NVngxTk3xGbXd_
+X-Proofpoint-GUID: ifrmMA27Yqawn7OYh_NVngxTk3xGbXd_
 Reporting-Meta:
- AAFpPaOEsAZE5Ygf5BJgP12iBsFxHuSlBEEW2ackgCvJdlgGpDL9mCwevpjUXoiD
- e0zK/Cx1tSn+8h/Vi6bNav3lQeRvc7g+DIr7bPhl8W1oAuhmJHx8abkz9DJv4ZdY
- sfDvf2SVEIGPNffpKdMGtHVADvCKtqonzffHDxCPJxo7S227D3eb8ImQjET0vWqV
- NajVgKZfzYZLQYpOAzZpBx+wi4Ji5kGPlPHWmdGk7IUUeAUAVFZu0TY9smbSSc2R
- duMtFfKjb0zS8AcAif8IX6821R7j126JBZ4L5WMw26AgQwRoHGrd9ADfd15GjWxu
- S3EBXtZMSoGAbQ1YCKLHAgZkHT+q6l8E+rieeDp9wBO5iDnGMWHsAMvNkMETbjTr
- CYYwGybZ2tQ4/q+qzghz0C9Oj6EdrNRCK332ie3YrMrOS0nVn1TJi+S2gr96JBqj
- FoM9jCRG1QPC152QY1eznkF0StAcpsLgPrDHB+3WKnXkrtjGJOdUaHQmkjNnSmw7
- cv20PDB+gdCZW3RyRduHRX3CUq0E6Fbt6BowWR9bKW4=
+ AAHmGpPeWskFdxA9XN8dNQDMCMHjBjq3ZDgFMVYtsfZirvADX0Y9QelhtaO708g9
+ jAmjss6qKwXhNWJkyZQJ+fFbvMOpH2X+h1PYtNC2zrXJXAi6AtuPiGsGLabUOOqN
+ MDbj1qB19RrjCuMvTOX9CZL+vCkeyff34hrfwb3HMHdmmWyYTyhFOUY2GruJ5jMU
+ NK9rCCGw7msETJtqkIi9w++3WMstAwF8PtTd+uYjSP4n2Xr7WErnHkOIlhTdXJDs
+ Uh31lG9233jlySbnadgW/DMhPzR59XPdOFNZ6Rrj4kgUvgui20cFOWzkE/xzLAKS
+ janC2y8so8Kr92hKLI7vvFQDiQjCe+ZvsU1U58POPx4Wi82rg7AmrwRGNGNds4Jb
+ CActeQSWcrULHKyeotUw7QPuyaZiCLcg6k6E5XMOWbqQNqvZ/4JJUgNAqqkp7xbm
+ MOglpHPM7IiMWuYYTKL8ADzwLtsKDMtY2i3tvGL+MD+LX96Zr72VbwfUIEM8S0Q+
+ g1lNDri01Ga9FMwL3HDSQ3Tx5s0n/XKPG3+pqo+m42E=
 
-Secure erase is a very different operation from discard in that it is
-a data integrity operation vs hint.  Fully split the limits and helper
-infrastructure to make the separation more clear.
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
- block/blk-core.c                    |  2 +-
- block/blk-lib.c                     | 64 ++++++++++++++++++++---------
- block/blk-mq-debugfs.c              |  1 -
- block/blk-settings.c                | 16 +++++++-
- block/fops.c                        |  2 +-
- block/ioctl.c                       | 43 +++++++++++++++----
- drivers/block/drbd/drbd_receiver.c  |  5 ++-
- drivers/block/rnbd/rnbd-clt.c       |  4 +-
- drivers/block/rnbd/rnbd-srv-dev.h   |  2 +-
- drivers/block/xen-blkback/blkback.c | 15 +++----
- drivers/block/xen-blkback/xenbus.c  |  5 +--
- drivers/block/xen-blkfront.c        |  5 ++-
- drivers/md/bcache/alloc.c           |  2 +-
- drivers/md/dm-table.c               |  8 ++--
- drivers/md/dm-thin.c                |  4 +-
- drivers/md/md.c                     |  2 +-
- drivers/md/raid5-cache.c            |  6 +--
- drivers/mmc/core/queue.c            |  2 +-
- drivers/nvme/target/io-cmd-bdev.c   |  2 +-
- drivers/target/target_core_file.c   |  2 +-
- drivers/target/target_core_iblock.c |  2 +-
- fs/btrfs/extent-tree.c              |  4 +-
- fs/ext4/mballoc.c                   |  2 +-
- fs/f2fs/file.c                      | 16 ++++----
- fs/f2fs/segment.c                   |  2 +-
- fs/jbd2/journal.c                   |  2 +-
- fs/nilfs2/sufile.c                  |  4 +-
- fs/nilfs2/the_nilfs.c               |  4 +-
- fs/ntfs3/super.c                    |  2 +-
- fs/xfs/xfs_discard.c                |  2 +-
- fs/xfs/xfs_log_cil.c                |  2 +-
- include/linux/blkdev.h              | 27 +++++++-----
- mm/swapfile.c                       |  6 +--
- 33 files changed, 168 insertions(+), 99 deletions(-)
 
-diff --git a/block/blk-core.c b/block/blk-core.c
-index b5c3a8049134c..ee18b6a699bdf 100644
---- a/block/blk-core.c
-+++ b/block/blk-core.c
-@@ -824,7 +824,7 @@ void submit_bio_noacct(struct bio *bio)
- 			goto not_supported;
- 		break;
- 	case REQ_OP_SECURE_ERASE:
--		if (!blk_queue_secure_erase(q))
-+		if (!bdev_max_secure_erase_sectors(bdev))
- 			goto not_supported;
- 		break;
- 	case REQ_OP_ZONE_APPEND:
-diff --git a/block/blk-lib.c b/block/blk-lib.c
-index 43aa4d7fe859f..09b7e1200c0f4 100644
---- a/block/blk-lib.c
-+++ b/block/blk-lib.c
-@@ -36,26 +36,15 @@ static sector_t bio_discard_limit(struct block_device *bdev, sector_t sector)
- }
- 
- int __blkdev_issue_discard(struct block_device *bdev, sector_t sector,
--		sector_t nr_sects, gfp_t gfp_mask, int flags,
--		struct bio **biop)
-+		sector_t nr_sects, gfp_t gfp_mask, struct bio **biop)
- {
--	struct request_queue *q = bdev_get_queue(bdev);
- 	struct bio *bio = *biop;
--	unsigned int op;
- 	sector_t bs_mask;
- 
- 	if (bdev_read_only(bdev))
- 		return -EPERM;
--
--	if (flags & BLKDEV_DISCARD_SECURE) {
--		if (!blk_queue_secure_erase(q))
--			return -EOPNOTSUPP;
--		op = REQ_OP_SECURE_ERASE;
--	} else {
--		if (!bdev_max_discard_sectors(bdev))
--			return -EOPNOTSUPP;
--		op = REQ_OP_DISCARD;
--	}
-+	if (!bdev_max_discard_sectors(bdev))
-+		return -EOPNOTSUPP;
- 
- 	/* In case the discard granularity isn't set by buggy device driver */
- 	if (WARN_ON_ONCE(!bdev_discard_granularity(bdev))) {
-@@ -77,7 +66,7 @@ int __blkdev_issue_discard(struct block_device *bdev, sector_t sector,
- 		sector_t req_sects =
- 			min(nr_sects, bio_discard_limit(bdev, sector));
- 
--		bio = blk_next_bio(bio, bdev, 0, op, gfp_mask);
-+		bio = blk_next_bio(bio, bdev, 0, REQ_OP_DISCARD, gfp_mask);
- 		bio->bi_iter.bi_sector = sector;
- 		bio->bi_iter.bi_size = req_sects << 9;
- 		sector += req_sects;
-@@ -103,21 +92,19 @@ EXPORT_SYMBOL(__blkdev_issue_discard);
-  * @sector:	start sector
-  * @nr_sects:	number of sectors to discard
-  * @gfp_mask:	memory allocation flags (for bio_alloc)
-- * @flags:	BLKDEV_DISCARD_* flags to control behaviour
-  *
-  * Description:
-  *    Issue a discard request for the sectors in question.
-  */
- int blkdev_issue_discard(struct block_device *bdev, sector_t sector,
--		sector_t nr_sects, gfp_t gfp_mask, unsigned long flags)
-+		sector_t nr_sects, gfp_t gfp_mask)
- {
- 	struct bio *bio = NULL;
- 	struct blk_plug plug;
- 	int ret;
- 
- 	blk_start_plug(&plug);
--	ret = __blkdev_issue_discard(bdev, sector, nr_sects, gfp_mask, flags,
--			&bio);
-+	ret = __blkdev_issue_discard(bdev, sector, nr_sects, gfp_mask, &bio);
- 	if (!ret && bio) {
- 		ret = submit_bio_wait(bio);
- 		if (ret == -EOPNOTSUPP)
-@@ -314,3 +301,42 @@ int blkdev_issue_zeroout(struct block_device *bdev, sector_t sector,
- 	return ret;
- }
- EXPORT_SYMBOL(blkdev_issue_zeroout);
-+
-+int blkdev_issue_secure_erase(struct block_device *bdev, sector_t sector,
-+		sector_t nr_sects, gfp_t gfp)
-+{
-+	sector_t bs_mask = (bdev_logical_block_size(bdev) >> 9) - 1;
-+	unsigned int max_sectors = bdev_max_secure_erase_sectors(bdev);
-+	struct bio *bio = NULL;
-+	struct blk_plug plug;
-+	int ret = 0;
-+
-+	if (max_sectors == 0)
-+		return -EOPNOTSUPP;
-+	if ((sector | nr_sects) & bs_mask)
-+		return -EINVAL;
-+	if (bdev_read_only(bdev))
-+		return -EPERM;
-+
-+	blk_start_plug(&plug);
-+	for (;;) {
-+		unsigned int len = min_t(sector_t, nr_sects, max_sectors);
-+
-+		bio = blk_next_bio(bio, bdev, 0, REQ_OP_SECURE_ERASE, gfp);
-+		bio->bi_iter.bi_sector = sector;
-+		bio->bi_iter.bi_size = len;
-+
-+		sector += len << SECTOR_SHIFT;
-+		nr_sects -= len << SECTOR_SHIFT;
-+		if (!nr_sects) {
-+			ret = submit_bio_wait(bio);
-+			bio_put(bio);
-+			break;
-+		}
-+		cond_resched();
-+	}
-+	blk_finish_plug(&plug);
-+
-+	return ret;
-+}
-+EXPORT_SYMBOL(blkdev_issue_secure_erase);
-diff --git a/block/blk-mq-debugfs.c b/block/blk-mq-debugfs.c
-index fd111c5001256..7e4136a60e1cc 100644
---- a/block/blk-mq-debugfs.c
-+++ b/block/blk-mq-debugfs.c
-@@ -115,7 +115,6 @@ static const char *const blk_queue_flag_name[] = {
- 	QUEUE_FLAG_NAME(IO_STAT),
- 	QUEUE_FLAG_NAME(NOXMERGES),
- 	QUEUE_FLAG_NAME(ADD_RANDOM),
--	QUEUE_FLAG_NAME(SECERASE),
- 	QUEUE_FLAG_NAME(SAME_FORCE),
- 	QUEUE_FLAG_NAME(DEAD),
- 	QUEUE_FLAG_NAME(INIT_DONE),
-diff --git a/block/blk-settings.c b/block/blk-settings.c
-index fd83d674afd0a..6ccceb421ed2f 100644
---- a/block/blk-settings.c
-+++ b/block/blk-settings.c
-@@ -46,6 +46,7 @@ void blk_set_default_limits(struct queue_limits *lim)
- 	lim->max_zone_append_sectors = 0;
- 	lim->max_discard_sectors = 0;
- 	lim->max_hw_discard_sectors = 0;
-+	lim->max_secure_erase_sectors = 0;
- 	lim->discard_granularity = 0;
- 	lim->discard_alignment = 0;
- 	lim->discard_misaligned = 0;
-@@ -176,6 +177,18 @@ void blk_queue_max_discard_sectors(struct request_queue *q,
- }
- EXPORT_SYMBOL(blk_queue_max_discard_sectors);
- 
-+/**
-+ * blk_queue_max_secure_erase_sectors - set max sectors for a secure erase
-+ * @q:  the request queue for the device
-+ * @max_sectors: maximum number of sectors to secure_erase
-+ **/
-+void blk_queue_max_secure_erase_sectors(struct request_queue *q,
-+		unsigned int max_sectors)
-+{
-+	q->limits.max_secure_erase_sectors = max_sectors;
-+}
-+EXPORT_SYMBOL(blk_queue_max_secure_erase_sectors);
-+
- /**
-  * blk_queue_max_write_zeroes_sectors - set max sectors for a single
-  *                                      write zeroes
-@@ -661,7 +674,8 @@ int blk_stack_limits(struct queue_limits *t, struct queue_limits *b,
- 		t->discard_alignment = lcm_not_zero(t->discard_alignment, alignment) %
- 			t->discard_granularity;
- 	}
--
-+	t->max_secure_erase_sectors = min_not_zero(t->max_secure_erase_sectors,
-+						   b->max_secure_erase_sectors);
- 	t->zone_write_granularity = max(t->zone_write_granularity,
- 					b->zone_write_granularity);
- 	t->zoned = max(t->zoned, b->zoned);
-diff --git a/block/fops.c b/block/fops.c
-index 9f2ecec406b04..c0ca3254d38cf 100644
---- a/block/fops.c
-+++ b/block/fops.c
-@@ -672,7 +672,7 @@ static long blkdev_fallocate(struct file *file, int mode, loff_t start,
- 		break;
- 	case FALLOC_FL_PUNCH_HOLE | FALLOC_FL_KEEP_SIZE | FALLOC_FL_NO_HIDE_STALE:
- 		error = blkdev_issue_discard(bdev, start >> SECTOR_SHIFT,
--					     len >> SECTOR_SHIFT, GFP_KERNEL, 0);
-+					     len >> SECTOR_SHIFT, GFP_KERNEL);
- 		break;
- 	default:
- 		error = -EOPNOTSUPP;
-diff --git a/block/ioctl.c b/block/ioctl.c
-index c2cd3ba5290ce..5b5027fa78f7e 100644
---- a/block/ioctl.c
-+++ b/block/ioctl.c
-@@ -83,7 +83,7 @@ static int compat_blkpg_ioctl(struct block_device *bdev,
- #endif
- 
- static int blk_ioctl_discard(struct block_device *bdev, fmode_t mode,
--		unsigned long arg, unsigned long flags)
-+		unsigned long arg)
- {
- 	uint64_t range[2];
- 	uint64_t start, len;
-@@ -114,15 +114,43 @@ static int blk_ioctl_discard(struct block_device *bdev, fmode_t mode,
- 	err = truncate_bdev_range(bdev, mode, start, start + len - 1);
- 	if (err)
- 		goto fail;
--
--	err = blkdev_issue_discard(bdev, start >> 9, len >> 9,
--				   GFP_KERNEL, flags);
--
-+	err = blkdev_issue_discard(bdev, start >> 9, len >> 9, GFP_KERNEL);
- fail:
- 	filemap_invalidate_unlock(inode->i_mapping);
- 	return err;
- }
- 
-+static int blk_ioctl_secure_erase(struct block_device *bdev, fmode_t mode,
-+		void __user *argp)
-+{
-+	uint64_t start, len;
-+	uint64_t range[2];
-+	int err;
-+
-+	if (!(mode & FMODE_WRITE))
-+		return -EBADF;
-+	if (!bdev_max_secure_erase_sectors(bdev))
-+		return -EOPNOTSUPP;
-+	if (copy_from_user(range, argp, sizeof(range)))
-+		return -EFAULT;
-+
-+	start = range[0];
-+	len = range[1];
-+	if ((start & 511) || (len & 511))
-+		return -EINVAL;
-+	if (start + len > bdev_nr_bytes(bdev))
-+		return -EINVAL;
-+
-+	filemap_invalidate_lock(bdev->bd_inode->i_mapping);
-+	err = truncate_bdev_range(bdev, mode, start, start + len - 1);
-+	if (!err)
-+		err = blkdev_issue_secure_erase(bdev, start >> 9, len >> 9,
-+						GFP_KERNEL);
-+	filemap_invalidate_unlock(bdev->bd_inode->i_mapping);
-+	return err;
-+}
-+
-+
- static int blk_ioctl_zeroout(struct block_device *bdev, fmode_t mode,
- 		unsigned long arg)
- {
-@@ -450,10 +478,9 @@ static int blkdev_common_ioctl(struct block_device *bdev, fmode_t mode,
- 	case BLKROSET:
- 		return blkdev_roset(bdev, mode, cmd, arg);
- 	case BLKDISCARD:
--		return blk_ioctl_discard(bdev, mode, arg, 0);
-+		return blk_ioctl_discard(bdev, mode, arg);
- 	case BLKSECDISCARD:
--		return blk_ioctl_discard(bdev, mode, arg,
--				BLKDEV_DISCARD_SECURE);
-+		return blk_ioctl_secure_erase(bdev, mode, argp);
- 	case BLKZEROOUT:
- 		return blk_ioctl_zeroout(bdev, mode, arg);
- 	case BLKGETDISKSEQ:
-diff --git a/drivers/block/drbd/drbd_receiver.c b/drivers/block/drbd/drbd_receiver.c
-index 275c53c7b629e..2957b0b68d600 100644
---- a/drivers/block/drbd/drbd_receiver.c
-+++ b/drivers/block/drbd/drbd_receiver.c
-@@ -1547,7 +1547,8 @@ int drbd_issue_discard_or_zero_out(struct drbd_device *device, sector_t start, u
- 		start = tmp;
- 	}
- 	while (nr_sectors >= max_discard_sectors) {
--		err |= blkdev_issue_discard(bdev, start, max_discard_sectors, GFP_NOIO, 0);
-+		err |= blkdev_issue_discard(bdev, start, max_discard_sectors,
-+					    GFP_NOIO);
- 		nr_sectors -= max_discard_sectors;
- 		start += max_discard_sectors;
- 	}
-@@ -1559,7 +1560,7 @@ int drbd_issue_discard_or_zero_out(struct drbd_device *device, sector_t start, u
- 		nr = nr_sectors;
- 		nr -= (unsigned int)nr % granularity;
- 		if (nr) {
--			err |= blkdev_issue_discard(bdev, start, nr, GFP_NOIO, 0);
-+			err |= blkdev_issue_discard(bdev, start, nr, GFP_NOIO);
- 			nr_sectors -= nr;
- 			start += nr;
- 		}
-diff --git a/drivers/block/rnbd/rnbd-clt.c b/drivers/block/rnbd/rnbd-clt.c
-index efa99a3884507..d178be175ad99 100644
---- a/drivers/block/rnbd/rnbd-clt.c
-+++ b/drivers/block/rnbd/rnbd-clt.c
-@@ -1365,8 +1365,8 @@ static void setup_request_queue(struct rnbd_clt_dev *dev)
- 	dev->queue->limits.discard_granularity	= dev->discard_granularity;
- 	dev->queue->limits.discard_alignment	= dev->discard_alignment;
- 	if (dev->secure_discard)
--		blk_queue_flag_set(QUEUE_FLAG_SECERASE, dev->queue);
--
-+		blk_queue_max_secure_erase_sectors(dev->queue,
-+				dev->max_discard_sectors);
- 	blk_queue_flag_set(QUEUE_FLAG_SAME_COMP, dev->queue);
- 	blk_queue_flag_set(QUEUE_FLAG_SAME_FORCE, dev->queue);
- 	blk_queue_max_segments(dev->queue, dev->max_segments);
-diff --git a/drivers/block/rnbd/rnbd-srv-dev.h b/drivers/block/rnbd/rnbd-srv-dev.h
-index 1f7e1c8fd4d9b..d080a0de59225 100644
---- a/drivers/block/rnbd/rnbd-srv-dev.h
-+++ b/drivers/block/rnbd/rnbd-srv-dev.h
-@@ -44,7 +44,7 @@ static inline int rnbd_dev_get_max_hw_sects(const struct rnbd_dev *dev)
- 
- static inline int rnbd_dev_get_secure_discard(const struct rnbd_dev *dev)
- {
--	return blk_queue_secure_erase(bdev_get_queue(dev->bdev));
-+	return bdev_max_secure_erase_sectors(dev->bdev);
- }
- 
- static inline int rnbd_dev_get_max_discard_sects(const struct rnbd_dev *dev)
-diff --git a/drivers/block/xen-blkback/blkback.c b/drivers/block/xen-blkback/blkback.c
-index de42458195bc1..a97f2bf5b01b9 100644
---- a/drivers/block/xen-blkback/blkback.c
-+++ b/drivers/block/xen-blkback/blkback.c
-@@ -970,7 +970,6 @@ static int dispatch_discard_io(struct xen_blkif_ring *ring,
- 	int status = BLKIF_RSP_OKAY;
- 	struct xen_blkif *blkif = ring->blkif;
- 	struct block_device *bdev = blkif->vbd.bdev;
--	unsigned long secure;
- 	struct phys_req preq;
- 
- 	xen_blkif_get(blkif);
-@@ -987,13 +986,15 @@ static int dispatch_discard_io(struct xen_blkif_ring *ring,
- 	}
- 	ring->st_ds_req++;
- 
--	secure = (blkif->vbd.discard_secure &&
--		 (req->u.discard.flag & BLKIF_DISCARD_SECURE)) ?
--		 BLKDEV_DISCARD_SECURE : 0;
-+	if (blkif->vbd.discard_secure &&
-+	    (req->u.discard.flag & BLKIF_DISCARD_SECURE))
-+		err = blkdev_issue_secure_erase(bdev,
-+				req->u.discard.sector_number,
-+				req->u.discard.nr_sectors, GFP_KERNEL);
-+	else
-+		err = blkdev_issue_discard(bdev, req->u.discard.sector_number,
-+				req->u.discard.nr_sectors, GFP_KERNEL);
- 
--	err = blkdev_issue_discard(bdev, req->u.discard.sector_number,
--				   req->u.discard.nr_sectors,
--				   GFP_KERNEL, secure);
- fail_response:
- 	if (err == -EOPNOTSUPP) {
- 		pr_debug("discard op failed, not supported\n");
-diff --git a/drivers/block/xen-blkback/xenbus.c b/drivers/block/xen-blkback/xenbus.c
-index 83cd08041e6b3..b21bffc9c50bc 100644
---- a/drivers/block/xen-blkback/xenbus.c
-+++ b/drivers/block/xen-blkback/xenbus.c
-@@ -484,7 +484,6 @@ static int xen_vbd_create(struct xen_blkif *blkif, blkif_vdev_t handle,
- {
- 	struct xen_vbd *vbd;
- 	struct block_device *bdev;
--	struct request_queue *q;
- 
- 	vbd = &blkif->vbd;
- 	vbd->handle   = handle;
-@@ -516,11 +515,9 @@ static int xen_vbd_create(struct xen_blkif *blkif, blkif_vdev_t handle,
- 	if (vbd->bdev->bd_disk->flags & GENHD_FL_REMOVABLE)
- 		vbd->type |= VDISK_REMOVABLE;
- 
--	q = bdev_get_queue(bdev);
- 	if (bdev_write_cache(bdev))
- 		vbd->flush_support = true;
--
--	if (q && blk_queue_secure_erase(q))
-+	if (bdev_max_secure_erase_sectors(bdev))
- 		vbd->discard_secure = true;
- 
- 	vbd->feature_gnt_persistent = feature_persistent;
-diff --git a/drivers/block/xen-blkfront.c b/drivers/block/xen-blkfront.c
-index 253bf835aca1f..9fb7c69f72b2d 100644
---- a/drivers/block/xen-blkfront.c
-+++ b/drivers/block/xen-blkfront.c
-@@ -949,7 +949,8 @@ static void blkif_set_queue_limits(struct blkfront_info *info)
- 						 info->physical_sector_size;
- 		rq->limits.discard_alignment = info->discard_alignment;
- 		if (info->feature_secdiscard)
--			blk_queue_flag_set(QUEUE_FLAG_SECERASE, rq);
-+			blk_queue_max_secure_erase_sectors(rq,
-+							   get_capacity(gd));
- 	}
- 
- 	/* Hard sector size and max sectors impersonate the equiv. hardware. */
-@@ -1605,7 +1606,7 @@ static irqreturn_t blkif_interrupt(int irq, void *dev_id)
- 				blkif_req(req)->error = BLK_STS_NOTSUPP;
- 				info->feature_discard = 0;
- 				info->feature_secdiscard = 0;
--				blk_queue_flag_clear(QUEUE_FLAG_SECERASE, rq);
-+				blk_queue_max_secure_erase_sectors(rq, 0);
- 			}
- 			break;
- 		case BLKIF_OP_FLUSH_DISKCACHE:
-diff --git a/drivers/md/bcache/alloc.c b/drivers/md/bcache/alloc.c
-index 097577ae3c471..ce13c272c3872 100644
---- a/drivers/md/bcache/alloc.c
-+++ b/drivers/md/bcache/alloc.c
-@@ -336,7 +336,7 @@ static int bch_allocator_thread(void *arg)
- 				mutex_unlock(&ca->set->bucket_lock);
- 				blkdev_issue_discard(ca->bdev,
- 					bucket_to_sector(ca->set, bucket),
--					ca->sb.bucket_size, GFP_KERNEL, 0);
-+					ca->sb.bucket_size, GFP_KERNEL);
- 				mutex_lock(&ca->set->bucket_lock);
- 			}
- 
-diff --git a/drivers/md/dm-table.c b/drivers/md/dm-table.c
-index 0dff6907fd00d..e7d42f6335a2a 100644
---- a/drivers/md/dm-table.c
-+++ b/drivers/md/dm-table.c
-@@ -1920,9 +1920,7 @@ static int device_not_secure_erase_capable(struct dm_target *ti,
- 					   struct dm_dev *dev, sector_t start,
- 					   sector_t len, void *data)
- {
--	struct request_queue *q = bdev_get_queue(dev->bdev);
--
--	return !blk_queue_secure_erase(q);
-+	return !bdev_max_secure_erase_sectors(dev->bdev);
- }
- 
- static bool dm_table_supports_secure_erase(struct dm_table *t)
-@@ -1975,8 +1973,8 @@ int dm_table_set_restrictions(struct dm_table *t, struct request_queue *q,
- 		q->limits.discard_misaligned = 0;
- 	}
- 
--	if (dm_table_supports_secure_erase(t))
--		blk_queue_flag_set(QUEUE_FLAG_SECERASE, q);
-+	if (!dm_table_supports_secure_erase(t))
-+		q->limits.max_secure_erase_sectors = 0;
- 
- 	if (dm_table_supports_flush(t, (1UL << QUEUE_FLAG_WC))) {
- 		wc = true;
-diff --git a/drivers/md/dm-thin.c b/drivers/md/dm-thin.c
-index eded4bcc4545f..84c083f766736 100644
---- a/drivers/md/dm-thin.c
-+++ b/drivers/md/dm-thin.c
-@@ -398,8 +398,8 @@ static int issue_discard(struct discard_op *op, dm_block_t data_b, dm_block_t da
- 	sector_t s = block_to_sectors(tc->pool, data_b);
- 	sector_t len = block_to_sectors(tc->pool, data_e - data_b);
- 
--	return __blkdev_issue_discard(tc->pool_dev->bdev, s, len,
--				      GFP_NOWAIT, 0, &op->bio);
-+	return __blkdev_issue_discard(tc->pool_dev->bdev, s, len, GFP_NOWAIT,
-+				      &op->bio);
- }
- 
- static void end_discard(struct discard_op *op, int r)
-diff --git a/drivers/md/md.c b/drivers/md/md.c
-index 19636c2f2cda4..2587f872c0884 100644
---- a/drivers/md/md.c
-+++ b/drivers/md/md.c
-@@ -8584,7 +8584,7 @@ void md_submit_discard_bio(struct mddev *mddev, struct md_rdev *rdev,
- {
- 	struct bio *discard_bio = NULL;
- 
--	if (__blkdev_issue_discard(rdev->bdev, start, size, GFP_NOIO, 0,
-+	if (__blkdev_issue_discard(rdev->bdev, start, size, GFP_NOIO,
- 			&discard_bio) || !discard_bio)
- 		return;
- 
-diff --git a/drivers/md/raid5-cache.c b/drivers/md/raid5-cache.c
-index c3cbf9a574a39..094a4042589eb 100644
---- a/drivers/md/raid5-cache.c
-+++ b/drivers/md/raid5-cache.c
-@@ -1344,14 +1344,14 @@ static void r5l_write_super_and_discard_space(struct r5l_log *log,
- 	if (log->last_checkpoint < end) {
- 		blkdev_issue_discard(bdev,
- 				log->last_checkpoint + log->rdev->data_offset,
--				end - log->last_checkpoint, GFP_NOIO, 0);
-+				end - log->last_checkpoint, GFP_NOIO);
- 	} else {
- 		blkdev_issue_discard(bdev,
- 				log->last_checkpoint + log->rdev->data_offset,
- 				log->device_size - log->last_checkpoint,
--				GFP_NOIO, 0);
-+				GFP_NOIO);
- 		blkdev_issue_discard(bdev, log->rdev->data_offset, end,
--				GFP_NOIO, 0);
-+				GFP_NOIO);
- 	}
- }
- 
-diff --git a/drivers/mmc/core/queue.c b/drivers/mmc/core/queue.c
-index cac6315010a3d..a3d4460055716 100644
---- a/drivers/mmc/core/queue.c
-+++ b/drivers/mmc/core/queue.c
-@@ -189,7 +189,7 @@ static void mmc_queue_setup_discard(struct request_queue *q,
- 	if (card->pref_erase > max_discard)
- 		q->limits.discard_granularity = SECTOR_SIZE;
- 	if (mmc_can_secure_erase_trim(card))
--		blk_queue_flag_set(QUEUE_FLAG_SECERASE, q);
-+		blk_queue_max_secure_erase_sectors(q, max_discard);
- }
- 
- static unsigned short mmc_get_max_segments(struct mmc_host *host)
-diff --git a/drivers/nvme/target/io-cmd-bdev.c b/drivers/nvme/target/io-cmd-bdev.c
-index d886c2c59554f..27a72504d31ce 100644
---- a/drivers/nvme/target/io-cmd-bdev.c
-+++ b/drivers/nvme/target/io-cmd-bdev.c
-@@ -360,7 +360,7 @@ static u16 nvmet_bdev_discard_range(struct nvmet_req *req,
- 	ret = __blkdev_issue_discard(ns->bdev,
- 			nvmet_lba_to_sect(ns, range->slba),
- 			le32_to_cpu(range->nlb) << (ns->blksize_shift - 9),
--			GFP_KERNEL, 0, bio);
-+			GFP_KERNEL, bio);
- 	if (ret && ret != -EOPNOTSUPP) {
- 		req->error_slba = le64_to_cpu(range->slba);
- 		return errno_to_nvme_status(req, ret);
-diff --git a/drivers/target/target_core_file.c b/drivers/target/target_core_file.c
-index b6ba582b06775..e68f1cc8ef98b 100644
---- a/drivers/target/target_core_file.c
-+++ b/drivers/target/target_core_file.c
-@@ -558,7 +558,7 @@ fd_execute_unmap(struct se_cmd *cmd, sector_t lba, sector_t nolb)
- 		ret = blkdev_issue_discard(bdev,
- 					   target_to_linux_sector(dev, lba),
- 					   target_to_linux_sector(dev,  nolb),
--					   GFP_KERNEL, 0);
-+					   GFP_KERNEL);
- 		if (ret < 0) {
- 			pr_warn("FILEIO: blkdev_issue_discard() failed: %d\n",
- 				ret);
-diff --git a/drivers/target/target_core_iblock.c b/drivers/target/target_core_iblock.c
-index c4a903b8a47fc..378c80313a0f2 100644
---- a/drivers/target/target_core_iblock.c
-+++ b/drivers/target/target_core_iblock.c
-@@ -434,7 +434,7 @@ iblock_execute_unmap(struct se_cmd *cmd, sector_t lba, sector_t nolb)
- 	ret = blkdev_issue_discard(bdev,
- 				   target_to_linux_sector(dev, lba),
- 				   target_to_linux_sector(dev,  nolb),
--				   GFP_KERNEL, 0);
-+				   GFP_KERNEL);
- 	if (ret < 0) {
- 		pr_err("blkdev_issue_discard() failed: %d\n", ret);
- 		return TCM_LOGICAL_UNIT_COMMUNICATION_FAILURE;
-diff --git a/fs/btrfs/extent-tree.c b/fs/btrfs/extent-tree.c
-index efd8deb3ab7e8..5c1d3a564da5a 100644
---- a/fs/btrfs/extent-tree.c
-+++ b/fs/btrfs/extent-tree.c
-@@ -1239,7 +1239,7 @@ static int btrfs_issue_discard(struct block_device *bdev, u64 start, u64 len,
- 
- 		if (size) {
- 			ret = blkdev_issue_discard(bdev, start >> 9, size >> 9,
--						   GFP_NOFS, 0);
-+						   GFP_NOFS);
- 			if (!ret)
- 				*discarded_bytes += size;
- 			else if (ret != -EOPNOTSUPP)
-@@ -1256,7 +1256,7 @@ static int btrfs_issue_discard(struct block_device *bdev, u64 start, u64 len,
- 
- 	if (bytes_left) {
- 		ret = blkdev_issue_discard(bdev, start >> 9, bytes_left >> 9,
--					   GFP_NOFS, 0);
-+					   GFP_NOFS);
- 		if (!ret)
- 			*discarded_bytes += bytes_left;
- 	}
-diff --git a/fs/ext4/mballoc.c b/fs/ext4/mballoc.c
-index 6d1820536d88d..ea653d19f9ec7 100644
---- a/fs/ext4/mballoc.c
-+++ b/fs/ext4/mballoc.c
-@@ -3629,7 +3629,7 @@ static inline int ext4_issue_discard(struct super_block *sb,
- 		return __blkdev_issue_discard(sb->s_bdev,
- 			(sector_t)discard_block << (sb->s_blocksize_bits - 9),
- 			(sector_t)count << (sb->s_blocksize_bits - 9),
--			GFP_NOFS, 0, biop);
-+			GFP_NOFS, biop);
- 	} else
- 		return sb_issue_discard(sb, discard_block, count, GFP_NOFS, 0);
- }
-diff --git a/fs/f2fs/file.c b/fs/f2fs/file.c
-index 8053d99f3920b..35b6c720c2bc1 100644
---- a/fs/f2fs/file.c
-+++ b/fs/f2fs/file.c
-@@ -3685,18 +3685,18 @@ static int f2fs_reserve_compress_blocks(struct file *filp, unsigned long arg)
- static int f2fs_secure_erase(struct block_device *bdev, struct inode *inode,
- 		pgoff_t off, block_t block, block_t len, u32 flags)
- {
--	struct request_queue *q = bdev_get_queue(bdev);
- 	sector_t sector = SECTOR_FROM_BLOCK(block);
- 	sector_t nr_sects = SECTOR_FROM_BLOCK(len);
- 	int ret = 0;
- 
--	if (!q)
--		return -ENXIO;
--
--	if (flags & F2FS_TRIM_FILE_DISCARD)
--		ret = blkdev_issue_discard(bdev, sector, nr_sects, GFP_NOFS,
--						blk_queue_secure_erase(q) ?
--						BLKDEV_DISCARD_SECURE : 0);
-+	if (flags & F2FS_TRIM_FILE_DISCARD) {
-+		if (bdev_max_secure_erase_sectors(bdev))
-+			ret = blkdev_issue_secure_erase(bdev, sector, nr_sects,
-+					GFP_NOFS);
-+		else
-+			ret = blkdev_issue_discard(bdev, sector, nr_sects,
-+					GFP_NOFS);
-+	}
- 
- 	if (!ret && (flags & F2FS_TRIM_FILE_ZEROOUT)) {
- 		if (IS_ENCRYPTED(inode))
-diff --git a/fs/f2fs/segment.c b/fs/f2fs/segment.c
-index 71f09adbcba86..e433c61e64b93 100644
---- a/fs/f2fs/segment.c
-+++ b/fs/f2fs/segment.c
-@@ -1244,7 +1244,7 @@ static int __submit_discard_cmd(struct f2fs_sb_info *sbi,
- 		err = __blkdev_issue_discard(bdev,
- 					SECTOR_FROM_BLOCK(start),
- 					SECTOR_FROM_BLOCK(len),
--					GFP_NOFS, 0, &bio);
-+					GFP_NOFS, &bio);
- submit:
- 		if (err) {
- 			spin_lock_irqsave(&dc->lock, flags);
-diff --git a/fs/jbd2/journal.c b/fs/jbd2/journal.c
-index 19d226cd4ff4d..c0cbeeaec2d1a 100644
---- a/fs/jbd2/journal.c
-+++ b/fs/jbd2/journal.c
-@@ -1825,7 +1825,7 @@ static int __jbd2_journal_erase(journal_t *journal, unsigned int flags)
- 			err = blkdev_issue_discard(journal->j_dev,
- 					byte_start >> SECTOR_SHIFT,
- 					byte_count >> SECTOR_SHIFT,
--					GFP_NOFS, 0);
-+					GFP_NOFS);
- 		} else if (flags & JBD2_JOURNAL_FLUSH_ZEROOUT) {
- 			err = blkdev_issue_zeroout(journal->j_dev,
- 					byte_start >> SECTOR_SHIFT,
-diff --git a/fs/nilfs2/sufile.c b/fs/nilfs2/sufile.c
-index e385cca2004a7..77ff8e95421fa 100644
---- a/fs/nilfs2/sufile.c
-+++ b/fs/nilfs2/sufile.c
-@@ -1100,7 +1100,7 @@ int nilfs_sufile_trim_fs(struct inode *sufile, struct fstrim_range *range)
- 				ret = blkdev_issue_discard(nilfs->ns_bdev,
- 						start * sects_per_block,
- 						nblocks * sects_per_block,
--						GFP_NOFS, 0);
-+						GFP_NOFS);
- 				if (ret < 0) {
- 					put_bh(su_bh);
- 					goto out_sem;
-@@ -1134,7 +1134,7 @@ int nilfs_sufile_trim_fs(struct inode *sufile, struct fstrim_range *range)
- 			ret = blkdev_issue_discard(nilfs->ns_bdev,
- 					start * sects_per_block,
- 					nblocks * sects_per_block,
--					GFP_NOFS, 0);
-+					GFP_NOFS);
- 			if (!ret)
- 				ndiscarded += nblocks;
- 		}
-diff --git a/fs/nilfs2/the_nilfs.c b/fs/nilfs2/the_nilfs.c
-index dd48a8f74d577..3b4a079c9617c 100644
---- a/fs/nilfs2/the_nilfs.c
-+++ b/fs/nilfs2/the_nilfs.c
-@@ -672,7 +672,7 @@ int nilfs_discard_segments(struct the_nilfs *nilfs, __u64 *segnump,
- 			ret = blkdev_issue_discard(nilfs->ns_bdev,
- 						   start * sects_per_block,
- 						   nblocks * sects_per_block,
--						   GFP_NOFS, 0);
-+						   GFP_NOFS);
- 			if (ret < 0)
- 				return ret;
- 			nblocks = 0;
-@@ -682,7 +682,7 @@ int nilfs_discard_segments(struct the_nilfs *nilfs, __u64 *segnump,
- 		ret = blkdev_issue_discard(nilfs->ns_bdev,
- 					   start * sects_per_block,
- 					   nblocks * sects_per_block,
--					   GFP_NOFS, 0);
-+					   GFP_NOFS);
- 	return ret;
- }
- 
-diff --git a/fs/ntfs3/super.c b/fs/ntfs3/super.c
-index 5f2e414cfa79b..5781b9e8e3d85 100644
---- a/fs/ntfs3/super.c
-+++ b/fs/ntfs3/super.c
-@@ -1333,7 +1333,7 @@ int ntfs_discard(struct ntfs_sb_info *sbi, CLST lcn, CLST len)
- 		return 0;
- 
- 	err = blkdev_issue_discard(sb->s_bdev, start >> 9, (end - start) >> 9,
--				   GFP_NOFS, 0);
-+				   GFP_NOFS);
- 
- 	if (err == -EOPNOTSUPP)
- 		sbi->flags |= NTFS_FLAGS_NODISCARD;
-diff --git a/fs/xfs/xfs_discard.c b/fs/xfs/xfs_discard.c
-index e2ada115c23f9..c6fe3f6ebb6b0 100644
---- a/fs/xfs/xfs_discard.c
-+++ b/fs/xfs/xfs_discard.c
-@@ -114,7 +114,7 @@ xfs_trim_extents(
- 		}
- 
- 		trace_xfs_discard_extent(mp, agno, fbno, flen);
--		error = blkdev_issue_discard(bdev, dbno, dlen, GFP_NOFS, 0);
-+		error = blkdev_issue_discard(bdev, dbno, dlen, GFP_NOFS);
- 		if (error)
- 			goto out_del_cursor;
- 		*blocks_trimmed += flen;
-diff --git a/fs/xfs/xfs_log_cil.c b/fs/xfs/xfs_log_cil.c
-index ba57323bfdcea..c9f55e4f09571 100644
---- a/fs/xfs/xfs_log_cil.c
-+++ b/fs/xfs/xfs_log_cil.c
-@@ -605,7 +605,7 @@ xlog_discard_busy_extents(
- 		error = __blkdev_issue_discard(mp->m_ddev_targp->bt_bdev,
- 				XFS_AGB_TO_DADDR(mp, busyp->agno, busyp->bno),
- 				XFS_FSB_TO_BB(mp, busyp->length),
--				GFP_NOFS, 0, &bio);
-+				GFP_NOFS, &bio);
- 		if (error && error != -EOPNOTSUPP) {
- 			xfs_info(mp,
- 	 "discard failed for extent [0x%llx,%u], error %d",
-diff --git a/include/linux/blkdev.h b/include/linux/blkdev.h
-index f1cf557ea20ef..c9b5925af5a3b 100644
---- a/include/linux/blkdev.h
-+++ b/include/linux/blkdev.h
-@@ -248,6 +248,7 @@ struct queue_limits {
- 	unsigned int		io_opt;
- 	unsigned int		max_discard_sectors;
- 	unsigned int		max_hw_discard_sectors;
-+	unsigned int		max_secure_erase_sectors;
- 	unsigned int		max_write_zeroes_sectors;
- 	unsigned int		max_zone_append_sectors;
- 	unsigned int		discard_granularity;
-@@ -542,7 +543,6 @@ struct request_queue {
- #define QUEUE_FLAG_IO_STAT	7	/* do disk/partitions IO accounting */
- #define QUEUE_FLAG_NOXMERGES	9	/* No extended merges */
- #define QUEUE_FLAG_ADD_RANDOM	10	/* Contributes to random pool */
--#define QUEUE_FLAG_SECERASE	11	/* supports secure erase */
- #define QUEUE_FLAG_SAME_FORCE	12	/* force complete on same CPU */
- #define QUEUE_FLAG_DEAD		13	/* queue tear-down finished */
- #define QUEUE_FLAG_INIT_DONE	14	/* queue is initialized */
-@@ -583,8 +583,6 @@ bool blk_queue_flag_test_and_set(unsigned int flag, struct request_queue *q);
- #define blk_queue_add_random(q)	test_bit(QUEUE_FLAG_ADD_RANDOM, &(q)->queue_flags)
- #define blk_queue_zone_resetall(q)	\
- 	test_bit(QUEUE_FLAG_ZONE_RESETALL, &(q)->queue_flags)
--#define blk_queue_secure_erase(q) \
--	(test_bit(QUEUE_FLAG_SECERASE, &(q)->queue_flags))
- #define blk_queue_dax(q)	test_bit(QUEUE_FLAG_DAX, &(q)->queue_flags)
- #define blk_queue_pci_p2pdma(q)	\
- 	test_bit(QUEUE_FLAG_PCI_P2PDMA, &(q)->queue_flags)
-@@ -947,6 +945,8 @@ extern void blk_queue_chunk_sectors(struct request_queue *, unsigned int);
- extern void blk_queue_max_segments(struct request_queue *, unsigned short);
- extern void blk_queue_max_discard_segments(struct request_queue *,
- 		unsigned short);
-+void blk_queue_max_secure_erase_sectors(struct request_queue *q,
-+		unsigned int max_sectors);
- extern void blk_queue_max_segment_size(struct request_queue *, unsigned int);
- extern void blk_queue_max_discard_sectors(struct request_queue *q,
- 		unsigned int max_discard_sectors);
-@@ -1087,13 +1087,12 @@ static inline long nr_blockdev_pages(void)
- 
- extern void blk_io_schedule(void);
- 
--#define BLKDEV_DISCARD_SECURE	(1 << 0)	/* issue a secure erase */
--
--extern int blkdev_issue_discard(struct block_device *bdev, sector_t sector,
--		sector_t nr_sects, gfp_t gfp_mask, unsigned long flags);
--extern int __blkdev_issue_discard(struct block_device *bdev, sector_t sector,
--		sector_t nr_sects, gfp_t gfp_mask, int flags,
--		struct bio **biop);
-+int blkdev_issue_discard(struct block_device *bdev, sector_t sector,
-+		sector_t nr_sects, gfp_t gfp_mask);
-+int __blkdev_issue_discard(struct block_device *bdev, sector_t sector,
-+		sector_t nr_sects, gfp_t gfp_mask, struct bio **biop);
-+int blkdev_issue_secure_erase(struct block_device *bdev, sector_t sector,
-+		sector_t nr_sects, gfp_t gfp);
- 
- #define BLKDEV_ZERO_NOUNMAP	(1 << 0)  /* do not free blocks */
- #define BLKDEV_ZERO_NOFALLBACK	(1 << 1)  /* don't write explicit zeroes */
-@@ -1112,7 +1111,7 @@ static inline int sb_issue_discard(struct super_block *sb, sector_t block,
- 					      SECTOR_SHIFT),
- 				    nr_blocks << (sb->s_blocksize_bits -
- 						  SECTOR_SHIFT),
--				    gfp_mask, flags);
-+				    gfp_mask);
- }
- static inline int sb_issue_zeroout(struct super_block *sb, sector_t block,
- 		sector_t nr_blocks, gfp_t gfp_mask)
-@@ -1262,6 +1261,12 @@ static inline unsigned int bdev_discard_granularity(struct block_device *bdev)
- 	return bdev_get_queue(bdev)->limits.discard_granularity;
- }
- 
-+static inline unsigned int
-+bdev_max_secure_erase_sectors(struct block_device *bdev)
-+{
-+	return bdev_get_queue(bdev)->limits.max_secure_erase_sectors;
-+}
-+
- static inline unsigned int bdev_write_zeroes_sectors(struct block_device *bdev)
- {
- 	struct request_queue *q = bdev_get_queue(bdev);
-diff --git a/mm/swapfile.c b/mm/swapfile.c
-index 5d9cedf9e7b84..a2b31fea0c42e 100644
---- a/mm/swapfile.c
-+++ b/mm/swapfile.c
-@@ -179,7 +179,7 @@ static int discard_swap(struct swap_info_struct *si)
- 	nr_blocks = ((sector_t)se->nr_pages - 1) << (PAGE_SHIFT - 9);
- 	if (nr_blocks) {
- 		err = blkdev_issue_discard(si->bdev, start_block,
--				nr_blocks, GFP_KERNEL, 0);
-+				nr_blocks, GFP_KERNEL);
- 		if (err)
- 			return err;
- 		cond_resched();
-@@ -190,7 +190,7 @@ static int discard_swap(struct swap_info_struct *si)
- 		nr_blocks = (sector_t)se->nr_pages << (PAGE_SHIFT - 9);
- 
- 		err = blkdev_issue_discard(si->bdev, start_block,
--				nr_blocks, GFP_KERNEL, 0);
-+				nr_blocks, GFP_KERNEL);
- 		if (err)
- 			break;
- 
-@@ -254,7 +254,7 @@ static void discard_swap_cluster(struct swap_info_struct *si,
- 		start_block <<= PAGE_SHIFT - 9;
- 		nr_blocks <<= PAGE_SHIFT - 9;
- 		if (blkdev_issue_discard(si->bdev, start_block,
--					nr_blocks, GFP_NOIO, 0))
-+					nr_blocks, GFP_NOIO))
- 			break;
- 
- 		se = next_se(se);
--- 
-2.30.2
+On 4/5/22 12:40 AM, Heming Zhao wrote:
+> This is draft version, It only passed compiling & mount/umount test.
+> I want to know if my idea is acceptable for maintainers.
+> 
+> There left one issue: mounting crash when no dlm connection. I still
+> can't find out a better solution without directly free inode memory.
+> So I marked the related function (ocfs2_release_system_inodes) with
+> comment: "/* FIXME crash when no journal */"
+> 
+> Signed-off-by: Heming Zhao <heming.zhao@suse.com>
+> ---
+>  fs/ocfs2/reservations.c |   4 +-
+>  fs/ocfs2/reservations.h |   2 +-
+>  fs/ocfs2/super.c        | 156 +++++++++++++++++++++++++---------------
+>  3 files changed, 99 insertions(+), 63 deletions(-)
+> 
+> diff --git a/fs/ocfs2/reservations.c b/fs/ocfs2/reservations.c
+> index 769e466887b0..a9d1296d736d 100644
+> --- a/fs/ocfs2/reservations.c
+> +++ b/fs/ocfs2/reservations.c
+> @@ -198,7 +198,7 @@ void ocfs2_resv_set_type(struct ocfs2_alloc_reservation *resv,
+>  	resv->r_flags |= flags;
+>  }
+>  
+> -int ocfs2_resmap_init(struct ocfs2_super *osb,
+> +void ocfs2_resmap_init(struct ocfs2_super *osb,
+>  		      struct ocfs2_reservation_map *resmap)
+>  {
+>  	memset(resmap, 0, sizeof(*resmap));
+> @@ -207,8 +207,6 @@ int ocfs2_resmap_init(struct ocfs2_super *osb,
+>  	resmap->m_reservations = RB_ROOT;
+>  	/* m_bitmap_len is initialized to zero by the above memset. */
+>  	INIT_LIST_HEAD(&resmap->m_lru);
+> -
+> -	return 0;
+>  }
+>  
+>  static void ocfs2_resv_mark_lru(struct ocfs2_reservation_map *resmap,
+> diff --git a/fs/ocfs2/reservations.h b/fs/ocfs2/reservations.h
+> index 677c50663595..6e5559d6940d 100644
+> --- a/fs/ocfs2/reservations.h
+> +++ b/fs/ocfs2/reservations.h
+> @@ -81,7 +81,7 @@ void ocfs2_resv_discard(struct ocfs2_reservation_map *resmap,
+>   * Only possible return value other than '0' is -ENOMEM for failure to
+>   * allocation mirror bitmap.
+>   */
+> -int ocfs2_resmap_init(struct ocfs2_super *osb,
+> +void ocfs2_resmap_init(struct ocfs2_super *osb,
+>  		      struct ocfs2_reservation_map *resmap);
+>  
+>  /**
+> diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+> index 477cdf94122e..04d7bc7e1110 100644
+> --- a/fs/ocfs2/super.c
+> +++ b/fs/ocfs2/super.c
+> @@ -112,6 +112,7 @@ static int ocfs2_initialize_super(struct super_block *sb,
+>  				  struct buffer_head *bh,
+>  				  int sector_size,
+>  				  struct ocfs2_blockcheck_stats *stats);
+> +static void ocfs2_uninitialize_super(struct ocfs2_super *osb);
+>  static int ocfs2_get_sector(struct super_block *sb,
+>  			    struct buffer_head **bh,
+>  			    int block,
+> @@ -458,6 +459,7 @@ static int ocfs2_init_global_system_inodes(struct ocfs2_super *osb)
+>  			continue;
+>  		new = ocfs2_get_system_file_inode(osb, i, osb->slot_num);
+>  		if (!new) {
+> +			/* FIXME crash when no journal */
 
+I don't have better idea at moment, so we may factor out part of journal init
+and put bofore.
+
+>  			ocfs2_release_system_inodes(osb);
+>  			status = ocfs2_is_soft_readonly(osb) ? -EROFS : -EINVAL;
+>  			mlog_errno(status);
+> @@ -488,6 +490,7 @@ static int ocfs2_init_local_system_inodes(struct ocfs2_super *osb)
+>  			continue;
+>  		new = ocfs2_get_system_file_inode(osb, i, osb->slot_num);
+>  		if (!new) {
+> +			/* FIXME crash when no journal */
+>  			ocfs2_release_system_inodes(osb);
+>  			status = ocfs2_is_soft_readonly(osb) ? -EROFS : -EINVAL;
+>  			mlog(ML_ERROR, "status=%d, sysfile=%d, slot=%d\n",
+> @@ -989,28 +992,27 @@ static int ocfs2_fill_super(struct super_block *sb, void *data, int silent)
+>  
+>  	if (!ocfs2_parse_options(sb, data, &parsed_options, 0)) {
+>  		status = -EINVAL;
+> -		goto read_super_error;
+> +		goto finally;
+>  	}
+>  
+>  	/* probe for superblock */
+>  	status = ocfs2_sb_probe(sb, &bh, &sector_size, &stats);
+>  	if (status < 0) {
+>  		mlog(ML_ERROR, "superblock probe failed!\n");
+> -		goto read_super_error;
+> +		goto finally;
+>  	}
+>  
+>  	status = ocfs2_initialize_super(sb, bh, sector_size, &stats);
+> -	osb = OCFS2_SB(sb);
+> -	if (status < 0) {
+> -		mlog_errno(status);
+> -		goto read_super_error;
+> -	}
+>  	brelse(bh);
+>  	bh = NULL;
+> +	if (status < 0) {
+> +		goto finally;
+> +	}
+> +	osb = OCFS2_SB(sb);
+>  
+>  	if (!ocfs2_check_set_options(sb, &parsed_options)) {
+>  		status = -EINVAL;
+> -		goto read_super_error;
+> +		goto super_out;
+>  	}
+>  	osb->s_mount_opt = parsed_options.mount_opt;
+>  	osb->s_atime_quantum = parsed_options.atime_quantum;
+> @@ -1027,7 +1029,7 @@ static int ocfs2_fill_super(struct super_block *sb, void *data, int silent)
+>  
+>  	status = ocfs2_verify_userspace_stack(osb, &parsed_options);
+>  	if (status)
+> -		goto read_super_error;
+> +		goto super_out;
+>  
+>  	sb->s_magic = OCFS2_SUPER_MAGIC;
+>  
+> @@ -1041,7 +1043,7 @@ static int ocfs2_fill_super(struct super_block *sb, void *data, int silent)
+>  			status = -EACCES;
+>  			mlog(ML_ERROR, "Readonly device detected but readonly "
+>  			     "mount was not specified.\n");
+> -			goto read_super_error;
+> +			goto super_out;
+>  		}
+>  
+>  		/* You should not be able to start a local heartbeat
+> @@ -1050,7 +1052,7 @@ static int ocfs2_fill_super(struct super_block *sb, void *data, int silent)
+>  			status = -EROFS;
+>  			mlog(ML_ERROR, "Local heartbeat specified on readonly "
+>  			     "device.\n");
+> -			goto read_super_error;
+> +			goto super_out;
+>  		}
+>  
+>  		status = ocfs2_check_journals_nolocks(osb);
+> @@ -1061,7 +1063,7 @@ static int ocfs2_fill_super(struct super_block *sb, void *data, int silent)
+>  				     "unavailable.\n");
+>  			else
+>  				mlog_errno(status);
+> -			goto read_super_error;
+> +			goto super_out;
+>  		}
+>  
+>  		ocfs2_set_ro_flag(osb, 1);
+> @@ -1079,7 +1081,7 @@ static int ocfs2_fill_super(struct super_block *sb, void *data, int silent)
+>  	status = ocfs2_verify_heartbeat(osb);
+>  	if (status < 0) {
+>  		mlog_errno(status);
+> -		goto read_super_error;
+> +		goto super_out;
+>  	}
+>  
+>  	osb->osb_debug_root = debugfs_create_dir(osb->uuid_str,
+> @@ -1094,15 +1096,14 @@ static int ocfs2_fill_super(struct super_block *sb, void *data, int silent)
+>  
+>  	status = ocfs2_mount_volume(sb);
+>  	if (status < 0)
+> -		goto read_super_error;
+> +		goto debugfs_out;
+>  
+>  	if (osb->root_inode)
+>  		inode = igrab(osb->root_inode);
+>  
+>  	if (!inode) {
+>  		status = -EIO;
+> -		mlog_errno(status);
+> -		goto read_super_error;
+> +		goto journal_out;
+>  	}
+>  
+>  	osb->osb_dev_kset = kset_create_and_add(sb->s_id, NULL,
+> @@ -1110,7 +1111,7 @@ static int ocfs2_fill_super(struct super_block *sb, void *data, int silent)
+>  	if (!osb->osb_dev_kset) {
+>  		status = -ENOMEM;
+>  		mlog(ML_ERROR, "Unable to create device kset %s.\n", sb->s_id);
+> -		goto read_super_error;
+> +		goto journal_out;
+>  	}
+>  
+>  	/* Create filecheck sysfs related directories/files at
+> @@ -1119,14 +1120,13 @@ static int ocfs2_fill_super(struct super_block *sb, void *data, int silent)
+>  		status = -ENOMEM;
+>  		mlog(ML_ERROR, "Unable to create filecheck sysfs directory at "
+>  			"/sys/fs/ocfs2/%s/filecheck.\n", sb->s_id);
+> -		goto read_super_error;
+> +		goto journal_out;
+>  	}
+>  
+>  	root = d_make_root(inode);
+>  	if (!root) {
+>  		status = -ENOMEM;
+> -		mlog_errno(status);
+> -		goto read_super_error;
+> +		goto journal_out;
+>  	}
+>  
+>  	sb->s_root = root;
+> @@ -1178,17 +1178,22 @@ static int ocfs2_fill_super(struct super_block *sb, void *data, int silent)
+>  
+>  	return status;
+>  
+> -read_super_error:
+> -	brelse(bh);
+> +journal_out:
+> +	mlog_errno(status);
+> +	atomic_set(&osb->vol_state, VOLUME_DISABLED);
+> +	wake_up(&osb->osb_mount_event);
+> +	ocfs2_dismount_volume(sb, 1);
+>  
+> -	if (status)
+> -		mlog_errno(status);
+> +	return status;
+>  
+> -	if (osb) {
+> -		atomic_set(&osb->vol_state, VOLUME_DISABLED);
+> -		wake_up(&osb->osb_mount_event);
+> -		ocfs2_dismount_volume(sb, 1);
+> -	}
+> +debugfs_out:
+> +	debugfs_remove_recursive(osb->osb_debug_root);
+> +super_out:
+> +	/* FIXME crash when no journal */
+> +	ocfs2_release_system_inodes(osb);
+> +	ocfs2_uninitialize_super(osb);
+> +finally:
+
+Missing brelse(bh) since it will goto here if ocfs2_sb_probe()
+fails.
+Suggest we name the label as out_xxx, and I have to take more
+time to review the above changes.
+
+> +	mlog_errno(status);
+>  
+>  	return status;
+>  }
+> @@ -1803,11 +1808,10 @@ static int ocfs2_get_sector(struct super_block *sb,
+>  static int ocfs2_mount_volume(struct super_block *sb)
+>  {
+>  	int status = 0;
+> -	int unlock_super = 0;
+>  	struct ocfs2_super *osb = OCFS2_SB(sb);
+>  
+>  	if (ocfs2_is_hard_readonly(osb))
+> -		goto leave;
+> +		goto finally;
+>  
+>  	mutex_init(&osb->obs_trim_fs_mutex);
+>  
+> @@ -1817,44 +1821,54 @@ static int ocfs2_mount_volume(struct super_block *sb)
+>  		if (status == -EBADR && ocfs2_userspace_stack(osb))
+>  			mlog(ML_ERROR, "couldn't mount because cluster name on"
+>  			" disk does not match the running cluster name.\n");
+> -		goto leave;
+> +		goto finally;
+>  	}
+>  
+>  	status = ocfs2_super_lock(osb, 1);
+>  	if (status < 0) {
+>  		mlog_errno(status);
+> -		goto leave;
+> +		goto dlm_out;
+>  	}
+> -	unlock_super = 1;
+>  
+>  	/* This will load up the node map and add ourselves to it. */
+>  	status = ocfs2_find_slot(osb);
+>  	if (status < 0) {
+>  		mlog_errno(status);
+> -		goto leave;
+> +		goto super_lock;
+>  	}
+>  
+>  	/* load all node-local system inodes */
+>  	status = ocfs2_init_local_system_inodes(osb);
+>  	if (status < 0) {
+>  		mlog_errno(status);
+> -		goto leave;
+> +		goto super_lock;
+>  	}
+>  
+>  	status = ocfs2_check_volume(osb);
+>  	if (status < 0) {
+>  		mlog_errno(status);
+> -		goto leave;
+> +		goto system_inodes;
+>  	}
+>  
+>  	status = ocfs2_truncate_log_init(osb);
+> -	if (status < 0)
+> +	if (status < 0) {
+>  		mlog_errno(status);
+> +		goto journal_shutdown;
+> +	}
+>  
+> -leave:
+> -	if (unlock_super)
+> -		ocfs2_super_unlock(osb, 1);
+> +	ocfs2_super_unlock(osb, 1);
+> +	return status;
+>  
+> +journal_shutdown:
+> +	ocfs2_journal_shutdown(osb);
+> +system_inodes:
+> +	/* FIXME crash when no journal */
+> +	ocfs2_release_system_inodes(osb);
+> +super_lock:
+> +	ocfs2_super_unlock(osb, 1);
+> +dlm_out:
+> +	ocfs2_dlm_shutdown(osb, 0);
+> +finally:
+>  	return status;
+>  }
+>  
+> @@ -2110,17 +2124,13 @@ static int ocfs2_initialize_super(struct super_block *sb,
+>  
+>  	init_waitqueue_head(&osb->osb_mount_event);
+>  
+> -	status = ocfs2_resmap_init(osb, &osb->osb_la_resmap);
+> -	if (status) {
+> -		mlog_errno(status);
+> -		goto bail;
+> -	}
+> +	ocfs2_resmap_init(osb, &osb->osb_la_resmap);
+>  
+>  	osb->vol_label = kmalloc(OCFS2_MAX_VOL_LABEL_LEN, GFP_KERNEL);
+>  	if (!osb->vol_label) {
+>  		mlog(ML_ERROR, "unable to alloc vol label\n");
+>  		status = -ENOMEM;
+> -		goto bail;
+> +		goto recovery_map;
+>  	}
+>  
+>  	osb->slot_recovery_generations =
+> @@ -2129,7 +2139,7 @@ static int ocfs2_initialize_super(struct super_block *sb,
+>  	if (!osb->slot_recovery_generations) {
+>  		status = -ENOMEM;
+>  		mlog_errno(status);
+> -		goto bail;
+> +		goto vol_label;
+>  	}
+>  
+>  	init_waitqueue_head(&osb->osb_wipe_event);
+> @@ -2139,7 +2149,7 @@ static int ocfs2_initialize_super(struct super_block *sb,
+>  	if (!osb->osb_orphan_wipes) {
+>  		status = -ENOMEM;
+>  		mlog_errno(status);
+> -		goto bail;
+> +		goto slot_recovery_gen;
+>  	}
+>  
+>  	osb->osb_rf_lock_tree = RB_ROOT;
+> @@ -2155,13 +2165,13 @@ static int ocfs2_initialize_super(struct super_block *sb,
+>  		mlog(ML_ERROR, "couldn't mount because of unsupported "
+>  		     "optional features (%x).\n", i);
+>  		status = -EINVAL;
+> -		goto bail;
+> +		goto orphan_wipes;
+>  	}
+>  	if (!sb_rdonly(osb->sb) && (i = OCFS2_HAS_RO_COMPAT_FEATURE(osb->sb, ~OCFS2_FEATURE_RO_COMPAT_SUPP))) {
+>  		mlog(ML_ERROR, "couldn't mount RDWR because of "
+>  		     "unsupported optional features (%x).\n", i);
+>  		status = -EINVAL;
+> -		goto bail;
+> +		goto orphan_wipes;
+>  	}
+>  
+>  	if (ocfs2_clusterinfo_valid(osb)) {
+> @@ -2182,7 +2192,7 @@ static int ocfs2_initialize_super(struct super_block *sb,
+>  			     "cluster stack label (%s) \n",
+>  			     osb->osb_cluster_stack);
+>  			status = -EINVAL;
+> -			goto bail;
+> +			goto orphan_wipes;
+>  		}
+>  		memcpy(osb->osb_cluster_name,
+>  			OCFS2_RAW_SB(di)->s_cluster_info.ci_cluster,
+> @@ -2208,7 +2218,7 @@ static int ocfs2_initialize_super(struct super_block *sb,
+>  		mlog(ML_ERROR, "Volume has invalid cluster size (%d)\n",
+>  		     osb->s_clustersize);
+>  		status = -EINVAL;
+> -		goto bail;
+> +		goto orphan_wipes;
+>  	}
+>  
+>  	total_blocks = ocfs2_clusters_to_blocks(osb->sb,
+> @@ -2220,14 +2230,14 @@ static int ocfs2_initialize_super(struct super_block *sb,
+>  		mlog(ML_ERROR, "Volume too large "
+>  		     "to mount safely on this system");
+>  		status = -EFBIG;
+> -		goto bail;
+> +		goto orphan_wipes;
+>  	}
+>  
+>  	if (ocfs2_setup_osb_uuid(osb, di->id2.i_super.s_uuid,
+>  				 sizeof(di->id2.i_super.s_uuid))) {
+>  		mlog(ML_ERROR, "Out of memory trying to setup our uuid.\n");
+>  		status = -ENOMEM;
+> -		goto bail;
+> +		goto orphan_wipes;
+>  	}
+>  
+>  	strlcpy(osb->vol_label, di->id2.i_super.s_label,
+> @@ -2247,7 +2257,7 @@ static int ocfs2_initialize_super(struct super_block *sb,
+>  	if (!osb->osb_dlm_debug) {
+>  		status = -ENOMEM;
+>  		mlog_errno(status);
+> -		goto bail;
+> +		goto uuid_str;
+>  	}
+>  
+>  	atomic_set(&osb->vol_state, VOLUME_INIT);
+> @@ -2256,7 +2266,7 @@ static int ocfs2_initialize_super(struct super_block *sb,
+>  	status = ocfs2_init_global_system_inodes(osb);
+>  	if (status < 0) {
+>  		mlog_errno(status);
+> -		goto bail;
+> +		goto dlm_out;
+>  	}
+>  
+>  	/*
+> @@ -2267,7 +2277,7 @@ static int ocfs2_initialize_super(struct super_block *sb,
+>  	if (!inode) {
+>  		status = -EINVAL;
+>  		mlog_errno(status);
+> -		goto bail;
+> +		goto system_inodes;
+>  	}
+>  
+>  	osb->bitmap_blkno = OCFS2_I(inode)->ip_blkno;
+> @@ -2280,19 +2290,47 @@ static int ocfs2_initialize_super(struct super_block *sb,
+>  	status = ocfs2_init_slot_info(osb);
+>  	if (status < 0) {
+>  		mlog_errno(status);
+> -		goto bail;
+> +		goto system_inodes;
+>  	}
+>  
+>  	osb->ocfs2_wq = alloc_ordered_workqueue("ocfs2_wq", WQ_MEM_RECLAIM);
+>  	if (!osb->ocfs2_wq) {
+>  		status = -ENOMEM;
+>  		mlog_errno(status);
+> +		goto slot_info;
+>  	}
+>  
+> +	return status;
+> +
+> +slot_info:
+> +	ocfs2_free_slot_info(osb);
+> +system_inodes:
+> +	/* FIXME crash when no journal */
+> +	ocfs2_release_system_inodes(osb);
+> +dlm_out:
+> +	ocfs2_put_dlm_debug(osb->osb_dlm_debug);
+> +uuid_str:
+> +	kfree(osb->uuid_str);
+> +orphan_wipes:
+> +	kfree(osb->osb_orphan_wipes);
+> +slot_recovery_gen:
+> +	kfree(osb->slot_recovery_generations);
+> +vol_label:
+> +	kfree(osb->vol_label);
+> +recovery_map:
+> +	kfree(osb->recovery_map);
+>  bail:
+> +	kfree(osb);
+>  	return status;
+>  }
+Could we split ocfs2_initialize_super() changes as a single patch?
+Also suggest we name the label as out_xxx.
+
+>  
+> +static void ocfs2_uninitialize_super(struct ocfs2_super *osb)
+> +{
+> +	kfree(osb->recovery_map);
+> +	ocfs2_delete_osb(osb);
+> +	kfree(osb);
+> +}
+
+Since ocfs2_initialize_super() does more than above, I don't think
+the name is quite suitable here.
+If we the above operations are enough, I suggest just open code in
+error handling.
+
+Thanks,
+Joseph 
+
+> +
+>  /*
+>   * will return: -EAGAIN if it is ok to keep searching for superblocks
+>   *              -EINVAL if there is a bad superblock
 
 _______________________________________________
 Ocfs2-devel mailing list
