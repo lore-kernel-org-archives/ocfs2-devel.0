@@ -1,47 +1,47 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc253.phx1.oracleemaildelivery.com (aib29ajc253.phx1.oracleemaildelivery.com [192.29.103.253])
+Received: from aib29ajc247.phx1.oracleemaildelivery.com (aib29ajc247.phx1.oracleemaildelivery.com [192.29.103.247])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 6BBD1C4332F
-	for <ocfs2-devel@archiver.kernel.org>; Wed,  6 Apr 2022 06:06:49 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 6D769C433F5
+	for <ocfs2-devel@archiver.kernel.org>; Wed,  6 Apr 2022 06:06:53 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=vzrVn007Qq/F2VFg7XvhTSurLndCGay5tFjboFfyZig=;
- b=SFru24HHQOP3+D+eTMt2D6Im3+QkCFAc94fKDYn3xN+oTU1SA+5g7B502QURSuV7Nt+rKJU8LZrd
-   qHO8dZtLLDCo/tBdNxjnpi5Gd7NzStf+I6EasePCTDi8CGesY68oYdagyvAN46wdytYR411JXABd
-   T/a36ALirxzOm5JsGZvXfeTZqDGbr03YeVVCfhNzz/I4PN7x24rc0Y4GVVA868qjRs6U8jFTwHmx
-   /YDhliVWOho0jnG4/PblQ3+Gxmze561WWmfGMbWFSlheLQw7OEJDB8wiBOEmtxADb5clMMHuybxs
-   /XcE+wVmAXsgkLP22qp3b8b3OnR02G15lXksgw==
+ bh=+3UJOaM1ROewhAuVA0NnSlpgw1wi/YXxOxLSHS9Sf60=;
+ b=ksmSUhdbQCs6aVsw+c0vZMVFYZamLbJ61KullfzWagGfC0/J6Hxa+s204OwqzIwCYAm+Ovm7m20l
+   XSGKls8KihcICW2nueqoBH7EIF6+zMPgyzRSilH5gYlYQtEwz5vntuPd9s5syYdFdpsSlSJjLQkl
+   vpN72LD81neZo9dlz/FCn1BjW+FfLSQSsIcvyDI2rDowl5sbL4m9acxm/nvnMT64bWukEL2/mEQN
+   Li6Nmi9rHgTYnmdVPHyL4kdiisLeekrv/B/J5Om+MV7F6IVVOh8Iv0WA5rKbH0jVstOfNH1oChro
+   YrdxAaJWdgX345c/wFQQVH33jHz09vVGUy212g==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=vzrVn007Qq/F2VFg7XvhTSurLndCGay5tFjboFfyZig=;
- b=N4H8TMBPx2FatAT3MA9jcKxtR4hvCWiI/5tIElLd+0FhXa4BXcJILD99zev1GFkYvG2mGPbRzMom
-   6lnAK1RYuxutzp4FrMsQy4onhxeM2UvUOu/kWgyJyGj30zksjkDHgH3b8SgUhCFChUaSBRRE0j12
-   5/OBsmmtYX3OMDuYrnVXuA79Fo7Z+oaAULb0jqqF20ratvJovOL+YSN6z2XzZcpipY6XDaWQs9TK
-   OOzKSFYCp/wYpGIYMXa7zjhMe2mMledDAH3fnh9ZJt0MZLC21GcVzpe5kCI3XDh2ZyvEYxUT/c8g
-   qVXyNSARgLy2QtkIyFnWMCHaMXXzLdPNBnPVfw==
-Received: by omta-ad3-fd1-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
+ bh=+3UJOaM1ROewhAuVA0NnSlpgw1wi/YXxOxLSHS9Sf60=;
+ b=EOqf8b3DS1lyUZ0sCVASvXNHYy0H9qRkjuMc15KW/xy8ofIGjMVnliG94e5YQYvoQEAU4PrFeZw5
+   LfQG6aI07gpU+Fa/+9AHsxr91wM9pxRGM83jsTAPFz766frxJiqZ7e0A3Cbzq24dgfrykII5R+qv
+   X380BCZUg6ZLtDin8MsGLmpCJ6kUazsR6kujVchNH5NU9pBsY4MncjVBy5Pis79sLEz+QaTcYfqV
+   G09xShtFHnTuIHtORl15YDA6mHt5+Ws0qLGxcZnA+zt5XrO8J4YICmHa34a+upwXlj+lBbVPXe96
+   LnsUUr1Imu3rW/i+T5Sr5ZR89xwK9/AEZjsgIA==
+Received: by omta-ad1-fd3-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220319 64bit (built Mar 19
  2022))
- with ESMTPS id <0R9W003JXMBCD4A0@omta-ad3-fd1-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Wed, 06 Apr 2022 06:06:48 +0000 (GMT)
+ with ESMTPS id <0R9W00IQ5MBG2A30@omta-ad1-fd3-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Wed, 06 Apr 2022 06:06:53 +0000 (GMT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
  d=infradead.org; s=bombadil.20210309; h=Content-Transfer-Encoding:
  MIME-Version:References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender
  :Reply-To:Content-Type:Content-ID:Content-Description;
- bh=65vdZDv/Oyhj9d7BIFQpxpieHFePRtIOo5rSsdbnvJY=; b=fnclFxf748Yk+HJEP8iaRVW3WB
- aWWIhphvzxhVY6FZKXEjV9bmsgZxn1Kj0ojlUoEizIay0h/EV1KlYq6LYsLwUZoiL+Fz08VFbrmWJ
- BYNbJJT671L+8hPCaASzQ9hicWQta9jTVuyI55rgNvXk3KOf4lbIG1gDSvXVJwm3aMnDnl4JurT3R
- S8cYXnLnqA9S0vlUcqmBeds07qoRbn35ezQfJ8pyS1RE387ITcgzq6PHUXXwRZqcO/Sk1L5arJMLy
- E+9ofKyWiYPnidQ8zD5I0ZyEozinv4MmGtOr/LudVUr7xp27guzf7u4zI6ERWqMoK3aOeUdBrl0mu
- xcCu0PRw==;
+ bh=rlsVeHMg1hHe1r1+YuPgwXRF4/8zJamKMsqI05vg2XQ=; b=dEa4kNFmwX0SYcUFcc8Xi9cZiL
+ 0YHBnhtVe3qzqowCIKMRB3fv14qh0IEapvyOiw9f3P2TSmik6xnIn650HHnwvUXy84tiN3zbnssTg
+ bDH/a8s5U5AtH87Q46R+MdZn/5zNmDyW2XAGsRKbf666enqb4maEJBeBUKRiT5IBnUoONGC/RElhk
+ R2OL8L7AkB7Ubnk5lUhjB16LEYlI2jSitkdlJ7GTrHY/8Pee2MpDAWz1qn3WxE7V0lFGXbe3hSOHh
+ 45Avy2PKid7ei173qk3MzQTEY8YnmjD/8olfy3eNuGejl5sdeK7uQvol+EUTRrVgtV4C0kFycxISR
+ GBDMxuEg==;
 To: Jens Axboe <axboe@kernel.dk>
-Date: Wed,  6 Apr 2022 08:05:06 +0200
-Message-id: <20220406060516.409838-18-hch@lst.de>
+Date: Wed,  6 Apr 2022 08:05:07 +0200
+Message-id: <20220406060516.409838-19-hch@lst.de>
 X-Mailer: git-send-email 2.30.2
 In-reply-to: <20220406060516.409838-1-hch@lst.de>
 References: <20220406060516.409838-1-hch@lst.de>
@@ -49,10 +49,10 @@ MIME-version: 1.0
 X-Source-IP: 198.137.202.133
 X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10308
  signatures=695566
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 mlxscore=0
- clxscore=321 priorityscore=90 mlxlogscore=515 phishscore=0 bulkscore=0
- spamscore=0 malwarescore=0 adultscore=0 lowpriorityscore=0 suspectscore=0
- impostorscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 impostorscore=0
+ priorityscore=60 spamscore=0 mlxscore=0 adultscore=0 mlxlogscore=975
+ suspectscore=0 phishscore=0 bulkscore=0 malwarescore=0 lowpriorityscore=0
+ clxscore=321 classifier=spam adjust=0 reason=mlx scancount=1
  engine=8.12.0-2202240000 definitions=main-2204060026
 Cc: jfs-discussion@lists.sourceforge.net, linux-nvme@lists.infradead.org,
  virtualization@lists.linux-foundation.org, linux-mm@kvack.org,
@@ -68,8 +68,8 @@ Cc: jfs-discussion@lists.sourceforge.net, linux-nvme@lists.infradead.org,
  linux-xfs@vger.kernel.org, ocfs2-devel@oss.oracle.com,
  linux-fsdevel@vger.kernel.org, ntfs3@lists.linux.dev,
  linux-btrfs@vger.kernel.org
-Subject: [Ocfs2-devel] [PATCH 17/27] block: use bdev_alignment_offset in
-	disk_alignment_offset_show
+Subject: [Ocfs2-devel] [PATCH 18/27] block: move bdev_alignment_offset and
+	queue_limit_alignment_offset out of line
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -91,60 +91,97 @@ X-SRS-Rewrite: SMTP reverse-path rewritten from <hch@infradead.org> by
 X-ServerName: bombadil.infradead.org
 X-Proofpoint-SPF-Result: None
 X-Spam: Clean
-X-Proofpoint-GUID: tTp3WReojwhRQYPkn_x7aq439K77xDuK
-X-Proofpoint-ORIG-GUID: tTp3WReojwhRQYPkn_x7aq439K77xDuK
+X-Proofpoint-ORIG-GUID: M3Ig5vvyjvdiW8YapPnGTavjm-p1Itd8
+X-Proofpoint-GUID: M3Ig5vvyjvdiW8YapPnGTavjm-p1Itd8
 Reporting-Meta:
- AAFOqKCdCiqtbTFhLLCzU3MyvZ+JznA2KyHTZQrvS7tK2i+IExuvgP0R9W9HRrjB
- JCHLc4jdo+uQXo5Fiw46t7K/ytZLsBvSbGpSL07qodjWnQgM2d0p4piJbiZgujAc
- 1Kcmo1fJcEBrudujqtBVryP0cpK9yuZNV6CxBLpZb/EnNri8gUf798TB2Oji7Vsg
- U9htoSn8GLlCcavgZdG1tY05wrKvbS5vXlnwiGRF3OAOUGIFXMCZ9vOQ05zTWxNZ
- IdciTjv4B+03M0p3Uw1ZDxLaMQtCxBe+yse3+v70wz4Hm2xHaVoURrsj3o/LabhA
- XD3iQVrJ4jOrs7y/5MAebWtZ9KLph9KF1WTGdCw7jUtStnX/mY7GwQxG8JpbH/ER
- r3w6e4WsfkNqfVLt4Uz1VjVflE07kS3kGKBnA6mEkjelGIRodj88pelV3MTzS3fq
- 8+nh4Qses4NxuE3cYqsKluDgqN8g3SP6E1SqUHMNh79DIuZ64yq7CAtQcuECMF9g
- nDXGX3zT52u5otFpjJwTLlvmW3DsY1hUJWagHPjOZdcq
+ AAHmGpPeWskFdxA9XN8dNQDMCMHjBjq3ZDgFMVYtsfZirvADX0Y9QelhtaO708g9
+ jAmjss6qKwXhNWJkyZT36fFbvMOpH2X+h1OAwTYb1Rb4+P9/CUj3ELqz8l1Ly9Pr
+ Khp6EwqbxdwPml5+n/Tx6u06TO+bjtN1iLpXyFsZC80VhgibqQaKKVq2D2glA+OP
+ R+iw9weERkFytT1xo1OC6YC7vOhvy7KF4+yAzdZHe7DZ26+EU1T9NYqscWDASWOs
+ SwjjM2BZ6qrR5i1/frZia9cGRWxozDRsIjhJmMDCDJw+SyD4o7q+kUss/vQuiaUZ
+ 1wdwqEnlmWrh96n2AreEgn/ZNQs/t7WgNoywwvF59nkzuPSgCHLgTceCuOlk7wFA
+ xN/h3KFd+NdT4wen+f8fA/WM1ayoFCMyfhYrZMbHU8KfMe/Ax6e4TIGnsVbiWG0B
+ F4AGcz8liayL/8xpfUakJ94+pYVBLBjCi9AaCLJkkyg7NyblgfgkNn3F+zwEhikn
+ PCrHdVsuNHhtHtmAG1KgxuU02QcEFgvY33IsWQToI+qS
 
-This does the same as the open coded variant except for an extra branch,
-and allows to remove queue_alignment_offset entirely.
+No need to inline these fairly larger helpers.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- block/genhd.c          | 2 +-
- include/linux/blkdev.h | 8 --------
- 2 files changed, 1 insertion(+), 9 deletions(-)
+ block/blk-settings.c   | 23 +++++++++++++++++++++++
+ include/linux/blkdev.h | 21 +--------------------
+ 2 files changed, 24 insertions(+), 20 deletions(-)
 
-diff --git a/block/genhd.c b/block/genhd.c
-index b8b6759d670f0..712031ce19070 100644
---- a/block/genhd.c
-+++ b/block/genhd.c
-@@ -1010,7 +1010,7 @@ static ssize_t disk_alignment_offset_show(struct device *dev,
- {
- 	struct gendisk *disk = dev_to_disk(dev);
- 
--	return sprintf(buf, "%d\n", queue_alignment_offset(disk->queue));
-+	return sprintf(buf, "%d\n", bdev_alignment_offset(disk->part0));
+diff --git a/block/blk-settings.c b/block/blk-settings.c
+index b83df3d2eebca..94410a13c0dee 100644
+--- a/block/blk-settings.c
++++ b/block/blk-settings.c
+@@ -468,6 +468,16 @@ void blk_queue_io_opt(struct request_queue *q, unsigned int opt)
  }
+ EXPORT_SYMBOL(blk_queue_io_opt);
  
- static ssize_t disk_discard_alignment_show(struct device *dev,
++static int queue_limit_alignment_offset(struct queue_limits *lim,
++		sector_t sector)
++{
++	unsigned int granularity = max(lim->physical_block_size, lim->io_min);
++	unsigned int alignment = sector_div(sector, granularity >> SECTOR_SHIFT)
++		<< SECTOR_SHIFT;
++
++	return (granularity + lim->alignment_offset - alignment) % granularity;
++}
++
+ static unsigned int blk_round_down_sectors(unsigned int sectors, unsigned int lbs)
+ {
+ 	sectors = round_down(sectors, lbs >> SECTOR_SHIFT);
+@@ -901,3 +911,16 @@ void blk_queue_set_zoned(struct gendisk *disk, enum blk_zoned_model model)
+ 	}
+ }
+ EXPORT_SYMBOL_GPL(blk_queue_set_zoned);
++
++int bdev_alignment_offset(struct block_device *bdev)
++{
++	struct request_queue *q = bdev_get_queue(bdev);
++
++	if (q->limits.misaligned)
++		return -1;
++	if (bdev_is_partition(bdev))
++		return queue_limit_alignment_offset(&q->limits,
++				bdev->bd_start_sect);
++	return q->limits.alignment_offset;
++}
++EXPORT_SYMBOL_GPL(bdev_alignment_offset);
 diff --git a/include/linux/blkdev.h b/include/linux/blkdev.h
-index f8c50b77543eb..d5346e72e3645 100644
+index d5346e72e3645..0a1795ac26275 100644
 --- a/include/linux/blkdev.h
 +++ b/include/linux/blkdev.h
-@@ -1251,14 +1251,6 @@ bdev_zone_write_granularity(struct block_device *bdev)
+@@ -1251,26 +1251,7 @@ bdev_zone_write_granularity(struct block_device *bdev)
  	return queue_zone_write_granularity(bdev_get_queue(bdev));
  }
  
--static inline int queue_alignment_offset(const struct request_queue *q)
+-static inline int queue_limit_alignment_offset(struct queue_limits *lim, sector_t sector)
 -{
--	if (q->limits.misaligned)
--		return -1;
+-	unsigned int granularity = max(lim->physical_block_size, lim->io_min);
+-	unsigned int alignment = sector_div(sector, granularity >> SECTOR_SHIFT)
+-		<< SECTOR_SHIFT;
 -
--	return q->limits.alignment_offset;
+-	return (granularity + lim->alignment_offset - alignment) % granularity;
 -}
 -
- static inline int queue_limit_alignment_offset(struct queue_limits *lim, sector_t sector)
+-static inline int bdev_alignment_offset(struct block_device *bdev)
+-{
+-	struct request_queue *q = bdev_get_queue(bdev);
+-
+-	if (q->limits.misaligned)
+-		return -1;
+-	if (bdev_is_partition(bdev))
+-		return queue_limit_alignment_offset(&q->limits,
+-				bdev->bd_start_sect);
+-	return q->limits.alignment_offset;
+-}
++int bdev_alignment_offset(struct block_device *bdev);
+ 
+ static inline int queue_discard_alignment(const struct request_queue *q)
  {
- 	unsigned int granularity = max(lim->physical_block_size, lim->io_min);
 -- 
 2.30.2
 
