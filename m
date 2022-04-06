@@ -1,47 +1,47 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc248.phx1.oracleemaildelivery.com (aib29ajc248.phx1.oracleemaildelivery.com [192.29.103.248])
+Received: from aib29ajc247.phx1.oracleemaildelivery.com (aib29ajc247.phx1.oracleemaildelivery.com [192.29.103.247])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 1493AC433FE
-	for <ocfs2-devel@archiver.kernel.org>; Wed,  6 Apr 2022 06:06:18 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 7D6CBC433EF
+	for <ocfs2-devel@archiver.kernel.org>; Wed,  6 Apr 2022 06:06:22 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=L89RZimcUSFAFpjZRW6MixF13hbbMD+UMu/K21dBXks=;
- b=rLKjt67j5CjNZH1qkgKuK4cpRCFAOQkF5NYK6wFbL0tL9VpcQ1jmhjdDebljaYL9/1Vjm9LnK8ha
-   sTmqazsZ4oVM8Uk5UA8LbAyPPcEs/z0W+IGbK/C+6WWT55rJjD0bbfinh3HBHla+bW+eh2We2L1/
-   Vqs+af+N1I+bC+Fc5QIRVwoo3yQHuHasRWQuf5n3MYDntlPvRAFHWxk/S+kBpPjkv54ntqORXHq3
-   E1adRRjyQ7sIM6nQPenYGzUxMzMBK/unktEimjoW/Jw3JH+1tXEJL1ZuK/j/IPKDiONCT5J49rEu
-   +R6vfJW+o00DCdkk9XfRBRyTJJKRLOODLFAa2w==
+ bh=OOuGpF2IDOuGrtFfwSThFzxd3u1mhnY8DbD9OeHtOXc=;
+ b=Lyum8OSfrTPmVursI61DQFBApIIEjEZVGqA/BBdqb2Oy4Z/ltr/vhRqjSC35Q5ygwFuiRVltbqxt
+   QuqR8tG75jTXnIFM+/gVkhH12M81SwRYe0PE5iOz4ZTzhm702hbhXlgtLkT6kOlYgBPYbLeNwpKU
+   zrrlS/YMSu99E3zGAiWkHn0mjtXkMmXjw/L5g9kmhnm6e20AoV54vR1ELtzYaz/dMcJyZZzTsDHP
+   aHJRaQcFnhb0w7LQd1Gst/K1HNSj2P0Dun50S9XUWjWlxx6fQTIUG5Iiyap8eD3LTWBzIWhr1Cps
+   k6I7BNYKi71ztFiTUd2tGEfoC+bohOUxvP6zKw==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=L89RZimcUSFAFpjZRW6MixF13hbbMD+UMu/K21dBXks=;
- b=PZNakk2OfJse+08wyiXmNdsVKpxcsBy4DJ/NJamkmvyEyo/NlegYNO4sGf0EqgdMWpgGFoC8iuxg
-   KO+b50Zj0jGms/3vr8mj4wzWZUnu0j2ucx5DDMyatYGCucp12mnd/fGNa0CoBir6dIJIgzoB14Mt
-   B2vcBB+L++gnLEr1QOAPLdR6CTDkwsxgXfallsnBPi/SQuopwRozL49idma33N0iGTdnhawXSyI7
-   yiowJl+HCkgf0y41e0gKqioIRYAKDtiMXGqr6tA3eNXAip0xUdmsIEzmAvabEnQSUZzxYvrRy/yj
-   uGV1EGzxplLnNB5GmUM77DXZL4u1+dv64EjSlQ==
-Received: by omta-ad2-fd1-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
+ bh=OOuGpF2IDOuGrtFfwSThFzxd3u1mhnY8DbD9OeHtOXc=;
+ b=GE/rvpbIPYjLo/Si11k2YhEjRD47vnV7u+lOYdhA1+PobcncH+WGo0JEUVAwPXWq3pE9VrecKMdZ
+   mcSXRx2+N+/RxdZgy0KXTwGZNkcs1esv5bx+gS1VvRNIV1MwGPuk7YhOi0f55yKwrfXkktDceYho
+   PjzCKzsyUrNZGG8OEC0jJbRww6T0EFY5R7cuK9bQEVi0XJMVfET9Xjk6VT4lmG8fFNL4vFNIcPf4
+   XSWIQO5/OLC/LIGJwo5zaTmL89OYfT2KrnGYrka9a7i1hImywiSlo+d3YsLDPULYATz5JL1ji2zN
+   WXByqO+f1CzHdsujlim8ljkLoFGByVcdS57ARw==
+Received: by omta-ad1-fd3-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220319 64bit (built Mar 19
  2022))
- with ESMTPS id <0R9W00HI1MAHU4C0@omta-ad2-fd1-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Wed, 06 Apr 2022 06:06:17 +0000 (GMT)
+ with ESMTPS id <0R9W00ILRMAM2A30@omta-ad1-fd3-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Wed, 06 Apr 2022 06:06:22 +0000 (GMT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
  d=infradead.org; s=bombadil.20210309; h=Content-Transfer-Encoding:
  MIME-Version:References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender
  :Reply-To:Content-Type:Content-ID:Content-Description;
- bh=tRabeefOvFWuX0UGmN5W80/SEitu80or+ujXPxbBifU=; b=AOm4sjiAlP6tD5BDPG+nlvSOnr
- a+eqmQqJ44Gu3hNVff0rp/i9EstWS6YUe61HZmqK+NgAP9RCVrUroq8zVL8cKV3zpQ5XL0vyJlmRK
- NzewYB+71v3WGLpgxvDoCFkqDQNPtIyV060z8fdSvtAa8bXvOhTJAGc1uVeds1Z8SanWEw05KGQ3W
- UFB/Fg7NmKib5Uv9tykTUx2ZTObJAhnLIWQguQ08ldvRIaVpq8BqAf/QlCjLYPeugVNgGqcQ31x4x
- JN/Z3K777fE2OazN7ZPpQSN18xdxSBZinMwtnPgc6nyTQwlijNE+ESpNHGBXjEkXAjangL33mjfc5
- dZArx7ow==;
+ bh=OGJvHxXgCvw9/l2/0Y6T0ivupEa5/VICLVgDi4pj6zk=; b=SGjGHiHxXhTBb30pFVsmtYoofW
+ AXRkPwj9L+IToaoBSWN/RSxSSuBK+pJDBU/ojpwlgCD+rUR4zw9pN8EFDE29pkKOW63auHTvvxwCA
+ PC6e0Da7Eiu1hFS/uIysLLSexy3aaIErbCMYeQH3HFSJ8bABmb6owDVYICpwPc9JKy6Ef8YTyDd/h
+ SpNQxuUWxQhBUfv6Iv5iH1SH6hdeTIk5hPArvSrbVe9a1T+UDbpIkKauh2JPDG7p1MdAcg6ES2qNP
+ pANlA2vT9XhPzqH+DYD3Rh3z9Pdg8L6xQ3HlNdFcmLcX+EpDCJ45aTaIIck6oVGd/w30i6T7ad6VR
+ N9+UdC5Q==;
 To: Jens Axboe <axboe@kernel.dk>
-Date: Wed,  6 Apr 2022 08:04:57 +0200
-Message-id: <20220406060516.409838-9-hch@lst.de>
+Date: Wed,  6 Apr 2022 08:04:58 +0200
+Message-id: <20220406060516.409838-10-hch@lst.de>
 X-Mailer: git-send-email 2.30.2
 In-reply-to: <20220406060516.409838-1-hch@lst.de>
 References: <20220406060516.409838-1-hch@lst.de>
@@ -49,10 +49,10 @@ MIME-version: 1.0
 X-Source-IP: 198.137.202.133
 X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10308
  signatures=695566
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 mlxlogscore=730
- malwarescore=0 impostorscore=0 phishscore=0 spamscore=0 adultscore=0
- suspectscore=0 priorityscore=30 clxscore=269 lowpriorityscore=0 mlxscore=0
- bulkscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 mlxscore=0
+ clxscore=351 priorityscore=60 mlxlogscore=466 phishscore=0 bulkscore=0
+ spamscore=0 malwarescore=0 adultscore=0 lowpriorityscore=0 suspectscore=0
+ impostorscore=0 classifier=spam adjust=0 reason=mlx scancount=1
  engine=8.12.0-2202240000 definitions=main-2204060026
 Cc: jfs-discussion@lists.sourceforge.net, linux-nvme@lists.infradead.org,
  virtualization@lists.linux-foundation.org, linux-mm@kvack.org,
@@ -68,8 +68,7 @@ Cc: jfs-discussion@lists.sourceforge.net, linux-nvme@lists.infradead.org,
  linux-xfs@vger.kernel.org, ocfs2-devel@oss.oracle.com,
  linux-fsdevel@vger.kernel.org, ntfs3@lists.linux.dev,
  linux-btrfs@vger.kernel.org
-Subject: [Ocfs2-devel] [PATCH 08/27] ntfs3: use bdev_logical_block_size	instead
- of open coding it
+Subject: [Ocfs2-devel] [PATCH 09/27] mm: use bdev_is_zoned in claim_swapfile
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -91,37 +90,39 @@ X-SRS-Rewrite: SMTP reverse-path rewritten from <hch@infradead.org> by
 X-ServerName: bombadil.infradead.org
 X-Proofpoint-SPF-Result: None
 X-Spam: Clean
-X-Proofpoint-GUID: njGFAlASArgdExSdhuoTDMIyK4thrci2
-X-Proofpoint-ORIG-GUID: njGFAlASArgdExSdhuoTDMIyK4thrci2
+X-Proofpoint-GUID: zLz8CFx8T5eG-0ek7fcwjVgEw1vSILjx
+X-Proofpoint-ORIG-GUID: zLz8CFx8T5eG-0ek7fcwjVgEw1vSILjx
 Reporting-Meta:
- AAEUoxke5xKA2NCJdENT1I1WTAsKhuKnuXeW/o1L/u/UCqtvijQwCGIoX+vhpM2D
- 63yyI4vZJVMHWQ09tjLatOhEX6Q24rRIyD+SEOxi2ihNO9uqVf/mzMOtV5t8desa
- iSEaTM4MNfdBw9y8+2gaFzqDOecH9lsdxdDFd1m+rFhOCFj1TfGEG1THT5c2ptSr
- ICV/NaFSaIX9+MLrCl2UtODYVDpNCfc6WEkXRUh5pkmoFTKiR0jZyuIsSnjVWy6M
- Aj/1ZmWr0WIVQKpBajZUhZunZsLbkHCzdLlzwL1Sm7u6iLGsVJLKwRnP8CRw92DP
- k5xBmxJUQvY7vtZOcE5gqLjFxN373UeC1gF7XRWo0oauKWnr3VlFJqDarE5SdPva
- TusSE/x+Z1A3aUsLjRdHVVJxhhfmOTz5uyWMZkVN3knNrLz/gi+s9G1O92Y8y3wA
- 6EXjIuLFekNepQsgIi8aBwQqzfkHWfsKmt0lRmRQw8HbxwZESgOYCXMS9lkiHZSv
- hZHlzoL14FiNlAcLtUkvLKJaea2V/CHhgyV+3nN5BVg=
+ AAG7octwdjZkja8Mm1fLuSxNK9W8ri2OgDimeKiPp3Nh5yWFGYcP0Vh6K5uyxV/T
+ gH8veL7G3tZvT3Wa+4qhgf8sDMLMlLmHkL7SeWTrpyP988lE9hXp+3tm5OyV31gz
+ qIRvZYQqkoBzBcq/bHOb2Vom86Rsv0i5XJNuIw0n9k2xhLxFkYS/B5ViIQQb599S
+ RY5RSjYfDfETFfqqdgJxj00+ybnjhfy72JlQyw2IGikE8iBQQM9Z8kfMckurEAzM
+ xaekEKRVHHNLQW8MyBNFKvVgEdgY1RwxVrtqQxzp+vg3RfMzXIpxDfpCsYoNkO18
+ R+phdApt+SuL6CDBs0L0+QEOURCfkOiLs8CRXwK++Tlc8tMV1xXBpjUdXXCX+nNQ
+ wrqHAteWPAZEe+8wRzabC/4v15xP2tUnqvevnjR8qUCWWbzhSMPWf3TsjixVmpon
+ qjWyX+CfY8jSI58nd6gca/Nt9D/ibXFQMPp6LO5EpQz+LbApNxozbHlMCkabsGnb
+ P0dhAMBXyRAnGfEjOHYqDCcNNCBwvdy8JrL0L/lTu4+f
+
+Use the bdev based helper instead of poking into the queue.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- fs/ntfs3/super.c | 2 +-
+ mm/swapfile.c | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/fs/ntfs3/super.c b/fs/ntfs3/super.c
-index 278dcf5024102..cd30e81abbce0 100644
---- a/fs/ntfs3/super.c
-+++ b/fs/ntfs3/super.c
-@@ -920,7 +920,7 @@ static int ntfs_fill_super(struct super_block *sb, struct fs_context *fc)
- 	}
- 
- 	/* Parse boot. */
--	err = ntfs_init_from_boot(sb, rq ? queue_logical_block_size(rq) : 512,
-+	err = ntfs_init_from_boot(sb, bdev_logical_block_size(bdev),
- 				  bdev_nr_bytes(bdev));
- 	if (err)
- 		goto out;
+diff --git a/mm/swapfile.c b/mm/swapfile.c
+index 63c61f8b26118..4c7537162af5e 100644
+--- a/mm/swapfile.c
++++ b/mm/swapfile.c
+@@ -2761,7 +2761,7 @@ static int claim_swapfile(struct swap_info_struct *p, struct inode *inode)
+ 		 * write only restriction.  Hence zoned block devices are not
+ 		 * suitable for swapping.  Disallow them here.
+ 		 */
+-		if (blk_queue_is_zoned(p->bdev->bd_disk->queue))
++		if (bdev_is_zoned(p->bdev))
+ 			return -EINVAL;
+ 		p->flags |= SWP_BLKDEV;
+ 	} else if (S_ISREG(inode->i_mode)) {
 -- 
 2.30.2
 
