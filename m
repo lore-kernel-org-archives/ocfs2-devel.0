@@ -1,47 +1,47 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc244.phx1.oracleemaildelivery.com (aib29ajc244.phx1.oracleemaildelivery.com [192.29.103.244])
+Received: from aib29ajc249.phx1.oracleemaildelivery.com (aib29ajc249.phx1.oracleemaildelivery.com [192.29.103.249])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id B53ABC43217
-	for <ocfs2-devel@archiver.kernel.org>; Wed,  6 Apr 2022 06:06:06 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 77F82C433F5
+	for <ocfs2-devel@archiver.kernel.org>; Wed,  6 Apr 2022 06:06:12 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=CujI9o07ZjZr+qH5+5sr9gHRYcoxIVLhC+xnEhBuSNI=;
- b=GumUM5m8w6a+gg4d1Ir1VJkl9tQIFfjcTwmgpUJXyGqePTK0vINwW/LI9hYkssp0Y5VIMc0m/B3c
-   xSKJDM+lE1g7c3hSU3SKwwNYr6lb9/qmRa6R9nDTpeaKm84w6or1u/WqYzGNXL84trwnQsaju3Iu
-   GwfAu2KK/RRQC+9gp+4uTOVT3WQJMBCiGsLjNUmIaIGR765O9vVpTu5AzRHsSGuQjkVfYfTJC4Fr
-   ZJS0mNCJzn4GpIs2PUa5zmUoDVpPbUKZlCBUWMRT8pl4FHWHq4eXrtQqZyM2E2eByD63WD8ACsPF
-   VIN5kVZoYFRdyi/c0E/vr6LcgnmixGin9OeUWw==
+ bh=hUMG+AmiaqvNYYQL7/mjJYrSAB+dIJaQID+LMIYv+Ig=;
+ b=NLBbPeWlyA3uR3/YoPV2ku7NsesIkYj7O5hGkvXK/JZebnEmyxjGCajyaWRxNR/ibpTPFORtZMSD
+   MoBYXSiu51Bcb3xn7cmNr7odujm/iDpn+S0AZbZs4bnlgybGf7bkSI5Xw/4onHPYQBPIhs5f98Yh
+   8dF34mqWLoYQr0OzTdN/t/cBF/l/xfHz5ubUlQSm1wHEZwRzXGxvCFXiFj0K17vtpBaPatWF0Cjs
+   Muwgt9TYgWqmUH1AJxgvqEK3u3/J1jz5W/dE13v9vPK2m9Q4iBSI7iacr7KPNQfpn4+ViOYu666X
+   gq8gd6jUrvuqMh5jrGR4q4bmwDySFUp4yZ4RXw==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=CujI9o07ZjZr+qH5+5sr9gHRYcoxIVLhC+xnEhBuSNI=;
- b=NXYNrtd0qzsh9hsxtKwEr62UGlJ7KgjRs6GAeJj8V502CZhCeTgpRcrfcOxMm46V3g/tswYkCC+Z
-   bzX0cErYn81Oj3WBrFXq32MGKQaoib1eO8yB2v8rK8PS1bQooGynvpvzEtnhqDsyQfGeV0tNcCyQ
-   nALsV4MdkWwInrinDZa5a8waswc5/RI187KfRPplXz0C/2iONz2MhMXFjLwSZJ8oMHjO/C8EWkhy
-   ei0njsY3dzovpbVhcWuGtPRbAItu9Oc9mpft3tDC2A0rzNc0dm/lx7Fif3iwPj41x6EM/OVXTa6v
-   UssZvOzYeFYk4e7CBCO/vMNaO/uCdqfmPfCC0A==
-Received: by omta-ad1-fd1-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
+ bh=hUMG+AmiaqvNYYQL7/mjJYrSAB+dIJaQID+LMIYv+Ig=;
+ b=FH9cRFwtggi+iUcglvAaZcYguzR1pbWU0BAOSfxXtaRSiU8RYbtxCqi8qUMcdutgwIGg+G99uMUv
+   1YxhhTnTfjc34EVLEWrnFyZKfxyVZtnNDUcbcQp4p8gX9NX6lmMFi+DXWUQAYKgk/Cwpns2xkcAx
+   3qYGTrkKyjua77+7Eku1BW+pclv+oTRVETS9xt6/J8WJhrjJrv6ud3G4DlpLoO0JdRRfskXHUP3R
+   19XMsCc41cOyb3MaW+Qalc2CVd1u9s93QBDt3vdZQ68xwOsCg0RSFL1SUVEfiBo2b2vZ7LLT245P
+   faWQfZ2/BhT8h7YheZ7A2HAK4nBo0mocIqef3A==
+Received: by omta-ad2-fd1-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220319 64bit (built Mar 19
  2022))
- with ESMTPS id <0R9W00HEMMA6EN80@omta-ad1-fd1-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Wed, 06 Apr 2022 06:06:06 +0000 (GMT)
+ with ESMTPS id <0R9W00OD3MABLS20@omta-ad2-fd1-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Wed, 06 Apr 2022 06:06:11 +0000 (GMT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
  d=infradead.org; s=bombadil.20210309; h=Content-Transfer-Encoding:
  MIME-Version:References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender
  :Reply-To:Content-Type:Content-ID:Content-Description;
- bh=cTLTfYr7duFMbl13zCRXcRUBgEmH7Snqn+WlWdpEWNo=; b=ZV/CVrUb4qbpXBUImFAvqmY7OC
- YR/KmNB2+lAjq+EqA8oBYfyehyx3Nq+YwtV4TxCIA5A8L2WVXtNlev4guWoUuadGmFOwtgMiNwq9i
- yqX5G6E2+zNceTQVJtjM3l08MHhteYnLHXffM4/jtc5yfz/GeuE8HPUJ4reOje5U615tM7p768ryF
- Y/h9+5h+K+8NlHUqGExK7MtGefB5aNgyMmSmLlNaZTgeiyQAt5+xaIpSgQ/+zSSJmDjA+IoRmYh1L
- IwncIh14NoCZ6DbOmIaikx8OL30Ru/YZRUBoYvofpcHUxFXkbbQXdd7v+XeVl55WVE6NwYrNNaEln
- SKW/g4CA==;
+ bh=8b7He7jKWHmQh3KokdF/PRePZ9Zk3nvKntDAn0vRB+A=; b=0omtD+HQtA616dFivyqA97DclF
+ 5MCkQ36VFGZAUVgFUJvq7ULB9RxmAnnJK9Ru4GgkOHXwFqXqRHMXQ9LCogkUlyoM9wN6+7J7DekaY
+ q43/dVC7g/6yyYP+I8eJgSyycd7IVsGmMYkR1Clskvv1tDsGCaTWuQ8Rrf8sU79R1v0lw2bQt/AWB
+ OsOPsydboiChznz0eGpngaPA8w2OVY6Jf3YdqyKDFL16zctVHp5+n0d+GDis8Omgb+WFkLhPwAzdn
+ EsF+yQBNP9+37ibHq8jy0MV7lNP50mXC+UwgCTvOjOUrw+1nocIz3QcImLpc9EsYaF5HR/HZej/jt
+ LdNiWxFQ==;
 To: Jens Axboe <axboe@kernel.dk>
-Date: Wed,  6 Apr 2022 08:04:54 +0200
-Message-id: <20220406060516.409838-6-hch@lst.de>
+Date: Wed,  6 Apr 2022 08:04:55 +0200
+Message-id: <20220406060516.409838-7-hch@lst.de>
 X-Mailer: git-send-email 2.30.2
 In-reply-to: <20220406060516.409838-1-hch@lst.de>
 References: <20220406060516.409838-1-hch@lst.de>
@@ -50,7 +50,7 @@ X-Source-IP: 198.137.202.133
 X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10308
  signatures=695566
 X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 mlxscore=0
- clxscore=349 priorityscore=60 mlxlogscore=739 phishscore=0 bulkscore=0
+ clxscore=349 priorityscore=90 mlxlogscore=999 phishscore=0 bulkscore=0
  spamscore=0 malwarescore=0 adultscore=0 lowpriorityscore=0 suspectscore=0
  impostorscore=0 classifier=spam adjust=0 reason=mlx scancount=1
  engine=8.12.0-2202240000 definitions=main-2204060026
@@ -68,8 +68,7 @@ Cc: jfs-discussion@lists.sourceforge.net, linux-nvme@lists.infradead.org,
  linux-xfs@vger.kernel.org, ocfs2-devel@oss.oracle.com,
  linux-fsdevel@vger.kernel.org, ntfs3@lists.linux.dev,
  linux-btrfs@vger.kernel.org
-Subject: [Ocfs2-devel] [PATCH 05/27] drbd: use bdev based limit helpers in
-	drbd_send_sizes
+Subject: [Ocfs2-devel] [PATCH 06/27] drbd: cleanup decide_on_discard_support
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -91,63 +90,129 @@ X-SRS-Rewrite: SMTP reverse-path rewritten from <hch@infradead.org> by
 X-ServerName: bombadil.infradead.org
 X-Proofpoint-SPF-Result: None
 X-Spam: Clean
-X-Proofpoint-GUID: sXAhAXmseLgls-njW0EW4CWlENAGH3vW
-X-Proofpoint-ORIG-GUID: sXAhAXmseLgls-njW0EW4CWlENAGH3vW
+X-Proofpoint-ORIG-GUID: Kle9KH0WF7VAf5n4ueiELpYqsS_gtZnr
+X-Proofpoint-GUID: Kle9KH0WF7VAf5n4ueiELpYqsS_gtZnr
 Reporting-Meta:
- AAFlSDaM+Mj9sXmHdhW4acBOHw33/92ryK8g4IaW8iqakILVtuQBIxVtqSqCG9I3
- k+K71cC0ilw3tmLnZUwIq3c4TAiPZMcIt8Htfoe/wWvMouNS9GNzXk8kXat4AYN9
- WRd8D/3/rL8wcPc3ZUPjE4aOGd3qPSXJx5Qaeod/knYL7z1nzq50K+a1EZMk/oaL
- /fz2lE5mljCVv9hUBMZ6iq9DyG5VySYefEG8Qq+SitYTD7r1JGR4LAtWAlLD2G+U
- FvFOMchJei4o5axzBh0pGxO+i0zVQUv2BFVGbOUKSxLcpBDS/7EjK5X/T8xE3BHG
- dCXArzMHxwURllprCFQojXtCAUfi/2Ba+qfeigd0GpNyvbkG3KOR+5I1SJA2tRAD
- O82XEcDn91iXVLVNCIQn/mrat2pBWhvbAWkmDqao/wqyl9B8I3RpexzCoxLT0Hh7
- DflOG273DG37oGrrhXAxVdt6P9XGDnfvYO8wRmL43unS7vRiucfE+spYBBocXWwj
- +TM/pJhE/vjZNoBMGuw0AyLBVu4e5Mr7NGL6Di2etsU=
+ AAHIpslJAdgF+CXMbjtQ1Sp5bSSBfhjA8d5zWm4mvQFzJ+crheHBQwsAwTZZ4JSk
+ NWwKLa8baPicXp+bp556khNFEWmw4Ows3prXwg/cl5TcdDNM+mep4U9iy7t0KfRf
+ zpCgxFxDWVLlIo/OJc85F5TmGM9A5+L8blY+XsrImnrNOKWS3GxoI763v+XNcAYC
+ zkEqVG8q9dxtY7yLxhp/yXEP16jq+/ZHhHmzNl6T/Ru4OJf8rgRorGIVaM11mBRX
+ 1pvflSv0H/KLv/8T4yfWchelRrWDQc1UWYAAuKx1nDt0F72BNXjYwzLrGTQyOfVE
+ zgij8OPpjY3IgvWJA2nP/ITyS2q082LRp5ll2mP0W/KchToWTXB6MDIvXGe1yJj0
+ dMBKOfw63tWEnf4r0IUQH4chVlY1BPPjzdUVODUsatOapRz6F+DWPEbh8I1oqEYD
+ wO6zJy8ARVupHU1hK8eCwMoidU0uamuvfSbeDRXxd3ZGSoWSI863AErxpOYL+r/7
+ aISMmbFtM9fQIDZ9I04hM8CaC7gXf1bZfnSrngqFHV8=
 
-Use the bdev based limits helpers where they exist.
+Sanitize the calling conventions and use a goto label to cleanup the
+code flow.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- drivers/block/drbd/drbd_main.c | 15 ++++++++-------
- 1 file changed, 8 insertions(+), 7 deletions(-)
+ drivers/block/drbd/drbd_nl.c | 68 +++++++++++++++++++-----------------
+ 1 file changed, 35 insertions(+), 33 deletions(-)
 
-diff --git a/drivers/block/drbd/drbd_main.c b/drivers/block/drbd/drbd_main.c
-index 74b1b2424efff..d20d84ee7a88e 100644
---- a/drivers/block/drbd/drbd_main.c
-+++ b/drivers/block/drbd/drbd_main.c
-@@ -924,7 +924,9 @@ int drbd_send_sizes(struct drbd_peer_device *peer_device, int trigger_reply, enu
+diff --git a/drivers/block/drbd/drbd_nl.c b/drivers/block/drbd/drbd_nl.c
+index 02030c9c4d3b1..40bb0b356a6d6 100644
+--- a/drivers/block/drbd/drbd_nl.c
++++ b/drivers/block/drbd/drbd_nl.c
+@@ -1204,38 +1204,42 @@ static unsigned int drbd_max_discard_sectors(struct drbd_connection *connection)
+ }
  
- 	memset(p, 0, packet_size);
- 	if (get_ldev_if_state(device, D_NEGOTIATING)) {
--		struct request_queue *q = bdev_get_queue(device->ldev->backing_bdev);
-+		struct block_device *bdev = device->ldev->backing_bdev;
-+		struct request_queue *q = bdev_get_queue(bdev);
+ static void decide_on_discard_support(struct drbd_device *device,
+-			struct request_queue *q,
+-			struct request_queue *b,
+-			bool discard_zeroes_if_aligned)
++		struct drbd_backing_dev *bdev)
+ {
+-	/* q = drbd device queue (device->rq_queue)
+-	 * b = backing device queue (device->ldev->backing_bdev->bd_disk->queue),
+-	 *     or NULL if diskless
+-	 */
+-	struct drbd_connection *connection = first_peer_device(device)->connection;
+-	bool can_do = b ? blk_queue_discard(b) : true;
+-
+-	if (can_do && connection->cstate >= C_CONNECTED && !(connection->agreed_features & DRBD_FF_TRIM)) {
+-		can_do = false;
+-		drbd_info(connection, "peer DRBD too old, does not support TRIM: disabling discards\n");
+-	}
+-	if (can_do) {
+-		/* We don't care for the granularity, really.
+-		 * Stacking limits below should fix it for the local
+-		 * device.  Whether or not it is a suitable granularity
+-		 * on the remote device is not our problem, really. If
+-		 * you care, you need to use devices with similar
+-		 * topology on all peers. */
+-		blk_queue_discard_granularity(q, 512);
+-		q->limits.max_discard_sectors = drbd_max_discard_sectors(connection);
+-		blk_queue_flag_set(QUEUE_FLAG_DISCARD, q);
+-		q->limits.max_write_zeroes_sectors = drbd_max_discard_sectors(connection);
+-	} else {
+-		blk_queue_flag_clear(QUEUE_FLAG_DISCARD, q);
+-		blk_queue_discard_granularity(q, 0);
+-		q->limits.max_discard_sectors = 0;
+-		q->limits.max_write_zeroes_sectors = 0;
++	struct drbd_connection *connection =
++		first_peer_device(device)->connection;
++	struct request_queue *q = device->rq_queue;
 +
- 		d_size = drbd_get_max_capacity(device->ldev);
++	if (bdev && !blk_queue_discard(bdev->backing_bdev->bd_disk->queue))
++		goto not_supported;
++
++	if (connection->cstate >= C_CONNECTED &&
++	    !(connection->agreed_features & DRBD_FF_TRIM)) {
++		drbd_info(connection,
++			"peer DRBD too old, does not support TRIM: disabling discards\n");
++		goto not_supported;
+ 	}
++
++	/*
++	 * We don't care for the granularity, really.
++	 *
++	 * Stacking limits below should fix it for the local device.  Whether or
++	 * not it is a suitable granularity on the remote device is not our
++	 * problem, really. If you care, you need to use devices with similar
++	 * topology on all peers.
++	 */
++	blk_queue_discard_granularity(q, 512);
++	q->limits.max_discard_sectors = drbd_max_discard_sectors(connection);
++	blk_queue_flag_set(QUEUE_FLAG_DISCARD, q);
++	q->limits.max_write_zeroes_sectors =
++		drbd_max_discard_sectors(connection);
++	return;
++
++not_supported:
++	blk_queue_flag_clear(QUEUE_FLAG_DISCARD, q);
++	blk_queue_discard_granularity(q, 0);
++	q->limits.max_discard_sectors = 0;
++	q->limits.max_write_zeroes_sectors = 0;
+ }
+ 
+ static void fixup_discard_if_not_supported(struct request_queue *q)
+@@ -1273,7 +1277,6 @@ static void drbd_setup_queue_param(struct drbd_device *device, struct drbd_backi
+ 	unsigned int max_segments = 0;
+ 	struct request_queue *b = NULL;
+ 	struct disk_conf *dc;
+-	bool discard_zeroes_if_aligned = true;
+ 
+ 	if (bdev) {
+ 		b = bdev->backing_bdev->bd_disk->queue;
+@@ -1282,7 +1285,6 @@ static void drbd_setup_queue_param(struct drbd_device *device, struct drbd_backi
  		rcu_read_lock();
- 		u_size = rcu_dereference(device->ldev->disk_conf)->disk_size;
-@@ -933,16 +935,15 @@ int drbd_send_sizes(struct drbd_peer_device *peer_device, int trigger_reply, enu
- 		max_bio_size = queue_max_hw_sectors(q) << 9;
- 		max_bio_size = min(max_bio_size, DRBD_MAX_BIO_SIZE);
- 		p->qlim->physical_block_size =
--			cpu_to_be32(queue_physical_block_size(q));
-+			cpu_to_be32(bdev_physical_block_size(bdev));
- 		p->qlim->logical_block_size =
--			cpu_to_be32(queue_logical_block_size(q));
-+			cpu_to_be32(bdev_logical_block_size(bdev));
- 		p->qlim->alignment_offset =
- 			cpu_to_be32(queue_alignment_offset(q));
--		p->qlim->io_min = cpu_to_be32(queue_io_min(q));
--		p->qlim->io_opt = cpu_to_be32(queue_io_opt(q));
-+		p->qlim->io_min = cpu_to_be32(bdev_io_min(bdev));
-+		p->qlim->io_opt = cpu_to_be32(bdev_io_opt(bdev));
- 		p->qlim->discard_enabled = blk_queue_discard(q);
--		p->qlim->write_same_capable =
--			!!q->limits.max_write_same_sectors;
-+		p->qlim->write_same_capable = 0;
- 		put_ldev(device);
- 	} else {
- 		struct request_queue *q = device->rq_queue;
+ 		dc = rcu_dereference(device->ldev->disk_conf);
+ 		max_segments = dc->max_bio_bvecs;
+-		discard_zeroes_if_aligned = dc->discard_zeroes_if_aligned;
+ 		rcu_read_unlock();
+ 
+ 		blk_set_stacking_limits(&q->limits);
+@@ -1292,7 +1294,7 @@ static void drbd_setup_queue_param(struct drbd_device *device, struct drbd_backi
+ 	/* This is the workaround for "bio would need to, but cannot, be split" */
+ 	blk_queue_max_segments(q, max_segments ? max_segments : BLK_MAX_SEGMENTS);
+ 	blk_queue_segment_boundary(q, PAGE_SIZE-1);
+-	decide_on_discard_support(device, q, b, discard_zeroes_if_aligned);
++	decide_on_discard_support(device, bdev);
+ 
+ 	if (b) {
+ 		blk_stack_limits(&q->limits, &b->limits, 0);
 -- 
 2.30.2
 
