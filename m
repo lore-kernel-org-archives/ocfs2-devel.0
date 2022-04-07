@@ -1,83 +1,82 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc254.phx1.oracleemaildelivery.com (aib29ajc254.phx1.oracleemaildelivery.com [192.29.103.254])
+Received: from aib29ajc249.phx1.oracleemaildelivery.com (aib29ajc249.phx1.oracleemaildelivery.com [192.29.103.249])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 7F8B0C433EF
-	for <ocfs2-devel@archiver.kernel.org>; Thu,  7 Apr 2022 03:37:06 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id AAC0AC433EF
+	for <ocfs2-devel@archiver.kernel.org>; Thu,  7 Apr 2022 15:25:08 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=gL2kJOOgz2oSW6gaNY3puyvNiJnCTk5MGAkveZy2PIU=;
- b=YK7BqRh0/WXJJ8gcxmfLDNaDTn2XtwThC71sUZhBgtDh9cWemWQgfdAAIMc2z/V7nVwmlGX+L2dS
-   y+FzPaflrk8agtzwx+DtdoOjZACKqOQORZXB6BY/EQIiX35+pi5/5AL6qW51WuSW5J0qsJr7tCKR
-   XACQnJ2Wo5XaJ8EJYHW9Uqpz1fVAzQpkF3ZLfdeVoFs9Hr4l+Ix00ARDN8uO1bGS3u0wJQlSqhbh
-   YrQyCq6ro+/Yi//ckAWhRvhpoXZ4wGysiyxeUtMGo4tVYK8FuhVk1SJr2IeuK86n9/TYxWL0k92K
-   FKy4BVk1hWNW1o29+glHo9ViL+5nAmeyD233xA==
+ bh=F9h1T6LaqVrafMarYSAir9UKFSQmlLHGm6+X9wxvMZY=;
+ b=wL4BbCRYa5yGoQ8um/zGRwm0dY0paZfFHzAl+iG/Wx4jTtFs9Q23p5wktUDtp9MLrYd2Yhe/E8Uw
+   c/I0UvwMyGu1KBmmd4HtMlB7ZR5T7nXC5gFRrIO686TdTp0e4jSzzAE+J6fjkPazifDHLNhO8HO9
+   bYj9+NyEu0TVHnX4xY5qDKZRelaKxji0ncwrbMMKgEs4BXgXrtVjSwQ5dgB9PDHoMuRf8NjIc2vc
+   lzB8u4p0LKIHIN9Z5/AxaBfOVcFhuoYVWR9XKF8ln45/7LOhdOjoQXzglaPMd1VwzjjhOlOIGpm/
+   DWbKfbcM60fL4FJqFp++IQNcGQCK0WFJbIrJ0g==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=gL2kJOOgz2oSW6gaNY3puyvNiJnCTk5MGAkveZy2PIU=;
- b=sc06oz8TSfZ0p9REO2wbeNv85DbI5XMnV2jOFB/TfhfYa6wY9ujPux1TEYLMn5nhA5vrixMuGsG1
-   lvCOp3k4oe/rIoKd8lfkdy3+HNtt19C0fIBm05DyGm8kKPPM8mI0iPe/x+XJ4G4yVo7aGzzhnttm
-   jOxBMcnGhjhd83Cb3FJ2pklBpQfWJ3QA3tbJoRws0EYjUkHB5Cdtcna8a1cxPUXGp47k2Nzo+aJq
-   8Y526qbIE0xAZOuDEYaUvAMrCQO1s6JNw9LsE9JUoMhgd0YmifJhAtbCExprHyfleYrJcdv8PB5b
-   OGMQ0swsdzytklucbIqBaK2KnXAbHjG/Dj7YZA==
-Received: by omta-ad3-fd3-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
+ bh=F9h1T6LaqVrafMarYSAir9UKFSQmlLHGm6+X9wxvMZY=;
+ b=dsPw/Ens2Jw/LaAhqpjgaXdYFyiKg7leok6Jgm1zbTRIeErKncQn59vz1vx3sWBobdZrIsv8xqTA
+   gM+kdbPcVKH6vooXl5pRJO1wTIv7NEt+UrThWEjFkLXdaS6Oq9ZNUm2luxAeD5TDjt+0+SFx+1/t
+   wr28hVj0rDXN05L58fyZn7gAbwKb3Kk+1BKNmnRa2Y7zpOE9mQyLkhOmXqJ51OB0x4RfgVCENYQM
+   Sa/o7EO4E1A3XSdddvboPeMn9iC0EL7mcZAqwuKaFD0oJPPpkqwRMvChhwO+zzf5nOTOWddU0Bw3
+   rVcDYMlIrKnqzPmt3gfFenhWpRJckKvaUbK7nA==
+Received: by omta-ad2-fd1-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220319 64bit (built Mar 19
  2022))
- with ESMTPS id <0R9Y009DKA1UG960@omta-ad3-fd3-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Thu, 07 Apr 2022 03:37:06 +0000 (GMT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=oracle.com; h=to : cc :
- subject : from : message-id : references : date : in-reply-to : content-type :
- mime-version; s=corp-2021-07-09;
- bh=0fSH05fVrj4EsKu7GruSr6V8eDQcmEnuW15iSPtYu3U=;
- b=iag3pmaogwT0fVNNtSBn/JoHcAOg5JTOiwAr7G+XUgGvcNjxegCBNThSYqe+F4T0NNMS
- B/59HaBNX03xPzKp11moq8ZsFxeak9RIA3RrLouwkC4YK+71tDVE0sdTjSK6BxxCftbo
- 0EZ+onJIUBjU/ENdCS5sy3svT9bx0UEJmXm8G3Vy6SHK2y8Xy6l3WbHoInOxD2xK3+eI
- 6prGeQ9aYuOEK5xF9lkj3vVuts9fdh0ePfPpNw+bzbLVZ7ePbcRp8+ED14FvB3NB4vug
- 6MW3QIbWBa8G316LrQWtBIEFgUnKlZc368HFrB7khC0iArMf4byEey+uTWpLJY8E6DL7 IA==
-Authentication-results: aserp3010.oracle.com; spf=softfail
- smtp.mailfrom=martin.petersen@oracle.com; dkim=pass
- header.d=oracle.onmicrosoft.com header.s=selector2-oracle-onmicrosoft-com;
- dmarc=none header.from=oracle.com
-ARC-Seal: i=1; a=rsa-sha256; s=arcselector9901; d=microsoft.com; cv=none;
- b=hUMmqVvtM3PZrdJYOYr3ZXjGTQquxDDl4iexGUZd2uMPPl0trSRxmu/ytN08hc97JiOKAA6bMJkMkdJfbLU4/cK+p5BErCv+590v3Gl8xm4aGZSBG+jAxAnDD08ccFCYHLK7GHZEaE2obHbYUtaPtb4EOkjHSjXseSRN8ODsar93SN/QnoMPQQglqLo6tkNIgm/TPFw4a6sToW9KNlsu4tW3FWJ4YwGs2fUDwawHqAQZLOfH6jqbw0xXiVsLJ5O5NwV5OuiwQyII6zwDKf/1JhHsDpUVZqGjHhSqryX2lsCo+kPdg6xFSNp/1lsmwK977hT4nAR8yEs5zdCSpXtXSQ==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
- s=arcselector9901;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
- bh=0fSH05fVrj4EsKu7GruSr6V8eDQcmEnuW15iSPtYu3U=;
- b=SZ9y5DSwWVwcyxd/Dtpv5YeaKRx2wqNZd1OjsNS6aFp4cim4Pzhv13VR41EmqgeFoL4EPyr5riTFWH6zrhrQYHm4atGuKe21X3ELr8wfV1p+ABjI58pcKfcYYfxofvqNc58NKlk0fs+KboCGuxPpzcT/YCz1R8ul1wvOcHYDo7qKcyh73n2zxuIlZnGNHFKVygg5iNPUxw2lcRbBO61NvLImLAvJcVrIFQRE9J5NfMHAsGcs8Dqt8E/U25szUdU9HmwHU3DopACBCuFCf4tVIaWnevIP88IWdnqe+pw7C/6KggA1r/aj/yMGQN/P2KJ+UvovhRcHRd9lKVAh1+r5rg==
-ARC-Authentication-results: i=1; mx.microsoft.com 1; spf=pass
- smtp.mailfrom=oracle.com; dmarc=pass action=none header.from=oracle.com;
- dkim=pass header.d=oracle.com; arc=none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=oracle.onmicrosoft.com;
- s=selector2-oracle-onmicrosoft-com;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
- bh=0fSH05fVrj4EsKu7GruSr6V8eDQcmEnuW15iSPtYu3U=;
- b=dbsa46qgviOfK1Ibs7e9hLs6v8XwRBVJvz76MblDmwJklv8BQu2YOuYadp2erTG5PI4IOrLs19olHKDXV2rV2sVF2sLzoTTEu4/z1JJd3jmVX6p6nVwfYv/eNHFwiuwF0hloYxik2ZUjmiDNrwsGOmOtKthdjzE2BQ+kLQvSgcY=
-To: Christoph Hellwig via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Organization: Oracle Corporation
-Message-id: <yq1r169fttr.fsf@ca-mkp.ca.oracle.com>
+ with ESMTPS id <0R9Z00EIW6TV24A0@omta-ad2-fd1-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Thu, 07 Apr 2022 15:25:07 +0000 (GMT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.cz; s=susede2_rsa;
+ t=1649345092;
+ h=from:from:reply-to:reply-to:date:date:message-id:message-id:to:to:
+ cc:cc:mime-version:mime-version:content-type:content-type:
+ in-reply-to:in-reply-to:references:references;
+ bh=RtA+SPF4j8BVXsqmszO7xH0OxCICEh+Est/knHN20Pw=;
+ b=JdwcskixEmG8Id6CFcHmK2HMPcVcB071Gxs55mSKq7gYvR2Ikd8MNoO/fLtEbVpgdj1eqK
+ 9zmwivWn67QHHcgD9Kfm5GQ7CXBQeMe5lW9iJ9AGGV3Pl0ul2ocJyd3loaCvdRBmNQxip+
+ WgCnpcThcFxRJmTkxC30BSU3q0i1qd4=
+DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.cz;
+ s=susede2_ed25519; t=1649345092;
+ h=from:from:reply-to:reply-to:date:date:message-id:message-id:to:to:
+ cc:cc:mime-version:mime-version:content-type:content-type:
+ in-reply-to:in-reply-to:references:references;
+ bh=RtA+SPF4j8BVXsqmszO7xH0OxCICEh+Est/knHN20Pw=;
+ b=pkLC9VLc/9JNFZ5DsOV/UM/28hXligCH1VLYaRzzl6m3sxWEGPlvl1H8p8FVldpalCYBR6
+ DsLUEWMcp0v/ApCw==
+Date: Thu, 7 Apr 2022 17:20:49 +0200
+To: Christoph Hellwig <hch@lst.de>
+Message-id: <20220407152049.GH15609@twin.jikos.cz>
+Mail-followup-to: dsterba@suse.cz, Christoph Hellwig <hch@lst.de>,
+ Jens Axboe <axboe@kernel.dk>, dm-devel@redhat.com, linux-xfs@vger.kernel.org,
+ linux-fsdevel@vger.kernel.org, linux-um@lists.infradead.org,
+ linux-block@vger.kernel.org, drbd-dev@lists.linbit.com, nbd@other.debian.org,
+ ceph-devel@vger.kernel.org, virtualization@lists.linux-foundation.org,
+ xen-devel@lists.xenproject.org, linux-bcache@vger.kernel.org,
+ linux-raid@vger.kernel.org, linux-mmc@vger.kernel.org,
+ linux-mtd@lists.infradead.org, linux-nvme@lists.infradead.org,
+ linux-s390@vger.kernel.org, linux-scsi@vger.kernel.org,
+ target-devel@vger.kernel.org, linux-btrfs@vger.kernel.org,
+ linux-ext4@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net,
+ cluster-devel@redhat.com, jfs-discussion@lists.sourceforge.net,
+ linux-nilfs@vger.kernel.org, ntfs3@lists.linux.dev,
+ ocfs2-devel@oss.oracle.com, linux-mm@kvack.org
 References: <20220406060516.409838-1-hch@lst.de>
- <20220406060516.409838-27-hch@lst.de>
-Date: Wed, 06 Apr 2022 23:36:52 -0400
-In-reply-to: <20220406060516.409838-27-hch@lst.de>
- (Christoph Hellwig via Ocfs2-devel's message of "Wed, 6 Apr 2022 08:05:15
- +0200")
+ <20220406060516.409838-8-hch@lst.de>
 MIME-version: 1.0
-X-Forefront-Antispam-Report: CIP:255.255.255.255; CTRY:; LANG:en; SCL:-1; SRV:;
- IPV:NLI; SFV:SKI; H:PH0PR10MB4759.namprd10.prod.outlook.com; PTR:; CAT:NONE;
- SFS:; DIR:INB;
-X-OriginatorOrg: oracle.com
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 07 Apr 2022 03:36:54.7050 (UTC)
-X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10309
+Content-disposition: inline
+In-reply-to: <20220406060516.409838-8-hch@lst.de>
+User-Agent: Mutt/1.5.23.1-rc1 (2014-03-12)
+X-Source-IP: 195.135.220.28
+X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10310
  signatures=695566
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 adultscore=0
- suspectscore=0 malwarescore=0 mlxlogscore=999 mlxscore=0 spamscore=0
- bulkscore=0 phishscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2202240000 definitions=main-2204070017
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 phishscore=0
+ mlxscore=0 malwarescore=0 impostorscore=0 clxscore=94 bulkscore=0 adultscore=0
+ priorityscore=85 suspectscore=0 spamscore=0 mlxlogscore=530 lowpriorityscore=0
+ classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2202240000
+ definitions=main-2204070076
 Cc: jfs-discussion@lists.sourceforge.net, linux-nvme@lists.infradead.org,
  virtualization@lists.linux-foundation.org, linux-mm@kvack.org,
  dm-devel@redhat.com, target-devel@vger.kernel.org,
@@ -86,14 +85,14 @@ Cc: jfs-discussion@lists.sourceforge.net, linux-nvme@lists.infradead.org,
  linux-scsi@vger.kernel.org, cluster-devel@redhat.com,
  xen-devel@lists.xenproject.org, linux-ext4@vger.kernel.org,
  linux-um@lists.infradead.org, nbd@other.debian.org,
- linux-raid@vger.kernel.org, linux-bcache@vger.kernel.org,
+ linux-block@vger.kernel.org, linux-bcache@vger.kernel.org,
  ceph-devel@vger.kernel.org, Jens Axboe <axboe@kernel.dk>,
- linux-block@vger.kernel.org, linux-mmc@vger.kernel.org,
+ linux-raid@vger.kernel.org, linux-mmc@vger.kernel.org,
  linux-f2fs-devel@lists.sourceforge.net, linux-xfs@vger.kernel.org,
- linux-fsdevel@vger.kernel.org, ntfs3@lists.linux.dev,
- linux-btrfs@vger.kernel.org
-Subject: Re: [Ocfs2-devel] [PATCH 26/27] block: uncouple	REQ_OP_SECURE_ERASE
-	from REQ_OP_DISCARD
+ ocfs2-devel@oss.oracle.com, linux-fsdevel@vger.kernel.org,
+ ntfs3@lists.linux.dev, linux-btrfs@vger.kernel.org
+Subject: Re: [Ocfs2-devel] [PATCH 07/27] btrfs: use bdev_max_active_zones
+ instead of open coding it
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -105,70 +104,37 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: "Martin K. Petersen via Ocfs2-devel" <ocfs2-devel@oss.oracle.com>
-Reply-to: "Martin K. Petersen" <martin.petersen@oracle.com>
+From: David Sterba via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: dsterba@suse.cz
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-ClientProxiedBy: CH2PR20CA0025.namprd20.prod.outlook.com
- (2603:10b6:610:58::35) To PH0PR10MB4759.namprd10.prod.outlook.com
- (2603:10b6:510:3d::12)
-X-MS-PublicTrafficType: Email
-X-MS-Office365-Filtering-Correlation-Id: 75691adb-1eb9-469a-d0c0-08da1847dc61
-X-MS-TrafficTypeDiagnostic: CY4PR1001MB2200:EE_
-X-Oracle-Tenancy: 1
-X-Microsoft-Antispam: BCL:0;
-X-Microsoft-Antispam-Message-Info:
- yd/1F9lvqz3c8zGFe7RwJeNSWjd2IYgujlTISlMWCQXOVRubaTgyBQfZkOktyIuBGcMy5MUG8hIVUJeS5drUS/gpR9g/sAAPt5XmLAT9GSt/Nvqet+MJUSSFipbaTt4ans5t4xeJNXCij6arGx7LiBiu929FIPl/AbSpRCtlkNLXv1eNaUvdnR3gaX+UXeyU0icih1qsXHJNTyodf/9cY6QCe7djCzBxooi2FxtATRMHs/2myubXhRtEUSxX6B6ceyoKqsndcpckysEOXDsSg9m4qw8bk82pYQ/L1UI08RiOqSFbOIJIiOOPVXxIvHq69Zh61KITPIYWvLjV0VCMmpSGeEtapnqnVz0s1LREYFwI2kW8IVHD+f7Vqu4Ulp+ZlVtZkwP8PyIM/ftjK2G/X+cfHSVgqxgjWBBaLNqieylk6vVXnWuuHE0aE96fa9kEuaoPzn/UHBYHP8iiRyNBtkKWhfNlc1uihvKHUbdGWwa/Scc3dIJMax2DEKzSx8ebdR00G2rXWOngBs+JqJDofxI6SaRW4d+9uGjyKnbxtS/kW61d0W2xpx/08pSx/WqVH7p/XvTtKdM6++QL6ps6onZOZzKnyYDrYA9mpESN5Uk=
-X-MS-Exchange-CrossTenant-Network-Message-Id:
- 75691adb-1eb9-469a-d0c0-08da1847dc61
-X-MS-Exchange-CrossTenant-AuthSource: PH0PR10MB4759.namprd10.prod.outlook.com
-X-MS-Exchange-CrossTenant-AuthAs: Internal
-X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
-X-MS-Exchange-CrossTenant-Id: 4e2c6054-71cb-48f1-bd6c-3a9705aca71b
-X-MS-Exchange-CrossTenant-MailboxType: HOSTED
-X-MS-Exchange-CrossTenant-UserPrincipalName:
- xxI5XHXU2sbc/fWC9ndbwbsQZvdnJajAa1/8lQ+60/0I67zBHPfFXIKkzPg1a7pl8jTUriXu7jFYTH2C+zxBhKKaELIPNtXE5AOXygQB+ng=
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: CY4PR1001MB2200
-X-MS-Exchange-CrossPremises-AuthSource: PH0PR10MB4759.namprd10.prod.outlook.com
-X-MS-Exchange-CrossPremises-AuthAs: Internal
-X-MS-Exchange-CrossPremises-AuthMechanism: 06
-X-MS-Exchange-CrossPremises-Mapi-Admin-Submission:
-X-MS-Exchange-CrossPremises-MessageSource: StoreDriver
-X-MS-Exchange-CrossPremises-BCC: Martin Petersen <martin.petersen@oracle.com>
-X-MS-Exchange-CrossPremises-OriginalClientIPAddress: 138.3.201.44
-X-MS-Exchange-CrossPremises-TransportTrafficType: Email
-X-MS-Exchange-CrossPremises-Antispam-ScanContext: DIR:Originating; SFV:SKI;
- SKIP:0;
-X-MS-Exchange-CrossPremises-SCL: -1
-X-MS-Exchange-CrossPremises-Processed-By-Journaling: Journal Agent
-X-OrganizationHeadersPreserved: CY4PR1001MB2200.namprd10.prod.outlook.com
-X-Proofpoint-ORIG-GUID: Jwc4vHBq3xWxize-5vQ6TWrSqeB9-34U
-X-Proofpoint-GUID: Jwc4vHBq3xWxize-5vQ6TWrSqeB9-34U
+X-ServerName: smtp-out1.suse.de
+X-Proofpoint-SPF-Result: pass
+X-Proofpoint-SPF-Record: v=spf1 ip4:137.65.0.0/16 ip4:151.155.28.0/17
+ ip4:149.44.0.0/16 ip4:147.2.0.0/16 ip4:164.99.0.0/16 ip4:130.57.0.0/16
+ ip4:192.31.114.0/24 ip4:195.135.221.0/24 ip4:195.135.220.0/24
+ ip4:69.7.179.0/24 ip4:150.215.214.0/24 include:mailcontrol.com ~all
+X-Spam: Clean
+X-Proofpoint-ORIG-GUID: CGYjBUHRp9vbT500hYMgeIse1FRsPCjn
+X-Proofpoint-GUID: CGYjBUHRp9vbT500hYMgeIse1FRsPCjn
 Reporting-Meta:
- AAG3TATChFPcwzv/2opt1CAQPxPT90uQCr/jb9op470r3Jouxf9/WL+HlcTf+s1t
- AwY3HahRli5Ra0UvAHDN34B6YwzWfuUN94hQm/oJmXZnwRVbY0JvWezwpucvub+o
- 9yIK9E8UbC+h5xZHqDnlhQNSUbfO9KbwxdbLrPLIVfWkx8ZCCBq+cwTiQwDYX6JU
- b1D830dZkPDxUwXB2C0b7gStNtdTkvO6T2LbPUxPHfdWaSB48y2uTwdzwW7d3JRQ
- S4KKK5gpLwRCKpB2VwYqNv0dfbQ9E8wv2XIQyp7H405kNdoYYMWh4oePFJj5KbQo
- 2mVW5NYVXJ5bSgN0P0Zj0LnTBs/o58s11NuTNI7B7sT1DUUIi+dFkVNlbbg8WD6Q
- MD8jDdFgAUuRDujuKBsM0ZR6fjeurWerPMLv64he/avzID0lYPUL3hDZMdiB+ioz
- jsjQAk+DfgtjivPb7p3uBblO1V/nmaNAjYXFgG8VL41Ccha57sPi7PzMTXU5iyeJ
- dRlnimZu0CMdqf5qRn49u7oeIgmlFWlpiEsNB9t+r69V
+ AAElJS2BqRtUsKGvNK5Qzz7bdHGO+ZTpA4st+JdDtC142HUIYk0Vtt/hBjHeZe3L
+ bhNeXqbb3/Pn2hnijL9r9JJ3Y59eZhwrVoUPDLeY4w4Iy+AQB4d3AafxiDlQs4/X
+ pMmSC5ciTNXA+AI9HRC21rJigzfL80kXxX/f6/pFoofWvG86mgth8KlxcNOcG+2k
+ EsSv7e3wBNxIY20L/w1+JL5IA142un1JwmBSuabndOB696MuG3pjRvkop2LYWGGA
+ UI9/32JpHd0xZa6V6IAbVMlsaItXgI21yJvizYyPh68y0GVqQmjjDIoeAGbQ+hh+
+ fZ5T0h1MvaYtJwMLuEAJZP/UJ5zChwajUOf6Qg7uOzb0FxEsCwTeu791XBREyaUy
+ R3wLxIomIJR/AXf1TxMCbcYYu53KZZWJsVIEE2EMEG7B+Rt5yfwQ+o6A1T1Xqbkh
+ EPzWs9ySEnb7/EBI2whrs2H4D4Epk51xHVIgQpHT08n3Yi+E9DPDXKF56Yjv7EaU
+ Mtn8ExUrF9feas/NON6Rv0k0ZMpzMmb6yl7/iVqGaaJm
 
+On Wed, Apr 06, 2022 at 08:04:56AM +0200, Christoph Hellwig wrote:
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
 
-Christoph,
-
-> Secure erase is a very different operation from discard in that it is
-> a data integrity operation vs hint.  Fully split the limits and helper
-> infrastructure to make the separation more clear.
-
-Great!
-
-Reviewed-by: Martin K. Petersen <martin.petersen@oracle.com>
-
--- 
-Martin K. Petersen	Oracle Linux Engineering
+As it's a standalone patch I can take it (possibly with other similar
+prep btrfs patches) in current development cycle to relieve the
+inter-tree dependencies.
 
 _______________________________________________
 Ocfs2-devel mailing list
