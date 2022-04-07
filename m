@@ -4,51 +4,51 @@ X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 Received: from aib29ajc244.phx1.oracleemaildelivery.com (aib29ajc244.phx1.oracleemaildelivery.com [192.29.103.244])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 0B9F4C41535
-	for <ocfs2-devel@archiver.kernel.org>; Thu,  7 Apr 2022 15:25:48 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 20082C433F5
+	for <ocfs2-devel@archiver.kernel.org>; Thu,  7 Apr 2022 15:26:07 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=3az255lg3EbD9hQIQyW0y1k3yUZevdPC+vkDs6TBLyg=;
- b=17nQ6zimI8L1QfCh6sUfpHjzvr+OFjyDazAR/EkKXIaQsB16HDaHFSTgSMXtnorxF850Pqgko6l6
-   p+K1Iwc+yIedKXIMDs8QEhLoKq9nogH0GLrSsjeDszdQqi4oh+hXjWBfqb1w4tsGXYa0nwikfybI
-   RcamQUCaSqsSl/u02r/VoZQW31251uw5wB2mWZQbdrGY4tS+A3tsRxQkLz6BzIwQ8V7a77cQyL+I
-   GJDf+gUd6Q6wPQwf/U71qyLIJN1iOng3N0TkzvJQFpddhFI5O2rUFa5sN9oWAw3NtzwYJFy/4DSF
-   eY1CRb3kjTMqN2nK3AVWNatD0z3KJhsUJCLVYA==
+ bh=piKhL9KS+y6jw9SpsnJpDVn+Z5bCapJ+Jm0PvQXQIhk=;
+ b=tfCOwxVj0qA4dgqzq6Ik4kduqoq9iLGrRaBPfAu3J69fP6pVg/gTR6ggKb/UsZZb2ugor8DUaG95
+   FiBa1AFH9BXAHhmSgs6Eem9/7WFvm5ocFoBthYDyJ+ZUuQwMOauUfCyqNYGfqT4JvHULaAsCPANq
+   HLmvhQqtIT461HQalRi+pZ1DI1d7fqPVu2qcD6G1XnB4Bm4clgx7/GszmhlQkKkGMw0ZQE08OEdA
+   yGUoHmxCqXNernOaXPOAHDlMq8W4XWmroAJwvXPotuQMHPRfr0YHWm+LOZRP//0A77kaCwDlOHzZ
+   cFldUO62PL0hQK5ojd4jshY788BLEJVp9DA7fw==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=3az255lg3EbD9hQIQyW0y1k3yUZevdPC+vkDs6TBLyg=;
- b=cMXudUTXEAOjHrQnGwm3Hl0xWPKJ95cZB0Uhcn/NR2eIIvGuXcNfeF5+c1JLzoCWjIoIm7a0JHKX
-   jgg9BHy+Jh/OvwyVGNh3wwqXjAwDeIFBaMzWA2dGaIOeSsHewIYedQOfVWcw/gbkeXGyiX90K5+j
-   50XLaKXlE6PjS9VIZxK/JMRfXz1Fi4v8L0GzBRwgCY4hXT5KemaVU785LU1q4eymmNMs8pn7fEHK
-   gdQY2x3hNkornxMDXbSj4DT/inOjw3j3kEcILgQBvv//opFImWHG9Xs8it9na4S0W5AnUwa8b0xO
-   8dAJtpY1m5D9402o1fhYU+pFDb27v2sbfMBL7Q==
+ bh=piKhL9KS+y6jw9SpsnJpDVn+Z5bCapJ+Jm0PvQXQIhk=;
+ b=ckFiAMJNxI3LT8r7j+0Angh6KberGiLM5nbiM3CV1AII2ezKpgByB2Cl6fer/g1pRlhg2o8B2DeV
+   PnCT5x5+fo9bQ806PFsus3AnhKwHf9UVhStUL+AHkLrm9LnPbOwdSzger3/kWFygfxdo6IRyXSJa
+   km30eWuKzwUTSWj/Er7hyyaE48u1YVRTw9SE5+Cy6AtYGy8EmETePkQW4g1X4dqwl5bKHOh6Zh92
+   UUpZ36H6Vmh95Gf5w9YqSYx5jZX2Xgw32pyqzAp69pIEohOhhwS8Y4UHFyEpOh33u8EVj2KdK0gh
+   63hBzkQNbTq9EGzOOQqr+O/MP0e+d5zzBbdx0Q==
 Received: by omta-ad1-fd1-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220319 64bit (built Mar 19
  2022))
- with ESMTPS id <0R9Z00GO76V05J40@omta-ad1-fd1-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Thu, 07 Apr 2022 15:25:48 +0000 (GMT)
+ with ESMTPS id <0R9Z00GPT6VI5J40@omta-ad1-fd1-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Thu, 07 Apr 2022 15:26:06 +0000 (GMT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.cz; s=susede2_rsa;
- t=1649345134;
+ t=1649345154;
  h=from:from:reply-to:reply-to:date:date:message-id:message-id:to:to:
  cc:cc:mime-version:mime-version:content-type:content-type:
  in-reply-to:in-reply-to:references:references;
- bh=u5NLYRb0iRWqH+wp45tMsxWQ+2lcKX7UH+x3jrUc4CM=;
- b=gyRKbvUTSeCHD0kZFeha6b8GtwnfMcBVdpUrcZUXAMFpgjyGa2cKvGcE+1LQgsvJsr0yFR
- VJy4sQoNdJcuIc7oMupD7ITgqoAKAsjuZZusxwRbFTjJc52vRJgP/0hGLJXdzVq3P3r19L
- 5WyRvzygj8B2JBXB13wX08lyO4vdhmc=
+ bh=Bgv24cnq4wL+/PQXezU/e2ARnHoovKOhXIgsZis+Zv8=;
+ b=xtGtLoA1rxTAfbwnyD8y0m1GZXkoG2Eqm/JKAR1yflAQGXCIe+EPKLsQ3Jl3HF1ejkdCzO
+ R69fN/3GghEjXF7FLzZ630UM55zcmFGAOi43l86+pog72f9MfM9XFXEk72PJM2lSVIy0eO
+ Ar+NvvcjWPRZc9tp6WgYAzpMBH3HwQA=
 DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.cz;
- s=susede2_ed25519; t=1649345134;
+ s=susede2_ed25519; t=1649345154;
  h=from:from:reply-to:reply-to:date:date:message-id:message-id:to:to:
  cc:cc:mime-version:mime-version:content-type:content-type:
  in-reply-to:in-reply-to:references:references;
- bh=u5NLYRb0iRWqH+wp45tMsxWQ+2lcKX7UH+x3jrUc4CM=;
- b=h4c6BQrPPD9W33KeeEtgIxkffE6SxGamCvLBsxsw2FlmdG/K+M8MV8ruvANXF9Az9aOJRY
- CNJk3HEoegzTiHDg==
-Date: Thu, 7 Apr 2022 17:21:32 +0200
+ bh=Bgv24cnq4wL+/PQXezU/e2ARnHoovKOhXIgsZis+Zv8=;
+ b=J9TTigpMGNAp9ruFfwwGecAvDY029f3E2IK2t7dI3TCObbagdDL5XIR1t0kPQCQDtlPljo
+ bs6igqf+zh/8rsAg==
+Date: Thu, 7 Apr 2022 17:21:52 +0200
 To: Christoph Hellwig <hch@lst.de>
-Message-id: <20220407152132.GI15609@twin.jikos.cz>
+Message-id: <20220407152151.GJ15609@twin.jikos.cz>
 Mail-followup-to: dsterba@suse.cz, Christoph Hellwig <hch@lst.de>,
  Jens Axboe <axboe@kernel.dk>, dm-devel@redhat.com, linux-xfs@vger.kernel.org,
  linux-fsdevel@vger.kernel.org, linux-um@lists.infradead.org,
@@ -64,18 +64,18 @@ Mail-followup-to: dsterba@suse.cz, Christoph Hellwig <hch@lst.de>,
  linux-nilfs@vger.kernel.org, ntfs3@lists.linux.dev,
  ocfs2-devel@oss.oracle.com, linux-mm@kvack.org
 References: <20220406060516.409838-1-hch@lst.de>
- <20220406060516.409838-11-hch@lst.de>
+ <20220406060516.409838-12-hch@lst.de>
 MIME-version: 1.0
 Content-disposition: inline
-In-reply-to: <20220406060516.409838-11-hch@lst.de>
+In-reply-to: <20220406060516.409838-12-hch@lst.de>
 User-Agent: Mutt/1.5.23.1-rc1 (2014-03-12)
 X-Source-IP: 195.135.220.28
 X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10310
  signatures=695566
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0
- priorityscore=178 mlxscore=0 clxscore=143 lowpriorityscore=0 impostorscore=0
- bulkscore=0 adultscore=0 suspectscore=0 mlxlogscore=417 phishscore=0
- malwarescore=0 spamscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 bulkscore=0
+ clxscore=141 malwarescore=0 lowpriorityscore=0 mlxlogscore=421 adultscore=0
+ spamscore=0 impostorscore=0 mlxscore=0 phishscore=0 suspectscore=0
+ priorityscore=280 classifier=spam adjust=0 reason=mlx scancount=1
  engine=8.12.0-2202240000 definitions=main-2204070076
 Cc: jfs-discussion@lists.sourceforge.net, linux-nvme@lists.infradead.org,
  virtualization@lists.linux-foundation.org, linux-mm@kvack.org,
@@ -91,7 +91,7 @@ Cc: jfs-discussion@lists.sourceforge.net, linux-nvme@lists.infradead.org,
  linux-f2fs-devel@lists.sourceforge.net, linux-xfs@vger.kernel.org,
  ocfs2-devel@oss.oracle.com, linux-fsdevel@vger.kernel.org,
  ntfs3@lists.linux.dev, linux-btrfs@vger.kernel.org
-Subject: Re: [Ocfs2-devel] [PATCH 10/27] block: add a bdev_nonrot helper
+Subject: Re: [Ocfs2-devel] [PATCH 11/27] block: add a bdev_write_cache helper
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -115,38 +115,32 @@ X-Proofpoint-SPF-Record: v=spf1 ip4:137.65.0.0/16 ip4:151.155.28.0/17
  ip4:192.31.114.0/24 ip4:195.135.221.0/24 ip4:195.135.220.0/24
  ip4:69.7.179.0/24 ip4:150.215.214.0/24 include:mailcontrol.com ~all
 X-Spam: Clean
-X-Proofpoint-GUID: 0luykMMbEG8PrzFehNWXlrtPS28TNolz
-X-Proofpoint-ORIG-GUID: 0luykMMbEG8PrzFehNWXlrtPS28TNolz
+X-Proofpoint-ORIG-GUID: h_J8V0u4akT4zZYTL830hYZQ3ukdCBah
+X-Proofpoint-GUID: h_J8V0u4akT4zZYTL830hYZQ3ukdCBah
 Reporting-Meta:
- AAHslLtxbqr5LGM+9WFR0/Sfrpgtw1RGhnHjwSJ6Vtti3qT5KRrDPgSGLXKGef5y
- p0CihZDnJdZYOrE/cYc0F32m5XA/Q4+JivcBGSD33zNgiSJ8U8a1+LwDhvDirbPf
- 90zNDvgWiVl1fEjhGMpVODJjnWUKfOUZpdQxe64odFrPl+HTWEjnSj+EanfESl+R
- f2sY1O7L4cPcGCcTHGRLWfO54GBjLI27DhzIlFde1fh1PjbHMCXAhWEhzISkqbZ+
- XO/SsRtvDJAdE5lnsSBOaaXfu7DJ6OLx/YdB7Pma8QIEAR9RO2HxlYkbfjfKNUJ3
- A6BI2aNqvrHwGPqIQyCE+hkkRk789pWKoyS5BXzaRjA0UJRF1BSPWSaGxJdM13+k
- UfXteH54aZK+O57q3et4lez8xSC0Z54a6RC0IIFqBUF1OcnLLDNB55+V0j2hdLMW
- mF8VhHhBPaAnzJiG3niwKjXHvrvLq2EPoQnBUC/H/wFwtpmZ1ErH+frCamENMzk8
- dZOFsoKShEW++1fN81RYxv0jOa1bx6eY4vvydtj/YZM5
+ AAEV6i6lWSW50qfgP/uzxvHZz7w3iRHTkjRMebHh6f+OUoqY3TMLS3prKvogdclc
+ toETtHZwAdPd81hfafWdHfFQC2VnL7Llw1J9xzotAUKw/ndK7ZyQ95ilsciGG+zy
+ nhYSw/NLna+q0cZs57GzZrBKtai2YwbYyo9kx3fiR/6zCeEb1BCDTRvbidrhjQiT
+ F95NTD65gP4bsTDIifLupatzJQJwkk0K+eRuOCZEu7raYRZWAccsSgunnIl28GDF
+ dxniTus7BGs3SB2R3Xh//riHZUG8pD8C7ncErnbk6abRHIZmrCjJ+btWHUNrmJno
+ xvK5c0q8NSHac4jxGlxd1D6r604tCTpsUNGNAdjixBOnIDZSDt0Byy7+Qt7lehjw
+ 7Rul/ICu3JxKMfdNeBzcvfos1gsd/IEQCtL3kmNuOPvFUSvTfVq7vO76x+lsMIS4
+ R8ZXJsy4SXnABoHA+Qd/rVgwK+Qif4nAVIOcTZ+ZK6Fhd1AbY3Dv+kDGgpp2fH3d
+ cka2kZOiM3P1Pq+J1kM8M8NWu9JD/QIpWbcTNmGPdtQ=
 
-On Wed, Apr 06, 2022 at 08:04:59AM +0200, Christoph Hellwig wrote:
-> Add a helper to check the nonrot flag based on the block_device instead
-> of having to poke into the block layer internal request_queue.
+On Wed, Apr 06, 2022 at 08:05:00AM +0200, Christoph Hellwig wrote:
+> Add a helper to check the write cache flag based on the block_device
+> instead of having to poke into the block layer internal request_queue.
 > 
 > Signed-off-by: Christoph Hellwig <hch@lst.de>
 > ---
->  block/ioctl.c                       | 2 +-
->  drivers/block/loop.c                | 2 +-
->  drivers/md/dm-table.c               | 4 +---
->  drivers/md/md.c                     | 3 +--
->  drivers/md/raid1.c                  | 2 +-
->  drivers/md/raid10.c                 | 2 +-
->  drivers/md/raid5.c                  | 2 +-
->  drivers/target/target_core_file.c   | 3 +--
->  drivers/target/target_core_iblock.c | 2 +-
+>  drivers/block/rnbd/rnbd-srv.c       | 2 +-
+>  drivers/block/xen-blkback/xenbus.c  | 2 +-
+>  drivers/target/target_core_iblock.c | 8 ++------
 
 For
 
->  fs/btrfs/volumes.c                  | 4 ++--
+>  fs/btrfs/disk-io.c                  | 3 +--
 
 Acked-by: David Sterba <dsterba@suse.com>
 
