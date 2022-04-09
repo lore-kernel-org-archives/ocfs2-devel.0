@@ -1,47 +1,47 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc251.phx1.oracleemaildelivery.com (aib29ajc251.phx1.oracleemaildelivery.com [192.29.103.251])
+Received: from aib29ajc247.phx1.oracleemaildelivery.com (aib29ajc247.phx1.oracleemaildelivery.com [192.29.103.247])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 1AAB4C433EF
-	for <ocfs2-devel@archiver.kernel.org>; Sat,  9 Apr 2022 04:52:26 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 3AD18C46467
+	for <ocfs2-devel@archiver.kernel.org>; Sat,  9 Apr 2022 04:52:29 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=G1ccKrMxx35cTQFzgmiLaMjaByivctcqKqL7XVCZuZ8=;
- b=P2sTUZ5G18vB0LIOw9VoNLpFk2TXvI9xdIp3rYm87a2YqqpWbznuKDXqqUxXDyun+QLFneMK6qhN
-   1NarSxptWl/SMNj8FJ+gjPO5NBzrp5BImIXueMERyg3HDEKTRd0CJuac6BQSU5ZNrFCg6vHm17Mn
-   fhGptaRLeEzQA1822lebxV1HeH+8WZE2yUEusiHT/iF7P2I3a1lH9yI4EaQZY9sHzJs4UfrlIKfh
-   5r9jmO0WckJ6zkjklRGIA7wTN7zquKngYo0RzAkIgHqHY1o4zl44o4Ksx/Q3v0BcReCrzTP2e2H+
-   6qTqvAHGew5Zi7QYEvqHFxMZG6WSviAzRYJtBQ==
+ bh=EhzRMAliWQfAp1Rh6krPu4+eAG1WRlU9Bdv6/WRPHMQ=;
+ b=MoIhSekCGAmRbZ5aLl4BlEgbWEUBHxkYh/bLnOopA9IkEBcFTnq7j+8yuWPcVKEcQgqiOoNdu/HO
+   xj3HlLfmLA6bT74jbHY48+O52y0i4vg/HUFE9oN0LYc7nZlnlJePrt3bZB3ecxQC1OW7VKz0ZI+Y
+   A/b7kWUIq+BlzCbHda6NTDYxo34Isqxp1aTKHGer5y9P86KkfZzxfHvJAmxcHPNo17iBVlr7uaf6
+   eg9ltDT77ptnOoBN5AoPZwb0123qFsqodDH6awKSO/S0KTSU4iefS1fhZ1835AEbR1XaRMdvJuAP
+   12BB1CuvcYqpwr4Gn8vS1tVhqp0k+yqqApYxTg==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=G1ccKrMxx35cTQFzgmiLaMjaByivctcqKqL7XVCZuZ8=;
- b=eaRlrxuqktvheSYn96GTPkoVvQnly8oTCov2ukfnLREgsJtRAoHfcpNqcFSS1CWRQs6zCcVnGA08
-   kjPL7u0tINdrlE2VOzpfTF6a/HzasYNR7BL/FD+cluTCyhFWlGDocdtSotytWTDoLUJOw3CKZ0bF
-   VWDPtkCSGCnq76pnGNYf/u86bC65s4hlddy12BVrrIj3U3VTd0cY/lpeVaTzgmHYLlG+lLbnJVg0
-   7GMPTiOQvY8hww3CiMbeoAdWs5ss+2DvRElo+Hl+ukpA7xTVGmYD59JZRAcUYutSNkX9lAPExVXz
-   RWC3U6qx/YD8Lmz9+3BA0cfe5AsMK2CdzotbXQ==
-Received: by omta-ad2-fd3-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
+ bh=EhzRMAliWQfAp1Rh6krPu4+eAG1WRlU9Bdv6/WRPHMQ=;
+ b=Jm/kYUCPN70e8vebKGx257R1RTSYl8+aS1ojL6tzPlH/7G6w7Ew78SHtqkQJCQV6LGSXS5UIkCDn
+   3gUTsZEVmcf0Awy/btvN7fC+JJPSiQkH3uV6Lx4efoJOIfAMcag1eqd9fdql83s2zaEIJeUF3mh4
+   jOF1mKEZ2DlB1HAHxhETeph05SScQyvPtF2+70sqDkXaLXgx6w8fMqoGz+aEmqudtBsRaKVLsLsA
+   DlMG3R3Yh9ZZXvzlDvHfkq6mHMqQq3XsoZpDUcWDjvwv/95k38ZiMXWGm3oH9CaaP/0kc6AJFb/Q
+   iwMxdZoKjyKjl3wtGQ8gTnguhYHEz1dBOEXZ+w==
+Received: by omta-ad1-fd3-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220319 64bit (built Mar 19
  2022))
- with ESMTPS id <0RA200AMG2VDPB70@omta-ad2-fd3-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Sat, 09 Apr 2022 04:52:25 +0000 (GMT)
+ with ESMTPS id <0RA200N5V2VGZJ00@omta-ad1-fd3-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Sat, 09 Apr 2022 04:52:28 +0000 (GMT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
  d=infradead.org; s=bombadil.20210309; h=Content-Transfer-Encoding:
  MIME-Version:References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender
  :Reply-To:Content-Type:Content-ID:Content-Description;
- bh=q2ranmlO4Nl6vweHnkN5W/lhAXFqjXPKY6W4cI6bGNw=; b=ZwXWqq27tMeyVdjCd9/fIV+62b
- YxoMIWLS5QBW9+N570g/a7MqnPHccUJQp/73S/ehTJ9VEsGu0nZXpLT2GsIb95dlGJnKSkFIT7WNJ
- Q2sY9of4Z8TkC7fc/FklkIOgdhls0Ao3F7MloWBwUhbTcUSp/MjOHIau/ybVaMror8iobGwcOp0AA
- +a4GNDWpu5gRhJyLqGbdZW5DNs6lIAJYj08W7f1olcpdRSmv2+7GaRf1xJ5QApQRYFU40mFosdlZy
- 0ALRAEA3rIIwBWnBlj8QEgYL1eIM3It3IcCM+Tc/eC3LmnRLah4kAgVmx2WJTHuXLjilmSIpHNWrZ
- 1FnhvyJg==;
+ bh=A3F4pzgWH2QQ0wtpIeTWEbWkE7zvp2Hf2SzUvBBV6uI=; b=eX3MLxgs7+LMLexFHqIdmiQ1Yi
+ JdldSlm4poJNjPdmeRgScog9CyFDEOKE36j3Y8GOp25ZxOav5fY5REWK35ZSyRrUZZpvLOWxApha8
+ AqMJ/MRcKr/CciLBe0jYueVDtJe90F1Pdg6qhOzgnLBHrJsW74l04GpKIl/5YuRS1FbaP4TBsToNP
+ 0GMgdPs2iWYbeYRMarbkSLZIEMdyAXHMZf+OWZlI5UmjWZF1rz7GghGKiiX6rIFIXD4QKrdrCfgbK
+ fUs8lbnQ+FGDvl7FzdU6CQADQv8poqc/NeAD2tkAuI0L7ZIL5HeAN+izt/vpd0COwgfEQET8Ojz2e
+ P5cDct/w==;
 To: Jens Axboe <axboe@kernel.dk>
-Date: Sat,  9 Apr 2022 06:50:33 +0200
-Message-id: <20220409045043.23593-18-hch@lst.de>
+Date: Sat,  9 Apr 2022 06:50:36 +0200
+Message-id: <20220409045043.23593-21-hch@lst.de>
 X-Mailer: git-send-email 2.30.2
 In-reply-to: <20220409045043.23593-1-hch@lst.de>
 References: <20220409045043.23593-1-hch@lst.de>
@@ -49,11 +49,11 @@ MIME-version: 1.0
 X-Source-IP: 127.0.0.1
 X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10311
  signatures=695566
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0
- priorityscore=265 lowpriorityscore=0 bulkscore=0 suspectscore=0
- mlxlogscore=927 spamscore=0 malwarescore=0 mlxscore=0 adultscore=0
- impostorscore=0 phishscore=0 clxscore=234 classifier=spam adjust=0 reason=mlx
- scancount=1 engine=8.12.0-2202240000 definitions=main-2204090027
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 priorityscore=0
+ lowpriorityscore=0 bulkscore=0 suspectscore=0 mlxlogscore=893 spamscore=0
+ malwarescore=0 mlxscore=0 adultscore=0 impostorscore=0 phishscore=0
+ clxscore=237 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2202240000 definitions=main-2204090027
 Cc: jfs-discussion@lists.sourceforge.net, linux-nvme@lists.infradead.org,
  virtualization@lists.linux-foundation.org, linux-mm@kvack.org,
  dm-devel@redhat.com, target-devel@vger.kernel.org,
@@ -68,8 +68,8 @@ Cc: jfs-discussion@lists.sourceforge.net, linux-nvme@lists.infradead.org,
  linux-xfs@vger.kernel.org, ocfs2-devel@oss.oracle.com,
  linux-fsdevel@vger.kernel.org, ntfs3@lists.linux.dev,
  linux-btrfs@vger.kernel.org
-Subject: [Ocfs2-devel] [PATCH 17/27] block: use bdev_alignment_offset in
-	disk_alignment_offset_show
+Subject: [Ocfs2-devel] [PATCH 20/27] block: use bdev_discard_alignment in
+	part_discard_alignment_show
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -91,61 +91,44 @@ X-SRS-Rewrite: SMTP reverse-path rewritten from <hch@infradead.org> by
 X-ServerName: localhost
 X-Proofpoint-SPF-Result: None
 X-Spam: Clean
-X-Proofpoint-ORIG-GUID: sJ1REQvhlLDYPFJepbRNtMzm4OBs9ijp
-X-Proofpoint-GUID: sJ1REQvhlLDYPFJepbRNtMzm4OBs9ijp
+X-Proofpoint-ORIG-GUID: z0CH6xLf2Bz_STGzPzRM1hC49C9urDYr
+X-Proofpoint-GUID: z0CH6xLf2Bz_STGzPzRM1hC49C9urDYr
 Reporting-Meta:
- AAExOUvFAqsXTEfR/OODF/yYiQm59NFG5kcqK2naHn/u8uOM32BshWMCPCWHW0Ml
- nL7xzGb/CJA5fiYE3tjv3ozJxoIFJkxJyBOJWTNwHIIR+xdPAtZOZ+9YjU4rclJx
- ANx2kcPBN6hiWOcTqmoZAYX8HmSDNY8czGnc8hM0He6//d6NuCcUiUSabdZdd/BH
- gGjrZD+j11y70klbST1w07MqooF04f8NaP5UTnmXMnjecZ1xEJCfpzPxkDiaGYVD
- JQE8jxI2sQXRRY+kYf50srbBgUgZLRF9/If67YnK+O9bgxW7oO0zkVeRVaTno5fk
- 4uoprHdg5jtwByXqJxXOhIxGj97dyYpXBkShLrahg54haYIQ7+zDY8Cuxr2i5R86
- hX26FwFY5r9JWnlIVtbcYbqW1okykftH55D0d5gUHA2WVLpB3wzhMli0VAZxVAJ5
- Y327ZYZ9DRuapkXu7lob/1TmFYsljs6pBCkqp0lV7wO2elLdHqRBYbjEy/8Dj2Fx
- N1kZRoErYvVCZrX8EPB9pKHWm7Dbiow3PVaI6+Q7FrY=
+ AAGd+mS7qnea2yf0mu2jG9OHBi/K+xS/+F7NFK+hYDj8I9opzM9lI+5b2Yfg4Zy1
+ qw882c8sXe0WiavM7LRv3ZgqMkYB0i7r1yJzOpWD/2P1H8uOWhb2fJGEi5jGjP+W
+ j3AzivXprhOmLjaQGchvCXUagtdv5qvuK0AxwJZYUi5sA4KjKhvkzE21lH/kFu4c
+ 3YE4tlAkqDpbP/BlN9S0WBwrMe471e+7bpQl1Q7Ua8JN3INg8iPyFp8YAq5W7XiM
+ BcImwdUxRhn0UoKc05St04Q0+MbU6kauhOwgpltyVBgv4a8WW1bv5mHPxkewXH6P
+ UrvMZnKu1v6LzLth75dVbmoV0ivaEV+aPQ7h4v0+JYIO9xi6pBrnGDGEASmiOtmc
+ CVu6A+Y5WKzSOMB3BKzvJAwXC0bNg3qooYgPxG8DHMXxNbX5tsFKR4abbi49Euhv
+ h7z3ursyevj+HCuYh9xyJnJW9PRJpGdweaZibDDAXkZVJ7p+Q1rBqgmM8UW/I6o0
+ Xm0mNeNff0e5bL9DNEuiETJmt5QcD5HQWBaaoViiJ5RP
 
-This does the same as the open coded variant except for an extra branch,
-and allows to remove queue_alignment_offset entirely.
+Use the bdev based alignment helper instead of open coding it.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 Reviewed-by: Martin K. Petersen <martin.petersen@oracle.com>
 ---
- block/genhd.c          | 2 +-
- include/linux/blkdev.h | 8 --------
- 2 files changed, 1 insertion(+), 9 deletions(-)
+ block/partitions/core.c | 6 +-----
+ 1 file changed, 1 insertion(+), 5 deletions(-)
 
-diff --git a/block/genhd.c b/block/genhd.c
-index b8b6759d670f0..712031ce19070 100644
---- a/block/genhd.c
-+++ b/block/genhd.c
-@@ -1010,7 +1010,7 @@ static ssize_t disk_alignment_offset_show(struct device *dev,
+diff --git a/block/partitions/core.c b/block/partitions/core.c
+index 240b3fff521e4..70dec1c78521d 100644
+--- a/block/partitions/core.c
++++ b/block/partitions/core.c
+@@ -206,11 +206,7 @@ static ssize_t part_alignment_offset_show(struct device *dev,
+ static ssize_t part_discard_alignment_show(struct device *dev,
+ 					   struct device_attribute *attr, char *buf)
  {
- 	struct gendisk *disk = dev_to_disk(dev);
- 
--	return sprintf(buf, "%d\n", queue_alignment_offset(disk->queue));
-+	return sprintf(buf, "%d\n", bdev_alignment_offset(disk->part0));
+-	struct block_device *bdev = dev_to_bdev(dev);
+-
+-	return sprintf(buf, "%u\n",
+-		queue_limit_discard_alignment(&bdev_get_queue(bdev)->limits,
+-				bdev->bd_start_sect));
++	return sprintf(buf, "%u\n", bdev_discard_alignment(dev_to_bdev(dev)));
  }
  
- static ssize_t disk_discard_alignment_show(struct device *dev,
-diff --git a/include/linux/blkdev.h b/include/linux/blkdev.h
-index f8c50b77543eb..d5346e72e3645 100644
---- a/include/linux/blkdev.h
-+++ b/include/linux/blkdev.h
-@@ -1251,14 +1251,6 @@ bdev_zone_write_granularity(struct block_device *bdev)
- 	return queue_zone_write_granularity(bdev_get_queue(bdev));
- }
- 
--static inline int queue_alignment_offset(const struct request_queue *q)
--{
--	if (q->limits.misaligned)
--		return -1;
--
--	return q->limits.alignment_offset;
--}
--
- static inline int queue_limit_alignment_offset(struct queue_limits *lim, sector_t sector)
- {
- 	unsigned int granularity = max(lim->physical_block_size, lim->io_min);
+ static DEVICE_ATTR(partition, 0444, part_partition_show, NULL);
 -- 
 2.30.2
 
