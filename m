@@ -4,44 +4,44 @@ X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 Received: from aib29ajc246.phx1.oracleemaildelivery.com (aib29ajc246.phx1.oracleemaildelivery.com [192.29.103.246])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 01E70C433EF
-	for <ocfs2-devel@archiver.kernel.org>; Sat,  9 Apr 2022 04:52:08 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 0E0A4C433FE
+	for <ocfs2-devel@archiver.kernel.org>; Sat,  9 Apr 2022 04:52:19 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=cFZFHy2P1yEByFwgaUITjjO2DIQYosKuMDJLZz0CSPc=;
- b=PanAfvS2rvSy/Tk3m6Ojv7Ej99OAW/h1bDRRMoYl+v7ooz5pDfPrbjyZg+AXZ2ARoSWUEpIljB6h
-   RF29t/lDbmHdvSO8RuLKIckLaGxR1S9Pmn5iScYZhfC0TI24h40/8AhFIjDjAhvcEuaq4kxgB7YP
-   IozsHd0I4XLNhausA7MrT5ab7TMVnX5UUEamT7epPjAS6PNWRl/Te6xpxJcxLKAzJ8yUPLNKpadV
-   EpVGv8HbcuyISR0aWhvGtnWYEOhFVJ2SLMjfraRGUuMWEM7X3kPhB1roBq+gE+IeMkkbHQd4Nwv6
-   kjP4MgHtaW+nzFUxRhbEdq2uk+HWZjHyt2ZD/A==
+ bh=4HrxbBKGAGQguG7bJJuOJASvTKxjd1X/2cJ7fGdyC9Y=;
+ b=viN139iyDmfU6ID5+2PE3KfqysiE3lAF3ha68GPRYl57+AfArgeDLxeI+eR1PvcadQq8i+9x5EuA
+   +A65bESTIHDU+s8ne3/VN+zbiaHHAjR95IG+IQGozG7XpwYZ2iKkkz1vlSpr9Y6FQzPrd/B5FaCW
+   4ro1PJWgZ1xUtVBuumRJClj+G+d/rfJrYDy7ZY6TrQI5bhWZaqghHz3BuU8AeJd1BLQ75hFfY1oy
+   F6gKMwoBNlVvxyfDd/TjWKj1PUaZ6gQKkmK6V2lmo9CY00qdKVTB8X57rxaplfzjKg5tyio6B6z6
+   rihRPq0LvIIBVJqZykEjNbd50ok4fqRTSqAorg==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=cFZFHy2P1yEByFwgaUITjjO2DIQYosKuMDJLZz0CSPc=;
- b=ptaQGzue3eoMPTQXD2SQdS1gKvNkeqfQuDnYMhsaP67KrDMuLkFNHvXt9TeT/QLTqUsj6/KRDdyn
-   0/7PX72HugN/S/hNB20EekeWP6uwo7hszG4fJZRu7OJpYo4FpdVZPiSz5oDijTpqjNeW8FvSMR47
-   rN/IU8kltX7S5zvmZO9rfM46Yobq9R+UHtOCelnF8dthDxjqBgnb2sWHSvCAkGp8kEkxgV4eVY1O
-   3xfIp1seLyPvwezn9hvqTHitnd0v46CR3tAESXw/FJg6ltOlfCSQFXAgLULuJzAExLiAmKu0Ecjj
-   h+9noCehB7rrbJSGjf2EJR9oh/PgaQcsc8tC2g==
+ bh=4HrxbBKGAGQguG7bJJuOJASvTKxjd1X/2cJ7fGdyC9Y=;
+ b=qafpUkDoU9D0gbV/80fPnlva7Jub88B1m3qoQ6rJGwwsYeIhs6u/XePLfV8V8UdIzYr5Twvnu/um
+   G9MnfPdMs74BgXOQ/m9NRA1oZ2F3ShYGh9M+Ey9N39eETIG6G+819mIWwyVsbct4OMY+f4RBYmTe
+   GDRW97oQrO7t3VhBIQFJY6fOzOpUeoFWMrviToPmaqmeCbmmls5yrGO025UEVlRMGo7eYVTpQLtK
+   J+FYqtaXQKGZfX6BU6fRIeRyjp4O5lP7MKzwaO5MsgLu+eur388z3k3kLAbhIPNyuSv29hTIJHcr
+   rkxHaZbIaPM2K89IrXiy+o7ArMTlHBHOBjxVqA==
 Received: by omta-ad1-fd3-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220319 64bit (built Mar 19
  2022))
- with ESMTPS id <0RA200OH32UWKN20@omta-ad1-fd3-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Sat, 09 Apr 2022 04:52:08 +0000 (GMT)
+ with ESMTPS id <0RA200OHP2V6KN20@omta-ad1-fd3-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Sat, 09 Apr 2022 04:52:18 +0000 (GMT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
  d=infradead.org; s=bombadil.20210309; h=Content-Transfer-Encoding:
  MIME-Version:References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender
  :Reply-To:Content-Type:Content-ID:Content-Description;
- bh=2RG8/4DncVNJBVxiwRZlDWFw3of1TwdfVdHLgkB+Spw=; b=bHToJbTwXX9JeK0n0FFEHck7oK
- nA96qn4tsO9VvTxVN8oChK/ZngVrRM/0RF6G9ra3tv3c4LiSpAW93VdnTUb837bG7nj26lWP035AX
- +oB1LRxVd3o4RNZBzKIPVYYv/AqgqQH13jSTRjPJXLj+fHe3sQ7lQiOs0AqFOPiV0QvmbZSG1K8qh
- 9AilEZ6nzAlZEnIp9Du8I20RfuJmhuvcocvyHX9G65n9qxdF8wS5MzRNFD9kn7Nula/Xd3cMLnifm
- ikockttcbAn2ou+cROly75gq/5PqLm1F2FPp9pVf438qn2667h4Aje3z8zrXhBCgwdMkGUyOJsCBu
- B0U5qlrw==;
+ bh=V+N3WPhcjqbqmVRPAoIxuBjo6dgh1f5KuPVQDpaEGEs=; b=tiIaiEVMWAbVYZUjb2lOkfyysx
+ dbx49Qpm+lo+UUevAGrVDIkvKOBa+44snHlQ0a+KaxdGF8tKMoYuXWs/fvRv0ae96tcME++4ORVYu
+ qYaC1vBwLvlzDvH7/c4A7h9mvUaVl8+MzbhpnW7kmDycYjo20v3XRILfplXYTrbZMX8JEk4N43tKH
+ ZGQP+OitiIrdN0xV7JNnkLHd6fyLWakKMo7lxXmk9Yj+ODdh4QMMFZVM+vhTm4zDm7nCREr0fmSsA
+ waBKGG0G7evAOkXMc1HpZXEoglbkXIOtFpSCT7RrqLEic0YOHBHXQ9EKk4JuDHcopl0LFeqmVS4RI
+ X94UE+Ww==;
 To: Jens Axboe <axboe@kernel.dk>
-Date: Sat,  9 Apr 2022 06:50:30 +0200
-Message-id: <20220409045043.23593-15-hch@lst.de>
+Date: Sat,  9 Apr 2022 06:50:32 +0200
+Message-id: <20220409045043.23593-17-hch@lst.de>
 X-Mailer: git-send-email 2.30.2
 In-reply-to: <20220409045043.23593-1-hch@lst.de>
 References: <20220409045043.23593-1-hch@lst.de>
@@ -49,10 +49,10 @@ MIME-version: 1.0
 X-Source-IP: 127.0.0.1
 X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10311
  signatures=695566
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 clxscore=231
- priorityscore=30 bulkscore=0 suspectscore=0 mlxlogscore=821 lowpriorityscore=0
- phishscore=0 spamscore=0 mlxscore=0 adultscore=0 impostorscore=0
- malwarescore=0 classifier=spam adjust=0 reason=mlx scancount=1
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 impostorscore=0
+ suspectscore=0 malwarescore=0 bulkscore=0 adultscore=0 mlxlogscore=999
+ spamscore=0 clxscore=234 mlxscore=0 phishscore=0 priorityscore=254
+ lowpriorityscore=0 classifier=spam adjust=0 reason=mlx scancount=1
  engine=8.12.0-2202240000 definitions=main-2204090027
 Cc: jfs-discussion@lists.sourceforge.net, linux-nvme@lists.infradead.org,
  virtualization@lists.linux-foundation.org, linux-mm@kvack.org,
@@ -68,7 +68,8 @@ Cc: jfs-discussion@lists.sourceforge.net, linux-nvme@lists.infradead.org,
  linux-xfs@vger.kernel.org, ocfs2-devel@oss.oracle.com,
  linux-fsdevel@vger.kernel.org, ntfs3@lists.linux.dev,
  linux-btrfs@vger.kernel.org
-Subject: [Ocfs2-devel] [PATCH 14/27] block: add a bdev_stable_writes helper
+Subject: [Ocfs2-devel] [PATCH 16/27] block: use bdev_alignment_offset in
+	part_alignment_offset_show
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -90,89 +91,47 @@ X-SRS-Rewrite: SMTP reverse-path rewritten from <hch@infradead.org> by
 X-ServerName: localhost
 X-Proofpoint-SPF-Result: None
 X-Spam: Clean
-X-Proofpoint-GUID: EL-gAWYWdoQkptaDOhP85Fytge0tyGaT
-X-Proofpoint-ORIG-GUID: EL-gAWYWdoQkptaDOhP85Fytge0tyGaT
+X-Proofpoint-GUID: GtHTf4woTxrf6MMswXTSg7DYMr7SlHvE
+X-Proofpoint-ORIG-GUID: GtHTf4woTxrf6MMswXTSg7DYMr7SlHvE
 Reporting-Meta:
- AAGYUbwR03wnJcf9syls7qDkPkrGJquYqpqGSkvddjM4z9O9rws9yNH1OGdrJXlo
- sJEH7cRSG+Yo7QSuIMgk+XXXIBylt63VZKYMpCELIaIwEPna380OKBAU4I1s/KTo
- x6z40TIKAsSxx1VA/tELGO2mr8/BrcinNeWY6gINcbJedCAlXJhpgujov/6pT2g5
- fdRnaaVRKjk3PscLxchf3x5FZeghtjD9ceU86FaOX41c11XvfxSpfTObWquQRxAZ
- zmAvoIBFKi0I5tecbtcQ8LW3Ff83yRlVsyjlQtPwnG2FHQ41H7Pz1PfKT0iGMvkN
- L7WqbL9C/wZmoFKEXIEpopBJDGhexHPUHEGXQbmOSwQC1KMGuQcr9ELg0LWTX58+
- WefSnayxRmkqGCcalxKh7REc3AHrgQ6V9Xq4ncPEWAeDl/w4ZME5y03KaaEM+PuS
- gDkR3QosC5uVAsPQ/wOzfAvgTzbyC4AvRgUaRCN3V4dHKsXBrDfauHWe8tuhJptg
- 8A6Hh6bBb9LVWFNKNPEfFUm2ZAyf/7ZD90TtarrhyRnw
+ AAFQ3Y4DMhQgdJqMfnK77xkwq0/oyZWlNhuSDFad4CAJtwFPUqH698cqTfSaqjSe
+ 9WnZCDpSF8XO+o2ESCmFzll12eAB8kj3CQAdpd3IvI9rbVMHw05a89QffsQ3+oFS
+ FYGY+x8FQFEa4Z7FxYsG9m/PJR9Fe4eYBDrN37pN9Z0XzbMddrAQU4EOfd3sSJbn
+ fEJlpndQb5JPlzVvO4MUixiL/QtM3zR03CEFqAjtQMXESXepxl7sIr1aaodRWHhr
+ vZkT8azncr2S1sQUmiPgnTonGsN4rl0TZZ4wJbyMDG8SEtN/9yOn6VIMYsypgmJR
+ p2cj9D6cOTBSYb50nZL7LRthtACPYfxeC66okIFTaooQzxpMuOqaggGBAwtMlcv+
+ JE7U+7L3xRx02hP+p8yOJrlawGjWEdSzfbovoVCtgZ4CzYDmEL76CHOa9WHi5c29
+ 2SVLKZZIyiuKIqq/3odEXo3TOA9iBNbSaip/n5qP1deLCanwnuHv5bYHdskYn3OL
+ 1Sh09CdGqhWWHoUgPd+u6+gfgKFPuviY4pKiyRTq6dsh
 
-Add a helper to check the stable writes flag based on the block_device
-instead of having to poke into the block layer internal request_queue.
+Replace the open coded offset calculation with the proper helper.
+This is an ABI change in that the -1 for a misaligned partition is
+properly propagated, which can be considered a bug fix and matches
+what is done on the whole device.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 Reviewed-by: Martin K. Petersen <martin.petersen@oracle.com>
 ---
- drivers/md/dm-table.c  | 4 +---
- fs/super.c             | 2 +-
- include/linux/blkdev.h | 6 ++++++
- mm/swapfile.c          | 2 +-
- 4 files changed, 9 insertions(+), 5 deletions(-)
+ block/partitions/core.c | 6 +-----
+ 1 file changed, 1 insertion(+), 5 deletions(-)
 
-diff --git a/drivers/md/dm-table.c b/drivers/md/dm-table.c
-index 5e38d0dd009d5..d46839faa0ca5 100644
---- a/drivers/md/dm-table.c
-+++ b/drivers/md/dm-table.c
-@@ -1950,9 +1950,7 @@ static int device_requires_stable_pages(struct dm_target *ti,
- 					struct dm_dev *dev, sector_t start,
- 					sector_t len, void *data)
+diff --git a/block/partitions/core.c b/block/partitions/core.c
+index 2ef8dfa1e5c85..240b3fff521e4 100644
+--- a/block/partitions/core.c
++++ b/block/partitions/core.c
+@@ -200,11 +200,7 @@ static ssize_t part_ro_show(struct device *dev,
+ static ssize_t part_alignment_offset_show(struct device *dev,
+ 					  struct device_attribute *attr, char *buf)
  {
--	struct request_queue *q = bdev_get_queue(dev->bdev);
+-	struct block_device *bdev = dev_to_bdev(dev);
 -
--	return blk_queue_stable_writes(q);
-+	return bdev_stable_writes(dev->bdev);
+-	return sprintf(buf, "%u\n",
+-		queue_limit_alignment_offset(&bdev_get_queue(bdev)->limits,
+-				bdev->bd_start_sect));
++	return sprintf(buf, "%u\n", bdev_alignment_offset(dev_to_bdev(dev)));
  }
  
- int dm_table_set_restrictions(struct dm_table *t, struct request_queue *q,
-diff --git a/fs/super.c b/fs/super.c
-index f1d4a193602d6..60f57c7bc0a69 100644
---- a/fs/super.c
-+++ b/fs/super.c
-@@ -1204,7 +1204,7 @@ static int set_bdev_super(struct super_block *s, void *data)
- 	s->s_dev = s->s_bdev->bd_dev;
- 	s->s_bdi = bdi_get(s->s_bdev->bd_disk->bdi);
- 
--	if (blk_queue_stable_writes(s->s_bdev->bd_disk->queue))
-+	if (bdev_stable_writes(s->s_bdev))
- 		s->s_iflags |= SB_I_STABLE_WRITES;
- 	return 0;
- }
-diff --git a/include/linux/blkdev.h b/include/linux/blkdev.h
-index 075b16d4560e7..a433798c3343e 100644
---- a/include/linux/blkdev.h
-+++ b/include/linux/blkdev.h
-@@ -1330,6 +1330,12 @@ static inline bool bdev_nonrot(struct block_device *bdev)
- 	return blk_queue_nonrot(bdev_get_queue(bdev));
- }
- 
-+static inline bool bdev_stable_writes(struct block_device *bdev)
-+{
-+	return test_bit(QUEUE_FLAG_STABLE_WRITES,
-+			&bdev_get_queue(bdev)->queue_flags);
-+}
-+
- static inline bool bdev_write_cache(struct block_device *bdev)
- {
- 	return test_bit(QUEUE_FLAG_WC, &bdev_get_queue(bdev)->queue_flags);
-diff --git a/mm/swapfile.c b/mm/swapfile.c
-index d5ab7ec4d92ca..4069f17a82c8e 100644
---- a/mm/swapfile.c
-+++ b/mm/swapfile.c
-@@ -3065,7 +3065,7 @@ SYSCALL_DEFINE2(swapon, const char __user *, specialfile, int, swap_flags)
- 		goto bad_swap_unlock_inode;
- 	}
- 
--	if (p->bdev && blk_queue_stable_writes(p->bdev->bd_disk->queue))
-+	if (p->bdev && bdev_stable_writes(p->bdev))
- 		p->flags |= SWP_STABLE_WRITES;
- 
- 	if (p->bdev && p->bdev->bd_disk->fops->rw_page)
+ static ssize_t part_discard_alignment_show(struct device *dev,
 -- 
 2.30.2
 
