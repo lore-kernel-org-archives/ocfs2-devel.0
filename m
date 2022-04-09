@@ -1,47 +1,47 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc253.phx1.oracleemaildelivery.com (aib29ajc253.phx1.oracleemaildelivery.com [192.29.103.253])
+Received: from aib29ajc246.phx1.oracleemaildelivery.com (aib29ajc246.phx1.oracleemaildelivery.com [192.29.103.246])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 22C38C43217
-	for <ocfs2-devel@archiver.kernel.org>; Sat,  9 Apr 2022 04:51:43 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id F2C0DC433F5
+	for <ocfs2-devel@archiver.kernel.org>; Sat,  9 Apr 2022 04:51:44 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=HSz1naRk2kl39FlTSBip8BGG7fE0oXLO4LbV5an+Kvg=;
- b=jRo/vFk1wAd/3+qAengic/C3A/2Yh+fu8xgxkG1QDVILOrEswMtLeoKMHkjGeV2ZTeByRTsNBzRN
-   JgKTeqAwG+aLywRK7NIHh5eYfd/dlYw46pwxO5Obn+MqZDvda1Si1vj0t6M0Mox0eCBDHVxDB3qP
-   nTogvZFWtb/qLbMYoKM28/ySzr0sub+Pjka0ncRDqCxVOtqj8HiRTAZRL/fh7+MmRxmX36mej4VK
-   BledZubn9xgovZC/rYslej19NbqVWHUZs8ERK2K6tQ+I7G/GvpNpc7qfTm/KXl1KpaGohx0yFlcA
-   +XgHywl/sA5FCTBRJPBsEzWkc9fdorHQK0icIA==
+ bh=yjIkxPT1e3ig7cFY+fQTq19J/mg4596tZUMMbSDhENI=;
+ b=oBdwBcdjTwzIiPLRVGMt7jMMXadxB4B5dMGDBAJ30e4jfGxwi3hboJNeNgBXj8Z6E7EbV55GjLUj
+   82+FUnl2QAlCejZxsnzKfmAWFXZEkXPS2xUKeY96B4wPNakd8ElCKiVj1Bjvup/AXBZy38gjmouP
+   LdTd/biXd+dQedNAXaUd0qou2d7lF5tYKQ7lZlt/4f6PmYf6VJTRQks0NIdifLJrCcfY24dVqMqi
+   abYKVEXW14HOZr1UvAZXSdxSvKQpjs/kYEMJv0zmNCiXH5/M+wYCmD0RHhAxmG86VAqIiDE9ltSq
+   OSSddz8mvc2bJVXjD4c1YwJxHPC0Tl8IbRb2Rg==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=HSz1naRk2kl39FlTSBip8BGG7fE0oXLO4LbV5an+Kvg=;
- b=h5nNCZjkAbuZSCScAC3pXmRQUkVFYXYRpVBkRbJL7RekId8xwszgyA6xfa3U78C6qOmmVlwN2xIy
-   hZMJPRy5eE1IG01Ynq7fkbv+BVqsKgMViauK8xfLiZZT/ZA+/R+cgJLNdAUFWS2oUB/MDTk/0/Hn
-   gEeqQ1grIPqbQczLICAE+MWM4xATyZfT39j3EaIQr2bW99HFHiMijT/byYI/Zewdbwuw4MbkY25o
-   qMdjSjYiZXkTn5vNiuZxOZw684tmqN5m/kv3akr0r8jD/dAKE/wmtt1UzzYN3fWDmpf6ecxbuDXg
-   Qk3KKTbzTlmsu8Q1zKYCJbOgrxUTqXk+DrLfew==
-Received: by omta-ad3-fd1-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
+ bh=yjIkxPT1e3ig7cFY+fQTq19J/mg4596tZUMMbSDhENI=;
+ b=FeFzcNvERZVtc8Z06EnR0jkEsPx86Krd1IjNq900kbecHiQl6brrrhTx1S4pRjlWIflusoLTza72
+   aZfJRZqA4vp/07z8sogjh+LLRK3YES8cgMUAh9n7CUASjhErz3lw2RZO8MDmx7/HSgWiS3DsKTYq
+   KhpuxNKgxsvbv8JjQ/cT8b/O7ULun7iXR8YyG1/dJ/1nkxPINd8uoI7h15+mt2STfQx6AC/F0t9E
+   DPaece+PAZ3qJkqBwU+dKq6NKCjEERjvW4giBsZQD9rUNK8ejixJGG9+e/Egu4HSKZbi9rtjqblx
+   bJvrX0g6uxQgmHb2i3up2XjQhOsX/UBuJkgoOQ==
+Received: by omta-ad1-fd3-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220319 64bit (built Mar 19
  2022))
- with ESMTPS id <0RA200FH22U6X960@omta-ad3-fd1-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Sat, 09 Apr 2022 04:51:42 +0000 (GMT)
+ with ESMTPS id <0RA200OD92U8KN20@omta-ad1-fd3-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Sat, 09 Apr 2022 04:51:44 +0000 (GMT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
  d=infradead.org; s=bombadil.20210309; h=Content-Transfer-Encoding:
  MIME-Version:References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender
  :Reply-To:Content-Type:Content-ID:Content-Description;
- bh=fGcL4rT6o55inYg+xD7k4NQPOksglZvB+PFSEP+xhA8=; b=x49SryV2SEOzb+YKli0UJZwys7
- Znb1rsPTkSfYcHPVo9D6b2U83E7uqw2G98XO8zYfl/hKwrvVhicKgqjDvuZYTEB489P843L//CwDT
- gqCbBf9JUwJ6J0Nu3a/lcC/IfwnnEVdVHN84pWvuhxzJiYH6crHhPnTIzf9dIWY5MLhKlVfzyM0Vq
- bwRuU6hgXkjUYp1qcxu8V6Fo824rSDUIbNTnNROyu48YrBGf3oVsysJ9CQPrqpevcWLNQdLnu2N4C
- 4XspCM6we8vYPn8dRLL0TG98f118C88z+RALpryzLlARTzoVN3y6dQTJp4lOBr41BAbVo0sl+miwh
- a6JWWqsQ==;
+ bh=p7OacHYZtXHcRJcUjaO4g7N75FFwuFvyGKpz8CHLs7c=; b=Pzju2TytWziYGXeAIXOJqaZe7f
+ 7ZGvsguzecelJ4kpYHFs039peENwElmJJQkOSiGYs68Q+CTFipoeD0GlcVPwvTxb8xwBmaIekN2yU
+ Rk4beWtSim6D708e6fSlV3YP5i7sNLfobnz5N1LWmB0773OmCuKgM8hPrOj00tHgKXSL2WCPSypp8
+ ErKpc93xT55Q9MUWv2vmwsuaSUJfwgL8pm1UrjQ6JfcKYWVBii/A8RoyrVNpZCMb2NMWyLhn7ceWa
+ xkvvl8VwB4N0A1xPbH8PCB21WFupHylrzncwQJ8sn/dqS6wML090d9Ks8PME8EXpA5KlHBwNJY9Qk
+ zEahGH1Q==;
 To: Jens Axboe <axboe@kernel.dk>
-Date: Sat,  9 Apr 2022 06:50:24 +0200
-Message-id: <20220409045043.23593-9-hch@lst.de>
+Date: Sat,  9 Apr 2022 06:50:20 +0200
+Message-id: <20220409045043.23593-5-hch@lst.de>
 X-Mailer: git-send-email 2.30.2
 In-reply-to: <20220409045043.23593-1-hch@lst.de>
 References: <20220409045043.23593-1-hch@lst.de>
@@ -49,10 +49,10 @@ MIME-version: 1.0
 X-Source-IP: 198.137.202.133
 X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10311
  signatures=695566
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 priorityscore=60
- lowpriorityscore=0 bulkscore=0 suspectscore=0 mlxlogscore=775 spamscore=0
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 priorityscore=48
+ lowpriorityscore=0 bulkscore=0 suspectscore=0 mlxlogscore=807 spamscore=0
  malwarescore=0 mlxscore=0 adultscore=0 impostorscore=0 phishscore=0
- clxscore=238 classifier=spam adjust=0 reason=mlx scancount=1
+ clxscore=254 classifier=spam adjust=0 reason=mlx scancount=1
  engine=8.12.0-2202240000 definitions=main-2204090027
 Cc: jfs-discussion@lists.sourceforge.net, linux-nvme@lists.infradead.org,
  virtualization@lists.linux-foundation.org, linux-mm@kvack.org,
@@ -64,12 +64,11 @@ Cc: jfs-discussion@lists.sourceforge.net, linux-nvme@lists.infradead.org,
  linux-um@lists.infradead.org, nbd@other.debian.org,
  linux-block@vger.kernel.org, linux-bcache@vger.kernel.org,
  ceph-devel@vger.kernel.org, linux-raid@vger.kernel.org,
- Johannes Thumshirn <johannes.thumshirn@wdc.com>, linux-mmc@vger.kernel.org,
- linux-f2fs-devel@lists.sourceforge.net, linux-xfs@vger.kernel.org,
- ocfs2-devel@oss.oracle.com, linux-fsdevel@vger.kernel.org,
- ntfs3@lists.linux.dev, linux-btrfs@vger.kernel.org
-Subject: [Ocfs2-devel] [PATCH 08/27] btrfs: use bdev_max_active_zones	instead
- of open coding it
+ linux-mmc@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net,
+ linux-xfs@vger.kernel.org, ocfs2-devel@oss.oracle.com,
+ linux-fsdevel@vger.kernel.org, ntfs3@lists.linux.dev,
+ linux-btrfs@vger.kernel.org
+Subject: [Ocfs2-devel] [PATCH 04/27] drbd: remove assign_p_sizes_qlim
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -91,46 +90,97 @@ X-SRS-Rewrite: SMTP reverse-path rewritten from <hch@infradead.org> by
 X-ServerName: bombadil.infradead.org
 X-Proofpoint-SPF-Result: None
 X-Spam: Clean
-X-Proofpoint-ORIG-GUID: zzXZ320nUrzl2Qffxdysba8NVXNeBkGH
-X-Proofpoint-GUID: zzXZ320nUrzl2Qffxdysba8NVXNeBkGH
+X-Proofpoint-ORIG-GUID: qNr0_Vh5S-rsFBBgK3YOuXlAAWhA3NcK
+X-Proofpoint-GUID: qNr0_Vh5S-rsFBBgK3YOuXlAAWhA3NcK
 Reporting-Meta:
- AAHdc3hUrSXKHm+eKxeq86a5UhRuFmxwX4y4jhnVeChEx4HABo6YOjg+3FB7yETs
- s8+zPhjlUfVbrdzYlM0NS7eG0UMxOK9CLbi8I6AMbij00VkaI4Wa7t9XGTXL6wSJ
- sODIqaDqR4LACW/WEV+/qmu9nC2HeZtrhPVapnWpgOve+t/LMPGxKYJWdLCnloeI
- s6C+NOLK03XAphRNZ8xXk42xmUEAhRthps8chPxfWRLkjJ2HO72ZyhJ2UQRhlZFT
- bGx3tJAd6nmUHZ+ySCQy6KysVnDqoSB8QKigzd8CrgifRL/q6cNYnbWqXXYSeBf+
- TFXvom2C8g0f1fB8xniecBk6E4fgkjlX1DM+fIVD+pdK1jdsqjtNs0A6mAn+4ky4
- eSzsQMsZjKykohX5XgIifP1fSLcnjedHF7B7iyXi+axrOrSSkGPcA6j7eZEynX6d
- FC3U8BPI7myMi+TiXY94BjJgxV96xUlqE5QYdBdQtooRftrJazGa7WGKYUpJzaDg
- 1nUwlzx0+DdckOg5ZAOSIOLC228Revv399OHcXkN9c/h
+ AAEbaJwZyG7UVotcEmXCMu7Q49e2rTl+1K7MjNzxvfdj2Z8qeibhBa+5VuSsHX0h
+ CAbfHP7oljkPrpgS+puieKsN1DCGDCeic0z8KHP7a/D8XrR//LZVYMvEYg8ZI8b2
+ z+3rPXxzbqRjpxufg1WGKuVdynMNdVjukFHEaO9bT4d4C1Z02kk22q1JRWtB5u8B
+ zQIP7i71Vu58XDBPBd+EZqh9xxdn/Y5IN7+tlOrR0zS4DXOaOFpDsYCSZ6a36shz
+ gKTOOITDHVHeJu4yy4away55YFf1//tDOU8fxn1UXivPcTE5ul6dXVrNOfQ6Umgz
+ sms7ZxxfstU9murHT3swjvt3csvHVn/3En0ZAEFkGJ8iREXPtak1FeWUc8+c01eb
+ MIuLIiWsa6aSulEAnnTGVlsHD7SlvfyTRBHdSKV5de0rww2SKL+3hzKnQLZeZcow
+ eMqZI7CWUbeMPawJzVq/n0lnhG8rBJM7fz7agjs77I6xrEl1DEyv8t9WoPL1iVye
+ 21Bvzbzo0hC+AX8NMniVwBpbIjIVnNxIcU8neZLwBw3n
+
+Fold each branch into its only caller.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
-Reviewed-by: Johannes Thumshirn <johannes.thumshirn@wdc.com>
 ---
- fs/btrfs/zoned.c | 3 +--
- 1 file changed, 1 insertion(+), 2 deletions(-)
+ drivers/block/drbd/drbd_main.c | 47 +++++++++++++++-------------------
+ 1 file changed, 20 insertions(+), 27 deletions(-)
 
-diff --git a/fs/btrfs/zoned.c b/fs/btrfs/zoned.c
-index 1b1b310c3c510..f72cad7391a11 100644
---- a/fs/btrfs/zoned.c
-+++ b/fs/btrfs/zoned.c
-@@ -350,7 +350,6 @@ int btrfs_get_dev_zone_info(struct btrfs_device *device, bool populate_cache)
- 	struct btrfs_fs_info *fs_info = device->fs_info;
- 	struct btrfs_zoned_device_info *zone_info = NULL;
- 	struct block_device *bdev = device->bdev;
--	struct request_queue *queue = bdev_get_queue(bdev);
- 	unsigned int max_active_zones;
- 	unsigned int nactive;
- 	sector_t nr_sectors;
-@@ -410,7 +409,7 @@ int btrfs_get_dev_zone_info(struct btrfs_device *device, bool populate_cache)
- 	if (!IS_ALIGNED(nr_sectors, zone_sectors))
- 		zone_info->nr_zones++;
+diff --git a/drivers/block/drbd/drbd_main.c b/drivers/block/drbd/drbd_main.c
+index 9676a1d214bc5..1262fe1c33618 100644
+--- a/drivers/block/drbd/drbd_main.c
++++ b/drivers/block/drbd/drbd_main.c
+@@ -903,31 +903,6 @@ void drbd_gen_and_send_sync_uuid(struct drbd_peer_device *peer_device)
+ 	}
+ }
  
--	max_active_zones = queue_max_active_zones(queue);
-+	max_active_zones = bdev_max_active_zones(bdev);
- 	if (max_active_zones && max_active_zones < BTRFS_MIN_ACTIVE_ZONES) {
- 		btrfs_err_in_rcu(fs_info,
- "zoned: %s: max active zones %u is too small, need at least %u active zones",
+-/* communicated if (agreed_features & DRBD_FF_WSAME) */
+-static void
+-assign_p_sizes_qlim(struct drbd_device *device, struct p_sizes *p,
+-					struct request_queue *q)
+-{
+-	if (q) {
+-		p->qlim->physical_block_size = cpu_to_be32(queue_physical_block_size(q));
+-		p->qlim->logical_block_size = cpu_to_be32(queue_logical_block_size(q));
+-		p->qlim->alignment_offset = cpu_to_be32(queue_alignment_offset(q));
+-		p->qlim->io_min = cpu_to_be32(queue_io_min(q));
+-		p->qlim->io_opt = cpu_to_be32(queue_io_opt(q));
+-		p->qlim->discard_enabled = blk_queue_discard(q);
+-		p->qlim->write_same_capable = 0;
+-	} else {
+-		q = device->rq_queue;
+-		p->qlim->physical_block_size = cpu_to_be32(queue_physical_block_size(q));
+-		p->qlim->logical_block_size = cpu_to_be32(queue_logical_block_size(q));
+-		p->qlim->alignment_offset = 0;
+-		p->qlim->io_min = cpu_to_be32(queue_io_min(q));
+-		p->qlim->io_opt = cpu_to_be32(queue_io_opt(q));
+-		p->qlim->discard_enabled = 0;
+-		p->qlim->write_same_capable = 0;
+-	}
+-}
+-
+ int drbd_send_sizes(struct drbd_peer_device *peer_device, int trigger_reply, enum dds_flags flags)
+ {
+ 	struct drbd_device *device = peer_device->device;
+@@ -957,14 +932,32 @@ int drbd_send_sizes(struct drbd_peer_device *peer_device, int trigger_reply, enu
+ 		q_order_type = drbd_queue_order_type(device);
+ 		max_bio_size = queue_max_hw_sectors(q) << 9;
+ 		max_bio_size = min(max_bio_size, DRBD_MAX_BIO_SIZE);
+-		assign_p_sizes_qlim(device, p, q);
++		p->qlim->physical_block_size =
++			cpu_to_be32(queue_physical_block_size(q));
++		p->qlim->logical_block_size =
++			cpu_to_be32(queue_logical_block_size(q));
++		p->qlim->alignment_offset =
++			cpu_to_be32(queue_alignment_offset(q));
++		p->qlim->io_min = cpu_to_be32(queue_io_min(q));
++		p->qlim->io_opt = cpu_to_be32(queue_io_opt(q));
++		p->qlim->discard_enabled = blk_queue_discard(q);
+ 		put_ldev(device);
+ 	} else {
++		struct request_queue *q = device->rq_queue;
++
++		p->qlim->physical_block_size =
++			cpu_to_be32(queue_physical_block_size(q));
++		p->qlim->logical_block_size =
++			cpu_to_be32(queue_logical_block_size(q));
++		p->qlim->alignment_offset = 0;
++		p->qlim->io_min = cpu_to_be32(queue_io_min(q));
++		p->qlim->io_opt = cpu_to_be32(queue_io_opt(q));
++		p->qlim->discard_enabled = 0;
++
+ 		d_size = 0;
+ 		u_size = 0;
+ 		q_order_type = QUEUE_ORDERED_NONE;
+ 		max_bio_size = DRBD_MAX_BIO_SIZE; /* ... multiple BIOs per peer_request */
+-		assign_p_sizes_qlim(device, p, NULL);
+ 	}
+ 
+ 	if (peer_device->connection->agreed_pro_version <= 94)
 -- 
 2.30.2
 
