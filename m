@@ -1,58 +1,58 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc254.phx1.oracleemaildelivery.com (aib29ajc254.phx1.oracleemaildelivery.com [192.29.103.254])
+Received: from aib29ajc253.phx1.oracleemaildelivery.com (aib29ajc253.phx1.oracleemaildelivery.com [192.29.103.253])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id D4CD9C433EF
-	for <ocfs2-devel@archiver.kernel.org>; Sat,  9 Apr 2022 04:51:42 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 22C38C43217
+	for <ocfs2-devel@archiver.kernel.org>; Sat,  9 Apr 2022 04:51:43 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=l3eRycLdb8Qxjhf4nyEhZkv6G/ZZnFNKh8bLPDONSAw=;
- b=QhTx3eVdci4myyVoN1PJsmGtkTCueuxogbjsI60oE4T8LdVsOKygW/ySbPyGEfIUGYTg6D74GyvI
-   uA7Pswp3FHwKO+/OhV2D6FOXk57MckV7k1FDVKafPx0hck1zisvO3ZNMWbFWnfMF3dF3GP9Sj6ii
-   3aXbLyknGN1+kXZ2SIC8OXgLOXno/yNRjfArq3sbkDcUPJxc4htppVp/cihk8dxGVHLG3HawpXUJ
-   ToQqJVBln849nm0aZTkCFGNKG2aeY5zyK39wmq0y5V1OEEZDTmyaYvoVJ5s4Tn21M/JGOswcXJoO
-   rEguoYvvWtvTubX8m9/EQzM1AM3NsUclQdxjZQ==
+ bh=HSz1naRk2kl39FlTSBip8BGG7fE0oXLO4LbV5an+Kvg=;
+ b=jRo/vFk1wAd/3+qAengic/C3A/2Yh+fu8xgxkG1QDVILOrEswMtLeoKMHkjGeV2ZTeByRTsNBzRN
+   JgKTeqAwG+aLywRK7NIHh5eYfd/dlYw46pwxO5Obn+MqZDvda1Si1vj0t6M0Mox0eCBDHVxDB3qP
+   nTogvZFWtb/qLbMYoKM28/ySzr0sub+Pjka0ncRDqCxVOtqj8HiRTAZRL/fh7+MmRxmX36mej4VK
+   BledZubn9xgovZC/rYslej19NbqVWHUZs8ERK2K6tQ+I7G/GvpNpc7qfTm/KXl1KpaGohx0yFlcA
+   +XgHywl/sA5FCTBRJPBsEzWkc9fdorHQK0icIA==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=l3eRycLdb8Qxjhf4nyEhZkv6G/ZZnFNKh8bLPDONSAw=;
- b=KuYRL6GoyXJoMdR/StN0ew5odlUiRLRJODHbu5NUA+CfghtkcrF3nFM7Kl8VTM4DGiQDHHWXsi0C
-   2lEjjlAQVyl8Mx39hPqQkvM0CW/8IutDyLTwR1Wn8jJTpRjzOVBO88ZvHCKIm9+cKCpxgN/OENFi
-   fgoY4e+WEsp52C6WelnnmAIWU18bD52206tbaNJsV0yJDxGN7IrE/GiZjNjJfXCjhiv0e6qj3hSS
-   tTonMRl2hif4ygAKRW4j5h4bSTSkEofPI3zRPapJsNd72C8xkxuCuqJkRzKQWfPXR2DTAax57SZ3
-   Zynf1pHkFSb1p78l8oNkkVD6bC+0SYmzWTyZyw==
-Received: by omta-ad3-fd3-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
+ bh=HSz1naRk2kl39FlTSBip8BGG7fE0oXLO4LbV5an+Kvg=;
+ b=h5nNCZjkAbuZSCScAC3pXmRQUkVFYXYRpVBkRbJL7RekId8xwszgyA6xfa3U78C6qOmmVlwN2xIy
+   hZMJPRy5eE1IG01Ynq7fkbv+BVqsKgMViauK8xfLiZZT/ZA+/R+cgJLNdAUFWS2oUB/MDTk/0/Hn
+   gEeqQ1grIPqbQczLICAE+MWM4xATyZfT39j3EaIQr2bW99HFHiMijT/byYI/Zewdbwuw4MbkY25o
+   qMdjSjYiZXkTn5vNiuZxOZw684tmqN5m/kv3akr0r8jD/dAKE/wmtt1UzzYN3fWDmpf6ecxbuDXg
+   Qk3KKTbzTlmsu8Q1zKYCJbOgrxUTqXk+DrLfew==
+Received: by omta-ad3-fd1-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220319 64bit (built Mar 19
  2022))
- with ESMTPS id <0RA2006AN2U6Y7B0@omta-ad3-fd3-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
+ with ESMTPS id <0RA200FH22U6X960@omta-ad3-fd1-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
  ocfs2-devel@archiver.kernel.org; Sat, 09 Apr 2022 04:51:42 +0000 (GMT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
  d=infradead.org; s=bombadil.20210309; h=Content-Transfer-Encoding:
  MIME-Version:References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender
  :Reply-To:Content-Type:Content-ID:Content-Description;
- bh=UUS6y6SVPRCfJmQVPGCeD5o714qtaTT6EGogPxQdIy8=; b=f8MqUsBATs67rjabQ/6Q/DbIDx
- fgXqbEI8CyICa2zvZugiHMNhsGNdoL78CjqUFo+L85yRWnSp4bLnWw9UOZORPlbxKENuHDE3BMnvC
- nZh6ejqs8UuaxSAp6FEJQyIJYqxldvUdfoiHG+YGtE8JBRDE1ky/o2Z2BT/GFfYVa2U3YknfleDGZ
- YUmnMj5SSobEjQAm6BIb9bH1beFjSOm9lCoP9YbR6kwi/6uzgUKhayh1GCsU3aZjAHXXaEb3quZh4
- j3z6YIhUDIw06+z4r77/ODr1b2fFsOalGXJmTq9WKgX7hgCKnXAOCLs7dqVGI90UT6R50HzlB6hd5
- fgQRzOXw==;
+ bh=fGcL4rT6o55inYg+xD7k4NQPOksglZvB+PFSEP+xhA8=; b=x49SryV2SEOzb+YKli0UJZwys7
+ Znb1rsPTkSfYcHPVo9D6b2U83E7uqw2G98XO8zYfl/hKwrvVhicKgqjDvuZYTEB489P843L//CwDT
+ gqCbBf9JUwJ6J0Nu3a/lcC/IfwnnEVdVHN84pWvuhxzJiYH6crHhPnTIzf9dIWY5MLhKlVfzyM0Vq
+ bwRuU6hgXkjUYp1qcxu8V6Fo824rSDUIbNTnNROyu48YrBGf3oVsysJ9CQPrqpevcWLNQdLnu2N4C
+ 4XspCM6we8vYPn8dRLL0TG98f118C88z+RALpryzLlARTzoVN3y6dQTJp4lOBr41BAbVo0sl+miwh
+ a6JWWqsQ==;
 To: Jens Axboe <axboe@kernel.dk>
-Date: Sat,  9 Apr 2022 06:50:17 +0200
-Message-id: <20220409045043.23593-2-hch@lst.de>
+Date: Sat,  9 Apr 2022 06:50:24 +0200
+Message-id: <20220409045043.23593-9-hch@lst.de>
 X-Mailer: git-send-email 2.30.2
 In-reply-to: <20220409045043.23593-1-hch@lst.de>
 References: <20220409045043.23593-1-hch@lst.de>
 MIME-version: 1.0
-X-Source-IP: 127.0.0.1
+X-Source-IP: 198.137.202.133
 X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10311
  signatures=695566
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0
- lowpriorityscore=0 spamscore=0 clxscore=253 priorityscore=111 mlxlogscore=999
- bulkscore=0 malwarescore=0 mlxscore=0 adultscore=0 phishscore=0 suspectscore=0
- impostorscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 priorityscore=60
+ lowpriorityscore=0 bulkscore=0 suspectscore=0 mlxlogscore=775 spamscore=0
+ malwarescore=0 mlxscore=0 adultscore=0 impostorscore=0 phishscore=0
+ clxscore=238 classifier=spam adjust=0 reason=mlx scancount=1
  engine=8.12.0-2202240000 definitions=main-2204090027
 Cc: jfs-discussion@lists.sourceforge.net, linux-nvme@lists.infradead.org,
  virtualization@lists.linux-foundation.org, linux-mm@kvack.org,
@@ -64,12 +64,12 @@ Cc: jfs-discussion@lists.sourceforge.net, linux-nvme@lists.infradead.org,
  linux-um@lists.infradead.org, nbd@other.debian.org,
  linux-block@vger.kernel.org, linux-bcache@vger.kernel.org,
  ceph-devel@vger.kernel.org, linux-raid@vger.kernel.org,
- linux-mmc@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net,
- linux-xfs@vger.kernel.org, ocfs2-devel@oss.oracle.com,
- linux-fsdevel@vger.kernel.org, ntfs3@lists.linux.dev,
- linux-btrfs@vger.kernel.org
-Subject: [Ocfs2-devel] [PATCH 01/27] target: remove an incorrect unmap	zeroes
- data deduction
+ Johannes Thumshirn <johannes.thumshirn@wdc.com>, linux-mmc@vger.kernel.org,
+ linux-f2fs-devel@lists.sourceforge.net, linux-xfs@vger.kernel.org,
+ ocfs2-devel@oss.oracle.com, linux-fsdevel@vger.kernel.org,
+ ntfs3@lists.linux.dev, linux-btrfs@vger.kernel.org
+Subject: [Ocfs2-devel] [PATCH 08/27] btrfs: use bdev_max_active_zones	instead
+ of open coding it
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -88,48 +88,49 @@ Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
 X-SRS-Rewrite: SMTP reverse-path rewritten from <hch@infradead.org> by
  bombadil.infradead.org. See http://www.infradead.org/rpr.html
-X-ServerName: localhost
+X-ServerName: bombadil.infradead.org
 X-Proofpoint-SPF-Result: None
 X-Spam: Clean
-X-Proofpoint-ORIG-GUID: SqGiV6eG9X8h7mnvVcNv5PBLru2hAGYn
-X-Proofpoint-GUID: SqGiV6eG9X8h7mnvVcNv5PBLru2hAGYn
+X-Proofpoint-ORIG-GUID: zzXZ320nUrzl2Qffxdysba8NVXNeBkGH
+X-Proofpoint-GUID: zzXZ320nUrzl2Qffxdysba8NVXNeBkGH
 Reporting-Meta:
- AAFCSbEZltLyGhoxkQ44OMFI7KZgeOs0ch+Gu/PEshxVulK27QqHBPNsuOrXTIpW
- 764Z/5FAecjC2b7DNjlM65CTW/Y3wO+j5UVWMIDEu/HgCfIXcs4/tzA0QGmw201n
- k1WhSaqnjkLkL66v07YnjSNFNfzBtXZ8jN4wx3vHJYfxwA7xC/0s0lhXKjf7l9f0
- WLHvLMZ8dXJQTi8ODRMX/Ws66nRMwYsX3VM7IE8UOgSDrk9TRhJzFmQ+aCAsYptL
- TE5hWP6RqF2vIfZTCcuifWkQaeLjqrm5+MquAdQuzO/oyufxN+/1mdstOSJkNvSe
- /aXuqLDsY9XDuj3GDtP8/V8oatxdk2HZm/tFyMyT0HnWJI1apikohaS1mEygCtVg
- 4H3exAqJpuemNGRuC3CfiT0PiAqjT4qe8nF+c5B0rDs6XVNbovzWGpZJrD2Ujt7d
- ZIdlb8HG/1i4pgKL5MkUCCMhDxoW+7bDlGjM1X3mL9CZnjPcG+GZ42bdGA6tIAD/
- tlFq+wcR+zECeO7HPsfUSVaxKuTVJhTEPDTcvfk09o60
+ AAHdc3hUrSXKHm+eKxeq86a5UhRuFmxwX4y4jhnVeChEx4HABo6YOjg+3FB7yETs
+ s8+zPhjlUfVbrdzYlM0NS7eG0UMxOK9CLbi8I6AMbij00VkaI4Wa7t9XGTXL6wSJ
+ sODIqaDqR4LACW/WEV+/qmu9nC2HeZtrhPVapnWpgOve+t/LMPGxKYJWdLCnloeI
+ s6C+NOLK03XAphRNZ8xXk42xmUEAhRthps8chPxfWRLkjJ2HO72ZyhJ2UQRhlZFT
+ bGx3tJAd6nmUHZ+ySCQy6KysVnDqoSB8QKigzd8CrgifRL/q6cNYnbWqXXYSeBf+
+ TFXvom2C8g0f1fB8xniecBk6E4fgkjlX1DM+fIVD+pdK1jdsqjtNs0A6mAn+4ky4
+ eSzsQMsZjKykohX5XgIifP1fSLcnjedHF7B7iyXi+axrOrSSkGPcA6j7eZEynX6d
+ FC3U8BPI7myMi+TiXY94BjJgxV96xUlqE5QYdBdQtooRftrJazGa7WGKYUpJzaDg
+ 1nUwlzx0+DdckOg5ZAOSIOLC228Revv399OHcXkN9c/h
 
-For block devices, the SCSI target drivers implements UNMAP as calls to
-blkdev_issue_discard, which does not guarantee zeroing just because
-Write Zeroes is supported.
-
-Note that this does not affect the file backed path which uses
-fallocate to punch holes.
-
-Fixes: 2237498f0b5c ("target/iblock: Convert WRITE_SAME to blkdev_issue_zeroout")
 Signed-off-by: Christoph Hellwig <hch@lst.de>
-Reviewed-by: Martin K. Petersen <martin.petersen@oracle.com>
+Reviewed-by: Johannes Thumshirn <johannes.thumshirn@wdc.com>
 ---
- drivers/target/target_core_device.c | 1 -
- 1 file changed, 1 deletion(-)
+ fs/btrfs/zoned.c | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
 
-diff --git a/drivers/target/target_core_device.c b/drivers/target/target_core_device.c
-index 44bb380e7390c..fa866acef5bb2 100644
---- a/drivers/target/target_core_device.c
-+++ b/drivers/target/target_core_device.c
-@@ -850,7 +850,6 @@ bool target_configure_unmap_from_queue(struct se_dev_attrib *attrib,
- 	attrib->unmap_granularity = q->limits.discard_granularity / block_size;
- 	attrib->unmap_granularity_alignment = q->limits.discard_alignment /
- 								block_size;
--	attrib->unmap_zeroes_data = !!(q->limits.max_write_zeroes_sectors);
- 	return true;
- }
- EXPORT_SYMBOL(target_configure_unmap_from_queue);
+diff --git a/fs/btrfs/zoned.c b/fs/btrfs/zoned.c
+index 1b1b310c3c510..f72cad7391a11 100644
+--- a/fs/btrfs/zoned.c
++++ b/fs/btrfs/zoned.c
+@@ -350,7 +350,6 @@ int btrfs_get_dev_zone_info(struct btrfs_device *device, bool populate_cache)
+ 	struct btrfs_fs_info *fs_info = device->fs_info;
+ 	struct btrfs_zoned_device_info *zone_info = NULL;
+ 	struct block_device *bdev = device->bdev;
+-	struct request_queue *queue = bdev_get_queue(bdev);
+ 	unsigned int max_active_zones;
+ 	unsigned int nactive;
+ 	sector_t nr_sectors;
+@@ -410,7 +409,7 @@ int btrfs_get_dev_zone_info(struct btrfs_device *device, bool populate_cache)
+ 	if (!IS_ALIGNED(nr_sectors, zone_sectors))
+ 		zone_info->nr_zones++;
+ 
+-	max_active_zones = queue_max_active_zones(queue);
++	max_active_zones = bdev_max_active_zones(bdev);
+ 	if (max_active_zones && max_active_zones < BTRFS_MIN_ACTIVE_ZONES) {
+ 		btrfs_err_in_rcu(fs_info,
+ "zoned: %s: max active zones %u is too small, need at least %u active zones",
 -- 
 2.30.2
 
