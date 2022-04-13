@@ -1,54 +1,78 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc244.phx1.oracleemaildelivery.com (aib29ajc244.phx1.oracleemaildelivery.com [192.29.103.244])
+Received: from aib29ajc250.phx1.oracleemaildelivery.com (aib29ajc250.phx1.oracleemaildelivery.com [192.29.103.250])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 93A7DC433F5
-	for <ocfs2-devel@archiver.kernel.org>; Wed, 13 Apr 2022 11:04:08 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 26BFBC433F5
+	for <ocfs2-devel@archiver.kernel.org>; Wed, 13 Apr 2022 13:11:37 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=hgBGf1GBYrD9wr5MZ/bCJ+KthjPxiynB21Sm2tzharg=;
- b=F/DphKj+bgx9SaMKnaSv0T7I57jcwrQPVvjyecqy0NpuXLBiH+LUF/Nv7+NM7aC/eVEgdc2x8hHY
-   zcLK2Rbi40q4kNwolHQf+SAk+5G36qR845PIQqy72UDnFe4byXCPxfCschsxov79uyfRczOx4fBR
-   3HkbSEb8YDrB/5oR/lUba1ZejNJHG03MTdRegh2dEMTKkUXr0XQKvFkZ0STQohQ/L6MdkV9l/Ax2
-   tqg63d9TqYfPmb9o42eS9xC97Ee+xFTb0WWyPgu+OeyvPeAiSQA3N3sQWQ8GcPShIJc1tVrpOnrC
-   +lXSZ73gW3UpQy2BMnY04JVavTgsJqq2gp+w+g==
+ bh=o3G7/sqaHj7UhmM4OrgEH/2byptt8H/h5h0xt4D2wLE=;
+ b=Ut1GtFlba3pzupP84wdE9J6a/XbvcmIzjmd9/+1AYWpet+w3otbPHWTdZnPVHf0pipVabwSyMrqn
+   NbRPcEyvTOzy0kgtHiSdiuIOSXf4rhJOG2BD+7S8uGnOAQ3fvboagsivFR8i/RQ6FnXQ4MG3FhMv
+   3dZDDw+dq2cAe+q80UoHhTgTltmHSdAXa/pPAU7/Zyh4vpGmhkVYrpoCMrEXOsIvA/MPGMdYiXKY
+   x6bnv+50G4PJkPJxqkyUb5p9CXLsmgzDFjhmLSOSAZXcw5rPd0lBoZnp92XA+UtKuTxeT7Ny9uiH
+   8PdzBXkHsnS9dN4GB6Yf42J6BeUI8cjQZeoxTQ==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=hgBGf1GBYrD9wr5MZ/bCJ+KthjPxiynB21Sm2tzharg=;
- b=bWnTjl96dZILf2HKxc6IXPCJWF+AIcD4qR4GD1xu8qn2n+Zjci8L1A20IIqAIycMyVkVAtl01rNA
-   mPgzPst5KEdkIw2bhE0ImLZastbgQpAErAMAM45bNytVSOjMGo6A16Wh/gKzc085rwuPyzft5CVN
-   mFWnbyei6+HPrkiLRblAzZdJ4xtYhAMXCoGgAqIVg+M5jv/I1jYOiFNret68eBggSS2F8MfnJBRq
-   LvRmWNECdgoQXw3xd4f0bjQ3Kes4fr1+6qsrui6k0wZI2JlvJ1HR+8W5n1TL5vbr3rRXMFfoEM8n
-   Taz22eWA0qZQQf1S9Gn8wVFaEWaHU4pIqqWAUQ==
-Received: by omta-ad1-fd1-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
+ bh=o3G7/sqaHj7UhmM4OrgEH/2byptt8H/h5h0xt4D2wLE=;
+ b=VMjcsAzGWoId7kNNU1B1gjUsjmI92oBRmh3wQdrJbKF/viNOendR3H763Lo6rMGSyuUKW3v1ZCBF
+   MzEzIp8cjYEn8zKJDMlfn4xdJUwt2DAyvzBXSUbCFi0cCfT+JFnHqjZ6+kCk29Icm1mCPuouTcDS
+   DbYwhSLANilly+Ih5doMvqwAP8BY/UDovj9mwRGyhI89dmJHM5fditwsixoU4KAwlKvhlt8bHySI
+   E6QOsYU6na5TNBUhKv0Nno0G3eHPPZjOOiFoVu7kcfuONFFNKYJAbSH9lsuN82nSU6ryiYg/Ye/Z
+   B+TUCytKxmXDwvT5Aben3m01ECCZFsD1ijiQ2w==
+Received: by omta-ad2-fd3-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220319 64bit (built Mar 19
  2022))
- with ESMTPS id <0RA9007Y5YQW8B90@omta-ad1-fd1-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Wed, 13 Apr 2022 11:04:08 +0000 (GMT)
-Message-id: <eda4bed2-205c-2a1b-8263-caee28bc240e@linux.alibaba.com>
-Date: Wed, 13 Apr 2022 19:02:41 +0800
-MIME-version: 1.0
-User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:91.0)
- Gecko/20100101 Thunderbird/91.7.0
-Content-language: en-US
-To: Heming Zhao <heming.zhao@suse.com>, ocfs2-devel@oss.oracle.com
+ with ESMTPS id <0RAA0022L4NCZ3E0@omta-ad2-fd3-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Wed, 13 Apr 2022 13:11:36 +0000 (GMT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.com;
+ s=mimecast20200619; t=1649855480;
+ h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+ to:to:cc:mime-version:mime-version:content-type:content-type:
+ in-reply-to:in-reply-to:references:references;
+ bh=PAvE1C4MrQwJgrQhEv9Csmm9GD6mutwBaXXZSJrxQZQ=;
+ b=SGG6PK8C0hM1CguxnIOsEGhO18XC0hGr6+fdYw/AxHImUzQPECl3aGm+3MNUeNId8tiggJ
+ xcVdfKJvcKzF42yWEGUSYFmR0lFWeXAZfcx1CeLSbob2YdFggReJjqBPCJjrmi5+oPMPAa
+ RFpToTH1I3LooB+s/mNhdP3Rf9P8wlM=
+ARC-Seal: i=1; a=rsa-sha256; s=arcselector9901; d=microsoft.com; cv=none;
+ b=cwb1TgVvTPLvsIgRxXdbB/bhJ2Gsq0dJmpZawE9UVShfWgmXy7WgUuI+3byAd9e+uE46vPQjA2ybaKzyykYUVTK9rzYXARdfSakKUO32TIP1wUJIPc77UAj0ItllQjT8cHT0dZwE4pp6pbUdhQ+EQttJCR+O93nJHH2EJItjz64LgBw1rbvMO841dTFWmHuGaR2TFWsrxU1Zh3pTEAAWSTpaprVj7zRAMYrJHYdVF8PezXIqVrGXvfLEQlH1LRjWtoBrruTAbIiCYypzsg93oS3sQKzz/VW4XxaZA74ZTN+SzM23gKlFR2RWQ7bcbdY+Mw7cFkpyGfFbyhDhq/BAtA==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=arcselector9901;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
+ bh=PAvE1C4MrQwJgrQhEv9Csmm9GD6mutwBaXXZSJrxQZQ=;
+ b=b3QslU9FDslr8/9HOMdh/ZRKbwDl8UApnG18yUgogMnn3i5gJJbPbTdVdzjDgmSJzBbuDeHHtc4y91ySO1Ge6UxTm+zbDSvlYnGIrkI1wOqK1mic/FNPqQoCRQaSfJYMqtFrq4I23OiNgmBSH1k7sAbzytaXQHbhTx6ZRbCh/KrOXftIH37ecZe57PyoxlbLMC12We7G1jXaGgVl8FVGIoiO5oRSltAm3ndNRE9NfrUjlsVdl8/Bz2hHHqjHLNQCvsh9Tauv3VCFfnIssOAhg/DNMkghZMfAGpMqfa/UFAU3EpK3bn/x3gwniNtpC0OFCeauVOTtRdte7BSwMW4scA==
+ARC-Authentication-results: i=1; mx.microsoft.com 1; spf=pass
+ smtp.mailfrom=suse.com; dmarc=pass action=none header.from=suse.com; dkim=pass
+ header.d=suse.com; arc=none
+Date: Wed, 13 Apr 2022 21:11:05 +0800
+To: Joseph Qi <joseph.qi@linux.alibaba.com>, ocfs2-devel@oss.oracle.com
+Message-id: <20220413131105.7k7xpmlzemwgw44x@c73>
 References: <20220413082957.28774-1-heming.zhao@suse.com>
- <20220413082957.28774-4-heming.zhao@suse.com>
-In-reply-to: <20220413082957.28774-4-heming.zhao@suse.com>
-X-Source-IP: 47.90.199.4
+ <20220413082957.28774-6-heming.zhao@suse.com>
+ <dcceb610-3c1b-d46c-493b-c836317e6d4b@linux.alibaba.com>
+Content-disposition: inline
+In-reply-to: <dcceb610-3c1b-d46c-493b-c836317e6d4b@linux.alibaba.com>
+MIME-version: 1.0
+X-Forefront-Antispam-Report: CIP:255.255.255.255; CTRY:; LANG:en; SCL:1; SRV:;
+ IPV:NLI; SFV:NSPM; H:DB7PR04MB4666.eurprd04.prod.outlook.com; PTR:; CAT:NONE;
+ SFS:(13230001)(7916004)(366004)(33716001)(6506007)(53546011)(9686003)(5660300002)(6512007)(38100700002)(83380400001)(2906002)(508600001)(6486002)(86362001)(44832011)(6666004)(8676002)(316002)(186003)(1076003)(26005)(66946007)(66476007)(66556008)(8936002)(21314003); DIR:OUT;
+ SFP:1101;
+X-OriginatorOrg: suse.com
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 13 Apr 2022 13:11:17.8093 (UTC)
+X-Source-IP: 194.104.109.102
 X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10315
  signatures=695566
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 malwarescore=0
- lowpriorityscore=0 phishscore=0 priorityscore=0 bulkscore=0 mlxlogscore=999
- clxscore=194 impostorscore=0 mlxscore=0 suspectscore=0 spamscore=0
- adultscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2202240000 definitions=main-2204130061 domainage_hfrom=8399
-Subject: Re: [Ocfs2-devel] [PATCH v2 3/5] ocfs2: ocfs2_initialize_super does
- cleanup job before return error
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 bulkscore=0
+ mlxlogscore=999 spamscore=0 clxscore=184 phishscore=0 priorityscore=78
+ malwarescore=0 adultscore=0 lowpriorityscore=0 suspectscore=0 impostorscore=0
+ mlxscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2202240000 definitions=main-2204130070
+Subject: Re: [Ocfs2-devel] [PATCH v2 5/5] ocfs2: rewrite error handling of
+	ocfs2_fill_super
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -60,235 +84,299 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: Joseph Qi via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: Joseph Qi <joseph.qi@linux.alibaba.com>
+From: Heming Zhao via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: Heming Zhao <heming.zhao@suse.com>
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-Alimail-AntiSpam: AC=PASS; BC=-1|-1; BR=01201311R681e4; CH=green;
- DM=||false|; DS=||; FP=0|-1|-1|-1|0|-1|-1|-1; HT=e01e04407;
- MF=joseph.qi@linux.alibaba.com; NM=1; PH=DS; RN=2; SR=0;
- TI=SMTPD_---0V9zdIFz_1649847761;
-X-ServerName: out199-4.us.a.mail.aliyun.com
+X-MC-Unique: ga3pb8TROWuL0pVyBYqd8w-1
+X-ClientProxiedBy: HK2P15301CA0008.APCP153.PROD.OUTLOOK.COM
+ (2603:1096:202:1::18) To DB7PR04MB4666.eurprd04.prod.outlook.com
+ (2603:10a6:5:2b::14)
+X-MS-PublicTrafficType: Email
+X-MS-Office365-Filtering-Correlation-Id: 5d481c0f-d3c5-4add-3be8-08da1d4f1863
+X-MS-TrafficTypeDiagnostic: VI1PR04MB4781:EE_
+X-Microsoft-Antispam-PRVS:
+ <VI1PR04MB47813464E87DDE34AE80EB0C97EC9@VI1PR04MB4781.eurprd04.prod.outlook.com>
+X-MS-Exchange-SenderADCheck: 1
+X-MS-Exchange-AntiSpam-Relay: 0
+X-Microsoft-Antispam: BCL:0;
+X-Microsoft-Antispam-Message-Info:
+ HlZXIBLVV9pb+P3KqMWotuL1RmifLFto3KqQHYqJURNxtV7wPtQpXfNNCmY4HpgOsXTeT3KlsznvOb2yGp9LOAw3TTbloIK6rMWGqjtCTo8beniZ2LO8k/KmyIPwoqDv6Yu/fvVAmyzv6VoL9HVJP25RaR4gd5Dq+ASgo+A0hGc4WS0ZQgMiFCVU7dNhVD0BvCflTfyeCEkhINzRefYsRkJElJ/vu2ZN7uQtq9XgUMCr/CWP9+/unnlvEa9GcsiDbxrtiKnPwr44IInuBYcva1pCwWKKKtsK+W3LnBhCd1gsRW+XK6AnG017LXgnvD9B5UHpbL5ZQRBIDFwMw72bPs58XABl2Izq8DkPAOgy5nt4PoA+ddMBaxgSxbuiMH6OPBsVbHsm7UOYhP5H7DMxxJQeqtuwO0uV+KkwA0kqz8nmfodwzlD++azTijvEh6r/EC+2d1GS7DxRuM7WfAUqHWcSn6Q97501ul9E43GZ+/ytjBfpo26t1URpDWkleIrW6hPlNKAsPRoxnpNmNTbpUWFzHHn7w64k7JRTXo2YsvZIF2wsIPE/Y23osJZS3ZSjvYFZCT9crtZubVq4udtoJSZfm3bELj+MrUXq/McpwZsHDJbBLnTGTOQ1/VOiPDzjiTu5URHBSH+0CGdmVBI+fzymK5Jq3uciuEL30YbmNo3eHW8mIvqxHPlU2E+LeaoJ
+X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
+X-MS-Exchange-AntiSpam-MessageData-0:
+ =?us-ascii?Q?0xinEDZ/RDI/2D5L/Ua69D/zT1WMc9ds/P4TFgIu8Ts8sPN0b+naEh8X3KZp?=
+ =?us-ascii?Q?1fu9fDvyIMGEB6AM3bD9mtzokwxbD6lJE3Nr0xndFZfDhvBrvnMGXX32ereD?=
+ =?us-ascii?Q?i+5S3nFwb6c/ysOVYaU+8yXOpXk6bMeA+YYsphxBNSuJ/SEn0eFB2uP8iuFq?=
+ =?us-ascii?Q?sANKa/w1xlmRjnFm3HxyQXbDlQyDf4kGqxNXfeBB/7f+6XbZlOnO1VXLAql8?=
+ =?us-ascii?Q?TP76hF2Zj/zg+P7Nns7OJ0474dKD0iefndHpWzyuRLUBU/8YmDDMRXvUJNyO?=
+ =?us-ascii?Q?e1SQvSMiRM/OtELdBWAagUT5Dy/v27w2ObYOzTit/ljZsD1Mk4/jc4bpCQPP?=
+ =?us-ascii?Q?TR/kIdo85ojItgJ1f3kA2Ps+aUnxEMdQXdYQrBG2icuut9Pxk1dRF+zYTRvQ?=
+ =?us-ascii?Q?3Or9cfzvL/iiSwKKbyMUuvBHtxAC9Rky8xmHV/0Or58f7Jc/y5m/InfedrCV?=
+ =?us-ascii?Q?cgEUmhTPWpc3+Mm2QaXQKvdYfEJ4lm5et4B2Z5pHRK6RfYltwu2OfRf8wSkM?=
+ =?us-ascii?Q?u3rXur1E3QfdL/kSXEwVVD1eWXXoWY7z2FfXY6iWUecbxLijLA92is2KXm8d?=
+ =?us-ascii?Q?o6+Tee3NFsIoNMvYLcN2M7KwSGudmakrMhI5m15EVFr2HZrTeSTk13Do7oAM?=
+ =?us-ascii?Q?EORwBu2xUS5FvsSO69CEjDX3NB92KHJJ3DdvBcix3S0ckaV72yoFuB4xFuf2?=
+ =?us-ascii?Q?DKP13OMMhYFhqHmSaE+Tp6PbR2drKFfSAmcv/1A6ydrVy6o6H0ACdEgbYvzj?=
+ =?us-ascii?Q?tPdQT9B3MO7OoBE8sAwY+C1RIXVfIPw1IEObtR41efrvbl/T28vvTVLjfdu4?=
+ =?us-ascii?Q?Bu8RWZedkAGg9dzETpBRKPuvIbM1tL9lwARBIXohQWs5JYKOmA7t/7ZZrod1?=
+ =?us-ascii?Q?StC7aSDpcIPqndTMdSh9iyIdAeeOz8Q8427vwJ9m0tSjyvN5IP2ZDJ8/AwIZ?=
+ =?us-ascii?Q?O4lhk1opHmw4bPRe4aLZK6IpH2p7TE5LMex3Ufe+G+Cd0aqX32yCC8ceMwM3?=
+ =?us-ascii?Q?k+jrqG1WYSTBxz8pDTcXYPVmTW1LOfKyKflAWcp4M4FNd6YicarMz8xZ1Eye?=
+ =?us-ascii?Q?f4gnVv8fofxd9fMP3wPhx5d0DOfOQwUOlBSuSkLMkbHTltNfxczbRS88gpG7?=
+ =?us-ascii?Q?MJiFS+tZ1+SQAJFrimqZ4ye31nN3Pry/9mkbSxcrwj510DTEQ/l5CO4lRVUr?=
+ =?us-ascii?Q?YIHqdgV2OOeA/HOKIWl/K7Kc89RaZcLhPsP8cLurpuXKwFSfmIhuaIVzWuDp?=
+ =?us-ascii?Q?YgjusyK3RqlI/Gx68fRMLvIy8jfLlvLFibD7wXy6GZQaQlheNzfl3s1UUvSF?=
+ =?us-ascii?Q?CRxnS3QJbN6BjLaqPoq5qc0fpnskq2brHaOxrCEoABujec4GOxeJW4AHlYB+?=
+ =?us-ascii?Q?AIVVes6APlLqnPwIPSZguRmYdhCMdpMnyL59zgAYxud/Oym/AyzWgeSWTVUU?=
+ =?us-ascii?Q?Uh3uel/f8JnwP9Zz3ZnT9pjlxF12GZRe3jrDw6YpAT54F9YS6Kf0NE4rS+jK?=
+ =?us-ascii?Q?96m/XO01lghBsMEPIgW4MgmNqAeQUewJXWyF+bYQBjHoon7vYz0H8YMpAngn?=
+ =?us-ascii?Q?beyUn5B/I1ugwlfNOC7tbyh/IgSKtGmQile5kPU10tjYDPL896PWd4tEO5rr?=
+ =?us-ascii?Q?4r2emqSbzI7/a9iR5s7yYMJl4v3eju3V/pqp5VY6ZG9l1tUe90fvmUE5XLGa?=
+ =?us-ascii?Q?hi+iENnRTFWKow/XfeKG00nEYGFD1n/j86etTLef6x3ViqBz53QWAk60b2FY?=
+ =?us-ascii?Q?upjbUlGCs86paEBrzSWdHfMrACunaU8=3D?=
+X-MS-Exchange-CrossTenant-Network-Message-Id:
+ 5d481c0f-d3c5-4add-3be8-08da1d4f1863
+X-MS-Exchange-CrossTenant-AuthSource: DB7PR04MB4666.eurprd04.prod.outlook.com
+X-MS-Exchange-CrossTenant-AuthAs: Internal
+X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
+X-MS-Exchange-CrossTenant-Id: f7a17af6-1c5c-4a36-aa8b-f5be247aa4ba
+X-MS-Exchange-CrossTenant-MailboxType: HOSTED
+X-MS-Exchange-CrossTenant-UserPrincipalName:
+ p2760TDT45Ntatoe1ghLcKqN78TCzpCk17fk2+NaNiTF/AqBl4vc9aHn+ZahQbmY20tO0xfPgaZ6nxX5xJB7oA==
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: VI1PR04MB4781
+X-ServerName: de-smtp-delivery-102.mimecast.com
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 include:spf1.service.alibaba.com
- include:spf2.service.alibaba.com include:spf1.ocm.aliyun.com
- include:spf2.ocm.aliyun.com include:spf1.staff.mail.aliyun.com
- include:a.hichina.mail.aliyun.com include:b.hichina.mail.aliyun.com -all
+X-Proofpoint-SPF-Record: v=spf1 include:spf.suse.com
+ include:de._netblocks.mimecast.com include:amazonses.com
+ include:spf.protection.outlook.com include:_spf.qemailserver.com
+ include:_spf.salesforce.com -all
 X-Spam: Clean
-X-Proofpoint-GUID: zdYZymtIj4Oqz4Kv-3PpOFD1cJYFFUuf
-X-Proofpoint-ORIG-GUID: zdYZymtIj4Oqz4Kv-3PpOFD1cJYFFUuf
+X-Proofpoint-ORIG-GUID: NiYYQOHn2_L4ljrmqF-rTiukm-CgBh-2
+X-Proofpoint-GUID: NiYYQOHn2_L4ljrmqF-rTiukm-CgBh-2
 Reporting-Meta:
- AAFlXPWGD5eKB91uR0e73AjaDAsScpunomaRcCTkbc2kiJQAd5Mxn9pPzTvQun/l
- NTMLIupS+pkQj4iYDMOxPdkqSOGYEM5w4pDtB9NsOsxyXO3X/7Cml8FUU/cskFua
- /3ZKSUyHe8tw6n/6Ser5pgOjgHTE1zQ45Z/PMTPYRRbtSyWS/sTQH9zun2rIe5n6
- 8dRHgbtJxutK+7WwdYQSvsjeeQMD24Sr3BPlkB9+GXrEh72KCVWzsvuHwyJHjxW7
- GOEcfeLLseRt215wuWVeOumQ1tUnCltn3WwKPX/XyanvRX+x7mT0Q/TkWr0yP9B7
- L5AGjlbe0sOKaME1inz6/c5hJE/yHqNseRyOWCV4HOpaK4d0rgwwcdnAoGWV3KAt
- oRVo10AfMclvyT0SBDirz1JuUsF5BfzwXJyNka/QP9YbiBdUCOMTR6+fkoyDbvDo
- /xIwpDcqrrXNbEqnmBXdLxaWr9xz3AYlxsaUQHB9xMpgs0nzhfD4vM2/8uUdu9Fl
- d3o1iDMNHk5+GM5a2H1tXlj5RJ9HMdYRe9gnBSy9yIfQ2g==
+ AAEXpB8emGTs2biMMLq/QtX4InpYqftWrvNAKVAzJzlIUqSR0GTrJhelPHnNtR0K
+ VvnahBUxJvfwS5iCtBMDqCeVJk49YvtUGItQIKBkHEkUNcmjGk4gfVdX2AG7DEmI
+ SaVVGPMQmkQsYtOdt7hYvmhGybly2ohMJ0cwF7BUXw9yKB8zTZNbyIr2s1g40h8P
+ UqpurYhCXv/86MDHqRY3gsCki4K513vxogrIAtlhJoIxAsgL9PwcUzkHDi8z1FnP
+ RTIr+kUU55ilfCZeH6CG7+C4O+kuFYrjxPXoKb/UGafdG+1IeBedvh0wCltc0S2e
+ Tl7J6pKKq2rUlQoTgk+nUcuiVeYwf1RVsrvyDuek7wp8QaWaz0fCtAxWpCkpd32/
+ vIbi6Idv3MdE5QtqLI7Wjz7m/DdS0F+XldT9qmyd2IoyZdEy4neJw0+9SazGT4zO
+ CpbaSbg3twQwe9DzWrRkTck5YOu5OvaBhyxxNvVFuDgfGys4ySb6ne/ivXCLfhIb
+ VXtoSswqsLcYdo0cpR7VjnEcjbeklHIz8xwH1tloMjC4
 
-
-
-On 4/13/22 4:29 PM, Heming Zhao wrote:
-> After this patch, when error, ocfs2_fill_super doesn't take care to
-> release resources which are allocated in ocfs2_initialize_super.
+On Wed, Apr 13, 2022 at 07:37:59PM +0800, Joseph Qi wrote:
+> It mostly looks good to me.
+> Have you done error injection test after this patchset applied?
+> I'm afraid ocfs2-test can't cover this as of now.
 > 
-> Signed-off-by: Heming Zhao <heming.zhao@suse.com>
 
-Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-> ---
->  fs/ocfs2/super.c | 59 +++++++++++++++++++++++++++++++++---------------
->  1 file changed, 41 insertions(+), 18 deletions(-)
+I plan to write a debugfs api for error injection test.
+The code only for these patches test
+
+My idea:
+echo N > /sys/kernel/debug/ocfs2/xxx/error
+N: 1,2,3,4,...
+
+"echo N" will make ocfs2 trigger Nth error point become true:
+
+```
+ 	status = ocfs2_initialize_super(sb, bh, sector_size, &stats);
+ 	brelse(bh);
+ 	bh = NULL;
+-	if (status < 0)
++	if (error_inject(n)) //eg. "echo 1 > xx" will trigger there "if()" becomes true.
+ 		goto out;
+```
+
+What's your opinion about my idea?
+Or do you have other method to test?
+
+- Heming
+
+> Thanks,
+> Joseph
 > 
-> diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-> index 7076125f5b46..4302c3e9598c 100644
-> --- a/fs/ocfs2/super.c
-> +++ b/fs/ocfs2/super.c
-> @@ -2023,7 +2023,7 @@ static int ocfs2_initialize_super(struct super_block *sb,
->  	if (!osb) {
->  		status = -ENOMEM;
->  		mlog_errno(status);
-> -		goto bail;
-> +		goto out;
->  	}
->  
->  	sb->s_fs_info = osb;
-> @@ -2084,7 +2084,7 @@ static int ocfs2_initialize_super(struct super_block *sb,
->  		mlog(ML_ERROR, "Invalid number of node slots (%u)\n",
->  		     osb->max_slots);
->  		status = -EINVAL;
-> -		goto bail;
-> +		goto out;
->  	}
->  
->  	ocfs2_orphan_scan_init(osb);
-> @@ -2093,7 +2093,7 @@ static int ocfs2_initialize_super(struct super_block *sb,
->  	if (status) {
->  		mlog(ML_ERROR, "Unable to initialize recovery state\n");
->  		mlog_errno(status);
-> -		goto bail;
-> +		goto out;
->  	}
->  
->  	init_waitqueue_head(&osb->checkpoint_event);
-> @@ -2117,7 +2117,7 @@ static int ocfs2_initialize_super(struct super_block *sb,
->  	if (!osb->vol_label) {
->  		mlog(ML_ERROR, "unable to alloc vol label\n");
->  		status = -ENOMEM;
-> -		goto bail;
-> +		goto out_recovery_map;
->  	}
->  
->  	osb->slot_recovery_generations =
-> @@ -2126,7 +2126,7 @@ static int ocfs2_initialize_super(struct super_block *sb,
->  	if (!osb->slot_recovery_generations) {
->  		status = -ENOMEM;
->  		mlog_errno(status);
-> -		goto bail;
-> +		goto out_vol_label;
->  	}
->  
->  	init_waitqueue_head(&osb->osb_wipe_event);
-> @@ -2136,7 +2136,7 @@ static int ocfs2_initialize_super(struct super_block *sb,
->  	if (!osb->osb_orphan_wipes) {
->  		status = -ENOMEM;
->  		mlog_errno(status);
-> -		goto bail;
-> +		goto out_slot_recovery_gen;
->  	}
->  
->  	osb->osb_rf_lock_tree = RB_ROOT;
-> @@ -2152,13 +2152,13 @@ static int ocfs2_initialize_super(struct super_block *sb,
->  		mlog(ML_ERROR, "couldn't mount because of unsupported "
->  		     "optional features (%x).\n", i);
->  		status = -EINVAL;
-> -		goto bail;
-> +		goto out_orphan_wipes;
->  	}
->  	if (!sb_rdonly(osb->sb) && (i = OCFS2_HAS_RO_COMPAT_FEATURE(osb->sb, ~OCFS2_FEATURE_RO_COMPAT_SUPP))) {
->  		mlog(ML_ERROR, "couldn't mount RDWR because of "
->  		     "unsupported optional features (%x).\n", i);
->  		status = -EINVAL;
-> -		goto bail;
-> +		goto out_orphan_wipes;
->  	}
->  
->  	if (ocfs2_clusterinfo_valid(osb)) {
-> @@ -2179,7 +2179,7 @@ static int ocfs2_initialize_super(struct super_block *sb,
->  			     "cluster stack label (%s) \n",
->  			     osb->osb_cluster_stack);
->  			status = -EINVAL;
-> -			goto bail;
-> +			goto out_orphan_wipes;
->  		}
->  		memcpy(osb->osb_cluster_name,
->  			OCFS2_RAW_SB(di)->s_cluster_info.ci_cluster,
-> @@ -2199,7 +2199,7 @@ static int ocfs2_initialize_super(struct super_block *sb,
->  	 */
->  	status = ocfs2_journal_alloc(osb);
->  	if (status)
-> -		goto bail;
-> +		goto out_orphan_wipes;
->  
->  	INIT_WORK(&osb->dquot_drop_work, ocfs2_drop_dquot_refs);
->  	init_llist_head(&osb->dquot_drop_list);
-> @@ -2214,7 +2214,7 @@ static int ocfs2_initialize_super(struct super_block *sb,
->  		mlog(ML_ERROR, "Volume has invalid cluster size (%d)\n",
->  		     osb->s_clustersize);
->  		status = -EINVAL;
-> -		goto bail;
-> +		goto out_journal;
->  	}
->  
->  	total_blocks = ocfs2_clusters_to_blocks(osb->sb,
-> @@ -2226,14 +2226,14 @@ static int ocfs2_initialize_super(struct super_block *sb,
->  		mlog(ML_ERROR, "Volume too large "
->  		     "to mount safely on this system");
->  		status = -EFBIG;
-> -		goto bail;
-> +		goto out_journal;
->  	}
->  
->  	if (ocfs2_setup_osb_uuid(osb, di->id2.i_super.s_uuid,
->  				 sizeof(di->id2.i_super.s_uuid))) {
->  		mlog(ML_ERROR, "Out of memory trying to setup our uuid.\n");
->  		status = -ENOMEM;
-> -		goto bail;
-> +		goto out_journal;
->  	}
->  
->  	strlcpy(osb->vol_label, di->id2.i_super.s_label,
-> @@ -2253,7 +2253,7 @@ static int ocfs2_initialize_super(struct super_block *sb,
->  	if (!osb->osb_dlm_debug) {
->  		status = -ENOMEM;
->  		mlog_errno(status);
-> -		goto bail;
-> +		goto out_uuid_str;
->  	}
->  
->  	atomic_set(&osb->vol_state, VOLUME_INIT);
-> @@ -2262,7 +2262,7 @@ static int ocfs2_initialize_super(struct super_block *sb,
->  	status = ocfs2_init_global_system_inodes(osb);
->  	if (status < 0) {
->  		mlog_errno(status);
-> -		goto bail;
-> +		goto out_dlm_out;
->  	}
->  
->  	/*
-> @@ -2273,7 +2273,7 @@ static int ocfs2_initialize_super(struct super_block *sb,
->  	if (!inode) {
->  		status = -EINVAL;
->  		mlog_errno(status);
-> -		goto bail;
-> +		goto out_system_inodes;
->  	}
->  
->  	osb->bitmap_blkno = OCFS2_I(inode)->ip_blkno;
-> @@ -2286,16 +2286,39 @@ static int ocfs2_initialize_super(struct super_block *sb,
->  	status = ocfs2_init_slot_info(osb);
->  	if (status < 0) {
->  		mlog_errno(status);
-> -		goto bail;
-> +		goto out_system_inodes;
->  	}
->  
->  	osb->ocfs2_wq = alloc_ordered_workqueue("ocfs2_wq", WQ_MEM_RECLAIM);
->  	if (!osb->ocfs2_wq) {
->  		status = -ENOMEM;
->  		mlog_errno(status);
-> +		goto out_slot_info;
->  	}
->  
-> -bail:
-> +	return status;
-> +
-> +out_slot_info:
-> +	ocfs2_free_slot_info(osb);
-> +out_system_inodes:
-> +	ocfs2_release_system_inodes(osb);
-> +out_dlm_out:
-> +	ocfs2_put_dlm_debug(osb->osb_dlm_debug);
-> +out_uuid_str:
-> +	kfree(osb->uuid_str);
-> +out_journal:
-> +	kfree(osb->journal);
-> +out_orphan_wipes:
-> +	kfree(osb->osb_orphan_wipes);
-> +out_slot_recovery_gen:
-> +	kfree(osb->slot_recovery_generations);
-> +out_vol_label:
-> +	kfree(osb->vol_label);
-> +out_recovery_map:
-> +	kfree(osb->recovery_map);
-> +out:
-> +	kfree(osb);
-> +	sb->s_fs_info = NULL;
->  	return status;
->  }
->  
+> On 4/13/22 4:29 PM, Heming Zhao wrote:
+> > Current ocfs2_fill_super() uses one goto label "read_super_error" to
+> > handle all error cases. And with previous serial patches, the error
+> > handling should fork more branches to handle different error cases.
+> > This patch rewrite the error handling of ocfs2_fill_super.
+> > 
+> > Signed-off-by: Heming Zhao <heming.zhao@suse.com>
+> > ---
+> >  fs/ocfs2/super.c | 67 +++++++++++++++++++++++-------------------------
+> >  1 file changed, 32 insertions(+), 35 deletions(-)
+> > 
+> > diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+> > index 5e860d7162d7..72673d40d29c 100644
+> > --- a/fs/ocfs2/super.c
+> > +++ b/fs/ocfs2/super.c
+> > @@ -989,28 +989,27 @@ static int ocfs2_fill_super(struct super_block *sb, void *data, int silent)
+> >  
+> >  	if (!ocfs2_parse_options(sb, data, &parsed_options, 0)) {
+> >  		status = -EINVAL;
+> > -		goto read_super_error;
+> > +		goto out;
+> >  	}
+> >  
+> >  	/* probe for superblock */
+> >  	status = ocfs2_sb_probe(sb, &bh, &sector_size, &stats);
+> >  	if (status < 0) {
+> >  		mlog(ML_ERROR, "superblock probe failed!\n");
+> > -		goto read_super_error;
+> > +		goto out;
+> >  	}
+> >  
+> >  	status = ocfs2_initialize_super(sb, bh, sector_size, &stats);
+> > -	osb = OCFS2_SB(sb);
+> > -	if (status < 0) {
+> > -		mlog_errno(status);
+> > -		goto read_super_error;
+> > -	}
+> >  	brelse(bh);
+> >  	bh = NULL;
+> > +	if (status < 0)
+> > +		goto out;
+> > +
+> > +	osb = OCFS2_SB(sb);
+> >  
+> >  	if (!ocfs2_check_set_options(sb, &parsed_options)) {
+> >  		status = -EINVAL;
+> > -		goto read_super_error;
+> > +		goto out_super;
+> >  	}
+> >  	osb->s_mount_opt = parsed_options.mount_opt;
+> >  	osb->s_atime_quantum = parsed_options.atime_quantum;
+> > @@ -1027,7 +1026,7 @@ static int ocfs2_fill_super(struct super_block *sb, void *data, int silent)
+> >  
+> >  	status = ocfs2_verify_userspace_stack(osb, &parsed_options);
+> >  	if (status)
+> > -		goto read_super_error;
+> > +		goto out_super;
+> >  
+> >  	sb->s_magic = OCFS2_SUPER_MAGIC;
+> >  
+> > @@ -1041,7 +1040,7 @@ static int ocfs2_fill_super(struct super_block *sb, void *data, int silent)
+> >  			status = -EACCES;
+> >  			mlog(ML_ERROR, "Readonly device detected but readonly "
+> >  			     "mount was not specified.\n");
+> > -			goto read_super_error;
+> > +			goto out_super;
+> >  		}
+> >  
+> >  		/* You should not be able to start a local heartbeat
+> > @@ -1050,7 +1049,7 @@ static int ocfs2_fill_super(struct super_block *sb, void *data, int silent)
+> >  			status = -EROFS;
+> >  			mlog(ML_ERROR, "Local heartbeat specified on readonly "
+> >  			     "device.\n");
+> > -			goto read_super_error;
+> > +			goto out_super;
+> >  		}
+> >  
+> >  		status = ocfs2_check_journals_nolocks(osb);
+> > @@ -1059,9 +1058,7 @@ static int ocfs2_fill_super(struct super_block *sb, void *data, int silent)
+> >  				mlog(ML_ERROR, "Recovery required on readonly "
+> >  				     "file system, but write access is "
+> >  				     "unavailable.\n");
+> > -			else
+> > -				mlog_errno(status);
+> > -			goto read_super_error;
+> > +			goto out_super;
+> >  		}
+> >  
+> >  		ocfs2_set_ro_flag(osb, 1);
+> > @@ -1077,10 +1074,8 @@ static int ocfs2_fill_super(struct super_block *sb, void *data, int silent)
+> >  	}
+> >  
+> >  	status = ocfs2_verify_heartbeat(osb);
+> > -	if (status < 0) {
+> > -		mlog_errno(status);
+> > -		goto read_super_error;
+> > -	}
+> > +	if (status < 0)
+> > +		goto out_super;
+> >  
+> >  	osb->osb_debug_root = debugfs_create_dir(osb->uuid_str,
+> >  						 ocfs2_debugfs_root);
+> > @@ -1094,15 +1089,14 @@ static int ocfs2_fill_super(struct super_block *sb, void *data, int silent)
+> >  
+> >  	status = ocfs2_mount_volume(sb);
+> >  	if (status < 0)
+> > -		goto read_super_error;
+> > +		goto out_debugfs;
+> >  
+> >  	if (osb->root_inode)
+> >  		inode = igrab(osb->root_inode);
+> >  
+> >  	if (!inode) {
+> >  		status = -EIO;
+> > -		mlog_errno(status);
+> > -		goto read_super_error;
+> > +		goto out_dismount;
+> >  	}
+> >  
+> >  	osb->osb_dev_kset = kset_create_and_add(sb->s_id, NULL,
+> > @@ -1110,7 +1104,7 @@ static int ocfs2_fill_super(struct super_block *sb, void *data, int silent)
+> >  	if (!osb->osb_dev_kset) {
+> >  		status = -ENOMEM;
+> >  		mlog(ML_ERROR, "Unable to create device kset %s.\n", sb->s_id);
+> > -		goto read_super_error;
+> > +		goto out_dismount;
+> >  	}
+> >  
+> >  	/* Create filecheck sysfs related directories/files at
+> > @@ -1119,14 +1113,13 @@ static int ocfs2_fill_super(struct super_block *sb, void *data, int silent)
+> >  		status = -ENOMEM;
+> >  		mlog(ML_ERROR, "Unable to create filecheck sysfs directory at "
+> >  			"/sys/fs/ocfs2/%s/filecheck.\n", sb->s_id);
+> > -		goto read_super_error;
+> > +		goto out_dismount;
+> >  	}
+> >  
+> >  	root = d_make_root(inode);
+> >  	if (!root) {
+> >  		status = -ENOMEM;
+> > -		mlog_errno(status);
+> > -		goto read_super_error;
+> > +		goto out_dismount;
+> >  	}
+> >  
+> >  	sb->s_root = root;
+> > @@ -1178,17 +1171,21 @@ static int ocfs2_fill_super(struct super_block *sb, void *data, int silent)
+> >  
+> >  	return status;
+> >  
+> > -read_super_error:
+> > -	brelse(bh);
+> > -
+> > -	if (status)
+> > -		mlog_errno(status);
+> > +out_dismount:
+> > +	atomic_set(&osb->vol_state, VOLUME_DISABLED);
+> > +	wake_up(&osb->osb_mount_event);
+> > +	ocfs2_dismount_volume(sb, 1);
+> > +	goto out;
+> >  
+> > -	if (osb) {
+> > -		atomic_set(&osb->vol_state, VOLUME_DISABLED);
+> > -		wake_up(&osb->osb_mount_event);
+> > -		ocfs2_dismount_volume(sb, 1);
+> > -	}
+> > +out_debugfs:
+> > +	debugfs_remove_recursive(osb->osb_debug_root);
+> > +out_super:
+> > +	ocfs2_release_system_inodes(osb);
+> > +	kfree(osb->recovery_map);
+> > +	ocfs2_delete_osb(osb);
+> > +	kfree(osb);
+> > +out:
+> > +	mlog_errno(status);
+> >  
+> >  	return status;
+> >  }
+> 
+
 
 _______________________________________________
 Ocfs2-devel mailing list
