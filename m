@@ -1,59 +1,59 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc252.phx1.oracleemaildelivery.com (aib29ajc252.phx1.oracleemaildelivery.com [192.29.103.252])
+Received: from aib29ajc248.phx1.oracleemaildelivery.com (aib29ajc248.phx1.oracleemaildelivery.com [192.29.103.248])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 9242DC352A8
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id A25D2C38A02
 	for <ocfs2-devel@archiver.kernel.org>; Fri, 15 Apr 2022 04:54:40 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=DCK4VaRpGvRUDCF8GhBjD1BEFFVqBcsrtlrCNGu9fuM=;
- b=UM/YWKOKyPymPvilQPv8rPFFQWlWhjqZf4XIxqFfWeuLTQICZHH9SmZfuPAFYnLPVaOi9LGAJcWE
-   OSBx/xJhD4ZSWcQDOx17RcoRUNmqUiYtJaGSfDT2Vs52PexRCWPRvTlLKyWH20kCQ1Dc5dJvxMSj
-   grTbgwJOdW1dyh1X+APJLD2Bp1iG0tNrRFnxQBjsu37B/IisSxnI34eY9PsAmcuI2HIvxi4C0PcP
-   YqVDCBm1bBg1+vPxmwFzF/mQa8SD0ZIbGAhlarwGHS/66TBkMj56daWB4XW+7kcyx65dv4h/ctCY
-   x90QpxnXb7SOSqTzESmUgx92DN8LHApZOevmzw==
+ bh=EhzRMAliWQfAp1Rh6krPu4+eAG1WRlU9Bdv6/WRPHMQ=;
+ b=aTINCrbJ2KN+Noc72jvLspPHV23NHseyA4rlZlhiGiXG3sV9AMlfV9EEakazsDBBsW8VJ8s80pj0
+   MAvSmQTazuuNJcvTDfup12TcKH0hiS86h/kBrTsPsvJHVr3WUxBecUXdX36Cj1tXsp15D/uEbBnY
+   Uy/o1cOkCJj+lV+eOixW5IAcwTZw1mIksCIx9TMG9dtnwTy2uBEtzFmcYFNaWxYhrMC3sM+rMJL7
+   xAgtejq3Xc0VtSLEZxAj2WwC1u25C6a17/Zd5nRI+y2U8P3jMhSvW7S4h9rKdXsjfX4g/26/TFJW
+   ptj2WPpLw3Iut7V81stD/IguKudnrorcvQA/Pg==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=DCK4VaRpGvRUDCF8GhBjD1BEFFVqBcsrtlrCNGu9fuM=;
- b=u3YDReP4/k4Ngf96IjJ0iG2AavCZ0GyhyVXmgIdYusRSiPKQyE8s/1EaIy0ZDWwXcog4yBA1cdTL
-   k5EJs1/cGrscPdjOfA4c0BchR1MnzUZq6KtAgOrwsBeF4DvOfY6Rl9fTny2K3uJFD9LKAyRDkSJm
-   l6AUiZU4keCc+hnyu5KOk/wyxbNwL63IM0G12RAJsnWArtEgP2W4yyr5EfYOgWjxW3+tXczU31T8
-   4RJUm4D2NibS8Vu2XIhp/NsDVNtSKAwRJ9bF08ni5qkQr2mygd4EljQtfa5Dl0SV+yqJ/+IDiZih
-   2cTF8yFJGsFH7BjxMhEv+ujN+BlmIDeyocQRYQ==
-Received: by omta-ad3-fd1-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
+ bh=EhzRMAliWQfAp1Rh6krPu4+eAG1WRlU9Bdv6/WRPHMQ=;
+ b=HkcRaGPraKHzely7xfP6ncCq3+/GZC6Bwn6p8UVWiWAeO2LLeCK9wTsOf+niEEGYTLL3lQdyhCs5
+   rOttsGoXkhklRD0mlRgIQNiYddPU3dgCMRUGoxUvRksIdmulWvVBe1gVLqKk0h4vNQxlQatGzuUH
+   mslocOoFJdkcrPjeaG0SCSY5dJJblEBPiI2S9sb4YA5B3YXQhi5msiDSHqHA/BYck2lUaiU8+REl
+   CodH05c98VmmuXt1ka6VcZ92DoE5EGmxAnwTt/xxjfcKsVGl0mBCdkCdhLeSjBZZjKatdNRaQsz3
+   yFLga9V2WazXSgoFtrsnB1i+IdeEdc2X5YvF+Q==
+Received: by omta-ad2-fd1-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220319 64bit (built Mar 19
  2022))
- with ESMTPS id <0RAD005XG6Z40I10@omta-ad3-fd1-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Fri, 15 Apr 2022 04:54:40 +0000 (GMT)
+ with ESMTPS id <0RAD0042Y6Z3Q400@omta-ad2-fd1-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Fri, 15 Apr 2022 04:54:39 +0000 (GMT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
  d=infradead.org; s=bombadil.20210309; h=Content-Transfer-Encoding:
  MIME-Version:References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender
  :Reply-To:Content-Type:Content-ID:Content-Description;
- bh=6r328luNCDNaFOT33dRflffYOj2Ig+snh5CgwFTaxcw=; b=mNuFiFjSDLbldIX31eYOuSlRR9
- 8563S/h8LrxYIHowjJfVJZ76RAtIHUbU8W+hFh4MWU8WMYfdB6LyJh2COdvD/iZqFmSUWNE+zj3n8
- TjDK1RADFF2jHuhjgFvsFPr2iNfo2ZxzGPd6/D7n8+r4+csvAbreOAgnv7mb2shTRUMZRApT5F90K
- NcXEn1pmSIjxsyXRt1Q5Fpafq+pdIcKs6RGb6uD0qSORONp8YiTBWhXw1jJiMd9DQ1XNtZR7AS8Rn
- LRWZ13064QQZdYqJpwxZzURW2pQw6Vjn+9nq/BjlV+QBzJ7qa6lBovEI7n8jqfejDLm+YrLORSOW6
- 48XX9zTw==;
+ bh=A3F4pzgWH2QQ0wtpIeTWEbWkE7zvp2Hf2SzUvBBV6uI=; b=2blFxPm6xz5pgZn6E5jvsGqhvn
+ 2WDz/E43ISZl4v/rhlHMaqtSb4lVbmKeEW11/ljs0aiEkq0TnWEDxeJnrojcMAcOqNB8N3gDxJnoZ
+ 0NRetUsPJHvzddTt7lmgpHndIYp7bFipN2chfdRidmHIR3lH3yyIVmQny7lS+2WzaIVhTRY61ZPLW
+ cNdIp932vWgZbDLAr3bVHO1tMLGx1FOnjxoa9UVQZYEIwSKlwU7ByTf62px4tvbNkH8lyOAfKg6eV
+ fvQs7AcyDRrAWF5ZnpqPRd0RsttREedP1tYS6zdjKYykJ8LivF4bs1Leq71tf07T70LHtI3i4RcFf
+ TuAsL+Kw==;
 To: Jens Axboe <axboe@kernel.dk>
-Date: Fri, 15 Apr 2022 06:52:52 +0200
-Message-id: <20220415045258.199825-22-hch@lst.de>
+Date: Fri, 15 Apr 2022 06:52:51 +0200
+Message-id: <20220415045258.199825-21-hch@lst.de>
 X-Mailer: git-send-email 2.30.2
 In-reply-to: <20220415045258.199825-1-hch@lst.de>
 References: <20220415045258.199825-1-hch@lst.de>
 MIME-version: 1.0
-X-Source-IP: 127.0.0.1
+X-Source-IP: 198.137.202.133
 X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10317
  signatures=695566
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 impostorscore=0
- lowpriorityscore=0 phishscore=0 priorityscore=203 adultscore=0 mlxlogscore=999
- bulkscore=0 clxscore=239 malwarescore=0 mlxscore=0 spamscore=0 suspectscore=0
- classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2202240000
- definitions=main-2204150029
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0
+ priorityscore=181 mlxscore=0 malwarescore=0 mlxlogscore=873 bulkscore=0
+ spamscore=0 phishscore=0 lowpriorityscore=0 clxscore=224 adultscore=0
+ suspectscore=0 impostorscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2202240000 definitions=main-2204150029
 Cc: jfs-discussion@lists.sourceforge.net, linux-nvme@lists.infradead.org,
  virtualization@lists.linux-foundation.org, linux-mm@kvack.org,
  dm-devel@redhat.com, target-devel@vger.kernel.org,
@@ -68,8 +68,8 @@ Cc: jfs-discussion@lists.sourceforge.net, linux-nvme@lists.infradead.org,
  linux-xfs@vger.kernel.org, ocfs2-devel@oss.oracle.com,
  linux-fsdevel@vger.kernel.org, ntfs3@lists.linux.dev,
  linux-btrfs@vger.kernel.org
-Subject: [Ocfs2-devel] [PATCH 21/27] block: move {bdev,
-	queue_limit}_discard_alignment out of line
+Subject: [Ocfs2-devel] [PATCH 20/27] block: use bdev_discard_alignment in
+	part_discard_alignment_show
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -88,127 +88,47 @@ Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
 X-SRS-Rewrite: SMTP reverse-path rewritten from <hch@infradead.org> by
  bombadil.infradead.org. See http://www.infradead.org/rpr.html
-X-ServerName: localhost
+X-ServerName: bombadil.infradead.org
 X-Proofpoint-SPF-Result: None
 X-Spam: Clean
-X-Proofpoint-ORIG-GUID: CmzQEqltmX-XRAFufn50SsBi88_lToGb
-X-Proofpoint-GUID: CmzQEqltmX-XRAFufn50SsBi88_lToGb
+X-Proofpoint-ORIG-GUID: HnmTObvivFFQfni0icFcD9W38ZQzBFGb
+X-Proofpoint-GUID: HnmTObvivFFQfni0icFcD9W38ZQzBFGb
 Reporting-Meta:
- AAH+kgVZA0vYewW9kyiGXo4CGCW5cP4gge7qpYD6fzmuR/LclAi2i55MGlqe1tRD
- pb8XRffJeZ7lspVJEQ8ucd55TerMEgeiGI/63ADCSwCeyYkApiLBF6f/jYNbW1wR
- 2HZUpgz7xYDQQnwtDXRW4FWEGYu+z1o0QMgGD5m75ygKPTNQxfS3ULOCYo8DuoGL
- cjVpDbMCePf7lfomjfeUXu3ieKh0jUCphEbvg9Mfcz14eyPIiWVCg+t3WgMK8o7t
- jBx4bLwYjN9UvaqCS1Gf5H6z4ZDFZiXDfRTsHbtjRmUwv0Z3GCvMllvTacxcIn3S
- hb2dsyiOjWuIau2vLhiBfSgG1mdLjj7Pqlr8COKXyBmbVUHQzgOmJp51B9u6vgCY
- jPN4ARJQhwDtXOl4mOncQriyC+U7lom20N4txZYljzKMsg3fpx1vvDgxsCF8ahOV
- 4nKrM/2YETixt4uHbija7y/D8/Uq2iQYA5QQ9X5aTkvrspmvjkfCILFEydza8K47
- T0f9o0FpJV297UX8agOZQP+73KGUQNjo6+ieuI+aQ/zYOQ==
+ AAE0IoEmOF0ubqBkHjr2JUX5XcnRIUrhFYEtK6E7dqOzAJKjwXAWlIYqeA07I7s1
+ NVYR8gD4khEmNXifJWsZBeCEb2pTweEA+x7E9ww2DAcLm2B9z4PJ44HxYLvEym0e
+ K9ljple8KKr6T5wfbhaRNZB6jhEz8i+wnI6R1XO5kH2KYmF90QBnR1yixJdHl623
+ q9vMXoSiABaiS1nX4IEg87UvKe2i7YbDxxjKAIwmuW+34S9bLlg6PWv0yhrD48b3
+ eLEii0v/pQVdAkaTzTLq1oYYi9yRs7VR5Yykh5HllrhIC5U6NdAQBN3Rl7tFcUJd
+ Gfny5B3BKsPnQ3sthZru6F9HwS/S8PIguLM6UnkuKXqq4oOL6DISWXT8QZndZTii
+ S3dBkFgylLEnmjkMxoKwy6z4UGprD6RKv0kbfVsNlu2kUh3SA/Z99zI4X3GG2A8i
+ 5jjg4sPaiXJkksqlDPGvycpEccRnOqXuaLWpHRhI4RE+znJlzM9L1v5dCFkg1DJK
+ iYLWMAzHmeVaHxX6g3wkMZqfwXdGnh746B8JI4UefveN
 
-No need to inline these fairly larger helpers.  Also fix the return value
-to be unsigned, just like the field in struct queue_limits.
+Use the bdev based alignment helper instead of open coding it.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 Reviewed-by: Martin K. Petersen <martin.petersen@oracle.com>
 ---
- block/blk-settings.c   | 35 +++++++++++++++++++++++++++++++++++
- include/linux/blkdev.h | 34 +---------------------------------
- 2 files changed, 36 insertions(+), 33 deletions(-)
+ block/partitions/core.c | 6 +-----
+ 1 file changed, 1 insertion(+), 5 deletions(-)
 
-diff --git a/block/blk-settings.c b/block/blk-settings.c
-index 94410a13c0dee..fd83d674afd0a 100644
---- a/block/blk-settings.c
-+++ b/block/blk-settings.c
-@@ -478,6 +478,30 @@ static int queue_limit_alignment_offset(struct queue_limits *lim,
- 	return (granularity + lim->alignment_offset - alignment) % granularity;
- }
- 
-+static unsigned int queue_limit_discard_alignment(struct queue_limits *lim,
-+		sector_t sector)
-+{
-+	unsigned int alignment, granularity, offset;
-+
-+	if (!lim->max_discard_sectors)
-+		return 0;
-+
-+	/* Why are these in bytes, not sectors? */
-+	alignment = lim->discard_alignment >> SECTOR_SHIFT;
-+	granularity = lim->discard_granularity >> SECTOR_SHIFT;
-+	if (!granularity)
-+		return 0;
-+
-+	/* Offset of the partition start in 'granularity' sectors */
-+	offset = sector_div(sector, granularity);
-+
-+	/* And why do we do this modulus *again* in blkdev_issue_discard()? */
-+	offset = (granularity + alignment - offset) % granularity;
-+
-+	/* Turn it back into bytes, gaah */
-+	return offset << SECTOR_SHIFT;
-+}
-+
- static unsigned int blk_round_down_sectors(unsigned int sectors, unsigned int lbs)
+diff --git a/block/partitions/core.c b/block/partitions/core.c
+index 240b3fff521e4..70dec1c78521d 100644
+--- a/block/partitions/core.c
++++ b/block/partitions/core.c
+@@ -206,11 +206,7 @@ static ssize_t part_alignment_offset_show(struct device *dev,
+ static ssize_t part_discard_alignment_show(struct device *dev,
+ 					   struct device_attribute *attr, char *buf)
  {
- 	sectors = round_down(sectors, lbs >> SECTOR_SHIFT);
-@@ -924,3 +948,14 @@ int bdev_alignment_offset(struct block_device *bdev)
- 	return q->limits.alignment_offset;
- }
- EXPORT_SYMBOL_GPL(bdev_alignment_offset);
-+
-+unsigned int bdev_discard_alignment(struct block_device *bdev)
-+{
-+	struct request_queue *q = bdev_get_queue(bdev);
-+
-+	if (bdev_is_partition(bdev))
-+		return queue_limit_discard_alignment(&q->limits,
-+				bdev->bd_start_sect);
-+	return q->limits.discard_alignment;
-+}
-+EXPORT_SYMBOL_GPL(bdev_discard_alignment);
-diff --git a/include/linux/blkdev.h b/include/linux/blkdev.h
-index 5a9b7aeda010b..34b1cfd067421 100644
---- a/include/linux/blkdev.h
-+++ b/include/linux/blkdev.h
-@@ -1252,39 +1252,7 @@ bdev_zone_write_granularity(struct block_device *bdev)
+-	struct block_device *bdev = dev_to_bdev(dev);
+-
+-	return sprintf(buf, "%u\n",
+-		queue_limit_discard_alignment(&bdev_get_queue(bdev)->limits,
+-				bdev->bd_start_sect));
++	return sprintf(buf, "%u\n", bdev_discard_alignment(dev_to_bdev(dev)));
  }
  
- int bdev_alignment_offset(struct block_device *bdev);
--
--static inline int queue_limit_discard_alignment(struct queue_limits *lim, sector_t sector)
--{
--	unsigned int alignment, granularity, offset;
--
--	if (!lim->max_discard_sectors)
--		return 0;
--
--	/* Why are these in bytes, not sectors? */
--	alignment = lim->discard_alignment >> SECTOR_SHIFT;
--	granularity = lim->discard_granularity >> SECTOR_SHIFT;
--	if (!granularity)
--		return 0;
--
--	/* Offset of the partition start in 'granularity' sectors */
--	offset = sector_div(sector, granularity);
--
--	/* And why do we do this modulus *again* in blkdev_issue_discard()? */
--	offset = (granularity + alignment - offset) % granularity;
--
--	/* Turn it back into bytes, gaah */
--	return offset << SECTOR_SHIFT;
--}
--
--static inline int bdev_discard_alignment(struct block_device *bdev)
--{
--	struct request_queue *q = bdev_get_queue(bdev);
--
--	if (bdev_is_partition(bdev))
--		return queue_limit_discard_alignment(&q->limits,
--				bdev->bd_start_sect);
--	return q->limits.discard_alignment;
--}
-+unsigned int bdev_discard_alignment(struct block_device *bdev);
- 
- static inline unsigned int bdev_write_zeroes_sectors(struct block_device *bdev)
- {
+ static DEVICE_ATTR(partition, 0444, part_partition_show, NULL);
 -- 
 2.30.2
 
