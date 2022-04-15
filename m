@@ -1,47 +1,47 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc245.phx1.oracleemaildelivery.com (aib29ajc245.phx1.oracleemaildelivery.com [192.29.103.245])
+Received: from aib29ajc255.phx1.oracleemaildelivery.com (aib29ajc255.phx1.oracleemaildelivery.com [192.29.103.255])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 73E0BC4707A
-	for <ocfs2-devel@archiver.kernel.org>; Fri, 15 Apr 2022 04:54:39 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id D5CB8C3527D
+	for <ocfs2-devel@archiver.kernel.org>; Fri, 15 Apr 2022 04:54:47 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=cFZFHy2P1yEByFwgaUITjjO2DIQYosKuMDJLZz0CSPc=;
- b=IokYRnu0x2bNtBzIoweT6RjPs5v8ikVo9vCE82sYS4EpuMEbIpKVU5KLysBSpp3NHR0Zph/cXOBn
-   fT/gAkj8AWpMCU1TxEel+71Zy9umbXTDLV1xv2NXdTRVE79UibX+kheKBudupoiV9PeRKKe0VVCw
-   UUDZ35LkKvU+l4T/EYg3BIkGRxv7gFBhtiYOBz/6tnEMpAOWpuMkWkh5neaVWNwXyNzkc/KpcJwz
-   OwcR0Eo7sL1xJcVdoms5g9Cb/SQE6LnIbJrgiYW0j4TZyFRVJIIdaiO9rFvkKZ811G26sJm1UTPy
-   wvVFAfv0c4POvQMtjkmx0f93T2Cr8fhM7sxVZg==
+ bh=PhDHsGMKQQqInfcK4NFKdoStLqrIw5x3XhmJbdsGIrk=;
+ b=b7Q5RNjKYC0F0Bv9eP4x7uPXrbUiBoZteMrGCSJtZb2+36JfjRqVuaJKlQBWdCy31IVQCGDhpNPO
+   JcQ/rQG7UXIBsRHoxz+LR8O6GyJmbUIvyNjYHyXnGdfyLXcSbthgNh1I4Aw+0P+TdWDHC3rR+r5p
+   BEcFNrq2GVs9Wh4KG2qs8a1ZDaR64DxsTpxLy9yTSStake52A36r1HKi2fvgImpGFvfHmzUXaKLZ
+   b6AX/RTxHgniqyR19C31kBDuUmNsOyXvqz+53I+trmVNEJqMSy0EvJqsWrLcbSKIVv9eLs3fhyP1
+   tzEmoIAY/CFFX+Yr3th0BwzPGJnp2NG9Bx+mgw==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=cFZFHy2P1yEByFwgaUITjjO2DIQYosKuMDJLZz0CSPc=;
- b=pN9ZKC0dfqrXi5RpZS6e871h/kL+p5gWpXUG5kasKMLzYV++ejbEC9gSsSsOc277CEryPagf/D4Q
-   VnJ80hE+Bu+tIVIjku/qFp3r2R7CwRWKbiQvTUCsBMTOnBAlQHSisp6PKFH5U6Ami86KDzDKPkIC
-   gUuhAU5UDRh81Xe7atHZZpOuKtWBvvlnYQ9Ibk1KchrFvuYe6SB0Ks38xR50fjI1e6XUJ6D+/dY+
-   3wqN3e8H1bgUxT3LInd3VJKY+boepmEnqqMaL7LTIO/hozKyT1hCCR6ttvrJGcfd6bSIxeVK0Igm
-   +BJigaZqaAkZvyFMSekYESU9iEtody9tLHT0cg==
-Received: by omta-ad1-fd1-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
+ bh=PhDHsGMKQQqInfcK4NFKdoStLqrIw5x3XhmJbdsGIrk=;
+ b=kv3G0Kpx29dSAJh2gxK4if7xx1SjRY4ioDbSVgnzjH3CBaVuFvkhkCBw27S/Qnl/IB5DBWupCOB7
+   QaVmJYVK5Uxx6pKz9kDwMeTmjJsNv9PC6Bf4fLauO4t1q8wSxdGmXreB/a7YlRwgjonfutHC+B2Z
+   3cKCwAwaqG/2Z/L/vnKFDzQmnI1M0eVEd5mTumANr+cEsPqk2X2RHJyCyfBgSdYcIT36DMzgxWLt
+   uC8w9LsOSGnVkVBRPh312jDA9NWqDMoAD5s0LuO2PEGfqTtyjS5StoXoLTk1g9AjoqKaEe5YDe22
+   mihRdIopxtIuM+Oz/z9Oicor11gQm9J/baQEhw==
+Received: by omta-ad3-fd3-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220319 64bit (built Mar 19
  2022))
- with ESMTPS id <0RAD0030X6Z20WG0@omta-ad1-fd1-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Fri, 15 Apr 2022 04:54:38 +0000 (GMT)
+ with ESMTPS id <0RAD00B5D6ZBE2C0@omta-ad3-fd3-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Fri, 15 Apr 2022 04:54:47 +0000 (GMT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
  d=infradead.org; s=bombadil.20210309; h=Content-Transfer-Encoding:
  MIME-Version:References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender
  :Reply-To:Content-Type:Content-ID:Content-Description;
- bh=2RG8/4DncVNJBVxiwRZlDWFw3of1TwdfVdHLgkB+Spw=; b=TPuJfqXQYB+IC35ZbEz9CiQlaP
- djXIx0VTkzhzaYzpf2LZ0DDooPinTXguiju0AYCGSu3XAhEA+wzVismYaoX+3FR9eNAg3biu1OIj0
- CNWcQrqG9KwJqTbS05bqC74Hcp5G8fJ5Dpqbc41a5wovtXyrz6AnrzdO6HJSlv+co9m5WLmUX5I/2
- 1vg6dJgX8fRkFI9MMSOkSfnCdkNwHb1kqsdqtSSukL34iYYeRnM6jabi2m1nx/iB0bJqJyAfSKPi1
- QfdCggnyqMztz/KBp1d+dGH+Q0SMobP0ybTMhNnUN2Xr4FneN5Nr0VM4ULPM98M5hdJ71ysDrIM3k
- XuXkKxgg==;
+ bh=eypoqjBCbHteIGJMjEE77faduCfiNIsAQ0ydQeu7OQ0=; b=yel/I7wJHKQGgU++DGlNr4s6By
+ PhYVQZj76IsIJmZMeImq5Q6B2/aQRkMD3ug5dWOU3Jeh5aspjbtIuEjPut08JeM1WmCeQvYQ+tJ0f
+ U696Xi8dd1qtuDaSpjLkD+EO876944juvaQn7mqYu4AmZhVRFKFIBWZURNzhkvK80mkS4SdYE8ghg
+ 5kwkeIFA+dIpz0sffz1xoP4BK6LoTUtTMKLOpm6yB1H7oV7nfL4grqbNBsJP5+jCEy6k9Hq/bQASA
+ 9dlkqzozrnkdCC5ckIaWKU5KZigzG6TnQjnKvn/KI4zIY9eR4oRyKCNwIxfdzpwno3WYuY2QxxbuI
+ z9ygJJXA==;
 To: Jens Axboe <axboe@kernel.dk>
-Date: Fri, 15 Apr 2022 06:52:45 +0200
-Message-id: <20220415045258.199825-15-hch@lst.de>
+Date: Fri, 15 Apr 2022 06:52:58 +0200
+Message-id: <20220415045258.199825-28-hch@lst.de>
 X-Mailer: git-send-email 2.30.2
 In-reply-to: <20220415045258.199825-1-hch@lst.de>
 References: <20220415045258.199825-1-hch@lst.de>
@@ -49,10 +49,10 @@ MIME-version: 1.0
 X-Source-IP: 198.137.202.133
 X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10317
  signatures=695566
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 phishscore=0
- impostorscore=0 suspectscore=0 malwarescore=0 clxscore=225 lowpriorityscore=0
- priorityscore=143 mlxscore=0 adultscore=0 mlxlogscore=801 spamscore=0
- bulkscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 clxscore=250
+ bulkscore=0 phishscore=0 adultscore=0 malwarescore=0 lowpriorityscore=0
+ suspectscore=0 mlxlogscore=336 priorityscore=229 spamscore=0 impostorscore=0
+ mlxscore=0 classifier=spam adjust=0 reason=mlx scancount=1
  engine=8.12.0-2202240000 definitions=main-2204150029
 Cc: jfs-discussion@lists.sourceforge.net, linux-nvme@lists.infradead.org,
  virtualization@lists.linux-foundation.org, linux-mm@kvack.org,
@@ -68,7 +68,7 @@ Cc: jfs-discussion@lists.sourceforge.net, linux-nvme@lists.infradead.org,
  linux-xfs@vger.kernel.org, ocfs2-devel@oss.oracle.com,
  linux-fsdevel@vger.kernel.org, ntfs3@lists.linux.dev,
  linux-btrfs@vger.kernel.org
-Subject: [Ocfs2-devel] [PATCH 14/27] block: add a bdev_stable_writes helper
+Subject: [Ocfs2-devel] [PATCH 27/27] direct-io: remove random prefetches
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -90,89 +90,79 @@ X-SRS-Rewrite: SMTP reverse-path rewritten from <hch@infradead.org> by
 X-ServerName: bombadil.infradead.org
 X-Proofpoint-SPF-Result: None
 X-Spam: Clean
-X-Proofpoint-ORIG-GUID: NWfDYFj5zuGXbzMDtMpO409FxrWcPGRu
-X-Proofpoint-GUID: NWfDYFj5zuGXbzMDtMpO409FxrWcPGRu
+X-Proofpoint-ORIG-GUID: Bkt2NuFynF2AOy0ZlriW6-jHVko_WJEU
+X-Proofpoint-GUID: Bkt2NuFynF2AOy0ZlriW6-jHVko_WJEU
 Reporting-Meta:
- AAGMgYTWCWlNdD649jUFdGZ9NlMto9M1/jU1tpHg9+qqgKkwmdb6x4o4RKbvH5Wg
- laJGV2b2h0KDzwYWWogNbbn3q/l4vLmgQ3IHV4v0dA0HS51So2CDBx6v4nGKm+nf
- wkDarqy+TaECxLkfnjg26LJGHoRpSX2qe3fxAiTiTuV16WDMe9comsQo2jysyzs5
- kcB1yi8+W8HW4q2ha7wrhE1j4/YZMpjQhm4ZsFNWuEWGIkRcDik9oR49ADrthI3h
- B5figsn7rw4mKi4/Fzp9LNxaupbCIh1Fk0pWozkQ1kq/v9KWZZdJjznfI0ThnNpM
- 25KA55NKBzyRYg3RTlZxiXYFWICWmmX3JAjuBkrsZQ/OcbkCNXfq8GEfpQCo9gnS
- K54TClsrdAm08k0DDQlpxXYkaPI/JbMUgieLkRl7gAxjeqbgJXyFfQy4jjlDFp42
- Rr6jwwUJ1M6yapoPnAeumUpJtCW4R5AEWrnU54f9UjuGMlreWLF2OHTvhOw+z5/k
- SVa7F202SHfRAjk6PDKouEA8hsMtYsKRE9K2+8hYZYunwQ==
+ AAENtVkpLmB6B7oaOjtZITnqizDGjLPjg163VXmTGnNHKiZrrmV6yaudRlZCw7QE
+ oFJondEe35bUEiXyW3Nmlbw7s5QWOcRCaiZApFQ5kP7oEVaBPwzwGDXq8WBxGSYG
+ TNsqn5aZOLhDSjyTt0+GkU9ijhisQ421wFIFuiT8GLQ2OQyGufnKgLpxTBQPb2an
+ uYiiyhywuNtIl19wdj9VhPeDk/WEtWosIczNZ4+/Fu9c00jvJ4HzvhnrDCWBXjLi
+ 9w6kZBRH8Xd9RA955F4MWX3JROme6smOfOMVjYPSNpZWmpHW145OzVHP9+B2GNYN
+ tk9MhdMtRZOdvwC0mfhoFLMgasJ6ey0cQvp+41w5LQiP7LYCy5lWtWnzPVASVq+U
+ 1dQg1Akw35JoLdHdGDEgmr6KnIEvuPVe3V6QzZ0YZ97Tjb3P14dchwEfc4JFfzN+
+ yIutRaAxzNDYcosfUzOcKkMAa/zi5SPf3dFydGBYoUoE6Tt+iGpsEgDg0pWMAgFd
+ xw8ZlLBeLa9iQ+XWkkXo2727uDh8reBJTmmDbeW2tVR3Ow==
 
-Add a helper to check the stable writes flag based on the block_device
-instead of having to poke into the block layer internal request_queue.
+Randomly poking into block device internals for manual prefetches isn't
+exactly a very maintainable thing to do.  And none of the performance
+criticil direct I/O implementations still use this library function
+anyway, so just drop it.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
-Reviewed-by: Martin K. Petersen <martin.petersen@oracle.com>
 ---
- drivers/md/dm-table.c  | 4 +---
- fs/super.c             | 2 +-
- include/linux/blkdev.h | 6 ++++++
- mm/swapfile.c          | 2 +-
- 4 files changed, 9 insertions(+), 5 deletions(-)
+ fs/direct-io.c | 32 ++++----------------------------
+ 1 file changed, 4 insertions(+), 28 deletions(-)
 
-diff --git a/drivers/md/dm-table.c b/drivers/md/dm-table.c
-index 5e38d0dd009d5..d46839faa0ca5 100644
---- a/drivers/md/dm-table.c
-+++ b/drivers/md/dm-table.c
-@@ -1950,9 +1950,7 @@ static int device_requires_stable_pages(struct dm_target *ti,
- 					struct dm_dev *dev, sector_t start,
- 					sector_t len, void *data)
+diff --git a/fs/direct-io.c b/fs/direct-io.c
+index aef06e607b405..840752006f601 100644
+--- a/fs/direct-io.c
++++ b/fs/direct-io.c
+@@ -1115,11 +1115,10 @@ static inline int drop_refcount(struct dio *dio)
+  * individual fields and will generate much worse code. This is important
+  * for the whole file.
+  */
+-static inline ssize_t
+-do_blockdev_direct_IO(struct kiocb *iocb, struct inode *inode,
+-		      struct block_device *bdev, struct iov_iter *iter,
+-		      get_block_t get_block, dio_iodone_t end_io,
+-		      dio_submit_t submit_io, int flags)
++ssize_t __blockdev_direct_IO(struct kiocb *iocb, struct inode *inode,
++		struct block_device *bdev, struct iov_iter *iter,
++		get_block_t get_block, dio_iodone_t end_io,
++		dio_submit_t submit_io, int flags)
  {
--	struct request_queue *q = bdev_get_queue(dev->bdev);
+ 	unsigned i_blkbits = READ_ONCE(inode->i_blkbits);
+ 	unsigned blkbits = i_blkbits;
+@@ -1334,29 +1333,6 @@ do_blockdev_direct_IO(struct kiocb *iocb, struct inode *inode,
+ 	kmem_cache_free(dio_cache, dio);
+ 	return retval;
+ }
 -
--	return blk_queue_stable_writes(q);
-+	return bdev_stable_writes(dev->bdev);
- }
+-ssize_t __blockdev_direct_IO(struct kiocb *iocb, struct inode *inode,
+-			     struct block_device *bdev, struct iov_iter *iter,
+-			     get_block_t get_block,
+-			     dio_iodone_t end_io, dio_submit_t submit_io,
+-			     int flags)
+-{
+-	/*
+-	 * The block device state is needed in the end to finally
+-	 * submit everything.  Since it's likely to be cache cold
+-	 * prefetch it here as first thing to hide some of the
+-	 * latency.
+-	 *
+-	 * Attempt to prefetch the pieces we likely need later.
+-	 */
+-	prefetch(&bdev->bd_disk->part_tbl);
+-	prefetch(bdev->bd_disk->queue);
+-	prefetch((char *)bdev->bd_disk->queue + SMP_CACHE_BYTES);
+-
+-	return do_blockdev_direct_IO(iocb, inode, bdev, iter, get_block,
+-				     end_io, submit_io, flags);
+-}
+-
+ EXPORT_SYMBOL(__blockdev_direct_IO);
  
- int dm_table_set_restrictions(struct dm_table *t, struct request_queue *q,
-diff --git a/fs/super.c b/fs/super.c
-index f1d4a193602d6..60f57c7bc0a69 100644
---- a/fs/super.c
-+++ b/fs/super.c
-@@ -1204,7 +1204,7 @@ static int set_bdev_super(struct super_block *s, void *data)
- 	s->s_dev = s->s_bdev->bd_dev;
- 	s->s_bdi = bdi_get(s->s_bdev->bd_disk->bdi);
- 
--	if (blk_queue_stable_writes(s->s_bdev->bd_disk->queue))
-+	if (bdev_stable_writes(s->s_bdev))
- 		s->s_iflags |= SB_I_STABLE_WRITES;
- 	return 0;
- }
-diff --git a/include/linux/blkdev.h b/include/linux/blkdev.h
-index 075b16d4560e7..a433798c3343e 100644
---- a/include/linux/blkdev.h
-+++ b/include/linux/blkdev.h
-@@ -1330,6 +1330,12 @@ static inline bool bdev_nonrot(struct block_device *bdev)
- 	return blk_queue_nonrot(bdev_get_queue(bdev));
- }
- 
-+static inline bool bdev_stable_writes(struct block_device *bdev)
-+{
-+	return test_bit(QUEUE_FLAG_STABLE_WRITES,
-+			&bdev_get_queue(bdev)->queue_flags);
-+}
-+
- static inline bool bdev_write_cache(struct block_device *bdev)
- {
- 	return test_bit(QUEUE_FLAG_WC, &bdev_get_queue(bdev)->queue_flags);
-diff --git a/mm/swapfile.c b/mm/swapfile.c
-index d5ab7ec4d92ca..4069f17a82c8e 100644
---- a/mm/swapfile.c
-+++ b/mm/swapfile.c
-@@ -3065,7 +3065,7 @@ SYSCALL_DEFINE2(swapon, const char __user *, specialfile, int, swap_flags)
- 		goto bad_swap_unlock_inode;
- 	}
- 
--	if (p->bdev && blk_queue_stable_writes(p->bdev->bd_disk->queue))
-+	if (p->bdev && bdev_stable_writes(p->bdev))
- 		p->flags |= SWP_STABLE_WRITES;
- 
- 	if (p->bdev && p->bdev->bd_disk->fops->rw_page)
+ static __init int dio_init(void)
 -- 
 2.30.2
 
