@@ -1,58 +1,56 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc255.phx1.oracleemaildelivery.com (aib29ajc255.phx1.oracleemaildelivery.com [192.29.103.255])
+Received: from aib29ajc251.phx1.oracleemaildelivery.com (aib29ajc251.phx1.oracleemaildelivery.com [192.29.103.251])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 73DC7C352B6
-	for <ocfs2-devel@archiver.kernel.org>; Fri, 15 Apr 2022 04:54:17 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 5E132C46467
+	for <ocfs2-devel@archiver.kernel.org>; Fri, 15 Apr 2022 04:54:20 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=cwEipjtz5TsMu7s+eVS2suOdN/j7ma/Jn0HsJ6PZBRQ=;
- b=YaHEWDSUut7AV66JZK6zoBBM1bQ9DJwgQXF8tCI384flVyiu/s+IX6oLeoqfp6UaGZWCMwYDk4xO
-   qtA+hKEy71yQ/wbqhUMLfN0GyG7JwgKCMWt8LcJPpTQcULW1Q5KMuIs2HQ41xbN6fZMvzc1HWbEu
-   mnypmBeXgsSR1S/Ss+iC+9AeCX1hMrL+oxYJkFjpDU6b9WAjL62Lz05lkHv16OxqsO0FKt6HxngB
-   pF08J13b7WP8kM8CEDaCMDz6mVWWsGpPx+bGKFDsjfsxb2LWyNnUP0CSJToWs/2LL9pTL7rUQS5u
-   gGI6m4Su+mA84vUiZvyNdbMUxZDH5UnGyrzVBQ==
+ bh=aTX7cdVWC6/Q1if+GfE9+DgST+NF0r9K5/TcIxYhVCc=;
+ b=EdHZ3IuWOf9fOb1oxduYzPwTP/3GpHK1Q0lz8Dw3hEFEmxrifD3WSdCM4fU6I4kTGyldl5fDE+mH
+   nPbpTCU1z/GK7lpamxYejUqPsfby8y0Qi19vdGbDFgCdWy80Te+YAp+XXwJKxnMPFxPHM0VoOlsb
+   NLVpjkkp8IS9TyAoI0uOD6Gc8GPNFi642ng7dwuLue0bJOELA0tpkiTuhQUJu56WJLx8jR2NqZ90
+   VYnPJsZDFXlWVtxj6gcqCR7+9aWsoc10vntAzS9PWKg5W3IdQLx4Z9OiM0Uhvi2P2SOrPWWqn5bC
+   0zv29r0tUIgV0RddFBOpikZkP92ZoWsTYoDtDw==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=cwEipjtz5TsMu7s+eVS2suOdN/j7ma/Jn0HsJ6PZBRQ=;
- b=VP617P4I8KPPTU7F2o+tPRWrTVVbNlElSzBX/BthrX9wMCepHBFkjKG+KRkVd9gsk5ehf9xj6qY4
-   AjaalfdyAGkaKHsn4r1/iK2wQ4vGL88WsBKWtpWZHmAw+BtHBspehVNbBEUTKeS3jXBZJkDPKiau
-   21/ysYbRi9Mo26rx0L1Ct/8zII5d2oUxbs+eDjQrG9HtpUqr6EMe1wfpNNiVQDOl8D5up+7056C1
-   YnuV6MpZRZFsOHu+8MNWn8Gu5AzvxNjsGIArai/6kOMfp2ZB+YDtxPzgDdSSs8YnVERI0B365aAx
-   DluyEjk8mhns+T1zu3Mey0WYq7ihA61Dpl/1ag==
-Received: by omta-ad3-fd3-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
+ bh=aTX7cdVWC6/Q1if+GfE9+DgST+NF0r9K5/TcIxYhVCc=;
+ b=C1PhEfnHEd188QulY87iW7Ii41+gPZa0gHz1H098CHAuqpEp0yH5Ymg+09Hxg5AKMaFqssMT4r/C
+   NFY/tL4eU6sSPhscimd2al4DfsXV0Xnqn/Lt2wCZKYia2H7IgjUuOAM9xBW/VQA8cQ7zyGJ7B6O9
+   J7qm/gyjPkUWE/rpXwqndnAJjWmb/veRkdA0jWs+3f0mSELTa3JerSCI4RrTc+SNnk0FWFaQSdiW
+   HOwXKOi+UKO0znZDlPW/YcfziFYY8pmnKDmdahfXfFoNcLcC1nVthA21PTXU4Xjg8RhC8IdFMdue
+   B8gbsa8l8oHikkt7lgQqFN9XDCbJiHxG7xy/rw==
+Received: by omta-ad2-fd3-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220319 64bit (built Mar 19
  2022))
- with ESMTPS id <0RAD00B206YGE2C0@omta-ad3-fd3-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Fri, 15 Apr 2022 04:54:16 +0000 (GMT)
+ with ESMTPS id <0RAD00H056YJKTA0@omta-ad2-fd3-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Fri, 15 Apr 2022 04:54:19 +0000 (GMT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
  d=infradead.org; s=bombadil.20210309; h=Content-Transfer-Encoding:
- Content-Type:MIME-Version:References:In-Reply-To:Message-Id:Date:Subject:Cc:
- To:From:Sender:Reply-To:Content-ID:Content-Description;
- bh=XZGhvwW8WnEXnqFpyMAZS4hEeSHoeSYBiqC69zbelFo=; b=Gxz7Y5uJ+XKe3DFB5F+glNf4Qd
- +ilmHliKeg1fmYV7/5LLANJc72+LNxw8j97CHk5ziFCgc1uz7kS3J7fxsGIO6cnBRc/aEIND8YKio
- 0SkKbU86rwF6U+vXBBwyr3GFqwWasgE9TCw8n+hO0zPxSPP5I4ZPpiX7PrV0Nkluz9OYVJwj4Hmwy
- oKidnHT0/AqxHbe4vf+J+1VyQBy8myzVvzFwGzWB5MOWnMsTyORGtxjAzgY+jPvDzJzijUERBo3GF
- IuBPqJCO6mtg8vZGmw86bOvzf7HW3Tdf+1Wt8evubUZivpuvFh33FBjqoHj3OCwfnGHVCD1k5Crl7
- crl4uuXw==;
+ MIME-Version:Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:Content-Type:
+ Content-ID:Content-Description:In-Reply-To:References;
+ bh=T00AEFQ4LdY1QMdERyaPozZpUOF+QiWNLetpSJJQdDo=; b=4z6KO6NFlCmw6gfLt5PMjkbZbu
+ ouT60XDqcfvRhernsRXD0vwaftH4PWGz4g/tfgJxaVQdnBahT9rSu+DPV0LcVWvfqp3gSmaRRdKjo
+ LrtjVJU30r+VyvCuJqCpqyJLq+Np0yb+WyGJf7TtEsin5OlECXGHTRm8CUgIrhr286x9pu7HMkFwj
+ WRWOTWk+UhMPmcPKIHaMsVI41kiHgzfBLpjBUgT/qUn8kDftheRbfzGB5lKPyfqxPgkVCnkl5qRhd
+ TvTcdGJElRmxpcgYx6fNN6THfHB/GfYIgPywakC/rqA7h0nFLzILemkQ8Y3NKIc/JU1eL4CKelMvU
+ 3Q7Lrsyw==;
 To: Jens Axboe <axboe@kernel.dk>
-Date: Fri, 15 Apr 2022 06:52:36 +0200
-Message-id: <20220415045258.199825-6-hch@lst.de>
+Date: Fri, 15 Apr 2022 06:52:31 +0200
+Message-id: <20220415045258.199825-1-hch@lst.de>
 X-Mailer: git-send-email 2.30.2
-In-reply-to: <20220415045258.199825-1-hch@lst.de>
-References: <20220415045258.199825-1-hch@lst.de>
 MIME-version: 1.0
 X-Source-IP: 198.137.202.133
 X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10317
  signatures=695566
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 clxscore=310
- mlxlogscore=789 impostorscore=0 priorityscore=30 mlxscore=0 adultscore=0
- bulkscore=0 spamscore=0 suspectscore=0 lowpriorityscore=0 phishscore=0
- malwarescore=0 classifier=spam adjust=0 reason=mlx scancount=1
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=1 phishscore=0
+ impostorscore=0 suspectscore=0 malwarescore=0 clxscore=248 lowpriorityscore=0
+ priorityscore=78 mlxscore=1 adultscore=0 mlxlogscore=187 spamscore=1
+ bulkscore=0 classifier=spam adjust=0 reason=mlx scancount=1
  engine=8.12.0-2202240000 definitions=main-2204150029
 Cc: jfs-discussion@lists.sourceforge.net, linux-nvme@lists.infradead.org,
  virtualization@lists.linux-foundation.org, linux-mm@kvack.org,
@@ -65,12 +63,10 @@ Cc: jfs-discussion@lists.sourceforge.net, linux-nvme@lists.infradead.org,
  linux-block@vger.kernel.org, linux-bcache@vger.kernel.org,
  ceph-devel@vger.kernel.org, linux-raid@vger.kernel.org,
  linux-mmc@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net,
- linux-xfs@vger.kernel.org, =?UTF-8?q?Christoph=20B=C3=B6hmwalder?=
- <christoph.boehmwalder@linbit.com>, ocfs2-devel@oss.oracle.com,
+ linux-xfs@vger.kernel.org, ocfs2-devel@oss.oracle.com,
  linux-fsdevel@vger.kernel.org, ntfs3@lists.linux.dev,
  linux-btrfs@vger.kernel.org
-Subject: [Ocfs2-devel] [PATCH 05/27] drbd: use bdev based limit helpers in
-	drbd_send_sizes
+Subject: [Ocfs2-devel] use block_device based APIs in block layer consumers	v3
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -84,59 +80,143 @@ List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
 From: Christoph Hellwig via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
 Reply-to: Christoph Hellwig <hch@lst.de>
-Content-type: text/plain; charset="utf-8"
-Content-transfer-encoding: base64
+Content-type: text/plain; charset="us-ascii"
+Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
 X-SRS-Rewrite: SMTP reverse-path rewritten from <hch@infradead.org> by
  bombadil.infradead.org. See http://www.infradead.org/rpr.html
 X-ServerName: bombadil.infradead.org
 X-Proofpoint-SPF-Result: None
 X-Spam: Clean
-X-Proofpoint-ORIG-GUID: YVdMduD6WosQNvlb6ehwkTzAd-6zKHMe
-X-Proofpoint-GUID: YVdMduD6WosQNvlb6ehwkTzAd-6zKHMe
+X-Proofpoint-ORIG-GUID: 8dh8bfBbu3I9gin2gSpG-gD435eFsuPm
+X-Proofpoint-GUID: 8dh8bfBbu3I9gin2gSpG-gD435eFsuPm
 Reporting-Meta:
- AAEM/JB5c+5pYfAk4vHpNc7zQQhy0ZUB3yz14Kd6WHipWf903Jdsh1SmWeXrQRAO
- ksE1e6LvR1EZm8iyc0mKqcvZDtVJEy81wT/75HuUNF+Dzp9DXGIYGAz37H4kIJj3
- WXxfGnHgC6zTfEt6Mmu7F8KsfKs7rPyyhf7dofRCIJfIGPnNMfjEg6psd+CnGCFE
- 9GCf8oUouRO2jMb0dlkyJeIQdLQg+VuLKaQ5lyPgvD8mSkgVQ5SazTowYtDHA13+
- tZHJvtU7eYAztcUgac04z23ZLsWVeXw8thiY2OhJGwAdKUw8IDORwBU+9IPyRNYw
- BOHLRNkd4B41JbH15tMhk3H6ZkMQo57gp6eRM3L4TU4ogUzv8WQrBB4W9ExPsnsT
- Bd1PQp5fNYs5JgfmoUHQkcR1etbaiAPHmO+PoGMyzJCJlPdYgn2QTIbio6QfRHMR
- OF3kuui4FedFIbpR5DhfG1FEzl/HPvDJBNfouILqyhoqXrW0duwwbiLvhHk+Lix5
- L8AAGte+KFfrYWYh9ZPawKaWmTxt+/Ug89/kDYo88zCu
+ AAEyeEFyuLCl62Mt742PYTS8j297Dg+YFxtjbpYwIS8wegvgn52XDxYIc7e4tfIb
+ 7QY7q3QrQKCHm8xUz5gjIE3QFGGPZF1IYYNO/IznAK4tmCT5LhzcfFeMCmmVDkda
+ 8/Vgr1Zq3l732Nj/Kyqi+VjAhJcEIhYt/sMLjF7D/h0B3QfMSCx72YNr1DB1IR04
+ Ge7rmofds1hmoKsUEUksOO7oGGyhdgdGDFqCR8mJkkqbi3b+AvGWmTdg9wiGQvr8
+ 3kLzj45MjEBjz2LEUNvAScB4RmbH3ogmYCbUB8mtIeDtNmhG6BZqsO9gOWxjN9ld
+ gZvIZyYFuntLn4xbeu5NdouMv4x5jAi+tFGSLVTtKpRI64jMJxjq06iNl1hpv49d
+ VgpwKP6I9GqC0zG9aN/EVecjfsBML3BYdIVhH6o2rzvMNsKse9MHvTzoJ4PvkIlu
+ axqtsXqbibWKBAOCWaQNjg8kUxJZcICgGevIKGQ6W17s35E7suaU/9H7tHEZ7H5Y
+ E4rFzX/yDOfmNlwUF5Ckyl8tukXpBTuF4SveQlybGKFbQQ==
 
-VXNlIHRoZSBiZGV2IGJhc2VkIGxpbWl0cyBoZWxwZXJzIHdoZXJlIHRoZXkgZXhpc3QuCgpTaWdu
-ZWQtb2ZmLWJ5OiBDaHJpc3RvcGggSGVsbHdpZyA8aGNoQGxzdC5kZT4KQWNrZWQtYnk6IENocmlz
-dG9waCBCw7ZobXdhbGRlciA8Y2hyaXN0b3BoLmJvZWhtd2FsZGVyQGxpbmJpdC5jb20+Ci0tLQog
-ZHJpdmVycy9ibG9jay9kcmJkL2RyYmRfbWFpbi5jIHwgMTIgKysrKysrKy0tLS0tCiAxIGZpbGUg
-Y2hhbmdlZCwgNyBpbnNlcnRpb25zKCspLCA1IGRlbGV0aW9ucygtKQoKZGlmZiAtLWdpdCBhL2Ry
-aXZlcnMvYmxvY2svZHJiZC9kcmJkX21haW4uYyBiL2RyaXZlcnMvYmxvY2svZHJiZC9kcmJkX21h
-aW4uYwppbmRleCAzNjc3MTUyMDVjODYwLi5jMzliMDRiZGEyNjFmIDEwMDY0NAotLS0gYS9kcml2
-ZXJzL2Jsb2NrL2RyYmQvZHJiZF9tYWluLmMKKysrIGIvZHJpdmVycy9ibG9jay9kcmJkL2RyYmRf
-bWFpbi5jCkBAIC05MjQsNyArOTI0LDkgQEAgaW50IGRyYmRfc2VuZF9zaXplcyhzdHJ1Y3QgZHJi
-ZF9wZWVyX2RldmljZSAqcGVlcl9kZXZpY2UsIGludCB0cmlnZ2VyX3JlcGx5LCBlbnUKIAogCW1l
-bXNldChwLCAwLCBwYWNrZXRfc2l6ZSk7CiAJaWYgKGdldF9sZGV2X2lmX3N0YXRlKGRldmljZSwg
-RF9ORUdPVElBVElORykpIHsKLQkJc3RydWN0IHJlcXVlc3RfcXVldWUgKnEgPSBiZGV2X2dldF9x
-dWV1ZShkZXZpY2UtPmxkZXYtPmJhY2tpbmdfYmRldik7CisJCXN0cnVjdCBibG9ja19kZXZpY2Ug
-KmJkZXYgPSBkZXZpY2UtPmxkZXYtPmJhY2tpbmdfYmRldjsKKwkJc3RydWN0IHJlcXVlc3RfcXVl
-dWUgKnEgPSBiZGV2X2dldF9xdWV1ZShiZGV2KTsKKwogCQlkX3NpemUgPSBkcmJkX2dldF9tYXhf
-Y2FwYWNpdHkoZGV2aWNlLT5sZGV2KTsKIAkJcmN1X3JlYWRfbG9jaygpOwogCQl1X3NpemUgPSBy
-Y3VfZGVyZWZlcmVuY2UoZGV2aWNlLT5sZGV2LT5kaXNrX2NvbmYpLT5kaXNrX3NpemU7CkBAIC05
-MzMsMTMgKzkzNSwxMyBAQCBpbnQgZHJiZF9zZW5kX3NpemVzKHN0cnVjdCBkcmJkX3BlZXJfZGV2
-aWNlICpwZWVyX2RldmljZSwgaW50IHRyaWdnZXJfcmVwbHksIGVudQogCQltYXhfYmlvX3NpemUg
-PSBxdWV1ZV9tYXhfaHdfc2VjdG9ycyhxKSA8PCA5OwogCQltYXhfYmlvX3NpemUgPSBtaW4obWF4
-X2Jpb19zaXplLCBEUkJEX01BWF9CSU9fU0laRSk7CiAJCXAtPnFsaW0tPnBoeXNpY2FsX2Jsb2Nr
-X3NpemUgPQotCQkJY3B1X3RvX2JlMzIocXVldWVfcGh5c2ljYWxfYmxvY2tfc2l6ZShxKSk7CisJ
-CQljcHVfdG9fYmUzMihiZGV2X3BoeXNpY2FsX2Jsb2NrX3NpemUoYmRldikpOwogCQlwLT5xbGlt
-LT5sb2dpY2FsX2Jsb2NrX3NpemUgPQotCQkJY3B1X3RvX2JlMzIocXVldWVfbG9naWNhbF9ibG9j
-a19zaXplKHEpKTsKKwkJCWNwdV90b19iZTMyKGJkZXZfbG9naWNhbF9ibG9ja19zaXplKGJkZXYp
-KTsKIAkJcC0+cWxpbS0+YWxpZ25tZW50X29mZnNldCA9CiAJCQljcHVfdG9fYmUzMihxdWV1ZV9h
-bGlnbm1lbnRfb2Zmc2V0KHEpKTsKLQkJcC0+cWxpbS0+aW9fbWluID0gY3B1X3RvX2JlMzIocXVl
-dWVfaW9fbWluKHEpKTsKLQkJcC0+cWxpbS0+aW9fb3B0ID0gY3B1X3RvX2JlMzIocXVldWVfaW9f
-b3B0KHEpKTsKKwkJcC0+cWxpbS0+aW9fbWluID0gY3B1X3RvX2JlMzIoYmRldl9pb19taW4oYmRl
-dikpOworCQlwLT5xbGltLT5pb19vcHQgPSBjcHVfdG9fYmUzMihiZGV2X2lvX29wdChiZGV2KSk7
-CiAJCXAtPnFsaW0tPmRpc2NhcmRfZW5hYmxlZCA9IGJsa19xdWV1ZV9kaXNjYXJkKHEpOwogCQlw
-dXRfbGRldihkZXZpY2UpOwogCX0gZWxzZSB7Ci0tIAoyLjMwLjIKCgpfX19fX19fX19fX19fX19f
-X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fXwpPY2ZzMi1kZXZlbCBtYWlsaW5nIGxpc3QK
-T2NmczItZGV2ZWxAb3NzLm9yYWNsZS5jb20KaHR0cHM6Ly9vc3Mub3JhY2xlLmNvbS9tYWlsbWFu
-L2xpc3RpbmZvL29jZnMyLWRldmVs
+Hi Jens,
+
+this series cleanups up the block layer API so that APIs consumed
+by file systems are (almost) only struct block_devic based, so that
+file systems don't have to poke into block layer internals like the
+request_queue.
+
+I also found a bunch of existing bugs related to partition offsets
+and discard so these are fixed while going along.
+
+Changes since v2:
+ - fix an inverted check in btrfs
+ - set max_discard_sectors to 0 in all places where the flag was
+   previously cleared
+ - fix a few sligtly incorrect collected Acks
+
+Changes since v1:
+ - fix a bisection hazard
+ - minor spelling fixes
+ - reorder hunks between two patches to make the changes more obvious
+ - reorder a patch to be earlier in the series to ease backporting
+
+
+Diffstat:
+ arch/um/drivers/ubd_kern.c           |    2 
+ block/blk-core.c                     |    4 -
+ block/blk-lib.c                      |  124 ++++++++++++++++++++---------------
+ block/blk-mq-debugfs.c               |    2 
+ block/blk-settings.c                 |   74 ++++++++++++++++++++
+ block/blk.h                          |   14 ---
+ block/fops.c                         |    2 
+ block/genhd.c                        |    4 -
+ block/ioctl.c                        |   48 ++++++++++---
+ block/partitions/core.c              |   12 ---
+ drivers/block/drbd/drbd_main.c       |   51 ++++++--------
+ drivers/block/drbd/drbd_nl.c         |   94 +++++++++++---------------
+ drivers/block/drbd/drbd_receiver.c   |   13 +--
+ drivers/block/loop.c                 |   15 +---
+ drivers/block/nbd.c                  |    5 -
+ drivers/block/null_blk/main.c        |    1 
+ drivers/block/rbd.c                  |    1 
+ drivers/block/rnbd/rnbd-clt.c        |    6 -
+ drivers/block/rnbd/rnbd-srv-dev.h    |    8 --
+ drivers/block/rnbd/rnbd-srv.c        |    5 -
+ drivers/block/virtio_blk.c           |    2 
+ drivers/block/xen-blkback/blkback.c  |   15 ++--
+ drivers/block/xen-blkback/xenbus.c   |    9 --
+ drivers/block/xen-blkfront.c         |    8 +-
+ drivers/block/zram/zram_drv.c        |    1 
+ drivers/md/bcache/alloc.c            |    2 
+ drivers/md/bcache/request.c          |    4 -
+ drivers/md/bcache/super.c            |    3 
+ drivers/md/bcache/sysfs.c            |    2 
+ drivers/md/dm-cache-target.c         |    9 --
+ drivers/md/dm-clone-target.c         |    9 --
+ drivers/md/dm-io.c                   |    2 
+ drivers/md/dm-log-writes.c           |    3 
+ drivers/md/dm-raid.c                 |    9 --
+ drivers/md/dm-table.c                |   25 +------
+ drivers/md/dm-thin.c                 |   15 ----
+ drivers/md/dm.c                      |    3 
+ drivers/md/md-linear.c               |   11 ---
+ drivers/md/md.c                      |    5 -
+ drivers/md/raid0.c                   |    7 -
+ drivers/md/raid1.c                   |   18 -----
+ drivers/md/raid10.c                  |   20 -----
+ drivers/md/raid5-cache.c             |    8 +-
+ drivers/md/raid5.c                   |   14 +--
+ drivers/mmc/core/queue.c             |    3 
+ drivers/mtd/mtd_blkdevs.c            |    1 
+ drivers/nvme/host/core.c             |    4 -
+ drivers/nvme/target/io-cmd-bdev.c    |    2 
+ drivers/nvme/target/zns.c            |    3 
+ drivers/s390/block/dasd_fba.c        |    1 
+ drivers/scsi/sd.c                    |    2 
+ drivers/target/target_core_device.c  |   20 ++---
+ drivers/target/target_core_file.c    |   10 +-
+ drivers/target/target_core_iblock.c  |   17 +---
+ fs/btrfs/disk-io.c                   |    3 
+ fs/btrfs/extent-tree.c               |    8 +-
+ fs/btrfs/ioctl.c                     |   12 +--
+ fs/btrfs/volumes.c                   |    4 -
+ fs/btrfs/zoned.c                     |    3 
+ fs/direct-io.c                       |   32 +--------
+ fs/exfat/file.c                      |    5 -
+ fs/exfat/super.c                     |   10 --
+ fs/ext4/ioctl.c                      |   10 --
+ fs/ext4/mballoc.c                    |   10 +-
+ fs/ext4/super.c                      |   10 --
+ fs/f2fs/f2fs.h                       |    3 
+ fs/f2fs/file.c                       |   19 ++---
+ fs/f2fs/segment.c                    |    8 --
+ fs/fat/file.c                        |    5 -
+ fs/fat/inode.c                       |   10 --
+ fs/gfs2/rgrp.c                       |    7 -
+ fs/iomap/direct-io.c                 |    3 
+ fs/jbd2/journal.c                    |    9 --
+ fs/jfs/ioctl.c                       |    5 -
+ fs/jfs/super.c                       |    8 --
+ fs/nilfs2/ioctl.c                    |    6 -
+ fs/nilfs2/sufile.c                   |    4 -
+ fs/nilfs2/the_nilfs.c                |    4 -
+ fs/ntfs3/file.c                      |    6 -
+ fs/ntfs3/super.c                     |   10 +-
+ fs/ocfs2/ioctl.c                     |    5 -
+ fs/super.c                           |    2 
+ fs/xfs/xfs_discard.c                 |    8 +-
+ fs/xfs/xfs_log_cil.c                 |    2 
+ fs/xfs/xfs_super.c                   |   12 +--
+ fs/zonefs/super.c                    |    3 
+ include/linux/blkdev.h               |  112 +++++++++++--------------------
+ include/target/target_core_backend.h |    4 -
+ mm/swapfile.c                        |   31 ++------
+ 89 files changed, 494 insertions(+), 651 deletions(-)
+
+_______________________________________________
+Ocfs2-devel mailing list
+Ocfs2-devel@oss.oracle.com
+https://oss.oracle.com/mailman/listinfo/ocfs2-devel
