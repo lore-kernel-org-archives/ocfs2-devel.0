@@ -1,57 +1,57 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc254.phx1.oracleemaildelivery.com (aib29ajc254.phx1.oracleemaildelivery.com [192.29.103.254])
+Received: from aib29ajc252.phx1.oracleemaildelivery.com (aib29ajc252.phx1.oracleemaildelivery.com [192.29.103.252])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id B4807C433F5
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id D91B0C433EF
 	for <ocfs2-devel@archiver.kernel.org>; Sun, 24 Apr 2022 13:10:44 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=SR810Xmc2DszfNXNPsOsbC69kpKWBU9VtyFVnxOGFnM=;
- b=nketwIZ51AHttkTFn3fIB3HqI4Dd52rrS2tlRmkSfaG2VMmUSHU3QN+fxoFduBukgKLgddYfP2Rr
-   Q4yzMUc+NzwqInry39CvAA/0qqkI6RxzhdQljyc4vXUJQD6zftJrssZPajnRQPFBXvPY4K5N/t6x
-   7jmmrOr2UU/3c9qyNOZ0W2ALPXo+AU6GZ9Sorve+vKv1FfDvru3Qk1nADWGBh5PK8/jo4TyK/Pya
-   La6DNnIQZj5k0eETW2y84iJ3wxRYJZSvkmBLHP/4R21jQWFuW86V+BTrxmfC4Mh4DAuUr2erFo2k
-   AKLD7E+EiY4E5g7lypgj0TdfNX0qgJpzrJnpIQ==
+ bh=Lcd/GYdjwYJ5hXuX3jUxYXdC1Vzy3t2je8w46lphvao=;
+ b=NNmABoHZpEm6+xlvmbTdyFfVrbfPzduwj+oJkwIZCy+49yPEVqVy6VpU2MFqO79UnBG2tXKsKF4Q
+   kZZhK+g2rG6B68U9nc41Nwc/l1Bua56fB/qnqW77uhqcmmZjZRM2e68++eOShOUIBKyx8cEf4K2A
+   804O9d++5EjzDaG3H6OInGeNSWCsGv7eJJibp79+d3M/Lzu6vD46NDbrTYTU3NO14LcNBbd50Uau
+   U4N+yKFDU/orz5FlkZfjN1KIfF8VI6dU70UYjds/XUsuWBhLUhb5vciQa2c/PwgePgVG4go48mnU
+   VuJ6Phpi6k8q7EzdxuRcPOPHheh5crqBB8Laeg==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=SR810Xmc2DszfNXNPsOsbC69kpKWBU9VtyFVnxOGFnM=;
- b=rNgDCHFiPT2wlgEyFHJtdUKxtU/Lb/WnNt3MkJnF4RIrykLf2A73WjNTGQG/O2c8zdv40iym0JFF
-   9Z94MVIjhX2gkaOwEygMBWPT24vvbodSZbLAiKUrQtyL5nOAvH18XngGhY3ZzJx8FqMeou0zD7TF
-   4o8D9FT+d3f3VzlmXgOQffTa5akKZJOJsrb18/ZAFRqw8EOMDfRZoQ2fFrlHSxQubZnj24PfobRk
-   qTTdFeOoLphnOVSnj6Kt4pKFnETBlyWU7D6VW2MfOFQ41lVnVNAusz2GXErSyKl+Go61st/8nna4
-   81yz/vvVsAkrc/5MMySeD57doCx+03yGsPaznw==
-Received: by omta-ad3-fd3-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
+ bh=Lcd/GYdjwYJ5hXuX3jUxYXdC1Vzy3t2je8w46lphvao=;
+ b=Uu6Ndwgb/d+QE5YxoT7RKgGiTxE0VqFCrKS0z97PUEqW1/27XekUpH+oJWFwQRJ1WOs5r7gnuuwV
+   ZVbflVCoHHWfgaIGQ9uVcsDRshGzbbTDH5EVf5ewTvYynANtfCRpKBnizdryXch6AwqANwoZpMQt
+   +cWhQam9J89yQkbXoF/8K7wwlGrqETwHdXiTUZ3CBuPoLESM3YBczwqiY/Eje084JNHB9pp8tpZV
+   tc5kJsBj7KSjR8QOa1j89XIPNofOliAkQl6fDX/r9PSserOczabPe82RI3BVaNn5bO9cmgrNR4Ax
+   mo9aN1xRIwquRl4Rknqdnz/eTQSPxZx2kY+lvQ==
+Received: by omta-ad3-fd1-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220319 64bit (built Mar 19
  2022))
- with ESMTPS id <0RAU00G7RHXWRP70@omta-ad3-fd3-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
+ with ESMTPS id <0RAU0081UHXWQ680@omta-ad3-fd1-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
  ocfs2-devel@archiver.kernel.org; Sun, 24 Apr 2022 13:10:44 +0000 (GMT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.com;
- s=mimecast20200619; t=1650805826;
+ s=mimecast20200619; t=1650805827;
  h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
  to:to:cc:cc:mime-version:mime-version:content-type:content-type:
  content-transfer-encoding:content-transfer-encoding:
  in-reply-to:in-reply-to:references:references;
- bh=QmdR7HRCZ8cdd65MAbsUHLpB7BZ7MaC4l5MJwRnhCR8=;
- b=eKuWoIkcV0EwoL/D/3Uv+3l30mqghQ5znI45bLa5xRYEp6DmjiZzNiY4e8WgPs/xo8SipN
- 8TCkiEqj6TJj/BMgCncTCpIHM3e2AL9xOpIWWdvzt6wZy7ApvfxbHBsik5CnfyjfgO1dnm
- fWUKB4P64dBANRXP2euhTd7hcxHisiU=
+ bh=Wk2GElS4RwxPOb2QMUI/sgOPf9q1JdPWKmxAr1flQ1E=;
+ b=Qk6rIFem5t7dMO98llrKalw7uJZnyQZXNlpg+IW8+j/IgLszA4m3noKVk7Y1GwwR0WvWUc
+ ivphTvUTyDtFDpVsXVVmbEeXDc0Jwsvre5zB1ieK7nef3Ej35IBLz9AbKciMvKutsjFku7
+ UAsPAHilQGGbYFmld2fZmdSil+m3AZM=
 ARC-Seal: i=1; a=rsa-sha256; s=arcselector9901; d=microsoft.com; cv=none;
- b=kQ/Ma5Vli0fhvSsbid1uJMxHpzI71HbkN206QDno+7qvhEPMvO+WgIWwF4GPhVrTMy4eiOB7UkEJcLlnMuZCb4l7DrQ2jhdD5tBJxFx0d9R5KG1w9hUmueQV//6A5/8iQKPT6wv/qahzMg4uv9ymUJUDLq/1kSfOzoGkq6/tw6dYERrB8F51phYpZ3Ds5+/Phd7F+i6iY6o0/FU4df8+OeWdVofzUX9OFHffAC5vXySg2EtebQzs+CIg7kjVuBepgqByDGbXuBCQeei+UiGKnBPgPLSKmqoeR/jblCJ7DASIwD8Yw5us00IYhZuREQJ8UkCYIBMkpnuPSIBH3p2V3A==
+ b=aE+KihINiuOloU9tJvQe0eA6NR5XtWzXl3jmfkgAN8Oicm9I5PA5xmZkLvoX1nZksH7EESWETb9/RhFtq/YtZqAVwTRDFRjwfZimCYPmD6AwN2rjO1GHmyW3sCEE46WFHXvgdWMBdamXK2sJ4mnLsVlzs914/IOmL4WBq+9dxC7gcntEX8a7j5kJJWVNKfiTGVbnfQMvl9FXE19iohuXUjYdkuYBxq6ZMlx9LlhNNmumJisz4/6xgKsTFPBF2CVmPs7TtWityanUPYcH73tzSJxBP/6Z2tctj3xRAH7Yxa8ij5ANxWmAPYFCfvuWXMeMWxFTNvwC3A5upbHSFScTSw==
 ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
  s=arcselector9901;
  h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
- bh=JqdqgQtEAM9g8Q+AYO6SDnxWwGD0OcUygz63Aip+cWs=;
- b=Q5sE3rBPEkAw4a/K0mXTwlXyFCE+8go4XXU0nj04cMeqZ3RclXlLV+leTizRpvCsXT5PZYb9A7fqjCLrnf0H1mooAhY/AvTBuk+leskIFc5gW7fkfInFApV0vFQvK3MXdjktUG1vMSy2pSKxzFRaygP6Ypk1fqMkHFJBlmLgGfO9sJhc+wK+rGzXS8CVo1YA9kEodPIxp5BOIzD97cPv1JbT7gEpkJsbM2f6nSAgpN8CpS9jaxh9eKb7z/W3dzs9uSBQTckNEb5t2yXUWYIgRcREE3b4KkKyhSFj6CR2q6V8lF6Cv5LCEV/D6t9kmE8+fZCaJoMX8KELF5RCrwzZmA==
+ bh=brNyngq5odmPMrhy9v+U8PzHzHIyLIPjdhP58UWFSXM=;
+ b=e0H842/5nckR9c28zzGcZDV+t3ZoCZWphVC6D3FcNy34xLJCdsJsJlm9ro/t8Vm1AiDXs2BoyKbuwZ3jDCM8oB0mqPsHWmZAN2v/BNZEIBpcJ7kXqKInbLUDJ7rkopS9xsuXb8iIoM1yrWe4QhjrMhXxZ/DQaRiSsfXR7GKs9X+NU40rbSmTRWlb3P1linzZkECeGsq1J3/Le5ZlDpdO5JI/IOr1gUP+R9vy9MiS6I2ucnNGT2jvxH0d1CvyOlj2jIzHC1mWCaQQGPamfAQeLVfeWv9zlA99aRQbdUuxNR6wj6C3EC7K7QZ4+sGwCWRCy8tscRjSW1LSGhK1Os/hBg==
 ARC-Authentication-results: i=1; mx.microsoft.com 1; spf=pass
  smtp.mailfrom=suse.com; dmarc=pass action=none header.from=suse.com; dkim=pass
  header.d=suse.com; arc=none
 To: ocfs2-devel@oss.oracle.com, joseph.qi@linux.alibaba.com
-Date: Sun, 24 Apr 2022 21:09:49 +0800
-Message-id: <20220424130952.2436-3-heming.zhao@suse.com>
+Date: Sun, 24 Apr 2022 21:09:50 +0800
+Message-id: <20220424130952.2436-4-heming.zhao@suse.com>
 X-Mailer: git-send-email 2.34.1
 In-reply-to: <20220424130952.2436-1-heming.zhao@suse.com>
 References: <20220424130952.2436-1-heming.zhao@suse.com>
@@ -61,17 +61,17 @@ X-Forefront-Antispam-Report: CIP:255.255.255.255; CTRY:; LANG:en; SCL:1; SRV:;
  SFS:(13230001)(366004)(316002)(66946007)(1076003)(4326008)(2616005)(66476007)(107886003)(86362001)(83380400001)(26005)(186003)(66556008)(8676002)(36756003)(6666004)(8936002)(38100700002)(6486002)(44832011)(6506007)(2906002)(6512007)(508600001)(5660300002);
  DIR:OUT; SFP:1101;
 X-OriginatorOrg: suse.com
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 24 Apr 2022 13:10:16.8381 (UTC)
-X-Source-IP: 194.104.109.102
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 24 Apr 2022 13:10:23.6189 (UTC)
+X-Source-IP: 194.104.111.102
 X-Proofpoint-Virus-Version: vendor=nai engine=6400 definitions=10326
  signatures=694694
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 bulkscore=0
- impostorscore=0 adultscore=0 priorityscore=148 mlxlogscore=999 malwarescore=0
- lowpriorityscore=0 phishscore=0 clxscore=171 spamscore=0 suspectscore=0
- mlxscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 impostorscore=0
+ mlxscore=0 lowpriorityscore=0 malwarescore=0 clxscore=191 phishscore=0
+ suspectscore=0 priorityscore=0 mlxlogscore=999 adultscore=0 spamscore=0
+ bulkscore=0 classifier=spam adjust=0 reason=mlx scancount=1
  engine=8.12.0-2202240000 definitions=main-2204240062
-Subject: [Ocfs2-devel] [PATCH v3 2/5] ocfs2: change return type of
-	ocfs2_resmap_init
+Subject: [Ocfs2-devel] [PATCH v3 3/5] ocfs2: ocfs2_initialize_super does
+	cleanup job before return error
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -88,61 +88,61 @@ Reply-to: Heming Zhao <heming.zhao@suse.com>
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-MC-Unique: bLvbw9h7OHabpsJrkegqvw-1
-X-ClientProxiedBy: HK2PR04CA0080.apcprd04.prod.outlook.com
- (2603:1096:202:15::24) To DB7PR04MB4666.eurprd04.prod.outlook.com
+X-MC-Unique: tktrgFSUPc6q2YOGLYii0g-1
+X-ClientProxiedBy: HK2PR04CA0073.apcprd04.prod.outlook.com
+ (2603:1096:202:15::17) To DB7PR04MB4666.eurprd04.prod.outlook.com
  (2603:10a6:5:2b::14)
 X-MS-PublicTrafficType: Email
-X-MS-Office365-Filtering-Correlation-Id: 916f76b8-d507-4fcb-0587-08da25f3c697
+X-MS-Office365-Filtering-Correlation-Id: a6c70159-2cff-4d9e-850c-08da25f3cab9
 X-MS-TrafficTypeDiagnostic: VI1PR0402MB3344:EE_
 X-Microsoft-Antispam-PRVS:
- <VI1PR0402MB3344BE70A63894B274DFF29597F99@VI1PR0402MB3344.eurprd04.prod.outlook.com>
+ <VI1PR0402MB3344FCCEBAC76F828056DEDC97F99@VI1PR0402MB3344.eurprd04.prod.outlook.com>
 X-MS-Exchange-SenderADCheck: 1
 X-MS-Exchange-AntiSpam-Relay: 0
 X-Microsoft-Antispam: BCL:0;
 X-Microsoft-Antispam-Message-Info:
- nj2aGpfubEXCTea5pc9I7Rlk7mRIbl07ScDWHJKOEqzqs9DS03+1Eeb6yX4uZGiQEBfS7FYnc6EcfQ/RecHfgxOwrnVbsRmwIo9KuDVLLcsI4N2Y3QucNH1zp+jj5w2Vpv35D+8D8mUbFR7p0s5ov/uhaP+q34m/FuIu8K5H1lY/et+J2lEFv2oKrhJJORjoqZRjE9nBa4c5f81RMl7t4wTIttYrj2BSOPNaSCNT6+m6lN227gHeChcWvSrmFoQEWewKuBc0El8uROH5MGmDCpgQMYua0RPVd2WhYzKcwCtDEWGBoZVUstq0J+6cIavsKGX0l5HdWjMBV0pfDG/ca3Ny1i4ob/xTBww9IbTSM5ErtlNrebasutpzmSKTRBcg0HC2sgARXmMC3RRhvlxxl+bvqgQ+qwMBZuBnDzQGF02EKw9zMzX+c/Df7KrIXVXZ0KfP0CnX0E4c8GEt6BRSK5tRuATeW5x0/znyTYaYysf2G5eeuxWKTKfeVZHudsj67JorSOX5Q7qOggBlIRPDHdblIuvbdOP1esTfJsdken1sUuh9e3YNI7sKmUkJVfTNBcx8SgWsQYM8BAY4oFRUMDG8QAgnbFxq0qATGV61SFCOVMSB+PkANAhr2q52LKfgFWmJCVb52jbEX2qSjCy3Cw==
+ 6SRuOpJx4jwdYKwxAjPrJSE67apAsPuXkqFVEnPmprxBBtTJRidDzpc02bN3cEwnslnDczt3qA0kW4tachby67PLdFfSIBQPEVU3L4rDVv5Z1VGmr1fMK+c4Y/IJUBigNqzOf78Zq0ZfWIphwH1+z3Zt5pqXUf3vwJoPKqFbn9xolFmjRUOODv68pQcqUID+GCjRzURWouexS27kujFPhynEBMrZoNDMQEqdBj+d0mZNwrJ1Ldcge7sW02GDPbgbxYIpzhuXolyn08O58zyAgZUgR8EMwAjD8IIPpHZp0k81jsoazIY4NwdO7Wss9JyrH0QcCR582sCmkHG/lR1/BdrGELKy6UnRXmcpQmvdd4t+9g2KAE5XzVl81WM9AAro+vY3wlC4KAwQ/LVesqD0mdzhxXWMNzuoRE1z8n287KPbLB+0h7c9OLK/4eLIz9rhgQcngpNIILgp+YYqkuOnSM7NnEaYnTfrtTK9+7aIhuHPIy3rq2ZaN5nY/jUOSj4WgtufY5M1GnIsUKhKZlAV15JvDIPQdUSPwbM0PsIKPqSDtSvy771MtNGeaITBqqt1lhW3eBhTBAZwDP7bZk6q45Ja5BlEhpFFn2asKjF/Of5fjC9cOoYOOEa+IESfSyLgUk3lCntGu/KYlFk3tyYBiA==
 X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
 X-MS-Exchange-AntiSpam-MessageData-0:
- =?us-ascii?Q?beekhSVIHttZewO/P4tNknnGv8bGkQ+juryT2mnEEqajYKRyWx9XcVNa3UA+?=
- =?us-ascii?Q?V+09AmfPp2EBfkbQ+/vbAFknc9R90dGicUfz1CJ9pXkeHlvc2a7yvuj1ykyh?=
- =?us-ascii?Q?TZguvLZNK3Pty1q8ewv00dBBKI7AxtU0GilwX7zwscsdvbsytlqTKit83eB/?=
- =?us-ascii?Q?5BQZAGTVdCC4X5ntYdTR5gF03s/uRKLpY64gh4dk8V4YxrQI7XHoSrdpOmzp?=
- =?us-ascii?Q?kS98RkeYcDCo4QqscPrIQOACDB3H+yyWsoVzVpXNO7Bk/n90o58pQhmE7K37?=
- =?us-ascii?Q?GpSO19J0FyUYlkVA4A1UEi5zJP1L7JYE5QBeYzhXfaKtkBtqdDTeepS74xwC?=
- =?us-ascii?Q?cL2LOir/5YWQ4xpgtaY3BZmBs/IV57fkO5Ds9sbdLN24lcvUr0VeECYdKP11?=
- =?us-ascii?Q?NliPjevBAMmO9be7oAsraDWKwxD3HiUxYcSf5kRoBNvfiB2UtDSRe1J1yjvp?=
- =?us-ascii?Q?XQG1UtG4qI3mMyi/AJfGukFRNBHgo9ruq094wug0+QzX6Peu4nAErsQBE/Hi?=
- =?us-ascii?Q?Zx61V2o7oUNp/t+RUX4OXWBCTxWTmD0Ol7pEntbQ6oveuI8meMCMx/KMeP65?=
- =?us-ascii?Q?ae0qUoXox9o3sClZciscKROchNRtV/xUAG+5O3vCSsK22TN7Eak80k3MQbTP?=
- =?us-ascii?Q?eAA8qNH3EjHMEL1MSSP5P1WO+glZK3O1E5Mb0G808OVwxOTl0RPRYQyXEGTL?=
- =?us-ascii?Q?uiPXEyTKVEfqq3Z+a8QdfgVjakFnvwaol4hePUyf3ufbMwePIWU8XwgHG4s4?=
- =?us-ascii?Q?+fgjil5Sw/RDPw1xi7dNDPO+np7P4igeZ8zyHqo95gXaloD4nqy3faZgLGwo?=
- =?us-ascii?Q?XNB4yE+JUSvcX/cepJGqgXqN2f53TJe5iXw/8kuIgIDbDY1XKtnj3RyhbkPw?=
- =?us-ascii?Q?UerV8KCScPrlME0v7f3s1uSstSd1JtM64qIA9CqcR7dZna/Hv4HwU/fmXmyc?=
- =?us-ascii?Q?bUTuzrDaS4vxLfo2EeZZOKU2sn/RGxNajMF3FSmlwJHOrWhSceDukFfbKFri?=
- =?us-ascii?Q?9EHDx9h1Lbgv0y7Ep0pTCLSBnF4+9ZC7MA9HFf5wCbbi7V+PXpGeRN3L9E/e?=
- =?us-ascii?Q?yUlFJ0NbnvGDvv1PKl4WcG57ihIJzSlYf2niSOV1Emai1uc3j/cAFEzOfHlR?=
- =?us-ascii?Q?/IVGu+iC9HM779EKXOhpV0i96ko02Tuc4f3BAvhvmdBfZY3cf+ZUoeteALIs?=
- =?us-ascii?Q?gYUBxxXL4s+4ica12k+bd0ChqNVJ4uo40CWbIZOXI2uMKqaP14AySdLiUzbL?=
- =?us-ascii?Q?2U6ttMGmlxtpLg3CdKa35xL+Sc43uCy2fmUUcWhYnAml2FftgKdLYNOoQP9L?=
- =?us-ascii?Q?vF3oY6DCQ4MfmQmyyI1eI7SUI0cIyolL0ahaxvBr9seYAOaXYFNio2b/d+Vg?=
- =?us-ascii?Q?nohVB8BUcc+AoBrIM4qkjFEBBwQhlkyeXClextjPjZ0heu4wpENIDbdg8h2I?=
- =?us-ascii?Q?rj6cmEgjWBqS6cPH9Y0RDBKjYVtbSzbWm87X4OhmbDCqfj2FSEG1pJJt9fQI?=
- =?us-ascii?Q?x+XY25vMcRpaFRMneSEJZ1lhxxU6IfCVLLlPKSFNef+BSEc1O3+NCrtmwSz6?=
- =?us-ascii?Q?R62jzAPHx9On6772ZGHC54/9BN+NTahKxmP+PI7Dc6CkbeHzIsScQykN1hxS?=
- =?us-ascii?Q?LNLQSSvZRL7ipgDZBcfGr5v9eHKf70n6k0QRnk0+rl7RjnHAZ1sK0SajyCLb?=
- =?us-ascii?Q?A6oECEy1XotalcHM7rzekxNpXiFm3QDSfZCuoSayCbfPEc8WLoD/zYcgs/7E?=
- =?us-ascii?Q?qN6jj6dwiA=3D=3D?=
+ =?us-ascii?Q?lLJm3EqxFK6VHhLxINzHfPDcItZ1Ccgl8w2KNILJOx5fHmMG7PomF3xqQQWf?=
+ =?us-ascii?Q?eITvSENHJ5kyryYepcMl9bbvhPJiINdyRBii4LL2uvu0C6oJ5Duu410enIqJ?=
+ =?us-ascii?Q?lRZLRD+vhW7YqqU5ke0qlgn4thIKEbmXzR3HZY6DK5N71cWZebPjPtUPJBNy?=
+ =?us-ascii?Q?y6TCRw0q5OdOnO/0myLXAjnmSEWXeLmx1JW8lemJnH0WL7Zkz49kIaIA2Yh4?=
+ =?us-ascii?Q?GLg//4YpBFvYtGZggq+OfqM0LEcdRZ4ymEwbBr0WZOqR6rCo3mMULAqCYCVh?=
+ =?us-ascii?Q?h8lpVxeLsHZihEHYR/M1ExWXbl2xV7wfE6Jwarccdn+5jPTM9JkhbIMKM21S?=
+ =?us-ascii?Q?pIu9koqJTpDPTudveS/0RAZlbOtLRpNp0niUisdekbIOfHhhqL0Q40DknWXZ?=
+ =?us-ascii?Q?A+2Id6ofQPIZiLxs4w8R6moVpS4HCN1j3fNP7HtIp2ZbXO6K3CSwV1OTFdlW?=
+ =?us-ascii?Q?h3ROcJ9Pq0f4FpjLww4KJO3EFjsY1POp35NZVMkkyjv6zGDxvqP18xDo3+vT?=
+ =?us-ascii?Q?QZMtfJEYZ+K2c7L+sNDuEGm71bKa+uxyZFQ4MGmlfRl2pkRBesISv7f9b1/6?=
+ =?us-ascii?Q?MPGVa24p+cX+etdpuR9UbmLM+jimsxEl/ILSE0fXkq5Rz0Bz1udiuuByfCeq?=
+ =?us-ascii?Q?Lo2SNPdRBuyInX8MxF8d0jwt1geL42Dff6HBI6IRhmzmXg8KBRBr99ZS1ndM?=
+ =?us-ascii?Q?VgdGUjF1YQYXQHg2nQ3iNmDXOeUGSfto05egy9+hHd7lLEkYcwLYEtgeUnKU?=
+ =?us-ascii?Q?UOrirhwOOKaHvwpYEUYzXs34RG0DrMACxyWKqSUBIX6fDU5FXsUL9CBM2l0q?=
+ =?us-ascii?Q?VpBvY5NrNuUBq6a3d2VoioUswFLA6Jz+Szn7ZqGtC2Bohh3wxHcC9W2bdstA?=
+ =?us-ascii?Q?jyTkapVihIXUcPOZgTeoCY/2Ix0KjlII1zz4dMo6NXRvoFDetLyhLyTB5/tL?=
+ =?us-ascii?Q?E2j/e/GaBKB5G8q/ymfctbFdbr5D3hF4v0wLhjKJiIOsXQyBjeCoqj5dbdPn?=
+ =?us-ascii?Q?EXzWdd8PJLJOp7xM5TzhkvL0VsGzFTsbeJhxvzwlLYLid5EhKE4vgQYCJamn?=
+ =?us-ascii?Q?NxjDFWanQfjcFRsMvxs43k0/XWtiUxq+owidA/CDv8SiQ2bXPBBryc87aFkR?=
+ =?us-ascii?Q?NhfTV7p9S7TpsM/BR5ajbiTks3Su9UP/EYXUjIf7fczLtsPSHJBE84jsFnyj?=
+ =?us-ascii?Q?0zRG9fpbNsmpSbzruxhQBL6J+CxU6usl9JxMuCho8tOx3NyCyQsQ3XbzH+40?=
+ =?us-ascii?Q?L+MuwFhGyBa+B6seuQFd3P+M+dKrtdNHjr0lBEB7eCsSP2jo/oDepnPt3nNA?=
+ =?us-ascii?Q?zUmG59L5NTV6u/i4gcRNqZdqevqoQr5uuK9XqpaqDuJFxMiKrJFho5nlQUY8?=
+ =?us-ascii?Q?rSZsT86L5P9fvwE87P5T9oTG8h0UGHlxtzA2YLACwA413cgzbFNKPc9twY17?=
+ =?us-ascii?Q?/pEhHcNMDfIZ+1zHT5YNEYCq4twN/b4ZZfhhgew9nOpaeivNSgH0cvkixhdn?=
+ =?us-ascii?Q?NW5RRMrr9PONMNmwvltLx5Xevs3drWBJgZv53favbeOhzpor8zCCOe0suPYi?=
+ =?us-ascii?Q?hiZRJ/OngUxpgdmQYdmkcjRTlJspWzQjAdWNmuK61lrruYA6m1HbaRJNIIbm?=
+ =?us-ascii?Q?Ntzqx+jymxQIuZUU8xDwRiebvxc7sA2GJoqyPn4Vt39nu5vsKqnHLnmp2pAH?=
+ =?us-ascii?Q?l1YBYwAZ2NEMzTiz8khVdK/o2b8b6N6aw4eMlBTIhNUMucmkQiHpMEks4CmB?=
+ =?us-ascii?Q?sv27UTczKQ=3D=3D?=
 X-MS-Exchange-CrossTenant-Network-Message-Id:
- 916f76b8-d507-4fcb-0587-08da25f3c697
+ a6c70159-2cff-4d9e-850c-08da25f3cab9
 X-MS-Exchange-CrossTenant-AuthSource: DB7PR04MB4666.eurprd04.prod.outlook.com
 X-MS-Exchange-CrossTenant-AuthAs: Internal
 X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
 X-MS-Exchange-CrossTenant-Id: f7a17af6-1c5c-4a36-aa8b-f5be247aa4ba
 X-MS-Exchange-CrossTenant-MailboxType: HOSTED
 X-MS-Exchange-CrossTenant-UserPrincipalName:
- U0+H5/aqCYgmQmTLYgYBLnn1ePzlOY1X6D1/6oxmWuGQBWB5WwZdmwXJInTZn42FbVxjVmlhS+rqpO1rZQjFBg==
+ OqNC3EtSnUrJp9s5nGrj8rI7VDE2YYYAL8xVrHUfglux8fF/Zb8w0A7HH9UNMBJ7onDqrA3CJPDxGxjWb0P4ug==
 X-MS-Exchange-Transport-CrossTenantHeadersStamped: VI1PR0402MB3344
 X-ServerName: de-smtp-delivery-102.mimecast.com
 X-Proofpoint-SPF-Result: pass
@@ -151,90 +151,215 @@ X-Proofpoint-SPF-Record: v=spf1 include:spf.suse.com
  include:spf.protection.outlook.com include:_spf.qemailserver.com
  include:_spf.salesforce.com -all
 X-Spam: Clean
-X-Proofpoint-ORIG-GUID: sGMrKYELsBQWQ6IEu4GhQuDtzK_JtM1L
-X-Proofpoint-GUID: sGMrKYELsBQWQ6IEu4GhQuDtzK_JtM1L
+X-Proofpoint-ORIG-GUID: ROSwoy2H99k39twUin4JvnnZhsZgG0Vz
+X-Proofpoint-GUID: ROSwoy2H99k39twUin4JvnnZhsZgG0Vz
 Reporting-Meta:
- AAFQWSoCtDpt5U4ul5LVFkfv5tyiXw50NnHArV/k3uDuAWTVDgA4e/laNT1z9yIT
- HIxzyV9oGy20ITBU166lHxCAC8CDqxAMiUV5PXVl1PWVWWvooqmuZIJlyw2lp2dr
- ZFNKO0azGwIypJkCNYDrnTE3ZA8hOvTwDHVX9llRsvhKb6gWThkSW6MzgFOTLCTB
- H9CVU9fiEEyM5acxeDP+L6juZD2alRK9lfiqy6OMiWiy/Z2MudFpoYdmzzbu+X9l
- +lrWRgV4uhbq0NBmnvkqoET0Z96bMGO3woIFsUSiz2kMgVtErAiDobBRp1GY7uCh
- U068U2Av6jlWFZZmu3eNItMgyy74WoGcFsNvM2OW/+an5eSjt+hAxKPCP5CmSnmg
- MQ72QxxA+HKVA12W3MY1IZi8X9LSvE87PZOeyL6tafNwPjPwW0q4H40UFL/tcMZx
- xeb9AWz8A59GsoMNDh5T3kpTwLcUeVrkOl2MzwV9O6iLBJGfvu0BfmS412C03T27
- LhxcZcqz3uoQdJsV0drWdTPzK1leCxJUeNfYER4zk+9R
+ AAHmMxb4dD9l5ZGTg7wErkO8P6ocihd8jEdEkBZefDlKcg+2AR/F6pvatdtj5MvK
+ GGJ9eZ+6Eshl9ZSEioNQ8gDMiyGtXeCnEX97ewaKUWmGkM3AmkOPNeXK+U1qRmKB
+ ocCd3WiyocVNuF1kn074pIvDKR3Dh0gSpgKug7XjAbEZEIA4PveQYkMT3eAXFkpz
+ GPXD9h+T8QlA6PEkHVO/FVF01s/Sy6d8zZVST8TVQ/Z72lN2uHubTSJ8ITIGzgtL
+ g5TL/OQ3RYRGi31uKQ+Uq4XMhgxvh+aTXrUcaHCrn5I3sD3DcPUpP4JXFbcz0Kzg
+ EnS3QS7fbmPypKlpM5mznI5lt4V0UdrTIvBJp+1fqgQW8ufpvIEuLqwyrV16XpAo
+ iBde6fn4l4p4DW8upWvc8eflFW6CdD9Bbi7fuqKWo6rlAZG/d4dUgfMDBUchQGaP
+ x5ssSkEQ8LvW4vHadKjekVTNBUCteCnCqwpCzRmmpPkiAylk9Mul6C0gKLOY7Lor
+ ugxu2hSjjjjxxUeRnhjjqPL9ZcGCGVh2MGDmGaH5cNdj+w==
 
-Since ocfs2_resmap_init() always return 0, change it to void.
+After this patch, when error, ocfs2_fill_super doesn't take care to
+release resources which are allocated in ocfs2_initialize_super.
 
 Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
 Signed-off-by: Heming Zhao <heming.zhao@suse.com>
 ---
- fs/ocfs2/reservations.c | 4 +---
- fs/ocfs2/reservations.h | 9 ++-------
- fs/ocfs2/super.c        | 6 +-----
- 3 files changed, 4 insertions(+), 15 deletions(-)
+ fs/ocfs2/super.c | 59 +++++++++++++++++++++++++++++++++---------------
+ 1 file changed, 41 insertions(+), 18 deletions(-)
 
-diff --git a/fs/ocfs2/reservations.c b/fs/ocfs2/reservations.c
-index 769e466887b0..a9d1296d736d 100644
---- a/fs/ocfs2/reservations.c
-+++ b/fs/ocfs2/reservations.c
-@@ -198,7 +198,7 @@ void ocfs2_resv_set_type(struct ocfs2_alloc_reservation *resv,
- 	resv->r_flags |= flags;
- }
- 
--int ocfs2_resmap_init(struct ocfs2_super *osb,
-+void ocfs2_resmap_init(struct ocfs2_super *osb,
- 		      struct ocfs2_reservation_map *resmap)
- {
- 	memset(resmap, 0, sizeof(*resmap));
-@@ -207,8 +207,6 @@ int ocfs2_resmap_init(struct ocfs2_super *osb,
- 	resmap->m_reservations = RB_ROOT;
- 	/* m_bitmap_len is initialized to zero by the above memset. */
- 	INIT_LIST_HEAD(&resmap->m_lru);
--
--	return 0;
- }
- 
- static void ocfs2_resv_mark_lru(struct ocfs2_reservation_map *resmap,
-diff --git a/fs/ocfs2/reservations.h b/fs/ocfs2/reservations.h
-index 677c50663595..ec8101ef5717 100644
---- a/fs/ocfs2/reservations.h
-+++ b/fs/ocfs2/reservations.h
-@@ -73,15 +73,10 @@ void ocfs2_resv_discard(struct ocfs2_reservation_map *resmap,
- 
- /**
-  * ocfs2_resmap_init() - Initialize fields of a reservations bitmap
-+ * @osb: struct ocfs2_super to be saved in resmap
-  * @resmap: struct ocfs2_reservation_map to initialize
-- * @obj: unused for now
-- * @ops: unused for now
-- * @max_bitmap_bytes: Maximum size of the bitmap (typically blocksize)
-- *
-- * Only possible return value other than '0' is -ENOMEM for failure to
-- * allocation mirror bitmap.
-  */
--int ocfs2_resmap_init(struct ocfs2_super *osb,
-+void ocfs2_resmap_init(struct ocfs2_super *osb,
- 		      struct ocfs2_reservation_map *resmap);
- 
- /**
 diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-index 311433c69a3f..8014c690ef72 100644
+index 8014c690ef72..758ea3313f88 100644
 --- a/fs/ocfs2/super.c
 +++ b/fs/ocfs2/super.c
-@@ -2110,11 +2110,7 @@ static int ocfs2_initialize_super(struct super_block *sb,
- 
- 	init_waitqueue_head(&osb->osb_mount_event);
- 
--	status = ocfs2_resmap_init(osb, &osb->osb_la_resmap);
--	if (status) {
--		mlog_errno(status);
+@@ -2022,7 +2022,7 @@ static int ocfs2_initialize_super(struct super_block *sb,
+ 	if (!osb) {
+ 		status = -ENOMEM;
+ 		mlog_errno(status);
 -		goto bail;
--	}
-+	ocfs2_resmap_init(osb, &osb->osb_la_resmap);
++		goto out;
+ 	}
  
- 	osb->vol_label = kmalloc(OCFS2_MAX_VOL_LABEL_LEN, GFP_KERNEL);
+ 	sb->s_fs_info = osb;
+@@ -2083,7 +2083,7 @@ static int ocfs2_initialize_super(struct super_block *sb,
+ 		mlog(ML_ERROR, "Invalid number of node slots (%u)\n",
+ 		     osb->max_slots);
+ 		status = -EINVAL;
+-		goto bail;
++		goto out;
+ 	}
+ 
+ 	ocfs2_orphan_scan_init(osb);
+@@ -2092,7 +2092,7 @@ static int ocfs2_initialize_super(struct super_block *sb,
+ 	if (status) {
+ 		mlog(ML_ERROR, "Unable to initialize recovery state\n");
+ 		mlog_errno(status);
+-		goto bail;
++		goto out;
+ 	}
+ 
+ 	init_waitqueue_head(&osb->checkpoint_event);
+@@ -2116,7 +2116,7 @@ static int ocfs2_initialize_super(struct super_block *sb,
  	if (!osb->vol_label) {
+ 		mlog(ML_ERROR, "unable to alloc vol label\n");
+ 		status = -ENOMEM;
+-		goto bail;
++		goto out_recovery_map;
+ 	}
+ 
+ 	osb->slot_recovery_generations =
+@@ -2125,7 +2125,7 @@ static int ocfs2_initialize_super(struct super_block *sb,
+ 	if (!osb->slot_recovery_generations) {
+ 		status = -ENOMEM;
+ 		mlog_errno(status);
+-		goto bail;
++		goto out_vol_label;
+ 	}
+ 
+ 	init_waitqueue_head(&osb->osb_wipe_event);
+@@ -2135,7 +2135,7 @@ static int ocfs2_initialize_super(struct super_block *sb,
+ 	if (!osb->osb_orphan_wipes) {
+ 		status = -ENOMEM;
+ 		mlog_errno(status);
+-		goto bail;
++		goto out_slot_recovery_gen;
+ 	}
+ 
+ 	osb->osb_rf_lock_tree = RB_ROOT;
+@@ -2151,13 +2151,13 @@ static int ocfs2_initialize_super(struct super_block *sb,
+ 		mlog(ML_ERROR, "couldn't mount because of unsupported "
+ 		     "optional features (%x).\n", i);
+ 		status = -EINVAL;
+-		goto bail;
++		goto out_orphan_wipes;
+ 	}
+ 	if (!sb_rdonly(osb->sb) && (i = OCFS2_HAS_RO_COMPAT_FEATURE(osb->sb, ~OCFS2_FEATURE_RO_COMPAT_SUPP))) {
+ 		mlog(ML_ERROR, "couldn't mount RDWR because of "
+ 		     "unsupported optional features (%x).\n", i);
+ 		status = -EINVAL;
+-		goto bail;
++		goto out_orphan_wipes;
+ 	}
+ 
+ 	if (ocfs2_clusterinfo_valid(osb)) {
+@@ -2178,7 +2178,7 @@ static int ocfs2_initialize_super(struct super_block *sb,
+ 			     "cluster stack label (%s) \n",
+ 			     osb->osb_cluster_stack);
+ 			status = -EINVAL;
+-			goto bail;
++			goto out_orphan_wipes;
+ 		}
+ 		memcpy(osb->osb_cluster_name,
+ 			OCFS2_RAW_SB(di)->s_cluster_info.ci_cluster,
+@@ -2198,7 +2198,7 @@ static int ocfs2_initialize_super(struct super_block *sb,
+ 	 */
+ 	status = ocfs2_journal_alloc(osb);
+ 	if (status < 0)
+-		goto bail;
++		goto out_orphan_wipes;
+ 
+ 	INIT_WORK(&osb->dquot_drop_work, ocfs2_drop_dquot_refs);
+ 	init_llist_head(&osb->dquot_drop_list);
+@@ -2213,7 +2213,7 @@ static int ocfs2_initialize_super(struct super_block *sb,
+ 		mlog(ML_ERROR, "Volume has invalid cluster size (%d)\n",
+ 		     osb->s_clustersize);
+ 		status = -EINVAL;
+-		goto bail;
++		goto out_journal;
+ 	}
+ 
+ 	total_blocks = ocfs2_clusters_to_blocks(osb->sb,
+@@ -2225,14 +2225,14 @@ static int ocfs2_initialize_super(struct super_block *sb,
+ 		mlog(ML_ERROR, "Volume too large "
+ 		     "to mount safely on this system");
+ 		status = -EFBIG;
+-		goto bail;
++		goto out_journal;
+ 	}
+ 
+ 	if (ocfs2_setup_osb_uuid(osb, di->id2.i_super.s_uuid,
+ 				 sizeof(di->id2.i_super.s_uuid))) {
+ 		mlog(ML_ERROR, "Out of memory trying to setup our uuid.\n");
+ 		status = -ENOMEM;
+-		goto bail;
++		goto out_journal;
+ 	}
+ 
+ 	strlcpy(osb->vol_label, di->id2.i_super.s_label,
+@@ -2252,7 +2252,7 @@ static int ocfs2_initialize_super(struct super_block *sb,
+ 	if (!osb->osb_dlm_debug) {
+ 		status = -ENOMEM;
+ 		mlog_errno(status);
+-		goto bail;
++		goto out_uuid_str;
+ 	}
+ 
+ 	atomic_set(&osb->vol_state, VOLUME_INIT);
+@@ -2261,7 +2261,7 @@ static int ocfs2_initialize_super(struct super_block *sb,
+ 	status = ocfs2_init_global_system_inodes(osb);
+ 	if (status < 0) {
+ 		mlog_errno(status);
+-		goto bail;
++		goto out_dlm_out;
+ 	}
+ 
+ 	/*
+@@ -2272,7 +2272,7 @@ static int ocfs2_initialize_super(struct super_block *sb,
+ 	if (!inode) {
+ 		status = -EINVAL;
+ 		mlog_errno(status);
+-		goto bail;
++		goto out_system_inodes;
+ 	}
+ 
+ 	osb->bitmap_blkno = OCFS2_I(inode)->ip_blkno;
+@@ -2285,16 +2285,39 @@ static int ocfs2_initialize_super(struct super_block *sb,
+ 	status = ocfs2_init_slot_info(osb);
+ 	if (status < 0) {
+ 		mlog_errno(status);
+-		goto bail;
++		goto out_system_inodes;
+ 	}
+ 
+ 	osb->ocfs2_wq = alloc_ordered_workqueue("ocfs2_wq", WQ_MEM_RECLAIM);
+ 	if (!osb->ocfs2_wq) {
+ 		status = -ENOMEM;
+ 		mlog_errno(status);
++		goto out_slot_info;
+ 	}
+ 
+-bail:
++	return status;
++
++out_slot_info:
++	ocfs2_free_slot_info(osb);
++out_system_inodes:
++	ocfs2_release_system_inodes(osb);
++out_dlm_out:
++	ocfs2_put_dlm_debug(osb->osb_dlm_debug);
++out_uuid_str:
++	kfree(osb->uuid_str);
++out_journal:
++	kfree(osb->journal);
++out_orphan_wipes:
++	kfree(osb->osb_orphan_wipes);
++out_slot_recovery_gen:
++	kfree(osb->slot_recovery_generations);
++out_vol_label:
++	kfree(osb->vol_label);
++out_recovery_map:
++	kfree(osb->recovery_map);
++out:
++	kfree(osb);
++	sb->s_fs_info = NULL;
+ 	return status;
+ }
+ 
 -- 
 2.35.1
 
