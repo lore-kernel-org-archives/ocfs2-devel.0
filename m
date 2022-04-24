@@ -4,85 +4,71 @@ X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 Received: from aib29ajc247.phx1.oracleemaildelivery.com (aib29ajc247.phx1.oracleemaildelivery.com [192.29.103.247])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id BD464C433F5
-	for <ocfs2-devel@archiver.kernel.org>; Mon, 18 Apr 2022 12:53:04 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 91EEBC433EF
+	for <ocfs2-devel@archiver.kernel.org>; Sun, 24 Apr 2022 13:10:26 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=5cm6DhKBeyp68RA3sWXOQWWodC85K3+WaRPoHSVr5g8=;
- b=GeTZflsUw4ktLur1wirB6ctYpoO4eb/drFD1o2rsoJ/T5s6rs8Yxuke0PvWhD/YzRg8GL3oemD1b
-   y8EuSCG0oT5kqJ7Zqz/uE96hNghNz6bITwkElFp8n3BtIUV0/D9yfePsTsumbcbu0Rw04IJ/MR0K
-   QVD4MjvV3VJM1N1EPubEsgNc/sTCdR/WoL4CDS+jfCC/YHoT1qsojWdksIq9gh06DSF3cxPRqqaS
-   8LsRKxs445/xR2JUaU9te4JKanJckDvsIB4LTrPr1kFDMlnyJBT33z7nD4rXfitr85bBRY/K81xy
-   picBH0Xqep58zplXe4OwRe3KTZHDNF22zmYYZw==
+ bh=gVvYlcyrAPSw0wcdB/cZn4QNaGHSGuw7Jk+oRPBcGvQ=;
+ b=01moun4OQIm2md27QBw8ptkvfogLiMP5dIK5PpNvpHJVAVAd73O/k90lpcB+3yCIW+rMnjMCpnFb
+   cQ0jLo0p13GymfTn8K/Q89iKN0jOAOLtoZZBZ3r1+NILxmqlDeXeYCuodCNc5RB21WAA191qC+4N
+   +hA4Vqw1lIRtvSI8rsnrDifAYDen32/+Kqxf0guuSosz9i91kkXVKB8QxSPn261fUxOBCzEeOeE+
+   L6PK2FDmoAO3V3YgKaNZrBwhKRjS9XzF+9yMYYZ1bXX4Kw18vMdoG4DvZ/7LXt5CG/j7iVW8DsZt
+   EtLdv5IAixnMO43pBTqSrY5UjKjLZGM5BjJBjw==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=5cm6DhKBeyp68RA3sWXOQWWodC85K3+WaRPoHSVr5g8=;
- b=ahM891yBRIC6Fp6+Xz5I3EwDOJLKOxC6CfiPlALUYKcDAfdKrGnGPoXxZdZPMqWD0vZ2rM0SNXmW
-   DyeNNqN5bRb55tDqALG+sJF7qlng3nb2XeF+c4mFmoKuGHxWF8G4TLW7OIg0cn5TLuvn6WlFsiZU
-   9ESvVL8vcyWjGlYVV+OW09D82EuB1PO4e7ZywJk/nzNiFKdQTgQwxbuNC5b7I04OJ6M73KT6Q0fn
-   A7glX29f9ALEGol+izxvRjZb8+DvIkWiFZYhP5E7gtnIpcxaXbNaEMARAubj+6Z3KEms19J5XokX
-   AJPZuPy2fQ478A87lOlAdmBCgdGZN2WqrznFjA==
+ bh=gVvYlcyrAPSw0wcdB/cZn4QNaGHSGuw7Jk+oRPBcGvQ=;
+ b=eTKgmyMXM0vvE6trBt4BEJ7LDJAYN3llXBYgW7ZauqIMZef6lWyVQhn52lhH+IRsz1PxrXP5+kLS
+   6DnEZ4NZzS77NXPop66mbltN99wiB4Mz/gYIkWJh8OOOL4IRTFjcIpcDMlEaU++jdlY57PFhHbz7
+   oMysQtyNKXoKNwLUrAaYQAlnLTfefd2D+IDZ9sTMMx+zkvST/qV5fYx0Tn64RCWq9u2hpbjT6Kf0
+   d82L5+kXty6Ts7NocmcN+JCP8x7B4btiIfLBo0gVR8Z9c+OqwEQwai2Ccg0/UTEXniO5uZR1ZuEd
+   XUBGhtFFtCM8bclN7MSyAUpyruRY+IVYT1iZIw==
 Received: by omta-ad1-fd3-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220319 64bit (built Mar 19
  2022))
- with ESMTPS id <0RAJ0096ND4GSZ00@omta-ad1-fd3-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Mon, 18 Apr 2022 12:53:04 +0000 (GMT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
- d=kernel-dk.20210112.gappssmtp.com; s=20210112;
- h=from:to:cc:in-reply-to:references:subject:message-id:date
- :mime-version:content-transfer-encoding;
- bh=F9FMycteyYrs8wEiBExwTDtAcc/2JBQ5GQqodkswvTM=;
- b=zqMJx9kEO/syGgh/jfUujcMdgZO1Zk4th79yyPJcsdnvdIDI8Xk864jrHuyarDgv8c
- gBt2ez+Ym/+EaLgC6MfWMHx5OVcgB54eOfckx7Cmdvf3bmGVDc/T0aLwM9rpN+nKDwcO
- dWklV+ARMeZbUO1+GrFCqFc/xZjiULaGiN1ll1DVCyoNwgzG1P+0Y9ZhUcwBpI/7WQx/
- gN/pYZdJuI935bVWCVcjkTqu2k20R+5oG6mGhil2uYi4X3QtR1zxXemtHM8NZ8XUvixz
- 3tQXFtvzqXbRCXIajCtyaq1nqo4kcpEpLyzsTyB3FvSvWQd/rTixV4XGHzsBwq9Bu/vV stDA==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=1e100.net;
- s=20210112; h=x-gm-message-state:from:to:cc:in-reply-to:references:subject
- :message-id:date:mime-version:content-transfer-encoding;
- bh=F9FMycteyYrs8wEiBExwTDtAcc/2JBQ5GQqodkswvTM=;
- b=nvtV8kLX2crfhsEL3oAl0Y2UVUbyUlMq+7oAjpyN8YRo2o2rNHNxI4b0V1fh//v3f4
- z/nPw4lDdRYV8Mni9e2DM5SIYihPAXjCbB9u5V0xfgkiMRkO2tUwOEjJKGBaMno4yJDJ
- yDaLBRh/k2H6haaH6kYVFXulCTVjTe96VPXFs4IwiPKhRWctWGcVg3gjIW/InLUsDo0m
- Vx1WuHEiahJNe6nISD1vN9LZf9k40rsjY7b1g/1uaNtxoq66f+iIwbfPhTTlTyOPucXZ
- QNBiLuFPEorC3umlyUAm+RehGBdjFEeygjLXDr49uEah2QUYaQY0/He6IeawrAzr8jd9 Rhwg==
-X-Gm-Message-State: AOAM533jsHU3/u1nqNdDjAzIVIY+dbYmX51d4AFoixmBhjnDgdidM2IX
- XvJWR5Lo1vDj8XggtEgtmFhcjw==
-X-Received: by 2002:a17:902:6b44:b0:154:4bee:c434 with SMTP id
- g4-20020a1709026b4400b001544beec434mr10858040plt.43.1650286372060; Mon,
- 18 Apr 2022 05:52:52 -0700 (PDT)
-To: Christoph Hellwig <hch@lst.de>
-In-reply-to: <20220415045258.199825-1-hch@lst.de>
-References: <20220415045258.199825-1-hch@lst.de>
-Message-id: <165028636949.14872.7589996414521818725.b4-ty@kernel.dk>
-Date: Mon, 18 Apr 2022 06:52:49 -0600
+ with ESMTPS id <0RAU00MFRHXDAS60@omta-ad1-fd3-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Sun, 24 Apr 2022 13:10:25 +0000 (GMT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.com;
+ s=mimecast20200619; t=1650805806;
+ h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+ to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+ content-transfer-encoding:content-transfer-encoding;
+ bh=vTr9tywUBhWxBFNBTNx5I+4N4wCTjjrCMX2/mmEQEX8=;
+ b=R+vsfo+nn9l9GRNqk+Rqas/ci9HT6oVirdh65on+fKOWqHTv7uZO0Ci7woZuluZ4Ukxc1B
+ nQOpICiBjQh26G8TzLjVcCZw8iY+MCvWNhqnvLvgS8jzG8qTnxfStk9/vIc/DKWYD8CTZS
+ GXte8khP7u9U1gscf7RRdWT4udy+oEI=
+ARC-Seal: i=1; a=rsa-sha256; s=arcselector9901; d=microsoft.com; cv=none;
+ b=K0le8UvQZMulza/MTSI7gJ4/CFhk2nDX8uF6LxxUJ3LNgqLsinPo0JgDeNIGEj6+VHcgcsulQvu8B9GyACXeWRZzx53SP/8lHPgjBB3LnCfFZ2wx7/OW7cM8UVXLin5ebyzMvoNjY2ocsA6+RXf7TCS5LDhVlyyxwVsUkI91LxqyfZMiMBqbsK0QuuIZj1rVrbZO0s3LsV5x2kftuF+AZC72poAx96Yw+zGTPMorwPmjKk7Ur4rh01azcQgzwk66kzsUYVYg6TWw0coI4jAV2D9rbk/niEYOLhm3joHgoyxQ157vccJtwbSNW93HC87Fs1ntingJi5LPBSsf0vC5/w==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=arcselector9901;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
+ bh=UJRfZfr0n0PaqoOQ5F42WJmH0HU87VzXwbftd3QRy/w=;
+ b=Vheu8vHDwaD5sTH52Lb/lOxRalKK4CfB0Vf8VDZIEkWNiaf2H/pvANcHi4LsIru3hnTx0UMrv2f4MaU5jzIyjBjujAM2+R/3AfuQDLwZUTuT8ojC6ZykgvuPOp+NOmdC+I8Goucw1pXZxTUh+ob6vLTi0YFQuAnuDwsbpgBEUnT/kdS5T2tQnsCXhl+nmJvuXsK0rJuOdirS/VcA1Nxhkxy1+W+t4w/SiuslJ+7FHQLtnPDdHtMKurhN6z2DZtTrLg7HazTadL13aOu9ZnRoa/NldSfhzoa2XHun1qhH1rxCqOwE7lqBBwFgKzgZYAJwiZg5DeM8aRPVeNZP6/WXFQ==
+ARC-Authentication-results: i=1; mx.microsoft.com 1; spf=pass
+ smtp.mailfrom=suse.com; dmarc=pass action=none header.from=suse.com; dkim=pass
+ header.d=suse.com; arc=none
+To: ocfs2-devel@oss.oracle.com, joseph.qi@linux.alibaba.com
+Date: Sun, 24 Apr 2022 21:09:47 +0800
+Message-id: <20220424130952.2436-1-heming.zhao@suse.com>
+X-Mailer: git-send-email 2.34.1
 MIME-version: 1.0
-X-Source-IP: 209.85.214.170
-X-Proofpoint-Virus-Version: vendor=nai engine=6300 definitions=10320
- signatures=695566
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 phishscore=0
- bulkscore=0 clxscore=-12 priorityscore=1501 spamscore=0 lowpriorityscore=0
- mlxscore=0 suspectscore=0 adultscore=0 mlxlogscore=392 malwarescore=0
- impostorscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2202240000 definitions=main-2204180076
-Cc: jfs-discussion@lists.sourceforge.net, linux-nvme@lists.infradead.org,
- virtualization@lists.linux-foundation.org, linux-mm@kvack.org,
- dm-devel@redhat.com, target-devel@vger.kernel.org,
- linux-mtd@lists.infradead.org, drbd-dev@lists.linbit.com,
- linux-s390@vger.kernel.org, linux-nilfs@vger.kernel.org,
- linux-scsi@vger.kernel.org, cluster-devel@redhat.com,
- xen-devel@lists.xenproject.org, linux-ext4@vger.kernel.org,
- linux-um@lists.infradead.org, nbd@other.debian.org,
- linux-raid@vger.kernel.org, linux-bcache@vger.kernel.org,
- ceph-devel@vger.kernel.org, linux-block@vger.kernel.org,
- linux-mmc@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net,
- linux-xfs@vger.kernel.org, ocfs2-devel@oss.oracle.com,
- linux-fsdevel@vger.kernel.org, ntfs3@lists.linux.dev,
- linux-btrfs@vger.kernel.org
-Subject: Re: [Ocfs2-devel] use block_device based APIs in block layer	consumers
- v3
+X-Forefront-Antispam-Report: CIP:255.255.255.255; CTRY:; LANG:en; SCL:1; SRV:;
+ IPV:NLI; SFV:NSPM; H:DB7PR04MB4666.eurprd04.prod.outlook.com; PTR:; CAT:NONE;
+ SFS:(13230001)(366004)(316002)(66946007)(1076003)(4326008)(2616005)(66476007)(107886003)(86362001)(83380400001)(26005)(186003)(66556008)(8676002)(36756003)(6666004)(8936002)(38100700002)(6486002)(44832011)(6506007)(2906002)(6512007)(508600001)(5660300002)(21314003); DIR:OUT;
+ SFP:1101;
+X-OriginatorOrg: suse.com
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 24 Apr 2022 13:10:02.6986 (UTC)
+X-Source-IP: 194.104.109.102
+X-Proofpoint-Virus-Version: vendor=nai engine=6400 definitions=10326
+ signatures=694694
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 suspectscore=0
+ spamscore=0 lowpriorityscore=0 malwarescore=0 adultscore=0 phishscore=0
+ impostorscore=0 mlxlogscore=999 clxscore=181 bulkscore=0 priorityscore=149
+ mlxscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2202240000 definitions=main-2204240062
+Subject: [Ocfs2-devel] [PATCH v3 0/5] rewrite error handling during mounting
+	stage
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -94,102 +80,167 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: Jens Axboe via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: Jens Axboe <axboe@kernel.dk>
+From: Heming Zhao via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: Heming Zhao <heming.zhao@suse.com>
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-Google-Smtp-Source:
- ABdhPJyPDIaLEewZhdBb/81ulQRxH4lnSCW72QYENTWzgjKzLqW/EIFRVhnHg8tc4oCKtNOZ6kDuRg==
-X-ServerName: mail-pl1-f170.google.com
+X-MC-Unique: 9MNbAsNqNl64GrY55j1-rw-1
+X-ClientProxiedBy: HK2PR02CA0172.apcprd02.prod.outlook.com
+ (2603:1096:201:1f::32) To DB7PR04MB4666.eurprd04.prod.outlook.com
+ (2603:10a6:5:2b::14)
+X-MS-PublicTrafficType: Email
+X-MS-Office365-Filtering-Correlation-Id: c75edf41-e809-4758-b8b5-08da25f3be43
+X-MS-TrafficTypeDiagnostic: VI1PR0402MB3344:EE_
+X-Microsoft-Antispam-PRVS:
+ <VI1PR0402MB33444DA150B1CA3EFD1AA95497F99@VI1PR0402MB3344.eurprd04.prod.outlook.com>
+X-MS-Exchange-SenderADCheck: 1
+X-MS-Exchange-AntiSpam-Relay: 0
+X-Microsoft-Antispam: BCL:0;
+X-Microsoft-Antispam-Message-Info:
+ hFKUMfQkAPNVFBpOJMFsJZJyze2+WUK3qPSSjZJAx0GfLJxm5O1Ub9cwZxmith6kdW2QB+i9TXnCE2J1k8bLB195O0kWDkWPcCG7Lv8LpEoCibMjKvvBnqgk/Q3hxgXe5n3j7qTt86H7qKuKS7aUeKIG/Blggijt2lV+tH5VcfTB87YHxGcBDYJpbN0q7UGqi3gUz1RhuZmd4TJ8exfERlsRveA8HzHl5ax4SqBjmPii6uDwDhq4wtp86QNjygP1GSe9N2DFxTe3Q0GzQ76vWuuak/LCmJUKVL/P99VZ/+fjhYi4Fx2ip/ve9QNVaiAjVLt/dEFHsoZ27T0hpgM7RBLlwGk0g+V12CMmKnRdyMo30JYbZ8rwzrMxAWtd0J8ih467XT8df1eiPT9IdjjkSBI8QS9Xiz1SNMRXMDbTHd/75AKlnMyZRJpKmiv+oBtdWwHwL9NExydQj9COQRLMmDd/6ljVHkgWJPiNeEn9IiEdYrZoI3/ysBiTNHdibwCDsAeJIquXr9UFB8ASYArj6/Ep5cC/44B6RvyZTTj1tbpXYUKXtcmsOB0Ydl8YhuD2DBdR+a/nhD3o/s3kNAbtbKlTnKQYLakB/7AJZEIhdJsppMNa000XmbNeo7CwofbMxcZsrjwCUst9Tp9we7cOD3h8YB8grZgUR6b0YuYrCmwDuWzdFM8WmG/iXKIQ06wO
+X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
+X-MS-Exchange-AntiSpam-MessageData-0:
+ =?us-ascii?Q?X8rBFEItnUHSAvpgoIlsMful+NTA2s8JxyDvH/jcKLCwMxPIgN6tf7VtPyEs?=
+ =?us-ascii?Q?as77F5JGSXwp4DyBo1l9PqYc/8wYH6dhVo9vg+gsjo7duFxUijqCa/iDiYOV?=
+ =?us-ascii?Q?lFyO4u8iyeucTi30jm5gLYEgyKyzX2XE/TiGtA8wy+3hpQWsB/4F8Tf1CuQo?=
+ =?us-ascii?Q?01duuSrQ8GmB/PanPSYfnRJZDyICXzzoj5OphbzpqSTGxRA4lUU+vRcP1fpX?=
+ =?us-ascii?Q?bAAl6Wll93vChv+HwONcWF7KoK2GC+uOtfFSNYtYFlfRg8JEhKH5ATZXa3lM?=
+ =?us-ascii?Q?Any9BGK0nwwzB2n1K2f7x3bewbwgix/URJEl63sKB/CBkxcGjK7ju+Q6HA4P?=
+ =?us-ascii?Q?KflYjd1o7/Y0eQJJD56Z6TU/jPrZeoAPfnLRDjccntosOpvR92tpFNZAKhAB?=
+ =?us-ascii?Q?UzjIZ2/NSE1xPOlctB+rrJVyE8p7orVAMPNI2esjnEpy/MfQ4ROHYkNespy4?=
+ =?us-ascii?Q?CeMWnulMmVdYuXjQyAWUaPJUCRBydEZaOMqo4ImZtM5mvt7WeyIoh4pDmjXb?=
+ =?us-ascii?Q?1ppvqwceT4Iu6X5l1ERuwyKh1SFPrRYD2Pf44J2BoEgrQKqk6CLgv1wyIwy5?=
+ =?us-ascii?Q?adj0XsF8r40t/GX6gMgQvY+XkUxu/ObfAHOI8M2Hq5iQasv8Ldqm/Xu5bFxy?=
+ =?us-ascii?Q?GOLFIJsvpmC+4xzaax4T2gKDouyYOp/DIw0kiVCAA8ALfeCi1Xgcg9dwFuzE?=
+ =?us-ascii?Q?HqoCS/vFfs6QPYkm+f7GLVFW/vtTSYXIPTSK0raZwtawdrMgV6bgL63wGPZD?=
+ =?us-ascii?Q?oalJzhtYonoJHuuV5Vw9b+D1kUhKMqM8fN03zkf4y1SfeAlOCMlpOaVJdgG/?=
+ =?us-ascii?Q?S9wuhtAbHQszbVynn7zqdR7hAwyvrbUPh7qiSiY5DGom/H61Bx52qLM3hE1Y?=
+ =?us-ascii?Q?BtNFldJk7EmZjNWbJeNZOMqDO5QKdvuJ47YxiRqCWmsMSl1uGrgKX1N3m1p3?=
+ =?us-ascii?Q?SC4OnXUSiZTP4Fs4QA/TBMvZhJa4bvElGNmlJpfWt/+qYFXJPJIly8fPkGZQ?=
+ =?us-ascii?Q?WvKeFLYwmTdzgNkwAR/B383UAGXZ/6gOqg0t5BcC83vsJDTGfb5fjTRS8puL?=
+ =?us-ascii?Q?VoTte2IT7jbqJ4jCQkI4X6bEz/ybGUkpB8OKHNH8Yxsu31i2c+E9KdoHWRjh?=
+ =?us-ascii?Q?STSLsP+3Et7wdNEfy4RTr1lvjfmeYpMWKquHDIiOq4PMpor3gU5rhpjhn9CC?=
+ =?us-ascii?Q?X9RzlPzAZzLAe+4/Z+gYafrDAqgb6JaDFYSh0h1PJFf2zyYM3CfwI9m7YbSF?=
+ =?us-ascii?Q?jl+j2/289IaQzBe+KMUk3VH6I2YpEx9yafMCXCy/EiuRVSqlDswFq5MYLYPa?=
+ =?us-ascii?Q?oWeIU1IHVDpkJcNGM8qfxGa9sAbh0ztA8KHvfP6Z7yhNcQYfyz8HW1rQoXuY?=
+ =?us-ascii?Q?KrovC8RZ99JDrLx5U7/zg6/VZI6leKcbzzVrg+Kyg0T/7Ew5i0URPMs3vms/?=
+ =?us-ascii?Q?odbTN3/6rtVMSEnMmrutPgcEeQ7yhiYIk7fxgwr2kC9Qz59EIINXcLS/bh8H?=
+ =?us-ascii?Q?wqv2hlVY4kOWR8AbMBK2yRBG1PR2X7BD3OzXpf7vFynCnojQF/WMZxZcVfYt?=
+ =?us-ascii?Q?jUwYhddebm6Z02teEE5KsgjxHJOY6PBGqjrkriDa/Ag2/UY3IBSsCvGMTMzm?=
+ =?us-ascii?Q?D4Z3dTgircpouGcLwClx2un++53sPzebFWKwLgG2bufCaPKSAcZCXXUzNa8M?=
+ =?us-ascii?Q?0wo4r13rZGBxyBP4wjxOjmdKo71XMVuPcRPf17zIHj6VSWr1EogsgUiddTP2?=
+ =?us-ascii?Q?i15qh+I1sA=3D=3D?=
+X-MS-Exchange-CrossTenant-Network-Message-Id:
+ c75edf41-e809-4758-b8b5-08da25f3be43
+X-MS-Exchange-CrossTenant-AuthSource: DB7PR04MB4666.eurprd04.prod.outlook.com
+X-MS-Exchange-CrossTenant-AuthAs: Internal
+X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
+X-MS-Exchange-CrossTenant-Id: f7a17af6-1c5c-4a36-aa8b-f5be247aa4ba
+X-MS-Exchange-CrossTenant-MailboxType: HOSTED
+X-MS-Exchange-CrossTenant-UserPrincipalName:
+ 8kOLg5vWNNT+UYGuEv0i/1qKlNJ23HxOMTzeIFYMh/WhLdk+wQXaeLQmd1tkMtbzOiBcVtlv++DzKw8/SNaQPg==
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: VI1PR0402MB3344
+X-ServerName: de-smtp-delivery-102.mimecast.com
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 include:_spf.google.com ~all
+X-Proofpoint-SPF-Record: v=spf1 include:spf.suse.com
+ include:de._netblocks.mimecast.com include:amazonses.com
+ include:spf.protection.outlook.com include:_spf.qemailserver.com
+ include:_spf.salesforce.com -all
 X-Spam: Clean
-X-Proofpoint-GUID: pXuwVxiFc60y6VhVHSyuA6yHJzjOlE-O
-X-Proofpoint-ORIG-GUID: pXuwVxiFc60y6VhVHSyuA6yHJzjOlE-O
+X-Proofpoint-GUID: b3yNKiLoP8rrnbrd7l6aNhg5V5w6mzwA
+X-Proofpoint-ORIG-GUID: b3yNKiLoP8rrnbrd7l6aNhg5V5w6mzwA
 Reporting-Meta:
- AAGMNtuUNBIfb/SVklvQN6oZ3ZyFb4Ilh85wtqcIidbP/aCTE277UGbYHsejAcpd
- Lvbexjc5ZnlcH8uZEomITQ19mS4FkjrgUM2vq6Y6lD3YeUUsXVzbCHhXibalK9qQ
- 3DfWA86nvvvNV6bKdbiw8yD/Rt5j7My/uYODzHRtwtEMaOPdJJbJ27XAITNnBiI3
- Kq1KRfDnmVA5fH+ULfb+6nhoagLYP00uA1/Lf86tLVRxAfR6ZsfAfu9a+CBEWmt4
- BimDAawVU0JvRXIdmwjUXtaH+s+B7kFf1o3or4mm8ROEoMfoOQMBA4rCAP1tVv/i
- VLL1SrYvGkWr6SehHBwmTsCvymR8PVcW/t0qwvIYFdoDCQDvkvCUoxMe9Ay2fYIM
- kBMcJSFLpazTGpjljousBRhbILtsBLT+VULTAfFVVmIC8ELQ8BGw3M02zNgL9+BR
- RRpvPnq+wyk4nmH1eP1KTBy5lTy8EcfDThLAw+1FF0mJDm+x8ZPo579MkfPO7iPh
- zFBWKBqqk0M5dvHNph6cSEd5U+8Qi4ipe3uI0jXy5W8QBw==
+ AAHF5Iq9AucA6ZInROOCdJzpprOAlkdlnsYfgJHHFpbGSRI17OaP9UlPgxbRBJuJ
+ TfqET3bSZWrGNBfgOaw9JGShb6kfZcq2VGECmxQAPbA0NOv4i4VMWQw1s71k6xh+
+ lXS3N6K0BEASwXETv82wv3X6XzYfqmUkCwZhw8xFOhlNzHF1NSRos80OLj1KSZWD
+ 6ex00ev2PHOxg8SVYow/HAbQB33Q70lFken1rPBv5SYUgZSSJ4vLPFL4fnu4jHiP
+ /xAxC/45SU5BXFJIelW2/rC4VSrFnBM/K3VxpXutSYt/jqmuJ1i+45ZGA95OxjHu
+ eGGR2fp1PBCR9K4dy4j1b53kt/8+qdMD+6xzTouV1ZFdV8bf3X50Aerv8xZHU4Dm
+ qkIgDALQ0A3Gjp/fk49IAxYl9G2Z8qEXCI2Vq48entdVLZnSTjH6epZqGfdjVQCk
+ criz7p0EaLsL5E4ga++w1wVbyZVD3oEX2mMeB3u8Zp/fnXnykIc/jKv+WkiAmiUS
+ v0lmhILpDvBGLCVyLfWvdrd4QVOA35q3xYst5LKF3KI6
 
-On Fri, 15 Apr 2022 06:52:31 +0200, Christoph Hellwig wrote:
-> this series cleanups up the block layer API so that APIs consumed
-> by file systems are (almost) only struct block_devic based, so that
-> file systems don't have to poke into block layer internals like the
-> request_queue.
-> 
-> I also found a bunch of existing bugs related to partition offsets
-> and discard so these are fixed while going along.
-> 
-> [...]
+Note:
+For test code & test result, please check my next patch. 
 
-Applied, thanks!
+** v3 **
 
-[01/27] target: remove an incorrect unmap zeroes data deduction
-        commit: 179d8609d8424529e95021df939ed7b0b82b37f1
-[02/27] target: pass a block_device to target_configure_unmap_from_queue
-        commit: 817e8b51eb3d927ce6d56ecf9f48bc3c5b26168b
-[03/27] target: fix discard alignment on partitions
-        commit: 968786b9ef56e75e0109158a4936ffffea962c1e
-[04/27] drbd: remove assign_p_sizes_qlim
-        commit: 40349d0e16cedd0de561f59752c3249780fb749b
-[05/27] drbd: use bdev based limit helpers in drbd_send_sizes
-        commit: 7a38acce229685968b770d1d9e64e01396b93643
-[06/27] drbd: use bdev_alignment_offset instead of queue_alignment_offset
-        commit: c6f23b1a05441a26f765e59dd95e8ba7354f9388
-[07/27] drbd: cleanup decide_on_discard_support
-        commit: 998e9cbcd615e5e6a7baa69e673ee845f812744e
-[08/27] btrfs: use bdev_max_active_zones instead of open coding it
-        commit: c1e7b24416400ef13ff92a1c60c336c9a2834d7b
-[09/27] ntfs3: use bdev_logical_block_size instead of open coding it
-        commit: f09dac9afb8e3ce4b6485dbc091a9b9c742db023
-[10/27] mm: use bdev_is_zoned in claim_swapfile
-        commit: 9964e674559b02619fee2012a56839624143d02e
-[11/27] block: add a bdev_nonrot helper
-        commit: 10f0d2a517796b8f6dc04fb0cc3e49003ae6b0bc
-[12/27] block: add a bdev_write_cache helper
-        commit: 08e688fdb8f7e862092ae64cee20bc8b463d1046
-[13/27] block: add a bdev_fua helper
-        commit: a557e82e5a01826f902bd94fc925c03f253cb712
-[14/27] block: add a bdev_stable_writes helper
-        commit: 36d254893aa6a6e204075c3cce94bb572ac32c04
-[15/27] block: add a bdev_max_zone_append_sectors helper
-        commit: 2aba0d19f4d8c8929b4b3b94a9cfde2aa20e6ee2
-[16/27] block: use bdev_alignment_offset in part_alignment_offset_show
-        commit: 64dcc7c2717395b7c83ffb10f040d3be795d03c1
-[17/27] block: use bdev_alignment_offset in disk_alignment_offset_show
-        commit: 640f2a23911b8388989547f89d055afbb910b88e
-[18/27] block: move bdev_alignment_offset and queue_limit_alignment_offset out of line
-        commit: 89098b075cb74a80083bc4ed6b71d0ee18b6898f
-[19/27] block: remove queue_discard_alignment
-        commit: 4e1462ffe8998749884d61f91be251a7a8719677
-[20/27] block: use bdev_discard_alignment in part_discard_alignment_show
-        commit: f0f975a4dde890bfe25ce17bf07a6495453988a4
-[21/27] block: move {bdev,queue_limit}_discard_alignment out of line
-        commit: 5c4b4a5c6f11c869a57c6bd977143430bc9dc43d
-[22/27] block: refactor discard bio size limiting
-        commit: e3cc28ea28b5f8794db2aed24f8a0282ad2e85a2
-[23/27] block: add a bdev_max_discard_sectors helper
-        commit: cf0fbf894bb543f472f682c486be48298eccf199
-[24/27] block: remove QUEUE_FLAG_DISCARD
-        commit: 70200574cc229f6ba038259e8142af2aa09e6976
-[25/27] block: add a bdev_discard_granularity helper
-        commit: 7b47ef52d0a2025fd1408a8a0990933b8e1e510f
-[26/27] block: decouple REQ_OP_SECURE_ERASE from REQ_OP_DISCARD
-        commit: 44abff2c0b970ae3d310b97617525dc01f248d7c
-[27/27] direct-io: remove random prefetches
-        commit: c22198e78d523c8fa079bbb70b2523bb6aa51849
+patch 1/5 
+in fs/ocfs2/journal.h, add declaration for ocfs2_journal_alloc()
+in ocfs2_journal_init(), add BUG_ON()
+in ocfs2_initialize_super()
+- change the "if()" condition for return value of ocfs2_journal_alloc
+- remove unused variable 'journal', which introduced from v1 patch but
+  became unused from v2 after new api ocfs2_journal_alloc().
 
-Best regards,
+patch 4/5
+- Under review comment, roll back the changes [*] for ocfs2_check_volume().
+- add ocfs2_free_slot_info() in label out_system_inodes. without call this
+  function, ocfs2 will trigger crash. this crash triggered by my test
+  patch.
+
+[*]: new comment at front of function, and a code rule fix
+
+** v2 **
+
+patch 1/5:
+ - change patch subject.
+ - add a new function ocfs2_journal_alloc
+ - add new comment at front of ocfs2_journal_alloc
+ - in ocfs2_initialize_super, change legacy comment before calling
+   ocfs2_journal_alloc.
+
+patch 2/5:
+ - revise commit log according review comment.
+ - remove meanless comment of ocfs2_resmap_init in header file.
+
+patch 3/5:
+ - set "sb->s_fs_info = NULL" (osb is NULL) when ocfs2_initialize_super
+   fails.
+
+patch 4/5:
+ for ocfs2_mount_volume():
+ - make it return 0 (before return "status") as successful.
+ - remove goto label "out_journal_shutdown"
+ - add more clean job in label "out_system_inodes"
+   - add ocfs2_shutdown_local_alloc() to release local alloc resources.
+   - add ocfs2_journal_shutdown() to clean up journal.
+
+ for ocfs2_check_volume():
+ - add new comment at the front of ocfs2_check_volume.
+ - change comment style/format for "struct ocfs2_dinode *local_alloc"
+
+patch 5/5:
+ revise commit log.
+
+ in ocfs2_fill_super():
+ - change goto label "out_journal" to "out_dismount"
+ - add "goto out" in label "out_dismount".
+
+** draft -> v1 ** 
+
+- split one patch into 5 patches.
+- goto labal name change to out_xxx style.
+- only test for mount/umount & 0001-xx.patch related issue.
+
+Heming Zhao (5):
+  ocfs2: fix mounting crash if journal is not alloced
+  ocfs2: change return type of ocfs2_resmap_init
+  ocfs2: ocfs2_initialize_super does cleanup job before return error
+  ocfs2: ocfs2_mount_volume does cleanup job before return error
+  ocfs2: rewrite error handling of ocfs2_fill_super
+
+ fs/ocfs2/inode.c        |   4 +-
+ fs/ocfs2/journal.c      |  33 +++++---
+ fs/ocfs2/journal.h      |   2 +
+ fs/ocfs2/reservations.c |   4 +-
+ fs/ocfs2/reservations.h |   9 +-
+ fs/ocfs2/super.c        | 178 ++++++++++++++++++++++++----------------
+ 6 files changed, 139 insertions(+), 91 deletions(-)
+
 -- 
-Jens Axboe
-
+2.35.1
 
 
 _______________________________________________
