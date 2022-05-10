@@ -1,56 +1,57 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc244.phx1.oracleemaildelivery.com (aib29ajc244.phx1.oracleemaildelivery.com [192.29.103.244])
+Received: from aib29ajc249.phx1.oracleemaildelivery.com (aib29ajc249.phx1.oracleemaildelivery.com [192.29.103.249])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 5493CC43217
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 1A606C4332F
 	for <ocfs2-devel@archiver.kernel.org>; Tue, 10 May 2022 04:17:46 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=WN0BvCGlJoHZOrOSIoFSIF6BKq+ck9vrwLYYTwAbnvg=;
- b=Rh0mARhsKqoczK+8F8jaQDFu3DxiyOs4NgNxYRNWMFWkVsasJd6UxGDdCLKGxt6r+UKH0wqrf7T4
-   SqYFD/CmEezkOI5z5Kwik8Z3nHa9Q74phyLUFXqkjSuEg4utt4JDnh0zoZSvH6PGZCN9U57Y7kMZ
-   4Qh4FA05iPLcESKo5vo44s8JoMFTNFhWyZelF58btkksSDZ0PvaK6R0Nx2IShOnlmF0v3L3r24JD
-   99Bs4pfz4RNWYW7zAxREk7ebILTat9ihvJgbltKIxcGRRbWUFP7zUZCx2wSt5hZ047LqBM8GJOOR
-   XLnbYgp90NfQg7HArrbmHba/2IUN2pOgaVgLzA==
+ bh=M2AgnfvpQXnmARQ3E6AtL6EB8iC6Fu7Wj4D/aS6SYBE=;
+ b=rNxS+OGYad2dTlyfUZPt1St1a4HJOX4r4NZxaZgnNYw8Ejbkr4UfzFSAvh4jZFnNOQLy+Khc2d4y
+   pfGVRlzCErFhAs3+Rwxt+XDciWUp5rlNNs5uLdhKaZ3J28MGuGIwMxv42Jbe6al+8PwmoQVUqPSw
+   EMDh2IhD5viI7tEZKPFJp1ufbTfq9wWOpDbIFj0h64DFsGVyLZSIVsxFeX5oTQqTEIByl46ciQNy
+   aJW30HSJs+/pxFVHRffAmj2FuWZsrWXxalsokuU8/f5lxzBP6TglAiTQWCouBzff4dxCGP0HR8QT
+   Vz8/RBAX85Sfd4ccXbiPqcyXxFgIQD/xOWuucg==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=WN0BvCGlJoHZOrOSIoFSIF6BKq+ck9vrwLYYTwAbnvg=;
- b=f199V/H8vYows1Hnyn4wH4Y9Pf6UJPLIjDilUHbu3W1HPCdMxbxhbM5tUnn/gSJ3oyWOeZ/4HFnS
-   V9IjPXUIQFjyVmknbIIBNx/cvfh2aFjhp3OGlQ6pGSU9aaTPrule7g/5o/PQTDRoJg2OAgo2eyS/
-   moJiePut6TJDUZmfeQAy+B36uq0TIUhcQdscT8UeosfSjcWGELcMrBPZSHDjCUgxbgjtSm/TKrQY
-   kfbTlnxbCahGW6jw5jDRN1hfnY+LlxD3+t2ZgKR4itXlX2JcUeiPwUt8eNaj0+lNZo0Q/zl88MPu
-   idmyNr3/oF8TmLHy4+ECJpDZM4SYd21ntN7Apw==
-Received: by omta-ad1-fd1-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
+ bh=M2AgnfvpQXnmARQ3E6AtL6EB8iC6Fu7Wj4D/aS6SYBE=;
+ b=Z5v53w2uOgmiGB9N8z48uTHCtkvvG1++GvjXFfA1RavTQkTDlcbstkqhzOyFPEhFrTZjmpJsanx0
+   SCr5EmVYvVTM0fEGMxk9/2hHDnAxYLskj/p565LRRHmmSjxQRTRYundBne8rYTQ6BDzkGreyzY1Q
+   tsvDqDYVdrzB7fxdDy491k7PznIKUC5lsCdI6ztrOX2+RTHJkbk5hLEMA8WcPQAOLLP8bjO/kiYO
+   EEzJDbt/3KVDeg21Di6bGzg/GumywdXDC1+fPrYoN+ujLNGP84htE/ymQSoe4EgRCFzuGVZ+OtYz
+   rLh9YvihLnFbRX/hLybeI8760JADETAV/f6zQg==
+Received: by omta-ad2-fd1-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220413 64bit (built Apr 13
  2022))
- with ESMTPS id <0RBN005T6FXLEU30@omta-ad1-fd1-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
+ with ESMTPS id <0RBN005ATFXLYYF0@omta-ad2-fd1-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
  ocfs2-devel@archiver.kernel.org; Tue, 10 May 2022 04:17:45 +0000 (GMT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linux-foundation.org;
- s=korg; t=1652156249; bh=dP2lJ1Oc0PcGwbTw586E3fKdDqtMl4sEyv/hYld23g0=;
+ s=korg; t=1652156250; bh=SIxAJAW+I0aca6ctLYrG98vIl4veIqyF36JyxZQCqc8=;
  h=Date:To:From:Subject:From;
- b=bIdUaZ2aBG/CeKTN8MH78ellDjUQ31JKeFOTUBPZT/vhXGj2GnXUxbD6di/yvdvZg
- jSeFJslojIAqO3FS8Ofcec6PHVilP6CzkEzoYVhOS74kazHiPJKRbGBt/2qeRVKaj8
- Wg+YBJh5OnBAzFGSxhc1C2nAnmU41EjGmI+GUYbQ=
-Date: Mon, 09 May 2022 21:17:28 -0700
+ b=YWMUlnB7zRMIY1Mkq2R86DppLGf3GSLJ3//Fag7/6mdbTG0dc0wkYJJPwjGAo7+2F
+ RzPL7o69/V1mjkD57YH8U8UWN7tdKF2TtmGHiFtYN4/qhwO4Ks9B8InXR5/XydXpK4
+ +B/r2eYGd7gIwXuW9ofx8fsB4YUo6G2OB+SJqd4E=
+Date: Mon, 09 May 2022 21:17:29 -0700
 To: mm-commits@vger.kernel.org, piaojun@huawei.com, mark@fasheh.com,
  junxiao.bi@oracle.com, joseph.qi@linux.alibaba.com, jlbec@evilplan.org,
  heming.zhao@suse.com, ghe@suse.com, gechangwei@live.cn,
  ocfs2-devel@oss.oracle.com, akpm@linux-foundation.org
-Message-id: <20220510041729.20B0CC385A6@smtp.kernel.org>
-X-Source-IP: 139.178.84.217
+Message-id: <20220510041730.2709BC385A6@smtp.kernel.org>
+X-Source-IP: 145.40.68.75
 X-Proofpoint-Virus-Version: vendor=nai engine=6400 definitions=10342
  signatures=593155
 X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 spamscore=0
- impostorscore=0 clxscore=193 mlxscore=0 lowpriorityscore=0 suspectscore=0
+ impostorscore=0 clxscore=190 mlxscore=0 lowpriorityscore=0 suspectscore=0
  bulkscore=0 malwarescore=0 adultscore=0 phishscore=0 mlxlogscore=999
- priorityscore=266 classifier=spam adjust=0 reason=mlx scancount=1
+ priorityscore=151 classifier=spam adjust=0 reason=mlx scancount=1
  engine=8.12.0-2202240000 definitions=main-2205100018
 Subject: [Ocfs2-devel] [merged mm-nonmm-stable]
-	ocfs2-change-return-type-of-ocfs2_resmap_init.patch removed	from -mm tree
+	ocfs2-ocfs2_initialize_super-does-cleanup-job-before-return-error.patch
+	removed from -mm tree
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -68,39 +69,40 @@ MIME-version: 1.0
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-ServerName: dfw.source.kernel.org
+X-ServerName: ams.source.kernel.org
 X-Proofpoint-SPF-Result: pass
 X-Proofpoint-SPF-Record: v=spf1 ip4:140.211.169.12/30 include:_spf.kernel.org
  include:_spf.google.com ~all
 X-Spam: Clean
-X-Proofpoint-ORIG-GUID: yo6QIOcxvlKI06o6hQJK44gXSDyt2ubg
-X-Proofpoint-GUID: yo6QIOcxvlKI06o6hQJK44gXSDyt2ubg
+X-Proofpoint-ORIG-GUID: UKL3E88MWC9DyVDsPq3L-96NEWOWxUy3
+X-Proofpoint-GUID: UKL3E88MWC9DyVDsPq3L-96NEWOWxUy3
 Reporting-Meta:
- AAEjfAPnyEDj2KXOzSi2iIHaMYn3dNy/sYP6hPrrQzWyMlDQio9RaOktxw9Gy0ZY
- T4yp3tPnOlg6w6SG3MUCa15e02gBWT4F0gvJMZN9WXkcEDeIct4EawXJ5HDLbAej
- GU3TJPGfX7NEV0NqOnb5lrgOpql/TnHEle19X0iX+eLqjQAe9OScFlqOq/luE0i1
- JTkq0BuqUJelS4XmemT9vwuplNukFZpnF4pIbYSIxIijbn6KMfyuoLUkk+aMB8I0
- GeVsrqL7uwLlcX/lva0hIQsHmLlzFKFaQj1Ulprzv7Qm+sR7XtDcpdckN3xe1+OQ
- xKzYhtb4cgdnHbhitQjLEu3Z8O4jOT5Sh5hUikl+eVCkCjr2ql/+Gn7HDFNlDyQE
- kV96OMZ0G8GPTwUQqsinmDKZnE+bcJocJ9cTm4IeLOsWt/n7gKqq3v3TDKY/YNYq
- 5RBE9REga1HKi0yHnkKrPmbM+7j9b/gqVgKO9a790vUbTnPgqX+nqFtzZx1TAfcp
- deU4dZ+LOjp0Vgg0oxSJdSd5Cmat5khRvOcVEdijxxA=
+ AAEfuOMvJuMO2faTRAVSN0CikplW6rciJz72aqTItBdtafQGBunmv71bZ8YYIMw4
+ PoH1CDAaOhnSZNr9+ua/72ST3v/Q7WmyPm+xLms+gXab05xf/yJN4Sgjqc7oT8aV
+ ekVAkdQ6Hku1mIUbnmQ0ntsIn+/z3gbHeMgdM2leDb0B9G+4R76+IvWe0nl3Ayw0
+ br7xlyhRg63OwrIKqoyNgLgC0vp3vbu4Tk6uKh7Q2lTsMwln3XDx6wJEUSyh9cox
+ 7ua4+W0FFNfGZiFsA6zNGshEPn7KeTTMhlaGIGN70tmWteY/EheV6GqOF9a+mpYI
+ ZYgwxe7TLOKsn6g9FmuYF14CpkQCqmmil8MIKKXV5hhwqLrA7/riYh7kMUvEjCU6
+ kxs8FOPnvkU2SthpFQ5VePhvgoR1yJUFsdpcsinD0Ixdpg1e/Dn6NB61xuvdGO3k
+ FISRGtlK//Xi0AZiBdOM0KP2xslI+74MPrEXIjHZ7HQcStAxpSJo6+pIydEH5eUj
+ L5LMELFiIGj9ek+Yi4bl+aSuKj07mFFflE1ebkF717g=
 
 
 The quilt patch titled
-     Subject: ocfs2: change return type of ocfs2_resmap_init
+     Subject: ocfs2: ocfs2_initialize_super does cleanup job before return error
 has been removed from the -mm tree.  Its filename was
-     ocfs2-change-return-type-of-ocfs2_resmap_init.patch
+     ocfs2-ocfs2_initialize_super-does-cleanup-job-before-return-error.patch
 
 This patch was dropped because it was merged into the mm-nonmm-stable branch of git://git.kernel.org/pub/scm/linux/kernel/git/akpm/mm
 
 ------------------------------------------------------
 From: Heming Zhao via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Subject: ocfs2: change return type of ocfs2_resmap_init
+Subject: ocfs2: ocfs2_initialize_super does cleanup job before return error
 
-Since ocfs2_resmap_init() always return 0, change it to void.
+After this patch, when error, ocfs2_fill_super doesn't take care to
+release resources which are allocated in ocfs2_initialize_super.
 
-Link: https://lkml.kernel.org/r/20220424130952.2436-3-heming.zhao@suse.com
+Link: https://lkml.kernel.org/r/20220424130952.2436-4-heming.zhao@suse.com
 Signed-off-by: Heming Zhao <heming.zhao@suse.com>
 Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
 Cc: Changwei Ge <gechangwei@live.cn>
@@ -112,66 +114,194 @@ Cc: Mark Fasheh <mark@fasheh.com>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- fs/ocfs2/reservations.c |    4 +---
- fs/ocfs2/reservations.h |    9 ++-------
- fs/ocfs2/super.c        |    6 +-----
- 3 files changed, 4 insertions(+), 15 deletions(-)
+ fs/ocfs2/super.c |   59 +++++++++++++++++++++++++++++++--------------
+ 1 file changed, 41 insertions(+), 18 deletions(-)
 
---- a/fs/ocfs2/reservations.c~ocfs2-change-return-type-of-ocfs2_resmap_init
-+++ a/fs/ocfs2/reservations.c
-@@ -198,7 +198,7 @@ void ocfs2_resv_set_type(struct ocfs2_al
- 	resv->r_flags |= flags;
- }
- 
--int ocfs2_resmap_init(struct ocfs2_super *osb,
-+void ocfs2_resmap_init(struct ocfs2_super *osb,
- 		      struct ocfs2_reservation_map *resmap)
- {
- 	memset(resmap, 0, sizeof(*resmap));
-@@ -207,8 +207,6 @@ int ocfs2_resmap_init(struct ocfs2_super
- 	resmap->m_reservations = RB_ROOT;
- 	/* m_bitmap_len is initialized to zero by the above memset. */
- 	INIT_LIST_HEAD(&resmap->m_lru);
--
--	return 0;
- }
- 
- static void ocfs2_resv_mark_lru(struct ocfs2_reservation_map *resmap,
---- a/fs/ocfs2/reservations.h~ocfs2-change-return-type-of-ocfs2_resmap_init
-+++ a/fs/ocfs2/reservations.h
-@@ -73,15 +73,10 @@ void ocfs2_resv_discard(struct ocfs2_res
- 
- /**
-  * ocfs2_resmap_init() - Initialize fields of a reservations bitmap
-+ * @osb: struct ocfs2_super to be saved in resmap
-  * @resmap: struct ocfs2_reservation_map to initialize
-- * @obj: unused for now
-- * @ops: unused for now
-- * @max_bitmap_bytes: Maximum size of the bitmap (typically blocksize)
-- *
-- * Only possible return value other than '0' is -ENOMEM for failure to
-- * allocation mirror bitmap.
-  */
--int ocfs2_resmap_init(struct ocfs2_super *osb,
-+void ocfs2_resmap_init(struct ocfs2_super *osb,
- 		      struct ocfs2_reservation_map *resmap);
- 
- /**
---- a/fs/ocfs2/super.c~ocfs2-change-return-type-of-ocfs2_resmap_init
+--- a/fs/ocfs2/super.c~ocfs2-ocfs2_initialize_super-does-cleanup-job-before-return-error
 +++ a/fs/ocfs2/super.c
-@@ -2110,11 +2110,7 @@ static int ocfs2_initialize_super(struct
- 
- 	init_waitqueue_head(&osb->osb_mount_event);
- 
--	status = ocfs2_resmap_init(osb, &osb->osb_la_resmap);
--	if (status) {
--		mlog_errno(status);
+@@ -2022,7 +2022,7 @@ static int ocfs2_initialize_super(struct
+ 	if (!osb) {
+ 		status = -ENOMEM;
+ 		mlog_errno(status);
 -		goto bail;
--	}
-+	ocfs2_resmap_init(osb, &osb->osb_la_resmap);
++		goto out;
+ 	}
  
- 	osb->vol_label = kmalloc(OCFS2_MAX_VOL_LABEL_LEN, GFP_KERNEL);
+ 	sb->s_fs_info = osb;
+@@ -2083,7 +2083,7 @@ static int ocfs2_initialize_super(struct
+ 		mlog(ML_ERROR, "Invalid number of node slots (%u)\n",
+ 		     osb->max_slots);
+ 		status = -EINVAL;
+-		goto bail;
++		goto out;
+ 	}
+ 
+ 	ocfs2_orphan_scan_init(osb);
+@@ -2092,7 +2092,7 @@ static int ocfs2_initialize_super(struct
+ 	if (status) {
+ 		mlog(ML_ERROR, "Unable to initialize recovery state\n");
+ 		mlog_errno(status);
+-		goto bail;
++		goto out;
+ 	}
+ 
+ 	init_waitqueue_head(&osb->checkpoint_event);
+@@ -2116,7 +2116,7 @@ static int ocfs2_initialize_super(struct
  	if (!osb->vol_label) {
+ 		mlog(ML_ERROR, "unable to alloc vol label\n");
+ 		status = -ENOMEM;
+-		goto bail;
++		goto out_recovery_map;
+ 	}
+ 
+ 	osb->slot_recovery_generations =
+@@ -2125,7 +2125,7 @@ static int ocfs2_initialize_super(struct
+ 	if (!osb->slot_recovery_generations) {
+ 		status = -ENOMEM;
+ 		mlog_errno(status);
+-		goto bail;
++		goto out_vol_label;
+ 	}
+ 
+ 	init_waitqueue_head(&osb->osb_wipe_event);
+@@ -2135,7 +2135,7 @@ static int ocfs2_initialize_super(struct
+ 	if (!osb->osb_orphan_wipes) {
+ 		status = -ENOMEM;
+ 		mlog_errno(status);
+-		goto bail;
++		goto out_slot_recovery_gen;
+ 	}
+ 
+ 	osb->osb_rf_lock_tree = RB_ROOT;
+@@ -2151,13 +2151,13 @@ static int ocfs2_initialize_super(struct
+ 		mlog(ML_ERROR, "couldn't mount because of unsupported "
+ 		     "optional features (%x).\n", i);
+ 		status = -EINVAL;
+-		goto bail;
++		goto out_orphan_wipes;
+ 	}
+ 	if (!sb_rdonly(osb->sb) && (i = OCFS2_HAS_RO_COMPAT_FEATURE(osb->sb, ~OCFS2_FEATURE_RO_COMPAT_SUPP))) {
+ 		mlog(ML_ERROR, "couldn't mount RDWR because of "
+ 		     "unsupported optional features (%x).\n", i);
+ 		status = -EINVAL;
+-		goto bail;
++		goto out_orphan_wipes;
+ 	}
+ 
+ 	if (ocfs2_clusterinfo_valid(osb)) {
+@@ -2178,7 +2178,7 @@ static int ocfs2_initialize_super(struct
+ 			     "cluster stack label (%s) \n",
+ 			     osb->osb_cluster_stack);
+ 			status = -EINVAL;
+-			goto bail;
++			goto out_orphan_wipes;
+ 		}
+ 		memcpy(osb->osb_cluster_name,
+ 			OCFS2_RAW_SB(di)->s_cluster_info.ci_cluster,
+@@ -2198,7 +2198,7 @@ static int ocfs2_initialize_super(struct
+ 	 */
+ 	status = ocfs2_journal_alloc(osb);
+ 	if (status < 0)
+-		goto bail;
++		goto out_orphan_wipes;
+ 
+ 	INIT_WORK(&osb->dquot_drop_work, ocfs2_drop_dquot_refs);
+ 	init_llist_head(&osb->dquot_drop_list);
+@@ -2213,7 +2213,7 @@ static int ocfs2_initialize_super(struct
+ 		mlog(ML_ERROR, "Volume has invalid cluster size (%d)\n",
+ 		     osb->s_clustersize);
+ 		status = -EINVAL;
+-		goto bail;
++		goto out_journal;
+ 	}
+ 
+ 	total_blocks = ocfs2_clusters_to_blocks(osb->sb,
+@@ -2225,14 +2225,14 @@ static int ocfs2_initialize_super(struct
+ 		mlog(ML_ERROR, "Volume too large "
+ 		     "to mount safely on this system");
+ 		status = -EFBIG;
+-		goto bail;
++		goto out_journal;
+ 	}
+ 
+ 	if (ocfs2_setup_osb_uuid(osb, di->id2.i_super.s_uuid,
+ 				 sizeof(di->id2.i_super.s_uuid))) {
+ 		mlog(ML_ERROR, "Out of memory trying to setup our uuid.\n");
+ 		status = -ENOMEM;
+-		goto bail;
++		goto out_journal;
+ 	}
+ 
+ 	strlcpy(osb->vol_label, di->id2.i_super.s_label,
+@@ -2252,7 +2252,7 @@ static int ocfs2_initialize_super(struct
+ 	if (!osb->osb_dlm_debug) {
+ 		status = -ENOMEM;
+ 		mlog_errno(status);
+-		goto bail;
++		goto out_uuid_str;
+ 	}
+ 
+ 	atomic_set(&osb->vol_state, VOLUME_INIT);
+@@ -2261,7 +2261,7 @@ static int ocfs2_initialize_super(struct
+ 	status = ocfs2_init_global_system_inodes(osb);
+ 	if (status < 0) {
+ 		mlog_errno(status);
+-		goto bail;
++		goto out_dlm_out;
+ 	}
+ 
+ 	/*
+@@ -2272,7 +2272,7 @@ static int ocfs2_initialize_super(struct
+ 	if (!inode) {
+ 		status = -EINVAL;
+ 		mlog_errno(status);
+-		goto bail;
++		goto out_system_inodes;
+ 	}
+ 
+ 	osb->bitmap_blkno = OCFS2_I(inode)->ip_blkno;
+@@ -2285,16 +2285,39 @@ static int ocfs2_initialize_super(struct
+ 	status = ocfs2_init_slot_info(osb);
+ 	if (status < 0) {
+ 		mlog_errno(status);
+-		goto bail;
++		goto out_system_inodes;
+ 	}
+ 
+ 	osb->ocfs2_wq = alloc_ordered_workqueue("ocfs2_wq", WQ_MEM_RECLAIM);
+ 	if (!osb->ocfs2_wq) {
+ 		status = -ENOMEM;
+ 		mlog_errno(status);
++		goto out_slot_info;
+ 	}
+ 
+-bail:
++	return status;
++
++out_slot_info:
++	ocfs2_free_slot_info(osb);
++out_system_inodes:
++	ocfs2_release_system_inodes(osb);
++out_dlm_out:
++	ocfs2_put_dlm_debug(osb->osb_dlm_debug);
++out_uuid_str:
++	kfree(osb->uuid_str);
++out_journal:
++	kfree(osb->journal);
++out_orphan_wipes:
++	kfree(osb->osb_orphan_wipes);
++out_slot_recovery_gen:
++	kfree(osb->slot_recovery_generations);
++out_vol_label:
++	kfree(osb->vol_label);
++out_recovery_map:
++	kfree(osb->recovery_map);
++out:
++	kfree(osb);
++	sb->s_fs_info = NULL;
+ 	return status;
+ }
+ 
 _
 
 Patches currently in -mm which might be from ocfs2-devel@oss.oracle.com are
