@@ -1,57 +1,56 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc249.phx1.oracleemaildelivery.com (aib29ajc249.phx1.oracleemaildelivery.com [192.29.103.249])
+Received: from aib29ajc250.phx1.oracleemaildelivery.com (aib29ajc250.phx1.oracleemaildelivery.com [192.29.103.250])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 1A606C4332F
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id E671CC4321E
 	for <ocfs2-devel@archiver.kernel.org>; Tue, 10 May 2022 04:17:46 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=M2AgnfvpQXnmARQ3E6AtL6EB8iC6Fu7Wj4D/aS6SYBE=;
- b=rNxS+OGYad2dTlyfUZPt1St1a4HJOX4r4NZxaZgnNYw8Ejbkr4UfzFSAvh4jZFnNOQLy+Khc2d4y
-   pfGVRlzCErFhAs3+Rwxt+XDciWUp5rlNNs5uLdhKaZ3J28MGuGIwMxv42Jbe6al+8PwmoQVUqPSw
-   EMDh2IhD5viI7tEZKPFJp1ufbTfq9wWOpDbIFj0h64DFsGVyLZSIVsxFeX5oTQqTEIByl46ciQNy
-   aJW30HSJs+/pxFVHRffAmj2FuWZsrWXxalsokuU8/f5lxzBP6TglAiTQWCouBzff4dxCGP0HR8QT
-   Vz8/RBAX85Sfd4ccXbiPqcyXxFgIQD/xOWuucg==
+ bh=BiT8YoWPEC3yzVW8gBRMscalFCcz3trco688Ans4nxs=;
+ b=od+fiD0+N/MHZrMU3fL/8L/G7O6o9Iye6xURngzu2ZS5MhAbtpLEbBg8C7T7GjHXuSNWg0jrKNi8
+   VgBOGPqoLlnRZzkjYGASfWCoA7u0j+RnfT/vbhkDP6VlyPK5MqBVanUTt+z9Xx4/Ofw8Y+Z+VT8X
+   5xgIyLm7KqkIs4aM06bBhcz37f/+KitMFXWOtzNYIXxzmgHS8T8QDT8BSEfoWqp1CmuOn+D/9Zai
+   rEmnHe99pu5uZJp38vXlIM9YXQquoGJ+d+M/l819XzGDhAQwE5Ep0m1sONJLeoDPWFMX6cYkzXU3
+   qEyxU7wlF5WjO35zAxLRUHIWDOB6fKVjI9vOOg==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=M2AgnfvpQXnmARQ3E6AtL6EB8iC6Fu7Wj4D/aS6SYBE=;
- b=Z5v53w2uOgmiGB9N8z48uTHCtkvvG1++GvjXFfA1RavTQkTDlcbstkqhzOyFPEhFrTZjmpJsanx0
-   SCr5EmVYvVTM0fEGMxk9/2hHDnAxYLskj/p565LRRHmmSjxQRTRYundBne8rYTQ6BDzkGreyzY1Q
-   tsvDqDYVdrzB7fxdDy491k7PznIKUC5lsCdI6ztrOX2+RTHJkbk5hLEMA8WcPQAOLLP8bjO/kiYO
-   EEzJDbt/3KVDeg21Di6bGzg/GumywdXDC1+fPrYoN+ujLNGP84htE/ymQSoe4EgRCFzuGVZ+OtYz
-   rLh9YvihLnFbRX/hLybeI8760JADETAV/f6zQg==
-Received: by omta-ad2-fd1-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
+ bh=BiT8YoWPEC3yzVW8gBRMscalFCcz3trco688Ans4nxs=;
+ b=gr3QOwHPHg39CLOFpAfyq7UHhCwiQq0wao4kq8KdLCK0bGZvQ+wuDGXNC2YQW3LyE+aME2S6zYfH
+   Ru6NXavHj18qcUK21si9xvVDg6ysYi1JFo4zAUBc9RX+KIBU4FmuhA+1w5V4edUfdYo0yYPX2Zxp
+   e4s+cXDtBJzDI4rWr5CPNM4w3vAaofDM21szKBfqXRtvs3IPamjdOeWjMXLrGxx+oLRppSN5m5vg
+   NtGEdP08yVEjrnQWucIZnQahWRATr4ZRHTt1XnJtlx+OxikfKRrLHaKq8EyECvxmT7G+1+6uTU2u
+   wSHY8LoiAxwLWXIaI+PX8XA52zAyUjvvjZG28w==
+Received: by omta-ad2-fd3-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220413 64bit (built Apr 13
  2022))
- with ESMTPS id <0RBN005ATFXLYYF0@omta-ad2-fd1-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
+ with ESMTPS id <0RBN00LUEFXL0D00@omta-ad2-fd3-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
  ocfs2-devel@archiver.kernel.org; Tue, 10 May 2022 04:17:45 +0000 (GMT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linux-foundation.org;
- s=korg; t=1652156250; bh=SIxAJAW+I0aca6ctLYrG98vIl4veIqyF36JyxZQCqc8=;
+ s=korg; t=1652156252; bh=15o6V0X4jTZVGPUvTvg04+Mzl1jrHpkbEfQAP+afN7U=;
  h=Date:To:From:Subject:From;
- b=YWMUlnB7zRMIY1Mkq2R86DppLGf3GSLJ3//Fag7/6mdbTG0dc0wkYJJPwjGAo7+2F
- RzPL7o69/V1mjkD57YH8U8UWN7tdKF2TtmGHiFtYN4/qhwO4Ks9B8InXR5/XydXpK4
- +B/r2eYGd7gIwXuW9ofx8fsB4YUo6G2OB+SJqd4E=
-Date: Mon, 09 May 2022 21:17:29 -0700
+ b=lqXnEAAFSM8ZEKfmXoKST9lTWbdtA7Nd9KLRnteSMpIASXGBHEqy0Xt8mbet84rL1
+ vkKMPVwjkNkc7cg3kdjCripC/5H/yekaMIRcjpqEdSpKzP4iPILI8ZsfE04CQ8iTaP
+ Xk80wmGZrDJXNurAhr3OqCIGbQnqPSbSkeEjbL/0=
+Date: Mon, 09 May 2022 21:17:31 -0700
 To: mm-commits@vger.kernel.org, piaojun@huawei.com, mark@fasheh.com,
  junxiao.bi@oracle.com, joseph.qi@linux.alibaba.com, jlbec@evilplan.org,
  heming.zhao@suse.com, ghe@suse.com, gechangwei@live.cn,
  ocfs2-devel@oss.oracle.com, akpm@linux-foundation.org
-Message-id: <20220510041730.2709BC385A6@smtp.kernel.org>
+Message-id: <20220510041732.4E93EC385C5@smtp.kernel.org>
 X-Source-IP: 145.40.68.75
 X-Proofpoint-Virus-Version: vendor=nai engine=6400 definitions=10342
  signatures=593155
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 spamscore=0
- impostorscore=0 clxscore=190 mlxscore=0 lowpriorityscore=0 suspectscore=0
- bulkscore=0 malwarescore=0 adultscore=0 phishscore=0 mlxlogscore=999
- priorityscore=151 classifier=spam adjust=0 reason=mlx scancount=1
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 clxscore=190
+ adultscore=0 suspectscore=0 priorityscore=151 phishscore=0 bulkscore=0
+ mlxscore=0 malwarescore=0 spamscore=0 mlxlogscore=999 impostorscore=0
+ lowpriorityscore=0 classifier=spam adjust=0 reason=mlx scancount=1
  engine=8.12.0-2202240000 definitions=main-2205100018
 Subject: [Ocfs2-devel] [merged mm-nonmm-stable]
-	ocfs2-ocfs2_initialize_super-does-cleanup-job-before-return-error.patch
-	removed from -mm tree
+	ocfs2-rewrite-error-handling-of-ocfs2_fill_super.patch	removed from -mm tree
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -74,35 +73,37 @@ X-Proofpoint-SPF-Result: pass
 X-Proofpoint-SPF-Record: v=spf1 ip4:140.211.169.12/30 include:_spf.kernel.org
  include:_spf.google.com ~all
 X-Spam: Clean
-X-Proofpoint-ORIG-GUID: UKL3E88MWC9DyVDsPq3L-96NEWOWxUy3
-X-Proofpoint-GUID: UKL3E88MWC9DyVDsPq3L-96NEWOWxUy3
+X-Proofpoint-ORIG-GUID: 0NhRhm6EP9lr4iqlq7HuO74KY22IpM8a
+X-Proofpoint-GUID: 0NhRhm6EP9lr4iqlq7HuO74KY22IpM8a
 Reporting-Meta:
- AAEfuOMvJuMO2faTRAVSN0CikplW6rciJz72aqTItBdtafQGBunmv71bZ8YYIMw4
- PoH1CDAaOhnSZNr9+ua/72ST3v/Q7WmyPm+xLms+gXab05xf/yJN4Sgjqc7oT8aV
- ekVAkdQ6Hku1mIUbnmQ0ntsIn+/z3gbHeMgdM2leDb0B9G+4R76+IvWe0nl3Ayw0
- br7xlyhRg63OwrIKqoyNgLgC0vp3vbu4Tk6uKh7Q2lTsMwln3XDx6wJEUSyh9cox
- 7ua4+W0FFNfGZiFsA6zNGshEPn7KeTTMhlaGIGN70tmWteY/EheV6GqOF9a+mpYI
- ZYgwxe7TLOKsn6g9FmuYF14CpkQCqmmil8MIKKXV5hhwqLrA7/riYh7kMUvEjCU6
- kxs8FOPnvkU2SthpFQ5VePhvgoR1yJUFsdpcsinD0Ixdpg1e/Dn6NB61xuvdGO3k
- FISRGtlK//Xi0AZiBdOM0KP2xslI+74MPrEXIjHZ7HQcStAxpSJo6+pIydEH5eUj
- L5LMELFiIGj9ek+Yi4bl+aSuKj07mFFflE1ebkF717g=
+ AAET+4NoE1o4wjyC76wnO27YPF4oXGhkCPXISpIbxMIEgFPoZ6xfn+C5TKDeNFpk
+ ukNaElbCefPE77Lxm062Q/LTx5rdCaYYih0HZvQGGKUHk/ZDOyG3sYPmkZJUfncg
+ pLyODcysSxS9lgy4GQhFHsgRDioQWHETBw6fwAQ7+/sKmnl+IWM8111x++/DiET9
+ HuCCCaK/fxlw0NZoJtzUKZbfsHV5k3LP0S30WGs5I5F57t8a3QsnSI3NZal/pEJq
+ yMhS0L6nYGqS2KODgyWjd72aB/zIBR+IhMsRla+aRGyCOo8Agts0MG9XJ8+Cd/RP
+ D+uvjZsQMOu4oGwKtGEQKLC6X9Fy6jQCHMa+zZlvvMj/++w1FyrmseZvQIs6hu7+
+ lMFsGTYjxuEYeZ6P1Bba7ewDAvhroJIbLFUsDRKq+GF6eLe1EY1oKZetr1eBrlzE
+ qkCGaWl/kli4nPqO3Fp9ViUB6w7ghYJs31PxBERobPgj9EJudECToEgpJ4TqxU5y
+ rwHUAhCzETbZSlnjsb1tux90MR32c4FI5FTuNe3FU4k=
 
 
 The quilt patch titled
-     Subject: ocfs2: ocfs2_initialize_super does cleanup job before return error
+     Subject: ocfs2: rewrite error handling of ocfs2_fill_super
 has been removed from the -mm tree.  Its filename was
-     ocfs2-ocfs2_initialize_super-does-cleanup-job-before-return-error.patch
+     ocfs2-rewrite-error-handling-of-ocfs2_fill_super.patch
 
 This patch was dropped because it was merged into the mm-nonmm-stable branch of git://git.kernel.org/pub/scm/linux/kernel/git/akpm/mm
 
 ------------------------------------------------------
 From: Heming Zhao via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Subject: ocfs2: ocfs2_initialize_super does cleanup job before return error
+Subject: ocfs2: rewrite error handling of ocfs2_fill_super
 
-After this patch, when error, ocfs2_fill_super doesn't take care to
-release resources which are allocated in ocfs2_initialize_super.
+Current ocfs2_fill_super() uses one goto label "read_super_error" to
+handle all error cases.  And with previous serial patches, the error
+handling should fork more branches to handle different error cases.  This
+patch rewrite the error handling of ocfs2_fill_super.
 
-Link: https://lkml.kernel.org/r/20220424130952.2436-4-heming.zhao@suse.com
+Link: https://lkml.kernel.org/r/20220424130952.2436-6-heming.zhao@suse.com
 Signed-off-by: Heming Zhao <heming.zhao@suse.com>
 Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
 Cc: Changwei Ge <gechangwei@live.cn>
@@ -114,194 +115,174 @@ Cc: Mark Fasheh <mark@fasheh.com>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- fs/ocfs2/super.c |   59 +++++++++++++++++++++++++++++++--------------
- 1 file changed, 41 insertions(+), 18 deletions(-)
+ fs/ocfs2/super.c |   67 +++++++++++++++++++++------------------------
+ 1 file changed, 32 insertions(+), 35 deletions(-)
 
---- a/fs/ocfs2/super.c~ocfs2-ocfs2_initialize_super-does-cleanup-job-before-return-error
+--- a/fs/ocfs2/super.c~ocfs2-rewrite-error-handling-of-ocfs2_fill_super
 +++ a/fs/ocfs2/super.c
-@@ -2022,7 +2022,7 @@ static int ocfs2_initialize_super(struct
- 	if (!osb) {
- 		status = -ENOMEM;
- 		mlog_errno(status);
--		goto bail;
+@@ -989,28 +989,27 @@ static int ocfs2_fill_super(struct super
+ 
+ 	if (!ocfs2_parse_options(sb, data, &parsed_options, 0)) {
+ 		status = -EINVAL;
+-		goto read_super_error;
 +		goto out;
  	}
  
- 	sb->s_fs_info = osb;
-@@ -2083,7 +2083,7 @@ static int ocfs2_initialize_super(struct
- 		mlog(ML_ERROR, "Invalid number of node slots (%u)\n",
- 		     osb->max_slots);
- 		status = -EINVAL;
--		goto bail;
-+		goto out;
- 	}
- 
- 	ocfs2_orphan_scan_init(osb);
-@@ -2092,7 +2092,7 @@ static int ocfs2_initialize_super(struct
- 	if (status) {
- 		mlog(ML_ERROR, "Unable to initialize recovery state\n");
- 		mlog_errno(status);
--		goto bail;
-+		goto out;
- 	}
- 
- 	init_waitqueue_head(&osb->checkpoint_event);
-@@ -2116,7 +2116,7 @@ static int ocfs2_initialize_super(struct
- 	if (!osb->vol_label) {
- 		mlog(ML_ERROR, "unable to alloc vol label\n");
- 		status = -ENOMEM;
--		goto bail;
-+		goto out_recovery_map;
- 	}
- 
- 	osb->slot_recovery_generations =
-@@ -2125,7 +2125,7 @@ static int ocfs2_initialize_super(struct
- 	if (!osb->slot_recovery_generations) {
- 		status = -ENOMEM;
- 		mlog_errno(status);
--		goto bail;
-+		goto out_vol_label;
- 	}
- 
- 	init_waitqueue_head(&osb->osb_wipe_event);
-@@ -2135,7 +2135,7 @@ static int ocfs2_initialize_super(struct
- 	if (!osb->osb_orphan_wipes) {
- 		status = -ENOMEM;
- 		mlog_errno(status);
--		goto bail;
-+		goto out_slot_recovery_gen;
- 	}
- 
- 	osb->osb_rf_lock_tree = RB_ROOT;
-@@ -2151,13 +2151,13 @@ static int ocfs2_initialize_super(struct
- 		mlog(ML_ERROR, "couldn't mount because of unsupported "
- 		     "optional features (%x).\n", i);
- 		status = -EINVAL;
--		goto bail;
-+		goto out_orphan_wipes;
- 	}
- 	if (!sb_rdonly(osb->sb) && (i = OCFS2_HAS_RO_COMPAT_FEATURE(osb->sb, ~OCFS2_FEATURE_RO_COMPAT_SUPP))) {
- 		mlog(ML_ERROR, "couldn't mount RDWR because of "
- 		     "unsupported optional features (%x).\n", i);
- 		status = -EINVAL;
--		goto bail;
-+		goto out_orphan_wipes;
- 	}
- 
- 	if (ocfs2_clusterinfo_valid(osb)) {
-@@ -2178,7 +2178,7 @@ static int ocfs2_initialize_super(struct
- 			     "cluster stack label (%s) \n",
- 			     osb->osb_cluster_stack);
- 			status = -EINVAL;
--			goto bail;
-+			goto out_orphan_wipes;
- 		}
- 		memcpy(osb->osb_cluster_name,
- 			OCFS2_RAW_SB(di)->s_cluster_info.ci_cluster,
-@@ -2198,7 +2198,7 @@ static int ocfs2_initialize_super(struct
- 	 */
- 	status = ocfs2_journal_alloc(osb);
- 	if (status < 0)
--		goto bail;
-+		goto out_orphan_wipes;
- 
- 	INIT_WORK(&osb->dquot_drop_work, ocfs2_drop_dquot_refs);
- 	init_llist_head(&osb->dquot_drop_list);
-@@ -2213,7 +2213,7 @@ static int ocfs2_initialize_super(struct
- 		mlog(ML_ERROR, "Volume has invalid cluster size (%d)\n",
- 		     osb->s_clustersize);
- 		status = -EINVAL;
--		goto bail;
-+		goto out_journal;
- 	}
- 
- 	total_blocks = ocfs2_clusters_to_blocks(osb->sb,
-@@ -2225,14 +2225,14 @@ static int ocfs2_initialize_super(struct
- 		mlog(ML_ERROR, "Volume too large "
- 		     "to mount safely on this system");
- 		status = -EFBIG;
--		goto bail;
-+		goto out_journal;
- 	}
- 
- 	if (ocfs2_setup_osb_uuid(osb, di->id2.i_super.s_uuid,
- 				 sizeof(di->id2.i_super.s_uuid))) {
- 		mlog(ML_ERROR, "Out of memory trying to setup our uuid.\n");
- 		status = -ENOMEM;
--		goto bail;
-+		goto out_journal;
- 	}
- 
- 	strlcpy(osb->vol_label, di->id2.i_super.s_label,
-@@ -2252,7 +2252,7 @@ static int ocfs2_initialize_super(struct
- 	if (!osb->osb_dlm_debug) {
- 		status = -ENOMEM;
- 		mlog_errno(status);
--		goto bail;
-+		goto out_uuid_str;
- 	}
- 
- 	atomic_set(&osb->vol_state, VOLUME_INIT);
-@@ -2261,7 +2261,7 @@ static int ocfs2_initialize_super(struct
- 	status = ocfs2_init_global_system_inodes(osb);
+ 	/* probe for superblock */
+ 	status = ocfs2_sb_probe(sb, &bh, &sector_size, &stats);
  	if (status < 0) {
- 		mlog_errno(status);
--		goto bail;
-+		goto out_dlm_out;
+ 		mlog(ML_ERROR, "superblock probe failed!\n");
+-		goto read_super_error;
++		goto out;
  	}
  
- 	/*
-@@ -2272,7 +2272,7 @@ static int ocfs2_initialize_super(struct
- 	if (!inode) {
- 		status = -EINVAL;
- 		mlog_errno(status);
--		goto bail;
-+		goto out_system_inodes;
- 	}
- 
- 	osb->bitmap_blkno = OCFS2_I(inode)->ip_blkno;
-@@ -2285,16 +2285,39 @@ static int ocfs2_initialize_super(struct
- 	status = ocfs2_init_slot_info(osb);
- 	if (status < 0) {
- 		mlog_errno(status);
--		goto bail;
-+		goto out_system_inodes;
- 	}
- 
- 	osb->ocfs2_wq = alloc_ordered_workqueue("ocfs2_wq", WQ_MEM_RECLAIM);
- 	if (!osb->ocfs2_wq) {
- 		status = -ENOMEM;
- 		mlog_errno(status);
-+		goto out_slot_info;
- 	}
- 
--bail:
-+	return status;
+ 	status = ocfs2_initialize_super(sb, bh, sector_size, &stats);
+-	osb = OCFS2_SB(sb);
+-	if (status < 0) {
+-		mlog_errno(status);
+-		goto read_super_error;
+-	}
+ 	brelse(bh);
+ 	bh = NULL;
++	if (status < 0)
++		goto out;
 +
-+out_slot_info:
-+	ocfs2_free_slot_info(osb);
-+out_system_inodes:
++	osb = OCFS2_SB(sb);
+ 
+ 	if (!ocfs2_check_set_options(sb, &parsed_options)) {
+ 		status = -EINVAL;
+-		goto read_super_error;
++		goto out_super;
+ 	}
+ 	osb->s_mount_opt = parsed_options.mount_opt;
+ 	osb->s_atime_quantum = parsed_options.atime_quantum;
+@@ -1027,7 +1026,7 @@ static int ocfs2_fill_super(struct super
+ 
+ 	status = ocfs2_verify_userspace_stack(osb, &parsed_options);
+ 	if (status)
+-		goto read_super_error;
++		goto out_super;
+ 
+ 	sb->s_magic = OCFS2_SUPER_MAGIC;
+ 
+@@ -1041,7 +1040,7 @@ static int ocfs2_fill_super(struct super
+ 			status = -EACCES;
+ 			mlog(ML_ERROR, "Readonly device detected but readonly "
+ 			     "mount was not specified.\n");
+-			goto read_super_error;
++			goto out_super;
+ 		}
+ 
+ 		/* You should not be able to start a local heartbeat
+@@ -1050,7 +1049,7 @@ static int ocfs2_fill_super(struct super
+ 			status = -EROFS;
+ 			mlog(ML_ERROR, "Local heartbeat specified on readonly "
+ 			     "device.\n");
+-			goto read_super_error;
++			goto out_super;
+ 		}
+ 
+ 		status = ocfs2_check_journals_nolocks(osb);
+@@ -1059,9 +1058,7 @@ static int ocfs2_fill_super(struct super
+ 				mlog(ML_ERROR, "Recovery required on readonly "
+ 				     "file system, but write access is "
+ 				     "unavailable.\n");
+-			else
+-				mlog_errno(status);
+-			goto read_super_error;
++			goto out_super;
+ 		}
+ 
+ 		ocfs2_set_ro_flag(osb, 1);
+@@ -1077,10 +1074,8 @@ static int ocfs2_fill_super(struct super
+ 	}
+ 
+ 	status = ocfs2_verify_heartbeat(osb);
+-	if (status < 0) {
+-		mlog_errno(status);
+-		goto read_super_error;
+-	}
++	if (status < 0)
++		goto out_super;
+ 
+ 	osb->osb_debug_root = debugfs_create_dir(osb->uuid_str,
+ 						 ocfs2_debugfs_root);
+@@ -1094,15 +1089,14 @@ static int ocfs2_fill_super(struct super
+ 
+ 	status = ocfs2_mount_volume(sb);
+ 	if (status < 0)
+-		goto read_super_error;
++		goto out_debugfs;
+ 
+ 	if (osb->root_inode)
+ 		inode = igrab(osb->root_inode);
+ 
+ 	if (!inode) {
+ 		status = -EIO;
+-		mlog_errno(status);
+-		goto read_super_error;
++		goto out_dismount;
+ 	}
+ 
+ 	osb->osb_dev_kset = kset_create_and_add(sb->s_id, NULL,
+@@ -1110,7 +1104,7 @@ static int ocfs2_fill_super(struct super
+ 	if (!osb->osb_dev_kset) {
+ 		status = -ENOMEM;
+ 		mlog(ML_ERROR, "Unable to create device kset %s.\n", sb->s_id);
+-		goto read_super_error;
++		goto out_dismount;
+ 	}
+ 
+ 	/* Create filecheck sysfs related directories/files at
+@@ -1119,14 +1113,13 @@ static int ocfs2_fill_super(struct super
+ 		status = -ENOMEM;
+ 		mlog(ML_ERROR, "Unable to create filecheck sysfs directory at "
+ 			"/sys/fs/ocfs2/%s/filecheck.\n", sb->s_id);
+-		goto read_super_error;
++		goto out_dismount;
+ 	}
+ 
+ 	root = d_make_root(inode);
+ 	if (!root) {
+ 		status = -ENOMEM;
+-		mlog_errno(status);
+-		goto read_super_error;
++		goto out_dismount;
+ 	}
+ 
+ 	sb->s_root = root;
+@@ -1178,17 +1171,21 @@ static int ocfs2_fill_super(struct super
+ 
+ 	return status;
+ 
+-read_super_error:
+-	brelse(bh);
+-
+-	if (status)
+-		mlog_errno(status);
++out_dismount:
++	atomic_set(&osb->vol_state, VOLUME_DISABLED);
++	wake_up(&osb->osb_mount_event);
++	ocfs2_dismount_volume(sb, 1);
++	goto out;
+ 
+-	if (osb) {
+-		atomic_set(&osb->vol_state, VOLUME_DISABLED);
+-		wake_up(&osb->osb_mount_event);
+-		ocfs2_dismount_volume(sb, 1);
+-	}
++out_debugfs:
++	debugfs_remove_recursive(osb->osb_debug_root);
++out_super:
 +	ocfs2_release_system_inodes(osb);
-+out_dlm_out:
-+	ocfs2_put_dlm_debug(osb->osb_dlm_debug);
-+out_uuid_str:
-+	kfree(osb->uuid_str);
-+out_journal:
-+	kfree(osb->journal);
-+out_orphan_wipes:
-+	kfree(osb->osb_orphan_wipes);
-+out_slot_recovery_gen:
-+	kfree(osb->slot_recovery_generations);
-+out_vol_label:
-+	kfree(osb->vol_label);
-+out_recovery_map:
 +	kfree(osb->recovery_map);
-+out:
++	ocfs2_delete_osb(osb);
 +	kfree(osb);
-+	sb->s_fs_info = NULL;
++out:
++	mlog_errno(status);
+ 
  	return status;
  }
- 
 _
 
 Patches currently in -mm which might be from ocfs2-devel@oss.oracle.com are
