@@ -1,57 +1,76 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc251.phx1.oracleemaildelivery.com (aib29ajc251.phx1.oracleemaildelivery.com [192.29.103.251])
+Received: from aib29ajc254.phx1.oracleemaildelivery.com (aib29ajc254.phx1.oracleemaildelivery.com [192.29.103.254])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 3560FC4167E
-	for <ocfs2-devel@archiver.kernel.org>; Tue, 10 May 2022 04:17:48 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 0B630C433EF
+	for <ocfs2-devel@archiver.kernel.org>; Tue, 10 May 2022 23:22:44 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=pUGN47ZTqPug8RS62FS9WDcBo8/4qF62ipq6TicCuu0=;
- b=QNJCtP8Jh51ddmvdRwUtnH5mHhr0V9aYgrLVmUvWnOKAzM1ikXlkpSDP4ZNMmu3fVvoa0hQKaHtn
-   S2pNg+R623J7dHlSsoqdANNK4yooo5goDGEEVZ6WbskPWBPHPcU3sCFvanj34Po8QetQF75laKXu
-   DgONLluAnds4n9D5T4xDoWOZRUn9YhkgKXLq7X4FlcmLIKw6klrz/D78TUA8pg09RpuMEmD69+38
-   lUK1V+jT5ggiI8zT1fSVqO9v6st46i+X5kedtMc3c21lJgNV7FQ2Ivic3buaEgB5dZuAq0MUSy5r
-   i8w+N69oZRkV91aaDGGJFOyUUql4NH5z0YPyTw==
+ bh=zqfGkRuwUyLR8FSS/Zci+whjEnn3UhMGcUtqy9qF80g=;
+ b=GPj4RncsLGrrIORlpxH6l4VZuMLxBCJOE1bkaHGhcCGZKX4Y2HOaqGW9Gx51RRcWhpLzCFHo3i2g
+   hN40+M+XH9PM6Jo/KKd0Kc4cV0er8FrMq0hqbFgoP+rKFQ0LZuwVBJ8/5BLJUhR1AquqcX9gQ09n
+   Rs4QovicmOomiDd9kMceYLFsmPWytPYPIJJ1Z6ZXFVVJWa3cJK9LisDliuAOeQpxBZU3xnGc+Dxe
+   WF/oy788ejhgpbgnbrXVmvreoT2BCnL/bWgwdIjrRfO8o6jcCejkYMpiVzlVC8YlZ2kMVTg6hkqK
+   lwNEYcAOi5/ikcafi0nFtDY2PL5GB0LQWt9a7A==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=pUGN47ZTqPug8RS62FS9WDcBo8/4qF62ipq6TicCuu0=;
- b=T/R20WSrUHq7qQDz8WU/yN8D0fGy4R4qcL783E/yGbSFq4VEFbDPX5/dSjZGnEqdF3Ra6eehhsOo
-   Enn0i+iA4L1ReOViOZ7vaDOymIJF8oR2ZbgkxYcvLxCyR3WvUXNAO+DA4RantPwTOrPS/xYPz0nf
-   YxPZtfRVjcrIwgSiQO2Xmzsv2rHxcGIgcKB6SxzW3d6yYvq+/lPQgMjLwysOqoo3v1SyFL82e25R
-   DHL9wIue+YT4EWnfcALnsBvNsztIYG2FUNp4aaM8ekYmdYXdRhdPdLMdty76rGjN0+SySCSJ8eac
-   P3gmV0GZAMqgZOjXM8OZP33MbN/STatAfLyyxg==
-Received: by omta-ad2-fd3-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
+ bh=zqfGkRuwUyLR8FSS/Zci+whjEnn3UhMGcUtqy9qF80g=;
+ b=OaAXEjXE1FIggoFktW0CCkKNvjFH0+l3rG/4Z/CspF1fpEiUZm+dA6QT7WfTLKd2jolaWX8UDcDx
+   QBUeO19znRf/7ss3mlJiWskSUps1CtMKgfAxL0zxyyNLMO/uJ0iZmBd9G2HrMitBv9YOCxRHUYkk
+   /BBwMZPPxns79ykOrsxuMB4CpvRqYveOkVxJmzFAgZQKfvefioN+VUuBCbPL7piydTbBr1LuIqwF
+   6xOI0nTTXqH16en3EAqrwPQGnLuDYo8hrLkegVMRL3Xr1jQOLrWRD84Li2Gx4bxyRW36M0VCYf7W
+   fHG5yOAptFfMFviQmUWLBNTkaPrg8VKeoxOeOQ==
+Received: by omta-ad3-fd3-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220413 64bit (built Apr 13
  2022))
- with ESMTPS id <0RBN0045XFXNZGB0@omta-ad2-fd3-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Tue, 10 May 2022 04:17:47 +0000 (GMT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linux-foundation.org;
- s=korg; t=1652156251; bh=Ywr22M+rOwkrTzxNPtVretQRFsuu4texbLElra41Ru0=;
- h=Date:To:From:Subject:From;
- b=uDWu8XKb/b4ws+KUl7sGUBUiMjsTBb6fFBjksHd3mfqXLbvdMtYAbUxhsmxhmDlLC
- pBzsdbSkJggosUEbXEF43tSjbgoxxdYO+i0d8oEY/AX5620KH7Akat9QQRfPWGO4Tm
- PrhgO0a1z0gja0wyuP9Lamui8Tv1jpjwsKIBdU+0=
-Date: Mon, 09 May 2022 21:17:30 -0700
-To: mm-commits@vger.kernel.org, piaojun@huawei.com, mark@fasheh.com,
- junxiao.bi@oracle.com, joseph.qi@linux.alibaba.com, jlbec@evilplan.org,
- heming.zhao@suse.com, ghe@suse.com, gechangwei@live.cn,
- ocfs2-devel@oss.oracle.com, akpm@linux-foundation.org
-Message-id: <20220510041731.39412C385D8@smtp.kernel.org>
-X-Source-IP: 139.178.84.217
-X-Proofpoint-Virus-Version: vendor=nai engine=6400 definitions=10342
- signatures=593155
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0
- priorityscore=108 malwarescore=0 spamscore=0 mlxscore=0 adultscore=0
- lowpriorityscore=0 suspectscore=0 mlxlogscore=999 bulkscore=0 clxscore=191
- impostorscore=0 phishscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2202240000 definitions=main-2205100018
-Subject: [Ocfs2-devel] [merged mm-nonmm-stable]
-	ocfs2-ocfs2_mount_volume-does-cleanup-job-before-return-error.patch	removed
- from -mm tree
+ with ESMTPS id <0RBO00AIPWXW0M20@omta-ad3-fd3-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Tue, 10 May 2022 23:22:44 +0000 (GMT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=oracle.com; h=from : to
+ : cc : subject : date : message-id : content-transfer-encoding : content-type
+ : mime-version; s=corp-2021-07-09;
+ bh=yLE0iWnV2dSqoxGRHWmOv0GJjp1wJW/abUBWB3RT6YY=;
+ b=psxEeUhKoKIYKUM0tk5jrHSvEs3yV4UPhh3BzBCHGxN45OD5mLp5ofk4SVkWX7tNUQ7A
+ 6d2HynZg8zPbMfbr6SBg/6sapFaw7mY6FeQSECuoJWEn5QDleqdI8czCBaVpKXiMjTQL
+ pyZ8yvdjBP+OFl7gYfBwnf9lDcahSVx6oO0me1Jb05uNopLQj1Rvu5MH9Ipw9HIIU1KV
+ 8fPU0qaIqF0rS+oAyEKBowHin/9A37BqDA7ReorI+yXJmJymxuGtnzlDx2u8UXVB8Zzs
+ EWNhfCPb3CXM1RadEfbw8Kkv9tgqjbY7+lWjaG94irgwe913PyY9njDkVh2Gei+Hs7ns 7Q==
+ARC-Seal: i=1; a=rsa-sha256; s=arcselector9901; d=microsoft.com; cv=none;
+ b=WbMuV72fALu9V6kS2TNPXzfl/NEn5pteCpfT7yoefFcR3lw2ViloBEdcPr29Moi7/dRz7djkd/FaW5TjzG8kklsz1fEMrz0F4uI/rDbfzOxo6em/1wVfVcrd3QaTTfFS0xvnvR9WFugBfpYrz+IWxu9PWNR4kiwrVKMr2C1tLSYNppLrHo9P9gg9HPaXaA7iL1fLsHwExH2ZmxOkDk2Lv7RX3XTGySHgSLGaJe+WvtG2gmlE70zFkjBf+Nbt57ijD32H6k6+vbygJp3sgT/sdS40A/igOOMCZN54P2j1hQATmChXProJ5/vmCBDrxJFcq74A9FlCjAlZQjcvurpFUA==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=arcselector9901;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
+ bh=yLE0iWnV2dSqoxGRHWmOv0GJjp1wJW/abUBWB3RT6YY=;
+ b=cIKUYjR9h0Gy79sCTa7milWU6CbVZ2Ogd6ZkwVTJpUD2YNqwBHSQCMwp4RjoUGZChthivpulmjCqk6Ku2qy9dnbi5vO04m7eSbUqdGUsQsVoYkRk5YwLuB/fj/FEN8C7IEMAgrtSBe2b++aE1RGtNSvXP7RU8DCfQdNYjDszyw+5vCZ+i4bngT8zwzg3hYhuF/kWD1+oA+CQCaCPybkIprslWYSKPiZms9/NmMjyn6MIVU1Nizzd1AGHl0axwMWmQBV99Y7ukPgyIf4z3IYMrhAuk9/PGYo6AJcpaUUpYzKIq7ANsEMqVGjHrdyGfOxb+FIvtgFXfu6Ew2aUCsg3ig==
+ARC-Authentication-results: i=1; mx.microsoft.com 1; spf=pass
+ smtp.mailfrom=oracle.com; dmarc=pass action=none header.from=oracle.com;
+ dkim=pass header.d=oracle.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=oracle.onmicrosoft.com;
+ s=selector2-oracle-onmicrosoft-com;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
+ bh=yLE0iWnV2dSqoxGRHWmOv0GJjp1wJW/abUBWB3RT6YY=;
+ b=dTCz1jZYq8pPwBdZ0O8g9FA7cjcBSdCSsrAiJtnBMBdL16OpMSIBhI6Y5eyv7PCGpheNeDAJSUntzof9CcvUjfmHjDfKK+DYfeREOnkO5+9wjM7J0I3ls57eRDQbTkSgIuiI5v5Tk0hkx/MDXOXRUe+lMz8RM8/PcC63frsMeOo=
+To: ocfs2-devel@oss.oracle.com
+Date: Tue, 10 May 2022 16:22:11 -0700
+Message-id: <20220510232213.23435-1-junxiao.bi@oracle.com>
+X-Mailer: git-send-email 2.24.3 (Apple Git-128)
+MIME-version: 1.0
+X-Forefront-Antispam-Report: CIP:255.255.255.255; CTRY:; LANG:en; SCL:-1; SRV:;
+ IPV:NLI; SFV:SKI; H:SJ0PR10MB4752.namprd10.prod.outlook.com; PTR:; CAT:NONE;
+ SFS:; DIR:INB;
+X-OriginatorOrg: oracle.com
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 10 May 2022 23:22:32.7373 (UTC)
+X-Proofpoint-Virus-Version: vendor=fsecure engine=2.50.10434:6.0.486,
+ 18.0.858 definitions=2022-05-10_07:2022-05-09, 2022-05-10 signatures=0
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 suspectscore=0
+ phishscore=0 adultscore=0 bulkscore=0 malwarescore=0 mlxscore=0
+ mlxlogscore=823 spamscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2202240000 definitions=main-2205100097
+Subject: [Ocfs2-devel] [PATCH 1/2] ocfs2: dlmfs: not clear	USER_LOCK_ATTACHED
+ when destroy lock
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -63,146 +82,101 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: Andrew Morton via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: Andrew Morton <akpm@linux-foundation.org>
-MIME-version: 1.0
+From: Junxiao Bi via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: Junxiao Bi <junxiao.bi@oracle.com>
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-ServerName: dfw.source.kernel.org
-X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 ip4:140.211.169.12/30 include:_spf.kernel.org
- include:_spf.google.com ~all
-X-Spam: Clean
-X-Proofpoint-ORIG-GUID: ilQI1_Wkt45fmkHG3E0EquRN5kAo0NgF
-X-Proofpoint-GUID: ilQI1_Wkt45fmkHG3E0EquRN5kAo0NgF
+X-ClientProxiedBy: BYAPR07CA0053.namprd07.prod.outlook.com
+ (2603:10b6:a03:60::30) To SJ0PR10MB4752.namprd10.prod.outlook.com
+ (2603:10b6:a03:2d7::19)
+X-MS-PublicTrafficType: Email
+X-MS-Office365-Filtering-Correlation-Id: 70510b69-3009-4147-b068-08da32dbf58e
+X-MS-TrafficTypeDiagnostic: MWHPR10MB1840:EE_
+X-Oracle-Tenancy: 1
+X-Microsoft-Antispam: BCL:0;
+X-Microsoft-Antispam-Message-Info:
+ SqlgC9x8WJaUAZK3WczxiNLTw9ZInILt4gryHekpSuHSxPsccw0/ycwtFne8dFTmnc6j2Vfw118g3CGrkuDatnQjG6AFyBh+qcU9Tes00P/lbBNVnDy1eVyztjz1hEvY4NYKcr3659FCZe95yYdvFUQCAe28wCCGmpFq+CMU8qb0wOYu3j8hFZmJWlUod4L509WP/bEsYKynMGueV6l8hF30kAunnQ0yFE0iT+/8bPCdw2E9bh1r40V8z0kzqQqtQJ6YaQgghdl13iloWrnlZm2YcUBdeOBWqLUKLKMXH65+SJGsjrrdPGFUwOP7alspauP8fzCq/0xqqRhWB3y52bVx8wSyfhT7RXmHADQhA8wV80u3eceZJqm1B6LgVgeFCtFzb2kXGjIjfcoq0h7lT2MWcJJm9gKqqdX2Qw5HtpWIDqXFVrn3ARXadrtmHpR2BmolxRai/xO4mSh2EhJUJAdkxmukYm2n+6Uia9hsALwyGaxKIqvQZG54JjlfkZ5PuuY3Vv1lRboL0l+ylS86GVmgj+EVBpHWdOFZ5GKYZ9DC6vqawkj7puQkXXbaTpQjgu7VH0TOA11EOZqp8oUlc4VJDjRzZCVqmi2h7V/T4Zo=
+X-MS-Exchange-CrossTenant-Network-Message-Id:
+ 70510b69-3009-4147-b068-08da32dbf58e
+X-MS-Exchange-CrossTenant-AuthSource: SJ0PR10MB4752.namprd10.prod.outlook.com
+X-MS-Exchange-CrossTenant-AuthAs: Internal
+X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
+X-MS-Exchange-CrossTenant-Id: 4e2c6054-71cb-48f1-bd6c-3a9705aca71b
+X-MS-Exchange-CrossTenant-MailboxType: HOSTED
+X-MS-Exchange-CrossTenant-UserPrincipalName:
+ 5Mzxb/Diy8AM+5P0wh+4v+QXREyOWMevbUR2nUh21GFZM2/Lexk+ff3qiYQ7uiLMuqZivxbO+/VIX542M3l3AQ==
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: MWHPR10MB1840
+X-Proofpoint-ORIG-GUID: uXyik4YNR2sisZx3OGJQ61KVqhxhuAQ5
+X-Proofpoint-GUID: uXyik4YNR2sisZx3OGJQ61KVqhxhuAQ5
 Reporting-Meta:
- AAH6lJyuKiC6HayDWshegOwppSBYonVZEVf5slEpk57wIVfCeR67jOv32GYr3yl1
- nOdKY5U814Y+ckTwg3xt32DKETHyql8Fkwiq5s5dJCVrvjLl0KR4NyMauhbN8cQk
- XZ3CPm2PTaMGpF+Yy2memV08cxayg3gpdRFhrAXXQjiZuNRiNwI40Fi4qbHodrdJ
- hDJ7eM3x89MCPtCez5frExFEcR5ptVEJWDXqljFX+fAQMyRTqkOntpXprNvQQNR2
- pJbD1jtVwfZdSKT33X0iurjxEmkz3w3GHSfDsKU3wdIdPh2wAS10h39o5VxWzL7q
- rCfIO5CM/lcbNLCDHNniOrCba73Nufo/Kg3CrQhdu84WpB9tTN6puOlE+plPZ7wx
- gMvFGqrQqADX48suzGigQ3JSKJDN/6klwqDlgmM3nTpomQQlZ+sdoDhU3wl2Nd7p
- BwXekpIrauDXEZ4zYMMJFfw0rqSt1Rj9bHhxIIh8vDU8O5Kz6W9QT4B7auYVi/c2
- nVJT18PVNAHw+ySL68wmEIdIJKYNLhQ0rlbJJYPoi1c=
+ AAEPkBbytQwJiqEYAGrkTVot6srFCa+Zio1XfvuhnckJSQZKoNTys/5tiKPvzjQm
+ mtRMcPqQktLai4rWhZGdx27HvSM29YUO4Q/TB/fxMjqN9mstXwrEZ0oXQBbf6606
+ V5W2rFYWkZdTYbYhXNvJSKpKcSbi4QLjaanG5CuUg8BfIRxLddaVwJsjQLmmoLXx
+ WnjYns3mJjR6RtEyBWS2Ypptp1JVvC3XN7eU89Sq1GBNbK1QfTxG6Y6diTSbxINx
+ 1cA91JR5tvS5F8hUeabbVXeXTaHm95L72Rd2bbByrtt88eB/Gq3bsAF/M3OKhxTB
+ b62zgaOT5xoiNCg3zMIvjixehWGPaghR8aphjnpDM19bQ9MAtTWdwgy6zpJGhKqy
+ nsLx+UwnpuVV88c8On3MFr8I+3aqeTsZnvUbdSeFjs/QiQamlI2KzWgUccvsK1kv
+ p5sgNgBWOB98ih0hTYK4uhmxtQqOujf/rnUVvl7it3R0IlW4zMX2Tk06iDX+Ucmt
+ 6btQauQ/Qqo6AkAR+AAWhPDUGKgkNhjDjNWpz33buLg=
 
+The following function is the only place that check USER_LOCK_ATTACHED,
+this flag is set when lock request is granted through user_bast() and
+only the following function will clear it.
 
-The quilt patch titled
-     Subject: ocfs2: ocfs2_mount_volume does cleanup job before return error
-has been removed from the -mm tree.  Its filename was
-     ocfs2-ocfs2_mount_volume-does-cleanup-job-before-return-error.patch
+Checking of this flag here is to make sure ocfs2_dlm_unlock is not
+issued if this lock is never granted. For example, lock file is created
+and then get removed, open file never happens.
 
-This patch was dropped because it was merged into the mm-nonmm-stable branch of git://git.kernel.org/pub/scm/linux/kernel/git/akpm/mm
+Clearing the flag here is not necessary because this is the only function
+that checks it, if another flow is executing user_dlm_destroy_lock(), it
+will bail out at the beginning because of USER_LOCK_IN_TEARDOWN and never
+check USER_LOCK_ATTACHED.
+Drop the clear, so we don't need take care it for the following
+error handling patch.
 
-------------------------------------------------------
-From: Heming Zhao via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Subject: ocfs2: ocfs2_mount_volume does cleanup job before return error
+int user_dlm_destroy_lock(struct user_lock_res *lockres)
+{
+    ...
 
-After this patch, when error, ocfs2_fill_super doesn't take care to
-release resources which are allocated in ocfs2_mount_volume.
+    status = 0;
+    if (!(lockres->l_flags & USER_LOCK_ATTACHED)) {
+        spin_unlock(&lockres->l_lock);
+        goto bail;
+    }
 
-Link: https://lkml.kernel.org/r/20220424130952.2436-5-heming.zhao@suse.com
-Signed-off-by: Heming Zhao <heming.zhao@suse.com>
-Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-Cc: Changwei Ge <gechangwei@live.cn>
-Cc: Gang He <ghe@suse.com>
-Cc: Joel Becker <jlbec@evilplan.org>
-Cc: Jun Piao <piaojun@huawei.com>
-Cc: Junxiao Bi <junxiao.bi@oracle.com>
-Cc: Mark Fasheh <mark@fasheh.com>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+    lockres->l_flags &= ~USER_LOCK_ATTACHED;
+    lockres->l_flags |= USER_LOCK_BUSY;
+    spin_unlock(&lockres->l_lock);
+
+	status = ocfs2_dlm_unlock(conn, &lockres->l_lksb, DLM_LKF_VALBLK);
+    if (status) {
+        user_log_dlm_error("ocfs2_dlm_unlock", status, lockres);
+        goto bail;
+    }
+	...
+}
+
+Cc: <stable@vger.kernel.org>
+Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
 ---
+ fs/ocfs2/dlmfs/userdlm.c | 1 -
+ 1 file changed, 1 deletion(-)
 
- fs/ocfs2/super.c |   35 +++++++++++++++++++++++------------
- 1 file changed, 23 insertions(+), 12 deletions(-)
-
---- a/fs/ocfs2/super.c~ocfs2-ocfs2_mount_volume-does-cleanup-job-before-return-error
-+++ a/fs/ocfs2/super.c
-@@ -1803,11 +1803,10 @@ static int ocfs2_get_sector(struct super
- static int ocfs2_mount_volume(struct super_block *sb)
- {
- 	int status = 0;
--	int unlock_super = 0;
- 	struct ocfs2_super *osb = OCFS2_SB(sb);
- 
- 	if (ocfs2_is_hard_readonly(osb))
--		goto leave;
-+		goto out;
- 
- 	mutex_init(&osb->obs_trim_fs_mutex);
- 
-@@ -1817,44 +1816,56 @@ static int ocfs2_mount_volume(struct sup
- 		if (status == -EBADR && ocfs2_userspace_stack(osb))
- 			mlog(ML_ERROR, "couldn't mount because cluster name on"
- 			" disk does not match the running cluster name.\n");
--		goto leave;
-+		goto out;
+diff --git a/fs/ocfs2/dlmfs/userdlm.c b/fs/ocfs2/dlmfs/userdlm.c
+index 29f183a15798..af0be612589c 100644
+--- a/fs/ocfs2/dlmfs/userdlm.c
++++ b/fs/ocfs2/dlmfs/userdlm.c
+@@ -619,7 +619,6 @@ int user_dlm_destroy_lock(struct user_lock_res *lockres)
+ 		goto bail;
  	}
  
- 	status = ocfs2_super_lock(osb, 1);
- 	if (status < 0) {
- 		mlog_errno(status);
--		goto leave;
-+		goto out_dlm;
- 	}
--	unlock_super = 1;
+-	lockres->l_flags &= ~USER_LOCK_ATTACHED;
+ 	lockres->l_flags |= USER_LOCK_BUSY;
+ 	spin_unlock(&lockres->l_lock);
  
- 	/* This will load up the node map and add ourselves to it. */
- 	status = ocfs2_find_slot(osb);
- 	if (status < 0) {
- 		mlog_errno(status);
--		goto leave;
-+		goto out_super_lock;
- 	}
- 
- 	/* load all node-local system inodes */
- 	status = ocfs2_init_local_system_inodes(osb);
- 	if (status < 0) {
- 		mlog_errno(status);
--		goto leave;
-+		goto out_super_lock;
- 	}
- 
- 	status = ocfs2_check_volume(osb);
- 	if (status < 0) {
- 		mlog_errno(status);
--		goto leave;
-+		goto out_system_inodes;
- 	}
- 
- 	status = ocfs2_truncate_log_init(osb);
--	if (status < 0)
-+	if (status < 0) {
- 		mlog_errno(status);
-+		goto out_system_inodes;
-+	}
- 
--leave:
--	if (unlock_super)
--		ocfs2_super_unlock(osb, 1);
-+	ocfs2_super_unlock(osb, 1);
-+	return 0;
- 
-+out_system_inodes:
-+	if (osb->local_alloc_state == OCFS2_LA_ENABLED)
-+		ocfs2_shutdown_local_alloc(osb);
-+	ocfs2_release_system_inodes(osb);
-+	/* before journal shutdown, we should release slot_info */
-+	ocfs2_free_slot_info(osb);
-+	ocfs2_journal_shutdown(osb);
-+out_super_lock:
-+	ocfs2_super_unlock(osb, 1);
-+out_dlm:
-+	ocfs2_dlm_shutdown(osb, 0);
-+out:
- 	return status;
- }
- 
-_
-
-Patches currently in -mm which might be from ocfs2-devel@oss.oracle.com are
-
+-- 
+2.24.3 (Apple Git-128)
 
 
 _______________________________________________
