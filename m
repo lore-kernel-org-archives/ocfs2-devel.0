@@ -1,79 +1,53 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc254.phx1.oracleemaildelivery.com (aib29ajc254.phx1.oracleemaildelivery.com [192.29.103.254])
+Received: from aib29ajc252.phx1.oracleemaildelivery.com (aib29ajc252.phx1.oracleemaildelivery.com [192.29.103.252])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id A6ED2C433EF
-	for <ocfs2-devel@archiver.kernel.org>; Fri, 13 May 2022 16:27:40 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 84036C433F5
+	for <ocfs2-devel@archiver.kernel.org>; Sun, 15 May 2022 14:58:06 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=ucDdrKpbJcMzZiqAXMgmEt7I7bsJQBUPUPMpWMf/DHc=;
- b=CpmfMZgYUC2e2jA+cqrl7XeV3anPEAR6oUgScRwF/lameHQelNv7eJ701YN/PoSUACEt8fVIEY8s
-   ly5NBp35OnG7PcYBdz+qJ7Mek9CcAUG+Wf/Zgpr2e8glyuvtqBlOEcA9PiouGnMmyj69HwZLJUWv
-   ixX/I/Dk/DHf9WaZRVm51QdfKcH6sRnw0slBh0lT0qS/v0EYAqzceyBCRYSLAN1cnL2/5Tp8Kphb
-   e/2TfGV7rShO5alwN8opaRERTWcgRM3jnNeB2XEDz8kBfyUyn6TwkPk40iDyZ/75ZrMjsQyt4D6E
-   9PT0daJtNcoV2UJ58Gwt2I3opisWucfe2otQ0A==
+ bh=F51NnLHcdUcMwktZ2RA5Z7M4l7AhGDTww1pvY7xFBTQ=;
+ b=UrZT7MNP/dHrSLvLJcTnkCJd1+9l0dMYzTXcEdekC2OLz/wa0luLA98McIiqgSgMbtsGnCuANqVF
+   b+CXPpArJR2zWcNRE6QMeFC1P3i8CBP5/nlKORhyhk4lY6tOZIV/46YY894lWNG/ARLgeaPwxfJZ
+   T/zQQ44NxfCdHtVYpo7b3qVx8o8blkp2bn+93zdooiD9AC+I7QRJItoLBicVy6w4itQykiV6xiVN
+   Yed7/TMH4HbNWpGMB9FpLg5WZweawkHpspvYGliRHN2xohwMZrvPLgn6KpuzMZrh+3nKIkgliI2O
+   0z4iWX9DHMbE2PWdtY9CZMHJziHFSZAJftKK7A==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=ucDdrKpbJcMzZiqAXMgmEt7I7bsJQBUPUPMpWMf/DHc=;
- b=ZlQH7AB8UhBl/kDyb2zUXVGncVWnyOKmr7d/hUPtPb3LOHjmthXAAWx8wkTxxovuQJk2mKD5aHFK
-   JqmFy9XLtZttJFZVWnheaEuToqNgGBI8ZTSAFMc0fjsbercpEwOHzPvtCFgKoAkuoGKdHawJf0/n
-   3XRppwB1HsuLFjQj4JuLU8Uw5wVzYb1nQ0kMDfsMRq1MGWHAkN5TF7o19AWSxWV4vvjMJK1hMK8q
-   yWYOQTSBqgdNa4fT/tT+gHOM+ZBPf78EgpAy7vBXQFsc3yVCQFMma1bS0S+zOhHO2O/adxyMphsS
-   cmPmVi6T2UH9BaPbgsvQP7U2vIHqztiDX6vGSw==
-Received: by omta-ad3-fd3-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
+ bh=F51NnLHcdUcMwktZ2RA5Z7M4l7AhGDTww1pvY7xFBTQ=;
+ b=EhLPXeJ4NAaUmxwAKAaSiDBxCHnOFvlBM5CCEBTmCihSJq9O2drBaJ+ZMjD5jrgontTNgmKYgfgc
+   FjZqwrgagm89KvwXPUp0G1sqcYaBQIKtj23I1iBN1UlGIU4FR/zra4yDv5lIcY5lwoAU9b7R0j2i
+   +LjxAPzZhuXVDC4Px/9to0jFxDD6yAn7BKdmPrS4hBijHIZ3B0e7VtBjdtHldxp4zWBwu2+BZ4wG
+   ng0FcNKsfhlzuVTh80YTrMvXtOt31PhLrxx79liqsaKdGq24hd3kW4O5ZR8GGoRgS9HSzY4TFr0e
+   4aU3HXVgXS8+gS5brGkVSnI/GKgXuKpMTNwjPg==
+Received: by omta-ad3-fd1-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220413 64bit (built Apr 13
  2022))
- with ESMTPS id <0RBT00IM6XQ4AO20@omta-ad3-fd3-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Fri, 13 May 2022 16:27:40 +0000 (GMT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=oracle.com;
- h=message-id : date : subject : to : references : from : in-reply-to :
- content-type : content-transfer-encoding : mime-version; s=corp-2021-07-09;
- bh=UJzpyg56BAxSygzpWzxiQCbtkX7rPepCFcRIaf4yfMU=;
- b=qQhpATBSry0VEmAR4njFiC7IKiQhQxKrFjMqDkPDX8wX0fh++CvkGUzBMW8/y+0Oyz8t
- NobrmUf88AZ3dk/Lb+zEHrH1WN0Nug72LQpdfHMzkP+sayNdfNf5FNmcnq0NwXRFWvy0
- lsa2PptLSbUbmsl5h5TkBiNBWf2RK8TOd1aihNyI12JneRAzrvYTkSkbbethixGtNyxv
- J/i5CYd5+cbGzqL0UeMXWZDCTQ5UyxjVeDiLeKihpj5nGhRN2BurFyS7EasOfBu8iynZ
- 4WWwIn3UFjKGvaH37hoFn8UJ86rRShzkpNxbAWkUchg/NOBL6+7qYMZ3AIsm00mJ5rzE ng==
-ARC-Seal: i=1; a=rsa-sha256; s=arcselector9901; d=microsoft.com; cv=none;
- b=MciFJ+YjiiW4tBI0l7ULxMEI9tKD2+9/bemKkpDarUR7dZF/282xI+tYI1MywDHF7pB4onT/c19+3kPUlxhDdGWx2iS5pqSEK3CERGDY8Kd1dElXB77C3F/Tg4JkgeaPptlqi6mffQ4p/QH7sv+ywCQSnTsD885l8a8jlKowW1ZTlKj5uqZAE8HbHa28qrmWb2lnkxL4F2AS8MV//KA0UT6sWyEosWubfImkRomDC2gUQjAdpR8XMN16tRfrjTPVrLkh1rPvhemEmNt9cBOqUFAqWuNOrJE7W/1otRxvw2mBMHSazmuDeKH0xOOqDzyGUgMwoClRBk4GVK5TRtFDMw==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
- s=arcselector9901;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
- bh=UJzpyg56BAxSygzpWzxiQCbtkX7rPepCFcRIaf4yfMU=;
- b=Ak17/nlJbA7XzulmDezssGi87P2iPttkBjBdmiOLvZZ8lXwR4C3KuzmYN80kHAcELqasf21kZ3QreUXyfxZagz15GE3SflGLboYt8gLJT3WfglAX9ZTilpO5IIc3AJ4BbNYKD0lddrQlFD4RRbo3VMIiNthfteKfJVPQg4AIJfuK88m9tKQKJfbrVVZllXyjE+IQxHZoN9rXdOuY7dhOV4RVnr0dyciUUdWAhELQqGYSPuyIS+C/rta5f2+n7q9T+QoLdRxgUM3zfcgCJRCT5lCtWPBeXQDfpQz8KbXHt2/RNSd9sNpGebgbzV53Uyr6Lb2E/Xxqw0dmKzs7snoysA==
-ARC-Authentication-results: i=1; mx.microsoft.com 1; spf=pass
- smtp.mailfrom=oracle.com; dmarc=pass action=none header.from=oracle.com;
- dkim=pass header.d=oracle.com; arc=none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=oracle.onmicrosoft.com;
- s=selector2-oracle-onmicrosoft-com;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
- bh=UJzpyg56BAxSygzpWzxiQCbtkX7rPepCFcRIaf4yfMU=;
- b=i9GJcLjFPJU9860QEsrJdfhoQKoF+fD+KQmU5OdJj+kCo7s+dCjbONe8cxzyP14QJbh+7Q72kQKm3dmzxbhjjsytzRF17SOUEhULqiBpKTS3kO3MI2rOD/v0a5NJoI7x40wxXwGSMihtA/K0P4Phk/Bdya/6NYRh3WBFqDCYAjI=
-Message-id: <7511d9c1-c725-734b-a730-d493ddc37b43@oracle.com>
-Date: Fri, 13 May 2022 09:27:25 -0700
+ with ESMTPS id <0RBX00J6CIWT2690@omta-ad3-fd1-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Sun, 15 May 2022 14:58:05 +0000 (GMT)
+Message-id: <7b620c53-0c45-da2c-829e-26195cbe7d4e@linux.alibaba.com>
+Date: Sun, 15 May 2022 22:57:45 +0800
+MIME-version: 1.0
 User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:91.0)
  Gecko/20100101 Thunderbird/91.9.0
 Content-language: en-US
-To: Joseph Qi <joseph.qi@linux.alibaba.com>, ocfs2-devel@oss.oracle.com
+To: Junxiao Bi <junxiao.bi@oracle.com>, ocfs2-devel@oss.oracle.com
 References: <20220510232213.23435-1-junxiao.bi@oracle.com>
  <cde723f1-db5b-d912-580e-04ddf6a0810a@linux.alibaba.com>
-In-reply-to: <cde723f1-db5b-d912-580e-04ddf6a0810a@linux.alibaba.com>
-MIME-version: 1.0
-X-Forefront-Antispam-Report: CIP:255.255.255.255; CTRY:; LANG:en; SCL:-1; SRV:;
- IPV:NLI; SFV:SKI; H:SJ0PR10MB4752.namprd10.prod.outlook.com; PTR:; CAT:NONE;
- SFS:; DIR:INB;
-X-OriginatorOrg: oracle.com
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 13 May 2022 16:27:27.2223 (UTC)
-X-Proofpoint-Virus-Version: vendor=fsecure engine=2.50.10434:6.0.486,
- 18.0.858 definitions=2022-05-13_05:2022-05-13, 2022-05-13 signatures=0
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 mlxlogscore=999
- malwarescore=0 mlxscore=0 phishscore=0 spamscore=0 bulkscore=0 adultscore=0
- suspectscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2202240000 definitions=main-2205130071
+ <7511d9c1-c725-734b-a730-d493ddc37b43@oracle.com>
+In-reply-to: <7511d9c1-c725-734b-a730-d493ddc37b43@oracle.com>
+X-Source-IP: 47.90.199.16
+X-Proofpoint-Virus-Version: vendor=nai engine=6400 definitions=10348
+ signatures=593597
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 priorityscore=0
+ mlxscore=0 suspectscore=0 adultscore=0 impostorscore=0 spamscore=0
+ clxscore=132 malwarescore=0 bulkscore=0 mlxlogscore=999 phishscore=0
+ lowpriorityscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2202240000 definitions=main-2205150082 domainage_hfrom=8431
 Subject: Re: [Ocfs2-devel] [PATCH 1/2] ocfs2: dlmfs: not clear
  USER_LOCK_ATTACHED when destroy lock
 X-BeenThere: ocfs2-devel@oss.oracle.com
@@ -87,119 +61,70 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: Junxiao Bi via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: Junxiao Bi <junxiao.bi@oracle.com>
+From: Joseph Qi via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: Joseph Qi <joseph.qi@linux.alibaba.com>
+Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
-Content-type: text/plain; charset="us-ascii"; Format="flowed"
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-ClientProxiedBy: SJ0PR05CA0105.namprd05.prod.outlook.com
- (2603:10b6:a03:334::20) To SJ0PR10MB4752.namprd10.prod.outlook.com
- (2603:10b6:a03:2d7::19)
-X-MS-PublicTrafficType: Email
-X-MS-Office365-Filtering-Correlation-Id: 4f9d243d-2090-4369-b6ae-08da34fd77f8
-X-MS-TrafficTypeDiagnostic: SA2PR10MB4428:EE_
-X-Oracle-Tenancy: 1
-X-Microsoft-Antispam: BCL:0;
-X-Microsoft-Antispam-Message-Info:
- HbOQIrWP7qz3ey3elYSAWCBan0Z26O2eBOiTVfSiBUKvFymRzsGacRajZoNp7JdNf0AR4FZb18JyNRqgS1NWjFeYJFxIymP/SNy56eTUTnQ7NCyoSrkQWhdKj50KUnWSLqsXUvm7VUoEtXO8D2I+scALga/ySqMtAuv86wh5KB2anhpFZJKUjPngsK1HHB3LCkkOEqbD68W0Z1Aj5lrhThTFS7NwUBjKZIGqu4pugBwHX7JxTZSL6NA59UMspuf1RLH7KXRA1ejaSW7IJm7j0N1sohuLCOOXRCR6jGig9sS1+KtdrB/Qb2H5OYKD20/jwZ1MacTNkhHD2PMIpzzyvGa+vPoyuSkRDvpVrXrhfem8Z+fJp9zvG2cViUtCtmDtI2OKyWHIAreQAUNKmBizdEtmhL734k/w+AhK2NQ414mfL7GJ9yu69Jk5v9kBY88ds105MlnWKztmWdgkg0K5DSkt0UbzUmJ8jMOgEX3DR4KoR+Cx+2TnRkE5+iyldXm7Sm5VNat8Z52pHfm/m/Y/rxb40dzHVLRL6bj6IPmbTk6pvnAXqFzWQ5GX4ca1wFOSqjNY61ffS17HEDRK3EGFgoMq2yeVmq3egxMEnoLvkP8=
-X-MS-Exchange-CrossTenant-Network-Message-Id:
- 4f9d243d-2090-4369-b6ae-08da34fd77f8
-X-MS-Exchange-CrossTenant-AuthSource: SJ0PR10MB4752.namprd10.prod.outlook.com
-X-MS-Exchange-CrossTenant-AuthAs: Internal
-X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
-X-MS-Exchange-CrossTenant-Id: 4e2c6054-71cb-48f1-bd6c-3a9705aca71b
-X-MS-Exchange-CrossTenant-MailboxType: HOSTED
-X-MS-Exchange-CrossTenant-UserPrincipalName:
- pmfsEv6Z+DSMO9wDsLTplvObeDr+sZgQmYg+NEuLrTzjfygzcfdz77cDQWEIet/FDRGaiV67lS/YUph3EFXhkg==
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: SA2PR10MB4428
-X-Proofpoint-ORIG-GUID: -Wbh23Gf1OKQf0YvvHsz1VUGHCNR26Nc
-X-Proofpoint-GUID: -Wbh23Gf1OKQf0YvvHsz1VUGHCNR26Nc
+X-Alimail-AntiSpam: AC=PASS; BC=-1|-1; BR=01201311R201e4; CH=green;
+ DM=||false|; DS=||; FP=0|-1|-1|-1|0|-1|-1|-1; HT=e01e04426;
+ MF=joseph.qi@linux.alibaba.com; NM=1; PH=DS; RN=2; SR=0;
+ TI=SMTPD_---0VDAz3Yz_1652626665;
+X-ServerName: out199-16.us.a.mail.aliyun.com
+X-Proofpoint-SPF-Result: pass
+X-Proofpoint-SPF-Record: v=spf1 include:spf1.service.alibaba.com
+ include:spf2.service.alibaba.com include:spf1.ocm.aliyun.com
+ include:spf2.ocm.aliyun.com include:spf1.staff.mail.aliyun.com
+ include:a.hichina.mail.aliyun.com include:b.hichina.mail.aliyun.com -all
+X-Spam: Clean
+X-Proofpoint-GUID: XvznyzEmKQE7wFkWr0_MQ3aus4VRYeFv
+X-Proofpoint-ORIG-GUID: XvznyzEmKQE7wFkWr0_MQ3aus4VRYeFv
 Reporting-Meta:
- AAGTFlPgrINm3lJoWjVOMe3fK1xS/5oeM4i7OH+UJQlfcWATn2GdCa/vvpB83aoA
- 2CjiHgjeKrkBIuK9nMUPtbLmFfM8ej5ctPSUaqA2uUWoau1ultgwggiY3qdF9aki
- OeBrL6pFjltBhfd0wk1z91FjPYFqCThxjtF9jDHR0vyGCxN8N5KwQld6NIejH+WA
- IcqEV5z6xjlqLpz0mpaCo9TjLbCuzKbShIIT4hW+1/dnsnrMIq+rz4CbxbBet4Mj
- f7564HzA3a8GLW6RuiI3n02b35nrf+l7/3QnkO4Pk98K9QJyhKX/pMB9qZLE/EMN
- AEG6hbCSO57p5fufTrZ3y4AODAocBGdUbVSUx80JUWb+UUTk0ootIJTrq9uXyXdk
- Z4HqqUM8ntxSpGqIKZiYx4biIaozLifMW6SreHHZTO9V8ueiZRug4l8vdWEwPgUD
- h85DYnyUTpdHNNYt5mD8/dPYhjr/mXv1dZOceItB9IJDyguJmtBQFuOtbStn5On0
- SpR49a5fJxhcU9ni0GRjCGXMT24m7V/aP29DWF+251Fs
+ AAH+Bzo6zZH6DwvOo308Tv8fAzQHnb/NhuJRWvPbW0l3YGAVeN5Tsf9RwLT5r60K
+ uY3ZpJvj4B1++BQbBOuITW8iozrQt0gSjOXz/vEzoPk6GOKOTQR+zfnCx3z7xBiu
+ b827HzBh5VdnG0HgvR7Gfiu3lnWvyZtm3jX0cz1sIHz2xzb1N3xAVknLUqXQcV3Y
+ W8SEcwPWz66iaUEK6ojYDw9JztnONfvyuhx/GSn2eMexVgq85gQ9btOLucl4Gi/J
+ JrRDpTyitnMxrlE46Whn9h38OGwevHsbFI3laDL2xOxFGkYh3cg/cF1PrlRHkixC
+ m1izKEI4P1/kbYpnlc5SNcwabqxy+uat+O/jEmqoq15cICLMiL4YyL/iKlb9OWp4
+ lKHJDRPDCxF5MAtK7P7ChMX6D1CRK+99ilwakly+fdYQB7lNdf/Vp7gKRrGLGERX
+ 7Ghez8EV4/xN282RJWsnI+NQENE783moJuQwlINS9eeMsfsDU1eWQo4ffUPMotpt
+ prsUoxHg5iGB0FIHojzXpkzrg1wkMm64CVS4hwdU1SBD
 
-On 5/12/22 7:05 PM, Joseph Qi wrote:
 
->
-> On 5/11/22 7:22 AM, Junxiao Bi wrote:
->> The following function is the only place that check USER_LOCK_ATTACHED,
->> this flag is set when lock request is granted through user_bast() and
->> only the following function will clear it.
->>
-> user_ast?
-Good catch, that's a typo, should be user_ast.
->
->> Checking of this flag here is to make sure ocfs2_dlm_unlock is not
->> issued if this lock is never granted. For example, lock file is created
->> and then get removed, open file never happens.
->>
->> Clearing the flag here is not necessary because this is the only function
->> that checks it, if another flow is executing user_dlm_destroy_lock(), it
->> will bail out at the beginning because of USER_LOCK_IN_TEARDOWN and never
->> check USER_LOCK_ATTACHED.
->> Drop the clear, so we don't need take care it for the following
->> error handling patch.
->>
-> Seems it depends on initializing lockres every time, but it seems this
-> is not true for directory now.
 
-Sorry, i didn't get this. Can you elaborate this?
+On 5/14/22 12:27 AM, Junxiao Bi wrote:
+> On 5/12/22 7:05 PM, Joseph Qi wrote:
+> 
+>>
+>> On 5/11/22 7:22 AM, Junxiao Bi wrote:
+>>> The following function is the only place that check USER_LOCK_ATTACHED,
+>>> this flag is set when lock request is granted through user_bast() and
+>>> only the following function will clear it.
+>>>
+>> user_ast?
+> Good catch, that's a typo, should be user_ast.
+>>
+>>> Checking of this flag here is to make sure ocfs2_dlm_unlock is not
+>>> issued if this lock is never granted. For example, lock file is created
+>>> and then get removed, open file never happens.
+>>>
+>>> Clearing the flag here is not necessary because this is the only function
+>>> that checks it, if another flow is executing user_dlm_destroy_lock(), it
+>>> will bail out at the beginning because of USER_LOCK_IN_TEARDOWN and never
+>>> check USER_LOCK_ATTACHED.
+>>> Drop the clear, so we don't need take care it for the following
+>>> error handling patch.
+>>>
+>> Seems it depends on initializing lockres every time, but it seems this
+>> is not true for directory now.
+> 
+> Sorry, i didn't get this. Can you elaborate this?
+> 
+lockres may be reused and if we don't reinitialized, the left flag can
+cause unexpected behavior.
 
 Thanks,
-
-Junxiao.
-
->
-> Thanks,
-> Joseph
->
->> int user_dlm_destroy_lock(struct user_lock_res *lockres)
->> {
->>      ...
->>
->>      status = 0;
->>      if (!(lockres->l_flags & USER_LOCK_ATTACHED)) {
->>          spin_unlock(&lockres->l_lock);
->>          goto bail;
->>      }
->>
->>      lockres->l_flags &= ~USER_LOCK_ATTACHED;
->>      lockres->l_flags |= USER_LOCK_BUSY;
->>      spin_unlock(&lockres->l_lock);
->>
->> 	status = ocfs2_dlm_unlock(conn, &lockres->l_lksb, DLM_LKF_VALBLK);
->>      if (status) {
->>          user_log_dlm_error("ocfs2_dlm_unlock", status, lockres);
->>          goto bail;
->>      }
->> 	...
->> }
->>
->> Cc: <stable@vger.kernel.org>
->> Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
->> ---
->>   fs/ocfs2/dlmfs/userdlm.c | 1 -
->>   1 file changed, 1 deletion(-)
->>
->> diff --git a/fs/ocfs2/dlmfs/userdlm.c b/fs/ocfs2/dlmfs/userdlm.c
->> index 29f183a15798..af0be612589c 100644
->> --- a/fs/ocfs2/dlmfs/userdlm.c
->> +++ b/fs/ocfs2/dlmfs/userdlm.c
->> @@ -619,7 +619,6 @@ int user_dlm_destroy_lock(struct user_lock_res *lockres)
->>   		goto bail;
->>   	}
->>   
->> -	lockres->l_flags &= ~USER_LOCK_ATTACHED;
->>   	lockres->l_flags |= USER_LOCK_BUSY;
->>   	spin_unlock(&lockres->l_lock);
->>   
+Joseph
 
 _______________________________________________
 Ocfs2-devel mailing list
