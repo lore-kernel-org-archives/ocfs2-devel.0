@@ -4,86 +4,75 @@ X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 Received: from aib29ajc245.phx1.oracleemaildelivery.com (aib29ajc245.phx1.oracleemaildelivery.com [192.29.103.245])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 53F6FC43334
-	for <ocfs2-devel@archiver.kernel.org>; Sat,  4 Jun 2022 08:50:44 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 3949DC433EF
+	for <ocfs2-devel@archiver.kernel.org>; Sat,  4 Jun 2022 10:10:34 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=Jt4I/wnYTD/BfB84qYqwbOwa8PFORdJ80WNB+BJJElk=;
- b=AUV6dU+6yumZ1p5PDbmAid0DBY+Pwij5nUqkOYek2joeboEuQqhZuce6IStRnVX/EaEzqMUl1rxQ
-   IVazd9Ai9r7tOv1A7hGxf3bMKLtm8CKspqGGqLkISl3XRSDPyvq9zSVDVET31Ba4FGCOOXH5+Ycz
-   t6CQtAsElHvGQAM4Ra6KmT8ax5E4nbtQQogWFMFG6P3xcykSDpfPqJSfnqqWH4rJKchZ6yX2SzWs
-   nKbauIKBmdQdwxMv7bifbP/6HiS7igHQiCWKvn63q7erSuoNwuVEE/NZYiKH4PDgNp0Z056YlEMe
-   S5VgU+UGc4AJGGJ6vE7Pb4XKvuOih0RAJyFi4w==
+ bh=AHl0LJamwqQ9LtGBXtzYG7gGPCr7+MHSmpic0nQtfTI=;
+ b=Xlw18FR6hCh2CZEweQWgZJDZoPckVWKt3UN1rKdLJnlj6MHtVe/E+RBp7jvkuenJUymxmRQysNJL
+   DQJml2CM9BaaZDtgWL7vVZzruAUnt7eGDt01V1SAgUdPBLcrQlixgL/wWccON/fSJ9Z2pt1yCjAL
+   vVtiLhyKVi40ku7bmOv2rZdayeMuUVxhtpUMyWbuy36Yfl6DifqeTPytJ9a9nQvtsoxnq2OUpE6n
+   PWqJryxuCXyO3yss7dqvdwNC4UnkoUpcowOr5C/4j4gD2KstSWR2aeJjt04rXIDf6vkVsYp+SPsw
+   XjK56CCMHgDXGpgfVY3zvKa+Msgmzb/vjkzvDw==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=Jt4I/wnYTD/BfB84qYqwbOwa8PFORdJ80WNB+BJJElk=;
- b=OzkKCGkbCPo//e3hbw7wsHY1JF9fbVn1hUI30RoUiYWglmuudWYe2ccR87cm3iGLWpnOqTfCWFra
-   fiDtKjk9mC8ONk8zWo5vgNldGcJ7JbzErozp0BBrtAFiQxH7ttUt+I3ez2S6uidpj5Qcpg22Ofl+
-   l9YcAWXTl9568MQf9ozKF6iXNFnBgEv5XufN4F/3RQ0lFq3/3gG+b+HYx1LrIqiknxgrt6GNpfN6
-   /QuKjGkAwrduWYW7aCAtZ1rP5hq9lk44o9zIxJFKZE5DHod7E95cVt0hGvc8+fPW9dp5doedNhw9
-   VatuIPcxTmM9p9GyrJy9mJVg4VW3cswe5pwTFg==
+ bh=AHl0LJamwqQ9LtGBXtzYG7gGPCr7+MHSmpic0nQtfTI=;
+ b=Kib0jUtlvOIL7aEx/bLDm0jxrIArmrlw5MMZ1W9Th+KXhBrARtpO/MPN9DTW92De/95K0vsZFtcX
+   KRm357D6ec7qT7+gC9Y/a62pCdkuYs1AQ9wVfAySsdwaUsLGjX8UWBkSmGmiOySiD69rutj+GhOC
+   vWfIaKZccNirg9euMx069nfriOlOcWXidf4V6cjzbZhDyxWl/fY93bah7GlpzTLEyC2jz8uK5Mvb
+   mUR+PBURZZVs5jF8Zrlbu8AQGusd8LDWEsj67iGR+l84hWLpYusbpyd83KoWF7SHdXD34D8FWjNi
+   y8Qw+Y6ZCUVixzZM1AaEvYC4MQwPOhbC3Bw2uA==
 Received: by omta-ad1-fd1-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220517 64bit (built May 17
  2022))
- with ESMTPS id <0RCY00NVQ38JN930@omta-ad1-fd1-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Sat, 04 Jun 2022 08:50:43 +0000 (GMT)
+ with ESMTPS id <0RCY00J1S6XLGG30@omta-ad1-fd1-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Sat, 04 Jun 2022 10:10:33 +0000 (GMT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.com;
- s=mimecast20200619; t=1654332323;
+ s=mimecast20200619; t=1654337416;
  h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
  to:to:cc:mime-version:mime-version:content-type:content-type:
  content-transfer-encoding:content-transfer-encoding:
  in-reply-to:in-reply-to:references:references;
- bh=04xg2YC3j1BSpqWUSYEultw7W3oeLAl8ZpcNqS5Wiag=;
- b=Q70bng8w/4VYlbizGRL7IjY659AMHyY2G14gZ6P7wIn+hPtJNpjs6EdAIsFz+vpXUu4nih
- n3b0ao4X4zRUoqpUmta5ht/oOKnFIZJZxRdEZYsn2qqKV2d6vlw9j7aEncAMHY5oehbcux
- CTTHEENpDEHV219fOBoQ6BLclCPs/GY=
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.com;
- s=mimecast20200619; t=1654332623;
- h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
- to:to:cc:mime-version:mime-version:content-type:content-type:
- content-transfer-encoding:content-transfer-encoding:
- in-reply-to:in-reply-to:references:references;
- bh=04xg2YC3j1BSpqWUSYEultw7W3oeLAl8ZpcNqS5Wiag=;
- b=NINUYLeAYJ/19yxWRjVYOLlTLfurZIQ5DnmaXf4VSkz1z02wo50tiwtKuHB16EcmwPM7gH
- 6SkeITOoVaHlPHdvYy4KW6I/nntmHIun5O3Ny2hkMvButkjUPy1k0+XM569zIYaea07F88
- PN/fgwEPYD6FQheiRgplQUWdw4OyWQE=
+ bh=eMqHZrLe7sQPrgQ1pDJ02S6YFNFCT/NSli3GGqYeydA=;
+ b=EXhOlYL5XFSd16dLudUvxKZRhPqlV16Pt8DCif1Ko/0cvlPaMKTb8L7jvZccBnJ9Pdkcfl
+ hrckgBHQMjKBBoyrykX28pj40Q8INFaRI9TMOy4MyKgOYQ3QUD0ua1heJWCvaX1ZNOf5+s
+ ROCmUUUMz/O+ssc2KillDd0loz1GWFY=
 ARC-Seal: i=1; a=rsa-sha256; s=arcselector9901; d=microsoft.com; cv=none;
- b=E0pRidYxrXonSwfcJ4hjIuMLxqqGgQzuPE8XQZ0QwzVDokxOezEDOXA8QhDOkQleDZV1SDj3iskc75HL+KmOBD3+tnQ8hkZWX7i/3tZemh5zkYv2Q82wXAWtv8dvg9Le1z+90TyXGWgtQKere0Mesh1b6hj7+1lfOUXh2FyDhB3ziMJYRHeROQpKZX9ndrx4nanZmWPpHrEARiKPi3zjn0x5qDfu6wO9NchY4aNmDGdGW46KolNgVfisyEl41mmaoHV2LHNpfqcz5JUyEJM10CT7I66jquJI0ulwxmOoHz3JfPJ9wXnaCyxApZZqIGC56PZSPh4JFiG9ZqskqGzW+g==
+ b=Eg/6J/0ci7OgRnAiCVfgAsiUl36VAGUDq7UibkXG8t/fQRG1AkVzn9KhL8G9cs90JHR/Aa90LubhjSRyM4yDZ216p/YHuhYYMIkfqI9pFSR0zu1wyEylZavcPkq1QIzHoYzUv+jz9OcHSeWHb0PAHddYRONP+wU96Nbz+Z0jOtr9pNBz6S9Oqcev0zDLhR2WfwENIR9GFXNDGOMAD6rSMa+8VvmGjRupkY1/RO4IMm9d8iuPP2/B0C0TB1JKSbtkG2Ey731ovNwE6OJYWfa6kdSeebP006TmXrC0IrZB9XUE3zWOgbDFM/nN1hgZPg22t13rljsZaAjsDTc66Hgqtw==
 ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
  s=arcselector9901;
  h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
- bh=04xg2YC3j1BSpqWUSYEultw7W3oeLAl8ZpcNqS5Wiag=;
- b=WNjKApWkfHLVIuQ8gEZsZwdJQnL0KB12fQswxWgSB7uN0Fqoy7KQx08kx7jDXv5vUdwGQzRIMnAOtUZNOVbSQcVWxvYtUsjAfI+XHh9tMVG3rXMRnNmEoME8zVLs5aNgpNHj5cAOSXIuJFktdZMM4YiKkDeJNedmi/EM+BM2HwSyrgO9V+FcgNw7UFNI6Q4xBQlxFrov3qj7kgVILuu69y3NgSOGiMENkzLyCxpu3Injw3IS7JrzWSvzk51nH7NaK7Qpobvwk44XXWZXcRn60BBGJ0fAF9ehAeXunj7g7hiRcyOl/FL3GWnHW5r9a/eSIGU6xyxfpG7WuV8UAJOmdw==
+ bh=eMqHZrLe7sQPrgQ1pDJ02S6YFNFCT/NSli3GGqYeydA=;
+ b=cT7bLW98gVXWOxRXOrJdLLx0ek0kppRLsrVyWJV8VJWu7+gHJEKtCpyb/77jowh5NiDGCaK7K5aXAFi1gaxlaqqa171+FZdLcCLXvprnZYjsi/+6SyvTWaijJ2IPGjycyugMnYFpCijjtfqnqeIV4596grzvpPb6FGtRnKW3TFS4u4i2EwnwCQDsNTqWrNFZ4w+kMIhOpOQ84zH4ADpfQBFqQK6jjM08AcR2/pLtCn6kfz/cRcggwdI+erQrv25KQLRuE2WvsQ1/s9gK/HJA1XyD8uLzkbilsbsTMtai6E9clKkMd3Gqaqe8N4s9mjeT8TiAWebfGuMGPTPOQLiU2A==
 ARC-Authentication-results: i=1; mx.microsoft.com 1; spf=pass
  smtp.mailfrom=suse.com; dmarc=pass action=none header.from=suse.com; dkim=pass
  header.d=suse.com; arc=none
-Message-id: <3d75bcfa-4841-91cc-ade8-6f85f3d2f6db@suse.com>
-Date: Sat, 4 Jun 2022 16:45:07 +0800
+Message-id: <0b6053a0-8417-7da0-78c7-bf23f6fccba3@suse.com>
+Date: Sat, 4 Jun 2022 18:10:06 +0800
 User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:91.0) Gecko/20100101
  Thunderbird/91.5.0
 Content-language: en-US
 To: Junxiao Bi <junxiao.bi@oracle.com>, ocfs2-devel@oss.oracle.com
-References: <20220603222801.42488-1-junxiao.bi@oracle.com>
-In-reply-to: <20220603222801.42488-1-junxiao.bi@oracle.com>
+References: <20220603223122.43174-1-junxiao.bi@oracle.com>
+In-reply-to: <20220603223122.43174-1-junxiao.bi@oracle.com>
 MIME-version: 1.0
 X-Forefront-Antispam-Report: CIP:255.255.255.255; CTRY:; LANG:en; SCL:1; SRV:;
  IPV:NLI; SFV:NSPM; H:DB7PR04MB4666.eurprd04.prod.outlook.com; PTR:; CAT:NONE;
- SFS:(13230001)(366004)(31696002)(5660300002)(8936002)(66946007)(8676002)(66556008)(66476007)(86362001)(2906002)(6512007)(6486002)(31686004)(6506007)(6666004)(53546011)(508600001)(26005)(36756003)(38100700002)(2616005)(83380400001)(316002)(186003)(43740500002)(45980500001);
+ SFS:(13230001)(366004)(316002)(508600001)(8936002)(6486002)(5660300002)(86362001)(186003)(2616005)(31696002)(83380400001)(53546011)(2906002)(38100700002)(6666004)(6506007)(6512007)(26005)(8676002)(66946007)(36756003)(66556008)(66476007)(31686004)(45980500001)(43740500002);
  DIR:OUT; SFP:1101;
 X-OriginatorOrg: suse.com
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 04 Jun 2022 08:45:19.6458 (UTC)
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 04 Jun 2022 10:10:13.2915 (UTC)
 X-Source-IP: 194.104.109.102
 X-Proofpoint-Virus-Version: vendor=nai engine=6400 definitions=10367
  signatures=594849
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 phishscore=0
- impostorscore=0 suspectscore=0 priorityscore=162 bulkscore=0 spamscore=0
- adultscore=0 mlxlogscore=999 malwarescore=0 mlxscore=0 clxscore=183
- lowpriorityscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2204290000 definitions=main-2206040042
-Subject: Re: [Ocfs2-devel] [PATCH] Revert
- "ocfs2: mount shared volume without ha stack"
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 suspectscore=0
+ spamscore=0 phishscore=0 priorityscore=138 mlxlogscore=999 malwarescore=0
+ lowpriorityscore=0 impostorscore=0 mlxscore=0 adultscore=0 bulkscore=0
+ clxscore=242 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2204290000 definitions=main-2206040050
+Subject: Re: [Ocfs2-devel] [PATCH] ocfs2: kill EBUSY from dlmfs_evict_inode
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -100,70 +89,70 @@ Reply-to: "heming.zhao@suse.com" <heming.zhao@suse.com>
 Content-transfer-encoding: 7bit
 Content-type: text/plain; charset="us-ascii"; Format="flowed"
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-MC-Unique: sC7g0CYRNK2z1aIPWmIuzw-1
-X-ClientProxiedBy: TYAPR01CA0024.jpnprd01.prod.outlook.com (2603:1096:404::36)
+X-MC-Unique: M82uaoPNMhCHM8uo3WEenQ-1
+X-ClientProxiedBy: SG2P153CA0051.APCP153.PROD.OUTLOOK.COM (2603:1096:4:c6::20)
  To DB7PR04MB4666.eurprd04.prod.outlook.com (2603:10a6:5:2b::14)
 X-MS-PublicTrafficType: Email
-X-MS-Office365-Filtering-Correlation-Id: e6a54ba8-4c2e-4229-2f44-08da46068e06
-X-MS-TrafficTypeDiagnostic: VI1PR0401MB2541:EE_
+X-MS-Office365-Filtering-Correlation-Id: 6f1e9c9f-4793-4180-61b5-08da46126a1c
+X-MS-TrafficTypeDiagnostic: VI1PR04MB6128:EE_
 X-Microsoft-Antispam-PRVS:
- <VI1PR0401MB2541E7FE99A20E13E6A3FAD997A09@VI1PR0401MB2541.eurprd04.prod.outlook.com>
+ <VI1PR04MB61288DD6F38AE0AA21E65F3E97A09@VI1PR04MB6128.eurprd04.prod.outlook.com>
 X-MS-Exchange-SenderADCheck: 1
 X-MS-Exchange-AntiSpam-Relay: 0
 X-Microsoft-Antispam: BCL:0;
 X-Microsoft-Antispam-Message-Info:
- hHI9afx67nqtgrR2wUYmlyKRSwDs6LtPYT4kOhJGZ5Oa7kiT+ZAydiLEuyAIa40MFo8z+EnIGFnvQHcDJ/IFrOW5ZX8aiKA333tV+LTISUhEOk90683tRA/l+aXOh1Gvj2qcOVb/K1OzLhpuknLJ+njyMErzrB0lq7aGUWvXIMirIoIwj2z7SkSkSoNw11QgDmy7bmMVWsQLxrpGjJgPy80ZoVNwWW4omMfZyRQeD/2qBOOuyMlCGOFYmJ1vAaHv4qKfBuhIihYpmU7sLik6WXGesBQ79VoFfqQYGef7fVkZUpqNpmrorCL4GBbe7Yf0f9l27ky9DoWvqymbsx2fEiru3W2B/ScVBTrCI2myaNl5xdX+GEjrE8gHc+4qtPdJfIVuOYItk4icaJRzBMHxiE1JbXw4L7AAV6xCAmh62JRjZP51lfxWXkbxtpsmSkww9EU5Q/fOd1xSfhvb2V5ocOzI8V7P0UFGI0xWL+X41GOZDhmeQ8F+8xA7v1chA8qDoFJcvSApYkqXKEx/tq12jp72TY4xC/7BmOrVaUtGSgzUbMmJm+YqPKiewJAWuWGq6JCrGGGBeynmTwpHXSy0yVTtkCbKzk3KDoXDybJhj+42nw6Q4dzUuZjDX+q6SLmJm7jkHEeha+lzcz/DMzTVivM6Si6NqlitNCK3c4eAWO5ovmd5Q/fcAaT0qJGELjDt2kIFkjGbiQqtlOG2xhuuFA2OiyzvjJ3kEWWNFAOq8UI=
+ T55iHS+TlfN1Bha2Bw3zApbaxfXGf4PaW6HWwb7oPuLTDky92YUbQafROohProJ0RHYFHKsf3PEPNCffRVx3eQL8+6ldZfnat011AP85OV3t3Te9zrxiXuhgxZey/y3R6iJwAHjTinRHldUNE0zCJhtokXw5LgUVHV4NXy0ZwpqoxBMyYhfgpxJvgH+bni8uytn3agupBqRpjBf2KSLrosM3GeXSCCWDcertBJlfLbPErxRITBcb61EqsOS7o/OZQF4JLsjhNZ2KB71kThlAHgL+RsxSbR8B1DPDugtw0gfMltOOyUhzJqjg4Lwr2RdVvndL3L41gqRbQRKxKqcgeFTjPxoQowMA3jTxrsCVGSK1LYNEjD2ifgzD77m1XnSoyZQju6sXTTAGxHioMwfCMame/oBqym30Wa2SXMnnli0+r7orEFwIPHFbFUFYxcBgz1sq76bQB6y89Q1tVBFH7u9zaVHqnYlz0swdFtwKVsaTNjGVy5uqMxgPmStsnBV+rGT39Wn0tCeHwvxH5n1l7NyfzUze59YKFaIMQDUxUEWCXbh2TSWz/UXjNEAwTZMVAsGAfO0H2T6QjJyUP007hGCbdo0nvqdIJ9lOZaO3lscgdwwefXeDwvbETp2XhftAPGh+0k0CfbuerizIQUXB6Jedf1UmFQl5W1lBrkzKVog7/Y3uoxkAxxd4S6JVprzHDpbJdDBqogFaVM185gJgDrG7vOziwQpvsa5zSE1rxIQ=
 X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
 X-MS-Exchange-AntiSpam-MessageData-0:
- =?utf-8?B?bE9LZmZ3SVdIcWlBNnlIWGpoSXZpSlFYb0V2Y0tIaVFWYWtzdzM1RjljamJI?=
- =?utf-8?B?R0NjSHkxVHdYM255WU15THpFVnR1RFNnL0FjNUtwWS9raFZYdmJWRTkwL0Ix?=
- =?utf-8?B?NVhiUXA3Umd1TDdQcWRqMURQOXBkVXlZOXRKUEVrUkt1ckxKREpWeVkva29x?=
- =?utf-8?B?TlV1cldwbndYa1k3cWdISTl1d3N0aWkvUHMybVdiWlZLdDlqYndZZVJoWWQ1?=
- =?utf-8?B?RkthcXhxa0FyZzZHMXZEL3dRL3Byc2dmbFVORVZ6NzBYbGhwSHkxSXZWd0Nq?=
- =?utf-8?B?WFplQkJqMmtKRTFlT2NPVGxpYTdzN0dyNlpGMjlpMjU4VEJXS2hnU3ArTzZF?=
- =?utf-8?B?b2hiSi92RG5sZmVUUTZ1MWQ3V205dzltenF0Sm41bjNWUUMwRytvWUwrQnV5?=
- =?utf-8?B?ZlhPMTBYTG4xSnRKL2VjWklEV2tCNWs0c2xMYUpPVG5CdVVRQVpkWXNQbkM5?=
- =?utf-8?B?Z21Vdi9aSmhXQnk3dExya0xROElxcU90Rno0N2dqcEpZaXZPVXJ2cVFneHU0?=
- =?utf-8?B?RGlYN1dPWkxSZ09ibkoyT0tHWVJXV0xhbmROVXhpb2xKdUVwN1FtNURzM292?=
- =?utf-8?B?R0JST0NJeWhOUlovdTFFQ1NDYmpzRVhmSWRKOTZrN2NKYS84eHNPV21EWDk2?=
- =?utf-8?B?NHE5OWZSQURURWsvU0pJandxeldzVVphRHoxb1N2eFhVbXNiY3d3WEJscUFy?=
- =?utf-8?B?Q0VQOFl6WHRoVVJBUnFETEVzRzduRzJKL2hYbktQWnZ1bzN6YjJhZ2NFMlhN?=
- =?utf-8?B?bGQ1UDJRS0dhZUpsWFprL2JCT1V3ajlCTitvMnpMRFBwVEoveUZ4VjU1RHQr?=
- =?utf-8?B?U0FoOHVqQU1FUnE4SWlOb0hZUUliR0EydkNqZzZVZEZzcnNqZU45Vk5nV1pJ?=
- =?utf-8?B?SHA1MlFxL1NyZjQ5c1BvYlRSY2ZEdFNuNDZCenNObzFEVGJzN1NrM0NLV3Jz?=
- =?utf-8?B?QWpFbmZ6eFVjc2RjeDJxSkxFK3FTU0duU3YzU2N1eDRtSExnZmV3RHRlZDhs?=
- =?utf-8?B?cDhPaWJ5V1QxMFlTNDA4MkV5UHFKR2w4Vnk2U25rY2lsV0U5UjZMZzMweVB6?=
- =?utf-8?B?UjEvWmsvQks5RG5PZ0RZQUMyWmRZdHBOUlBTZzVJVFhxbGVaZUdEdTJoV3lC?=
- =?utf-8?B?aXNyRE1OOWszeC8zd1VxK2VReHVlRTJUR3FuRmRqUFpLUW1JR1JVQ1hMNVF1?=
- =?utf-8?B?Ky9STDlXYVlyWnd6MEFyZjBFdTgyR2xHcWhXM2VrODJodE1mcVpaREN4MWU2?=
- =?utf-8?B?YWxIdG9PVFpWYXVNQytoY0dneG03aEQ3cTYvUlplQXlxUDB2Ync5ajFJMTda?=
- =?utf-8?B?dDlGc0cyQWNiZGpDNjdMTDQ0SkQ3cEgxUHpZWGhtbk0vVE5BS2RmSnFnWW05?=
- =?utf-8?B?aFVHY2RqajJzb3RTcVZDU05TOFdkZ0taaldpUGd2RzFMN3FUWllEVEEyZEdS?=
- =?utf-8?B?dmxSQ3owS1A0WjRXWURZTXhlZ0FvVFUzRjZiRlNEaG5YVXV2MENZd053TmNx?=
- =?utf-8?B?S3U4WXZ3Rmw0ZXRwSWlKNEllaUxFY25IMHREUFIrZ2dzZko5VzBGRzhvYTM0?=
- =?utf-8?B?QzNXTnlGQVdDQnJKbGNYMS9MRW5nQWRnZzNybnorcVhzTk1YZ0pmMkd2Vkxz?=
- =?utf-8?B?d3NNQWl2TGVMeXVWaFBpYjkvUklHNXlob0orVjFJY3JtRE5MSDF6S3RaV2tB?=
- =?utf-8?B?UlhaellpRWt4MitXKy9vSlVaRXFvb0hYc3dVZzFpR1p1bkRBL1VaSndMTXNz?=
- =?utf-8?B?WjlXY3JjQTdmS0FyWXk2RkR3eFRCOXkyR3hkVllYWGFVOUkvWFljdUJxU05J?=
- =?utf-8?B?UnJhR2JmcXZyRmtiZzFxS3pTd2lJNkdFdUtmUzZHTWlJczlGOW9CSDhQa0ov?=
- =?utf-8?B?ZDRNcGFYTE0xUHUrYVNxei83YXExUFplNHFQYU0xTzFndmNMUzU1OWY5ZkVB?=
- =?utf-8?B?ZllBR3YvRXBkRkNZa2RqSVlib1RZNkxpVkIxbUVKa0IyRHFGMWJ4T3dBWUJ1?=
- =?utf-8?B?QjJ0YmptZFQ0SGJsaG40NjF3RmRiaGxSUzVycVQvWUhFZVJqWHlWbjRpdnAr?=
- =?utf-8?B?Mm1BQjZlOTFCMndRRXhEVUZOZ3ZldVFhSEJ6bzMzOVFudjZQSkFJNnpSangz?=
- =?utf-8?B?OStNVjRUNlZLaHY3UldScTZkeEZwQkRwM0crVmgzbENha3d2K2VnZWQzTkJz?=
- =?utf-8?B?UU9pQXBZMTJXb2dsU01Edk5wNU90UWVrRnV4b3kyWE8rTlZpenYrU3JObGZp?=
- =?utf-8?B?MXFHMnE2OGt5d2hLWnkzblhDV0I5QXlTMTl3M1FUSk1VNHc5REwwQlp4c3ZM?=
- =?utf-8?B?bTF2TThIQXcySmVMbGkxcDZ3TXlJN2Q1YlNFWU9xVkE4QXVQN1FGUT09?=
+ =?utf-8?B?bFNrYWlUWGVSWnVRRTVjZ1VpZ2g5eExyN0FXLzlneEthRTVyYzdjT1J6Yk1a?=
+ =?utf-8?B?SVJ5Y3F3U3dKRlJNKy8xSE5kTWN2dzYyTUpHa3NDMWlWM0tkRi9wYlFWcU5x?=
+ =?utf-8?B?VmVwU2s2akdNMTlpbG5OYXRVYkV2d1dYS3AxbGo3a2tmN3R3NmdXK2tHZnk3?=
+ =?utf-8?B?djEvYm40aTNkMnNRK0UwWEF3NG9jbElVN2YwL0lIZFZiT09vbWU3eWphL3VI?=
+ =?utf-8?B?L3YzWm1kUkd0Qjh0dEF0OG1sdkpPd0t2ZWM3QTVzcGdrQ2IwcGhnMFlLU3c5?=
+ =?utf-8?B?TXBZVWJFS290b0VTRzdOc1FyZnp6QkdlREhYeHB3OENzaldFSTFFekp6RDVm?=
+ =?utf-8?B?ZEozeVVoTDQ5Ymp0M1E1ZkpoTGQzNU5WcFRHWUNtOXM5NXlsd1VtODRTK09G?=
+ =?utf-8?B?VzNrR2tFRkN3dzl4NklDQjBtZFVaVXlNR3V0QjM3TXdJMVZOOWxzNm1JQTlU?=
+ =?utf-8?B?MHZXa0tWakNMZ0RsdW5VVk1JMzlXcDVIWU1GVDB0NGNwNFBWQkhqdUJJOEk5?=
+ =?utf-8?B?NWNNcFladDlHK0RQdDhtRXh5d3B6ZlI0U3NhQXdrMnlSK3hPM1VXRmtIRmJ6?=
+ =?utf-8?B?Q3pkbm5PUHFaVjlISDVBcFJjcUJMOUNPLzUwVUUvcWxUYkNCcUtRbEhLT2w4?=
+ =?utf-8?B?aTAzOTN1MktqQUo1LzNJY3J1TzV5bEZsbWVQeDA2N1hNWjhvV2ZMR2pqam5U?=
+ =?utf-8?B?Z0V5SEhvQXNiTUZrc2w4MW9iT0t3b2tnOHNzQ0xMamcyRnZVZEZ0WkpjaEti?=
+ =?utf-8?B?REkxQnoyQkc1cC9IelpQclV2bEd1WlhiOGpxeXJhbWlVUDlkUUI0czk0TnFI?=
+ =?utf-8?B?c29TN3oxMHc4U3J0aWkvdEUrZEFyd0gwRmNkN2VwK0FYanVGQW1wMzlQc2pH?=
+ =?utf-8?B?WkcxLzVOR3FhQ00wUk1hY3FxWCs5dWxBQjg2QzR3NC9zQWNMVitndDNib2Z1?=
+ =?utf-8?B?M3FQU2d3OWNNb0laZkJLRFFmZVdiZ2tPbVppNFRGZDU2dGJnUEdxdTFtVkVj?=
+ =?utf-8?B?cXV0VE5sQVkza1FpMkNhemtxcjdtbVNnbW1PdWdydTFvdk5HbWFPMDgraDdK?=
+ =?utf-8?B?UjVmQzFYVFFQUmxvNG50eXhVSWFjRVVFU2NmcjlYeEdvak5zQkpRYmtXQS9w?=
+ =?utf-8?B?djdhK0N4dFFNZnpxckhTdGVGMC9id00xK28zdkNmeEhsRW5MWWdtNkVXQTFT?=
+ =?utf-8?B?cXNqc2ROME1LSTdSRUhSdjg0WWxiR2M5MzJpT2NrbmFUMjJ1cG9lTGdxNDFn?=
+ =?utf-8?B?TVV6L2FLUlUwY1lCb1NxSTlIUmpXeWgwdFpRMVllcVQ0azZzME9PamN6T2hx?=
+ =?utf-8?B?dWxzUUFSK0JRVDRqaXAwdGQ2c1JvdWZSUjFsYjlkbzdFcnNZTWNHVSthRGcv?=
+ =?utf-8?B?aVEwQnNzUU44VWlnU05UMzgxalIveUhUVFFtKzNCVzlSN056VXBrVjhURnBk?=
+ =?utf-8?B?TStzbzBCNElCemR5N09MYk1FaEtEaUhTdG9EVGliM3ZubWk2aC9IZnoya0Zp?=
+ =?utf-8?B?QnJHYVROUFJUVE1pNVV1VnErQWZFdzZrZzl4TlFoSVk5UlcwQWtqNWtsL0Zi?=
+ =?utf-8?B?WDBIU3oxK1NNNHBjSTFTOXJRc1lrSWVFbzdoSFpzNHJFT3Y2TUlOWTBjUjhm?=
+ =?utf-8?B?MHQwWGVlcVZJMEE1dkF3M3ZtZEk3ZUxENzZFRFpPeTdjSkMwaVJJTnJqQVRS?=
+ =?utf-8?B?RXR3NWVSempKQXpqaUhieFcwelNYYkxWbzVDVzRsZFVlZ2M0WU9ES2diNUk5?=
+ =?utf-8?B?bkdMRHc1NSt3emJQZVRBQmtCemh3K1Vxa3VuTE0vS1hqTVdKbmhNSy9EZE1J?=
+ =?utf-8?B?WlFSaUlQTGdWK2lKeFgrMWNIM0FqK2ZJaXFhRzhrRVFrT1BaOUwyUHZIbDFl?=
+ =?utf-8?B?R3ptY3JPWVA1VE5pMDNQUnpIQ2J5ZW03WmpqSFNUUnZqYUpKV0xBQ2ZiM0hB?=
+ =?utf-8?B?M2QyNHphYVJkV2c0aDJpQ0NMc1kwZGFUdHNNYmlBVVo4T0w5bUN3QWJjR3Q0?=
+ =?utf-8?B?cDYxditROExzMksxYUEzYkpNZUJBVGQ2bEg4N3VueWFxOFo3cWFDNWxPZUoy?=
+ =?utf-8?B?NmJuNXlmSll4Z2NuZ1BvcHpZNXREMnV2bFZsQUtnWE9Db1hwRUNrSnRyS1Az?=
+ =?utf-8?B?dkhPZWdSTFNVeGRMbi9YN0dDVU5LWUx6VmQ5WUhJZjZ2M3c1V2NyOW9Za1Vw?=
+ =?utf-8?B?S1dpNzVXdVRrbTN3Z2xQMGtCemxjd2ZmcmV6TFZ5QVExRVNyTk92NGFiazBi?=
+ =?utf-8?B?RWhOWEpEN2hVS2k0b1hBWEdLVEF5NHh6bTV3bkdvSE9DUS9hQUxsdmNyOFhL?=
+ =?utf-8?B?dUJ4Z3dIRi9veEEwRE52VDJsY2hMOFRaanErWWE3SjlNR25HOW9Sdz09?=
 X-MS-Exchange-CrossTenant-Network-Message-Id:
- e6a54ba8-4c2e-4229-2f44-08da46068e06
+ 6f1e9c9f-4793-4180-61b5-08da46126a1c
 X-MS-Exchange-CrossTenant-AuthSource: DB7PR04MB4666.eurprd04.prod.outlook.com
 X-MS-Exchange-CrossTenant-AuthAs: Internal
 X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
 X-MS-Exchange-CrossTenant-Id: f7a17af6-1c5c-4a36-aa8b-f5be247aa4ba
 X-MS-Exchange-CrossTenant-MailboxType: HOSTED
 X-MS-Exchange-CrossTenant-UserPrincipalName:
- 8r8M6QaUIiiF5ihKj5jQWrCYw1jLIObzKcMajaog/y4UfGxSvTr22ndjzkB5ZHLg3VOfnsgVgF6xX7EFnxIp+w==
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: VI1PR0401MB2541
+ mRpAy+JFiF8gFWuqJoAmoZ+NK3pxPLlyy7wYzBpQgNbMETUWywi2KcbCD2j1MxyfpGZSgRIWFAGdYjM1Z44peQ==
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: VI1PR04MB6128
 X-ServerName: de-smtp-delivery-102.mimecast.com
 X-Proofpoint-SPF-Result: pass
 X-Proofpoint-SPF-Record: v=spf1 include:spf.suse.com
@@ -171,123 +160,74 @@ X-Proofpoint-SPF-Record: v=spf1 include:spf.suse.com
  include:spf.protection.outlook.com include:_spf.qemailserver.com
  include:_spf.salesforce.com -all
 X-Spam: Clean
-X-Proofpoint-ORIG-GUID: kguZYvyvdsyQh3FtGLpooG0a-wUJ1CKx
-X-Proofpoint-GUID: kguZYvyvdsyQh3FtGLpooG0a-wUJ1CKx
+X-Proofpoint-ORIG-GUID: 4Pq-awHrd7BKQepMLyVY7BqxnO-VHBsF
+X-Proofpoint-GUID: 4Pq-awHrd7BKQepMLyVY7BqxnO-VHBsF
 Reporting-Meta:
- AAE3+x6sAh4xupwanUuEKVMq5AKEaOTS+HDAB5LaQP31MnfWrPCc36Io7RtOh6dS
- cMFieBgjjKk98zaibET4kYnmL+J2zMfdwUYaS6ax8Xh+dLxpjwwpDlmI4Hue+cVv
- Zfn3J39ctxrDJLW0/6qz1sPNdmdCE57AmIodjfRw16q7LyLfHIOyjs8xkHcn9hUE
- 72z9zxKDXP9nolQ34wwNmXYWjAfzbjxP7I3h4Nsh61OfGPRZu/wIampKo198q3JJ
- shr+kLzP8ylq0B+PnPtQ2BGup5w+suhi/5SxxrsDIpzE4e9iQzXpJ2avqb9Fnr1y
- GBXPkFt5tXa9o9caD0QtlLQvVghfinqhqhRZfdCGVCtGz/hI3qVlg9rihpINXnrC
- 2bYc4D0nRFNy2E7QBu9LyE3IA41NLFEG5Yg5ie1zRWfVtQrewN2GAG0CjksUKU3x
- domU6+07Rq8dxhmYQmoySCX5neuP+3DJecL46cjVQkxQCqilKIIG5xbC/XTo/kY1
- P4ci3HiCrPpSt/fOkg+vzJIUQlZzQy57KvN2F727VQ==
+ AAHzr8bTkOeyRqMTzZ1GcyYlYBdWe+4vw6A4RzaM59X1mN8mELDrQhPUB1zuDHXN
+ 4W6l3tDzQQViTfkF4pcvu9daU23c90CbQ99On64PQVybrp0w8IvH0wGQG3q+coTV
+ 7LBWhia5BjevHWgL+Sg+LOCPLJTAWJLOisLLf0kAl8/HTRwcSX+wGmNVJtvUbiu9
+ 1kEDBTrlhP3EDGd9vVJOP9lx1zVF/0hnRes9r+Ww+57UFf8Iv2q5qzuGBnW8UTLk
+ lnC6bdmtJ524HwdUOq8HtWqzzR2+4aWnbK6HNRyY7ziPiF+LUdgXysmTfTYvRqyA
+ TdU4DUehIJw88Tia2r9aJwahn+T5zy19sVDUSv8DfIpVGxYZOAf6PlcMA29QitIz
+ VMAj5YYa9MyG0+mi+9M/S98THzKheyDdaE1Y+FUOZK4GUFZzQFBvoPrhJSmjN3cI
+ gsNuKIHrL5C2otyeVvNNwqOb3B0Fy94Uzb4COrY99raU8ntqwoQqRrix/aJk3Fg5
+ R5mAmDctzn2bDpPe2lr2lwO8xfiz58MWPPqg0Y1dCyw=
 
 Hello Junxiao,
 
-On 6/4/22 06:28, Junxiao Bi via Ocfs2-devel wrote:
-> This reverts commit 912f655d78c5d4ad05eac287f23a435924df7144.
+On 6/4/22 06:31, Junxiao Bi via Ocfs2-devel wrote:
+> When unlink a dlmfs, first it will invoke dlmfs_unlink(), and then invoke
+> dlmfs_evict_inode(), user_dlm_destroy_lock() is invoked in both places,
+> the second one from dlmfs_evict_inode() will get EBUSY error because
+> USER_LOCK_IN_TEARDOWN is already set in lockres. This doesn't affect
+> any function, just the error log is anonying.
 > 
-> This commit introduced a regression that can cause mount hung.
-> The changes in __ocfs2_find_empty_slot causes that any node with
-> none-zero node number can grab the slot that was already taken by
-> node 0, so node 1 will access the same journal with node 0, when it
-> try to grab journal cluster lock, it will hung because it was already
-> acquired by node 0.
-> It's very easy to reproduce this, in one cluster, mount node 0 first,
-> then node 1, you will see the following call trace from node 1.
-
- From your description, it looks your env mixed local-mount & clustered-mount.
-
-Could you mind to share your test/reproducible steps.
-And which ha stack do you use, pmck or o2cb?
-
-I failed to reproduce it, my test steps (with pcmk stack):
-```
-node1:
-mount -t ocfs2 /dev/vdd /mnt
-
-node2:
-for i in {1..100}; do
-  echo "mount <$i>"; mount -t ocfs2 /dev/vdd /mnt;
-  sleep 3;
-  echo "umount"; umount /mnt;
-done
-```
-
-This local mount feature helps SUSE customers to maintain ocfs2 partition, it's useful.
-I want to find whether there is a idear way to fix the hung issue.
-
+> Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
+> ---
+>   fs/ocfs2/dlmfs/dlmfs.c | 14 +++++++++++---
+>   1 file changed, 11 insertions(+), 3 deletions(-)
 > 
-> [13148.735424] INFO: task mount.ocfs2:53045 blocked for more than 122 seconds.
-> [13148.739691]       Not tainted 5.15.0-2148.0.4.el8uek.mountracev2.x86_64 #2
-> [13148.742560] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
-> [13148.745846] task:mount.ocfs2     state:D stack:    0 pid:53045 ppid: 53044 flags:0x00004000
-> [13148.749354] Call Trace:
-> [13148.750718]  <TASK>
-> [13148.752019]  ? usleep_range+0x90/0x89
-> [13148.753882]  __schedule+0x210/0x567
-> [13148.755684]  schedule+0x44/0xa8
-> [13148.757270]  schedule_timeout+0x106/0x13c
-> [13148.759273]  ? __prepare_to_swait+0x53/0x78
-> [13148.761218]  __wait_for_common+0xae/0x163
-> [13148.763144]  __ocfs2_cluster_lock.constprop.0+0x1d6/0x870 [ocfs2]
-> [13148.765780]  ? ocfs2_inode_lock_full_nested+0x18d/0x398 [ocfs2]
-> [13148.768312]  ocfs2_inode_lock_full_nested+0x18d/0x398 [ocfs2]
-> [13148.770968]  ocfs2_journal_init+0x91/0x340 [ocfs2]
-> [13148.773202]  ocfs2_check_volume+0x39/0x461 [ocfs2]
-> [13148.775401]  ? iput+0x69/0xba
-> [13148.777047]  ocfs2_mount_volume.isra.0.cold+0x40/0x1f5 [ocfs2]
-> [13148.779646]  ocfs2_fill_super+0x54b/0x853 [ocfs2]
-> [13148.781756]  mount_bdev+0x190/0x1b7
-> [13148.783443]  ? ocfs2_remount+0x440/0x440 [ocfs2]
-> [13148.785634]  legacy_get_tree+0x27/0x48
-> [13148.787466]  vfs_get_tree+0x25/0xd0
-> [13148.789270]  do_new_mount+0x18c/0x2d9
-> [13148.791046]  __x64_sys_mount+0x10e/0x142
-> [13148.792911]  do_syscall_64+0x3b/0x89
-> [13148.794667]  entry_SYSCALL_64_after_hwframe+0x170/0x0
-> [13148.797051] RIP: 0033:0x7f2309f6e26e
-> [13148.798784] RSP: 002b:00007ffdcee7d408 EFLAGS: 00000246 ORIG_RAX: 00000000000000a5
-> [13148.801974] RAX: ffffffffffffffda RBX: 00007ffdcee7d4a0 RCX: 00007f2309f6e26e
-> [13148.804815] RDX: 0000559aa762a8ae RSI: 0000559aa939d340 RDI: 0000559aa93a22b0
-> [13148.807719] RBP: 00007ffdcee7d5b0 R08: 0000559aa93a2290 R09: 00007f230a0b4820
-> [13148.810659] R10: 0000000000000000 R11: 0000000000000246 R12: 00007ffdcee7d420
-> [13148.813609] R13: 0000000000000000 R14: 0000559aa939f000 R15: 0000000000000000
-> [13148.816564]  </TASK>
-> 
-> To fix it, we can just fix __ocfs2_find_empty_slot. But original commit
-> introduced the feature to mount ocfs2 locally even it is cluster based,
-> that is a very dangerous, it can easily cause serious data corruption,
-> there is no way to stop other nodes mounting the fs and corrupting it.
+> diff --git a/fs/ocfs2/dlmfs/dlmfs.c b/fs/ocfs2/dlmfs/dlmfs.c
+> index e360543ad7e7..a120610dff7e 100644
+> --- a/fs/ocfs2/dlmfs/dlmfs.c
+> +++ b/fs/ocfs2/dlmfs/dlmfs.c
+> @@ -296,17 +296,25 @@ static void dlmfs_evict_inode(struct inode *inode)
+>   {
+>   	int status;
+>   	struct dlmfs_inode_private *ip;
+> +	struct user_lock_res *lockres;
+> +	int destroyed;
+>   
+>   	clear_inode(inode);
+>   
+>   	mlog(0, "inode %lu\n", inode->i_ino);
+>   
+>   	ip = DLMFS_I(inode);
+> +	lockres = &ip->ip_lockres;
+>   
+>   	if (S_ISREG(inode->i_mode)) {
+> -		status = user_dlm_destroy_lock(&ip->ip_lockres);
+> -		if (status < 0)
+> -			mlog_errno(status);
+> +		spin_lock(&lockres->l_lock);
+> +		destroyed = !!(lockres->l_flags & USER_LOCK_IN_TEARDOWN);
+> +		spin_unlock(&lockres->l_lock);
 
-I can't follow your meaning. When users want to use local mount feature, they MUST know
-what they are doing, and how to use it.
-
- From mount.ocfs2 (8), there also writes *only* mount fs on *one* node at the same time.
-And also tell user fs will be damaged under wrong action.
-
-```
-nocluster
-
-   This  option  allows  users  to  mount a clustered volume without configuring the cluster
-
-   stack.  However, you must be aware that you can only mount the file system from one  node
-
-   at the same time, otherwise, the file system may be damaged. Please use it with caution.
-```
-
-> Setup ha or other cluster-aware stack is just the cost that we have to
-> take for avoiding corruption, otherwise we have to do it in kernel.
-
-It's a little bit serious to totally revert this commit just under lacking sanity
-check. If you or maintainer think the local mount should do more jobs to prevent mix
-local-mount and clustered-mount scenario, we could add more sanity check during
-local mounting.
+This area code does the same work in user_dlm_destroy_lock(). Why not to give another
+errno (e.g -EAGAIN) for user_dlm_destroy_lock when l_flags contains USER_LOCK_IN_TEARDOWN.
+then change 'if (status < 0)' to 'if (status < 0 && status != -EAGAIN)'
 
 Thanks,
 Heming
+
+> +		if (!destroyed) {
+> +			status = user_dlm_destroy_lock(lockres);
+> +			if (status < 0)
+> +				mlog_errno(status);
+> +		}
+>   		iput(ip->ip_parent);
+>   		goto clear_fields;
+>   	}
 
 
 _______________________________________________
