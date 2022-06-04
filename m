@@ -1,77 +1,89 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc248.phx1.oracleemaildelivery.com (aib29ajc248.phx1.oracleemaildelivery.com [192.29.103.248])
+Received: from aib29ajc245.phx1.oracleemaildelivery.com (aib29ajc245.phx1.oracleemaildelivery.com [192.29.103.245])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 157DFC433EF
-	for <ocfs2-devel@archiver.kernel.org>; Sat,  4 Jun 2022 00:08:58 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 53F6FC43334
+	for <ocfs2-devel@archiver.kernel.org>; Sat,  4 Jun 2022 08:50:44 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=wC1my/eNVIvVnmuo6pBn3qvM8LWSmloqyR//Zmo/cPM=;
- b=RAh57NUDGpKh9PA3X7QewUQ3p8IWj5YuvVuDMKsu+13AbjGKKpVdoSCEI5g1qKfYL0LcMDB9BRN+
-   ncNTeHO6lUBMFKRsbxbiDV7/atafRupviOGt8FyG89RicLDCaZrpRL9HKA1tGT7wZ6IKUNda7r1y
-   PziUclU0aRp75RrGlHY2ucXKr7RgZT1WCXOsnhkJgygL1ZGor3mUjjAvF642NaM9jZKyfR61nwaG
-   8SvH50RXeWQL7XJ+ORu9UuaSEUEAK36QOrtIkMhC2hOeW8UqlwDefz7bWx09w3g7QPQ2JoQWBsh/
-   q2/qcSvY8YXTvL4vcQdmbrBqxw1V0OQ2r3+vAQ==
+ bh=Jt4I/wnYTD/BfB84qYqwbOwa8PFORdJ80WNB+BJJElk=;
+ b=AUV6dU+6yumZ1p5PDbmAid0DBY+Pwij5nUqkOYek2joeboEuQqhZuce6IStRnVX/EaEzqMUl1rxQ
+   IVazd9Ai9r7tOv1A7hGxf3bMKLtm8CKspqGGqLkISl3XRSDPyvq9zSVDVET31Ba4FGCOOXH5+Ycz
+   t6CQtAsElHvGQAM4Ra6KmT8ax5E4nbtQQogWFMFG6P3xcykSDpfPqJSfnqqWH4rJKchZ6yX2SzWs
+   nKbauIKBmdQdwxMv7bifbP/6HiS7igHQiCWKvn63q7erSuoNwuVEE/NZYiKH4PDgNp0Z056YlEMe
+   S5VgU+UGc4AJGGJ6vE7Pb4XKvuOih0RAJyFi4w==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=wC1my/eNVIvVnmuo6pBn3qvM8LWSmloqyR//Zmo/cPM=;
- b=ZgZMWD9rtGmLTiXtEAsbe/Ks2vyXh/N9lEc+vqTm7PcWjkkYXxluWyVwClALtSwNqA2cssraK6vX
-   mahpJP/5XeU1GzBy//cMD9MG8HML9Uf0Uo9n7uZfo5ZJReXxIZMOB2/xVq4JCToyM4LM+uM/eRr1
-   5qD1D522a8xvtUDCP/wT2iYCtfl6lZQ5r1oUXHA9XHJesFQ9ZtWe1B+t0yTs0sPJ8FTc7iZ6z1QM
-   YA5w6EmJZeATQbYqozX1DSkwGdwsbFEjBiPQrv8apQjivF5Wci0GaKfdOtJSu40wMW5EQ6EAGm9g
-   zmTn5kT8GoIHyyZDIqfm9l7/MXDl89UIJffQDw==
-Received: by omta-ad2-fd1-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
+ bh=Jt4I/wnYTD/BfB84qYqwbOwa8PFORdJ80WNB+BJJElk=;
+ b=OzkKCGkbCPo//e3hbw7wsHY1JF9fbVn1hUI30RoUiYWglmuudWYe2ccR87cm3iGLWpnOqTfCWFra
+   fiDtKjk9mC8ONk8zWo5vgNldGcJ7JbzErozp0BBrtAFiQxH7ttUt+I3ez2S6uidpj5Qcpg22Ofl+
+   l9YcAWXTl9568MQf9ozKF6iXNFnBgEv5XufN4F/3RQ0lFq3/3gG+b+HYx1LrIqiknxgrt6GNpfN6
+   /QuKjGkAwrduWYW7aCAtZ1rP5hq9lk44o9zIxJFKZE5DHod7E95cVt0hGvc8+fPW9dp5doedNhw9
+   VatuIPcxTmM9p9GyrJy9mJVg4VW3cswe5pwTFg==
+Received: by omta-ad1-fd1-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220517 64bit (built May 17
  2022))
- with ESMTPS id <0RCX006KFF2YDSE0@omta-ad2-fd1-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Sat, 04 Jun 2022 00:08:58 +0000 (GMT)
+ with ESMTPS id <0RCY00NVQ38JN930@omta-ad1-fd1-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Sat, 04 Jun 2022 08:50:43 +0000 (GMT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.com;
- s=mimecast20200619; t=1654301322;
+ s=mimecast20200619; t=1654332323;
  h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
  to:to:cc:mime-version:mime-version:content-type:content-type:
+ content-transfer-encoding:content-transfer-encoding:
  in-reply-to:in-reply-to:references:references;
- bh=Uv9lXWioHetOt5Nlr5XjM1L3lqi+wz37gEnfW8QOLIU=;
- b=lDUcdAbcDeeNBCBT/U/QykyoO4tKAYMFLmvWxz96AiFA6u4iVZIad1e/LkVjInT0lryzxd
- DRGtAxKX897mJSTC0KjVIkeDiqQH2YvCMVCEgq1f4oXp4rggog8PwWISdMLROiEUJI9VzB
- bCeBqHlMybrLjk36pUSvvySue8j/JCc=
+ bh=04xg2YC3j1BSpqWUSYEultw7W3oeLAl8ZpcNqS5Wiag=;
+ b=Q70bng8w/4VYlbizGRL7IjY659AMHyY2G14gZ6P7wIn+hPtJNpjs6EdAIsFz+vpXUu4nih
+ n3b0ao4X4zRUoqpUmta5ht/oOKnFIZJZxRdEZYsn2qqKV2d6vlw9j7aEncAMHY5oehbcux
+ CTTHEENpDEHV219fOBoQ6BLclCPs/GY=
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.com;
+ s=mimecast20200619; t=1654332623;
+ h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+ to:to:cc:mime-version:mime-version:content-type:content-type:
+ content-transfer-encoding:content-transfer-encoding:
+ in-reply-to:in-reply-to:references:references;
+ bh=04xg2YC3j1BSpqWUSYEultw7W3oeLAl8ZpcNqS5Wiag=;
+ b=NINUYLeAYJ/19yxWRjVYOLlTLfurZIQ5DnmaXf4VSkz1z02wo50tiwtKuHB16EcmwPM7gH
+ 6SkeITOoVaHlPHdvYy4KW6I/nntmHIun5O3Ny2hkMvButkjUPy1k0+XM569zIYaea07F88
+ PN/fgwEPYD6FQheiRgplQUWdw4OyWQE=
 ARC-Seal: i=1; a=rsa-sha256; s=arcselector9901; d=microsoft.com; cv=none;
- b=Rqf5lfI0J8mnEkxfGSoLgaNyBEog68EvUft/IM+O8HCQxcpk9H8Ar2ymewI4d2e8YaSG3btOFcT9fiK1t8C2cPKiNr17qoBHsXBsWhUA+LB4f1LqZplZveyAdsLraENmjx2y1odaGuZdGpeF4kVyFU/7NvrGQXmye1McFjBXFqS79b4HQm3rAvBpcHCc0v5qFmFLKqDf6eM5v5cIwYByvDjWfLEwR8KMtUe6h8aAckFg8l67S2un4mXpKIt6lrflhauRdesmPl/QEnWw+w6+a5dCtw1pyZTbM+3XtJuAYwApJXoGvowvbIx5w+RFHyOEAxEp/fv4lPhgT17grYU8/w==
+ b=E0pRidYxrXonSwfcJ4hjIuMLxqqGgQzuPE8XQZ0QwzVDokxOezEDOXA8QhDOkQleDZV1SDj3iskc75HL+KmOBD3+tnQ8hkZWX7i/3tZemh5zkYv2Q82wXAWtv8dvg9Le1z+90TyXGWgtQKere0Mesh1b6hj7+1lfOUXh2FyDhB3ziMJYRHeROQpKZX9ndrx4nanZmWPpHrEARiKPi3zjn0x5qDfu6wO9NchY4aNmDGdGW46KolNgVfisyEl41mmaoHV2LHNpfqcz5JUyEJM10CT7I66jquJI0ulwxmOoHz3JfPJ9wXnaCyxApZZqIGC56PZSPh4JFiG9ZqskqGzW+g==
 ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
  s=arcselector9901;
  h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
- bh=Uv9lXWioHetOt5Nlr5XjM1L3lqi+wz37gEnfW8QOLIU=;
- b=QoV5hVKcK3ZVOyMt8Z6AdPeD1oIcA9fxfUz3+sMOiLEtKDQ2j4Fa3Xhc3l2wbCsHEG6GND9rN3Q1Tyojz5IQE3ePKD2jYkJmrbti3tqglS86hUag6+0hGorhBNtrRQdbKPSYfx9foSMbmMtw/Rsq3qReeRDQ3PoJWn+6TOJ1cFnC97aTYTide8hqIvcnwt+ICZ+Lc8p2vAKESVbFyk98MVWwhcwSRvcy4fwD56mstD7ryGASy63BMc/sqUjaOjxOQqy7rWdqP5iQDqHqLwAs3dH2b4WtgZtxsCeBkT/Rlfb5f7FCcZNWhEimJzM6D1qimNCJOeTteQ2T58qI2SE+Zw==
+ bh=04xg2YC3j1BSpqWUSYEultw7W3oeLAl8ZpcNqS5Wiag=;
+ b=WNjKApWkfHLVIuQ8gEZsZwdJQnL0KB12fQswxWgSB7uN0Fqoy7KQx08kx7jDXv5vUdwGQzRIMnAOtUZNOVbSQcVWxvYtUsjAfI+XHh9tMVG3rXMRnNmEoME8zVLs5aNgpNHj5cAOSXIuJFktdZMM4YiKkDeJNedmi/EM+BM2HwSyrgO9V+FcgNw7UFNI6Q4xBQlxFrov3qj7kgVILuu69y3NgSOGiMENkzLyCxpu3Injw3IS7JrzWSvzk51nH7NaK7Qpobvwk44XXWZXcRn60BBGJ0fAF9ehAeXunj7g7hiRcyOl/FL3GWnHW5r9a/eSIGU6xyxfpG7WuV8UAJOmdw==
 ARC-Authentication-results: i=1; mx.microsoft.com 1; spf=pass
  smtp.mailfrom=suse.com; dmarc=pass action=none header.from=suse.com; dkim=pass
  header.d=suse.com; arc=none
-Date: Sat, 4 Jun 2022 08:08:28 +0800
-To: Joseph Qi <joseph.qi@linux.alibaba.com>, ocfs2-devel@oss.oracle.com
-Message-id: <20220604000828.2b3arxq6txtq22d4@c73>
-References: <20220521101416.29793-1-heming.zhao@suse.com>
- <b68e3888-9820-e065-239d-f8c8bb9564f9@linux.alibaba.com>
-Content-disposition: inline
-In-reply-to: <b68e3888-9820-e065-239d-f8c8bb9564f9@linux.alibaba.com>
+Message-id: <3d75bcfa-4841-91cc-ade8-6f85f3d2f6db@suse.com>
+Date: Sat, 4 Jun 2022 16:45:07 +0800
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:91.0) Gecko/20100101
+ Thunderbird/91.5.0
+Content-language: en-US
+To: Junxiao Bi <junxiao.bi@oracle.com>, ocfs2-devel@oss.oracle.com
+References: <20220603222801.42488-1-junxiao.bi@oracle.com>
+In-reply-to: <20220603222801.42488-1-junxiao.bi@oracle.com>
 MIME-version: 1.0
 X-Forefront-Antispam-Report: CIP:255.255.255.255; CTRY:; LANG:en; SCL:1; SRV:;
  IPV:NLI; SFV:NSPM; H:DB7PR04MB4666.eurprd04.prod.outlook.com; PTR:; CAT:NONE;
- SFS:(13230001)(7916004)(366004)(5660300002)(1076003)(2906002)(53546011)(186003)(6506007)(8936002)(6666004)(33716001)(316002)(86362001)(38100700002)(508600001)(6486002)(6512007)(66476007)(66946007)(66556008)(26005)(9686003)(83380400001)(44832011)(8676002);
+ SFS:(13230001)(366004)(31696002)(5660300002)(8936002)(66946007)(8676002)(66556008)(66476007)(86362001)(2906002)(6512007)(6486002)(31686004)(6506007)(6666004)(53546011)(508600001)(26005)(36756003)(38100700002)(2616005)(83380400001)(316002)(186003)(43740500002)(45980500001);
  DIR:OUT; SFP:1101;
 X-OriginatorOrg: suse.com
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 04 Jun 2022 00:08:39.6154 (UTC)
-X-Source-IP: 194.104.111.102
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 04 Jun 2022 08:45:19.6458 (UTC)
+X-Source-IP: 194.104.109.102
 X-Proofpoint-Virus-Version: vendor=nai engine=6400 definitions=10367
  signatures=594849
 X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 phishscore=0
- lowpriorityscore=0 spamscore=0 mlxlogscore=976 priorityscore=134 mlxscore=0
- clxscore=241 suspectscore=0 adultscore=0 malwarescore=0 impostorscore=0
- bulkscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2204290000 definitions=main-2206030094
-Subject: Re: [Ocfs2-devel] [PATCH 1/2] ocfs2: fix jbd2 assertion in	defragment
- path
+ impostorscore=0 suspectscore=0 priorityscore=162 bulkscore=0 spamscore=0
+ adultscore=0 mlxlogscore=999 malwarescore=0 mlxscore=0 clxscore=183
+ lowpriorityscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2204290000 definitions=main-2206040042
+Subject: Re: [Ocfs2-devel] [PATCH] Revert
+ "ocfs2: mount shared volume without ha stack"
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -83,67 +95,75 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: Heming Zhao via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: Heming Zhao <heming.zhao@suse.com>
-Content-type: text/plain; charset="us-ascii"
+From: "heming.zhao--- via Ocfs2-devel" <ocfs2-devel@oss.oracle.com>
+Reply-to: "heming.zhao@suse.com" <heming.zhao@suse.com>
 Content-transfer-encoding: 7bit
+Content-type: text/plain; charset="us-ascii"; Format="flowed"
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-MC-Unique: __5oO7JSPvClMshzozvkpA-1
-X-ClientProxiedBy: SG2PR02CA0121.apcprd02.prod.outlook.com
- (2603:1096:4:188::21) To DB7PR04MB4666.eurprd04.prod.outlook.com
- (2603:10a6:5:2b::14)
+X-MC-Unique: sC7g0CYRNK2z1aIPWmIuzw-1
+X-ClientProxiedBy: TYAPR01CA0024.jpnprd01.prod.outlook.com (2603:1096:404::36)
+ To DB7PR04MB4666.eurprd04.prod.outlook.com (2603:10a6:5:2b::14)
 X-MS-PublicTrafficType: Email
-X-MS-Office365-Filtering-Correlation-Id: dafb5778-d949-4c7b-50ff-08da45be60b2
-X-MS-TrafficTypeDiagnostic: DB8PR04MB5609:EE_
+X-MS-Office365-Filtering-Correlation-Id: e6a54ba8-4c2e-4229-2f44-08da46068e06
+X-MS-TrafficTypeDiagnostic: VI1PR0401MB2541:EE_
 X-Microsoft-Antispam-PRVS:
- <DB8PR04MB560957F2B99CDA5406B09EAD97A09@DB8PR04MB5609.eurprd04.prod.outlook.com>
+ <VI1PR0401MB2541E7FE99A20E13E6A3FAD997A09@VI1PR0401MB2541.eurprd04.prod.outlook.com>
 X-MS-Exchange-SenderADCheck: 1
 X-MS-Exchange-AntiSpam-Relay: 0
 X-Microsoft-Antispam: BCL:0;
 X-Microsoft-Antispam-Message-Info:
- VR0/nhGzfWBqX52ouZjxmeFyhpxT/QFxjSf4FhOxF898JMRgXENkyZN+8CitWhT2Q6+kJVQrvkm1royfkI5i1SGQuUX6sRuhLqB+honPuIparzdBQW8tRZZGlN6eD4tA58w56JIZUskl5rRT6Y9DpBTzppVeEj49QnQA/lfYFZ/jZm0I2TQb3MKXjyg3oTFO+npbXF0dLn4k6f2R1BBfVKc/k6BY/mWQ3RmjWKm07JMpJioJfbSbZ7vkuGF1P3tc5k3zct2ZRaI1fQXzui8BtAN8e6xd2Zg8iX9RpPfNjg33Lrgs1npCyWLXub2xH4tQeONx/tqy+0GoPrmL2XP1rR11evBdfi9dHRbuTQFYbQf4e2MVGOC//aJ0H94jzOm6Mi0uV6sZQIt1z8eC+NnCjAFWgx4frwrbjAUCgbkqbLZEJeheBBy/HhR76bzMYMjWhuVf3tG8xvyHnTasRKnjRKiaxr32U/wiRF92KXySqnoqJpI+qq2ECWjaS0988GNJ+pp0+v3ygCJ7OXW8oTYxVB32kLYRIBR7FkiIF37EFHriaEJlerUYfu5OyASWsbrP9e5t/tPbMjW+J8a1b1eBjzrtpcHM1A/wT/GDcWZLUcyyN5Eqc5qcDuCCOp24EgclshQCrITw+4AROZ5/2o+BzQ==
+ hHI9afx67nqtgrR2wUYmlyKRSwDs6LtPYT4kOhJGZ5Oa7kiT+ZAydiLEuyAIa40MFo8z+EnIGFnvQHcDJ/IFrOW5ZX8aiKA333tV+LTISUhEOk90683tRA/l+aXOh1Gvj2qcOVb/K1OzLhpuknLJ+njyMErzrB0lq7aGUWvXIMirIoIwj2z7SkSkSoNw11QgDmy7bmMVWsQLxrpGjJgPy80ZoVNwWW4omMfZyRQeD/2qBOOuyMlCGOFYmJ1vAaHv4qKfBuhIihYpmU7sLik6WXGesBQ79VoFfqQYGef7fVkZUpqNpmrorCL4GBbe7Yf0f9l27ky9DoWvqymbsx2fEiru3W2B/ScVBTrCI2myaNl5xdX+GEjrE8gHc+4qtPdJfIVuOYItk4icaJRzBMHxiE1JbXw4L7AAV6xCAmh62JRjZP51lfxWXkbxtpsmSkww9EU5Q/fOd1xSfhvb2V5ocOzI8V7P0UFGI0xWL+X41GOZDhmeQ8F+8xA7v1chA8qDoFJcvSApYkqXKEx/tq12jp72TY4xC/7BmOrVaUtGSgzUbMmJm+YqPKiewJAWuWGq6JCrGGGBeynmTwpHXSy0yVTtkCbKzk3KDoXDybJhj+42nw6Q4dzUuZjDX+q6SLmJm7jkHEeha+lzcz/DMzTVivM6Si6NqlitNCK3c4eAWO5ovmd5Q/fcAaT0qJGELjDt2kIFkjGbiQqtlOG2xhuuFA2OiyzvjJ3kEWWNFAOq8UI=
 X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
 X-MS-Exchange-AntiSpam-MessageData-0:
- =?us-ascii?Q?LST+oPWzkCp2dNA1Iuc7qHNKkMW8blca2r+58PaanRPAQJm01GE4MgKV7hh/?=
- =?us-ascii?Q?mDgPIhpPbZgYLAPBXQe9w8Qxbam8UFwqmyFg+162S4xKeFDuYGQVdspILA/M?=
- =?us-ascii?Q?oqeBPn9IOHaO391T3KwTyESqV3Is/MiBT0hzznGzpkd84auXXeDRR7NsdLNT?=
- =?us-ascii?Q?VXJWv2+hKowYo1IVDI2GKjFVHaatTHBPFqQ6WrtfIBcx5m2QPXwysvsca9X5?=
- =?us-ascii?Q?+hqEoHdExI3uPukD2y+lW/+NrrBAq56PFg6R79F1GGyiWukbOLsHbUO9NMdu?=
- =?us-ascii?Q?/R+eBLzPLplmL+c+zUoEKR1rpR5t7rnRG+GooCRWKzhA1rgM6RtFiNr9f4MI?=
- =?us-ascii?Q?TFjo8/rD7flYjiZ67+y6VYPWha/HYcTkW1r0z1X7i1IYrX7qG57UzATgIRS/?=
- =?us-ascii?Q?HwBHVlfhaBhnjh13fUWBAuWXbo1fTRfhebjaxFSX9Cq1aYDLFEvO6tkHdZH6?=
- =?us-ascii?Q?U5sTzSNk7xvgqvDeDAtmWM3TGjao5L1LFPopcSa808u2MYzV10Xtxq6THF2W?=
- =?us-ascii?Q?f7wI2SpRA/hzcCTXUIrBn7+kUy3wyQUAHh9CtAHVhHxxV/oVgJVW9NFNaIhs?=
- =?us-ascii?Q?ipDbJEQIyf1FIiw2q7KdLIu7SKySsn4fMSkUvfRiv6yZ2KYdi/Y8eIIJ8Ytl?=
- =?us-ascii?Q?Fo0YT8XWrUI19v4Ge9q3YOHjxqk9b+6wvRixNG8rFfGRmxcFziInCl8Q6m+F?=
- =?us-ascii?Q?HgqVi2Sy5cRQi8RwOLpETDzLO1kDZQeYwYgO7DrzZ4YAFUO/3MujYS0L7bXr?=
- =?us-ascii?Q?72udpNxz225TA21epSP25M/2mbXahjQJyvlzguURsbyaB8elh4nQYswUDsv1?=
- =?us-ascii?Q?BVbqaHfT99IKO/T8UBVmuHHRsPV9kjANJhyDX/9zcUm333AB7YVqVbRDydwE?=
- =?us-ascii?Q?AlUupdF/0ItotVNiMi3PRsmWtanS6t+TF/BG/VsBgCJtmJDBnss+6U7EOEXY?=
- =?us-ascii?Q?sd0Jpohq4TkegTE/Dl2LZO2NldJhCk4s3Wl0fzJpMxlasEWRKwJtSZI2vULJ?=
- =?us-ascii?Q?2UOikvcYh/ilY74Z5qY5fbgcFzdYRtEg4SEKpdQEYbVHyHLLqZkO4hwBusG+?=
- =?us-ascii?Q?Y8mvCzai75yZPOlyXQHbB3sbv3QjDsWEzDWLuH5NpHRBO4/FweUesL8/txYQ?=
- =?us-ascii?Q?okgWv9qoSms5HFuWiqgOsEFES+cCdaXPVdgB804R28MCHvqEBWDjS/Kv+HSf?=
- =?us-ascii?Q?cGUPxuaSVJwQUQkp8XugE7zt2pmRdfuV91d7yx6UhGaFGueOkKjGeIrx7xSW?=
- =?us-ascii?Q?W61Q+WraFhwwRa7kTYzjFuxR/ksAaoY8sbdiPrXQSbVuuERVKSRKZur6hDh+?=
- =?us-ascii?Q?mZBet69kEiaqjYfXQiB2cJlpRudVhuHmqyDc7aYleDiXwqvkaIIH3obwFxH/?=
- =?us-ascii?Q?EgtGZ+2YhUS4wqyV/SixOGIfyXoFmuzq/RuzUn12k/zUrbv0EOGeU4diDUUs?=
- =?us-ascii?Q?tiBIREP3nSLrXU92FaSu53oAFknLGrrYk8/r+AoW51ObEARa4nGLAQ4YZGwq?=
- =?us-ascii?Q?UfRz58UYeJ3cFCRGXnVd5pXtw3rpKcVqfLoBE+amL3UbV2lir+ScEqTUsnSo?=
- =?us-ascii?Q?rcUrxMKRCVlCCRGTDK7cMxP7dPbz5I+gy/P67Ud5TfdcrxWTdk7kchx7MXe6?=
- =?us-ascii?Q?FRS6z5snN64IIcIcHlCH9nWQNYIU7oOFqk+4YLdXXLlWOSuPujBSkjS1ocSc?=
- =?us-ascii?Q?jpZYJzDxS7kEB/PqPXPz44ccAkC1te0cgxcTNpLVtrW1q1KetpwGDvL44NxD?=
- =?us-ascii?Q?x/FFgswnzA=3D=3D?=
+ =?utf-8?B?bE9LZmZ3SVdIcWlBNnlIWGpoSXZpSlFYb0V2Y0tIaVFWYWtzdzM1RjljamJI?=
+ =?utf-8?B?R0NjSHkxVHdYM255WU15THpFVnR1RFNnL0FjNUtwWS9raFZYdmJWRTkwL0Ix?=
+ =?utf-8?B?NVhiUXA3Umd1TDdQcWRqMURQOXBkVXlZOXRKUEVrUkt1ckxKREpWeVkva29x?=
+ =?utf-8?B?TlV1cldwbndYa1k3cWdISTl1d3N0aWkvUHMybVdiWlZLdDlqYndZZVJoWWQ1?=
+ =?utf-8?B?RkthcXhxa0FyZzZHMXZEL3dRL3Byc2dmbFVORVZ6NzBYbGhwSHkxSXZWd0Nq?=
+ =?utf-8?B?WFplQkJqMmtKRTFlT2NPVGxpYTdzN0dyNlpGMjlpMjU4VEJXS2hnU3ArTzZF?=
+ =?utf-8?B?b2hiSi92RG5sZmVUUTZ1MWQ3V205dzltenF0Sm41bjNWUUMwRytvWUwrQnV5?=
+ =?utf-8?B?ZlhPMTBYTG4xSnRKL2VjWklEV2tCNWs0c2xMYUpPVG5CdVVRQVpkWXNQbkM5?=
+ =?utf-8?B?Z21Vdi9aSmhXQnk3dExya0xROElxcU90Rno0N2dqcEpZaXZPVXJ2cVFneHU0?=
+ =?utf-8?B?RGlYN1dPWkxSZ09ibkoyT0tHWVJXV0xhbmROVXhpb2xKdUVwN1FtNURzM292?=
+ =?utf-8?B?R0JST0NJeWhOUlovdTFFQ1NDYmpzRVhmSWRKOTZrN2NKYS84eHNPV21EWDk2?=
+ =?utf-8?B?NHE5OWZSQURURWsvU0pJandxeldzVVphRHoxb1N2eFhVbXNiY3d3WEJscUFy?=
+ =?utf-8?B?Q0VQOFl6WHRoVVJBUnFETEVzRzduRzJKL2hYbktQWnZ1bzN6YjJhZ2NFMlhN?=
+ =?utf-8?B?bGQ1UDJRS0dhZUpsWFprL2JCT1V3ajlCTitvMnpMRFBwVEoveUZ4VjU1RHQr?=
+ =?utf-8?B?U0FoOHVqQU1FUnE4SWlOb0hZUUliR0EydkNqZzZVZEZzcnNqZU45Vk5nV1pJ?=
+ =?utf-8?B?SHA1MlFxL1NyZjQ5c1BvYlRSY2ZEdFNuNDZCenNObzFEVGJzN1NrM0NLV3Jz?=
+ =?utf-8?B?QWpFbmZ6eFVjc2RjeDJxSkxFK3FTU0duU3YzU2N1eDRtSExnZmV3RHRlZDhs?=
+ =?utf-8?B?cDhPaWJ5V1QxMFlTNDA4MkV5UHFKR2w4Vnk2U25rY2lsV0U5UjZMZzMweVB6?=
+ =?utf-8?B?UjEvWmsvQks5RG5PZ0RZQUMyWmRZdHBOUlBTZzVJVFhxbGVaZUdEdTJoV3lC?=
+ =?utf-8?B?aXNyRE1OOWszeC8zd1VxK2VReHVlRTJUR3FuRmRqUFpLUW1JR1JVQ1hMNVF1?=
+ =?utf-8?B?Ky9STDlXYVlyWnd6MEFyZjBFdTgyR2xHcWhXM2VrODJodE1mcVpaREN4MWU2?=
+ =?utf-8?B?YWxIdG9PVFpWYXVNQytoY0dneG03aEQ3cTYvUlplQXlxUDB2Ync5ajFJMTda?=
+ =?utf-8?B?dDlGc0cyQWNiZGpDNjdMTDQ0SkQ3cEgxUHpZWGhtbk0vVE5BS2RmSnFnWW05?=
+ =?utf-8?B?aFVHY2RqajJzb3RTcVZDU05TOFdkZ0taaldpUGd2RzFMN3FUWllEVEEyZEdS?=
+ =?utf-8?B?dmxSQ3owS1A0WjRXWURZTXhlZ0FvVFUzRjZiRlNEaG5YVXV2MENZd053TmNx?=
+ =?utf-8?B?S3U4WXZ3Rmw0ZXRwSWlKNEllaUxFY25IMHREUFIrZ2dzZko5VzBGRzhvYTM0?=
+ =?utf-8?B?QzNXTnlGQVdDQnJKbGNYMS9MRW5nQWRnZzNybnorcVhzTk1YZ0pmMkd2Vkxz?=
+ =?utf-8?B?d3NNQWl2TGVMeXVWaFBpYjkvUklHNXlob0orVjFJY3JtRE5MSDF6S3RaV2tB?=
+ =?utf-8?B?UlhaellpRWt4MitXKy9vSlVaRXFvb0hYc3dVZzFpR1p1bkRBL1VaSndMTXNz?=
+ =?utf-8?B?WjlXY3JjQTdmS0FyWXk2RkR3eFRCOXkyR3hkVllYWGFVOUkvWFljdUJxU05J?=
+ =?utf-8?B?UnJhR2JmcXZyRmtiZzFxS3pTd2lJNkdFdUtmUzZHTWlJczlGOW9CSDhQa0ov?=
+ =?utf-8?B?ZDRNcGFYTE0xUHUrYVNxei83YXExUFplNHFQYU0xTzFndmNMUzU1OWY5ZkVB?=
+ =?utf-8?B?ZllBR3YvRXBkRkNZa2RqSVlib1RZNkxpVkIxbUVKa0IyRHFGMWJ4T3dBWUJ1?=
+ =?utf-8?B?QjJ0YmptZFQ0SGJsaG40NjF3RmRiaGxSUzVycVQvWUhFZVJqWHlWbjRpdnAr?=
+ =?utf-8?B?Mm1BQjZlOTFCMndRRXhEVUZOZ3ZldVFhSEJ6bzMzOVFudjZQSkFJNnpSangz?=
+ =?utf-8?B?OStNVjRUNlZLaHY3UldScTZkeEZwQkRwM0crVmgzbENha3d2K2VnZWQzTkJz?=
+ =?utf-8?B?UU9pQXBZMTJXb2dsU01Edk5wNU90UWVrRnV4b3kyWE8rTlZpenYrU3JObGZp?=
+ =?utf-8?B?MXFHMnE2OGt5d2hLWnkzblhDV0I5QXlTMTl3M1FUSk1VNHc5REwwQlp4c3ZM?=
+ =?utf-8?B?bTF2TThIQXcySmVMbGkxcDZ3TXlJN2Q1YlNFWU9xVkE4QXVQN1FGUT09?=
 X-MS-Exchange-CrossTenant-Network-Message-Id:
- dafb5778-d949-4c7b-50ff-08da45be60b2
+ e6a54ba8-4c2e-4229-2f44-08da46068e06
 X-MS-Exchange-CrossTenant-AuthSource: DB7PR04MB4666.eurprd04.prod.outlook.com
 X-MS-Exchange-CrossTenant-AuthAs: Internal
 X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
 X-MS-Exchange-CrossTenant-Id: f7a17af6-1c5c-4a36-aa8b-f5be247aa4ba
 X-MS-Exchange-CrossTenant-MailboxType: HOSTED
 X-MS-Exchange-CrossTenant-UserPrincipalName:
- OLtXAxVI+VYT8V8kwr9Cx+xS/WzqUSkfWd9cgouBxB2rn7/g/GbUiyUxwv0rWEuOYjwx3AJAuzDp/1PGmvhAdQ==
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: DB8PR04MB5609
+ 8r8M6QaUIiiF5ihKj5jQWrCYw1jLIObzKcMajaog/y4UfGxSvTr22ndjzkB5ZHLg3VOfnsgVgF6xX7EFnxIp+w==
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: VI1PR0401MB2541
 X-ServerName: de-smtp-delivery-102.mimecast.com
 X-Proofpoint-SPF-Result: pass
 X-Proofpoint-SPF-Record: v=spf1 include:spf.suse.com
@@ -151,137 +171,120 @@ X-Proofpoint-SPF-Record: v=spf1 include:spf.suse.com
  include:spf.protection.outlook.com include:_spf.qemailserver.com
  include:_spf.salesforce.com -all
 X-Spam: Clean
-X-Proofpoint-GUID: of6AsTys9iUQZAq6rNT-JBrUJFlzTObb
-X-Proofpoint-ORIG-GUID: of6AsTys9iUQZAq6rNT-JBrUJFlzTObb
+X-Proofpoint-ORIG-GUID: kguZYvyvdsyQh3FtGLpooG0a-wUJ1CKx
+X-Proofpoint-GUID: kguZYvyvdsyQh3FtGLpooG0a-wUJ1CKx
 Reporting-Meta:
- AAGEAS/XZsIin1cX+feC6FtDQN129WEmXGudlmjzu7Zh1oVW1Oty5I2kwT+aJp8x
- w8N9HSGYMEAA1HjX1Mb055vR+OJkfVngLrF2RdB42rXJS3LPi9xD3KSZESew7Loy
- iMra16z/inpmn9zeSYMtDD4qoANQrGXNNtf9hlYKbSKAC36o45L7zYoGUr7fBoj4
- Dsvo5l/c8tiwgy/ZfB2D6JOiOQfPg4joUZbySCbYvKpuvXMip8Pk2tYP7rOV7LxO
- Tq7vmpCWjHtgDFgop3E+ZIfqDZoEf/DFTrHOGbDVXTzJvlIMeTRFc04uYSyPggfU
- rLaJ8Y+vCUsjad/ZYyWu/JjJGUL82zg8BS3Xc31rj8xZtBrjnEBRDfSwUJYbBdh1
- +Itt2/SOgxOEe6KGQ4+r0Np+0+TUwv38UbRoU2rKtAkQERQXwcDjhNxKY2cjylVi
- MQwQww00UX9bDED8/3dqeZDGY9Q6U4DahifKNJTEQeExFKDtbK/gnRJiO2uDzYia
- uQQD82jscmxiKg/UHptxqvczbm2Bwmt6ZJx6R3qp+vg=
+ AAE3+x6sAh4xupwanUuEKVMq5AKEaOTS+HDAB5LaQP31MnfWrPCc36Io7RtOh6dS
+ cMFieBgjjKk98zaibET4kYnmL+J2zMfdwUYaS6ax8Xh+dLxpjwwpDlmI4Hue+cVv
+ Zfn3J39ctxrDJLW0/6qz1sPNdmdCE57AmIodjfRw16q7LyLfHIOyjs8xkHcn9hUE
+ 72z9zxKDXP9nolQ34wwNmXYWjAfzbjxP7I3h4Nsh61OfGPRZu/wIampKo198q3JJ
+ shr+kLzP8ylq0B+PnPtQ2BGup5w+suhi/5SxxrsDIpzE4e9iQzXpJ2avqb9Fnr1y
+ GBXPkFt5tXa9o9caD0QtlLQvVghfinqhqhRZfdCGVCtGz/hI3qVlg9rihpINXnrC
+ 2bYc4D0nRFNy2E7QBu9LyE3IA41NLFEG5Yg5ie1zRWfVtQrewN2GAG0CjksUKU3x
+ domU6+07Rq8dxhmYQmoySCX5neuP+3DJecL46cjVQkxQCqilKIIG5xbC/XTo/kY1
+ P4ci3HiCrPpSt/fOkg+vzJIUQlZzQy57KvN2F727VQ==
 
-On Thu, Jun 02, 2022 at 05:34:18PM +0800, Joseph Qi wrote:
-> Hi,
+Hello Junxiao,
+
+On 6/4/22 06:28, Junxiao Bi via Ocfs2-devel wrote:
+> This reverts commit 912f655d78c5d4ad05eac287f23a435924df7144.
 > 
-> Sorry for the late response since I was busy on other things...
-> 
-> On 5/21/22 6:14 PM, Heming Zhao wrote:
-> > defragfs triggered jbd2 report ASSERT when working.
-> > 
-> > code path:
-> > 
-> > ocfs2_ioctl_move_extents
-> >  ocfs2_move_extents
-> >   __ocfs2_move_extents_range
-> >    ocfs2_defrag_extent
-> >     __ocfs2_move_extent
-> >      + ocfs2_journal_access_di
-> >      + ocfs2_split_extent  //[1]
-> >      + ocfs2_journal_dirty //crash
-> > 
-> > [1]: ocfs2_split_extent called ocfs2_extend_trans, which committed
-> > dirty buffers then restarted the transaction. The changed transaction
-> > triggered jbd2 ASSERT.
-> > 
-> > crash stacks:
-> > 
-> > PID: 11297  TASK: ffff974a676dcd00  CPU: 67  COMMAND: "defragfs.ocfs2"
-> >  #0 [ffffb25d8dad3900] machine_kexec at ffffffff8386fe01
-> >  #1 [ffffb25d8dad3958] __crash_kexec at ffffffff8395959d
-> >  #2 [ffffb25d8dad3a20] crash_kexec at ffffffff8395a45d
-> >  #3 [ffffb25d8dad3a38] oops_end at ffffffff83836d3f
-> >  #4 [ffffb25d8dad3a58] do_trap at ffffffff83833205
-> >  #5 [ffffb25d8dad3aa0] do_invalid_op at ffffffff83833aa6
-> >  #6 [ffffb25d8dad3ac0] invalid_op at ffffffff84200d18
-> >     [exception RIP: jbd2_journal_dirty_metadata+0x2ba]
-> >     RIP: ffffffffc09ca54a  RSP: ffffb25d8dad3b70  RFLAGS: 00010207
-> >     RAX: 0000000000000000  RBX: ffff9706eedc5248  RCX: 0000000000000000
-> >     RDX: 0000000000000001  RSI: ffff97337029ea28  RDI: ffff9706eedc5250
-> >     RBP: ffff9703c3520200   R8: 000000000f46b0b2   R9: 0000000000000000
-> >     R10: 0000000000000001  R11: 00000001000000fe  R12: ffff97337029ea28
-> >     R13: 0000000000000000  R14: ffff9703de59bf60  R15: ffff9706eedc5250
-> >     ORIG_RAX: ffffffffffffffff  CS: 0010  SS: 0018
-> >  #7 [ffffb25d8dad3ba8] ocfs2_journal_dirty at ffffffffc137fb95 [ocfs2]
-> >  #8 [ffffb25d8dad3be8] __ocfs2_move_extent at ffffffffc139a950 [ocfs2]
-> >  #9 [ffffb25d8dad3c80] ocfs2_defrag_extent at ffffffffc139b2d2 [ocfs2]
-> > 
-> > The fix method is simple, ocfs2_split_extent includes three paths. all
-> > the paths already have journal access/dirty pair. We only need to
-> > remove journal access/dirty from __ocfs2_move_extent.
-> > 
-> 
-> I am not sure what you mean by "all three paths have journal access/
-> dirty pair".
+> This commit introduced a regression that can cause mount hung.
+> The changes in __ocfs2_find_empty_slot causes that any node with
+> none-zero node number can grab the slot that was already taken by
+> node 0, so node 1 will access the same journal with node 0, when it
+> try to grab journal cluster lock, it will hung because it was already
+> acquired by node 0.
+> It's very easy to reproduce this, in one cluster, mount node 0 first,
+> then node 1, you will see the following call trace from node 1.
 
-I am a newbie for ocfs2 & jbd2, I can't make sure this [1/2] patch is correct.
-Below is my analysis.
+ From your description, it looks your env mixed local-mount & clustered-mount.
 
-All three paths (below 1.[123]):
+Could you mind to share your test/reproducible steps.
+And which ha stack do you use, pmck or o2cb?
 
-__ocfs2_move_extent
- + ocfs2_journal_access_di
- |
- + ocfs2_split_extent           //[1]
- |  + ocfs2_replace_extent_rec  //[1.1]
- |  + ocfs2_split_and_insert    //[1.2]
- |  + ocfs2_try_to_merge_extent //[1.3]
- |
- + + ocfs2_journal_dirty       //crash
+I failed to reproduce it, my test steps (with pcmk stack):
+```
+node1:
+mount -t ocfs2 /dev/vdd /mnt
 
-All three paths have itselves journal access/dirty pair.
-So the access/dirty pair in caller __ocfs2_move_extent is unnecessary.
-
-> 
-> It seems we can't do it in your way, as journal access has different
-> ocfs2_trigger with different offset, e.g. dinode is different from
-> extent block.
-
-There are 3 ocfs2_split_extent callers:
- fs/ocfs2/alloc.c <<ocfs2_change_extent_flag>>
- fs/ocfs2/move_extents.c <<__ocfs2_move_extent>>
- fs/ocfs2/refcounttree.c <<ocfs2_clear_ext_refcount>>
-
-We can see, except defrag flow (caller __ocfs2_move_extent), other two
-don't use jbd2 access/dirty pair around ocfs2_split_extent.
-
-In my view, in defrag code flow, the struct ocfs2_triggers is changed many
-times. The outermost ocfs2_triggers (belongs to __ocfs2_move_extent) must be
-overwritten in sub-routine ocfs2_split_extent.
-
-In another perspective, why ocfs2_change_extent_flag & ocfs2_clear_ext_refcount
-don't use journal access/dirty pair to wrap ocfs2_split_extent? 
-
-> 
-> Or we may reserve enough credits to resolve this issue? 
-> 
-
-In my view, credits is not the key for this crash issue. The crash is
-triggered by transaction changed:
-
-crash code:
-
-```jbd2_journal_dirty_metadata()
-
-if (data_race(jh->b_transaction != transaction &&
-		jh->b_next_transaction != transaction)) {
-	spin_lock(&jh->b_state_lock);
-	J_ASSERT_JH(jh, jh->b_transaction == transaction ||
-		jh->b_next_transaction == transaction);
-	spin_unlock(&jh->b_state_lock);
-}
+node2:
+for i in {1..100}; do
+  echo "mount <$i>"; mount -t ocfs2 /dev/vdd /mnt;
+  sleep 3;
+  echo "umount"; umount /mnt;
+done
 ```
 
-why transaction is changed?
+This local mount feature helps SUSE customers to maintain ocfs2 partition, it's useful.
+I want to find whether there is a idear way to fix the hung issue.
 
-ocfs2_split_extent
- ocfs2_split_and_insert
-  ocfs2_do_insert_extent
-    ocfs2_insert_path
-       ocfs2_extend_trans //change transaction, and pls note this func comments
+> 
+> [13148.735424] INFO: task mount.ocfs2:53045 blocked for more than 122 seconds.
+> [13148.739691]       Not tainted 5.15.0-2148.0.4.el8uek.mountracev2.x86_64 #2
+> [13148.742560] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+> [13148.745846] task:mount.ocfs2     state:D stack:    0 pid:53045 ppid: 53044 flags:0x00004000
+> [13148.749354] Call Trace:
+> [13148.750718]  <TASK>
+> [13148.752019]  ? usleep_range+0x90/0x89
+> [13148.753882]  __schedule+0x210/0x567
+> [13148.755684]  schedule+0x44/0xa8
+> [13148.757270]  schedule_timeout+0x106/0x13c
+> [13148.759273]  ? __prepare_to_swait+0x53/0x78
+> [13148.761218]  __wait_for_common+0xae/0x163
+> [13148.763144]  __ocfs2_cluster_lock.constprop.0+0x1d6/0x870 [ocfs2]
+> [13148.765780]  ? ocfs2_inode_lock_full_nested+0x18d/0x398 [ocfs2]
+> [13148.768312]  ocfs2_inode_lock_full_nested+0x18d/0x398 [ocfs2]
+> [13148.770968]  ocfs2_journal_init+0x91/0x340 [ocfs2]
+> [13148.773202]  ocfs2_check_volume+0x39/0x461 [ocfs2]
+> [13148.775401]  ? iput+0x69/0xba
+> [13148.777047]  ocfs2_mount_volume.isra.0.cold+0x40/0x1f5 [ocfs2]
+> [13148.779646]  ocfs2_fill_super+0x54b/0x853 [ocfs2]
+> [13148.781756]  mount_bdev+0x190/0x1b7
+> [13148.783443]  ? ocfs2_remount+0x440/0x440 [ocfs2]
+> [13148.785634]  legacy_get_tree+0x27/0x48
+> [13148.787466]  vfs_get_tree+0x25/0xd0
+> [13148.789270]  do_new_mount+0x18c/0x2d9
+> [13148.791046]  __x64_sys_mount+0x10e/0x142
+> [13148.792911]  do_syscall_64+0x3b/0x89
+> [13148.794667]  entry_SYSCALL_64_after_hwframe+0x170/0x0
+> [13148.797051] RIP: 0033:0x7f2309f6e26e
+> [13148.798784] RSP: 002b:00007ffdcee7d408 EFLAGS: 00000246 ORIG_RAX: 00000000000000a5
+> [13148.801974] RAX: ffffffffffffffda RBX: 00007ffdcee7d4a0 RCX: 00007f2309f6e26e
+> [13148.804815] RDX: 0000559aa762a8ae RSI: 0000559aa939d340 RDI: 0000559aa93a22b0
+> [13148.807719] RBP: 00007ffdcee7d5b0 R08: 0000559aa93a2290 R09: 00007f230a0b4820
+> [13148.810659] R10: 0000000000000000 R11: 0000000000000246 R12: 00007ffdcee7d420
+> [13148.813609] R13: 0000000000000000 R14: 0000559aa939f000 R15: 0000000000000000
+> [13148.816564]  </TASK>
+> 
+> To fix it, we can just fix __ocfs2_find_empty_slot. But original commit
+> introduced the feature to mount ocfs2 locally even it is cluster based,
+> that is a very dangerous, it can easily cause serious data corruption,
+> there is no way to stop other nodes mounting the fs and corrupting it.
+
+I can't follow your meaning. When users want to use local mount feature, they MUST know
+what they are doing, and how to use it.
+
+ From mount.ocfs2 (8), there also writes *only* mount fs on *one* node at the same time.
+And also tell user fs will be damaged under wrong action.
+
+```
+nocluster
+
+   This  option  allows  users  to  mount a clustered volume without configuring the cluster
+
+   stack.  However, you must be aware that you can only mount the file system from one  node
+
+   at the same time, otherwise, the file system may be damaged. Please use it with caution.
+```
+
+> Setup ha or other cluster-aware stack is just the cost that we have to
+> take for avoiding corruption, otherwise we have to do it in kernel.
+
+It's a little bit serious to totally revert this commit just under lacking sanity
+check. If you or maintainer think the local mount should do more jobs to prevent mix
+local-mount and clustered-mount scenario, we could add more sanity check during
+local mounting.
 
 Thanks,
 Heming
