@@ -1,59 +1,59 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc252.phx1.oracleemaildelivery.com (aib29ajc252.phx1.oracleemaildelivery.com [192.29.103.252])
+Received: from aib29ajc250.phx1.oracleemaildelivery.com (aib29ajc250.phx1.oracleemaildelivery.com [192.29.103.250])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 7B642C43334
-	for <ocfs2-devel@archiver.kernel.org>; Mon,  6 Jun 2022 12:39:48 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 21E8AC433EF
+	for <ocfs2-devel@archiver.kernel.org>; Mon,  6 Jun 2022 12:40:46 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=Rnc9uFePcF6+sAttn6mjjPkxpTvaje8opGGOxXUnTws=;
- b=kY3lAliLM2j4dEZZXxvi9iLn7Bc8noc6n1tpfhTnI6hNE4BEv+WSiAVJXH4P9bDGui2rpVwp01hT
-   RgMPClx7/FCXToAqLRIw9EKz0dnVpcruIOOarNA81qhpghPM53dz7JrJ49to288PSuty8izHGivZ
-   375YRAoTP1566s2AUsAHZV1Xl8EhCCDZh4x+3SMKdV6GDKeyVFyRtkERbdJy66VS5usXRIcfYcBt
-   mTe31dxKEjA9YjR51T+Fxsamom6SwVZFs2yyQtolKB1gO273PczCu3CWEAsSxxGhxvauAs50YIcP
-   BpoqAFpaO/Il6XJhR+gMYBStFhZXi/8NmQV97Q==
+ bh=n2pP9fLNddm214DHPv1VPogvLGj6IA12UfI2VHsKVnQ=;
+ b=coMvD/bTpjXNMaN82lCQjmXvHIC3jCYXNEeL2k52w7ErdTpP94GEsKA/L94eQEEwnWOJR10Xd/we
+   UlevQ7YhteUl5ZZKmLAffhgUG0GzA8gn/aaAJYoseXBZXfejJCrDI3lDhlg6Fx8Z4/166S+s+ZOb
+   BGdQVuDrarSprLic+4KKY2uA4aHOr4O738peKitrI1pEhE3jffFFRD1ZYnv1EmxAvTBCpepM38im
+   ff/orAq0sd6UFPeEgHvoL7AvgE9EUBRiohIQVy/Cul+aIdTQ/G6IjyvZfsrVmF0c4I6r0fPW73gH
+   EefmZC3c+Xh+VMx+XXBZwjFZBjTHd79mYc+Arg==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=Rnc9uFePcF6+sAttn6mjjPkxpTvaje8opGGOxXUnTws=;
- b=dxapcXzzX3v1Uu9qe00XpntMI1h0EiK582fhyGfNVVRD61TsiuUE3u1NDNVaLZGHOgboTCAbQsAX
-   PSpulAhKMDO0RDJXzRseTK+785SmX6umrJd1SDbMCl5YgDGTlkhYuA4pLEyfIFUlCoXeAhCZWY5N
-   VG8307Ybqxu8JIomfyfbjKjhzJwPOCk/IxFUh49YACdYYdGK3A9Sgi9/oCapp/AN7b53UgXREDg0
-   JdF8mfpC+ockdOcXH3biBk1dioiLiA24b+/HdNh41Ph9tQ7g+Fpu0Z4jcPBGtPR0CvWnIAgX1QgS
-   S7z8PVTET1CEcTuxlzqKbTNf4/pAMF734rQPhw==
-Received: by omta-ad3-fd1-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
+ bh=n2pP9fLNddm214DHPv1VPogvLGj6IA12UfI2VHsKVnQ=;
+ b=RPDo++TRK1I7qBqcXrIGGkTPGP4BsFMhCEFG1ws41S/yV23hmQupEaxv8tEpvlLdzShPrNR4mfGg
+   SIxEjlf+5ex3FMpiEgVSpoG2f1NWiA1uGR6a7SOdzFqyv0PIFPpmRKB09rWz3Grsuzlo08ZSQOFR
+   rGTYa3TLj8j5uy2gZRbEVMo8nEpSCkIeYApThVsxl4zJF+cz+dce+cysmgMuByQIWDYHdTnTlQoB
+   Y/uGLfCOxJGQM2dDruTJhMSMUnXYu7KgADSI7MCnIf1c1pv97re4ROR2kUL/E9q7v1QmPbx1TAEQ
+   OWICfvUyqsgjGk0wSGuyASY0kRJcXsXPjuU7uw==
+Received: by omta-ad2-fd3-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220517 64bit (built May 17
  2022))
- with ESMTPS id <0RD200J1U36BOK50@omta-ad3-fd1-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Mon, 06 Jun 2022 12:39:47 +0000 (GMT)
+ with ESMTPS id <0RD20010R37XYD80@omta-ad2-fd3-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Mon, 06 Jun 2022 12:40:45 +0000 (GMT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linuxfoundation.org;
- s=korg; t=1654519173; bh=XOkT1c9ZInliMoOdneRpWL0z23tAAD0FhxQU6hBwjGc=;
+ s=korg; t=1654519232; bh=ycT0TSgOeSk9vgM0R5oDKJaogevQ0Z+N9ENBSvUwDM0=;
  h=Subject:To:Cc:From:Date:From;
- b=mhJ79Oas9Mjh/fT1ALF+vN+ix8QIObITn6OhZ5PJeJiWGQ3JRuLOaYtTzKx/RJFXd
- qcno8zoCVEA1+2XYFKuEWSKL7Y2gVOJlI352sybpbI2fexYX5W/uL1Ee+HQU7AHhrn
- XpZIVMEGNmhZ5k1Rabp+sqhQdiI63G2I2nEs54fE=
+ b=inMn1JU2IC1dWrfmjt88rvUNecIHSvAkyXzOnfaOW74/v8oE7F8F5TqKOE90h6ZVR
+ UCNzxHLhhWdvz425EyFdXP/e0HT/FQtFdM5lNQQ3gOvVI8Vdtt2tuH0VqD95dKZCiB
+ kekCg7AFhcVt2G64VyZP8UFSBt/XDMwGJY4d0rnE=
 To: akpm@linux-foundation.org, gechangwei@live.cn, ghe@suse.com,
  gregkh@linuxfoundation.org, jiangqi903@gmail.com, jlbec@evilplan.org,
  joseph.qi@linux.alibaba.com, junxiao.bi@oracle.com, mark@fasheh.com,
  ocfs2-devel@oss.oracle.com, piaojun@huawei.com
-Date: Mon, 06 Jun 2022 14:37:56 +0200
-Message-id: <16545190760108@kroah.com>
+Date: Mon, 06 Jun 2022 14:38:04 +0200
+Message-id: <165451908438206@kroah.com>
 MIME-version: 1.0
 X-Source-IP: 145.40.68.75
 X-Proofpoint-Virus-Version: vendor=nai engine=6400 definitions=10369
  signatures=594849
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0
- priorityscore=136 clxscore=172 lowpriorityscore=0 mlxscore=0 mlxlogscore=999
- phishscore=0 impostorscore=0 spamscore=0 malwarescore=0 suspectscore=0
- bulkscore=0 adultscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 malwarescore=0
+ mlxlogscore=999 adultscore=0 impostorscore=0 suspectscore=0 bulkscore=0
+ phishscore=0 spamscore=0 lowpriorityscore=0 clxscore=190 mlxscore=0
+ priorityscore=191 classifier=spam adjust=0 reason=mlx scancount=1
  engine=8.12.0-2204290000 definitions=main-2206060058
 Cc: stable-commits@vger.kernel.org
 Subject: [Ocfs2-devel] Patch
  "ocfs2: dlmfs: fix error handling of	user_dlm_destroy_lock" has been added to
- the 5.15-stable tree
+ the 5.17-stable tree
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -79,30 +79,30 @@ X-Proofpoint-SPF-Record: v=spf1 ip4:72.55.140.81 ip4:52.25.139.140
  ip6:2604:1380:4601:e00::1 ip4:145.40.73.55 ip6:2604:1380:40e1:4800::1
  include:_spf.google.com include:amazonses.com include:_spf.salesforce.com -all
 X-Spam: Clean
-X-Proofpoint-GUID: u9QlzbihbeXmPWiRRHsj2UHpeq74QHUO
-X-Proofpoint-ORIG-GUID: u9QlzbihbeXmPWiRRHsj2UHpeq74QHUO
+X-Proofpoint-GUID: T9pzb8XSW6s9EnTmBGIZqAmvUXNdAoK0
+X-Proofpoint-ORIG-GUID: T9pzb8XSW6s9EnTmBGIZqAmvUXNdAoK0
 Reporting-Meta:
- AAGqYACzfH7jc42AfX8Qv93D4h6TvXBpbADILuhHnYLtwhFs2MGYOpCXV7FCyAc+
- OR15CPBi4xsDwcN7QhdskLQBwLRddAvyfjVsfGrJWJetTkLs0LZTkTiPFQa/+0H/
- g+wc3B3K7sx9WCTMeaKTJgPwEKw1RGxGKZ+0Tx4xhaVkzEdm7SmLChGUPmhCJENT
- BMF5xPsVojVuLfOCFZe3Sscj1RnLBq27l75f+9At1Gp3iUUYBTn3xu0b2S56ESq0
- 9mxxTonWy4K0DTcNF/EM8pKHDmVAeQWkQQTJGrODO+cixcVdRTfBJwK7z9El53Mb
- BBQFH0FKjkqSe4t9uww6YANIU/pT4n1og1VQiOyjHROY3gfVw8gulLbhwIojxx7y
- 11+cWnS/3z7f3zc5/afQcuaDmLnfHUdGtzFCaLVaW5PC+I59aO07vGU/JhPfmSEv
- CdQVpWVVadcNL95cPNG5dBz4Wrf4/6ltrmp5T+/9mExVNDBBW3AtMcdruRtJUh3k
- JaggK4RELtK7LnUcssG+PIm9d41iEITdDZy21VJqSxlw
+ AAGEqjIGQf6b4UFje9H81E7A6tUT+ehZD1FOqN4Ydnz/FHclsZwUcE05RcmPSBfK
+ 01gXnzt9uEvjLM63UOs1wnppoCHVsvJQAvlr0ljd4ZtdCWAkanu/LPIwvCx/5ids
+ 2w9Qa8pivXDhsujs0P4278bbwJhKsi6XwJbYeN3VfxknblbMvjRa3Zr3bxg3Igua
+ ysJgQghDzGTwvgsRnK4CiekXRDY2IVxasuIfV7gKky7ROrngaUSUJxkeW1Eor07t
+ ooDy/9JPZrgwMAAwykbz5iF5xzS3bIsrWuLhg2E2/mkC8HtNv4JbaDCzLNTUZo3+
+ n/BicuFPLFOneVXaBVbDP5pI11jHFy65vOiZ/U2Fs7m5ilCdBx6hvmgJR1Pa7tdq
+ V6QVKstaU5K5wTZJaVLjc5fTUmfuoCjLb+4O6dw6K/2nInuL/AWhPz7YTK+9elou
+ sMxLWQclqbq68Esqzly5rzAD0oe3v0aaq6v1e0Bxl0RoefScrOQyr7BqM3EjliaJ
+ L98nsmKQLvR8HzkK6HOZFoppmDTsV2Xijpl+pIShFB0=
 
 
 This is a note to let you know that I've just added the patch titled
 
     ocfs2: dlmfs: fix error handling of user_dlm_destroy_lock
 
-to the 5.15-stable tree which can be found at:
+to the 5.17-stable tree which can be found at:
     http://www.kernel.org/git/?p=linux/kernel/git/stable/stable-queue.git;a=summary
 
 The filename of the patch is:
      ocfs2-dlmfs-fix-error-handling-of-user_dlm_destroy_lock.patch
-and it can be found in the queue-5.15 subdirectory.
+and it can be found in the queue-5.17 subdirectory.
 
 If you, or anyone else, feels it should not be added to the stable tree,
 please let <stable@vger.kernel.org> know about it.
@@ -301,7 +301,8 @@ Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 
 Patches currently in stable-queue which might be from ocfs2-devel@oss.oracle.com are
 
-queue-5.15/ocfs2-dlmfs-fix-error-handling-of-user_dlm_destroy_lock.patch
+queue-5.17/ocfs2-fix-mounting-crash-if-journal-is-not-alloced.patch
+queue-5.17/ocfs2-dlmfs-fix-error-handling-of-user_dlm_destroy_lock.patch
 
 _______________________________________________
 Ocfs2-devel mailing list
