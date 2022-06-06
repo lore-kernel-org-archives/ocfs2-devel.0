@@ -1,59 +1,59 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc254.phx1.oracleemaildelivery.com (aib29ajc254.phx1.oracleemaildelivery.com [192.29.103.254])
+Received: from aib29ajc246.phx1.oracleemaildelivery.com (aib29ajc246.phx1.oracleemaildelivery.com [192.29.103.246])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 21C14C43334
-	for <ocfs2-devel@archiver.kernel.org>; Mon,  6 Jun 2022 12:38:37 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id B848AC433EF
+	for <ocfs2-devel@archiver.kernel.org>; Mon,  6 Jun 2022 12:39:03 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=NToU3prvnirTcZoZ+ZDHDuJ1Tuzrf4DHN8OygmgZNgA=;
- b=H4o5iGzSGncyQt0QTJpABZYSeTyJyfbPPPgIfyLSP2VHuVWsE0jbYB1T5kJjr2exVwjVMucx1QKK
-   4CucxHqceHxL2Co3eImGztExU7RhRbMmLXNut7nqiw5vL28/h/m263wVrp038jn6lKuB2zfE6nRN
-   KLE42FpnBFVK5Fjz9YEel8WFXoCcmO3IZjPELdLIBef02LWt7odj+6XGKKWPwkBhfbzYj12L7se/
-   PE7eKZWBQQbideNdZYqQvktpdCjAbgA3wTKgKN8Vq/MEb501QOg711A35IE2DJFxtatv6qKhxeqL
-   b02/XEe3TqHdFoR+wnaXAn2mfekqA2XJr9OHow==
+ bh=7O3fiD9Axm/I51BnZJgfruZa7pjLkBGQjmN3AHUaxVI=;
+ b=3aL3GfA4fUQocVyMEdi50R/mpXg1imB4mIpSP7Xr6B0GfpfqTRl6reazNpb4EJ6/Wkjg4IH3MZxY
+   8r36XuDVJCBjSJc3Ddedn4DY1LKpq0KBy02IeLrDhExf3Tz19tt+StcwguVbgD7s1tbK5KmJcGDH
+   7Mmy+B3tYZRa0FsraxKQX/zHiGp/oWu1LFO5tIIjK7uOK3bc1WusmVIi1AAm8Y/b0AOONZF09ry6
+   jzhBoeHvoYVKU8zSvBFlpCS9Zm1k1WBSxNBVo9WEmEAyNKO9ajwQ13MTVPtzVLG3oNDveVP3iEs8
+   KQNrb0ML9pISx5pKkom/PKxtsoMQ4oF8DDvi9g==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=NToU3prvnirTcZoZ+ZDHDuJ1Tuzrf4DHN8OygmgZNgA=;
- b=VRxqzKTfDH4XlU8v+nKapjE4iATz9VvkLwCO4BMHi2th//R+bQmitNwanjo3euNGVE15f30Xgk/Q
-   hdAeuO/tIZbeJlhcQImdl91S21RYvGh1BB8rrkOzqYmhRT6DsYnIKFh2HXAbGTraO3Jl148ngpyK
-   NJWVGpgreyOI2la5Rg9gOEqOtcgPg7sAFEvCLTuonTizWWZ8whI1iKGimMn6iKjTTTJVx1eHvMDY
-   aRDkUF30r3A9F1sE2XNehxnz1lAfvIcez8N74GCnj7CgBvSU4Fk02BfPAxUMl90CZPgsXYGW7NMi
-   xWlnTdMa60srIEhXQtpS2PfqZq6tNfz05ivi3A==
-Received: by omta-ad3-fd3-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
+ bh=7O3fiD9Axm/I51BnZJgfruZa7pjLkBGQjmN3AHUaxVI=;
+ b=Ch0rFSW0d9NrPzKCUq5RhFTrLYc9hY/kxc0TZx8lRdCr2W/RKMA6jx+yTSzKonz2GIGUK3ybjAlZ
+   N0NyIOdszMqXNvdQpTreB8FmIogQRoOtwr4vwI0dGqQ5MaJ+t0Mq0JOOJMXYq7FdpdvC/fTkue3j
+   m7AM61rPChsZxqTQ93QleHN7Ea8qhkw/7wphqSfEmWC6Su5aLQ2INoR4hhh+ZJ7vxEyL/Zkm6/vN
+   kVY7+zE6SJCot4iKsZqB9xtt1C35H0Fr69lD+N6wkI7sc3UbhIOTF/P5sZDDKDAR4+Y42RkXyPjA
+   /97rSM9dPmHTsg/v3jx8/sYxIbdswMNTqA7W+g==
+Received: by omta-ad1-fd3-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220517 64bit (built May 17
  2022))
- with ESMTPS id <0RD200AWX34C7W60@omta-ad3-fd3-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Mon, 06 Jun 2022 12:38:36 +0000 (GMT)
+ with ESMTPS id <0RD200AJ7353HH20@omta-ad1-fd3-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Mon, 06 Jun 2022 12:39:03 +0000 (GMT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linuxfoundation.org;
- s=korg; t=1654519101; bh=BAO3iBdOwqzmF1ih/bdTiZy9FV5U1AEx3BpWg2NfSM8=;
+ s=korg; t=1654519129; bh=HyIKNMtKlzu8Zz1wjSypXSLA2MQS26vQ0e+LsOcXNKY=;
  h=Subject:To:Cc:From:Date:From;
- b=KNbD+DF46Qn3f8ocJ6nIfpPMIFDhTdmLGZ1xTrqQhiwI3EHrq5pPoDZZv473jFiWg
- T2cMw5NvetR3DvtnED+uUhJgYeqG/NHOLcouVCbQX21Y0gU9vrDD+nn+90+g4BKCWz
- 8DrhfSKISGJGvdzczx6eUGdNEVFcuVRFSyb92BQA=
+ b=uFEZO1WxuJL1hV9YS/25XfMh/MZWOO47Ax55CJK9AX+sZzx/x/4ZI4qBnFeOgAYmu
+ MRbBO+42SY2qqd3USe0aqoy/a3mWwbTsIKQlC3zMzdYDaSpD7bFF8u01z/dcybeJ6q
+ 8pxHJ9kXSBcD6lRtuDuleiLUNNRzciXUOeLGI9nk=
 To: akpm@linux-foundation.org, gechangwei@live.cn, ghe@suse.com,
  gregkh@linuxfoundation.org, jiangqi903@gmail.com, jlbec@evilplan.org,
  joseph.qi@linux.alibaba.com, junxiao.bi@oracle.com, mark@fasheh.com,
  ocfs2-devel@oss.oracle.com, piaojun@huawei.com
-Date: Mon, 06 Jun 2022 14:37:41 +0200
-Message-id: <1654519061222223@kroah.com>
+Date: Mon, 06 Jun 2022 14:37:49 +0200
+Message-id: <1654519069178246@kroah.com>
 MIME-version: 1.0
-X-Source-IP: 139.178.84.217
+X-Source-IP: 145.40.68.75
 X-Proofpoint-Virus-Version: vendor=nai engine=6400 definitions=10369
  signatures=594849
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0
- priorityscore=136 clxscore=172 lowpriorityscore=0 mlxscore=0 mlxlogscore=999
- phishscore=0 impostorscore=0 spamscore=0 malwarescore=0 suspectscore=0
- bulkscore=0 adultscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 mlxscore=0
+ clxscore=185 lowpriorityscore=0 malwarescore=0 bulkscore=0 phishscore=0
+ adultscore=0 priorityscore=191 impostorscore=0 mlxlogscore=999 suspectscore=0
+ spamscore=0 classifier=spam adjust=0 reason=mlx scancount=1
  engine=8.12.0-2204290000 definitions=main-2206060058
 Cc: stable-commits@vger.kernel.org
 Subject: [Ocfs2-devel] Patch
  "ocfs2: dlmfs: fix error handling of	user_dlm_destroy_lock" has been added to
- the 5.4-stable tree
+ the 5.10-stable tree
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -72,37 +72,37 @@ Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
 X-stable: commit
 X-Patchwork-Hint: ignore
-X-ServerName: dfw.source.kernel.org
+X-ServerName: ams.source.kernel.org
 X-Proofpoint-SPF-Result: pass
 X-Proofpoint-SPF-Record: v=spf1 ip4:72.55.140.81 ip4:52.25.139.140
  ip4:139.178.84.217 ip6:2604:1380:4641:c500::1 ip4:145.40.68.75
  ip6:2604:1380:4601:e00::1 ip4:145.40.73.55 ip6:2604:1380:40e1:4800::1
  include:_spf.google.com include:amazonses.com include:_spf.salesforce.com -all
 X-Spam: Clean
-X-Proofpoint-ORIG-GUID: 00e4TR1iR5e5p2vtbow8kP1kT0Eebp89
-X-Proofpoint-GUID: 00e4TR1iR5e5p2vtbow8kP1kT0Eebp89
+X-Proofpoint-GUID: 5lSrgcIpKblBA-nPZuxukgciHUJoBc8w
+X-Proofpoint-ORIG-GUID: 5lSrgcIpKblBA-nPZuxukgciHUJoBc8w
 Reporting-Meta:
- AAG2yfFroqgM0Nt8mHjSstXbzgidSr1uuodZjgD6j6QX6RVG1QWzYB4GC+LRuiyZ
- t59H29MJ68S39VoOm/qlxhsaFnRPuDJefrVYjd3BrD7W5U7LYzBTPYZ2U7qw4IRV
- p3mxB6ovX/Wp6aB5gp3Vum6Tp2sT5NGJvGuj1DszzQTlvv4zXzjaPp16H/WRbHVJ
- zdR+wuE5dXfEmC3B4hggn5wxk8LzXkV/AC6TMNYBw3aKtNAWIU2635Qi+Hl9Go07
- ROMFV1GpjzxF6GXZinHAFC78ttpVqgn8EKxnprGCV28umtL1nSjIwy62WHwBf1hW
- 9eBAevAR/QjpexKrWPz6ZLq4r2ToeSYkQ+ivqmBUGKiqDcd8E/GinlLGJNo6wQqH
- uTPTXjnEjixrGy0nL9B26yn4dNxlTK3yXQjNUrL+TI2R8tE/0aYPXhgfQLuUbRsx
- mrGU1lbJDztl9YBfLkGMq3j1Qg2+J0LtIyftZ39kGxejwkPOR/ouRxfRl7DKEXfi
- Ezm1ur65ALeL4HQocEWLfXmqrRELtZ96MbwmGRvBy94=
+ AAEt7Z7OKN+1/ssn1+Hmr4MX3eZMKsiDXJuHJjLNKoSvwmSplpKKLQJJsuQtSyYM
+ n8CXjffgjJHRVZw2nOTTgFT8+q61K9nqu6W9sHi+XStnMpLXESklh7mHLItaAowW
+ wtCxj1ldxBOsJV/JbUYXcPhe27Z4TPufyVZweCkZLZ40SUQZprtcu8+DuzPPpoAr
+ i6j2qrx5GPkmXjiPk9Cg2RJJ3ObuMUHknjo63TajTRPj4W6+WeRzzkihRhA9ff0N
+ CoB8SscxtsvUKVR9FyphM6dh3pkKlYNyH9Vk0uHFQJJnjPlV6c5iaATknZO4BXR+
+ A3Uzz/z2bS8WrFY+xaAUmAtrBNuYhpeKExyPnfp/s7Sw6Hhz+/5w6/VHKuyA3NJz
+ PIaEPQMYvocSiOU8y9lZQKmDEtxNweMxsnKKdy4ipVfe2f1tVukFL0jaIUXTXeX9
+ UZK8qtPVQeQIiA7gRBdehuBgMB9xUyKLQvlR4cRJoSczOxzHa6MKi+l2QhCV39tM
+ fC7ts+8IiVhUJKMELIVMxk9/K1hZ4PwrhW/+DmaIROw=
 
 
 This is a note to let you know that I've just added the patch titled
 
     ocfs2: dlmfs: fix error handling of user_dlm_destroy_lock
 
-to the 5.4-stable tree which can be found at:
+to the 5.10-stable tree which can be found at:
     http://www.kernel.org/git/?p=linux/kernel/git/stable/stable-queue.git;a=summary
 
 The filename of the patch is:
      ocfs2-dlmfs-fix-error-handling-of-user_dlm_destroy_lock.patch
-and it can be found in the queue-5.4 subdirectory.
+and it can be found in the queue-5.10 subdirectory.
 
 If you, or anyone else, feels it should not be added to the stable tree,
 please let <stable@vger.kernel.org> know about it.
@@ -259,7 +259,7 @@ Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
  
  	/* We only compare against the currently granted level
  	 * here. If the lock is blocked waiting on a downconvert,
-@@ -601,7 +606,7 @@ int user_dlm_destroy_lock(struct user_lo
+@@ -597,7 +602,7 @@ int user_dlm_destroy_lock(struct user_lo
  	spin_lock(&lockres->l_lock);
  	if (lockres->l_flags & USER_LOCK_IN_TEARDOWN) {
  		spin_unlock(&lockres->l_lock);
@@ -268,7 +268,7 @@ Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
  	}
  
  	lockres->l_flags |= USER_LOCK_IN_TEARDOWN;
-@@ -615,12 +620,17 @@ int user_dlm_destroy_lock(struct user_lo
+@@ -611,12 +616,17 @@ int user_dlm_destroy_lock(struct user_lo
  	}
  
  	if (lockres->l_ro_holders || lockres->l_ex_holders) {
@@ -286,7 +286,7 @@ Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
  		spin_unlock(&lockres->l_lock);
  		goto bail;
  	}
-@@ -631,6 +641,10 @@ int user_dlm_destroy_lock(struct user_lo
+@@ -627,6 +637,10 @@ int user_dlm_destroy_lock(struct user_lo
  
  	status = ocfs2_dlm_unlock(conn, &lockres->l_lksb, DLM_LKF_VALBLK);
  	if (status) {
@@ -301,7 +301,7 @@ Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 
 Patches currently in stable-queue which might be from ocfs2-devel@oss.oracle.com are
 
-queue-5.4/ocfs2-dlmfs-fix-error-handling-of-user_dlm_destroy_lock.patch
+queue-5.10/ocfs2-dlmfs-fix-error-handling-of-user_dlm_destroy_lock.patch
 
 _______________________________________________
 Ocfs2-devel mailing list
