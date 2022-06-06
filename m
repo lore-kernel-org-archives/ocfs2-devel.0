@@ -1,47 +1,47 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc247.phx1.oracleemaildelivery.com (aib29ajc247.phx1.oracleemaildelivery.com [192.29.103.247])
+Received: from aib29ajc251.phx1.oracleemaildelivery.com (aib29ajc251.phx1.oracleemaildelivery.com [192.29.103.251])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 20F33CCA488
-	for <ocfs2-devel@archiver.kernel.org>; Mon,  6 Jun 2022 20:41:20 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 3F810CCA48E
+	for <ocfs2-devel@archiver.kernel.org>; Mon,  6 Jun 2022 20:41:21 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=hWGVZX9ItxUtVxHFxLTz/ebp/MB2xIP06CylR8zzBNw=;
- b=BCtmm69iuTclR7aPQpeVu/dZ/vU5D4nXE1zOs+mmGgZ1pg9BiGl6QAoRMukpHDcmJcZZMQemxpuq
-   7dQjxSn53XZKtIFaVdh/9doohCpCt9E6D3OBqoL744jPblyfUb2xq4HftZZh4Uk/uWiNpWu9p4Kk
-   UUqTW8YsAVNcskXXE1KnrhGcBFYlm2UWrCX/aK/t0mGi5A7pBR6dXgP5z5QVpweWpSLyjVju0EAa
-   5KG+hXJS9QPJD4Nlo2uaG9Ld+erpfzyYj3hS/yWB55/m96tQk5i5VK91RgjXLjhoNbgM0iR2t+Y2
-   6DCqyTzxbT4EatCDWB78DRMs1Xc9S94zhB5fpw==
+ bh=biioD3r8xoOjpaGul/VIbmJ4EUj5EXXIVmipjMZu/cs=;
+ b=iRAhIVrRDb0snUcm/UFmhErNIE5azD1DFsTkVLBumS4iBQ/nEom42QKBZVTFtAzctfLW9MNmVCJ3
+   EyC0vxXF3gjpxDSuupDtWNwLvtgtgi+vc48GblN5HHfOgav7TcYTLLWtVor1wyyaID/jrjSqWkJn
+   FsecsDqmPGWKr35nZzYqVpRgyY02jy6fc66RC1A045kVYiEVvvyVesgasFc3h45USgcyGz9+FEjt
+   0Fq/8kYRFaQGftAa+Nq8nBYQN7rYrHHDAqvljHtHuRG4evomQqhZ2Qzl3XQReIp75PeSdNMBxYDO
+   P9J6LRg4xyh6R+BDxFo1o07oGmQZ3RoeCsBLjA==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=hWGVZX9ItxUtVxHFxLTz/ebp/MB2xIP06CylR8zzBNw=;
- b=Dn8IvgxbGJadVD5XSXsYav6hvcToWjZZmPyLAOS1qE17Xub8akIuqTYhcP6bUyin9J14EGNKgGSp
-   07XzHSE/EqkFXLpIdfQVFVH7QiJ1gAdy7cMs0UKF7PU2+W9jtFMPd3fk7TE7pEgzLAICGGHNwogt
-   8vSzkFIdXExqHdSCxA04BoW5Ycyqn67ZUHghk4XNouy1evev9upZYOO2wVSynRdauLHyOcs7+wk/
-   LgxcQYuDe7sRtzZtIBj6K2yEV+yc9uJCjkqj1AFBRED/ID+5k4ZnPx3kkXH7OnPeLhvJppvgKdYt
-   sWb+7X6o5ExaUC+qyLqu2grdqOT5MxEeOslW5w==
-Received: by omta-ad1-fd3-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
+ bh=biioD3r8xoOjpaGul/VIbmJ4EUj5EXXIVmipjMZu/cs=;
+ b=cZJwVK9n3pHjpy9+jrU0FGHUxF1XDLPZjlrpaYgxVRS159cn2ORvyQwmAeBm2FH4SwaUUhdyCi6f
+   6Ts8Y5pxT+ZfYmXr2zhlcn81Kn+y6Byi84/U4gAA3xwjso3Mf0qpsd0MGqWuoPhkTTRfNFfHty0B
+   HVk2xqOcczieZ0+PT4yQ4lsCaqKMWEN85PZKBR2AKvP66z53puZ5xtwHAIV+NcjaE7yyLej3LZc7
+   T8a0w0wOPzzpOVXOtZ0XRaEeaLIwuMVkzHZkuOxGMFRBoj1neJH6rpycXPx+IYEzzsaESUqFsNOi
+   q53bd1tead1TgkCZEvgd+AmmTIHNLQOEZUZ/GQ==
+Received: by omta-ad2-fd3-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220517 64bit (built May 17
  2022))
- with ESMTPS id <0RD200CJ9PGVQR60@omta-ad1-fd3-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Mon, 06 Jun 2022 20:41:19 +0000 (GMT)
+ with ESMTPS id <0RD200M91PGW5EE0@omta-ad2-fd3-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Mon, 06 Jun 2022 20:41:20 +0000 (GMT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
  d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
  References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:
  Content-Type:Content-ID:Content-Description;
- bh=2zqEa9EzjfvcCB/R36xszZ4AMZtdcV59XiMVDc9jTyM=; b=U+BqaoSQWdsShi/y8CPTtTig63
- HCMa7+gIZx7Yyb6cusLNuXKWsG06WN8xz/erKBPWuYizRThCX0iiljqhNcZd2weflUVCtiqE770D/
- Vb15aA5PxUQlAGcLo3M0XEH41Q/fMFbQWUysBrY6PEG35YJKOueNndbkU/J8qu3X5pGzhsOP7ol4W
- F3RaDu2I/zP67juMsLCzxygZBIwXjKCl86d9jfX6rvdn+U142VP0hON97WCqvsixaBkAVbsODa0Rm
- STrW9jc4kjH9X53B35Fdz629pIYD4+nkkWKOdWUlig7kbghCKRcjBc7pf8npYNE/LtOnrV8sVT0Vs
- SEGqa5Hg==;
+ bh=NFScYX57GEbw0yH/d1QXpe8YFpfaQsvuaQCT3ii6ess=; b=mDp4J3wn+JfgTBMvZgEUqjDjOc
+ MdvHmectsbLkZvfTk8nG6ytXS1+4dBHiC4pMAhcy3dH+w+BngrUwTH364Opf+ULDH9RffR6xS8W1s
+ NvNCsPvgWsTpdK5si++BB7gskVwFgeJKaRz9oSkBMT/tvUH1htLz8dXlAm4tajf1oQVpZT/iQpp3Z
+ 3qvjBqAGoN/HgsaNXSczCYJXunICX2cMGKbV8nqWYAZ1dFtuqgFYtfMpTC7xMxk50hUBGd3mZWqxV
+ 6hlTudv8DYvIDVhKEtAVCLpJUOSZgQOHlnJd6eZoWquUE4SD1aKFk5s64qg6Qy5XVFt9b2QyPeQP8
+ VdadEfOg==;
 To: linux-fsdevel@vger.kernel.org
-Date: Mon,  6 Jun 2022 21:40:43 +0100
-Message-id: <20220606204050.2625949-14-willy@infradead.org>
+Date: Mon,  6 Jun 2022 21:40:48 +0100
+Message-id: <20220606204050.2625949-19-willy@infradead.org>
 X-Mailer: git-send-email 2.31.1
 In-reply-to: <20220606204050.2625949-1-willy@infradead.org>
 References: <20220606204050.2625949-1-willy@infradead.org>
@@ -49,9 +49,9 @@ MIME-version: 1.0
 X-Source-IP: 90.155.50.34
 X-Proofpoint-Virus-Version: vendor=nai engine=6400 definitions=10370
  signatures=594849
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 phishscore=0
- mlxlogscore=467 spamscore=0 impostorscore=0 suspectscore=0 clxscore=165
- malwarescore=0 lowpriorityscore=0 priorityscore=108 bulkscore=0 mlxscore=0
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 malwarescore=0
+ bulkscore=0 spamscore=0 clxscore=159 mlxscore=0 lowpriorityscore=0
+ priorityscore=164 phishscore=0 suspectscore=0 impostorscore=0 mlxlogscore=668
  adultscore=0 classifier=spam adjust=0 reason=mlx scancount=1
  engine=8.12.0-2204290000 definitions=main-2206060082 domainage_hfrom=8378
 Cc: linux-aio@kvack.org, linux-nfs@vger.kernel.org, cluster-devel@redhat.com,
@@ -60,7 +60,7 @@ Cc: linux-aio@kvack.org, linux-nfs@vger.kernel.org, cluster-devel@redhat.com,
  linux-mm@kvack.org, linux-mtd@lists.infradead.org, ocfs2-devel@oss.oracle.com,
  linux-ext4@vger.kernel.org, virtualization@lists.linux-foundation.org,
  linux-xfs@vger.kernel.org, linux-btrfs@vger.kernel.org
-Subject: [Ocfs2-devel] [PATCH 13/20] aio: Convert to migrate_folio
+Subject: [Ocfs2-devel] [PATCH 18/20] zsmalloc: Convert to migrate_folio
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -80,110 +80,55 @@ Errors-to: ocfs2-devel-bounces@oss.oracle.com
 X-ServerName: casper.infradead.org
 X-Proofpoint-SPF-Result: None
 X-Spam: Clean
-X-Proofpoint-ORIG-GUID: vL4nFRRaMU5IvLmMgRjnYN3W8DhX3_Sm
-X-Proofpoint-GUID: vL4nFRRaMU5IvLmMgRjnYN3W8DhX3_Sm
+X-Proofpoint-GUID: 7-lD1oDmqA0xZLeE94WLbZNh8Lxi5cIb
+X-Proofpoint-ORIG-GUID: 7-lD1oDmqA0xZLeE94WLbZNh8Lxi5cIb
 Reporting-Meta:
- AAEgkSS9QP2YsXqix6eEe/7MLsZzWCOonWlJ9vFpKwY+GnFzG9+JMu/PTDS+yZwk
- aX99cUSaLdyt9E4xKcdBmZhAXnud0pOW37k2BazGmCShWgzFeC2zsiIMkGijXZ3e
- Gz0BQOv7F9D5yW0waKK4/POTxNSkP4nmacSAu7J6gqkMZat+AxpVWuVk/qchz4Lt
- R1PldaiJyB6PcmeqMsgigobVNoucdVYy5Mf1j7gqCOQ/m4PYvut3hI5VJn/Nf+Av
- GK8yGerPPkTrf5ot/jrfDI68z215EqCoqJefjUdxAxTD+LXXJ8Vqxgf8GaDdVxC2
- 7utGeb2jCt1HHrNNaHVKcdzZAETlqWkPo2v6Qn8BiMz6IZheXJhP8AG6muJ+z7iN
- ceXbWS8hdwcuPRPKvVZ0LcrtAFHeFYDuDU/yqV2EHu+9JzY+5reY0PH7jOMHh4W9
- Hb+VCAACvgOM60z02/GpH9ebw78ROZ6wzRYkTK6q0aHcJM+iQadM+NydsPMkyMDy
- BC8e7Di7DP8c+rFn/XjrcqYVtnEHPJeOPrEG/aIAjGo8
+ AAF+vZBWuqLKC6usvZHinyb0SmD4DKO0jDi7uG/wvmazqRqZXze/vVflvuW+2aQ5
+ h5WPpgSaHOzsalLcvu/5B+tsgjdKmVxIhES5+7356aURXIBb99urw8MvDjmlvUCC
+ lANQzEX6d/JmXz6ULL8OIzWhJpJuSL3925klBskWBOYK7DM3hhEAZWp709Mqd8L3
+ tZfJZM22tLth5gLR9Cy4qALeFJjkKXFynqnaQi+Qla7L5dr9W0gBsLOIHVgzwg4M
+ cYz0ZncfXPuj6qGtCzWh7UFthmuIeRN1rcHDbxZHpS9WMbAgNk6V/p5LgfTFg80S
+ xzyGZ7SFM+RwbGrtbT+vaN6xIcK7aB9aQeLydQiaNGkRuE0lhYcuY/Tgt1l7tZH0
+ CfcvqIgn36D4S+R6qfdqrubzgB+2AAJZvRrwB3rCoWnckxicUMMNpqjDuKNr1/Qh
+ xaEHWcJASm/6OcG1PxvBUr34Ddeu6aFQYBZvOMiWdFwY/ZLMQRDx1MOhWfg1oeSm
+ acR9Yfmtv9xtsS72bZnrmWC1Xet354T5oOMxAuBWLv/j
 
-Use a folio throughout this function.
+zsmalloc doesn't really use folios, but it needs to be called like this
+in order to migrate an individual page.  Convert from a folio back to
+a page until we decide how to handle migration better for zsmalloc.
 
 Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
 ---
- fs/aio.c | 36 ++++++++++++++++++------------------
- 1 file changed, 18 insertions(+), 18 deletions(-)
+ mm/zsmalloc.c | 8 +++++---
+ 1 file changed, 5 insertions(+), 3 deletions(-)
 
-diff --git a/fs/aio.c b/fs/aio.c
-index 3c249b938632..a1911e86859c 100644
---- a/fs/aio.c
-+++ b/fs/aio.c
-@@ -400,8 +400,8 @@ static const struct file_operations aio_ring_fops = {
- };
- 
- #if IS_ENABLED(CONFIG_MIGRATION)
--static int aio_migratepage(struct address_space *mapping, struct page *new,
--			struct page *old, enum migrate_mode mode)
-+static int aio_migrate_folio(struct address_space *mapping, struct folio *dst,
-+			struct folio *src, enum migrate_mode mode)
- {
- 	struct kioctx *ctx;
- 	unsigned long flags;
-@@ -435,10 +435,10 @@ static int aio_migratepage(struct address_space *mapping, struct page *new,
- 		goto out;
- 	}
- 
--	idx = old->index;
-+	idx = src->index;
- 	if (idx < (pgoff_t)ctx->nr_pages) {
--		/* Make sure the old page hasn't already been changed */
--		if (ctx->ring_pages[idx] != old)
-+		/* Make sure the old folio hasn't already been changed */
-+		if (ctx->ring_pages[idx] != &src->page)
- 			rc = -EAGAIN;
- 	} else
- 		rc = -EINVAL;
-@@ -447,27 +447,27 @@ static int aio_migratepage(struct address_space *mapping, struct page *new,
- 		goto out_unlock;
- 
- 	/* Writeback must be complete */
--	BUG_ON(PageWriteback(old));
--	get_page(new);
-+	BUG_ON(folio_test_writeback(src));
-+	folio_get(dst);
- 
--	rc = migrate_page_move_mapping(mapping, new, old, 1);
-+	rc = folio_migrate_mapping(mapping, dst, src, 1);
- 	if (rc != MIGRATEPAGE_SUCCESS) {
--		put_page(new);
-+		folio_put(dst);
- 		goto out_unlock;
- 	}
- 
- 	/* Take completion_lock to prevent other writes to the ring buffer
--	 * while the old page is copied to the new.  This prevents new
-+	 * while the old folio is copied to the new.  This prevents new
- 	 * events from being lost.
- 	 */
- 	spin_lock_irqsave(&ctx->completion_lock, flags);
--	migrate_page_copy(new, old);
--	BUG_ON(ctx->ring_pages[idx] != old);
--	ctx->ring_pages[idx] = new;
-+	folio_migrate_copy(dst, src);
-+	BUG_ON(ctx->ring_pages[idx] != &src->page);
-+	ctx->ring_pages[idx] = &dst->page;
- 	spin_unlock_irqrestore(&ctx->completion_lock, flags);
- 
--	/* The old page is no longer accessible. */
--	put_page(old);
-+	/* The old folio is no longer accessible. */
-+	folio_put(src);
- 
- out_unlock:
- 	mutex_unlock(&ctx->ring_lock);
-@@ -475,13 +475,13 @@ static int aio_migratepage(struct address_space *mapping, struct page *new,
- 	spin_unlock(&mapping->private_lock);
- 	return rc;
+diff --git a/mm/zsmalloc.c b/mm/zsmalloc.c
+index 5d5fc04385b8..8ed79121195a 100644
+--- a/mm/zsmalloc.c
++++ b/mm/zsmalloc.c
+@@ -1865,9 +1865,11 @@ static bool zs_page_isolate(struct page *page, isolate_mode_t mode)
+ 	return true;
  }
-+#else
-+#define aio_migrate_folio NULL
- #endif
  
- static const struct address_space_operations aio_ctx_aops = {
- 	.dirty_folio	= noop_dirty_folio,
--#if IS_ENABLED(CONFIG_MIGRATION)
--	.migratepage	= aio_migratepage,
--#endif
-+	.migrate_folio	= aio_migrate_folio,
+-static int zs_page_migrate(struct address_space *mapping, struct page *newpage,
+-		struct page *page, enum migrate_mode mode)
++static int zs_migrate_folio(struct address_space *mapping,
++		struct folio *dst, struct folio *src, enum migrate_mode mode)
+ {
++	struct page *newpage = &dst->page;
++	struct page *page = &src->page;
+ 	struct zs_pool *pool;
+ 	struct size_class *class;
+ 	struct zspage *zspage;
+@@ -1966,7 +1968,7 @@ static void zs_page_putback(struct page *page)
+ 
+ static const struct address_space_operations zsmalloc_aops = {
+ 	.isolate_page = zs_page_isolate,
+-	.migratepage = zs_page_migrate,
++	.migrate_folio = zs_migrate_folio,
+ 	.putback_page = zs_page_putback,
  };
  
- static int aio_setup_ring(struct kioctx *ctx, unsigned int nr_events)
 -- 
 2.35.1
 
