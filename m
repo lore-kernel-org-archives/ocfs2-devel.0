@@ -1,54 +1,54 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc253.phx1.oracleemaildelivery.com (aib29ajc253.phx1.oracleemaildelivery.com [192.29.103.253])
+Received: from aib29ajc255.phx1.oracleemaildelivery.com (aib29ajc255.phx1.oracleemaildelivery.com [192.29.103.255])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id C10AEC43334
-	for <ocfs2-devel@archiver.kernel.org>; Mon,  6 Jun 2022 11:09:22 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 59C3CC43334
+	for <ocfs2-devel@archiver.kernel.org>; Mon,  6 Jun 2022 12:07:44 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=/ASFyVxZwV3o7wG/4J1x3Y4df9JPz6CN45Aj1a1fyHI=;
- b=u/PfyLzznk7YR7TgEmQe+fxBTHbVXEEGG9gKeP1SWCkyRcew7HylaHFzZfyFsB0gJlHBFOsNLkGv
-   RiF1AKPs3SZhhgDVeGyC9vsKZ4x48wm7pq9sIGIEmsGhH3ihw7n1IZsO1fCCQ+cqbru7UQrfFS6f
-   gtEoe7ceA+b5a9ua0qcUjCS+E1IgWQTOaqdgrJy27iDt+2McEMNdwFts36YF5qMMOXFdJGGOk/Cp
-   8seVur3nVsyuiGkA162JQCX4buBL6l3Q/ZwMFnHrflwPRYZ8Dhnp9/NyssHeUW9fMiyh0s0s+d4D
-   kdm3ihkKk7DrSAoI6NalLqBFSZK0PsGU/qo43Q==
+ bh=QuHkQdSEEMHdDuTmwe6b9fBCsQWrT6i7MOThZbURt3g=;
+ b=m0+Zn/hsEj50lLX6/O6LAbCQnI8lUK48TjnICdnaIXBj0bRUUXdWNG+g7/DQEWWsYYH4t1szAend
+   k8Z5YZOQUaj1tBK8qSxMuPm7tcFFp59aZvUpV/JGIpZmsRzQLAewtBWiTFBhd6X6S3x/BfkyLoPw
+   YYZz2wOlE8z+gd+i9+cpYzkZNkk1aDe7g3bUbnx7ANuz7Aztg1I/qN0a72VGFdi+hF1T2+gFE0rP
+   d61JHSqVeP+/izkncLvVqCkibT3huvX6diP8w8SyDE78N8cohqY4haVAq8J7LT+wP5XoLFUsijOd
+   y6ayPop7ExL2Shc1mDlFHAoJR1XTW7cC2ZEDtA==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=/ASFyVxZwV3o7wG/4J1x3Y4df9JPz6CN45Aj1a1fyHI=;
- b=C1NEs5Vvm57KbyXfDt+VkhcfkmdbX4a0EZb//andVqqjh/ZsMXeddBl2WLDS7+uYrRs0g44xc9dJ
-   ttkc/tWI4h7xBwIt6MhHVw09/jGpcCymZIP/9Qsb9Eyxtj6LhLjjVkfr3VP42RD8oqSnzvTf5SHx
-   N6uKb84R0op/qGxaSynxQNqVz2ERMpp1Nn56AipVy62EkkWaTGttFArRILtmwQaBaNy6iLOHE8++
-   KEIYUBhlg4TCfMDewIApOQ4/Mx/W45lxb8/EgsVhbSyW5MUBfioKnVa1Rh9X4eKiwc1seRUlr2Cz
-   2jDTXzLv3cDHilGN23EbG5rQ6+kPcj61wBNl2A==
-Received: by omta-ad3-fd1-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
+ bh=QuHkQdSEEMHdDuTmwe6b9fBCsQWrT6i7MOThZbURt3g=;
+ b=PIo5LpXy2we0oZK7BWFjWZmU/PxI1yzZUYZvxqgSle0DNLSfar13FRegOX7Ar2mSsKSdBjUdxhu0
+   QS+osxtwCaVfHIFb2duPjdMj6VEw1zrg9H0+pkqZtABeo80zgmrg770ErkJ5BbAehnAZuOCasPEs
+   4F5JilvnytoX5+W/i50lRbQ5Lp6x3Jzoi3OGjGabmxFUpbPa7MPyCppUdHa7+tNFRcvZk+L1M+ro
+   OYmDmmdS0y7CdBOV+tvt+pnkPPhV+kuwvftzspk8PMhMkjBJg7FkaQ/IPVafvGssC9BxUzRpjLLv
+   snEdSxnUPKq2o+2WUVekl1V7BhYNtnQ96fjBAA==
+Received: by omta-ad3-fd3-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220517 64bit (built May 17
  2022))
- with ESMTPS id <0RD100DWNYZM6090@omta-ad3-fd1-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Mon, 06 Jun 2022 11:09:22 +0000 (GMT)
+ with ESMTPS id <0RD200CO51OVTL80@omta-ad3-fd3-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Mon, 06 Jun 2022 12:07:43 +0000 (GMT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org; s=k20201202;
- t=1654513743; bh=MruCj8nej3dKAM7adIO1D35vODK2j1fka5uUIKnmzDM=;
+ t=1654517134; bh=M6OSWfA/gARuYZytT1wXpBV7uKI+PabmMfuvuBaeT88=;
  h=From:To:Cc:Subject:Date:From;
- b=MDPIu4EGGUqoK/hhGrM5pj+pZsbpncLnIDb7pZIcdnWzs/j1I/d6GoVTxmW/WjMqg
- KAkuiskB+Nh9JsbULi9631VYTFLViD9SY1vfuk3kj/pnI7u8iSsygDWMbGa1oG0MxM
- b0Cf2xgZOKO3nVYSOE0AipMLF/SgqfVwBjM8ZJLhgkbkgIkimaeXz3kn9Hl0LM4JRh
- /jWZLwKuE05Ej4EvXjqA0Ht8zJ4FcnBFcUXGYCRpI83i2TP5/PHQO68kIfKBcOvx0B
- tixll8i5YBSGTnX9ELVYm77Go14WTEihTqQqPzVco1YsEAaPGfSpwRmogeLqUE7lqZ
- kQtzgTPVZXt9A==
+ b=HdxYHjlh2flEfBFP/MKXE6zVS0EIWvYqP14Xw2MeemoxgafP2pNVEJQX2IUDF/FVu
+ r4GenOP465BgeUWscxezvYJ1Wd4/sPgrU31qzFuTlUcEFcilqhXuy0HpKJv8J+Zuv3
+ E9TXb10E0LQLG7k4653mrYh36kXvMSMZAAwVo8rA+r7uf83qyShlK5RZurPAcgjH7W
+ xuDpCijNoM0nMO82gPGLhQrQ1kOemftNSP1CdZe5LdTD1VLIkQqjzixEQE1rsDdly9
+ rBaGIwQm3+6gC5k0Ycq9CzUKtwDLMhT9YKaS9Bw+U6UoClhHSJBNusYg1sDanvEZO+
+ yEziTfJR16Mwg==
 To: stable-commits@vger.kernel.org, ocfs2-devel@oss.oracle.com
-Date: Mon,  6 Jun 2022 07:09:00 -0400
-Message-id: <20220606110901.135983-1-sashal@kernel.org>
+Date: Mon,  6 Jun 2022 08:05:31 -0400
+Message-id: <20220606120531.159267-1-sashal@kernel.org>
 X-Mailer: git-send-email 2.35.1
 MIME-version: 1.0
-X-Source-IP: 145.40.73.55
+X-Source-IP: 139.178.84.217
 X-Proofpoint-Virus-Version: vendor=nai engine=6400 definitions=10369
  signatures=594849
 Subject: [Ocfs2-devel] Patch
  "ocfs2: fix mounting crash if journal is not	alloced" has been added to the
- 5.18-stable tree
+ 5.17-stable tree
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -67,42 +67,42 @@ Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
 X-Patchwork-Hint: ignore
 X-stable: review
-X-ServerName: sin.source.kernel.org
+X-ServerName: dfw.source.kernel.org
 X-Proofpoint-SPF-Result: pass
 X-Proofpoint-SPF-Record: v=spf1 include:_spf.kernel.org ~all
 X-Proofpoint-Spam-Reason: safe
 X-Spam: OrgSafeList
 X-SpamRule: orgsafelist
-X-Proofpoint-GUID: SHQ7uHBZ5CsVTO6TMPm0jj_g0l8wp64Z
-X-Proofpoint-ORIG-GUID: SHQ7uHBZ5CsVTO6TMPm0jj_g0l8wp64Z
+X-Proofpoint-GUID: xqTI4yZozdvwqBhM6eDlSdtbMGnwseWN
+X-Proofpoint-ORIG-GUID: xqTI4yZozdvwqBhM6eDlSdtbMGnwseWN
 Reporting-Meta:
- AAHzwHpFNiOUm4PsEg8XyHQKWYvFqZrs71lW6dsKHC6XWsrjvg0fNVMbdDw+sHa8
- YRFv3cSbzquo+dlyBe4XEiG5fyxz1JOn1qM9JCCM+fAiPvCGxcazKbpliJ3QvFzg
- AvEN+6HxwNjpKrPKoG5usf0/4OVAWeXg7g5zQWI6rKPb3uf17B+NjeFGuWDXsgXC
- uPfC+IL3akJoVmfcJPJpeBRyb3GKmZ0h/kXgp9gKe8iCOR9YNJ6sYpoFy0iZcX1P
- cZ8iB0yercr6eYFes5L51WbH6AWLJtpn9xQyDSfOOUNWLVebSa2GmLgNZ6uBsiaM
- fvUbKXmn+9QeJjwFGkHswxP6qcMFhW0Qm+Tzldp+eZK2IRSRt8g9rZcSJ81dYeEP
- yb7b4by1ZSDgzlO8RgS/Lk74xihBOhVh8kaAOJurKY9BTES4FEzl67XSVaKzOQNj
- G38qNnWzpc1ssCtUHS+8SiPRMB38O8NR3Qi6/ydfAvL8cgj0/zwwUIDgWkHkxZ4r
- ioi7LwOIrgM5NqOmYlklLtUQ1Vq9AkSzt9cHxGldR4U=
+ AAEt7Z7OKN+1/ssn1+Hmr4MX3eZMKsiDXJuHJjLNKoSvwmSplpKKLQJJsuQtSyYM
+ n8CXjffgjJHRVZw2nOSHfVT8+q61K9nqu6X1TrWNudO4iJaG0U+O4byEhol8uAZc
+ 9iZW1Ob/npj33p+Pxr1TiWScJFzMJOu5RVKA0ONMBaWjWw6sCHzRE6yHww80fIme
+ FEJcSoY8/dUu5L0x21ow2+K0qmbop6mX6kn9oDXlu+5XIxIMWaN9KCEPJPxaPOe7
+ AAmwA6UpiEPzrNX3qWybWZGfJwDdYoI1phYEOnMaEzegag1/OQKO1QVmSBtXkrCQ
+ K3I/SkxPoRZ4Azekg8iRIiKIQwk98uLzQ23spkKtXPk/vEdjhe9dAtNkoyjzwNcV
+ dd/9s+nDW872FF/n/DfsP4H5KcT9aKXwNuFaz+ULlHwrthfwLTp0gECVzUQrxtgX
+ vQTOQ1STC9CdXZ72JbfD5qRUkHA6YWS4BbnY3tEf81/7kX0SHltMUUYPUqX4oZTE
+ yasPmzDclmS5uBQqvZS7NAjmoPVxiTyDbQqrO8XPRg==
 
 This is a note to let you know that I've just added the patch titled
 
     ocfs2: fix mounting crash if journal is not alloced
 
-to the 5.18-stable tree which can be found at:
+to the 5.17-stable tree which can be found at:
     http://www.kernel.org/git/?p=linux/kernel/git/stable/stable-queue.git;a=summary
 
 The filename of the patch is:
      ocfs2-fix-mounting-crash-if-journal-is-not-alloced.patch
-and it can be found in the queue-5.18 subdirectory.
+and it can be found in the queue-5.17 subdirectory.
 
 If you, or anyone else, feels it should not be added to the stable tree,
 please let <stable@vger.kernel.org> know about it.
 
 
 
-commit 1a949da1de4e74eddc8eb56723e5d4dabeac9d39
+commit 08264af8936842881b84c2aeb91273ab0e3fcfea
 Author: Heming Zhao via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
 Date:   Fri Apr 29 14:37:58 2022 -0700
 
@@ -177,7 +177,7 @@ Date:   Fri Apr 29 14:37:58 2022 -0700
     Signed-off-by: Sasha Levin <sashal@kernel.org>
 
 diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-index 5739dc301569..bb116c39b581 100644
+index 6c2411c2afcf..fb090dac21d2 100644
 --- a/fs/ocfs2/inode.c
 +++ b/fs/ocfs2/inode.c
 @@ -125,6 +125,7 @@ struct inode *ocfs2_iget(struct ocfs2_super *osb, u64 blkno, unsigned flags,
@@ -279,7 +279,7 @@ index 8dcb2f2cadbc..969d0aa28718 100644
  void   ocfs2_journal_shutdown(struct ocfs2_super *osb);
  int    ocfs2_journal_wipe(struct ocfs2_journal *journal,
 diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-index 477cdf94122e..311433c69a3f 100644
+index 8bde30fa5387..4a3d625772fc 100644
 --- a/fs/ocfs2/super.c
 +++ b/fs/ocfs2/super.c
 @@ -2195,6 +2195,15 @@ static int ocfs2_initialize_super(struct super_block *sb,
