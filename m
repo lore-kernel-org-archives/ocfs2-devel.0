@@ -1,59 +1,80 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc244.phx1.oracleemaildelivery.com (aib29ajc244.phx1.oracleemaildelivery.com [192.29.103.244])
+Received: from aib29ajc254.phx1.oracleemaildelivery.com (aib29ajc254.phx1.oracleemaildelivery.com [192.29.103.254])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id C84DFC433EF
-	for <ocfs2-devel@archiver.kernel.org>; Mon,  6 Jun 2022 12:42:04 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 64EECC433EF
+	for <ocfs2-devel@archiver.kernel.org>; Mon,  6 Jun 2022 15:34:04 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=RtWTzM3qxdLDq6Z7qbHgH7lrn5jymB24BBBe6J/ojh0=;
- b=X6Qk9O0fktCXMXvpaezG9rbr/30roaWpMviSw6y1VZY6sZ7GuCrNvtGXE0xYpDpFEf0+3KT1+Ow4
-   j2bXsc5xc3Gvwqe1oVTSpoecfHVCpJRy68rSPWvZ1R4mP4OkMzXHSdu66vQiuNGgTWBPOKDyqOUS
-   gWfjV8By2W7Siqeqfup5QjBgkyz609RHTCGVuEBsfaIEhXkeUwjCVdkfGGEKfO+WhskbCWTTSlSq
-   rKICRaduutDGZ4oZdtLSfbpY26J53n23HfEyZB8QSAOOFGR6XPwf4ThmXN/r5C1fAtQfoasX7W3t
-   6NrEPQuYLRemExqYBKc4HApZCGnoztbuJXhtig==
+ bh=9CBG1l+M1DfOYuynLjUV3opbm1GKkrsp/jUvT6d9Y14=;
+ b=0ytNK2xWmlsYD6pojaGc3VuStuyPEKENVpAV9Lbm12YRRDoeVTNDfQN66TJOSYAi1emnBthTslkH
+   C+Hw+STjE0xvvIXykWmgbZed8+UfMteWe2eRdgbOIGL44AsPTSbfBwYy06qGIWqLoYyksHhHIig7
+   1G6e32cpE+NBOzHskaxRMic+cRCeneLXtbwT9edOZeA9mW3cw4wrsCEY8TILJDCo6H6DKsCiXKzb
+   V+FPpDgsrAdB7sJi8FJxx/pT7AfCNpLges0KmRNDNMWAi4hAi6FUrfGEI/xTg6YDikA3DdwTEdD+
+   I5OQFQTrEzURGlCommzyga8a4ksVj8EKOS9Quw==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=RtWTzM3qxdLDq6Z7qbHgH7lrn5jymB24BBBe6J/ojh0=;
- b=ar2s1iZvAWEIyagdkWCvgK/zyOU7LiQ0Hxl3uFQH5XrTfmRjfOrHK+Yhbl9J4h+AS//qz87Aa1NJ
-   Fke+5g73LpzPqmTPUNXmfpPirZ7QL3AAEN06W+HF6Uv66OdnIMSqyEsKFvZ6hxlc9QXtCSXo6V8H
-   drlk78qLOk310niiX4P8DPKcXd9bOq+k4XzvlW1jHBR8lvz9mJ6qTGno3wyF6ubZByE9gWWK7e3C
-   QmOOcokIPMBVeco0trSlwt5HnLDXN2dWnb66S8/kYMOqu5N8v0bUW4Ksb+RcDzp6P+/DLe1/VCrc
-   YPXp8ekxZNVg8Jv1RoMtTsoRT8b0H58GNxvXbg==
-Received: by omta-ad1-fd1-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
+ bh=9CBG1l+M1DfOYuynLjUV3opbm1GKkrsp/jUvT6d9Y14=;
+ b=RNYajKvePhBfJJr2yKv9tP9T3csaLMH09k2xzqXHgFFeYhyVHrWpZ6P+XU5a+jGcGU/+wCOk98S2
+   mt+qRo0RlwLTJ9+t/fE1okDbEQr/6KKi86wCGqJN1kdCrutNYfeO1fJPfL1Gdp+hp3ryNulcIdqH
+   rC5xrewmZ7FFJlc3Ekiekx+6bHkAdklUaaDejhLpTD+nmOUVKw/7tLlUdTm7XyqSBWm6jmFEKiJq
+   Qk5O9MzQ5tz6/bBlYis/r7vrZkmwl/zqZcBWHAO9TKA5pVgV3ZyBbz0ATBYq9EahCEa+SB4hywKN
+   h5EQTCFcIZ58mKJe9HwLPPAnsFN88ijyvNzT0A==
+Received: by omta-ad3-fd3-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220517 64bit (built May 17
  2022))
- with ESMTPS id <0RD200L2E3A4CY90@omta-ad1-fd1-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Mon, 06 Jun 2022 12:42:04 +0000 (GMT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linuxfoundation.org;
- s=korg; t=1654519308; bh=ybkQ1l7Zd6+mM/BXueowcbsu4Aw1zS21Ci6SvxjNC6Y=;
- h=Subject:To:Cc:From:Date:From;
- b=eXR3VYV3gOjFZtT1DrYS59KGFtIOTdKEIiloTnmy9OvARjurVnuRtOXTYO9J5G4C6
- 4F9+0QTc2zti/xJJFnXqhQfFmICwkFXKHKgEHbd+UO1ww662a+s2G7gjonhX8aCKHX
- Nx/5rdF/83WaF/qtoGFn3xF4jTbIWIkI1uPy+3ZY=
-To: akpm@linux-foundation.org, gechangwei@live.cn, ghe@suse.com,
- gregkh@linuxfoundation.org, jiangqi903@gmail.com, jlbec@evilplan.org,
- joseph.qi@linux.alibaba.com, junxiao.bi@oracle.com, mark@fasheh.com,
- ocfs2-devel@oss.oracle.com, piaojun@huawei.com
-Date: Mon, 06 Jun 2022 14:38:12 +0200
-Message-id: <165451909265170@kroah.com>
+ with ESMTPS id <0RD200AD9B8R7W90@omta-ad3-fd3-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Mon, 06 Jun 2022 15:34:03 +0000 (GMT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=oracle.com;
+ h=message-id : date : subject : to : references : from : in-reply-to :
+ content-type : content-transfer-encoding : mime-version; s=corp-2021-07-09;
+ bh=HNVdt2P/VG5jU2TpwZgefB+PJCjGba7ktBavJdMi3m8=;
+ b=X3k3WSJGKn7UNsqI4iURTmGo6sdbRHtCaesZD3ipGiQTW4La8HkRlJCcCfBVB8AROcFj
+ XgbbxsNhiQJVAI1PICaOfj1abmVeslU7Pxm0Fn7YYv/CxAufT2TeH83PKkh0xBJ/PrcS
+ QzN29h0tIK4XpDVIyo2cV1EfeNPUoAH6WqQOK8dqax1TJxtbvLiS+yatZcWgmhnzWEMx
+ 8Q8G1x6CaFHxXUpAarszr7LvegZcptmkV9q5LdBKKl09FGi1lifCBxEbgpxMXxlQ65do
+ s7Llf9KbO4cBwX6QAAjd4tnfadKEE7iNATgcR4Ja/CQiPySl0gIN+8Gp6s5Y/npnDdhx 8A==
+ARC-Seal: i=1; a=rsa-sha256; s=arcselector9901; d=microsoft.com; cv=none;
+ b=Ob+0W9b9I5qKB2KoESYgWvJZG2nsCLSMmq3eIh8isLwoIOxNB2K0jMkQ7knSBqbQSEA+ytrAH/545xWu5lGs6Has4Pu+WMHzKQ5G+GrOi+WAukZwbaeWUctqGHKotpK/8Fc4wkcyVlRMMfXLPcsXnW7qZOADlOeLtyGflW7DHUHO3KhBOnOvh8TZd8vAvAj+e/a72CxCl6/QAs8jcVfLoTXoih5TpRuG7bT1jSvHv/cYMwVPp85hjbRTUCXCwbamqkMwN3KWH5/JCRsfk73//4lEbOhncUdi3P0///qiXoMpiKS4L3mgH62zRmDgqJwgoKV1kupyNtUPSrN4yZbHYQ==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=arcselector9901;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
+ bh=HNVdt2P/VG5jU2TpwZgefB+PJCjGba7ktBavJdMi3m8=;
+ b=mfaWYEB0pDQKRCZ3FKR5I3ELg8ORlcthL3v20E3wq1NFDdHU7Xrnai5HyRj9kDeha2DPv0LyhpjfW7iaBdLlouVLoR+jadZBUKF/5VMGSxJga/Nf25fhVIIyAYr7BHZUGHcw9Ummhj9K5288lq575t3aVGbvauD9eBEF5iIGnuBYyy5Syii/CYwmF4gUARo+Egn7uRUZ1TEK323Snw1ENU0Q9DzMKj3bZQaroCYPd4OCuAV8cvYRuoi/FRJQe1ayMbyb99r2sXbLtRXB0gdmiGzbeFhAlVs6bZC5eQ8fNPJlkqIdEAL01rSyR5Y1hwOEpIDBaufMZ7Gnd26ixfGgIQ==
+ARC-Authentication-results: i=1; mx.microsoft.com 1; spf=pass
+ smtp.mailfrom=oracle.com; dmarc=pass action=none header.from=oracle.com;
+ dkim=pass header.d=oracle.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=oracle.onmicrosoft.com;
+ s=selector2-oracle-onmicrosoft-com;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
+ bh=HNVdt2P/VG5jU2TpwZgefB+PJCjGba7ktBavJdMi3m8=;
+ b=FQy0c7TzNziT4EWhsf0V5MgXa9yX8ssaD1FmF7duex4AAFgMJPe33bDvzwEGKAmpL9Q3Peq2BP+pNkbv9Wqo2HdCw8VOaD2TxyCxQbuRr6HU1Rn389dz8vEeAOhmLwbPLmjY59fcuGyxUG0eWcC8Nz0ucSWnLItaVYFOnFXGyFU=
+Message-id: <c0902ca6-e6d1-a8fa-cb9c-4474a636bd18@oracle.com>
+Date: Mon, 6 Jun 2022 08:33:49 -0700
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:91.0)
+ Gecko/20100101 Thunderbird/91.9.1
+Content-language: en-US
+To: Joseph Qi <joseph.qi@linux.alibaba.com>, ocfs2-devel@oss.oracle.com
+References: <20220603223122.43174-1-junxiao.bi@oracle.com>
+ <ba010e81-5ac8-79f5-61c0-5aac46068388@linux.alibaba.com>
+In-reply-to: <ba010e81-5ac8-79f5-61c0-5aac46068388@linux.alibaba.com>
 MIME-version: 1.0
-X-Source-IP: 145.40.68.75
-X-Proofpoint-Virus-Version: vendor=nai engine=6400 definitions=10369
- signatures=594849
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0
- lowpriorityscore=0 clxscore=176 spamscore=0 impostorscore=0 phishscore=0
- suspectscore=0 bulkscore=0 malwarescore=0 mlxscore=0 mlxlogscore=999
- adultscore=0 priorityscore=136 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2204290000 definitions=main-2206060058
-Cc: stable-commits@vger.kernel.org
-Subject: [Ocfs2-devel] Patch
- "ocfs2: dlmfs: fix error handling of	user_dlm_destroy_lock" has been added to
- the 5.18-stable tree
+X-Forefront-Antispam-Report: CIP:255.255.255.255; CTRY:; LANG:en; SCL:-1; SRV:;
+ IPV:NLI; SFV:SKI; H:SJ0PR10MB4752.namprd10.prod.outlook.com; PTR:; CAT:NONE;
+ SFS:; DIR:INB;
+X-OriginatorOrg: oracle.com
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 06 Jun 2022 15:33:52.8056 (UTC)
+X-Proofpoint-Virus-Version: vendor=fsecure engine=2.50.10434:6.0.517,
+ 18.0.874 definitions=2022-06-06_04:2022-06-02, 2022-06-06 signatures=0
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 spamscore=0
+ mlxscore=0 bulkscore=0 malwarescore=0 phishscore=0 adultscore=0 suspectscore=0
+ mlxlogscore=999 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2204290000 definitions=main-2206060069
+Subject: Re: [Ocfs2-devel] [PATCH] ocfs2: kill EBUSY from dlmfs_evict_inode
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -65,244 +86,121 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: gregkh--- via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: gregkh@linuxfoundation.org
-Content-type: text/plain; charset="us-ascii"
+From: Junxiao Bi via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: Junxiao Bi <junxiao.bi@oracle.com>
 Content-transfer-encoding: 7bit
+Content-type: text/plain; charset="us-ascii"; Format="flowed"
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-stable: commit
-X-Patchwork-Hint: ignore
-X-ServerName: ams.source.kernel.org
-X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 ip4:72.55.140.81 ip4:52.25.139.140
- ip4:139.178.84.217 ip6:2604:1380:4641:c500::1 ip4:145.40.68.75
- ip6:2604:1380:4601:e00::1 ip4:145.40.73.55 ip6:2604:1380:40e1:4800::1
- include:_spf.google.com include:amazonses.com include:_spf.salesforce.com -all
-X-Spam: Clean
-X-Proofpoint-GUID: _Xnon6AQD8Le140ON1HLbrVD7G0CKRsX
-X-Proofpoint-ORIG-GUID: _Xnon6AQD8Le140ON1HLbrVD7G0CKRsX
+X-ClientProxiedBy: SN6PR2101CA0015.namprd21.prod.outlook.com
+ (2603:10b6:805:106::25) To SJ0PR10MB4752.namprd10.prod.outlook.com
+ (2603:10b6:a03:2d7::19)
+X-MS-PublicTrafficType: Email
+X-MS-Office365-Filtering-Correlation-Id: 4538ace8-f940-408f-622c-08da47d1f5fb
+X-MS-TrafficTypeDiagnostic: CH0PR10MB4843:EE_
+X-Oracle-Tenancy: 1
+X-Microsoft-Antispam: BCL:0;
+X-Microsoft-Antispam-Message-Info:
+ cqbOHlDzOEHwO1Vp3X4mM3N3jj2N/CUXxZ2OnRCPHl4hjxY7HQ8/Iucw5YuCxZr9jtP1s/3gFemv4ke7DsHpKE936ssSl+Ji1bCe0n1v21WehORPXKl42iznsGH0rs7b4i/YVvT5tyN/yHqx5FCSeLOdXRo47AWIl46759d8Wi94nCXDsx8lcMbwS1ygu2Uc4vIxlNp2Dpo+ohAyGKm67by2N5P3Y3UACIvixMb7EvTFIoQRbUk2iyDaFixkt1BqBWBC+2cqbln+G7q1RD7W5G7NT7lX8dBdzYxg50csz5bBVGXTpk6aJc2+TehmPYBY1IryeIxUAUyngLVns6hvICF7tbUbgH83tmqhAsvPLEh4WKd3b1LtyYVWVrxC0PTbSvzHkuMQ6gsCSCFbGnpXrd9luGKXTOgndbxy7DAOFZeU4uYvk1v6aA9ymgyKm15qBcruGPPx4afTVVvhKjXwF26O/9SKLGNS1DRm2xnrnAEL6bYk19sTrx1fJFGwngLyzd0sc+Qz6dfzh+YSwrqNtLn8D7p4J6KkNOUkCzds/Vsg5yG7xX+l/xfOtqVz2wTQbB2Fu0sH1ivUONm1jx7NoCr7caIqky91c319qCZIEBI=
+X-MS-Exchange-CrossTenant-Network-Message-Id:
+ 4538ace8-f940-408f-622c-08da47d1f5fb
+X-MS-Exchange-CrossTenant-AuthSource: SJ0PR10MB4752.namprd10.prod.outlook.com
+X-MS-Exchange-CrossTenant-AuthAs: Internal
+X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
+X-MS-Exchange-CrossTenant-Id: 4e2c6054-71cb-48f1-bd6c-3a9705aca71b
+X-MS-Exchange-CrossTenant-MailboxType: HOSTED
+X-MS-Exchange-CrossTenant-UserPrincipalName:
+ 9omV6ZlrtgZZ5ME1erApt6U2OvvDOE7EzUKC6VYHPWnBscpeKPwsykHKwOmhYN3KT6i9Kr2r05BYcuPcgh+alw==
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: CH0PR10MB4843
+X-Proofpoint-GUID: T9W2YFS_2HEtbe1pGA-aC5lTBNRImoBV
+X-Proofpoint-ORIG-GUID: T9W2YFS_2HEtbe1pGA-aC5lTBNRImoBV
 Reporting-Meta:
- AAF+lWUDTyUZqj0uwrWietGU2199lnWc9Y87ASB5lhiigsc6z66a4WIQG68AeK91
- uXbnNAxyMZcUOwADdjNFU8V2EzSdCCq4pH+K2VyIKPbBpXun/u3VAShDIBwG9a5z
- IdLoTyBmwLplshh5vuPMhNlllGHPlQWUfOeGnylqLf7ou9ZfNpRIh/yw2ZqtvwX4
- lurbRLdX6Xwf0FhU4YGCymoNzLI1P/CuPXf8LEcyxlRR3bmzASHjSD5cgZeZjIRL
- x9t86aqESMGOSHLJLL7VHdfLO97NRPam7JQMOvXBWFes5ZMuoC1N/boyF3OMONhS
- r+huAPGUtAlaafIA5stEEP/AoCMGdHZZU+atZ8V+8hFSoSX3yLb6tO313QPiqOCW
- kaiOSVHnacTCg9hIwbhbiybkF6qHKg1kRPfOTI/PtwDam9ULlfSbCDU0FGnfY9Ys
- hSiNQlKEAD+0mHpBnGybQPA3dKwhbgyxDNcNfFy9i5XUnsxC3zfH13X7n7NFULiS
- 3vOciP2Jm286SfzvBuNPJLOwPpxS/32XRcUDUlWxoHM=
+ AAH913V6zfyq+MJ5BR1t2O8tt1E0sNNbaI7Z9S20PRfxc8EYORDlgnNl0EMvwaLq
+ DHzsDQPw3T5sA63nVcbJqFAnUfHz/gGNoA9/u2FomyBZTYdSXrm6VahXWe3OquQd
+ tmFxEmoTUvMwUvbYNf1eW1FN/vcIuYQkCvh8vC2Wnhy/G3CuUnWv4Lt7BPKLRD02
+ LYogQxPk6jt/7Na5drq1h0nGB58eUbn4a0LZBbpc6RJmRBxOBae0hdnt3xThYjf+
+ sAwvf5Ik5fiyWVWdH8mbs48KeWlt9CbCJoFx3LF1Pv8R98ZohqJ/8nKEwFMuMSUb
+ pAs5auNBUCTdbYnPud088UePca2OnV475sQOet5lvone0dvtDBZGlcnAD0KEoA1F
+ 62Qt/Jt/GTdN2C8WkmLPwhQNsksk7g2s/I5vIkKFq/wAIpAyFI3boaV0JyB7YgJ9
+ mMrHLJxRC+DM97UOqtci+wPFEfv8dzxFPSmHB6Uwil/jkJNLG7QJG5V6FS6K10kf
+ 03EYcSYxv4RG3LVlE/SmDtIcmfflszLGXRhFt18emi6X
 
+On 6/5/22 6:46 AM, Joseph Qi wrote:
 
-This is a note to let you know that I've just added the patch titled
+>
+> On 6/4/22 6:31 AM, Junxiao Bi wrote:
+>> When unlink a dlmfs, first it will invoke dlmfs_unlink(), and then invoke
+>> dlmfs_evict_inode(), user_dlm_destroy_lock() is invoked in both places,
+>> the second one from dlmfs_evict_inode() will get EBUSY error because
+>> USER_LOCK_IN_TEARDOWN is already set in lockres. This doesn't affect
+>> any function, just the error log is anonying.
+> s/anonying/annoying
+>> Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
+>> ---
+>>   fs/ocfs2/dlmfs/dlmfs.c | 14 +++++++++++---
+>>   1 file changed, 11 insertions(+), 3 deletions(-)
+>>
+>> diff --git a/fs/ocfs2/dlmfs/dlmfs.c b/fs/ocfs2/dlmfs/dlmfs.c
+>> index e360543ad7e7..a120610dff7e 100644
+>> --- a/fs/ocfs2/dlmfs/dlmfs.c
+>> +++ b/fs/ocfs2/dlmfs/dlmfs.c
+>> @@ -296,17 +296,25 @@ static void dlmfs_evict_inode(struct inode *inode)
+>>   {
+>>   	int status;
+>>   	struct dlmfs_inode_private *ip;
+>> +	struct user_lock_res *lockres;
+>> +	int destroyed;
+>>   
+>>   	clear_inode(inode);
+>>   
+>>   	mlog(0, "inode %lu\n", inode->i_ino);
+>>   
+>>   	ip = DLMFS_I(inode);
+>> +	lockres = &ip->ip_lockres;
+>>   
+>>   	if (S_ISREG(inode->i_mode)) {
+>> -		status = user_dlm_destroy_lock(&ip->ip_lockres);
+>> -		if (status < 0)
+>> -			mlog_errno(status);
+>> +		spin_lock(&lockres->l_lock);
+>> +		destroyed = !!(lockres->l_flags & USER_LOCK_IN_TEARDOWN);
+>> +		spin_unlock(&lockres->l_lock);
+>> +		if (!destroyed) {
+>> +			status = user_dlm_destroy_lock(lockres);
+>> +			if (status < 0)
+>> +				mlog_errno(status);
+>> +		}
+>>   		iput(ip->ip_parent);
+>>   		goto clear_fields;
+>>   	}
+> As you describes, it firstly invokes unlink and then evict, but strictly
+> speaking, flag USER_LOCK_IN_TEARDOWN doesn't mean 'destroyed', it could
+> be destroying, destroyed, or even unattached.
+>
+> So how about just checking the flag like other places?
+> Something like:
+>
+> 	/* Don't destroy lockres twice */
+> 	spin_lock(&lockres->l_lock);
+> 	(lockres->l_flags & USER_LOCK_IN_TEARDOWN) {
+> 		spin_unlock(&lockres->l_lock);
+> 		goto skip;
+> 	}
+> 	spin_unlock(&lockres->l_lock);
+> 	status = user_dlm_destroy_lock(lockres);
+> 	...
+> skip:
+> 	iput(ip->ip_parent);
+> 	...
 
-    ocfs2: dlmfs: fix error handling of user_dlm_destroy_lock
+Sound like the concern is about the variable name, how about 
+s/destroyed/tearingdown ?
 
-to the 5.18-stable tree which can be found at:
-    http://www.kernel.org/git/?p=linux/kernel/git/stable/stable-queue.git;a=summary
+Thanks,
 
-The filename of the patch is:
-     ocfs2-dlmfs-fix-error-handling-of-user_dlm_destroy_lock.patch
-and it can be found in the queue-5.18 subdirectory.
+Junxiao.
 
-If you, or anyone else, feels it should not be added to the stable tree,
-please let <stable@vger.kernel.org> know about it.
-
-
-From 863e0d81b6683c4cbc588ad831f560c90e494bef Mon Sep 17 00:00:00 2001
-From: Junxiao Bi via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Date: Wed, 18 May 2022 16:52:24 -0700
-Subject: ocfs2: dlmfs: fix error handling of user_dlm_destroy_lock
-
-From: Junxiao Bi via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-
-commit 863e0d81b6683c4cbc588ad831f560c90e494bef upstream.
-
-When user_dlm_destroy_lock failed, it didn't clean up the flags it set
-before exit.  For USER_LOCK_IN_TEARDOWN, if this function fails because of
-lock is still in used, next time when unlink invokes this function, it
-will return succeed, and then unlink will remove inode and dentry if lock
-is not in used(file closed), but the dlm lock is still linked in dlm lock
-resource, then when bast come in, it will trigger a panic due to
-user-after-free.  See the following panic call trace.  To fix this,
-USER_LOCK_IN_TEARDOWN should be reverted if fail.  And also error should
-be returned if USER_LOCK_IN_TEARDOWN is set to let user know that unlink
-fail.
-
-For the case of ocfs2_dlm_unlock failure, besides USER_LOCK_IN_TEARDOWN,
-USER_LOCK_BUSY is also required to be cleared.  Even though spin lock is
-released in between, but USER_LOCK_IN_TEARDOWN is still set, for
-USER_LOCK_BUSY, if before every place that waits on this flag,
-USER_LOCK_IN_TEARDOWN is checked to bail out, that will make sure no flow
-waits on the busy flag set by user_dlm_destroy_lock(), then we can
-simplely revert USER_LOCK_BUSY when ocfs2_dlm_unlock fails.  Fix
-user_dlm_cluster_lock() which is the only function not following this.
-
-[  941.336392] (python,26174,16):dlmfs_unlink:562 ERROR: unlink
-004fb0000060000b5a90b8c847b72e1, error -16 from destroy
-[  989.757536] ------------[ cut here ]------------
-[  989.757709] kernel BUG at fs/ocfs2/dlmfs/userdlm.c:173!
-[  989.757876] invalid opcode: 0000 [#1] SMP
-[  989.758027] Modules linked in: ksplice_2zhuk2jr_ib_ipoib_new(O)
-ksplice_2zhuk2jr(O) mptctl mptbase xen_netback xen_blkback xen_gntalloc
-xen_gntdev xen_evtchn cdc_ether usbnet mii ocfs2 jbd2 rpcsec_gss_krb5
-auth_rpcgss nfsv4 nfsv3 nfs_acl nfs fscache lockd grace ocfs2_dlmfs
-ocfs2_stack_o2cb ocfs2_dlm ocfs2_nodemanager ocfs2_stackglue configfs bnx2fc
-fcoe libfcoe libfc scsi_transport_fc sunrpc ipmi_devintf bridge stp llc
-rds_rdma rds bonding ib_sdp ib_ipoib rdma_ucm ib_ucm ib_uverbs ib_umad
-rdma_cm ib_cm iw_cm falcon_lsm_serviceable(PE) falcon_nf_netcontain(PE)
-mlx4_vnic falcon_kal(E) falcon_lsm_pinned_13402(E) mlx4_ib ib_sa ib_mad
-ib_core ib_addr xenfs xen_privcmd dm_multipath iTCO_wdt iTCO_vendor_support
-pcspkr sb_edac edac_core i2c_i801 lpc_ich mfd_core ipmi_ssif i2c_core ipmi_si
-ipmi_msghandler
-[  989.760686]  ioatdma sg ext3 jbd mbcache sd_mod ahci libahci ixgbe dca ptp
-pps_core vxlan udp_tunnel ip6_udp_tunnel megaraid_sas mlx4_core crc32c_intel
-be2iscsi bnx2i cnic uio cxgb4i cxgb4 cxgb3i libcxgbi ipv6 cxgb3 mdio
-libiscsi_tcp qla4xxx iscsi_boot_sysfs libiscsi scsi_transport_iscsi wmi
-dm_mirror dm_region_hash dm_log dm_mod [last unloaded:
-ksplice_2zhuk2jr_ib_ipoib_old]
-[  989.761987] CPU: 10 PID: 19102 Comm: dlm_thread Tainted: P           OE
-4.1.12-124.57.1.el6uek.x86_64 #2
-[  989.762290] Hardware name: Oracle Corporation ORACLE SERVER
-X5-2/ASM,MOTHERBOARD,1U, BIOS 30350100 06/17/2021
-[  989.762599] task: ffff880178af6200 ti: ffff88017f7c8000 task.ti:
-ffff88017f7c8000
-[  989.762848] RIP: e030:[<ffffffffc07d4316>]  [<ffffffffc07d4316>]
-__user_dlm_queue_lockres.part.4+0x76/0x80 [ocfs2_dlmfs]
-[  989.763185] RSP: e02b:ffff88017f7cbcb8  EFLAGS: 00010246
-[  989.763353] RAX: 0000000000000000 RBX: ffff880174d48008 RCX:
-0000000000000003
-[  989.763565] RDX: 0000000000120012 RSI: 0000000000000003 RDI:
-ffff880174d48170
-[  989.763778] RBP: ffff88017f7cbcc8 R08: ffff88021f4293b0 R09:
-0000000000000000
-[  989.763991] R10: ffff880179c8c000 R11: 0000000000000003 R12:
-ffff880174d48008
-[  989.764204] R13: 0000000000000003 R14: ffff880179c8c000 R15:
-ffff88021db7a000
-[  989.764422] FS:  0000000000000000(0000) GS:ffff880247480000(0000)
-knlGS:ffff880247480000
-[  989.764685] CS:  e033 DS: 0000 ES: 0000 CR0: 0000000080050033
-[  989.764865] CR2: ffff8000007f6800 CR3: 0000000001ae0000 CR4:
-0000000000042660
-[  989.765081] Stack:
-[  989.765167]  0000000000000003 ffff880174d48040 ffff88017f7cbd18
-ffffffffc07d455f
-[  989.765442]  ffff88017f7cbd88 ffffffff816fb639 ffff88017f7cbd38
-ffff8800361b5600
-[  989.765717]  ffff88021db7a000 ffff88021f429380 0000000000000003
-ffffffffc0453020
-[  989.765991] Call Trace:
-[  989.766093]  [<ffffffffc07d455f>] user_bast+0x5f/0xf0 [ocfs2_dlmfs]
-[  989.766287]  [<ffffffff816fb639>] ? schedule_timeout+0x169/0x2d0
-[  989.766475]  [<ffffffffc0453020>] ? o2dlm_lock_ast_wrapper+0x20/0x20
-[ocfs2_stack_o2cb]
-[  989.766738]  [<ffffffffc045303a>] o2dlm_blocking_ast_wrapper+0x1a/0x20
-[ocfs2_stack_o2cb]
-[  989.767010]  [<ffffffffc0864ec6>] dlm_do_local_bast+0x46/0xe0 [ocfs2_dlm]
-[  989.767217]  [<ffffffffc084f5cc>] ? dlm_lockres_calc_usage+0x4c/0x60
-[ocfs2_dlm]
-[  989.767466]  [<ffffffffc08501f1>] dlm_thread+0xa31/0x1140 [ocfs2_dlm]
-[  989.767662]  [<ffffffff816f78da>] ? __schedule+0x24a/0x810
-[  989.767834]  [<ffffffff816f78ce>] ? __schedule+0x23e/0x810
-[  989.768006]  [<ffffffff816f78da>] ? __schedule+0x24a/0x810
-[  989.768178]  [<ffffffff816f78ce>] ? __schedule+0x23e/0x810
-[  989.768349]  [<ffffffff816f78da>] ? __schedule+0x24a/0x810
-[  989.768521]  [<ffffffff816f78ce>] ? __schedule+0x23e/0x810
-[  989.768693]  [<ffffffff816f78da>] ? __schedule+0x24a/0x810
-[  989.768893]  [<ffffffff816f78ce>] ? __schedule+0x23e/0x810
-[  989.769067]  [<ffffffff816f78da>] ? __schedule+0x24a/0x810
-[  989.769241]  [<ffffffff810ce4d0>] ? wait_woken+0x90/0x90
-[  989.769411]  [<ffffffffc084f7c0>] ? dlm_kick_thread+0x80/0x80 [ocfs2_dlm]
-[  989.769617]  [<ffffffff810a8bbb>] kthread+0xcb/0xf0
-[  989.769774]  [<ffffffff816f78da>] ? __schedule+0x24a/0x810
-[  989.769945]  [<ffffffff816f78da>] ? __schedule+0x24a/0x810
-[  989.770117]  [<ffffffff810a8af0>] ? kthread_create_on_node+0x180/0x180
-[  989.770321]  [<ffffffff816fdaa1>] ret_from_fork+0x61/0x90
-[  989.770492]  [<ffffffff810a8af0>] ? kthread_create_on_node+0x180/0x180
-[  989.770689] Code: d0 00 00 00 f0 45 7d c0 bf 00 20 00 00 48 89 83 c0 00 00
-00 48 89 83 c8 00 00 00 e8 55 c1 8c c0 83 4b 04 10 48 83 c4 08 5b 5d c3 <0f>
-0b 0f 1f 84 00 00 00 00 00 55 48 89 e5 41 55 41 54 53 48 83
-[  989.771892] RIP  [<ffffffffc07d4316>]
-__user_dlm_queue_lockres.part.4+0x76/0x80 [ocfs2_dlmfs]
-[  989.772174]  RSP <ffff88017f7cbcb8>
-[  989.772704] ---[ end trace ebd1e38cebcc93a8 ]---
-[  989.772907] Kernel panic - not syncing: Fatal exception
-[  989.773173] Kernel Offset: disabled
-
-Link: https://lkml.kernel.org/r/20220518235224.87100-2-junxiao.bi@oracle.com
-Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
-Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-Cc: Mark Fasheh <mark@fasheh.com>
-Cc: Joel Becker <jlbec@evilplan.org>
-Cc: Joseph Qi <jiangqi903@gmail.com>
-Cc: Changwei Ge <gechangwei@live.cn>
-Cc: Gang He <ghe@suse.com>
-Cc: Jun Piao <piaojun@huawei.com>
-Cc: <stable@vger.kernel.org>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
-Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
----
- fs/ocfs2/dlmfs/userdlm.c |   16 +++++++++++++++-
- 1 file changed, 15 insertions(+), 1 deletion(-)
-
---- a/fs/ocfs2/dlmfs/userdlm.c
-+++ b/fs/ocfs2/dlmfs/userdlm.c
-@@ -433,6 +433,11 @@ again:
- 	}
- 
- 	spin_lock(&lockres->l_lock);
-+	if (lockres->l_flags & USER_LOCK_IN_TEARDOWN) {
-+		spin_unlock(&lockres->l_lock);
-+		status = -EAGAIN;
-+		goto bail;
-+	}
- 
- 	/* We only compare against the currently granted level
- 	 * here. If the lock is blocked waiting on a downconvert,
-@@ -595,7 +600,7 @@ int user_dlm_destroy_lock(struct user_lo
- 	spin_lock(&lockres->l_lock);
- 	if (lockres->l_flags & USER_LOCK_IN_TEARDOWN) {
- 		spin_unlock(&lockres->l_lock);
--		return 0;
-+		goto bail;
- 	}
- 
- 	lockres->l_flags |= USER_LOCK_IN_TEARDOWN;
-@@ -609,12 +614,17 @@ int user_dlm_destroy_lock(struct user_lo
- 	}
- 
- 	if (lockres->l_ro_holders || lockres->l_ex_holders) {
-+		lockres->l_flags &= ~USER_LOCK_IN_TEARDOWN;
- 		spin_unlock(&lockres->l_lock);
- 		goto bail;
- 	}
- 
- 	status = 0;
- 	if (!(lockres->l_flags & USER_LOCK_ATTACHED)) {
-+		/*
-+		 * lock is never requested, leave USER_LOCK_IN_TEARDOWN set
-+		 * to avoid new lock request coming in.
-+		 */
- 		spin_unlock(&lockres->l_lock);
- 		goto bail;
- 	}
-@@ -625,6 +635,10 @@ int user_dlm_destroy_lock(struct user_lo
- 
- 	status = ocfs2_dlm_unlock(conn, &lockres->l_lksb, DLM_LKF_VALBLK);
- 	if (status) {
-+		spin_lock(&lockres->l_lock);
-+		lockres->l_flags &= ~USER_LOCK_IN_TEARDOWN;
-+		lockres->l_flags &= ~USER_LOCK_BUSY;
-+		spin_unlock(&lockres->l_lock);
- 		user_log_dlm_error("ocfs2_dlm_unlock", status, lockres);
- 		goto bail;
- 	}
-
-
-Patches currently in stable-queue which might be from ocfs2-devel@oss.oracle.com are
-
-queue-5.18/ocfs2-fix-mounting-crash-if-journal-is-not-alloced.patch
-queue-5.18/ocfs2-dlmfs-fix-error-handling-of-user_dlm_destroy_lock.patch
+> Thanks,
+> Joseph
 
 _______________________________________________
 Ocfs2-devel mailing list
