@@ -1,78 +1,54 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc255.phx1.oracleemaildelivery.com (aib29ajc255.phx1.oracleemaildelivery.com [192.29.103.255])
+Received: from aib29ajc253.phx1.oracleemaildelivery.com (aib29ajc253.phx1.oracleemaildelivery.com [192.29.103.253])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 1A5CCC43334
-	for <ocfs2-devel@archiver.kernel.org>; Mon,  6 Jun 2022 08:27:37 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id C10AEC43334
+	for <ocfs2-devel@archiver.kernel.org>; Mon,  6 Jun 2022 11:09:22 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=/g2gQ7+oy7+BBT/p4KUu1sZccgkOo43NFp7cNWf+8bg=;
- b=M24BGSYjHwIOosNIUabffG2SmpYStSjujks3qk/1l1W87YMdrM47t1sjyxdPL2nVcB/hvgxD/b0b
-   P1kmgiL60EuNxtR6pOD1gy4vYAiG1mRbZPwZgz2pD33B5wsxnu+4ykt/4vF4uCOjGtLe+1qWKETL
-   esB0GX5PmuYLK9s0Q6p9bMQuSVMEuvnUUkjjR/wgRmmgYThuTu5uxaZtqoUGBXvNeZzes5x+Uber
-   RzRuqyim9Ic7/rAr8QMat2se/rYR0vg/RZXIMiBdpEBvVZzkyzvisf0VQJAzN9vpj+GQiuG1A/6e
-   bru/doTydwUO0Lvv66qta77zPhfcvcNFpZ8OHQ==
+ bh=/ASFyVxZwV3o7wG/4J1x3Y4df9JPz6CN45Aj1a1fyHI=;
+ b=u/PfyLzznk7YR7TgEmQe+fxBTHbVXEEGG9gKeP1SWCkyRcew7HylaHFzZfyFsB0gJlHBFOsNLkGv
+   RiF1AKPs3SZhhgDVeGyC9vsKZ4x48wm7pq9sIGIEmsGhH3ihw7n1IZsO1fCCQ+cqbru7UQrfFS6f
+   gtEoe7ceA+b5a9ua0qcUjCS+E1IgWQTOaqdgrJy27iDt+2McEMNdwFts36YF5qMMOXFdJGGOk/Cp
+   8seVur3nVsyuiGkA162JQCX4buBL6l3Q/ZwMFnHrflwPRYZ8Dhnp9/NyssHeUW9fMiyh0s0s+d4D
+   kdm3ihkKk7DrSAoI6NalLqBFSZK0PsGU/qo43Q==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=/g2gQ7+oy7+BBT/p4KUu1sZccgkOo43NFp7cNWf+8bg=;
- b=exBg7K0MQi6nqWU9FY5SdwRhZchb1EVyIuUAejSrPBjxRXm1JXkDHQQ3wkigV0oMT2fKEZkKCBBN
-   81UqRvbXwNe4KCVhrloaMICoJ5ak8IggeX3PsJQG685Hym8/SRUSY3056HMKRTY1rv7Dg6zlIA9W
-   Z5zZCsNgEa+/DwzOoy8xIvYL7AxRip+D6c8XR/RH6TFIfNPtLtJZdj12kSIcLOXwW6zOTEIVdHDf
-   86/8epKBIaXRGfqTdNLwPLVJkg1OsI1j0BU6FF53B0nmRfQ5OHhd0wwPVhKaj0OblESNQHCTjZQ3
-   +PPkT73wHHmzP3VjbeDRkY+zgNb6SqVE3L0Kxg==
-Received: by omta-ad3-fd3-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
+ bh=/ASFyVxZwV3o7wG/4J1x3Y4df9JPz6CN45Aj1a1fyHI=;
+ b=C1NEs5Vvm57KbyXfDt+VkhcfkmdbX4a0EZb//andVqqjh/ZsMXeddBl2WLDS7+uYrRs0g44xc9dJ
+   ttkc/tWI4h7xBwIt6MhHVw09/jGpcCymZIP/9Qsb9Eyxtj6LhLjjVkfr3VP42RD8oqSnzvTf5SHx
+   N6uKb84R0op/qGxaSynxQNqVz2ERMpp1Nn56AipVy62EkkWaTGttFArRILtmwQaBaNy6iLOHE8++
+   KEIYUBhlg4TCfMDewIApOQ4/Mx/W45lxb8/EgsVhbSyW5MUBfioKnVa1Rh9X4eKiwc1seRUlr2Cz
+   2jDTXzLv3cDHilGN23EbG5rQ6+kPcj61wBNl2A==
+Received: by omta-ad3-fd1-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220517 64bit (built May 17
  2022))
- with ESMTPS id <0RD100CD4RI1TL70@omta-ad3-fd3-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Mon, 06 Jun 2022 08:27:37 +0000 (GMT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.com;
- s=mimecast20200619; t=1654504041;
- h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
- to:to:cc:cc:mime-version:mime-version:content-type:content-type:
- content-transfer-encoding:content-transfer-encoding:
- in-reply-to:in-reply-to:references:references;
- bh=Ys8Yekd5e7iMizyMPcd/jjJQgDyiBUcgtp9hBTOfvlk=;
- b=QYbLStb0bYYASAtA3+1Tpi/2keZQWdwklPC3CjnuoYzJZcPiKCXTIP60ge9rLH8ZUD3mr5
- xfsPCoV6Sf+TPMaV47T7OWfG2NGYlE/gEkH9qwFCd6qoOiy+VhZNC0QD9BQ7E+EMOv1bHE
- 8zdhu9ETixVH4S6s8ygc8BMSYcgSUBk=
-ARC-Seal: i=1; a=rsa-sha256; s=arcselector9901; d=microsoft.com; cv=none;
- b=WgkxbubltBN9lDrF8hjDHvyrjycxaRHKMkcxRY2tzDU777+eDI3Xi+vPrkiNZB5ftWTOR8KshyCs1BOEzhaMdLLqnyG99tJny9r4lGbFDZ6VA10m5iiXZ4gzgjn2dCSoyVL2JczE2i62ST1GTtynOSTCC5TajOawZ4HBFe+kO5ISEqAo/oVQTBEr7mO8DKt6JjdrdVHXxEDB7oFaRD2aWlhKlmfabR0+U7+gnP8NgfbKnatvrSBht3CuoybyBp4Z0l27DDJYpMKQZ3FB0uwWfw2yntRJTXSp1OFRTsOaD8HC8sgQr0t4QuQc6HnCzCYWCGA8GCY8TpksDk7nxWAurQ==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
- s=arcselector9901;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
- bh=2G8w8M08C8a1TdnKj6wXThr8dgRSBBDSCoNyEThjQqE=;
- b=nd4V0b49O2wmqoz+LsAuJDryKE4BbAIPq3B3n74G+A0zS6fwYiT473u7xaoyuT9ULlbbDVeRDhoEUQalKK6D1aSgdUBKVl+fZJXwBGwQbMliyG1xargtqysbTnJNRz/2WeZuEMxIlwKGdUZPLwAPPvh/ztDwGXw8W8kOpiUZB/DROeFlNSVfnHlKfdOhToR/3olbBlE3R1BP6cR2DHN9F9gnA1dJH5sZqRAoQaI3AJ2v2i+xiBCbgwWl2CACPOd6KzQeycD3aYAoQ1bQkccLfjuoBKSEcTWQCeWd5zYFu1dhUhDY3amZLt9pGhGJ6RWEzV/YRntVB/+RtKlGUcO9aQ==
-ARC-Authentication-results: i=1; mx.microsoft.com 1; spf=pass
- smtp.mailfrom=suse.com; dmarc=pass action=none header.from=suse.com; dkim=pass
- header.d=suse.com; arc=none
-Date: Mon, 6 Jun 2022 16:27:09 +0800
-To: Junxiao Bi <junxiao.bi@oracle.com>,
- "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>
-Message-id: <20220606082709.hzhlf3xuicbdtq6c@c73>
-References: <20220606020853.alh64eunicx5sjgs@c73>
-Content-disposition: inline
-In-reply-to: <20220606020853.alh64eunicx5sjgs@c73>
+ with ESMTPS id <0RD100DWNYZM6090@omta-ad3-fd1-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Mon, 06 Jun 2022 11:09:22 +0000 (GMT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org; s=k20201202;
+ t=1654513743; bh=MruCj8nej3dKAM7adIO1D35vODK2j1fka5uUIKnmzDM=;
+ h=From:To:Cc:Subject:Date:From;
+ b=MDPIu4EGGUqoK/hhGrM5pj+pZsbpncLnIDb7pZIcdnWzs/j1I/d6GoVTxmW/WjMqg
+ KAkuiskB+Nh9JsbULi9631VYTFLViD9SY1vfuk3kj/pnI7u8iSsygDWMbGa1oG0MxM
+ b0Cf2xgZOKO3nVYSOE0AipMLF/SgqfVwBjM8ZJLhgkbkgIkimaeXz3kn9Hl0LM4JRh
+ /jWZLwKuE05Ej4EvXjqA0Ht8zJ4FcnBFcUXGYCRpI83i2TP5/PHQO68kIfKBcOvx0B
+ tixll8i5YBSGTnX9ELVYm77Go14WTEihTqQqPzVco1YsEAaPGfSpwRmogeLqUE7lqZ
+ kQtzgTPVZXt9A==
+To: stable-commits@vger.kernel.org, ocfs2-devel@oss.oracle.com
+Date: Mon,  6 Jun 2022 07:09:00 -0400
+Message-id: <20220606110901.135983-1-sashal@kernel.org>
+X-Mailer: git-send-email 2.35.1
 MIME-version: 1.0
-X-Forefront-Antispam-Report: CIP:255.255.255.255; CTRY:; LANG:en; SCL:1; SRV:;
- IPV:NLI; SFV:NSPM; H:DB7PR04MB4666.eurprd04.prod.outlook.com; PTR:; CAT:NONE;
- SFS:(13230001)(7916004)(366004)(186003)(53546011)(83380400001)(316002)(6666004)(26005)(9686003)(110136005)(6512007)(33716001)(2906002)(508600001)(38100700002)(8936002)(86362001)(1076003)(5660300002)(6506007)(8676002)(4326008)(44832011)(66946007)(66476007)(66556008)(6486002);
- DIR:OUT; SFP:1101;
-X-OriginatorOrg: suse.com
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 06 Jun 2022 08:27:18.8304 (UTC)
-X-Source-IP: 194.104.111.102
+X-Source-IP: 145.40.73.55
 X-Proofpoint-Virus-Version: vendor=nai engine=6400 definitions=10369
  signatures=594849
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 suspectscore=0
- mlxlogscore=999 spamscore=0 adultscore=0 clxscore=242 malwarescore=0
- priorityscore=163 lowpriorityscore=0 bulkscore=0 impostorscore=0 mlxscore=0
- phishscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2204290000 definitions=main-2206060038
-Subject: Re: [Ocfs2-devel] [PATCH] Revert
- "ocfs2: mount shared volume without ha stack"
+Subject: [Ocfs2-devel] Patch
+ "ocfs2: fix mounting crash if journal is not	alloced" has been added to the
+ 5.18-stable tree
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -84,213 +60,259 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: Heming Zhao via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: Heming Zhao <heming.zhao@suse.com>
-Content-type: text/plain; charset="utf-8"
-Content-transfer-encoding: base64
+From: Sasha Levin via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: Sasha Levin <sashal@kernel.org>
+Content-type: text/plain; charset="us-ascii"
+Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-MC-Unique: 8bDaHJu4MW6hfDUCWsy6jQ-1
-X-ClientProxiedBy: SG3P274CA0024.SGPP274.PROD.OUTLOOK.COM (2603:1096:4:be::36)
- To DB7PR04MB4666.eurprd04.prod.outlook.com (2603:10a6:5:2b::14)
-X-MS-PublicTrafficType: Email
-X-MS-Office365-Filtering-Correlation-Id: 0a2fc27e-b348-40eb-3245-08da47965eba
-X-MS-TrafficTypeDiagnostic: DB8PR04MB6795:EE_
-X-Microsoft-Antispam-PRVS:
- <DB8PR04MB67950C2D1CD186E57D07A84D97A29@DB8PR04MB6795.eurprd04.prod.outlook.com>
-X-MS-Exchange-SenderADCheck: 1
-X-MS-Exchange-AntiSpam-Relay: 0
-X-Microsoft-Antispam: BCL:0;
-X-Microsoft-Antispam-Message-Info:
- Spt79asx7KmQ0Rw/0Pjg3Ot0jBGZwW0LcGyeemNQ7/lq7SYYsdXLFo3Phg/5BkisdG0le34GPfTBlFZhUsVzSNzsQcA449vTj8obUEzYpwm/tN7vD5R3y9MCvTzv5pgB3npB3RZNLV7+KNIsZ4pJKVxZD6yvNtXF7GXjzcl96xSLpvnwBqCFHMWHRgcE1+Y5550xWlLchoyfUFxQmQHjzYl6CAyXE/dhCWcuqFkLEU/LV4akk7mjhC0dHybRs8V2pz54GIskpucxjGuxru/nlrtb80qJymhbeklJoW4LOKtfmqfvytXO/SYyG+gu/ZvXXbU3Ytb8ylcyPC3RrbqrHgX9MZIUE8Nz+spTRyRPycZWxSNOIn8WH4wCOYA6HudAIS/i2TyfYe/Irn2I5brZtsf+Zt/lMU4Shy9+yBb15GeRWb2+g0q0GU0qIqkwC5FpqYzR2gAq6t/AmS4eFrduanG1Un+BUyyRguYXkFfe0LTodtXpNFNOOdJTfDz7zGxSC8VC1MlPQeX2ZCh1ryI3ho7bHQXD3wzmraatg6qKdiAm2nunpbbKLGguTMR3omn4Nh56C/eJ09yZGRI+k8iIrRvjsXdgw2k/X79gFevAG1lYkCVKUqiXAPM6TT53YvkiJLnG6yN/Itq5oQVY55Ctgw==
-X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
-X-MS-Exchange-AntiSpam-MessageData-0:
- =?us-ascii?Q?TggOgVe60I3Ans/OVOjNxqx78RBSdKK1brGheeebrIG4acvotpdVs6qSUrgN?=
- =?us-ascii?Q?VmTiSL61qwUInBfD2JLiSWzONbctVwdJeYEdSM4pL4m5kWC3r3LCONopp+WB?=
- =?us-ascii?Q?oQv7mr4d0MSCaHMtRdHuJ1kDeCDXj6Rz5UwVdwR0crnI2llbvH0sTCHgTnmo?=
- =?us-ascii?Q?HBhLpPs8rI0O+yAgR6CAgIY0nTVqKu82Z2KNARV0iq9EJiXVlkLCYhgxraZm?=
- =?us-ascii?Q?UlSCYYH735O+k5zFnvS4HhHsv6yjo+5gYm1RXKFGbksTVTDKS601StzwHKun?=
- =?us-ascii?Q?LTb4BafwCXSa6v+DwCCWo+j5yHLG5UNxMHd/8dxEMT9sQveU20FVHZYuZGFk?=
- =?us-ascii?Q?itxtLk/FWQA+BL8ZKvYoQgV8LW/8A1QU/x66GVk5QKjQLb+EpbEIOR1uD+B8?=
- =?us-ascii?Q?hPdPkECHFENC61F6NT4eBKrRX6OYN0h/r1qMCY2FfZIlQhaqAgrrdf3D81vT?=
- =?us-ascii?Q?78NVSdV1VMwcqs5CBfRgezzW2blRiM3EVy727vpQMvj5ql6kkvHEZBhai401?=
- =?us-ascii?Q?snJAE+uLet2lSWbolTcJ23Pbx8TKI1W8V8B4KpK2ldzyMHMPVfAIcp8kGL4W?=
- =?us-ascii?Q?xFoNmjM/Tr9aLV/ruZ03tZB6mjePs9pNhwwY9OGJ5mFem19QCalAOXs5KcDq?=
- =?us-ascii?Q?ZS1xxwyjkqVY/5nU7FZq/ChoTKwJulUf3l9o+2UFdPVHj8ThP2pzmEDjoTNs?=
- =?us-ascii?Q?59RAiXNtihcawTO9sYkrTyZRB/JKojV3C2QfpvaROHhIAxNxcuNcdLfJD2SJ?=
- =?us-ascii?Q?UHq42s80fZ7iGi8eSR63SL9oxhfVmQP2WkR+39U5TpyDtFvLa0IFx4bybS+c?=
- =?us-ascii?Q?CNfjx3Bz7EsU4TyogIzMp/SbCiTBccFaGg+4ocF/EqTjMPKMuYleyxUEfCv8?=
- =?us-ascii?Q?ThCu+K6snD4nIrwzsjl6/bcMne8owaRIeNO9QyyN8kN9tenRI/+Or6QITpPg?=
- =?us-ascii?Q?6pNme8gR7pzEMEh3rg68VJvmL0szaFWET6cbnL79MrfIwwQAEo7zWmSZ/pCj?=
- =?us-ascii?Q?H5sDZisf9vKSQwWeCW/h10DRgB6s2HlgRVNJ+Jxcl7XShab7Moxnt6HJAL3H?=
- =?us-ascii?Q?Gst4pUjV0NLJYt41V13BM62F/Jxrk6UkssYPNOXONmI/8hEzttBCGFLcuoDR?=
- =?us-ascii?Q?wZU5bH+fdZJXo6+HCfYz1ig5rw/7sGxTm+Jf5THhZvhzryIVQqrDLmp8Qjlm?=
- =?us-ascii?Q?EDCXUraOJsIOHoAyN3lQ1kGR0/M+kBvL9q2svPGT5SsUrJESA6+wLSzrSe2E?=
- =?us-ascii?Q?L2cJoPzay9mgH7vsJo0/P9jl7Y8dTO7rBmNHeiRuIfaJQQAQ4z8v6uiAm7Fl?=
- =?us-ascii?Q?UKJD611T5DqFD2uzoOIlGg1RkXsTyPtefgZjWlGPMxZSqB3MCwLJ3engSCya?=
- =?us-ascii?Q?hy/Vz2OeCIkSzIWlTsqJD8VjGLlqa9i7k3js0yXuvLDn47Fv77AgfdoCQUMT?=
- =?us-ascii?Q?pMEW06QycOUMC7iPfEeK1xhd25mSiSa6JPMKonsnKICERNWghWu4OtOWhq/r?=
- =?us-ascii?Q?TM6jx6Gcttv169ECEGFz2OjJtHsjOWhetBDv52sg8geioF3XxXojqLTyaKX0?=
- =?us-ascii?Q?AwFZnHndqxxC6hlz1Ftoqg2eYXWR3WqOkMDtb87qQSOrvqtMJwsTZum85l2x?=
- =?us-ascii?Q?ySWnYN4MfTNhTbBS1CkBTRh8dRv2iqaqXDNyIMnkRqZRC44ReXBdKEMMd7pc?=
- =?us-ascii?Q?JTO/0mg6rLkTvxGDCeKszF9s3xCpfR00df2b5gfuOwnpIJx84+kDt7vppIC+?=
- =?us-ascii?Q?wKmP09+rVA=3D=3D?=
-X-MS-Exchange-CrossTenant-Network-Message-Id:
- 0a2fc27e-b348-40eb-3245-08da47965eba
-X-MS-Exchange-CrossTenant-AuthSource: DB7PR04MB4666.eurprd04.prod.outlook.com
-X-MS-Exchange-CrossTenant-AuthAs: Internal
-X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
-X-MS-Exchange-CrossTenant-Id: f7a17af6-1c5c-4a36-aa8b-f5be247aa4ba
-X-MS-Exchange-CrossTenant-MailboxType: HOSTED
-X-MS-Exchange-CrossTenant-UserPrincipalName:
- 3cW975D56+ZtmD+cJ6p+UKdflfKMKaKlio1xfNPCc5fBNdf3o4xfl3PpTrwruAMviAB5rt48lgoZVxc6IuzLKA==
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: DB8PR04MB6795
-X-ServerName: de-smtp-delivery-102.mimecast.com
+X-Patchwork-Hint: ignore
+X-stable: review
+X-ServerName: sin.source.kernel.org
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 include:spf.suse.com
- include:de._netblocks.mimecast.com include:amazonses.com
- include:spf.protection.outlook.com include:_spf.qemailserver.com
- include:_spf.salesforce.com -all
-X-Spam: Clean
-X-Proofpoint-ORIG-GUID: tVNN8nGXZEsRy9jVfPLwYeBc7CMZJ2ln
-X-Proofpoint-GUID: tVNN8nGXZEsRy9jVfPLwYeBc7CMZJ2ln
+X-Proofpoint-SPF-Record: v=spf1 include:_spf.kernel.org ~all
+X-Proofpoint-Spam-Reason: safe
+X-Spam: OrgSafeList
+X-SpamRule: orgsafelist
+X-Proofpoint-GUID: SHQ7uHBZ5CsVTO6TMPm0jj_g0l8wp64Z
+X-Proofpoint-ORIG-GUID: SHQ7uHBZ5CsVTO6TMPm0jj_g0l8wp64Z
 Reporting-Meta:
- AAF5OI4J5t6w1OHpEa3hKPd/B2Hm3Apv8vXdLrIkSCSIbPcNVeMdZPkm052XfN3R
- g7mQ1mR90JfKtk+/Kq4XY8IYE6pOzMxB1ZpM1IK33k0ebHZVr0QRD6uF8o1zuSkK
- +I+rWbbivEt4egoJqAsDTbaJY1RSMOEyMB7lioWyLu5o5uZRHRK66OpTAMaAhQky
- rhF2ibjvceJbRbKk845Ip4OxrpZtekDTWhvuT9zR8TPKAqHOfXCHvzrJmYcL9s26
- gqJUskSMhLXVWXwFZDfLh699eYAztg+G/zAp4HZaPVyvhzhGw6+GDT/wWLGrf59q
- MCzheKCRyafYSIMK0CZJj196MP9CGMfI8A+YJRG3g/Q392qbdoZqFq2yoPooJxEn
- 9aj0L5by0SdtzNs6J0+muzhRDkxODjnvlba1QM5m5c8/MbtDRhuFl8bg6Iq6O+5t
- G9R+VD4MdQx7prpMG3jeqHCQNg8+moK2+B0yW6cVWkKfx4AO5dF2AXq6v95QCL8C
- 6mMe3ieSLfdJWPnjoGrwIsY/XbjPdHYoX6cr8m13CmI=
+ AAHzwHpFNiOUm4PsEg8XyHQKWYvFqZrs71lW6dsKHC6XWsrjvg0fNVMbdDw+sHa8
+ YRFv3cSbzquo+dlyBe4XEiG5fyxz1JOn1qM9JCCM+fAiPvCGxcazKbpliJ3QvFzg
+ AvEN+6HxwNjpKrPKoG5usf0/4OVAWeXg7g5zQWI6rKPb3uf17B+NjeFGuWDXsgXC
+ uPfC+IL3akJoVmfcJPJpeBRyb3GKmZ0h/kXgp9gKe8iCOR9YNJ6sYpoFy0iZcX1P
+ cZ8iB0yercr6eYFes5L51WbH6AWLJtpn9xQyDSfOOUNWLVebSa2GmLgNZ6uBsiaM
+ fvUbKXmn+9QeJjwFGkHswxP6qcMFhW0Qm+Tzldp+eZK2IRSRt8g9rZcSJ81dYeEP
+ yb7b4by1ZSDgzlO8RgS/Lk74xihBOhVh8kaAOJurKY9BTES4FEzl67XSVaKzOQNj
+ G38qNnWzpc1ssCtUHS+8SiPRMB38O8NR3Qi6/ydfAvL8cgj0/zwwUIDgWkHkxZ4r
+ ioi7LwOIrgM5NqOmYlklLtUQ1Vq9AkSzt9cHxGldR4U=
 
-T24gTW9uLCBKdW4gMDYsIDIwMjIgYXQgMTA6MDg6NTNBTSArMDgwMCwgaGVtaW5nLnpoYW8tLS0g
-dmlhIE9jZnMyLWRldmVsIHdyb3RlOgo+IEhlbGxvIEp1bnhpYW8sCj4gCj4gRmlyc3Qgb2YgYWxs
-LCBsZXQncyB0dXJuIHRvIHRoZSBzYW1lIGNoYW5uZWwgdG8gZGlzY3VzcyB5b3VyIHBhdGNoLgo+
-IFRoZXJlIGFyZSB0d28gZmVhdHVyZXM6ICdsb2NhbCBtb3VudCcgJiAnbm9jbHVzdGVyIG1vdW50
-Jy4KPiBJIG1pc3Rha2VubHkgd3JvdGUgbG9jYWwtbW91bnQgb24gc29tZSBwbGFjZSBpbiBwcmV2
-aW91cyBtYWlscy4KPiBUaGlzIHBhdGNoIHJldmVydCBjb21taXQgOTEyZjY1NWQ3OGM1ZDQsIHdo
-aWNoIGlzIHJlbGF0ZWQgd2l0aCAnbm9jbHVzdGVyIG1vdW50Jy4KPiAKPiAKPiBPbiA2LzUvMjIg
-MDA6MTksIEp1bnhpYW8gQmkgd3JvdGU6Cj4gPiAKPiA+IAo+ID4+IOWcqCAyMDIy5bm0NuaciDTm
-l6XvvIzkuIrljYgxOjQ177yMaGVtaW5nLnpoYW9Ac3VzZS5jb20g5YaZ6YGT77yaCj4gPj4KPiA+
-PiDvu79IZWxsbyBKdW54aWFvLAo+ID4+Cj4gPj4+IE9uIDYvNC8yMiAwNjoyOCwgSnVueGlhbyBC
-aSB2aWEgT2NmczItZGV2ZWwgd3JvdGU6Cj4gPj4+IFRoaXMgcmV2ZXJ0cyBjb21taXQgOTEyZjY1
-NWQ3OGM1ZDRhZDA1ZWFjMjg3ZjIzYTQzNTkyNGRmNzE0NC4KPiA+Pj4gVGhpcyBjb21taXQgaW50
-cm9kdWNlZCBhIHJlZ3Jlc3Npb24gdGhhdCBjYW4gY2F1c2UgbW91bnQgaHVuZy4KPiA+Pj4gVGhl
-IGNoYW5nZXMgaW4gX19vY2ZzMl9maW5kX2VtcHR5X3Nsb3QgY2F1c2VzIHRoYXQgYW55IG5vZGUg
-d2l0aAo+ID4+PiBub25lLXplcm8gbm9kZSBudW1iZXIgY2FuIGdyYWIgdGhlIHNsb3QgdGhhdCB3
-YXMgYWxyZWFkeSB0YWtlbiBieQo+ID4+PiBub2RlIDAsIHNvIG5vZGUgMSB3aWxsIGFjY2VzcyB0
-aGUgc2FtZSBqb3VybmFsIHdpdGggbm9kZSAwLCB3aGVuIGl0Cj4gPj4+IHRyeSB0byBncmFiIGpv
-dXJuYWwgY2x1c3RlciBsb2NrLCBpdCB3aWxsIGh1bmcgYmVjYXVzZSBpdCB3YXMgYWxyZWFkeQo+
-ID4+PiBhY3F1aXJlZCBieSBub2RlIDAuCj4gPj4+IEl0J3MgdmVyeSBlYXN5IHRvIHJlcHJvZHVj
-ZSB0aGlzLCBpbiBvbmUgY2x1c3RlciwgbW91bnQgbm9kZSAwIGZpcnN0LAo+ID4+PiB0aGVuIG5v
-ZGUgMSwgeW91IHdpbGwgc2VlIHRoZSBmb2xsb3dpbmcgY2FsbCB0cmFjZSBmcm9tIG5vZGUgMS4K
-PiA+Pgo+ID4+ICBGcm9tIHlvdXIgZGVzY3JpcHRpb24sIGl0IGxvb2tzIHlvdXIgZW52IG1peGVk
-IGxvY2FsLW1vdW50ICYgY2x1c3RlcmVkLW1vdW50Lgo+ID4gTm8sIG9ubHkgY2x1c3RlciBtb3Vu
-dC4KPiA+Pgo+ID4+IENvdWxkIHlvdSBtaW5kIHRvIHNoYXJlIHlvdXIgdGVzdC9yZXByb2R1Y2li
-bGUgc3RlcHMuCj4gPj4gQW5kIHdoaWNoIGhhIHN0YWNrIGRvIHlvdSB1c2UsIHBtY2sgb3IgbzJj
-Yj8KPiA+Pgo+ID4+IEkgZmFpbGVkIHRvIHJlcHJvZHVjZSBpdCwgbXkgdGVzdCBzdGVwcyAod2l0
-aCBwY21rIHN0YWNrKToKPiA+PiBgYGAKPiA+PiBub2RlMToKPiA+PiBtb3VudCAtdCBvY2ZzMiAv
-ZGV2L3ZkZCAvbW50Cj4gPj4KPiA+PiBub2RlMjoKPiA+PiBmb3IgaSBpbiB7MS4uMTAwfTsgZG8K
-PiA+PiBlY2hvICJtb3VudCA8JGk+IjsgbW91bnQgLXQgb2NmczIgL2Rldi92ZGQgL21udDsKPiA+
-PiBzbGVlcCAzOwo+ID4+IGVjaG8gInVtb3VudCI7IHVtb3VudCAvbW50Owo+ID4+IGRvbmUKPiA+
-PiBgYGAKPiA+Pgo+ID4gVHJ5IHNldCBvbmUgbm9kZSB3aXRoIG5vZGUgbnVtYmVyIDAgYW5kIG1v
-dW50IGl0IHRoZXJlIGZpcnN0LiBJIHVzZWQgbzJjYiBzdGFjay4KPiAKPiBDb3VsZCB5b3Ugc2hv
-dyBtb3JlIHRlc3QgaW5mby9zdGVwcy4gSSBjYW4ndCBmb2xsb3cgeW91ciBtZWFuaW5nLgo+IEhv
-dyB0byBzZXQgdXAgYSBub2RlIHdpdGggYSBmaXggbm9kZSBudW1iZXI/Cj4gV2l0aCBteSB1bmRl
-cnN0YW5kaW5nLCB1bmRlciBwY21rIGVudiwgdGhlIGZpcnN0IG1vdW50ZWQgbm9kZSB3aWxsIGF1
-dG8gZ290IG5vZGUKPiBudW1iZXIgMSAob3IgYW55IHZhbHVlIGdyZWF0IHRoYW4gMCkuIGFuZCB0
-aGVyZSBpcyBubyBwbGFjZSB0byBzZXQgbm9kZSBudW1iZXIKPiBieSBoYW5kLiBJdCdzIHZlcnkg
-bGlrZWx5IHlvdSBtaXhlZCB0byB1c2Ugbm9jbHVzdGVyICYgY2x1c3RlciBtb3VudC4KPiBJZiBt
-eSBzdXNwZWN0IHJpZ2h0IChtaXhlZCBtb3VudCksIHlvdXIgdXNlIGNhc2UgaXMgd3JvbmcuCj4g
-Cj4gPj4gVGhpcyBsb2NhbCBtb3VudCBmZWF0dXJlIGhlbHBzIFNVU0UgY3VzdG9tZXJzIHRvIG1h
-aW50YWluIG9jZnMyIHBhcnRpdGlvbiwgaXQncyB1c2VmdWwuCj4gPj4gSSB3YW50IHRvIGZpbmQg
-d2hldGhlciB0aGVyZSBpcyBhIGlkZWFyIHdheSB0byBmaXggdGhlIGh1bmcgaXNzdWUuCj4gPj4K
-PiA+Pj4gWzEzMTQ4LjczNTQyNF0gSU5GTzogdGFzayBtb3VudC5vY2ZzMjo1MzA0NSBibG9ja2Vk
-IGZvciBtb3JlIHRoYW4gMTIyIHNlY29uZHMuCj4gPj4+IFsxMzE0OC43Mzk2OTFdICAgICAgIE5v
-dCB0YWludGVkIDUuMTUuMC0yMTQ4LjAuNC5lbDh1ZWsubW91bnRyYWNldjIueDg2XzY0ICMyCj4g
-Pj4+IFsxMzE0OC43NDI1NjBdICJlY2hvIDAgPiAvcHJvYy9zeXMva2VybmVsL2h1bmdfdGFza190
-aW1lb3V0X3NlY3MiIGRpc2FibGVzIHRoaXMgbWVzc2FnZS4KPiA+Pj4gWzEzMTQ4Ljc0NTg0Nl0g
-dGFzazptb3VudC5vY2ZzMiAgICAgc3RhdGU6RCBzdGFjazogICAgMCBwaWQ6NTMwNDUgcHBpZDog
-NTMwNDQgZmxhZ3M6MHgwMDAwNDAwMAo+ID4+PiBbMTMxNDguNzQ5MzU0XSBDYWxsIFRyYWNlOgo+
-ID4+PiAuLi4KPiA+Pj4gVG8gZml4IGl0LCB3ZSBjYW4ganVzdCBmaXggX19vY2ZzMl9maW5kX2Vt
-cHR5X3Nsb3QuIEJ1dCBvcmlnaW5hbCBjb21taXQKPiA+Pj4gaW50cm9kdWNlZCB0aGUgZmVhdHVy
-ZSB0byBtb3VudCBvY2ZzMiBsb2NhbGx5IGV2ZW4gaXQgaXMgY2x1c3RlciBiYXNlZCwKPiA+Pj4g
-dGhhdCBpcyBhIHZlcnkgZGFuZ2Vyb3VzLCBpdCBjYW4gZWFzaWx5IGNhdXNlIHNlcmlvdXMgZGF0
-YSBjb3JydXB0aW9uLAo+ID4+PiB0aGVyZSBpcyBubyB3YXkgdG8gc3RvcCBvdGhlciBub2RlcyBt
-b3VudGluZyB0aGUgZnMgYW5kIGNvcnJ1cHRpbmcgaXQuCj4gPj4KPiA+PiBJIGNhbid0IGZvbGxv
-dyB5b3VyIG1lYW5pbmcuIFdoZW4gdXNlcnMgd2FudCB0byB1c2UgbG9jYWwgbW91bnQgZmVhdHVy
-ZSwgdGhleSBNVVNUIGtub3cKPiA+PiB3aGF0IHRoZXkgYXJlIGRvaW5nLCBhbmQgaG93IHRvIHVz
-ZSBpdC4KPiA+IEkgY2Fu4oCZdCBhZ3JlZSB3aXRoIHlvdS4gVGhlcmUgaXMgbm8gIG1lY2hhbmlz
-bSB0byBtYWtlIHN1cmUgY3VzdG9tZXIgd2lsbCBmb2xsb3cgdGhhdCwgeW91IGNhbuKAmXQgZXhw
-ZWN0IGN1c3RvbWVyIHVuZGVyc3RhbmQgdGVjaCB3ZWxsIG9yIGV2ZW4gcmVhZCB0aGUgZG9jLgo+
-IAo+IHllcywgbm8gb25lIHJlYWRzIGRvYyBieSBkZWZhdWx0Lgo+IAo+IGN1cnJlbnRseSwgbW91
-bnQgd2l0aCBvcHRpb24gJ25vY2x1c3Rlcicgd2lsbCBzaG93IHNwZWNpYWwgaW5mbyB0byB1c2Vy
-Ogo+IAo+IGBgYAo+ICMgbW91bnQgLXQgb2NmczIgLW8gbm9jbHVzdGVyIC9kZXYvdmRkIC9tbnQK
-PiBXYXJuaW5nOiB0byBtb3VudCBhIGNsdXN0ZXJlZCB2b2x1bWUgd2l0aG91dCB0aGUgY2x1c3Rl
-ciBzdGFjay4KPiBQbGVhc2UgbWFrZSBzdXJlIHlvdSBvbmx5IG1vdW50IHRoZSBmaWxlIHN5c3Rl
-bSBmcm9tIG9uZSBub2RlLgo+IE90aGVyd2lzZSwgdGhlIGZpbGUgc3lzdGVtIG1heSBiZSBkYW1h
-Z2VkLgo+IFByb2NlZWQgKHkvTik6Cj4gYGBgCj4gCj4gPiBJdOKAmXMgbm90IHRoZSBjYXNlIHRo
-YXQgeW91IGRvbuKAmXQgaGF2ZSBjaG9pY2UsIHNldHVwIGNsdXN0ZXIgc3RhY2sgaXMgdGhlIHdh
-eSB0byBzdG9wIGN1c3RvbWVyIGRvaW5nIHNvbWV0aGluZyBiYWQsIEkgYmVsaWV2ZSB5b3UgaGF2
-ZSB0byBlZHVjYXRlIGN1c3RvbWVyIHRvIHVuZGVyc3RhbmQgdGhpcyBpcyB0aGUgY29zdCB0byBn
-dWFyZCBkYXRhIHNlY3VyaXR5LCBvdGhlcndpc2Ugd2hlbiBzb21ldGhpbmcgYmFkIGhhcHBlbnMs
-IHRoZXkgd2lsbCBsb3NlIGltcG9ydGFudCBkYXRhLCBtYXliZSBldmVuIG5vIHdheSB0byByZWNv
-dmVyLgo+IAo+IFRoaXMgZmVhdHVyZSBpcyBub3QgZW5hYmxlZCBieSBkZWZhdWx0LCBhbmQgYWxz
-byBzaG93cyBlbm91Z2ggaW5mby93YXJuIGJlZm9yZSBleGVjdXRpbmcuCj4gSSBnaXZlIChtYXkg
-YXdrd2FyZCkgYW5vdGhlciBleGFtcGxlOgo+IG5vY2x1c3RlciBtb3VudCBsaWtlcyBleGVjdXRp
-bmcgY29tbWFuZCAncm0gLXJmIC8nLCBkbyB5b3UgdGhpbmsgd2Ugc2hvdWxkCj4gdGVsbC9lZHVj
-YXRlIGN1c3RvbWVyIGRvIG5vdCBleGVjdXRlIGl0Pwo+IAo+IFRoZSBub2NsdXN0ZXIgbW91bnQg
-ZmVhdHVyZSB3YXMgZGVzaWduZWQgdG8gcmVzb2x2ZSBjdXN0b21lciBwYWluIHBvaW50IGZyb20g
-cmVhbCB3b3JsZDoKPiBTVVNFIEhBIHN0YWNrIHVzZXMgcGFjZW1ha2VyK2Nvcm9zeW5jK2ZzZGxt
-K29jZnMyLCB3aGljaCBjb21wbGljYXRlcy9pbmNvbnZlbmllbmNlcwo+IHRvIHNldCB1cC4gYW5k
-IG5lZWQgdG8gaW5zdGFsbCBkb3plbnMgb2YgcmVsYXRlZCBwYWNrYWdlcy4KPiAKPiBUaGUgbm9j
-bHVzdGVyIGZlYXR1cmUgbWFpbiB1c2UgY2FzZToKPiBjdXN0b21lciB3YW50cyB0byBhdm9pZCB0
-byBzZXQgdXAgSEEgc3RhY2ssIGJ1dCB0aGV5IHdhbnRzIHRvIGNoZWNrIG9jZnMyIHZvbHVtZQo+
-IG9yIGRvIGJhY2t1cCB2b2x1bWUuCj4gCj4gSW4gbXkgb3Bpbmlvbiwgd2Ugc2hvdWxkIG1ha2Ug
-b2NmczIgbW9yZSBwb3dlcmZ1bCBhbmQgaW5jbHVkZSBtb3JlIHVzZWZ1bCBmZWF0dXJlcyBmb3Ig
-dXNlcnMuCj4gSWYgdGhlcmUgYXJlIHNvbWUgcHJvYmxlbXMgcmVsYXRlZCBuZXcgZmVhdHVyZSwg
-d2Ugc2hvdWxkIGRvIG91ciBiZXN0IHRvIGZpeCBpdCBub3QgcmV2ZXJ0IGl0LgoKSSBhbSBub3Qg
-ZmFtaWxpYXIgd2l0aCBvMmNiIHN0YWNrLiBJZiBvMmNiIGNvdWxkIGdpdmUgYSBub2RlIHdpdGgg
-bm9kZQpudW1iZXIgWkVSTywgSSBoYXZlIGFuIGlkZWEgdG8gYXZvaWQgbWl4ZWQgbm9uY2x1c3Rl
-ciAmIGNsdXN0ZXIgbW91bnRpbmcuCgp0aGVyZSBpcyBzbG90IG1hcCBtYW5hZ2VtZW50IHN0cnVj
-dDoKCnN0cnVjdCBvY2ZzMl9leHRlbmRlZF9zbG90IHsKLyowMCovCV9fdTgJZXNfdmFsaWQ7Cglf
-X3U4CWVzX3Jlc2VydmVkMVszXTsKCV9fbGUzMgllc19ub2RlX251bTsKLyowOCovCn07Cgp3ZSBj
-b3VsZCB1c2UgdGhlIGVzX3Jlc2VydmVkMVswXSB0byBnaXZlIG5vY2x1c3RlciBtb3VudCBhIHNw
-ZWljYWwgZmxhZy4KbWF5YmUgd2UgY291bGQgZGVmaW5lOgoKI2RlZmluZSBPQ0ZTMl9OT0NMVVNU
-RVJfTU9VTlQgMQppZiAoWFgtPmVzX3Jlc2VydmVkMVswXSA9PSBPQ0ZTMl9OT0NMVVNURVJfTU9V
-TlQpCgl0aGlzX3Nsb3RfaXNfbW91bnRlZF9ieV9ub2NsdXN0ZXJlZF9tb2RlOwoKdGhlIGNvZGUg
-bG9naWM6Ci0gV2hlbiBub2NsdXN0ZXIgbW91bnQsIGNoZWNrIHRoZSBlc192YWxpZCBmb3IgZXhp
-c3RpbmcgY2x1c3RlcmVkIG1vdW50LAogIGNoZWNrIHRoZSBlc19yZXNlcnZlZDFbMF0gZm9yIGV4
-aXN0aW5nIG5vY2x1c3RlcmVkIG1vdW50LgogIElmIG5vIG90aGVyIG5vZGVzIG1vdW50ZWQsIGRv
-IHRoZSBub2NsdXN0ZXJlZCBtb3VudCwgYW5kIHNldCBlc19yZXNlcnZlZDFbMF0KICB3aXRoIE9D
-RlMyX05PQ0xVU1RFUl9NT1VOVC4gVGhlbiBjbGVhciB0aGlzIHZhbHVlIHdoZW4gdW5tb3VudC4K
-LSBXaGVuIGFub3RoZXIgbm9kZSBwcmVwYXJlcyB0byBtb3VudCB3aXRoIGNsdXN0ZXJlZCBtb2Rl
-LCBpdCBzaG91bGQgY2hlY2sKICBlc19yZXNlcnZlZDFbMF0gZm9yIGRldGVjdGluZyBub2NsdXN0
-ZXJlZCBtb3VudC4gb2NmczIgc2hvdWxkIGJsb2NrIHRoZSBtb3VudAogIGFjdGlvbiBpZiBhbnkg
-c2xvdCBpcyBtYXJrZWQgd2l0aCBPQ0ZTMl9OT0NMVVNURVJfTU9VTlQuIChtYWtlIG5vY2x1c3Rl
-cmVkCiAgbW91bnQgdW5pcXVlKQoKVGhhbmtzLApIZW1pbmcKCj4gCj4gPj4KPiA+PiAgRnJvbSBt
-b3VudC5vY2ZzMiAoOCksIHRoZXJlIGFsc28gd3JpdGVzICpvbmx5KiBtb3VudCBmcyBvbiAqb25l
-KiBub2RlIGF0IHRoZSBzYW1lIHRpbWUuCj4gPj4gQW5kIGFsc28gdGVsbCB1c2VyIGZzIHdpbGwg
-YmUgZGFtYWdlZCB1bmRlciB3cm9uZyBhY3Rpb24uCj4gPj4KPiA+PiBgYGAKPiA+PiBub2NsdXN0
-ZXIKPiA+Pgo+ID4+ICAgVGhpcyAgb3B0aW9uICBhbGxvd3MgIHVzZXJzICB0byAgbW91bnQgYSBj
-bHVzdGVyZWQgdm9sdW1lIHdpdGhvdXQgY29uZmlndXJpbmcgdGhlIGNsdXN0ZXIKPiA+PiAgIHN0
-YWNrLiAgSG93ZXZlciwgeW91IG11c3QgYmUgYXdhcmUgdGhhdCB5b3UgY2FuIG9ubHkgbW91bnQg
-dGhlIGZpbGUgc3lzdGVtIGZyb20gb25lICBub2RlCj4gPj4gICBhdCB0aGUgc2FtZSB0aW1lLCBv
-dGhlcndpc2UsIHRoZSBmaWxlIHN5c3RlbSBtYXkgYmUgZGFtYWdlZC4gUGxlYXNlIHVzZSBpdCB3
-aXRoIGNhdXRpb24uCj4gPj4gYGBgCj4gPj4KPiA+Pj4gU2V0dXAgaGEgb3Igb3RoZXIgY2x1c3Rl
-ci1hd2FyZSBzdGFjayBpcyBqdXN0IHRoZSBjb3N0IHRoYXQgd2UgaGF2ZSB0bwo+ID4+PiB0YWtl
-IGZvciBhdm9pZGluZyBjb3JydXB0aW9uLCBvdGhlcndpc2Ugd2UgaGF2ZSB0byBkbyBpdCBpbiBr
-ZXJuZWwuCj4gPj4KPiA+PiBJdCdzIGEgbGl0dGxlIGJpdCBzZXJpb3VzIHRvIHRvdGFsbHkgcmV2
-ZXJ0IHRoaXMgY29tbWl0IGp1c3QgdW5kZXIgbGFja2luZyBzYW5pdHkKPiA+PiBjaGVjay4gSWYg
-eW91IG9yIG1haW50YWluZXIgdGhpbmsgdGhlIGxvY2FsIG1vdW50IHNob3VsZCBkbyBtb3JlIGpv
-YnMgdG8gcHJldmVudCBtaXgKPiA+PiBsb2NhbC1tb3VudCBhbmQgY2x1c3RlcmVkLW1vdW50IHNj
-ZW5hcmlvLCB3ZSBjb3VsZCBhZGQgbW9yZSBzYW5pdHkgY2hlY2sgZHVyaW5nCj4gPj4gbG9jYWwg
-bW91bnRpbmcuCj4gPiBJIGRvbuKAmXQgdGhpbmsgdGhpcyBzaG91bGQgYmUgZG9uZSBpbiBrZXJu
-ZWwuIFNldHVwIGNsdXN0ZXIgc3RhY2sgaXMgdGhlIHdheSB0byBmb3J3YXJkLgo+ID4gCj4gCj4g
-bXkgbWlzdGFrZTogYWxsIGFib3ZlICdsb2NhbCBtb3VudCcgc2hvdWxkIGJlICdub2NsdXN0ZXIg
-bW91bnQnLgo+IAo+IEF0IGxhc3QsIGxldCdzIHRvdGFsbHkgdW5kZXJzdGFuZCB5b3VyIHVzZSBj
-YXNlIChvciByZXByb2R1Y2UgeW91ciBodW5nIGlzc3VlKS4KPiAKPiBUaGFua3MsCj4gSGVtaW5n
-Cj4gCgoKX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX18KT2Nm
-czItZGV2ZWwgbWFpbGluZyBsaXN0Ck9jZnMyLWRldmVsQG9zcy5vcmFjbGUuY29tCmh0dHBzOi8v
-b3NzLm9yYWNsZS5jb20vbWFpbG1hbi9saXN0aW5mby9vY2ZzMi1kZXZlbA==
+This is a note to let you know that I've just added the patch titled
+
+    ocfs2: fix mounting crash if journal is not alloced
+
+to the 5.18-stable tree which can be found at:
+    http://www.kernel.org/git/?p=linux/kernel/git/stable/stable-queue.git;a=summary
+
+The filename of the patch is:
+     ocfs2-fix-mounting-crash-if-journal-is-not-alloced.patch
+and it can be found in the queue-5.18 subdirectory.
+
+If you, or anyone else, feels it should not be added to the stable tree,
+please let <stable@vger.kernel.org> know about it.
+
+
+
+commit 1a949da1de4e74eddc8eb56723e5d4dabeac9d39
+Author: Heming Zhao via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Date:   Fri Apr 29 14:37:58 2022 -0700
+
+    ocfs2: fix mounting crash if journal is not alloced
+    
+    [ Upstream commit bb20b31dee1a6c329c2f721fbe21c51945cdfc29 ]
+    
+    Patch series "rewrite error handling during mounting stage".
+    
+    This patch (of 5):
+    
+    After commit da5e7c87827e8 ("ocfs2: cleanup journal init and shutdown"),
+    journal init later than before, it makes NULL pointer access in free
+    routine.
+    
+    Crash flow:
+    
+    ocfs2_fill_super
+     + ocfs2_mount_volume
+     |  + ocfs2_dlm_init //fail & return, osb->journal is NULL.
+     |  + ...
+     |  + ocfs2_check_volume //no chance to init osb->journal
+     |
+     + ...
+     + ocfs2_dismount_volume
+        ocfs2_release_system_inodes
+          ...
+           evict
+            ...
+             ocfs2_clear_inode
+              ocfs2_checkpoint_inode
+               ocfs2_ci_fully_checkpointed
+                time_after(journal->j_trans_id, ci->ci_last_trans)
+                 + journal is empty, crash!
+    
+    For fixing, there are three solutions:
+    
+    1> Partly revert commit da5e7c87827e8
+    
+       For avoiding kernel crash, this make sense for us.  We only
+       concerned whether there has any non-system inode access before dlm
+       init.  The answer is NO.  And all journal replay/recovery handling
+       happen after dlm & journal init done.  So this method is not graceful
+       but workable.
+    
+    2> Add osb->journal check in free inode routine (eg ocfs2_clear_inode)
+    
+       The fix code is special for mounting phase, but it will continue
+       working after mounting stage.  In another word, this method adds
+       useless code in normal inode free flow.
+    
+    3> Do directly free inode in mounting phase
+    
+       This method is brutal/complex and may introduce unsafe code,
+       currently maintainer didn't like.
+    
+    At last, we chose method <1> and did partly reverted job.  We reverted
+    journal init codes, and kept cleanup codes flow.
+    
+    Link: https://lkml.kernel.org/r/20220424130952.2436-1-heming.zhao@suse.com
+    Link: https://lkml.kernel.org/r/20220424130952.2436-2-heming.zhao@suse.com
+    Fixes: da5e7c87827e8 ("ocfs2: cleanup journal init and shutdown")
+    Signed-off-by: Heming Zhao <heming.zhao@suse.com>
+    Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+    Cc: Mark Fasheh <mark@fasheh.com>
+    Cc: Joel Becker <jlbec@evilplan.org>
+    Cc: Junxiao Bi <junxiao.bi@oracle.com>
+    Cc: Changwei Ge <gechangwei@live.cn>
+    Cc: Gang He <ghe@suse.com>
+    Cc: Jun Piao <piaojun@huawei.com>
+    Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+    Signed-off-by: Sasha Levin <sashal@kernel.org>
+
+diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
+index 5739dc301569..bb116c39b581 100644
+--- a/fs/ocfs2/inode.c
++++ b/fs/ocfs2/inode.c
+@@ -125,6 +125,7 @@ struct inode *ocfs2_iget(struct ocfs2_super *osb, u64 blkno, unsigned flags,
+ 	struct inode *inode = NULL;
+ 	struct super_block *sb = osb->sb;
+ 	struct ocfs2_find_inode_args args;
++	journal_t *journal = osb->journal->j_journal;
+ 
+ 	trace_ocfs2_iget_begin((unsigned long long)blkno, flags,
+ 			       sysfile_type);
+@@ -171,11 +172,10 @@ struct inode *ocfs2_iget(struct ocfs2_super *osb, u64 blkno, unsigned flags,
+ 	 * part of the transaction - the inode could have been reclaimed and
+ 	 * now it is reread from disk.
+ 	 */
+-	if (osb->journal) {
++	if (journal) {
+ 		transaction_t *transaction;
+ 		tid_t tid;
+ 		struct ocfs2_inode_info *oi = OCFS2_I(inode);
+-		journal_t *journal = osb->journal->j_journal;
+ 
+ 		read_lock(&journal->j_state_lock);
+ 		if (journal->j_running_transaction)
+diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
+index 1887a2708709..fa87d89cf754 100644
+--- a/fs/ocfs2/journal.c
++++ b/fs/ocfs2/journal.c
+@@ -810,22 +810,20 @@ void ocfs2_set_journal_params(struct ocfs2_super *osb)
+ 	write_unlock(&journal->j_state_lock);
+ }
+ 
+-int ocfs2_journal_init(struct ocfs2_super *osb, int *dirty)
++/*
++ * alloc & initialize skeleton for journal structure.
++ * ocfs2_journal_init() will make fs have journal ability.
++ */
++int ocfs2_journal_alloc(struct ocfs2_super *osb)
+ {
+-	int status = -1;
+-	struct inode *inode = NULL; /* the journal inode */
+-	journal_t *j_journal = NULL;
+-	struct ocfs2_journal *journal = NULL;
+-	struct ocfs2_dinode *di = NULL;
+-	struct buffer_head *bh = NULL;
+-	int inode_lock = 0;
++	int status = 0;
++	struct ocfs2_journal *journal;
+ 
+-	/* initialize our journal structure */
+ 	journal = kzalloc(sizeof(struct ocfs2_journal), GFP_KERNEL);
+ 	if (!journal) {
+ 		mlog(ML_ERROR, "unable to alloc journal\n");
+ 		status = -ENOMEM;
+-		goto done;
++		goto bail;
+ 	}
+ 	osb->journal = journal;
+ 	journal->j_osb = osb;
+@@ -839,6 +837,21 @@ int ocfs2_journal_init(struct ocfs2_super *osb, int *dirty)
+ 	INIT_WORK(&journal->j_recovery_work, ocfs2_complete_recovery);
+ 	journal->j_state = OCFS2_JOURNAL_FREE;
+ 
++bail:
++	return status;
++}
++
++int ocfs2_journal_init(struct ocfs2_super *osb, int *dirty)
++{
++	int status = -1;
++	struct inode *inode = NULL; /* the journal inode */
++	journal_t *j_journal = NULL;
++	struct ocfs2_journal *journal = osb->journal;
++	struct ocfs2_dinode *di = NULL;
++	struct buffer_head *bh = NULL;
++	int inode_lock = 0;
++
++	BUG_ON(!journal);
+ 	/* already have the inode for our journal */
+ 	inode = ocfs2_get_system_file_inode(osb, JOURNAL_SYSTEM_INODE,
+ 					    osb->slot_num);
+diff --git a/fs/ocfs2/journal.h b/fs/ocfs2/journal.h
+index 8dcb2f2cadbc..969d0aa28718 100644
+--- a/fs/ocfs2/journal.h
++++ b/fs/ocfs2/journal.h
+@@ -154,6 +154,7 @@ int ocfs2_compute_replay_slots(struct ocfs2_super *osb);
+  *  Journal Control:
+  *  Initialize, Load, Shutdown, Wipe a journal.
+  *
++ *  ocfs2_journal_alloc    - Initialize skeleton for journal structure.
+  *  ocfs2_journal_init     - Initialize journal structures in the OSB.
+  *  ocfs2_journal_load     - Load the given journal off disk. Replay it if
+  *                          there's transactions still in there.
+@@ -167,6 +168,7 @@ int ocfs2_compute_replay_slots(struct ocfs2_super *osb);
+  *  ocfs2_start_checkpoint - Kick the commit thread to do a checkpoint.
+  */
+ void   ocfs2_set_journal_params(struct ocfs2_super *osb);
++int    ocfs2_journal_alloc(struct ocfs2_super *osb);
+ int    ocfs2_journal_init(struct ocfs2_super *osb, int *dirty);
+ void   ocfs2_journal_shutdown(struct ocfs2_super *osb);
+ int    ocfs2_journal_wipe(struct ocfs2_journal *journal,
+diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+index 477cdf94122e..311433c69a3f 100644
+--- a/fs/ocfs2/super.c
++++ b/fs/ocfs2/super.c
+@@ -2195,6 +2195,15 @@ static int ocfs2_initialize_super(struct super_block *sb,
+ 
+ 	get_random_bytes(&osb->s_next_generation, sizeof(u32));
+ 
++	/*
++	 * FIXME
++	 * This should be done in ocfs2_journal_init(), but any inode
++	 * writes back operation will cause the filesystem to crash.
++	 */
++	status = ocfs2_journal_alloc(osb);
++	if (status < 0)
++		goto bail;
++
+ 	INIT_WORK(&osb->dquot_drop_work, ocfs2_drop_dquot_refs);
+ 	init_llist_head(&osb->dquot_drop_list);
+ 
+@@ -2483,6 +2492,12 @@ static void ocfs2_delete_osb(struct ocfs2_super *osb)
+ 
+ 	kfree(osb->osb_orphan_wipes);
+ 	kfree(osb->slot_recovery_generations);
++	/* FIXME
++	 * This belongs in journal shutdown, but because we have to
++	 * allocate osb->journal at the middle of ocfs2_initialize_super(),
++	 * we free it here.
++	 */
++	kfree(osb->journal);
+ 	kfree(osb->local_alloc_copy);
+ 	kfree(osb->uuid_str);
+ 	kfree(osb->vol_label);
+
+_______________________________________________
+Ocfs2-devel mailing list
+Ocfs2-devel@oss.oracle.com
+https://oss.oracle.com/mailman/listinfo/ocfs2-devel
