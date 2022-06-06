@@ -1,47 +1,47 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc250.phx1.oracleemaildelivery.com (aib29ajc250.phx1.oracleemaildelivery.com [192.29.103.250])
+Received: from aib29ajc255.phx1.oracleemaildelivery.com (aib29ajc255.phx1.oracleemaildelivery.com [192.29.103.255])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 582C1CCA488
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id E752BCCA489
 	for <ocfs2-devel@archiver.kernel.org>; Mon,  6 Jun 2022 20:41:35 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=bdoFGINg5KKPhjyP+gx0jyxSoykH9Ddufl/XeRvyOeo=;
- b=lF4J/gUuTiWPba76z/SG2L6MmrW+B1MV8Ozb7Lp6LnuEEl98Hl4vnoAGxDZLtaPi4Q/Hdzf4wXp+
-   UifidAeMDVs7oo27rdZ/OSuEEKxKxMdlEk6YBk1dt91huVIhbGRdf/8zUjTS7E11T8WK1GWxJCue
-   f7rF8LWIL7QszBQpBao35yTFnreUNBeTn/6jvN3kCrvMtVIDGBNLtCi1jXqDBSNNCqbYI2j8+w++
-   y3nRWvlfmsoqAYqQR1n//qznmeNFZvTGHBUDe4o0FnSoZYgrMqnqYdS6IXOZ2KY/JDU7ql453KaW
-   G/H2xLb6G9ROVjiplkhfdrqioWuAoBmJd9/e+g==
+ bh=V+9CehEAPPuI3fNIUY2ajjDOqqoujhvpYab3d8y00Lw=;
+ b=2kTIN65DkNByLxb8Sd8SWW3jGJlyGjvE3Daednvt7NKsv9CP/mw7AN7jbneJ6Nyfw/OzkpQ+IdEZ
+   zDXzaQUZzExjVdV5GDZJvDXfRipxWKwJ3lPvLfq/QEOEXIGuhfozLCDF+lVWqVBP9j4tDQciG+x4
+   92SAokLnqrfJkRL0vRpZjqOXOGLqc526u0E/1UGwuwiPZQpWvujcb5am46piQnxSfI16drgFZ9Eg
+   y2jfxaLspzHPLq+e/guwdfg1osKb7q2es/Pi+FKOtzzhFm9TSp6WMtDB8Jlti2VbWlszQP99GCkW
+   7yLPTb01w6wQcVYTGjYXdJyAo0JeZmFMvfcWwQ==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=bdoFGINg5KKPhjyP+gx0jyxSoykH9Ddufl/XeRvyOeo=;
- b=FJvDvMONx7H1SCfmWTtGVPncVgo2SZaDHOEyCfSZOALJnCbec21cou6BA3RYkcEQ3tkEa+VCHpQP
-   ADM2iY0tUIGnoTh6uBDjBEgWDPNvV7gETiu+T5UJAn6DxGyvIicrt3vHiCRdpGHx6WqYtuYODDiH
-   qRlltffy3QPDHCQe5krSp5HJT90SaB0mDxr+sdfH0xNoR67bQdum49hBWOQ1Z0NV/G13baiNwF49
-   z2l2dCO0M6DMHuA8FTg4hOX9G11JOf5Qje6ZvcauV6H9N4VdtHI0hJ/nxwEAgtC/7h7XD28DwtPg
-   EanGBELDUQIcwN5DO/uQbcO2uiKy5sCgLuBicg==
-Received: by omta-ad2-fd3-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
+ bh=V+9CehEAPPuI3fNIUY2ajjDOqqoujhvpYab3d8y00Lw=;
+ b=kK/HTbD00hD5muIhMO2PaRqIxEauUFb4B8CBh2CRxEMS0oJ8rKcFUsYz5fp2EkN7OlQ3chod2HBE
+   6d7fYKmR5ap7xWVr9xNkPd75NTK3hnkVXW4XrMyaFlBJahfW7DRhQA9f12z5WHG3wchKPugzsUjP
+   IlW1Flc34KDvV8z6Xk+VGXb50fHJl/kFI/CAx7rjkGo94AEGii8GSibITdIg/kM1CpN8RCrUBTTx
+   7zPEfcaVdNEwGxzN1YVOFkqxhTxPl6bHQv4swMQI4oF8XdMz61GtxMlOe5UWu5IURD7be/InmJ1x
+   AqrSUE6fqwVs6yS4IXK5tFjWLQSnBrFyVXOyuQ==
+Received: by omta-ad3-fd3-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220517 64bit (built May 17
  2022))
- with ESMTPS id <0RD200CYCPHAG830@omta-ad2-fd3-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Mon, 06 Jun 2022 20:41:34 +0000 (GMT)
+ with ESMTPS id <0RD200CP6PHBLS30@omta-ad3-fd3-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Mon, 06 Jun 2022 20:41:35 +0000 (GMT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
  d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
  References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:
  Content-Type:Content-ID:Content-Description;
- bh=qQEq4mdildUXXhXlw26OgbbgbPBpQ0UP7iPop0FGmsk=; b=smk5cZ9QlxWeUzBKWfo86nVrRn
- 486Q4WmG9O8N7FW33RHEsLn1KdnhRCjpYsCnh2VTGHbxlEbEoaGncZWPwo88zaujLhSpvhlFYqZjF
- rT/pg4CkWWNMdWfegFLoYHJvmoFIm1xAxZgu4kmCe6BWjH2QkN1GsU7kYe50wZfva3uEoQHLUVRRU
- edvLwLiCnvO9Xryb+ZR231DA0eGBN7CXz/fAN+xjcrsnTNRjReFVIp2BGCweM6NJZGbCkhTvenoYZ
- cQCh2ENLaKQwbX+uc1wEhsR2j84htsXjEviyNnafZBo9+lFBva15d5sRZGRRozu2cOzqXNQM+sbim
- Zzrgg9gg==;
+ bh=quK8OUavZ3OQPvhjOxFusobdtZi/WBT8qXGvQ++yDug=; b=tGIvKVNaAMu+xJKfT56my7OcDx
+ h9X6EZkV+3b6YmzNyoYE3J6PNxC8ld3BfaS12Hr37OHw34qvlxQU6NGjNQ/dhsoPlowRv53o4VZC8
+ 91hwnrb/Zx7IV1o0tPxKat0n3HHdibhLf1anGJsS6EN4ly8FblGaD7fyrz5/ADem0hQXlXK2IoJvA
+ sPpCKXuC4FxWa83HkItcygw65l/Lm7ADmBY+uIWsBaElOylJp/RskeiJHQuGZ0eifLCpWGHHcEWMR
+ 60Qcs3Ka1CFA2jYOxR4TNlZ/5Tzf5uG0HfDIKzfTaxNpzixl4yt2Na7VkKuOo78WUgHz+NeXqWgXa
+ nGtfT5aA==;
 To: linux-fsdevel@vger.kernel.org
-Date: Mon,  6 Jun 2022 21:40:36 +0100
-Message-id: <20220606204050.2625949-7-willy@infradead.org>
+Date: Mon,  6 Jun 2022 21:40:50 +0100
+Message-id: <20220606204050.2625949-21-willy@infradead.org>
 X-Mailer: git-send-email 2.31.1
 In-reply-to: <20220606204050.2625949-1-willy@infradead.org>
 References: <20220606204050.2625949-1-willy@infradead.org>
@@ -49,10 +49,10 @@ MIME-version: 1.0
 X-Source-IP: 90.155.50.34
 X-Proofpoint-Virus-Version: vendor=nai engine=6400 definitions=10370
  signatures=594849
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 malwarescore=0
- bulkscore=0 spamscore=0 clxscore=165 mlxscore=0 lowpriorityscore=0
- priorityscore=108 phishscore=0 suspectscore=0 impostorscore=0 mlxlogscore=650
- adultscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 suspectscore=0
+ lowpriorityscore=0 malwarescore=0 adultscore=0 clxscore=165 mlxlogscore=479
+ mlxscore=0 bulkscore=0 priorityscore=108 phishscore=0 impostorscore=0
+ spamscore=0 classifier=spam adjust=0 reason=mlx scancount=1
  engine=8.12.0-2204290000 definitions=main-2206060082 domainage_hfrom=8378
 Cc: linux-aio@kvack.org, linux-nfs@vger.kernel.org, cluster-devel@redhat.com,
  linux-ntfs-dev@lists.sourceforge.net, linux-kernel@vger.kernel.org,
@@ -60,8 +60,8 @@ Cc: linux-aio@kvack.org, linux-nfs@vger.kernel.org, cluster-devel@redhat.com,
  linux-mm@kvack.org, linux-mtd@lists.infradead.org, ocfs2-devel@oss.oracle.com,
  linux-ext4@vger.kernel.org, virtualization@lists.linux-foundation.org,
  linux-xfs@vger.kernel.org, linux-btrfs@vger.kernel.org
-Subject: [Ocfs2-devel] [PATCH 06/20] btrfs: Convert btree_migratepage to
-	migrate_folio
+Subject: [Ocfs2-devel] [PATCH 20/20] mm/folio-compat: Remove migration
+	compatibility functions
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -81,81 +81,107 @@ Errors-to: ocfs2-devel-bounces@oss.oracle.com
 X-ServerName: casper.infradead.org
 X-Proofpoint-SPF-Result: None
 X-Spam: Clean
-X-Proofpoint-GUID: 9N_QoBn3NIsul_Wr6psFgjXTrnFrwqfd
-X-Proofpoint-ORIG-GUID: 9N_QoBn3NIsul_Wr6psFgjXTrnFrwqfd
+X-Proofpoint-GUID: plaom_dgnwYDorRDDhFeZFJzj9Gxok7B
+X-Proofpoint-ORIG-GUID: plaom_dgnwYDorRDDhFeZFJzj9Gxok7B
 Reporting-Meta:
- AAEg6SygxaT/zHvhQ6guxcm+F+gSufxaLlNvNM97o+Rp/s1cZtlPLRko2w//jpYM
- nFX6H1i0KaOyZCqB5MJTK2EC4UiWfa5GXi4I42j04PwAz/zhwYRQifpL+1Ff2Qgm
- ULzuVVyYRhce9nsu2/HMWkaZyQwMkylUxYEbjW6V9AHsLQZxuURqF2yOa3OEmLcZ
- lkk4xBTnIzG48+T9g8ttd/J8IKxrejm9tAfmHsLwwGAnH8LPRqXiOxA1eGQzSlSC
- 1ArpiOm4rvBdKbBO3aGfLz8W1+pnQ+9uWer9KocozpmS1ovxgjUFZLXVJrSadNnZ
- AHQUUh9sQ8C82XX7EgyskW9z/ZdOvmoMfxap1Wb1MYHyqeQPIrqEkpB3qstZXy5T
- dZAcfj5EnTGVSSqcWphuyB36C11v5d1605IW0+Mokrm+/7cjFNDhPse8obtFrG4h
- Zb9WztRLbDAebTi8O7mRpkbQUS36c3hDUCShM91YP5MFOSfN7Hrf4PQra86MZeJ8
- TDwQLf8V0VsH3XbH8rUwT/C1uASb1qbIemgqYaY1okotYg==
+ AAF+vZBWuqLKC6usvZHinyb0SmD4DKO0jDi7uG/wvmazqRqZXze/vVflvuW+2aQ5
+ h5WPpgSaHOzsalLcvu9gCOtsgjdKmVxIhET3yaxlxFLF3/iHivjZdA6H9NA0fD7Y
+ EY0uwtgvb4osqwc48Zp3ct+kchHNGcb/rrRJo2U6dHBpYkQ2D06MVFQjk2iHgQSp
+ FZi6//ZHVihmAHl7nMdviYTMMHZ36f2XJU9EqpaaKtvxui/xlZgaxzhilyzLCvAl
+ IezB+/yGFavMdLfBLj2D6FhhvE8Rc2kucrvfWK3n/09FUR88eQ5JmhUsl3ef1x35
+ TOo6INhmJsAn5WtTwOhwHuaCdWTNj0tVvQlaPkh17VrzRpaICRnl78XRQoDov2/J
+ kQgMoFSmLzr0avjpxmtuNc5LSENaXkRyvvZvtXDdGscErm+BFjbZ3nTdNDjccn3h
+ aAiyc/l3oMk1Y87F2I8X9UAC+NqTRTTxanpAUNbTB2SrRGzX1uMZaogbcf8Ckscj
+ AliA11ys4hKVG0bg7/xfZMtPL1kXtypCtFFzVGrq6dJGwQ==
 
-Use a folio throughout this function.  migrate_page() will be converted
-later.
+migrate_page_move_mapping(), migrate_page_copy() and migrate_page_states()
+are all now unused after converting all the filesystems from
+aops->migratepage() to aops->migrate_folio().
 
 Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
 ---
- fs/btrfs/disk-io.c | 22 ++++++++++------------
- 1 file changed, 10 insertions(+), 12 deletions(-)
+ include/linux/migrate.h | 11 -----------
+ mm/folio-compat.c       | 22 ----------------------
+ mm/ksm.c                |  2 +-
+ 3 files changed, 1 insertion(+), 34 deletions(-)
 
-diff --git a/fs/btrfs/disk-io.c b/fs/btrfs/disk-io.c
-index 12b11e645c14..9ceb73f683af 100644
---- a/fs/btrfs/disk-io.c
-+++ b/fs/btrfs/disk-io.c
-@@ -952,28 +952,28 @@ void btrfs_submit_metadata_bio(struct inode *inode, struct bio *bio, int mirror_
- }
+diff --git a/include/linux/migrate.h b/include/linux/migrate.h
+index 088749471485..4670f3aec232 100644
+--- a/include/linux/migrate.h
++++ b/include/linux/migrate.h
+@@ -33,12 +33,8 @@ extern int migrate_pages(struct list_head *l, new_page_t new, free_page_t free,
+ extern struct page *alloc_migration_target(struct page *page, unsigned long private);
+ extern int isolate_movable_page(struct page *page, isolate_mode_t mode);
  
- #ifdef CONFIG_MIGRATION
--static int btree_migratepage(struct address_space *mapping,
--			struct page *newpage, struct page *page,
--			enum migrate_mode mode)
-+static int btree_migrate_folio(struct address_space *mapping,
-+		struct folio *dst, struct folio *src, enum migrate_mode mode)
- {
- 	/*
- 	 * we can't safely write a btree page from here,
- 	 * we haven't done the locking hook
- 	 */
--	if (PageDirty(page))
-+	if (folio_test_dirty(src))
- 		return -EAGAIN;
- 	/*
- 	 * Buffers may be managed in a filesystem specific way.
- 	 * We must have no buffers or drop them.
- 	 */
--	if (page_has_private(page) &&
--	    !try_to_release_page(page, GFP_KERNEL))
-+	if (folio_get_private(src) &&
-+	    !filemap_release_folio(src, GFP_KERNEL))
- 		return -EAGAIN;
--	return migrate_page(mapping, newpage, page, mode);
-+	return migrate_page(mapping, &dst->page, &src->page, mode);
- }
-+#else
-+#define btree_migrate_folio NULL
- #endif
+-extern void migrate_page_states(struct page *newpage, struct page *page);
+-extern void migrate_page_copy(struct page *newpage, struct page *page);
+ int migrate_huge_page_move_mapping(struct address_space *mapping,
+ 		struct folio *dst, struct folio *src);
+-extern int migrate_page_move_mapping(struct address_space *mapping,
+-		struct page *newpage, struct page *page, int extra_count);
+ void migration_entry_wait_on_locked(swp_entry_t entry, pte_t *ptep,
+ 				spinlock_t *ptl);
+ void folio_migrate_flags(struct folio *newfolio, struct folio *folio);
+@@ -59,13 +55,6 @@ static inline struct page *alloc_migration_target(struct page *page,
+ static inline int isolate_movable_page(struct page *page, isolate_mode_t mode)
+ 	{ return -EBUSY; }
  
+-static inline void migrate_page_states(struct page *newpage, struct page *page)
+-{
+-}
 -
- static int btree_writepages(struct address_space *mapping,
- 			    struct writeback_control *wbc)
+-static inline void migrate_page_copy(struct page *newpage,
+-				     struct page *page) {}
+-
+ static inline int migrate_huge_page_move_mapping(struct address_space *mapping,
+ 				  struct folio *dst, struct folio *src)
  {
-@@ -1073,10 +1073,8 @@ static const struct address_space_operations btree_aops = {
- 	.writepages	= btree_writepages,
- 	.release_folio	= btree_release_folio,
- 	.invalidate_folio = btree_invalidate_folio,
--#ifdef CONFIG_MIGRATION
--	.migratepage	= btree_migratepage,
--#endif
--	.dirty_folio = btree_dirty_folio,
-+	.migrate_folio	= btree_migrate_folio,
-+	.dirty_folio	= btree_dirty_folio,
- };
+diff --git a/mm/folio-compat.c b/mm/folio-compat.c
+index 20bc15b57d93..458618c7302c 100644
+--- a/mm/folio-compat.c
++++ b/mm/folio-compat.c
+@@ -51,28 +51,6 @@ void mark_page_accessed(struct page *page)
+ }
+ EXPORT_SYMBOL(mark_page_accessed);
  
- struct extent_buffer *btrfs_find_create_tree_block(
+-#ifdef CONFIG_MIGRATION
+-int migrate_page_move_mapping(struct address_space *mapping,
+-		struct page *newpage, struct page *page, int extra_count)
+-{
+-	return folio_migrate_mapping(mapping, page_folio(newpage),
+-					page_folio(page), extra_count);
+-}
+-EXPORT_SYMBOL(migrate_page_move_mapping);
+-
+-void migrate_page_states(struct page *newpage, struct page *page)
+-{
+-	folio_migrate_flags(page_folio(newpage), page_folio(page));
+-}
+-EXPORT_SYMBOL(migrate_page_states);
+-
+-void migrate_page_copy(struct page *newpage, struct page *page)
+-{
+-	folio_migrate_copy(page_folio(newpage), page_folio(page));
+-}
+-EXPORT_SYMBOL(migrate_page_copy);
+-#endif
+-
+ bool set_page_writeback(struct page *page)
+ {
+ 	return folio_start_writeback(page_folio(page));
+diff --git a/mm/ksm.c b/mm/ksm.c
+index 54f78c9eecae..e8f8c1a2bb39 100644
+--- a/mm/ksm.c
++++ b/mm/ksm.c
+@@ -712,7 +712,7 @@ static struct page *get_ksm_page(struct stable_node *stable_node,
+ 	 * however, it might mean that the page is under page_ref_freeze().
+ 	 * The __remove_mapping() case is easy, again the node is now stale;
+ 	 * the same is in reuse_ksm_page() case; but if page is swapcache
+-	 * in migrate_page_move_mapping(), it might still be our page,
++	 * in folio_migrate_mapping(), it might still be our page,
+ 	 * in which case it's essential to keep the node.
+ 	 */
+ 	while (!get_page_unless_zero(page)) {
 -- 
 2.35.1
 
