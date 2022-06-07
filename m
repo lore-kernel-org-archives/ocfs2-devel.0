@@ -1,87 +1,69 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc249.phx1.oracleemaildelivery.com (aib29ajc249.phx1.oracleemaildelivery.com [192.29.103.249])
+Received: from aib29ajc248.phx1.oracleemaildelivery.com (aib29ajc248.phx1.oracleemaildelivery.com [192.29.103.248])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 337D9C43334
-	for <ocfs2-devel@archiver.kernel.org>; Tue,  7 Jun 2022 07:37:30 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 33DBBC433EF
+	for <ocfs2-devel@archiver.kernel.org>; Tue,  7 Jun 2022 08:02:51 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=/cLPNy1jdnWW/77ByBwAQsEgimyXEUiV84gQMcJ5egM=;
- b=Y4FqlhWZrspk7sMdgS70gfn1z9y80xAzrd71ROoScww+h9uGTiOG1slGSytXC3+EabXEqNtVN2s3
-   UX+WGbBxKTJi8cib87KBN0RyGNO8YV0B2Ke/COjABoX3yK8LHYXXOZvUjvspRc0dFkODg6ErZHWF
-   A5nWGbCvlBjvvMyA94ZC3r+4TJTP9EZ2OD991liKlhByDCtC+/KFpgJ/KaXjcCHQm2s6YO1uNt0s
-   4xAuKIdxjObzJZD4FaOvD/IfPFTJs7Qzyxdj5u3DQ8hZfzWEPNG65TTTfPiQcG1ZqtC9v4FjNcyx
-   BHlrEjO07TukfWOTKVHEO4ZRPdB8AoCtCZ1YMA==
+ bh=Ft02j4t3sT0Lt/eIsiMKtTU08lwf9tgYLgqQ4RWmpC4=;
+ b=PNwIdP7BqDDxUTFsDeKK//aPReje1RG041fXnlWbbgprl68nvQSdfGMjvJ5ovWcvavYAIfADm71j
+   v8kAr9p/Mv+gx77ELirtInyQamQgQ2bIsyORMXzkzus2Wz1bZ/Xqgr7Y+pGaXsSYX+mMe3Uy1coX
+   gsCtVSWLtiBUFldgxCcG3jrAN0GNuMOrJrGXlD3UZjQWRuWf6QHbjAqfOK7miRXPoriwsBZeuiUz
+   jiesatV9KOhBJDfyJSy8vU4NptBRNt3tKLOe0WgBtiJhmuW+n/2HzzQRKpFuCOoALxsHly/qdQeq
+   jdT6B8rObK8FEsl6Dy5w7kl6fs3ehrrbRk2U0Q==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=/cLPNy1jdnWW/77ByBwAQsEgimyXEUiV84gQMcJ5egM=;
- b=p1IKTV1sRzN1IgnVspZLbC/uw6N4/9npZSMLByf5bmI8JFYMdph0c/uJ4MRzE30syjVINDuRwU7a
-   0ZgjBySn7xVSaLcnQv0q5PkljlPJjz3nfj+xRFMU3d1rWMC8ghjep3Ekk3+dA68QVfXyF8L6z5EO
-   YRoBxVAsOaFQUqOG8ZA4GeW00VjTy23EP02DCngK7z+5RdieLPUnQ+Okc7coV0YTMCWM7BpiLYfY
-   DFeL1Qp/IH5i1WwmhGhLshm0po7wkSzoxg+aD6l96GFXzhVk9nOlqOMYbLJejPXdA6Gqcx38Ug9F
-   3cSZykzCe1vFcva9tWxH3qQBvdDDg0YQGXCNMg==
-Received: by omta-ad2-fd1-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
+ bh=Ft02j4t3sT0Lt/eIsiMKtTU08lwf9tgYLgqQ4RWmpC4=;
+ b=SI6YPFdGiBVO5LmtB06qJtzOsT0nwpcFCKLqgnPxzMnjpsZ0EhzLk6En8MsPouwNSAwyzp/1bDhZ
+   JwTaMxbMqKWGOAB9OIJqvNVSfL/jwVX3AQECA1ZbkV1ojL7ubk9Bng3eSN++uKMy96T4Mg3RDG7/
+   O8XnZp/DN2peBPIYf205sCru0Twp6jkEOocLLinSBIpVFjKD6vu+Mg5hkOddyBETqTtb1Ow+Jy5P
+   7msM1zUJi8SSSH/NB1OdeUcDJZTW1TcoXMmZ7g5D/iCoaHpsFbcVVZs9fyBNulwJH0g7J7sBOOBp
+   opnlFINdeg090CW9A4TMtl2HKGO1XsFsIXNDwA==
+Received: by omta-ad2-fd1-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220517 64bit (built May 17
  2022))
- with ESMTPS id <0RD300FV4JUH9420@omta-ad2-fd1-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Tue, 07 Jun 2022 07:37:29 +0000 (GMT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
- s=mimecast20190719; t=1654587426;
- h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
- to:to:cc:cc:mime-version:mime-version:content-type:content-type:
- content-transfer-encoding:content-transfer-encoding:
- in-reply-to:in-reply-to:references:references;
- bh=poSLf3SQpSQVqGAvfY9ZUAc4mDsdNw09sPQoA12+Xn0=;
- b=Ei+tS59UADcqRz8t/v6zXFGm4EirBPntNruDT19yvMF9YHB0MHFhp3IEyb+cuD0A992nYg
- D39RQmqe/dt0C1JFN17d4H6Tw+rzmJJNiqBkd5Qr+Z2n5LKSvSi0fssMroXBAMVSEW6qnJ
- HECw1UpOfT6vHDEHvIqVFVk+w02e7rk=
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=1e100.net;
- s=20210112;
- h=x-gm-message-state:message-id:date:mime-version:user-agent:subject
- :content-language:to:cc:references:from:organization:in-reply-to
- :content-transfer-encoding; bh=poSLf3SQpSQVqGAvfY9ZUAc4mDsdNw09sPQoA12+Xn0=;
- b=vgS19nRUClkB36+OthC8gO1GAtL1Rh7+fQ8awLRSuzkzp1gx/VKJeqHWXMAxuwDoEX
- +v12dKntQbFx9iXnivnXArIEGza7DqBZThIewvBUrG3wR9tUcOP+Cy9tX/uX04v1Yt43
- h67MsLacpNS28oFHYn1pFC08K7pIeda1D+nuwDESiJ+/U9JmntJ+LV3BVR7xjbg12ByS
- /d6+/4OtDAjRTXqljDt85kOMF/tZjL23hxY0DOymXFhBQ09YmrPTQzYfXV78LVyOQYFp
- AK+9hFIayIIbc9O54Hfw/SBzd3SrNOInW6vE49MF8N2FeHd5cEIYRQXV7z6t5dxM5m8f f2uQ==
-X-Gm-Message-State: AOAM530vJZnE8H0DmtmGXXbEZHRVKAY1VnvFhaCHN3+Pxcud2bUc3ExH
- ZCobYzHd0s07Fle0UhfF94Scz2rozxc1G2URVugn14njAiD0c/ZsUcTBidj/CttEDxcyFQDbVFh
- cCLADpMY2ifkEmI4Axaf3pA==
-X-Received: by 2002:a05:600c:4ec9:b0:397:750a:798a with SMTP id
- g9-20020a05600c4ec900b00397750a798amr56010312wmq.169.1654587384018; Tue,
- 07 Jun 2022 00:36:24 -0700 (PDT)
-X-Received: by 2002:a05:600c:4ec9:b0:397:750a:798a with SMTP id
- g9-20020a05600c4ec900b00397750a798amr56010293wmq.169.1654587383789; Tue,
- 07 Jun 2022 00:36:23 -0700 (PDT)
-Message-id: <e4d017a4-556d-bb5f-9830-a8843591bc8d@redhat.com>
-Date: Tue, 7 Jun 2022 09:36:21 +0200
-MIME-version: 1.0
-User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:91.0) Gecko/20100101
- Thunderbird/91.9.0
+ with ESMTPS id <0RD30029ML0QKZ40@omta-ad2-fd1-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Tue, 07 Jun 2022 08:02:50 +0000 (GMT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=intel.com; i=@intel.com;
+ q=dns/txt; s=Intel; t=1654588951; x=1686124951;
+ h=date:from:to:cc:subject:message-id:references: mime-version:in-reply-to;
+ bh=mQzWEDPxMO7UmRFxluiJ1Ca9g136QsEllPnrNDFo86E=;
+ b=SR+4Hrz5ngbwlIZrEdGCfYbFlEQ4XnNRDizHWJ/w2WC/HkHkjX69yhG1
+ JiTKAhuXANImdYUkjteVRsl77i5j8Ttjix9i0LbmzDUlF2OIo7QXIviY2
+ YWQZjr4saDxXOPH5ETAtceeLVQ++A8i9tGybZ3vkC3jFDdxwK2PecYHc3
+ En9i4FCn66z/WUpQrnViQny8Dq4KQQCuxSpaWrg/vvgk3lDFy7QXGL7N+
+ B9AQGSWT9lOBWEAcUd0qgY0LNFmngB1TW9Z2CcqxtyhXjdi5uWBwoUz6v
+ m1V3k8M4HkhnOgc9VtxxU4PRM3Pk5lcVBx/SJZwZdWMxh/wSLUf6T69bd g==;
+Date: Tue, 7 Jun 2022 16:01:02 +0800
 To: "Matthew Wilcox (Oracle)" <willy@infradead.org>,
  linux-fsdevel@vger.kernel.org
-References: <20220606204050.2625949-1-willy@infradead.org>
- <20220606204050.2625949-16-willy@infradead.org>
-Organization: Red Hat
-In-reply-to: <20220606204050.2625949-16-willy@infradead.org>
-Authentication-results: relay.mimecast.com; auth=pass smtp.auth=CUSA124A263
- smtp.mailfrom=david@redhat.com
-Content-language: en-US
-X-Source-IP: 170.10.133.124
+Message-id: <202206071552.6lOdScLW-lkp@intel.com>
+References: <20220606204050.2625949-5-willy@infradead.org>
+MIME-version: 1.0
+Content-disposition: inline
+In-reply-to: <20220606204050.2625949-5-willy@infradead.org>
+X-Source-IP: 192.55.52.120
 X-Proofpoint-Virus-Version: vendor=nai engine=6400 definitions=10370
  signatures=594849
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0
+ lowpriorityscore=0 phishscore=0 priorityscore=459 mlxscore=0 adultscore=0
+ mlxlogscore=999 clxscore=258 spamscore=0 bulkscore=0 malwarescore=0
+ suspectscore=0 impostorscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2204290000 definitions=main-2206070033 domainage_hfrom=13223
 Cc: linux-aio@kvack.org, linux-nfs@vger.kernel.org, cluster-devel@redhat.com,
- linux-ntfs-dev@lists.sourceforge.net, linux-kernel@vger.kernel.org,
+ kbuild-all@lists.01.org, linux-ntfs-dev@lists.sourceforge.net,
+ llvm@lists.linux.dev, linux-kernel@vger.kernel.org,
  linux-f2fs-devel@lists.sourceforge.net, linux-block@vger.kernel.org,
  linux-mm@kvack.org, linux-mtd@lists.infradead.org, ocfs2-devel@oss.oracle.com,
  linux-ext4@vger.kernel.org, virtualization@lists.linux-foundation.org,
  linux-xfs@vger.kernel.org, linux-btrfs@vger.kernel.org
-Subject: Re: [Ocfs2-devel] [PATCH 15/20] balloon: Convert to migrate_folio
+Subject: Re: [Ocfs2-devel] [PATCH 04/20] mm/migrate: Convert
+ buffer_migrate_page() to buffer_migrate_folio()
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -93,106 +75,97 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: David Hildenbrand via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: David Hildenbrand <david@redhat.com>
+From: kernel test robot via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: kernel test robot <lkp@intel.com>
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-MC-Unique: SZ6yAXFdNKKOZeEODKtkpQ-1
-X-Google-Smtp-Source:
- ABdhPJz/TT1zDaD6ih4ST/0Z6l6/VJexv/LUjWrit9gRiSM2S633qB8aLjqIdjv8Hs+falCUt0H+YA==
-X-Mimecast-Spam-Score: 0
-X-Mimecast-Originator: redhat.com
+X-IronPort-AV: E=McAfee;i="6400,9594,10370"; a="275487455"
+X-IronPort-AV: E=Sophos;i="5.91,283,1647327600"; d="scan'208";a="275487455"
+X-ExtLoop1: 1
+X-IronPort-AV: E=Sophos;i="5.91,283,1647327600"; d="scan'208";a="709385390"
+X-ServerName: mga04.intel.com
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 ip4:103.23.64.2 ip4:103.23.65.2
- ip4:103.23.66.26 ip4:103.23.67.26 ip4:107.21.15.141 ip4:108.177.8.0/21
- ip4:128.17.0.0/20 ip4:128.17.128.0/20 ip4:128.17.192.0/20 ip4:128.17.64.0/20
- ip4:128.245.0.0/20 ip4:128.245.64.0/20 ip4:13.110.208.0/21 ip4:13.110.216.0/22
- ip4:13.110.224.0/20 ip4:13.111.0.0/16 ip4:136.147.128.0/20
- include:spf1.redhat.com -all
-X-Proofpoint-SPF-VenPass: Allowed
-X-ServerName: us-smtp-delivery-124.mimecast.com
-X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 ip4:103.23.64.2 ip4:103.23.65.2
- ip4:103.23.66.26 ip4:103.23.67.26 ip4:107.21.15.141 ip4:108.177.8.0/21
- ip4:128.17.0.0/20 ip4:128.17.128.0/20 ip4:128.17.192.0/20 ip4:128.17.64.0/20
- ip4:128.245.0.0/20 ip4:128.245.64.0/20 ip4:13.110.208.0/21 ip4:13.110.216.0/22
- ip4:13.110.224.0/20 ip4:13.111.0.0/16 ip4:136.147.128.0/20
- include:spf1.redhat.com -all
-X-Proofpoint-Spam-Reason: safe
-X-Spam: OrgSafeList
-X-SpamRule: orgsafelist
-X-Proofpoint-GUID: BnzYrlAVKjIids5enSkAUSTmpSDb_kNI
-X-Proofpoint-ORIG-GUID: BnzYrlAVKjIids5enSkAUSTmpSDb_kNI
+X-Proofpoint-SPF-Record: v=spf1 include:_spf.intel.com include:_spf.google.com
+ -all
+X-Spam: Clean
+X-Proofpoint-GUID: sSgb7-9ZCqvHfIyDoRU6HIuhM78UQCre
+X-Proofpoint-ORIG-GUID: sSgb7-9ZCqvHfIyDoRU6HIuhM78UQCre
 Reporting-Meta:
- AAGzSnpca0MIfP0pH95dgkmdO/2Gw/fk24ByyoMNufZaGjDTwJCU+jQlfyYImhCg
- pryN2B8GexNrhAYRJlva4SAftYl2Fgf3dPsiX+NDSzufVbzuaaKW5zJEb1THnNvr
- aLQ4cpjayHoo5aqDejMHl9f6eHLJ48JTiGnE5kFwQe2oXR+miictItw0tmHo6AZR
- 1CfYTYWCKIsVnlmfOwvHUGtcTLEoSDHeisvcoEADWQNxOyUnr1kl8YUr1gYmn10+
- 65jItUpWFbHy/HfoYTAetqtbAoNfK8xc9Mmma30n84N3WOzyIuPFcH+ElKhRnK1i
- GaQitn8H1II+T23yibUvsnF2LR/+p+K1jmzYoq19w/dJg071FgaggJVF4OBGL1+J
- 1/rvXc3bws8t0gpiu6yz0m5PB+lqPIFOLIM/RaPilLl7ts8o4+BGPtkOfktlNa9a
- s5JcbmcH2rAHn0RDTfRbj27B/2xAXXwqawvJp+8PXEW9eBnikn94oviOGFGfJqaQ
- U8/Ji1OavUInSX1YmVzyFxWRnfzFX4j2A1tistoJZXho
+ AAH4fyE62NwrKhTUr7EPy/c8xqbCKoZgffoeYMszGG0ZczVI4MaqS53GGuzNkENF
+ 9yzBFVPMguMHutheYkiwidGoOITwTfsWWcCdVV1CXLqpOAdS/8ZCeqyzTf9e5oY/
+ 8H1dbMiJRvsQrFmk9lHgylWDw5F9v+oCHCKp+0T+zVd+Gmx884Ux2UyjVaFk6Ug/
+ kFeRkSqGLvsnsu2ZvO3phKPw6dmyV/Y3oqiHoTH5vPMK6d4OaQDx2DOqaTT+3Do4
+ 4S+WUxYxNV+OOLrfo0YgWLsH0qe1uNX8CnJ0r+BpuCBjJZY8RehetzT6XIuVmEoN
+ mx14nmoLpt0uWKs1pJtZIz6+ql5+bDfbv97vAtU5QblL2wkIkDkYf22VAQP0ZXo5
+ W12QmwTWk3LkQHnAU5xcJ41EMKLebxGIc9ZPLhUKVxPmK+w2DLxeQopH4o2eYDbf
+ NsurWxNh6gAi92cYv30KbMV5AAKyfVlf60Pa60SZ5P+KBXtuj3je+cWELRIr2QJr
+ /61n8L036cxMW80clQNxRssIDNHH8llrSe1gObsyhin/
 
-On 06.06.22 22:40, Matthew Wilcox (Oracle) wrote:
-> This is little more than changing the types over; there's no real work
-> being done in this function.
-> 
-> Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
-> ---
->  mm/balloon_compaction.c | 15 +++++++--------
->  1 file changed, 7 insertions(+), 8 deletions(-)
-> 
-> diff --git a/mm/balloon_compaction.c b/mm/balloon_compaction.c
-> index 4b8eab4b3f45..3f75b876ad76 100644
-> --- a/mm/balloon_compaction.c
-> +++ b/mm/balloon_compaction.c
-> @@ -230,11 +230,10 @@ static void balloon_page_putback(struct page *page)
->  
->  
->  /* move_to_new_page() counterpart for a ballooned page */
-> -static int balloon_page_migrate(struct address_space *mapping,
-> -		struct page *newpage, struct page *page,
-> -		enum migrate_mode mode)
-> +static int balloon_migrate_folio(struct address_space *mapping,
-> +		struct folio *dst, struct folio *src, enum migrate_mode mode)
->  {
-> -	struct balloon_dev_info *balloon = balloon_page_device(page);
-> +	struct balloon_dev_info *balloon = balloon_page_device(&src->page);
->  
->  	/*
->  	 * We can not easily support the no copy case here so ignore it as it
-> @@ -244,14 +243,14 @@ static int balloon_page_migrate(struct address_space *mapping,
->  	if (mode == MIGRATE_SYNC_NO_COPY)
->  		return -EINVAL;
->  
-> -	VM_BUG_ON_PAGE(!PageLocked(page), page);
-> -	VM_BUG_ON_PAGE(!PageLocked(newpage), newpage);
-> +	VM_BUG_ON_FOLIO(!folio_test_locked(src), src);
-> +	VM_BUG_ON_FOLIO(!folio_test_locked(dst), dst);
->  
-> -	return balloon->migratepage(balloon, newpage, page, mode);
-> +	return balloon->migratepage(balloon, &dst->page, &src->page, mode);
->  }
->  
->  const struct address_space_operations balloon_aops = {
-> -	.migratepage = balloon_page_migrate,
-> +	.migrate_folio = balloon_migrate_folio,
->  	.isolate_page = balloon_page_isolate,
->  	.putback_page = balloon_page_putback,
->  };
+Hi "Matthew,
 
-I assume you're working on conversion of the other callbacks as well,
-because otherwise, this ends up looking a bit inconsistent and confusing :)
+I love your patch! Perhaps something to improve:
 
-Change LGTM.
+[auto build test WARNING on linus/master]
+[also build test WARNING on v5.19-rc1 next-20220607]
+[cannot apply to jaegeuk-f2fs/dev-test trondmy-nfs/linux-next kdave/for-next xfs-linux/for-next]
+[If your patch is applied to the wrong git tree, kindly drop us a note.
+And when submitting patch, we suggest to use '--base' as documented in
+https://git-scm.com/docs/git-format-patch]
+
+url:    https://github.com/intel-lab-lkp/linux/commits/Matthew-Wilcox-Oracle/Convert-aops-migratepage-to-aops-migrate_folio/20220607-044509
+base:   https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git f2906aa863381afb0015a9eb7fefad885d4e5a56
+config: s390-randconfig-c005-20220606 (https://download.01.org/0day-ci/archive/20220607/202206071552.6lOdScLW-lkp@intel.com/config)
+compiler: clang version 15.0.0 (https://github.com/llvm/llvm-project b92436efcb7813fc481b30f2593a4907568d917a)
+reproduce (this is a W=1 build):
+        wget https://raw.githubusercontent.com/intel/lkp-tests/master/sbin/make.cross -O ~/bin/make.cross
+        chmod +x ~/bin/make.cross
+        # install s390 cross compiling tool for clang build
+        # apt-get install binutils-s390x-linux-gnu
+        # https://github.com/intel-lab-lkp/linux/commit/96e64ba8b1be545885d89f44b1d8b968b22bdb4d
+        git remote add linux-review https://github.com/intel-lab-lkp/linux
+        git fetch --no-tags linux-review Matthew-Wilcox-Oracle/Convert-aops-migratepage-to-aops-migrate_folio/20220607-044509
+        git checkout 96e64ba8b1be545885d89f44b1d8b968b22bdb4d
+        # save the config file
+        mkdir build_dir && cp config build_dir/.config
+        COMPILER_INSTALL_PATH=$HOME/0day COMPILER=clang make.cross W=1 O=build_dir ARCH=s390 SHELL=/bin/bash
+
+If you fix the issue, kindly add following tag where applicable
+Reported-by: kernel test robot <lkp@intel.com>
+
+All warnings (new ones prefixed by >>):
+
+>> mm/migrate.c:775: warning: expecting prototype for buffer_migrate_folio_noref(). Prototype was for buffer_migrate_folio_norefs() instead
+
+
+vim +775 mm/migrate.c
+
+89cb0888ca1483 Jan Kara                2018-12-28  758  
+96e64ba8b1be54 Matthew Wilcox (Oracle  2022-06-06  759) /**
+96e64ba8b1be54 Matthew Wilcox (Oracle  2022-06-06  760)  * buffer_migrate_folio_noref() - Migration function for folios with buffers.
+96e64ba8b1be54 Matthew Wilcox (Oracle  2022-06-06  761)  * @mapping: The address space containing @src.
+96e64ba8b1be54 Matthew Wilcox (Oracle  2022-06-06  762)  * @dst: The folio to migrate to.
+96e64ba8b1be54 Matthew Wilcox (Oracle  2022-06-06  763)  * @src: The folio to migrate from.
+96e64ba8b1be54 Matthew Wilcox (Oracle  2022-06-06  764)  * @mode: How to migrate the folio.
+96e64ba8b1be54 Matthew Wilcox (Oracle  2022-06-06  765)  *
+96e64ba8b1be54 Matthew Wilcox (Oracle  2022-06-06  766)  * Like buffer_migrate_folio() except that this variant is more careful
+96e64ba8b1be54 Matthew Wilcox (Oracle  2022-06-06  767)  * and checks that there are also no buffer head references. This function
+96e64ba8b1be54 Matthew Wilcox (Oracle  2022-06-06  768)  * is the right one for mappings where buffer heads are directly looked
+96e64ba8b1be54 Matthew Wilcox (Oracle  2022-06-06  769)  * up and referenced (such as block device mappings).
+96e64ba8b1be54 Matthew Wilcox (Oracle  2022-06-06  770)  *
+96e64ba8b1be54 Matthew Wilcox (Oracle  2022-06-06  771)  * Return: 0 on success or a negative errno on failure.
+89cb0888ca1483 Jan Kara                2018-12-28  772   */
+96e64ba8b1be54 Matthew Wilcox (Oracle  2022-06-06  773) int buffer_migrate_folio_norefs(struct address_space *mapping,
+96e64ba8b1be54 Matthew Wilcox (Oracle  2022-06-06  774) 		struct folio *dst, struct folio *src, enum migrate_mode mode)
+89cb0888ca1483 Jan Kara                2018-12-28 @775  {
+96e64ba8b1be54 Matthew Wilcox (Oracle  2022-06-06  776) 	return __buffer_migrate_folio(mapping, dst, src, mode, true);
+89cb0888ca1483 Jan Kara                2018-12-28  777  }
+9361401eb7619c David Howells           2006-09-30  778  #endif
+1d8b85ccf1ed53 Christoph Lameter       2006-06-23  779  
 
 -- 
-Thanks,
-
-David / dhildenb
-
+0-DAY CI Kernel Test Service
+https://01.org/lkp
 
 _______________________________________________
 Ocfs2-devel mailing list
