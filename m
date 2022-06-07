@@ -1,59 +1,60 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc255.phx1.oracleemaildelivery.com (aib29ajc255.phx1.oracleemaildelivery.com [192.29.103.255])
+Received: from aib29ajc252.phx1.oracleemaildelivery.com (aib29ajc252.phx1.oracleemaildelivery.com [192.29.103.252])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 272EEC43334
-	for <ocfs2-devel@archiver.kernel.org>; Tue,  7 Jun 2022 14:19:52 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 85D06C433EF
+	for <ocfs2-devel@archiver.kernel.org>; Tue,  7 Jun 2022 14:24:36 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=wuDj1JIXQvMWZMvMjae4L4kIXNSmJoF1dP9BKj1/nYQ=;
- b=HFWDLIm/KWYZLXMsoJircMumzAldt+iwYJhp9Je/WB6vgsBvLYUZ76uE4laboNlPFKUCsk/d+INk
-   9UkmKGkcrz2KzePjDK05pkAIUaDyHRW4S0UQI1M4RyKrL10HNE+5QzTSYpMCfvr2CDPg37sRi3PQ
-   kBYjwdpT8dgZU81a3BS4d8xfzA/89KihBkVEL22S4g9+BWbSYX5puvB6ZY4yBB9qpYoNXGNkFqlq
-   C1E/lLhQ+iYoPsa75NiDXa97lwCBp2UVfeqmfu28Lz0b5UqZIDfTeZbusVwyRPftDdR1dkFNrKT5
-   dCJbg1/dvCXmtIyevnWJnZR+PHiI0tAnGhpeHw==
+ bh=oKH7pSC0GBNO2ag8jrRwqPJLlWYahO3Pdbw5HIb/oYQ=;
+ b=MURabqtxlLqGTtDOZScufomIqlj9zESqIlMMwom9L6WRvGcPvzvqaM9RLKYbSuHmxwE9qculPtkW
+   kHNuSAkNLsp2UVcOX1SxT4irxzzMyTaEazA7nClTxF4Rb8gD7tO6ImnABtWd4ppku3yP1gguIc4o
+   UHtxkFs5vNRPPFxTUiWkjJj8ZiyJNvOwBcFLQDfO0eI8Whex843ddXQ9xwkSFkLsVeZHNRpf5xaB
+   wjSUywHCTCCrhojGGMloloYhFnWoF+r0Alsi6YnqUHFFU0v+x0TgS7hbb5MucvJd6yk014wlLuQT
+   7agoaFPzSLvbyHtvbSA9TOrey+za+2N99T4CxQ==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=wuDj1JIXQvMWZMvMjae4L4kIXNSmJoF1dP9BKj1/nYQ=;
- b=n7dETjq4Mmk7aVoV6tAlTiZ6o+bM9k2cMF+AouBUOQzG79iSaPtFecgeoM6Ep7BdKy37qMwmswBU
-   qk2k0LE50KECnD5sc1liSNisHIV6Ukq81H5moDqoXxLtZ+GRustmVHprMuc2nz5JlW81ZfarP1zd
-   N0TbTdvbs3GemmXfrsnXXBVV0gWPTikP+MZzDoFEVYSiJKdri5hEDlWINLrgNNHBD4syKqgfCtKf
-   fVKEJj6mcgh7tGfCQU9mrbesEvfTYFg3BFOB3OPGKMJUCqsMfw0VaLGlyx2kIgDV64Ma7Ir3ET+a
-   8HkLBR4aXtk+U9N7q32R6kEnWJHeulUr75+pfA==
-Received: by omta-ad3-fd3-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
+ bh=oKH7pSC0GBNO2ag8jrRwqPJLlWYahO3Pdbw5HIb/oYQ=;
+ b=b2NGFOCB18GF60BJF5y1pSJoGHfcQoOYGxORZcwkQJQEltOJEUkHttzlxo6p+lbs+h1elcIcL9lC
+   n5rgZWQTDDL6xZ6g5MByfRaOxEfJuGPVCxJ7L2PUyEmpCTmkdAxBCBji78nY2Sl5JBiUyct21017
+   1DHtj9Ce74QB6azqdrJUWlznBI99V+Oqvh+4bSrH5jLJiYkhYhPlyUwbCdkJB3BN0x/Yipy5aI3E
+   SUA+j/N9wml0Y4kk2G31Z0R0LV701cmO4l/+2gjL9F9mplHikwEB/MDhqNakp+SpNqSKUxmH11Fn
+   KOoBq0OJ/6GrJ+kcn9+a4m4170VB91ZPS4zMZw==
+Received: by omta-ad3-fd1-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220517 64bit (built May 17
  2022))
- with ESMTPS id <0RD4000WZ2H3WS70@omta-ad3-fd3-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Tue, 07 Jun 2022 14:19:51 +0000 (GMT)
+ with ESMTPS id <0RD400BRW2OZJ2A0@omta-ad3-fd1-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Tue, 07 Jun 2022 14:24:35 +0000 (GMT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
  d=infradead.org; s=casper.20170209; h=In-Reply-To:Content-Type:MIME-Version:
  References:Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:
  Content-Transfer-Encoding:Content-ID:Content-Description;
- bh=4nUpYTI4YzQUWe3MX/DeuqIdjPgTHj7mksBWnabO8pk=; b=IoritkaL90aqbR+RUHZKoSo8fb
- np1ux4ttns5tYj2sJk/FAj12Ak/CQ/wW4eIuwXN5ulK6rhUSeL7wfME8a6K9gYUgIYgqg08BNe9+I
- tus3kQ04SmPJZl9V4GH+E2xTibe280AETqIE3sbtSug/TUXDR0128c42jRa/+qeI8q7uri0dQOk1f
- wWHM11+pgzBreVL8bkL3da/JDGIf99g2HUm8tnTrzT4cPM9I17c3dxlon1CkQMKJOgWEf9FbWmKJ9
- h7TOtnv+jsL8ABFyKBR86bb03b2ZVDj0NIek4XcowncLGE0YjVino+xsZhqucJvOU+7lO9abDpL7s
- BM8iPWpg==;
-Date: Tue, 7 Jun 2022 15:11:40 +0100
-To: Brian Foster <bfoster@redhat.com>
-Message-id: <Yp9cnCaZ1O4qHFEp@casper.infradead.org>
+ bh=TMQU2bbtV5kjI1Y7uBOgpmsi6MujvLdf4se1f0ultbQ=; b=T3tONSSZEZI3TnW91MAPGKwqdn
+ ynmJAoI6mOfrbbq8Jqf2czJGvi9Q0ukvLmmikcGSI8ZqHSwvRkTwLUTylDBqG6RaX8/3fM9Nvve4c
+ VqFvCNQX2J5+bZcWx69Xcxl0FnIF/+ozKW4FHlSZHfTn6FEQTfoWOYo1nVdtg5lJcedIUJr0ygYNv
+ BxeGZpOaFU4iqywNAUPFsAq2KhxI0Hbg9OXTdHy26nItEezSSsuIGEVlhH9A3QRH3TI9Fv56fknf8
+ 0pc9AkwczXake1fj6Qt6cCxOadkgaG3Xkumb8mMGujy60/hhxbEX20y0v48fX/CV/o6oaLLnenmYd
+ w0xneMdA==;
+Date: Tue, 7 Jun 2022 15:24:15 +0100
+To: David Hildenbrand <david@redhat.com>
+Message-id: <Yp9fj/Si2qyb61Y3@casper.infradead.org>
 References: <20220606204050.2625949-1-willy@infradead.org>
- <20220606204050.2625949-6-willy@infradead.org> <Yp9VpZDsUEAZHEuy@bfoster>
+ <20220606204050.2625949-16-willy@infradead.org>
+ <e4d017a4-556d-bb5f-9830-a8843591bc8d@redhat.com>
 MIME-version: 1.0
 Content-disposition: inline
-In-reply-to: <Yp9VpZDsUEAZHEuy@bfoster>
+In-reply-to: <e4d017a4-556d-bb5f-9830-a8843591bc8d@redhat.com>
 X-Source-IP: 90.155.50.34
 X-Proofpoint-Virus-Version: vendor=nai engine=6400 definitions=10371
  signatures=594849
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 spamscore=0
- malwarescore=0 bulkscore=0 adultscore=0 mlxscore=0 clxscore=148
- lowpriorityscore=0 phishscore=0 impostorscore=0 mlxlogscore=828 suspectscore=0
- priorityscore=176 classifier=spam adjust=0 reason=mlx scancount=1
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0
+ lowpriorityscore=0 suspectscore=0 priorityscore=208 phishscore=0 clxscore=177
+ malwarescore=0 mlxscore=0 adultscore=0 impostorscore=0 mlxlogscore=579
+ bulkscore=0 spamscore=0 classifier=spam adjust=0 reason=mlx scancount=1
  engine=8.12.0-2204290000 definitions=main-2206070058 domainage_hfrom=8379
 Cc: linux-aio@kvack.org, linux-nfs@vger.kernel.org, cluster-devel@redhat.com,
  linux-ntfs-dev@lists.sourceforge.net, linux-kernel@vger.kernel.org,
@@ -62,8 +63,7 @@ Cc: linux-aio@kvack.org, linux-nfs@vger.kernel.org, cluster-devel@redhat.com,
  linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org,
  virtualization@lists.linux-foundation.org, linux-xfs@vger.kernel.org,
  linux-btrfs@vger.kernel.org
-Subject: Re: [Ocfs2-devel] [PATCH 05/20] mm/migrate: Convert
- expected_page_refs() to folio_expected_refs()
+Subject: Re: [Ocfs2-devel] [PATCH 15/20] balloon: Convert to migrate_folio
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -83,72 +83,42 @@ Errors-to: ocfs2-devel-bounces@oss.oracle.com
 X-ServerName: casper.infradead.org
 X-Proofpoint-SPF-Result: None
 X-Spam: Clean
-X-Proofpoint-ORIG-GUID: oE8jFuOoaFidihpfkY2es2TouFLZcdJ3
-X-Proofpoint-GUID: oE8jFuOoaFidihpfkY2es2TouFLZcdJ3
+X-Proofpoint-GUID: TMRzyyEp-XITnT66ZXu0v2VCcsmuEp_T
+X-Proofpoint-ORIG-GUID: TMRzyyEp-XITnT66ZXu0v2VCcsmuEp_T
 Reporting-Meta:
- AAEMoQroQueGomhiQHHGZ6KhIa6pGbK3ERdS85VG05rpAaz+Psp18+t+r04XY4QL
- BpoK9SUQaMM/tuUaFFr4EriSAZtfBPjyopRWqLx98p8tukOAdxE73Iv9/oW/t4mn
- DimbNERLXuyA/P7Or00WS2MWLB6WLfU3SPlObE4/8ajfW1kFpXt4VbYx4BOYyxHE
- FpVKf3CylZd0wrRlC8oaApisuTE6cH0ZlSkSOHsJJs8T19DLzQga8TWtw1lvyrsC
- fJOmwqLNTI4Q4KiWI/Rtc9ztfZiySzoda6NFW5aBLDziZQBgd3GPAVlTXR8VC5fv
- z8n2GPYgFLPEyec1YJiR2pOwmmT7P4loiuDz7i68lvhZGFPPRMeaGZ3X5JWI6xvW
- X2vnehIRG3a/WZ8nvLAp15/1Hc+n6+3ghCOKO/CWPpK9SDCRft2ic9W/c+w7KgLL
- iuet64r0yhTrRSqThVCSNPsBD+RecpAL5t5ViK5I5cEyW8Qu1Ito9a9tVHlhUK1Q
- WwSpn2eHSuNx3zZpCxJN2VuZ4afH9f30fTHJKRw3o/G2
+ AAFkcIS6h1XGbefDGn7CgjNGhuXeZ4ta+5hGLxszNOODxxLlrdrponGTNgl1xir2
+ MYRYxft/u/z9n4kHRgsK7ZvNTyUy/6O4WiFTqTh7JBz1H/U8/cw3pl1janc0NgTk
+ /JCcAKMuNvG7uQkn2M5hE5E8f2yjej/gcuOKh/Fpm36c/vub32K6aJfr0qS4H5cQ
+ GFOkCg5LZ7EGXxqcNGqoojZLSNOLF3Mgs18EuRFOaREwnpW2voCmKzSFzSg9D9J/
+ bxVu2qgls7ga+getldSCNpo5g81Xc/z7dzEyksDOD38dGoJka1d9ZbDs0J218Zk9
+ sPFOBQHLCYu+XQGyS/2zpNiG/aT9JVmD4zzq/nB1BtK1AQuMOLAq0Iow/0TlNhQ0
+ nSy+aRm8iWjPSjA+lqAGbrjMhKHy5AIqNkaLtk3Ce+MgmIccCdqzWlA7C1/D1Tms
+ cvBMQFBemG0ajPw5oldu1OdPP30ExAIAMv/qbf9IaT1o/QphuG8/XlrezmlQayYu
+ wBMoZdxUOjlyQv3NscbJM5Z1EJFjKGOqqnjvsi5va+lZ
 
-On Tue, Jun 07, 2022 at 09:41:57AM -0400, Brian Foster wrote:
-> On Mon, Jun 06, 2022 at 09:40:35PM +0100, Matthew Wilcox (Oracle) wrote:
-> > -static int expected_page_refs(struct address_space *mapping, struct page *page)
-> > +static int folio_expected_refs(struct address_space *mapping,
-> > +		struct folio *folio)
-> >  {
-> > -	int expected_count = 1;
-> > +	int refs = 1;
-> > +	if (!mapping)
-> > +		return refs;
-> >  
-> > -	if (mapping)
-> > -		expected_count += compound_nr(page) + page_has_private(page);
-> > -	return expected_count;
-> > +	refs += folio_nr_pages(folio);
-> > +	if (folio_get_private(folio))
-> > +		refs++;
+On Tue, Jun 07, 2022 at 09:36:21AM +0200, David Hildenbrand wrote:
+> On 06.06.22 22:40, Matthew Wilcox (Oracle) wrote:
+> >  const struct address_space_operations balloon_aops = {
+> > -	.migratepage = balloon_page_migrate,
+> > +	.migrate_folio = balloon_migrate_folio,
+> >  	.isolate_page = balloon_page_isolate,
+> >  	.putback_page = balloon_page_putback,
+> >  };
 > 
-> Why not folio_has_private() (as seems to be used for later
-> page_has_private() conversions) here?
+> I assume you're working on conversion of the other callbacks as well,
+> because otherwise, this ends up looking a bit inconsistent and confusing :)
 
-We have a horrid confusion that I'm trying to clean up stealthily
-without anyone noticing.  I would have gotten away with it too if it
-weren't for you pesky kids.
+My intention was to finish converting aops for the next merge window.
 
-#define PAGE_FLAGS_PRIVATE                              \
-        (1UL << PG_private | 1UL << PG_private_2)
+However, it seems to me that we goofed back in 2016 by merging
+commit bda807d44454.  isolate_page() and putback_page() should
+never have been part of address_space_operations.
 
-static inline int page_has_private(struct page *page)
-{
-        return !!(page->flags & PAGE_FLAGS_PRIVATE);
-}
-
-So what this function is saying is that there is one extra refcount
-expected on the struct page if PG_private _or_ PG_private_2 is set.
-
-How are filesystems expected to manage their page's refcount with this
-rule?  Increment the refcount when setting PG_private unless
-PG_private_2 is already set?  Decrement the refcount when clearing
-PG_private_2 unless PG_private is set?
-
-This is garbage.  IMO, PG_private_2 should have no bearing on the page's
-refcount.  Only btrfs and the netfs's use private_2 and neither of them
-do anything to the refcount when setting/clearing it.  So that's what
-I'm implementing here.
-
-> > +
-> > +	return refs;;
-> 
-> Nit: extra ;
-
-Oh, that's where it went ;-)  I had a compile error due to a missing
-semicolon at some point, and thought it was just a typo ...
+I'm about to embark on creating a new migrate_operations struct
+for drivers to use that contains only isolate/putback/migrate.
+No filesystem uses isolate/putback, so those can just be deleted.
+Both migrate_operations & address_space_operations will contain a
+migrate callback.
 
 _______________________________________________
 Ocfs2-devel mailing list
