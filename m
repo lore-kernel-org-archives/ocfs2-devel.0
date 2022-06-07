@@ -1,74 +1,60 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc254.phx1.oracleemaildelivery.com (aib29ajc254.phx1.oracleemaildelivery.com [192.29.103.254])
+Received: from aib29ajc255.phx1.oracleemaildelivery.com (aib29ajc255.phx1.oracleemaildelivery.com [192.29.103.255])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id C75FFC43334
-	for <ocfs2-devel@archiver.kernel.org>; Tue,  7 Jun 2022 13:42:24 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 272EEC43334
+	for <ocfs2-devel@archiver.kernel.org>; Tue,  7 Jun 2022 14:19:52 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=h3EPq2wrZVhp3KfmXtHRbn14SLsdny7sQRECxGxTTZs=;
- b=XWliGWj2UHSQeAKOvxHdqFQAweGug8184H1VekmG+stZ2SjC39auApc24xilMb4v9PBKpBSFvjP8
-   WPg/XoWqyTMxsTr3abNyqy0f9fVg0utiEbZiklzoTUZTwnGmqDTXx25fK0mrgoNn4tpToGVyYWtE
-   xPawgaDu1GsNc/TryZkMGQ1S7gocbzXqAbEn6+ZXFzW4I3OPHYtED29itw4eqQfvDQrTJPNRb/ed
-   4z/3A7b2F/qdKry2H4U+tMVdI9JBpjV56M4vcJPvc0JJF71J4iIu0k1Apa4kv4vsp4wElk+SYyef
-   IxnxjCrIulz4Jlri8hsz57kqFId0GUzAWJ1aVQ==
+ bh=wuDj1JIXQvMWZMvMjae4L4kIXNSmJoF1dP9BKj1/nYQ=;
+ b=HFWDLIm/KWYZLXMsoJircMumzAldt+iwYJhp9Je/WB6vgsBvLYUZ76uE4laboNlPFKUCsk/d+INk
+   9UkmKGkcrz2KzePjDK05pkAIUaDyHRW4S0UQI1M4RyKrL10HNE+5QzTSYpMCfvr2CDPg37sRi3PQ
+   kBYjwdpT8dgZU81a3BS4d8xfzA/89KihBkVEL22S4g9+BWbSYX5puvB6ZY4yBB9qpYoNXGNkFqlq
+   C1E/lLhQ+iYoPsa75NiDXa97lwCBp2UVfeqmfu28Lz0b5UqZIDfTeZbusVwyRPftDdR1dkFNrKT5
+   dCJbg1/dvCXmtIyevnWJnZR+PHiI0tAnGhpeHw==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=h3EPq2wrZVhp3KfmXtHRbn14SLsdny7sQRECxGxTTZs=;
- b=f6dTTd8LOwVU+maDE/iSf95l/uwSe80HSYElF3cWSBh4/IAYXSqAI7PcbBUnq1FCLtfykW5WO26l
-   EVmtHIH5z7aSH6MXh7lsXPKaxgYZ0ZP/R1d6sJb82hkw8tzKUcoyKWxfjjxMK+hZT6NFV+T5zmP5
-   1Gduk7/s1dwj09/cpnqPgYlC7JpG9eatkHIXYBVwiQkTOlAognxZxksNpee70xL31mia331bjrq6
-   BhG5TiH13NVK8xxW+JAj9aDWT/mc+wtYKjA45oxzIZD33Cx1r+qJMCXQ/uv1pviXUhma3qBaXugi
-   U323jxtdkc1w6UY6GItitIx5ypFdplMLlvpcUA==
-Received: by omta-ad3-fd3-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
+ bh=wuDj1JIXQvMWZMvMjae4L4kIXNSmJoF1dP9BKj1/nYQ=;
+ b=n7dETjq4Mmk7aVoV6tAlTiZ6o+bM9k2cMF+AouBUOQzG79iSaPtFecgeoM6Ep7BdKy37qMwmswBU
+   qk2k0LE50KECnD5sc1liSNisHIV6Ukq81H5moDqoXxLtZ+GRustmVHprMuc2nz5JlW81ZfarP1zd
+   N0TbTdvbs3GemmXfrsnXXBVV0gWPTikP+MZzDoFEVYSiJKdri5hEDlWINLrgNNHBD4syKqgfCtKf
+   fVKEJj6mcgh7tGfCQU9mrbesEvfTYFg3BFOB3OPGKMJUCqsMfw0VaLGlyx2kIgDV64Ma7Ir3ET+a
+   8HkLBR4aXtk+U9N7q32R6kEnWJHeulUr75+pfA==
+Received: by omta-ad3-fd3-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220517 64bit (built May 17
  2022))
- with ESMTPS id <0RD400G4L0QO7X60@omta-ad3-fd3-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Tue, 07 Jun 2022 13:42:24 +0000 (GMT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
- s=mimecast20190719; t=1654609324;
- h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
- to:to:cc:cc:mime-version:mime-version:content-type:content-type:
- in-reply-to:in-reply-to:references:references;
- bh=U9GWchY9hZYcIJP7lDw5j1KYfu5h/jhdfCsZWPH40Q8=;
- b=RRi4QjAn7sx1oxiTav2LXVEYk4HjhJ6sIs/BBH9vY97myKLAzT5nH3hG6OkQEzW0icahmL
- X9YGMngXem6pGZs0mF3Gu3WsNGsOhCbyluyFNnOwEOlwv3RSHJuynzgqmc2z7z0luUvi7t
- 2If3Mg/3tHHa9z/ezVwoOCuCAtbsmSM=
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=1e100.net;
- s=20210112; h=x-gm-message-state:date:from:to:cc:subject:message-id:references
- :mime-version:content-disposition:in-reply-to;
- bh=U9GWchY9hZYcIJP7lDw5j1KYfu5h/jhdfCsZWPH40Q8=;
- b=Q0TOQRx47ObjlFWEil9+kquWLqMD7gNfyjMuIY3uAbrklmdOgNXXC2vszfDJ1O2r5s
- SCu+RhCbCpKdMgANaqE6rZ+cQ2wdYktP5hT2Ept95Ycw+5Jbn5nTZIg8oa4Y3bCSKnkj
- oTMZA59RfVM1ARFqFOUIt/3d3KJEbgIRAgw5W9O+qpZNxaSOjx2L98+FLeUCVD8GhzYW
- iyTKJS3Arolg7EHz529FHwLzoSEBAigchAaCCa7yXdXxspwZcWBrW2b6wYmw41o3pfNf
- 6GSQydeqZ+coy75riXczdotr/ZliikhDJpqoc/OPxv5b/VyK+uWQ5GyUCw+Z+ZML+YDr FYAA==
-X-Gm-Message-State: AOAM5319KTeM8+4UJlTGVII8MOon9gBTmOrzlews2+ZcU1blBzYGgwFb
- iv9M9fh9HP1QTfrAefQDPYW+zjPc7CaxxiDFEMwkqc1DmlhF/AuNdK+AlJUN2ANyzT79ipiGWeq
- 25OQh24WUN9OjiVinccl+DQ==
-X-Received: by 2002:ac8:5acc:0:b0:304:f75a:4a1d with SMTP id
- d12-20020ac85acc000000b00304f75a4a1dmr3015556qtd.120.1654609320536; Tue,
- 07 Jun 2022 06:42:00 -0700 (PDT)
-X-Received: by 2002:ac8:5acc:0:b0:304:f75a:4a1d with SMTP id
- d12-20020ac85acc000000b00304f75a4a1dmr3015540qtd.120.1654609320271; Tue,
- 07 Jun 2022 06:42:00 -0700 (PDT)
-Date: Tue, 7 Jun 2022 09:41:57 -0400
-To: "Matthew Wilcox (Oracle)" <willy@infradead.org>
-Message-id: <Yp9VpZDsUEAZHEuy@bfoster>
+ with ESMTPS id <0RD4000WZ2H3WS70@omta-ad3-fd3-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Tue, 07 Jun 2022 14:19:51 +0000 (GMT)
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+ d=infradead.org; s=casper.20170209; h=In-Reply-To:Content-Type:MIME-Version:
+ References:Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:
+ Content-Transfer-Encoding:Content-ID:Content-Description;
+ bh=4nUpYTI4YzQUWe3MX/DeuqIdjPgTHj7mksBWnabO8pk=; b=IoritkaL90aqbR+RUHZKoSo8fb
+ np1ux4ttns5tYj2sJk/FAj12Ak/CQ/wW4eIuwXN5ulK6rhUSeL7wfME8a6K9gYUgIYgqg08BNe9+I
+ tus3kQ04SmPJZl9V4GH+E2xTibe280AETqIE3sbtSug/TUXDR0128c42jRa/+qeI8q7uri0dQOk1f
+ wWHM11+pgzBreVL8bkL3da/JDGIf99g2HUm8tnTrzT4cPM9I17c3dxlon1CkQMKJOgWEf9FbWmKJ9
+ h7TOtnv+jsL8ABFyKBR86bb03b2ZVDj0NIek4XcowncLGE0YjVino+xsZhqucJvOU+7lO9abDpL7s
+ BM8iPWpg==;
+Date: Tue, 7 Jun 2022 15:11:40 +0100
+To: Brian Foster <bfoster@redhat.com>
+Message-id: <Yp9cnCaZ1O4qHFEp@casper.infradead.org>
 References: <20220606204050.2625949-1-willy@infradead.org>
- <20220606204050.2625949-6-willy@infradead.org>
+ <20220606204050.2625949-6-willy@infradead.org> <Yp9VpZDsUEAZHEuy@bfoster>
 MIME-version: 1.0
-In-reply-to: <20220606204050.2625949-6-willy@infradead.org>
-Authentication-results: relay.mimecast.com; auth=pass smtp.auth=CUSA124A263
- smtp.mailfrom=bfoster@redhat.com
 Content-disposition: inline
-X-Source-IP: 170.10.129.124
+In-reply-to: <Yp9VpZDsUEAZHEuy@bfoster>
+X-Source-IP: 90.155.50.34
 X-Proofpoint-Virus-Version: vendor=nai engine=6400 definitions=10371
  signatures=594849
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 spamscore=0
+ malwarescore=0 bulkscore=0 adultscore=0 mlxscore=0 clxscore=148
+ lowpriorityscore=0 phishscore=0 impostorscore=0 mlxlogscore=828 suspectscore=0
+ priorityscore=176 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2204290000 definitions=main-2206070058 domainage_hfrom=8379
 Cc: linux-aio@kvack.org, linux-nfs@vger.kernel.org, cluster-devel@redhat.com,
  linux-ntfs-dev@lists.sourceforge.net, linux-kernel@vger.kernel.org,
  linux-f2fs-devel@lists.sourceforge.net, linux-block@vger.kernel.org,
@@ -89,117 +75,80 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: Brian Foster via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: Brian Foster <bfoster@redhat.com>
+From: Matthew Wilcox via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: Matthew Wilcox <willy@infradead.org>
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-MC-Unique: JmuO7pQKNUWXLXWY47Z-zg-1
-X-Google-Smtp-Source:
- ABdhPJyyavNr4YW+NLtrlTYw3DwYvyx9zxVnBrVGsEoQi3F5ODngxQYCXvCvG44n4ArB8DEsaTyYSw==
-X-Mimecast-Spam-Score: 0
-X-Mimecast-Originator: redhat.com
-X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 ip4:103.23.64.2 ip4:103.23.65.2
- ip4:103.23.66.26 ip4:103.23.67.26 ip4:107.21.15.141 ip4:108.177.8.0/21
- ip4:128.17.0.0/20 ip4:128.17.128.0/20 ip4:128.17.192.0/20 ip4:128.17.64.0/20
- ip4:128.245.0.0/20 ip4:128.245.64.0/20 ip4:13.110.208.0/21 ip4:13.110.216.0/22
- ip4:13.110.224.0/20 ip4:13.111.0.0/16 ip4:136.147.128.0/20
- include:spf1.redhat.com -all
-X-Proofpoint-SPF-VenPass: Allowed
-X-ServerName: us-smtp-delivery-124.mimecast.com
-X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 ip4:103.23.64.2 ip4:103.23.65.2
- ip4:103.23.66.26 ip4:103.23.67.26 ip4:107.21.15.141 ip4:108.177.8.0/21
- ip4:128.17.0.0/20 ip4:128.17.128.0/20 ip4:128.17.192.0/20 ip4:128.17.64.0/20
- ip4:128.245.0.0/20 ip4:128.245.64.0/20 ip4:13.110.208.0/21 ip4:13.110.216.0/22
- ip4:13.110.224.0/20 ip4:13.111.0.0/16 ip4:136.147.128.0/20
- include:spf1.redhat.com -all
-X-Proofpoint-Spam-Reason: safe
-X-Spam: OrgSafeList
-X-SpamRule: orgsafelist
-X-Proofpoint-GUID: 1RP1TKqwAFGRdgIeDQwA0Sysj6mICmbf
-X-Proofpoint-ORIG-GUID: 1RP1TKqwAFGRdgIeDQwA0Sysj6mICmbf
+X-ServerName: casper.infradead.org
+X-Proofpoint-SPF-Result: None
+X-Spam: Clean
+X-Proofpoint-ORIG-GUID: oE8jFuOoaFidihpfkY2es2TouFLZcdJ3
+X-Proofpoint-GUID: oE8jFuOoaFidihpfkY2es2TouFLZcdJ3
 Reporting-Meta:
- AAFkcIS6h1XGbefDGn7CgjNGhuXeZ4ta+5hGLxszNOODxxLlrdrponGTNgl1xir2
- MYRYxft/u/z9n4kHRgss55vNTyUy/6O4WiEpns8yeMIaXwKSJu3eqvky44ZITbML
- Tu8Wf6vRbVlJsiLlmddHGvL6BtnMaOXvFe5OyHHYUrcl61aMd+lEFYoXt6pNXVwv
- 1W2mpSnK3JZ6kkHIOd0NWYNwzYYTxG+s0X7hf2EDk/KtIiU8DKXX55oSEGQg+ofo
- ODsb6WgGIqw2eGGXx9b5qD4gxDFeO10Q8lcJaxeQowKjpku+i/DeuUCi7FjHXFTz
- wmdn/XiOdsKIrlUNX9Gp5L9kCKSguojNB7kE1NHJKBxk9ipZdrS5Bl/RjpjDOtKZ
- MHRhDJLVEWujkoGJgZ5P77p39GjofdgUlkqSpRblIJHBHPSR8F1tgIKbY8RI44Po
- OvO1k7Mmrt0xwIQoeiQmwRRFLqbfMs4hwD7aLZBDW3ah7zBxhXFAh+JeIHmdxwgp
- +riKjzNwj8Vw8zkD62aR5+QtPzOW6s+RISQzPlP+N23j
+ AAEMoQroQueGomhiQHHGZ6KhIa6pGbK3ERdS85VG05rpAaz+Psp18+t+r04XY4QL
+ BpoK9SUQaMM/tuUaFFr4EriSAZtfBPjyopRWqLx98p8tukOAdxE73Iv9/oW/t4mn
+ DimbNERLXuyA/P7Or00WS2MWLB6WLfU3SPlObE4/8ajfW1kFpXt4VbYx4BOYyxHE
+ FpVKf3CylZd0wrRlC8oaApisuTE6cH0ZlSkSOHsJJs8T19DLzQga8TWtw1lvyrsC
+ fJOmwqLNTI4Q4KiWI/Rtc9ztfZiySzoda6NFW5aBLDziZQBgd3GPAVlTXR8VC5fv
+ z8n2GPYgFLPEyec1YJiR2pOwmmT7P4loiuDz7i68lvhZGFPPRMeaGZ3X5JWI6xvW
+ X2vnehIRG3a/WZ8nvLAp15/1Hc+n6+3ghCOKO/CWPpK9SDCRft2ic9W/c+w7KgLL
+ iuet64r0yhTrRSqThVCSNPsBD+RecpAL5t5ViK5I5cEyW8Qu1Ito9a9tVHlhUK1Q
+ WwSpn2eHSuNx3zZpCxJN2VuZ4afH9f30fTHJKRw3o/G2
 
-On Mon, Jun 06, 2022 at 09:40:35PM +0100, Matthew Wilcox (Oracle) wrote:
-> Now that both callers have a folio, convert this function to
-> take a folio & rename it.
+On Tue, Jun 07, 2022 at 09:41:57AM -0400, Brian Foster wrote:
+> On Mon, Jun 06, 2022 at 09:40:35PM +0100, Matthew Wilcox (Oracle) wrote:
+> > -static int expected_page_refs(struct address_space *mapping, struct page *page)
+> > +static int folio_expected_refs(struct address_space *mapping,
+> > +		struct folio *folio)
+> >  {
+> > -	int expected_count = 1;
+> > +	int refs = 1;
+> > +	if (!mapping)
+> > +		return refs;
+> >  
+> > -	if (mapping)
+> > -		expected_count += compound_nr(page) + page_has_private(page);
+> > -	return expected_count;
+> > +	refs += folio_nr_pages(folio);
+> > +	if (folio_get_private(folio))
+> > +		refs++;
 > 
-> Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
-> ---
->  mm/migrate.c | 19 ++++++++++++-------
->  1 file changed, 12 insertions(+), 7 deletions(-)
+> Why not folio_has_private() (as seems to be used for later
+> page_has_private() conversions) here?
+
+We have a horrid confusion that I'm trying to clean up stealthily
+without anyone noticing.  I would have gotten away with it too if it
+weren't for you pesky kids.
+
+#define PAGE_FLAGS_PRIVATE                              \
+        (1UL << PG_private | 1UL << PG_private_2)
+
+static inline int page_has_private(struct page *page)
+{
+        return !!(page->flags & PAGE_FLAGS_PRIVATE);
+}
+
+So what this function is saying is that there is one extra refcount
+expected on the struct page if PG_private _or_ PG_private_2 is set.
+
+How are filesystems expected to manage their page's refcount with this
+rule?  Increment the refcount when setting PG_private unless
+PG_private_2 is already set?  Decrement the refcount when clearing
+PG_private_2 unless PG_private is set?
+
+This is garbage.  IMO, PG_private_2 should have no bearing on the page's
+refcount.  Only btrfs and the netfs's use private_2 and neither of them
+do anything to the refcount when setting/clearing it.  So that's what
+I'm implementing here.
+
+> > +
+> > +	return refs;;
 > 
-> diff --git a/mm/migrate.c b/mm/migrate.c
-> index 77b8c662c9ca..e0a593e5b5f9 100644
-> --- a/mm/migrate.c
-> +++ b/mm/migrate.c
-> @@ -337,13 +337,18 @@ void pmd_migration_entry_wait(struct mm_struct *mm, pmd_t *pmd)
->  }
->  #endif
->  
-> -static int expected_page_refs(struct address_space *mapping, struct page *page)
-> +static int folio_expected_refs(struct address_space *mapping,
-> +		struct folio *folio)
->  {
-> -	int expected_count = 1;
-> +	int refs = 1;
-> +	if (!mapping)
-> +		return refs;
->  
-> -	if (mapping)
-> -		expected_count += compound_nr(page) + page_has_private(page);
-> -	return expected_count;
-> +	refs += folio_nr_pages(folio);
-> +	if (folio_get_private(folio))
-> +		refs++;
+> Nit: extra ;
 
-Why not folio_has_private() (as seems to be used for later
-page_has_private() conversions) here?
-
-> +
-> +	return refs;;
-
-Nit: extra ;
-
-Brian
-
->  }
->  
->  /*
-> @@ -360,7 +365,7 @@ int folio_migrate_mapping(struct address_space *mapping,
->  	XA_STATE(xas, &mapping->i_pages, folio_index(folio));
->  	struct zone *oldzone, *newzone;
->  	int dirty;
-> -	int expected_count = expected_page_refs(mapping, &folio->page) + extra_count;
-> +	int expected_count = folio_expected_refs(mapping, folio) + extra_count;
->  	long nr = folio_nr_pages(folio);
->  
->  	if (!mapping) {
-> @@ -670,7 +675,7 @@ static int __buffer_migrate_folio(struct address_space *mapping,
->  		return migrate_page(mapping, &dst->page, &src->page, mode);
->  
->  	/* Check whether page does not have extra refs before we do more work */
-> -	expected_count = expected_page_refs(mapping, &src->page);
-> +	expected_count = folio_expected_refs(mapping, src);
->  	if (folio_ref_count(src) != expected_count)
->  		return -EAGAIN;
->  
-> -- 
-> 2.35.1
-> 
-> 
-
+Oh, that's where it went ;-)  I had a compile error due to a missing
+semicolon at some point, and thought it was just a typo ...
 
 _______________________________________________
 Ocfs2-devel mailing list
