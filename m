@@ -1,60 +1,60 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc247.phx1.oracleemaildelivery.com (aib29ajc247.phx1.oracleemaildelivery.com [192.29.103.247])
+Received: from aib29ajc248.phx1.oracleemaildelivery.com (aib29ajc248.phx1.oracleemaildelivery.com [192.29.103.248])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id AA5FAC43334
-	for <ocfs2-devel@archiver.kernel.org>; Tue,  7 Jun 2022 14:57:50 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 28E6EC433EF
+	for <ocfs2-devel@archiver.kernel.org>; Tue,  7 Jun 2022 15:03:33 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=UN9WCh2ZcQ4xT6s8dq6Ug5eYRe0ADje/rvB4XDLk4Jk=;
- b=bmIc7LkSdegvJiWO2NZ65GdBa/L4VuwBlmE8u96QZLgbmjgDvKQvsx0koSdoDRtd6vj5oUaNXHEo
-   KdODu8yzeF4lzAeMhq5LeMHj6jehSR9u2oe8kaO43Cvod7m1xVv8CNXz8lfDF0svXkBYfay/W0jN
-   LWlBrut1qIC0o7PB/7u1ccppa1o/vQ940UOmrF+vT3nUyaF4yD9ubQoEAZ+QHzuFKIb11shig7Fz
-   wIYGVy5vfzt0EECOa8iIXDbcTWsxv5bB7rLq6QCPEh2hPREDp6Jf8E7yljRoaDA5lD4nl2F8P/qp
-   pFQ9Asbia7B4F/k5ceQdoyIN9p4Mdudllv6Trw==
+ bh=hY5v+4ZWNTKFMziObu9S8mkTq9JePH3HBaY0t9mQzCE=;
+ b=0r3Zrjx2UJyRVZsErLDkYq0IY9Hv0HEqONWR0NddGA7/TwwpF2mGwfcc1OfijmXiASyzVQJmKbE7
+   ++0OUBQr7/4GbsHIRg8vekfWnQ6d84TZXpLjwOiXMtOEtmz3G8WUcU7AX2vd41QuYZQq1HWiICXL
+   biXJkkdvTPLTIPRXJvEU2xPA1809cWluscF1JJPrQNEwl/9ucmGZMa6eOjNq0bY3cjd3YvVEYSrZ
+   7Cu8LdyWQWCxeVNqPyLTlRmQxQEIenaMK8Qg/TAok7sSLEj3VKPnAeG3s0Avr7/of4mbIaPMPXpQ
+   0a/NKgpRoJtThI6fymHpDi3EBuRMQz1U+MDelQ==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=UN9WCh2ZcQ4xT6s8dq6Ug5eYRe0ADje/rvB4XDLk4Jk=;
- b=klbGNeEoP33bkWTIi02pEZKF+NCZ1SwFDVxj8CNJEIpByHkmKnIfhaZm9M+X37Sw/t40Axgo9iil
-   zOSmX87B1oYuwQUjr6DXGzCFSa6Hg7nWFr1a1kjQq/bSoi6lqwHf0r90f8z2k/rZexdc2H+mgc2Q
-   xhzEgjCSDKwDiwNtmKSLwTQUi4eGhZ+dLtvaHoE+gRgAK8sz1oLIfbWMV3T1ky04wSwc8LNfhxSs
-   fckkXdJGQ58P1+ZlrPWTdqJExsXJRDCotM4cTWC/ZZ+wOgbq8qHGqPX2ubCYVjMhVpvPLm3Y5Pzj
-   PWuOJ3mg2/p8Zz0Fh3cYRlTPaZgU8pln6K3RtA==
-Received: by omta-ad1-fd3-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
+ bh=hY5v+4ZWNTKFMziObu9S8mkTq9JePH3HBaY0t9mQzCE=;
+ b=n5yacvuYDlERHGPRv66B71QMwdrdzAcONirUlB8CoMnuCq/r2AUb4blrwnQZrygs2e6IlojK3PYY
+   h4SS65shamck85cqY4Z3f9uRT0EEH4+SdpcoENd/f+sV+Inz23IvnPHv5zhW/RMH8gV99XHvsjNg
+   u3BqWG9MVzwOW/cXANriUPMBp7Y4/ON1tl0dEU5zZtoITrzlFLLc29y8QLx+VQNtJIA4wSCfg6Vl
+   uLlt8g9joWtipx3n7Vah3x4C3tSoPh5ao8RtxCFEumOQ8mUCfi2mEi9+pnav9B8NcYeA3H1G93f2
+   jerTSdbmmjKSGqxeNJe1uLlKVVkhB6FVFtnBng==
+Received: by omta-ad2-fd1-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220517 64bit (built May 17
  2022))
- with ESMTPS id <0RD400O8648E9NC0@omta-ad1-fd3-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Tue, 07 Jun 2022 14:57:50 +0000 (GMT)
+ with ESMTPS id <0RD400MOM4HWDS60@omta-ad2-fd1-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Tue, 07 Jun 2022 15:03:32 +0000 (GMT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
  d=infradead.org; s=casper.20170209; h=In-Reply-To:Content-Type:MIME-Version:
  References:Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:
  Content-Transfer-Encoding:Content-ID:Content-Description;
- bh=AfL2iuaKMIW3GEEXa7GrCIERYid9+IWuPeOvvtY3ld4=; b=fRSk5WhSy4yx86ABGN8DAKmWjC
- 5IdJfhP/2tfrBb3qOP67dWCLnwarcUWbjvi3CSZox73Cc2Y1PIwGlfqeGnF3Uxyt0mbA5Mg3BbAic
- u8C1w1Bg+HnPIgHl9bpnhpAGnvXoNlM/riGdn7iNiA4dEw1cH8c3GLB6l+j+CAh8jR4QCRLgjeJYJ
- KjvzVwo8asMupiPKaBH9YNKuxq1ZqBG33mo7YsQtWCkEXiw/2CPMhM29QfN4S2WqjmyhTpN+ujECh
- HLTSFWPPBpUYWjBGjh365kLciirfPTZ2IaAsMeDnES6CMIrk6IVPXnxuuFSWcG0n8eXm6dw3XUxLO
- bUTOI4Jw==;
-Date: Tue, 7 Jun 2022 15:57:01 +0100
+ bh=4jzHTv5Sc0MldAT+k988WZMZ/PcoJBlwM2totgWZy1o=; b=kAmWthY2O8UluBnxjle5Z4b8CR
+ wMBrQhwOGev5bLR4SD2g4KFCVqn0rNm7UKcacjYNHOp4Zi9DN4hFNNpg/rdYnkQ2Bitnt2jS/8yep
+ J4RQx8E76Apo84LVth+zXy/EGiNNhGntaPmOyPt7MAf32pEy9j0ya4oCKAyveSeAvj+/Bahjw/WS5
+ PkxrMT8th9jzoXK8Ozl9TZiDmysXQUNCSiVKvMvkBzEn1CjwgpXgRMlrbmn3RA54WDQPV+9+5Dfdw
+ DH8s3QnSLteEcLhDUV0m22q0hL+gDPGr4PGZVl9no1Krcd/RbUTmqDuxBUlxLXzpM46q69eZL4xIc
+ YyTs3kwg==;
+Date: Tue, 7 Jun 2022 16:02:55 +0100
 To: kernel test robot <lkp@intel.com>
-Message-id: <Yp9nPSwPEWoX7Ml+@casper.infradead.org>
-References: <20220606204050.2625949-5-willy@infradead.org>
- <202206071139.aWSx4GHH-lkp@intel.com>
+Message-id: <Yp9on0GvbGbdN+cv@casper.infradead.org>
+References: <20220606204050.2625949-15-willy@infradead.org>
+ <202206071414.41wGG8fp-lkp@intel.com>
 MIME-version: 1.0
 Content-disposition: inline
-In-reply-to: <202206071139.aWSx4GHH-lkp@intel.com>
+In-reply-to: <202206071414.41wGG8fp-lkp@intel.com>
 X-Source-IP: 90.155.50.34
 X-Proofpoint-Virus-Version: vendor=nai engine=6400 definitions=10371
  signatures=594849
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 spamscore=0
- malwarescore=0 bulkscore=0 adultscore=0 mlxscore=0 clxscore=157
- lowpriorityscore=0 phishscore=0 impostorscore=0 mlxlogscore=395 suspectscore=0
- priorityscore=165 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2204290000 definitions=main-2206070060 domainage_hfrom=8379
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=5 mlxlogscore=128
+ suspectscore=0 bulkscore=0 phishscore=0 impostorscore=0 malwarescore=0
+ priorityscore=162 adultscore=0 clxscore=178 mlxscore=5 spamscore=5
+ lowpriorityscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2204290000 definitions=main-2206070061 domainage_hfrom=8379
 Cc: linux-aio@kvack.org, linux-nfs@vger.kernel.org, cluster-devel@redhat.com,
  kbuild-all@lists.01.org, linux-ntfs-dev@lists.sourceforge.net,
  linux-kernel@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net,
@@ -63,8 +63,7 @@ Cc: linux-aio@kvack.org, linux-nfs@vger.kernel.org, cluster-devel@redhat.com,
  linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org,
  virtualization@lists.linux-foundation.org, linux-xfs@vger.kernel.org,
  linux-btrfs@vger.kernel.org
-Subject: Re: [Ocfs2-devel] [PATCH 04/20] mm/migrate: Convert
- buffer_migrate_page() to buffer_migrate_folio()
+Subject: Re: [Ocfs2-devel] [PATCH 14/20] hugetlb: Convert to migrate_folio
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -84,26 +83,31 @@ Errors-to: ocfs2-devel-bounces@oss.oracle.com
 X-ServerName: casper.infradead.org
 X-Proofpoint-SPF-Result: None
 X-Spam: Clean
-X-Proofpoint-GUID: Jor-iP9zwOMqvSZF0DkeQ9ZsMcn5fpGF
-X-Proofpoint-ORIG-GUID: Jor-iP9zwOMqvSZF0DkeQ9ZsMcn5fpGF
+X-Proofpoint-GUID: _8k2gC_dSzsBZBARGLzZFGx8d9IPE7Dv
+X-Proofpoint-ORIG-GUID: _8k2gC_dSzsBZBARGLzZFGx8d9IPE7Dv
 Reporting-Meta:
- AAEJ9/GjdivP2KowmX17yDYdsck74u+Plr+C3E1bgy1PRQ6XBrSTc31Jlpf1RAFB
- 1zZ6EeFQhPFC0o4AFH9igdtG1agxpOgTG7hcxAE5OIq0C7fj1VojuxBTn7R4Vdfp
- D36BbmPGXt3jWILZZIeggotyuJwXZSY70ik+Qh70NK4IEAiZcj1T1mMSNu7THmUo
- VCi8iF/A7aCoAY+fRLi7A+2yXdZ2NJMRfWQl1AJZGpUmX3uELVDmu0VMlbdqzp/q
- 3Vbx2Z5L6B30nFNhMv+UXq4MwwEasL3n/D7P4D6wyZ94mrS697I4T9keR0wfgvi8
- hkfnKlUZ09WXJx52EcgJoHorli3mkmKIsp67Bd2qmQ4/vhFzgIzrPidnat9d2+E6
- +EfnRliHhE6KpuPrS5BNyvlICBK2pRS583YZesznl+FMedRHmL5KYVuitcdopxMi
- kVOlqk9UGvES1vs4ZUMCuahQuzRy1CebKEwE33TuBAWJjW/4fs/3ZgA0kqRwlSP6
- 5wNf7lrS91PCIXsGYnzPRXeSwq4GNHSdoVoKqozu0x1b
+ AAEyJHhYEUUd0xhzdB7fWyOiSokxx+Apf7roaaN/WrhzTeGGXGIQATTYGKHd3Chg
+ V5Bx36cULNnq3J5hLQWa/aoPYrjlvgMziygPxLscT+IedaE4ljAxZh9InlRFb4iD
+ BkUmE0khvDth31spfv/uD5EtmpHS8pjqSLjUP86gYVAjRw2NueNcc+gLsMU6Clng
+ fV1tMa/WlcehDVM5weXKBYuz06D+sDswCtK5iMnHN2H2G0kTt4qHqaafzfSxZEYM
+ v0ZlYbDQjjsPyFYO0bC8ppjZiAJ03FdzZ4e/BS0Xji1/hRO1rdM5DI+QExXpU/fq
+ geBTWH3YIbnDEq+ubVTAC1rkhjEYYurmZMOzkB7uIWhn07XQypRp06Udm221oA6Y
+ OPZr6LIRf3N1sEjjEwcfXBVoDnbGQT3S7xpE0AxlSKUuI2MELQCAQCUMcb9ZaAD7
+ fxmH19PfyPoncasFG3V/bQJxhZUZdRF5EXZGOjpgIZ5wwePFe0q79wqz7m9sPvmA
+ Xvxh4udbIfvY69f9GBbeQAezRqFmvkqYqAePEg8A7f4=
 
-On Tue, Jun 07, 2022 at 11:37:45AM +0800, kernel test robot wrote:
-> All warnings (new ones prefixed by >>):
-> 
-> >> mm/migrate.c:775: warning: expecting prototype for buffer_migrate_folio_noref(). Prototype was for buffer_migrate_folio_norefs() instead
+On Tue, Jun 07, 2022 at 02:13:26PM +0800, kernel test robot wrote:
+>    fs/hugetlbfs/inode.c: In function 'hugetlbfs_migrate_folio':
+> >> fs/hugetlbfs/inode.c:990:17: error: implicit declaration of function 'folio_migrate_copy' [-Werror=implicit-function-declaration]
+>      990 |                 folio_migrate_copy(dst, src);
+>          |                 ^~~~~~~~~~~~~~~~~~
+> >> fs/hugetlbfs/inode.c:992:17: error: implicit declaration of function 'folio_migrate_flags'; did you mean 'folio_mapping_flags'? [-Werror=implicit-function-declaration]
+>      992 |                 folio_migrate_flags(dst, src);
+>          |                 ^~~~~~~~~~~~~~~~~~~
+>          |                 folio_mapping_flags
+>    cc1: some warnings being treated as errors
 
-No good deed (turning documentation into kerneldoc) goes unpunished ...
-thanks, fixed.
+Thanks, fixed.
 
 _______________________________________________
 Ocfs2-devel mailing list
