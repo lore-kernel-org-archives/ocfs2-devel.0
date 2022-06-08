@@ -4,57 +4,57 @@ X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 Received: from aib29ajc250.phx1.oracleemaildelivery.com (aib29ajc250.phx1.oracleemaildelivery.com [192.29.103.250])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 1545AC43334
-	for <ocfs2-devel@archiver.kernel.org>; Wed,  8 Jun 2022 08:16:58 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id EE853C43334
+	for <ocfs2-devel@archiver.kernel.org>; Wed,  8 Jun 2022 08:17:40 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
  bh=nVAvFcskCAzPBU84JfSYasgwAD57+ShK8EWu9QgQp0s=;
- b=YSSl9JJdmDboYdxYmLXPGc2nKqYDFqNpD2deq8VB70MKMHXZxf4vh3xgFOxL/ExwwZNRN/yb/1+n
-   g8w12go3aNChrjVjW7ef0ynD56DEVAGt2/xZMamNYCOh0syug863EdNN+1eUTpow2+h8ZZAybHk0
-   xQoYGkdB2r+uIWMGgFXdoJKQOdPKY364UV712+qeUOh5iANZiIB5ThRT+/wI1ZG5yYjHPL+lwHUL
-   Nm5nI0ElFpyjkPomQmz78HkvwGl+gcFBtHTmzzHTVcZT1cZ5L9kSkN9coY4May/t5+30RXyWNYH4
-   CHA5sTm/APqvCxsvgSGcqsPB/vkCYvRs4UCHPw==
+ b=TWSVViwaZHueBbkLY7AjH1i6FJ9l2c8ihGnZ+c8QNwR7fswiPkXfBv1GHGJ3gRUaItWDcmVClmXw
+   NypGhY3RbKG1Mk4hSedGmYDQDhDDn4Tu4slaGzoqFPBJcN8QSVYuJx2RqQQOOG/d6SYRmmT1yQqd
+   UpsnjpXHeXVx48n30/lveLgExKYCbiOb+y9oz2NSNbZZ9+hO0zxAcaqQhfzuB12e40uomHfksxY0
+   YriwN6ltREreu+eT41WMWVVrZr2KwrPm6Qe4g2SDkXBnqtfUq9P2X/ITzXmnysu5N/kXxriYeSuz
+   5Su7WWT0TxP6J6EOh7CGNuRo9xuhTPXuOQ0z1A==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
  bh=nVAvFcskCAzPBU84JfSYasgwAD57+ShK8EWu9QgQp0s=;
- b=asLSMFmALq5IHHD7gQaQOmvdFGpg1H/UMzB7b0RFZhjYChY1lofqnXhlcgZ1PR9SaxzKIjU7zW6s
-   GYVbY+hssWSfeZiEcQool94HSVyCjsBkFph1kgwdbrGflVwENPXWuTItlVG66pOuc4eHVnsmTM65
-   Pw9+h0TE7RP4NOQhCnh9xe8EGHH388AYuYXD9h4gJQPW+QN1j+KIqRM4IPuoVEn++XQknrFdC2lL
-   AWfIuuYHYE1gkKDUoHX+xe9qj/ADVWtagWVCJOv/aFD7GKxfDy8H/vDn8iK684T8DETfRyN9ksuc
-   BeLT+6EPZZYYKJNcOW4xXeojleq/l0x57lokPw==
+ b=lc+JKVXqBBVGmfjFu8Mxzr5sQiUHKU183TU9IZd5eqycfwGDToS3gZFuNBay3+SN45Pu4OKgQHwC
+   sahhGGmaHeODab4qvGdlIB4CMOx17ygMSGM8nwbjEORx6VgIIMGZ/Hk3tyK2hGeBdJqr1IqGBbZP
+   1h00TMX4p7ue2u4gQ66+73fpdL09DYtfCmQd/tiyWBl7GmU+abuaAii0KTEt3OXp0mwqOEnvhcHU
+   OClmAztmNUw1gC7J5GjUWsPDSVPqrdEgZOPG5U0GL392KfCPhwMbWr3z9IufrxltRIinnhajzDLK
+   CbvfBCQT5blMaYzD37YCiXyGP4tacAvfB1AmOQ==
 Received: by omta-ad2-fd3-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220517 64bit (built May 17
  2022))
- with ESMTPS id <0RD500N2OGCANRE0@omta-ad2-fd3-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Wed, 08 Jun 2022 08:16:58 +0000 (GMT)
+ with ESMTPS id <0RD500N32GDGNRE0@omta-ad2-fd3-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Wed, 08 Jun 2022 08:17:40 +0000 (GMT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
  d=infradead.org; s=bombadil.20210309; h=In-Reply-To:Content-Type:MIME-Version
  :References:Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:
  Content-Transfer-Encoding:Content-ID:Content-Description;
- bh=M7NmYC/Iylm9myghHwqILim55SAUt9QrM+UZYk0eJlw=; b=FO21TYVkz1GrrEA1IBdTPO89xn
- 0ZhoZYnarKm0rAuq/YROa1HKdkFK7QK0hedDX/nrx+C0C2WNrc/8GnSud7y6U9FtPf82+dd7N0Y3l
- YkFhhl+68leXo0KExqTjSVhImfkr7x818ptZ7rQAQnAkTTOK+3RQ8NAQ4BjzwC9dwB3ryaKIKFgst
- 1az6zm3xoKy7M0JoPyTQjX3ItTvX0lzR7C46szzxNnX5fxrRlYwh8C8eGy+4fFWsfWohqoXnJV1lk
- NUoZvYeV3VZL9xeXVFDRQELmcTse8V//KXOCpI/WLAYTfRuTB+WtV9TBIRC4l0VSz8+pKNnzTprVG
- gQVinkwQ==;
-Date: Wed, 8 Jun 2022 01:16:44 -0700
+ bh=M7NmYC/Iylm9myghHwqILim55SAUt9QrM+UZYk0eJlw=; b=2WbpTPn+U2f2onFg/v0ugFnZX2
+ 3H4dx4JWOjbSiIxRvjCaObhRBsMKq9bC6nF9DimLeLFDWGOlCsGv/SSuW3LbUUlL8RvgfQmeUxUM+
+ dce6wUikqP5CBTPslN7HMq73KTmKfguX7enWI3u6HreYJxYvwpKejaImvWjYA7lnUesFItBoQfHgG
+ V2KmHEgRMBi52HHO+gDoVYvM3/22pSzpmMlYdOzyUYNtXIiTAmLtW9ScnNrKoXzRIMhuCbnU1TO3P
+ fDIvpr0nruvf4dcNSGU9upYdYVaebOO7GYzBSweUBwZRbV6maP9nTpS156IFNymlthsXHiVwXlh6L
+ gVtdLs4A==;
+Date: Wed, 8 Jun 2022 01:17:24 -0700
 To: "Matthew Wilcox (Oracle)" <willy@infradead.org>
-Message-id: <YqBa7ENPoZ1ofJZj@infradead.org>
+Message-id: <YqBbFE4FPeRbnkWF@infradead.org>
 References: <20220606204050.2625949-1-willy@infradead.org>
- <20220606204050.2625949-7-willy@infradead.org>
+ <20220606204050.2625949-8-willy@infradead.org>
 MIME-version: 1.0
 Content-disposition: inline
-In-reply-to: <20220606204050.2625949-7-willy@infradead.org>
+In-reply-to: <20220606204050.2625949-8-willy@infradead.org>
 X-Source-IP: 198.137.202.133
 X-Proofpoint-Virus-Version: vendor=nai engine=6400 definitions=10371
  signatures=594849
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 phishscore=0
- spamscore=0 priorityscore=194 impostorscore=0 mlxscore=0 mlxlogscore=400
- suspectscore=0 bulkscore=0 clxscore=162 adultscore=0 malwarescore=0
- lowpriorityscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2204290000 definitions=main-2206080037 domainage_hfrom=8380
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 priorityscore=90
+ adultscore=0 lowpriorityscore=0 malwarescore=0 phishscore=0 impostorscore=0
+ mlxlogscore=400 bulkscore=0 spamscore=0 mlxscore=0 clxscore=129 suspectscore=0
+ classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2204290000
+ definitions=main-2206080037 domainage_hfrom=8380
 Cc: linux-aio@kvack.org, linux-nfs@vger.kernel.org, cluster-devel@redhat.com,
  linux-ntfs-dev@lists.sourceforge.net, linux-kernel@vger.kernel.org,
  linux-f2fs-devel@lists.sourceforge.net, linux-block@vger.kernel.org,
@@ -62,8 +62,7 @@ Cc: linux-aio@kvack.org, linux-nfs@vger.kernel.org, cluster-devel@redhat.com,
  linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org,
  virtualization@lists.linux-foundation.org, linux-xfs@vger.kernel.org,
  linux-btrfs@vger.kernel.org
-Subject: Re: [Ocfs2-devel] [PATCH 06/20] btrfs: Convert btree_migratepage to
-	migrate_folio
+Subject: Re: [Ocfs2-devel] [PATCH 07/20] nfs: Convert to migrate_folio
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -85,18 +84,18 @@ X-SRS-Rewrite: SMTP reverse-path rewritten from <hch@infradead.org> by
 X-ServerName: bombadil.infradead.org
 X-Proofpoint-SPF-Result: None
 X-Spam: Clean
-X-Proofpoint-GUID: 9iy51YgC47pY3S4BpM4yTiDDjxqjFXN_
-X-Proofpoint-ORIG-GUID: 9iy51YgC47pY3S4BpM4yTiDDjxqjFXN_
+X-Proofpoint-GUID: JNjDFHICLACp1J44gRASIt8Xd5spgdaq
+X-Proofpoint-ORIG-GUID: JNjDFHICLACp1J44gRASIt8Xd5spgdaq
 Reporting-Meta:
- AAFGNSJR4rX/CwyTGduzWUJA/ncjlffhypss/P5dm3X+fWBs0U/QKyNPG4mlNQAs
- /QYisRAnrAY4S0P96T9iwSKEC2XM0ejDhYm3XI3ddXf/DzM++auKkoSRy1jJiH8i
- g/CXg0jEzUWOAofKw9MSxJBaxUOvDmDq0CzTq9Im+qXUaAuRO7YZ2EF5FPEX0vNq
- p31ivCHsuxgTMCGm0xlpm5ckeuRLjxDfYKJrKkpqkd89hIThcz/UXD6TCUHz51Yi
- vZtqOOsZkumeSXW0VMNZLrn77EXNXy08Nr/m0DMSsqvMEecG0JLB4ps5ZV9Wk5zN
- lYtzg6LoHHQDD0UReFW4s1RrtUl6tdlZbVfmt5XZM4d2mzmUTFjlvUHBDD6739Qh
- 8Pf4kFb81qcrUXes+h9X0xEYUn7tpNPPGatoOHaJ0XshPqrCgYNPkCiSCbNlVqnC
- EOUdpVHN3qTXyO8+mqwPxp4xWciPjBwraeQsK+3P2Tff6b8PWP5syWrsEmxT8FuG
- 9xBgdvMu9St529Rc3juuYYigItOC9sSI1uIe0rl+xyo=
+ AAFvRAfbreY5MMEj4ymj71B5UXtk2/MLy26Q85CcnT8rHTGqHBygFwj1Gv+nqt2U
+ Y7/hw39vDUFHc66eLsiU7Wa6kaJJDOtcmJISp+H5gfg4584iuoViFvyxM+NBsQ8T
+ x1jf2+shcO3uZ8kgkJcJm7CRcx1Cdel6fCNMkCtBzqpug6bxdpgXNUdFx7yiKHH+
+ 4fw6/6St6wVZGHD/6RoWTxSApVVjawRw2CMM+7HEyRZknZI7lKYJP4I0dEIT2Ip0
+ Da8r6eyt3ft7ZFbuJTAG22iQ0ZS6ezEqLDrK26XqZjj95mXRPquiBGuCV9tB7BCI
+ ffz/cjFguDLzYWYU0D4aDi0Z2o1CT76OV37z/IuiPYdKjfdbrOP6kv+jiI4sUFgH
+ 8fA0qvqjvhZGInASjUzaywliqATbWlAweKotRCZyYCppOl6u3KOI5BN7FvDS7+rj
+ V3/Th5BVRNYBxT+FH+tBV+dbr5+UOlcNMouLgQTZf73sa3Kw9XQKKRI4HxpcMDiX
+ lzZrL9vZ5gPyuXGBgCba/TD2ZZswYqxroC6JbKbip7E=
 
 Looks good:
 
