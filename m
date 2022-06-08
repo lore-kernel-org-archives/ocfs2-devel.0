@@ -1,47 +1,47 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc254.phx1.oracleemaildelivery.com (aib29ajc254.phx1.oracleemaildelivery.com [192.29.103.254])
+Received: from aib29ajc255.phx1.oracleemaildelivery.com (aib29ajc255.phx1.oracleemaildelivery.com [192.29.103.255])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 58ABFC43334
-	for <ocfs2-devel@archiver.kernel.org>; Wed,  8 Jun 2022 15:03:50 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 28F9BC433EF
+	for <ocfs2-devel@archiver.kernel.org>; Wed,  8 Jun 2022 15:03:51 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=6YasDYXH3Z9C43N04iPYdSvIj9IYDpSIA023FT7+Y0A=;
- b=lPS50kkVZdIERO81So6DbBWQcPGOjFG/lb2BR0aQnSKbSX5s/+m2v/RcSe9UzB7tZg3UVxUUDAUx
-   Ajb8n2xGAbzIDxlmJZDqbVrIFXxAS4uhS7YJ+shdbjPueEN79FeLaSo9b0DIeMXXcRhBy3jiVzjM
-   piSP5sYjiv/TU+PbWX43VRjfsIi0VjxiaX83Dfb2HfPSQaVQcT/z/PzREV6JXQj2y/Jw3s42RLS5
-   LT4cMtc65lcAXAsOGYMOQiryeI60vFFKxbn3aW4MIrM5yWWOExfkTj2D0IwRF/QxHwJSpeCXN//I
-   z0tiTQxr/aeJ5e5QHLfpWBprigRhu/S/ZX7E2w==
+ bh=ufj5svfC2INUMvENyYAqqd/TM8uJgDXbzIMnYpSNakk=;
+ b=O5eJoB2ekwRe+kPZyO3xdB8rlp6q43mwRVkMhtZLD75AlUYx/folZCkCgi0Qi8+Nkm5WOV2/aX1x
+   iHgq5s69rpLbA6XBIDldp900mS0mb8E8pRztMU3F5SSXxwMAuqnjR8qkPlgcFtePFsh7Y8lrEmw3
+   kkd4X+4BBvBeVO03ZcLYfCSk6oXiYX0MeznPh4/Qolv7YGUx5HwL/vwVbQM28F5LSsYkBA2nyp8P
+   iwGnKzzaebPY51AVYqEm9ahozgpcWdqoJCRj5bt/tP9RTBdpDKQsWwpFUP9bmMuXr1w87EK/0pyT
+   +UnyAAqibLauzUpvlHc6dvrSCFjayXTr0qHPpg==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=6YasDYXH3Z9C43N04iPYdSvIj9IYDpSIA023FT7+Y0A=;
- b=KQrguXpE+ti9Qos49W/iVDe0fHHvQq2r7Kw1cSfAGlW4fwUMLmVIWX7yOxGlGRAJwf0t9XpNGUI2
-   6Q3m54OMq6NeVxQy+Dj4THcgA+xGAO5E0hGBwzwf/qRb+mEOL761h9Rwt9eBqQT2nKGZ4HZVI5vV
-   3Ch/UkvNACcn31cmzF63eC+/pTb59ubBWA2q/vPtprnQ9m8Hj7qKgtEeWWTusq98Id/jC3T+mKQl
-   3379fFC/kPu0k/XAzN57rfXGYBLEXQbDc1KHOikOp8O+40hKhly6uoDE924/2VkPPU9BgJAfXH2Q
-   Nw/GF9+xw1mOyXam/piLdHerHp45Xb53QRwl3w==
-Received: by omta-ad3-fd3-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
+ bh=ufj5svfC2INUMvENyYAqqd/TM8uJgDXbzIMnYpSNakk=;
+ b=N17bwGS8CChdHxrRAEOkGk+iVdzv7ltf//cXewSXtjZulIS09euSu3G/ACHNVAUQx4dxr+GyRqXD
+   G11ghlE60BL7oY7UwRIbCVKzsb9R87eQYvrnh7rgGJ4VSSFC4i/NQSUEXBuKd0ILNpSSls6FX1Y3
+   /TffNLbQWas/HpW4XYiZDTtmnG5OfESDFJnC7RCpG5JMzGGDmSBBG0PxjFirvYsPqlFVxIbh3Hgu
+   wEM0MmYc6kYzLl94cHsl1oMl1VFAYh8T38OVRzZ88uPuOkWpvYrRU20+JYwj0H5I828Ot+2LdRI2
+   M/GO9mLyuqLOX82DhCYOLWKImc5wBl07UUFn0Q==
+Received: by omta-ad3-fd3-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220517 64bit (built May 17
  2022))
- with ESMTPS id <0RD50008VZ6DPW20@omta-ad3-fd3-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Wed, 08 Jun 2022 15:03:49 +0000 (GMT)
+ with ESMTPS id <0RD500CKHZ6EST10@omta-ad3-fd3-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Wed, 08 Jun 2022 15:03:50 +0000 (GMT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
  d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
  References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:
  Content-Type:Content-ID:Content-Description;
- bh=XR+RIMaPRstxhE5d9sK6W/lLAxJj8y6CMlZq/dw3i2g=; b=PinZio6D0unRMLA2LkVJ0ptTFG
- VrnAnp0fToz0SSUq+txImmnD3LXbPrTgnBlZV++pGdop4Cn2WGlRLHpKuS+kybl2tUCz9v7CkzcI7
- M7dlh9co51ybg0sfqiCvyfJ+qCDVgLM04IACEtw5v5qim5kAOU7n37rbZwVisvIb02sc/ZVnklOXA
- Z5Yog62jbLrAe6tbGbP1arO8LqW6WhxyWv31XFNHQTwJmoW7cJQZQo66HOCZ0qKa0oTcQqQUR6I7N
- YxEdTY90TszBiIe5Yx9ka66db2HDnsKgnuyFmp91lyFFjiAr/Y42M1z5fpXGH6DEdv5iEQaT18DjE
- zFSSPGRQ==;
+ bh=6sny7mgbMzuLsgsgFN8vZ/E7WcZlP1DaRKRtHbfX8Jw=; b=hiZDwkFzLkpw4nMGSQ9j6t8W6q
+ vvmKP/IIvikzofOHXwsx0H+rcgkObjb6HmPODgSF68eOauY/+iZZqt5bXHtz9ijuINOnOgv2mFiBV
+ 5M6lkjPPGdm88+DMS7Hh/nHzu8bQIW+WXPytwScUVzFHXpxTDC4AmUKFjHtWfaHqeeuhQu4d7IOAn
+ Leo6f1ZcVRUIaXyW8nY9kbO03KCT8UR3mivr867QazlQMkDev7LpY1lO3BMshouOC11vMO/aT+lSl
+ oAou1WWo/zmr5pC6ttZ+bmRMwT5RYtouNJChkW1uaO5hfxGEGrSJ7GKa+qvLx6bXsARbYByI4xzeb
+ 30T712Tw==;
 To: linux-fsdevel@vger.kernel.org
-Date: Wed,  8 Jun 2022 16:02:39 +0100
-Message-id: <20220608150249.3033815-10-willy@infradead.org>
+Date: Wed,  8 Jun 2022 16:02:44 +0100
+Message-id: <20220608150249.3033815-15-willy@infradead.org>
 X-Mailer: git-send-email 2.31.1
 In-reply-to: <20220608150249.3033815-1-willy@infradead.org>
 References: <20220608150249.3033815-1-willy@infradead.org>
@@ -49,19 +49,18 @@ MIME-version: 1.0
 X-Source-IP: 90.155.50.34
 X-Proofpoint-Virus-Version: vendor=nai engine=6400 definitions=10372
  signatures=594849
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 impostorscore=0
- malwarescore=0 lowpriorityscore=0 mlxlogscore=655 suspectscore=0 mlxscore=0
- phishscore=0 priorityscore=220 bulkscore=0 clxscore=163 spamscore=0
- adultscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 clxscore=163
+ priorityscore=220 bulkscore=0 adultscore=0 malwarescore=0 suspectscore=0
+ spamscore=0 impostorscore=0 mlxscore=0 lowpriorityscore=0 mlxlogscore=540
+ phishscore=0 classifier=spam adjust=0 reason=mlx scancount=1
  engine=8.12.0-2204290000 definitions=main-2206080064 domainage_hfrom=8380
 Cc: linux-aio@kvack.org, linux-nfs@vger.kernel.org, cluster-devel@redhat.com,
  linux-ntfs-dev@lists.sourceforge.net, linux-kernel@vger.kernel.org,
  linux-f2fs-devel@lists.sourceforge.net, linux-block@vger.kernel.org,
  linux-mm@kvack.org, linux-mtd@lists.infradead.org, ocfs2-devel@oss.oracle.com,
- Anna Schumaker <Anna.Schumaker@Netapp.com>, linux-ext4@vger.kernel.org,
- virtualization@lists.linux-foundation.org, linux-xfs@vger.kernel.org,
- linux-btrfs@vger.kernel.org
-Subject: [Ocfs2-devel] [PATCH v2 09/19] nfs: Convert to migrate_folio
+ linux-ext4@vger.kernel.org, virtualization@lists.linux-foundation.org,
+ linux-xfs@vger.kernel.org, linux-btrfs@vger.kernel.org
+Subject: [Ocfs2-devel] [PATCH v2 14/19] f2fs: Convert to	filemap_migrate_folio()
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -81,103 +80,138 @@ Errors-to: ocfs2-devel-bounces@oss.oracle.com
 X-ServerName: casper.infradead.org
 X-Proofpoint-SPF-Result: None
 X-Spam: Clean
-X-Proofpoint-GUID: XgyJmVEVXa_Pj7AAuao3iBe0ckK1UqrE
-X-Proofpoint-ORIG-GUID: XgyJmVEVXa_Pj7AAuao3iBe0ckK1UqrE
+X-Proofpoint-ORIG-GUID: WSTizzcpK2_D7mMRPCLMoVgoYHSBVa_l
+X-Proofpoint-GUID: WSTizzcpK2_D7mMRPCLMoVgoYHSBVa_l
 Reporting-Meta:
- AAEHkQJBVa9ng1n/BE0ijrlu0KI25LhFBZLcaabhqtzlA2pAQITAYR+wb2IaUIvK
- hGlj0n3LaKwHbwu7w/XILNvZigwyxPj8Npl1sbfN4fOUVMdiZwoM82MIuF5RIp8c
- yQnvnggz4iLtUSXMc7QfkwrzBIKJYRx9JWh4TjNTcZQJACYQGc+eCYwmJG+Fbhkd
- sYBiSaMShF5/9bTOTdIQ6StgRvdDh8jy6l2hRPfz2SoOSCx39GaevoKBX+RgAw06
- RE6a7GaiC1JJpyiV5LryKU0xZ0jwNfA2CTcFF55XBK9pnxTiD8OzwjWGEsn2B8A7
- W9zXz3+87X7/MTfYUdCuJiEw/Vzfyfx9ks8ZTNYHfIFMup49BBuv4wk/lScSM6b8
- nUqwze0kfLHSnHR/QYaNgk8M7gIA23bc3mimgBpyylo6kY2XdJuoU3rC1rCeTgTA
- yGBJHivXp1Qdj1jP+F0D7QNciFgPJJJsN8TVob2VFFAD1YMp2ZyESpHfnJ49f9Qk
- p/rHAwrhL3EaeBemn9Lf/3w2uTYcUfHLyHNGiS+ZpKGE
+ AAGSNHyQ3WL5X+m7Gz79NNTymd+P4h6kFrS8ung13tzyAOYW4VpFa/FcAXXTM7Uk
+ fZR34GuUtOTDHWGDZC0zpLdRaeFmjmMGgmzFJSziqQfOGDiDdERAf2eQ1UAsuZq6
+ gmUDRnx96Z0tI/nEBFbcLN+SLyVDhgBWcEt1UbUgMZY+sLJRe/GQ9nSl2bb1i56x
+ FjD3TGw22HHdZ30/kDmUEDCm4EjBx1Hk4exjibmzZ/bv4vXDLXdY2L8To93q4/7e
+ SXSi0jcHwBtAqq6KjdZYwzZs7rIbWio/XihGk/QOMWipDZc2d1XHyYuXmLKKyyFt
+ frY4HTUEfagBVYr8i++G5uASSmSzJNJtMjnCfZ5Ul8iZB41g+/XCLUWntQb5UPAQ
+ A9PjK+xRhexks9kloDe24onisxX4lYtO7pzSs1EhKTzhZMjCtiTcOaRlhWYOwpjr
+ ciwRJ0pOMhYhXC4IclX+1cJu4XYGP5XHwPvllm99QscEIVfk3AQqFNPfOltiCD/b
+ NZ3s/WBnFYyznVcfvt6/zT2nB50r6HRmmZxsfM4nAR94Yg==
 
-Use a folio throughout this function.  migrate_page() will be converted
-later.
+filemap_migrate_folio() fits f2fs's needs perfectly.
 
 Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
-Acked-by: Anna Schumaker <Anna.Schumaker@Netapp.com>
-Reviewed-by: Christoph Hellwig <hch@lst.de>
 ---
- fs/nfs/file.c     |  4 +---
- fs/nfs/internal.h |  6 ++++--
- fs/nfs/write.c    | 16 ++++++++--------
- 3 files changed, 13 insertions(+), 13 deletions(-)
+ fs/f2fs/checkpoint.c |  4 +---
+ fs/f2fs/data.c       | 40 +---------------------------------------
+ fs/f2fs/f2fs.h       |  4 ----
+ fs/f2fs/node.c       |  4 +---
+ 4 files changed, 3 insertions(+), 49 deletions(-)
 
-diff --git a/fs/nfs/file.c b/fs/nfs/file.c
-index 2d72b1b7ed74..549baed76351 100644
---- a/fs/nfs/file.c
-+++ b/fs/nfs/file.c
-@@ -533,9 +533,7 @@ const struct address_space_operations nfs_file_aops = {
- 	.write_end = nfs_write_end,
- 	.invalidate_folio = nfs_invalidate_folio,
- 	.release_folio = nfs_release_folio,
+diff --git a/fs/f2fs/checkpoint.c b/fs/f2fs/checkpoint.c
+index 6d8b2bf14de0..8259e0fa97e1 100644
+--- a/fs/f2fs/checkpoint.c
++++ b/fs/f2fs/checkpoint.c
+@@ -463,9 +463,7 @@ const struct address_space_operations f2fs_meta_aops = {
+ 	.dirty_folio	= f2fs_dirty_meta_folio,
+ 	.invalidate_folio = f2fs_invalidate_folio,
+ 	.release_folio	= f2fs_release_folio,
 -#ifdef CONFIG_MIGRATION
--	.migratepage = nfs_migrate_page,
+-	.migratepage    = f2fs_migrate_page,
 -#endif
-+	.migrate_folio = nfs_migrate_folio,
- 	.launder_folio = nfs_launder_folio,
- 	.is_dirty_writeback = nfs_check_dirty_writeback,
- 	.error_remove_page = generic_error_remove_page,
-diff --git a/fs/nfs/internal.h b/fs/nfs/internal.h
-index 8f8cd6e2d4db..437ebe544aaf 100644
---- a/fs/nfs/internal.h
-+++ b/fs/nfs/internal.h
-@@ -578,8 +578,10 @@ void nfs_clear_pnfs_ds_commit_verifiers(struct pnfs_ds_commit_info *cinfo)
- #endif
++	.migrate_folio	= filemap_migrate_folio,
+ };
  
- #ifdef CONFIG_MIGRATION
--extern int nfs_migrate_page(struct address_space *,
--		struct page *, struct page *, enum migrate_mode);
-+int nfs_migrate_folio(struct address_space *, struct folio *dst,
-+		struct folio *src, enum migrate_mode);
-+#else
-+#define nfs_migrate_folio NULL
- #endif
- 
- static inline int
-diff --git a/fs/nfs/write.c b/fs/nfs/write.c
-index 1c706465d090..649b9e633459 100644
---- a/fs/nfs/write.c
-+++ b/fs/nfs/write.c
-@@ -2119,27 +2119,27 @@ int nfs_wb_page(struct inode *inode, struct page *page)
+ static void __add_ino_entry(struct f2fs_sb_info *sbi, nid_t ino,
+diff --git a/fs/f2fs/data.c b/fs/f2fs/data.c
+index 7fcbcf979737..318a3f91ad74 100644
+--- a/fs/f2fs/data.c
++++ b/fs/f2fs/data.c
+@@ -3751,42 +3751,6 @@ static sector_t f2fs_bmap(struct address_space *mapping, sector_t block)
+ 	return blknr;
  }
  
- #ifdef CONFIG_MIGRATION
--int nfs_migrate_page(struct address_space *mapping, struct page *newpage,
--		struct page *page, enum migrate_mode mode)
-+int nfs_migrate_folio(struct address_space *mapping, struct folio *dst,
-+		struct folio *src, enum migrate_mode mode)
- {
- 	/*
--	 * If PagePrivate is set, then the page is currently associated with
-+	 * If the private flag is set, the folio is currently associated with
- 	 * an in-progress read or write request. Don't try to migrate it.
- 	 *
- 	 * FIXME: we could do this in principle, but we'll need a way to ensure
- 	 *        that we can safely release the inode reference while holding
--	 *        the page lock.
-+	 *        the folio lock.
- 	 */
--	if (PagePrivate(page))
-+	if (folio_test_private(src))
- 		return -EBUSY;
+-#ifdef CONFIG_MIGRATION
+-#include <linux/migrate.h>
+-
+-int f2fs_migrate_page(struct address_space *mapping,
+-		struct page *newpage, struct page *page, enum migrate_mode mode)
+-{
+-	int rc, extra_count = 0;
+-
+-	BUG_ON(PageWriteback(page));
+-
+-	rc = migrate_page_move_mapping(mapping, newpage,
+-				page, extra_count);
+-	if (rc != MIGRATEPAGE_SUCCESS)
+-		return rc;
+-
+-	/* guarantee to start from no stale private field */
+-	set_page_private(newpage, 0);
+-	if (PagePrivate(page)) {
+-		set_page_private(newpage, page_private(page));
+-		SetPagePrivate(newpage);
+-		get_page(newpage);
+-
+-		set_page_private(page, 0);
+-		ClearPagePrivate(page);
+-		put_page(page);
+-	}
+-
+-	if (mode != MIGRATE_SYNC_NO_COPY)
+-		migrate_page_copy(newpage, page);
+-	else
+-		migrate_page_states(newpage, page);
+-
+-	return MIGRATEPAGE_SUCCESS;
+-}
+-#endif
+-
+ #ifdef CONFIG_SWAP
+ static int f2fs_migrate_blocks(struct inode *inode, block_t start_blk,
+ 							unsigned int blkcnt)
+@@ -4018,15 +3982,13 @@ const struct address_space_operations f2fs_dblock_aops = {
+ 	.write_begin	= f2fs_write_begin,
+ 	.write_end	= f2fs_write_end,
+ 	.dirty_folio	= f2fs_dirty_data_folio,
++	.migrate_folio	= filemap_migrate_folio,
+ 	.invalidate_folio = f2fs_invalidate_folio,
+ 	.release_folio	= f2fs_release_folio,
+ 	.direct_IO	= noop_direct_IO,
+ 	.bmap		= f2fs_bmap,
+ 	.swap_activate  = f2fs_swap_activate,
+ 	.swap_deactivate = f2fs_swap_deactivate,
+-#ifdef CONFIG_MIGRATION
+-	.migratepage    = f2fs_migrate_page,
+-#endif
+ };
  
--	if (PageFsCache(page)) {
-+	if (folio_test_fscache(src)) {
- 		if (mode == MIGRATE_ASYNC)
- 			return -EBUSY;
--		wait_on_page_fscache(page);
-+		folio_wait_fscache(src);
- 	}
+ void f2fs_clear_page_cache_dirty_tag(struct page *page)
+diff --git a/fs/f2fs/f2fs.h b/fs/f2fs/f2fs.h
+index d9bbecd008d2..f258a1b6faed 100644
+--- a/fs/f2fs/f2fs.h
++++ b/fs/f2fs/f2fs.h
+@@ -3764,10 +3764,6 @@ int f2fs_write_single_data_page(struct page *page, int *submitted,
+ void f2fs_write_failed(struct inode *inode, loff_t to);
+ void f2fs_invalidate_folio(struct folio *folio, size_t offset, size_t length);
+ bool f2fs_release_folio(struct folio *folio, gfp_t wait);
+-#ifdef CONFIG_MIGRATION
+-int f2fs_migrate_page(struct address_space *mapping, struct page *newpage,
+-			struct page *page, enum migrate_mode mode);
+-#endif
+ bool f2fs_overwrite_io(struct inode *inode, loff_t pos, size_t len);
+ void f2fs_clear_page_cache_dirty_tag(struct page *page);
+ int f2fs_init_post_read_processing(void);
+diff --git a/fs/f2fs/node.c b/fs/f2fs/node.c
+index 836c79a20afc..ed1cbfb0345f 100644
+--- a/fs/f2fs/node.c
++++ b/fs/f2fs/node.c
+@@ -2163,9 +2163,7 @@ const struct address_space_operations f2fs_node_aops = {
+ 	.dirty_folio	= f2fs_dirty_node_folio,
+ 	.invalidate_folio = f2fs_invalidate_folio,
+ 	.release_folio	= f2fs_release_folio,
+-#ifdef CONFIG_MIGRATION
+-	.migratepage	= f2fs_migrate_page,
+-#endif
++	.migrate_folio	= filemap_migrate_folio,
+ };
  
--	return migrate_page(mapping, newpage, page, mode);
-+	return migrate_page(mapping, &dst->page, &src->page, mode);
- }
- #endif
- 
+ static struct free_nid *__lookup_free_nid_list(struct f2fs_nm_info *nm_i,
 -- 
 2.35.1
 
