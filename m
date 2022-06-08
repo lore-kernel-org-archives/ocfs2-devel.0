@@ -1,47 +1,47 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc255.phx1.oracleemaildelivery.com (aib29ajc255.phx1.oracleemaildelivery.com [192.29.103.255])
+Received: from aib29ajc248.phx1.oracleemaildelivery.com (aib29ajc248.phx1.oracleemaildelivery.com [192.29.103.248])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id EF427CCA485
-	for <ocfs2-devel@archiver.kernel.org>; Wed,  8 Jun 2022 15:03:28 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 1719FCCA47B
+	for <ocfs2-devel@archiver.kernel.org>; Wed,  8 Jun 2022 15:03:31 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=c54IzBboE5n/lbIupVo0IrWAo8HAkIt8aQJBYIsMIdU=;
- b=svRb/dJW397a4egtoqY3y660vIUpTEUFnRGkRLS3zpvmu/pTymhFYKJSyChp2qudioscxiRdB2Uo
-   9lyDaJ3KV/LCb9vjMvX4F/Up7sHxkL0Exx1QcrdinWOQ23GowdkUKgRCHoX9qAYT+VSPCdJkQLen
-   9mMp9+dP+IKD18/BK8iH+MtV5fmgdehKzIv61RtQu3MKAM5GKb6mVHHme9kb5BnAsVz1w+xFXci2
-   CF9N+AYceGfTh3QaomOXJSOyyyQFynGBk63kqp1+X6LazTEdZiObx2IHnDaHHDJgigr4NuSNIFKt
-   4l6SI4wVsg1K3M9JbLaZprwc4fuE8k4VfX+F+g==
+ bh=1wJq11yPB1RSTBd4Lmpot3IFqVhfz6VXFUoleD/d+vs=;
+ b=NYNxT7pzTgKXsMMNm162cLAzdxqiu2haFV63nILUjJP+VrFBRf9ZPfCCiD7rppLk50QnzdjEbYyw
+   2YiD18eYOo6nwDR2OVbMMf0uRjS/I7ao7rHwJbi/OZMiRCnudHnQyhn1X0uDAxDCO5XJLMFkYUJd
+   l/9WmYBThivowhRC1OJf9b7d5nmWWILULF9fH73Rg9r+O+nxsuaOYvetKhfv4qpPlBPLSbUMYfLE
+   l6YNqMlTqDcM5rJDoz0MyjZHNygQxm4jkbSGhZD4EJ79odM/qX3e9X7SAoP4pGFES32BXl0kwwEP
+   1l90WPGFA0FR6rQPqdpZyST4TDW8fR5uijgrvA==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=c54IzBboE5n/lbIupVo0IrWAo8HAkIt8aQJBYIsMIdU=;
- b=iwuUAgy0TzL25sgbVL6lylXz51yE6Gkc0IXzPbKzqpuBz3ucdChv+lYL6aZd5R0KZpaKJxkXUKei
-   3OIqfLgzKh+3l+se7mdxXBhloxmX9aH8lp8OOvaNvXBdawofud9DzcGMsMaURG0I5T5qK8CHjebG
-   10cBG9qRcKCycTYxV4KJPSNHgPzhehFaIa4MMwpoM47I2cj2o26G+wnhhQ1MQYsoV2/xTvElIQg/
-   fH+Qfz1DE3gHyuDcEYwy5E2lDTb25o7IfnkTUSi6O3zeIbZGAmECty63Nv25dEQAc76+BiPA7zVQ
-   PJ0Qm2UQcEhwe3hgprQLpmn7HQK66VE+HvUEcg==
-Received: by omta-ad3-fd3-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
+ bh=1wJq11yPB1RSTBd4Lmpot3IFqVhfz6VXFUoleD/d+vs=;
+ b=JqzwZaQxRBbXyhbvk7q8G5JmppG9jugCaInGSHKyudYAD5kmfBsFPVVuxegTUhFutIEcv8yisLt+
+   FT87+7dMxTpcpLuBPlXPdDmYSAyA1rW0+kb9KismnqT4yf+NvV4h1cNVAGGi/En9zrK6P6Jhil7e
+   JwlLLn0jBEMr/5wkra4YLXhvVlEoVf6y5diSs96QEhYlWjqegcD9rPdkE5pJABcTTB9Xz42CQZ6e
+   ZhE8EN0akXzLJMoAO/6iwk8Im1RYRRo81jknQT9fY8FFXA5YdNuAYL4CIeMFIfrfszeMe0zhWKBH
+   kD3z9jscDvxcaLxaz2WfMQV10jL8KIXC6bmZOQ==
+Received: by omta-ad2-fd1-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220517 64bit (built May 17
  2022))
- with ESMTPS id <0RD500BMNZ5S6T10@omta-ad3-fd3-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Wed, 08 Jun 2022 15:03:28 +0000 (GMT)
+ with ESMTPS id <0RD500OYKZ5UR810@omta-ad2-fd1-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Wed, 08 Jun 2022 15:03:30 +0000 (GMT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
  d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
  References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:
  Content-Type:Content-ID:Content-Description;
- bh=rXRIRcK5aBVZ2wBOi68suVknWfPexbmGif0IEKfZsbs=; b=lsRn9gaO5tAEYD/OWJOs5+zBTI
- NCwTDYynMk1lnd9OTbJ4EfJRYdVl+3dODL7tzXJVPHXM+7SlQHXOVlUsUboFXhSdXz3aSmA3UKZ6F
- L5v7sh+GECC4njYbIAGlnHpfB8UwcWrwo0wyP4BhZlRei7kEvvdyW2VaiPkXgO55R9kKQgx/YjEqw
- tYFIlMpDyJj5vqIZK5lcNkMFc7QTZ02ItadvJCgbfwAGx5UGipfrdrSUQujOmia2pjwzdNOAWZ616
- V6c9pTOiEz7pLpSwn0iaK2fRQggU3GplOvlDyjFYnosAScOy2AdneQp1BzdO4NPq9SyDvONshsH4r
- X68Lp0aw==;
+ bh=WUpG8Ni861ynrjDUWCnLTkzTIfxUJKXosLuHAm7Cnl4=; b=TZRY1wF8ksrrIs1o9KbjlHWauY
+ 4i3hvUjlM2cIjRUnhetVv8G6jMyi14dv6mXReUhlvxDOk++478UFLwnOTQRcW2OAzYRGsNtgSvdbm
+ rzbNL4L83yv6t9VuZB7jb2fZTbAOWlo5a8uudsYH/7aOxtrNzw8CLlAmsabS+HdXV4gWCKA8QRNjP
+ TEB2Mf9KWDrGrK8TMAo35J12l2+xg69zacyrBtimmMBqI0hEgYTGk5qIEXSbuwxPZt8S1FzoWckM/
+ zJjg6W8idqpi/4VI0InsOV4Q7s8MeTv9rUBHDNK/kOpKOuF3YHJ2V9jmVvRttDYxzg4YE4S5tdNTF
+ ViZ46uBg==;
 To: linux-fsdevel@vger.kernel.org
-Date: Wed,  8 Jun 2022 16:02:31 +0100
-Message-id: <20220608150249.3033815-2-willy@infradead.org>
+Date: Wed,  8 Jun 2022 16:02:45 +0100
+Message-id: <20220608150249.3033815-16-willy@infradead.org>
 X-Mailer: git-send-email 2.31.1
 In-reply-to: <20220608150249.3033815-1-willy@infradead.org>
 References: <20220608150249.3033815-1-willy@infradead.org>
@@ -50,8 +50,8 @@ X-Source-IP: 90.155.50.34
 X-Proofpoint-Virus-Version: vendor=nai engine=6400 definitions=10372
  signatures=594849
 X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0
- lowpriorityscore=0 mlxlogscore=735 spamscore=0 adultscore=0 clxscore=163
- bulkscore=0 malwarescore=0 phishscore=0 suspectscore=0 priorityscore=250
+ lowpriorityscore=0 mlxlogscore=490 spamscore=0 adultscore=0 clxscore=167
+ bulkscore=0 malwarescore=0 phishscore=0 suspectscore=0 priorityscore=253
  mlxscore=0 impostorscore=0 classifier=spam adjust=0 reason=mlx scancount=1
  engine=8.12.0-2204290000 definitions=main-2206080064 domainage_hfrom=8380
 Cc: linux-aio@kvack.org, linux-nfs@vger.kernel.org, cluster-devel@redhat.com,
@@ -60,7 +60,7 @@ Cc: linux-aio@kvack.org, linux-nfs@vger.kernel.org, cluster-devel@redhat.com,
  linux-mm@kvack.org, linux-mtd@lists.infradead.org, ocfs2-devel@oss.oracle.com,
  linux-ext4@vger.kernel.org, virtualization@lists.linux-foundation.org,
  linux-xfs@vger.kernel.org, linux-btrfs@vger.kernel.org
-Subject: [Ocfs2-devel] [PATCH v2 01/19] secretmem: Remove isolate_page
+Subject: [Ocfs2-devel] [PATCH v2 15/19] aio: Convert to migrate_folio
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -80,51 +80,111 @@ Errors-to: ocfs2-devel-bounces@oss.oracle.com
 X-ServerName: casper.infradead.org
 X-Proofpoint-SPF-Result: None
 X-Spam: Clean
-X-Proofpoint-GUID: qK69fiHYpIAPzt4aFD3dkYwrjxi_fBLG
-X-Proofpoint-ORIG-GUID: qK69fiHYpIAPzt4aFD3dkYwrjxi_fBLG
+X-Proofpoint-GUID: qZik5j4el3SoEC8SSOW4W3a9Mu1a0-tt
+X-Proofpoint-ORIG-GUID: qZik5j4el3SoEC8SSOW4W3a9Mu1a0-tt
 Reporting-Meta:
- AAEOVeCPB1T7ZqplPs7gTF4dfQgJ3YBHjOmfDQ+f88xsStV81sMPKEwjjHiWEUmo
- aEo6L+Z6rUQ8N/y29mygNdYBabv5w2qYVsV1lsZGBkul+fnyQ3dYPxHTNzhDfDg3
- rCQAvQ0JXFDLLYa87HsDd7BNLFI1gy8uNMZbjFWVyXlVzpf6+jJWk5n2DKTnQLLU
- K04t09jPUIPtNOibZzxSwB1A9mL25MNzm7Q6fm9UgUiVhQt3M2GB/tzMXcswxt+J
- CdlBKX6W/5nHmE/vuWCVPgGrG3DQSOs2bwaJ1CU93vslnf+JROhnPX7SYiv4jZKh
- i5AjwVdvfAsmX/PDmgFbxhAlt2jXT+RJBpnEteH4c8xYXiq8CLOzDkkqI+WFOQxP
- w7hFjBZStNVdqNUasrhfPygH/cfMkTS+530ZttZCk3nYpdF1FzKxMWH8BhLbCIaw
- AY9oAcLttAA+dlj0rjTCRvm1okJI6zD0PjeT8KBKz/MEXO0rFVsiujKMJ3+64iaq
- lXn7ozthz3HqVgqbNb0Wv4dPkPlfXuiONssaF6m9ogiC
+ AAFwhruWf3FhMQmnlLB/bfTMuIoBmkeoCOQSJmGteCs1B4JCiGJzmHFdEa5o4e3Q
+ 9V9NV6L0LPCyxI6dfVExphU81tNnFBw+lmjyqhMZiSrjQ7MurSMWCDpEI5uOVnNu
+ +h7aKsVgJ1CINgtGApwAoe4Z0n5xwv+fX00eVRI2c7g/KWtUR99W8Yye5BAHPMTV
+ 0Ubcl+yynW4BY4OzsnUph0aH86cHw6azkCD1wVRsnccPGgp1rS22r8HJq47JqXDU
+ h7aa9aUsAeinNFEkrFB4D9mUMe6KqRhueU/fHw9S4NNX7si6v4+1Sfw3kwDdXI2N
+ +ATScdVInD1XQUjjBywAsO+f3kmeyPxgNs0Wy75iMyGxmxFFK/t9Crf38pBBuCQn
+ NV1w+LOvfKVhIjgBWTIZbtzEOGwlO55fXZyL4K+yWEVcvubkl7+NLCsqOhjJk8iL
+ BrGNnk4FNJJg4oeCdL4xMdt8AHH755Uu296tGoQhEXyfXLqtTfh+/mEoDNqMUSuT
+ ig6Q3r5Q7/goHWLYHxnSQhsg8YtkeWQHJXnll29QALqh
 
-The isolate_page operation is never called for filesystems, only
-for device drivers which call SetPageMovable.
+Use a folio throughout this function.
 
 Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
+Reviewed-by: Christoph Hellwig <hch@lst.de>
 ---
- mm/secretmem.c | 6 ------
- 1 file changed, 6 deletions(-)
+ fs/aio.c | 36 ++++++++++++++++++------------------
+ 1 file changed, 18 insertions(+), 18 deletions(-)
 
-diff --git a/mm/secretmem.c b/mm/secretmem.c
-index 206ed6b40c1d..1c7f1775b56e 100644
---- a/mm/secretmem.c
-+++ b/mm/secretmem.c
-@@ -133,11 +133,6 @@ static const struct file_operations secretmem_fops = {
- 	.mmap		= secretmem_mmap,
+diff --git a/fs/aio.c b/fs/aio.c
+index 3c249b938632..a1911e86859c 100644
+--- a/fs/aio.c
++++ b/fs/aio.c
+@@ -400,8 +400,8 @@ static const struct file_operations aio_ring_fops = {
  };
  
--static bool secretmem_isolate_page(struct page *page, isolate_mode_t mode)
--{
--	return false;
--}
--
- static int secretmem_migratepage(struct address_space *mapping,
- 				 struct page *newpage, struct page *page,
- 				 enum migrate_mode mode)
-@@ -155,7 +150,6 @@ const struct address_space_operations secretmem_aops = {
+ #if IS_ENABLED(CONFIG_MIGRATION)
+-static int aio_migratepage(struct address_space *mapping, struct page *new,
+-			struct page *old, enum migrate_mode mode)
++static int aio_migrate_folio(struct address_space *mapping, struct folio *dst,
++			struct folio *src, enum migrate_mode mode)
+ {
+ 	struct kioctx *ctx;
+ 	unsigned long flags;
+@@ -435,10 +435,10 @@ static int aio_migratepage(struct address_space *mapping, struct page *new,
+ 		goto out;
+ 	}
+ 
+-	idx = old->index;
++	idx = src->index;
+ 	if (idx < (pgoff_t)ctx->nr_pages) {
+-		/* Make sure the old page hasn't already been changed */
+-		if (ctx->ring_pages[idx] != old)
++		/* Make sure the old folio hasn't already been changed */
++		if (ctx->ring_pages[idx] != &src->page)
+ 			rc = -EAGAIN;
+ 	} else
+ 		rc = -EINVAL;
+@@ -447,27 +447,27 @@ static int aio_migratepage(struct address_space *mapping, struct page *new,
+ 		goto out_unlock;
+ 
+ 	/* Writeback must be complete */
+-	BUG_ON(PageWriteback(old));
+-	get_page(new);
++	BUG_ON(folio_test_writeback(src));
++	folio_get(dst);
+ 
+-	rc = migrate_page_move_mapping(mapping, new, old, 1);
++	rc = folio_migrate_mapping(mapping, dst, src, 1);
+ 	if (rc != MIGRATEPAGE_SUCCESS) {
+-		put_page(new);
++		folio_put(dst);
+ 		goto out_unlock;
+ 	}
+ 
+ 	/* Take completion_lock to prevent other writes to the ring buffer
+-	 * while the old page is copied to the new.  This prevents new
++	 * while the old folio is copied to the new.  This prevents new
+ 	 * events from being lost.
+ 	 */
+ 	spin_lock_irqsave(&ctx->completion_lock, flags);
+-	migrate_page_copy(new, old);
+-	BUG_ON(ctx->ring_pages[idx] != old);
+-	ctx->ring_pages[idx] = new;
++	folio_migrate_copy(dst, src);
++	BUG_ON(ctx->ring_pages[idx] != &src->page);
++	ctx->ring_pages[idx] = &dst->page;
+ 	spin_unlock_irqrestore(&ctx->completion_lock, flags);
+ 
+-	/* The old page is no longer accessible. */
+-	put_page(old);
++	/* The old folio is no longer accessible. */
++	folio_put(src);
+ 
+ out_unlock:
+ 	mutex_unlock(&ctx->ring_lock);
+@@ -475,13 +475,13 @@ static int aio_migratepage(struct address_space *mapping, struct page *new,
+ 	spin_unlock(&mapping->private_lock);
+ 	return rc;
+ }
++#else
++#define aio_migrate_folio NULL
+ #endif
+ 
+ static const struct address_space_operations aio_ctx_aops = {
  	.dirty_folio	= noop_dirty_folio,
- 	.free_folio	= secretmem_free_folio,
- 	.migratepage	= secretmem_migratepage,
--	.isolate_page	= secretmem_isolate_page,
+-#if IS_ENABLED(CONFIG_MIGRATION)
+-	.migratepage	= aio_migratepage,
+-#endif
++	.migrate_folio	= aio_migrate_folio,
  };
  
- static int secretmem_setattr(struct user_namespace *mnt_userns,
+ static int aio_setup_ring(struct kioctx *ctx, unsigned int nr_events)
 -- 
 2.35.1
 
