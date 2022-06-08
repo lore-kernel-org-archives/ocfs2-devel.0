@@ -1,90 +1,78 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc245.phx1.oracleemaildelivery.com (aib29ajc245.phx1.oracleemaildelivery.com [192.29.103.245])
+Received: from aib29ajc249.phx1.oracleemaildelivery.com (aib29ajc249.phx1.oracleemaildelivery.com [192.29.103.249])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 8E19ECCA486
-	for <ocfs2-devel@archiver.kernel.org>; Wed,  8 Jun 2022 09:59:58 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id AE25BC43334
+	for <ocfs2-devel@archiver.kernel.org>; Wed,  8 Jun 2022 10:48:44 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=PJSB8c5mgdmbLMeAgTCzIl0TNLjzqaHpJ7qmD+OSiSc=;
- b=Gv2Qy8y3zb6GZY2s4LEKLPkJBWx3lQUQYMVIDPh0cWmNd8BBgc4ehoP+Dt8A6oZQ4PV3OEqOEvpJ
-   YiJ+V66/9yox+ozQyliI4j1eKRnoBM3Q2yNA30NU5fggY1dLzVdrovcjf5/eHSq7s7217hMK7xTt
-   cOSQJmXLgXrq1laSKitNDyoFh4Uqth7knGjgG7urYdslkCGZ7TlYHlhmE3kqhDiADRNXxMdFwQQD
-   kXdBczbg8Aqk5uYvNr94LrVp0Y0zz4ZY0sbJJnT/8lJlgDsToekdO3d4kGQwOilSA1PIGkXJweg4
-   KxfI/HDI9anJFqytAuL3MSbs7rV0/MHtdWtnUw==
+ bh=EACENGggtCI2JKQkY15EymTTavpVZJ/5xN+k/OgKVdM=;
+ b=JYVGlQXmvAYCjuojFMSqIDRYGA1LJuImtdrhkbNs2FgoCklniaE9xNJhXff/cItQMaugC/S/YeZs
+   AUrbojxlJBEgHgREUwgThKMDZKiVI/ShFI+BGQrk5d9KXArFXooCL40JWFho0MNAQ7iqJV9E/+9H
+   OKzKgr0ZPK2nX8eqOAqdRXza7O18IrHRhAp2m83COTuQd2gXBvsJXgoO5kZiS5QWbzEP8t/ysQdu
+   8JgGsIQGSVL1ObH2o4UYC4IXp6pzReTjhMresBW5SohHnwZjo+g7J0n5AQHojtLds0U6V68FvigY
+   Zw1L4Jmbebv2G2JgAEojFsfy1YGisszRikXa3Q==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=PJSB8c5mgdmbLMeAgTCzIl0TNLjzqaHpJ7qmD+OSiSc=;
- b=TAZhG6D0utOiILodN1hvvFsayDQgmr3WyvjroGJwjI+TJBI/VzfymYLupa7R/FHeOMzcPA0/6mWy
-   KCyKv/740usY7/NTtWP/og8V7siUFX65N5+bOs08FYHTIRXymtayhUgRK98Jq3z3eZMmFkGXWODj
-   6hsIG4RtsgPH/lmnB1XUtYsm+Nvxbctb13GS/ArRUKAh0wgZ8G86ctuAwEADdNUWdE+0nmdhvUzX
-   f7dMQkJ8SJ4R9qEuEEVlm52ZcXeG3YEsG4U9Iya4ThZEb/bX0u5B0OoQb7bF0sH9I3V+nO584xqB
-   hVmBhd7kPRCFjGjK2O0n9kewZr7eQSr/tRTzqw==
-Received: by omta-ad1-fd1-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
+ bh=EACENGggtCI2JKQkY15EymTTavpVZJ/5xN+k/OgKVdM=;
+ b=iK/DVTzb7P7uvVyse0hf3pZgYke5GHcIPVG+yXUv+0A+8L0nfT5sChb3lOy34o3uLd0FrXJRreSQ
+   S1Pdw/AyEnf7qoltApdHK4hOfWfeJFoMzYnF5nZOZvHvbd35a0Koz8hYgwpHS4lMuwWA+4u0UMWg
+   0TSkd7vv9FvTnDjYSZULa7NIlPk2xRC3vcF2E6L3WBEIhfqPLJg97DaaPBmTKzO9y/985gLdTe67
+   SpgnBZjAMPtopEqD4FsOd3O29R2FdT01wETEeT1uYzrrt8ytIz9AG9g1+Hku7sOIK6UjocRfixue
+   uwrEQnATqUSXcXNzRSKIpJhTAKRoqyGBcv/tAg==
+Received: by omta-ad2-fd1-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220517 64bit (built May 17
  2022))
- with ESMTPS id <0RD500BEWL3XMCC0@omta-ad1-fd1-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Wed, 08 Jun 2022 09:59:58 +0000 (GMT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
- s=mimecast20190719; t=1654682378;
+ with ESMTPS id <0RD5008H6ND8XL90@omta-ad2-fd1-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Wed, 08 Jun 2022 10:48:44 +0000 (GMT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.com;
+ s=mimecast20200619; t=1654685306;
  h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
  to:to:cc:cc:mime-version:mime-version:content-type:content-type:
- content-transfer-encoding:content-transfer-encoding:
- in-reply-to:in-reply-to:references:references;
- bh=X7ko0a61KQIEYlZE2OolrSj5KPboqylHtHlNY2Rk0xk=;
- b=VaxoQa74af1KpBUfmYVcmRpHxUBU73u40BqwdLOciO6zi09uLfV8SFOJIzsZvUiWmGRBte
- pVScgcOnTr2fbdx/xfEe21XK+wko0i7sUburY16pt3SZOBspJIA2BVV/L+TL0Nvi6EFJXK
- TnmxPLhFRPltOknj5hWKKjUVs+44CuI=
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=1e100.net;
- s=20210112; h=x-gm-message-state:message-id:date:mime-version:user-agent
- :content-language:to:cc:references:from:organization:subject
- :in-reply-to:content-transfer-encoding;
- bh=X7ko0a61KQIEYlZE2OolrSj5KPboqylHtHlNY2Rk0xk=;
- b=zHi8w15SE9HuNxlPhrVYBQ2h8UMGoM92P5Y3XKpvk4LhKnjZgTzpPi0rY4xXW0cHLC
- AEnFu2rLdFXRuhdJghy/vb3+/3wXQ6AzypClqd3v4vacs1age7uahkxaC+JXe8O2sXGQ
- DaaOj0z6A/lauO36mRUdfWZ6eoxPR72BLqryW/MdhKJ+/OuvF/g13lBW19KbfxB9VCaF
- qKanqxcc691zCTE6jMIfmmGfqYWGLIDRuxFny1JTebsZEl2HR6491UhO1RNzK11+l2Tr
- 6ZqcXbyMlLdVLNK2tyJ6I9etUCpuxeVxc0iWBOqHncf8kITb5JzGr9xZIQomPeSKevDd s5gw==
-X-Gm-Message-State: AOAM530H81XMi5TEGg2/GO7vBBlqqLO/6HMO6QNXCz4QyncppgUGVz7k
- 62I6Fr39kyV38vHSzBizvO7myrpdycOF+8ZVmQl69SZOiP6dUkHzp0zxHybqKBSL285umrZKntw
- qQWoSHH7Im3uCqfKeoZ0aEw==
-X-Received: by 2002:a05:600c:154d:b0:394:8d64:9166 with SMTP id
- f13-20020a05600c154d00b003948d649166mr33665196wmg.102.1654682374071; Wed,
- 08 Jun 2022 02:59:34 -0700 (PDT)
-X-Received: by 2002:a05:600c:154d:b0:394:8d64:9166 with SMTP id
- f13-20020a05600c154d00b003948d649166mr33665171wmg.102.1654682373804; Wed,
- 08 Jun 2022 02:59:33 -0700 (PDT)
-Message-id: <36cc5e2b-b768-ce1c-fa30-72a932587289@redhat.com>
-Date: Wed, 8 Jun 2022 11:59:31 +0200
+ content-transfer-encoding:content-transfer-encoding;
+ bh=4M4EyUuoCPZr92IioDsSgc7EnkwKC1F3dohr2tCIKTU=;
+ b=XxcYLBEQHXS3967emaIXGB2aJGcwEfep1yiBW3aX1T+nYEXOq5T1xiAfsR5DvDegWsd6U1
+ ddqQB9Xd3/lNV7hCFqvW9dlfeOkP79c1Kalqk8NJUJx1XWP083hh4gKrjoa4u3VwZmSvu4
+ qBNQxPcUNtVQYIE5wizRLe+hpV1Gx8M=
+ARC-Seal: i=1; a=rsa-sha256; s=arcselector9901; d=microsoft.com; cv=none;
+ b=lodpcLQhWKQxINZXtBDtwY2Dq1EkEks6KItiZllM+Ql0xETWHB/gnUd4lfbzySPPHK+6HIPs+9ohVkiprCeeNd+OzGWC35nNJjy9KLmiwQmjslEaaOdGgA4usIQOvA5HVjHEORDxUqL00GKzdf3ZyNLU1QnCCZA70KP3sJ/ZJWwwRDCgKaPPrOAThmH9scjnpv8zioIoDAa7BKc+dxqlUP8Vi9ZFg6bnRcrr8qY1zfGFkqXAu+OAoqR43820oeaNehG9bdMTuiQ+8Np5OhnfPBJWLZIZARFR5emq1P3AytZhsC0Rb1eSa8mUesqANti7HkzncqMNXf3gaupidEOwpA==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=arcselector9901;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
+ bh=vJp4NDMzRgHaCCS6CoIUckzE3cy7D7nIx9eY1GcmuSQ=;
+ b=lyh7y6MFwUhMv7yhP1JoTav+jg6VzVrL+MhXZr4XxdL6kD9P88gBN+yvW0xdw99OaXig0y7YDUZ+7zkouSsdXQrAtVUd9hBo+NtGn5qVLXasFxCRsVZseO6V5A0KJuyls5y9quvwNrYDurCcU4jJfu+qeECPhpf0Y+OsEJrcdgQ6YJ/jnbng7BnLZ4dtEyiZmotNvo62sUBBdgrEy1QaDU/R1Fzta/ViIrm9VgVM+W5a0+bc7chbKb6V3kn+KxE48SJOJnwXOgn5DQI5svMU+V3PS5WEccxbHaEr2DwYwXTtz8zdmD6G+/951n73g8EKw7DpV+8kdABgSzhaleX2cw==
+ARC-Authentication-results: i=1; mx.microsoft.com 1; spf=pass
+ smtp.mailfrom=suse.com; dmarc=pass action=none header.from=suse.com; dkim=pass
+ header.d=suse.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=mysuse.onmicrosoft.com;
+ s=selector1-mysuse-onmicrosoft-com;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
+ bh=vJp4NDMzRgHaCCS6CoIUckzE3cy7D7nIx9eY1GcmuSQ=;
+ b=WOug5Z/ljVAdS9yB3s8+nwmmo/lqQ0KmnKX9MHH9Sc8l8xdzSdNODbYn8O3eQVeCIyjtClSPEDS5QT5y6mjASqmWJ7QmjMOPiOdDiuhNbkP9F6Xsf19cnEa5wU6UcDMDb2YuJmcAhxySTlEQDIOktpvO6vPv6ZPNLw8QFFQ8nAuHi8DLIkKIkxf0dDm1gobAYnrC/RSrk8KsnnQ0IkHNPPqJyeWaGAxbSILxhQhylxCbiN0nTf/oeZGRMdA5ClmYzeMPJ21V0XABSh1mBGNB4RpRodxcaSnYKj8g60TOG4nvCbqzDqHNos9Jmea4ZtQ1jOA8faGghcHTxhQJCGohww==
+To: ocfs2-devel@oss.oracle.com, joseph.qi@linux.alibaba.com
+Date: Wed,  8 Jun 2022 18:48:07 +0800
+Message-id: <20220608104808.18130-1-heming.zhao@suse.com>
+X-Mailer: git-send-email 2.34.1
 MIME-version: 1.0
-User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:91.0) Gecko/20100101
- Thunderbird/91.9.0
-To: Matthew Wilcox <willy@infradead.org>
-References: <20220606204050.2625949-1-willy@infradead.org>
- <20220606204050.2625949-16-willy@infradead.org>
- <e4d017a4-556d-bb5f-9830-a8843591bc8d@redhat.com>
- <Yp9fj/Si2qyb61Y3@casper.infradead.org> <Yp+lU55H4igaV3pB@casper.infradead.org>
-Organization: Red Hat
-In-reply-to: <Yp+lU55H4igaV3pB@casper.infradead.org>
-Authentication-results: relay.mimecast.com; auth=pass smtp.auth=CUSA124A263
- smtp.mailfrom=david@redhat.com
-Content-language: en-US
-X-Source-IP: 170.10.129.124
+X-Forefront-Antispam-Report: CIP:255.255.255.255; CTRY:; LANG:en; SCL:1; SRV:;
+ IPV:NLI; SFV:NSPM; H:DB7PR04MB4666.eurprd04.prod.outlook.com; PTR:; CAT:NONE;
+ SFS:(13230001)(366004)(36756003)(66556008)(86362001)(5660300002)(316002)(26005)(44832011)(6512007)(4326008)(8936002)(2906002)(8676002)(1076003)(66946007)(6506007)(66476007)(83380400001)(2616005)(6666004)(508600001)(6486002)(186003)(38100700002); DIR:OUT;
+ SFP:1101;
+X-OriginatorOrg: suse.com
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 08 Jun 2022 10:48:22.8948 (UTC)
+X-Source-IP: 194.104.111.102
 X-Proofpoint-Virus-Version: vendor=nai engine=6400 definitions=10371
  signatures=594849
-Cc: linux-aio@kvack.org, linux-nfs@vger.kernel.org, cluster-devel@redhat.com,
- Rafael Aquini <aquini@redhat.com>, Minchan Kim <minchan@kernel.org>,
- linux-ntfs-dev@lists.sourceforge.net, linux-kernel@vger.kernel.org,
- linux-f2fs-devel@lists.sourceforge.net, linux-block@vger.kernel.org,
- linux-mm@kvack.org, linux-mtd@lists.infradead.org, ocfs2-devel@oss.oracle.com,
- linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org,
- virtualization@lists.linux-foundation.org, linux-xfs@vger.kernel.org,
- linux-btrfs@vger.kernel.org
-Subject: Re: [Ocfs2-devel] [PATCH 15/20] balloon: Convert to migrate_folio
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 suspectscore=0
+ bulkscore=0 phishscore=0 adultscore=0 malwarescore=0 priorityscore=173
+ mlxscore=0 mlxlogscore=950 lowpriorityscore=0 clxscore=203 impostorscore=0
+ spamscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2204290000 definitions=main-2206080046
+Subject: [Ocfs2-devel] [PATCH 0/1] test case for patch 1/1
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -96,170 +84,180 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: David Hildenbrand via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: David Hildenbrand <david@redhat.com>
+From: Heming Zhao via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: Heming Zhao <heming.zhao@suse.com>
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-MC-Unique: CBFm46LWO6eSJeK3nKdkFQ-1
-X-Google-Smtp-Source:
- ABdhPJw4BCTXIM51kCwL6Z6H/hpvqsMvzu1fv9X/GhiUOzp5r00CIAo0BKvmPAyhZ/PubqP5kGP1SQ==
-X-Mimecast-Spam-Score: 0
-X-Mimecast-Originator: redhat.com
+X-MC-Unique: Utgfuoc6PNuxCXTCP0zOhw-1
+X-ClientProxiedBy: SG2PR04CA0203.apcprd04.prod.outlook.com
+ (2603:1096:4:187::22) To DB7PR04MB4666.eurprd04.prod.outlook.com
+ (2603:10a6:5:2b::14)
+X-MS-PublicTrafficType: Email
+X-MS-Office365-Filtering-Correlation-Id: d33bbd06-8a2d-4f47-0a84-08da493c6885
+X-MS-TrafficTypeDiagnostic: AM6PR04MB6327:EE_
+X-Microsoft-Antispam-PRVS:
+ <AM6PR04MB63271E75D11090025ABA11A897A49@AM6PR04MB6327.eurprd04.prod.outlook.com>
+X-MS-Exchange-SenderADCheck: 1
+X-MS-Exchange-AntiSpam-Relay: 0
+X-Microsoft-Antispam: BCL:0;
+X-Microsoft-Antispam-Message-Info:
+ OskV3UHHratDGn0LI7yY22fE8CABqTCAQ5yF7/ltPrXSouK3X6WK+HtYeg92HWn3jSpkLBOHIYYEvV+p8p96n28NmXn27fztNjT8Cm3d/4aodkY/RQAkFzusOqayFMWGHa+luci/YpCsXzicsRXq7udQboXQ/1fnJ/y+NJt0E8JAypMfrSdD9QMJB6MeyQbFrbemh45W5sl5DY/IHqzrVV9Ly9U3Kq/QyeQsplTBlCcj7BvvvEfMENzMWi1eWxsCPMAg46IOfgKSvDO7o/XVn2rGQAkg8wnbzPM+FRnFKZ5wYWwU5fR/ZS0UWdfOwITmdxSiUb2uF3MOpsq9wlR+DsjENvQiF4w85k7yMUyMH31vk+d/sOee3vhVEQ1DMqtKbbep+731ynuwNqvqFAFeIr1DDEHzGP8uvaYOGuxJMcYt0sKJJeV+Ip6RhfgeeJBGX3cbhVxKcawb5UAxL3kFKlGq59i6DDPDeyU32xuYJAX7MWipdx0OQfPE80GjZhSb3Nm9L4QzmMO3cvvpLJ3sgdg1nCxkzbr2hOp6n905UGnRXbapdyAFkbDjMIdsuoZchqttR5lb3d9HKUlBoJIEiD0nop1UQKlkH3vDhaIiLgWUMWVgxwftOkNXjYI4LYZ4A0gsxPyL7H2WbQvsMY9Hdg==
+X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
+X-MS-Exchange-AntiSpam-MessageData-0:
+ =?us-ascii?Q?FunHQoBJL6IBMsY9RUcXKWIvBDi7phsQ7OtM7BGQzBAUtVO63QdjDA7nnHg7?=
+ =?us-ascii?Q?vHTzhBHPLK062PwgVDZ2DzCF24I2+OGdTBgN+aOGpSmh6XUaZdzQcUPQuZBq?=
+ =?us-ascii?Q?CJBWpwuqk6gKsAIrTTHkIwLakW1xOeLr91n9s6tltkI/wHEJcNe+J3NrM3yc?=
+ =?us-ascii?Q?0nRbF0ejbluIy6CTWAb9Jk9+XfyqS8Nd3YfoT5Y1/MeHevefHFj1X4L9mRC2?=
+ =?us-ascii?Q?b6y3UdbjkLf5CRxj7Q4e7UGlTRalB7DSz+qNEvLJtWISLCxjB182m5x4Rlk4?=
+ =?us-ascii?Q?WUUivOhNiK4hDNEs64Bs+gvwzk+AyKNXtYQxf5jLjpXr9iKuuAYXS9hi0xsb?=
+ =?us-ascii?Q?A/dQeBwwUfe6/6gPT4+CSNsQ1kOVCJX98fWgSp1Znyp9jc0YmX1DuOA59S5F?=
+ =?us-ascii?Q?BbwshODMXF9oXSxRpbaELtPm+MgyZiCxiQVsPPuQd5HVyk8P/Z+fsV9nD1Xq?=
+ =?us-ascii?Q?uYY+Ij1LBn7Gg2yiPe+5/wbwLvCrKm5U6eByYl4xn9mT7IF3TlcIyKfjGatn?=
+ =?us-ascii?Q?C7dksyv2QvTilMWC3EEvsJoroswhfWqjzU6x8DVxH1Rdqbdo8EGuBRV7DnO7?=
+ =?us-ascii?Q?uEN47sYaw/Xnhg3Q4niCM4PHVI+M75R75gQyC/HNnTC9xxiflbAYyt5P5iAL?=
+ =?us-ascii?Q?hHTm+LHWTyTLEkC9+RLPl7EGXJEj9S5XRy6Ycyflckw4WrMBh0FRdhsN2Q6G?=
+ =?us-ascii?Q?X2fhalNgc5FpoZooEYT6wAabB99WBe7/jyGiih2ugzaigbYEl26R2aLUQok/?=
+ =?us-ascii?Q?rS2hKLSOk2hN2RvPshW3eOtvl+PJ3GeIW9z6xNF0RXHjLlK6Ax2t05OeDdFm?=
+ =?us-ascii?Q?CqVPG1Q92fFFTNVaCgov4mqS81j/6MoHFDBnBSBoa4S1o9OR6MgCYjBTXtwJ?=
+ =?us-ascii?Q?dQeFaknzbYFbeenlp8a+jh/7SnAaxRgz33iNxamu5LxfxuwRH9yDKDiEGMEa?=
+ =?us-ascii?Q?evlZPZWw8ZTcaBpzupUq1gr7UEITnR1vXEKZSRIIHtmjN9881iYS/M8l+k9B?=
+ =?us-ascii?Q?iWK1pMTnhFNGacmXvmz95omkEtvLEl4RQoSQiLVz9jP/Y+4uJKVTxXVs1hTW?=
+ =?us-ascii?Q?lk578gMrA1/heKTHZly3+BmJZ2rGQaImBZmmc5mBbMBKBNmcH4PMxslffkdW?=
+ =?us-ascii?Q?SIwG9Ero5Vkz9NESY7I8TwfeplHDSPPiDsaE/uqr2b/8/aQuUi8ON69cdZS4?=
+ =?us-ascii?Q?NSi3fFKb4pnjsSAhrB3/9d2uOBeD/1ykaj1J3gBGOuUpaPUSU/vJZpjrlKbS?=
+ =?us-ascii?Q?I7Cqfl7HZj4hKrx15rrgxm01nmyGU1HI1geu77xVPQAD8nbw/Jgx9euLKThY?=
+ =?us-ascii?Q?7Cf55Qxw9dsvCcQMEGHnR8wZ+vXrE9d4nDOoauE2dBMy3lRAL2jxGOtFUnvP?=
+ =?us-ascii?Q?2v6uCe0dW0ypvl1hnH9RLBdVOth5+On85HOO2Qjsd0Mfdiz9NUVlpM7l28OE?=
+ =?us-ascii?Q?lkpq1qylDBNZB85Ahenp+Y0DLzoi/68ULGqW7eHmHmr5ylFYHOR5Wm271hmr?=
+ =?us-ascii?Q?9bjF/td2TKEzXjp5CGnoWufOPRJhh5OA2yqdfVn+NH5VKrB9X/t2jVKl5Ygx?=
+ =?us-ascii?Q?1F1dKeC1hMebF7PVs1CvMgkFocdp44pIjFPmBbxeNxhfdj0QiN0thTJ4on9Z?=
+ =?us-ascii?Q?MqXQvZFlagUiZvCcuFS/ackdxdzfuNt+3//y9q9SnOURsk8HdL8uV2YVdtOV?=
+ =?us-ascii?Q?4zaxS7kPaP9oYiknKZAv0px7GJNhgEJBo2Ex2jk/2NMzkCs0JrRG64kbu+Wf?=
+ =?us-ascii?Q?hlBTkiM5mw=3D=3D?=
+X-MS-Exchange-CrossTenant-Network-Message-Id:
+ d33bbd06-8a2d-4f47-0a84-08da493c6885
+X-MS-Exchange-CrossTenant-AuthSource: DB7PR04MB4666.eurprd04.prod.outlook.com
+X-MS-Exchange-CrossTenant-AuthAs: Internal
+X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
+X-MS-Exchange-CrossTenant-Id: f7a17af6-1c5c-4a36-aa8b-f5be247aa4ba
+X-MS-Exchange-CrossTenant-MailboxType: HOSTED
+X-MS-Exchange-CrossTenant-UserPrincipalName:
+ lVgLWXAbA8FvxpJ8lTxor2NXiy82BqlwpGR5lei+/ljTQxFnkDfXvzlkKbFqfCqTjouU9jPUsTkp4w28GTGB2A==
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: AM6PR04MB6327
+X-ServerName: de-smtp-delivery-102.mimecast.com
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 ip4:103.23.64.2 ip4:103.23.65.2
- ip4:103.23.66.26 ip4:103.23.67.26 ip4:107.21.15.141 ip4:108.177.8.0/21
- ip4:128.17.0.0/20 ip4:128.17.128.0/20 ip4:128.17.192.0/20 ip4:128.17.64.0/20
- ip4:128.245.0.0/20 ip4:128.245.64.0/20 ip4:13.110.208.0/21 ip4:13.110.216.0/22
- ip4:13.110.224.0/20 ip4:13.111.0.0/16 ip4:136.147.128.0/20
- include:spf1.redhat.com -all
-X-Proofpoint-SPF-VenPass: Allowed
-X-ServerName: us-smtp-delivery-124.mimecast.com
-X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 ip4:103.23.64.2 ip4:103.23.65.2
- ip4:103.23.66.26 ip4:103.23.67.26 ip4:107.21.15.141 ip4:108.177.8.0/21
- ip4:128.17.0.0/20 ip4:128.17.128.0/20 ip4:128.17.192.0/20 ip4:128.17.64.0/20
- ip4:128.245.0.0/20 ip4:128.245.64.0/20 ip4:13.110.208.0/21 ip4:13.110.216.0/22
- ip4:13.110.224.0/20 ip4:13.111.0.0/16 ip4:136.147.128.0/20
- include:spf1.redhat.com -all
-X-Proofpoint-Spam-Reason: safe
-X-Spam: OrgSafeList
-X-SpamRule: orgsafelist
-X-Proofpoint-ORIG-GUID: Oqs8vmjxDdk-ZkOJwJczZaavKhagvhPT
-X-Proofpoint-GUID: Oqs8vmjxDdk-ZkOJwJczZaavKhagvhPT
+X-Proofpoint-SPF-Record: v=spf1 include:spf.suse.com
+ include:de._netblocks.mimecast.com include:amazonses.com
+ include:spf.protection.outlook.com include:_spf.qemailserver.com
+ include:_spf.salesforce.com -all
+X-Spam: Clean
+X-Proofpoint-GUID: uGysozYFsTIs0Q-O2Vkz1YNyKNsPGK0I
+X-Proofpoint-ORIG-GUID: uGysozYFsTIs0Q-O2Vkz1YNyKNsPGK0I
 Reporting-Meta:
- AAGnx2XvP9kfm53J79sZUgZo9mEsahRKKgMZ/PZL5jCaXE+wQXiPlIDmsIJFTl+V
- sVffy4Qw5Oe4rft3XFmzYjnSMScOhMyzmVmtTGxhygWw/cuvJP5ko6o7Qj2xNC24
- C/mQOeMckU1rzELZkfh95pJQ4yaROnJKLUvz1IIG/+ZuKiVVkdl+5dzLc7D5Fnji
- n34rCofIpZOSMFS71WvzjnpGV1UuwHJzQSPj4naKClLGFQgEbUdrs35cRsmrkiQw
- dkdbe1EBN5IypsJA9RNv2tbIvWSk03U4/NHZr7Aw068Ra3uwVXXq2I/fHdnIveZu
- cBS6rbABrXccZhYmVqQWqIMJV15vennBJAiEzleyzSExc1x5zRU3gV63KcMTsWmn
- kBCuPbx/0+/ngaYDU7dTa+cMZsbOxGCvUtxEk4pJEy+6vt10W+J3o90zHFXfgG8w
- ewe618EbRDveOGNZ1HJRecvbi1ppjY+/nVtVHX487D2mgeozuynsyt+d41bJEmF1
- wY1SZmX29kr+OR0pf8DYCwXI9OovfYgZx3NWDkVXBQ9K
+ AAGV/xBgEY8U4jnG7Ct5344KLVN0JMtnuEc5OFM0Kzdr7qgh3YAVTHZFE/CW/Iea
+ lIM0zAdL1PRZbe8tWPhQzZOC5PzoJWhwk5wa5NYlkhlei6MNeOz8Ol6EX5VQXB1U
+ Zv81h3tAzFjgi5Gg2jqGC8s5ub7RtVtO0JNq7qVJWM9OwSPSoNkEhprGsN5s4xtr
+ qUcy2rW5hKvtCvkyLpy2T5aI78LnIPDRMFXcju6bszs8ODs29BucF6QiPo3VgVRa
+ XjFA50N+3bKZS3LW9cC1a9W3Ahiq0Rxqjx22WOnI3O5fPF6qhC+5gOap8Q2uWdSO
+ uq9OQuahbX4aMjQCmt0ynLoNBjkeEgddNOleIrBcP4pVwqH/qP4OQhrMpvVrolAp
+ kaukXVX8ok/yd8TcFf2mWig2XfuQAV3hCkT0RtSnR6GejyYooMPSHAcYRFx71y1n
+ W86NV1dhP1HlDFGqEHzH7yirFi8XGMc51j6mhFhCeOKTiSCsxkryIml/G8U/JCKF
+ SCrbCL+vU20IBvGhd4E/TNHnbLwB26j139Vu/kXEgdrA
 
-On 07.06.22 21:21, Matthew Wilcox wrote:
-> On Tue, Jun 07, 2022 at 03:24:15PM +0100, Matthew Wilcox wrote:
->> On Tue, Jun 07, 2022 at 09:36:21AM +0200, David Hildenbrand wrote:
->>> On 06.06.22 22:40, Matthew Wilcox (Oracle) wrote:
->>>>  const struct address_space_operations balloon_aops = {
->>>> -	.migratepage = balloon_page_migrate,
->>>> +	.migrate_folio = balloon_migrate_folio,
->>>>  	.isolate_page = balloon_page_isolate,
->>>>  	.putback_page = balloon_page_putback,
->>>>  };
->>>
->>> I assume you're working on conversion of the other callbacks as well,
->>> because otherwise, this ends up looking a bit inconsistent and confusing :)
->>
->> My intention was to finish converting aops for the next merge window.
->>
->> However, it seems to me that we goofed back in 2016 by merging
->> commit bda807d44454.  isolate_page() and putback_page() should
->> never have been part of address_space_operations.
->>
->> I'm about to embark on creating a new migrate_operations struct
->> for drivers to use that contains only isolate/putback/migrate.
->> No filesystem uses isolate/putback, so those can just be deleted.
->> Both migrate_operations & address_space_operations will contain a
->> migrate callback.
+=== test cases ====
 
-That makes sense to me. I wonder if there was a design
-decision/discussion behind that. CCing Rafael.
+<1> remount on local node for cluster env
 
-@Rafael, full mail at
+mount -t ocfs2 /dev/vdb /mnt
+mount -t ocfs2 /dev/vdb /mnt              <=== failure
+mount -t ocfs2 -o nocluster /dev/vdb /mnt <=== failure
 
-https://lkml.kernel.org/r/Yp+lU55H4igaV3pB@casper.infradead.org
+<2> remount on local node for nocluster env
 
-> 
-> Well, that went more smoothly than I thought it would.
-> 
-> I can't see a nice way to split this patch up (other than making secretmem
-> its own patch).  We just don't have enough bits in struct page to support
-> both ways of handling PageMovable at the same time, so we can't convert
-> one driver at a time.  The diffstat is pretty compelling.
+mount -t ocfs2 -o nocluster /dev/vdb /mnt
+mount -t ocfs2 /dev/vdb /mnt              <=== failure
+mount -t ocfs2 -o nocluster /dev/vdb /mnt <=== failure
 
-Yes, splitting rather overcomplicates stuff.
+<3> remount on another node for cluster env
 
-> 
-> The patch is on top of this patch series; I think it probably makes
-> sense to shuffle it to be first, to avoid changing these drivers to
-> folios, then changing them back.
+node2:
+mount -t ocfs2 /dev/vdb /mnt
 
-Absolutely.
+node1:
+mount -t ocfs2 /dev/vdb /mnt  <== success
+umount
+mount -t ocfs2 -o nocluster /dev/vdb /mnt <== failure
 
-> 
-> Questions:
-> 
-> Is what I've done with zsmalloc acceptable?  The locking in that
-> file is rather complex.
-> 
-> Can we now eliminate balloon_mnt / balloon_fs from cmm.c?  I haven't even
-> compiled thatfile , but it seems like the filesystem serves no use now.
-> 
-> Similar question for vmw_balloon.c, although I have compiled that.
+<4> remount on another node for nocluster env
 
-IIRC, virtio-balloon, cmm and vmw_balloon all have the mnt/fs just for
-page migration purposes. So if one can get rid of them, all should be
-able to get rid of them. Essentially everything that uses the balloon
-compaction framework.
+node2:
+mount -t ocfs2 -o nocluster /dev/vdb /mnt
 
-That should go into separate patches then.
+node1:
+mount -t ocfs2 /dev/vdb /mnt              <== failure
+mount -t ocfs2 -o nocluster /dev/vdb /mnt <== success, see below comment
 
-> 
-> ---
-> 
-> I just spotted a bug with zs_unregister_migration(); it won't compile
-> without CONFIG_MIGRATION.  I'll fix that up if the general approach is
-> acceptable.
-> 
->  arch/powerpc/platforms/pseries/cmm.c |   13 --------
->  drivers/misc/vmw_balloon.c           |   10 ------
->  include/linux/balloon_compaction.h   |    6 +---
->  include/linux/fs.h                   |    2 -
->  include/linux/migrate.h              |   27 ++++++++++++++----
->  include/linux/page-flags.h           |    2 -
->  mm/balloon_compaction.c              |   18 ++++++------
->  mm/compaction.c                      |   29 ++++++++-----------
->  mm/migrate.c                         |   23 ++++++++-------
->  mm/secretmem.c                       |    6 ----
->  mm/util.c                            |    4 +-
->  mm/z3fold.c                          |   45 ++++++------------------------
->  mm/zsmalloc.c                        |   52 +++++++++--------------------------
->  13 files changed, 83 insertions(+), 154 deletions(-)
-> 
-> diff --git a/arch/powerpc/platforms/pseries/cmm.c b/arch/powerpc/platforms/pseries/cmm.c
-> index 15ed8206c463..2ecbab3db723 100644
-> --- a/arch/powerpc/platforms/pseries/cmm.c
-> +++ b/arch/powerpc/platforms/pseries/cmm.c
-> @@ -578,23 +578,10 @@ static int cmm_balloon_compaction_init(void)
->  		return rc;
->  	}
->  
-> -	b_dev_info.inode = alloc_anon_inode(balloon_mnt->mnt_sb);
-> -	if (IS_ERR(b_dev_info.inode)) {
-> -		rc = PTR_ERR(b_dev_info.inode);
-> -		b_dev_info.inode = NULL;
-> -		kern_unmount(balloon_mnt);
-> -		balloon_mnt = NULL;
-> -		return rc;
-> -	}
-> -
-> -	b_dev_info.inode->i_mapping->a_ops = &balloon_aops;
+<5> simulate after crash status for cluster env
+
+(below all steps did on node1. node2 is unmount status)
+mount -t ocfs2 /dev/vdb /mnt
+dd if=/dev/vdb bs=1 count=8 skip=76058624 of=/root/slotmap.cluster.mnted
+umount /mnt
+dd if=/root/slotmap.cluster.mnted of=/dev/vdb seek=76058624 bs=1 count=8
+mount -t ocfs2 -o nocluster /dev/vdb /mnt   <== failure
+mount -t ocfs2 /dev/vdb /mnt && umount /mnt <== clean slot 0
+mount -t ocfs2 -o nocluster /dev/vdb /mnt   <== success
+
+<6> simulate after crash status for nocluster env
+
+(below all steps did on node1. node2 is unmount status)
+mount -t ocfs2 -o nocluster /dev/vdb /mnt
+dd if=/dev/vdb bs=1 count=8 skip=76058624 of=/root/slotmap.nocluster.mnted
+umount /mnt
+dd if=/root/slotmap.nocluster.mnted of=/dev/vdb seek=76058624 bs=1 count=8
+mount -t ocfs2 /dev/vdb /mnt   <== failure
+mount -t ocfs2 -o nocluster /dev/vdb /mnt && umount /mnt <== clean slot 0
+mount -t ocfs2 /dev/vdb /mnt   <== success
 
 
-Are you missing similar updates to drivers/virtio/virtio_balloon.c ?
+-----
+For test case <4>, the kernel job is done, but there still left
+userspace work todo. 
+In my view, mount.ocfs2 needs add double confirm for this scenario.
 
-At least, there we're also using balloon_aops, so this patch shouldn't
-compile.
+current style:
+```
+# mount -t ocfs2 -o nocluster /dev/vdb /mnt && umount /mnt
+Warning: to mount a clustered volume without the cluster stack.
+Please make sure you only mount the file system from one node.
+Otherwise, the file system may be damaged.
+Proceed (y/N): y
+```
 
+I plan to change as:
+```
+# mount -t ocfs2 -o nocluster /dev/vdb /mnt && umount /mnt
+Warning: to mount a clustered volume without the cluster stack.
+Please make sure you only mount the file system from one node.
+Otherwise, the file system may be damaged.
+Proceed (y/N): y
+Warning: detect volume already mounted as nocluster mode.
+Do you mount this volume on another node?
+Please confirm you want to mount this volume on this node.
+Proceed (y/N): y
+```
 
-Skimming over it, nothing else jumped at me.
+Heming Zhao (1):
+  ocfs2: fix ocfs2_find_slot repeats alloc same slot issue
+
+ fs/ocfs2/dlmglue.c  |  3 ++
+ fs/ocfs2/ocfs2_fs.h |  3 ++
+ fs/ocfs2/slot_map.c | 70 ++++++++++++++++++++++++++++++++++++---------
+ 3 files changed, 62 insertions(+), 14 deletions(-)
 
 -- 
-Thanks,
-
-David / dhildenb
+2.34.1
 
 
 _______________________________________________
