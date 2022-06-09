@@ -1,54 +1,54 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc254.phx1.oracleemaildelivery.com (aib29ajc254.phx1.oracleemaildelivery.com [192.29.103.254])
+Received: from aib29ajc252.phx1.oracleemaildelivery.com (aib29ajc252.phx1.oracleemaildelivery.com [192.29.103.252])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 19C7CC43334
-	for <ocfs2-devel@archiver.kernel.org>; Thu,  9 Jun 2022 16:30:39 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 61B47C433EF
+	for <ocfs2-devel@archiver.kernel.org>; Thu,  9 Jun 2022 16:31:00 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=TDNV646ZmX2rxGBwly7erbMDHjy+ywbFgwvQXqyACvA=;
- b=qlPBgSDRX2uoY1ibnWv072QMQSxNauIwOiE3GKCXyLlWTISClhwB+aR4r42NZ/QB5NO171KNkO2G
-   26ttuHa8M+BaOuYkUNRdsEhz783KScbdv8eWeyIFrDlra6hhQ2Bt0VI+udj/dIsLc1c1nAeG3N8o
-   TQiKPBdm/Xkh3joIi8D96qrIyQml0NVoTMp//23WJDXVEkYoZU3NoJFvCiGYW7q2M3dH0OFimgiH
-   capbrmTGRQQ83PvOBZNRlFnXwE93ls8O3sZOEb3vB6ZzgMj5hM6FXhrVZYpNLxPQ7nrL0goaJyQc
-   en5oVrifNw7GXrelNGtEq54oFL50KaXf/tJJiA==
+ bh=w/rQ3XAZOCvkwDw7J32ed4CNRbrfV6rT5qBnC/sWFSs=;
+ b=yIrpsjqHB5XVT6Gu8ADXOhxsZxHPb32PJVG7kzlWPx9BXad4yzjMkHVehwoaxM+ipTnbi56VntnC
+   gSUAqoXB9DetD1SIjpDC+5IIwHkjjxy0edItQEHB1zJJ0R8/aABouqO+RcyhWJCQ99rq7tUYNa0O
+   M8TjkDZHL5/qIcs9umyWGvEdgritYkh1AUnpRNxtGs2ZZKAUJdEdG6XdVpUI9aAam8BAvUrfPgPc
+   mXkF027FLYu6YDLyqF/lktRkNI6DgUXrEa55TghXzs/OYu9dlVoGAUJGmXTgMBCU6QIzsFjKUdsg
+   Ws+VV75+hKKh0ISILStska5QtuUMzBqrxyl2yA==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=TDNV646ZmX2rxGBwly7erbMDHjy+ywbFgwvQXqyACvA=;
- b=sDG8TunKplO9XaZqtH9EQKizBgOA2zudWk9rAYP3S3u30WmlESga8ZTezfcw23+glI51VSZVIEFX
-   X3hNJkTL4T9lQduiFq9CHEmTspL2AG1Gb/COp489NxLZ8AMGU3gB95sUta7d5j+gS3AirbI+Iukm
-   WcsB5Q4ieoBJ2Zi3czJMxae9sfRYe6JSRsEX0lNlG7jNZ1D2fvAIF+658abLCsSJBl2T3I2iLDGr
-   kkwiJUX7/ouzG5CxZ26RG8eTT0zO+sy+JbDJMKvUYJDMbwaKKHMSyl0MH/UWEhYsFAWDYkCj99Em
-   Es4js0OM2zozXWp5NPiplRZvCx9bb7CWelb9VA==
-Received: by omta-ad3-fd3-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
+ bh=w/rQ3XAZOCvkwDw7J32ed4CNRbrfV6rT5qBnC/sWFSs=;
+ b=RXONC0/7pZAn5Zz/OmJUK63g5Rv4qqcLwk0NnZgfsFxstwXD7uHgoLbdf2EDIDos+R4+jy4ijVpw
+   7qWtucsRAChKzx/5Cr5jFLbiw7qn0F1cTatu0mx0i4oAn0bh6OHQUhb6xUbqBwVk/8hjXsV4OMjR
+   n9rRo0nUHKByhMRopgHfLkeCZ8VnZlrTftlpF6rTbknJjJIt5B687BwxEvUvwkpBMzF36oeT2vdo
+   xODHEWww8Q053SoyQSRcBi2UtFuhT4T5A6ZqYOCz4QnJVWPLtNmZQt1nD7OYGswQpzbO3Ld1Z4u+
+   UZpPt48G4WcgybzORfrawcesh1AMEayB73XdXQ==
+Received: by omta-ad3-fd1-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220517 64bit (built May 17
  2022))
- with ESMTPS id <0RD700HAHXV0TQ50@omta-ad3-fd3-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Thu, 09 Jun 2022 16:30:36 +0000 (GMT)
+ with ESMTPS id <0RD700L3UXVNYPE0@omta-ad3-fd1-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Thu, 09 Jun 2022 16:30:59 +0000 (GMT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.cz; s=susede2_rsa;
- t=1654792220;
+ t=1654792244;
  h=from:from:reply-to:reply-to:date:date:message-id:message-id:to:to:
  cc:cc:mime-version:mime-version:content-type:content-type:
  in-reply-to:in-reply-to:references:references;
- bh=DRY3PTJ3qzHWltMKRtpiQYHbxR9H9lvdTVSDJqkZDfo=;
- b=DwYTzXJjJEcZyVTnR2LXUD9bO582jfvat2LZZMaNEJEzhW48fA0IdNDUNIrqkGRtMEgNRw
- eDsjd8JfQMK+DXVsQFfhFbWfQDLFw4FjQ0HtFU2P8ZpenpzC58c2iQ0OIdKwpO6xDUb7fH
- SKQMK5thmUS9fW7CcZdcVt6AHZMg5tw=
+ bh=Y2i6/2xfXmqrG3UQrxWuJBZA/au7sKNam077cWguoHI=;
+ b=WAFGqmnIhYNvM2ssVKG3KczLLHpzVExLaqbMNaaD4TxG3LoWXkMqgKnr5sAnFUCBPyx6Bj
+ RhP7Axe2UJS1vtWME26BQmMzF4seMk852MkeYIJ1XbXQW9TzZc/m/RdeIYLyaRgTqpIusE
+ ixbzVs/BQECC0I+aIWNnX7/19GjySKk=
 DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.cz;
- s=susede2_ed25519; t=1654792220;
+ s=susede2_ed25519; t=1654792244;
  h=from:from:reply-to:reply-to:date:date:message-id:message-id:to:to:
  cc:cc:mime-version:mime-version:content-type:content-type:
  in-reply-to:in-reply-to:references:references;
- bh=DRY3PTJ3qzHWltMKRtpiQYHbxR9H9lvdTVSDJqkZDfo=;
- b=r711ZorCuK6qm0qrAc7rlFb1iJZ1hwrAWtDVvOq4y49i+HhbE2GKNA0i1qsunxQawdIutH
- dMWes8/2VlE/dzBA==
-Date: Thu, 9 Jun 2022 18:25:49 +0200
+ bh=Y2i6/2xfXmqrG3UQrxWuJBZA/au7sKNam077cWguoHI=;
+ b=OcorPq9pvgFSPMUepbubrqyCj9P6m8KkNJ5KgBjsd3ExzLQ6RMGB6JpwEUQqKFOx6b3ocZ
+ x6fso1mpPJmN9sCA==
+Date: Thu, 9 Jun 2022 18:26:14 +0200
 To: "Matthew Wilcox (Oracle)" <willy@infradead.org>
-Message-id: <20220609162548.GT20633@twin.jikos.cz>
+Message-id: <20220609162614.GU20633@twin.jikos.cz>
 Mail-followup-to: dsterba@suse.cz,
  "Matthew Wilcox (Oracle)" <willy@infradead.org>,
  linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org,
@@ -59,18 +59,18 @@ Mail-followup-to: dsterba@suse.cz,
  ocfs2-devel@oss.oracle.com, linux-mtd@lists.infradead.org,
  virtualization@lists.linux-foundation.org, Christoph Hellwig <hch@lst.de>
 References: <20220608150249.3033815-1-willy@infradead.org>
- <20220608150249.3033815-9-willy@infradead.org>
+ <20220608150249.3033815-11-willy@infradead.org>
 MIME-version: 1.0
 Content-disposition: inline
-In-reply-to: <20220608150249.3033815-9-willy@infradead.org>
+In-reply-to: <20220608150249.3033815-11-willy@infradead.org>
 User-Agent: Mutt/1.5.23.1-rc1 (2014-03-12)
-X-Source-IP: 195.135.220.28
+X-Source-IP: 195.135.220.29
 X-Proofpoint-Virus-Version: vendor=nai engine=6400 definitions=10373
  signatures=594849
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 bulkscore=0
- spamscore=0 phishscore=0 adultscore=0 malwarescore=0 clxscore=73
- suspectscore=0 impostorscore=0 priorityscore=78 mlxlogscore=392
- lowpriorityscore=0 mlxscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0
+ lowpriorityscore=0 impostorscore=0 suspectscore=0 mlxscore=0 mlxlogscore=490
+ priorityscore=181 bulkscore=0 adultscore=0 malwarescore=0 clxscore=177
+ spamscore=0 phishscore=0 classifier=spam adjust=0 reason=mlx scancount=1
  engine=8.12.0-2204290000 definitions=main-2206090063
 Cc: linux-aio@kvack.org, linux-nfs@vger.kernel.org, cluster-devel@redhat.com,
  linux-ntfs-dev@lists.sourceforge.net, linux-kernel@vger.kernel.org,
@@ -79,8 +79,8 @@ Cc: linux-aio@kvack.org, linux-nfs@vger.kernel.org, cluster-devel@redhat.com,
  linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org,
  virtualization@lists.linux-foundation.org, linux-xfs@vger.kernel.org,
  linux-btrfs@vger.kernel.org
-Subject: Re: [Ocfs2-devel] [PATCH v2 08/19] btrfs: Convert btree_migratepage to
- migrate_folio
+Subject: Re: [Ocfs2-devel] [PATCH v2 10/19] mm/migrate: Convert migrate_page()
+ to migrate_folio()
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -97,32 +97,39 @@ Reply-to: dsterba@suse.cz
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-ServerName: smtp-out1.suse.de
+X-ServerName: smtp-out2.suse.de
 X-Proofpoint-SPF-Result: pass
 X-Proofpoint-SPF-Record: v=spf1 ip4:137.65.0.0/16 ip4:151.155.28.0/17
  ip4:149.44.0.0/16 ip4:147.2.0.0/16 ip4:164.99.0.0/16 ip4:130.57.0.0/16
  ip4:192.31.114.0/24 ip4:195.135.221.0/24 ip4:195.135.220.0/24
  ip4:69.7.179.0/24 ip4:150.215.214.0/24 include:mailcontrol.com ~all
 X-Spam: Clean
-X-Proofpoint-GUID: AMsntCPOAvOj-VAYPWartLuPVPMPMCS1
-X-Proofpoint-ORIG-GUID: AMsntCPOAvOj-VAYPWartLuPVPMPMCS1
+X-Proofpoint-GUID: zlXurjpBhvKtxhQPrrJ6a_fEQLhU5L-G
+X-Proofpoint-ORIG-GUID: zlXurjpBhvKtxhQPrrJ6a_fEQLhU5L-G
 Reporting-Meta:
- AAEdb4bvKlOXGUnmi4u5h6M+clNVwMl2Ek1Rmppx6yDX/SJ96so5g4Mdv98i9Kiw
- yGcHVlKMc6oaQogMMQtC2AJ4O/2GXC8tzuqG8ipWDq1lYgOAiXC4xjkWaF6c8TNV
- xMLVfdGcxhzFfSUp09U6uT+hNXadx9XK7jsRapd03GtrxfyWgrpMvX8meM47UXrY
- MdykF0mdVD4gbu6fzxkRHewTyNrw770bmSKSVKY8o1+2kBWLA6IvUdBaubVG1qLo
- NN3jUO0yjNTHRDAj/t5gT3C+OfjRa6sQFKvXFSlIBj6igQf+oXg/Dm0/ywIGH8J+
- GOsVTuzCqF23RG5Mk/jTwyaw0nPgk4GqJfhOL/1xyGtaTAcHCf23HW9vvju48pay
- LHsJXXgfAhnXuJvvJNnMVUKE8mQpZfL+/zP5A0FAU2QIse0M5FvIT826ynJtE+kQ
- rN9Hv7Ikr0t4FYADjAxcaUhnrJzHvApAYjsLLZxQCuuavigGTfaGBWNvIuE5LSaN
- VqBJSi9HUqtixw/W0tonmA08y1Y4I825rcazLdkpQuw=
+ AAGXsLtjayM+od1pv3T8c+cZwyjetd2u964tUKGNQeDodCRrsWyNroYY+8njdaYs
+ oJpRMCsrowge91gujMbk79SBr1E0iT53DH+aJ+Bu5KqCDbhwz56WV1O6igo40vWv
+ jwqQHoJtjo53PSjJx+72KHRaz6iqJACDFvMg7VGmdXLH+36C+2tKHVnR7o3Ly/d8
+ 4x+XAXvwWO+025VMmmmzgRbveun/zMIbpx/VCWs44Kb7/1PWU5BAzt0BGRJOXUkv
+ lcfPuJe7PD8YBFIo9+eAo8DxdZvuVVi1a0GKx7nXlWFFqq0C+lfrFoFKzHyBb8Si
+ lzrYb5RrNhJZxC2L2vl3ZEQLxkSBJhs3DUYvhB8bHqgrSe9/8x3u9npohxFTi/rK
+ rzwB7YrqmGCtqVCGkwqZjprK6Fap1VBHnKsbv+XetaEIW0fZkGmLwkqGcPJL4/59
+ B0UF/mWTHw8bfRAU5zLxriIazQpKuYPRTFFlj7nojVLtJvncrL6gLHtNRUh/SbJL
+ 0S0UXHMboVs1FrCoPSI98Rx5FyBhdBq4xKF+O4mVD0De
 
-On Wed, Jun 08, 2022 at 04:02:38PM +0100, Matthew Wilcox (Oracle) wrote:
-> Use a folio throughout this function.  migrate_page() will be converted
-> later.
+On Wed, Jun 08, 2022 at 04:02:40PM +0100, Matthew Wilcox (Oracle) wrote:
+> Convert all callers to pass a folio.  Most have the folio
+> already available.  Switch all users from aops->migratepage to
+> aops->migrate_folio.  Also turn the documentation into kerneldoc.
 > 
 > Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
 > Reviewed-by: Christoph Hellwig <hch@lst.de>
+> ---
+>  drivers/gpu/drm/i915/gem/i915_gem_userptr.c |  4 +--
+
+For
+
+>  fs/btrfs/disk-io.c                          |  2 +-
 
 Acked-by: David Sterba <dsterba@suse.com>
 
