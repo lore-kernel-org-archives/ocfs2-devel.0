@@ -1,84 +1,68 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc247.phx1.oracleemaildelivery.com (aib29ajc247.phx1.oracleemaildelivery.com [192.29.103.247])
+Received: from aib29ajc253.phx1.oracleemaildelivery.com (aib29ajc253.phx1.oracleemaildelivery.com [192.29.103.253])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 9B945C433EF
-	for <ocfs2-devel@archiver.kernel.org>; Thu,  9 Jun 2022 16:38:08 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id E165EC43334
+	for <ocfs2-devel@archiver.kernel.org>; Thu,  9 Jun 2022 17:41:04 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=7Z3QCBEGaAFZOWp+3zeQcQyxZzUNvrfvuh40M8JJ87A=;
- b=oE3X5xGSJ5O1invdoUcz9f/bubjE3u6gf97FX5JSn72DbVOiPISvaRJSIFkFyvcf4IlgoeYY4Jv0
-   OEjOpd/+B41ECleYoqhmj6+MDc/DnxrnZS2N5oJ1T3/KDcrIcu3RoP/rR9FJIliWmqTBa1R6S5Bi
-   ZghkjaYwZVrklan5g8Y4hU+kN6up8kRMEzCaI2SZu8vYUn45QgQpAiVePZjmBWO/aKF7ONG9sIlN
-   qASw2DUYa7PtLpmlBiF54mZSoSnf1s8RsERCxm97EmpJvPxI+UT8td54YuAxbdy5/eKlO4irGNVw
-   joiL8/RLsNzxyzLLadi193W0TxkbxSYGcpL50g==
+ bh=FkuxP9HiA4V14mRrgXuFosWO1ydyNjPZVyN8lX5u4SM=;
+ b=R698DCxuFTCqJqnEHeJ0LYJkI1aSVDT1CrKWYqoenyqz4MLZLyL1hJ7juf82cvZeJfZLpA9q67lC
+   WXyKPxCt++xkNItELHWb8I9gtSSy87sftosZi4B+51c9DHwhzig6KrToiDFiHSNVOE7D+wvPGpeh
+   WG3Dry2egROlnOYrOVwUYb43jQRkSxM1OQnQEHHQ7Ic6tEbS9lZo265aLh33sMqKZtecSqmRBhmr
+   db7WuLRekHRSRG3g5w8tQcxmI2FixKNYoFych5cmKfJXVNnpQe7aKsZEumUwaeFDSBjKnnNxN+1X
+   pqmsB4SV0Z+SbP009Ddnc9+9NSuh6k/AiivJ6w==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=7Z3QCBEGaAFZOWp+3zeQcQyxZzUNvrfvuh40M8JJ87A=;
- b=t3CpyQpypyW6Yz8oSJyo6H/rrASebLnu7WKA7HfAGCf9Aig1Ds4NYbeU3CZPBCdvXTUcyNytZnKV
-   yJYZLqZLPgrtJ4ECzFPBabiXUUSZj+Xq0oe/j8Wua4wWcPcWh+023/3AVlk/3AvZqv5Fjft3cHoJ
-   SdKMr81nROvqyXT9YeW6ZjQg4jPQHHLhOzHY23EPcqWkKr+Ue4rZsewxgt5vsdg18jSYxY0FV4uH
-   zcQ6Bt9UR0rJcgqGna3dnoKr/OZWNG9/I8/JNnvcki1+Ka883M04n8m7mXX9x+nytAV4wVsN3f+0
-   oaEt8mNWCmxUZ1eF5O91CFkdXHRi2dxLJIn79g==
-Received: by omta-ad1-fd3-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
+ bh=FkuxP9HiA4V14mRrgXuFosWO1ydyNjPZVyN8lX5u4SM=;
+ b=IN4BNYEXGptm151JR1ynsImcupCWhLoEktI+iwv9eLjbRfFJMuXKzudjZ7Pgw5XGZlntJAkRJgDP
+   siUJ9nCpRMwqVFuDBUSkWsXrfiOuvkJ4wRp8JtgsHd8tVayHKdDfmwfNdFzUV6WVLDt85QY7+AeM
+   n8i1pcQlZrTtCBj4z0EDF05QjntYfQvYYu5mHkNtK/yEOHBo4tgSOsjGtG2fgH0tHvi6neCJGF1n
+   1dEyniNItdTFG2L+r5TnfINQKY7+WONaWGznHEVbz48URwDA73D4adoF1PfcHvyc2yU86M6TEGx3
+   s/S6WHmPSzElqRXaA+wT9ov1CP64VMmt6Nk1Xw==
+Received: by omta-ad3-fd1-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220517 64bit (built May 17
  2022))
- with ESMTPS id <0RD7007JFY7J2060@omta-ad1-fd3-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Thu, 09 Jun 2022 16:38:07 +0000 (GMT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.cz; s=susede2_rsa;
- t=1654792674;
- h=from:from:reply-to:reply-to:date:date:message-id:message-id:to:to:
- cc:cc:mime-version:mime-version:content-type:content-type:
- in-reply-to:in-reply-to:references:references;
- bh=zfYT+PR9lXha9hYJlMd2oONaI1SUc3WGC1Bck/G8ec0=;
- b=b2KEX6ZCINZeKoHTynlrz3FMDUbnVbIkotULQQM8wta+qakmo0wc5ILD3yfYynBGt8D1yz
- HYV/+JhfacH7KcZ34tTxnGAMq0+073DU9INO4NM3aBmmmH1cmHo9hWrrTnPyGWxZmapSer
- hIaGVqCWyAZ99ysi+fFP8RhgxxrPFtk=
-DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.cz;
- s=susede2_ed25519; t=1654792674;
- h=from:from:reply-to:reply-to:date:date:message-id:message-id:to:to:
- cc:cc:mime-version:mime-version:content-type:content-type:
- in-reply-to:in-reply-to:references:references;
- bh=zfYT+PR9lXha9hYJlMd2oONaI1SUc3WGC1Bck/G8ec0=;
- b=Irv56z+I7t/5vmpdqARm0xsfrzoUND1o/lJUqjcW0uNId73f8zXP/st70yGmLiPVj3W5Qe
- j8Fgd9g+H7+p0iCw==
-Date: Thu, 9 Jun 2022 18:33:23 +0200
-To: "Matthew Wilcox (Oracle)" <willy@infradead.org>
-Message-id: <20220609163323.GV20633@twin.jikos.cz>
-Mail-followup-to: dsterba@suse.cz,
- "Matthew Wilcox (Oracle)" <willy@infradead.org>,
- linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org,
- linux-block@vger.kernel.org, linux-aio@kvack.org, linux-btrfs@vger.kernel.org,
- linux-ext4@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net,
- cluster-devel@redhat.com, linux-mm@kvack.org, linux-xfs@vger.kernel.org,
- linux-nfs@vger.kernel.org, linux-ntfs-dev@lists.sourceforge.net,
- ocfs2-devel@oss.oracle.com, linux-mtd@lists.infradead.org,
- virtualization@lists.linux-foundation.org, Christoph Hellwig <hch@lst.de>
+ with ESMTPS id <0RD800J4714GZW20@omta-ad3-fd1-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Thu, 09 Jun 2022 17:41:04 +0000 (GMT)
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+ d=infradead.org; s=casper.20170209; h=In-Reply-To:Content-Type:MIME-Version:
+ References:Message-ID:Subject:To:From:Date:Sender:Reply-To:Cc:
+ Content-Transfer-Encoding:Content-ID:Content-Description;
+ bh=50LH8Dogtui4JOE7bz/ojMzo0HRhZGWl5FgghUdbsso=; b=H80hSPNqGiAd5chM6yyxpXe7GI
+ v16rR9GPk1lsBvZCxGkkfPwwIt580VMmgSt7/ZwfufekJhmrwARChvfRps5Isb2jo31hImz/J8zhg
+ 3Gqid/DHTzlBHrEnpsHq7tbmdB6lizbSwvMg1psBh47cB986OJv32t09q9JTTsGSl5f5sM+mUmbDC
+ kBxIqffET9U+LDZy+bNXjBWIq4ozQI6dP3A/jTcDrHF2DBz9xSzltFjBNcK5NRZczIeDZyfqJ8lJf
+ qfewZREEYM3aHIjRrfEfYKtBKEBJRQ6UywKBfP0QJhwiV/qPmGd6+tb1EV1S0HSjXDX6WidFPIyNN
+ +S04cl5w==;
+Date: Thu, 9 Jun 2022 18:40:28 +0100
+To: dsterba@suse.cz, linux-fsdevel@vger.kernel.org,
+ linux-kernel@vger.kernel.org, linux-block@vger.kernel.org,
+ linux-aio@kvack.org, linux-btrfs@vger.kernel.org, linux-ext4@vger.kernel.org,
+ linux-f2fs-devel@lists.sourceforge.net, cluster-devel@redhat.com,
+ linux-mm@kvack.org, linux-xfs@vger.kernel.org, linux-nfs@vger.kernel.org,
+ linux-ntfs-dev@lists.sourceforge.net, ocfs2-devel@oss.oracle.com,
+ linux-mtd@lists.infradead.org, virtualization@lists.linux-foundation.org,
+ Christoph Hellwig <hch@lst.de>
+Message-id: <YqIwjEO1a0Sbxbym@casper.infradead.org>
 References: <20220608150249.3033815-1-willy@infradead.org>
  <20220608150249.3033815-13-willy@infradead.org>
+ <20220609163323.GV20633@twin.jikos.cz>
 MIME-version: 1.0
 Content-disposition: inline
-In-reply-to: <20220608150249.3033815-13-willy@infradead.org>
-User-Agent: Mutt/1.5.23.1-rc1 (2014-03-12)
-X-Source-IP: 195.135.220.29
+In-reply-to: <20220609163323.GV20633@twin.jikos.cz>
+X-Source-IP: 90.155.50.34
 X-Proofpoint-Virus-Version: vendor=nai engine=6400 definitions=10373
  signatures=594849
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 spamscore=0
- bulkscore=0 clxscore=170 priorityscore=289 phishscore=0 suspectscore=0
- mlxlogscore=519 adultscore=0 impostorscore=0 mlxscore=0 lowpriorityscore=0
- malwarescore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2204290000 definitions=main-2206090063
-Cc: linux-aio@kvack.org, linux-nfs@vger.kernel.org, cluster-devel@redhat.com,
- linux-ntfs-dev@lists.sourceforge.net, linux-kernel@vger.kernel.org,
- linux-f2fs-devel@lists.sourceforge.net, linux-block@vger.kernel.org,
- linux-mm@kvack.org, linux-mtd@lists.infradead.org, ocfs2-devel@oss.oracle.com,
- linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org,
- virtualization@lists.linux-foundation.org, linux-xfs@vger.kernel.org,
- linux-btrfs@vger.kernel.org
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0
+ priorityscore=333 mlxscore=0 bulkscore=0 phishscore=0 suspectscore=0
+ clxscore=180 mlxlogscore=474 malwarescore=0 lowpriorityscore=0 adultscore=0
+ impostorscore=0 spamscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2204290000 definitions=main-2206090065 domainage_hfrom=8381
 Subject: Re: [Ocfs2-devel] [PATCH v2 12/19] btrfs: Convert btrfs_migratepage to
  migrate_folio
 X-BeenThere: ocfs2-devel@oss.oracle.com
@@ -92,66 +76,68 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: David Sterba via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: dsterba@suse.cz
+From: Matthew Wilcox via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: Matthew Wilcox <willy@infradead.org>
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-ServerName: smtp-out2.suse.de
-X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 ip4:137.65.0.0/16 ip4:151.155.28.0/17
- ip4:149.44.0.0/16 ip4:147.2.0.0/16 ip4:164.99.0.0/16 ip4:130.57.0.0/16
- ip4:192.31.114.0/24 ip4:195.135.221.0/24 ip4:195.135.220.0/24
- ip4:69.7.179.0/24 ip4:150.215.214.0/24 include:mailcontrol.com ~all
+X-ServerName: casper.infradead.org
+X-Proofpoint-SPF-Result: None
 X-Spam: Clean
-X-Proofpoint-ORIG-GUID: h5InL9kN-jwcKjOm3_NI44lTzNXYoBKv
-X-Proofpoint-GUID: h5InL9kN-jwcKjOm3_NI44lTzNXYoBKv
+X-Proofpoint-ORIG-GUID: 7jZl46yig3lEfg0Iszf36RDKowPIwN4o
+X-Proofpoint-GUID: 7jZl46yig3lEfg0Iszf36RDKowPIwN4o
 Reporting-Meta:
- AAFM2150Sh+Nj3ZbqJIuOENjYv/GHoa4+U9w9F5JCAD1sTvagLZzj1V2kuVlbNPG
- ek9PCwKU4ujSDzfj6MxpAqoQ0/53eD/lrfHX/9DdNp1bGE/a/HR+VRgAUszJkx1L
- UzC+u1QxnGVYbsTNW6w0pgTl5Yb560TEDGOHk9LSY5wcZtfzPUO1mal645ihxhZ2
- MKHhAPu47LQHhGHenETmdYrmyKVwq6g9P4/TY7JhOf/41izTgHnsnat28IiajBDn
- Er/wH3cGgJpVhmTjgtdJLU8oI6CCntTpqGlFpGRQBrwAcinX9ei7hoMJS9ojLdhI
- YwEbXDOVkMUekSq152WvzBcfoz3xgcl3r36W6HucNwR2TDkffk1rSKrvVLe2Ttp1
- E6AFWEL0UFEkiyfwKk1W/tOua/Agw7YXAn71nqQBihWG6dMh070jXaUb/g7RbopC
- /I7XIVREWJ9q+A+aTvTDN+qNQ7u+4Ae2ZLCX4dJZU/r82OKC6thcL/pZ8W4/oJlv
- k7KnmD95i0fYNdqlvHpivanAqV0C9eV5nqD0y2+NjwYJ
+ AAGXsLtjayM+od1pv3T8c+cZwyjetd2u964tUKGNQeDodCRrsWyNroYY+8njdaYs
+ oJpRMCsrowge91gujMa89NSBr1E0iT53DH/FCh3acVT4450nps8jm/5hhKd23jAB
+ +TQTpmG9/9diipycblMmPh1mS4SfbK/seFC+kqra4Dji8h4mpCsOjuQjt3tzKyS3
+ O+dCZvFU/5ncLb89VdkHVcs4lMI834xkmWtpKomyJZgr85ahuVdj+0SHw9Mgw858
+ rh2aGOooUM2mICMY8iVND8JDJahnT8pBkOW2mFxszkba/OBeyVGhQgU2zEcniYwS
+ hOkogvZdjh8FRXdqbHR4vrTio5MaO035oKn5+9vQaextxIrDCw+JpERfW6sj52g9
+ 4TDEHdPGVlkdRqd9pGgYr3ysSK/AJRpFb43/UmnKVt6H8qUy4groRl1ASAt3Ajjx
+ xvtnoao7pu++fndhkEB4JEjbStb6asKKRdvefXj3uNsKAEU4NRgvwufuLYMqyCUV
+ jtAlVfztRK226KTeyFHcKqFxLjVmFplfz9Wt4u8/nFk=
 
-On Wed, Jun 08, 2022 at 04:02:42PM +0100, Matthew Wilcox (Oracle) wrote:
-> Use filemap_migrate_folio() to do the bulk of the work, and then copy
-> the ordered flag across if needed.
+On Thu, Jun 09, 2022 at 06:33:23PM +0200, David Sterba wrote:
+> On Wed, Jun 08, 2022 at 04:02:42PM +0100, Matthew Wilcox (Oracle) wrote:
+> > Use filemap_migrate_folio() to do the bulk of the work, and then copy
+> > the ordered flag across if needed.
+> > 
+> > Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
+> > Reviewed-by: Christoph Hellwig <hch@lst.de>
 > 
-> Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
-> Reviewed-by: Christoph Hellwig <hch@lst.de>
+> Acked-by: David Sterba <dsterba@suse.com>
+> 
+> > +static int btrfs_migrate_folio(struct address_space *mapping,
+> > +			     struct folio *dst, struct folio *src,
+> >  			     enum migrate_mode mode)
+> >  {
+> > -	int ret;
+> > +	int ret = filemap_migrate_folio(mapping, dst, src, mode);
+> >  
+> > -	ret = migrate_page_move_mapping(mapping, newpage, page, 0);
+> >  	if (ret != MIGRATEPAGE_SUCCESS)
+> >  		return ret;
+> >  
+> > -	if (page_has_private(page))
+> > -		attach_page_private(newpage, detach_page_private(page));
+> 
+> If I'm reading it correctly, the private pointer does not need to be set
+> like that anymore because it's done somewhere during the
+> filemap_migrate_folio() call.
 
-Acked-by: David Sterba <dsterba@suse.com>
+That's correct.  Everything except moving the ordered flag across is
+done for you, and I'm kind of tempted to modify folio_migrate_flags()
+to copy the ordered flag across as well.  Then you could just use
+filemap_migrate_folio() directly.
 
-> +static int btrfs_migrate_folio(struct address_space *mapping,
-> +			     struct folio *dst, struct folio *src,
->  			     enum migrate_mode mode)
->  {
-> -	int ret;
-> +	int ret = filemap_migrate_folio(mapping, dst, src, mode);
->  
-> -	ret = migrate_page_move_mapping(mapping, newpage, page, 0);
->  	if (ret != MIGRATEPAGE_SUCCESS)
->  		return ret;
->  
-> -	if (page_has_private(page))
-> -		attach_page_private(newpage, detach_page_private(page));
-
-If I'm reading it correctly, the private pointer does not need to be set
-like that anymore because it's done somewhere during the
-filemap_migrate_folio() call.
-
-> -
-> -	if (PageOrdered(page)) {
-> -		ClearPageOrdered(page);
-> -		SetPageOrdered(newpage);
-> +	if (folio_test_ordered(src)) {
-> +		folio_clear_ordered(src);
-> +		folio_set_ordered(dst);
->  	}
+> > -
+> > -	if (PageOrdered(page)) {
+> > -		ClearPageOrdered(page);
+> > -		SetPageOrdered(newpage);
+> > +	if (folio_test_ordered(src)) {
+> > +		folio_clear_ordered(src);
+> > +		folio_set_ordered(dst);
+> >  	}
 
 _______________________________________________
 Ocfs2-devel mailing list
