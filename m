@@ -1,74 +1,74 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc244.phx1.oracleemaildelivery.com (aib29ajc244.phx1.oracleemaildelivery.com [192.29.103.244])
+Received: from aib29ajc246.phx1.oracleemaildelivery.com (aib29ajc246.phx1.oracleemaildelivery.com [192.29.103.246])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id B7891CCA47F
-	for <ocfs2-devel@archiver.kernel.org>; Thu,  9 Jun 2022 10:24:16 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 81DCDC433EF
+	for <ocfs2-devel@archiver.kernel.org>; Thu,  9 Jun 2022 12:46:30 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=0xi0u8zP18gXnfNdbgBOlQP6XXI85aUlKGRjvRiq2IA=;
- b=clrGov7hdYk+QJoSQwMIEQ5J7Ij3JCmhXumdopCoeExMvVTmVkl0Xtc4Hbed/d2HXUYiLPDuj/wC
-   1VAfKbUFKcMw/tZxvWk/fyD3bM8eeEQmEvFwAKtfikvlbLcMRsGt0g62MOzwdb2hWjtANXMRjuh0
-   EqlYYLnnKIeaDyUY4zo6arRDk/stm6h+edH4wuUEwBX7ZL3W+axyR/XL00CSOFjiUAALQwvI5ni1
-   Cds/6aglER7t8IjBw7z9Blb3lSMaqEEyVA/a3zhuWSBna2PM/Af/wQMGTEX6WsCS7nfsOFA9/ggn
-   RlVU08m30iCsRg6eMObh1zqSIztKj2BMJweFGQ==
+ bh=ZaDsoELL6anQPRCfAdYBPVfP+yP2nv9/9wpq6JwLhN8=;
+ b=y7QyNjmZC2ozQOsVW/YQJ4yOBrXd1tn95nXukRY+rVXap95xaTWf2MFUnbYs30ElSFg2UqtKb1cc
+   5FxnT8tpM0asCnsCquZP74eBkth4ydLWRmhcYcRiM32M692lwQ2PcykzKCvp1dDVG/WHyeOW5QPh
+   0g9RDd143sje67d7BZJgEQ2vW5D2Ju2BJv9fiAXcdu/TGK4gC8hJPENoKFQlW0BHJ/b1hppX22wg
+   weoxbhriBkdUzOs1M0kvb+hCN6WSvhlrcMLY9t/T7PMgwbu98X8pweDOpdMn/4j2Z/gNMJiJyyS9
+   H8PPj7bAnsiIvSFh+UfMrATnM1og8QXi2eFhgA==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=0xi0u8zP18gXnfNdbgBOlQP6XXI85aUlKGRjvRiq2IA=;
- b=i94dYk/dYHeJM2H01882cu5ze7s8pNbhBZ/pPkqTWeh7scVy0QpenI3DtIAPwjwcyYrhcdjFeJ6+
-   jvwNbS9g7ThUXV1yh/Zw3q/qWMSvONBW9TNPaSG+DnYjh4yRCH154cld1eL+iYNydhXh7U34xaNf
-   Frww6FT4lATPmyJuTRhJv1I1LuhiySzjcfjJAcf1Oq/DGAfnaV7L5P6FZlRiNGHb7o/ceKRUhoth
-   xvZQd7d8GInCp2M9flOOLv/ev5I2K0daGjOHj2olSsS8FHZcbDhkfKi3o2f4rCTNEl6XWTeWR8KX
-   0T/oD2TOZFW3A7ARn9IyVmMAB2ZzCd6eC6YxFw==
-Received: by omta-ad1-fd1-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
+ bh=ZaDsoELL6anQPRCfAdYBPVfP+yP2nv9/9wpq6JwLhN8=;
+ b=OXb5KK2TudWMD3spaFzhDq45VF5aEesXWLeHtsf3Ul3PuiIU2y2jksggwiyG9PXJccYwjT3E6+nv
+   X996s/KuKXyYWiV+nUgSL9fs32UI6BK9ch2g3JRHqTrXNRbgWITxm2tBPLPEhvZWkZ6vfRtQBj4O
+   x8QKVevRmsW+IXIeBA2emL+HAhYcqk8mrnVBFU/ora/rhmrOHXnhl96igIFF2Zly2j0lZrXirCZc
+   3yFsoe0tTgNdDvXrwLIKeM6nhCVMv7Ocp6ofdl8B5LiG3mLOcF1YS386inPaSHpdMTzFK2wOXla6
+   oCD7Ir4L7Ax23gTlESlJdxpPGQFN0shIk6C1bA==
+Received: by omta-ad1-fd3-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220517 64bit (built May 17
  2022))
- with ESMTPS id <0RD7001TKGWGAG80@omta-ad1-fd1-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Thu, 09 Jun 2022 10:24:16 +0000 (GMT)
+ with ESMTPS id <0RD700702NHHLH80@omta-ad1-fd3-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Thu, 09 Jun 2022 12:46:29 +0000 (GMT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
- s=mimecast20190719; t=1654770243;
+ s=mimecast20190719; t=1654778776;
  h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
  to:to:cc:cc:mime-version:mime-version:content-type:content-type:
  content-transfer-encoding:content-transfer-encoding:
  in-reply-to:in-reply-to:references:references;
- bh=6a5SsgsnTuFo9sIZWQwmUlikCgiuGiGF/De3NllGDd0=;
- b=O1xC9fxZOMxaqC6rSRf/wp7oRubAOdtuQF660ZO5XT5/cyF74PDWeE2QN9m27mc+BMztdJ
- 4cTCEIEgzKecWwUfZ7+HFqcmlsf3bRPqSVsgzJFiymh+8vAQB/cUacDsI0Qr52taSElHs3
- mqthmRsXI3hdg1HfHwjn9aCD07YEUwY=
+ bh=zufIRXqzWNkS/vBQ6LnlofDt3t0aO0GgELLgxZEV3qM=;
+ b=bfaVa0reba5JNx1JCCi449akB/iE7w7HJkh+iPewcoKUtXRVntBOZRj18BsRFXEJQD7Xt3
+ GObsr5AzbK9k5Qx9iLnaJWAyVgOUUAb6wweVt7qXGOICRsO1ol959im5WFYdFixia0rC7b
+ ZHeTquzJ+C6aZV+E1vVG8wDxl9vLE1g=
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=1e100.net;
  s=20210112;
  h=x-gm-message-state:message-id:date:mime-version:user-agent:subject
  :content-language:to:cc:references:from:organization:in-reply-to
- :content-transfer-encoding; bh=6a5SsgsnTuFo9sIZWQwmUlikCgiuGiGF/De3NllGDd0=;
- b=8NcsPsa6PzRgcBZHkFUVHN09REF5AtcTjfTvhJPIgxGQBSJTyBptmT+TI/Q6Ep96HJ
- jFe1luNQ+pAg+SGzKek/Utx7kk8Mt3fRCTdWUvhUcVITA423QFb1MD0IdHgcLOg5FDxv
- 6GJqesqNQ0iYLNohG6eF0/Jv4ZXy6yh3cGaraot+yEz6IWr4t5GFgpO8ZPDhT7+q5Vmm
- iqcHRswioPL2UyYRqzLEMpk7ll51CJjZO+VkhXBzoXjR0Q8taULNoS8IJcZ4BsWJyCNc
- S1lWIREjCryqJuRoP8oEcPVr5dDZkbfRoo3IpgIr5G4i/d1G67oCXKSsgdWBmeelq+qt IQCA==
-X-Gm-Message-State: AOAM533+y6gpI/vR4XgUbwTN6N5FjJBgYYCMzeKCt8BfXHWVsstfbBo0
- MbIlUeFQvmPMUNzr6BqkkNI1Q6mx5weoPMoNPaxApFG183Qj55e/RYnsx/yA3Ir5IzXyMVC2Smt
- EQohXfEsWUj2UlM1CjvmTNg==
-X-Received: by 2002:a1c:a301:0:b0:392:9bc5:203c with SMTP id
- m1-20020a1ca301000000b003929bc5203cmr2594375wme.67.1654770241337; Thu,
- 09 Jun 2022 03:24:01 -0700 (PDT)
-X-Received: by 2002:a1c:a301:0:b0:392:9bc5:203c with SMTP id
- m1-20020a1ca301000000b003929bc5203cmr2594345wme.67.1654770240948; Thu,
- 09 Jun 2022 03:24:00 -0700 (PDT)
-Message-id: <a079ed41-1978-0551-2b5c-6d61aff7ddf2@redhat.com>
-Date: Thu, 9 Jun 2022 12:23:58 +0200
+ :content-transfer-encoding; bh=zufIRXqzWNkS/vBQ6LnlofDt3t0aO0GgELLgxZEV3qM=;
+ b=nJ9EVVbXo5GeX11AmXR7G8wkjECmjjgdbWpbu/QZROTOnUOHKywqsAOTDqH25+FNhV
+ MEi80jH+oDTyoObjkwItw4saCFPNKSNtu75YO7GG+1R+A521CcvAVEqCuxl5FKR2mutL
+ e3jcg72W13rMrTFfsRWiJc9xKKRmHvO0CiANaJlmHvEys9OpvmhXiwgbOGGoJ8MApuEF
+ 9tzspCJKNXZKqioVaO4C6rZp2YrnAecrA9PGW/ko2VDOxoCKS1TXAxra1J4NnREdfnBx
+ 1wnwItyZa9GcYyu1dK+5CB3aT7UwVQatAk+oN/dIcRmLCKBVAVMsNUW2tu7ZiYlW0CG8 8Ftw==
+X-Gm-Message-State: AOAM533vHIEYuAJv7JJG8iNVN7jwX3gBUzDtrTFpuZkXZdzOXjRnugZ8
+ t4yKn5bme+5J8tEbb4dO/5V/E77fs7dCMcADSqMiPDyvmpFOeqlOufrUXJj6d/gkuqG1m3KBqq9
+ lqaQ/PkvL5iv0+I+pU4OuXw==
+X-Received: by 2002:a05:6000:168b:b0:218:54da:90ba with SMTP id
+ y11-20020a056000168b00b0021854da90bamr12022157wrd.283.1654778773733; Thu,
+ 09 Jun 2022 05:46:13 -0700 (PDT)
+X-Received: by 2002:a05:6000:168b:b0:218:54da:90ba with SMTP id
+ y11-20020a056000168b00b0021854da90bamr12022117wrd.283.1654778773451; Thu,
+ 09 Jun 2022 05:46:13 -0700 (PDT)
+Message-id: <c204c627-ec6b-cd8c-412d-57c8f55c61fa@redhat.com>
+Date: Thu, 9 Jun 2022 14:46:11 +0200
 MIME-version: 1.0
 User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:91.0) Gecko/20100101
  Thunderbird/91.9.0
 To: "Matthew Wilcox (Oracle)" <willy@infradead.org>,
  linux-fsdevel@vger.kernel.org
 References: <20220608150249.3033815-1-willy@infradead.org>
- <20220608150249.3033815-3-willy@infradead.org>
+ <20220608150249.3033815-2-willy@infradead.org>
 Organization: Red Hat
-In-reply-to: <20220608150249.3033815-3-willy@infradead.org>
+In-reply-to: <20220608150249.3033815-2-willy@infradead.org>
 Authentication-results: relay.mimecast.com; auth=pass smtp.auth=CUSA124A263
  smtp.mailfrom=david@redhat.com
 Content-language: en-US
@@ -81,8 +81,7 @@ Cc: linux-aio@kvack.org, linux-nfs@vger.kernel.org, cluster-devel@redhat.com,
  linux-mm@kvack.org, linux-mtd@lists.infradead.org, ocfs2-devel@oss.oracle.com,
  linux-ext4@vger.kernel.org, virtualization@lists.linux-foundation.org,
  linux-xfs@vger.kernel.org, linux-btrfs@vger.kernel.org
-Subject: Re: [Ocfs2-devel] [PATCH v2 02/19] mm: Convert all PageMovable users
- to movable_operations
+Subject: Re: [Ocfs2-devel] [PATCH v2 01/19] secretmem: Remove isolate_page
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -99,9 +98,9 @@ Reply-to: David Hildenbrand <david@redhat.com>
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-MC-Unique: B6h7lsSBPvmjhHwO642bFw-1
+X-MC-Unique: 7UiEVf6IN0SK2IqEVac5hg-1
 X-Google-Smtp-Source:
- ABdhPJy58rh3fuuccVM2J0IS1QrE1vJ3CH41QyKYHa1IrWm/Rvain2xs2JDw35eE5SOSwtsykjkKLA==
+ ABdhPJxFg5i2EPJ88Gv87gtw7EHVrLhSwsyQAltgpPZk1DxRKIUlDObIOhdmhH9jKki5ThpOI9Vqng==
 X-Mimecast-Spam-Score: 0
 X-Mimecast-Originator: redhat.com
 X-Proofpoint-SPF-Result: pass
@@ -123,46 +122,52 @@ X-Proofpoint-SPF-Record: v=spf1 ip4:103.23.64.2 ip4:103.23.65.2
 X-Proofpoint-Spam-Reason: safe
 X-Spam: OrgSafeList
 X-SpamRule: orgsafelist
-X-Proofpoint-GUID: --3xhBXrKrAUfsG8oCTiAhtQaZTsqV-Z
-X-Proofpoint-ORIG-GUID: --3xhBXrKrAUfsG8oCTiAhtQaZTsqV-Z
+X-Proofpoint-GUID: nLo87hmh-RU0ayih1RRdd0cUHXnpQ9T0
+X-Proofpoint-ORIG-GUID: nLo87hmh-RU0ayih1RRdd0cUHXnpQ9T0
 Reporting-Meta:
- AAEdb4bvKlOXGUnmi4u5h6M+clNVwMl2Ek1Rmppx6yDX/SJ96so5g4Mdv98i9Kiw
- yGcHVlKMc6oaQogMMQsfsgJ4O/2GXC8tzuq2YaXX7a8Pl/yvGJBUlQUzHm5pkpey
- r6tNmmsGcpG96Gszz9MBI/QEh1heeCcFBxnPESDitPzFAvTDKei24YXEhy/eq8sa
- BZGgaJZktAH8E2t4kPJ/0/f45SsIevUcWl5d6ZslYfQap30wFmiZxrv4sPmq6qZp
- rByfHpY0OGV7tetiklwWKZJGmmIaHwFmRlP3AdWGOUkMfXea9vtLiJ++qDoS+FEQ
- GcRh5vmfryTRV65dQA5BrPbDUqfEzDPKH3GGZ3aXz2Z52xBE6ItsQLJdBBt9XArw
- Gxgbm7W9A41LssgR/Vh+EQnUt4XHsXMJFdmYOs3+Gg7cX1FlzBADdCVM8RXO+6+U
- YfB5c6xjzNszALgyILafjYsxiMPWfgKlDgWB8VqLiHAVvdyZru6HeUKNNk0ZuShI
- tU9tPQ7RV7tSqcPEwyiQZQEEFRrdBXiz9a3X9/Ptozs=
+ AAGni/yQTh7fcOMzRT8aS4a0ZQqGUSrNXFi8yvblSY96+bYcuAwOKXGKSYq0J9NO
+ jXJyXToyLxAW4+bQ/jOQP0qt0m/kg+O6hANzeQIRVB7OkcSZMBV2N5sjaktRCo0/
+ Qh94DAyvi5prbeSD7LFFabG9HHDFKzR5RsC7qE+siyMM4k97QfPjcRNw2o+czZPg
+ OebWff+SYTwTiBjf0Jutx9mDt9AGs84EJm1v6xii9+sO0Sg/um1tjrlDBLE9B3+J
+ xsnjOkn5vrZurhtZXhHmbeN2Sj7uNyCxdvlAjRV6qTIf/TJY4rQdyUALmMoqQcTM
+ hcGdljeAJ8xqnGtIaDZPnwMvxnAkV+vWt4SroafRFKD3g3Zat0tqtwIZYvd7RdwQ
+ rZEJkWwHTnrzbsDmNcws06UlbIK1h6Cx/RMM3oT6vEzGNA5shUpL3MR13TFhaPY2
+ o/RBBm7dOYCQwtCulTDJAgI0d5rrq/oWyHIRjosIk6OWgQtWNWo03/ghmdC65gyK
+ GFRm2cSP+UC2fbb/QXafjt8hTSE5KH5TuIp3n7IK053v
 
 On 08.06.22 17:02, Matthew Wilcox (Oracle) wrote:
-> These drivers are rather uncomfortably hammered into the
-> address_space_operations hole.  They aren't filesystems and don't behave
-> like filesystems.  They just need their own movable_operations structure,
-> which we can point to directly from page->mapping.
+> The isolate_page operation is never called for filesystems, only
+> for device drivers which call SetPageMovable.
 > 
 > Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
 > ---
->  arch/powerpc/platforms/pseries/cmm.c |  60 +---------------
->  drivers/misc/vmw_balloon.c           |  61 +---------------
->  drivers/virtio/virtio_balloon.c      |  47 +-----------
->  include/linux/balloon_compaction.h   |   6 +-
->  include/linux/fs.h                   |   2 -
->  include/linux/migrate.h              |  26 +++++--
->  include/linux/page-flags.h           |   2 +-
->  include/uapi/linux/magic.h           |   4 --
->  mm/balloon_compaction.c              |  10 ++-
->  mm/compaction.c                      |  29 ++++----
->  mm/migrate.c                         |  24 +++----
->  mm/util.c                            |   4 +-
->  mm/z3fold.c                          |  82 +++------------------
->  mm/zsmalloc.c                        | 102 ++++++---------------------
->  14 files changed, 94 insertions(+), 365 deletions(-)
-
-You probably should have cc'ed the relevant maintainers (including me :P ).
-
-For everything except z3fold.c and zsmalloc.c,
+>  mm/secretmem.c | 6 ------
+>  1 file changed, 6 deletions(-)
+> 
+> diff --git a/mm/secretmem.c b/mm/secretmem.c
+> index 206ed6b40c1d..1c7f1775b56e 100644
+> --- a/mm/secretmem.c
+> +++ b/mm/secretmem.c
+> @@ -133,11 +133,6 @@ static const struct file_operations secretmem_fops = {
+>  	.mmap		= secretmem_mmap,
+>  };
+>  
+> -static bool secretmem_isolate_page(struct page *page, isolate_mode_t mode)
+> -{
+> -	return false;
+> -}
+> -
+>  static int secretmem_migratepage(struct address_space *mapping,
+>  				 struct page *newpage, struct page *page,
+>  				 enum migrate_mode mode)
+> @@ -155,7 +150,6 @@ const struct address_space_operations secretmem_aops = {
+>  	.dirty_folio	= noop_dirty_folio,
+>  	.free_folio	= secretmem_free_folio,
+>  	.migratepage	= secretmem_migratepage,
+> -	.isolate_page	= secretmem_isolate_page,
+>  };
+>  
+>  static int secretmem_setattr(struct user_namespace *mnt_userns,
 
 Reviewed-by: David Hildenbrand <david@redhat.com>
 
