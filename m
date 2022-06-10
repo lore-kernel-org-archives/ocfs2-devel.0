@@ -4,52 +4,86 @@ X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 Received: from aib29ajc255.phx1.oracleemaildelivery.com (aib29ajc255.phx1.oracleemaildelivery.com [192.29.103.255])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 37639C43334
-	for <ocfs2-devel@archiver.kernel.org>; Fri, 10 Jun 2022 07:46:28 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id A6B28CCA47B
+	for <ocfs2-devel@archiver.kernel.org>; Fri, 10 Jun 2022 10:17:51 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=yB8KeQ8XrrPezF8qktcMPrpuK0+0z7HicpeXxLzUP6o=;
- b=h9TB71kfVoPhE3UVeOPY5sw4F+FbQWnvr4yhZM3qUzDWN/pseEm4wzYZeqp1PKkyDvdQ54ewxmEg
-   VY6BOxm9a7bfMH76Hsi9zyHzHijXLfjJ+wtYFzwJnwunA3PdVUXaVBJ74dNOFoxlrTRIrj/fmLsw
-   crL8fkVNYvWKn9Jzea95HpTcnBDn1ocg7zyua+HiCQqSZngOMdhoqECB4q6HNnu9bG1sTMjilGaG
-   19D0fezEajyX47vaI0/y2cbO023cl4s8K9GH82mZPY1PRmWvk5j2VtffGOcllHHX4mgzgMxm4u3x
-   2Wk3ve5jF0jnz7gnZgZzYdfIXI04qk43ni9GlQ==
+ bh=1s53Ra40TVrW3nj0gIzRwtm+O+F6AsjUcstnOoNL4GU=;
+ b=q9ukLucjyoyDo5uPRtCnRtfPOMCwwWkb32e1m+c3tZMkrMpz6EoBJSOBg2Hwve7iF7uXwHRnqECK
+   r5DN+5i0BfzdEzxj7zUEQoEin1kf/ReQUx3m+Qvtc9f11y1EQMPB9sL7WGVdkq3R1DGbVV0huWiu
+   rjTRC92V1RiyyplBIM4GUCQyMq3Ry6l64de/2PNSu/Urni+SSuu3A2Ofnt1jk93Xs3qzjiHI0TtS
+   t60TKX5p0vitPzC2z/ZzgNJ09VKd8DG5V8M9v+8HmY7x/sJc62x5tGDOSPuUhAnvNhuPH1r6fGrq
+   CAmUrC8I3KH8zR7xn6Wg54XQYP0063dT2nOFbg==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=yB8KeQ8XrrPezF8qktcMPrpuK0+0z7HicpeXxLzUP6o=;
- b=J2bkmfX/7yfCLUcvHyTJnBrn9vtmGoo72a1lOlQiM4ZwkSU5ue0wdbfVA6Yzlnxf6JRA/vrHU/yt
-   H8lzbYMCjzsuOTS+VDeP2eu7UiWgn90k/jrkLugJAHOFRDAkvIBLZf1l6k7sTTU4iM1gkxcB8DTO
-   zy4lrKP5vDUSc5kzn2kph3pE833sKTIkAjz38OAs+m/l3++a0E0vdJx3IGHXf1rGwdVWTx1GgZQg
-   TXSYdUy3QrJNSY/ruj9rYY2GvAfjs3wRNdx0Qq9i9YYmt+pUJHhhEopwg+to0ykpsaFHaozg00+9
-   eqfkxTXGgiaXz1s7HaTkfT0P5YyJW56lUHSmAQ==
+ bh=1s53Ra40TVrW3nj0gIzRwtm+O+F6AsjUcstnOoNL4GU=;
+ b=Hz0CUW4dlRJGVRlIH7gW7TZFibtEUABOd/55h1Jb3Ps2J00p3U+zRVdXk1axB+i6pYSvPr/eaz7R
+   xUsypOlb2qSJtlyG4Y/gTOOxs6TmyJq28gdZRnENoTS4HViLrXaGoTZYkMV8ytps+FTmeYnehR0I
+   oiAEpG6xeJb+Fd6BcDveKG742JpJUltqsaxtWeV+BINdkEFZHi4vunjCUZ26V+St3f0huQ1ZhIXV
+   vwkma9dqUxNnoHxcNyK35pvhreE2l0WE5AhwPa+OYEfzQKCUI5zyaspxkfTFXqExVDBJVHE9i85T
+   +Foaydyu0ElBeyJaactVQXdSxysn4BhTeoaXNg==
 Received: by omta-ad3-fd3-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220517 64bit (built May 17
  2022))
- with ESMTPS id <0RD900EBD49FS860@omta-ad3-fd3-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Fri, 10 Jun 2022 07:46:27 +0000 (GMT)
-Message-id: <729b67e8-51f0-87e1-e157-bcfea6f4b503@linux.alibaba.com>
-Date: Fri, 10 Jun 2022 15:46:07 +0800
+ with ESMTPS id <0RD9002Q5B9QBN90@omta-ad3-fd3-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Fri, 10 Jun 2022 10:17:50 +0000 (GMT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
+ s=mimecast20190719; t=1654856257;
+ h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+ to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+ content-transfer-encoding:content-transfer-encoding:
+ in-reply-to:in-reply-to:references:references;
+ bh=Ekvjf5YPr7Sjtvmnh5pMqvNXgm63w4q321GSzdMpiws=;
+ b=R422DQNibOldKWlgmARWqJj/jnBflxYGCJ34dPCeAmqGiPs+R8ZIsaALOJs26KSF7i5shV
+ 8c4iGAzs36ZifLrsLUUvTTYBlEKMNjAuWAXnLpu9z/IiIszg0EPqkub8BmaIO/xtiimXrM
+ E/8YUE26JcZOBvyiHFzLj8IJXPCzQcQ=
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=1e100.net;
+ s=20210112;
+ h=x-gm-message-state:message-id:date:mime-version:user-agent:subject
+ :content-language:to:cc:references:from:organization:in-reply-to
+ :content-transfer-encoding; bh=Ekvjf5YPr7Sjtvmnh5pMqvNXgm63w4q321GSzdMpiws=;
+ b=xQh6ip6JmhX58Cv+ioLdRidJfjFqZlKCKD56MTmB1Rjjq6DRjYXXy+rdv5/Jqlrabm
+ HMzMRX+CBhPOQE+X+h2LBxdhL5uEXP/CzpoP285wH6o+DyXhD8o32g1oz3gZIddY2yRO
+ TQrgz7GwzJa1NgjeDJHyNxlYObvbW/tLKAiVG0dNTE7z7DVmqneY8A3I9iqKrP0Osp6E
+ G5tnrGuM7iShKJGT9WZx7oKPdDqDJOX4ebPkfdASrwCGg3jvCsrWkZA1Wjo+0CkVkIEs
+ ib8FPf2m5A/GFYKcK5p4Q6vBfGeFHkEShdJNYw9ioMNxZEG3lLe/f3e1wgDeyENtXmJY gvrQ==
+X-Gm-Message-State: AOAM531wpoAmsLCGVVwTUB8AA4k66USqobwMJGx0PAYvw9IGVnqG9N3F
+ NJfEFVQIB7SpVvZ/Ev5WpPv8Y6AH/eCJsvZFlXFJCu7+hnSDIQgMqz7gTAmkTqZgTVX51TZ+mt3
+ QGJ93a23bM7I+5LabTbTOgg==
+X-Received: by 2002:a05:6000:91:b0:217:8efc:f572 with SMTP id
+ m17-20020a056000009100b002178efcf572mr29122731wrx.186.1654856255658; Fri,
+ 10 Jun 2022 03:17:35 -0700 (PDT)
+X-Received: by 2002:a05:6000:91:b0:217:8efc:f572 with SMTP id
+ m17-20020a056000009100b002178efcf572mr29122693wrx.186.1654856255339; Fri,
+ 10 Jun 2022 03:17:35 -0700 (PDT)
+Message-id: <e287a12d-29d9-da69-9315-52414341cbd1@redhat.com>
+Date: Fri, 10 Jun 2022 12:17:33 +0200
 MIME-version: 1.0
-User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:91.0)
- Gecko/20100101 Thunderbird/91.10.0
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:91.0) Gecko/20100101
+ Thunderbird/91.9.0
+To: Matthew Wilcox <willy@infradead.org>
+References: <20220608150249.3033815-1-willy@infradead.org>
+ <20220608150249.3033815-4-willy@infradead.org>
+ <b2a81248-03fc-afb3-1041-d8206e95e08a@redhat.com>
+ <YqIFHPJZNMrmtXlh@casper.infradead.org>
+Organization: Red Hat
+In-reply-to: <YqIFHPJZNMrmtXlh@casper.infradead.org>
+Authentication-results: relay.mimecast.com; auth=pass smtp.auth=CUSA124A263
+ smtp.mailfrom=david@redhat.com
 Content-language: en-US
-To: Heming Zhao <heming.zhao@suse.com>, ocfs2-devel@oss.oracle.com
-References: <20220521101416.29793-1-heming.zhao@suse.com>
- <b68e3888-9820-e065-239d-f8c8bb9564f9@linux.alibaba.com>
- <20220604000828.2b3arxq6txtq22d4@c73>
-In-reply-to: <20220604000828.2b3arxq6txtq22d4@c73>
-X-Source-IP: 115.124.30.57
+X-Source-IP: 170.10.129.124
 X-Proofpoint-Virus-Version: vendor=nai engine=6400 definitions=10373
  signatures=594849
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 clxscore=99
- mlxlogscore=881 impostorscore=0 suspectscore=0 lowpriorityscore=0 spamscore=0
- priorityscore=70 bulkscore=0 malwarescore=0 adultscore=0 mlxscore=0
- phishscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2204290000 definitions=main-2206100026 domainage_hfrom=8457
-Subject: Re: [Ocfs2-devel] [PATCH 1/2] ocfs2: fix jbd2 assertion in	defragment
- path
+Cc: linux-aio@kvack.org, linux-nfs@vger.kernel.org, cluster-devel@redhat.com,
+ linux-ntfs-dev@lists.sourceforge.net, linux-kernel@vger.kernel.org,
+ linux-f2fs-devel@lists.sourceforge.net, linux-block@vger.kernel.org,
+ linux-mm@kvack.org, linux-mtd@lists.infradead.org, ocfs2-devel@oss.oracle.com,
+ linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org,
+ virtualization@lists.linux-foundation.org, linux-xfs@vger.kernel.org,
+ linux-btrfs@vger.kernel.org
+Subject: Re: [Ocfs2-devel] [PATCH v2 03/19] fs: Add aops->migrate_folio
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -61,131 +95,127 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: Joseph Qi via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: Joseph Qi <joseph.qi@linux.alibaba.com>
+From: David Hildenbrand via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: David Hildenbrand <david@redhat.com>
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-Alimail-AntiSpam: AC=PASS; BC=-1|-1; BR=01201311R131e4; CH=green;
- DM=||false|; DS=||; FP=0|-1|-1|-1|0|-1|-1|-1; HT=ay29a033018045168;
- MF=joseph.qi@linux.alibaba.com; NM=1; PH=DS; RN=2; SR=0;
- TI=SMTPD_---0VFyAv9q_1654847167;
-X-ServerName: out30-57.freemail.mail.aliyun.com
+X-MC-Unique: -aX4_s8YO7K7UebPJR7k-Q-1
+X-Google-Smtp-Source:
+ ABdhPJzMoCknlizO69Nl0wuEIzBALIZP/2+KDolU3ne+3dmHgzec6LJk/2XhtTIsrJ35XnXVn7hgfw==
+X-Mimecast-Spam-Score: 0
+X-Mimecast-Originator: redhat.com
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 include:spf1.service.alibaba.com
- include:spf2.service.alibaba.com include:spf1.ocm.aliyun.com
- include:spf2.ocm.aliyun.com include:spf1.staff.mail.aliyun.com
- include:a.hichina.mail.aliyun.com include:b.hichina.mail.aliyun.com -all
-X-Spam: Clean
-X-Proofpoint-ORIG-GUID: AhRTybhwb8G-ndfikhuRDiQlsVpwHSna
-X-Proofpoint-GUID: AhRTybhwb8G-ndfikhuRDiQlsVpwHSna
+X-Proofpoint-SPF-Record: v=spf1 ip4:103.23.64.2 ip4:103.23.65.2
+ ip4:103.23.66.26 ip4:103.23.67.26 ip4:107.21.15.141 ip4:108.177.8.0/21
+ ip4:128.17.0.0/20 ip4:128.17.128.0/20 ip4:128.17.192.0/20 ip4:128.17.64.0/20
+ ip4:128.245.0.0/20 ip4:128.245.64.0/20 ip4:13.110.208.0/21 ip4:13.110.216.0/22
+ ip4:13.110.224.0/20 ip4:13.111.0.0/16 ip4:136.147.128.0/20
+ include:spf1.redhat.com -all
+X-Proofpoint-SPF-VenPass: Allowed
+X-ServerName: us-smtp-delivery-124.mimecast.com
+X-Proofpoint-SPF-Result: pass
+X-Proofpoint-SPF-Record: v=spf1 ip4:103.23.64.2 ip4:103.23.65.2
+ ip4:103.23.66.26 ip4:103.23.67.26 ip4:107.21.15.141 ip4:108.177.8.0/21
+ ip4:128.17.0.0/20 ip4:128.17.128.0/20 ip4:128.17.192.0/20 ip4:128.17.64.0/20
+ ip4:128.245.0.0/20 ip4:128.245.64.0/20 ip4:13.110.208.0/21 ip4:13.110.216.0/22
+ ip4:13.110.224.0/20 ip4:13.111.0.0/16 ip4:136.147.128.0/20
+ include:spf1.redhat.com -all
+X-Proofpoint-Spam-Reason: safe
+X-Spam: OrgSafeList
+X-SpamRule: orgsafelist
+X-Proofpoint-GUID: Nrw3-Z5Ikb8C1YePSjoalDdMHngokqK9
+X-Proofpoint-ORIG-GUID: Nrw3-Z5Ikb8C1YePSjoalDdMHngokqK9
 Reporting-Meta:
- AAEiwLp8IjCjsmw/JHL/mXSqLy/Pbot1gXWVoaxzx/tKnPX1Lk1zPemgaAU1qviB
- Bq8Nizxgi6mtyNf6UNSYLLVs8eGRyiU6qS65yvYG1oE2dlXHuKs+1IW+W9B+vTL8
- uaWg3YvmrlcGr4pVWCauMp3vrihffmSEGTiisyOIaZzindpvCvmZPVd5/26FeXR/
- gF9wUzRYKfyj9o+jsXlV573D3MY9j2B+puswPV5js9XOEgzjFcndjA+Y68kxaIvb
- 4LexDTJ5CtQNqiLsdUNJF5P36lNzihslzP+yrgVkvc6rN05dEOnvRkBMANzJkfqE
- GZ+3WJngCntTxwHtFJbcT5ey9/l6YfxVXD9kcSWoOrvRDk9IMuXox0KvrWXy7uwJ
- de90PvpAYM1DsmSdxPYqgxb6UkOCONJ9yCdTmhq+NYBSN/P8i2treIgoG/MDitxF
- 8p5ANbKYr2aI+GHoadQISiXnzvrZuhMV4DLxhWK9iADepLG9QsS409Z3pNixkc0y
- 1kSDhtSKvPRCD3n6gqxpByEAo4iFEQEcgq0xfdbJ6bU=
+ AAFChV3F+yB2AzkhWAqkrphmNmDq+6KvNO+hYpW46tWeZwcBLHxzNKwUXvqQzQpw
+ stXa5RjFFkBMfmjgH5zgDy8SvRTTtVf7xscC/yfOimh4zXwoZ+UXsCD519fpipAE
+ rraLpwUVc5ULFWLjjm+5xTedzoHyOoNpoJEBFbBuUr/JPB4Ux+ve+hqCmJgBXzYK
+ GlmiR8Df7Caa1TnsCjBsgAexcZdgiNv0nKnvv5JdYQbuhnXvSuv37jy6Qdn2J7Nc
+ Gku5WjmV/ArWkcRWlT8X8DL2LAeN0dOJgFXO8jOChDBAWPlwtw50TPKLTHssyz15
+ v3NktT4HJekaVjARO/p6lYmPL14JLGcBw6eZsathqr6PDQ++3/bw+NUqHazalpKi
+ ziUMamwNNEyT4GN3s6ttuN5VVSbPH6I4JoPyCbpaudY2ShFSqShbaM9sRSQb2gz5
+ DdOgcZBHsrXvzBxDdTB/p/TLMshbBmvx3cny6HK+mUJ4J0SD24rO06+4vP+d9Vjk
+ cQOUvamlAVSl10YwnU6c5GQJLvpdifcpyBkdI1nO/XM=
 
-
-
-On 6/4/22 8:08 AM, Heming Zhao wrote:
-> On Thu, Jun 02, 2022 at 05:34:18PM +0800, Joseph Qi wrote:
->> Hi,
+On 09.06.22 16:35, Matthew Wilcox wrote:
+> On Thu, Jun 09, 2022 at 02:50:20PM +0200, David Hildenbrand wrote:
+>> On 08.06.22 17:02, Matthew Wilcox (Oracle) wrote:
+>>> diff --git a/Documentation/filesystems/locking.rst b/Documentation/filesystems/locking.rst
+>>> index c0fe711f14d3..3d28b23676bd 100644
+>>> --- a/Documentation/filesystems/locking.rst
+>>> +++ b/Documentation/filesystems/locking.rst
+>>> @@ -253,7 +253,8 @@ prototypes::
+>>>  	void (*free_folio)(struct folio *);
+>>>  	int (*direct_IO)(struct kiocb *, struct iov_iter *iter);
+>>>  	bool (*isolate_page) (struct page *, isolate_mode_t);
+>>> -	int (*migratepage)(struct address_space *, struct page *, struct page *);
+>>> +	int (*migrate_folio)(struct address_space *, struct folio *dst,
+>>> +			struct folio *src, enum migrate_mode);
+>>>  	void (*putback_page) (struct page *);
 >>
->> Sorry for the late response since I was busy on other things...
+>> isolate_page/putback_page are leftovers from the previous patch, no?
+> 
+> Argh, right, I completely forgot I needed to update the documentation in
+> that patch.
+> 
+>>> +++ b/Documentation/vm/page_migration.rst
+>>> @@ -181,22 +181,23 @@ which are function pointers of struct address_space_operations.
+>>>     Once page is successfully isolated, VM uses page.lru fields so driver
+>>>     shouldn't expect to preserve values in those fields.
+>>>  
+>>> -2. ``int (*migratepage) (struct address_space *mapping,``
+>>> -|	``struct page *newpage, struct page *oldpage, enum migrate_mode);``
+>>> -
+>>> -   After isolation, VM calls migratepage() of driver with the isolated page.
+>>> -   The function of migratepage() is to move the contents of the old page to the
+>>> -   new page
+>>> -   and set up fields of struct page newpage. Keep in mind that you should
+>>> -   indicate to the VM the oldpage is no longer movable via __ClearPageMovable()
+>>> -   under page_lock if you migrated the oldpage successfully and returned
+>>> -   MIGRATEPAGE_SUCCESS. If driver cannot migrate the page at the moment, driver
+>>> -   can return -EAGAIN. On -EAGAIN, VM will retry page migration in a short time
+>>> -   because VM interprets -EAGAIN as "temporary migration failure". On returning
+>>> -   any error except -EAGAIN, VM will give up the page migration without
+>>> -   retrying.
+>>> -
+>>> -   Driver shouldn't touch the page.lru field while in the migratepage() function.
+>>> +2. ``int (*migrate_folio) (struct address_space *mapping,``
+>>> +|	``struct folio *dst, struct folio *src, enum migrate_mode);``
+>>> +
+>>> +   After isolation, VM calls the driver's migrate_folio() with the
+>>> +   isolated folio.  The purpose of migrate_folio() is to move the contents
+>>> +   of the source folio to the destination folio and set up the fields
+>>> +   of destination folio.  Keep in mind that you should indicate to the
+>>> +   VM the source folio is no longer movable via __ClearPageMovable()
+>>> +   under folio if you migrated the source successfully and returned
+>>> +   MIGRATEPAGE_SUCCESS.  If driver cannot migrate the folio at the
+>>> +   moment, driver can return -EAGAIN. On -EAGAIN, VM will retry folio
+>>> +   migration in a short time because VM interprets -EAGAIN as "temporary
+>>> +   migration failure".  On returning any error except -EAGAIN, VM will
+>>> +   give up the folio migration without retrying.
+>>> +
+>>> +   Driver shouldn't touch the folio.lru field while in the migrate_folio()
+>>> +   function.
+>>>  
+>>>  3. ``void (*putback_page)(struct page *);``
 >>
->> On 5/21/22 6:14 PM, Heming Zhao wrote:
->>> defragfs triggered jbd2 report ASSERT when working.
->>>
->>> code path:
->>>
->>> ocfs2_ioctl_move_extents
->>>  ocfs2_move_extents
->>>   __ocfs2_move_extents_range
->>>    ocfs2_defrag_extent
->>>     __ocfs2_move_extent
->>>      + ocfs2_journal_access_di
->>>      + ocfs2_split_extent  //[1]
->>>      + ocfs2_journal_dirty //crash
->>>
->>> [1]: ocfs2_split_extent called ocfs2_extend_trans, which committed
->>> dirty buffers then restarted the transaction. The changed transaction
->>> triggered jbd2 ASSERT.
->>>
->>> crash stacks:
->>>
->>> PID: 11297  TASK: ffff974a676dcd00  CPU: 67  COMMAND: "defragfs.ocfs2"
->>>  #0 [ffffb25d8dad3900] machine_kexec at ffffffff8386fe01
->>>  #1 [ffffb25d8dad3958] __crash_kexec at ffffffff8395959d
->>>  #2 [ffffb25d8dad3a20] crash_kexec at ffffffff8395a45d
->>>  #3 [ffffb25d8dad3a38] oops_end at ffffffff83836d3f
->>>  #4 [ffffb25d8dad3a58] do_trap at ffffffff83833205
->>>  #5 [ffffb25d8dad3aa0] do_invalid_op at ffffffff83833aa6
->>>  #6 [ffffb25d8dad3ac0] invalid_op at ffffffff84200d18
->>>     [exception RIP: jbd2_journal_dirty_metadata+0x2ba]
->>>     RIP: ffffffffc09ca54a  RSP: ffffb25d8dad3b70  RFLAGS: 00010207
->>>     RAX: 0000000000000000  RBX: ffff9706eedc5248  RCX: 0000000000000000
->>>     RDX: 0000000000000001  RSI: ffff97337029ea28  RDI: ffff9706eedc5250
->>>     RBP: ffff9703c3520200   R8: 000000000f46b0b2   R9: 0000000000000000
->>>     R10: 0000000000000001  R11: 00000001000000fe  R12: ffff97337029ea28
->>>     R13: 0000000000000000  R14: ffff9703de59bf60  R15: ffff9706eedc5250
->>>     ORIG_RAX: ffffffffffffffff  CS: 0010  SS: 0018
->>>  #7 [ffffb25d8dad3ba8] ocfs2_journal_dirty at ffffffffc137fb95 [ocfs2]
->>>  #8 [ffffb25d8dad3be8] __ocfs2_move_extent at ffffffffc139a950 [ocfs2]
->>>  #9 [ffffb25d8dad3c80] ocfs2_defrag_extent at ffffffffc139b2d2 [ocfs2]
->>>
->>> The fix method is simple, ocfs2_split_extent includes three paths. all
->>> the paths already have journal access/dirty pair. We only need to
->>> remove journal access/dirty from __ocfs2_move_extent.
->>>
->>
->> I am not sure what you mean by "all three paths have journal access/
->> dirty pair".
+>> Hmm, here it's a bit more complicated now, because we essentially have
+>> two paths: LRU+migrate_folio or !LRU+movable_ops
+>> (isolate/migrate/putback page)
 > 
-> I am a newbie for ocfs2 & jbd2, I can't make sure this [1/2] patch is correct.
-> Below is my analysis.
-> 
-> All three paths (below 1.[123]):
-> 
-> __ocfs2_move_extent
->  + ocfs2_journal_access_di
->  |
->  + ocfs2_split_extent           //[1]
->  |  + ocfs2_replace_extent_rec  //[1.1]
->  |  + ocfs2_split_and_insert    //[1.2]
->  |  + ocfs2_try_to_merge_extent //[1.3]
->  |
->  + + ocfs2_journal_dirty       //crash
-> 
-> All three paths have itselves journal access/dirty pair.
-> So the access/dirty pair in caller __ocfs2_move_extent is unnecessary.
+> Oh ... actually, this is just documenting the driver side of things.
+> I don't really like how it's written.  Here, have some rewritten
+> documentation (which is now part of the previous patch):
 > 
 
-ocfs2_journal_access_xxx() is to notify jbd2 to do a specific operation
-to a bh. I said in my last mail, they are for different bh.
+LGTM, thanks.
 
->>
->> It seems we can't do it in your way, as journal access has different
->> ocfs2_trigger with different offset, e.g. dinode is different from
->> extent block.
-> 
-> There are 3 ocfs2_split_extent callers:
->  fs/ocfs2/alloc.c <<ocfs2_change_extent_flag>>
->  fs/ocfs2/move_extents.c <<__ocfs2_move_extent>>
->  fs/ocfs2/refcounttree.c <<ocfs2_clear_ext_refcount>>
-> 
-> We can see, except defrag flow (caller __ocfs2_move_extent), other two
-> don't use jbd2 access/dirty pair around ocfs2_split_extent.
-> 
 
-Not exactly, you have to take look the whole flow.
-
+-- 
 Thanks,
-Joseph
+
+David / dhildenb
+
 
 _______________________________________________
 Ocfs2-devel mailing list
