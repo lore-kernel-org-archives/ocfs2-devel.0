@@ -1,73 +1,54 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc255.phx1.oracleemaildelivery.com (aib29ajc255.phx1.oracleemaildelivery.com [192.29.103.255])
+Received: from aib29ajc250.phx1.oracleemaildelivery.com (aib29ajc250.phx1.oracleemaildelivery.com [192.29.103.250])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 9B3F6C43334
-	for <ocfs2-devel@archiver.kernel.org>; Sun, 12 Jun 2022 07:46:04 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 0621CC433EF
+	for <ocfs2-devel@archiver.kernel.org>; Sun, 12 Jun 2022 12:39:14 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=pSh5ORs5hXHyhOw8JGvghnS3JYgqbOB5HEHsUC6+54Q=;
- b=PphDhxBu+rP5kpskMhVZsprSFLVY/I1asqOThXN8zEzKzB9GEcBrzPx6voSm4ZR+Xs52MOAJ1V4P
-   3vxCEltPdKYisYXjvPbGKKTSSSIlRl9OYLIsyaqJP6uSrOo28QFZvw+W/X0E7mKYgwWbU19XF5ZP
-   Ip6+oFq4aKZZ/xDXg3W73JeGgapeVVb9bzK6ffAIWrTUexsRj9MexjKfRD+ChcxlXTF963th/tLx
-   Buz6fNkDHtZmlz71jmbmPbdgKJyngbXHUMwt2na0Wx1D4yojC+JIPRgKTJZJTWfw+N0waGZoYAxg
-   S1Ll/0Ndnzj/urAcKz7wfd5/VJ8rYZpDtqbgPg==
+ bh=LInP4ltW+Rmyc8kOiAqm3EoFdaujaXMji7gajM2or9Y=;
+ b=jAQA4TiYM/YKKu2rIwTrGYwfh8J40wRXOLJj9LeY+ufTIcT4UWjbZtCMu43npzSTWcqrkvlBEb2x
+   EqyMjwV9w0RpTkYjYWRCVNHrMTgRHfxDxloXzSyhb7ydEvVniCdyx+9lBePDYTR2VUJu2wJJdC4g
+   p1QpTjKEKUnYEmxJqXj8CR/cIGAjxllPWedxE6gtk2gg+8GNJvGKfi8WZDaezG4xbyI8N630/Emm
+   nNOQKgPtTvn+SAEe4/u2azLV6bZp4ttzMdcAwylqd4XISXFIqpeXu4867f0tLwWpPwCBx0Mltl6C
+   eMnMFKOfkP6q1mDjM30hG/ky4oifmZvF0WyUPw==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=pSh5ORs5hXHyhOw8JGvghnS3JYgqbOB5HEHsUC6+54Q=;
- b=MN4C43ksEQA+pVagmk5WD6NPiyOX00CqKNBVtLfxCM4ISx3MN2maCXnRBD7o8dq5LGMZaoNV9N4+
-   BGTwgBd8jduP+Eo+a0TUBpNvoRyitaByGVfQo+fMeHNn1bJhxy8av9247jvyAooYhmYOx63qPBzs
-   UE82+TLBzlm2AksHv5V1u1ANFWdhZFC0T4HNihIinFJxXaIIMoqOgN4UTHlqm/OjuVv1tfiQyiZh
-   dcSjDWSBnbkrz3FHftTVu9Z8kNRZaeZugoBMKgwjSszaeTqNRMv89LwRNGLi2GPpabqHeLUxzbLR
-   oxn7rndIhDj5NldJljjHzdHlI6eugTO8DtpabQ==
-Received: by omta-ad3-fd3-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
+ bh=LInP4ltW+Rmyc8kOiAqm3EoFdaujaXMji7gajM2or9Y=;
+ b=H7mTPZ+MR/3zchMKgeDLg7UT+wGnk1tpcqKEKE2kZz5IHyWaokaLywm3X6w91E5kk+dvnamewJMY
+   6v5o0VSVR2NWsrAdq9gfVj4nvJuZz+GU4wz9Q8+uTV4BVokSeTJGhydlPbXL2mdM2c3vPz1C2LH7
+   G887LlZYWtPoQ8sRvygR7W8tyKDOlBwwbHlp8yHwhQkbT49gPBn1lnLBw4b0AgeDXM59xnFXmH6p
+   VVWrQPmUJqsGUck3Y2vG+cOHwcNnJNbVA3J88fIRyBdscA1MGs0IV7fpWf0DIoDw/S5AzpscaQsv
+   WdHtvnJ/SrwW2RKUoiElS2iZTHUZaNu7ZKksKg==
+Received: by omta-ad2-fd3-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220531 64bit (built May 31
  2022))
- with ESMTPS id <0RDC00MD8TKSG360@omta-ad3-fd3-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Sun, 12 Jun 2022 07:46:04 +0000 (GMT)
-ARC-Seal: i=1; a=rsa-sha256; s=arcselector9901; d=microsoft.com; cv=none;
- b=We8AyDiO6DGZPFKCSPHmVRBJX44nDbLw1bqskrfpIbdhMwGziKWE1rlpnVlQB871jyVFrCTOHP7hFp/YWZfhcavLQnr7DMvTzRSQ7EmrOcK3chcAmT5VRHUx5ohNCcTFLrxd1cw3MPBWoJ6JvdyTfO9Lk0ipyvlfGXCoqKFuNOHmAde4t8bQ5KVpozqXwy+gBZ4ppNkTg55/j5knSlzYhucvrXXMCX+i129rbIud0hEEJlefJzykyvLivIHdYBoctq3fJ3eBVFnsvtmui79GUiAa7kgyjwrszq+zK7Rg72RVlYioEdmFYBegfW3epqbzkaBUExJ6cjhVwR0CN3dBpw==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
- s=arcselector9901;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
- bh=UhxxubijzQlAFBXQvekbRQonTwWvbNxt81M3ca86HGI=;
- b=PKGNsZ34XrpDIdzRrmkRrx8V+CRKz910WqHdVp7iP4Da2AuhPIvgUDFU2Fw2I9sHwW4/eZMBO2SEreZwMLs2GM/GMjUcjweEcRdxdFShC1Hq6Vax78YHCaQMxI/44b1vz/sMUz2/SY12l8eJI5hGn4lOIvQ3tRil+UV3bzgNyo/VTuxJiUKtye5kOgO18l3dwUA7nPMKH8bF+zq4mJpxQn4Jnrp2nMMNpVQj0n9gsv756+8FXOk/QII7EBi74ksaLhZMCIp3v58NMfWAWFo1UKpvFIziEB4PjFZuFkrEvulds0npbY3mcli5/vYqLqonR9G7ae44ktavO+3Roq6jZw==
-ARC-Authentication-results: i=1; mx.microsoft.com 1; spf=pass
- smtp.mailfrom=suse.com; dmarc=pass action=none header.from=suse.com; dkim=pass
- header.d=suse.com; arc=none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.com; s=selector1;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
- bh=UhxxubijzQlAFBXQvekbRQonTwWvbNxt81M3ca86HGI=;
- b=OgpxLDP3y/K1H8rhoPzZSI9DfUPz5vcssMRdUZFGNHMDS5qA5gcOyumnyNP8nvoiBAZiCvJGjRZvDPOs5BC+lxwaVP19a09HSWvEi0ujCIcTxhnkq18vaWi2mfz4vNrqTZXelgIXTFl7XJaoHu7aOoygnoOmad0+k/tJx9IksKDPM8jaG/B08f3tDEMDgB0H5EMuRBa6gDCZzj8XdWRIMGlSaSUMV8OOS33z/yhCrAbetLWlyMhTy5eEeQzuDGXjF1XXkwNAfTX37aGmf3j1/6J8BLWXyq9vBJ7T+6vh17NQX9xh2n5Z8hkJVHRc+ct7VhAZyUl2NToeChhSFHodmw==
-Message-id: <82e1181a-b432-fd37-8451-1b35068b912b@suse.com>
-Date: Sun, 12 Jun 2022 15:45:31 +0800
-User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:91.0) Gecko/20100101
- Thunderbird/91.5.0
+ with ESMTPS id <0RDD00GQ875EG480@omta-ad2-fd3-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Sun, 12 Jun 2022 12:39:14 +0000 (GMT)
+Message-id: <55f01b4a-9043-253b-0061-576c68b3aac2@linux.alibaba.com>
+Date: Sun, 12 Jun 2022 20:38:45 +0800
+MIME-version: 1.0
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:91.0)
+ Gecko/20100101 Thunderbird/91.10.0
 Content-language: en-US
-To: Joseph Qi <joseph.qi@linux.alibaba.com>, ocfs2-devel@oss.oracle.com
+To: "heming.zhao@suse.com" <heming.zhao@suse.com>, ocfs2-devel@oss.oracle.com
 References: <20220521101416.29793-1-heming.zhao@suse.com>
  <20220521101416.29793-2-heming.zhao@suse.com>
  <b7970a54-2c81-780d-966f-05995acdd813@linux.alibaba.com>
-In-reply-to: <b7970a54-2c81-780d-966f-05995acdd813@linux.alibaba.com>
-MIME-version: 1.0
-X-Forefront-Antispam-Report: CIP:255.255.255.255; CTRY:; LANG:en; SCL:1; SRV:;
- IPV:NLI; SFV:NSPM; H:DB7PR04MB4666.eurprd04.prod.outlook.com; PTR:; CAT:NONE;
- SFS:(13230016)(366004)(8936002)(38100700002)(5660300002)(2906002)(316002)(86362001)(66946007)(66556008)(66476007)(36756003)(31696002)(8676002)(508600001)(6486002)(6666004)(26005)(31686004)(2616005)(83380400001)(6512007)(6506007)(186003)(53546011)(45980500001)(43740500002);
- DIR:OUT; SFP:1101;
-X-OriginatorOrg: suse.com
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 12 Jun 2022 07:45:41.7308 (UTC)
-X-Source-IP: 40.107.21.79
+ <82e1181a-b432-fd37-8451-1b35068b912b@suse.com>
+In-reply-to: <82e1181a-b432-fd37-8451-1b35068b912b@suse.com>
+X-Source-IP: 115.124.30.43
 X-Proofpoint-Virus-Version: vendor=nai engine=6400 definitions=10375
  signatures=594849
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 adultscore=0
- lowpriorityscore=0 phishscore=0 mlxlogscore=839 mlxscore=0 clxscore=204
- spamscore=0 suspectscore=0 bulkscore=0 malwarescore=0 priorityscore=118
- impostorscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2204290000 definitions=main-2206120037
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 mlxscore=0
+ spamscore=0 lowpriorityscore=0 clxscore=182 priorityscore=0 mlxlogscore=999
+ adultscore=0 phishscore=0 malwarescore=0 impostorscore=0 bulkscore=0
+ suspectscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2204290000 definitions=main-2206120059 domainage_hfrom=8459
 Subject: Re: [Ocfs2-devel] [PATCH 2/2] ocfs2: fix for local alloc window
  restore unconditionally
 X-BeenThere: ocfs2-devel@oss.oracle.com
@@ -81,222 +62,142 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: "heming.zhao--- via Ocfs2-devel" <ocfs2-devel@oss.oracle.com>
-Reply-to: "heming.zhao@suse.com" <heming.zhao@suse.com>
-Content-transfer-encoding: 7bit
-Content-type: text/plain; charset="us-ascii"; Format="flowed"
+From: Joseph Qi via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: Joseph Qi <joseph.qi@linux.alibaba.com>
+Content-type: text/plain; charset="utf-8"
+Content-transfer-encoding: base64
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-ClientProxiedBy: SG2PR02CA0032.apcprd02.prod.outlook.com (2603:1096:3:18::20)
- To DB7PR04MB4666.eurprd04.prod.outlook.com (2603:10a6:5:2b::14)
-X-MS-PublicTrafficType: Email
-X-MS-Office365-Filtering-Correlation-Id: 1d3ba153-faa9-46b1-fcab-08da4c478cc7
-X-MS-TrafficTypeDiagnostic: AM6PR04MB5477:EE_
-X-Microsoft-Antispam-PRVS:
- <AM6PR04MB54774896749D1CC5F6CAF6D797A89@AM6PR04MB5477.eurprd04.prod.outlook.com>
-X-MS-Exchange-SenderADCheck: 1
-X-MS-Exchange-AntiSpam-Relay: 0
-X-Microsoft-Antispam: BCL:0;
-X-Microsoft-Antispam-Message-Info:
- htwYlT153EiTQQ21VKLFW2am4yF/4u96aAJUHsaR5MdkS4K2ogReHoSePwmP+bRrtzL7QKr2UFy4V/XMiQsmAUU1fKCRjKVFmKPi+HLjuFc0H8YF7ElJ1T3SAxPyBwTvilsd9LQ/CffYmlTqeUops9ipwS0fFDfofDFXpwvAN0hpSE7P4e7xcFiLOkkM+yUXulUnO0Pg01sFGvz7b3nXZf8K5argNeRask+Jm/goIpsMO/YtxW1Z3VoYS7V+jAIFU/TrwjLBpEVdNtNeHQ8er8AFjQjr1ND5tlmKntMOMg8VZEMm+msCDX/gXVRrUmSht62I+S3zsQa5z9N0Kud6mBEsVH+l/zrxD00lKV/az1VMSBm/4N+1J9IMerUeW8QTam/f1vU1DX2uGw4nRcvtBWblmKmtebepBY7QG8ydHU8iOLR2DUcQB2eT6iMXz/jrFebipmxu9S0CrENu8I4AStBizmAHNooKYwJ0RUrVPO/+/jzKNtqIN5B255XPCO4Pp3hOCVmZ4hQegE4jb5zVY+ExpJCLJlhhIVTLA6fHdj70SNmQW9DHPdgsKXffqqbnYS2dn82bY2TyV38mV4QjyqpZdT08OPZT/f56tyxjd76Wjce8elnoQ6vEzxCwDfJ7JGep4R5fjgsjVHAZqTbFhO/hHXeXE6IFuv8Tyf6heJI1w9MOjAcdKWqok2reZvClxT8wjZVybjaIpqpNUtMXAnHcSLwJixuxJNK8XbPVOWU=
-X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
-X-MS-Exchange-AntiSpam-MessageData-0:
- =?utf-8?B?NTJ5aU5LMzA4VHowZGxoMXlPdnFUelZlZkxoSGJ6UThvVk1oSnJuR0ptRnVR?=
- =?utf-8?B?U1d2UW1HYU9YY2hEd3ZXODdWbG1nZWlLSkVlWFNlMnhnYnpIamFZd1JOOVRJ?=
- =?utf-8?B?U1VLak9tUVJoQmFwRTJxb2RsR0duaHJhY1NhcmhoUE9JZG9RSFdjeGo2Tmlj?=
- =?utf-8?B?L00rd2wrV2VldnlmY3dRN2tNTkFkNEJEcVJkejU3Y0JoMnAwWTJQUUExaVlZ?=
- =?utf-8?B?ZEhwdnRVSzVZR01vSmp3bXlnMFl4WC9GZHdlUk13aUpNblptcFNMZmF2U1RL?=
- =?utf-8?B?RFI5TGQwRFpHakM0T0V6cm1vbHpYMktTbDNFWWp6WXI5NTlHVEVnZmJlUDZP?=
- =?utf-8?B?Q0c4V244NFZ6MFlFTTRTVEhLd1MvQ0s0TUVZZnJpYlluUXpkT1dEYVdJakhw?=
- =?utf-8?B?U1IxOVlPQThNMjB4ZUI0QWpEbDFqZzBTQnJWVGRsOWRhaTEyeE93c1dKaEs2?=
- =?utf-8?B?NzdUNHY3SDlCcG5xdHhTa1ZKMnFSclFiOG5QWFFHeGJFaGp6djRpYmlHOTJC?=
- =?utf-8?B?SUxGVjFreXpKRlJlT243dDF5NWEwdExBYVJ5YnpzdHVweVVzRlk3bzM3dmVx?=
- =?utf-8?B?NnpyRFVhKy9rMlpQL0RhbzkrYnBBQTRHc2RzU1R0N0dPN3didXZEQUo1akdC?=
- =?utf-8?B?ZEpXbmZXZm9wSC9jWlVDem1SMDY1NlpiUVdrZjdLYjlwRFcvUTFxQ0FFQjJT?=
- =?utf-8?B?S0ZDOER4ejJqNmdDU1Qzakpld0VUOUNNTERaT3grMEZmR0VLMGh2Mk9peGRo?=
- =?utf-8?B?Q2syNFVFTmZyVVljMllNdHVlcUNzNS85ZWdDWWhsVXBnTFFTMFRIMjZwWm9r?=
- =?utf-8?B?cDIvOEN6YUkySkdpMXJZemFNd0g1czR4TWxPa1BSNHA2RHphRUdrN21mU09s?=
- =?utf-8?B?TXZBQVFUUW0vK1RPSWZoc3lSUWptNWlFYUhEandKZzhGRmpNb2kxM0JONU0z?=
- =?utf-8?B?SlU0emYvM0VmZ0c3UElCeUJ6SU1JSDBudjlEUXdKSGhFdzRZK2gvWGsxVFhy?=
- =?utf-8?B?Qk1tcFZFekNBK1V3eDFZY0cyZlpMeW1QNDNCclFPRHlhOWVzNjc0eHJSaEVw?=
- =?utf-8?B?cU04eVl6RXQrRVl2QVVKZmxaMUUzK2JMODdEZGVnVXVBbm1wSHd4Z045SG1k?=
- =?utf-8?B?V09scHZYbTRlVk1teU8vQWkwOVJWbGNWRVpLeEdRS2VCYWt3UXlFelFrOHNE?=
- =?utf-8?B?UFEvOEZNbU04cjNPWHVXc01jajFaT1NkRFFpZEs1UlhPaGRFdTJ6bndhUlUw?=
- =?utf-8?B?OU1vTy9Pai9Wb1BaTk5RZDhML3J1N1NJUFlROGd6M3RCNi9ZL2NqZlZKcktI?=
- =?utf-8?B?dTcrUmRrR1ZGbVgwM2s1OUFQLzdxK0ZZQWVFVDZFQW1pTGMxdWtSR0xEZUF3?=
- =?utf-8?B?RUR2NjJpR1RzZ1lSSGhFcEVySnFMTXFmSVg4b3g4TnhwOE0yZjZwM2hwalVG?=
- =?utf-8?B?dDlTOGxRa21QY0JUemN0Wmg2UTdJRTZzdE81bTlKS0dXV3l0dDdrWjJKSnd1?=
- =?utf-8?B?RGREeitvU3VxRGxwMzdmTGJGZGdZSWsxMFpaV0ZMMDdNSDlZQStUY1NTVXJ4?=
- =?utf-8?B?S2FLU0pZS0xnMFpBT2dYVXp3YkRSRk5NSmpRRmlyTkRId0krQTQ2MWtESC9h?=
- =?utf-8?B?UzQycnk0WUNqMUpHVURrdUZFdGlCN2I3eG5rcEdkZXBEQ0w3dFpsaHNvUU1t?=
- =?utf-8?B?bngvakFMKzlTYThXSkVjR2UrVGVFOGxCcng3VEJCWmJScGZEdTBwZ3N1dVRx?=
- =?utf-8?B?dFdHOFQzcnd4VTZEL3E4VDNSTDFEc2Z4M2o2MFFkNmp5YlJ0Um1nVVhIVHFC?=
- =?utf-8?B?YnE3VkJvazJWK2FDSExTQnVwSEt6by80Nmh3cGt4MDJqOVAycmtjMGNmcTVP?=
- =?utf-8?B?bC9SRUY2YWVOaTlVWWxqd05TQTNvczhtWE5qSktkeUtoZlFXMUUrdlphVUVD?=
- =?utf-8?B?QTJsRzZaeStIQ1ZqYU5XcUwxNmdKeFBWQmxSK0drOTg2UVhBdjBhRGcwczdz?=
- =?utf-8?B?b3NSbHpxZTVWMDVnV29WRW1pOWNuWlhuclBrd1lWRFRIcmtqbHZUSlVqelpn?=
- =?utf-8?B?UTE4dGlGcVRHU0RRcnNtK2NLaWtCWWVlakU0c1lHMmVyejV4ZEYxdTVKdUdl?=
- =?utf-8?B?d2ZaelBuVXI1UkJuakFlRjF4NkhWazJHS3JxKzVOMUd6eHZZQjNhd01EeUFt?=
- =?utf-8?B?S0xFbTEwN25YQXJ1akRTYTRUL0dDZWtvQjNCRW1xTitPUGZ0S25kUXR6aHh4?=
- =?utf-8?B?d05TTWhGRDFsdE9zY245YTZ4SnFIUWdQVXI5L2JxazMrd2ExendvTFRmRkhH?=
- =?utf-8?B?UEZIRXZRdTNVaDlnNFFoTDVObUdYaHhuODlNRUtUbzhhN0Z3ZHFhUT09?=
-X-MS-Exchange-CrossTenant-Network-Message-Id:
- 1d3ba153-faa9-46b1-fcab-08da4c478cc7
-X-MS-Exchange-CrossTenant-AuthSource: DB7PR04MB4666.eurprd04.prod.outlook.com
-X-MS-Exchange-CrossTenant-AuthAs: Internal
-X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
-X-MS-Exchange-CrossTenant-Id: f7a17af6-1c5c-4a36-aa8b-f5be247aa4ba
-X-MS-Exchange-CrossTenant-MailboxType: HOSTED
-X-MS-Exchange-CrossTenant-UserPrincipalName:
- nzRy3MEy9atKgQdycRIIyY0c8Vs6ole37JgH+3O2KVpSjqdZWQpTgZ8kkRA7ECzpMyetZDVkAHHlQ1eF26iAXw==
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: AM6PR04MB5477
-X-ServerName: mail-vi1eur05on2079.outbound.protection.outlook.com
+X-Alimail-AntiSpam: AC=PASS; BC=-1|-1; BR=01201311R161e4; CH=green;
+ DM=||false|; DS=||; FP=0|-1|-1|-1|0|-1|-1|-1; HT=ay29a033018046049;
+ MF=joseph.qi@linux.alibaba.com; NM=1; PH=DS; RN=2; SR=0;
+ TI=SMTPD_---0VG62Aor_1655037525;
+X-ServerName: out30-43.freemail.mail.aliyun.com
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 include:spf.suse.com include:amazonses.com
- include:spf.protection.outlook.com include:_spf.qemailserver.com
- include:_spf.salesforce.com -all
+X-Proofpoint-SPF-Record: v=spf1 include:spf1.service.alibaba.com
+ include:spf2.service.alibaba.com include:spf1.ocm.aliyun.com
+ include:spf2.ocm.aliyun.com include:spf1.staff.mail.aliyun.com
+ include:a.hichina.mail.aliyun.com include:b.hichina.mail.aliyun.com -all
 X-Spam: Clean
-X-Proofpoint-GUID: jcHdlNfFwqHyHpYlxOLpfFymlwyhWm0W
-X-Proofpoint-ORIG-GUID: jcHdlNfFwqHyHpYlxOLpfFymlwyhWm0W
+X-Proofpoint-GUID: 5q4WXfuQ88uRCv2lrFzMJV236J6PtB1G
+X-Proofpoint-ORIG-GUID: 5q4WXfuQ88uRCv2lrFzMJV236J6PtB1G
 Reporting-Meta:
- AAE477RIuiM0ZsBPta0OSEaeilzVW1lg3IXeAN7I8Olmj/wrUEcf4OUgvbo6tFkR
- tW0P3HuWunzTuVxgaLvspyBZHEeGkhyhRBVgnTOLIhqpwBjJHxCoO0Gg8GJ9+CE7
- h9C8tfeRL8xAWHzoNcwOuk6YCvAIO9766afCKSJP/vVuEiiv6kj5d6U0qObmJV8C
- AljuUzIYd/MXCoa564eoX65C1Y12TvJ2LLhFiWNApVt/NEJ5UqR/QSMt7vss3p+W
- yeITrfKtNOMvwv52U5AKEQEn9fPmZOb5ACAGEir0T+Ms3JUszlY0CdYYRnW/u3yp
- pXkQxmcvhXlx3RGnt3t5k4xLcNxflymREQJXmHsnHirwjMcfr9lYyV/V5z9i5ObQ
- Laillk+cQ2H/Kwii0yJvEWbsmLOrgILO/tNYRq/ArivG+jJhsGQWvWNsF2bBUwTu
- TspjCZXewhaLpp7YtuIFycjiGoaEelw/ryVBnpEQOyUz+boWq7iVE7vPYPEEziWD
- 6SPe6ov4haB07AzTTrsPO3/ETe2EvvCZfDwL3obXj2++
+ AAHNahftNI8Obc3RAnIeHlOGchqqoTpSz5xfFoGIHNIWMzJ4QihLyUUxVVT4pcVb
+ xdqRDFvTN0BridbQyLD4XpFcFNHVqFev1s647409vYtdMxFsf9krHwdnpzlvFbZA
+ LjeNh2sfRJqbm13c09p+nrF7/pHrl6mCLEAXh2MlrXuFCK97Fj4wGYyPiNbF5Gnj
+ Er1sFDWG0f68F2eDtJiMZp2Y5hxHV6q5Ecl9/D4lcFf6GQIFRYnZ6NoFErkrcXOE
+ dNOiWDSI1XUgaqpNHlBFsb/qKcg+CYalEjpcAdmUwV++rDK9hUH94CkyRKeFGT8w
+ ZxDE8ptrGpV97RXDcmaPUARqtzOjRXjwBKbONTuDv3Tkmr5FgxL7rHiq7wJ5g6XN
+ jlxgBwN1bS1VIhAgs7K26uKV3+7RuupiSTdJcLRHyQSZUJL/fMWMIdd36JG/Tsol
+ Y+VIVLA+7V9PiKhDK4zdXoRBOn5lVEkq3mE69mnXigBs5b6RWO70bipMVDj22hWs
+ hJeQ4opYQRMYgzwqMqOJo1kUfA+kv+bqtu/hZOrClTY=
 
-On 6/12/22 10:57, Joseph Qi wrote:
-> 
-> 
-> On 5/21/22 6:14 PM, Heming Zhao wrote:
->> When la state is ENABLE, ocfs2_recalc_la_window restores la window
->> unconditionally. The logic is wrong.
->>
->> Let's image below path.
->>
->> 1. la state (->local_alloc_state) is set THROTTLED or DISABLED.
->>
->> 2. About 30s (OCFS2_LA_ENABLE_INTERVAL), delayed work is triggered,
->>     ocfs2_la_enable_worker set la state to ENABLED directly.
->>
->> 3. a write IOs thread run:
->>
->>     ```
->>     ocfs2_write_begin
->>      ...
->>       ocfs2_lock_allocators
->>        ocfs2_reserve_clusters
->>         ocfs2_reserve_clusters_with_limit
->>          ocfs2_reserve_local_alloc_bits
->>           ocfs2_local_alloc_slide_window // [1]
->>            + ocfs2_recalc_la_window(osb, OCFS2_LA_EVENT_SLIDE) // [2]
->>            + ...
->>            + ocfs2_local_alloc_new_window
->>               ocfs2_claim_clusters // [3]
->>     ```
->>
->> [1]: will be called when la window bits used up.
->> [2]: under la state is ENABLED (eg OCFS2_LA_ENABLE_INTERVAL delayed work
->>       happened), it unconditionally restores la window to default value.
->> [3]: will use default la window size to search clusters. IMO the timing
->>       is O(n^4). The timing O(n^4) will cost huge time to scan global
->>       bitmap. It makes write IOs (eg user space 'dd') become dramatically
->>       slow.
->>
->> i.e.
->> an ocfs2 partition size: 1.45TB, cluster size: 4KB,
->> la window default size: 106MB.
->> The partition is fragmentation by creating & deleting huge mount of
->> small file.
->>
->> the timing should be (the number got from real world):
->> - la window size change order (size: MB):
->>    106, 53, 26.5, 13, 6.5, 3.25, 1.6, 0.8
->>    only 0.8MB succeed, 0.8MB also triggers la window to disable.
->>    ocfs2_local_alloc_new_window retries 8 times, first 7 times totally
->>    runs in worst case.
->> - group chain number: 242
->>    ocfs2_claim_suballoc_bits calls for-loop 242 times
->> - each chain has 49 block group
->>    ocfs2_search_chain calls while-loop 49 times
->> - each bg has 32256 blocks
->>    ocfs2_block_group_find_clear_bits calls while-loop for 32256 bits.
->>    for ocfs2_find_next_zero_bit uses ffz() to find zero bit, let's use
->>    (32256/64) for timing calucation.
->>
->> So the loop times: 7*242*49*(32256/64) = 41835024 (~42 million times)
->>
->> In the worst case, user space writes 100MB data will trigger 42M scanning
->> times, and if the write can't finish within 30s (OCFS2_LA_ENABLE_INTERVAL),
->> the write IO will suffer another 42M scanning times. It makes the ocfs2
->> partition keep pool performance all the time.
->>
->> The fix method:
->>
->> 1.  la restores double la size once.
->>
->> current code logic decrease la window with half size once, but directly
->> restores default_bits one time. It bounces the la window between '<1M'
->> and default_bits. This patch makes restoring process more smoothly.
->> eg.
->> la default window is 106MB, current la window is 13MB.
->> when there is a free action to release one block group space, la should
->> roll back la size to 26MB (by 13*2).
->> if there are many free actions to release many block group space, la
->> will smoothly roll back to default window (106MB).
->>
->> 2. introduced a new state: OCFS2_LA_RESTORE.
->>
->> Current code uses OCFS2_LA_ENABLED to mark a new big space available.
->> the state overwrite OCFS2_LA_THROTTLED, it makes la window forget
->> it's already in throttled status.
->> '->local_alloc_state' should keep OCFS2_LA_THROTTLED until la window
->> restore to default_bits.
-> 
-> Since now we have enough free space, why not restore to default la
-> window?
-
-The key is: the decrease speed is not same with increase speed.
-The decrease la window happens on the current la window size is not available any more.
-But current restore action happens on there appears any one of default_bits space.
-e.g:
-the default la window is 100MB, current system only has some 20MB contiguous space.
-la window change to half size (10MB) when there is no 20MB space any more.
-but current code restore logic will restore to 100MB. and allocation path will
-suffer the O(n^4) timing.
-
- From my understanding, most of the ocfs2 users use ocfs2 to manage big & not huge
-number of files. But my patch response scenario: ocfs2 volume contains huge number
-of small files. user case is creating/deleting/moving the small files all the time.
-It makes the fs fragmentation totally.
-
-> 
-> This is an issue happened in a corner case, which blames current restore
-> window is too large. I agree with your method that restoring double la
-> size once instead of default directly. So why not just change the logic
-> of ocfs2_recalc_la_window() to do this?
-
-This path is related with two issues:
-- restore speed more quick than decrease speed.
-- unconditionally restore la window
-
-only change ocfs2_recalc_la_window() can't avoid unconditionally restore la window.
-so I introduced new state OCFS2_LA_RESTORE, which will help ocfs2 to keep throttled
-state.
-
-btw, during I investigating this bug, I found other two issues/works need to do:
-- current allocation algorithm is very easy to generate fragment.
-- there is O(n^4) timing. even after with this patch, the timing only becomes O(n^3):
-   <group chain number> * <block group per chain> * <bg bitmap size>
-we needs to improve the allocation algorithm to make ocfs2 more power.
-
-Thanks,
-Heming
-
-_______________________________________________
-Ocfs2-devel mailing list
-Ocfs2-devel@oss.oracle.com
-https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+CgpPbiA2LzEyLzIyIDM6NDUgUE0sIGhlbWluZy56aGFvQHN1c2UuY29tIHdyb3RlOgo+IE9uIDYv
+MTIvMjIgMTA6NTcsIEpvc2VwaCBRaSB3cm90ZToKPj4KPj4KPj4gT24gNS8yMS8yMiA2OjE0IFBN
+LCBIZW1pbmcgWmhhbyB3cm90ZToKPj4+IFdoZW4gbGEgc3RhdGUgaXMgRU5BQkxFLCBvY2ZzMl9y
+ZWNhbGNfbGFfd2luZG93IHJlc3RvcmVzIGxhIHdpbmRvdwo+Pj4gdW5jb25kaXRpb25hbGx5LiBU
+aGUgbG9naWMgaXMgd3JvbmcuCj4+Pgo+Pj4gTGV0J3MgaW1hZ2UgYmVsb3cgcGF0aC4KPj4+Cj4+
+PiAxLiBsYSBzdGF0ZSAoLT5sb2NhbF9hbGxvY19zdGF0ZSkgaXMgc2V0IFRIUk9UVExFRCBvciBE
+SVNBQkxFRC4KPj4+Cj4+PiAyLiBBYm91dCAzMHMgKE9DRlMyX0xBX0VOQUJMRV9JTlRFUlZBTCks
+IGRlbGF5ZWQgd29yayBpcyB0cmlnZ2VyZWQsCj4+PiDCoMKgwqAgb2NmczJfbGFfZW5hYmxlX3dv
+cmtlciBzZXQgbGEgc3RhdGUgdG8gRU5BQkxFRCBkaXJlY3RseS4KPj4+Cj4+PiAzLiBhIHdyaXRl
+IElPcyB0aHJlYWQgcnVuOgo+Pj4KPj4+IMKgwqDCoCBgYGAKPj4+IMKgwqDCoCBvY2ZzMl93cml0
+ZV9iZWdpbgo+Pj4gwqDCoMKgwqAgLi4uCj4+PiDCoMKgwqDCoMKgIG9jZnMyX2xvY2tfYWxsb2Nh
+dG9ycwo+Pj4gwqDCoMKgwqDCoMKgIG9jZnMyX3Jlc2VydmVfY2x1c3RlcnMKPj4+IMKgwqDCoMKg
+wqDCoMKgIG9jZnMyX3Jlc2VydmVfY2x1c3RlcnNfd2l0aF9saW1pdAo+Pj4gwqDCoMKgwqDCoMKg
+wqDCoCBvY2ZzMl9yZXNlcnZlX2xvY2FsX2FsbG9jX2JpdHMKPj4+IMKgwqDCoMKgwqDCoMKgwqDC
+oCBvY2ZzMl9sb2NhbF9hbGxvY19zbGlkZV93aW5kb3cgLy8gWzFdCj4+PiDCoMKgwqDCoMKgwqDC
+oMKgwqDCoCArIG9jZnMyX3JlY2FsY19sYV93aW5kb3cob3NiLCBPQ0ZTMl9MQV9FVkVOVF9TTElE
+RSkgLy8gWzJdCj4+PiDCoMKgwqDCoMKgwqDCoMKgwqDCoCArIC4uLgo+Pj4gwqDCoMKgwqDCoMKg
+wqDCoMKgwqAgKyBvY2ZzMl9sb2NhbF9hbGxvY19uZXdfd2luZG93Cj4+PiDCoMKgwqDCoMKgwqDC
+oMKgwqDCoMKgwqDCoCBvY2ZzMl9jbGFpbV9jbHVzdGVycyAvLyBbM10KPj4+IMKgwqDCoCBgYGAK
+Pj4+Cj4+PiBbMV06IHdpbGwgYmUgY2FsbGVkIHdoZW4gbGEgd2luZG93IGJpdHMgdXNlZCB1cC4K
+Pj4+IFsyXTogdW5kZXIgbGEgc3RhdGUgaXMgRU5BQkxFRCAoZWcgT0NGUzJfTEFfRU5BQkxFX0lO
+VEVSVkFMIGRlbGF5ZWQgd29yawo+Pj4gwqDCoMKgwqDCoCBoYXBwZW5lZCksIGl0IHVuY29uZGl0
+aW9uYWxseSByZXN0b3JlcyBsYSB3aW5kb3cgdG8gZGVmYXVsdCB2YWx1ZS4KPj4+IFszXTogd2ls
+bCB1c2UgZGVmYXVsdCBsYSB3aW5kb3cgc2l6ZSB0byBzZWFyY2ggY2x1c3RlcnMuIElNTyB0aGUg
+dGltaW5nCj4+PiDCoMKgwqDCoMKgIGlzIE8obl40KS4gVGhlIHRpbWluZyBPKG5eNCkgd2lsbCBj
+b3N0IGh1Z2UgdGltZSB0byBzY2FuIGdsb2JhbAo+Pj4gwqDCoMKgwqDCoCBiaXRtYXAuIEl0IG1h
+a2VzIHdyaXRlIElPcyAoZWcgdXNlciBzcGFjZSAnZGQnKSBiZWNvbWUgZHJhbWF0aWNhbGx5Cj4+
+PiDCoMKgwqDCoMKgIHNsb3cuCj4+Pgo+Pj4gaS5lLgo+Pj4gYW4gb2NmczIgcGFydGl0aW9uIHNp
+emU6IDEuNDVUQiwgY2x1c3RlciBzaXplOiA0S0IsCj4+PiBsYSB3aW5kb3cgZGVmYXVsdCBzaXpl
+OiAxMDZNQi4KPj4+IFRoZSBwYXJ0aXRpb24gaXMgZnJhZ21lbnRhdGlvbiBieSBjcmVhdGluZyAm
+IGRlbGV0aW5nIGh1Z2UgbW91bnQgb2YKPj4+IHNtYWxsIGZpbGUuCj4+Pgo+Pj4gdGhlIHRpbWlu
+ZyBzaG91bGQgYmUgKHRoZSBudW1iZXIgZ290IGZyb20gcmVhbCB3b3JsZCk6Cj4+PiAtIGxhIHdp
+bmRvdyBzaXplIGNoYW5nZSBvcmRlciAoc2l6ZTogTUIpOgo+Pj4gwqDCoCAxMDYsIDUzLCAyNi41
+LCAxMywgNi41LCAzLjI1LCAxLjYsIDAuOAo+Pj4gwqDCoCBvbmx5IDAuOE1CIHN1Y2NlZWQsIDAu
+OE1CIGFsc28gdHJpZ2dlcnMgbGEgd2luZG93IHRvIGRpc2FibGUuCj4+PiDCoMKgIG9jZnMyX2xv
+Y2FsX2FsbG9jX25ld193aW5kb3cgcmV0cmllcyA4IHRpbWVzLCBmaXJzdCA3IHRpbWVzIHRvdGFs
+bHkKPj4+IMKgwqAgcnVucyBpbiB3b3JzdCBjYXNlLgo+Pj4gLSBncm91cCBjaGFpbiBudW1iZXI6
+IDI0Mgo+Pj4gwqDCoCBvY2ZzMl9jbGFpbV9zdWJhbGxvY19iaXRzIGNhbGxzIGZvci1sb29wIDI0
+MiB0aW1lcwo+Pj4gLSBlYWNoIGNoYWluIGhhcyA0OSBibG9jayBncm91cAo+Pj4gwqDCoCBvY2Zz
+Ml9zZWFyY2hfY2hhaW4gY2FsbHMgd2hpbGUtbG9vcCA0OSB0aW1lcwo+Pj4gLSBlYWNoIGJnIGhh
+cyAzMjI1NiBibG9ja3MKPj4+IMKgwqAgb2NmczJfYmxvY2tfZ3JvdXBfZmluZF9jbGVhcl9iaXRz
+IGNhbGxzIHdoaWxlLWxvb3AgZm9yIDMyMjU2IGJpdHMuCj4+PiDCoMKgIGZvciBvY2ZzMl9maW5k
+X25leHRfemVyb19iaXQgdXNlcyBmZnooKSB0byBmaW5kIHplcm8gYml0LCBsZXQncyB1c2UKPj4+
+IMKgwqAgKDMyMjU2LzY0KSBmb3IgdGltaW5nIGNhbHVjYXRpb24uCj4+Pgo+Pj4gU28gdGhlIGxv
+b3AgdGltZXM6IDcqMjQyKjQ5KigzMjI1Ni82NCkgPSA0MTgzNTAyNCAofjQyIG1pbGxpb24gdGlt
+ZXMpCj4+Pgo+Pj4gSW4gdGhlIHdvcnN0IGNhc2UsIHVzZXIgc3BhY2Ugd3JpdGVzIDEwME1CIGRh
+dGEgd2lsbCB0cmlnZ2VyIDQyTSBzY2FubmluZwo+Pj4gdGltZXMsIGFuZCBpZiB0aGUgd3JpdGUg
+Y2FuJ3QgZmluaXNoIHdpdGhpbiAzMHMgKE9DRlMyX0xBX0VOQUJMRV9JTlRFUlZBTCksCj4+PiB0
+aGUgd3JpdGUgSU8gd2lsbCBzdWZmZXIgYW5vdGhlciA0Mk0gc2Nhbm5pbmcgdGltZXMuIEl0IG1h
+a2VzIHRoZSBvY2ZzMgo+Pj4gcGFydGl0aW9uIGtlZXAgcG9vbCBwZXJmb3JtYW5jZSBhbGwgdGhl
+IHRpbWUuCj4+Pgo+Pj4gVGhlIGZpeCBtZXRob2Q6Cj4+Pgo+Pj4gMS7CoCBsYSByZXN0b3JlcyBk
+b3VibGUgbGEgc2l6ZSBvbmNlLgo+Pj4KPj4+IGN1cnJlbnQgY29kZSBsb2dpYyBkZWNyZWFzZSBs
+YSB3aW5kb3cgd2l0aCBoYWxmIHNpemUgb25jZSwgYnV0IGRpcmVjdGx5Cj4+PiByZXN0b3JlcyBk
+ZWZhdWx0X2JpdHMgb25lIHRpbWUuIEl0IGJvdW5jZXMgdGhlIGxhIHdpbmRvdyBiZXR3ZWVuICc8
+MU0nCj4+PiBhbmQgZGVmYXVsdF9iaXRzLiBUaGlzIHBhdGNoIG1ha2VzIHJlc3RvcmluZyBwcm9j
+ZXNzIG1vcmUgc21vb3RobHkuCj4+PiBlZy4KPj4+IGxhIGRlZmF1bHQgd2luZG93IGlzIDEwNk1C
+LCBjdXJyZW50IGxhIHdpbmRvdyBpcyAxM01CLgo+Pj4gd2hlbiB0aGVyZSBpcyBhIGZyZWUgYWN0
+aW9uIHRvIHJlbGVhc2Ugb25lIGJsb2NrIGdyb3VwIHNwYWNlLCBsYSBzaG91bGQKPj4+IHJvbGwg
+YmFjayBsYSBzaXplIHRvIDI2TUIgKGJ5IDEzKjIpLgo+Pj4gaWYgdGhlcmUgYXJlIG1hbnkgZnJl
+ZSBhY3Rpb25zIHRvIHJlbGVhc2UgbWFueSBibG9jayBncm91cCBzcGFjZSwgbGEKPj4+IHdpbGwg
+c21vb3RobHkgcm9sbCBiYWNrIHRvIGRlZmF1bHQgd2luZG93ICgxMDZNQikuCj4+Pgo+Pj4gMi4g
+aW50cm9kdWNlZCBhIG5ldyBzdGF0ZTogT0NGUzJfTEFfUkVTVE9SRS4KPj4+Cj4+PiBDdXJyZW50
+IGNvZGUgdXNlcyBPQ0ZTMl9MQV9FTkFCTEVEIHRvIG1hcmsgYSBuZXcgYmlnIHNwYWNlIGF2YWls
+YWJsZS4KPj4+IHRoZSBzdGF0ZSBvdmVyd3JpdGUgT0NGUzJfTEFfVEhST1RUTEVELCBpdCBtYWtl
+cyBsYSB3aW5kb3cgZm9yZ2V0Cj4+PiBpdCdzIGFscmVhZHkgaW4gdGhyb3R0bGVkIHN0YXR1cy4K
+Pj4+ICctPmxvY2FsX2FsbG9jX3N0YXRlJyBzaG91bGQga2VlcCBPQ0ZTMl9MQV9USFJPVFRMRUQg
+dW50aWwgbGEgd2luZG93Cj4+PiByZXN0b3JlIHRvIGRlZmF1bHRfYml0cy4KPj4KPj4gU2luY2Ug
+bm93IHdlIGhhdmUgZW5vdWdoIGZyZWUgc3BhY2UsIHdoeSBub3QgcmVzdG9yZSB0byBkZWZhdWx0
+IGxhCj4+IHdpbmRvdz8KPiAKPiBUaGUga2V5IGlzOiB0aGUgZGVjcmVhc2Ugc3BlZWQgaXMgbm90
+IHNhbWUgd2l0aCBpbmNyZWFzZSBzcGVlZC4KPiBUaGUgZGVjcmVhc2UgbGEgd2luZG93IGhhcHBl
+bnMgb24gdGhlIGN1cnJlbnQgbGEgd2luZG93IHNpemUgaXMgbm90IGF2YWlsYWJsZSBhbnkgbW9y
+ZS4KPiBCdXQgY3VycmVudCByZXN0b3JlIGFjdGlvbiBoYXBwZW5zIG9uIHRoZXJlIGFwcGVhcnMg
+YW55IG9uZSBvZiBkZWZhdWx0X2JpdHMgc3BhY2UuCj4gZS5nOgo+IHRoZSBkZWZhdWx0IGxhIHdp
+bmRvdyBpcyAxMDBNQiwgY3VycmVudCBzeXN0ZW0gb25seSBoYXMgc29tZSAyME1CIGNvbnRpZ3Vv
+dXMgc3BhY2UuCj4gbGEgd2luZG93IGNoYW5nZSB0byBoYWxmIHNpemUgKDEwTUIpIHdoZW4gdGhl
+cmUgaXMgbm8gMjBNQiBzcGFjZSBhbnkgbW9yZS4KPiBidXQgY3VycmVudCBjb2RlIHJlc3RvcmUg
+bG9naWMgd2lsbCByZXN0b3JlIHRvIDEwME1CLiBhbmQgYWxsb2NhdGlvbiBwYXRoIHdpbGwKPiBz
+dWZmZXIgdGhlIE8obl40KSB0aW1pbmcuCj4gCj4gRnJvbSBteSB1bmRlcnN0YW5kaW5nLCBtb3N0
+IG9mIHRoZSBvY2ZzMiB1c2VycyB1c2Ugb2NmczIgdG8gbWFuYWdlIGJpZyAmIG5vdCBodWdlCj4g
+bnVtYmVyIG9mIGZpbGVzLiBCdXQgbXkgcGF0Y2ggcmVzcG9uc2Ugc2NlbmFyaW86IG9jZnMyIHZv
+bHVtZSBjb250YWlucyBodWdlIG51bWJlcgo+IG9mIHNtYWxsIGZpbGVzLiB1c2VyIGNhc2UgaXMg
+Y3JlYXRpbmcvZGVsZXRpbmcvbW92aW5nIHRoZSBzbWFsbCBmaWxlcyBhbGwgdGhlIHRpbWUuCj4g
+SXQgbWFrZXMgdGhlIGZzIGZyYWdtZW50YXRpb24gdG90YWxseS4KPiAKClllcywgdHlwaWNhbGx5
+IHNjZW5hcmlvIGlzIHZtIGltYWdlcyB3aXRoIGNsdXN0ZXIgc2l6ZSAxTS4KVGhpcyBpcyBhIGNv
+cm55IHRhbGsgYW5kIEknbSBhZnJhaWQgaXQgc3RpbGwgY2Fubm90IHJlc29sdmUgYWJvdmUgY2Fz
+ZQp3aXRoIG9wdGltaXplZCBsb2NhbCBhbGxvYyB3aW5kb3cuCgo+Pgo+PiBUaGlzIGlzIGFuIGlz
+c3VlIGhhcHBlbmVkIGluIGEgY29ybmVyIGNhc2UsIHdoaWNoIGJsYW1lcyBjdXJyZW50IHJlc3Rv
+cmUKPj4gd2luZG93IGlzIHRvbyBsYXJnZS4gSSBhZ3JlZSB3aXRoIHlvdXIgbWV0aG9kIHRoYXQg
+cmVzdG9yaW5nIGRvdWJsZSBsYQo+PiBzaXplIG9uY2UgaW5zdGVhZCBvZiBkZWZhdWx0IGRpcmVj
+dGx5LiBTbyB3aHkgbm90IGp1c3QgY2hhbmdlIHRoZSBsb2dpYwo+PiBvZiBvY2ZzMl9yZWNhbGNf
+bGFfd2luZG93KCkgdG8gZG8gdGhpcz8KPiAKPiBUaGlzIHBhdGggaXMgcmVsYXRlZCB3aXRoIHR3
+byBpc3N1ZXM6Cj4gLSByZXN0b3JlIHNwZWVkIG1vcmUgcXVpY2sgdGhhbiBkZWNyZWFzZSBzcGVl
+ZC4KPiAtIHVuY29uZGl0aW9uYWxseSByZXN0b3JlIGxhIHdpbmRvdwo+IAo+IG9ubHkgY2hhbmdl
+IG9jZnMyX3JlY2FsY19sYV93aW5kb3coKSBjYW4ndCBhdm9pZCB1bmNvbmRpdGlvbmFsbHkgcmVz
+dG9yZSBsYSB3aW5kb3cuCgpTZWVtcyB0aGUgZm9sbG93aW5nIHdpbGwgcmVzdG9yZSBkb3VibGUg
+ZWFjaCB0aW1lPwoKaWYgKG9zYi0+bG9jYWxfYWxsb2Nfc3RhdGUgIT0gT0NGUzJfTEFfVEhST1RU
+TEVEKQoJb3NiLT5sb2NhbF9hbGxvY19iaXRzIDw8PSAxOwoKVGhpcyBtYXkgaW50cm9kdWNlIGFu
+b3RoZXIgaXNzdWUgd2hpY2ggYmxhbWVzIHJlc3RvcmUgdG9vIHNsb3cuIFNvIGl0J3MgYQpiYWxh
+bmNlLgoKVGhhbmtzLApKb3NlcGgKCj4gc28gSSBpbnRyb2R1Y2VkIG5ldyBzdGF0ZSBPQ0ZTMl9M
+QV9SRVNUT1JFLCB3aGljaCB3aWxsIGhlbHAgb2NmczIgdG8ga2VlcCB0aHJvdHRsZWQKPiBzdGF0
+ZS4KPiAKPiBidHcsIGR1cmluZyBJIGludmVzdGlnYXRpbmcgdGhpcyBidWcsIEkgZm91bmQgb3Ro
+ZXIgdHdvIGlzc3Vlcy93b3JrcyBuZWVkIHRvIGRvOgo+IC0gY3VycmVudCBhbGxvY2F0aW9uIGFs
+Z29yaXRobSBpcyB2ZXJ5IGVhc3kgdG8gZ2VuZXJhdGUgZnJhZ21lbnQuCj4gLSB0aGVyZSBpcyBP
+KG5eNCkgdGltaW5nLiBldmVuIGFmdGVyIHdpdGggdGhpcyBwYXRjaCwgdGhlIHRpbWluZyBvbmx5
+IGJlY29tZXMgTyhuXjMpOgo+IMKgIDxncm91cCBjaGFpbiBudW1iZXI+ICogPGJsb2NrIGdyb3Vw
+IHBlciBjaGFpbj4gKiA8YmcgYml0bWFwIHNpemU+Cj4gd2UgbmVlZHMgdG8gaW1wcm92ZSB0aGUg
+YWxsb2NhdGlvbiBhbGdvcml0aG0gdG8gbWFrZSBvY2ZzMiBtb3JlIHBvd2VyLgo+IAo+IFRoYW5r
+cywKPiBIZW1pbmcKCl9fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
+X19fCk9jZnMyLWRldmVsIG1haWxpbmcgbGlzdApPY2ZzMi1kZXZlbEBvc3Mub3JhY2xlLmNvbQpo
+dHRwczovL29zcy5vcmFjbGUuY29tL21haWxtYW4vbGlzdGluZm8vb2NmczItZGV2ZWw=
