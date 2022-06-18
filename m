@@ -1,66 +1,52 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc251.phx1.oracleemaildelivery.com (aib29ajc251.phx1.oracleemaildelivery.com [192.29.103.251])
+Received: from aib29ajc249.phx1.oracleemaildelivery.com (aib29ajc249.phx1.oracleemaildelivery.com [192.29.103.249])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 312C4C433EF
-	for <ocfs2-devel@archiver.kernel.org>; Wed, 15 Jun 2022 08:12:00 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id B4C60C43334
+	for <ocfs2-devel@archiver.kernel.org>; Sat, 18 Jun 2022 02:35:48 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=8ldIX0ab+MhBSRsojg4UrmfSMyCYSRHFYmBTMsEpJFQ=;
- b=RUCBaDe/jjG8c1gDDSx1uQcgD1Y1CmeVoZF0Zp3HgamZxOu7PFh/IUWCPFzFU35lfKUA4nO0yaNv
-   YzvXRwffN2MbwA8MzTWcI06goyD1ujIZaG65FAADPTa/6GNLP89HsE/gxn41b+c7qmBtjWR2cTy4
-   A6l4ca3fwXgOP66kROGC+2mIxDOp2hrZttCKfzcQFyrKfsK1CYu+lxvPfS5zeOX/TnM6rGDk2xKQ
-   5meiSIDBQFM6UPXWGJ61zSN0vx3WQzB5CZ6bzwMTX53JJUo7rk+Pdmq45+WbYXkuvkTUp4S6aOJV
-   XL15DrqdBM51JA8rkJgk2q/3kXc8a6VxwssFRg==
+ bh=sjoRsgB+hEw+V/zOOcKvFpzcKjZgH48RRjW+FhENzJo=;
+ b=u8whKZUUWOhnD/2BUwh7oYkuIfWeDDEemUoRXf+srgSppubYqSGaYIap9+mX2048hXsFUvMclXi0
+   KjWz0ZTHKn4W24Od/Ogr0l/ot2ae0LFI8XWOm5utKNKrbHExi91K2p/Wivx+AaTbeZKiYyOjWwQ7
+   GEvWsl+thETHwnxEqKKoppSelsBG/YZOnrZa+8dBFIG4jmuupz32dYlNkz5uSjU7gHBu9WBf3eTi
+   u02W0zXaJc8mf5UTKMTXwhSPU8+c6Pc27fMtnlZN4B5Lmu12eeckFBte3B1XcZ0KKg6+wvjM+6k6
+   97KUkiJDsXqPqUTjGv6IqYMl2wtDET2TZJ4t6Q==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=8ldIX0ab+MhBSRsojg4UrmfSMyCYSRHFYmBTMsEpJFQ=;
- b=h7xPJuNXDqbEWSMogLnFdYm7c/Rkm+1k5ezqkb4Lg6XC7ouDlowfuFYJFmcEG9bFygoePIVb/BVU
-   6FnVzeJCVWSugoAJPwzqpde5cOFOyHNucBS29+VHJ33Q/+muO3ijfAN6taX066LnmP+omoKbPKyp
-   H4v7fV9Xr9z9hoIrvO1mZhY/RpVF2OnGfxZSySvFLN6YkHeDUIRZPAMWwz4koO/Kyy6suPpP1Dp2
-   URGXoj4rZpO3TExf0FWXG7W7hs0lAAOpbKm4w883KYsDJ3mRXTTgjG3L3Uip8t2+Ktg8Bv4T7IO0
-   LC4xE03ejn1GKYi4OJr1o6ZE1mcWw0FzDzgjcw==
-Received: by omta-ad2-fd3-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
+ bh=sjoRsgB+hEw+V/zOOcKvFpzcKjZgH48RRjW+FhENzJo=;
+ b=ATEIBNz+JaoEkZ5zDjl7WpK3HriOUz47IMaq9UGUDvgyBY4SoctIJ3ZkPxB0F/vIbSQNMi2cMF7d
+   0ejVthQCfPg5KIbw/ptqB2SfxuF25ktwefpAbG+VZhvm0UCZhdb2Q5zIf8IkeJF2aH7K3pCdH7Wu
+   7VQYyWFuY8tg4o453plQQ1PF0Z3uYLamlOVelie+JydaYYj+uosGCwQl/P4RI2bNmsd3UOxTWJ6W
+   BfBZM2QUazcUf+zbyXoNcOimaUHYwqUZAPPdg2yXW1V/nVh7BOXUDVHnUvrz0QecCFgvxtVbm4yV
+   Q4wQQ0Ur+50KhEIFPrBTX9fwnQljVULTD3450w==
+Received: by omta-ad2-fd1-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220531 64bit (built May 31
  2022))
- with ESMTPS id <0RDI00MQFERZ5R70@omta-ad2-fd3-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Wed, 15 Jun 2022 08:11:59 +0000 (GMT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org; s=k20201202;
- t=1655280703; bh=G8h+IDpJR0CvhZVQBHmA8xXUGMUALrZIeamkPUOOwAc=;
- h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
- b=J6Y3XOcwoC/TgUHQEi+SmCxARb6tPwZNqAYZg5XUTUI3Q/ll5OApOdFtKbROVKu0J
- G3wBk9/2zrpVCGzGGdhz1ESbgkoh73YGsKSRIOJUxvsHV+/K5Zd6avT4WMepRjY9H4
- wamp6FUhQPTuGWEhQiYvx6IJuRvj3n1pbZp2ZHUm41s47toXZ4TP69nqNoX31VqQXs
- PJkwswu6LBuH667SA02KF13mHrfORzWm/2zDlI2HgW90bjJCTh4CmOq+CyWlVyareR
- TNZ8wmpjenOnCxxJfBdf7GMJYbuk/uABYuIiv48owX1ckCCiZaFExYBEBPHV4h2PdO
- DbPuKfjHUQGOA==
-Message-id: <5fdec03e-efb6-554b-55b3-49e7e7f2be5e@kernel.org>
-Date: Wed, 15 Jun 2022 16:11:36 +0800
+ with ESMTPS id <0RDN00A1AJ7OVCE0@omta-ad2-fd1-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Sat, 18 Jun 2022 02:35:48 +0000 (GMT)
+Message-id: <3144cb10-4359-bb1e-1875-f9803fc9f4a9@linux.alibaba.com>
+Date: Sat, 18 Jun 2022 10:35:22 +0800
 MIME-version: 1.0
-User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:91.0) Gecko/20100101
- Thunderbird/91.10.0
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:91.0)
+ Gecko/20100101 Thunderbird/91.10.0
 Content-language: en-US
-To: "Matthew Wilcox (Oracle)" <willy@infradead.org>,
- linux-fsdevel@vger.kernel.org
-References: <20220608150249.3033815-1-willy@infradead.org>
- <20220608150249.3033815-15-willy@infradead.org>
-In-reply-to: <20220608150249.3033815-15-willy@infradead.org>
-X-Source-IP: 139.178.84.217
-X-Proofpoint-Virus-Version: vendor=nai engine=6400 definitions=10378
- signatures=594849
-Cc: linux-aio@kvack.org, linux-nfs@vger.kernel.org,
- linux-ntfs-dev@lists.sourceforge.net, linux-kernel@vger.kernel.org,
- linux-f2fs-devel@lists.sourceforge.net, cluster-devel@redhat.com,
- linux-mm@kvack.org, linux-block@vger.kernel.org, linux-btrfs@vger.kernel.org,
- linux-mtd@lists.infradead.org, linux-ext4@vger.kernel.org,
- virtualization@lists.linux-foundation.org, linux-xfs@vger.kernel.org,
- ocfs2-devel@oss.oracle.com
-Subject: Re: [Ocfs2-devel] [f2fs-dev] [PATCH v2 14/19] f2fs: Convert to
- filemap_migrate_folio()
+To: Heming Zhao <heming.zhao@suse.com>, ocfs2-devel@oss.oracle.com
+References: <20220608104808.18130-1-heming.zhao@suse.com>
+In-reply-to: <20220608104808.18130-1-heming.zhao@suse.com>
+X-Source-IP: 115.124.30.56
+X-Proofpoint-Virus-Version: vendor=nai engine=6400 definitions=10381
+ signatures=594854
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 spamscore=0
+ impostorscore=0 adultscore=0 mlxscore=0 clxscore=101 priorityscore=30
+ phishscore=0 bulkscore=0 malwarescore=0 lowpriorityscore=0 suspectscore=0
+ mlxlogscore=999 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2204290000 definitions=main-2206180010 domainage_hfrom=8465
+Subject: Re: [Ocfs2-devel] [PATCH 0/1] test case for patch 1/1
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -72,38 +58,141 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: Chao Yu via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: Chao Yu <chao@kernel.org>
+From: Joseph Qi via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: Joseph Qi <joseph.qi@linux.alibaba.com>
+Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
-Content-type: text/plain; charset="us-ascii"; Format="flowed"
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-ServerName: dfw.source.kernel.org
+X-Alimail-AntiSpam: AC=PASS; BC=-1|-1; BR=01201311R331e4; CH=green;
+ DM=||false|; DS=||; FP=0|-1|-1|-1|0|-1|-1|-1; HT=ay29a033018046051;
+ MF=joseph.qi@linux.alibaba.com; NM=1; PH=DS; RN=3; SR=0;
+ TI=SMTPD_---0VGhwmEj_1655519723;
+X-ServerName: out30-56.freemail.mail.aliyun.com
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 include:_spf.kernel.org ~all
-X-Proofpoint-Spam-Reason: safe
-X-Spam: OrgSafeList
-X-SpamRule: orgsafelist
-X-Proofpoint-ORIG-GUID: Gp-CjdghIUe4cmSrOYWA3LVAoSOXXLkS
-X-Proofpoint-GUID: Gp-CjdghIUe4cmSrOYWA3LVAoSOXXLkS
+X-Proofpoint-SPF-Record: v=spf1 include:spf1.service.alibaba.com
+ include:spf2.service.alibaba.com include:spf1.ocm.aliyun.com
+ include:spf2.ocm.aliyun.com include:spf1.staff.mail.aliyun.com
+ include:a.hichina.mail.aliyun.com include:b.hichina.mail.aliyun.com -all
+X-Spam: Clean
+X-Proofpoint-ORIG-GUID: OWbWD6A6jerfsKHOrVUa0RLQgNlw3wOf
+X-Proofpoint-GUID: OWbWD6A6jerfsKHOrVUa0RLQgNlw3wOf
 Reporting-Meta:
- AAGiZS9FMcQUKShRmVKDtp1TPzvPej+9jga1Y5Cg7WVfe/pqtwV9HIjRWjmELRl6
- 6Q4lURa65Wz2TpOGCAdd1ZBxUJ2EWlClQaoSkqxBXX2CjD94JOLcQCixeCvvi4St
- 9JOGl3P8dojOL8AaMfHwffUzmEK2sgbw24g2rk6ZgBYrEw7xTJ1FepI3HhEcynqO
- T37pM/GYhXxlO2urIsSaHpaJ8Ht1Fubq1qKJuJD7P6mtmeKjRXC60R5CgOwped1i
- R137ugn5c74qmVsO5SwfC/NZdkJWrHJpa7LUTT1dfoFEGk3VlzQn+22FQvi/20/l
- EzDhP5OKVsnluUZrV7zxlMAKwe58PWHXSW8X8u7g618+NS+PL6Mku5TAWkNhvmcR
- kRCLe/YNrVkiF3yrRCooDi+aiQXbABAWKTXgDF69iSzaQcB8GhHmqivUn25Z2E4O
- 1hIB+BpIj2eVzU/gUPHqwvII/c5dVdnCcqPYBFFVnQjDZ29o2ICx58KcND/2ntXW
- VLmoi8j76pkdSuZL+7EU5JqafG/sLkQfFd3m/XiyYX79
+ AAFniAupc05a3JcsQOjkLNKOki8UWMcjiz/IGsftpHhrZ88Z/ydY0izFEYePcb96
+ 4doZNlJymMlADPo0BbPM4gsc+2Q7rFajR2UH2La9rCDHqJ4ghttqnEdG/2H/9/3M
+ HWEHuGt8KOBIZTfOeLtif86B5CytqUlo5IeFDjY9YfgcvuL11AvPpJWozovbhziE
+ sU+2lpSj8h0ppuMJKv/cdNaYr94UFCtf7lBenscm43BmaRkWtufQld9QPdXhAB9D
+ 6hdP/MfLBgEGVISUlHC6QQkeyQSWocF9GgW19tFyF3XYlZSu2VA3ujOBTyLQ4DnR
+ /eI282rphNdg9Y0r6YHRZq4qSEtZOfVPc7WnfikkYBQY/hnSg5boNI61f4w7NPR2
+ irKUP81KOoKCCWRJgXuBncLi811Zd9FEaWW53wjBXYUQXYtd3Nv7SlUCYaux6mWt
+ J520cbFtuY88xRlHKVopF0sZHTmdImlk3IT03FfSKTQb1Ig8vtL+YNZUTEGQBiSD
+ I9QmZRfWO/upFLyxr8lyP2XXYTpfxxzyFRq1Lqj9cxsUiQ==
 
-On 2022/6/8 23:02, Matthew Wilcox (Oracle) wrote:
-> filemap_migrate_folio() fits f2fs's needs perfectly.
+
+
+On 6/8/22 6:48 PM, Heming Zhao wrote:
+> === test cases ====
 > 
-> Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
+> <1> remount on local node for cluster env
+> 
+> mount -t ocfs2 /dev/vdb /mnt
+> mount -t ocfs2 /dev/vdb /mnt              <=== failure
+> mount -t ocfs2 -o nocluster /dev/vdb /mnt <=== failure
+> 
 
-Acked-by: Chao Yu <chao@kernel.org>
+This is mount multiple times, not remount.
+Don't get it has any relations with your changes.
+
+> <2> remount on local node for nocluster env
+> 
+> mount -t ocfs2 -o nocluster /dev/vdb /mnt
+> mount -t ocfs2 /dev/vdb /mnt              <=== failure
+> mount -t ocfs2 -o nocluster /dev/vdb /mnt <=== failure
+> 
+> <3> remount on another node for cluster env
+> 
+> node2:
+> mount -t ocfs2 /dev/vdb /mnt
+> 
+> node1:
+> mount -t ocfs2 /dev/vdb /mnt  <== success
+> umount
+> mount -t ocfs2 -o nocluster /dev/vdb /mnt <== failure
+> 
+> <4> remount on another node for nocluster env
+> 
+> node2:
+> mount -t ocfs2 -o nocluster /dev/vdb /mnt
+> 
+> node1:
+> mount -t ocfs2 /dev/vdb /mnt              <== failure
+> mount -t ocfs2 -o nocluster /dev/vdb /mnt <== success, see below comment
+> 
+Why allow two nodes mount nocluster sucessfully?
+Since there is no cluster lock enabled, it will corrupt data.
+
+> <5> simulate after crash status for cluster env
+> 
+> (below all steps did on node1. node2 is unmount status)
+> mount -t ocfs2 /dev/vdb /mnt
+> dd if=/dev/vdb bs=1 count=8 skip=76058624 of=/root/slotmap.cluster.mnted
+> umount /mnt
+> dd if=/root/slotmap.cluster.mnted of=/dev/vdb seek=76058624 bs=1 count=8
+> mount -t ocfs2 -o nocluster /dev/vdb /mnt   <== failure
+> mount -t ocfs2 /dev/vdb /mnt && umount /mnt <== clean slot 0
+> mount -t ocfs2 -o nocluster /dev/vdb /mnt   <== success
+> 
+> <6> simulate after crash status for nocluster env
+> 
+> (below all steps did on node1. node2 is unmount status)
+> mount -t ocfs2 -o nocluster /dev/vdb /mnt
+> dd if=/dev/vdb bs=1 count=8 skip=76058624 of=/root/slotmap.nocluster.mnted
+> umount /mnt
+> dd if=/root/slotmap.nocluster.mnted of=/dev/vdb seek=76058624 bs=1 count=8
+> mount -t ocfs2 /dev/vdb /mnt   <== failure
+> mount -t ocfs2 -o nocluster /dev/vdb /mnt && umount /mnt <== clean slot 0
+> mount -t ocfs2 /dev/vdb /mnt   <== success
+> 
+'bs=1 count=8 skip=76058624', is this for slotmap backup?
 
 Thanks,
+Joseph
+
+> 
+> -----
+> For test case <4>, the kernel job is done, but there still left
+> userspace work todo. 
+> In my view, mount.ocfs2 needs add double confirm for this scenario.
+> 
+> current style:
+> ```
+> # mount -t ocfs2 -o nocluster /dev/vdb /mnt && umount /mnt
+> Warning: to mount a clustered volume without the cluster stack.
+> Please make sure you only mount the file system from one node.
+> Otherwise, the file system may be damaged.
+> Proceed (y/N): y
+> ```
+> 
+> I plan to change as:
+> ```
+> # mount -t ocfs2 -o nocluster /dev/vdb /mnt && umount /mnt
+> Warning: to mount a clustered volume without the cluster stack.
+> Please make sure you only mount the file system from one node.
+> Otherwise, the file system may be damaged.
+> Proceed (y/N): y
+> Warning: detect volume already mounted as nocluster mode.
+> Do you mount this volume on another node?
+> Please confirm you want to mount this volume on this node.
+> Proceed (y/N): y
+> ```
+> 
+> Heming Zhao (1):
+>   ocfs2: fix ocfs2_find_slot repeats alloc same slot issue
+> 
+>  fs/ocfs2/dlmglue.c  |  3 ++
+>  fs/ocfs2/ocfs2_fs.h |  3 ++
+>  fs/ocfs2/slot_map.c | 70 ++++++++++++++++++++++++++++++++++++---------
+>  3 files changed, 62 insertions(+), 14 deletions(-)
+> 
 
 _______________________________________________
 Ocfs2-devel mailing list
