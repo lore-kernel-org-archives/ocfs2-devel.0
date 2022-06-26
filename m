@@ -4,53 +4,83 @@ X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 Received: from aib29ajc246.phx1.oracleemaildelivery.com (aib29ajc246.phx1.oracleemaildelivery.com [192.29.103.246])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 05163C433EF
-	for <ocfs2-devel@archiver.kernel.org>; Sun, 26 Jun 2022 20:21:30 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id F00A0C43334
+	for <ocfs2-devel@archiver.kernel.org>; Sun, 26 Jun 2022 23:18:57 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=um1vYwELQnop0ytroMOrVSVAuZT/g0BHTFiN8DQPbQM=;
- b=0VUm/+nw3gB71l9TDx8/HBdpxbhh8E/Nk8bJhIHDnAroJTd3ZTZG4hmFmiIV6XckpnLObWfzeE7i
-   3Y0VxI2bwIYNwbNYJNiesOXTI//MYgGdlePI1I9XpohVxsA6MzufDRhFCkz/hYZTNLKy4/NCh/G8
-   QYe5wyBeVqn63nrDuO5ki+LJypYKuOpsQ4x57A2snCBI/TvS1TWtLW4cThe0qvBnj0KvP62dNDDF
-   vbUFPRhvSE1xDvaMgaukWczurTtakV8lB9NOcB9W5SaoT/kNtmfE6hfzFNeO2xfn69UYDsFtciqO
-   Fqw1hzyysdyOz0kZ6/OXyTT3jZMZJQMYvj1SVw==
+ bh=gI7JcQ4rYeDbV3qxdOTVcny2LrKCCjkp0pcU2S94cZE=;
+ b=DBlwDALC0U/aFXfmj2Yz70ji3wmX0onqgGpHBECqbRXkLqXehdzgeFiG92UKNdkBWGkXx0aNMOBe
+   GBWWEXlGGRgYLXNxZAE/xRiGmSea7siqejKc3Ns/orFi1qccTuVHj2cB+Rk9jVPevBaYdhOMOSTz
+   cswIsi5/dCgJDP1vMJ+l4zpIzVfmwfO5kY45MfOlfm3hLEC3qCJf0IEre/f7D+RFtKOMK6Y0kPx5
+   NF7FfurcXM5pn2czPqxeI2ZQbXsTnxz6HoL/Er4sdYHyJ4+sMJoEt5LL9Jc2041DTExI6+kjvTaX
+   4OWa2CFA4HjEgGmBJD1IgG4aJANv12SbUPZh3w==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=um1vYwELQnop0ytroMOrVSVAuZT/g0BHTFiN8DQPbQM=;
- b=fB7w0MfHrAnAdnqvK6DayAhS/eBp6h11D/3rPRVEnVc6tQdKoBjPQCjbZv0AFuvK/os091HqUXOy
-   wdY33j8IdPikwTyGzsnt7DrLfqTRy0Rb7a25xOQuiWiZJnlhsfo5db9ma811+Ysc+nq624J/2GLA
-   BEuZw40R6nN4V9zPRO0ouqmd6hX6EoenshodK4ze4v3f8mGHRwt69MNZKnYY3vvXA3ZQd3bqVSA4
-   /ZulMTKL4OHlOZbsdIocKHfkQN3m+qH3B1jhDNudwebCTNNlxxh50velennpFrwK4GbuWPkZfi6P
-   tqo+L3nLmEZpWwydVzJoUvGLYdqVuEDRBvtlAA==
+ bh=gI7JcQ4rYeDbV3qxdOTVcny2LrKCCjkp0pcU2S94cZE=;
+ b=Gsp0i08l22wFXRkQ8Hp2Hq/QZM8QyQaGPIsOdGNGQCP9ILPUw31k87FCH4ycXsE8CgmK1y41tBsJ
+   6gYqedGsPDLuuPm482I6IS4A44Ysod8C0BkDh1vazV85hHzvPLLAZJyxiNMYxD2NV2WMuUQSKPTG
+   2ibxGWrVh2aXOTFB18l1SkP7uwH3H7dehUgYI98DshBwOcPl/76sLsJJOXzLD1bGdcSRyt0ATbpk
+   fpt9nDXj0sTBJA6KHk2Q+zMEz/o4WrFCp7QwClvUaPfwh9L4TXDfbQgSeHvVNUfYp/hciig4Do64
+   2GFwcCQMQQSxG/BbM6FprVZ6Y0j5EtSpICBU2A==
 Received: by omta-ad1-fd3-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220603 64bit (built Jun  3
  2022))
- with ESMTPS id <0RE3006TFPVU0FA0@omta-ad1-fd3-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Sun, 26 Jun 2022 20:21:30 +0000 (GMT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linux-foundation.org;
- s=korg; t=1656274873; bh=YA1suyAIbe/VH4TCMNhtyL/JXWakMwo5bfZqo1z55Xg=;
- h=Date:To:From:Subject:From;
- b=drHZtyLw2fExZGb12M+msS8CBspYutpxYGv8CHL1uDRITwB9pLT5nuzE8vha339iP
- Q0oKExtyQikarspA1yCH9UDk3xU6Im1OQFFzPffxPT+D/6fNM46vgvzPHKtWJ/W+z6
- c6wyuJfR84hoMTnitKhjGTASn4PwcpQEBD1aUyhs=
-Date: Sun, 26 Jun 2022 13:21:13 -0700
-To: mm-commits@vger.kernel.org, stable@vger.kernel.org, piaojun@huawei.com,
- mark@fasheh.com, junxiao.bi@oracle.com, joseph.qi@linux.alibaba.com,
- jlbec@evilplan.org, heming.zhao@suse.com, ghe@suse.com, gechangwei@live.cn,
- ocfs2-devel@oss.oracle.com, akpm@linux-foundation.org
-Message-id: <20220626202113.CE8DAC34114@smtp.kernel.org>
-X-Source-IP: 145.40.68.75
-X-Proofpoint-Virus-Version: vendor=nai engine=6400 definitions=10390
- signatures=595540
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 impostorscore=0
- clxscore=193 phishscore=0 priorityscore=138 bulkscore=0 lowpriorityscore=0
- mlxscore=0 spamscore=0 mlxlogscore=999 malwarescore=0 adultscore=0
- suspectscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2204290000 definitions=main-2206260080
-Subject: [Ocfs2-devel] +
-	revert-ocfs2-mount-shared-volume-without-ha-stack.patch added	to
+ with ESMTPS id <0RE3001X3Y3LRR20@omta-ad1-fd3-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Sun, 26 Jun 2022 23:18:57 +0000 (GMT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=oracle.com; h=from : to
+ : cc : subject : date : message-id : references : in-reply-to : content-type :
+ content-transfer-encoding : mime-version; s=corp-2021-07-09;
+ bh=cSDjYrZW+MqdDiu92W5aj8BF3DJmzawp1vDyunhp36Y=;
+ b=xRcFvpCoH3N5OKkPbCQC5QTm9bQ28GSDi2MMrFHrk4LrqctnTb8jcrK3N4tnUPsArMIc
+ 20FuejWh4ObeZeEU3Z0IchKVT7l8p9wxAaJR4KScAUZ7KUU1jFZIWKke0S7OnwDHWW+q
+ S3bML/EhHuzu/xDczfKhKnnSF1wYG+V+ah2OVJIzwrrG8IpbxAiLOSHM/q/RfalKk8Q/
+ qpZNBu9kdx/+kGr8cN6ZoYt2iyG9IxhXDrwZUa30JSb+7BjlwoXaL6vaUS18DUlmzIhV
+ joNzSMkaZvIhizJUM5toWb9eBTEoL40lDCMkwcRlujT6qEWZ2L2Xt3z4uIFyVGHLqD/O sw==
+ARC-Seal: i=1; a=rsa-sha256; s=arcselector9901; d=microsoft.com; cv=none;
+ b=b7YWxcFYQBZ31DrHpAvP//ly6v7VZRJLptrUwc2LVw8kKeUB+HmsloaIxDNKxDRTA4l8Ue9Okf4hVVQU9G2yMKnH+5jYvVQhaUlQb36vvi3BLIorpJt2aX6vLlSa340kCPtMeqp88H2eJ4StZ0GXfKN5Ab189gHatx9u3yQ2LyKs51/Mg3jQP+5bpRDWGL3j4SrJItlfT8TZohMbk81hQ1gK3herTvqLFrJyXaOSDZIDK0D0MuQShyGKS/9UzR5S3rXWW3JC3OD+NXEE4svemchW5CubF/FYbOJ4+d94czojuzIpaM4kkjwofXv3qUo7ReoMGj3Oi55jXTEYqJXYPg==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=arcselector9901;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
+ bh=cSDjYrZW+MqdDiu92W5aj8BF3DJmzawp1vDyunhp36Y=;
+ b=TUwaalST6MFhRHkyoeABtqeeuCXfnkEjDrmigAY6BxT/g7md0sm7nClw1ITl8GirjoucAxTUDx3UoJ8868MmcgliIA3yiaSJyShR0I+ztffj1yN2QG2gwPomviuSQaUvDxO7JpDiWOqgvVrw1APeOmyg8gDYW22ogM/lzEt01lvwUC1219NJp70ZTApU/NjPTr/2v+jyDL0JGS8QOqMEZOvcwN8I2HaWzcgOI+CesFE276z5j/Yv8zwmDpY6IGTUQF2obOZhOvBcuL8QRtg2StfWGSCMRGn3TcUUxTOmxx5cjqWZJTXM/wsCcwGFldj4FLGHzc/yrjEas1IdpzpJkg==
+ARC-Authentication-results: i=1; mx.microsoft.com 1; spf=pass
+ smtp.mailfrom=oracle.com; dmarc=pass action=none header.from=oracle.com;
+ dkim=pass header.d=oracle.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=oracle.onmicrosoft.com;
+ s=selector2-oracle-onmicrosoft-com;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
+ bh=cSDjYrZW+MqdDiu92W5aj8BF3DJmzawp1vDyunhp36Y=;
+ b=uHAYlfCYbzQSCT2BvUsmzGb2NeAwBbxa9JWB2QFF0HFYf8Jh/gCQErHsOwkZhsr+R+kEi5Hr8xtnRXb4bo3/GOeySTMjdmP7ECY4AxWn1pFK2Tejrac65xRoR+7NxmJFkw07jhM/BBDQ4Q/yVuwI8xcZQd69ofQP4VsaW6bfd5c=
+To: Andrew Morton <akpm@linux-foundation.org>
+Thread-topic: + revert-ocfs2-mount-shared-volume-without-ha-stack.patch added
+ to mm-hotfixes-unstable branch
+Thread-index: AQHYiZpNT0pKtfgWFkuwieM3parpKK1iUvRv
+Date: Sun, 26 Jun 2022 23:18:44 +0000
+Message-id: <0D22B946-B3D7-4137-BC22-2737CA00D92A@oracle.com>
+References: <20220626202113.CE8DAC34114@smtp.kernel.org>
+In-reply-to: <20220626202113.CE8DAC34114@smtp.kernel.org>
+Accept-Language: en-US
+Content-language: zh-CN
+X-MS-Has-Attach:
+X-Forefront-Antispam-Report: CIP:255.255.255.255; CTRY:; LANG:en; SCL:-1; SRV:;
+ IPV:NLI; SFV:SKI; H:SJ0PR10MB4752.namprd10.prod.outlook.com; PTR:; CAT:NONE;
+ SFS:; DIR:INB;
+MIME-version: 1.0
+X-OriginatorOrg: oracle.com
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 26 Jun 2022 23:18:44.4153 (UTC)
+X-Proofpoint-Virus-Version: vendor=fsecure engine=2.50.10434:6.0.517,
+ 18.0.883 definitions=2022-06-26_09:2022-06-24, 2022-06-26 signatures=0
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 suspectscore=0
+ mlxscore=0 phishscore=0 malwarescore=0 mlxlogscore=999 spamscore=0
+ adultscore=0 bulkscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2204290000 definitions=main-2206260094
+Cc: "mm-commits@vger.kernel.org" <mm-commits@vger.kernel.org>,
+ "stable@vger.kernel.org" <stable@vger.kernel.org>,
+ "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>
+Subject: Re: [Ocfs2-devel] +
+ revert-ocfs2-mount-shared-volume-without-ha-stack.patch added to
  mm-hotfixes-unstable branch
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
@@ -63,301 +93,255 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: Andrew Morton via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: Andrew Morton <akpm@linux-foundation.org>
-MIME-version: 1.0
-Content-type: text/plain; charset="us-ascii"
-Content-transfer-encoding: 7bit
-Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-ServerName: ams.source.kernel.org
-X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 ip4:140.211.169.12/30 include:_spf.kernel.org
- include:_spf.google.com ~all
-X-Spam: Clean
-X-Proofpoint-ORIG-GUID: kbe-T5iFSIwZroLwbnb2NTyEjeQPyMyL
-X-Proofpoint-GUID: kbe-T5iFSIwZroLwbnb2NTyEjeQPyMyL
-Reporting-Meta:
- AAEnJKty1ydvI673Bs2SQ4YqXextwF3x5br/o+OtYJQYe3ZZTgNRvAhwNM1SkfyB
- pNvZQGo5IRsbf//MZQZQgnu7dbgr/z4I9tvoqYQVLXuvWyFV3AESJiOx4iIl72wH
- h1VmQO8i9msApaEB7R2QjwK7WLnof5Rn6yWWsvisj/Kgbn3ZU/dTdlON8dw2I76d
- HipNd+7rJqHBOUFcWUJ9ICz81LdxBT7CCrjj9vdHgPR+ttBhwcOKV8mmewxgi9Xw
- rBp3N0H/PmoNnYG2TTVEWRSXstv7Bz74FBbt9kOp66oIMFGutWZ8NXQGN0duFu46
- 0If6g39Ysvt4dafa2smZNJckz5Pnv3M6MQ6VSJm/DWF+uVisXaZYeZgG2N8mIH93
- kVRo8aWX1wW3MdDIYqyg7eAnRu/4Ea2DRta7V3kP0/wMVgVMSdy+KWJLn/b+TJ7B
- AVyfnPhpzR153TbE56C2tL9czrGndg2P2Vwp1i1qI9CQcNh0MQi8CR18YoOQIFkO
- UxhlCsOk52vEo3oZ7NJ3L7d4FVbbsMnd4J3MO1WLyuKW
-
-
-The patch titled
-     Subject: Revert "ocfs2: mount shared volume without ha stack"
-has been added to the -mm mm-hotfixes-unstable branch.  Its filename is
-     revert-ocfs2-mount-shared-volume-without-ha-stack.patch
-
-This patch will shortly appear at
-     https://git.kernel.org/pub/scm/linux/kernel/git/akpm/25-new.git/tree/patches/revert-ocfs2-mount-shared-volume-without-ha-stack.patch
-
-This patch will later appear in the mm-hotfixes-unstable branch at
-    git://git.kernel.org/pub/scm/linux/kernel/git/akpm/mm
-
-Before you just go and hit "reply", please:
-   a) Consider who else should be cc'ed
-   b) Prefer to cc a suitable mailing list as well
-   c) Ideally: find the original patch on the mailing list and do a
-      reply-to-all to that, adding suitable additional cc's
-
-*** Remember to use Documentation/process/submit-checklist.rst when testing your code ***
-
-The -mm tree is included into linux-next via the mm-everything
-branch at git://git.kernel.org/pub/scm/linux/kernel/git/akpm/mm
-and is updated there every 2-3 working days
-
-------------------------------------------------------
 From: Junxiao Bi via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Subject: Revert "ocfs2: mount shared volume without ha stack"
-Date: Fri, 3 Jun 2022 15:28:01 -0700
+Reply-to: Junxiao Bi <junxiao.bi@oracle.com>
+Content-type: text/plain; charset="utf-8"
+Content-transfer-encoding: base64
+Errors-to: ocfs2-devel-bounces@oss.oracle.com
+X-MS-TNEF-Correlator:
+x-ms-publictraffictype: Email
+x-ms-office365-filtering-correlation-id: 423b3f31-f15b-49e6-e555-08da57ca3707
+x-ms-traffictypediagnostic: DM6PR10MB3067:EE_
+x-oracle-tenancy: 1
+x-microsoft-antispam: BCL:0;
+x-microsoft-antispam-message-info:
+ WeEbmIRrbL52B4e5itNdHotzdhYm2Osa9QtdSq+ru5jG7jrI5A16EfFhmH/uKENPvcFYeOsoEVyka3U5PgdUZOpGnHmdlDwTyFtXIUWnYkqis1qvBOe3rlXJMcXzsc9GoeImltfJHpA4IxmEaCY5xne5kQ6rqxEXqNtfTjK+qQuNVoyruvsWWCQhL2NNGVIFlwldFqFsVVALcnn3+wwbl/EXgSqvYlyYvX84f6mi3W8vbJ+UZdV/Zvqv9xerUxrsxiRx3wa0nzUKB1ER6hQ6xGZFsL+AY00MGPAuyqU0JS9QEO6x8wUW8AIieEiejUyIkE1KG15qY3RUb9yC0180sv0mf9DZ19YMGXl+l1cdKd4hE4lImj+gNnL3DeOX/oFq2ljq3PsgvQiNRUuOQnqeLsR/WAE5bc/JwrTGsSRANhl2kjqlshrX1GhnFBnFKpDmzQ1tkoC8u9mFlEMk00c/GjQEj/i9D2rk9kICkkPNHZG4x00PdWN+GfbTOcVmNjmKe3Djd1kMP2+c/o97BOsChs8vXjkr/UFZuEgwkU6bnjISadiAekzNpjN1ngKJcp9Cfu9m8LquG7a62qME5mlsp5ZCu5wjp9tQ34sm/cgecI2ejDJnwdUIuAAq9UB9+wlgtCX2FWBx1P/IMbRvEeeOZWNWgDGx6vRkOsYXBouWLXFZSgm1zbFmwmMqdCBwk99eid9r8MPXGqbWPi4ey7VOyKP9SvydCgTpYzuQceDNY7VE/JvtcUtHG3LTzYw9MKdXqPMITSosA1deC+LmcM1tUQ==
+X-MS-Exchange-CrossTenant-AuthAs: Internal
+X-MS-Exchange-CrossTenant-AuthSource: SJ0PR10MB4752.namprd10.prod.outlook.com
+X-MS-Exchange-CrossTenant-Network-Message-Id:
+ 423b3f31-f15b-49e6-e555-08da57ca3707
+X-MS-Exchange-CrossTenant-fromentityheader: Hosted
+X-MS-Exchange-CrossTenant-id: 4e2c6054-71cb-48f1-bd6c-3a9705aca71b
+X-MS-Exchange-CrossTenant-mailboxtype: HOSTED
+X-MS-Exchange-CrossTenant-userprincipalname:
+ VZfYwFC1VqbR4JT1Z0HiSu3loxRQILqnRXJGHp6pUGAreN1NA4pfiKmZa49JFgMBbBD+Lgd/PiDfqnoKn66QYg==
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: DM6PR10MB3067
+X-Proofpoint-ORIG-GUID: jqzm08LXSBcURUd7shYx1gcmWA4xacDY
+X-Proofpoint-GUID: jqzm08LXSBcURUd7shYx1gcmWA4xacDY
+Reporting-Meta:
+ AAFMMamo8A1ZwzxNhaLvp4ijQniBV8B7YjKf2uav5AO+tLvkD5cPRxCR8axXMqkE
+ tK9eLEPd2Xex04irECUQnffWkyIABuWE0XDGrxuVcmBzjhl2iDGarIf4c5w4eLlF
+ t3sOJeMiUwnny5qIkMVGicBNitscLh7nP8fT2H58kvhyfoZjVO93mWebRSUsh6NC
+ fDDPsjM2uI2y0O3fg5n3EtAHVyp6TGUQj60h9ciFanshC4cteH9woHgsGwnm1AEa
+ 9Bd3+ZFqUBozOHbPJf/i+0L9k/5tbIG0yGeilwzNkOZ7mwTjPKGy3BFry5N5BCG6
+ vxpdiTahJEv+iXc1sOENImaCSuZVqjjDWN6jU+Vn7RdZMNvzTfZK0JzVGekIggXH
+ 9J01j8NdnWix8/qnAd56OoOOngpjR/1ixB05rlu0SD6DZMNUnzzsePXg2KPf+bcQ
+ Ed3QGb78DVfV133Axa8Sea6CiU7uOC7jD03PEQrjhlxpEIV8h2qB9S+0lZxbgzys
+ YXgUJ0jTCMdNUDpLiJoFUgUcdzePC3Q5rODoqdRMS3I=
 
-This reverts commit 912f655d78c5d4ad05eac287f23a435924df7144.
-
-This commit introduced a regression that can cause mount hung.  The
-changes in __ocfs2_find_empty_slot causes that any node with none-zero
-node number can grab the slot that was already taken by node 0, so node 1
-will access the same journal with node 0, when it try to grab journal
-cluster lock, it will hung because it was already acquired by node 0. 
-It's very easy to reproduce this, in one cluster, mount node 0 first, then
-node 1, you will see the following call trace from node 1.
-
-[13148.735424] INFO: task mount.ocfs2:53045 blocked for more than 122 seconds.
-[13148.739691]       Not tainted 5.15.0-2148.0.4.el8uek.mountracev2.x86_64 #2
-[13148.742560] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
-[13148.745846] task:mount.ocfs2     state:D stack:    0 pid:53045 ppid: 53044 flags:0x00004000
-[13148.749354] Call Trace:
-[13148.750718]  <TASK>
-[13148.752019]  ? usleep_range+0x90/0x89
-[13148.753882]  __schedule+0x210/0x567
-[13148.755684]  schedule+0x44/0xa8
-[13148.757270]  schedule_timeout+0x106/0x13c
-[13148.759273]  ? __prepare_to_swait+0x53/0x78
-[13148.761218]  __wait_for_common+0xae/0x163
-[13148.763144]  __ocfs2_cluster_lock.constprop.0+0x1d6/0x870 [ocfs2]
-[13148.765780]  ? ocfs2_inode_lock_full_nested+0x18d/0x398 [ocfs2]
-[13148.768312]  ocfs2_inode_lock_full_nested+0x18d/0x398 [ocfs2]
-[13148.770968]  ocfs2_journal_init+0x91/0x340 [ocfs2]
-[13148.773202]  ocfs2_check_volume+0x39/0x461 [ocfs2]
-[13148.775401]  ? iput+0x69/0xba
-[13148.777047]  ocfs2_mount_volume.isra.0.cold+0x40/0x1f5 [ocfs2]
-[13148.779646]  ocfs2_fill_super+0x54b/0x853 [ocfs2]
-[13148.781756]  mount_bdev+0x190/0x1b7
-[13148.783443]  ? ocfs2_remount+0x440/0x440 [ocfs2]
-[13148.785634]  legacy_get_tree+0x27/0x48
-[13148.787466]  vfs_get_tree+0x25/0xd0
-[13148.789270]  do_new_mount+0x18c/0x2d9
-[13148.791046]  __x64_sys_mount+0x10e/0x142
-[13148.792911]  do_syscall_64+0x3b/0x89
-[13148.794667]  entry_SYSCALL_64_after_hwframe+0x170/0x0
-[13148.797051] RIP: 0033:0x7f2309f6e26e
-[13148.798784] RSP: 002b:00007ffdcee7d408 EFLAGS: 00000246 ORIG_RAX: 00000000000000a5
-[13148.801974] RAX: ffffffffffffffda RBX: 00007ffdcee7d4a0 RCX: 00007f2309f6e26e
-[13148.804815] RDX: 0000559aa762a8ae RSI: 0000559aa939d340 RDI: 0000559aa93a22b0
-[13148.807719] RBP: 00007ffdcee7d5b0 R08: 0000559aa93a2290 R09: 00007f230a0b4820
-[13148.810659] R10: 0000000000000000 R11: 0000000000000246 R12: 00007ffdcee7d420
-[13148.813609] R13: 0000000000000000 R14: 0000559aa939f000 R15: 0000000000000000
-[13148.816564]  </TASK>
-
-To fix it, we can just fix __ocfs2_find_empty_slot.  But original commit
-introduced the feature to mount ocfs2 locally even it is cluster based,
-that is a very dangerous, it can easily cause serious data corruption,
-there is no way to stop other nodes mounting the fs and corrupting it. 
-Setup ha or other cluster-aware stack is just the cost that we have to
-take for avoiding corruption, otherwise we have to do it in kernel.
-
-Link: https://lkml.kernel.org/r/20220603222801.42488-1-junxiao.bi@oracle.com
-Fixes: 912f655d78c5("ocfs2: mount shared volume without ha stack")
-Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
-Acked-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-Cc: Mark Fasheh <mark@fasheh.com>
-Cc: Joel Becker <jlbec@evilplan.org>
-Cc: Changwei Ge <gechangwei@live.cn>
-Cc: Gang He <ghe@suse.com>
-Cc: Jun Piao <piaojun@huawei.com>
-Cc: <heming.zhao@suse.com>
-Cc: <stable@vger.kernel.org>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
----
-
- fs/ocfs2/ocfs2.h    |    4 ---
- fs/ocfs2/slot_map.c |   46 +++++++++++++++++-------------------------
- fs/ocfs2/super.c    |   21 -------------------
- 3 files changed, 20 insertions(+), 51 deletions(-)
-
---- a/fs/ocfs2/ocfs2.h~revert-ocfs2-mount-shared-volume-without-ha-stack
-+++ a/fs/ocfs2/ocfs2.h
-@@ -277,7 +277,6 @@ enum ocfs2_mount_options
- 	OCFS2_MOUNT_JOURNAL_ASYNC_COMMIT = 1 << 15,  /* Journal Async Commit */
- 	OCFS2_MOUNT_ERRORS_CONT = 1 << 16, /* Return EIO to the calling process on error */
- 	OCFS2_MOUNT_ERRORS_ROFS = 1 << 17, /* Change filesystem to read-only on error */
--	OCFS2_MOUNT_NOCLUSTER = 1 << 18, /* No cluster aware filesystem mount */
- };
- 
- #define OCFS2_OSB_SOFT_RO	0x0001
-@@ -673,8 +672,7 @@ static inline int ocfs2_cluster_o2cb_glo
- 
- static inline int ocfs2_mount_local(struct ocfs2_super *osb)
- {
--	return ((osb->s_feature_incompat & OCFS2_FEATURE_INCOMPAT_LOCAL_MOUNT)
--		|| (osb->s_mount_opt & OCFS2_MOUNT_NOCLUSTER));
-+	return (osb->s_feature_incompat & OCFS2_FEATURE_INCOMPAT_LOCAL_MOUNT);
- }
- 
- static inline int ocfs2_uses_extended_slot_map(struct ocfs2_super *osb)
---- a/fs/ocfs2/slot_map.c~revert-ocfs2-mount-shared-volume-without-ha-stack
-+++ a/fs/ocfs2/slot_map.c
-@@ -252,16 +252,14 @@ static int __ocfs2_find_empty_slot(struc
- 	int i, ret = -ENOSPC;
- 
- 	if ((preferred >= 0) && (preferred < si->si_num_slots)) {
--		if (!si->si_slots[preferred].sl_valid ||
--		    !si->si_slots[preferred].sl_node_num) {
-+		if (!si->si_slots[preferred].sl_valid) {
- 			ret = preferred;
- 			goto out;
- 		}
- 	}
- 
- 	for(i = 0; i < si->si_num_slots; i++) {
--		if (!si->si_slots[i].sl_valid ||
--		    !si->si_slots[i].sl_node_num) {
-+		if (!si->si_slots[i].sl_valid) {
- 			ret = i;
- 			break;
- 		}
-@@ -456,30 +454,24 @@ int ocfs2_find_slot(struct ocfs2_super *
- 	spin_lock(&osb->osb_lock);
- 	ocfs2_update_slot_info(si);
- 
--	if (ocfs2_mount_local(osb))
--		/* use slot 0 directly in local mode */
--		slot = 0;
--	else {
--		/* search for ourselves first and take the slot if it already
--		 * exists. Perhaps we need to mark this in a variable for our
--		 * own journal recovery? Possibly not, though we certainly
--		 * need to warn to the user */
--		slot = __ocfs2_node_num_to_slot(si, osb->node_num);
-+	/* search for ourselves first and take the slot if it already
-+	 * exists. Perhaps we need to mark this in a variable for our
-+	 * own journal recovery? Possibly not, though we certainly
-+	 * need to warn to the user */
-+	slot = __ocfs2_node_num_to_slot(si, osb->node_num);
-+	if (slot < 0) {
-+		/* if no slot yet, then just take 1st available
-+		 * one. */
-+		slot = __ocfs2_find_empty_slot(si, osb->preferred_slot);
- 		if (slot < 0) {
--			/* if no slot yet, then just take 1st available
--			 * one. */
--			slot = __ocfs2_find_empty_slot(si, osb->preferred_slot);
--			if (slot < 0) {
--				spin_unlock(&osb->osb_lock);
--				mlog(ML_ERROR, "no free slots available!\n");
--				status = -EINVAL;
--				goto bail;
--			}
--		} else
--			printk(KERN_INFO "ocfs2: Slot %d on device (%s) was "
--			       "already allocated to this node!\n",
--			       slot, osb->dev_str);
--	}
-+			spin_unlock(&osb->osb_lock);
-+			mlog(ML_ERROR, "no free slots available!\n");
-+			status = -EINVAL;
-+			goto bail;
-+		}
-+	} else
-+		printk(KERN_INFO "ocfs2: Slot %d on device (%s) was already "
-+		       "allocated to this node!\n", slot, osb->dev_str);
- 
- 	ocfs2_set_slot(si, slot, osb->node_num);
- 	osb->slot_num = slot;
---- a/fs/ocfs2/super.c~revert-ocfs2-mount-shared-volume-without-ha-stack
-+++ a/fs/ocfs2/super.c
-@@ -172,7 +172,6 @@ enum {
- 	Opt_dir_resv_level,
- 	Opt_journal_async_commit,
- 	Opt_err_cont,
--	Opt_nocluster,
- 	Opt_err,
- };
- 
-@@ -206,7 +205,6 @@ static const match_table_t tokens = {
- 	{Opt_dir_resv_level, "dir_resv_level=%u"},
- 	{Opt_journal_async_commit, "journal_async_commit"},
- 	{Opt_err_cont, "errors=continue"},
--	{Opt_nocluster, "nocluster"},
- 	{Opt_err, NULL}
- };
- 
-@@ -618,13 +616,6 @@ static int ocfs2_remount(struct super_bl
- 		goto out;
- 	}
- 
--	tmp = OCFS2_MOUNT_NOCLUSTER;
--	if ((osb->s_mount_opt & tmp) != (parsed_options.mount_opt & tmp)) {
--		ret = -EINVAL;
--		mlog(ML_ERROR, "Cannot change nocluster option on remount\n");
--		goto out;
--	}
--
- 	tmp = OCFS2_MOUNT_HB_LOCAL | OCFS2_MOUNT_HB_GLOBAL |
- 		OCFS2_MOUNT_HB_NONE;
- 	if ((osb->s_mount_opt & tmp) != (parsed_options.mount_opt & tmp)) {
-@@ -865,7 +856,6 @@ static int ocfs2_verify_userspace_stack(
- 	}
- 
- 	if (ocfs2_userspace_stack(osb) &&
--	    !(osb->s_mount_opt & OCFS2_MOUNT_NOCLUSTER) &&
- 	    strncmp(osb->osb_cluster_stack, mopt->cluster_stack,
- 		    OCFS2_STACK_LABEL_LEN)) {
- 		mlog(ML_ERROR,
-@@ -1137,11 +1127,6 @@ static int ocfs2_fill_super(struct super
- 	       osb->s_mount_opt & OCFS2_MOUNT_DATA_WRITEBACK ? "writeback" :
- 	       "ordered");
- 
--	if ((osb->s_mount_opt & OCFS2_MOUNT_NOCLUSTER) &&
--	   !(osb->s_feature_incompat & OCFS2_FEATURE_INCOMPAT_LOCAL_MOUNT))
--		printk(KERN_NOTICE "ocfs2: The shared device (%s) is mounted "
--		       "without cluster aware mode.\n", osb->dev_str);
--
- 	atomic_set(&osb->vol_state, VOLUME_MOUNTED);
- 	wake_up(&osb->osb_mount_event);
- 
-@@ -1452,9 +1437,6 @@ static int ocfs2_parse_options(struct su
- 		case Opt_journal_async_commit:
- 			mopt->mount_opt |= OCFS2_MOUNT_JOURNAL_ASYNC_COMMIT;
- 			break;
--		case Opt_nocluster:
--			mopt->mount_opt |= OCFS2_MOUNT_NOCLUSTER;
--			break;
- 		default:
- 			mlog(ML_ERROR,
- 			     "Unrecognized mount option \"%s\" "
-@@ -1566,9 +1548,6 @@ static int ocfs2_show_options(struct seq
- 	if (opts & OCFS2_MOUNT_JOURNAL_ASYNC_COMMIT)
- 		seq_printf(s, ",journal_async_commit");
- 
--	if (opts & OCFS2_MOUNT_NOCLUSTER)
--		seq_printf(s, ",nocluster");
--
- 	return 0;
- }
- 
-_
-
-Patches currently in -mm which might be from ocfs2-devel@oss.oracle.com are
-
-revert-ocfs2-mount-shared-volume-without-ha-stack.patch
-
-
-_______________________________________________
-Ocfs2-devel mailing list
-Ocfs2-devel@oss.oracle.com
-https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+SGkgQW5kcmV3LA0KDQpUaGFua3MgZm9yIG1lcmdpbmcgaXQgdG8gbW0uDQpJIHNlZSB0aGUg4oCc
+RnJvbeKAnSBpcyDigJwgSnVueGlhbyBCaSB2aWEgT2NmczItZGV2ZWwgPG9jZnMyLWRldmVsQG9z
+cy5vcmFjbGUuY29tPuKAnSwgY2FuIHlvdSBoZWxwIGZpeCB0aGF0Pw0KDQpUaGFua3MsDQpKdW54
+aWFvDQoNCg0KPiDlnKggMjAyMuW5tDbmnIgyNuaXpe+8jOS4i+WNiDE6MjHvvIxBbmRyZXcgTW9y
+dG9uIDxha3BtQGxpbnV4LWZvdW5kYXRpb24ub3JnPiDlhpnpgZPvvJoNCj4gDQo+IO+7vw0KPiBU
+aGUgcGF0Y2ggdGl0bGVkDQo+ICAgICBTdWJqZWN0OiBSZXZlcnQgIm9jZnMyOiBtb3VudCBzaGFy
+ZWQgdm9sdW1lIHdpdGhvdXQgaGEgc3RhY2siDQo+IGhhcyBiZWVuIGFkZGVkIHRvIHRoZSAtbW0g
+bW0taG90Zml4ZXMtdW5zdGFibGUgYnJhbmNoLiAgSXRzIGZpbGVuYW1lIGlzDQo+ICAgICByZXZl
+cnQtb2NmczItbW91bnQtc2hhcmVkLXZvbHVtZS13aXRob3V0LWhhLXN0YWNrLnBhdGNoDQo+IA0K
+PiBUaGlzIHBhdGNoIHdpbGwgc2hvcnRseSBhcHBlYXIgYXQNCj4gICAgIGh0dHBzOi8vZ2l0Lmtl
+cm5lbC5vcmcvcHViL3NjbS9saW51eC9rZXJuZWwvZ2l0L2FrcG0vMjUtbmV3LmdpdC90cmVlL3Bh
+dGNoZXMvcmV2ZXJ0LW9jZnMyLW1vdW50LXNoYXJlZC12b2x1bWUtd2l0aG91dC1oYS1zdGFjay5w
+YXRjaA0KPiANCj4gVGhpcyBwYXRjaCB3aWxsIGxhdGVyIGFwcGVhciBpbiB0aGUgbW0taG90Zml4
+ZXMtdW5zdGFibGUgYnJhbmNoIGF0DQo+ICAgIGdpdDovL2dpdC5rZXJuZWwub3JnL3B1Yi9zY20v
+bGludXgva2VybmVsL2dpdC9ha3BtL21tDQo+IA0KPiBCZWZvcmUgeW91IGp1c3QgZ28gYW5kIGhp
+dCAicmVwbHkiLCBwbGVhc2U6DQo+ICAgYSkgQ29uc2lkZXIgd2hvIGVsc2Ugc2hvdWxkIGJlIGNj
+J2VkDQo+ICAgYikgUHJlZmVyIHRvIGNjIGEgc3VpdGFibGUgbWFpbGluZyBsaXN0IGFzIHdlbGwN
+Cj4gICBjKSBJZGVhbGx5OiBmaW5kIHRoZSBvcmlnaW5hbCBwYXRjaCBvbiB0aGUgbWFpbGluZyBs
+aXN0IGFuZCBkbyBhDQo+ICAgICAgcmVwbHktdG8tYWxsIHRvIHRoYXQsIGFkZGluZyBzdWl0YWJs
+ZSBhZGRpdGlvbmFsIGNjJ3MNCj4gDQo+ICoqKiBSZW1lbWJlciB0byB1c2UgRG9jdW1lbnRhdGlv
+bi9wcm9jZXNzL3N1Ym1pdC1jaGVja2xpc3QucnN0IHdoZW4gdGVzdGluZyB5b3VyIGNvZGUgKioq
+DQo+IA0KPiBUaGUgLW1tIHRyZWUgaXMgaW5jbHVkZWQgaW50byBsaW51eC1uZXh0IHZpYSB0aGUg
+bW0tZXZlcnl0aGluZw0KPiBicmFuY2ggYXQgZ2l0Oi8vZ2l0Lmtlcm5lbC5vcmcvcHViL3NjbS9s
+aW51eC9rZXJuZWwvZ2l0L2FrcG0vbW0NCj4gYW5kIGlzIHVwZGF0ZWQgdGhlcmUgZXZlcnkgMi0z
+IHdvcmtpbmcgZGF5cw0KPiANCj4gLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tLS0tDQo+IEZyb206IEp1bnhpYW8gQmkgdmlhIE9jZnMyLWRldmVsIDxv
+Y2ZzMi1kZXZlbEBvc3Mub3JhY2xlLmNvbT4NCj4gU3ViamVjdDogUmV2ZXJ0ICJvY2ZzMjogbW91
+bnQgc2hhcmVkIHZvbHVtZSB3aXRob3V0IGhhIHN0YWNrIg0KPiBEYXRlOiBGcmksIDMgSnVuIDIw
+MjIgMTU6Mjg6MDEgLTA3MDANCj4gDQo+IFRoaXMgcmV2ZXJ0cyBjb21taXQgOTEyZjY1NWQ3OGM1
+ZDRhZDA1ZWFjMjg3ZjIzYTQzNTkyNGRmNzE0NC4NCj4gDQo+IFRoaXMgY29tbWl0IGludHJvZHVj
+ZWQgYSByZWdyZXNzaW9uIHRoYXQgY2FuIGNhdXNlIG1vdW50IGh1bmcuICBUaGUNCj4gY2hhbmdl
+cyBpbiBfX29jZnMyX2ZpbmRfZW1wdHlfc2xvdCBjYXVzZXMgdGhhdCBhbnkgbm9kZSB3aXRoIG5v
+bmUtemVybw0KPiBub2RlIG51bWJlciBjYW4gZ3JhYiB0aGUgc2xvdCB0aGF0IHdhcyBhbHJlYWR5
+IHRha2VuIGJ5IG5vZGUgMCwgc28gbm9kZSAxDQo+IHdpbGwgYWNjZXNzIHRoZSBzYW1lIGpvdXJu
+YWwgd2l0aCBub2RlIDAsIHdoZW4gaXQgdHJ5IHRvIGdyYWIgam91cm5hbA0KPiBjbHVzdGVyIGxv
+Y2ssIGl0IHdpbGwgaHVuZyBiZWNhdXNlIGl0IHdhcyBhbHJlYWR5IGFjcXVpcmVkIGJ5IG5vZGUg
+MC4gDQo+IEl0J3MgdmVyeSBlYXN5IHRvIHJlcHJvZHVjZSB0aGlzLCBpbiBvbmUgY2x1c3Rlciwg
+bW91bnQgbm9kZSAwIGZpcnN0LCB0aGVuDQo+IG5vZGUgMSwgeW91IHdpbGwgc2VlIHRoZSBmb2xs
+b3dpbmcgY2FsbCB0cmFjZSBmcm9tIG5vZGUgMS4NCj4gDQo+IFsxMzE0OC43MzU0MjRdIElORk86
+IHRhc2sgbW91bnQub2NmczI6NTMwNDUgYmxvY2tlZCBmb3IgbW9yZSB0aGFuIDEyMiBzZWNvbmRz
+Lg0KPiBbMTMxNDguNzM5NjkxXSAgICAgICBOb3QgdGFpbnRlZCA1LjE1LjAtMjE0OC4wLjQuZWw4
+dWVrLm1vdW50cmFjZXYyLng4Nl82NCAjMg0KPiBbMTMxNDguNzQyNTYwXSAiZWNobyAwID4gL3By
+b2Mvc3lzL2tlcm5lbC9odW5nX3Rhc2tfdGltZW91dF9zZWNzIiBkaXNhYmxlcyB0aGlzIG1lc3Nh
+Z2UuDQo+IFsxMzE0OC43NDU4NDZdIHRhc2s6bW91bnQub2NmczIgICAgIHN0YXRlOkQgc3RhY2s6
+ICAgIDAgcGlkOjUzMDQ1IHBwaWQ6IDUzMDQ0IGZsYWdzOjB4MDAwMDQwMDANCj4gWzEzMTQ4Ljc0
+OTM1NF0gQ2FsbCBUcmFjZToNCj4gWzEzMTQ4Ljc1MDcxOF0gIDxUQVNLPg0KPiBbMTMxNDguNzUy
+MDE5XSAgPyB1c2xlZXBfcmFuZ2UrMHg5MC8weDg5DQo+IFsxMzE0OC43NTM4ODJdICBfX3NjaGVk
+dWxlKzB4MjEwLzB4NTY3DQo+IFsxMzE0OC43NTU2ODRdICBzY2hlZHVsZSsweDQ0LzB4YTgNCj4g
+WzEzMTQ4Ljc1NzI3MF0gIHNjaGVkdWxlX3RpbWVvdXQrMHgxMDYvMHgxM2MNCj4gWzEzMTQ4Ljc1
+OTI3M10gID8gX19wcmVwYXJlX3RvX3N3YWl0KzB4NTMvMHg3OA0KPiBbMTMxNDguNzYxMjE4XSAg
+X193YWl0X2Zvcl9jb21tb24rMHhhZS8weDE2Mw0KPiBbMTMxNDguNzYzMTQ0XSAgX19vY2ZzMl9j
+bHVzdGVyX2xvY2suY29uc3Rwcm9wLjArMHgxZDYvMHg4NzAgW29jZnMyXQ0KPiBbMTMxNDguNzY1
+NzgwXSAgPyBvY2ZzMl9pbm9kZV9sb2NrX2Z1bGxfbmVzdGVkKzB4MThkLzB4Mzk4IFtvY2ZzMl0N
+Cj4gWzEzMTQ4Ljc2ODMxMl0gIG9jZnMyX2lub2RlX2xvY2tfZnVsbF9uZXN0ZWQrMHgxOGQvMHgz
+OTggW29jZnMyXQ0KPiBbMTMxNDguNzcwOTY4XSAgb2NmczJfam91cm5hbF9pbml0KzB4OTEvMHgz
+NDAgW29jZnMyXQ0KPiBbMTMxNDguNzczMjAyXSAgb2NmczJfY2hlY2tfdm9sdW1lKzB4MzkvMHg0
+NjEgW29jZnMyXQ0KPiBbMTMxNDguNzc1NDAxXSAgPyBpcHV0KzB4NjkvMHhiYQ0KPiBbMTMxNDgu
+Nzc3MDQ3XSAgb2NmczJfbW91bnRfdm9sdW1lLmlzcmEuMC5jb2xkKzB4NDAvMHgxZjUgW29jZnMy
+XQ0KPiBbMTMxNDguNzc5NjQ2XSAgb2NmczJfZmlsbF9zdXBlcisweDU0Yi8weDg1MyBbb2NmczJd
+DQo+IFsxMzE0OC43ODE3NTZdICBtb3VudF9iZGV2KzB4MTkwLzB4MWI3DQo+IFsxMzE0OC43ODM0
+NDNdICA/IG9jZnMyX3JlbW91bnQrMHg0NDAvMHg0NDAgW29jZnMyXQ0KPiBbMTMxNDguNzg1NjM0
+XSAgbGVnYWN5X2dldF90cmVlKzB4MjcvMHg0OA0KPiBbMTMxNDguNzg3NDY2XSAgdmZzX2dldF90
+cmVlKzB4MjUvMHhkMA0KPiBbMTMxNDguNzg5MjcwXSAgZG9fbmV3X21vdW50KzB4MThjLzB4MmQ5
+DQo+IFsxMzE0OC43OTEwNDZdICBfX3g2NF9zeXNfbW91bnQrMHgxMGUvMHgxNDINCj4gWzEzMTQ4
+Ljc5MjkxMV0gIGRvX3N5c2NhbGxfNjQrMHgzYi8weDg5DQo+IFsxMzE0OC43OTQ2NjddICBlbnRy
+eV9TWVNDQUxMXzY0X2FmdGVyX2h3ZnJhbWUrMHgxNzAvMHgwDQo+IFsxMzE0OC43OTcwNTFdIFJJ
+UDogMDAzMzoweDdmMjMwOWY2ZTI2ZQ0KPiBbMTMxNDguNzk4Nzg0XSBSU1A6IDAwMmI6MDAwMDdm
+ZmRjZWU3ZDQwOCBFRkxBR1M6IDAwMDAwMjQ2IE9SSUdfUkFYOiAwMDAwMDAwMDAwMDAwMGE1DQo+
+IFsxMzE0OC44MDE5NzRdIFJBWDogZmZmZmZmZmZmZmZmZmZkYSBSQlg6IDAwMDA3ZmZkY2VlN2Q0
+YTAgUkNYOiAwMDAwN2YyMzA5ZjZlMjZlDQo+IFsxMzE0OC44MDQ4MTVdIFJEWDogMDAwMDU1OWFh
+NzYyYThhZSBSU0k6IDAwMDA1NTlhYTkzOWQzNDAgUkRJOiAwMDAwNTU5YWE5M2EyMmIwDQo+IFsx
+MzE0OC44MDc3MTldIFJCUDogMDAwMDdmZmRjZWU3ZDViMCBSMDg6IDAwMDA1NTlhYTkzYTIyOTAg
+UjA5OiAwMDAwN2YyMzBhMGI0ODIwDQo+IFsxMzE0OC44MTA2NTldIFIxMDogMDAwMDAwMDAwMDAw
+MDAwMCBSMTE6IDAwMDAwMDAwMDAwMDAyNDYgUjEyOiAwMDAwN2ZmZGNlZTdkNDIwDQo+IFsxMzE0
+OC44MTM2MDldIFIxMzogMDAwMDAwMDAwMDAwMDAwMCBSMTQ6IDAwMDA1NTlhYTkzOWYwMDAgUjE1
+OiAwMDAwMDAwMDAwMDAwMDAwDQo+IFsxMzE0OC44MTY1NjRdICA8L1RBU0s+DQo+IA0KPiBUbyBm
+aXggaXQsIHdlIGNhbiBqdXN0IGZpeCBfX29jZnMyX2ZpbmRfZW1wdHlfc2xvdC4gIEJ1dCBvcmln
+aW5hbCBjb21taXQNCj4gaW50cm9kdWNlZCB0aGUgZmVhdHVyZSB0byBtb3VudCBvY2ZzMiBsb2Nh
+bGx5IGV2ZW4gaXQgaXMgY2x1c3RlciBiYXNlZCwNCj4gdGhhdCBpcyBhIHZlcnkgZGFuZ2Vyb3Vz
+LCBpdCBjYW4gZWFzaWx5IGNhdXNlIHNlcmlvdXMgZGF0YSBjb3JydXB0aW9uLA0KPiB0aGVyZSBp
+cyBubyB3YXkgdG8gc3RvcCBvdGhlciBub2RlcyBtb3VudGluZyB0aGUgZnMgYW5kIGNvcnJ1cHRp
+bmcgaXQuIA0KPiBTZXR1cCBoYSBvciBvdGhlciBjbHVzdGVyLWF3YXJlIHN0YWNrIGlzIGp1c3Qg
+dGhlIGNvc3QgdGhhdCB3ZSBoYXZlIHRvDQo+IHRha2UgZm9yIGF2b2lkaW5nIGNvcnJ1cHRpb24s
+IG90aGVyd2lzZSB3ZSBoYXZlIHRvIGRvIGl0IGluIGtlcm5lbC4NCj4gDQo+IExpbms6IGh0dHBz
+Oi8vbGttbC5rZXJuZWwub3JnL3IvMjAyMjA2MDMyMjI4MDEuNDI0ODgtMS1qdW54aWFvLmJpQG9y
+YWNsZS5jb20NCj4gRml4ZXM6IDkxMmY2NTVkNzhjNSgib2NmczI6IG1vdW50IHNoYXJlZCB2b2x1
+bWUgd2l0aG91dCBoYSBzdGFjayIpDQo+IFNpZ25lZC1vZmYtYnk6IEp1bnhpYW8gQmkgPGp1bnhp
+YW8uYmlAb3JhY2xlLmNvbT4NCj4gQWNrZWQtYnk6IEpvc2VwaCBRaSA8am9zZXBoLnFpQGxpbnV4
+LmFsaWJhYmEuY29tPg0KPiBDYzogTWFyayBGYXNoZWggPG1hcmtAZmFzaGVoLmNvbT4NCj4gQ2M6
+IEpvZWwgQmVja2VyIDxqbGJlY0BldmlscGxhbi5vcmc+DQo+IENjOiBDaGFuZ3dlaSBHZSA8Z2Vj
+aGFuZ3dlaUBsaXZlLmNuPg0KPiBDYzogR2FuZyBIZSA8Z2hlQHN1c2UuY29tPg0KPiBDYzogSnVu
+IFBpYW8gPHBpYW9qdW5AaHVhd2VpLmNvbT4NCj4gQ2M6IDxoZW1pbmcuemhhb0BzdXNlLmNvbT4N
+Cj4gQ2M6IDxzdGFibGVAdmdlci5rZXJuZWwub3JnPg0KPiBTaWduZWQtb2ZmLWJ5OiBBbmRyZXcg
+TW9ydG9uIDxha3BtQGxpbnV4LWZvdW5kYXRpb24ub3JnPg0KPiAtLS0NCj4gDQo+IGZzL29jZnMy
+L29jZnMyLmggICAgfCAgICA0IC0tLQ0KPiBmcy9vY2ZzMi9zbG90X21hcC5jIHwgICA0NiArKysr
+KysrKysrKysrKysrKy0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0NCj4gZnMvb2NmczIvc3VwZXIu
+YyAgICB8ICAgMjEgLS0tLS0tLS0tLS0tLS0tLS0tLQ0KPiAzIGZpbGVzIGNoYW5nZWQsIDIwIGlu
+c2VydGlvbnMoKyksIDUxIGRlbGV0aW9ucygtKQ0KPiANCj4gLS0tIGEvZnMvb2NmczIvb2NmczIu
+aH5yZXZlcnQtb2NmczItbW91bnQtc2hhcmVkLXZvbHVtZS13aXRob3V0LWhhLXN0YWNrDQo+ICsr
+KyBhL2ZzL29jZnMyL29jZnMyLmgNCj4gQEAgLTI3Nyw3ICsyNzcsNiBAQCBlbnVtIG9jZnMyX21v
+dW50X29wdGlvbnMNCj4gICAgT0NGUzJfTU9VTlRfSk9VUk5BTF9BU1lOQ19DT01NSVQgPSAxIDw8
+IDE1LCAgLyogSm91cm5hbCBBc3luYyBDb21taXQgKi8NCj4gICAgT0NGUzJfTU9VTlRfRVJST1JT
+X0NPTlQgPSAxIDw8IDE2LCAvKiBSZXR1cm4gRUlPIHRvIHRoZSBjYWxsaW5nIHByb2Nlc3Mgb24g
+ZXJyb3IgKi8NCj4gICAgT0NGUzJfTU9VTlRfRVJST1JTX1JPRlMgPSAxIDw8IDE3LCAvKiBDaGFu
+Z2UgZmlsZXN5c3RlbSB0byByZWFkLW9ubHkgb24gZXJyb3IgKi8NCj4gLSAgICBPQ0ZTMl9NT1VO
+VF9OT0NMVVNURVIgPSAxIDw8IDE4LCAvKiBObyBjbHVzdGVyIGF3YXJlIGZpbGVzeXN0ZW0gbW91
+bnQgKi8NCj4gfTsNCj4gDQo+ICNkZWZpbmUgT0NGUzJfT1NCX1NPRlRfUk8gICAgMHgwMDAxDQo+
+IEBAIC02NzMsOCArNjcyLDcgQEAgc3RhdGljIGlubGluZSBpbnQgb2NmczJfY2x1c3Rlcl9vMmNi
+X2dsbw0KPiANCj4gc3RhdGljIGlubGluZSBpbnQgb2NmczJfbW91bnRfbG9jYWwoc3RydWN0IG9j
+ZnMyX3N1cGVyICpvc2IpDQo+IHsNCj4gLSAgICByZXR1cm4gKChvc2ItPnNfZmVhdHVyZV9pbmNv
+bXBhdCAmIE9DRlMyX0ZFQVRVUkVfSU5DT01QQVRfTE9DQUxfTU9VTlQpDQo+IC0gICAgICAgIHx8
+IChvc2ItPnNfbW91bnRfb3B0ICYgT0NGUzJfTU9VTlRfTk9DTFVTVEVSKSk7DQo+ICsgICAgcmV0
+dXJuIChvc2ItPnNfZmVhdHVyZV9pbmNvbXBhdCAmIE9DRlMyX0ZFQVRVUkVfSU5DT01QQVRfTE9D
+QUxfTU9VTlQpOw0KPiB9DQo+IA0KPiBzdGF0aWMgaW5saW5lIGludCBvY2ZzMl91c2VzX2V4dGVu
+ZGVkX3Nsb3RfbWFwKHN0cnVjdCBvY2ZzMl9zdXBlciAqb3NiKQ0KPiAtLS0gYS9mcy9vY2ZzMi9z
+bG90X21hcC5jfnJldmVydC1vY2ZzMi1tb3VudC1zaGFyZWQtdm9sdW1lLXdpdGhvdXQtaGEtc3Rh
+Y2sNCj4gKysrIGEvZnMvb2NmczIvc2xvdF9tYXAuYw0KPiBAQCAtMjUyLDE2ICsyNTIsMTQgQEAg
+c3RhdGljIGludCBfX29jZnMyX2ZpbmRfZW1wdHlfc2xvdChzdHJ1Yw0KPiAgICBpbnQgaSwgcmV0
+ID0gLUVOT1NQQzsNCj4gDQo+ICAgIGlmICgocHJlZmVycmVkID49IDApICYmIChwcmVmZXJyZWQg
+PCBzaS0+c2lfbnVtX3Nsb3RzKSkgew0KPiAtICAgICAgICBpZiAoIXNpLT5zaV9zbG90c1twcmVm
+ZXJyZWRdLnNsX3ZhbGlkIHx8DQo+IC0gICAgICAgICAgICAhc2ktPnNpX3Nsb3RzW3ByZWZlcnJl
+ZF0uc2xfbm9kZV9udW0pIHsNCj4gKyAgICAgICAgaWYgKCFzaS0+c2lfc2xvdHNbcHJlZmVycmVk
+XS5zbF92YWxpZCkgew0KPiAgICAgICAgICAgIHJldCA9IHByZWZlcnJlZDsNCj4gICAgICAgICAg
+ICBnb3RvIG91dDsNCj4gICAgICAgIH0NCj4gICAgfQ0KPiANCj4gICAgZm9yKGkgPSAwOyBpIDwg
+c2ktPnNpX251bV9zbG90czsgaSsrKSB7DQo+IC0gICAgICAgIGlmICghc2ktPnNpX3Nsb3RzW2ld
+LnNsX3ZhbGlkIHx8DQo+IC0gICAgICAgICAgICAhc2ktPnNpX3Nsb3RzW2ldLnNsX25vZGVfbnVt
+KSB7DQo+ICsgICAgICAgIGlmICghc2ktPnNpX3Nsb3RzW2ldLnNsX3ZhbGlkKSB7DQo+ICAgICAg
+ICAgICAgcmV0ID0gaTsNCj4gICAgICAgICAgICBicmVhazsNCj4gICAgICAgIH0NCj4gQEAgLTQ1
+NiwzMCArNDU0LDI0IEBAIGludCBvY2ZzMl9maW5kX3Nsb3Qoc3RydWN0IG9jZnMyX3N1cGVyICoN
+Cj4gICAgc3Bpbl9sb2NrKCZvc2ItPm9zYl9sb2NrKTsNCj4gICAgb2NmczJfdXBkYXRlX3Nsb3Rf
+aW5mbyhzaSk7DQo+IA0KPiAtICAgIGlmIChvY2ZzMl9tb3VudF9sb2NhbChvc2IpKQ0KPiAtICAg
+ICAgICAvKiB1c2Ugc2xvdCAwIGRpcmVjdGx5IGluIGxvY2FsIG1vZGUgKi8NCj4gLSAgICAgICAg
+c2xvdCA9IDA7DQo+IC0gICAgZWxzZSB7DQo+IC0gICAgICAgIC8qIHNlYXJjaCBmb3Igb3Vyc2Vs
+dmVzIGZpcnN0IGFuZCB0YWtlIHRoZSBzbG90IGlmIGl0IGFscmVhZHkNCj4gLSAgICAgICAgICog
+ZXhpc3RzLiBQZXJoYXBzIHdlIG5lZWQgdG8gbWFyayB0aGlzIGluIGEgdmFyaWFibGUgZm9yIG91
+cg0KPiAtICAgICAgICAgKiBvd24gam91cm5hbCByZWNvdmVyeT8gUG9zc2libHkgbm90LCB0aG91
+Z2ggd2UgY2VydGFpbmx5DQo+IC0gICAgICAgICAqIG5lZWQgdG8gd2FybiB0byB0aGUgdXNlciAq
+Lw0KPiAtICAgICAgICBzbG90ID0gX19vY2ZzMl9ub2RlX251bV90b19zbG90KHNpLCBvc2ItPm5v
+ZGVfbnVtKTsNCj4gKyAgICAvKiBzZWFyY2ggZm9yIG91cnNlbHZlcyBmaXJzdCBhbmQgdGFrZSB0
+aGUgc2xvdCBpZiBpdCBhbHJlYWR5DQo+ICsgICAgICogZXhpc3RzLiBQZXJoYXBzIHdlIG5lZWQg
+dG8gbWFyayB0aGlzIGluIGEgdmFyaWFibGUgZm9yIG91cg0KPiArICAgICAqIG93biBqb3VybmFs
+IHJlY292ZXJ5PyBQb3NzaWJseSBub3QsIHRob3VnaCB3ZSBjZXJ0YWlubHkNCj4gKyAgICAgKiBu
+ZWVkIHRvIHdhcm4gdG8gdGhlIHVzZXIgKi8NCj4gKyAgICBzbG90ID0gX19vY2ZzMl9ub2RlX251
+bV90b19zbG90KHNpLCBvc2ItPm5vZGVfbnVtKTsNCj4gKyAgICBpZiAoc2xvdCA8IDApIHsNCj4g
+KyAgICAgICAgLyogaWYgbm8gc2xvdCB5ZXQsIHRoZW4ganVzdCB0YWtlIDFzdCBhdmFpbGFibGUN
+Cj4gKyAgICAgICAgICogb25lLiAqLw0KPiArICAgICAgICBzbG90ID0gX19vY2ZzMl9maW5kX2Vt
+cHR5X3Nsb3Qoc2ksIG9zYi0+cHJlZmVycmVkX3Nsb3QpOw0KPiAgICAgICAgaWYgKHNsb3QgPCAw
+KSB7DQo+IC0gICAgICAgICAgICAvKiBpZiBubyBzbG90IHlldCwgdGhlbiBqdXN0IHRha2UgMXN0
+IGF2YWlsYWJsZQ0KPiAtICAgICAgICAgICAgICogb25lLiAqLw0KPiAtICAgICAgICAgICAgc2xv
+dCA9IF9fb2NmczJfZmluZF9lbXB0eV9zbG90KHNpLCBvc2ItPnByZWZlcnJlZF9zbG90KTsNCj4g
+LSAgICAgICAgICAgIGlmIChzbG90IDwgMCkgew0KPiAtICAgICAgICAgICAgICAgIHNwaW5fdW5s
+b2NrKCZvc2ItPm9zYl9sb2NrKTsNCj4gLSAgICAgICAgICAgICAgICBtbG9nKE1MX0VSUk9SLCAi
+bm8gZnJlZSBzbG90cyBhdmFpbGFibGUhXG4iKTsNCj4gLSAgICAgICAgICAgICAgICBzdGF0dXMg
+PSAtRUlOVkFMOw0KPiAtICAgICAgICAgICAgICAgIGdvdG8gYmFpbDsNCj4gLSAgICAgICAgICAg
+IH0NCj4gLSAgICAgICAgfSBlbHNlDQo+IC0gICAgICAgICAgICBwcmludGsoS0VSTl9JTkZPICJv
+Y2ZzMjogU2xvdCAlZCBvbiBkZXZpY2UgKCVzKSB3YXMgIg0KPiAtICAgICAgICAgICAgICAgICAg
+ICJhbHJlYWR5IGFsbG9jYXRlZCB0byB0aGlzIG5vZGUhXG4iLA0KPiAtICAgICAgICAgICAgICAg
+ICAgIHNsb3QsIG9zYi0+ZGV2X3N0cik7DQo+IC0gICAgfQ0KPiArICAgICAgICAgICAgc3Bpbl91
+bmxvY2soJm9zYi0+b3NiX2xvY2spOw0KPiArICAgICAgICAgICAgbWxvZyhNTF9FUlJPUiwgIm5v
+IGZyZWUgc2xvdHMgYXZhaWxhYmxlIVxuIik7DQo+ICsgICAgICAgICAgICBzdGF0dXMgPSAtRUlO
+VkFMOw0KPiArICAgICAgICAgICAgZ290byBiYWlsOw0KPiArICAgICAgICB9DQo+ICsgICAgfSBl
+bHNlDQo+ICsgICAgICAgIHByaW50ayhLRVJOX0lORk8gIm9jZnMyOiBTbG90ICVkIG9uIGRldmlj
+ZSAoJXMpIHdhcyBhbHJlYWR5ICINCj4gKyAgICAgICAgICAgICAgICJhbGxvY2F0ZWQgdG8gdGhp
+cyBub2RlIVxuIiwgc2xvdCwgb3NiLT5kZXZfc3RyKTsNCj4gDQo+ICAgIG9jZnMyX3NldF9zbG90
+KHNpLCBzbG90LCBvc2ItPm5vZGVfbnVtKTsNCj4gICAgb3NiLT5zbG90X251bSA9IHNsb3Q7DQo+
+IC0tLSBhL2ZzL29jZnMyL3N1cGVyLmN+cmV2ZXJ0LW9jZnMyLW1vdW50LXNoYXJlZC12b2x1bWUt
+d2l0aG91dC1oYS1zdGFjaw0KPiArKysgYS9mcy9vY2ZzMi9zdXBlci5jDQo+IEBAIC0xNzIsNyAr
+MTcyLDYgQEAgZW51bSB7DQo+ICAgIE9wdF9kaXJfcmVzdl9sZXZlbCwNCj4gICAgT3B0X2pvdXJu
+YWxfYXN5bmNfY29tbWl0LA0KPiAgICBPcHRfZXJyX2NvbnQsDQo+IC0gICAgT3B0X25vY2x1c3Rl
+ciwNCj4gICAgT3B0X2VyciwNCj4gfTsNCj4gDQo+IEBAIC0yMDYsNyArMjA1LDYgQEAgc3RhdGlj
+IGNvbnN0IG1hdGNoX3RhYmxlX3QgdG9rZW5zID0gew0KPiAgICB7T3B0X2Rpcl9yZXN2X2xldmVs
+LCAiZGlyX3Jlc3ZfbGV2ZWw9JXUifSwNCj4gICAge09wdF9qb3VybmFsX2FzeW5jX2NvbW1pdCwg
+ImpvdXJuYWxfYXN5bmNfY29tbWl0In0sDQo+ICAgIHtPcHRfZXJyX2NvbnQsICJlcnJvcnM9Y29u
+dGludWUifSwNCj4gLSAgICB7T3B0X25vY2x1c3RlciwgIm5vY2x1c3RlciJ9LA0KPiAgICB7T3B0
+X2VyciwgTlVMTH0NCj4gfTsNCj4gDQo+IEBAIC02MTgsMTMgKzYxNiw2IEBAIHN0YXRpYyBpbnQg
+b2NmczJfcmVtb3VudChzdHJ1Y3Qgc3VwZXJfYmwNCj4gICAgICAgIGdvdG8gb3V0Ow0KPiAgICB9
+DQo+IA0KPiAtICAgIHRtcCA9IE9DRlMyX01PVU5UX05PQ0xVU1RFUjsNCj4gLSAgICBpZiAoKG9z
+Yi0+c19tb3VudF9vcHQgJiB0bXApICE9IChwYXJzZWRfb3B0aW9ucy5tb3VudF9vcHQgJiB0bXAp
+KSB7DQo+IC0gICAgICAgIHJldCA9IC1FSU5WQUw7DQo+IC0gICAgICAgIG1sb2coTUxfRVJST1Is
+ICJDYW5ub3QgY2hhbmdlIG5vY2x1c3RlciBvcHRpb24gb24gcmVtb3VudFxuIik7DQo+IC0gICAg
+ICAgIGdvdG8gb3V0Ow0KPiAtICAgIH0NCj4gLQ0KPiAgICB0bXAgPSBPQ0ZTMl9NT1VOVF9IQl9M
+T0NBTCB8IE9DRlMyX01PVU5UX0hCX0dMT0JBTCB8DQo+ICAgICAgICBPQ0ZTMl9NT1VOVF9IQl9O
+T05FOw0KPiAgICBpZiAoKG9zYi0+c19tb3VudF9vcHQgJiB0bXApICE9IChwYXJzZWRfb3B0aW9u
+cy5tb3VudF9vcHQgJiB0bXApKSB7DQo+IEBAIC04NjUsNyArODU2LDYgQEAgc3RhdGljIGludCBv
+Y2ZzMl92ZXJpZnlfdXNlcnNwYWNlX3N0YWNrKA0KPiAgICB9DQo+IA0KPiAgICBpZiAob2NmczJf
+dXNlcnNwYWNlX3N0YWNrKG9zYikgJiYNCj4gLSAgICAgICAgIShvc2ItPnNfbW91bnRfb3B0ICYg
+T0NGUzJfTU9VTlRfTk9DTFVTVEVSKSAmJg0KPiAgICAgICAgc3RybmNtcChvc2ItPm9zYl9jbHVz
+dGVyX3N0YWNrLCBtb3B0LT5jbHVzdGVyX3N0YWNrLA0KPiAgICAgICAgICAgIE9DRlMyX1NUQUNL
+X0xBQkVMX0xFTikpIHsNCj4gICAgICAgIG1sb2coTUxfRVJST1IsDQo+IEBAIC0xMTM3LDExICsx
+MTI3LDYgQEAgc3RhdGljIGludCBvY2ZzMl9maWxsX3N1cGVyKHN0cnVjdCBzdXBlcg0KPiAgICAg
+ICAgICAgb3NiLT5zX21vdW50X29wdCAmIE9DRlMyX01PVU5UX0RBVEFfV1JJVEVCQUNLID8gIndy
+aXRlYmFjayIgOg0KPiAgICAgICAgICAgIm9yZGVyZWQiKTsNCj4gDQo+IC0gICAgaWYgKChvc2It
+PnNfbW91bnRfb3B0ICYgT0NGUzJfTU9VTlRfTk9DTFVTVEVSKSAmJg0KPiAtICAgICAgICEob3Ni
+LT5zX2ZlYXR1cmVfaW5jb21wYXQgJiBPQ0ZTMl9GRUFUVVJFX0lOQ09NUEFUX0xPQ0FMX01PVU5U
+KSkNCj4gLSAgICAgICAgcHJpbnRrKEtFUk5fTk9USUNFICJvY2ZzMjogVGhlIHNoYXJlZCBkZXZp
+Y2UgKCVzKSBpcyBtb3VudGVkICINCj4gLSAgICAgICAgICAgICAgICJ3aXRob3V0IGNsdXN0ZXIg
+YXdhcmUgbW9kZS5cbiIsIG9zYi0+ZGV2X3N0cik7DQo+IC0NCj4gICAgYXRvbWljX3NldCgmb3Ni
+LT52b2xfc3RhdGUsIFZPTFVNRV9NT1VOVEVEKTsNCj4gICAgd2FrZV91cCgmb3NiLT5vc2JfbW91
+bnRfZXZlbnQpOw0KPiANCj4gQEAgLTE0NTIsOSArMTQzNyw2IEBAIHN0YXRpYyBpbnQgb2NmczJf
+cGFyc2Vfb3B0aW9ucyhzdHJ1Y3Qgc3UNCj4gICAgICAgIGNhc2UgT3B0X2pvdXJuYWxfYXN5bmNf
+Y29tbWl0Og0KPiAgICAgICAgICAgIG1vcHQtPm1vdW50X29wdCB8PSBPQ0ZTMl9NT1VOVF9KT1VS
+TkFMX0FTWU5DX0NPTU1JVDsNCj4gICAgICAgICAgICBicmVhazsNCj4gLSAgICAgICAgY2FzZSBP
+cHRfbm9jbHVzdGVyOg0KPiAtICAgICAgICAgICAgbW9wdC0+bW91bnRfb3B0IHw9IE9DRlMyX01P
+VU5UX05PQ0xVU1RFUjsNCj4gLSAgICAgICAgICAgIGJyZWFrOw0KPiAgICAgICAgZGVmYXVsdDoN
+Cj4gICAgICAgICAgICBtbG9nKE1MX0VSUk9SLA0KPiAgICAgICAgICAgICAgICAgIlVucmVjb2du
+aXplZCBtb3VudCBvcHRpb24gXCIlc1wiICINCj4gQEAgLTE1NjYsOSArMTU0OCw2IEBAIHN0YXRp
+YyBpbnQgb2NmczJfc2hvd19vcHRpb25zKHN0cnVjdCBzZXENCj4gICAgaWYgKG9wdHMgJiBPQ0ZT
+Ml9NT1VOVF9KT1VSTkFMX0FTWU5DX0NPTU1JVCkNCj4gICAgICAgIHNlcV9wcmludGYocywgIixq
+b3VybmFsX2FzeW5jX2NvbW1pdCIpOw0KPiANCj4gLSAgICBpZiAob3B0cyAmIE9DRlMyX01PVU5U
+X05PQ0xVU1RFUikNCj4gLSAgICAgICAgc2VxX3ByaW50ZihzLCAiLG5vY2x1c3RlciIpOw0KPiAt
+DQo+ICAgIHJldHVybiAwOw0KPiB9DQo+IA0KPiBfDQo+IA0KPiBQYXRjaGVzIGN1cnJlbnRseSBp
+biAtbW0gd2hpY2ggbWlnaHQgYmUgZnJvbSBvY2ZzMi1kZXZlbEBvc3Mub3JhY2xlLmNvbSBhcmUN
+Cj4gDQo+IHJldmVydC1vY2ZzMi1tb3VudC1zaGFyZWQtdm9sdW1lLXdpdGhvdXQtaGEtc3RhY2su
+cGF0Y2gNCj4gDQpfX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
+XwpPY2ZzMi1kZXZlbCBtYWlsaW5nIGxpc3QKT2NmczItZGV2ZWxAb3NzLm9yYWNsZS5jb20KaHR0
+cHM6Ly9vc3Mub3JhY2xlLmNvbS9tYWlsbWFuL2xpc3RpbmZvL29jZnMyLWRldmVs
