@@ -1,56 +1,68 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc245.phx1.oracleemaildelivery.com (aib29ajc245.phx1.oracleemaildelivery.com [192.29.103.245])
+Received: from aib29ajc244.phx1.oracleemaildelivery.com (aib29ajc244.phx1.oracleemaildelivery.com [192.29.103.244])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 0EE13C43334
-	for <ocfs2-devel@archiver.kernel.org>; Sun, 17 Jul 2022 05:10:37 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id F41B9C433EF
+	for <ocfs2-devel@archiver.kernel.org>; Sun, 17 Jul 2022 06:04:31 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=7z4IHp8vNf8b4STL0wgEyNaaS8ZZiLZl3rWWeR790BA=;
- b=l/rq2I4QnxZBVRKdTli9vWdRM4ey3fFHjk8MwMUavb3FgwCuPMkOLoNY0KioRPLzqPtML7dUyfRn
-   zvfHa2tRb6hniQ0GT54vIgLnxAOeZQEpx/uUxZ5Af2JiGgmC61qOhH7C0vX01mQPpwuAB+vPxRV5
-   ms+hA81XdeBLLqntwEbUVzjSg/2vo3EJ78mi5QAKRmVl0buFEid6QSyB8jN76O7oJnMwyEI7/Ukw
-   Sxw7NYYUzzKf27X9kURnKZgpMyUmfEkGc/ZVr/JZxJFzJkIzIekIUk+EFD5vU8DNj4I3gujq4bDn
-   Dipr3y4xMllh/fFtO+8OcW9iX7/FW78BP5qCeA==
+ bh=QculGYWjgrA0oD1D86VJ57Tc5VfpO5FG+56h28mys9g=;
+ b=h+rfPugmHjguDcSad0qc/dTbn45zPVa1EDYNZ3gJye81n1p536lWVqz3wFbgj3/AUTK+RVTxH0pH
+   /5OMK0QyupypLQS9Z4smjPk0vDpKXuYNWIwdwoRSAYMEezIZm/XQQXNNH+PAQZx+kg8SQqVDnJgw
+   ylVcaApghXx50wU0sj9kP/rK5chtakfl1yZzshcCSNCOk5aFJPaG1wihVm5FAX4F4GG/5t1uP7UY
+   vYxHFyR4yFaRiam25Auj2lEOk/XknaoS4nlBMvhI38ZHeCVWtb7/Q3rwVTZRpELQRYGXGbYAXFDs
+   NItem0shlBlMoDWBGoi2JQ0V8eFKrOTiLmvxZA==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=7z4IHp8vNf8b4STL0wgEyNaaS8ZZiLZl3rWWeR790BA=;
- b=eYT7MOmyfH9SvUkcZmFyQwJn1GE8rFu0B3JK3JS/nclt7PZQVmnBBp5cHx5Bl1oyMi9FS+0akAnI
-   yPCDtVG0joc5O6HBqsGC1jRDGQh2nLwNe4flSe/V4vE9SHfAe9XD57ojOvJ577Ea25RaBfwuPWQJ
-   NS3kb8dfuDLlBg/v3vC5s5oIgHk2GSYXbG/3l8m6wcm2SD2gtZcU3pnJSjx913jcB/lXNhEwV5hc
-   0vd3aV0XCGXoUj5apMLfLqb8DSCPbfKulTda4DmigoUSTuEJRS3I1oJuYfMHPLsEGB86437PngsA
-   /JHXxOI8zmahuw/F/DQClKAoVxuZ3OcQGU0IKA==
-Received: by omta-ad1-fd1-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
+ bh=QculGYWjgrA0oD1D86VJ57Tc5VfpO5FG+56h28mys9g=;
+ b=RpYfRk63k2wrgqs2d8Bx/uzrWQf7jJ/QDDNdB+mtvsSI58TwZivt+NwqZaBlNpLFWQad1yt7ZneQ
+   acp4Ro9YB5fL4OtaAfD86/3gw4WabDfOEQKuFEHZv9tR/gsE++wxM16TmwfXJIQxV1rTUJD1h5f5
+   4WqwYzYk1k80lYqB2cRLyhW/qDdO7Kj5KIKDEvAmZf3g6d0Ky35PyIthFGnayeDeEZvmZ6sCYoUP
+   8tjw+Q7G0+MRFb00/ajfnKRQLmibGv2NQ6u0vOLP4fSYMBOiESXxsGmaim8TVuaNL3kKlxP35y9+
+   ZbE3pP6Mmzpj4H45cF7QzNkC1R+kQrIYoL6UnA==
+Received: by omta-ad1-fd1-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220603 64bit (built Jun  3
  2022))
- with ESMTPS id <0RF5004YNFPPG610@omta-ad1-fd1-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Sun, 17 Jul 2022 05:10:37 +0000 (GMT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linux-foundation.org;
- s=korg; t=1658032671; bh=E6Mn9ibbihdvfJTq3sG+S2MM3LpnYY6ye+/qwOHf71M=;
- h=Date:To:From:Subject:From;
- b=WWokQT5PGJQ1DPtfbeQv9qX5RMI0p5nFA7KRU970vxKQjnZtgoKfm0tMV+HYOPiQG
- YvFQeyI6hENl1fIsF6E3ETjbeiBiNsv3ETqIT2yQv4CHoglPq+dlxeKQM00OvOSWvT
- +afRFl1kgfm7ZDK+LpzBgOOYDQFth/3/HLomQSmE=
-Date: Sat, 16 Jul 2022 21:37:50 -0700
-To: mm-commits@vger.kernel.org, stable@vger.kernel.org, piaojun@huawei.com,
- mark@fasheh.com, junxiao.bi@oracle.com, joseph.qi@linux.alibaba.com,
- jlbec@evilplan.org, heming.zhao@suse.com, ghe@suse.com, gechangwei@live.cn,
- ocfs2-devel@oss.oracle.com, akpm@linux-foundation.org
-Message-id: <20220717043751.51CD1C341C0@smtp.kernel.org>
-X-Source-IP: 145.40.68.75
-X-Proofpoint-Virus-Version: vendor=nai engine=6400 definitions=10410
+ with ESMTPS id <0RF5008API7JYMD0@omta-ad1-fd1-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Sun, 17 Jul 2022 06:04:31 +0000 (GMT)
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+ d=infradead.org; s=bombadil.20210309; h=Content-Transfer-Encoding:
+ MIME-Version:References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender
+ :Reply-To:Content-Type:Content-ID:Content-Description;
+ bh=Y2m5n2ywVdorzEoaFVlEdw3M6b4Binlg2HpluXfaIZg=; b=aY8PUpMOr3XL4OGdcJC3oZLePj
+ U2Fpy5CT1WtNvKl+Uh2jm9+2lBXEu/Jso/1cholqbux8jzHP3uQ/4/wImvAQ3GuR2SrEuZ/gSB7He
+ 57CgDQLolbdY00Dzuwwr2vNEIgrxp2tIoBknZFSKaduvhaGj1E1fBPc/THzPcVj1eroIl7hMQUprV
+ /QynO1qrDenogR8CfOhS4ukxm0TgzTd0/AGa4IQnrUaIWlT77XHIsNONx0aYZP5hsMoueapQNk0Nw
+ RtbEUPKVuSWup65o3wgXLZUx7fXmOIh7e5sk0ewAprdrhvV1K3tdjHdt7+zkT4HxaLTkBXvHvlDwz
+ OM73TuRg==;
+To: Jens Axboe <axboe@kernel.dk>
+Date: Wed, 13 Jul 2022 07:53:09 +0200
+Message-id: <20220713055317.1888500-2-hch@lst.de>
+X-Mailer: git-send-email 2.30.2
+In-reply-to: <20220713055317.1888500-1-hch@lst.de>
+References: <20220713055317.1888500-1-hch@lst.de>
+MIME-version: 1.0
+X-Source-IP: 198.137.202.133
+X-Proofpoint-Virus-Version: vendor=nai engine=6400 definitions=10406
  signatures=596000
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 suspectscore=0
- phishscore=0 mlxlogscore=999 lowpriorityscore=0 adultscore=0 malwarescore=0
- spamscore=0 priorityscore=276 impostorscore=0 clxscore=38 bulkscore=0
- mlxscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2206140000 definitions=main-2207170021
-Subject: [Ocfs2-devel] [merged mm-hotfixes-stable]
-	revert-ocfs2-mount-shared-volume-without-ha-stack.patch	removed from -mm tree
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0
+ lowpriorityscore=0 adultscore=0 impostorscore=0 malwarescore=0 priorityscore=0
+ bulkscore=0 suspectscore=0 phishscore=0 mlxscore=0 mlxlogscore=754
+ clxscore=261 spamscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2206140000 definitions=main-2207130023
+Cc: linux-block@vger.kernel.org, Theodore Ts'o <tytso@mit.edu>,
+ Song Liu <song@kernel.org>, linux-raid@vger.kernel.org,
+ =?UTF-8?q?Christoph=20B=C3=B6hmwalder?= <christoph.boehmwalder@linbit.com>,
+ Andreas Dilger <adilger.kernel@dilger.ca>, Jan Kara <jack@suse.com>,
+ "Md. Haris Iqbal" <haris.iqbal@ionos.com>, linux-ext4@vger.kernel.org,
+ Jack Wang <jinpu.wang@ionos.com>, ocfs2-devel@oss.oracle.com,
+ drbd-dev@lists.linbit.com
+Subject: [Ocfs2-devel] [PATCH 1/9] block: stop using bdevname in
+	bdev_write_inode
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -62,282 +74,60 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: Andrew Morton via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: Andrew Morton <akpm@linux-foundation.org>
-MIME-version: 1.0
+From: Christoph Hellwig via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: Christoph Hellwig <hch@lst.de>
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-ServerName: ams.source.kernel.org
-X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 ip4:140.211.169.12/30 include:_spf.kernel.org
- include:_spf.google.com ~all
+X-SRS-Rewrite: SMTP reverse-path rewritten from <hch@infradead.org> by
+ bombadil.infradead.org. See http://www.infradead.org/rpr.html
+X-ServerName: bombadil.infradead.org
+X-Proofpoint-SPF-Result: None
 X-Spam: Clean
-X-Proofpoint-GUID: QTZ4VX1aGTDDWIO29MIlGZKknAtkfU-l
-X-Proofpoint-ORIG-GUID: QTZ4VX1aGTDDWIO29MIlGZKknAtkfU-l
+X-Proofpoint-GUID: VMqovft5xalv0vgbpf4Efg3pOaNPr_wI
+X-Proofpoint-ORIG-GUID: VMqovft5xalv0vgbpf4Efg3pOaNPr_wI
 Reporting-Meta:
- AAGucr4TLfmdayttwkOXUwvf8o+g7zFxNRRpPI3NEmVDxIkOfmmkNZhijz1A1j47
- i7k3UqVqju5k9MMiZsvpUMjqnZQO//Ff17IPJcGeF06FugPSBPeLYgWzCP1U3dro
- itKiTM/LFji3swEK3tl8uO9Kqb7DTYqpJ/eiGp0TCyKLBe4fw+rw661woa9PbuTq
- bBphpKbCbryheZsYDXfbevPJV/c+/BwUcB4rY/6WNrfnY30ajnRuOCwlsqvjxP6W
- wKxElOjN658Cv4SmJMQuGBjweoY/zsbG0+GKdXwFVHSjuxbi9kJjMoOnon290ljX
- jLVLwJhTZQx20c/cGtaeBXAr9nrenKM9FrVWe9s9u8TdSt0bLlCpPOJxx3O5oXRf
- C1OSaG4f/0i1+q8fzHcV+ndSMj8tuluMZcn3oUZtm+1r5QLr1shDRwIg3FHOFxpM
- kxZya/Q2/Ch0g6ZvNk708ecFstcq2i0GRKsg7fD7YRMd2+Xw6U1CGq2hX0XBpvE8
- EJ4hwEYKia0JOrcMGXqUiAIIFrNz9nDhi8V5GTofzQY=
+ AAHG2OIcrTOvhs1/r4+57cjR35GE1gTzwJgFiLyXAnTpdbkvXd/NO1Yl0PraHipS
+ SObDWZQNXgjAOipD8eYl3aIe28fKxa1EqE9K52vSruCqAvhYUqIUBQ00lAcmZHci
+ 319rtntHFB4tfr7uH2CTsobObC4TE4u3SASYW2b8DWoowXo/OgxsnbDf3hoQsvAs
+ uLVdPVKOu9JVZ/p3Q+QAZm1DvhorvS6miFKOKLi422GTSBKqto2tx7BkFcm9gKTN
+ U2+9OgTikEIfpr4lWzP3bR8aF6x5g9imt1egJw4Mb5VbyMiAD81/EmJzisRaLlAq
+ 57OYjw9XYicGmvvdfIKmXupLOkUHFNo+/vkDaNV1hNOSoeTYIov3PPuP73MqHXlW
+ XL0UxtfmFbe4EcprGKveVEdgHVvJuMsdcoIyQWy4ZhGW+9O7cLQ8Yz9tyvjG/u9S
+ v7EtNJQJN8lkW/Jk/xfik18h6kmc6FBPdyJ59H23yep9cKheoFoYrlXhlRptd18K
+ KHPC/k9l6L3tSiV9oRa7jhepvIfvyjW6sv3/sAyNqfzX
 
+Just use the %pg format specifier instead.  Also reformat the
+printk statement to be more readable.
 
-The quilt patch titled
-     Subject: Revert "ocfs2: mount shared volume without ha stack"
-has been removed from the -mm tree.  Its filename was
-     revert-ocfs2-mount-shared-volume-without-ha-stack.patch
-
-This patch was dropped because it was merged into the mm-hotfixes-stable branch
-of git://git.kernel.org/pub/scm/linux/kernel/git/akpm/mm
-
-------------------------------------------------------
-From: Junxiao Bi via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Subject: Revert "ocfs2: mount shared volume without ha stack"
-Date: Fri, 3 Jun 2022 15:28:01 -0700
-
-This reverts commit 912f655d78c5d4ad05eac287f23a435924df7144.
-
-This commit introduced a regression that can cause mount hung.  The
-changes in __ocfs2_find_empty_slot causes that any node with none-zero
-node number can grab the slot that was already taken by node 0, so node 1
-will access the same journal with node 0, when it try to grab journal
-cluster lock, it will hung because it was already acquired by node 0. 
-It's very easy to reproduce this, in one cluster, mount node 0 first, then
-node 1, you will see the following call trace from node 1.
-
-[13148.735424] INFO: task mount.ocfs2:53045 blocked for more than 122 seconds.
-[13148.739691]       Not tainted 5.15.0-2148.0.4.el8uek.mountracev2.x86_64 #2
-[13148.742560] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
-[13148.745846] task:mount.ocfs2     state:D stack:    0 pid:53045 ppid: 53044 flags:0x00004000
-[13148.749354] Call Trace:
-[13148.750718]  <TASK>
-[13148.752019]  ? usleep_range+0x90/0x89
-[13148.753882]  __schedule+0x210/0x567
-[13148.755684]  schedule+0x44/0xa8
-[13148.757270]  schedule_timeout+0x106/0x13c
-[13148.759273]  ? __prepare_to_swait+0x53/0x78
-[13148.761218]  __wait_for_common+0xae/0x163
-[13148.763144]  __ocfs2_cluster_lock.constprop.0+0x1d6/0x870 [ocfs2]
-[13148.765780]  ? ocfs2_inode_lock_full_nested+0x18d/0x398 [ocfs2]
-[13148.768312]  ocfs2_inode_lock_full_nested+0x18d/0x398 [ocfs2]
-[13148.770968]  ocfs2_journal_init+0x91/0x340 [ocfs2]
-[13148.773202]  ocfs2_check_volume+0x39/0x461 [ocfs2]
-[13148.775401]  ? iput+0x69/0xba
-[13148.777047]  ocfs2_mount_volume.isra.0.cold+0x40/0x1f5 [ocfs2]
-[13148.779646]  ocfs2_fill_super+0x54b/0x853 [ocfs2]
-[13148.781756]  mount_bdev+0x190/0x1b7
-[13148.783443]  ? ocfs2_remount+0x440/0x440 [ocfs2]
-[13148.785634]  legacy_get_tree+0x27/0x48
-[13148.787466]  vfs_get_tree+0x25/0xd0
-[13148.789270]  do_new_mount+0x18c/0x2d9
-[13148.791046]  __x64_sys_mount+0x10e/0x142
-[13148.792911]  do_syscall_64+0x3b/0x89
-[13148.794667]  entry_SYSCALL_64_after_hwframe+0x170/0x0
-[13148.797051] RIP: 0033:0x7f2309f6e26e
-[13148.798784] RSP: 002b:00007ffdcee7d408 EFLAGS: 00000246 ORIG_RAX: 00000000000000a5
-[13148.801974] RAX: ffffffffffffffda RBX: 00007ffdcee7d4a0 RCX: 00007f2309f6e26e
-[13148.804815] RDX: 0000559aa762a8ae RSI: 0000559aa939d340 RDI: 0000559aa93a22b0
-[13148.807719] RBP: 00007ffdcee7d5b0 R08: 0000559aa93a2290 R09: 00007f230a0b4820
-[13148.810659] R10: 0000000000000000 R11: 0000000000000246 R12: 00007ffdcee7d420
-[13148.813609] R13: 0000000000000000 R14: 0000559aa939f000 R15: 0000000000000000
-[13148.816564]  </TASK>
-
-To fix it, we can just fix __ocfs2_find_empty_slot.  But original commit
-introduced the feature to mount ocfs2 locally even it is cluster based,
-that is a very dangerous, it can easily cause serious data corruption,
-there is no way to stop other nodes mounting the fs and corrupting it. 
-Setup ha or other cluster-aware stack is just the cost that we have to
-take for avoiding corruption, otherwise we have to do it in kernel.
-
-Link: https://lkml.kernel.org/r/20220603222801.42488-1-junxiao.bi@oracle.com
-Fixes: 912f655d78c5("ocfs2: mount shared volume without ha stack")
-Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
-Acked-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-Cc: Mark Fasheh <mark@fasheh.com>
-Cc: Joel Becker <jlbec@evilplan.org>
-Cc: Changwei Ge <gechangwei@live.cn>
-Cc: Gang He <ghe@suse.com>
-Cc: Jun Piao <piaojun@huawei.com>
-Cc: <heming.zhao@suse.com>
-Cc: <stable@vger.kernel.org>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
+ block/bdev.c | 10 ++++------
+ 1 file changed, 4 insertions(+), 6 deletions(-)
 
- fs/ocfs2/ocfs2.h    |    4 ---
- fs/ocfs2/slot_map.c |   46 +++++++++++++++++-------------------------
- fs/ocfs2/super.c    |   21 -------------------
- 3 files changed, 20 insertions(+), 51 deletions(-)
-
---- a/fs/ocfs2/ocfs2.h~revert-ocfs2-mount-shared-volume-without-ha-stack
-+++ a/fs/ocfs2/ocfs2.h
-@@ -277,7 +277,6 @@ enum ocfs2_mount_options
- 	OCFS2_MOUNT_JOURNAL_ASYNC_COMMIT = 1 << 15,  /* Journal Async Commit */
- 	OCFS2_MOUNT_ERRORS_CONT = 1 << 16, /* Return EIO to the calling process on error */
- 	OCFS2_MOUNT_ERRORS_ROFS = 1 << 17, /* Change filesystem to read-only on error */
--	OCFS2_MOUNT_NOCLUSTER = 1 << 18, /* No cluster aware filesystem mount */
- };
- 
- #define OCFS2_OSB_SOFT_RO	0x0001
-@@ -673,8 +672,7 @@ static inline int ocfs2_cluster_o2cb_glo
- 
- static inline int ocfs2_mount_local(struct ocfs2_super *osb)
- {
--	return ((osb->s_feature_incompat & OCFS2_FEATURE_INCOMPAT_LOCAL_MOUNT)
--		|| (osb->s_mount_opt & OCFS2_MOUNT_NOCLUSTER));
-+	return (osb->s_feature_incompat & OCFS2_FEATURE_INCOMPAT_LOCAL_MOUNT);
- }
- 
- static inline int ocfs2_uses_extended_slot_map(struct ocfs2_super *osb)
---- a/fs/ocfs2/slot_map.c~revert-ocfs2-mount-shared-volume-without-ha-stack
-+++ a/fs/ocfs2/slot_map.c
-@@ -252,16 +252,14 @@ static int __ocfs2_find_empty_slot(struc
- 	int i, ret = -ENOSPC;
- 
- 	if ((preferred >= 0) && (preferred < si->si_num_slots)) {
--		if (!si->si_slots[preferred].sl_valid ||
--		    !si->si_slots[preferred].sl_node_num) {
-+		if (!si->si_slots[preferred].sl_valid) {
- 			ret = preferred;
- 			goto out;
- 		}
+diff --git a/block/bdev.c b/block/bdev.c
+index 5fe06c1f2def4..ce05175e71cea 100644
+--- a/block/bdev.c
++++ b/block/bdev.c
+@@ -54,12 +54,10 @@ static void bdev_write_inode(struct block_device *bdev)
+ 	while (inode->i_state & I_DIRTY) {
+ 		spin_unlock(&inode->i_lock);
+ 		ret = write_inode_now(inode, true);
+-		if (ret) {
+-			char name[BDEVNAME_SIZE];
+-			pr_warn_ratelimited("VFS: Dirty inode writeback failed "
+-					    "for block device %s (err=%d).\n",
+-					    bdevname(bdev, name), ret);
+-		}
++		if (ret)
++			pr_warn_ratelimited(
++	"VFS: Dirty inode writeback failed for block device %pg (err=%d).\n",
++				bdev, ret);
+ 		spin_lock(&inode->i_lock);
  	}
- 
- 	for(i = 0; i < si->si_num_slots; i++) {
--		if (!si->si_slots[i].sl_valid ||
--		    !si->si_slots[i].sl_node_num) {
-+		if (!si->si_slots[i].sl_valid) {
- 			ret = i;
- 			break;
- 		}
-@@ -456,30 +454,24 @@ int ocfs2_find_slot(struct ocfs2_super *
- 	spin_lock(&osb->osb_lock);
- 	ocfs2_update_slot_info(si);
- 
--	if (ocfs2_mount_local(osb))
--		/* use slot 0 directly in local mode */
--		slot = 0;
--	else {
--		/* search for ourselves first and take the slot if it already
--		 * exists. Perhaps we need to mark this in a variable for our
--		 * own journal recovery? Possibly not, though we certainly
--		 * need to warn to the user */
--		slot = __ocfs2_node_num_to_slot(si, osb->node_num);
-+	/* search for ourselves first and take the slot if it already
-+	 * exists. Perhaps we need to mark this in a variable for our
-+	 * own journal recovery? Possibly not, though we certainly
-+	 * need to warn to the user */
-+	slot = __ocfs2_node_num_to_slot(si, osb->node_num);
-+	if (slot < 0) {
-+		/* if no slot yet, then just take 1st available
-+		 * one. */
-+		slot = __ocfs2_find_empty_slot(si, osb->preferred_slot);
- 		if (slot < 0) {
--			/* if no slot yet, then just take 1st available
--			 * one. */
--			slot = __ocfs2_find_empty_slot(si, osb->preferred_slot);
--			if (slot < 0) {
--				spin_unlock(&osb->osb_lock);
--				mlog(ML_ERROR, "no free slots available!\n");
--				status = -EINVAL;
--				goto bail;
--			}
--		} else
--			printk(KERN_INFO "ocfs2: Slot %d on device (%s) was "
--			       "already allocated to this node!\n",
--			       slot, osb->dev_str);
--	}
-+			spin_unlock(&osb->osb_lock);
-+			mlog(ML_ERROR, "no free slots available!\n");
-+			status = -EINVAL;
-+			goto bail;
-+		}
-+	} else
-+		printk(KERN_INFO "ocfs2: Slot %d on device (%s) was already "
-+		       "allocated to this node!\n", slot, osb->dev_str);
- 
- 	ocfs2_set_slot(si, slot, osb->node_num);
- 	osb->slot_num = slot;
---- a/fs/ocfs2/super.c~revert-ocfs2-mount-shared-volume-without-ha-stack
-+++ a/fs/ocfs2/super.c
-@@ -172,7 +172,6 @@ enum {
- 	Opt_dir_resv_level,
- 	Opt_journal_async_commit,
- 	Opt_err_cont,
--	Opt_nocluster,
- 	Opt_err,
- };
- 
-@@ -206,7 +205,6 @@ static const match_table_t tokens = {
- 	{Opt_dir_resv_level, "dir_resv_level=%u"},
- 	{Opt_journal_async_commit, "journal_async_commit"},
- 	{Opt_err_cont, "errors=continue"},
--	{Opt_nocluster, "nocluster"},
- 	{Opt_err, NULL}
- };
- 
-@@ -618,13 +616,6 @@ static int ocfs2_remount(struct super_bl
- 		goto out;
- 	}
- 
--	tmp = OCFS2_MOUNT_NOCLUSTER;
--	if ((osb->s_mount_opt & tmp) != (parsed_options.mount_opt & tmp)) {
--		ret = -EINVAL;
--		mlog(ML_ERROR, "Cannot change nocluster option on remount\n");
--		goto out;
--	}
--
- 	tmp = OCFS2_MOUNT_HB_LOCAL | OCFS2_MOUNT_HB_GLOBAL |
- 		OCFS2_MOUNT_HB_NONE;
- 	if ((osb->s_mount_opt & tmp) != (parsed_options.mount_opt & tmp)) {
-@@ -865,7 +856,6 @@ static int ocfs2_verify_userspace_stack(
- 	}
- 
- 	if (ocfs2_userspace_stack(osb) &&
--	    !(osb->s_mount_opt & OCFS2_MOUNT_NOCLUSTER) &&
- 	    strncmp(osb->osb_cluster_stack, mopt->cluster_stack,
- 		    OCFS2_STACK_LABEL_LEN)) {
- 		mlog(ML_ERROR,
-@@ -1137,11 +1127,6 @@ static int ocfs2_fill_super(struct super
- 	       osb->s_mount_opt & OCFS2_MOUNT_DATA_WRITEBACK ? "writeback" :
- 	       "ordered");
- 
--	if ((osb->s_mount_opt & OCFS2_MOUNT_NOCLUSTER) &&
--	   !(osb->s_feature_incompat & OCFS2_FEATURE_INCOMPAT_LOCAL_MOUNT))
--		printk(KERN_NOTICE "ocfs2: The shared device (%s) is mounted "
--		       "without cluster aware mode.\n", osb->dev_str);
--
- 	atomic_set(&osb->vol_state, VOLUME_MOUNTED);
- 	wake_up(&osb->osb_mount_event);
- 
-@@ -1452,9 +1437,6 @@ static int ocfs2_parse_options(struct su
- 		case Opt_journal_async_commit:
- 			mopt->mount_opt |= OCFS2_MOUNT_JOURNAL_ASYNC_COMMIT;
- 			break;
--		case Opt_nocluster:
--			mopt->mount_opt |= OCFS2_MOUNT_NOCLUSTER;
--			break;
- 		default:
- 			mlog(ML_ERROR,
- 			     "Unrecognized mount option \"%s\" "
-@@ -1566,9 +1548,6 @@ static int ocfs2_show_options(struct seq
- 	if (opts & OCFS2_MOUNT_JOURNAL_ASYNC_COMMIT)
- 		seq_printf(s, ",journal_async_commit");
- 
--	if (opts & OCFS2_MOUNT_NOCLUSTER)
--		seq_printf(s, ",nocluster");
--
- 	return 0;
- }
- 
-_
-
-Patches currently in -mm which might be from ocfs2-devel@oss.oracle.com are
-
+ 	spin_unlock(&inode->i_lock);
+-- 
+2.30.2
 
 
 _______________________________________________
