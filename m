@@ -4,52 +4,53 @@ X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 Received: from aib29ajc245.phx1.oracleemaildelivery.com (aib29ajc245.phx1.oracleemaildelivery.com [192.29.103.245])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id EE7F4C433EF
-	for <ocfs2-devel@archiver.kernel.org>; Fri, 15 Jul 2022 21:04:30 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 0EE13C43334
+	for <ocfs2-devel@archiver.kernel.org>; Sun, 17 Jul 2022 05:10:37 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=v65dxnAWd62kXAXE/yXVWsyhnH5MKGZ6U2fbMoHmuAE=;
- b=ZsBI6PEHRTSU7xiFz69g6hLBDHCu6SU0H7RN2MXZkQeaurvliX8iPgJ2oBsZNg0O8e8XHZ2I7Fx9
-   qoArR3Rd1hOox2em3c06RmPPSRnt1/+9X4FxiDk19gtFkqeE47aP4hWQakHytUFhSbSH/3UVrhAe
-   0LeVOViU2o0wErfeAswuCJBbRlWTqCF3X7xQ2yW69G98sjBnlpT/Bpdtk/cPU9OhZmmgOH5nMube
-   yRJITIyN7IxmzY2TGhRbHVCF3icZGJfPRweXLN94Rnyb8qSRqcldiwtEjC9gDDsXnVLHB0C9uZPI
-   aeI2nf5V7gFXCTkTycrNPDqcxLS+BIEWeU3zNg==
+ bh=7z4IHp8vNf8b4STL0wgEyNaaS8ZZiLZl3rWWeR790BA=;
+ b=l/rq2I4QnxZBVRKdTli9vWdRM4ey3fFHjk8MwMUavb3FgwCuPMkOLoNY0KioRPLzqPtML7dUyfRn
+   zvfHa2tRb6hniQ0GT54vIgLnxAOeZQEpx/uUxZ5Af2JiGgmC61qOhH7C0vX01mQPpwuAB+vPxRV5
+   ms+hA81XdeBLLqntwEbUVzjSg/2vo3EJ78mi5QAKRmVl0buFEid6QSyB8jN76O7oJnMwyEI7/Ukw
+   Sxw7NYYUzzKf27X9kURnKZgpMyUmfEkGc/ZVr/JZxJFzJkIzIekIUk+EFD5vU8DNj4I3gujq4bDn
+   Dipr3y4xMllh/fFtO+8OcW9iX7/FW78BP5qCeA==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=v65dxnAWd62kXAXE/yXVWsyhnH5MKGZ6U2fbMoHmuAE=;
- b=dRGuq943BIIOObK7SPaCL/s+tVi9ywzJe6f80Kcukc+ZmQ1vpVyEOW2DQ89CUJMRD87w4+xbSVuQ
-   9EL7gMIkhM+stkCs6Y6OYAffdRixVk0C3EMGoVqb0qw+g6tAnzn+li3oAryz/8CrVEVUvKDc33c0
-   DqX/RAKqUQZXsQM0iAbPFzoKnuBUXeAy4PxiugaAHWupp0QbSOoYXTpECXAMluHTMnvJItUsAjy/
-   Y9wRDlZ/yvn0bkhy6oZTkZXsDCpuBcaQMGoRMXyWo/yHUn2r9os10iRgPJI01GIYMuzyIYDEcXrj
-   JCvJV6eSXBHtu/VErjGIt+VkcTGyOk8TeKIYtQ==
+ bh=7z4IHp8vNf8b4STL0wgEyNaaS8ZZiLZl3rWWeR790BA=;
+ b=eYT7MOmyfH9SvUkcZmFyQwJn1GE8rFu0B3JK3JS/nclt7PZQVmnBBp5cHx5Bl1oyMi9FS+0akAnI
+   yPCDtVG0joc5O6HBqsGC1jRDGQh2nLwNe4flSe/V4vE9SHfAe9XD57ojOvJ577Ea25RaBfwuPWQJ
+   NS3kb8dfuDLlBg/v3vC5s5oIgHk2GSYXbG/3l8m6wcm2SD2gtZcU3pnJSjx913jcB/lXNhEwV5hc
+   0vd3aV0XCGXoUj5apMLfLqb8DSCPbfKulTda4DmigoUSTuEJRS3I1oJuYfMHPLsEGB86437PngsA
+   /JHXxOI8zmahuw/F/DQClKAoVxuZ3OcQGU0IKA==
 Received: by omta-ad1-fd1-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220603 64bit (built Jun  3
  2022))
- with ESMTPS id <0RF2000LNYJISV20@omta-ad1-fd1-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Fri, 15 Jul 2022 21:04:30 +0000 (GMT)
-Message-id: <793cab25-a591-b4f4-c4a6-bb80ac681a02@linux.alibaba.com>
-Date: Fri, 15 Jul 2022 16:18:11 +0800
-MIME-version: 1.0
-User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:91.0)
- Gecko/20100101 Thunderbird/91.11.0
-Content-language: en-US
-To: Jiangshan Yi <13667453960@163.com>, mark@fasheh.com, jlbec@evilplan.org,
- akpm@linux-foundation.org
-References: <20220715060035.632903-1-13667453960@163.com>
-In-reply-to: <20220715060035.632903-1-13667453960@163.com>
-X-Source-IP: 115.124.30.57
-X-Proofpoint-Virus-Version: vendor=nai engine=6400 definitions=10408
+ with ESMTPS id <0RF5004YNFPPG610@omta-ad1-fd1-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Sun, 17 Jul 2022 05:10:37 +0000 (GMT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linux-foundation.org;
+ s=korg; t=1658032671; bh=E6Mn9ibbihdvfJTq3sG+S2MM3LpnYY6ye+/qwOHf71M=;
+ h=Date:To:From:Subject:From;
+ b=WWokQT5PGJQ1DPtfbeQv9qX5RMI0p5nFA7KRU970vxKQjnZtgoKfm0tMV+HYOPiQG
+ YvFQeyI6hENl1fIsF6E3ETjbeiBiNsv3ETqIT2yQv4CHoglPq+dlxeKQM00OvOSWvT
+ +afRFl1kgfm7ZDK+LpzBgOOYDQFth/3/HLomQSmE=
+Date: Sat, 16 Jul 2022 21:37:50 -0700
+To: mm-commits@vger.kernel.org, stable@vger.kernel.org, piaojun@huawei.com,
+ mark@fasheh.com, junxiao.bi@oracle.com, joseph.qi@linux.alibaba.com,
+ jlbec@evilplan.org, heming.zhao@suse.com, ghe@suse.com, gechangwei@live.cn,
+ ocfs2-devel@oss.oracle.com, akpm@linux-foundation.org
+Message-id: <20220717043751.51CD1C341C0@smtp.kernel.org>
+X-Source-IP: 145.40.68.75
+X-Proofpoint-Virus-Version: vendor=nai engine=6400 definitions=10410
  signatures=596000
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 clxscore=200
- lowpriorityscore=0 phishscore=0 bulkscore=0 impostorscore=0 suspectscore=0
- priorityscore=78 adultscore=0 mlxscore=0 spamscore=0 mlxlogscore=999
- malwarescore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2206140000 definitions=main-2207150035 domainage_hfrom=8492
-Cc: k2ci <kernel-bot@kylinos.cn>, linux-kernel@vger.kernel.org,
- ocfs2-devel@oss.oracle.com, Jiangshan Yi <yijiangshan@kylinos.cn>
-Subject: Re: [Ocfs2-devel] [PATCH] fs/ocfs2: Fix spelling typo in comment
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 suspectscore=0
+ phishscore=0 mlxlogscore=999 lowpriorityscore=0 adultscore=0 malwarescore=0
+ spamscore=0 priorityscore=276 impostorscore=0 clxscore=38 bulkscore=0
+ mlxscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2206140000 definitions=main-2207170021
+Subject: [Ocfs2-devel] [merged mm-hotfixes-stable]
+	revert-ocfs2-mount-shared-volume-without-ha-stack.patch	removed from -mm tree
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -61,63 +62,283 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: Joseph Qi via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: Joseph Qi <joseph.qi@linux.alibaba.com>
+From: Andrew Morton via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: Andrew Morton <akpm@linux-foundation.org>
+MIME-version: 1.0
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-Alimail-AntiSpam: AC=PASS; BC=-1|-1; BR=01201311R691e4; CH=green;
- DM=||false|; DS=||; FP=0|-1|-1|-1|0|-1|-1|-1; HT=ay29a033018046049;
- MF=joseph.qi@linux.alibaba.com; NM=1; PH=DS; RN=8; SR=0;
- TI=SMTPD_---0VJOSTJF_1657873092;
-X-ServerName: out30-57.freemail.mail.aliyun.com
+X-ServerName: ams.source.kernel.org
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 include:spf1.service.alibaba.com
- include:spf2.service.alibaba.com include:spf1.ocm.aliyun.com
- include:spf2.ocm.aliyun.com include:spf1.staff.mail.aliyun.com
- include:a.hichina.mail.aliyun.com include:b.hichina.mail.aliyun.com -all
+X-Proofpoint-SPF-Record: v=spf1 ip4:140.211.169.12/30 include:_spf.kernel.org
+ include:_spf.google.com ~all
 X-Spam: Clean
-X-Proofpoint-ORIG-GUID: jOmxIWohuRlNflN5N_h_Ejyy8rkqu1CP
-X-Proofpoint-GUID: jOmxIWohuRlNflN5N_h_Ejyy8rkqu1CP
+X-Proofpoint-GUID: QTZ4VX1aGTDDWIO29MIlGZKknAtkfU-l
+X-Proofpoint-ORIG-GUID: QTZ4VX1aGTDDWIO29MIlGZKknAtkfU-l
 Reporting-Meta:
- AAEbDXbyaNgsbh6TEq+qR1f3mxB8K6rFDbUAB9oKoRCcFIkQCjwSgAtm/aVRO08C
- 7TF+kOb6Xsd9PTMUiUg8mBVTWYlpEcDmSSzm12d1U7o++qWU1FJiron4bHd9/I46
- ImO4LahGZm2YGIkHSD1MKLg7+JRw41rjVm0gOlQlxWc6qaua/hA1SsVPH45p2aF5
- 8VVPCU9Akh/EWMMotAqhC7SKndIHeC2QM/RaKsyb3fYkK3z4OMdZ1n9tUuOiFd3S
- SCrE0OTEw2/nZnWb9DWyWA32rhj1LKVsLb7Fl0C1hHj7T7/Fsgb8omTRkjE0SxZz
- 1NjiFjJpwBWtvHAiEBK0SPzYx6R7tYt0pPJgoxKD0G56OzhSTTnNjOjRfnWwK2Vq
- rQGrztsBYXFuZO/jxzdaM61QeykJZySfI3z2cn5ix9lnVcoQumSer+hBZu91P2o5
- 67oVSG4drqV4F/SYnBk1W0KdlqVuQ3S1CxJ9zs7WZg3Yz/EmrXgfyRCnC/zWXBms
- /gfockpIgPOKHJsRK7mQqK7h7lN2xPgJmag08Xokjb3kDQ==
+ AAGucr4TLfmdayttwkOXUwvf8o+g7zFxNRRpPI3NEmVDxIkOfmmkNZhijz1A1j47
+ i7k3UqVqju5k9MMiZsvpUMjqnZQO//Ff17IPJcGeF06FugPSBPeLYgWzCP1U3dro
+ itKiTM/LFji3swEK3tl8uO9Kqb7DTYqpJ/eiGp0TCyKLBe4fw+rw661woa9PbuTq
+ bBphpKbCbryheZsYDXfbevPJV/c+/BwUcB4rY/6WNrfnY30ajnRuOCwlsqvjxP6W
+ wKxElOjN658Cv4SmJMQuGBjweoY/zsbG0+GKdXwFVHSjuxbi9kJjMoOnon290ljX
+ jLVLwJhTZQx20c/cGtaeBXAr9nrenKM9FrVWe9s9u8TdSt0bLlCpPOJxx3O5oXRf
+ C1OSaG4f/0i1+q8fzHcV+ndSMj8tuluMZcn3oUZtm+1r5QLr1shDRwIg3FHOFxpM
+ kxZya/Q2/Ch0g6ZvNk708ecFstcq2i0GRKsg7fD7YRMd2+Xw6U1CGq2hX0XBpvE8
+ EJ4hwEYKia0JOrcMGXqUiAIIFrNz9nDhi8V5GTofzQY=
 
 
+The quilt patch titled
+     Subject: Revert "ocfs2: mount shared volume without ha stack"
+has been removed from the -mm tree.  Its filename was
+     revert-ocfs2-mount-shared-volume-without-ha-stack.patch
 
-On 7/15/22 2:00 PM, Jiangshan Yi wrote:
-> From: Jiangshan Yi <yijiangshan@kylinos.cn>
-> 
-> Fix spelling typo in comment.
-> 
-> Reported-by: k2ci <kernel-bot@kylinos.cn>
-> Signed-off-by: Jiangshan Yi <yijiangshan@kylinos.cn>
+This patch was dropped because it was merged into the mm-hotfixes-stable branch
+of git://git.kernel.org/pub/scm/linux/kernel/git/akpm/mm
 
+------------------------------------------------------
+From: Junxiao Bi via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Subject: Revert "ocfs2: mount shared volume without ha stack"
+Date: Fri, 3 Jun 2022 15:28:01 -0700
+
+This reverts commit 912f655d78c5d4ad05eac287f23a435924df7144.
+
+This commit introduced a regression that can cause mount hung.  The
+changes in __ocfs2_find_empty_slot causes that any node with none-zero
+node number can grab the slot that was already taken by node 0, so node 1
+will access the same journal with node 0, when it try to grab journal
+cluster lock, it will hung because it was already acquired by node 0. 
+It's very easy to reproduce this, in one cluster, mount node 0 first, then
+node 1, you will see the following call trace from node 1.
+
+[13148.735424] INFO: task mount.ocfs2:53045 blocked for more than 122 seconds.
+[13148.739691]       Not tainted 5.15.0-2148.0.4.el8uek.mountracev2.x86_64 #2
+[13148.742560] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[13148.745846] task:mount.ocfs2     state:D stack:    0 pid:53045 ppid: 53044 flags:0x00004000
+[13148.749354] Call Trace:
+[13148.750718]  <TASK>
+[13148.752019]  ? usleep_range+0x90/0x89
+[13148.753882]  __schedule+0x210/0x567
+[13148.755684]  schedule+0x44/0xa8
+[13148.757270]  schedule_timeout+0x106/0x13c
+[13148.759273]  ? __prepare_to_swait+0x53/0x78
+[13148.761218]  __wait_for_common+0xae/0x163
+[13148.763144]  __ocfs2_cluster_lock.constprop.0+0x1d6/0x870 [ocfs2]
+[13148.765780]  ? ocfs2_inode_lock_full_nested+0x18d/0x398 [ocfs2]
+[13148.768312]  ocfs2_inode_lock_full_nested+0x18d/0x398 [ocfs2]
+[13148.770968]  ocfs2_journal_init+0x91/0x340 [ocfs2]
+[13148.773202]  ocfs2_check_volume+0x39/0x461 [ocfs2]
+[13148.775401]  ? iput+0x69/0xba
+[13148.777047]  ocfs2_mount_volume.isra.0.cold+0x40/0x1f5 [ocfs2]
+[13148.779646]  ocfs2_fill_super+0x54b/0x853 [ocfs2]
+[13148.781756]  mount_bdev+0x190/0x1b7
+[13148.783443]  ? ocfs2_remount+0x440/0x440 [ocfs2]
+[13148.785634]  legacy_get_tree+0x27/0x48
+[13148.787466]  vfs_get_tree+0x25/0xd0
+[13148.789270]  do_new_mount+0x18c/0x2d9
+[13148.791046]  __x64_sys_mount+0x10e/0x142
+[13148.792911]  do_syscall_64+0x3b/0x89
+[13148.794667]  entry_SYSCALL_64_after_hwframe+0x170/0x0
+[13148.797051] RIP: 0033:0x7f2309f6e26e
+[13148.798784] RSP: 002b:00007ffdcee7d408 EFLAGS: 00000246 ORIG_RAX: 00000000000000a5
+[13148.801974] RAX: ffffffffffffffda RBX: 00007ffdcee7d4a0 RCX: 00007f2309f6e26e
+[13148.804815] RDX: 0000559aa762a8ae RSI: 0000559aa939d340 RDI: 0000559aa93a22b0
+[13148.807719] RBP: 00007ffdcee7d5b0 R08: 0000559aa93a2290 R09: 00007f230a0b4820
+[13148.810659] R10: 0000000000000000 R11: 0000000000000246 R12: 00007ffdcee7d420
+[13148.813609] R13: 0000000000000000 R14: 0000559aa939f000 R15: 0000000000000000
+[13148.816564]  </TASK>
+
+To fix it, we can just fix __ocfs2_find_empty_slot.  But original commit
+introduced the feature to mount ocfs2 locally even it is cluster based,
+that is a very dangerous, it can easily cause serious data corruption,
+there is no way to stop other nodes mounting the fs and corrupting it. 
+Setup ha or other cluster-aware stack is just the cost that we have to
+take for avoiding corruption, otherwise we have to do it in kernel.
+
+Link: https://lkml.kernel.org/r/20220603222801.42488-1-junxiao.bi@oracle.com
+Fixes: 912f655d78c5("ocfs2: mount shared volume without ha stack")
+Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
 Acked-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-> ---
->  fs/ocfs2/quota_global.c | 2 +-
->  1 file changed, 1 insertion(+), 1 deletion(-)
-> 
-> diff --git a/fs/ocfs2/quota_global.c b/fs/ocfs2/quota_global.c
-> index 0b6f551a342a..dc9f76ab7e13 100644
-> --- a/fs/ocfs2/quota_global.c
-> +++ b/fs/ocfs2/quota_global.c
-> @@ -412,7 +412,7 @@ int ocfs2_global_read_info(struct super_block *sb, int type)
->  	goto out_err;
->  }
->  
-> -/* Write information to global quota file. Expects exlusive lock on quota
-> +/* Write information to global quota file. Expects exclusive lock on quota
->   * file inode and quota info */
->  static int __ocfs2_global_write_info(struct super_block *sb, int type)
->  {
+Cc: Mark Fasheh <mark@fasheh.com>
+Cc: Joel Becker <jlbec@evilplan.org>
+Cc: Changwei Ge <gechangwei@live.cn>
+Cc: Gang He <ghe@suse.com>
+Cc: Jun Piao <piaojun@huawei.com>
+Cc: <heming.zhao@suse.com>
+Cc: <stable@vger.kernel.org>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+---
+
+ fs/ocfs2/ocfs2.h    |    4 ---
+ fs/ocfs2/slot_map.c |   46 +++++++++++++++++-------------------------
+ fs/ocfs2/super.c    |   21 -------------------
+ 3 files changed, 20 insertions(+), 51 deletions(-)
+
+--- a/fs/ocfs2/ocfs2.h~revert-ocfs2-mount-shared-volume-without-ha-stack
++++ a/fs/ocfs2/ocfs2.h
+@@ -277,7 +277,6 @@ enum ocfs2_mount_options
+ 	OCFS2_MOUNT_JOURNAL_ASYNC_COMMIT = 1 << 15,  /* Journal Async Commit */
+ 	OCFS2_MOUNT_ERRORS_CONT = 1 << 16, /* Return EIO to the calling process on error */
+ 	OCFS2_MOUNT_ERRORS_ROFS = 1 << 17, /* Change filesystem to read-only on error */
+-	OCFS2_MOUNT_NOCLUSTER = 1 << 18, /* No cluster aware filesystem mount */
+ };
+ 
+ #define OCFS2_OSB_SOFT_RO	0x0001
+@@ -673,8 +672,7 @@ static inline int ocfs2_cluster_o2cb_glo
+ 
+ static inline int ocfs2_mount_local(struct ocfs2_super *osb)
+ {
+-	return ((osb->s_feature_incompat & OCFS2_FEATURE_INCOMPAT_LOCAL_MOUNT)
+-		|| (osb->s_mount_opt & OCFS2_MOUNT_NOCLUSTER));
++	return (osb->s_feature_incompat & OCFS2_FEATURE_INCOMPAT_LOCAL_MOUNT);
+ }
+ 
+ static inline int ocfs2_uses_extended_slot_map(struct ocfs2_super *osb)
+--- a/fs/ocfs2/slot_map.c~revert-ocfs2-mount-shared-volume-without-ha-stack
++++ a/fs/ocfs2/slot_map.c
+@@ -252,16 +252,14 @@ static int __ocfs2_find_empty_slot(struc
+ 	int i, ret = -ENOSPC;
+ 
+ 	if ((preferred >= 0) && (preferred < si->si_num_slots)) {
+-		if (!si->si_slots[preferred].sl_valid ||
+-		    !si->si_slots[preferred].sl_node_num) {
++		if (!si->si_slots[preferred].sl_valid) {
+ 			ret = preferred;
+ 			goto out;
+ 		}
+ 	}
+ 
+ 	for(i = 0; i < si->si_num_slots; i++) {
+-		if (!si->si_slots[i].sl_valid ||
+-		    !si->si_slots[i].sl_node_num) {
++		if (!si->si_slots[i].sl_valid) {
+ 			ret = i;
+ 			break;
+ 		}
+@@ -456,30 +454,24 @@ int ocfs2_find_slot(struct ocfs2_super *
+ 	spin_lock(&osb->osb_lock);
+ 	ocfs2_update_slot_info(si);
+ 
+-	if (ocfs2_mount_local(osb))
+-		/* use slot 0 directly in local mode */
+-		slot = 0;
+-	else {
+-		/* search for ourselves first and take the slot if it already
+-		 * exists. Perhaps we need to mark this in a variable for our
+-		 * own journal recovery? Possibly not, though we certainly
+-		 * need to warn to the user */
+-		slot = __ocfs2_node_num_to_slot(si, osb->node_num);
++	/* search for ourselves first and take the slot if it already
++	 * exists. Perhaps we need to mark this in a variable for our
++	 * own journal recovery? Possibly not, though we certainly
++	 * need to warn to the user */
++	slot = __ocfs2_node_num_to_slot(si, osb->node_num);
++	if (slot < 0) {
++		/* if no slot yet, then just take 1st available
++		 * one. */
++		slot = __ocfs2_find_empty_slot(si, osb->preferred_slot);
+ 		if (slot < 0) {
+-			/* if no slot yet, then just take 1st available
+-			 * one. */
+-			slot = __ocfs2_find_empty_slot(si, osb->preferred_slot);
+-			if (slot < 0) {
+-				spin_unlock(&osb->osb_lock);
+-				mlog(ML_ERROR, "no free slots available!\n");
+-				status = -EINVAL;
+-				goto bail;
+-			}
+-		} else
+-			printk(KERN_INFO "ocfs2: Slot %d on device (%s) was "
+-			       "already allocated to this node!\n",
+-			       slot, osb->dev_str);
+-	}
++			spin_unlock(&osb->osb_lock);
++			mlog(ML_ERROR, "no free slots available!\n");
++			status = -EINVAL;
++			goto bail;
++		}
++	} else
++		printk(KERN_INFO "ocfs2: Slot %d on device (%s) was already "
++		       "allocated to this node!\n", slot, osb->dev_str);
+ 
+ 	ocfs2_set_slot(si, slot, osb->node_num);
+ 	osb->slot_num = slot;
+--- a/fs/ocfs2/super.c~revert-ocfs2-mount-shared-volume-without-ha-stack
++++ a/fs/ocfs2/super.c
+@@ -172,7 +172,6 @@ enum {
+ 	Opt_dir_resv_level,
+ 	Opt_journal_async_commit,
+ 	Opt_err_cont,
+-	Opt_nocluster,
+ 	Opt_err,
+ };
+ 
+@@ -206,7 +205,6 @@ static const match_table_t tokens = {
+ 	{Opt_dir_resv_level, "dir_resv_level=%u"},
+ 	{Opt_journal_async_commit, "journal_async_commit"},
+ 	{Opt_err_cont, "errors=continue"},
+-	{Opt_nocluster, "nocluster"},
+ 	{Opt_err, NULL}
+ };
+ 
+@@ -618,13 +616,6 @@ static int ocfs2_remount(struct super_bl
+ 		goto out;
+ 	}
+ 
+-	tmp = OCFS2_MOUNT_NOCLUSTER;
+-	if ((osb->s_mount_opt & tmp) != (parsed_options.mount_opt & tmp)) {
+-		ret = -EINVAL;
+-		mlog(ML_ERROR, "Cannot change nocluster option on remount\n");
+-		goto out;
+-	}
+-
+ 	tmp = OCFS2_MOUNT_HB_LOCAL | OCFS2_MOUNT_HB_GLOBAL |
+ 		OCFS2_MOUNT_HB_NONE;
+ 	if ((osb->s_mount_opt & tmp) != (parsed_options.mount_opt & tmp)) {
+@@ -865,7 +856,6 @@ static int ocfs2_verify_userspace_stack(
+ 	}
+ 
+ 	if (ocfs2_userspace_stack(osb) &&
+-	    !(osb->s_mount_opt & OCFS2_MOUNT_NOCLUSTER) &&
+ 	    strncmp(osb->osb_cluster_stack, mopt->cluster_stack,
+ 		    OCFS2_STACK_LABEL_LEN)) {
+ 		mlog(ML_ERROR,
+@@ -1137,11 +1127,6 @@ static int ocfs2_fill_super(struct super
+ 	       osb->s_mount_opt & OCFS2_MOUNT_DATA_WRITEBACK ? "writeback" :
+ 	       "ordered");
+ 
+-	if ((osb->s_mount_opt & OCFS2_MOUNT_NOCLUSTER) &&
+-	   !(osb->s_feature_incompat & OCFS2_FEATURE_INCOMPAT_LOCAL_MOUNT))
+-		printk(KERN_NOTICE "ocfs2: The shared device (%s) is mounted "
+-		       "without cluster aware mode.\n", osb->dev_str);
+-
+ 	atomic_set(&osb->vol_state, VOLUME_MOUNTED);
+ 	wake_up(&osb->osb_mount_event);
+ 
+@@ -1452,9 +1437,6 @@ static int ocfs2_parse_options(struct su
+ 		case Opt_journal_async_commit:
+ 			mopt->mount_opt |= OCFS2_MOUNT_JOURNAL_ASYNC_COMMIT;
+ 			break;
+-		case Opt_nocluster:
+-			mopt->mount_opt |= OCFS2_MOUNT_NOCLUSTER;
+-			break;
+ 		default:
+ 			mlog(ML_ERROR,
+ 			     "Unrecognized mount option \"%s\" "
+@@ -1566,9 +1548,6 @@ static int ocfs2_show_options(struct seq
+ 	if (opts & OCFS2_MOUNT_JOURNAL_ASYNC_COMMIT)
+ 		seq_printf(s, ",journal_async_commit");
+ 
+-	if (opts & OCFS2_MOUNT_NOCLUSTER)
+-		seq_printf(s, ",nocluster");
+-
+ 	return 0;
+ }
+ 
+_
+
+Patches currently in -mm which might be from ocfs2-devel@oss.oracle.com are
+
+
 
 _______________________________________________
 Ocfs2-devel mailing list
