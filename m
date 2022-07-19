@@ -1,61 +1,55 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc254.phx1.oracleemaildelivery.com (aib29ajc254.phx1.oracleemaildelivery.com [192.29.103.254])
+Received: from aib29ajc252.phx1.oracleemaildelivery.com (aib29ajc252.phx1.oracleemaildelivery.com [192.29.103.252])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 2FBD7C433EF
-	for <ocfs2-devel@archiver.kernel.org>; Tue, 19 Jul 2022 10:25:00 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 2DD48C433EF
+	for <ocfs2-devel@archiver.kernel.org>; Tue, 19 Jul 2022 13:25:34 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=iTWaMRRw2fLs6jXFlhlSsoadseiTJGpI/DFSFAXCWoI=;
- b=MIDi0sdICMPdTYL9c7KvPNRGv3O9GJT8/jVE1dfbd5IKUf176RkmcutGCnFoW21Wov/wBUI/sq6u
-   ejMp7Zb8MnIHKI13AC/S22yafpiWHgzL0rq2STHv10klRVZrBqmtKeofZLtXMuzWbfEpW265saF5
-   luCYq/ohBpUBybbphlJRUUjcI7uoHoNxMvfBraPU7NW1RzR9D/Of2/3pLsWeb7dKdZILpAc/I7S1
-   oZVqrxmP2M5YpltyOPJx+mO213wBxdGVlOnbeC3NP+nnNipR1Nta8lhTjF5FqsZYWBoIsxqGLWLa
-   fTOeobogdkj7dqvfcz+OoiyZ8Rr2+oe+E35KyQ==
+ bh=41NbfHbVZVm2K2D0SDq9G/KtIShyZzcETRlYY1PtfxM=;
+ b=eDQd8J1gX8U2NPrrDeDG+BQOPDXKTAgjHy9SNs3ylTc+bgjTq3FwFKbQnLNvgmqJf94ltvUUCamS
+   rocstw20ssJXto0UxwMGwTMOid2fAkhV1kI+KJCxsKcXCTn4C4SSITMv2eZv+ur9uG/TPV286kwz
+   UzDCTvbvUfU6g5nZ6RSJloHEXhZoN3vuSdgSzG1wxtW0l0pM7KM6ruSYySQFciExH9lAHbBWSG4u
+   uiBSJSqlkTZY6iD4fIAg9iKCMRWIEVMSDRX+zMtJLr0uizWlLEQiBKSH2JMsiEZCuvvhkPP/7Swg
+   3S8pLOT2TUSPN8YsZwCj6x/5RHMKb1/xXujzAw==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=iTWaMRRw2fLs6jXFlhlSsoadseiTJGpI/DFSFAXCWoI=;
- b=Uv4GjIx2AwapR0XNqjUv7V6SdRl43BfdBq2pu/Ip/JUpyztifEQaCDlmv+J+W+sEBLheOf7wg7+0
-   9EvBSONZ7Xk9eoIP9+5RTx19sb8KcaQA9wzqqAGN+s/bqc4rrBLEQGYXOaOCtW7KvDmP3YADaJ1r
-   3RgSyyFmoAXfprlihoSPrrFThNjVflUiN84wrSOutwhOLkiH3lnQ2ITLynFnbbCr/JFSQdnkL4xE
-   3oQKeHihlXNh2ppbgB+1ciQvoaQeB+8NPhxc6wUiX5fwYWwRPGwbfwHBjx4narjUOetaG9TH64xF
-   /4H+V7CdxkP5qDYyPJXTpyd0+u8S49Gcc4O2/A==
-Received: by omta-ad3-fd3-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
+ bh=41NbfHbVZVm2K2D0SDq9G/KtIShyZzcETRlYY1PtfxM=;
+ b=KKbqEjbqyNgB/WI5ZtrqXZLFom/Uxf2ldAjSs5/cVA7n51fGZ3TLt8IkdITRRbb1nV3gdpocKFhP
+   6HUxIFH34RnVqm3MWFPRbxqH+Gh+m5kGh9PAB4bbv25YP3EqPBsbCKA00kr/0/UskRtsn+kW0Heu
+   8tRNSrF6PoNTeFSdm+8B5NwN0O6mBG/chcuOqVELz2blBHzzqWRFPnG2otx6IGZE2mRBZmdfoMFH
+   zm1PlRPuY7bVa/RndgLAdA93OOf0MmBVD7cdJ7Z8jvxP+J1J4qyUej8lz7h2KkAssGToAcZzyLlX
+   f+wM6g0Tx08bITbyCo+Az2nwNDH/VFaXa/hoAQ==
+Received: by omta-ad3-fd1-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220603 64bit (built Jun  3
  2022))
- with ESMTPS id <0RF900EXMJLNJ330@omta-ad3-fd3-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Tue, 19 Jul 2022 10:24:59 +0000 (GMT)
-To: 'Christophe JAILLET' <christophe.jaillet@wanadoo.fr>,
- Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
- Joseph Qi <joseph.qi@linux.alibaba.com>
-Thread-topic: [PATCH 2/3] ocfs2: Remove a useless spinlock
-Thread-index: AQHYm1a23J7AKlhcsUK1MlCgSmBBPK2Fe4Yg
-Date: Tue, 19 Jul 2022 10:24:41 +0000
-Message-id: <7b644e5d32d74d3d90dfc5b1786ae5b9@AcuMS.aculab.com>
+ with ESMTPS id <0RF90078BRYLJD70@omta-ad3-fd1-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Tue, 19 Jul 2022 13:25:33 +0000 (GMT)
+Message-id: <29c3fbdd-7695-46c5-bb75-fe358c574ab3@wanadoo.fr>
+Date: Tue, 19 Jul 2022 15:25:11 +0200
+MIME-version: 1.0
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:91.0) Gecko/20100101
+ Thunderbird/91.9.1
+Content-language: en-US
+To: David Laight <David.Laight@ACULAB.COM>, Mark Fasheh <mark@fasheh.com>,
+ Joel Becker <jlbec@evilplan.org>, Joseph Qi <joseph.qi@linux.alibaba.com>
 References:
  <bd6796635e58f9c47cf857573c3b9474a00ce26a.1658224839.git.christophe.jaillet@wanadoo.fr>
  <8ba7004d330cbe5f626539a8a3bff696d0c4285e.1658224839.git.christophe.jaillet@wanadoo.fr>
-In-reply-to:
- <8ba7004d330cbe5f626539a8a3bff696d0c4285e.1658224839.git.christophe.jaillet@wanadoo.fr>
-Accept-Language: en-GB, en-US
-X-MS-Has-Attach:
-X-Originating-IP: [10.202.205.107]
-MIME-version: 1.0
-Authentication-results: relay.mimecast.com; auth=pass smtp.auth=C51A453
- smtp.mailfrom=david.laight@aculab.com
-Content-language: en-US
-X-Source-IP: 185.58.86.151
+ <7b644e5d32d74d3d90dfc5b1786ae5b9@AcuMS.aculab.com>
+In-reply-to: <7b644e5d32d74d3d90dfc5b1786ae5b9@AcuMS.aculab.com>
+X-Source-IP: 80.12.242.24
 X-Proofpoint-Virus-Version: vendor=nai engine=6400 definitions=10412
  signatures=596000
 X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0
- lowpriorityscore=0 malwarescore=0 bulkscore=0 mlxscore=0 phishscore=0
- spamscore=0 adultscore=0 clxscore=30 impostorscore=0 priorityscore=48
- mlxlogscore=999 suspectscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2206140000 definitions=main-2207190044
+ priorityscore=136 clxscore=5 mlxlogscore=999 mlxscore=0 adultscore=0
+ spamscore=0 bulkscore=0 suspectscore=0 impostorscore=0 phishscore=0
+ lowpriorityscore=0 malwarescore=0 classifier=spam adjust=0 reason=mlx
+ scancount=1 engine=8.12.0-2206140000 definitions=main-2207190056
 Cc: "kernel-janitors@vger.kernel.org" <kernel-janitors@vger.kernel.org>,
  "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
  "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>
@@ -71,137 +65,103 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: David Laight via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: David Laight <David.Laight@ACULAB.COM>
-Content-type: text/plain; charset="us-ascii"
-Content-transfer-encoding: 7bit
+From: Christophe JAILLET via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: Christophe JAILLET <christophe.jaillet@wanadoo.fr>
+Content-transfer-encoding: base64
+Content-type: text/plain; charset="utf-8"; Format="flowed"
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-MC-Unique: 3JDAf-T3MjuitJ0ZtV96nw-1
-X-MS-TNEF-Correlator:
-x-ms-exchange-transport-fromentityheader: Hosted
-X-Mimecast-Spam-Score: 0
-X-Mimecast-Originator: aculab.com
-X-ServerName: eu-smtp-delivery-151.mimecast.com
+X-ME-Helo: [192.168.1.18]
+X-ME-Auth:
+ YWZlNiIxYWMyZDliZWIzOTcwYTEyYzlhMmU3ZiQ1M2U2MzfzZDfyZTMxZTBkMTYyNDBjNDJlZmQ3ZQ==
+X-ME-Date: Tue, 19 Jul 2022 15:25:16 +0200
+X-ME-IP: 90.11.190.129
+X-ServerName: smtp-24.smtpout.orange.fr
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 include:eu._netblocks.mimecast.com
- include:servers.mcsv.net include:_spf.act-on.net include:aculabcloud.net -all
+X-Proofpoint-SPF-Record: v=spf1 include:_spf_gp.wanadoo.fr
+ include:spf.email-control.orange-business.com include:_spf_gpf.wanadoo.fr
+ include:_spf_other.wanadoo.fr ?all
 X-Spam: Clean
-X-Proofpoint-GUID: WVGEeMtOJ690H6Sa1VYiyVG9AnLUyaX6
-X-Proofpoint-ORIG-GUID: WVGEeMtOJ690H6Sa1VYiyVG9AnLUyaX6
+X-Proofpoint-GUID: bVJmAlhGhDKTgkuumR3fItl58xAynFnX
+X-Proofpoint-ORIG-GUID: bVJmAlhGhDKTgkuumR3fItl58xAynFnX
 Reporting-Meta:
- AAHAUz55sJEt6YHPSthJ6zCAG//+awkQE0KY09+9ddvBATA5g3Ea9MUa3K7bWjR9
- nrWLdY7n7fOF29eoYUXzT38KtdoSP0xR5I5emeaulYaDZpycX4X87v+XRcXSBNk0
- wOPN3XOapbxaOrZmwGyhPmf7WNI59srLdYGCP4y949wxsNrLBqcK1arwxB2lrDZG
- l3G88m8n8yl0PrBGWpVFaBs4qvPDvcbwDf9oRah3Db0KF/S4OwiKlKUEMYBWV3fl
- V1aFz09Fm6Gcr0l2zUuwGj9Cm79a/JKCSlX/x0NyLFZfftEm/YOrPEkBtjdMueJm
- UPKQMD0djIl5pkczgqXp++Koebf7DvRXG0174fGd72vS7MHqnBgS0eLfbhxcxDkV
- dUcPu7amTSG+OfvB8uqr0rvnKfbVdOEAsX2mWg4CFuyuH4+y6SkWCfDBL8JfOTvp
- FnFA3EoSz1zG3XsZO54G34+RscXcCgntmxuABcv1aOGpLJjZqdCThSVSl64+TOKz
- xKTpb/IzmqjuyWy+bH2xwcJd6YR7CX9b3Aa53lvHvMvm
+ AAHfuuU5RxFO0S79UBx2P1J9RWDk44N/Eg2lNDWGvFI+sE7LojTGId1dPtANHgcf
+ x75NP1w8n9eH9V5wuw4e1Kj+/8nswKw0q0C8Xcz589qPM7wGYJCa50rIVGauIjhi
+ d6jGEYQgiLz9zoPQys8piPdAaFBD3G993hDCnCngPLlgGM612NzVhYfkBfn2saG7
+ f/0VkL0fWbbF69IMMwMM8udKypk9gQPKignllshpIZUiGxLaf24b0deSuBCSwedT
+ sdlI/Ulc2ZqcI/uyfWE0fclLyrhD3gBoM87/VSnQkikQ6gH68iR7ET6/dk0y8Gem
+ fzZWk2GR6AaDig3pvg6jvXRrlIVpZHeIH04elMk3D7oliAZhgV63F+n9g9S8yF2i
+ hMMTBchM4Bkrwtmtre3TdYzIY85JpEqcaiTemIUsEn5Gbiywzz16FL1aAfx8hbu7
+ MHKNpFn+AZzDyGIigU7hbW7chNGyJVfdohIJ4T4uD0Nwi5UZYa259QPQPt311KRQ
+ EJq43G+yBZWz+GEh+u7tgJnaeWPVjW4xbKFsgJdvgOV1
 
-From: Christophe JAILLET
-> Sent: 19 July 2022 11:02
-> 
-> 'node_map_lock' is a spinlock only used to protect calls to set_bit(),
-> clear_bit() and test_bit().
-> 
-> {set|clear}_bit() are already atomic and don't need this extra spinlock.
-> test_bit() only reads the bitmap for a given bit.
-> 
-> Remove this useless spinlock.
-
-It looks to me like the calling code is racy
-unless there is another lock in the callers.
-While map->map is protected, the result of test_bit()
-is stale - so can't be used for much.
-
-	David
-
-> 
-> Signed-off-by: Christophe JAILLET <christophe.jaillet@wanadoo.fr>
-> ---
-> test_bit() is NOT documented as an atomic function. However, I can't see
-> how it could return a wrong result here.
-> 
-> So review with care. There is maybe something I don't think about that is
-> lurking here.
-> ---
->  fs/ocfs2/heartbeat.c | 11 ++++-------
->  fs/ocfs2/ocfs2.h     |  2 --
->  2 files changed, 4 insertions(+), 9 deletions(-)
-> 
-> diff --git a/fs/ocfs2/heartbeat.c b/fs/ocfs2/heartbeat.c
-> index 1d72e0788943..4863ad35c242 100644
-> --- a/fs/ocfs2/heartbeat.c
-> +++ b/fs/ocfs2/heartbeat.c
-> @@ -35,7 +35,6 @@ static void ocfs2_node_map_init(struct ocfs2_node_map *map)
-> 
->  void ocfs2_init_node_maps(struct ocfs2_super *osb)
->  {
-> -	spin_lock_init(&osb->node_map_lock);
->  	ocfs2_node_map_init(&osb->osb_recovering_orphan_dirs);
->  }
-> 
-> @@ -67,9 +66,8 @@ void ocfs2_node_map_set_bit(struct ocfs2_super *osb,
->  	if (bit==-1)
->  		return;
->  	BUG_ON(bit >= map->num_nodes);
-> -	spin_lock(&osb->node_map_lock);
-> +
->  	set_bit(bit, map->map);
-> -	spin_unlock(&osb->node_map_lock);
->  }
-> 
->  void ocfs2_node_map_clear_bit(struct ocfs2_super *osb,
-> @@ -79,9 +77,8 @@ void ocfs2_node_map_clear_bit(struct ocfs2_super *osb,
->  	if (bit==-1)
->  		return;
->  	BUG_ON(bit >= map->num_nodes);
-> -	spin_lock(&osb->node_map_lock);
-> +
->  	clear_bit(bit, map->map);
-> -	spin_unlock(&osb->node_map_lock);
->  }
-> 
->  int ocfs2_node_map_test_bit(struct ocfs2_super *osb,
-> @@ -89,13 +86,13 @@ int ocfs2_node_map_test_bit(struct ocfs2_super *osb,
->  			    int bit)
->  {
->  	int ret;
-> +
->  	if (bit >= map->num_nodes) {
->  		mlog(ML_ERROR, "bit=%d map->num_nodes=%d\n", bit, map->num_nodes);
->  		BUG();
->  	}
-> -	spin_lock(&osb->node_map_lock);
-> +
->  	ret = test_bit(bit, map->map);
-> -	spin_unlock(&osb->node_map_lock);
->  	return ret;
->  }
-> 
-> diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
-> index 740b64238312..1df193b97c30 100644
-> --- a/fs/ocfs2/ocfs2.h
-> +++ b/fs/ocfs2/ocfs2.h
-> @@ -302,8 +302,6 @@ struct ocfs2_super
-> 
->  	u32 *slot_recovery_generations;
-> 
-> -	spinlock_t node_map_lock;
-> -
->  	u64 root_blkno;
->  	u64 system_dir_blkno;
->  	u64 bitmap_blkno;
-> --
-> 2.34.1
-
--
-Registered Address Lakeside, Bramley Road, Mount Farm, Milton Keynes, MK1 1PT, UK
-Registration No: 1397386 (Wales)
-
-
-_______________________________________________
-Ocfs2-devel mailing list
-Ocfs2-devel@oss.oracle.com
-https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+TGUgMTkvMDcvMjAyMiDDoCAxMjoyNCwgRGF2aWQgTGFpZ2h0IGEgw6ljcml0wqA6Cj4gRnJvbTog
+Q2hyaXN0b3BoZSBKQUlMTEVUCj4+IFNlbnQ6IDE5IEp1bHkgMjAyMiAxMTowMgo+Pgo+PiAnbm9k
+ZV9tYXBfbG9jaycgaXMgYSBzcGlubG9jayBvbmx5IHVzZWQgdG8gcHJvdGVjdCBjYWxscyB0byBz
+ZXRfYml0KCksCj4+IGNsZWFyX2JpdCgpIGFuZCB0ZXN0X2JpdCgpLgo+Pgo+PiB7c2V0fGNsZWFy
+fV9iaXQoKSBhcmUgYWxyZWFkeSBhdG9taWMgYW5kIGRvbid0IG5lZWQgdGhpcyBleHRyYSBzcGlu
+bG9jay4KPj4gdGVzdF9iaXQoKSBvbmx5IHJlYWRzIHRoZSBiaXRtYXAgZm9yIGEgZ2l2ZW4gYml0
+Lgo+Pgo+PiBSZW1vdmUgdGhpcyB1c2VsZXNzIHNwaW5sb2NrLgo+IAo+IEl0IGxvb2tzIHRvIG1l
+IGxpa2UgdGhlIGNhbGxpbmcgY29kZSBpcyByYWN5Cj4gdW5sZXNzIHRoZXJlIGlzIGFub3RoZXIg
+bG9jayBpbiB0aGUgY2FsbGVycy4KClRoZSBjYWxsIGNoYWlucyBhcmU6CiAgIG9jZnMyX3JlY292
+ZXJfb3JwaGFucygpCiAgICAgb2NmczJfbWFya19yZWNvdmVyaW5nX29ycGhhbl9kaXIoKQogICAg
+ICAgc3Bpbl9sb2NrKCZvc2ItPm9zYl9sb2NrKTsJCTwtLSBvc2JfbG9jayBzcGlubG9jawogICAg
+ICAgb2NmczJfbm9kZV9tYXBfc2V0X2JpdCgpCQkJPC0tIHVzZXMgbm9kZV9tYXBfbG9jawogICAg
+ICAgLi4uCiAgICAgICBzcGluX3VubG9jaygmb3NiLT5vc2JfbG9jayk7CiAgICAgLi4uCiAgICAg
+b2NmczJfY2xlYXJfcmVjb3ZlcmluZ19vcnBoYW5fZGlyKCkKICAgICAgIG9jZnMyX25vZGVfbWFw
+X2NsZWFyX2JpdCgpCQk8LS0gdXNlcyBub2RlX21hcF9sb2NrCgkJCQkJCSAgICBvc2JfbG9jayBp
+cyBOT1QgdGFrZW4KCgogICBvY2ZzMl9jaGVja19vcnBoYW5fcmVjb3Zlcnlfc3RhdGUoKQogICAg
+IHNwaW5fbG9jaygmb3NiLT5vc2JfbG9jayk7CQkJPC0tIG9zYl9sb2NrIHNwaW5sb2NrCiAgICAg
+Li4uCiAgICAgb2NmczJfbm9kZV9tYXBfdGVzdF9iaXQoKQkJCTwtLSB1c2VzIG5vZGVfbWFwX2xv
+Y2sKICAgICAuLi4KICAgICBzcGluX3VubG9jaygmb3NiLT5vc2JfbG9jayk7CgoKU28gdGhlIGNv
+ZGUgbG9va3MgYWxyZWFkeSBwcm90ZWN0ZWQgYnkgdGhlICdvc2JfbG9jaycgc3BpbmxvY2ssIGJ1
+dCBJIApkb24ndCBrbm93IHRoaXMgY29kZSBhbmQgb2NmczJfbWFya19yZWNvdmVyaW5nX29ycGhh
+bl9kaXIoKSBsb29rcyB0cmlja3kgCnRvIG1lLiAoc28gc29tZSBvdGhlciBleWVzIGFyZSBtdWNo
+IHdlbGNvbWUpCgo+IFdoaWxlIG1hcC0+bWFwIGlzIHByb3RlY3RlZCwgdGhlIHJlc3VsdCBvZiB0
+ZXN0X2JpdCgpCj4gaXMgc3RhbGUgLSBzbyBjYW4ndCBiZSB1c2VkIGZvciBtdWNoLgo+IAoKQW55
+d2F5LCBzaG91bGQgdGhlcmUgYmUgYSBsb2NraW5nIGlzc3VlLCBpdCBpcyB0aGVyZSB3aXRoIG9y
+IHdpdGhvdXQgbXkgCnBhdGNoLCByaWdodD8KCkNKCgoKPiAJRGF2aWQKPiAKPj4KPj4gU2lnbmVk
+LW9mZi1ieTogQ2hyaXN0b3BoZSBKQUlMTEVUIDxjaHJpc3RvcGhlLmphaWxsZXRAd2FuYWRvby5m
+cj4KPj4gLS0tCj4+IHRlc3RfYml0KCkgaXMgTk9UIGRvY3VtZW50ZWQgYXMgYW4gYXRvbWljIGZ1
+bmN0aW9uLiBIb3dldmVyLCBJIGNhbid0IHNlZQo+PiBob3cgaXQgY291bGQgcmV0dXJuIGEgd3Jv
+bmcgcmVzdWx0IGhlcmUuCj4+Cj4+IFNvIHJldmlldyB3aXRoIGNhcmUuIFRoZXJlIGlzIG1heWJl
+IHNvbWV0aGluZyBJIGRvbid0IHRoaW5rIGFib3V0IHRoYXQgaXMKPj4gbHVya2luZyBoZXJlLgo+
+PiAtLS0KPj4gICBmcy9vY2ZzMi9oZWFydGJlYXQuYyB8IDExICsrKystLS0tLS0tCj4+ICAgZnMv
+b2NmczIvb2NmczIuaCAgICAgfCAgMiAtLQo+PiAgIDIgZmlsZXMgY2hhbmdlZCwgNCBpbnNlcnRp
+b25zKCspLCA5IGRlbGV0aW9ucygtKQo+Pgo+PiBkaWZmIC0tZ2l0IGEvZnMvb2NmczIvaGVhcnRi
+ZWF0LmMgYi9mcy9vY2ZzMi9oZWFydGJlYXQuYwo+PiBpbmRleCAxZDcyZTA3ODg5NDMuLjQ4NjNh
+ZDM1YzI0MiAxMDA2NDQKPj4gLS0tIGEvZnMvb2NmczIvaGVhcnRiZWF0LmMKPj4gKysrIGIvZnMv
+b2NmczIvaGVhcnRiZWF0LmMKPj4gQEAgLTM1LDcgKzM1LDYgQEAgc3RhdGljIHZvaWQgb2NmczJf
+bm9kZV9tYXBfaW5pdChzdHJ1Y3Qgb2NmczJfbm9kZV9tYXAgKm1hcCkKPj4KPj4gICB2b2lkIG9j
+ZnMyX2luaXRfbm9kZV9tYXBzKHN0cnVjdCBvY2ZzMl9zdXBlciAqb3NiKQo+PiAgIHsKPj4gLQlz
+cGluX2xvY2tfaW5pdCgmb3NiLT5ub2RlX21hcF9sb2NrKTsKPj4gICAJb2NmczJfbm9kZV9tYXBf
+aW5pdCgmb3NiLT5vc2JfcmVjb3ZlcmluZ19vcnBoYW5fZGlycyk7Cj4+ICAgfQo+Pgo+PiBAQCAt
+NjcsOSArNjYsOCBAQCB2b2lkIG9jZnMyX25vZGVfbWFwX3NldF9iaXQoc3RydWN0IG9jZnMyX3N1
+cGVyICpvc2IsCj4+ICAgCWlmIChiaXQ9PS0xKQo+PiAgIAkJcmV0dXJuOwo+PiAgIAlCVUdfT04o
+Yml0ID49IG1hcC0+bnVtX25vZGVzKTsKPj4gLQlzcGluX2xvY2soJm9zYi0+bm9kZV9tYXBfbG9j
+ayk7Cj4+ICsKPj4gICAJc2V0X2JpdChiaXQsIG1hcC0+bWFwKTsKPj4gLQlzcGluX3VubG9jaygm
+b3NiLT5ub2RlX21hcF9sb2NrKTsKPj4gICB9Cj4+Cj4+ICAgdm9pZCBvY2ZzMl9ub2RlX21hcF9j
+bGVhcl9iaXQoc3RydWN0IG9jZnMyX3N1cGVyICpvc2IsCj4+IEBAIC03OSw5ICs3Nyw4IEBAIHZv
+aWQgb2NmczJfbm9kZV9tYXBfY2xlYXJfYml0KHN0cnVjdCBvY2ZzMl9zdXBlciAqb3NiLAo+PiAg
+IAlpZiAoYml0PT0tMSkKPj4gICAJCXJldHVybjsKPj4gICAJQlVHX09OKGJpdCA+PSBtYXAtPm51
+bV9ub2Rlcyk7Cj4+IC0Jc3Bpbl9sb2NrKCZvc2ItPm5vZGVfbWFwX2xvY2spOwo+PiArCj4+ICAg
+CWNsZWFyX2JpdChiaXQsIG1hcC0+bWFwKTsKPj4gLQlzcGluX3VubG9jaygmb3NiLT5ub2RlX21h
+cF9sb2NrKTsKPj4gICB9Cj4+Cj4+ICAgaW50IG9jZnMyX25vZGVfbWFwX3Rlc3RfYml0KHN0cnVj
+dCBvY2ZzMl9zdXBlciAqb3NiLAo+PiBAQCAtODksMTMgKzg2LDEzIEBAIGludCBvY2ZzMl9ub2Rl
+X21hcF90ZXN0X2JpdChzdHJ1Y3Qgb2NmczJfc3VwZXIgKm9zYiwKPj4gICAJCQkgICAgaW50IGJp
+dCkKPj4gICB7Cj4+ICAgCWludCByZXQ7Cj4+ICsKPj4gICAJaWYgKGJpdCA+PSBtYXAtPm51bV9u
+b2Rlcykgewo+PiAgIAkJbWxvZyhNTF9FUlJPUiwgImJpdD0lZCBtYXAtPm51bV9ub2Rlcz0lZFxu
+IiwgYml0LCBtYXAtPm51bV9ub2Rlcyk7Cj4+ICAgCQlCVUcoKTsKPj4gICAJfQo+PiAtCXNwaW5f
+bG9jaygmb3NiLT5ub2RlX21hcF9sb2NrKTsKPj4gKwo+PiAgIAlyZXQgPSB0ZXN0X2JpdChiaXQs
+IG1hcC0+bWFwKTsKPj4gLQlzcGluX3VubG9jaygmb3NiLT5ub2RlX21hcF9sb2NrKTsKPj4gICAJ
+cmV0dXJuIHJldDsKPj4gICB9Cj4+Cj4+IGRpZmYgLS1naXQgYS9mcy9vY2ZzMi9vY2ZzMi5oIGIv
+ZnMvb2NmczIvb2NmczIuaAo+PiBpbmRleCA3NDBiNjQyMzgzMTIuLjFkZjE5M2I5N2MzMCAxMDA2
+NDQKPj4gLS0tIGEvZnMvb2NmczIvb2NmczIuaAo+PiArKysgYi9mcy9vY2ZzMi9vY2ZzMi5oCj4+
+IEBAIC0zMDIsOCArMzAyLDYgQEAgc3RydWN0IG9jZnMyX3N1cGVyCj4+Cj4+ICAgCXUzMiAqc2xv
+dF9yZWNvdmVyeV9nZW5lcmF0aW9uczsKPj4KPj4gLQlzcGlubG9ja190IG5vZGVfbWFwX2xvY2s7
+Cj4+IC0KPj4gICAJdTY0IHJvb3RfYmxrbm87Cj4+ICAgCXU2NCBzeXN0ZW1fZGlyX2Jsa25vOwo+
+PiAgIAl1NjQgYml0bWFwX2Jsa25vOwo+PiAtLQo+PiAyLjM0LjEKPiAKPiAtCj4gUmVnaXN0ZXJl
+ZCBBZGRyZXNzIExha2VzaWRlLCBCcmFtbGV5IFJvYWQsIE1vdW50IEZhcm0sIE1pbHRvbiBLZXlu
+ZXMsIE1LMSAxUFQsIFVLCj4gUmVnaXN0cmF0aW9uIE5vOiAxMzk3Mzg2IChXYWxlcykKPiAKPiAK
+CgpfX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fXwpPY2ZzMi1k
+ZXZlbCBtYWlsaW5nIGxpc3QKT2NmczItZGV2ZWxAb3NzLm9yYWNsZS5jb20KaHR0cHM6Ly9vc3Mu
+b3JhY2xlLmNvbS9tYWlsbWFuL2xpc3RpbmZvL29jZnMyLWRldmVs
