@@ -1,61 +1,58 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc255.phx1.oracleemaildelivery.com (aib29ajc255.phx1.oracleemaildelivery.com [192.29.103.255])
+Received: from aib29ajc253.phx1.oracleemaildelivery.com (aib29ajc253.phx1.oracleemaildelivery.com [192.29.103.253])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id DB7B3C433EF
-	for <ocfs2-devel@archiver.kernel.org>; Wed, 20 Jul 2022 02:00:10 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 49508C43334
+	for <ocfs2-devel@archiver.kernel.org>; Wed, 20 Jul 2022 02:04:02 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=nX5NqmimOT4iIibZptib9LkwnajQadF1cb2C4Q1mniA=;
- b=zAWRiWOiPzHF5Zb/BcrXIQiQ6OnmgSZqJDUrwn9y5qI8Ykz5/jyTCdMtjNMjueerhzcs5sJcCbWd
-   UOP1XTsmrteRRuW5OfIS8S+HPQag2kVyQzepILOiY/LxeC6WBKmQJACD8UJN8rCPR9MZsIhZcJXP
-   b0/H9r21/n/SY9T1fqOjflvMeMcSWP+AuU2DEeG93pV7DJPJBBnvslGZZDjXrbqYDgmu2MtPTOtK
-   oRcGvQFbngUBNB3yIjTrq9PoiDekBAmkmPH+egOuvZGtF+9ZPZ0+0Pw3/qSPzBpaKvTkmMMyTRUD
-   nCVw2FgbNrUfLI0iOi6PMz/CYkhlnMN6jnR8/A==
+ bh=d034bXecDAj2RVUkPCLyYrswuqEt9CXaaUHU0uPkEBY=;
+ b=FLRg/Xisc70ZgTl0Ijrve9UGX677VJbe2gkdDUWTb70MEbfzuhD92Tj0E2gdXDwPOu/XdbhqDy8m
+   jPnQ9ubO1j6OC98JLbVUeM4ByBTyA64z0lAtuLphimPg15sCOCionQg4r82UGnwxvEO61+0uAAp+
+   Bzg2EdjV6OWlcPoshHkHktZYa1VthlRV45gftcKgiNblW241UM/QQLjLVvB32KrbrU9AHlZhZjKu
+   /h7KCcqz4JUohgG0xiHUYbTT/tSGr165tiKGziqngXhwyp1OCzesY00vi8l3hO5sWT3g7tA9KGGg
+   kXvtUf/5eEObIRNRasqpR2ySbg/d6Gt1FzNWAQ==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=nX5NqmimOT4iIibZptib9LkwnajQadF1cb2C4Q1mniA=;
- b=p+Qa9s7utjI5H1/gA7szLkQG9TWGnKUNy3xtG1FAQCnHdnKknurzSuWzI+j1B00wS5W4eRf7TjN9
-   LjvuxFVMkBmAkm+O24zZ1L6+Y84oNBv2m0N045MmP8GW1kQ/1hK6cJGBfTKJFfbJu0x7Tf2dzwI2
-   xwk4lr5urjgNDDuixqHLigH/AurkKyp7aFkyA6M7WooM2MQBIrb1ahXeqnPwSlF+kcJsVcN628up
-   aN62LR+hVbFLcYijAM+Rh0bB6aIPpr1X3EheTvwR2pbd9/8zQ3I5IYT163c6Wpdbo3T9F6KYJzYa
-   XA6BO+67j/YWlKWFRgyZis6Us0cKrrcxbsRE5A==
-Received: by omta-ad3-fd3-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
+ bh=d034bXecDAj2RVUkPCLyYrswuqEt9CXaaUHU0uPkEBY=;
+ b=jy3XrD5xGUtKUqLWlVgtaHYd9N0OfP9dx9pW2EjmZnbgL++tcZ7Ava598n9N/abVtnnvn5lyy2n7
+   lgGgdffwa0jurTxJ/LuuA8L5TBjbQDD+5q7rgtr0H/bonCfQJVK2HesfgvReDvuXEtvSrTnX3Fki
+   1KJwNRfI8Qoqij5/evTlTnze/CV6DurYJWtLnvLINe2WdOoGVATzd2GiDd0Q9UM4ZWDVUzlaE1pX
+   AxFVliujQG2AprfEWQPyfkvSyzEdGP7vXjr6H5+HmMdVOzG+xh8sHahhtA/XT2rc12jT8DYjGMeP
+   SWXHZqBThzXSvf9ivuPHfm/JzpLQfTc0sryCzw==
+Received: by omta-ad3-fd1-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220621 64bit (built Jun 21
  2022))
- with ESMTPS id <0RFA0035NQW80UA0@omta-ad3-fd3-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Wed, 20 Jul 2022 02:00:10 +0000 (GMT)
-Message-id: <07c924de-78bf-c993-ce73-635af71f4edd@linux.alibaba.com>
-Date: Wed, 20 Jul 2022 09:59:47 +0800
+ with ESMTPS id <0RFA00MG3R2P1A00@omta-ad3-fd1-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Wed, 20 Jul 2022 02:04:01 +0000 (GMT)
+Message-id: <d49c6cca-2980-41b1-0f59-32ddcbb1dfa2@linux.alibaba.com>
+Date: Wed, 20 Jul 2022 10:03:43 +0800
 MIME-version: 1.0
 User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:91.0)
  Gecko/20100101 Thunderbird/91.11.0
 Content-language: en-US
 To: Christophe JAILLET <christophe.jaillet@wanadoo.fr>,
- David Laight <David.Laight@ACULAB.COM>, Mark Fasheh <mark@fasheh.com>,
- Joel Becker <jlbec@evilplan.org>
+ Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
+ akpm <akpm@linux-foundation.org>
 References:
  <bd6796635e58f9c47cf857573c3b9474a00ce26a.1658224839.git.christophe.jaillet@wanadoo.fr>
- <8ba7004d330cbe5f626539a8a3bff696d0c4285e.1658224839.git.christophe.jaillet@wanadoo.fr>
- <7b644e5d32d74d3d90dfc5b1786ae5b9@AcuMS.aculab.com>
- <29c3fbdd-7695-46c5-bb75-fe358c574ab3@wanadoo.fr>
-In-reply-to: <29c3fbdd-7695-46c5-bb75-fe358c574ab3@wanadoo.fr>
-X-Source-IP: 47.90.199.17
+In-reply-to:
+ <bd6796635e58f9c47cf857573c3b9474a00ce26a.1658224839.git.christophe.jaillet@wanadoo.fr>
+X-Source-IP: 115.124.30.57
 X-Proofpoint-Virus-Version: vendor=nai engine=6400 definitions=10413
  signatures=596000
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 mlxlogscore=975
- clxscore=188 bulkscore=0 lowpriorityscore=0 phishscore=0 priorityscore=0
- malwarescore=0 spamscore=0 suspectscore=0 impostorscore=0 mlxscore=0
- adultscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 impostorscore=0
+ mlxscore=0 lowpriorityscore=0 phishscore=0 adultscore=0 suspectscore=0
+ bulkscore=0 mlxlogscore=999 clxscore=107 malwarescore=0 priorityscore=156
+ spamscore=0 classifier=spam adjust=0 reason=mlx scancount=1
  engine=8.12.0-2206140000 definitions=main-2207200006 domainage_hfrom=8497
-Cc: "kernel-janitors@vger.kernel.org" <kernel-janitors@vger.kernel.org>,
- "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
- "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>
-Subject: Re: [Ocfs2-devel] [PATCH 2/3] ocfs2: Remove a useless spinlock
+Cc: kernel-janitors@vger.kernel.org, linux-kernel@vger.kernel.org,
+ ocfs2-devel@oss.oracle.com
+Subject: Re: [Ocfs2-devel] [PATCH 1/3] ocfs2: Remove some useless functions
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -69,63 +66,112 @@ List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
 From: Joseph Qi via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
 Reply-to: Joseph Qi <joseph.qi@linux.alibaba.com>
-Content-type: text/plain; charset="utf-8"
-Content-transfer-encoding: base64
+Content-type: text/plain; charset="us-ascii"
+Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-Alimail-AntiSpam: AC=PASS; BC=-1|-1; BR=01201311R961e4; CH=green;
+X-Alimail-AntiSpam: AC=PASS; BC=-1|-1; BR=01201311R191e4; CH=green;
  DM=||false|; DS=||; FP=0|-1|-1|-1|0|-1|-1|-1; HT=ay29a033018046059;
  MF=joseph.qi@linux.alibaba.com; NM=1; PH=DS; RN=7; SR=0;
- TI=SMTPD_---0VJuiYTA_1658282387;
-X-ServerName: out199-17.us.a.mail.aliyun.com
+ TI=SMTPD_---0VJuib0B_1658282623;
+X-ServerName: out30-57.freemail.mail.aliyun.com
 X-Proofpoint-SPF-Result: pass
 X-Proofpoint-SPF-Record: v=spf1 include:spf1.service.alibaba.com
  include:spf2.service.alibaba.com include:spf1.ocm.aliyun.com
  include:spf2.ocm.aliyun.com include:spf1.staff.mail.aliyun.com
  include:a.hichina.mail.aliyun.com include:b.hichina.mail.aliyun.com -all
 X-Spam: Clean
-X-Proofpoint-GUID: xpuvQ12CQzPvKz-Ojnf9fTn8icr4dtiV
-X-Proofpoint-ORIG-GUID: xpuvQ12CQzPvKz-Ojnf9fTn8icr4dtiV
+X-Proofpoint-GUID: wPZOUa4pTJhGaAZHMl8IKCkqrOT0WcoE
+X-Proofpoint-ORIG-GUID: wPZOUa4pTJhGaAZHMl8IKCkqrOT0WcoE
 Reporting-Meta:
- AAF/bPsR7xWVRCmxDjAoYhIR4gmYxWIIRK5Z+HuC7exgLiXPMwsEXU1QDU7ffhO6
- RxYJKCjP71HYLD7KeKVWA/FZ9zdiTxboXgUW/d3VkC63zsR2sMotgJXVFguq8wjl
- iDjcHvWoSBMm6M92rTTXkPmWd02CMqGhG7MlZlWvlXcRvuzXtP8N/h8vT7hPGedf
- c3SUikXthOn8RhHJfOSTVm7mIYLybQUy9k+eE2WPkbo13Gti/lsmvhjFNjdsFrKL
- qGR5wwzkcD06/5Cl7G+15oox+qom7UZ0hsegy2FNtr1kartTNYgbJies5lWfsIsF
- Ue3rHuINvBYjhLM5/L5yOl1wdNY4ieJKIoAkhbj/WMPeF7AXRlvANDoHB8ZHAPjh
- ZLPaMEZEHnt/GyrBn5aON9nY8vZRa0ejMp1jFbBr4XSVMpYLfP+4C/zhUCx668v+
- A+uiRa3iRwIpYVdTD7s8ulnGZj4RciW/4UVCpA6uVrl6WDD+bRHQQQPgQkFjyBu8
- R74XdPJ+BVvApptM1lpD+3MgYZAcCa/dGAa6Fl/ftJhT
+ AAFgaCzzpdnxunPlQWeKpQaJBurxJA1vFEpHQiByCh0L+ou3FUW7tV2fDpxu/2lM
+ eZ/S20/PvG0sxF6kBdwqXljajgFWBpGnY0bkmzWkFq7v+zqI8F4YOtZWPMCjGGSQ
+ d/Co7nLr8PdAfBtKavtAt1wKhR85nOL4SqXGaQnPsgOjpPynBdIcMZouchZ2Fwy7
+ Ygxx5Me50EX7rKvRstoasoitxC3yjtKHAHVKTNwwBE/Khk9uqSfy8LN3vhj0z+dj
+ RZdz3incCgWTdwxE9W+vg6x+lKZAmRA8ahvZXzhhCyzyBEzTye0d0MeMupHFfZF1
+ 8dNsC/WzbfCiBHDlHnytURuEI0To8Ld+LkS8oDfHNZwA0J7YLaHJQOnVj2uQJUwX
+ Ma0bTwgznFAeeg+IubnVIjb3nDHnJmIs+QPeXZmTCLwNkU8QnzAhoN4aLNGPeHAS
+ mp67ykPAUVf5P68EA6K8YmY96sGmeNhFiVlHX1F0p7Ysoo/RIrYxWcIQr8sAYQyL
+ r8pr2Gqd3fzWgJzsFUjX+wfd7SPy1qBOqKXPHf/7oJI=
 
-CgpPbiA3LzE5LzIyIDk6MjUgUE0sIENocmlzdG9waGUgSkFJTExFVCB3cm90ZToKPiBMZSAxOS8w
-Ny8yMDIyIMOgIDEyOjI0LCBEYXZpZCBMYWlnaHQgYSDDqWNyaXTCoDoKPj4gRnJvbTogQ2hyaXN0
-b3BoZSBKQUlMTEVUCj4+PiBTZW50OiAxOSBKdWx5IDIwMjIgMTE6MDIKPj4+Cj4+PiAnbm9kZV9t
-YXBfbG9jaycgaXMgYSBzcGlubG9jayBvbmx5IHVzZWQgdG8gcHJvdGVjdCBjYWxscyB0byBzZXRf
-Yml0KCksCj4+PiBjbGVhcl9iaXQoKSBhbmQgdGVzdF9iaXQoKS4KPj4+Cj4+PiB7c2V0fGNsZWFy
-fV9iaXQoKSBhcmUgYWxyZWFkeSBhdG9taWMgYW5kIGRvbid0IG5lZWQgdGhpcyBleHRyYSBzcGlu
-bG9jay4KPj4+IHRlc3RfYml0KCkgb25seSByZWFkcyB0aGUgYml0bWFwIGZvciBhIGdpdmVuIGJp
-dC4KPj4+Cj4+PiBSZW1vdmUgdGhpcyB1c2VsZXNzIHNwaW5sb2NrLgo+Pgo+PiBJdCBsb29rcyB0
-byBtZSBsaWtlIHRoZSBjYWxsaW5nIGNvZGUgaXMgcmFjeQo+PiB1bmxlc3MgdGhlcmUgaXMgYW5v
-dGhlciBsb2NrIGluIHRoZSBjYWxsZXJzLgo+IAo+IFRoZSBjYWxsIGNoYWlucyBhcmU6Cj4gwqAg
-b2NmczJfcmVjb3Zlcl9vcnBoYW5zKCkKPiDCoMKgwqAgb2NmczJfbWFya19yZWNvdmVyaW5nX29y
-cGhhbl9kaXIoKQo+IMKgwqDCoMKgwqAgc3Bpbl9sb2NrKCZvc2ItPm9zYl9sb2NrKTvCoMKgwqDC
-oMKgwqDCoCA8LS0gb3NiX2xvY2sgc3BpbmxvY2sKPiDCoMKgwqDCoMKgIG9jZnMyX25vZGVfbWFw
-X3NldF9iaXQoKcKgwqDCoMKgwqDCoMKgwqDCoMKgwqAgPC0tIHVzZXMgbm9kZV9tYXBfbG9jawo+
-IMKgwqDCoMKgwqAgLi4uCj4gwqDCoMKgwqDCoCBzcGluX3VubG9jaygmb3NiLT5vc2JfbG9jayk7
-Cj4gwqDCoMKgIC4uLgo+IMKgwqDCoCBvY2ZzMl9jbGVhcl9yZWNvdmVyaW5nX29ycGhhbl9kaXIo
-KQo+IMKgwqDCoMKgwqAgb2NmczJfbm9kZV9tYXBfY2xlYXJfYml0KCnCoMKgwqDCoMKgwqDCoCA8
-LS0gdXNlcyBub2RlX21hcF9sb2NrCj4gwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDC
-oMKgwqDCoMKgwqDCoMKgwqDCoMKgIG9zYl9sb2NrIGlzIE5PVCB0YWtlbgo+IAo+IAo+IMKgIG9j
-ZnMyX2NoZWNrX29ycGhhbl9yZWNvdmVyeV9zdGF0ZSgpCj4gwqDCoMKgIHNwaW5fbG9jaygmb3Ni
-LT5vc2JfbG9jayk7wqDCoMKgwqDCoMKgwqDCoMKgwqDCoCA8LS0gb3NiX2xvY2sgc3BpbmxvY2sK
-PiDCoMKgwqAgLi4uCj4gwqDCoMKgIG9jZnMyX25vZGVfbWFwX3Rlc3RfYml0KCnCoMKgwqDCoMKg
-wqDCoMKgwqDCoMKgIDwtLSB1c2VzIG5vZGVfbWFwX2xvY2sKPiDCoMKgwqAgLi4uCj4gwqDCoMKg
-IHNwaW5fdW5sb2NrKCZvc2ItPm9zYl9sb2NrKTsKPiAKPiAKPiBTbyB0aGUgY29kZSBsb29rcyBh
-bHJlYWR5IHByb3RlY3RlZCBieSB0aGUgJ29zYl9sb2NrJyBzcGlubG9jaywgYnV0IEkgZG9uJ3Qg
-a25vdyB0aGlzIGNvZGUgYW5kIG9jZnMyX21hcmtfcmVjb3ZlcmluZ19vcnBoYW5fZGlyKCkgbG9v
-a3MgdHJpY2t5IHRvIG1lLiAoc28gc29tZSBvdGhlciBleWVzIGFyZSBtdWNoIHdlbGNvbWUpCiAK
-b3NiX2xvY2sgaXMgdG8gcHJvdGVjdCBvc2IgZmlsZWQgc3VjaCBhcyAnb3NiX29ycGhhbl93aXBl
-cycsIHdoaWxlCm5vZGVfbWFwX2xvY2sgaXMgdG8gcHJvdGVjdCB0aGUgbm9kZSBtYXAgJ29zYl9y
-ZWNvdmVyaW5nX29ycGhhbl9kaXJzJwpzcGVjaWZpY2FsbHkuCgpUaGFua3MsCkpvc2VwaAoKCl9f
-X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fCk9jZnMyLWRldmVs
-IG1haWxpbmcgbGlzdApPY2ZzMi1kZXZlbEBvc3Mub3JhY2xlLmNvbQpodHRwczovL29zcy5vcmFj
-bGUuY29tL21haWxtYW4vbGlzdGluZm8vb2NmczItZGV2ZWw=
+
+
+On 7/19/22 6:01 PM, Christophe JAILLET wrote:
+> __ocfs2_node_map_set_bit() and __ocfs2_node_map_set_bit() are just
+> wrapper around set_bit() and clear_bit().
+> 
+> The leading __ also makes think that these functions are non-atomic just
+> like __set_bit() and __clear_bit().
+> 
+> So, just remove these wrappers and call set_bit() and clear_bit()
+> directly.
+> 
+> Signed-off-by: Christophe JAILLET <christophe.jaillet@wanadoo.fr>
+
+Looks good.
+Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+
+> ---
+>  fs/ocfs2/heartbeat.c | 21 ++-------------------
+>  1 file changed, 2 insertions(+), 19 deletions(-)
+> 
+> diff --git a/fs/ocfs2/heartbeat.c b/fs/ocfs2/heartbeat.c
+> index 9099d8fc7599..1d72e0788943 100644
+> --- a/fs/ocfs2/heartbeat.c
+> +++ b/fs/ocfs2/heartbeat.c
+> @@ -24,11 +24,6 @@
+>  
+>  #include "buffer_head_io.h"
+>  
+> -static inline void __ocfs2_node_map_set_bit(struct ocfs2_node_map *map,
+> -					    int bit);
+> -static inline void __ocfs2_node_map_clear_bit(struct ocfs2_node_map *map,
+> -					      int bit);
+> -
+>  /* special case -1 for now
+>   * TODO: should *really* make sure the calling func never passes -1!!  */
+>  static void ocfs2_node_map_init(struct ocfs2_node_map *map)
+> @@ -65,12 +60,6 @@ void ocfs2_do_node_down(int node_num, void *data)
+>  	ocfs2_recovery_thread(osb, node_num);
+>  }
+>  
+> -static inline void __ocfs2_node_map_set_bit(struct ocfs2_node_map *map,
+> -					    int bit)
+> -{
+> -	set_bit(bit, map->map);
+> -}
+> -
+>  void ocfs2_node_map_set_bit(struct ocfs2_super *osb,
+>  			    struct ocfs2_node_map *map,
+>  			    int bit)
+> @@ -79,16 +68,10 @@ void ocfs2_node_map_set_bit(struct ocfs2_super *osb,
+>  		return;
+>  	BUG_ON(bit >= map->num_nodes);
+>  	spin_lock(&osb->node_map_lock);
+> -	__ocfs2_node_map_set_bit(map, bit);
+> +	set_bit(bit, map->map);
+>  	spin_unlock(&osb->node_map_lock);
+>  }
+>  
+> -static inline void __ocfs2_node_map_clear_bit(struct ocfs2_node_map *map,
+> -					      int bit)
+> -{
+> -	clear_bit(bit, map->map);
+> -}
+> -
+>  void ocfs2_node_map_clear_bit(struct ocfs2_super *osb,
+>  			      struct ocfs2_node_map *map,
+>  			      int bit)
+> @@ -97,7 +80,7 @@ void ocfs2_node_map_clear_bit(struct ocfs2_super *osb,
+>  		return;
+>  	BUG_ON(bit >= map->num_nodes);
+>  	spin_lock(&osb->node_map_lock);
+> -	__ocfs2_node_map_clear_bit(map, bit);
+> +	clear_bit(bit, map->map);
+>  	spin_unlock(&osb->node_map_lock);
+>  }
+>  
+
+_______________________________________________
+Ocfs2-devel mailing list
+Ocfs2-devel@oss.oracle.com
+https://oss.oracle.com/mailman/listinfo/ocfs2-devel
