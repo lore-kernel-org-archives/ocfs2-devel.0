@@ -1,55 +1,55 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc252.phx1.oracleemaildelivery.com (aib29ajc252.phx1.oracleemaildelivery.com [192.29.103.252])
+Received: from aib29ajc251.phx1.oracleemaildelivery.com (aib29ajc251.phx1.oracleemaildelivery.com [192.29.103.251])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 20441C43334
-	for <ocfs2-devel@archiver.kernel.org>; Thu, 21 Jul 2022 20:50:01 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 1F12BC433EF
+	for <ocfs2-devel@archiver.kernel.org>; Thu, 21 Jul 2022 20:50:08 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=D4bvJEVl2+ZW+KbZzj+RtS0vjjayRJk0ztxb3Y43GjQ=;
- b=gLsyi5HzKFBOzOSBjMxDwFNbZzVaJLPZFoxxHBXbMU3EPWo9pn02Osa8gKVBCZNVlgegvBclgAow
-   n2BWIFirPZh+w99LN1PSxxd1FwADe06/eFEdvTOGNlfPponl0uLetu8ib4wPcL6C68Pnyl4m5u64
-   mVVEAnwaFoo8VgyxAFOUPufSivNQzfM7Z5BuRhsKcv/sw/8Vgy1OW2i2KJOgtrYHac94PN7B0OC5
-   QbcoDfuuhP+iB63FX0vjR3V/1vQUAIoKO3vERAwLjkM7lWUjBfej5R47iXsZRH/gFieeX+aRT5M/
-   E2XG+9NbLx0Q4MBUKaigoKlSpzLmje8Cs5zH5Q==
+ bh=x/vZcs709RwJZjgFeRQEjlxQHiwO3ONmSTnEx4E9JpU=;
+ b=sOBXhQ9Bp5GjBuJTdnEfVZoqDB/ThaeF9LPSKmp5gUscvc4BF+CfWEnOGmTyJ7KOfTp19oNZ24iL
+   cgXGXXJoaW7BrxHp6V4mwGNG7mB8/oNyg/JmIqbtlMpDNmxzUciToOYFsE9uvk3mvJCGBs0r4RYs
+   /qP4blLYGycXcgffNOX0miIjn18DjndWMFSSF6zZBakIku5+r5EyPCRGsCWTm0wrWwtOLwt3hAMG
+   Exl+vxopRF98o7rHp+GDXwKOzrnNSzCFXeRQIj7gOHteIqT22KCO/3BeVK2RU3HQ/w4SPD0EBhIF
+   mly9wXnCKyludoLE7A4sFguJCw9FsNZ/PnnT+g==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=D4bvJEVl2+ZW+KbZzj+RtS0vjjayRJk0ztxb3Y43GjQ=;
- b=eEMDi43ygldbUQi30dTjYB+3MW/cV7WZlTv4Yr7fh0sWNHLJNv+HAotq1Ygg+y3fKpfMRwyOm6tz
-   Ve93nZ2a5p4dNYLprJFiYw2S5NmzChTe0eNJO3Il4402gChlmefrxUDs4I3Vc/zLrDfhsLTX0RrD
-   Z7H6leci0gd3yeh57iOe71sxhf1JIsZIXEbsU1Qoppv8C4dZPxQzdLtVMkJ2yqjjaHIDc8gVk8db
-   ByOZ2CYhJhBPpTUCfcIM10FVkq9A5GRj/HUX9rD+qlFdK89OY/O6TQhQJjrIe2UaJFPZRS2Qrrjy
-   uKj4BOL7WWMzdCiBXZnp+c7tZUglsXkNuAiyXg==
-Received: by omta-ad3-fd1-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
+ bh=x/vZcs709RwJZjgFeRQEjlxQHiwO3ONmSTnEx4E9JpU=;
+ b=PVldNKY+BpsQPKiYkrHcLnaikY5z5TD0DZovw30VCu02b7HasNWZEzDgo/wQgf5Ii86FtZ8rwFlU
+   E+ZQ8mUzLalsnFpMgtAk1Zb3Ds1CS/LXIDgYpDowci5mA93/1Kwgkn5OYG3WaPOnTrPdHuHBdvq1
+   GutcmU3Rg2/kLllC2+N2NrQOVVhBPuM0/XRcvtbV4MS7QHq+5LgqrHwSmDVOaAR4S5PXbLVzOKbq
+   R4Ibd26OWPBs3EoyvKkzTRX09PiR/A44UB6I/Y2W2IMHOMk3wDUjeNTvDtlUc3ZxJTz1tbeBuHkc
+   v7i48G+RchKWEeaomDsJYcPoi9xsU28MWn7l4w==
+Received: by omta-ad2-fd3-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220621 64bit (built Jun 21
  2022))
- with ESMTPS id <0RFE00DFN1VBYZ40@omta-ad3-fd1-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Thu, 21 Jul 2022 20:49:59 +0000 (GMT)
+ with ESMTPS id <0RFE00FIU1VKKF70@omta-ad2-fd3-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Thu, 21 Jul 2022 20:50:08 +0000 (GMT)
 To: akpm@linux-foundation.org, Mark Fasheh <mark@fasheh.com>,
  Joel Becker <jlbec@evilplan.org>, Joseph Qi <joseph.qi@linux.alibaba.com>
-Date: Thu, 21 Jul 2022 22:49:37 +0200
+Date: Thu, 21 Jul 2022 22:49:48 +0200
 Message-id:
- <86d2a027c319db12055c98f00c65f7d01e703722.1658436259.git.christophe.jaillet@wanadoo.fr>
+ <4d4a6786e8ad522bfad6d2401b7f6634f8af0e5d.1658436259.git.christophe.jaillet@wanadoo.fr>
 X-Mailer: git-send-email 2.34.1
 In-reply-to: <cover.1658436259.git.christophe.jaillet@wanadoo.fr>
 References: <cover.1658436259.git.christophe.jaillet@wanadoo.fr>
 MIME-version: 1.0
-X-Source-IP: 80.12.242.25
+X-Source-IP: 80.12.242.130
 X-Proofpoint-Virus-Version: vendor=nai engine=6400 definitions=10415
  signatures=596000
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 impostorscore=0
- malwarescore=0 spamscore=0 clxscore=-19 bulkscore=0 phishscore=0
- priorityscore=1501 lowpriorityscore=0 mlxscore=0 mlxlogscore=853 adultscore=0
- suspectscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 spamscore=0
+ impostorscore=0 clxscore=92 bulkscore=0 lowpriorityscore=0 mlxlogscore=721
+ suspectscore=0 priorityscore=165 adultscore=0 phishscore=0 malwarescore=0
+ mlxscore=0 classifier=spam adjust=0 reason=mlx scancount=1
  engine=8.12.0-2206140000 definitions=main-2207210084
 Cc: Christophe JAILLET <christophe.jaillet@wanadoo.fr>,
  kernel-janitors@vger.kernel.org, linux-kernel@vger.kernel.org,
  ocfs2-devel@oss.oracle.com
-Subject: [Ocfs2-devel] [PATCH v2 2/3] ocfs2: use the bitmap API to simplify	code
+Subject: [Ocfs2-devel] [PATCH v2 3/3] ocfs2: Fix a typo in a comment
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -69,64 +69,50 @@ Errors-to: ocfs2-devel-bounces@oss.oracle.com
 X-ME-Helo: pop-os.home
 X-ME-Auth:
  YWZlNiIxYWMyZDliZWIzOTcwYTEyYzlhMmU3ZiQ1M2U2MzfzZDfyZTMxZTBkMTYyNDBjNDJlZmQ3ZQ==
-X-ME-Date: Thu, 21 Jul 2022 22:49:41 +0200
+X-ME-Date: Thu, 21 Jul 2022 22:49:55 +0200
 X-ME-IP: 90.11.190.129
-X-ServerName: smtp-25.smtpout.orange.fr
+X-ServerName: smtp08.smtpout.orange.fr
 X-Proofpoint-SPF-Result: pass
 X-Proofpoint-SPF-Record: v=spf1 include:_spf_gp.wanadoo.fr
  include:spf.email-control.orange-business.com include:_spf_gpf.wanadoo.fr
  include:_spf_other.wanadoo.fr ?all
 X-Spam: Clean
-X-Proofpoint-GUID: YPXFLRmk0qmGHKsRuL8xxl--WQM5jwVh
-X-Proofpoint-ORIG-GUID: YPXFLRmk0qmGHKsRuL8xxl--WQM5jwVh
+X-Proofpoint-ORIG-GUID: tDd31BUjDt7FP0EVBd912NASVfKkbf9x
+X-Proofpoint-GUID: tDd31BUjDt7FP0EVBd912NASVfKkbf9x
 Reporting-Meta:
- AAEJUI7dQ/XZdSQoX5IFdLi9glI0KdiilX5MV1zVkAT+xnDkPZeAt7yU1IYM2Wz/
- D3hLker29FwatFreAw9T2gz6xhRN2UcZatHi2Jm7ZOX+Pz4z/n/cLjkFG+21Ic9L
- QuHkdXcVdfreacAi3uNsTuQ25IgGrXshHQmxcY8a3Bp274r0xn9B4AtE9BmIZnkl
- eK5X1d6kmhg7wbKnWCELwyHqJQ7hfcgbF6h9ZysGUpQjLsOn2Q+R0CkHUhstgZRB
- GYpN0jmgJR+kDjG/ATwWC49AXWuU7bdPtKey1lLGFYIJEjX17S1TdhRup+0c7ouy
- 7g3XxJfv6siEh0LlPIXopOUNq8Et8MTTsjCieYDvqdVui7O/Z/oVZmPDUMgh8LAV
- 0hfB+gY9t3cNOj/RKnGGSuw7CDTjrX14uv/AxVd3aADAJxVv6pTEs7YXV75kUsBS
- hq1AASVEzc3MViOJdzA0J2YzwUE+n8lgsQ69PXOa9WQ67ktDOU/V1xjp/OgCtup9
- /+REld8y5a6lA3ylUd7DO3vgHjWeIM3IryZ4tlLHqtLv
+ AAFMNvPndV+XBZ3PeA7+4q91TRIGQDQi2c8IA5R6lAiF6SK8z22STzoCX5+q1pEM
+ Wa8uIKZqQDFc7twyhNcBYgfFo+eqYfipMuoTXbRiOFf5EDBEbWGFhwsuDrcnWAuk
+ r1qiDtqHSbEY1z0N+TSJEZZjBQEUocEgDj6Pi0ZM8zsx3ind1PxoCCSiyx7htg6+
+ Kd5DsKMm47qBuChTLqap4LBU14zM5g389QOTxDGZXyOfBuyvP0O/iVycwNJwbhV/
+ SiA5pBwavK669VAHS2h2dig0hlNvdOVuEfuHHZxORkO45zIkYSz/JV6Rq7uDFBjB
+ AGMgfgANG4eW5aaE2TTvfBApLmteiPisWU+iUfK2kpwCqvYt1i25QZgMbJd1EEJE
+ 04FlaOwInexwTMrG4Oeqm1fFLd9OvWYdoJCRBUi4sFXZ7R0O850TorqXQ50reCgm
+ D9fmXeQEvQ0BT5h41qD7NFaWTxid28GDe/pa6jY4bSJDdmC+JOwNFbAIkZqTImtA
+ OYxnTTAcymioaI3OmTyTKCp0aePwhCktHXIxvdrALg9i
 
-Use bitmap_zero() instead of hand-writing it.
-It is less verbose.
-
-While at it, add an explicit #include <linux/bitmap.h>.
+s/heartbaet/heartbeat
 
 Signed-off-by: Christophe JAILLET <christophe.jaillet@wanadoo.fr>
-Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
 ---
 v1 -> v2
-- no change
-- it was patch 3/3 in v1
+- this patch is new in the serie
 ---
- fs/ocfs2/heartbeat.c | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+ fs/ocfs2/heartbeat.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/fs/ocfs2/heartbeat.c b/fs/ocfs2/heartbeat.c
-index 1d72e0788943..dd29d60af154 100644
+index dd29d60af154..22da768e65b7 100644
 --- a/fs/ocfs2/heartbeat.c
 +++ b/fs/ocfs2/heartbeat.c
-@@ -8,6 +8,7 @@
+@@ -2,7 +2,7 @@
+ /*
+  * heartbeat.c
+  *
+- * Register ourselves with the heartbaet service, keep our node maps
++ * Register ourselves with the heartbeat service, keep our node maps
+  * up to date, and fire off recovery when needed.
+  *
   * Copyright (C) 2002, 2004 Oracle.  All rights reserved.
-  */
- 
-+#include <linux/bitmap.h>
- #include <linux/fs.h>
- #include <linux/types.h>
- #include <linux/highmem.h>
-@@ -29,8 +30,7 @@
- static void ocfs2_node_map_init(struct ocfs2_node_map *map)
- {
- 	map->num_nodes = OCFS2_NODE_MAP_MAX_NODES;
--	memset(map->map, 0, BITS_TO_LONGS(OCFS2_NODE_MAP_MAX_NODES) *
--	       sizeof(unsigned long));
-+	bitmap_zero(map->map, OCFS2_NODE_MAP_MAX_NODES);
- }
- 
- void ocfs2_init_node_maps(struct ocfs2_super *osb)
 -- 
 2.34.1
 
