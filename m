@@ -1,55 +1,58 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc251.phx1.oracleemaildelivery.com (aib29ajc251.phx1.oracleemaildelivery.com [192.29.103.251])
+Received: from aib29ajc244.phx1.oracleemaildelivery.com (aib29ajc244.phx1.oracleemaildelivery.com [192.29.103.244])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 1F12BC433EF
-	for <ocfs2-devel@archiver.kernel.org>; Thu, 21 Jul 2022 20:50:08 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 81D9DC43334
+	for <ocfs2-devel@archiver.kernel.org>; Fri, 22 Jul 2022 01:33:43 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=x/vZcs709RwJZjgFeRQEjlxQHiwO3ONmSTnEx4E9JpU=;
- b=sOBXhQ9Bp5GjBuJTdnEfVZoqDB/ThaeF9LPSKmp5gUscvc4BF+CfWEnOGmTyJ7KOfTp19oNZ24iL
-   cgXGXXJoaW7BrxHp6V4mwGNG7mB8/oNyg/JmIqbtlMpDNmxzUciToOYFsE9uvk3mvJCGBs0r4RYs
-   /qP4blLYGycXcgffNOX0miIjn18DjndWMFSSF6zZBakIku5+r5EyPCRGsCWTm0wrWwtOLwt3hAMG
-   Exl+vxopRF98o7rHp+GDXwKOzrnNSzCFXeRQIj7gOHteIqT22KCO/3BeVK2RU3HQ/w4SPD0EBhIF
-   mly9wXnCKyludoLE7A4sFguJCw9FsNZ/PnnT+g==
+ bh=sVpmmzDQgZudV0CXV27KjnYLpWXrU+No3oCni9li3Z0=;
+ b=J7imGxfMfLAOThNfYhhOgV4laX8w6yZKSR6dg3INZIGukJ7UToZc2GNb8LkF3HIW8uXZUyAebWJD
+   gN9dILj+Sn1IDhrEJG0P2SJgCERn/iqnVsxril1d5LCjV0YTTMuMz8V21I7Ce5OVo/RpPpuxjESh
+   ouqn956HhCoFCWswf8+6uYITTnKjRxFBEQ8m7N+TdrTag+3K5RQZi87GJ5yJMdieby9SeDeRyabl
+   Ga5VURH47Ndevw0FWHWCqcqB9BtSPzjfcounamOhMsOkzNnkKJq30LbAEbN2W416WJ2eJESRvuuZ
+   cNTqPxemW0tB0koIuO6ENRCGjHan+Lhz8e7euA==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=x/vZcs709RwJZjgFeRQEjlxQHiwO3ONmSTnEx4E9JpU=;
- b=PVldNKY+BpsQPKiYkrHcLnaikY5z5TD0DZovw30VCu02b7HasNWZEzDgo/wQgf5Ii86FtZ8rwFlU
-   E+ZQ8mUzLalsnFpMgtAk1Zb3Ds1CS/LXIDgYpDowci5mA93/1Kwgkn5OYG3WaPOnTrPdHuHBdvq1
-   GutcmU3Rg2/kLllC2+N2NrQOVVhBPuM0/XRcvtbV4MS7QHq+5LgqrHwSmDVOaAR4S5PXbLVzOKbq
-   R4Ibd26OWPBs3EoyvKkzTRX09PiR/A44UB6I/Y2W2IMHOMk3wDUjeNTvDtlUc3ZxJTz1tbeBuHkc
-   v7i48G+RchKWEeaomDsJYcPoi9xsU28MWn7l4w==
-Received: by omta-ad2-fd3-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
+ bh=sVpmmzDQgZudV0CXV27KjnYLpWXrU+No3oCni9li3Z0=;
+ b=TquYQmyvOTzlE8S4edE3vDjX0sB6C2PP6lIJ0hTGnyLsaIV2hr/uC/jlLqFLKEu5/LmxM0kx+szI
+   VseESSMnR/eEvXNCFTW5ztfzSt8e9dvhhI6ZjbbJyOQB57VbYvPpIU2meE4SoqMEnItKJ/DI2jQV
+   KvwOPWRwEyEPIqldOiN/HIWbdq2Nwj+n3iGbrcPQQT8mXeQyu9KzmphqJu0gnFtVCBkDCe6UBmnd
+   Xwv1NkGpVr9itHolJUqH3GghjBnJO6ULnjfCkvgbQI73b3J0q3fACGICMYuHJv4ER1pXroeMM4a+
+   nF540bF80YZQmMt5tut40Dp9jV4ot0KDtxDo/w==
+Received: by omta-ad1-fd1-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220621 64bit (built Jun 21
  2022))
- with ESMTPS id <0RFE00FIU1VKKF70@omta-ad2-fd3-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Thu, 21 Jul 2022 20:50:08 +0000 (GMT)
-To: akpm@linux-foundation.org, Mark Fasheh <mark@fasheh.com>,
- Joel Becker <jlbec@evilplan.org>, Joseph Qi <joseph.qi@linux.alibaba.com>
-Date: Thu, 21 Jul 2022 22:49:48 +0200
-Message-id:
- <4d4a6786e8ad522bfad6d2401b7f6634f8af0e5d.1658436259.git.christophe.jaillet@wanadoo.fr>
-X-Mailer: git-send-email 2.34.1
-In-reply-to: <cover.1658436259.git.christophe.jaillet@wanadoo.fr>
-References: <cover.1658436259.git.christophe.jaillet@wanadoo.fr>
+ with ESMTPS id <0RFE00H35F06JRC0@omta-ad1-fd1-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Fri, 22 Jul 2022 01:33:42 +0000 (GMT)
+Message-id: <9e8b39ec-bfda-2e60-2626-f55ec95bd268@linux.alibaba.com>
+Date: Fri, 22 Jul 2022 09:33:22 +0800
 MIME-version: 1.0
-X-Source-IP: 80.12.242.130
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:91.0)
+ Gecko/20100101 Thunderbird/91.11.0
+Content-language: en-US
+To: Christophe JAILLET <christophe.jaillet@wanadoo.fr>,
+ akpm@linux-foundation.org, Mark Fasheh <mark@fasheh.com>,
+ Joel Becker <jlbec@evilplan.org>
+References: <cover.1658436259.git.christophe.jaillet@wanadoo.fr>
+ <4d4a6786e8ad522bfad6d2401b7f6634f8af0e5d.1658436259.git.christophe.jaillet@wanadoo.fr>
+In-reply-to:
+ <4d4a6786e8ad522bfad6d2401b7f6634f8af0e5d.1658436259.git.christophe.jaillet@wanadoo.fr>
+X-Source-IP: 115.124.30.44
 X-Proofpoint-Virus-Version: vendor=nai engine=6400 definitions=10415
  signatures=596000
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 spamscore=0
- impostorscore=0 clxscore=92 bulkscore=0 lowpriorityscore=0 mlxlogscore=721
- suspectscore=0 priorityscore=165 adultscore=0 phishscore=0 malwarescore=0
- mlxscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2206140000 definitions=main-2207210084
-Cc: Christophe JAILLET <christophe.jaillet@wanadoo.fr>,
- kernel-janitors@vger.kernel.org, linux-kernel@vger.kernel.org,
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 malwarescore=0
+ mlxlogscore=999 phishscore=0 impostorscore=0 lowpriorityscore=0 suspectscore=0
+ priorityscore=30 spamscore=0 adultscore=0 clxscore=46 mlxscore=0 bulkscore=0
+ classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2206140000
+ definitions=main-2207220004 domainage_hfrom=8499
+Cc: kernel-janitors@vger.kernel.org, linux-kernel@vger.kernel.org,
  ocfs2-devel@oss.oracle.com
-Subject: [Ocfs2-devel] [PATCH v2 3/3] ocfs2: Fix a typo in a comment
+Subject: Re: [Ocfs2-devel] [PATCH v2 3/3] ocfs2: Fix a typo in a comment
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -61,61 +64,63 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: Christophe JAILLET via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: Christophe JAILLET <christophe.jaillet@wanadoo.fr>
+From: Joseph Qi via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: Joseph Qi <joseph.qi@linux.alibaba.com>
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-ME-Helo: pop-os.home
-X-ME-Auth:
- YWZlNiIxYWMyZDliZWIzOTcwYTEyYzlhMmU3ZiQ1M2U2MzfzZDfyZTMxZTBkMTYyNDBjNDJlZmQ3ZQ==
-X-ME-Date: Thu, 21 Jul 2022 22:49:55 +0200
-X-ME-IP: 90.11.190.129
-X-ServerName: smtp08.smtpout.orange.fr
+X-Alimail-AntiSpam: AC=PASS; BC=-1|-1; BR=01201311R121e4; CH=green;
+ DM=||false|; DS=||; FP=0|-1|-1|-1|0|-1|-1|-1; HT=ay29a033018046060;
+ MF=joseph.qi@linux.alibaba.com; NM=1; PH=DS; RN=7; SR=0;
+ TI=SMTPD_---0VK2qCxt_1658453602;
+X-ServerName: out30-44.freemail.mail.aliyun.com
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 include:_spf_gp.wanadoo.fr
- include:spf.email-control.orange-business.com include:_spf_gpf.wanadoo.fr
- include:_spf_other.wanadoo.fr ?all
+X-Proofpoint-SPF-Record: v=spf1 include:spf1.service.alibaba.com
+ include:spf2.service.alibaba.com include:spf1.ocm.aliyun.com
+ include:spf2.ocm.aliyun.com include:spf1.staff.mail.aliyun.com
+ include:a.hichina.mail.aliyun.com include:b.hichina.mail.aliyun.com -all
 X-Spam: Clean
-X-Proofpoint-ORIG-GUID: tDd31BUjDt7FP0EVBd912NASVfKkbf9x
-X-Proofpoint-GUID: tDd31BUjDt7FP0EVBd912NASVfKkbf9x
+X-Proofpoint-GUID: -OeFk71M2PFb8-aqjI-X2G5J4pX8ZCpR
+X-Proofpoint-ORIG-GUID: -OeFk71M2PFb8-aqjI-X2G5J4pX8ZCpR
 Reporting-Meta:
- AAFMNvPndV+XBZ3PeA7+4q91TRIGQDQi2c8IA5R6lAiF6SK8z22STzoCX5+q1pEM
- Wa8uIKZqQDFc7twyhNcBYgfFo+eqYfipMuoTXbRiOFf5EDBEbWGFhwsuDrcnWAuk
- r1qiDtqHSbEY1z0N+TSJEZZjBQEUocEgDj6Pi0ZM8zsx3ind1PxoCCSiyx7htg6+
- Kd5DsKMm47qBuChTLqap4LBU14zM5g389QOTxDGZXyOfBuyvP0O/iVycwNJwbhV/
- SiA5pBwavK669VAHS2h2dig0hlNvdOVuEfuHHZxORkO45zIkYSz/JV6Rq7uDFBjB
- AGMgfgANG4eW5aaE2TTvfBApLmteiPisWU+iUfK2kpwCqvYt1i25QZgMbJd1EEJE
- 04FlaOwInexwTMrG4Oeqm1fFLd9OvWYdoJCRBUi4sFXZ7R0O850TorqXQ50reCgm
- D9fmXeQEvQ0BT5h41qD7NFaWTxid28GDe/pa6jY4bSJDdmC+JOwNFbAIkZqTImtA
- OYxnTTAcymioaI3OmTyTKCp0aePwhCktHXIxvdrALg9i
+ AAEc6djJi4XY4xrczZzGII9JzdcUxiSiQUGfv6I9EXeCBpxGzOTdwqSFBZNB23qE
+ OSLOtY+2R6dQPxh17E+Et8qbQZIUUzn/OJyRIcUZptXYk8aGS0933yIk42RkOWeB
+ kvc1F04KiTM6y01WbQYUb1myw1iwmdAP03HoIOX/8TBIrKetwME3djVAzqZUXEre
+ c1zzwnhaUMfUYjA+Q+yCmW8zDAJs11dqjFGhVWMr4snRvdXpCyPGmdV0zKIs7lxV
+ ji7QQVhxxyQLFoiB47uiTug27BqVySY1K99JQ/r4o7Hq1gyw+z7SZElkLFqRxwP6
+ 4Qyh2lxSrlNZwO/PrKVMS14jwZOXqKJo7i7P8VvhnmaMnXpzqbVGOQQ0KVMd6tBW
+ +WZm14aTCxO4mgrzmzclmMRIDaYGF92EikI8OnfnUHZ+bMfzUFkv9Trqu28jPtxf
+ 7SaaP3h2jhX246PZSnv7ooSBpooAZDbnyr0kRw402NgwEImUtr029yzajxOVlkVR
+ DNBH8VfgDyIAadG0Pa9T/eNWePVFLkerb6+IGht/5Vx1
 
-s/heartbaet/heartbeat
 
-Signed-off-by: Christophe JAILLET <christophe.jaillet@wanadoo.fr>
----
-v1 -> v2
-- this patch is new in the serie
----
- fs/ocfs2/heartbeat.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/fs/ocfs2/heartbeat.c b/fs/ocfs2/heartbeat.c
-index dd29d60af154..22da768e65b7 100644
---- a/fs/ocfs2/heartbeat.c
-+++ b/fs/ocfs2/heartbeat.c
-@@ -2,7 +2,7 @@
- /*
-  * heartbeat.c
-  *
-- * Register ourselves with the heartbaet service, keep our node maps
-+ * Register ourselves with the heartbeat service, keep our node maps
-  * up to date, and fire off recovery when needed.
-  *
-  * Copyright (C) 2002, 2004 Oracle.  All rights reserved.
--- 
-2.34.1
+On 7/22/22 4:49 AM, Christophe JAILLET wrote:
+> s/heartbaet/heartbeat
+> 
+> Signed-off-by: Christophe JAILLET <christophe.jaillet@wanadoo.fr>
 
+Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+> ---
+> v1 -> v2
+> - this patch is new in the serie
+> ---
+>  fs/ocfs2/heartbeat.c | 2 +-
+>  1 file changed, 1 insertion(+), 1 deletion(-)
+> 
+> diff --git a/fs/ocfs2/heartbeat.c b/fs/ocfs2/heartbeat.c
+> index dd29d60af154..22da768e65b7 100644
+> --- a/fs/ocfs2/heartbeat.c
+> +++ b/fs/ocfs2/heartbeat.c
+> @@ -2,7 +2,7 @@
+>  /*
+>   * heartbeat.c
+>   *
+> - * Register ourselves with the heartbaet service, keep our node maps
+> + * Register ourselves with the heartbeat service, keep our node maps
+>   * up to date, and fire off recovery when needed.
+>   *
+>   * Copyright (C) 2002, 2004 Oracle.  All rights reserved.
 
 _______________________________________________
 Ocfs2-devel mailing list
