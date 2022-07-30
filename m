@@ -1,51 +1,51 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc255.phx1.oracleemaildelivery.com (aib29ajc255.phx1.oracleemaildelivery.com [192.29.103.255])
+Received: from aib29ajc244.phx1.oracleemaildelivery.com (aib29ajc244.phx1.oracleemaildelivery.com [192.29.103.244])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 1D62EC00144
-	for <ocfs2-devel@archiver.kernel.org>; Sat, 30 Jul 2022 01:15:34 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 2CE76C00144
+	for <ocfs2-devel@archiver.kernel.org>; Sat, 30 Jul 2022 01:15:48 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=A7B23MmhUdbvrioWgomQce/q/No5tWnC88HYKHebeLw=;
- b=m9/gcwhSW4jW49rtypEhCMJvr6qeaRlU+5paTWukGRW6Ihp/wGcDIuE16XcrNHkJjRbjxMbhpoXz
-   vvP43dGOayhus+0uL3BauYmiS0FGOsEAXdUZT8tBDfImIu/mtP9WgpM8mog7ZeBeSDFd7lQ8iebX
-   CdWz4RO7uOUIiisV/X/qgwG1pj8goRC2/ZfaMBxSE3YScMPR1yTlEfDoJIr9DLu5YZfecyKXc32C
-   Go65x6M+iUljM+hIbxadJ60r655M9viWgeh9J+QOv4EA++3W7Qmm8EqwYCUhbcMvvnzEP+q0xNAY
-   WVuq8iOggKW9o8QNZtpPJJ7h+TFS7Cdj/qFJ5A==
+ bh=fifuMse5vzT+KtFkmoHbCMFanP16oUlqtUKqEL8FQjU=;
+ b=WXyTz2EqZ4BzyloZvZfFVa9xV9GJ6DZWLUhSOoCiAbw3g4In/ZeBqU5lsMLoRrXm/KZIhmHYur/G
+   +xZ3JbrDmumKw6i4ncGxyJOV3hT8veHhqyz4aDvG/XayMBgXqAZbyJkLAZwsXVKUH5p1toPX3NHy
+   J6iICyHXAu3H6wctVhXJvb9CrwKj0Y1Ma4eu+WyknJT+AxKj1SdbUWamsN6H4VgSm9hY5LuHMKcj
+   3jKuoqTvw49HckGfttVc9ajBaOIJW3mSYu10qi1WMbIX779wRL2IRNgEl8SRncbWdvdazppNZgA+
+   GSPxG5Q690LLq8DBO9XcHSN436Z+Xqr6yZOObQ==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=A7B23MmhUdbvrioWgomQce/q/No5tWnC88HYKHebeLw=;
- b=IAL++VU5PLHk/2z1sJkX5wsaLAM0JX0yYPccsxpuxbMtvADIMqD4zfc/kaCEbMNIWErGMkgqadKT
-   +C+8YpOReERLnleM033wzN/yLNcRFsFPsE1XgTLRP4uYG1rVOaOJCU7qBZ6fR5DqNFCMm80lOyMl
-   9jxd6Ne+X08Eiaa3DLkw+Y6dU/Hli3y0riMu6dZy+wYGlBUqBdUiIJ9haflecPwAut1MHcaXhuc8
-   IxdoCwaCIl62GMqCcAGcaT+DT9iO485Re4GYAUA6s71voqLp3zV8NEj/BAxkRDbdQG2ggb/ISzHp
-   wPwkHc9UotB/odOsnDdAxfD5CrbiU47kaq6Dlg==
-Received: by omta-ad3-fd3-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
+ bh=fifuMse5vzT+KtFkmoHbCMFanP16oUlqtUKqEL8FQjU=;
+ b=szBwP3Ph/VmQPxof8HdByVYa5AIarCGLQLat9HNLsjrPB3nzPKgxCj8/XVY3CeZ4i6wCAmlF3Yuk
+   MOBqnCZ2Vqk9IOklp6gXBUUCCOZEFN7245AaXqKHJkhXvh5AQhQX3OajoWznIV4VkQehZUgn0/Lb
+   bKjtsfMYVYt4RKMdgMB3i7g9gTLELhqQse5o2NkXk0E5cm938PeEBjdee3SPaWtEvW3yByvf1wHn
+   obkZoaau7maz2R4D0LlEMClv6IM7PifRsPu0RHQtAthFV4YhaTz+IFIGPbnyBQ5+DMs/8gN1xprF
+   bLLIvG1GkMZRa0QcKbpFaFC2GYmaTyoiMVQTvQ==
+Received: by omta-ad1-fd1-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220621 64bit (built Jun 21
  2022))
- with ESMTPS id <0RFT00E6D7HXCJ60@omta-ad3-fd3-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Sat, 30 Jul 2022 01:15:33 +0000 (GMT)
+ with ESMTPS id <0RFT00LXT7IBFW50@omta-ad1-fd1-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Sat, 30 Jul 2022 01:15:47 +0000 (GMT)
 ARC-Seal: i=1; a=rsa-sha256; s=arcselector9901; d=microsoft.com; cv=none;
- b=gdYFNUaFxR+dPNUTawRrOPPPusYrOqe74T5vUYtIlxOfbhevNwob/Gek0nTi/E67ZFOC0km+3TN1hnh7lSwSQmCTcQDPbm0LXZsIqeSz9G8tenPTIPct4EdWAtA9EsYHw73z21H0645ssO3Ip6m7Z4xqtKMgwgYqh0Ns4g4Z3YkmTy+IgUIwvt8lgWzGVzbCT9/AX9iR8UvHwfB/ZenGxvj3oPhInZn8+xB4TRslv3CohUz28rq2v/at3qyaBOpbHDjBmNOh0Snmolk7ceOyTf3250RJewx2lPTwhJ2VG1mY4tM5g3FovhVfYkm6SLOxOHdgCoy+DoSgKe/AsaxpGQ==
+ b=MGYm4mF19ZP82xcz9kcH66gqWwGMVIDvJh8ErK0vdSIQPJSCW79ypdtLUoCa5EbLr1i4Cn6foY7eX5YxDgiXnDLsqtjOFXfmQ2C8Ke7X8+M/NzKJxeVu54LY0oTKz8UHNcmn8v33HYsxhhr9iwD2XMGRqOCacg0o1Jmhy6MDGNRvNnheIxh25tFnJ2h6viQ9MZF0H0jYUoVQ3N7Z65No+rLS/sNpBJ0J8WaiylN5JOSizu0ReIaWUYvNG5JtpFeS8XP+3hgaFj0apn6QWpQUUaFA7BVEcpERJfpl4yCV+f4jIQ4l3FCBica2ODYuluVzE3kk+Tja+bnOYNBtofULHQ==
 ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
  s=arcselector9901;
  h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
- bh=3vuuBchB+O51IoiA5C4i5O89wdRv0b4+1Tc18qq+cZk=;
- b=doHzyOBqfnl4dge5vfdlEoPN1pP7D7lgTvsi6zZaW2D0n8sya52ois+p5lypsUe+3RcW6dAXjHdBQYwmVcYunTC2upK+wz8RmXRfeAB3/eeXvXYA/kHMW22KiJ6eX6qCMOBUOW7Kk36+ljN+mXrOqDvku9mnm3xsk5BRpyjCchfeVW7aHIMsf1HmGuzJFVWRBmBt28YO/C8lTlHNEpLTXEwdBfGalfJ5B7l6Ne3dT8ptEnnE0GK+JWE1gwbx4sgoQOMLGjLUjhBnJCKHynajJ1VnZbw3/URKlHhOihLZIapuMl+GpbAXQSYX51Hey93U9fmYVkXY423F9pr8bN8PQA==
+ bh=425b47NZ//VZqj5kKNsbt72n7ssm1cUueu+VLI/DP2w=;
+ b=Rojjt+Nt7cmadVEhsa1Qo2RK8bBansAecPw5NmAdEwJIEGcrZkBgjkbV2WtsletiYJ7fYgaPp2aayZ8DLMD/3RDRfFLegeTIn6n7JrrWjbLVy/knG44okgRt45zlb9riqEGKjuxDCx0BwaJS6J7vM+j+H9Yr8mTB3lFqE5hfZoPPz7SlEHs9rfqLA9e2cAKJmX85W/64GExlGMlnF9SFMCUwy39ecOZMIrLIsVC7kWc4GLkdFdpf2T74uI2UizQcyGZywaK+V3REQC5BBNkUjYDk/twhzKNNL7fQ2ytlkk5WfIjPI09W4+pmIqC3bxk03eCx54f6bQOPaD/FwbUWWA==
 ARC-Authentication-results: i=1; mx.microsoft.com 1; spf=pass
  smtp.mailfrom=suse.com; dmarc=pass action=none header.from=suse.com; dkim=pass
  header.d=suse.com; arc=none
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.com; s=selector1;
  h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
- bh=3vuuBchB+O51IoiA5C4i5O89wdRv0b4+1Tc18qq+cZk=;
- b=wieZFGNtvbyCWmJ3FRBDIXdKIgk/vQxvoAUUbHvI3ksAXgl7Hkv7n+l400WEdhg4UFdRkum+eoddMRcHzd4rvuJOEj2Nioh0F6FfvwE2qHu+RfzOW/nr7+Xh0dpWi3MhoCcaLdXNbb5zez4t5opDfWomhNB3u06PX3d1hy4l9JekfaefugjZyndj8QfBfIHsBwBbgK4RjUaggwC9fdwy/1mnc5YuGRKSyXaRC16SHt66j+YeElcYYvogvJQXWeDPj7iqFn436QGiudkCaxlhHaltEadYGiCXhwQUCnU+appKmObgG7YdkdnIzU0cSGq0vSgP6UFYu705gCd/9DYcZw==
+ bh=425b47NZ//VZqj5kKNsbt72n7ssm1cUueu+VLI/DP2w=;
+ b=YTIlbupT/WpSBmBhzz7ZHk39MY2PlpegMzzk6P7ArisWqHRvHsg671PidTYfPHERlFd6UUgnO6eYaNkCZF9nK9LzNYE2dXO+dcABRqSzTpMo5faAE5Hx+hqBoR8iXsAZilkgX5Hr6AMBimRmniKhDaWern72cX8S0hDNY1fZnfVoOQcyLcApzeDY9dg88oQtGpkmxJ/Q6WwQDwSF8jGcqotw3mfVQxJntcqUsactwOSGdsMwXkAmvs9DBoFtWzusiCIk4duLhFOEEDzT/F4khmqYzdnl6Py0+/SFNGOAdkTWR6pqi7js+cjfJof9Bwp/ouQXjw9NEuMGbt+8ZQ4HRA==
 To: ocfs2-devel@oss.oracle.com, joseph.qi@linux.alibaba.com
-Date: Sat, 30 Jul 2022 09:14:09 +0800
-Message-id: <20220730011411.11214-3-heming.zhao@suse.com>
+Date: Sat, 30 Jul 2022 09:14:10 +0800
+Message-id: <20220730011411.11214-4-heming.zhao@suse.com>
 X-Mailer: git-send-email 2.34.1
 In-reply-to: <20220730011411.11214-1-heming.zhao@suse.com>
 References: <20220730011411.11214-1-heming.zhao@suse.com>
@@ -55,16 +55,17 @@ X-Forefront-Antispam-Report: CIP:255.255.255.255; CTRY:; LANG:en; SCL:1; SRV:;
  SFS:(13230016)(396003)(366004)(39860400002)(376002)(136003)(346002)(38100700002)(41300700001)(5660300002)(8936002)(66946007)(478600001)(83380400001)(66556008)(8676002)(316002)(4326008)(66476007)(6486002)(2616005)(1076003)(186003)(6666004)(6506007)(26005)(6512007)(2906002)(44832011)(86362001)(36756003); DIR:OUT;
  SFP:1101;
 X-OriginatorOrg: suse.com
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 30 Jul 2022 01:15:09.5261 (UTC)
-X-Source-IP: 40.107.1.64
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 30 Jul 2022 01:15:27.8218 (UTC)
+X-Source-IP: 40.107.1.68
 X-Proofpoint-Virus-Version: vendor=nai engine=6400 definitions=10423
  signatures=596356
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 mlxlogscore=999
- spamscore=0 lowpriorityscore=0 bulkscore=0 phishscore=0 adultscore=0
- clxscore=190 priorityscore=140 suspectscore=0 malwarescore=0 mlxscore=0
- impostorscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 impostorscore=0
+ phishscore=0 priorityscore=136 spamscore=0 lowpriorityscore=0 clxscore=243
+ bulkscore=0 mlxlogscore=999 suspectscore=0 malwarescore=0 mlxscore=0
+ adultscore=0 classifier=spam adjust=0 reason=mlx scancount=1
  engine=8.12.0-2206140000 definitions=main-2207300005
-Subject: [Ocfs2-devel] [PATCH 2/4] ocfs2: add mlog ML_WARNING support
+Subject: [Ocfs2-devel] [PATCH 3/4] re-enable
+ "ocfs2: mount shared volume	without ha stack"
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -81,125 +82,295 @@ Reply-to: Heming Zhao <heming.zhao@suse.com>
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-ClientProxiedBy: SI2PR02CA0004.apcprd02.prod.outlook.com
- (2603:1096:4:194::14) To AM6PR04MB4662.eurprd04.prod.outlook.com
+X-ClientProxiedBy: SG2PR01CA0109.apcprd01.prod.exchangelabs.com
+ (2603:1096:4:40::13) To AM6PR04MB4662.eurprd04.prod.outlook.com
  (2603:10a6:20b:1b::21)
 X-MS-PublicTrafficType: Email
-X-MS-Office365-Filtering-Correlation-Id: 5e105d33-9f1b-4b61-ec76-08da71c8f1ea
+X-MS-Office365-Filtering-Correlation-Id: 70add5a9-805c-417e-9d83-08da71c8fcd2
 X-MS-TrafficTypeDiagnostic: AM6PR04MB4840:EE_
 X-MS-Exchange-SenderADCheck: 1
 X-MS-Exchange-AntiSpam-Relay: 0
 X-Microsoft-Antispam: BCL:0;
 X-Microsoft-Antispam-Message-Info:
- s/qlTbAPndrpxWTdDjoV3bkSITBouXmIBC6qIOAi8+vwqZC+OfZOkm4aPFrhdYCRub/LfCI/6z/zBHw0KiamojJ5GK7YznehYQhfxWSHOUU9zqknkm0yMmCfzQXM5X7D0Ale/7dfCsjSoyVQ+7ZA3+EhuGxFwGlcIWnQ2iTADqaObqsy5raLSHrz+rqMSGXkrMmEFCJI8K9NFEvHogewQnO1pNG0RXCHvjXo97577cDOnO9SUnKEvyoeL6obTPBwwZG4e0sx6aHCXexKrIlsMNiBMVKX512MNa0l/215t4HBez0JHM/TwKZmpxICFhs4l52RFG3rVGWezKseEz/poruOxuPyI9ojsyZz2oeNq5xcbMW+2NfXnR3CBu9U84ovrbsYw1RZGo9pOdCCCGXKI35r3pN7sE6j1F2/rNZxTePfYUevGxPQZXnnqInJAHw7aRO+AzLytOP6MnUJY8RKqT9P5elLRnSpRjdMzQkXOroM5Bftf76ltTTvlMwb2wkWjbRoAlzBiwXqNpFx+m9tf2ofByeH++L8MrrCoAFqGpetPUtbUe3f6p2kjv0v6BkD9SUt4DBr+XeImRFdSTAzQDxavBWgd3J3EPLX9bvsuAabx9obDeih+FrMkXKx6pYHUU3j3epgCERs+mPQFma3CESvfHBkpRwgqd0Ld65dmT+8A7K58koVdnbdE2JambH8nP0hE0GOvQQPv8zyrIZE1PmG2WaqoPdO+9VWJZm9j2GKd78Y+BkAL7UF62oX3AJ0
+ rFVgW6jebLVxP4NV88SSI5QN/9mnAawUo8wcdCTgWaqge0z1rfhmLchLTM8uwzWMG425jdaYZOTL6mBMlXSEJ2CN/FkGi7pMBOq2Ervrp2MxwC+rR1SWvuZTpM+pzNy1fNvtFbF6///T0LJOgOdiiUpGFQPHxYqXMnwkolsb+EDvHF0ZjJ1EXKdShK5llaAgRNxMiDsHtzQy/WEkEkeT5kJVnc3rNkrY1EXFjzHmQ2NXlBVeBQCmkCSsZcuZTTzKKvKr7udbnm1mJPkqKU8iFBrYk1VbJAtjkr5y7BY+3s4WjEynqQI6nr6k5FG/8Rcpyhp3L8NZLp4KHWO4u5UvGT9W1k9CPxACkprr4dDeaQ5cRjrqWrnToR/SeThVrqlQZAE5RtDD2RZI949P/OrsLlFSK+CGa7Rs9lWOFGONsuU7jxCFfKX9bm7q5fWVDdF5fXNtSeQzzLrdVq61b7ZcmM1k33h4twoUCM801xsrywVx1jRy5v3OFerxJA7onwzEACcr6OTGQQki7+vhv35OmwrKKcejv8wbuzMbDCk7ggJkh4Nj3Rarmvm4hdn8+t2GMRK1HTaGfzc5r0o+pTjkSHUD5nG6by77pzDQ02VdEjF/fZ0wuEJmnTnQ0iK1SIoRZlzoXo3ApIBAr0ZgqJegi54ijQxdZqojsIjgKIkbivX40HDWtQRT6PFjUXMJ3YBpxmsJ/4vdvPk+XFT+cp8BdCodV0gPk1Ig9y+WtoN4Dg1OC+dzlynUCZ4WlAPxBQfS
 X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
 X-MS-Exchange-AntiSpam-MessageData-0:
- =?us-ascii?Q?g4nLdlzONDczW/NavSQUSYmIFlmVIy1f9uVDKg6xgycUrwze8T4XuavX6n9u?=
- =?us-ascii?Q?TspBWnqqSCgIEaSpcASX97RRdcOsGobadn/K6usC1VMIxKYCdWAPPnYz5kg+?=
- =?us-ascii?Q?nCHCVlklV4cyx2P14mc2rEKzpS4LCWK9W/XD6KUgHqgOnWmxx8blIpY6Tp9f?=
- =?us-ascii?Q?/g7vO7QglcsVtBfTHD7NtG0n5b+G4eBUheuxSutIkMD/S11CtSAoKL+ajXxV?=
- =?us-ascii?Q?3Jua2DMpmCIc2p8hpoL5y4iuO+tSwGZjXG1GpgOjsiqF4c54nMOJV1TsnMeZ?=
- =?us-ascii?Q?zx5DVJA9bhxRlWBpxRMk+8o1G33F+AHiD5gAoAXj0wQRfNgLFljgPvFZZBL5?=
- =?us-ascii?Q?biBrl7e+eFoAItdYobfHrJFZRZ9a1NFkEKKJYKaUEppzSP05nm9e/Lfit8KD?=
- =?us-ascii?Q?r6Jb5NHwHj5WNdPBjZ3y4zOSVbseUH4WnrJCX0pHy3WiFVkmvRpaY5NntSLC?=
- =?us-ascii?Q?xhUZHNYaQzMmrxPVFDjR2qYsdHDPEO6xHF6DCv8Tf0q9Un2CyG05MuoYgq3x?=
- =?us-ascii?Q?RX8RKXUEkRTMvNkDoaBqH12tJK6+4ZvDGO4JOG5QWDm+bNtRijxJ1otmfQvB?=
- =?us-ascii?Q?oPfZyPkcxCoTwaDS7mrK7Wu0iwXQho0yrNVA/br0sowNG2ExADQiUaYD7d4a?=
- =?us-ascii?Q?igs8FlZuuwtPRGLlTkNGDlgN4LBkkV9LmjbT8SrJKXBHk/ZJEZFQ5FjPlJgS?=
- =?us-ascii?Q?xleWGs654rTYCf+ygMY+swY31ATAxhMdbasAg6+5TEt2D7mbMr8T8eWJCKrj?=
- =?us-ascii?Q?pgIQgT4gK2hYjVnAzcucLBExAnhWShYHLb6k+ZHRi7583/PCeteHi5Hq9Tp/?=
- =?us-ascii?Q?4gPPOtCgcfuIsZYTgYFLG39usoDZ9A9O6IDdt/SqGrn8k6z/TB+lDLimeQSx?=
- =?us-ascii?Q?5tDf3vTBGJwhnyRgQH76fBc4BD5juzmSeSxOaQHtjrKcGCWMUMtkv5UO8Fej?=
- =?us-ascii?Q?0PqZKUtCShiuq5GFdc6ZaVVaq/0MNT0FpiMxM6d2CX4BfMM/+BzwAmN/MVwT?=
- =?us-ascii?Q?tMpw9EvQlL0LT8LDfkSWXe1hVCSgBikxGzefq5cbJLNPv+5B54ugI2CqkTN/?=
- =?us-ascii?Q?tXa6DWQKOPDMzN41lTzvZftoVBUnSnlTGaBMkRAr3iZsR6/SNdK5EJlOqGsT?=
- =?us-ascii?Q?8WxNRgrLrvx2LjpWwKmDU9zd79t3DNj9ngDf8z07CLIrKqo0m+kVEs/5DH5+?=
- =?us-ascii?Q?Pj2fNaITdLIE84JPlzyqioI0SeP8ohjQBADZypqfEUVekTbTqVQordAn+/at?=
- =?us-ascii?Q?qhy9G3712zP8hf17W792HnKOv/DQ4IpfK6lM0P4CLDauUE0wwi3Js6oLRu7W?=
- =?us-ascii?Q?F0SV51b7wCFOH/IFefqVx4g2tI8Ju3fdSbo5UHUXWsM4FXbc0SKdhEMKDjZO?=
- =?us-ascii?Q?gKpKla2rDB9wpdjEYzDy+SC2oG1HSfGuvXJroF03woMdtv9hm5r8SSD6+CGS?=
- =?us-ascii?Q?w9mN+nHsOIKswL1cDl1wI2W9A0oHdOjRVZG8aU6uKxclxS3SJHe335ZJa0Vk?=
- =?us-ascii?Q?wtcxnJq9r930PGwIH2dm1/D0cw0WhVegwWyPuq/bUkwv0zLwLOhb2kSUc4R+?=
- =?us-ascii?Q?DnYZGEoehvjATgz5Yneomdi04iKqEXIPplZnPhWy?=
+ =?us-ascii?Q?ksETU3LZMfpSTNIPJGzFlrE8WE+vU/Kz+4FvQsLgzipyFO78A3imZutmtaCa?=
+ =?us-ascii?Q?rl2aUpAxEy+frficf+tYZT98SF55IPVDV7qgXNvp1adbGMDDp+4Kxb/O2MG1?=
+ =?us-ascii?Q?Jldwv2j1NPvvFDla8iXLYh6hxvp/lSrDxZyQmzeoWqMxW1vkTfQ7/rGYT8IE?=
+ =?us-ascii?Q?XxS9SLKtQYDmjblOtE9bpYiZ72JZDLOZXrYlslx0HmZ02zJKi9WLgl9mz6dC?=
+ =?us-ascii?Q?ybqfCsC84VluNmFNqy11bZvCb/fXhN4/LBrSKSZPB6TEGctEFoQy9eb6eLmU?=
+ =?us-ascii?Q?zLWzHO0fJiZzag5nIk9d6aSEjWovbx/R3Qz2fl7vVHFMxGc7BRYqAS+E655r?=
+ =?us-ascii?Q?4UT8ngXKMtrYnHkR70D4DsMcrRT04YTDOlMbyiwqXrP824VGJHgxOO8qaJ5r?=
+ =?us-ascii?Q?ZqDvrdpNV145jKD70BOlHxoonQNxO10VtCG6fDKC6DQ8jJjBg9gINqUQALWM?=
+ =?us-ascii?Q?0H6EovbR3b6Ouu1rTxml3xuWLcjZ3zNx0yNt0UfFQWVPS/xljUxCtvEBcmAi?=
+ =?us-ascii?Q?vWNtTl0gUuzkbK9q78LmjiECQ91/hgi1yoea3JXV6bT7rSMJW1FMCg0Hwpdm?=
+ =?us-ascii?Q?CRahzCBlntUGxUBltyj+dmknR2GGLHlFD/0eB8nEwBPDfY4cfyJndrlEqItp?=
+ =?us-ascii?Q?sjKzhwHOYl3eCXyezxk2d+ngcChH61q0+mDgvkdD49iidMCKKojcTE11s2C3?=
+ =?us-ascii?Q?KTq7MSa3RZYngH9GxWGuICwe41GJAalBgiBmBOBbaKbgGqhZPqlsVIMAQmjX?=
+ =?us-ascii?Q?FUEIGL70+SlUL5mCkKtWsmrp8VYZVRX4HdKJfduNJ2WeDqqYLq/elwcmRUU5?=
+ =?us-ascii?Q?8jFZR/GxSM833/+ucKdNOXx5lfLuqrXaiX7chJhgEifLg7vL4cMBH74Ij17n?=
+ =?us-ascii?Q?3GKonnXHagzhJ38ZoY3muspAlRhIfxmmSvk22kjnbvYK41eAtqe1SvT7NK9j?=
+ =?us-ascii?Q?qKXR+ArNWLl6bukEpeqY8Zz9ruQSnnWaFHp3d8tiZm27jRroNPXZ/uPEhTtK?=
+ =?us-ascii?Q?La1aui1yFG1SGZXvnqFeLaCIBC3zJ9BLaexDHsoH3GwOxfhQTbwf8UYq6VV3?=
+ =?us-ascii?Q?aoiop47WnCj5qGdoC1ZyXo50C1522lC4PKNiclvn206iG1euQ78gtpQbGrEP?=
+ =?us-ascii?Q?jGBcn6tfgSx3D4wyIDMmi37VJf+jlQxBKeyoMkTru7Z/Xs5JTqlMNBpmUDdr?=
+ =?us-ascii?Q?qC7tXxLsenKKsisS9DReoWbwlTwzHYzFooF75d7xC/INXUw7VEzrD+2+6hzE?=
+ =?us-ascii?Q?0um3r13XQ3uLcR2ZHqOh4Xz76QbqwEOXlkcsRs6wY/PI3wsifg2gVzFks4++?=
+ =?us-ascii?Q?koR4OH6xDIXTKYy614dtygyzgpebEllQT2Sc82hQAE8m8xAIPk9smeZTLnyj?=
+ =?us-ascii?Q?nDYecsU4nBC909+mtqO4Vn1xo8LU2dMy9k8LF1h+QzpHudPYmz96WLGfMLJy?=
+ =?us-ascii?Q?PvUIG4Pwc+k27HVWkj29KzGuf8PNVSUN6TU3dTHr9cKqk7qjRVqRX0EQJEre?=
+ =?us-ascii?Q?7n96NCi0PInxNT6i38GkntC+XJGw+z3ILYhMeke75h+AJWYLfWICRsBfqXpG?=
+ =?us-ascii?Q?AN7YH6zJ3UaUL1TyiKElSTw7axS7ScDYVp028L28?=
 X-MS-Exchange-CrossTenant-Network-Message-Id:
- 5e105d33-9f1b-4b61-ec76-08da71c8f1ea
+ 70add5a9-805c-417e-9d83-08da71c8fcd2
 X-MS-Exchange-CrossTenant-AuthSource: AM6PR04MB4662.eurprd04.prod.outlook.com
 X-MS-Exchange-CrossTenant-AuthAs: Internal
 X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
 X-MS-Exchange-CrossTenant-Id: f7a17af6-1c5c-4a36-aa8b-f5be247aa4ba
 X-MS-Exchange-CrossTenant-MailboxType: HOSTED
 X-MS-Exchange-CrossTenant-UserPrincipalName:
- r+rBcnyQcXJAwR7QW29YyM/UG/CTlV2QeDDoDEl1veaVjSHmtc/akCmNlaxeLEerR6d7h1aWCvIt5w7cy7t6+w==
+ gT9zEGFMKbfdpA+F0Vh+x4nH1cPuzUFviZLd7/RSdB2nJde8D+7JbxuWTfNJXv+kNtAFWoRtBO4tTFyuEqeEOg==
 X-MS-Exchange-Transport-CrossTenantHeadersStamped: AM6PR04MB4840
-X-ServerName: mail-eopbgr10064.outbound.protection.outlook.com
+X-ServerName: mail-eopbgr10068.outbound.protection.outlook.com
 X-Proofpoint-SPF-Result: pass
 X-Proofpoint-SPF-Record: v=spf1 include:spf.suse.com include:amazonses.com
  include:spf.protection.outlook.com include:_spf.qemailserver.com
  include:_spf.salesforce.com -all
 X-Spam: Clean
-X-Proofpoint-ORIG-GUID: jQdGWXhY-bnDM6QNHw4SsGSfFKMONSHP
-X-Proofpoint-GUID: jQdGWXhY-bnDM6QNHw4SsGSfFKMONSHP
+X-Proofpoint-ORIG-GUID: gB8bqNNApMxhAyLiXvwsCzVxoNE-bjax
+X-Proofpoint-GUID: gB8bqNNApMxhAyLiXvwsCzVxoNE-bjax
 Reporting-Meta:
- AAF3Sof+ipe41aLJfEoXSte+rQliFlE2IFVPBR9SeTrkm7xvtuQv2MbozowSBQgV
- U/mJyATS9PiRxexGmzuE9n5Xh/xM1z/c5kg8RJjIVkX3IJPBxI7D0DkMXJmp69fC
- 4uC6LKcJWYTpUVlXaZU3Hlhi6FKwBnVPsIiaMN4Bl/mjAeVrRIiQk5mRL6/M2/qk
- oNCaAkmFKAkdJSUeq2kBqc3ADqNLJv1MOadXY0EfhwLWLuoWC6l9X4CQ4Jm5MITF
- 5mF1+WcHKQXTb4OeavesoH5iTjWO0BvXvCgVzKE7OBmZcSagqBnfukLTLQdrae9s
- UkzVPSEEgPw8WCQ0ClH2WRfeA0wdnIvGCBx9tO8rOK/TQTF6UmAZinkJShPG0MXd
- ta/7HSmPJnGFES0Z68+ZThb3c558cOr5KdRYyItCfGgZX5F2HfystKGaYCpVgffS
- mLpplwo1dLUGFqcO6ohz3hUBPawXLeR6vWY5sRWx/hwR/n70Z9ytrsG0M5bVltBY
- Sqsb1CPvnnxQxXP8RvVM1moF9D8yb6OuSr/usP3+nGs=
+ AAE1DFZ4j7U4WpLz07R9UegAw7/CF68Ncp7MSoO+wT6mcBdNWgLkYhRZsS04yyDI
+ fIvUpY+ONG2cGXdbkAveBJHMFpLDsY85a6xp5NCNGBMoud2Ub6n5/Urkj72GQxXE
+ rx5OuoTa6DLI2hUaW7KtyHLrvinTARigs4Ybh0dO1ZPKD2N3Ldz8ejGknSib7yqY
+ meLioi/e5QmoYwJvBmJrUzy7QnLqm9PQFtH2/5p5tQEe6uNDKnaXBzqedzgGMBvX
+ gNIsm3ehPKuN2VzL+GInlISWkIDdfdfqYLE1GjGnQgMxKUkXDnUtilwafoEEJp9m
+ z3vZ/KMWI4anZ+/fpf+rEGARCApsbA8tVSMuaalJ4n5Hvs09RocxlfUdaekByb5Z
+ gPDBSzTp3HIRdWi/3Qy/o8By/yw/DB0/R7sptDo1Kf2eOsOKvxIc9yIUuWK3aMCK
+ LSeyq8h7AQk5pbAyB/CpTfMDPZsrSJC9fjHuMJxrpjXrGveyhhu0oYeNYx2kxIBx
+ YPsHo6ewLlqs6DAYp27PVPtVGOb+pQPbhlMlkFU12cY=
 
-This commit gives new message type for ocfs2.
+the key different between local mount and non-clustered mount:
+local mount feature (tunefs.ocfs2 --fs-features=[no]local) can't do
+convert job without ha stack. non-clustered mount feature can run
+totally without ha stack.
+
+commit 912f655d78c5 ("ocfs2: mount shared volume without ha stack") had
+bug, then commit c80af0c250c8f8a3c978aa5aafbe9c39b336b813 reverted it.
+
+Let's give some explain for the issue mentioned by commit c80af0c250c8.
+
+Under Junxiao's call trace, in __ocfs2_find_empty_slot(), the 'if'
+accessment is wrong. sl_node_num could be 0 at o2cb env.
+
+with current information, the trigger flow (base on 912f655d78c5):
+1>
+nodeA with 'node_num = 0' for mounting. it will succeed.
+at this time, slotmap extent block will contains es_valid:1 &
+es_node_num:0 for nodeA
+then ocfs2_update_disk_slot() will write back slotmap info to disk.
+
+2>
+then, nodeB with 'node_num = 1' for mounting
+this time, osb->node_num is 1 (set by config file), osb->preferred is
+OCFS2_INVALID_SLOT (set by ocfs2_parse_options).
+
+ocfs2_find_slot
+ + ocfs2_update_slot_info //read slotmap info from disk
+ |  + set si->si_slots[0].es_valid = 1 & si->si_slots[0].sl_node_num = 0
+ |
+ + __ocfs2_node_num_to_slot //will return -ENOENT.
+ + __ocfs2_find_empty_slot
+    + if ((preferred >= 0) && (preferred < si->si_num_slots))
+    |  fails enter this 'if' for preferred value is OCFS2_INVALID_SLOT
+    |
+    + 'for(i = 0; i < si->si_num_slots; i++)' search slot 0
+      successfully.
+    |  'si->si_slots[0].sl_node_num' is false. trigger 'break' condition.
+    |
+    + return slot 0.
+       it will cause nodeB grab nodeA journal dlm lock, then trigger hung.
+
+How to do for this bug?
+
+This commit re-enabled 912f655d78c5, next commit (add MMP support) will fix
+the issue.
 
 Signed-off-by: Heming Zhao <heming.zhao@suse.com>
 ---
- fs/ocfs2/cluster/masklog.c | 3 +++
- fs/ocfs2/cluster/masklog.h | 9 +++++----
- 2 files changed, 8 insertions(+), 4 deletions(-)
+ fs/ocfs2/ocfs2.h    |  4 +++-
+ fs/ocfs2/slot_map.c | 46 ++++++++++++++++++++++++++-------------------
+ fs/ocfs2/super.c    | 21 +++++++++++++++++++++
+ 3 files changed, 51 insertions(+), 20 deletions(-)
 
-diff --git a/fs/ocfs2/cluster/masklog.c b/fs/ocfs2/cluster/masklog.c
-index 563881ddbf00..bac3488e8002 100644
---- a/fs/ocfs2/cluster/masklog.c
-+++ b/fs/ocfs2/cluster/masklog.c
-@@ -63,6 +63,9 @@ void __mlog_printk(const u64 *mask, const char *func, int line,
- 	if (*mask & ML_ERROR) {
- 		level = KERN_ERR;
- 		prefix = "ERROR: ";
-+	} else if (*mask & ML_WARNING) {
-+		level = KERN_WARNING;
-+		prefix = "WARNING: ";
- 	} else if (*mask & ML_NOTICE) {
- 		level = KERN_NOTICE;
- 	} else {
-diff --git a/fs/ocfs2/cluster/masklog.h b/fs/ocfs2/cluster/masklog.h
-index b73fc42e46ff..d0bc4fe8cf3d 100644
---- a/fs/ocfs2/cluster/masklog.h
-+++ b/fs/ocfs2/cluster/masklog.h
-@@ -86,10 +86,11 @@
+diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
+index 740b64238312..337527571461 100644
+--- a/fs/ocfs2/ocfs2.h
++++ b/fs/ocfs2/ocfs2.h
+@@ -277,6 +277,7 @@ enum ocfs2_mount_options
+ 	OCFS2_MOUNT_JOURNAL_ASYNC_COMMIT = 1 << 15,  /* Journal Async Commit */
+ 	OCFS2_MOUNT_ERRORS_CONT = 1 << 16, /* Return EIO to the calling process on error */
+ 	OCFS2_MOUNT_ERRORS_ROFS = 1 << 17, /* Change filesystem to read-only on error */
++	OCFS2_MOUNT_NOCLUSTER = 1 << 18, /* No cluster aware filesystem mount */
+ };
  
- /* bits that are infrequently given and frequently matched in the high word */
- #define ML_ERROR	0x1000000000000000ULL /* sent to KERN_ERR */
--#define ML_NOTICE	0x2000000000000000ULL /* setn to KERN_NOTICE */
--#define ML_KTHREAD	0x4000000000000000ULL /* kernel thread activity */
-+#define ML_NOTICE	0x2000000000000000ULL /* sent to KERN_NOTICE */
-+#define ML_WARNING	0x4000000000000000ULL /* sent to KERN_WARNING */
-+#define ML_KTHREAD	0x8000000000000000ULL /* kernel thread activity */
+ #define OCFS2_OSB_SOFT_RO	0x0001
+@@ -672,7 +673,8 @@ static inline int ocfs2_cluster_o2cb_global_heartbeat(struct ocfs2_super *osb)
  
--#define MLOG_INITIAL_AND_MASK (ML_ERROR|ML_NOTICE)
-+#define MLOG_INITIAL_AND_MASK (ML_ERROR|ML_WARNING|ML_NOTICE)
- #ifndef MLOG_MASK_PREFIX
- #define MLOG_MASK_PREFIX 0
- #endif
-@@ -102,7 +103,7 @@
- #if defined(CONFIG_OCFS2_DEBUG_MASKLOG)
- #define ML_ALLOWED_BITS ~0
- #else
--#define ML_ALLOWED_BITS (ML_ERROR|ML_NOTICE)
-+#define ML_ALLOWED_BITS (ML_ERROR|ML_WARNING|ML_NOTICE)
- #endif
+ static inline int ocfs2_mount_local(struct ocfs2_super *osb)
+ {
+-	return (osb->s_feature_incompat & OCFS2_FEATURE_INCOMPAT_LOCAL_MOUNT);
++	return ((osb->s_feature_incompat & OCFS2_FEATURE_INCOMPAT_LOCAL_MOUNT)
++		|| (osb->s_mount_opt & OCFS2_MOUNT_NOCLUSTER));
+ }
  
- #define MLOG_MAX_BITS 64
+ static inline int ocfs2_uses_extended_slot_map(struct ocfs2_super *osb)
+diff --git a/fs/ocfs2/slot_map.c b/fs/ocfs2/slot_map.c
+index da7718cef735..0b0ae3ebb0cf 100644
+--- a/fs/ocfs2/slot_map.c
++++ b/fs/ocfs2/slot_map.c
+@@ -252,14 +252,16 @@ static int __ocfs2_find_empty_slot(struct ocfs2_slot_info *si,
+ 	int i, ret = -ENOSPC;
+ 
+ 	if ((preferred >= 0) && (preferred < si->si_num_slots)) {
+-		if (!si->si_slots[preferred].sl_valid) {
++		if (!si->si_slots[preferred].sl_valid ||
++		    !si->si_slots[preferred].sl_node_num) {
+ 			ret = preferred;
+ 			goto out;
+ 		}
+ 	}
+ 
+ 	for(i = 0; i < si->si_num_slots; i++) {
+-		if (!si->si_slots[i].sl_valid) {
++		if (!si->si_slots[i].sl_valid ||
++		    !si->si_slots[i].sl_node_num) {
+ 			ret = i;
+ 			break;
+ 		}
+@@ -454,24 +456,30 @@ int ocfs2_find_slot(struct ocfs2_super *osb)
+ 	spin_lock(&osb->osb_lock);
+ 	ocfs2_update_slot_info(si);
+ 
+-	/* search for ourselves first and take the slot if it already
+-	 * exists. Perhaps we need to mark this in a variable for our
+-	 * own journal recovery? Possibly not, though we certainly
+-	 * need to warn to the user */
+-	slot = __ocfs2_node_num_to_slot(si, osb->node_num);
+-	if (slot < 0) {
+-		/* if no slot yet, then just take 1st available
+-		 * one. */
+-		slot = __ocfs2_find_empty_slot(si, osb->preferred_slot);
++	if (ocfs2_mount_local(osb))
++		/* use slot 0 directly in local mode */
++		slot = 0;
++	else {
++		/* search for ourselves first and take the slot if it already
++		 * exists. Perhaps we need to mark this in a variable for our
++		 * own journal recovery? Possibly not, though we certainly
++		 * need to warn to the user */
++		slot = __ocfs2_node_num_to_slot(si, osb->node_num);
+ 		if (slot < 0) {
+-			spin_unlock(&osb->osb_lock);
+-			mlog(ML_ERROR, "no free slots available!\n");
+-			status = -EINVAL;
+-			goto bail;
+-		}
+-	} else
+-		printk(KERN_INFO "ocfs2: Slot %d on device (%s) was already "
+-		       "allocated to this node!\n", slot, osb->dev_str);
++			/* if no slot yet, then just take 1st available
++			 * one. */
++			slot = __ocfs2_find_empty_slot(si, osb->preferred_slot);
++			if (slot < 0) {
++				spin_unlock(&osb->osb_lock);
++				mlog(ML_ERROR, "no free slots available!\n");
++				status = -EINVAL;
++				goto bail;
++			}
++		} else
++			printk(KERN_INFO "ocfs2: Slot %d on device (%s) was "
++			       "already allocated to this node!\n",
++			       slot, osb->dev_str);
++	}
+ 
+ 	ocfs2_set_slot(si, slot, osb->node_num);
+ 	osb->slot_num = slot;
+diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+index 438be028935d..f7298816d8d9 100644
+--- a/fs/ocfs2/super.c
++++ b/fs/ocfs2/super.c
+@@ -172,6 +172,7 @@ enum {
+ 	Opt_dir_resv_level,
+ 	Opt_journal_async_commit,
+ 	Opt_err_cont,
++	Opt_nocluster,
+ 	Opt_err,
+ };
+ 
+@@ -205,6 +206,7 @@ static const match_table_t tokens = {
+ 	{Opt_dir_resv_level, "dir_resv_level=%u"},
+ 	{Opt_journal_async_commit, "journal_async_commit"},
+ 	{Opt_err_cont, "errors=continue"},
++	{Opt_nocluster, "nocluster"},
+ 	{Opt_err, NULL}
+ };
+ 
+@@ -616,6 +618,13 @@ static int ocfs2_remount(struct super_block *sb, int *flags, char *data)
+ 		goto out;
+ 	}
+ 
++	tmp = OCFS2_MOUNT_NOCLUSTER;
++	if ((osb->s_mount_opt & tmp) != (parsed_options.mount_opt & tmp)) {
++		ret = -EINVAL;
++		mlog(ML_ERROR, "Cannot change nocluster option on remount\n");
++		goto out;
++	}
++
+ 	tmp = OCFS2_MOUNT_HB_LOCAL | OCFS2_MOUNT_HB_GLOBAL |
+ 		OCFS2_MOUNT_HB_NONE;
+ 	if ((osb->s_mount_opt & tmp) != (parsed_options.mount_opt & tmp)) {
+@@ -856,6 +865,7 @@ static int ocfs2_verify_userspace_stack(struct ocfs2_super *osb,
+ 	}
+ 
+ 	if (ocfs2_userspace_stack(osb) &&
++	    !(osb->s_mount_opt & OCFS2_MOUNT_NOCLUSTER) &&
+ 	    strncmp(osb->osb_cluster_stack, mopt->cluster_stack,
+ 		    OCFS2_STACK_LABEL_LEN)) {
+ 		mlog(ML_ERROR,
+@@ -1127,6 +1137,11 @@ static int ocfs2_fill_super(struct super_block *sb, void *data, int silent)
+ 	       osb->s_mount_opt & OCFS2_MOUNT_DATA_WRITEBACK ? "writeback" :
+ 	       "ordered");
+ 
++	if ((osb->s_mount_opt & OCFS2_MOUNT_NOCLUSTER) &&
++	   !(osb->s_feature_incompat & OCFS2_FEATURE_INCOMPAT_LOCAL_MOUNT))
++		printk(KERN_NOTICE "ocfs2: The shared device (%s) is mounted "
++		       "without cluster aware mode.\n", osb->dev_str);
++
+ 	atomic_set(&osb->vol_state, VOLUME_MOUNTED);
+ 	wake_up(&osb->osb_mount_event);
+ 
+@@ -1437,6 +1452,9 @@ static int ocfs2_parse_options(struct super_block *sb,
+ 		case Opt_journal_async_commit:
+ 			mopt->mount_opt |= OCFS2_MOUNT_JOURNAL_ASYNC_COMMIT;
+ 			break;
++		case Opt_nocluster:
++			mopt->mount_opt |= OCFS2_MOUNT_NOCLUSTER;
++			break;
+ 		default:
+ 			mlog(ML_ERROR,
+ 			     "Unrecognized mount option \"%s\" "
+@@ -1548,6 +1566,9 @@ static int ocfs2_show_options(struct seq_file *s, struct dentry *root)
+ 	if (opts & OCFS2_MOUNT_JOURNAL_ASYNC_COMMIT)
+ 		seq_printf(s, ",journal_async_commit");
+ 
++	if (opts & OCFS2_MOUNT_NOCLUSTER)
++		seq_printf(s, ",nocluster");
++
+ 	return 0;
+ }
+ 
 -- 
 2.37.1
 
