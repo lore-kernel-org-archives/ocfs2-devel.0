@@ -1,58 +1,58 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc255.phx1.oracleemaildelivery.com (aib29ajc255.phx1.oracleemaildelivery.com [192.29.103.255])
+Received: from aib29ajc252.phx1.oracleemaildelivery.com (aib29ajc252.phx1.oracleemaildelivery.com [192.29.103.252])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 2D59AC04A68
-	for <ocfs2-devel@archiver.kernel.org>; Sat, 30 Jul 2022 14:48:52 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 9E121C04A68
+	for <ocfs2-devel@archiver.kernel.org>; Sat, 30 Jul 2022 14:52:42 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=xcckVc2jvrsSlKnZaIxQRpKR5Zuk6nA8aI8mW3t9huo=;
- b=SdZADdxjbyeKpevwrzJev6lEa3ajMGezIOrOtr8BEHxsfm8l7nnybPsVHpHV6KSKQKHYZfSk82Od
-   QcR57kiyM5RGXgGqWOnrruC7bd7OVk5JZCZVAadh4+I6tD8X+wGAih5i23Pzc/2QA7HwKwdhkVQd
-   IQ0vlGZbPkVTi0VEjKqdzfCI4eaI/CrmN1V8taQIzsbQGZBbhp3zkSARe0Q5EIyDzHCpxm68l/DT
-   NJxkvQmhIrZEjiZg7NHVp/qC2uikMtc59MQDWl3xiX25oOmWjY8LBuAKsaRbZPHbhpRWc+sd5L/t
-   Ev3UGc1q6Z0lXmIyymwErcd4teHVTuPzW13kwg==
+ bh=yjPN46112i3slnsGgr9T5mfxehWnijiNxO+lAkqt0jE=;
+ b=oos+PwxhHRL8Ueg9YKsM+EHXtxpYeJbovJXtMxyKIn8BDPQZKJrsLltaFdM6PPJJRAE6xYRYFXlq
+   YXtmG2hUwzOe3JKf3deVuGaOEvODP/6K4yVS4HobEWXtsvbvGgtkD4V8rOMXyiXR4xYj3UMSkVBe
+   7RUPdNJ84lnbogxCsQXn2/jfvbwrcFbnNLKNoaLHw7xe+rAbOo5Bssis2Yq8/lX4Sz4C1Us5BtjH
+   XIf0HFYU8NMRlJ3Nn8nzVfoXxaztXEP4P6xorRC4S8fkb9buQ02ZNm5yIRpnyWcPTG54vdJoTnHf
+   5qGQfERjMeIOMlIeZ6+RarQYv8PWtS0mv+N6Qg==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=xcckVc2jvrsSlKnZaIxQRpKR5Zuk6nA8aI8mW3t9huo=;
- b=r9Q05Evik8qD9v1txCJ5BDgQSla2QKRJLhOejKf7Vu1bs9Ulsvc4qPi/V29S9lY9rheFHpbO7k7a
-   sayZ8TLUHbyaJkV3b1OD49Pk7o2/4M8tcY4b7dza6ihxpwr3Cwo3/OWihLZWeiy55p9TUes3Tfit
-   sy6ZbLE+mKOhLBU1F2/59oyXNlQP97tSEdpo69Kg4pmeCl5VDEYblMIgElhvLR+Iey59zHObm2VB
-   TEeiXKoRNUzAhSnqO+tNMGL5M9aeMzKLVra18ssW4KUmSnUBPnmgl932JFsGTZfWcFNb9y3KYgwE
-   W//DPW77VtGJugOnMCCfWX8YhvfCLs66B0DEGA==
-Received: by omta-ad3-fd3-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
+ bh=yjPN46112i3slnsGgr9T5mfxehWnijiNxO+lAkqt0jE=;
+ b=WR2KfZ0b9mQVlutsLqypdGpBq7wx62Lj7AdLz/ES0JqJZAQZJw+Bz2mCdiR4lyEejydvAquBc5q0
+   fL6dDiaYSgFiMBWZ7Fh5Ec16Kf9Fa7oX+OW4kDDlWqXqmcAaA9vs9z66O1qzjX2oTwTBSYdTMu3C
+   irq6LfK4ctfuOkZRTo2RDF6K4s1/xlYKysdWg3f1cXFybQyzuXxieTpUCjOAZN+AQOY5Lz2RszA2
+   F9rCP+Ho54GBji28nzmY13e8ej97rx4aUhuNDoIPm/S4e/xa1yD6aCP1QwHVbCsEFQRBwO37Lg+1
+   ZjLrzC6xY6KWqKXJxg5P2unWhrF2BiYQtOyz1g==
+Received: by omta-ad3-fd1-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220621 64bit (built Jun 21
  2022))
- with ESMTPS id <0RFU0077095FRP80@omta-ad3-fd3-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Sat, 30 Jul 2022 14:48:51 +0000 (GMT)
+ with ESMTPS id <0RFU00C7Y9BTNXD0@omta-ad3-fd1-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Sat, 30 Jul 2022 14:52:41 +0000 (GMT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linuxfoundation.org;
- s=korg; t=1659192517; bh=+XrcBvQ4Uj/gaOyMUo75Ovkwrhg0YbPI84DWrAQTw7A=;
+ s=korg; t=1659192748; bh=5A384eppXqimDVm+yHOZg6JwDpP5ooZ3x5ipxH2KegY=;
  h=Subject:To:Cc:From:Date:From;
- b=LqCIEb97iF4DaW1mhlsjXlr7gmaYPmVXn64JfRuW5/o+yuwQdVbpsljS64SufnmxN
- sFWcDZmlNMbgfVxmukrvu3qumIxy5qHyHXwDmXLSgtG+attGCrjpQS/M8TZ8YniC63
- O6JCxc5cfU7V8JSvzvYG28TvhzgdxM6t10nEImCA=
+ b=S2qDPZLZerfe41lCW8tG4obfyvHIjjv+JCGpfHloPKioVI4cjTKt6qMHDQodASpsG
+ l6TmN16yiJ8WW8/tnOemSNv9jiWyxNhKoD6CVyUaQuGITl/EdfwB8rZVUL72QYuDvX
+ MucMmJ2BCHQB0H6TVgJf1YbF47JVXXnoUBrgb4go=
 To: akpm@linux-foundation.org, gechangwei@live.cn, ghe@suse.com,
  gregkh@linuxfoundation.org, heming.zhao@suse.com, jlbec@evilplan.org,
  joseph.qi@linux.alibaba.com, junxiao.bi@oracle.com, mark@fasheh.com,
  ocfs2-devel@oss.oracle.com, piaojun@huawei.com
-Date: Sat, 30 Jul 2022 16:48:29 +0200
-Message-id: <1659192509124193@kroah.com>
+Date: Sat, 30 Jul 2022 16:52:08 +0200
+Message-id: <1659192728999@kroah.com>
 MIME-version: 1.0
 X-Source-IP: 139.178.84.217
 X-Proofpoint-Virus-Version: vendor=nai engine=6400 definitions=10424
  signatures=596356
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 clxscore=122
- priorityscore=273 adultscore=0 impostorscore=0 lowpriorityscore=0
- malwarescore=0 bulkscore=0 mlxscore=0 phishscore=0 suspectscore=0
- mlxlogscore=999 spamscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2206140000 definitions=main-2207300073
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 phishscore=0
+ bulkscore=0 clxscore=106 priorityscore=272 mlxscore=0 malwarescore=0
+ spamscore=0 lowpriorityscore=0 impostorscore=0 mlxlogscore=999 adultscore=0
+ suspectscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2206140000 definitions=main-2207300074
 Cc: stable-commits@vger.kernel.org
 Subject: [Ocfs2-devel] Patch "Revert "ocfs2: mount shared volume without ha
-	stack"" has been added to the 5.10-stable tree
+	stack"" has been added to the 5.15-stable tree
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -78,30 +78,30 @@ X-Proofpoint-SPF-Record: v=spf1 ip4:72.55.140.81 ip4:52.25.139.140
  ip6:2604:1380:4601:e00::1 ip4:145.40.73.55 ip6:2604:1380:40e1:4800::1
  include:_spf.google.com include:amazonses.com include:_spf.salesforce.com -all
 X-Spam: Clean
-X-Proofpoint-GUID: o7hSyx_bdN16bBQBUXvynd4BiB5A9a_z
-X-Proofpoint-ORIG-GUID: o7hSyx_bdN16bBQBUXvynd4BiB5A9a_z
+X-Proofpoint-ORIG-GUID: Y7pcEj90-VkvTnY07WWHkkssMlDK7xL9
+X-Proofpoint-GUID: Y7pcEj90-VkvTnY07WWHkkssMlDK7xL9
 Reporting-Meta:
- AAGVtkrldIGL6IslTRFeNebc1c0V1LlX6+EqYyB6yASOwnNsapsoDYQinBSLdMFX
- rmtZAiApzqnUl7nfZioZSDSAooiAnztuWckueLXqJe781sRrTWI8V/mh2p8O2nrb
- C/F4CARKPel6Kz1JKU/3oC9shc4S5UR/jqGxsHU0mfxDuPiWYsx7B7Kg5I7pFwwG
- 2o33eshTNcK7UVWoqJSJKA6phRQuvY829Pknyb75kEJPD2U5EiQeTw18jd9ClGEg
- 5ifx0sdlRj4NbOJyOjJ19LPmVoYj+NXaPLON/lNgbZ3k+7aFb3/wsqX+42igQzzE
- hsmr2ORZXq3oTBYfwFY5zGSn4NxwiAjQNd7N5IWtKYpAuKHN2lewiFI/XtSLrqBu
- xt9e5zRjZJyKOSHnKxCc13HvCNPrMsXJoCOTU+RCoe9ZCX5oi4dLXlAmM0nHZQy6
- 2C65DXGtoE59JR/ohOW9LtNBQOvSdzM12lgjHprpM/AZLMkketfGqcYAZlya7kK1
- po3PoA3G8jRw32mte5T8AKuJ3nX/XnhPbqj6R4SvyyyA
+ AAGLSg74LMQJcwsABdppXpgqzK7aBdbJnXEPkxeD7COVInkHXYmGWjo7SutrlKzL
+ yE/Yf+bIeNeBW2Qzv5WuufLxyc1M+hE9n5PqqFuuqi70gpNkNL87Z7J2tf5MhMVM
+ PEHu7s0uf8XuFrjZGEFOVhk9l4Wvtq3jFt9uVJ7uCMP6QFML4krctRymetgKpQca
+ iibkQmcKdd5QIwMD2cRjFMH7Zb8vUhfovSdE5hXlhpYBbmSd0Q2JucHoor5ofsPV
+ aknwuG+W7Rf0IofEjXLjQfRXtK5GPI8EYriGHHxAc+Lrh1BmswJW4uaz3wJu0Ywa
+ WIWB9acYBgHWhDS6U2DzJ7Wixn57I6BzbMA5XrNtj5Hp31UOXyMDhpkR/ypCZXfi
+ mICVcBYtfLO2l4fFr9qfxTzPqoPAPrcNriUH9be3X1pMPgz8XKi6hJl72eQKpbfd
+ R7LcEbKhAQRNRvoQsn066u+kqCsA375HFujw/4Qyux1q/I2OWUtf2H1i+nqMArOq
+ PgKxEkPgibyloOvUx3s1QSaZhioQR3+BCDu/8WF3R34=
 
 
 This is a note to let you know that I've just added the patch titled
 
     Revert "ocfs2: mount shared volume without ha stack"
 
-to the 5.10-stable tree which can be found at:
+to the 5.15-stable tree which can be found at:
     http://www.kernel.org/git/?p=linux/kernel/git/stable/stable-queue.git;a=summary
 
 The filename of the patch is:
      revert-ocfs2-mount-shared-volume-without-ha-stack.patch
-and it can be found in the queue-5.10 subdirectory.
+and it can be found in the queue-5.15 subdirectory.
 
 If you, or anyone else, feels it should not be added to the stable tree,
 please let <stable@vger.kernel.org> know about it.
@@ -191,7 +191,7 @@ Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 
 --- a/fs/ocfs2/ocfs2.h
 +++ b/fs/ocfs2/ocfs2.h
-@@ -279,7 +279,6 @@ enum ocfs2_mount_options
+@@ -277,7 +277,6 @@ enum ocfs2_mount_options
  	OCFS2_MOUNT_JOURNAL_ASYNC_COMMIT = 1 << 15,  /* Journal Async Commit */
  	OCFS2_MOUNT_ERRORS_CONT = 1 << 16, /* Return EIO to the calling process on error */
  	OCFS2_MOUNT_ERRORS_ROFS = 1 << 17, /* Change filesystem to read-only on error */
@@ -199,7 +199,7 @@ Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
  };
  
  #define OCFS2_OSB_SOFT_RO	0x0001
-@@ -675,8 +674,7 @@ static inline int ocfs2_cluster_o2cb_glo
+@@ -673,8 +672,7 @@ static inline int ocfs2_cluster_o2cb_glo
  
  static inline int ocfs2_mount_local(struct ocfs2_super *osb)
  {
@@ -211,7 +211,7 @@ Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
  static inline int ocfs2_uses_extended_slot_map(struct ocfs2_super *osb)
 --- a/fs/ocfs2/slot_map.c
 +++ b/fs/ocfs2/slot_map.c
-@@ -254,16 +254,14 @@ static int __ocfs2_find_empty_slot(struc
+@@ -252,16 +252,14 @@ static int __ocfs2_find_empty_slot(struc
  	int i, ret = -ENOSPC;
  
  	if ((preferred >= 0) && (preferred < si->si_num_slots)) {
@@ -230,7 +230,7 @@ Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
  			ret = i;
  			break;
  		}
-@@ -458,30 +456,24 @@ int ocfs2_find_slot(struct ocfs2_super *
+@@ -456,30 +454,24 @@ int ocfs2_find_slot(struct ocfs2_super *
  	spin_lock(&osb->osb_lock);
  	ocfs2_update_slot_info(si);
  
@@ -280,7 +280,7 @@ Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
  	osb->slot_num = slot;
 --- a/fs/ocfs2/super.c
 +++ b/fs/ocfs2/super.c
-@@ -175,7 +175,6 @@ enum {
+@@ -173,7 +173,6 @@ enum {
  	Opt_dir_resv_level,
  	Opt_journal_async_commit,
  	Opt_err_cont,
@@ -288,7 +288,7 @@ Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
  	Opt_err,
  };
  
-@@ -209,7 +208,6 @@ static const match_table_t tokens = {
+@@ -207,7 +206,6 @@ static const match_table_t tokens = {
  	{Opt_dir_resv_level, "dir_resv_level=%u"},
  	{Opt_journal_async_commit, "journal_async_commit"},
  	{Opt_err_cont, "errors=continue"},
@@ -296,7 +296,7 @@ Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
  	{Opt_err, NULL}
  };
  
-@@ -621,13 +619,6 @@ static int ocfs2_remount(struct super_bl
+@@ -619,13 +617,6 @@ static int ocfs2_remount(struct super_bl
  		goto out;
  	}
  
@@ -310,7 +310,7 @@ Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
  	tmp = OCFS2_MOUNT_HB_LOCAL | OCFS2_MOUNT_HB_GLOBAL |
  		OCFS2_MOUNT_HB_NONE;
  	if ((osb->s_mount_opt & tmp) != (parsed_options.mount_opt & tmp)) {
-@@ -868,7 +859,6 @@ static int ocfs2_verify_userspace_stack(
+@@ -866,7 +857,6 @@ static int ocfs2_verify_userspace_stack(
  	}
  
  	if (ocfs2_userspace_stack(osb) &&
@@ -318,7 +318,7 @@ Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
  	    strncmp(osb->osb_cluster_stack, mopt->cluster_stack,
  		    OCFS2_STACK_LABEL_LEN)) {
  		mlog(ML_ERROR,
-@@ -1149,11 +1139,6 @@ static int ocfs2_fill_super(struct super
+@@ -1145,11 +1135,6 @@ static int ocfs2_fill_super(struct super
  	       osb->s_mount_opt & OCFS2_MOUNT_DATA_WRITEBACK ? "writeback" :
  	       "ordered");
  
@@ -330,7 +330,7 @@ Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
  	atomic_set(&osb->vol_state, VOLUME_MOUNTED);
  	wake_up(&osb->osb_mount_event);
  
-@@ -1460,9 +1445,6 @@ static int ocfs2_parse_options(struct su
+@@ -1456,9 +1441,6 @@ static int ocfs2_parse_options(struct su
  		case Opt_journal_async_commit:
  			mopt->mount_opt |= OCFS2_MOUNT_JOURNAL_ASYNC_COMMIT;
  			break;
@@ -340,7 +340,7 @@ Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
  		default:
  			mlog(ML_ERROR,
  			     "Unrecognized mount option \"%s\" "
-@@ -1574,9 +1556,6 @@ static int ocfs2_show_options(struct seq
+@@ -1570,9 +1552,6 @@ static int ocfs2_show_options(struct seq
  	if (opts & OCFS2_MOUNT_JOURNAL_ASYNC_COMMIT)
  		seq_printf(s, ",journal_async_commit");
  
@@ -354,7 +354,7 @@ Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 
 Patches currently in stable-queue which might be from ocfs2-devel@oss.oracle.com are
 
-queue-5.10/revert-ocfs2-mount-shared-volume-without-ha-stack.patch
+queue-5.15/revert-ocfs2-mount-shared-volume-without-ha-stack.patch
 
 _______________________________________________
 Ocfs2-devel mailing list
