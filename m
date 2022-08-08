@@ -1,54 +1,53 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc252.phx1.oracleemaildelivery.com (aib29ajc252.phx1.oracleemaildelivery.com [192.29.103.252])
+Received: from aib29ajc253.phx1.oracleemaildelivery.com (aib29ajc253.phx1.oracleemaildelivery.com [192.29.103.253])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 6C1D5C00140
-	for <ocfs2-devel@archiver.kernel.org>; Mon,  8 Aug 2022 06:51:34 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 83081C25B0C
+	for <ocfs2-devel@archiver.kernel.org>; Mon,  8 Aug 2022 08:19:39 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=W5SaFjZCMJzQOwoBJ+d/lUa+nOxza0BqCys7Qs489Ek=;
- b=v5DYj7YXE9X5yzdXVbnO2yOM+ZlCo8B7q751+WdpYXCLIv8LIhoznHt08H6v4fDv5kXx/eAgFtn3
-   f9iPtzPRfJwiaPz381WCEqpk0HB+7fP9QTxPbp1kQlb7fWTjCPiE3/aEOW1dAfao//vMp4quXPMr
-   ep0nIB4J1xR7DPq9roYUn7Kduvw7JGxCJshojdW+ATsss5Eplno1oaEiL0kHxvxxV1bnSsQ+gHQ7
-   uy2kr2Fl58XBHcGbmRlcV1Kmo7M1CfCgoOYBQQ/IMjx97w5UsoNCvkUR3WWKYeF6/34/GCqXiXCc
-   XOAvZx8lvZPiPgLJZWUefAEbyNftTTxKFx2dFw==
+ bh=qAPaDBl/fx0CXEjzWBIMsURsJpu8Nm964zZmUvbZAHs=;
+ b=gszJrdCseznGmlOujM7Ji2QXcNTqpbOaRQnaAlHJkHsP9ZvQYLf0BX5CwTwgPNCs7QjKQy/+hRD9
+   RuAokITpRrsg/4XDrOoBJ1jmJ8U6iDj/X2Nm9oqjw+aAooURSfhQ8zNAhVLzrI78hFJL77cFxvS9
+   iSDid6EdcIwLIehC7UucGP5a3LbwzaH2DT5F0lutLmzIv42iZja3KlmicVsItJ9O1azoGA+mp2TR
+   cpWZOzhSLgfo00fxYJgPrOUE1TS7qXM8dBSuli4YICoVZpGNOO//zyH1IoTpRpruSO1b6AVDCa3W
+   Igc8DLEsDrgAQafIOMWx2i4HijBGr4jTBhJj1g==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=W5SaFjZCMJzQOwoBJ+d/lUa+nOxza0BqCys7Qs489Ek=;
- b=a4lQl8S3MdyHEmtYzaEvXSCjuRzUnmdQZC8JbqZNXLAe6S9jLq/0AMBv4gAwIYuifBBhsKmEvzVP
-   OqFfDbdJlQINq2CcNKoyoDu2GoZirokKymQ7DKzovsRBy2wHH/60tRefzPRgNpBYLhdWt2h+Ji25
-   TpE3utr74TzRleHxiuyxnPElAmKACegBm3ZPFroq443YXR2HQ1TCOLFyRchzz/3S3J+AAxPdLeOu
-   QJ+MfGaOT3e7S3rnuoO82VVGdIfUkxAR20kT9Ox0cJQh2KQvzDFudYnDNUT7lVlMzUCCkZJVhfP7
-   GVvg4RGIcOIoSea17O8ZKh2/hNP90vEP2dNxGw==
-Received: by omta-ad3-fd1-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
+ bh=qAPaDBl/fx0CXEjzWBIMsURsJpu8Nm964zZmUvbZAHs=;
+ b=fzXO9QpjtMZk+924l8WN1vvjladRZcfP4+TIDV31AryjApb/HHe+s8hxd8TLql/vMB1YaeASW+JW
+   /NzdpqYsPWrOCH+tV1knDHiEJqREiFkNzp+slQx6M9f/0K0TaJNSm2EMIP4w7HCiK/zdiK0kzsvS
+   89/QqgZDM3urjzX0XhzewZaZgMuU7LPfZCE+/ZWDkypVZTOh2mj2Bb0TRuyhC4X6id2RIZ657UtE
+   1IYN0KqYNJlYgcsTKmRczKEkZd1k8dEKulfoNCegAg3hOHi+kAT9CPGbrUzkQzfMVf6qGn/oSv66
+   jmz/izTqMgMx6Gk7+Qgr/5uxyEhnQWKxivWWSA==
+Received: by omta-ad3-fd1-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220729 64bit (built Jul 29
  2022))
- with ESMTPS id <0RGA00BA5B1XTO00@omta-ad3-fd1-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Mon, 08 Aug 2022 06:51:33 +0000 (GMT)
-Message-id: <2dd9c00b-bd33-7368-def9-9572dd7e6820@linux.alibaba.com>
-Date: Mon, 8 Aug 2022 14:51:12 +0800
+ with ESMTPS id <0RGA00M7QF4QOE80@omta-ad3-fd1-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Mon, 08 Aug 2022 08:19:38 +0000 (GMT)
+Message-id: <e90f3f19-f790-8018-ddb4-0bb405d45ad6@linux.alibaba.com>
+Date: Mon, 8 Aug 2022 16:19:22 +0800
 MIME-version: 1.0
 User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:91.0)
  Gecko/20100101 Thunderbird/91.11.0
 Content-language: en-US
 To: Heming Zhao <heming.zhao@suse.com>, ocfs2-devel@oss.oracle.com
 References: <20220730011411.11214-1-heming.zhao@suse.com>
- <20220730011411.11214-2-heming.zhao@suse.com>
-In-reply-to: <20220730011411.11214-2-heming.zhao@suse.com>
-X-Source-IP: 115.124.30.45
+ <20220730011411.11214-5-heming.zhao@suse.com>
+In-reply-to: <20220730011411.11214-5-heming.zhao@suse.com>
+X-Source-IP: 115.124.30.56
 X-Proofpoint-Virus-Version: vendor=nai engine=6400 definitions=10432
  signatures=596816
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0
- priorityscore=1501 bulkscore=0 suspectscore=0 clxscore=-23 lowpriorityscore=0
- mlxscore=0 spamscore=0 phishscore=0 adultscore=0 impostorscore=0
- malwarescore=0 mlxlogscore=999 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2206140000 definitions=main-2208080035 domainage_hfrom=8516
-Subject: Re: [Ocfs2-devel] [PATCH 1/4] ocfs2: Fix freeing uninitialized
- resource on ocfs2_dlm_shutdown
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 phishscore=0
+ spamscore=0 impostorscore=0 malwarescore=0 mlxscore=0 priorityscore=0
+ bulkscore=0 lowpriorityscore=0 adultscore=0 mlxlogscore=999 clxscore=103
+ suspectscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2206140000 definitions=main-2208080042 domainage_hfrom=8516
+Subject: Re: [Ocfs2-devel] [PATCH 4/4] ocfs2: introduce ext4 MMP feature
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -65,66 +64,55 @@ Reply-to: Joseph Qi <joseph.qi@linux.alibaba.com>
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-Alimail-AntiSpam: AC=PASS; BC=-1|-1; BR=01201311R121e4; CH=green;
- DM=||false|; DS=||; FP=0|-1|-1|-1|0|-1|-1|-1; HT=ay29a033018045170;
+X-Alimail-AntiSpam: AC=PASS; BC=-1|-1; BR=01201311R561e4; CH=green;
+ DM=||false|; DS=||; FP=0|-1|-1|-1|0|-1|-1|-1; HT=ay29a033018045176;
  MF=joseph.qi@linux.alibaba.com; NM=1; PH=DS; RN=3; SR=0;
- TI=SMTPD_---0VLe4xJm_1659941472;
-X-ServerName: out30-45.freemail.mail.aliyun.com
+ TI=SMTPD_---0VLflmgc_1659946762;
+X-ServerName: out30-56.freemail.mail.aliyun.com
 X-Proofpoint-SPF-Result: pass
 X-Proofpoint-SPF-Record: v=spf1 include:spf1.service.alibaba.com
  include:spf2.service.alibaba.com include:spf1.ocm.aliyun.com
  include:spf2.ocm.aliyun.com include:spf1.staff.mail.aliyun.com
  include:a.hichina.mail.aliyun.com include:b.hichina.mail.aliyun.com -all
 X-Spam: Clean
-X-Proofpoint-ORIG-GUID: m-S1DV5aOei8-lgfCCLEmiy1sBz2RnQ9
-X-Proofpoint-GUID: m-S1DV5aOei8-lgfCCLEmiy1sBz2RnQ9
+X-Proofpoint-ORIG-GUID: M6CO23rroU0GOOT0x8vaQPaXJ5S3pjnV
+X-Proofpoint-GUID: M6CO23rroU0GOOT0x8vaQPaXJ5S3pjnV
 Reporting-Meta:
- AAGVD1S9BtNSfcx+5ZFEeKBlnnToZVD1BIbjPG7l9X0SqksvpeTTgfgDa6lxPGhd
- 2cbe3K+Xodrls7Il3d4ZwbmObM/hLYj70MayodrWAI3+Q89K2c+kk9ODk9RVOcOh
- 9PUrR063q/etGKuARC8Jn0nPedo7aUHgPRxi47SFw+WjRqDIr6rDujK+1bMlKP6q
- +3UrKxWhAnxftN51O0HcBugBjjtHOwfJmdOVpSL5dJmBGVTAcIDw9FZUkMdqAlag
- F/ini1lbA8o6YnOQITW6YMdVIBiRvkGzoE6TbfebLwPBfWKn+IagYREwlG7w5cq6
- n/vinNr08b8kGnY3VpQLVfqD82p3LSk82cuVThtfkwIwPRyiz/1KTZDDCyuWS5+F
- sfsImAZk7DihSvAwi4kgl0JRNslX45mgCe1FSdBzfRG55aMY/QlEc4MfPQ3bv9Ov
- bRw6Al8EHN9J1veonQNTLlnViY3QNjts/HwX0kayhAVQYfYcJSscRmxjQKD4zIyZ
- VkzROwDonJK+YzreA5QWUXm/OXMb/B3K1bF+eJd7Cq8I
+ AAGhyTdKxml+eLxVKWxB1CnetNVYg6+SLUrJt8YGylJhkdXOf6lPRJCDBbuQ8QIs
+ htkxkMxTRnUJW5ZeoLf3aNvfjWuwKE260QHOxa0iCBbhrDBg2qoH8Opo/E5dn22n
+ t9F4wHW1xdk83uddUvJB//a3An7FmyoDx0LzHxrzg/MvBECIsd6MZa8rs5r3/3Dq
+ Cyw/mX0rbzDFOjsBnMeJCUwYsjGoSidDiyTChgUjsZ4vLjKFps6RX4MM6c/BjbdR
+ b16czI0G0WbnbfzD8EANpWfmkPpp04m2R571bVBvYr5KsjmFi9FLRtyxHpHHVGtP
+ B9/Z5vlHMIzr+40RcrxUK85Y2cBPhwPm2RHmWeXjXlNi9WtBEGj9Q9XmQgo93ZGY
+ a0ECGNTr/UF0137m2yjdMEeJ9dm63lVL8Fhhu9f6tG2UaDUqyrWQU8QoLJ5q5wwl
+ XrIzvchtESUQv0bIrU+DTOxG8YJ7N7gnXWJtCfSIh54rYZDrR4SvyGvR0/7RuDuU
+ ZQ4ZmnvN1QqJaRIFTci3ZKKR6sm4UPC9jlImL6ESD95Z
 
 
 
 On 7/30/22 9:14 AM, Heming Zhao wrote:
-> On local mount mode, there is no dlm resource initalized. If
-> ocfs2_mount_volume() fails in ocfs2_find_slot(), error handling
-> flow will call ocfs2_dlm_shutdown(), then does dlm resource
-> cleanup job, which will trigger kernel crash.
+> MMP (multiple mount protection) gives filesystem ability to prevent
+> from being mounted multiple times.
 > 
-> Fixes: 0737e01de9c4 ("ocfs2: ocfs2_mount_volume does cleanup job before
-> return error")
-
-Should be put at the same line.
-
-> Signed-off-by: Heming Zhao <heming.zhao@suse.com>
-> ---
->  fs/ocfs2/dlmglue.c | 3 +++
->  1 file changed, 3 insertions(+)
+> For avoiding data corruption when non-clustered and/or clustered mount
+> are happening at same time, this commit introduced MMP feature. MMP
+> idea is from ext4 MMP (fs/ext4/mmp.c) code. For ocfs2 is a clustered
+> fs and also for compatible with existing slotmap feature, I did some
+> optimization and modification when porting from ext4 to ocfs2.
 > 
-> diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-> index 801e60bab955..1438ac14940b 100644
-> --- a/fs/ocfs2/dlmglue.c
-> +++ b/fs/ocfs2/dlmglue.c
-> @@ -3385,6 +3385,9 @@ int ocfs2_dlm_init(struct ocfs2_super *osb)
->  void ocfs2_dlm_shutdown(struct ocfs2_super *osb,
->  			int hangup_pending)
->  {
-> +	if (ocfs2_mount_local(osb))
-> +		return;
-> +
+> For optimization:
+> mmp has a kthread kmmpd-<dev>, which is only created in non-clustered
+> mode.
+> 
+> We set a rule:
+> If last mount didn't do unmount, (eg: crash), the next mount MUST be
+> same mount type.
+> 
+> At last, this commit also fix commit c80af0c250c8 ("Revert "ocfs2:
+> mount shared volume without ha stack") mentioned issue.
 
-IMO, we have to do part of ocfs2_dlm_shutdown() jobs such as
-ocfs2_lock_res_free(), which will remove lockres from d_lockres_tracking
-added by ocfs2_xxx_lock_res_init().
-
-Before commit 0737e01de9c4, it seems this issue also exists since
-osb->cconn is already set under local mount mode. 
+I suggest we re-split this series (especially patch 3 and 4), but not
+revive a buggy commit first and then another commit fixing it BTW.
 
 Thanks,
 Joseph
