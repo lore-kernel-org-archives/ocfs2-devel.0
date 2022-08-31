@@ -1,66 +1,66 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc244.phx1.oracleemaildelivery.com (aib29ajc244.phx1.oracleemaildelivery.com [192.29.103.244])
+Received: from aib29ajc246.phx1.oracleemaildelivery.com (aib29ajc246.phx1.oracleemaildelivery.com [192.29.103.246])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 6E47FECAAD1
-	for <ocfs2-devel@archiver.kernel.org>; Wed, 31 Aug 2022 11:05:55 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id CBF39ECAAD1
+	for <ocfs2-devel@archiver.kernel.org>; Wed, 31 Aug 2022 11:06:18 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=eIW7Iz3g8WqXSKIYPTriBtFWeOqEXRuiq78pwb69dKM=;
- b=Uw/1SjEs2RdIPp31HYnjvOKgKDR7DVyUIv94Z0FGI8zYdsD+wCybNEXORTE43YqBUndaaHbw/6JH
-   h4JChwfRKAP5cNPB0ZAWYRcascC//iiylnrY2uNxp0pUQM3MgsdanSWgYn9/wcsaxyV9KgEug0iG
-   2/CKbc9bp91F8Fk0lUAnPOO5FfktHWWX3gtJ38LsRLkUHGfCWvXcr13qD9+jhLGjrLqZWHjNXvgg
-   br4Y/gsz5+BzDqTZMjjlmoFGmg9NB5drTLWXQyC3kv7u9g+xt3vH/ppnjLN064KV4QFvAhGS+Zam
-   v2a/pUNcfhaUOYFE533BNFTewEfUryCc4U98SA==
+ bh=AmAlbayhulp3sAch2bhsfKklGYw0BSh1pUWGLRi/O10=;
+ b=nX3lzJBdKRyGc/U5PICNIM5pujF0KSNXMKtHqftOjXak8FnpeOC5zHu+qDJ/D8mU4Oh2chIthEmX
+   J1c+UXEneoXavqE6njC2i/0p9dUBATgyx3I1jPUzuLiwxSgZejdomye9EZ4EHEDASeFE/tMo9Ph9
+   FqFM13LSOJ/qEuV52TcBJYdZF3WK3FQFlckesnJ7t+GdpiqJ4l2wZ9rVACWkr3pbgpvAG7deNLuf
+   6cP3SazywtDvOZ8DyS7cgzMfc4SqNf+YqNB2sDMVQjMnSnIJKBU5M8WE6q52owbxBtb2CrjB0MFF
+   U/rE28S402XWiPqCuEEb2LIJ99Q9dPYWPahvxQ==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=eIW7Iz3g8WqXSKIYPTriBtFWeOqEXRuiq78pwb69dKM=;
- b=YQ7TtkoSDGvHvP0/OoP8lehhv0UnaHuG99uQiNuXIgrfb0u0pRs++9lfx2MRhchmAm4HnF0+oCAW
-   T6t3lI8iJYJlD10Q+e7raEQDKzGGacd3SeGHghufvPrqiYtusCBdl8CaqiGiWqYjRwZIF7666QYW
-   mrQQ4nf/DklY05KUZA9TLKoOU7L1bvJKg68RSWbWwpW5E2IMAje7BHlADisZSwvKaMmnqyTwBwPN
-   LsDRAtkQ3piuQ2OjNmcoZ0Z2wjo5IkXCBM4czn+kGI1qvCqcsgE2ukWbgbOjXZ1X571+/eBcrUJE
-   T/9elO2W5TLlYaY9O3OpeaZfFS+io1JO1kRCmQ==
-Received: by omta-ad1-fd1-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
+ bh=AmAlbayhulp3sAch2bhsfKklGYw0BSh1pUWGLRi/O10=;
+ b=Bm+qlkQFbneKPA3SenrE5At3jh+3EP9Twm2PV5b9yfox3oyZDhdhv0XD1+rLaVibXce+4jw5zfBz
+   /S4EvXnH9JzsDqQeqxXQoU1ciLF/852BJ/EEk3UHyjnbi65bDJwHs2fbYnubxoeFTBB1qSyzZRSG
+   2FzGt+Bytd/jKUpIR9JNQ7DkIyovMjBF26tE/SyvXTIV9B/fzCzigM9q/3xmgpPKJcTiX+ByZFr0
+   HOjCkFyF28yT5qEpNYhkUDuhkIKiFNo2/pohn9cgeDu2DEFqQpwsDMfR8mmm/39kN4EjkHwntoRF
+   XmwUHRiV5cz8TyIqCl2XFNwisoR9bOzBYwrouw==
+Received: by omta-ad1-fd3-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220817 64bit (built Aug 17
  2022))
- with ESMTPS id <0RHH00BTW85UDZ10@omta-ad1-fd1-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Wed, 31 Aug 2022 11:05:54 +0000 (GMT)
+ with ESMTPS id <0RHH00LJG86ILH50@omta-ad1-fd3-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Wed, 31 Aug 2022 11:06:18 +0000 (GMT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.cz; s=susede2_rsa;
- t=1661943941;
+ t=1661943967;
  h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
  mime-version:mime-version:content-type:content-type:
  in-reply-to:in-reply-to:references:references;
- bh=wjFNeuDmnSdi4atjC35RmIYpin0KTe8MFHXFLhg136I=;
- b=eh/mtM7OvdKM100QKHqjnEnIeTvSh7jPvX6F39ozEjvde8Dd+ndhdMppBWba/sJ1tnzFdf
- ewlMfhj5VaCXrOBwKGzIXCxnxFIrtVFY4CivK/tntKqVIuBTKX4Zo2E2eFXyxxJABECRKz
- Lgneaa/EaYURl2bbQylWiSQIGnw4t/Y=
+ bh=Ux+/6k6yQ68d20CIHpJNNhVF8b7vMhQjE5cIGh8WXbA=;
+ b=gWzBh39lJUgv8YalnH1E/zHqDoZvJuwDJttq0eb5EwKD3gexkpEUqig8vE7ADgEj0aTpVk
+ zmNsNkqdttx1r6tv8m5fU+ur8lf5fuRAEAE26Ontuxm07GZBmWv8Pz8w1DIEfmEFLu9uRJ
+ PxcE/nkR+bxUDvtlQOuzJb8tk5EMZJE=
 DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.cz;
- s=susede2_ed25519; t=1661943941;
+ s=susede2_ed25519; t=1661943967;
  h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
  mime-version:mime-version:content-type:content-type:
  in-reply-to:in-reply-to:references:references;
- bh=wjFNeuDmnSdi4atjC35RmIYpin0KTe8MFHXFLhg136I=;
- b=/X6EjebPK/nXjdXs0OkjNJJCQa9lrq6MrM4FOvrkmtBBl0K4x7HHQHNTru+hzyjfCCPSAp
- cFjSgDUKZJqweqBA==
-Date: Wed, 31 Aug 2022 13:05:41 +0200
+ bh=Ux+/6k6yQ68d20CIHpJNNhVF8b7vMhQjE5cIGh8WXbA=;
+ b=79CrkKwcDm35RwKykj4Z/UcaMkbv7xV6sge+XImxuYJK/wSO3Zb6g/ir0fibCVSJxWpAkg
+ 84P5fdryH8GO1XBw==
+Date: Wed, 31 Aug 2022 13:06:06 +0200
 To: Zhang Yi <yi.zhang@huawei.com>
-Message-id: <20220831110541.gq4pqyb2b2kc5avt@quack3>
+Message-id: <20220831110606.7c25xioli2uxcacr@quack3>
 References: <20220831072111.3569680-1-yi.zhang@huawei.com>
- <20220831072111.3569680-11-yi.zhang@huawei.com>
+ <20220831072111.3569680-12-yi.zhang@huawei.com>
 MIME-version: 1.0
 Content-disposition: inline
-In-reply-to: <20220831072111.3569680-11-yi.zhang@huawei.com>
-X-Source-IP: 195.135.220.29
+In-reply-to: <20220831072111.3569680-12-yi.zhang@huawei.com>
+X-Source-IP: 195.135.220.28
 X-Proofpoint-Virus-Version: vendor=nai engine=6400 definitions=10455
  signatures=596816
 X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 mlxscore=0
- mlxlogscore=462 impostorscore=0 lowpriorityscore=0 priorityscore=173
- adultscore=0 phishscore=0 clxscore=171 spamscore=0 bulkscore=0 suspectscore=0
- malwarescore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ spamscore=0 adultscore=0 phishscore=0 bulkscore=0 mlxlogscore=583 clxscore=179
+ suspectscore=0 malwarescore=0 lowpriorityscore=0 impostorscore=0
+ priorityscore=181 classifier=spam adjust=0 reason=mlx scancount=1
  engine=8.12.0-2207270000 definitions=main-2208310055
 Cc: axboe@kernel.dk, almaz.alexandrovich@paragon-software.com,
  ntfs3@lists.linux.dev, jack@suse.cz, agruenba@redhat.com, hch@infradead.org,
@@ -69,7 +69,7 @@ Cc: axboe@kernel.dk, almaz.alexandrovich@paragon-software.com,
  viro@zeniv.linux.org.uk, yukuai3@huawei.com, linux-fsdevel@vger.kernel.org,
  tytso@mit.edu, linux-ext4@vger.kernel.org, dushistov@mail.ru,
  ocfs2-devel@oss.oracle.com
-Subject: Re: [Ocfs2-devel] [PATCH 10/14] udf: replace ll_rw_block()
+Subject: Re: [Ocfs2-devel] [PATCH 11/14] ufs: replace ll_rw_block()
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -86,32 +86,31 @@ Reply-to: Jan Kara <jack@suse.cz>
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-ServerName: smtp-out2.suse.de
+X-ServerName: smtp-out1.suse.de
 X-Proofpoint-SPF-Result: pass
 X-Proofpoint-SPF-Record: v=spf1 ip4:137.65.0.0/16 ip4:151.155.28.0/17
  ip4:149.44.0.0/16 ip4:147.2.0.0/16 ip4:164.99.0.0/16 ip4:130.57.0.0/16
  ip4:192.31.114.0/24 ip4:195.135.221.0/24 ip4:195.135.220.0/24
  ip4:69.7.179.0/24 ip4:150.215.214.0/24 include:mailcontrol.com ~all
 X-Spam: Clean
-X-Proofpoint-ORIG-GUID: HNZUi8vDPnOqNwk8tDsfQGxrfyQ98Mlk
-X-Proofpoint-GUID: HNZUi8vDPnOqNwk8tDsfQGxrfyQ98Mlk
+X-Proofpoint-GUID: gz97S2q1WPOdHSgLdYR8vsKDAYv_ooQP
+X-Proofpoint-ORIG-GUID: gz97S2q1WPOdHSgLdYR8vsKDAYv_ooQP
 Reporting-Meta:
- AAGQFvKx+XiQyPyh/dvZbMlb7fLwp46eNiHZ5bn9YiirTVluXT13PrvMJGEIMGGT
- 3pBwA9Z2R1swzkOzct0+g0KtSpl5SQhe4nfoTTONIKJmCR37zl39Em70fqKWZ72h
- FtOLZ17FsE47vZKh787eM8V+doh1Dzxe0rkD54BxQYI3ddNMP9c1kTWv4XnmJXCZ
- HhFECKDrW1um6XQKpq2w7CVDORxoWdWyCTcVfInckgCguYT5l6wXXZbZ6xs2sEZZ
- BhUonkMG37s/RiHqmWyTrLtMyfaBAEHD4HPK31JKj3gMuaoAwnbYYWC6Cj7gQkzl
- nqV3Gk7e8jQyYk/jBVnOOIVYqEPu1ltZjzhYqWZ4VbpzztH0wB46shoLNHWqXB9Z
- +Luug4X0AFDw6e/M6ysjZ50Iz+wnFSoEWA+H/kZk4N3nQg1HDwWq025mKMx/Hv3M
- brdNHIybtvNXWSqlCbpdDcpo2P5DfVzMc1Oen34ApwTHEPU9sgo6pG5F8iANFpu+
- Wu7WHIvY6j8axNXb0EEdHUr5hon2LDBoEe5sMIgF7n1h
+ AAEwnZZ6EToHhD0qBlL2drdEDkfq98JnXWrxaAxbJaxAU1QdKOfqR30CbSCuC4/h
+ R/V8JZJKplRkiMSbwbkrVJkQFAe4r0OLWC8TD71iNpjq+Y14+cSYEs22T9TXyxXJ
+ IeBOQSlsPXpbPfzuuaZO/D1JIp7BZqzWccYaSTj4zJHhcPOPy/RCXyF3IFlU903K
+ cW5ErAOUYEeNUaTXSgC5YZqiUjLhpHF2gaGhghB6QeIbxDtoecSIHwqLyWqNYhSc
+ 9F4Dy2GsVbosMCDgNuiwQw/d6am8CZmSGTySDKZnKojTMYkvXZDdYYOVAtjaQbyD
+ cmw9wsN8rG+y/hWBxZyE9o+ri0LxC6S26avXIvCQFBrNcgMu84hAZTH0X+8jMxr8
+ D8Gex9ArA4CoDjxCUgCrMY3HL3Q3CX22ePucAAn34aF9jINQUB3MPEsyY57HduWs
+ IpINSCRpaB1e0LMiUJNekBGqPYsg08wz9qWC6IX3ro8jRqONvQqedPSmiU4HHfSC
+ 82M88k4s8ZvkTn6+/4NiSefHQ0MtAV76Tx6c4Cefqp9i
 
-On Wed 31-08-22 15:21:07, Zhang Yi wrote:
+On Wed 31-08-22 15:21:08, Zhang Yi wrote:
 > ll_rw_block() is not safe for the sync read path because it cannot
 > guarantee that submitting read IO if the buffer has been locked. We
 > could get false positive EIO after wait_on_buffer() if the buffer has
-> been locked by others. So stop using ll_rw_block(). We also switch to
-> new bh_readahead_batch() helper for the buffer array readahead path.
+> been locked by others. So stop using ll_rw_block() in ufs.
 > 
 > Signed-off-by: Zhang Yi <yi.zhang@huawei.com>
 
@@ -122,53 +121,24 @@ Reviewed-by: Jan Kara <jack@suse.cz>
 								Honza
 
 > ---
->  fs/udf/dir.c       | 2 +-
->  fs/udf/directory.c | 2 +-
->  fs/udf/inode.c     | 5 +----
->  3 files changed, 3 insertions(+), 6 deletions(-)
+>  fs/ufs/balloc.c | 4 +---
+>  1 file changed, 1 insertion(+), 3 deletions(-)
 > 
-> diff --git a/fs/udf/dir.c b/fs/udf/dir.c
-> index cad3772f9dbe..15a98aa33aa8 100644
-> --- a/fs/udf/dir.c
-> +++ b/fs/udf/dir.c
-> @@ -130,7 +130,7 @@ static int udf_readdir(struct file *file, struct dir_context *ctx)
->  					brelse(tmp);
->  			}
->  			if (num) {
-> -				ll_rw_block(REQ_OP_READ | REQ_RAHEAD, num, bha);
-> +				bh_readahead_batch(bha, num, REQ_RAHEAD);
->  				for (i = 0; i < num; i++)
->  					brelse(bha[i]);
->  			}
-> diff --git a/fs/udf/directory.c b/fs/udf/directory.c
-> index a2adf6293093..469bc22d6bff 100644
-> --- a/fs/udf/directory.c
-> +++ b/fs/udf/directory.c
-> @@ -89,7 +89,7 @@ struct fileIdentDesc *udf_fileident_read(struct inode *dir, loff_t *nf_pos,
->  					brelse(tmp);
->  			}
->  			if (num) {
-> -				ll_rw_block(REQ_OP_READ | REQ_RAHEAD, num, bha);
-> +				bh_readahead_batch(bha, num, REQ_RAHEAD);
->  				for (i = 0; i < num; i++)
->  					brelse(bha[i]);
->  			}
-> diff --git a/fs/udf/inode.c b/fs/udf/inode.c
-> index 8d06daed549f..0971f09d20fc 100644
-> --- a/fs/udf/inode.c
-> +++ b/fs/udf/inode.c
-> @@ -1214,10 +1214,7 @@ struct buffer_head *udf_bread(struct inode *inode, udf_pblk_t block,
->  	if (buffer_uptodate(bh))
->  		return bh;
->  
-> -	ll_rw_block(REQ_OP_READ, 1, &bh);
-> -
-> -	wait_on_buffer(bh);
-> -	if (buffer_uptodate(bh))
-> +	if (!bh_read(bh, 0))
->  		return bh;
->  
->  	brelse(bh);
+> diff --git a/fs/ufs/balloc.c b/fs/ufs/balloc.c
+> index bd810d8239f2..bbc2159eece4 100644
+> --- a/fs/ufs/balloc.c
+> +++ b/fs/ufs/balloc.c
+> @@ -296,9 +296,7 @@ static void ufs_change_blocknr(struct inode *inode, sector_t beg,
+>  			if (!buffer_mapped(bh))
+>  					map_bh(bh, inode->i_sb, oldb + pos);
+>  			if (!buffer_uptodate(bh)) {
+> -				ll_rw_block(REQ_OP_READ, 1, &bh);
+> -				wait_on_buffer(bh);
+> -				if (!buffer_uptodate(bh)) {
+> +				if (bh_read(bh, 0)) {
+>  					ufs_error(inode->i_sb, __func__,
+>  						  "read of block failed\n");
+>  					break;
 > -- 
 > 2.31.1
 > 
