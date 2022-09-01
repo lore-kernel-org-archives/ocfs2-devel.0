@@ -1,67 +1,67 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc255.phx1.oracleemaildelivery.com (aib29ajc255.phx1.oracleemaildelivery.com [192.29.103.255])
+Received: from aib29ajc246.phx1.oracleemaildelivery.com (aib29ajc246.phx1.oracleemaildelivery.com [192.29.103.246])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id A8710ECAAD8
-	for <ocfs2-devel@archiver.kernel.org>; Thu,  1 Sep 2022 15:44:33 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id D7AD1ECAAD3
+	for <ocfs2-devel@archiver.kernel.org>; Thu,  1 Sep 2022 15:45:35 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=AoTAKjL2lGwfZq4NKCyRjv0qRL9txfJAGeuQ8Hp7fII=;
- b=jrHAeJigGgNirnk6tw9x0sZUEl1M83N4aza/RyzSF0KIUNrX6FWRQxjSU/i57/foRoEyJg+KY/20
-   gAMYOwt92bgsgIhuxENAshAdyo0shbz894OeILffa6w027ozYRpTUD7eM5Ij91MFWIANpGe+fO8+
-   0IWveDRc2EYbZPeLdxAzgTF72rOqloW7dcypFTzHl/US7ryysC3326NTZWgQHfOeyy32zSJQ6bIX
-   zFzIhAVQSt0GbvRjMstIJKdTLBk2gc13zhn9Q00K/+2P0ngUt2PWg+Px7wa2IlVLSKt0aEmiOcZz
-   gjdyXrWThvWB0qaeCrH4TM57Uo5FsT0dGLc4eA==
+ bh=gQsTbmsShVVkLP0m77grXWE+xZRgUPxDcI5yzsQdWMQ=;
+ b=r4n7GV/BdS6bhGbnpqtY90qULzi+WuSAha9VyG59ZUEduIdvYMvlfAR0JdahYHL59sXKJShCs4Ci
+   xmcma8NjzIAZQrvBC8/D/v9DgyFXKBfYa04fU5CqCw1qW5b73sa3FGZJeitu3exA/fl0emeSecy1
+   ErsLOL1a+Qw7S+5DkcNX8N1WU3eUcoTIuyY+fiISOL9ZzyO35zkfx9/Hli+JcOEIEdqR4gigqnoi
+   J0VZkga6w2Uo/Q4DJh1bigF5j/pPRk59c3Lh1vR21j9Up9fqekeBHOSqlyBrx/7YvfkiyRvaMH3x
+   jG1wuHx3KoJ5hwI0vpx8RUEmZ2K/5XQ3GRwx9g==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=AoTAKjL2lGwfZq4NKCyRjv0qRL9txfJAGeuQ8Hp7fII=;
- b=HHJ6Y+5QCMG+tI32nW1EnJB6vR8u9hL8dTLZ3LevkmQD01f2rNRB1JwgAISMNnIUw7HZDiAnGw6i
-   EhJop4/QJTx6k06w4BH+YkGfNDegA5fWAI1SVQaBNGv4I7Y2AkO0/fteW+Z3AjaPA3e9/AOI6In6
-   mnTEmI9HrfkOqsi1xnOGnvyEFexKSrOdKydbmnTKEvOI+S+l5M/3SAbyu8E2KD6hghE+mrIwyuoU
-   POGCARtnwUNUqA9DCEtUrN1WaTmqEiQkK4MMqdFirhyfc2KX+128qpDwyfPWcpbR4dzimGBmRULQ
-   EmlGVqz76lYPlQhm0FpV1LY3rHODXc5J2aJHtw==
-Received: by omta-ad3-fd3-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
+ bh=gQsTbmsShVVkLP0m77grXWE+xZRgUPxDcI5yzsQdWMQ=;
+ b=trf/GuyetAlNPq8wSMuKVIQNS2e8sS+RgnOvuFr14BR/RveAEKf1c6ROa/G4BmVbTPAcd8lD74b/
+   1mezfnQaL3LpvFYgP1bTRsAFLSDqHTj8yBgxpU13xxZ5B/BgBogHnAzWhKX+RZEX3wx9xFKErdwr
+   Y0nZ1d/b9faj9n5DyLUOxTXG0ulEaUMKz4GaqmeP7GqYiG+5+B4Z1HVxPpeTPmSx0tRyFvTAjzXF
+   XVa8J4JymC+9+t+HN0boyjD5h0l0dLrc4CC2doUxznoClq9QzwSNxugU4Br0n7vl6AJxk2IWa4HJ
+   rSJgqjMvTE7DMDwQrEWPA0pEIGvhuPOaJ+SzfA==
+Received: by omta-ad1-fd3-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220817 64bit (built Aug 17
  2022))
- with ESMTPS id <0RHJ00CBJFQ9MU90@omta-ad3-fd3-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Thu, 01 Sep 2022 15:44:33 +0000 (GMT)
+ with ESMTPS id <0RHJ00BQFFRZZG80@omta-ad1-fd3-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Thu, 01 Sep 2022 15:45:35 +0000 (GMT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.cz; s=susede2_rsa;
- t=1662047050;
+ t=1662047123;
  h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
  mime-version:mime-version:content-type:content-type:
  in-reply-to:in-reply-to:references:references;
- bh=TGEgeznG1OoqVsgqPHcmjmzJchioOiRQWcLMKbDIADU=;
- b=GzQ+klQQDOdWcjHI5r+lAUp2Ag3z01KKum2xL7StbzBok+bSdye/U7ssW9yNFC3aqdTx1m
- oiQ7Fh+lKd3DjRk9w4CsCVJ8en5rkUeSNrxAXN2HmE3SL7nDTKv4P205h0fOgjvkWOmw8E
- x5EG13mtEAubS2BecOAbcG3KfvFBL+s=
+ bh=ooz3dCva7w6jx/i3dpZqqR47QA7PhzwOtiLya/TEJY0=;
+ b=C6Lpcd7xASxf1cssBBMPcpooT8fI7+WWu1lp17jzmswseiWsUsSDpVLmYp+aytuaVPKGJV
+ zBlbet/HYxzWqJ8islEoE8uoBdB495OdcWxvOjdBA6guagzH/ONpmsCfdImj7QjwvhJIfa
+ 1Y3W/9Mtiot7rG2cI1eGzxQO9qbz5QQ=
 DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.cz;
- s=susede2_ed25519; t=1662047050;
+ s=susede2_ed25519; t=1662047123;
  h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
  mime-version:mime-version:content-type:content-type:
  in-reply-to:in-reply-to:references:references;
- bh=TGEgeznG1OoqVsgqPHcmjmzJchioOiRQWcLMKbDIADU=;
- b=QU8vQex5JACf7t/hD5Hxjs9xjgVbBQa/3Nu6SioXWo1GISEc1O7xoaa3poqXvqNX/1sA0G
- m57O89aZVG+xSPBw==
-Date: Thu, 1 Sep 2022 17:44:09 +0200
+ bh=ooz3dCva7w6jx/i3dpZqqR47QA7PhzwOtiLya/TEJY0=;
+ b=UERgtbcz5w5Rq640BVo73B/v9AGy87UcJRye91hKPcs95E0D5kauEfPg5cnHzSGsCqQu3Y
+ nYEW6NAJM4kNLLCA==
+Date: Thu, 1 Sep 2022 17:45:22 +0200
 To: Zhang Yi <yi.zhang@huawei.com>
-Message-id: <20220901154409.dcyvtknzzdjhuzas@quack3>
+Message-id: <20220901154522.r37xszonxutm6bsk@quack3>
 References: <20220901133505.2510834-1-yi.zhang@huawei.com>
- <20220901133505.2510834-3-yi.zhang@huawei.com>
+ <20220901133505.2510834-4-yi.zhang@huawei.com>
 MIME-version: 1.0
 Content-disposition: inline
-In-reply-to: <20220901133505.2510834-3-yi.zhang@huawei.com>
-X-Source-IP: 195.135.220.28
+In-reply-to: <20220901133505.2510834-4-yi.zhang@huawei.com>
+X-Source-IP: 195.135.220.29
 X-Proofpoint-Virus-Version: vendor=nai engine=6400 definitions=10457
  signatures=596816
 X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 malwarescore=0
- priorityscore=136 phishscore=0 impostorscore=0 bulkscore=0 suspectscore=0
- mlxlogscore=476 spamscore=0 mlxscore=0 adultscore=0 clxscore=175
+ priorityscore=108 phishscore=0 impostorscore=0 bulkscore=0 suspectscore=0
+ mlxlogscore=699 spamscore=0 mlxscore=0 adultscore=0 clxscore=161
  lowpriorityscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2207270000 definitions=main-2209010070
+ engine=8.12.0-2207270000 definitions=main-2209010071
 Cc: axboe@kernel.dk, almaz.alexandrovich@paragon-software.com,
  ntfs3@lists.linux.dev, jack@suse.cz, agruenba@redhat.com, hch@infradead.org,
  chengzhihao1@huawei.com, linux-kernel@vger.kernel.org,
@@ -69,8 +69,7 @@ Cc: axboe@kernel.dk, almaz.alexandrovich@paragon-software.com,
  viro@zeniv.linux.org.uk, yukuai3@huawei.com, linux-fsdevel@vger.kernel.org,
  tytso@mit.edu, linux-ext4@vger.kernel.org, dushistov@mail.ru,
  ocfs2-devel@oss.oracle.com
-Subject: Re: [Ocfs2-devel] [PATCH v2 02/14] fs/buffer: add some new buffer	read
- helpers
+Subject: Re: [Ocfs2-devel] [PATCH v2 03/14] fs/buffer: replace ll_rw_block()
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -87,186 +86,89 @@ Reply-to: Jan Kara <jack@suse.cz>
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-ServerName: smtp-out1.suse.de
+X-ServerName: smtp-out2.suse.de
 X-Proofpoint-SPF-Result: pass
 X-Proofpoint-SPF-Record: v=spf1 ip4:137.65.0.0/16 ip4:151.155.28.0/17
  ip4:149.44.0.0/16 ip4:147.2.0.0/16 ip4:164.99.0.0/16 ip4:130.57.0.0/16
  ip4:192.31.114.0/24 ip4:195.135.221.0/24 ip4:195.135.220.0/24
  ip4:69.7.179.0/24 ip4:150.215.214.0/24 include:mailcontrol.com ~all
 X-Spam: Clean
-X-Proofpoint-ORIG-GUID: VpBY0oaHPbNtqq9_DZPl0DJj8uBzNnJF
-X-Proofpoint-GUID: VpBY0oaHPbNtqq9_DZPl0DJj8uBzNnJF
+X-Proofpoint-GUID: uRsHRM5wDx8dllBmMx6urZVifaCoCkOY
+X-Proofpoint-ORIG-GUID: uRsHRM5wDx8dllBmMx6urZVifaCoCkOY
 Reporting-Meta:
- AAF55idWRfbxPozgKQ8TMIUHlDoYw8FeqJaVSOKzo6F8/PWC3EIgXdDEuV1xrAIb
- WQiHDn7HizP8/T/XB6x2nR7C43Runt2Zy2U++GKZSpzpWB/D62/tCzMo6+vtACqj
- iG0kyBj+/WVWsHhxMvs2mIk+TcrLSwdHye9DCUvKqViWS3sySI8EpvIYV/d0U3qH
- 3ErFKw+of+le2PMeJLvjHme8jfuMHpAcpbKS9VBuDxH7Tf5V3sq9bEt4OfQ1o8Yr
- SPnFKyojRUS53Q2GcIsU76dTyQEU9A0uPII/QaC5p2AzIEkxpAJOf6Cm6Z42Zkpp
- kYGG2YhUDxWdDHa8mKWDOvzbP2dOHDlcyFA5xzoWrbXQmkONVHY6OyhfP2/pZYZu
- FDsfv14/ISooOd5PNoACTgCUXLQBll/sCAdvS+QsKC0xjjwRqfpZS1qxMjpZ+QLu
- 0MH1uRhsnsxpd/HbpPL8crn4Zh0dAXosAh9QOCZgFrMEqB1ettHKcvlJ9mS/AakR
- fIcSiuItsDKWg7pXhSpIVqcrhazt2oOa7IrzIR7xAzF8
+ AAHVWVYdSUOyzjUI/oa8N5CG18YqmUKGEWxFyahWHEYAGxGDTdaHQGZq+NRdwC8U
+ Nq4qa8sdXSy/08AHby1KqcuB+sqa0cuTOJDoQSwgR7sltHFQHv9Uh4keWFQ4FH9M
+ iHJTpoEt430p85PzdTblWh2K7hO0Xq+51rPdwfiUNwbOPdAlim8mrW3mAedK4AW3
+ ycsMp0djc/Om5Y9tkNSV89px7dgMgORhemQJuYh/dv4haL/TA1mSLVq0KVrj7Oa/
+ 51z5WU6hYLp4mCUAOgy85lKiL6yU7ylr8s8Rs3XODbCRpb7JsFSJ5gUyrjaVzvSt
+ wX3SkTyql5/3AKu9/tIoSI0J+iH+T9KHA5ffdVnPwO4uDYJZH2McfZwmVaiLaUsY
+ ogQINIDC+tUisxsIbEryeRF18Yq/1FCtBvuKVuTIy5Tosx0AZ+hfh2ybCyDFSlti
+ SkZ+L43N8on67bVAeqLTc8YpYHEOLIMB2LqYAlqfats7ISorRroh5ISWl3PV3f1b
+ 8EWRA+qO5y1fr6n0TqWB7UOe6zKUenXLI7eqIBPYi+0=
 
-On Thu 01-09-22 21:34:53, Zhang Yi wrote:
-> Current ll_rw_block() helper is fragile because it assumes that locked
-> buffer means it's under IO which is submitted by some other who holds
-> the lock, it skip buffer if it failed to get the lock, so it's only
-> safe on the readahead path. Unfortunately, now that most filesystems
-> still use this helper mistakenly on the sync metadata read path. There
-> is no guarantee that the one who holds the buffer lock always submit IO
-> (e.g. buffer_migrate_folio_norefs() after commit 88dbcbb3a484 ("blkdev:
-> avoid migration stalls for blkdev pages"), it could lead to false
-> positive -EIO when submitting reading IO.
-> 
-> This patch add some friendly buffer read helpers to prepare replacing
-> ll_rw_block() and similar calls. We can only call bh_readahead_[]
-> helpers for the readahead paths.
+On Thu 01-09-22 21:34:54, Zhang Yi wrote:
+> ll_rw_block() is not safe for the sync IO path because it skip buffers
+> which has been locked by others, it could lead to false positive EIO
+> when submitting read IO. So stop using ll_rw_block(), switch to use new
+> helpers which could guarantee buffer locked and submit IO if needed.
 > 
 > Signed-off-by: Zhang Yi <yi.zhang@huawei.com>
 
-Looks good to me. Feel free to add:
+Looks good. Feel free to add:
 
 Reviewed-by: Jan Kara <jack@suse.cz>
 
 								Honza
 
 > ---
->  fs/buffer.c                 | 65 +++++++++++++++++++++++++++++++++++++
->  include/linux/buffer_head.h | 38 ++++++++++++++++++++++
->  2 files changed, 103 insertions(+)
+>  fs/buffer.c | 12 +++++-------
+>  1 file changed, 5 insertions(+), 7 deletions(-)
 > 
 > diff --git a/fs/buffer.c b/fs/buffer.c
-> index a0b70b3239f3..a6bc769e665d 100644
+> index a6bc769e665d..aec568b3ae52 100644
 > --- a/fs/buffer.c
 > +++ b/fs/buffer.c
-> @@ -3017,6 +3017,71 @@ int bh_uptodate_or_lock(struct buffer_head *bh)
+> @@ -562,7 +562,7 @@ void write_boundary_block(struct block_device *bdev,
+>  	struct buffer_head *bh = __find_get_block(bdev, bblock + 1, blocksize);
+>  	if (bh) {
+>  		if (buffer_dirty(bh))
+> -			ll_rw_block(REQ_OP_WRITE, 1, &bh);
+> +			write_dirty_buffer(bh, 0);
+>  		put_bh(bh);
+>  	}
 >  }
->  EXPORT_SYMBOL(bh_uptodate_or_lock);
->  
-> +/**
-> + * __bh_read - Submit read for a locked buffer
-> + * @bh: struct buffer_head
-> + * @op_flags: appending REQ_OP_* flags besides REQ_OP_READ
-> + * @wait: wait until reading finish
-> + *
-> + * Returns zero on success or don't wait, and -EIO on error.
-> + */
-> +int __bh_read(struct buffer_head *bh, blk_opf_t op_flags, bool wait)
-> +{
-> +	int ret = 0;
-> +
-> +	BUG_ON(!buffer_locked(bh));
-> +
-> +	get_bh(bh);
-> +	bh->b_end_io = end_buffer_read_sync;
-> +	submit_bh(REQ_OP_READ | op_flags, bh);
-> +	if (wait) {
-> +		wait_on_buffer(bh);
-> +		if (!buffer_uptodate(bh))
-> +			ret = -EIO;
-> +	}
-> +	return ret;
-> +}
-> +EXPORT_SYMBOL(__bh_read);
-> +
-> +/**
-> + * __bh_read_batch - Submit read for a batch of unlocked buffers
-> + * @nr: entry number of the buffer batch
-> + * @bhs: a batch of struct buffer_head
-> + * @op_flags: appending REQ_OP_* flags besides REQ_OP_READ
-> + * @force_lock: force to get a lock on the buffer if set, otherwise drops any
-> + *              buffer that cannot lock.
-> + *
-> + * Returns zero on success or don't wait, and -EIO on error.
-> + */
-> +void __bh_read_batch(int nr, struct buffer_head *bhs[],
-> +		     blk_opf_t op_flags, bool force_lock)
-> +{
-> +	int i;
-> +
-> +	for (i = 0; i < nr; i++) {
-> +		struct buffer_head *bh = bhs[i];
-> +
-> +		if (buffer_uptodate(bh))
-> +			continue;
-> +
-> +		if (force_lock)
-> +			lock_buffer(bh);
-> +		else
-> +			if (!trylock_buffer(bh))
-> +				continue;
-> +
-> +		if (buffer_uptodate(bh)) {
-> +			unlock_buffer(bh);
-> +			continue;
-> +		}
-> +
-> +		bh->b_end_io = end_buffer_read_sync;
-> +		get_bh(bh);
-> +		submit_bh(REQ_OP_READ | op_flags, bh);
-> +	}
-> +}
-> +EXPORT_SYMBOL(__bh_read_batch);
-> +
->  /**
->   * bh_submit_read - Submit a locked buffer for reading
->   * @bh: struct buffer_head
-> diff --git a/include/linux/buffer_head.h b/include/linux/buffer_head.h
-> index c3863c417b00..6d09785bed9f 100644
-> --- a/include/linux/buffer_head.h
-> +++ b/include/linux/buffer_head.h
-> @@ -232,6 +232,9 @@ void write_boundary_block(struct block_device *bdev,
->  			sector_t bblock, unsigned blocksize);
->  int bh_uptodate_or_lock(struct buffer_head *bh);
->  int bh_submit_read(struct buffer_head *bh);
-> +int __bh_read(struct buffer_head *bh, blk_opf_t op_flags, bool wait);
-> +void __bh_read_batch(int nr, struct buffer_head *bhs[],
-> +		     blk_opf_t op_flags, bool force_lock);
->  
->  extern int buffer_heads_over_limit;
->  
-> @@ -399,6 +402,41 @@ static inline struct buffer_head *__getblk(struct block_device *bdev,
->  	return __getblk_gfp(bdev, block, size, __GFP_MOVABLE);
+> @@ -1342,7 +1342,7 @@ void __breadahead(struct block_device *bdev, sector_t block, unsigned size)
+>  {
+>  	struct buffer_head *bh = __getblk(bdev, block, size);
+>  	if (likely(bh)) {
+> -		ll_rw_block(REQ_OP_READ | REQ_RAHEAD, 1, &bh);
+> +		bh_readahead(bh, REQ_RAHEAD);
+>  		brelse(bh);
+>  	}
 >  }
+> @@ -2022,7 +2022,7 @@ int __block_write_begin_int(struct folio *folio, loff_t pos, unsigned len,
+>  		if (!buffer_uptodate(bh) && !buffer_delay(bh) &&
+>  		    !buffer_unwritten(bh) &&
+>  		     (block_start < from || block_end > to)) {
+> -			ll_rw_block(REQ_OP_READ, 1, &bh);
+> +			bh_read_nowait(bh, 0);
+>  			*wait_bh++=bh;
+>  		}
+>  	}
+> @@ -2582,11 +2582,9 @@ int block_truncate_page(struct address_space *mapping,
+>  		set_buffer_uptodate(bh);
 >  
-> +static inline void bh_readahead(struct buffer_head *bh, blk_opf_t op_flags)
-> +{
-> +	if (!buffer_uptodate(bh) && trylock_buffer(bh)) {
-> +		if (!buffer_uptodate(bh))
-> +			__bh_read(bh, op_flags, false);
-> +		else
-> +			unlock_buffer(bh);
-> +	}
-> +}
-> +
-> +static inline void bh_read_nowait(struct buffer_head *bh, blk_opf_t op_flags)
-> +{
-> +	if (!bh_uptodate_or_lock(bh))
-> +		__bh_read(bh, op_flags, false);
-> +}
-> +
-> +/* Returns 1 if buffer uptodated, 0 on success, and -EIO on error. */
-> +static inline int bh_read(struct buffer_head *bh, blk_opf_t op_flags)
-> +{
-> +	if (bh_uptodate_or_lock(bh))
-> +		return 1;
-> +	return __bh_read(bh, op_flags, true);
-> +}
-> +
-> +static inline void bh_read_batch(int nr, struct buffer_head *bhs[])
-> +{
-> +	__bh_read_batch(nr, bhs, 0, true);
-> +}
-> +
-> +static inline void bh_readahead_batch(int nr, struct buffer_head *bhs[],
-> +				      blk_opf_t op_flags)
-> +{
-> +	__bh_read_batch(nr, bhs, op_flags, false);
-> +}
-> +
->  /**
->   *  __bread() - reads a specified block and returns the bh
->   *  @bdev: the block_device to read from
+>  	if (!buffer_uptodate(bh) && !buffer_delay(bh) && !buffer_unwritten(bh)) {
+> -		err = -EIO;
+> -		ll_rw_block(REQ_OP_READ, 1, &bh);
+> -		wait_on_buffer(bh);
+> +		err = bh_read(bh, 0);
+>  		/* Uhhuh. Read error. Complain and punt. */
+> -		if (!buffer_uptodate(bh))
+> +		if (err < 0)
+>  			goto unlock;
+>  	}
+>  
 > -- 
 > 2.31.1
 > 
