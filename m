@@ -1,56 +1,59 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc246.phx1.oracleemaildelivery.com (aib29ajc246.phx1.oracleemaildelivery.com [192.29.103.246])
+Received: from aib29ajc248.phx1.oracleemaildelivery.com (aib29ajc248.phx1.oracleemaildelivery.com [192.29.103.248])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id A2E1CECAAD3
-	for <ocfs2-devel@archiver.kernel.org>; Thu,  1 Sep 2022 13:24:17 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id A42C1C64991
+	for <ocfs2-devel@archiver.kernel.org>; Thu,  1 Sep 2022 13:24:19 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=iRm0As0lZjXmUL885bWYdKgAFWGGR5UOBcb0oASlCXk=;
- b=XnfQUePGnVmzWZkjMuhVyd6JJP8viK9m8Y/4kv751RopfNFtBroH+A8m5YP7RX2FahmQZmPo/HGX
-   yYJ6DxxNhN+EsoxrUFKP0YUd0sr00mMbfcahLPm9PwSAZrFjO/C6+0sCHXe/VdXYp261mK813tew
-   xZ03wg0majkx8SbGKp4jb3+pi1o3VhY4E8VgdyFJq5PKdJgHRbMHa0fV8/9nROQxPBm3GCHJyvLq
-   BJx8mCy15OjJnHeTJYduN70PCyvaoztUd/iY9gv6hKQqzsfqtsPr32TC1UmeTMEHUY6cS+Ovp3pG
-   zG2lEPiiD2UKFkxcZjn/25/4QWdzxSpuyGgr0Q==
+ bh=Iz8niT28R/j0Gma1iAmexQqXcxmu0auXr57hWc5mNSg=;
+ b=mN7JqHDpwY60tVWawhgRf5jHsXdxPUhi++UNsSvg6m5CEeDnGmTNzB6E4L5ogxzw947sCSFA2t3E
+   Dab+1ko7S5VwdvbvOWkEWL4S0K878XBIJyBp4O60h3xcJVpugvJAEbtZ+etcU6nczxtfIE5mJopq
+   Tg7ng87SpcCo7Lnz3apenVozE/iV6h6VIf9ACSZiOPdC6h2wUf/H8Y6N1RqmYWosDqOOoZto/JLz
+   kQ5lBektN1a7FR1CKOrsSrtzeV9TQtOASCR9lForxkvxqvLKAtGewzTEPD+/hw4ZT2zovr7iHlFg
+   fttp6FurOrmiG9n6Uj6l5RQ48zz8BtGgfXzvRQ==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=iRm0As0lZjXmUL885bWYdKgAFWGGR5UOBcb0oASlCXk=;
- b=bed6NdcuggQFy9m29XKcR3XecTpIrSVvMhkQaC8Yoo8FKsCK1IRVJXhZLDtyFU1hJWPaqo8ce2wi
-   xikaL1xwQno7UwjLiRyLc9B4Xqsn/wxRUnShGpbdN1MVWsd3fwDJWIOiFM5klvdweOaWMKdwRy64
-   kWYKJ77AyooVlLwECNyG88OswAtW3RiDchCBWBaK3s5C35ks4xeGMjjIlX+gdojkUBxG6rvtIJlI
-   AIXWkPX4ZC/mGCxrjnVqd08gKdw4OaKkwBjApxtAoe3QuyEaYUMw0bzHi3xGbKGfWZ7K9uRROh2k
-   VLzSp4MugyGqQyycppi1+6TpFx0KqQ/9LfG2HA==
-Received: by omta-ad1-fd3-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
+ bh=Iz8niT28R/j0Gma1iAmexQqXcxmu0auXr57hWc5mNSg=;
+ b=JN1xu2Eak79f69RZwtgp2I7wEQ1QbZ807nBNJdB0S32pqcZnws3FSybAX2xCnFmfU7EMZPxnAqH3
+   iS41i4JbgUeRCy9nJ7LKt9zlhKVNvXFFJen9WDCdM5kavlEPmnKtTbn2AcOdM/YS90l3y8IwXXAu
+   RzG265/7Q0VKp4ILcFkMxe7fsPgy5G9X0I1ejzHNlI+Aq20nL6/Mk5PRK0cQngHobh3DMSG1eMvq
+   mKhhxeqcsk3XycFb/4IdJzRkqUtzz9bKzz0UV5Y7wOzalPNWMC2zO9lOksb9iaRfnqFiVNwJiM0W
+   jKAnAd5CSQT5wwedh0vS1hDvAz6BaLVrDItVoA==
+Received: by omta-ad2-fd1-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220817 64bit (built Aug 17
  2022))
- with ESMTPS id <0RHJ00BMS98HZG00@omta-ad1-fd3-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Thu, 01 Sep 2022 13:24:17 +0000 (GMT)
+ with ESMTPS id <0RHJ007EX98J8X10@omta-ad2-fd1-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Thu, 01 Sep 2022 13:24:19 +0000 (GMT)
 To: <linux-ext4@vger.kernel.org>, <linux-fsdevel@vger.kernel.org>,
  <linux-kernel@vger.kernel.org>, <cluster-devel@redhat.com>,
  <ntfs3@lists.linux.dev>, <ocfs2-devel@oss.oracle.com>,
  <reiserfs-devel@vger.kernel.org>, <jack@suse.cz>
-Date: Thu, 1 Sep 2022 21:34:51 +0800
-Message-id: <20220901133505.2510834-1-yi.zhang@huawei.com>
+Date: Thu, 1 Sep 2022 21:34:53 +0800
+Message-id: <20220901133505.2510834-3-yi.zhang@huawei.com>
 X-Mailer: git-send-email 2.31.1
+In-reply-to: <20220901133505.2510834-1-yi.zhang@huawei.com>
+References: <20220901133505.2510834-1-yi.zhang@huawei.com>
 MIME-version: 1.0
 X-Originating-IP: [10.175.127.227]
 X-Source-IP: 45.249.212.187
 X-Proofpoint-Virus-Version: vendor=nai engine=6400 definitions=10457
  signatures=596816
 X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 impostorscore=0
- mlxscore=0 phishscore=0 adultscore=0 clxscore=122 bulkscore=0 suspectscore=0
- malwarescore=0 priorityscore=207 mlxlogscore=999 spamscore=0
- lowpriorityscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ malwarescore=0 lowpriorityscore=0 bulkscore=0 spamscore=0 mlxscore=0
+ phishscore=0 suspectscore=0 adultscore=0 priorityscore=207 mlxlogscore=770
+ clxscore=119 classifier=spam adjust=0 reason=mlx scancount=1
  engine=8.12.0-2207270000 definitions=main-2209010060 domainage_hfrom=8269
 Cc: axboe@kernel.dk, hch@infradead.org, tytso@mit.edu, agruenba@redhat.com,
  yi.zhang@huawei.com, almaz.alexandrovich@paragon-software.com,
  viro@zeniv.linux.org.uk, yukuai3@huawei.com, rpeterso@redhat.com,
  dushistov@mail.ru, chengzhihao1@huawei.com
-Subject: [Ocfs2-devel] [PATCH v2 00/14] fs/buffer: remove ll_rw_block()
+Subject: [Ocfs2-devel] [PATCH v2 02/14] fs/buffer: add some new buffer read
+	helpers
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -77,94 +80,171 @@ X-Proofpoint-SPF-Record: v=spf1 ip4:45.249.212.32 ip4:45.249.212.35
  ip4:185.176.79.56 ip4:119.8.179.247 ip4:119.8.89.136/31 ip4:119.8.89.135
  ip4:119.8.177.36/31 ip4:119.8.177.38 -all
 X-Spam: Clean
-X-Proofpoint-GUID: J5Euf91dn5zZ6pzeL9y8wRBZ3G1xjo2_
-X-Proofpoint-ORIG-GUID: J5Euf91dn5zZ6pzeL9y8wRBZ3G1xjo2_
+X-Proofpoint-GUID: WBkEPgVXZYA8ZpzJz7ZXnby9AbFgF3qo
+X-Proofpoint-ORIG-GUID: WBkEPgVXZYA8ZpzJz7ZXnby9AbFgF3qo
 Reporting-Meta:
- AAFeXXBtBrK20/UY/tLWmBm0gHF3yic0IGFertky0SEO0Iv+HjiDDVV+C01xSxXf
- gQ9tUgRDeHDt3pPnDSn4fCUWA2+shkEpAaoAEjlgD2PV3b1Dmg6LMFtPxIeXvW6M
- A/JnpGsM/VyVTBZpndW1Ywz7Mz+z3hZbCK7OT07EqCvPwMWDqnA1P9ebohlQs4y7
- MuwZhtm6hCH0ynfTb086Y7xgTm5Q8L5AfFBQktDrQxpGYGRr+kFOYNzvgEUIOXq8
- Ms+ApJSWIArBrg4DPa8ktU2NA1bO8LlO0/7+A15/N9bpGlJFtcCcDUxzhiWVTzlw
- I7C7More6lfplXpTZ0eWzr7fb082UYPD/9kzqsa328qXys/+wLsaVW421QmX4Ms4
- 90rVlNhKeOfOqlvFRzVOel5LZ4VpayGWy2ZKuj9xGfuq4Pt9Z4bn1DgqNOvA+zeP
- Co17koDPvwMOkxgI2jk5x1HiovVZP/WUkZUy/y/hT3KRPG5pNHKEJUtV+JG/dZuh
- G93XamIpc/CtQTLfuiAVw5RQZ7N2yjsx2QBgfRDNaGAC
+ AAF2x+q1GWvWJCW6ocMuMEwXSi4KbqRgdGigNhBvvQFU6Q66mcluShaj09qrQ4sX
+ DDE78Q1JU37zeJuck4yQNxAF6pxnzBtdTP+fSsHsSfDXuNVMkuINlsirURYZs+u4
+ H02p0TMSWzKi/A33LB507zm/7ST/+ne8jnxJRtHmf0O0dWzcGBdhlnE3FevnXRVp
+ HeA1AiZz63+tBUhiNEYzz2Uq8AgIeX5u1RyOTZK8Lc6Dnk+aVH1qKqYk/X7i4n0Z
+ Boi5EuMOSSYQv5aizA+0icBwZBXUkQfkARBWBLlkay5eI0df0+6lQjH17XQZraqE
+ lVfPxfuIyHjfvJpgliW+Pqts5z8jZy+5/XJmq6zzd6VjNke/sUnIRLlny33DgOwo
+ OKWIy0VWNIDV3BWPf0ywblMOzi0b5585YbSgJX6XQsqLhwA/Zg7pkgb/muuWv2zV
+ 8pC74BB8sOoZI85x2gkpMmf8ZvmdTS234aRCXjNoob1FNK1Ob1g1hS8+NHoNlhW3
+ RILosnPz+N2fdeu46zgG2bOCO/s+ZqbhTA9cbVbIt2XSKA==
 
-Changes since v1:
- - Remove redundant uptodate check in __bh_read(), use
-   bh_uptodate_or_lock() in bh_read() and bh_read_nowait().
- - Improve the lock order in __bh_read_batch().
- - Add return value 1 to bh_read(), indicate the buffer has been
-   already uptodate and no need to submit read IO, ext2 code in patch
-   13 need to know this case.
- - Remove bh_read_locked() helper.
- - Exchange the parameter sequence of bhs[] array and it's number in
-   bh_read[*]_batch() helpers.
+Current ll_rw_block() helper is fragile because it assumes that locked
+buffer means it's under IO which is submitted by some other who holds
+the lock, it skip buffer if it failed to get the lock, so it's only
+safe on the readahead path. Unfortunately, now that most filesystems
+still use this helper mistakenly on the sync metadata read path. There
+is no guarantee that the one who holds the buffer lock always submit IO
+(e.g. buffer_migrate_folio_norefs() after commit 88dbcbb3a484 ("blkdev:
+avoid migration stalls for blkdev pages"), it could lead to false
+positive -EIO when submitting reading IO.
 
-v1: https://lore.kernel.org/linux-fsdevel/20220831072111.3569680-1-yi.zhang@huawei.com/T/#t
+This patch add some friendly buffer read helpers to prepare replacing
+ll_rw_block() and similar calls. We can only call bh_readahead_[]
+helpers for the readahead paths.
 
-Thanks,
-Yi.
+Signed-off-by: Zhang Yi <yi.zhang@huawei.com>
+---
+ fs/buffer.c                 | 65 +++++++++++++++++++++++++++++++++++++
+ include/linux/buffer_head.h | 38 ++++++++++++++++++++++
+ 2 files changed, 103 insertions(+)
 
-ll_rw_block() will skip locked buffer before submitting IO, it assumes
-that locked buffer means it is under IO. This assumption is not always
-true because we cannot guarantee every buffer lock path would submit
-IO. After commit 88dbcbb3a484 ("blkdev: avoid migration stalls for
-blkdev pages"), buffer_migrate_folio_norefs() becomes one exceptional
-case, and there may be others. So ll_rw_block() is not safe on the sync
-read path, we could get false positive EIO return value when filesystem
-reading metadata. It seems that it could be only used on the readahead
-path.
-
-Unfortunately, many filesystem misuse the ll_rw_block() on the sync read
-path. This patch set just remove ll_rw_block() and add new friendly
-helpers, which could prevent false positive EIO on the read metadata
-path. Thanks for the suggestion from Jan, the original discussion is at
-[1].
-
- patch 1: remove unused helpers in fs/buffer.c
- patch 2: add new bh_read_[*] helpers
- patch 3-11: remove all ll_rw_block() calls in filesystems
- patch 12-14: do some leftover cleanups.
-
-[1]. https://lore.kernel.org/linux-mm/20220825080146.2021641-1-chengzhihao1@huawei.com/
-
-Zhang Yi (14):
-  fs/buffer: remove __breadahead_gfp()
-  fs/buffer: add some new buffer read helpers
-  fs/buffer: replace ll_rw_block()
-  gfs2: replace ll_rw_block()
-  isofs: replace ll_rw_block()
-  jbd2: replace ll_rw_block()
-  ntfs3: replace ll_rw_block()
-  ocfs2: replace ll_rw_block()
-  reiserfs: replace ll_rw_block()
-  udf: replace ll_rw_block()
-  ufs: replace ll_rw_block()
-  fs/buffer: remove ll_rw_block() helper
-  ext2: replace bh_submit_read() helper with bh_read_locked()
-  fs/buffer: remove bh_submit_read() helper
-
- fs/buffer.c                 | 154 +++++++++++++++---------------------
- fs/ext2/balloc.c            |   7 +-
- fs/gfs2/meta_io.c           |   7 +-
- fs/gfs2/quota.c             |   8 +-
- fs/isofs/compress.c         |   2 +-
- fs/jbd2/journal.c           |  15 ++--
- fs/jbd2/recovery.c          |  16 ++--
- fs/ntfs3/inode.c            |   7 +-
- fs/ocfs2/aops.c             |   2 +-
- fs/ocfs2/super.c            |   4 +-
- fs/reiserfs/journal.c       |  11 +--
- fs/reiserfs/stree.c         |   4 +-
- fs/reiserfs/super.c         |   4 +-
- fs/udf/dir.c                |   2 +-
- fs/udf/directory.c          |   2 +-
- fs/udf/inode.c              |   8 +-
- fs/ufs/balloc.c             |  12 +--
- include/linux/buffer_head.h |  48 ++++++++---
- 18 files changed, 146 insertions(+), 167 deletions(-)
-
+diff --git a/fs/buffer.c b/fs/buffer.c
+index a0b70b3239f3..a6bc769e665d 100644
+--- a/fs/buffer.c
++++ b/fs/buffer.c
+@@ -3017,6 +3017,71 @@ int bh_uptodate_or_lock(struct buffer_head *bh)
+ }
+ EXPORT_SYMBOL(bh_uptodate_or_lock);
+ 
++/**
++ * __bh_read - Submit read for a locked buffer
++ * @bh: struct buffer_head
++ * @op_flags: appending REQ_OP_* flags besides REQ_OP_READ
++ * @wait: wait until reading finish
++ *
++ * Returns zero on success or don't wait, and -EIO on error.
++ */
++int __bh_read(struct buffer_head *bh, blk_opf_t op_flags, bool wait)
++{
++	int ret = 0;
++
++	BUG_ON(!buffer_locked(bh));
++
++	get_bh(bh);
++	bh->b_end_io = end_buffer_read_sync;
++	submit_bh(REQ_OP_READ | op_flags, bh);
++	if (wait) {
++		wait_on_buffer(bh);
++		if (!buffer_uptodate(bh))
++			ret = -EIO;
++	}
++	return ret;
++}
++EXPORT_SYMBOL(__bh_read);
++
++/**
++ * __bh_read_batch - Submit read for a batch of unlocked buffers
++ * @nr: entry number of the buffer batch
++ * @bhs: a batch of struct buffer_head
++ * @op_flags: appending REQ_OP_* flags besides REQ_OP_READ
++ * @force_lock: force to get a lock on the buffer if set, otherwise drops any
++ *              buffer that cannot lock.
++ *
++ * Returns zero on success or don't wait, and -EIO on error.
++ */
++void __bh_read_batch(int nr, struct buffer_head *bhs[],
++		     blk_opf_t op_flags, bool force_lock)
++{
++	int i;
++
++	for (i = 0; i < nr; i++) {
++		struct buffer_head *bh = bhs[i];
++
++		if (buffer_uptodate(bh))
++			continue;
++
++		if (force_lock)
++			lock_buffer(bh);
++		else
++			if (!trylock_buffer(bh))
++				continue;
++
++		if (buffer_uptodate(bh)) {
++			unlock_buffer(bh);
++			continue;
++		}
++
++		bh->b_end_io = end_buffer_read_sync;
++		get_bh(bh);
++		submit_bh(REQ_OP_READ | op_flags, bh);
++	}
++}
++EXPORT_SYMBOL(__bh_read_batch);
++
+ /**
+  * bh_submit_read - Submit a locked buffer for reading
+  * @bh: struct buffer_head
+diff --git a/include/linux/buffer_head.h b/include/linux/buffer_head.h
+index c3863c417b00..6d09785bed9f 100644
+--- a/include/linux/buffer_head.h
++++ b/include/linux/buffer_head.h
+@@ -232,6 +232,9 @@ void write_boundary_block(struct block_device *bdev,
+ 			sector_t bblock, unsigned blocksize);
+ int bh_uptodate_or_lock(struct buffer_head *bh);
+ int bh_submit_read(struct buffer_head *bh);
++int __bh_read(struct buffer_head *bh, blk_opf_t op_flags, bool wait);
++void __bh_read_batch(int nr, struct buffer_head *bhs[],
++		     blk_opf_t op_flags, bool force_lock);
+ 
+ extern int buffer_heads_over_limit;
+ 
+@@ -399,6 +402,41 @@ static inline struct buffer_head *__getblk(struct block_device *bdev,
+ 	return __getblk_gfp(bdev, block, size, __GFP_MOVABLE);
+ }
+ 
++static inline void bh_readahead(struct buffer_head *bh, blk_opf_t op_flags)
++{
++	if (!buffer_uptodate(bh) && trylock_buffer(bh)) {
++		if (!buffer_uptodate(bh))
++			__bh_read(bh, op_flags, false);
++		else
++			unlock_buffer(bh);
++	}
++}
++
++static inline void bh_read_nowait(struct buffer_head *bh, blk_opf_t op_flags)
++{
++	if (!bh_uptodate_or_lock(bh))
++		__bh_read(bh, op_flags, false);
++}
++
++/* Returns 1 if buffer uptodated, 0 on success, and -EIO on error. */
++static inline int bh_read(struct buffer_head *bh, blk_opf_t op_flags)
++{
++	if (bh_uptodate_or_lock(bh))
++		return 1;
++	return __bh_read(bh, op_flags, true);
++}
++
++static inline void bh_read_batch(int nr, struct buffer_head *bhs[])
++{
++	__bh_read_batch(nr, bhs, 0, true);
++}
++
++static inline void bh_readahead_batch(int nr, struct buffer_head *bhs[],
++				      blk_opf_t op_flags)
++{
++	__bh_read_batch(nr, bhs, op_flags, false);
++}
++
+ /**
+  *  __bread() - reads a specified block and returns the bh
+  *  @bdev: the block_device to read from
 -- 
 2.31.1
 
