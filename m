@@ -1,66 +1,66 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc255.phx1.oracleemaildelivery.com (aib29ajc255.phx1.oracleemaildelivery.com [192.29.103.255])
+Received: from aib29ajc247.phx1.oracleemaildelivery.com (aib29ajc247.phx1.oracleemaildelivery.com [192.29.103.247])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id BC660ECAAD1
-	for <ocfs2-devel@archiver.kernel.org>; Thu,  1 Sep 2022 15:50:21 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 26C87ECAAD1
+	for <ocfs2-devel@archiver.kernel.org>; Thu,  1 Sep 2022 15:51:18 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=mPDwV6jD1T1EipBZnSk3cm7DmkXUNvXFzc2JYd1s1SQ=;
- b=ILuRltIRkrKG7iuqGwo4TEXY0QRhD5L1yJeTUf22L3lVU1KH6Z7d1495AxcyrdmvcTpoDWtadUBD
-   IPVxuXzLp79SbwqsMiMSdYkYqKSouUGtklUedXhbQH4PUZNlC/4xqhSmYbxEJWT+/0w1DxTFtlBC
-   5aZ/m7bUBtEYBiJfqA4AMrQ0GzBOU9+Tfw9LYw/Fnh2UgXtYbv5BP2ZieQ4Qk3ZBv+7tIVlNS6jh
-   +P8xPYvm1SwwyJvEj7KYlASswm6gVVClru3qJIHX4332HLNAPsKwCK4g97G0GMmGI8DpqfdIxJfX
-   BMgiLHSo95WmiKU50nezVzIilQpysDsOpyub9A==
+ bh=1U44Kp3IexgDWOPKBaBSxNSwsvdM7AiXwcHf3PJMo6E=;
+ b=PEDjticZZhE1IttEfJGd+WHy7PpFWYSWhlZYHvlsJ3i6XpuoomBUmc5fXave1/W/zBStIKPuufFV
+   XWudonYesmDwkT77HzmbBEVNy83E5z37VnN4kXJncUbhVsUFdMj9pzxyYMMiM3yc3dq2KLNgsNbN
+   bAZRfObY1sPOkxFucuMUzM3gdMsAkxXlChMq3fR1lvKhZe0CfI/7zNNdVi9ty2Cdqm7z9KXzDSbw
+   vHy2lf9Cx/bvPZPqqc6pSUBRZvMyCTcj392FfFNyx2jpb+wrcEfP9/GvY7K+4HnURXhnCot6bLbQ
+   ByB8BRL7PYHrurHvuWGqtdhae3C3+hVxKUG4iw==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=mPDwV6jD1T1EipBZnSk3cm7DmkXUNvXFzc2JYd1s1SQ=;
- b=c4Bue9D2sFSog9U+0TYU9afxL3nQ+qlEYwOV4du+rQUJ3lrer8OgM9ZNzo+UKxnWHAtGnPziAvK/
-   V2j+vb5GAh4CbT5I9E/TJSclLkxgVsOLBGH/FQw/0b1BStPCaaYsdvAq6tqXKOrNWAvbxzAZnSn8
-   o82ugwjCBxBunvXTuhhBy+2VOyqM5kQUOQCitL7GeAtvwjL+LM0FbFZeiWOAlchQrtqEA5mhZduc
-   l6YQYlPhZgmHe4qFY0BYEUR0wqhcf6rewskOsz2fbDLFRLFktRjtcOfQYSbSCyQZBsQR+tdIMMWJ
-   LdpybTAjMvQWTY5NN5Icdi+iIDKAmLyvKtsShg==
-Received: by omta-ad3-fd3-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
+ bh=1U44Kp3IexgDWOPKBaBSxNSwsvdM7AiXwcHf3PJMo6E=;
+ b=d1O2OPwKWuYLxycm+Nf3QRdWHfPZK0qj4bs3A/QSAx5rOkHcBaWUqva9kpyb482iWOYx59Pa/tg/
+   umBQU9uvAuL5PPRtFv54QxXb2buW1/NlEOpvfVWN7ICWUWB6URKFdohx0JsOJYo/gnn54ZvJza7+
+   XYSPxnax9MptD43jLWEkRrZThEE0zWETOZtWpeD+5Afj7FUHZ7zoi00Lh1FOoLhgj/22yjDUbSEH
+   2uKWwYDmH7GMOr6Yc1Srww9/zE/sHxIXvmUVbIWBhQUBDnrlsfhczON1bvm9rqRJvd8vgrVSETEj
+   vyCWW3TysUdjQF2vHBZGiltZLgGLZN2E4cO5/g==
+Received: by omta-ad1-fd3-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220817 64bit (built Aug 17
  2022))
- with ESMTPS id <0RHJ00C4BFZXMUA0@omta-ad3-fd3-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Thu, 01 Sep 2022 15:50:21 +0000 (GMT)
+ with ESMTPS id <0RHJ00LAAG1H6SD0@omta-ad1-fd3-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Thu, 01 Sep 2022 15:51:17 +0000 (GMT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.cz; s=susede2_rsa;
- t=1662047407;
+ t=1662047465;
  h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
  mime-version:mime-version:content-type:content-type:
  in-reply-to:in-reply-to:references:references;
- bh=bXMDzUM1+Lt+ZSThjbm8wHTNDhe4lR0BR+Ul6jNDnQY=;
- b=r2VkLAGYBaA3EXSjbYzVFWa0a3q9G3jNT1VA5Q5q+PLMIplLvHZYU+J/o0bDa6fTlrv/4E
- kPIsESDfM8PcjgIFbTcUev0LSzfC73s2/3CVX0KwWrtKBCitp4Fua7WdH5LeQxrH6dGF9x
- s2DuS2A42c0kFwgmPfLC9xQ5x0uEShQ=
+ bh=5I0mKqUw3QSCLqCj5YIpAi2jtZ5obLRbYrhgg3fEUoY=;
+ b=U7Un8DCOE4vHaNWAjnV1RHJvIkAJvwVTD1iy5tLgzFzn0yi3st4XwSnjHZ/fW2kX5uI0R+
+ 8giwSrL7sQmTu8X13dL0oCRXv81or0G6HiV5h4tVqsSN1kkb7nNO8hOshvQBw2Jv9VtVKb
+ asX++mLhndXWdZAcD15WQ2NnJi/AApA=
 DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.cz;
- s=susede2_ed25519; t=1662047407;
+ s=susede2_ed25519; t=1662047465;
  h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
  mime-version:mime-version:content-type:content-type:
  in-reply-to:in-reply-to:references:references;
- bh=bXMDzUM1+Lt+ZSThjbm8wHTNDhe4lR0BR+Ul6jNDnQY=;
- b=9e+lUWyXfrhZq9IsidiFG7B+edpO4waAl3VP49sIY2S+GyZpK13iobmYheYlScUM9tNFam
- S3fvNh+6dnywIXCw==
-Date: Thu, 1 Sep 2022 17:50:07 +0200
+ bh=5I0mKqUw3QSCLqCj5YIpAi2jtZ5obLRbYrhgg3fEUoY=;
+ b=Yk5d8GzmcdpIlqYUaOt3CYZpv7xi85ztTzS8BwutP7VVFVQTqz0Tihub+VeK5FtVBlJBXC
+ wJZX9dP1SI+QWQDQ==
+Date: Thu, 1 Sep 2022 17:51:05 +0200
 To: Zhang Yi <yi.zhang@huawei.com>
-Message-id: <20220901155007.nelecqohvd4plqqy@quack3>
+Message-id: <20220901155105.q56thxo7hcudwgrx@quack3>
 References: <20220901133505.2510834-1-yi.zhang@huawei.com>
- <20220901133505.2510834-7-yi.zhang@huawei.com>
+ <20220901133505.2510834-9-yi.zhang@huawei.com>
 MIME-version: 1.0
 Content-disposition: inline
-In-reply-to: <20220901133505.2510834-7-yi.zhang@huawei.com>
-X-Source-IP: 195.135.220.28
+In-reply-to: <20220901133505.2510834-9-yi.zhang@huawei.com>
+X-Source-IP: 195.135.220.29
 X-Proofpoint-Virus-Version: vendor=nai engine=6400 definitions=10457
  signatures=596816
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 suspectscore=0
- adultscore=0 mlxlogscore=685 mlxscore=0 bulkscore=0 spamscore=0 clxscore=180
- phishscore=0 impostorscore=0 malwarescore=0 priorityscore=222
- lowpriorityscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 adultscore=0
+ spamscore=0 mlxscore=0 priorityscore=232 phishscore=0 lowpriorityscore=0
+ clxscore=179 suspectscore=0 bulkscore=0 mlxlogscore=389 malwarescore=0
+ impostorscore=0 classifier=spam adjust=0 reason=mlx scancount=1
  engine=8.12.0-2207270000 definitions=main-2209010071
 Cc: axboe@kernel.dk, almaz.alexandrovich@paragon-software.com,
  ntfs3@lists.linux.dev, jack@suse.cz, agruenba@redhat.com, hch@infradead.org,
@@ -69,7 +69,7 @@ Cc: axboe@kernel.dk, almaz.alexandrovich@paragon-software.com,
  viro@zeniv.linux.org.uk, yukuai3@huawei.com, linux-fsdevel@vger.kernel.org,
  tytso@mit.edu, linux-ext4@vger.kernel.org, dushistov@mail.ru,
  ocfs2-devel@oss.oracle.com
-Subject: Re: [Ocfs2-devel] [PATCH v2 06/14] jbd2: replace ll_rw_block()
+Subject: Re: [Ocfs2-devel] [PATCH v2 08/14] ocfs2: replace ll_rw_block()
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -86,33 +86,31 @@ Reply-to: Jan Kara <jack@suse.cz>
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-ServerName: smtp-out1.suse.de
+X-ServerName: smtp-out2.suse.de
 X-Proofpoint-SPF-Result: pass
 X-Proofpoint-SPF-Record: v=spf1 ip4:137.65.0.0/16 ip4:151.155.28.0/17
  ip4:149.44.0.0/16 ip4:147.2.0.0/16 ip4:164.99.0.0/16 ip4:130.57.0.0/16
  ip4:192.31.114.0/24 ip4:195.135.221.0/24 ip4:195.135.220.0/24
  ip4:69.7.179.0/24 ip4:150.215.214.0/24 include:mailcontrol.com ~all
 X-Spam: Clean
-X-Proofpoint-ORIG-GUID: vC0nrWh3OScxBw-Z4UmRg3haalSQj2Ju
-X-Proofpoint-GUID: vC0nrWh3OScxBw-Z4UmRg3haalSQj2Ju
+X-Proofpoint-GUID: 5kE1akMt_7Kk7SXXcCta0QcXEksukFTf
+X-Proofpoint-ORIG-GUID: 5kE1akMt_7Kk7SXXcCta0QcXEksukFTf
 Reporting-Meta:
- AAG2PgX2LJ4NDKl48Ua6u1yId5BXvou5qdhDKF40KF7WTUvbpcXK7fFZkMnNoNWk
- 4w+yJsLiBE2j4IG+e8a65YYsBh3LRUfDSLwUli1CiIqDdpxOtRJ0YsOfNm81W7OJ
- /ARol/6yXfrqne8sVCr00o6vPGvI3NvjWABTNIeQm+4Uf5S9FtZ5EFLlgaIt8Lha
- R9xVzHV8lI30LJ2W4T330SiFvZ5y3V4CEDCvaGWNUj+MTuZdQ8vIGzwyrcDdJdb3
- y133uPIvWnhAYRdQ2JURdfNfbQPMoOz0Ig657EjnA2gfiAZeVPW3xUvSk95mc+TX
- 7RNZnq1kOkiwzQgBDPO98PX5A4v+MHzUgt9JIq4ISJj95o0POymjdsLIkS1Z8Zae
- MbJ0m07l1i+ApCDM0KcFr9V08PUCMct3osTjtPOEC6HYXsFEeqwosh2xWQAZg4il
- DKxqHJETAFtO1pZ27tWdYCRhAIMxhywoUyswhtf0Rd6iUX7eMBSWC0/R/WQuQgwD
- esELLywz6pdKqkd59Itj6d2NHSkMRH8cQQPbdeCv0Q1b
+ AAERc2IujToesLS5JvZxZIOSWUciPW7ovexw7gbDWYGmqwGjTI0ihnM+qa8Nahmm
+ 079dnUMcBEkRuQGBvD8TsJ+9BAiw4bJUEnnxpuPFqaBkElen03jjnuAM8wCO9s1j
+ dMhah1C2AVJJeLAZnpTHG5dnla4aO6Sk6OkKIRaWvLMK/kLvbH0uWJpsJZ4BRMl1
+ p0FtLzied+dxmucPoFzij4wfhXZBdCfV0q59mJ1F32pWIfFpblD7TyvbOsN6j1av
+ 3ONZDLXtFr9I5Go/uwIRVixXK/UYgkypp1c9UIIDCp00Pvxr2Sa6vk3R2h6vSKTt
+ a9551Dd2f41CHOfZauiM7f/Ppje5iCnZM1X7ASl4cXc4yoDWERirvBlXGpIe7cnR
+ kTfNGcGPUjwimitiVl9Dr0h+GoZ72Mxawmc9vo0qNbtHZwe7Vo/OlmpFd+C1JMT3
+ 7xlS9yvZL7R/+4IaH5UgA4UD8bKrm96czv3aMJnPMwkUk9vfdUzHTuryh1OmprwH
+ mqWzfCXbP0763ObVflH57pJwn5AqQ1JxO3Nm71vlsl4=
 
-On Thu 01-09-22 21:34:57, Zhang Yi wrote:
+On Thu 01-09-22 21:34:59, Zhang Yi wrote:
 > ll_rw_block() is not safe for the sync read path because it cannot
 > guarantee that submitting read IO if the buffer has been locked. We
 > could get false positive EIO after wait_on_buffer() if the buffer has
-> been locked by others. So stop using ll_rw_block() in
-> journal_get_superblock(). We also switch to new bh_readahead_batch()
-> for the buffer array readahead path.
+> been locked by others. So stop using ll_rw_block() in ocfs2.
 > 
 > Signed-off-by: Zhang Yi <yi.zhang@huawei.com>
 
@@ -123,88 +121,38 @@ Reviewed-by: Jan Kara <jack@suse.cz>
 								Honza
 
 > ---
->  fs/jbd2/journal.c  | 15 ++++++---------
->  fs/jbd2/recovery.c | 16 ++++++++++------
->  2 files changed, 16 insertions(+), 15 deletions(-)
+>  fs/ocfs2/aops.c  | 2 +-
+>  fs/ocfs2/super.c | 4 +---
+>  2 files changed, 2 insertions(+), 4 deletions(-)
 > 
-> diff --git a/fs/jbd2/journal.c b/fs/jbd2/journal.c
-> index 6350d3857c89..140b070471c0 100644
-> --- a/fs/jbd2/journal.c
-> +++ b/fs/jbd2/journal.c
-> @@ -1893,19 +1893,16 @@ static int journal_get_superblock(journal_t *journal)
->  {
->  	struct buffer_head *bh;
->  	journal_superblock_t *sb;
-> -	int err = -EIO;
-> +	int err;
+> diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+> index af4157f61927..1d65f6ef00ca 100644
+> --- a/fs/ocfs2/aops.c
+> +++ b/fs/ocfs2/aops.c
+> @@ -636,7 +636,7 @@ int ocfs2_map_page_blocks(struct page *page, u64 *p_blkno,
+>  			   !buffer_new(bh) &&
+>  			   ocfs2_should_read_blk(inode, page, block_start) &&
+>  			   (block_start < from || block_end > to)) {
+> -			ll_rw_block(REQ_OP_READ, 1, &bh);
+> +			bh_read_nowait(bh, 0);
+>  			*wait_bh++=bh;
+>  		}
 >  
->  	bh = journal->j_sb_buffer;
->  
->  	J_ASSERT(bh != NULL);
-> -	if (!buffer_uptodate(bh)) {
-> -		ll_rw_block(REQ_OP_READ, 1, &bh);
-> -		wait_on_buffer(bh);
-> -		if (!buffer_uptodate(bh)) {
-> -			printk(KERN_ERR
-> -				"JBD2: IO error reading journal superblock\n");
-> -			goto out;
-> -		}
-> +	err = bh_read(bh, 0);
-> +	if (err < 0) {
-> +		printk(KERN_ERR
-> +			"JBD2: IO error reading journal superblock\n");
-> +		goto out;
->  	}
->  
->  	if (buffer_verified(bh))
-> diff --git a/fs/jbd2/recovery.c b/fs/jbd2/recovery.c
-> index f548479615c6..1f878c315b03 100644
-> --- a/fs/jbd2/recovery.c
-> +++ b/fs/jbd2/recovery.c
-> @@ -100,7 +100,7 @@ static int do_readahead(journal_t *journal, unsigned int start)
->  		if (!buffer_uptodate(bh) && !buffer_locked(bh)) {
->  			bufs[nbufs++] = bh;
->  			if (nbufs == MAXBUF) {
-> -				ll_rw_block(REQ_OP_READ, nbufs, bufs);
-> +				bh_readahead_batch(nbufs, bufs, 0);
->  				journal_brelse_array(bufs, nbufs);
->  				nbufs = 0;
->  			}
-> @@ -109,7 +109,7 @@ static int do_readahead(journal_t *journal, unsigned int start)
->  	}
->  
->  	if (nbufs)
-> -		ll_rw_block(REQ_OP_READ, nbufs, bufs);
-> +		bh_readahead_batch(nbufs, bufs, 0);
->  	err = 0;
->  
->  failed:
-> @@ -152,9 +152,14 @@ static int jread(struct buffer_head **bhp, journal_t *journal,
->  		return -ENOMEM;
->  
->  	if (!buffer_uptodate(bh)) {
-> -		/* If this is a brand new buffer, start readahead.
-> -                   Otherwise, we assume we are already reading it.  */
-> -		if (!buffer_req(bh))
-> +		/*
-> +		 * If this is a brand new buffer, start readahead.
-> +		 * Otherwise, we assume we are already reading it.
-> +		 */
-> +		bool need_readahead = !buffer_req(bh);
-> +
-> +		bh_read_nowait(bh, 0);
-> +		if (need_readahead)
->  			do_readahead(journal, offset);
->  		wait_on_buffer(bh);
->  	}
-> @@ -687,7 +692,6 @@ static int do_one_pass(journal_t *journal,
->  					mark_buffer_dirty(nbh);
->  					BUFFER_TRACE(nbh, "marking uptodate");
->  					++info->nr_replays;
-> -					/* ll_rw_block(WRITE, 1, &nbh); */
->  					unlock_buffer(nbh);
->  					brelse(obh);
->  					brelse(nbh);
+> diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+> index e2cc9eec287c..26b4c2bfee49 100644
+> --- a/fs/ocfs2/super.c
+> +++ b/fs/ocfs2/super.c
+> @@ -1764,9 +1764,7 @@ static int ocfs2_get_sector(struct super_block *sb,
+>  	if (!buffer_dirty(*bh))
+>  		clear_buffer_uptodate(*bh);
+>  	unlock_buffer(*bh);
+> -	ll_rw_block(REQ_OP_READ, 1, bh);
+> -	wait_on_buffer(*bh);
+> -	if (!buffer_uptodate(*bh)) {
+> +	if (bh_read(*bh, 0) < 0) {
+>  		mlog_errno(-EIO);
+>  		brelse(*bh);
+>  		*bh = NULL;
 > -- 
 > 2.31.1
 > 
