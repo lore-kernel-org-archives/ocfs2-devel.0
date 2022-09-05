@@ -1,66 +1,79 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc247.phx1.oracleemaildelivery.com (aib29ajc247.phx1.oracleemaildelivery.com [192.29.103.247])
+Received: from aib29ajc254.phx1.oracleemaildelivery.com (aib29ajc254.phx1.oracleemaildelivery.com [192.29.103.254])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 1B9FCECAAD5
-	for <ocfs2-devel@archiver.kernel.org>; Mon,  5 Sep 2022 13:17:35 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 86ACCECAAD3
+	for <ocfs2-devel@archiver.kernel.org>; Mon,  5 Sep 2022 14:25:15 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=mVBQ/cpj+mu9cdsYCAJ35wvW8pT5If8gnLelZTxbp/k=;
- b=rlLVgXvyk4+wSadCzUsP7tP+Myg9cIbp3/dW6IfvPnw8YvY2ouM1uLKAqEZl0vp6EoxlB4C1QwCi
-   aYD4/zglKVtqnFuXT2GZj+ye2cgKIwvmmJnx4YFKaAglvk0KnkZO2kpZ0/hwiiF+gGXLuHYo1uw0
-   OA/fuPEz8ixgEJ0k3qpzPPbVO2M7k51eQKAMwmY3mDpzGy+Gj+b8VkCNSNtgbjWxcE4Ydx/YQ1E+
-   /nsSk45j0A7jje/qJECIzr5hgfg716BtmQJzsYinZqcWvlv3aVUl6RCOml7CrVHZZrMf8mIPCjcr
-   EI+fm2AQy15e2SEN2KLF5b2zugOMG81qLJJHLg==
+ bh=ZNk6F1rQgczXAZDezbn1wdBmUFrASEV1lNhHW0ZU9R8=;
+ b=kGBnKywviwMyKWgFNixqWWzSgaRfO9LWUERGCwOPWMy4j3jJK6Q/KgNiLZNBUDlDAkApph4+FJSN
+   5UsJouu7MI2VClLT77mBvavhqfV3Yb647bV4kaXQKNqDE5ICJ/igfT0dkpvOUL0bNHabsRO0eJVc
+   UmHXxPAgiW76gMPPhj51PVzCbPWGCgdOJ4pDFATYyisArNHNWmFH2UjVcVUPJtaB/3mFpojwoDib
+   KBW6d9vqHZSHqQyxxiz7WfxiH5bzFKlhslltjdoKrvmg08Xl66dPTMSBgU2eLWOAIIB6CsK2Klul
+   7qXEvywUoadXRmojM/Hq6w9EnXMjE2RO72R7ew==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=mVBQ/cpj+mu9cdsYCAJ35wvW8pT5If8gnLelZTxbp/k=;
- b=t1YpQS3BJ2aeRcf7x9nLglgyg79ZXgo4A6G+bAsdolnADT7Smm8mnTAoC5Yx5xq/5ifFGcIbys6y
-   lTE5g6Rur9F2drzYNulrTXPM0/P2V3Uin1M+aGOHg4y0BFjfha+Bmpg5tC8BZJ+y8OHPRJLU8MgU
-   znRx7mQC8Nsbg/L4JHO0rADrmQzheXgjfNE/tTOHSvFqqc4MupBEk7R0ouPI/dbsR6uKyCGgWR1x
-   lSpTDfVGTzCjkBtbKKas/fCmgluhSRxPo+sE3HY9m7gT3cP3o7QUzPLJi98M90ckVTY8ZaIYw4rT
-   R/rLBLjyeuGFSeRU4PU9ByK8fADuhpkp2X1uNw==
-Received: by omta-ad1-fd3-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
+ bh=ZNk6F1rQgczXAZDezbn1wdBmUFrASEV1lNhHW0ZU9R8=;
+ b=ARYkH0K6sgkvHXS8uxfJVqHuCFNUSU+jbfUxFDiazXR9TNP2vjntSPiXu0lwz2mRT/cTHbw7x0fO
+   R775ewtHlSR9cOxTU5qnGHvHCAdDARcL7eXkjDmt5+q6ZV2kiF6grFdMzbhUlt/tlumBC9h3kLX3
+   1WaD+4TALRggA1XggqXEc3g2YwYfy8bAjbkUSE6mOvLpcCdLXB+zhCLxVQnhzjj9cIMnM1BcAJKt
+   c5WSWzDaKYvUbZ7jYt0hLX4Rd1sTrEtfn7z/0Vz0CfVtTK5MciLFWKiNuxhBmYRIiOziIIKS6HXQ
+   JhtmA2K5m7WwGvTyDKQ+C22BoMGvt2Gn+HCFmw==
+Received: by omta-ad3-fd3-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220817 64bit (built Aug 17
  2022))
- with ESMTPS id <0RHQ00AIQNLAGF10@omta-ad1-fd3-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Mon, 05 Sep 2022 13:17:34 +0000 (GMT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=mit.edu; s=outgoing;
- t=1662366211; bh=Opykd4NroLOvUVAS6DC0mH5AVipCgMT0W9fOrq2cA5g=;
- h=Date:From:To:Cc:Subject:References:In-Reply-To;
- b=kQY2cNMKCxqeSaFySEG9If6ZtQ8BhheeiKQJIw2xRYU0mwh5KEc4n5fb1xfvPk4CZ
- mBNdt31pMRPo3WHANZ5/Ldd6KIRnX21xck+7Bwn1Fcrsc5FcAOy78knWuHYTLXAl4g
- DxocwCUAw/g0qM3+vyInmt7rzH9XEt3Rw96cWfFdL1E5K22280Elx75++itsnVc6Gr
- BQtWa317FaLTf8L+CdQ4p6Ae6qIlTOrneZoG/Z4wofU62NxWKd3WMtYF7anpMD6LxL
- vXTuclZkTdheNbZQoIMugvCv3ZQ/q2LRDpdTb2u/xsaul3tZnLnf3enunBF8CgAtMV
- Liep1iIsFATVw==
-Date: Mon, 5 Sep 2022 04:23:24 -0400
-To: Zhang Yi <yi.zhang@huawei.com>
-Message-id: <YxWx/E0TIhBMhaq6@mit.edu>
-References: <20220901133505.2510834-1-yi.zhang@huawei.com>
- <20220901133505.2510834-7-yi.zhang@huawei.com>
+ with ESMTPS id <0RHQ00LR8QQ28RD0@omta-ad3-fd3-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Mon, 05 Sep 2022 14:25:14 +0000 (GMT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
+ s=mimecast20190719; t=1662387017;
+ h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+ to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+ in-reply-to:in-reply-to:references:references;
+ bh=/aM9Hz/CxTU/5IZIiOb0wSytjLDU1CYz4f/uZlzEYfY=;
+ b=DWMkfrcF6TXu6/Ga4TEMt2umip22pqj4/bqxBlvC9WHYv14QQSeZZ2kEqizDkMg19WmCQk
+ VqxRLy635HldwyCLaOwQPK0amJ98YR4o6tBIX4NrvbpPCOybiknGunPW7GPnGNQtATeY4/
+ +R1xGwrixlxc0WkiOuw2wQhU4OPcgbA=
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=1e100.net;
+ s=20210112; h=cc:to:subject:message-id:date:from:in-reply-to:references
+ :mime-version:x-gm-message-state:from:to:cc:subject:date;
+ bh=/aM9Hz/CxTU/5IZIiOb0wSytjLDU1CYz4f/uZlzEYfY=;
+ b=sYLyzBtBRm/HZiUUkjYQu/0r7SdwN6pd+p36qvRDJHYcTYI+8979473durrQkjJtjA
+ 6+t7+sKNO5mfJ37PFk8BFx0aQhQvcuOnLI5Dp7PYd74i6u2E6W0dfLR0PyrpVgJfIJ36
+ I6iBCVaebz9v2nZ8DDy/0r7CS+ZHKkFg35NLdr0cHKQAciVNye8VvfYsK2J6343gDxAC
+ 4SDJ8agdubm0yHccXQFVBbYlB2kesZgBnw+LZr9c5D1hSK1WiJbeACWMS0aw0eaKt2j9
+ wy/EEIFQ6MrCfM56Cc4W7JGEEVx4nq7llHIClNmGnbSSqARCV21nP6JZ9jLmT+xcEUb5 DQrg==
+X-Gm-Message-State: ACgBeo1SvDxeIL1JtCmG/tHZ4A4tuZi56sDWFCNuP5caFGPIrmfW9Teo
+ n3wV2lmFWxg53BlGkPIKuHN5llHWkAKKiqiYaKgMlgpuys2GQCcKmqvjXlR07lXM+mPbfW+dK1c
+ s/H3Lg11C0VeWCWu8N5gr0zUQitehqYgzPM3BGg==
+X-Received: by 2002:a65:6e49:0:b0:429:cae6:aac6 with SMTP id
+ be9-20020a656e49000000b00429cae6aac6mr41418488pgb.268.1662387013100; Mon,
+ 05 Sep 2022 07:10:13 -0700 (PDT)
+X-Received: by 2002:a65:6e49:0:b0:429:cae6:aac6 with SMTP id
+ be9-20020a656e49000000b00429cae6aac6mr41418453pgb.268.1662387012811; Mon,
+ 05 Sep 2022 07:10:12 -0700 (PDT)
 MIME-version: 1.0
-Content-disposition: inline
-In-reply-to: <20220901133505.2510834-7-yi.zhang@huawei.com>
-X-Source-IP: 18.9.28.11
-X-Proofpoint-Virus-Version: vendor=nai engine=6400 definitions=10460
+References: <20220901133505.2510834-1-yi.zhang@huawei.com>
+ <20220901133505.2510834-5-yi.zhang@huawei.com>
+In-reply-to: <20220901133505.2510834-5-yi.zhang@huawei.com>
+Date: Mon, 5 Sep 2022 16:10:01 +0200
+Message-id: <CAHc6FU4XqSxUr3CS8zxu=Fh_kHytJbzezim0ie_cxdioW5R=FA@mail.gmail.com>
+To: Zhang Yi <yi.zhang@huawei.com>
+X-Source-IP: 170.10.129.124
+X-Proofpoint-Virus-Version: vendor=nai engine=6400 definitions=10461
  signatures=596816
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 phishscore=0
- priorityscore=30 suspectscore=0 impostorscore=0 mlxlogscore=728 mlxscore=0
- malwarescore=0 adultscore=0 clxscore=90 lowpriorityscore=0 spamscore=0
- bulkscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2207270000 definitions=main-2209050039 domainage_hfrom=13619
 Cc: axboe@kernel.dk, almaz.alexandrovich@paragon-software.com,
- ntfs3@lists.linux.dev, jack@suse.cz, agruenba@redhat.com, hch@infradead.org,
- linux-kernel@vger.kernel.org, reiserfs-devel@vger.kernel.org,
- cluster-devel@redhat.com, rpeterso@redhat.com, viro@zeniv.linux.org.uk,
- yukuai3@huawei.com, linux-fsdevel@vger.kernel.org, dushistov@mail.ru,
- linux-ext4@vger.kernel.org, chengzhihao1@huawei.com, ocfs2-devel@oss.oracle.com
-Subject: Re: [Ocfs2-devel] [PATCH v2 06/14] jbd2: replace ll_rw_block()
+ ntfs3@lists.linux.dev, jack@suse.cz, hch@infradead.org,
+ chengzhihao1@huawei.com, linux-kernel@vger.kernel.org,
+ reiserfs-devel@vger.kernel.org, cluster-devel@redhat.com, rpeterso@redhat.com,
+ viro@zeniv.linux.org.uk, yukuai3@huawei.com, linux-fsdevel@vger.kernel.org,
+ tytso@mit.edu, linux-ext4@vger.kernel.org, dushistov@mail.ru,
+ ocfs2-devel@oss.oracle.com
+Subject: Re: [Ocfs2-devel] [PATCH v2 04/14] gfs2: replace ll_rw_block()
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -72,63 +85,114 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: Theodore Ts'o via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: Theodore Ts'o <tytso@mit.edu>
+From: Andreas Gruenbacher via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: Andreas Gruenbacher <agruenba@redhat.com>
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-ServerName: outgoing-auth-1.mit.edu
+X-MC-Unique: JfwrXsLAMGOUc9u3H92WzA-1
+X-Google-Smtp-Source:
+ AA6agR6Mbj0cnXfyvltZuZyI75OnAiCy5kv581MclsxMj6AKJtQBQIL0bE5MAfuVXEL2TcdEimwBiyT3tt6LHh8ASBA=
+X-Mimecast-Spam-Score: 0
+X-Mimecast-Originator: redhat.com
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 ip4:18.7.16.0/24 ip4:18.7.21.0/24
- ip4:18.7.34.0/24 ip4:18.7.62.0/24 ip4:18.7.68.0/24 ip4:18.7.71.0/24
- ip4:18.9.1.0/24 ip4:18.9.21.0/24 ip4:18.9.25.0/24 ip4:18.9.28.0/24
- ip4:37.59.249.0/24 ip4:37.59.69.128/25 ip4:54.88.39.81 ip4:64.128.67.16
- ip4:64.128.67.20 ip4:69.25.199.0/24 ip4:72.55.140.81 ip4:74.62.122.128/25
- ip4:75.98.95.161/27 ip4:87.253.232.0/21 ip4:87.253.236.214 ip4:96.43.144.64/31
- ip4:96.43.148.64/31 ip4:52.5.134.202 ip4:128.136.37.0/24 ip4:129.41.172.95
- ip4:139.146.146.128/25 ip4:139.146.160.0/25 ip4:139.60.0.0/22
- ip4:148.105.0.0/16 ip4:165.192.56.56 ip4:165.193.101.141 ip4:165.193.101.142
- ip4:165.193.56.42 ip4:178.33.111.144 ip4:178.33.137.208/28 ip4:178.33.221.0/24
- ip4:182.50.78.64/28 ip4:184.173.153.216 ip4:185.189.236.0/22
- ip4:185.211.120.0/22 ip4:198.2.128.0/18 ip4:204.14.232.64/28
- ip4:204.14.234.64/28 ip4:205.201.128.0/20 ip4:205.217.12.155
- ip4:205.217.12.177 ip4:205.237.106.0/24 ip4:206.25.77.25 ip4:207.211.32.0/24
- ip4:207.211.46.192/26 ip4:207.211.60.0/24 ip4:207.211.61.0/24
- ip4:216.138.238.192/26 ip4:216.75.197.192/26 ip4:198.2.132.142
- ip4:198.187.196.100 ip4:198.187.196.130 include:spf.protection.outlook.com
- include:_spf.google.com include:et._spf.pardot.com include:sendgrid.net
- include:mail.zendesk.com include:_shortspf.launchmetrics.com
- include:_spf.salesforce.com -all
-X-Spam: Clean
-X-Proofpoint-GUID: J_HrnDmRg6Dbp9khII8GiPW-aO8idkVK
-X-Proofpoint-ORIG-GUID: J_HrnDmRg6Dbp9khII8GiPW-aO8idkVK
+X-Proofpoint-SPF-Record: v=spf1 ip4:107.21.15.141 ip4:108.177.8.0/21
+ ip4:128.17.0.0/20 ip4:128.17.128.0/20 ip4:128.17.192.0/20 ip4:128.17.64.0/20
+ ip4:128.245.0.0/20 ip4:128.245.64.0/20 ip4:13.110.208.0/21 ip4:13.110.216.0/22
+ ip4:13.110.224.0/20 ip4:13.111.0.0/16 ip4:136.147.128.0/20
+ ip4:136.147.176.0/20 ip4:148.105.8.0/21 ip4:149.72.0.0/16 ip4:159.183.0.0/16
+ include:spf1.redhat.com -all
+X-Proofpoint-SPF-VenPass: Allowed
+X-ServerName: us-smtp-delivery-124.mimecast.com
+X-Proofpoint-SPF-Result: pass
+X-Proofpoint-SPF-Record: v=spf1 ip4:107.21.15.141 ip4:108.177.8.0/21
+ ip4:128.17.0.0/20 ip4:128.17.128.0/20 ip4:128.17.192.0/20 ip4:128.17.64.0/20
+ ip4:128.245.0.0/20 ip4:128.245.64.0/20 ip4:13.110.208.0/21 ip4:13.110.216.0/22
+ ip4:13.110.224.0/20 ip4:13.111.0.0/16 ip4:136.147.128.0/20
+ ip4:136.147.176.0/20 ip4:148.105.8.0/21 ip4:149.72.0.0/16 ip4:159.183.0.0/16
+ include:spf1.redhat.com -all
+X-Proofpoint-Spam-Reason: safe
+X-Spam: OrgSafeList
+X-SpamRule: orgsafelist
+X-Proofpoint-GUID: -NEPQy5OTiDUF1uiUgxN90g0dWCJ4BN0
+X-Proofpoint-ORIG-GUID: -NEPQy5OTiDUF1uiUgxN90g0dWCJ4BN0
 Reporting-Meta:
- AAHm3itCa5jQXKfaaGqKNRfy4jpAPHJxFeFXuiT5el8ryqgwaq7A45bOMfTdOmvR
- EUq+cGO4boF5taZn7cj02LWKzUf2TVM0/8yFzBeSKta8HomXzcJeOJsk/8bArJpx
- 4GSabpAkKe5zIm4Pu/wG8u4WLmMA3pl/g+cLyVUfQHk6OSZM5xyBkPy4UYmDmw9S
- QzoSlSsWnRlw91d2IdZqRaFhiaB4+CFtdrn/R5NzoenzCzJj2MVFT9hQcdoul2j0
- UkoPI/eDTwWTHtXr8jpkXRicXe5oiS5yXBRrJlOB0KBOW8u7wIY3M4bnSpS9iylT
- aDPYTMmmr4d43nNe7shflqdvJ7ymgVFVUOBJNu8rH5ipCt5DOGTYaHc30E1VgbCn
- w0h5tcIXC76wT9VVVQ1ZfnYvx8AHyyUd9O1CZGzWkR08XtBbBd6vMQUPQSsw85Vh
- 0ycHtc+pZVj3eJzI1rsGQk4E1pO7zCVc+H2QxYe3FD5EzrOsFX8iB2kjAfV7f4hn
- vf0Lf313hHGaZeW9ZguSqQNKydmS/ewR0QvC9Y2EGIbe
+ AAH+iuSixXFerSToffs8jMGSG/Y1Zx0r+X/kUOd1bqDtbV7Z49S6eDtKy4BOIOdk
+ iu1zzyeQ7ur00Lx2L9so+cT4gKsoJ3xuKcukYbymOXzeR4kXP+YPjOlDR7uXwTHR
+ vpsACaY/CyOHuUOFoUoj/BU04tutIMziSwy7Qb9Jc3alfP3AflMztzLErCDuRA+H
+ NDKJ6PXgS5ZxtlUNn0UwF2VjExxedqWQuI1AiO0VGo2l7mU7c9UwrcPQ5DTyLV80
+ 4gJkn1gqTjIrBuNnErNUSiUDCiER+cv/7PyG2041uMsQBASr2fyJiJ6ooXFQI9Q5
+ lkYy6Q9f/oSvM7XYuabwofM7IkcWbqWaqpaSHsS8tqBudB6kMhRZTdCgOgpfEMPt
+ 868aJWdKfWAPUEs49nnpk0RRAS6yTN6g4G1z+GLiW89u4ICzFokAouGQXFlYrW/b
+ yM3zASR2O8uBxPFk/RtqU3YS1+DmHQReqCHYCgXKp9Ak2cooQw+NOj41ErOA40Iz
+ TXQwPOXqwbhy0hqrqXyBYNhBkH6cI2W1M2cB6nW7vopp
 
-On Thu, Sep 01, 2022 at 09:34:57PM +0800, Zhang Yi wrote:
+On Thu, Sep 1, 2022 at 3:24 PM Zhang Yi <yi.zhang@huawei.com> wrote:
 > ll_rw_block() is not safe for the sync read path because it cannot
-> guarantee that submitting read IO if the buffer has been locked. We
-> could get false positive EIO after wait_on_buffer() if the buffer has
-> been locked by others. So stop using ll_rw_block() in
-> journal_get_superblock(). We also switch to new bh_readahead_batch()
-> for the buffer array readahead path.
-> 
+> guarantee that always submitting read IO if the buffer has been locked,
+> so stop using it. We also switch to new bh_readahead() helper for the
+> readahead path.
+>
 > Signed-off-by: Zhang Yi <yi.zhang@huawei.com>
+> ---
+>  fs/gfs2/meta_io.c | 7 ++-----
+>  fs/gfs2/quota.c   | 8 ++------
+>  2 files changed, 4 insertions(+), 11 deletions(-)
+>
+> diff --git a/fs/gfs2/meta_io.c b/fs/gfs2/meta_io.c
+> index 7e70e0ba5a6c..6ed728aae9a5 100644
+> --- a/fs/gfs2/meta_io.c
+> +++ b/fs/gfs2/meta_io.c
+> @@ -525,8 +525,7 @@ struct buffer_head *gfs2_meta_ra(struct gfs2_glock *gl, u64 dblock, u32 extlen)
+>
+>         if (buffer_uptodate(first_bh))
+>                 goto out;
+> -       if (!buffer_locked(first_bh))
+> -               ll_rw_block(REQ_OP_READ | REQ_META | REQ_PRIO, 1, &first_bh);
+> +       bh_read_nowait(first_bh, REQ_META | REQ_PRIO);
+>
+>         dblock++;
+>         extlen--;
+> @@ -534,9 +533,7 @@ struct buffer_head *gfs2_meta_ra(struct gfs2_glock *gl, u64 dblock, u32 extlen)
+>         while (extlen) {
+>                 bh = gfs2_getbuf(gl, dblock, CREATE);
+>
+> -               if (!buffer_uptodate(bh) && !buffer_locked(bh))
+> -                       ll_rw_block(REQ_OP_READ | REQ_RAHEAD | REQ_META |
+> -                                   REQ_PRIO, 1, &bh);
+> +               bh_readahead(bh, REQ_RAHEAD | REQ_META | REQ_PRIO);
+>                 brelse(bh);
+>                 dblock++;
+>                 extlen--;
+> diff --git a/fs/gfs2/quota.c b/fs/gfs2/quota.c
+> index f201eaf59d0d..1ed17226d9ed 100644
+> --- a/fs/gfs2/quota.c
+> +++ b/fs/gfs2/quota.c
+> @@ -745,12 +745,8 @@ static int gfs2_write_buf_to_page(struct gfs2_inode *ip, unsigned long index,
+>                 }
+>                 if (PageUptodate(page))
+>                         set_buffer_uptodate(bh);
+> -               if (!buffer_uptodate(bh)) {
+> -                       ll_rw_block(REQ_OP_READ | REQ_META | REQ_PRIO, 1, &bh);
+> -                       wait_on_buffer(bh);
+> -                       if (!buffer_uptodate(bh))
+> -                               goto unlock_out;
+> -               }
+> +               if (bh_read(bh, REQ_META | REQ_PRIO) < 0)
+> +                       goto unlock_out;
+>                 if (gfs2_is_jdata(ip))
+>                         gfs2_trans_add_data(ip->i_gl, bh);
+>                 else
+> --
+> 2.31.1
+>
 
-Thanks, looks good.
+Thanks for this fix; looking good.
 
-Reviewed-by: Theodore Ts'o <tytso@mit.edu>
+Reviewed-by: Andreas Gruenbacher <agruenba@redhat.com>
 
+Andreas
 
-					- Ted
 
 _______________________________________________
 Ocfs2-devel mailing list
