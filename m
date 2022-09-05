@@ -1,59 +1,59 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc249.phx1.oracleemaildelivery.com (aib29ajc249.phx1.oracleemaildelivery.com [192.29.103.249])
+Received: from aib29ajc244.phx1.oracleemaildelivery.com (aib29ajc244.phx1.oracleemaildelivery.com [192.29.103.244])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id A15EFC6FA89
-	for <ocfs2-devel@archiver.kernel.org>; Mon,  5 Sep 2022 07:19:50 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 4594CC6FA8B
+	for <ocfs2-devel@archiver.kernel.org>; Mon,  5 Sep 2022 07:19:51 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
  bh=nVAvFcskCAzPBU84JfSYasgwAD57+ShK8EWu9QgQp0s=;
- b=vBSuEXWq/BvPo67Owg2RcgjMlYXb/HaSmoJTKm1APzhqiUCNy8taSOltNLjIzdJLjRYE3s7lb7ln
-   AtrdPqVU+hfECxN3yZuS9h740cWREFkpx1FXeJhs6dtkLaOZHTFQivyKLtpjjijIUAtRhCDLWO/e
-   Y0DI9YkmIS/GlWBPM6Ih9hufsMBQFZ34mo0tNLjqPA0erEY9LlTTMNancoIyZvI9KCAxjFEXmoix
-   u5tcCfn1QVEL/spuiXfBjSpvQRXm02w69v4p8JGhQqQxABcJsCZ+NjYa/iSRpfAnpKn5aEZ2D4dL
-   /D1bc/jTI2rHGsh/LUJ5MiUirQxQpCWCduL5dw==
+ b=xsN5OQ6q8b6vbbyWrcwWPZCtsCs1O7Q5OxF4cs73M4+0xr2sU7fCpCZTRk3XC7rElmNr/3YFeNjX
+   U61mokYEpjzSOfApfqxeq87fofEN0cUT1w2H9fhINK+evHroGe9OL6fdWm46HggJuxmX38A76IH2
+   NLrx+QkEFBu7YqKItjXTJ5iIs7vC9iQ8jYi8OZoqMij9OiEkRZigAY7F2B9sdnVgTyyp9hqGa5Dh
+   RoWCfzkECc5AZ3HJs+kc3CvzD8g2glOiFB4eksWPK8AIyVg7/f8p+Fz+hJwvOLQyJZCRpfgQpoVs
+   9rk0V9+ksp2UPQ5/gQTblWU9UyREi9am6bF7QQ==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
  bh=nVAvFcskCAzPBU84JfSYasgwAD57+ShK8EWu9QgQp0s=;
- b=kIF2mCzJ0usGT1uJNsakjxk0fKgfnaz9iz3pf4o21iX7hG0SZoKDBmnQxZC891FxH9jr9mKQHAVB
-   YdGcZj6kKbGzyIL9K8fxAy3kfpDnEs5grFeEJmCrMsg1CVf26c6ya31MD9VLaDkkHDWD8L394kjS
-   Adgy50Q0Xd7u71s4LRCg0Wz/0e4pO+NtN8LEAhA3ROvSQAquTdgGF9wdMex53zqGSTPHtX82Jce5
-   ORZehi8ZNrwy8+ExG8CSLYBEgpXSU54EvvephAC3zvHGg63ACvuK11/OWPgiXE9l9uvfZgd4ngs6
-   yophx0hRdo+eJUc2c9XI6G6ngdwoxTQRy2Yrpg==
-Received: by omta-ad2-fd1-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
+ b=U308gYebOXnnNWU7Hv5l0dERVLf48fImxokAcRqEoeAu6wGd0NiXoaQjbtlWqRuIQOdMRrT7wc1I
+   bikfI2wHSgZtb9+QO5WPQwQkPxmgTUW9BZwFKI8p6sy1/gFJdP7Uu28Ou1vNIozP0NE0bief8t2Y
+   LKUo/qwT6GUbeGij2vu6eGmrhRb2s6injSeB0+mBLAEAbwVbTTA4PFDB2FiPdQLeK0MjeMBJsbfL
+   UMSo7s93AVmwZGoHyQ6/jT3zYZCywB4cg0Fh7um/1/Jo2ulJb0mp/BsrT8ZsAw9kpkoqJ3jJvKEz
+   bVzFT7SWA5iEICvKEM8UKvl7/fafg2TuQWFa/g==
+Received: by omta-ad1-fd1-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220817 64bit (built Aug 17
  2022))
- with ESMTPS id <0RHQ007NH7121XB0@omta-ad2-fd1-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
+ with ESMTPS id <0RHQ004S67129200@omta-ad1-fd1-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
  ocfs2-devel@archiver.kernel.org; Mon, 05 Sep 2022 07:19:50 +0000 (GMT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
  d=infradead.org; s=bombadil.20210309; h=In-Reply-To:Content-Type:MIME-Version
  :References:Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:
  Content-Transfer-Encoding:Content-ID:Content-Description;
- bh=M7NmYC/Iylm9myghHwqILim55SAUt9QrM+UZYk0eJlw=; b=XpyaPPtSxTmWLeeRV6xTMEhi3Y
- 54zGNsjW5Bl/8VMqHZVPihZdB2ooAzEMAPZt3xHGpW51TIDcchwwWnWlY4ZZ6Sy2akhZIKEqxV/Eu
- lJXM+1GxtVMhoSLO/TZ6uE7oPJOqyQ4YbDk9Hg8MSh3q3WFMkmlh6g6IRftaxy4mO9MlhuYcOlRmI
- BfGwJ9iDzID7OQY0cGhQauFprUKM6kxv32TmKliCFiP0NrXVoMs4HCkViOEVWNqJSN1PvtdgiH4W1
- JaSWyF2LFaVlkjUUtIQc/Q74TG4oLdQTMIpASPndLLaYWmfrL/vW7jD3XORGfrTDlVdAKgKYWIkzh
- KBm69LXQ==;
-Date: Sun, 4 Sep 2022 22:55:14 -0700
+ bh=M7NmYC/Iylm9myghHwqILim55SAUt9QrM+UZYk0eJlw=; b=2a3YBNGoIyMcHLcXCpj5dgxFVq
+ mhHvekpURQrndcf2fnnZqj6oc2Y885QIllvLsMygMunJwJrQr55UecCsqd8siJRrj9qg3xeyQ2Yqz
+ 7ruZkAoxPEeZj3SJGqD6eH3K0evNGqocBpSl94QJxBvvw6G23zx62OyypWvO4LEC5anKzurnpTGXC
+ wgsXHwIA3ABU96ckRNHqNsjxqycXpYeBwAFAWoNO3AznC4aSXr8hpNnKsS2FxJMggphM98hNnv6Sp
+ Ck68Yx2a8tqjfQL90f7JaAMijQoj01Fj/kFlQ9S9nDi3vu+AmYZH1JOlNbsJWQr7x1ewJYCNFlYRS
+ uTyDA2jA==;
+Date: Sun, 4 Sep 2022 22:55:29 -0700
 To: Zhang Yi <yi.zhang@huawei.com>
-Message-id: <YxWPQrhNkZd8dn0W@infradead.org>
+Message-id: <YxWPUd6AoM4tRMuL@infradead.org>
 References: <20220901133505.2510834-1-yi.zhang@huawei.com>
- <20220901133505.2510834-9-yi.zhang@huawei.com>
+ <20220901133505.2510834-10-yi.zhang@huawei.com>
 MIME-version: 1.0
 Content-disposition: inline
-In-reply-to: <20220901133505.2510834-9-yi.zhang@huawei.com>
+In-reply-to: <20220901133505.2510834-10-yi.zhang@huawei.com>
 X-Source-IP: 198.137.202.133
 X-Proofpoint-Virus-Version: vendor=nai engine=6400 definitions=10460
  signatures=596816
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0
- priorityscore=276 impostorscore=0 mlxlogscore=394 suspectscore=0 bulkscore=0
- spamscore=0 adultscore=0 lowpriorityscore=0 malwarescore=0 mlxscore=0
- phishscore=0 clxscore=180 classifier=spam adjust=0 reason=mlx scancount=1
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 clxscore=195
+ lowpriorityscore=0 mlxlogscore=394 mlxscore=0 malwarescore=0 suspectscore=0
+ impostorscore=0 bulkscore=0 spamscore=0 phishscore=0 adultscore=0
+ priorityscore=246 classifier=spam adjust=0 reason=mlx scancount=1
  engine=8.12.0-2207270000 definitions=main-2209050028
 Cc: axboe@kernel.dk, almaz.alexandrovich@paragon-software.com,
  ntfs3@lists.linux.dev, jack@suse.cz, agruenba@redhat.com, hch@infradead.org,
@@ -62,7 +62,7 @@ Cc: axboe@kernel.dk, almaz.alexandrovich@paragon-software.com,
  viro@zeniv.linux.org.uk, yukuai3@huawei.com, linux-fsdevel@vger.kernel.org,
  tytso@mit.edu, linux-ext4@vger.kernel.org, dushistov@mail.ru,
  ocfs2-devel@oss.oracle.com
-Subject: Re: [Ocfs2-devel] [PATCH v2 08/14] ocfs2: replace ll_rw_block()
+Subject: Re: [Ocfs2-devel] [PATCH v2 09/14] reiserfs: replace ll_rw_block()
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -84,18 +84,18 @@ X-SRS-Rewrite: SMTP reverse-path rewritten from <hch@infradead.org> by
 X-ServerName: bombadil.infradead.org
 X-Proofpoint-SPF-Result: None
 X-Spam: Clean
-X-Proofpoint-GUID: g6-gHjT3ycXCf7M9nzp9s8Mde8W2gPKp
-X-Proofpoint-ORIG-GUID: g6-gHjT3ycXCf7M9nzp9s8Mde8W2gPKp
+X-Proofpoint-GUID: D_UFLoZiPv27WEaAgfmV1TPnwmmHhsou
+X-Proofpoint-ORIG-GUID: D_UFLoZiPv27WEaAgfmV1TPnwmmHhsou
 Reporting-Meta:
- AAEAI6wPPFKqRdylulbybf2KScZuIfrVDedqTWEYtgF6SlxYMQeRCXblhH2Q8m64
- aZ8a1sc2O6b0cJ4YHzK7royxdm3haOgck9qevp2zrB9qt4/CT+crU6SpLJsbIuFK
- n58crSzpryUFMAAmDBY3RmnD+2OUPke2pEueVgjPSyv32lzybHdIkNAoYgi+KTu/
- CB4Mb6simoTPYHt3uwlFCFhQRafM7ft9FYyZiiyVbEM5LV9A57DU6inAXn6+yK/J
- H5IpneDcltnCOPFIl61R1jGnkSPhlVSATs8406Hb9qtyZJ3tMzj3cwwRITFnyDd1
- lGFMsyCLjo3Mz4p3gGtpRU8loqTL6e1jb4QU9iYVuLHAfpHHTGbqG1FH0R8WQN4j
- wW4WhPCneDbyp0Hw/3jXcjCST6sfDl87BhldXf6OkzRbdJSUZ+8zXzDeiuGhudeV
- LhcIjFGvLWL7vyaZNqjn5cUXeySD7YuYs23YPP1cEcB+jv/I2LxRt0mAfMgfyP7E
- QW7M2RX6veMomnAnjQT8YqFJyK6pEglKGDsa6xK+2Rd6
+ AAGkcefqD/vkwsTgIr+uXhjU6tDM5TOhWwKGOcYfAbznBLGPGQWCB9lpkxXlvWVh
+ FpnYMGakL8eRbW+vKnxfKjRmpwqtOUJANXajfZO/bUXf9xDSTQsyVd6uyYvxWbDW
+ SQGZeu1puNfcR2Vt3rdkFSE1O3e2tzT+grS0yMH778TItql3AdmMxURgovRYB61r
+ OliTjjDibROglO6gb87LqC6rd/iIOx7JJr3QsO4Kr/jwL0atiOihBWeSkPl3SviS
+ qnrx3JmcsBdp4v9x2CJsjD3tTSNLrxMTu3xHrigWgcrticJrZDZZWfz25Gi9f8Q5
+ eq1svaRFRYm2lC7oQBo0jzxnGXmZ97V7T8GadS2Txvyez48uzzD8+G7GAzE0Gdeh
+ L/JGZ4SMNMoRs3ZbarSnatS+LquqaOmWNEWriJF5f6FBrOKUTEMdkKW3bW28ojax
+ ZLkEQWtdxsfIr1RkJw3BUK66A74kOFahcm+4rSRPdXpDHyKkUmUZhPMgI6TMKCDi
+ h3NRsRGG+BHjwxemsVDgxvunev5jnOmJzGZV2/CCBkU=
 
 Looks good:
 
