@@ -1,61 +1,58 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc250.phx1.oracleemaildelivery.com (aib29ajc250.phx1.oracleemaildelivery.com [192.29.103.250])
+Received: from aib29ajc255.phx1.oracleemaildelivery.com (aib29ajc255.phx1.oracleemaildelivery.com [192.29.103.255])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id C2921ECAAA1
-	for <ocfs2-devel@archiver.kernel.org>; Tue,  6 Sep 2022 01:06:44 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 63750ECAAA1
+	for <ocfs2-devel@archiver.kernel.org>; Mon, 12 Sep 2022 03:30:42 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=2kKVNWeHBpvT+YaacZjRVpym3AOxo6GFoOVW9IL+fW4=;
- b=nDg10773akXKzqYoTbhlyJGeljetijUGi9LC8N7akhIGAI0cFxUnekNSrj4OpK0H3I8x47Lgly8w
-   7x4aF90DcfXjYL3ie5ve/DauQ4+FheFBJTal/MNkInKVDRwOQH719Ai09pFc2a2SpK7ed++nvHiR
-   o+WMiC+8FvtiMZXrJUpIOlSfK2rgtAI6t9cWNmuSw4mIvW3Ls4oXcsAlWgczL28Vcs/DXW6DMN1a
-   sIoIKOjG6lZEahv4Nqau+qa6daPE1tXdxJoPLWQoVayiRNL6uhtTLfD8nbLveGMKAXkfCP2mfkMG
-   9RG4JkGhZLBnFgK2bDgY9RTPNtzdNr6XDAilmw==
+ bh=EdMBGC1GKazenZuHlogP7ox+LCtEmmXYGoPSIiHcxRU=;
+ b=vvAyIQzPrRsdAFyGGvBKswL9rVD3Swx/5J2PvEG+igWtyB3ufdR8pO9fRyrekQSwl+YvKxk1fbZS
+   sTnbaOvBYnIpV6egvxfqpdJHgo9R0kmA5WCgrzAMpENkXehVwl2CCpMBIuubL7L5N6pNW8t3idkq
+   NQSQzipIpr3fOXqGx3hQKr+kOAwNHdEj82/BR31fJX8FIlujQwbyWAdiso30Yy05oVVRfYwyLtuI
+   Ij3m2d5vFnlRM23IsQjqhqi9gM4DWPcUP8azbzGHiitInG2bWvP2FUXASvo8n3rsRRXkolDGwxu1
+   SEauMpK0vW3zfTWyFtJ0QuxHDpKTJ/1dZN4mig==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=2kKVNWeHBpvT+YaacZjRVpym3AOxo6GFoOVW9IL+fW4=;
- b=lBTLZqpAo8mTp/hIS/nGq3H6zw/FHzXUXF5lUnYZgMhrUPGyuB/bkXjnXtGRmVW90Ms9x1yeZKfw
-   QOo9aJqJJ9uaY6zlI2xguTen7BvPQ3qoxpwMwlnH+vYN4kYnMraAy+BOzFqbt8RLzcSoncmcuP6s
-   jtOVEirWAi4PU6rkAVUYsf9pgi8IvGjDk/xJVX21OguQiifKLfxXiwP7Ysq4Bc8/0+z9ytm4UYIn
-   ksbzfjWKyDG4RoEq9dDR1ZSze2lXWxzLdRU7EQ6os615tUgeTUNvMXz7SgPXYxBJ70GexmHgK1uq
-   lCT1vurYZOqYkdVXH27suI8Y6/KoytLrlNxlsw==
-Received: by omta-ad2-fd3-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
- (Oracle Communications Messaging Server 8.1.0.1.20220817 64bit (built Aug 17
+ bh=EdMBGC1GKazenZuHlogP7ox+LCtEmmXYGoPSIiHcxRU=;
+ b=MCLQl0ZD2iraky7VcI3OWI0F8dsc2/Bos5ZC9Gl5K5ond9CPOPrb4eG5DQq/5vkMjI5crVpf9B0f
+   9zsHzBcRggUDVTkyOiy9tRi1LeG7DH9Qp40rZQdabdCF4EZ+wlkW0RPjYwccYJxzrS8vtevnIaZR
+   ZqUoa4gpheUKR1i5RPvyoIu3zezC78Y/u5dLqQEuCYdn4/GoixangakQo8MO5GKlmrD4OsWatjYf
+   +evjr0kHhSiGA+noVvOTZKWw8lsEUza0Rpez3BX7DjAMXczRDY+mG63unENXscNL3oGed45/F+jP
+   jl4FYG1z1u06FlnjQYsABw+J8UziSRVYG1QqAA==
+Received: by omta-ad3-fd3-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
+ (Oracle Communications Messaging Server 8.1.0.1.20220826 64bit (built Aug 26
  2022))
- with ESMTPS id <0RHR00971KF84Y80@omta-ad2-fd3-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Tue, 06 Sep 2022 01:06:44 +0000 (GMT)
-Message-id: <65f66ce6-7695-2884-23a9-378b5c9ca04f@linux.alibaba.com>
-Date: Tue, 6 Sep 2022 09:06:24 +0800
-MIME-version: 1.0
-User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:91.0)
- Gecko/20100101 Thunderbird/91.13.0
-Content-language: en-US
-To: Zhang Yi <yi.zhang@huawei.com>, linux-ext4@vger.kernel.org,
- linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org,
- cluster-devel@redhat.com, ntfs3@lists.linux.dev, ocfs2-devel@oss.oracle.com,
- reiserfs-devel@vger.kernel.org, jack@suse.cz
-References: <20220901133505.2510834-1-yi.zhang@huawei.com>
- <20220901133505.2510834-9-yi.zhang@huawei.com>
-In-reply-to: <20220901133505.2510834-9-yi.zhang@huawei.com>
-X-Source-IP: 115.124.30.131
-X-Proofpoint-Virus-Version: vendor=nai engine=6400 definitions=10461
+ with ESMTPS id <0RI200I0NV35GB90@omta-ad3-fd3-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Mon, 12 Sep 2022 03:30:41 +0000 (GMT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linux-foundation.org;
+ s=korg; t=1662953424; bh=GUxneq2NqCjy5lzqZdTNXLDp4toQQO/UnaIbpAm0WFk=;
+ h=Date:To:From:Subject:From;
+ b=v5SWOr9SZsG+PL35oiYD7TeOEs4y8+NV6i4iDtDThNVFzBF9Q3nRPXR2VsJy6EeX/
+ t4ocFAnWe8+8LBcMfFL8NKf45yCEH2u2m7ITvTpOUHtjCZ/xF1D9wklZclTHr2NifU
+ 9HzYGaQnHXNFYKBs7h3pN4LQPBEdARW8aeDQn5w0=
+Date: Sun, 11 Sep 2022 20:30:23 -0700
+To: mm-commits@vger.kernel.org, yukuai3@huawei.com, viro@zeniv.linux.org.uk,
+ tytso@mit.edu, rpeterso@redhat.com, ocfs2-devel@oss.oracle.com,
+ mark@fasheh.com, jack@suse.cz, hch@lst.de, dushistov@mail.ru,
+ chengzhihao1@huawei.com, axboe@kernel.dk,
+ almaz.alexandrovich@paragon-software.com, agruenba@redhat.com,
+ yi.zhang@huawei.com, akpm@linux-foundation.org
+Message-id: <20220912033024.9C7BFC433D6@smtp.kernel.org>
+X-Source-IP: 145.40.68.75
+X-Proofpoint-Virus-Version: vendor=nai engine=6400 definitions=10467
  signatures=596816
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0
- lowpriorityscore=0 bulkscore=0 spamscore=0 impostorscore=0 mlxlogscore=999
- clxscore=91 mlxscore=0 phishscore=0 suspectscore=0 adultscore=0
- priorityscore=128 malwarescore=0 classifier=spam adjust=0 reason=mlx
- scancount=1 engine=8.12.0-2207270000 definitions=main-2209060003
- domainage_hfrom=8545
-Cc: axboe@kernel.dk, almaz.alexandrovich@paragon-software.com, tytso@mit.edu,
- agruenba@redhat.com, chengzhihao1@huawei.com, hch@infradead.org,
- viro@zeniv.linux.org.uk, rpeterso@redhat.com, yukuai3@huawei.com,
- dushistov@mail.ru
-Subject: Re: [Ocfs2-devel] [PATCH v2 08/14] ocfs2: replace ll_rw_block()
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 phishscore=0
+ lowpriorityscore=0 suspectscore=0 spamscore=0 impostorscore=0 priorityscore=90
+ malwarescore=0 adultscore=0 clxscore=245 mlxscore=0 mlxlogscore=999
+ bulkscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2207270000 definitions=main-2209120011
+Subject: [Ocfs2-devel] [merged mm-stable]
+	fs-buffer-remove-__breadahead_gfp.patch removed from -mm tree
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -67,81 +64,145 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: Joseph Qi via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: Joseph Qi <joseph.qi@linux.alibaba.com>
+From: Andrew Morton via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: Andrew Morton <akpm@linux-foundation.org>
+MIME-version: 1.0
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-Alimail-AntiSpam: AC=PASS; BC=-1|-1; BR=01201311R161e4; CH=green;
- DM=||false|; DS=||; FP=0|-1|-1|-1|0|-1|-1|-1; HT=ay29a033018046050;
- MF=joseph.qi@linux.alibaba.com; NM=1; PH=DS; RN=19; SR=0;
- TI=SMTPD_---0VOZFNX5_1662426383;
-X-ServerName: out30-131.freemail.mail.aliyun.com
+X-ServerName: ams.source.kernel.org
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 include:spf1.service.alibaba.com
- include:spf2.service.alibaba.com include:spf1.ocm.aliyun.com
- include:spf2.ocm.aliyun.com include:spf1.staff.mail.aliyun.com
- include:a.hichina.mail.aliyun.com include:b.hichina.mail.aliyun.com -all
+X-Proofpoint-SPF-Record: v=spf1 ip4:140.211.169.12/30 include:_spf.kernel.org
+ include:_spf.google.com ~all
 X-Spam: Clean
-X-Proofpoint-ORIG-GUID: RxKQhdB4nAylKRhsgx6DmLFeX2iV_q1G
-X-Proofpoint-GUID: RxKQhdB4nAylKRhsgx6DmLFeX2iV_q1G
+X-Proofpoint-GUID: bkkV8twPElCG2Bl9Ck53yxNKb9K7_8j8
+X-Proofpoint-ORIG-GUID: bkkV8twPElCG2Bl9Ck53yxNKb9K7_8j8
 Reporting-Meta:
- AAGrBo0tc9c5m9tU4t1iUYzsXh4ZJCvAv8pJYjjWkNG7U3FA6akbnIpJV5LC76va
- CYHqpjy0H6jNy+BuRKoQkeYmRR/dXSeZAUyw7JfnEJDqt5cSdcNzSrhwSbFATRjn
- 9+WI5sWdHGv7/d42xGlqo+p+hCmYpjFDVp6ntTwjHxk+50nSdpEEgtzR+OfbEptz
- Ydumpcx4hzL3iXa5V7j+c7og7rE4C5wAUzRe0gZlG4ngVC4zMobzrtVU690cutpt
- xbHfU69YKAvz5Jp/F48MfCmlWjG90Mc0M3AEC6eRn7OwwC7QZ8RXpSEMCOcaQHKZ
- KQd/YTzw6nqsWMzfL27GD6bgafxW47uNYkbQViqQsO9FLSAZH+aF0Ha7t3yr9w3X
- 6X3GpS1iXUEsCtnpC6tyzBp2I+Zb4L2DQsXmXwg7EpB7/7ZRu/EdFTpdPnX7iOg2
- U224HOLiaEs/l/vA8Z4wGK7hmp12r4LtbxXkjKM0YH1o7w/XBLjq3wDG3vYSXeld
- hYm+HeqUj6a/6nQox/RIPnaks7OMC28gniX2+ZHZc1I=
+ AAEhYN/X2RInAnRJQ/UkGd8plSe4cAmXyTNR0y42zcVTANHchGP3QXhZc3Fl52V2
+ bPR/vl8L/TeqZBAsMYYtOqclkKwSua9U464P/r2PkRKeLZGQGwsR07MhQqNFe1Ds
+ PWscL+qZraufhyfbbpJ1g+aQWbBngX5d6PRp8YEfcU5TZSSmn0mWOu8xL5lLp1+R
+ +VRj0TS8pQTXypFqGzu0YRLF8JsQ3Zlq3Ys4EWO+Yfaumg7dXYpxGhncTcQes4Fh
+ qnX+nszCJ4Qgp4H4fZejp5VLGY/m+fpeiGQdtFAAnhDRodA+HFb+gkwNF2ZXKYvW
+ Tb0IJJF79KtH7/TBmsvU8Wdrn3n5615GRfoAOKUSBuSuv2XVvDj2dzM4jXSyJz/R
+ ouJun7JEIhbHs0CmZeyzr26vmqZCdfeNrsRu5w6f4k0hCmbY1+mMidlZRVcC8oaD
+ Dbm9+qNGaKXJv3WTPhToiNEbjRrCEruZ0NJ65s0ib3Rk+hvcos6Mz7txrQoVL3j/
+ G1P0HwzYlCHqYqr2qgV/IQu0BR10WxuWx8tXTfbLwJD4
 
 
+The quilt patch titled
+     Subject: fs/buffer: remove __breadahead_gfp()
+has been removed from the -mm tree.  Its filename was
+     fs-buffer-remove-__breadahead_gfp.patch
 
-On 9/1/22 9:34 PM, Zhang Yi via Ocfs2-devel wrote:
-> ll_rw_block() is not safe for the sync read path because it cannot
-> guarantee that submitting read IO if the buffer has been locked. We
-> could get false positive EIO after wait_on_buffer() if the buffer has
-> been locked by others. So stop using ll_rw_block() in ocfs2.
-> 
-> Signed-off-by: Zhang Yi <yi.zhang@huawei.com>
+This patch was dropped because it was merged into the mm-stable branch
+of git://git.kernel.org/pub/scm/linux/kernel/git/akpm/mm
 
-Looks good to me.
-Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+------------------------------------------------------
+From: Zhang Yi <yi.zhang@huawei.com>
+Subject: fs/buffer: remove __breadahead_gfp()
+Date: Thu, 1 Sep 2022 21:34:52 +0800
 
-> ---
->  fs/ocfs2/aops.c  | 2 +-
->  fs/ocfs2/super.c | 4 +---
->  2 files changed, 2 insertions(+), 4 deletions(-)
-> 
-> diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-> index af4157f61927..1d65f6ef00ca 100644
-> --- a/fs/ocfs2/aops.c
-> +++ b/fs/ocfs2/aops.c
-> @@ -636,7 +636,7 @@ int ocfs2_map_page_blocks(struct page *page, u64 *p_blkno,
->  			   !buffer_new(bh) &&
->  			   ocfs2_should_read_blk(inode, page, block_start) &&
->  			   (block_start < from || block_end > to)) {
-> -			ll_rw_block(REQ_OP_READ, 1, &bh);
-> +			bh_read_nowait(bh, 0);
->  			*wait_bh++=bh;
->  		}
->  
-> diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-> index e2cc9eec287c..26b4c2bfee49 100644
-> --- a/fs/ocfs2/super.c
-> +++ b/fs/ocfs2/super.c
-> @@ -1764,9 +1764,7 @@ static int ocfs2_get_sector(struct super_block *sb,
->  	if (!buffer_dirty(*bh))
->  		clear_buffer_uptodate(*bh);
->  	unlock_buffer(*bh);
-> -	ll_rw_block(REQ_OP_READ, 1, bh);
-> -	wait_on_buffer(*bh);
-> -	if (!buffer_uptodate(*bh)) {
-> +	if (bh_read(*bh, 0) < 0) {
->  		mlog_errno(-EIO);
->  		brelse(*bh);
->  		*bh = NULL;
+Patch series "fs/buffer: remove ll_rw_block()", v2.
+
+ll_rw_block() will skip locked buffer before submitting IO, it assumes
+that locked buffer means it is under IO.  This assumption is not always
+true because we cannot guarantee every buffer lock path would submit IO. 
+After commit 88dbcbb3a484 ("blkdev: avoid migration stalls for blkdev
+pages"), buffer_migrate_folio_norefs() becomes one exceptional case, and
+there may be others.  So ll_rw_block() is not safe on the sync read path,
+we could get false positive EIO return value when filesystem reading
+metadata.  It seems that it could be only used on the readahead path.
+
+Unfortunately, many filesystem misuse the ll_rw_block() on the sync read
+path.  This patch set just remove ll_rw_block() and add new friendly
+helpers, which could prevent false positive EIO on the read metadata path.
+Thanks for the suggestion from Jan, the original discussion is at [1].
+
+ patch 1: remove unused helpers in fs/buffer.c
+ patch 2: add new bh_read_[*] helpers
+ patch 3-11: remove all ll_rw_block() calls in filesystems
+ patch 12-14: do some leftover cleanups.
+
+[1]. https://lore.kernel.org/linux-mm/20220825080146.2021641-1-chengzhihao1@huawei.com/
+
+
+This patch (of 14):
+
+No one use __breadahead_gfp() and sb_breadahead_unmovable() any more,
+remove them.
+
+Link: https://lkml.kernel.org/r/20220901133505.2510834-1-yi.zhang@huawei.com
+Link: https://lkml.kernel.org/r/20220901133505.2510834-2-yi.zhang@huawei.com
+Signed-off-by: Zhang Yi <yi.zhang@huawei.com>
+Reviewed-by: Jan Kara <jack@suse.cz>
+Reviewed-by: Christoph Hellwig <hch@lst.de>
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>
+Cc: Andreas Gruenbacher <agruenba@redhat.com>
+Cc: Bob Peterson <rpeterso@redhat.com>
+Cc: Evgeniy Dushistov <dushistov@mail.ru>
+Cc: Heming Zhao <ocfs2-devel@oss.oracle.com>
+Cc: Jens Axboe <axboe@kernel.dk>
+Cc: Konstantin Komarov <almaz.alexandrovich@paragon-software.com>
+Cc: Mark Fasheh <mark@fasheh.com>
+Cc: Theodore Ts'o <tytso@mit.edu>
+Cc: Yu Kuai <yukuai3@huawei.com>
+Cc: Zhihao Cheng <chengzhihao1@huawei.com>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+---
+
+ fs/buffer.c                 |   11 -----------
+ include/linux/buffer_head.h |    8 --------
+ 2 files changed, 19 deletions(-)
+
+--- a/fs/buffer.c~fs-buffer-remove-__breadahead_gfp
++++ a/fs/buffer.c
+@@ -1348,17 +1348,6 @@ void __breadahead(struct block_device *b
+ }
+ EXPORT_SYMBOL(__breadahead);
+ 
+-void __breadahead_gfp(struct block_device *bdev, sector_t block, unsigned size,
+-		      gfp_t gfp)
+-{
+-	struct buffer_head *bh = __getblk_gfp(bdev, block, size, gfp);
+-	if (likely(bh)) {
+-		ll_rw_block(REQ_OP_READ | REQ_RAHEAD, 1, &bh);
+-		brelse(bh);
+-	}
+-}
+-EXPORT_SYMBOL(__breadahead_gfp);
+-
+ /**
+  *  __bread_gfp() - reads a specified block and returns the bh
+  *  @bdev: the block_device to read from
+--- a/include/linux/buffer_head.h~fs-buffer-remove-__breadahead_gfp
++++ a/include/linux/buffer_head.h
+@@ -214,8 +214,6 @@ struct buffer_head *__getblk_gfp(struct
+ void __brelse(struct buffer_head *);
+ void __bforget(struct buffer_head *);
+ void __breadahead(struct block_device *, sector_t block, unsigned int size);
+-void __breadahead_gfp(struct block_device *, sector_t block, unsigned int size,
+-		  gfp_t gfp);
+ struct buffer_head *__bread_gfp(struct block_device *,
+ 				sector_t block, unsigned size, gfp_t gfp);
+ void invalidate_bh_lrus(void);
+@@ -340,12 +338,6 @@ sb_breadahead(struct super_block *sb, se
+ 	__breadahead(sb->s_bdev, block, sb->s_blocksize);
+ }
+ 
+-static inline void
+-sb_breadahead_unmovable(struct super_block *sb, sector_t block)
+-{
+-	__breadahead_gfp(sb->s_bdev, block, sb->s_blocksize, 0);
+-}
+-
+ static inline struct buffer_head *
+ sb_getblk(struct super_block *sb, sector_t block)
+ {
+_
+
+Patches currently in -mm which might be from yi.zhang@huawei.com are
+
+
 
 _______________________________________________
 Ocfs2-devel mailing list
