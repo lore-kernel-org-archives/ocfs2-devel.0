@@ -1,58 +1,54 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc255.phx1.oracleemaildelivery.com (aib29ajc255.phx1.oracleemaildelivery.com [192.29.103.255])
+Received: from aib29ajc249.phx1.oracleemaildelivery.com (aib29ajc249.phx1.oracleemaildelivery.com [192.29.103.249])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 63750ECAAA1
-	for <ocfs2-devel@archiver.kernel.org>; Mon, 12 Sep 2022 03:30:42 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 7FB89C07E9D
+	for <ocfs2-devel@archiver.kernel.org>; Tue, 27 Sep 2022 01:52:05 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=EdMBGC1GKazenZuHlogP7ox+LCtEmmXYGoPSIiHcxRU=;
- b=vvAyIQzPrRsdAFyGGvBKswL9rVD3Swx/5J2PvEG+igWtyB3ufdR8pO9fRyrekQSwl+YvKxk1fbZS
-   sTnbaOvBYnIpV6egvxfqpdJHgo9R0kmA5WCgrzAMpENkXehVwl2CCpMBIuubL7L5N6pNW8t3idkq
-   NQSQzipIpr3fOXqGx3hQKr+kOAwNHdEj82/BR31fJX8FIlujQwbyWAdiso30Yy05oVVRfYwyLtuI
-   Ij3m2d5vFnlRM23IsQjqhqi9gM4DWPcUP8azbzGHiitInG2bWvP2FUXASvo8n3rsRRXkolDGwxu1
-   SEauMpK0vW3zfTWyFtJ0QuxHDpKTJ/1dZN4mig==
+ bh=QgYZ6UwarggZk9rRkUYu3e9jPifTm2uVzS/7W7UQkuY=;
+ b=aJDkPoCPF0jDCttTaKHOFqMEQTdj3mEvjPJ+ZH5se4+c2wrgTz47WqtUCFxEsP0Tf6Y2FsH5eSz8
+   jwL5kdXKqohXCEh4y9KT7+Jog6iqsLP29HJBmPtdey3bCuHMDCaKbWZ346MY5dtjvHASvgR4fU9M
+   TwW+3f9fQHXpDDHTo3EnetYKS5rq1RbAVAKq+Ne4WG6c5SYQ6FpzgcoI/vtj2RRzyJblclr/4KxJ
+   ddUlytyaJt6aKnYj9JWHAqeNc5OCjWSrV9RgwJgsWHEaWPc0uRDdB4eUgyvY1ipt4bn+KhZFxAVQ
+   ZQMHyst1125jjXnrl1H927lVrcut9Io50uthFw==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=EdMBGC1GKazenZuHlogP7ox+LCtEmmXYGoPSIiHcxRU=;
- b=MCLQl0ZD2iraky7VcI3OWI0F8dsc2/Bos5ZC9Gl5K5ond9CPOPrb4eG5DQq/5vkMjI5crVpf9B0f
-   9zsHzBcRggUDVTkyOiy9tRi1LeG7DH9Qp40rZQdabdCF4EZ+wlkW0RPjYwccYJxzrS8vtevnIaZR
-   ZqUoa4gpheUKR1i5RPvyoIu3zezC78Y/u5dLqQEuCYdn4/GoixangakQo8MO5GKlmrD4OsWatjYf
-   +evjr0kHhSiGA+noVvOTZKWw8lsEUza0Rpez3BX7DjAMXczRDY+mG63unENXscNL3oGed45/F+jP
-   jl4FYG1z1u06FlnjQYsABw+J8UziSRVYG1QqAA==
-Received: by omta-ad3-fd3-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
- (Oracle Communications Messaging Server 8.1.0.1.20220826 64bit (built Aug 26
+ bh=QgYZ6UwarggZk9rRkUYu3e9jPifTm2uVzS/7W7UQkuY=;
+ b=TbwrrT0x3iSb2oyp4AJk2RoJycD2P0JD6vZVeJo4Siz5q1NckhXQ+y3Qf64SlfdSYaTGm0/0ntEY
+   rElakAiwbyM85TXmy7jXdD/6uQOzjAhYGCw/j6D3eWYfi5+11ELirGMGFm4k2mwvKBCQ2OUBT3SN
+   wvYxs56iAbWUAKW6doQGhAALOFv4lO+GrVRuKF1tb9VPV3drUJAYXJSIgW2gMBHQ0yTMocz4/p80
+   wYrsd2a/8oFTOx/69ywAUdjbn0ySM2UDAh6NnNUTvflyJSQwObx0HjofsuUDuefPG/gCgiEP3027
+   jUeWX4VRHNFg0VCCvJ3RM8UAw72xS71m3qs6ZQ==
+Received: by omta-ad2-fd1-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
+ (Oracle Communications Messaging Server 8.1.0.1.20220914 64bit (built Sep 14
  2022))
- with ESMTPS id <0RI200I0NV35GB90@omta-ad3-fd3-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Mon, 12 Sep 2022 03:30:41 +0000 (GMT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linux-foundation.org;
- s=korg; t=1662953424; bh=GUxneq2NqCjy5lzqZdTNXLDp4toQQO/UnaIbpAm0WFk=;
- h=Date:To:From:Subject:From;
- b=v5SWOr9SZsG+PL35oiYD7TeOEs4y8+NV6i4iDtDThNVFzBF9Q3nRPXR2VsJy6EeX/
- t4ocFAnWe8+8LBcMfFL8NKf45yCEH2u2m7ITvTpOUHtjCZ/xF1D9wklZclTHr2NifU
- 9HzYGaQnHXNFYKBs7h3pN4LQPBEdARW8aeDQn5w0=
-Date: Sun, 11 Sep 2022 20:30:23 -0700
-To: mm-commits@vger.kernel.org, yukuai3@huawei.com, viro@zeniv.linux.org.uk,
- tytso@mit.edu, rpeterso@redhat.com, ocfs2-devel@oss.oracle.com,
- mark@fasheh.com, jack@suse.cz, hch@lst.de, dushistov@mail.ru,
- chengzhihao1@huawei.com, axboe@kernel.dk,
- almaz.alexandrovich@paragon-software.com, agruenba@redhat.com,
- yi.zhang@huawei.com, akpm@linux-foundation.org
-Message-id: <20220912033024.9C7BFC433D6@smtp.kernel.org>
-X-Source-IP: 145.40.68.75
-X-Proofpoint-Virus-Version: vendor=nai engine=6400 definitions=10467
+ with ESMTPS id <0RIU00LF4IISBYC0@omta-ad2-fd1-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Tue, 27 Sep 2022 01:52:04 +0000 (GMT)
+Message-id: <1081a9ca-38d9-1ee5-e380-bf2dbe422eec@linux.alibaba.com>
+Date: Tue, 27 Sep 2022 09:51:39 +0800
+MIME-version: 1.0
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:91.0)
+ Gecko/20100101 Thunderbird/91.13.1
+Content-language: en-US
+To: Rock Li <lihongweizz@inspur.com>, mark@fasheh.com, jlbec@evilplan.org
+References: <20220920073638.1358-1-lihongweizz@inspur.com>
+In-reply-to: <20220920073638.1358-1-lihongweizz@inspur.com>
+X-Source-IP: 115.124.30.43
+X-Proofpoint-Virus-Version: vendor=nai engine=6400 definitions=10482
  signatures=596816
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 phishscore=0
- lowpriorityscore=0 suspectscore=0 spamscore=0 impostorscore=0 priorityscore=90
- malwarescore=0 adultscore=0 clxscore=245 mlxscore=0 mlxlogscore=999
- bulkscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2207270000 definitions=main-2209120011
-Subject: [Ocfs2-devel] [merged mm-stable]
-	fs-buffer-remove-__breadahead_gfp.patch removed from -mm tree
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 clxscore=105
+ priorityscore=138 lowpriorityscore=0 bulkscore=0 malwarescore=0 adultscore=0
+ suspectscore=0 impostorscore=0 mlxscore=0 phishscore=0 spamscore=0
+ mlxlogscore=999 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2209130000 definitions=main-2209270009 domainage_hfrom=8566
+Cc: linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
+Subject: Re: [Ocfs2-devel] [PATCH] ocfs2: fix crash issue if access released
+ lockres in debugfs
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -64,145 +60,93 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: Andrew Morton via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: Andrew Morton <akpm@linux-foundation.org>
-MIME-version: 1.0
+From: Joseph Qi via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: Joseph Qi <joseph.qi@linux.alibaba.com>
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-ServerName: ams.source.kernel.org
+X-Alimail-AntiSpam: AC=PASS; BC=-1|-1; BR=01201311R951e4; CH=green;
+ DM=||false|; DS=||; FP=0|-1|-1|-1|0|-1|-1|-1; HT=ay29a033018046050;
+ MF=joseph.qi@linux.alibaba.com; NM=1; PH=DS; RN=5; SR=0;
+ TI=SMTPD_---0VQpkeU7_1664243499;
+X-ServerName: out30-43.freemail.mail.aliyun.com
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 ip4:140.211.169.12/30 include:_spf.kernel.org
- include:_spf.google.com ~all
+X-Proofpoint-SPF-Record: v=spf1 include:spf1.service.alibaba.com
+ include:spf2.service.alibaba.com include:spf1.ocm.aliyun.com
+ include:spf2.ocm.aliyun.com include:spf1.staff.mail.aliyun.com
+ include:a.hichina.mail.aliyun.com include:b.hichina.mail.aliyun.com -all
 X-Spam: Clean
-X-Proofpoint-GUID: bkkV8twPElCG2Bl9Ck53yxNKb9K7_8j8
-X-Proofpoint-ORIG-GUID: bkkV8twPElCG2Bl9Ck53yxNKb9K7_8j8
+X-Proofpoint-GUID: tHquMLFXkwa1mpQu_hu1lgFoBHesY9aA
+X-Proofpoint-ORIG-GUID: tHquMLFXkwa1mpQu_hu1lgFoBHesY9aA
 Reporting-Meta:
- AAEhYN/X2RInAnRJQ/UkGd8plSe4cAmXyTNR0y42zcVTANHchGP3QXhZc3Fl52V2
- bPR/vl8L/TeqZBAsMYYtOqclkKwSua9U464P/r2PkRKeLZGQGwsR07MhQqNFe1Ds
- PWscL+qZraufhyfbbpJ1g+aQWbBngX5d6PRp8YEfcU5TZSSmn0mWOu8xL5lLp1+R
- +VRj0TS8pQTXypFqGzu0YRLF8JsQ3Zlq3Ys4EWO+Yfaumg7dXYpxGhncTcQes4Fh
- qnX+nszCJ4Qgp4H4fZejp5VLGY/m+fpeiGQdtFAAnhDRodA+HFb+gkwNF2ZXKYvW
- Tb0IJJF79KtH7/TBmsvU8Wdrn3n5615GRfoAOKUSBuSuv2XVvDj2dzM4jXSyJz/R
- ouJun7JEIhbHs0CmZeyzr26vmqZCdfeNrsRu5w6f4k0hCmbY1+mMidlZRVcC8oaD
- Dbm9+qNGaKXJv3WTPhToiNEbjRrCEruZ0NJ65s0ib3Rk+hvcos6Mz7txrQoVL3j/
- G1P0HwzYlCHqYqr2qgV/IQu0BR10WxuWx8tXTfbLwJD4
+ AAFqXtQlf6oBGz90L65V9bZJBoEsSppzr8jwCV464p+ks7tsfpoPL+8bn0A9/MeH
+ 8Wd3H8FpQYYfjWLMQdnuE5eL4RBDz9skF0bZViksDvp9xEjRouq3JVca6V3mGkG1
+ dk09yyd3OYfmq0xCWU7PPvlHTJRKzyYn/6Xr4CsaqJ6nF2oFV0br7TecO2puyZSu
+ +NtOUj00vpUlGRdUMFgOSeo4Oo6or77H0Ex7RNv54iu3BhN5sIeYjo+xbsKSIcA6
+ hznwTuRaeKDavI/R62dTzgXOftHAzfbcbxRkicqvJOQMzceNWG3sPyMPPcSlvsBN
+ CB2+W8GYp6R/a6SzuZLynk9NyUp0pGJE8U4HBFdHq39O3Rjc8Nj6+wUmhMUXUmHn
+ AqtbUIHhVqzPVGgNvsEs00xzQCgvtbk1p/cWwEdQ6zGWbSxUrK2e4rj6D5DPHwr7
+ W93CjprkM1cR+v2JtzBzyh5Iwjkjf45ltK3gV7gRA3OTXEUhy7x/c6Ot9iR5kFa5
+ 7OeNqvTOs87gADjFUsfmgqiXUySfysqhIxwn8Bvgb8c=
 
+Hi,
+Sorry for the late reply.
+It seems it is indeed an issue and I'll get into it more deeply.
+I'm curious about how you figure out this? Is it a real issue you've
+encountered?
 
-The quilt patch titled
-     Subject: fs/buffer: remove __breadahead_gfp()
-has been removed from the -mm tree.  Its filename was
-     fs-buffer-remove-__breadahead_gfp.patch
+Thanks,
+Joseph
 
-This patch was dropped because it was merged into the mm-stable branch
-of git://git.kernel.org/pub/scm/linux/kernel/git/akpm/mm
-
-------------------------------------------------------
-From: Zhang Yi <yi.zhang@huawei.com>
-Subject: fs/buffer: remove __breadahead_gfp()
-Date: Thu, 1 Sep 2022 21:34:52 +0800
-
-Patch series "fs/buffer: remove ll_rw_block()", v2.
-
-ll_rw_block() will skip locked buffer before submitting IO, it assumes
-that locked buffer means it is under IO.  This assumption is not always
-true because we cannot guarantee every buffer lock path would submit IO. 
-After commit 88dbcbb3a484 ("blkdev: avoid migration stalls for blkdev
-pages"), buffer_migrate_folio_norefs() becomes one exceptional case, and
-there may be others.  So ll_rw_block() is not safe on the sync read path,
-we could get false positive EIO return value when filesystem reading
-metadata.  It seems that it could be only used on the readahead path.
-
-Unfortunately, many filesystem misuse the ll_rw_block() on the sync read
-path.  This patch set just remove ll_rw_block() and add new friendly
-helpers, which could prevent false positive EIO on the read metadata path.
-Thanks for the suggestion from Jan, the original discussion is at [1].
-
- patch 1: remove unused helpers in fs/buffer.c
- patch 2: add new bh_read_[*] helpers
- patch 3-11: remove all ll_rw_block() calls in filesystems
- patch 12-14: do some leftover cleanups.
-
-[1]. https://lore.kernel.org/linux-mm/20220825080146.2021641-1-chengzhihao1@huawei.com/
-
-
-This patch (of 14):
-
-No one use __breadahead_gfp() and sb_breadahead_unmovable() any more,
-remove them.
-
-Link: https://lkml.kernel.org/r/20220901133505.2510834-1-yi.zhang@huawei.com
-Link: https://lkml.kernel.org/r/20220901133505.2510834-2-yi.zhang@huawei.com
-Signed-off-by: Zhang Yi <yi.zhang@huawei.com>
-Reviewed-by: Jan Kara <jack@suse.cz>
-Reviewed-by: Christoph Hellwig <hch@lst.de>
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>
-Cc: Andreas Gruenbacher <agruenba@redhat.com>
-Cc: Bob Peterson <rpeterso@redhat.com>
-Cc: Evgeniy Dushistov <dushistov@mail.ru>
-Cc: Heming Zhao <ocfs2-devel@oss.oracle.com>
-Cc: Jens Axboe <axboe@kernel.dk>
-Cc: Konstantin Komarov <almaz.alexandrovich@paragon-software.com>
-Cc: Mark Fasheh <mark@fasheh.com>
-Cc: Theodore Ts'o <tytso@mit.edu>
-Cc: Yu Kuai <yukuai3@huawei.com>
-Cc: Zhihao Cheng <chengzhihao1@huawei.com>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
----
-
- fs/buffer.c                 |   11 -----------
- include/linux/buffer_head.h |    8 --------
- 2 files changed, 19 deletions(-)
-
---- a/fs/buffer.c~fs-buffer-remove-__breadahead_gfp
-+++ a/fs/buffer.c
-@@ -1348,17 +1348,6 @@ void __breadahead(struct block_device *b
- }
- EXPORT_SYMBOL(__breadahead);
- 
--void __breadahead_gfp(struct block_device *bdev, sector_t block, unsigned size,
--		      gfp_t gfp)
--{
--	struct buffer_head *bh = __getblk_gfp(bdev, block, size, gfp);
--	if (likely(bh)) {
--		ll_rw_block(REQ_OP_READ | REQ_RAHEAD, 1, &bh);
--		brelse(bh);
--	}
--}
--EXPORT_SYMBOL(__breadahead_gfp);
--
- /**
-  *  __bread_gfp() - reads a specified block and returns the bh
-  *  @bdev: the block_device to read from
---- a/include/linux/buffer_head.h~fs-buffer-remove-__breadahead_gfp
-+++ a/include/linux/buffer_head.h
-@@ -214,8 +214,6 @@ struct buffer_head *__getblk_gfp(struct
- void __brelse(struct buffer_head *);
- void __bforget(struct buffer_head *);
- void __breadahead(struct block_device *, sector_t block, unsigned int size);
--void __breadahead_gfp(struct block_device *, sector_t block, unsigned int size,
--		  gfp_t gfp);
- struct buffer_head *__bread_gfp(struct block_device *,
- 				sector_t block, unsigned size, gfp_t gfp);
- void invalidate_bh_lrus(void);
-@@ -340,12 +338,6 @@ sb_breadahead(struct super_block *sb, se
- 	__breadahead(sb->s_bdev, block, sb->s_blocksize);
- }
- 
--static inline void
--sb_breadahead_unmovable(struct super_block *sb, sector_t block)
--{
--	__breadahead_gfp(sb->s_bdev, block, sb->s_blocksize, 0);
--}
--
- static inline struct buffer_head *
- sb_getblk(struct super_block *sb, sector_t block)
- {
-_
-
-Patches currently in -mm which might be from yi.zhang@huawei.com are
-
-
+On 9/20/22 3:36 PM, Rock Li wrote:
+> Access locking_state of dlm debugfs may cause crash as scene below:
+> 
+> Proc A:                  Proc that access debuginfo:
+> add_lockres_tracking(lockresA)
+> ...
+>                          ocfs2_dlm_seq_next():
+>                            //priv->p_iter_res points to next
+>                            //lockres e.g. B. priv->p_tmp_res hold
+>                            //copy of lockres A before leave
+>                          ocfs2_dlm_seq_show()
+> ...
+> remove_lockres_tracking(lockres B):
+>   //free lockres B, l_debug_list in
+>   //priv->p_ter_res is updated but not
+>   //priv->p_tmp_res
+> ...
+>                          ocfs2_dlm_seq_next():
+> 			   //priv->p_tmp_res which holds a old copy of
+>                            //lockres A, the l_debug_list holds a
+>                            //out-of-date succeed pointer, which will
+>                            //cause crash as //access invalid memory
+>                            iter = v; //priv->p_tmp_res
+>                            iter = ocfs2_dlm_next_res(iter, priv)
+> 
+> The root cause of this issue is that private->p_iter_res acts as the
+> agent of accessing lockres and is protected by ocfs2_dlm_tracking_lock
+> while p_tmp_res is only a copy of the lockres and will be out-of-dated
+> after leave critial region of ocfs2_dlm_tracking_lock. We should use
+> priv->p_ter_res as the forward iterater instead.
+> 
+> Signed-off-by: Rock Li <lihongweizz@inspur.com>
+> ---
+>  fs/ocfs2/dlmglue.c | 2 +-
+>  1 file changed, 1 insertion(+), 1 deletion(-)
+> 
+> diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
+> index c28bc98..5d84350 100644
+> --- a/fs/ocfs2/dlmglue.c
+> +++ b/fs/ocfs2/dlmglue.c
+> @@ -3109,7 +3109,7 @@ static void *ocfs2_dlm_seq_next(struct seq_file *m, void *v, loff_t *pos)
+>  	struct ocfs2_lock_res *dummy = &priv->p_iter_res;
+>  
+>  	spin_lock(&ocfs2_dlm_tracking_lock);
+> -	iter = ocfs2_dlm_next_res(iter, priv);
+> +	iter = ocfs2_dlm_next_res(dummy, priv);
+>  	list_del_init(&dummy->l_debug_list);
+>  	if (iter) {
+>  		list_add(&dummy->l_debug_list, &iter->l_debug_list);
 
 _______________________________________________
 Ocfs2-devel mailing list
