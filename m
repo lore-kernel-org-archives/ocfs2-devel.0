@@ -1,50 +1,67 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc254.phx1.oracleemaildelivery.com (aib29ajc254.phx1.oracleemaildelivery.com [192.29.103.254])
+Received: from aib29ajc246.phx1.oracleemaildelivery.com (aib29ajc246.phx1.oracleemaildelivery.com [192.29.103.246])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 62BADC433FE
-	for <ocfs2-devel@archiver.kernel.org>; Fri,  7 Oct 2022 12:49:41 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 5FA93C4332F
+	for <ocfs2-devel@archiver.kernel.org>; Sun, 16 Oct 2022 23:30:06 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=/xjAf5LvuDdaEAljC78kyfM3aZtzZHIv76KCcJH/j34=;
- b=meXnntILUCsQxZ95+QXDbD0YCYGJxdGEIpu46/Ibb36i9MvhFBdn7yLH7C4geksSY8ogVX3XViwD
-   tAKzgLoJinQ9SH0onCDBv0fldSjELIWKh0lmh5nmEtxw3sH9R2mJfwrOTweDj44LXNiPlezKmFiM
-   ZCLCnrKNGyKY7ypC1cmzfImItbbGPt7O1sglLYhZ90karVaGoBbb9vLhqHUbaekVHibJSXHpW6hh
-   3hP8RwqxTfWy811dXF6biqGgiBqUR6GpmwHHSKg/LZlDNZkAEkAiyTVvETV/121NsvBOE2VZDP+F
-   mK5aXy+ArMPdnGf3dXA6PWkAXzR5kxt0Thp2MA==
+ bh=/DVaEmexCqz14duKXA5vq3lRmq/iu39NU5tuLvwA0PM=;
+ b=YFRCuVuAovZ6e81eKl/gJb/lajEUL3JblZiP8YkcpdTUbswHG7a2hw4EOfKzCIA5LOVifnzGdCJ4
+   6ESpMBrCl0RqH/X83V5S5bSAfgQHIubii2iQsw0AMPpGYZzbeLRzV4yD44lrf2MplAtV+rB1nkNQ
+   OnY8jqwhnv4y7p8yhxKBfxC40VA9Lgh7le3h0twWy/uFNn6qlTuZB5o/YzIQs9+HTxszhf0b6SWg
+   JfvKwjwgakArD09FakB6YOB0qtBEhVqfwKpScJNuPfP1SVI5sNvnBXrQCbgWw7LMemcHMpX/J00h
+   UW7eqEXQUZGUk07Ge3HjTI6Y4ifO6nFsmt8rhg==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=/xjAf5LvuDdaEAljC78kyfM3aZtzZHIv76KCcJH/j34=;
- b=meLXQJ1IW8FRvLv9QK0c+5ko1cEJI4iNJih5L/Y4F/B2em+jIl4JMYOkeQbxWAni8ZuBxqK1SmS7
-   Lp/gKCNWEwJYv2/w0dy1pfqGY9evRYLFr1uFWea8oTjqrV/chovFTNThHe8PrV3sAmr3LiXGMay2
-   vIJWKGYbmHZ8hPg50acg+ap9eKHbwUDwLxQjAWIE8yHiyfiJqD9dfr8ei25xw8jevKbidZyMQl3E
-   XGibA/jfOqJ7AaaahlR07+84hm35/aoXHiaWRNfnxQVbBEZI+CQuY5VE7bFKVM1ougRiPlPfMF1i
-   N3OM9dlwOxqaCvh8zIHYiZEGxgxUjZvAfSQykw==
-Received: by omta-ad3-fd3-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
+ bh=/DVaEmexCqz14duKXA5vq3lRmq/iu39NU5tuLvwA0PM=;
+ b=eItXIXbjLu+CGqmzKeGTyxKFjYIWSZEoc4qId9PZTiRs2M63V2RXgIaKw5uELXT7JJIW5d0RP9X7
+   YaRAOxykfXk2+kY/j/VeSlxTtJN30DZ3NAuWyDjKrp5Sg8bXQP553ts+67jfERZIFEe1P9RUC3rp
+   DGOxydPlZZKm9HIOcp2MnutGYlqD7ImtqozHaXKWF9hgKbbVnQUeZ6tVfBdDRziWceJ2OrJGcOLX
+   2qRmr3tjt78FK52uzQkSIRW/4MCRBvgeB57IJkbqRUvBbcvgsTwWfQ4cX89FDwXOLYCeD5pt+oo5
+   P0AivqNhq1iGhnxHe4QO8+2vB/BFYlistygc0w==
+Received: by omta-ad1-fd3-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220914 64bit (built Sep 14
  2022))
- with ESMTPS id <0RJD009M8VMSS0D0@omta-ad3-fd3-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Fri, 07 Oct 2022 12:49:40 +0000 (GMT)
-To: ocfs2-devel@oss.oracle.com
-Date: Fri,  7 Oct 2022 20:48:45 +0800
-Message-id: <20221007124846.186453-2-joseph.qi@linux.alibaba.com>
-X-Mailer: git-send-email 2.24.4
-In-reply-to: <20221007124846.186453-1-joseph.qi@linux.alibaba.com>
-References: <20221007124846.186453-1-joseph.qi@linux.alibaba.com>
+ with ESMTPS id <0RJV00EAHDA5D860@omta-ad1-fd3-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Sun, 16 Oct 2022 23:30:05 +0000 (GMT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linux-foundation.org;
+ s=korg; t=1665962991; bh=tKTrSXcrRyuedWQYCfrGbCKVhI6CpGQ7BLZ+S79ShWc=;
+ h=Date:From:To:Cc:Subject:In-Reply-To:References:From;
+ b=LnkSgFPoMjCSjRPr2mgtmej91TMPLAJViO6ulTXqtmpSunBODSL/tiY39LKsx8pNZ
+ QmXVs2qMF9tQWNoWY2uEj3EaxmAhp29D/76i/9o+HRGmhjMsmbReto9XdyTm7eSw0N
+ R27mWzAmAHQZuyVsnLKpom3bJSF8qgtNruXgjJmY=
+Date: Sun, 16 Oct 2022 16:29:50 -0700
+To: Gang He <ghe@suse.com>
+Message-id: <20221016162950.09db2b5f503ac87823cd1687@linux-foundation.org>
+In-reply-to: <db7119a5-f120-cebe-42a1-dc2f64db620d@suse.com>
+References: <20210729110230.18983-1-ghe@suse.com>
+ <5821fd0f-2018-dc1b-a5c0-f948a7debff4@linux.alibaba.com>
+ <c7e1f0a7-e75c-d1e0-870d-dc480d070079@suse.com>
+ <71608a14-58f4-dba0-d695-fee65de89192@linux.alibaba.com>
+ <801438f5-655a-c708-aa25-343d54a2f11e@suse.com>
+ <86e3d724-3147-ccaa-998f-0f857c575f7e@linux.alibaba.com>
+ <a0a9710f-461a-99c8-92f6-a99bb11b3a4e@suse.com>
+ <4ba3b404-824b-90a3-ef43-9ab6510ee073@linux.alibaba.com>
+ <5a1af56c-3eab-5baf-62a3-1c98bac104ba@suse.com>
+ <db7119a5-f120-cebe-42a1-dc2f64db620d@suse.com>
+X-Mailer: Sylpheed 3.7.0 (GTK+ 2.24.33; x86_64-redhat-linux-gnu)
 MIME-version: 1.0
-X-Source-IP: 115.124.30.43
-X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10492
+X-Source-IP: 139.178.84.217
+X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10502
  signatures=596816
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 mlxlogscore=999
- impostorscore=0 malwarescore=0 suspectscore=0 mlxscore=0 clxscore=197
- phishscore=0 priorityscore=0 spamscore=0 lowpriorityscore=0 adultscore=0
- bulkscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2209130000 definitions=main-2210070076 domainage_hfrom=8576
-Subject: [Ocfs2-devel] [PATCH 2/3] ocfs2: use bitmap API in fill_node_map
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 priorityscore=70
+ impostorscore=0 malwarescore=0 lowpriorityscore=0 phishscore=0 clxscore=181
+ adultscore=0 suspectscore=0 bulkscore=0 spamscore=0 mlxscore=0 mlxlogscore=999
+ classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2209130000
+ definitions=main-2210160144
+Cc: linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
+Subject: Re: [Ocfs2-devel] [PATCH] ocfs2: reflink deadlock when clone file to
+ the same directory simultaneously
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -56,203 +73,356 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: Joseph Qi via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: Joseph Qi <joseph.qi@linux.alibaba.com>
+From: Andrew Morton via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: Andrew Morton <akpm@linux-foundation.org>
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-Alimail-AntiSpam: AC=PASS; BC=-1|-1; BR=01201311R131e4; CH=green;
- DM=||false|; DS=||; FP=0|-1|-1|-1|0|-1|-1|-1; HT=ay29a033018045176;
- MF=joseph.qi@linux.alibaba.com; NM=1; PH=DS; RN=2; SR=0;
- TI=SMTPD_---0VRUAmF9_1665146928;
-X-ServerName: out30-43.freemail.mail.aliyun.com
+X-ServerName: dfw.source.kernel.org
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 include:spf1.service.alibaba.com
- include:spf2.service.alibaba.com include:spf1.ocm.aliyun.com
- include:spf2.ocm.aliyun.com include:spf1.staff.mail.aliyun.com
- include:a.hichina.mail.aliyun.com include:b.hichina.mail.aliyun.com -all
+X-Proofpoint-SPF-Record: v=spf1 ip4:140.211.169.12/30 include:_spf.kernel.org
+ include:_spf.google.com ~all
 X-Spam: Clean
-X-Proofpoint-GUID: OBzqEYfssV0M5Aq7NzeoDen5rowQPl8h
-X-Proofpoint-ORIG-GUID: OBzqEYfssV0M5Aq7NzeoDen5rowQPl8h
+X-Proofpoint-ORIG-GUID: WDAzZNgn5g-bm60R5XZW-3KywVFE4WQY
+X-Proofpoint-GUID: WDAzZNgn5g-bm60R5XZW-3KywVFE4WQY
 Reporting-Meta:
- AAHD0N/HQaeefYi33kgKCwuU+qCbEuZw21pIpR0j4SokOwNKC2pLwnFbXl0q5YmW
- FiSuS5SdQq7pfhdJzYSFPyKKubxi8b5yTSH6qeTOxWJhUQ2NUkM0zSWY4gSDSq72
- dWud4QJte1GTku8enmbEH/6y+8v2tA1onThpSelHD/hsOaS2f449bIQtaXqvg03X
- KHKSOHOq25yKlO0iMunVRfma/iH/o/JxbkkqM/TzvYlvzd4kREunpJ3GcBD69VxI
- ixoqdeqGvQOi4HBGqoro37YiRkeEdWq2lIS9YpZJN7hgGtoD6W5+cA0jlWedmwKi
- ANhQokSmrMH4RQXRbWkrZLK9+P/F/jVjy/aMBR9jD87C0eWLI6yS3H93oSzHL5aT
- 1NcXPyz22/MtajCKUev10DMLWxJ2e8AAQUgqcqBIpxhta5lDwoE3JoS0k6oi7I6t
- eZfrWNdsJxnScR8vtjKB7JmqcOMxAsUvmHFg46Hy1no2PhsD88blfvxw7eQFo82W
- ZpqVU6r12GXRHA/AG7f4men87V4woWg47gFMCPPKP6mCow==
+ AAFR6iT6yYFpRbn4SPgxykCB4c/Ix0kodlUUPASEt+sTDO15K9KqH9pCIWpmJMBj
+ K1j5RvPZrFkb+Vy6tPmnvObuarijILt+Jj8yDi7yDsEqq71dZqTa2MpYMz/SD9oX
+ wMepkg1Fai2Pq4k5+M25wFzFuzzSTJtT/U795UPfGP5gEOLetIZoX5sOPpxGJ1wB
+ 9IJgAzu4OoA+nSOkC3HhPP6onN6p6W6j6yj1epLZJNPpLSUM4FglxCIkSL7EXt48
+ RgyfbMuYz6G17MyJir/giCor9EgFeUbahGVbIuG1TexbnveZaukH56EbY65x2WFP
+ UzJM21f1qxtDdeyXK1x5KB1DLkTmHAw8XRqk9GwTHzyS3Q7CB/bSb3NUIzxAm4HH
+ WnEOx6vr2jG4eVAc/3GanmAE/qwRGqCIaNWtq+Gz2u5l6H3AOKCHUqscEyBtiDh3
+ z84OwWASUZZMV+k4i838Zt8YIt1N+Xw+2Egp147Cx6hwAq39RpBnjSztJ6+TEm5r
+ sSuyYk3EPnaUBxcKk/nBV/vWdEBOscE8x8B29Tec88rG
 
-Pass bits directly into fill_node_map helper and use bitmap API directly
-to simplify code.
+On Thu, 26 Aug 2021 13:56:16 +0800 Gang He <ghe@suse.com> wrote:
 
-Signed-off-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+> So, I will send a new patch to fix this deadlock problem via dlmglue layer.
+> For this patch, I want to change the patch comments as a reflink 
+> improvement patch.
+
+Did this ever happen?  I've been sitting on this patch for ages.
+
+
+From: Gang He <ghe@suse.com>
+Subject: ocfs2: reflink deadlock when clone file to the same directory simultaneously
+
+Running reflink from multiple nodes simultaneously to clone a file to the
+same directory probably triggers a deadlock issue.  For example, there is
+a three node ocfs2 cluster, each node mounts the ocfs2 file system to
+/mnt/shared, and run the reflink command from each node repeatedly, like
+
+  reflink "/mnt/shared/test" \
+  "/mnt/shared/.snapshots/test.`date +%m%d%H%M%S`.`hostname`"
+then, reflink command process will be hung on each node, and you
+can't list this file system directory.
+The problematic reflink command process is blocked at one node,
+task:reflink         state:D stack:    0 pid: 1283 ppid:  4154
+Call Trace:
+  __schedule+0x2fd/0x750
+  schedule+0x2f/0xa0
+  schedule_timeout+0x1cc/0x310
+  ? ocfs2_control_cfu+0x50/0x50 [ocfs2_stack_user]
+  ? 0xffffffffc0e3e000
+  wait_for_completion+0xba/0x140
+  ? wake_up_q+0xa0/0xa0
+  __ocfs2_cluster_lock.isra.41+0x3b5/0x820 [ocfs2]
+  ? ocfs2_inode_lock_full_nested+0x1fc/0x960 [ocfs2]
+  ocfs2_inode_lock_full_nested+0x1fc/0x960 [ocfs2]
+  ocfs2_init_security_and_acl+0xbe/0x1d0 [ocfs2]
+  ocfs2_reflink+0x436/0x4c0 [ocfs2]
+  ? ocfs2_reflink_ioctl+0x2ca/0x360 [ocfs2]
+  ocfs2_reflink_ioctl+0x2ca/0x360 [ocfs2]
+  ocfs2_ioctl+0x25e/0x670 [ocfs2]
+  do_vfs_ioctl+0xa0/0x680
+  ksys_ioctl+0x70/0x80
+  __x64_sys_ioctl+0x16/0x20
+  do_syscall_64+0x5b/0x1e0
+The other reflink command processes are blocked at other nodes,
+task:reflink         state:D stack:    0 pid:29759 ppid:  4088
+Call Trace:
+  __schedule+0x2fd/0x750
+  schedule+0x2f/0xa0
+  schedule_timeout+0x1cc/0x310
+  ? ocfs2_control_cfu+0x50/0x50 [ocfs2_stack_user]
+  ? 0xffffffffc0b19000
+  wait_for_completion+0xba/0x140
+  ? wake_up_q+0xa0/0xa0
+  __ocfs2_cluster_lock.isra.41+0x3b5/0x820 [ocfs2]
+  ? ocfs2_inode_lock_full_nested+0x1fc/0x960 [ocfs2]
+  ocfs2_inode_lock_full_nested+0x1fc/0x960 [ocfs2]
+  ocfs2_mv_orphaned_inode_to_new+0x87/0x7e0 [ocfs2]
+  ocfs2_reflink+0x335/0x4c0 [ocfs2]
+  ? ocfs2_reflink_ioctl+0x2ca/0x360 [ocfs2]
+  ocfs2_reflink_ioctl+0x2ca/0x360 [ocfs2]
+  ocfs2_ioctl+0x25e/0x670 [ocfs2]
+  do_vfs_ioctl+0xa0/0x680
+  ksys_ioctl+0x70/0x80
+  __x64_sys_ioctl+0x16/0x20
+  do_syscall_64+0x5b/0x1e0
+or
+task:reflink         state:D stack:    0 pid:18465 ppid:  4156
+Call Trace:
+  __schedule+0x302/0x940
+  ? usleep_range+0x80/0x80
+  schedule+0x46/0xb0
+  schedule_timeout+0xff/0x140
+  ? ocfs2_control_cfu+0x50/0x50 [ocfs2_stack_user]
+  ? 0xffffffffc0c3b000
+  __wait_for_common+0xb9/0x170
+  __ocfs2_cluster_lock.constprop.0+0x1d6/0x860 [ocfs2]
+  ? ocfs2_wait_for_recovery+0x49/0xd0 [ocfs2]
+  ? ocfs2_inode_lock_full_nested+0x30f/0xa50 [ocfs2]
+  ocfs2_inode_lock_full_nested+0x30f/0xa50 [ocfs2]
+  ocfs2_inode_lock_tracker+0xf2/0x2b0 [ocfs2]
+  ? dput+0x32/0x2f0
+  ocfs2_permission+0x45/0xe0 [ocfs2]
+  inode_permission+0xcc/0x170
+  link_path_walk.part.0.constprop.0+0x2a2/0x380
+  ? path_init+0x2c1/0x3f0
+  path_parentat+0x3c/0x90
+  filename_parentat+0xc1/0x1d0
+  ? filename_lookup+0x138/0x1c0
+  filename_create+0x43/0x160
+  ocfs2_reflink_ioctl+0xe6/0x380 [ocfs2]
+  ocfs2_ioctl+0x1ea/0x2c0 [ocfs2]
+  ? do_sys_openat2+0x81/0x150
+  __x64_sys_ioctl+0x82/0xb0
+  do_syscall_64+0x61/0xb0
+
+The deadlock is caused by multiple acquiring the destination directory
+inode dlm lock in ocfs2_reflink function, we should acquire this directory
+inode dlm lock at the beginning, and hold this dlm lock until end of the
+function.
+
+Link: https://lkml.kernel.org/r/20210729110230.18983-1-ghe@suse.com
+Signed-off-by: Gang He <ghe@suse.com>
+Cc: Mark Fasheh <mark@fasheh.com>
+Cc: Joel Becker <jlbec@evilplan.org>
+Cc: Junxiao Bi <junxiao.bi@oracle.com>
+Cc: Joseph Qi <jiangqi903@gmail.com>
+Cc: Changwei Ge <gechangwei@live.cn>
+Cc: Gang He <ghe@suse.com>
+Cc: Jun Piao <piaojun@huawei.com>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
- fs/ocfs2/cluster/heartbeat.c | 18 ++++++++----------
- fs/ocfs2/cluster/heartbeat.h |  2 +-
- fs/ocfs2/cluster/netdebug.c  |  2 +-
- fs/ocfs2/cluster/tcp.c       |  6 ++----
- fs/ocfs2/dlm/dlmdomain.c     |  2 +-
- fs/ocfs2/stack_o2cb.c        |  6 +++---
- 6 files changed, 16 insertions(+), 20 deletions(-)
 
-diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
-index 8fe6031f60e3..60b97c92e2b2 100644
---- a/fs/ocfs2/cluster/heartbeat.c
-+++ b/fs/ocfs2/cluster/heartbeat.c
-@@ -375,7 +375,7 @@ static void o2hb_nego_timeout(struct work_struct *work)
- 	if (reg->hr_last_hb_status)
- 		return;
- 
--	o2hb_fill_node_map(live_node_bitmap, sizeof(live_node_bitmap));
-+	o2hb_fill_node_map(live_node_bitmap, O2NM_MAX_NODES);
- 	/* lowest node as master node to make negotiate decision. */
- 	master_node = find_first_bit(live_node_bitmap, O2NM_MAX_NODES);
- 
-@@ -1087,7 +1087,7 @@ static int o2hb_do_disk_heartbeat(struct o2hb_region *reg)
- 	 * If a node is not configured but is in the livemap, we still need
- 	 * to read the slot so as to be able to remove it from the livemap.
- 	 */
--	o2hb_fill_node_map(live_node_bitmap, sizeof(live_node_bitmap));
-+	o2hb_fill_node_map(live_node_bitmap, O2NM_MAX_NODES);
- 	i = -1;
- 	while ((i = find_next_bit(live_node_bitmap,
- 				  O2NM_MAX_NODES, i + 1)) < O2NM_MAX_NODES) {
-@@ -1450,23 +1450,21 @@ void o2hb_init(void)
- 
- /* if we're already in a callback then we're already serialized by the sem */
- static void o2hb_fill_node_map_from_callback(unsigned long *map,
--					     unsigned bytes)
-+					     unsigned int bits)
- {
--	BUG_ON(bytes < (BITS_TO_LONGS(O2NM_MAX_NODES) * sizeof(unsigned long)));
--
--	memcpy(map, &o2hb_live_node_bitmap, bytes);
-+	bitmap_copy(map, o2hb_live_node_bitmap, bits);
+ fs/ocfs2/namei.c        |   32 +++++++++++++-------------------
+ fs/ocfs2/namei.h        |    2 ++
+ fs/ocfs2/refcounttree.c |   15 +++++++++++----
+ fs/ocfs2/xattr.c        |   12 +-----------
+ fs/ocfs2/xattr.h        |    1 +
+ 5 files changed, 28 insertions(+), 34 deletions(-)
+
+--- a/fs/ocfs2/namei.c~ocfs2-reflink-deadlock-when-clone-file-to-the-same-directory-simultaneously
++++ a/fs/ocfs2/namei.c
+@@ -2490,6 +2490,7 @@ out:
  }
  
+ int ocfs2_create_inode_in_orphan(struct inode *dir,
++				 struct buffer_head **dir_bh,
+ 				 int mode,
+ 				 struct inode **new_inode)
+ {
+@@ -2598,13 +2599,16 @@ leave:
+ 
+ 	brelse(new_di_bh);
+ 
+-	if (!status)
+-		*new_inode = inode;
+-
+ 	ocfs2_free_dir_lookup_result(&orphan_insert);
+ 
+-	ocfs2_inode_unlock(dir, 1);
+-	brelse(parent_di_bh);
++	if (!status) {
++		*new_inode = inode;
++		*dir_bh = parent_di_bh;
++	} else {
++		ocfs2_inode_unlock(dir, 1);
++		brelse(parent_di_bh);
++	}
++
+ 	return status;
+ }
+ 
+@@ -2761,11 +2765,11 @@ bail:
+ }
+ 
+ int ocfs2_mv_orphaned_inode_to_new(struct inode *dir,
++				   struct buffer_head *dir_bh,
+ 				   struct inode *inode,
+ 				   struct dentry *dentry)
+ {
+ 	int status = 0;
+-	struct buffer_head *parent_di_bh = NULL;
+ 	handle_t *handle = NULL;
+ 	struct ocfs2_super *osb = OCFS2_SB(dir->i_sb);
+ 	struct ocfs2_dinode *dir_di, *di;
+@@ -2779,14 +2783,7 @@ int ocfs2_mv_orphaned_inode_to_new(struc
+ 				(unsigned long long)OCFS2_I(dir)->ip_blkno,
+ 				(unsigned long long)OCFS2_I(inode)->ip_blkno);
+ 
+-	status = ocfs2_inode_lock(dir, &parent_di_bh, 1);
+-	if (status < 0) {
+-		if (status != -ENOENT)
+-			mlog_errno(status);
+-		return status;
+-	}
+-
+-	dir_di = (struct ocfs2_dinode *) parent_di_bh->b_data;
++	dir_di = (struct ocfs2_dinode *) dir_bh->b_data;
+ 	if (!dir_di->i_links_count) {
+ 		/* can't make a file in a deleted directory. */
+ 		status = -ENOENT;
+@@ -2799,7 +2796,7 @@ int ocfs2_mv_orphaned_inode_to_new(struc
+ 		goto leave;
+ 
+ 	/* get a spot inside the dir. */
+-	status = ocfs2_prepare_dir_for_insert(osb, dir, parent_di_bh,
++	status = ocfs2_prepare_dir_for_insert(osb, dir, dir_bh,
+ 					      dentry->d_name.name,
+ 					      dentry->d_name.len, &lookup);
+ 	if (status < 0) {
+@@ -2863,7 +2860,7 @@ int ocfs2_mv_orphaned_inode_to_new(struc
+ 	ocfs2_journal_dirty(handle, di_bh);
+ 
+ 	status = ocfs2_add_entry(handle, dentry, inode,
+-				 OCFS2_I(inode)->ip_blkno, parent_di_bh,
++				 OCFS2_I(inode)->ip_blkno, dir_bh,
+ 				 &lookup);
+ 	if (status < 0) {
+ 		mlog_errno(status);
+@@ -2887,10 +2884,7 @@ orphan_unlock:
+ 	iput(orphan_dir_inode);
+ leave:
+ 
+-	ocfs2_inode_unlock(dir, 1);
+-
+ 	brelse(di_bh);
+-	brelse(parent_di_bh);
+ 	brelse(orphan_dir_bh);
+ 
+ 	ocfs2_free_dir_lookup_result(&lookup);
+--- a/fs/ocfs2/namei.h~ocfs2-reflink-deadlock-when-clone-file-to-the-same-directory-simultaneously
++++ a/fs/ocfs2/namei.h
+@@ -24,6 +24,7 @@ int ocfs2_orphan_del(struct ocfs2_super
+ 		     struct buffer_head *orphan_dir_bh,
+ 		     bool dio);
+ int ocfs2_create_inode_in_orphan(struct inode *dir,
++				 struct buffer_head **dir_bh,
+ 				 int mode,
+ 				 struct inode **new_inode);
+ int ocfs2_add_inode_to_orphan(struct ocfs2_super *osb,
+@@ -32,6 +33,7 @@ int ocfs2_del_inode_from_orphan(struct o
+ 		struct inode *inode, struct buffer_head *di_bh,
+ 		int update_isize, loff_t end);
+ int ocfs2_mv_orphaned_inode_to_new(struct inode *dir,
++				   struct buffer_head *dir_bh,
+ 				   struct inode *new_inode,
+ 				   struct dentry *new_dentry);
+ 
+--- a/fs/ocfs2/refcounttree.c~ocfs2-reflink-deadlock-when-clone-file-to-the-same-directory-simultaneously
++++ a/fs/ocfs2/refcounttree.c
+@@ -4222,7 +4222,7 @@ static int ocfs2_reflink(struct dentry *
+ {
+ 	int error, had_lock;
+ 	struct inode *inode = d_inode(old_dentry);
+-	struct buffer_head *old_bh = NULL;
++	struct buffer_head *old_bh = NULL, *dir_bh = NULL;
+ 	struct inode *new_orphan_inode = NULL;
+ 	struct ocfs2_lock_holder oh;
+ 
+@@ -4230,7 +4230,7 @@ static int ocfs2_reflink(struct dentry *
+ 		return -EOPNOTSUPP;
+ 
+ 
+-	error = ocfs2_create_inode_in_orphan(dir, inode->i_mode,
++	error = ocfs2_create_inode_in_orphan(dir, &dir_bh, inode->i_mode,
+ 					     &new_orphan_inode);
+ 	if (error) {
+ 		mlog_errno(error);
+@@ -4276,13 +4276,15 @@ static int ocfs2_reflink(struct dentry *
+ 
+ 	/* If the security isn't preserved, we need to re-initialize them. */
+ 	if (!preserve) {
+-		error = ocfs2_init_security_and_acl(dir, new_orphan_inode,
++		error = ocfs2_init_security_and_acl(dir, dir_bh,
++						    new_orphan_inode,
+ 						    &new_dentry->d_name);
+ 		if (error)
+ 			mlog_errno(error);
+ 	}
+ 	if (!error) {
+-		error = ocfs2_mv_orphaned_inode_to_new(dir, new_orphan_inode,
++		error = ocfs2_mv_orphaned_inode_to_new(dir, dir_bh,
++						       new_orphan_inode,
+ 						       new_dentry);
+ 		if (error)
+ 			mlog_errno(error);
+@@ -4300,6 +4302,11 @@ out:
+ 			iput(new_orphan_inode);
+ 	}
+ 
++	if (dir_bh) {
++		ocfs2_inode_unlock(dir, 1);
++		brelse(dir_bh);
++	}
++
+ 	return error;
+ }
+ 
+--- a/fs/ocfs2/xattr.c~ocfs2-reflink-deadlock-when-clone-file-to-the-same-directory-simultaneously
++++ a/fs/ocfs2/xattr.c
+@@ -7203,16 +7203,13 @@ out:
  /*
-  * get a map of all nodes that are heartbeating in any regions
+  * Initialize security and acl for a already created inode.
+  * Used for reflink a non-preserve-security file.
+- *
+- * It uses common api like ocfs2_xattr_set, so the caller
+- * must not hold any lock expect i_rwsem.
   */
--void o2hb_fill_node_map(unsigned long *map, unsigned bytes)
-+void o2hb_fill_node_map(unsigned long *map, unsigned int bits)
+ int ocfs2_init_security_and_acl(struct inode *dir,
++				struct buffer_head *dir_bh,
+ 				struct inode *inode,
+ 				const struct qstr *qstr)
  {
- 	/* callers want to serialize this map and callbacks so that they
- 	 * can trust that they don't miss nodes coming to the party */
- 	down_read(&o2hb_callback_sem);
- 	spin_lock(&o2hb_live_lock);
--	o2hb_fill_node_map_from_callback(map, bytes);
-+	o2hb_fill_node_map_from_callback(map, bits);
- 	spin_unlock(&o2hb_live_lock);
- 	up_read(&o2hb_callback_sem);
+ 	int ret = 0;
+-	struct buffer_head *dir_bh = NULL;
+ 
+ 	ret = ocfs2_init_security_get(inode, dir, qstr, NULL);
+ 	if (ret) {
+@@ -7220,17 +7217,10 @@ int ocfs2_init_security_and_acl(struct i
+ 		goto leave;
+ 	}
+ 
+-	ret = ocfs2_inode_lock(dir, &dir_bh, 0);
+-	if (ret) {
+-		mlog_errno(ret);
+-		goto leave;
+-	}
+ 	ret = ocfs2_init_acl(NULL, inode, dir, NULL, dir_bh, NULL, NULL);
+ 	if (ret)
+ 		mlog_errno(ret);
+ 
+-	ocfs2_inode_unlock(dir, 0);
+-	brelse(dir_bh);
+ leave:
+ 	return ret;
  }
-@@ -2460,7 +2458,7 @@ int o2hb_check_node_heartbeating_no_sem(u8 node_num)
- 	unsigned long testing_map[BITS_TO_LONGS(O2NM_MAX_NODES)];
- 
- 	spin_lock(&o2hb_live_lock);
--	o2hb_fill_node_map_from_callback(testing_map, sizeof(testing_map));
-+	o2hb_fill_node_map_from_callback(testing_map, O2NM_MAX_NODES);
- 	spin_unlock(&o2hb_live_lock);
- 	if (!test_bit(node_num, testing_map)) {
- 		mlog(ML_HEARTBEAT,
-@@ -2477,7 +2475,7 @@ int o2hb_check_node_heartbeating_from_callback(u8 node_num)
- {
- 	unsigned long testing_map[BITS_TO_LONGS(O2NM_MAX_NODES)];
- 
--	o2hb_fill_node_map_from_callback(testing_map, sizeof(testing_map));
-+	o2hb_fill_node_map_from_callback(testing_map, O2NM_MAX_NODES);
- 	if (!test_bit(node_num, testing_map)) {
- 		mlog(ML_HEARTBEAT,
- 		     "node (%u) does not have heartbeating enabled.\n",
-diff --git a/fs/ocfs2/cluster/heartbeat.h b/fs/ocfs2/cluster/heartbeat.h
-index 1d4100abf6f8..8ef8c1b9eeb7 100644
---- a/fs/ocfs2/cluster/heartbeat.h
-+++ b/fs/ocfs2/cluster/heartbeat.h
-@@ -59,7 +59,7 @@ int o2hb_register_callback(const char *region_uuid,
- void o2hb_unregister_callback(const char *region_uuid,
- 			      struct o2hb_callback_func *hc);
- void o2hb_fill_node_map(unsigned long *map,
--			unsigned bytes);
-+			unsigned int bits);
- void o2hb_exit(void);
- void o2hb_init(void);
- int o2hb_check_node_heartbeating_no_sem(u8 node_num);
-diff --git a/fs/ocfs2/cluster/netdebug.c b/fs/ocfs2/cluster/netdebug.c
-index 7524994e3199..35c05c18de59 100644
---- a/fs/ocfs2/cluster/netdebug.c
-+++ b/fs/ocfs2/cluster/netdebug.c
-@@ -438,7 +438,7 @@ static int o2net_fill_bitmap(char *buf, int len)
- 	unsigned long map[BITS_TO_LONGS(O2NM_MAX_NODES)];
- 	int i = -1, out = 0;
- 
--	o2net_fill_node_map(map, sizeof(map));
-+	o2net_fill_node_map(map, O2NM_MAX_NODES);
- 
- 	while ((i = find_next_bit(map, O2NM_MAX_NODES, i + 1)) < O2NM_MAX_NODES)
- 		out += scnprintf(buf + out, PAGE_SIZE - out, "%d ", i);
-diff --git a/fs/ocfs2/cluster/tcp.c b/fs/ocfs2/cluster/tcp.c
-index f660c0dbdb63..6f5a3fb97c7f 100644
---- a/fs/ocfs2/cluster/tcp.c
-+++ b/fs/ocfs2/cluster/tcp.c
-@@ -990,14 +990,12 @@ static int o2net_tx_can_proceed(struct o2net_node *nn,
- }
- 
- /* Get a map of all nodes to which this node is currently connected to */
--void o2net_fill_node_map(unsigned long *map, unsigned bytes)
-+void o2net_fill_node_map(unsigned long *map, unsigned int bits)
- {
- 	struct o2net_sock_container *sc;
- 	int node, ret;
- 
--	BUG_ON(bytes < (BITS_TO_LONGS(O2NM_MAX_NODES) * sizeof(unsigned long)));
--
--	memset(map, 0, bytes);
-+	bitmap_zero(map, bits);
- 	for (node = 0; node < O2NM_MAX_NODES; ++node) {
- 		if (!o2net_tx_can_proceed(o2net_nn_from_num(node), &sc, &ret))
- 			continue;
-diff --git a/fs/ocfs2/dlm/dlmdomain.c b/fs/ocfs2/dlm/dlmdomain.c
-index c4eccd499db8..f46941ff665d 100644
---- a/fs/ocfs2/dlm/dlmdomain.c
-+++ b/fs/ocfs2/dlm/dlmdomain.c
-@@ -1604,7 +1604,7 @@ static int dlm_try_to_join_domain(struct dlm_ctxt *dlm)
- 	/* group sem locking should work for us here -- we're already
- 	 * registered for heartbeat events so filling this should be
- 	 * atomic wrt getting those handlers called. */
--	o2hb_fill_node_map(dlm->live_nodes_map, sizeof(dlm->live_nodes_map));
-+	o2hb_fill_node_map(dlm->live_nodes_map, O2NM_MAX_NODES);
- 
- 	spin_lock(&dlm->spinlock);
- 	memcpy(ctxt->live_map, dlm->live_nodes_map, sizeof(ctxt->live_map));
-diff --git a/fs/ocfs2/stack_o2cb.c b/fs/ocfs2/stack_o2cb.c
-index 88f75f7f02d7..c973c03f6fd8 100644
---- a/fs/ocfs2/stack_o2cb.c
-+++ b/fs/ocfs2/stack_o2cb.c
-@@ -273,17 +273,17 @@ static int o2cb_cluster_check(void)
- 	 */
- #define	O2CB_MAP_STABILIZE_COUNT	60
- 	for (i = 0; i < O2CB_MAP_STABILIZE_COUNT; ++i) {
--		o2hb_fill_node_map(hbmap, sizeof(hbmap));
-+		o2hb_fill_node_map(hbmap, O2NM_MAX_NODES);
- 		if (!test_bit(node_num, hbmap)) {
- 			printk(KERN_ERR "o2cb: %s heartbeat has not been "
- 			       "started.\n", (o2hb_global_heartbeat_active() ?
- 					      "Global" : "Local"));
- 			return -EINVAL;
- 		}
--		o2net_fill_node_map(netmap, sizeof(netmap));
-+		o2net_fill_node_map(netmap, O2NM_MAX_NODES);
- 		/* Force set the current node to allow easy compare */
- 		set_bit(node_num, netmap);
--		if (!memcmp(hbmap, netmap, sizeof(hbmap)))
-+		if (bitmap_equal(hbmap, netmap, O2NM_MAX_NODES))
- 			return 0;
- 		if (i < O2CB_MAP_STABILIZE_COUNT - 1)
- 			msleep(1000);
--- 
-2.24.4
+--- a/fs/ocfs2/xattr.h~ocfs2-reflink-deadlock-when-clone-file-to-the-same-directory-simultaneously
++++ a/fs/ocfs2/xattr.h
+@@ -83,6 +83,7 @@ int ocfs2_reflink_xattrs(struct inode *o
+ 			 struct buffer_head *new_bh,
+ 			 bool preserve_security);
+ int ocfs2_init_security_and_acl(struct inode *dir,
++				struct buffer_head *dir_bh,
+ 				struct inode *inode,
+ 				const struct qstr *qstr);
+ #endif /* OCFS2_XATTR_H */
+_
+
 
 
 _______________________________________________
