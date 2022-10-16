@@ -1,67 +1,60 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc246.phx1.oracleemaildelivery.com (aib29ajc246.phx1.oracleemaildelivery.com [192.29.103.246])
+Received: from aib29ajc250.phx1.oracleemaildelivery.com (aib29ajc250.phx1.oracleemaildelivery.com [192.29.103.250])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 5FA93C4332F
-	for <ocfs2-devel@archiver.kernel.org>; Sun, 16 Oct 2022 23:30:06 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 89528C433FE
+	for <ocfs2-devel@archiver.kernel.org>; Sun, 16 Oct 2022 23:33:02 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=/DVaEmexCqz14duKXA5vq3lRmq/iu39NU5tuLvwA0PM=;
- b=YFRCuVuAovZ6e81eKl/gJb/lajEUL3JblZiP8YkcpdTUbswHG7a2hw4EOfKzCIA5LOVifnzGdCJ4
-   6ESpMBrCl0RqH/X83V5S5bSAfgQHIubii2iQsw0AMPpGYZzbeLRzV4yD44lrf2MplAtV+rB1nkNQ
-   OnY8jqwhnv4y7p8yhxKBfxC40VA9Lgh7le3h0twWy/uFNn6qlTuZB5o/YzIQs9+HTxszhf0b6SWg
-   JfvKwjwgakArD09FakB6YOB0qtBEhVqfwKpScJNuPfP1SVI5sNvnBXrQCbgWw7LMemcHMpX/J00h
-   UW7eqEXQUZGUk07Ge3HjTI6Y4ifO6nFsmt8rhg==
+ bh=EUyXoh0hzogDCJTGwUkQfpUdEQxV7qrBhnWO5BbESmE=;
+ b=QJB61FUOPjno7MnMOHo9HbPd3noCcTzzt6Ft8Rlpqq/WLHRhD5oa3kaQEYnJuF69m5wqeo8ajEOR
+   KQmJoSwpiC9ZRD9NZzrM6et3DTN8M7aOLiArG/r43ddAcaRGLZuFhpGgt4NlKbHJ3KygNv8GKjDN
+   r8BclyjHgYvanTrq2H/t9YIWEn2KM/jMG/a+M4eEQy9jHj9r0Lqf8KyeMJiQt1ZFToUnCRdQ+92R
+   oT6qhtEl+AnrGynZzwS1PnlPfVXaUN8CBOa5E4+JyJDfIPABAxPugFTGV644Gn9YyTM7TnfSNsD3
+   oHR994cUIG9uZSdP0FPEE0VmKoaEO3WNOvdizw==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=/DVaEmexCqz14duKXA5vq3lRmq/iu39NU5tuLvwA0PM=;
- b=eItXIXbjLu+CGqmzKeGTyxKFjYIWSZEoc4qId9PZTiRs2M63V2RXgIaKw5uELXT7JJIW5d0RP9X7
-   YaRAOxykfXk2+kY/j/VeSlxTtJN30DZ3NAuWyDjKrp5Sg8bXQP553ts+67jfERZIFEe1P9RUC3rp
-   DGOxydPlZZKm9HIOcp2MnutGYlqD7ImtqozHaXKWF9hgKbbVnQUeZ6tVfBdDRziWceJ2OrJGcOLX
-   2qRmr3tjt78FK52uzQkSIRW/4MCRBvgeB57IJkbqRUvBbcvgsTwWfQ4cX89FDwXOLYCeD5pt+oo5
-   P0AivqNhq1iGhnxHe4QO8+2vB/BFYlistygc0w==
-Received: by omta-ad1-fd3-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
+ bh=EUyXoh0hzogDCJTGwUkQfpUdEQxV7qrBhnWO5BbESmE=;
+ b=Rq/YzjlmCVustWXRdiNTT+qbWW46d54pBLa9pczlOl/2wd/a8bZqOoia55GDvbpEKnv3J9WoXOKC
+   aqv5ev8AOy++dQJXK3GzWdT//K475oRZ7l7uxoZSQ4phKlq42kVfhD5f2s9AhZf7qRPjDjuiqsJm
+   BqWo2xOD0n2Att4EVJWhv1Wwen+sMg/nzCxN/dxYBnvLTQGTsvA0HARM+o3kby5Bqf0/nDwWPu5I
+   1KIQ5zV/oze0lDOvJU7KYs3ZFW8Ng0Qc4VeVOorpcCJDsOY6OrhngyCpldAyLmR0Wg4NIg59nKSM
+   cVd/96NK5RNb6FcfRhDKa4AYbvpRXx5pg1REMg==
+Received: by omta-ad2-fd3-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220914 64bit (built Sep 14
  2022))
- with ESMTPS id <0RJV00EAHDA5D860@omta-ad1-fd3-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Sun, 16 Oct 2022 23:30:05 +0000 (GMT)
+ with ESMTPS id <0RJV003O7DF16LB0@omta-ad2-fd3-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Sun, 16 Oct 2022 23:33:01 +0000 (GMT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linux-foundation.org;
- s=korg; t=1665962991; bh=tKTrSXcrRyuedWQYCfrGbCKVhI6CpGQ7BLZ+S79ShWc=;
- h=Date:From:To:Cc:Subject:In-Reply-To:References:From;
- b=LnkSgFPoMjCSjRPr2mgtmej91TMPLAJViO6ulTXqtmpSunBODSL/tiY39LKsx8pNZ
- QmXVs2qMF9tQWNoWY2uEj3EaxmAhp29D/76i/9o+HRGmhjMsmbReto9XdyTm7eSw0N
- R27mWzAmAHQZuyVsnLKpom3bJSF8qgtNruXgjJmY=
-Date: Sun, 16 Oct 2022 16:29:50 -0700
-To: Gang He <ghe@suse.com>
-Message-id: <20221016162950.09db2b5f503ac87823cd1687@linux-foundation.org>
-In-reply-to: <db7119a5-f120-cebe-42a1-dc2f64db620d@suse.com>
-References: <20210729110230.18983-1-ghe@suse.com>
- <5821fd0f-2018-dc1b-a5c0-f948a7debff4@linux.alibaba.com>
- <c7e1f0a7-e75c-d1e0-870d-dc480d070079@suse.com>
- <71608a14-58f4-dba0-d695-fee65de89192@linux.alibaba.com>
- <801438f5-655a-c708-aa25-343d54a2f11e@suse.com>
- <86e3d724-3147-ccaa-998f-0f857c575f7e@linux.alibaba.com>
- <a0a9710f-461a-99c8-92f6-a99bb11b3a4e@suse.com>
- <4ba3b404-824b-90a3-ef43-9ab6510ee073@linux.alibaba.com>
- <5a1af56c-3eab-5baf-62a3-1c98bac104ba@suse.com>
- <db7119a5-f120-cebe-42a1-dc2f64db620d@suse.com>
+ s=korg; t=1665963166; bh=jfh7fNWLQG26T5MsmOC+xYhoA7ZMvYpvVgmi2dlytEU=;
+ h=Date:From:To:Subject:In-Reply-To:References:From;
+ b=rx2NoIoAn4rTbEusw+NOnC3HlY9Vay9u2DBBcPU1FSJ6szHh3y5OHZw+83bO9E7gw
+ ojr6HHos7RqC5xDhKhKkl/m2Xvbh5Pd24UViuYAtV+uAZ2DsHcrCrdmtdJTIah6Smv
+ 7H9lAF98AJp2+5LscBTnjoHrU9jvFWcRVND8qywA=
+Date: Sun, 16 Oct 2022 16:32:45 -0700
+To: Joseph Qi <jiangqi903@gmail.com>, ocfs2-devel@oss.oracle.com,
+ Wangyan <wangyan122@huawei.com>
+Message-id: <20221016163245.786bb7ee9d6cfc952f445642@linux-foundation.org>
+In-reply-to: <20200806204910.6fa489d7aabd5c8026f4c704@linux-foundation.org>
+References: <d8147c41-fb2b-bdf7-b660-1f3c8448c33f@huawei.com>
+ <09b83918-89aa-2f5c-bbbf-ea4470386bfe@gmail.com>
+ <20200806204910.6fa489d7aabd5c8026f4c704@linux-foundation.org>
 X-Mailer: Sylpheed 3.7.0 (GTK+ 2.24.33; x86_64-redhat-linux-gnu)
 MIME-version: 1.0
-X-Source-IP: 139.178.84.217
+X-Source-IP: 145.40.68.75
 X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10502
  signatures=596816
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 priorityscore=70
- impostorscore=0 malwarescore=0 lowpriorityscore=0 phishscore=0 clxscore=181
- adultscore=0 suspectscore=0 bulkscore=0 spamscore=0 mlxscore=0 mlxlogscore=999
- classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2209130000
- definitions=main-2210160144
-Cc: linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
-Subject: Re: [Ocfs2-devel] [PATCH] ocfs2: reflink deadlock when clone file to
- the same directory simultaneously
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 phishscore=0
+ malwarescore=0 spamscore=0 clxscore=208 impostorscore=0 suspectscore=0
+ bulkscore=0 adultscore=0 mlxlogscore=999 mlxscore=0 priorityscore=48
+ lowpriorityscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2209130000 definitions=main-2210160144
+Subject: Re: [Ocfs2-devel] [PATCH 1/2] ocfs2: clear links count in
+ ocfs2_mknod() if an error occurs
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -78,351 +71,182 @@ Reply-to: Andrew Morton <akpm@linux-foundation.org>
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-ServerName: dfw.source.kernel.org
+X-ServerName: ams.source.kernel.org
 X-Proofpoint-SPF-Result: pass
 X-Proofpoint-SPF-Record: v=spf1 ip4:140.211.169.12/30 include:_spf.kernel.org
  include:_spf.google.com ~all
 X-Spam: Clean
-X-Proofpoint-ORIG-GUID: WDAzZNgn5g-bm60R5XZW-3KywVFE4WQY
-X-Proofpoint-GUID: WDAzZNgn5g-bm60R5XZW-3KywVFE4WQY
+X-Proofpoint-GUID: MxA55WE8nifai5yWeOvsQ053N__ONEUX
+X-Proofpoint-ORIG-GUID: MxA55WE8nifai5yWeOvsQ053N__ONEUX
 Reporting-Meta:
  AAFR6iT6yYFpRbn4SPgxykCB4c/Ix0kodlUUPASEt+sTDO15K9KqH9pCIWpmJMBj
- K1j5RvPZrFkb+Vy6tPmnvObuarijILt+Jj8yDi7yDsEqq71dZqTa2MpYMz/SD9oX
- wMepkg1Fai2Pq4k5+M25wFzFuzzSTJtT/U795UPfGP5gEOLetIZoX5sOPpxGJ1wB
- 9IJgAzu4OoA+nSOkC3HhPP6onN6p6W6j6yj1epLZJNPpLSUM4FglxCIkSL7EXt48
- RgyfbMuYz6G17MyJir/giCor9EgFeUbahGVbIuG1TexbnveZaukH56EbY65x2WFP
- UzJM21f1qxtDdeyXK1x5KB1DLkTmHAw8XRqk9GwTHzyS3Q7CB/bSb3NUIzxAm4HH
- WnEOx6vr2jG4eVAc/3GanmAE/qwRGqCIaNWtq+Gz2u5l6H3AOKCHUqscEyBtiDh3
- z84OwWASUZZMV+k4i838Zt8YIt1N+Xw+2Egp147Cx6hwAq39RpBnjSztJ6+TEm5r
- sSuyYk3EPnaUBxcKk/nBV/vWdEBOscE8x8B29Tec88rG
-
-On Thu, 26 Aug 2021 13:56:16 +0800 Gang He <ghe@suse.com> wrote:
-
-> So, I will send a new patch to fix this deadlock problem via dlmglue layer.
-> For this patch, I want to change the patch comments as a reflink 
-> improvement patch.
-
-Did this ever happen?  I've been sitting on this patch for ages.
+ K1j5RvPZrFkb+Vy6tPnrvObuarijILt+Jj9QFjQM00kdvDabBddeTJtJbUrUguu8
+ qQqJ5Kx3TBbg5AYPK7uDsCbatkspaZkQsNz98Qv+bVQzQoDcwuM6Bz7gk8CT3f9+
+ 7lcYQB6m1JWLIjbmX8KV4UyFarOrBdZUAI1+cisMN2vlRtdIK6zn0SxG8pxsvCkA
+ G6r1n0OBjeXkGOpQXU9iVjhS5vgRxKv0N8l/VdatO8kO6D72GlNCrpZpUZ1Uu/FR
+ toX2lua7UnQVi1zwZ+ydZq5bznYNbfP7o+twBt6Fp5QjBFjKGb5OlshU/61CV+bu
+ QYqfOvZ8aDbv4L4hoEz14u34IZuQqBJXlNZuN1LLnqz6VCrh92D1YBhWRrRswjk5
+ dGTGfjYhH36x8RUIscMjy/vL6AKdXnaa9ZTbmlZMViFI07py6etMxRmE6maAoEuE
+ 1Y901dlcepbBt5tx5MCBw0FmYVR0KvzsDjaoMUtmDZts
 
 
-From: Gang He <ghe@suse.com>
-Subject: ocfs2: reflink deadlock when clone file to the same directory simultaneously
+I've been sitting on this patch series for over two years!  I assume
+the problem isn't terribly serious.
 
-Running reflink from multiple nodes simultaneously to clone a file to the
-same directory probably triggers a deadlock issue.  For example, there is
-a three node ocfs2 cluster, each node mounts the ocfs2 file system to
-/mnt/shared, and run the reflink command from each node repeatedly, like
+Can we please come to a decision on how to proceed?  Thanks.
 
-  reflink "/mnt/shared/test" \
-  "/mnt/shared/.snapshots/test.`date +%m%d%H%M%S`.`hostname`"
-then, reflink command process will be hung on each node, and you
-can't list this file system directory.
-The problematic reflink command process is blocked at one node,
-task:reflink         state:D stack:    0 pid: 1283 ppid:  4154
-Call Trace:
-  __schedule+0x2fd/0x750
-  schedule+0x2f/0xa0
-  schedule_timeout+0x1cc/0x310
-  ? ocfs2_control_cfu+0x50/0x50 [ocfs2_stack_user]
-  ? 0xffffffffc0e3e000
-  wait_for_completion+0xba/0x140
-  ? wake_up_q+0xa0/0xa0
-  __ocfs2_cluster_lock.isra.41+0x3b5/0x820 [ocfs2]
-  ? ocfs2_inode_lock_full_nested+0x1fc/0x960 [ocfs2]
-  ocfs2_inode_lock_full_nested+0x1fc/0x960 [ocfs2]
-  ocfs2_init_security_and_acl+0xbe/0x1d0 [ocfs2]
-  ocfs2_reflink+0x436/0x4c0 [ocfs2]
-  ? ocfs2_reflink_ioctl+0x2ca/0x360 [ocfs2]
-  ocfs2_reflink_ioctl+0x2ca/0x360 [ocfs2]
-  ocfs2_ioctl+0x25e/0x670 [ocfs2]
-  do_vfs_ioctl+0xa0/0x680
-  ksys_ioctl+0x70/0x80
-  __x64_sys_ioctl+0x16/0x20
-  do_syscall_64+0x5b/0x1e0
-The other reflink command processes are blocked at other nodes,
-task:reflink         state:D stack:    0 pid:29759 ppid:  4088
-Call Trace:
-  __schedule+0x2fd/0x750
-  schedule+0x2f/0xa0
-  schedule_timeout+0x1cc/0x310
-  ? ocfs2_control_cfu+0x50/0x50 [ocfs2_stack_user]
-  ? 0xffffffffc0b19000
-  wait_for_completion+0xba/0x140
-  ? wake_up_q+0xa0/0xa0
-  __ocfs2_cluster_lock.isra.41+0x3b5/0x820 [ocfs2]
-  ? ocfs2_inode_lock_full_nested+0x1fc/0x960 [ocfs2]
-  ocfs2_inode_lock_full_nested+0x1fc/0x960 [ocfs2]
-  ocfs2_mv_orphaned_inode_to_new+0x87/0x7e0 [ocfs2]
-  ocfs2_reflink+0x335/0x4c0 [ocfs2]
-  ? ocfs2_reflink_ioctl+0x2ca/0x360 [ocfs2]
-  ocfs2_reflink_ioctl+0x2ca/0x360 [ocfs2]
-  ocfs2_ioctl+0x25e/0x670 [ocfs2]
-  do_vfs_ioctl+0xa0/0x680
-  ksys_ioctl+0x70/0x80
-  __x64_sys_ioctl+0x16/0x20
-  do_syscall_64+0x5b/0x1e0
-or
-task:reflink         state:D stack:    0 pid:18465 ppid:  4156
-Call Trace:
-  __schedule+0x302/0x940
-  ? usleep_range+0x80/0x80
-  schedule+0x46/0xb0
-  schedule_timeout+0xff/0x140
-  ? ocfs2_control_cfu+0x50/0x50 [ocfs2_stack_user]
-  ? 0xffffffffc0c3b000
-  __wait_for_common+0xb9/0x170
-  __ocfs2_cluster_lock.constprop.0+0x1d6/0x860 [ocfs2]
-  ? ocfs2_wait_for_recovery+0x49/0xd0 [ocfs2]
-  ? ocfs2_inode_lock_full_nested+0x30f/0xa50 [ocfs2]
-  ocfs2_inode_lock_full_nested+0x30f/0xa50 [ocfs2]
-  ocfs2_inode_lock_tracker+0xf2/0x2b0 [ocfs2]
-  ? dput+0x32/0x2f0
-  ocfs2_permission+0x45/0xe0 [ocfs2]
-  inode_permission+0xcc/0x170
-  link_path_walk.part.0.constprop.0+0x2a2/0x380
-  ? path_init+0x2c1/0x3f0
-  path_parentat+0x3c/0x90
-  filename_parentat+0xc1/0x1d0
-  ? filename_lookup+0x138/0x1c0
-  filename_create+0x43/0x160
-  ocfs2_reflink_ioctl+0xe6/0x380 [ocfs2]
-  ocfs2_ioctl+0x1ea/0x2c0 [ocfs2]
-  ? do_sys_openat2+0x81/0x150
-  __x64_sys_ioctl+0x82/0xb0
-  do_syscall_64+0x61/0xb0
+The current patches from the mm tree are below.
 
-The deadlock is caused by multiple acquiring the destination directory
-inode dlm lock in ocfs2_reflink function, we should acquire this directory
-inode dlm lock at the beginning, and hold this dlm lock until end of the
-function.
+From: Wangyan <wangyan122@huawei.com>
+Subject: ocfs2: clear links count in ocfs2_mknod() if an error occurs
 
-Link: https://lkml.kernel.org/r/20210729110230.18983-1-ghe@suse.com
-Signed-off-by: Gang He <ghe@suse.com>
+In this condition, the inode can not be wiped when error happened.
+ocfs2_mkdir()
+  ->ocfs2_mknod()
+    ->ocfs2_mknod_locked()
+      ->__ocfs2_mknod_locked()
+        ->ocfs2_set_links_count() // i_links_count is 2
+    -> ... // an error accrue, goto roll_back or leave.
+    ->ocfs2_commit_trans()
+    ->iput(inode)
+      ->evict()
+        ->ocfs2_evict_inode()
+          ->ocfs2_delete_inode()
+            ->ocfs2_inode_lock()
+              ->ocfs2_inode_lock_update()
+                ->ocfs2_refresh_inode()
+                  ->set_nlink();    // inode->i_nlink is 2 now.
+            /* if wipe is 0, it will goto bail_unlock_inode */
+            ->ocfs2_query_inode_wipe()
+              ->if (inode->i_nlink) return; // wipe is 0.
+            /* inode can not be wiped */
+            ->ocfs2_wipe_inode()
+So, we need clear links before the transaction committed.
+
+Link: http://lkml.kernel.org/r/d8147c41-fb2b-bdf7-b660-1f3c8448c33f@huawei.com
+Signed-off-by: Yan Wang <wangyan122@huawei.com>
+Reviewed-by: Jun Piao <piaojun@huawei.com>
 Cc: Mark Fasheh <mark@fasheh.com>
 Cc: Joel Becker <jlbec@evilplan.org>
 Cc: Junxiao Bi <junxiao.bi@oracle.com>
 Cc: Joseph Qi <jiangqi903@gmail.com>
 Cc: Changwei Ge <gechangwei@live.cn>
 Cc: Gang He <ghe@suse.com>
-Cc: Jun Piao <piaojun@huawei.com>
+Cc: <stable@vger.kernel.org>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- fs/ocfs2/namei.c        |   32 +++++++++++++-------------------
- fs/ocfs2/namei.h        |    2 ++
- fs/ocfs2/refcounttree.c |   15 +++++++++++----
- fs/ocfs2/xattr.c        |   12 +-----------
- fs/ocfs2/xattr.h        |    1 +
- 5 files changed, 28 insertions(+), 34 deletions(-)
+ fs/ocfs2/namei.c |   14 ++++++++++++--
+ 1 file changed, 12 insertions(+), 2 deletions(-)
 
---- a/fs/ocfs2/namei.c~ocfs2-reflink-deadlock-when-clone-file-to-the-same-directory-simultaneously
+--- a/fs/ocfs2/namei.c~ocfs2-clear-links-count-in-ocfs2_mknod-if-an-error-occurs
 +++ a/fs/ocfs2/namei.c
-@@ -2490,6 +2490,7 @@ out:
- }
- 
- int ocfs2_create_inode_in_orphan(struct inode *dir,
-+				 struct buffer_head **dir_bh,
- 				 int mode,
- 				 struct inode **new_inode)
- {
-@@ -2598,13 +2599,16 @@ leave:
- 
- 	brelse(new_di_bh);
- 
--	if (!status)
--		*new_inode = inode;
--
- 	ocfs2_free_dir_lookup_result(&orphan_insert);
- 
--	ocfs2_inode_unlock(dir, 1);
--	brelse(parent_di_bh);
-+	if (!status) {
-+		*new_inode = inode;
-+		*dir_bh = parent_di_bh;
-+	} else {
-+		ocfs2_inode_unlock(dir, 1);
-+		brelse(parent_di_bh);
-+	}
-+
- 	return status;
- }
- 
-@@ -2761,11 +2765,11 @@ bail:
- }
- 
- int ocfs2_mv_orphaned_inode_to_new(struct inode *dir,
-+				   struct buffer_head *dir_bh,
- 				   struct inode *inode,
- 				   struct dentry *dentry)
- {
- 	int status = 0;
--	struct buffer_head *parent_di_bh = NULL;
- 	handle_t *handle = NULL;
- 	struct ocfs2_super *osb = OCFS2_SB(dir->i_sb);
- 	struct ocfs2_dinode *dir_di, *di;
-@@ -2779,14 +2783,7 @@ int ocfs2_mv_orphaned_inode_to_new(struc
- 				(unsigned long long)OCFS2_I(dir)->ip_blkno,
- 				(unsigned long long)OCFS2_I(inode)->ip_blkno);
- 
--	status = ocfs2_inode_lock(dir, &parent_di_bh, 1);
--	if (status < 0) {
--		if (status != -ENOENT)
--			mlog_errno(status);
--		return status;
--	}
--
--	dir_di = (struct ocfs2_dinode *) parent_di_bh->b_data;
-+	dir_di = (struct ocfs2_dinode *) dir_bh->b_data;
- 	if (!dir_di->i_links_count) {
- 		/* can't make a file in a deleted directory. */
- 		status = -ENOENT;
-@@ -2799,7 +2796,7 @@ int ocfs2_mv_orphaned_inode_to_new(struc
- 		goto leave;
- 
- 	/* get a spot inside the dir. */
--	status = ocfs2_prepare_dir_for_insert(osb, dir, parent_di_bh,
-+	status = ocfs2_prepare_dir_for_insert(osb, dir, dir_bh,
- 					      dentry->d_name.name,
- 					      dentry->d_name.len, &lookup);
- 	if (status < 0) {
-@@ -2863,7 +2860,7 @@ int ocfs2_mv_orphaned_inode_to_new(struc
- 	ocfs2_journal_dirty(handle, di_bh);
- 
- 	status = ocfs2_add_entry(handle, dentry, inode,
--				 OCFS2_I(inode)->ip_blkno, parent_di_bh,
-+				 OCFS2_I(inode)->ip_blkno, dir_bh,
- 				 &lookup);
- 	if (status < 0) {
- 		mlog_errno(status);
-@@ -2887,10 +2884,7 @@ orphan_unlock:
- 	iput(orphan_dir_inode);
+@@ -454,8 +454,12 @@ roll_back:
  leave:
- 
--	ocfs2_inode_unlock(dir, 1);
--
- 	brelse(di_bh);
--	brelse(parent_di_bh);
- 	brelse(orphan_dir_bh);
- 
- 	ocfs2_free_dir_lookup_result(&lookup);
---- a/fs/ocfs2/namei.h~ocfs2-reflink-deadlock-when-clone-file-to-the-same-directory-simultaneously
-+++ a/fs/ocfs2/namei.h
-@@ -24,6 +24,7 @@ int ocfs2_orphan_del(struct ocfs2_super
- 		     struct buffer_head *orphan_dir_bh,
- 		     bool dio);
- int ocfs2_create_inode_in_orphan(struct inode *dir,
-+				 struct buffer_head **dir_bh,
- 				 int mode,
- 				 struct inode **new_inode);
- int ocfs2_add_inode_to_orphan(struct ocfs2_super *osb,
-@@ -32,6 +33,7 @@ int ocfs2_del_inode_from_orphan(struct o
- 		struct inode *inode, struct buffer_head *di_bh,
- 		int update_isize, loff_t end);
- int ocfs2_mv_orphaned_inode_to_new(struct inode *dir,
-+				   struct buffer_head *dir_bh,
- 				   struct inode *new_inode,
- 				   struct dentry *new_dentry);
- 
---- a/fs/ocfs2/refcounttree.c~ocfs2-reflink-deadlock-when-clone-file-to-the-same-directory-simultaneously
-+++ a/fs/ocfs2/refcounttree.c
-@@ -4222,7 +4222,7 @@ static int ocfs2_reflink(struct dentry *
- {
- 	int error, had_lock;
- 	struct inode *inode = d_inode(old_dentry);
--	struct buffer_head *old_bh = NULL;
-+	struct buffer_head *old_bh = NULL, *dir_bh = NULL;
- 	struct inode *new_orphan_inode = NULL;
- 	struct ocfs2_lock_holder oh;
- 
-@@ -4230,7 +4230,7 @@ static int ocfs2_reflink(struct dentry *
- 		return -EOPNOTSUPP;
- 
- 
--	error = ocfs2_create_inode_in_orphan(dir, inode->i_mode,
-+	error = ocfs2_create_inode_in_orphan(dir, &dir_bh, inode->i_mode,
- 					     &new_orphan_inode);
- 	if (error) {
- 		mlog_errno(error);
-@@ -4276,13 +4276,15 @@ static int ocfs2_reflink(struct dentry *
- 
- 	/* If the security isn't preserved, we need to re-initialize them. */
- 	if (!preserve) {
--		error = ocfs2_init_security_and_acl(dir, new_orphan_inode,
-+		error = ocfs2_init_security_and_acl(dir, dir_bh,
-+						    new_orphan_inode,
- 						    &new_dentry->d_name);
- 		if (error)
- 			mlog_errno(error);
- 	}
- 	if (!error) {
--		error = ocfs2_mv_orphaned_inode_to_new(dir, new_orphan_inode,
-+		error = ocfs2_mv_orphaned_inode_to_new(dir, dir_bh,
-+						       new_orphan_inode,
- 						       new_dentry);
- 		if (error)
- 			mlog_errno(error);
-@@ -4300,6 +4302,11 @@ out:
- 			iput(new_orphan_inode);
- 	}
- 
-+	if (dir_bh) {
-+		ocfs2_inode_unlock(dir, 1);
-+		brelse(dir_bh);
+ 	if (status < 0 && did_quota_inode)
+ 		dquot_free_inode(inode);
+-	if (handle)
++	if (handle) {
++		if (status < 0 && new_fe_bh != NULL)
++			ocfs2_set_links_count((struct ocfs2_dinode *)
++					new_fe_bh->b_data, 0);
+ 		ocfs2_commit_trans(osb, handle);
 +	}
-+
- 	return error;
- }
  
---- a/fs/ocfs2/xattr.c~ocfs2-reflink-deadlock-when-clone-file-to-the-same-directory-simultaneously
-+++ a/fs/ocfs2/xattr.c
-@@ -7203,16 +7203,13 @@ out:
- /*
-  * Initialize security and acl for a already created inode.
-  * Used for reflink a non-preserve-security file.
-- *
-- * It uses common api like ocfs2_xattr_set, so the caller
-- * must not hold any lock expect i_rwsem.
-  */
- int ocfs2_init_security_and_acl(struct inode *dir,
-+				struct buffer_head *dir_bh,
- 				struct inode *inode,
- 				const struct qstr *qstr)
- {
- 	int ret = 0;
--	struct buffer_head *dir_bh = NULL;
- 
- 	ret = ocfs2_init_security_get(inode, dir, qstr, NULL);
- 	if (ret) {
-@@ -7220,17 +7217,10 @@ int ocfs2_init_security_and_acl(struct i
- 		goto leave;
- 	}
- 
--	ret = ocfs2_inode_lock(dir, &dir_bh, 0);
--	if (ret) {
--		mlog_errno(ret);
--		goto leave;
--	}
- 	ret = ocfs2_init_acl(NULL, inode, dir, NULL, dir_bh, NULL, NULL);
- 	if (ret)
- 		mlog_errno(ret);
- 
--	ocfs2_inode_unlock(dir, 0);
--	brelse(dir_bh);
+ 	ocfs2_inode_unlock(dir, 1);
+ 	if (did_block_signals)
+@@ -599,6 +603,8 @@ static int __ocfs2_mknod_locked(struct i
  leave:
- 	return ret;
- }
---- a/fs/ocfs2/xattr.h~ocfs2-reflink-deadlock-when-clone-file-to-the-same-directory-simultaneously
-+++ a/fs/ocfs2/xattr.h
-@@ -83,6 +83,7 @@ int ocfs2_reflink_xattrs(struct inode *o
- 			 struct buffer_head *new_bh,
- 			 bool preserve_security);
- int ocfs2_init_security_and_acl(struct inode *dir,
-+				struct buffer_head *dir_bh,
- 				struct inode *inode,
- 				const struct qstr *qstr);
- #endif /* OCFS2_XATTR_H */
+ 	if (status < 0) {
+ 		if (*new_fe_bh) {
++			if (fe)
++				ocfs2_set_links_count(fe, 0);
+ 			brelse(*new_fe_bh);
+ 			*new_fe_bh = NULL;
+ 		}
+@@ -2028,8 +2034,12 @@ bail:
+ 					ocfs2_clusters_to_bytes(osb->sb, 1));
+ 	if (status < 0 && did_quota_inode)
+ 		dquot_free_inode(inode);
+-	if (handle)
++	if (handle) {
++		if (status < 0 && new_fe_bh != NULL)
++			ocfs2_set_links_count((struct ocfs2_dinode *)
++					new_fe_bh->b_data, 0);
+ 		ocfs2_commit_trans(osb, handle);
++	}
+ 
+ 	ocfs2_inode_unlock(dir, 1);
+ 	if (did_block_signals)
 _
 
+
+
+
+
+From: Wangyan <wangyan122@huawei.com>
+Subject: ocfs2: fix ocfs2 corrupt when iputting an inode
+
+In this condition, it will cause an bug on error.
+ocfs2_mkdir()
+  ->ocfs2_mknod()
+    ->ocfs2_mknod_locked()
+      ->__ocfs2_mknod_locked()
+        //Assume inode->i_generation is genN.
+        ->inode->i_generation = osb->s_next_generation++;
+        // The inode lockres has been initialized.
+        ->ocfs2_populate_inode()
+        ->ocfs2_create_new_inode_locks()
+            ->An error happened, returned value is non-zero
+      // free the start_bit x in bg_blkno
+      ->ocfs2_free_suballoc_bits()
+    ->...  /* Another process execute mkdir success in this place,
+              and it occupied the start_bit x in bg_blkno
+              which has been freed before. Its inode->i_generation
+              is genN + 1 */
+    ->iput(inode)
+      ->evict()
+        ->ocfs2_evict_inode()
+          ->ocfs2_delete_inode()
+            ->ocfs2_inode_lock()
+              ->ocfs2_inode_lock_update()
+                /* Bug on here, genN != genN + 1 */
+                ->mlog_bug_on_msg(inode->i_generation !=
+                  le32_to_cpu(fe->i_generation))
+
+So, we need not to reclaim the inode when the inode->ip_inode_lockres
+has been initialized. It will be freed in iput().
+
+Link: http://lkml.kernel.org/r/ef080ca3-5d74-e276-17a1-d9e7c7e662c9@huawei.com
+Fixes: b1529a41f777 ("ocfs2: should reclaim the inode if '__ocfs2_mknod_locked' returns an error")
+Signed-off-by: Yan Wang <wangyan122@huawei.com>
+Reviewed-by: Jun Piao <piaojun@huawei.com>
+Cc: Mark Fasheh <mark@fasheh.com>
+Cc: Joel Becker <jlbec@evilplan.org>
+Cc: Junxiao Bi <junxiao.bi@oracle.com>
+Cc: Joseph Qi <jiangqi903@gmail.com>
+Cc: Changwei Ge <gechangwei@live.cn>
+Cc: Gang He <ghe@suse.com>
+Cc: <stable@vger.kernel.org>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+---
+
+ fs/ocfs2/namei.c |    3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+--- a/fs/ocfs2/namei.c~ocfs2-fix-ocfs2-corrupt-when-iputting-an-inode
++++ a/fs/ocfs2/namei.c
+@@ -641,7 +641,8 @@ static int ocfs2_mknod_locked(struct ocf
+ 	status = __ocfs2_mknod_locked(dir, inode, dev, new_fe_bh,
+ 				    parent_fe_bh, handle, inode_ac,
+ 				    fe_blkno, suballoc_loc, suballoc_bit);
+-	if (status < 0) {
++	if (status < 0 && !(OCFS2_I(inode)->ip_inode_lockres.l_flags &
++				OCFS2_LOCK_INITIALIZED)) {
+ 		u64 bg_blkno = ocfs2_which_suballoc_group(fe_blkno, suballoc_bit);
+ 		int tmp = ocfs2_free_suballoc_bits(handle, inode_ac->ac_inode,
+ 				inode_ac->ac_bh, suballoc_bit, bg_blkno, 1);
+_
 
 
 _______________________________________________
