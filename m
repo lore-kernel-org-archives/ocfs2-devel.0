@@ -1,90 +1,83 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc253.phx1.oracleemaildelivery.com (aib29ajc253.phx1.oracleemaildelivery.com [192.29.103.253])
+Received: from aib29ajc251.phx1.oracleemaildelivery.com (aib29ajc251.phx1.oracleemaildelivery.com [192.29.103.251])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id E5D51C433FE
-	for <ocfs2-devel@archiver.kernel.org>; Mon, 17 Oct 2022 01:51:32 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 2E194C433FE
+	for <ocfs2-devel@archiver.kernel.org>; Mon, 17 Oct 2022 01:58:06 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=DxMeK+gdem0YdjIWdLdLDS6EqA5FXsb6DM/HDonpJaQ=;
- b=goJDB7aTfRgguApSuEclo4AGFgE6xvK4vIk9HLlrH4v06fuHuKpg/R4qzCi7s3gWpWR+dbiQcrOP
-   62l/H0YL2RkhxrLy4LygAy/PIVwAVYVo7R7/WboWpePO5YIeaowU4HUi4QDSFn9j3EsSGyp166n7
-   bwzRp79u/mxh+eQIx7eYAloXkopThOPz/9ei2yAkm4Wllu+S+KWzl5Q3VJncWLqKL5WFQmuiq6eM
-   EZzMkVLX7KV7CsrY/adS0dcHJPu2pFYSPVALbXZmgvy/DBp9Pst2BrEAfJfTOWvH89WlW2XbB5Lr
-   VP9sQYf6H3/mf7Fz8cJ5hwXTBaIzEdjfNLvd2g==
+ bh=EvqHDNbKRu5elLpGSJk0JUt2wBMz+rm03oMTRaS/dCQ=;
+ b=LlFmak7UWGbm3hUa9lNfTwPEJE6fbxLz0ZfJNXP/Twnyf70HQwJe71d+603k/nKKrjUlT6D6+SxO
+   3y2BGV3eSurOlgRRtsjUp9VIqI+glaynZiI4pcxv4kn54SViqCRzS/Z6RiN/+w6oARC6M+vbBZir
+   kvJTXxSbzfCp6bKXbOVUMH+/i4r993KlyjGGePbCCjIKswj2WKtsE5w3Vq+6CbjGUHrpUL60kLWv
+   Vd7xoo6nf73lOXDILqerkuWJDsm/54lMVP/+RSGcs/VKB+KZJcEHHePT6INDtHf27BaRgQuG6RHa
+   JG9Pk+hfDdkZeJ12rquNgYsz6nR7wLpbLo82AA==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=DxMeK+gdem0YdjIWdLdLDS6EqA5FXsb6DM/HDonpJaQ=;
- b=sxu8MFJMBhYNI2Wa3KAGsY6z7SxMBT0kaNWbEgR5Js7WNMoCvnJzgs6/VeDJMvUzquFgg0pHoso8
-   0ZczFJEKv1HIfmOEZwwfKVYVa7ZVpA7BwmFYf+NCDhdDJoiacktXY2xmstXIh97+jRUSegIfm3j+
-   tj6dxQyf1bpueEL0Y0bDaaeyEex4i/cp+kJy6TW9rCjQmezXPhHvlLHQ6JMogmjy5EA+nGNda3rl
-   +apipDLqdAPd+T1a4aq7lnJYbIo44QVhButjjQnoaec6BhToWUlZ3OWcVJpwfLD3vln06QkJ2seE
-   rDIAHpGusHHgGi35Z9nmBOknyZP6I0ve7imHuw==
-Received: by omta-ad3-fd1-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
+ bh=EvqHDNbKRu5elLpGSJk0JUt2wBMz+rm03oMTRaS/dCQ=;
+ b=AQmUpns596nY0oiNUF4P4qBxwviUVt4YOBJUdQwzL+XBUBmpg+5L51HvSPAcfZszZcjqk6qqyN3J
+   IXQBsWpdXru1OhrnbZlIZ6fcsmedZ66otym85kadgOzCdwojQoVGXYjk5doQ0rWFmQwvMOdS1MxP
+   mgvku1rAKkqvu1q+GAn9MPzmzlAzOjo/afD5dolHQfwa/d7bKZlkOlzq6iN2ManC+hv28uN92l6e
+   7EaHGBbYSP8BgkVUh7fUFBi24PNbC0OQRHrbfnoK0MZpSwDxWs0+rVXSdgiYV3owBQqB3UWTMkBk
+   R5PwJdiWWDx0xpyPJucCitrj37lUOSh9zNKDYA==
+Received: by omta-ad2-fd3-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220914 64bit (built Sep 14
  2022))
- with ESMTPS id <0RJV005TKJTWAR30@omta-ad3-fd1-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Mon, 17 Oct 2022 01:51:32 +0000 (GMT)
+ with ESMTPS id <0RJV00LO6K4T2C40@omta-ad2-fd3-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Mon, 17 Oct 2022 01:58:05 +0000 (GMT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=20210112;
- h=content-transfer-encoding:in-reply-to:from:content-language
- :references:cc:to:subject:user-agent:mime-version:date:message-id
+ h=content-transfer-encoding:in-reply-to:from:references:to
+ :content-language:subject:user-agent:mime-version:date:message-id
  :from:to:cc:subject:date:message-id:reply-to;
- bh=O0u2/qB79DDSymMhjMNmMe7kf6mNO0BFvgwh+ZdNdWY=;
- b=i29c64fcZ385P5gN/bC6pCEuW/uWOjN5BMPnSv425TTet9kAcW62+87LRLwptVNfSm
- bL7KHV4KC8OvnT0u7OQ2flB6V4B90PANDqtW0kDul6OnfUOtbwQUn7eF1J7PMguHOMED
- sYP4INZwaDGFeQ7idPAGnusGuhqiCJortJUIvJdDH+Ol9pOxw/l8d7qdBAiGRBdHrIpr
- 26CvZEYx59N2Pu8/Tp9G5Wn/6/9eq2FqYlzx4LqhBfxZwGyzO1TMrisTKuaLwERlLQxA
- EErCBNGsG2ILHEJk6lW8WPKKm/gw/wGoOtMEi7NsPA4eJwNYhHojQxkhQYY9iZEHjb1X Mtjg==
+ bh=LNExlwGQANOjTBQ61Dl22tAmqPeAyvnrePSDfHfC6oM=;
+ b=RFua4eJ7qOtEq6mCUtNP7yNQ+6bDeyDHrH1w2RMwXnJVfIPzW64B/hSgwpv0HmZifc
+ xncBTOEapE8NRGreGPMbcRryvliqGqvpZJXzpsr5MahixzSEtmWvAkRBuV1ow4Gi3AhD
+ b1zLdE8z0mtuvX6PAx+gChCnN9lNdRu0RyiESDvacQBF8BMCel4PoszJ2B9qGAFDIrn0
+ qLfq0bNmyZh+3tUCblUmJt/fmhhLgeJgkmub9bI+Nc7IxUSzCvZtxF8jzmoI4pGEwfMJ
+ ZCC4ShEWFD/TWDcWbPehS3XX6W16PyiGiFPcsHBmNoeNLbSsGDhhFBTVCux0QOLLslsN 0+aA==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=1e100.net;
- s=20210112; h=content-transfer-encoding:in-reply-to:from:content-language
- :references:cc:to:subject:user-agent:mime-version:date:message-id
+ s=20210112; h=content-transfer-encoding:in-reply-to:from:references:to
+ :content-language:subject:user-agent:mime-version:date:message-id
  :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
- bh=O0u2/qB79DDSymMhjMNmMe7kf6mNO0BFvgwh+ZdNdWY=;
- b=HPcYhCHPxkuQhln9xUMrMTwh1z00eXB5Eqr7/vJYpOouICQY1cimwGEzrGyY8RMH73
- lArVKd0r5CclNGH1I9do/jrsR+AnfBWCWP63sAZucDbtDAg/1sCKd0fUn7gDcAYO6w8F
- wenRQYBnSHK83fmL27C90MiVUbbsHoD+HcqdXMir076fW2MYDetxo5EaB2/1oW3e7/im
- kufxfpnuZhqRPhd/ZROsT5IVWTTvR/bybfg62I0WQiErlwXHvPHbpr7J2gD4/noPYrXR
- m0EXskUo1YrCnb7B8fQxTFGK89ORONmHUxtZ1+y6gl9KFYcZW+/FwNPgFmMZZrfMQ0mn Q+QQ==
-X-Gm-Message-State: ACrzQf3FpY6P0SkUeYbZD+OqY0GdK4vhHFdiKfcf0LPPR5xHwr8oNfxO
- p5q1Rz/A+EEXHxAukSVppZs=
-X-Received: by 2002:a63:d512:0:b0:46a:ff05:ce8c with SMTP id
- c18-20020a63d512000000b0046aff05ce8cmr8876870pgg.292.1665971478234; Sun,
- 16 Oct 2022 18:51:18 -0700 (PDT)
-Message-id: <06a7f382-5eaa-9489-3c28-aa4bfb804327@gmail.com>
-Date: Mon, 17 Oct 2022 09:51:14 +0800
+ bh=LNExlwGQANOjTBQ61Dl22tAmqPeAyvnrePSDfHfC6oM=;
+ b=ZnC75I7TELHR1ts8qlFnFSxijphdW+xlV6Oi0uuNeAdY9tublb/ackLjzi0gxBut7O
+ xb66m3tAcbsgaIn636bs4nrwSsQ2OUNOdrrepWnw5CyUhQemzgyDSAjrXImqWIGe5D+u
+ MwGGmuiUcXedYHgjIuMCk0o6E05evfLrlODJNW8r7p0ZymvgN6VHFGKbV9t+qo7b0LYR
+ IXb0O1r4dSFkPD7DjYSq5mU9Wx2HGLyv8ameNFkkMRk/X9d99GPlfFcwyYlc7TvZoDGw
+ OQnEJ5e0SbeJn3UgptuCeQgkk7Yx2ak+Bs6RBATkgBLO6PWs7g9v9cv4VgesK0IPolyl PFSA==
+X-Gm-Message-State: ACrzQf1+isLLTpyN9l4nR5vcYkLtHhWZHDk1i+ekPfj5JhYGhsOhDqLC
+ QkVjR9ves6BvxZQXT32xRVc=
+X-Received: by 2002:a17:90b:1891:b0:20a:daaf:75e0 with SMTP id
+ mn17-20020a17090b189100b0020adaaf75e0mr30354674pjb.109.1665971868691; Sun,
+ 16 Oct 2022 18:57:48 -0700 (PDT)
+Message-id: <8d6c14b7-8224-4637-73c8-08f427095588@gmail.com>
+Date: Mon, 17 Oct 2022 09:57:45 +0800
 MIME-version: 1.0
 User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:102.0)
  Gecko/20100101 Thunderbird/102.3.3
-To: Andrew Morton <akpm@linux-foundation.org>, Gang He <ghe@suse.com>
-References: <20210729110230.18983-1-ghe@suse.com>
- <5821fd0f-2018-dc1b-a5c0-f948a7debff4@linux.alibaba.com>
- <c7e1f0a7-e75c-d1e0-870d-dc480d070079@suse.com>
- <71608a14-58f4-dba0-d695-fee65de89192@linux.alibaba.com>
- <801438f5-655a-c708-aa25-343d54a2f11e@suse.com>
- <86e3d724-3147-ccaa-998f-0f857c575f7e@linux.alibaba.com>
- <a0a9710f-461a-99c8-92f6-a99bb11b3a4e@suse.com>
- <4ba3b404-824b-90a3-ef43-9ab6510ee073@linux.alibaba.com>
- <5a1af56c-3eab-5baf-62a3-1c98bac104ba@suse.com>
- <db7119a5-f120-cebe-42a1-dc2f64db620d@suse.com>
- <20221016162950.09db2b5f503ac87823cd1687@linux-foundation.org>
 Content-language: en-US
-In-reply-to: <20221016162950.09db2b5f503ac87823cd1687@linux-foundation.org>
-X-Source-IP: 209.85.215.175
+To: Andrew Morton <akpm@linux-foundation.org>, ocfs2-devel@oss.oracle.com,
+ Wangyan <wangyan122@huawei.com>
+References: <d8147c41-fb2b-bdf7-b660-1f3c8448c33f@huawei.com>
+ <09b83918-89aa-2f5c-bbbf-ea4470386bfe@gmail.com>
+ <20200806204910.6fa489d7aabd5c8026f4c704@linux-foundation.org>
+ <20221016163245.786bb7ee9d6cfc952f445642@linux-foundation.org>
+In-reply-to: <20221016163245.786bb7ee9d6cfc952f445642@linux-foundation.org>
+X-Source-IP: 209.85.214.176
 X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10502
  signatures=596816
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0
- lowpriorityscore=0 suspectscore=0 malwarescore=0 unknownsenderscore=20
- impostorscore=0 mlxlogscore=589 spamscore=0 mlxscore=0 adultscore=0
- phishscore=0 bulkscore=0 clxscore=62 priorityscore=293 classifier=spam
- adjust=0 reason=mlx scancount=1 engine=8.12.0-2209130000
- definitions=main-2210170009 domainage_hfrom=9927
-Cc: linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
-Subject: Re: [Ocfs2-devel] [PATCH] ocfs2: reflink deadlock when clone file to
- the same directory simultaneously
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 clxscore=34
+ phishscore=0 lowpriorityscore=0 bulkscore=0 mlxlogscore=952 impostorscore=0
+ adultscore=0 spamscore=0 unknownsenderscore=20 suspectscore=0
+ priorityscore=330 mlxscore=0 malwarescore=0 classifier=spam adjust=0
+ reason=mlx scancount=1 engine=8.12.0-2209130000 definitions=main-2210170009
+ domainage_hfrom=9927
+Subject: Re: [Ocfs2-devel] [PATCH 1/2] ocfs2: clear links count in
+ ocfs2_mknod() if an error occurs
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -102,41 +95,41 @@ Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
 X-Google-Smtp-Source:
- AMsMyM5vViC/nHuZEYX6WRA8n+EnpFuattZzIjESrObM8WLhJB5lqRBuOhsJkd46jBXsztGXBam/LQ==
-X-ServerName: mail-pg1-f175.google.com
+ AMsMyM6v3CvoUwPBx4n9B6oga3LmlySF+nS7srw+8kK5AraJ+n+WOeZGm7MoVf1KURAtWajw6pW9mQ==
+X-ServerName: mail-pl1-f176.google.com
 X-Proofpoint-SPF-Result: pass
 X-Proofpoint-SPF-Record: v=spf1 redirect=_spf.google.com
 X-Spam: Clean
-X-Proofpoint-ORIG-GUID: vOGBXXork8ZVwSOYOlatmjyYi4s5SU9_
-X-Proofpoint-GUID: vOGBXXork8ZVwSOYOlatmjyYi4s5SU9_
+X-Proofpoint-ORIG-GUID: juOoMGftJcqfL44Mo4TmPNJ8nyObiT4b
+X-Proofpoint-GUID: juOoMGftJcqfL44Mo4TmPNJ8nyObiT4b
 Reporting-Meta:
- AAEF4MOjAXWlNUXt9BH0fA9Y6YIG8+WZ2lbxUKEweu0381nZrq79t0oi1sWfTpb1
- SS1Ho4CQ3ZO8+AkFwwPXmWNqWn2wiAIKgD/FXjrER8xm9rCg6Z71P/F/7XlsmeSe
- 0eFAgNtJu5AHNC266iIuWsyWnFrvQ5NpSwapKryNkKewm3eYXfflLQuFPOPhkV10
- utkR94qVZd7Gr0rxJr8GwmT7eUS29YH2mNi9bUbT4bypcolocA4zy58v5jblb7dY
- wntNAmVNIvMhnOmKiv576gqpPt71KmP7Pocxr+kHrNd7+tEBGpLCFuJUjD2bPMxJ
- qYvqX5OPBQ2Mh7pD3ZxKI/UELUF3yFzxaCbcYpoG3Sp7h8YdnNgNGvS+kjnGrmc4
- J1PF3tHbs9KBCoKZUSZrO/Mpk8J7Gobis+BAr5SL1+LelN+v/abbJYU9O6g7Vicv
- aWsiUXrraN+xVtlZoq80reRly20333EXZmOlEJU/nKb2rVqO+aWa4neTQlA8Xjut
- gTvN8RsvjM4rnI6IF1zbmYEqrcrFOMfaAtOT5UAklHS3
+ AAED4nrbuwIfgcdkMsiMDUHwaoMPNW3dmpTwXUib7or+PMpTjcfZCFDdW7bYaGOS
+ IdX/APpPYoXNVJ/rSa6eyvcgTjJQ6SeXQ35bfBtBbmm2hFH39DsYqWhppfs3wmul
+ VCUFsaDg0Cz0yB7XAEjfZAoKIN8CphUpetfWCR8KRV1AotPB7Pmn6/zpQm39hjeA
+ Gjsa+aqPbech1jOEsoZsu0udDTIJAECJEU9Y6x9Zzj8biCRPJoAU/PonwkRhbEH7
+ EwxmsuNL0UjJrQ9eORjZQZKKip+J6IyEGgtNORmziAAfr1kCOBOVXHdzlGqjiVr9
+ qSrRja0Ag6jIdrxxSosDobGbKHGKem9qKoN/7yZBWlXkUGxCqQgUZuObeRqCwNmO
+ OKwbEDtKqJa+J/pdRBm8+ZFdrdGddn4E5Pzs/nqJAw3kUP39DDdhXwh0IQCPtXR3
+ XO0iGUgd7jA6pQfAvIKw3xYqlAj8L4+WnOba8vkLW2GAP5zsDZLH/IWp3yvwH/Hu
+ xt8YVK4aVzJ+TN/srwYvtaU6j6y5xzI8028oOPkHwiYU
 
 Hi Andrew,
 
-On 10/17/22 7:29 AM, Andrew Morton via Ocfs2-devel wrote:
-> On Thu, 26 Aug 2021 13:56:16 +0800 Gang He <ghe@suse.com> wrote:
+On 10/17/22 7:32 AM, Andrew Morton wrote:
 > 
->> So, I will send a new patch to fix this deadlock problem via dlmglue layer.
->> For this patch, I want to change the patch comments as a reflink 
->> improvement patch.
+> I've been sitting on this patch series for over two years!  I assume
+> the problem isn't terribly serious.
 > 
-> Did this ever happen?  I've been sitting on this patch for ages.
+> Can we please come to a decision on how to proceed?  Thanks.
 > 
-Looked back this thread, the root cause of deadlock seems to be the
-asynchronous of fsdlm handling. So this is not a right fix.
-While for the performance improvement, I need some test data as well.
+> The current patches from the mm tree are below.
+> 
+It seems I commented before, but without any response.
+I'll take a look and send a new version base on the latest base today.
 
 Thanks,
 Joseph
+
 
 _______________________________________________
 Ocfs2-devel mailing list
