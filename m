@@ -1,60 +1,90 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc250.phx1.oracleemaildelivery.com (aib29ajc250.phx1.oracleemaildelivery.com [192.29.103.250])
+Received: from aib29ajc253.phx1.oracleemaildelivery.com (aib29ajc253.phx1.oracleemaildelivery.com [192.29.103.253])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 89528C433FE
-	for <ocfs2-devel@archiver.kernel.org>; Sun, 16 Oct 2022 23:33:02 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id E5D51C433FE
+	for <ocfs2-devel@archiver.kernel.org>; Mon, 17 Oct 2022 01:51:32 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=EUyXoh0hzogDCJTGwUkQfpUdEQxV7qrBhnWO5BbESmE=;
- b=QJB61FUOPjno7MnMOHo9HbPd3noCcTzzt6Ft8Rlpqq/WLHRhD5oa3kaQEYnJuF69m5wqeo8ajEOR
-   KQmJoSwpiC9ZRD9NZzrM6et3DTN8M7aOLiArG/r43ddAcaRGLZuFhpGgt4NlKbHJ3KygNv8GKjDN
-   r8BclyjHgYvanTrq2H/t9YIWEn2KM/jMG/a+M4eEQy9jHj9r0Lqf8KyeMJiQt1ZFToUnCRdQ+92R
-   oT6qhtEl+AnrGynZzwS1PnlPfVXaUN8CBOa5E4+JyJDfIPABAxPugFTGV644Gn9YyTM7TnfSNsD3
-   oHR994cUIG9uZSdP0FPEE0VmKoaEO3WNOvdizw==
+ bh=DxMeK+gdem0YdjIWdLdLDS6EqA5FXsb6DM/HDonpJaQ=;
+ b=goJDB7aTfRgguApSuEclo4AGFgE6xvK4vIk9HLlrH4v06fuHuKpg/R4qzCi7s3gWpWR+dbiQcrOP
+   62l/H0YL2RkhxrLy4LygAy/PIVwAVYVo7R7/WboWpePO5YIeaowU4HUi4QDSFn9j3EsSGyp166n7
+   bwzRp79u/mxh+eQIx7eYAloXkopThOPz/9ei2yAkm4Wllu+S+KWzl5Q3VJncWLqKL5WFQmuiq6eM
+   EZzMkVLX7KV7CsrY/adS0dcHJPu2pFYSPVALbXZmgvy/DBp9Pst2BrEAfJfTOWvH89WlW2XbB5Lr
+   VP9sQYf6H3/mf7Fz8cJ5hwXTBaIzEdjfNLvd2g==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=EUyXoh0hzogDCJTGwUkQfpUdEQxV7qrBhnWO5BbESmE=;
- b=Rq/YzjlmCVustWXRdiNTT+qbWW46d54pBLa9pczlOl/2wd/a8bZqOoia55GDvbpEKnv3J9WoXOKC
-   aqv5ev8AOy++dQJXK3GzWdT//K475oRZ7l7uxoZSQ4phKlq42kVfhD5f2s9AhZf7qRPjDjuiqsJm
-   BqWo2xOD0n2Att4EVJWhv1Wwen+sMg/nzCxN/dxYBnvLTQGTsvA0HARM+o3kby5Bqf0/nDwWPu5I
-   1KIQ5zV/oze0lDOvJU7KYs3ZFW8Ng0Qc4VeVOorpcCJDsOY6OrhngyCpldAyLmR0Wg4NIg59nKSM
-   cVd/96NK5RNb6FcfRhDKa4AYbvpRXx5pg1REMg==
-Received: by omta-ad2-fd3-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
+ bh=DxMeK+gdem0YdjIWdLdLDS6EqA5FXsb6DM/HDonpJaQ=;
+ b=sxu8MFJMBhYNI2Wa3KAGsY6z7SxMBT0kaNWbEgR5Js7WNMoCvnJzgs6/VeDJMvUzquFgg0pHoso8
+   0ZczFJEKv1HIfmOEZwwfKVYVa7ZVpA7BwmFYf+NCDhdDJoiacktXY2xmstXIh97+jRUSegIfm3j+
+   tj6dxQyf1bpueEL0Y0bDaaeyEex4i/cp+kJy6TW9rCjQmezXPhHvlLHQ6JMogmjy5EA+nGNda3rl
+   +apipDLqdAPd+T1a4aq7lnJYbIo44QVhButjjQnoaec6BhToWUlZ3OWcVJpwfLD3vln06QkJ2seE
+   rDIAHpGusHHgGi35Z9nmBOknyZP6I0ve7imHuw==
+Received: by omta-ad3-fd1-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220914 64bit (built Sep 14
  2022))
- with ESMTPS id <0RJV003O7DF16LB0@omta-ad2-fd3-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Sun, 16 Oct 2022 23:33:01 +0000 (GMT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linux-foundation.org;
- s=korg; t=1665963166; bh=jfh7fNWLQG26T5MsmOC+xYhoA7ZMvYpvVgmi2dlytEU=;
- h=Date:From:To:Subject:In-Reply-To:References:From;
- b=rx2NoIoAn4rTbEusw+NOnC3HlY9Vay9u2DBBcPU1FSJ6szHh3y5OHZw+83bO9E7gw
- ojr6HHos7RqC5xDhKhKkl/m2Xvbh5Pd24UViuYAtV+uAZ2DsHcrCrdmtdJTIah6Smv
- 7H9lAF98AJp2+5LscBTnjoHrU9jvFWcRVND8qywA=
-Date: Sun, 16 Oct 2022 16:32:45 -0700
-To: Joseph Qi <jiangqi903@gmail.com>, ocfs2-devel@oss.oracle.com,
- Wangyan <wangyan122@huawei.com>
-Message-id: <20221016163245.786bb7ee9d6cfc952f445642@linux-foundation.org>
-In-reply-to: <20200806204910.6fa489d7aabd5c8026f4c704@linux-foundation.org>
-References: <d8147c41-fb2b-bdf7-b660-1f3c8448c33f@huawei.com>
- <09b83918-89aa-2f5c-bbbf-ea4470386bfe@gmail.com>
- <20200806204910.6fa489d7aabd5c8026f4c704@linux-foundation.org>
-X-Mailer: Sylpheed 3.7.0 (GTK+ 2.24.33; x86_64-redhat-linux-gnu)
+ with ESMTPS id <0RJV005TKJTWAR30@omta-ad3-fd1-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Mon, 17 Oct 2022 01:51:32 +0000 (GMT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=20210112;
+ h=content-transfer-encoding:in-reply-to:from:content-language
+ :references:cc:to:subject:user-agent:mime-version:date:message-id
+ :from:to:cc:subject:date:message-id:reply-to;
+ bh=O0u2/qB79DDSymMhjMNmMe7kf6mNO0BFvgwh+ZdNdWY=;
+ b=i29c64fcZ385P5gN/bC6pCEuW/uWOjN5BMPnSv425TTet9kAcW62+87LRLwptVNfSm
+ bL7KHV4KC8OvnT0u7OQ2flB6V4B90PANDqtW0kDul6OnfUOtbwQUn7eF1J7PMguHOMED
+ sYP4INZwaDGFeQ7idPAGnusGuhqiCJortJUIvJdDH+Ol9pOxw/l8d7qdBAiGRBdHrIpr
+ 26CvZEYx59N2Pu8/Tp9G5Wn/6/9eq2FqYlzx4LqhBfxZwGyzO1TMrisTKuaLwERlLQxA
+ EErCBNGsG2ILHEJk6lW8WPKKm/gw/wGoOtMEi7NsPA4eJwNYhHojQxkhQYY9iZEHjb1X Mtjg==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=1e100.net;
+ s=20210112; h=content-transfer-encoding:in-reply-to:from:content-language
+ :references:cc:to:subject:user-agent:mime-version:date:message-id
+ :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
+ bh=O0u2/qB79DDSymMhjMNmMe7kf6mNO0BFvgwh+ZdNdWY=;
+ b=HPcYhCHPxkuQhln9xUMrMTwh1z00eXB5Eqr7/vJYpOouICQY1cimwGEzrGyY8RMH73
+ lArVKd0r5CclNGH1I9do/jrsR+AnfBWCWP63sAZucDbtDAg/1sCKd0fUn7gDcAYO6w8F
+ wenRQYBnSHK83fmL27C90MiVUbbsHoD+HcqdXMir076fW2MYDetxo5EaB2/1oW3e7/im
+ kufxfpnuZhqRPhd/ZROsT5IVWTTvR/bybfg62I0WQiErlwXHvPHbpr7J2gD4/noPYrXR
+ m0EXskUo1YrCnb7B8fQxTFGK89ORONmHUxtZ1+y6gl9KFYcZW+/FwNPgFmMZZrfMQ0mn Q+QQ==
+X-Gm-Message-State: ACrzQf3FpY6P0SkUeYbZD+OqY0GdK4vhHFdiKfcf0LPPR5xHwr8oNfxO
+ p5q1Rz/A+EEXHxAukSVppZs=
+X-Received: by 2002:a63:d512:0:b0:46a:ff05:ce8c with SMTP id
+ c18-20020a63d512000000b0046aff05ce8cmr8876870pgg.292.1665971478234; Sun,
+ 16 Oct 2022 18:51:18 -0700 (PDT)
+Message-id: <06a7f382-5eaa-9489-3c28-aa4bfb804327@gmail.com>
+Date: Mon, 17 Oct 2022 09:51:14 +0800
 MIME-version: 1.0
-X-Source-IP: 145.40.68.75
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:102.0)
+ Gecko/20100101 Thunderbird/102.3.3
+To: Andrew Morton <akpm@linux-foundation.org>, Gang He <ghe@suse.com>
+References: <20210729110230.18983-1-ghe@suse.com>
+ <5821fd0f-2018-dc1b-a5c0-f948a7debff4@linux.alibaba.com>
+ <c7e1f0a7-e75c-d1e0-870d-dc480d070079@suse.com>
+ <71608a14-58f4-dba0-d695-fee65de89192@linux.alibaba.com>
+ <801438f5-655a-c708-aa25-343d54a2f11e@suse.com>
+ <86e3d724-3147-ccaa-998f-0f857c575f7e@linux.alibaba.com>
+ <a0a9710f-461a-99c8-92f6-a99bb11b3a4e@suse.com>
+ <4ba3b404-824b-90a3-ef43-9ab6510ee073@linux.alibaba.com>
+ <5a1af56c-3eab-5baf-62a3-1c98bac104ba@suse.com>
+ <db7119a5-f120-cebe-42a1-dc2f64db620d@suse.com>
+ <20221016162950.09db2b5f503ac87823cd1687@linux-foundation.org>
+Content-language: en-US
+In-reply-to: <20221016162950.09db2b5f503ac87823cd1687@linux-foundation.org>
+X-Source-IP: 209.85.215.175
 X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10502
  signatures=596816
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 phishscore=0
- malwarescore=0 spamscore=0 clxscore=208 impostorscore=0 suspectscore=0
- bulkscore=0 adultscore=0 mlxlogscore=999 mlxscore=0 priorityscore=48
- lowpriorityscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2209130000 definitions=main-2210160144
-Subject: Re: [Ocfs2-devel] [PATCH 1/2] ocfs2: clear links count in
- ocfs2_mknod() if an error occurs
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0
+ lowpriorityscore=0 suspectscore=0 malwarescore=0 unknownsenderscore=20
+ impostorscore=0 mlxlogscore=589 spamscore=0 mlxscore=0 adultscore=0
+ phishscore=0 bulkscore=0 clxscore=62 priorityscore=293 classifier=spam
+ adjust=0 reason=mlx scancount=1 engine=8.12.0-2209130000
+ definitions=main-2210170009 domainage_hfrom=9927
+Cc: linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
+Subject: Re: [Ocfs2-devel] [PATCH] ocfs2: reflink deadlock when clone file to
+ the same directory simultaneously
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -66,188 +96,47 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: Andrew Morton via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: Andrew Morton <akpm@linux-foundation.org>
+From: Joseph Qi via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: Joseph Qi <jiangqi903@gmail.com>
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-ServerName: ams.source.kernel.org
+X-Google-Smtp-Source:
+ AMsMyM5vViC/nHuZEYX6WRA8n+EnpFuattZzIjESrObM8WLhJB5lqRBuOhsJkd46jBXsztGXBam/LQ==
+X-ServerName: mail-pg1-f175.google.com
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 ip4:140.211.169.12/30 include:_spf.kernel.org
- include:_spf.google.com ~all
+X-Proofpoint-SPF-Record: v=spf1 redirect=_spf.google.com
 X-Spam: Clean
-X-Proofpoint-GUID: MxA55WE8nifai5yWeOvsQ053N__ONEUX
-X-Proofpoint-ORIG-GUID: MxA55WE8nifai5yWeOvsQ053N__ONEUX
+X-Proofpoint-ORIG-GUID: vOGBXXork8ZVwSOYOlatmjyYi4s5SU9_
+X-Proofpoint-GUID: vOGBXXork8ZVwSOYOlatmjyYi4s5SU9_
 Reporting-Meta:
- AAFR6iT6yYFpRbn4SPgxykCB4c/Ix0kodlUUPASEt+sTDO15K9KqH9pCIWpmJMBj
- K1j5RvPZrFkb+Vy6tPnrvObuarijILt+Jj9QFjQM00kdvDabBddeTJtJbUrUguu8
- qQqJ5Kx3TBbg5AYPK7uDsCbatkspaZkQsNz98Qv+bVQzQoDcwuM6Bz7gk8CT3f9+
- 7lcYQB6m1JWLIjbmX8KV4UyFarOrBdZUAI1+cisMN2vlRtdIK6zn0SxG8pxsvCkA
- G6r1n0OBjeXkGOpQXU9iVjhS5vgRxKv0N8l/VdatO8kO6D72GlNCrpZpUZ1Uu/FR
- toX2lua7UnQVi1zwZ+ydZq5bznYNbfP7o+twBt6Fp5QjBFjKGb5OlshU/61CV+bu
- QYqfOvZ8aDbv4L4hoEz14u34IZuQqBJXlNZuN1LLnqz6VCrh92D1YBhWRrRswjk5
- dGTGfjYhH36x8RUIscMjy/vL6AKdXnaa9ZTbmlZMViFI07py6etMxRmE6maAoEuE
- 1Y901dlcepbBt5tx5MCBw0FmYVR0KvzsDjaoMUtmDZts
+ AAEF4MOjAXWlNUXt9BH0fA9Y6YIG8+WZ2lbxUKEweu0381nZrq79t0oi1sWfTpb1
+ SS1Ho4CQ3ZO8+AkFwwPXmWNqWn2wiAIKgD/FXjrER8xm9rCg6Z71P/F/7XlsmeSe
+ 0eFAgNtJu5AHNC266iIuWsyWnFrvQ5NpSwapKryNkKewm3eYXfflLQuFPOPhkV10
+ utkR94qVZd7Gr0rxJr8GwmT7eUS29YH2mNi9bUbT4bypcolocA4zy58v5jblb7dY
+ wntNAmVNIvMhnOmKiv576gqpPt71KmP7Pocxr+kHrNd7+tEBGpLCFuJUjD2bPMxJ
+ qYvqX5OPBQ2Mh7pD3ZxKI/UELUF3yFzxaCbcYpoG3Sp7h8YdnNgNGvS+kjnGrmc4
+ J1PF3tHbs9KBCoKZUSZrO/Mpk8J7Gobis+BAr5SL1+LelN+v/abbJYU9O6g7Vicv
+ aWsiUXrraN+xVtlZoq80reRly20333EXZmOlEJU/nKb2rVqO+aWa4neTQlA8Xjut
+ gTvN8RsvjM4rnI6IF1zbmYEqrcrFOMfaAtOT5UAklHS3
 
+Hi Andrew,
 
-I've been sitting on this patch series for over two years!  I assume
-the problem isn't terribly serious.
+On 10/17/22 7:29 AM, Andrew Morton via Ocfs2-devel wrote:
+> On Thu, 26 Aug 2021 13:56:16 +0800 Gang He <ghe@suse.com> wrote:
+> 
+>> So, I will send a new patch to fix this deadlock problem via dlmglue layer.
+>> For this patch, I want to change the patch comments as a reflink 
+>> improvement patch.
+> 
+> Did this ever happen?  I've been sitting on this patch for ages.
+> 
+Looked back this thread, the root cause of deadlock seems to be the
+asynchronous of fsdlm handling. So this is not a right fix.
+While for the performance improvement, I need some test data as well.
 
-Can we please come to a decision on how to proceed?  Thanks.
-
-The current patches from the mm tree are below.
-
-From: Wangyan <wangyan122@huawei.com>
-Subject: ocfs2: clear links count in ocfs2_mknod() if an error occurs
-
-In this condition, the inode can not be wiped when error happened.
-ocfs2_mkdir()
-  ->ocfs2_mknod()
-    ->ocfs2_mknod_locked()
-      ->__ocfs2_mknod_locked()
-        ->ocfs2_set_links_count() // i_links_count is 2
-    -> ... // an error accrue, goto roll_back or leave.
-    ->ocfs2_commit_trans()
-    ->iput(inode)
-      ->evict()
-        ->ocfs2_evict_inode()
-          ->ocfs2_delete_inode()
-            ->ocfs2_inode_lock()
-              ->ocfs2_inode_lock_update()
-                ->ocfs2_refresh_inode()
-                  ->set_nlink();    // inode->i_nlink is 2 now.
-            /* if wipe is 0, it will goto bail_unlock_inode */
-            ->ocfs2_query_inode_wipe()
-              ->if (inode->i_nlink) return; // wipe is 0.
-            /* inode can not be wiped */
-            ->ocfs2_wipe_inode()
-So, we need clear links before the transaction committed.
-
-Link: http://lkml.kernel.org/r/d8147c41-fb2b-bdf7-b660-1f3c8448c33f@huawei.com
-Signed-off-by: Yan Wang <wangyan122@huawei.com>
-Reviewed-by: Jun Piao <piaojun@huawei.com>
-Cc: Mark Fasheh <mark@fasheh.com>
-Cc: Joel Becker <jlbec@evilplan.org>
-Cc: Junxiao Bi <junxiao.bi@oracle.com>
-Cc: Joseph Qi <jiangqi903@gmail.com>
-Cc: Changwei Ge <gechangwei@live.cn>
-Cc: Gang He <ghe@suse.com>
-Cc: <stable@vger.kernel.org>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
----
-
- fs/ocfs2/namei.c |   14 ++++++++++++--
- 1 file changed, 12 insertions(+), 2 deletions(-)
-
---- a/fs/ocfs2/namei.c~ocfs2-clear-links-count-in-ocfs2_mknod-if-an-error-occurs
-+++ a/fs/ocfs2/namei.c
-@@ -454,8 +454,12 @@ roll_back:
- leave:
- 	if (status < 0 && did_quota_inode)
- 		dquot_free_inode(inode);
--	if (handle)
-+	if (handle) {
-+		if (status < 0 && new_fe_bh != NULL)
-+			ocfs2_set_links_count((struct ocfs2_dinode *)
-+					new_fe_bh->b_data, 0);
- 		ocfs2_commit_trans(osb, handle);
-+	}
- 
- 	ocfs2_inode_unlock(dir, 1);
- 	if (did_block_signals)
-@@ -599,6 +603,8 @@ static int __ocfs2_mknod_locked(struct i
- leave:
- 	if (status < 0) {
- 		if (*new_fe_bh) {
-+			if (fe)
-+				ocfs2_set_links_count(fe, 0);
- 			brelse(*new_fe_bh);
- 			*new_fe_bh = NULL;
- 		}
-@@ -2028,8 +2034,12 @@ bail:
- 					ocfs2_clusters_to_bytes(osb->sb, 1));
- 	if (status < 0 && did_quota_inode)
- 		dquot_free_inode(inode);
--	if (handle)
-+	if (handle) {
-+		if (status < 0 && new_fe_bh != NULL)
-+			ocfs2_set_links_count((struct ocfs2_dinode *)
-+					new_fe_bh->b_data, 0);
- 		ocfs2_commit_trans(osb, handle);
-+	}
- 
- 	ocfs2_inode_unlock(dir, 1);
- 	if (did_block_signals)
-_
-
-
-
-
-
-From: Wangyan <wangyan122@huawei.com>
-Subject: ocfs2: fix ocfs2 corrupt when iputting an inode
-
-In this condition, it will cause an bug on error.
-ocfs2_mkdir()
-  ->ocfs2_mknod()
-    ->ocfs2_mknod_locked()
-      ->__ocfs2_mknod_locked()
-        //Assume inode->i_generation is genN.
-        ->inode->i_generation = osb->s_next_generation++;
-        // The inode lockres has been initialized.
-        ->ocfs2_populate_inode()
-        ->ocfs2_create_new_inode_locks()
-            ->An error happened, returned value is non-zero
-      // free the start_bit x in bg_blkno
-      ->ocfs2_free_suballoc_bits()
-    ->...  /* Another process execute mkdir success in this place,
-              and it occupied the start_bit x in bg_blkno
-              which has been freed before. Its inode->i_generation
-              is genN + 1 */
-    ->iput(inode)
-      ->evict()
-        ->ocfs2_evict_inode()
-          ->ocfs2_delete_inode()
-            ->ocfs2_inode_lock()
-              ->ocfs2_inode_lock_update()
-                /* Bug on here, genN != genN + 1 */
-                ->mlog_bug_on_msg(inode->i_generation !=
-                  le32_to_cpu(fe->i_generation))
-
-So, we need not to reclaim the inode when the inode->ip_inode_lockres
-has been initialized. It will be freed in iput().
-
-Link: http://lkml.kernel.org/r/ef080ca3-5d74-e276-17a1-d9e7c7e662c9@huawei.com
-Fixes: b1529a41f777 ("ocfs2: should reclaim the inode if '__ocfs2_mknod_locked' returns an error")
-Signed-off-by: Yan Wang <wangyan122@huawei.com>
-Reviewed-by: Jun Piao <piaojun@huawei.com>
-Cc: Mark Fasheh <mark@fasheh.com>
-Cc: Joel Becker <jlbec@evilplan.org>
-Cc: Junxiao Bi <junxiao.bi@oracle.com>
-Cc: Joseph Qi <jiangqi903@gmail.com>
-Cc: Changwei Ge <gechangwei@live.cn>
-Cc: Gang He <ghe@suse.com>
-Cc: <stable@vger.kernel.org>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
----
-
- fs/ocfs2/namei.c |    3 ++-
- 1 file changed, 2 insertions(+), 1 deletion(-)
-
---- a/fs/ocfs2/namei.c~ocfs2-fix-ocfs2-corrupt-when-iputting-an-inode
-+++ a/fs/ocfs2/namei.c
-@@ -641,7 +641,8 @@ static int ocfs2_mknod_locked(struct ocf
- 	status = __ocfs2_mknod_locked(dir, inode, dev, new_fe_bh,
- 				    parent_fe_bh, handle, inode_ac,
- 				    fe_blkno, suballoc_loc, suballoc_bit);
--	if (status < 0) {
-+	if (status < 0 && !(OCFS2_I(inode)->ip_inode_lockres.l_flags &
-+				OCFS2_LOCK_INITIALIZED)) {
- 		u64 bg_blkno = ocfs2_which_suballoc_group(fe_blkno, suballoc_bit);
- 		int tmp = ocfs2_free_suballoc_bits(handle, inode_ac->ac_inode,
- 				inode_ac->ac_bh, suballoc_bit, bg_blkno, 1);
-_
-
+Thanks,
+Joseph
 
 _______________________________________________
 Ocfs2-devel mailing list
