@@ -1,73 +1,74 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc254.phx1.oracleemaildelivery.com (aib29ajc254.phx1.oracleemaildelivery.com [192.29.103.254])
+Received: from aib29ajc251.phx1.oracleemaildelivery.com (aib29ajc251.phx1.oracleemaildelivery.com [192.29.103.251])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 81656C433FE
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 9BFA8FA373E
 	for <ocfs2-devel@archiver.kernel.org>; Fri, 21 Oct 2022 17:11:33 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=0BnWuU56vjQ9+vCvoOW2VnwtI8fS1WlJEFBtdFkmQmA=;
- b=SWYf7X3V4KjNVlAjCyHCkrfND1DGgIlxWPATxMeK3vUbrTg9eicZsDZnXfzUzywqM2mppm7AMw7M
-   60Qi9uGe1ZEJVa/lDovir6GzH4QxhQJP4Nr+gzdOS9bg2yDX1SQhUjsPSz/5HgPUttUtYiVHuutg
-   TaHo/InzDTzbwlha+BqdGrYNSOM+jTpr0LToJ17U+3zcM2A23LwgI98KD/AyUpHzRKe5JZIcNPd8
-   DCmwVYjS8vV/f2LDKlb4wZXEZaIV1j0CbNZBAVPZBWmXbcyOi15mfZ/i9VWRKd716vUwQDuGKed7
-   4aBTAodABtkt4talv2ad+ApFpmpbYhT/FtRwsA==
+ bh=BZ7PtUcvj/L40+OCvy+gWyubW4M48mmztht0y9ner9I=;
+ b=VeSwcODjJbyOElJh5zXeT4WIMUeGcaG3BzChNtNQ0pIU1qi2BsacoOaICrP63RO7oJ1zKOPpDm6g
+   sn3t6e3AdsWHx08EPCJkKbOiDycvehXsStoXRpp6UVLrXWN58s6wan1+TgZzHYLrV7wRdHQiGfZC
+   qiv+031H5uxnpiZwV4yG16cr4X0j4eBrZt/xdgI0+g0KXzeXXc78WDLYOA2kaPWgREsPzPVUrlVG
+   QkL+QB8d+IbANjnpct/+IoCr7ndzyNU/IwL9cOohyoLPpnqTaXM7klYiQqUo3Ts4nqeAJJJe9aNn
+   btZqpdMRKXI7yH/h8HPS8bS5QYBzKEgFxgZkBg==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=0BnWuU56vjQ9+vCvoOW2VnwtI8fS1WlJEFBtdFkmQmA=;
- b=D6ygNOVbROA3bOM7lHjqOyrYVht8nfIXOGFWPgc9wClPAHNO6lsiFV0zbHZm1aMBSP//VQdGH/D7
-   i9Jo6wj6+O3XgYq/+C1MuHJWVe4apxM96CGdrscVROximq5mJWh1YLCAZPm+zF/zYE0OYkUEF3JI
-   aT3PzakscDrVFDJ7Dlz9AvKnkpH+OZ79B+ShKGSUr2a7+W1mMjC0+IybFUQAW62Tfo2qNrhEGnZE
-   9tfPdj9jGc2kbV4TcQosRKkH0mRMtGWF4eePSch5aVC/bxKJsPNK47rIAOQCG7mXyJ7Eti/YyFgi
-   POAb+A8gTdAtKgAMpQj+0up3qdxKAd2nWySSbA==
-Received: by omta-ad3-fd3-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
+ bh=BZ7PtUcvj/L40+OCvy+gWyubW4M48mmztht0y9ner9I=;
+ b=L7NS9V87UGuOWv4j/AM57oYVMhvGP2aeH9YYsB/x5aWefbXONhKJKfqBNqIZdDF6co7uXHYOHWCk
+   hwWLa7mKc1Xu3HZpdrE70sjlgF/14iwgA91yA+w3Ghh6iKI7bMt7Nn2fYHythidkMuGg7GHzdp81
+   5/a5HzCYGLK61uWbn+ZU6EHmJJ0DeBT4C/6UnoXXnXlBxAePG3sVuWcSyzY6U+A6al0V5oJydqW7
+   taWpFpTE/1D8GUlwFDpWuPnBOnX907EwREFOeye3HFiSdv87/Dd3e59XmXhdkvmiGleIrBG8lXAG
+   OFhhvB/vxyA2wpqXzmxVIxSKYl/tMndA4SdnNw==
+Received: by omta-ad2-fd3-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220914 64bit (built Sep 14
  2022))
- with ESMTPS id <0RK4004HR5383I20@omta-ad3-fd3-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Fri, 21 Oct 2022 17:11:32 +0000 (GMT)
+ with ESMTPS id <0RK4001PO539AAB0@omta-ad2-fd3-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Fri, 21 Oct 2022 17:11:33 +0000 (GMT)
 ARC-Seal: i=1; a=rsa-sha256; s=arcselector9901; d=microsoft.com; cv=none;
- b=ATvZqhoNDTgmQDjui9UdC6sQJmcgaupRemuya8Di5wd6XtS9KLKhy19vpu9aUDTvmybdL1vLkNUDQsSV+s8GQQQlg2AF/TNDW22MUbQf9xUOQnuXsghTsg8fEn1uZeM9x6OeFYPJLWZZGgRj2OWl2Sei9MLnhbyiPR7ZLTE+mHNZI7hvKbuHgM3PHc0+vFdWqSyVekXY9RZAjfJIvtlBFRMqFz10UQWscVtDpDLyY296XHSbnnSIso6iTJ1uJpxb/bvvHSrlWFeI+HhxH7MkMgoPOk6dF4kDOPPYaYokWAd2aBK5/mOg/bsukj3AvlBFs3V8O/Fbb4+qyWd5rHeyYw==
+ b=AO1IWlrWPXyjK5RZ0xCtHEAwZSDSUPtsjWcLMcL5MNHHYw+UKcnVoeU6HTrqH+owoQGhVn3LHMcllH0gduju/EknjxUq8o/PcCIlesc//RA0/vXi1OZcoayFbx1gfyUBBaj251xPvJc61RjsZYyGv+ePYhT1gGd/gPWAeh7blekJGXG0lLAUyMrM7MSmtkKprQp3d9rAIMi3CVYGh93EcdqCmIxevMx5g1OVzDBc3XJ9ft+Znv6jwABOuDuFeC8x4ydCNjfTyxC0yQeKKZKBWP74IImp9TF+UzWubambFfx43/Kw0j7PXUDt1SheXorfT0QaoHIBEwOpMRqn31nqvQ==
 ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
  s=arcselector9901;
  h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
- bh=fRACIIBShcs17dxhNMHJKvpK8tgIULqC76X2wJf8Or8=;
- b=nJVNZHhN8ycmpPVh69If9/Kl4T/A6A2qO4ux8e7w+Vp3mDpa+A274zroG4rNu3IVy3ZHGqstn1pattRlWlK0ebUmBMsoX00S8Y+AJowy0muds5d1hbYen/z6RLrCsrcuBNplGHV0OkqK12CAYq3REeLmtVVKXYROh1QBSGLWRzFntKQpU4GHMzKD6eA8aYTNLs7TUV1bm2sf8wCy0lxcLebGhgH8mBqDlx55epRqbmYzTQgwuGQy+LozB0rM/1s2dRDMPF/YBDUGEhB4QKnyUkFFSNyWkt6GqtLQMSG9upmaoWIyL6NFCIhRJfnorY4vbZUsIsgTBCehFv0m2CidUw==
+ bh=Q251mzfsb5DlGC85pwHzj7UDAFI0ShBjQfuh/jjyVsg=;
+ b=ndUvpFbHhxuHqtoyrvNqKhGZMH1hwtj5R3rqxnssUm2Ch/XTLIQjSIPryiUqxESbKhxT5Zb5qDyeaGvrPWRm0+zbHDwrbCIe5dFpE+I/PGkLCj1KPrTDW5OF+L4ryXCqNxllhP0Vg1Kxf5Aqqj6T2pSpcTk6U3ejeJHG/fOqTLIL2nQHG3nYVrRY+T+U4VzvubIDQcj8egg2C7xgFm+IyPVe7lA77C/k3qqoHbJCSzGu3olKiBmOxcT6M9D/OMMJs2hcNJxBpI/ZL59mxVcKq37iI8phLjhrpTlxF/UnozxgBSEjucTPCq6y0/0/YZIrPeiHvqd9dMzy93QpoVOUwA==
 ARC-Authentication-results: i=1; mx.microsoft.com 1; spf=pass
  smtp.mailfrom=amd.com; dmarc=pass action=none header.from=amd.com; dkim=pass
  header.d=amd.com; arc=none
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=amd.com; s=selector1;
  h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
- bh=fRACIIBShcs17dxhNMHJKvpK8tgIULqC76X2wJf8Or8=;
- b=eu5aPyobWzNkm2k0Dzjcbw9k29s3XuTWhNhJxlz0zsM/YoAlGi72fSLTGn7Q6G2AbOfjkCEcUBdgPqMfHz7FLtytsp8LiyvTHvXRaHnlb93Qh1eVkgRNMePaCBsMQJNxUHlQtLNjhZjrEWroA6fcmdCRQPdw3wM6yOz26wDMfME=
-Content-type: multipart/mixed; boundary="------------9VtOs3mF29K0mdP7SyPs0VFr"
-Message-id: <5efd73b0-d634-d34f-3d7a-13d674e40d04@amd.com>
-Date: Fri, 21 Oct 2022 03:55:18 -0400
+ bh=Q251mzfsb5DlGC85pwHzj7UDAFI0ShBjQfuh/jjyVsg=;
+ b=c4LJxSJwUO3E/4zaRExZtJsnex681gh5nBqCuB78iniPxc3wvcvIRXbAYYyvUU4SUI+VtxagXyZ81MgH4YO7TkC6gdOv09Kpk/nd/2oQeNR+6cXAPE61O23OduMAhwGZ0hRyb+w5fgV61Kc4QD2qQVGrXvsmh+9/516+6etBkT0=
+Message-id: <19689b9e-16d1-c6c5-4ee8-58885fbf8fb0@amd.com>
+Date: Fri, 21 Oct 2022 04:41:08 -0400
 User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:102.0) Gecko/20100101
  Thunderbird/102.3.3
 Content-language: en-CA
 To: Greg KH <gregkh@linuxfoundation.org>
 References: <20221021022102.2231464-1-yangyingliang@huawei.com>
  <d559793a-0ce4-3384-e74e-19855aa31f31@amd.com> <Y1IwLOUGayjT9p6d@kroah.com>
-In-reply-to: <Y1IwLOUGayjT9p6d@kroah.com>
+ <5efd73b0-d634-d34f-3d7a-13d674e40d04@amd.com> <Y1JV1wxf/7ERAMhl@kroah.com>
+ <35e66c7c-ff25-efd3-cfbc-d06130687aa7@amd.com>
+In-reply-to: <35e66c7c-ff25-efd3-cfbc-d06130687aa7@amd.com>
 MIME-version: 1.0
 X-Forefront-Antispam-Report: CIP:255.255.255.255; CTRY:; LANG:en; SCL:1; SRV:;
  IPV:NLI; SFV:NSPM; H:DM6PR12MB3370.namprd12.prod.outlook.com; PTR:; CAT:NONE;
- SFS:(13230022)(4636009)(136003)(366004)(396003)(346002)(376002)(39860400002)(451199015)(478600001)(6512007)(26005)(33964004)(6506007)(2906002)(6666004)(186003)(5660300002)(7416002)(2616005)(53546011)(44832011)(235185007)(66946007)(4001150100001)(6916009)(8676002)(45080400002)(966005)(6486002)(8936002)(4326008)(66556008)(41300700001)(66476007)(316002)(66899015)(31696002)(86362001)(36756003)(38100700002)(31686004)(43740500002)(45980500001); DIR:OUT;
+ SFS:(13230022)(4636009)(366004)(396003)(39860400002)(376002)(136003)(346002)(451199015)(38100700002)(186003)(2616005)(478600001)(66899015)(2906002)(4001150100001)(31686004)(6486002)(966005)(45080400002)(44832011)(66556008)(8676002)(4326008)(6666004)(31696002)(6916009)(53546011)(36756003)(8936002)(86362001)(6512007)(66946007)(66476007)(26005)(6506007)(5660300002)(41300700001)(316002)(7416002)(43740500002)(45980500001); DIR:OUT;
  SFP:1101;
 X-OriginatorOrg: amd.com
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 21 Oct 2022 07:55:21.2393 (UTC)
-X-Source-IP: 40.107.243.52
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 21 Oct 2022 08:41:11.4437 (UTC)
+X-Source-IP: 40.107.101.83
 X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10506
  signatures=596816
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 malwarescore=0
- bulkscore=0 adultscore=0 spamscore=0 mlxscore=0 mlxlogscore=999 phishscore=0
- suspectscore=0 lowpriorityscore=0 impostorscore=0 priorityscore=231
- clxscore=102 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2209130000 definitions=main-2210210047 domainage_hfrom=13122
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 suspectscore=0
+ clxscore=21 mlxscore=0 adultscore=0 mlxlogscore=999 impostorscore=0
+ bulkscore=0 spamscore=0 malwarescore=0 lowpriorityscore=0 priorityscore=425
+ phishscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2209130000 definitions=main-2210210050 domainage_hfrom=13122
 Cc: rafael@kernel.org, qemu-devel@nongnu.org, liushixin2@huawei.com,
  linux-mtd@lists.infradead.org, huangjianan@oppo.com, richard@nod.at,
  mst@redhat.com, amd-gfx@lists.freedesktop.org,
@@ -91,185 +92,176 @@ List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
 From: Luben Tuikov via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
 Reply-to: Luben Tuikov <luben.tuikov@amd.com>
+Content-type: text/plain; charset="us-ascii"
+Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-ClientProxiedBy: YT3PR01CA0085.CANPRD01.PROD.OUTLOOK.COM
- (2603:10b6:b01:84::16) To DM6PR12MB3370.namprd12.prod.outlook.com
+X-ClientProxiedBy: YT3PR01CA0070.CANPRD01.PROD.OUTLOOK.COM
+ (2603:10b6:b01:84::18) To DM6PR12MB3370.namprd12.prod.outlook.com
  (2603:10b6:5:38::25)
 X-MS-PublicTrafficType: Email
-X-MS-TrafficTypeDiagnostic: DM6PR12MB3370:EE_|DS0PR12MB6582:EE_
-X-MS-Office365-Filtering-Correlation-Id: ac1e6fa5-9788-4e1f-24b3-08dab3399a5b
+X-MS-TrafficTypeDiagnostic: DM6PR12MB3370:EE_|SN7PR12MB6691:EE_
+X-MS-Office365-Filtering-Correlation-Id: 98a45d05-4649-4cb9-cbd9-08dab340019f
 X-MS-Exchange-SenderADCheck: 1
 X-MS-Exchange-AntiSpam-Relay: 0
 X-Microsoft-Antispam: BCL:0;
 X-Microsoft-Antispam-Message-Info:
- okpt7L5SEG56woasM5xJeTJ1nidp7lS0w9DZdMiCIOImiXifT4iHjbmrbqsztJz4zIZl0xeGE6jPoP8uSkPjNxnwUR1WyJ9EQGKLMxhMy209JndaDT6YchKwFcKkeM0j0aZBdJ2ZcAiv536fIK5NNmbGPM3tuZgT4FXYdZb8xjeymm0cy3Ec7zt6VcB7zmL1i1pTvz1abLWF2PoDRw+aSFKEw2OxW6okijr9Ihe1kt+84UQBqjIf9NqPVLXw7a2AfF3nH1UXYlrjs16ACWMQ5I1EOQx84UUiCOR2/QLkjmb4oOYyd+L1lxzqJFofg6MzeOe54GFfQULXEa/2iIaUTZIRvSqL1LeRoS1AkpwXqffdbqB/NTFJnN0PbY7wK3xEREA8Idr7Gi9sWXqOka77lRvh+0NrOPtHNo89LjiQeEEYT42+yPJBfyVBJsQtetGTFSOluhOZe9C7YyCHSZJHP1Ufe1F3zINjORwcuU/Ykc/h8xsY8lXOzAtlvL3tFcP1WGMKOPlT+jTv9Gj43vaelaXt4Z3nagLOjkN4hM6qPyIySJvcQGfvJZQj71nTqUW0rUHMfwEjovtKNU60CW9pyctGyrFTIWhKHdynLnGNbOjkmbomH/hWnIPg4+7Zcx+Jb0Z1m/WJp8CP+yENn7B7kb78UCii0bRhNp0zC9LqwaNGfucS56PpIlFZjz2ozr3MZFSaBzaTF5/6sFQXXW/q73GKDFRt0axqqYtwyFfAOMK87rcqDgrzQKcdShi5zLoqWpx/UyplcaUh9MxS3FONN10HoIa70t33tjg+V6u43L5Hq9d0HeBmBdLitvxOMaV19LbZu1E9jnHTdHwnGQU2vA==
+ MbwkcXzQpKxEfYR0Ksar0quqZBoOQTbzkAtjpW0n3/r8FkxFGdM1tblrL/0MPgFcdrXp25eTq5baV/KtLqDoHN3QV9w9zk/jA3WgP4tdEivcy8tjf0V5JjC4M10KGNy0q6K7XwaZf6xu2Re9WkwdBvrOIYllsX55Nly+CON6D+i4Y8v70LI5EzqRjJXgz43eshskkFVgi/wTNmC3yh4PIbK0jttzFC90NdQcjNkUbm083sFohAm2/Zoq5T+l2ukmumQOJGkZQaG4Tw4a2WK157O/6JfA47oJioPzjhdPV77uV+95ZLYQ5WIfL9Dq/RlGt/qjYSn5Rn2ANHjBPHB45+GCkJ5EsjojZ3wIzgakQdhOySswmYXJqXe9WOzEnSEAmoGcF7EX0sm8T/KhbEXRd+0mCoqLSpRzbNusMznHKTNAItlacZoCjtgerIIyhCT6M6U9Vh/gQUUAfapmcaK99IFx6Ch3WU5l6oVWrOnd3hXLdP4bi+RJAeTcya8pjsIYnVpeRtIhopJ3SZOQURNzM3hs6solvohbBVhrD0wwKChXTotApsmn7J7GGwCJiazkm2mGLdiBGyt8UUW2fqjiJcbFJSXn7Z+QprvEwR1Q3rQdCgYky2BQYqfG7QO0Nf8rMbKme5Vh5wb0JrUPSAZ4M1FedeugSr9Eo7WnXiM3QSJ2owDAgPcDeFZqLLALn5U/b3r4ZoQSQGDQZF6/gKF+sSs0PeIJUtbEgzYYUTq9vlt+1TPDZGzfYD5RAcc4rRUdGUDM2VWn5CQNHX/RezlwLqemEd/nCNsUUQJi/vyaC7VMesW8J1zneyzEg3uNByZSpWIVUazOsmptph3dsa0xPA==
 X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
 X-MS-Exchange-AntiSpam-MessageData-0:
- =?utf-8?B?dHpQLzVNVFVFak5yTTZvbTQ3c0pEdi9Ob1p6MUVJZk1SWjJtNXpLaTNTOTJj?=
- =?utf-8?B?aVVIT0dnbExDcjczbnpKRDluY29UZWhvNmVrQUhwT25GclRnSEdhMDZYT1BX?=
- =?utf-8?B?WjkyY1cyMFpTWXl4RWF3cmV5R1VYNUcrcmt1U0syaVkzQ0NvZGxUT0VkaVdn?=
- =?utf-8?B?WDNKbnZrdzRyb09ScFIrR1lsNGJ3cEQxZi85Y0d1dUpFOGdkdkxVWDR1RzJo?=
- =?utf-8?B?S3pIbmNWV0NoRGxZWXd4clAxU1ViUnFQNlBnK2Zybjg3T3JVMk13Qzdka3Jh?=
- =?utf-8?B?ZFg1cDlsRGlxM0ludnZaV1A2NlJjVE83U1p0UmhOYVprUGdpbmVxNFpjcCtJ?=
- =?utf-8?B?NmV1aUVEaVZIVDhDMlk4ZEZxMWd4MEhCK1lBRjFsUUFNTWUyc1FNRjdzaDZ4?=
- =?utf-8?B?MTNZQ1RjcmVqck1PeENEd0tMTXRrSnd6YUQrTlBpclRSQ2ZJTUtuc0VhL0ZN?=
- =?utf-8?B?R0k1TURRdmNScWpZYURNQk1oY1I4dFJ6aWJNR29icWl3ajEwUHUxMkkyNTg2?=
- =?utf-8?B?cmhsc2JFcmNEVWVQODhiWFh3eDRXdGg2SzlNZXZ4MnQxU0MyLzYxU2xmZGVp?=
- =?utf-8?B?MDhoRGppZG9xanlDb3BHQjlSVWxHZHVLZjJIQlplNUMvVWg0a3RiTFFGUlBN?=
- =?utf-8?B?Y2dKUlZIQkc0M0krTEdZRFRCbW9GTWZObTZpNk1vaVVFNVYycXg2cnZPZWdL?=
- =?utf-8?B?dmc3VVRmalBNRTV1c3BzS1lQZ0kyZTJFVVVJM05RbGtrekdoMyt4NlliWmo5?=
- =?utf-8?B?ZmdEMnFwOUFiak43MWNZWk9nVlI0amN0R2IvOGhEa1FFZ0prVFNnaVlVdS8r?=
- =?utf-8?B?WGFiNjQwdk1VSkFRMTBxRmFuNSs0eEw0SlBPaW9VN1NqcFNDRDRZK09NZ0pn?=
- =?utf-8?B?Q1l4Ny8yd0JDb1J0VlhPY2hLRXJ3MGN3S255a0pMTjNyKytXeTk0MnJaT0tq?=
- =?utf-8?B?QnJxMWNxdTVWV3Vlc2N4aCtnenBnNjBJZmcxenFNYnFFbk5OWURQWFJpbWJC?=
- =?utf-8?B?ckRQUWVCeXp6dTljQ1Y3ck9LNk9qZ1lrK1dtSzJPcmFMV21EMWtiWEhIcFZC?=
- =?utf-8?B?ODZVa1d1NjlTTDREazRqUVo3RXdxai9JQTBCb25VYU84NWQ1QnNxTCtJUXBl?=
- =?utf-8?B?VGp1Kzd5T3NBOHBqRmQ1eU5adkJyMkdseHBmcG5sd3dqNm1USkhtZDVCa0xy?=
- =?utf-8?B?azlUSGw4RUQ5bUVTKzdUNnNmNWt2U2gyYTNLMHRJNU1OQzF2cmxZUDU1Qzly?=
- =?utf-8?B?OVRIUVpoL3JSenBVZG1QMi9UTDJQWjd2bTZRZzkwMWtHM0s1eHNZNXNBMENt?=
- =?utf-8?B?REg5UGRHRDNSc1lUMDdNWXdKeUJZWG4wc2k4MUg2UFd3VU5ZVkttM2dtOXJN?=
- =?utf-8?B?emJuL1BCaWFjd2MvcjdJSmJPaS9jc1dUVFUrKzVtR3pSK3ZKUk1QUzc1cVpO?=
- =?utf-8?B?bEFiWVViSXQzTnM4SkVoMTkvcm1VWTB5ZkY1ODFhOCs4S3FmRDNRcEdEM1dh?=
- =?utf-8?B?dVZCc2VIQ05BeXpCL3l5TVJXeE9ZZERYeTRRUGFTOUZzL1duNlBoMHMwMnZr?=
- =?utf-8?B?eEpaV29scDRZYlVFcGcyMkF4cCtqL3o2ZUwrTmpDc0szWGtOZVBrZnovdUxm?=
- =?utf-8?B?N0J3TUlqRnV2UUxINzRuVWtwZ1dWNHU5UUZlNGhWMktzUngzZkUrb3doNktH?=
- =?utf-8?B?K0dpa1BZbzl3eExnVTM4WS9RWkhyck56MzY5OGlUMm5LS0ZzLzRZdENoR2ZR?=
- =?utf-8?B?azVwVEtKVUc3ZW4wVHd1VWM4SkVFRXJwazZEUS9OR3Z2dDVDTzdzakh5OXpo?=
- =?utf-8?B?WmJWL2d3aFVDUXRKT0t2Y2k4WHV1Qk5HSytoWHdSTXRTYVFtMmdJcExuSHJo?=
- =?utf-8?B?RnE2cnZjbUtmczlmZEYrYmpGaHVXUHhjWEM3WkkzN21jNU5iM1k3OUkwSWhi?=
- =?utf-8?B?RzNmYzZMcVdlV2xvd1IrMTFMOE5qOUVZdDY0ZlFEZTR4ZGJZUnk0R3pGVDVx?=
- =?utf-8?B?VFB0NmhMQkkyUTlFVFFaTTZnYytac3Z0UzRpNFBuZWFvZjZKMi82Q0k1Tjcv?=
- =?utf-8?B?blpqckxoNmhHRXJGZTFjZnJtVmhMMGtOOTZyVkc1RnJ1Q1lqU2tYZDZpVXpB?=
- =?utf-8?Q?rHD4keo7VELYlXoW8XTJnROxt?=
+ =?utf-8?B?aVlzUUtSUUtuZ01qWFFJbXdKVkVzVzd3Kzd3dGVCUDRsVityaDlURkszbHpB?=
+ =?utf-8?B?Y1JQVU1kVlJwS1BDYWhMSUdNK3p1dlZGWHAyTGhTeUl2V3RoS3BKTjJGdXJz?=
+ =?utf-8?B?WWF2UGpKVlN2U1hGcW5SbU1LTEFRcWdGUTF2aHFZeTRseDh2MlNRU2JZZUJp?=
+ =?utf-8?B?bUNaWlF4VXJTVnFJd2JOTmFmS0JMYkZvRTRGS2R6Y3pvNEhXK1Zra0xMVDho?=
+ =?utf-8?B?d0cyU0I5c1d4b0N1cUd4QXNiK0Y2bStNdDB1Uk9qdXlBN2MwWHFFaFZiSVBZ?=
+ =?utf-8?B?V3ZOcmI1ekw2bEJsNmVycG9CTUw1UzkrM3FRd21ZMWpMbUMzdmc4ejVKWkNk?=
+ =?utf-8?B?YyszaTMxQVNQWWhrRDRCcFI0OTlHWDZWVEhRdkFGNkJMUVR6K2ZlU1ZJNUdU?=
+ =?utf-8?B?N25uYVVSRzJrL2k5Z1hyTlVOUnIvdVJiejNDMlJZcDBDN0J2WGFUcXloS1FY?=
+ =?utf-8?B?S3VwOWd3RkNMWDR5WUZDQVZJd2RsSW9IbzB6ZFJySnN5RlV6bEZRYlVnNlRk?=
+ =?utf-8?B?c0hUU2JtUEJRVEZ5cm5TbEVnUHVxOEF5cXg2WnlzOVl2VEMzeHVsZnpqeDVL?=
+ =?utf-8?B?RHM0eVBvRldBVVF5emxiTzVBOTVPMnVDWmxPVXJOQ2dycFlyOEFwTTNjaU15?=
+ =?utf-8?B?WElLNFpwVXZZeEdqZExJUUR1bVl1ekx2WTI0bEhkZmRkUTJwWERFWjlvbzF3?=
+ =?utf-8?B?d201SlN4SVhMOTFiQ0lwek0wZlNTZXhoYXEzSWFWWUVMT3RFQXdLbHhBc2Y0?=
+ =?utf-8?B?b1k1ODhxSnBwVDN6bnR2NzZ3c0k4VEljZC9IaHNpd1lzV0hxN2VtZlFoNmV5?=
+ =?utf-8?B?VFozcVJHNEJtS1VyZzBGZWR2UGtBWVFtWVNlKzByUUpxYkdLREFIK2VBa0dX?=
+ =?utf-8?B?VTVLZmR6UnBmYzR3Y1ZBMTZMU3FNOXZNSldyWlMvTWFwaitrdWdka2VHSjFK?=
+ =?utf-8?B?bDhCc3VtMzVqOUNDNzcwNkJLdXhaczNURjhLdVJySVo3QlJkbDYvY3o3VFJ4?=
+ =?utf-8?B?SmVDSWIrNFMzekd1bDMzRnJGWG5IWjF4RUY2ellscE5DeG03VWhaNnVacGZQ?=
+ =?utf-8?B?NEVqUGZEcytDMlpQNUV2T3BNOUtTMDR4VkRhMVNRUlFRUGJFeXkrZmZucURl?=
+ =?utf-8?B?bThxUVl6R0Q0VDBTR0cxb1M4cGVtSFA0QnNTR2c2VjJrZEw4b3kwSmlBbU1X?=
+ =?utf-8?B?bkNoWGJEUmdWeE1oUzlzemw4R3dXMklpNjFpNmxYUlArVkREL0xzbTlQS2xN?=
+ =?utf-8?B?T2tad3J2VWx4WXZuV2RzS3VWdzJCcVV4TjRMUFFKWFgvQlR2NURNTXlJWGIr?=
+ =?utf-8?B?RFEzdjQ0enIzWnIxdDlMWTlwTFdDTDZDQkJVY0lvbnNybDVEV2ZCL28yTXJv?=
+ =?utf-8?B?cU5QQStQMHV5QXU5SDE1NUpVaXB2YlFBWE1iZWQ0SVc5WUpkSDB0RnNYMGxQ?=
+ =?utf-8?B?L0JodVA0dWVnT1UvOWhzUGhSZktXVk9uZnlIeThheXVRNzVRaStYaHBLYWtJ?=
+ =?utf-8?B?ajRZWjQ4OE1GQjZWcmZFQit3SmNPUHJGVGtxL2RrVjRhVVBGRFkwMUY0Y3Q5?=
+ =?utf-8?B?dWxjMHM3bzN0WHY5ejlhaExOaC9SaG5nc24wenp4c2RWMEJ2aXkrT2c1VGQ4?=
+ =?utf-8?B?eHJGc2U5Y3pnRWFCbDJlSlk1c0lCaXZ6R09UekQrbzVpVkRNQ3V6NkNIS29v?=
+ =?utf-8?B?NXhsaTZVY21XckRFTE5nN3psYUU4cXRncndzSElUZDFNK1VlQndIeE8veTVj?=
+ =?utf-8?B?STExU2wrdEdyUzd4Mm9LOE01L2d1bXVVS3NXZjZTTm1HRFJZSEFZaFJHR2FI?=
+ =?utf-8?B?K1M1TG9FQldrbXlrTUtSL0s5b3NKOEZ0NFB4RGxKU1BqaFB3SXk5dElSRmVp?=
+ =?utf-8?B?dmN0WjZGT3ZVNU84RmpXUEVHM0hNUnRXZ0grdTloVS9zaTR0ZVFibDRFRmo5?=
+ =?utf-8?B?UzJjNEFXTysvU1pudlZyckFSVlI3d3NBcFR5L2pXRDVDL01telNGSERxeS9O?=
+ =?utf-8?B?dlBYTHViNjd5djNDYXJZM3VScnMraXRIM0lZbEp5UE9Md3hhVFdUNkJlQW9W?=
+ =?utf-8?B?RjZDNFBOR1JldGNkMVlQZGFTNzE3ZDlNRnZmbGQ1WDhXSUdnN3F2bkp6U3ZR?=
+ =?utf-8?Q?aDVqoEYgtQSo75ougFkvi4SAa?=
 X-MS-Exchange-CrossTenant-Network-Message-Id:
- ac1e6fa5-9788-4e1f-24b3-08dab3399a5b
+ 98a45d05-4649-4cb9-cbd9-08dab340019f
 X-MS-Exchange-CrossTenant-AuthSource: DM6PR12MB3370.namprd12.prod.outlook.com
 X-MS-Exchange-CrossTenant-AuthAs: Internal
 X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
 X-MS-Exchange-CrossTenant-Id: 3dd8961f-e488-4e60-8e11-a82d994e183d
 X-MS-Exchange-CrossTenant-MailboxType: HOSTED
 X-MS-Exchange-CrossTenant-UserPrincipalName:
- 8qc+2mMOM8ktWZqlUNOqGC2E7s39vqX1JDZkziPRqfJoYgYiV8bMo9eH7CaE+4Pc
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: DS0PR12MB6582
-X-ServerName: mail-dm6nam12on2052.outbound.protection.outlook.com
+ GpDetdkIfbAz1foXMIm2PEmIPULnMWF3/EdNI7ncGVSeYMi/iE90eklYv+Xstb2W
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: SN7PR12MB6691
+X-ServerName: mail-mw2nam04on2083.outbound.protection.outlook.com
 X-Proofpoint-SPF-Result: pass
 X-Proofpoint-SPF-Record: v=spf1 include:amd.com._nspf.vali.email
  include:%{i}._ip.%{h}._ehlo.%{d}._spf.vali.email include:oktamail.amd.com
  include:_spf.salesforce.com include:mktomail.com ~all
 X-Spam: Clean
-X-Proofpoint-ORIG-GUID: GcC9VzHbO2ERDs_eKfBxUsipQhngzaAG
-X-Proofpoint-GUID: GcC9VzHbO2ERDs_eKfBxUsipQhngzaAG
+X-Proofpoint-ORIG-GUID: z3mdXkLeu5liFlh2VhvE3VWlfHLgIN9h
+X-Proofpoint-GUID: z3mdXkLeu5liFlh2VhvE3VWlfHLgIN9h
 X-Mailman-Approved-At: Fri, 21 Oct 2022 17:11:31 +0000
 Reporting-Meta:
- AAGRfGcH+HM0znrHhE+MqXw+8rwTsEduEoCGfMVT0xNITIm7ixlJ+aKkrqMYLBnI
- kaMareD/2PIJAVUIW9b5iw2336aEbj+9oHDtQyXGB1TKU+PW2gwW7QJlWxS8s/sn
- HD50V/V6IMW8KuiAf37+JalLreJKM6ZdJ4VpuGlyad75QL9WY4ROHOwUfC3cFEqL
- jhXBKtGMd28vsKL1NMzNzDuyndvthWyi/+yMwiAg3uxtWcSh2i47SlSIsHCoc4ok
- Y5lVFW00uftTzewCyGTLtuVQOyEOFkJfiHn1fzepxOQ3tTwZbz1yaif38nLWdAef
- xMCQ4uzH3GF9BuLulDR64hafkXvP79UKKmhTlYZRAiKHtvitOl9IdHtWVhzqrO/H
- 5z/DM7LU1R4JyjAbWKge5dDslxuAEz1DKEvdWUtN+ZHYMtbeZoWB68IdF0YY3WmG
- EYHePlil1Df0DGXJYsh1pv+3RiLy1pPAXtx3kafNqnQnHJUQpcPx68yG+8o7wDBr
- G5bYSqEjauQ0hzGX5JbJY/lfBvO/fZMlMDsg4InnOdE=
+ AAGEUCwQ9/gY+IxzqZT1R+O/RfX/gAYwiuj+7wedA7psdjknG5SxnX+fo1XZnnNf
+ ulvlB4rumWXn1tlI9pLXOKUTzXtnOZJnuiUy4QY60zfslA+MVs144ktrq45sPuoq
+ VI0W7Y9PgLxZxFAg7PGooJKyEkSw/jRZfiVGORPS2BFdsaCvrYzrgX/fZKsn9VBx
+ lF804oVG+JZrapZWqN5l7ugMgLRfiMsel/uDqw4FbB7hK6kjLpPorWAd3yIFpnwo
+ qlCfADRwFaCG6S5VjgkSKfsEJt24ExUXsO2okee337cay1LLfT6AkZAn3ibk67QI
+ G1MfF1ic4KeiipoeV3ErK2tuyryVJNyvjroPXC373tv59nvk6ytzVrsRqKVfO47q
+ qtYl5RkjVpeFAJBqFDo0dd8C7cal/HEohYvNPJficXmUIc3QDxaSvHqrsyyHr2ry
+ RZLavj4ZNZSCQuwtBx9360D+OO7AS3ZzMuRu6ufiasQjisW/U3YnqHeI+86HYmvd
+ 6FeTSjIwbEv5Wx/hklXu9UnYJwenoiyp3l9J8zQNUDs=
 
---------------9VtOs3mF29K0mdP7SyPs0VFr
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
-
-On 2022-10-21 01:37, Greg KH wrote:
-> On Fri, Oct 21, 2022 at 01:29:31AM -0400, Luben Tuikov wrote:
->> On 2022-10-20 22:20, Yang Yingliang wrote:
->>> The previous discussion link:
->>> https://nam11.safelinks.protection.outlook.com/?url=https%3A%2F%2Flore.kernel.org%2Flkml%2F0db486eb-6927-927e-3629-958f8f211194%40huawei.com%2FT%2F&amp;data=05%7C01%7Cluben.tuikov%40amd.com%7C65b33f087ef245a9f23708dab3264840%7C3dd8961fe4884e608e11a82d994e183d%7C0%7C0%7C638019274318153227%7CUnknown%7CTWFpbGZsb3d8eyJWIjoiMC4wLjAwMDAiLCJQIjoiV2luMzIiLCJBTiI6Ik1haWwiLCJXVCI6Mn0%3D%7C3000%7C%7C%7C&amp;sdata=1ZoieEob62iU9kI8fvpp20qGut9EeHKIHtCAT01t%2Bz8%3D&amp;reserved=0
->>
->> The very first discussion on this was here:
->>
->> https://nam11.safelinks.protection.outlook.com/?url=https%3A%2F%2Fwww.spinics.net%2Flists%2Fdri-devel%2Fmsg368077.html&amp;data=05%7C01%7Cluben.tuikov%40amd.com%7C65b33f087ef245a9f23708dab3264840%7C3dd8961fe4884e608e11a82d994e183d%7C0%7C0%7C638019274318153227%7CUnknown%7CTWFpbGZsb3d8eyJWIjoiMC4wLjAwMDAiLCJQIjoiV2luMzIiLCJBTiI6Ik1haWwiLCJXVCI6Mn0%3D%7C3000%7C%7C%7C&amp;sdata=9joWxGLUxZZMvrfkxCR8KbkoXifsqoMK0vGR%2FyEG62w%3D&amp;reserved=0
->>
->> Please use this link, and not the that one up there you which quoted above,
->> and whose commit description is taken verbatim from the this link.
->>
+On 2022-10-21 04:24, Luben Tuikov wrote:
+> On 2022-10-21 04:18, Greg KH wrote:
+>> On Fri, Oct 21, 2022 at 03:55:18AM -0400, Luben Tuikov wrote:
+>>> On 2022-10-21 01:37, Greg KH wrote:
+>>>> On Fri, Oct 21, 2022 at 01:29:31AM -0400, Luben Tuikov wrote:
+>>>>> On 2022-10-20 22:20, Yang Yingliang wrote:
+>>>>>> The previous discussion link:
+>>>>>> https://nam11.safelinks.protection.outlook.com/?url=https%3A%2F%2Flore.kernel.org%2Flkml%2F0db486eb-6927-927e-3629-958f8f211194%40huawei.com%2FT%2F&amp;data=05%7C01%7Cluben.tuikov%40amd.com%7Cd41da3fd6449492d01f808dab33cdb75%7C3dd8961fe4884e608e11a82d994e183d%7C0%7C0%7C638019371236833115%7CUnknown%7CTWFpbGZsb3d8eyJWIjoiMC4wLjAwMDAiLCJQIjoiV2luMzIiLCJBTiI6Ik1haWwiLCJXVCI6Mn0%3D%7C3000%7C%7C%7C&amp;sdata=C%2Bj1THkHpzVGks5eqB%2Fm%2FPAkMRohR7CYvRnOCqUqdcM%3D&amp;reserved=0
+>>>>>
+>>>>> The very first discussion on this was here:
+>>>>>
+>>>>> https://nam11.safelinks.protection.outlook.com/?url=https%3A%2F%2Fwww.spinics.net%2Flists%2Fdri-devel%2Fmsg368077.html&amp;data=05%7C01%7Cluben.tuikov%40amd.com%7Cd41da3fd6449492d01f808dab33cdb75%7C3dd8961fe4884e608e11a82d994e183d%7C0%7C0%7C638019371236833115%7CUnknown%7CTWFpbGZsb3d8eyJWIjoiMC4wLjAwMDAiLCJQIjoiV2luMzIiLCJBTiI6Ik1haWwiLCJXVCI6Mn0%3D%7C3000%7C%7C%7C&amp;sdata=pSR10abmK8nAMvKSezqWC0SPUBL4qEwtCCizyIKW7Dc%3D&amp;reserved=0
+>>>>>
+>>>>> Please use this link, and not the that one up there you which quoted above,
+>>>>> and whose commit description is taken verbatim from the this link.
+>>>>>
+>>>>>>
+>>>>>> kset_register() is currently used in some places without calling
+>>>>>> kset_put() in error path, because the callers think it should be
+>>>>>> kset internal thing to do, but the driver core can not know what
+>>>>>> caller doing with that memory at times. The memory could be freed
+>>>>>> both in kset_put() and error path of caller, if it is called in
+>>>>>> kset_register().
+>>>>>
+>>>>> As I explained in the link above, the reason there's
+>>>>> a memory leak is that one cannot call kset_register() without
+>>>>> the kset->kobj.name being set--kobj_add_internal() returns -EINVAL,
+>>>>> in this case, i.e. kset_register() fails with -EINVAL.
+>>>>>
+>>>>> Thus, the most common usage is something like this:
+>>>>>
+>>>>> 	kobj_set_name(&kset->kobj, format, ...);
+>>>>> 	kset->kobj.kset = parent_kset;
+>>>>> 	kset->kobj.ktype = ktype;
+>>>>> 	res = kset_register(kset);
+>>>>>
+>>>>> So, what is being leaked, is the memory allocated in kobj_set_name(),
+>>>>> by the common idiom shown above. This needs to be mentioned in
+>>>>> the documentation, at least, in case, in the future this is absolved
+>>>>> in kset_register() redesign, etc.
+>>>>
+>>>> Based on this, can kset_register() just clean up from itself when an
+>>>> error happens?  Ideally that would be the case, as the odds of a kset
+>>>> being embedded in a larger structure is probably slim, but we would have
+>>>> to search the tree to make sure.
 >>>
->>> kset_register() is currently used in some places without calling
->>> kset_put() in error path, because the callers think it should be
->>> kset internal thing to do, but the driver core can not know what
->>> caller doing with that memory at times. The memory could be freed
->>> both in kset_put() and error path of caller, if it is called in
->>> kset_register().
+>>> Looking at kset_register(), we can add kset_put() in the error path,
+>>> when kobject_add_internal(&kset->kobj) fails.
+>>>
+>>> See the attached patch. It needs to be tested with the same error injection
+>>> as Yang has been doing.
+>>>
+>>> Now, struct kset is being embedded in larger structs--see amdgpu_discovery.c
+>>> starting at line 575. If you're on an AMD system, it gets you the tree
+>>> structure you'll see when you run "tree /sys/class/drm/card0/device/ip_discovery/".
+>>> That shouldn't be a problem though.
 >>
->> As I explained in the link above, the reason there's
->> a memory leak is that one cannot call kset_register() without
->> the kset->kobj.name being set--kobj_add_internal() returns -EINVAL,
->> in this case, i.e. kset_register() fails with -EINVAL.
->>
->> Thus, the most common usage is something like this:
->>
->> 	kobj_set_name(&kset->kobj, format, ...);
->> 	kset->kobj.kset = parent_kset;
->> 	kset->kobj.ktype = ktype;
->> 	res = kset_register(kset);
->>
->> So, what is being leaked, is the memory allocated in kobj_set_name(),
->> by the common idiom shown above. This needs to be mentioned in
->> the documentation, at least, in case, in the future this is absolved
->> in kset_register() redesign, etc.
+>> Yes, that shouldn't be an issue as the kobject embedded in a kset is
+>> ONLY for that kset itself, the kset structure should not be controling
+>> the lifespan of the object it is embedded in, right?
 > 
-> Based on this, can kset_register() just clean up from itself when an
-> error happens?  Ideally that would be the case, as the odds of a kset
-> being embedded in a larger structure is probably slim, but we would have
-> to search the tree to make sure.
+> Yes, and it doesn't. It only does a kobject_get(parent) and kobject_put(parent).
+> So that's fine and natural.
+> 
+> Yang, do you want to try the patch in my previous email in this thread, since you've
+> got the error injection set up already?
 
-Looking at kset_register(), we can add kset_put() in the error path,
-when kobject_add_internal(&kset->kobj) fails.
+I spoke too soon. I believe you're onto something, because looking at the idiom:
 
-See the attached patch. It needs to be tested with the same error injection
-as Yang has been doing.
+	kobj_set_name(&kset->kobj, format, ...);
+	kset->kobj.kset = parent_kset;
+	kset->kobj.ktype = ktype;
+	res = kset_register(kset);
 
-Now, struct kset is being embedded in larger structs--see amdgpu_discovery.c
-starting at line 575. If you're on an AMD system, it gets you the tree
-structure you'll see when you run "tree /sys/class/drm/card0/device/ip_discovery/".
-That shouldn't be a problem though.
+The ktype defines a release method, which frees the larger struct the kset is embedded in.
+And this would result in double free, for instance in the amdgpu_discovery.c code, if
+kset_put() is called after kset_register() fails, since we kzalloc the larger object
+just before and kfree it on error just after. Ideally, we'd only "revert" the actions
+done by kobj_set_name(), as there's some error recovery on create_dir() in kobject_add_internal().
+
+So, we cannot do this business with the kset_put() on error from kset_register(), after all.
+Not sure how this wasn't caught in Yang's testing--the kernel should've complained.
 
 Regards,
 Luben
---------------9VtOs3mF29K0mdP7SyPs0VFr
-Content-Type: text/x-patch; charset=UTF-8;
- name="0001-kobject-Add-kset_put-if-kset_register-fails.patch"
-Content-Disposition: attachment;
- filename="0001-kobject-Add-kset_put-if-kset_register-fails.patch"
-Content-Transfer-Encoding: base64
 
-RnJvbSA3MWUwYTIyODAxYzA2OTlmNjdlYTQwZWQ5NmUwYTdkN2Q5ZTBmMzE4IE1vbiBTZXAgMTcg
-MDA6MDA6MDAgMjAwMQpGcm9tOiBMdWJlbiBUdWlrb3YgPGx1YmVuLnR1aWtvdkBhbWQuY29tPgpE
-YXRlOiBGcmksIDIxIE9jdCAyMDIyIDAzOjM0OjIxIC0wNDAwClN1YmplY3Q6IFtQQVRDSF0ga29i
-amVjdDogQWRkIGtzZXRfcHV0KCkgaWYga3NldF9yZWdpc3RlcigpIGZhaWxzClgtY2hlY2stc3Ry
-aW5nLWxlYWs6IHYxLjAKCklmIGtzZXRfcmVnaXN0ZXIoKSBmYWlscywgd2UgY2FsbCBrc2V0X3B1
-dCgpIGJlZm9yZSByZXR1cm5pbmcgdGhlCmVycm9yLiBUaGlzIG1ha2VzIHN1cmUgdGhhdCB3ZSBm
-cmVlIG1lbW9yeSBhbGxvY2F0ZWQgYnkga29ial9zZXRfbmFtZSgpCmZvciB0aGUga3NldCwgc2lu
-Y2Uga3NldF9yZWdpc3RlcigpIGNhbm5vdCBiZSBjYWxsZWQgdW5sZXNzIHRoZSBrc2V0IGhhcwph
-IG5hbWUsIHVzdWFsbHkgZ290dGVuIHZpYSBrb2JqX3NldF9uYW1lKCZrc2V0LT5rb2JqLCBmb3Jt
-YXQsIC4uLik7CgpDYzogR3JlZyBLcm9haC1IYXJ0bWFuIDxncmVna2hAbGludXhmb3VuZGF0aW9u
-Lm9yZz4KQ2M6IFJhZmFlbCBKLiBXeXNvY2tpIDxyYWZhZWxAa2VybmVsLm9yZz4KQ2M6IFlhbmcg
-WWluZ2xpYW5nIDx5YW5neWluZ2xpYW5nQGh1YXdlaS5jb20+CkNjOiBMaW51eCBLZXJuZWwgTWFp
-bGluZyBMaXN0IDxsaW51eC1rZXJuZWxAdmdlci5rZXJuZWwub3JnPgpTaWduZWQtb2ZmLWJ5OiBM
-dWJlbiBUdWlrb3YgPGx1YmVuLnR1aWtvdkBhbWQuY29tPgotLS0KIGxpYi9rb2JqZWN0LmMgfCA0
-ICsrKy0KIDEgZmlsZSBjaGFuZ2VkLCAzIGluc2VydGlvbnMoKyksIDEgZGVsZXRpb24oLSkKCmRp
-ZmYgLS1naXQgYS9saWIva29iamVjdC5jIGIvbGliL2tvYmplY3QuYwppbmRleCBhMGIyZGJmY2Zh
-MjMzNC4uYzEyMmI5NzlmMmI3NWUgMTAwNjQ0Ci0tLSBhL2xpYi9rb2JqZWN0LmMKKysrIGIvbGli
-L2tvYmplY3QuYwpAQCAtODQ0LDggKzg0NCwxMCBAQCBpbnQga3NldF9yZWdpc3RlcihzdHJ1Y3Qg
-a3NldCAqaykKIAogCWtzZXRfaW5pdChrKTsKIAllcnIgPSBrb2JqZWN0X2FkZF9pbnRlcm5hbCgm
-ay0+a29iaik7Ci0JaWYgKGVycikKKwlpZiAoZXJyKSB7CisJCWtzZXRfcHV0KGspOwogCQlyZXR1
-cm4gZXJyOworCX0KIAlrb2JqZWN0X3VldmVudCgmay0+a29iaiwgS09CSl9BREQpOwogCXJldHVy
-biAwOwogfQotLSAKMi4zOC4wLXJjMgoK
-
---------------9VtOs3mF29K0mdP7SyPs0VFr
-Content-Type: text/plain; charset="us-ascii"
-MIME-Version: 1.0
-Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
 
 _______________________________________________
 Ocfs2-devel mailing list
 Ocfs2-devel@oss.oracle.com
 https://oss.oracle.com/mailman/listinfo/ocfs2-devel
---------------9VtOs3mF29K0mdP7SyPs0VFr--
-
