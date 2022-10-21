@@ -1,57 +1,54 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc252.phx1.oracleemaildelivery.com (aib29ajc252.phx1.oracleemaildelivery.com [192.29.103.252])
+Received: from aib29ajc254.phx1.oracleemaildelivery.com (aib29ajc254.phx1.oracleemaildelivery.com [192.29.103.254])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id D6250C43217
-	for <ocfs2-devel@archiver.kernel.org>; Fri, 21 Oct 2022 08:36:22 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 7E39BC433FE
+	for <ocfs2-devel@archiver.kernel.org>; Fri, 21 Oct 2022 09:00:10 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=5uvEWFT78AvyHqyXsWgJ3brc45kdwimTSI1+pSGRviI=;
- b=1Yp3bvmlHtOAKMMJh7sYvMhRmPXfVqLit84CZlQOjggL4jV87djCtS7PMV4o8tEvZtegkIzZ4sjy
-   ijOLFqM+zARYEjojnlSO3Tl/AwBWIvI+69+sExIn4KL7nCb0HIB4H9BX3zZ0zca7P9WZV89YfX25
-   8mUGK7IcKzOyUAPa2sh5v4rHw5k3nuu+gAqs6zGM1ku933CQk2CpOwWYFlKR5OxWyqFh9CtrO+As
-   aRpWH6rKTD9mddE5x9f3k5fjTpEjUZFMHDT9dA7qPvLBXeioTlT3oNTf0AKp0gMypISrjUvL+TfW
-   beBP5Wig3dhWY0Se3OZ1X3Vd75zAflyH+FTclw==
+ bh=ySO9O/9yfT55prv9QhLETCIr6v2tJajaWk5OLyNIKMI=;
+ b=J42E+jqzcFa4VvX9xBcpwmfr4IzFxuwHn5dir6BznBTMoF1xcinpVRhCPGEw3T2yPPSFr9dQBsuL
+   TMTM92L6M5olS6+1UA1GPqVrAEBWe8O42+IRZvLn7vgq2CwIn92m7yYg3nBXuvAPzmnSOr2FqnlG
+   ANbae/NgRLqqrli6YeREn/PQgEJtJBefrH/Dqw80wKLcfYgz57xzCl6kBhu7VAGsBKPM7KtmEWpc
+   nMT6mGib8hKvZZUpDimHc6ZXiJCAoekjl8akHYXAhKYmoTufNDasEMU1sz3ombJIKbHwiLk34tnb
+   rOGVUvKFvP39v/ak8fn5Jhi7KSAZaWdbfYGtVg==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=5uvEWFT78AvyHqyXsWgJ3brc45kdwimTSI1+pSGRviI=;
- b=fIKmClSypNOZifRRktkzMQM4WolkQDBYFCNxn2VlPIS5SdKxu+xFQRyFnI3BlSSDPBHupq0THBjl
-   k+HbUqyt1m3CKSIEh7gZvshDEV1KpX6p9xjLx8tkabFbvhhkXzvtKgy3MEWTGzxiwZ3DiwmJ8KNT
-   MeEqZTkpAqV0p38YiZEeBgLYsD7G8HUYNoU1f+laKXxH0/yrIaZZBvWPUbYIOU6+Nox26Sh3KrYa
-   QjLLL6LsxH6Px2q4UqpwCjtRDKybTDHG/iTIzCVbNsPnuFBJke9kRCsTCIY3aW97DVMO6NapgM+t
-   nmlpcQ0sQ+ReanAW2Q6jOoNBuhVnB6tuHuNxCQ==
-Received: by omta-ad3-fd1-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
+ bh=ySO9O/9yfT55prv9QhLETCIr6v2tJajaWk5OLyNIKMI=;
+ b=FQqp1fx9VCCM5sqORRn9yZ27MTJMOWuLvox+L0WOr3+Q2t9WrLRz+ojbR6BI/eefTpznkSvbItdp
+   LjGiEhPI7orm726yseawjD0n7euG7avbSmDJr6cGusJ/3Hlidj+JVG1diYlzsQ9+veAOqO22whA4
+   OjbpHB0tVG4wr9yClJqIWqldiF5UdbaGIspN3uoAULlEhpT1UIsP3orfIWXqmn1bTzmKE0OljJ6C
+   jn34iKskroI1B2unzdCqJ/rx95mM25jZ3MmzPrillWf9WBtXfETNvM5avfQRFl/MJ6kF2rRHE1FQ
+   7FrCdSxuEwm2vHLFNQ1EL+JZLFb09XGHdK2j0g==
+Received: by omta-ad3-fd3-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220914 64bit (built Sep 14
  2022))
- with ESMTPS id <0RK300C5EH8MELB0@omta-ad3-fd1-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Fri, 21 Oct 2022 08:36:22 +0000 (GMT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linuxfoundation.org;
- s=korg; t=1666341367; bh=VYkxOdyqZTRP94uFOMrKlhrYPkv6+oVeaJOCigiokeE=;
- h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
- b=0LHArjuO/emmogeedg4sidpH81EIC1oFajIQk20rr9Km/Y0ewObOQB0i43jXid6V8
- MEWVl4mxIE2auEWLdOFh5S0zN7a5cdswL8kZv1F5sHrcBCX+9z8wc+kpjX8Czr8S07
- DVGuTf4yxBxOxcpimxvN26SCCFuV+ZffgRv7I1WQ=
-Date: Fri, 21 Oct 2022 10:36:04 +0200
-To: Yang Yingliang <yangyingliang@huawei.com>
-Message-id: <Y1JZ9IUPL6jZIQ8E@kroah.com>
+ with ESMTPS id <0RK3009HLIC9YU50@omta-ad3-fd3-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Fri, 21 Oct 2022 09:00:09 +0000 (GMT)
+To: Greg KH <gregkh@linuxfoundation.org>
 References: <20221021022102.2231464-1-yangyingliang@huawei.com>
  <d559793a-0ce4-3384-e74e-19855aa31f31@amd.com> <Y1IwLOUGayjT9p6d@kroah.com>
- <0591e66f-731a-5f81-fc9d-3a6d80516c65@huawei.com>
+ <0591e66f-731a-5f81-fc9d-3a6d80516c65@huawei.com> <Y1JZ9IUPL6jZIQ8E@kroah.com>
+Message-id: <f1210e20-d167-26c4-7aba-490d8fb7241e@huawei.com>
+Date: Fri, 21 Oct 2022 16:59:46 +0800
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:68.0) Gecko/20100101
+ Thunderbird/68.7.0
 MIME-version: 1.0
-Content-disposition: inline
-In-reply-to: <0591e66f-731a-5f81-fc9d-3a6d80516c65@huawei.com>
-X-Source-IP: 145.40.68.75
+In-reply-to: <Y1JZ9IUPL6jZIQ8E@kroah.com>
+Content-language: en-US
+X-Originating-IP: [10.174.178.174]
+X-Source-IP: 45.249.212.188
 X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10506
  signatures=596816
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 mlxscore=0
- impostorscore=0 priorityscore=422 adultscore=0 clxscore=175 mlxlogscore=871
- lowpriorityscore=0 spamscore=0 bulkscore=0 phishscore=0 suspectscore=0
- malwarescore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2209130000 definitions=main-2210210049
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 malwarescore=0
+ bulkscore=0 adultscore=0 spamscore=0 mlxscore=0 mlxlogscore=999 phishscore=0
+ suspectscore=0 lowpriorityscore=0 impostorscore=0 priorityscore=317 clxscore=3
+ classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2209130000
+ definitions=main-2210210052 domainage_hfrom=8319
 Cc: rafael@kernel.org, qemu-devel@nongnu.org, liushixin2@huawei.com,
  linux-mtd@lists.infradead.org, huangjianan@oppo.com, richard@nod.at,
  mst@redhat.com, amd-gfx@lists.freedesktop.org,
@@ -73,106 +70,110 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: Greg KH via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: Greg KH <gregkh@linuxfoundation.org>
-Content-type: text/plain; charset="iso-8859-1"
-Content-transfer-encoding: quoted-printable
+From: Yang Yingliang via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: Yang Yingliang <yangyingliang@huawei.com>
+Content-transfer-encoding: base64
+Content-type: text/plain; charset="utf-8"; Format="flowed"
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-ServerName: ams.source.kernel.org
+X-ClientProxiedBy: dggems705-chm.china.huawei.com (10.3.19.182) To
+ dggpemm500007.china.huawei.com (7.185.36.183)
+X-CFilter-Loop: Reflected
+X-ServerName: szxga02-in.huawei.com
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 ip4:72.55.140.81 ip4:52.25.139.140
- ip4:139.178.84.217 ip6:2604:1380:4641:c500::1 ip4:145.40.68.75
- ip6:2604:1380:4601:e00::1 ip4:145.40.73.55 ip6:2604:1380:40e1:4800::1
- include:_spf.google.com include:amazonses.com include:_spf.salesforce.com -all
+X-Proofpoint-SPF-Record: v=spf1 ip4:45.249.212.32 ip4:45.249.212.35
+ ip4:45.249.212.255 ip4:45.249.212.187/29 ip4:45.249.212.191 ip4:168.195.93.47
+ ip4:185.176.79.56 ip4:119.8.179.247 ip4:119.8.89.136/31 ip4:119.8.89.135
+ ip4:119.8.177.36/31 ip4:119.8.177.38 -all
 X-Spam: Clean
-X-Proofpoint-ORIG-GUID: vPoXpZZkJFtQG84r5TOYptq7V7FNxcTn
-X-Proofpoint-GUID: vPoXpZZkJFtQG84r5TOYptq7V7FNxcTn
+X-Proofpoint-ORIG-GUID: Fc_CkA-L5w8Pe50cnnSR6EXzRjwYNYR8
+X-Proofpoint-GUID: Fc_CkA-L5w8Pe50cnnSR6EXzRjwYNYR8
 Reporting-Meta:
  AAGRY6MvRQAgndvPA2e1b5LD35ynVyl3CfZlE7JDCoDxu9hBBt8E8X5ZDTjCjNcd
- ugR/S2MEMAVQe4Q2p1F+gBQOohJOuii1SRX5JVrYylLAamvW8om0OREhtVeCENc7
- hUAcq+kih3CaYd6b9FMMBISFSgTCtmMDKA2pyUi1Mp3La8CENTM920EmxuVIvLpz
- oWbmf12BoKNO53NuzBYgirvccIf3TxiBaeyVaVSqg17vPr2etIp7E4+uAGStwZTx
- h61lBO9TMphnSE/p0noPVIyPGB8+bB8BSA34S1/9vGvC3QlFnO6DkDXgC3zceRKu
- UdszlNDeYYIPQQKpRjpHSuBxu8GcKh7TgUpObDN6bOd9kICjfWQmCMoPsOVxG9r+
- KGTUE8hSaMbc3eZitb/PwFWC/lPc+KvNnyMEPTP5Puz0aGPovsuMrTxldAAQ1Klr
- wHkrP8UQnK5wvCevmt7kLE6uCyzIzk9pdcuBHhvv1clOjPrMEyokdtmgWrXAboIH
- 8IcwuHnUp4mvHX0G4zkKE8ld4v2OYNP6PSRajoFvjgw=
+ ugR/S2MEMAVQe4Q2p1HxghQOohJOuii1SRXtqcNw5kSBeZKJqveYVwsGiF7ScTq4
+ ay13SSTF9H+zQ4qnKLzZ92ZamWGvDe69VeCNKtNOd+Kht2DPBs+L2P421NaHxYIz
+ SCkkZjnDpC927tXAISnIFzt9oywti+PLqxz6czmLE1OM4ddzYsN9u+Yd4rrLfDK+
+ eLamfKYGoTgVyjCRToThJOoh64pbIkfkUor7/q12fBsWV9fnwn7yfG+4+Yu0O9bP
+ 6MpH7DmKoyqAQg0/+tCA7THtPuP1gGrQtNw9neMai+p6gaR9l3jJzHIjKkbhbmsd
+ inRQ43SbH/jerXHHBss4Tha/3WrpFvT/K6wdBwOF71sPL3PXyD56AwH3lvqLjfmT
+ ITjbK34yvckNZVqeeTMxK2mARccx8vX1UXhF/V4q1Z1gQeUZzL2RYyyyW95dUDG8
+ FuZEOSu+haqM/wMGGxy6em6TGutvU9JW4s6ojJtEH6wB
 
-On Fri, Oct 21, 2022 at 04:24:23PM +0800, Yang Yingliang wrote:
-> =
-
-> On 2022/10/21 13:37, Greg KH wrote:
-> > On Fri, Oct 21, 2022 at 01:29:31AM -0400, Luben Tuikov wrote:
-> > > On 2022-10-20 22:20, Yang Yingliang wrote:
-> > > > The previous discussion link:
-> > > > https://lore.kernel.org/lkml/0db486eb-6927-927e-3629-958f8f211194@h=
-uawei.com/T/
-> > > The very first discussion on this was here:
-> > > =
-
-> > > https://www.spinics.net/lists/dri-devel/msg368077.html
-> > > =
-
-> > > Please use this link, and not the that one up there you which quoted =
-above,
-> > > and whose commit description is taken verbatim from the this link.
-> > > =
-
-> > > > kset_register() is currently used in some places without calling
-> > > > kset_put() in error path, because the callers think it should be
-> > > > kset internal thing to do, but the driver core can not know what
-> > > > caller doing with that memory at times. The memory could be freed
-> > > > both in kset_put() and error path of caller, if it is called in
-> > > > kset_register().
-> > > As I explained in the link above, the reason there's
-> > > a memory leak is that one cannot call kset_register() without
-> > > the kset->kobj.name being set--kobj_add_internal() returns -EINVAL,
-> > > in this case, i.e. kset_register() fails with -EINVAL.
-> > > =
-
-> > > Thus, the most common usage is something like this:
-> > > =
-
-> > > 	kobj_set_name(&kset->kobj, format, ...);
-> > > 	kset->kobj.kset =3D parent_kset;
-> > > 	kset->kobj.ktype =3D ktype;
-> > > 	res =3D kset_register(kset);
-> > > =
-
-> > > So, what is being leaked, is the memory allocated in kobj_set_name(),
-> > > by the common idiom shown above. This needs to be mentioned in
-> > > the documentation, at least, in case, in the future this is absolved
-> > > in kset_register() redesign, etc.
-> > Based on this, can kset_register() just clean up from itself when an
-> > error happens?  Ideally that would be the case, as the odds of a kset
-> > being embedded in a larger structure is probably slim, but we would have
-> > to search the tree to make sure.
-> I have search the whole tree, the kset used in bus_register() - patch #3,
-> kset_create_and_add() - patch #4
-> __class_register() - patch #5,=A0 fw_cfg_build_symlink() - patch #6 and
-> amdgpu_discovery.c - patch #10
-> is embedded in a larger structure. In these cases, we can not call
-> kset_put() in error path in kset_register()
-
-Yes you can as the kobject in the kset should NOT be controling the
-lifespan of those larger objects.
-
-If it is, please point out the call chain here as I don't think that
-should be possible.
-
-Note all of this is a mess because the kobject name stuff was added much
-later, after the driver model had been created and running for a while.
-We missed this error path when adding the dynamic kobject name logic,
-thank for looking into this.
-
-If you could test the patch posted with your error injection systems,
-that could make this all much simpler to solve.
-
-thanks,
-
-greg k-h
-
-_______________________________________________
-Ocfs2-devel mailing list
-Ocfs2-devel@oss.oracle.com
-https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+Ck9uIDIwMjIvMTAvMjEgMTY6MzYsIEdyZWcgS0ggd3JvdGU6Cj4gT24gRnJpLCBPY3QgMjEsIDIw
+MjIgYXQgMDQ6MjQ6MjNQTSArMDgwMCwgWWFuZyBZaW5nbGlhbmcgd3JvdGU6Cj4+IE9uIDIwMjIv
+MTAvMjEgMTM6MzcsIEdyZWcgS0ggd3JvdGU6Cj4+PiBPbiBGcmksIE9jdCAyMSwgMjAyMiBhdCAw
+MToyOTozMUFNIC0wNDAwLCBMdWJlbiBUdWlrb3Ygd3JvdGU6Cj4+Pj4gT24gMjAyMi0xMC0yMCAy
+MjoyMCwgWWFuZyBZaW5nbGlhbmcgd3JvdGU6Cj4+Pj4+IFRoZSBwcmV2aW91cyBkaXNjdXNzaW9u
+IGxpbms6Cj4+Pj4+IGh0dHBzOi8vbG9yZS5rZXJuZWwub3JnL2xrbWwvMGRiNDg2ZWItNjkyNy05
+MjdlLTM2MjktOTU4ZjhmMjExMTk0QGh1YXdlaS5jb20vVC8KPj4+PiBUaGUgdmVyeSBmaXJzdCBk
+aXNjdXNzaW9uIG9uIHRoaXMgd2FzIGhlcmU6Cj4+Pj4KPj4+PiBodHRwczovL3d3dy5zcGluaWNz
+Lm5ldC9saXN0cy9kcmktZGV2ZWwvbXNnMzY4MDc3Lmh0bWwKPj4+Pgo+Pj4+IFBsZWFzZSB1c2Ug
+dGhpcyBsaW5rLCBhbmQgbm90IHRoZSB0aGF0IG9uZSB1cCB0aGVyZSB5b3Ugd2hpY2ggcXVvdGVk
+IGFib3ZlLAo+Pj4+IGFuZCB3aG9zZSBjb21taXQgZGVzY3JpcHRpb24gaXMgdGFrZW4gdmVyYmF0
+aW0gZnJvbSB0aGUgdGhpcyBsaW5rLgo+Pj4+Cj4+Pj4+IGtzZXRfcmVnaXN0ZXIoKSBpcyBjdXJy
+ZW50bHkgdXNlZCBpbiBzb21lIHBsYWNlcyB3aXRob3V0IGNhbGxpbmcKPj4+Pj4ga3NldF9wdXQo
+KSBpbiBlcnJvciBwYXRoLCBiZWNhdXNlIHRoZSBjYWxsZXJzIHRoaW5rIGl0IHNob3VsZCBiZQo+
+Pj4+PiBrc2V0IGludGVybmFsIHRoaW5nIHRvIGRvLCBidXQgdGhlIGRyaXZlciBjb3JlIGNhbiBu
+b3Qga25vdyB3aGF0Cj4+Pj4+IGNhbGxlciBkb2luZyB3aXRoIHRoYXQgbWVtb3J5IGF0IHRpbWVz
+LiBUaGUgbWVtb3J5IGNvdWxkIGJlIGZyZWVkCj4+Pj4+IGJvdGggaW4ga3NldF9wdXQoKSBhbmQg
+ZXJyb3IgcGF0aCBvZiBjYWxsZXIsIGlmIGl0IGlzIGNhbGxlZCBpbgo+Pj4+PiBrc2V0X3JlZ2lz
+dGVyKCkuCj4+Pj4gQXMgSSBleHBsYWluZWQgaW4gdGhlIGxpbmsgYWJvdmUsIHRoZSByZWFzb24g
+dGhlcmUncwo+Pj4+IGEgbWVtb3J5IGxlYWsgaXMgdGhhdCBvbmUgY2Fubm90IGNhbGwga3NldF9y
+ZWdpc3RlcigpIHdpdGhvdXQKPj4+PiB0aGUga3NldC0+a29iai5uYW1lIGJlaW5nIHNldC0ta29i
+al9hZGRfaW50ZXJuYWwoKSByZXR1cm5zIC1FSU5WQUwsCj4+Pj4gaW4gdGhpcyBjYXNlLCBpLmUu
+IGtzZXRfcmVnaXN0ZXIoKSBmYWlscyB3aXRoIC1FSU5WQUwuCj4+Pj4KPj4+PiBUaHVzLCB0aGUg
+bW9zdCBjb21tb24gdXNhZ2UgaXMgc29tZXRoaW5nIGxpa2UgdGhpczoKPj4+Pgo+Pj4+IAlrb2Jq
+X3NldF9uYW1lKCZrc2V0LT5rb2JqLCBmb3JtYXQsIC4uLik7Cj4+Pj4gCWtzZXQtPmtvYmoua3Nl
+dCA9IHBhcmVudF9rc2V0Owo+Pj4+IAlrc2V0LT5rb2JqLmt0eXBlID0ga3R5cGU7Cj4+Pj4gCXJl
+cyA9IGtzZXRfcmVnaXN0ZXIoa3NldCk7Cj4+Pj4KPj4+PiBTbywgd2hhdCBpcyBiZWluZyBsZWFr
+ZWQsIGlzIHRoZSBtZW1vcnkgYWxsb2NhdGVkIGluIGtvYmpfc2V0X25hbWUoKSwKPj4+PiBieSB0
+aGUgY29tbW9uIGlkaW9tIHNob3duIGFib3ZlLiBUaGlzIG5lZWRzIHRvIGJlIG1lbnRpb25lZCBp
+bgo+Pj4+IHRoZSBkb2N1bWVudGF0aW9uLCBhdCBsZWFzdCwgaW4gY2FzZSwgaW4gdGhlIGZ1dHVy
+ZSB0aGlzIGlzIGFic29sdmVkCj4+Pj4gaW4ga3NldF9yZWdpc3RlcigpIHJlZGVzaWduLCBldGMu
+Cj4+PiBCYXNlZCBvbiB0aGlzLCBjYW4ga3NldF9yZWdpc3RlcigpIGp1c3QgY2xlYW4gdXAgZnJv
+bSBpdHNlbGYgd2hlbiBhbgo+Pj4gZXJyb3IgaGFwcGVucz8gIElkZWFsbHkgdGhhdCB3b3VsZCBi
+ZSB0aGUgY2FzZSwgYXMgdGhlIG9kZHMgb2YgYSBrc2V0Cj4+PiBiZWluZyBlbWJlZGRlZCBpbiBh
+IGxhcmdlciBzdHJ1Y3R1cmUgaXMgcHJvYmFibHkgc2xpbSwgYnV0IHdlIHdvdWxkIGhhdmUKPj4+
+IHRvIHNlYXJjaCB0aGUgdHJlZSB0byBtYWtlIHN1cmUuCj4+IEkgaGF2ZSBzZWFyY2ggdGhlIHdo
+b2xlIHRyZWUsIHRoZSBrc2V0IHVzZWQgaW4gYnVzX3JlZ2lzdGVyKCkgLSBwYXRjaCAjMywKPj4g
+a3NldF9jcmVhdGVfYW5kX2FkZCgpIC0gcGF0Y2ggIzQKPj4gX19jbGFzc19yZWdpc3RlcigpIC0g
+cGF0Y2ggIzUswqAgZndfY2ZnX2J1aWxkX3N5bWxpbmsoKSAtIHBhdGNoICM2IGFuZAo+PiBhbWRn
+cHVfZGlzY292ZXJ5LmMgLSBwYXRjaCAjMTAKPj4gaXMgZW1iZWRkZWQgaW4gYSBsYXJnZXIgc3Ry
+dWN0dXJlLiBJbiB0aGVzZSBjYXNlcywgd2UgY2FuIG5vdCBjYWxsCj4+IGtzZXRfcHV0KCkgaW4g
+ZXJyb3IgcGF0aCBpbiBrc2V0X3JlZ2lzdGVyKCkKPiBZZXMgeW91IGNhbiBhcyB0aGUga29iamVj
+dCBpbiB0aGUga3NldCBzaG91bGQgTk9UIGJlIGNvbnRyb2xpbmcgdGhlCj4gbGlmZXNwYW4gb2Yg
+dGhvc2UgbGFyZ2VyIG9iamVjdHMuCj4KPiBJZiBpdCBpcywgcGxlYXNlIHBvaW50IG91dCB0aGUg
+Y2FsbCBjaGFpbiBoZXJlIGFzIEkgZG9uJ3QgdGhpbmsgdGhhdAo+IHNob3VsZCBiZSBwb3NzaWJs
+ZS4KPgo+IE5vdGUgYWxsIG9mIHRoaXMgaXMgYSBtZXNzIGJlY2F1c2UgdGhlIGtvYmplY3QgbmFt
+ZSBzdHVmZiB3YXMgYWRkZWQgbXVjaAo+IGxhdGVyLCBhZnRlciB0aGUgZHJpdmVyIG1vZGVsIGhh
+ZCBiZWVuIGNyZWF0ZWQgYW5kIHJ1bm5pbmcgZm9yIGEgd2hpbGUuCj4gV2UgbWlzc2VkIHRoaXMg
+ZXJyb3IgcGF0aCB3aGVuIGFkZGluZyB0aGUgZHluYW1pYyBrb2JqZWN0IG5hbWUgbG9naWMsCj4g
+dGhhbmsgZm9yIGxvb2tpbmcgaW50byB0aGlzLgo+Cj4gSWYgeW91IGNvdWxkIHRlc3QgdGhlIHBh
+dGNoIHBvc3RlZCB3aXRoIHlvdXIgZXJyb3IgaW5qZWN0aW9uIHN5c3RlbXMsCj4gdGhhdCBjb3Vs
+ZCBtYWtlIHRoaXMgYWxsIG11Y2ggc2ltcGxlciB0byBzb2x2ZS4KClRoZSBwYXRjaCBwb3N0ZWQg
+YnkgTHViZW4gd2lsbCBjYXVzZSBkb3VibGUgZnJlZSBpbiBzb21lIGNhc2VzLgoKCiBGcm9tIDcx
+ZTBhMjI4MDFjMDY5OWY2N2VhNDBlZDk2ZTBhN2Q3ZDllMGYzMTggTW9uIFNlcCAxNyAwMDowMDow
+MCAyMDAxCkZyb206IEx1YmVuIFR1aWtvdiA8bHViZW4udHVpa292QGFtZC5jb20+CkRhdGU6IEZy
+aSwgMjEgT2N0IDIwMjIgMDM6MzQ6MjEgLTA0MDAKU3ViamVjdDogW1BBVENIXSBrb2JqZWN0OiBB
+ZGQga3NldF9wdXQoKSBpZiBrc2V0X3JlZ2lzdGVyKCkgZmFpbHMKWC1jaGVjay1zdHJpbmctbGVh
+azogdjEuMAoKSWYga3NldF9yZWdpc3RlcigpIGZhaWxzLCB3ZSBjYWxsIGtzZXRfcHV0KCkgYmVm
+b3JlIHJldHVybmluZyB0aGUKZXJyb3IuIFRoaXMgbWFrZXMgc3VyZSB0aGF0IHdlIGZyZWUgbWVt
+b3J5IGFsbG9jYXRlZCBieSBrb2JqX3NldF9uYW1lKCkKZm9yIHRoZSBrc2V0LCBzaW5jZSBrc2V0
+X3JlZ2lzdGVyKCkgY2Fubm90IGJlIGNhbGxlZCB1bmxlc3MgdGhlIGtzZXQgaGFzCmEgbmFtZSwg
+dXN1YWxseSBnb3R0ZW4gdmlhIGtvYmpfc2V0X25hbWUoJmtzZXQtPmtvYmosIGZvcm1hdCwgLi4u
+KTsKCkNjOiBHcmVnIEtyb2FoLUhhcnRtYW4gPGdyZWdraEBsaW51eGZvdW5kYXRpb24ub3JnPgpD
+YzogUmFmYWVsIEouIFd5c29ja2kgPHJhZmFlbEBrZXJuZWwub3JnPgpDYzogWWFuZyBZaW5nbGlh
+bmcgPHlhbmd5aW5nbGlhbmdAaHVhd2VpLmNvbT4KQ2M6IExpbnV4IEtlcm5lbCBNYWlsaW5nIExp
+c3QgPGxpbnV4LWtlcm5lbEB2Z2VyLmtlcm5lbC5vcmc+ClNpZ25lZC1vZmYtYnk6IEx1YmVuIFR1
+aWtvdiA8bHViZW4udHVpa292QGFtZC5jb20+Ci0tLQogwqBsaWIva29iamVjdC5jIHwgNCArKyst
+CiDCoDEgZmlsZSBjaGFuZ2VkLCAzIGluc2VydGlvbnMoKyksIDEgZGVsZXRpb24oLSkKCmRpZmYg
+LS1naXQgYS9saWIva29iamVjdC5jIGIvbGliL2tvYmplY3QuYwppbmRleCBhMGIyZGJmY2ZhMjMz
+NC4uYzEyMmI5NzlmMmI3NWUgMTAwNjQ0Ci0tLSBhL2xpYi9rb2JqZWN0LmMKKysrIGIvbGliL2tv
+YmplY3QuYwpAQCAtODQ0LDggKzg0NCwxMCBAQCBpbnQga3NldF9yZWdpc3RlcihzdHJ1Y3Qga3Nl
+dCAqaykKCiDCoMKgwqDCoCBrc2V0X2luaXQoayk7CiDCoMKgwqDCoCBlcnIgPSBrb2JqZWN0X2Fk
+ZF9pbnRlcm5hbCgmay0+a29iaik7Ci3CoMKgwqAgaWYgKGVycikKK8KgwqDCoCBpZiAoZXJyKSB7
+CivCoMKgwqAgwqDCoMKgIGtzZXRfcHV0KGspOwogwqDCoMKgwqAgwqDCoMKgIHJldHVybiBlcnI7
+CivCoMKgwqAgfQogwqDCoMKgwqAga29iamVjdF91ZXZlbnQoJmstPmtvYmosIEtPQkpfQUREKTsK
+IMKgwqDCoMKgIHJldHVybiAwOwogwqB9Ci0tIAoyLjM4LjAtcmMyCgo+Cj4gdGhhbmtzLAo+Cj4g
+Z3JlZyBrLWgKPiAuCgpfX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
+X19fXwpPY2ZzMi1kZXZlbCBtYWlsaW5nIGxpc3QKT2NmczItZGV2ZWxAb3NzLm9yYWNsZS5jb20K
+aHR0cHM6Ly9vc3Mub3JhY2xlLmNvbS9tYWlsbWFuL2xpc3RpbmZvL29jZnMyLWRldmVs
