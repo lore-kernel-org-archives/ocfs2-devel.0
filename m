@@ -1,40 +1,40 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc249.phx1.oracleemaildelivery.com (aib29ajc249.phx1.oracleemaildelivery.com [192.29.103.249])
+Received: from aib29ajc245.phx1.oracleemaildelivery.com (aib29ajc245.phx1.oracleemaildelivery.com [192.29.103.245])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 92739C4167E
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 8498CC4167D
 	for <ocfs2-devel@archiver.kernel.org>; Fri, 21 Oct 2022 02:22:56 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=1gwRjwrTndNYneoYKSzjAFm7IQx7lvt6QjZbNn6S3K8=;
- b=fAwBvbkaNIn/4cw69oNOdXWG9sF9w4PSZZqva6mFqJ47yImaADEaFLJf29NdfE6wuJz3yUbKXozj
-   GuN74U7s5Fa8kAPTKTnrBsEX/eksJX0WdBnMjmvb5buU8ZY9Sk78ahMetwq+wTxmMnV2uokDmZjy
-   5DYwZkwT4wY8ZBK2rK+37IErhyHVFNJTeTgzy4Am4tSH9UjdntyRcQLvbygx7BrEEZiQsD4wGkQN
-   wEFJ0eO8bMxR6yW5Ey1XCgy7sp+dqkVHwtSk9lXxl3vd1L23mU3oJeqGVUwa0gbL2F0F3KzQncB9
-   uBiUKXz8Jo6OyPVd8ETsIzSu08QB4w2LKZouLg==
+ bh=LFPfh+AqtBp4D/fSpCdqEAPYuFmr+oRuD3e5SttW160=;
+ b=Ae73ajk4YrpxHC/dk+xtMAVb8QCuxXW8txXN6iZiBqhic4Q++3MZCqOnj+S9wtgKQwmG8W78GXKr
+   JCShnSdFvtdpP6jkOrPfxF0svET/TMAmb7YPD+JmttOCzNpd2bUM3U50CIL54rrCvZyATO7CQCTw
+   gFoHXz01tijBRQBv0y39lG9SsnwbkogxDwoJiPS8nBi3ooJUHKS36Tk2cuCr0FrBk78hQalCbJ2Z
+   21L7L/APu7QAdRFhAtCB/lhaxN0PspG370v7Jqx+DdyzE6RfK6wq7NGFgwhpJP88vlGmrRgF1A/C
+   oP/WLC2Z7jzBTaaZZgq504QHoPUKPuJ8WxwNdA==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=1gwRjwrTndNYneoYKSzjAFm7IQx7lvt6QjZbNn6S3K8=;
- b=VjNe1knWSSx9sqXW0tMrQzHoLcsQRqi6w9GGv9ZIFabRnwK9SV1TmksykC08643JpzW/IUyoxSL3
-   XgpBqxQx58efq45MC6KeKRemGgNiguwufrxVIGGEPiLvekhYrSkPAmVRDpWxcen8g6tpbcZeLoZk
-   s8Ej3Pmvlkt/ulcpxNPT4ZRfaH/aWN/3LlfkxILxukIHbAcRr/0hWRAdCrlCdDTNliYuk7uF6Q6d
-   3TmSFLbjvJLw/VbegldGFJr+z6vY6GNFkZavr9AbWvG2mECLnSidtUs+22qVA1W3dZ+5RurqyzpU
-   rVwWjtlCkN1sincf23LLQCR1R/87aySHqkts3g==
-Received: by omta-ad2-fd1-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
+ bh=LFPfh+AqtBp4D/fSpCdqEAPYuFmr+oRuD3e5SttW160=;
+ b=OYw/6Avc1U66eP34a7O5m1jGnYqJr6dj2YUReRBP+DBUiuL5FSfefnpKepdUz621wddPYxcjx9Ve
+   x/NjZQ+3RSBOArK94sE8q1kj+ADvVezTmRx0KiZac+OFn/E7WX+zfdqPHJTjsDsJUsHthxcGldog
+   y0u2M+UlrsLO3ggjdwk0npi4NLE2bqmwII8lXOcO1rAYrlkk/tnlFsiBcMYh8gR/anW/8xD1RFiD
+   BBRva3tu5hDOaYHHk/36ahTgVjDApwovZHBXfUdmlhQWLafdxCmrHan7a3ASwmCoj1oX+2E922za
+   PRb3OcP2SY+3EkPbHpSgFpkMaS2yLa+BYdZ7pg==
+Received: by omta-ad1-fd1-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220914 64bit (built Sep 14
  2022))
- with ESMTPS id <0RK2003LAZY8HB10@omta-ad2-fd1-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
+ with ESMTPS id <0RK200KEYZY87QB0@omta-ad1-fd1-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
  ocfs2-devel@archiver.kernel.org; Fri, 21 Oct 2022 02:22:56 +0000 (GMT)
 To: <linux-kernel@vger.kernel.org>, <qemu-devel@nongnu.org>,
  <linux-f2fs-devel@lists.sourceforge.net>, <linux-erofs@lists.ozlabs.org>,
  <ocfs2-devel@oss.oracle.com>, <linux-mtd@lists.infradead.org>,
  <amd-gfx@lists.freedesktop.org>
-Date: Fri, 21 Oct 2022 10:20:58 +0800
-Message-id: <20221021022102.2231464-8-yangyingliang@huawei.com>
+Date: Fri, 21 Oct 2022 10:20:54 +0800
+Message-id: <20221021022102.2231464-4-yangyingliang@huawei.com>
 X-Mailer: git-send-email 2.25.1
 In-reply-to: <20221021022102.2231464-1-yangyingliang@huawei.com>
 References: <20221021022102.2231464-1-yangyingliang@huawei.com>
@@ -44,16 +44,16 @@ X-Source-IP: 45.249.212.187
 X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10506
  signatures=596816
 X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0
- lowpriorityscore=0 clxscore=22 priorityscore=212 mlxlogscore=999 spamscore=0
- phishscore=0 bulkscore=0 adultscore=0 impostorscore=0 suspectscore=0
- mlxscore=0 malwarescore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ priorityscore=159 impostorscore=0 lowpriorityscore=0 mlxscore=0
+ mlxlogscore=999 adultscore=0 bulkscore=0 clxscore=16 phishscore=0 spamscore=0
+ suspectscore=0 malwarescore=0 classifier=spam adjust=0 reason=mlx scancount=1
  engine=8.12.0-2209130000 definitions=main-2210210011 domainage_hfrom=8319
 Cc: alexander.deucher@amd.com, richard@nod.at, mst@redhat.com,
  gregkh@linuxfoundation.org, somlo@cmu.edu, chao@kernel.org,
  huangjianan@oppo.com, liushixin2@huawei.com, luben.tuikov@amd.com,
  hsiangkao@linux.alibaba.com, rafael@kernel.org, jaegeuk@kernel.org
-Subject: [Ocfs2-devel] [PATCH 07/11] f2fs: fix possible memory leak in
-	f2fs_init_sysfs()
+Subject: [Ocfs2-devel] [PATCH 03/11] bus: fix possible memory leak in
+	bus_register()
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -80,60 +80,61 @@ X-Proofpoint-SPF-Record: v=spf1 ip4:45.249.212.32 ip4:45.249.212.35
  ip4:185.176.79.56 ip4:119.8.179.247 ip4:119.8.89.136/31 ip4:119.8.89.135
  ip4:119.8.177.36/31 ip4:119.8.177.38 -all
 X-Spam: Clean
-X-Proofpoint-ORIG-GUID: -l-e5P5K2P9HPsArZSShHjpMKoFrR0TF
-X-Proofpoint-GUID: -l-e5P5K2P9HPsArZSShHjpMKoFrR0TF
+X-Proofpoint-ORIG-GUID: 5G8mAOrNv7VGe8EKORh_8wfqBiLDz5eR
+X-Proofpoint-GUID: 5G8mAOrNv7VGe8EKORh_8wfqBiLDz5eR
 Reporting-Meta:
- AAEk8cI6SBGj400tUcrYr93EVsvdBu2aoIrafaXLZp7VP0Ix/eTZFBNk4P/YZn1n
- brB422vd6Tc/Xf4CapwFsR8EnZdIUTuV0zWwtvHMMfF8txzPYIk/XOg3TSnJsew2
- dcwQqoJcoMl8Cby977+Sszo7wlygPcLxdvcUSW7Db22rBkOiPVki4b2QyKjwZnEa
- l4vD5T35U161s+WHwtf0zw5USEMjHupzIZIuWTDPauch+DQ+qJjbJ+eEA69rUiVp
- iZz7vvB6bKh32i+pCtiaZl815blPeYR05jxhasH8BJXVHBLpTCM3N6uLeGc2fQDW
- RJkrO2UWGYncLylcLPXpg1tZzvVzir1c9gbsxMjGe+a8yYDZmHKi+dnAuKFoivcj
- eeuJq/EH8ipv6n7ygPQ67oeWPa0evLUVc3YEYTjk7++q5v9yV40UJGg+5+RQUurt
- 6dCK9aeOFLhne5tvaqmjzf9cc9Dtm5dfElPTf+NvKKWoamKnAIjoQA7I12zcNlyQ
- 4SeT+qvBRRGwzlAaYYCDrhe7RkgFtfg4VSougV67UiM=
+ AAGWMax8bsk4+M13KDZvuGecUd8eqy9Eo45iq2/xXP5UMLwZk0DhiqOE/222qW+x
+ EfHcPk9Po8acPLf2cjIm4CNvg+U5iLXO2WTfb4agVf1r6//idXXRX089zjojZ6E/
+ +kStqBJgTvfH7e796ljXIjSxIRw2ZuihftrkOwIluelLpCjM6FrRiSWETvr8q5z0
+ zfJkm24hhNhBIlnx6aUd6hBU6HLF+sh7M3SrZh1QHAtPt+3eFwBbJaBztyM1fvMe
+ gkC5Zj+IlXFdXerD3TccjGzqhtiIghqU2FaipTWg1drk8mcqpeM0uZw7OrmQmyBK
+ F1gDptnvADgl5DyX/LRxtNvqcrrL1hJ839LRCO1YSp5+3+pWt5VFyuQrfazkppJH
+ 7jq6xOyjL2zDwCF07RNMQVERqiIu6301IZ1P/uZa2QQCrvjrpkpEL5/ZIR1qBvW6
+ nql5Pd6ebqSjOCJJvH9bwt72XaRnwURxmdKiaZcZIK79pzVijVhAohgS/Nu865Ge
+ YX4Wyj587NRH5WfaEsuC4oPkJR+zpTP5PXpnOahJnLBT
 
-Inject fault while loading module, kset_register() may fail,
-if it fails, but the refcount of kobject is not decreased to
-0, the name allocated in kobject_set_name() is leaked. Fix
-this by calling kset_put(), so that name can be freed in
-callback function kobject_cleanup().
+Inject fault while loading module (e.g. edac_core.ko), kset_register()
+may fail in bus_register(), if it fails, but the refcount of kobject is
+not decreased to 0, the name allocated in kobject_set_name() is leaked.
+To fix this by calling kset_put(), so that name can be freed in callback
+function kobject_cleanup().
 
-unreferenced object 0xffff888101b7cc80 (size 8):
-  comm "modprobe", pid 252, jiffies 4294691378 (age 31.760s)
+unreferenced object 0xffff888103bddb68 (size 8):
+  comm "systemd-udevd", pid 341, jiffies 4294903262 (age 42.212s)
   hex dump (first 8 bytes):
-    66 32 66 73 00 88 ff ff                          f2fs....
+    65 64 61 63 00 00 00 00                          edac....
   backtrace:
-    [<000000001db5b408>] __kmalloc_node_track_caller+0x44/0x1b0
-    [<000000002783a073>] kstrdup+0x3a/0x70
-    [<00000000ead2b281>] kstrdup_const+0x63/0x80
-    [<000000003e5cf8f7>] kvasprintf_const+0x149/0x180
-    [<00000000c4d949ff>] kobject_set_name_vargs+0x56/0x150
-    [<0000000044611660>] kobject_set_name+0xab/0xe0
+    [<000000009e31d566>] __kmalloc_track_caller+0x1ae/0x320
+    [<00000000e4cfd8de>] kstrdup+0x3a/0x70
+    [<000000003d0ec369>] kstrdup_const+0x68/0x80
+    [<000000008e5c3b20>] kvasprintf_const+0x10b/0x190
+    [<00000000b9a945aa>] kobject_set_name_vargs+0x56/0x150
+    [<000000000df9278c>] kobject_set_name+0xab/0xe0
+    [<00000000f51dc49f>] bus_register+0x132/0x350
+    [<000000007d91c2e5>] subsys_register+0x23/0x220
 
-Fixes: bf9e697ecd42 ("f2fs: expose features to sysfs entry")
+Fixes: 1da177e4c3f4 ("Linux-2.6.12-rc2")
 Signed-off-by: Yang Yingliang <yangyingliang@huawei.com>
-Reviewed-by: Chao Yu <chao@kernel.org>
 ---
- fs/f2fs/sysfs.c | 4 +++-
+ drivers/base/bus.c | 4 +++-
  1 file changed, 3 insertions(+), 1 deletion(-)
 
-diff --git a/fs/f2fs/sysfs.c b/fs/f2fs/sysfs.c
-index df27afd71ef4..2ef7a48967be 100644
---- a/fs/f2fs/sysfs.c
-+++ b/fs/f2fs/sysfs.c
-@@ -1250,8 +1250,10 @@ int __init f2fs_init_sysfs(void)
- 	kobject_set_name(&f2fs_kset.kobj, "f2fs");
- 	f2fs_kset.kobj.parent = fs_kobj;
- 	ret = kset_register(&f2fs_kset);
--	if (ret)
-+	if (ret) {
-+		kset_put(&f2fs_kset);
- 		return ret;
+diff --git a/drivers/base/bus.c b/drivers/base/bus.c
+index 7ca47e5b3c1f..301b5330f9d8 100644
+--- a/drivers/base/bus.c
++++ b/drivers/base/bus.c
+@@ -804,8 +804,10 @@ int bus_register(struct bus_type *bus)
+ 	priv->drivers_autoprobe = 1;
+ 
+ 	retval = kset_register(&priv->subsys);
+-	if (retval)
++	if (retval) {
++		kset_put(&priv->subsys);
+ 		goto out;
 +	}
  
- 	ret = kobject_init_and_add(&f2fs_feat, &f2fs_feat_ktype,
- 				   NULL, "features");
+ 	retval = bus_create_file(bus, &bus_attr_uevent);
+ 	if (retval)
 -- 
 2.25.1
 
