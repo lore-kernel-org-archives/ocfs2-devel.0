@@ -1,59 +1,66 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc250.phx1.oracleemaildelivery.com (aib29ajc250.phx1.oracleemaildelivery.com [192.29.103.250])
+Received: from aib29ajc246.phx1.oracleemaildelivery.com (aib29ajc246.phx1.oracleemaildelivery.com [192.29.103.246])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 3A4D7C4332F
-	for <ocfs2-devel@archiver.kernel.org>; Fri, 21 Oct 2022 02:23:30 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 33D52C4332F
+	for <ocfs2-devel@archiver.kernel.org>; Fri, 21 Oct 2022 05:37:16 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=vKOew3c2fLe4+sExGmmBEDPqfDuiIMtQ7nwbS6sb824=;
- b=D4XVu4kTmO6wvfvW2HLNLl9tdXiORH36fNrsYcNMECYNP5VgvJfxkJZMmzEMXdx/70t2M1dlp3V2
-   FsdX0bRo9DiTzz5AqEeG9PbI0caywMgnvrS24Vn/dwRHHtM+WZvU83qFTeE1Am5F6mNrbkVGeFuu
-   YahpLuMwXV4XFEhVeLDwj0ICGapKzOoRAnTUG+L+bYafPPTD8GGmSzjno3siXf6Q3VlJDhxbzo+l
-   hyXVaZO1DUy4gV2RFLooxxyCt1Mi0Eoa8Bf+/aqFpmk5gG+xaOCc9+yRdlevk6JN8IXH3bCkKgMT
-   T4icex9AZuEsDAP8Kv0AKbvy9/HCVsk4Ykdl/w==
+ bh=6hyAr1adtATRvyqLh3Ss/FtkR1NYRRR0Esayx9gLCVU=;
+ b=rVl09zmNjEQ5x2ha2r24ZPcKzzjw7oz/S2e16HO4oW2+ZHps7IbabtttuKWzkaznwLKHWw2LMM5A
+   NheF8F/ojdXYxy9ZZ3PaffA9FOXSlCvD5/G9ksM15TNuc6EfbAfCf83rx47VyHnOisbavrsi+j15
+   33Vylr70y/h+2RHakSgizsNkZIfRhkaw1AClTzfR+3a7qMS6dHpOAxka4xYAzaf6UubWiZpQXrn6
+   Z1lltVtRmA7AtlTU6IprZZZLCAxaqgh1Fc80wGcuZhOLprlZL1qfowkpqiUnX0lJlPdUAfREGtdP
+   4Duwsrtl4p3m9Z4pkEheG6CjOOO7Bxf83Sc8+A==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=vKOew3c2fLe4+sExGmmBEDPqfDuiIMtQ7nwbS6sb824=;
- b=GnHCtsDdGG9Ho17dBuhTU+kHLEdCy2dTPBvtpHADU+8Xyet+wy1rgK/ezBJf4tSHONvznt9KJ+uP
-   FkpNKra8zhDC7Iahk2FBlQ5oquBTtihJZJi/65Iy4gkBtjm1XEgcV/ikNnQOxJowd+Tc7lCKKN6d
-   l4mcD0L39DGGJ2c2j/yu9DRqx01Fn3H8Yjm6cymQbY8HwfIAIPHcIZTKr5MKf5OvvTK/vnlxPe3V
-   pv4nhL0oZ2nSKMzfti+K0USDjcS7lGsVAxCkmXQFHDdcUUcQmb2pbguVKdleXMCT/C6JUIwVWtlL
-   rya6hyF+LdzxMEkkScMQEoEqr0rpruBZqNkOGg==
-Received: by omta-ad2-fd3-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
+ bh=6hyAr1adtATRvyqLh3Ss/FtkR1NYRRR0Esayx9gLCVU=;
+ b=Ff++dJwnA4OrwS5Wd2E0ZyB3JPzRfUd7M0fG0VzKbgTPEVQK1dVkfEFlysg0LhusElmJR4JJ8ZvH
+   /fWRZsqZxkS/RyoTgnP3KEYnG4F+fvVKN6G25dFJ6l7LwzV9u4tecQBCmi3kxAWSlQPjHGns7QIf
+   39F10k9fDqYHIoH3ol+WTzcODxXYU4UvC0YFSNox7nx/w3mNYj94HoyT797OzH7WwGAw9qu+gOET
+   iGBCzc4KPfYqOIgESmPkGc/hyrc8ltTNtaKeJ4M3bCTLzVjNKDrxxmDiwWLmXkbAUMSlEVCqEYYZ
+   j84dE+AZ45zaMgH7faCTZO+QmWoE1eJRDXVEvw==
+Received: by omta-ad1-fd3-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220914 64bit (built Sep 14
  2022))
- with ESMTPS id <0RK200HUTZZ5DJ10@omta-ad2-fd3-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Fri, 21 Oct 2022 02:23:29 +0000 (GMT)
-To: <linux-kernel@vger.kernel.org>, <qemu-devel@nongnu.org>,
- <linux-f2fs-devel@lists.sourceforge.net>, <linux-erofs@lists.ozlabs.org>,
- <ocfs2-devel@oss.oracle.com>, <linux-mtd@lists.infradead.org>,
- <amd-gfx@lists.freedesktop.org>
-Date: Fri, 21 Oct 2022 10:20:56 +0800
-Message-id: <20221021022102.2231464-6-yangyingliang@huawei.com>
-X-Mailer: git-send-email 2.25.1
-In-reply-to: <20221021022102.2231464-1-yangyingliang@huawei.com>
+ with ESMTPS id <0RK300D9Q8Y36O40@omta-ad1-fd3-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Fri, 21 Oct 2022 05:37:15 +0000 (GMT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linuxfoundation.org;
+ s=korg; t=1666330619; bh=C4x6hYFDAWi4DXcimrF67aLQPsZW93Mx96V0amCnWn8=;
+ h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+ b=QlbKpgGx1qrMgSdaJyivXXf5qor/X961lpc0yRR+woSzH3tCcgiu1gmz/NBYEXQfe
+ K4vsmjcCVpegODndBu2vg9R9eT4zstEkXIb1SfoFeTNCPoQOhnVD+4siGARAhiytQw
+ tUVK0o7ipMo473nLX2GyW5d8TYlaC0oYKW+aMHhw=
+Date: Fri, 21 Oct 2022 07:37:48 +0200
+To: Luben Tuikov <luben.tuikov@amd.com>
+Message-id: <Y1IwLOUGayjT9p6d@kroah.com>
 References: <20221021022102.2231464-1-yangyingliang@huawei.com>
+ <d559793a-0ce4-3384-e74e-19855aa31f31@amd.com>
 MIME-version: 1.0
-X-Originating-IP: [10.175.103.91]
-X-Source-IP: 45.249.212.188
+Content-disposition: inline
+In-reply-to: <d559793a-0ce4-3384-e74e-19855aa31f31@amd.com>
+X-Source-IP: 139.178.84.217
 X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10506
  signatures=596816
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0
- priorityscore=251 malwarescore=0 spamscore=0 mlxscore=0 impostorscore=0
- lowpriorityscore=0 bulkscore=0 suspectscore=0 clxscore=91 adultscore=0
- phishscore=0 mlxlogscore=999 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2209130000 definitions=main-2210210011 domainage_hfrom=8319
-Cc: alexander.deucher@amd.com, richard@nod.at, mst@redhat.com,
- gregkh@linuxfoundation.org, somlo@cmu.edu, chao@kernel.org,
- huangjianan@oppo.com, liushixin2@huawei.com, luben.tuikov@amd.com,
- hsiangkao@linux.alibaba.com, rafael@kernel.org, jaegeuk@kernel.org
-Subject: [Ocfs2-devel] [PATCH 05/11] class: fix possible memory leak in
-	__class_register()
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 spamscore=0
+ priorityscore=272 impostorscore=0 malwarescore=0 phishscore=0 suspectscore=0
+ adultscore=0 clxscore=164 mlxlogscore=771 bulkscore=0 mlxscore=0
+ lowpriorityscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2209130000 definitions=main-2210210032
+Cc: rafael@kernel.org, qemu-devel@nongnu.org, liushixin2@huawei.com,
+ linux-mtd@lists.infradead.org, huangjianan@oppo.com, richard@nod.at,
+ mst@redhat.com, amd-gfx@lists.freedesktop.org,
+ Yang Yingliang <yangyingliang@huawei.com>, hsiangkao@linux.alibaba.com,
+ somlo@cmu.edu, chao@kernel.org, jaegeuk@kernel.org,
+ linux-kernel@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net,
+ alexander.deucher@amd.com, linux-erofs@lists.ozlabs.org,
+ ocfs2-devel@oss.oracle.com
+Subject: Re: [Ocfs2-devel] [PATCH 00/11] fix memory leak while	kset_register()
+ fails
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -65,99 +72,76 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: Yang Yingliang via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: Yang Yingliang <yangyingliang@huawei.com>
+From: Greg KH via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: Greg KH <gregkh@linuxfoundation.org>
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-ClientProxiedBy: dggems706-chm.china.huawei.com (10.3.19.183) To
- dggpemm500007.china.huawei.com (7.185.36.183)
-X-CFilter-Loop: Reflected
-X-ServerName: szxga02-in.huawei.com
+X-ServerName: dfw.source.kernel.org
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 ip4:45.249.212.32 ip4:45.249.212.35
- ip4:45.249.212.255 ip4:45.249.212.187/29 ip4:45.249.212.191 ip4:168.195.93.47
- ip4:185.176.79.56 ip4:119.8.179.247 ip4:119.8.89.136/31 ip4:119.8.89.135
- ip4:119.8.177.36/31 ip4:119.8.177.38 -all
+X-Proofpoint-SPF-Record: v=spf1 ip4:72.55.140.81 ip4:52.25.139.140
+ ip4:139.178.84.217 ip6:2604:1380:4641:c500::1 ip4:145.40.68.75
+ ip6:2604:1380:4601:e00::1 ip4:145.40.73.55 ip6:2604:1380:40e1:4800::1
+ include:_spf.google.com include:amazonses.com include:_spf.salesforce.com -all
 X-Spam: Clean
-X-Proofpoint-ORIG-GUID: IcXKm6D8iqfGnBR-K3BxNB2bI8dTYSpq
-X-Proofpoint-GUID: IcXKm6D8iqfGnBR-K3BxNB2bI8dTYSpq
+X-Proofpoint-ORIG-GUID: AhNpG6bHlRPThzADTZR314P30Laj17iM
+X-Proofpoint-GUID: AhNpG6bHlRPThzADTZR314P30Laj17iM
 Reporting-Meta:
- AAG6Wn39JUzNg/QLJhQCMkSX1qqGJEl1oPOM/Aly/+sTnjTrLGtbqfAEmM0+NuH1
- Bt+zM0ATaMbYkKGnrqyvVbBM0pJEYCqoLV/hEUhh/2UJhtVBjJVv+Nf4D2S3wl7p
- /bIF6tGoTCvwRywvpmUOoQQ7+HdpV9LY13rh7/XcDw1gNDguJpfbyBJ83oTk7eGt
- ZRCqFcAv5D4Tr4E3n+RbogGVbIux/2wjiG//46HtV+HpH9NT5Y6gdTqMdx56ejzp
- Beij9BFn06n4yMxmF6mvNbVY08x+SdbJGgO35Tt/60BF3lHdc8p8HcuKouNWQps8
- Lt/VU5rYuMJbUaKO82MGfWCOxrUyKtR8tw7gpoYsgCQOn26Ju7phLWF3j+YVvB6h
- Jdj0/gX6pbnxkQIYdY7niFKNXeZ7w+3e2wqNuO00l5qdBXhwzfrM2/Ja2xdPRQDj
- xeIv5Gre/NcsdolWwFuAaeTa3V1iHbJS//W7lkfrPt+a8rZBFemTzQ3YIfGrptMS
- K/BGDiiyAjckfPZM77laYlLUAiZZAJnryGhvRMj44iA6
+ AAEEFqEROhsUH2JFQKSN1lyoWoc1mjN1+JrayHs6vPvFtQW3VIjDfy2nG29Q43FZ
+ ApE/1d6sPbFFX12sEplsP7ES8rdPgFrdMWEB37nCs0oTb6qdRG7eBHZbipgjlvDe
+ b2cICp84yp8RIb4+H+251CXx3ifMr66/yUVGM1jgsDs1O5HiRERCY4YLqFMB3nKF
+ omPX8i9bxG5U2SYJlbWiSIxfgLvqJmEMfnbE9By1P4XPtnQJTNDkiqkmxEr6KLOV
+ q7rjH0kJsJQ6g60liQl+Wpp5LG0MXRY8vYA+lNPLlyQWAoBCDWjnrlW49KQwwQGa
+ GH2YJhZUhoXbJDfmUM+5DpXLz1E81dN1aI++j0mHxptn10kBAc0QiL0LN07asILy
+ OqQw4HELBkaFVOpcBBl1qoxV4i+7xZWf9I/H6qimBrozd8r7ZLqOJorfjQMI4ylD
+ jOnTRkkU4/9Qw0Sc/P0BKJ9r5oiMfTfKiEuD4+QC3yMVvdGiNmKCIaDdmxkdeoYO
+ dwqyhJf5FmRnZ5C7brMqoqcxK2WOn8KFiqInQZAi7dh8
 
-Inject fault while loading module (e.g. pktcdvd.ko), kset_register() may
-fail in __class_register(), if it fails, but the refcount of kobject is
-not decreased to 0, the name allocated in kobject_set_name() is leaked.
-To fix this by calling kfree_const().
+On Fri, Oct 21, 2022 at 01:29:31AM -0400, Luben Tuikov wrote:
+> On 2022-10-20 22:20, Yang Yingliang wrote:
+> > The previous discussion link:
+> > https://lore.kernel.org/lkml/0db486eb-6927-927e-3629-958f8f211194@huawei.com/T/
+> 
+> The very first discussion on this was here:
+> 
+> https://www.spinics.net/lists/dri-devel/msg368077.html
+> 
+> Please use this link, and not the that one up there you which quoted above,
+> and whose commit description is taken verbatim from the this link.
+> 
+> > 
+> > kset_register() is currently used in some places without calling
+> > kset_put() in error path, because the callers think it should be
+> > kset internal thing to do, but the driver core can not know what
+> > caller doing with that memory at times. The memory could be freed
+> > both in kset_put() and error path of caller, if it is called in
+> > kset_register().
+> 
+> As I explained in the link above, the reason there's
+> a memory leak is that one cannot call kset_register() without
+> the kset->kobj.name being set--kobj_add_internal() returns -EINVAL,
+> in this case, i.e. kset_register() fails with -EINVAL.
+> 
+> Thus, the most common usage is something like this:
+> 
+> 	kobj_set_name(&kset->kobj, format, ...);
+> 	kset->kobj.kset = parent_kset;
+> 	kset->kobj.ktype = ktype;
+> 	res = kset_register(kset);
+> 
+> So, what is being leaked, is the memory allocated in kobj_set_name(),
+> by the common idiom shown above. This needs to be mentioned in
+> the documentation, at least, in case, in the future this is absolved
+> in kset_register() redesign, etc.
 
-unreferenced object 0xffff888102fa8190 (size 8):
-  comm "modprobe", pid 502, jiffies 4294906074 (age 49.296s)
-  hex dump (first 8 bytes):
-    70 6b 74 63 64 76 64 00                          pktcdvd.
-  backtrace:
-    [<00000000e7c7703d>] __kmalloc_track_caller+0x1ae/0x320
-    [<000000005e4d70bc>] kstrdup+0x3a/0x70
-    [<00000000c2e5e85a>] kstrdup_const+0x68/0x80
-    [<000000000049a8c7>] kvasprintf_const+0x10b/0x190
-    [<0000000029123163>] kobject_set_name_vargs+0x56/0x150
-    [<00000000747219c9>] kobject_set_name+0xab/0xe0
-    [<0000000005f1ea4e>] __class_register+0x15c/0x49a
+Based on this, can kset_register() just clean up from itself when an
+error happens?  Ideally that would be the case, as the odds of a kset
+being embedded in a larger structure is probably slim, but we would have
+to search the tree to make sure.
 
-If class_add_groups() fails, it need delete kobject and free its name,
-besides, subsys_private also need be freed.
+thanks,
 
-unreferenced object 0xffff888037274000 (size 1024):
-  comm "modprobe", pid 502, jiffies 4294906074 (age 49.296s)
-  hex dump (first 32 bytes):
-    00 40 27 37 80 88 ff ff 00 40 27 37 80 88 ff ff  .@'7.....@'7....
-    00 00 00 00 ad 4e ad de ff ff ff ff 00 00 00 00  .....N..........
-  backtrace:
-    [<00000000151f9600>] kmem_cache_alloc_trace+0x17c/0x2f0
-    [<00000000ecf3dd95>] __class_register+0x86/0x49a
-
-It can not call kset_put() or kset_unregister() in error path, because
-the 'cls' will be freed in callback function class_release() and it also
-freed in error path, it will cause double free.
-
-Fixes: 1da177e4c3f4 ("Linux-2.6.12-rc2")
-Signed-off-by: Yang Yingliang <yangyingliang@huawei.com>
----
- drivers/base/class.c | 6 ++++++
- 1 file changed, 6 insertions(+)
-
-diff --git a/drivers/base/class.c b/drivers/base/class.c
-index 64f7b9a0970f..87de0a04ee9b 100644
---- a/drivers/base/class.c
-+++ b/drivers/base/class.c
-@@ -187,11 +187,17 @@ int __class_register(struct class *cls, struct lock_class_key *key)
- 
- 	error = kset_register(&cp->subsys);
- 	if (error) {
-+		kfree_const(cp->subsys.kobj.name);
- 		kfree(cp);
- 		return error;
- 	}
- 	error = class_add_groups(class_get(cls), cls->class_groups);
- 	class_put(cls);
-+	if (error) {
-+		kobject_del(&cp->subsys.kobj);
-+		kfree_const(cp->subsys.kobj.name);
-+		kfree(cp);
-+	}
- 	return error;
- }
- EXPORT_SYMBOL_GPL(__class_register);
--- 
-2.25.1
-
+greg k-h
 
 _______________________________________________
 Ocfs2-devel mailing list
