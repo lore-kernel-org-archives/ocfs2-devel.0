@@ -1,40 +1,40 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc247.phx1.oracleemaildelivery.com (aib29ajc247.phx1.oracleemaildelivery.com [192.29.103.247])
+Received: from aib29ajc250.phx1.oracleemaildelivery.com (aib29ajc250.phx1.oracleemaildelivery.com [192.29.103.250])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 321C2C433FE
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 3A4D7C4332F
 	for <ocfs2-devel@archiver.kernel.org>; Fri, 21 Oct 2022 02:23:30 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=XsV3dCli54Rly92a8cFogLV/eF4nO/tsMaNeqYXLjOs=;
- b=MPHJ5YMr/R6hTcqMz0Ypm6LzS05WKSy0HaoIVvdHk+oOiSA0ZRDNlFciOul7q+4HSnr7Xse3au9f
-   bH6Ijwi5Ll6HeqycSZBxL841OvsaiAnUVLHAoGx1QzSfUxma6zIDAeWKzYp36qgTSQfP3Z6RLw7w
-   OBNi/gHWwX4Y9KtEQIYegSgb/dy/IwxvBXSV+8ed4ydAkbHBYQ2nPtln6Y5KACZvP4yNBWqpRE1+
-   9mxBNBTAI8ronC5yB7EFiJMky5fNq3e4A2KdHyClarrbmJdgJIAfFfrjtqvIsrIN28GxWaJPMWFp
-   sPiMS6FXnV/argyNb2EEG/VHIekNmVRtqDmtJA==
+ bh=vKOew3c2fLe4+sExGmmBEDPqfDuiIMtQ7nwbS6sb824=;
+ b=D4XVu4kTmO6wvfvW2HLNLl9tdXiORH36fNrsYcNMECYNP5VgvJfxkJZMmzEMXdx/70t2M1dlp3V2
+   FsdX0bRo9DiTzz5AqEeG9PbI0caywMgnvrS24Vn/dwRHHtM+WZvU83qFTeE1Am5F6mNrbkVGeFuu
+   YahpLuMwXV4XFEhVeLDwj0ICGapKzOoRAnTUG+L+bYafPPTD8GGmSzjno3siXf6Q3VlJDhxbzo+l
+   hyXVaZO1DUy4gV2RFLooxxyCt1Mi0Eoa8Bf+/aqFpmk5gG+xaOCc9+yRdlevk6JN8IXH3bCkKgMT
+   T4icex9AZuEsDAP8Kv0AKbvy9/HCVsk4Ykdl/w==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=XsV3dCli54Rly92a8cFogLV/eF4nO/tsMaNeqYXLjOs=;
- b=rz6PKX/HhQTW7rC3zyIqkiG+vOD7lYKMHod6Df3djGX/eQQuHSHlD3LtOWX5DHLGxN7c22tOFRyC
-   ULmz1L6YYedpdsKkVUbJyJcOSk4F08uHO8I6QAeSy8tjCwuiznkzLNvveAj6LF/72X04UhlPtGjE
-   qczv4JV9Rug8Z0l0gOjycSY8xB8SrW8JQRR1hBjXa7qqrU8phMj+uOcBp24CtQ7g+kPAXP24+qBC
-   FmREJ8GoxOkUNNfwt9Txh0+XI0Zr/vLYcPJNll6eOsbX+hcsFb6/jcJ/IWF6G5WgG40O2+XNcw3j
-   1TcI4GozVNIABRNrpEC+T23JOCM5AsWr3/wsaw==
-Received: by omta-ad1-fd3-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
+ bh=vKOew3c2fLe4+sExGmmBEDPqfDuiIMtQ7nwbS6sb824=;
+ b=GnHCtsDdGG9Ho17dBuhTU+kHLEdCy2dTPBvtpHADU+8Xyet+wy1rgK/ezBJf4tSHONvznt9KJ+uP
+   FkpNKra8zhDC7Iahk2FBlQ5oquBTtihJZJi/65Iy4gkBtjm1XEgcV/ikNnQOxJowd+Tc7lCKKN6d
+   l4mcD0L39DGGJ2c2j/yu9DRqx01Fn3H8Yjm6cymQbY8HwfIAIPHcIZTKr5MKf5OvvTK/vnlxPe3V
+   pv4nhL0oZ2nSKMzfti+K0USDjcS7lGsVAxCkmXQFHDdcUUcQmb2pbguVKdleXMCT/C6JUIwVWtlL
+   rya6hyF+LdzxMEkkScMQEoEqr0rpruBZqNkOGg==
+Received: by omta-ad2-fd3-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220914 64bit (built Sep 14
  2022))
- with ESMTPS id <0RK200HQRZZ5I150@omta-ad1-fd3-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
+ with ESMTPS id <0RK200HUTZZ5DJ10@omta-ad2-fd3-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
  ocfs2-devel@archiver.kernel.org; Fri, 21 Oct 2022 02:23:29 +0000 (GMT)
 To: <linux-kernel@vger.kernel.org>, <qemu-devel@nongnu.org>,
  <linux-f2fs-devel@lists.sourceforge.net>, <linux-erofs@lists.ozlabs.org>,
  <ocfs2-devel@oss.oracle.com>, <linux-mtd@lists.infradead.org>,
  <amd-gfx@lists.freedesktop.org>
-Date: Fri, 21 Oct 2022 10:21:00 +0800
-Message-id: <20221021022102.2231464-10-yangyingliang@huawei.com>
+Date: Fri, 21 Oct 2022 10:20:56 +0800
+Message-id: <20221021022102.2231464-6-yangyingliang@huawei.com>
 X-Mailer: git-send-email 2.25.1
 In-reply-to: <20221021022102.2231464-1-yangyingliang@huawei.com>
 References: <20221021022102.2231464-1-yangyingliang@huawei.com>
@@ -43,17 +43,17 @@ X-Originating-IP: [10.175.103.91]
 X-Source-IP: 45.249.212.188
 X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10506
  signatures=596816
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 malwarescore=0
- mlxscore=0 spamscore=0 adultscore=0 clxscore=-57 suspectscore=0
- priorityscore=1501 phishscore=0 mlxlogscore=999 impostorscore=0 bulkscore=0
- lowpriorityscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0
+ priorityscore=251 malwarescore=0 spamscore=0 mlxscore=0 impostorscore=0
+ lowpriorityscore=0 bulkscore=0 suspectscore=0 clxscore=91 adultscore=0
+ phishscore=0 mlxlogscore=999 classifier=spam adjust=0 reason=mlx scancount=1
  engine=8.12.0-2209130000 definitions=main-2210210011 domainage_hfrom=8319
 Cc: alexander.deucher@amd.com, richard@nod.at, mst@redhat.com,
  gregkh@linuxfoundation.org, somlo@cmu.edu, chao@kernel.org,
  huangjianan@oppo.com, liushixin2@huawei.com, luben.tuikov@amd.com,
  hsiangkao@linux.alibaba.com, rafael@kernel.org, jaegeuk@kernel.org
-Subject: [Ocfs2-devel] [PATCH 09/11] ocfs2: possible memory leak in
-	mlog_sys_init()
+Subject: [Ocfs2-devel] [PATCH 05/11] class: fix possible memory leak in
+	__class_register()
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -80,68 +80,81 @@ X-Proofpoint-SPF-Record: v=spf1 ip4:45.249.212.32 ip4:45.249.212.35
  ip4:185.176.79.56 ip4:119.8.179.247 ip4:119.8.89.136/31 ip4:119.8.89.135
  ip4:119.8.177.36/31 ip4:119.8.177.38 -all
 X-Spam: Clean
-X-Proofpoint-ORIG-GUID: 3Z4TGLUbYuCMskNs4tIYmv2qQ4LWT_7l
-X-Proofpoint-GUID: 3Z4TGLUbYuCMskNs4tIYmv2qQ4LWT_7l
+X-Proofpoint-ORIG-GUID: IcXKm6D8iqfGnBR-K3BxNB2bI8dTYSpq
+X-Proofpoint-GUID: IcXKm6D8iqfGnBR-K3BxNB2bI8dTYSpq
 Reporting-Meta:
- AAGRfGcH+HM0znrHhE+MqXw+8rwTsEduEoCGfMVT0xNITIm7ixlJ+aKkrqMYLBnI
- kaMareD/2PIJAVUIW9YcOQ2336aEbj+9oHC1XfMWWfCytzFgYWCn00wv8kgOdQ7T
- Dv5pZuNhUrE/v0P5uqGXSJ8ScWS/8lcQTt1NSd4qMeRsdjGYECtq/O+wAaJf2HlG
- QUsX66C5/PWPu3kng9LvFP0dSrPS7W4My9pPdcrEJH3/zofd+uKvz3YsELZPFIjm
- O4O5C5QX/MTrRzTB0m1aiCGfDku6vwG7bAm6ekU/YQRP1N+Ha6OMXAUnP93dS68v
- 8G6WnEmtS/476q6Pq5EiE90Sgdvmq0UlQNq/UE/nY/GcM2xCPZHGw/N8KxESLd4Q
- SWi9f7SrlxjvFkpiUBMd3i1n7pu1CFzFnghJZ7iX0iqDosQ/BzaLE7wOgz2nd1JP
- Q0d5Rc3xOnQbqxnz07HEeUeisk25kYSanwYIt6fBDAGkmkfJRuv1/YL9TikwL/9S
- Vf0p/MaJR1AdHgbRe92wfpO9INX6bgu8fmq+bqOdRb0H
+ AAG6Wn39JUzNg/QLJhQCMkSX1qqGJEl1oPOM/Aly/+sTnjTrLGtbqfAEmM0+NuH1
+ Bt+zM0ATaMbYkKGnrqyvVbBM0pJEYCqoLV/hEUhh/2UJhtVBjJVv+Nf4D2S3wl7p
+ /bIF6tGoTCvwRywvpmUOoQQ7+HdpV9LY13rh7/XcDw1gNDguJpfbyBJ83oTk7eGt
+ ZRCqFcAv5D4Tr4E3n+RbogGVbIux/2wjiG//46HtV+HpH9NT5Y6gdTqMdx56ejzp
+ Beij9BFn06n4yMxmF6mvNbVY08x+SdbJGgO35Tt/60BF3lHdc8p8HcuKouNWQps8
+ Lt/VU5rYuMJbUaKO82MGfWCOxrUyKtR8tw7gpoYsgCQOn26Ju7phLWF3j+YVvB6h
+ Jdj0/gX6pbnxkQIYdY7niFKNXeZ7w+3e2wqNuO00l5qdBXhwzfrM2/Ja2xdPRQDj
+ xeIv5Gre/NcsdolWwFuAaeTa3V1iHbJS//W7lkfrPt+a8rZBFemTzQ3YIfGrptMS
+ K/BGDiiyAjckfPZM77laYlLUAiZZAJnryGhvRMj44iA6
 
-Inject fault while loading module, kset_register() may fail,
-if it fails, but the refcount of kobject is not decreased to
-0, the name allocated in kobject_set_name() is leaked. Fix
-this by calling kset_put(), so that name can be freed in
-callback function kobject_cleanup().
+Inject fault while loading module (e.g. pktcdvd.ko), kset_register() may
+fail in __class_register(), if it fails, but the refcount of kobject is
+not decreased to 0, the name allocated in kobject_set_name() is leaked.
+To fix this by calling kfree_const().
 
-unreferenced object 0xffff888100da9348 (size 8):
-  comm "modprobe", pid 257, jiffies 4294701096 (age 33.334s)
+unreferenced object 0xffff888102fa8190 (size 8):
+  comm "modprobe", pid 502, jiffies 4294906074 (age 49.296s)
   hex dump (first 8 bytes):
-    6c 6f 67 6d 61 73 6b 00                          logmask.
+    70 6b 74 63 64 76 64 00                          pktcdvd.
   backtrace:
-    [<00000000306e441c>] __kmalloc_node_track_caller+0x44/0x1b0
-    [<000000007c491a9e>] kstrdup+0x3a/0x70
-    [<0000000015719a3b>] kstrdup_const+0x63/0x80
-    [<0000000084e458ea>] kvasprintf_const+0x149/0x180
-    [<0000000091302b42>] kobject_set_name_vargs+0x56/0x150
-    [<000000005f48eeac>] kobject_set_name+0xab/0xe0
+    [<00000000e7c7703d>] __kmalloc_track_caller+0x1ae/0x320
+    [<000000005e4d70bc>] kstrdup+0x3a/0x70
+    [<00000000c2e5e85a>] kstrdup_const+0x68/0x80
+    [<000000000049a8c7>] kvasprintf_const+0x10b/0x190
+    [<0000000029123163>] kobject_set_name_vargs+0x56/0x150
+    [<00000000747219c9>] kobject_set_name+0xab/0xe0
+    [<0000000005f1ea4e>] __class_register+0x15c/0x49a
 
-Fixes: 34980ca8faeb ("Drivers: clean up direct setting of the name of a kset")
+If class_add_groups() fails, it need delete kobject and free its name,
+besides, subsys_private also need be freed.
+
+unreferenced object 0xffff888037274000 (size 1024):
+  comm "modprobe", pid 502, jiffies 4294906074 (age 49.296s)
+  hex dump (first 32 bytes):
+    00 40 27 37 80 88 ff ff 00 40 27 37 80 88 ff ff  .@'7.....@'7....
+    00 00 00 00 ad 4e ad de ff ff ff ff 00 00 00 00  .....N..........
+  backtrace:
+    [<00000000151f9600>] kmem_cache_alloc_trace+0x17c/0x2f0
+    [<00000000ecf3dd95>] __class_register+0x86/0x49a
+
+It can not call kset_put() or kset_unregister() in error path, because
+the 'cls' will be freed in callback function class_release() and it also
+freed in error path, it will cause double free.
+
+Fixes: 1da177e4c3f4 ("Linux-2.6.12-rc2")
 Signed-off-by: Yang Yingliang <yangyingliang@huawei.com>
 ---
- fs/ocfs2/cluster/masklog.c | 7 ++++++-
- 1 file changed, 6 insertions(+), 1 deletion(-)
+ drivers/base/class.c | 6 ++++++
+ 1 file changed, 6 insertions(+)
 
-diff --git a/fs/ocfs2/cluster/masklog.c b/fs/ocfs2/cluster/masklog.c
-index 563881ddbf00..7f9ba816d955 100644
---- a/fs/ocfs2/cluster/masklog.c
-+++ b/fs/ocfs2/cluster/masklog.c
-@@ -156,6 +156,7 @@ static struct kset mlog_kset = {
- int mlog_sys_init(struct kset *o2cb_kset)
- {
- 	int i = 0;
-+	int ret;
+diff --git a/drivers/base/class.c b/drivers/base/class.c
+index 64f7b9a0970f..87de0a04ee9b 100644
+--- a/drivers/base/class.c
++++ b/drivers/base/class.c
+@@ -187,11 +187,17 @@ int __class_register(struct class *cls, struct lock_class_key *key)
  
- 	while (mlog_attrs[i].attr.mode) {
- 		mlog_default_attrs[i] = &mlog_attrs[i].attr;
-@@ -165,7 +166,11 @@ int mlog_sys_init(struct kset *o2cb_kset)
- 
- 	kobject_set_name(&mlog_kset.kobj, "logmask");
- 	mlog_kset.kobj.kset = o2cb_kset;
--	return kset_register(&mlog_kset);
-+	ret = kset_register(&mlog_kset);
-+	if (ret)
-+		kset_put(&mlog_kset);
-+
-+	return ret;
+ 	error = kset_register(&cp->subsys);
+ 	if (error) {
++		kfree_const(cp->subsys.kobj.name);
+ 		kfree(cp);
+ 		return error;
+ 	}
+ 	error = class_add_groups(class_get(cls), cls->class_groups);
+ 	class_put(cls);
++	if (error) {
++		kobject_del(&cp->subsys.kobj);
++		kfree_const(cp->subsys.kobj.name);
++		kfree(cp);
++	}
+ 	return error;
  }
- 
- void mlog_sys_shutdown(void)
+ EXPORT_SYMBOL_GPL(__class_register);
 -- 
 2.25.1
 
