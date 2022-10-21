@@ -1,65 +1,59 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc245.phx1.oracleemaildelivery.com (aib29ajc245.phx1.oracleemaildelivery.com [192.29.103.245])
+Received: from aib29ajc253.phx1.oracleemaildelivery.com (aib29ajc253.phx1.oracleemaildelivery.com [192.29.103.253])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 32A6FC4332F
-	for <ocfs2-devel@archiver.kernel.org>; Fri, 21 Oct 2022 08:18:52 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id DD8CBC4332F
+	for <ocfs2-devel@archiver.kernel.org>; Fri, 21 Oct 2022 08:25:06 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=XCMl91FJwAVZS5A41IUlWcDNrlFT4A09HaFGUwECUrA=;
- b=SAVGoyc/Jelm/rxAb5A9FD2vWy4FfMsekxQAESB5fTIK/anOCHIwx/dOXdebpAkE3qwLPxTFT+Zo
-   zXqG29iHvjLgHP0Q4ZOdRqJA/ik3SXbVSHu2L0x4moXvXxx9L7WKW7xutLWZ8erlW2PdcBb/miiA
-   Ss3mlziptlPAjMDkjsVhOIAL7tq+828l6KA2rwMFS7VakF7WmJA8ddoKAFJRRBo+Lr/zBLnpfmc1
-   IRbI6RXNbMhVkqZJFH+eDwcrQ/5C/VAc/lqd0SoNTWOUnwbdZA99jKZr0YfNCnNaEDXfz70T1J/s
-   dopb1mEonYFQIJ054xZ0FSagaDOJtEuFbQNHaA==
+ bh=7FABMvUejLnNZoFoLUU/H7AHUMzrKxkB8WhEnidhHkI=;
+ b=Iy6StSk0Wbfgo24xbbsIZg9bs+V1hjKOi9VHWS74kN8MNGql6qd8V1ee0abKkRTLgOYIHVE3vX00
+   bQQ/vlhkAdkFpZhWcMygZPmuBa6LLtp/WMv/O114m7e6bTW/Farc99LeZnnzoB/dAPkAPt5GRquB
+   gXWTzCO6NfRzeaJwszq8fxFpQ2vJR8NNk47Xs1VzJ0RyFoZcsaZavTS6mDx1MzG16oKz4TpL7gp7
+   F356ac7npUqRIPC8wqtu0MUxd90Jdpkirv52TrfqobNCg9WmfqjFtqHxwaS9sff6jXh7x0zeQrCK
+   a/uJ6IY6MPoxsJ9LGhDXjBZhwhR1mFGrr/lFQg==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=XCMl91FJwAVZS5A41IUlWcDNrlFT4A09HaFGUwECUrA=;
- b=EaVxlgRbYncXviVZTSmW/90yda5aEOmIR2BmYGF8W0HcIUCJ+u9BWxGrZe0eVQDUu55AduXdu9/G
-   /b/6ksYF+i5hJgBzh+JjlJ28G56Gwy37uEp/aQYusPIsDB6iWi4sn9+KKTpyyVXYXZx2qG/L38u+
-   SGBQpIb5S8hRgd+bLftYoe+Efk+yQBe3FgDUV7Z79ptdvDZJVTiFd7HbHjWGAIe74MVRKf8qBSj/
-   8hIdtOCa/vL/8XaRUVbTEbReolVZhodaqIF/OtTIlyA34uJdj7BHRgoWP7O384klvib13wcm42NY
-   Ozl7akWi2/zDK9X5bckZLacUmF+eFYeGgRmHng==
-Received: by omta-ad1-fd1-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
+ bh=7FABMvUejLnNZoFoLUU/H7AHUMzrKxkB8WhEnidhHkI=;
+ b=U4ekVRqxVSNUrUv6vnhdhNY15OLEooh1saAk9CI2I19hg2rhuqp+9Z1F6w5jz6jC1Bu9wbHlovC/
+   HADxGUDKT8zt93tQvxCXhMQ18lJD+fqCeR1PPemjGUWldewI3uP2JJRQND1HbN7Oaj2t1F3EHjrT
+   JPWd55laYzC3DzxuwAgZ8eMciftoBUBuW/fi9wduA068n/WnyynL0kyTL28+ZpLfTmWuinOyODPt
+   VLAyti0oTWb8CxPESjtD9FV5YnJKYlLMPnhe6frR9QPK4SM2AqGWaJ+0ENiEqlVL+cvQTSC85WzJ
+   tJvY15u0A19wSbfNWfGMjsC3k6z4PazCMLlDdg==
+Received: by omta-ad3-fd1-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220914 64bit (built Sep 14
  2022))
- with ESMTPS id <0RK3008QGGFFG710@omta-ad1-fd1-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Fri, 21 Oct 2022 08:18:51 +0000 (GMT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linuxfoundation.org;
- s=korg; t=1666340313; bh=8++5V96CRoT3offEW1sfGPjlBhG5kCvkZ9nTWWOETBI=;
- h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
- b=jgzWKnVMDL4jjfh3rpyIZnQ6lzYGvVQFOfB2Sz0ckbK8TSaMML0PB6ejva6LPIpVh
- ec2TKJYGoaFx30SX5W4+m5zVlvfmFnd1+qS08e2EpH9AWzJBI41sDGDR+b9qaC68rY
- UySyAc400Lqb6/UqLIyGB/GHeIBa76ZzCFASzYBo=
-Date: Fri, 21 Oct 2022 10:18:31 +0200
-To: Luben Tuikov <luben.tuikov@amd.com>
-Message-id: <Y1JV1wxf/7ERAMhl@kroah.com>
+ with ESMTPS id <0RK300LI2GPUWT40@omta-ad3-fd1-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Fri, 21 Oct 2022 08:25:06 +0000 (GMT)
+To: Greg KH <gregkh@linuxfoundation.org>, Luben Tuikov <luben.tuikov@amd.com>
 References: <20221021022102.2231464-1-yangyingliang@huawei.com>
  <d559793a-0ce4-3384-e74e-19855aa31f31@amd.com> <Y1IwLOUGayjT9p6d@kroah.com>
- <5efd73b0-d634-d34f-3d7a-13d674e40d04@amd.com>
+Message-id: <0591e66f-731a-5f81-fc9d-3a6d80516c65@huawei.com>
+Date: Fri, 21 Oct 2022 16:24:23 +0800
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:68.0) Gecko/20100101
+ Thunderbird/68.7.0
 MIME-version: 1.0
-Content-disposition: inline
-In-reply-to: <5efd73b0-d634-d34f-3d7a-13d674e40d04@amd.com>
-X-Source-IP: 145.40.68.75
+In-reply-to: <Y1IwLOUGayjT9p6d@kroah.com>
+Content-language: en-US
+X-Originating-IP: [10.174.178.174]
+X-Source-IP: 45.249.212.188
 X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10506
  signatures=596816
 X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 mlxscore=0
- priorityscore=491 phishscore=0 mlxlogscore=999 lowpriorityscore=0 spamscore=0
- malwarescore=0 adultscore=0 suspectscore=0 clxscore=140 impostorscore=0
+ priorityscore=1501 phishscore=0 mlxlogscore=823 lowpriorityscore=0 spamscore=0
+ malwarescore=0 adultscore=0 suspectscore=0 clxscore=-58 impostorscore=0
  bulkscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2209130000 definitions=main-2210210048
-Cc: rafael@kernel.org, qemu-devel@nongnu.org, liushixin2@huawei.com,
- linux-mtd@lists.infradead.org, huangjianan@oppo.com, richard@nod.at,
- mst@redhat.com, amd-gfx@lists.freedesktop.org,
- Yang Yingliang <yangyingliang@huawei.com>, hsiangkao@linux.alibaba.com,
- somlo@cmu.edu, chao@kernel.org, jaegeuk@kernel.org,
- linux-kernel@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net,
- alexander.deucher@amd.com, linux-erofs@lists.ozlabs.org,
- ocfs2-devel@oss.oracle.com
+ engine=8.12.0-2209130000 definitions=main-2210210048 domainage_hfrom=8319
+Cc: chao@kernel.org, rafael@kernel.org, qemu-devel@nongnu.org, richard@nod.at,
+ somlo@cmu.edu, mst@redhat.com, linux-kernel@vger.kernel.org,
+ amd-gfx@lists.freedesktop.org, linux-f2fs-devel@lists.sourceforge.net,
+ liushixin2@huawei.com, linux-mtd@lists.infradead.org,
+ hsiangkao@linux.alibaba.com, alexander.deucher@amd.com, jaegeuk@kernel.org,
+ huangjianan@oppo.com, linux-erofs@lists.ozlabs.org, ocfs2-devel@oss.oracle.com
 Subject: Re: [Ocfs2-devel] [PATCH 00/11] fix memory leak while	kset_register()
  fails
 X-BeenThere: ocfs2-devel@oss.oracle.com
@@ -73,100 +67,73 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: Greg KH via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: Greg KH <gregkh@linuxfoundation.org>
-Content-type: text/plain; charset="us-ascii"
-Content-transfer-encoding: 7bit
+From: Yang Yingliang via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: Yang Yingliang <yangyingliang@huawei.com>
+Content-transfer-encoding: base64
+Content-type: text/plain; charset="utf-8"; Format="flowed"
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-ServerName: ams.source.kernel.org
+X-ClientProxiedBy: dggems702-chm.china.huawei.com (10.3.19.179) To
+ dggpemm500007.china.huawei.com (7.185.36.183)
+X-CFilter-Loop: Reflected
+X-ServerName: szxga02-in.huawei.com
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 ip4:72.55.140.81 ip4:52.25.139.140
- ip4:139.178.84.217 ip6:2604:1380:4641:c500::1 ip4:145.40.68.75
- ip6:2604:1380:4601:e00::1 ip4:145.40.73.55 ip6:2604:1380:40e1:4800::1
- include:_spf.google.com include:amazonses.com include:_spf.salesforce.com -all
+X-Proofpoint-SPF-Record: v=spf1 ip4:45.249.212.32 ip4:45.249.212.35
+ ip4:45.249.212.255 ip4:45.249.212.187/29 ip4:45.249.212.191 ip4:168.195.93.47
+ ip4:185.176.79.56 ip4:119.8.179.247 ip4:119.8.89.136/31 ip4:119.8.89.135
+ ip4:119.8.177.36/31 ip4:119.8.177.38 -all
 X-Spam: Clean
-X-Proofpoint-GUID: 686jFMbVZZRqvIwxUAt6WzGWQ6OkButm
-X-Proofpoint-ORIG-GUID: 686jFMbVZZRqvIwxUAt6WzGWQ6OkButm
+X-Proofpoint-ORIG-GUID: nLiVsnyakXfCTuSbnwAE8Agc8MPVCep4
+X-Proofpoint-GUID: nLiVsnyakXfCTuSbnwAE8Agc8MPVCep4
 Reporting-Meta:
- AAF6ik5wP3qMs0PJ5oXw5GNlhF5mJJ4KlSj1vwCx5XKTaI8XySHzbjmc008daxcU
- 4jK1Q+v15Krm9lovAyopCljU1+RhICzTzYw6p9wfOdiU/dmeP4pk1oUa4C/OzdT1
- kIIaNQ9hnWWmjhHHcdOf5NEX7B8DcRMZyCDPH/UtfU6+k4dbbkPfEskiPvUHWc2v
- 6Fh4+ek+VttMyMK2+Qi+vziBWmKyzu6BoAEoTm3MOoV0cHPJLwYji5mKwMT2hypx
- 5lh8G/ebc9hkf4h9Rh4JuucWR+hiuzT8wqjE9Q1TubNOyM06f7NeKoCMl7sUIDna
- a0yBmN8FYAtqNfbj9oLX2erhLEcKJvR+Myj9WFtpqnfTOWTDDCakHabKvc44oCmi
- 8zWpqVEjm0pEgOt3/BS2XtnPYNVRVNQY+SjdB5up4ax7cO4yyMg6oSMYoXZY5Qxq
- /zE50+QJ6WvOBbd1QTXMRGGxk+KOfceQE8LATHZn+eft7AcgOH6exlADjrSwS+9/
- IQA8v6GBS9APoj7DDZpiwEleiSsCqadQ5M3vL5t6AjY=
+ AAH/dmtHzaGBepgVYvGLjuhtMZcHFPiBaMkDWvW1FTJO3BzOHd77ZWoI1/IZRYqv
+ gIQ43WUSpCtX25QuVW8AAVPQREIRGaIkkZHDLqvB6Xa5vDNs3xbaHyIIec30hdJq
+ lJiAaIQxnpFjKoGiAH4GRCwWW0cY9MotWTQtVO2/l2WgszB9qVaEFu30o7y+YoQ2
+ Q56T3UKeTprH4XR9/D0lbJLq/2Tcy0afx7nugAUB71rvq9Xoy50tVH34/0H+KqbS
+ wHY0eKvVUbcl8QLLTpeUOP1fPQ8R2kmLv7wG5zxoqgG1o6wSYfwAeDRufmxxLFM6
+ S9gcnEMdxT25tIVIdwzgRBEhPsgKApTOK+4dUwvd92tfUQcBOoflBgqpaxWA70IK
+ OcrLQ01X79ENKw1vthNbmvu6j3goBDCP2mDP3EVYDIryZ8u9IuVrbkZFUxD3IvQ0
+ qFICxZYEOdbafiZ8e1ovCW2sDxRB0oTDQeqUw4bLTWyQ5M+0RGZwhFaf7MAEgIjr
+ l29fgW0A/mGTTVJVNT4M2D+/K/JORKDpT2VuU5wHEDQ=
 
-On Fri, Oct 21, 2022 at 03:55:18AM -0400, Luben Tuikov wrote:
-> On 2022-10-21 01:37, Greg KH wrote:
-> > On Fri, Oct 21, 2022 at 01:29:31AM -0400, Luben Tuikov wrote:
-> >> On 2022-10-20 22:20, Yang Yingliang wrote:
-> >>> The previous discussion link:
-> >>> https://nam11.safelinks.protection.outlook.com/?url=https%3A%2F%2Flore.kernel.org%2Flkml%2F0db486eb-6927-927e-3629-958f8f211194%40huawei.com%2FT%2F&amp;data=05%7C01%7Cluben.tuikov%40amd.com%7C65b33f087ef245a9f23708dab3264840%7C3dd8961fe4884e608e11a82d994e183d%7C0%7C0%7C638019274318153227%7CUnknown%7CTWFpbGZsb3d8eyJWIjoiMC4wLjAwMDAiLCJQIjoiV2luMzIiLCJBTiI6Ik1haWwiLCJXVCI6Mn0%3D%7C3000%7C%7C%7C&amp;sdata=1ZoieEob62iU9kI8fvpp20qGut9EeHKIHtCAT01t%2Bz8%3D&amp;reserved=0
-> >>
-> >> The very first discussion on this was here:
-> >>
-> >> https://nam11.safelinks.protection.outlook.com/?url=https%3A%2F%2Fwww.spinics.net%2Flists%2Fdri-devel%2Fmsg368077.html&amp;data=05%7C01%7Cluben.tuikov%40amd.com%7C65b33f087ef245a9f23708dab3264840%7C3dd8961fe4884e608e11a82d994e183d%7C0%7C0%7C638019274318153227%7CUnknown%7CTWFpbGZsb3d8eyJWIjoiMC4wLjAwMDAiLCJQIjoiV2luMzIiLCJBTiI6Ik1haWwiLCJXVCI6Mn0%3D%7C3000%7C%7C%7C&amp;sdata=9joWxGLUxZZMvrfkxCR8KbkoXifsqoMK0vGR%2FyEG62w%3D&amp;reserved=0
-> >>
-> >> Please use this link, and not the that one up there you which quoted above,
-> >> and whose commit description is taken verbatim from the this link.
-> >>
-> >>>
-> >>> kset_register() is currently used in some places without calling
-> >>> kset_put() in error path, because the callers think it should be
-> >>> kset internal thing to do, but the driver core can not know what
-> >>> caller doing with that memory at times. The memory could be freed
-> >>> both in kset_put() and error path of caller, if it is called in
-> >>> kset_register().
-> >>
-> >> As I explained in the link above, the reason there's
-> >> a memory leak is that one cannot call kset_register() without
-> >> the kset->kobj.name being set--kobj_add_internal() returns -EINVAL,
-> >> in this case, i.e. kset_register() fails with -EINVAL.
-> >>
-> >> Thus, the most common usage is something like this:
-> >>
-> >> 	kobj_set_name(&kset->kobj, format, ...);
-> >> 	kset->kobj.kset = parent_kset;
-> >> 	kset->kobj.ktype = ktype;
-> >> 	res = kset_register(kset);
-> >>
-> >> So, what is being leaked, is the memory allocated in kobj_set_name(),
-> >> by the common idiom shown above. This needs to be mentioned in
-> >> the documentation, at least, in case, in the future this is absolved
-> >> in kset_register() redesign, etc.
-> > 
-> > Based on this, can kset_register() just clean up from itself when an
-> > error happens?  Ideally that would be the case, as the odds of a kset
-> > being embedded in a larger structure is probably slim, but we would have
-> > to search the tree to make sure.
-> 
-> Looking at kset_register(), we can add kset_put() in the error path,
-> when kobject_add_internal(&kset->kobj) fails.
-> 
-> See the attached patch. It needs to be tested with the same error injection
-> as Yang has been doing.
-> 
-> Now, struct kset is being embedded in larger structs--see amdgpu_discovery.c
-> starting at line 575. If you're on an AMD system, it gets you the tree
-> structure you'll see when you run "tree /sys/class/drm/card0/device/ip_discovery/".
-> That shouldn't be a problem though.
-
-Yes, that shouldn't be an issue as the kobject embedded in a kset is
-ONLY for that kset itself, the kset structure should not be controling
-the lifespan of the object it is embedded in, right?
-
-Note, the use of ksets by a device driver like you are doing here in the
-amd driver is BROKEN and will cause problems by userspace tools.  Don't
-do that please, just use a single subdirectory for an attribute.  Doing
-deeper stuff like this is sure to cause problems and be a headache.
-
-thanks,
-
-greg k-h
-
-_______________________________________________
-Ocfs2-devel mailing list
-Ocfs2-devel@oss.oracle.com
-https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+Ck9uIDIwMjIvMTAvMjEgMTM6MzcsIEdyZWcgS0ggd3JvdGU6Cj4gT24gRnJpLCBPY3QgMjEsIDIw
+MjIgYXQgMDE6Mjk6MzFBTSAtMDQwMCwgTHViZW4gVHVpa292IHdyb3RlOgo+PiBPbiAyMDIyLTEw
+LTIwIDIyOjIwLCBZYW5nIFlpbmdsaWFuZyB3cm90ZToKPj4+IFRoZSBwcmV2aW91cyBkaXNjdXNz
+aW9uIGxpbms6Cj4+PiBodHRwczovL2xvcmUua2VybmVsLm9yZy9sa21sLzBkYjQ4NmViLTY5Mjct
+OTI3ZS0zNjI5LTk1OGY4ZjIxMTE5NEBodWF3ZWkuY29tL1QvCj4+IFRoZSB2ZXJ5IGZpcnN0IGRp
+c2N1c3Npb24gb24gdGhpcyB3YXMgaGVyZToKPj4KPj4gaHR0cHM6Ly93d3cuc3Bpbmljcy5uZXQv
+bGlzdHMvZHJpLWRldmVsL21zZzM2ODA3Ny5odG1sCj4+Cj4+IFBsZWFzZSB1c2UgdGhpcyBsaW5r
+LCBhbmQgbm90IHRoZSB0aGF0IG9uZSB1cCB0aGVyZSB5b3Ugd2hpY2ggcXVvdGVkIGFib3ZlLAo+
+PiBhbmQgd2hvc2UgY29tbWl0IGRlc2NyaXB0aW9uIGlzIHRha2VuIHZlcmJhdGltIGZyb20gdGhl
+IHRoaXMgbGluay4KPj4KPj4+IGtzZXRfcmVnaXN0ZXIoKSBpcyBjdXJyZW50bHkgdXNlZCBpbiBz
+b21lIHBsYWNlcyB3aXRob3V0IGNhbGxpbmcKPj4+IGtzZXRfcHV0KCkgaW4gZXJyb3IgcGF0aCwg
+YmVjYXVzZSB0aGUgY2FsbGVycyB0aGluayBpdCBzaG91bGQgYmUKPj4+IGtzZXQgaW50ZXJuYWwg
+dGhpbmcgdG8gZG8sIGJ1dCB0aGUgZHJpdmVyIGNvcmUgY2FuIG5vdCBrbm93IHdoYXQKPj4+IGNh
+bGxlciBkb2luZyB3aXRoIHRoYXQgbWVtb3J5IGF0IHRpbWVzLiBUaGUgbWVtb3J5IGNvdWxkIGJl
+IGZyZWVkCj4+PiBib3RoIGluIGtzZXRfcHV0KCkgYW5kIGVycm9yIHBhdGggb2YgY2FsbGVyLCBp
+ZiBpdCBpcyBjYWxsZWQgaW4KPj4+IGtzZXRfcmVnaXN0ZXIoKS4KPj4gQXMgSSBleHBsYWluZWQg
+aW4gdGhlIGxpbmsgYWJvdmUsIHRoZSByZWFzb24gdGhlcmUncwo+PiBhIG1lbW9yeSBsZWFrIGlz
+IHRoYXQgb25lIGNhbm5vdCBjYWxsIGtzZXRfcmVnaXN0ZXIoKSB3aXRob3V0Cj4+IHRoZSBrc2V0
+LT5rb2JqLm5hbWUgYmVpbmcgc2V0LS1rb2JqX2FkZF9pbnRlcm5hbCgpIHJldHVybnMgLUVJTlZB
+TCwKPj4gaW4gdGhpcyBjYXNlLCBpLmUuIGtzZXRfcmVnaXN0ZXIoKSBmYWlscyB3aXRoIC1FSU5W
+QUwuCj4+Cj4+IFRodXMsIHRoZSBtb3N0IGNvbW1vbiB1c2FnZSBpcyBzb21ldGhpbmcgbGlrZSB0
+aGlzOgo+Pgo+PiAJa29ial9zZXRfbmFtZSgma3NldC0+a29iaiwgZm9ybWF0LCAuLi4pOwo+PiAJ
+a3NldC0+a29iai5rc2V0ID0gcGFyZW50X2tzZXQ7Cj4+IAlrc2V0LT5rb2JqLmt0eXBlID0ga3R5
+cGU7Cj4+IAlyZXMgPSBrc2V0X3JlZ2lzdGVyKGtzZXQpOwo+Pgo+PiBTbywgd2hhdCBpcyBiZWlu
+ZyBsZWFrZWQsIGlzIHRoZSBtZW1vcnkgYWxsb2NhdGVkIGluIGtvYmpfc2V0X25hbWUoKSwKPj4g
+YnkgdGhlIGNvbW1vbiBpZGlvbSBzaG93biBhYm92ZS4gVGhpcyBuZWVkcyB0byBiZSBtZW50aW9u
+ZWQgaW4KPj4gdGhlIGRvY3VtZW50YXRpb24sIGF0IGxlYXN0LCBpbiBjYXNlLCBpbiB0aGUgZnV0
+dXJlIHRoaXMgaXMgYWJzb2x2ZWQKPj4gaW4ga3NldF9yZWdpc3RlcigpIHJlZGVzaWduLCBldGMu
+Cj4gQmFzZWQgb24gdGhpcywgY2FuIGtzZXRfcmVnaXN0ZXIoKSBqdXN0IGNsZWFuIHVwIGZyb20g
+aXRzZWxmIHdoZW4gYW4KPiBlcnJvciBoYXBwZW5zPyAgSWRlYWxseSB0aGF0IHdvdWxkIGJlIHRo
+ZSBjYXNlLCBhcyB0aGUgb2RkcyBvZiBhIGtzZXQKPiBiZWluZyBlbWJlZGRlZCBpbiBhIGxhcmdl
+ciBzdHJ1Y3R1cmUgaXMgcHJvYmFibHkgc2xpbSwgYnV0IHdlIHdvdWxkIGhhdmUKPiB0byBzZWFy
+Y2ggdGhlIHRyZWUgdG8gbWFrZSBzdXJlLgpJIGhhdmUgc2VhcmNoIHRoZSB3aG9sZSB0cmVlLCB0
+aGUga3NldCB1c2VkIGluIGJ1c19yZWdpc3RlcigpIC0gcGF0Y2ggCiMzLCBrc2V0X2NyZWF0ZV9h
+bmRfYWRkKCkgLSBwYXRjaCAjNApfX2NsYXNzX3JlZ2lzdGVyKCkgLSBwYXRjaCAjNSzCoCBmd19j
+ZmdfYnVpbGRfc3ltbGluaygpIC0gcGF0Y2ggIzYgYW5kIAphbWRncHVfZGlzY292ZXJ5LmMgLSBw
+YXRjaCAjMTAKaXMgZW1iZWRkZWQgaW4gYSBsYXJnZXIgc3RydWN0dXJlLiBJbiB0aGVzZSBjYXNl
+cywgd2UgY2FuIG5vdCBjYWxsIAprc2V0X3B1dCgpIGluIGVycm9yIHBhdGggaW4ga3NldF9yZWdp
+c3RlcigpCml0c2VsZi4KClRoYW5rcywKWWFuZwo+Cj4gdGhhbmtzLAo+Cj4gZ3JlZyBrLWgKPiAu
+CgpfX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fXwpPY2ZzMi1k
+ZXZlbCBtYWlsaW5nIGxpc3QKT2NmczItZGV2ZWxAb3NzLm9yYWNsZS5jb20KaHR0cHM6Ly9vc3Mu
+b3JhY2xlLmNvbS9tYWlsbWFuL2xpc3RpbmZvL29jZnMyLWRldmVs
