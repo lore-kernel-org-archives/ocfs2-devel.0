@@ -1,57 +1,80 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc245.phx1.oracleemaildelivery.com (aib29ajc245.phx1.oracleemaildelivery.com [192.29.103.245])
+Received: from aib29ajc246.phx1.oracleemaildelivery.com (aib29ajc246.phx1.oracleemaildelivery.com [192.29.103.246])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 6CF97C38A2D
-	for <ocfs2-devel@archiver.kernel.org>; Tue, 25 Oct 2022 07:16:57 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 97CCFC38A2D
+	for <ocfs2-devel@archiver.kernel.org>; Tue, 25 Oct 2022 16:51:22 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=WnDZdVnsn6OlOd9hMPMo70ZNqs/6JNdwDAzhtvvsZdw=;
- b=r2eKaIaTUrGgYfas7Hx4QGwlFMG981YtewA1ti2tPhMcrmimOgXh0sZ5WqCh7Gth+/+Tc5noy2vO
-   6JbboKS5a4RwxShQL9ZjPwdC0UgRCQ+dPaTsgp+6Q42UoRHNAwdV7aQ+8wC4d4JNzvUm9wnvqX2f
-   /T1mx3uorPI1tqUzE9vndLkGaPFntod53JsR2rKgdUoaxLMxe14dKGVkD4ASrkn8ZltZqQWkSS9T
-   fpGJtNNqIZ+9IVGdlv656YNWOvJsJt0l5hoDsv+nyO3N+ep5jtIJJQKfylRcE4x3Pnemf6vT843a
-   XjOcuUdJoHqy2D5HzrpTbzhfFpt356jR1c8K+Q==
+ bh=pxc3swl10qfDtuLKGLacqbCXUAbkJEcq2Ajepmvchuc=;
+ b=T9Qu2AkqpTXgOCROMhJjI1DBYnXS1vP5/jFDK0DhzS+0vrWJaw427Wmn5jwCP3/hpq3NavscFZNf
+   dVcMHYITxM3dLtMD28XMjchllfm0WiuKu2fdFwdabsLckcLYDLH8muKmy8YGJVCGSGpUdGb8YrM2
+   rDj4u+OdLD1W26SuUzYtnOnOtQ6VUX9mYoCDVixrJpf2s/h09g1vxhmiRuMOx721BWck6BFSla9/
+   3S/Q1GKrOpgQfxcKVvQF15pJYKL3wIhqe+VJQL7vMfsgnk/UzherFrtfDIT7ulycY0qssxsFxI36
+   6XLJVG8QjeufKx0W1SE5VSk4zNJNxIS+M7GT7w==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=WnDZdVnsn6OlOd9hMPMo70ZNqs/6JNdwDAzhtvvsZdw=;
- b=NtHFwBwSEKzRltQic4RnRYBkvvGD0ROkT8htglsklMocniZvLexxf1VkNNcRLGgSDTHOgZrp1wXG
-   DhQJj/vVqdYWNNy4OzvuRK+0O9ucEETEtyXABY3/vWg4cXVMbcVq9kV1+OhDaDc46TmtwCz+m1wN
-   rR98mSJVYVBQOXczhKn3w1gjwkCNnigh0qZTuy63dJoo5QyUrTqpLYUr5MxedqXa5ZcgWlwbSx9T
-   deviSqEclCd1ipU0cF7IDCKuTmMz9oizGzK7qPVvV8dhrZfMG1l3R1DrEHp69VqThwK/aIKQCpY3
-   4L6ZOFuBSfjc5Jq5BOL6bwRg8qUYDWciFVaJOA==
-Received: by omta-ad1-fd1-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
+ bh=pxc3swl10qfDtuLKGLacqbCXUAbkJEcq2Ajepmvchuc=;
+ b=ZXeGG6fiwrVSOAsR5BPu4sSpXSFhdo+WW6Ag2ZAWNjA35EIgTgKUbPHBINHsCRfMxnUiZFxtd0Qt
+   fCxNMe7934N54bazgd+cgPEbn9Ze4l9ddi64Ar/1WWnRO1uNV5YfKBfFAH96QoeGSD7bmS6KHsGS
+   6p2yAK6rz5IUISakA58MOSxqOOhRCnosM3zds9Z1PyVK81icx68IqQ8dSNi936IITWycwzBTJGwa
+   YyyfcukqgW0cChtBo69cWBlkp33bQk8FEp21lvPGJnur7uvhUSOJnoy5n+8rzzmkHUunmOay9vst
+   4SFSf2vfzxZ8ZsUuQmmKNBjVxLRPLAUhyplDGQ==
+Received: by omta-ad1-fd3-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20220914 64bit (built Sep 14
  2022))
- with ESMTPS id <0RKA00H5BS880S80@omta-ad1-fd1-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Tue, 25 Oct 2022 07:16:56 +0000 (GMT)
-To: <linux-kernel@vger.kernel.org>, <qemu-devel@nongnu.org>,
- <linux-f2fs-devel@lists.sourceforge.net>, <linux-erofs@lists.ozlabs.org>,
- <ocfs2-devel@oss.oracle.com>, <linux-mtd@lists.infradead.org>,
- <amd-gfx@lists.freedesktop.org>
-Date: Tue, 25 Oct 2022 15:15:49 +0800
-Message-id: <20221025071549.1280528-1-yangyingliang@huawei.com>
-X-Mailer: git-send-email 2.25.1
+ with ESMTPS id <0RKB00KY0ITLN270@omta-ad1-fd3-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Tue, 25 Oct 2022 16:51:21 +0000 (GMT)
+ARC-Seal: i=1; a=rsa-sha256; s=arcselector9901; d=microsoft.com; cv=none;
+ b=QB5kPXrAjcR30MjRRqNQ1AjQPQCjH5NvTewO0ZDp3eaBKM+NwTJcBVcLYlApm0azZanhFnkXx5/tnLhs/CskT0wJo+jomx6nrzhv5f42Qakhw/9cuCYKD3Yuf+/+x1Nv4R/G3S6l1/G865tyE9tPUd66E/kPrZDAmAu9d83IM14wITISPKPcJPI6SJ0jOF3XEEIhXcwDV7P0J88hrbdww/R90Ycnv8sPSk/3+9CGInRaUIXhvnvPI0GS3/+Bg71PpV+yLbS/o5q//C4GuHh0qErjnXjyu4KvogJOn7+yrE8evXC72yKdnRJdZ+wy25indt+/tn1zoGaGnmG807VU4A==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=arcselector9901;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
+ bh=h+denAMsoKo6cMjFs33HsexYWFmNPzlMLlgXWB51f1g=;
+ b=TJ3FMdIZrFIPcfITR7QKc0kB9v8sAESj3QFGXP8ftbzdy/e3EhBw6sOlbwSga/l9xmhCvEDfmI0Ks+x8mxObd8OZB0GDOf6cgzNCJO82kyERIMIW0OYVfKZ6+EMSqrGOKrbSjqEwtCVjtyY4S4tE6SOO80Qn9gpYbaqNDFwfopsIFAM2AJl95QxC/GiJG2n6LPRfmd9SRWCwplHbiMzUhHnTQIZcFdA/hV/HUOPhV7mq3rtYDrhSv7W/OOScUcEGGFFltpjfFkIQOSeqbYhy+qASxvygC/kTOSAmzUSCavyH46yRRbJCUXUaNe5xFOhMZk4jsHbpisID2Ab89F3E3A==
+ARC-Authentication-results: i=1; mx.microsoft.com 1; spf=pass
+ smtp.mailfrom=amd.com; dmarc=pass action=none header.from=amd.com; dkim=pass
+ header.d=amd.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=amd.com; s=selector1;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
+ bh=h+denAMsoKo6cMjFs33HsexYWFmNPzlMLlgXWB51f1g=;
+ b=olfhGBo29AFp/+SfpzZR9SQOMIJNDxtdZBnzW779qL5e2SzFJ71bM8pU3AFewYjrznurnhG3JXrS6HPHpxFBS0TUPg6AMku6He2iyuL33jqdIMUvmXONAhDnBTpGlf1kc0ftuFGIIWbnFix+KsstBlukjJtc/hdKXc5jxho6FB0=
+Message-id: <3d7ced9c-b87b-cf4b-4d67-5d497f0f1066@amd.com>
+Date: Tue, 25 Oct 2022 12:51:00 -0400
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:102.0) Gecko/20100101
+ Thunderbird/102.4.0
+Content-language: en-CA
+To: Yang Yingliang <yangyingliang@huawei.com>, linux-kernel@vger.kernel.org,
+ qemu-devel@nongnu.org, linux-f2fs-devel@lists.sourceforge.net,
+ linux-erofs@lists.ozlabs.org, ocfs2-devel@oss.oracle.com,
+ linux-mtd@lists.infradead.org, amd-gfx@lists.freedesktop.org
+References: <20221025071549.1280528-1-yangyingliang@huawei.com>
+In-reply-to: <20221025071549.1280528-1-yangyingliang@huawei.com>
 MIME-version: 1.0
-X-Originating-IP: [10.175.103.91]
-X-Source-IP: 45.249.212.187
-X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10510
+X-Forefront-Antispam-Report: CIP:255.255.255.255; CTRY:; LANG:en; SCL:1; SRV:;
+ IPV:NLI; SFV:NSPM; H:DM6PR12MB3370.namprd12.prod.outlook.com; PTR:; CAT:NONE;
+ SFS:(13230022)(4636009)(366004)(396003)(346002)(136003)(39860400002)(376002)(451199015)(31696002)(86362001)(38100700002)(36756003)(4001150100001)(2906002)(6486002)(7416002)(44832011)(478600001)(316002)(8676002)(4326008)(66556008)(66946007)(8936002)(5660300002)(66476007)(41300700001)(83380400001)(6512007)(2616005)(6506007)(53546011)(26005)(186003)(31686004)(45980500001)(43740500002); DIR:OUT;
+ SFP:1101;
+X-OriginatorOrg: amd.com
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 25 Oct 2022 16:51:03.8568 (UTC)
+X-Source-IP: 40.107.237.89
+X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10511
  signatures=596816
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 bulkscore=0
- suspectscore=0 mlxlogscore=999 impostorscore=0 clxscore=-66 priorityscore=1501
- adultscore=0 mlxscore=0 malwarescore=0 lowpriorityscore=0 spamscore=0
- phishscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2209130000 definitions=main-2210250041 domainage_hfrom=8323
-Cc: yangyingliang@huawei.com, alexander.deucher@amd.com, richard@nod.at,
- mst@redhat.com, gregkh@linuxfoundation.org, somlo@cmu.edu, chao@kernel.org,
- huangjianan@oppo.com, liushixin2@huawei.com, luben.tuikov@amd.com,
- hsiangkao@linux.alibaba.com, rafael@kernel.org, jaegeuk@kernel.org
-Subject: [Ocfs2-devel] [PATCH v3] kset: fix memory leak when kset_register()
-	returns error
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 suspectscore=0
+ phishscore=0 bulkscore=0 lowpriorityscore=0 clxscore=184 mlxscore=0
+ adultscore=0 impostorscore=0 mlxlogscore=999 malwarescore=0 spamscore=0
+ priorityscore=215 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2209130000 definitions=main-2210250095 domainage_hfrom=13126
+Cc: alexander.deucher@amd.com, richard@nod.at, mst@redhat.com,
+ gregkh@linuxfoundation.org, somlo@cmu.edu, chao@kernel.org,
+ huangjianan@oppo.com, liushixin2@huawei.com, hsiangkao@linux.alibaba.com,
+ rafael@kernel.org, jaegeuk@kernel.org
+Subject: Re: [Ocfs2-devel] [PATCH v3] kset: fix memory leak when
+ kset_register() returns error
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -63,94 +86,181 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: Yang Yingliang via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: Yang Yingliang <yangyingliang@huawei.com>
+From: Luben Tuikov via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: Luben Tuikov <luben.tuikov@amd.com>
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-ClientProxiedBy: dggems706-chm.china.huawei.com (10.3.19.183) To
- dggpemm500007.china.huawei.com (7.185.36.183)
-X-CFilter-Loop: Reflected
-X-ServerName: szxga01-in.huawei.com
+X-ClientProxiedBy: YT3PR01CA0122.CANPRD01.PROD.OUTLOOK.COM
+ (2603:10b6:b01:83::12) To DM6PR12MB3370.namprd12.prod.outlook.com
+ (2603:10b6:5:38::25)
+X-MS-PublicTrafficType: Email
+X-MS-TrafficTypeDiagnostic: DM6PR12MB3370:EE_|MN2PR12MB4504:EE_
+X-MS-Office365-Filtering-Correlation-Id: 6d9e830f-9d6a-4df9-f6db-08dab6a91a7d
+X-MS-Exchange-SenderADCheck: 1
+X-MS-Exchange-AntiSpam-Relay: 0
+X-Microsoft-Antispam: BCL:0;
+X-Microsoft-Antispam-Message-Info:
+ dqC8sMthq1baX6iM6uwLpub3mBj8jaDGXm88TYiiu4c9lKxsNGrpKANAYV5+2KSRSdImnE/lARYat5vR7FY2+Yi2IKXlObD7u0igXAtXIfI87s4Hgmm5rPanILjCQox+QG0k4ePARnA19vRyyksL4J4SS8m6KdzSp7QHloX6IhqInJMeZf35yBdQCJ/aW//P3jq3BlSSK8WLE3eSJ1cBCccsnlFmTatUT5ge7vv+4JyzGo2XHHKbJIrwSFK9MDXabD4xxVpVyk/IvG0HgC7EEJQ19HWbrO2qi+BDXl89YOqZ4cObB8G4ebwm0rYCb4uyqPkdR5d2S+xmKcfC1JJf/JZfqhxi1y7VJ1fNIc4DKOIqlkOy52kpD1203eEpoDY4G88eA7dbVkB3+Zrgfw4u4nVtMVxPaezmpYqZsVyY2i/Hia8MlsEZz/xcoTdTATylCsTSvMCaXD1ikUF0mjQ6khG2LTlvpNStsxt1xT1wTOecKBvwrc4rmB6YZ+7wf1JicYUBcDAzskW68a63KL+ppCoISftb1RlS0ZqDiYAMbflXfiOEJMYGU0amfiIRBza+v0ufpIalau9hMkl0NX6VQf65a2gDECIxwWHgen96bAafZQ4qpqGAmvOpKh+bG+QHyg04DG2Kp80DV6LWr+XQutRI61cVCmPcp2uH8KeR79xi86DGXzx159IRqXaQFp4anFWGuzSuc58mKMKXAEgc9dbWwXimHkr34NK3shWjWlliwJVrpSxcCzP1sxi6ThXfO124LAUejsOZXQoEE5vGiqDloy6jo2oVvMO/Ibi4gVI=
+X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
+X-MS-Exchange-AntiSpam-MessageData-0:
+ =?utf-8?B?NTZJbk5YQXhnYnJlOFMvN2E4Zll2NjYyanozVGZTNkx6aWNIRW9rREFZTnZy?=
+ =?utf-8?B?YkdlMm15d25sZWQxdjBFSFgxYjhGV0U2cXk4aW5VL2hNbUwyUm9TblB0Vk9w?=
+ =?utf-8?B?VjBnVG81YlVCTkRvcVlGQVJaaVBHWm9kNmVxWXFBUms4VmNkdVVCR1Z2akox?=
+ =?utf-8?B?bUhSWC9NUWlLS3lVU2IvblcrdlZScFF0TUUvdnNvaUNUa3FpQWxtaUtaQTdP?=
+ =?utf-8?B?SUMwcjJmbWphMVZUK2FRZllhNlhFSHdJNHVKTzkzVFV6cGlrbFc2NFJzZ3lr?=
+ =?utf-8?B?aTBERVB6VnpDRDJzK3dIUldKWnBHcVo1TnBqQitGWGJZOVJMdlVOUVl0N0w3?=
+ =?utf-8?B?M041WHZMVlZ3UjVTY3RHZEJlMUU2UjM0dDQxZlRCYUpkd3U1MTdnTnNuMUZh?=
+ =?utf-8?B?M0ovRFlxNmhNREZhVzRXYjhiN3F4SDJNcEZoM2U5eDFyNzk2dzZWNFczVVZl?=
+ =?utf-8?B?VzgxNFhjaVVXeWdqenpyZ0NKdGluL1JmUEx5N3JFeDhxWElHRUYzNmpwdzFt?=
+ =?utf-8?B?dkJ2MFVVYzkwVitEU1JIQ0hmUkxWdnl6M2dOYzBQYkdhM2dyVDVJdzAvaEI2?=
+ =?utf-8?B?cXNJelgzNy9kaE1rYnBTUjRETUdkN21BNURSRlR5VWxPNEJSYmJoekJCdVRz?=
+ =?utf-8?B?VThXcUZuUi9TNkdDb2F6WUlkNkZRZXdpeHd2L2hPS3VxUUd5bFI4RG5vaHM4?=
+ =?utf-8?B?STY0NzVCdUp5SWRzY1ZUcWJQM1hmSjhKNDNtYnJtTnd4V1NaQ2ZFMTVZbnFI?=
+ =?utf-8?B?RGJ0NmcrWmNqMy9SU1NaeXFxNUZ4RTh6REZYaXQrR0s2SlJOc1RJd3hzNVoy?=
+ =?utf-8?B?cVcwNHRnQzRTc0JiSzBaV0NiQS9SbStzOFk0VVFMblJBMDVlbDIzWDRpeG52?=
+ =?utf-8?B?Q1FWMmRLd3Y5dUx4L1kyNlU2M0Y1UHBGU0lkK2cwdm5lSkFFb1djWk82b1R2?=
+ =?utf-8?B?MEFXQkV5SC9IUnYxSUcrclE0eVFkTzBpQlN0cmlGci9STWlhby9XOW15d01T?=
+ =?utf-8?B?T1lEaml4SXF4eTliS3I5a1NBUWROelE5YXVMZ0RqclNncFA1a3oxMDdkV2dU?=
+ =?utf-8?B?TUt0elEvdHlZUUpxMGR5KzlJbVRZTHU2dnVFRDhPRTNUNEVLcCtVdDBNcThz?=
+ =?utf-8?B?dEZmbGM4SjRKVDBVV2dlTjA3Qk5wYjViVnFnam1vNEFQeUszSGNaUlFKai9U?=
+ =?utf-8?B?V1YvMTlDSE5pUTFyZzVYTkVaYW9ybjJUcDk0MWtBRjByM1JubmZjMnZMamEr?=
+ =?utf-8?B?RFU3WDdZVCtnZTkyS01FNEE3VkY3Rk1FZVF4OHdabFlCY2syMUtkdDloRDB3?=
+ =?utf-8?B?dnNIVENYSXdGcWN4YTg4eEVBNFJmRU56QW9OMEpRT3VGdXZsU3gvbmRIOWtS?=
+ =?utf-8?B?bHpCRUpmQ2t2aWxoQkJLYit4NHNCZW0vaDRqNmdIVzFBOC93UkNPOWlQNy9m?=
+ =?utf-8?B?QU5FSzBaZ09PL2R5cWZYbldqRTllU3FYeTM2S2U1VzZvalpoeER3aUF1TXRO?=
+ =?utf-8?B?QUFqTmV0TTFzSEFPbEp5YXJzVEhxNG5ibkhRM09zZ0ZwbCtKcHBwTGYxRTRK?=
+ =?utf-8?B?Sm1icWJ3UCtocndremlnYVpDSEZOWHdCcm50OGpHQmtTOTI4UHYrdWQyeFFQ?=
+ =?utf-8?B?c1gzeFlwRUxEK1ZjcDJwZytrcmFkV3lGbmNoK3JnZzVzdTQwVm42ZXJObDlj?=
+ =?utf-8?B?b0ZWcTEzQXkzRmN1VGRteVc0RW54dEYxVUdYVjdBdko5M1dwUXZOeWgwVnc5?=
+ =?utf-8?B?cHBHQTh4YytsVnp6dkdDK2VFMEltVXI2SE1HYmc1a1UxUWtVN1dMaGFGVVJU?=
+ =?utf-8?B?b3Rvam1nZEVrUGNrRUwydnRiM2p0cG5OTjhmL3R1OXhnemJFTnBqMzA1Y1ZW?=
+ =?utf-8?B?K3duQ0c1RkN5anhXWjNzZm5WZFBFcGR0N3pPK0V0cUtZQXdnODd5alAycWlx?=
+ =?utf-8?B?U2UyOXpXUlQ5M2twb0xGbGVib0pLT01yU1NYTnpWWDdYZ3ZRcHVjOGt6NDd3?=
+ =?utf-8?B?WkM3SlZUVEFZSkFhL0FwdW9EYnNlcnpCY2JTRm1rYWtnaUpaV3VJRm1NeGFu?=
+ =?utf-8?B?K3RORkRBVnQ0aXhtemhaZlpTRVp2QkxoZDcrYnA5ZnRDcExSbXZvMmlzcjVo?=
+ =?utf-8?Q?83O6HNvFLk0rS7xIb6/JW9hcX?=
+X-MS-Exchange-CrossTenant-Network-Message-Id:
+ 6d9e830f-9d6a-4df9-f6db-08dab6a91a7d
+X-MS-Exchange-CrossTenant-AuthSource: DM6PR12MB3370.namprd12.prod.outlook.com
+X-MS-Exchange-CrossTenant-AuthAs: Internal
+X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
+X-MS-Exchange-CrossTenant-Id: 3dd8961f-e488-4e60-8e11-a82d994e183d
+X-MS-Exchange-CrossTenant-MailboxType: HOSTED
+X-MS-Exchange-CrossTenant-UserPrincipalName:
+ bW1C+h29M2xCgYzzH/x/2IoWiXtkrcQYB1hIs2doWMjVhtNVRbQI9GCvX08jhmR5
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: MN2PR12MB4504
+X-ServerName: mail-bn8nam12on2089.outbound.protection.outlook.com
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 ip4:45.249.212.32 ip4:45.249.212.35
- ip4:45.249.212.255 ip4:45.249.212.187/29 ip4:45.249.212.191 ip4:168.195.93.47
- ip4:185.176.79.56 ip4:119.8.179.247 ip4:119.8.89.136/31 ip4:119.8.89.135
- ip4:119.8.177.36/31 ip4:119.8.177.38 -all
+X-Proofpoint-SPF-Record: v=spf1 include:amd.com._nspf.vali.email
+ include:%{i}._ip.%{h}._ehlo.%{d}._spf.vali.email include:oktamail.amd.com
+ include:_spf.salesforce.com include:mktomail.com ~all
 X-Spam: Clean
-X-Proofpoint-GUID: 4T_96VCnfwc67hUEw0-37QhDtaga5dLm
-X-Proofpoint-ORIG-GUID: 4T_96VCnfwc67hUEw0-37QhDtaga5dLm
+X-Proofpoint-GUID: Hiqg20DMKhPBcCbL-WnYPJQqMcbFwy2Q
+X-Proofpoint-ORIG-GUID: Hiqg20DMKhPBcCbL-WnYPJQqMcbFwy2Q
 Reporting-Meta:
- AAGMnvfx9HojqzotqJQTOo9PHdVElrG1BE9mxmbA42OfrMCnoT9IHdndGMTJPwUu
- /7rDTB7VOHfOpLfBrlMFbwOq/zkwFDkX5fr9uOu6j9Q16+IpCxNS6azwUDjYYM7k
- RZ9OReWO4glftMyJxoknbjN/s7QBACrYMR8LrB4nLy/eUp9EH85wqIoNPAFCexOV
- WyNm+1N06XJ3I/fQre3l0OGkr0QqVpRTYGX05+hhTPUJdDUdMMJRU44fWpmSCmLr
- oCU/wUWP1WBf+zr65Eh1wqhffO82PZIZASeUHwFNm11abFl2E9BzZKHSp1RsrhP8
- ghtVZCJMx9tJOMamOWd2f6Z8EFoHl+lgBoU5FYd6GbkLuGss3lVDm5AW8GoMRSkP
- 5QQ66Nu9mbH3mlkNGIPg6iup0X9PhB8kn1UPfCnPP0E8W5uov+zvRWb+oMF2WO29
- 9AWN1o3TEOfRUcr4BmzDlA9cHkF7/G5yHneFMBBRx04HbQfLNJAP8YI1qhSRKtOb
- VYW16HbUmCRCIeYY1eMO1PKWAouFg0tqvzmHxDi8RA==
+ AAHzSo7oBYMXd1WPRmZxgV5rzLtf7jixrSbALn7+JB6Y2VY/D25lKoxcswGiSbYU
+ yfhiAPQxf7uk/tR0V9+CY1KQENnszMnLpck1ht2dSpEp2ZzBaGF0XcY5GZiCiEHi
+ Qugr1KYCjSMIwMMgIM8uzTLLj/mt7AyMdnvHAbz5ZF11BQ1gZdOOoByEkYFfICP5
+ MvC6wd9fQSNFo+9tBQ4IdmZJlmyWP0tckgvjRp+9Gkv1xA1qOSJmK55RcgXZJdN6
+ sEiMXwROT/NG3SRCrwJm+i733+upa9zmQdR1kyjGbuUACZNFaeR3jzL8VRKT5Cah
+ FHFdkhhm5Mhu211LHhBGKtdUsaAHgalctc/Ib9S0/2SWvszpTksjHVx8PFaYEGMk
+ ccYcVH0crvdG98fb6sT+GrI2pHqWO44ZK/bMyNQRnG3rYgYdDusbNaTLn38lCuZP
+ iti4jx3u6OuTI0OAp6zsRiOoWzgXwniN+BKJPYjWmm/bdRxWx2IiDpIZJwrs0Mrb
+ Ur49HuZ9s7by3hEcUxv0u6WlsAhU22GAXP6SW8easQqT
 
-Inject fault while loading module, kset_register() may fail.
-If it fails, the kset.kobj.name allocated by kobject_set_name()
-which must be called before a call to kset_register() may be
-leaked, since refcount of kobj was set in kset_init().
+On 2022-10-25 03:15, Yang Yingliang wrote:
+> Inject fault while loading module, kset_register() may fail.
+> If it fails, the kset.kobj.name allocated by kobject_set_name()
+> which must be called before a call to kset_register() may be
+> leaked, since refcount of kobj was set in kset_init().
 
-To mitigate this, we free the name in kset_register() when an
-error is encountered, i.e. when kset_register() returns an error.
+Technically, this is saying "If it fails, the kset.kobj.name may be leaked."
+We want then to clarify that this is "allocated by kobj_set_name() which
+must be called before a call to kset_register", so that needs to
+be surrounded by commas (like a literary segue):
 
-A kset may be embedded in a larger structure which may be dynamically
-allocated in callers, it needs to be freed in ktype.release() or error
-path in callers, in this case, we can not call kset_put() in kset_register(),
-or it will cause double free, so just call kfree_const() to free the
-name and set it to NULL to avoid accessing bad pointer in callers.
+"If kset_register() fails, the kset.kobj.name allocated by kobject_set_name(),
+ which must be called before a call to kset_register(), may be
+ leaked."
 
-With this fix, the callers don't need care about freeing the name
-and may call kset_put() if kset_register() fails.
-
-Suggested-by: Luben Tuikov <luben.tuikov@amd.com>
-Signed-off-by: Yang Yingliang <yangyingliang@huawei.com>
----
-v2 -> v3:
-  Update commit message and comment of kset_register().
-
-v1 -> v2:
-  Free name inside of kset_register() instead of calling kset_put()
-  in drivers.
----
- lib/kobject.c | 9 ++++++++-
- 1 file changed, 8 insertions(+), 1 deletion(-)
-
-diff --git a/lib/kobject.c b/lib/kobject.c
-index a0b2dbfcfa23..3cd19b9ca5ab 100644
---- a/lib/kobject.c
-+++ b/lib/kobject.c
-@@ -834,6 +834,9 @@ EXPORT_SYMBOL_GPL(kobj_sysfs_ops);
- /**
-  * kset_register() - Initialize and add a kset.
-  * @k: kset.
-+ *
-+ * NOTE: On error, the kset.kobj.name allocated by() kobj_set_name()
-+ * is freed, it can not be used any more.
-  */
- int kset_register(struct kset *k)
- {
-@@ -844,8 +847,12 @@ int kset_register(struct kset *k)
+I don't feel that the reason for the leak is "refcount of kobj was set in kset_init()".
+It's a true statement, but not the reason for the leak--the reason for the leak is that
+no one frees it on the error path.
  
- 	kset_init(k);
- 	err = kobject_add_internal(&k->kobj);
--	if (err)
-+	if (err) {
-+		kfree_const(k->kobj.name);
-+		/* Set it to NULL to avoid accessing bad pointer in callers. */
-+		k->kobj.name = NULL;
- 		return err;
-+	}
- 	kobject_uevent(&k->kobj, KOBJ_ADD);
- 	return 0;
- }
--- 
-2.25.1
+> To mitigate this, we free the name in kset_register() when an
+> error is encountered, i.e. when kset_register() returns an error.
+> 
+> A kset may be embedded in a larger structure which may be dynamically
+> allocated in callers, it needs to be freed in ktype.release() or error
+
+"_by_ callers", since it's something they _do_: allocate.
+
+> path in callers, in this case, we can not call kset_put() in kset_register(),
+> or it will cause double free, so just call kfree_const() to free the
+> name and set it to NULL to avoid accessing bad pointer in callers.
+
+That's good.
+
+> With this fix, the callers don't need care about freeing the name
+> and may call kset_put() if kset_register() fails.
+
+"don't need to care about freeing the name" --> "don't need to free the name"
+
+> Suggested-by: Luben Tuikov <luben.tuikov@amd.com>
+> Signed-off-by: Yang Yingliang <yangyingliang@huawei.com>
+> ---
+> v2 -> v3:
+>   Update commit message and comment of kset_register().
+> 
+> v1 -> v2:
+>   Free name inside of kset_register() instead of calling kset_put()
+>   in drivers.
+> ---
+>  lib/kobject.c | 9 ++++++++-
+>  1 file changed, 8 insertions(+), 1 deletion(-)
+> 
+> diff --git a/lib/kobject.c b/lib/kobject.c
+> index a0b2dbfcfa23..3cd19b9ca5ab 100644
+> --- a/lib/kobject.c
+> +++ b/lib/kobject.c
+> @@ -834,6 +834,9 @@ EXPORT_SYMBOL_GPL(kobj_sysfs_ops);
+>  /**
+>   * kset_register() - Initialize and add a kset.
+>   * @k: kset.
+> + *
+> + * NOTE: On error, the kset.kobj.name allocated by() kobj_set_name()
+> + * is freed, it can not be used any more.
+
+There's no need for "NOTE:"--it's just natural explanation of
+what's happening, and what's expected in the doc comment to a function.
+Drop it.
+
+"is freed" is correct--that's a good change.
+
+With these fixed, this patch is
+Reviewed-by: <luben.tuikov@amd.com>
+
+Regards,
+Luben
+
+>   */
+>  int kset_register(struct kset *k)
+>  {
+> @@ -844,8 +847,12 @@ int kset_register(struct kset *k)
+>  
+>  	kset_init(k);
+>  	err = kobject_add_internal(&k->kobj);
+> -	if (err)
+> +	if (err) {
+> +		kfree_const(k->kobj.name);
+> +		/* Set it to NULL to avoid accessing bad pointer in callers. */
+> +		k->kobj.name = NULL;
+>  		return err;
+> +	}
+>  	kobject_uevent(&k->kobj, KOBJ_ADD);
+>  	return 0;
+>  }
 
 
 _______________________________________________
