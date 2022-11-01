@@ -4,61 +4,51 @@ X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 Received: from aib29ajc255.phx1.oracleemaildelivery.com (aib29ajc255.phx1.oracleemaildelivery.com [192.29.103.255])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 79CD9C04A95
-	for <ocfs2-devel@archiver.kernel.org>; Tue, 25 Oct 2022 16:58:24 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 03945FA373D
+	for <ocfs2-devel@archiver.kernel.org>; Tue,  1 Nov 2022 11:15:55 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=WFM4cs20Shp8/00KNA7PzeMofmaoeiR77tUZLGTqCyc=;
- b=FP9k/Mmqnu6Pl+nMkiEgTXRwH7aIFR6V/qqWGIbUzHoT0PCqsJ3brKd+XrsFM3OBhZeZjZ24XcLS
-   I7SACPibfS57LncpCcbs1N2Y4Vwbry+JU64p4aBKtYLELQ76EYYVHRgr5yhFNEfP0viCdkI4FOUk
-   PnVQbVyqsxA1YQVhbEV6styTxHDa+sD7x2dKY7AMPqYWTKriMFBjH5NwtBiXjGnE/cVpMQO+jxYQ
-   zqsc2hwotCWfYKIFauh+tZhqQm/lC/J3rp23ayXt8NK3ANErcVWgs2t/Fd2R/Kb5kJai+Ru+mHVz
-   jkVHfaVM3iVnQJw4sAlo/6nmoHuZPdaYrEKEqg==
+ bh=L4CrWfb6q+e2lCB6KO9KU1dd5rXsPI9UO1I06lAwm64=;
+ b=m5be/z5p4Raq1/38Rql5kewCve118tObtZelnkDnUlWJYhWPH8p0kSCPQSqgYuU/LvhirSzZ2UV2
+   OYlGd/MPI+c2Ln0pl9nUEt8/SYMzq5YXn39mb5qot/B6rvqDD2ZnL2Jugn+b2Kp4VPqnsBw10vSK
+   /jPPd5TiIwZYL35/9pDp+TQhygAwBL566DyOBB8XZgtGbQDresT5lt3LKDmJ2jhH0bukXvbXc/nf
+   E5UvC0kVoWV8etYxnjsUTUDlNjf4MBL8o1KTJCKate+sXJCKnvKNCx/U3XBal+uVuD1x0qp7wjhv
+   rUdUj2muaobH9kAhZVUzahRy4dvS/wO9TMTF8w==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=WFM4cs20Shp8/00KNA7PzeMofmaoeiR77tUZLGTqCyc=;
- b=sQ8x9gDrQquyO1gZQOwIkX81VUtMnII0jLTgb2SKkH6QCGS+WzWorpmtNeNeGeW/VVQxq3znsXm4
-   Dlq8723hzsI6TGB8PZgjReFVscwp3Q3kpi173PBXOIng674vHqDlvjweDoVDT3M94QDLTl8aVz55
-   owfghZaUUN/QUMnAyMhDveRDwdd3ojypg3HLd8mYei5U34DOELrtAKwdq+4UQQAhC4PtCcofPwGx
-   j2k7KGDH+UtGcCUNxU33nq0wBWTAf3OLRr1Rk9Qfd5Z0ckBOiK27Nowg2eYg/jk1kT3+CuLcWPE9
-   N7f/hxrN70x0FwZRyAaN6xtGWSXxyGTEu4OrNQ==
+ bh=L4CrWfb6q+e2lCB6KO9KU1dd5rXsPI9UO1I06lAwm64=;
+ b=rC/q3X2+TF6mrpWOImWXf/dDz5BNhLfwtkQ216vU811Bo9ddVvUoNm1TXji8xfpLyBKLHkrI2gCi
+   pPLeLPnuzlsQUeCAZgdva+bcZEZgZl5EtxlGnKaGsbeoHvaYcDqpkHwZO0tNcV4vJiNIiCy4tl83
+   BdhFtNZyHZ6+yB5Z7ZsZktSyFGuMYy0N9vV1HYvndf3Hpnj3eQvvUEwMgsby/w8SqksAkK3CYum5
+   GgsVuzGGDqWuF7HvuXxpyWp7DaxxxFFwDJYf5V4f4Wrjt3/VJ8okZ6LqP0tuKL4RSFsrTjuAkC0l
+   cg6OTWNl1eLFGl6jzJJHi+l1d02l/WiZ1JMs6Q==
 Received: by omta-ad3-fd3-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
- (Oracle Communications Messaging Server 8.1.0.1.20220914 64bit (built Sep 14
+ (Oracle Communications Messaging Server 8.1.0.1.20221026 64bit (built Oct 26
  2022))
- with ESMTPS id <0RKB00E92J5BU1D0@omta-ad3-fd3-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Tue, 25 Oct 2022 16:58:23 +0000 (GMT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linuxfoundation.org;
- s=korg; t=1666717074; bh=TOr7/IBl9W+Hpc/R8LxJAyq9QpYQbWCv3WJvy2nka0k=;
- h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
- b=IuS0pwxkNWhb/Pc3fD1YeILTwYuQDWG7J6hJ35bK6Ucsyh68N7Gpf7db0oIcWSg5J
- +A52AVp6gq97BqnXsSXSdptDSLkW3H2w/eBLbjyhblutXXWvXsvxCZQTb1o8df8D0g
- X2/xsNKaI+imRsgqBblFS8hu7gUdhG4pmfgst1Zw=
-Date: Tue, 25 Oct 2022 18:57:51 +0200
-To: Yang Yingliang <yangyingliang@huawei.com>
-Message-id: <Y1gVj6Uq2NDScYdY@kroah.com>
-References: <20221025071549.1280528-1-yangyingliang@huawei.com>
+ with ESMTPS id <0RKO00PA11YJ8EC0@omta-ad3-fd3-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Tue, 01 Nov 2022 11:15:55 +0000 (GMT)
+Message-id: <41651ca1-432a-db34-eb97-d35744559de1@linux.alibaba.com>
+Date: Tue, 1 Nov 2022 19:15:33 +0800
 MIME-version: 1.0
-Content-disposition: inline
-In-reply-to: <20221025071549.1280528-1-yangyingliang@huawei.com>
-X-Source-IP: 145.40.68.75
-X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10511
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:102.0)
+ Gecko/20100101 Thunderbird/102.4.0
+Content-language: en-US
+To: Shang XiaoJing <shangxiaojing@huawei.com>, akpm <akpm@linux-foundation.org>
+References: <20221101064745.23738-1-shangxiaojing@huawei.com>
+In-reply-to: <20221101064745.23738-1-shangxiaojing@huawei.com>
+X-Source-IP: 115.124.30.42
+X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10517
  signatures=596816
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 spamscore=0
- malwarescore=0 adultscore=0 impostorscore=0 clxscore=136 bulkscore=0
- lowpriorityscore=0 mlxscore=0 mlxlogscore=841 phishscore=0 priorityscore=308
- suspectscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2209130000 definitions=main-2210250096
-Cc: rafael@kernel.org, qemu-devel@nongnu.org, liushixin2@huawei.com,
- linux-mtd@lists.infradead.org, huangjianan@oppo.com, richard@nod.at,
- mst@redhat.com, amd-gfx@lists.freedesktop.org, luben.tuikov@amd.com,
- hsiangkao@linux.alibaba.com, somlo@cmu.edu, chao@kernel.org,
- jaegeuk@kernel.org, linux-kernel@vger.kernel.org,
- linux-f2fs-devel@lists.sourceforge.net, alexander.deucher@amd.com,
- linux-erofs@lists.ozlabs.org, ocfs2-devel@oss.oracle.com
-Subject: Re: [Ocfs2-devel] [PATCH v3] kset: fix memory leak when
- kset_register() returns error
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 malwarescore=0
+ impostorscore=0 bulkscore=0 spamscore=0 adultscore=0 suspectscore=0
+ mlxlogscore=999 priorityscore=120 lowpriorityscore=0 clxscore=55 mlxscore=0
+ phishscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2210170000 definitions=main-2211010086 domainage_hfrom=8601
+Cc: ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Subject: Re: [Ocfs2-devel] [PATCH] ocfs2: Fix memory leak in
+	ocfs2_stack_glue_init()
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -70,63 +60,93 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: Greg KH via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: Greg KH <gregkh@linuxfoundation.org>
+From: Joseph Qi via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: Joseph Qi <joseph.qi@linux.alibaba.com>
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-ServerName: ams.source.kernel.org
+X-Alimail-AntiSpam: AC=PASS; BC=-1|-1; BR=01201311R201e4; CH=green;
+ DM=||false|; DS=||; FP=0|-1|-1|-1|0|-1|-1|-1; HT=ay29a033018046060;
+ MF=joseph.qi@linux.alibaba.com; NM=1; PH=DS; RN=5; SR=0;
+ TI=SMTPD_---0VThZubP_1667301333;
+X-ServerName: out30-42.freemail.mail.aliyun.com
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 ip4:72.55.140.81 ip4:52.25.139.140
- ip4:139.178.84.217 ip6:2604:1380:4641:c500::1 ip4:145.40.68.75
- ip6:2604:1380:4601:e00::1 ip4:145.40.73.55 ip6:2604:1380:40e1:4800::1
- include:_spf.google.com include:amazonses.com include:_spf.salesforce.com -all
+X-Proofpoint-SPF-Record: v=spf1 include:spf1.service.alibaba.com
+ include:spf2.service.alibaba.com include:spf1.ocm.aliyun.com
+ include:spf2.ocm.aliyun.com include:spf1.staff.mail.aliyun.com
+ include:a.hichina.mail.aliyun.com include:b.hichina.mail.aliyun.com -all
 X-Spam: Clean
-X-Proofpoint-GUID: jJ_mr46hYlN5d6xMqeqANO1trYBaOG3M
-X-Proofpoint-ORIG-GUID: jJ_mr46hYlN5d6xMqeqANO1trYBaOG3M
+X-Proofpoint-ORIG-GUID: cHapgQvwAtoXjQE9BP-UQJFSHpn36Lk6
+X-Proofpoint-GUID: cHapgQvwAtoXjQE9BP-UQJFSHpn36Lk6
 Reporting-Meta:
- AAEmN536qo0YA76mxEDl37QLJ8clvBR5X0rg8gg/IfiHd6ea2uD4V5XNsKu7lsl8
- NzKuACezYq8Ab21rdHy9t0eGb3DK4tDu3tc5ByR//RmhXUh+QnrQ03452wY+3J6L
- XAta1SembPp7+pa6jUTGQVkzObBv1ocpJu4oQr1/u1dLrARXQqqM4cTKP1KZRCAo
- 1QAwZeAByVH/Lk8zfMlAnu2txAoWo3u6YAKXQQ5sG6CcHfrJhOmi/hv+6Gv3eaOe
- GHk1Ma8RbNDDo1sSMTfgdu0oEGwFTZGXkeAxPmb7kT+xRXAVkea6QFMDowNWnu9N
- /fyAZs6w9XmD+9I117foSpGc2u+AjqHG6BejSnH3hBBbyIzVDcWK7LHS+sEBVYjJ
- iZkhTgMH8K3L+q5fm6EfwzdBnFAm0cCHZh+7TvXvk8s7r+Z1S59zmUYnw92uvptA
- JG1abmvX7/ZQ9UFu7KS1uZfq6hjVOsuMaQchunaC0hQETm0XMSJlE4b6DzGbOpX4
- 1JzdRTaxRKNw9qlDAie9QCBPHyaXz4SDsRuRXixFhoE=
+ AAHw5o2P2pTbb0UJ6gAhMUbZH0kgp3oRLv8DsGt9Wa5HzYk/ckdEy8JAvK8QrSok
+ 8LoCKhFcFoM7l+dlLmKJA1XUg5XOlpwWWriu7pkOKZwoMzKtRaVjhJK+WZmISkrJ
+ NSp6AUxWRiqqqEhW/RgsEGxr0VBfnsUB3GnkJ/CDVKqpbDIc37WzCO1zGZnLv1bu
+ wl5XvRSQRVk0i5EwpJXysbxmLqFI7mRXIlNGJm/E+rtCsicS5npKwzCYgv7WubPm
+ KTW6jGxnKVpCrS7zkg1/vyW9eBKVxY8ifSE1ABXlciqoridLvcmt0wx2tI60oiEE
+ Cb+6sa7J305EvkZyZyTKSkUIXcbSR3vXj+4XxlUVau7L5xBt6cCMN8pVGBjwWlEM
+ HRZ7sA35SqEpCKeYnKEGBCgDWOxjg0d1XhxYZ6FxvQLuKlcmcuAdcS0i2/mgPdLf
+ zf2KbtQHQAhK729i/IJkG1CzPfiXrK3o2QlCj3aGYs0Xo2ucvEvgq7T2G3xcDTvD
+ FhMBLAnpSH+tOv2mrssH/1+TvSE7L1CdX9qmBiIzwl4=
 
-On Tue, Oct 25, 2022 at 03:15:49PM +0800, Yang Yingliang wrote:
-> Inject fault while loading module, kset_register() may fail.
-> If it fails, the kset.kobj.name allocated by kobject_set_name()
-> which must be called before a call to kset_register() may be
-> leaked, since refcount of kobj was set in kset_init().
+
+
+On 11/1/22 2:47 PM, Shang XiaoJing wrote:
+> ocfs2_table_header should be free in ocfs2_stack_glue_init() if
+> ocfs2_sysfs_init() failed, otherwise kmemleak will report memleak.
 > 
-> To mitigate this, we free the name in kset_register() when an
-> error is encountered, i.e. when kset_register() returns an error.
+> BUG: memory leak
+> unreferenced object 0xffff88810eeb5800 (size 128):
+>   comm "modprobe", pid 4507, jiffies 4296182506 (age 55.888s)
+>   hex dump (first 32 bytes):
+>     c0 40 14 a0 ff ff ff ff 00 00 00 00 01 00 00 00  .@..............
+>     01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
+>   backtrace:
+>     [<000000001e59e1cd>] __register_sysctl_table+0xca/0xef0
+>     [<00000000c04f70f7>] 0xffffffffa0050037
+>     [<000000001bd12912>] do_one_initcall+0xdb/0x480
+>     [<0000000064f766c9>] do_init_module+0x1cf/0x680
+>     [<000000002ba52db0>] load_module+0x6441/0x6f20
+>     [<000000009772580d>] __do_sys_finit_module+0x12f/0x1c0
+>     [<00000000380c1f22>] do_syscall_64+0x3f/0x90
+>     [<000000004cf473bc>] entry_SYSCALL_64_after_hwframe+0x63/0xcd
 > 
-> A kset may be embedded in a larger structure which may be dynamically
-> allocated in callers, it needs to be freed in ktype.release() or error
-> path in callers, in this case, we can not call kset_put() in kset_register(),
-> or it will cause double free, so just call kfree_const() to free the
-> name and set it to NULL to avoid accessing bad pointer in callers.
-> 
-> With this fix, the callers don't need care about freeing the name
-> and may call kset_put() if kset_register() fails.
-> 
-> Suggested-by: Luben Tuikov <luben.tuikov@amd.com>
-> Signed-off-by: Yang Yingliang <yangyingliang@huawei.com>
+> Fixes: 3878f110f71a ("ocfs2: Move the hb_ctl_path sysctl into the stack glue.")
+> Signed-off-by: Shang XiaoJing <shangxiaojing@huawei.com>
+
+Looks good.
+Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+
 > ---
-> v2 -> v3:
->   Update commit message and comment of kset_register().
+>  fs/ocfs2/stackglue.c | 8 +++++++-
+>  1 file changed, 7 insertions(+), 1 deletion(-)
 > 
-> v1 -> v2:
->   Free name inside of kset_register() instead of calling kset_put()
->   in drivers.
-
-Thank you for all of this, it's a much nicer and cleaner fix than
-forcing all callers to try to handle it instead.
-
-greg k-h
+> diff --git a/fs/ocfs2/stackglue.c b/fs/ocfs2/stackglue.c
+> index 317126261523..a8d5ca98fa57 100644
+> --- a/fs/ocfs2/stackglue.c
+> +++ b/fs/ocfs2/stackglue.c
+> @@ -669,6 +669,8 @@ static struct ctl_table_header *ocfs2_table_header;
+>  
+>  static int __init ocfs2_stack_glue_init(void)
+>  {
+> +	int ret;
+> +
+>  	strcpy(cluster_stack_name, OCFS2_STACK_PLUGIN_O2CB);
+>  
+>  	ocfs2_table_header = register_sysctl("fs/ocfs2/nm", ocfs2_nm_table);
+> @@ -678,7 +680,11 @@ static int __init ocfs2_stack_glue_init(void)
+>  		return -ENOMEM; /* or something. */
+>  	}
+>  
+> -	return ocfs2_sysfs_init();
+> +	ret = ocfs2_sysfs_init();
+> +	if (ret)
+> +		unregister_sysctl_table(ocfs2_table_header);
+> +
+> +	return ret;
+>  }
+>  
+>  static void __exit ocfs2_stack_glue_exit(void)
 
 _______________________________________________
 Ocfs2-devel mailing list
