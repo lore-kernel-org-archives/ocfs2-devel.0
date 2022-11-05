@@ -1,52 +1,77 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc244.phx1.oracleemaildelivery.com (aib29ajc244.phx1.oracleemaildelivery.com [192.29.103.244])
+Received: from aib29ajc253.phx1.oracleemaildelivery.com (aib29ajc253.phx1.oracleemaildelivery.com [192.29.103.253])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 5DEB3C43217
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 44E12C4332F
 	for <ocfs2-devel@archiver.kernel.org>; Tue,  8 Nov 2022 16:35:26 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=oUZZx88ijTH5dtJU+tXUuWTDrVUjdL8/Zm/B3cthYv0=;
- b=H4yWJRkEz7Om6tPqYD3ZGUTCtAS2f/eNELIuC1vUxfmGJ14dURG5hlngl8VMHQq3wCUbJMP88tiQ
-   3WL6fzkp/Mnx34VPq8HJbFsvZgQzXyrI2w2g7Os0CPbFi5WCMKq44GPuRHXbyutyHTnMM6xeuGHs
-   v40Q4JbRDStOKSSosGbClJ73IfAR8JRl3o5PdtOcYU6+d++2h7rySsYzdk6Bo62Gnl7E+/2gsceo
-   77yTjxA7jcRDKJKDHdix0asKuBk7QRUQPB8qDurNWL6F/VeFrpczHm741xXoP+d1BFraXBaSTqA+
-   exCLRFRVo7otimkKUJ+0EmbgOm4OKNsxFkS++w==
+ bh=3DxatIRLcfWmmyArR5vNu2X/4AKGjSLo26mCeYIv6Ic=;
+ b=z+odZf+ffVaMFF0jfDEwHkrcKegffe7zijUBlrw5Du94muCkGNGJ9k/h8mqeJCQMiJ1Fy9cJ4vuZ
+   ldwmmHfYCI/9JUVsOrwyTsRylp/ZNKOxS+XAEfImZ94W1/lHWxXqllkwOFxnGvY/t/xMslI9whlD
+   A39bamvI6vC8mgzJG9+y8PV7SvxKa2JBQM1vt9Yc0EjnHbZviLzYokV+SzEWbb+VDuGnrTRq6vTs
+   Tf5Uu0xIi42Wfw7sM+CKHam+5KQyuWHdlGOKwiPyD2iY0PiagsjbCE9b1BiaBiJxN2i6TH/anFsL
+   odg+Sv5c+tXYXFtNhDrJMMW1XmR+vUA4qXHBqg==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=oUZZx88ijTH5dtJU+tXUuWTDrVUjdL8/Zm/B3cthYv0=;
- b=jLV/LgtxhDVQBGCHp4ZbTsR/xKSI81N76DTFc2GRgHq8WTpdi/OYZvloBbRWhEL684dTJ/dV+93A
-   q1SLgMaimzGCq79K4M32PmSJPKsG4zuNkYvOhj83JyqyI9i9jMv+w6MJHaeo3muCdDtAtlELJVCz
-   Ax0HNs6Cu9/r5DlvxmXzM/OdMDmzjl07kdHFRLRWXB6GI91oqWwU/14WyRE4riWKDk7n66cx/LSs
-   /7QFpFxJ1I7NMKWb7Z3g9sKqX3+bWFVNCbWJEZ7RyLmgbeRODZX6UBBF/KKq2lMhuco4Ltky8iVz
-   x9rVyw1l2s0SkAFqeNhVsG58Yo/zQUB7N+QezQ==
-Received: by omta-ad1-fd1-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
+ bh=3DxatIRLcfWmmyArR5vNu2X/4AKGjSLo26mCeYIv6Ic=;
+ b=X+TAWnYCJ+kJQ3hCYnU4Vf0LldvX9a++DK0fwgRegXaBe+klQrEFslKGQqfDMo14cwiNeMfT2rdb
+   EgUSWcsJvhfXkUf8dCsH1ebzAbtyZjaLyjN2LHalIi92eHGVZFMEHYxUdThmBELGStWPJULEborM
+   05gBOiKHW59fkfI4O/FSE/815HL8cmPGIRA6cuocxcm13gkFE5ABC4aT92w102VXSK3I8r1lAILl
+   Am2aul3S+QtJ/Rezq3eUBhAGVGlgLStKPaxDcZkbuu4GPascExC6b3zlyxVEsJrs8yVF5nX9gys+
+   4DIhA7F/976sdrLRPRqCDsHv7CzvjsJGTGKRcQ==
+Received: by omta-ad3-fd1-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20221026 64bit (built Oct 26
  2022))
- with ESMTPS id <0RL10094UFF1ZDA0@omta-ad1-fd1-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
+ with ESMTPS id <0RL10064HFF1HKE0@omta-ad3-fd1-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
  ocfs2-devel@archiver.kernel.org; Tue, 08 Nov 2022 16:35:25 +0000 (GMT)
-To: <mark@fasheh.com>, <jlbec@evilplan.org>, <joseph.qi@linux.alibaba.com>,
- <srinivas.eeda@oracle.com>
-Date: Tue, 8 Nov 2022 23:25:16 +0800
-Message-id: <20221108152516.1189165-1-lizetao1@huawei.com>
-X-Mailer: git-send-email 2.25.1
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=20210112;
+ h=content-disposition:mime-version:message-id:subject:cc:to:from:date
+ :from:to:cc:subject:date:message-id:reply-to;
+ bh=tP7byI0+Iy8thvBM9RxOZ1IAYRCUM1f3pZvYHntjIiU=;
+ b=DOEVQebwcJYZ/5W4LsmNd5BxPP3oBR0tUoHQD+yVm7KtNQLdI33Kxpiyv6k1NPct3d
+ TurVtwwBhEkn2mHX6TPae3EuT1hEMKdeiBcf88WBXTnIC577NYFCHOTGpLfIzv9UjqHz
+ lKPbX/Lc8OMHGYc0Yp5Rwehx3aljErPfr9t21Mkn/V7wHwfa57zgGFAe+iye9YXky3Rd
+ VHCv64i4uEGPsxNIn8Zzvp6VI/dDqGZZdUPeEWDFdDq3T3bIcPmavAhkFXfoqZgtw/a9
+ 3T4CVHiCkUbrSqtnin2DcXzehauiCY95qQP4m63W2/D+F7YuhW3Ae8RVQvkUW8dz6EG+ EKcg==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=1e100.net;
+ s=20210112;
+ h=content-disposition:mime-version:message-id:subject:cc:to:from:date
+ :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
+ bh=tP7byI0+Iy8thvBM9RxOZ1IAYRCUM1f3pZvYHntjIiU=;
+ b=s7PTjkBuJaYO/MBfybVJbvBWQzkz11QnnIxuLRVn1p0j9QIl1Kt9Pi6lLOf+SrNOOy
+ d9+R8YJpwQCcnKgs/ZEg2FtOBeDe0IyOqWlp+KF2UoIW3UatB5okmanKHrDYLapgQa8F
+ oK2A+xdqPrdybjZYPZA8zDNdG/kzWbKTiGeyWhze2lhYOj4oQk8ZWWmVe+QmNmdzyjgj
+ 4gIrpJBDAhd7HGgyUQHhAttSiIAWac46NGKAN90VGGV8TcSm8YvrOaVufTcoHji52mM/
+ xX0ZnLoMHsv9Ik4gTPHrB2B6YMGxkvyXheyXMGzNAQIyGlYx63Um29JPwQjEP5XURTqt SqTQ==
+X-Gm-Message-State: ACrzQf18Zr0wCKVkTPhc4hdNcykEIO1ajMZ9gY0oo6OmDcRhAGXGt8wy
+ 35ZIJ/xUywTRHVF8EjUnptU=
+X-Received: by 2002:adf:f911:0:b0:21e:c0f6:fd26 with SMTP id
+ b17-20020adff911000000b0021ec0f6fd26mr25119107wrr.361.1667646945769; Sat,
+ 05 Nov 2022 04:15:45 -0700 (PDT)
+Date: Sat, 5 Nov 2022 14:15:40 +0300
+To: oe-kbuild@lists.linux.dev,
+ Heming Zhao via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Message-id: <202211050722.8YGvtPaR-lkp@intel.com>
 MIME-version: 1.0
-X-Originating-IP: [10.67.175.21]
-X-Source-IP: 45.249.212.188
-X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10525
+Content-disposition: inline
+X-Source-IP: 209.85.221.44
+X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10521
  signatures=596816
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 adultscore=0
- bulkscore=0 mlxlogscore=999 priorityscore=194 spamscore=0 suspectscore=0
- phishscore=0 malwarescore=0 impostorscore=0 mlxscore=0 lowpriorityscore=0
- clxscore=8 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2210170000 definitions=main-2211080088 domainage_hfrom=8337
-Cc: lizetao1@huawei.com, linux-kernel@vger.kernel.org,
- ocfs2-devel@oss.oracle.com
-Subject: [Ocfs2-devel] [PATCH] ocfs2: fix memory leak in ocfs2_mount_volume()
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 mlxscore=0
+ lowpriorityscore=0 impostorscore=0 malwarescore=0 suspectscore=0 spamscore=0
+ mlxlogscore=937 clxscore=17 phishscore=0 bulkscore=0 adultscore=0
+ priorityscore=330 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2210170000 definitions=main-2211050086 domainage_hfrom=9946
+Cc: lkp@intel.com, linux-kernel@vger.kernel.org,
+ Linux Memory Management List <linux-mm@kvack.org>,
+ oe-kbuild-all@lists.linux.dev
+Subject: [Ocfs2-devel] fs/ocfs2/super.c:1809 ocfs2_mount_volume() warn: missing
+ error code 'status'
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -58,136 +83,123 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: Li Zetao via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: Li Zetao <lizetao1@huawei.com>
+From: Dan Carpenter via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: Dan Carpenter <error27@gmail.com>
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-ClientProxiedBy: dggems705-chm.china.huawei.com (10.3.19.182) To
- kwepemi500012.china.huawei.com (7.221.188.12)
-X-CFilter-Loop: Reflected
-X-ServerName: szxga02-in.huawei.com
+X-Google-Smtp-Source:
+ AMsMyM6WU7D2DZTLSdga05zuSpJl+2j2RYGDDpUBqWXo2H5qPh665HWr76c5oJV4AiBpWLaaf+cC9A==
+X-ServerName: mail-wr1-f44.google.com
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 ip4:45.249.212.32 ip4:45.249.212.35
- ip4:45.249.212.255 ip4:45.249.212.187/29 ip4:45.249.212.191 ip4:168.195.93.47
- ip4:185.176.79.56 ip4:119.8.179.247 ip4:119.8.89.136/31 ip4:119.8.89.135
- ip4:119.8.177.36/31 ip4:119.8.177.38 -all
+X-Proofpoint-SPF-Record: v=spf1 redirect=_spf.google.com
 X-Spam: Clean
-X-Proofpoint-ORIG-GUID: KwRS-cUHhOAUreO3bdugMm-GG5AthGmH
-X-Proofpoint-GUID: KwRS-cUHhOAUreO3bdugMm-GG5AthGmH
+X-Proofpoint-ORIG-GUID: qe1k19DP5jiPLcBv8PBwAqpWv7zPMDtX
+X-Proofpoint-GUID: qe1k19DP5jiPLcBv8PBwAqpWv7zPMDtX
 X-Mailman-Approved-At: Tue, 08 Nov 2022 16:35:23 +0000
 Reporting-Meta:
- AAF0gYfzEr9HPG3N6PtrAxUIR7lkom+Fh3eLMJaoKkFulb/XCgVtravWDDV1UkQ0
- PuSfwHzZeVB7ATza5E+4fDwvhXA/eoMPH1joURFLunII4HCcJvOoRQ4vUHg/MUhR
- P0ENuJq2Y9FS2ixMieTPqZLKyXIeDSIzM1zlFNtzCcIswDfy/DWAHQ2oVS8GTaZ3
- 2ISKhACk9MhtVbdI9c7pjKlHmB25+Sq9TErMPFaeNH0UA/NxUi1/+BRmh0UHicmq
- gy6YadEmsgjCJT45zfpv604E74lmerwy79dwvhiQLXSyi4GEehvkmoeC2kQT1L2r
- WpznSWhf8nYtRFK2fj2B5dM7Bs2JPkMnhpYRuigRqAW54DGRpGjeDZEBQT0fMDFv
- daqIHHfnopKqZnxsoYiYWOBEJ1vWGeZQQLus5UiYWwL0sxD++AnHh8wih04zuiN/
- dMMmkHHKJ17z2tnKwronwe3vAYPty5nqXe9snYlUJOfPmKhBaJXtGRzHSbArb1/l
- q0pqRDr7JeNqhta1VDSio0jYptUjBMJeuq34eU1OthY=
+ AAFz9ciH2O8fxJb6/6ZHonbzYgGbzKlKqsK8zAU0ZM5010jN8Ti3RNM1jeRdG3eK
+ D9UY9ahEPY5JrDPeydyod4rztbe6/SBVWE58q14jYfzlIT8lFmVfAqHBTHm9Do9k
+ ErdnlXDkW8W7sFTQOmyPP+Xvm+9BojHAbw555vpx6duk/68USHkDBpwEniirr+rK
+ AqUm8TdgwKu+TeDTD2q205unfxL5Ya3nk59rQB3Z4DEyiggd4DtaEnQFKxIAlfvv
+ fl5kuhMM1RjKJs4hrbpIa13GW/AqHREA6o7LRtk5xZcM+L+xSy2zeHDp+f9/yQ6Z
+ Rr2AelmoLq/rDBvwII3Z/wO6tD65n+BTCZ65rlzFj1VAyEXMP0i695MWn4iJy7vd
+ a6maap0oqfah9/DtTteSnnI0SYEn4pjHlVg0zB/ZfAz3aaqbXTzz/lPg0YP0jrkh
+ XBPDyv0kP6uJ5/v/uWClxt0KcEPAhI0BXzOt5VdX1NgaGTiY03MOt4HilAOifLm1
+ PCuSKjuEWATjUQoL//FN7Krfs0vp49GBUBzfkhwH8DJv
 
-There is a memory leak reported by kmemleak:
+tree:   https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git master
+head:   10d916c86ecafeccaed89175ebf9b832dddde380
+commit: 0737e01de9c411e4db87dcedf4a9789d41b1c5c1 ocfs2: ocfs2_mount_volume does cleanup job before return error
+config: alpha-randconfig-m041-20221030
+compiler: alpha-linux-gcc (GCC) 12.1.0
 
-  unreferenced object 0xffff88810cc65e60 (size 32):
-    comm "mount.ocfs2", pid 23753, jiffies 4302528942 (age 34735.105s)
-    hex dump (first 32 bytes):
-      10 00 00 00 00 00 00 00 00 01 01 01 01 01 01 01  ................
-      01 01 01 01 01 01 01 01 00 00 00 00 00 00 00 00  ................
-    backtrace:
-      [<ffffffff8170f73d>] __kmalloc+0x4d/0x150
-      [<ffffffffa0ac3f51>] ocfs2_compute_replay_slots+0x121/0x330 [ocfs2]
-      [<ffffffffa0b65165>] ocfs2_check_volume+0x485/0x900 [ocfs2]
-      [<ffffffffa0b68129>] ocfs2_mount_volume.isra.0+0x1e9/0x650 [ocfs2]
-      [<ffffffffa0b7160b>] ocfs2_fill_super+0xe0b/0x1740 [ocfs2]
-      [<ffffffff818e1fe2>] mount_bdev+0x312/0x400
-      [<ffffffff819a086d>] legacy_get_tree+0xed/0x1d0
-      [<ffffffff818de82d>] vfs_get_tree+0x7d/0x230
-      [<ffffffff81957f92>] path_mount+0xd62/0x1760
-      [<ffffffff81958a5a>] do_mount+0xca/0xe0
-      [<ffffffff81958d3c>] __x64_sys_mount+0x12c/0x1a0
-      [<ffffffff82f26f15>] do_syscall_64+0x35/0x80
-      [<ffffffff8300006a>] entry_SYSCALL_64_after_hwframe+0x46/0xb0
+If you fix the issue, kindly add following tag where applicable
+| Reported-by: kernel test robot <lkp@intel.com>
+| Reported-by: Dan Carpenter <error27@gmail.com>
 
-This call stack is related to two problems. Firstly, the ocfs2 super uses
-"replay_map" to trace online/offline slots, in order to recover offline
-slots during recovery and mount. But when ocfs2_truncate_log_init()
-returns an error in ocfs2_mount_volume(), the memory of "replay_map"
-will not be freed in error handling path. Secondly, the memory of
-"replay_map" will not be freed if d_make_root() returns an error in
-ocfs2_fill_super(). But the memory of "replay_map" will be freed normally
-when completing recovery and mount in ocfs2_complete_mount_recovery().
+smatch warnings:
+fs/ocfs2/super.c:1809 ocfs2_mount_volume() warn: missing error code 'status'
 
-Fix the first problem by adding error handling path to free "replay_map"
-when ocfs2_truncate_log_init() fails. And fix the second problem by
-calling ocfs2_free_replay_slots(osb) in the error handling path
-"out_dismount". In addition, since ocfs2_free_replay_slots() is static,
-it is necessary to remove its static attribute and declare it in header
-file.
+vim +/status +1809 fs/ocfs2/super.c
 
-Fixes: 9140db04ef18 ("ocfs2: recover orphans in offline slots during recovery and mount")
-Signed-off-by: Li Zetao <lizetao1@huawei.com>
----
- fs/ocfs2/journal.c | 2 +-
- fs/ocfs2/journal.h | 1 +
- fs/ocfs2/super.c   | 5 ++++-
- 3 files changed, 6 insertions(+), 2 deletions(-)
+ccd979bdbce9fba Mark Fasheh                 2005-12-15  1802  
+ccd979bdbce9fba Mark Fasheh                 2005-12-15  1803  static int ocfs2_mount_volume(struct super_block *sb)
+ccd979bdbce9fba Mark Fasheh                 2005-12-15  1804  {
+ccd979bdbce9fba Mark Fasheh                 2005-12-15  1805  	int status = 0;
+ccd979bdbce9fba Mark Fasheh                 2005-12-15  1806  	struct ocfs2_super *osb = OCFS2_SB(sb);
+ccd979bdbce9fba Mark Fasheh                 2005-12-15  1807  
+ccd979bdbce9fba Mark Fasheh                 2005-12-15  1808  	if (ocfs2_is_hard_readonly(osb))
+0737e01de9c411e Heming Zhao via Ocfs2-devel 2022-04-29 @1809  		goto out;
 
-diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
-index 126671e6caed..3fb98b4569a2 100644
---- a/fs/ocfs2/journal.c
-+++ b/fs/ocfs2/journal.c
-@@ -157,7 +157,7 @@ static void ocfs2_queue_replay_slots(struct ocfs2_super *osb,
- 	replay_map->rm_state = REPLAY_DONE;
- }
- 
--static void ocfs2_free_replay_slots(struct ocfs2_super *osb)
-+void ocfs2_free_replay_slots(struct ocfs2_super *osb)
- {
- 	struct ocfs2_replay_map *replay_map = osb->replay_map;
- 
-diff --git a/fs/ocfs2/journal.h b/fs/ocfs2/journal.h
-index 969d0aa28718..41c382f68529 100644
---- a/fs/ocfs2/journal.h
-+++ b/fs/ocfs2/journal.h
-@@ -150,6 +150,7 @@ int ocfs2_recovery_init(struct ocfs2_super *osb);
- void ocfs2_recovery_exit(struct ocfs2_super *osb);
- 
- int ocfs2_compute_replay_slots(struct ocfs2_super *osb);
-+void ocfs2_free_replay_slots(struct ocfs2_super *osb);
- /*
-  *  Journal Control:
-  *  Initialize, Load, Shutdown, Wipe a journal.
-diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-index 42c993e53924..f8041aebe4ee 100644
---- a/fs/ocfs2/super.c
-+++ b/fs/ocfs2/super.c
-@@ -1159,6 +1159,7 @@ static int ocfs2_fill_super(struct super_block *sb, void *data, int silent)
- out_dismount:
- 	atomic_set(&osb->vol_state, VOLUME_DISABLED);
- 	wake_up(&osb->osb_mount_event);
-+	ocfs2_free_replay_slots(osb);
- 	ocfs2_dismount_volume(sb, 1);
- 	goto out;
- 
-@@ -1822,12 +1823,14 @@ static int ocfs2_mount_volume(struct super_block *sb)
- 	status = ocfs2_truncate_log_init(osb);
- 	if (status < 0) {
- 		mlog_errno(status);
--		goto out_system_inodes;
-+		goto out_truncate_log;
- 	}
- 
- 	ocfs2_super_unlock(osb, 1);
- 	return 0;
- 
-+out_truncate_log:
-+	ocfs2_free_replay_slots(osb);
- out_system_inodes:
- 	if (osb->local_alloc_state == OCFS2_LA_ENABLED)
- 		ocfs2_shutdown_local_alloc(osb);
+Unclear if this is an error path or a success path.  Honestly, I would
+have thought the checker is correct that it looks like a failure path.
+
+ccd979bdbce9fba Mark Fasheh                 2005-12-15  1810  
+5500ab4ed3b8f07 Gang He                     2019-03-05  1811  	mutex_init(&osb->obs_trim_fs_mutex);
+5500ab4ed3b8f07 Gang He                     2019-03-05  1812  
+ccd979bdbce9fba Mark Fasheh                 2005-12-15  1813  	status = ocfs2_dlm_init(osb);
+ccd979bdbce9fba Mark Fasheh                 2005-12-15  1814  	if (status < 0) {
+ccd979bdbce9fba Mark Fasheh                 2005-12-15  1815  		mlog_errno(status);
+a52370b3b182f79 Gang He                     2018-01-31  1816  		if (status == -EBADR && ocfs2_userspace_stack(osb))
+a52370b3b182f79 Gang He                     2018-01-31  1817  			mlog(ML_ERROR, "couldn't mount because cluster name on"
+a52370b3b182f79 Gang He                     2018-01-31  1818  			" disk does not match the running cluster name.\n");
+0737e01de9c411e Heming Zhao via Ocfs2-devel 2022-04-29  1819  		goto out;
+ccd979bdbce9fba Mark Fasheh                 2005-12-15  1820  	}
+ccd979bdbce9fba Mark Fasheh                 2005-12-15  1821  
+ccd979bdbce9fba Mark Fasheh                 2005-12-15  1822  	status = ocfs2_super_lock(osb, 1);
+ccd979bdbce9fba Mark Fasheh                 2005-12-15  1823  	if (status < 0) {
+ccd979bdbce9fba Mark Fasheh                 2005-12-15  1824  		mlog_errno(status);
+0737e01de9c411e Heming Zhao via Ocfs2-devel 2022-04-29  1825  		goto out_dlm;
+ccd979bdbce9fba Mark Fasheh                 2005-12-15  1826  	}
+ccd979bdbce9fba Mark Fasheh                 2005-12-15  1827  
+ccd979bdbce9fba Mark Fasheh                 2005-12-15  1828  	/* This will load up the node map and add ourselves to it. */
+ccd979bdbce9fba Mark Fasheh                 2005-12-15  1829  	status = ocfs2_find_slot(osb);
+ccd979bdbce9fba Mark Fasheh                 2005-12-15  1830  	if (status < 0) {
+ccd979bdbce9fba Mark Fasheh                 2005-12-15  1831  		mlog_errno(status);
+0737e01de9c411e Heming Zhao via Ocfs2-devel 2022-04-29  1832  		goto out_super_lock;
+ccd979bdbce9fba Mark Fasheh                 2005-12-15  1833  	}
+ccd979bdbce9fba Mark Fasheh                 2005-12-15  1834  
+ccd979bdbce9fba Mark Fasheh                 2005-12-15  1835  	/* load all node-local system inodes */
+ccd979bdbce9fba Mark Fasheh                 2005-12-15  1836  	status = ocfs2_init_local_system_inodes(osb);
+ccd979bdbce9fba Mark Fasheh                 2005-12-15  1837  	if (status < 0) {
+ccd979bdbce9fba Mark Fasheh                 2005-12-15  1838  		mlog_errno(status);
+0737e01de9c411e Heming Zhao via Ocfs2-devel 2022-04-29  1839  		goto out_super_lock;
+ccd979bdbce9fba Mark Fasheh                 2005-12-15  1840  	}
+ccd979bdbce9fba Mark Fasheh                 2005-12-15  1841  
+ccd979bdbce9fba Mark Fasheh                 2005-12-15  1842  	status = ocfs2_check_volume(osb);
+ccd979bdbce9fba Mark Fasheh                 2005-12-15  1843  	if (status < 0) {
+ccd979bdbce9fba Mark Fasheh                 2005-12-15  1844  		mlog_errno(status);
+0737e01de9c411e Heming Zhao via Ocfs2-devel 2022-04-29  1845  		goto out_system_inodes;
+ccd979bdbce9fba Mark Fasheh                 2005-12-15  1846  	}
+ccd979bdbce9fba Mark Fasheh                 2005-12-15  1847  
+ccd979bdbce9fba Mark Fasheh                 2005-12-15  1848  	status = ocfs2_truncate_log_init(osb);
+0737e01de9c411e Heming Zhao via Ocfs2-devel 2022-04-29  1849  	if (status < 0) {
+ccd979bdbce9fba Mark Fasheh                 2005-12-15  1850  		mlog_errno(status);
+0737e01de9c411e Heming Zhao via Ocfs2-devel 2022-04-29  1851  		goto out_system_inodes;
+0737e01de9c411e Heming Zhao via Ocfs2-devel 2022-04-29  1852  	}
+c271c5c22b0a7ca Sunil Mushran               2006-12-05  1853  
+ccd979bdbce9fba Mark Fasheh                 2005-12-15  1854  	ocfs2_super_unlock(osb, 1);
+0737e01de9c411e Heming Zhao via Ocfs2-devel 2022-04-29  1855  	return 0;
+ccd979bdbce9fba Mark Fasheh                 2005-12-15  1856  
+0737e01de9c411e Heming Zhao via Ocfs2-devel 2022-04-29  1857  out_system_inodes:
+0737e01de9c411e Heming Zhao via Ocfs2-devel 2022-04-29  1858  	if (osb->local_alloc_state == OCFS2_LA_ENABLED)
+0737e01de9c411e Heming Zhao via Ocfs2-devel 2022-04-29  1859  		ocfs2_shutdown_local_alloc(osb);
+0737e01de9c411e Heming Zhao via Ocfs2-devel 2022-04-29  1860  	ocfs2_release_system_inodes(osb);
+0737e01de9c411e Heming Zhao via Ocfs2-devel 2022-04-29  1861  	/* before journal shutdown, we should release slot_info */
+0737e01de9c411e Heming Zhao via Ocfs2-devel 2022-04-29  1862  	ocfs2_free_slot_info(osb);
+0737e01de9c411e Heming Zhao via Ocfs2-devel 2022-04-29  1863  	ocfs2_journal_shutdown(osb);
+0737e01de9c411e Heming Zhao via Ocfs2-devel 2022-04-29  1864  out_super_lock:
+0737e01de9c411e Heming Zhao via Ocfs2-devel 2022-04-29  1865  	ocfs2_super_unlock(osb, 1);
+0737e01de9c411e Heming Zhao via Ocfs2-devel 2022-04-29  1866  out_dlm:
+0737e01de9c411e Heming Zhao via Ocfs2-devel 2022-04-29  1867  	ocfs2_dlm_shutdown(osb, 0);
+0737e01de9c411e Heming Zhao via Ocfs2-devel 2022-04-29  1868  out:
+ccd979bdbce9fba Mark Fasheh                 2005-12-15  1869  	return status;
+ccd979bdbce9fba Mark Fasheh                 2005-12-15  1870  }
+
 -- 
-2.25.1
+0-DAY CI Kernel Test Service
+https://01.org/lkp
 
 
 _______________________________________________
