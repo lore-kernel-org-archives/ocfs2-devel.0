@@ -1,77 +1,80 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc253.phx1.oracleemaildelivery.com (aib29ajc253.phx1.oracleemaildelivery.com [192.29.103.253])
+Received: from aib29ajc247.phx1.oracleemaildelivery.com (aib29ajc247.phx1.oracleemaildelivery.com [192.29.103.247])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 44E12C4332F
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 5DEDFC43219
 	for <ocfs2-devel@archiver.kernel.org>; Tue,  8 Nov 2022 16:35:26 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=3DxatIRLcfWmmyArR5vNu2X/4AKGjSLo26mCeYIv6Ic=;
- b=z+odZf+ffVaMFF0jfDEwHkrcKegffe7zijUBlrw5Du94muCkGNGJ9k/h8mqeJCQMiJ1Fy9cJ4vuZ
-   ldwmmHfYCI/9JUVsOrwyTsRylp/ZNKOxS+XAEfImZ94W1/lHWxXqllkwOFxnGvY/t/xMslI9whlD
-   A39bamvI6vC8mgzJG9+y8PV7SvxKa2JBQM1vt9Yc0EjnHbZviLzYokV+SzEWbb+VDuGnrTRq6vTs
-   Tf5Uu0xIi42Wfw7sM+CKHam+5KQyuWHdlGOKwiPyD2iY0PiagsjbCE9b1BiaBiJxN2i6TH/anFsL
-   odg+Sv5c+tXYXFtNhDrJMMW1XmR+vUA4qXHBqg==
+ bh=kXXnYIBXAAvTPBH1u15+fISt+E4COx9H2ceEclELQY8=;
+ b=xKu5AXttTszimQ6blWX6iNtMjN6xzpGia/pK53K8jaCJ3NHv2GO1G5R4fT7TC6J83vTzmklgz+YO
+   BgkAdMorKKrO5sO45R7l3Uz1bRtXZkL9uxMFAM/pEvDwucYLH+KylIWqOuDqMGIxkNeiQ8Z8SRjW
+   wNFZ6WqIe9v6IZsPTqHQzxH6qexPlpDwyLZwPIadYi5HTpsQaYlMvqJmXwzCpmPwY4xCGynaNYao
+   F9AuxYt5xru3iftI0gkQA/8eeq0SrffW3n78OYHLbW4ehUJS6/H4zFkL54AZKfXcE3SlBb7lhaty
+   7EGmvTlraNUu/nywjjlPWJ8o5LqMTCztxJnCPg==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=3DxatIRLcfWmmyArR5vNu2X/4AKGjSLo26mCeYIv6Ic=;
- b=X+TAWnYCJ+kJQ3hCYnU4Vf0LldvX9a++DK0fwgRegXaBe+klQrEFslKGQqfDMo14cwiNeMfT2rdb
-   EgUSWcsJvhfXkUf8dCsH1ebzAbtyZjaLyjN2LHalIi92eHGVZFMEHYxUdThmBELGStWPJULEborM
-   05gBOiKHW59fkfI4O/FSE/815HL8cmPGIRA6cuocxcm13gkFE5ABC4aT92w102VXSK3I8r1lAILl
-   Am2aul3S+QtJ/Rezq3eUBhAGVGlgLStKPaxDcZkbuu4GPascExC6b3zlyxVEsJrs8yVF5nX9gys+
-   4DIhA7F/976sdrLRPRqCDsHv7CzvjsJGTGKRcQ==
-Received: by omta-ad3-fd1-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
+ bh=kXXnYIBXAAvTPBH1u15+fISt+E4COx9H2ceEclELQY8=;
+ b=eEgXm7FJ2qxD6y/+23lwZzHBiE74u0buYJZjr/Wg0efFVgetJCiDmaSf8lo+42DMGdWs/uy63Kqv
+   i49sPa+LY60AQJAYliJbN70MfDgOLDmISN0A4aZ10rbHSVDxFSElJNpJG7i32DUw0+cfDtQZe56g
+   1vnk0INGum57WLfz5gYRfn/wpkpNfCn19s2xSViUJbyN8lnJ7Wnw0TGDrdVoPUV5TRGc20bv43/7
+   6Ls6NZZjlMZrfXZEjA9oelTBJ0LmsbO5TJS7WPZXGkkVV2SyG5cvhhRBJZXCXmSvo9emu1vthUpM
+   dXqh0wH+QMsozewj/pRP+AMWaP5i9hRfbURAPw==
+Received: by omta-ad1-fd3-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20221026 64bit (built Oct 26
  2022))
- with ESMTPS id <0RL10064HFF1HKE0@omta-ad3-fd1-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
+ with ESMTPS id <0RL100J9BFF1QZ30@omta-ad1-fd3-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
  ocfs2-devel@archiver.kernel.org; Tue, 08 Nov 2022 16:35:25 +0000 (GMT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=20210112;
- h=content-disposition:mime-version:message-id:subject:cc:to:from:date
- :from:to:cc:subject:date:message-id:reply-to;
- bh=tP7byI0+Iy8thvBM9RxOZ1IAYRCUM1f3pZvYHntjIiU=;
- b=DOEVQebwcJYZ/5W4LsmNd5BxPP3oBR0tUoHQD+yVm7KtNQLdI33Kxpiyv6k1NPct3d
- TurVtwwBhEkn2mHX6TPae3EuT1hEMKdeiBcf88WBXTnIC577NYFCHOTGpLfIzv9UjqHz
- lKPbX/Lc8OMHGYc0Yp5Rwehx3aljErPfr9t21Mkn/V7wHwfa57zgGFAe+iye9YXky3Rd
- VHCv64i4uEGPsxNIn8Zzvp6VI/dDqGZZdUPeEWDFdDq3T3bIcPmavAhkFXfoqZgtw/a9
- 3T4CVHiCkUbrSqtnin2DcXzehauiCY95qQP4m63W2/D+F7YuhW3Ae8RVQvkUW8dz6EG+ EKcg==
+ h=in-reply-to:content-disposition:mime-version:references:message-id
+ :subject:cc:to:from:date:from:to:cc:subject:date:message-id:reply-to;
+ bh=1EXtR7XJJXiRjK9vYVDqObq6bajFz9XQCg+T26fuKrE=;
+ b=AhyPTp2hdxp66jkLu7AniU2AycEFO8kjoA0cTSA2DXMhMakoLktz1BMuwuFBMRoX/L
+ iqDcuROIWNrO1ABA1AvPsmmiAQPwvxmCMQF7aNE4VlzVKkbOO1EbgDA6C9m0e1+yann8
+ KLNkWVfXds2T/RExpxkwWdWVZM8unzDG437HCPvEiRRHo37+80ifBWPnoaTJV4KVMywv
+ AqXyf0MOPklW9RRMqSQvW0Z4wGOHY2DurTzEqyRxSCGagg4TRN+FeNOjsMKqS3V3UiGI
+ Ua/VAiTmsxsndtlxlQIdq1zjsdpinmbjos/47b59qPYe+SFpVtfCi0X8Z8MSfMDlD9nH VM8Q==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=1e100.net;
  s=20210112;
- h=content-disposition:mime-version:message-id:subject:cc:to:from:date
- :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
- bh=tP7byI0+Iy8thvBM9RxOZ1IAYRCUM1f3pZvYHntjIiU=;
- b=s7PTjkBuJaYO/MBfybVJbvBWQzkz11QnnIxuLRVn1p0j9QIl1Kt9Pi6lLOf+SrNOOy
- d9+R8YJpwQCcnKgs/ZEg2FtOBeDe0IyOqWlp+KF2UoIW3UatB5okmanKHrDYLapgQa8F
- oK2A+xdqPrdybjZYPZA8zDNdG/kzWbKTiGeyWhze2lhYOj4oQk8ZWWmVe+QmNmdzyjgj
- 4gIrpJBDAhd7HGgyUQHhAttSiIAWac46NGKAN90VGGV8TcSm8YvrOaVufTcoHji52mM/
- xX0ZnLoMHsv9Ik4gTPHrB2B6YMGxkvyXheyXMGzNAQIyGlYx63Um29JPwQjEP5XURTqt SqTQ==
-X-Gm-Message-State: ACrzQf18Zr0wCKVkTPhc4hdNcykEIO1ajMZ9gY0oo6OmDcRhAGXGt8wy
- 35ZIJ/xUywTRHVF8EjUnptU=
-X-Received: by 2002:adf:f911:0:b0:21e:c0f6:fd26 with SMTP id
- b17-20020adff911000000b0021ec0f6fd26mr25119107wrr.361.1667646945769; Sat,
- 05 Nov 2022 04:15:45 -0700 (PDT)
-Date: Sat, 5 Nov 2022 14:15:40 +0300
-To: oe-kbuild@lists.linux.dev,
- Heming Zhao via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Message-id: <202211050722.8YGvtPaR-lkp@intel.com>
+ h=in-reply-to:content-disposition:mime-version:references:message-id
+ :subject:cc:to:from:date:x-gm-message-state:from:to:cc:subject:date
+ :message-id:reply-to; bh=1EXtR7XJJXiRjK9vYVDqObq6bajFz9XQCg+T26fuKrE=;
+ b=iA32dZnt5URtMJ4IxUmtcgMZZ1eVDs7Ibza6HbhJKYUU5pD2koWXx2/YdatA/rI03n
+ 9HRPe0OdnuunR3OQGnwmS64CCa0cWlow2cI2mtKBF5JJXVIlSjs3XFR6iahTLdyts54D
+ DgbPOj0EU4EyHGQejcxRXx5fxqPEn8GU80bH1eVgoWyHlbbCIfPF7R+xw9ynQt0135de
+ 9/v+w0+coEFoCc8iEfNbsPWfgTyx9uS6ZVpnuVFJKIcIdqtLDT5QX+7l3h/eIDKFbG2T
+ 2VzlxQNW2O4zsTmFTjDw1bu1y4dfHl4UsPufsTQ2/EjBL1FbedA2PqT1aDGc76PFlNAs WliA==
+X-Gm-Message-State: ANoB5pkiJjecSM0odlY3f3FhTpj4XzouhHdtNH+r/uZm9Aqtc53KKhIz
+ dIL0ap2TLl2ITm4rtW6SN4c=
+X-Received: by 2002:a05:600c:1906:b0:3cf:a851:d2b1 with SMTP id
+ j6-20020a05600c190600b003cfa851d2b1mr3825762wmq.18.1667807578922; Sun,
+ 06 Nov 2022 23:52:58 -0800 (PST)
+Date: Mon, 7 Nov 2022 10:52:55 +0300
+To: Joseph Qi <joseph.qi@linux.alibaba.com>
+Message-id: <Y2i5V0CIH2tOCMUs@kadam>
+References: <202211050722.8YGvtPaR-lkp@intel.com>
+ <97361840-0a56-f074-0495-712dafe4313d@linux.alibaba.com>
 MIME-version: 1.0
 Content-disposition: inline
-X-Source-IP: 209.85.221.44
-X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10521
+In-reply-to: <97361840-0a56-f074-0495-712dafe4313d@linux.alibaba.com>
+X-Source-IP: 209.85.128.51
+X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10523
  signatures=596816
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 mlxscore=0
- lowpriorityscore=0 impostorscore=0 malwarescore=0 suspectscore=0 spamscore=0
- mlxlogscore=937 clxscore=17 phishscore=0 bulkscore=0 adultscore=0
- priorityscore=330 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2210170000 definitions=main-2211050086 domainage_hfrom=9946
-Cc: lkp@intel.com, linux-kernel@vger.kernel.org,
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 impostorscore=0
+ adultscore=0 spamscore=0 lowpriorityscore=0 suspectscore=0 priorityscore=421
+ mlxlogscore=970 phishscore=0 clxscore=113 mlxscore=0 malwarescore=0
+ bulkscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2210170000 definitions=main-2211070066 domainage_hfrom=9948
+Cc: oe-kbuild@lists.linux.dev, linux-kernel@vger.kernel.org,
  Linux Memory Management List <linux-mm@kvack.org>,
- oe-kbuild-all@lists.linux.dev
-Subject: [Ocfs2-devel] fs/ocfs2/super.c:1809 ocfs2_mount_volume() warn: missing
- error code 'status'
+ oe-kbuild-all@lists.linux.dev,
+ Heming Zhao via Ocfs2-devel <ocfs2-devel@oss.oracle.com>, lkp@intel.com
+Subject: Re: [Ocfs2-devel] fs/ocfs2/super.c:1809 ocfs2_mount_volume() warn:
+ missing error code 'status'
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -89,117 +92,71 @@ Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
 X-Google-Smtp-Source:
- AMsMyM6WU7D2DZTLSdga05zuSpJl+2j2RYGDDpUBqWXo2H5qPh665HWr76c5oJV4AiBpWLaaf+cC9A==
-X-ServerName: mail-wr1-f44.google.com
+ AA0mqf6U/0XYoOBRltwbquuygrt1XbVmjosVnlfe1s1uJGbaRhSF/xTmhGk6btHBRVs32l434UvZhA==
+X-ServerName: mail-wm1-f51.google.com
 X-Proofpoint-SPF-Result: pass
 X-Proofpoint-SPF-Record: v=spf1 redirect=_spf.google.com
 X-Spam: Clean
-X-Proofpoint-ORIG-GUID: qe1k19DP5jiPLcBv8PBwAqpWv7zPMDtX
-X-Proofpoint-GUID: qe1k19DP5jiPLcBv8PBwAqpWv7zPMDtX
+X-Proofpoint-ORIG-GUID: ZE4qq9YxisrEELnQG65x-E0pfPNflv2r
+X-Proofpoint-GUID: ZE4qq9YxisrEELnQG65x-E0pfPNflv2r
 X-Mailman-Approved-At: Tue, 08 Nov 2022 16:35:23 +0000
 Reporting-Meta:
- AAFz9ciH2O8fxJb6/6ZHonbzYgGbzKlKqsK8zAU0ZM5010jN8Ti3RNM1jeRdG3eK
- D9UY9ahEPY5JrDPeydyod4rztbe6/SBVWE58q14jYfzlIT8lFmVfAqHBTHm9Do9k
- ErdnlXDkW8W7sFTQOmyPP+Xvm+9BojHAbw555vpx6duk/68USHkDBpwEniirr+rK
- AqUm8TdgwKu+TeDTD2q205unfxL5Ya3nk59rQB3Z4DEyiggd4DtaEnQFKxIAlfvv
- fl5kuhMM1RjKJs4hrbpIa13GW/AqHREA6o7LRtk5xZcM+L+xSy2zeHDp+f9/yQ6Z
- Rr2AelmoLq/rDBvwII3Z/wO6tD65n+BTCZ65rlzFj1VAyEXMP0i695MWn4iJy7vd
- a6maap0oqfah9/DtTteSnnI0SYEn4pjHlVg0zB/ZfAz3aaqbXTzz/lPg0YP0jrkh
- XBPDyv0kP6uJ5/v/uWClxt0KcEPAhI0BXzOt5VdX1NgaGTiY03MOt4HilAOifLm1
- PCuSKjuEWATjUQoL//FN7Krfs0vp49GBUBzfkhwH8DJv
+ AAFa9lamjXFxRtlTAVQknzpUdoCST2b05ZKFchRXwOUMAtx3X/ZRVnRHBhELbGNY
+ 3LeKDh3YagNiygYY+cjfaJqjvBFdgakjLnPMQD0upHKpaKAwgAVbXkAqIUixgJ75
+ Fh5h4gYnpUR5WSM4G5IJ9Z2oA/1lYdo65mD+5LeTqPZdgtn32+TFsXxQABHpy3gy
+ ABuE5h2LhiAdwzwxa1PMKbgvsWCAWZy2U0PLQaS8+Uxd6TsfQBII59KiSxQhrIxt
+ c0H6wjTzZmdYdSc3zSTKZfz0HStOXpW/LBXOolMG5V4bBjuIr+ssGvfwize7vETs
+ tJtClE3LKPQjjRejhkBo8o9vMvKwiLx5irK+C0yD6Z0EgCx1KaW+JMMyN26aZX/s
+ Rvh+shi5tLhFZm+d9QC8ZzvghnUSab1NIYC9pCpzvUYUnagZMvB48xOAmm8gx8hc
+ QJploAqV8aKlnVxl4rdPR6M++LVT8BRE5BdgxkrqxOwt5SuLcHTPo4toREjnF47J
+ +SzRVyoXe2tXUOwYG2TKlAZZ5dkp+FInnVS3YonqALk=
 
-tree:   https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git master
-head:   10d916c86ecafeccaed89175ebf9b832dddde380
-commit: 0737e01de9c411e4db87dcedf4a9789d41b1c5c1 ocfs2: ocfs2_mount_volume does cleanup job before return error
-config: alpha-randconfig-m041-20221030
-compiler: alpha-linux-gcc (GCC) 12.1.0
+On Sun, Nov 06, 2022 at 08:38:07PM +0800, Joseph Qi wrote:
+> 
+> 
+> On 11/5/22 7:15 PM, Dan Carpenter wrote:
+> > tree:   https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git master
+> > head:   10d916c86ecafeccaed89175ebf9b832dddde380
+> > commit: 0737e01de9c411e4db87dcedf4a9789d41b1c5c1 ocfs2: ocfs2_mount_volume does cleanup job before return error
+> > config: alpha-randconfig-m041-20221030
+> > compiler: alpha-linux-gcc (GCC) 12.1.0
+> > 
+> > If you fix the issue, kindly add following tag where applicable
+> > | Reported-by: kernel test robot <lkp@intel.com>
+> > | Reported-by: Dan Carpenter <error27@gmail.com>
+> > 
+> > smatch warnings:
+> > fs/ocfs2/super.c:1809 ocfs2_mount_volume() warn: missing error code 'status'
+> > 
+> > vim +/status +1809 fs/ocfs2/super.c
+> > 
+> > ccd979bdbce9fba Mark Fasheh                 2005-12-15  1802  
+> > ccd979bdbce9fba Mark Fasheh                 2005-12-15  1803  static int ocfs2_mount_volume(struct super_block *sb)
+> > ccd979bdbce9fba Mark Fasheh                 2005-12-15  1804  {
+> > ccd979bdbce9fba Mark Fasheh                 2005-12-15  1805  	int status = 0;
+> > ccd979bdbce9fba Mark Fasheh                 2005-12-15  1806  	struct ocfs2_super *osb = OCFS2_SB(sb);
+> > ccd979bdbce9fba Mark Fasheh                 2005-12-15  1807  
+> > ccd979bdbce9fba Mark Fasheh                 2005-12-15  1808  	if (ocfs2_is_hard_readonly(osb))
+> > 0737e01de9c411e Heming Zhao via Ocfs2-devel 2022-04-29 @1809  		goto out;
+> > 
+> > Unclear if this is an error path or a success path.  Honestly, I would
+> > have thought the checker is correct that it looks like a failure path.
+> > 
+> This indicates a readonly mount and bypasses dlm related initialization.
+> So it seems an expected success return.
+> 
 
-If you fix the issue, kindly add following tag where applicable
-| Reported-by: kernel test robot <lkp@intel.com>
-| Reported-by: Dan Carpenter <error27@gmail.com>
+A comment would help.  Another way to silence this static checker warning
+and answer any reviewer questions would be to set the "ret = 0;" within
+4 lines of the goto.
 
-smatch warnings:
-fs/ocfs2/super.c:1809 ocfs2_mount_volume() warn: missing error code 'status'
+	if (ocfs2_is_hard_readonly(osb)) {
+		status = 0;
+		goto out;
+	}
 
-vim +/status +1809 fs/ocfs2/super.c
-
-ccd979bdbce9fba Mark Fasheh                 2005-12-15  1802  
-ccd979bdbce9fba Mark Fasheh                 2005-12-15  1803  static int ocfs2_mount_volume(struct super_block *sb)
-ccd979bdbce9fba Mark Fasheh                 2005-12-15  1804  {
-ccd979bdbce9fba Mark Fasheh                 2005-12-15  1805  	int status = 0;
-ccd979bdbce9fba Mark Fasheh                 2005-12-15  1806  	struct ocfs2_super *osb = OCFS2_SB(sb);
-ccd979bdbce9fba Mark Fasheh                 2005-12-15  1807  
-ccd979bdbce9fba Mark Fasheh                 2005-12-15  1808  	if (ocfs2_is_hard_readonly(osb))
-0737e01de9c411e Heming Zhao via Ocfs2-devel 2022-04-29 @1809  		goto out;
-
-Unclear if this is an error path or a success path.  Honestly, I would
-have thought the checker is correct that it looks like a failure path.
-
-ccd979bdbce9fba Mark Fasheh                 2005-12-15  1810  
-5500ab4ed3b8f07 Gang He                     2019-03-05  1811  	mutex_init(&osb->obs_trim_fs_mutex);
-5500ab4ed3b8f07 Gang He                     2019-03-05  1812  
-ccd979bdbce9fba Mark Fasheh                 2005-12-15  1813  	status = ocfs2_dlm_init(osb);
-ccd979bdbce9fba Mark Fasheh                 2005-12-15  1814  	if (status < 0) {
-ccd979bdbce9fba Mark Fasheh                 2005-12-15  1815  		mlog_errno(status);
-a52370b3b182f79 Gang He                     2018-01-31  1816  		if (status == -EBADR && ocfs2_userspace_stack(osb))
-a52370b3b182f79 Gang He                     2018-01-31  1817  			mlog(ML_ERROR, "couldn't mount because cluster name on"
-a52370b3b182f79 Gang He                     2018-01-31  1818  			" disk does not match the running cluster name.\n");
-0737e01de9c411e Heming Zhao via Ocfs2-devel 2022-04-29  1819  		goto out;
-ccd979bdbce9fba Mark Fasheh                 2005-12-15  1820  	}
-ccd979bdbce9fba Mark Fasheh                 2005-12-15  1821  
-ccd979bdbce9fba Mark Fasheh                 2005-12-15  1822  	status = ocfs2_super_lock(osb, 1);
-ccd979bdbce9fba Mark Fasheh                 2005-12-15  1823  	if (status < 0) {
-ccd979bdbce9fba Mark Fasheh                 2005-12-15  1824  		mlog_errno(status);
-0737e01de9c411e Heming Zhao via Ocfs2-devel 2022-04-29  1825  		goto out_dlm;
-ccd979bdbce9fba Mark Fasheh                 2005-12-15  1826  	}
-ccd979bdbce9fba Mark Fasheh                 2005-12-15  1827  
-ccd979bdbce9fba Mark Fasheh                 2005-12-15  1828  	/* This will load up the node map and add ourselves to it. */
-ccd979bdbce9fba Mark Fasheh                 2005-12-15  1829  	status = ocfs2_find_slot(osb);
-ccd979bdbce9fba Mark Fasheh                 2005-12-15  1830  	if (status < 0) {
-ccd979bdbce9fba Mark Fasheh                 2005-12-15  1831  		mlog_errno(status);
-0737e01de9c411e Heming Zhao via Ocfs2-devel 2022-04-29  1832  		goto out_super_lock;
-ccd979bdbce9fba Mark Fasheh                 2005-12-15  1833  	}
-ccd979bdbce9fba Mark Fasheh                 2005-12-15  1834  
-ccd979bdbce9fba Mark Fasheh                 2005-12-15  1835  	/* load all node-local system inodes */
-ccd979bdbce9fba Mark Fasheh                 2005-12-15  1836  	status = ocfs2_init_local_system_inodes(osb);
-ccd979bdbce9fba Mark Fasheh                 2005-12-15  1837  	if (status < 0) {
-ccd979bdbce9fba Mark Fasheh                 2005-12-15  1838  		mlog_errno(status);
-0737e01de9c411e Heming Zhao via Ocfs2-devel 2022-04-29  1839  		goto out_super_lock;
-ccd979bdbce9fba Mark Fasheh                 2005-12-15  1840  	}
-ccd979bdbce9fba Mark Fasheh                 2005-12-15  1841  
-ccd979bdbce9fba Mark Fasheh                 2005-12-15  1842  	status = ocfs2_check_volume(osb);
-ccd979bdbce9fba Mark Fasheh                 2005-12-15  1843  	if (status < 0) {
-ccd979bdbce9fba Mark Fasheh                 2005-12-15  1844  		mlog_errno(status);
-0737e01de9c411e Heming Zhao via Ocfs2-devel 2022-04-29  1845  		goto out_system_inodes;
-ccd979bdbce9fba Mark Fasheh                 2005-12-15  1846  	}
-ccd979bdbce9fba Mark Fasheh                 2005-12-15  1847  
-ccd979bdbce9fba Mark Fasheh                 2005-12-15  1848  	status = ocfs2_truncate_log_init(osb);
-0737e01de9c411e Heming Zhao via Ocfs2-devel 2022-04-29  1849  	if (status < 0) {
-ccd979bdbce9fba Mark Fasheh                 2005-12-15  1850  		mlog_errno(status);
-0737e01de9c411e Heming Zhao via Ocfs2-devel 2022-04-29  1851  		goto out_system_inodes;
-0737e01de9c411e Heming Zhao via Ocfs2-devel 2022-04-29  1852  	}
-c271c5c22b0a7ca Sunil Mushran               2006-12-05  1853  
-ccd979bdbce9fba Mark Fasheh                 2005-12-15  1854  	ocfs2_super_unlock(osb, 1);
-0737e01de9c411e Heming Zhao via Ocfs2-devel 2022-04-29  1855  	return 0;
-ccd979bdbce9fba Mark Fasheh                 2005-12-15  1856  
-0737e01de9c411e Heming Zhao via Ocfs2-devel 2022-04-29  1857  out_system_inodes:
-0737e01de9c411e Heming Zhao via Ocfs2-devel 2022-04-29  1858  	if (osb->local_alloc_state == OCFS2_LA_ENABLED)
-0737e01de9c411e Heming Zhao via Ocfs2-devel 2022-04-29  1859  		ocfs2_shutdown_local_alloc(osb);
-0737e01de9c411e Heming Zhao via Ocfs2-devel 2022-04-29  1860  	ocfs2_release_system_inodes(osb);
-0737e01de9c411e Heming Zhao via Ocfs2-devel 2022-04-29  1861  	/* before journal shutdown, we should release slot_info */
-0737e01de9c411e Heming Zhao via Ocfs2-devel 2022-04-29  1862  	ocfs2_free_slot_info(osb);
-0737e01de9c411e Heming Zhao via Ocfs2-devel 2022-04-29  1863  	ocfs2_journal_shutdown(osb);
-0737e01de9c411e Heming Zhao via Ocfs2-devel 2022-04-29  1864  out_super_lock:
-0737e01de9c411e Heming Zhao via Ocfs2-devel 2022-04-29  1865  	ocfs2_super_unlock(osb, 1);
-0737e01de9c411e Heming Zhao via Ocfs2-devel 2022-04-29  1866  out_dlm:
-0737e01de9c411e Heming Zhao via Ocfs2-devel 2022-04-29  1867  	ocfs2_dlm_shutdown(osb, 0);
-0737e01de9c411e Heming Zhao via Ocfs2-devel 2022-04-29  1868  out:
-ccd979bdbce9fba Mark Fasheh                 2005-12-15  1869  	return status;
-ccd979bdbce9fba Mark Fasheh                 2005-12-15  1870  }
-
--- 
-0-DAY CI Kernel Test Service
-https://01.org/lkp
+regards,
+dan carpenter
 
 
 _______________________________________________
