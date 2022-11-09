@@ -1,80 +1,55 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc247.phx1.oracleemaildelivery.com (aib29ajc247.phx1.oracleemaildelivery.com [192.29.103.247])
+Received: from aib29ajc255.phx1.oracleemaildelivery.com (aib29ajc255.phx1.oracleemaildelivery.com [192.29.103.255])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 5DEDFC43219
-	for <ocfs2-devel@archiver.kernel.org>; Tue,  8 Nov 2022 16:35:26 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id F14CEC433FE
+	for <ocfs2-devel@archiver.kernel.org>; Wed,  9 Nov 2022 06:30:38 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=kXXnYIBXAAvTPBH1u15+fISt+E4COx9H2ceEclELQY8=;
- b=xKu5AXttTszimQ6blWX6iNtMjN6xzpGia/pK53K8jaCJ3NHv2GO1G5R4fT7TC6J83vTzmklgz+YO
-   BgkAdMorKKrO5sO45R7l3Uz1bRtXZkL9uxMFAM/pEvDwucYLH+KylIWqOuDqMGIxkNeiQ8Z8SRjW
-   wNFZ6WqIe9v6IZsPTqHQzxH6qexPlpDwyLZwPIadYi5HTpsQaYlMvqJmXwzCpmPwY4xCGynaNYao
-   F9AuxYt5xru3iftI0gkQA/8eeq0SrffW3n78OYHLbW4ehUJS6/H4zFkL54AZKfXcE3SlBb7lhaty
-   7EGmvTlraNUu/nywjjlPWJ8o5LqMTCztxJnCPg==
+ bh=tfRm3c3CN1Mge6Oz7tfU0t+tYJByydqyvH9jjFR0UfI=;
+ b=ILf0mgkCEYyQ5FQQFx+bplnf89QwEFebvi7Gj78FatBxeZyeoCCBl+ZnbByW0KvpzajFyDNRFO0H
+   M1g0j/lQcsC4lWZg4SYSYqMaICspS2jEujvZxHvE1xurycBVRhZSQz1BxPjhWl/L8xoDWGCu0uiD
+   bCpqP3CNpxPvm5VjU9XZKNrO2Deit0yBflzCp6BpirD6wYOzygMDmFk2ru3GvTeMrKVFFkVjcClI
+   dxteZ2+XXDEyZzsugLPtoXtdAK0/vEu1WMJQuDRLKU/72fPfDFwiaguMv40HMlhNXVobJawcYC+e
+   tSqeaqWbrY+cug6RJgSblmTFtQGDY7/5ul5mMA==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=kXXnYIBXAAvTPBH1u15+fISt+E4COx9H2ceEclELQY8=;
- b=eEgXm7FJ2qxD6y/+23lwZzHBiE74u0buYJZjr/Wg0efFVgetJCiDmaSf8lo+42DMGdWs/uy63Kqv
-   i49sPa+LY60AQJAYliJbN70MfDgOLDmISN0A4aZ10rbHSVDxFSElJNpJG7i32DUw0+cfDtQZe56g
-   1vnk0INGum57WLfz5gYRfn/wpkpNfCn19s2xSViUJbyN8lnJ7Wnw0TGDrdVoPUV5TRGc20bv43/7
-   6Ls6NZZjlMZrfXZEjA9oelTBJ0LmsbO5TJS7WPZXGkkVV2SyG5cvhhRBJZXCXmSvo9emu1vthUpM
-   dXqh0wH+QMsozewj/pRP+AMWaP5i9hRfbURAPw==
-Received: by omta-ad1-fd3-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
+ bh=tfRm3c3CN1Mge6Oz7tfU0t+tYJByydqyvH9jjFR0UfI=;
+ b=UuqV/FIRoVWhVle8BpyZ3kO+GzEdZc1uTLDToW6lIoxDXB+JAkuy1lbjnVgrJXT+FXB286CMQPy0
+   Lhr3nJsZfTQnHELwrSpyrrP8Jthi2R6qL7cLD0vXPUffq9fKGgbPgEIZaVE0o7nSgfGVqoRqiwg4
+   Hz6nhA7YWYL38gsi1+qyJETqTa4jjkRCArNrBaCkT16X3C7Rz8mJ0ko44zKdu0OSI/plv18gfweL
+   m7bRW2MJ0UcBVcp+MsUDJTYVre0YpZEYpdrUCe3rxq96oojUAuKNmXTLhyZ4ah2FEvHnfv+f9sjE
+   mjxZWlxEkEo13PtXGsr535dJbVeLWVc5E8y2rA==
+Received: by omta-ad3-fd3-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20221026 64bit (built Oct 26
  2022))
- with ESMTPS id <0RL100J9BFF1QZ30@omta-ad1-fd3-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Tue, 08 Nov 2022 16:35:25 +0000 (GMT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=20210112;
- h=in-reply-to:content-disposition:mime-version:references:message-id
- :subject:cc:to:from:date:from:to:cc:subject:date:message-id:reply-to;
- bh=1EXtR7XJJXiRjK9vYVDqObq6bajFz9XQCg+T26fuKrE=;
- b=AhyPTp2hdxp66jkLu7AniU2AycEFO8kjoA0cTSA2DXMhMakoLktz1BMuwuFBMRoX/L
- iqDcuROIWNrO1ABA1AvPsmmiAQPwvxmCMQF7aNE4VlzVKkbOO1EbgDA6C9m0e1+yann8
- KLNkWVfXds2T/RExpxkwWdWVZM8unzDG437HCPvEiRRHo37+80ifBWPnoaTJV4KVMywv
- AqXyf0MOPklW9RRMqSQvW0Z4wGOHY2DurTzEqyRxSCGagg4TRN+FeNOjsMKqS3V3UiGI
- Ua/VAiTmsxsndtlxlQIdq1zjsdpinmbjos/47b59qPYe+SFpVtfCi0X8Z8MSfMDlD9nH VM8Q==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=1e100.net;
- s=20210112;
- h=in-reply-to:content-disposition:mime-version:references:message-id
- :subject:cc:to:from:date:x-gm-message-state:from:to:cc:subject:date
- :message-id:reply-to; bh=1EXtR7XJJXiRjK9vYVDqObq6bajFz9XQCg+T26fuKrE=;
- b=iA32dZnt5URtMJ4IxUmtcgMZZ1eVDs7Ibza6HbhJKYUU5pD2koWXx2/YdatA/rI03n
- 9HRPe0OdnuunR3OQGnwmS64CCa0cWlow2cI2mtKBF5JJXVIlSjs3XFR6iahTLdyts54D
- DgbPOj0EU4EyHGQejcxRXx5fxqPEn8GU80bH1eVgoWyHlbbCIfPF7R+xw9ynQt0135de
- 9/v+w0+coEFoCc8iEfNbsPWfgTyx9uS6ZVpnuVFJKIcIdqtLDT5QX+7l3h/eIDKFbG2T
- 2VzlxQNW2O4zsTmFTjDw1bu1y4dfHl4UsPufsTQ2/EjBL1FbedA2PqT1aDGc76PFlNAs WliA==
-X-Gm-Message-State: ANoB5pkiJjecSM0odlY3f3FhTpj4XzouhHdtNH+r/uZm9Aqtc53KKhIz
- dIL0ap2TLl2ITm4rtW6SN4c=
-X-Received: by 2002:a05:600c:1906:b0:3cf:a851:d2b1 with SMTP id
- j6-20020a05600c190600b003cfa851d2b1mr3825762wmq.18.1667807578922; Sun,
- 06 Nov 2022 23:52:58 -0800 (PST)
-Date: Mon, 7 Nov 2022 10:52:55 +0300
-To: Joseph Qi <joseph.qi@linux.alibaba.com>
-Message-id: <Y2i5V0CIH2tOCMUs@kadam>
-References: <202211050722.8YGvtPaR-lkp@intel.com>
- <97361840-0a56-f074-0495-712dafe4313d@linux.alibaba.com>
+ with ESMTPS id <0RL2003KJI32RQ30@omta-ad3-fd3-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Wed, 09 Nov 2022 06:30:38 +0000 (GMT)
+Message-id: <05c24286-427d-e572-aa70-8f1d882b9602@linux.alibaba.com>
+Date: Wed, 9 Nov 2022 14:19:21 +0800
 MIME-version: 1.0
-Content-disposition: inline
-In-reply-to: <97361840-0a56-f074-0495-712dafe4313d@linux.alibaba.com>
-X-Source-IP: 209.85.128.51
-X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10523
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:102.0)
+ Gecko/20100101 Thunderbird/102.4.1
+To: Li Zetao <lizetao1@huawei.com>, mark@fasheh.com, jlbec@evilplan.org,
+ srinivas.eeda@oracle.com
+References: <20221108152516.1189165-1-lizetao1@huawei.com>
+Content-language: en-US
+In-reply-to: <20221108152516.1189165-1-lizetao1@huawei.com>
+X-Source-IP: 115.124.30.57
+X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10525
  signatures=596816
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 impostorscore=0
- adultscore=0 spamscore=0 lowpriorityscore=0 suspectscore=0 priorityscore=421
- mlxlogscore=970 phishscore=0 clxscore=113 mlxscore=0 malwarescore=0
- bulkscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2210170000 definitions=main-2211070066 domainage_hfrom=9948
-Cc: oe-kbuild@lists.linux.dev, linux-kernel@vger.kernel.org,
- Linux Memory Management List <linux-mm@kvack.org>,
- oe-kbuild-all@lists.linux.dev,
- Heming Zhao via Ocfs2-devel <ocfs2-devel@oss.oracle.com>, lkp@intel.com
-Subject: Re: [Ocfs2-devel] fs/ocfs2/super.c:1809 ocfs2_mount_volume() warn:
- missing error code 'status'
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 suspectscore=0
+ mlxlogscore=999 malwarescore=0 priorityscore=85 phishscore=0 adultscore=0
+ clxscore=98 bulkscore=0 impostorscore=0 lowpriorityscore=0 spamscore=0
+ mlxscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2210170000 definitions=main-2211090047 domainage_hfrom=8609
+Cc: linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
+Subject: Re: [Ocfs2-devel] [PATCH] ocfs2: fix memory leak in
+	ocfs2_mount_volume()
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -86,78 +61,150 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: Dan Carpenter via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: Dan Carpenter <error27@gmail.com>
+From: Joseph Qi via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: Joseph Qi <joseph.qi@linux.alibaba.com>
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-Google-Smtp-Source:
- AA0mqf6U/0XYoOBRltwbquuygrt1XbVmjosVnlfe1s1uJGbaRhSF/xTmhGk6btHBRVs32l434UvZhA==
-X-ServerName: mail-wm1-f51.google.com
+X-Alimail-AntiSpam: AC=PASS; BC=-1|-1; BR=01201311R261e4; CH=green;
+ DM=||false|; DS=||; FP=0|-1|-1|-1|0|-1|-1|-1; HT=ay29a033018045168;
+ MF=joseph.qi@linux.alibaba.com; NM=1; PH=DS; RN=6; SR=0;
+ TI=SMTPD_---0VUMT3zM_1667974761;
+X-ServerName: out30-57.freemail.mail.aliyun.com
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 redirect=_spf.google.com
+X-Proofpoint-SPF-Record: v=spf1 include:spf1.service.alibaba.com
+ include:spf2.service.alibaba.com include:spf1.ocm.aliyun.com
+ include:spf2.ocm.aliyun.com include:spf1.staff.mail.aliyun.com
+ include:a.hichina.mail.aliyun.com include:b.hichina.mail.aliyun.com -all
 X-Spam: Clean
-X-Proofpoint-ORIG-GUID: ZE4qq9YxisrEELnQG65x-E0pfPNflv2r
-X-Proofpoint-GUID: ZE4qq9YxisrEELnQG65x-E0pfPNflv2r
-X-Mailman-Approved-At: Tue, 08 Nov 2022 16:35:23 +0000
+X-Proofpoint-GUID: hHimyGFv-X4b0p8vYmJzlHNoEOeKX0ET
+X-Proofpoint-ORIG-GUID: hHimyGFv-X4b0p8vYmJzlHNoEOeKX0ET
 Reporting-Meta:
- AAFa9lamjXFxRtlTAVQknzpUdoCST2b05ZKFchRXwOUMAtx3X/ZRVnRHBhELbGNY
- 3LeKDh3YagNiygYY+cjfaJqjvBFdgakjLnPMQD0upHKpaKAwgAVbXkAqIUixgJ75
- Fh5h4gYnpUR5WSM4G5IJ9Z2oA/1lYdo65mD+5LeTqPZdgtn32+TFsXxQABHpy3gy
- ABuE5h2LhiAdwzwxa1PMKbgvsWCAWZy2U0PLQaS8+Uxd6TsfQBII59KiSxQhrIxt
- c0H6wjTzZmdYdSc3zSTKZfz0HStOXpW/LBXOolMG5V4bBjuIr+ssGvfwize7vETs
- tJtClE3LKPQjjRejhkBo8o9vMvKwiLx5irK+C0yD6Z0EgCx1KaW+JMMyN26aZX/s
- Rvh+shi5tLhFZm+d9QC8ZzvghnUSab1NIYC9pCpzvUYUnagZMvB48xOAmm8gx8hc
- QJploAqV8aKlnVxl4rdPR6M++LVT8BRE5BdgxkrqxOwt5SuLcHTPo4toREjnF47J
- +SzRVyoXe2tXUOwYG2TKlAZZ5dkp+FInnVS3YonqALk=
+ AAFvEjTzwIBRP8aBJPpU/Fc77BR29s3Phr3HvC+4Wr0ZUrz7MBSEDeyT8Qt2uMex
+ P2t8RiRsH/Dnl8tpumVijXp7puq475T3ewkSWI7+mYTPubijcMqis2ZFIlyGaGIY
+ 2dA3tBOqOblSPqKLhk/Ut11qQAW2b8xdNAtm58ZJFjgBwM3Bj0jhaDnASooTj/i2
+ lC5rizhYHtjGXYWYPEzdFEd72KftOPjxRkmGspXIEucmjU4WakMjXci3S+81K95j
+ sRLAXbt09bkXWOcSfcNzmHYdQsFnfK06g65reZ5n84bHP6fM2UNtoVlDuBahxOjr
+ ayNURe9Fcqsz1E6zQcY8fsudYLbxKfiOPnD/90GeddHPfbp7ksbbP3UPys3zOFnu
+ w4G2uYVREtOQRnOINpocIB+Ha9Xg3LEZES30fmgPbwcacXVHM6JpngmLEVJ/DZDu
+ yWvWF86Y4uML/irZiz+Txam/HhEfZjAcR74OPcVHmFyeaf4Vv8pJ4oWci3//HzCF
+ h+AvKLC8fquSjf6QuhVM6RUOcNQkRHfzLNvlYlC7/5g=
 
-On Sun, Nov 06, 2022 at 08:38:07PM +0800, Joseph Qi wrote:
+Hi,
+
+Thanks for so detailed analysis.
+The patch almost looks good. A minor improvement, please see my
+comments inline.
+
+On 11/8/22 11:25 PM, Li Zetao wrote:
+> There is a memory leak reported by kmemleak:
 > 
+>   unreferenced object 0xffff88810cc65e60 (size 32):
+>     comm "mount.ocfs2", pid 23753, jiffies 4302528942 (age 34735.105s)
+>     hex dump (first 32 bytes):
+>       10 00 00 00 00 00 00 00 00 01 01 01 01 01 01 01  ................
+>       01 01 01 01 01 01 01 01 00 00 00 00 00 00 00 00  ................
+>     backtrace:
+>       [<ffffffff8170f73d>] __kmalloc+0x4d/0x150
+>       [<ffffffffa0ac3f51>] ocfs2_compute_replay_slots+0x121/0x330 [ocfs2]
+>       [<ffffffffa0b65165>] ocfs2_check_volume+0x485/0x900 [ocfs2]
+>       [<ffffffffa0b68129>] ocfs2_mount_volume.isra.0+0x1e9/0x650 [ocfs2]
+>       [<ffffffffa0b7160b>] ocfs2_fill_super+0xe0b/0x1740 [ocfs2]
+>       [<ffffffff818e1fe2>] mount_bdev+0x312/0x400
+>       [<ffffffff819a086d>] legacy_get_tree+0xed/0x1d0
+>       [<ffffffff818de82d>] vfs_get_tree+0x7d/0x230
+>       [<ffffffff81957f92>] path_mount+0xd62/0x1760
+>       [<ffffffff81958a5a>] do_mount+0xca/0xe0
+>       [<ffffffff81958d3c>] __x64_sys_mount+0x12c/0x1a0
+>       [<ffffffff82f26f15>] do_syscall_64+0x35/0x80
+>       [<ffffffff8300006a>] entry_SYSCALL_64_after_hwframe+0x46/0xb0
 > 
-> On 11/5/22 7:15 PM, Dan Carpenter wrote:
-> > tree:   https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git master
-> > head:   10d916c86ecafeccaed89175ebf9b832dddde380
-> > commit: 0737e01de9c411e4db87dcedf4a9789d41b1c5c1 ocfs2: ocfs2_mount_volume does cleanup job before return error
-> > config: alpha-randconfig-m041-20221030
-> > compiler: alpha-linux-gcc (GCC) 12.1.0
-> > 
-> > If you fix the issue, kindly add following tag where applicable
-> > | Reported-by: kernel test robot <lkp@intel.com>
-> > | Reported-by: Dan Carpenter <error27@gmail.com>
-> > 
-> > smatch warnings:
-> > fs/ocfs2/super.c:1809 ocfs2_mount_volume() warn: missing error code 'status'
-> > 
-> > vim +/status +1809 fs/ocfs2/super.c
-> > 
-> > ccd979bdbce9fba Mark Fasheh                 2005-12-15  1802  
-> > ccd979bdbce9fba Mark Fasheh                 2005-12-15  1803  static int ocfs2_mount_volume(struct super_block *sb)
-> > ccd979bdbce9fba Mark Fasheh                 2005-12-15  1804  {
-> > ccd979bdbce9fba Mark Fasheh                 2005-12-15  1805  	int status = 0;
-> > ccd979bdbce9fba Mark Fasheh                 2005-12-15  1806  	struct ocfs2_super *osb = OCFS2_SB(sb);
-> > ccd979bdbce9fba Mark Fasheh                 2005-12-15  1807  
-> > ccd979bdbce9fba Mark Fasheh                 2005-12-15  1808  	if (ocfs2_is_hard_readonly(osb))
-> > 0737e01de9c411e Heming Zhao via Ocfs2-devel 2022-04-29 @1809  		goto out;
-> > 
-> > Unclear if this is an error path or a success path.  Honestly, I would
-> > have thought the checker is correct that it looks like a failure path.
-> > 
-> This indicates a readonly mount and bypasses dlm related initialization.
-> So it seems an expected success return.
+> This call stack is related to two problems. Firstly, the ocfs2 super uses
+> "replay_map" to trace online/offline slots, in order to recover offline
+> slots during recovery and mount. But when ocfs2_truncate_log_init()
+> returns an error in ocfs2_mount_volume(), the memory of "replay_map"
+> will not be freed in error handling path. Secondly, the memory of
+> "replay_map" will not be freed if d_make_root() returns an error in
+> ocfs2_fill_super(). But the memory of "replay_map" will be freed normally
+> when completing recovery and mount in ocfs2_complete_mount_recovery().
 > 
+> Fix the first problem by adding error handling path to free "replay_map"
+> when ocfs2_truncate_log_init() fails. And fix the second problem by
+> calling ocfs2_free_replay_slots(osb) in the error handling path
+> "out_dismount". In addition, since ocfs2_free_replay_slots() is static,
+> it is necessary to remove its static attribute and declare it in header
+> file.
+> 
+> Fixes: 9140db04ef18 ("ocfs2: recover orphans in offline slots during recovery and mount")
+> Signed-off-by: Li Zetao <lizetao1@huawei.com>
+> ---
+>  fs/ocfs2/journal.c | 2 +-
+>  fs/ocfs2/journal.h | 1 +
+>  fs/ocfs2/super.c   | 5 ++++-
+>  3 files changed, 6 insertions(+), 2 deletions(-)
+> 
+> diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
+> index 126671e6caed..3fb98b4569a2 100644
+> --- a/fs/ocfs2/journal.c
+> +++ b/fs/ocfs2/journal.c
+> @@ -157,7 +157,7 @@ static void ocfs2_queue_replay_slots(struct ocfs2_super *osb,
+>  	replay_map->rm_state = REPLAY_DONE;
+>  }
+>  
+> -static void ocfs2_free_replay_slots(struct ocfs2_super *osb)
+> +void ocfs2_free_replay_slots(struct ocfs2_super *osb)
+>  {
+>  	struct ocfs2_replay_map *replay_map = osb->replay_map;
+>  
+> diff --git a/fs/ocfs2/journal.h b/fs/ocfs2/journal.h
+> index 969d0aa28718..41c382f68529 100644
+> --- a/fs/ocfs2/journal.h
+> +++ b/fs/ocfs2/journal.h
+> @@ -150,6 +150,7 @@ int ocfs2_recovery_init(struct ocfs2_super *osb);
+>  void ocfs2_recovery_exit(struct ocfs2_super *osb);
+>  
+>  int ocfs2_compute_replay_slots(struct ocfs2_super *osb);
+> +void ocfs2_free_replay_slots(struct ocfs2_super *osb);
+>  /*
+>   *  Journal Control:
+>   *  Initialize, Load, Shutdown, Wipe a journal.
+> diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+> index 42c993e53924..f8041aebe4ee 100644
+> --- a/fs/ocfs2/super.c
+> +++ b/fs/ocfs2/super.c
+> @@ -1159,6 +1159,7 @@ static int ocfs2_fill_super(struct super_block *sb, void *data, int silent)
+>  out_dismount:
+>  	atomic_set(&osb->vol_state, VOLUME_DISABLED);
+>  	wake_up(&osb->osb_mount_event);
+> +	ocfs2_free_replay_slots(osb);
+>  	ocfs2_dismount_volume(sb, 1);
+>  	goto out;
+>  
+> @@ -1822,12 +1823,14 @@ static int ocfs2_mount_volume(struct super_block *sb)
+>  	status = ocfs2_truncate_log_init(osb);
+>  	if (status < 0) {
+>  		mlog_errno(status);
+> -		goto out_system_inodes;
+> +		goto out_truncate_log;
+>  	}
+>  
+>  	ocfs2_super_unlock(osb, 1);
+>  	return 0;
+>  
+> +out_truncate_log:
 
-A comment would help.  Another way to silence this static checker warning
-and answer any reviewer questions would be to set the "ret = 0;" within
-4 lines of the goto.
+I'd like define this label as 'out_check_volume', to indicate that it's
+the entry to do cleanup work of ocfs2_check_volume().
 
-	if (ocfs2_is_hard_readonly(osb)) {
-		status = 0;
-		goto out;
-	}
+Other looks good to me.
 
-regards,
-dan carpenter
+Thanks,
+Joseph
 
+> +	ocfs2_free_replay_slots(osb);
+>  out_system_inodes:
+>  	if (osb->local_alloc_state == OCFS2_LA_ENABLED)
+>  		ocfs2_shutdown_local_alloc(osb);
 
 _______________________________________________
 Ocfs2-devel mailing list
