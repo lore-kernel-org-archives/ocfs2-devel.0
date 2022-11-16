@@ -1,56 +1,53 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc245.phx1.oracleemaildelivery.com (aib29ajc245.phx1.oracleemaildelivery.com [192.29.103.245])
+Received: from aib29ajc244.phx1.oracleemaildelivery.com (aib29ajc244.phx1.oracleemaildelivery.com [192.29.103.244])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 9BBBCC4332F
-	for <ocfs2-devel@archiver.kernel.org>; Thu, 10 Nov 2022 01:17:34 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 02BAAC4332F
+	for <ocfs2-devel@archiver.kernel.org>; Wed, 16 Nov 2022 13:50:41 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=PMZc0qgN52cDtIbR8Yrxn5D2IwshZh15lexIPIjJCyU=;
- b=ZOjwHomHJGWfKwjABHxXXuKliWUOsGvliIboiUDbZ4yInKnWt7szxybHLliexpbF4ERLbdZLApwr
-   W50tx6pp3WT0E9PHhIw80xgeaS/VdUYABDemBAtIfb/2c4VQgYwCKrFhnXJr4UO8lZ7xA5QlAXTA
-   EjsG0upQYgmr+L8uJGQCMYHxPTOYGgXP8/GS6B68zdagNvpEcRoO381WVXUoh46VhGBs4tjoWGL1
-   BAoSYL5WR+3YQa1NWnkHixb8aoKzetCr5Zohxd19G0sfA6Gg7liWpId42QonfhIz4d0KkQdLU1Zd
-   uUwHxKDDD8DdY51IAdMkmraX1xbPydQwIRBfFg==
+ bh=wLyGccL3+pDPW/722WRlT83Yj+Tqq7PLD77YUuJZ9ts=;
+ b=CtRsvLO351wDzNVxJ7c0ijD2jM2wHIsqcmAa4SnIZPZbHLBcAeJ8NCSeT6+Jua1f6kWFVGYuM0M7
+   r95Cp22/eCYPD4MLGtHQdEiFxLuvWvH1aAQSa8EOh1Id5RTNtOvTh6D8/GYls9laiFGBWN4vRiel
+   O3noI4Q44Yv0h7QoewvaHZrodTxMw80wq+YQeLZ3ZeZpn40RT2c5PAljT8nmgGbuH9+CQhYYTI2g
+   Sm4X3g4yZw1DhmtaxbdJOsldHsxj1VE1ElqH+P2+ktKQY87K2UDJTUE/izVMXxYv4jlCZ0L1V+od
+   7V2ifws4Foo2+55lUzf+/sRoP46T/IT/0B2MWA==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=PMZc0qgN52cDtIbR8Yrxn5D2IwshZh15lexIPIjJCyU=;
- b=gjTYD+wDzcsLgtaWbhSCtR8z36G/3aYR9KA5q4EhADVI98BLtI+boF1ffkEWxORNsHGd5OjrJhgl
-   m7AMXuZKyKpNmoxk5DmzZ5a5VPP64lhds43kUCSJLCQvVFOtN3B219S/zf5opb5oqvBHInb1Qud3
-   rdBAdEUUXZWT32bz66crfXTgl7z8db6Ba+L18LeBSFUJPW0UBIs4mHiBYpMNDyMziKbNB8sGWklM
-   4tUY8hcnm6i+pdpD1KwfSnw/wk5fFOJ321FL6DtafFyVU9EuKQjntZBrUtpI4KGPk3X2BDc+opNJ
-   43ZbDHg7QQuYdew7zQndAvj2qd42w5aMhrZ2Vg==
-Received: by omta-ad1-fd1-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
- (Oracle Communications Messaging Server 8.1.0.1.20221026 64bit (built Oct 26
+ bh=wLyGccL3+pDPW/722WRlT83Yj+Tqq7PLD77YUuJZ9ts=;
+ b=tw4qq7rVkUwN+r7Yza5oKyZo4q4jV4X5or9nfmZWR2PwgGJYUyfQDLCW+a1ZMZM6Iztp3n4oMWed
+   +wHqqO9okQsBGjFpiLuNmN+BPpeljD6jLldNGDSh9/K12N65EnE0iXCN9lQdX8F/Ssy4DeweE2QM
+   yIa4U4RwFOsarkjKEbDf/5y4BMybH1tlBZ61lgsh5715vRjZ6kVPSt8MpAKyBvmiZvORbD9pU8oR
+   ujfw1SbPAUlvxYWArDJO/prwS2M0IdbDy43HrizRIGAgHm7uyh2XN/J0b6sh0lrGoHFBYkotz3BS
+   g1RaJKF9J5fjTgw/gOGLIG7Wm4avh73B2jWRYQ==
+Received: by omta-ad1-fd1-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
+ (Oracle Communications Messaging Server 8.1.0.1.20221104 64bit (built Nov  4
  2022))
- with ESMTPS id <0RL300184Y99VVC0@omta-ad1-fd1-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Thu, 10 Nov 2022 01:17:33 +0000 (GMT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linux-foundation.org;
- s=korg; t=1668043039; bh=rrmLSD1CznvpqjAYOO7eoD2OG4Qn1k7BzctmXYXE3Ek=;
- h=Date:To:From:Subject:From;
- b=P8f6rS/FFpmJ3RgHM81hWdOUH3/iD3lCTDneDSorIcVUnN4yk3osxqOziGNo7yUyI
- i+FPjq6Kwy1p8sg0wsjOZLIbzzJlJInvDX5EQL4EqWnTfkOzbwr0OeYV1GGn83/xxo
- l8CeoADk699FzB18InQKed0OqwKhT7bwTli9dkCA=
-Date: Wed, 09 Nov 2022 17:17:18 -0800
-To: mm-commits@vger.kernel.org, piaojun@huawei.com, mark@fasheh.com,
- lizetao1@huawei.com, junxiao.bi@oracle.com, joseph.qi@linux.alibaba.com,
- jlbec@evilplan.org, ghe@suse.com, gechangwei@live.cn,
- ocfs2-devel@oss.oracle.com, akpm@linux-foundation.org
-Message-id: <20221110011719.55EA1C433D6@smtp.kernel.org>
-X-Source-IP: 139.178.84.217
-X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10526
+ with ESMTPS id <0RLG00JW614H8BA0@omta-ad1-fd1-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Wed, 16 Nov 2022 13:50:41 +0000 (GMT)
+Date: Wed, 16 Nov 2022 14:50:16 +0100
+To: Theodore Ts'o <tytso@mit.edu>, Jan Kara <jack@suse.cz>,
+ "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>,
+ Mingming Cao <cmm@us.ibm.com>
+Message-id: <20221116135016.GA9713@lst.de>
+MIME-version: 1.0
+Content-disposition: inline
+User-Agent: Mutt/1.5.17 (2007-11-01)
+X-Source-IP: 213.95.11.211
+X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10532
  signatures=596816
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 phishscore=0
- spamscore=0 priorityscore=203 mlxlogscore=999 malwarescore=0 impostorscore=0
- adultscore=0 clxscore=133 lowpriorityscore=0 bulkscore=0 mlxscore=0
- suspectscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2210170000 definitions=main-2211100007
-Subject: [Ocfs2-devel] + ocfs2-fix-memory-leak-in-ocfs2_mount_volume.patch
-	added to mm-nonmm-unstable branch
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 impostorscore=0
+ clxscore=286 bulkscore=0 suspectscore=0 phishscore=0 mlxlogscore=713
+ lowpriorityscore=0 adultscore=0 spamscore=0 malwarescore=0 priorityscore=30
+ mlxscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2210170000 definitions=main-2211160096
+Cc: linux-fsdevel@vger.kernel.org, linux-mm@kvack.org,
+ linux-ext4@vger.kernel.org, ocfs2-devel@oss.oracle.com
+Subject: [Ocfs2-devel] generic_writepages & jbd2 and ext4
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -62,168 +59,60 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: Andrew Morton via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: Andrew Morton <akpm@linux-foundation.org>
-MIME-version: 1.0
+From: Christoph Hellwig via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: Christoph Hellwig <hch@lst.de>
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-ServerName: dfw.source.kernel.org
-X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 ip4:140.211.169.12/30 include:_spf.kernel.org
- include:_spf.google.com ~all
+X-ServerName: verein.lst.de
+X-Proofpoint-SPF-Result: None
 X-Spam: Clean
-X-Proofpoint-GUID: 6uzXEUHmpfQlePFH_oFEUnhV4mpXQIla
-X-Proofpoint-ORIG-GUID: 6uzXEUHmpfQlePFH_oFEUnhV4mpXQIla
+X-Proofpoint-ORIG-GUID: IvzHadDF09fAQvt4rpdDT-Aaz2jVqiKZ
+X-Proofpoint-GUID: IvzHadDF09fAQvt4rpdDT-Aaz2jVqiKZ
 Reporting-Meta:
- AAE003o51HE15jp3Psse0wfkMOshF5ZAzsdXlaKIHZcgswFEOQsZxAXQ+zmn4YVC
- UrKwqHOlkt1nvnIay6245uwzFMH4x2p2lYz5HhZNzSLZZysB1iDXgjkMzOHbD+mZ
- ccFj9jvEkea7n59D4c6HW1DuQ9jYHwS4+L0ixEqiFOVJhteuefKjmRdVUb0F1NQd
- qLER3IRX0K3F8H6pUHtKmc0zwT0NSwP9XkRZi9t7Z/3hF1thxe5gsRJ5yj1PRE8K
- yP/Ij+Uea2B8ENsDCZykenUxELoolG9PNuOxVKhcRxR3ogfEpsbzCiczLmu0Zw9w
- O67MLUTo3sOjJKT2glxEI5pEmUAqAFzm+wUUyGDdhXGgbicZKvCgt4qCyVVrTPOY
- 9EBdcTyNTP0MzMa5T/3zDKp0a5WaqDGax2kTBk2w5tZdCPao6tlcKQ4XbXq3Q889
- a+wnux4F9RvkZZif43Oed9djdKd4G0EnJxx//aWT9j2hJ6OVnckvm90JGlHmwxwv
- WHXAK+AwUmf3zq2mu/FtmK9X11S2clXsZT8faQmm/6lG
+ AAFPVm8RdW26hQfb87AtvQcGC67e4VqWUU10DSdyJxatOdb7vcBRaiepGKWVXT3I
+ 8NLoqKHQogVBz9fq6yMkuwhVuAa6uox/ZhUdSyrbNJ+agwDlDSr0nXcTJBlRAydP
+ nOCM3UBsNoDd9KogucmE6buDhxhe1mhNAjdlBDbx8uoK3hVlHL8o2ASWzrLlwwac
+ x/Lq9R6tlTTFRTY92+VaepbPAASRCc4QMcnF6zeUrd5noZnjerrQ0oGcXnON1ibh
+ yuRUw5fa5eOe/1V9JYp26zZldH24I8WTxRitguWFjMfFV36I7U7/Mf/9p4oK+gku
+ VhknwwnG60cnIOzsxSGhPdRzXpH3QaS+6yyvBQ2UwFs80WWeIGQK8bq/EpXSBet8
+ 9b7yUvgsNfWEiOFQXFRqESM1qVmQGiXYQK20PzCybp8HOquYJA5qZxIJvUKglQfT
+ yIyiwkkDbQyJoWpZgPIcrTGgtm8tDNZe41M329bqxGjM3kaKlX/DivtqQ5yu54Pn
+ rdy1BpJT3IyB5DSNFFMUOzS9EaTZ3iPwa86/vcqobRSJ
 
+Hi all,
 
-The patch titled
-     Subject: ocfs2: fix memory leak in ocfs2_mount_volume()
-has been added to the -mm mm-nonmm-unstable branch.  Its filename is
-     ocfs2-fix-memory-leak-in-ocfs2_mount_volume.patch
+I've recently started looking into killing off the ->writepage method,
+and as an initial subproject kill of external uses of generic_writepages.
+One of the two remaining callers s in jbd2 and I'm a bit confused about
+it.
 
-This patch will shortly appear at
-     https://git.kernel.org/pub/scm/linux/kernel/git/akpm/25-new.git/tree/patches/ocfs2-fix-memory-leak-in-ocfs2_mount_volume.patch
+jbd2_journal_submit_inode_data_buffers has two comments that explicitly
+ask for ->writepages as that doesn't allocate data:
 
-This patch will later appear in the mm-nonmm-unstable branch at
-    git://git.kernel.org/pub/scm/linux/kernel/git/akpm/mm
+/*
+ * write the filemap data using writepage() address_space_operations.
+ * We don't do block allocation here even for delalloc. We don't
+ * use writepages() because with delayed allocation we may be doing
+ * block allocation in writepages().
+ */
 
-Before you just go and hit "reply", please:
-   a) Consider who else should be cc'ed
-   b) Prefer to cc a suitable mailing list as well
-   c) Ideally: find the original patch on the mailing list and do a
-      reply-to-all to that, adding suitable additional cc's
+	/*
+         * submit the inode data buffers. We use writepage
+	 * instead of writepages. Because writepages can do
+	 * block allocation with delalloc. We need to write
+	 * only allocated blocks here.
+	 */
 
-*** Remember to use Documentation/process/submit-checklist.rst when testing your code ***
+and these look really stange to me.  ->writepage and ->writepages per
+their document VM/VFS semantics don't different on what they allocate,
+so this seems to reverse engineer ext4 internal behavior in some
+way.  Either way looping over ->writepage just for that is rather
+inefficient.  If jbd2 really wants a way to skip delalloc conversion
+can we come up with a flag in struct writeback_control for that?
 
-The -mm tree is included into linux-next via the mm-everything
-branch at git://git.kernel.org/pub/scm/linux/kernel/git/akpm/mm
-and is updated there every 2-3 working days
-
-------------------------------------------------------
-From: Li Zetao via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Subject: ocfs2: fix memory leak in ocfs2_mount_volume()
-Date: Wed, 9 Nov 2022 15:46:27 +0800
-
-There is a memory leak reported by kmemleak:
-
-  unreferenced object 0xffff88810cc65e60 (size 32):
-    comm "mount.ocfs2", pid 23753, jiffies 4302528942 (age 34735.105s)
-    hex dump (first 32 bytes):
-      10 00 00 00 00 00 00 00 00 01 01 01 01 01 01 01  ................
-      01 01 01 01 01 01 01 01 00 00 00 00 00 00 00 00  ................
-    backtrace:
-      [<ffffffff8170f73d>] __kmalloc+0x4d/0x150
-      [<ffffffffa0ac3f51>] ocfs2_compute_replay_slots+0x121/0x330 [ocfs2]
-      [<ffffffffa0b65165>] ocfs2_check_volume+0x485/0x900 [ocfs2]
-      [<ffffffffa0b68129>] ocfs2_mount_volume.isra.0+0x1e9/0x650 [ocfs2]
-      [<ffffffffa0b7160b>] ocfs2_fill_super+0xe0b/0x1740 [ocfs2]
-      [<ffffffff818e1fe2>] mount_bdev+0x312/0x400
-      [<ffffffff819a086d>] legacy_get_tree+0xed/0x1d0
-      [<ffffffff818de82d>] vfs_get_tree+0x7d/0x230
-      [<ffffffff81957f92>] path_mount+0xd62/0x1760
-      [<ffffffff81958a5a>] do_mount+0xca/0xe0
-      [<ffffffff81958d3c>] __x64_sys_mount+0x12c/0x1a0
-      [<ffffffff82f26f15>] do_syscall_64+0x35/0x80
-      [<ffffffff8300006a>] entry_SYSCALL_64_after_hwframe+0x46/0xb0
-
-This call stack is related to two problems.  Firstly, the ocfs2 super uses
-"replay_map" to trace online/offline slots, in order to recover offline
-slots during recovery and mount.  But when ocfs2_truncate_log_init()
-returns an error in ocfs2_mount_volume(), the memory of "replay_map" will
-not be freed in error handling path.  Secondly, the memory of "replay_map"
-will not be freed if d_make_root() returns an error in ocfs2_fill_super().
-But the memory of "replay_map" will be freed normally when completing
-recovery and mount in ocfs2_complete_mount_recovery().
-
-Fix the first problem by adding error handling path to free "replay_map"
-when ocfs2_truncate_log_init() fails.  And fix the second problem by
-calling ocfs2_free_replay_slots(osb) in the error handling path
-"out_dismount".  In addition, since ocfs2_free_replay_slots() is static,
-it is necessary to remove its static attribute and declare it in header
-file.
-
-Link: https://lkml.kernel.org/r/20221109074627.2303950-1-lizetao1@huawei.com
-Fixes: 9140db04ef18 ("ocfs2: recover orphans in offline slots during recovery and mount")
-Signed-off-by: Li Zetao <lizetao1@huawei.com>
-Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-Cc: Mark Fasheh <mark@fasheh.com>
-Cc: Joel Becker <jlbec@evilplan.org>
-Cc: Junxiao Bi <junxiao.bi@oracle.com>
-Cc: Changwei Ge <gechangwei@live.cn>
-Cc: Gang He <ghe@suse.com>
-Cc: Jun Piao <piaojun@huawei.com>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
----
-
- fs/ocfs2/journal.c |    2 +-
- fs/ocfs2/journal.h |    1 +
- fs/ocfs2/super.c   |    5 ++++-
- 3 files changed, 6 insertions(+), 2 deletions(-)
-
---- a/fs/ocfs2/journal.c~ocfs2-fix-memory-leak-in-ocfs2_mount_volume
-+++ a/fs/ocfs2/journal.c
-@@ -157,7 +157,7 @@ static void ocfs2_queue_replay_slots(str
- 	replay_map->rm_state = REPLAY_DONE;
- }
- 
--static void ocfs2_free_replay_slots(struct ocfs2_super *osb)
-+void ocfs2_free_replay_slots(struct ocfs2_super *osb)
- {
- 	struct ocfs2_replay_map *replay_map = osb->replay_map;
- 
---- a/fs/ocfs2/journal.h~ocfs2-fix-memory-leak-in-ocfs2_mount_volume
-+++ a/fs/ocfs2/journal.h
-@@ -150,6 +150,7 @@ int ocfs2_recovery_init(struct ocfs2_sup
- void ocfs2_recovery_exit(struct ocfs2_super *osb);
- 
- int ocfs2_compute_replay_slots(struct ocfs2_super *osb);
-+void ocfs2_free_replay_slots(struct ocfs2_super *osb);
- /*
-  *  Journal Control:
-  *  Initialize, Load, Shutdown, Wipe a journal.
---- a/fs/ocfs2/super.c~ocfs2-fix-memory-leak-in-ocfs2_mount_volume
-+++ a/fs/ocfs2/super.c
-@@ -1159,6 +1159,7 @@ static int ocfs2_fill_super(struct super
- out_dismount:
- 	atomic_set(&osb->vol_state, VOLUME_DISABLED);
- 	wake_up(&osb->osb_mount_event);
-+	ocfs2_free_replay_slots(osb);
- 	ocfs2_dismount_volume(sb, 1);
- 	goto out;
- 
-@@ -1822,12 +1823,14 @@ static int ocfs2_mount_volume(struct sup
- 	status = ocfs2_truncate_log_init(osb);
- 	if (status < 0) {
- 		mlog_errno(status);
--		goto out_system_inodes;
-+		goto out_check_volume;
- 	}
- 
- 	ocfs2_super_unlock(osb, 1);
- 	return 0;
- 
-+out_check_volume:
-+	ocfs2_free_replay_slots(osb);
- out_system_inodes:
- 	if (osb->local_alloc_state == OCFS2_LA_ENABLED)
- 		ocfs2_shutdown_local_alloc(osb);
-_
-
-Patches currently in -mm which might be from ocfs2-devel@oss.oracle.com are
-
-ocfs2-fix-memory-leak-in-ocfs2_mount_volume.patch
-
+Is there anyone familiar enough with this code who would be willing
+to give it a try?
 
 _______________________________________________
 Ocfs2-devel mailing list
