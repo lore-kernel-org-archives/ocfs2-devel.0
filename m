@@ -1,62 +1,66 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc250.phx1.oracleemaildelivery.com (aib29ajc250.phx1.oracleemaildelivery.com [192.29.103.250])
+Received: from aib29ajc253.phx1.oracleemaildelivery.com (aib29ajc253.phx1.oracleemaildelivery.com [192.29.103.253])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 424EBC47088
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 5A2F5C4708A
 	for <ocfs2-devel@archiver.kernel.org>; Sat, 26 Nov 2022 18:13:47 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=ElCFkdggTIWUrwPfkbSzORytlELv6VboQmFTr1ON+Yk=;
- b=HGUV5BdxSemOCFioWPnB3qKkR84ZVixBeGDx5OpnZO+1X3BD7Rr2coOeWKx3JCS+C0SErlYARDGw
-   ludqJC0fIyv3Myzv+vdfHLMKKUoR2bXsPGLdxA2oJEE6Tq3JP0tosYUBvh3KHRzL+eL5yRK/5Ksx
-   H3Idf3wgLwvFGi3qA6ezQNmjT+i6vZCbZMAzzx+Erte2b+S3rLzi5aG0j+Vlfr6tneVTrhzBMfHt
-   EJ73kNv1X/qWr1qVKqT5iUGTa6en9Nfoa6++HMOTMCf2g2S8OSGW7AQd3IMAEPiYuKb9PqLJhwTM
-   Z64XWkSocEIRapA7q1KykTqR5FjHPPB6lTLAiA==
+ bh=fqzmqE/+lHLSdJqOtU67w7M1pbQyyueVUOWQqmFOc6o=;
+ b=XVdotvPxsQCttVvEuVkZQ3/Er+hytZpZmR31ulyGYANYRZ6nwBMk+IhoZH5ptOD2spGXPugMOWk/
+   EcDZwzuZaf4YRlaaHLslQko6x03t4yhpZy9unlaXYKlzQbWQpMt2X95utRQOSB/PO5BzqCwXMiDE
+   uBnFftT+layBkVH5cN4gvwUVmzEyaTKRnCjdk/hZLOig/SNQkxzQ3jraTNHum07j9OAdZ2s77T2m
+   cJ26i7WoFB9TgC1K71npxjvES45Xn92cf1yxMGylFn8Ny8nXpk2zE4m/cPwdNZ482IbyXtTw6tXc
+   VKhFSRcrzKWadFD38MuLIqxQOqp6JWIRrCnnIw==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=ElCFkdggTIWUrwPfkbSzORytlELv6VboQmFTr1ON+Yk=;
- b=adn8eAQdEBoi0m6yFi5EI/TAYh/awmSRk+N99XQJ/AnBEObixzwPBx1Hs5kZPOZ8zBfrftrA1fh5
-   nw+UvIxsS3J+19J7QX+uX6c2JohjT6lWTGCEYV6+omfMwWwzBO2G6m4cZ+FAYHFSI/9O/RWwWxhP
-   xsI3yNvukLAaRDJaxpgWp8P6vZKbUGX06/JgPGN7V0teHX8Stp32bl1R+X21raRtovMZ0OxTazF6
-   SQPj5asyrCZbtklpTF5pBayt05ETURiqjauokTIL/RBW/S8B0JWL+O8LmaZn3zxRnsgw6VBJR/6B
-   d469IkyKmjO1pYEH5pJ5ToK81xdbrt9fkSHwTQ==
-Received: by omta-ad2-fd3-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
+ bh=fqzmqE/+lHLSdJqOtU67w7M1pbQyyueVUOWQqmFOc6o=;
+ b=FAux3lNbfdEiwLoth4axM9BkjnkhruBX3uKZqUVloTU57KcifFinMyR1CqMVSWCcCCkzBRu+6tyx
+   jwu5cHHYxbxfdM1WtoBKJqJtcrOzOWVakqUgzOkHuiIi4Ww5unk/x/TaVed2tgEPLfMSrAG4ZAJw
+   N+l35d0mau/o8bpg3d+KdLrL1XOhQNemUYxlMXwFULOO46GZ0W8YakK8aFZ5oBgiyli5omcHVtGQ
+   Bz9baW8jxO0bpGH9m8r6rng0ROklpQBQBaN/CDZyoEph0mUguFkzsRlpKE7oTc+wOJF+A/+V8prD
+   pq5M+YLZxSB6v8xpaUwShXgZS6MmQQ9n5Nn+yg==
+Received: by omta-ad3-fd1-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20221104 64bit (built Nov  4
  2022))
- with ESMTPS id <0RLY00FEFVYYMT60@omta-ad2-fd3-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
+ with ESMTPS id <0RLY00DURVYY5J00@omta-ad3-fd1-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
  ocfs2-devel@archiver.kernel.org; Sat, 26 Nov 2022 18:13:46 +0000 (GMT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org; s=k20201202;
- t=1669022413; bh=Rod4QLy3YHTf6Pn4dep500jsC9mccpeOXc9og6+BDkE=;
- h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
- b=AwhEY/dDW/xAQXKQY06ZdkenKH1tWXsfjYhpJkI7EXSR2DgDwEwDCSHzNF9BXj9SQ
- SRmwXBtkXFLo5i45Xf9DkLbPHTkzLhgSyU6Ewy+/E0iimScwd7sLrltK4hfnHmfW7d
- 8oOYBFprjXXNqmeSRYCEp55DvWIHg95tusp6OMpmYNe5vkGsQYiv1ais/6fskFZuzK
- uUbHhjNrsueFnhzd2mOqwd0qe/UoMHjckc6z+qtLRQY3ZNPeN5L9zkefeakhpbiPjO
- 9DJMO1GukybzD83AVos0vGE7HL0vhvIWV/ZtQqIyXq/7BH3gAP7oHnpceMszm/pILM
- yD+FZeeIzoiPw==
-Date: Mon, 21 Nov 2022 10:19:59 +0100
-To: Jeff Layton <jlayton@kernel.org>
-Message-id: <20221121091959.nzcunop3byncxa77@wittgenstein>
-References: <20221120210004.381842-1-jlayton@kernel.org>
-MIME-version: 1.0
-Content-disposition: inline
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
+ s=mimecast20190719; t=1669044675;
+ h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+ to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+ in-reply-to:in-reply-to:references:references;
+ bh=43gjeh12mqeKKnzpxBrG6XHUmQQh+jBPDZXXmUO7BOQ=;
+ b=GBhwVYuUzMSa7xAE/WLKSkgfCC286b/oxxLexePjvz/kkxlq2jNPNii1xQrE5xaqbIoazv
+ 76wpU5T2Qcy9qoVPdVVOjkm8KA2EZrlpvQapD9WY4b1OhthrFuw9ziC5KuHVGQir75lJNp
+ +7RFd/CVaiaGEBq/m3cpgD5CQ8Xh2sU=
+Organization: Red Hat UK Ltd. Registered Address: Red Hat UK Ltd,
+ Amberley Place, 107-111 Peascod Street, Windsor, Berkshire, SI4 1TE,
+ United Kingdom. Registered in England and Wales under Company Registration No.
+ 3798903
 In-reply-to: <20221120210004.381842-1-jlayton@kernel.org>
-X-Source-IP: 145.40.68.75
-X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10537
+References: <20221120210004.381842-1-jlayton@kernel.org>
+To: Jeff Layton <jlayton@kernel.org>
+MIME-version: 1.0
+Content-id: <416909.1669044663.1@warthog.procyon.org.uk>
+Date: Mon, 21 Nov 2022 15:31:03 +0000
+Message-id: <416910.1669044663@warthog.procyon.org.uk>
+X-Source-IP: 170.10.129.124
+X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10538
  signatures=596816
 Cc: Latchesar Ionkov <lucho@ionkov.net>,
  Martin Brandenburg <martin@omnibond.com>,
  Dominique Martinet <asmadeus@codewreck.org>,
- Christian Schoenebeck <linux_oss@crudebyte.com>,
- David Howells <dhowells@redhat.com>, Marc Dionne <marc.dionne@auristor.com>,
- linux-xfs@vger.kernel.org, Mike Marshall <hubcap@omnibond.com>,
- linux-cifs@vger.kernel.org, Andreas Gruenbacher <agruenba@redhat.com>,
- Miklos Szeredi <miklos@szeredi.hu>, linux-afs@lists.infradead.org,
- cluster-devel@redhat.com, Christine Caulfield <ccaulfie@redhat.com>,
+ Christian Schoenebeck <linux_oss@crudebyte.com>, dhowells@redhat.com,
+ Marc Dionne <marc.dionne@auristor.com>, linux-xfs@vger.kernel.org,
+ Mike Marshall <hubcap@omnibond.com>, linux-cifs@vger.kernel.org,
+ Andreas Gruenbacher <agruenba@redhat.com>, Miklos Szeredi <miklos@szeredi.hu>,
+ linux-afs@lists.infradead.org, cluster-devel@redhat.com,
+ Christine Caulfield <ccaulfie@redhat.com>,
  v9fs-developer@lists.sourceforge.net, Ilya Dryomov <idryomov@gmail.com>,
  Namjae Jeon <linkinjeon@kernel.org>, devel@lists.orangefs.org,
  Shyam Prasad N <sprasad@microsoft.com>,
@@ -70,7 +74,7 @@ Cc: Latchesar Ionkov <lucho@ionkov.net>,
  Sergey Senozhatsky <senozhatsky@chromium.org>,
  Chuck Lever <chuck.lever@oracle.com>, Anna Schumaker <anna@kernel.org>,
  Bob Peterson <rpeterso@redhat.com>, ocfs2-devel@oss.oracle.com
-Subject: Re: [Ocfs2-devel] [PATCH] filelock: move file locking definitions to
+Subject: Re: [Ocfs2-devel] [PATCH] filelock: move file locking definitions	to
  separate header file
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
@@ -83,32 +87,48 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: Christian Brauner via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: Christian Brauner <brauner@kernel.org>
+From: David Howells via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: David Howells <dhowells@redhat.com>
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-ServerName: ams.source.kernel.org
+X-MC-Unique: iFy62VxxOjCf3yA5uhfvsQ-1
+X-Scanned-By: MIMEDefang 3.1 on 10.11.54.9
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 include:_spf.kernel.org ~all
+X-Proofpoint-SPF-Record: v=spf1 ip4:107.21.15.141 ip4:108.177.8.0/21
+ ip4:128.17.0.0/20 ip4:128.17.128.0/20 ip4:128.17.192.0/20 ip4:128.17.64.0/20
+ ip4:128.245.0.0/20 ip4:128.245.64.0/20 ip4:13.110.208.0/21 ip4:13.110.216.0/22
+ ip4:13.110.224.0/20 ip4:13.111.0.0/16 ip4:136.147.128.0/20
+ ip4:136.147.176.0/20 ip4:148.105.8.0/21 ip4:149.72.0.0/16 ip4:159.183.0.0/16
+ include:spf1.redhat.com -all
+X-Proofpoint-SPF-VenPass: Allowed
+X-ServerName: us-smtp-delivery-124.mimecast.com
+X-Proofpoint-SPF-Result: pass
+X-Proofpoint-SPF-Record: v=spf1 ip4:107.21.15.141 ip4:108.177.8.0/21
+ ip4:128.17.0.0/20 ip4:128.17.128.0/20 ip4:128.17.192.0/20 ip4:128.17.64.0/20
+ ip4:128.245.0.0/20 ip4:128.245.64.0/20 ip4:13.110.208.0/21 ip4:13.110.216.0/22
+ ip4:13.110.224.0/20 ip4:13.111.0.0/16 ip4:136.147.128.0/20
+ ip4:136.147.176.0/20 ip4:148.105.8.0/21 ip4:149.72.0.0/16 ip4:159.183.0.0/16
+ include:spf1.redhat.com -all
 X-Proofpoint-Spam-Reason: safe
 X-Spam: OrgSafeList
 X-SpamRule: orgsafelist
-X-Proofpoint-GUID: ydm_HuMAhr7E7KHMWrwvri50ga0XMSAw
-X-Proofpoint-ORIG-GUID: ydm_HuMAhr7E7KHMWrwvri50ga0XMSAw
+X-Proofpoint-ORIG-GUID: XEvJAxaaWHRRmE3Z_MnAIovr0HRiFtsU
+X-Proofpoint-GUID: XEvJAxaaWHRRmE3Z_MnAIovr0HRiFtsU
 X-Mailman-Approved-At: Sat, 26 Nov 2022 18:13:43 +0000
 Reporting-Meta:
- AAEmrC2/UhTqKnLmm/sYlqSb+ARjmOWiGpOLyoFrD9XjLFWZ0a+vIi2a3YlRJAce
- 2B0Fh4N+fgHqIbVArOAHVXgwkV9zWPuE0huNG2KqrrFhEFsTJ6dg4BB9fdvlaF0C
- +tuKQ4jNzt9sBBcUg2Gtwc7N84WoIrkOb+HKC7X/ciANKFhiUA6L6cpPoCfUuzAp
- jF4USLr4ajlp1yBoZJZ0E8LYh6hk9NF6lzkUPRkzTWt9tqJS78BfRp2m4tkGLfND
- UUOqrAV5FwoTOIE37iiQRIdRsfpMbpCy38D7Ce5/xF3Q9AK6TlgZRsptf6VzrCam
- kxFs/HlDAA1yh/E+Xz2L8ikaDkcqXQNfxVm4MXnuzwZUqoggtHWthkxRnooa5He0
- jxxfvls6byz062KcFrHe552gYvz4nyw83E5Jev5GiS8M1EDXH5d8nzTpqClxI3e9
- ef2bikns2giMNhMYggOo+UQlCHSwUTMYCIWqFMsEI7cU53lWSXMCovhn62tRHbFu
- vZ9MiEIcXjBQDgBk80LYVnSMm+QWVAearpdJ6aBlBhhU
+ AAG9ofe1uZIzVLY/EytApz2OUm7+LKfPS4LFKD4SDn1V3O72SA9QzodZjPockSLj
+ fgAIglvVGfYPw8v2GDQmX4/lMIqtgtu7dzhaT77zjr1/8f2pJE4W+Enlu5Y09pUT
+ LmJeEgJCvf0Y0J3ZsYWkk5uY7vULOha/NSGlKFESCCeTU2InONvUaRE4CjwJDzV1
+ DzWZEdP/u6nKYY6m8SXo610y/aLwhURCXSpQP9IsbeI9zDa8o1GuOBSKO0vsKbD9
+ 4p394KxcUb5UEtcdAw+6wafXd5rwIyE9TxHZg3r5aG6mURzZuc+GSbzqhwxmqEDz
+ eiQ/hDHQ8oMQriDmLofGTUnCtuvpD9b4vwzVDBH0RXwlE2coZ/82O1jrxjyHHRmF
+ 0+Zpa7Iqv9QgPmwdPpTF0/DmxX391jnT7EfjFM26NzMJYYWKI3CRJD6tj/iHY59i
+ fdHBDDigvd29JO2QUcSO/rGjA7+kFtkplxyFiRbxSxOWrrSK8t9KICDpSR+0oPdS
+ g82XAzfPHj2m4k9cz6ljrTGNbUkTU8H61ZV6vwlS+Zxg
 
-On Sun, Nov 20, 2022 at 03:59:57PM -0500, Jeff Layton wrote:
+Jeff Layton <jlayton@kernel.org> wrote:
+
 > The file locking definitions have lived in fs.h since the dawn of time,
 > but they are only used by a small subset of the source files that
 > include it.
@@ -119,10 +139,9 @@ On Sun, Nov 20, 2022 at 03:59:57PM -0500, Jeff Layton wrote:
 > that has to be done when we make changes to the file locking APIs.
 > 
 > Signed-off-by: Jeff Layton <jlayton@kernel.org>
-> ---
 
-Looks good to me,
-Reviewed-by: Christian Brauner (Microsoft) <brauner@kernel.org>
+Reviewed-by: David Howells <dhowells@redhat.com>
+
 
 _______________________________________________
 Ocfs2-devel mailing list
