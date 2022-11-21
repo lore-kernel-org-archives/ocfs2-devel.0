@@ -1,100 +1,114 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc245.phx1.oracleemaildelivery.com (aib29ajc245.phx1.oracleemaildelivery.com [192.29.103.245])
+Received: from aib29ajc244.phx1.oracleemaildelivery.com (aib29ajc244.phx1.oracleemaildelivery.com [192.29.103.244])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 6DA46C63707
-	for <ocfs2-devel@archiver.kernel.org>; Sat, 26 Nov 2022 18:13:49 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 3140BC63713
+	for <ocfs2-devel@archiver.kernel.org>; Sat, 26 Nov 2022 18:13:51 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=e3m9s8P7XUYGgod1RygSKz3MPzvCi5dsTQz+wn7hDXw=;
- b=OTeeSL6v0NWh7p8LOw9eLW4Rjo/fnP94M3OBB47PY5WRtWQWgh87F1Igw/cEweo3C1sKVlkNvGSo
-   7kSuIwwMbbJeazPruSUUax1HGICKiCVyAZOk5KlQRwW59ZofFHtaa1PSuiGvJV6QWKJqYRGyTWur
-   goSlulKwuUIZytrKsdnOuvwEPZG7TJcH/WhzSzB2e0WqWrovQSA/2mRhRvEEYxfk2leI5etcCDOn
-   N9k792Nrp8L3GFt5SbfJ55K6CJu/sZp8gp+x7cv7fzNhgRVqacW+pw3EhaiEZJhr0aRPArFqPfgH
-   rkE3JMNYYAj7bKooLmkz9eXaTU6w736hilJAkQ==
+ bh=dsfw8bvMZGVuCUWAxkZMDF4RUjK7r1vYFoqtj/5gFGg=;
+ b=IhEgR4rVX7GUrOplUkGRmxr995iW9ZkVewTxTtLjcfDDWJbUZ7lXCVVEUXj0urUmykMa1khCMlkD
+   V8BTFXx4Rqpt2WQowb3lwLpAbU4jMqyxrHoXdxUqoKKlEsieA/uPChWAoVil4UEpn4Fawa5YX+xO
+   HnDDIeBDO6IvEgiYTvBb5oTVc4FJC+osJ/Z3lY9F7gvvTotGrhN1OuQVe558oyCwx50gQLZdYazZ
+   0CmQnjTRWlPwZZ/K1gn/P6RWCu7hAFX6gV9F30ef/wae5nPiAsXlHYGS0PynqpBXKjxSa7vI4/fc
+   pzLXjeqDwBqOOR2kn9ruI3lP3DKnHUFkOjnX/A==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=e3m9s8P7XUYGgod1RygSKz3MPzvCi5dsTQz+wn7hDXw=;
- b=VViiwrzfwf6GYlfK3Op8K61VVs3T9ktyeVs0BvQyQV1mxy7eWpfqduMl714V4wXnKi3eFAIPQm9I
-   jsYVt72T6OWjGnpznED07Uwql7HPeFMA89qlcztg8aCq/kIJtADsNKL54QHCd1bEkR0/GhL8w1AR
-   +h74llk0Rz2yPbwyTVxUXtKXjiLkxhnRd30IskVOHe6Qa3RH29kH+wNpBl/TqR1/AL69rC4vOVuN
-   kyB6e3oLOF0pJnmn1z5Gz2qFTm89tmdmFfbrASyaIDz2rzjuKjOR+8PjppUdTx2voRjhP71N0EVz
-   /47d2GeL1Q5hyyZwcI7ssr8LXynRQMLx3AnFlA==
-Received: by omta-ad1-fd1-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
+ bh=dsfw8bvMZGVuCUWAxkZMDF4RUjK7r1vYFoqtj/5gFGg=;
+ b=oPJS8k6wtX5f9WRJCpE69EIWqNoRV+mtAr4t7jM32Ps6JEA/GU4PXemfGkzG95fFdJGwYnFqGqxz
+   KdeKLMYHDMPE9gX8ZS+bMqABh75LATVkpJvwm67nDzN5DZoROcogc6jJozf1VRIDOEsQjnZswmAw
+   hWZAm3x/O0LKbvCvUavxH6qANpTwmOmDXUJqICepoFv3CbBhfc2cofqKZ+q/j5vTAADQ+azfiiO/
+   mNgOAArJbGrvW4CQNfeCGmB8Hpf/F7ByA5bYs1HEc+HPuKCwkFpvStS1/4G4xCN8+mfHqEeXOPD5
+   8AcSu9DTuGDPw67TD+ew5Wf5+eZoEhLaX0w+hw==
+Received: by omta-ad1-fd1-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20221104 64bit (built Nov  4
  2022))
- with ESMTPS id <0RLY008NFVZ0G680@omta-ad1-fd1-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Sat, 26 Nov 2022 18:13:48 +0000 (GMT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
- s=mimecast20190719; t=1668993995;
- h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
- to:to:cc:cc:mime-version:mime-version:content-type:content-type:
- content-transfer-encoding:content-transfer-encoding:
- in-reply-to:in-reply-to:references:references;
- bh=jUiRkg/I67zFKreKOOVYlHPwXHYvQweY/LJX7PKtWIE=;
- b=TONLkcIDGdheJiyou09GlDpzgtwrQTHREbSa2JhgpmDe8yLzvyRaEhDrNYdsE/CDZ3rl57
- VixelyB6tAxKu5K5thheVfhSoi5AEnz8p+NzKwKogqPM+q3ncHw5EJlcpKU2q9QWsYytsj
- RULGiNk8E6X9X+bBkz6vDyosIZFAjEQ=
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=1e100.net;
- s=20210112;
- h=content-language:content-transfer-encoding:in-reply-to:mime-version
- :user-agent:date:message-id:from:references:cc:to:subject
- :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
- bh=jUiRkg/I67zFKreKOOVYlHPwXHYvQweY/LJX7PKtWIE=;
- b=dXO10HKQ7MchmEfBdKqMtBBvoxR6B5jbl4CNTh7u6a+bBdzrhWdD/ampmNBGNUCeq6
- AOoyAaJwxB6ohdgg57FuYVh1B1GSi8l/hqsA8nfG2wA4yvqJE6Vf3KMmZze8JOgPPLF4
- 8zG3IVhswezLbywHNE0UZGZHR2Eh2Hgwak0DoYvkWj0bCI7tV612q1oBOmpG+pWPSlgD
- mRJ3dVKgDYOWhcR80gzLwzVJJdAunElu9iNFaH9BSVqUkuvjv1srhqUCjHCVYdR7bZcD
- k3I+rfr6l4rXE3MKohwydlZ77PqjdblWzn8uZkdC38JFP32vPBgwXatWIPZO44+/Z+Gt USOQ==
-X-Gm-Message-State: ANoB5pkkoH/mNNhZKf6CzIl6fZXD1/SIvxfv82urGEJQgSEv7lFCCmri
- DZQ1ITP9yhAOy0l3Kt+hQaa/gpsVYzz62wrqi02xcgAzMtWmVYl50rL9fgMd82wfFEiCsRwy8vh
- iKUMV4ubsmeH28Ps0qiF4Ag==
-X-Received: by 2002:a17:902:c7cc:b0:188:537d:78d8 with SMTP id
- r12-20020a170902c7cc00b00188537d78d8mr948376pla.37.1668993992464; Sun,
- 20 Nov 2022 17:26:32 -0800 (PST)
-X-Received: by 2002:a17:902:c7cc:b0:188:537d:78d8 with SMTP id
- r12-20020a170902c7cc00b00188537d78d8mr948337pla.37.1668993991942; Sun,
- 20 Nov 2022 17:26:31 -0800 (PST)
-To: Jeff Layton <jlayton@kernel.org>, Eric Van Hensbergen <ericvh@gmail.com>,
- Latchesar Ionkov <lucho@ionkov.net>,
+ with ESMTPS id <0RLY00AR3VZ2EY00@omta-ad1-fd1-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Sat, 26 Nov 2022 18:13:50 +0000 (GMT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=oracle.com; h=from : to
+ : cc : subject : date : message-id : references : in-reply-to : content-type :
+ content-id : content-transfer-encoding : mime-version; s=corp-2022-7-12;
+ bh=oMpqK3Pb0QZXn0B5cUvUng5V4mdqvUtt/ZmyXIjiWl8=;
+ b=eTMAaRizkcenldqwyuWv5AQU+SMjLycZi5HYUIDDM/Qnlv5dJecGM50uA2kGF1yrYSZ5
+ j1P+V6ycP5jqano8UhHbhmF9CHUQFyAlHapG3q76jvxOKk9gxcck1iV+JV/XVQvqL/1z
+ Blv1lo2j9mXrCz2NS1eR5PI+cZHVyabGPCsmbxOHx65fTFLjNyXKeMz1PGYdlW11y2qW
+ 2hvY6eKqaXJ+6mYhzpiI56wvz3G9g5GiGIJIT/U5bb55h5zMKnbs8FH0OvDubXLvyWla
+ 3wkvDfIoROXvR0fxy7NBdSZ22iZsA5HYozG6ge3lqXcpXV/c/Wg/yAqO05nNLZhFZk8h xw==
+ARC-Seal: i=1; a=rsa-sha256; s=arcselector9901; d=microsoft.com; cv=none;
+ b=kSlzBwYru13aOM1bHkmtGHHFBLfvTP/smxuLTs6vmSo/gEfDoQOBdIXorFQLdpNG+OiXKSz7CwCfvaseb1WDj+4/pwUqsTKGFV0lC8N+/+/AexY8LHUgevpsqo9TcvzWAyDiGQS+MD/tB1JIhqMTL8OH+onQGkooN9ltQu2x/2kbP2fSMPQaLr9u9HufnaLyzEjZw+yWQZagptIhFNlrOcVdtj4l1/irZ48vj0LAW9OqHQEFZ6HChHTMy9kDpHdN49/6gChWtoTRwtbEvPThWQpAxYSH1DFmtcr27D0W/BbUZkAZu6PDNIu5B0PUsDroGFfZOkO8k/r6MwiU7D3yIA==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=arcselector9901;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
+ bh=oMpqK3Pb0QZXn0B5cUvUng5V4mdqvUtt/ZmyXIjiWl8=;
+ b=efeJ0oGSdpvblxtkNrjHVYMBNRu4i5UYWkuYt2Y47eXBcucnr7vo8BYoE62oHbsWKjRYWGBazBO3ZpiSw+lMvhdMvrM38ZE0vBTgKMkJevUIxTXMQ51csbFCLKZyEAHwDu4QqjJlVnMKk/rJz6LFmUBfaFybj0yxlPLOQWuFwpeugH8ujdAzaGeUGH1VruSQtSH88lghSY8bIZdmNlnyHTz0PQS4BOpMwMmnVoGkYvxnrKtL4xt+kqcwU6PSTpUqpkR87UChhxGfBzY0WgQkmdr5a7IOIDjU2vTO9RDtHu4zQCE5KHDKyIeqDsfdgD61n1ejaJk2d9SAcabL509Hbg==
+ARC-Authentication-results: i=1; mx.microsoft.com 1; spf=pass
+ smtp.mailfrom=oracle.com; dmarc=pass action=none header.from=oracle.com;
+ dkim=pass header.d=oracle.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=oracle.onmicrosoft.com;
+ s=selector2-oracle-onmicrosoft-com;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
+ bh=oMpqK3Pb0QZXn0B5cUvUng5V4mdqvUtt/ZmyXIjiWl8=;
+ b=YyQ9dakGclQa4VhXgf/zjJuqMkRnCojyEAUSXZgzB0aeLWxP50XGL8CNC1AGXx/0EsPNYOtFzskIeH0sGAA1/nEP+s4/8uvH87aM0Es5yiEJYy1vgtCGTlDJFVvP96Sv4rx1d/+OgwXsK1V4F1d4BzasjdUZU9ZwcLghNyxj9MM=
+To: Jeff Layton <jlayton@kernel.org>
+Thread-topic: [PATCH] filelock: move file locking definitions to separate
+ header file
+Thread-index: AQHY/SMXq4bKiU+EGEezkZATbxQWl65JdDAA
+Date: Mon, 21 Nov 2022 14:40:43 +0000
+Message-id: <067DA10A-6548-4F53-BF21-A88363340A3A@oracle.com>
+References: <20221120210004.381842-1-jlayton@kernel.org>
+In-reply-to: <20221120210004.381842-1-jlayton@kernel.org>
+Accept-Language: en-US
+Content-language: en-US
+X-MS-Has-Attach:
+X-Mailer: Apple Mail (2.3696.120.41.1.1)
+X-Forefront-Antispam-Report: CIP:255.255.255.255; CTRY:; LANG:en; SCL:-1; SRV:;
+ IPV:NLI; SFV:SKI; H:BN0PR10MB5128.namprd10.prod.outlook.com; PTR:; CAT:NONE;
+ SFS:; DIR:INB;
+Content-id: <478E83781FE6434C8446167AA74CA27A@namprd10.prod.outlook.com>
+MIME-version: 1.0
+X-OriginatorOrg: oracle.com
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 21 Nov 2022 14:40:43.3951 (UTC)
+X-Proofpoint-Virus-Version: vendor=baseguard
+ engine=ICAP:2.0.219,Aquarius:18.0.895,Hydra:6.0.545,FMLib:17.11.122.1
+ definitions=2022-11-21_13,2022-11-18_01,2022-06-22_01
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 mlxlogscore=999
+ phishscore=0 suspectscore=0 bulkscore=0 mlxscore=0 spamscore=0 adultscore=0
+ malwarescore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2210170000 definitions=main-2211210113
+Cc: Latchesar Ionkov <lucho@ionkov.net>,
+ Martin Brandenburg <martin@omnibond.com>,
  Dominique Martinet <asmadeus@codewreck.org>,
  Christian Schoenebeck <linux_oss@crudebyte.com>,
  David Howells <dhowells@redhat.com>, Marc Dionne <marc.dionne@auristor.com>,
- Alexander Viro <viro@zeniv.linux.org.uk>, Ilya Dryomov <idryomov@gmail.com>,
- Steve French <sfrench@samba.org>, Paulo Alcantara <pc@cjr.nz>,
- Ronnie Sahlberg <lsahlber@redhat.com>, Shyam Prasad N <sprasad@microsoft.com>,
- Tom Talpey <tom@talpey.com>, Christine Caulfield <ccaulfie@redhat.com>,
- David Teigland <teigland@redhat.com>, Chuck Lever <chuck.lever@oracle.com>,
- Miklos Szeredi <miklos@szeredi.hu>, Bob Peterson <rpeterso@redhat.com>,
- Andreas Gruenbacher <agruenba@redhat.com>,
- Namjae Jeon <linkinjeon@kernel.org>,
- Sergey Senozhatsky <senozhatsky@chromium.org>,
+ "linux-xfs@vger.kernel.org" <linux-xfs@vger.kernel.org>,
+ Mike Marshall <hubcap@omnibond.com>,
+ "linux-cifs@vger.kernel.org" <linux-cifs@vger.kernel.org>,
+ Andreas Gruenbacher <agruenba@redhat.com>, Miklos Szeredi <miklos@szeredi.hu>,
+ "linux-afs@lists.infradead.org" <linux-afs@lists.infradead.org>,
+ "cluster-devel@redhat.com" <cluster-devel@redhat.com>,
+ Christine Caulfield <ccaulfie@redhat.com>,
+ "v9fs-developer@lists.sourceforge.net" <v9fs-developer@lists.sourceforge.net>,
+ Ilya Dryomov <idryomov@gmail.com>, Namjae Jeon <linkinjeon@kernel.org>,
+ "devel@lists.orangefs.org" <devel@lists.orangefs.org>,
+ Shyam Prasad N <sprasad@microsoft.com>,
+ Eric Van Hensbergen <ericvh@gmail.com>, Tom Talpey <tom@talpey.com>,
+ "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>,
+ Al Viro <viro@zeniv.linux.org.uk>,
+ "ceph-devel@vger.kernel.org" <ceph-devel@vger.kernel.org>,
+ Xiubo Li <xiubli@redhat.com>,
  Trond Myklebust <trond.myklebust@hammerspace.com>,
- Anna Schumaker <anna@kernel.org>, Mark Fasheh <mark@fasheh.com>,
- Joel Becker <jlbec@evilplan.org>, Joseph Qi <joseph.qi@linux.alibaba.com>,
- Mike Marshall <hubcap@omnibond.com>, Martin Brandenburg <martin@omnibond.com>,
- "Darrick J. Wong" <djwong@kernel.org>
-References: <20221120210004.381842-1-jlayton@kernel.org>
-Message-id: <6627384e-5514-048f-308e-57414d0c5b31@redhat.com>
-Date: Mon, 21 Nov 2022 09:26:16 +0800
-User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101
- Thunderbird/78.10.1
-MIME-version: 1.0
-In-reply-to: <20221120210004.381842-1-jlayton@kernel.org>
-Content-language: en-US
-X-Source-IP: 170.10.129.124
-X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10537
- signatures=596816
-Cc: linux-cifs@vger.kernel.org, linux-nfs@vger.kernel.org,
- samba-technical@lists.samba.org, linux-kernel@vger.kernel.org,
- cluster-devel@redhat.com, devel@lists.orangefs.org,
- linux-fsdevel@vger.kernel.org, v9fs-developer@lists.sourceforge.net,
- ceph-devel@vger.kernel.org, linux-xfs@vger.kernel.org,
- linux-afs@lists.infradead.org, ocfs2-devel@oss.oracle.com
+ Linux NFS Mailing List <linux-nfs@vger.kernel.org>,
+ Paulo Alcantara <pc@cjr.nz>,
+ "samba-technical@lists.samba.org" <samba-technical@lists.samba.org>,
+ "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
+ Ronnie Sahlberg <lsahlber@redhat.com>, Steve French <sfrench@samba.org>,
+ Sergey Senozhatsky <senozhatsky@chromium.org>,
+ Anna Schumaker <anna@kernel.org>, Bob Peterson <rpeterso@redhat.com>,
+ "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>
 Subject: Re: [Ocfs2-devel] [PATCH] filelock: move file locking definitions to
  separate header file
 X-BeenThere: ocfs2-devel@oss.oracle.com
@@ -108,527 +122,533 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: Xiubo Li via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: Xiubo Li <xiubli@redhat.com>
+From: Chuck Lever III via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: Chuck Lever III <chuck.lever@oracle.com>
+Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
-Content-type: text/plain; charset="us-ascii"; Format="flowed"
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-MC-Unique: C_7UPx34NYetdh77Ik4BFw-1
-X-Google-Smtp-Source:
- AA0mqf54O6an2O7zh1T683gCRgd2lJOKUnlRGTHua6SnpGqsAOQS+sSjSdZUo4ytS4RDTrQ1G5oteg==
-X-Mimecast-Spam-Score: 0
-X-Mimecast-Originator: redhat.com
-X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 ip4:107.21.15.141 ip4:108.177.8.0/21
- ip4:128.17.0.0/20 ip4:128.17.128.0/20 ip4:128.17.192.0/20 ip4:128.17.64.0/20
- ip4:128.245.0.0/20 ip4:128.245.64.0/20 ip4:13.110.208.0/21 ip4:13.110.216.0/22
- ip4:13.110.224.0/20 ip4:13.111.0.0/16 ip4:136.147.128.0/20
- ip4:136.147.176.0/20 ip4:148.105.8.0/21 ip4:149.72.0.0/16 ip4:159.183.0.0/16
- include:spf1.redhat.com -all
-X-Proofpoint-SPF-VenPass: Allowed
-X-ServerName: us-smtp-delivery-124.mimecast.com
-X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 ip4:107.21.15.141 ip4:108.177.8.0/21
- ip4:128.17.0.0/20 ip4:128.17.128.0/20 ip4:128.17.192.0/20 ip4:128.17.64.0/20
- ip4:128.245.0.0/20 ip4:128.245.64.0/20 ip4:13.110.208.0/21 ip4:13.110.216.0/22
- ip4:13.110.224.0/20 ip4:13.111.0.0/16 ip4:136.147.128.0/20
- ip4:136.147.176.0/20 ip4:148.105.8.0/21 ip4:149.72.0.0/16 ip4:159.183.0.0/16
- include:spf1.redhat.com -all
-X-Proofpoint-Spam-Reason: safe
-X-Spam: OrgSafeList
-X-SpamRule: orgsafelist
-X-Proofpoint-ORIG-GUID: fQN8lLpA0FaQuueRdDnohMm_UuflPBuw
-X-Proofpoint-GUID: fQN8lLpA0FaQuueRdDnohMm_UuflPBuw
-X-Mailman-Approved-At: Sat, 26 Nov 2022 18:13:43 +0000
+X-MS-TNEF-Correlator:
+x-ms-publictraffictype: Email
+x-ms-traffictypediagnostic: BN0PR10MB5128:EE_|MN0PR10MB5959:EE_
+x-ms-office365-filtering-correlation-id: fc61d4aa-5638-4af3-99a8-08dacbce5e6f
+x-oracle-tenancy: 1
+x-microsoft-antispam: BCL:0;
+x-microsoft-antispam-message-info:
+ Zf41JNX+7Fqw5d6bGsFo9/b3gpzLKX2FRhOxXv7LqZbBN8STqUeA1bmsPaaWpYUfpJ09/e3uuOzdc3Ogw4sPmP8ll5PzUNcmXlo3tS0Icovvc6g9ZAfRHmx465Po7tQSMYyjmi++469FNYsCrj30/4niUl8wIqqtrYVVAPSs2r59PSpeLVZ7WpLVgRVpIj/NqiRD+kMFc5frBn8gpw/mtGjUaF34iJlPogiyMGf7bthcjJ9VulZHarQuKv0lyPHiOEKm7YAlBQZ3BRfdMMx6WkFjFYGoqqKj/djaaba7XKnPvdVDO8AYCGJgSnXbeUYElSHEioiV59qctFAs8AJpkpaENxxGWWUbbydTw2CB2N8+8QFI5YUuOaBbqe+BU1xXNlQEzoQ1ApzovY1+XeGju92SW5gUX5VFE4d9NmoXQTdnY/pw3AyXTql1mi0ci4qnN2RtK7rXbXRSCKIy3XRQgDs7tQsO7WEqXxsgpnY6c8EG3nl+hO1erqnJ9CxXHx/f0PHpwM4nkjR+uHfuBM8bUJC9v/t8UUEIdcR2VAv6m3pp6eIZHbAh4PSDiIyxC4wwZoT+4FUdRtj4o9v2+nQ2KfKR2gdHjbjyn1jB7BpBZs/aqT9Ued/zaNG9Q+gLbNLtBMCvQJyvw01rzYSxRBSTtA==
+X-MS-Exchange-AntiSpam-ExternalHop-MessageData-ChunkCount: 1
+X-MS-Exchange-AntiSpam-ExternalHop-MessageData-0:
+ 7ht2a1yAQ4mVbu/7/tAUDkZLh/GsUJxLuPKG0vnIECPNMJlhjgYlRNOmrQssJF3Ny6oqZOjDei/gaI9Z8Aiwptm/NNMJLRjihuysPMNVDOtynLJ8/dQ4Gino4YGa2My6r4Z5uUD0+XlOXX7adrUii5kF7DbWR32Ro0B3EZHbxWH68yeQiFtA01RdqG8nyWUAfPM4LylY85bQ26KMPOQVZxLeX2FQagRpgmpIdF5vNV8yqnXBrkhu9IQQv4wnPeF1yylXNRsySEh47Nu6IBKmQ0mTPatNKe9EpoGjaNQFGxrjqOTwcdkGJ8AovdD2dWSO6SOQtgYdK5r51FDSGH1m/Amau6X08E6BTlVmNwt3mad/5xqrEuT/HtF6qqq7PTvT09fZZRiB31/kmPdVGJUTx6mmX2VGjp0XVxIlJOc2h6pm1q8oEwGrrsaFLxWtUuXdb63ZpvB4bfYrIXbrTSGGdC+R4zoE34dP5uFoJyQZKbz4JzcuKBkFLPs4IitWHXEUK2BrapE8lw4H3iu9KLyf8iAPbY2/T183CpXKHWujn9KaefR51xX17lAw7x26qrGOxbj6hE0CHYU/ysfoBryDWJzIg//zxKO8Z+r1cgtlMAQxjnwrVy+kkKgULe9l80CSGS1TLbX/JjRhW8vSUTQjjLf7zFb4Fji5zczDD9mOsS4FNjwLGGDjE1mKd+ILqhV9oSkmJMBYCeneQrKDGeQZqkjt06Tk50C10lQTaRLH/wFCrydbeuuk4kUnp4sLDnyzWwqhN6V3vYMn/kdmJdbnxA==
+X-MS-Exchange-CrossTenant-AuthAs: Internal
+X-MS-Exchange-CrossTenant-AuthSource: BN0PR10MB5128.namprd10.prod.outlook.com
+X-MS-Exchange-CrossTenant-Network-Message-Id:
+ fc61d4aa-5638-4af3-99a8-08dacbce5e6f
+X-MS-Exchange-CrossTenant-fromentityheader: Hosted
+X-MS-Exchange-CrossTenant-id: 4e2c6054-71cb-48f1-bd6c-3a9705aca71b
+X-MS-Exchange-CrossTenant-mailboxtype: HOSTED
+X-MS-Exchange-CrossTenant-userprincipalname:
+ yHvlRpTFd6OP3DR1rjv960rwCaGAnP84H2blvNPWXqL8NyI6xnsMiXA6TZsNjRqCCDCOZCIZLNjfyOpVi36ZUg==
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: MN0PR10MB5959
+X-Proofpoint-GUID: HdFyzvz5SgJ4dlVTHSh-mZeLMaqNJ3m4
+X-Proofpoint-ORIG-GUID: HdFyzvz5SgJ4dlVTHSh-mZeLMaqNJ3m4
+X-Mailman-Approved-At: Sat, 26 Nov 2022 18:13:48 +0000
 Reporting-Meta:
  AAGlbkWNsQjdtFOiJr2BqDePL3v5ts+Q18eaP+/Otni+3kwZ+0Uh+1OpHv1nHTZt
- +J76Hf+V4f5b2iUqyqUyiqedR1TeMfHnsKZ6NxrgMIhK7Ln49oh+2rQGYuWst9qZ
- PDw5/hR5l3JSIZqFUpQz7IVqWHBo8QTcnRhpERSTMud+hNP7/GXywUkPzLmyVX5z
- A0YilazNUkAFtj1EwE9C8nw4wL0IDwLPxxZk/tOlqQ3/DiTlygR2u3m+7sT7/RPo
- dTwlpDEELK/aSoHZSZXEP2LOZMsEJ3fG1aHPfUmKzjr3u5N3dqQcXA1wH/iBLlMf
- AWo35fhJyWxVuL3B211B/tmByHcydhP0NWMxhYmh9K193PNJqsGIf0BEgRFZx72Z
- skExXrtgxqqiJVxLmztouHGvvE+dgzRR8NZKsY+WVhdGzMLhuLZF/ZWxU+M6LENj
- gNYlDFUw+10E6O29QyOoezPINyvj94xXEJE4QTZK3rcSkaEg4TkELeZBlxbcvyq7
- rMv3ID2+FEOEywT3tzmRR0yBP/KAXYDYzD3b3hqhhowF
+ +J76Hf+V4f5b2iUqyqVUiqedR1TeMfHnsKZlnb4GsX9JM1ZtdtigJQ9Ev58Hk1jG
+ JbxAyEzT9bILmtiEtkeas1MO5L9rOTDbNyzEqKax9SnGKxhKxY9Ichust2VteRU5
+ KL66Oo2YOUBpWYPNI+gKlcIQM+tkVQlyO9z7vZxv39vYQzHRtipK7t4KwR4OZXq8
+ PfdhLZQqFoiHYScUnP8UsN6t/qfQrNtqE8AzbtsG0tVc1YmPDSWzEirUFSg+hsa0
+ +IIOOTOBmZSB2B5Ynf/y+OKfxrUDYHLRmq/LaWr1oko0HaYaIqMUXI89p1BCxPFf
+ qsJk8QknZV4m7Cwdv+ydDAusZR/jlKnv2lawddz0SxM3S4X+37ag0MneT6RXUl1F
+ e3wE7uWecbhFw1CjT79ppyzABSJkaPj8CtYe75/TPUInwK+zPb3qZ2WuIcZii0xA
+ ydlzpszbCT1eWMFyrpMDdEkJBFmwvmWkWXP2i2Xt3Oy67g==
 
 
-On 21/11/2022 04:59, Jeff Layton wrote:
+
+> On Nov 20, 2022, at 3:59 PM, Jeff Layton <jlayton@kernel.org> wrote:
+> 
 > The file locking definitions have lived in fs.h since the dawn of time,
 > but they are only used by a small subset of the source files that
 > include it.
->
+> 
 > Move the file locking definitions to a new header file, and add the
 > appropriate #include directives to the source files that need them. By
 > doing this we trim down fs.h a bit and limit the amount of rebuilding
 > that has to be done when we make changes to the file locking APIs.
->
+> 
 > Signed-off-by: Jeff Layton <jlayton@kernel.org>
 > ---
->   fs/9p/vfs_file.c          |   1 +
->   fs/afs/internal.h         |   1 +
->   fs/attr.c                 |   1 +
->   fs/ceph/locks.c           |   1 +
->   fs/cifs/cifsfs.c          |   1 +
->   fs/cifs/cifsglob.h        |   1 +
->   fs/cifs/cifssmb.c         |   1 +
->   fs/cifs/file.c            |   1 +
->   fs/cifs/smb2file.c        |   1 +
->   fs/dlm/plock.c            |   1 +
->   fs/fcntl.c                |   1 +
->   fs/file_table.c           |   1 +
->   fs/fuse/file.c            |   1 +
->   fs/gfs2/file.c            |   1 +
->   fs/inode.c                |   1 +
->   fs/ksmbd/smb2pdu.c        |   1 +
->   fs/ksmbd/vfs.c            |   1 +
->   fs/ksmbd/vfs_cache.c      |   1 +
->   fs/lockd/clntproc.c       |   1 +
->   fs/lockd/netns.h          |   1 +
->   fs/locks.c                |   1 +
->   fs/namei.c                |   1 +
->   fs/nfs/nfs4_fs.h          |   1 +
->   fs/nfs_common/grace.c     |   1 +
->   fs/nfsd/netns.h           |   1 +
->   fs/ocfs2/locks.c          |   1 +
->   fs/ocfs2/stack_user.c     |   1 +
->   fs/open.c                 |   1 +
->   fs/orangefs/file.c        |   1 +
->   fs/proc/fd.c              |   1 +
->   fs/utimes.c               |   1 +
->   fs/xattr.c                |   1 +
->   fs/xfs/xfs_buf.h          |   1 +
->   fs/xfs/xfs_file.c         |   1 +
->   fs/xfs/xfs_inode.c        |   1 +
->   include/linux/filelock.h  | 428 ++++++++++++++++++++++++++++++++++++++
->   include/linux/fs.h        | 421 -------------------------------------
->   include/linux/lockd/xdr.h |   1 +
->   38 files changed, 464 insertions(+), 421 deletions(-)
->   create mode 100644 include/linux/filelock.h
->
+> fs/9p/vfs_file.c          |   1 +
+> fs/afs/internal.h         |   1 +
+> fs/attr.c                 |   1 +
+> fs/ceph/locks.c           |   1 +
+> fs/cifs/cifsfs.c          |   1 +
+> fs/cifs/cifsglob.h        |   1 +
+> fs/cifs/cifssmb.c         |   1 +
+> fs/cifs/file.c            |   1 +
+> fs/cifs/smb2file.c        |   1 +
+> fs/dlm/plock.c            |   1 +
+> fs/fcntl.c                |   1 +
+> fs/file_table.c           |   1 +
+> fs/fuse/file.c            |   1 +
+> fs/gfs2/file.c            |   1 +
+> fs/inode.c                |   1 +
+> fs/ksmbd/smb2pdu.c        |   1 +
+> fs/ksmbd/vfs.c            |   1 +
+> fs/ksmbd/vfs_cache.c      |   1 +
+> fs/lockd/clntproc.c       |   1 +
+> fs/lockd/netns.h          |   1 +
+> fs/locks.c                |   1 +
+> fs/namei.c                |   1 +
+> fs/nfs/nfs4_fs.h          |   1 +
+> fs/nfs_common/grace.c     |   1 +
+> fs/nfsd/netns.h           |   1 +
+> fs/ocfs2/locks.c          |   1 +
+> fs/ocfs2/stack_user.c     |   1 +
+> fs/open.c                 |   1 +
+> fs/orangefs/file.c        |   1 +
+> fs/proc/fd.c              |   1 +
+> fs/utimes.c               |   1 +
+> fs/xattr.c                |   1 +
+> fs/xfs/xfs_buf.h          |   1 +
+> fs/xfs/xfs_file.c         |   1 +
+> fs/xfs/xfs_inode.c        |   1 +
+> include/linux/filelock.h  | 428 ++++++++++++++++++++++++++++++++++++++
+> include/linux/fs.h        | 421 -------------------------------------
+> include/linux/lockd/xdr.h |   1 +
+> 38 files changed, 464 insertions(+), 421 deletions(-)
+> create mode 100644 include/linux/filelock.h
+> 
 > Unless anyone has objections, I'll plan to merge this in via the file
 > locking tree for v6.3. I'd appreciate Acked-bys or Reviewed-bys from
 > maintainers, however.
->
+> 
 > diff --git a/fs/9p/vfs_file.c b/fs/9p/vfs_file.c
 > index aec43ba83799..5e3c4b5198a6 100644
 > --- a/fs/9p/vfs_file.c
 > +++ b/fs/9p/vfs_file.c
 > @@ -9,6 +9,7 @@
->   #include <linux/module.h>
->   #include <linux/errno.h>
->   #include <linux/fs.h>
+> #include <linux/module.h>
+> #include <linux/errno.h>
+> #include <linux/fs.h>
 > +#include <linux/filelock.h>
->   #include <linux/sched.h>
->   #include <linux/file.h>
->   #include <linux/stat.h>
+> #include <linux/sched.h>
+> #include <linux/file.h>
+> #include <linux/stat.h>
 > diff --git a/fs/afs/internal.h b/fs/afs/internal.h
 > index 723d162078a3..c41a82a08f8b 100644
 > --- a/fs/afs/internal.h
 > +++ b/fs/afs/internal.h
 > @@ -9,6 +9,7 @@
->   #include <linux/kernel.h>
->   #include <linux/ktime.h>
->   #include <linux/fs.h>
+> #include <linux/kernel.h>
+> #include <linux/ktime.h>
+> #include <linux/fs.h>
 > +#include <linux/filelock.h>
->   #include <linux/pagemap.h>
->   #include <linux/rxrpc.h>
->   #include <linux/key.h>
+> #include <linux/pagemap.h>
+> #include <linux/rxrpc.h>
+> #include <linux/key.h>
 > diff --git a/fs/attr.c b/fs/attr.c
 > index 1552a5f23d6b..e643f17a5465 100644
 > --- a/fs/attr.c
 > +++ b/fs/attr.c
 > @@ -14,6 +14,7 @@
->   #include <linux/capability.h>
->   #include <linux/fsnotify.h>
->   #include <linux/fcntl.h>
+> #include <linux/capability.h>
+> #include <linux/fsnotify.h>
+> #include <linux/fcntl.h>
 > +#include <linux/filelock.h>
->   #include <linux/security.h>
->   #include <linux/evm.h>
->   #include <linux/ima.h>
+> #include <linux/security.h>
+> #include <linux/evm.h>
+> #include <linux/ima.h>
 > diff --git a/fs/ceph/locks.c b/fs/ceph/locks.c
 > index f3b461c708a8..476f25bba263 100644
 > --- a/fs/ceph/locks.c
 > +++ b/fs/ceph/locks.c
 > @@ -7,6 +7,7 @@
->   
->   #include "super.h"
->   #include "mds_client.h"
+> 
+> #include "super.h"
+> #include "mds_client.h"
 > +#include <linux/filelock.h>
->   #include <linux/ceph/pagelist.h>
->   
->   static u64 lock_secret;
+> #include <linux/ceph/pagelist.h>
+> 
+> static u64 lock_secret;
 > diff --git a/fs/cifs/cifsfs.c b/fs/cifs/cifsfs.c
 > index fe220686bba4..8d255916b6bf 100644
 > --- a/fs/cifs/cifsfs.c
 > +++ b/fs/cifs/cifsfs.c
 > @@ -12,6 +12,7 @@
->   
->   #include <linux/module.h>
->   #include <linux/fs.h>
+> 
+> #include <linux/module.h>
+> #include <linux/fs.h>
 > +#include <linux/filelock.h>
->   #include <linux/mount.h>
->   #include <linux/slab.h>
->   #include <linux/init.h>
+> #include <linux/mount.h>
+> #include <linux/slab.h>
+> #include <linux/init.h>
 > diff --git a/fs/cifs/cifsglob.h b/fs/cifs/cifsglob.h
 > index 1420acf987f0..1b9fee67a25e 100644
 > --- a/fs/cifs/cifsglob.h
 > +++ b/fs/cifs/cifsglob.h
 > @@ -25,6 +25,7 @@
->   #include <uapi/linux/cifs/cifs_mount.h>
->   #include "../smbfs_common/smb2pdu.h"
->   #include "smb2pdu.h"
+> #include <uapi/linux/cifs/cifs_mount.h>
+> #include "../smbfs_common/smb2pdu.h"
+> #include "smb2pdu.h"
 > +#include <linux/filelock.h>
->   
->   #define SMB_PATH_MAX 260
->   #define CIFS_PORT 445
+> 
+> #define SMB_PATH_MAX 260
+> #define CIFS_PORT 445
 > diff --git a/fs/cifs/cifssmb.c b/fs/cifs/cifssmb.c
 > index 1724066c1536..0410658c00bd 100644
 > --- a/fs/cifs/cifssmb.c
 > +++ b/fs/cifs/cifssmb.c
 > @@ -15,6 +15,7 @@
->    /* want to reuse a stale file handle and only the caller knows the file info */
->   
->   #include <linux/fs.h>
+>  /* want to reuse a stale file handle and only the caller knows the file info */
+> 
+> #include <linux/fs.h>
 > +#include <linux/filelock.h>
->   #include <linux/kernel.h>
->   #include <linux/vfs.h>
->   #include <linux/slab.h>
+> #include <linux/kernel.h>
+> #include <linux/vfs.h>
+> #include <linux/slab.h>
 > diff --git a/fs/cifs/file.c b/fs/cifs/file.c
 > index 6c1431979495..c230e86f1e09 100644
 > --- a/fs/cifs/file.c
 > +++ b/fs/cifs/file.c
 > @@ -9,6 +9,7 @@
->    *
->    */
->   #include <linux/fs.h>
+>  *
+>  */
+> #include <linux/fs.h>
 > +#include <linux/filelock.h>
->   #include <linux/backing-dev.h>
->   #include <linux/stat.h>
->   #include <linux/fcntl.h>
+> #include <linux/backing-dev.h>
+> #include <linux/stat.h>
+> #include <linux/fcntl.h>
 > diff --git a/fs/cifs/smb2file.c b/fs/cifs/smb2file.c
 > index ffbd9a99fc12..1f421bfbe797 100644
 > --- a/fs/cifs/smb2file.c
 > +++ b/fs/cifs/smb2file.c
 > @@ -7,6 +7,7 @@
->    *
->    */
->   #include <linux/fs.h>
+>  *
+>  */
+> #include <linux/fs.h>
 > +#include <linux/filelock.h>
->   #include <linux/stat.h>
->   #include <linux/slab.h>
->   #include <linux/pagemap.h>
+> #include <linux/stat.h>
+> #include <linux/slab.h>
+> #include <linux/pagemap.h>
 > diff --git a/fs/dlm/plock.c b/fs/dlm/plock.c
 > index 737f185aad8d..ed4357e62f35 100644
 > --- a/fs/dlm/plock.c
 > +++ b/fs/dlm/plock.c
 > @@ -4,6 +4,7 @@
->    */
->   
->   #include <linux/fs.h>
+>  */
+> 
+> #include <linux/fs.h>
 > +#include <linux/filelock.h>
->   #include <linux/miscdevice.h>
->   #include <linux/poll.h>
->   #include <linux/dlm.h>
+> #include <linux/miscdevice.h>
+> #include <linux/poll.h>
+> #include <linux/dlm.h>
 > diff --git a/fs/fcntl.c b/fs/fcntl.c
 > index 146c9ab0cd4b..7852e946fdf4 100644
 > --- a/fs/fcntl.c
 > +++ b/fs/fcntl.c
 > @@ -10,6 +10,7 @@
->   #include <linux/mm.h>
->   #include <linux/sched/task.h>
->   #include <linux/fs.h>
+> #include <linux/mm.h>
+> #include <linux/sched/task.h>
+> #include <linux/fs.h>
 > +#include <linux/filelock.h>
->   #include <linux/file.h>
->   #include <linux/fdtable.h>
->   #include <linux/capability.h>
+> #include <linux/file.h>
+> #include <linux/fdtable.h>
+> #include <linux/capability.h>
 > diff --git a/fs/file_table.c b/fs/file_table.c
 > index dd88701e54a9..372653b92617 100644
 > --- a/fs/file_table.c
 > +++ b/fs/file_table.c
 > @@ -13,6 +13,7 @@
->   #include <linux/init.h>
->   #include <linux/module.h>
->   #include <linux/fs.h>
+> #include <linux/init.h>
+> #include <linux/module.h>
+> #include <linux/fs.h>
 > +#include <linux/filelock.h>
->   #include <linux/security.h>
->   #include <linux/cred.h>
->   #include <linux/eventpoll.h>
+> #include <linux/security.h>
+> #include <linux/cred.h>
+> #include <linux/eventpoll.h>
 > diff --git a/fs/fuse/file.c b/fs/fuse/file.c
 > index 71bfb663aac5..0e6b3b8e2f27 100644
 > --- a/fs/fuse/file.c
 > +++ b/fs/fuse/file.c
 > @@ -18,6 +18,7 @@
->   #include <linux/falloc.h>
->   #include <linux/uio.h>
->   #include <linux/fs.h>
+> #include <linux/falloc.h>
+> #include <linux/uio.h>
+> #include <linux/fs.h>
 > +#include <linux/filelock.h>
->   
->   static int fuse_send_open(struct fuse_mount *fm, u64 nodeid,
->   			  unsigned int open_flags, int opcode,
+> 
+> static int fuse_send_open(struct fuse_mount *fm, u64 nodeid,
+> 			  unsigned int open_flags, int opcode,
 > diff --git a/fs/gfs2/file.c b/fs/gfs2/file.c
 > index 60c6fb91fb58..2a48c8df6d56 100644
 > --- a/fs/gfs2/file.c
 > +++ b/fs/gfs2/file.c
 > @@ -15,6 +15,7 @@
->   #include <linux/mm.h>
->   #include <linux/mount.h>
->   #include <linux/fs.h>
+> #include <linux/mm.h>
+> #include <linux/mount.h>
+> #include <linux/fs.h>
 > +#include <linux/filelock.h>
->   #include <linux/gfs2_ondisk.h>
->   #include <linux/falloc.h>
->   #include <linux/swap.h>
+> #include <linux/gfs2_ondisk.h>
+> #include <linux/falloc.h>
+> #include <linux/swap.h>
 > diff --git a/fs/inode.c b/fs/inode.c
 > index b608528efd3a..f32aa2ec148d 100644
 > --- a/fs/inode.c
 > +++ b/fs/inode.c
 > @@ -5,6 +5,7 @@
->    */
->   #include <linux/export.h>
->   #include <linux/fs.h>
+>  */
+> #include <linux/export.h>
+> #include <linux/fs.h>
 > +#include <linux/filelock.h>
->   #include <linux/mm.h>
->   #include <linux/backing-dev.h>
->   #include <linux/hash.h>
+> #include <linux/mm.h>
+> #include <linux/backing-dev.h>
+> #include <linux/hash.h>
 > diff --git a/fs/ksmbd/smb2pdu.c b/fs/ksmbd/smb2pdu.c
 > index f2bcd2a5fb7f..d4d6f24790d6 100644
 > --- a/fs/ksmbd/smb2pdu.c
 > +++ b/fs/ksmbd/smb2pdu.c
 > @@ -12,6 +12,7 @@
->   #include <linux/ethtool.h>
->   #include <linux/falloc.h>
->   #include <linux/mount.h>
+> #include <linux/ethtool.h>
+> #include <linux/falloc.h>
+> #include <linux/mount.h>
 > +#include <linux/filelock.h>
->   
->   #include "glob.h"
->   #include "smbfsctl.h"
+> 
+> #include "glob.h"
+> #include "smbfsctl.h"
 > diff --git a/fs/ksmbd/vfs.c b/fs/ksmbd/vfs.c
 > index f9e85d6a160e..f73c4e119ffd 100644
 > --- a/fs/ksmbd/vfs.c
 > +++ b/fs/ksmbd/vfs.c
 > @@ -6,6 +6,7 @@
->   
->   #include <linux/kernel.h>
->   #include <linux/fs.h>
+> 
+> #include <linux/kernel.h>
+> #include <linux/fs.h>
 > +#include <linux/filelock.h>
->   #include <linux/uaccess.h>
->   #include <linux/backing-dev.h>
->   #include <linux/writeback.h>
+> #include <linux/uaccess.h>
+> #include <linux/backing-dev.h>
+> #include <linux/writeback.h>
 > diff --git a/fs/ksmbd/vfs_cache.c b/fs/ksmbd/vfs_cache.c
 > index da9163b00350..552c3882a8f4 100644
 > --- a/fs/ksmbd/vfs_cache.c
 > +++ b/fs/ksmbd/vfs_cache.c
 > @@ -5,6 +5,7 @@
->    */
->   
->   #include <linux/fs.h>
+>  */
+> 
+> #include <linux/fs.h>
 > +#include <linux/filelock.h>
->   #include <linux/slab.h>
->   #include <linux/vmalloc.h>
->   
+> #include <linux/slab.h>
+> #include <linux/vmalloc.h>
+> 
 > diff --git a/fs/lockd/clntproc.c b/fs/lockd/clntproc.c
 > index 99fffc9cb958..e875a3571c41 100644
 > --- a/fs/lockd/clntproc.c
 > +++ b/fs/lockd/clntproc.c
 > @@ -12,6 +12,7 @@
->   #include <linux/types.h>
->   #include <linux/errno.h>
->   #include <linux/fs.h>
+> #include <linux/types.h>
+> #include <linux/errno.h>
+> #include <linux/fs.h>
 > +#include <linux/filelock.h>
->   #include <linux/nfs_fs.h>
->   #include <linux/utsname.h>
->   #include <linux/freezer.h>
+> #include <linux/nfs_fs.h>
+> #include <linux/utsname.h>
+> #include <linux/freezer.h>
 > diff --git a/fs/lockd/netns.h b/fs/lockd/netns.h
 > index 5bec78c8e431..17432c445fe6 100644
 > --- a/fs/lockd/netns.h
 > +++ b/fs/lockd/netns.h
 > @@ -3,6 +3,7 @@
->   #define __LOCKD_NETNS_H__
->   
->   #include <linux/fs.h>
+> #define __LOCKD_NETNS_H__
+> 
+> #include <linux/fs.h>
 > +#include <linux/filelock.h>
->   #include <net/netns/generic.h>
->   
->   struct lockd_net {
+> #include <net/netns/generic.h>
+> 
+> struct lockd_net {
 > diff --git a/fs/locks.c b/fs/locks.c
 > index 8f01bee17715..a5cc90c958c9 100644
 > --- a/fs/locks.c
 > +++ b/fs/locks.c
 > @@ -52,6 +52,7 @@
->   #include <linux/capability.h>
->   #include <linux/file.h>
->   #include <linux/fdtable.h>
+> #include <linux/capability.h>
+> #include <linux/file.h>
+> #include <linux/fdtable.h>
 > +#include <linux/filelock.h>
->   #include <linux/fs.h>
->   #include <linux/init.h>
->   #include <linux/security.h>
+> #include <linux/fs.h>
+> #include <linux/init.h>
+> #include <linux/security.h>
 > diff --git a/fs/namei.c b/fs/namei.c
 > index 578c2110df02..d5121f51f900 100644
 > --- a/fs/namei.c
 > +++ b/fs/namei.c
 > @@ -20,6 +20,7 @@
->   #include <linux/kernel.h>
->   #include <linux/slab.h>
->   #include <linux/fs.h>
+> #include <linux/kernel.h>
+> #include <linux/slab.h>
+> #include <linux/fs.h>
 > +#include <linux/filelock.h>
->   #include <linux/namei.h>
->   #include <linux/pagemap.h>
->   #include <linux/sched/mm.h>
+> #include <linux/namei.h>
+> #include <linux/pagemap.h>
+> #include <linux/sched/mm.h>
 > diff --git a/fs/nfs/nfs4_fs.h b/fs/nfs/nfs4_fs.h
 > index cfef738d765e..9822ad1aabef 100644
 > --- a/fs/nfs/nfs4_fs.h
 > +++ b/fs/nfs/nfs4_fs.h
 > @@ -23,6 +23,7 @@
->   #define NFS4_MAX_LOOP_ON_RECOVER (10)
->   
->   #include <linux/seqlock.h>
+> #define NFS4_MAX_LOOP_ON_RECOVER (10)
+> 
+> #include <linux/seqlock.h>
 > +#include <linux/filelock.h>
->   
->   struct idmap;
->   
+> 
+> struct idmap;
+> 
 > diff --git a/fs/nfs_common/grace.c b/fs/nfs_common/grace.c
 > index 0a9b72685f98..1479583fbb62 100644
 > --- a/fs/nfs_common/grace.c
 > +++ b/fs/nfs_common/grace.c
 > @@ -9,6 +9,7 @@
->   #include <net/net_namespace.h>
->   #include <net/netns/generic.h>
->   #include <linux/fs.h>
+> #include <net/net_namespace.h>
+> #include <net/netns/generic.h>
+> #include <linux/fs.h>
 > +#include <linux/filelock.h>
->   
->   static unsigned int grace_net_id;
->   static DEFINE_SPINLOCK(grace_lock);
+> 
+> static unsigned int grace_net_id;
+> static DEFINE_SPINLOCK(grace_lock);
 > diff --git a/fs/nfsd/netns.h b/fs/nfsd/netns.h
 > index 8c854ba3285b..bc139401927d 100644
 > --- a/fs/nfsd/netns.h
 > +++ b/fs/nfsd/netns.h
 > @@ -10,6 +10,7 @@
->   
->   #include <net/net_namespace.h>
->   #include <net/netns/generic.h>
+> 
+> #include <net/net_namespace.h>
+> #include <net/netns/generic.h>
 > +#include <linux/filelock.h>
->   #include <linux/percpu_counter.h>
->   #include <linux/siphash.h>
->   
+> #include <linux/percpu_counter.h>
+> #include <linux/siphash.h>
+> 
+
+For the NFSD piece: Acked-by: Chuck Lever <chuck.lever@oracle.com>
+
+Although, you are listed as a co-maintainer of NFSD, so I guess
+this is completely optional.
+
+
 > diff --git a/fs/ocfs2/locks.c b/fs/ocfs2/locks.c
 > index 73a3854b2afb..f37174e79fad 100644
 > --- a/fs/ocfs2/locks.c
 > +++ b/fs/ocfs2/locks.c
 > @@ -8,6 +8,7 @@
->    */
->   
->   #include <linux/fs.h>
+>  */
+> 
+> #include <linux/fs.h>
 > +#include <linux/filelock.h>
->   #include <linux/fcntl.h>
->   
->   #include <cluster/masklog.h>
+> #include <linux/fcntl.h>
+> 
+> #include <cluster/masklog.h>
 > diff --git a/fs/ocfs2/stack_user.c b/fs/ocfs2/stack_user.c
 > index 64e6ddcfe329..05d4414d0c33 100644
 > --- a/fs/ocfs2/stack_user.c
 > +++ b/fs/ocfs2/stack_user.c
 > @@ -9,6 +9,7 @@
->   
->   #include <linux/module.h>
->   #include <linux/fs.h>
+> 
+> #include <linux/module.h>
+> #include <linux/fs.h>
 > +#include <linux/filelock.h>
->   #include <linux/miscdevice.h>
->   #include <linux/mutex.h>
->   #include <linux/slab.h>
+> #include <linux/miscdevice.h>
+> #include <linux/mutex.h>
+> #include <linux/slab.h>
 > diff --git a/fs/open.c b/fs/open.c
 > index a81319b6177f..11a3202ea60c 100644
 > --- a/fs/open.c
 > +++ b/fs/open.c
 > @@ -33,6 +33,7 @@
->   #include <linux/dnotify.h>
->   #include <linux/compat.h>
->   #include <linux/mnt_idmapping.h>
+> #include <linux/dnotify.h>
+> #include <linux/compat.h>
+> #include <linux/mnt_idmapping.h>
 > +#include <linux/filelock.h>
->   
->   #include "internal.h"
->   
+> 
+> #include "internal.h"
+> 
 > diff --git a/fs/orangefs/file.c b/fs/orangefs/file.c
 > index 732661aa2680..12ec31a9113b 100644
 > --- a/fs/orangefs/file.c
 > +++ b/fs/orangefs/file.c
 > @@ -14,6 +14,7 @@
->   #include "orangefs-kernel.h"
->   #include "orangefs-bufmap.h"
->   #include <linux/fs.h>
+> #include "orangefs-kernel.h"
+> #include "orangefs-bufmap.h"
+> #include <linux/fs.h>
 > +#include <linux/filelock.h>
->   #include <linux/pagemap.h>
->   
->   static int flush_racache(struct inode *inode)
+> #include <linux/pagemap.h>
+> 
+> static int flush_racache(struct inode *inode)
 > diff --git a/fs/proc/fd.c b/fs/proc/fd.c
 > index 913bef0d2a36..2a1e7725dbcb 100644
 > --- a/fs/proc/fd.c
 > +++ b/fs/proc/fd.c
 > @@ -11,6 +11,7 @@
->   #include <linux/file.h>
->   #include <linux/seq_file.h>
->   #include <linux/fs.h>
+> #include <linux/file.h>
+> #include <linux/seq_file.h>
+> #include <linux/fs.h>
 > +#include <linux/filelock.h>
->   
->   #include <linux/proc_fs.h>
->   
+> 
+> #include <linux/proc_fs.h>
+> 
 > diff --git a/fs/utimes.c b/fs/utimes.c
 > index 39f356017635..00499e4ba955 100644
 > --- a/fs/utimes.c
 > +++ b/fs/utimes.c
 > @@ -7,6 +7,7 @@
->   #include <linux/uaccess.h>
->   #include <linux/compat.h>
->   #include <asm/unistd.h>
+> #include <linux/uaccess.h>
+> #include <linux/compat.h>
+> #include <asm/unistd.h>
 > +#include <linux/filelock.h>
->   
->   static bool nsec_valid(long nsec)
->   {
+> 
+> static bool nsec_valid(long nsec)
+> {
 > diff --git a/fs/xattr.c b/fs/xattr.c
 > index 61107b6bbed2..b81fd7d8520e 100644
 > --- a/fs/xattr.c
 > +++ b/fs/xattr.c
 > @@ -9,6 +9,7 @@
->     Copyright (c) 2004 Red Hat, Inc., James Morris <jmorris@redhat.com>
->    */
->   #include <linux/fs.h>
+>   Copyright (c) 2004 Red Hat, Inc., James Morris <jmorris@redhat.com>
+>  */
+> #include <linux/fs.h>
 > +#include <linux/filelock.h>
->   #include <linux/slab.h>
->   #include <linux/file.h>
->   #include <linux/xattr.h>
+> #include <linux/slab.h>
+> #include <linux/file.h>
+> #include <linux/xattr.h>
 > diff --git a/fs/xfs/xfs_buf.h b/fs/xfs/xfs_buf.h
 > index 549c60942208..c1f283cc22f6 100644
 > --- a/fs/xfs/xfs_buf.h
 > +++ b/fs/xfs/xfs_buf.h
 > @@ -11,6 +11,7 @@
->   #include <linux/spinlock.h>
->   #include <linux/mm.h>
->   #include <linux/fs.h>
+> #include <linux/spinlock.h>
+> #include <linux/mm.h>
+> #include <linux/fs.h>
 > +#include <linux/filelock.h>
->   #include <linux/dax.h>
->   #include <linux/uio.h>
->   #include <linux/list_lru.h>
+> #include <linux/dax.h>
+> #include <linux/uio.h>
+> #include <linux/list_lru.h>
 > diff --git a/fs/xfs/xfs_file.c b/fs/xfs/xfs_file.c
 > index e462d39c840e..591c696651f0 100644
 > --- a/fs/xfs/xfs_file.c
 > +++ b/fs/xfs/xfs_file.c
 > @@ -31,6 +31,7 @@
->   #include <linux/mman.h>
->   #include <linux/fadvise.h>
->   #include <linux/mount.h>
+> #include <linux/mman.h>
+> #include <linux/fadvise.h>
+> #include <linux/mount.h>
 > +#include <linux/filelock.h>
->   
->   static const struct vm_operations_struct xfs_file_vm_ops;
->   
+> 
+> static const struct vm_operations_struct xfs_file_vm_ops;
+> 
 > diff --git a/fs/xfs/xfs_inode.c b/fs/xfs/xfs_inode.c
 > index aa303be11576..257e279df469 100644
 > --- a/fs/xfs/xfs_inode.c
 > +++ b/fs/xfs/xfs_inode.c
 > @@ -4,6 +4,7 @@
->    * All Rights Reserved.
->    */
->   #include <linux/iversion.h>
+>  * All Rights Reserved.
+>  */
+> #include <linux/iversion.h>
 > +#include <linux/filelock.h>
->   
->   #include "xfs.h"
->   #include "xfs_fs.h"
+> 
+> #include "xfs.h"
+> #include "xfs_fs.h"
 > diff --git a/include/linux/filelock.h b/include/linux/filelock.h
 > new file mode 100644
 > index 000000000000..b686e7e74787
@@ -1068,9 +1088,9 @@ On 21/11/2022 04:59, Jeff Layton wrote:
 > --- a/include/linux/fs.h
 > +++ b/include/linux/fs.h
 > @@ -1003,132 +1003,11 @@ static inline struct file *get_file(struct file *f)
->   #define MAX_LFS_FILESIZE 	((loff_t)LLONG_MAX)
->   #endif
->   
+> #define MAX_LFS_FILESIZE 	((loff_t)LLONG_MAX)
+> #endif
+> 
 > -#define FL_POSIX	1
 > -#define FL_FLOCK	2
 > -#define FL_DELEG	4	/* NFSv4 delegation */
@@ -1093,11 +1113,11 @@ On 21/11/2022 04:59, Jeff Layton wrote:
 > - */
 > -#define FILE_LOCK_DEFERRED 1
 > -
->   /* legacy typedef, should eventually be removed */
->   typedef void *fl_owner_t;
->   
->   struct file_lock;
->   
+> /* legacy typedef, should eventually be removed */
+> typedef void *fl_owner_t;
+> 
+> struct file_lock;
+> 
 > -struct file_lock_operations {
 > -	void (*fl_copy_lock)(struct file_lock *, struct file_lock *);
 > -	void (*fl_release_private)(struct file_lock *);
@@ -1197,13 +1217,13 @@ On 21/11/2022 04:59, Jeff Layton wrote:
 > -	struct list_head	flc_lease;
 > -};
 > -
->   /* The following constant reflects the upper bound of the file/locking space */
->   #ifndef OFFSET_MAX
->   #define INT_LIMIT(x)	(~((x)1 << (sizeof(x)*8 - 1)))
+> /* The following constant reflects the upper bound of the file/locking space */
+> #ifndef OFFSET_MAX
+> #define INT_LIMIT(x)	(~((x)1 << (sizeof(x)*8 - 1)))
 > @@ -1138,211 +1017,6 @@ struct file_lock_context {
->   
->   extern void send_sigio(struct fown_struct *fown, int fd, int band);
->   
+> 
+> extern void send_sigio(struct fown_struct *fown, int fd, int band);
+> 
 > -#define locks_inode(f) file_inode(f)
 > -
 > -#ifdef CONFIG_FILE_LOCKING
@@ -1409,25 +1429,25 @@ On 21/11/2022 04:59, Jeff Layton wrote:
 > -
 > -#endif /* !CONFIG_FILE_LOCKING */
 > -
->   static inline struct inode *file_inode(const struct file *f)
->   {
->   	return f->f_inode;
+> static inline struct inode *file_inode(const struct file *f)
+> {
+> 	return f->f_inode;
 > @@ -1353,11 +1027,6 @@ static inline struct dentry *file_dentry(const struct file *file)
->   	return d_real(file->f_path.dentry, file_inode(file));
->   }
->   
+> 	return d_real(file->f_path.dentry, file_inode(file));
+> }
+> 
 > -static inline int locks_lock_file_wait(struct file *filp, struct file_lock *fl)
 > -{
 > -	return locks_lock_inode_wait(locks_inode(filp), fl);
 > -}
 > -
->   struct fasync_struct {
->   	rwlock_t		fa_lock;
->   	int			magic;
+> struct fasync_struct {
+> 	rwlock_t		fa_lock;
+> 	int			magic;
 > @@ -2641,96 +2310,6 @@ extern struct kobject *fs_kobj;
->   
->   #define MAX_RW_COUNT (INT_MAX & PAGE_MASK)
->   
+> 
+> #define MAX_RW_COUNT (INT_MAX & PAGE_MASK)
+> 
 > -#ifdef CONFIG_FILE_LOCKING
 > -static inline int break_lease(struct inode *inode, unsigned int mode)
 > -{
@@ -1518,25 +1538,28 @@ On 21/11/2022 04:59, Jeff Layton wrote:
 > -
 > -#endif /* CONFIG_FILE_LOCKING */
 > -
->   /* fs/open.c */
->   struct audit_names;
->   struct filename {
+> /* fs/open.c */
+> struct audit_names;
+> struct filename {
 > diff --git a/include/linux/lockd/xdr.h b/include/linux/lockd/xdr.h
 > index 67e4a2c5500b..b60fbcd8cdfa 100644
 > --- a/include/linux/lockd/xdr.h
 > +++ b/include/linux/lockd/xdr.h
 > @@ -11,6 +11,7 @@
->   #define LOCKD_XDR_H
->   
->   #include <linux/fs.h>
+> #define LOCKD_XDR_H
+> 
+> #include <linux/fs.h>
 > +#include <linux/filelock.h>
->   #include <linux/nfs.h>
->   #include <linux/sunrpc/xdr.h>
->   
+> #include <linux/nfs.h>
+> #include <linux/sunrpc/xdr.h>
+> 
+> -- 
+> 2.38.1
+> 
 
-LGTM.
+--
+Chuck Lever
 
-Reviewed-by: Xiubo Li <xiubli@redhat.com>
 
 
 
