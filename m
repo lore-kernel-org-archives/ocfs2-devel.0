@@ -1,60 +1,60 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc254.phx1.oracleemaildelivery.com (aib29ajc254.phx1.oracleemaildelivery.com [192.29.103.254])
+Received: from aib29ajc253.phx1.oracleemaildelivery.com (aib29ajc253.phx1.oracleemaildelivery.com [192.29.103.253])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id E09E1C4332F
-	for <ocfs2-devel@archiver.kernel.org>; Mon, 21 Nov 2022 07:27:38 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id B2C05C4332F
+	for <ocfs2-devel@archiver.kernel.org>; Mon, 21 Nov 2022 09:51:24 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=qUUKjiVOUnn01+Du/FcFLmNDGNL/z470VEYg9E4/VCQ=;
- b=uxN8GRgPwnqRy0ZJEhY5BnMSP3t0omxE3TKhv2usYtntQlxsE5ziXFuygUlLFqQpVS5C9AIaQfTp
-   w0x5GRwKe/+4/6+6UrD+kI/N5y3aRx7WPrEsWhjw+z3+FSBR5Dh0NHaQjPieQY4xKkGqNLRcKsxC
-   RGsDERDTCPmwXxO1MPOrmtmIWXx5A4QC4rqXmtpZv7kpNO5oVOsimEC362CuaN1hPDqB50cK9tw3
-   vSBR6vj8HuIHzEmFvVQ6bsN0oFq0DoW8nhhjhAN8fCPVSQ7loRLdNnFFqAL6nzI9QnuDAqSo1b+i
-   yF3N4KvTdXJZpHCWTZVphGa4cBHb0r27OoOwUg==
+ bh=aCo8aTa5/ahDdvMOqkI8mxaZc0AKfDa21dEa9uWzL3g=;
+ b=HlnkdMho1fX4w8Psv3pkLPBOGV0DjrRRTxCdbKb8B451kaIQhlhop3NcquJktVVKvftqbw5hCzoY
+   E1CO1+TiEmbD7Ru0/cdiAhm1D+7kLawFD7IKZm4T2ZidpPlqf1XjMo9jNOu4dOL9Um+K8fNV/jRX
+   VC3Bk8cruU6OuvldQTgTLbeFX9FZjyM/RJX4KZdk3AJU5K1Yoe4ahIpmnU5fdZJeexTRwk36ofJA
+   9BBnlK7XvqjDVvipE3qr+eXgWpssfUyvrmI+2rXxiwurHxz/s/FOLtcfEj5pc/4NRcgCGfYwfGMK
+   kBAwzqVkvCsm+ehs7vUWUCv3uJPlNJPFm6qagQ==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=qUUKjiVOUnn01+Du/FcFLmNDGNL/z470VEYg9E4/VCQ=;
- b=daHJJ8Z/pK0aEQyhKJGp7o+XmJtImCeZOJnyIRQ6U+gOIAgUInpVymCmRV6WWaM4DB1lKxNXXTv2
-   rGvmPI+JuR6xX7HgEbBjxarpjr2eGRFqmi73Bd4qZLlQ82EBGfOm9JizjdlrnsQY2cXdpo7pKIW8
-   5U62MMzUdJqF4zHpL0euU6QITx8QxBU/iM3F+7XIWcfMm+a1HTrTuVvJ4Vj6GEz+7f/Lu0dUh6+g
-   JdNPjdUYN2vmGEThoYmzMG0YSBS0HMHs1SIiUX/6DORyFs+vVXJUiNmoDYGlyjhUOlfns+HNrkUT
-   4YmpixOrJ/s6SXROmNM0rC3w6IJdm9NukQX26Q==
-Received: by omta-ad3-fd3-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
+ bh=aCo8aTa5/ahDdvMOqkI8mxaZc0AKfDa21dEa9uWzL3g=;
+ b=JkjHZRTOhiDRR+RcsUWSPcMKY33MGAU+KgnStBntcErptEP6DfThTtXmMxbMqMPtDurrwlmSnL9T
+   8ji/qP15rmJAqHmE5Vwu3QtKlSgAKvM/FlcmK24HYOMWBPDuGIkokQb3znZEHC1IwnfrwdNlXa32
+   XFgSXyBQrTVsNY5cqYPF3zpZ0yWWFb+KOv1B6odFkOZY9/qHAZMstqzKS6nS17a8fIEajYLA+iy1
+   X9YJ2khbKEtJH2TAFTgeL4a2KxyJLrLnQnAN5SIKj7/WHe84kAz+WO9ZHl0WtKRKrDmR6HmN4HTV
+   273F8GXKgSBOxGcf/xvjfZPhGUVObTET3qKF9A==
+Received: by omta-ad3-fd1-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20221104 64bit (built Nov  4
  2022))
- with ESMTPS id <0RLO00HE2SQ2KGC0@omta-ad3-fd3-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Mon, 21 Nov 2022 07:27:38 +0000 (GMT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=alex-at.net; s=default;
- t=1669015634; bh=FPwSbToavWSUtmSs1xGlcZ0g98oQNCMSMGzR+QTLrQY=;
- h=Date:Subject:To:References:From:In-Reply-To;
- b=uogiO4iIUh4j6dEOAwsk8+UpPywnn9TEiV4OEiJQMqOP0tn+0Bu0Fi9MrC73S9GsV
- J/vNnhYJVmHsqhjs9EXxY1oR9ysty/LcDcq4Ay4PIF/4Ae7EbxDE/8zOKoUKgRsmbA
- 0kDoxNVoOIF4kuCsgsZ7uKXCVATigldyHjZK3pIg=
-Message-id: <121814ae-69f6-2d1b-fb83-46d3a8da32e1@alex-at.net>
-Date: Mon, 21 Nov 2022 10:27:13 +0300
+ with ESMTPS id <0RLO00D0UZDOGY80@omta-ad3-fd1-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Mon, 21 Nov 2022 09:51:24 +0000 (GMT)
+Message-id: <aa5fa8c5f231115c58012352124df57d16a01e41.camel@huaweicloud.com>
+To: Mimi Zohar <zohar@linux.ibm.com>, dmitry.kasatkin@gmail.com,
+ paul@paul-moore.com, jmorris@namei.org, serge@hallyn.com,
+ stephen.smalley.work@gmail.com, eparis@parisplace.org, casey@schaufler-ca.com
+Date: Mon, 21 Nov 2022 10:45:19 +0100
+In-reply-to: <3dc4f389ead98972cb7d09ef285a0065decb0ad0.camel@linux.ibm.com>
+References: <20221110094639.3086409-1-roberto.sassu@huaweicloud.com>
+ <20221110094639.3086409-3-roberto.sassu@huaweicloud.com>
+ <3dc4f389ead98972cb7d09ef285a0065decb0ad0.camel@linux.ibm.com>
+User-Agent: Evolution 3.36.5-0ubuntu1
 MIME-version: 1.0
-User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:102.0) Gecko/20100101
- Thunderbird/102.4.2
-Content-language: en-US
-To: Joseph Qi <joseph.qi@linux.alibaba.com>, ocfs2-devel@oss.oracle.com
-References: <d7a1e5ae-c43f-5a6a-c0c6-619a3e22b092@alex-at.net>
- <911762fa-8fc2-ec01-e767-1ed8ae7e5c38@linux.alibaba.com>
-In-reply-to: <911762fa-8fc2-ec01-e767-1ed8ae7e5c38@linux.alibaba.com>
-X-Source-IP: 51.195.137.138
+X-Source-IP: 14.137.139.46
 X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10537
  signatures=596816
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 bulkscore=0
- suspectscore=0 adultscore=0 mlxlogscore=999 priorityscore=1501 clxscore=-49
- malwarescore=0 phishscore=0 spamscore=0 mlxscore=0 lowpriorityscore=0
- impostorscore=0 unknownsenderscore=20 classifier=spam adjust=0 reason=mlx
- scancount=1 engine=8.12.0-2210170000 definitions=main-2211210058
-Subject: Re: [Ocfs2-devel] dinode link count inconsistency in
- ocfs2_read_links_count() logic
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 spamscore=0
+ suspectscore=0 mlxlogscore=973 clxscore=-27 adultscore=0 lowpriorityscore=0
+ phishscore=0 mlxscore=0 bulkscore=0 malwarescore=0 impostorscore=0
+ priorityscore=1501 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2210170000 definitions=main-2211210076
+Cc: nicolas.bouchinet@clip-os.org, keescook@chromium.org,
+ selinux@vger.kernel.org, Roberto Sassu <roberto.sassu@huawei.com>,
+ linux-kernel@vger.kernel.org, reiserfs-devel@vger.kernel.org,
+ linux-security-module@vger.kernel.org, linux-integrity@vger.kernel.org,
+ ocfs2-devel@oss.oracle.com
+Subject: Re: [Ocfs2-devel] [PATCH v4 2/5] security: Rewrite
+ security_old_inode_init_security()
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -66,229 +66,133 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: "Alexey Asemov \(Alex/AT\) via Ocfs2-devel" <ocfs2-devel@oss.oracle.com>
-Reply-to: "Alexey Asemov \(Alex/AT\)" <alex@alex-at.net>
-Content-type: multipart/mixed; boundary="===============7889007914816622528=="
+From: Roberto Sassu via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: Roberto Sassu <roberto.sassu@huaweicloud.com>
+Content-type: text/plain; charset="us-ascii"
+Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-ServerName: mail.alex-at.net
+X-CM-TRANSID: LxC2BwCHcW65SHtjOoSBAA--.28097S2
+X-Coremail-Antispam: 1UD129KBjvJXoWxCry7Xw1UCFyUJr1ruFWDCFg_yoW5Kr1Dpr
+ W3KF1UKrn8JF97CrWxJFnxWF4I93yfGFZrXrs5AryDAF1DCF1xtr10yry5u343JrWkJ34F
+ qw4xZ3sxZrn8Z3JanT9S1TB71UUUUUUqnTZGkaVYY2UrUUUUjbIjqfuFe4nvWSU5nxnvy2
+ 9KBjDU0xBIdaVrnRJUUUkjb4IE77IF4wAFF20E14v26ryj6rWUM7CY07I20VC2zVCF04k2
+ 6cxKx2IYs7xG6rWj6s0DM7CIcVAFz4kK6r1j6r18M28lY4IEw2IIxxk0rwA2F7IY1VAKz4
+ vEj48ve4kI8wA2z4x0Y4vE2Ix0cI8IcVAFwI0_Jr0_JF4l84ACjcxK6xIIjxv20xvEc7Cj
+ xVAFwI0_Gr0_Cr1l84ACjcxK6I8E87Iv67AKxVW8JVWxJwA2z4x0Y4vEx4A2jsIEc7CjxV
+ AFwI0_Gr0_Gr1UM2AIxVAIcxkEcVAq07x20xvEncxIr21l5I8CrVACY4xI64kE6c02F40E
+ x7xfMcIj6xIIjxv20xvE14v26r1j6r18McIj6I8E87Iv67AKxVWUJVW8JwAm72CE4IkC6x
+ 0Yz7v_Jr0_Gr1lF7xvr2IY64vIr41lFIxGxcIEc7CjxVA2Y2ka0xkIwI1l42xK82IYc2Ij
+ 64vIr41l4I8I3I0E4IkC6x0Yz7v_Jr0_Gr1lx2IqxVAqx4xG67AKxVWUJVWUGwC20s026x
+ 8GjcxK67AKxVWUGVWUWwC2zVAF1VAY17CE14v26r4a6rW5MIIYrxkI7VAKI48JMIIF0xvE
+ 2Ix0cI8IcVAFwI0_Jr0_JF4lIxAIcVC0I7IYx2IY6xkF7I0E14v26r4j6F4UMIIF0xvE42
+ xK8VAvwI8IcIk0rVWrZr1j6s0DMIIF0xvEx4A2jsIE14v26r1j6r4UMIIF0xvEx4A2jsIE
+ c7CjxVAFwI0_Gr0_Gr1UYxBIdaVFxhVjvjDU0xZFpf9x07UZ18PUUUUU=
+X-CM-SenderInfo: purev21wro2thvvxqx5xdzvxpfor3voofrz/1tbiAgADBF1jj4GngwACsT
+X-CFilter-Loop: Reflected
+X-ServerName: frasgout13.his.huawei.com
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 a mx a:home.alex-at.net a:sphynx.alex-at.net
- a:mail.alex-at.net a:mx.alex-at.net a:home.alex-at.net a:sphynx.alex-at.net
- a:mail.alex-at.net a:mx.alex-at.net ~all
+X-Proofpoint-SPF-Record: v=spf1 ip4:45.249.212.51 ip4:45.249.212.56
+ ip4:185.176.79.53 ip4:14.137.139.23 ip4:14.137.139.154 ip4:14.137.139.46
+ ip4:124.71.93.99 ip4:124.71.93.112 ip4:124.71.94.104
+ include:spf.saas.huaweicloud.com -all
 X-Spam: Clean
-X-Proofpoint-GUID: AwSpbRnDBkrq27Xb_ey_uDF1D1ePeJ5-
-X-Proofpoint-ORIG-GUID: AwSpbRnDBkrq27Xb_ey_uDF1D1ePeJ5-
+X-Proofpoint-ORIG-GUID: kT00775X_W15N7a1dDVnHWKI8NdbaVrW
+X-Proofpoint-GUID: kT00775X_W15N7a1dDVnHWKI8NdbaVrW
 Reporting-Meta:
- AAFQE9LRHghwhZoy0iExpeegNL/s5wAK2GOr+ZCdABUZ3XBgob0ZWLRZHX8q8rak
- 5yO1ohLMehUVmoHzTW8Z7rSe+AA4L83x2Jo5KmPXkCuYzBCBIjQ6HdfAwO26WZFq
- 6oTTvww4u9ugkPDBe/yntynI7VIApTlNPMvDrxaFytqw38c6YZ6OEgYey4UvtGh9
- Uro5DEgIsDRs6YNJKmfuPxsuMpQNvpPIMKSDTe6+UJeypqwixzahMQgNYgICxvD+
- o73xQKkChJ+LTFwsKniZDKaOB825C8Y8HEN48kyj+AQB5OggL01zU6BDtFFpO/ZV
- ioxBOInBJ+VDGgnqLdZJpKfCtlrpuOiqe5pFF4t246CUmZMoNaOJBQUoRXUUOr5y
- tQMB0j5eEA4unRmk1DLYdqoWjDaXrP+kHpJnw0/BV+EBlObHGVwSLQhaY5xQwacU
- NA8ZrT1ZDKgn0V45I2CJYH3ErYsZPsYKMBhunEO2nKF38hcBNhEBf2czazgDcOHN
- NOhT4/bMwTx3NojnQZzrCnjhHyUGrI8O9cz0spXzUcgn
+ AAHsdoqHYeTrY/fR0lOp3lXBFo+EwgElf44pZZ/gPZkNcacu+k7L9aqJpDAGusAw
+ ly2aNzK00HKhY6N9AvAUqmZ+KYzGh8sgkmkOWfedOKrDy98aHm4RknxNS79xist7
+ aukfFbzJtfs+YLEj1VNVrAd3aqhgu3jB/qd+CDhlAtvcHyQldK4URZlGptd891Qc
+ sPwpKQG0e8hPKWZuv/n2XuELXgjGEeMqV/AbcwdB/sMMZZ+Q9oTwwCO3bO+SmmiM
+ BjWxowmfBcOHSdUsmNKy9yofWebo78swESTGSrvjF1HfGKwhUPvXG4C7j7bCnw8T
+ JIcnZ2XmM2/fWhORnvXfvHqc9KxjBCqpl7QWY3DTXKyxLuQZCoyU8/RfyEj2/eeJ
+ xzIbtgjJgtuQCokode69+dq5377CmWB6u50G9fyN113knwNtYMRUHPaVLk6BEYwQ
+ YPIAWq2TJgBg07M5jWe91olqV6xiJOiUzSyIaJkeI1NUakHmOqPYKfdfYPKIfxW3
+ JN0G/W/WP9z1V6LJkzofiJjfau8Ks4x716u7j7sOUHWp
 
-This is a multi-part message in MIME format.
---===============7889007914816622528==
-Content-Type: multipart/alternative;
- boundary="------------Ab58Hx61jJyQhoN2v8iyhaJF"
-Content-Language: en-US
+On Thu, 2022-11-17 at 08:03 -0500, Mimi Zohar wrote:
+> Hi Roberto,
+> 
+> On Thu, 2022-11-10 at 10:46 +0100, Roberto Sassu wrote:
+> > From: Roberto Sassu <roberto.sassu@huawei.com>
+> > 
+> > Rewrite security_old_inode_init_security() to call
+> > security_inode_init_security() before making changes to support multiple
+> > LSMs providing xattrs. Do it so that the required changes are done only in
+> > one place.
+> 
+> Only security_inode_init_security() has support for EVM.   Making
+> security_old_inode_init_security() a wrapper for
+> security_inode_init_security() could result in security.evm extended
+> attributes being created that previously weren't created.
+> 
+> In fact ocfs2 defines ocfs2_init_security_get() as a wrapper for both
+> the old and new inode_init_security calls based on the caller's
+> preference.   Only mknod and symlink seem to use the old function. 
+> Wondering why do they differentiate between callers?  (Cc'ing the ocfs2
+> mailing list as they're affected by this change.)
+> 
+> "[PATCH v4 1/5] reiserfs: Add missing calls to
+> reiserfs_security_free()"  fixed a memory leak.  I couldn't tell if
+> there was a similar memory leak in ocfs2, the only other user of
+> security_old_inode_init_security().
 
-This is a multi-part message in MIME format.
---------------Ab58Hx61jJyQhoN2v8iyhaJF
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 8bit
+From what I see, there is no memory leak there.
 
-Hello,
+> As ocfs2 already defines initxattrs, that leaves only reiserfs missing
+> initxattrs().  A better, cleaner solution would be to define one.
 
-ocfs2_link_max() relies on filesystem wide indexed directories flag, 
-while ocfs2_read_links_count() relies on per-dinode flag, and so this is 
-the exact inconsistency in question.
+If I understood why security_old_inode_init_security() is called
+instead of security_inode_init_security(), the reason seems that the
+filesystem code uses the length of the obtained xattr to make some
+calculations (e.g. reserve space). The xattr is written at a later
+time.
 
-I am not versed in code enough to be sure about exactly why this limit 
-exists, but it seems supporting OCFS2_DX_LINK_MAX is no problem for the 
-code.
+Since for reiserfs there is a plan to deprecate it, it probably
+wouldn't be worth to support the creation of multiple xattrs. I would
+define a callback to take the first xattr and make a copy, so that
+calling security_inode_init_security() + reiserfs_initxattrs() is
+equivalent to calling security_old_inode_init_security().
 
-It's just optionally not adding high part of link count just seems weird 
-to me, the field is there/zeroed even with no indexed dirs, so always 
-using it feels logical.
+But then, this is what anyway I was doing with the
+security_initxattrs() callback, for all callers of security_old_inode_i
+nit_security().
 
----
+Also, security_old_inode_init_security() is exported to kernel modules.
+Maybe, it is used somewhere. So, unless we plan to remove it
+completely, it should be probably be fixed to avoid multiple LSMs
+successfully setting an xattr, and losing the memory of all except the
+last (which this patch fixes by calling security_inode_init_security())
+.
 
-|
+If there is still the preference, I will implement the reiserfs
+callback and make a fix for security_old_inode_init_security().
 
-if  (ocfs2_supports_indexed_dirs(osb))
-		return  OCFS2_DX_LINK_MAX;
-	return  OCFS2_LINK_MAX;|
+Thanks
 
-On 21.11.2022 4:31, Joseph Qi wrote:
-> Hi,
->
-> ocfs2_mknod()/ocfs2_link()/ocfs2_rename() will always check
-> ocfs2_link_max(), so it seems that it won't overflow.
-> I wonder if you've encounter another bug that leads to dinode link count
-> leaking.
->
-> Thanks,
-> Joseph
->
-> On 11/18/22 5:47 PM, Alexey Asemov (Alex/AT) via Ocfs2-devel wrote:
->> Hello,
->>
->> While diagnosing unlink hang issue, I have found an inconsistency in dinode hardlink count handling.
->>
->> If we take a look at ocfs2.h, sections below the text, we see ocfs2_set_links_count() always stores high portion of link count into dinode, but ocfs2_read_links_count() retrieves and adds high portion *only* when inode has OCFS2_INDEXED_DIR_FL flag set.
->>
->> The problem is, ocfs2_read_links_count() is used throughout all the code and not directories only. For files, OCFS2_INDEXED_DIR_FL flag is never present, so when number of hardlinks for file spills over 65535, it will be written as 65536 correctly to dinode, but then will always be read as 0 to inode due to the check. This causes wrong link count of 0 in stat() and total hang on attempt to unlink the 'parent' inode directory entry somehow (this is the issue I hit but I have not diagnosed how it happens because I stumbled on wrong link count immediately and dug that direction).
->>
->> While not sure about the internals, I suggest removing
->>
->> - if (di->i_dyn_features & cpu_to_le16(OCFS2_INDEXED_DIR_FL))
->>
->> check for the time being inside ocfs2_read_links_count() so it always reads the correct link count from dinode, be it file or directory.
->>
->> I do not see dinode link count parts used outside ocfs2.h API, so it should be semantically correct thing to do, but please someone acquainted with the logic confirm.
->>
->> KR,
->> Alex
->>
->> ---
->>
->> static inline unsigned int ocfs2_read_links_count(struct ocfs2_dinode *di)
->> {
->>          u32 nlink = le16_to_cpu(di->i_links_count);
->>          u32 hi = le16_to_cpu(di->i_links_count_hi);
->>
->>          if (di->i_dyn_features & cpu_to_le16(OCFS2_INDEXED_DIR_FL))
->>                  nlink |= (hi << OCFS2_LINKS_HI_SHIFT);
->>
->>          return nlink;
->> }
->>
->> static inline void ocfs2_set_links_count(struct ocfs2_dinode *di, u32 nlink)
->> {
->>          u16 lo, hi;
->>
->>          lo = nlink;
->>          hi = nlink >> OCFS2_LINKS_HI_SHIFT;
->>
->>          di->i_links_count = cpu_to_le16(lo);
->>          di->i_links_count_hi = cpu_to_le16(hi);
->> }
->>
->>
->> _______________________________________________
->> Ocfs2-devel mailing list
->> Ocfs2-devel@oss.oracle.com
->> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
---------------Ab58Hx61jJyQhoN2v8iyhaJF
-Content-Type: text/html; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Roberto
 
-<html>
-  <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-  </head>
-  <body>
-    <p>Hello,</p>
-    <p>ocfs2_link_max() relies on filesystem wide indexed directories
-      flag, while ocfs2_read_links_count() relies on per-dinode flag,
-      and so this is the exact inconsistency in question.</p>
-    <p>I am not versed in code enough to be sure about exactly why this
-      limit exists, but it seems supporting OCFS2_DX_LINK_MAX is no
-      problem for the code.</p>
-    <p>It's just optionally not adding high part of link count just
-      seems weird to me, the field is there/zeroed even with no indexed
-      dirs, so always using it feels logical.</p>
-    ---<br>
-    <pre><code><pre><span class="k">if</span> <span class="p">(</span><span class="n">ocfs2_supports_indexed_dirs</span><span class="p">(</span><span class="n">osb</span><span class="p">))</span>
-		<span class="k">return</span> <span class="n">OCFS2_DX_LINK_MAX</span><span class="p">;</span>
-	<span class="k">return</span> <span class="n">OCFS2_LINK_MAX</span><span class="p">;</span></pre></code></pre>
-    <p></p>
-    <div class="moz-cite-prefix">On 21.11.2022 4:31, Joseph Qi wrote:<br>
-    </div>
-    <blockquote type="cite"
-      cite="mid:911762fa-8fc2-ec01-e767-1ed8ae7e5c38@linux.alibaba.com">
-      <pre class="moz-quote-pre" wrap="">Hi,
+> thanks,
+> 
+> Mimi
+> 
+> > Define the security_initxattrs() callback and pass it to
+> > security_inode_init_security() as argument, to obtain the first xattr
+> > provided by LSMs.
+> > 
+> > This behavior is a bit different from the current one. Before this patch
+> > calling call_int_hook() could cause multiple LSMs to provide an xattr,
+> > since call_int_hook() does not stop when an LSM returns zero. The caller of
+> > security_old_inode_init_security() receives the last xattr set. The pointer
+> > of the xattr value of previous LSMs is lost, causing memory leaks.
+> > 
+> > However, in practice, this scenario does not happen as the only in-tree
+> > LSMs providing an xattr at inode creation time are SELinux and Smack, which
+> > are mutually exclusive.
+> > 
+> > Signed-off-by: Roberto Sassu <roberto.sassu@huawei.com>b
 
-ocfs2_mknod()/ocfs2_link()/ocfs2_rename() will always check
-ocfs2_link_max(), so it seems that it won't overflow.
-I wonder if you've encounter another bug that leads to dinode link count
-leaking.
-
-Thanks,
-Joseph
-
-On 11/18/22 5:47 PM, Alexey Asemov (Alex/AT) via Ocfs2-devel wrote:
-</pre>
-      <blockquote type="cite">
-        <pre class="moz-quote-pre" wrap="">Hello,
-
-While diagnosing unlink hang issue, I have found an inconsistency in dinode hardlink count handling.
-
-If we take a look at ocfs2.h, sections below the text, we see ocfs2_set_links_count() always stores high portion of link count into dinode, but ocfs2_read_links_count() retrieves and adds high portion *only* when inode has OCFS2_INDEXED_DIR_FL flag set.
-
-The problem is, ocfs2_read_links_count() is used throughout all the code and not directories only. For files, OCFS2_INDEXED_DIR_FL flag is never present, so when number of hardlinks for file spills over 65535, it will be written as 65536 correctly to dinode, but then will always be read as 0 to inode due to the check. This causes wrong link count of 0 in stat() and total hang on attempt to unlink the 'parent' inode directory entry somehow (this is the issue I hit but I have not diagnosed how it happens because I stumbled on wrong link count immediately and dug that direction).
-
-While not sure about the internals, I suggest removing
-
-- if (di-&gt;i_dyn_features &amp; cpu_to_le16(OCFS2_INDEXED_DIR_FL))
-
-check for the time being inside ocfs2_read_links_count() so it always reads the correct link count from dinode, be it file or directory.
-
-I do not see dinode link count parts used outside ocfs2.h API, so it should be semantically correct thing to do, but please someone acquainted with the logic confirm.
-
-KR,
-Alex
-
----
-
-static inline unsigned int ocfs2_read_links_count(struct ocfs2_dinode *di)
-{
-        u32 nlink = le16_to_cpu(di-&gt;i_links_count);
-        u32 hi = le16_to_cpu(di-&gt;i_links_count_hi);
-
-        if (di-&gt;i_dyn_features &amp; cpu_to_le16(OCFS2_INDEXED_DIR_FL))
-                nlink |= (hi &lt;&lt; OCFS2_LINKS_HI_SHIFT);
-
-        return nlink;
-}
-
-static inline void ocfs2_set_links_count(struct ocfs2_dinode *di, u32 nlink)
-{
-        u16 lo, hi;
-
-        lo = nlink;
-        hi = nlink &gt;&gt; OCFS2_LINKS_HI_SHIFT;
-
-        di-&gt;i_links_count = cpu_to_le16(lo);
-        di-&gt;i_links_count_hi = cpu_to_le16(hi);
-}
-
-
-_______________________________________________
-Ocfs2-devel mailing list
-<a class="moz-txt-link-abbreviated" href="mailto:Ocfs2-devel@oss.oracle.com">Ocfs2-devel@oss.oracle.com</a>
-<a class="moz-txt-link-freetext" href="https://oss.oracle.com/mailman/listinfo/ocfs2-devel">https://oss.oracle.com/mailman/listinfo/ocfs2-devel</a>
-</pre>
-      </blockquote>
-    </blockquote>
-  </body>
-</html>
-
---------------Ab58Hx61jJyQhoN2v8iyhaJF--
-
-
---===============7889007914816622528==
-Content-Type: text/plain; charset="us-ascii"
-MIME-Version: 1.0
-Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
 
 _______________________________________________
 Ocfs2-devel mailing list
 Ocfs2-devel@oss.oracle.com
 https://oss.oracle.com/mailman/listinfo/ocfs2-devel
---===============7889007914816622528==--
-
