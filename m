@@ -4,75 +4,76 @@ X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 Received: from aib29ajc254.phx1.oracleemaildelivery.com (aib29ajc254.phx1.oracleemaildelivery.com [192.29.103.254])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id C7FDAC63709
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id A976DC47088
 	for <ocfs2-devel@archiver.kernel.org>; Sat, 26 Nov 2022 18:13:49 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=7Y2Ic2k3cSrvqq6VD+sL7fDpJJgWqjPlrCnju+G5TK8=;
- b=Z/X6BcelwSi/Brd/qXv36zW4JuVNOCZl/sgMCBJPueA2fvVsLsGzZLGwWU5hHpRnadJGFbwMgVOg
-   Jn+T4eZ5DFDFWF05tS+PTkty0nfiKSsibx7sIaowRZFuxXI99xNMC/uluAQyej8BfW/5wt6poJh+
-   b4cqxsT6AxBAKO3B9cp1WIDIYqqIu5SfRI3jEd8rVySQfeYMFk8R0hRvqp8xfcGGD9ycdLgBbch2
-   NoxqZoMR4SKHGtheWBHgOZ79XWj/eg0wjWeauqkej9aXAvIGD8Zm4stZpZmoWOgHo4HyvOvjTWjc
-   spILwk9pBL8NO6PoWx+9V6n56UGbFfYNN73a1A==
+ bh=OVM7uLtr41/1d5kSoc++nrMY44KTVSHh4jkMUJ0NzRE=;
+ b=bqmAfUWhCR6P+yzwfPeG/uKVtC0DSiPrrhWF+Z2g4I+6ptFK/4hqtSQz1bDn9p3LvndGTaHi0t6C
+   imclFb5ofoc7t5cr2ex5JNfS6LhbRSmhgmJeteZTCyZLQ/q2RHr7+ZeoNj23vsgcKZ5MErcd9KeH
+   P1ghdOVvoFWMuJ3J9sb+4EfMHaBRyIFtKs3iI4EpQCv4LSQv2IvlxJVLHW0Z13rH8HTnBPAf8czF
+   yXaRNUNxRsP2rh9o6V9guh5rROGW7fF8jtjgMv4yw434irPLC8uu9RD1ClvnSu4vHwzdWSm4UAJj
+   QDjErlEByKWii+FcETbC8srhehDerypMZBeRQg==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=7Y2Ic2k3cSrvqq6VD+sL7fDpJJgWqjPlrCnju+G5TK8=;
- b=ISVgqDSVQEHXN6h6cnC3B/Y0ejRL583e6fqlMGsxBMSrr8ExA+PZ78dj8dWEX0nIY0+iaukz+/8j
-   vljr3GZ70sgV/FXZGN3V0QFZzxYjkTkBNU0NBM4pTZqkhq/Oc2IyQz7FGwiNjewjf1RfaWLavv8B
-   PoiDTNfnFIu+WzYNGCjqKHNwhd+ZrL4Mlt2r5H7CmP0OS8TkX11snsCUT61MeNlu37wzhl2amUBc
-   egZ/TZ0QGN+tlNixOWgcjuRoFyoMlYU+5oCzD0Q2l8VEjDUw0YWigmIJvy9HthsUC4FosGPUXgtW
-   qJLYgcM7jBixI28aL3MWI36rb+5zcnq7/ftFtw==
+ bh=OVM7uLtr41/1d5kSoc++nrMY44KTVSHh4jkMUJ0NzRE=;
+ b=rfWBLwrvbWqSrNsUhSVTsQQhB5T3yyk27kwFQw1ekjv0zsBinl+NcIjRc8GI2JIkLVFRmkNsN4d/
+   r+TKVplVNpMF25n8R7srBeUkkEJvHSCtoVsA0Ri6Nhxr2vbGr2pE8KZLW5cIG3UQh8PXuY27Apah
+   6iaJZuwlPOM2LR+myt5fzFGU+hKMYnbT9ZtLI1akue6OYgjstzxuPTpnIJ8QHeVokchhWK6n2S0U
+   Fso4LsFGGVHXpIIp9ghMOMugotuOuIEa0Z6Uhl3yb0uFCo1IgfDiysMAZSh+Ehs7tI2rDeQaCLH/
+   EYQ214dzwVIsMYKeRiRxyQVtB1piDxhCnAKRlQ==
 Received: by omta-ad3-fd3-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20221104 64bit (built Nov  4
  2022))
- with ESMTPS id <0RLY000BGVYZLR90@omta-ad3-fd3-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
+ with ESMTPS id <0RLY000B2VYZLR90@omta-ad3-fd3-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
  ocfs2-devel@archiver.kernel.org; Sat, 26 Nov 2022 18:13:47 +0000 (GMT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
  d=infradead.org; s=casper.20170209; h=In-Reply-To:Content-Type:MIME-Version:
  References:Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:
  Content-Transfer-Encoding:Content-ID:Content-Description;
- bh=Nf/bUURZpgL7+v01nDvViY+Mr2gn9Uq0Zv4IVJAqBIY=; b=pOnuFxI6xpMtGusD1QKOmUNaiu
- 2G5WRi+pfuY2r1ILekGYfv+DmeMOEpo/9ZdfvtpgAw1Y1jnj/LcGblh8MiyfMovp8mLvKNdfUP/qI
- 8R/UAAI5nVvaOQ8pSKG/rbuZ0VicxWqV4T1YGGVkt/RUglsV4NUqDoSiw0gmoccxvMxcYQ+10mgyq
- 9B34ZIPM7+a/xi7vJHzDVB3NuDEFPfxL2tnCXZYEm1Px1iwHfqivbQNmLDdAhN6o8QmYRAyDENCDX
- RC3YVkPwPWNjGb/sgJLU0O4zrABPqKl4Vd/vL10iTc0IngH+XcCfs+tFpuOER1DxHIoO9jhrM1FLP
- 7+QDvHAQ==;
-Date: Tue, 22 Nov 2022 03:51:31 +0000
-To: Jeff Layton <jlayton@kernel.org>
-Message-id: <Y3xHQwM3UiD/SK0K@casper.infradead.org>
+ bh=uiFDQ6s5XgAcT9HYz21ROzPo6ZCyN/YsiViP9JuL2Vc=; b=NJJwrm6IpzOJ+nUmhrd1OXfoCk
+ G7FtSuALDx10w2NwiIqoKiG9ykgmyUGgqgtM+aJpa2oS2fQRQ+RCGSFLUVL1nV3H67iQsoM+ZXI+P
+ 75G75qOGTBUz2j3XL00qgcUTJotjzi0OfiKIf+ALXzMf3ZoQMf3KRnGWl+fsNnIUD5GBw7fYM0qpK
+ 68xmJhc99PpF71YEvdwSpdkfVDQQinCYdj6BfJplncqBsPQyicO+REFgABedNNQo6QpK9GD/KJOMG
+ I2YH4RdEbuSk9AKSGChXb1wwhkouk4nfTA4WUiJD8aJEXUyng2vGvKiEnZPT7EPwwj7AX43JZiVeT
+ eCgYCCfg==;
+Date: Tue, 22 Nov 2022 03:44:19 +0000
+To: Xiubo Li <xiubli@redhat.com>
+Message-id: <Y3xFkyZykWp5/Rvq@casper.infradead.org>
 References: <20221120210004.381842-1-jlayton@kernel.org>
+ <6627384e-5514-048f-308e-57414d0c5b31@redhat.com>
 MIME-version: 1.0
 Content-disposition: inline
-In-reply-to: <20221120210004.381842-1-jlayton@kernel.org>
+In-reply-to: <6627384e-5514-048f-308e-57414d0c5b31@redhat.com>
 X-Source-IP: 90.155.50.34
 X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10538
  signatures=596816
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 impostorscore=0
- suspectscore=0 mlxlogscore=576 clxscore=112 priorityscore=223 mlxscore=0
- bulkscore=0 malwarescore=0 spamscore=0 adultscore=0 phishscore=0
- lowpriorityscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2210170000 definitions=main-2211220026
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 adultscore=0
+ spamscore=0 priorityscore=194 phishscore=0 mlxlogscore=505 impostorscore=0
+ lowpriorityscore=0 malwarescore=0 bulkscore=0 suspectscore=0 clxscore=147
+ mlxscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2210170000 definitions=main-2211220024
 Cc: Latchesar Ionkov <lucho@ionkov.net>,
  Martin Brandenburg <martin@omnibond.com>,
  Dominique Martinet <asmadeus@codewreck.org>,
  Christian Schoenebeck <linux_oss@crudebyte.com>,
  David Howells <dhowells@redhat.com>, Marc Dionne <marc.dionne@auristor.com>,
- linux-xfs@vger.kernel.org, Mike Marshall <hubcap@omnibond.com>,
- linux-cifs@vger.kernel.org, Andreas Gruenbacher <agruenba@redhat.com>,
- Miklos Szeredi <miklos@szeredi.hu>, linux-afs@lists.infradead.org,
- cluster-devel@redhat.com, Christine Caulfield <ccaulfie@redhat.com>,
+ samba-technical@lists.samba.org, linux-xfs@vger.kernel.org,
+ Mike Marshall <hubcap@omnibond.com>, linux-cifs@vger.kernel.org,
+ Andreas Gruenbacher <agruenba@redhat.com>, Miklos Szeredi <miklos@szeredi.hu>,
+ linux-afs@lists.infradead.org, cluster-devel@redhat.com,
+ Christine Caulfield <ccaulfie@redhat.com>,
  v9fs-developer@lists.sourceforge.net, Ilya Dryomov <idryomov@gmail.com>,
  Namjae Jeon <linkinjeon@kernel.org>, devel@lists.orangefs.org,
  Shyam Prasad N <sprasad@microsoft.com>,
  Eric Van Hensbergen <ericvh@gmail.com>, Tom Talpey <tom@talpey.com>,
  linux-fsdevel@vger.kernel.org, Alexander Viro <viro@zeniv.linux.org.uk>,
- ceph-devel@vger.kernel.org, Xiubo Li <xiubli@redhat.com>,
- Trond Myklebust <trond.myklebust@hammerspace.com>, linux-nfs@vger.kernel.org,
- Paulo Alcantara <pc@cjr.nz>, samba-technical@lists.samba.org,
- linux-kernel@vger.kernel.org, Ronnie Sahlberg <lsahlber@redhat.com>,
- Steve French <sfrench@samba.org>,
+ ceph-devel@vger.kernel.org, Trond Myklebust <trond.myklebust@hammerspace.com>,
+ linux-nfs@vger.kernel.org, Paulo Alcantara <pc@cjr.nz>,
+ Jeff Layton <jlayton@kernel.org>, linux-kernel@vger.kernel.org,
+ Ronnie Sahlberg <lsahlber@redhat.com>, Steve French <sfrench@samba.org>,
  Sergey Senozhatsky <senozhatsky@chromium.org>,
  Chuck Lever <chuck.lever@oracle.com>, Anna Schumaker <anna@kernel.org>,
  Bob Peterson <rpeterso@redhat.com>, ocfs2-devel@oss.oracle.com
@@ -97,39 +98,28 @@ Errors-to: ocfs2-devel-bounces@oss.oracle.com
 X-ServerName: casper.infradead.org
 X-Proofpoint-SPF-Result: None
 X-Spam: Clean
-X-Proofpoint-GUID: xsiIKqZcsJlBRa7Z-xTJiYFqWPiIpTzP
-X-Proofpoint-ORIG-GUID: xsiIKqZcsJlBRa7Z-xTJiYFqWPiIpTzP
+X-Proofpoint-GUID: iUNaNM6H6XDYlnB3_lMsCVj6y1RzCFMx
+X-Proofpoint-ORIG-GUID: iUNaNM6H6XDYlnB3_lMsCVj6y1RzCFMx
 X-Mailman-Approved-At: Sat, 26 Nov 2022 18:13:43 +0000
 Reporting-Meta:
- AAFd/htfq0cqkEyvbEoEUFBYcxIucxInEYeBS++3RtgStN4vB3wo6b//bVRB5Nrk
- jIRS+EtjMZxO+4RHUYZ+hZsjcu4LQAEgr5P8KOgVvQ4co4IrVsLZ9j+3ZfvOyJp2
- b4R0TJZSkZIV/FOtvU8Oq40SnaknmAowVyjv+HzWKHkut4/6Qgo0OSCYB8Tf5aNk
- RZ5+/Tq8Q8d8N7mCUAcN/VVjDeEYHbDDL+NmIfdahD7YjrkAE4iXcPYa9arZkeHI
- JKhRLw78rdt1Qap00YHh/eYj6oSc+XqhO9qK9Gf48CaIleeb0eeZ7ehbtacmYvpN
- gfXWfzwk7T/cu4kyM2yvBLlNIUqjrmzyzWrLfML2p+RZ1g1Sr66diFplgI41tAgx
- 4zZ4m37Fn1JF2nM9qgz0KQJ/8uc3/bCMzOhNqhUD8D75usHaq9ui0McB3B14M/f6
- pSXfpZOzIjieA0fqGPToIEAANqopVDOXNoS8El/rWS97SXuqAJ1hThdq0E4u9flM
- RbYsowmiBzRRQ4JC11GsmPl4aIwhv6db9DA+yM8RzAY=
+ AAH2+oXap0+0ja48fxG522j5c8oIUnqxQBxcO3n1xjDBdfvakE/wGHkmgf8uN12I
+ LnmZ1dySt9MoNH1Zpk3w5y7VFCmJHoeS7FydPbpTJ6Pv4CxZBco2uew9ufhvqyaO
+ k+/YTn8CbkNzEcuQCudJwp57v3t/BQdMpsUdxs5Op8xaJPgzRw/p3fJuCIsRFwwR
+ kYGhvsh7ZJwm5VCaP1tZvB2R3Ju9AYzdr4CtQVMw3FHuQLfU7pKLpkjamWNioZmR
+ zPSSTHCaR4E8ExWp2pSlRS6ZPUWG2T6naY6rJp/+XQouMEf4NUziFVWcLehKOUmF
+ OxMM0HbjHNu0OR/IkgF5aCYcQiM30iQ5ts0uOh9L/xNCPRSKEP/UkcGGFvrm93Hz
+ UIYLbD2NIjKIBx5P1a/FcVxWq48YHvTUMIJEzfa/KwYP2Y4GbL+SAbfMWLNpK3X1
+ lTkJzvgdMqxbriMBvNFZkPK8JGabJ8nNnWH2PAP6DWWk1BwujrHWP+Y0ku8XsChH
+ CDeKT4ji1OFxFlDq5zpxv1MBiPV1kZFGHsAz2eEkey4X
 
-On Sun, Nov 20, 2022 at 03:59:57PM -0500, Jeff Layton wrote:
-> Move the file locking definitions to a new header file, and add the
-> appropriate #include directives to the source files that need them. By
-> doing this we trim down fs.h a bit and limit the amount of rebuilding
-> that has to be done when we make changes to the file locking APIs.
+On Mon, Nov 21, 2022 at 09:26:16AM +0800, Xiubo Li wrote:
+[1300+ lines snipped]
+> LGTM.
+> 
+> Reviewed-by: Xiubo Li <xiubli@redhat.com>
 
-I'm in favour of this in general, but I think there's a few implicit
-includes.  Can you create a test.c that only #include
-<linnux/filelock.h> and see if there's anything missing?
-
-> +	wait_queue_head_t fl_wait;
-> +	struct file *fl_file;
-
-These two seem undefined at this point.
-
-> +	struct fasync_struct *	fl_fasync; /* for lease break notifications */
-
-Likewise.
-
+You really don't need to quote the whole thing.  Please be more
+considerate.
 
 _______________________________________________
 Ocfs2-devel mailing list
