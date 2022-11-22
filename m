@@ -1,54 +1,59 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc245.phx1.oracleemaildelivery.com (aib29ajc245.phx1.oracleemaildelivery.com [192.29.103.245])
+Received: from aib29ajc254.phx1.oracleemaildelivery.com (aib29ajc254.phx1.oracleemaildelivery.com [192.29.103.254])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 5516BC63706
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id C7FDAC63709
 	for <ocfs2-devel@archiver.kernel.org>; Sat, 26 Nov 2022 18:13:49 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=xpnAwekwA6QFdnUxR++MlY/UU7Z1M1+0G/arRuaqZzw=;
- b=Kmc0yudFd9qjtM28AKlxF/3qKsMqpbjRtylNBvxHVTQLI9O07V5UCuZdS+l2Jt/f9c+okld4RpR6
-   sqNykPmyh1PTI8iVXzLVLp2WQqxaw1gkSdG8wyUbiZlY4o2JmGAxIDo3re9bH0FRrkryLfhdcHbx
-   wMvr9o2k//VUcjSEuZ87vuRUa8jFhcvLL+livlJrn/B8foxKFMedAYbq0V7HwhX4XCKEGu82tgQA
-   gy1RJ7vC/RycChqC23XF8iZmZE7DGd6UgiX8KTC7fJvCqJQAtoXC6YxFceUxgDSKT8rnO7zKhruY
-   0Z/P9dTnly62UnVRzl6Crn6PM0TPgKA0PcUWRA==
+ bh=7Y2Ic2k3cSrvqq6VD+sL7fDpJJgWqjPlrCnju+G5TK8=;
+ b=Z/X6BcelwSi/Brd/qXv36zW4JuVNOCZl/sgMCBJPueA2fvVsLsGzZLGwWU5hHpRnadJGFbwMgVOg
+   Jn+T4eZ5DFDFWF05tS+PTkty0nfiKSsibx7sIaowRZFuxXI99xNMC/uluAQyej8BfW/5wt6poJh+
+   b4cqxsT6AxBAKO3B9cp1WIDIYqqIu5SfRI3jEd8rVySQfeYMFk8R0hRvqp8xfcGGD9ycdLgBbch2
+   NoxqZoMR4SKHGtheWBHgOZ79XWj/eg0wjWeauqkej9aXAvIGD8Zm4stZpZmoWOgHo4HyvOvjTWjc
+   spILwk9pBL8NO6PoWx+9V6n56UGbFfYNN73a1A==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=xpnAwekwA6QFdnUxR++MlY/UU7Z1M1+0G/arRuaqZzw=;
- b=RT6gGnB1WvtRwx03lXJ5S4rq9UApNynqlayXz9C6emETRSE7UUokcu56yWMjNfEL694h2u0t37Ct
-   pb180KPqwqqndpo4hXYu2qTR1XwIYs5t1KD0UQwKy51QiNnqf7+WSxp9JzEnF6DUs47GONLXXjZ1
-   sWOD6yJ9YWYesDGzDqINUWx5FaETSgF2B0WIczh2bUVg6ECuDJJ0qvmVpgH/6VfV+tjy/dGwDBkJ
-   86gKIMM8f14TZ/rkYVjctP/x7hZzlpywZoFGUz1WetkhV+3wFMTLjnFZEpXvVfavc3j9kHJB6LTM
-   1wGiORUUqeaOIcfv7k4yShmhXRrgEG3J8zYQuQ==
-Received: by omta-ad1-fd1-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
+ bh=7Y2Ic2k3cSrvqq6VD+sL7fDpJJgWqjPlrCnju+G5TK8=;
+ b=ISVgqDSVQEHXN6h6cnC3B/Y0ejRL583e6fqlMGsxBMSrr8ExA+PZ78dj8dWEX0nIY0+iaukz+/8j
+   vljr3GZ70sgV/FXZGN3V0QFZzxYjkTkBNU0NBM4pTZqkhq/Oc2IyQz7FGwiNjewjf1RfaWLavv8B
+   PoiDTNfnFIu+WzYNGCjqKHNwhd+ZrL4Mlt2r5H7CmP0OS8TkX11snsCUT61MeNlu37wzhl2amUBc
+   egZ/TZ0QGN+tlNixOWgcjuRoFyoMlYU+5oCzD0Q2l8VEjDUw0YWigmIJvy9HthsUC4FosGPUXgtW
+   qJLYgcM7jBixI28aL3MWI36rb+5zcnq7/ftFtw==
+Received: by omta-ad3-fd3-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20221104 64bit (built Nov  4
  2022))
- with ESMTPS id <0RLY007S0VYZXT80@omta-ad1-fd1-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
+ with ESMTPS id <0RLY000BGVYZLR90@omta-ad3-fd3-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
  ocfs2-devel@archiver.kernel.org; Sat, 26 Nov 2022 18:13:47 +0000 (GMT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org; s=k20201202;
- t=1669115639; bh=bl116Cg89IGIZVG9NrRKWmlP6ed4aJACzNI0Wp3w7MQ=;
- h=Subject:From:To:Cc:Date:In-Reply-To:References:From;
- b=PW904WXq7B5dnjaE/n6/stkLttLw66q95uzaVXXfC57Gr8fGyA50W/Y+6YMHj6/Z6
- C+bp2zR/HpD7AL2kDXCaUnJHLo0QYTjCM7B7srSBYzv9QSoZunuSXqgWz/eURLlX6f
- bkLmFZpbKLyi6RqKREvtIsB+vKfLjAYsE4lMeS50ONpsJGmxbLEBM8TI6eOVtcA0LK
- FmF5vJc1DjzHEZ764Fk6lm5yRoCPsh46VllB8mEkIzIHUVtq1E/Ip3Df/1o0TdNO5Q
- AIsD9dU2QJjYYPKYl3/NasVd/l9SRjkJBU0cAIKGCY06yaw8kwOzVXEKArpk5buENB
- HvI5i9aGVVUAA==
-Message-id: <fcc7161712a2c8ff84420477b12b9114195e6624.camel@kernel.org>
-To: Matthew Wilcox <willy@infradead.org>
-Date: Tue, 22 Nov 2022 06:13:54 -0500
-In-reply-to: <Y3xHQwM3UiD/SK0K@casper.infradead.org>
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+ d=infradead.org; s=casper.20170209; h=In-Reply-To:Content-Type:MIME-Version:
+ References:Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:
+ Content-Transfer-Encoding:Content-ID:Content-Description;
+ bh=Nf/bUURZpgL7+v01nDvViY+Mr2gn9Uq0Zv4IVJAqBIY=; b=pOnuFxI6xpMtGusD1QKOmUNaiu
+ 2G5WRi+pfuY2r1ILekGYfv+DmeMOEpo/9ZdfvtpgAw1Y1jnj/LcGblh8MiyfMovp8mLvKNdfUP/qI
+ 8R/UAAI5nVvaOQ8pSKG/rbuZ0VicxWqV4T1YGGVkt/RUglsV4NUqDoSiw0gmoccxvMxcYQ+10mgyq
+ 9B34ZIPM7+a/xi7vJHzDVB3NuDEFPfxL2tnCXZYEm1Px1iwHfqivbQNmLDdAhN6o8QmYRAyDENCDX
+ RC3YVkPwPWNjGb/sgJLU0O4zrABPqKl4Vd/vL10iTc0IngH+XcCfs+tFpuOER1DxHIoO9jhrM1FLP
+ 7+QDvHAQ==;
+Date: Tue, 22 Nov 2022 03:51:31 +0000
+To: Jeff Layton <jlayton@kernel.org>
+Message-id: <Y3xHQwM3UiD/SK0K@casper.infradead.org>
 References: <20221120210004.381842-1-jlayton@kernel.org>
- <Y3xHQwM3UiD/SK0K@casper.infradead.org>
-User-Agent: Evolution 3.46.1 (3.46.1-1.fc37)
 MIME-version: 1.0
-X-Source-IP: 139.178.84.217
+Content-disposition: inline
+In-reply-to: <20221120210004.381842-1-jlayton@kernel.org>
+X-Source-IP: 90.155.50.34
 X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10538
  signatures=596816
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 impostorscore=0
+ suspectscore=0 mlxlogscore=576 clxscore=112 priorityscore=223 mlxscore=0
+ bulkscore=0 malwarescore=0 spamscore=0 adultscore=0 phishscore=0
+ lowpriorityscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2210170000 definitions=main-2211220026
 Cc: Latchesar Ionkov <lucho@ionkov.net>,
  Martin Brandenburg <martin@omnibond.com>,
  Dominique Martinet <asmadeus@codewreck.org>,
@@ -84,60 +89,47 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: Jeff Layton via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: Jeff Layton <jlayton@kernel.org>
+From: Matthew Wilcox via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: Matthew Wilcox <willy@infradead.org>
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-ServerName: dfw.source.kernel.org
-X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 include:_spf.kernel.org ~all
-X-Proofpoint-Spam-Reason: safe
-X-Spam: OrgSafeList
-X-SpamRule: orgsafelist
-X-Proofpoint-GUID: aV1hV6PjKgeBjRRaqulKQgQe0RniXyvm
-X-Proofpoint-ORIG-GUID: aV1hV6PjKgeBjRRaqulKQgQe0RniXyvm
+X-ServerName: casper.infradead.org
+X-Proofpoint-SPF-Result: None
+X-Spam: Clean
+X-Proofpoint-GUID: xsiIKqZcsJlBRa7Z-xTJiYFqWPiIpTzP
+X-Proofpoint-ORIG-GUID: xsiIKqZcsJlBRa7Z-xTJiYFqWPiIpTzP
 X-Mailman-Approved-At: Sat, 26 Nov 2022 18:13:43 +0000
 Reporting-Meta:
- AAG9ofe1uZIzVLY/EytApz2OUm7+LKfPS4LFKD4SDn1V3O72SA9QzodZjPockSLj
- fgAIglvVGfYPw8v2GDQ6X4/lMIqtgtu7dzhPY92iJ/XDLCDw09iW+9hyNYt9cJo8
- g2MiQcXNhtB4DLmhd7E585O+XpmySrf/7nsuBOO3LSi57x5PMsScYhRvDUurE1Zv
- NAkZBUOiZtM5INLM84QEIq5CJe+BHNuWlhcPp3TqyqUuGIUXcf2+8ESqs4tuFUSN
- rZx5gUWOA6NqrewZ5B+C0/A5AxTAy2Zxd0hnv3ldOm3MPmFIkSm0wo5SicbMgNr7
- XCktBxg2PVrLlPBr75x60xpqW/xEZZ3Ro7DjlOFsWC48V6tf+eSeDCyf/EclIUsd
- LSmCEL0IJZT12Hcvn+giKsPjl0JYljenu0j0wi/+C1h//XKsERp9hp+v5tcP3mK+
- zytdXGJANCciHO6lpI5vE9OvapJSd35EqNWTYw5fUtruo/6LBROW8APfiJTo1s8u
- WonFzsu8iUjlF/13y+uoC6mkAjVwcw3aPhYKM/qHTrYX
+ AAFd/htfq0cqkEyvbEoEUFBYcxIucxInEYeBS++3RtgStN4vB3wo6b//bVRB5Nrk
+ jIRS+EtjMZxO+4RHUYZ+hZsjcu4LQAEgr5P8KOgVvQ4co4IrVsLZ9j+3ZfvOyJp2
+ b4R0TJZSkZIV/FOtvU8Oq40SnaknmAowVyjv+HzWKHkut4/6Qgo0OSCYB8Tf5aNk
+ RZ5+/Tq8Q8d8N7mCUAcN/VVjDeEYHbDDL+NmIfdahD7YjrkAE4iXcPYa9arZkeHI
+ JKhRLw78rdt1Qap00YHh/eYj6oSc+XqhO9qK9Gf48CaIleeb0eeZ7ehbtacmYvpN
+ gfXWfzwk7T/cu4kyM2yvBLlNIUqjrmzyzWrLfML2p+RZ1g1Sr66diFplgI41tAgx
+ 4zZ4m37Fn1JF2nM9qgz0KQJ/8uc3/bCMzOhNqhUD8D75usHaq9ui0McB3B14M/f6
+ pSXfpZOzIjieA0fqGPToIEAANqopVDOXNoS8El/rWS97SXuqAJ1hThdq0E4u9flM
+ RbYsowmiBzRRQ4JC11GsmPl4aIwhv6db9DA+yM8RzAY=
 
-On Tue, 2022-11-22 at 03:51 +0000, Matthew Wilcox wrote:
-> On Sun, Nov 20, 2022 at 03:59:57PM -0500, Jeff Layton wrote:
-> > Move the file locking definitions to a new header file, and add the
-> > appropriate #include directives to the source files that need them. By
-> > doing this we trim down fs.h a bit and limit the amount of rebuilding
-> > that has to be done when we make changes to the file locking APIs.
-> 
-> I'm in favour of this in general, but I think there's a few implicit
-> includes.  Can you create a test.c that only #include
-> <linnux/filelock.h> and see if there's anything missing?
-> 
-> > +	wait_queue_head_t fl_wait;
-> > +	struct file *fl_file;
-> 
-> These two seem undefined at this point.
-> 
-> > +	struct fasync_struct *	fl_fasync; /* for lease break notifications */
-> 
-> Likewise.
-> 
+On Sun, Nov 20, 2022 at 03:59:57PM -0500, Jeff Layton wrote:
+> Move the file locking definitions to a new header file, and add the
+> appropriate #include directives to the source files that need them. By
+> doing this we trim down fs.h a bit and limit the amount of rebuilding
+> that has to be done when we make changes to the file locking APIs.
 
-Yeah, there is quite a bit missing. I think I'll have to add this at the
-head of filelock.h:
+I'm in favour of this in general, but I think there's a few implicit
+includes.  Can you create a test.c that only #include
+<linnux/filelock.h> and see if there's anything missing?
 
-#include <linux/fs.h>
+> +	wait_queue_head_t fl_wait;
+> +	struct file *fl_file;
 
-...as we need several definitions from fs.h for this header.
--- 
-Jeff Layton <jlayton@kernel.org>
+These two seem undefined at this point.
+
+> +	struct fasync_struct *	fl_fasync; /* for lease break notifications */
+
+Likewise.
+
 
 _______________________________________________
 Ocfs2-devel mailing list
