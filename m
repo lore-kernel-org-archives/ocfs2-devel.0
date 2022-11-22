@@ -1,64 +1,63 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc252.phx1.oracleemaildelivery.com (aib29ajc252.phx1.oracleemaildelivery.com [192.29.103.252])
+Received: from aib29ajc251.phx1.oracleemaildelivery.com (aib29ajc251.phx1.oracleemaildelivery.com [192.29.103.251])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id CB027C433FE
-	for <ocfs2-devel@archiver.kernel.org>; Tue, 22 Nov 2022 08:30:34 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id F0908C433FE
+	for <ocfs2-devel@archiver.kernel.org>; Tue, 22 Nov 2022 12:20:56 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=r2LxDUb9muk76qT7SAEoj3wq0BH6GwL90eh14NRTEgU=;
- b=lQILISEfpy61X2/Z8uK0btSlD86h2goABtbEMsUBkHyqv0+SefeWKpdpgRaWrCYQgHBhhNUPdaSc
-   dPfReYUo3/3mXtx79gMHZJOM7dFHZsn4oIxnFjYliacRcs5CcUXthi39CVLx4N+ZA9PsNyOdcN6z
-   Ox3MZ10ZWtFC4RtrRJnCuJKYl3DBlTysGSvr6UBLi9o8ufg5hWT77I57W92DTfo+tMQJHHZ0CzJd
-   E7Jz8G3jVgx3he8nm++wcmUfp8M4obiAwk5RqKGPBpBGuAo0m6yWvLFolScJ0Bozc7prw7db9sxn
-   iWP5Q5KO0sjQVMA25Jw7HteNyBThmQTtIOiBVA==
+ bh=6yNmEVxNPIjIQY2NwSu0rCsi5pTvScLcSyHkMChrwII=;
+ b=E2599bwYs7v648h6+XRdO8J6FQ1tDYLiPjDe32y+PulK+8JnxuV57GAaqNiZ2BfGiyz5zAg27BSd
+   yVgnH0Z1QccsUSeQYwxuygIVFitR+6+4QxoBdliAtPiyy48lisu0qiqdRrWkFaO2B6xpfqSd7BaM
+   iZEM2T7z1R9dLYNb7P4pUU4dyEe0cmwJFpyzA4MC7BVj59c0/1E2FAMKfFgnWVSLhssFDOYT60sx
+   U32HprHdUG9FlbX7KGbwWIH5PwYWKRR9bu366KPTwe43HPQpbGVWzq2Ia8foRJNs3MF4gtuTAlf7
+   O5o8tHE+amq+pvPdodOAS9kqo+IoI5xGY4tdIQ==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=r2LxDUb9muk76qT7SAEoj3wq0BH6GwL90eh14NRTEgU=;
- b=qYIY4UDeUY4pHUPRrp0aLXyay7XuoEZeIIBkduK59TaIdT+dG/V9BaMMmqk/nbwvils8kkEgqiIt
-   hogbCoEYxiOG1HbB5CAhcYzyLXdsGL+3xQZyAExTmqHmecwLlxxUMJFf0g9+IQ+pJYqIY3D/sdrs
-   1Sc6wN503V4cGhO1NFeag689lBykFd8CWN8wMSbhSM4pJAdXGvuqq7cT8a9ZGBiR93XQFuLUmd83
-   i9DRVyTItSj6q9PsVkITA3Y9zvTUJ3mijUxgHO/uZTGuO0g76zXCylxb4nTF50KgxoQ0lq/t6/Ar
-   vydfVGGPePstoCvuwSX50il9/OW3eloBVVkObw==
-Received: by omta-ad3-fd1-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
+ bh=6yNmEVxNPIjIQY2NwSu0rCsi5pTvScLcSyHkMChrwII=;
+ b=ba2Zug38dFrzXO9TaOXCMQTF3vgoV1Sjx1BZB6h6r6PRNHYMYRlKAQ+ytqrMLLqirnUJuzhHm4MK
+   2jlPnpRq3gTGttnUvCnt13oLsYg5InWe8WmX+UvSB/vKiAGJilVQnj6iVYxmcPvTYUxLcbEBkyhy
+   EIQIK1MxZeZDhd5StE2jDV2XMHH1UioSZeZStKva6GZaj3smpGTY9+BAdTBKfiCOTrqTCYy4zqV/
+   qfQsaYe4MZTSOJKFrXHj8XHrg7mOu7BPwuIS+HpxsQHxYD69xiATYnI/ZgU9N32rl7AU7LVp7wV6
+   TARNiULq6m4BrabXxeMk81mcATbCQmUWBfwTSg==
+Received: by omta-ad2-fd3-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20221104 64bit (built Nov  4
  2022))
- with ESMTPS id <0RLQ0040HQAYLOC0@omta-ad3-fd1-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Tue, 22 Nov 2022 08:30:34 +0000 (GMT)
-Message-id: <339eff96ebcd4c7ecba2ed56751fd2636fa52f73.camel@huaweicloud.com>
-To: Paul Moore <paul@paul-moore.com>, Mimi Zohar <zohar@linux.ibm.com>
-Date: Tue, 22 Nov 2022 09:29:40 +0100
-In-reply-to:
- <CAHC9VhTvcgOjXAH51Vnk66kEjXfjUS2aJjXjJmU-rwLT53vWPw@mail.gmail.com>
-References: <20221110094639.3086409-1-roberto.sassu@huaweicloud.com>
- <20221110094639.3086409-3-roberto.sassu@huaweicloud.com>
- <3dc4f389ead98972cb7d09ef285a0065decb0ad0.camel@linux.ibm.com>
- <aa5fa8c5f231115c58012352124df57d16a01e41.camel@huaweicloud.com>
- <7812899531b2bd936b25fde8fc2f1c2a6080b2bd.camel@linux.ibm.com>
- <CAHC9VhTvcgOjXAH51Vnk66kEjXfjUS2aJjXjJmU-rwLT53vWPw@mail.gmail.com>
-User-Agent: Evolution 3.36.5-0ubuntu1
+ with ESMTPS id <0RLR005N70YW4Q50@omta-ad2-fd3-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Tue, 22 Nov 2022 12:20:56 +0000 (GMT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org; s=k20201202;
+ t=1669119638; bh=omBfWXmMhLMm+WJGcOqaotuYzo99NcFtkFUjLGTxJkU=;
+ h=Subject:From:To:Cc:Date:In-Reply-To:References:From;
+ b=lCqeNISkHr5FV5oUA/uF7cCqbH3pbaJZzL0H/JeQImnqkxBP/qna4Vwgxuxwwf4kc
+ djCzx51ajPQzJsx7t6fcFaQ3CPrg1HyiCa0H584zbvwYZVAhxyYK9KeJP/cZSm7jN0
+ AEQFZIjKudut9Bn5O9uHSqMDAio5e4wG5sa2i3DoX7eTRf+obcb5zEzndUU3Fwo275
+ rIYFdUuTfDxxMV446wuHU7u2FLiPhi/QMUcdaTapUWa++/h/6C38Q3lKoDzCYdb8Qd
+ YelQN+YEM82ey5KUKNOPaXvgHVIDzs2zei/oxdiPIwrOhlWjLs2M+5ia9+Ld6VGXMR
+ y+AjrCDtny9iA==
+Message-id: <a731e688122d1a6fdb2f7bdbd71d403fa110e9f2.camel@kernel.org>
+To: Joseph Qi <joseph.qi@linux.alibaba.com>, Mark Fasheh <mark@fasheh.com>,
+ Joel Becker <jlbec@evilplan.org>
+Date: Tue, 22 Nov 2022 07:20:35 -0500
+In-reply-to: <0c6a44ff-409e-99b2-eaa9-fd6e87a9e104@linux.alibaba.com>
+References: <20221120210004.381842-1-jlayton@kernel.org>
+ <0c6a44ff-409e-99b2-eaa9-fd6e87a9e104@linux.alibaba.com>
+User-Agent: Evolution 3.46.1 (3.46.1-1.fc37)
 MIME-version: 1.0
-X-Source-IP: 14.137.139.23
+X-Source-IP: 145.40.68.75
 X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10538
  signatures=596816
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 priorityscore=48
- malwarescore=0 mlxscore=0 suspectscore=0 mlxlogscore=999 impostorscore=0
- adultscore=0 spamscore=0 phishscore=0 clxscore=57 bulkscore=0
- lowpriorityscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2210170000 definitions=main-2211220062
-Cc: nicolas.bouchinet@clip-os.org, keescook@chromium.org,
- selinux@vger.kernel.org, dmitry.kasatkin@gmail.com,
- stephen.smalley.work@gmail.com, Roberto Sassu <roberto.sassu@huawei.com>,
- jmorris@namei.org, reiserfs-devel@vger.kernel.org,
- linux-security-module@vger.kernel.org, ocfs2-devel@oss.oracle.com,
- casey@schaufler-ca.com, eparis@parisplace.org,
- linux-integrity@vger.kernel.org, linux-kernel@vger.kernel.org, serge@hallyn.com
-Subject: Re: [Ocfs2-devel] [PATCH v4 2/5] security: Rewrite
- security_old_inode_init_security()
+Cc: linux-cifs@vger.kernel.org, linux-nfs@vger.kernel.org,
+ samba-technical@lists.samba.org, linux-kernel@vger.kernel.org,
+ cluster-devel@redhat.com, devel@lists.orangefs.org,
+ linux-fsdevel@vger.kernel.org, v9fs-developer@lists.sourceforge.net,
+ ceph-devel@vger.kernel.org, linux-xfs@vger.kernel.org,
+ linux-afs@lists.infradead.org, ocfs2-devel@oss.oracle.com
+Subject: Re: [Ocfs2-devel] [PATCH] filelock: move file locking definitions to
+ separate header file
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -70,106 +69,83 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: Roberto Sassu via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: Roberto Sassu <roberto.sassu@huaweicloud.com>
+From: Jeff Layton via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: Jeff Layton <jlayton@kernel.org>
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-CM-TRANSID: GxC2BwAnDvp5iHxjEJiEAA--.54837S2
-X-Coremail-Antispam: 1UD129KBjvJXoWxXF4rArykWFWxtF17tF4Dtwb_yoW5XFWrpr
- WfKF1UKrn5JFWDCr4xtwsxWF4Ig3yfGFZxXrn5GrWUAr1DCF1xKr4jyF13u345JrWkJ3y0
- qw4xZ3y3Zrn8AwUanT9S1TB71UUUUUUqnTZGkaVYY2UrUUUUjbIjqfuFe4nvWSU5nxnvy2
- 9KBjDU0xBIdaVrnRJUUUk0b4IE77IF4wAFF20E14v26ryj6rWUM7CY07I20VC2zVCF04k2
- 6cxKx2IYs7xG6rWj6s0DM7CIcVAFz4kK6r1j6r18M28lY4IEw2IIxxk0rwA2F7IY1VAKz4
- vEj48ve4kI8wA2z4x0Y4vE2Ix0cI8IcVAFwI0_Jr0_JF4l84ACjcxK6xIIjxv20xvEc7Cj
- xVAFwI0_Gr0_Cr1l84ACjcxK6I8E87Iv67AKxVW8JVWxJwA2z4x0Y4vEx4A2jsIEc7CjxV
- AFwI0_Gr0_Gr1UM2AIxVAIcxkEcVAq07x20xvEncxIr21l5I8CrVACY4xI64kE6c02F40E
- x7xfMcIj6xIIjxv20xvE14v26r1j6r18McIj6I8E87Iv67AKxVWUJVW8JwAm72CE4IkC6x
- 0Yz7v_Jr0_Gr1lF7xvr2IY64vIr41lFIxGxcIEc7CjxVA2Y2ka0xkIwI1l42xK82IYc2Ij
- 64vIr41l4I8I3I0E4IkC6x0Yz7v_Jr0_Gr1lx2IqxVAqx4xG67AKxVWUJVWUGwC20s026x
- 8GjcxK67AKxVWUGVWUWwC2zVAF1VAY17CE14v26r4a6rW5MIIYrxkI7VAKI48JMIIF0xvE
- 2Ix0cI8IcVAFwI0_Jr0_JF4lIxAIcVC0I7IYx2IY6xkF7I0E14v26r4j6F4UMIIF0xvE42
- xK8VAvwI8IcIk0rVWrJr0_WFyUJwCI42IY6I8E87Iv67AKxVWUJVW8JwCI42IY6I8E87Iv
- 6xkF7I0E14v26r4j6r4UJbIYCTnIWIevJa73UjIFyTuYvjxUFDGOUUUUU
-X-CM-SenderInfo: purev21wro2thvvxqx5xdzvxpfor3voofrz/1tbiAQAEBF1jj4WyCQABsP
-X-CFilter-Loop: Reflected
-X-ServerName: frasgout11.his.huawei.com
+X-ServerName: ams.source.kernel.org
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 ip4:45.249.212.51 ip4:45.249.212.56
- ip4:185.176.79.53 ip4:14.137.139.23 ip4:14.137.139.154 ip4:14.137.139.46
- ip4:124.71.93.99 ip4:124.71.93.112 ip4:124.71.94.104
- include:spf.saas.huaweicloud.com -all
-X-Spam: Clean
-X-Proofpoint-GUID: GTH9_0TElZXnATeRcZ2yrlJPJudRXK_8
-X-Proofpoint-ORIG-GUID: GTH9_0TElZXnATeRcZ2yrlJPJudRXK_8
+X-Proofpoint-SPF-Record: v=spf1 include:_spf.kernel.org ~all
+X-Proofpoint-Spam-Reason: safe
+X-Spam: OrgSafeList
+X-SpamRule: orgsafelist
+X-Proofpoint-GUID: 5dGH3DWmMC90cECpIAlZ565RMMqioti9
+X-Proofpoint-ORIG-GUID: 5dGH3DWmMC90cECpIAlZ565RMMqioti9
 Reporting-Meta:
- AAHadbcXiforXsiu0DFjvPkkbI8VRWz4EOXC6XbGTsnIgJjuYh83TKQpwM5GoWz3
- vEG42OSxqAfOrfuxXq8WXHOFWxGXL8BHh5/9kqbkLmCKERmQ7NllbxkJ/t5yamB6
- AJwzk2l1B+MYMYiPzJ9/8OuV2vV3cbrfYiKxzA8HOfdv1GuD2BkbvxgZ9GNlJpKV
- k3Neh/BXqcNJ4TO89nRemHrR569NtL/SnXvsQjqZDzo8K/vXk5LNLmmkq/e2ETSL
- Sp01H0FajP6I6XeOeQl8dIzRVO9dsU5M2zMiX2xat3eQbKeXIcBKmb7jbJRh8QHI
- 63oEzQ5KBUeBS4mZiRW54ssKa+Im0hoR1G8jbP58NogyXpocsFNI2qWereOtywjv
- DBq4/MTFqIF06ooI1F7wgB09Hy0QhLFertFYyWYMo8uhDcJqF3iQlH4n6rNthClm
- j8cvnMU9Y0AS0InZpP+PPS7q38vpeCb6tIEJRSKC+zOyJQqF4PHWE4r/j9yaX4Fq
- UmsCXw9GPwPuPwjkdFlTR+jk5xpTe8ATFKs+RFQ6LZxXnQ==
+ AAHxVoikfbRHaCfCAZhliKrBYASK5TX3y8tSh5/+aL87VjqI20NVMQv5CExnxYXf
+ ART07FgATgse9HvvvPmOZixjcSmXTUY25uEl4hy37n4OCUdx3ZNfBuzFnLz9FkEP
+ BFU+KfQzEN6qhqeOFBZNyAWtGfwhVWNewP+qlKcIEcDFUBMdhMFkrJP8IAC6nCOc
+ d+MVPqm9DZmLIdT6QU6baf+FFAN38irlyDRgOTVeapRUXZKKGWbOA6KG2eZMu3O6
+ OBMalzqAeyauTeyqz9sy0k5tYQplXNt5ttOSm94XB/0OI+dbCeaMUlwPTx3Fu5as
+ NRbxMx8CaBBUVsFwnGEOhh8WvZXU1B9dy3Tz6ntFZ3yMbdjLwBgb8mVUWIACLgHb
+ oec1//lf8aSN/nNq3fXijHCP17GVRwSuWKxB2vIFTQBaFP9TucFs4+tnUpzNmuVu
+ yN+p51leXtBfBWotFzvcZW43Qd4ziwIv5yfSCddjB/c8QcU1uP3NZal+ctb8z6BH
+ 6qXqqOHCp0NYY5ffoC7EJEPLc7/hiw17i0SvJmS99x8=
 
-On Mon, 2022-11-21 at 18:55 -0500, Paul Moore wrote:
-> On Mon, Nov 21, 2022 at 3:54 PM Mimi Zohar <zohar@linux.ibm.com> wrote:
-> > On Mon, 2022-11-21 at 10:45 +0100, Roberto Sassu wrote:
-> > > > As ocfs2 already defines initxattrs, that leaves only reiserfs missing
-> > > > initxattrs().  A better, cleaner solution would be to define one.
-> > > 
-> > > If I understood why security_old_inode_init_security() is called
-> > > instead of security_inode_init_security(), the reason seems that the
-> > > filesystem code uses the length of the obtained xattr to make some
-> > > calculations (e.g. reserve space). The xattr is written at a later
-> > > time.
-> > > 
-> > > Since for reiserfs there is a plan to deprecate it, it probably
-> > > wouldn't be worth to support the creation of multiple xattrs. I would
-> > > define a callback to take the first xattr and make a copy, so that
-> > > calling security_inode_init_security() + reiserfs_initxattrs() is
-> > > equivalent to calling security_old_inode_init_security().
+On Tue, 2022-11-22 at 09:51 +0800, Joseph Qi wrote:
+> Hi,
 > 
-> FWIW, reiserfs isn't going to be removed until 2025, I'm hopeful we
-> can remove the IMA/EVM special cases before then :)
-
-Well, we are not that far...
-
-> > > But then, this is what anyway I was doing with the
-> > > security_initxattrs() callback, for all callers of security_old_inode_i
-> > > nit_security().
-> > > 
-> > > Also, security_old_inode_init_security() is exported to kernel modules.
-> > > Maybe, it is used somewhere. So, unless we plan to remove it
-> > > completely, it should be probably be fixed to avoid multiple LSMs
-> > > successfully setting an xattr, and losing the memory of all except the
-> > > last (which this patch fixes by calling security_inode_init_security()).
-> 
-> I would much rather remove security_old_inode_init_security() then
-> worry about what out-of-tree modules might be using it.  Hopefully we
-> can resolve the ocfs2 usage and get ocfs2 exclusively on the new hook
-> without too much trouble, which means all we have left is reiserfs ...
-> how difficult would you expect the conversion to be for reiserfs?
-
-Ok for removing security_old_inode_init_security().
-
-For reiserfs, I guess maintaining the current behavior of setting only
-one xattr should be easy. For multiple xattrs, I need to understand
-exactly how many blocks need to be reserved.
-
-> > > If there is still the preference, I will implement the reiserfs
-> > > callback and make a fix for security_old_inode_init_security().
+> On 11/21/22 4:59 AM, Jeff Layton wrote:
+> > The file locking definitions have lived in fs.h since the dawn of time,
+> > but they are only used by a small subset of the source files that
+> > include it.
 > > 
-> > There's no sense in doing both, as the purpose of defining a reiserfs
-> > initxattrs function was to clean up this code making it more readable.
+> > Move the file locking definitions to a new header file, and add the
+> > appropriate #include directives to the source files that need them. By
+> > doing this we trim down fs.h a bit and limit the amount of rebuilding
+> > that has to be done when we make changes to the file locking APIs.
+> > 
+> > Signed-off-by: Jeff Layton <jlayton@kernel.org>
+> > ---
+> >  fs/9p/vfs_file.c          |   1 +
+> >  fs/afs/internal.h         |   1 +
+> >  fs/attr.c                 |   1 +
+> >  fs/ceph/locks.c           |   1 +
+> >  fs/cifs/cifsfs.c          |   1 +
+> >  fs/cifs/cifsglob.h        |   1 +
+> >  fs/cifs/cifssmb.c         |   1 +
+> >  fs/cifs/file.c            |   1 +
+> >  fs/cifs/smb2file.c        |   1 +
+> >  fs/dlm/plock.c            |   1 +
+> >  fs/fcntl.c                |   1 +
+> >  fs/file_table.c           |   1 +
+> >  fs/fuse/file.c            |   1 +
+> >  fs/gfs2/file.c            |   1 +
+> >  fs/inode.c                |   1 +
+> >  fs/ksmbd/smb2pdu.c        |   1 +
+> >  fs/ksmbd/vfs.c            |   1 +
+> >  fs/ksmbd/vfs_cache.c      |   1 +
+> >  fs/lockd/clntproc.c       |   1 +
+> >  fs/lockd/netns.h          |   1 +
+> >  fs/locks.c                |   1 +
+> >  fs/namei.c                |   1 +
+> >  fs/nfs/nfs4_fs.h          |   1 +
+> >  fs/nfs_common/grace.c     |   1 +
+> >  fs/nfsd/netns.h           |   1 +
+> >  fs/ocfs2/locks.c          |   1 +
+> >  fs/ocfs2/stack_user.c     |   1 +
+> 
+> Seems it misses the related changes in:
+> fs/ocfs2/stackglue.c
+> 
 
-The fix for security_old_inode_init_security(), stopping at the first
-LSM returning zero, was to avoid the memory leak. Will not be needed if
-the function is removed.
+I was able to build ocfs2.ko just fine without any changes to
+stackglue.c. What problem do you see here?
 
-Roberto
-
+Thanks,
+-- 
+Jeff Layton <jlayton@kernel.org>
 
 _______________________________________________
 Ocfs2-devel mailing list
