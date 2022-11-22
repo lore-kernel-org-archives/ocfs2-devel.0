@@ -1,78 +1,60 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc249.phx1.oracleemaildelivery.com (aib29ajc249.phx1.oracleemaildelivery.com [192.29.103.249])
+Received: from aib29ajc248.phx1.oracleemaildelivery.com (aib29ajc248.phx1.oracleemaildelivery.com [192.29.103.248])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 7CE80C433FE
-	for <ocfs2-devel@archiver.kernel.org>; Mon, 21 Nov 2022 20:55:09 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 98967C4332F
+	for <ocfs2-devel@archiver.kernel.org>; Tue, 22 Nov 2022 01:51:56 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=0Yz4VwgSED7C59/D0PjxHvp+eoWo7XInT+5FlyZUhNs=;
- b=IjT3g3E9SLynLApZZ3WN1EfJBJwamg5/5t5k/cmnqdZGwwgGjD1/yjl/9vwuIxNbL3Goh2gwm9iZ
-   F6rSzupNunWahjMz/JrPKJizgO6i36dJTz5wTqKCEeQFzrHb6sqmYrVPHA/TYLvANroRw0U03l+t
-   gnKoNgtXo5PWHkWCne95JRb7N0U/0fak0bUzaglbNHChhi1eaNN1oUlUZTwKesS3jhZ3gfaX7s8+
-   +TcQcMPswaC+jl2GnUkKZaaGMKpiaNhwu/OAK5PazlCQ7uhdh92kDxgUt6ubtKRenAUrNeySXf8b
-   JpJuOmoUjMBo5wzv9H/rRxRMmVJxbCTAsBzenA==
+ bh=+5HiDT1pwBv34j9bYnecu+umaGdPGGAeXJ1jalfm9y8=;
+ b=MxHNV1UbhL+KA6pJU88McbkvkndjNzDO/UkrYD+6FLUg6FXY2+SZcbLC7fp+cAfIaZQgigVkUl/T
+   3cdjV9npl36TW0xIw4+0Ng+VFdDUVrKTfFyZuPAeG5twZt68L4+9kkIVwky+zmQY0IRsp/cMaYAg
+   RfMjlqZqJ5A26yiD0hUXJUpUu47w7LTWQsuMMFp9Rr1coKt6YRguaN/H9tTS7X2/Co1ar7S+oiDe
+   3s/989k+LBkFIv1qZHwnH94wFXbfv1lG6E4ULeiyAqjce+zbnRErO1VdeVcf79RjVguvQYc3oXNE
+   writ5pH9BJ9AHCQSBTrAz/YOpS4nYuaU5SgVDQ==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=0Yz4VwgSED7C59/D0PjxHvp+eoWo7XInT+5FlyZUhNs=;
- b=b9W7IB6OObqWahPGgbAnM9ycuv0ijDpeKJksKWHxS06J6A9JFHhkEx+R1E6M/ZBO796eGAaahBmg
-   WrcZrAla9L2eyKM1mLXIUH5ihce5vzO2HXAVWXN7KOI0fGaXDfZjktXW4uvValtJIBbF0QktxXRh
-   fCCDaqbMeJq+CgKJ5KeehI2rynkooM/8AnD93aCr2fS3SFchYeeEVy+nfb2yFX7CMgGTiz1OkOOu
-   6Dg/ikM1UecX1LtvcGZBEwmA/2qvS/Nv8U+GRueCxwN60tLsJ4jJVnSRdwegk+8Lza9fz3F2kVmH
-   srHimV4ecTJMsCmOn3SjkFjJkxJBeGPvvS1Kog==
-Received: by omta-ad2-fd1-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
+ bh=+5HiDT1pwBv34j9bYnecu+umaGdPGGAeXJ1jalfm9y8=;
+ b=hKN4BFvKM1dwVhQVgi9MSUtzBfR+5Lp7Kp4XJbe6WBpwOu10miQi763Yim4cuSJ7LffLUkqpxNTC
+   HLzhZsjSzeyA+UoHNdXJupXbygg4ToJvdLrUhWkki+d8ixKQ6q9P+IfOH5FbYqdQQF7LD+tBOf0J
+   TCYSmRotkkRGRdP0WV5fH6p/kCo/tTc0wN02YE9AnRIp18+CVHnWfrLpanji5sDujjinv3vylrpL
+   5xYHc+WOIuzrQeY0zVWFlFJvHNsAyk9UVZCo1724leCOST8D6QYkhG+loGVrwcSm7VH/YNXI+9ew
+   PCwFvzy71CBxl1Sie4EbxVNuHu1pBP8U/wydAQ==
+Received: by omta-ad2-fd1-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20221104 64bit (built Nov  4
  2022))
- with ESMTPS id <0RLP004N4U3W3RD0@omta-ad2-fd1-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Mon, 21 Nov 2022 20:55:08 +0000 (GMT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=ibm.com; h=message-id :
- subject : from : to : cc : date : in-reply-to : references : content-type :
- mime-version : content-transfer-encoding; s=pp1;
- bh=7zCKX/4UjpQvenyrT8VZruRvalqRXYR6+icK2FwSEa4=;
- b=fjtgG3U2n53yDeBNWAZuAm3PDp2cFZ4R3+ps1ia+cUwJML1awN2FqbGANmzxLw3UJMYq
- Uu8+aG2GzpO8uIT0Z23sckf4UdI5xjyiqqRNgUTHRoe87JtPlu98IBi8JYfApYlSn2xi
- HpU8qBbTjKzIKFPZ9BY0rcnuAJloMtpYNnMm26B2pcgaQhMmzPvjty9uW+2L5BrRfvLQ
- gn5DTw7tKzTELyz8KJVaqGj1LZvCyv26ozGzuZmwB/tOniflRgcwcpYILFgyNjQ5uLc4
- 0Et/aqTPAImeHW36i2Dut7UhGX0ppme5Vy7GGLwBjyKmYa5IvciD2rLbP14Hbfjvmg1y UA==
-Message-id: <7812899531b2bd936b25fde8fc2f1c2a6080b2bd.camel@linux.ibm.com>
-To: Roberto Sassu <roberto.sassu@huaweicloud.com>, dmitry.kasatkin@gmail.com,
- paul@paul-moore.com, jmorris@namei.org, serge@hallyn.com,
- stephen.smalley.work@gmail.com, eparis@parisplace.org, casey@schaufler-ca.com
-Date: Mon, 21 Nov 2022 15:54:19 -0500
-In-reply-to: <aa5fa8c5f231115c58012352124df57d16a01e41.camel@huaweicloud.com>
-References: <20221110094639.3086409-1-roberto.sassu@huaweicloud.com>
- <20221110094639.3086409-3-roberto.sassu@huaweicloud.com>
- <3dc4f389ead98972cb7d09ef285a0065decb0ad0.camel@linux.ibm.com>
- <aa5fa8c5f231115c58012352124df57d16a01e41.camel@huaweicloud.com>
-X-Mailer: Evolution 3.28.5 (3.28.5-18.el8)
+ with ESMTPS id <0RLQ009NP7UJ8QD0@omta-ad2-fd1-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Tue, 22 Nov 2022 01:51:55 +0000 (GMT)
+Message-id: <0c6a44ff-409e-99b2-eaa9-fd6e87a9e104@linux.alibaba.com>
+Date: Tue, 22 Nov 2022 09:51:35 +0800
 MIME-version: 1.0
-X-Proofpoint-Virus-Version: vendor=baseguard
- engine=ICAP:2.0.219,Aquarius:18.0.895,Hydra:6.0.545,FMLib:17.11.122.1
- definitions=2022-11-21_16,2022-11-18_01,2022-06-22_01
-X-Proofpoint-Spam-Details: rule=outbound_notspam policy=outbound score=0
- spamscore=0 mlxscore=0 clxscore=1015 malwarescore=0 impostorscore=0
- suspectscore=0 mlxlogscore=999 phishscore=0 adultscore=0 bulkscore=0
- priorityscore=1501 lowpriorityscore=0 classifier=spam adjust=0 reason=mlx
- scancount=1 engine=8.12.0-2210170000 definitions=main-2211210155
-X-Source-IP: 148.163.158.5
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:102.0)
+ Gecko/20100101 Thunderbird/102.4.2
+Content-language: en-US
+To: Jeff Layton <jlayton@kernel.org>, Mark Fasheh <mark@fasheh.com>,
+ Joel Becker <jlbec@evilplan.org>
+References: <20221120210004.381842-1-jlayton@kernel.org>
+In-reply-to: <20221120210004.381842-1-jlayton@kernel.org>
+X-Source-IP: 115.124.30.45
 X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10538
  signatures=596816
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 mlxlogscore=999
- impostorscore=0 suspectscore=0 priorityscore=192 bulkscore=0 mlxscore=0
- malwarescore=0 spamscore=0 adultscore=0 clxscore=134 phishscore=0
- lowpriorityscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2210170000 definitions=main-2211210158 domainage_hfrom=13396
-Cc: nicolas.bouchinet@clip-os.org, keescook@chromium.org,
- selinux@vger.kernel.org, Roberto Sassu <roberto.sassu@huawei.com>,
- linux-kernel@vger.kernel.org, reiserfs-devel@vger.kernel.org,
- linux-security-module@vger.kernel.org, linux-integrity@vger.kernel.org,
- ocfs2-devel@oss.oracle.com
-Subject: Re: [Ocfs2-devel] [PATCH v4 2/5] security: Rewrite
- security_old_inode_init_security()
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 spamscore=0
+ suspectscore=0 mlxlogscore=939 clxscore=84 adultscore=0 lowpriorityscore=0
+ phishscore=0 mlxscore=0 bulkscore=0 malwarescore=0 impostorscore=0
+ priorityscore=60 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2210170000 definitions=main-2211220011 domainage_hfrom=8622
+Cc: linux-cifs@vger.kernel.org, linux-nfs@vger.kernel.org,
+ samba-technical@lists.samba.org, linux-kernel@vger.kernel.org,
+ cluster-devel@redhat.com, devel@lists.orangefs.org,
+ linux-fsdevel@vger.kernel.org, v9fs-developer@lists.sourceforge.net,
+ ceph-devel@vger.kernel.org, linux-xfs@vger.kernel.org,
+ linux-afs@lists.infradead.org, ocfs2-devel@oss.oracle.com
+Subject: Re: [Ocfs2-devel] [PATCH] filelock: move file locking definitions to
+ separate header file
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -84,65 +66,101 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: Mimi Zohar via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: Mimi Zohar <zohar@linux.ibm.com>
+From: Joseph Qi via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: Joseph Qi <joseph.qi@linux.alibaba.com>
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-TM-AS-GCONF: 00
-X-ServerName: mx0b-001b2d01.pphosted.com
+X-Alimail-AntiSpam: AC=PASS; BC=-1|-1; BR=01201311R211e4; CH=green;
+ DM=||false|; DS=||; FP=0|-1|-1|-1|0|-1|-1|-1; HT=ay29a033018045192;
+ MF=joseph.qi@linux.alibaba.com; NM=1; PH=DS; RN=16; SR=0;
+ TI=SMTPD_---0VVPgoyJ_1669081895;
+X-ServerName: out30-45.freemail.mail.aliyun.com
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 ip4:148.163.158.5 ip4:148.163.156.1 ~all
+X-Proofpoint-SPF-Record: v=spf1 include:spf1.service.alibaba.com
+ include:spf2.service.alibaba.com include:spf1.ocm.aliyun.com
+ include:spf2.ocm.aliyun.com include:spf1.staff.mail.aliyun.com
+ include:a.hichina.mail.aliyun.com include:b.hichina.mail.aliyun.com -all
 X-Spam: Clean
-X-Proofpoint-GUID: vHsvuJjXvCNUIQfffnZwfFUz5ew5cRq1
-X-Proofpoint-ORIG-GUID: vHsvuJjXvCNUIQfffnZwfFUz5ew5cRq1
+X-Proofpoint-GUID: eUVEH5oolBGeOff1z8U_PlWqeBuZHEN5
+X-Proofpoint-ORIG-GUID: eUVEH5oolBGeOff1z8U_PlWqeBuZHEN5
 Reporting-Meta:
- AAEqwA8dxAi7huh6L8H+KzX854kx030Nc8p7zoBpxsnQdmwU7jor24F8it1RZZ4g
- 3sg9F/jVNrIIuiUP2D80zLxIbb9TtnDRjiAixLbUZ+idHYK+dXX65r/jUMrdFeys
- hTWu4sWbydLEAfTe2C1RsbhOB6dAlMrw0E6pqxsdav3V4SdI0yDohK22jciAKZ5U
- JI07XnNJYla/6SAlL2KXoLAldiN6m3QUNCBi0Ru66veRBIQKUahJcGSr0aUlNx5g
- gB7FXV/27exVh2BGWEVDFIgXJApXaGBQlhZKQVUHKl9EiaWuDErz80eFd+ikbswS
- v4aVDWyr4UqzleeVq24OjacsgaK19chbn7eSC+J9Z6x7+ZuI4veTxOvrlcpa4noK
- r2MgS4RgBgZjlW+ApKs2MFV6bURZSgcvawgMFJBLO6E7Gia2P0yaHM2YwMCVURON
- yEgjcrfZj+2qtSb0dl1I+ObXXe4pDn/JTHuG1T0fofSmKvPTi099X83fuJDQECXD
- uQRERcV1FvOOppnqJdIdQK97ZryxL+f4uoQQgPrcpxOF3A==
+ AAHadbcXiforXsiu0DFjvPkkbI8VRWz4EOXC6XbGTsnIgJjuYh83TKQpwM5GoWz3
+ vEG42OSxqAfOrfuxXq+HMHOFWxGXL8BHh581b40iW2PBsVFZK1ZhFzLItKXoyyJs
+ syV4cPcfTRpu2TRqNa15HW7Bi5LOSRabKOcvWwmVhHVcLaQLGgfv8v41dRRQSVHG
+ S5cjt7zmMJBriIrk6vyFr/XPEOiz+lZYylDGM+8n/vJBJqTTC2Tozkjrxk7jZeGn
+ vJ1oidJ7L9Bz6o0Nu4ugJkF1cUYTkvB99xeqvr8RfI47gSmopYBMUplRVFP7GA5C
+ t3k8HvmjHD6O3WwqEk7BEwd1AXxa7ssrmrh7j0/jwghrTDocDoFK4gCf2lqJv+LC
+ a7yhOhhuXYwWoXo+1/d/RqhcruyMJ2tkT5ps1C6KOOfmsZEyAyQ+N+4jm7eAe10X
+ clbpbaIUKqgLYdtdkyKZ4WGcpBjQCy+PO0EreQ6aj2ZraMZYYAz+5far5lRjseA8
+ zceaQ4Hh1JOuib18uJECktGa3mT4nCedH2SNqR/oYf9P6Q==
 
-On Mon, 2022-11-21 at 10:45 +0100, Roberto Sassu wrote:
-> > As ocfs2 already defines initxattrs, that leaves only reiserfs missing
-> > initxattrs().  A better, cleaner solution would be to define one.
-> 
-> If I understood why security_old_inode_init_security() is called
-> instead of security_inode_init_security(), the reason seems that the
-> filesystem code uses the length of the obtained xattr to make some
-> calculations (e.g. reserve space). The xattr is written at a later
-> time.
-> 
-> Since for reiserfs there is a plan to deprecate it, it probably
-> wouldn't be worth to support the creation of multiple xattrs. I would
-> define a callback to take the first xattr and make a copy, so that
-> calling security_inode_init_security() + reiserfs_initxattrs() is
-> equivalent to calling security_old_inode_init_security().
-> 
-> But then, this is what anyway I was doing with the
-> security_initxattrs() callback, for all callers of security_old_inode_i
-> nit_security().
-> 
-> Also, security_old_inode_init_security() is exported to kernel modules.
-> Maybe, it is used somewhere. So, unless we plan to remove it
-> completely, it should be probably be fixed to avoid multiple LSMs
-> successfully setting an xattr, and losing the memory of all except the
-> last (which this patch fixes by calling security_inode_init_security())
-> .
-> 
-> If there is still the preference, I will implement the reiserfs
-> callback and make a fix for security_old_inode_init_security().
+Hi,
 
-There's no sense in doing both, as the purpose of defining a reiserfs
-initxattrs function was to clean up this code making it more readable.
+On 11/21/22 4:59 AM, Jeff Layton wrote:
+> The file locking definitions have lived in fs.h since the dawn of time,
+> but they are only used by a small subset of the source files that
+> include it.
+> 
+> Move the file locking definitions to a new header file, and add the
+> appropriate #include directives to the source files that need them. By
+> doing this we trim down fs.h a bit and limit the amount of rebuilding
+> that has to be done when we make changes to the file locking APIs.
+> 
+> Signed-off-by: Jeff Layton <jlayton@kernel.org>
+> ---
+>  fs/9p/vfs_file.c          |   1 +
+>  fs/afs/internal.h         |   1 +
+>  fs/attr.c                 |   1 +
+>  fs/ceph/locks.c           |   1 +
+>  fs/cifs/cifsfs.c          |   1 +
+>  fs/cifs/cifsglob.h        |   1 +
+>  fs/cifs/cifssmb.c         |   1 +
+>  fs/cifs/file.c            |   1 +
+>  fs/cifs/smb2file.c        |   1 +
+>  fs/dlm/plock.c            |   1 +
+>  fs/fcntl.c                |   1 +
+>  fs/file_table.c           |   1 +
+>  fs/fuse/file.c            |   1 +
+>  fs/gfs2/file.c            |   1 +
+>  fs/inode.c                |   1 +
+>  fs/ksmbd/smb2pdu.c        |   1 +
+>  fs/ksmbd/vfs.c            |   1 +
+>  fs/ksmbd/vfs_cache.c      |   1 +
+>  fs/lockd/clntproc.c       |   1 +
+>  fs/lockd/netns.h          |   1 +
+>  fs/locks.c                |   1 +
+>  fs/namei.c                |   1 +
+>  fs/nfs/nfs4_fs.h          |   1 +
+>  fs/nfs_common/grace.c     |   1 +
+>  fs/nfsd/netns.h           |   1 +
+>  fs/ocfs2/locks.c          |   1 +
+>  fs/ocfs2/stack_user.c     |   1 +
 
-Mimi
+Seems it misses the related changes in:
+fs/ocfs2/stackglue.c
 
+Thanks,
+Joseph
 
+>  fs/open.c                 |   1 +
+>  fs/orangefs/file.c        |   1 +
+>  fs/proc/fd.c              |   1 +
+>  fs/utimes.c               |   1 +
+>  fs/xattr.c                |   1 +
+>  fs/xfs/xfs_buf.h          |   1 +
+>  fs/xfs/xfs_file.c         |   1 +
+>  fs/xfs/xfs_inode.c        |   1 +
+>  include/linux/filelock.h  | 428 ++++++++++++++++++++++++++++++++++++++
+>  include/linux/fs.h        | 421 -------------------------------------
+>  include/linux/lockd/xdr.h |   1 +
+>  38 files changed, 464 insertions(+), 421 deletions(-)
+>  create mode 100644 include/linux/filelock.h
+> 
+> Unless anyone has objections, I'll plan to merge this in via the file
+> locking tree for v6.3. I'd appreciate Acked-bys or Reviewed-bys from
+> maintainers, however.
+> 
 
 _______________________________________________
 Ocfs2-devel mailing list
