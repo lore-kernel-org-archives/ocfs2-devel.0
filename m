@@ -1,50 +1,48 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc246.phx1.oracleemaildelivery.com (aib29ajc246.phx1.oracleemaildelivery.com [192.29.103.246])
+Received: from aib29ajc255.phx1.oracleemaildelivery.com (aib29ajc255.phx1.oracleemaildelivery.com [192.29.103.255])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 9C0D2C4332F
-	for <ocfs2-devel@archiver.kernel.org>; Wed, 23 Nov 2022 09:53:52 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 89D38C433FE
+	for <ocfs2-devel@archiver.kernel.org>; Wed, 23 Nov 2022 09:54:07 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=rx2ewcg3zlozYYDNS3p/8JMJrq0LWdIphjCAoY+BZNc=;
- b=f7aw2a4s2o75eAk+4eZipLnrujbdzo1ZAFjgh0bL6qk2dugKfk0TBBZzPHghItWNt+d4mnaHVjVn
-   0OjHaBtgjRt8A38Ok3FyiC0ENAm9wxlxAO/b4bUDQcF36jH9KRhSDKJ2K83vEG67eNXroRkq5bFP
-   yoAsijldxc7bo6cDxw7XqhJSROi8VHYBcTqR556gYrWfW0Iofg2NWtyJiNUKiyopL2mM5ebhNKEs
-   hHjTlJrZS4ne3RgQeX3x2T07xqZku+D49yYjHTCRCggar+BQwRazuDgTe7y0byEyHB5eCEf7Vk7Q
-   t5WvS/9wfjDGKRwNQz/kKb6AEP21/IOAt3A59w==
+ bh=wgAsuyQvHkzJgceHQ6UZ3FO1Q7WA8XPzUuHxGekStfA=;
+ b=W/kv2ZrP43xDeeBd1ZLE5kD+vihX5tCbhgepgupuZbOMQnw9MEOo/I5zsnrX851RPceLN12fn4vO
+   64tQAKLub4xkLDXMuFFQkH2qkX56h+VjZcQYQeB8ERERAP2+qCaM550YLL4GiBBUHWnk0obvR1gb
+   hCuWOooSyO0q/QH6/wFaLWCYmMQsfimsT0X/k4yY/t+de+8UVcoJZh3q+Q0Q52YSCt8kqx4ZlFdq
+   STWxzzsmlUhG8244PTow6LFtVMGVZXmDgAkZKykMiZOVS+EkC0JxrXOA5UszoXh7LTtEom96Y3xs
+   BUolnVWIZdJnc0vJF5Vqq9k0/nfF4VzlPMy5pw==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=rx2ewcg3zlozYYDNS3p/8JMJrq0LWdIphjCAoY+BZNc=;
- b=GEJ2ztMf/3wIzKz/AGeAl/OXS47K6IJY12rx/ichcPyeQOpkdrjwh5CK9U9KbBj9SzQ6HfgAGBlN
-   g9Q8xwmhr0a2O5ci9yJV2awBAzSfCpAd2HifBIXF+yZ5swpHHBdJ+ru7Kjbr09Y0w1m9Nm9PdKwk
-   RFUBF5drB3rK5Q03VRH00YHL5qV8hQfpwgecGE2R4eC32YL22Tw88QzzggJU6uSnYYEbeE34XZ8V
-   WFD9SeMAk7mkBx40bqA+vrUq9OPz/OozO1EoIqyrKsKJHTEoC5LvzzU2AK0+t3g455urTs8W9hFY
-   23ugEazGUw309c2zPczJZVpxzEcx6xjHkU1T4g==
-Received: by omta-ad1-fd3-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
+ bh=wgAsuyQvHkzJgceHQ6UZ3FO1Q7WA8XPzUuHxGekStfA=;
+ b=b73+h0TZUY1cpmR1KX+eCsdFFvjsyhaRvUwty6z96vrHvi/Qscp53zj/rHC66iRpIgJaKTVwoskH
+   rrjYdqjmJYHXTD88YQwam5xrP7FmFZJ97SrCEsHooL3TcW9875eRsfzBNPzuOnCMnlxzcmC5gq0h
+   6Zzne4Y65Hp/rRPeFSY/lLDgVFLje5kv/5mgdmI7BYq0kkpMoJm9ffKgunHtWTRKMwWmaxtq0ETz
+   Ae0DeS0efEi/LOlpYcwzixawIOVGfJT908Nubf7zwyAf8FD8FKgTxh67dd6FGV9uYWT/75rDdykC
+   slpG+jVo2PZRiUgc3Z1lSzzma/7arYconlPsAQ==
+Received: by omta-ad3-fd3-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20221104 64bit (built Nov  4
  2022))
- with ESMTPS id <0RLS004JKOTSE760@omta-ad1-fd3-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Wed, 23 Nov 2022 09:53:52 +0000 (GMT)
+ with ESMTPS id <0RLS005T3OU7SUB0@omta-ad3-fd3-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Wed, 23 Nov 2022 09:54:07 +0000 (GMT)
 To: mark@fasheh.com, jlbec@evilplan.org, joseph.qi@linux.alibaba.com,
  zohar@linux.ibm.com, dmitry.kasatkin@gmail.com, paul@paul-moore.com,
  jmorris@namei.org, serge@hallyn.com, stephen.smalley.work@gmail.com,
  eparis@parisplace.org, casey@schaufler-ca.com
-Date: Wed, 23 Nov 2022 10:52:02 +0100
-Message-id: <20221123095202.599252-7-roberto.sassu@huaweicloud.com>
+Date: Wed, 23 Nov 2022 10:51:56 +0100
+Message-id: <20221123095202.599252-1-roberto.sassu@huaweicloud.com>
 X-Mailer: git-send-email 2.25.1
-In-reply-to: <20221123095202.599252-1-roberto.sassu@huaweicloud.com>
-References: <20221123095202.599252-1-roberto.sassu@huaweicloud.com>
 MIME-version: 1.0
 X-Source-IP: 14.137.139.23
 X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10539
  signatures=596816
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 malwarescore=0
- adultscore=0 priorityscore=0 bulkscore=0 phishscore=0 spamscore=0 mlxscore=0
- mlxlogscore=999 clxscore=77 suspectscore=0 lowpriorityscore=0 impostorscore=0
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 suspectscore=0
+ mlxlogscore=999 impostorscore=0 malwarescore=0 spamscore=0 lowpriorityscore=0
+ adultscore=0 phishscore=0 bulkscore=0 mlxscore=0 priorityscore=0 clxscore=90
  classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2210170000
  definitions=main-2211230074
 Cc: nicolas.bouchinet@clip-os.org, keescook@chromium.org,
@@ -52,8 +50,8 @@ Cc: nicolas.bouchinet@clip-os.org, keescook@chromium.org,
  reiserfs-devel@vger.kernel.org, linux-kernel@vger.kernel.org,
  linux-security-module@vger.kernel.org, linux-integrity@vger.kernel.org,
  ocfs2-devel@oss.oracle.com
-Subject: [Ocfs2-devel] [PATCH v5 6/6] evm: Support multiple LSMs providing	an
- xattr
+Subject: [Ocfs2-devel] [PATCH v5 0/6] evm: Prepare for moving to the LSM
+	infrastructure
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -70,25 +68,24 @@ Reply-to: Roberto Sassu <roberto.sassu@huaweicloud.com>
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-CM-TRANSID: LxC2BwAH829J7X1jzDqKAA--.13162S8
-X-Coremail-Antispam: 1UD129KBjvJXoWxGryktFy8Jr45JrykAF15CFg_yoW5try5pa
- n8ta9rCrn5AFyUWr9IyF18ua4SgrWrGw4UKwsxCryjyFnrWrn2qryxtr15ur98Wr95Jrna
- yw40vw15Aw15t3DanT9S1TB71UUUUU7qnTZGkaVYY2UrUUUUjbIjqfuFe4nvWSU5nxnvy2
- 9KBjDU0xBIdaVrnRJUUUPlb4IE77IF4wAFF20E14v26rWj6s0DM7CY07I20VC2zVCF04k2
- 6cxKx2IYs7xG6rWj6s0DM7CIcVAFz4kK6r1j6r18M28IrcIa0xkI8VA2jI8067AKxVWUAV
- Cq3wA2048vs2IY020Ec7CjxVAFwI0_Xr0E3s1l8cAvFVAK0II2c7xJM28CjxkF64kEwVA0
- rcxSw2x7M28EF7xvwVC0I7IYx2IY67AKxVWUCVW8JwA2z4x0Y4vE2Ix0cI8IcVCY1x0267
- AKxVW8Jr0_Cr1UM28EF7xvwVC2z280aVAFwI0_Gr0_Cr1l84ACjcxK6I8E87Iv6xkF7I0E
- 14v26r4UJVWxJr1le2I262IYc4CY6c8Ij28IcVAaY2xG8wAqx4xG64xvF2IEw4CE5I8CrV
- C2j2WlYx0E2Ix0cI8IcVAFwI0_Jr0_Jr4lYx0Ex4A2jsIE14v26r1j6r4UMcvjeVCFs4IE
- 7xkEbVWUJVW8JwACjcxG0xvY0x0EwIxGrwACI402YVCY1x02628vn2kIc2xKxwCY1x0262
- kKe7AKxVW8ZVWrXwCF04k20xvY0x0EwIxGrwCFx2IqxVCFs4IE7xkEbVWUJVW8JwC20s02
- 6c02F40E14v26r1j6r18MI8I3I0E7480Y4vE14v26r106r1rMI8E67AF67kF1VAFwI0_GF
- v_WrylIxkGc2Ij64vIr41lIxAIcVC0I7IYx2IY67AKxVWUCVW8JwCI42IY6xIIjxv20xvE
- c7CjxVAFwI0_Gr1j6F4UJwCI42IY6xAIw20EY4v20xvaj40_Jr0_JF4lIxAIcVC2z280aV
- AFwI0_Gr0_Cr1lIxAIcVC2z280aVCY1x0267AKxVW8Jr0_Cr1UYxBIdaVFxhVjvjDU0xZF
- pf9x07jIPfQUUUUU=
-X-CM-SenderInfo: purev21wro2thvvxqx5xdzvxpfor3voofrz/1tbiAQAFBF1jj4XF4gAAsT
+X-CM-TRANSID: LxC2BwAH829J7X1jzDqKAA--.13162S2
+X-Coremail-Antispam: 1UD129KBjvJXoW3WF43ury7ury3Jr48Jw17trb_yoWfuF18pF
+ WagF15Krn8AF9rWrWfAa1xu3WSgrWrCrW7J393GryUZ3Z8Gr1Iqr40yr15uas8XrZ5JF92
+ qw42yw13urn8A37anT9S1TB71UUUUU7qnTZGkaVYY2UrUUUUjbIjqfuFe4nvWSU5nxnvy2
+ 9KBjDU0xBIdaVrnRJUUUvGb4IE77IF4wAFF20E14v26ryj6rWUM7CY07I20VC2zVCF04k2
+ 6cxKx2IYs7xG6rWj6s0DM7CIcVAFz4kK6r1j6r18M28lY4IEw2IIxxk0rwA2F7IY1VAKz4
+ vEj48ve4kI8wA2z4x0Y4vE2Ix0cI8IcVAFwI0_JFI_Gr1l84ACjcxK6xIIjxv20xvEc7Cj
+ xVAFwI0_Gr1j6F4UJwA2z4x0Y4vEx4A2jsIE14v26r4j6F4UM28EF7xvwVC2z280aVCY1x
+ 0267AKxVW8Jr0_Cr1UM2AIxVAIcxkEcVAq07x20xvEncxIr21l5I8CrVACY4xI64kE6c02
+ F40Ex7xfMcIj6xIIjxv20xvE14v26r1j6r18McIj6I8E87Iv67AKxVWUJVW8JwAm72CE4I
+ kC6x0Yz7v_Jr0_Gr1lF7xvr2IYc2Ij64vIr41lFIxGxcIEc7CjxVA2Y2ka0xkIwI1lc7Cj
+ xVAaw2AFwI0_GFv_Wryl42xK82IYc2Ij64vIr41l4I8I3I0E4IkC6x0Yz7v_Jr0_Gr1lx2
+ IqxVAqx4xG67AKxVWUJVWUGwC20s026x8GjcxK67AKxVWUGVWUWwC2zVAF1VAY17CE14v2
+ 6r4a6rW5MIIYrxkI7VAKI48JMIIF0xvE2Ix0cI8IcVAFwI0_JFI_Gr1lIxAIcVC0I7IYx2
+ IY6xkF7I0E14v26r4UJVWxJr1lIxAIcVCF04k26cxKx2IYs7xG6rWUJVWrZr1UMIIF0xvE
+ x4A2jsIE14v26r1j6r4UMIIF0xvEx4A2jsIEc7CjxVAFwI0_Gr1j6F4UJbIYCTnIWIevJa
+ 73UjIFyTuYvjxUIa0PDUUUU
+X-CM-SenderInfo: purev21wro2thvvxqx5xdzvxpfor3voofrz/1tbiAgAFBF1jj4HGPQAEsM
 X-CFilter-Loop: Reflected
 X-ServerName: frasgout11.his.huawei.com
 X-Proofpoint-SPF-Result: pass
@@ -97,115 +94,212 @@ X-Proofpoint-SPF-Record: v=spf1 ip4:45.249.212.51 ip4:45.249.212.56
  ip4:124.71.93.99 ip4:124.71.93.112 ip4:124.71.94.104
  include:spf.saas.huaweicloud.com -all
 X-Spam: Clean
-X-Proofpoint-GUID: S-rbyASZ1_6S4tJa1jq2FAUPF1SRBH0H
-X-Proofpoint-ORIG-GUID: S-rbyASZ1_6S4tJa1jq2FAUPF1SRBH0H
+X-Proofpoint-GUID: R9w0b79q-cwnUnG6OGtXO9cUoBSIft5V
+X-Proofpoint-ORIG-GUID: R9w0b79q-cwnUnG6OGtXO9cUoBSIft5V
 Reporting-Meta:
- AAEZWra6e4EIkNDMNHfCrBfEcl6Z0jQVWI+MV52IzipOS5QNb9wOBjUjVAgNewOF
- BtVR9V7NA2fpmpFONTYgDk++VCi7utMgIV6wVZfbntgzvkYsTbE3f/Efn0x28x0+
- eYQor/LZ5HrUhLC6+xOvVs0kg96TIuL9DxIN3w4+dQyhv/DFigdqWjGWs2PCf96K
- 1EFdrDWVlE0aXI70mU97+yj/FfJHNRrw7PTxUZB2ZD5WbO01wbR0CuFVHVwDimCE
- 5bp4WJrouH5cR+GrvSxQJw6IeRdoqCFFca826q9PV4Pid3Ez0mJd1ivTYdtjNHZd
- m5vaL+SOCGU4/jRkOGPAhV4+mfinAu7HNIzZQS1Lc5wPU79YNR3NZqyxsUd7h9ty
- yRXOip+XDxlfMNB1uc3J8DFRnAsVVinTrS0Sv4lSSVtWGGrnmXVmIniXCW5x3i7X
- AcxW/r+mUbollL3giye5GbQGjILXv0hoYLWgq9fyyiATnqgcOykJT2Kr21WdgePZ
- AYLphi6Ku4V1/CC66fTg4WzmWjLw7qDetKxxEY4OpQs=
+ AAHf+IrqJgTNgiubScHbzdI/mDmw99UjJ9SIANH0MSX5CJw0sIIHvCU4J59zwHCH
+ +pTaVirpOiy/eBxyWNQBurJVPm5mpcmlEsHvDzJQZMQpETjkwaicCH2ZHz+K4EXu
+ ZToxkmCbvFHCha2PmnjUB8EnUqEFcA9p+IDTGd8GLyauHO8D0GXaf+KN7WPOE7Sn
+ 9HfUGflPQgsOo+K7O7DgLo6dKSdoJ8aLpNeID42aJcVVxGHTMGQ3y6PFcYdzCUeV
+ RPhf6faWjMsKs6XnKR+cQk1U4G7IxzkDItdZzW0fyi0EwVrl1mT+V+hKxzbRpG6s
+ G5Fbo7jq0oKaMnaMvblgMTzF8qGh0eVbasbIKvyc8l2UKG5eu5oX7ysKV6FHkr3J
+ Ra2QAjDtqFiKXoiPSJMMrmzWvgjg/98pSJcxoFbPy/YQ5KzkO7opYxliuy0Dow9k
+ 5ioFwZzsXmcXVboUVrKIlvTXwcZ/9W7IKeT9EYBaaO29E3xZA3arx69DJHAf6cJi
+ 2ueR6kaxzLLlgq16Y8tXr45XIpoMshAK7nqb8ygk9vU=
 
 From: Roberto Sassu <roberto.sassu@huawei.com>
 
-Currently, evm_inode_init_security() processes a single LSM xattr from
-the array passed by security_inode_init_security(), and calculates the
-HMAC on it and other inode metadata.
+One of the challenges that must be tackled to move IMA and EVM to the LSM
+infrastructure is to ensure that EVM is capable to correctly handle
+multiple stacked LSMs providing an xattr at file creation. At the moment,
+there are few issues that would prevent a correct integration. This patch
+set aims at solving them.
 
-Given that initxattrs() callbacks, called by
-security_inode_init_security(), expect that this array is terminated when
-the xattr name is set to NULL, reuse the same assumption to scan all xattrs
-and to calculate the HMAC on all of them.
+From the LSM infrastructure side, the LSM stacking feature added the
+possibility of registering multiple implementations of the security hooks,
+that are called sequentially whenever someone calls the corresponding
+security hook. However, security_inode_init_security() is currently limited
+to support one xattr provided by LSM and one by EVM. It is ready to support
+multiple xattrs, as it can call the initxattrs() callback provided by
+filesystems. security_old_inode_init_security() can only support one xattr
+due to its API.
 
-Signed-off-by: Roberto Sassu <roberto.sassu@huawei.com>
----
- security/integrity/evm/evm.h        |  2 ++
- security/integrity/evm/evm_crypto.c |  9 ++++++++-
- security/integrity/evm/evm_main.c   | 16 +++++++++++-----
- 3 files changed, 21 insertions(+), 6 deletions(-)
+In addition, using the call_int_hook() macro causes some issues. According
+to the documentation in include/linux/lsm_hooks.h, it is a legitimate case
+that an LSM returns -EOPNOTSUPP when it does not want to provide an xattr.
+However, the loop defined in the macro would stop calling subsequent LSMs
+if that happens. In the case of security_old_inode_init_security(), using
+the macro would also cause a memory leak due to replacing the *value
+pointer, if multiple LSMs provide an xattr.
 
-diff --git a/security/integrity/evm/evm.h b/security/integrity/evm/evm.h
-index f8b8c5004fc7..f799d72a59fa 100644
---- a/security/integrity/evm/evm.h
-+++ b/security/integrity/evm/evm.h
-@@ -46,6 +46,8 @@ struct evm_digest {
- 	char digest[IMA_MAX_DIGEST_SIZE];
- } __packed;
- 
-+int evm_protected_xattr(const char *req_xattr_name);
-+
- int evm_init_key(void);
- int evm_update_evmxattr(struct dentry *dentry,
- 			const char *req_xattr_name,
-diff --git a/security/integrity/evm/evm_crypto.c b/security/integrity/evm/evm_crypto.c
-index 708de9656bbd..68f99faac316 100644
---- a/security/integrity/evm/evm_crypto.c
-+++ b/security/integrity/evm/evm_crypto.c
-@@ -389,6 +389,7 @@ int evm_init_hmac(struct inode *inode, const struct xattr *lsm_xattr,
- 		  char *hmac_val)
- {
- 	struct shash_desc *desc;
-+	const struct xattr *xattr;
- 
- 	desc = init_desc(EVM_XATTR_HMAC, HASH_ALGO_SHA1);
- 	if (IS_ERR(desc)) {
-@@ -396,7 +397,13 @@ int evm_init_hmac(struct inode *inode, const struct xattr *lsm_xattr,
- 		return PTR_ERR(desc);
- 	}
- 
--	crypto_shash_update(desc, lsm_xattr->value, lsm_xattr->value_len);
-+	for (xattr = lsm_xattr; xattr->name != NULL; xattr++) {
-+		if (!evm_protected_xattr(xattr->name))
-+			continue;
-+
-+		crypto_shash_update(desc, xattr->value, xattr->value_len);
-+	}
-+
- 	hmac_add_misc(desc, inode, EVM_XATTR_HMAC, hmac_val);
- 	kfree(desc);
- 	return 0;
-diff --git a/security/integrity/evm/evm_main.c b/security/integrity/evm/evm_main.c
-index 0a312cafb7de..1cf6871a0019 100644
---- a/security/integrity/evm/evm_main.c
-+++ b/security/integrity/evm/evm_main.c
-@@ -305,7 +305,7 @@ static int evm_protected_xattr_common(const char *req_xattr_name,
- 	return found;
- }
- 
--static int evm_protected_xattr(const char *req_xattr_name)
-+int evm_protected_xattr(const char *req_xattr_name)
- {
- 	return evm_protected_xattr_common(req_xattr_name, false);
- }
-@@ -851,14 +851,20 @@ int evm_inode_init_security(struct inode *inode, struct inode *dir,
- {
- 	struct evm_xattr *xattr_data;
- 	struct xattr *xattr, *evm_xattr;
-+	bool evm_protected_xattrs = false;
- 	int rc;
- 
--	if (!(evm_initialized & EVM_INIT_HMAC) || !xattrs ||
--	    !evm_protected_xattr(xattrs->name))
-+	if (!(evm_initialized & EVM_INIT_HMAC) || !xattrs)
- 		return -EOPNOTSUPP;
- 
--	for (xattr = xattrs; xattr->value != NULL; xattr++)
--		;
-+	for (xattr = xattrs; xattr->value != NULL; xattr++) {
-+		if (evm_protected_xattr(xattr->name))
-+			evm_protected_xattrs = true;
-+	}
-+
-+	/* EVM xattr not needed. */
-+	if (!evm_protected_xattrs)
-+		return -EOPNOTSUPP;
- 
- 	evm_xattr = xattr;
- 
+From EVM side, the first operation to be done is to change the definition
+of evm_inode_init_security() to be compatible with the security hook
+definition. Unfortunately, the current definition does not provide enough
+information for EVM, as it must have visibility of all xattrs provided by
+LSMs to correctly calculate the HMAC. This patch set changes the security
+hook definition by replacing the name, value and len triple with the xattr
+array allocated by security_inode_init_security().
+
+Secondly, given that the place where EVM can fill an xattr is not provided
+anymore with the changed definition, EVM must know how many elements are in
+the xattr array. EVM can rely on the fact that the xattr array must be
+terminated with an element with name field set to NULL. If EVM is moved to
+the LSM infrastructure, the infrastructure will provide additional
+information.
+
+Casey suggested to use the reservation mechanism currently implemented for
+other security blobs, for xattrs. In this way,
+security_inode_init_security() can know after LSM initialization how many
+slots for xattrs should be allocated, and LSMs know the offset in the
+array from where they can start writing xattrs.
+
+One of the problem was that LSMs can decide at run-time, although they
+reserved a slot, to not use it (for example because they were not
+initialized). Given that the initxattrs() method implemented by filesystems
+expect that the array elements are contiguous, they would miss the slots
+after the one not being initialized. security_check_compact_filled_xattrs()
+has been introduced to overcome this problem and also to check the
+correctness of the xattrs provided by the LSMs.
+
+Filesystems calling security_inode_init_security() are already able to set
+multiple xattrs. Those which were using security_old_inode_init_security(),
+ocfs2 and reiserfs, were converted to using security_inode_init_security()
+and security_old_inode_init_security() was removed. However, they are still
+limited to setting only one xattr despite more are available, as their code
+is not ready to set multiple xattrs at inode creation time. Support for it
+can be added by those filesystems later.
+
+This patch set has been tested by introducing several instances of a
+TestLSM (some providing an xattr, some not, one with a wrong implementation
+to see how the LSM infrastructure handles it, one providing multiple xattrs
+and another providing an xattr but in a disabled state). The patch is not
+included in this set but it is available here:
+
+https://github.com/robertosassu/linux/commit/e13a03236df0c399dccb73df5fe4cfceb4bb1d89
+
+The test, added to ima-evm-utils, is available here:
+
+https://github.com/robertosassu/ima-evm-utils/blob/evm-multiple-lsms-v5-devel-v3/tests/evm_multiple_lsms.test
+
+The test takes a UML kernel built by Github Actions and launches it several
+times, each time with a different combination of LSMs and filesystems (ext4,
+reiserfs, ocfs2). After boot, it first checks that there is an xattr for each
+LSM providing it (for reiserfs and ocfs2 just the first LSM), and then (for
+ext4) calculates the HMAC in user space and compares it with the HMAC
+calculated by EVM in kernel space.
+
+A test report can be obtained here:
+
+https://github.com/robertosassu/ima-evm-utils/actions/runs/3525619568/jobs/5912560168
+
+The patch set has been tested with both the SElinux and Smack test suites.
+Below, there is the summary of the test results:
+
+SELinux Test Suite result (without patches):
+Files=73, Tests=1346, 225 wallclock secs ( 0.43 usr  0.23 sys +  6.11 cusr 58.70 csys = 65.47 CPU)
+Result: FAIL
+Failed 4/73 test programs. 13/1346 subtests failed.
+
+SELinux Test Suite result (with patches):
+Files=73, Tests=1346, 225 wallclock secs ( 0.44 usr  0.22 sys +  6.15 cusr 59.94 csys = 66.75 CPU)
+Result: FAIL
+Failed 4/73 test programs. 13/1346 subtests failed.
+
+Smack Test Suite result (without patches):
+95 Passed, 0 Failed, 100% Success rate
+
+Smack Test Suite result (with patches):
+95 Passed, 0 Failed, 100% Success rate
+
+The patch set has also been successfully tested with a WIP branch where
+IMA/EVM have been moved to the LSM infrastructure. It is available here:
+
+https://github.com/robertosassu/linux/commits/ima-evm-lsms-v1-devel-v9-test
+
+This is the patch that moves EVM to the LSM infrastructure:
+
+https://github.com/robertosassu/linux/commit/a1e0682ef75cc8087327e6f446f586c02dd87c60
+
+The only trivial changes, after this patch set, would be to allocate one
+element less in the xattr array (because EVM will reserve its own xattr),
+and to simply remove the call to evm_inode_init_security().
+
+The test report when IMA and EVM are moved to the LSM infrastructure is
+available here:
+
+https://github.com/robertosassu/ima-evm-utils/actions/runs/3525750217/jobs/5912853636
+
+Changelog
+
+v4:
+- Remove patch to call reiserfs_security_free(), already queued
+- Switch ocfs2 and reiserfs to security_inode_init_security() (suggested by
+  Mimi)
+- Remove security_old_inode_init_security() (suggested by Paul)
+- Rename security_check_compact_xattrs() to
+  security_check_compact_filled_xattrs() and add function description
+  (suggested by Mimi)
+- Rename checked_xattrs parameter of security_check_compact_filled_xattrs()
+  to num_filled_xattrs (suggested by Mimi)
+- Rename cur_xattrs variable in security_inode_init_security() to
+  num_filled_xattrs (suggested by Mimi)
+
+v3:
+- Don't free the xattr name in reiserfs_security_free()
+- Don't include fs_data parameter in inode_init_security hook
+- Don't change evm_inode_init_security(), as it will be removed if EVM is
+  stacked
+- Fix inode_init_security hook documentation
+- Drop lsm_find_xattr_slot(), use simple xattr reservation mechanism and
+  introduce security_check_compact_xattrs() to compact the xattr array
+- Don't allocate xattr array if LSMs didn't reserve any xattr
+- Return zero if initxattrs() is not provided to
+  security_inode_init_security(), -EOPNOTSUPP if value is not provided to
+  security_old_inode_init_security()
+- Request LSMs to fill xattrs if only value (not the triple) is provided to
+  security_old_inode_init_security(), to avoid unnecessary memory
+  allocation
+
+v2:
+- rewrite selinux_old_inode_init_security() to use
+  security_inode_init_security()
+- add lbs_xattr field to lsm_blob_sizes structure, to give the ability to
+  LSMs to reserve slots in the xattr array (suggested by Casey)
+- add new parameter base_slot to inode_init_security hook definition
+
+v1:
+- add calls to reiserfs_security_free() and initialize sec->value to NULL
+  (suggested by Tetsuo and Mimi)
+- change definition of inode_init_security hook, replace the name, value
+  and len triple with the xattr array (suggested by Casey)
+- introduce lsm_find_xattr_slot() helper for LSMs to find an unused slot in
+  the passed xattr array
+
+Roberto Sassu (6):
+  reiserfs: Switch to security_inode_init_security()
+  ocfs2: Switch to security_inode_init_security()
+  security: Remove security_old_inode_init_security()
+  security: Allow all LSMs to provide xattrs for inode_init_security
+    hook
+  evm: Align evm_inode_init_security() definition with LSM
+    infrastructure
+  evm: Support multiple LSMs providing an xattr
+
+ fs/ocfs2/namei.c                    |  18 ++---
+ fs/ocfs2/xattr.c                    |  30 +++++++-
+ fs/reiserfs/xattr_security.c        |  23 ++++--
+ include/linux/evm.h                 |  12 +--
+ include/linux/lsm_hook_defs.h       |   3 +-
+ include/linux/lsm_hooks.h           |  17 ++--
+ include/linux/security.h            |  12 ---
+ security/integrity/evm/evm.h        |   2 +
+ security/integrity/evm/evm_crypto.c |   9 ++-
+ security/integrity/evm/evm_main.c   |  28 +++++--
+ security/security.c                 | 115 +++++++++++++++++++++-------
+ security/selinux/hooks.c            |  19 +++--
+ security/smack/smack_lsm.c          |  26 ++++---
+ 13 files changed, 213 insertions(+), 101 deletions(-)
+
 -- 
 2.25.1
 
