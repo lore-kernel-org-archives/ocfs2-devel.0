@@ -1,78 +1,77 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc255.phx1.oracleemaildelivery.com (aib29ajc255.phx1.oracleemaildelivery.com [192.29.103.255])
+Received: from aib29ajc244.phx1.oracleemaildelivery.com (aib29ajc244.phx1.oracleemaildelivery.com [192.29.103.244])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 7B772C4332F
-	for <ocfs2-devel@archiver.kernel.org>; Wed, 23 Nov 2022 17:47:26 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 2C991C4332F
+	for <ocfs2-devel@archiver.kernel.org>; Thu, 24 Nov 2022 01:14:49 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=O4r20cHLZcLRbGMo00VUTRkwJcEivoVTslRttTAR2mg=;
- b=2+fXl7uF21mk7O5QafYbDVbARagyKbQ0nnhZT8w1qzVT+oOSkRjhKvoxqiMrTUrEvD/VU/rgaAAu
-   oYvyUtcsvKRAfqSas2XFBBwj36yuMFYxM6O/ZfgB/fvPU1z9r4bzoC47T7qXwAO6TY5yMqAdWQ4G
-   GgxCQ1zWVGjkDNkfDLMwe987zDC4E8phrlXeT26o3dEyXnB5AeiL/B2PhOHKPSen0XTQXSsZfJwc
-   S4u3GXoz+kQPIIvTWzyjo3112aBf1Qvw4Qjm3WwYPOviAycoXhkpaIN21jQ4RGVwE9niqIgIvrwV
-   CVkNAwsyoyH6+rVh/c7fS7gx9Pucv6l1aAkM7w==
+ bh=UD0Cnhv9bk0VI5W3y089ol+gGb602U4cV4lxUC7zv8w=;
+ b=g9abV0s4eow+cASWgmHafQ9ctyirmzHCJMfPHBJd/6cfpE5/gbbp+7KfBitC8q+2pDjx72/wPZ9g
+   GGx4EvX9WRqjJHfd65DeOQZh+ikDR/J5YCTz9vuSPEQIljC+8IN4u9LGBeDRYxbdUSGRwaAG2aH/
+   g0L9yRJgMJgQcgElfCPY0vlKxGlNZ+ThheLIcubaTLQSazLHX7glChyP6SSdLL+zybP3P7LgnxiC
+   VuKql4CFMZ6CbS/55N+szM4EEeeWV16iSMcYWlWCiv2/2BanmZpMS/5Ay/F058vj6+MHD4I9KWa3
+   z3yxUivIUdiUokKPUyQxBQlLMQU8DUzRsqd2LA==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=O4r20cHLZcLRbGMo00VUTRkwJcEivoVTslRttTAR2mg=;
- b=X6uYnzT9bBK4oSvLfISelqgrZF+VNP7mXTK81EciTr2lIu5mQyfrbEnSJnDX00Uu89JvKBfv/u0Y
-   /yJ0Kn7eTP1buqqisMriAl6zVMH8ARMGZ+Di0bfGihorlepyq/2+hu+IbeYJ/SUIXHNhTXI0S6sy
-   nurBNnbJdHIrNUmlw4gEhSXu3+8X8OvHWoYG13LsSTGpVLrOZRwVkoAvs4dJMUL2ikRISB9NLMn1
-   NaxjEV7BN53cNtel5H1EMZOmdll7wRPgV7Y24UGwOFCDnLyvfHcxYBtiWrOaSBzVNTVRg87Z84E5
-   hvlGMEC9OMye5YyWXaOlNPC8T/pMRcwNCyTmGQ==
-Received: by omta-ad3-fd3-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
+ bh=UD0Cnhv9bk0VI5W3y089ol+gGb602U4cV4lxUC7zv8w=;
+ b=NbS1EHONAnhEDME5t2ktsv8EAy4z6APcooYMRC4z9TA7pjv5Jen0JW/BF5XGMJUIIoeudGw+YBpH
+   R81+hBrfOUyllvQ5q5ULldGPna2Mi4sUxWOSCnakfByJnV2whodfh2JIVT7MKR4wNswrwwsRIGU5
+   yEBx7ZHBRlOLttggBXZ6cA8EdprQdMUKQh/DpnWk2qHqwQtbQEcOE/LqnQv9/99dfGJSSXYNA7UV
+   4N9AuJUtqSxERVH8OQCWRbD4EXYjJ098Z7Z6HnMsKlJ6RRRqOv0sxrSabUJpFTN5KNloFEMTpEnb
+   H5vmJf9bvQMS5H5/DrTklRyLIsg38y3YYf2Uog==
+Received: by omta-ad1-fd1-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20221104 64bit (built Nov  4
  2022))
- with ESMTPS id <0RLT00IVVAR1FC50@omta-ad3-fd3-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Wed, 23 Nov 2022 17:47:25 +0000 (GMT)
+ with ESMTPS id <0RLT00DM2VGOJ120@omta-ad1-fd1-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Thu, 24 Nov 2022 01:14:48 +0000 (GMT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=ibm.com; h=message-id :
  subject : from : to : cc : date : in-reply-to : references : content-type :
  mime-version : content-transfer-encoding; s=pp1;
- bh=VOvq9Sif0jOsBGBmaU8mrfW2vyYy0h6JoSd/AjbT9Ks=;
- b=Kk+tU5NXDLYJ0DJR0jE+smWMyPHYav7Cq4zcJ1t2TeMgRij6GDXjVb5pP+IfHi9peMfU
- 1025N6XWkyMOoi1EQuKNUbR0TpPV+M6nah8zC0taJ6qJjBvWZGPlpfwOb31rSYjlzuQn
- LMmmdPz7xRtLCy3AHWEOEQiDoxeqE+H9XuYtWuqPfb6npwNXbhNLOucRadqo5JiAASTW
- fZ9txdOic9kZmjoG713yjmUibP7lVnPQMyRrpxmQGYkabsxmqWBB4f+yWQ3Yxy7knwif
- 3QcJnzr1pU5oxvLdgqPMobtuBgXArn8QlxKFPjS2ixuES+sDF0Rv1z/be6iupJ+uzBwo qQ==
-Message-id: <052d91687e813110cc1e1d762ea086cc8085114a.camel@linux.ibm.com>
+ bh=KNq219/5AVdZrleS+HirjEBdvGLdqbdgtgWzIWGXyCk=;
+ b=Uj3CEeSyH9PbA/ailDEEdrVjqprldCjGRbSvnLejn7XsSbLCT1pWWu2LHwuUqLq0lfiy
+ 7xzqseFXrouvygarEDI2CVuckpDJ+Y+ISFXAWIjMrAM0FQWCfzcwouzrfBirQsNjC0Mh
+ 6Dw6n+XoSf0iyai1DEb5kbTj2HAtjqtltRG9HG0Ar1+/6e5TG04N+T4f2cOkKjpJiCpC
+ +0Zwsl55eFpfoOUlIhHGdSCkUGiGwYkNPrpY/pFzuSWProxIme9MAAB14Rxng/EPUMS2
+ 5Wzl7ydcPK47hh5WqtlH/RGemLRIwN5/gb5MKXzK3N2KblIdoGc+SHjV8Rvq2o5X6Eys Ag==
+Message-id: <13350b79f708cb089e2ff2ee5cead52bafb10982.camel@linux.ibm.com>
 To: Roberto Sassu <roberto.sassu@huaweicloud.com>, mark@fasheh.com,
  jlbec@evilplan.org, joseph.qi@linux.alibaba.com, dmitry.kasatkin@gmail.com,
  paul@paul-moore.com, jmorris@namei.org, serge@hallyn.com,
- stephen.smalley.work@gmail.com, eparis@parisplace.org,
- Casey Schaufler <casey@schaufler-ca.com>
-Date: Wed, 23 Nov 2022 12:46:41 -0500
-In-reply-to: <20221123095202.599252-3-roberto.sassu@huaweicloud.com>
-References: <20221123095202.599252-1-roberto.sassu@huaweicloud.com>
- <20221123095202.599252-3-roberto.sassu@huaweicloud.com>
+ stephen.smalley.work@gmail.com, eparis@parisplace.org, casey@schaufler-ca.com
+Date: Wed, 23 Nov 2022 20:14:01 -0500
+In-reply-to: <20221123154712.752074-5-roberto.sassu@huaweicloud.com>
+References: <20221123154712.752074-1-roberto.sassu@huaweicloud.com>
+ <20221123154712.752074-5-roberto.sassu@huaweicloud.com>
 X-Mailer: Evolution 3.28.5 (3.28.5-18.el8)
 MIME-version: 1.0
 X-Proofpoint-Virus-Version: vendor=baseguard
  engine=ICAP:2.0.219,Aquarius:18.0.895,Hydra:6.0.545,FMLib:17.11.122.1
- definitions=2022-11-23_10,2022-11-23_01,2022-06-22_01
+ definitions=2022-11-23_13,2022-11-23_01,2022-06-22_01
 X-Proofpoint-Spam-Details: rule=outbound_notspam policy=outbound score=0
- suspectscore=0 bulkscore=0 impostorscore=0 mlxscore=0 lowpriorityscore=0
- mlxlogscore=999 adultscore=0 clxscore=1015 malwarescore=0 spamscore=0
- priorityscore=1501 phishscore=0 classifier=spam adjust=0 reason=mlx
- scancount=1 engine=8.12.0-2210170000 definitions=main-2211230129
+ impostorscore=0 adultscore=0 malwarescore=0 mlxscore=0 mlxlogscore=999
+ spamscore=0 phishscore=0 bulkscore=0 suspectscore=0 priorityscore=1501
+ clxscore=1015 lowpriorityscore=0 classifier=spam adjust=0 reason=mlx
+ scancount=1 engine=8.12.0-2210170000 definitions=main-2211240006
 X-Source-IP: 148.163.158.5
 X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10540
  signatures=596816
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 bulkscore=0
- priorityscore=246 mlxscore=0 adultscore=0 lowpriorityscore=0 impostorscore=0
- mlxlogscore=999 clxscore=171 spamscore=0 phishscore=0 suspectscore=0
- malwarescore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2210170000 definitions=main-2211230131 domainage_hfrom=13398
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0
+ lowpriorityscore=0 malwarescore=0 bulkscore=0 priorityscore=249 clxscore=91
+ mlxlogscore=999 adultscore=0 mlxscore=0 suspectscore=0 impostorscore=0
+ spamscore=0 phishscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2210170000 definitions=main-2211240008 domainage_hfrom=13399
 Cc: nicolas.bouchinet@clip-os.org, keescook@chromium.org,
  selinux@vger.kernel.org, Roberto Sassu <roberto.sassu@huawei.com>,
  reiserfs-devel@vger.kernel.org, linux-kernel@vger.kernel.org,
  linux-security-module@vger.kernel.org, linux-integrity@vger.kernel.org,
  ocfs2-devel@oss.oracle.com
-Subject: Re: [Ocfs2-devel] [PATCH v5 2/6] ocfs2: Switch to
-	security_inode_init_security()
+Subject: Re: [Ocfs2-devel] [PATCH v6 4/6] security: Allow all LSMs to provide
+ xattrs for inode_init_security hook
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -94,185 +93,106 @@ X-ServerName: mx0b-001b2d01.pphosted.com
 X-Proofpoint-SPF-Result: pass
 X-Proofpoint-SPF-Record: v=spf1 ip4:148.163.158.5 ip4:148.163.156.1 ~all
 X-Spam: Clean
-X-Proofpoint-GUID: mjCTIGGksKSO252l3Uh2yRLZCB4HKKj6
-X-Proofpoint-ORIG-GUID: mjCTIGGksKSO252l3Uh2yRLZCB4HKKj6
+X-Proofpoint-GUID: ZXjctO4w0x0qrNfovFkl9hMnNDUzpnNH
+X-Proofpoint-ORIG-GUID: ZXjctO4w0x0qrNfovFkl9hMnNDUzpnNH
 Reporting-Meta:
- AAED6ipOTUBuGY7l38Oh76j+1dJPQfoA8GcfzlbGLbW2PHbVt0y0Im/+Wjolivwo
- pTc/yTP9sC4xNmjqUcodrbK4wry/Md5jy4rGFZ2fu7OPc3FhKLFwUYStxi7kCBjk
- oCCTtQFerOinJAnmFWE+SLmDc0LfDQFq7mUKK5P7xsYJ/f/fKOYM2BDB0tdwTjL2
- 7plKR1IghywhlGSvFBbvXh14US1JEc9PwCPxnTLgbNa56I5YCt8z9raSjipCnSXj
- U7pVWjDSgKgHajgbCaoHXQ1Zwz6fUpoP60bEptX8QBi1EPy/Gk+f3q5H8VW4BxqO
- HIXx0ECRJYiKaKsrCet+SQkaTv6GwoNZk6eGOZan/vgKbZ7TsUlddd/dCAfbQPEd
- 5BXqenXJu2ma3gwRBaokhxoucD7W9Qqva7hC63eeRqC4+UQdZ0uY9jEQ5Jvl4GUQ
- LPJ5FxFvwOjg1za5zlvKuE0HB0aoJkAn9sIbyRyAMcT3+iu+2M5zTnE59waAZWdF
- lXKXT/j8sypVhFWfB3Z8r5OkCmwxty1fD8gttWUL6B7U
+ AAFPys4dOzKWA8hfr0udtWpy34b2JYiHnFaQdBM3rAZ1RHleDhGW37dIpkjhxldK
+ nSf8xI4BrPyJBRytHVHevoaL84LgseFS5tycpxI2JvwEoWcCgsNZBBXttImrnz2l
+ rojLwda9GhEVVyl+E+vtL1tfo4d99RnfpDFvJ4L9b8bwpIX1uO8dZG7MAFeqXyBR
+ En3o0SdOtdLUBTy5KdbTgGwYnGugC7O/H0WFazGjajeOMOm4oLNPLdsekr1xeopD
+ URd6rV+wrtO29KxZsCrfmbV7K4cdEMGmjEWGVKFr8X8yZm3WkCINhoFhQZ2Haouq
+ wUoTESI7XCUkM/LfVfQWGDTTkh70FbEXshQiGMioucrPjP9qReqjSXqPbvY8SXQj
+ hALgzK+mt2o457bn5u3BC85o7wWdpmq3WJMKWhKfM3+rSe2gtBMijrZwFAj63vUl
+ vZC+c66K1dM0DBPoishNxuUGs6lGG7Vr4oJwbLy4mRb+J9cjmIJxKYjyYl1pBXzz
+ rY0OIZYqXSFoXTSlbzi5NRnxuIUi2DcGWd9n55NZDYuK
 
-On Wed, 2022-11-23 at 10:51 +0100, Roberto Sassu wrote:
-> From: Roberto Sassu <roberto.sassu@huawei.com>
-> 
-> In preparation for removing security_old_inode_init_security(), switch to
-> security_inode_init_security().
-> 
-> Extend the existing ocfs2_initxattrs() to take the
-> ocfs2_security_xattr_info structure from fs_info, and populate the
-> name/value/len triple with the first xattr provided by LSMs. Supporting
-> multiple xattrs is not currently supported, as it requires non-trivial
-> changes that can be done at a later time.
+Hi Roberto,
 
-ocfs2 already defines ocfs2_init_security_get() as a wrapper around
-calling either security_old_inode_init_security() or
-security_inode_init_security().  Based on "si" one or the other hook is
-called.  ocfs2_initxattrs is already defined.
+On Wed, 2022-11-23 at 16:47 +0100, Roberto Sassu wrote:
+>  int security_inode_init_security(struct inode *inode, struct inode *dir,
+>                                  const struct qstr *qstr,
+>                                  const initxattrs initxattrs, void *fs_data)
+>  {
+> -       struct xattr new_xattrs[MAX_LSM_EVM_XATTR + 1];
+> -       struct xattr *lsm_xattr, *evm_xattr, *xattr;
+> -       int ret;
+> +       struct security_hook_list *P;
+> +       struct xattr *new_xattrs;
+> +       struct xattr *xattr;
+> +       int ret = -EOPNOTSUPP, num_filled_xattrs = 0;
+>  
+>         if (unlikely(IS_PRIVATE(inode)))
+>                 return 0;
+>  
+> +       if (!blob_sizes.lbs_xattr)
+> +               return 0;
+> +
+>         if (!initxattrs)
+>                 return call_int_hook(inode_init_security, -EOPNOTSUPP, inode,
+> -                                    dir, qstr, NULL, NULL, NULL);
+> -       memset(new_xattrs, 0, sizeof(new_xattrs));
+> -       lsm_xattr = new_xattrs;
+> -       ret = call_int_hook(inode_init_security, -EOPNOTSUPP, inode, dir, qstr,
+> -                                               &lsm_xattr->name,
+> -                                               &lsm_xattr->value,
+> -                                               &lsm_xattr->value_len);
+> -       if (ret)
+> +                                   dir, qstr, NULL);
+> +       /* Allocate +1 for EVM and +1 as terminator. */
+> +       new_xattrs = kcalloc(blob_sizes.lbs_xattr + 2, sizeof(*new_xattrs),
+> +                            GFP_NOFS);
+> +       if (!new_xattrs)
+> +               return -ENOMEM;
+> +
+> +       hlist_for_each_entry(P, &security_hook_heads.inode_init_security,
+> +                            list) {
+> +               ret = P->hook.inode_init_security(inode, dir, qstr, new_xattrs);
+> +               if (ret && ret != -EOPNOTSUPP)
+> +                       goto out;
+> +               if (ret == -EOPNOTSUPP)
+> +                       continue;
 
-        struct ocfs2_security_xattr_info si = {
-                .name = NULL,
-                .enable = 1,
-        };
+In this context, -EOPNOTSUPP originally signified that the filesystem
+does not support writing xattrs.  Writing any xattr would fail. 
+Returning -ENODATA for no LSM xattr(s) data would seem to be more
+appropriate than -EOPNOTSUPP.
 
-The main difference between calling security_old_inode_init_security or
-security_inode_init_security() is whether or not security.evm is
-calculated and written.
-
-Perhaps it is time to remove the call to
-security_old_inode_init_security() in ocfs2_init_security_get().  We
-need to hear back from the ocfs2 community.  Mark?  Joel?
-
-As noted previously this change affects mknod and symlinks.
+thanks,
 
 Mimi
 
-> 
-> As fs_info was not used before, ocfs2_initxattrs() can now handle the case
-> of replicating the behavior of security_old_inode_init_security(), i.e.
-> just obtaining the xattr, in addition to setting all xattrs provided by
-> LSMs.
-> 
-> Finally, modify the handling of the return value from
-> ocfs2_init_security_get(). As security_inode_init_security() does not
-> return -EOPNOTSUPP, remove this case and directly handle the error if the
-> return value is not zero.
-> 
-> However, the previous case of receiving -EOPNOTSUPP should be still
-> taken into account, as security_inode_init_security() could return zero
-> without setting xattrs and ocfs2 would consider it as if the xattr was set.
-> 
-> Instead, if security_inode_init_security() returned zero, look at the xattr
-> if it was set, and behave accordingly, i.e. set si->enable to zero to
-> notify to the functions following ocfs2_init_security_get() that the xattr
-> is not available (same as if security_old_inode_init_security() returned
-> -EOPNOTSUPP).
-> 
-> Signed-off-by: Roberto Sassu <roberto.sassu@huawei.com>
-> ---
->  fs/ocfs2/namei.c | 18 ++++++------------
->  fs/ocfs2/xattr.c | 30 ++++++++++++++++++++++++++----
->  2 files changed, 32 insertions(+), 16 deletions(-)
-> 
-> diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
-> index 05f32989bad6..55fba81cd2d1 100644
-> --- a/fs/ocfs2/namei.c
-> +++ b/fs/ocfs2/namei.c
-> @@ -242,6 +242,7 @@ static int ocfs2_mknod(struct user_namespace *mnt_userns,
->  	int want_meta = 0;
->  	int xattr_credits = 0;
->  	struct ocfs2_security_xattr_info si = {
-> +		.name = NULL,
->  		.enable = 1,
->  	};
->  	int did_quota_inode = 0;
-> @@ -315,12 +316,8 @@ static int ocfs2_mknod(struct user_namespace *mnt_userns,
->  	/* get security xattr */
->  	status = ocfs2_init_security_get(inode, dir, &dentry->d_name, &si);
->  	if (status) {
-> -		if (status == -EOPNOTSUPP)
-> -			si.enable = 0;
-> -		else {
-> -			mlog_errno(status);
-> -			goto leave;
-> -		}
-> +		mlog_errno(status);
-> +		goto leave;
->  	}
->  
->  	/* calculate meta data/clusters for setting security and acl xattr */
-> @@ -1805,6 +1802,7 @@ static int ocfs2_symlink(struct user_namespace *mnt_userns,
->  	int want_clusters = 0;
->  	int xattr_credits = 0;
->  	struct ocfs2_security_xattr_info si = {
-> +		.name = NULL,
->  		.enable = 1,
->  	};
->  	int did_quota = 0, did_quota_inode = 0;
-> @@ -1875,12 +1873,8 @@ static int ocfs2_symlink(struct user_namespace *mnt_userns,
->  	/* get security xattr */
->  	status = ocfs2_init_security_get(inode, dir, &dentry->d_name, &si);
->  	if (status) {
-> -		if (status == -EOPNOTSUPP)
-> -			si.enable = 0;
-> -		else {
-> -			mlog_errno(status);
-> -			goto bail;
-> -		}
-> +		mlog_errno(status);
-> +		goto bail;
->  	}
->  
->  	/* calculate meta data/clusters for setting security xattr */
-> diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-> index 95d0611c5fc7..55699c573541 100644
-> --- a/fs/ocfs2/xattr.c
-> +++ b/fs/ocfs2/xattr.c
-> @@ -7259,9 +7259,21 @@ static int ocfs2_xattr_security_set(const struct xattr_handler *handler,
->  static int ocfs2_initxattrs(struct inode *inode, const struct xattr *xattr_array,
->  		     void *fs_info)
->  {
-> +	struct ocfs2_security_xattr_info *si = fs_info;
->  	const struct xattr *xattr;
->  	int err = 0;
->  
-> +	if (si) {
-> +		si->value = kmemdup(xattr_array->value, xattr_array->value_len,
-> +				    GFP_KERNEL);
-> +		if (!si->value)
-> +			return -ENOMEM;
+> +               /*
+> +                * As the number of xattrs reserved by LSMs is not directly
+> +                * available, directly use the total number blob_sizes.lbs_xattr
+> +                * to keep the code simple, while being not the most efficient
+> +                * way.
+> +                */
+> +               ret = security_check_compact_filled_xattrs(new_xattrs,
+> +                                                          blob_sizes.lbs_xattr,
+> +                                                          &num_filled_xattrs);
+> +               if (ret < 0) {
+> +                       ret = -ENOMEM;
+> +                       goto out;
+> +               }
+> +       }
 > +
-> +		si->name = xattr_array->name;
-> +		si->value_len = xattr_array->value_len;
-> +		return 0;
-> +	}
-> +
->  	for (xattr = xattr_array; xattr->name != NULL; xattr++) {
->  		err = ocfs2_xattr_set(inode, OCFS2_XATTR_INDEX_SECURITY,
->  				      xattr->name, xattr->value,
-> @@ -7277,13 +7289,23 @@ int ocfs2_init_security_get(struct inode *inode,
->  			    const struct qstr *qstr,
->  			    struct ocfs2_security_xattr_info *si)
->  {
-> +	int ret;
-> +
->  	/* check whether ocfs2 support feature xattr */
->  	if (!ocfs2_supports_xattr(OCFS2_SB(dir->i_sb)))
->  		return -EOPNOTSUPP;
-> -	if (si)
-> -		return security_old_inode_init_security(inode, dir, qstr,
-> -							&si->name, &si->value,
-> -							&si->value_len);
-> +	if (si) {
-> +		ret = security_inode_init_security(inode, dir, qstr,
-> +						   &ocfs2_initxattrs, si);
-> +		/*
-> +		 * security_inode_init_security() does not return -EOPNOTSUPP,
-> +		 * we have to check the xattr ourselves.
-> +		 */
-> +		if (!ret && !si->name)
-> +			si->enable = 0;
-> +
-> +		return ret;
-> +	}
+> +       if (!num_filled_xattrs)
+>                 goto out;
 >  
->  	return security_inode_init_security(inode, dir, qstr,
->  					    &ocfs2_initxattrs, NULL);
-
+> -       evm_xattr = lsm_xattr + 1;
+> -       ret = evm_inode_init_security(inode, lsm_xattr, evm_xattr);
+> +       ret = evm_inode_init_security(inode, new_xattrs,
+> +                                     new_xattrs + num_filled_xattrs);
+>         if (ret)
+>                 goto out;
+>         ret = initxattrs(inode, new_xattrs, fs_data);
+>  out:
+>         for (xattr = new_xattrs; xattr->value != NULL; xattr++)
+>                 kfree(xattr->value);
+> +       kfree(new_xattrs);
+>         return (ret == -EOPNOTSUPP) ? 0 : ret;
+>  }
+b
 
 
 _______________________________________________
