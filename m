@@ -1,79 +1,73 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc254.phx1.oracleemaildelivery.com (aib29ajc254.phx1.oracleemaildelivery.com [192.29.103.254])
+Received: from aib29ajc246.phx1.oracleemaildelivery.com (aib29ajc246.phx1.oracleemaildelivery.com [192.29.103.246])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id A976DC47088
-	for <ocfs2-devel@archiver.kernel.org>; Sat, 26 Nov 2022 18:13:49 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 58D48C6370A
+	for <ocfs2-devel@archiver.kernel.org>; Sat, 26 Nov 2022 18:13:50 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=OVM7uLtr41/1d5kSoc++nrMY44KTVSHh4jkMUJ0NzRE=;
- b=bqmAfUWhCR6P+yzwfPeG/uKVtC0DSiPrrhWF+Z2g4I+6ptFK/4hqtSQz1bDn9p3LvndGTaHi0t6C
-   imclFb5ofoc7t5cr2ex5JNfS6LhbRSmhgmJeteZTCyZLQ/q2RHr7+ZeoNj23vsgcKZ5MErcd9KeH
-   P1ghdOVvoFWMuJ3J9sb+4EfMHaBRyIFtKs3iI4EpQCv4LSQv2IvlxJVLHW0Z13rH8HTnBPAf8czF
-   yXaRNUNxRsP2rh9o6V9guh5rROGW7fF8jtjgMv4yw434irPLC8uu9RD1ClvnSu4vHwzdWSm4UAJj
-   QDjErlEByKWii+FcETbC8srhehDerypMZBeRQg==
+ bh=uz5ssRa96SFtMhefq2nRg0PvqRr4Jm4ZvgtykAfRfLU=;
+ b=CmWwXmzNRCe6pnjweQOVeR7csQO/U6/jMmvGCQFjZJ9TlDCBhboKGJldfNRAwwn8ylNWU6W6NrW4
+   LlSdHUkIiv/JGcxIAyZkSq/spFPKD6wKtBRuknkRLTfD6NC9ZKNTXgOrwBNWaqMIcGlBaauy/COq
+   xHpF23j/wwCmSuRGy1tRBaKIITWlBlWzJ2S3GZZZlf4rNQqfeSLJcLi6XbDGX5sRKf8wcFEBjIRD
+   TZ/xhFailN9BRVxhvFfiB/uAj35mWKfSgQD9KpyCUmGml90a76CJTJx1WAYAnYYAkk1RlpyMKe38
+   VQGzs0gzAuMx6MEj1PT3yJQsRbkaGKAeCjngRA==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=OVM7uLtr41/1d5kSoc++nrMY44KTVSHh4jkMUJ0NzRE=;
- b=rfWBLwrvbWqSrNsUhSVTsQQhB5T3yyk27kwFQw1ekjv0zsBinl+NcIjRc8GI2JIkLVFRmkNsN4d/
-   r+TKVplVNpMF25n8R7srBeUkkEJvHSCtoVsA0Ri6Nhxr2vbGr2pE8KZLW5cIG3UQh8PXuY27Apah
-   6iaJZuwlPOM2LR+myt5fzFGU+hKMYnbT9ZtLI1akue6OYgjstzxuPTpnIJ8QHeVokchhWK6n2S0U
-   Fso4LsFGGVHXpIIp9ghMOMugotuOuIEa0Z6Uhl3yb0uFCo1IgfDiysMAZSh+Ehs7tI2rDeQaCLH/
-   EYQ214dzwVIsMYKeRiRxyQVtB1piDxhCnAKRlQ==
-Received: by omta-ad3-fd3-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
+ bh=uz5ssRa96SFtMhefq2nRg0PvqRr4Jm4ZvgtykAfRfLU=;
+ b=YqxW8QzsuAZEkRQx82pLmtXX7Zk+HLKJaWdXK01dCwf6CAOdZn+g9OahS6e8nWI+TKOcBFB3OaIt
+   rsqLOUFiW3gOBLSFvlbAPLE4B2B7AJbNgTic5L+EMwUETDa1dvDGNk4mCDuwDMMvszhh8HwrQeAp
+   4ScHVOyy7u+CcFQ/qLsyPQnnEg6i9z2o3XMsl0rbRUj4OKq2ULLSExOj1uYYFiznwU4Bic5NQY3t
+   lVE7C+hdGV8nAzFc83xq9GtJKy2cTW6HR8sywRaHQ65UroBMWUP4RpEV35hFbiyA+oubdWOuUsb6
+   cR/8myhXGmeR8oOL8ws18BqXSBDLeC36HBhM6g==
+Received: by omta-ad1-fd3-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20221104 64bit (built Nov  4
  2022))
- with ESMTPS id <0RLY000B2VYZLR90@omta-ad3-fd3-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Sat, 26 Nov 2022 18:13:47 +0000 (GMT)
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
- d=infradead.org; s=casper.20170209; h=In-Reply-To:Content-Type:MIME-Version:
- References:Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:
- Content-Transfer-Encoding:Content-ID:Content-Description;
- bh=uiFDQ6s5XgAcT9HYz21ROzPo6ZCyN/YsiViP9JuL2Vc=; b=NJJwrm6IpzOJ+nUmhrd1OXfoCk
- G7FtSuALDx10w2NwiIqoKiG9ykgmyUGgqgtM+aJpa2oS2fQRQ+RCGSFLUVL1nV3H67iQsoM+ZXI+P
- 75G75qOGTBUz2j3XL00qgcUTJotjzi0OfiKIf+ALXzMf3ZoQMf3KRnGWl+fsNnIUD5GBw7fYM0qpK
- 68xmJhc99PpF71YEvdwSpdkfVDQQinCYdj6BfJplncqBsPQyicO+REFgABedNNQo6QpK9GD/KJOMG
- I2YH4RdEbuSk9AKSGChXb1wwhkouk4nfTA4WUiJD8aJEXUyng2vGvKiEnZPT7EPwwj7AX43JZiVeT
- eCgYCCfg==;
-Date: Tue, 22 Nov 2022 03:44:19 +0000
-To: Xiubo Li <xiubli@redhat.com>
-Message-id: <Y3xFkyZykWp5/Rvq@casper.infradead.org>
+ with ESMTPS id <0RLY00CDKVZ1E1B0@omta-ad1-fd3-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Sat, 26 Nov 2022 18:13:49 +0000 (GMT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org; s=k20201202;
+ t=1669382630; bh=EGJ1sbVmh8zfuee638fIF/XO+8/weuDlINdqpi5zZtE=;
+ h=Subject:From:To:Cc:Date:In-Reply-To:References:From;
+ b=ITYmgIWGeb/7tfCFFc4kVDpIzqmupq1CVJap5fhBl/OT/PtkT4fvz+47vLok2k5y+
+ 9CRsV+JeWA0KEW85LVZu0FSIZep4yXbkGkq4EGBqpjWl9J4R07ZmdftvaN+jO6GvVh
+ UV+8CnZQsig9drGP5ocCBKCwdeh2CEjv01ouksVCHxKjEnYvQ0VQOwyYDVIftWVHKE
+ GsZuPwqfzHVqHsCgI2NSiNlqWlCXseI+0MB2Oq49i12gvBk+OTgmkxmQgpHo2z4CO0
+ KgxgBErlyuKDTZUoexdSzNPrYs0i7nPI8jo2JLFO4nl05cBpvzph4ae7XpMCDCSp+4
+ bOGw2Qy+6YgWg==
+Message-id: <1d474f53670771f324745f597ec94b63a006d687.camel@kernel.org>
+To: Al Viro <viro@zeniv.linux.org.uk>
+Date: Fri, 25 Nov 2022 08:23:45 -0500
+In-reply-to: <Y4A6/ozhUncxbimi@ZenIV>
 References: <20221120210004.381842-1-jlayton@kernel.org>
- <6627384e-5514-048f-308e-57414d0c5b31@redhat.com>
+ <Y4A6/ozhUncxbimi@ZenIV>
+User-Agent: Evolution 3.46.1 (3.46.1-1.fc37)
 MIME-version: 1.0
-Content-disposition: inline
-In-reply-to: <6627384e-5514-048f-308e-57414d0c5b31@redhat.com>
-X-Source-IP: 90.155.50.34
-X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10538
+X-Source-IP: 139.178.84.217
+X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10541
  signatures=596816
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 adultscore=0
- spamscore=0 priorityscore=194 phishscore=0 mlxlogscore=505 impostorscore=0
- lowpriorityscore=0 malwarescore=0 bulkscore=0 suspectscore=0 clxscore=147
- mlxscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2210170000 definitions=main-2211220024
 Cc: Latchesar Ionkov <lucho@ionkov.net>,
  Martin Brandenburg <martin@omnibond.com>,
  Dominique Martinet <asmadeus@codewreck.org>,
  Christian Schoenebeck <linux_oss@crudebyte.com>,
  David Howells <dhowells@redhat.com>, Marc Dionne <marc.dionne@auristor.com>,
- samba-technical@lists.samba.org, linux-xfs@vger.kernel.org,
- Mike Marshall <hubcap@omnibond.com>, linux-cifs@vger.kernel.org,
- Andreas Gruenbacher <agruenba@redhat.com>, Miklos Szeredi <miklos@szeredi.hu>,
- linux-afs@lists.infradead.org, cluster-devel@redhat.com,
- Christine Caulfield <ccaulfie@redhat.com>,
+ linux-xfs@vger.kernel.org, Mike Marshall <hubcap@omnibond.com>,
+ linux-cifs@vger.kernel.org, Andreas Gruenbacher <agruenba@redhat.com>,
+ Miklos Szeredi <miklos@szeredi.hu>, linux-afs@lists.infradead.org,
+ cluster-devel@redhat.com, Christine Caulfield <ccaulfie@redhat.com>,
  v9fs-developer@lists.sourceforge.net, Ilya Dryomov <idryomov@gmail.com>,
  Namjae Jeon <linkinjeon@kernel.org>, devel@lists.orangefs.org,
  Shyam Prasad N <sprasad@microsoft.com>,
  Eric Van Hensbergen <ericvh@gmail.com>, Tom Talpey <tom@talpey.com>,
- linux-fsdevel@vger.kernel.org, Alexander Viro <viro@zeniv.linux.org.uk>,
- ceph-devel@vger.kernel.org, Trond Myklebust <trond.myklebust@hammerspace.com>,
- linux-nfs@vger.kernel.org, Paulo Alcantara <pc@cjr.nz>,
- Jeff Layton <jlayton@kernel.org>, linux-kernel@vger.kernel.org,
- Ronnie Sahlberg <lsahlber@redhat.com>, Steve French <sfrench@samba.org>,
+ linux-fsdevel@vger.kernel.org, ceph-devel@vger.kernel.org,
+ Xiubo Li <xiubli@redhat.com>,
+ Trond Myklebust <trond.myklebust@hammerspace.com>, linux-nfs@vger.kernel.org,
+ Paulo Alcantara <pc@cjr.nz>, samba-technical@lists.samba.org,
+ linux-kernel@vger.kernel.org, Ronnie Sahlberg <lsahlber@redhat.com>,
+ Steve French <sfrench@samba.org>,
  Sergey Senozhatsky <senozhatsky@chromium.org>,
  Chuck Lever <chuck.lever@oracle.com>, Anna Schumaker <anna@kernel.org>,
  Bob Peterson <rpeterso@redhat.com>, ocfs2-devel@oss.oracle.com
@@ -90,36 +84,88 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: Matthew Wilcox via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: Matthew Wilcox <willy@infradead.org>
+From: Jeff Layton via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: Jeff Layton <jlayton@kernel.org>
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-ServerName: casper.infradead.org
-X-Proofpoint-SPF-Result: None
-X-Spam: Clean
-X-Proofpoint-GUID: iUNaNM6H6XDYlnB3_lMsCVj6y1RzCFMx
-X-Proofpoint-ORIG-GUID: iUNaNM6H6XDYlnB3_lMsCVj6y1RzCFMx
+X-ServerName: dfw.source.kernel.org
+X-Proofpoint-SPF-Result: pass
+X-Proofpoint-SPF-Record: v=spf1 include:_spf.kernel.org ~all
+X-Proofpoint-Spam-Reason: safe
+X-Spam: OrgSafeList
+X-SpamRule: orgsafelist
+X-Proofpoint-GUID: XATU7Uicp2CyeUkt6pLXQRHysExubzV8
+X-Proofpoint-ORIG-GUID: XATU7Uicp2CyeUkt6pLXQRHysExubzV8
 X-Mailman-Approved-At: Sat, 26 Nov 2022 18:13:43 +0000
 Reporting-Meta:
- AAH2+oXap0+0ja48fxG522j5c8oIUnqxQBxcO3n1xjDBdfvakE/wGHkmgf8uN12I
- LnmZ1dySt9MoNH1Zpk3w5y7VFCmJHoeS7FydPbpTJ6Pv4CxZBco2uew9ufhvqyaO
- k+/YTn8CbkNzEcuQCudJwp57v3t/BQdMpsUdxs5Op8xaJPgzRw/p3fJuCIsRFwwR
- kYGhvsh7ZJwm5VCaP1tZvB2R3Ju9AYzdr4CtQVMw3FHuQLfU7pKLpkjamWNioZmR
- zPSSTHCaR4E8ExWp2pSlRS6ZPUWG2T6naY6rJp/+XQouMEf4NUziFVWcLehKOUmF
- OxMM0HbjHNu0OR/IkgF5aCYcQiM30iQ5ts0uOh9L/xNCPRSKEP/UkcGGFvrm93Hz
- UIYLbD2NIjKIBx5P1a/FcVxWq48YHvTUMIJEzfa/KwYP2Y4GbL+SAbfMWLNpK3X1
- lTkJzvgdMqxbriMBvNFZkPK8JGabJ8nNnWH2PAP6DWWk1BwujrHWP+Y0ku8XsChH
- CDeKT4ji1OFxFlDq5zpxv1MBiPV1kZFGHsAz2eEkey4X
+ AAEmrC2/UhTqKnLmm/sYlqSb+ARjmOWiGpOLyoFrD9XjLFWZ0a+vIi2a3YlRJAce
+ 2B0Fh4N+fgHqIbVArOAtVXgwkV9zWPuE0hu0qy0N7NHVlIK4YRwpCV3UNnwqXwzF
+ uHQwZcEhrQ0DnoFs9PZl1E/t3Olq+djM6YPcdqhrKcVrEf0nWXJpYv6/wiI/SAJY
+ N71hvIDn30WLo/nkxi5HzDLZhO8dnsM41LlK4dsmU1rdAu2encOZlIoX8pGL+fE1
+ +jC4C4ngq7hehkmiBs1ve8m/hWSWT+Hnmms+iqXh6cZOpE6jqim7xd4bCnHUNwWa
+ fNW5MRm5iOvzLnj4HSchmuM4ZOUKirCWehDEmfBOwkg1klOGxVAjg+7aErdTO4Bk
+ AeUgf/vm3txcHeUtTR+X20VEq4uLW5068z7iXMbPSwLm3+OWYK2gFkG00ttJYjVm
+ tt/xZ9R3BJQfwjdmvnHwBWv0iuLCxyAU2/8yqC3A01qFb6CDcUQdMaDw7mAfULgD
+ /da+gRJfnLEZAE+ruKZfCsoWLDvXBtGKtI2t//zbicfqXQ==
 
-On Mon, Nov 21, 2022 at 09:26:16AM +0800, Xiubo Li wrote:
-[1300+ lines snipped]
-> LGTM.
+On Fri, 2022-11-25 at 03:48 +0000, Al Viro wrote:
+> On Sun, Nov 20, 2022 at 03:59:57PM -0500, Jeff Layton wrote:
 > 
-> Reviewed-by: Xiubo Li <xiubli@redhat.com>
+> > --- /dev/null
+> > +++ b/include/linux/filelock.h
+> > @@ -0,0 +1,428 @@
+> > +/* SPDX-License-Identifier: GPL-2.0 */
+> > +#ifndef _LINUX_FILELOCK_H
+> > +#define _LINUX_FILELOCK_H
+> > +
+> > +#include <linux/list.h>
+> > +#include <linux/nfs_fs_i.h>
+> 
+> Umm... I'd add a comment along the lines of "struct file_lock has
+> a BS union by fs type; NFS side of things needs nfs_fs_i.h"
+> 
 
-You really don't need to quote the whole thing.  Please be more
-considerate.
+Ok.
+
+> > +struct lock_manager_operations {
+> > +	void *lm_mod_owner;
+> > +	fl_owner_t (*lm_get_owner)(fl_owner_t);
+> 
+> Probably take fl_owner_t to some more neutral header...
+> 
+
+I left it in fs.h for now. Some of the file_operations prototypes need
+that typedef, and I figure that anyone who is including filelock.h will
+almost certainly need to include fs.h anyway. We could move it into a
+separate header too, but it's probably not worth it.
+
+HCH mentioned years ago though that we should just get rid of fl_owner_t
+altogether and just use 'void *'. I didn't do it at the time because I
+was focused on other changes, but this might be a good time to change
+it.
+
+> > +#define locks_inode(f) file_inode(f)
+> 
+> Why do we still have that one, anyway?  Separate patch, obviously,
+> but I would take Occam's Razor to that entity...
+> 
+
+I can spin up a patch to nuke that too. I count only 30 callsites
+remaining anyway.
+
+> > +struct files_struct;
+> > +extern void show_fd_locks(struct seq_file *f,
+> > +			 struct file *filp, struct files_struct *files);
+> 
+> If anything, that would be better off as fl_owner_t...  Again, a separate
+> patch.
+
+I'm not sure what you mean here. This prototype hasn't changed, and is
+only called from procfs.
+
+-- 
+Jeff Layton <jlayton@kernel.org>
 
 _______________________________________________
 Ocfs2-devel mailing list
