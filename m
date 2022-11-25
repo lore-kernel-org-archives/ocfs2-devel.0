@@ -1,70 +1,68 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc254.phx1.oracleemaildelivery.com (aib29ajc254.phx1.oracleemaildelivery.com [192.29.103.254])
+Received: from aib29ajc245.phx1.oracleemaildelivery.com (aib29ajc245.phx1.oracleemaildelivery.com [192.29.103.245])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id E839BC63708
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 0C2BBC6370B
 	for <ocfs2-devel@archiver.kernel.org>; Sat, 26 Nov 2022 18:13:49 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=hbeMj8TibguXXlsg7H0phxJZYIl3h+U34UCvoxsCYow=;
- b=x5DkcRStLRTgEn9qT4nkSGLfoaIWADHupi5ztmb8NTepaz+n8M4rA1FJ5PmpqZPrsrUm7mLko07d
-   nSTQOpR4hHEh4+Q0qfEgZIoe0BI7Z2QJO4GIrQpwkHAyf3ap1w8Jetendr49Q10i+PffsrfDzXdA
-   MmCmI2/aUrzhy8c0124Z9YlM1QkaxON7Qs4rUc+aYuV26r7Ghi8Olqvou9QwBkhPEeI9Srm3F9zZ
-   3fG/B7inm/ckoPiEvQTW+dfxa8lHutTHYyIQSxBCLbMF0894DYsHS3hOXNRqZYLssV3PX7g1/FBk
-   Mb7g1JGZSZjYCUrI+ly/syk2yAOaWVCifAJ8yg==
+ bh=pda11jOTDAFHomSEYHTalg5kaszTvko3I5AjSF3nfkI=;
+ b=ctm8N4Fkb2w2cH4rTtEtID3BCZ3MNaLxwKCMMXozfW3fy5dzBw+cHM/IBRd9bfYIZUnsjcGumr5w
+   Do2DbBkV0Fw72KXl2C2c7JRxAHEJay0PtuCNuTG2FZ/CoyCx7t5X1IPzEZI8UzVccGGxWXSV3Bdj
+   6KwrLznAMtw8IptX1bh+0uNFeUFPRfD7pY8Rp/nhuBa5V/8BaRdq+lxWEWY+5Qw77YwfqvPV/mWN
+   lgzlirUMVQRk6evvvEQRjsQ/E3vnFdwVqXj7cGg6CgYsLJwmlUL920K1AnKRjQNS4qR6ReA12Ero
+   v4diqXo3WxFMUMlg9/fLMtfgyp1LjuVTrPiFpg==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=hbeMj8TibguXXlsg7H0phxJZYIl3h+U34UCvoxsCYow=;
- b=WzNwNOFKSlHu4n7LgYydnLyVWtK4BJbjB/iRuqhsgm9mAWJB54OkpK1x15B74P3LX430oxBx94bE
-   v0lq8kR2SjZhfC9+bWXoYxfd6JwJy4SmUjqkZZexrIvRWD7FNSXysFkNyawWNaHlTfIFXFo9pjgS
-   Ts944avJO5w+w0MbI/9le8y9WMH1jXjqKHYblpBY/YHQOPVYR7t6auQnlqcFlrGcLMkvy0CEPyPP
-   Sg5SiSrqWwtT7L94C7t5qcPBGw/m7R71EELiU9Dlb0MQtcT3nXO1TsYdTPo2jg2egLNvwzdPFjuX
-   tFwDTH5JHknQpw6JyMWxKbWakYqdzbSfrpvqdg==
-Received: by omta-ad3-fd3-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
+ bh=pda11jOTDAFHomSEYHTalg5kaszTvko3I5AjSF3nfkI=;
+ b=r2RgM9j6tnH6kau1ARoF79v7QsMWyK7o7iKVpYOYnspT2BLwyBQnjM1nytFCKN7x7wJNppY/iVC9
+   VAJyq60JgEGi733YzhspmO4Ja5dGPG96kDB3N3eDhfiaa/XKiyvECnU3uEIrzDAeeCJUDCffd78D
+   Ohpyzoa54gRNhrPKfo3lV1MRdVXm+JAI1STVk3Y61yC1CNCtM4duKDMbAq59VkC/yJT1fCnFLrXb
+   2+nYEgRT+fes3DADYEdVAE4z2SYB2+gZKq83N9En8snpu+Ro2y/t2psjlaZlg3kwzqfyru+PcnZ8
+   Z4mz/UAaPX4HGuFnOb2HIL4CjwbJuD7T7nuJdA==
+Received: by omta-ad1-fd1-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20221104 64bit (built Nov  4
  2022))
- with ESMTPS id <0RLY000GBVZ1LR90@omta-ad3-fd3-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
+ with ESMTPS id <0RLY0075BVZ16190@omta-ad1-fd1-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
  ocfs2-devel@archiver.kernel.org; Sat, 26 Nov 2022 18:13:49 +0000 (GMT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
  d=linux.org.uk; s=zeniv-20220401; h=Sender:In-Reply-To:Content-Type:
  MIME-Version:References:Message-ID:Subject:Cc:To:From:Date:Reply-To:
  Content-Transfer-Encoding:Content-ID:Content-Description;
- bh=f8/x32fER3aRdejEpsCx+wOLDBv/ItD+V8F3NbSrtbc=; b=r01ynWszvCOW0gRReJc0mPmaeT
- 4udkpjpGBia+sXIkLIOXBsuaTlBVVkhuppKmpDdjkBhDkp9t+rxXxKEZfC7Fah0vLuWEsX16J14kQ
- iTDi+/xmZDYDDpRiJO3Ln80mvbANCN9dZ1YHac6GOcrRJjA/aE2lJaIL/tDDVCfEUylL4CZlZXZZX
- nbCeFUeaVpnHpD9IQVhtUafE52qEQizDsH/bqXEg2ls1U9f8Vd+QBwZpM706f8WpTgGDI09nTdvx6
- baGfSswMUU47TynqNM8QZmdIAaIBUdKFdNBuvYwagQEw9nbEwfjDKkq/hBZ4WObbqHj0I0Imkq+By
- 1qK4U+Ig==;
-Date: Fri, 25 Nov 2022 03:34:14 +0000
-To: Matthew Wilcox <willy@infradead.org>
-Message-id: <Y4A3tmISFIR7ERfE@ZenIV>
+ bh=I2TD8YnyUVRKaNNBGvfs3pUWZDwIFw5kNMaApqkurhc=; b=LNV2e8UbAEOQw/T25Fn0zcJFtt
+ fNpKOR7AmYQmyKebyHLdQkC/VRgO+jC6IaDUeHAjw4EL0DsbkFM6Iqc2wV96JeHEovMJKBTXDZmhv
+ ZBw2xsCMnqYGB42wL+ylBtaiFvmXn4+q48vjcw+DG90eOjgZU2/9rcOSLcqiIsrxuWaDw1SMMEzx7
+ t7JkkxZCAEJ97Erz/o4KvknT6QpkedMLh6PAKj8gLWbA+2hlrTJV8E/LgdR9rDoShxcJCoTpm912V
+ ABkJ97xsSUr6RQZKyn8cXzXou9+2BUXYywgtCMyz0UPAL3QT8v6w4dSbpiqIhsoN4SGRxmTtMbclh
+ leUGm6UQ==;
+Date: Fri, 25 Nov 2022 03:48:14 +0000
+To: Jeff Layton <jlayton@kernel.org>
+Message-id: <Y4A6/ozhUncxbimi@ZenIV>
 References: <20221120210004.381842-1-jlayton@kernel.org>
- <Y3xHQwM3UiD/SK0K@casper.infradead.org>
 MIME-version: 1.0
 Content-disposition: inline
-In-reply-to: <Y3xHQwM3UiD/SK0K@casper.infradead.org>
+In-reply-to: <20221120210004.381842-1-jlayton@kernel.org>
 X-Source-IP: 62.89.141.173
 X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10541
  signatures=596816
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 malwarescore=0
- suspectscore=0 phishscore=0 adultscore=0 mlxscore=0 lowpriorityscore=0
- bulkscore=0 clxscore=-70 spamscore=0 impostorscore=0 mlxlogscore=755
- priorityscore=1501 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2210170000 definitions=main-2211250025
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 adultscore=0
+ bulkscore=0 spamscore=0 priorityscore=1501 impostorscore=0 mlxscore=0
+ phishscore=0 clxscore=-10 lowpriorityscore=0 malwarescore=0 mlxlogscore=728
+ suspectscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2210170000 definitions=main-2211250028
 Cc: Latchesar Ionkov <lucho@ionkov.net>,
  Martin Brandenburg <martin@omnibond.com>,
  Dominique Martinet <asmadeus@codewreck.org>,
  Christian Schoenebeck <linux_oss@crudebyte.com>,
  David Howells <dhowells@redhat.com>, Marc Dionne <marc.dionne@auristor.com>,
- samba-technical@lists.samba.org, linux-xfs@vger.kernel.org,
- Mike Marshall <hubcap@omnibond.com>, linux-cifs@vger.kernel.org,
- Andreas Gruenbacher <agruenba@redhat.com>, Miklos Szeredi <miklos@szeredi.hu>,
- linux-afs@lists.infradead.org, cluster-devel@redhat.com,
- Christine Caulfield <ccaulfie@redhat.com>,
+ linux-xfs@vger.kernel.org, Mike Marshall <hubcap@omnibond.com>,
+ linux-cifs@vger.kernel.org, Andreas Gruenbacher <agruenba@redhat.com>,
+ Miklos Szeredi <miklos@szeredi.hu>, linux-afs@lists.infradead.org,
+ cluster-devel@redhat.com, Christine Caulfield <ccaulfie@redhat.com>,
  v9fs-developer@lists.sourceforge.net, Ilya Dryomov <idryomov@gmail.com>,
  Namjae Jeon <linkinjeon@kernel.org>, devel@lists.orangefs.org,
  Shyam Prasad N <sprasad@microsoft.com>,
@@ -72,7 +70,7 @@ Cc: Latchesar Ionkov <lucho@ionkov.net>,
  linux-fsdevel@vger.kernel.org, ceph-devel@vger.kernel.org,
  Xiubo Li <xiubli@redhat.com>,
  Trond Myklebust <trond.myklebust@hammerspace.com>, linux-nfs@vger.kernel.org,
- Paulo Alcantara <pc@cjr.nz>, Jeff Layton <jlayton@kernel.org>,
+ Paulo Alcantara <pc@cjr.nz>, samba-technical@lists.samba.org,
  linux-kernel@vger.kernel.org, Ronnie Sahlberg <lsahlber@redhat.com>,
  Steve French <sfrench@samba.org>,
  Sergey Senozhatsky <senozhatsky@chromium.org>,
@@ -99,46 +97,52 @@ Errors-to: ocfs2-devel-bounces@oss.oracle.com
 X-ServerName: zeniv.linux.org.uk
 X-Proofpoint-SPF-Result: None
 X-Spam: Clean
-X-Proofpoint-GUID: p654msihQnCntNFapfIjTTZDcTKA8GVw
-X-Proofpoint-ORIG-GUID: p654msihQnCntNFapfIjTTZDcTKA8GVw
+X-Proofpoint-GUID: M4IhSeQJ1OaxRMUckCY27Q0ycCyFrILr
+X-Proofpoint-ORIG-GUID: M4IhSeQJ1OaxRMUckCY27Q0ycCyFrILr
 X-Mailman-Approved-At: Sat, 26 Nov 2022 18:13:43 +0000
 Reporting-Meta:
- AAFNkxjf1mf3dlBVq1iqm9K5xtTms3Cj4rR77sTTFitD9Cp5p6aARYf2AEuJ0TkW
- XjkquU/kwyUYsPPoayHMqKCxUzMArBHE4tmj+qvIk3Uomi+b5+XtaOdCPl1XzTuj
- FbwwaLV/oFhKBFJaVb6KpoYKj7uf2S3j7CWXD0Vuhs2jct2O49/jfFZOnZDlhxM6
- 47/PSisnIuotET9dVpJ7GP4D292YNWeEtom/vuZhEzoRg/nhLQm0oibR8UgNevIW
- jYMGbLAe2J5T68h+2pt6uc6ASnXBP7WQokGfOkoj7hBM8nKwvoJVQnsx1Ihr37Wg
- l6IStD57ejA1+17VEeLpZvH4XY3Wb3Znqz76f+bhrlatOKegmiC5PBtkaOkh9sVR
- 6L2JtLRCmZgmVkIBDoqaVCWD4t2rW1fNl6fp0OCP2WM/aMhhgIB2NXg6cvZ5jDMc
- 0sVV7GNirFmRyFOr6Jx2+40qDfQlNl4ZMbhVj3W+nzBWsfQV7GpW0LppfN1yNSg/
- 5fRMKRBNv5HNQHig/aH49Texea57bAxNzo5E255lesvA
+ AAF8K8Q7KWTIDIicEyKapnY9M5qe6l2np/VIU0GUtewJuzO0tLhdcog4rgNIQeJX
+ +emZOK60LzW3oNw3catBHhyHXT/Pvq2OrW7VvLE6vOOCy5s7eogT6C3ougGyKtzR
+ egEyfGOsaXd7L9MWKQqUtXOqlS2L4ebv23hVdEcmvIRU2DXYnVTLGFzG1J/90u/Q
+ b9hm2nEG8Mc+XwJAfoN8Eu8QhtltJ+9TztbBrrIusU1U1kk9iMdmQ4ibJamXYiy5
+ NoDzoyXTqh1XQ4Q6sdEFNNmmn6lGj7ikap0n8Reto+vef0hDMfa6AaE5zr3Ezb6J
+ FIh/jmD1cd02ul0O3JtNt24NUCAQI5hAERLP22KZrOxwmANSdEHzaexA/qdS6Ahk
+ y+YrZACt70vn4joUXYEXU2WpxwVQGV+PAlWRVVuBG4NXVBoI7gP6wC4fuI4NDH+z
+ Z1KxZ+YWL9Wr8rPq1kDBn5a5dM8/3ILG62MPhikWy62gYM2efAkW73gXXF5JDT/a
+ Y9JsjjJIhQLqkkKgxzl08TQBHpopXmjTsWDXbNip6cmn
 
-On Tue, Nov 22, 2022 at 03:51:31AM +0000, Matthew Wilcox wrote:
-> On Sun, Nov 20, 2022 at 03:59:57PM -0500, Jeff Layton wrote:
-> > Move the file locking definitions to a new header file, and add the
-> > appropriate #include directives to the source files that need them. By
-> > doing this we trim down fs.h a bit and limit the amount of rebuilding
-> > that has to be done when we make changes to the file locking APIs.
-> 
-> I'm in favour of this in general, but I think there's a few implicit
-> includes.  Can you create a test.c that only #include
-> <linnux/filelock.h> and see if there's anything missing?
-> 
-> > +	wait_queue_head_t fl_wait;
-> > +	struct file *fl_file;
-> 
-> These two seem undefined at this point.
-> 
-> > +	struct fasync_struct *	fl_fasync; /* for lease break notifications */
-> 
-> Likewise.
+On Sun, Nov 20, 2022 at 03:59:57PM -0500, Jeff Layton wrote:
 
-#include <linux/wait.h>
+> --- /dev/null
+> +++ b/include/linux/filelock.h
+> @@ -0,0 +1,428 @@
+> +/* SPDX-License-Identifier: GPL-2.0 */
+> +#ifndef _LINUX_FILELOCK_H
+> +#define _LINUX_FILELOCK_H
+> +
+> +#include <linux/list.h>
+> +#include <linux/nfs_fs_i.h>
 
-struct file;
-struct fasync_struct;
+Umm... I'd add a comment along the lines of "struct file_lock has
+a BS union by fs type; NFS side of things needs nfs_fs_i.h"
 
+> +struct lock_manager_operations {
+> +	void *lm_mod_owner;
+> +	fl_owner_t (*lm_get_owner)(fl_owner_t);
 
+Probably take fl_owner_t to some more neutral header...
+
+> +#define locks_inode(f) file_inode(f)
+
+Why do we still have that one, anyway?  Separate patch, obviously,
+but I would take Occam's Razor to that entity...
+
+> +struct files_struct;
+> +extern void show_fd_locks(struct seq_file *f,
+> +			 struct file *filp, struct files_struct *files);
+
+If anything, that would be better off as fl_owner_t...  Again, a separate
+patch.
 
 _______________________________________________
 Ocfs2-devel mailing list
