@@ -1,54 +1,54 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc247.phx1.oracleemaildelivery.com (aib29ajc247.phx1.oracleemaildelivery.com [192.29.103.247])
+Received: from aib29ajc250.phx1.oracleemaildelivery.com (aib29ajc250.phx1.oracleemaildelivery.com [192.29.103.250])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id B6502C4332F
-	for <ocfs2-devel@archiver.kernel.org>; Fri, 25 Nov 2022 10:12:54 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 1D705C46467
+	for <ocfs2-devel@archiver.kernel.org>; Fri, 25 Nov 2022 10:12:56 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=v9LDnV4lvWF6SWfLc1tAkwt/hNIqbcYs9DAFdHFJt0U=;
- b=N64rqQE0jC9K/7RROtVUbKW1UyOOt/Le+/leGuw1WqEuxx5t+n8x9UYIYc5Njoq+TSeyHtEf234W
-   4FFDDlnKEt/6fCeslCMGHcZznXgfPErf0/Jr9F65TgEmsjc/FCgkEtfplDQ5uq6cjlz903bEuPnc
-   kwmSrqPBvsZqbfYE0KXlEUDmcCdKXKFUYb6Y29Q6+Fg1uYlKzK0pjMKUldeVD+gFnqvMEKQ+Xtri
-   MOAr2rsfJ5FYQIGX0kDokooEnseRgPOR66eIAISQdW8z0r2uCfEdQiQaNxAj1rv7yek6Irg08UWf
-   KDwrc6WYQm2jU9DUrluPg+tXGy3hFHCEo6XRNg==
+ bh=7rnuSA0FUJrOTjiPXAjqT5zMJ5GWgrMiVsG00uzKugE=;
+ b=sDuRCf4a8J0hoa7LlnvcmOSL/AdYrFpfSr2S3Wp1jXWt2E6KkzKwcU+byHvOBd9Ad4dXu8Zhxpi5
+   bKmHYwwoaow5t2GGlYafFONSDK0+RH0QLSQgMDmp+uBG4H2C0aXMo7v+KiB0G7RNhLe5G+MDQM8b
+   FbltBc0vn966kb9dOjblqTnW7ifApC+9JxwkZloiB3PaT/Cb+dWOldp7wk72kUujkwlu6epFsWs6
+   f2Mxnu0ufGZopDeAYMQiE2ZCUdPop/FieZNWT9FtiDxLuzeF0Bs3lYCdMh24IErBmzj4m7iYCJcp
+   u3kzi0Xe0flensFhkcECLsCNIvFsKK26gaHZfA==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=v9LDnV4lvWF6SWfLc1tAkwt/hNIqbcYs9DAFdHFJt0U=;
- b=TVcGbhHw5eG1kJHd1UfdcBBjYBQlZq2mlB8GUQjDe5bUkt74DygknCrCTaWLeSEGZkGx6CWFshdn
-   B/K7OrChsp3X06bWwEa/MsWBB6/9+FjEB8ft704z69nA3S4ZyP7Vo+tW74oWkpYYUED2cxE6GhV0
-   6YX0xck7kb9j9rb2COfhsh+JIbwo3HWtbVOrdjRNC4DAW2JRE7/ZApKQYyLxvZKNj4d135SfNRbx
-   GT6KLvCMvMIT7BhPbKJDeLMc1AZOOIv/xNLSqdVmRSBcZYfeGICG35ZcM41qUpzExUiAfW7uxRc7
-   ExGDkguw4nJkkGU4qJ5uaARA7NHw/Nvpiq6YNw==
-Received: by omta-ad1-fd3-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
+ bh=7rnuSA0FUJrOTjiPXAjqT5zMJ5GWgrMiVsG00uzKugE=;
+ b=Mv3k1Op0/qY61zD8Gl9X5hTf7e3Gy6lD67TIe1/gkr6ue6Wz24RAWSN8Y3EoottNCvt0l4OBuaAD
+   Wd4hkv4pboa6eARC8WKBsIUESx42BCkfkR3wEDTe0maF9s2Ltk9HO3xYCFlaoc1T2d+XIDg4MUzc
+   HlP3MmXX4x6/UP+LOQP5fhABouoRnhol2QGrHa14Ls0dadt+OwNaaV8c4jpT6gTofKQBGFMCPrYu
+   Pmo/eBIFV37EiPOdLlXlQHBeHzsGmtqvKs1RgVnL0vLxecBOSPG0B9QVYHXgRlqFoOPrNqRCAaDJ
+   jMuqhxQeZxUoVu6exdYgSGQPC+0afAAXKIxhng==
+Received: by omta-ad2-fd3-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20221104 64bit (built Nov  4
  2022))
- with ESMTPS id <0RLW00IK5F1IWMA0@omta-ad1-fd3-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Fri, 25 Nov 2022 10:12:54 +0000 (GMT)
-Message-id: <03a60f60-6408-b67c-6e66-d4ff1d24089c@linux.alibaba.com>
-Date: Fri, 25 Nov 2022 17:28:56 +0800
+ with ESMTPS id <0RLW00D1GF1J5I90@omta-ad2-fd3-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Fri, 25 Nov 2022 10:12:55 +0000 (GMT)
+Message-id: <711323de-5a9f-db09-6105-319ff1ff52c1@linux.alibaba.com>
+Date: Fri, 25 Nov 2022 17:41:04 +0800
 MIME-version: 1.0
 User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:102.0)
  Gecko/20100101 Thunderbird/102.4.2
 Content-language: en-US
 To: lihongweizz <lihongweizz@inspur.com>, mark@fasheh.com, jlbec@evilplan.org
-References: <20221125031522.339-1-lihongweizz@inspur.com>
-In-reply-to: <20221125031522.339-1-lihongweizz@inspur.com>
-X-Source-IP: 115.124.30.133
+References: <20221125034118.427-1-lihongweizz@inspur.com>
+In-reply-to: <20221125034118.427-1-lihongweizz@inspur.com>
+X-Source-IP: 115.124.30.45
 X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10541
  signatures=596816
 X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 malwarescore=0
- mlxlogscore=999 priorityscore=85 adultscore=0 impostorscore=0 phishscore=0
+ mlxlogscore=978 priorityscore=104 adultscore=0 impostorscore=0 phishscore=0
  lowpriorityscore=0 bulkscore=0 suspectscore=0 mlxscore=0 spamscore=0
  clxscore=6 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2210170000 definitions=main-2211250074 domainage_hfrom=8625
+ engine=8.12.0-2210170000 definitions=main-2211250076 domainage_hfrom=8625
 Cc: linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
-Subject: Re: [Ocfs2-devel] [PATCH] ocfs2: properly clean task pointer before
- o2hb thread exits abnormally
+Subject: Re: [Ocfs2-devel] [PATCH] ocfs2: fix infinite loop for orphan entry
+	list
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -65,62 +65,73 @@ Reply-to: Joseph Qi <joseph.qi@linux.alibaba.com>
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-Alimail-AntiSpam: AC=PASS; BC=-1|-1; BR=01201311R121e4; CH=green;
+X-Alimail-AntiSpam: AC=PASS; BC=-1|-1; BR=01201311R731e4; CH=green;
  DM=||false|; DS=||; FP=0|-1|-1|-1|0|-1|-1|-1; HT=ay29a033018046056;
  MF=joseph.qi@linux.alibaba.com; NM=1; PH=DS; RN=5; SR=0;
- TI=SMTPD_---0VVedjiE_1669368536;
-X-ServerName: out30-133.freemail.mail.aliyun.com
+ TI=SMTPD_---0VVewUrY_1669369264;
+X-ServerName: out30-45.freemail.mail.aliyun.com
 X-Proofpoint-SPF-Result: pass
 X-Proofpoint-SPF-Record: v=spf1 include:spf1.service.alibaba.com
  include:spf2.service.alibaba.com include:spf1.ocm.aliyun.com
  include:spf2.ocm.aliyun.com include:spf1.staff.mail.aliyun.com
  include:a.hichina.mail.aliyun.com include:b.hichina.mail.aliyun.com -all
 X-Spam: Clean
-X-Proofpoint-GUID: IwzadXzI3HDJo4MPiNend5uef6xU0FYQ
-X-Proofpoint-ORIG-GUID: IwzadXzI3HDJo4MPiNend5uef6xU0FYQ
+X-Proofpoint-ORIG-GUID: 4lkGHz5ZKNYAJ7rnHOv3q1CAMmGSySgS
+X-Proofpoint-GUID: 4lkGHz5ZKNYAJ7rnHOv3q1CAMmGSySgS
 Reporting-Meta:
- AAE1WvayiAG05vAkmUgKGaKjAIRbyQQyEAjVPr6apxPhI44MLj+oG3CiqkjuwPmc
- qmcqhN6BG7hh/LsLyCXV++Nt0IpUHaFQRfJaVUIN0pjGJFcX7gX5Zs/hc/d73EjD
- Ptg31O9QFz8rQlFMLEGFqby0gqq7zlrdHQy1AoMUecVA5KYvrjYeUe6EsAoeppiq
- KdD5k9/JICsAaPfLklKQ/CBtNz2sc/FKCDM8J9WYbZBuFwygmNU6KDQdBzSg3Lux
- sCWoOi2Z0baDqH3rOt94zG0lYxDhWmTJUj9tqZlkIkFkYfO8kgjVOc5MNFTfdX8A
- +/u+o2cnW8OE/19nwJz+2rSR1qM2A4Kju5hX5/1ROBXzGz/Jxq4ng2h6WJigCftl
- JPqWrWfAAIOwBt1o/zP5T3amW6bC32ajPaW4XyihiLvvXHnkXSH6oh6UJGgmCggC
- /Mx8dNIWmA1Xutzzm3GE6BEpRJc5gXtbBJjOGnlqSdDSbU/rFoaamSDd8EjG/glH
- o4CZbn8Xc+sj0NfFWHuN4SQsNo9OA9K75oFKK9+hWnYb
+ AAHRg3ByWc+Vr19QOYhnaWRKaxVPr/C9xemKoU2ZTV2u4zqNrE+RrY+NJjaP6yVo
+ RerPjGciVQ2E6Fyz3DLO5PT7r7qJK+qdNs430hrtfHhhM4INAuae0X6m5E9GRud5
+ cDLO0ETeMrBsoNfT5vOTsiAo2N1Lpgx19Omx22zSR4CjkJA0Cbd1nKmRspiHaOS5
+ aunNUZOunFZ9EGBQfe8gQVKb9CnriYNqVqkKmbFHhkjGOx4PjsWUx7XljpO1zV7m
+ dKe69M3Mn/4lz+Fj5d91ETpBDrrcpkfs9DJGRllY32/iZ9MiHojEC2GVJ9W0o6n4
+ tYlCfjr1BYpaT6TfZRXrM3SrevdiWnuzJaQ1dDEQ5Ao7dpw/GwI6MUjH/g9YTB7E
+ Ap0mAL98ii7ma//BR9Im64BwFFjCgox+sogjKqL6nSsdNdoXcUwF9+tIGJiMI1ua
+ NzNbdLfaMSmg9tJHu5Wou7qs02W2xDNrR+hEbVstkwPUzdR71iHWQUQ8mAplbp6c
+ KHuoQ3UysPnSNmfcW8Rqt0pD5fa+I1CIDvuTYPsSxAA=
 
 
 
-On 11/25/22 11:15 AM, lihongweizz wrote:
-> From: Rock Li <lihongweizz@inspur.com>
+On 11/25/22 11:41 AM, lihongweizz wrote:
+> Orphan file may be in the recover list already when the ip_next_orphan
+> is NULL (for example, orphan file is second tail elementof recover
+> list). In this scenario, the file could be added to the list twice
+> and infinite loop happened. So we need another pointer value here(EFAULT)
+>  instead of NULL for the list tail element.
 > 
-> in case o2hb thread exits abnormally before stop o2cb service,
-> heartbeat_drop_group_item will try to stop a noexit thread cause
-> ret->hb_task was not clear properly.
-> 
-Could you please describe the scenario in detail?
+
+Don't understand how it happens. Is this a real issue you encountered?
+When queue orphans, it will bypass those already in recover list.
 
 Thanks,
-Joseph 
+Joseph
 
-> Signed-off-by: Rock Li <lihongweizz@inspur.com>
+> Signed-off-by: lihongweizz <lihongweizz@inspur.com>
 > ---
->  fs/ocfs2/cluster/heartbeat.c | 2 ++
->  1 file changed, 2 insertions(+)
+>  fs/ocfs2/journal.c | 4 ++--
+>  1 file changed, 2 insertions(+), 2 deletions(-)
 > 
-> diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
-> index b13d344..9db448d 100644
-> --- a/fs/ocfs2/cluster/heartbeat.c
-> +++ b/fs/ocfs2/cluster/heartbeat.c
-> @@ -1258,6 +1258,8 @@ static int o2hb_thread(void *data)
->  	/* Unpin node */
->  	o2nm_undepend_this_node();
+> diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
+> index 126671e..4620013 100644
+> --- a/fs/ocfs2/journal.c
+> +++ b/fs/ocfs2/journal.c
+> @@ -2207,7 +2207,7 @@ static int ocfs2_recover_orphans(struct ocfs2_super *osb,
+>  				 enum ocfs2_orphan_reco_type orphan_reco_type)
+>  {
+>  	int ret = 0;
+> -	struct inode *inode = NULL;
+> +	struct inode *inode = ERR_PTR(-EFAULT);
+>  	struct inode *iter;
+>  	struct ocfs2_inode_info *oi;
+>  	struct buffer_head *di_bh = NULL;
+> @@ -2224,7 +2224,7 @@ static int ocfs2_recover_orphans(struct ocfs2_super *osb,
+>  	if (ret)
+>  		mlog_errno(ret);
 >  
-> +	reg->hr_task = NULL;
-> +
->  	mlog(ML_HEARTBEAT|ML_KTHREAD, "o2hb thread exiting\n");
->  
->  	return 0;
+> -	while (inode) {
+> +	while (!IS_ERR(inode)) {
+>  		oi = OCFS2_I(inode);
+>  		trace_ocfs2_recover_orphans_iput(
+>  					(unsigned long long)oi->ip_blkno);
 
 _______________________________________________
 Ocfs2-devel mailing list
