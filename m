@@ -1,106 +1,82 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc245.phx1.oracleemaildelivery.com (aib29ajc245.phx1.oracleemaildelivery.com [192.29.103.245])
+Received: from aib29ajc254.phx1.oracleemaildelivery.com (aib29ajc254.phx1.oracleemaildelivery.com [192.29.103.254])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 2F548C46467
-	for <ocfs2-devel@archiver.kernel.org>; Wed, 30 Nov 2022 16:58:40 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 5CBA1C352A1
+	for <ocfs2-devel@archiver.kernel.org>; Wed, 30 Nov 2022 21:24:37 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=7Ikgq2UsIpcTh4R2jM2qPwosTuszsSy55aPJCRr4Gtc=;
- b=kfu3lmxYqua6D7pdPeK2GKZgCikoqjsWakZ/Y9aJjo8/edAP6LODMwLQ/20SFfPz1hG8O/XwidMy
-   AvXhAQG++vE1XEEPAdi0nAP+e6wy1y0kCqPv2VJiHVEiKFDUVSOh9gwhEy/eXFcYyV/WWNfgpCzn
-   0you40NDfi41bu2rptveT7MIThi0MGk0gmQ/MEe0ZXZqAPYKTHdzHIr9ZYgzzYIlkSEkTc9KivRo
-   SpdmaklcTema75S50EVpdtqjrs3MicVWWDNXFvwyVnMcC4XMZF8Gg/3AWbDUekmX64WaPqM0iLkT
-   ovHu9uRoBIeQqneiYI+yY7bkgzxkDIf2UiiLVQ==
+ bh=0BbfpDAno3/P/MkaW5hbLU0cKxvVfhkmCeSBXG7aqyY=;
+ b=So+PSSeRKaO7Xdf2l0x2yDuyQbGEfYm8qd2ExeddqVR6C8iizbLPJFERT3ypQqGGQaaYGg33qfvF
+   bkbt+rmAirFNd8PaTSbtybHUzZstsT+LaK6bySE6th8SohNwr//H6O+3t7PTdreWHamjeTLnCyEe
+   APWD8lu9GJGX8AMtP6og3Fn5LVUkp1gQmD1HUxgoscodhIfgDFgDBJ0FU9rmcaGdnfavayk0L61M
+   apsI/+CorTqTVg1oUT1dNyV1sclF8wa+u3TM2inGLqNtXBxT3ivgGbA7BNIJaXE4bEd8csaF3rQv
+   2u7OiJrtmkZCNm91rMDZ22jAjWbJeQtas/sz3w==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=7Ikgq2UsIpcTh4R2jM2qPwosTuszsSy55aPJCRr4Gtc=;
- b=iTJ+HMVv8RR38F88xxOL8X3RX2boud1TdOkkBMrlk/rFOUHFJeu9KNyDGtXNhuc56gZZ3uaAGw2R
-   2F0pvfSchKqWEtJLvPpAvLwyaGjh8A/zsT0vQKa0nrN87C3/4wxRW+MX01pjRix4uab6xD7soGts
-   Ou/i1fZ9nsGS+WSTQWPZsSfqpj3Hi/FZrEmNfwcUynEkoMG8O6g+aVXfVcd/yNF/S+ksi83hbzcB
-   6rVCN+vnI/U58PavhDbtwXejCxdSrLHAezPDnVkLETzCusQ8Yxh4NCx7BQ6OwFABi4c1ImXKeiT9
-   7u+OMpxHepMWBQ0XkSyHGKqxigkOXOimbCaLpg==
-Received: by omta-ad1-fd1-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
+ bh=0BbfpDAno3/P/MkaW5hbLU0cKxvVfhkmCeSBXG7aqyY=;
+ b=XNI/y0yOQfl1Bu17hgBHiMKf0uTogvHLxKd3E8A73uf6QY/g5VqYSWV/Rczpk2SMVvxJWSB3FwlY
+   oCKlKr3uX2CvPSDH7xvwWVvUc9yPi71hChb+Pl4sjVOCv/ruGCJ41g9brZDbWgttDRzMAnPm50OC
+   Xns4kVCpdDqvz1ZeUK2ghRyOmxauvgQHcu417dbNIQAcOboCCK/IRSuPmJW8E1NF2x2AamlSo7F4
+   hlmFXt6RwrOnnDOmUynY8xGhCiukIw9C41Tj9fv1+2wRtILFPEkd86DSNA8LMO3lDUtdvTOxUq1/
+   SrfMxseAGczzwPpfIO2bHKKjfR/rCJwfs+zODA==
+Received: by omta-ad3-fd3-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20221104 64bit (built Nov  4
  2022))
- with ESMTPS id <0RM6004XE75RUCD0@omta-ad1-fd1-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Wed, 30 Nov 2022 16:58:39 +0000 (GMT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
- s=mimecast20190719; t=1669810058;
- h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
- to:to:cc:cc:mime-version:mime-version:content-type:content-type:
- in-reply-to:in-reply-to:references:references;
- bh=jnVdlteFV26Z76cEF4gxE55CdPW4P3QACX8nQF2ZXTo=;
- b=W/dSB4qs5hwMfYN4TjxxFnqFD4auu9K07/woj4RDIZunyWcd9qT2g9XoFZvOSjAqfTe4Ga
- sPDuA5GKhAnz1PJtE0E805fwucXHtgi6wF0TyYucotzcJnBT4lkI2YNflsI6f5EEvixFEq
- 5X6WL3hpHvkVlHRo2bXgnkAdSZ4Yo+A=
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=1e100.net;
- s=20210112;
- h=in-reply-to:content-disposition:mime-version:references:message-id
- :subject:cc:to:from:date:x-gm-message-state:from:to:cc:subject:date
- :message-id:reply-to; bh=jnVdlteFV26Z76cEF4gxE55CdPW4P3QACX8nQF2ZXTo=;
- b=5TG5s0/ku7629WG3kPbWT8VhEQR3KzcbQVi1z+b+vek20G/0mQL9nUZQEc77gdo7Fz
- lBQwWpe9ql1mp+eqiTxMQ+ghFkFQ03ozcoyepfZuXcCCFbTHdctvcukeuUUEfkABjGBU
- PLschdIgvqEIZSB+ttvZOOKUiJRPz2t9jgKk3uMWcIBr9A+CHMORGQd2GLTi2mEbdGlu
- xgOwdCdSDkXvnWRC/ECX+HWTFPDQbtR8a1bA1dsvRG1qIjdgrDQQbxM85Ot1u4IGVe5o
- xZp/ZkGy2i8YflzUt6XwpGrbyArEDobagW16oEA0gL2V9JXsSCxPqWajYIzWnxOcBpOV Ql5A==
-X-Gm-Message-State: ANoB5pmi6g2RAhgyJww/9T0dIO+efC5f7dgaegUAWB+ncAewTeofRD9J
- 6Qi9PChfE6pLT0O0AXWwju2Gyr+NT/VuBGp/TYkhYEnFt0fy5h4QTMno6BXlAqNmj7HG0GuOyeS
- eoEWE60vDVbn3F5QY0FAcaA==
-X-Received: by 2002:a05:600c:3c8e:b0:3d0:69f4:d3d0 with SMTP id
- bg14-20020a05600c3c8e00b003d069f4d3d0mr4598077wmb.93.1669810056101; Wed,
- 30 Nov 2022 04:07:36 -0800 (PST)
-X-Received: by 2002:a05:600c:3c8e:b0:3d0:69f4:d3d0 with SMTP id
- bg14-20020a05600c3c8e00b003d069f4d3d0mr4598054wmb.93.1669810055886; Wed,
- 30 Nov 2022 04:07:35 -0800 (PST)
-Date: Wed, 30 Nov 2022 13:07:32 +0100
-To: Benjamin Coddington <bcodding@redhat.com>
-Message-id: <20221130120732.GB29316@pc-4.home>
-References: <cover.1669036433.git.bcodding@redhat.com>
- <c2ec184226acd21a191ccc1aa46a1d7e43ca7104.1669036433.git.bcodding@redhat.com>
- <20221129140242.GA15747@lst.de>
- <794DBAB0-EDAF-4DA2-A837-C1F99916BC8E@redhat.com>
+ with ESMTPS id <0RM60023BJH0H530@omta-ad3-fd3-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Wed, 30 Nov 2022 21:24:36 +0000 (GMT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=ibm.com; h=message-id :
+ subject : from : to : cc : date : in-reply-to : references : content-type :
+ mime-version : content-transfer-encoding; s=pp1;
+ bh=yifZRjcnME4KdiCrx4XAH30YdBt6VKv7hfRn0v4FRuc=;
+ b=l1XUiN1rW6f+ee6TrpN9jk5ssoNSaDOiPcxMdZauO8mKygmAxvaRnHoG31vayk9PgxHr
+ bnrusCji3tMF8gNxXVxyKptv/w6DBipSxA+jUHZPaKQlnX1VA6veuNfnO4T0U9hHUmjT
+ Y8LtbWrLuqkjh12fLywGfGt8FtkeENfaXiLvCKlhTB3SHROi0j4psDHZlDj/cvAHjVuj
+ NL1hijVMJJh4dHNqKg7eBrzLejruYTDP006FlqAY4ckD2FnyWxCDyzWIQDFmuEpogPXV
+ 5szbiEKjhNrPIFvt8pvIUWohtN6IFLNqUliTFjBXXkHzaJ4/+uucgc8gQi22pUqMQ2ZO ag==
+Message-id: <b929e0c597161fd5be79c18163a11649dd7f237f.camel@linux.ibm.com>
+To: Casey Schaufler <casey@schaufler-ca.com>,
+ Roberto Sassu <roberto.sassu@huaweicloud.com>, mark@fasheh.com,
+ jlbec@evilplan.org, joseph.qi@linux.alibaba.com, dmitry.kasatkin@gmail.com,
+ paul@paul-moore.com, jmorris@namei.org, serge@hallyn.com,
+ stephen.smalley.work@gmail.com, eparis@parisplace.org
+Date: Wed, 30 Nov 2022 16:23:43 -0500
+In-reply-to: <50232f2b-d5ce-1e5a-3f5b-8d3eb53fe1ec@schaufler-ca.com>
+References: <20221123154712.752074-1-roberto.sassu@huaweicloud.com>
+ <20221123154712.752074-5-roberto.sassu@huaweicloud.com>
+ <13350b79f708cb089e2ff2ee5cead52bafb10982.camel@linux.ibm.com>
+ <bb63eba9a9f24558f4a1acd9bf012b59b5c6e98e.camel@huaweicloud.com>
+ <9859294adb0a9b9587ea7fb70a836a312aaf3c69.camel@linux.ibm.com>
+ <50232f2b-d5ce-1e5a-3f5b-8d3eb53fe1ec@schaufler-ca.com>
+X-Mailer: Evolution 3.28.5 (3.28.5-18.el8)
 MIME-version: 1.0
-In-reply-to: <794DBAB0-EDAF-4DA2-A837-C1F99916BC8E@redhat.com>
-Content-disposition: inline
-X-Source-IP: 170.10.133.124
-X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10546
+X-Proofpoint-Virus-Version: vendor=baseguard
+ engine=ICAP:2.0.219,Aquarius:18.0.895,Hydra:6.0.545,FMLib:17.11.122.1
+ definitions=2022-11-30_04,2022-11-30_02,2022-06-22_01
+X-Proofpoint-Spam-Details: rule=outbound_notspam policy=outbound score=0
+ adultscore=0 clxscore=1015 mlxlogscore=999 spamscore=0 lowpriorityscore=0
+ priorityscore=1501 bulkscore=0 mlxscore=0 impostorscore=0 phishscore=0
+ suspectscore=0 malwarescore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2210170000 definitions=main-2211300148
+X-Source-IP: 148.163.156.1
+X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10547
  signatures=596816
-Cc: Latchesar Ionkov <lucho@ionkov.net>, samba-technical@lists.samba.org,
- Dominique Martinet <asmadeus@codewreck.org>,
- Valentina Manea <valentina.manea.m@gmail.com>, linux-nvme@lists.infradead.org,
- linux-kernel@vger.kernel.org, David Howells <dhowells@redhat.com>,
- Eric Dumazet <edumazet@google.com>, linux-nfs@vger.kernel.org,
- Marc Dionne <marc.dionne@auristor.com>, Shuah Khan <shuah@kernel.org>,
- Mike Christie <michael.christie@oracle.com>, drbd-dev@lists.linbit.com,
- linux-cifs@vger.kernel.org, Sagi Grimberg <sagi@grimberg.me>,
- linux-scsi@vger.kernel.org, linux-afs@lists.infradead.org,
- cluster-devel@redhat.com, Christine Caulfield <ccaulfie@redhat.com>,
- Jakub Kicinski <kuba@kernel.org>, Ilya Dryomov <idryomov@gmail.com>,
- Paolo Abeni <pabeni@redhat.com>, Anna Schumaker <anna@kernel.org>,
- Eric Van Hensbergen <ericvh@gmail.com>,
- "James E.J. Bottomley" <jejb@linux.ibm.com>,
- Josef Bacik <josef@toxicpanda.com>, nbd@other.debian.org,
- linux-block@vger.kernel.org, v9fs-developer@lists.sourceforge.net,
- Keith Busch <kbusch@kernel.org>, ceph-devel@vger.kernel.org,
- Xiubo Li <xiubli@redhat.com>,
- Trond Myklebust <trond.myklebust@hammerspace.com>,
- Jens Axboe <axboe@kernel.dk>, Chris Leech <cleech@redhat.com>,
- open-iscsi@googlegroups.com, netdev@vger.kernel.org,
- linux-usb@vger.kernel.org, Jeff Layton <jlayton@kernel.org>,
- Philipp Reisner <philipp.reisner@linbit.com>,
- Steve French <sfrench@samba.org>, Christoph =?iso-8859-1?Q?B=F6hmwalder?=
- <christoph.boehmwalder@linbit.com>, Chuck Lever <chuck.lever@oracle.com>,
- Lee Duncan <lduncan@suse.com>,
- Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
- Lars Ellenberg <lars.ellenberg@linbit.com>,
- "David S. Miller" <davem@davemloft.net>, ocfs2-devel@oss.oracle.com
-Subject: Re: [Ocfs2-devel] [PATCH v1 2/3] Treewide: Stop corrupting socket's
-	task_frag
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 suspectscore=0
+ phishscore=0 mlxscore=0 impostorscore=0 clxscore=37 adultscore=0
+ mlxlogscore=999 spamscore=0 bulkscore=0 malwarescore=0 lowpriorityscore=0
+ priorityscore=228 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2210170000 definitions=main-2211300150 domainage_hfrom=13405
+Cc: nicolas.bouchinet@clip-os.org, keescook@chromium.org,
+ selinux@vger.kernel.org, Roberto Sassu <roberto.sassu@huawei.com>,
+ reiserfs-devel@vger.kernel.org, linux-kernel@vger.kernel.org,
+ linux-security-module@vger.kernel.org, linux-integrity@vger.kernel.org,
+ ocfs2-devel@oss.oracle.com
+Subject: Re: [Ocfs2-devel] [PATCH v6 4/6] security: Allow all LSMs to provide
+ xattrs for inode_init_security hook
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -112,72 +88,105 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: Guillaume Nault via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: Guillaume Nault <gnault@redhat.com>
+From: Mimi Zohar via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: Mimi Zohar <zohar@linux.ibm.com>
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-MC-Unique: 9U07sd7VMRewUIS5-iGkwA-1
-X-Google-Smtp-Source:
- AA0mqf4PpVsPubG71ps8rgagttNzK50w8zECDxzJfF2enqQnAPQgsvcgKe3HBaErdsIeSxrgevrHjQ==
-X-Mimecast-Spam-Score: 0
-X-Mimecast-Originator: redhat.com
+X-TM-AS-GCONF: 00
+X-ServerName: mx0a-001b2d01.pphosted.com
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 ip4:107.21.15.141 ip4:108.177.8.0/21
- ip4:128.17.0.0/20 ip4:128.17.128.0/20 ip4:128.17.192.0/20 ip4:128.17.64.0/20
- ip4:128.245.0.0/20 ip4:128.245.64.0/20 ip4:13.110.208.0/21 ip4:13.110.216.0/22
- ip4:13.110.224.0/20 ip4:13.111.0.0/16 ip4:136.147.128.0/20
- ip4:136.147.176.0/20 ip4:148.105.8.0/21 ip4:149.72.0.0/16 ip4:159.183.0.0/16
- include:spf1.redhat.com -all
-X-Proofpoint-SPF-VenPass: Allowed
-X-ServerName: us-smtp-delivery-124.mimecast.com
-X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 ip4:107.21.15.141 ip4:108.177.8.0/21
- ip4:128.17.0.0/20 ip4:128.17.128.0/20 ip4:128.17.192.0/20 ip4:128.17.64.0/20
- ip4:128.245.0.0/20 ip4:128.245.64.0/20 ip4:13.110.208.0/21 ip4:13.110.216.0/22
- ip4:13.110.224.0/20 ip4:13.111.0.0/16 ip4:136.147.128.0/20
- ip4:136.147.176.0/20 ip4:148.105.8.0/21 ip4:149.72.0.0/16 ip4:159.183.0.0/16
- include:spf1.redhat.com -all
-X-Proofpoint-Spam-Reason: safe
-X-Spam: OrgSafeList
-X-SpamRule: orgsafelist
-X-Proofpoint-ORIG-GUID: AK_q0IHBfApxBp_bQaRWm6oIN83F1bZC
-X-Proofpoint-GUID: AK_q0IHBfApxBp_bQaRWm6oIN83F1bZC
-X-Mailman-Approved-At: Wed, 30 Nov 2022 16:58:36 +0000
+X-Proofpoint-SPF-Record: v=spf1 ip4:148.163.158.5 ip4:148.163.156.1 ~all
+X-Spam: Clean
+X-Proofpoint-ORIG-GUID: s4ywmegL19-jSQ2pqJSgkXzWmPHGPZ3i
+X-Proofpoint-GUID: s4ywmegL19-jSQ2pqJSgkXzWmPHGPZ3i
 Reporting-Meta:
- AAHHRjIC+jKnyfF3Kct35YvsU0CjM4kdIqkl8HIl865uWcWiUxlGwARqbhbRwMsC
- IMdWOgWkfb3qFxpUzuuc6OboGTDGL9MOnc9AheBvTLEps7pZ4xbK6eutSDXU8RZF
- GeEJw5Sd//UHB0nIjfjM+D13lw90DAzBNmw0KShMh2RCGT0f+occtPTO05s7wN8w
- N9xiAh91+uO6kghe7ahvpw60NZBdJO3jj4r3weUNYvOw+fJJVglxPs9QdRjI6hVl
- GuPgKcI1Nh9vwjogUw4rIv078jCbUGwwb4xZNyhamGJ7g4n1Uy/rH5SXSygc8VzY
- 9qGO0HPMC4Op6gyBV7zTRdIXIZzOna8SyTLiRBYMgB/IWhTEZx4hVjnZEfEDz4Go
- DHMzDzNfz1GLVY9TJNWQEUMs9zFDWG3ygs98v4t6CjSUvACKyA7/nDcFe7A+F0kL
- v5L7VlXjR14EOdBsjdZHdbIKuYgN+Mm0llVoUeIz0Ws9FasXxKEg6Sd8nAH5UtNL
- OEdvF5zQFyTmUXMUUXKuiBzz6S84Y7Q6QR49a9AJZaCK
+ AAGUQo7HwPxxgOwre9wgPkeD1mTULRaMfAEL9YkNvHrpfCMjW3TWY6q+yIz2Ozyl
+ bU9tYEdhIu9rUXzPhiVCCNUdKsPqEjmvnDPqTD20boAPbGbNv621LgwETEz2ddF9
+ hCgTp4Fz1bT7bdVY5etFaTkCA+VhQCcTzF4p2N+NYbU9eZO809Tc5xmfOfGjeIkn
+ FoZP38pNCIfiY6p0CYzeIa0c2xgEaid0HcFEaodg/qTK8K8vv0sFrlVTgnkLNNbQ
+ DwEDPXBVQDQVp4Ke+m3D5e+t3Tr8ZvfrVkDuSjNPxWgxt7fr21JKki9t7M36ok/G
+ 7yX9Y6Al4Q+ueJiNEApK/EmMjCgXEmvdeEG0wE1ZwTkVlv8T06RKyrkSFdjbvuc5
+ 9WXDIKhrrqz3Ts0lQcoiGcVADC84mtppxIO1BCB0Fju2IKG3cltZJrCuDR4S0P/v
+ zHDizLVazOlBdWvMFe9M6IJvc9368xehXu2j3wkkHVw0AeQjmmosO1c+nU0BJ0YR
+ T2jM3lQjHhnn9sHiZO8M/ZnbrTpWSynmQ836PlvFSpg=
 
-On Tue, Nov 29, 2022 at 11:47:47AM -0500, Benjamin Coddington wrote:
-> On 29 Nov 2022, at 9:02, Christoph Hellwig wrote:
+On Tue, 2022-11-29 at 07:39 -0800, Casey Schaufler wrote:
+> On 11/29/2022 3:23 AM, Mimi Zohar wrote:
+> > On Thu, 2022-11-24 at 09:17 +0100, Roberto Sassu wrote:
+> >> On Wed, 2022-11-23 at 20:14 -0500, Mimi Zohar wrote:
+> >>> Hi Roberto,
+> >>>
+> >>> On Wed, 2022-11-23 at 16:47 +0100, Roberto Sassu wrote:
+> >>>>  int security_inode_init_security(struct inode *inode, struct inode *dir,
+> >>>>                                  const struct qstr *qstr,
+> >>>>                                  const initxattrs initxattrs, void *fs_data)
+> >>>>  {
+> >>>> -       struct xattr new_xattrs[MAX_LSM_EVM_XATTR + 1];
+> >>>> -       struct xattr *lsm_xattr, *evm_xattr, *xattr;
+> >>>> -       int ret;
+> >>>> +       struct security_hook_list *P;
+> >>>> +       struct xattr *new_xattrs;
+> >>>> +       struct xattr *xattr;
+> >>>> +       int ret = -EOPNOTSUPP, num_filled_xattrs = 0;
+> >>>>  
+> >>>>         if (unlikely(IS_PRIVATE(inode)))
+> >>>>                 return 0;
+> >>>>  
+> >>>> +       if (!blob_sizes.lbs_xattr)
+> >>>> +               return 0;
+> >>>> +
+> >>>>         if (!initxattrs)
+> >>>>                 return call_int_hook(inode_init_security, -EOPNOTSUPP, inode,
+> >>>> -                                    dir, qstr, NULL, NULL, NULL);
+> >>>> -       memset(new_xattrs, 0, sizeof(new_xattrs));
+> >>>> -       lsm_xattr = new_xattrs;
+> >>>> -       ret = call_int_hook(inode_init_security, -EOPNOTSUPP, inode, dir, qstr,
+> >>>> -                                               &lsm_xattr->name,
+> >>>> -                                               &lsm_xattr->value,
+> >>>> -                                               &lsm_xattr->value_len);
+> >>>> -       if (ret)
+> >>>> +                                   dir, qstr, NULL);
+> >>>> +       /* Allocate +1 for EVM and +1 as terminator. */
+> >>>> +       new_xattrs = kcalloc(blob_sizes.lbs_xattr + 2, sizeof(*new_xattrs),
+> >>>> +                            GFP_NOFS);
+> >>>> +       if (!new_xattrs)
+> >>>> +               return -ENOMEM;
+> >>>> +
+> >>>> +       hlist_for_each_entry(P, &security_hook_heads.inode_init_security,
+> >>>> +                            list) {
+> >>>> +               ret = P->hook.inode_init_security(inode, dir, qstr, new_xattrs);
+> >>>> +               if (ret && ret != -EOPNOTSUPP)
+> >>>> +                       goto out;
+> >>>> +               if (ret == -EOPNOTSUPP)
+> >>>> +                       continue;
+> >>> In this context, -EOPNOTSUPP originally signified that the filesystem
+> >>> does not support writing xattrs.  Writing any xattr would fail. 
+> >>> Returning -ENODATA for no LSM xattr(s) data would seem to be more
+> >>> appropriate than -EOPNOTSUPP.
+> >> Hi Mimi
+> >>
+> >> I thought about adding new return values. Currently only -EOPNOTSUPP
+> >> and -ENOMEM are expected as errors.
+> >>
+> >> However, changing the conventions would mean revisiting the LSMs code
+> >> and ensuring that they follow the new conventions.
+> >>
+> >> I would be more in favor of not touching it.
+> > Casey, Paul, any comment?
 > 
-> > Hmm.  Having to set a flag to not accidentally corrupt per-task
-> > state seems a bit fragile.  Wouldn't it make sense to find a way to opt
-> > into the feature only for sockets created from the syscall layer?
-> 
-> It's totally fragile, and that's why it's currently broken in production.
-> The fragile ship sailed when networking decided to depend on users setting
-> the socket's GFP_ flags correctly to avoid corruption.
-> 
-> Meantime, this problem needs fixing in a way that makes everyone happy.
-> This fix doesn't make it less fragile, but it may (hopefully) address the
-> previous criticisms enough that something gets done to fix it.
+> I don't see value in adding -ENODATA as a value special to
+> the infrastructure. What would the infrastructure do differently?
+> The use of -EOPNOTSUPP isn't consistent throughout, and the amount
+> of "correctness" you get by returning -ENODATA is really small.
 
-Also, let's remember that while we're discussing how the kernel sould
-work in an ideal world, the reality is that production NFS systems
-crash randomly upon memory reclaim since commit a1231fda7e94 ("SUNRPC:
-Set memalloc_nofs_save() on all rpciod/xprtiod jobs"). Fixing that is
-just a matter of re-introducing GFP_NOFS on SUNRPC sockets (which has
-been proposed several times already). Then we'll have plenty of time
-to argue about how networking should use the per-task page_frag and
-how to remove GFP_NOFS in the long term.
+Agreed, it isn't worthwhile for this case.  Roberto, to ease code
+review, could you document the overloading of the -EOPNOTSUPP meaning,
+which results in the loop continuing?
+
+thanks,
+
+Mimi
 
 
 _______________________________________________
