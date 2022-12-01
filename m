@@ -1,82 +1,56 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc254.phx1.oracleemaildelivery.com (aib29ajc254.phx1.oracleemaildelivery.com [192.29.103.254])
+Received: from aib29ajc253.phx1.oracleemaildelivery.com (aib29ajc253.phx1.oracleemaildelivery.com [192.29.103.253])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 5CBA1C352A1
-	for <ocfs2-devel@archiver.kernel.org>; Wed, 30 Nov 2022 21:24:37 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 5E6D0C4321E
+	for <ocfs2-devel@archiver.kernel.org>; Thu,  1 Dec 2022 00:14:12 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=0BbfpDAno3/P/MkaW5hbLU0cKxvVfhkmCeSBXG7aqyY=;
- b=So+PSSeRKaO7Xdf2l0x2yDuyQbGEfYm8qd2ExeddqVR6C8iizbLPJFERT3ypQqGGQaaYGg33qfvF
-   bkbt+rmAirFNd8PaTSbtybHUzZstsT+LaK6bySE6th8SohNwr//H6O+3t7PTdreWHamjeTLnCyEe
-   APWD8lu9GJGX8AMtP6og3Fn5LVUkp1gQmD1HUxgoscodhIfgDFgDBJ0FU9rmcaGdnfavayk0L61M
-   apsI/+CorTqTVg1oUT1dNyV1sclF8wa+u3TM2inGLqNtXBxT3ivgGbA7BNIJaXE4bEd8csaF3rQv
-   2u7OiJrtmkZCNm91rMDZ22jAjWbJeQtas/sz3w==
+ bh=e+hlABoG/0wYoR7IlBHhkoO0p/T+XKACdR8F7iONRMo=;
+ b=w2quDlpNGm1rMG7R221VmpusZhozAi+oP3NAKTU1hP/Gak43M5xOLxfbzsmA4o5hND4V+B6odCuF
+   DNSMDsuzk62CZ6d14GOYqLqinLyIoAdf1e9RxaDu9MUDvEQMqZ5Dosqbf6ZVcysSHe86174dCfSe
+   TEHnc9+qxrSiadI1LrymtmMEvsTAnp2Ah1YjbG4CBI07AhuhM2V8hrJeY/B9mbRb0rLBrehDDXlg
+   EIe2Y8ZDg5aQLAgy8NK/1/xvSW0GoXQmT1Bi0HExC8wLsI/XBUW+l0r4U8ork/OyMgSpMZJAMCjR
+   AGI/HUWz+vmPU89jC6SLmwnepzYcwwRHC0ZPJA==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=0BbfpDAno3/P/MkaW5hbLU0cKxvVfhkmCeSBXG7aqyY=;
- b=XNI/y0yOQfl1Bu17hgBHiMKf0uTogvHLxKd3E8A73uf6QY/g5VqYSWV/Rczpk2SMVvxJWSB3FwlY
-   oCKlKr3uX2CvPSDH7xvwWVvUc9yPi71hChb+Pl4sjVOCv/ruGCJ41g9brZDbWgttDRzMAnPm50OC
-   Xns4kVCpdDqvz1ZeUK2ghRyOmxauvgQHcu417dbNIQAcOboCCK/IRSuPmJW8E1NF2x2AamlSo7F4
-   hlmFXt6RwrOnnDOmUynY8xGhCiukIw9C41Tj9fv1+2wRtILFPEkd86DSNA8LMO3lDUtdvTOxUq1/
-   SrfMxseAGczzwPpfIO2bHKKjfR/rCJwfs+zODA==
-Received: by omta-ad3-fd3-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
+ bh=e+hlABoG/0wYoR7IlBHhkoO0p/T+XKACdR8F7iONRMo=;
+ b=QggjF6l+tpmqf0mNtXUPQz30bvH0Qt+QD2MeFOUQUmtQgPXNmaU5dd4xEDfqTrEN+2JySBMEuSYR
+   AyfdpPVSIqp3l9E+BC0zyhm6QhtTpkMQLCUfPrro4M1e2cwXfGxAAPo/da5IsiqoHYxgyv+V1E5T
+   jUXP2iYs3XBCqdM1ikNhNfrmPKg8qumlYfDcbK9QRKfUUcNB2ZaATPC4E1ClMm0jccRnd5xsciTW
+   DnfPP3LgnbO3puEoIUt+My/ogHKhEePBoH/RO0yHryUZvc5Hz46YCVoPQM/rHL4tiYXDpAS0g/GT
+   jTMMvQLEdJJcw5IMvJCq16/52Pls36yHk5II6A==
+Received: by omta-ad3-fd1-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20221104 64bit (built Nov  4
  2022))
- with ESMTPS id <0RM60023BJH0H530@omta-ad3-fd3-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Wed, 30 Nov 2022 21:24:36 +0000 (GMT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=ibm.com; h=message-id :
- subject : from : to : cc : date : in-reply-to : references : content-type :
- mime-version : content-transfer-encoding; s=pp1;
- bh=yifZRjcnME4KdiCrx4XAH30YdBt6VKv7hfRn0v4FRuc=;
- b=l1XUiN1rW6f+ee6TrpN9jk5ssoNSaDOiPcxMdZauO8mKygmAxvaRnHoG31vayk9PgxHr
- bnrusCji3tMF8gNxXVxyKptv/w6DBipSxA+jUHZPaKQlnX1VA6veuNfnO4T0U9hHUmjT
- Y8LtbWrLuqkjh12fLywGfGt8FtkeENfaXiLvCKlhTB3SHROi0j4psDHZlDj/cvAHjVuj
- NL1hijVMJJh4dHNqKg7eBrzLejruYTDP006FlqAY4ckD2FnyWxCDyzWIQDFmuEpogPXV
- 5szbiEKjhNrPIFvt8pvIUWohtN6IFLNqUliTFjBXXkHzaJ4/+uucgc8gQi22pUqMQ2ZO ag==
-Message-id: <b929e0c597161fd5be79c18163a11649dd7f237f.camel@linux.ibm.com>
-To: Casey Schaufler <casey@schaufler-ca.com>,
- Roberto Sassu <roberto.sassu@huaweicloud.com>, mark@fasheh.com,
- jlbec@evilplan.org, joseph.qi@linux.alibaba.com, dmitry.kasatkin@gmail.com,
- paul@paul-moore.com, jmorris@namei.org, serge@hallyn.com,
- stephen.smalley.work@gmail.com, eparis@parisplace.org
-Date: Wed, 30 Nov 2022 16:23:43 -0500
-In-reply-to: <50232f2b-d5ce-1e5a-3f5b-8d3eb53fe1ec@schaufler-ca.com>
-References: <20221123154712.752074-1-roberto.sassu@huaweicloud.com>
- <20221123154712.752074-5-roberto.sassu@huaweicloud.com>
- <13350b79f708cb089e2ff2ee5cead52bafb10982.camel@linux.ibm.com>
- <bb63eba9a9f24558f4a1acd9bf012b59b5c6e98e.camel@huaweicloud.com>
- <9859294adb0a9b9587ea7fb70a836a312aaf3c69.camel@linux.ibm.com>
- <50232f2b-d5ce-1e5a-3f5b-8d3eb53fe1ec@schaufler-ca.com>
-X-Mailer: Evolution 3.28.5 (3.28.5-18.el8)
-MIME-version: 1.0
-X-Proofpoint-Virus-Version: vendor=baseguard
- engine=ICAP:2.0.219,Aquarius:18.0.895,Hydra:6.0.545,FMLib:17.11.122.1
- definitions=2022-11-30_04,2022-11-30_02,2022-06-22_01
-X-Proofpoint-Spam-Details: rule=outbound_notspam policy=outbound score=0
- adultscore=0 clxscore=1015 mlxlogscore=999 spamscore=0 lowpriorityscore=0
- priorityscore=1501 bulkscore=0 mlxscore=0 impostorscore=0 phishscore=0
- suspectscore=0 malwarescore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2210170000 definitions=main-2211300148
-X-Source-IP: 148.163.156.1
+ with ESMTPS id <0RM60089JRBNUE30@omta-ad3-fd1-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Thu, 01 Dec 2022 00:14:11 +0000 (GMT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linux-foundation.org;
+ s=korg; t=1669853636; bh=0OhAu01vv0kYa7FKw/IW1S0uDO7kQWYkNxIigKNdTJs=;
+ h=Date:To:From:Subject:From;
+ b=wMKpgrJQtTZD2hiRpRwNfIPjDmIuyNY9WMqWG/cU1idhJHrENmzttBOofoejgbGmA
+ A2ltU6WiqiHhWdejgP92IyDQn+iQ4KBLGoka9UOb3X3kaIWFSxfhorZICUq0B3n7Rb
+ fimFx01vezdUg2VSRTl7WoaDZcH7AT/rR6gyZGBw=
+Date: Wed, 30 Nov 2022 16:13:55 -0800
+To: mm-commits@vger.kernel.org, piaojun@huawei.com, mark@fasheh.com,
+ lizetao1@huawei.com, junxiao.bi@oracle.com, joseph.qi@linux.alibaba.com,
+ jlbec@evilplan.org, ghe@suse.com, gechangwei@live.cn,
+ ocfs2-devel@oss.oracle.com, akpm@linux-foundation.org
+Message-id: <20221201001356.7B77AC43470@smtp.kernel.org>
+X-Source-IP: 139.178.84.217
 X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10547
  signatures=596816
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 suspectscore=0
- phishscore=0 mlxscore=0 impostorscore=0 clxscore=37 adultscore=0
- mlxlogscore=999 spamscore=0 bulkscore=0 malwarescore=0 lowpriorityscore=0
- priorityscore=228 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2210170000 definitions=main-2211300150 domainage_hfrom=13405
-Cc: nicolas.bouchinet@clip-os.org, keescook@chromium.org,
- selinux@vger.kernel.org, Roberto Sassu <roberto.sassu@huawei.com>,
- reiserfs-devel@vger.kernel.org, linux-kernel@vger.kernel.org,
- linux-security-module@vger.kernel.org, linux-integrity@vger.kernel.org,
- ocfs2-devel@oss.oracle.com
-Subject: Re: [Ocfs2-devel] [PATCH v6 4/6] security: Allow all LSMs to provide
- xattrs for inode_init_security hook
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 phishscore=0
+ malwarescore=0 impostorscore=0 mlxlogscore=999 bulkscore=0 suspectscore=0
+ spamscore=0 priorityscore=143 mlxscore=0 clxscore=247 adultscore=0
+ lowpriorityscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2210170000 definitions=main-2211300172
+Subject: [Ocfs2-devel] [merged mm-nonmm-stable]
+	ocfs2-fix-memory-leak-in-ocfs2_mount_volume.patch removed	from -mm tree
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -88,105 +62,151 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: Mimi Zohar via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: Mimi Zohar <zohar@linux.ibm.com>
+From: Andrew Morton via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: Andrew Morton <akpm@linux-foundation.org>
+MIME-version: 1.0
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-TM-AS-GCONF: 00
-X-ServerName: mx0a-001b2d01.pphosted.com
+X-ServerName: dfw.source.kernel.org
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 ip4:148.163.158.5 ip4:148.163.156.1 ~all
+X-Proofpoint-SPF-Record: v=spf1 ip4:140.211.169.12/30 include:_spf.kernel.org
+ include:_spf.google.com ~all
 X-Spam: Clean
-X-Proofpoint-ORIG-GUID: s4ywmegL19-jSQ2pqJSgkXzWmPHGPZ3i
-X-Proofpoint-GUID: s4ywmegL19-jSQ2pqJSgkXzWmPHGPZ3i
+X-Proofpoint-GUID: _qY5_lHnV4InqRfnBMY8AUR44G_FkBUf
+X-Proofpoint-ORIG-GUID: _qY5_lHnV4InqRfnBMY8AUR44G_FkBUf
 Reporting-Meta:
- AAGUQo7HwPxxgOwre9wgPkeD1mTULRaMfAEL9YkNvHrpfCMjW3TWY6q+yIz2Ozyl
- bU9tYEdhIu9rUXzPhiVCCNUdKsPqEjmvnDPqTD20boAPbGbNv621LgwETEz2ddF9
- hCgTp4Fz1bT7bdVY5etFaTkCA+VhQCcTzF4p2N+NYbU9eZO809Tc5xmfOfGjeIkn
- FoZP38pNCIfiY6p0CYzeIa0c2xgEaid0HcFEaodg/qTK8K8vv0sFrlVTgnkLNNbQ
- DwEDPXBVQDQVp4Ke+m3D5e+t3Tr8ZvfrVkDuSjNPxWgxt7fr21JKki9t7M36ok/G
- 7yX9Y6Al4Q+ueJiNEApK/EmMjCgXEmvdeEG0wE1ZwTkVlv8T06RKyrkSFdjbvuc5
- 9WXDIKhrrqz3Ts0lQcoiGcVADC84mtppxIO1BCB0Fju2IKG3cltZJrCuDR4S0P/v
- zHDizLVazOlBdWvMFe9M6IJvc9368xehXu2j3wkkHVw0AeQjmmosO1c+nU0BJ0YR
- T2jM3lQjHhnn9sHiZO8M/ZnbrTpWSynmQ836PlvFSpg=
+ AAHV/NeRtm99ztB8oEbo7Py27WdizoU21lS+I6E7e17JEulSp6djmVupsR/UzGwO
+ 0cVjbmNGNqE79qtUA5HDOLrm3XZXcC3h86f9GB+nHdkpr0N1g+z/SFLCzc9x7IhV
+ ViYukKQVNXiVepi2PMxt9tdoe1eqxOXQNkeCVf77t0S8JD8Tp+Mc3pra7wscPNWm
+ YipnLbsG2lkGjVS/phlYQqHu3fNEtmwEU0QLfDLfu0QrSje1CoFKUVQP4g3s9E+M
+ rh6VLmAVnagFy+rFT7MItsyUTQ2fOgIALgVdI5uGVPbvXn8CGubi1viFI+TG3UV0
+ wIB4gQbLNg6ipEJsmLZ2+scYY6TtTYfiklOkXd3QITZ1Cv2Ue8sEKkHt9fh+PSZ/
+ lld7pM9bLvsEHlQ8PA72ytucDD+lyhCuy4n3m8NYRSr455M9BH3opBkNQHflhmPN
+ 7UGU2oxui5g1sRQW3iGoiZ3iL0zwm6il5k/api0sFcoAfigTJQdj2iWnR5B49qUb
+ 3jo3i7k7RuR25X3ukgfjeNyWVW4AjZGsP48+YlhH29uj
 
-On Tue, 2022-11-29 at 07:39 -0800, Casey Schaufler wrote:
-> On 11/29/2022 3:23 AM, Mimi Zohar wrote:
-> > On Thu, 2022-11-24 at 09:17 +0100, Roberto Sassu wrote:
-> >> On Wed, 2022-11-23 at 20:14 -0500, Mimi Zohar wrote:
-> >>> Hi Roberto,
-> >>>
-> >>> On Wed, 2022-11-23 at 16:47 +0100, Roberto Sassu wrote:
-> >>>>  int security_inode_init_security(struct inode *inode, struct inode *dir,
-> >>>>                                  const struct qstr *qstr,
-> >>>>                                  const initxattrs initxattrs, void *fs_data)
-> >>>>  {
-> >>>> -       struct xattr new_xattrs[MAX_LSM_EVM_XATTR + 1];
-> >>>> -       struct xattr *lsm_xattr, *evm_xattr, *xattr;
-> >>>> -       int ret;
-> >>>> +       struct security_hook_list *P;
-> >>>> +       struct xattr *new_xattrs;
-> >>>> +       struct xattr *xattr;
-> >>>> +       int ret = -EOPNOTSUPP, num_filled_xattrs = 0;
-> >>>>  
-> >>>>         if (unlikely(IS_PRIVATE(inode)))
-> >>>>                 return 0;
-> >>>>  
-> >>>> +       if (!blob_sizes.lbs_xattr)
-> >>>> +               return 0;
-> >>>> +
-> >>>>         if (!initxattrs)
-> >>>>                 return call_int_hook(inode_init_security, -EOPNOTSUPP, inode,
-> >>>> -                                    dir, qstr, NULL, NULL, NULL);
-> >>>> -       memset(new_xattrs, 0, sizeof(new_xattrs));
-> >>>> -       lsm_xattr = new_xattrs;
-> >>>> -       ret = call_int_hook(inode_init_security, -EOPNOTSUPP, inode, dir, qstr,
-> >>>> -                                               &lsm_xattr->name,
-> >>>> -                                               &lsm_xattr->value,
-> >>>> -                                               &lsm_xattr->value_len);
-> >>>> -       if (ret)
-> >>>> +                                   dir, qstr, NULL);
-> >>>> +       /* Allocate +1 for EVM and +1 as terminator. */
-> >>>> +       new_xattrs = kcalloc(blob_sizes.lbs_xattr + 2, sizeof(*new_xattrs),
-> >>>> +                            GFP_NOFS);
-> >>>> +       if (!new_xattrs)
-> >>>> +               return -ENOMEM;
-> >>>> +
-> >>>> +       hlist_for_each_entry(P, &security_hook_heads.inode_init_security,
-> >>>> +                            list) {
-> >>>> +               ret = P->hook.inode_init_security(inode, dir, qstr, new_xattrs);
-> >>>> +               if (ret && ret != -EOPNOTSUPP)
-> >>>> +                       goto out;
-> >>>> +               if (ret == -EOPNOTSUPP)
-> >>>> +                       continue;
-> >>> In this context, -EOPNOTSUPP originally signified that the filesystem
-> >>> does not support writing xattrs.  Writing any xattr would fail. 
-> >>> Returning -ENODATA for no LSM xattr(s) data would seem to be more
-> >>> appropriate than -EOPNOTSUPP.
-> >> Hi Mimi
-> >>
-> >> I thought about adding new return values. Currently only -EOPNOTSUPP
-> >> and -ENOMEM are expected as errors.
-> >>
-> >> However, changing the conventions would mean revisiting the LSMs code
-> >> and ensuring that they follow the new conventions.
-> >>
-> >> I would be more in favor of not touching it.
-> > Casey, Paul, any comment?
-> 
-> I don't see value in adding -ENODATA as a value special to
-> the infrastructure. What would the infrastructure do differently?
-> The use of -EOPNOTSUPP isn't consistent throughout, and the amount
-> of "correctness" you get by returning -ENODATA is really small.
 
-Agreed, it isn't worthwhile for this case.  Roberto, to ease code
-review, could you document the overloading of the -EOPNOTSUPP meaning,
-which results in the loop continuing?
+The quilt patch titled
+     Subject: ocfs2: fix memory leak in ocfs2_mount_volume()
+has been removed from the -mm tree.  Its filename was
+     ocfs2-fix-memory-leak-in-ocfs2_mount_volume.patch
 
-thanks,
+This patch was dropped because it was merged into the mm-nonmm-stable branch
+of git://git.kernel.org/pub/scm/linux/kernel/git/akpm/mm
 
-Mimi
+------------------------------------------------------
+From: Li Zetao <ocfs2-devel@oss.oracle.com>
+Subject: ocfs2: fix memory leak in ocfs2_mount_volume()
+Date: Wed, 9 Nov 2022 15:46:27 +0800
+
+There is a memory leak reported by kmemleak:
+
+  unreferenced object 0xffff88810cc65e60 (size 32):
+    comm "mount.ocfs2", pid 23753, jiffies 4302528942 (age 34735.105s)
+    hex dump (first 32 bytes):
+      10 00 00 00 00 00 00 00 00 01 01 01 01 01 01 01  ................
+      01 01 01 01 01 01 01 01 00 00 00 00 00 00 00 00  ................
+    backtrace:
+      [<ffffffff8170f73d>] __kmalloc+0x4d/0x150
+      [<ffffffffa0ac3f51>] ocfs2_compute_replay_slots+0x121/0x330 [ocfs2]
+      [<ffffffffa0b65165>] ocfs2_check_volume+0x485/0x900 [ocfs2]
+      [<ffffffffa0b68129>] ocfs2_mount_volume.isra.0+0x1e9/0x650 [ocfs2]
+      [<ffffffffa0b7160b>] ocfs2_fill_super+0xe0b/0x1740 [ocfs2]
+      [<ffffffff818e1fe2>] mount_bdev+0x312/0x400
+      [<ffffffff819a086d>] legacy_get_tree+0xed/0x1d0
+      [<ffffffff818de82d>] vfs_get_tree+0x7d/0x230
+      [<ffffffff81957f92>] path_mount+0xd62/0x1760
+      [<ffffffff81958a5a>] do_mount+0xca/0xe0
+      [<ffffffff81958d3c>] __x64_sys_mount+0x12c/0x1a0
+      [<ffffffff82f26f15>] do_syscall_64+0x35/0x80
+      [<ffffffff8300006a>] entry_SYSCALL_64_after_hwframe+0x46/0xb0
+
+This call stack is related to two problems.  Firstly, the ocfs2 super uses
+"replay_map" to trace online/offline slots, in order to recover offline
+slots during recovery and mount.  But when ocfs2_truncate_log_init()
+returns an error in ocfs2_mount_volume(), the memory of "replay_map" will
+not be freed in error handling path.  Secondly, the memory of "replay_map"
+will not be freed if d_make_root() returns an error in ocfs2_fill_super().
+But the memory of "replay_map" will be freed normally when completing
+recovery and mount in ocfs2_complete_mount_recovery().
+
+Fix the first problem by adding error handling path to free "replay_map"
+when ocfs2_truncate_log_init() fails.  And fix the second problem by
+calling ocfs2_free_replay_slots(osb) in the error handling path
+"out_dismount".  In addition, since ocfs2_free_replay_slots() is static,
+it is necessary to remove its static attribute and declare it in header
+file.
+
+Link: https://lkml.kernel.org/r/20221109074627.2303950-1-lizetao1@huawei.com
+Fixes: 9140db04ef18 ("ocfs2: recover orphans in offline slots during recovery and mount")
+Signed-off-by: Li Zetao <lizetao1@huawei.com>
+Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+Cc: Mark Fasheh <mark@fasheh.com>
+Cc: Joel Becker <jlbec@evilplan.org>
+Cc: Junxiao Bi <junxiao.bi@oracle.com>
+Cc: Changwei Ge <gechangwei@live.cn>
+Cc: Gang He <ghe@suse.com>
+Cc: Jun Piao <piaojun@huawei.com>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+---
+
+ fs/ocfs2/journal.c |    2 +-
+ fs/ocfs2/journal.h |    1 +
+ fs/ocfs2/super.c   |    5 ++++-
+ 3 files changed, 6 insertions(+), 2 deletions(-)
+
+--- a/fs/ocfs2/journal.c~ocfs2-fix-memory-leak-in-ocfs2_mount_volume
++++ a/fs/ocfs2/journal.c
+@@ -157,7 +157,7 @@ static void ocfs2_queue_replay_slots(str
+ 	replay_map->rm_state = REPLAY_DONE;
+ }
+ 
+-static void ocfs2_free_replay_slots(struct ocfs2_super *osb)
++void ocfs2_free_replay_slots(struct ocfs2_super *osb)
+ {
+ 	struct ocfs2_replay_map *replay_map = osb->replay_map;
+ 
+--- a/fs/ocfs2/journal.h~ocfs2-fix-memory-leak-in-ocfs2_mount_volume
++++ a/fs/ocfs2/journal.h
+@@ -150,6 +150,7 @@ int ocfs2_recovery_init(struct ocfs2_sup
+ void ocfs2_recovery_exit(struct ocfs2_super *osb);
+ 
+ int ocfs2_compute_replay_slots(struct ocfs2_super *osb);
++void ocfs2_free_replay_slots(struct ocfs2_super *osb);
+ /*
+  *  Journal Control:
+  *  Initialize, Load, Shutdown, Wipe a journal.
+--- a/fs/ocfs2/super.c~ocfs2-fix-memory-leak-in-ocfs2_mount_volume
++++ a/fs/ocfs2/super.c
+@@ -1159,6 +1159,7 @@ static int ocfs2_fill_super(struct super
+ out_dismount:
+ 	atomic_set(&osb->vol_state, VOLUME_DISABLED);
+ 	wake_up(&osb->osb_mount_event);
++	ocfs2_free_replay_slots(osb);
+ 	ocfs2_dismount_volume(sb, 1);
+ 	goto out;
+ 
+@@ -1822,12 +1823,14 @@ static int ocfs2_mount_volume(struct sup
+ 	status = ocfs2_truncate_log_init(osb);
+ 	if (status < 0) {
+ 		mlog_errno(status);
+-		goto out_system_inodes;
++		goto out_check_volume;
+ 	}
+ 
+ 	ocfs2_super_unlock(osb, 1);
+ 	return 0;
+ 
++out_check_volume:
++	ocfs2_free_replay_slots(osb);
+ out_system_inodes:
+ 	if (osb->local_alloc_state == OCFS2_LA_ENABLED)
+ 		ocfs2_shutdown_local_alloc(osb);
+_
+
+Patches currently in -mm which might be from ocfs2-devel@oss.oracle.com are
+
 
 
 _______________________________________________
