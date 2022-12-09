@@ -1,59 +1,85 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc248.phx1.oracleemaildelivery.com (aib29ajc248.phx1.oracleemaildelivery.com [192.29.103.248])
+Received: from aib29ajc250.phx1.oracleemaildelivery.com (aib29ajc250.phx1.oracleemaildelivery.com [192.29.103.250])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 5D124C43217
-	for <ocfs2-devel@archiver.kernel.org>; Thu,  1 Dec 2022 10:43:26 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 79530C4167B
+	for <ocfs2-devel@archiver.kernel.org>; Fri,  9 Dec 2022 17:08:27 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=EvmUgvpeRco4kOY77lQ0CFFbM5SGd0zca4Zb3Z63XHo=;
- b=G6Qy8/jusrDwRGEjHDES4ufX1XhGRRJSx0ZaPV++OVDgangqJLs2248U+YHS2WiSdbzoqfp03WBx
-   4CpgRqjabUjgyCfzyI5dJbyGBYLwdj2V15ZwFdXGe6NxpwoBEH3G5Qm2RBOHdLjjxWGzbqALw0sq
-   eRmV60/NUQ1S9QPe26j1aIIRR6xCUNFnRnReBX4HjVi72JaI+zfZlcbQ0E+9r5NFtpHYonhwh2at
-   D4wBXGOOXXw52F87tta/alu23Iv+V+PnlngqVu3j9khHE3Re5/fgPQiRuIMKwKQf8MMegxxJCZXQ
-   k8Vt3U6jMRy9t3U1EIBGS8dEiihgFyj3E+4VLQ==
+ bh=DQeFUZDEK0dg/489OgOFmmy80u2dxNAQWBGTqC3jHc8=;
+ b=oWFOnkNrfNF6/+SlMAclUwyTVDWpJkMbRC8pXoAYFE4Y0jHojk4eH1xTZ6zBz8CW7dCgzZljHzwo
+   7jgCGSZcR0mhCc9uQ8PhVgak1FocN1aEao5WbiRu9pHelQJkbHGKjfCTmqLyzWG74T0lTsKlyTns
+   f8Mn4uqCUm+4f7+OkF5FTrfAMdCLmIdF2qS4WDGIpAayXQ0QZyeeXyEyL4IGaVt1QlCr1oLL5y+C
+   UovBdOA1856oT62fb1o+TA0BC5fGu2B9+ERkrwUtcTIAnYU1s90sCejGWNa3gg1pNmoSug/8EliE
+   5m20FDOCCiZIid/r7QbeHazyHXeCRLbO/KVftw==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=EvmUgvpeRco4kOY77lQ0CFFbM5SGd0zca4Zb3Z63XHo=;
- b=c1TqmPTcRNdbanPFE1bvOj/ohqzgHDsFh0YZYbFNztV/IsikMpM8nKx7c0NYsqw/b+P7aEM9AMUx
-   ReRgYF4MrKwoV+tbi/YvnUKc0VJNe8JsMd0CVkVUTMBTLL+ah8pEqtMn/H/W9qoKiYaH+8lOLZh6
-   qJl1D8f07hIM340t+0JyEKoIVoY/UD482Y/i4jhJgVssTMEHoV8rqLWZ+J1oi97hNrjI5qIIr9gE
-   J+CKHYweZnYvKpMgURVSezbc8L58W4IBgNPk9ef0i18B86J6h9jbAuxGKcNaLOH6dYygvSh0UIl8
-   aaTMqukxnR3wQKzYmnfqtI53j3vQVQ/ReuNluw==
-Received: by omta-ad2-fd1-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
- (Oracle Communications Messaging Server 8.1.0.1.20221104 64bit (built Nov  4
+ bh=DQeFUZDEK0dg/489OgOFmmy80u2dxNAQWBGTqC3jHc8=;
+ b=Ec7CH92LKu7pLFJHKVqXTytUkRTVPvKBOIAyUuBD87DWaScfnPZK0r2sEJWbIzydlfiMowDKHsMp
+   pNCgo8KlAWu47UKtSdvELmDVICxtexsGPOF4L25PIKjmqxJ5qClYHauqrqEiaEUrZQuZbclzcRwa
+   uXlqri9h1FJ2sqdHJHg2UelBb//esIU+mI95LiyNi7cFlxouDC6Ih5J2BG6nKMpGMQhWxZYcFw8Q
+   ohJK/KgakBx4eur1XA7nIOtkDck8O3G3hlZiFreLBnXkYgtQSQfHNihO11Ljr4rjaEhGFmNjAwYJ
+   xgtHt9ZV9EY0UX5gEdGP7rTXuARj0vWdw7bWUw==
+Received: by omta-ad2-fd3-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
+ (Oracle Communications Messaging Server 8.1.0.1.20221201 64bit (built Dec  1
  2022))
- with ESMTPS id <0RM7000EBKGDKE50@omta-ad2-fd1-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Thu, 01 Dec 2022 10:43:25 +0000 (GMT)
-To: mark@fasheh.com, jlbec@evilplan.org, joseph.qi@linux.alibaba.com,
- zohar@linux.ibm.com, dmitry.kasatkin@gmail.com, paul@paul-moore.com,
- jmorris@namei.org, serge@hallyn.com, stephen.smalley.work@gmail.com,
- eparis@parisplace.org, casey@schaufler-ca.com
-Date: Thu,  1 Dec 2022 11:41:25 +0100
-Message-id: <20221201104125.919483-7-roberto.sassu@huaweicloud.com>
-X-Mailer: git-send-email 2.25.1
-In-reply-to: <20221201104125.919483-1-roberto.sassu@huaweicloud.com>
-References: <20221201104125.919483-1-roberto.sassu@huaweicloud.com>
+ with ESMTPS id <0RMM00G43VM281E0@omta-ad2-fd3-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Fri, 09 Dec 2022 17:08:26 +0000 (GMT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org; s=k20201202;
+ t=1670602264; bh=OclmnU1jYcdMFqciE3c6RyUB6hgvanpdH2l220bFhz4=;
+ h=Date:From:To:Cc:Subject:In-Reply-To:References:From;
+ b=lP5pQ24T3IT2YBfVVAYFE/vlA14kPUGpHI19DQSbfMFFqcLV6yfVQX2yzf3FWU9BJ
+ DEPOy15CleSzGVLHHvdVrCdctgS6AMOlWyxNMtd1UP4Jl6EFRe7WSmHsdwacu3KmIi
+ 3gphHYn83fw+acEzH9vRCOj48wMtBY8ejFf/mJMd7kxsJCGH1dwZt2JHDO6M2WNy+F
+ RxYdcuexGpRtzv/r3df/M1OzYPk521V8CVwEXUXt0ZTCVSTYNw6OFG3RfFVHJS6f4s
+ Cy+bJUuWARFf6RP5DMfx0m0W7Y2ou/9vrV6yP2gJYTEe5AantjuQErI6+6QNzX5szc
+ v2qI3ygfSsAtw==
+Date: Fri, 9 Dec 2022 08:11:01 -0800
+To: Paolo Abeni <pabeni@redhat.com>
+Message-id: <20221209081101.7500478c@kernel.org>
+In-reply-to: <d220402a232e204676d9100d6fe4c2ae08f753ee.camel@redhat.com>
+References: <cover.1669036433.git.bcodding@redhat.com>
+ <c2ec184226acd21a191ccc1aa46a1d7e43ca7104.1669036433.git.bcodding@redhat.com>
+ <d220402a232e204676d9100d6fe4c2ae08f753ee.camel@redhat.com>
 MIME-version: 1.0
-X-Source-IP: 14.137.139.46
-X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10547
+X-Source-IP: 145.40.68.75
+X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10556
  signatures=596816
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 malwarescore=0
- mlxlogscore=999 mlxscore=0 bulkscore=0 spamscore=0 impostorscore=0
- lowpriorityscore=0 phishscore=0 adultscore=0 priorityscore=0 suspectscore=0
- clxscore=31 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2210170000 definitions=main-2212010076
-Cc: nicolas.bouchinet@clip-os.org, keescook@chromium.org,
- selinux@vger.kernel.org, Roberto Sassu <roberto.sassu@huawei.com>,
- reiserfs-devel@vger.kernel.org, linux-kernel@vger.kernel.org,
- linux-security-module@vger.kernel.org, linux-integrity@vger.kernel.org,
- ocfs2-devel@oss.oracle.com
-Subject: [Ocfs2-devel] [PATCH v7 6/6] evm: Support multiple LSMs providing	an
- xattr
+Cc: Latchesar Ionkov <lucho@ionkov.net>, samba-technical@lists.samba.org,
+ Dominique Martinet <asmadeus@codewreck.org>,
+ Valentina Manea <valentina.manea.m@gmail.com>, linux-nvme@lists.infradead.org,
+ Philipp Reisner <philipp.reisner@linbit.com>,
+ David Howells <dhowells@redhat.com>, Eric Dumazet <edumazet@google.com>,
+ linux-nfs@vger.kernel.org, Marc Dionne <marc.dionne@auristor.com>,
+ Shuah Khan <shuah@kernel.org>, Mike Christie <michael.christie@oracle.com>,
+ drbd-dev@lists.linbit.com, linux-cifs@vger.kernel.org,
+ Sagi Grimberg <sagi@grimberg.me>, linux-scsi@vger.kernel.org,
+ linux-afs@lists.infradead.org, cluster-devel@redhat.com,
+ Christine Caulfield <ccaulfie@redhat.com>,
+ v9fs-developer@lists.sourceforge.net, Ilya Dryomov <idryomov@gmail.com>,
+ open-iscsi@googlegroups.com, Anna Schumaker <anna@kernel.org>,
+ Eric Van Hensbergen <ericvh@gmail.com>,
+ "James E.J. Bottomley" <jejb@linux.ibm.com>,
+ Josef Bacik <josef@toxicpanda.com>, nbd@other.debian.org,
+ linux-block@vger.kernel.org, Keith Busch <kbusch@kernel.org>,
+ ceph-devel@vger.kernel.org, Xiubo Li <xiubli@redhat.com>,
+ Trond Myklebust <trond.myklebust@hammerspace.com>,
+ Jens Axboe <axboe@kernel.dk>, Chris Leech <cleech@redhat.com>,
+ netdev@vger.kernel.org, linux-usb@vger.kernel.org,
+ Jeff Layton <jlayton@kernel.org>, linux-kernel@vger.kernel.org,
+ Steve French <sfrench@samba.org>,
+ Christoph =?UTF-8?B?QsO2aG13?= =?UTF-8?B?YWxkZXI=?=
+ <christoph.boehmwalder@linbit.com>, Benjamin Coddington <bcodding@redhat.com>,
+ Chuck Lever <chuck.lever@oracle.com>, Lee Duncan <lduncan@suse.com>,
+ Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
+ Lars Ellenberg <lars.ellenberg@linbit.com>,
+ "David S. Miller" <davem@davemloft.net>, ocfs2-devel@oss.oracle.com
+Subject: Re: [Ocfs2-devel] [PATCH v1 2/3] Treewide: Stop corrupting socket's
+	task_frag
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -65,150 +91,39 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: Roberto Sassu via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: Roberto Sassu <roberto.sassu@huaweicloud.com>
+From: Jakub Kicinski via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: Jakub Kicinski <kuba@kernel.org>
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-CM-TRANSID: LxC2BwCHcm_phIhjrxuvAA--.49496S8
-X-Coremail-Antispam: 1UD129KBjvJXoWxGryktFy8Jr45JrWUJFWfAFb_yoW5tFW5pa
- n8ta9rCrn5CFyUWr9IyF18uaySg3yrKw4UKwsxCr1jyFnrXrn2qryxtr15ur98Wr95Jrna
- yw40vw15Cw15t3DanT9S1TB71UUUUUUqnTZGkaVYY2UrUUUUjbIjqfuFe4nvWSU5nxnvy2
- 9KBjDU0xBIdaVrnRJUUUBvb4IE77IF4wAFF20E14v26rWj6s0DM7CY07I20VC2zVCF04k2
- 6cxKx2IYs7xG6rWj6s0DM7CIcVAFz4kK6r1j6r18M28IrcIa0xkI8VA2jI8067AKxVWUAV
- Cq3wA2048vs2IY020Ec7CjxVAFwI0_Xr0E3s1l8cAvFVAK0II2c7xJM28CjxkF64kEwVA0
- rcxSw2x7M28EF7xvwVC0I7IYx2IY67AKxVWUCVW8JwA2z4x0Y4vE2Ix0cI8IcVCY1x0267
- AKxVW8Jr0_Cr1UM28EF7xvwVC2z280aVAFwI0_Gr0_Cr1l84ACjcxK6I8E87Iv6xkF7I0E
- 14v26r4UJVWxJr1le2I262IYc4CY6c8Ij28IcVAaY2xG8wAqx4xG64xvF2IEw4CE5I8CrV
- C2j2WlYx0E2Ix0cI8IcVAFwI0_Jr0_Jr4lYx0Ex4A2jsIE14v26r1j6r4UMcvjeVCFs4IE
- 7xkEbVWUJVW8JwACjcxG0xvY0x0EwIxGrwACI402YVCY1x02628vn2kIc2xKxwCF04k20x
- vY0x0EwIxGrwCFx2IqxVCFs4IE7xkEbVWUJVW8JwC20s026c02F40E14v26r1j6r18MI8I
- 3I0E7480Y4vE14v26r106r1rMI8E67AF67kF1VAFwI0_GFv_WrylIxkGc2Ij64vIr41lIx
- AIcVC0I7IYx2IY67AKxVWUCVW8JwCI42IY6xIIjxv20xvEc7CjxVAFwI0_Gr1j6F4UJwCI
- 42IY6xAIw20EY4v20xvaj40_Jr0_JF4lIxAIcVC2z280aVAFwI0_Gr0_Cr1lIxAIcVC2z2
- 80aVCY1x0267AKxVW8Jr0_Cr1UYxBIdaVFxhVjvjDU0xZFpf9x07UZo7tUUUUU=
-X-CM-SenderInfo: purev21wro2thvvxqx5xdzvxpfor3voofrz/1tbiAgANBF1jj4IjiwAEsU
-X-CFilter-Loop: Reflected
-X-ServerName: frasgout13.his.huawei.com
+X-ServerName: ams.source.kernel.org
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 ip4:45.249.212.51 ip4:45.249.212.56
- ip4:185.176.79.53 ip4:14.137.139.23 ip4:14.137.139.154 ip4:14.137.139.46
- ip4:124.71.93.99 ip4:124.71.93.112 ip4:124.71.94.104
- include:spf.saas.huaweicloud.com -all
-X-Spam: Clean
-X-Proofpoint-GUID: gjME5JuGziyONC1BIWT5DBL8RYC3FkXx
-X-Proofpoint-ORIG-GUID: gjME5JuGziyONC1BIWT5DBL8RYC3FkXx
+X-Proofpoint-SPF-Record: v=spf1 include:_spf.kernel.org ~all
+X-Proofpoint-Spam-Reason: safe
+X-Spam: OrgSafeList
+X-SpamRule: orgsafelist
+X-Proofpoint-GUID: 08OTy_Dobn14lgmJLrNygS2mQQJSVPlw
+X-Proofpoint-ORIG-GUID: 08OTy_Dobn14lgmJLrNygS2mQQJSVPlw
+X-Mailman-Approved-At: Fri, 09 Dec 2022 17:08:25 +0000
 Reporting-Meta:
- AAHqnKLL8Trf5t6glJ3S3n5dp8KAolIfd/k+0w+2JCJqU+S8z4L+50fUxXz75SNe
- qzRJ105SFxlBkaOF0nES7/fYSXPminIP+lx4YMYuDgj0AzebqqjI1yYn3dNPVgI1
- cqCMT7VxzN2FcKcS9/73JT5P3s5eHVfj8A+k9fVxDPKqrK5Lqe3zY2Hh5mNNVDuX
- 34NwlMHPaivpdnhWv5HubxnyEd95Am5Igez/Tx4AC1mdOoSrjHrggDoJtQnp5lKM
- eaeBQFe6C1QMMN08YA3vndQbh8Flg/GFKpHwseV9n0KTnrOY3Ynu6QQwiS6700VE
- GwEHMOhTXjbjr4MLnBBjkS0DIHYvcSw4K3QjNtoHyxuw0zjsZUC+k4ow+k1W8Nus
- tPISqyE7PiC8z2/xiNDRwv4oF8cVzy4CIzXwxVohgPcj97UshOpUFq0oQU0Tblxn
- rVPGybdueYR78NFgSSSnZ/3fABdVlrTTzHNopJUnGmN/7IsqSx2SY4Efqd0s93iZ
- F7qdwVVLUajuJd7xxPeMIi3oDY0DkhhmmxlJ84Ufb95nvA==
+ AAF3w0QwxEAH5UaQvjijwVTQafBwUenzs2pHnrXGxfkO3F08pEKC5NXUBijXx8hx
+ Hl0KoE6H/21XYsbK6aLp6+iIhd3IzqoCAlxQouqHYW7a2S6Zjh+52oHxBc0gCwVS
+ ssrj9TKb4GkJZd2yOWJuYkeepqTpEQ2EWIrmFv7vbDdamVJna7qPp7P8d/+pry+2
+ aX+foDk/aTkxtW2HVM2y0OVVKYgAgBRbay8raWH7WFMlWWP0qw+SVxI/1rferfXa
+ QPoJiM6DX1b6biI0t6PiE/k6ZMhGcidUO45/DzLMUiIq/3/yulP9RcosUNVxiwMm
+ mFuOCV/kwDJ2HdHXA2fIBPqfhS2P6UrIH1M14TSlj3r0M2rmkQQwIL3fsUlYIrn6
+ Aers/B5Jkm4bT33h9zbjr6t8TMB8t7GWFuW1TX1UG/FMLwUx+2xzD1TqJtOzOovD
+ lX0ooLYN1USDPOg4nkbm8fYq3eXotMXAMAR9NRBzA/Xhj6sYyQwweIJ7NiSK/z5n
+ Deer+kxq/3L8z5RwXI5qw6hv/H0DV0GV9jLKIsxAQ7Cd
 
-From: Roberto Sassu <roberto.sassu@huawei.com>
+On Fri, 09 Dec 2022 13:37:08 +0100 Paolo Abeni wrote:
+> I think this is the most feasible way out of the existing issue, and I
+> think this patchset should go via the networking tree, targeting the
+> Linux 6.2.
 
-Currently, evm_inode_init_security() processes a single LSM xattr from
-the array passed by security_inode_init_security(), and calculates the
-HMAC on it and other inode metadata.
-
-Given that initxattrs() callbacks, called by
-security_inode_init_security(), expect that this array is terminated when
-the xattr name is set to NULL, reuse the same assumption to scan all xattrs
-and to calculate the HMAC on all of them.
-
-Signed-off-by: Roberto Sassu <roberto.sassu@huawei.com>
-Reviewed-by: Casey Schaufler <casey@schaufler-ca.com>
----
- security/integrity/evm/evm.h        |  2 ++
- security/integrity/evm/evm_crypto.c |  9 ++++++++-
- security/integrity/evm/evm_main.c   | 16 +++++++++++-----
- 3 files changed, 21 insertions(+), 6 deletions(-)
-
-diff --git a/security/integrity/evm/evm.h b/security/integrity/evm/evm.h
-index f8b8c5004fc7..f799d72a59fa 100644
---- a/security/integrity/evm/evm.h
-+++ b/security/integrity/evm/evm.h
-@@ -46,6 +46,8 @@ struct evm_digest {
- 	char digest[IMA_MAX_DIGEST_SIZE];
- } __packed;
- 
-+int evm_protected_xattr(const char *req_xattr_name);
-+
- int evm_init_key(void);
- int evm_update_evmxattr(struct dentry *dentry,
- 			const char *req_xattr_name,
-diff --git a/security/integrity/evm/evm_crypto.c b/security/integrity/evm/evm_crypto.c
-index 708de9656bbd..68f99faac316 100644
---- a/security/integrity/evm/evm_crypto.c
-+++ b/security/integrity/evm/evm_crypto.c
-@@ -389,6 +389,7 @@ int evm_init_hmac(struct inode *inode, const struct xattr *lsm_xattr,
- 		  char *hmac_val)
- {
- 	struct shash_desc *desc;
-+	const struct xattr *xattr;
- 
- 	desc = init_desc(EVM_XATTR_HMAC, HASH_ALGO_SHA1);
- 	if (IS_ERR(desc)) {
-@@ -396,7 +397,13 @@ int evm_init_hmac(struct inode *inode, const struct xattr *lsm_xattr,
- 		return PTR_ERR(desc);
- 	}
- 
--	crypto_shash_update(desc, lsm_xattr->value, lsm_xattr->value_len);
-+	for (xattr = lsm_xattr; xattr->name != NULL; xattr++) {
-+		if (!evm_protected_xattr(xattr->name))
-+			continue;
-+
-+		crypto_shash_update(desc, xattr->value, xattr->value_len);
-+	}
-+
- 	hmac_add_misc(desc, inode, EVM_XATTR_HMAC, hmac_val);
- 	kfree(desc);
- 	return 0;
-diff --git a/security/integrity/evm/evm_main.c b/security/integrity/evm/evm_main.c
-index 0a312cafb7de..1cf6871a0019 100644
---- a/security/integrity/evm/evm_main.c
-+++ b/security/integrity/evm/evm_main.c
-@@ -305,7 +305,7 @@ static int evm_protected_xattr_common(const char *req_xattr_name,
- 	return found;
- }
- 
--static int evm_protected_xattr(const char *req_xattr_name)
-+int evm_protected_xattr(const char *req_xattr_name)
- {
- 	return evm_protected_xattr_common(req_xattr_name, false);
- }
-@@ -851,14 +851,20 @@ int evm_inode_init_security(struct inode *inode, struct inode *dir,
- {
- 	struct evm_xattr *xattr_data;
- 	struct xattr *xattr, *evm_xattr;
-+	bool evm_protected_xattrs = false;
- 	int rc;
- 
--	if (!(evm_initialized & EVM_INIT_HMAC) || !xattrs ||
--	    !evm_protected_xattr(xattrs->name))
-+	if (!(evm_initialized & EVM_INIT_HMAC) || !xattrs)
- 		return -EOPNOTSUPP;
- 
--	for (xattr = xattrs; xattr->value != NULL; xattr++)
--		;
-+	for (xattr = xattrs; xattr->value != NULL; xattr++) {
-+		if (evm_protected_xattr(xattr->name))
-+			evm_protected_xattrs = true;
-+	}
-+
-+	/* EVM xattr not needed. */
-+	if (!evm_protected_xattrs)
-+		return -EOPNOTSUPP;
- 
- 	evm_xattr = xattr;
- 
--- 
-2.25.1
-
+FWIW some fields had been moved so this will not longer apply cleanly,
+see b534dc46c8ae016. But I think we can apply it to net since the merge
+window is upon us? Just a heads up.
 
 _______________________________________________
 Ocfs2-devel mailing list
