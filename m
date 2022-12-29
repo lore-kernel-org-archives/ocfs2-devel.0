@@ -1,52 +1,52 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc247.phx1.oracleemaildelivery.com (aib29ajc247.phx1.oracleemaildelivery.com [192.29.103.247])
+Received: from aib29ajc255.phx1.oracleemaildelivery.com (aib29ajc255.phx1.oracleemaildelivery.com [192.29.103.255])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 812C4C53210
-	for <ocfs2-devel@archiver.kernel.org>; Thu, 29 Dec 2022 16:11:19 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 79861C5479D
+	for <ocfs2-devel@archiver.kernel.org>; Thu, 29 Dec 2022 16:11:20 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=LRHDQHHyabiNo5WYQJIbvdIF+weHpcIRO6qf29/SB1w=;
- b=pcUuKCsFMnYqP8wKdsKorq2zTMR1viOemmvkSsA0KECzjByRLDMczprSDOxuOQD7iIX0CL0TsaxZ
-   kGKf2z3qs4oTEW0PZ8QsBEgWoA3STlrjB5zvOVRLsahKx1/CxIK2y7xCMmJ/GA/e4RcbuxsZ3Hp/
-   kXQ2B4Y5EVVFKY42U0Ki7jgjA6lkV6aAUmltYb176xHkVZcbjNDoRNtW4nIMGKM3Uil05SOoGMyr
-   eypV3p+3h8oLb/xxdSzQokNC5Ipr8tyvjBmp2EmBgBmt2oR4bp6FYE2oCMQLXqBLBvzuGGLZsreQ
-   TfIwDHK1inwlvoKLqkK7AcRHpAiOH6KdHOYh+A==
+ bh=W0Z672HmWyexyAJDpYlpLojrS36XIebTzIVLTMA0ZEE=;
+ b=ZeAZlthLjWVJpdvl9MOTRt81Gvdj6H959EViQaagkWVPNoxIHm7ps6dpCWGw5/7xOfYgMoHVMdoZ
+   w56FPoMIu1Y8UlLd96s0uitKqH9jFhDX55jikYnyXYTpb2xPIZyVXdUIOielfjHk6XZfIx9JweEh
+   XU50X9H2rnSplKt29Se4b7nQDrXIjtYKv8zQ4l87Wu9wTAJOtOrRNxIN9pmsotD32ZL0DTpkxnzX
+   EuNB4QAtZ4fptxWgYqRJKRhXlV8Dc+Bf859YqLT3kOCSaP7THPleXLjbLPSOFF+Ws9t2ef7MG/4x
+   cUxCbp2HL2Wc/Y+x7HhaDOBnN7Yn3aPJidvm3A==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=LRHDQHHyabiNo5WYQJIbvdIF+weHpcIRO6qf29/SB1w=;
- b=qFcVk1fM/2iDUsoVuO48/Ma6XbZGEw5gv93spjcAG4O5ew71zhrkjdWopILbrLV5y8Lioym3hWfd
-   dyzBjfI0lfLRE1vm+6DRQ1jAluNFAYNQeX4PnFt0kyVvqn3990F1qhwSgifzvwq638gzGsrGD7dV
-   0YYodrFBhhTj1oT3Th55VCaAEP1ZAeBxIVKnhgSnBH3lwoF4e/avUPn85V+h6WEmnKnW9v8Nb6SF
-   /xkt8O6nrFVEE2SqFcU1303NqhW/h8gId0oP8kTcOh1K6ZR22i4kCN3u/kp1N3Kzvo1pp2PotKag
-   gJyVSN4kA0SMxc3Bcw0SvTEHnozNoWQJfb16bg==
-Received: by omta-ad1-fd3-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
+ bh=W0Z672HmWyexyAJDpYlpLojrS36XIebTzIVLTMA0ZEE=;
+ b=qRzqGkY1kU7/URRdB0HauneT04n3Eyr3iR60wm79CoUITIFxpTRJPQL6uRzs5f25/gZ4i/m/V7v1
+   BjN97Wp4svB57uY2mqxteEE5H1ZwVsKz2THUUVor6sp8Yas5YjxzPxZupP3RQGFHVt33GpBukWSq
+   Vtr3JTwugGc8onEgfqAl2IZRHTjPOclj4DZG4aeu33jqcrNjNduv4LgL5NTcnI2SM+2gM9uj9+Kl
+   hZak19+dRZ09EmvpTotQ0Q7OScnocFlZN49bC/pM+dzUNwwVQ/4OYicHU34QZrfZ7JsH//HKJrEB
+   i+k4tS23pjbpDzjDQXKe27Zt/66tE1UIwZzC8g==
+Received: by omta-ad3-fd3-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20221212 64bit (built Dec 12
  2022))
- with ESMTPS id <0RNN007DKUAULLB0@omta-ad1-fd3-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Thu, 29 Dec 2022 16:11:18 +0000 (GMT)
+ with ESMTPS id <0RNN008MHUAWGW90@omta-ad3-fd3-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Thu, 29 Dec 2022 16:11:20 +0000 (GMT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
  d=infradead.org; s=bombadil.20210309; h=Content-Transfer-Encoding:
  MIME-Version:References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender
  :Reply-To:Content-Type:Content-ID:Content-Description;
- bh=/OSTms68IPUXcD9mOyJwWhvTFEvxpirJZnFVgrc7HRI=; b=mG3Xd47oTUQecGZV2lFfDakfTy
- v9T6b0WubaweFmczUE/fgvx9Ej4TE34uR+iCTgXqcWAZEtr4nOwjmIu7RgbAexm9fF0FQQClyljLk
- 26JoH5gI1K+5QiVdrRypcrfvoceq4NJW/JTha943AxPSp195deUacqWMuM6Hw4hLbyFsR5+6RgEUA
- Fn1sHTGv69ttZMtXYF7gIJkwL61CE3QVKLKPdS29QXQgMpfIwoP5p45q41XYs+lhHGRJDhPj5r0sc
- mLVdGFgskkvDGn9spGCbLcJnva/V2khDSMNj+mzAJRxEDup9kUduZRBnmm9ZYAUWooRXugVtUAP2G
- kI54fxzg==;
+ bh=eT+sezI7d2puBXhZ4YXeV63r+1dsBpxvT2Biv2ttQVQ=; b=CjvMuzxosYlfRlZyUreZne6XPB
+ dsdBq4zBXheihbIMeS2ElpPTfep1aHkMTppG3M9VXX4j+hrA3xvtALTE1dKDVbJgRn/XvkK/3Msrn
+ eRjanXTfUV2tQLntyRky0Y45cs55uEBTGho1aZPsQTGJpBqr2gp8OczZvzIPd7cAKsgsAgklZY9FQ
+ FEEuCyiJxEnEmUr/V2rgzMmvgzew8LKBMJNo7Oyt/vdAD0gMTeR9itSequwor3zkWmBFvviZhw2/L
+ 3RcxZFmAbPj3p5oC0BZZeevS6/3SpWkUk7D8U9SkyP0scecn/DuasxSAYYvxJaL3SKNKWGwJwUZD5
+ VE++S3Bg==;
 To: Andrew Morton <akpm@linux-foundation.org>, "Theodore Ts'o" <tytso@mit.edu>,
  Jan Kara <jack@suse.com>,
  Konstantin Komarov <almaz.alexandrovich@paragon-software.com>,
  Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
  Joseph Qi <joseph.qi@linux.alibaba.com>,
  "Matthew Wilcox (Oracle)" <willy@infradead.org>
-Date: Thu, 29 Dec 2022 06:10:30 -1000
-Message-id: <20221229161031.391878-6-hch@lst.de>
+Date: Thu, 29 Dec 2022 06:10:28 -1000
+Message-id: <20221229161031.391878-4-hch@lst.de>
 X-Mailer: git-send-email 2.35.1
 In-reply-to: <20221229161031.391878-1-hch@lst.de>
 References: <20221229161031.391878-1-hch@lst.de>
@@ -55,14 +55,13 @@ X-Source-IP: 198.137.202.133
 X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10575
  signatures=596816
 X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 bulkscore=0
- malwarescore=0 adultscore=0 priorityscore=0 mlxlogscore=658 clxscore=290
- phishscore=0 mlxscore=0 suspectscore=0 impostorscore=0 spamscore=0
+ impostorscore=0 malwarescore=0 spamscore=0 adultscore=0 mlxscore=0
+ suspectscore=0 phishscore=0 clxscore=287 priorityscore=0 mlxlogscore=773
  lowpriorityscore=0 classifier=spam adjust=0 reason=mlx scancount=1
  engine=8.12.0-2212070000 definitions=main-2212290134
 Cc: linux-fsdevel@vger.kernel.org, linux-mm@kvack.org,
  linux-ext4@vger.kernel.org, ocfs2-devel@oss.oracle.com, ntfs3@lists.linux.dev
-Subject: [Ocfs2-devel] [PATCH 5/6] ocfs2: use filemap_fdatawrite_wbc instead	of
- generic_writepages
+Subject: [Ocfs2-devel] [PATCH 3/6] ntfs3: remove ->writepage
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -84,43 +83,77 @@ X-SRS-Rewrite: SMTP reverse-path rewritten from <hch@infradead.org> by
 X-ServerName: bombadil.infradead.org
 X-Proofpoint-SPF-Result: None
 X-Spam: Clean
-X-Proofpoint-GUID: ylolPSY89h4pZeG7YneEdmhI75KZRG3A
-X-Proofpoint-ORIG-GUID: ylolPSY89h4pZeG7YneEdmhI75KZRG3A
+X-Proofpoint-GUID: xM5o69Jl2lwEJpO1Lip0AT_PGOEfY9f0
+X-Proofpoint-ORIG-GUID: xM5o69Jl2lwEJpO1Lip0AT_PGOEfY9f0
 Reporting-Meta:
- AAEM73KeuUriWhjOM4eR9M47NaGqQERRv3XC96Z3qLKWSziNQ0LxZW9496A3P7M0
- avf47oBkNO+009jH2Z3O2rC9aWNl3Tmq6Y6oKfSWMC5cDcf5GwKWSHdCJuH6aUBZ
- zgJwyzSn4ejNPDimK5LL9EHObo4RbKgTothwIQtJp2ZZu8o7vDrBhiVgUZYny4iQ
- eDui3lFY2LPnJHM1ZvjZoyic4aMcBgpA6qqMfmY7vGpBiHucEZ1ak8Ffy4i4kHJV
- df4fMQreLfPjikarIyJRQcwzre9ySsvG51GpNF9bjJRbDGasm1EjRhS5bvXXOLTr
- suT69ZvZ+Zn9SDL0YkHaQXrLAtvq26sqMZ2kbD9lbw7YgNWOVj8EKpyau9Iba2Wt
- ImVXuz0w/2pCfs3fKiJI7m9+INkonZWCMy3K1Jr+6ZHi8Y9s/E+f8+7dAv4p2mF4
- P3M2kIs2iwTH27AUFl1GskVVI/CCVPERO1IYh7O0offEUupzg8/umXrxuccuGfF8
- A0zN6QXg1ND8yWjw4S5ZwJazzl0tMUKuD7PRlUebIETE
+ AAEPLI6k0WmaiCZeUqwudezYIhQVmH5X1uJFY2ZxEWu81blP1FJ48SvXcjhVQrKv
+ wtJQjFnGG4zDaT+PSrxPTZoHVaNXTm58OOdep/lVZ+2nyN1WNHiQEf7PkmfE5aQD
+ Vbjl3jwrDchCiR3kfT+vGRg9wgrZXOO8uzeBMRrJ/P9d/EIqOjikhTyOP+8mWtqO
+ UICLDTmuR8K9P89oXuug3w/tNsbYrcWZ9HPGToUa87ZNm9iEnRbXhER54VW2q/Zw
+ eay6aTelVXcPaFYgUeOwOr/nIXOJnWgVRTJMmK6M8Hpy51AbcJqYnv0lrLi7NcxU
+ m3WhFbHhTjYz7wSTXTuMmq9OLLOugIIFo9fV65UEjppiVkaXyVyjNTWIwENrH1R8
+ X6aMLnNhNhW48IAP75WGoV0l/ZTzvniw7zbjHh4Ao2nCfelbJ+cr8FYTA+xPz5g4
+ LeR5JJiQYpl1iiQks2nbXkidEdunm38d7VXyKp75FG0vKAXDIY7lQczRnH3qX6K+
+ LxvU2g7txtJzsh43g5BKQdJ5ZMCeI++nZrHR3mjX+bKv
 
-filemap_fdatawrite_wbc is a fairly thing wrapper around do_writepages,
-and the big difference there is support for cgroup writeback, which
-is not supported by ocfs2, and the potential to use ->writepages instead
-of ->writepage, which ocfs2 does not currently implement but eventually
-should.
+->writepage is a very inefficient method to write back data, and only
+ used through write_cache_pages or a a fallback when no ->migrate_folio
+method is present.
+
+Set ->migrate_folio to the generic buffer_head based helper, and remove
+the ->writepage implementation.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- fs/ocfs2/journal.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ fs/ntfs3/inode.c | 22 +---------------------
+ 1 file changed, 1 insertion(+), 21 deletions(-)
 
-diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
-index 59f612684c5178..25d8072ccfce46 100644
---- a/fs/ocfs2/journal.c
-+++ b/fs/ocfs2/journal.c
-@@ -852,7 +852,7 @@ static int ocfs2_journal_submit_inode_data_buffers(struct jbd2_inode *jinode)
- 		.range_end = jinode->i_dirty_end,
- 	};
- 
--	return generic_writepages(mapping, &wbc);
-+	return filemap_fdatawrite_wbc(mapping, &wbc);
+diff --git a/fs/ntfs3/inode.c b/fs/ntfs3/inode.c
+index b6dad2da59501b..6b50b6e3237876 100644
+--- a/fs/ntfs3/inode.c
++++ b/fs/ntfs3/inode.c
+@@ -832,26 +832,6 @@ int ntfs_set_size(struct inode *inode, u64 new_size)
+ 	return err;
  }
  
- int ocfs2_journal_init(struct ocfs2_super *osb, int *dirty)
+-static int ntfs_writepage(struct page *page, struct writeback_control *wbc)
+-{
+-	struct address_space *mapping = page->mapping;
+-	struct inode *inode = mapping->host;
+-	struct ntfs_inode *ni = ntfs_i(inode);
+-	int err;
+-
+-	if (is_resident(ni)) {
+-		ni_lock(ni);
+-		err = attr_data_write_resident(ni, page);
+-		ni_unlock(ni);
+-		if (err != E_NTFS_NONRESIDENT) {
+-			unlock_page(page);
+-			return err;
+-		}
+-	}
+-
+-	return block_write_full_page(page, ntfs_get_block, wbc);
+-}
+-
+ static int ntfs_resident_writepage(struct page *page,
+ 		struct writeback_control *wbc, void *data)
+ {
+@@ -2083,13 +2063,13 @@ const struct inode_operations ntfs_link_inode_operations = {
+ const struct address_space_operations ntfs_aops = {
+ 	.read_folio	= ntfs_read_folio,
+ 	.readahead	= ntfs_readahead,
+-	.writepage	= ntfs_writepage,
+ 	.writepages	= ntfs_writepages,
+ 	.write_begin	= ntfs_write_begin,
+ 	.write_end	= ntfs_write_end,
+ 	.direct_IO	= ntfs_direct_IO,
+ 	.bmap		= ntfs_bmap,
+ 	.dirty_folio	= block_dirty_folio,
++	.migrate_folio	= buffer_migrate_folio,
+ 	.invalidate_folio = block_invalidate_folio,
+ };
+ 
 -- 
 2.35.1
 
