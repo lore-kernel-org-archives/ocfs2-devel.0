@@ -1,66 +1,66 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc254.phx1.oracleemaildelivery.com (aib29ajc254.phx1.oracleemaildelivery.com [192.29.103.254])
+Received: from aib29ajc250.phx1.oracleemaildelivery.com (aib29ajc250.phx1.oracleemaildelivery.com [192.29.103.250])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id A9CC6C54EBD
-	for <ocfs2-devel@archiver.kernel.org>; Sun,  8 Jan 2023 21:17:43 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id BDC2EC54EBD
+	for <ocfs2-devel@archiver.kernel.org>; Sun,  8 Jan 2023 21:19:38 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=MV2ESx+4QBtHlg9bTIQ1GC+1ssfEzO3K6IyPYdAncxs=;
- b=w12xvj/3dLCplrM0rfJK9Sby+gmE358U92DTMFywyVRg1uCev8YK3g461yGSlp7IZbdDlGAy6o7f
-   TNAo20/bcQYE4prxshcU3Wrpq0Psm14QkKMDXSJ8XP/l1Wh8DqiesvdAln1E5Lr6DXsgaAyPUB6d
-   M4pUsjYeOgnx1+Y47RJ5aR0rr1RqlSgXkkS6dm8FAeCHSxZ4CGWpCdEkBQmv0Wy3TmLkE9Eess9p
-   Ax1nQtM4bwfG/DS1sjvQpoPgTgBXYnL050Z8RN24VH66o33WBUOE95cYxMFWyc2aFXJkx4id5Mai
-   kuXn9RAUCpBIrz+sgGGaQ+czRtXedcBtN6gDVA==
+ bh=igZGUNDD6IdM0FKmktZrp8KDu6XRh4b2/do98reOh1k=;
+ b=BZVOzRvGQVa/9edKV9MW7HTqgqSKx822BGE0RbpKxhRzo+wJ2JaMmqbVBnv5hQVIZ15Vu1GstAxY
+   y1UaFdMoDSM2S/ZmY7pfDHUQUjTc6g6R+7O0matNK9WUnXu4mXFsAlPsjWTl9SI6+uAvLZrdQwUb
+   kWDuL+dFuVxvlUKfzWWckKoztvg6UQmWB3Cb3e3whoyGhUFECAqt5S4pp8zgwpKJF8UNML4zi6QB
+   3djIeTkwKypYw1L8UQdDK8DCMq3gpBk4sSqyDU7JOYhASI/3g6DhTjtx6SgKQXqFZjQ10/IAWoJv
+   FRusSuen8CMEF8WvThpdF+yAfEa9egWzKeduMA==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=MV2ESx+4QBtHlg9bTIQ1GC+1ssfEzO3K6IyPYdAncxs=;
- b=Y9vyc8hZ36rduyjcLWzwDKOgUjWCHnkno+IeQ6XBCsBtLImj40RabH6leDjtyV01Mz6talWoCrxL
-   /Ebr0+ElsV3I/ouUZz82q6ZLL30MbcrvKURSq0uso5xRGbWB+ij9cTuvAhRTLcEFdIsroOsGaoHg
-   gZzlOqzA1tg0MeUh5eL+yoU5TEyehVN1CRhzomaO29fXsoQtfZ/RR/OXRKA7jGvxojwZzarHhhyi
-   78Nv3aQne9LigSMTsr+Lu36e4Kbv9gyTXbSZdKgAnQ8fG23TW6U8lenfa4H0t19YWvG80refQkd3
-   /cSeV54GyH4eWNBclTt4ZDDXEMdBW5wplalRFA==
-Received: by omta-ad3-fd3-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
+ bh=igZGUNDD6IdM0FKmktZrp8KDu6XRh4b2/do98reOh1k=;
+ b=ImLgtysDcVGNTi+mEFqOtNvLdK5SufiWVjB5dgaNTYP6VDj2lf8C0G5V9r19P700YplEarXgiqIn
+   iznKVsErfuMoJgBginNHx7ltXWFOIGUnmX+0AXgm2fmp++9sIIOV89cH8GBY9Rzcen0/8qvGRjVK
+   uIpKocfvnc7r6u4XtML6kcqtYyFKYZYNmXMXheUKihrNSXSCwAFXRyYXQI8ToXmSZsDpf7FbikzC
+   0On2zcjf23wJrIojo+Kj4YFwxWWTlQaBuprObNwaE2RpdQhlzdsX4WR3N1JdTfJBkorSVwScw8fY
+   k2J1EhW6sctJ6JTt6BogiCac5vtowcx76F6fyQ==
+Received: by omta-ad2-fd3-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20221212 64bit (built Dec 12
  2022))
- with ESMTPS id <0RO600AKQR5JPK20@omta-ad3-fd3-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Sun, 08 Jan 2023 21:17:43 +0000 (GMT)
+ with ESMTPS id <0RO600GC4R8Q4Q00@omta-ad2-fd3-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Sun, 08 Jan 2023 21:19:38 +0000 (GMT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
  d=infradead.org; s=casper.20170209; h=In-Reply-To:Content-Type:MIME-Version:
  References:Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:
  Content-Transfer-Encoding:Content-ID:Content-Description;
- bh=+fTNevAqKk/KH5jQmB577WyYwIjJaGXSYo1Kkw8//U8=; b=byUKNGetm3skpB0osIZdzjmVcj
- gX2dVF3m2fMEnkOaV+kh6gvARpBZ7AFyfxgY+L1iGfpdfGfjVTHL9xxoF4NlkjqYeIaQLwOSl+Mtl
- 4Sa3NFJyeX0+o+I3BQS8ART4Ltabft8TVIJwxwfwQ9nMYccsrJmcldxE+CTmKur3Bs+uvJ+oF9CgA
- aPIoqFVfFK2QUuQ7BDYMSYt74tm/fN5lm2i7/Za+hVv4N+RLcV8ktrebKs/bSETE8RZTA4ZxkhNE0
- u6tAe/HAvZcOUtIpTcGGV/A/eQ1GwLN3mPr8I1VwHlpv4keaJQ0vmIEQNNgsdYSo1bq9yynXC37jl
- Eu6oRbmw==;
-Date: Sun, 8 Jan 2023 21:17:26 +0000
+ bh=smtf3b6c0YiLyegeGcE2QFdIpMIIUxY2QjH9VIZPeqs=; b=LwRCSfg4lurhfJplbjaoasx+AK
+ i9NeK9Itn6mhZyaQBDGH8TsyNknvvOz6OzxmWVVH2jlqc/3k/698PgjVLLVYaPEjFaZdELofoEm8c
+ w4wtquN4FxNlPO/Tyk44scz4/CWeWCVw2QzvSZmJwjvQ76VjjJJkcBRdiiH/CGf5OOsRAAp5NVqPF
+ KodMj3MQOePSeDYwwAhqMQA7DCoBX9hicB1aN6THIdKISHSSVBQVgxGVetK6Oy18dlTXXLTtq7xk7
+ wQSlhxVeURFfEUK6vyKbQgKfXUvkaRIuXkjROCzDp83BpM0eSnokETYF8b+nY1OpbJXqWeD3RaIoF
+ zcJMPD6g==;
+Date: Sun, 8 Jan 2023 21:19:22 +0000
 To: Christoph Hellwig <hch@lst.de>
-Message-id: <Y7sy5jzjT7tpPX6Z@casper.infradead.org>
+Message-id: <Y7szWmUKSwcxsaMu@casper.infradead.org>
 References: <20230108165645.381077-1-hch@lst.de>
- <20230108165645.381077-4-hch@lst.de>
+ <20230108165645.381077-5-hch@lst.de>
 MIME-version: 1.0
 Content-disposition: inline
-In-reply-to: <20230108165645.381077-4-hch@lst.de>
+In-reply-to: <20230108165645.381077-5-hch@lst.de>
 X-Source-IP: 90.155.50.34
 X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10584
  signatures=596816
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 clxscore=-8
- mlxscore=0 malwarescore=0 adultscore=0 suspectscore=0 bulkscore=0
- priorityscore=1501 impostorscore=0 spamscore=0 mlxlogscore=412
- lowpriorityscore=0 phishscore=0 classifier=spam adjust=0 reason=mlx
- scancount=1 engine=8.12.0-2212070000 definitions=main-2301080159
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=11 clxscore=41
+ lowpriorityscore=0 phishscore=0 spamscore=11 mlxscore=11 adultscore=0
+ bulkscore=0 suspectscore=0 impostorscore=0 priorityscore=230 malwarescore=0
+ mlxlogscore=92 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2212070000 definitions=main-2301080159
 Cc: Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net,
  Evgeniy Dushistov <dushistov@mail.ru>, Josef Bacik <josef@toxicpanda.com>,
  linux-mm@kvack.org, Chris Mason <clm@fb.com>, ocfs2-devel@oss.oracle.com,
  David Sterba <dsterba@suse.com>, linux-fsdevel@vger.kernel.org,
  linux-btrfs@vger.kernel.org
-Subject: Re: [Ocfs2-devel] [PATCH 3/7] minix: don't flush page immediately for
+Subject: Re: [Ocfs2-devel] [PATCH 4/7] sysv: don't flush page immediately for
  DIRSYNC directories
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
@@ -81,46 +81,28 @@ Errors-to: ocfs2-devel-bounces@oss.oracle.com
 X-ServerName: casper.infradead.org
 X-Proofpoint-SPF-Result: None
 X-Spam: Clean
-X-Proofpoint-ORIG-GUID: 7ssJw6yNBqhMT3REYhp0lTgcO-Itzmgj
-X-Proofpoint-GUID: 7ssJw6yNBqhMT3REYhp0lTgcO-Itzmgj
+X-Proofpoint-GUID: 2XRmU9Y1sMqTc8Y2u5YHiQNy_G78KElU
+X-Proofpoint-ORIG-GUID: 2XRmU9Y1sMqTc8Y2u5YHiQNy_G78KElU
 Reporting-Meta:
- AAEecYacI10oETM84jpM5CwXYyD0dLsr04qrhRmCqU2Vw5Wnfz3lljJPg283Om5X
- QAQusiwU54QAr4Pe7ryIiG1LwzeXGuiVBj37612fKE2zAKnzuXh5n9ZE0zCl6cFR
- o2msCATFTvTdg3/6Xv+eEcQgxcB8+/5CmDQy7QVyyebN/vw/S/2Xx4J+Ssggosdl
- uW3EMvFiKtVi8fTh+apIcKeXedejY2nnoHrYnzXGUsz6K9gIgs+kONfDdhrnRv3h
- 0mEeKFJUdcDvZ6GmO6pV1wj8SWemaEiA5vqP6LtOoLC0bxklwhcxmYfZE5HJpmsD
- IPGjFsK6Oe66BjpUOz8Hbvqleh+JIsZ/Zq4cJucKnrt2VrqvweqysZdi6S/ecsTH
- vjXtem3wrmtjz6H0RdNJYsmeKfEgoUQV7XeMQA4uqDyj/TFQykbqStBk1Ou+SrXl
- Tb/ILzY1fDD82D25jZ8U2rUlSap1o1kYG3O7kov/bEzOM90YTJn8Hj1TU+xoWdaS
- 0PX8c2pPlEhLv9rpUE5KQT0uLE3+NrAYyGfffdXOisc=
+ AAHw/Gct2hzzYEO2q+qu8vXWj7FoRvpiTbN/jbiUuRbHJeNq72hN3pa6CXZnJA8O
+ r4uGc0Jbg+Epdyylm8/wxXtoGxD6a4GgP/kQzRyXo1xn3SJ/OeW8ayW6GlbV5pzm
+ +mR/Jqxrz3UJYm9lnErZp12AKWa/CSezFek+F4mrHybIwE8FWCqGvzA3wC5HkfWk
+ EFV5JtO72hNiygV3mdaQssnC9ITh3LAiad+f4+qFNtxVHKjAaJKgDVPNm6hXzW7i
+ JvfNDvULXAOOOhhIUpkMboKySrX3zhtUhzY4fXwy+9wJsyLhayoLOud8osVsdDQm
+ 6P33GnQ4mOT6QD5nPf4vICwCNgA/BBjSF3NwD4KcQ06L2XUknk3So/FtNvKQqSeJ
+ KOViEcyu1++XSHQQk1/xRicyklEHmSAoBBOEErXiiNSNWy+fYl+dgpI/Xo4Zmhqk
+ NLsiRNRAHIebunzg2Ib5tqWAklDIuPYc3yZ5lv7macSNZO/Xcwa1Mk+KXNentbGP
+ 5Sk1EnB+HAbJwB2G+QZYBp2BDfCalT3sLDm4Bhhqxg==
 
-On Sun, Jan 08, 2023 at 05:56:41PM +0100, Christoph Hellwig wrote:
-> @@ -274,9 +280,10 @@ int minix_add_link(struct dentry *dentry, struct inode *inode)
->  		memset (namx + namelen, 0, sbi->s_dirsize - namelen - 2);
->  		de->inode = inode->i_ino;
->  	}
-> -	err = dir_commit_chunk(page, pos, sbi->s_dirsize);
-> +	dir_commit_chunk(page, pos, sbi->s_dirsize);
->  	dir->i_mtime = dir->i_ctime = current_time(dir);
->  	mark_inode_dirty(dir);
-> +	minix_handle_dirsync(dir);
+On Sun, Jan 08, 2023 at 05:56:42PM +0100, Christoph Hellwig wrote:
+> We do not need to writeout modified directory blocks immediately when
+> modifying them while the page is locked. It is enough to do the flush
+> somewhat later which has the added benefit that inode times can be
+> flushed as well. It also allows us to stop depending on
+> write_one_page() function.
 
-Doesn't this need to be:
-
-	err = minix_handle_dirsync(dir);
-
-> @@ -426,7 +436,7 @@ void minix_set_link(struct minix_dir_entry *de, struct page *page,
->  			((minix3_dirent *) de)->inode = inode->i_ino;
->  		else
->  			de->inode = inode->i_ino;
-> -		err = dir_commit_chunk(page, pos, sbi->s_dirsize);
-> +		dir_commit_chunk(page, pos, sbi->s_dirsize);
->  	} else {
->  		unlock_page(page);
->  	}
-> -- 
-
-Aren't you missing a call to minix_handle_dirsync() in this function?
+Similar concerns to the minix patch here ... missing assignments to
+'err'.
 
 _______________________________________________
 Ocfs2-devel mailing list
