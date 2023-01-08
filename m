@@ -1,52 +1,52 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc249.phx1.oracleemaildelivery.com (aib29ajc249.phx1.oracleemaildelivery.com [192.29.103.249])
+Received: from aib29ajc251.phx1.oracleemaildelivery.com (aib29ajc251.phx1.oracleemaildelivery.com [192.29.103.251])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id E45EFC67871
-	for <ocfs2-devel@archiver.kernel.org>; Sun,  8 Jan 2023 16:57:31 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id DFCDEC54EBD
+	for <ocfs2-devel@archiver.kernel.org>; Sun,  8 Jan 2023 16:57:33 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=4P06jxon/ugyqI4xnrv2DSlt++jkzcDkkwksHopAB+4=;
- b=bC7zCmXa7/dez0c3PuuiBUl39OzHxIxLnR3Hzfqnwzs9X7Kb8L8jQrF9KGQ6nlY+HuKzSKfbNHdD
-   M5LPOnZIR3yKaRIFzvUL6YtZGPmRB/hpJoxaUEmSE+k6LuC4I/va8I0UFv7R+mTMIqgTY9AqjxL8
-   kpcVViB9MweqYYNE5GIYn5Uwuo76mSPo03xStDVsC+JGx2jAG1dkAHIS9szsrtlTdO2CGBHTHP+o
-   YhhVeEM52f7wIRgRByPE9ZYrZETPmMwUJGR0c//YH9Oqn9UG6Nq37ChGPEGmYcN3sJ15/tS72gmm
-   YdG1PSPAHHGW01NIGFyNwMC58ELFrGHzcQXiwg==
+ bh=Lw9djdnQibzTES31sAfzBzyuXksmcG0q056leQVmjVs=;
+ b=Nu4a30JqHwsCfKz/90/LSFIEqfN6i6MQsV+Cczsj6He3Rzth2n6wocvviFIOkVyNcyxZot5nDRNy
+   A7l5B5q+7lK0pyGotZ2/xmqP+ael193OQjnMqvCCY519hicrN03Pckj5BOg+P3wSb73Gx1cbcPKJ
+   1E+S/4/pOuwrHGo07tiiVy/cVprSH0m+sO5dcg/CvKVOSMXb2/QHSH3toLYKhQOqbLAjrUINXo7j
+   tX2nsCRKnHhev0KgrltsXlkZrt2/AaIiGZTI/Kkw87YuiRewzFz/Mq72QGqN7Rkb5XTNLyoE10ad
+   QrNpb1/zgwdIiBp8AFS1xds/fwcO4X51vB2wMA==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=4P06jxon/ugyqI4xnrv2DSlt++jkzcDkkwksHopAB+4=;
- b=M0RB9zqxmJQ3B4fII+50ywJsDQY0dbFcNu3Fy3Bin+c4RNyG56/zBDBooLwA/gTUdhO6xixXHcPa
-   9eAQHXs/0bvXD/WAWMChs+qyEQ5zfd7oo5bmu4OLiLaj4jLsz3MHrWVaOqp4/A8+eVTvdkrKZqeV
-   VPUuy/hTOyGRPDr4BR9YBaYVvttupyf0GG0m2XdFaCwCPdQlIH9YFJU6qUn3U4XiDz9TlVr/qVcF
-   kgNA1/S+oSWfColyc6tlFmY3xSqxAeEhqat5a/GvcEuHnPMLvpUTtHbEzx2Q34eiE0AI83rV5ED6
-   5k/dJODoko+stRTGlH+0tA9J5PBeVj8TnusU2A==
-Received: by omta-ad2-fd1-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
+ bh=Lw9djdnQibzTES31sAfzBzyuXksmcG0q056leQVmjVs=;
+ b=HzEL3PkHh/2Usz58dFGTb5F0DxaX1duP/CFHanYYJ2YD3IVpBXeNWXgYGDNhBuQgtv1+NuHz4BNr
+   Ftvo/fzeKjC+MPliwz4MbElLonhFDYQ60hZ+IsC26C0wjdkE8v9Y4Ox5ICSODDf04YPits71N3mJ
+   0TCBUeO5svunD+8aZsS+I/YCWuJGaysz1Z6kRz2o3VFC0O+HCFLIlQIDppjnp3r4Dar9pKGnwNtB
+   9ejIrkdVXy6xXGHbcsiGVSbammiIisjTLMIs5OkJbmAp8aKuFVmTWN7FTCIRfXMdieQc3oQa85hW
+   +NhvypRSPZ0OkfWNs7xJLx3LME7/BJd39dtXig==
+Received: by omta-ad2-fd3-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20221212 64bit (built Dec 12
  2022))
- with ESMTPS id <0RO600330F3V9D30@omta-ad2-fd1-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Sun, 08 Jan 2023 16:57:31 +0000 (GMT)
+ with ESMTPS id <0RO600L4CF3XMCF0@omta-ad2-fd3-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Sun, 08 Jan 2023 16:57:33 +0000 (GMT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
  d=infradead.org; s=bombadil.20210309; h=Content-Transfer-Encoding:
  MIME-Version:References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender
  :Reply-To:Content-Type:Content-ID:Content-Description;
- bh=lFvtQi+fLwMAHlLvXJj+xcXbU2gUQgSohjqo1SaHtyU=; b=oCh8q89awjYtytoZeT3pHyKMkl
- VyT99nkn9BUuSEHliHPt62EP8SCxWjNrcNLmisEoaHMhYjJ8blEV2oOQjss2Be8g/xEE9Xu6T3NXp
- cX2D3XC22yjMYecCu3dMuigB7G2U+YrmmMECKpaqBwx1GZ7mj3KW96NRON6fZ4NNOhhoCXma7S6jX
- kwHVVTH7ntlpydXJw1owjb0dtlCOQp1u4Psodi/w/rAdX6DMMVmMLise2oRJNsVxC9vWRy+Myt95+
- CvWwxs1xVejbXQVUEiHnuz2WHplf41pBViKOvH7DT3UKkzeh0LnVga9cr6PVhw5F/KrNlu4CexH4y
- TUx1FMmw==;
+ bh=oMPhLOYpJNBqa4dwFa8oL6UthrVrVH8Rk8f8kVGsTX8=; b=PKwRols7MQFA6r90zKuNxTrBwU
+ rDshHiaWkYRgvGWSV5BX9ARC7MnPg6FQjItWl5iozMErhRr/Myxp7ECTVJlvIhcjk2Vg/2LTqbzNh
+ 88GmfJGxKVNRHcx2n7V9pWxYXUFEFMMmqXaMPAjXflzSLusxgchlMH5lAKPklqrMQsPKoIGsEjeOl
+ amYtRU5bsHvGaTKx7PCEiCK91nyhaRkzZmd/GYz/MD+VwBAYP+oqFKTZfqNTMsoDUniL2++T+s5Wt
+ TsUxel7JrvdxmSTtPAyuHGghIaZzQSAvOeMlwx5HJY49qQL0jDsVZaUe43cAoHOWJHlgEg8Fb6fd2
+ tQphvRNg==;
 To: Andrew Morton <akpm@linux-foundation.org>, Chris Mason <clm@fb.com>,
  Josef Bacik <josef@toxicpanda.com>, David Sterba <dsterba@suse.com>,
  Dave Kleikamp <shaggy@kernel.org>, Mark Fasheh <mark@fasheh.com>,
  Joel Becker <jlbec@evilplan.org>, Joseph Qi <joseph.qi@linux.alibaba.com>,
  Evgeniy Dushistov <dushistov@mail.ru>,
  "Matthew Wilcox (Oracle)" <willy@infradead.org>
-Date: Sun,  8 Jan 2023 17:56:39 +0100
-Message-id: <20230108165645.381077-2-hch@lst.de>
+Date: Sun,  8 Jan 2023 17:56:43 +0100
+Message-id: <20230108165645.381077-6-hch@lst.de>
 X-Mailer: git-send-email 2.35.1
 In-reply-to: <20230108165645.381077-1-hch@lst.de>
 References: <20230108165645.381077-1-hch@lst.de>
@@ -54,17 +54,16 @@ MIME-version: 1.0
 X-Source-IP: 198.137.202.133
 X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10584
  signatures=596816
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 clxscore=302
- lowpriorityscore=0 phishscore=0 priorityscore=95 adultscore=0 mlxlogscore=823
- suspectscore=0 spamscore=0 impostorscore=0 mlxscore=0 malwarescore=0
- bulkscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 clxscore=273
+ suspectscore=0 adultscore=0 bulkscore=0 mlxlogscore=419 spamscore=0
+ phishscore=0 impostorscore=0 malwarescore=0 priorityscore=156 mlxscore=0
+ lowpriorityscore=0 classifier=spam adjust=0 reason=mlx scancount=1
  engine=8.12.0-2212070000 definitions=main-2301080126
-Cc: jfs-discussion@lists.sourceforge.net,
- Johannes Thumshirn <johannes.thumshirn@wdc.com>, linux-mm@kvack.org,
- linux-btrfs@vger.kernel.org, linux-fsdevel@vger.kernel.org,
- ocfs2-devel@oss.oracle.com
-Subject: [Ocfs2-devel] [PATCH 1/7] btrfs: don't read the disk superblock for
-	zoned devices in btrfs_scratch_superblocks
+Cc: linux-fsdevel@vger.kernel.org, linux-mm@kvack.org,
+ jfs-discussion@lists.sourceforge.net, ocfs2-devel@oss.oracle.com,
+ linux-btrfs@vger.kernel.org
+Subject: [Ocfs2-devel] [PATCH 5/7] ufs: don't flush page immediately for
+	DIRSYNC directories
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -86,104 +85,119 @@ X-SRS-Rewrite: SMTP reverse-path rewritten from <hch@infradead.org> by
 X-ServerName: bombadil.infradead.org
 X-Proofpoint-SPF-Result: None
 X-Spam: Clean
-X-Proofpoint-GUID: 1dIgFSeD1fzRsmjZIk2cfoE2tDSfZD1c
-X-Proofpoint-ORIG-GUID: 1dIgFSeD1fzRsmjZIk2cfoE2tDSfZD1c
+X-Proofpoint-GUID: RZFG15KnYiNmVIAkhd_HE_oFrtMAzuOZ
+X-Proofpoint-ORIG-GUID: RZFG15KnYiNmVIAkhd_HE_oFrtMAzuOZ
 Reporting-Meta:
- AAEZYbpWAwV9daWWqj8jGzveBcmP/a3pHnkfaqqXrwOE576U8NHcNSaNeDAcWC4x
- QJiTGcrKd8cVlCK5xt3IrwcI4LFGuFzXlDWXvKSjtloCfGDoAQzzaycZLyIluMS+
- QvzTfd9LV5CRBTUJ+/J06crHl+cRfuo+u7mhFSFdOfAumJENFT+9A2OWRI5KRrmN
- cOzb012q7D7yFMIAYjYQlM1WxcQtYAXMUbZ7pCamVXRWkD5fcCLQsEywMbOq/0J0
- 97k8huND57fkyuHk/Tj9sI94pVU4munJP5QdGv4KLSYkPmj6jgxD1LlGlHZ0cITk
- JYXSZD4KdozyhyI6fPYqYx4nNWm/6PclRTxeVT8JNhPJZJM0Ilimkxxsb/VF3F95
- h51fPlwxxbvO7OKVYkwLoMPrf1D/8xdr6/Z18/q86Z59aQKdMsIPQTQj1CIG5J4I
- 1vmT9STOU8s1LUUYezcOTTsuaA3b5OZuDkSZwayQ4/OvRMOD7FEbV6M2oIa8EQZW
- UxJwyI0c+UTWUHsY/+SF6JelBxjOLf9piaoxb3qr55DB
+ AAFeRtKARYZgCRCLmbX6IPTWZQyYtzAswwO1LiZwnZ3x9BLsYll47Hpfc5HkeNlM
+ hjcbUJnNeBeGdCma196ijrrCf1wwCDQSp8ebHiHOuxnriuPkXSC521sg088J+FdJ
+ TRv0t1kvCHOMO/DVz4TLNYaoRANQycNvVw/soD5fSUcFPQLOG9W/uwGexzdvJozv
+ RR7hWrgvUsq7WLSOqb5sCuRE086QYV5uIOJ0Gv7a9l7r58TRgfhjoa+k7fDgImN4
+ 1pn/q4wz1incoFX8gtwLS6WOy35J4EwJZn+sI118jMdlODPBsOrHVF1lZeQiRT0K
+ 1aKobTQ8mq/q1no88cs6uShmNmNoE4qI+NkXQOCm3tjvbwGxhg92sSuoT7QnPhAn
+ Lz6KqQoLM77k43iici6VVNCaOGcdFuZSVO9oIs3o99bfh74UDm6fCCQWTg0DDrPt
+ bIK6V/kqY+9tjkxQhPbJAn6Tsc0K/Du7jqdvsXZIqVvaqSkq0fXgFiAQzl6J6MZq
+ dT2IfmkT/n16LGs7R07RAx7gXo1I86ZkG19RPZ07pbg=
 
-For zoned devices, btrfs_scratch_superblocks just resets the sb zones,
-which means there is no need to even read the previous superblock.
-Split the code to read, zero and write the superblock for conventional
-devices into a separate helper so that it isn't called for zoned
-devices.
+We do not need to writeout modified directory blocks immediately when
+modifying them while the page is locked. It is enough to do the flush
+somewhat later which has the added benefit that inode times can be
+flushed as well. It also allows us to stop depending on
+write_one_page() function.
+
+Ported from an ext2 patch by Jan Kara.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
-Reviewed-by: Johannes Thumshirn <johannes.thumshirn@wdc.com>
 ---
- fs/btrfs/volumes.c | 51 +++++++++++++++++++++++-----------------------
- 1 file changed, 26 insertions(+), 25 deletions(-)
+ fs/ufs/dir.c | 29 +++++++++++++++++++----------
+ 1 file changed, 19 insertions(+), 10 deletions(-)
 
-diff --git a/fs/btrfs/volumes.c b/fs/btrfs/volumes.c
-index aa25fa335d3ed1..1378f5ad5ed4c4 100644
---- a/fs/btrfs/volumes.c
-+++ b/fs/btrfs/volumes.c
-@@ -2005,42 +2005,43 @@ static u64 btrfs_num_devices(struct btrfs_fs_info *fs_info)
- 	return num_devices;
+diff --git a/fs/ufs/dir.c b/fs/ufs/dir.c
+index 391efaf1d52897..379d75796a5ce3 100644
+--- a/fs/ufs/dir.c
++++ b/fs/ufs/dir.c
+@@ -42,11 +42,10 @@ static inline int ufs_match(struct super_block *sb, int len,
+ 	return !memcmp(name, de->d_name, len);
  }
  
-+static void btrfs_scratch_superblock(struct btrfs_fs_info *fs_info,
-+				     struct block_device *bdev, int copy_num)
-+{
-+	struct btrfs_super_block *disk_super;
-+	struct page *page;
-+	int ret;
-+
-+	disk_super = btrfs_read_dev_one_super(bdev, copy_num, false);
-+	if (IS_ERR(disk_super))
-+		return;
-+	memset(&disk_super->magic, 0, sizeof(disk_super->magic));
-+	page = virt_to_page(disk_super);
-+	set_page_dirty(page);
-+	lock_page(page);
-+	/* write_on_page() unlocks the page */
-+	ret = write_one_page(page);
-+	if (ret)
-+		btrfs_warn(fs_info,
-+			"error clearing superblock number %d (%d)",
-+			copy_num, ret);
-+	btrfs_release_disk_super(disk_super);
+-static int ufs_commit_chunk(struct page *page, loff_t pos, unsigned len)
++static void ufs_commit_chunk(struct page *page, loff_t pos, unsigned len)
+ {
+ 	struct address_space *mapping = page->mapping;
+ 	struct inode *dir = mapping->host;
+-	int err = 0;
+ 
+ 	inode_inc_iversion(dir);
+ 	block_write_end(NULL, mapping, pos, len, len, page, NULL);
+@@ -54,10 +53,16 @@ static int ufs_commit_chunk(struct page *page, loff_t pos, unsigned len)
+ 		i_size_write(dir, pos+len);
+ 		mark_inode_dirty(dir);
+ 	}
+-	if (IS_DIRSYNC(dir))
+-		err = write_one_page(page);
+-	else
+-		unlock_page(page);
++	unlock_page(page);
 +}
 +
- void btrfs_scratch_superblocks(struct btrfs_fs_info *fs_info,
- 			       struct block_device *bdev,
- 			       const char *device_path)
- {
--	struct btrfs_super_block *disk_super;
- 	int copy_num;
++static int ufs_handle_dirsync(struct inode *dir)
++{
++	int err;
++
++	err = filemap_write_and_wait(dir->i_mapping);
++	if (!err)
++		err = sync_inode_metadata(dir, 1);
+ 	return err;
+ }
  
- 	if (!bdev)
- 		return;
+@@ -99,11 +104,12 @@ void ufs_set_link(struct inode *dir, struct ufs_dir_entry *de,
+ 	de->d_ino = cpu_to_fs32(dir->i_sb, inode->i_ino);
+ 	ufs_set_de_type(dir->i_sb, de, inode->i_mode);
  
- 	for (copy_num = 0; copy_num < BTRFS_SUPER_MIRROR_MAX; copy_num++) {
--		struct page *page;
--		int ret;
--
--		disk_super = btrfs_read_dev_one_super(bdev, copy_num, false);
--		if (IS_ERR(disk_super))
--			continue;
--
--		if (bdev_is_zoned(bdev)) {
-+		if (bdev_is_zoned(bdev))
- 			btrfs_reset_sb_log_zones(bdev, copy_num);
--			continue;
--		}
--
--		memset(&disk_super->magic, 0, sizeof(disk_super->magic));
--
--		page = virt_to_page(disk_super);
--		set_page_dirty(page);
--		lock_page(page);
--		/* write_on_page() unlocks the page */
--		ret = write_one_page(page);
--		if (ret)
--			btrfs_warn(fs_info,
--				"error clearing superblock number %d (%d)",
--				copy_num, ret);
--		btrfs_release_disk_super(disk_super);
--
-+		else
-+			btrfs_scratch_superblock(fs_info, bdev, copy_num);
- 	}
+-	err = ufs_commit_chunk(page, pos, len);
++	ufs_commit_chunk(page, pos, len);
+ 	ufs_put_page(page);
+ 	if (update_times)
+ 		dir->i_mtime = dir->i_ctime = current_time(dir);
+ 	mark_inode_dirty(dir);
++	ufs_handle_dirsync(dir);
+ }
  
- 	/* Notify udev that device has changed */
+ 
+@@ -390,10 +396,11 @@ int ufs_add_link(struct dentry *dentry, struct inode *inode)
+ 	de->d_ino = cpu_to_fs32(sb, inode->i_ino);
+ 	ufs_set_de_type(sb, de, inode->i_mode);
+ 
+-	err = ufs_commit_chunk(page, pos, rec_len);
++	ufs_commit_chunk(page, pos, rec_len);
+ 	dir->i_mtime = dir->i_ctime = current_time(dir);
+ 
+ 	mark_inode_dirty(dir);
++	err = ufs_handle_dirsync(dir);
+ 	/* OFFSET_CACHE */
+ out_put:
+ 	ufs_put_page(page);
+@@ -531,9 +538,10 @@ int ufs_delete_entry(struct inode *inode, struct ufs_dir_entry *dir,
+ 	if (pde)
+ 		pde->d_reclen = cpu_to_fs16(sb, to - from);
+ 	dir->d_ino = 0;
+-	err = ufs_commit_chunk(page, pos, to - from);
++	ufs_commit_chunk(page, pos, to - from);
+ 	inode->i_ctime = inode->i_mtime = current_time(inode);
+ 	mark_inode_dirty(inode);
++	err = ufs_handle_dirsync(inode);
+ out:
+ 	ufs_put_page(page);
+ 	UFSD("EXIT\n");
+@@ -579,7 +587,8 @@ int ufs_make_empty(struct inode * inode, struct inode *dir)
+ 	strcpy (de->d_name, "..");
+ 	kunmap(page);
+ 
+-	err = ufs_commit_chunk(page, 0, chunk_size);
++	ufs_commit_chunk(page, 0, chunk_size);
++	err = ufs_handle_dirsync(inode);
+ fail:
+ 	put_page(page);
+ 	return err;
 -- 
 2.35.1
 
