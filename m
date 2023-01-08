@@ -1,69 +1,66 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc251.phx1.oracleemaildelivery.com (aib29ajc251.phx1.oracleemaildelivery.com [192.29.103.251])
+Received: from aib29ajc252.phx1.oracleemaildelivery.com (aib29ajc252.phx1.oracleemaildelivery.com [192.29.103.252])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id DFCDEC54EBD
-	for <ocfs2-devel@archiver.kernel.org>; Sun,  8 Jan 2023 16:57:33 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id E99F1C678D5
+	for <ocfs2-devel@archiver.kernel.org>; Sun,  8 Jan 2023 16:57:34 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=Lw9djdnQibzTES31sAfzBzyuXksmcG0q056leQVmjVs=;
- b=Nu4a30JqHwsCfKz/90/LSFIEqfN6i6MQsV+Cczsj6He3Rzth2n6wocvviFIOkVyNcyxZot5nDRNy
-   A7l5B5q+7lK0pyGotZ2/xmqP+ael193OQjnMqvCCY519hicrN03Pckj5BOg+P3wSb73Gx1cbcPKJ
-   1E+S/4/pOuwrHGo07tiiVy/cVprSH0m+sO5dcg/CvKVOSMXb2/QHSH3toLYKhQOqbLAjrUINXo7j
-   tX2nsCRKnHhev0KgrltsXlkZrt2/AaIiGZTI/Kkw87YuiRewzFz/Mq72QGqN7Rkb5XTNLyoE10ad
-   QrNpb1/zgwdIiBp8AFS1xds/fwcO4X51vB2wMA==
+ bh=qfYKkczn219yrhrNEGuzCWkccSjMYk/7i0XOYUj3EHA=;
+ b=YajuNJMgA6TMft1MS/QQwyggphmgbWO1/JkY+ZN8JJgoSZHsi8AsN4tU9mVK9JGtFBhIujvgqIMX
+   Be5EGN83xcFvLhAMX7ECLBYpYehCPS6nPbr0dJKHaT54m0WGdNbxBgEWkQoSHQh/vhdGGYIClrDd
+   cfaJ6vR/Zm0ujprkZjTO31S7VggBTUvBC+UKEfuYuZTsHS2WqGeEfKOuVaHK90ZeVIGa5ELep6JT
+   QvQbXCXbm1LAYk10h8pXWd1HUGpv656Y55vN+3VaFcPOqNL+DgFT8CRZhf+NsalRd8xTpR/2qntq
+   CrXi4Z8n7lueP0/mKL8t6Jlb1KZvDVQHhNZIcA==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=Lw9djdnQibzTES31sAfzBzyuXksmcG0q056leQVmjVs=;
- b=HzEL3PkHh/2Usz58dFGTb5F0DxaX1duP/CFHanYYJ2YD3IVpBXeNWXgYGDNhBuQgtv1+NuHz4BNr
-   Ftvo/fzeKjC+MPliwz4MbElLonhFDYQ60hZ+IsC26C0wjdkE8v9Y4Ox5ICSODDf04YPits71N3mJ
-   0TCBUeO5svunD+8aZsS+I/YCWuJGaysz1Z6kRz2o3VFC0O+HCFLIlQIDppjnp3r4Dar9pKGnwNtB
-   9ejIrkdVXy6xXGHbcsiGVSbammiIisjTLMIs5OkJbmAp8aKuFVmTWN7FTCIRfXMdieQc3oQa85hW
-   +NhvypRSPZ0OkfWNs7xJLx3LME7/BJd39dtXig==
-Received: by omta-ad2-fd3-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
+ bh=qfYKkczn219yrhrNEGuzCWkccSjMYk/7i0XOYUj3EHA=;
+ b=XMEXnmMUk/JbdpqjNlXqAnAcTLTownuQMIqdOam3EO44PDuvn4Z99VbX9gB1ofkB6mSAjG4GB4/a
+   XBuSunvROrHCyaKbpIY2L4k+97QLAsBo0P9zza4SrpOpOpb0zn7bj4P1uXBL0AXna1lRsKKdocQw
+   zWG2zWTmoQM/yO6QDTDmv9eNXas/jBZQxBV8vPbscacWqcAp1qC+cMcRjdo8rIpoQB3yM9Sl+hlP
+   sZr52IkCD3sy3FnBQz9jSJAH/7EZchKJRupHlWKONiXtMSRCQTws5hNggK5ywuvt1A/V2T6WHm06
+   K38qwc4+butqk6U0m+YyRX5A5URtomWyfkyaXQ==
+Received: by omta-ad3-fd1-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20221212 64bit (built Dec 12
  2022))
- with ESMTPS id <0RO600L4CF3XMCF0@omta-ad2-fd3-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Sun, 08 Jan 2023 16:57:33 +0000 (GMT)
+ with ESMTPS id <0RO600CVRF3Y1F20@omta-ad3-fd1-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Sun, 08 Jan 2023 16:57:34 +0000 (GMT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
  d=infradead.org; s=bombadil.20210309; h=Content-Transfer-Encoding:
- MIME-Version:References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender
- :Reply-To:Content-Type:Content-ID:Content-Description;
- bh=oMPhLOYpJNBqa4dwFa8oL6UthrVrVH8Rk8f8kVGsTX8=; b=PKwRols7MQFA6r90zKuNxTrBwU
- rDshHiaWkYRgvGWSV5BX9ARC7MnPg6FQjItWl5iozMErhRr/Myxp7ECTVJlvIhcjk2Vg/2LTqbzNh
- 88GmfJGxKVNRHcx2n7V9pWxYXUFEFMMmqXaMPAjXflzSLusxgchlMH5lAKPklqrMQsPKoIGsEjeOl
- amYtRU5bsHvGaTKx7PCEiCK91nyhaRkzZmd/GYz/MD+VwBAYP+oqFKTZfqNTMsoDUniL2++T+s5Wt
- TsUxel7JrvdxmSTtPAyuHGghIaZzQSAvOeMlwx5HJY49qQL0jDsVZaUe43cAoHOWJHlgEg8Fb6fd2
- tQphvRNg==;
+ MIME-Version:Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:Content-Type:
+ Content-ID:Content-Description:In-Reply-To:References;
+ bh=n6RpjOdLAh3obh1YrtVlLsrD/ixSNbLSLNkGemSOvQw=; b=Tplevrq0ZXmD/12xpMEYpMkDac
+ PbPaoxYOWR4aUh46qukYYZiFJY5/zifkTJnuWRA4Mi8AcmWcLyOYRWr8gqJ4u05mryKVzansHNKxM
+ obMID6UuA/yndMNoIlVywMjiEU5hkA3R2ZeFhqCfQ4fxJrp1Nrwey5MC17pZ2F3DSa5M+m4iUoH3M
+ 1lMnjRF0s5/FNZaJaBUmaL9a8vzGE56rcAmXPIJyAd0+z+MpttizMi7V6AYhVwxj1atl+9lARZwK8
+ BlPSlWPN6ZYEWSrsFA6Hxc7vYrW3HrPbdOrGd7h3KzkdK3isaTmzoLOSxULnZXjxe5vN4BUcjhpwj
+ mAGkrozg==;
 To: Andrew Morton <akpm@linux-foundation.org>, Chris Mason <clm@fb.com>,
  Josef Bacik <josef@toxicpanda.com>, David Sterba <dsterba@suse.com>,
  Dave Kleikamp <shaggy@kernel.org>, Mark Fasheh <mark@fasheh.com>,
  Joel Becker <jlbec@evilplan.org>, Joseph Qi <joseph.qi@linux.alibaba.com>,
  Evgeniy Dushistov <dushistov@mail.ru>,
  "Matthew Wilcox (Oracle)" <willy@infradead.org>
-Date: Sun,  8 Jan 2023 17:56:43 +0100
-Message-id: <20230108165645.381077-6-hch@lst.de>
+Date: Sun,  8 Jan 2023 17:56:38 +0100
+Message-id: <20230108165645.381077-1-hch@lst.de>
 X-Mailer: git-send-email 2.35.1
-In-reply-to: <20230108165645.381077-1-hch@lst.de>
-References: <20230108165645.381077-1-hch@lst.de>
 MIME-version: 1.0
 X-Source-IP: 198.137.202.133
 X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10584
  signatures=596816
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 clxscore=273
- suspectscore=0 adultscore=0 bulkscore=0 mlxlogscore=419 spamscore=0
- phishscore=0 impostorscore=0 malwarescore=0 priorityscore=156 mlxscore=0
- lowpriorityscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 bulkscore=0
+ mlxscore=0 phishscore=0 adultscore=0 suspectscore=0 impostorscore=0
+ malwarescore=0 mlxlogscore=392 clxscore=287 spamscore=0 lowpriorityscore=0
+ priorityscore=95 classifier=spam adjust=0 reason=mlx scancount=1
  engine=8.12.0-2212070000 definitions=main-2301080126
 Cc: linux-fsdevel@vger.kernel.org, linux-mm@kvack.org,
  jfs-discussion@lists.sourceforge.net, ocfs2-devel@oss.oracle.com,
  linux-btrfs@vger.kernel.org
-Subject: [Ocfs2-devel] [PATCH 5/7] ufs: don't flush page immediately for
-	DIRSYNC directories
+Subject: [Ocfs2-devel] remove write_one_page / folio_write_one
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -85,122 +82,43 @@ X-SRS-Rewrite: SMTP reverse-path rewritten from <hch@infradead.org> by
 X-ServerName: bombadil.infradead.org
 X-Proofpoint-SPF-Result: None
 X-Spam: Clean
-X-Proofpoint-GUID: RZFG15KnYiNmVIAkhd_HE_oFrtMAzuOZ
-X-Proofpoint-ORIG-GUID: RZFG15KnYiNmVIAkhd_HE_oFrtMAzuOZ
+X-Proofpoint-GUID: ZW2C000mk5mlGfNVeuUbLYrrlXEt0lgV
+X-Proofpoint-ORIG-GUID: ZW2C000mk5mlGfNVeuUbLYrrlXEt0lgV
 Reporting-Meta:
- AAFeRtKARYZgCRCLmbX6IPTWZQyYtzAswwO1LiZwnZ3x9BLsYll47Hpfc5HkeNlM
- hjcbUJnNeBeGdCma196ijrrCf1wwCDQSp8ebHiHOuxnriuPkXSC521sg088J+FdJ
- TRv0t1kvCHOMO/DVz4TLNYaoRANQycNvVw/soD5fSUcFPQLOG9W/uwGexzdvJozv
- RR7hWrgvUsq7WLSOqb5sCuRE086QYV5uIOJ0Gv7a9l7r58TRgfhjoa+k7fDgImN4
- 1pn/q4wz1incoFX8gtwLS6WOy35J4EwJZn+sI118jMdlODPBsOrHVF1lZeQiRT0K
- 1aKobTQ8mq/q1no88cs6uShmNmNoE4qI+NkXQOCm3tjvbwGxhg92sSuoT7QnPhAn
- Lz6KqQoLM77k43iici6VVNCaOGcdFuZSVO9oIs3o99bfh74UDm6fCCQWTg0DDrPt
- bIK6V/kqY+9tjkxQhPbJAn6Tsc0K/Du7jqdvsXZIqVvaqSkq0fXgFiAQzl6J6MZq
- dT2IfmkT/n16LGs7R07RAx7gXo1I86ZkG19RPZ07pbg=
+ AAFyjRUlhGNeK0/oWd6pc5yTSP4ZpeZ8XiJ+lCG6JGze3OsQSWWEuI8cqqZ4jyKL
+ UNAYl+GSwSIWjpU7c25SnMU8rfTyVFQFIut/yZ83cwwPyVCZ47YbVft8ux8uFFVL
+ QtXjhAI/kiDE5fTeksUQgQBDTu4KVPeuE+ySZICMxXfWc0NTa6w0NxPESraVqRJ7
+ x0l9jirILr3jY/cmO22Rm6yQDuhlWfMSRx7W5d4jxIhKqRX23OJTN1VLBDtwJ5ii
+ vODRqbfr2aVvk6OJQqSofF44+Jb1RzfHATc/6HXStqBT61msvmpZBTLnqRjJ9GQ8
+ CuD+Jnz9N9MleJ2vXRnCsIymBmoVkbGa3egTq8VrCdk+6soU0B1qV9thkQGh8QJN
+ Aj+oi1DPIhcA0/2o4AuH/9P2EmQ4tExk3j9QE2Iu4ihgNTJJ1+hlu42/N2HOp236
+ RAHtY/m2G827AswblBTVcHmIsthAKp9tYhE21/LL3QvUo9imIvWvZrt86tZDSM0z
+ eJ2F5pxknfsO05R/u7vK7jEXwM/cMXIrYl48xNF6DqY=
 
-We do not need to writeout modified directory blocks immediately when
-modifying them while the page is locked. It is enough to do the flush
-somewhat later which has the added benefit that inode times can be
-flushed as well. It also allows us to stop depending on
-write_one_page() function.
+Hi all,
 
-Ported from an ext2 patch by Jan Kara.
+this series removes the write_one_page API, and it's folioized
+implementation as folio_write_one.  These helpers internally call
+->writepage which we are gradually removing from the kernel.
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
- fs/ufs/dir.c | 29 +++++++++++++++++++----------
- 1 file changed, 19 insertions(+), 10 deletions(-)
+For most callers there are better APIs to use, and this cleans them up.
+The big questionmark is jfs, where the metapage abstraction uses the
+pagecache in a bit of an odd way, and which would probably benefit from
+not using the page cache at all like the XFS buffer cache, but given
+that jfs has been in minimum maintaince mode for a long time that might
+not be worth it.  So for now it just moves the implementation of
+write_one_page into jfs instead.
 
-diff --git a/fs/ufs/dir.c b/fs/ufs/dir.c
-index 391efaf1d52897..379d75796a5ce3 100644
---- a/fs/ufs/dir.c
-+++ b/fs/ufs/dir.c
-@@ -42,11 +42,10 @@ static inline int ufs_match(struct super_block *sb, int len,
- 	return !memcmp(name, de->d_name, len);
- }
- 
--static int ufs_commit_chunk(struct page *page, loff_t pos, unsigned len)
-+static void ufs_commit_chunk(struct page *page, loff_t pos, unsigned len)
- {
- 	struct address_space *mapping = page->mapping;
- 	struct inode *dir = mapping->host;
--	int err = 0;
- 
- 	inode_inc_iversion(dir);
- 	block_write_end(NULL, mapping, pos, len, len, page, NULL);
-@@ -54,10 +53,16 @@ static int ufs_commit_chunk(struct page *page, loff_t pos, unsigned len)
- 		i_size_write(dir, pos+len);
- 		mark_inode_dirty(dir);
- 	}
--	if (IS_DIRSYNC(dir))
--		err = write_one_page(page);
--	else
--		unlock_page(page);
-+	unlock_page(page);
-+}
-+
-+static int ufs_handle_dirsync(struct inode *dir)
-+{
-+	int err;
-+
-+	err = filemap_write_and_wait(dir->i_mapping);
-+	if (!err)
-+		err = sync_inode_metadata(dir, 1);
- 	return err;
- }
- 
-@@ -99,11 +104,12 @@ void ufs_set_link(struct inode *dir, struct ufs_dir_entry *de,
- 	de->d_ino = cpu_to_fs32(dir->i_sb, inode->i_ino);
- 	ufs_set_de_type(dir->i_sb, de, inode->i_mode);
- 
--	err = ufs_commit_chunk(page, pos, len);
-+	ufs_commit_chunk(page, pos, len);
- 	ufs_put_page(page);
- 	if (update_times)
- 		dir->i_mtime = dir->i_ctime = current_time(dir);
- 	mark_inode_dirty(dir);
-+	ufs_handle_dirsync(dir);
- }
- 
- 
-@@ -390,10 +396,11 @@ int ufs_add_link(struct dentry *dentry, struct inode *inode)
- 	de->d_ino = cpu_to_fs32(sb, inode->i_ino);
- 	ufs_set_de_type(sb, de, inode->i_mode);
- 
--	err = ufs_commit_chunk(page, pos, rec_len);
-+	ufs_commit_chunk(page, pos, rec_len);
- 	dir->i_mtime = dir->i_ctime = current_time(dir);
- 
- 	mark_inode_dirty(dir);
-+	err = ufs_handle_dirsync(dir);
- 	/* OFFSET_CACHE */
- out_put:
- 	ufs_put_page(page);
-@@ -531,9 +538,10 @@ int ufs_delete_entry(struct inode *inode, struct ufs_dir_entry *dir,
- 	if (pde)
- 		pde->d_reclen = cpu_to_fs16(sb, to - from);
- 	dir->d_ino = 0;
--	err = ufs_commit_chunk(page, pos, to - from);
-+	ufs_commit_chunk(page, pos, to - from);
- 	inode->i_ctime = inode->i_mtime = current_time(inode);
- 	mark_inode_dirty(inode);
-+	err = ufs_handle_dirsync(inode);
- out:
- 	ufs_put_page(page);
- 	UFSD("EXIT\n");
-@@ -579,7 +587,8 @@ int ufs_make_empty(struct inode * inode, struct inode *dir)
- 	strcpy (de->d_name, "..");
- 	kunmap(page);
- 
--	err = ufs_commit_chunk(page, 0, chunk_size);
-+	ufs_commit_chunk(page, 0, chunk_size);
-+	err = ufs_handle_dirsync(inode);
- fail:
- 	put_page(page);
- 	return err;
--- 
-2.35.1
-
+Diffstat:
+ fs/btrfs/volumes.c      |   50 ++++++++++++++++++++++++------------------------
+ fs/jfs/jfs_metapage.c   |   39 ++++++++++++++++++++++++++++++++-----
+ fs/minix/dir.c          |   30 +++++++++++++++++++---------
+ fs/ocfs2/refcounttree.c |    9 ++++----
+ fs/sysv/dir.c           |   29 ++++++++++++++++++---------
+ fs/ufs/dir.c            |   29 ++++++++++++++++++---------
+ include/linux/pagemap.h |    6 -----
+ mm/page-writeback.c     |   40 --------------------------------------
+ 8 files changed, 122 insertions(+), 110 deletions(-)
 
 _______________________________________________
 Ocfs2-devel mailing list
