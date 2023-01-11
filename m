@@ -1,54 +1,61 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc254.phx1.oracleemaildelivery.com (aib29ajc254.phx1.oracleemaildelivery.com [192.29.103.254])
+Received: from aib29ajc244.phx1.oracleemaildelivery.com (aib29ajc244.phx1.oracleemaildelivery.com [192.29.103.244])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 47E14C46467
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id AB9EDC677F1
 	for <ocfs2-devel@archiver.kernel.org>; Wed, 11 Jan 2023 17:23:53 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=CW63yG+4IjZjtp+Xb5sHsokg3nfp8LtCyoqCY+XOhP0=;
- b=GmWA2dDUDVHZnbb+nEZh3aH02OVth7yr+2bW6lNio+UsBQbut5knRXUo5MA2Y8GbY2W82DdJsxo2
-   YlVSkA2MZr4U3sclEEpm8kyqITgQw3em9drRK+T1jMvmRAVVayVN0EZSFt7lOmObU5387RnxgjU/
-   uIckV+1jaAVuPozQUyjEUY80SOB6+yNa5Aefksn3TXhw/Jx5ELh043qx4uEMaZ/MEpCqt72+ut5H
-   vP4OByQUCzmQumn8sktm5I27fKr9/JNoQsOtwhQN71UeMhJSQdInsvVFoogKIKg+rptERXvo993l
-   zC5gFq5vEh8C32BHvU4H4h7EhdC2/yB9Qyrkxg==
+ bh=4ae+P6tF72bG/+WC9HoAPonwOpIWM6RZCa1wF3OSank=;
+ b=OCrKVdZyEqGcS0FH1/ZyXRKW9720miGpkWODLG+/dF3oWVKQ3zgJjtK2Jq1OdTet4+vEA4iwBueu
+   /yfL8CvVIF3881g9LPo9f2DqcZp6gsbGrfMe9tRoGv35KjIL6UswssSeZlQp5n/e3Q8/VD16Q1mx
+   2Me9DIybjRJbX1HvgVNrEJOaGfIpCq33YUk3f0nLlgFxOwYqXCgrYGXc6c9gKCAX0vhrpNuNpASi
+   pGPbnE7TW/36DRaOg6X03EXpq5YSJC4DeTqIbbbmlntQ1qNn7ISzx2LGh+WkKym4myAVGXlpWmx5
+   fvfx7hzEuApZ+s/olre61Tm4sj99kb4ZBWsoWA==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=CW63yG+4IjZjtp+Xb5sHsokg3nfp8LtCyoqCY+XOhP0=;
- b=hHwNqhrxsy8QYLP2xPxOADm94UH9dwlZ3bvOwmTSr626EKYQHdFW0Vjv+KqZWu8xqQddnnlW9ntl
-   2WnL6sfg/JS2cfXSeKhpTMOzUQ1qtlKmakaCtRndPAMChCjIf411l+WR5heuFiI0MRuPdFwiXQPw
-   6L9Jzjt4IRxbDZtWzgQe0VE6lqjCkBoqtYL0QxpsgQBg9nvJXPwi/cqKAMCFQOt71Xb4/n4gWRiF
-   rOu+SUKVVHK8dhWQn2Ew9EMyt1oknnxvjm/Ku9eT6zmH6OEGwaOe0kTgnbhGgsTYqnGdKqiFwLDN
-   adXvIbDW31ysT5EpRVGxafIu77SMmEsOCmCPLw==
-Received: by omta-ad3-fd3-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
+ bh=4ae+P6tF72bG/+WC9HoAPonwOpIWM6RZCa1wF3OSank=;
+ b=OKSJquy57ZhSQ552YFRBGIQlejNEGuSe66wGuXHDxOAobd05Z7oybwde5bFd/R+a4wQJRoaPYBQr
+   hzftwLSIa1IEjrKmW9IhkKBv1HozdeypCJR6TiWH0zGJ29jX+P17pNdsDkn5RzAePVWNXAFWiadB
+   OWkxNovlECnO8GpcGXIQnSyjJjmEBHcAZIYKK3jMVnhzvyoitNElSQj9eBDaRvUdzPXn200TJ3Tn
+   Yiz/kjCcdUGCI3X7lIYsH2iOArqmzgOZorw2tN4PjxNCUkIngJ+PzieEVYpQ/jo0O0LXhvV3Mq19
+   Jcem1pN5xEbA8P7B3p5RAS+3QnIfMKF28l3P/A==
+Received: by omta-ad1-fd1-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20221212 64bit (built Dec 12
  2022))
- with ESMTPS id <0ROC00BSM0BSUJD0@omta-ad3-fd3-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
+ with ESMTPS id <0ROC005QT0BSGQ30@omta-ad1-fd1-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
  ocfs2-devel@archiver.kernel.org; Wed, 11 Jan 2023 17:23:52 +0000 (GMT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org; s=k20201202;
- t=1673431768; bh=vTG8tkGkgzpoXSI2/xLzI6Hvg87vZDKZ00P9yxoHI64=;
- h=Subject:From:To:Cc:Date:In-Reply-To:References:From;
- b=KgIY9bOYwJCyOfCiW7o6nNIrn2iWWQQ5tXwTIwDD6HKYH/4GbiuaYsi5USHAueqfF
- qW+c9QphwXJnJEBBSkeZ3QzZ2qjL78DX6brtpjE96UlFGKckD3CshL11vT4uRRIWHz
- uUGbPHoGrJNEMH9NM6lzSSC+MCcnGvoWlKzsj1YG1ecUDwUwqKkPrgm4FQQGLXhuZ6
- tP2riGZnuacry7vNSFPRIhTvYGOxr/NRJY22iA4K0Dv3RFfUbw19rHig2ttj+ZUO0x
- 2LDUVW+peqK8CV6IqOT/qJhTun4pq3CFSD/d/wg4wfgC4RYw29uJqQkwH1RoioVK2c
- R6J71KCrpkAKg==
-Message-id: <b93df374c14a0841823da7d5fadd96a0077762c6.camel@kernel.org>
-To: Al Viro <viro@zeniv.linux.org.uk>
-Date: Wed, 11 Jan 2023 05:09:22 -0500
-In-reply-to: <Y74bDlSiEb2dRFSx@ZenIV>
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+ d=armlinux.org.uk; s=pandora-2019; h=Sender:In-Reply-To:Content-Type:
+ MIME-Version:References:Message-ID:Subject:Cc:To:From:Date:Reply-To:
+ Content-Transfer-Encoding:Content-ID:Content-Description:Resent-Date:
+ Resent-From:Resent-Sender:Resent-To:Resent-Cc:Resent-Message-ID:List-Id:
+ List-Help:List-Unsubscribe:List-Subscribe:List-Post:List-Owner:List-Archive;
+ bh=/B/lUwSLDdy4TKNacqRrqVdQIO2bhHf2Dz5b7u6s8PE=; b=bcql4AlYVAJfMUZcdgk78k/Yny
+ q4YxTySo08vOzZJbXrcUsvwxHEdzxgb+Ii1pvB23J18DFaDaSxWwBDTwyZecKpMjpzQSj9cSdzwmB
+ E7FeOscjYnn+NHlMhzBHTcQyUCHILWDwxB3r/wjmCpMi1dOhxzWkdzfdVZaVaLtHEn2WfhcBSiMoJ
+ xaR4xsr0iH8jHbII4QbOQBd/z6Ffk95rwXeSJqAugvrLrUzd2S6So2J6l2wpGNMPAo+GmrZbGZYy2
+ 3br39DqBSOcN8JgFwxhPiVl/2Ubg9nDcfM/BSKfMobkmQa8ifVIF5567jY8IZeuTcc+4AkuGErYD7
+ D1ThFcXw==;
+Date: Wed, 11 Jan 2023 11:29:35 +0000
+To: Jeff Layton <jlayton@kernel.org>
+Message-id: <Y76dnx07NGAS2jqG@shell.armlinux.org.uk>
 References: <20230105211937.1572384-1-jlayton@kernel.org>
- <Y74bDlSiEb2dRFSx@ZenIV>
-User-Agent: Evolution 3.46.2 (3.46.2-1.fc37)
 MIME-version: 1.0
-X-Source-IP: 139.178.84.217
+Content-disposition: inline
+In-reply-to: <20230105211937.1572384-1-jlayton@kernel.org>
+X-Source-IP: 78.32.30.218
 X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10586
  signatures=596816
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 priorityscore=0
+ lowpriorityscore=0 phishscore=0 suspectscore=0 clxscore=177 impostorscore=0
+ mlxscore=0 mlxlogscore=999 spamscore=0 malwarescore=0 bulkscore=0 adultscore=0
+ classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2212070000
+ definitions=main-2301110085
 Cc: Latchesar Ionkov <lucho@ionkov.net>,
  Martin Brandenburg <martin@omnibond.com>,
  Dominique Martinet <asmadeus@codewreck.org>,
@@ -56,15 +63,15 @@ Cc: Latchesar Ionkov <lucho@ionkov.net>,
  David Howells <dhowells@redhat.com>, Marc Dionne <marc.dionne@auristor.com>,
  linux-xfs@vger.kernel.org, Mike Marshall <hubcap@omnibond.com>,
  linux-cifs@vger.kernel.org, Andreas Gruenbacher <agruenba@redhat.com>,
- Miklos Szeredi <miklos@szeredi.hu>, Russell King <linux@armlinux.org.uk>,
- linux-afs@lists.infradead.org, cluster-devel@redhat.com,
- Christine Caulfield <ccaulfie@redhat.com>,
+ Miklos Szeredi <miklos@szeredi.hu>, linux-afs@lists.infradead.org,
+ cluster-devel@redhat.com, Christine Caulfield <ccaulfie@redhat.com>,
  v9fs-developer@lists.sourceforge.net, Ilya Dryomov <idryomov@gmail.com>,
  Namjae Jeon <linkinjeon@kernel.org>, devel@lists.orangefs.org,
  Shyam Prasad N <sprasad@microsoft.com>,
  Eric Van Hensbergen <ericvh@gmail.com>, linux-nfs@vger.kernel.org,
  Tom Talpey <tom@talpey.com>, linux-fsdevel@vger.kernel.org,
- ceph-devel@vger.kernel.org, Xiubo Li <xiubli@redhat.com>,
+ Alexander Viro <viro@zeniv.linux.org.uk>, ceph-devel@vger.kernel.org,
+ Xiubo Li <xiubli@redhat.com>,
  Trond Myklebust <trond.myklebust@hammerspace.com>,
  linux-arm-kernel@lists.infradead.org, Christian Brauner <brauner@kernel.org>,
  Paulo Alcantara <pc@cjr.nz>, samba-technical@lists.samba.org,
@@ -87,60 +94,58 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: Jeff Layton via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: Jeff Layton <jlayton@kernel.org>
+From: "Russell King \(Oracle\) via Ocfs2-devel" <ocfs2-devel@oss.oracle.com>
+Reply-to: "Russell King \(Oracle\)" <linux@armlinux.org.uk>
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-ServerName: dfw.source.kernel.org
-X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 include:_spf.kernel.org ~all
-X-Proofpoint-Spam-Reason: safe
-X-Spam: OrgSafeList
-X-SpamRule: orgsafelist
-X-Proofpoint-ORIG-GUID: d-RqZ4BlCUDJnFKyFXfJGv7oATIKbKRU
-X-Proofpoint-GUID: d-RqZ4BlCUDJnFKyFXfJGv7oATIKbKRU
+X-ServerName: pandora.armlinux.org.uk
+X-Proofpoint-SPF-Result: None
+X-Spam: Clean
+X-Proofpoint-ORIG-GUID: 38-52m9wdVVvYof1q4iAwhEO1z25iOHj
+X-Proofpoint-GUID: 38-52m9wdVVvYof1q4iAwhEO1z25iOHj
 X-Mailman-Approved-At: Wed, 11 Jan 2023 17:23:49 +0000
 Reporting-Meta:
- AAEsf/JyPiaHwETmdK4+8xEm5lrkveHQ3G8FPwiw4qKQT/aXKR1z/C25hPXK0/BV
- 7pw/8b56MZhHBVSWI9m1hoDfN3b4yYAOv4Bgk17lnkZVDiws8OJKy/NIHk3f0dMX
- lEM7TfRBpR4tNHkPI0ukdt9Qv987Arzwyku4+eTDzCrF6wAzDEFaAzPCTKQSKMZL
- 79oHMkB+/H+MU5ZIUKHNM8/tb4xggfnylmTpaIUhVN235t+eKqfJ5yzXkfSw7xIw
- p7LppbysBgu20yHOGyD+jF8owk2S8gSDpz0FYRoRp04dmx4f2UekMtj9fk3g4qNG
- 2Z2qVRxpuioKZbxKZ33nR56t8x7KP13U7d9PYbaG1TGDWKzHRO+j1wb2dVhG72cd
- nR87D2B54T5A9tsk91gwlUFanBifhh8xn/HXImF/5iAsDmCZ8f+zlKMftq6Ae2oK
- A5SzUFBnzTo7frOv1DFgQu+mZuw6uilagm0W6eeUIxVOKpAZaoAKhspFcg6HtUGB
- LBx00ovum5wynuFy87UXEukZKPtVyl/bNRIeS8woKLg=
+ AAGwVvAPUbowzOp006cK5ta00gD8gMlFu+mZGtAuzG8oB2Eg47RTLxkOTu2aHO0O
+ dwHbLtr7KQ9HBHb64a6Gr4jJmzg9pzndRG4CHhykTiKZfMDgSl2DyTnsGFbcJ/Fc
+ RgUqNLhtJ1H0Ea9fG+vuShGnxag0hIVW8I/baKpyQC3L8qwzhCCvg0+h/JRl2w/e
+ wI15Lfzs8Red9ap/JHGrwRlajEbp07M8/hqqzEdyEWDHJx7cnD146KqixjvLPSY5
+ vsS6F4Z1Q5BugavuQD+znwftb/gVmndybVbO5VkL1F9c1VaYgliUCJT2hc5njcVA
+ KItJHjf7Q4p7Xo+IhQ4C1eZAKaHR8Ria2OqL6quqwWGXtr4pOlZxwiPMNUv/XFEf
+ SSHSAZ44XdSzGAGGIUfgZhLiJFKXDgI4fg6PqRBlwbhlzthaJhs8UJY+DYqGUTEn
+ Ld0A/q8rXKb0h4iMuklL68habJeTBFqklK16Rczq5kBqCD26NGPbO4QpasNXHoLg
+ LQwk09Da3O3Kwyrj97spE1V+CKLWWdyn21WgcxOsZ+0=
 
-On Wed, 2023-01-11 at 02:12 +0000, Al Viro wrote:
-> On Thu, Jan 05, 2023 at 04:19:29PM -0500, Jeff Layton wrote:
-> > The file locking definitions have lived in fs.h since the dawn of time,
-> > but they are only used by a small subset of the source files that
-> > include it.
-> > 
-> > Move the file locking definitions to a new header file, and add the
-> > appropriate #include directives to the source files that need them. By
-> > doing this we trim down fs.h a bit and limit the amount of rebuilding
-> > that has to be done when we make changes to the file locking APIs.
-> > 
-> > Reviewed-by: Xiubo Li <xiubli@redhat.com>
-> > Reviewed-by: Christian Brauner (Microsoft) <brauner@kernel.org>
-> > Reviewed-by: Christoph Hellwig <hch@lst.de>
-> > Reviewed-by: David Howells <dhowells@redhat.com>
-> > Acked-by: Chuck Lever <chuck.lever@oracle.com>
-> > Acked-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-> > Acked-by: Steve French <stfrench@microsoft.com>
-> > Signed-off-by: Jeff Layton <jlayton@kernel.org>
+On Thu, Jan 05, 2023 at 04:19:29PM -0500, Jeff Layton wrote:
+> The file locking definitions have lived in fs.h since the dawn of time,
+> but they are only used by a small subset of the source files that
+> include it.
 > 
-> Same question re git tree preferences (and my Acked-by in any case)
+> Move the file locking definitions to a new header file, and add the
+> appropriate #include directives to the source files that need them. By
+> doing this we trim down fs.h a bit and limit the amount of rebuilding
+> that has to be done when we make changes to the file locking APIs.
+> 
+> Reviewed-by: Xiubo Li <xiubli@redhat.com>
+> Reviewed-by: Christian Brauner (Microsoft) <brauner@kernel.org>
+> Reviewed-by: Christoph Hellwig <hch@lst.de>
+> Reviewed-by: David Howells <dhowells@redhat.com>
+> Acked-by: Chuck Lever <chuck.lever@oracle.com>
+> Acked-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+> Acked-by: Steve French <stfrench@microsoft.com>
+> Signed-off-by: Jeff Layton <jlayton@kernel.org>
+> ---
+>  arch/arm/kernel/sys_oabi-compat.c |   1 +
 
-I'll take this one via the file locking tree as well. FWIW, I have some
-other filelock API changes I'd like to propose, so I think that'll be
-easier.
+For arm:
 
-Thanks,
+Reviewed-by: Russell King (Oracle) <rmk+kernel@armlinux.org.uk>
+
+Thanks.
+
 -- 
-Jeff Layton <jlayton@kernel.org>
+RMK's Patch system: https://www.armlinux.org.uk/developer/patches/
+FTTP is here! 40Mbps down 10Mbps up. Decent connectivity at last!
 
 _______________________________________________
 Ocfs2-devel mailing list
