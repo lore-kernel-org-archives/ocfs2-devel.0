@@ -1,82 +1,77 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc250.phx1.oracleemaildelivery.com (aib29ajc250.phx1.oracleemaildelivery.com [192.29.103.250])
+Received: from aib29ajc251.phx1.oracleemaildelivery.com (aib29ajc251.phx1.oracleemaildelivery.com [192.29.103.251])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 65DF7C05027
-	for <ocfs2-devel@archiver.kernel.org>; Mon, 20 Feb 2023 12:41:25 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id D35E9C05027
+	for <ocfs2-devel@archiver.kernel.org>; Mon, 20 Feb 2023 12:44:26 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=sw+7rLeolz/OBNBOgh1u1sceFWmzxRJZviQxzYYI4RY=;
- b=xA2otwvIqgu6sc2UeKC0T4b2MWC/zW+tN7F/qlqGApxfOU2jRjpyE087f3wSwPqwX2AMsvLj6A3m
-   565BASyaeUfnfn8Uy3jWqE4t6GIqGpsJZM1JmmDI0Kz40TE7M2vrJ3gNHhYTwjlQ+nQ7//kNViUC
-   4bEvnht8Hx6Q1urdgeXb4qb5FnDlY12b2e34s6PdUVePsJn5HIPFc8R/Watg4eLvzt1X219LDlXb
-   xaPLNkawONMLJP8384aiBe+0LkVjoi3De4IX2Vg8o2SzGv9rM2zGiE0SCo34Db62JQVFsGKsAVBx
-   avCspR2KGsFaIPg65ord5Jf5v5rg7tdMBP2Z/Q==
+ bh=POHE8BkS27Rbuu3/02M3PG10jrptkSA7EbEObdehpIg=;
+ b=MK+W8XlNpsHHpzZdcFpo8OHtDlNtx9bfWnore796E4yUU7c1ooxdMM1LnPma5tes0fCFNE7CtVVm
+   CQu+ztPgh3rDn1rxorMOEriJ/YcY5TxJdLu59d6eW8Rqe+jVdFKTIr2D6NtSau/XMIKfMiX0MxdY
+   XkiRL1QizZIHyh7pn2GIPIIW7qi/ercApoU9eY0qtS7eCdE16YBDc1nV6EH8GKobaVZXa2gRhY7E
+   d2OwvjRFsNQBD4VMqyPn2FLlmackt7xpwuvJPvVSrv93lAmURLlrS6/HF+fk5Sj87+wV3oNFgFHN
+   Vjq9iM5mmecppzYyFL7O56baVDGijfsgQjVjfA==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=sw+7rLeolz/OBNBOgh1u1sceFWmzxRJZviQxzYYI4RY=;
- b=bbS9bvD7+DLFhp2CMzc4P42tu2b32zWaWEzp/ELteOJZgUMdwVRC4tzLEe1HHHHimPsRux6Uymck
-   JeKirRqIQ/pqrLACmt6Lb7jQzo52+WR/Qj1HmTHMSeG9CFx6jGI8lcBYOK1D7r/2Sp9lfRgN3e+U
-   LVovo2BooeW+qsYc7vqLD7jKiErournt4eCHrTdYMH3b0TLpN2qBb1NRVks4d4zyEbOqC2BUI0aC
-   7saPqV6CmwUBQ0dsS2LJaOXchRYzAh9g8bY3B9RwmM3BKd5IaXcC/0QVKw8ikwPJKhCGUjB5klUC
-   u023nroWXGbYDNZJdNALlS/ywotiGGUbkyhYYA==
-Received: by omta-ad2-fd3-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
+ bh=POHE8BkS27Rbuu3/02M3PG10jrptkSA7EbEObdehpIg=;
+ b=mi7d5//iEKa/QG2rr21RQ/6pJJtPN7fsei8oe1uSLzQZDbQB7fQlMkVfKMu5zlRmFObzCBwCvXgQ
+   6MzVnfvdsOCwApeQLh/ob8RfJBBBEAueC8SLfHkb/SC6S6VBDdBmDdzPWyNZOPaVviRSJP9X6Il/
+   csHu/v8kJVWM0e/8waikj1wT3Vq7oV+x36q30zoz2cMzxZaAJX65Bf+CBp5D6/+WVqSs3iIKifmy
+   6OjEYflkvwqWM312ApjolD4eNVoTEDRQhcqXz5EvGGS/2lFEXF6uYCoeD/qKWPz5XJvymSlfnt7M
+   ac4TgOfgX8/5NFDzTlKggoXxzvfNjQrbm8Bj3Q==
+Received: by omta-ad2-fd3-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20230206 64bit (built Feb  6
  2023))
- with ESMTPS id <0RQD009OCPX0AH60@omta-ad2-fd3-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Mon, 20 Feb 2023 12:41:24 +0000 (GMT)
+ with ESMTPS id <0RQD00NW4Q21BTC0@omta-ad2-fd3-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Mon, 20 Feb 2023 12:44:26 +0000 (GMT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=ibm.com; h=message-id :
  subject : from : to : cc : date : in-reply-to : references : content-type :
  mime-version : content-transfer-encoding; s=pp1;
- bh=qxjSHyo5E64imuTsFy/ezo2VUmPD8jzVtZLiGDzw3yU=;
- b=AhZvWQA7BhS2bXr5Noa+8wFfd+PZVUIwU3PcO9q3YEHMQCxvCE6TkWbwxpVUZyhECAuc
- Ai41HXKXvvKRx3UZaFqRI0I9RVPhetl4/v1/i/x5f5SU119jiKDuDiVWGHS6QyIdbXXf
- Jw24Z3AjAGvo1/WJ8beIPZQhQo1nWcGxx2ioSdKqQvaVpAbCdVBaN9a07JcMqguCNoHp
- m1FRjLhnp+eOmOPFj13ext6oqonMGxJ7vtZe4Q94NUadZ8ls8F5M/lv5lqGKvYwqt9Su
- tXMqI2ZaqTZlnjoc0xxlg5eiMlVD0EhRo0DZKZcsqtil2tS4K+TGekK7IWYE+MPic6CU Pw==
-Message-id: <0e648efe4bc8028652a5d95ee4c3404bd4a91018.camel@linux.ibm.com>
+ bh=RjFiIL2vWgM7tyrPIzie4SN6UpJPtmIUWHUc+QpTxjc=;
+ b=pc7eJe6H4AvhAHMxn++6uGWF1g7J+9JXzTOhLh8tpEXZCg3xL9Et43K6QhpMtShldcg0
+ VWlfCjbGzxtdCpe+5Hbxz+tmk2gqQHRw6Mp3L45SISfSb9z5b0hhJ0+wCPIrozNC1xoo
+ e7GOCKAAeV2GQ182WX57HHKFZcnCB+xK9vdvslbyflieZYUpxUcKwMnjEnKxTcspIetN
+ vHSJoR+fgF3F+VMaMv90Dn3jofybEF28li3MwKDvZOfaqDisw6GiCNLALZBU2zm7uIi7
+ C43zBNiZpksGSYZ7Rdb8S1UglV2FzuTg1m6MQ4zLTRVCFH3Wy1lXwJyVu1aCkIbCqaeI +w==
+Message-id: <22f48112c2fbc2812317c33af13accb022e9abdf.camel@linux.ibm.com>
 To: Roberto Sassu <roberto.sassu@huaweicloud.com>, mark@fasheh.com,
  jlbec@evilplan.org, joseph.qi@linux.alibaba.com, dmitry.kasatkin@gmail.com,
  paul@paul-moore.com, jmorris@namei.org, serge@hallyn.com,
  stephen.smalley.work@gmail.com, eparis@parisplace.org, casey@schaufler-ca.com
-Date: Mon, 20 Feb 2023 07:40:36 -0500
-In-reply-to: <70d079a7e8b2fa08683b68742a22ba2918765dfc.camel@huaweicloud.com>
+Date: Mon, 20 Feb 2023 07:43:24 -0500
+In-reply-to: <20221201104125.919483-5-roberto.sassu@huaweicloud.com>
 References: <20221201104125.919483-1-roberto.sassu@huaweicloud.com>
- <20221201104125.919483-3-roberto.sassu@huaweicloud.com>
- <a20a6d84d8e682fbff546b80eda75a1918d7c108.camel@linux.ibm.com>
- <aaeee7490cfee1b2163a3c9c894294aaf13e100c.camel@linux.ibm.com>
- <95f9b1dfca0cbff1c6a447dde45c2f835bc1a254.camel@huaweicloud.com>
- <1e93d7b299de3b6cf61b5a5c4be91eb47d864ac6.camel@linux.ibm.com>
- <70d079a7e8b2fa08683b68742a22ba2918765dfc.camel@huaweicloud.com>
+ <20221201104125.919483-5-roberto.sassu@huaweicloud.com>
 X-Mailer: Evolution 3.28.5 (3.28.5-18.el8)
 MIME-version: 1.0
 X-Proofpoint-Virus-Version: vendor=baseguard
  engine=ICAP:2.0.219,Aquarius:18.0.930,Hydra:6.0.562,FMLib:17.11.170.22
- definitions=2023-02-20_10,2023-02-20_02,2023-02-09_01
+ definitions=2023-02-20_09,2023-02-20_02,2023-02-09_01
 X-Proofpoint-Spam-Details: rule=outbound_notspam policy=outbound score=0
- phishscore=0 priorityscore=1501 bulkscore=0 clxscore=1015 lowpriorityscore=0
- mlxlogscore=999 impostorscore=0 spamscore=0 adultscore=0 suspectscore=0
- malwarescore=0 mlxscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ priorityscore=1501 bulkscore=0 phishscore=0 clxscore=1015 mlxscore=0
+ malwarescore=0 lowpriorityscore=0 adultscore=0 mlxlogscore=741 impostorscore=0
+ spamscore=0 suspectscore=0 classifier=spam adjust=0 reason=mlx scancount=1
  engine=8.12.0-2212070000 definitions=main-2302200109
 X-Source-IP: 148.163.156.1
 X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10626
  signatures=596816
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 clxscore=173
- mlxlogscore=999 lowpriorityscore=0 phishscore=0 impostorscore=0 mlxscore=0
- adultscore=0 spamscore=0 bulkscore=0 suspectscore=0 priorityscore=228
- malwarescore=0 classifier=spam adjust=0 reason=mlx scancount=1
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 spamscore=0
+ lowpriorityscore=0 malwarescore=0 phishscore=0 impostorscore=0 clxscore=132
+ mlxlogscore=675 adultscore=0 bulkscore=0 suspectscore=0 mlxscore=0
+ priorityscore=237 classifier=spam adjust=0 reason=mlx scancount=1
  engine=8.12.0-2212070000 definitions=main-2302200115
 Cc: nicolas.bouchinet@clip-os.org, keescook@chromium.org,
  selinux@vger.kernel.org, Roberto Sassu <roberto.sassu@huawei.com>,
  reiserfs-devel@vger.kernel.org, linux-kernel@vger.kernel.org,
  linux-security-module@vger.kernel.org, linux-integrity@vger.kernel.org,
  ocfs2-devel@oss.oracle.com
-Subject: Re: [Ocfs2-devel] [PATCH v7 2/6] ocfs2: Switch to
-	security_inode_init_security()
+Subject: Re: [Ocfs2-devel] [PATCH v7 4/6] security: Allow all LSMs to provide
+ xattrs for inode_init_security hook
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -98,80 +93,74 @@ X-ServerName: mx0a-001b2d01.pphosted.com
 X-Proofpoint-SPF-Result: pass
 X-Proofpoint-SPF-Record: v=spf1 ip4:148.163.158.5 ip4:148.163.156.1 ~all
 X-Spam: Clean
-X-Proofpoint-ORIG-GUID: OQCfUOfZOsvVSTr7PK2QOMNEGHdcvgjU
-X-Proofpoint-GUID: OQCfUOfZOsvVSTr7PK2QOMNEGHdcvgjU
+X-Proofpoint-GUID: Bf-r0axlaP3zGg_sJrOEH9LJG9oQbYqF
+X-Proofpoint-ORIG-GUID: Bf-r0axlaP3zGg_sJrOEH9LJG9oQbYqF
 Reporting-Meta:
- AAHpGQ5pPaZ/ta42CXYKAi9k5ypn5zg8D0895fCn9cfBwBYG9qeheXUtBypjXcaY
- oPE0kOkIZ+IBP5+rW47y8o0Biops0eEwUoara3ubXo7cFahaDh1J5uTlAf7NQaIQ
- eEIICo7ifgP8ZPXkhSe7BaKbY1zFyMQM3BhurLtLHr7E1urm0+k2w9o4wRVH/oQ8
- +AqJkPWLrlkdzadNmFrFGmVdMOFt1afVbouOgQFo6aCJkYMe1MXayrrDLRom+Uop
- IlC6kjYjRTuiCQB7o47LAKUJ9bAJ+GVNgUvTsRq9dl/i6Dow+8EbpXg1us7nBGAu
- PLEOtueKct2vE1sXyRtvby2cIKzFVtRBrLsF89AbaqYW54+ms8/S7DHAiL7/fTlX
- RGPcBHHWJVEroQaQtKq7K6P1kM8CKDDjbQPyonoIjmw6I8xrtoIZgL6XrhFXq0Gl
- DQHq6io2yhwQQvtyjZws/dAdFSW4DiJTW1Wo0l/R3aZatvzWyg69v55NTsvwI6Vx
- H6zAdC7sqvE0Rqval95C6o7n7j/3vn0zyc5IJBD2JkJV
+ AAG/yFG0LojD46iChGrNN9oqAPIYUHjeKugu0MFuGHyUeX6ep1hAPL3yE5puiLex
+ GYjpLRC8y6j/Q6Hr7lwj+K7ECRrpptiVYAkEeatI0d4PY1FKdvm4Y7fnr/J4NnyU
+ 9sHpoIAuaCo+yv9jXZ02afZwWd/HWgn3knfAS753ZNsZvCEFIDxg7J0aGPscvsWv
+ 7LAFPhjQ1hI3iuTaFnbteMiw6FX8jwLqniUhPsVHijNR4vUrZaE0XZtix9Wxa49y
+ 0LF2+0/zxGe5u6gf+4vMRRXpXDrsFgyVjHqgyNsyB68xNc1iDjc+U/23veDDnSub
+ op1gScoByw6ZqFhEJqabmKFnGKMEZqkuB3PcrfRsZja+WCcfgL0jq8eDYjMfI9Md
+ OEBPSQdQBQTGKGDM7vQyIttiSUggpNOzxGFSTpf0va/coPYHDjI/8rbZwK7ylgIj
+ WktzLURUJlWS0SVs0zGNe7B1eWFdpQi/C9uSk5sld3v6ecLegUo23tRN8TTLxVsl
+ L2l9J1mP4VBcuM4MVIMxHQY/CRwRAZDH8WPcNfvEE11n
 
-On Mon, 2023-02-20 at 13:20 +0100, Roberto Sassu wrote:
-> On Mon, 2023-02-20 at 06:08 -0500, Mimi Zohar wrote:
-> > > > > > diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-> > > > > > index 95d0611c5fc7..55699c573541 100644
-> > > > > > @@ -7277,13 +7289,23 @@ int ocfs2_init_security_get(struct inode *inode,
-> > > > > >  			    const struct qstr *qstr,
-> > > > > >  			    struct ocfs2_security_xattr_info *si)
-> > > > > >  {
-> > > > > > +	int ret;
-> > > > > > +
-> > > > > >  	/* check whether ocfs2 support feature xattr */
-> > > > > >  	if (!ocfs2_supports_xattr(OCFS2_SB(dir->i_sb)))
-> > > > > >  		return -EOPNOTSUPP;
-> > > > > > -	if (si)
-> > > > > > -		return security_old_inode_init_security(inode, dir, qstr,
-> > > > > > -							&si->name, &si->value,
-> > > > > > -							&si->value_len);
-> > > > > > +	if (si) {
-> > > > > > +		ret = security_inode_init_security(inode, dir, qstr,
-> > > > > > +						   &ocfs2_initxattrs, si);
-> > > > > 
-> > > > > The "if (unlikely(IS_PRIVATE(inode))"  test exists in both
-> > > > > security_old_inode_init_security() and security_inode_init_security(),
-> > > > > but return different values.  In the former case, it returns
-> > > > > -EOPNOTSUPP.  In the latter case, it returns 0.  The question is
-> > > > > whether or not we need to be concerned about private inodes on ocfs2.  
-> > > > > If private inodes on ocfs2 are possible, then ocsf2_mknod() or
-> > > > > ocfs2_symlink() would fail to create the inode or symlink.
-> > > > 
-> > > > Correction, previously when returning -EOPNOTSUPP for private inodes,
-> > > > xattrs would not be wrriten.  By returning 0 without setting si->enable 
-> > > > to 0, xattrs will be written.
-> > > 
-> > > Ok, but if there is a private inode, we would be setting si->enable to
-> > > zero. Should be ok, I guess.
-> > 
-> > si->enable is being set to zero, below, but is conditional on !si-
-> > > name.
-> > 
-> > This is the last concern, otherwise the patch set looks good.
+On Thu, 2022-12-01 at 11:41 +0100, Roberto Sassu wrote:
+> From: Roberto Sassu <roberto.sassu@huawei.com>
 > 
-> Uhm, if the inode is private, security_inode_init_security() will
-> immediately return. So, the condition !si->name should be always true.
-
-Ok, thanks for checking.
-
+> Currently, security_inode_init_security() supports only one LSM providing
+> an xattr and EVM calculating the HMAC on that xattr, plus other inode
+> metadata.
 > 
-> > > > > > +		/*
-> > > > > > +		 * security_inode_init_security() does not return -EOPNOTSUPP,
-> > > > > > +		 * we have to check the xattr ourselves.
-> > > > > > +		 */
-> > > > > > +		if (!ret && !si->name)
-> > > > > > +			si->enable = 0;
-> > > > > > +
-> > > > > > +		return ret;
-> > > > > > +	}
-> > > > > >  
-> > > > > >  	return security_inode_init_security(inode, dir, qstr,
-> > > > > >  					    &ocfs2_initxattrs, NULL);
+> Allow all LSMs to provide one or multiple xattrs, by extending the security
+> blob reservation mechanism. Introduce the new lbs_xattr field of the
+> lsm_blob_sizes structure, so that each LSM can specify how many xattrs it
+> needs, and the LSM infrastructure knows how many xattr slots it should
+> allocate.
 > 
+> Dynamically allocate the xattrs array to be populated by LSMs with the
+> inode_init_security hook, and pass it to the latter instead of the
+> name/value/len triple. Update the documentation accordingly, and fix the
+> description of the xattr name, as it is not allocated anymore.
+> 
+> Since the LSM infrastructure, at initialization time, updates the number of
+> the requested xattrs provided by each LSM with a corresponding offset in
+> the security blob (in this case the xattr array), it makes straightforward
+> for an LSM to access the right position in the xattr array.
+> 
+> There is still the issue that an LSM might not fill the xattr, even if it
+> requests it (legitimate case, for example it might have been loaded but not
+> initialized with a policy). Since users of the xattr array (e.g. the
+> initxattrs() callbacks) detect the end of the xattr array by checking if
+> the xattr name is NULL, not filling an xattr would cause those users to
+> stop scanning xattrs prematurely.
+> 
+> Solve that issue by introducing security_check_compact_filled_xattrs(),
+> which does a basic check of the xattr array (if the xattr name is filled,
+> the xattr value should be too, and viceversa), and compacts the xattr array
+> by removing the holes.
+> 
+> An alternative solution would be to let users of the xattr array know the
+> number of elements of that array, so that they don't have to check the
+> termination. However, this seems more invasive, compared to a simple move
+> of few array elements.
+> 
+> security_check_compact_filled_xattrs() also determines how many xattrs in
+> the xattr array have been filled. If there is none, skip
+> evm_inode_init_security() and initxattrs(). Skipping the former also avoids
+> EVM to crash the kernel, as it is expecting a filled xattr.
+> 
+> Finally, adapt both SELinux and Smack to use the new definition of the
+> inode_init_security hook, and to correctly fill the designated slots in the
+> xattr array. For Smack, reserve space for the other defined xattrs although
+> they are not set yet in smack_inode_init_security().
+> 
+> Reported-by: Nicolas Bouchinet <nicolas.bouchinet@clip-os.org> (EVM crash)
+> Signed-off-by: Roberto Sassu <roberto.sassu@huawei.com>
+> Reviewed-by: Casey Schaufler <casey@schaufler-ca.com>
 
+Reviewed-by: Mimi Zohar <zohar@linux.ibm.com>
 
 
 _______________________________________________
