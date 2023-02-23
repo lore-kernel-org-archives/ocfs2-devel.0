@@ -1,56 +1,56 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc246.phx1.oracleemaildelivery.com (aib29ajc246.phx1.oracleemaildelivery.com [192.29.103.246])
+Received: from aib29ajc248.phx1.oracleemaildelivery.com (aib29ajc248.phx1.oracleemaildelivery.com [192.29.103.248])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 2FEBAC64ED8
-	for <ocfs2-devel@archiver.kernel.org>; Thu, 23 Feb 2023 21:06:45 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id D66EFC64ED8
+	for <ocfs2-devel@archiver.kernel.org>; Thu, 23 Feb 2023 21:06:51 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=uIHgFgQm52PZ9DGZV491sE1DATQAq42+dPwTMhvMkOo=;
- b=h+EWIN0necCRvuHALS1PzQSH7seDjlcBl68cwvZYN02nzd3ZnmZpkphtv/8RF4auS0YcBLOTdRi5
-   Vy3inAzr1cdqfHT3/XdLmpLyJODaFfhYfA+uYJPZKdzsB322u9D5rENDPdUKtvoFViFZDwqMD4pa
-   yZU3jnQfnBTROBLmT3l1vSihrXQZFrHqfACKuGOgcbL+q1btNySrXIeLtu2GEQKiIj1c/TpRvzF2
-   o+d5p+9O2wHNsVhuacZUMRAnSxvhugJf0ldAkc8A33Y14mIifo3sDh2SsR627VcNsOxvd38e+7Y3
-   68hXk+8jsJIW7gko0wo7plqmJCY3g6kj1c9yQw==
+ bh=+Erhcik9dnQ2gWPeWz+dlog/7j+KpJJRXv2732/+25A=;
+ b=UdCQTTQXeNgDL6MZ5++XilI/TGtNMCgLDEdVi3GB4oSA6qYmXa2S4ZjL2ZV8vCItsdfXU8slf847
+   KAupq5YsKI5cAd1HSMuvf0M4/Q8OwrO1iA3e45lpzhA74b/9GQBQcq1POQAbn7Xzu7e7Zyqx/PWr
+   /mtZOzduUXuwzEyPEf9T7uLuXczj/AgJzcXmIlMbqCZARRp0O662hehVRTkrTahqLt2A66RMMoV6
+   VEAbShWx/0fqBpts53dcZ2cjiqbGigpkxD+EZ0qYBx1BwcyEEi37rhRR/qXzHCQQx9uCiwj0yVKc
+   3LwyRpm1GqrVBQ3BssftElyFRoSjM2Fw7grI8w==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=uIHgFgQm52PZ9DGZV491sE1DATQAq42+dPwTMhvMkOo=;
- b=iKLXLoEOVK3Ium5yhxmhDNXZ9wZT6kn88qVaBjLNAyWCk3v/MaInc/I/DbVnWVyDs1se4mCymR43
-   gvnKHaSuvqvzJHHSC9oNzR8D12hc/sfKl9DMBXa8MAR143Xmiv7jDY0BD8Ln2kdC2mOKz5p823eX
-   2ci4RXfVp7ocDqNYBOYUhMY8ILi55W8uaikE+qiM6+rR6tzX+j5qhs+DZEtjCsTl8w6oncd2iHBd
-   uWnI/k0Lugw/o+cwpRgAlLC4MwF4FMtmm+EPrExCNrxgMoEGKskVrMP8dXmY3n7AWguqJ4jEr5+q
-   NxGS7ihnwBbyBGp0rloJoVL2i2IlYsloY3ZDwQ==
-Received: by omta-ad1-fd3-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
+ bh=+Erhcik9dnQ2gWPeWz+dlog/7j+KpJJRXv2732/+25A=;
+ b=WrhfUeTO7xUhUZn6BJJb+LjQX5mbv8jW6NTblHzxEP9vAHOoAcm7LLLC//ViYuN2aXta+kbkVLFD
+   S2A21Os+l0ge84OxoSNvQf44VWRf19ZTAQThebbZqweSxKaxBbGjLUrMisR8G7gB/WngSIhuWPAr
+   3suT2QF4MqoYui1pLO6symvNj5hcSitVXKHCz6nKByLXdW8x9Z3W6jygBZjgoEw91y0HZTUQE8qZ
+   DOBlT/e4laFHoB9TjCoe/jUYyNrVjlS/RVtYxHnQ0yqv0SQGTIEiD6tdZRNU7yu7KzGEkkwonI1P
+   Cb0ATFHTl4y87Kv0g2/XzyeoEEdQOwdE0ImS2w==
+Received: by omta-ad2-fd1-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20230206 64bit (built Feb  6
  2023))
- with ESMTPS id <0RQJ00COEXB8T0E0@omta-ad1-fd3-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Thu, 23 Feb 2023 21:06:44 +0000 (GMT)
+ with ESMTPS id <0RQJ00EO7XBE1700@omta-ad2-fd1-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Thu, 23 Feb 2023 21:06:50 +0000 (GMT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linux-foundation.org;
- s=korg; t=1677186386; bh=2+tTarYZdPsR9XrnsqJ4oM0JxxZzq9aRWCyVIhx9Xak=;
+ s=korg; t=1677186388; bh=46eNsRC3mfD38LEk7IkS4/LHgA+yCMd0QH7FJUCXC8k=;
  h=Date:To:From:Subject:From;
- b=ZNvNfvtJKJ0AHmDGmjoqhtlruLfM0UgQNWokLpJK2V2EBvdDqTkc8rP03+a0Rln91
- HQW2RF8R+mlKvKmGEAfR8ZDicqYvlzpqWBRthkp5chDd2nJ+uPC53HkrnKdwKT5VJw
- dq3zRJ0L79M32PVjf9lw2FaYh0GjK89Vzz+AVK5Q=
-Date: Thu, 23 Feb 2023 13:06:26 -0800
+ b=Vt/3mbg3MrhV7h4DJuCz/b9e/pmMUfrfaqXFmWfedDvNGBqE57UQfdr7vZKy/WT1m
+ 4fCcosRhbkFB0uvc1J4t4i8a9IDF/GAuQc0PAUZRQ6Th2Nq2FgnfLcGP+3Mt9KLNhJ
+ FyVTfh3R/N5QEsd1Cqnp2l6jafrKqP5BeFp7itf0=
+Date: Thu, 23 Feb 2023 13:06:28 -0800
 To: mm-commits@vger.kernel.org, stable@vger.kernel.org, piaojun@huawei.com,
  mark@fasheh.com, junxiao.bi@oracle.com, joseph.qi@linux.alibaba.com,
  jlbec@evilplan.org, heming.zhao@suse.com, ghe@suse.com, gechangwei@live.cn,
  ocfs2-devel@oss.oracle.com, akpm@linux-foundation.org
-Message-id: <20230223210626.B6F0FC433D2@smtp.kernel.org>
-X-Source-IP: 145.40.68.75
+Message-id: <20230223210628.B9768C433D2@smtp.kernel.org>
+X-Source-IP: 139.178.84.217
 X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10630
  signatures=596816
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 mlxlogscore=999
- impostorscore=0 phishscore=0 clxscore=182 spamscore=0 lowpriorityscore=0
- mlxscore=0 adultscore=0 malwarescore=0 bulkscore=0 priorityscore=118
- suspectscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 malwarescore=0
+ clxscore=182 bulkscore=0 suspectscore=0 priorityscore=118 phishscore=0
+ adultscore=0 mlxlogscore=999 spamscore=0 mlxscore=0 impostorscore=0
+ lowpriorityscore=0 classifier=spam adjust=0 reason=mlx scancount=1
  engine=8.12.0-2212070000 definitions=main-2302230174
-Subject: [Ocfs2-devel] + ocfs2-fix-defrag-path-triggering-jbd2-assert.patch
-	added to mm-hotfixes-unstable branch
+Subject: [Ocfs2-devel] +	ocfs2-fix-non-auto-defrag-path-not-working-issue.patch
+ added	to mm-hotfixes-unstable branch
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -68,32 +68,32 @@ MIME-version: 1.0
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-ServerName: ams.source.kernel.org
+X-ServerName: dfw.source.kernel.org
 X-Proofpoint-SPF-Result: pass
 X-Proofpoint-SPF-Record: v=spf1 ip4:140.211.169.12/30 include:_spf.kernel.org
  include:_spf.google.com ~all
 X-Spam: Clean
-X-Proofpoint-GUID: p-XtAJbDJ61kilsmpNVbVfiKMSSRqAf-
-X-Proofpoint-ORIG-GUID: p-XtAJbDJ61kilsmpNVbVfiKMSSRqAf-
+X-Proofpoint-GUID: 1VWU8Lw96cUDCoE0dOGbuIPcLyCl7SjM
+X-Proofpoint-ORIG-GUID: 1VWU8Lw96cUDCoE0dOGbuIPcLyCl7SjM
 Reporting-Meta:
- AAHR2A8HUvJlcmdRFe82Fi3hjADx/9E+gx7ZxDPm2yl2WaTsvdhtRJ2kpMN3RIEP
- LsosRZJYIGJD3A9CLEbpcNFEY2nyS0d0HnHa1KNX8xkIaFIWpR+G/zX/EHXmlWQn
- Oi32Sr6MVD6iTbHjXlmb+N4yQt71MS9NoFLQqsRdap0SIhAe3lraMNJa7TLT8ND/
- Gv+MmoZkGOWN4LIxZjr9p3ZbgcxhijijuFTh17OAxQzt9ISJ91f8T53b3udam4/w
- KLDb6F8HhcCfyvs12d3q/j0L/tkL/c/ej2fCtGOjBKIIuDEuGt0oYwmYD4fjB3QN
- n9AFO8KC/OnaGk3k922YPPFKcUrShLIEpwisezOARHuKbfn/KVdGdboS2XNIr5T8
- lJXEXlYsiShmgBX+NnkCxVjgcHznp09jN4TDrgu2lc8vgbXKspA3SDhDTNKNA37k
- nfX7c/vQrOSe33arIlW3TMi5QjUdmqInPgVk3t0I/T6jnSJJAnvEpVpio0nhtlDe
- JRsRkPRH+g2aMA9T6pNmo+p1Z0EbR1yjbxtk7ggHNImw
+ AAEYmtKZVdZGmUvnZ4LmT6PBlrSFFCkIV2KUi3dX1DhXQR5Lf0LdXq9PZpxxt4Gm
+ 0u/QUvEN/h+j5QlfONYE5KLDYn4udsVkMr731nFivKu2zwc/HAeok9Pj9vNvAdm3
+ I9uQFV8q9x3YSyWtm10dBh49StG8Em7WRgpcipR3htLS2pTgQooQG41mfc5haXVS
+ GrVGAhv0DRjThzd9zfQnf8sK39uJBz0dM9yYqPoGPzmSMZBKhekIV1w7lHkcy6Q1
+ 2or+n11Lygmt5us+f+OzhtUHLRR+VxtDu0kSsZDI3TQzx1z6rDmrn6LLP5ff+8zk
+ V97Wg5VkcubNUjxL20/0jeMr+GkPAR3zg004+J5eWqDpPJSr4lIHzT2jg2AtvN4z
+ XKhKD7JkInVbaE3HKLLyrGyYxizRuXO5OY49PHyOd4xuCuakvPflBWGSjGunjUjJ
+ cp1b5JB6hhkbhLY6XIiB0DyPcppmXZ8hRjef9iGXDzK6xpexfY1nHS0nDP6WodhS
+ q82zpO01Ylu6VQPM5uhtc64gBsxTwkCEO16XLD8QGZNR
 
 
 The patch titled
-     Subject: ocfs2: fix defrag path triggering jbd2 ASSERT
+     Subject: ocfs2: fix non-auto defrag path not working issue
 has been added to the -mm mm-hotfixes-unstable branch.  Its filename is
-     ocfs2-fix-defrag-path-triggering-jbd2-assert.patch
+     ocfs2-fix-non-auto-defrag-path-not-working-issue.patch
 
 This patch will shortly appear at
-     https://git.kernel.org/pub/scm/linux/kernel/git/akpm/25-new.git/tree/patches/ocfs2-fix-defrag-path-triggering-jbd2-assert.patch
+     https://git.kernel.org/pub/scm/linux/kernel/git/akpm/25-new.git/tree/patches/ocfs2-fix-non-auto-defrag-path-not-working-issue.patch
 
 This patch will later appear in the mm-hotfixes-unstable branch at
     git://git.kernel.org/pub/scm/linux/kernel/git/akpm/mm
@@ -112,59 +112,27 @@ and is updated there every 2-3 working days
 
 ------------------------------------------------------
 From: Heming Zhao via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Subject: ocfs2: fix defrag path triggering jbd2 ASSERT
-Date: Fri, 17 Feb 2023 08:37:17 +0800
+Subject: ocfs2: fix non-auto defrag path not working issue
+Date: Mon, 20 Feb 2023 13:05:26 +0800
 
-code path:
+This fixes three issues on move extents ioctl without auto defrag:
 
-ocfs2_ioctl_move_extents
- ocfs2_move_extents
-  ocfs2_defrag_extent
-   __ocfs2_move_extent
-    + ocfs2_journal_access_di
-    + ocfs2_split_extent  //sub-paths call jbd2_journal_restart
-    + ocfs2_journal_dirty //crash by jbs2 ASSERT
+a) In ocfs2_find_victim_alloc_group(), we have to convert bits to block
+   first in case of global bitmap.
 
-crash stacks:
+b) In ocfs2_probe_alloc_group(), when finding enough bits in block
+   group bitmap, we have to back off move_len to start pos as well,
+   otherwise it may corrupt filesystem.
 
-PID: 11297  TASK: ffff974a676dcd00  CPU: 67  COMMAND: "defragfs.ocfs2"
- #0 [ffffb25d8dad3900] machine_kexec at ffffffff8386fe01
- #1 [ffffb25d8dad3958] __crash_kexec at ffffffff8395959d
- #2 [ffffb25d8dad3a20] crash_kexec at ffffffff8395a45d
- #3 [ffffb25d8dad3a38] oops_end at ffffffff83836d3f
- #4 [ffffb25d8dad3a58] do_trap at ffffffff83833205
- #5 [ffffb25d8dad3aa0] do_invalid_op at ffffffff83833aa6
- #6 [ffffb25d8dad3ac0] invalid_op at ffffffff84200d18
-    [exception RIP: jbd2_journal_dirty_metadata+0x2ba]
-    RIP: ffffffffc09ca54a  RSP: ffffb25d8dad3b70  RFLAGS: 00010207
-    RAX: 0000000000000000  RBX: ffff9706eedc5248  RCX: 0000000000000000
-    RDX: 0000000000000001  RSI: ffff97337029ea28  RDI: ffff9706eedc5250
-    RBP: ffff9703c3520200   R8: 000000000f46b0b2   R9: 0000000000000000
-    R10: 0000000000000001  R11: 00000001000000fe  R12: ffff97337029ea28
-    R13: 0000000000000000  R14: ffff9703de59bf60  R15: ffff9706eedc5250
-    ORIG_RAX: ffffffffffffffff  CS: 0010  SS: 0018
- #7 [ffffb25d8dad3ba8] ocfs2_journal_dirty at ffffffffc137fb95 [ocfs2]
- #8 [ffffb25d8dad3be8] __ocfs2_move_extent at ffffffffc139a950 [ocfs2]
- #9 [ffffb25d8dad3c80] ocfs2_defrag_extent at ffffffffc139b2d2 [ocfs2]
+c) In ocfs2_ioctl_move_extents(), set me_threshold both for non-auto
+   and auto defrag paths.  Otherwise it will set move_max_hop to 0 and
+   finally cause unexpectedly ENOSPC error.
 
-Analysis
+Currently there are no tools triggering the above issues since
+defragfs.ocfs2 enables auto defrag by default.  Tested with manually
+changing defragfs.ocfs2 to run non auto defrag path.
 
-This bug has the same root cause of 'commit 7f27ec978b0e ("ocfs2: call
-ocfs2_journal_access_di() before ocfs2_journal_dirty() in
-ocfs2_write_end_nolock()")'.  For this bug, jbd2_journal_restart() is
-called by ocfs2_split_extent() during defragmenting.
-
-How to fix
-
-For ocfs2_split_extent() can handle journal operations totally by itself. 
-Caller doesn't need to call journal access/dirty pair, and caller only
-needs to call journal start/stop pair.  The fix method is to remove
-journal access/dirty from __ocfs2_move_extent().
-
-The discussion for this patch:
-https://oss.oracle.com/pipermail/ocfs2-devel/2023-February/000647.html
-
-Link: https://lkml.kernel.org/r/20230217003717.32469-1-heming.zhao@suse.com
+Link: https://lkml.kernel.org/r/20230220050526.22020-1-heming.zhao@suse.com
 Signed-off-by: Heming Zhao <heming.zhao@suse.com>
 Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
 Cc: Mark Fasheh <mark@fasheh.com>
@@ -177,35 +145,58 @@ Cc: <stable@vger.kernel.org>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- fs/ocfs2/move_extents.c |   10 ----------
- 1 file changed, 10 deletions(-)
+ fs/ocfs2/move_extents.c |   24 +++++++++++++-----------
+ 1 file changed, 13 insertions(+), 11 deletions(-)
 
---- a/fs/ocfs2/move_extents.c~ocfs2-fix-defrag-path-triggering-jbd2-assert
+--- a/fs/ocfs2/move_extents.c~ocfs2-fix-non-auto-defrag-path-not-working-issue
 +++ a/fs/ocfs2/move_extents.c
-@@ -105,14 +105,6 @@ static int __ocfs2_move_extent(handle_t
- 	 */
- 	replace_rec.e_flags = ext_flags & ~OCFS2_EXT_REFCOUNTED;
+@@ -434,7 +434,7 @@ static int ocfs2_find_victim_alloc_group
+ 			bg = (struct ocfs2_group_desc *)gd_bh->b_data;
  
--	ret = ocfs2_journal_access_di(handle, INODE_CACHE(inode),
--				      context->et.et_root_bh,
--				      OCFS2_JOURNAL_ACCESS_WRITE);
--	if (ret) {
--		mlog_errno(ret);
--		goto out;
--	}
+ 			if (vict_blkno < (le64_to_cpu(bg->bg_blkno) +
+-						le16_to_cpu(bg->bg_bits))) {
++						(le16_to_cpu(bg->bg_bits) << bits_per_unit))) {
+ 
+ 				*ret_bh = gd_bh;
+ 				*vict_bit = (vict_blkno - blkno) >>
+@@ -549,6 +549,7 @@ static void ocfs2_probe_alloc_group(stru
+ 			last_free_bits++;
+ 
+ 		if (last_free_bits == move_len) {
++			i -= move_len;
+ 			*goal_bit = i;
+ 			*phys_cpos = base_cpos + i;
+ 			break;
+@@ -1020,18 +1021,19 @@ int ocfs2_ioctl_move_extents(struct file
+ 
+ 	context->range = &range;
+ 
++	/*
++	 * ok, the default theshold for the defragmentation
++	 * is 1M, since our maximum clustersize was 1M also.
++	 * any thought?
++	 */
++	if (!range.me_threshold)
++		range.me_threshold = 1024 * 1024;
++
++	if (range.me_threshold > i_size_read(inode))
++		range.me_threshold = i_size_read(inode);
++
+ 	if (range.me_flags & OCFS2_MOVE_EXT_FL_AUTO_DEFRAG) {
+ 		context->auto_defrag = 1;
+-		/*
+-		 * ok, the default theshold for the defragmentation
+-		 * is 1M, since our maximum clustersize was 1M also.
+-		 * any thought?
+-		 */
+-		if (!range.me_threshold)
+-			range.me_threshold = 1024 * 1024;
 -
- 	ret = ocfs2_split_extent(handle, &context->et, path, index,
- 				 &replace_rec, context->meta_ac,
- 				 &context->dealloc);
-@@ -121,8 +113,6 @@ static int __ocfs2_move_extent(handle_t
- 		goto out;
- 	}
+-		if (range.me_threshold > i_size_read(inode))
+-			range.me_threshold = i_size_read(inode);
  
--	ocfs2_journal_dirty(handle, context->et.et_root_bh);
--
- 	context->new_phys_cpos = new_p_cpos;
- 
- 	/*
+ 		if (range.me_flags & OCFS2_MOVE_EXT_FL_PART_DEFRAG)
+ 			context->partial = 1;
 _
 
 Patches currently in -mm which might be from ocfs2-devel@oss.oracle.com are
