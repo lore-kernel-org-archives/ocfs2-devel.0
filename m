@@ -1,51 +1,79 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc249.phx1.oracleemaildelivery.com (aib29ajc249.phx1.oracleemaildelivery.com [192.29.103.249])
+Received: from aib29ajc253.phx1.oracleemaildelivery.com (aib29ajc253.phx1.oracleemaildelivery.com [192.29.103.253])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id D995FC64EC7
-	for <ocfs2-devel@archiver.kernel.org>; Tue, 28 Feb 2023 04:55:23 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 158A3C64ED6
+	for <ocfs2-devel@archiver.kernel.org>; Tue, 28 Feb 2023 12:59:46 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=u/eyxijvNEcWxWojWZu/YuM/dC4PnZIF+2AqSJvwwyE=;
- b=S8Kx3L+gGjzIoDA2BkIRkIY3IjEy71ruvaaGo9fiDle/WzV89s5PiAwt8X4/W58tyLce4fS1kQRS
-   U2jEbwxjl/fjndR/F70rk34bJYBmZrAIIT5wcZVhZaP2CRY3dPdBXUhLgPqnFSB4AvPMrXH68TeJ
-   kvX3cP0i7h0z097o6HTjFRM8+jVohDUNo7gWn0xQjBw0KX5S3w5oul+kFjJZ7HP8xnbjbUoqBXLg
-   tjtjQ2uQGj4HAuxIzWId2qRVZeeOWWuJV7sj1BP08Xpo5lBA/xpUBH+oyp4AzXiehAFrFfOdUCwf
-   n2NIU9ieo2zhCtEgp9uF7sTXcRxBdxBUU9MEoA==
+ bh=naLS7rm28nmdv2RAd+5p+YbBx9xJaleX3vdMJ+0PM2A=;
+ b=cbNYqOpBGQOcKluk+g/xNpVd/VXJSW1XQO0n3nVRPrk7HcP/CxP9ez0wOIFoB/oi58x7VrO8hCYK
+   AuxPY0MwU070+cM6hzQE2FAEFrPoycvPw91l1oIbEtaFkXbP6mQNMMRVmaG3Im08WZmhdllz+Ox0
+   9MvluDv5sw18bnDpyfgca+ju8M5uSJf6DaBE5b5WJFT62uy1MR7L2VYXaYT7vwQZ915JqwSm7dvh
+   x31FFSzeFU4feRB0YSjqYextaYwo/ldjgVrfJfU7Il6IV0z6CN/AJ3+eSs+9rqAY31j7GKhMiwFj
+   Vp4OuEJt7euqoeSkysEeK2zmlbBAGumIzVPsVw==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=u/eyxijvNEcWxWojWZu/YuM/dC4PnZIF+2AqSJvwwyE=;
- b=FVEd1Q42JXsSkkKKmEI600w3qXOq+h1t3C12kOYeOxLU99D6SgtaVe4WCj5ktTgxqC5klVanJA0o
-   DhyptwupfS4pdUFx1ksOv8Ji1AZnSHNZLv25yy9ugHrAeYYw53HRPyU88vwmQny19W5ZbCe3ij6j
-   /UTt/VANTmhicBGMm0/zJYJ5OLDQ0LQvOV8+iKyhrPD7/mjQRBZUasYBOZXbG826VA9junyKmsib
-   XRnDZDTt4OfXVulIgjxCwoZAkDFk0zQ56lMMO0is4zIqQ3Ome6GhF2fucuOIA/42cxTEPDv6epnp
-   5O/BpJbLtri9GKPsDQiWsliolMw8np/73j6UnQ==
-Received: by omta-ad2-fd1-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
+ bh=naLS7rm28nmdv2RAd+5p+YbBx9xJaleX3vdMJ+0PM2A=;
+ b=X4ZO9AsARi9BA1xxPGZW5ZNbagFhCKSxM7sAI/sdg6FVaZgP5uHI2W28L6s1KEpwHMvZGsoEaSgi
+   Ey1xq/YZPNq8jxFVu6Oi2hJKwMxNZxnd5Dyu8EFoJa6DTBBRg7YtxHadubGl7nYi24WgUxY4yxUB
+   nHBfIxg8yFlUJpzz9XyAY3hYuZj1m6Xxb1wRNQx6calCFaoHo4v+CmnYtp/4sDpmtg21R+gWZ0Sy
+   E+KdyEPULqgmIfWSpb/ICBEax3JRqPi7Xe+4gFK/zsECkCDjfIphGRkJ329zpxIr5IgItLzGpQIt
+   4nqwyW+Vk+MHnvkmIWYH1TNjPZx7s35G1XPdxg==
+Received: by omta-ad3-fd1-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20230214 64bit (built Feb 14
  2023))
- with ESMTPS id <0RQR00OLZXOBPS70@omta-ad2-fd1-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Tue, 28 Feb 2023 04:55:23 +0000 (GMT)
-To: Jens Axboe <axboe@kernel.dk>
-Date: Tue, 28 Feb 2023 12:54:59 +0800
-Message-id: <20230228045459.13524-1-joseph.qi@linux.alibaba.com>
-X-Mailer: git-send-email 2.24.4
+ with ESMTPS id <0RQS00760K3M2OB0@omta-ad3-fd1-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Tue, 28 Feb 2023 12:59:46 +0000 (GMT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+ d=kernel-dk.20210112.gappssmtp.com; s=20210112; t=1677589172;
+ h=content-transfer-encoding:mime-version:date:message-id:subject
+ :references:in-reply-to:cc:to:from:from:to:cc:subject:date
+ :message-id:reply-to; bh=KXJtA17sEPdxzjGQRqo5/JFvtFde4VQEEjSMt1+MlDY=;
+ b=mDyvWPGkbF3bJHaDb6URbCMeqSru6ugFNy/bIXh2NNi/ioO3zW+ma+AR2j2IwC3keR
+ UoLtO2v1uvVynGfnjuYmbACZ4C4Uhv8Vmo/e7s4m8DazX56/y3yVJynMx8mD/W0mxqCK
+ NzBY54eZADgur4Rkn0MoQR1vXrgH3RGUBiOoFknvp+uxjZaXYhxTYtZP8z8loYtrsZ1X
+ YxTgT0KDf2+Qxo9j8WUArhqNLOhYUYSbLQZsIPgbaja4UfRavwt8/YAU8Qk66iWIoY5o
+ zvyUZcHnZZdZdrPROyDNovpgFjNyZ/SQUXn8i15WFP4TafbtslEV7XyhcSCKR34oY1Ip YIaA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=1e100.net;
+ s=20210112; t=1677589172;
+ h=content-transfer-encoding:mime-version:date:message-id:subject
+ :references:in-reply-to:cc:to:from:x-gm-message-state:from:to:cc
+ :subject:date:message-id:reply-to;
+ bh=KXJtA17sEPdxzjGQRqo5/JFvtFde4VQEEjSMt1+MlDY=;
+ b=TIHmhI+IBGnIgopxZ7BNDFOJKeLyPjlaZ6x9jU095MWL+qZQ2Vonr6jM+tZK0lLfK3
+ iJYln8aoAsCYueqv0ZQaEqCO5aCa+IcTKwljRQ+j/phnwesyNpckDrmcY5YyU10agvd9
+ FG8/sZdzl/JtQzno6FoDE8+GBf0jNIcmv7kBjrRKhMbgDNHHjDDhu8jgMfzquKILoZ8e
+ d+Er0LqQT3+f9Pl3WqS5431a3J4oir6kxXztC9b0nmOew3J2uNkbI3B31b3UCZ6MUYHe
+ MGXmUN/qYhkWKWKoHIEcvsPO2Cc765PGfWCOCzD5Yo0QneqEoPhx67ZpFI6Smy5zSLs0 zmtw==
+X-Gm-Message-State: AO0yUKUcJqvDkgtLA96ydjUw9ZeroVKXdbzfnqzRdNeXIiqUJ/ans2F1
+ FsrzHh8tcvXO7Ghlzb6IJ9OhWw==
+X-Received: by 2002:a17:902:e543:b0:19a:9269:7d1 with SMTP id
+ n3-20020a170902e54300b0019a926907d1mr2964175plf.4.1677589172564; Tue,
+ 28 Feb 2023 04:59:32 -0800 (PST)
+To: Joseph Qi <joseph.qi@linux.alibaba.com>
+In-reply-to: <20230228045459.13524-1-joseph.qi@linux.alibaba.com>
+References: <20230228045459.13524-1-joseph.qi@linux.alibaba.com>
+Message-id: <167758917178.12826.13481934362166793957.b4-ty@kernel.dk>
+Date: Tue, 28 Feb 2023 05:59:31 -0700
 MIME-version: 1.0
-X-Source-IP: 115.124.30.99
+X-Mailer: b4 0.13-dev-ebd05
+X-Source-IP: 209.85.214.172
 X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10634
  signatures=596816
 X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 impostorscore=0
  spamscore=0 mlxscore=0 bulkscore=0 suspectscore=0 lowpriorityscore=0
- adultscore=0 clxscore=-80 phishscore=0 malwarescore=0 priorityscore=1501
- mlxlogscore=999 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2212070000 definitions=main-2302280035 domainage_hfrom=8720
+ adultscore=0 clxscore=177 phishscore=0 malwarescore=0 priorityscore=138
+ mlxlogscore=735 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2212070000 definitions=main-2302280102
 Cc: Xiaoguang Wang <xiaoguang.wang@linux.alibaba.com>,
  io-uring@vger.kernel.org, ocfs2-devel@oss.oracle.com
-Subject: [Ocfs2-devel] [PATCH] io_uring: fix fget leak when fs don't support
-	nowait buffered read
+Subject: Re: [Ocfs2-devel] [PATCH] io_uring: fix fget leak when fs don't
+ support nowait buffered read
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -57,91 +85,52 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: Joseph Qi via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: Joseph Qi <joseph.qi@linux.alibaba.com>
+From: Jens Axboe via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: Jens Axboe <axboe@kernel.dk>
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-Alimail-AntiSpam: AC=PASS; BC=-1|-1; BR=01201311R141e4; CH=green;
- DM=||false|; DS=||; FP=0|-1|-1|-1|0|-1|-1|-1; HT=ay29a033018046056;
- MF=joseph.qi@linux.alibaba.com; NM=1; PH=DS; RN=5; SR=0;
- TI=SMTPD_---0Vchb1Cz_1677560099;
-X-ServerName: out30-99.freemail.mail.aliyun.com
+X-Google-Smtp-Source:
+ AK7set+Wesvq4ADKotBrhahVOK590hMee6o5LDqTctqAO+LO8D8tJEOkzucm4oPjIFohMcBEa+MLfQ==
+X-ServerName: mail-pl1-f172.google.com
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 include:spf1.service.alibaba.com
- include:spf2.service.alibaba.com include:spf1.ocm.aliyun.com
- include:spf2.ocm.aliyun.com include:spf1.staff.mail.aliyun.com
- include:a.hichina.mail.aliyun.com include:b.hichina.mail.aliyun.com -all
+X-Proofpoint-SPF-Record: v=spf1 include:_spf.google.com ~all
 X-Spam: Clean
-X-Proofpoint-GUID: IwXedvgBphFSCPlVcWzZgi0quEOOO0Lj
-X-Proofpoint-ORIG-GUID: IwXedvgBphFSCPlVcWzZgi0quEOOO0Lj
+X-Proofpoint-GUID: MdHRxW9gH5ADLIe3jiXBk6mXoqxCw4u2
+X-Proofpoint-ORIG-GUID: MdHRxW9gH5ADLIe3jiXBk6mXoqxCw4u2
 Reporting-Meta:
- AAETag+MxRRIQKHtK4SbRqt9/L285dlmuJ0INT5BMixwMnUAqbubufFcSt8FaW/4
- IPdzEt37Ver5ph2CbXZVHy6/aB9abrbACZ2n5uwe5nTsTnnpLcsIPgZe7XjL2E8r
- tN5i5EoHTudrnH84CGOHWBEDeS/omt4Vr/dZKce61pq7mQB23T19JTEryVeyZDCG
- kJ2IZi4yrfOTY9/ru5Uk4qjSOpYE8RklY65rJmPR9hSa9y/NkcUGuuwDXi9HnMLO
- fLWVK2DHM/gCkBGUT1YR9CMX97NOyH9HplKzM454lQUD/H6JvWYa7Dx1FazcDEbQ
- oHQz/MAUebzIsH3qXG3ars1mO0C+bYdbpupe8ZgnBr3TqdRugo9Tx9Z/8gWYuacy
- /wvWNV9wsuftZlm1/hkbsR3KMN1bZMXjOTS4fULq1SL0wTqSYfwL/aYMYqqiNuo8
- oInywajdaUX7FspfjJeDNq+nhfmgm+PVBO7KUjrgndx9ZCJPlwWaXx4zUWUNDeBa
- yOnRmSj5SzD98ZLccYWh2ViLHRAtbfZeTS507R2BlCs=
+ AAGaye2LzKvKmzouFVtQGag8K9gweJmIO8Gk+nTJ5otw+7O0qlKqITJkZO4uaDsC
+ oLgj8oXUojdgYYnO+gGBvBHPjY5LlWQmUPm5InX6eky8tv66GeqM01oQHI7kJTfz
+ /MLupJz1UK81J7oZWU8IIOVr7tWRBQVomdX0LpUKLmWoqaYPQ8AFGh1YNbb0b0oR
+ gttmCw3d+jDmafrxXtPgCdHeVWoTHPIC+OGX9e4QsHJxq2jxXs1gpfnQgBkQjxH1
+ WR9c7DulZzTyOn0uqNa3COh/8OunNzkuWqEhpDbTqzdyGkPk3Ve3WcWCcBaueBvD
+ 0SiUd1hayaGbGE3TM4NwR9cDDS8SI9I1sVeNDmw/lw/MDC9JHOu0CFmnBIR9kLD6
+ 913OmvolhL1Mvd0VlsnoIwRNx0l417SCD6Ztb9gyxKVLSPPtOwAGISZtJJJ+XWa9
+ KLXNKjR4UwHMG68YIwOG9DwukYvG7DDfwHRXS7KrwDWBFeisMW/ymHHWPwnO1Lo5
+ FvPu8378gW4NsvQIcjR/J6TUKXNqkBJJKrqeo73bHC7/
 
-Heming reported a BUG when using io_uring doing link-cp on ocfs2. [1]
 
-Do the following steps can reproduce this BUG:
-mount -t ocfs2 /dev/vdc /mnt/ocfs2
-cp testfile /mnt/ocfs2/
-./link-cp /mnt/ocfs2/testfile /mnt/ocfs2/testfile.1
-umount /mnt/ocfs2
+On Tue, 28 Feb 2023 12:54:59 +0800, Joseph Qi wrote:
+> Heming reported a BUG when using io_uring doing link-cp on ocfs2. [1]
+> 
+> Do the following steps can reproduce this BUG:
+> mount -t ocfs2 /dev/vdc /mnt/ocfs2
+> cp testfile /mnt/ocfs2/
+> ./link-cp /mnt/ocfs2/testfile /mnt/ocfs2/testfile.1
+> umount /mnt/ocfs2
+> 
+> [...]
 
-Then umount will fail, and it outputs:
-umount: /mnt/ocfs2: target is busy.
+Applied, thanks!
 
-While tracing umount, it blames mnt_get_count() not return as expected.
-Do a deep investigation for fget()/fput() on related code flow, I've
-finally found that fget() leaks since ocfs2 doesn't support nowait
-buffered read.
+[1/1] io_uring: fix fget leak when fs don't support nowait buffered read
+      commit: 54aa7f2330b82884f4a1afce0220add6e8312f8b
 
-io_issue_sqe
-|-io_assign_file  // do fget() first
-  |-io_read
-  |-io_iter_do_read
-    |-ocfs2_file_read_iter  // return -EOPNOTSUPP
-  |-kiocb_done
-    |-io_rw_done
-      |-__io_complete_rw_common  // set REQ_F_REISSUE
-    |-io_resubmit_prep
-      |-io_req_prep_async  // override req->file, leak happens
-
-This was introduced by commit a196c78b5443 in v5.18. Fix it by don't
-re-assign req->file if it has already been assigned.
-
-[1] https://lore.kernel.org/ocfs2-devel/ab580a75-91c8-d68a-3455-40361be1bfa8@linux.alibaba.com/T/#t
-
-Fixes: a196c78b5443 ("io_uring: assign non-fixed early for async work")
-Cc: <stable@vger.kernel.org>
-Reported-by: Heming Zhao <heming.zhao@suse.com>
-Signed-off-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-Cc: Xiaoguang Wang <xiaoguang.wang@linux.alibaba.com>
----
- io_uring/io_uring.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
-
-diff --git a/io_uring/io_uring.c b/io_uring/io_uring.c
-index 1df68da89f99..7ad3b8af2a4b 100644
---- a/io_uring/io_uring.c
-+++ b/io_uring/io_uring.c
-@@ -1777,7 +1777,7 @@ int io_req_prep_async(struct io_kiocb *req)
- 	const struct io_issue_def *def = &io_issue_defs[req->opcode];
- 
- 	/* assign early for deferred execution for non-fixed file */
--	if (def->needs_file && !(req->flags & REQ_F_FIXED_FILE))
-+	if (def->needs_file && !(req->flags & REQ_F_FIXED_FILE) && !req->file)
- 		req->file = io_file_get_normal(req, req->cqe.fd);
- 	if (!cdef->prep_async)
- 		return 0;
+Best regards,
 -- 
-2.24.4
+Jens Axboe
+
+
 
 
 _______________________________________________
