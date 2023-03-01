@@ -1,79 +1,60 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc253.phx1.oracleemaildelivery.com (aib29ajc253.phx1.oracleemaildelivery.com [192.29.103.253])
+Received: from aib29ajc244.phx1.oracleemaildelivery.com (aib29ajc244.phx1.oracleemaildelivery.com [192.29.103.244])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 158A3C64ED6
-	for <ocfs2-devel@archiver.kernel.org>; Tue, 28 Feb 2023 12:59:46 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 74299C64EC7
+	for <ocfs2-devel@archiver.kernel.org>; Wed,  1 Mar 2023 02:06:37 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=naLS7rm28nmdv2RAd+5p+YbBx9xJaleX3vdMJ+0PM2A=;
- b=cbNYqOpBGQOcKluk+g/xNpVd/VXJSW1XQO0n3nVRPrk7HcP/CxP9ez0wOIFoB/oi58x7VrO8hCYK
-   AuxPY0MwU070+cM6hzQE2FAEFrPoycvPw91l1oIbEtaFkXbP6mQNMMRVmaG3Im08WZmhdllz+Ox0
-   9MvluDv5sw18bnDpyfgca+ju8M5uSJf6DaBE5b5WJFT62uy1MR7L2VYXaYT7vwQZ915JqwSm7dvh
-   x31FFSzeFU4feRB0YSjqYextaYwo/ldjgVrfJfU7Il6IV0z6CN/AJ3+eSs+9rqAY31j7GKhMiwFj
-   Vp4OuEJt7euqoeSkysEeK2zmlbBAGumIzVPsVw==
+ bh=RuZBwuMOVJWiTBENURzs1hE0ybeOdPS22X6Tbbi1x7s=;
+ b=2lAYusc3htvd53T/O4/ucnaa1ptgTDM1oiT/W+Ndfqyq7sTKKQ8hdjzfvEJDvU56jNoPHmuQgrG7
+   5yegEmtEz74un8p8AWZmUgD2LIqgh4rQqCUc2Vl49QWhBgUK56wDsj8MeDvMV9EK03HYXYdIN+LG
+   rY/y++xjAaqatZWgHf/+3XquluG6LCoILhq22gwR42v4akWxd5sZ//IaomIXmJl+S6oKy+QAIGpS
+   J3F+QIKum78Elm1UIhDDNgkHxB7lECJMZtF6QTYUqCZazw/Vqe5kyjmZ2+zS4EvrhjPzpApBKl0G
+   UUyHKTNmjA1i4dsx6FABiur6mf/Xk1evPvhRHg==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=naLS7rm28nmdv2RAd+5p+YbBx9xJaleX3vdMJ+0PM2A=;
- b=X4ZO9AsARi9BA1xxPGZW5ZNbagFhCKSxM7sAI/sdg6FVaZgP5uHI2W28L6s1KEpwHMvZGsoEaSgi
-   Ey1xq/YZPNq8jxFVu6Oi2hJKwMxNZxnd5Dyu8EFoJa6DTBBRg7YtxHadubGl7nYi24WgUxY4yxUB
-   nHBfIxg8yFlUJpzz9XyAY3hYuZj1m6Xxb1wRNQx6calCFaoHo4v+CmnYtp/4sDpmtg21R+gWZ0Sy
-   E+KdyEPULqgmIfWSpb/ICBEax3JRqPi7Xe+4gFK/zsECkCDjfIphGRkJ329zpxIr5IgItLzGpQIt
-   4nqwyW+Vk+MHnvkmIWYH1TNjPZx7s35G1XPdxg==
-Received: by omta-ad3-fd1-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
+ bh=RuZBwuMOVJWiTBENURzs1hE0ybeOdPS22X6Tbbi1x7s=;
+ b=srDruUD9ZNEO9mSSQ7LDI19EBtuaOA2NcpunGjl22SfdxuAPRGYJT765FEOWL+ETZUqCE4WZFxd8
+   kPimKgWPOfehFcCs8a1n+aR2oI6OD2faAcNEeEun5asxTmbpJuFD8peR+I69GuVZFb047oOjw94o
+   IbcKPHzjjxM5wRC3D6vJ2Hhg7bRGcxfuibXBQXqQSImyHlOyy5MxLolm36kir6ArvNG/MbyXtr3e
+   46/7eNCWnvbcj/VwWj1wHlrm15gWXGrBG3UluBU7jsSK+y71TeIKF0bNWbaw0i9ojNpwixQgMmSG
+   x/FDbMaRpTppMPV2+ngAAYQDpvtRk7r3AmTOIA==
+Received: by omta-ad1-fd1-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20230214 64bit (built Feb 14
  2023))
- with ESMTPS id <0RQS00760K3M2OB0@omta-ad3-fd1-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Tue, 28 Feb 2023 12:59:46 +0000 (GMT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
- d=kernel-dk.20210112.gappssmtp.com; s=20210112; t=1677589172;
- h=content-transfer-encoding:mime-version:date:message-id:subject
- :references:in-reply-to:cc:to:from:from:to:cc:subject:date
- :message-id:reply-to; bh=KXJtA17sEPdxzjGQRqo5/JFvtFde4VQEEjSMt1+MlDY=;
- b=mDyvWPGkbF3bJHaDb6URbCMeqSru6ugFNy/bIXh2NNi/ioO3zW+ma+AR2j2IwC3keR
- UoLtO2v1uvVynGfnjuYmbACZ4C4Uhv8Vmo/e7s4m8DazX56/y3yVJynMx8mD/W0mxqCK
- NzBY54eZADgur4Rkn0MoQR1vXrgH3RGUBiOoFknvp+uxjZaXYhxTYtZP8z8loYtrsZ1X
- YxTgT0KDf2+Qxo9j8WUArhqNLOhYUYSbLQZsIPgbaja4UfRavwt8/YAU8Qk66iWIoY5o
- zvyUZcHnZZdZdrPROyDNovpgFjNyZ/SQUXn8i15WFP4TafbtslEV7XyhcSCKR34oY1Ip YIaA==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=1e100.net;
- s=20210112; t=1677589172;
- h=content-transfer-encoding:mime-version:date:message-id:subject
- :references:in-reply-to:cc:to:from:x-gm-message-state:from:to:cc
- :subject:date:message-id:reply-to;
- bh=KXJtA17sEPdxzjGQRqo5/JFvtFde4VQEEjSMt1+MlDY=;
- b=TIHmhI+IBGnIgopxZ7BNDFOJKeLyPjlaZ6x9jU095MWL+qZQ2Vonr6jM+tZK0lLfK3
- iJYln8aoAsCYueqv0ZQaEqCO5aCa+IcTKwljRQ+j/phnwesyNpckDrmcY5YyU10agvd9
- FG8/sZdzl/JtQzno6FoDE8+GBf0jNIcmv7kBjrRKhMbgDNHHjDDhu8jgMfzquKILoZ8e
- d+Er0LqQT3+f9Pl3WqS5431a3J4oir6kxXztC9b0nmOew3J2uNkbI3B31b3UCZ6MUYHe
- MGXmUN/qYhkWKWKoHIEcvsPO2Cc765PGfWCOCzD5Yo0QneqEoPhx67ZpFI6Smy5zSLs0 zmtw==
-X-Gm-Message-State: AO0yUKUcJqvDkgtLA96ydjUw9ZeroVKXdbzfnqzRdNeXIiqUJ/ans2F1
- FsrzHh8tcvXO7Ghlzb6IJ9OhWw==
-X-Received: by 2002:a17:902:e543:b0:19a:9269:7d1 with SMTP id
- n3-20020a170902e54300b0019a926907d1mr2964175plf.4.1677589172564; Tue,
- 28 Feb 2023 04:59:32 -0800 (PST)
-To: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-reply-to: <20230228045459.13524-1-joseph.qi@linux.alibaba.com>
-References: <20230228045459.13524-1-joseph.qi@linux.alibaba.com>
-Message-id: <167758917178.12826.13481934362166793957.b4-ty@kernel.dk>
-Date: Tue, 28 Feb 2023 05:59:31 -0700
+ with ESMTPS id <0RQT00HM8KJ02HC0@omta-ad1-fd1-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Wed, 01 Mar 2023 02:06:36 +0000 (GMT)
+Message-id: <50c26dfd-afd4-5dc2-212c-a02e84a75440@linux.alibaba.com>
+Date: Wed, 1 Mar 2023 10:06:18 +0800
 MIME-version: 1.0
-X-Mailer: b4 0.13-dev-ebd05
-X-Source-IP: 209.85.214.172
-X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10634
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:102.0)
+ Gecko/20100101 Thunderbird/102.7.2
+Content-language: en-US
+To: Heming Zhao <heming.zhao@suse.com>, Joseph Qi <jiangqi903@gmail.com>,
+ ocfs2-devel@oss.oracle.com
+References: <20230224003251.otqzmap2f64o3fpf@c73>
+ <5280652e-8a02-7ec0-8f4e-44ab53796e5f@linux.alibaba.com>
+ <913a31c3-c3fe-b421-da63-e7d436ec674f@suse.com>
+ <5d9e2335-c00c-6c7f-1e51-88c23b49aa7f@gmail.com>
+ <87be76c0-b94a-d6e6-3435-e1764110302a@suse.com>
+ <e1fc4970-010f-17a5-c2b3-7bf2dc937e73@gmail.com>
+ <20230226084544.weep4qypu3mzgjic@c73> <20230226152238.a2wxbriw2sbxmkbk@c73>
+ <ab580a75-91c8-d68a-3455-40361be1bfa8@linux.alibaba.com>
+In-reply-to: <ab580a75-91c8-d68a-3455-40361be1bfa8@linux.alibaba.com>
+X-Source-IP: 115.124.30.118
+X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10631
  signatures=596816
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 impostorscore=0
- spamscore=0 mlxscore=0 bulkscore=0 suspectscore=0 lowpriorityscore=0
- adultscore=0 clxscore=177 phishscore=0 malwarescore=0 priorityscore=138
- mlxlogscore=735 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2212070000 definitions=main-2302280102
-Cc: Xiaoguang Wang <xiaoguang.wang@linux.alibaba.com>,
- io-uring@vger.kernel.org, ocfs2-devel@oss.oracle.com
-Subject: Re: [Ocfs2-devel] [PATCH] io_uring: fix fget leak when fs don't
- support nowait buffered read
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 phishscore=0
+ lowpriorityscore=0 malwarescore=0 spamscore=0 suspectscore=0 adultscore=0
+ clxscore=69 impostorscore=0 mlxlogscore=999 bulkscore=0 mlxscore=0
+ priorityscore=130 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2212070000 definitions=main-2303010014 domainage_hfrom=8721
+Subject: Re: [Ocfs2-devel] report BUG: io_uring triggers umount error
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -85,55 +66,110 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: Jens Axboe via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: Jens Axboe <axboe@kernel.dk>
-Content-type: text/plain; charset="us-ascii"
-Content-transfer-encoding: 7bit
+From: Joseph Qi via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: Joseph Qi <joseph.qi@linux.alibaba.com>
+Content-type: text/plain; charset="utf-8"
+Content-transfer-encoding: base64
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-Google-Smtp-Source:
- AK7set+Wesvq4ADKotBrhahVOK590hMee6o5LDqTctqAO+LO8D8tJEOkzucm4oPjIFohMcBEa+MLfQ==
-X-ServerName: mail-pl1-f172.google.com
+X-Alimail-AntiSpam: AC=PASS; BC=-1|-1; BR=01201311R521e4; CH=green;
+ DM=||false|; DS=||; FP=0|-1|-1|-1|0|-1|-1|-1; HT=ay29a033018046051;
+ MF=joseph.qi@linux.alibaba.com; NM=1; PH=DS; RN=3; SR=0;
+ TI=SMTPD_---0Vcl8xIa_1677636378;
+X-ServerName: out30-118.freemail.mail.aliyun.com
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 include:_spf.google.com ~all
+X-Proofpoint-SPF-Record: v=spf1 include:spf1.service.alibaba.com
+ include:spf2.service.alibaba.com include:spf1.ocm.aliyun.com
+ include:spf2.ocm.aliyun.com include:spf1.staff.mail.aliyun.com
+ include:a.hichina.mail.aliyun.com include:b.hichina.mail.aliyun.com -all
 X-Spam: Clean
-X-Proofpoint-GUID: MdHRxW9gH5ADLIe3jiXBk6mXoqxCw4u2
-X-Proofpoint-ORIG-GUID: MdHRxW9gH5ADLIe3jiXBk6mXoqxCw4u2
+X-Proofpoint-GUID: lAa3uSCiYwZo6OFISo2eaBZqWCWUjM_x
+X-Proofpoint-ORIG-GUID: lAa3uSCiYwZo6OFISo2eaBZqWCWUjM_x
 Reporting-Meta:
- AAGaye2LzKvKmzouFVtQGag8K9gweJmIO8Gk+nTJ5otw+7O0qlKqITJkZO4uaDsC
- oLgj8oXUojdgYYnO+gGBvBHPjY5LlWQmUPm5InX6eky8tv66GeqM01oQHI7kJTfz
- /MLupJz1UK81J7oZWU8IIOVr7tWRBQVomdX0LpUKLmWoqaYPQ8AFGh1YNbb0b0oR
- gttmCw3d+jDmafrxXtPgCdHeVWoTHPIC+OGX9e4QsHJxq2jxXs1gpfnQgBkQjxH1
- WR9c7DulZzTyOn0uqNa3COh/8OunNzkuWqEhpDbTqzdyGkPk3Ve3WcWCcBaueBvD
- 0SiUd1hayaGbGE3TM4NwR9cDDS8SI9I1sVeNDmw/lw/MDC9JHOu0CFmnBIR9kLD6
- 913OmvolhL1Mvd0VlsnoIwRNx0l417SCD6Ztb9gyxKVLSPPtOwAGISZtJJJ+XWa9
- KLXNKjR4UwHMG68YIwOG9DwukYvG7DDfwHRXS7KrwDWBFeisMW/ymHHWPwnO1Lo5
- FvPu8378gW4NsvQIcjR/J6TUKXNqkBJJKrqeo73bHC7/
+ AAFpLV1Cwkw8o1oV2DONsMaFNkOS9frsSQtospXwLSfniPdkHhCH0dgGacteqLXl
+ f+A0f8QNo6sjDZroeNcMqCR+g+lWx/U8s68qN996NWDTRTIRIqiMVcXhd+twrNeY
+ l4O+GRqKql4PUsOmlkectBtn+xAOQt1bVQhNsE6dLd+27mqneY10slM9SVgNNg9Y
+ Lx9XIr18pyY/SooVAdmESYCiIPrIV5LoifogdtPRGD79SySOoCC78zl+nD4oVSG3
+ N0D3RTeaIeOYj9e+kVVp82O066FmjGr1fp3rGJeqi8TeEg60n8Q8cZy39Ndug0Y+
+ jSrlkG3uoXf8a7w03+Ttr9WAxHRugyoPBZ0HcARoPr5m7tKPiQwBVyqAkzx7GHgV
+ UYZxT4Hy770Us0JPXxRa0cYd3edZl/5LSP/YyWDA6MF18DbFgk3p0FQZ2DLgCKM4
+ xTcBBKxrSdN5UOGtEX/a+dyOW2hIwFXbuoZtdKVack2W1XFCHDn40fcHWb4NqKLw
+ y/X4bvSupu72gOo3jxRHBEJgpAYvQBJ2y3mHoxJY0Fk=
 
-
-On Tue, 28 Feb 2023 12:54:59 +0800, Joseph Qi wrote:
-> Heming reported a BUG when using io_uring doing link-cp on ocfs2. [1]
-> 
-> Do the following steps can reproduce this BUG:
-> mount -t ocfs2 /dev/vdc /mnt/ocfs2
-> cp testfile /mnt/ocfs2/
-> ./link-cp /mnt/ocfs2/testfile /mnt/ocfs2/testfile.1
-> umount /mnt/ocfs2
-> 
-> [...]
-
-Applied, thanks!
-
-[1/1] io_uring: fix fget leak when fs don't support nowait buffered read
-      commit: 54aa7f2330b82884f4a1afce0220add6e8312f8b
-
-Best regards,
--- 
-Jens Axboe
-
-
-
-
-_______________________________________________
-Ocfs2-devel mailing list
-Ocfs2-devel@oss.oracle.com
-https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+SGksCgpPbiAyLzI3LzIzIDEwOjU5IEFNLCBKb3NlcGggUWkgdmlhIE9jZnMyLWRldmVsIHdyb3Rl
+Ogo+IAo+IAo+IE9uIDIvMjYvMjMgMTE6MjIgUE0sIEhlbWluZyBaaGFvIHdyb3RlOgo+PiBPbiBT
+dW4sIEZlYiAyNiwgMjAyMyBhdCAwNDo0NTo0NFBNICswODAwLCBIZW1pbmcgWmhhbyB2aWEgT2Nm
+czItZGV2ZWwgd3JvdGU6Cj4+PiBPbiBGcmksIEZlYiAyNCwgMjAyMyBhdCAwNjo1OTo0N1BNICsw
+ODAwLCBKb3NlcGggUWkgd3JvdGU6Cj4+Pj4KPj4+Pgo+Pj4+IE9uIDIvMjQvMjMgNDowMyBQTSwg
+SGVtaW5nIFpoYW8gd3JvdGU6Cj4+Pj4+IE9uIDIvMjQvMjMgMzo1MiBQTSwgSm9zZXBoIFFpIHdy
+b3RlOgo+Pj4+Pj4KPj4+Pj4+Cj4+Pj4+PiBPbiAyLzI0LzIzIDM6NDggUE0sIEhlbWluZyBaaGFv
+IHZpYSBPY2ZzMi1kZXZlbCB3cm90ZToKPj4+Pj4+PiBPbiAyLzI0LzIzIDI6NTQgUE0sIEpvc2Vw
+aCBRaSB3cm90ZToKPj4+Pj4+Pj4gSSBjYW4gcmVwcm9kdWNlIHRoaXMgaW4gbXkgbG9jYWwgVk0u
+Cj4+Pj4+Pj4+IEkndmUgdHJhY2VkIG9jZnMyX2Rpc21vdW50X3ZvbHVtZSBhbmQgZm91bmQgdGhh
+dCBpdCBoYXNuJ3QgYmVlbiBjYWxsZWQuCj4+Pj4+Pj4+IFNvIEVCVVNZIGlzIHJldHVybmVkIGlu
+IFZGUyBsYXllci4gSSBndWVzcyBzb21ldGhpbmcgd3Jvbmcgd2hlbiBkb2luZwo+Pj4+Pj4+PiBh
+IGNvcHkgd2l0aCBsaW5rZWQgU1FFcyAobm9ybWFsIGNvcHkgc2VlbXMgbm8gcHJvYmxlbSkuCj4+
+Pj4+Pj4+Cj4+Pj4+Pj4KPj4+Pj4+PiBJIGFtIGluY2xpbmVkIHRvIGFncmVlIHdpdGggeW91LiBJ
+IGFsc28gdGVzdCBsaWJ1cmluZyBleGFtcGxlcyBhcHBzCj4+Pj4+Pj4gb24gZXh0NCBwYXJ0aXRp
+b24sIGV2ZXJ5dGhpbmcgbG9va3MgZmluZS4KPj4+Pj4+Pgo+Pj4+Pj4+IEkgdXNlZCBiZWxvdyBi
+cGZ0cmFjZSBtZXRob2QsIHRoZSByZXR2YWwgaXMgJzMnLgo+Pj4+Pj4+IMKgwqBicGZ0cmFjZSAt
+ZSAna3I6bW50X2dldF9jb3VudHtwcmludGYoIiVkXG4iLCByZXR2YWwpO30nCj4+Pj4+Pj4KPj4+
+Pj4+PiBJdCByZXNwb25kcyB0byBmbG93OiBwYXRoX3Vtb3VudCgpID0+IGRvX3Vtb3VudCA9PiBt
+bnRfZ2V0X2NvdW50IChnZXRzICczJykKPj4+Pj4+Pgo+Pj4+Pj4gWWVzLCB0aGF0J3MgdGhlIHBs
+YWNlIHJldHVybiBFQlVTWS4KPj4+Pj4+IFNvIHRoZSBwcm9ibGVtIHNlZW1zIHRvIGJlIGdldG1u
+dC9wdXRtbnQgbm90IG1hdGNoIGluIHRoaXMgY2FzZS4KPj4+Pj4+Cj4+Pj4+Cj4+Pj4+IEkgZGlk
+bid0IGZhbWlsaWFyIHdpdGggc2V0dGluZyB1cCBrZXJuZWwgYmktc2VhcmNoIGVudi4gSSB1c2Vk
+IG9uZSBsYXN0IHllYXIKPj4+Pj4gb3BlblNVU0UgdHVtYmx3ZWVkICh3aXRoIGtlcm5lbCA1LjE2
+LjIpLCB0aGlzIHVtb3VudCBpc3N1ZSBkb2Vzbid0IGV4aXN0Lgo+Pj4+PiBTbyB0aGVyZSBpcyBh
+IHBvc3NpYmlsaXR5IG9uZSBvY2ZzMiBjb21taXQgaW50cm9kdWNlZCB0aGlzIGlzc3VlLgo+Pj4+
+IFlvdSBjYW4gY2hlY2tvdXQgZWFjaCBtYWlsaW5lIHZlcnNpb24gbGlrZSBMaW51eCA2LjAsIDYu
+MSwgLi4uIGFuZCB0cnkKPj4+PiB0byBjaGVjayBpZiBpdCBjYW4gYmUgcmVwcm9kdWNlZC4KPj4+
+Cj4+PiBJIGRyb3AgdGhpcyBtZXRob2QsIG15IG1hY2hpbmUgY3B1IGlzIG9sZCwgY29tcGlsaW5n
+IGtlcm5lbCB3aWxsIHRha2UgdG9vIG11Y2gKPj4+IHRpbWUuCj4+Pgo+Pj4+Cj4+Pj4gSSd2ZSB0
+cmllZCB0cmFjZSBtbnRnZXQvbW50cHV0IHVzaW5nIHRoZSBmb2xsb3dpbmcgYnBmdHJhY2Ugc2Ny
+aXB0LAo+Pj4+IGxpbmstY3Agb3V0cHV0IHNob3dzIGl0IG1pc3NlcyBhIGZwdXQuCj4+Pj4KPj4+
+PiAjaW5jbHVkZSA8bGludXgvbW91bnQuaD4KPj4+PiAjaW5jbHVkZSA8bGludXgvc3RyaW5nLmg+
+Cj4+Pj4KPj4+PiBrcHJvYmU6bW50Z2V0Cj4+Pj4gewo+Pj4+IAkkbiA9ICgoc3RydWN0IHZmc21v
+dW50ICopYXJnMCktPm1udF9zYi0+c190eXBlLT5uYW1lOwo+Pj4+Cj4+Pj4gCWlmICghc3RybmNt
+cChzdHIoJG4pLCAib2NmczIiLCA1KSkgewo+Pj4+IAkJQFtjb21tXSArPSAxOwo+Pj4+Cj4+Pj4g
+CQlwcmludGYoIiVzIiwga3N0YWNrKTsKPj4+PiAJfQo+Pj4+IH0KPj4+Pgo+Pj4+IGtwcm9iZTpt
+bnRwdXQKPj4+PiB7Cj4+Pj4gCSRuID0gKChzdHJ1Y3QgdmZzbW91bnQgKilhcmcwKS0+bW50X3Ni
+LT5zX3R5cGUtPm5hbWU7Cj4+Pj4KPj4+PiAJaWYgKCFzdHJuY21wKHN0cigkbiksICJvY2ZzMiIs
+IDUpKSB7Cj4+Pj4gCQlAW2NvbW1dICs9MTsKPj4+Pgo+Pj4+IAkJcHJpbnRmKCIlcyIsIGtzdGFj
+ayk7Cj4+Pj4gCX0KPj4+PiB9Cj4+Pj4KPj4+Cj4+PiBJIHVzZWQgYmVsb3cgc2NyaXB0IHRvIGZp
+bmQgc291cmNlIGZpbGUgaG9sZCBmX2NvdW50Lgo+Pj4KPj4+IGUuZzogLi9saW5rLWNwIC9tbnQv
+YWEuYmluIC9tbnQvMQo+Pj4gVGhlIHNjcmlwdCB3aWxsIHNob3cgZl9jb3VudCBvZiBhYS5iaW4g
+b25seSBkb3duIHRvIDMuIFdlIGV4cGVjdCBmX2NvdW50IHZhbHVlCj4+PiBkb3duIHRvIDEgdGhl
+biB0cmlnZ2VyIG1udHB1dC4KPj4+Cj4+PiBgYGAKPj4+ICNpbmNsdWRlIDxsaW51eC9tb3VudC5o
+Pgo+Pj4gI2luY2x1ZGUgPGxpbnV4L3N0cmluZy5oPgo+Pj4gI2luY2x1ZGUgPGxpbnV4L2RjYWNo
+ZS5oPgo+Pj4gI2luY2x1ZGUgPGxpbnV4L3BhdGguaD4KPj4+ICNpbmNsdWRlIDxsaW51eC9mc19z
+dHJ1Y3QuaD4KPj4+ICNpbmNsdWRlIDxsaW51eC9mcy5oPgo+Pj4gI2luY2x1ZGUgPGxpbnV4L2lv
+X3VyaW5nX3R5cGVzLmg+Cj4+Pgo+Pj4gazpmcHV0Cj4+PiB7Cj4+PiAJJGYgPSAoc3RydWN0IGZp
+bGUgKilhcmcwOwo+Pj4gCSRjbnQgPSAkZi0+Zl9jb3VudDsKPj4+Cj4+PiAJaWYgKCFzdHJuY21w
+KGNvbW0sICJsaW5rLWNwIiwgNykpIHsKPj4+IAkJcHJpbnRmKCJcbiBbbGluay1jcF0gZnB1dCgp
+IG5hbWU6JXMgZl9jb3VudDolbGxkIDwlcD4gbW50OiVwXG4iLAo+Pj4gCQkJICAgCXN0cigkZi0+
+Zl9wYXRoLmRlbnRyeS0+ZF9uYW1lLm5hbWUpLCAkY250LmNvdW50ZXIsIGtwdHIoJGYpLCBrcHRy
+KCRmLT5mX3BhdGgubW50KSk7Cj4+PiAJCS8vcHJpbnRmKCIlc1xuIiwga3N0YWNrKTsKPj4+IAl9
+Cj4+PiB9Cj4+PiBgYGAKPj4+Cj4+Cj4+IEkgYW0gbm90IGZhbWlsaWFyIHdpdGggaW9fdXJpbmcs
+IGFuZCBjYW4ndCBtYWtlIHN1cmUgbXkgYW5hbHlzaXMgaXMgY29ycmVjdC4KPj4gQmVjYXVzZSBv
+Y2ZzMl9maWxlX3JlYWRfaXRlcigpIHJldHVybnMgLUVPUE5PVFNVUFAsIHRoZW4gZmFpbHMKPj4g
+aW9faXRlcl9kb19yZWFkKCksIHRoZSBpb19pc3N1ZV9zcWUgbWlzc2luZyBmcHV0KCkgd2hpY2gg
+Y2F1c2VzIHVtb3VudCBmYWlsdXJlCj4+IGlzc3VlLgo+Pgo+PiBpb19pc3N1ZV9zcWUKPj4gICsg
+aW9fYXNzaWduX2ZpbGUgLy9jYWxsIGZnZXQoKSwgYnV0IG1pc3NpbmcgZnB1dCgpCj4+ICArIGRl
+Zi0+aXNzdWUoKQo+PiAgfCAgaW9fcmVhZAo+PiAgfCAgICsgaW9faXRlcl9kb19yZWFkCj4+ICB8
+ICAgfCAgb2NmczJfZmlsZV9yZWFkX2l0ZXIKPj4gIHwgICB8ICAgcmV0dXJuOiAtRU9QTk9UU1VQ
+UCAvL2lvY2ItPmtpX2ZsYWdzOjB4OAo+PiAgfCAgICsga2lvY2JfZG9uZQo+PiAgfCAgICAgICsg
+aW9fcndfZG9uZSgmcnctPmtpb2NiLCByZXQpCj4+ICB8ICAgICAgfCAgIGtpb2NiLT5raV9jb21w
+bGV0ZShraW9jYiwgcmV0KQo+PiAgfCAgICAgIHwgICAgaW9fY29tcGxldGVfcncKPj4gIHwgICAg
+ICB8ICAgICAgX19pb19jb21wbGV0ZV9yd19jb21tb24KPj4gIHwgICAgICB8ICAgICAgICsgcmVx
+LT5mbGFncyB8PSBSRVFfRl9SRUlTU1VFIHwgUkVRX0ZfUEFSVElBTF9JTzsKPj4gIHwgICAgICB8
+ICAgICAgICsgcmV0dXJuIHRydWUKPj4gIHwgICAgICArIGlvX3JlcV90YXNrX3F1ZXVlX3JlaXNz
+dWUvaW9fcmVxX3Rhc2tfcXVldWVfZmFpbAo+PiAgfCAgICAgICsgcmV0dXJuIElPVV9JU1NVRV9T
+S0lQX0NPTVBMRVRFOwo+PiAgfAo+PiAgKyByZXR1cm4gMDsKPj4KPiBTZWVtcyBub3QgdGhlIGNh
+c2UuCj4gUmVpc3N1ZSB3aWxsIHF1ZXVlIHdvcmsgdG8gaW93cSwgYW5kIGZwdXQgd2lsbCBmaW5h
+bGx5IGdldCBjYWxsZWQgaW4KPiBpb193cV9mcmVlX3dvcmsoKSBvbmNlIHdvcmsgaXMgaGFuZGxl
+ZC4KPiAKSSd2ZSBzZW50IGEgZml4IHRvIGlvX3VyaW5nLCBwbGVhc2UgcmVmZXI6Cmh0dHBzOi8v
+bG9yZS5rZXJuZWwub3JnL2lvLXVyaW5nLzE2Nzc1ODkxNzE3OC4xMjgyNi4xMzQ4MTkzNDM2MjE2
+Njc5Mzk1Ny5iNC10eUBrZXJuZWwuZGsvVC8jdAoKVGhhbmtzLApKb3NlcGgKCl9fX19fX19fX19f
+X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fCk9jZnMyLWRldmVsIG1haWxpbmcg
+bGlzdApPY2ZzMi1kZXZlbEBvc3Mub3JhY2xlLmNvbQpodHRwczovL29zcy5vcmFjbGUuY29tL21h
+aWxtYW4vbGlzdGluZm8vb2NmczItZGV2ZWw=
