@@ -1,58 +1,58 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc245.phx1.oracleemaildelivery.com (aib29ajc245.phx1.oracleemaildelivery.com [192.29.103.245])
+Received: from aib29ajc249.phx1.oracleemaildelivery.com (aib29ajc249.phx1.oracleemaildelivery.com [192.29.103.249])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 2BF59C6FA99
-	for <ocfs2-devel@archiver.kernel.org>; Mon,  6 Mar 2023 13:46:50 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 65720C61DA4
+	for <ocfs2-devel@archiver.kernel.org>; Mon,  6 Mar 2023 13:47:35 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=EDKMBR716WKkxb4Q9/w2XCDemcGz1Zo35eScoAPvyHE=;
- b=wXBqt3YDGjvf6fMavdCCO5Pwa1T0KyRpIKhLJaFa6i7A0xZf4W6SwLaQhXTDAnfk8sc+Sc3UTts/
-   BFUpoKYDpz5KAdSOghdo1oUYaGiJMl1SbPFYJaQ3dAutCEOXHcGClM9e/K5sUvZ+D1MJZUid1bP8
-   a7HTBxxByY9Pc+7hLy2rKOc90rI/aslcbQB76zx3wkkLvfxQsxG30F9uO0XXjZOl5xFJicYZE2PF
-   9gnwD8Qu3pHGRcBUMFTnoUfzddY2z0LWLDgvfoG0w2k+eTpr3cXuaTIGFXZZWi9om35MsareRCRl
-   raOWOFY8kr1y/GpToCHdEHXJs+wJq8CMQIv1tA==
+ bh=0obn0K6BnKbSlyvzJyhLdMVZBYPPCFbo+VCvDJ6l4fg=;
+ b=STtF+CswX+Oh6r2Imap9C7LgJmIlkQ8YS9Y13wslZH0xm6yDb292WI+QXHZkWtAW1yxfpEyh6N9u
+   NBafuMw3HZucXvFaA57VB2VDAkIncbXc4fIGfQa/s9ilwOtUo9pxtsIZpQ248URJWW+4weChA34p
+   QU7Zmc6UCIMEkw4WC1arWCh15BvYjHjQfG8oblL0i6xRAdD/jWwM1VR+p2MWocXLdfYUvuEq02q9
+   byP7Kwc/iJ0IvkKZhm9L4/dWB3ZGpLTy7UiZLUoD2/EszCUyHIxzEZf95fwKLLNupQn3fedbSVKB
+   NJnJJHTdBLGa1Id8GHqwVgNWyoSktAqA/i5PQw==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=EDKMBR716WKkxb4Q9/w2XCDemcGz1Zo35eScoAPvyHE=;
- b=AK9hAGn89kqeTxblhpF4ddRdaP5ssJQMErkwLZd/qxcqxillSaOWOkGFG4mQ10so/S4UuZ018ISW
-   6uVKlAupa/tWlCejMIdsB1k42Ff62k+FfKPtY9Jj3KvzHclJ1SqbGVOXJTEOo9mQ0H5pE+XY1Av0
-   +vDU0MohCUGR9nCQeQPDwwT7aZOPfT4rZxDZqp82AGLEDih1xeyXLOyMwL2tr64qazc8w3te7VhA
-   xPOoWc+4X/ERffOk2UzFlrrW5AEhvlb9GBFboAVQYMXlRfYG3VpjSRnQBwuoJ3dOQgCg8N989aOC
-   yvzemadORPVY8HEnrtSkJAuw09Qzd+rBQ8EAJw==
-Received: by omta-ad1-fd1-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
+ bh=0obn0K6BnKbSlyvzJyhLdMVZBYPPCFbo+VCvDJ6l4fg=;
+ b=XC55MaIpV941Xovsdx5s0zVIKFCe4YXBocrSrCCXL9on9uZ50cUltZbPlZoT43EuudPzt60bEAup
+   b2yWDPpjqIQ715guA+lQVbirHOhG+IvJ3SHgENz0lRITrfUKKUGJeupPcqUxode3C+Itdy+hdmJ9
+   sj1HqpZSccpWAYjzK5/oEWrmZg+ZF2Ucmj+90kmPkvB6yrKY4CG38o49txsPe0RTB18ehIGZEiHU
+   NHgVOrnhuZx3pyp39hMKJPi7O8LqKCmWtIeUmv/5NpRiXBFKh+6ULzkYprmpKhCXxbOhw633xDCV
+   +bhjefAzSLYNNhIikNHCKmQlq13mp4yS+NdTXw==
+Received: by omta-ad2-fd1-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20230214 64bit (built Feb 14
  2023))
- with ESMTPS id <0RR300B14QA0YXA0@omta-ad1-fd1-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Mon, 06 Mar 2023 13:46:48 +0000 (GMT)
+ with ESMTPS id <0RR30033RQBAPOD0@omta-ad2-fd1-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Mon, 06 Mar 2023 13:47:34 +0000 (GMT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linuxfoundation.org;
- s=korg; t=1678110394; bh=HET4m8E7e441MxMhtz++f3NoBUIuIqIvpkJ7VGB3HzE=;
+ s=korg; t=1678110441; bh=QwkR7VDI/0MU2m2PbFcrJjHwfPsO1xqNhkAS/0MWskY=;
  h=Subject:To:Cc:From:Date:From;
- b=rvsnrbPFvp5oAqYuEhmhx+msREsAAyyXLP8oAHef+GYwbUOti4CqxC2MhU4d5NDY9
- Tvev/S6834kUlnEBSZUE71My37djY8Y9l+8YJ4fn8kR7bS0Y/vvjm/xszMZEfhwws7
- k6LwO6YmMnytmH8DLlbvPCJgmIc74fFGgYbTv/p0=
+ b=AepYgbzv+iTFmKwJfbDDtxHGZv7u9buaONXjv6nt0vKvpSLfZK4OPlMJJrG++CgWV
+ g5Z3yOShhsfvZLMZwQHyH7KJqjO9Hctb0atjKN0cwz0jMcyeB8RYt6fevvMejeW/vW
+ RTwQ9w+3CK6JZmmy+K5U89pxUaHoFkqoOhdkbp9E=
 To: akpm@linux-foundation.org, gechangwei@live.cn, ghe@suse.com,
  gregkh@linuxfoundation.org, heming.zhao@suse.com, jlbec@evilplan.org,
  joseph.qi@linux.alibaba.com, junxiao.bi@oracle.com, mark@fasheh.com,
  ocfs2-devel@oss.oracle.com, piaojun@huawei.com
-Date: Mon, 06 Mar 2023 14:44:02 +0100
-Message-id: <167811024271120@kroah.com>
+Date: Mon, 06 Mar 2023 14:44:12 +0100
+Message-id: <167811025216774@kroah.com>
 MIME-version: 1.0
-X-Source-IP: 145.40.68.75
+X-Source-IP: 139.178.84.217
 X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10641
  signatures=596816
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0
- lowpriorityscore=0 bulkscore=0 impostorscore=0 mlxscore=0 clxscore=256
- mlxlogscore=999 priorityscore=95 adultscore=0 suspectscore=0 malwarescore=0
- phishscore=0 spamscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 bulkscore=0
+ clxscore=256 phishscore=0 suspectscore=0 adultscore=0 malwarescore=0
+ impostorscore=0 priorityscore=95 spamscore=0 mlxlogscore=999 mlxscore=0
+ lowpriorityscore=0 classifier=spam adjust=0 reason=mlx scancount=1
  engine=8.12.0-2212070000 definitions=main-2303060122
 Cc: stable-commits@vger.kernel.org
 Subject: [Ocfs2-devel] Patch "ocfs2: fix defrag path triggering jbd2 ASSERT"
-	has been added to the 5.15-stable tree
+	has been added to the 5.10-stable tree
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -71,37 +71,37 @@ Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
 X-stable: commit
 X-Patchwork-Hint: ignore
-X-ServerName: ams.source.kernel.org
+X-ServerName: dfw.source.kernel.org
 X-Proofpoint-SPF-Result: pass
 X-Proofpoint-SPF-Record: v=spf1 ip4:72.55.140.81 ip4:52.25.139.140
  ip4:139.178.84.217 ip6:2604:1380:4641:c500::1 ip4:145.40.68.75
  ip6:2604:1380:4601:e00::1 ip4:145.40.73.55 ip6:2604:1380:40e1:4800::1
  include:_spf.google.com include:amazonses.com include:_spf.salesforce.com -all
 X-Spam: Clean
-X-Proofpoint-GUID: j2Sh4NcJW69wTGyfElYKx30-Z995eDKM
-X-Proofpoint-ORIG-GUID: j2Sh4NcJW69wTGyfElYKx30-Z995eDKM
+X-Proofpoint-GUID: c6ZUL-MYNqaFVQ_1ZEg2JBFlqdi3HmAF
+X-Proofpoint-ORIG-GUID: c6ZUL-MYNqaFVQ_1ZEg2JBFlqdi3HmAF
 Reporting-Meta:
- AAE5+YLD9R/Mociv4gA1IHWUVyTp4a1PECABW37Ar0rLFz/lqQb79GHN7R17ALCH
- F/6Ty8L+qYVClxcJxkPEpE4Q3ji9yTcBCv8RDsqLt593BsbhjfA4IYN0UUYzY730
- 96j97IixvQT99hrVzrz3BrlthSXjmSROsOCzsMSvAVeoCoagnAFgb2TUOAHMTDHC
- UxXYDluY7eKp+ZkgE2njsdhPjVBY06VD9GVGFpJbn2xnLv/24hpnIxy7Gd6oeC9M
- ZR7NTqAkjeaoYtzVyRi+Kv+I1ghYMcPRIK9Q9GRJbxIJLu5PYfYByEhXlgJEbSz0
- J01TP6E+nra2aclk7TRlClFwmYofay1DfTvIJtzbZlIcSoSG81U6x4iafQ+/DMBa
- d6zuWKlYsnxdguXcpQWFiUrMC2lonPP9YiGOiMgk+/ZIS9H+6zBwzkaX3zjk+Cb1
- iUAHi7Tf+L7gad071Q/pNV27U7egHHz5D8sMOPPrO46oj+yb0T83DwtF2a/IW0ob
- gy3bE7+HTagTLvQ6a0K23x5BJgV+Pngu+cHPKCk16nKd
+ AAFPz0rjsEw8C1toOnqm6tmFRLd8WQ6M5LAzRQWG3qJ0SZeoDlhny5aljdeB/S6T
+ EGNP4v8Z/Znnc8fVODsj+hP3RRCgNc2gZDouh8aRyjbST/D8+VyFu1T758/YeL5Q
+ krNgdy0gdyn045RXRKgwZQ0gCN8RQ+5lNtz5ppxq/cLJTXmZgU+gn7zbUI5710ur
+ yYFZxXhvaedyPD6cBShNuRzRYc+7VBWNTT4+C0ML1QwBpAJt5xAJIK92aK8JQeUI
+ rQjDy5R8JcZc2sErSGINkggL1OeiGtxIQZM09lIP1BrnR0J7RvPgOvx5e5DFzjBi
+ FEQ9741MEhnTbTKjAsYhCVmIIG7yg5O1c91qBRU5RTMrMlbpjz6Tzb90ma7uKw5P
+ 09BqEdOUgMThSTr+tCyu7KnlPKXi1CFG8eCArFwBeP9LUZbTlLUTJqEeQhHG1CD9
+ IokyOC/TqpnNH3lG6lSbvod0/1UAZac6Hc8tXJCeRNSIhhZjqHC5Fp4s5KRFV221
+ 8U5xtYFp+k2zyKXmgnv9Ke4GcD5Wi/rJrV6XQPJQzy2N
 
 
 This is a note to let you know that I've just added the patch titled
 
     ocfs2: fix defrag path triggering jbd2 ASSERT
 
-to the 5.15-stable tree which can be found at:
+to the 5.10-stable tree which can be found at:
     http://www.kernel.org/git/?p=linux/kernel/git/stable/stable-queue.git;a=summary
 
 The filename of the patch is:
      ocfs2-fix-defrag-path-triggering-jbd2-assert.patch
-and it can be found in the queue-5.15 subdirectory.
+and it can be found in the queue-5.10 subdirectory.
 
 If you, or anyone else, feels it should not be added to the stable tree,
 please let <stable@vger.kernel.org> know about it.
@@ -183,7 +183,7 @@ Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 
 --- a/fs/ocfs2/move_extents.c
 +++ b/fs/ocfs2/move_extents.c
-@@ -105,14 +105,6 @@ static int __ocfs2_move_extent(handle_t
+@@ -107,14 +107,6 @@ static int __ocfs2_move_extent(handle_t
  	 */
  	replace_rec.e_flags = ext_flags & ~OCFS2_EXT_REFCOUNTED;
  
@@ -198,7 +198,7 @@ Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
  	ret = ocfs2_split_extent(handle, &context->et, path, index,
  				 &replace_rec, context->meta_ac,
  				 &context->dealloc);
-@@ -121,8 +113,6 @@ static int __ocfs2_move_extent(handle_t
+@@ -123,8 +115,6 @@ static int __ocfs2_move_extent(handle_t
  		goto out;
  	}
  
@@ -211,8 +211,8 @@ Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 
 Patches currently in stable-queue which might be from ocfs2-devel@oss.oracle.com are
 
-queue-5.15/ocfs2-fix-non-auto-defrag-path-not-working-issue.patch
-queue-5.15/ocfs2-fix-defrag-path-triggering-jbd2-assert.patch
+queue-5.10/ocfs2-fix-non-auto-defrag-path-not-working-issue.patch
+queue-5.10/ocfs2-fix-defrag-path-triggering-jbd2-assert.patch
 
 _______________________________________________
 Ocfs2-devel mailing list
