@@ -4,56 +4,56 @@ X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 Received: from aib29ajc252.phx1.oracleemaildelivery.com (aib29ajc252.phx1.oracleemaildelivery.com [192.29.103.252])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id C649AC61DA4
-	for <ocfs2-devel@archiver.kernel.org>; Mon,  6 Mar 2023 13:46:05 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 1BA7CC61DA4
+	for <ocfs2-devel@archiver.kernel.org>; Mon,  6 Mar 2023 13:46:50 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=Ru9cCnw5srp5UEivnJXJzV8mb7ywArhcje+wj4sJaUw=;
- b=2Hk8KWwrlPyRgNlf+TKJOCK00GNc6oHD8rDV3cpqLvNTlsqjAgvCzgKTNY0HTPiwViYHLFXmoq0n
-   OVlrAGBR4hatiXnLYFIGFfq0ArAt7r2zWVZNw6arS1Gilio9uIPmE9Ca+RHcyxA0p8R5rQhBU4wI
-   ZbkVdB32N9y87/0ZtUpFANkpMagHJ27HZGxS76RDtuEETJNZJ6+GpXtZhKL+hJ0s5sQeh9+y42aW
-   Sgku2m75j2WypLGO9UkWpmaSbQPEXdz7ORbN//cWmIyEQTusLCIW4Uf38znKsiPSHPbYNW2eSBh6
-   OOK0txEvuzsBGdc73sT7nz8m6CgjqrDdVxS1fQ==
+ bh=tfrSbFjM1HUMbiIfmj3ht17LBL/k59/iYh1QGXEnJp0=;
+ b=MCwQbOyzAs14Byx2SnoDynIo8ntNb8hsjPugBGCQOkE5lakYJnBPEPNJ7+xQqtzEFQYAwogKQip+
+   7/a5PIaxHZIzVu4ufURmkovsSDTiEST63yEchsIQk8LUzlYA/yDfKl0I56J5iVhU6DmTg2vK9pB3
+   bWCMb7sAHIUARh+rf7c1RiA14Zty6oHljh5AIfEz04B4ohbLHXYBUdGsyHEOmMTv7rv+WdDr1U5y
+   sh53K0l5hrut753bvjrbjhGrrHTh1aFPvYmTr2yAB041wJmlVhlDQoJgoWe17BrmChIAWReGgdf9
+   6Yvhpggo+K7KMioex6u7G3PUOwFfSAIc0OOSCg==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=Ru9cCnw5srp5UEivnJXJzV8mb7ywArhcje+wj4sJaUw=;
- b=ihjciAXdfAcydjYoDTFUpr+BqrNu9Q1qzpKY5EzaykD7DbLReTkzLWqvn0mCu53srS83gu+0mHFH
-   zxCl+W5pj5UkTaJbGjYiujLurlxh8g2pwISAs5XYtFgYsNfs7F+Imi8J3I3i9z76ce75LMchiSJ4
-   kfc33NIQw/L7Sh0pLrvYcDHJnMAtBAISXVHoNa3NBExVdtOa2vaOTj8ElwO3yIVEAmwoe9jvVEnZ
-   tAWXkSrT2jZ/Xgxh0a2ZqHHYS8CuF1Sc7cJhcMv/B5eD4Hd4A3umDxkIPvcPDXA1EcslqOL9Z/Sq
-   ThPlVQ1lDGvRivbZh+JKZxXppWw055JMuQDHgQ==
+ bh=tfrSbFjM1HUMbiIfmj3ht17LBL/k59/iYh1QGXEnJp0=;
+ b=TICVLp0oeHLzCZvwJQDZZozAWIdtbahnTcNKvrC/8znM0+Z52L+L1opZHG3PNz/BlOyFnUGdr+tc
+   tqOD5/vBqS4LhTdFkoT5JMI20Aig0kDO5537SelMtOXiob9HFejEYYk4r9JTkxQtxpDa8BmxWVvY
+   d55XVptkZwfcrVNbDDaR+gYDJz5irYqc9Sei5HdQ7Z6h5U1B59QAzko/MrmRW5quMJE3iF9uC4P8
+   x5wDUQ8xX6lXmX4rOGilQCF+uDJssognVHSLTX3Y+eB79+++9FqqsgXDIiNZxeOylLs2B4td7jhm
+   mVMe4xLpdmtTMib31zmYpDJe1dSwx8oKl/sVOA==
 Received: by omta-ad3-fd1-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20230214 64bit (built Feb 14
  2023))
- with ESMTPS id <0RR300CBYQ8SI1A0@omta-ad3-fd1-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Mon, 06 Mar 2023 13:46:04 +0000 (GMT)
+ with ESMTPS id <0RR300CEGQA1I1A0@omta-ad3-fd1-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Mon, 06 Mar 2023 13:46:49 +0000 (GMT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linuxfoundation.org;
- s=korg; t=1678110347; bh=e4cS1sFYDv88qsbpqtwdgsWovJ6dAEBgBp9HMGJx+H0=;
+ s=korg; t=1678110397; bh=XGNHP3H6KhL1ApYmFcSuQ08kBFsmigIHNSTEwyVS4TY=;
  h=Subject:To:Cc:From:Date:From;
- b=g48EqEg4uGbgQ3F5jY8ZKkN4jMmK3WfiYx23+5hcdo1MjSll/tCHA7n52vmJwuEXP
- +hcNMR033wQDIONGQy0oToxyocgH43Cer9RKAkhivFZ/iESJFCRPbwNvDkDVrVpHJr
- xJaeDts1lmy36uGtnuHP/dOc8XwGH+yk9cMj5aKk=
+ b=o8xgAlYaozSoc9f0IDWZc22rTcOU6MDrq7WoHEkr2i+6VnzmpIWN/uBacYWgByMxJ
+ prJ1vz/2rScaLnAKGbq4joiLTm7uewL2+lntE2ldDzP0onxlwL/EoMTY6hPQNOMWKO
+ 7sC80DxM3YORbJZL69fnON9QqNYrVc3nPB/KM98E=
 To: akpm@linux-foundation.org, gechangwei@live.cn, ghe@suse.com,
  gregkh@linuxfoundation.org, heming.zhao@suse.com, jlbec@evilplan.org,
  joseph.qi@linux.alibaba.com, junxiao.bi@oracle.com, mark@fasheh.com,
  ocfs2-devel@oss.oracle.com, piaojun@huawei.com
-Date: Mon, 06 Mar 2023 14:43:53 +0100
-Message-id: <167811023336176@kroah.com>
+Date: Mon, 06 Mar 2023 14:44:02 +0100
+Message-id: <16781102422022@kroah.com>
 MIME-version: 1.0
 X-Source-IP: 145.40.68.75
 X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10641
  signatures=596816
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 bulkscore=0
- clxscore=256 phishscore=0 suspectscore=0 adultscore=0 malwarescore=0
- impostorscore=0 priorityscore=95 spamscore=0 mlxlogscore=999 mlxscore=0
- lowpriorityscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 adultscore=0
+ lowpriorityscore=0 malwarescore=0 suspectscore=0 spamscore=0 priorityscore=128
+ impostorscore=0 clxscore=254 mlxlogscore=999 phishscore=0 bulkscore=0
+ mlxscore=0 classifier=spam adjust=0 reason=mlx scancount=1
  engine=8.12.0-2212070000 definitions=main-2303060122
 Cc: stable-commits@vger.kernel.org
 Subject: [Ocfs2-devel] Patch
  "ocfs2: fix non-auto defrag path not working	issue" has been added to the
- 6.1-stable tree
+ 5.15-stable tree
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -79,30 +79,30 @@ X-Proofpoint-SPF-Record: v=spf1 ip4:72.55.140.81 ip4:52.25.139.140
  ip6:2604:1380:4601:e00::1 ip4:145.40.73.55 ip6:2604:1380:40e1:4800::1
  include:_spf.google.com include:amazonses.com include:_spf.salesforce.com -all
 X-Spam: Clean
-X-Proofpoint-GUID: V-M0IC97WGbguB4qRqYtMopHM19j7Jts
-X-Proofpoint-ORIG-GUID: V-M0IC97WGbguB4qRqYtMopHM19j7Jts
+X-Proofpoint-GUID: fb0Xr7ND1CNk9RN4mNYc7XGyyn1dtuT0
+X-Proofpoint-ORIG-GUID: fb0Xr7ND1CNk9RN4mNYc7XGyyn1dtuT0
 Reporting-Meta:
- AAE5+YLD9R/Mociv4gA1IHWUVyTp4a1PECABW37Ar0rLFz/lqQb79GHN7R17ALCH
- F/6Ty8L+qYVClxcJxkOupE4Q3ji9yTcBCv8dL9xT9VqdejHuwo0fRr+RRf8jteXx
- aOE8YG6wiIWBfFOD0MshXxifmk4VaXH5THJSfRHLZGRw7oVZGLINbahwXTzQCwG6
- 45nDzurG763PLmPK91kRnTUEzHjBjciY3X8u0Cs6YI+FEE4fxLpqkMfDc3MpgD/k
- a/FAfxoFByy+I7C8J68oOr5oxGio/XInl/C39WCmczfjQKfE4UeuW4tQEwxW3kPG
- iUVoLSvB9k3qE0/Ch0FxNT3XhKohJHC5yvcNO2IvGlfQmWHzDV/ZVYTqQjVsbjOg
- Hcom6MRF581PzMFcrCZMVQJ5BLE1XiZUc9T92V9msb6/bJCxvDr9zBAS5/hAU8Ss
- myYVmuf8ECXaC0bzjDHgbI5b6QcKnywBfzoikKD0G1c6s2mRDxuiaJ390QQH/0MB
- ijk0INoCoVhjnV1QJ7xnLZq6CsNkDZ2vHau4byYN4mgE
+ AAFPz0rjsEw8C1toOnqm6tmFRLd8WQ6M5LAzRQWG3qJ0SZeoDlhny5aljdeB/S6T
+ EGNP4v8Z/Znnc8fVODvh+RP3RRCgNc2gZDocV93hUH1yFdPtzVIah7i/UEGiQhDW
+ y7VudR0+/PWh3kfpsb8gK8MOZ75MzLDH3vwmzLig+yDCSLUDgGEMGXla0EhW5Xzp
+ sNqhNvvzLfW5C7n9fJGJar7RBgFOP54kRxg26OS8FgVd3OLgoaOo2dk6iaPNEgHt
+ xByiYy1DlEPwb3jynvx8pxctABl+rmpGgtNb0WoW+Pu578AdCZmeqENmdV8nIoxO
+ 6HqVvDTp09vA8WPikQYr0K+e3pbY1/CYxH6tDk8PqqrKvscFkpG4xrH3j+XIjAKy
+ TANbGWHAef2uB4xW0PMspLNDoKQ1tV3Lj+gmljkSJ6UI+87yKhlIbUAcoZQmcIbB
+ 7Jiq923vn0trbZ6vuKAOyzBWqCd+6u0YGBVarXH+0e+SWOpai01d3GQsIs+YCS5V
+ mDyL3quANZA52Wd6Ll8F9zFznkLgKNVcV2ZiShfbtSnn
 
 
 This is a note to let you know that I've just added the patch titled
 
     ocfs2: fix non-auto defrag path not working issue
 
-to the 6.1-stable tree which can be found at:
+to the 5.15-stable tree which can be found at:
     http://www.kernel.org/git/?p=linux/kernel/git/stable/stable-queue.git;a=summary
 
 The filename of the patch is:
      ocfs2-fix-non-auto-defrag-path-not-working-issue.patch
-and it can be found in the queue-6.1 subdirectory.
+and it can be found in the queue-5.15 subdirectory.
 
 If you, or anyone else, feels it should not be added to the stable tree,
 please let <stable@vger.kernel.org> know about it.
@@ -203,8 +203,8 @@ Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 
 Patches currently in stable-queue which might be from ocfs2-devel@oss.oracle.com are
 
-queue-6.1/ocfs2-fix-non-auto-defrag-path-not-working-issue.patch
-queue-6.1/ocfs2-fix-defrag-path-triggering-jbd2-assert.patch
+queue-5.15/ocfs2-fix-non-auto-defrag-path-not-working-issue.patch
+queue-5.15/ocfs2-fix-defrag-path-triggering-jbd2-assert.patch
 
 _______________________________________________
 Ocfs2-devel mailing list
