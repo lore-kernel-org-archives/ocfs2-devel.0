@@ -1,58 +1,58 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc248.phx1.oracleemaildelivery.com (aib29ajc248.phx1.oracleemaildelivery.com [192.29.103.248])
+Received: from aib29ajc245.phx1.oracleemaildelivery.com (aib29ajc245.phx1.oracleemaildelivery.com [192.29.103.245])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 51579C61DA4
-	for <ocfs2-devel@archiver.kernel.org>; Mon,  6 Mar 2023 13:49:03 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 55909C678D4
+	for <ocfs2-devel@archiver.kernel.org>; Mon,  6 Mar 2023 13:49:05 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=tl2NBZwCAxyZ4EDc5mg6A0GQhDkjNg+GO8+6YH4B0YU=;
- b=ZG9L5igq30f2nvEXQIVdRk8JUFc4thE99afF7jWtmI/uj9JLAJdiyZ8tqaZevVDFezDun0qmBnJm
-   0uoPQvrcR4s+nj6jTieQd5PaFA+qQwmAXR8SJnCYkrk6C7RtC/xdiVaBzBZ2MNhgB4u/iOUqK/CK
-   vadz+xwi8ra9tE04oaggG5cDqHm5kp4+fQ//wkDe1v3NHyJq7E/2GvYkD64YU1NSfT/KORTWB+9e
-   iI6b0fBHpAlBz0uCMv91hw9cXwl2dhHblMOePlU/qxBGx49uMOUOC526zCV2VJd9ZF392vNn+hLA
-   eXLQTP3SfUJdatFnYgkwUFQROAvuPiqZrm4lvA==
+ bh=4njK5kGmXLmqaXSvFqToH/4fcePcguNm8UTP/8WmtDM=;
+ b=r+SGGzsoxtkmaB6cbKoZ7J0WKmlM4jVlgaKP/UgxHfv6Ztxnsl79M/9LPNris0jbUlPnetLkHP6M
+   fGzi+KAnuuWHBy38X7Snc5Ms+t5zfR5jfzqHnGjiCMjKz8a+C/tg2f9tK87bQ2D7YqpPYqfva6Gl
+   EqLVkhUorb6aoYKL7YcbaKv4sPGkqE83TrdtSB2UuV0F869TgbIePNxRRwXgUcHzrhUZJfRtSIu1
+   BHxZPoHCNYL5JuxW8itsdMzs79jFQTcQQwUzHPqZrcazGyRox+cFiCc0D3qFcxzYXzGXb+/GHMQB
+   s/sjqpRE3gE+hiRokeRVwLCYSGk9Zsa6lpQxhw==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=tl2NBZwCAxyZ4EDc5mg6A0GQhDkjNg+GO8+6YH4B0YU=;
- b=Id1b7hJEPLlDdyr+bIR8vtbFGXC5G0NT8Vxc/uBc7+lEwq2X+v0LAU7+VOnwnZt1BQCJuYI1MG3r
-   a4t38srlMiCoQh9oUVcLuse4dL9x4QSCV9EE7c9leAL+rFl1XAgwDgZdXRYDGoskpdZPd+/1DUWU
-   wiYsBuLnnwF/fOvCHZ+RO1BYuqoMGc3RrG73imle9xvylr7Ia5NwEn+y77z3Q9cWwMq/wn48fmKr
-   YBaMC1d6GNXVkaBGvN1KqwrkUK7GgaERZyYi4D4OCTepWErdNp3vqD7BNg/7sCjQBhUjRIK7VsEU
-   8xJW5qzM4t62sk4tPO5oTFYwOF5r6pVdjKu5AQ==
-Received: by omta-ad2-fd1-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
+ bh=4njK5kGmXLmqaXSvFqToH/4fcePcguNm8UTP/8WmtDM=;
+ b=S3Hfu+XrEEwfRXk2Sp4oEiDKTX+pJex+XHPED19LauFyDvF5P2///WkNztVteQsd6T1R+Z8X91y1
+   bhjF9rTGCa8FAfxdYHEz/eAyLpqtdnrbWAffnlcuLuQg+jYMJezL/mu9wWP0F0MVh3taRxoau2eJ
+   w6ruu2oQEi5uFi8+vmqM+4f3tTaWy14j0rf1brJNxQOYlMMA8GH4YypmGYDKwAWhj4plATIe0uBn
+   ZK3o0Rmdxhm4F5GmPtk+jH9ZkFzdThKK9i1Zvei1OTH+rio3PTCxoyzFn9wWker0+lYf9mlKhRwm
+   hbffoKmbGtauQTK/W8JhO6IvGv4gCxCcdVil7Q==
+Received: by omta-ad1-fd1-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20230214 64bit (built Feb 14
  2023))
- with ESMTPS id <0RR300M9HQDQWO30@omta-ad2-fd1-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Mon, 06 Mar 2023 13:49:02 +0000 (GMT)
+ with ESMTPS id <0RR3008DIQDSBK80@omta-ad1-fd1-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Mon, 06 Mar 2023 13:49:04 +0000 (GMT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linuxfoundation.org;
- s=korg; t=1678110523; bh=Q0BPchgFsCr709KdEEIyv7MvSzlZhhm5hekXEzfZVps=;
+ s=korg; t=1678110531; bh=9RNCAoAJARxP0tdTq7QiwHP7fVVEjvGR0tgKsGcYAaI=;
  h=Subject:To:Cc:From:Date:From;
- b=K1dkvZvsJesoF0urBHVayhDcTrnN8v0JY4JUsnYeLr6QTeyGU6Mad3zjtM0N36g31
- lx4UVATeo6AUsRsK6LC4nsSeCFc0+KIZeY0EdKQHW24F+EdYaurATn9CKpovpoSJia
- Ap7JHrYQ05Hwa636nrd1Ao/Z7cWyQ2AS203xHWSQ=
+ b=aWNsnDTbDfeyIs5wMq8W5MZjr13sqZKVNrheYqRTuBK/wD2R9Qlq2K/0MYOs5oY1M
+ U7oSrtnmQRSj06Zli3AB/Cimwv3gUn6rqV4iraTyvsfPXCyaTD9W9eFkSA6SJcPKt6
+ BU8YNYtsXVOch1lUqqcAow2dACz+6gTGUBDoVXmo=
 To: akpm@linux-foundation.org, gechangwei@live.cn, ghe@suse.com,
  gregkh@linuxfoundation.org, heming.zhao@suse.com, jlbec@evilplan.org,
  joseph.qi@linux.alibaba.com, junxiao.bi@oracle.com, mark@fasheh.com,
  ocfs2-devel@oss.oracle.com, piaojun@huawei.com
-Date: Mon, 06 Mar 2023 14:46:02 +0100
-Message-id: <16781103626088@kroah.com>
+Date: Mon, 06 Mar 2023 14:46:11 +0100
+Message-id: <1678110371161118@kroah.com>
 MIME-version: 1.0
-X-Source-IP: 139.178.84.217
-X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10631
+X-Source-IP: 145.40.68.75
+X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10641
  signatures=596816
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 mlxlogscore=999
- lowpriorityscore=0 impostorscore=0 malwarescore=0 clxscore=163
- priorityscore=191 spamscore=0 suspectscore=0 phishscore=0 mlxscore=0
- bulkscore=0 adultscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 adultscore=0
+ impostorscore=0 priorityscore=178 mlxlogscore=999 malwarescore=0 mlxscore=0
+ lowpriorityscore=0 spamscore=0 clxscore=114 suspectscore=0 bulkscore=0
+ phishscore=0 classifier=spam adjust=0 reason=mlx scancount=1
  engine=8.12.0-2212070000 definitions=main-2303060122
 Cc: stable-commits@vger.kernel.org
 Subject: [Ocfs2-devel] Patch "ocfs2: fix defrag path triggering jbd2 ASSERT"
-	has been added to the 4.14-stable tree
+	has been added to the 4.19-stable tree
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -71,42 +71,37 @@ Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
 X-stable: commit
 X-Patchwork-Hint: ignore
-X-ServerName: dfw.source.kernel.org
+X-ServerName: ams.source.kernel.org
 X-Proofpoint-SPF-Result: pass
 X-Proofpoint-SPF-Record: v=spf1 ip4:72.55.140.81 ip4:52.25.139.140
  ip4:139.178.84.217 ip6:2604:1380:4641:c500::1 ip4:145.40.68.75
  ip6:2604:1380:4601:e00::1 ip4:145.40.73.55 ip6:2604:1380:40e1:4800::1
  include:_spf.google.com include:amazonses.com include:_spf.salesforce.com -all
 X-Spam: Clean
-X-Proofpoint-GUID: pDL42ALNPgGThbUInAIfb1QXFpNLhR7T
-X-Proofpoint-ORIG-GUID: pDL42ALNPgGThbUInAIfb1QXFpNLhR7T
+X-Proofpoint-GUID: 099Bda7D6sgY1JF7ZsdgO23KgITGRojj
+X-Proofpoint-ORIG-GUID: 099Bda7D6sgY1JF7ZsdgO23KgITGRojj
 Reporting-Meta:
- AAFOF+7bxq37MK1RlB3YOsRjrK2FZVbvKkuN6zc6Qk+Y63sNEyNuojwOu364X6qt
- wg3NlQhVcPxOi7hAEbonTMp3zrxxVIqlX4ASjvvKVfytS1LRWDAqI0J4zxAPKitP
- V9yphg8ATR6gkVEb9iOf/oLaGl/nNk/Iom6yUn4apqdO6Fv2GlvMSYc/i00k9KPT
- 5OPDvmoBOXitE+zGXiQUqfjSThYcD1b/RrLDx4CZDsnlRjQnAbySqv3Rd5DxXV37
- /6o4NBheU8nGOgggfqefyaSombdi08kNMfQieJ9d/4Khsr6B16PekCnxkD/nda9j
- kjqpxrt9HCNg4QFdq67aN9l89I8+fms44CiZ1TQ2U4BjzuonfaoezjJiPxmDTrHX
- sfRcbXWAh5RHSGpU5RxTMWPiif41GgtZRHv+lYdvLEnXRfbLLRwbcHzN5ABISO/r
- 6BxZer93EAvGFNaIdb3H1AWwJGJu1woBiw9ENtyt4DxDcf/V40GAxwTvAgMVAIKj
- ah5LSztdtyS7reX2KEEPiuF4HaklMPTDO+0qVdFvowc4
+ AAFVT+if9YqCBSG3+vkPmGuyuIM2IFcgN1V7z6k2/hJWZFAxUU7zA/ec2LFU8nsc
+ EoJzlkFtm8MvRqVhhnW9eluWCEQiIKyx2MFIA4KlnKhrCGRzjZqvJ0Pr9/d4mF6G
+ 4pZBix7lDrFp1mmQ0xwrcrx7krXzPFwOYYfhLmVHAd6napm205Ocl/fUiMCzeQPk
+ VjR+4jRPwyUpbw2GmUMb7Lg7zL18cUk4ieeQD8lLA7YXWTYwTpfgQ00Vm7rBgB+4
+ wFfHJEOQnj2NpivxXh9oBm32ARQtXEAjd47ezltjr4ms3DPjfptk+1TT2L6rqa13
+ yl/YVxlzjKaZ3RNYyi1O52vE40ksfm9QSio2Xr2XlSQPeDH+bfb781fRgAqfFyAG
+ zqkprfLFKLmfg7u2czD97xJR0NX3mx0XyqmgKvWWqxrjCkFatAUQzrTh+yMvgL6Z
+ dUxfjrhnGQCQtw6OX48TfvS8pOXWh3xa5DbKquQrvCSYCdoL0U9VbF9tO2RPO83T
+ n3GHnz0ycAKHKYJxIOwcd4K5CqP4DLytDf6oETd8BLBE
 
-The message from this sender included one or more files
-which could not be scanned for virus detection; do not
-open these files unless you are certain of the sender's intent.
-
-----------------------------------------------------------------------
 
 This is a note to let you know that I've just added the patch titled
 
     ocfs2: fix defrag path triggering jbd2 ASSERT
 
-to the 4.14-stable tree which can be found at:
+to the 4.19-stable tree which can be found at:
     http://www.kernel.org/git/?p=linux/kernel/git/stable/stable-queue.git;a=summary
 
 The filename of the patch is:
      ocfs2-fix-defrag-path-triggering-jbd2-assert.patch
-and it can be found in the queue-4.14 subdirectory.
+and it can be found in the queue-4.19 subdirectory.
 
 If you, or anyone else, feels it should not be added to the stable tree,
 please let <stable@vger.kernel.org> know about it.
@@ -216,8 +211,8 @@ Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 
 Patches currently in stable-queue which might be from ocfs2-devel@oss.oracle.com are
 
-queue-4.14/ocfs2-fix-non-auto-defrag-path-not-working-issue.patch
-queue-4.14/ocfs2-fix-defrag-path-triggering-jbd2-assert.patch
+queue-4.19/ocfs2-fix-non-auto-defrag-path-not-working-issue.patch
+queue-4.19/ocfs2-fix-defrag-path-triggering-jbd2-assert.patch
 
 _______________________________________________
 Ocfs2-devel mailing list
