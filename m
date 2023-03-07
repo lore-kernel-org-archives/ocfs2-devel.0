@@ -1,88 +1,58 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc254.phx1.oracleemaildelivery.com (aib29ajc254.phx1.oracleemaildelivery.com [192.29.103.254])
+Received: from aib29ajc244.phx1.oracleemaildelivery.com (aib29ajc244.phx1.oracleemaildelivery.com [192.29.103.244])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 2A3C5C6FD1A
-	for <ocfs2-devel@archiver.kernel.org>; Tue,  7 Mar 2023 16:21:29 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 59F6BC6FA99
+	for <ocfs2-devel@archiver.kernel.org>; Tue,  7 Mar 2023 21:39:31 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=I+guS3Pv4caxoCvAWqUuYTk7GN6PM4wMNlEgIR/GK5Y=;
- b=g/fuC9NcDKFozFO1HPstPPURF5W1SAvwUh02FbCIG3vtybVKxLkPo4Cta/8uBk6q3DXM1YCVF/2G
-   xNxoXFR43h2E+6SRSG/gdlJ31IiNMuleHLg2mN2mGLWY8BJG5B4b33YztJTaF8Yt1e9sq85EBMeC
-   RnNKRy0QYm95MK9pAQ7X+WTazQr7DVnSGnU9DtZyMi3PC0I215eb2wiFvdp4zTNoOZBe36JPPWKw
-   zBe7NC/wyRAgGrzMmk+VJ3S+xhoeUMplPh72B5VOMSU93B/JqkRrvGhWSrVuGP6847EjSngZI9QR
-   MtJervbda8mhJKqf7U24bz2OGckWCPnukW0gvw==
+ bh=g9ikusNweO3x8b+i25rVjCyVCmD/v2PiGLH7cx52lLE=;
+ b=jlkzB/ztaE3dE5tFLST1cSNIsXq8iUiPUV8Ctt+auC7Uthm9J1Db5xhDR1fSNLbmI28WGjpI1hgv
+   IOB348TcABj4krYWHUsQiYJBuVOZrEV1eFcUlBNKp0XcwrXwFh1fD4GtpE+Upkex9DKosLrzPuCt
+   +75WToqgPZE7B2N5ojdIRaTsKv/MHtDagPaPvLUqxapeofpmc8wntL5RSLiymjt+fNG64Rj1ZnaC
+   VWxBqyxOYvc76uxQocsfsdZP1L3S1V9jPtwmuhhiOojzEiK07QdnC9iPFOmkGV1diTAGyVMd/7M5
+   2Wy7R7nt0HJSIzsavITM42Cio4XR2FbJMggalQ==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=I+guS3Pv4caxoCvAWqUuYTk7GN6PM4wMNlEgIR/GK5Y=;
- b=rYmiNAP5UTVfVW4rGki43DNREek+fvyTN5BRo70XMGA2vpfen7nKgQKccBWketv/ea7ZrsFYQMYJ
-   9LPCqNgE2I8ZJOMbJfIhskVjVAFdSHMW+3p3tF+lLksRTAUP91Cy/kz6PVNnBXIYvkBmzSmxJSdZ
-   oL0iUiQH3wqxI55O8mdyA3qguemDnpIu3PbkJHhNeizK6kcPx3jrXVeRgAj+j3luCUJPvOryakjx
-   Bu6WE9fHR4MOpaDCo+b6alKZgYmzVKawohZhc/HTqzzuJ5ETPf3lLvtj43LZPapKYSRn3NwmgNEY
-   INLxrEX8DPAC4jo7hXepfmEzyTyem2jibHujog==
-Received: by omta-ad3-fd3-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
+ bh=g9ikusNweO3x8b+i25rVjCyVCmD/v2PiGLH7cx52lLE=;
+ b=qEcB7u26cxrnnaThqo9xSYPsemHXGtJLIH/zkwB818lX04QmKp0+X732aFbXOvFwyUdP6yTHdxs7
+   erlza3uA3Pr1ISrN+fJUPxps3zR0JxYrAzuKTVk1wt0wTdQblzJApIWYgTI/9F0/ubE3DUK0sP8H
+   wcX6yzRynELQPyNreHfDFYM3SrQzHsezKWLsBLDBVHABwdTuQY8dvEa4K/Ng8kElog5VDtnTGbWV
+   44GB+m8YCm42nd4faB0oWpNg0jRFPk6/RtoxZ0C5P5NHGzCHXR3g2Y33lqaSAopIXkaJHBltg8aA
+   Wnh8hapdzO8AXjm3D6jV7JYNB4UNlLcpST149w==
+Received: by omta-ad1-fd1-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20230214 64bit (built Feb 14
  2023))
- with ESMTPS id <0RR5004J2S3TJZE0@omta-ad3-fd3-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Tue, 07 Mar 2023 16:21:29 +0000 (GMT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=oracle.com;
- h=message-id : date : subject : to : cc : references : from : in-reply-to :
- content-type : content-transfer-encoding : mime-version; s=corp-2022-7-12;
- bh=ns6zsO5fHaTPI7ky3o4alzUb25um/KT+S6ycyGnv/68=;
- b=a0jtV2B4QHwJqVdpMpcjNJTlZLG78nT8eGPUnCAP7QViZm7oU1E1YEJ4qftBs5xZ7IOO
- BPz6vlymuYR5MqdnBIpwOTs/2rp+v4gGp4Ukn5rJpU95BuzAjrzQzNnDtDLIvlyWp2cV
- SrBuQUVw//gbeMxskT9SCBkDkOcYkqvWFSQiylsHwZ1CMLbsa7Thhof6GuBx0HQQ/URN
- Eu7ruVnvQXWIr0DCarlz9ai7ztj2h3upV/Zq4FXRo0CIHOTM71qZcwyrq4yYfhzYFzSL
- 0ZxKV8UVaCWMIrhJxP+ufQ1j3vCc2X3VLxW63o5xn+ABT+2aPcdssdoG7nibenAaexno /g==
-ARC-Seal: i=1; a=rsa-sha256; s=arcselector9901; d=microsoft.com; cv=none;
- b=Gd4MfpneTH2bInfYLs2OXPqOEL91zTi3mgtx/cufBiJMIWfJ6brHCoTPpO2sBTC2MeYIpIXLlAWXrl3cwiHU6SO5PmOxVFv+Hhsd/SuKA2+h1uasbbVKG+OvcNyPumLHI+5iesZoSV1M6+3bGJ2Sd5zMOeBLqnYYDKItuqmRJYPwxKUUsW99+h7en0919BR3Ztql8mcRov+3QA9Y3lpl0L1Fad4r1MX+fh96Brb+y9qPqP/u22t5hKwGJUDCnc+qYuk0Hw1CxR0cJWP377WTNtJDMuEmHrvluC1QOpmdv9j1HwYDvjzbDBVNiBQxX1iUkG66P23h7KrEPyC1x0ikIQ==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
- s=arcselector9901;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
- bh=ns6zsO5fHaTPI7ky3o4alzUb25um/KT+S6ycyGnv/68=;
- b=E5YhGsuGQGazf76WDuTn2mlVl1g1YTRm7aQDBKBeZgEJRXtuQgUPZmg1kZoON/nvXCtRnuzjxXuzdD7I9C7D12Ljy7z4e6JwlZ+vIeCk/207jOtqSWW1eBa6t+hxoGAtCU5Z/dACuQvaNPXNREyfTMWt6VJawaRUCAY2OgNxETaUbP3mTwrRZJ8p/U8aVKNMyUsAwTI8cnImQQNsNJq+BMWxs5lOUT3uxj996zXNYjPO3sJLLOksvlfZLzg8985n7vQoHDIRIELwodTep0vcqlD97Ocuq9GqhW6d5zirR4QRNg1w+gduKtj0mHZVxKC8VBskxm9pmqtg4uX3WCdN2Q==
-ARC-Authentication-results: i=1; mx.microsoft.com 1; spf=pass
- smtp.mailfrom=oracle.com; dmarc=pass action=none header.from=oracle.com;
- dkim=pass header.d=oracle.com; arc=none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=oracle.onmicrosoft.com;
- s=selector2-oracle-onmicrosoft-com;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
- bh=ns6zsO5fHaTPI7ky3o4alzUb25um/KT+S6ycyGnv/68=;
- b=aZaH30NzSeIRZ0XDnKqsRAyXde/bjGFDpBeIYZTbpJ+xnIJC8t6vbKUvMNPVZp0cEDw2ZWrRq+dhs6r8UFHHqBp+saZrV5Fbb7mi1nNiHXh7DBVsEOPD+0bUGtPCORIrNYeg8vSzDeVSaJyafkbbpdwewaBXzf/YBA9kiqGRcP0=
-Message-id: <6782ec9e-ec0d-396b-0354-592554e74ae2@oracle.com>
-Date: Tue, 7 Mar 2023 10:21:11 -0600
-User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:102.0) Gecko/20100101
- Thunderbird/102.8.0
-Content-language: en-US
-To: Christoph Hellwig <hch@lst.de>, Andrew Morton <akpm@linux-foundation.org>,
- Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
- Joseph Qi <joseph.qi@linux.alibaba.com>,
- Evgeniy Dushistov <dushistov@mail.ru>,
- "Matthew Wilcox (Oracle)" <willy@infradead.org>
-References: <20230307143125.27778-1-hch@lst.de>
- <20230307143125.27778-4-hch@lst.de>
-In-reply-to: <20230307143125.27778-4-hch@lst.de>
-MIME-version: 1.0
-X-Forefront-Antispam-Report: CIP:255.255.255.255; CTRY:; LANG:en; SCL:-1; SRV:;
- IPV:NLI; SFV:SKI; H:MW5PR10MB5738.namprd10.prod.outlook.com; PTR:; CAT:NONE;
- SFS:; DIR:INB;
-X-OriginatorOrg: oracle.com
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 07 Mar 2023 16:21:14.3132 (UTC)
-X-Proofpoint-Virus-Version: vendor=baseguard
- engine=ICAP:2.0.219,Aquarius:18.0.942,Hydra:6.0.573,FMLib:17.11.170.22
- definitions=2023-03-07_12,2023-03-07_01,2023-02-09_01
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 mlxlogscore=999
- bulkscore=0 malwarescore=0 spamscore=0 mlxscore=0 suspectscore=0 adultscore=0
- phishscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2212070000 definitions=main-2303070146
-Cc: linux-fsdevel@vger.kernel.org, linux-mm@kvack.org,
- ocfs2-devel@oss.oracle.com
-Subject: Re: [Ocfs2-devel] [PATCH 3/3] mm,
-	jfs: move write_one_page/folio_write_one to jfs
+ with ESMTPS id <0RR600AOC6TU9KE0@omta-ad1-fd1-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Tue, 07 Mar 2023 21:39:30 +0000 (GMT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linux-foundation.org;
+ s=korg; t=1678225155; bh=ysFThpMEQbZoB7iDCdZm4s8DKek5/klD/j67X3ipwIc=;
+ h=Date:To:From:Subject:From;
+ b=VlCmVgUg5Gs7g4tFqMvQC8P6t2awNrMczNchFgPYWBgKl8q+O2/j0ppjJCEBnsP2U
+ QLcIF6+nSeCht6/y53rmFg9u4tG4/UU02unrFkVVAvWayYHwYdSt2fjE7IcffIowQ5
+ mOiq2zghpKVKbovJ+DlajHnF6Qf4/WtkuQU2DJhA=
+Date: Tue, 07 Mar 2023 13:39:14 -0800
+To: mm-commits@vger.kernel.org, willy@infradead.org, piaojun@huawei.com,
+ ocfs2-devel@oss.oracle.com, mark@fasheh.com, junxiao.bi@oracle.com,
+ joseph.qi@linux.alibaba.com, jlbec@evilplan.org, jiangqi903@gmail.com,
+ jack@suse.cz, ghe@suse.com, gechangwei@live.cn, dushistov@mail.ru,
+ dave.kleikamp@oracle.com, hch@lst.de, akpm@linux-foundation.org
+Message-id: <20230307213915.1E81FC433D2@smtp.kernel.org>
+X-Source-IP: 139.178.84.217
+X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10642
+ signatures=596816
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 phishscore=0
+ bulkscore=0 clxscore=36 malwarescore=0 priorityscore=203 adultscore=0
+ suspectscore=0 lowpriorityscore=0 mlxlogscore=999 mlxscore=0 impostorscore=0
+ spamscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2212070000 definitions=main-2303070192
+Subject: [Ocfs2-devel] +
+	ufs-dont-flush-page-immediately-for-dirsync-directories.patch	added to
+ mm-unstable branch
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -94,201 +64,192 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: Dave Kleikamp via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: Dave Kleikamp <dave.kleikamp@oracle.com>
+From: Andrew Morton via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: Andrew Morton <akpm@linux-foundation.org>
+MIME-version: 1.0
+Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
-Content-type: text/plain; charset="us-ascii"; Format="flowed"
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-ClientProxiedBy: CH0P220CA0028.NAMP220.PROD.OUTLOOK.COM (2603:10b6:610:ef::7)
- To MW5PR10MB5738.namprd10.prod.outlook.com (2603:10b6:303:19b::14)
-X-MS-PublicTrafficType: Email
-X-MS-TrafficTypeDiagnostic: MW5PR10MB5738:EE_|PH0PR10MB4679:EE_
-X-MS-Office365-Filtering-Correlation-Id: 08e38df3-b46e-4287-4b71-08db1f27f8be
-X-Oracle-Tenancy: 1
-X-Microsoft-Antispam: BCL:0;
-X-Microsoft-Antispam-Message-Info:
- Fuw/UnnuGSmfvjYI8c/5bA69aeK+zVCe8Q9BXVhBmL4VTZdd4hv6fmpa396SiCOPKcTbwr9FCxT4t2K6RgkwctJqM5kvpz71KAnOqXP+mc4TjQ2iNk+CWwpSOvuyGvE4u4W97MHC/o8wW+FMD7XgkgNuwlLTggJsm0y78GQKfHzO+sQeJ6GuXFjjpxtvCiZ6WKyHuvr2PcK6ztHL2mlLhY9sgzo/ci1PMWo+GYofZxil5/B2QKu5rZRDbFhF7JGYa4dr50LCq2cEVY58OIzXGQrlWKG9u+4F9DsprwbBCRl3v0cTO6DHzwgsjLo+uGIgZHzsXopEMWfKH8AmXKRQblQiltasSjv+r2fn1n62iEMuTPU6IrxHWp+1V25pKN20MEul8dOHF+0YxqD29rGQqUEmuR+UjUNHvUKja43s0ffD0fwj8Xb/Oa0UQ5zPDLrEQ+ceYeL9NUU7TY/i/zOHJvoxTN4YkeRZkigIlyojDau988HWKrwDx+L7aT1L0l7QRbqdLjS7wlK/kCtAY2bbSZgHh69RSMBN81YPakTz1EN7rCtNSKsmBTFncyYXTtlR4DqZhhdO5CoPzQoKEUURKGbbqu7qka6koklbU2naoSgA2j+6jpRy+ou4yOK3yIXqazhrAayH7upED/a2j0cXzg==
-X-MS-Exchange-AntiSpam-ExternalHop-MessageData-ChunkCount: 1
-X-MS-Exchange-AntiSpam-ExternalHop-MessageData-0:
- 4gj9U/Jee6tHlkRVe+a+Z5kNQBltADkw0y9K8as6DiMgtWElK1R+yRYu872EE8pp3UKD5B5cmt3ZjXi+QuXwJ1s2fCLtNqZoYiI6molU6qiYzUK/A0ncllKLhK8uR48GeqcqMbArNCE4y6KkY6c4os272U/G9tcL3g+NtHF2dtRgRNxCJHmYfa14AmAplm2A2uwHJf3jxyqH1AVmdagxlkMaUroux8229cm346BELtOQjQ7rgqr9w8mDbD9mPrnDUVI5KDp/FSfyebJH4zm4HF0xf5l4hqmvlTiUvsPeswvnZXgwi5zlgdAweapRrpip/+5GvoziHR/Qd4383z2FN2TQwGjqoQhb6y1dqYdUR3YMRFTWPRWAPfufCazGYcwQWQmBjuupPsqlIzeovhPju1Z2yV0Ik8JzjDvQTC0z927V2YyRkrot85yjP4JpxG7XxQx2yAg9jTAP9TL/15jTnIh91WrB5weTEsraw3gGHyj0DmamfVO1yT9m+42exykqZtI/Q2Q/uDeunGLePu75L4H7FXfCAbK5nPtpFan35LH2YB5k3ZMW59JYVdGQwBECksn4Ppro38Ye2i5LScQr2F75vvQnZyJNCfiJ8Ue03LKZs0ej3QTYuhfJ4lGzwOBYvqz5gMvT3uX9sRkPg811slOybZTy8i39Zc8HW25dIRKO+KcHV07UwAac/rs0POeWYiLWCiWLCYoUDHW4W1810/cwIe4zLqbPxoa7CqrnqwmFERgjSGboUKf2EbUURnc3
-X-MS-Exchange-CrossTenant-Network-Message-Id:
- 08e38df3-b46e-4287-4b71-08db1f27f8be
-X-MS-Exchange-CrossTenant-AuthSource: MW5PR10MB5738.namprd10.prod.outlook.com
-X-MS-Exchange-CrossTenant-AuthAs: Internal
-X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
-X-MS-Exchange-CrossTenant-Id: 4e2c6054-71cb-48f1-bd6c-3a9705aca71b
-X-MS-Exchange-CrossTenant-MailboxType: HOSTED
-X-MS-Exchange-CrossTenant-UserPrincipalName:
- gKAzOYJfOuTsYfO4ALpjRKjatrrtEhxkgsWiAwrJlknVP9jVe2SsdanRglKgtELiHSJTco2I0EqSA1NbsIlFu24Ax7h66g2xbgL6bowUxAs=
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: PH0PR10MB4679
-X-Proofpoint-GUID: SFEI8QjTEun9eiGopSxVyr_nyjuwsXBm
-X-Proofpoint-ORIG-GUID: SFEI8QjTEun9eiGopSxVyr_nyjuwsXBm
+X-ServerName: dfw.source.kernel.org
+X-Proofpoint-SPF-Result: pass
+X-Proofpoint-SPF-Record: v=spf1 ip4:140.211.169.12/30 include:_spf.kernel.org
+ include:_spf.google.com ~all
+X-Spam: Clean
+X-Proofpoint-GUID: iY9KrqN-inUix69sIfwV06Q7MKUnC0f-
+X-Proofpoint-ORIG-GUID: iY9KrqN-inUix69sIfwV06Q7MKUnC0f-
 Reporting-Meta:
- AAGofkFhkToIxgGeppVx27rnlLec8du9xm1WRf0ANh63XVf5VCZ9qxj8F7BGhR68
- y+ntbCBvkZTRCI7HQ/ovnNaElK4lfUTZw7wcsK0/rU1CM8Iy7dquNC2YSSMjx2pe
- i4A/btsD2Co3wxFhiQY/IJ5rMMktkko2HYqublmlZ4+ibqiKVKw6YyqUpGEQHm17
- syqIySMW3GoAzeNIE7DUOULLWDMY6sWHoJsqydVMap3wAZOq7EoPx0yDEUD462/m
- Ra4Ev56+AKSXDzaocaqMAKPDpbZAXOOGWOu2uOE6/ysgj41ee82vI+VvFaU2mNlJ
- HN7oGQB8o4pRFWNOZLiq6T3mctXyL7kkJSnUjKPo8YbsCBlderqx5x8heF3nhiq6
- i83HIzgzBrUY7QcZxbsMH7DQhtn+1aJnYnwS95ddeqWRPa3fnj9FM0eHcdJ2KPxp
- YMPCawhsxgQRBWGaGox2OUOLwM+cXD+BDAyl0dzLKqf9yIagJOvIBrYUEFSwqbMB
- vvBWBX4K6tU/w+HSyScQWX7Yz0eRk2lMoHRPZCt8SvSJKg==
+ AAGBKMT9sWQr1FefXCs2gzLAGERO+xLubRPIo62NxPcCO1al+5YbGfbOVJK52S+s
+ XMRCym0g78pbRCJSXsBE+rBoWlKSmBssjkH+gZh9kG/fagDMbA6bDZxbtSXz+ZZ7
+ bRoLjMu3kAofjsICqS6aCgLKSZV0SWqNTx2rL6pG+5r3lgdqT/3Sq2DqlK8sOa1b
+ 0jZPnugeu19pGTcvi4gx3KeUuFPrcXgSbhGabQhea+ubSmIh3+eytDGp+TRPsMSz
+ iSKdVnNHfpSlSdvmqCW8zl717JY0Fl/pIbiQ5dZM66Wi7AUkC20KaQcxHXZPJLf1
+ Ebp4tfjf7ioRgJ7HpGP0RZhBan6nfGXhTxg7I8qoCzdodYGrQdWdPXdTng9ZjMCs
+ OL2eD7U9jYHWWYdgGG/JNd+oqwoWejBDNOu/9WLFnjIQw0mOM2k4jyiuxAYm6FdU
+ kd/V2YRkozODUnRkqb36zh7wJEqwekXf0wHmjgbI5yor/3nW6/Qmawmbnlu4VDnO
+ z1HwAco5KtiZynnuf4TO+wvz3OSetTmI0iCdxpi138YE
 
-On 3/7/23 8:31AM, Christoph Hellwig wrote:
-> The last remaining user of folio_write_one through the write_one_page
-> wrapper is jfs, so move the functionality there and hard code the
-> call to metapage_writepage.
-> 
-> Note that the use of the pagecache by the JFS 'metapage' buffer cache
-> is a bit odd, and we could probably do without VM-level dirty tracking
-> at all, but that's a change for another time.
-> 
-> Signed-off-by: Christoph Hellwig <hch@lst.de>
-> Acked-by: Dave Kleikamp <dave.kleikamp@oracle.com>
 
-Was about to ack this and noticed I must have done it earlier. For the 
-record, it looks good to me.
+The patch titled
+     Subject: ufs: don't flush page immediately for DIRSYNC directories
+has been added to the -mm mm-unstable branch.  Its filename is
+     ufs-dont-flush-page-immediately-for-dirsync-directories.patch
 
-Shaggy
+This patch will shortly appear at
+     https://git.kernel.org/pub/scm/linux/kernel/git/akpm/25-new.git/tree/patches/ufs-dont-flush-page-immediately-for-dirsync-directories.patch
 
-> ---
->   fs/jfs/jfs_metapage.c   | 39 ++++++++++++++++++++++++++++++++++-----
->   include/linux/pagemap.h |  6 ------
->   mm/page-writeback.c     | 40 ----------------------------------------
->   3 files changed, 34 insertions(+), 51 deletions(-)
-> 
-> diff --git a/fs/jfs/jfs_metapage.c b/fs/jfs/jfs_metapage.c
-> index 2e8461ce74de69..961569c1115901 100644
-> --- a/fs/jfs/jfs_metapage.c
-> +++ b/fs/jfs/jfs_metapage.c
-> @@ -691,6 +691,35 @@ void grab_metapage(struct metapage * mp)
->   	unlock_page(mp->page);
->   }
->   
-> +static int metapage_write_one(struct page *page)
-> +{
-> +	struct folio *folio = page_folio(page);
-> +	struct address_space *mapping = folio->mapping;
-> +	struct writeback_control wbc = {
-> +		.sync_mode = WB_SYNC_ALL,
-> +		.nr_to_write = folio_nr_pages(folio),
-> +	};
-> +	int ret = 0;
-> +
-> +	BUG_ON(!folio_test_locked(folio));
-> +
-> +	folio_wait_writeback(folio);
-> +
-> +	if (folio_clear_dirty_for_io(folio)) {
-> +		folio_get(folio);
-> +		ret = metapage_writepage(page, &wbc);
-> +		if (ret == 0)
-> +			folio_wait_writeback(folio);
-> +		folio_put(folio);
-> +	} else {
-> +		folio_unlock(folio);
-> +	}
-> +
-> +	if (!ret)
-> +		ret = filemap_check_errors(mapping);
-> +	return ret;
-> +}
-> +
->   void force_metapage(struct metapage *mp)
->   {
->   	struct page *page = mp->page;
-> @@ -700,8 +729,8 @@ void force_metapage(struct metapage *mp)
->   	get_page(page);
->   	lock_page(page);
->   	set_page_dirty(page);
-> -	if (write_one_page(page))
-> -		jfs_error(mp->sb, "write_one_page() failed\n");
-> +	if (metapage_write_one(page))
-> +		jfs_error(mp->sb, "metapage_write_one() failed\n");
->   	clear_bit(META_forcewrite, &mp->flag);
->   	put_page(page);
->   }
-> @@ -746,9 +775,9 @@ void release_metapage(struct metapage * mp)
->   		set_page_dirty(page);
->   		if (test_bit(META_sync, &mp->flag)) {
->   			clear_bit(META_sync, &mp->flag);
-> -			if (write_one_page(page))
-> -				jfs_error(mp->sb, "write_one_page() failed\n");
-> -			lock_page(page); /* write_one_page unlocks the page */
-> +			if (metapage_write_one(page))
-> +				jfs_error(mp->sb, "metapage_write_one() failed\n");
-> +			lock_page(page);
->   		}
->   	} else if (mp->lsn)	/* discard_metapage doesn't remove it */
->   		remove_from_logsync(mp);
-> diff --git a/include/linux/pagemap.h b/include/linux/pagemap.h
-> index 0acb8e1fb7afdc..853184a46411f4 100644
-> --- a/include/linux/pagemap.h
-> +++ b/include/linux/pagemap.h
-> @@ -1066,12 +1066,6 @@ static inline void folio_cancel_dirty(struct folio *folio)
->   bool folio_clear_dirty_for_io(struct folio *folio);
->   bool clear_page_dirty_for_io(struct page *page);
->   void folio_invalidate(struct folio *folio, size_t offset, size_t length);
-> -int __must_check folio_write_one(struct folio *folio);
-> -static inline int __must_check write_one_page(struct page *page)
-> -{
-> -	return folio_write_one(page_folio(page));
-> -}
-> -
->   int __set_page_dirty_nobuffers(struct page *page);
->   bool noop_dirty_folio(struct address_space *mapping, struct folio *folio);
->   
-> diff --git a/mm/page-writeback.c b/mm/page-writeback.c
-> index 516b1aa247e83f..db794399900734 100644
-> --- a/mm/page-writeback.c
-> +++ b/mm/page-writeback.c
-> @@ -2583,46 +2583,6 @@ int do_writepages(struct address_space *mapping, struct writeback_control *wbc)
->   	return ret;
->   }
->   
-> -/**
-> - * folio_write_one - write out a single folio and wait on I/O.
-> - * @folio: The folio to write.
-> - *
-> - * The folio must be locked by the caller and will be unlocked upon return.
-> - *
-> - * Note that the mapping's AS_EIO/AS_ENOSPC flags will be cleared when this
-> - * function returns.
-> - *
-> - * Return: %0 on success, negative error code otherwise
-> - */
-> -int folio_write_one(struct folio *folio)
-> -{
-> -	struct address_space *mapping = folio->mapping;
-> -	int ret = 0;
-> -	struct writeback_control wbc = {
-> -		.sync_mode = WB_SYNC_ALL,
-> -		.nr_to_write = folio_nr_pages(folio),
-> -	};
-> -
-> -	BUG_ON(!folio_test_locked(folio));
-> -
-> -	folio_wait_writeback(folio);
-> -
-> -	if (folio_clear_dirty_for_io(folio)) {
-> -		folio_get(folio);
-> -		ret = mapping->a_ops->writepage(&folio->page, &wbc);
-> -		if (ret == 0)
-> -			folio_wait_writeback(folio);
-> -		folio_put(folio);
-> -	} else {
-> -		folio_unlock(folio);
-> -	}
-> -
-> -	if (!ret)
-> -		ret = filemap_check_errors(mapping);
-> -	return ret;
-> -}
-> -EXPORT_SYMBOL(folio_write_one);
-> -
->   /*
->    * For address_spaces which do not use buffers nor write back.
->    */
+This patch will later appear in the mm-unstable branch at
+    git://git.kernel.org/pub/scm/linux/kernel/git/akpm/mm
+
+Before you just go and hit "reply", please:
+   a) Consider who else should be cc'ed
+   b) Prefer to cc a suitable mailing list as well
+   c) Ideally: find the original patch on the mailing list and do a
+      reply-to-all to that, adding suitable additional cc's
+
+*** Remember to use Documentation/process/submit-checklist.rst when testing your code ***
+
+The -mm tree is included into linux-next via the mm-everything
+branch at git://git.kernel.org/pub/scm/linux/kernel/git/akpm/mm
+and is updated there every 2-3 working days
+
+------------------------------------------------------
+From: Christoph Hellwig <hch@lst.de>
+Subject: ufs: don't flush page immediately for DIRSYNC directories
+Date: Tue, 7 Mar 2023 15:31:23 +0100
+
+Patch series "remove most callers of write_one_page", v4.
+
+This series removes most users of the write_one_page API.  These helpers
+internally call ->writepage which we are gradually removing from the
+kernel.
+
+
+This patch (of 3):
+
+We do not need to writeout modified directory blocks immediately when
+modifying them while the page is locked.  It is enough to do the flush
+somewhat later which has the added benefit that inode times can be flushed
+as well.  It also allows us to stop depending on write_one_page()
+function.
+
+Ported from an ext2 patch by Jan Kara.
+
+Link: https://lkml.kernel.org/r/20230307143125.27778-1-hch@lst.de
+Link: https://lkml.kernel.org/r/20230307143125.27778-2-hch@lst.de
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+Cc: Dave Kleikamp <dave.kleikamp@oracle.com>
+Cc: Evgeniy Dushistov <dushistov@mail.ru>
+Cc: Jan Kara via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Cc: Joel Becker <jlbec@evilplan.org>
+Cc: Matthew Wilcox (Oracle) <willy@infradead.org>
+Cc: Mark Fasheh <mark@fasheh.com>
+Cc: Joel Becker <jlbec@evilplan.org>
+Cc: Junxiao Bi <junxiao.bi@oracle.com>
+Cc: Joseph Qi <jiangqi903@gmail.com>
+Cc: Changwei Ge <gechangwei@live.cn>
+Cc: Gang He <ghe@suse.com>
+Cc: Jun Piao <piaojun@huawei.com>
+Cc: Jan Kara <jack@suse.cz>
+Cc: Joseph Qi <joseph.qi@linux.alibaba.com>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+---
+
+ fs/ufs/dir.c |   29 +++++++++++++++++++----------
+ 1 file changed, 19 insertions(+), 10 deletions(-)
+
+--- a/fs/ufs/dir.c~ufs-dont-flush-page-immediately-for-dirsync-directories
++++ a/fs/ufs/dir.c
+@@ -42,11 +42,10 @@ static inline int ufs_match(struct super
+ 	return !memcmp(name, de->d_name, len);
+ }
+ 
+-static int ufs_commit_chunk(struct page *page, loff_t pos, unsigned len)
++static void ufs_commit_chunk(struct page *page, loff_t pos, unsigned len)
+ {
+ 	struct address_space *mapping = page->mapping;
+ 	struct inode *dir = mapping->host;
+-	int err = 0;
+ 
+ 	inode_inc_iversion(dir);
+ 	block_write_end(NULL, mapping, pos, len, len, page, NULL);
+@@ -54,10 +53,16 @@ static int ufs_commit_chunk(struct page
+ 		i_size_write(dir, pos+len);
+ 		mark_inode_dirty(dir);
+ 	}
+-	if (IS_DIRSYNC(dir))
+-		err = write_one_page(page);
+-	else
+-		unlock_page(page);
++	unlock_page(page);
++}
++
++static int ufs_handle_dirsync(struct inode *dir)
++{
++	int err;
++
++	err = filemap_write_and_wait(dir->i_mapping);
++	if (!err)
++		err = sync_inode_metadata(dir, 1);
+ 	return err;
+ }
+ 
+@@ -99,11 +104,12 @@ void ufs_set_link(struct inode *dir, str
+ 	de->d_ino = cpu_to_fs32(dir->i_sb, inode->i_ino);
+ 	ufs_set_de_type(dir->i_sb, de, inode->i_mode);
+ 
+-	err = ufs_commit_chunk(page, pos, len);
++	ufs_commit_chunk(page, pos, len);
+ 	ufs_put_page(page);
+ 	if (update_times)
+ 		dir->i_mtime = dir->i_ctime = current_time(dir);
+ 	mark_inode_dirty(dir);
++	ufs_handle_dirsync(dir);
+ }
+ 
+ 
+@@ -390,10 +396,11 @@ got_it:
+ 	de->d_ino = cpu_to_fs32(sb, inode->i_ino);
+ 	ufs_set_de_type(sb, de, inode->i_mode);
+ 
+-	err = ufs_commit_chunk(page, pos, rec_len);
++	ufs_commit_chunk(page, pos, rec_len);
+ 	dir->i_mtime = dir->i_ctime = current_time(dir);
+ 
+ 	mark_inode_dirty(dir);
++	err = ufs_handle_dirsync(dir);
+ 	/* OFFSET_CACHE */
+ out_put:
+ 	ufs_put_page(page);
+@@ -531,9 +538,10 @@ int ufs_delete_entry(struct inode *inode
+ 	if (pde)
+ 		pde->d_reclen = cpu_to_fs16(sb, to - from);
+ 	dir->d_ino = 0;
+-	err = ufs_commit_chunk(page, pos, to - from);
++	ufs_commit_chunk(page, pos, to - from);
+ 	inode->i_ctime = inode->i_mtime = current_time(inode);
+ 	mark_inode_dirty(inode);
++	err = ufs_handle_dirsync(inode);
+ out:
+ 	ufs_put_page(page);
+ 	UFSD("EXIT\n");
+@@ -579,7 +587,8 @@ int ufs_make_empty(struct inode * inode,
+ 	strcpy (de->d_name, "..");
+ 	kunmap(page);
+ 
+-	err = ufs_commit_chunk(page, 0, chunk_size);
++	ufs_commit_chunk(page, 0, chunk_size);
++	err = ufs_handle_dirsync(inode);
+ fail:
+ 	put_page(page);
+ 	return err;
+_
+
+Patches currently in -mm which might be from hch@lst.de are
+
+ufs-dont-flush-page-immediately-for-dirsync-directories.patch
+ocfs2-dont-use-write_one_page-in-ocfs2_duplicate_clusters_by_page.patch
+mmjfs-move-write_one_page-folio_write_one-to-jfs.patch
+
 
 _______________________________________________
 Ocfs2-devel mailing list
