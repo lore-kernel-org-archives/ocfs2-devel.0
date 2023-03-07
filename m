@@ -1,68 +1,54 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc254.phx1.oracleemaildelivery.com (aib29ajc254.phx1.oracleemaildelivery.com [192.29.103.254])
+Received: from aib29ajc248.phx1.oracleemaildelivery.com (aib29ajc248.phx1.oracleemaildelivery.com [192.29.103.248])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id C51AAC64EC4
-	for <ocfs2-devel@archiver.kernel.org>; Mon,  6 Mar 2023 22:47:23 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 8AC6FC678D5
+	for <ocfs2-devel@archiver.kernel.org>; Tue,  7 Mar 2023 07:59:54 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=JGNQcomC/3aS2y3qBhD/6FBSuu8auQSr3JdbXFc2U2I=;
- b=aaUcxKsytdkmVvJv7BmxfIwB2HHnKOBrLXQJIMehONcmZK3Rjzxn3FVpd1HYJ06dAd8XU79F58tE
-   L0GnrBxe8aJBckMzrioXOMC5yejG5eFqk7x9Yty/QsqV1mcCp16UrMl3WTI0OiujSf/Csv8c7/q0
-   QFL1eOP4LwrPEu7RE4XAsAfqMbonFWeOoEoZ4QbwFU38s/tvnsZ0jmu5XGn9d5rKURjNMLGQUI9c
-   xQYHAiPbxxBsp3c5IJ8gK1tIk5Nx2UsIBH1WoyQcSjyogde4Herimprgqep+LiDSORa1ceAOa77k
-   BJUOsrGkdViK6BU7cqo+M+fWVklZOga7lz+wgA==
+ bh=mmyACWVyDse2OcIiUzY+MGZXz7kGUUARBdvvJbya0EM=;
+ b=Nb/Jm4v68aYzZldgPiel5AKibixblp4pqouHXSFwtA/jl1d/r8SxzEh7yrqg/T2a5wiQqDzbbJBf
+   15/PbvYwC0UOaAUCUEUbEbSAZqalLvx8DHh4Y9ciG1vVQG75+aw2ht/VUHhzgUrhEVc/g/NkGoy6
+   nIREhd5sBoVRalXn9vabBzof8ZXpKQQ+1ACmjFH25i4ksKSqtzeXu4t0FbCkGjy4v9V1jro/BQj6
+   9PI52h1qa2vQM+ixlVkHoKRa40Z77MT3hTpeQuMP3s/XesdJitarinChs8xm3O1BB2IJNhjCcmgg
+   dGfrQ+Zn+aR00Ac+XgLSVq7abB5REGhwe+3CbA==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=JGNQcomC/3aS2y3qBhD/6FBSuu8auQSr3JdbXFc2U2I=;
- b=EIwlQciaTfqhoFVdOq4OOGJp/pGEUyNOV5F1X7N1ZbCA/gKseAEEaW9FgekVxR3d8UUE0fJxR10E
-   +orLRfZIp+13fsq/S9c5meFYSqTFMxRgGmfRJpxbX/Wv03neGcnd205MBpAecit1n1WaIVFHLPTI
-   bimdDZmVLgFgiqMJHthlZn4WqbFZ2MTmZwH7H2O5P3ZS6czEnUvxKHeVXYnGtg0SZpyy/ekjG28t
-   L6m2svXqVhg17kYzRbWcWu+UwOT8H2eJBPlUBhyJWaLG2Q6dFb5WCE90V9ZV4L/0XmnlrloiKj/R
-   v3fXNN5VayWi9YyDITp9mvc0ipuc1H32rCmJ5Q==
-Received: by omta-ad3-fd3-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
+ bh=mmyACWVyDse2OcIiUzY+MGZXz7kGUUARBdvvJbya0EM=;
+ b=cqbKchfutOclBHs1ABQdZoJXswTd5SYrD86fslY5z2qDY5fWsqE1+KteB3HLNzGndOd4l8VOf74Z
+   ukz/Fwsyx1yNhOiLDRgK1kwoiU9VWT/QuZgJnLRVLZmk3trBLK6D+gBrIezCaro2+qqaLWAMi386
+   TAbLtSp58Y8Z7GZhcca9ORZPprfja4SMA+6d8mINptJ+96Z7/rNcRRdpgTDvnOTFY6Tf1X7Dt5Qd
+   5azELxz/484q5rLtgQW/9zIGE/8HvBMWpmFN/J5ffmiRGe5RyqCbjKct+aI0p4P86K9GlmTXzzPo
+   7Glq5Kf9Rbft8ojKYV4wVUYVxOGKN+ytxcU92Q==
+Received: by omta-ad2-fd1-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20230214 64bit (built Feb 14
  2023))
- with ESMTPS id <0RR4007IDFAYVQC0@omta-ad3-fd3-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Mon, 06 Mar 2023 22:47:22 +0000 (GMT)
-X-Virus-Scanned: Debian amavisd-new at valentin-vidic.from.hr
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=valentin-vidic.from.hr;
- s=2020; t=1678142818; bh=OOKeFqakFI5OR8Vd7tJbkBi8CYu4+5URsS/JxLgJBbs=;
- h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
- b=F5Qi7azRHg7W2fKwwS8k9EfRlxweJB96igpwDO22mfc6zUDYFgurAKvm4r+HguksN
- bo4fxfxtds8U5uMR66f7xFMD7Hss3I/V++9s9hAmPfsG0YZuOAUolWUxWIzDNFlQ2x
- 97LPYIaVUe8n6bW1iiQ8JEtp3x9CnmhIsibBD0Y1UJnI0eKa955FG1eNHLm5E/35A0
- ehn/sLSNdAbscJKR6Df1mXyau09vkszZF40blVfOzIjiJcJEu1nyBHaS315jatF//i
- Jed4E3fiE7wzMlS5NOyamqEZUFZmyKHa/SlTb/oPC8zYqjhPSxbXnRAzVNf5ynkf6E
- PvhFloaLIlxyyswNAmNOyc+HkDDfRbzpOAFik/Gpx32oLbpeWoAu+Hnjw6bOVTxBso
- /gjKhGL/7QwNeHX//nU9R2dcmxVaKGRgU+dXMeXyOCNzoZcDJcPCdqX7hrJg68EUXt
- sTeisEaTrb8/0nBTj+P+IQS3544T1KZB+VDq4adNhr6UEHR1E+sAlq88n9lLj2/ScI
- k0zF38qoL/+vlr4jyFs0nEU0dzM2W4m3L0yI5DoxjxRI2TQo0FUouNRu18Z1XUi9Bj
- rmaEfpkGmfti7iG5QTTWt5If2UFuDIJujXkYpXOLcb7lEYuQRjY9dsHhBewA84WMht
- YufUFTE4otbygtc/lPNmX1V8=
-Date: Mon, 6 Mar 2023 23:46:58 +0100
-To: Roberto Sassu <roberto.sassu@huaweicloud.com>
-Message-id: <ZAZtYjHlhM6IAVpc@valentin-vidic.from.hr>
+ with ESMTPS id <0RR50074S4VTGQ40@omta-ad2-fd1-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Tue, 07 Mar 2023 07:59:53 +0000 (GMT)
+Message-id: <e848f2fbff1677023128afe4351e5af28576c058.camel@huaweicloud.com>
+To: Valentin =?UTF-8?Q?Vidi=C4=87?= <vvidic@valentin-vidic.from.hr>
+Date: Tue, 07 Mar 2023 08:59:15 +0100
+In-reply-to: <ZAZtYjHlhM6IAVpc@valentin-vidic.from.hr>
 References: <ZASjOpsoM+nEx/o8@valentin-vidic.from.hr>
  <afce1ae289a52db2b210065a63a73fdcb7f3175e.camel@huaweicloud.com>
  <ZAXEVL8BZb96cxFX@valentin-vidic.from.hr>
  <e804e6881e96680107a4db3d4b81e5e898f5fbde.camel@huaweicloud.com>
  <ZAZd0yMvJTV/h/DM@valentin-vidic.from.hr>
+ <ZAZtYjHlhM6IAVpc@valentin-vidic.from.hr>
+User-Agent: Evolution 3.36.5-0ubuntu1
 MIME-version: 1.0
-Content-disposition: inline
-In-reply-to: <ZAZd0yMvJTV/h/DM@valentin-vidic.from.hr>
-X-Source-IP: 169.150.239.92
+X-Source-IP: 14.137.139.154
 X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10641
  signatures=596816
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 bulkscore=0
- mlxscore=0 clxscore=99 mlxlogscore=304 suspectscore=0 spamscore=0
- malwarescore=0 adultscore=0 impostorscore=0 phishscore=0 lowpriorityscore=0
- priorityscore=0 unknownsenderscore=20 classifier=spam adjust=0 reason=mlx
- scancount=1 engine=8.12.0-2212070000 definitions=main-2303060198
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 adultscore=0
+ impostorscore=0 priorityscore=0 mlxlogscore=462 malwarescore=0 mlxscore=0
+ lowpriorityscore=0 spamscore=0 clxscore=212 suspectscore=0 bulkscore=0
+ phishscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2212070000 definitions=main-2303070071
 Cc: ocfs2-devel@oss.oracle.com
 Subject: Re: [Ocfs2-devel] ocfs2 xattr
 X-BeenThere: ocfs2-devel@oss.oracle.com
@@ -76,35 +62,65 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: Valentin =?utf-8?B?VmlkacSH?= via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: Valentin =?utf-8?B?VmlkacSH?= <vvidic@valentin-vidic.from.hr>
+From: Roberto Sassu via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: Roberto Sassu <roberto.sassu@huaweicloud.com>
 Content-type: text/plain; charset="utf-8"
 Content-transfer-encoding: base64
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-ServerName: valentin-vidic.from.hr
+X-CM-TRANSID: GxC2BwD3xl3W7gZkm314AQ--.36110S2
+X-Coremail-Antispam: 1UD129KBjvdXoWrtr13WF4DKF1rtFyxJr1rCrg_yoWftrb_uw
+ 42gryxJFn5Jr1UXFs7JryagrZ2kFyDJr1rZ3WDKr43uwn3Ga47GFZ7Cas5ZasxWa1Sqr1U
+ uF9aqw1rtr1aqjkaLaAFLSUrUUUUUb8apTn2vfkv8UJUUUU8Yxn0WfASr-VFAUDa7-sFnT
+ 9fnUUIcSsGvfJTRUUUbOxYFVCjjxCrM7AC8VAFwI0_Jr0_Gr1l1xkIjI8I6I8E6xAIw20E
+ Y4v20xvaj40_Wr0E3s1l1IIY67AEw4v_Jr0_Jr4l8cAvFVAK0II2c7xJM28CjxkF64kEwV
+ A0rcxSw2x7M28EF7xvwVC0I7IYx2IY67AKxVWUJVWUCwA2z4x0Y4vE2Ix0cI8IcVCY1x02
+ 67AKxVWUJVW8JwA2z4x0Y4vEx4A2jsIE14v26r1j6r4UM28EF7xvwVC2z280aVCY1x0267
+ AKxVWUJVW8JwAS0I0E0xvYzxvE52x082IY62kv0487Mc02F40EFcxC0VAKzVAqx4xG6I80
+ ewAv7VC0I7IYx2IY67AKxVWUJVWUGwAv7VC2z280aVAFwI0_Jr0_Gr1lOx8S6xCaFVCjc4
+ AY6r1j6r4UM4x0Y48IcVAKI48JMxAIw28IcxkI7VAKI48JMxC20s026xCaFVCjc4AY6r1j
+ 6r4UMI8I3I0E5I8CrVAFwI0_Jr0_Jr4lx2IqxVCjr7xvwVAFwI0_JrI_JrWlx4CE17CEb7
+ AF67AKxVWUXVWUAwCIc40Y0x0EwIxGrwCI42IY6xIIjxv20xvE14v26r1j6r1xMIIF0xvE
+ 2Ix0cI8IcVCY1x0267AKxVWUJVW8JwCI42IY6xAIw20EY4v20xvaj40_WFyUJVCq3wCI42
+ IY6I8E87Iv67AKxVWUJVW8JwCI42IY6I8E87Iv6xkF7I0E14v26r1j6r4UYxBIdaVFxhVj
+ vjDU0xZFpf9x07UE-erUUUUU=
+X-CM-SenderInfo: purev21wro2thvvxqx5xdzvxpfor3voofrz/1tbiAgAJBF1jj4ZG2QABsm
+X-CFilter-Loop: Reflected
+X-ServerName: frasgout12.his.huawei.com
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 mx -all
+X-Proofpoint-SPF-Record: v=spf1 ip4:45.249.212.51 ip4:45.249.212.56
+ ip4:185.176.79.53 ip4:14.137.139.23 ip4:14.137.139.154 ip4:14.137.139.46
+ ip4:124.71.93.99 ip4:124.71.93.112 ip4:124.71.94.104
+ include:spf.saas.huaweicloud.com -all
 X-Spam: Clean
-X-Proofpoint-ORIG-GUID: LCKXwZa74bzZNHpFooCWrMQMsYusrDpb
-X-Proofpoint-GUID: LCKXwZa74bzZNHpFooCWrMQMsYusrDpb
+X-Proofpoint-ORIG-GUID: q0m_dLwm5rPSXOPwM5SBhVgNfemDVJt2
+X-Proofpoint-GUID: q0m_dLwm5rPSXOPwM5SBhVgNfemDVJt2
 Reporting-Meta:
- AAFzcmk+Lv6+XVdNWbNwseBzLoi1H4FhDvkHlsUY1qfkhS3xJ66ghnZcWsLFDyFz
- Kj+nyNfWNcdBB0uGLX65Z9vQ3SJgvQkDy5Ro7e33uyBjDbDRhKAPmyu2XDrg1TMi
- 2lcBRocqFj1Rddvl2XdkkYcW+O0VOkaFeSt1OrOBz/wcyVqDe+Ju+Plm2DF/bx0Z
- hkHrP2Z/04CvcnqIer5O00RAOwbAVXQ5HrTCNRT+TW0Vtq1Tec9Adyvtt5yy6wlQ
- sjTz4+xxMQTciy6DPm0nPvgtTdmIaAwk9PZFthx6Km1iyhG7/tq+s4FfNbcc7Es8
- Uv1nWGCLpmMvj5CeVORNgpTaPOl3hDFuQKX9ph6y4gOCMa1xRg3x78A5etFVsAxf
- GPJMd6QcY+Z2Nv2ocW82HaokoqeINL2SDPIFoa8wbnieXq0oLhVk4uJeIJztMz27
- iHxiyK85EbDoQsAI5/fmI96D59X0WLGgG4o7zSv0g3IINr5rFskEiMdZ9xfMVAPt
- 055gR9nYThvZHRmQCpSQkTF/zCekOaAw7X/wFKy1I3A=
+ AAHyrgr8LbXKZBE6YjMf7Oxxm+Wvb5ASCJ51hjWLfL4OV3uMnAi+SeiVji823+1q
+ UXwCZr31BWI8aI/uCf6yVQcs+F047rdDtb7GTcN0l5HnePMzw/Xrnt1WKUxuzJlL
+ jxJIfups5lf6PmGhxkRHlxttdD4RBE44w7fXDMW049XiXOmMlettrwCFDR6G81NI
+ M+FybAw41d8wXZqe/WDICIT3jk/FaAMhxdcIpfrHCB4MiS3GVGycCd6OrlMfaBBb
+ U6I0ERzNGQKm7MluU8TFrPhtzMWFXebVKY/q6jHMZsw0OTsE1kEg1IXQhxudqCdy
+ lqaVYES5uWyPvxUoinv668fPd6tJdYgmd3LkE5cq+s31FXKOuxvpp+6yX6XdOqEr
+ ERcBpkBzO+B9WFzrCfPMQJCLVftditPVKGBejghkhg1f+5kGNHd99uGJmS//n+AE
+ s5VXjw2VWZ2J6iJekOyQuRQcxQQTx5vvCtYXUZjT8gLnX/GEAbjvJOC6tb3nMUZy
+ uUZqON/B9LJbKny3BrC3aEZGjCBZDPxia0mLlTWAXiR+
 
-T24gTW9uLCBNYXIgMDYsIDIwMjMgYXQgMTA6NDA6MzVQTSArMDEwMCwgVmFsZW50aW4gVmlkacSH
-IHdyb3RlOgo+IEkgc3VwcG9zZSB0aGUgZml4IHdvdWxkIGJlIHRvIGNoYW5nZSB0aGUgZGVmYXVs
-dCB2YWx1ZSB0byAtRU9QTk9UU1VQUD8KCkNvbmZpcm1lZCwgbmV3IGRlZmF1bHQgdmFsdWUgZml4
-ZXMgdGhlIGNyYXNoLiBJdCBpcyBlc3NlbnRpYWx5IHRoZSBzYW1lCnByb2JsZW0gYXMgdGhpcyBv
-bmUgaW4gY2VwaDoKCmh0dHBzOi8vZ2l0aHViLmNvbS90b3J2YWxkcy9saW51eC9jb21taXQvN2Y1
-MDU2YjllN2I3MTE0OWJmMTEwNzNmMDBhNTdmYTFhYzI5MjFhOQoKSSdsbCB0cnkgdG8gcHJlcGFy
-ZSBhIHBhdGNoLi4uCgotLSAKVmFsZW50aW4KCl9fX19fX19fX19fX19fX19fX19fX19fX19fX19f
-X19fX19fX19fX19fX19fX19fCk9jZnMyLWRldmVsIG1haWxpbmcgbGlzdApPY2ZzMi1kZXZlbEBv
-c3Mub3JhY2xlLmNvbQpodHRwczovL29zcy5vcmFjbGUuY29tL21haWxtYW4vbGlzdGluZm8vb2Nm
-czItZGV2ZWw=
+T24gTW9uLCAyMDIzLTAzLTA2IGF0IDIzOjQ2ICswMTAwLCBWYWxlbnRpbiBWaWRpxIcgd3JvdGU6
+Cj4gT24gTW9uLCBNYXIgMDYsIDIwMjMgYXQgMTA6NDA6MzVQTSArMDEwMCwgVmFsZW50aW4gVmlk
+acSHIHdyb3RlOgo+ID4gSSBzdXBwb3NlIHRoZSBmaXggd291bGQgYmUgdG8gY2hhbmdlIHRoZSBk
+ZWZhdWx0IHZhbHVlIHRvIC1FT1BOT1RTVVBQPwo+IAo+IENvbmZpcm1lZCwgbmV3IGRlZmF1bHQg
+dmFsdWUgZml4ZXMgdGhlIGNyYXNoLiBJdCBpcyBlc3NlbnRpYWx5IHRoZSBzYW1lCj4gcHJvYmxl
+bSBhcyB0aGlzIG9uZSBpbiBjZXBoOgo+IAo+IGh0dHBzOi8vZ2l0aHViLmNvbS90b3J2YWxkcy9s
+aW51eC9jb21taXQvN2Y1MDU2YjllN2I3MTE0OWJmMTEwNzNmMDBhNTdmYTFhYzI5MjFhOQo+IAo+
+IEknbGwgdHJ5IHRvIHByZXBhcmUgYSBwYXRjaC4uLgoKT2ssIHllcy4gSXQgaXMgYSBrbm93biBw
+cm9ibGVtLiBJIHRyaWVkIHRvIGZpeCBpdCBzZXZlcmFsIHRpbWVzLCBidXQgbm8KbHVjayB5ZXQu
+CgpodHRwczovL2xvcmUua2VybmVsLm9yZy9icGYvMjAyMjExMTUxNzU2NTIuMzgzNjgxMS0xLXJv
+YmVydG8uc2Fzc3VAaHVhd2VpY2xvdWQuY29tLwoKaHR0cHM6Ly9sb3JlLmtlcm5lbC5vcmcvYnBm
+LzIwMjIxMjA3MTcyNDM0LjQzNTg5My0xLXJvYmVydG8uc2Fzc3VAaHVhd2VpY2xvdWQuY29tLwoK
+SWYgeW91IGNoYW5nZSB0aGUgZGVmYXVsdCB2YWx1ZSB0byAtRU9QTk9UU1VQUCwgdGhhdCB3b3Vs
+ZCBhZGRyZXNzIHRoZQpwcm9ibGVtIGlmIG5vIGVCUEYgcHJvZ3JhbSBhdHRhY2hlcyB0byB0aGUg
+aW5vZGVfaW5pdF9zZWN1cml0eSBob29rLiBJZgpvbmUgZG9lcyBhbmQgcmV0dXJucyB6ZXJvIG9y
+IGFueSBwb3NpdGl2ZSB2YWx1ZSwgdGhlIGtlcm5lbCBjYW5ub3QKaGFuZGxlIGl0LgoKUm9iZXJ0
+bwoKCl9fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fCk9jZnMy
+LWRldmVsIG1haWxpbmcgbGlzdApPY2ZzMi1kZXZlbEBvc3Mub3JhY2xlLmNvbQpodHRwczovL29z
+cy5vcmFjbGUuY29tL21haWxtYW4vbGlzdGluZm8vb2NmczItZGV2ZWw=
