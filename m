@@ -1,66 +1,63 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc246.phx1.oracleemaildelivery.com (aib29ajc246.phx1.oracleemaildelivery.com [192.29.103.246])
+Received: from aib29ajc245.phx1.oracleemaildelivery.com (aib29ajc245.phx1.oracleemaildelivery.com [192.29.103.245])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 17078C678D4
-	for <ocfs2-devel@archiver.kernel.org>; Tue,  7 Mar 2023 14:31:58 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id D00ECC6FD1A
+	for <ocfs2-devel@archiver.kernel.org>; Tue,  7 Mar 2023 14:32:04 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=YcebhLoim+Fy6UoGTzHAq5EVgTZLWtFHRZ0y6Wj0+HQ=;
- b=BW4Yxzhbn19CKdFaHsmW8KznsLrgnMauT3Q8p0dqXKGvkWH5crFrlKn3uM10dMuesx8PYZS8KORD
-   4sB0hzme01d38fDZz6i1lMke5MGJoCC8ONXKx31kVJpMvPPygJ+svCX9TkPWOcIHdxibMDth7c10
-   TJWT+tG96Ds9MkhPQjRs778vFXdw1rwo2zmPfcP/+cFDrh+UCwTntZjh6H+UFgjLr3PtjrY2kHPS
-   S8tfIft2vPxGmPF5QC9RxPcJ1sDug99JYr1JVDPjEwgzmngJiHdcomm2mla/pZGTc9ZDHqRfSD3D
-   Tfz0RYbN+rgaf4Lc0sJsKocVSQvLuds3LT4Aaw==
+ bh=gVTe9tVmvgjW1wid+WejfmK/rFB+9KjvSgitKTocMEA=;
+ b=LoZ1pVGDFXc4wZpjSGUmTEfMBFji2HKLTjg47u2/NEZSP30CRqzaNxVYpU8hm4+K68G3Ka39U2rJ
+   +d3dh06dn3xpPeJKrLryohJorbSQmAeTYgH3iXBoIIINCsPqd9NRkr2Ju5WoP/9CklubHNTSIHeH
+   FL+g+gHqbFofzJ0Ju1IHbre/Dtgn4eWGuwFHtgTUBw5Rutx7nveUzfXkZRJ0nEyJ7+m4gDvRgqEj
+   FNUW1MPuE5GTxeFkfDpIiWALsgwgVv/DBMNFBENOgvFfharWKCu/iuH3pWw9Gh7MF2naT4lsc1db
+   JFPEFrLv9VmuT8MzFCRItUrBy4s9qjEmEYvoxA==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=YcebhLoim+Fy6UoGTzHAq5EVgTZLWtFHRZ0y6Wj0+HQ=;
- b=TWr5FablNS0P4DD1HxTrvmeLGfo+EfT58TgN3jV/j0HHJPGcg6FCbIpiG0rh59jHypfXHssO5L+g
-   ZMwgzoVqnYwjZVcsX8gfKxz0flNs2KTybuS8Bf/YOKSo9SqPrtGtBkai93ksMVS+Wq8+QdSJyS0v
-   gh2HgFETPA8iqGpVVUHwTq1x8CKx5LBaC13T2vPcIOOgME9JtkzDxWmf8ZKApejOL7P6LE9ZrGEk
-   zxnFhXzwIKFZYjsKtfcANchRfG2EchgSFj+u86bEiaRqhRewqR7m0WJMAY0OPR4z+whV9Nhfwo70
-   jqgpLcpmdzsR93xoW/zAIOqeOb6RcF6D12FBaQ==
-Received: by omta-ad1-fd3-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
+ bh=gVTe9tVmvgjW1wid+WejfmK/rFB+9KjvSgitKTocMEA=;
+ b=KeZDRX/GYNkzEAg7Z7x9YfNGeMZboPWq/O35Hdof9E62tQL6l5R5EZnsPOyLS3ktalAoMEee891C
+   F7q18lVu9JPJNv0prGWU1HE3VIZipiXb7KENkhPCn1vvNr6ceI4r0pPEwrC2lPr8o7cmCMpZeJcW
+   CyJuoKXa+pZHV2crK/15u4qzpqHva4qcmsxYLMPdqzVFSjb/0/iu984Cj4Zx0Yo/O6xenUl2MVci
+   ko+A521GDzSFpYiWZeBX7iX1ZleF0J0VyZEBcbGqs3R0NIZXlKFzqbkb0IHzHyQbiwxG9gTfzEnK
+   pbpdBcIYyORtjr2qX2td6Pn8YrRirxJKym00fQ==
+Received: by omta-ad1-fd1-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20230214 64bit (built Feb 14
  2023))
- with ESMTPS id <0RR500H12N1AD000@omta-ad1-fd3-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Tue, 07 Mar 2023 14:31:58 +0000 (GMT)
+ with ESMTPS id <0RR500J09N1G2820@omta-ad1-fd1-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Tue, 07 Mar 2023 14:32:04 +0000 (GMT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
  d=infradead.org; s=bombadil.20210309; h=Content-Transfer-Encoding:
- MIME-Version:References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender
- :Reply-To:Content-Type:Content-ID:Content-Description;
- bh=UGWQTbH2jOdjm5UmRPO29E2KQdhHJ0tZTkacHHl1ybM=; b=hHmIfAdmONUXB7VfpMgzlTeP/f
- vKEmQRnyu+zF3eg7XfFFFAa+9LXiDmWUlg9nR7yFg9d6CbyAN8m8ldDcuAw91co1/eWjkcRLm2Ruf
- bxto6xenQm3yG4Dq4enOdlzb18L/K0ZmgpJM9UVFIZmgTy5soXMGsbnUkvR9zHB43OSR708JVpT0W
- mncs7Q0O7fGPxVX1oOdZxhq8vv1tFEXoX1edvvxKmydDxR2bvyXYsyU43D+lRH2u+z0pgTHzj3Cox
- Lxb8Ox1vcK/GcArTVFy8OQj1inKpNwkqKmOYNLepslNx/zZtXX7NGacblLoLxnJBAzAaUA3hsqViC
- NPAlh4zQ==;
+ MIME-Version:Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:Content-Type:
+ Content-ID:Content-Description:In-Reply-To:References;
+ bh=41mhvkvrB0bBLLIOVbvwz5VT/I9ahbHz7mM/x4DoM28=; b=odY1pi/+EX0cHJBBQe7YoH4I2F
+ 49XnfZCvIJsvOdiuUGfrq+ZvUOhR7f9Ac6loLD7FC04i1U4tE534aVQhEzW46zQyIEFTI/cSp92ZI
+ LPd06bNDi/GTnQ7OhQ+ppUKkP6jGjVtqeVyl5q/e58f+RxWQQQh7UY+Q7zRMzXT5vjRxzK5SdsHn2
+ U7WrCyk1oSA3RWSdMuWUQvEfnF6MsBipuBQiqKZ/04MlxlQW+d+6ALNZZ4W/BlxaKDWT7GUQ5sYUh
+ El3BHy7BFFf/GFns+JybtmEb4NjUGjeBn74i1ZsyKir6UTVz7+O7LaGEavPgv/5WZbQ/H2U55LKYL
+ OjX2AzUg==;
 To: Andrew Morton <akpm@linux-foundation.org>, Mark Fasheh <mark@fasheh.com>,
  Joel Becker <jlbec@evilplan.org>, Joseph Qi <joseph.qi@linux.alibaba.com>,
  Evgeniy Dushistov <dushistov@mail.ru>,
  "Matthew Wilcox (Oracle)" <willy@infradead.org>
-Date: Tue,  7 Mar 2023 15:31:24 +0100
-Message-id: <20230307143125.27778-3-hch@lst.de>
+Date: Tue,  7 Mar 2023 15:31:22 +0100
+Message-id: <20230307143125.27778-1-hch@lst.de>
 X-Mailer: git-send-email 2.39.1
-In-reply-to: <20230307143125.27778-1-hch@lst.de>
-References: <20230307143125.27778-1-hch@lst.de>
 MIME-version: 1.0
 X-Source-IP: 198.137.202.133
 X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10642
  signatures=596816
 X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0
- lowpriorityscore=0 adultscore=0 mlxlogscore=679 malwarescore=0 priorityscore=0
- clxscore=176 mlxscore=0 impostorscore=0 spamscore=0 suspectscore=0
+ lowpriorityscore=0 adultscore=0 mlxlogscore=288 malwarescore=0 priorityscore=0
+ clxscore=174 mlxscore=0 impostorscore=0 spamscore=0 suspectscore=0
  phishscore=0 bulkscore=0 classifier=spam adjust=0 reason=mlx scancount=1
  engine=8.12.0-2212070000 definitions=main-2303070130
-Cc: linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, Jan Kara <jack@suse.cz>,
+Cc: linux-fsdevel@vger.kernel.org, linux-mm@kvack.org,
  ocfs2-devel@oss.oracle.com
-Subject: [Ocfs2-devel] [PATCH 2/3] ocfs2: don't use write_one_page in
-	ocfs2_duplicate_clusters_by_page
+Subject: [Ocfs2-devel] remove most callers of write_one_page v4
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -82,53 +79,44 @@ X-SRS-Rewrite: SMTP reverse-path rewritten from <hch@infradead.org> by
 X-ServerName: bombadil.infradead.org
 X-Proofpoint-SPF-Result: None
 X-Spam: Clean
-X-Proofpoint-GUID: DLPvO9ZkGZe2GvH7pJ-9QfJ8JBYzK_Jd
-X-Proofpoint-ORIG-GUID: DLPvO9ZkGZe2GvH7pJ-9QfJ8JBYzK_Jd
+X-Proofpoint-GUID: N3Ku9fEtIhffANf-tapt09SntRyHmu3L
+X-Proofpoint-ORIG-GUID: N3Ku9fEtIhffANf-tapt09SntRyHmu3L
 Reporting-Meta:
- AAF62uKuZfFzfsfLHrq+ZOxkyIVaZtaqnTZYgXdjVWVNWzonDCXA8Y+gSFPxa4P+
- gej2MiwqCmD5EuQyGP52Sjt5dU7Yri4Vw4CyeHwK2tUOgKVx91SvFqhrPzYx/ml5
- JE85G3JQc1E/I7i6yuqyZnTuUyOBcSHS3u19zjdbia8X6933o6uXU0xM/ETN5e8m
- qNQbtmpDldOXYxp6C/ECkIK66v8DZxTIqzfZilxhu9dEZzy+5qfhKnMjsxervfQ2
- mqaXUyv7oAgj/EG904JqJ1/WWLWH2KBnOb2ie9zZ6wpOPRAuxpwpcN+vuHHXQd5j
- DLAnuHmdZF6QkCL/xpOgt3S3u2u88hDHy9xn/bVF1ANyXzGnKAJ2D5nq8hQQgC18
- OHGTNLqRWidGEWBv7NvWTFd3BBvamu3aSVfcmiFSotsvQ3dTEeHbg7zNjbAwcrHR
- HU6YipfPNgOH8IL7wMKitQsl5jYlQoOkxJO5ifFOPIiQaB2Yrk24CWM+QJyaGw6y
- tScun+W06g9k0oXtVPVLXbGZuROUlSfId0jW+UeQqORD
+ AAFg+p+TNnY1+vjZCRGnvZ8Dt94KniKjYg59kUfbyA1BoMkWIJZeTfP70AGPBuBj
+ iuD6Jr4En5VrwHPOPpoO0Cri16FGJ/fZ3gFoBv5xHWKE7+u1+Ygim7Us1wqsb01N
+ lYCCVQppuNLbqPK+pqkuxcL7JoMx+rKjDqNDJsUFIb09eYJK2KYRooNZAhlaXdWd
+ issCVCKtHIFkeOQ3RB8EF98Dl/mP5gLcKd757lUFObw+FxwLvPPItFUBGvrQrOGq
+ P/nwTmzmKOmy8cEsqWbt6cW9wCfgrjthn5LiJy6gJEc/RcVOcKykwRM2LnxxSKAO
+ siWV8koN+eQ+jEP/vaMXePOYO4e0JIFyJX7mrgGsF+z+VmeDSS50kIeSwyHPl8e7
+ +xg93EDyrNtdwoPmANmaNf7OXeGzV2V3Ot5Q3GQYUivHImyFOwE0PFu5oK8KYmM9
+ /jJZhUL+uMLq5BTk3EVR1S0Ji+XPxKALv0EUxIRJL9oeGxtPY+cxatB8c8RyHrnR
+ SzhIjwqE9xUjmbgj75jPh2I1fsROIqMWy5VUL8ejDCF9
 
-Use filemap_write_and_wait_range to write back the range of the dirty
-page instead of write_one_page in preparation of removing write_one_page
-and eventually ->writepage.
+Hi all,
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
-Reviewed-by: Jan Kara <jack@suse.cz>
-Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
----
- fs/ocfs2/refcounttree.c | 9 +++++----
- 1 file changed, 5 insertions(+), 4 deletions(-)
+this series removes most users of the write_one_page API.  These helpers
+internally call ->writepage which we are gradually removing from the
+kernel.
 
-diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
-index 5a656dc683f108..564ab48d03effa 100644
---- a/fs/ocfs2/refcounttree.c
-+++ b/fs/ocfs2/refcounttree.c
-@@ -2952,10 +2952,11 @@ int ocfs2_duplicate_clusters_by_page(handle_t *handle,
- 		 */
- 		if (PAGE_SIZE <= OCFS2_SB(sb)->s_clustersize) {
- 			if (PageDirty(page)) {
--				/*
--				 * write_on_page will unlock the page on return
--				 */
--				ret = write_one_page(page);
-+				unlock_page(page);
-+				put_page(page);
-+
-+				ret = filemap_write_and_wait_range(mapping,
-+						offset, map_end - 1);
- 				goto retry;
- 			}
- 		}
--- 
-2.39.1
+Changes since v3:
+ - drop all patches merged in v6.3-rc1
+ - re-add the jfs patch
 
+Changes since v2:
+ - more minix error handling fixes
+
+Changes since v1:
+ - drop the btrfs changes (queue up in the btrfs tree)
+ - drop the finaly move to jfs (can't be done without the btrfs patches)
+ - fix the existing minix code to properly propagate errors
+
+Diffstat:
+ fs/jfs/jfs_metapage.c   |   39 ++++++++++++++++++++++++++++++++++-----
+ fs/ocfs2/refcounttree.c |    9 +++++----
+ fs/ufs/dir.c            |   29 +++++++++++++++++++----------
+ include/linux/pagemap.h |    6 ------
+ mm/page-writeback.c     |   40 ----------------------------------------
+ 5 files changed, 58 insertions(+), 65 deletions(-)
 
 _______________________________________________
 Ocfs2-devel mailing list
