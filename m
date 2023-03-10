@@ -1,66 +1,66 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc248.phx1.oracleemaildelivery.com (aib29ajc248.phx1.oracleemaildelivery.com [192.29.103.248])
+Received: from aib29ajc247.phx1.oracleemaildelivery.com (aib29ajc247.phx1.oracleemaildelivery.com [192.29.103.247])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id AC103C6FA99
-	for <ocfs2-devel@archiver.kernel.org>; Fri, 10 Mar 2023 03:20:15 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 46480C64EC4
+	for <ocfs2-devel@archiver.kernel.org>; Fri, 10 Mar 2023 03:26:51 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=w9uLTj0slDLlLwg3jTjx2xsD+T6JkK4IB610Lp79Auk=;
- b=TljMFpWoss+65O4vpKzqbSYRJt7pSqy6bhQsDikOxWTNBxsBOBTC0IjDzKaVqeGRbb6eOBfcnjVg
-   MUE91ulR3o/kN5Z8w6KTHuzfWEGlLA5fuGs5g1T58y6Ei8LBN3tyW78GgiDnNyiilQ+EKhzvnPdR
-   09xW9U4nbHmnRKWkSBOwgebds7rj4ynWpNtP2/3bvMuBGeo4i6oR7+tT+8iz/ZNibQ/m+V5ABzz3
-   B86dQexCAF14NHDShrNfDNnoTgV8upqcxCvY2H7+S/tDpIl8LIVpD8uQPQre8/tSWhs/iKtusxPP
-   S0SWrjubkpd9mGDsJpXABXCQxXoaAzMkDEZW0A==
+ bh=S6kCOY+5TvijoY6im6hqLW9x1oRqqTRfNrkOgvIa6h4=;
+ b=N9byNfBBLXs2WDhaYGQ1MlvUGsaHnH0OrO6j+2GNv76F5s6o5/D74tBGEeN6oLq327CIQ3eMpO3K
+   YgRVSi+ETIaN7Ls/E3YhH/V3e2WYdSxqMW8TczSNvQ5aSpNIobv6udM1nrLMziqNLqYvrRCJJ8Hl
+   EyWsQJsWpTQrTuX98xn2LY3cqRkv134G1R4J3MA5gCHBvEazuyLEqW+Fe2CcB+cSZU+MDgVojNDY
+   fZhP/E1kk4iF72NG0MkhXiLGy3ASs6ItDOlwta7TaLM5gP4B65tlnlXjGcHd42w2y21ye4nxn8Ur
+   l2OxBN95nUyrQ2VBJmsozrscaNiMhvoWS9/YTA==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=w9uLTj0slDLlLwg3jTjx2xsD+T6JkK4IB610Lp79Auk=;
- b=tHciaKBp1Dr+E1qdTCuviyOiAp6iSVsG1zzWAcVULpeuDdC/NL5wWUQSKcLh1b0uvWjwIgcpyNlW
-   r7Gpdy0Wew7D9Nn/EbTtPYe0PoF6B5UW5OLOHV+BuIB+ccv/2ed/atUcvk3u3Ae5/wKbnItrt1O2
-   0SVaInBaoLLZDTivLgkDbVKvnqUsGWbJfQ0oGJM6VS3dCMK9F6OuCLzYs/nKDbahnCD2KlmyLOpm
-   8C1xhqcT9zAuSv6Fcv3rMdDPg7bBj2ZZ8QC8/fZqLu9Jpxp0V9iUBnmsmhB3yq3fC9XKi3o5qPtD
-   w59C5KKpXCJxjSZqmyYVVwoZLrVp7VSkZXRo0w==
-Received: by omta-ad2-fd1-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
+ bh=S6kCOY+5TvijoY6im6hqLW9x1oRqqTRfNrkOgvIa6h4=;
+ b=uaFwsmwK+H54Mm5YBiHoNp334K7lj5HXwRJd0+On13Ztjvo9s+hPDFTdW8gNvvDvOm2lVDe2JVDx
+   1WFObpPFRSFSGTkeEipwLrWp6DflmaQhcthXER3ckHAOCT/Ef9trc9ZzvGZwV99yXt77UoqF/gUL
+   QISgtj4XB8CzJb+2sJODza4q81QSyIC12pUVfvosDQSX+alzdrdlGQ7zzp/eJCGuQMfTrKVnniuc
+   H00jjxOYNrJH4XjgaO2Wul2so1i8vQp7oSNjpDHcm6yTEBHLNYObJakQpSNQ08+rdWsfvMHAAvcX
+   GsYzU8PowHVVHO+ZgQWwKgpgU/DXf9piQNnCvw==
+Received: by omta-ad1-fd3-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20230214 64bit (built Feb 14
  2023))
- with ESMTPS id <0RRA00414BXQVH50@omta-ad2-fd1-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Fri, 10 Mar 2023 03:20:14 +0000 (GMT)
+ with ESMTPS id <0RRA003OEC8QHQ10@omta-ad1-fd3-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Fri, 10 Mar 2023 03:26:50 +0000 (GMT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
  d=linux.org.uk; s=zeniv-20220401; h=Sender:In-Reply-To:Content-Type:
  MIME-Version:References:Message-ID:Subject:Cc:To:From:Date:Reply-To:
  Content-Transfer-Encoding:Content-ID:Content-Description;
- bh=9GsbB5b7BGtJnl9LtZ+ApF1Ae/mKzKhIP/UQI7rA/0I=; b=QxRSy9LlNWuDonXYa23yzhuHgy
- fCeVd5y8zr6e2px1BVDmNZ7RL0MVOj2WYo4ZriMLDOfoQ3eZR6enevaGtBQ+Ir4yBmpmXAX+9aL/j
- ni2GPsrAyhspoV8+YnhHKAoL7jYum3OgPXbydPXtzTvExVVrMO2OfUocxfBVnSX5eyUaBkwPkrCc/
- VE0M31dReAslqzUVi1nlmsHl0MbEIsFjQxu3dd29ddYr1m/sgOJlKeCEh+Ts4lrH7rnJYmJjPRTxJ
- 4IxBaEIwaMXYrF8lhn5WVD4/oC9zxg9ep7OMmQz6A+Jst/zsjIbHd/4BSig2belxygPu+j8zO//Ur
- rrpmXtWQ==;
-Date: Fri, 10 Mar 2023 03:19:40 +0000
+ bh=u8e2ZdAGsrDs5mc8tdhL4wOZzMMIPUZ2NIMj6U1DMDU=; b=EyM1eRQycjfDodnwphsbE/w0GD
+ 4GSBdTKxZjNXgFXT3S1cfE2Cj2w7p++EBUL20k8CV/WQ5IJV6TnxjKIHfOp23yKTH1yv8sH+bnhso
+ NQzHkrlD0K6ebfI0YbzvAaUrXy56zWlrvdGLol5HZ0gTtl6Z/sxYpU0zPoxR6V5CSKsaAUM0+xfoG
+ Crd/TrAtj1NTfS8pi4d6K9U9JcIa60NnEM+2x2Tia4PS2feU2NQ7VPBycgaCHA7/z0P52ZZ9Zl38H
+ NOKFsMJWnEN18CIiLLqiZyw1pERtByrbV4R4qgBHCXcbx6wXhTqQVHbZo2gmfRWW8wrreGNuhKout
+ AUZwnThg==;
+Date: Fri, 10 Mar 2023 03:26:11 +0000
 To: Yangtao Li <frank.li@vivo.com>
-Message-id: <20230310031940.GE3390869@ZenIV>
+Message-id: <20230310032611.GF3390869@ZenIV>
 References: <20230309152127.41427-1-frank.li@vivo.com>
- <20230309152127.41427-4-frank.li@vivo.com>
+ <20230309152127.41427-5-frank.li@vivo.com>
 MIME-version: 1.0
 Content-disposition: inline
-In-reply-to: <20230309152127.41427-4-frank.li@vivo.com>
+In-reply-to: <20230309152127.41427-5-frank.li@vivo.com>
 X-Source-IP: 62.89.141.173
 X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10644
  signatures=596816
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 mlxscore=0
- lowpriorityscore=0 clxscore=140 impostorscore=0 bulkscore=0 phishscore=0
- suspectscore=0 priorityscore=0 mlxlogscore=999 spamscore=0 adultscore=0
- malwarescore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2212070000 definitions=main-2303100023
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 bulkscore=0
+ clxscore=166 phishscore=0 suspectscore=0 adultscore=0 malwarescore=0
+ impostorscore=0 priorityscore=60 spamscore=0 mlxlogscore=938 mlxscore=0
+ lowpriorityscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2212070000 definitions=main-2303100024
 Cc: brauner@kernel.org, tytso@mit.edu, agruenba@redhat.com, chao@kernel.org,
  linux-kernel@vger.kernel.org, cluster-devel@redhat.com, rpeterso@redhat.com,
  huyue2@coolpad.com, adilger.kernel@dilger.ca, jefflexu@linux.alibaba.com,
  linux-fsdevel@vger.kernel.org, xiang@kernel.org, linux-ext4@vger.kernel.org,
  linux-erofs@lists.ozlabs.org, ocfs2-devel@oss.oracle.com
-Subject: Re: [Ocfs2-devel] [PATCH v3 4/6] ext4: convert to use i_blockmask()
+Subject: Re: [Ocfs2-devel] [PATCH v3 5/6] ocfs2: convert to use i_blockmask()
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -80,46 +80,60 @@ Errors-to: ocfs2-devel-bounces@oss.oracle.com
 X-ServerName: zeniv.linux.org.uk
 X-Proofpoint-SPF-Result: None
 X-Spam: Clean
-X-Proofpoint-GUID: IlJUsGOaHPkcxVhAAzKXsmofGqqnHH9i
-X-Proofpoint-ORIG-GUID: IlJUsGOaHPkcxVhAAzKXsmofGqqnHH9i
+X-Proofpoint-GUID: fSA1WrMx6_bmuqTRJOf0dcNx78dAOs0p
+X-Proofpoint-ORIG-GUID: fSA1WrMx6_bmuqTRJOf0dcNx78dAOs0p
 Reporting-Meta:
- AAG0A57xnf5pkVZ7Uo+QZuXJ8KTQU1nPui2pwlWbJ5n7w6iQBx05vmL0w3XC2pwG
- HZ5aa0SvmKBLeVc0g+s9A29khvdbqui1d82AHXH+gyyg9anXYUmxpDG0prS32yIv
- pNltR/o9HKvz6clUtjJlwjN6K4866Vdy8WCH+fXotJL2K9Er5Y4ZNNG0EFlPiJ8l
- lamw7OFJV4o77teHSVL9ejsnUq+eaH4wUNDx/NyU0GGO+6+c0dcetNt2FR5S+zxV
- X+bYE17d7AvAVReF7TO3ZLcVjBgTReQoD3TLqSTvOF37IF7I1ilAsqYttbvPdJrm
- n4J++6rgnUEawR50CLWeIw7wnSX+Yt6A3w8BJwLwB8jaCY3W6WnEjYEXqTDwm0su
- S3Sm8WHf0S7guzcOhDSglfCTI8/EYv48XyYFx9mh4+qjuBZE+u6tCzQ5Vp3aC5KV
- nBqx9GyXK1UNcLyuzBeu3DZXWXH6nCTygWOY4fMNRONbKx2Kl6wHtcgWrePVFa28
- XpUXRR7OSfr+XXe4dLqbZOcbDBCT5aN0+AWIeMU09vEN
+ AAFQ33ORoE37IzOxb+kxlkvlqDCHpFUwTHhV/6eZuFQCmrSQC6PPZ6Q67tc61AZB
+ xC8BNAHekStZC04odlEql3p70VNVP4JTgqbnyn6wSIiObscF4YXJtpYLziZtdL8y
+ 0nLBNCN+Vu2S6gcp6Vvh9Jn5Osbiz7uDdBFLF+9RQMduJQsPXRvFGVKvvQpu7g7G
+ TDgw83qBpI/yNbZoBrR2QOB5JIziWgHUoJA3TGzjjqVxwJwK9u5LJ8VhQcavaF+v
+ AJCEutPqLx6/HDe6XUHaCCXKErLndySqaA0jxgikVHJxqja2SG7RC0p3WB5Dt5V0
+ ctXdRgRaNtdDAUl1dffpHr8noITnfOutLJAtS+gXr9wkhyKvBTQO4UNAsHMwIekh
+ P3UC6UVez8Qzk2Bxmx/f18mL1nkJwiaVNhetqwDj+L4HDlB92BGK3VKFRYQGaqqf
+ qjnpYjVsqIXj2xd+IEhRYe2WvTakaMTOTLL5LBOUcl4aEOeTtmucqBybeSPbPI1x
+ e+n21lJWRs0uLOI5c1sy5ajVl9C6sLPZtZc7xHSmfyQhtQ==
 
-On Thu, Mar 09, 2023 at 11:21:25PM +0800, Yangtao Li wrote:
-> Use i_blockmask() to simplify code.
+On Thu, Mar 09, 2023 at 11:21:26PM +0800, Yangtao Li wrote:
+> Use i_blockmask() to simplify code. BTW convert ocfs2_is_io_unaligned
+> to return bool type.
 > 
 > Signed-off-by: Yangtao Li <frank.li@vivo.com>
 > ---
 > v3:
 > -none
-> v2:
-> -convert to i_blockmask()
->  fs/ext4/inode.c | 2 +-
->  1 file changed, 1 insertion(+), 1 deletion(-)
+>  fs/ocfs2/file.c | 8 ++++----
+>  1 file changed, 4 insertions(+), 4 deletions(-)
 > 
-> diff --git a/fs/ext4/inode.c b/fs/ext4/inode.c
-> index d251d705c276..eec36520e5e9 100644
-> --- a/fs/ext4/inode.c
-> +++ b/fs/ext4/inode.c
-> @@ -2218,7 +2218,7 @@ static int mpage_process_page_bufs(struct mpage_da_data *mpd,
+> diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+> index efb09de4343d..baefab3b12c9 100644
+> --- a/fs/ocfs2/file.c
+> +++ b/fs/ocfs2/file.c
+> @@ -2159,14 +2159,14 @@ int ocfs2_check_range_for_refcount(struct inode *inode, loff_t pos,
+>  	return ret;
+>  }
+>  
+> -static int ocfs2_is_io_unaligned(struct inode *inode, size_t count, loff_t pos)
+> +static bool ocfs2_is_io_unaligned(struct inode *inode, size_t count, loff_t pos)
 >  {
->  	struct inode *inode = mpd->inode;
->  	int err;
-> -	ext4_lblk_t blocks = (i_size_read(inode) + i_blocksize(inode) - 1)
-> +	ext4_lblk_t blocks = (i_size_read(inode) + i_blockmask(inode))
->  							>> inode->i_blkbits;
+> -	int blockmask = inode->i_sb->s_blocksize - 1;
+> +	int blockmask = i_blockmask(inode);
+>  	loff_t final_size = pos + count;
+>  
+>  	if ((pos & blockmask) || (final_size & blockmask))
+> -		return 1;
+> -	return 0;
+> +		return true;
+> +	return false;
+>  }
 
-Umm...  That actually asks for DIV_ROUND_UP(i_size_read_inode(), i_blocksize(inode)) -
-compiler should bloody well be able to figure out that division by (1 << n) is
-shift down by n and it's easier to follow that way...
+Ugh...
+	return (pos | count) & blockmask;
+surely?  Conversion to bool will take care of the rest.  Or you could make
+that
+	return ((pos | count) & blockmask) != 0;
+
+And the fact that the value will be the same (i.e. that ->i_blkbits is never
+changed by ocfs2) is worth mentioning in commit message...
 
 _______________________________________________
 Ocfs2-devel mailing list
