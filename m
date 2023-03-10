@@ -1,65 +1,64 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc249.phx1.oracleemaildelivery.com (aib29ajc249.phx1.oracleemaildelivery.com [192.29.103.249])
+Received: from aib29ajc247.phx1.oracleemaildelivery.com (aib29ajc247.phx1.oracleemaildelivery.com [192.29.103.247])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id B2C37C6FA99
-	for <ocfs2-devel@archiver.kernel.org>; Fri, 10 Mar 2023 03:49:19 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id DAAEDC6FA99
+	for <ocfs2-devel@archiver.kernel.org>; Fri, 10 Mar 2023 03:54:12 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=RF5NMT+BhC/BYsbWckeW+3/LjXoPhh68/+khv6hvVHs=;
- b=cXMjA1jeDtu9Ju/+tbx+G4sKpJOEiG02kj/uC65RJcU6RmOFAKQ1AwDZH8OdiAZMCzOpKQ5/Hc8l
-   wB+3QJkFgfaCaTcwHawGMcQqeZm++cCRWeoyFDmwayU5r3NB+rn1zI2e3epDMWmx4tA9teQeTddO
-   GWKUoH//KpOp52EMgz5aDSQBVDSecNAsXe3nE1aix3WyzCt494hfqGSzQRdGTyMHIfowdGb5C7CF
-   OrOVEOvhZbu0PAuxdjS0Tkt2KCyfCM66Ah/ovuTsAdY6hPk1gSNGgvzSgMeJWz4e1CWEtUvTxEif
-   x2h0mbd1qMzEczUkdW4ckkaBtOLhJsoBjeOxrw==
+ bh=T3vUXw4fhU0Yfn+x3eLXJwQ1dqN9AqKGYtmfpbkwd+Y=;
+ b=0i8KUzGDlskXdRZV6dK8Eszvc/2WgMpjRDcA2rF801pfneWOdCyTik9QvxqF7IB7Bbh3x4KnFK9x
+   6ad31Ho0e2HcGEC80zc2NQnEudPc+Rr8J56blfmdE8h1Rw+K2pyl6DkO4LuCcnuxYDg+nOKLD15U
+   nSf8f/leYnXQ12oEUXLRxo2CBY3CMWvXOkS5HE+r8lw8chfgxv19ZDgM0GeZcGMQ66WFtQfTKOzm
+   7Y7mFduY04viJCWOV65DRq+4ren1LnA7l1/z1NfZS0AKJqVDh95KDgU/Z34mIKDNtMfw6CjQldec
+   K8SCUqX7FiCZE5EE3VFUdGsbhUpaqC86oefmMQ==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=RF5NMT+BhC/BYsbWckeW+3/LjXoPhh68/+khv6hvVHs=;
- b=NXzPFm5rvNeGJmNimkKCnZjJEgutroJYos8MVgTfjG3AndjaXd4x6Uay8Tw38pin8u7PzjozmsWU
-   5OcW70Ek8nSWDkAdIhRD7msrqYxewlsgDiBSSP7aSSgSrahOmGsS57g/L3fmCAaP4pmI1H0iCGO/
-   2XxO1pMTpTpqh9g6TtiMmSa0PZ0iAN9QowGy3TJB5Xj0+fYBW9MUWmi1DFbpnzh34blBq/SyEIq9
-   CcxC0uOxs3Mc5kYgu+O0uvBMD0HKx+zI/cfi+UhJGz6VCkPMhGv3LproqjwEM0+wxMc58goipQB2
-   08VawGBXZcoN1Rhvjdym58cB69HjItp0ltcjvw==
-Received: by omta-ad2-fd1-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
+ bh=T3vUXw4fhU0Yfn+x3eLXJwQ1dqN9AqKGYtmfpbkwd+Y=;
+ b=Ju0el3ozDdgyo/BOdGw4vEZ2DQ+zkOnUE+PYITY5QAylhvLPmpyARXjj1YGJlW3SMEHay0gqUcPx
+   ATe9hqzrha9lw8ShBOm0rsMheWBXizLS7JCSphXgv1TW+s2Ev0gc8uJcGJZrr79F1Hb411tRP0lr
+   Qx0m9EK+8pOQlpro9culRfqKFLVwCBCjp9oLrJfHDAYeJW1Iiw/Wxpgalnb1OTOxPhqn6GzqGArg
+   8ONasC2hn3ABOgvwaSebQMpXtnIOTWikMLpY4VAMoen2PYqXnobnwO0Njs+5wAbtROgaubaae59F
+   WXH7nxNyZRWbb/GSJZF3JR4wQ246pz5dQgtwGw==
+Received: by omta-ad1-fd3-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20230214 64bit (built Feb 14
  2023))
- with ESMTPS id <0RRA008NMDA6DT50@omta-ad2-fd1-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Fri, 10 Mar 2023 03:49:18 +0000 (GMT)
+ with ESMTPS id <0RRA003B2DICHQ20@omta-ad1-fd3-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Fri, 10 Mar 2023 03:54:12 +0000 (GMT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
  d=linux.org.uk; s=zeniv-20220401; h=Sender:In-Reply-To:Content-Type:
  MIME-Version:References:Message-ID:Subject:Cc:To:From:Date:Reply-To:
  Content-Transfer-Encoding:Content-ID:Content-Description;
- bh=g6V4Gxmi7X46KWy9Z1dTCBI/CizDod1edUe5jdg4m7c=; b=weIxlQrFrH7JIGKKgO7T578Uqr
- /B8fR68jTGhqMsVGfpT/BaxWruuQhBjZNIMB9XMxB0sW8UP62PBmwYpssTyZKzpULDbKJzjWrXwTj
- I99A/OB0VxIVkDAOP8a/oSy7dpjnKIz8A9uOOqKBIT/YNj5MES4V7s8ac+XfXwc0/X8cTUNeEtMtR
- +qVhEcd7dIzgYWUKwYXTPXqbNBRffvUn3c6iIspER2+Ua/yg5eMsqtDwjDTvBNR+x8U+OcnYtjOKa
- Bdl98syii3w2Cdn2FWAjs7JBZeL1guzZpNrBHxdr3Wk0zCA2+SU5WxYm3HXJgg0Bwjl0sKLKbqWMM
- BPPgR+rA==;
-Date: Fri, 10 Mar 2023 03:49:00 +0000
+ bh=V8JJBoZHl/XeAI1qBF9glR/e9T3zmJcaDJfb/kXaH98=; b=D4ry11yUWAUH1oMXQ5hZe2j3jw
+ b0nqPMu2bcR5UXsMiI0XHH+52qHhw+yb7ccP+ge6oxH5WsMAsgspWyhizzxyW9ttNSzIBUFbZhjuk
+ Z+PcCG48HYhH0g4D2apq8+L3zPr3AJslSNKUQ90pfcfOXTLXZKCRPe3ARn2xYwV56QUEyd/gZKhQT
+ 3BHnEhVL2gUdS1XYnoR8jM/Tm1vu3lH2Z7qo2mxgbp0wVEw0Uk+LlW+TIjFq/oqLfGl2s223XdZoG
+ wpvRHzcSeJ6axSlPj6So/9jdQzKNk9C+leHSt1LVO/WpUPjbUobSZguga31cNHF4fdWSLl0r48K28
+ CXq2ay5A==;
+Date: Fri, 10 Mar 2023 03:53:53 +0000
 To: Christoph Hellwig <hch@lst.de>
-Message-id: <20230310034900.GL3390869@ZenIV>
+Message-id: <20230310035353.GM3390869@ZenIV>
 References: <20230307143125.27778-1-hch@lst.de>
- <20230307143125.27778-3-hch@lst.de>
+ <20230307143125.27778-2-hch@lst.de>
 MIME-version: 1.0
 Content-disposition: inline
-In-reply-to: <20230307143125.27778-3-hch@lst.de>
+In-reply-to: <20230307143125.27778-2-hch@lst.de>
 X-Source-IP: 62.89.141.173
 X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10644
  signatures=596816
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 phishscore=0
- adultscore=0 lowpriorityscore=0 impostorscore=0 priorityscore=216 mlxscore=0
- suspectscore=0 bulkscore=0 malwarescore=0 clxscore=156 spamscore=0
- mlxlogscore=684 classifier=spam adjust=0 reason=mlx scancount=1
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 clxscore=156
+ mlxlogscore=445 phishscore=0 impostorscore=0 bulkscore=0 priorityscore=216
+ adultscore=0 spamscore=0 lowpriorityscore=0 mlxscore=0 suspectscore=0
+ malwarescore=0 classifier=spam adjust=0 reason=mlx scancount=1
  engine=8.12.0-2212070000 definitions=main-2303100028
 Cc: Evgeniy Dushistov <dushistov@mail.ru>, linux-mm@kvack.org,
- linux-fsdevel@vger.kernel.org, Jan Kara <jack@suse.cz>,
- ocfs2-devel@oss.oracle.com
-Subject: Re: [Ocfs2-devel] [PATCH 2/3] ocfs2: don't use write_one_page in
- ocfs2_duplicate_clusters_by_page
+ linux-fsdevel@vger.kernel.org, ocfs2-devel@oss.oracle.com
+Subject: Re: [Ocfs2-devel] [PATCH 1/3] ufs: don't flush page immediately for
+ DIRSYNC directories
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -79,25 +78,31 @@ Errors-to: ocfs2-devel-bounces@oss.oracle.com
 X-ServerName: zeniv.linux.org.uk
 X-Proofpoint-SPF-Result: None
 X-Spam: Clean
-X-Proofpoint-ORIG-GUID: xRxi4qnth5K4WrFPk21qjeStmisKn-Q4
-X-Proofpoint-GUID: xRxi4qnth5K4WrFPk21qjeStmisKn-Q4
+X-Proofpoint-ORIG-GUID: 3773fxLuFLmZUFIdNeT8U_vEZ4VNOszV
+X-Proofpoint-GUID: 3773fxLuFLmZUFIdNeT8U_vEZ4VNOszV
 Reporting-Meta:
- AAFTuN6V5BwGzjj8Jb5NZsLA3N1mD2tu53K6pkiqYdfaFFkhAmEyZ+8FYNLZrhzn
- /9a/1c74IaGRLnj8lyair9l6A1g3ce7z0WN4/QIW9Be5hlWO/5A9E5pZSPWdvzws
- iLL+TLdaVXOPordH2+tUjPHphvGqpSmuAGOtBvPCfJEdi8KrX9atOOHt+6X1taY0
- gL8oNWCB/7WKVsazemk+9bPla1Bh2YPqh/3nVu+OSCTHC6gnX57jw7gLZibOfOIE
- IlJ7nCnLgRnn/YVBbvhIQmAtJZsLnbfHiWIxkUqM0lV4qAT8XPhyrg+w4JZM9Iml
- fVEpkB+v0G0ydSeS4nr1mpcPDQkHZoaAdbqAcCQFSFqnllx+c+YzK/fQL7FzPEby
- LGsGbNQp4KTHQ30n2bflN6dbi0wYOODDvM0HXlBlk6ocqGNsdq0cSYUZsiBCatlI
- uH1H9H4bU/fjrVMuncO1XwQVYl/zPVHVHbG3/68yFo8jQp7J+czyUSjosNRn+woI
- JYKQ4Q9MFKW6bH4UARTh1vlT1GAi8fHWSaiLEDQo8jazgw==
+ AAFQ33ORoE37IzOxb+kxlkvlqDCHpFUwTHhV/6eZuFQCmrSQC6PPZ6Q67tc61AZB
+ xC8BNAHekStZC04odlHzmXp70VNVP4JTgqYpmSmJh3xG9gdN5jG99jOOpGlsGCG2
+ YcunrxJTsRIKeUPFaKtgKCJwymRfDTjfY92phqGkOMUMqsGjo3pYeE/3aRT9Tcm5
+ qDgw1J/hlA9LkC2t/PgOCpBnP7fkpJy6gq6fSYHYzBaYU29uw/0qDLpIwGeqzAf8
+ 5+vZPmz3r0zPHa3+hVoxRHvYMHuHRXgfv0phFjVIOfKhDgJPv071hgVmKshaDpl8
+ amR6iaD4H+tOPcu0pOmOsZ4/4/1nj0wdMsoxFXCIaOxF319jlmZx9jeFudljOlBG
+ m/g46K9ONfMVbiGUqIUtlD3d/mKwJpo1adNBhjx+IcncNCXU7pv7XGO3GTOsFnVr
+ 4hq3+keEKyl2ZrYDxn3Mol7OVKYCWNgNQsTUEG+I2wiLabkCsT91eNWYzhi0EuDQ
+ a9FXubZ5W4anscrcWQA7CwRAR9LVj+IurpSomZ+vVOXQ
 
-On Tue, Mar 07, 2023 at 03:31:24PM +0100, Christoph Hellwig wrote:
-> Use filemap_write_and_wait_range to write back the range of the dirty
-> page instead of write_one_page in preparation of removing write_one_page
-> and eventually ->writepage.
+On Tue, Mar 07, 2023 at 03:31:23PM +0100, Christoph Hellwig wrote:
+> We do not need to writeout modified directory blocks immediately when
+> modifying them while the page is locked. It is enough to do the flush
+> somewhat later which has the added benefit that inode times can be
+> flushed as well. It also allows us to stop depending on
+> write_one_page() function.
+> 
+> Ported from an ext2 patch by Jan Kara.
 
-That one is in vfs.git #work.misc (sorry, missed -next last cycle).
+Umm...  I'll throw it in ufs pile, I guess (tomorrow - I'll need to
+sort out Fabio's patches in the area as well; IIRC, the latest
+had been in late December).
 
 _______________________________________________
 Ocfs2-devel mailing list
