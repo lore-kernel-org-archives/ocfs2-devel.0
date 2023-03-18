@@ -1,77 +1,62 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc248.phx1.oracleemaildelivery.com (aib29ajc248.phx1.oracleemaildelivery.com [192.29.103.248])
+Received: from aib29ajc249.phx1.oracleemaildelivery.com (aib29ajc249.phx1.oracleemaildelivery.com [192.29.103.249])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id CC485C6FD1D
-	for <ocfs2-devel@archiver.kernel.org>; Fri, 17 Mar 2023 19:40:17 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 6F1A3C74A5B
+	for <ocfs2-devel@archiver.kernel.org>; Sat, 18 Mar 2023 02:25:34 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=qmo5OGfyUL3xAMbktliaIODHr9pAbPGVQRuVI3/gmIc=;
- b=HwNxdXfE0jYn4XavTEs0SYFVFHnvSt3ZjMIcRA5BVhtp4njmWsIiWgQgCLeTfoHFALwSqK4qsJBY
-   nw80MTgzYwKAmQQawMwHisrHkXSiNFXVoukEzkzp4p0GtxUb1ebzZMtNWAgYXBS44itgdtBJqM4e
-   iRAK4UyTTDK29AKpaUjPPhuBN+c3ef/TgJyiEBHdXWhHfBBlSXXUXfVI/k4ea1qkYTh9qTmu0tQQ
-   musQmQMuU4hdjbTCNBWQvUylFZHVq+k8vsY0Oi2KDasK/jRvzNh5HWpO+7p7hGfdgFujNPI55RCy
-   Pq1Da2qbrru87M9cxBs0HB/irN4tzKZNx+6HFQ==
+ bh=jXGtaeczaJ2qBDoxfI31sz7srHUdli8vZCNOV0DaLUQ=;
+ b=zziSs/4hZgAaV47lSuSXyXKQet72dulU4ZLgw7wgiaxBVQtNP/TcWt7FZ+ATdJpPLgRS3zMsukvB
+   Ag+814TJiHjb5gjuYB7WEOYDMoJnlB+gT/7fIxaSXhbPaokfUowkBLjsWvS5/FvaaFWAijZFEJb3
+   llEAgCWfWL4OJZByfUvolwedX7CLyzab6T4YXteIGjVeeCCDqlhGCcaPAdh+CsZDgszG3L+zrQ3p
+   FW0oWTiOvm+k6slg/1fYsClf+Osj5pIUWARQNYyzyko0/yVdI36EWK8SEnO0zbWnJoPzh+x7x7N5
+   5pJqsFYiufXWA+BG5MyiGs1KloOBvU2gKQgWhQ==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=qmo5OGfyUL3xAMbktliaIODHr9pAbPGVQRuVI3/gmIc=;
- b=HqVdttdAmo+y+7Z0KAHDc5OYUsJRmg8Gh03tlX298PW21BaAWQlipcpMHBXqgwtBg9kXHPnINcG5
-   4YzkpX9kS1Jh3eblpJCnQtcIpXJJQuSvqE5+C8ej2NUNlWp7J61thZDLZHPnsM2x75uNa98wy8PA
-   Mxyi61Kg1KiX0WldBvS8Y//vgzfYE7smMQraXvHwMQDvtYaIdOtn82McDnWjqEaFCngMSPRxipsp
-   z8utO9dZZWMqxmlJCEfRiVOfLuZYqXqLWyHaWMcMF6nSzZznW2QQj9Y9/qgSMqDKkC2yQtwLH0C4
-   KKP0K3dgfaBAs46/kcu+X7yfa9fJTQDVr46Lpw==
-Received: by omta-ad2-fd1-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
+ bh=jXGtaeczaJ2qBDoxfI31sz7srHUdli8vZCNOV0DaLUQ=;
+ b=grmtf2SLOPAIuGQ2jq/VtdoBoZPG/W2meXBe2BsJAKoujbZRr/QYwKSntXwnoTh228r3pls8wQOy
+   6Iuh6gkDCqVjIO+rmspND1HSwUof+uuoqdNlYyahFxYpNdehTlDCSm7QVsg99AL/DO2ixn2d0/HZ
+   UnLghGL0yHleUjHh/3luhD61huF9HLWWzdkyOPFws52fvrEZOS9YP6njgfF7NF1XFbiCCuIwJnWN
+   VM8eQV2QttKrd77eme/bVa41Ns2Ffbxqf4BzZsKSGoD49YMaqvSw/n8mJHjZQx5GzmgpzduxwqFa
+   JT4vszbIMpcXSaP/9rMs5vSa/vG2D35JYOByHA==
+Received: by omta-ad2-fd1-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20230214 64bit (built Feb 14
  2023))
- with ESMTPS id <0RRO00AFYJYPNMB0@omta-ad2-fd1-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Fri, 17 Mar 2023 19:40:01 +0000 (GMT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=ibm.com; h=message-id :
- subject : from : to : cc : date : in-reply-to : references : content-type :
- mime-version : content-transfer-encoding; s=pp1;
- bh=1URlbCasJqipj7wwAu3MyeP8tjG8naLb0x+gto5CH0E=;
- b=Pefo3U+lud4skk509kTTR+mhHmLTPOJvxx+Wv6DaLae1M24kbAhsa3/5WNzpvDFNkbrq
- wiTxibGXwGRpT7XkXvj7mqYp86h6z1EWERlGT+dsZ45G+Rpc0t7enir2XbcXiwM0lrnw
- gYIfhFhlnPdI8bkJjbLWBs8hjB9+kCRZpNqFy1aKAl606W/vQG4Trh27QqCOeGVYd53H
- zy87NURsiYjOLinVrdr6qBIa75cXbHVtDFBjnis+eEa59OzXZo3PGXfqAYHU//LnYDFF
- KsFQzFrvugKuh4SHXPhJqeNtBKnXHNK8xxFAxu3Pn4ojwpJV/c3MGS/2L9pKXofrcKiP HA==
-Message-id: <31fc7724c9689e8ec5bd6bfe026652d238d9fb84.camel@linux.ibm.com>
-To: Roberto Sassu <roberto.sassu@huaweicloud.com>, mark@fasheh.com,
- jlbec@evilplan.org, joseph.qi@linux.alibaba.com, dmitry.kasatkin@gmail.com,
- paul@paul-moore.com, jmorris@namei.org, serge@hallyn.com,
- stephen.smalley.work@gmail.com, eparis@parisplace.org, casey@schaufler-ca.com
-Date: Fri, 17 Mar 2023 15:39:05 -0400
-In-reply-to: <20230314081720.4158676-3-roberto.sassu@huaweicloud.com>
-References: <20230314081720.4158676-1-roberto.sassu@huaweicloud.com>
- <20230314081720.4158676-3-roberto.sassu@huaweicloud.com>
-X-Mailer: Evolution 3.28.5 (3.28.5-18.el8)
+ with ESMTPS id <0RRP00M8W2QLMFA0@omta-ad2-fd1-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Sat, 18 Mar 2023 02:25:33 +0000 (GMT)
+To: Jan Kara <jack@suse.cz>
+References: <20230314140522.3266591-1-yi.zhang@huaweicloud.com>
+ <20230314140522.3266591-2-yi.zhang@huaweicloud.com>
+ <20230315094826.okdarxaapjyqmlhq@quack3>
+ <8c4ff3ab-4af2-58ed-4d08-3050c044f445@huawei.com>
+ <20230315172817.egezft3msc5z4omm@quack3>
+ <20230317112528.cig7fczuoezn23wy@quack3>
+Message-id: <6769d7eb-35bc-fbc1-0c15-a62309fbdb81@huawei.com>
+Date: Sat, 18 Mar 2023 10:25:15 +0800
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:78.0) Gecko/20100101
+ Thunderbird/78.12.0
 MIME-version: 1.0
-X-Proofpoint-Virus-Version: vendor=baseguard
- engine=ICAP:2.0.254,Aquarius:18.0.942,Hydra:6.0.573,FMLib:17.11.170.22
- definitions=2023-03-17_17,2023-03-16_02,2023-02-09_01
-X-Proofpoint-Spam-Details: rule=outbound_notspam policy=outbound score=0
- mlxscore=0 suspectscore=0 clxscore=1011 priorityscore=1501 lowpriorityscore=0
- phishscore=0 malwarescore=0 bulkscore=0 spamscore=0 mlxlogscore=999
- adultscore=0 impostorscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2303150002 definitions=main-2303170136
-X-Source-IP: 148.163.156.1
+In-reply-to: <20230317112528.cig7fczuoezn23wy@quack3>
+Content-language: en-US
+X-Originating-IP: [10.174.176.34]
+X-Source-IP: 45.249.212.187
 X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10652
  signatures=596816
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 malwarescore=0
- spamscore=0 lowpriorityscore=0 suspectscore=0 mlxlogscore=999 impostorscore=0
- clxscore=94 phishscore=0 mlxscore=0 priorityscore=251 adultscore=0 bulkscore=0
- classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2303150002
- definitions=main-2303170137 domainage_hfrom=13512
-Cc: nicolas.bouchinet@clip-os.org, keescook@chromium.org,
- selinux@vger.kernel.org, Roberto Sassu <roberto.sassu@huawei.com>,
- reiserfs-devel@vger.kernel.org, linux-kernel@vger.kernel.org,
- linux-security-module@vger.kernel.org, linux-integrity@vger.kernel.org,
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 impostorscore=0
+ lowpriorityscore=0 spamscore=0 suspectscore=0 adultscore=0 clxscore=28
+ malwarescore=0 phishscore=0 priorityscore=157 mlxscore=0 bulkscore=0
+ mlxlogscore=463 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2303150002 definitions=main-2303180021 domainage_hfrom=8467
+Cc: tytso@mit.edu, Zhang Yi <yi.zhang@huaweicloud.com>,
+ adilger.kernel@dilger.ca, yukuai3@huawei.com, linux-ext4@vger.kernel.org,
  ocfs2-devel@oss.oracle.com
-Subject: Re: [Ocfs2-devel] [PATCH v8 2/6] ocfs2: Switch to
-	security_inode_init_security()
+Subject: Re: [Ocfs2-devel] [PATCH v3 1/2] jbd2: continue to record log	between
+ each mount
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -83,66 +68,101 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: Mimi Zohar via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: Mimi Zohar <zohar@linux.ibm.com>
+From: Zhang Yi via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: Zhang Yi <yi.zhang@huawei.com>
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-TM-AS-GCONF: 00
-X-ServerName: mx0a-001b2d01.pphosted.com
+X-ClientProxiedBy: dggems703-chm.china.huawei.com (10.3.19.180) To
+ canpemm500005.china.huawei.com (7.192.104.229)
+X-CFilter-Loop: Reflected
+X-ServerName: szxga01-in.huawei.com
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 ip4:148.163.158.5 ip4:148.163.156.1 ~all
+X-Proofpoint-SPF-Record: v=spf1 ip4:45.249.212.32 ip4:45.249.212.35
+ ip4:45.249.212.255 ip4:45.249.212.187/29 ip4:45.249.212.191 ip4:168.195.93.47
+ ip4:185.176.79.56 ip4:119.8.179.247 ip4:119.8.89.136/31 ip4:119.8.89.135
+ ip4:119.8.177.36/31 ip4:119.8.177.38 -all
 X-Spam: Clean
-X-Proofpoint-GUID: 4E5ttnrdrtplapJt8DiSan5ZGlK3fBuK
-X-Proofpoint-ORIG-GUID: 4E5ttnrdrtplapJt8DiSan5ZGlK3fBuK
+X-Proofpoint-ORIG-GUID: PRQpanWPbb8cq8K868RSQv8NxmOVu3wc
+X-Proofpoint-GUID: PRQpanWPbb8cq8K868RSQv8NxmOVu3wc
 Reporting-Meta:
- AAE9Z9bjgOSBk+Av+V26J9IU5cgRB413z09TeU9SFMfGUMxH6aLaQr8tEwFs72Pl
- blKZHgi2OGQPueeL4Q2+N9bsFhlocZOJc8alsX4AUrcuWedcAbo9XtXROjDbcbp8
- DiCWCcZN786HK3N0g3H6RHaNEz/Lz1SYbLplJAj6Qx30YpzYg38OCBEuhkJ1DSTv
- BwWeZbhpNRw/fvwuY2qLr2/BMyalHnZmeZ6wkNb6Lhl9824jTSdqJnBcHyCgolCr
- 9sR59wh8abGgB/k9Y5UJPet7jeRcvydngbLYLOu91PAb0TAf9nQk6JLV5FO/2d9o
- ds/GDpM7j06IMTnfYr5yxoFiawyK2BO926VCvkJERaImgxxACOLme6HKTQh3q6+r
- KcQd2Ib7n6UqVBOXxH14Nm+RJ5xCUwxlmKcXvS2uS7i4CmL2DQ15JXgWcssdf0Xp
- gDvmjxPCtz9RFrOstykHtX1d3Bpr6h8101izKJyoNKIlFNJneG5OCEVUwxaPN4dg
- wtSTZc7ste/zN3wWWQRGyyN0d8Rc7uvtkV+/cr7KulykHQ==
+ AAGjGJfTs3zBQQgTzqR33KDiLifPHk8/XC3d/CLNHveobHizQ8yuzV96IjPrJ5BO
+ MWQg2ea3dqjchPXt/86WB5WSud89Ai5wrx9AyWLce+/OAXpSlHW5dYt2aXRIliaw
+ Kn3XEzk60WbFk/BDCs7x4/se+U7hneSxoeo0uUkh1uFj+ZtCOnP1hjB3ytZL9U0U
+ LkJajaRA7f2I6A/DHueyPNBscsFfmQLRR38vFfpB0SU7PXCqddWjAVY5ZB6RBNSh
+ 5FdZgBcMbmCWrOTYYwnV/Ulp07FoONRCVBZ8HwCO6LPuFND2Zfz/t7RsFkmgDdpW
+ OwmZzdZibLrqobYOs1A767muHO5PQbCDa3nb9Ih7fD5qEHHQoZ6dFJkrlrbG2LAm
+ VYA4YZKXIpeOrkqH4DQlM028rERxsWVeCaYIT/7n3vRnfqQjQEXvBPbPb/q4KAz0
+ m7EVSE971KAFagQnVJbgDs2AyIVWwHA/+sA0Pn/QN9mv7hlENK8wmFE5cKCShjF7
+ JAwiJgBo20rfjJnSH+VDdVBCyNuuUefgftF9iK4J6nw=
 
-On Tue, 2023-03-14 at 09:17 +0100, Roberto Sassu wrote:
-> From: Roberto Sassu <roberto.sassu@huawei.com>
+On 2023/3/17 19:25, Jan Kara wrote:
+> On Wed 15-03-23 18:28:17, Jan Kara wrote:
+>> On Wed 15-03-23 20:37:32, Zhang Yi wrote:
+>>> On 2023/3/15 17:48, Jan Kara wrote:
+>>>> On Tue 14-03-23 22:05:21, Zhang Yi wrote:
+>>>>> From: Zhang Yi <yi.zhang@huawei.com>
+>>>>>
+>>>>> For a newly mounted file system, the journal committing thread always
+>>>>> record new transactions from the start of the journal area, no matter
+>>>>> whether the journal was clean or just has been recovered. So the logdump
+>>>>> code in debugfs cannot dump continuous logs between each mount, it is
+>>>>> disadvantageous to analysis corrupted file system image and locate the
+>>>>> file system inconsistency bugs.
+>>>>>
+>>>>> If we get a corrupted file system in the running products and want to
+>>>>> find out what has happened, besides lookup the system log, one effective
+>>>>> way is to backtrack the journal log. But we may not always run e2fsck
+>>>>> before each mount and the default fsck -a mode also cannot always
+>>>>> checkout all inconsistencies, so it could left over some inconsistencies
+>>>>> into the next mount until we detect it. Finally, transactions in the
+>>>>> journal may probably discontinuous and some relatively new transactions
+>>>>> has been covered, it becomes hard to analyse. If we could record
+>>>>> transactions continuously between each mount, we could acquire more
+>>>>> useful info from the journal. Like this:
+>>>>>
+>>>>>  |Previous mount checkpointed/recovered logs|Current mount logs         |
+>>>>>  |{------}{---}{--------} ... {------}| ... |{======}{========}...000000|
+>>>>>
+>>>>> And yes the journal area is limited and cannot record everything, the
+>>>>> problematic transaction may also be covered even if we do this, but
+>>>>> this is still useful for fuzzy tests and short-running products.
+>>>>>
+>>>>> This patch save the head blocknr in the superblock after flushing the
+>>>>> journal or unmounting the file system, let the next mount could continue
+>>>>> to record new transaction behind it. This change is backward compatible
+>>>>> because the old kernel does not care about the head blocknr of the
+>>>>> journal. It is also fine if we mount a clean old image without valid
+>>>>> head blocknr, we fail back to set it to s_first just like before.
+>>>>> Finally, for the case of mount an unclean file system, we could also get
+>>>>> the journal head easily after scanning/replaying the journal, it will
+>>>>> continue to record new transaction after the recovered transactions.
+>>>>>
+>>>>> Signed-off-by: Zhang Yi <yi.zhang@huawei.com>
+>>>>
+>>>> I like this implementation! I even think we could perhaps make ext4 always
+>>>> behave this way to not increase size of the test matrix. Or do you see any
+>>>> downside to this option?
+>>>>
+>>>
+>>> Thanks for your suggestion. Indeed, I don't find any side effect on this
+>>> option both in theory and in the actual use tests on ext4, I added a new
+>>> option was just from the safe point of view and let user could disable it if
+>>> they don't want it. I also prefer to make ext4 always behave this way.:)
+>>>
+>>> I would like to keep the JBD2_CYCLE_RECORD flag(ocfs2 also use jbd2, I don't
+>>> want to disturb it until it needs), remove EXT4_MOUNT2_JOURNAL_CYCLE_RECORD
+>>> and always set JBD2_CYCLE_RECORD on ext4 in patch 2 in the next iteration.
+>>
+>> Yes, that makes sense.
 > 
-> In preparation for removing security_old_inode_init_security(), switch to
-> security_inode_init_security().
+> FWIW yesterday I'v spoken with Ted and he also agrees that we don't need
+> ext4 mount option for this.
 > 
-> Extend the existing ocfs2_initxattrs() to take the
-> ocfs2_security_xattr_info structure from fs_info, and populate the
-> name/value/len triple with the first xattr provided by LSMs.
-> 
-> As fs_info was not used before, ocfs2_initxattrs() can now handle the case
-> of replicating the behavior of security_old_inode_init_security(), i.e.
-> just obtaining the xattr, in addition to setting all xattrs provided by
-> LSMs.
-> 
-> Supporting multiple xattrs is not currently supported where
-> security_old_inode_init_security() was called (mknod, symlink), as it
-> requires non-trivial changes that can be done at a later time. Like for
-> reiserfs, even if EVM is invoked, it will not provide an xattr (if it is
-> not the first to set it, its xattr will be discarded; if it is the first,
-> it does not have xattrs to calculate the HMAC on).
-> 
-> Finally, since security_inode_init_security(), unlike
-> security_old_inode_init_security(), returns zero instead of -EOPNOTSUPP if
-> no xattrs were provided by LSMs or if inodes are private, additionally
-> check in ocfs2_init_security_get() if the xattr name is set.
-> 
-> If not, act as if security_old_inode_init_security() returned -EOPNOTSUPP,
-> and set si->enable to zero to notify to the functions following
-> ocfs2_init_security_get() that no xattrs are available.
-> 
-> Signed-off-by: Roberto Sassu <roberto.sassu@huawei.com>
-> Reviewed-by: Casey Schaufler <casey@schaufler-ca.com>
-> Acked-by: Joseph Qi <joseph.qi@linux.alibaba.com>
 
-Reviewed-by: Mimi Zohar <zohar@linux.ibm.com>
+Thanks! I've removed this mount option in v4.
 
+Yi.
 
 _______________________________________________
 Ocfs2-devel mailing list
