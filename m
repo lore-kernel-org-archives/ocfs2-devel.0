@@ -1,59 +1,59 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc244.phx1.oracleemaildelivery.com (aib29ajc244.phx1.oracleemaildelivery.com [192.29.103.244])
+Received: from aib29ajc249.phx1.oracleemaildelivery.com (aib29ajc249.phx1.oracleemaildelivery.com [192.29.103.249])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 23E6AC6FD1D
-	for <ocfs2-devel@archiver.kernel.org>; Mon, 20 Mar 2023 11:57:49 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 51547C7618D
+	for <ocfs2-devel@archiver.kernel.org>; Mon, 20 Mar 2023 11:57:51 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=Sxc33eLwqGSTfyUJi3rpCNDR+nfnDL0CxTmZRo2abBM=;
- b=Q6Cvx9rYVR6CYv6Z5LXoSVUhRLIeIlOMBedaK5RQbaO/sHaL2vLymuvxZBwyKXjmkE4fV6Sd3tFP
-   pt+qQtwo/E1iud9Gl+6yg+YmOo8sxzfLfowf6NGCu0oZZ+uVzlW2htztB986zrTe+UrXzPPEP4Md
-   a/r3QT8s2DVTOU18/MVQ8+B/RiDejBRCErWkMvk5iGO0eZBRfrfhhWM2fqDI+f3L/Y8/1pL5CuKn
-   tPUUZbhxkeJ/hn7HynQAL3xIw8F8fuLU0gwIRugsSZgtVrQga349HTRIrcuw5obrf9y4/XomKiOm
-   1qenMZjUsQZJItaZPqzsJWEdIUK20N6FARhEFQ==
+ bh=Pzn3SlDwEUtv5zfSmcMAe0oqUbAuOrAbCqYkIsPNaQI=;
+ b=YQrlP01k3mVPrCVwtYkbchRGFV2uK1+mzvXZDV/a+YXuEFGyJziyoGHrtNSYo2EIKMZFwx+f4/Ug
+   k5WkkTk+nL8sjxVAAJ3JG7c276HQDg7FASH05i4RdKya646iAdR+G+GDjzea3OzqmEj9pV/Eo5ZZ
+   LNBQqYQYYw719aDo+D1Y7Tzsio1WfvHCKAvecCBHLAOXHcSXtuJJnxErn4b7gYFcevWwdfEJQbAk
+   PahL1UhZc67UvXUiNIA1Zys+GRN90wuu2JCoEEKMbBdZACZtMyHCVRSGmeMw2eWk/1PBGYJykr3d
+   fsF46K+trzoE8sP6zvngU8BYrMqsYZYv0FuTLQ==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=Sxc33eLwqGSTfyUJi3rpCNDR+nfnDL0CxTmZRo2abBM=;
- b=r4lgU9Oz5yUm9ZTi64KqGoRROo6o5MIGbLIYo8EnrPlmBVKEUzg0NkEbyqXK77LDUl/ldncLiGma
-   TLIjgejf72tG7qPl2+t78FsD5ALftvb+BeFdNfDSzVkIHD4y5Mr+mNH7pCHx54mOSU5pkpczqaVk
-   LLPj4O5nYgP+upgkRjres9nKs+rtBnPoFEiEVsuifhAvb/6IlbE7Rzk0VTsv+nQ4W+YKozZP04YX
-   AK0qENZTJ5ZiNxiA742F91WBycgGem5eyp0eU8ox+eZg1dZTOpLTZvu9MAXdSxbDZyV90nRv1NX1
-   eGlUfZYVBKQ6fEdJPjSZnyTvd6xXsO7iCOn7FQ==
-Received: by omta-ad1-fd1-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
+ bh=Pzn3SlDwEUtv5zfSmcMAe0oqUbAuOrAbCqYkIsPNaQI=;
+ b=csdx6BVaCL9eQXuHNGosykCRmvP/nLSvhgr/ZLafTCYya1SmQNc34BhxrhIKyVxVgLrMYgfJkqAX
+   2XyY2G0a9j9u2RVrWroSCX56tjolnlym3Od5d5Oa47bHlBu/Yw7S0Vt7gEHAoK76uQ7yzKwg1goH
+   kdaYWspD77n8IqiE73GggPlKvJ/EdfL3XwBqHfGAniKVkgO4bEBqsI0tvQQtKmxTAaMT96gwhWmX
+   8do7pCZSTBrYTvf/AxT3obQdfmTSscjT6MqJ/8JOBDMWviMoFNegENq25O6tf9wq8yTVatzqgYrw
+   wj93ywJ6ImW0KO1zsV8l7QW5EOmX4XT004HA6A==
+Received: by omta-ad2-fd1-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20230214 64bit (built Feb 14
  2023))
- with ESMTPS id <0RRT0021VIKCEL60@omta-ad1-fd1-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Mon, 20 Mar 2023 11:57:48 +0000 (GMT)
+ with ESMTPS id <0RRT0029OIKEC190@omta-ad2-fd1-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Mon, 20 Mar 2023 11:57:50 +0000 (GMT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linuxfoundation.org;
- s=korg; t=1679313455; bh=b4YEZ67x4s9hrhD7g8bgqJy4L1TBV4LjN14UtwOj9jg=;
+ s=korg; t=1679313451; bh=5qhNwThhRUuYbn5u7+wYmLTKT5vZk3AFW4TW9FGrxHY=;
  h=Subject:To:Cc:From:Date:From;
- b=L064tQS/GtntE1BHV53vaVJ+UQZarqYVNTAB/pQKX3EwEzg2zZIO7oB1Lcmvytwk3
- Y8Z9ilMl5+8XAu8YVeyQTmFf/zHnOMiaqWMx4VBjKn3xPqZVjoSm7UPYVUyvFr8Zo3
- gr3nNm8uoy5tRZVANGi8e7zeYqkEC0vr4Y6OEG0Y=
+ b=A5NzPaP+O2QXWKL5dn51tifC2izaNw90m5AhLnFRIAla+S/Fm3uI6imoUtmNN4+OM
+ 29s4b/lEY9pBiA+qqyiHvqD3Hr46RmyJpQ5dCImsJMpanYOjAToiF0cgqndqzsimd1
+ 7+hNCODRqM79gPXxIR1fNLJkcuI+eQ7mA3vkb38I=
 To: ocfs2-devel@oss.oracle.com, akpm@linux-foundation.org, gechangwei@live.cn,
  ghe@suse.com, jack@suse.cz, jlbec@evilplan.org, joseph.qi@linux.alibaba.com,
  junxiao.bi@oracle.com, mark@fasheh.com, piaojun@huawei.com,
  stable@vger.kernel.org
-Date: Mon, 20 Mar 2023 12:57:26 +0100
-Message-id: <167931344613222@kroah.com>
+Date: Mon, 20 Mar 2023 12:57:25 +0100
+Message-id: <1679313445246112@kroah.com>
 MIME-version: 1.0
 X-Source-IP: 139.178.84.217
 X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10654
  signatures=596816
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 clxscore=165
- lowpriorityscore=0 phishscore=0 adultscore=0 mlxscore=0 priorityscore=200
- impostorscore=0 spamscore=0 bulkscore=0 mlxlogscore=999 suspectscore=0
- malwarescore=0 classifier=spam adjust=0 reason=mlx scancount=1
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0
+ priorityscore=288 spamscore=0 malwarescore=0 bulkscore=0 mlxscore=0
+ lowpriorityscore=0 clxscore=228 adultscore=0 phishscore=0 mlxlogscore=999
+ suspectscore=0 impostorscore=0 classifier=spam adjust=0 reason=mlx scancount=1
  engine=8.12.0-2303150002 definitions=main-2303200102
 Cc: stable@vger.kernel.org
 Subject: [Ocfs2-devel] FAILED: patch
  "[PATCH] ocfs2: fix data corruption	after failed write" failed to apply to
- 5.4-stable tree
+ 5.10-stable tree
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -77,33 +77,33 @@ X-Proofpoint-SPF-Record: v=spf1 ip4:72.55.140.81 ip4:52.25.139.140
  ip6:2604:1380:4601:e00::1 ip4:145.40.73.55 ip6:2604:1380:40e1:4800::1
  include:_spf.google.com include:amazonses.com include:_spf.salesforce.com -all
 X-Spam: Clean
-X-Proofpoint-GUID: wi2Kxr_igIWVEG-b3SAbfBmwD9piSY5y
-X-Proofpoint-ORIG-GUID: wi2Kxr_igIWVEG-b3SAbfBmwD9piSY5y
+X-Proofpoint-ORIG-GUID: 7v2KQmmG1wCNdb9WrpRYEfOLEvTmYXNW
+X-Proofpoint-GUID: 7v2KQmmG1wCNdb9WrpRYEfOLEvTmYXNW
 Reporting-Meta:
- AAGsSBMgIpH4qtYlp2eGmFgHkOZuc/y2gNV5D76ZBoqfn64qbc7OIhBckKX2nUpV
- eMUA6tmFrQ24ufT1mwvKQ4jBwONUkG7VpTWlOCv9xIdqBAahNQ2DqDWIBsvqu3Pi
- 6YicIt8YVLq/U1Y8VkOiW9cSsEaE4w3VVmquHoZVIqi4jiozKxWOd+apRvqAsPkU
- jukFzGOeo3yqg5yYvmkYsQRmkLJJjk1rh/LRmZgJBaXKSk/yO/FDq+2VPzLCEig2
- /U7CNkxADCKPet9BKFWYhFK9rOpSQjsqpDpEsmpVykihVceYXD7WN/VEjnMbAgI/
- hZTIvGs0aVTEi+J9G2tcqnDQfnszLpwCt0PKD3HuAL6j+LUUs7gNlU6EgquxQg3s
- vi0hsoCJ+VqHye+RPy5DCOaJzppuQNCKGIoNXjCtQe3OtLOoBrlgokio8eTsPWso
- Ja64ftuEOzSj4/lzZuVwSgzXODGA38bNgjrwt+XmIcpRyyAP/8P4NuNzLUarlCH2
- abdDeDVruZrSUHSXQpLK7jKGciUu57Z8NcCKJIMBgwYQ
+ AAFGTy+PsImZqMv0s67k4OXmHARwj/M+J1YjAJyM54IkD4YawR9i1NUD/uuhMQNc
+ KqjYqPvtNiV5hakujnewaKodIj7iFU/QNWOLk+XBvxs0hLkNeOnG/PNLL4HKD1tH
+ t/2dcxzFXy3WSXgH1dANYoRxlpDEnVGTzcTtQJqHgZmn3HHpZxv5YzKd7Pm9yCar
+ dkLeaBqMiPY93+aQsu5j7jdhTi0UEKGlzqe/yHp5iygn9m1LJzNsEhf4DFgwR3CS
+ HoUIM/80m/rtqHPEtoW4mKXm8CxcbagXFzYZlz7LtySQ9g8Sv6j3YgsMzTaItNrD
+ GnowyWLLTTRrUDkS3YR69lNEb2YODV6uGUIo3RM/JwtQ8stxZiWvCq8ZNhh/StrK
+ 1PJ04mA+DhWE5kPQ7PjvHA2F56H4t6R4ZX16TSvjXE8uJ0CL+sviC1Vj9LTmfSTx
+ OLxbqmRl3ACTaKQ5hCMQFQFW407SmeK7es1J+T3RVU6Rv4Eub2nE4ie416IkNAWD
+ bE7oQQ6iiWookJjEZPFHEWp66Vz1aPuRA9C/fiS7RRjV
 
 
-The patch below does not apply to the 5.4-stable tree.
+The patch below does not apply to the 5.10-stable tree.
 If someone wants it applied there, or to any other stable or longterm
 tree, then please email the backport, including the original git commit
 id to <stable@vger.kernel.org>.
 
 To reproduce the conflict and resubmit, you may use the following commands:
 
-git fetch https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/ linux-5.4.y
+git fetch https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/ linux-5.10.y
 git checkout FETCH_HEAD
 git cherry-pick -x 90410bcf873cf05f54a32183afff0161f44f9715
 # <resolve conflicts, build, test, etc.>
 git commit -s
-git send-email --to '<stable@vger.kernel.org>' --in-reply-to '167931344613222@kroah.com' --subject-prefix 'PATCH 5.4.y' HEAD^..
+git send-email --to '<stable@vger.kernel.org>' --in-reply-to '1679313445246112@kroah.com' --subject-prefix 'PATCH 5.10.y' HEAD^..
 
 Possible dependencies:
 
