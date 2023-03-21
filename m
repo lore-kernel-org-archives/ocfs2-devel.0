@@ -1,49 +1,49 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc249.phx1.oracleemaildelivery.com (aib29ajc249.phx1.oracleemaildelivery.com [192.29.103.249])
+Received: from aib29ajc253.phx1.oracleemaildelivery.com (aib29ajc253.phx1.oracleemaildelivery.com [192.29.103.253])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id B2A42C6FD1D
-	for <ocfs2-devel@archiver.kernel.org>; Tue, 21 Mar 2023 03:00:53 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id D83A3C6FD1D
+	for <ocfs2-devel@archiver.kernel.org>; Tue, 21 Mar 2023 03:20:45 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=+WrT0Vqb5GndrtJcsS9m5VQFt/StEEi9ZGS7rf775ro=;
- b=eYE6C7eogkbzNd8OilvRlL3WjjoxgUCy6PtU1xUrIla8o69dZYlA9z4XKQBKXAvtRiecyVL0EAWd
-   ugpaeMdWMrEpydrHtWs5ScxXqFJm3loatROhreuWwySLJ+pFCft6MPbES0FYSX0p50Ae3w5q652f
-   ZHXui3R6DGHHWr+UDoZuKu8fIFdBJSKgneDMWwiU/40H9avAK+vjGHCB1etza7DsUy4yVq1KJcp/
-   gOogAYxqjz7gi1Y3HJfX0kg5uFQeb9IjeEPxmpcKjQaoBJrxrfBez7VyikW3my/ruFoFzJPooK4d
-   3/K5JJsWa+goo0kDFvlgUw2HM13Jwc4itw+wkw==
+ bh=yYLgZhSxv2502iXF7MHrvWhVGUbQYch3TSTgeDnBER0=;
+ b=idE/zznXuBwjbKcICzCTHY59DhytPnboL8aX7jfUi1jJbEpgabN4HyUMPDcU7/grQLrFEf3RRtw4
+   Dz2+yK35Gkh/xAKJYW7asqXHOTT/hDsKhYcdfZpCh7oDEyGlZuWwpDOl4YACbPPloGpnb01BVANl
+   Rdq7Y/dvAAPrBMOGcoJL0lplvBUFfVGVgQ2xeTc1mNFKH7XxkaSdHFFDoDQdXSAAAYoKiCjXrsCc
+   PRtFZlJM4v+BijExPL0I4h6iXSs6wVbY2vIdjYfQTq9EBAxnEA0bxQkT0oDAbO3D944IghgwxmxD
+   Bno+arMyPiV3Yn43lv23s0T/bpTfbN74utBUSg==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=+WrT0Vqb5GndrtJcsS9m5VQFt/StEEi9ZGS7rf775ro=;
- b=SXwGYcybXHO/2XpCm2Ba+ymqtvPMeMWyR8/nCAFKk83WeSgYQS9tDwK2n+R5MMwYe6PEkesfINTe
-   paG0fE7WYbQgI14QoBIoRLZIdcIGy3aC/9099HdE1nOK5R1W1tHVPG1zxg2meOMNNnwt84VFj8Bt
-   608+UxiUlWRZY9kOJ55qAFFLiTSMLp7t4hFnxQpFrf1ptwWZnJgE+oPL4X+zs8YgBggun7/oN/5p
-   kmFJkwSxvUgLgtxt2yeEOB4NLFD0ggyNJSyrTKeoUDKLgDtLUtlGPxYhJFmBcDJQ8nPTNMc2DHfy
-   7LTi5YEoEpNKsIwZFNaQRrRUWaQtR9djTeGZMg==
-Received: by omta-ad2-fd1-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
+ bh=yYLgZhSxv2502iXF7MHrvWhVGUbQYch3TSTgeDnBER0=;
+ b=qXi2QhVRQ4OOsS0y47+dcEJpW2Nbxt3SNCkhzIJQEterzm8DA1uCxx4ss54xkBUS011WHpF0UfjH
+   yoz1uvgnoj3kH4CQQVeNQ2PVzQvpp260SkRq+wW6O7HTiFVdFVndFtWvLzJ8t6l0KoAZO4kHcMZe
+   FrhAg995+PSHhCD6TL2tTP+xpDBf0jop8r7idSytNPZXehPRNJEBw+LyKyZR+y8XE0LZx+NOxqbz
+   6vvJSQ5t0qMeR05wPLR5IjomAJ3HqlhnKqOJpg+2/aHLmYhGse/Wkgg8RssNoWwAM8FSB/Yu4Pk4
+   uZfBkY+ToZg1d9JpkFfnXEFVMfD5+qgvwPQcrQ==
+Received: by omta-ad3-fd1-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20230214 64bit (built Feb 14
  2023))
- with ESMTPS id <0RRU002J3ODG9UA0@omta-ad2-fd1-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Tue, 21 Mar 2023 03:00:52 +0000 (GMT)
+ with ESMTPS id <0RRU00DSCPALKHA0@omta-ad3-fd1-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Tue, 21 Mar 2023 03:20:45 +0000 (GMT)
 To: stable@vger.kernel.org
-Date: Tue, 21 Mar 2023 11:00:32 +0800
-Message-id: <20230321030032.237859-1-joseph.qi@linux.alibaba.com>
+Date: Tue, 21 Mar 2023 11:20:24 +0800
+Message-id: <20230321032024.165992-1-joseph.qi@linux.alibaba.com>
 X-Mailer: git-send-email 2.24.4
-In-reply-to: <1679313445246112@kroah.com>
-References: <1679313445246112@kroah.com>
+In-reply-to: <16793134471133@kroah.com>
+References: <16793134471133@kroah.com>
 MIME-version: 1.0
-X-Source-IP: 115.124.30.98
+X-Source-IP: 115.124.30.119
 X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10655
  signatures=596816
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 suspectscore=0
- bulkscore=0 clxscore=114 spamscore=0 malwarescore=0 lowpriorityscore=0
- phishscore=0 mlxscore=0 impostorscore=0 adultscore=0 priorityscore=134
- mlxlogscore=999 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2303150002 definitions=main-2303210022 domainage_hfrom=8741
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 adultscore=0
+ malwarescore=0 impostorscore=0 suspectscore=0 bulkscore=0 phishscore=0
+ mlxlogscore=999 clxscore=57 priorityscore=132 mlxscore=0 spamscore=0
+ lowpriorityscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2303150002 definitions=main-2303210025 domainage_hfrom=8741
 Cc: Jan Kara <jack@suse.cz>,
  Jan Kara via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
 Subject: [Ocfs2-devel] [PATCH] ocfs2: fix data corruption after failed write
@@ -63,29 +63,29 @@ Reply-to: Joseph Qi <joseph.qi@linux.alibaba.com>
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-Alimail-AntiSpam: AC=PASS; BC=-1|-1; BR=01201311R911e4; CH=green;
- DM=||false|; DS=||; FP=0|-1|-1|-1|0|-1|-1|-1; HT=ay29a033018045192;
+X-Alimail-AntiSpam: AC=PASS; BC=-1|-1; BR=01201311R631e4; CH=green;
+ DM=||false|; DS=||; FP=0|-1|-1|-1|0|-1|-1|-1; HT=ay29a033018046049;
  MF=joseph.qi@linux.alibaba.com; NM=1; PH=DS; RN=11; SR=0;
- TI=SMTPD_---0VeLAXn8_1679367634;
-X-ServerName: out30-98.freemail.mail.aliyun.com
+ TI=SMTPD_---0VeLC9Fu_1679368827;
+X-ServerName: out30-119.freemail.mail.aliyun.com
 X-Proofpoint-SPF-Result: pass
 X-Proofpoint-SPF-Record: v=spf1 include:spf1.service.alibaba.com
  include:spf2.service.alibaba.com include:spf1.ocm.aliyun.com
  include:spf2.ocm.aliyun.com include:spf1.staff.mail.aliyun.com
  include:a.hichina.mail.aliyun.com include:b.hichina.mail.aliyun.com -all
 X-Spam: Clean
-X-Proofpoint-ORIG-GUID: mO3sWlXu8jOVaH9dUa7y8Pr6zWdwHZYW
-X-Proofpoint-GUID: mO3sWlXu8jOVaH9dUa7y8Pr6zWdwHZYW
+X-Proofpoint-GUID: TBmzjNJu3wQjhid7rv7PijxGuSPMiM5N
+X-Proofpoint-ORIG-GUID: TBmzjNJu3wQjhid7rv7PijxGuSPMiM5N
 Reporting-Meta:
- AAEm5tb/jBMbA2K2LkQgUHaCrXOAMaCwizaVRkz7+w6zqY94JOc8gtu8Gpyx/YEc
- XXJZE56X0AQKZKUUnFdYxO+9sfzvcueZA1iSUl7sdNpzHAMLBnUnIbhybOuuLVmW
- Qb2AR1KP8IG5ued5FaD60chCpTGo2JbS1WgzGjgpnJij067no0d9IeJhKpOLr+b9
- 3KnLGAtpFaxWGzLP5TEzeHjR5R21qLxfqjrziDZJ/R4+Cc3tx4FxSkt7gI7GpG+x
- zV5ETDsOV4mMm6RwjkXT3FBWZXv46SPWx5vIm0jzV0y08K8PdJI4V67d/Ca6SKUc
- FkIqWOLMaFJhxTMFD3NuCgRzQYDfJmD6RGWhaEU6FwMIeGkDtMNEENkUa+hkYhTY
- CEwpP24T0l31BOQsrKw6sZI1fN0FVj8nkVivLlVoy/izXNVUAJSa90nsWcQHM6M+
- IkyKXyZkadiyIqABepw6MEOQgP6IlF/JmvWF+0jZkiQAmCkYAU065PEHTaGisTS0
- uZ1cv1mhph+FdDA7Lw49w55gRFWU6cCxyKmU9tc9HzmE
+ AAGAA706d8Wj3QvaCwi6yR38XblTDbxl81oeK9nI7M8GiDQDJ/1YiP67j3pWMFLv
+ kM77BEyggLbPIAPByobTxhB6f7SYtuRfD7tXENH4ZI9nkNBmocXIvQ+69ooKedr7
+ J5BjM8nB5dqdrhpCGs6LWzDMQh5WhUDX7wrg4aKDxJ/ugP+sZt56L00zmbwrdKUA
+ Ca+6UvZ2jMpGXQ1xM7OQ91ivZAoP+tvsB9xfebB1KJDQ6fpl3bqf1sGlKL9+aFmt
+ 82e9w+MMrhahCSmTkqWkzSkbypzlQ7qIgZ8wLzkyMKyaPvcUAASS1QuF23X2int9
+ fWnVQq17yINu62FT2GpeCqn9/eAN3jCQnnZGc5Q74cKgH/EQj3CrpPhu4QSNMX4Y
+ nEJmXLm6sZIKqBXDypBKm7RhrYnKtqic10H+njuZfxqIK3oDOYOLbcN+FhT9/oUa
+ XOgHPP0TE32sioaVXl/UzVT/fmc+jXCeJeSgoQ0TUoh9sUekptf5Ol9xQ+xHlnGG
+ ypZBixUU0lBjVYa83TNi+RvIXnmpeTAlBjSjAknbaKRT
 
 From: Jan Kara via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
 
@@ -119,10 +119,10 @@ Signed-off-by: Joseph Qi <joseph.qi@linux.alibaba.com>
  1 file changed, 16 insertions(+), 2 deletions(-)
 
 diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-index ad20403b383f..9b23e74036eb 100644
+index b6948813eb06..1353db3f7f48 100644
 --- a/fs/ocfs2/aops.c
 +++ b/fs/ocfs2/aops.c
-@@ -1981,11 +1981,25 @@ int ocfs2_write_end_nolock(struct address_space *mapping,
+@@ -2003,11 +2003,25 @@ int ocfs2_write_end_nolock(struct address_space *mapping,
  	}
  
  	if (unlikely(copied < len) && wc->w_target_page) {
