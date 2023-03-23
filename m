@@ -4,83 +4,60 @@ X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 Received: from aib29ajc249.phx1.oracleemaildelivery.com (aib29ajc249.phx1.oracleemaildelivery.com [192.29.103.249])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 635BBC6FD1C
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 86221C761AF
 	for <ocfs2-devel@archiver.kernel.org>; Thu, 23 Mar 2023 15:31:06 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=5nUBlxMcSs+KB2yPCsOMXvrMKNhC+qQ2BsL/x0U13vs=;
- b=I2waamGCoWrZSN91nO4pzR7pM+uRTvv690tXwpmZFIXkpRggfp4RbpDmRYd8mi9WkUBXMhyPhOAW
-   WA8OgXyLbRCsA77nJVj+oV/agCmRMnwdSVQANO5NOsCuBTdf3mfflv2EvzlgOCSViUwWY4y+blQg
-   vptqAW+vg267tvtM2JI6Q4gpj6r6KaSpULefR3634k/x8XWhvWDayKMdP6bhuyfc+Ebezbntl+hi
-   3TWscYzl7iYP7JKCVMloS5dxI68kGL3XOEnGr1L++BvZv+YDJOwUbTYvCYG8xpQIDvneh6dj+YKo
-   ybfCEfsn67s3/Nmu0ZIN2dWw9nu7lH5+ZNOeAQ==
+ bh=waE6nTgkqu2YXJmcFtHJX4gzmKhhWPMmxT9ox1ZT+KQ=;
+ b=3CfSQVCsOwYyN/nPiG+6MNp8CwcV0KONmbdWar0/0BJji1r67wO8+EmTPstTgxNvCwGNnfVePLS0
+   u4hEbEyIn/lSisc72oKw7BF3JtAsqbNTKdNkFE7SpCdNJE1qbj96nIvc903l4/Xzxi1VA6KnShMi
+   sKy4ndiNJXpX9PyCa4xfGNCLUTTC57es8IPCUvKhllbrkvntkh1M8qZT6jFN64QtEvbYJ0VL3YnI
+   m2R+9snkLxDDcwsjzmmN5xgi5wbW4BEpYHyha106NHFvzK17smpyYgH9RxVIhevxg2NPkW539NWX
+   ysPgRZOP36Kn+tmSBCdyQBh6DViWfLWMjhW5CQ==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=5nUBlxMcSs+KB2yPCsOMXvrMKNhC+qQ2BsL/x0U13vs=;
- b=lUEVqbU2J2XnkafUNmv829nTrTu9GnD9iyamswwymndF+yI0hGyI/qjvbNbXcP6TpFLWi24V0gSP
-   9Mt3K4Wx+Ahhj6avE/mqxwC4k0YmAo6H/za6AfDsjjRZGKZwSVELJbBhTgaf+ARoJe+SZVVFyutr
-   UYpm/NC5AvpEv74tUHq+AcFz1PDJMAbsoTOF6V9SidyO9IlmE7G5du9eDQ+nYNnQu7T8/jRV5ajC
-   2QQSA5xDandf9iE1f6j1Cey+anoVRIs/oOMqt0nEQahZLBzwnBiIEGv+tDU99eK3OKx/AMTdERD0
-   PkfNMnO0R731+XoBeNP1pTWVSRA+oilAV07NhQ==
+ bh=waE6nTgkqu2YXJmcFtHJX4gzmKhhWPMmxT9ox1ZT+KQ=;
+ b=FGb/K1uoQ45JgIxlrZyLVsWZ3D9UTS7mZ98xL78rGxS1SOwmytiI7mzzpnl19aT+XfmLWRNPyG2G
+   uWqjG9x0xEWp63wRtV4QnKu18xJMAgQEO0dQisKXi8YBRzNg9pS0GWxSwK/b17aA4tCl+YTf0E54
+   wy4mhlKXIMW2ffKFzUgvH8j2S7wNS3yT5bftnS40wQOfKvhRhUkuIp9W1kNA9CfTDMmpn2d0jKpU
+   YNPEBURXZ7AmhL08smXVC4Y0Jfzo/mzS/49KxML9wjwFNLElBs5iMqpLPAxQa0MFqQdZxKDaU4s5
+   HpeKxmgrZBnIyoje+BdGDad3jFdXiDOgupMZJw==
 Received: by omta-ad2-fd1-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20230214 64bit (built Feb 14
  2023))
- with ESMTPS id <0RRZ00MXXCFSY6A0@omta-ad2-fd1-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
+ with ESMTPS id <0RRZ00MY3CFSY6A0@omta-ad2-fd1-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
  ocfs2-devel@archiver.kernel.org; Thu, 23 Mar 2023 15:31:04 +0000 (GMT)
-DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=wdc.com; i=@wdc.com;
- q=dns/txt; s=dkim.wdc.com; t=1679527901; x=1711063901;
- h=message-id:date:mime-version:subject:to:cc:references:
- from:in-reply-to:content-transfer-encoding;
- bh=q9SHaaGc/iP3oUCDDkuobziv3fI8u5euiS4kcHH3kx8=;
- b=fGhRed7WUoBjrjIdo4SbgQTMXCrstuKgASuBx7XNAXQN0YaV+AMAN1yG
- j55E2Nu/B9SeI6f3KJA+T85/IiyJa4CKYthtznw0L8zl4SSlERw09AYsT
- r1M3pubMRYC80SnXkacb8ErZ8vQCQ83laKkGI26ht6qrhA0iOpKeh+n51
- 5UJXuFZg3S8bUYmSeCCX3LnjKTvW3RavK7qHeP2bFthwfbOIRsRX18G9T
- VuiwQ4ozDq2Xy2n7CnlxMCdiztNRTVZufAifXJXe3o+OtLOdygtmlzDjF
- GKnVgaW4571LNr9qj5vTeNXAuqc5aXIlignCRvVFKgeO/37xhQ+yt2F7t w==;
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d= opensource.wdc.com;
- h=content-transfer-encoding:content-type
- :in-reply-to:organization:from:references:to:content-language
- :subject:user-agent:mime-version:date:message-id; s=dkim; t= 1679527898;
- x=1682119899; bh=q9SHaaGc/iP3oUCDDkuobziv3fI8u5euiS4 kcHH3kx8=;
- b=jXOcAHSjzQp3Y8DRAhI7Eqaykde0th0S9alUrID1c2LCC3wfAb9
- gKLpCqhNvhXIVpoACyCWdORhWPyVwcLyv+I3A4HyVbq47iykpBBgezzTIryrgP44
- YEKzud94Zk+Y8HC/UY2RnSvJBZedTJ3OfzPeXnPWHU3PAOtYg4P8hX2IvtQ6yBhi
- j4r/QQvfwmqbzwmimzdJGIuPI0o0MfJdBhX8DuQYGVDi4A2JABTEyXrQamz1e+uF
- +gUlyjlv0VsY1s6/lX1w99QOTvab/kA98gC8MKGuF5bkUAv65So0qyJzKTEypPY0
- ciNq+kgkTDjVCQlQD4ZfSdBBlYkyJL09/6w==
-X-Virus-Scanned: amavisd-new at usg-ed-osssrv.wdc.com
-Message-id: <5e7e8187-f514-c65e-2615-26762a329590@opensource.wdc.com>
-Date: Thu, 23 Mar 2023 08:31:30 +0900
-MIME-version: 1.0
-User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:102.0) Gecko/20100101
- Thunderbird/102.9.0
-Content-language: en-US
-To: Yangtao Li <frank.li@vivo.com>, clm@fb.com, josef@toxicpanda.com,
- dsterba@suse.com, xiang@kernel.org, chao@kernel.org, huyue2@coolpad.com,
- jefflexu@linux.alibaba.com, jaegeuk@kernel.org,
- trond.myklebust@hammerspace.com, anna@kernel.org, konishi.ryusuke@gmail.com,
- mark@fasheh.com, jlbec@evilplan.org, joseph.qi@linux.alibaba.com,
- richard@nod.at, djwong@kernel.org, naohiro.aota@wdc.com, jth@kernel.org,
- gregkh@linuxfoundation.org, rafael@kernel.org
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
+ s=mimecast20190719; t=1679548610;
+ h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+ to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+ in-reply-to:in-reply-to:references:references;
+ bh=HoUzTMO8R5MhPq7S8OoMssryl9/6eR6zluDti49MEro=;
+ b=VenPyRS7ykgOC4kdbDyUaXDTFZc75EDXi41x3ovq7GXEJGHEQbz+73KZZNWLl/6PP6BxzB
+ UPahLevW7ttMB3TJnf88cWXYONf2orGnBzl409euEbtlXKg4nz/8D35caRQg31VYm+szc+
+ NDkOg0OssvAzgDFR/Xn1aoG39SN3lOY=
+Date: Thu, 23 Mar 2023 13:16:20 +0800
+To: Yangtao Li <frank.li@vivo.com>
+Message-id: <ZBvgpBzEuFuyOD/c@ovpn-8-16.pek2.redhat.com>
 References: <20230322165830.55071-1-frank.li@vivo.com>
-Organization: Western Digital Research
+MIME-version: 1.0
+Content-disposition: inline
 In-reply-to: <20230322165830.55071-1-frank.li@vivo.com>
-X-Source-IP: 68.232.141.245
+X-Source-IP: 170.10.129.124
 X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10657
  signatures=596816
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 impostorscore=0
- adultscore=0 malwarescore=0 priorityscore=169 suspectscore=0 mlxlogscore=999
- clxscore=185 lowpriorityscore=0 mlxscore=0 spamscore=0 bulkscore=0
- phishscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2303150002 definitions=main-2303220171 domainage_hfrom=11268
-Cc: linux-nfs@vger.kernel.org, linux-nilfs@vger.kernel.org,
- linux-kernel@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net,
- linux-xfs@vger.kernel.org, linux-mtd@lists.infradead.org,
- ocfs2-devel@oss.oracle.com, linux-fsdevel@vger.kernel.org,
- linux-erofs@lists.ozlabs.org, linux-btrfs@vger.kernel.org
+Cc: rafael@kernel.org, linux-mtd@lists.infradead.org, naohiro.aota@wdc.com,
+ linux-nilfs@vger.kernel.org, richard@nod.at, trond.myklebust@hammerspace.com,
+ xiang@kernel.org, chao@kernel.org, josef@toxicpanda.com, ming.lei@redhat.com,
+ huyue2@coolpad.com, dsterba@suse.com, jefflexu@linux.alibaba.com,
+ jaegeuk@kernel.org, konishi.ryusuke@gmail.com, linux-nfs@vger.kernel.org,
+ clm@fb.com, gregkh@linuxfoundation.org, linux-kernel@vger.kernel.org,
+ linux-f2fs-devel@lists.sourceforge.net, linux-xfs@vger.kernel.org,
+ ocfs2-devel@oss.oracle.com, anna@kernel.org, linux-fsdevel@vger.kernel.org,
+ jth@kernel.org, linux-erofs@lists.ozlabs.org,
+ damien.lemoal@opensource.wdc.com, linux-btrfs@vger.kernel.org
 Subject: Re: [Ocfs2-devel] [PATCH v3 01/10] kobject: introduce
 	kobject_del_and_put()
 X-BeenThere: ocfs2-devel@oss.oracle.com
@@ -94,43 +71,47 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: Damien Le Moal via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: Damien Le Moal <damien.lemoal@opensource.wdc.com>
+From: Ming Lei via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: Ming Lei <ming.lei@redhat.com>
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-IronPort-AV: E=Sophos;i="5.98,282,1673884800"; d="scan'208";a="338330688"
-X-ServerName: esa1.hgst.iphmx.com
+X-MC-Unique: KY9zo7YzPqyCZhglvOgcqw-1
+X-Scanned-By: MIMEDefang 3.1 on 10.11.54.10
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 exists:%{i}.spf.hgst.iphmx.com
- ip4:199.255.45.14/32 ip4:199.255.45.15/32 -all
-X-Spam: Clean
-X-Proofpoint-ORIG-GUID: QxicB4QObY7fZrFF2poey14bk95DP_tK
-X-Proofpoint-GUID: QxicB4QObY7fZrFF2poey14bk95DP_tK
+X-Proofpoint-SPF-Record: v=spf1 ip4:107.21.15.141 ip4:108.177.8.0/21
+ ip4:128.17.0.0/20 ip4:128.17.128.0/20 ip4:128.17.192.0/20 ip4:128.17.64.0/20
+ ip4:128.245.0.0/20 ip4:128.245.64.0/20 ip4:13.110.208.0/21 ip4:13.110.216.0/22
+ ip4:13.110.224.0/20 ip4:13.111.0.0/16 ip4:136.147.128.0/20
+ ip4:136.147.176.0/20 ip4:148.105.8.0/21 ip4:149.72.0.0/16 ip4:159.183.0.0/16
+ include:spf1.redhat.com -all
+X-Proofpoint-SPF-VenPass: Allowed
+X-ServerName: us-smtp-delivery-124.mimecast.com
+X-Proofpoint-SPF-Result: pass
+X-Proofpoint-SPF-Record: v=spf1 ip4:107.21.15.141 ip4:108.177.8.0/21
+ ip4:128.17.0.0/20 ip4:128.17.128.0/20 ip4:128.17.192.0/20 ip4:128.17.64.0/20
+ ip4:128.245.0.0/20 ip4:128.245.64.0/20 ip4:13.110.208.0/21 ip4:13.110.216.0/22
+ ip4:13.110.224.0/20 ip4:13.111.0.0/16 ip4:136.147.128.0/20
+ ip4:136.147.176.0/20 ip4:148.105.8.0/21 ip4:149.72.0.0/16 ip4:159.183.0.0/16
+ include:spf1.redhat.com -all
+X-Proofpoint-Spam-Reason: safe
+X-Spam: OrgSafeList
+X-SpamRule: orgsafelist
+X-Proofpoint-GUID: ehbfxPIprCMp7OhnVmiqn51pefGD3n6e
+X-Proofpoint-ORIG-GUID: ehbfxPIprCMp7OhnVmiqn51pefGD3n6e
 X-Mailman-Approved-At: Thu, 23 Mar 2023 15:31:02 +0000
 Reporting-Meta:
- AAG4y4RCoAEJ0pnpfCom0gO2tbhY+ctldFHSIKjbo8f4ferJi7XfXrq2pcIrxZnj
- RnMs4rFlj+IJeMBMDQOcc7kMBQAZiUeD1klhFADOsf1+9MYE1p67ewjvTksttOKC
- zpjgrQI3qKNWxIHu7fuEJEA7NAwKiodty8JxW9AVz0H15ac35U8o+krddN71MYhk
- v5dYHlur2IgdhfadmzrDmjovBTvMEFuKdFTPeN7iQBQSR7B/Qq9/ohohi3aaj7Bg
- O6ZrYk0Xvn81gSEhSAp1kcKn5TYOPNhPAaIL4ab53nYzQTlQmA3siENm41U1ISLc
- Xblp+miOoRkNY4E/JE9DQHpEnRkuJimuGsfNNwdcEbPJ7H2X1eI6IUmrjvYMaySr
- iKygeHkrnsN+W2JZkri8l/ldm9CAV7c0s6AEqEo9auKynW0KQXJEndi4JYo7YqG4
- 9YdP/3Ls27ea+F86fLk/QLqQFy3PPKbvmjnEg/lOb8NW2Z0YuTeyQ9cOuGPpyIdP
- Htgrku8O/rI9POedXdQ0MA0PSiPDdQFE5Jk+Ker9yP2v
-IronPort-SDR:
- AWTj92Lav/wQoikEN0RVrgIjOEOfHuVPhOodrXwY7LNyN8yEJxzyafORvyQw4mRZ5Vz1cF6Qjz
- 1tDQQL/ia8yN7eWWDQ/+qgDGeVAteQl89eiSmrpgeVYzHcwq390EMpIaUQwuPTzKLNc79coGpN
- Q4Ht1H9JIwilktkuxx6SyvHDroQSFDdh2XXs4vI0nJYnbjq/tMMxJNvs9VxcmJ7JpvevDzWQkb
- nFD/RmsyC6T7KhhlWAktzDHy2fqt8HwnePRbLRidnWu2jQEsHTOrTmByhp4pq7NzJGcGyWvFmM 69o=
-IronPort-SDR:
- I4QX4jl3h69oqtub3Ux0rPoGRB9jk/x8YedPUm5NtFt+6/t5dvX2ET445vCQhC/vUcresbLJGi
- 2Uf2cy3Y23X/saLufV9HH0mJUfLFNziiBe5FAMyHHPFKnl6ltm8LusMdsbnGuUm14TT06E9k5X
- bG9kk8f/yJPcL1HBkpihZxzD+YeP7xqoMJ7uovTFohqr/ixaj19+73QtZuI/uwyRsFSoyIZ+N2
- DTB3wRUgCXS9s+D3kBn2SEotosDB7AYw98xYOO7vwbR3vrdUfbP9XOVdgFHxK3EC8wyVD5HcNn Ks8=
-WDCIronportException: Internal
+ AAGSASnzR0AXPnQp3p4Lbeu82w2uTtjNeqy+a9tBAFTBpGsn3NfC5LBjYLkR7M1J
+ khcTOwzasFK65+7V9onuB9M/3CFMwqBp6xsemCshNS8y5/EGZ72XjVRKEGQR1DXD
+ clhFxKtUTkwGsNYw1DKaXl9Js5KK9S4FZrSspEwbhWoy4UTTC5OjA4BoLCeZZjEa
+ rjG9X8jabbSEfDqL5HDwtFKSIo7QqceUB0+7S6XW0QlMNpBP7J28U+nQplsx/UBH
+ EjKWQBOrTkSOivcASVhr9Fe6hTZXRsDaPBRFhU/k6hyiPvjOLn90kisNUCbf12ZN
+ Fp9MfTrBy3puQE379+D6IFugvTDy5PcEU0oQ8WIqrLCoSeOBh1CbYzUcMxI0FCPY
+ LzE5Noed4PlKU7mvT+7wtGrNLzSBuKkuZOFLVHJYs7nkTNT6aJUpzeqktxbdfcic
+ QoJHYZQHe3qpMKsZv05Rx5+HP8srF2DX4sOHH0n+uxhBLq46rAWX2LR8Lsa83gTh
+ BKxpuBqDnMB6ORPUW5OMOhJz1UlgUe5x+NGCh9gA8bc7
 
-On 3/23/23 01:58, Yangtao Li wrote:
+On Thu, Mar 23, 2023 at 12:58:30AM +0800, Yangtao Li wrote:
 > There are plenty of using kobject_del() and kobject_put() together
 > in the kernel tree. This patch wraps these two calls in a single helper.
 > 
@@ -157,55 +138,21 @@ On 3/23/23 01:58, Yangtao Li wrote:
 > + * @kobj: object.
 > + *
 > + * Unlink kobject from hierarchy and decrement the refcount.
-
-Unlink kobject from hierarchy and decrement its refcount.
-
 > + * If refcount is 0, call kobject_cleanup().
-
-That is done by kobject_put() and not explicitly done directly in this helper.
-So I would not mention this to avoid confusion as you otherwise have a
-description that does not match the code we can see here.
-
-With that fixed, this looks OK to me, so feel free to add:
-
-Reviewed-by: Damien Le Moal <damien.lemoal@opensource.wdc.com>
-
 > + */
 > +static inline void kobject_del_and_put(struct kobject *kobj)
 > +{
 > +	kobject_del(kobj);
 > +	kobject_put(kobj);
 > +}
-> +
->  extern const void *kobject_namespace(const struct kobject *kobj);
->  extern void kobject_get_ownership(const struct kobject *kobj,
->  				  kuid_t *uid, kgid_t *gid);
-> diff --git a/lib/kobject.c b/lib/kobject.c
-> index f79a434e1231..e6c5a3ff1c53 100644
-> --- a/lib/kobject.c
-> +++ b/lib/kobject.c
-> @@ -876,8 +876,7 @@ void kset_unregister(struct kset *k)
->  {
->  	if (!k)
->  		return;
-> -	kobject_del(&k->kobj);
-> -	kobject_put(&k->kobj);
-> +	kobject_del_and_put(&k->kobj);
 
-Nit: You could simplify this one to be:
+kobject_put() actually covers kobject removal automatically, which is
+single stage removal. So if you see the two called together, it is
+safe to kill kobject_del() directly.
 
-	if (k)
-		kobject_del_and_put(&k->kobj);
 
-and drop the return line.
-
->  }
->  EXPORT_SYMBOL(kset_unregister);
->  
-
--- 
-Damien Le Moal
-Western Digital Research
+thanks,
+Ming
 
 
 _______________________________________________
