@@ -1,58 +1,68 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc247.phx1.oracleemaildelivery.com (aib29ajc247.phx1.oracleemaildelivery.com [192.29.103.247])
+Received: from aib29ajc254.phx1.oracleemaildelivery.com (aib29ajc254.phx1.oracleemaildelivery.com [192.29.103.254])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id A4F96C77B6E
-	for <ocfs2-devel@archiver.kernel.org>; Tue, 28 Mar 2023 23:22:13 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 98002C6FD18
+	for <ocfs2-devel@archiver.kernel.org>; Wed, 29 Mar 2023 07:12:59 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=8ZNYp01RHA0Cmmdtn8miPxOlgrNETUsmHGfF4A4N0c4=;
- b=T2j9L1J7wOdNx8AeYhuK1+TUgDsxPL34rpTK32QBzcqaxmkYcvkDZ/47+4kV1BMW7XFrs+oh0e05
-   bcGTD80zMUhhpUJhNjK7hlKQJJRy9vMoLu0r284uySL6Aml3I3eCa3cGEqK8SOxkHBU7kHrqOeZo
-   oAmtKHLwe31WkF4OH6u9vLXwp4SXE4szFdfruFMNSe6Ff8rvzEnEEhbfXKn+DxAUKvKcjqeGh6xx
-   F1ErgCdJibaGaaZ1mraNBSWzt+fcEDcoyN/MipD2axGhJ894F5EZ+O8UCuH0iBopkqniwDLJOZOF
-   b2SuSOIZwlSriz5fzXV1QmHJIinQ/sDtT2y4NQ==
+ bh=QHwvLZ5PagsZYbDPcNUYLINhd6N20vaRZVEsIx+rcpQ=;
+ b=KuRhHbbIoCdsmsz8XLg3dfQeZ1cev2HWWgf7hl0uXQp40Xqh+GkbAp3l6IPzO522DbqOykBlyun9
+   cxXRnjzoConXgkpFlDDp2TCgHZegzvs9IFwGlJrFJiOe1l28OZTsuL4bJSNL2InkTB/9/vK4fHyk
+   nIy3lqsaENfV5agUqrpRy4ekrCnK2o6DAdq2NTjRg2Rw+aUT13Z5VUfibYNjQEG4DB20rDoA13/l
+   jIrcP5ZLcTnzqJYiuho5pt+K33SHbCwI7wO54R2wYA95zqHeWbYTQcAEr1QVM4mpTcCfatnnaEm5
+   W0QlnQjg/ik9JRUhYjZ5XeJ5UUiciacqm/f+aA==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=8ZNYp01RHA0Cmmdtn8miPxOlgrNETUsmHGfF4A4N0c4=;
- b=suXMmuNwUmBLtsw1gOYmwJwX6c/tbb5qsG9vy8L3VS9kI1GbWI9rPlm0xgiY4QDTCzFTdXWuk8P9
-   kkWdz4nqROIFXqec+Gf40qriGamsm8fbKhckym1sZPTQ1vcdyH1awSvOlrk1QIb0E+ZHvDuL8K2S
-   VlW6FdepD7f5euLYQcDj29WGI/wwsHKleNoyhW2abqG08dg0yhcpQC/E3UwAyfbTA3brU+m8rsAJ
-   Dh5/yx5j19l1Br4E9Fh7HAUl50QUrxjCx3c72f7m9HmBhqAzsESTAd2eU6d1iVzG0XKC5p1BjSMR
-   Wmi6uNd1gfPaxnN2YBHmbmchQvzaXMFvcf++BA==
-Received: by omta-ad1-fd3-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
+ bh=QHwvLZ5PagsZYbDPcNUYLINhd6N20vaRZVEsIx+rcpQ=;
+ b=N5qUzwV+X1GkIyzv/0K7boPY7s+rUisyZsQf6Cz4SOIn2ag5ETUM6X1Ze8dNem6CDtTn5+jhwYb7
+   POU39OLqirFb5sngwWQBAih1zLNm4dtBTJkkW0DVt3fdoCpPOb9k6rG6wQqtBmBiqJitrAQO/iMn
+   NGV8SPgBfQ6FFC07t8OyLcgXc15S5zc5H4qCCkRCj7PNmaHNiOk2xibaTwJCmkbWXMlsAPFMUDfi
+   wd7dwgdtkVfYNSo9IU8fNwQW3BqhGraRyCWy1KiaLCBN/OQtEaZmVd/AoHZqCBmuDoi4/kGd8UWV
+   pCL26mNreWxafVpNhf3AzIdidJwMeX/P+AwB5A==
+Received: by omta-ad3-fd3-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20230317 64bit (built Mar 17
  2023))
- with ESMTPS id <0RS900G7U7L06O20@omta-ad1-fd3-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Tue, 28 Mar 2023 23:22:12 +0000 (GMT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linux-foundation.org;
- s=korg; t=1680045715; bh=/WSGuEQVnoddeWqG42XlhiaesRMA04POD0IoTG9BCPk=;
- h=Date:To:From:Subject:From;
- b=tfsHtnJoCQ4E6XyxdIG+hJKrnDC+3xB6n5FWeCfOSAQ9sBHlGgdQLgLPbU+SBp1SY
- Wp2DEQ02alTLHYEJajBKuNEc8E+jcP8rGnCO8IyWAS1gkeTt+AEVFuUZQXyTLaTlnz
- HSTk4u58recjMAsJ1q4VuERjc9Ma4RInq39kBAtI=
-Date: Tue, 28 Mar 2023 16:21:54 -0700
-To: mm-commits@vger.kernel.org, willy@infradead.org, piaojun@huawei.com,
- ocfs2-devel@oss.oracle.com, mark@fasheh.com, junxiao.bi@oracle.com,
- joseph.qi@linux.alibaba.com, jlbec@evilplan.org, jiangqi903@gmail.com,
- jack@suse.cz, ghe@suse.com, gechangwei@live.cn, dushistov@mail.ru,
- dave.kleikamp@oracle.com, hch@lst.de, akpm@linux-foundation.org
-Message-id: <20230328232155.1A07EC4339C@smtp.kernel.org>
-X-Source-IP: 139.178.84.217
+ with ESMTPS id <0RS900BTGTDMJH60@omta-ad3-fd3-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Wed, 29 Mar 2023 07:12:58 +0000 (GMT)
+Message-id: <e7faa6ebe2958184aeccadad51d18877577b225b.camel@huaweicloud.com>
+To: Paul Moore <paul@paul-moore.com>
+Date: Wed, 29 Mar 2023 09:11:59 +0200
+In-reply-to:
+ <CAHC9VhRNWeZtxain_Hi-EfS49Vac8_vg7KRRyV4a9Sq3XPhZsg@mail.gmail.com>
+References: <20230314081720.4158676-1-roberto.sassu@huaweicloud.com>
+ <20230314081720.4158676-5-roberto.sassu@huaweicloud.com>
+ <CAHC9VhTD3EyDiJs9+NQrgp84JcUs_sx8WONtRk2YYH4m1C8nVw@mail.gmail.com>
+ <939e6c88662ad90b963993c4cc1b702083e74a7a.camel@huaweicloud.com>
+ <ffc86b3907f7b87d3c568ae62bea3cdb3275be4e.camel@huaweicloud.com>
+ <CAHC9VhRNjvjMOF5KLM6BoGfk=QpEBs_ur_CgRdGL5R1bA-JAwg@mail.gmail.com>
+ <8b63d00d8ac3f686e51889ea4fc8d83f8ecb300d.camel@huaweicloud.com>
+ <CAHC9VhRaKtsM=CuNhDy0Kx0NGSUrVhG+MhwKnHiyJxfgUwx7nA@mail.gmail.com>
+ <1e08006f9011efa48deaf656c358ca3d438b9768.camel@huaweicloud.com>
+ <CAHC9VhRNWeZtxain_Hi-EfS49Vac8_vg7KRRyV4a9Sq3XPhZsg@mail.gmail.com>
+User-Agent: Evolution 3.36.5-0ubuntu1
+MIME-version: 1.0
+X-Source-IP: 14.137.139.23
 X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10663
  signatures=596816
 X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 phishscore=0
- impostorscore=0 spamscore=0 priorityscore=173 malwarescore=0 bulkscore=0
- clxscore=229 lowpriorityscore=0 mlxscore=0 adultscore=0 suspectscore=0
- mlxlogscore=999 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2303200000 definitions=main-2303280180
-Subject: [Ocfs2-devel] [merged mm-stable]
-	ocfs2-dont-use-write_one_page-in-ocfs2_duplicate_clusters_by_page.patch
-	removed from -mm tree
+ impostorscore=0 spamscore=0 priorityscore=1501 malwarescore=0 bulkscore=0
+ clxscore=-50 lowpriorityscore=0 mlxscore=0 adultscore=0 suspectscore=0
+ mlxlogscore=793 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2303200000 definitions=main-2303290059
+Cc: nicolas.bouchinet@clip-os.org, linux-kernel@vger.kernel.org,
+ keescook@chromium.org, selinux@vger.kernel.org, dmitry.kasatkin@gmail.com,
+ Roberto Sassu <roberto.sassu@huawei.com>, jmorris@namei.org,
+ zohar@linux.ibm.com, reiserfs-devel@vger.kernel.org,
+ linux-security-module@vger.kernel.org, casey@schaufler-ca.com,
+ eparis@parisplace.org, linux-integrity@vger.kernel.org,
+ stephen.smalley.work@gmail.com, ocfs2-devel@oss.oracle.com, serge@hallyn.com
+Subject: Re: [Ocfs2-devel] [PATCH v8 4/6] security: Allow all LSMs to provide
+ xattrs for inode_init_security hook
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -64,101 +74,90 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: Andrew Morton via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: Andrew Morton <akpm@linux-foundation.org>
-MIME-version: 1.0
-Content-type: text/plain; charset="us-ascii"
-Content-transfer-encoding: 7bit
+From: Roberto Sassu via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: Roberto Sassu <roberto.sassu@huaweicloud.com>
+Content-type: text/plain; charset="utf-8"
+Content-transfer-encoding: base64
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-ServerName: dfw.source.kernel.org
+X-CM-TRANSID: GxC2BwAX6F7D5CNk8fLYAQ--.17663S2
+X-Coremail-Antispam: 1UD129KBjvJXoW7AF4UAr48AFyUJFy5ArWrXwb_yoW8trW5pF
+ 4Ut3Wqkr4vqr42yr92ya18G3yrK39xtr4UXwn8tr1UZ34qgryfCF1xKF43uryDGrn2k3s0
+ vrWYgry3W3ZxAaDanT9S1TB71UUUUUUqnTZGkaVYY2UrUUUUjbIjqfuFe4nvWSU5nxnvy2
+ 9KBjDU0xBIdaVrnRJUUUkjb4IE77IF4wAFF20E14v26ryj6rWUM7CY07I20VC2zVCF04k2
+ 6cxKx2IYs7xG6rWj6s0DM7CIcVAFz4kK6r1j6r18M28lY4IEw2IIxxk0rwA2F7IY1VAKz4
+ vEj48ve4kI8wA2z4x0Y4vE2Ix0cI8IcVAFwI0_Jr0_JF4l84ACjcxK6xIIjxv20xvEc7Cj
+ xVAFwI0_Gr0_Cr1l84ACjcxK6I8E87Iv67AKxVWUJVW8JwA2z4x0Y4vEx4A2jsIEc7CjxV
+ AFwI0_Gr0_Gr1UM2AIxVAIcxkEcVAq07x20xvEncxIr21l5I8CrVACY4xI64kE6c02F40E
+ x7xfMcIj6xIIjxv20xvE14v26r1j6r18McIj6I8E87Iv67AKxVWUJVW8JwAm72CE4IkC6x
+ 0Yz7v_Jr0_Gr1lF7xvr2IY64vIr41lFIxGxcIEc7CjxVA2Y2ka0xkIwI1l42xK82IYc2Ij
+ 64vIr41l4I8I3I0E4IkC6x0Yz7v_Jr0_Gr1lx2IqxVAqx4xG67AKxVWUJVWUGwC20s026x
+ 8GjcxK67AKxVWUGVWUWwC2zVAF1VAY17CE14v26r4a6rW5MIIYrxkI7VAKI48JMIIF0xvE
+ 2Ix0cI8IcVAFwI0_Jr0_JF4lIxAIcVC0I7IYx2IY6xkF7I0E14v26r4j6F4UMIIF0xvE42
+ xK8VAvwI8IcIk0rVWrZr1j6s0DMIIF0xvEx4A2jsIE14v26r1j6r4UMIIF0xvEx4A2jsIE
+ c7CjxVAFwI0_Gr0_Gr1UYxBIdaVFxhVjvjDU0xZFpf9x07UZ18PUUUUU=
+X-CM-SenderInfo: purev21wro2thvvxqx5xdzvxpfor3voofrz/1tbiAQALBF1jj4tHZgAAsV
+X-CFilter-Loop: Reflected
+X-ServerName: frasgout11.his.huawei.com
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 ip4:140.211.169.12/30 include:_spf.kernel.org
- include:_spf.google.com ~all
+X-Proofpoint-SPF-Record: v=spf1 ip4:45.249.212.51 ip4:45.249.212.56
+ ip4:185.176.79.53 ip4:14.137.139.23 ip4:14.137.139.154 ip4:14.137.139.46
+ ip4:124.71.93.99 ip4:124.71.93.112 ip4:124.71.94.104
+ include:spf.saas.huaweicloud.com -all
 X-Spam: Clean
-X-Proofpoint-GUID: 9prKoqS3w2Loj3Ez8boepH9kxz0PoE57
-X-Proofpoint-ORIG-GUID: 9prKoqS3w2Loj3Ez8boepH9kxz0PoE57
+X-Proofpoint-ORIG-GUID: 75gZquoD1q1-76PPJHSyG1dCojBu3FUY
+X-Proofpoint-GUID: 75gZquoD1q1-76PPJHSyG1dCojBu3FUY
 Reporting-Meta:
- AAF594EigxBgFt9fAn87aEX4JcrKbXh9t5jmeSeh2Zg8ZAgHWMWf4DVrNwsJC6kx
- Zwf089ta3jCylcLYMOnCwilXBpmSRF5H6mBFdu1jYgGjSVpVIYrGVhbVykMpovXo
- 8DYUEikfE+q7pfk0yGu+8wi0IMAyk+R5bt5fGngPjy4hOM447aR5D2VgRTlvStbr
- wp07+2YKVxeOjn7MQe4IoAJ8PWWCI7+/JLBtGE2gkbem3jYr42stRpQ0FgEIic8V
- ayVWzsvA4lh7Bu0bS7gQmQaUnWFzjVrLUElCwJpRbwGXQ7AUkylnrJvFYxBrblAr
- E2mIZsgROfvrH1EToT/6edN0HWmMX14OQYuGJC2rPIj/KWGANsKRUcs8Nxji6x3i
- At/y4wR/PWAYA6IfX374yj5CATBk5GMGsXOr1Nhvy+n10qFv9rnJhrwctaMWm6jm
- HzvYj3oPerYkrlBxw9pFJKcTu+IzPPLHukgADqNzsxti4Rd0hP89BDOlslYQ45XH
- pBTXerffJPbMbzFuAlfihF+fX78SUMGKUtZXlWuPXLYJ
+ AAFVK3Qw2he6X8ywWL5KnhpuuOseAD8cWrJy3i3LpjD7/mdyyXqmPZZubpGwoI0G
+ nIUDs87mWMow15iow2EzTtiZhq9aHImkBWRY3uTzv213dkOlYUeA7T11Mm0gmyq+
+ QeiA/jt9nR9RhNeHYJozv1ubhJ8IieMwbqFRwEgZzKfV3hHpLkRepFsKn5z4UAbW
+ f0h5c+JvyyvmFmMl8D7DzP1JWmEqPfr+VQua+i/9RJNQBNHmeZzqY3WzKMXOGBmP
+ ffN9qcSKBzuazDhWaVv2eaA89WgH3TFBxnWIouFzhCqzTPDCNav8pVg9Pjtcf1dj
+ 46ODb7XltVtS8NOoiuQOPyvYX7mLGd8//51yRBtzHMbamzXbTL5I/VbykzzCXEf2
+ 7EpjlCXrucj1aQwadnd2yD0J9KaCSU6mKqtCJtRFJW1UIRFHcGfshxG+TMJM9zRZ
+ 28lXsvoUsK294SUblQas8g7mqTOcMDdKnSA99pi0q1BZxY3D4aGZrjp7OEM/Dk2x
+ fV5dFrWTDs+relcLzlUaV2cgvpKgEl0DkI2XPkgxKIcQog==
 
-
-The quilt patch titled
-     Subject: ocfs2: don't use write_one_page in ocfs2_duplicate_clusters_by_page
-has been removed from the -mm tree.  Its filename was
-     ocfs2-dont-use-write_one_page-in-ocfs2_duplicate_clusters_by_page.patch
-
-This patch was dropped because it was merged into the mm-stable branch
-of git://git.kernel.org/pub/scm/linux/kernel/git/akpm/mm
-
-------------------------------------------------------
-From: Christoph Hellwig <hch@lst.de>
-Subject: ocfs2: don't use write_one_page in ocfs2_duplicate_clusters_by_page
-Date: Tue, 7 Mar 2023 15:31:24 +0100
-
-Use filemap_write_and_wait_range to write back the range of the dirty page
-instead of write_one_page in preparation of removing write_one_page and
-eventually ->writepage.
-
-Link: https://lkml.kernel.org/r/20230307143125.27778-3-hch@lst.de
-Signed-off-by: Christoph Hellwig <hch@lst.de>
-Reviewed-by: Jan Kara <jack@suse.cz>
-Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-Cc: Changwei Ge <gechangwei@live.cn>
-Cc: Dave Kleikamp <dave.kleikamp@oracle.com>
-Cc: Evgeniy Dushistov <dushistov@mail.ru>
-Cc: Gang He <ghe@suse.com>
-Cc: Jan Kara via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Cc: Joel Becker <jlbec@evilplan.org>
-Cc: Joseph Qi <jiangqi903@gmail.com>
-Cc: Jun Piao <piaojun@huawei.com>
-Cc: Junxiao Bi <junxiao.bi@oracle.com>
-Cc: Mark Fasheh <mark@fasheh.com>
-Cc: Matthew Wilcox (Oracle) <willy@infradead.org>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
----
-
- fs/ocfs2/refcounttree.c |    9 +++++----
- 1 file changed, 5 insertions(+), 4 deletions(-)
-
---- a/fs/ocfs2/refcounttree.c~ocfs2-dont-use-write_one_page-in-ocfs2_duplicate_clusters_by_page
-+++ a/fs/ocfs2/refcounttree.c
-@@ -2952,10 +2952,11 @@ retry:
- 		 */
- 		if (PAGE_SIZE <= OCFS2_SB(sb)->s_clustersize) {
- 			if (PageDirty(page)) {
--				/*
--				 * write_on_page will unlock the page on return
--				 */
--				ret = write_one_page(page);
-+				unlock_page(page);
-+				put_page(page);
-+
-+				ret = filemap_write_and_wait_range(mapping,
-+						offset, map_end - 1);
- 				goto retry;
- 			}
- 		}
-_
-
-Patches currently in -mm which might be from hch@lst.de are
-
-mm-dont-look-at-xarray-value-entries-in-split_huge_pages_in_file.patch
-mm-make-mapping_get_entry-available-outside-of-filemapc.patch
-mm-use-filemap_get_entry-in-filemap_get_incore_folio.patch
-shmem-open-code-the-page-cache-lookup-in-shmem_get_folio_gfp.patch
-mm-remove-fgp_entry.patch
-mm-return-an-err_ptr-from-__filemap_get_folio.patch
-mm-return-an-err_ptr-from-__filemap_get_folio-fix.patch
-
-
-_______________________________________________
-Ocfs2-devel mailing list
-Ocfs2-devel@oss.oracle.com
-https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+T24gVHVlLCAyMDIzLTAzLTI4IGF0IDE2OjE5IC0wNDAwLCBQYXVsIE1vb3JlIHdyb3RlOgo+IE9u
+IFR1ZSwgTWFyIDI4LCAyMDIzIGF0IDM6NDfigK9BTSBSb2JlcnRvIFNhc3N1Cj4gPHJvYmVydG8u
+c2Fzc3VAaHVhd2VpY2xvdWQuY29tPiB3cm90ZToKPiA+IE9uIE1vbiwgMjAyMy0wMy0yNyBhdCAx
+NzowMiAtMDQwMCwgUGF1bCBNb29yZSB3cm90ZToKPiA+ID4gT24gTW9uLCBNYXIgMjcsIDIwMjMg
+YXQgMzozMOKAr0FNIFJvYmVydG8gU2Fzc3UKPiA+ID4gPHJvYmVydG8uc2Fzc3VAaHVhd2VpY2xv
+dWQuY29tPiB3cm90ZToKPiA+ID4gPiBPbiBGcmksIDIwMjMtMDMtMjQgYXQgMTc6MzkgLTA0MDAs
+IFBhdWwgTW9vcmUgd3JvdGU6Cj4gPiA+ID4gPiBPbiBGcmksIE1hciAyNCwgMjAyMyBhdCA5OjI2
+4oCvQU0gUm9iZXJ0byBTYXNzdQo+ID4gPiA+ID4gPHJvYmVydG8uc2Fzc3VAaHVhd2VpY2xvdWQu
+Y29tPiB3cm90ZToKPiA+ID4gPiA+ID4gT24gRnJpLCAyMDIzLTAzLTI0IGF0IDExOjE4ICswMTAw
+LCBSb2JlcnRvIFNhc3N1IHdyb3RlOgo+ID4gPiA+ID4gPiA+IE9uIFRodSwgMjAyMy0wMy0yMyBh
+dCAyMDowOSAtMDQwMCwgUGF1bCBNb29yZSB3cm90ZToKPiA+ID4gPiA+ID4gPiA+IE9uIFR1ZSwg
+TWFyIDE0LCAyMDIzIGF0IDQ6MTnigK9BTSBSb2JlcnRvIFNhc3N1Cj4gPiA+ID4gPiA+ID4gPiA8
+cm9iZXJ0by5zYXNzdUBodWF3ZWljbG91ZC5jb20+IHdyb3RlOgo+ID4gPiA+ID4gPiA+ID4gPiBG
+cm9tOiBSb2JlcnRvIFNhc3N1IDxyb2JlcnRvLnNhc3N1QGh1YXdlaS5jb20+Cj4gCj4gLi4uCj4g
+Cj4gPiA+IE9rYXksIHRoYXQncyBmYWlyLCBidXQgd2UgY291bGQgc3RpbGwgcGFzcyB0aGUgZnVs
+bCB4YXR0cnMgYXJyYXkgYW5kIGEKPiA+ID4gcmVmZXJlbmNlIHRvIHRoZSBjdXJyZW50IGNvdW50
+IHdoaWNoIGNvdWxkIGJlIGJvdGggcmVhZCBhbmQgdXBkYXRlZCBieQo+ID4gPiB0aGUgaW5kaXZp
+ZHVhbCBMU01zLCByaWdodD8KPiA+IAo+ID4gWWVzLCB3ZSBjb3VsZCBkby4KPiA+IAo+ID4gPiBU
+aGUgaXNzdWUgaXMgdGhhdCB0aGUgc2VwYXJhdGUgY29tcGFjdGlvbiBzdGFnZSBpcyBub3Qgc29t
+ZXRoaW5nIHdlCj4gPiA+IHdhbnQgdG8gaGF2ZSB0byBkbyBpZiB3ZSBjYW4gYXZvaWQgaXQuICBN
+YXliZSB3ZSdyZSBzdHVjayB3aXRoIGl0LCBidXQKPiA+ID4gSSdtIG5vdCB5ZXQgY29udmluY2Vk
+IHRoYXQgd2UgY2FuJ3QgbWFrZSBzb21lIG1pbm9yIGNoYW5nZXMgdG8gdGhlCj4gPiA+IExTTXMg
+dG8gYXZvaWQgdGhlIGNvbXBhY3Rpb24gc3RlcC4KPiA+IAo+ID4gSSBsaWtlZCBtb3JlIHRoZSBp
+ZGVhIHRoYXQgTFNNcyBkbyB3aGF0IHRoZXkgYXJlIG1vc3QgZmFtaWxpYXIgd2l0aCwKPiA+IGdl
+dCBhbiBvZmZzZXQgaW4gYSBzZWN1cml0eSBibG9iIG9yLCBpbiB0aGlzIGNhc2UsIGEgc3RhcnRp
+bmcgc2xvdCBpbgo+ID4gdGhlIG5ld194YXR0cnMgYXJyYXksIGFuZCB3cml0ZSB0aGVyZS4KPiA+
+IAo+ID4gdjMgaGFkIHRoZSBsc21fZmluZF94YXR0cl9zbG90KCkgaGVscGVyLCB0byBnZXQgdGhl
+IHN0YXJ0aW5nIHNsb3QsIGJ1dAo+ID4gc29tZWhvdyBJIGZpbmQgaXQgbGVzcyBpbnR1aXRpdmUu
+Cj4gPiAKPiA+IE9rLCBpZiB5b3UgcHJlZmVyIHRvIGF2b2lkIHRoZSBjb21wYWN0aW9uIHN0YWdl
+LCBJIHdpbGwgcmV3cml0ZSB0aGlzCj4gPiBwYXRjaC4KPiAKPiBNeSBjb25jZXJuIGlzIGhhdmlu
+ZyB0byBsb29rIHRocm91Z2ggdGhlIHhhdHRyIGFycmF5IGFmdGVyIGVhY2ggTFNNCj4gaGFzIGJl
+ZW4gcnVuIGFuZCBpbiBhdCBsZWFzdCBvbmUgY2FzZSBoYXZpbmcgdG8gdGhlbiBkbyBhIG1lbWNw
+eSgpIHRvCj4ga2VlcCB0aGUgYXJyYXkgcGFja2VkLiAgVGhlcmUgYXJlIHNvbWUgY2FzZXMgd2hl
+cmUgdGhlcmUgaXMgbm8gd2F5IHRvCj4gYXZvaWQgYWxsIHRoYXQgZXh0cmEgd29yaywgYnV0IGhl
+cmUgSSB0aGluayB3ZSBoYXZlIHRoZSBMU01zIGRvIHRoZQo+IFJpZ2h0IFRoaW5nIHdpdGggcmVz
+cGVjdCB0byBwYWNraW5nIHRoZSB4YXR0ciBhcnJheSB3aXRob3V0IG92ZXJseQo+IGJ1cmRlbmlu
+ZyB0aGUgaW5kaXZpZHVhbCBMU01zLgo+IAo+IERvZXMgdGhhdCBtYWtlIHNlbnNlPyAgSXQgYmFz
+aWNhbGx5IGNvbWVzIGRvd24gdG8gYmVpbmcgc21hcnQgYWJvdXQKPiBvdXIgYWJzdHJhY3Rpb25z
+IGFuZCBib3RoIHNlbGVjdGl2ZWx5LCBhbmQgY2FyZWZ1bGx5LCBicmVha2luZyB0aGVtCj4gd2hl
+biB0aGVyZSBpcyBhIHJlYXNvbmFibGUgcGVyZm9ybWFuY2UgZ2FpbiB0byBiZSBoYWQuCgpZZXMs
+IG9rLCBpdCBpcyBhIGdvb2QgYXBwcm9hY2guCgpUaGFua3MKClJvYmVydG8KCgpfX19fX19fX19f
+X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fXwpPY2ZzMi1kZXZlbCBtYWlsaW5n
+IGxpc3QKT2NmczItZGV2ZWxAb3NzLm9yYWNsZS5jb20KaHR0cHM6Ly9vc3Mub3JhY2xlLmNvbS9t
+YWlsbWFuL2xpc3RpbmZvL29jZnMyLWRldmVs
