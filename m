@@ -1,54 +1,54 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc253.phx1.oracleemaildelivery.com (aib29ajc253.phx1.oracleemaildelivery.com [192.29.103.253])
+Received: from aib29ajc247.phx1.oracleemaildelivery.com (aib29ajc247.phx1.oracleemaildelivery.com [192.29.103.247])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 1C3E7C6FD18
-	for <ocfs2-devel@archiver.kernel.org>; Wed, 29 Mar 2023 14:16:34 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 3724AC77B62
+	for <ocfs2-devel@archiver.kernel.org>; Fri, 31 Mar 2023 16:12:07 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
  bh=lgZ50WkoyLw9O/wTW2pJhCi/caINUn8M0LAVb3zTvAE=;
- b=nOX2trHPkZcdmDQcM1ilCH6kLZ7GiswX0jt0nM14zMIgiRk2Z0caQO5X8yL4Fws0RdiOJnQTdyNB
-   MaIUqCFCU33T7qEbuPbLZ4h3YmEJt8O9mAbcKAtq1P3/k7G3soIW1OFdBLSfESeuCqvp/oc/ODvD
-   RGPnzq+PN7p8TzCrp48A/fC4zTNhVutMl0uVHGSWsymrss1YRL/K6PFZhib4j5QEFBET71Aevf0l
-   TckMQgZTbTfuPKxpaTr4rJqsbek48kh6WhYheduiE9usPoxGNqEHHryYIu+xpaK4Me9Y1AyxnXGa
-   +OB4950Z9msYisorJhyG7AsUaN5PV7xvfqsYVw==
+ b=oXi4wQJB+CAswICw3l8NR42kU3h7hdv4s87cAXRM9RnRhKfWl7iz9U7itRGIAnVgM1s+3ZfmDv28
+   jkFK6KxIhlGIQAchViZ2uOVnmCrrprfbkJKy7Sx4HKizsM27Y5ghfDd3jDC4NGHK+aLMBx73pJt3
+   Q3jtIbMNXx0cA33LPTsB8dQA3bY8Zn7GLzoQGF0HsBTXCkzzYGc80U/VlsTtesMITr8VO5NmA/+b
+   7kK8IAOrYkPB5nsn1s7qnXfnIvGPi4ODOjTdQY1j48uc6IVr2s+t9ATlxdb9IJ7MARt/GJCkME7q
+   7MaJfn3Bs4WEgLieJk2gn7Jvdfsdx4PyZnrZOQ==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
  bh=lgZ50WkoyLw9O/wTW2pJhCi/caINUn8M0LAVb3zTvAE=;
- b=R+QBx9wxZ60JE6Ri7PQzAk361Z5u1KFN+PBaszGVmEtnm5+7BDVWqYnsshDAReoWuQohxJaERDID
-   F1m5HSu/NkjgQInrcubGgfIlTb20KOpkPCi4cOSv8b9KL0dbhuRWwxqyFtuKCsApkUodUpirTFC5
-   0b/5pXJUomufTZXzd4CGppvJiICt1rHIGuhtALkzntb4EvmcFwM4fjszB+TUN1PXuxX9UMHISQzL
-   maqpL0BNanDERRboTOEqj7cGWDhsUaLdO0jPftY/vZWptmFtYATPSHoU8WAjzHMxMRKKjywYLRiQ
-   p3OYQGX7guO71IV46yeUYItXaWOk+AECbypvsA==
-Received: by omta-ad3-fd1-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
+ b=Fd/S8nh8AQxc3c6eFFec4hkYxDw9jmzwZvPiGJwl5OOnOyUu9aSXzewloMgP6uJaPlDUbUR6sZS1
+   Nh6EQ592F/sAh+8jehweP9J2qhGcQfLCAVHyRIGWwj5OJA++/G7EhgAqr+66LHP/FwlCyYrxDhav
+   tjjHKdIkSkijS8fnNehoKfz9kx6hCAqUNzxbg76D2IWQRtsT6mSYvyfcTaVuC/NGr2vZYK4E5QFB
+   LN49m4/t3fXrpt0ajwwTsDdj+JU+irJ6+6R7qiesmYHZ624rGSShdb6wMeTA6Ae9wfLf6XgfYoVE
+   9SahxsxfpG9QY9tSjSh5nU6Oa3vAHOvQyORreA==
+Received: by omta-ad1-fd3-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20230317 64bit (built Mar 17
  2023))
- with ESMTPS id <0RSA00643CZLJNE0@omta-ad3-fd1-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Wed, 29 Mar 2023 14:16:33 +0000 (GMT)
+ with ESMTPS id <0RSE004T37O6P340@omta-ad1-fd3-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Fri, 31 Mar 2023 16:12:06 +0000 (GMT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
- s=mimecast20190719; t=1680099382;
+ s=mimecast20190719; t=1680279111;
  h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
  to:to:cc:cc:mime-version:mime-version:
  content-transfer-encoding:content-transfer-encoding:
  in-reply-to:in-reply-to:references:references;
  bh=UieBw+fd7YOFzWwOOxTgfiaOtpF+6tMbkd08W9f/ez8=;
- b=bymhAKGcXM30P46CJzLFZPViVRpr6/qeB+a0xE0/eYtjo+7hbQd6u0gLcsi2wC64xE8pjV
- SrGEMkgkHJ3tqPtqdQOMP/y7w+/CwMDd4r6RRlnBo9eSSc/RaIPa83CVyAJjDrgtw6tFM6
- f9fwZHYdgwtosEalA1ZegPGU8J3RmyY=
+ b=Vp5jsb9PSp0yzHzxUfv2Mop7Nq5uXqFqNnTu6bDdY3GPJxl8bpen1iJgeNtRbEa2GvXmKL
+ +vuw3hrcoUCsAN0t7fGeH/z7OTjkFiokOaYxnBta4pnjWQw2HaHyBsXck/gP0PXe2cHDXk
+ GCkh0vavqfYTjQFYWm1bIspD5kN5ieY=
 To: Matthew Wilcox <willy@infradead.org>,
  "David S. Miller" <davem@davemloft.net>, Eric Dumazet <edumazet@google.com>,
  Jakub Kicinski <kuba@kernel.org>, Paolo Abeni <pabeni@redhat.com>
-Date: Wed, 29 Mar 2023 15:13:51 +0100
-Message-id: <20230329141354.516864-46-dhowells@redhat.com>
-In-reply-to: <20230329141354.516864-1-dhowells@redhat.com>
-References: <20230329141354.516864-1-dhowells@redhat.com>
+Date: Fri, 31 Mar 2023 17:09:11 +0100
+Message-id: <20230331160914.1608208-53-dhowells@redhat.com>
+In-reply-to: <20230331160914.1608208-1-dhowells@redhat.com>
+References: <20230331160914.1608208-1-dhowells@redhat.com>
 MIME-version: 1.0
-X-Source-IP: 170.10.133.124
-X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10664
+X-Source-IP: 170.10.129.124
+X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10666
  signatures=596816
 Cc: Jens Axboe <axboe@kernel.dk>, Christoph Hellwig <hch@infradead.org>,
  Christian Brauner <brauner@kernel.org>, netdev@vger.kernel.org,
@@ -57,8 +57,8 @@ Cc: Jens Axboe <axboe@kernel.dk>, Christoph Hellwig <hch@infradead.org>,
  Chuck Lever III <chuck.lever@oracle.com>, Al Viro <viro@zeniv.linux.org.uk>,
  linux-fsdevel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>,
  ocfs2-devel@oss.oracle.com
-Subject: [Ocfs2-devel] [RFC PATCH v2 45/48] ocfs2: Use
-	sendmsg(MSG_SPLICE_PAGES) rather than sendpage()
+Subject: [Ocfs2-devel] [PATCH v3 52/55] ocfs2: Use sendmsg(MSG_SPLICE_PAGES)
+	rather than sendpage()
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -75,8 +75,8 @@ Reply-to: David Howells <dhowells@redhat.com>
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-MC-Unique: OM0xdWQoMNypMjdol7M5aQ-1
-X-Scanned-By: MIMEDefang 3.1 on 10.11.54.1
+X-MC-Unique: U63PXVGmN_KbEEPQKdH0Bg-1
+X-Scanned-By: MIMEDefang 3.1 on 10.11.54.7
 X-Proofpoint-SPF-Result: pass
 X-Proofpoint-SPF-Record: v=spf1 ip4:107.21.15.141 ip4:108.177.8.0/21
  ip4:128.17.0.0/20 ip4:128.17.128.0/20 ip4:128.17.192.0/20 ip4:128.17.64.0/20
@@ -96,18 +96,18 @@ X-Proofpoint-SPF-Record: v=spf1 ip4:107.21.15.141 ip4:108.177.8.0/21
 X-Proofpoint-Spam-Reason: safe
 X-Spam: OrgSafeList
 X-SpamRule: orgsafelist
-X-Proofpoint-GUID: mVKXy5DwkEYwURVfE-gFvUsqmZ59r5E_
-X-Proofpoint-ORIG-GUID: mVKXy5DwkEYwURVfE-gFvUsqmZ59r5E_
+X-Proofpoint-GUID: 4v4bGEKoYCwV4oPWf6oC4KiOEBIHmO7A
+X-Proofpoint-ORIG-GUID: 4v4bGEKoYCwV4oPWf6oC4KiOEBIHmO7A
 Reporting-Meta:
- AAGV5tOJ+G1QSi4+FSQlNWmwcYFVvee5rBg0CBNyWq8IDCc7rFrBeGLLfSSzN+8z
- r6AUmN7T8cM4a26JVoYincHHjhZteF/hjZCCtPrP+6qTDmaFgNsYRENYc7GRRZjS
- 1m0Mn1ye7QJj0lK5Gs8E9A5wd4X6axq/Iw03RV/CdS7i3uscNh2Q6ADuLqIqFZoz
- EhEDMQVW+/khDnRLtyKEUBYPCUqOKbw0CH31gaitmn4EMOH3ZuDDjYrOfeVobSnF
- x/VpZGwxa96O2XeOkpLRrDfgvlU4P5quH+CWTtbxi6XCdx3ajpCYZQjNouo2s0JB
- IlEeBKiB55Tv50x7Pmac8vZeg8dMBKQyEEm6L6s1Gnc06iTI+MKEWfm5BCO4zf7h
- JL9z4PmDLChqkYPj3C7QXLJYVbx6mgtLEjfv766/+wn0Tqs4F0wPWUiuSG6NHwvA
- J/3yUqsmuDbKngPqUfK+lRr60lqFPtElfzg06EMJgsaw5D+Xa2h+w/y8sjaNmpvb
- fSfyVKTIARJBEK+CODlB9PuzlgnOVurGeIZ6Ex6NkF76sA==
+ AAEHaSjftJReJ/IApFEwlMv7L83o+0pHTB0MlgPG6kf/hZ7RoGVdW5yokbAI3a9T
+ B0x0E/ngy5E2NRKCWPPYsrjR52CPIinUrDNIEi+yLsD3UwqzQeI4QCzK0Irnr11C
+ 2hWY0uFlTIQDopfNBcXLPXDJ7I6ROqvQdwpibCLdI9WAdm5p+yHnrIeA+MwPvEI5
+ dQwoAFTPH/XoyumQeYlhnyVmtR2EiKblBa+0zww7OrgqK4MgI8elYzVheEFVxoYL
+ Vw7xT2uE5UfzN/jAyzINwUqpIuJGAArfk/H7Bhvq/5nE/Q+R3Z+UCIgCdRYVEIjh
+ FJjoOzl/DKpS/Thp165scfiIf5FkmkfW70G+X8pIKyJu3eOeb6GX2uwSqvJWWZTl
+ ej4BOByoywCKbYlYd9mcsijDCmcNnBaQTk/U7+d6HNLx5R3H5nIPGoHTrEUNQnFl
+ 49h4siq/3u7VzfweyQL9nVebgcCik+OhVELEHHdluuKPF+i9SCE/bZQ/dKnS2Tzh
+ rWlJLAscTTqK/IzcPNjesgCkOvxdY3IQDr7hEeAVfNbl
 
 Fix ocfs2 to use the page fragment allocator rather than kzalloc in order
 to allocate the buffers for the handshake message and keepalive request and
