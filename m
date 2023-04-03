@@ -1,64 +1,76 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc247.phx1.oracleemaildelivery.com (aib29ajc247.phx1.oracleemaildelivery.com [192.29.103.247])
+Received: from aib29ajc244.phx1.oracleemaildelivery.com (aib29ajc244.phx1.oracleemaildelivery.com [192.29.103.244])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 3724AC77B62
-	for <ocfs2-devel@archiver.kernel.org>; Fri, 31 Mar 2023 16:12:07 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 3F694C761A6
+	for <ocfs2-devel@archiver.kernel.org>; Mon,  3 Apr 2023 06:14:49 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=lgZ50WkoyLw9O/wTW2pJhCi/caINUn8M0LAVb3zTvAE=;
- b=oXi4wQJB+CAswICw3l8NR42kU3h7hdv4s87cAXRM9RnRhKfWl7iz9U7itRGIAnVgM1s+3ZfmDv28
-   jkFK6KxIhlGIQAchViZ2uOVnmCrrprfbkJKy7Sx4HKizsM27Y5ghfDd3jDC4NGHK+aLMBx73pJt3
-   Q3jtIbMNXx0cA33LPTsB8dQA3bY8Zn7GLzoQGF0HsBTXCkzzYGc80U/VlsTtesMITr8VO5NmA/+b
-   7kK8IAOrYkPB5nsn1s7qnXfnIvGPi4ODOjTdQY1j48uc6IVr2s+t9ATlxdb9IJ7MARt/GJCkME7q
-   7MaJfn3Bs4WEgLieJk2gn7Jvdfsdx4PyZnrZOQ==
+ bh=KbIDXfNA3KLyTZrTvSvs+1acNvcaVzQU1gbZ+eo0IL8=;
+ b=A/nQcu9R/gJVAg+KT+gurgFuaHhknH7mhJMza099m6vrw3k0bNZpOuegbA18c7DHCSMn3+FTtsMx
+   FkhyXZ5MvjLdcCQ38QTUmYoUrREf5GaxkZcTwZu3uyzOhE88C20o3NiRFVs9QyrRTo/B07Cwe2LJ
+   ooVJtFky+rWW1wkMvJP7UpHcN8JB8YVtKO//taGngPvuA+BW5tr5ihzbKGsnfkQ2hYsO2KphpRH9
+   W6357eind8xB/D9QkSrrImC0xDo+k6utoAS+tBZvGT6t+pz/8XlAsIX6FzNGXripFvGW9yiueFuY
+   k8blTkFhOtDZEZw/cdqHdejBJliVjni4V2jtPQ==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=lgZ50WkoyLw9O/wTW2pJhCi/caINUn8M0LAVb3zTvAE=;
- b=Fd/S8nh8AQxc3c6eFFec4hkYxDw9jmzwZvPiGJwl5OOnOyUu9aSXzewloMgP6uJaPlDUbUR6sZS1
-   Nh6EQ592F/sAh+8jehweP9J2qhGcQfLCAVHyRIGWwj5OJA++/G7EhgAqr+66LHP/FwlCyYrxDhav
-   tjjHKdIkSkijS8fnNehoKfz9kx6hCAqUNzxbg76D2IWQRtsT6mSYvyfcTaVuC/NGr2vZYK4E5QFB
-   LN49m4/t3fXrpt0ajwwTsDdj+JU+irJ6+6R7qiesmYHZ624rGSShdb6wMeTA6Ae9wfLf6XgfYoVE
-   9SahxsxfpG9QY9tSjSh5nU6Oa3vAHOvQyORreA==
-Received: by omta-ad1-fd3-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
+ bh=KbIDXfNA3KLyTZrTvSvs+1acNvcaVzQU1gbZ+eo0IL8=;
+ b=HOf5edywM6kN+4uzaAJ6WzWm4Jd203RwCJ/Xse2duLnwYYFI1rSF8EV+yMVYHU5r4zWl1xwvbCJ6
+   y9p3xPh+w6fZsCrCxowAp2ihbPmitiq108mx8+NWts3X6aFLIgrm41QJmWHXAS3wZZD5bGS40uaO
+   l11ODGbq04Oinr6gXKs7YrY/z+75ELqnX3eDztGJY/sEfPm/ZtC1Zm6Ik7h8++cdPWqpfMHUfo6v
+   qBhakN1ltfkJFL5oA0AKX6WNUXVtd81ZgK2RMH2fft+qmirRDz3uxs/1abw0wAAI6YK46IMDAdGe
+   1zItafmSvjPOBaQTkawo2NAaMX4wrVSgWA5egw==
+Received: by omta-ad1-fd1-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20230317 64bit (built Mar 17
  2023))
- with ESMTPS id <0RSE004T37O6P340@omta-ad1-fd3-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Fri, 31 Mar 2023 16:12:06 +0000 (GMT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
- s=mimecast20190719; t=1680279111;
- h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
- to:to:cc:cc:mime-version:mime-version:
- content-transfer-encoding:content-transfer-encoding:
- in-reply-to:in-reply-to:references:references;
- bh=UieBw+fd7YOFzWwOOxTgfiaOtpF+6tMbkd08W9f/ez8=;
- b=Vp5jsb9PSp0yzHzxUfv2Mop7Nq5uXqFqNnTu6bDdY3GPJxl8bpen1iJgeNtRbEa2GvXmKL
- +vuw3hrcoUCsAN0t7fGeH/z7OTjkFiokOaYxnBta4pnjWQw2HaHyBsXck/gP0PXe2cHDXk
- GCkh0vavqfYTjQFYWm1bIspD5kN5ieY=
-To: Matthew Wilcox <willy@infradead.org>,
- "David S. Miller" <davem@davemloft.net>, Eric Dumazet <edumazet@google.com>,
- Jakub Kicinski <kuba@kernel.org>, Paolo Abeni <pabeni@redhat.com>
-Date: Fri, 31 Mar 2023 17:09:11 +0100
-Message-id: <20230331160914.1608208-53-dhowells@redhat.com>
-In-reply-to: <20230331160914.1608208-1-dhowells@redhat.com>
-References: <20230331160914.1608208-1-dhowells@redhat.com>
+ with ESMTPS id <0RSJ0059T00O6KC0@omta-ad1-fd1-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Mon, 03 Apr 2023 06:14:48 +0000 (GMT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=20210112;
+ t=1680502471;
+ h=content-disposition:mime-version:message-id:subject:cc:to:from:date
+ :from:to:cc:subject:date:message-id:reply-to;
+ bh=bVeCXy+GBi88X47vUp2kci/ua0r4Qmm4tGxxhSCn7+s=;
+ b=C6OSI3+zC0WBr/2T+Mm/rvlpWMEnrlVbbcvMc+X7ZkMi3VQfvvnj+laGh3f0R6gwfP
+ ZSsdnPJ2vREsj6jPyWbTmxd18ClFHkVhu+eNPcjN0M0aO9KxKDIKvqbQf4XwPd9kDNIQ
+ wfvA+mFrRnX7RE2TiIiCI4j685Ftzv1nCPkriCttcK8eNn27YvKwUpm0Pe9odOMJWliw
+ mN4yoafY5gAD8MybxYWwsTyhRsxOHJEurMjvxFZl18WPvLJBt8GrbwzJsakqeO65bMws
+ 5JBN0B+mPrDdXf0YwpmEKcdCtxjqn35dKyz10oSeEAQ+Tu+d2Ev9A1fNsqvULzuf9/Ex jo/g==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=1e100.net;
+ s=20210112; t=1680502471;
+ h=content-disposition:mime-version:message-id:subject:cc:to:from:date
+ :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
+ bh=bVeCXy+GBi88X47vUp2kci/ua0r4Qmm4tGxxhSCn7+s=;
+ b=0FX1M4jV9av3c7W9X4rZxaZ60LEqzVrMLOXIJQYsNg+pmNJlc4mmYwxxTYYArsrqjV
+ UWRI/P+t8dhhQ3SHrnhQ/Tq+N44bOm/y8pPbsKmHJ2wwEN7eleNY9q4oPC6dWHXjarUD
+ OwNxnX88WADQf5NLGd/ey7F0QFNbzXmwkbnkWsfU3x0tdmUJvUR4J+pp4DxVDBWKEuRa
+ KZeSVyml7Cz04ObRtUv/rkgfewY6JAQh9F+bAkcls5m5ZPkqst6WMrzAwHbDzbdS0zQg
+ 1Co01mEOfiMbWO68J7oKwrDjWBJcRdYr91eIoUh1WlkjRP82G8eSWX3+K4pAWkT08tE8 r/aw==
+X-Gm-Message-State: AAQBX9ee5RfN9Dn/kxNwRsOutbFvD1Iln8ybKHiPvb0mcBF4ug9NjHo+
+ BHI0SIS4tlgex/FHvCuDRwU=
+X-Received: by 2002:a17:907:3f15:b0:947:735b:fcbe with SMTP id
+ hq21-20020a1709073f1500b00947735bfcbemr16186074ejc.19.1680502471396; Sun,
+ 02 Apr 2023 23:14:31 -0700 (PDT)
+Date: Mon, 3 Apr 2023 09:14:27 +0300
+To: oe-kbuild@lists.linux.dev,
+ Heming Zhao via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Message-id: <9e1d6835-34fc-49cd-869e-d99d9b546d17@kili.mountain>
 MIME-version: 1.0
-X-Source-IP: 170.10.129.124
-X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10666
+Content-disposition: inline
+X-Source-IP: 209.85.208.51
+X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10668
  signatures=596816
-Cc: Jens Axboe <axboe@kernel.dk>, Christoph Hellwig <hch@infradead.org>,
- Christian Brauner <brauner@kernel.org>, netdev@vger.kernel.org,
- Jeff Layton <jlayton@kernel.org>, linux-kernel@vger.kernel.org,
- David Howells <dhowells@redhat.com>, linux-mm@kvack.org,
- Chuck Lever III <chuck.lever@oracle.com>, Al Viro <viro@zeniv.linux.org.uk>,
- linux-fsdevel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>,
- ocfs2-devel@oss.oracle.com
-Subject: [Ocfs2-devel] [PATCH v3 52/55] ocfs2: Use sendmsg(MSG_SPLICE_PAGES)
-	rather than sendpage()
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 clxscore=93
+ malwarescore=0 bulkscore=0 priorityscore=420 adultscore=0 lowpriorityscore=0
+ mlxlogscore=999 suspectscore=0 impostorscore=0 phishscore=0 mlxscore=0
+ spamscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2303200000 definitions=main-2304030047 domainage_hfrom=10095
+Cc: linux-kernel@vger.kernel.org, lkp@intel.com, oe-kbuild-all@lists.linux.dev
+Subject: [Ocfs2-devel] fs/ocfs2/super.c:1809 ocfs2_mount_volume() warn: missing
+ error code 'status'
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -70,278 +82,122 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: David Howells via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: David Howells <dhowells@redhat.com>
+From: Dan Carpenter via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: Dan Carpenter <error27@gmail.com>
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-MC-Unique: U63PXVGmN_KbEEPQKdH0Bg-1
-X-Scanned-By: MIMEDefang 3.1 on 10.11.54.7
+X-Google-Smtp-Source:
+ AKy350ZP2GmTKzJfZURtI7SagiwJP+b8fzs406ux0ufhxpKxxCQtp2+4OeEsV7HPVccTDB3uys5Luw==
+X-ServerName: mail-ed1-f51.google.com
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 ip4:107.21.15.141 ip4:108.177.8.0/21
- ip4:128.17.0.0/20 ip4:128.17.128.0/20 ip4:128.17.192.0/20 ip4:128.17.64.0/20
- ip4:128.245.0.0/20 ip4:128.245.64.0/20 ip4:13.110.208.0/21 ip4:13.110.216.0/22
- ip4:13.110.224.0/20 ip4:13.111.0.0/16 ip4:136.147.128.0/20
- ip4:136.147.176.0/20 ip4:148.105.8.0/21 ip4:149.72.0.0/16 ip4:159.183.0.0/16
- include:spf1.redhat.com -all
-X-Proofpoint-SPF-VenPass: Allowed
-X-ServerName: us-smtp-delivery-124.mimecast.com
-X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 ip4:107.21.15.141 ip4:108.177.8.0/21
- ip4:128.17.0.0/20 ip4:128.17.128.0/20 ip4:128.17.192.0/20 ip4:128.17.64.0/20
- ip4:128.245.0.0/20 ip4:128.245.64.0/20 ip4:13.110.208.0/21 ip4:13.110.216.0/22
- ip4:13.110.224.0/20 ip4:13.111.0.0/16 ip4:136.147.128.0/20
- ip4:136.147.176.0/20 ip4:148.105.8.0/21 ip4:149.72.0.0/16 ip4:159.183.0.0/16
- include:spf1.redhat.com -all
-X-Proofpoint-Spam-Reason: safe
-X-Spam: OrgSafeList
-X-SpamRule: orgsafelist
-X-Proofpoint-GUID: 4v4bGEKoYCwV4oPWf6oC4KiOEBIHmO7A
-X-Proofpoint-ORIG-GUID: 4v4bGEKoYCwV4oPWf6oC4KiOEBIHmO7A
+X-Proofpoint-SPF-Record: v=spf1 redirect=_spf.google.com
+X-Spam: Clean
+X-Proofpoint-GUID: JGlUA6ZxcsO--WphTl8DwDRPK-m9obcz
+X-Proofpoint-ORIG-GUID: JGlUA6ZxcsO--WphTl8DwDRPK-m9obcz
 Reporting-Meta:
- AAEHaSjftJReJ/IApFEwlMv7L83o+0pHTB0MlgPG6kf/hZ7RoGVdW5yokbAI3a9T
- B0x0E/ngy5E2NRKCWPPYsrjR52CPIinUrDNIEi+yLsD3UwqzQeI4QCzK0Irnr11C
- 2hWY0uFlTIQDopfNBcXLPXDJ7I6ROqvQdwpibCLdI9WAdm5p+yHnrIeA+MwPvEI5
- dQwoAFTPH/XoyumQeYlhnyVmtR2EiKblBa+0zww7OrgqK4MgI8elYzVheEFVxoYL
- Vw7xT2uE5UfzN/jAyzINwUqpIuJGAArfk/H7Bhvq/5nE/Q+R3Z+UCIgCdRYVEIjh
- FJjoOzl/DKpS/Thp165scfiIf5FkmkfW70G+X8pIKyJu3eOeb6GX2uwSqvJWWZTl
- ej4BOByoywCKbYlYd9mcsijDCmcNnBaQTk/U7+d6HNLx5R3H5nIPGoHTrEUNQnFl
- 49h4siq/3u7VzfweyQL9nVebgcCik+OhVELEHHdluuKPF+i9SCE/bZQ/dKnS2Tzh
- rWlJLAscTTqK/IzcPNjesgCkOvxdY3IQDr7hEeAVfNbl
+ AAF13VuA+VI8dRDBltLtmfI9Eq2bfHdof+HQoCEFNSdgAJBG2kMOcD9+AZstBwYB
+ GwS+qaqvyEK9adXD18nITNOO28lchEd/byX/2Te7PA6JTBcmcnEEJZlmxOZs2vqd
+ 7AO1KYBZ1qF7N6ryhbVJRO5AgDnj9laxrYLTd28AcEH50st4mIcRTM7DbyXHYV55
+ PR2pFsys6i6USTR+2uuC4jL3cYkMP8A6YpscJI3VR/nXDPgoae5lZupeiweBEDHt
+ M7KS7d3KhOzg6/2uOM8d+VHq3CYYzWEN6d0F8vDDUsQFKYR2oAThDPxl29S5Qnap
+ 2pmgDdXRa4JlJ9xydFGc/o4Bs1sT3jkBAktHBB7ommD+LtF7NBejKD7wUxLuceJA
+ c/0hnwFN2FfHCvUJI3FqKhE3Kv5u3QGiPta8RYVH9/ZwEAWI7UVKQ4ozKgBPsxM+
+ ndgK3sxrp/GEdFr79opHaaf64OO4ctNCc5ZXAZ6DmXm57IyIQzVPFwoR/RNmcKGK
+ p/QCQc7hHU+Fc9+Lk9Bv3Se1YA8GRkRtB60dfjvmP+Zf
 
-Fix ocfs2 to use the page fragment allocator rather than kzalloc in order
-to allocate the buffers for the handshake message and keepalive request and
-reply messages.  Slab pages should not be given to sendpage, but fragments
-can be.
+tree:   https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git master
+head:   7b50567bdcad8925ca1e075feb7171c12015afd1
+commit: 0737e01de9c411e4db87dcedf4a9789d41b1c5c1 ocfs2: ocfs2_mount_volume does cleanup job before return error
+config: arm64-randconfig-m041-20230329 (https://download.01.org/0day-ci/archive/20230401/202304012244.gX4H4rBO-lkp@intel.com/config)
+compiler: aarch64-linux-gcc (GCC) 12.1.0
 
-Switch from using sendpage() to using sendmsg() + MSG_SPLICE_PAGES so that
-sendpage can be phased out.
+If you fix the issue, kindly add following tag where applicable
+| Reported-by: kernel test robot <lkp@intel.com>
+| Reported-by: Dan Carpenter <error27@gmail.com>
+| Link: https://lore.kernel.org/r/202304012244.gX4H4rBO-lkp@intel.com/
 
-Signed-off-by: David Howells <dhowells@redhat.com>
+smatch warnings:
+fs/ocfs2/super.c:1809 ocfs2_mount_volume() warn: missing error code 'status'
 
-cc: Mark Fasheh <mark@fasheh.com>
-cc: Joel Becker <jlbec@evilplan.org>
-cc: Joseph Qi <joseph.qi@linux.alibaba.com>
-cc: "David S. Miller" <davem@davemloft.net>
-cc: Eric Dumazet <edumazet@google.com>
-cc: Jakub Kicinski <kuba@kernel.org>
-cc: Paolo Abeni <pabeni@redhat.com>
-cc: ocfs2-devel@oss.oracle.com
-cc: netdev@vger.kernel.org
----
- fs/ocfs2/cluster/tcp.c | 107 ++++++++++++++++++++++-------------------
- 1 file changed, 58 insertions(+), 49 deletions(-)
+vim +/status +1809 fs/ocfs2/super.c
 
-diff --git a/fs/ocfs2/cluster/tcp.c b/fs/ocfs2/cluster/tcp.c
-index aecbd712a00c..e568ad2f34bf 100644
---- a/fs/ocfs2/cluster/tcp.c
-+++ b/fs/ocfs2/cluster/tcp.c
-@@ -110,9 +110,6 @@ static struct work_struct o2net_listen_work;
- static struct o2hb_callback_func o2net_hb_up, o2net_hb_down;
- #define O2NET_HB_PRI 0x1
- 
--static struct o2net_handshake *o2net_hand;
--static struct o2net_msg *o2net_keep_req, *o2net_keep_resp;
--
- static int o2net_sys_err_translations[O2NET_ERR_MAX] =
- 		{[O2NET_ERR_NONE]	= 0,
- 		 [O2NET_ERR_NO_HNDLR]	= -ENOPROTOOPT,
-@@ -930,19 +927,22 @@ static int o2net_send_tcp_msg(struct socket *sock, struct kvec *vec,
- }
- 
- static void o2net_sendpage(struct o2net_sock_container *sc,
--			   void *kmalloced_virt,
--			   size_t size)
-+			   void *virt, size_t size)
- {
- 	struct o2net_node *nn = o2net_nn_from_num(sc->sc_node->nd_num);
-+	struct msghdr msg = {};
-+	struct bio_vec bv;
- 	ssize_t ret;
- 
-+	bvec_set_virt(&bv, virt, size);
-+	iov_iter_bvec(&msg.msg_iter, ITER_SOURCE, &bv, 1, size);
-+
- 	while (1) {
-+		msg.msg_flags = MSG_DONTWAIT | MSG_SPLICE_PAGES;
- 		mutex_lock(&sc->sc_send_lock);
--		ret = sc->sc_sock->ops->sendpage(sc->sc_sock,
--						 virt_to_page(kmalloced_virt),
--						 offset_in_page(kmalloced_virt),
--						 size, MSG_DONTWAIT);
-+		ret = sock_sendmsg(sc->sc_sock, &msg);
- 		mutex_unlock(&sc->sc_send_lock);
-+
- 		if (ret == size)
- 			break;
- 		if (ret == (ssize_t)-EAGAIN) {
-@@ -1168,6 +1168,7 @@ static int o2net_process_message(struct o2net_sock_container *sc,
- 				 struct o2net_msg *hdr)
- {
- 	struct o2net_node *nn = o2net_nn_from_num(sc->sc_node->nd_num);
-+	struct o2net_msg *keep_resp;
- 	int ret = 0, handler_status;
- 	enum  o2net_system_error syserr;
- 	struct o2net_msg_handler *nmh = NULL;
-@@ -1186,8 +1187,16 @@ static int o2net_process_message(struct o2net_sock_container *sc,
- 					   be32_to_cpu(hdr->status));
- 			goto out;
- 		case O2NET_MSG_KEEP_REQ_MAGIC:
--			o2net_sendpage(sc, o2net_keep_resp,
--				       sizeof(*o2net_keep_resp));
-+			keep_resp = page_frag_alloc(NULL, sizeof(*keep_resp),
-+						    GFP_KERNEL);
-+			if (!keep_resp) {
-+				ret = -ENOMEM;
-+				goto out;
-+			}
-+			memset(keep_resp, 0, sizeof(*keep_resp));
-+			keep_resp->magic = cpu_to_be16(O2NET_MSG_KEEP_RESP_MAGIC);
-+			o2net_sendpage(sc, keep_resp, sizeof(*keep_resp));
-+			folio_put(virt_to_folio(keep_resp));
- 			goto out;
- 		case O2NET_MSG_KEEP_RESP_MAGIC:
- 			goto out;
-@@ -1439,15 +1448,22 @@ static void o2net_rx_until_empty(struct work_struct *work)
- 	sc_put(sc);
- }
- 
--static void o2net_initialize_handshake(void)
-+static struct o2net_handshake *o2net_initialize_handshake(void)
- {
--	o2net_hand->o2hb_heartbeat_timeout_ms = cpu_to_be32(
--		O2HB_MAX_WRITE_TIMEOUT_MS);
--	o2net_hand->o2net_idle_timeout_ms = cpu_to_be32(o2net_idle_timeout());
--	o2net_hand->o2net_keepalive_delay_ms = cpu_to_be32(
--		o2net_keepalive_delay());
--	o2net_hand->o2net_reconnect_delay_ms = cpu_to_be32(
--		o2net_reconnect_delay());
-+	struct o2net_handshake *hand;
-+
-+	hand = page_frag_alloc(NULL, sizeof(*hand), GFP_KERNEL);
-+	if (!hand)
-+		return NULL;
-+
-+	memset(hand, 0, sizeof(*hand));
-+	hand->protocol_version		= cpu_to_be64(O2NET_PROTOCOL_VERSION);
-+	hand->connector_id		= cpu_to_be64(1);
-+	hand->o2hb_heartbeat_timeout_ms	= cpu_to_be32(O2HB_MAX_WRITE_TIMEOUT_MS);
-+	hand->o2net_idle_timeout_ms	= cpu_to_be32(o2net_idle_timeout());
-+	hand->o2net_keepalive_delay_ms	= cpu_to_be32(o2net_keepalive_delay());
-+	hand->o2net_reconnect_delay_ms	= cpu_to_be32(o2net_reconnect_delay());
-+	return hand;
- }
- 
- /* ------------------------------------------------------------ */
-@@ -1456,16 +1472,22 @@ static void o2net_initialize_handshake(void)
-  * rx path will see the response and mark the sc valid */
- static void o2net_sc_connect_completed(struct work_struct *work)
- {
-+	struct o2net_handshake *hand;
- 	struct o2net_sock_container *sc =
- 		container_of(work, struct o2net_sock_container,
- 			     sc_connect_work);
- 
-+	hand = o2net_initialize_handshake();
-+	if (!hand)
-+		goto out;
-+
- 	mlog(ML_MSG, "sc sending handshake with ver %llu id %llx\n",
-               (unsigned long long)O2NET_PROTOCOL_VERSION,
--	      (unsigned long long)be64_to_cpu(o2net_hand->connector_id));
-+	      (unsigned long long)be64_to_cpu(hand->connector_id));
- 
--	o2net_initialize_handshake();
--	o2net_sendpage(sc, o2net_hand, sizeof(*o2net_hand));
-+	o2net_sendpage(sc, hand, sizeof(*hand));
-+	folio_put(virt_to_folio(hand));
-+out:
- 	sc_put(sc);
- }
- 
-@@ -1475,8 +1497,15 @@ static void o2net_sc_send_keep_req(struct work_struct *work)
- 	struct o2net_sock_container *sc =
- 		container_of(work, struct o2net_sock_container,
- 			     sc_keepalive_work.work);
-+	struct o2net_msg *keep_req;
- 
--	o2net_sendpage(sc, o2net_keep_req, sizeof(*o2net_keep_req));
-+	keep_req = page_frag_alloc(NULL, sizeof(*keep_req), GFP_KERNEL);
-+	if (keep_req) {
-+		memset(keep_req, 0, sizeof(*keep_req));
-+		keep_req->magic = cpu_to_be16(O2NET_MSG_KEEP_REQ_MAGIC);
-+		o2net_sendpage(sc, keep_req, sizeof(*keep_req));
-+		folio_put(virt_to_folio(keep_req));
-+	}
- 	sc_put(sc);
- }
- 
-@@ -1780,6 +1809,7 @@ static int o2net_accept_one(struct socket *sock, int *more)
- 	struct socket *new_sock = NULL;
- 	struct o2nm_node *node = NULL;
- 	struct o2nm_node *local_node = NULL;
-+	struct o2net_handshake *hand;
- 	struct o2net_sock_container *sc = NULL;
- 	struct o2net_node *nn;
- 	unsigned int nofs_flag;
-@@ -1882,8 +1912,11 @@ static int o2net_accept_one(struct socket *sock, int *more)
- 	o2net_register_callbacks(sc->sc_sock->sk, sc);
- 	o2net_sc_queue_work(sc, &sc->sc_rx_work);
- 
--	o2net_initialize_handshake();
--	o2net_sendpage(sc, o2net_hand, sizeof(*o2net_hand));
-+	hand = o2net_initialize_handshake();
-+	if (hand) {
-+		o2net_sendpage(sc, hand, sizeof(*hand));
-+		folio_put(virt_to_folio(hand));
-+	}
- 
- out:
- 	if (new_sock)
-@@ -2090,21 +2123,8 @@ int o2net_init(void)
- 	unsigned long i;
- 
- 	o2quo_init();
--
- 	o2net_debugfs_init();
- 
--	o2net_hand = kzalloc(sizeof(struct o2net_handshake), GFP_KERNEL);
--	o2net_keep_req = kzalloc(sizeof(struct o2net_msg), GFP_KERNEL);
--	o2net_keep_resp = kzalloc(sizeof(struct o2net_msg), GFP_KERNEL);
--	if (!o2net_hand || !o2net_keep_req || !o2net_keep_resp)
--		goto out;
--
--	o2net_hand->protocol_version = cpu_to_be64(O2NET_PROTOCOL_VERSION);
--	o2net_hand->connector_id = cpu_to_be64(1);
--
--	o2net_keep_req->magic = cpu_to_be16(O2NET_MSG_KEEP_REQ_MAGIC);
--	o2net_keep_resp->magic = cpu_to_be16(O2NET_MSG_KEEP_RESP_MAGIC);
--
- 	for (i = 0; i < ARRAY_SIZE(o2net_nodes); i++) {
- 		struct o2net_node *nn = o2net_nn_from_num(i);
- 
-@@ -2122,21 +2142,10 @@ int o2net_init(void)
- 	}
- 
- 	return 0;
--
--out:
--	kfree(o2net_hand);
--	kfree(o2net_keep_req);
--	kfree(o2net_keep_resp);
--	o2net_debugfs_exit();
--	o2quo_exit();
--	return -ENOMEM;
- }
- 
- void o2net_exit(void)
- {
- 	o2quo_exit();
--	kfree(o2net_hand);
--	kfree(o2net_keep_req);
--	kfree(o2net_keep_resp);
- 	o2net_debugfs_exit();
- }
+ccd979bdbce9fb Mark Fasheh                 2005-12-15  1803  static int ocfs2_mount_volume(struct super_block *sb)
+ccd979bdbce9fb Mark Fasheh                 2005-12-15  1804  {
+ccd979bdbce9fb Mark Fasheh                 2005-12-15  1805  	int status = 0;
+ccd979bdbce9fb Mark Fasheh                 2005-12-15  1806  	struct ocfs2_super *osb = OCFS2_SB(sb);
+ccd979bdbce9fb Mark Fasheh                 2005-12-15  1807  
+ccd979bdbce9fb Mark Fasheh                 2005-12-15  1808  	if (ocfs2_is_hard_readonly(osb))
+0737e01de9c411 Heming Zhao via Ocfs2-devel 2022-04-29 @1809  		goto out;
+
+Hard to tell if this should be an error path or not...  Canonical
+problem with do nothing gotos.
+
+ccd979bdbce9fb Mark Fasheh                 2005-12-15  1810  
+5500ab4ed3b8f0 Gang He                     2019-03-05  1811  	mutex_init(&osb->obs_trim_fs_mutex);
+5500ab4ed3b8f0 Gang He                     2019-03-05  1812  
+ccd979bdbce9fb Mark Fasheh                 2005-12-15  1813  	status = ocfs2_dlm_init(osb);
+ccd979bdbce9fb Mark Fasheh                 2005-12-15  1814  	if (status < 0) {
+ccd979bdbce9fb Mark Fasheh                 2005-12-15  1815  		mlog_errno(status);
+a52370b3b182f7 Gang He                     2018-01-31  1816  		if (status == -EBADR && ocfs2_userspace_stack(osb))
+a52370b3b182f7 Gang He                     2018-01-31  1817  			mlog(ML_ERROR, "couldn't mount because cluster name on"
+a52370b3b182f7 Gang He                     2018-01-31  1818  			" disk does not match the running cluster name.\n");
+0737e01de9c411 Heming Zhao via Ocfs2-devel 2022-04-29  1819  		goto out;
+ccd979bdbce9fb Mark Fasheh                 2005-12-15  1820  	}
+ccd979bdbce9fb Mark Fasheh                 2005-12-15  1821  
+ccd979bdbce9fb Mark Fasheh                 2005-12-15  1822  	status = ocfs2_super_lock(osb, 1);
+ccd979bdbce9fb Mark Fasheh                 2005-12-15  1823  	if (status < 0) {
+ccd979bdbce9fb Mark Fasheh                 2005-12-15  1824  		mlog_errno(status);
+0737e01de9c411 Heming Zhao via Ocfs2-devel 2022-04-29  1825  		goto out_dlm;
+ccd979bdbce9fb Mark Fasheh                 2005-12-15  1826  	}
+ccd979bdbce9fb Mark Fasheh                 2005-12-15  1827  
+ccd979bdbce9fb Mark Fasheh                 2005-12-15  1828  	/* This will load up the node map and add ourselves to it. */
+ccd979bdbce9fb Mark Fasheh                 2005-12-15  1829  	status = ocfs2_find_slot(osb);
+ccd979bdbce9fb Mark Fasheh                 2005-12-15  1830  	if (status < 0) {
+ccd979bdbce9fb Mark Fasheh                 2005-12-15  1831  		mlog_errno(status);
+0737e01de9c411 Heming Zhao via Ocfs2-devel 2022-04-29  1832  		goto out_super_lock;
+ccd979bdbce9fb Mark Fasheh                 2005-12-15  1833  	}
+ccd979bdbce9fb Mark Fasheh                 2005-12-15  1834  
+ccd979bdbce9fb Mark Fasheh                 2005-12-15  1835  	/* load all node-local system inodes */
+ccd979bdbce9fb Mark Fasheh                 2005-12-15  1836  	status = ocfs2_init_local_system_inodes(osb);
+ccd979bdbce9fb Mark Fasheh                 2005-12-15  1837  	if (status < 0) {
+ccd979bdbce9fb Mark Fasheh                 2005-12-15  1838  		mlog_errno(status);
+0737e01de9c411 Heming Zhao via Ocfs2-devel 2022-04-29  1839  		goto out_super_lock;
+ccd979bdbce9fb Mark Fasheh                 2005-12-15  1840  	}
+ccd979bdbce9fb Mark Fasheh                 2005-12-15  1841  
+ccd979bdbce9fb Mark Fasheh                 2005-12-15  1842  	status = ocfs2_check_volume(osb);
+ccd979bdbce9fb Mark Fasheh                 2005-12-15  1843  	if (status < 0) {
+ccd979bdbce9fb Mark Fasheh                 2005-12-15  1844  		mlog_errno(status);
+0737e01de9c411 Heming Zhao via Ocfs2-devel 2022-04-29  1845  		goto out_system_inodes;
+ccd979bdbce9fb Mark Fasheh                 2005-12-15  1846  	}
+ccd979bdbce9fb Mark Fasheh                 2005-12-15  1847  
+ccd979bdbce9fb Mark Fasheh                 2005-12-15  1848  	status = ocfs2_truncate_log_init(osb);
+0737e01de9c411 Heming Zhao via Ocfs2-devel 2022-04-29  1849  	if (status < 0) {
+ccd979bdbce9fb Mark Fasheh                 2005-12-15  1850  		mlog_errno(status);
+0737e01de9c411 Heming Zhao via Ocfs2-devel 2022-04-29  1851  		goto out_system_inodes;
+0737e01de9c411 Heming Zhao via Ocfs2-devel 2022-04-29  1852  	}
+c271c5c22b0a7c Sunil Mushran               2006-12-05  1853  
+ccd979bdbce9fb Mark Fasheh                 2005-12-15  1854  	ocfs2_super_unlock(osb, 1);
+0737e01de9c411 Heming Zhao via Ocfs2-devel 2022-04-29  1855  	return 0;
+ccd979bdbce9fb Mark Fasheh                 2005-12-15  1856  
+0737e01de9c411 Heming Zhao via Ocfs2-devel 2022-04-29  1857  out_system_inodes:
+0737e01de9c411 Heming Zhao via Ocfs2-devel 2022-04-29  1858  	if (osb->local_alloc_state == OCFS2_LA_ENABLED)
+0737e01de9c411 Heming Zhao via Ocfs2-devel 2022-04-29  1859  		ocfs2_shutdown_local_alloc(osb);
+0737e01de9c411 Heming Zhao via Ocfs2-devel 2022-04-29  1860  	ocfs2_release_system_inodes(osb);
+0737e01de9c411 Heming Zhao via Ocfs2-devel 2022-04-29  1861  	/* before journal shutdown, we should release slot_info */
+0737e01de9c411 Heming Zhao via Ocfs2-devel 2022-04-29  1862  	ocfs2_free_slot_info(osb);
+0737e01de9c411 Heming Zhao via Ocfs2-devel 2022-04-29  1863  	ocfs2_journal_shutdown(osb);
+0737e01de9c411 Heming Zhao via Ocfs2-devel 2022-04-29  1864  out_super_lock:
+0737e01de9c411 Heming Zhao via Ocfs2-devel 2022-04-29  1865  	ocfs2_super_unlock(osb, 1);
+0737e01de9c411 Heming Zhao via Ocfs2-devel 2022-04-29  1866  out_dlm:
+0737e01de9c411 Heming Zhao via Ocfs2-devel 2022-04-29  1867  	ocfs2_dlm_shutdown(osb, 0);
+0737e01de9c411 Heming Zhao via Ocfs2-devel 2022-04-29  1868  out:
+ccd979bdbce9fb Mark Fasheh                 2005-12-15  1869  	return status;
+ccd979bdbce9fb Mark Fasheh                 2005-12-15  1870  }
+
+-- 
+0-DAY CI Kernel Test Service
+https://github.com/intel/lkp-tests
 
 
 _______________________________________________
