@@ -1,73 +1,82 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc252.phx1.oracleemaildelivery.com (aib29ajc252.phx1.oracleemaildelivery.com [192.29.103.252])
+Received: from aib29ajc244.phx1.oracleemaildelivery.com (aib29ajc244.phx1.oracleemaildelivery.com [192.29.103.244])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 2B5CBC76188
-	for <ocfs2-devel@archiver.kernel.org>; Mon,  3 Apr 2023 14:23:00 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id D2796C77B60
+	for <ocfs2-devel@archiver.kernel.org>; Tue,  4 Apr 2023 15:04:21 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=ePfZOSJlzRRbetCt6QY9L5NgHI2N83STLQlGSvJ+llI=;
- b=doLqiZCFX0XqYsftkQtNHmIjoxFMwGVT/k0Wl0K/5hPrW/AMIkOE4PLiKpTAGC8knYYnJ+wyIRAT
-   3Kz3xW5+SgB9ybYnZROfriuJ7lvZFEcGAaVbtGHGWe9tZzKGiw7agjfer6Q4UStXDMNRFpKF00qX
-   RorYAO1NBtnodJMz1X2I+0nwNt/74bVVaDFwClgFFn7HNpSC8j/bQBu6r1O2Y+TTijPGifQQ+ou+
-   DbLBwmyY+EhB3jJH/Pa9DRrQqQFvB9QAiSp1EZwynNfQA+9ezTft8ptgLdesEUq1wRiKuOjvCdgk
-   33LXHNM8DYc+sP6ipUrPy+UdrRv2ShveigoHIA==
+ bh=1rdencxYloZpql3jsjt5EQqGI+p9+lm9vz4Sq9qjL/8=;
+ b=iz1AzIdCdCYOdA+jxPLoaBB46BDgIdnKLJyecNvB2iyiBXKTmBGQ3CmBS+vKkhSfq9r1g3+vVpA6
+   r0hYvFjQGICbTs+1rrtxPrgCBxLHMfZhUPXdpydHkCe5SSJ/5cvOFZIQ8VBdKFdWa1uEUejKKwN6
+   KuwDcUgqb3iJmJAWFm1Jjb/rJH8QObol7OsRliE5imoMKcCx1F3N+pwvIt6rR34ghjJYwqR+9bU7
+   NvRlivhgk3n41jht7SO+4Qq9JDQm/+Z4P3crUWjqNizk03mRbPtSFX5JYMpZN55vNMxHNMFmfvgt
+   cAzfd8dYBBtvCo+W8jgekEjgdLkDDgtENAZ+6g==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=ePfZOSJlzRRbetCt6QY9L5NgHI2N83STLQlGSvJ+llI=;
- b=e+m1yiYxaS8UI9VBhqIXMQ/As5XHXxcD0NrvfHArGiR4kBnRYDVvUyZmqJjx29XAI43BKisue0Cx
-   m+T3+YTQriTVAPM/2hE5SV9PUdkM4B91VwK+tkvOBEy/aCAJsyP3ZVy1jnAH95uHedSLP8HKMp4c
-   WBvNMFPWcmwZWEs4ItMx7Ro27Ycf4oVThlglFl8UJfdgarDXDqSN4BtuCV44KXCZ16vPpsxda/KK
-   UZKgzOt+3oPbop5CJ6aYfe5JBJ5iwM7UbQj/fS0DXYXzqEgBZiOPwuXHIvakyQCvZT9WGhXgsCni
-   8h53TkoFu2M8cs79f0pwANvQbWrGvBRbGODI3w==
-Received: by omta-ad3-fd1-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
+ bh=1rdencxYloZpql3jsjt5EQqGI+p9+lm9vz4Sq9qjL/8=;
+ b=m8VnFD3rMlRI6FzT8iWhiXbhql7vsZTitnqCrIYGNQAl38sYbzAws4jegFOqELWtdad23Vx9GujU
+   x7Uo2AjtS8CxoDcamJL9sUs087NyYR9noweup6KrLDNbNOgXKWhCazSs1hz7JAN84EN5SH1E0ehL
+   GDM9iJTNWvDvkDfaBV8H4BUoIVEZEPJahUZVSSGEtLEU/2q2yW++iN6m9fCUrI3JDZp9p9GwaijM
+   sZcEbrydUfRVGk0S0btyFsRujQO7kad5wqo760BbAe1JuVJxg3JCYUGW3q0b8CCXjD/OPj1l9Aub
+   iElLPgnA3Izp3/y39qlQYS2spT5I0Fxq/6KxNA==
+Received: by omta-ad1-fd1-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20230317 64bit (built Mar 17
  2023))
- with ESMTPS id <0RSJ007AJMMBGVC0@omta-ad3-fd1-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Mon, 03 Apr 2023 14:22:59 +0000 (GMT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.cz; s=susede2_rsa;
- t=1680531761;
- h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
- mime-version:mime-version:content-type:content-type:
- in-reply-to:in-reply-to:references:references;
- bh=R46s3dzmAWjax7iXZKikFYCLr1xSbo6uFhX0zzjg4pU=;
- b=XViU3+ETjmX+Zv1i3Q4VVTn7Ny+KHI+pcGRnoPPT3r61aXIzJBxPYzNkNl9++TJ9aBjV6M
- pj5xzmCEcljzJ3VrWr7zg8WDaJErfGUilAp+755lKhp6uAWpsjuSCcyiyy9snmSveJO8Pa
- dYp4hCNxKq+rm1Sy8iI/zHvhEXqBk/Y=
-DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.cz;
- s=susede2_ed25519; t=1680531761;
- h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
- mime-version:mime-version:content-type:content-type:
- in-reply-to:in-reply-to:references:references;
- bh=R46s3dzmAWjax7iXZKikFYCLr1xSbo6uFhX0zzjg4pU=;
- b=U1FjLpLfehFJEz9putWhis2w9XqHu0U3h3oaiL98jCSHliu31HtoSv01Qgpvds/nc1S0hp
- frS9z8ZPoJjwAoCw==
-Date: Mon, 3 Apr 2023 16:22:40 +0200
-To: Matthew Wilcox <willy@infradead.org>
-Message-id: <20230403142240.ftkywr3vn3r73yva@quack3>
-References: <ZBCJ11qT8AWGA9y8@casper.infradead.org>
+ with ESMTPS id <0RSL003XUJ78MI00@omta-ad1-fd1-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Tue, 04 Apr 2023 15:04:20 +0000 (GMT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=20210112;
+ t=1680620643;
+ h=in-reply-to:content-disposition:mime-version:references:message-id
+ :subject:cc:to:from:date:from:to:cc:subject:date:message-id:reply-to;
+ bh=JBdBtzyHFd6lc83YrQIneyeohpNPTJ/y3GLkeIJnfvo=;
+ b=gkpaUlEImekGGm0xeTEjW/sQV7ex2AWGhlLK447E4ZfuKspHi6VwBheI3NIGcQxJRm
+ wD2o1vYPxVT5hXvusr8G5O11sBeKOkAay9cpQIurpmU86sryhDrBYL17lkjWCguGZrtz
+ emLFUqUlZcoDLML3HklU6z19yXOsrh74oN9O6QsqbhILv5Xv+kKxWgZsxgBSnsczwJuM
+ pvXfOMmpwz3WbDCw2n2qfy40UD+zc3+Rv7XfNUX6kvHOvYCqMdDdgMsSH2oZqjrxyw9w
+ 7cdGd4UXjjkFQDmo11zUBb6SLI0ErWduKUWK2Ac5UK/VMiVEA6P1LpLiV9h0nAmzIOD0 7o8w==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=1e100.net;
+ s=20210112; t=1680620643;
+ h=in-reply-to:content-disposition:mime-version:references:message-id
+ :subject:cc:to:from:date:x-gm-message-state:from:to:cc:subject:date
+ :message-id:reply-to; bh=JBdBtzyHFd6lc83YrQIneyeohpNPTJ/y3GLkeIJnfvo=;
+ b=YiCjwUR1Ko8Z1BBg4vORFv/RdPr0De8hzS1EHfrVI7fCsKO91Khr9Krx1z/qQXAt3H
+ XCQ6+CRO57mfoU7I8z2EGfBw8Ljb3lutFee74Zr4RvdFt5Kv1vv1Bh9+1UhSw8nFKHO2
+ xXDXL5LWHDPVRlb/pnQ4kHHBlrLV11DGC2KQRLTcCvYWT4O1Mic76g82qnPQCyus3u9f
+ 5cHS+NSDp6E72MS79c24urFJDag06GqMaKtQMKjOJ/HC+l+vhW7LT17fjxyx3IhnQwg+
+ CV3EUwJAx+NZEqAeD/W06w9RvzbzW8id4Hg99htM/XN5E1vMGtg7RNGnuvnUrLhk6A6+ M/kQ==
+X-Gm-Message-State: AAQBX9fI6FHAtrCvlHLZmAVVXIAKj9xnBxrTk6DGCtEgEHiDZjSpwSWH
+ NuCk4xl4xIqp98VPaRmebBU=
+X-Received: by 2002:a05:600c:3646:b0:3ed:9ed7:d676 with SMTP id
+ y6-20020a05600c364600b003ed9ed7d676mr2446609wmq.13.1680620642903; Tue,
+ 04 Apr 2023 08:04:02 -0700 (PDT)
+Date: Tue, 4 Apr 2023 18:03:58 +0300
+To: Philip Li <philip.li@intel.com>
+Message-id: <c6304335-9b5f-4082-b804-e754cf77ce0c@kili.mountain>
+References: <9e1d6835-34fc-49cd-869e-d99d9b546d17@kili.mountain>
+ <4154b815-3be4-53de-1bc0-ca87ecb925a4@linux.alibaba.com>
+ <1e7d7076-ddd6-41b3-b824-673986c35477@kili.mountain>
+ <ZCw5Ucw5CS6nXosr@rli9-mobl>
 MIME-version: 1.0
 Content-disposition: inline
-In-reply-to: <ZBCJ11qT8AWGA9y8@casper.infradead.org>
-X-Source-IP: 195.135.220.28
-X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10669
+In-reply-to: <ZCw5Ucw5CS6nXosr@rli9-mobl>
+X-Source-IP: 209.85.128.54
+X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10670
  signatures=596816
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=2
- lowpriorityscore=0 bulkscore=0 adultscore=0 suspectscore=0 mlxscore=2
- clxscore=180 priorityscore=70 phishscore=0 mlxlogscore=173 malwarescore=0
- impostorscore=0 spamscore=2 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2303200000 definitions=main-2304030104
-Cc: linux-nfs@vger.kernel.org, linux-nilfs@vger.kernel.org,
- Evgeniy Dushistov <dushistov@mail.ru>, linux-ntfs-dev@lists.sourceforge.net,
- ntfs3@lists.linux.dev, reiserfs-devel@vger.kernel.org, linux-mm@kvack.org,
- devel@lists.orangefs.org, linux-fsdevel@vger.kernel.org,
- ceph-devel@vger.kernel.org, linux-ext4@vger.kernel.org,
- linux-afs@lists.infradead.org, ocfs2-devel@oss.oracle.com
-Subject: Re: [Ocfs2-devel] RFC: Filesystem metadata in HIGHMEM
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 suspectscore=0
+ mlxscore=0 clxscore=97 malwarescore=0 priorityscore=360 phishscore=0
+ spamscore=0 mlxlogscore=646 impostorscore=0 adultscore=0 bulkscore=0
+ lowpriorityscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2303200000 definitions=main-2304040139 domainage_hfrom=10096
+Cc: oe-kbuild@lists.linux.dev, linux-kernel@vger.kernel.org,
+ oe-kbuild-all@lists.linux.dev,
+ Heming Zhao via Ocfs2-devel <ocfs2-devel@oss.oracle.com>, lkp@intel.com
+Subject: Re: [Ocfs2-devel] fs/ocfs2/super.c:1809 ocfs2_mount_volume() warn:
+ missing error code 'status'
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -79,76 +88,44 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: Jan Kara via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: Jan Kara <jack@suse.cz>
+From: Dan Carpenter via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: Dan Carpenter <error27@gmail.com>
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-ServerName: smtp-out1.suse.de
+X-Google-Smtp-Source:
+ AKy350bNnmlpCILUHmdUFYCLAb/iqR3do08Nj32nLRxLYpqec4RmcscQRBFttmaJwosh4wJ7chwjog==
+X-ServerName: mail-wm1-f54.google.com
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 ip4:137.65.0.0/16 ip4:151.155.28.0/17
- ip4:149.44.0.0/16 ip4:147.2.0.0/16 ip4:164.99.0.0/16 ip4:130.57.0.0/16
- ip4:192.31.114.0/24 ip4:195.135.221.0/24 ip4:195.135.220.0/24
- ip4:69.7.179.0/24 ip4:150.215.214.0/24 include:mailcontrol.com ~all
+X-Proofpoint-SPF-Record: v=spf1 redirect=_spf.google.com
 X-Spam: Clean
-X-Proofpoint-GUID: 4TfCpcI6_ttxQ2m0VRwx3UYCX2jPQrYO
-X-Proofpoint-ORIG-GUID: 4TfCpcI6_ttxQ2m0VRwx3UYCX2jPQrYO
+X-Proofpoint-ORIG-GUID: Ir_aMGZz83jCVp7gY8a9OvENKOWOiWJ-
+X-Proofpoint-GUID: Ir_aMGZz83jCVp7gY8a9OvENKOWOiWJ-
 Reporting-Meta:
- AAHDaTSFheuU0GW4piZb3enRlLQzkCYt/N8qFvwT5dJ6hQrEqMwaW0d5G9AxY1J6
- K0M9WZvscddEh9etF9xC9q14ki5bKzi2gB9S4ETsEHwy9M9c2pyj3OMf+VYPSGzo
- aJsXnq8VIW5yQYbHP6dOlN34XO8cXaFRyu0mc2HmoOc0kMTEGQLP18s6nOjkGb9G
- kw7Ws/XXQx22NPZwSweKkhJ5fB2hvmGEDiAbHnvnuWLXfNj0vbC6RjYLulGyPH2w
- M3IxaODJsiy/Rvxzkim3W8a8qexY/9TqbYjmQokZQM0xCRfLjD8q6HcZ1uYJnMSV
- sp01x5foam+neW2rShGGBRDrx2JIKfW6i35fHYo6aIjKtjkjCH1T7LqT5T8zzQ7M
- tJR9XPTRKRjc/qJ/vYlFO6T7eV4doxZULmN2s4hVEcN0qwzqfXo04/LyrhWGMuuF
- JL7xeReCN0VULYBU/7PvVo9ECsj6lsWKJew0s+8oo1xPHkAWP0E9HfF7AzdfY6SX
- 3MEXaleTM0UKQnr+zuz8N+Fr4SjrG3CebciKs7P47uY9
+ AAH+etZGcEVsnQFunJyW947VsIKfD55YbqumLHatvlbrQLwurn1NLNqiKZPCCGlr
+ kApedruQYgyAbewdN7eJLoycQfJYXJVenqEbZYjeP4s+GL91bmNYt71ayVVFbE5h
+ e/Xj3RSFkgoEEQ1WKYGFuVRfZikqKZvdmXMFJMnX3WHA0oaLyEBuXsefNENl5g2P
+ vUsFZKvgXWdW4wN0cedQcUHK4j7N9vPyrWPR71Vl3y8D88bG1xFqfTi1v/s7JKk8
+ ULAanRpSpLBjd47zk/NIDvpUberFIMiu6jcs/71BMWJR4n4xJq1ctpTAxWoYpOvd
+ xb7qsPpT6WEBN89k4oylEPtrkxL3z/zDMklGibkOym0Gx+ib1UomfaM9vf9ZsJWL
+ xYpPonCzuFX4iYKFGFzSY8+5vy2jSWMyJMm4J+oDA5u2edPhu1H5Km2r+wpoQZNm
+ NG1TTsLpksiqpOXXcy67e6854OH6k1rfmrtcyisP8rypPS6G770FqMtiITJxLovs
+ ScHzf9JUBd39uIx6M+cnu/sp5GYgQ4/kw07T6vG6nuj/
 
-On Tue 14-03-23 14:51:03, Matthew Wilcox wrote:
-> TLDR: I think we should rip out support for fs metadata in highmem
+On Tue, Apr 04, 2023 at 10:50:57PM +0800, Philip Li wrote:
+> On Mon, Apr 03, 2023 at 02:20:55PM +0300, Dan Carpenter wrote:
+> > Sorry, the kbuild bot is not supposed to send duplicate warnings.  I
+> > don't know why it was sent again...
 > 
-> We want to support filesystems on devices with LBA size > PAGE_SIZE.
-> That's subtly different and slightly harder than fsblk size > PAGE_SIZE.
-> We can use large folios to read the blocks into, but reading/writing
-> the data in those folios is harder if it's in highmem.  The kmap family
-> of functions can only map a single page at a time (and changing that
-> is hard).  We could vmap, but that's slow and can't be used from atomic
-> context.  Working a single page at a time can be tricky (eg consider an
-> ext2 directory entry that spans a page boundary).
+> Sorry about this, we should ignore this commit in the bot. Now it is configured
+> to avoid the false positive report.
 > 
-> Many filesystems do not support having their metadata in highmem.
-> ext4 doesn't.  xfs doesn't.  f2fs doesn't.  afs, ceph, ext2, hfs,
-> minix, nfs, nilfs2, ntfs, ntfs3, ocfs2, orangefs, qnx6, reiserfs, sysv
-> and ufs do.
-> 
-> Originally, ext2 directories in the page cache were done by Al Viro
-> in 2001.  At that time, the important use-case was machines with tens of
-> gigabytes of highmem and ~800MB of lowmem.  Since then, the x86 systems
-> have gone to 64-bit and the only real uses for highmem are cheap systems
-> with ~8GB of memory total and 2-4GB of lowmem.  These systems really
-> don't need to keep directories in highmem; using highmem for file &
-> anon memory is enough to keep the system in balance.
-> 
-> So let's just rip out the ability to keep directories (and other fs
-> metadata) in highmem.  Many filesystems already don't support this,
-> and it makes supporting LBA size > PAGE_SIZE hard.
-> 
-> I'll turn this into an LSFMM topic if we don't reach resolution on the
-> mailing list, but I'm optimistic that everybody will just agree with
-> me ;-)
 
-FWIW I won't object for the local filesystems I know about ;). But you
-mention some networking filesystems above like NFS, AFS, orangefs - how are
-they related to the LBA size problem you mention and what exactly you want
-to get rid of there? FWIW I can imagine some 32-bit system (possibly
-diskless) that uses NFS and that would benefit in caching stuff in
-highmem...
+Fantastic.  Thanks, Philip!
 
-								Honza
+regards,
+dan carpenter
 
--- 
-Jan Kara <jack@suse.com>
-SUSE Labs, CR
 
 _______________________________________________
 Ocfs2-devel mailing list
