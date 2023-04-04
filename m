@@ -1,61 +1,62 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc249.phx1.oracleemaildelivery.com (aib29ajc249.phx1.oracleemaildelivery.com [192.29.103.249])
+Received: from aib29ajc251.phx1.oracleemaildelivery.com (aib29ajc251.phx1.oracleemaildelivery.com [192.29.103.251])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 5A8F3C6FD1D
-	for <ocfs2-devel@archiver.kernel.org>; Tue,  4 Apr 2023 23:22:17 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 9AA59C6FD1D
+	for <ocfs2-devel@archiver.kernel.org>; Tue,  4 Apr 2023 23:22:27 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=wLAe8Se7+Cx2n07jETsIq7X3ne/OP8X/T4OgJLQ8KuU=;
- b=HcUKCGBfz5ipmpOgcS0T/MwpYcGrlIDfLwM/7qnFlX7GayQQ9dxLygzE0193BOfN9J8M9R+Eq4jV
-   74avNaroKn4SKiJU/vl/ny2xdjoDKWoO/13spy3uxCiF6KIIX9btwl4w/l4BQWemzDZd8tmuKJVR
-   zVKafQ96urlmSZEBiQLbqGN1pD3cG5ZdqRyV828oRYJ+YH3qg3v4xtJc/+cFtWmNVV4oZynwYHfI
-   tjLkikqbBCnh4uG0YJkLXNQ7ZG+4GSWne/tAWq+e3lyq4TBrPiHLXz8pd0RtUEBrLkX79zHPOwmB
-   Zj9fKSoi8v457yBTW4r8vZ5I1uNh/z3gfJ7lIw==
+ bh=1fFBdtJ/onpsA4hUqJYtIHkYoctlKXMCzOisso3oIvc=;
+ b=Ss9jROb3mIVmpxu7VAkl8FQj/demlmhIeVF7043rvPdpZhJj1Yw6aLyCa6mxw0vMgrS9Wbq+XHRG
+   /LJtWZ5QszEC5ykw3aOSftVxQYQM++awiZjIvwpdZK76TGwF/yk9VJAi/QUEQi2hWX6WUvgV9/7j
+   z3peLKlzTcn+CIpLAYlnAKB5oeQ5qkLbt/GpdD6QIEXq8PBJxFLOpsvBKnPdaRpep5hCWXEU5JWN
+   XnY/bN6ufr3pA5GQt4Ww99QhGM3Ezoi1Km8ycP/5OEFY4gaUgxX1PwkSqlEiGs2gF99DaBrT2tFP
+   a7Y1qn1P9Cn4GsSw2AJz/TYgqjKgC9MwcTH1Yg==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=wLAe8Se7+Cx2n07jETsIq7X3ne/OP8X/T4OgJLQ8KuU=;
- b=WcwqhRUX3W6iijm9tItSg9hwqc2KnQvBnPkUU70dInEcD0kUglEFO9r+Ept58ux7Ec061UwiQML7
-   CcyJhuNqNeUpQEh/BCDlrM8EELxiCUFigXxMAIgb7aR4Dgh94kb1vCcQ+ZuNO3uCZD/MxeaPYQ+x
-   UYu/3aphL8yh8ESg33tT6T5SzkzjJe5gJtvu1h+DvomrvbiI7PW09hsR9qFofGDbu6PC7V/2fKuX
-   B9MjuN6PJQeURma8yWoDxiHsjRuLXuoU1LGL6VAVQKFuPzSdWuIlp2CckX1PnDcBktW+B774Ta/+
-   cknn9Wj3+T/rG4aU2SS1BkLs+GisZUahDB15rQ==
-Received: by omta-ad2-fd1-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
+ bh=1fFBdtJ/onpsA4hUqJYtIHkYoctlKXMCzOisso3oIvc=;
+ b=ThRRCB9f8df2rdQJn2513FYfzxcFt026jIpEpQs5ILImHGRklITz9UsdV9oSvkWb7QLxgujZcK1g
+   XJ0XMTWtJgsx5+d/87FUDF9xcSN0GlwmdV0RsZw3hGqnLeq2Kc52vt12tZeudOLxa5a5fwdCmwj9
+   KkzGIs0RYXxDI5emoc7YZDouhpS5GhvaP34V718KZTThc3r2IqvdOUdD4Wa98oZ0i8LhNApMkTrD
+   kfPbtP8vyqJIaou1EEG5rK9yRGEg3eIXJFWlxiJY11/mwd6Z5cZ7ePZdK+0PXBBDoIh3xnC2yZbR
+   kPWcFZf8qYyTcoE4PoHFBUixtIofV+pLm3S8hw==
+Received: by omta-ad2-fd3-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20230317 64bit (built Mar 17
  2023))
- with ESMTPS id <0RSM00809694OS40@omta-ad2-fd1-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Tue, 04 Apr 2023 23:22:16 +0000 (GMT)
+ with ESMTPS id <0RSM00JL469EQK30@omta-ad2-fd3-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Tue, 04 Apr 2023 23:22:26 +0000 (GMT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org; s=k20201202;
- t=1680650519; bh=x8IC7E1FkVoNUQvJT9/z2Y21e0Mz1+IdIig/qJszVw0=;
+ t=1680650535; bh=wmW6nn1dW0G7ZUK1nyoM03KcQYEFzLGdk68Km/BFqaQ=;
  h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
- b=o8ifUstyPaXndA/90D8GuOl0gsJSWLIXqbvQEjHGmCwpAU0zkQYKO/UsNnon6tWld
- Xd4eTMwrBUiwkKj2/4U4CDT5PQdMPtygcXrZXXPpz6rOqZURoDtFo8aR7dGfFS6guz
- A+cwDtVvT+oRkVAh5k57a3K+DdgeScWW1yFbddp7s45Gb5tZYMSzjk1ZGOi7E8FI1v
- ihdlUbh6+3H5uI0A39UjG7KPJiaoYrqk6uG4+XmzU4HNqbXl0Ty/A574/j55zI3/Y9
- TMPjV7V6YJd/xLb/OTmpeuVwksZ1BO2byjRD+OfbZL82uXT96Fk1mUfIYD9a+QoGXf
- +X8tdg7VhNl1Q==
-Date: Tue, 4 Apr 2023 16:21:59 -0700
-To: Zorro Lang <zlang@kernel.org>
-Message-id: <20230404232159.GB109960@frogsfrogsfrogs>
+ b=ZZj10jKRNecy8t8ufVTHZDF49qF6T32i58y3DEOIeipYODmpuNnsQ8Hzia4pi4LqH
+ EE4sPsq93OOt1W3Hp5LhcSaKzWV3TVOzbejyLrSA2rc131GqbSgWb7jdyV1bgwsdW8
+ 2LMFo2UqiNnl8qsLV5eghGCe62GCRgrz1woC6uvYdx7dcNNrNOdbQNmEvqJj5688gZ
+ hbnUNWYxq0r0Ci/4A8EPpqh4TgYzHIAq6HkkgeGEC9G82mP+E8k4y/36+dPM3sHY0g
+ Qn5FjtYqObCRpIZuZQSEWIo1a4yk8azE0bLTEpuOKnXKGcjmuNM+Vfvvhw+axyzOPN
+ 8DRyUk06RKN2A==
+Date: Tue, 4 Apr 2023 16:22:15 -0700
+To: Eric Biggers <ebiggers@kernel.org>
+Message-id: <20230404232215.GC109960@frogsfrogsfrogs>
 References: <20230404171411.699655-1-zlang@kernel.org>
  <20230404171411.699655-4-zlang@kernel.org>
+ <20230404221653.GC1893@sol.localdomain>
 MIME-version: 1.0
 Content-disposition: inline
-In-reply-to: <20230404171411.699655-4-zlang@kernel.org>
+In-reply-to: <20230404221653.GC1893@sol.localdomain>
 X-Source-IP: 139.178.84.217
 X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10670
  signatures=596816
-Cc: brauner@kernel.org, linux-cifs@vger.kernel.org, linux-nfs@vger.kernel.org,
- ebiggers@google.com, amir73il@gmail.com, linux-unionfs@vger.kernel.org,
- fstests@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net,
- linux-xfs@vger.kernel.org, fdmanana@suse.com, ocfs2-devel@oss.oracle.com,
- jack@suse.com, linux-fsdevel@vger.kernel.org, anand.jain@oracle.com,
- ceph-devel@vger.kernel.org, linux-ext4@vger.kernel.org,
- linux-btrfs@vger.kernel.org
+Cc: linux-cifs@vger.kernel.org, brauner@kernel.org, linux-ext4@vger.kernel.org,
+ Zorro Lang <zlang@kernel.org>, linux-btrfs@vger.kernel.org,
+ amir73il@gmail.com, linux-nfs@vger.kernel.org, fstests@vger.kernel.org,
+ linux-unionfs@vger.kernel.org, linux-xfs@vger.kernel.org,
+ linux-fsdevel@vger.kernel.org, anand.jain@oracle.com, jack@suse.com,
+ fdmanana@suse.com, ceph-devel@vger.kernel.org,
+ linux-f2fs-devel@lists.sourceforge.net, ocfs2-devel@oss.oracle.com
 Subject: Re: [Ocfs2-devel] [PATCH 3/5] fstests/MAINTAINERS: add supported
 	mailing list
 X-BeenThere: ocfs2-devel@oss.oracle.com
@@ -80,140 +81,52 @@ X-Proofpoint-SPF-Record: v=spf1 include:_spf.kernel.org ~all
 X-Proofpoint-Spam-Reason: safe
 X-Spam: OrgSafeList
 X-SpamRule: orgsafelist
-X-Proofpoint-ORIG-GUID: ozOG41K-3sQJjucMWqaDrcJHwFAYqant
-X-Proofpoint-GUID: ozOG41K-3sQJjucMWqaDrcJHwFAYqant
+X-Proofpoint-ORIG-GUID: WrrIvjqGisupQeCmahBfdotk6Y8LrfI9
+X-Proofpoint-GUID: WrrIvjqGisupQeCmahBfdotk6Y8LrfI9
 Reporting-Meta:
- AAHhpJxSDrt7lQz+eTpelPPHAdUqVEw/qWoxz1QgLPTVzNr9QKoCIyDgOhR6b9H8
- R1VaNSYUOZRX8Trb9RVWXynj9JsU2+wEwnsNzTmfC8ZeixWrNOAFjDml2Qg2zWTW
- E04iYvQPTH/RdfvZ3LaVDG58kMeJYOLkR3FFWq+FwpAkoJcJ08pPyu3RdXf7/3sl
- jyMSvhhsqSPqqVv54RpR0KP3QXoIDleEseSyohQ0Ssbtqjz7DE6SXrPYqKC7HxgB
- 1Vw2Dirvi3JV/BYnPvGBSVqWO2j6bqqVfHctQlu567MERQ4qbo47xpXYyZW+FzrM
- xeDUrhHSSNvB31seLUGbtmNLklDsWD81Qt+OnwFVsxQirDLTxPmV+w2SbfArdYzg
- pDNxqWIOBJatrNmTZ6kUmImPuHstEPIFJfqRt0oo/FmTHZBpbBA7r3hmYBSTuUY6
- cb1zvjGfqMdPbky0lzNlkCEcJN0igB1Xx3wN9zx0+GV7TtOuWVl0lQwwHE7y6C5n
- U9ZA79ylZIJtcsnUBRVKLTu6IPkks5YMUHkNQzCoSHOI
+ AAFewRAaLZG4lh7jgX+DArhAAUFVkXqL5PpLXokaqVWy7XWHW+VIsnQ15h1fQqKe
+ vuMIBOr0V9PtiKYaFos2Z/oBTs04QcZPHzUpPOzV4cN0rr6W+K4dTp9xgyYzm8Av
+ HBPIhisMTxcmyNYrbtEiywLb/aVlpdOjKTLBbQXmYT9HGu2b0WiH+uCajvQCgmAp
+ CygyAIRrv7AEfml5d08VPC/MFz4tThyUx7Xy5+EGF6WGM6cXlK1BvyDzjWX3Oxwp
+ 2gE77OGs6L3m1SiUBMrDYVR0BxT+912WZDAIr9/iHD88RtbRKMxw0cfNsgNqR9nh
+ a3ad185EXJdEZpj8sGmcIGMkeg0sdpcQaNvcm5iwI/Y5CZVdfsGUi11/UVPRjtQj
+ gXO920sBQVNWTGxh618M3nO5NBVoH7Z3kXFQhiStTEV8MhCkBAMMnlJRu7T7twYZ
+ RF2UAtKuogVibB2Bz3itgpmFCOpELo4wTofqHarNkgqxQxMu+eFY9ZqjEKH/IzHi
+ ilf8tpouV33FFIvBf0J6wJehHxGXk2r0mvd8BFyOISMp
 
-On Wed, Apr 05, 2023 at 01:14:09AM +0800, Zorro Lang wrote:
-> The fstests supports different kind of fs testing, better to cc
-> specific fs mailing list for specific fs testing, to get better
-> reviewing points. So record these mailing lists and files related
-> with them in MAINTAINERS file.
+On Tue, Apr 04, 2023 at 03:16:53PM -0700, Eric Biggers wrote:
+> Hi Zorro,
 > 
-> Signed-off-by: Zorro Lang <zlang@kernel.org>
-> ---
+> On Wed, Apr 05, 2023 at 01:14:09AM +0800, Zorro Lang wrote:
+> > +FSVERITY
+> > +L:	fsverity@lists.linux.dev
+> > +S:	Supported
+> > +F:	common/verity
+> > +
+> > +FSCRYPT
+> > +L:      linux-fscrypt@vger.kernel.org
+> > +S:	Supported
+> > +F:	common/encrypt
 > 
-> If someone mailing list doesn't want to be in cc list of related fstests
-> patch, please reply this email, I'll remove that line.
+> Most of the encrypt and verity tests are in tests/generic/ and are in the
+> 'encrypt' or 'verity' test groups.
 > 
-> Or if I missed someone mailing list, please feel free to tell me.
+> These file patterns only pick up the common files, not the actual tests.
 > 
-> Thanks,
-> Zorro
+> Have you considered adding a way to specify maintainers for a test group?
+> Something like:
 > 
->  MAINTAINERS | 77 +++++++++++++++++++++++++++++++++++++++++++++++++++++
->  1 file changed, 77 insertions(+)
+>     G:      encrypt
 > 
-> diff --git a/MAINTAINERS b/MAINTAINERS
-> index 09b1a5a3..620368cb 100644
-> --- a/MAINTAINERS
-> +++ b/MAINTAINERS
-> @@ -107,6 +107,83 @@ Maintainers List
->  	  should send patch to fstests@ at least. Other relevant mailing list
->  	  or reviewer or co-maintainer can be in cc list.
->  
-> +BTRFS
-> +L:	linux-btrfs@vger.kernel.org
-> +S:	Supported
-> +F:	tests/btrfs/
-> +F:	common/btrfs
-> +
-> +CEPH
-> +L:	ceph-devel@vger.kernel.org
-> +S:	Supported
-> +F:	tests/ceph/
-> +F:	common/ceph
-> +
-> +CIFS
-> +L:	linux-cifs@vger.kernel.org
-> +S:	Supported
-> +F:	tests/cifs
-> +
-> +EXT4
-> +L:	linux-ext4@vger.kernel.org
-> +S:	Supported
-> +F:	tests/ext4/
-> +F:	common/ext4
-> +
-> +F2FS
-> +L:	linux-f2fs-devel@lists.sourceforge.net
-> +S:	Supported
-> +F:	tests/f2fs/
-> +F:	common/f2fs
-> +
-> +FSVERITY
-> +L:	fsverity@lists.linux.dev
-> +S:	Supported
-> +F:	common/verity
-> +
-> +FSCRYPT
-> +L:      linux-fscrypt@vger.kernel.org
-> +S:	Supported
-> +F:	common/encrypt
-> +
-> +FS-IDMAPPED
-> +L:	linux-fsdevel@vger.kernel.org
-> +S:	Supported
-> +F:	src/vfs/
-> +
-> +NFS
-> +L:	linux-nfs@vger.kernel.org
-> +S:	Supported
-> +F:	tests/nfs/
-> +F:	common/nfs
-> +
-> +OCFS2
-> +L:	ocfs2-devel@oss.oracle.com
-> +S:	Supported
-> +F:	tests/ocfs2/
-> +
-> +OVERLAYFS
-> +L:	linux-unionfs@vger.kernel.org
-> +S:	Supported
-> +F:	tests/overlay
-> +F:	common/overlay
-> +
-> +UDF
-> +R:	Jan Kara <jack@suse.com>
-> +S:	Supported
-> +F:	tests/udf/
-> +
-> +XFS
-> +L:	linux-xfs@vger.kernel.org
-> +S:	Supported
-> +F:	common/dump
-> +F:	common/fuzzy
-> +F:	common/inject
-> +F:	common/populate
+> and
+> 
+>     G:      verity
 
-note that populate and fuzzy apply to ext* as well.
-
-> +F:	common/repair
-> +F:	common/xfs
-> +F:	tests/xfs/
-
-Otherwise looks good to me,
-
-Reviewed-by: Darrick J. Wong <djwong@kernel.org>
+Yes, good suggestion.
 
 --D
 
-> +
->  ALL
->  M:	Zorro Lang <zlang@kernel.org>
->  L:	fstests@vger.kernel.org
-> -- 
-> 2.39.2
-> 
+> - Eric
 
 _______________________________________________
 Ocfs2-devel mailing list
