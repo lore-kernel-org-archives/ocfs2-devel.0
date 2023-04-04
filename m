@@ -1,46 +1,46 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc247.phx1.oracleemaildelivery.com (aib29ajc247.phx1.oracleemaildelivery.com [192.29.103.247])
+Received: from aib29ajc248.phx1.oracleemaildelivery.com (aib29ajc248.phx1.oracleemaildelivery.com [192.29.103.248])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 84241C77B71
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 60D31C77B70
 	for <ocfs2-devel@archiver.kernel.org>; Tue,  4 Apr 2023 17:24:31 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=R998Judt02NBAVEkiTh9ZsH3qyMICwsJELyRA3ffGB0=;
- b=11JXZamZWiWWtgKAts6sp1ICm61/1Nf4MT3N0OHZ40vStLdxfthZfX87x5QGe7xZuenzbpWtFxka
-   zKkChzUUulxDP8KlvuRLqgDgD9u3l/BdJ6yiIjQCaUKLZZZtp93EFfOJWx+/okK4QV8EHlMYZS2j
-   y9nldJaF33rwbVCbHOj5XikYDMpdAkd+dgrpIOf3+TFYPS0p9mem7d1+rnFWRLh0YcR7RItowNVc
-   eJRZFgzR6oeHH894YE1Hk8XUN4MTGOV7bsf5ZTJznlRrntj8U2/TwHPqV7ypJJPK9DuHUuXiEWMM
-   GN8wChv3JobOHUgbxt5771ag4VEqeGwpA1B5ZQ==
+ bh=U4mo/x5FFjVEe3JOKPg35r03h/04NRb6eup9BVQW564=;
+ b=2DVAh/C8F0j6n7ae/xa1LMrFMECP5ApqDJFMgApTOVYdyGm/Uz1gQopa0478QVoPAOpD3Y1BOs5V
+   Pzpaw1w42/Ow+mfXIrXxSmDdfYzVVrUaaHtjDRB7g1kVzVnrJVGGLu/w+iQ+wuTVVZHQrmud1beJ
+   JDmvoxnXPRqdXuDhHgtYcXAZ9/CYNrTKzJfx5IAukKoJ+XLQN3EASxHCWPbUX0EM7UdhyJd/rCYt
+   uBR8nH0O3Uwyb0Ah4O+mE/Z++ib50+jgqkgM/Ydc871GFqf+xGMnT2ZCIpd1R+jNgx5oOcmwqPGQ
+   dduhDa1OQVZCef3kguK2LZpsKFTCZkJ4iB/nhQ==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=R998Judt02NBAVEkiTh9ZsH3qyMICwsJELyRA3ffGB0=;
- b=OAMOKwGZKAMtXvH1FO3PxxW5R9CWl+X/xDLHfT9F7dQGf2bcxb+NHwDcQs0MbS7N4jB9Sb6Y2AKa
-   Y5JPIdkgkg8F0iuhMKAPhSfBeN+GifXl9Q6gvSJOHgnIAb1VT0kA1+6ToYOFRXQGkjjnjLdT5Hxi
-   8WnD+NmmIKE7o7NgM28muGcYo1+klSYWPHexCPVeE6mzeOf9VovDoGBWOX5Ux6yHMqXkrV5DPHGE
-   zfSHKmeNBj+g5f9gGi9aS2UuqoZFJ8qwsYZzAiFHDCxhbURrCC7rMHSRZcr0TVO6Y3EDOH3XLzBi
-   BFZogwUu1aoGD9UF7u3x8D35sfMZCDmyXg6L9A==
-Received: by omta-ad1-fd3-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
+ bh=U4mo/x5FFjVEe3JOKPg35r03h/04NRb6eup9BVQW564=;
+ b=S8N1UsdUixZCNCHLIRYtWc9zmiHt3d8ctCCfGoQ1+hP7pcIMbys7mHY/TodIxoyvKKoCRttKiDAW
+   1eRGMb6b2tptF2t2dXoehDbNRkFnvcdnhcZxDsm0J5wLzYt/GFae33bYiSjZT6FEZqr1fYa3KCOI
+   vczBn6AyZruadmEs0gS3Y/lNgdtKjmlDIh6eGYSlBSJDDLUjs0I/mEyENhpBnfl4KvJU2az42BEQ
+   zCA/Bc9gRMQF9EP7Rqv6Vvlo3jzvNuL06l88cEJew7hQy1T+ANysmGoiAnYlrY4UV5KeyCK69F2s
+   wc0cQmHKw66Ah9bzh9KGNmBjKgs2X/+0JUTlbw==
+Received: by omta-ad2-fd1-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20230317 64bit (built Mar 17
  2023))
- with ESMTPS id <0RSL00BL9POUN860@omta-ad1-fd3-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Tue, 04 Apr 2023 17:24:30 +0000 (GMT)
+ with ESMTPS id <0RSL008E0POVMD80@omta-ad2-fd1-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Tue, 04 Apr 2023 17:24:31 +0000 (GMT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org; s=k20201202;
- t=1680628485; bh=qEU5p/rrPBMCcC0b9NygBo0CKzlLnTtdCdY5YHNjXz8=;
+ t=1680628492; bh=NBUCaONjYi40Vbcu4o/CCPE2N3ymcLwg1V2SlbPeNJs=;
  h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
- b=a7ZekHh0kNeqmVuQWe3cMaiVtL9ICvdGaufuyHnjBLAPy3EG4Jf6gOeacxzbQ4xn9
- QTLN3vKygazocZQuD6bz67l1p9bYvsCQZAYHJlFOw35kzra2NO6G33uE8wOfolwziO
- xj2ficCC1e0A9/fy64r5Y7LewDk8qhNPbg49nwMZJMp/fJTKljG3nDKPjkpWSZdtho
- abvZl57ghjk+PPSUaejv8IyCjJtYWhsS9ciQ8B3XXbSWjI+n64WX+Hxqboqjc22ttP
- ennHYz2Fk0PjdGRvcCJxw+lWV5D5mNtZv205GCv6lzOzACCpuUuMXBIGpDSPMvIi9E
- 239Szkhk1pZQw==
+ b=mHGfLFO/6lWqvTQg3dD+ZiGLcThFJvk3b7nrRH/m3eMGcgcPfBNNFG6drzx4LOJrr
+ /L6gN7acWGxiBVx7p9NtIy5ewclLB0T6z2nezlnjEKe4jCcFHpTj+cWbZfV+OPUa2n
+ Iuen29mduilHjKHmQMesnJATtLYk/UwJ2N+ZcuULKiETcbcfpeRkdzP6zHKyZ13BTC
+ l1QSKNjtUu7bwyO3EmM9BAGxTJOyRw/W/BmSLbpWzEP3LFtJIg1yBIIQcywBu14GE/
+ x/lbszQJwhPGa/5cqaAEZXkLpxfPtRy5Ltc8ciKsMrx7HIMYtZ+fI8cOlbIdlK5RVw
+ wd+gJ7j1HfZrQ==
 To: fstests@vger.kernel.org
-Date: Wed,  5 Apr 2023 01:14:10 +0800
-Message-id: <20230404171411.699655-5-zlang@kernel.org>
+Date: Wed,  5 Apr 2023 01:14:11 +0800
+Message-id: <20230404171411.699655-6-zlang@kernel.org>
 X-Mailer: git-send-email 2.39.2
 In-reply-to: <20230404171411.699655-1-zlang@kernel.org>
 References: <20230404171411.699655-1-zlang@kernel.org>
@@ -54,8 +54,8 @@ Cc: brauner@kernel.org, linux-cifs@vger.kernel.org, linux-nfs@vger.kernel.org,
  linux-xfs@vger.kernel.org, fdmanana@suse.com, ocfs2-devel@oss.oracle.com,
  jack@suse.com, linux-fsdevel@vger.kernel.org, ceph-devel@vger.kernel.org,
  linux-ext4@vger.kernel.org, linux-btrfs@vger.kernel.org
-Subject: [Ocfs2-devel] [PATCH 4/5] fstests/MAINTAINERS: add some specific
-	reviewers
+Subject: [Ocfs2-devel] [PATCH 5/5] fstests/MAINTAINERS: add a co-maintainer	for
+ btrfs testing part
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -78,86 +78,58 @@ X-Proofpoint-SPF-Record: v=spf1 include:_spf.kernel.org ~all
 X-Proofpoint-Spam-Reason: safe
 X-Spam: OrgSafeList
 X-SpamRule: orgsafelist
-X-Proofpoint-GUID: fuqE32bsgwHFmWb3Ab-2Tc6C_UQ-RmG-
-X-Proofpoint-ORIG-GUID: fuqE32bsgwHFmWb3Ab-2Tc6C_UQ-RmG-
+X-Proofpoint-GUID: 8w4OIxRvRoteTjgdW_WKeiqNMF_hxqF2
+X-Proofpoint-ORIG-GUID: 8w4OIxRvRoteTjgdW_WKeiqNMF_hxqF2
 X-Mailman-Approved-At: Tue, 04 Apr 2023 17:24:27 +0000
 Reporting-Meta:
- AAFGjExPnqksaP92YgCD2nro3rODTpz+8HfpOxCw4TiawxIjK3+ciWotAr6t9P45
- NigoXz3X3cB/8PcJXSjbegTiOA4JgH5oB/BTu99PdDMnQPllNNZfzy9mzgo9eRHj
- hPv+VyM261ie8WGcZOvkrzUe7Jq24dzBOT7JXP/ZBwPJ0UDwD4ZOlUlQ8foNYphr
- 2uMG8i3l8Ae3JjiulWJYWWW2Eaadg98PZ21kQu07rJpTv+WflNSLm5P7VasllGpd
- xQAwyp0rO4u9kW8kQrWH4YCo9IorA4NVOTM8J8nThrcROiDpwESMkX69LTYKeswP
- S1w9Y0eNzioflobViHf15iak3evqHySQCSNEw4XntrBHpU2eSfB/pX+WssDXrhgN
- fpqVCBBiYOif6331gli4YjzaoBz+jruKFhFFSgFyIv39rbTn3wYyKvRfHuxOf9Iz
- k3LP2X9n1jSHaOOuz2eVQBwvArmrpBCFilo5I8LyoqFYgzhYw3ew7AjgQcT0ypaL
- KyjRVhcGIbC/OLPsB7PAuAF+ukmTWrdnagw3qwg8Ftjkfw==
+ AAGHfNR5rPedKIimEuP6yQ5VO/RbwF9+IjwVRUCSB15ibjmF83XwV8/r3d90IGvT
+ AP6o9Oh7ywhWgq4Ofzoapvod67VUhPfsMQIfCDVW1YknqDx5PLb56nJAmyxpNYBC
+ f5UtETBCAo8G6ZNIRLalf1u0LUBMQDNSj7idDQiC/6Eh0Z5K/GbkidPqKHOdNRyq
+ kbh+M+gxTSfpUHDpY52vrhHOJI0+iB7ZZkO2BA9YLcbQ0BVC2I3Jl/vhBk8BnIxO
+ Dwb3sAN9Pku8e9bt6DK0FYP+XkyzdMk78TNsKVRDRttH6l3qqnZGws2Sggey+L0i
+ QBsO5ZobONPNid2wx7d1QQCg/UDCBesf2qKpe+A89an0nxnhvohbMb04GczRfLJ0
+ 0OpPaqU/hx/+eG6Rf8aqRE8eIMxy62Re8EFiaOqVbtAxSU2Sax2K++Kw7Pha8agJ
+ OVYlGYKM8gG/IwrYq7uPdD2UnnLgcsY5E3XVS4+c+3gf2cUikHY0IsXZukQ652EP
+ cJNVh9cTPHe/thiTOZ9TtiEwJTBRbsbXiJi24AGvos+pIw==
 
-Some people contribute to someone specific fs testing mostly, record
-some of them as Reviewer.
+Darrick J. Wong would like to nominate Anand Jain to help more on
+btrfs testing part (tests/btrfs and common/btrfs). He would like to
+be a co-maintainer of btrfs part, will help to review and test
+fstests btrfs related patches, and I might merge from him if there's
+big patchset. So CC him besides send to fstests@ list, when you have
+a btrfs fstests patch.
 
 Signed-off-by: Zorro Lang <zlang@kernel.org>
 ---
 
-If someone doesn't want to be in cc list of related fstests patch, please
-reply this email, I'll remove that reviewer line.
+Please btrfs list help to review this change, if you agree (or no objection),
+then I'll push this change.
 
-Or if someone else (who contribute to fstests very much) would like to a
-specific reviewer, nominate yourself to get a review.
+A co-maintainer will do:
+1) Review patches are related with him.
+2) Merge and test patches in his local git repo, and give the patch an ACK.
+3) Maintainer will trust the ack from co-maintainer more (might merge directly).
+4) Maintainer might merge from co-maintainer when he has a big patchset wait for
+   merging.
 
 Thanks,
 Zorro
 
- MAINTAINERS | 6 ++++++
- 1 file changed, 6 insertions(+)
+ MAINTAINERS | 1 +
+ 1 file changed, 1 insertion(+)
 
 diff --git a/MAINTAINERS b/MAINTAINERS
-index 620368cb..0ad12a38 100644
+index 0ad12a38..9fc6c6b5 100644
 --- a/MAINTAINERS
 +++ b/MAINTAINERS
 @@ -108,6 +108,7 @@ Maintainers List
  	  or reviewer or co-maintainer can be in cc list.
  
  BTRFS
-+R:	Filipe Manana <fdmanana@suse.com>
++M:	Anand Jain <anand.jain@oracle.com>
+ R:	Filipe Manana <fdmanana@suse.com>
  L:	linux-btrfs@vger.kernel.org
  S:	Supported
- F:	tests/btrfs/
-@@ -137,16 +138,19 @@ F:	tests/f2fs/
- F:	common/f2fs
- 
- FSVERITY
-+R:	Eric Biggers <ebiggers@google.com>
- L:	fsverity@lists.linux.dev
- S:	Supported
- F:	common/verity
- 
- FSCRYPT
-+R:	Eric Biggers <ebiggers@google.com>
- L:      linux-fscrypt@vger.kernel.org
- S:	Supported
- F:	common/encrypt
- 
- FS-IDMAPPED
-+R:	Christian Brauner <brauner@kernel.org>
- L:	linux-fsdevel@vger.kernel.org
- S:	Supported
- F:	src/vfs/
-@@ -163,6 +167,7 @@ S:	Supported
- F:	tests/ocfs2/
- 
- OVERLAYFS
-+R:	Amir Goldstein <amir73il@gmail.com>
- L:	linux-unionfs@vger.kernel.org
- S:	Supported
- F:	tests/overlay
-@@ -174,6 +179,7 @@ S:	Supported
- F:	tests/udf/
- 
- XFS
-+R:	Darrick J. Wong <djwong@kernel.org>
- L:	linux-xfs@vger.kernel.org
- S:	Supported
- F:	common/dump
 -- 
 2.39.2
 
