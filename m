@@ -1,65 +1,77 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc252.phx1.oracleemaildelivery.com (aib29ajc252.phx1.oracleemaildelivery.com [192.29.103.252])
+Received: from aib29ajc254.phx1.oracleemaildelivery.com (aib29ajc254.phx1.oracleemaildelivery.com [192.29.103.254])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id AECD6C7618D
-	for <ocfs2-devel@archiver.kernel.org>; Thu,  6 Apr 2023 01:53:58 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id C89E1C761A6
+	for <ocfs2-devel@archiver.kernel.org>; Thu,  6 Apr 2023 14:17:50 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=6ufNtT9gbSvVUw18Ab21IWiX9AWcViYhs6H2E2npVdk=;
- b=UiCsLfaOAEojcH+RQjlVPet5q4HK2bmi6/h3e8Jxz3xRYG7yUj+waEEWd5BUhmCP4AQjhwf4JVnX
-   rkw6zjfw7MbSGT8C+N2WcJxaXQnIxKJv0ypdLPQXKLxwXbjsToDFtmP/H2DVvbIhyCG8uTz+Ryqx
-   61QchrCpA85fAjhiwS8bgbRsa+0G6k03iiBW+u+SJ+cY9cPVPC0cVeUU3zAA4tqA3fleNnZjxi01
-   kb1kmOD+85/KA7hmUbXR5pqo8UhmNgUCRtExD+vgsfrE3hXUqgQ1f/R9pKOtQD1RoMh8ZtJnemEy
-   XnTfXYvZl2xidVBemRzIVWVjq5zrOwCgdB+RdA==
+ bh=kEkTgrH9s6xu+7g0Lu0a6LVmofHB2R9BGuDrg55Qeoo=;
+ b=IjG6z+8MRPtMdLfEm/8kWya2xGKS4HQblMnOFlksIfJ6oupBa9VjkrFuJBgGPR/gJCvuSHYjmWbP
+   6jHSdvRKW9rOBC4R6NHY0OaGdyU60s1qWgC6uGfczNOery6LZfMik3q5WL4RGdhGuQmeDFY8e0dF
+   Opl5rdW9LPxn4JYlHHqoFUImqcc2IVhZEbfLnRFEZEB0MP1yUdK9d9jT0jaMGLxwaypM8tA7kvGf
+   dHdeauzReOg+jUc3ZBfMvfqwUDIfUi4YMluesdAm/uLwiVf/N8HvkM3hsEKRKgt+tVJVUf+7Mr2W
+   Imf6Ries4Nxi7DcoiWRUFqAp31Q/B6WMlflMYA==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=6ufNtT9gbSvVUw18Ab21IWiX9AWcViYhs6H2E2npVdk=;
- b=ByrEY1dGTL6j1/PiD+X/oetBgtu+BQAA2tBSM0vhH5bdnJ3M3pQUY/KKv9CogKXMLfuzKIbK3YXX
-   5tFmPNQnEOlicx/7fb7p2V9hw7HLYyCe6h3OiSfOZ5j2uOA2JEnt6G1NarI2CMPNja2VD1WAmfYt
-   xuPVleJEQMEM8TzR3QAjtRVb/sQPj5x+WUpgr2Zm916H/FrWtw+Q1LzwBqcQTz7hc1yY8rvAjkWv
-   MWD2EtEAT+TEFpX2Yq4vGreRD01rE5SHuPZdSG+JuN3845tgX6XZEhz9DHgpIDD2xLS3rr6Ayrt2
-   U8v36O353aR5OUE3bwUgjAS9LZ1vgbPdpEjbsg==
-Received: by omta-ad3-fd1-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
+ bh=kEkTgrH9s6xu+7g0Lu0a6LVmofHB2R9BGuDrg55Qeoo=;
+ b=NeP6buumwYrQKxyaL4czERdfQEfnzMxK0YRjD/EwUFmImDGm/Tco9xE4rCoJVqgcrXlQVTnP/lyT
+   AWLdxFnUQexUx14GCe7vNxoVafC9z8uuQnTyWBET8i0fkwb5Ih7HNBpniK9O9sz7k//hZDSXZvy9
+   spjm9Dihiut7qLKunogzitU0F5O/IyeqyutpKKFzDURGM7IeCIdXJfi4q4+g47g/FPxk85xGGrjz
+   ZGTbdVwGwaVZv5Xm6YVVWbJ/cV7KDp+L5yDhDG6NHny+6JYSJl188rGaa77OHeXegNE42WoviqDN
+   qJqpzz+7xWIFZKGR5CFoi240wbIrVzGoWEw3gw==
+Received: by omta-ad3-fd3-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20230317 64bit (built Mar 17
  2023))
- with ESMTPS id <0RSO001DD7XXB6B0@omta-ad3-fd1-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Thu, 06 Apr 2023 01:53:57 +0000 (GMT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org; s=k20201202;
- t=1680746022; bh=RU0Q3vUCSoOriMTSmQ2CiAo6okbHQsDApEtyfqhB/os=;
- h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
- b=FbWqGQ0wbGurzrP9KVHM0SNw0YC9GyWApFTXwdNVcK2A0TiZtlGaba89nxCOMrOnv
- LWjeD76eOESSoHb3bjdBWreXKq9o6hYFzR7svS/T2cmmEB82GOCY4PQ4xwOErbFzpU
- hmcAghCKLKqbx4A0blihXUGzlq7+9VmymPLp1sU/9GKwTNgaMazWLz2aF2o38rqb3J
- b3LRiP0wTjMiqcG9t360E1ofmIBaOFnuhJb3uzgevc579iZR/wnVuIvdPxErd0uHqj
- plvf4gfX7jEtsbHb5zbnA4A6/Ie41UsiXOM4Khj5aTYqCMkOCJ9lIg3iiItz27lqAh
- KTIvUAvOE5HOQ==
-Message-id: <b0214d14-aa0e-f1df-4ff3-02304b710a6e@kernel.org>
-Date: Thu, 6 Apr 2023 09:53:36 +0800
-MIME-version: 1.0
-User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:102.0) Gecko/20100101
- Thunderbird/102.9.1
-Content-language: en-US
-To: Zorro Lang <zlang@kernel.org>, fstests@vger.kernel.org
+ with ESMTPS id <0RSP004X16DQAC10@omta-ad3-fd3-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Thu, 06 Apr 2023 14:17:50 +0000 (GMT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.cz; s=susede2_rsa;
+ t=1680790652;
+ h=from:from:reply-to:reply-to:date:date:message-id:message-id:to:to:
+ cc:cc:mime-version:mime-version:content-type:content-type:
+ in-reply-to:in-reply-to:references:references;
+ bh=XIwFAYmq+ddhYZF0Zfe4K0b1+UJuE82HHInNFEctczc=;
+ b=ZeJlivpALd8nO/1+mor0TCnnNBCMsJ16FUvMbjtBENF8lESP30O3UQN0FbK8ak1vh1Omwl
+ 9TT+BNH6w2K4aPeYip1Ds2fvoITG3Q8Fm+KvriE04i9alnRCUvhm69FhfCLv5mocbumPb1
+ 0G+YcC5Y0BrrKYEE3HWcPauZDd0rLVE=
+DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.cz;
+ s=susede2_ed25519; t=1680790652;
+ h=from:from:reply-to:reply-to:date:date:message-id:message-id:to:to:
+ cc:cc:mime-version:mime-version:content-type:content-type:
+ in-reply-to:in-reply-to:references:references;
+ bh=XIwFAYmq+ddhYZF0Zfe4K0b1+UJuE82HHInNFEctczc=;
+ b=57+ei+nga6/9LWL0dAtibPJpgEe7tVSlAh13SWgoLWDg91xKuwog3XYPUrzIaZgUJ974ZK
+ mnJ0Dn3Ki8c7xoBQ==
+Date: Thu, 6 Apr 2023 16:17:29 +0200
+To: Zorro Lang <zlang@kernel.org>
+Message-id: <20230406141729.GP19619@twin.jikos.cz>
 References: <20230404171411.699655-1-zlang@kernel.org>
- <20230404171411.699655-4-zlang@kernel.org>
-In-reply-to: <20230404171411.699655-4-zlang@kernel.org>
-X-Source-IP: 139.178.84.217
-X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10671
+ <20230404171411.699655-6-zlang@kernel.org>
+MIME-version: 1.0
+Content-disposition: inline
+In-reply-to: <20230404171411.699655-6-zlang@kernel.org>
+User-Agent: Mutt/1.5.23.1-rc1 (2014-03-12)
+X-Source-IP: 195.135.220.29
+X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10672
  signatures=596816
-Cc: linux-cifs@vger.kernel.org, brauner@kernel.org, linux-ext4@vger.kernel.org,
- ebiggers@google.com, amir73il@gmail.com, linux-nfs@vger.kernel.org,
- anand.jain@oracle.com, linux-unionfs@vger.kernel.org,
- linux-xfs@vger.kernel.org, linux-fsdevel@vger.kernel.org,
- linux-btrfs@vger.kernel.org, jack@suse.com, fdmanana@suse.com,
- ceph-devel@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net,
- ocfs2-devel@oss.oracle.com
-Subject: Re: [Ocfs2-devel] [f2fs-dev] [PATCH 3/5] fstests/MAINTAINERS: add
- supported mailing list
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0
+ lowpriorityscore=0 mlxlogscore=999 malwarescore=0 phishscore=0 impostorscore=0
+ bulkscore=0 suspectscore=0 priorityscore=90 adultscore=0 clxscore=121
+ spamscore=0 mlxscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2303200000 definitions=main-2304060125
+Cc: brauner@kernel.org, linux-cifs@vger.kernel.org, linux-nfs@vger.kernel.org,
+ ebiggers@google.com, amir73il@gmail.com, linux-unionfs@vger.kernel.org,
+ fstests@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net,
+ linux-xfs@vger.kernel.org, fdmanana@suse.com, ocfs2-devel@oss.oracle.com,
+ jack@suse.com, linux-fsdevel@vger.kernel.org, anand.jain@oracle.com,
+ ceph-devel@vger.kernel.org, linux-ext4@vger.kernel.org,
+ linux-btrfs@vger.kernel.org
+Subject: Re: [Ocfs2-devel] [PATCH 5/5] fstests/MAINTAINERS: add a co-maintainer
+ for btrfs testing part
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -71,40 +83,69 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: Chao Yu via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: Chao Yu <chao@kernel.org>
+From: David Sterba via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: dsterba@suse.cz
+Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
-Content-type: text/plain; charset="us-ascii"; Format="flowed"
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-ServerName: dfw.source.kernel.org
+X-ServerName: smtp-out2.suse.de
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 include:_spf.kernel.org ~all
-X-Proofpoint-Spam-Reason: safe
-X-Spam: OrgSafeList
-X-SpamRule: orgsafelist
-X-Proofpoint-ORIG-GUID: 1BEFVy23VYGJzISyeTDf_spBiHQaRdJa
-X-Proofpoint-GUID: 1BEFVy23VYGJzISyeTDf_spBiHQaRdJa
+X-Proofpoint-SPF-Record: v=spf1 ip4:137.65.0.0/16 ip4:151.155.28.0/17
+ ip4:149.44.0.0/16 ip4:147.2.0.0/16 ip4:164.99.0.0/16 ip4:130.57.0.0/16
+ ip4:192.31.114.0/24 ip4:195.135.221.0/24 ip4:195.135.220.0/24
+ ip4:69.7.179.0/24 ip4:150.215.214.0/24 include:mailcontrol.com ~all
+X-Spam: Clean
+X-Proofpoint-GUID: 0FoLCXV5HW_PbTp0eIo1lAdpkekVxIQX
+X-Proofpoint-ORIG-GUID: 0FoLCXV5HW_PbTp0eIo1lAdpkekVxIQX
 Reporting-Meta:
- AAGQgGFKyafxjD6iDfNr38RXM0O/WQRyty1l6LN+LgrUrZkgV8r18IYR2z64hz8Q
- fT/I3TaazhCZGwdNuzPp3bMgE6MOc81xEkPL+DnCNC0uRm6VoRbEGXFN4kY0Hwrf
- GB2VXJnUtlAurvJ1H9E4j+X34rCFcaJsiZEjrC8UkeUHNMG2dtX3PRmQcSx2qlpF
- 0Bhqu8cdxkYkE5BoUT7Gv/MoBGpjESeAdDLZHU1utg393u+D79IQA0boVZf9zZHy
- 6U7LWwpxrRc++Q8ZO0Z+JVRSaEbMwYLW4MuScDLOCmOfttFkDok0E+dyHbDDSRVW
- 0VvtJBqV92C2EtKZ1QzpMSgY3UrJqlqlMLH3C1M5UEDSh1D1LSurU3yXIkd2dXxE
- T56+yR4qZYB4whyrk6SK2Y8JQEu4GQ4wdbvMTRSfDcGMY57AchEIeIHmTLyI9Bmv
- idSCRpXK4Xdf8WWRo3x35iMTcdO+/7jFLXKAvxSVvc9fnM+gcgKijATiQYWtX3vc
- iLhucHK3djjyPt/vvq30KLy2RgxEuPQAVBjrxiWQMm3V
+ AAEWxExV1T5Kq6YPN+KCAx8rkfntEyzAiKjcH72IHLt2w/exhI9PTmxFa3W/yUXW
+ ITPyxIYKXhXrGjxTtdKy31AxwjG2hTcAl3MZbkNBwLjKBYHJ5bt8lMqR566fsZEO
+ jzCgKarVPRJJyemNWgcuKk3F4FresP9ZmfQtUYgxhSarmLZZm/f83KCDTbylyxNj
+ TptUb4e8dCkN85CeZpaPZIgjo3lKOzzQJreLZT/zj+D/RtrYWMGJrFVKTfOfH93S
+ oWj/r2m+Se+RScd8EcuNjCIe+M1rigLP0aLxhaZVGnRq4LzskjrsG1D9Oo0hs1wx
+ oqdO4k6dQ/GShI/RM6yA4sDem3/aByrBHj6la/QIm156+wHqgW1aIcuSceBxpZNO
+ fGnCWbYQ7tTm7TK1qk1uGnZe6qIbkzcYAwWlvo3eoXauMnJCfydPVOoL+SNStpXN
+ +JaDjNdyuQBY84eHe1+MKQz6F76r+uAtqQROTvh494zSzg+nxuFJ5l5PY5QngNh1
+ 0k6l2877t1J6dqwuOUJaBgEtAKcJZ6Krf+AfK0yU6yLiNQ==
 
-On 2023/4/5 1:14, Zorro Lang wrote:
-> +F2FS
-> +L:	linux-f2fs-devel@lists.sourceforge.net
-> +S:	Supported
-> +F:	tests/f2fs/
-> +F:	common/f2fs
+On Wed, Apr 05, 2023 at 01:14:11AM +0800, Zorro Lang wrote:
+> Darrick J. Wong would like to nominate Anand Jain to help more on
+> btrfs testing part (tests/btrfs and common/btrfs). He would like to
+> be a co-maintainer of btrfs part, will help to review and test
+> fstests btrfs related patches, and I might merge from him if there's
+> big patchset. So CC him besides send to fstests@ list, when you have
+> a btrfs fstests patch.
+> 
+> Signed-off-by: Zorro Lang <zlang@kernel.org>
+> ---
+> 
+> Please btrfs list help to review this change, if you agree (or no objection),
+> then I'll push this change.
+> 
+> A co-maintainer will do:
+> 1) Review patches are related with him.
+> 2) Merge and test patches in his local git repo, and give the patch an ACK.
+> 3) Maintainer will trust the ack from co-maintainer more (might merge directly).
+> 4) Maintainer might merge from co-maintainer when he has a big patchset wait for
+>    merging.
+> 
+> Thanks,
+> Zorro
+> 
+>  MAINTAINERS | 1 +
+>  1 file changed, 1 insertion(+)
+> 
+> diff --git a/MAINTAINERS b/MAINTAINERS
+> index 0ad12a38..9fc6c6b5 100644
+> --- a/MAINTAINERS
+> +++ b/MAINTAINERS
+> @@ -108,6 +108,7 @@ Maintainers List
+>  	  or reviewer or co-maintainer can be in cc list.
+>  
+>  BTRFS
+> +M:	Anand Jain <anand.jain@oracle.com>
 
-Acked-by: Chao Yu <chao@kernel.org>
-
-Thanks,
+Acked-by: David Sterba <dsterba@suse.com>
 
 _______________________________________________
 Ocfs2-devel mailing list
