@@ -4,69 +4,56 @@ X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 Received: from aib29ajc251.phx1.oracleemaildelivery.com (aib29ajc251.phx1.oracleemaildelivery.com [192.29.103.251])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 684A5C77B61
-	for <ocfs2-devel@archiver.kernel.org>; Fri,  7 Apr 2023 15:43:28 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id DE49FC77B6E
+	for <ocfs2-devel@archiver.kernel.org>; Wed, 12 Apr 2023 08:54:31 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=FZQep50RozNVGZn5ot6U18GPetceuS6zcd/ujshGEPA=;
- b=b5tFy+4NKUlfA2Vr/bNlCrmRF/jlSUp2VwlIDsxxvGwJYmWcT3NZvLktxkWDLfeWOOpviNtWus0R
-   lBs4bJ6AcMM1N2swduaajn1PxjloqXVJ/t8sXGOA3bfDKlUp0lVNibS6dNIyavlQg3UX1Sn5xM53
-   H2ekSPRDm08AxYjn/lZ/f9p3Ec0nZnv0ydOhU1n+EGlB90B7ayBNKPEDf6AYtLo613RGROq1upv0
-   SmXjLX9vUpSDaFSGWwRLWmdxsFz0fIEZcWvXGKAJZ+OnIWI0he40dNcQ+RZyiaJBMDMe2kkyoDfy
-   X841cOT1RIfQ+4vnnVij2Wym7pNYBMR4rcqNFw==
+ bh=/DoZhbB9JFEA48DEuFyaLV5gWDhA8xxlK0iq4tr0hM8=;
+ b=z4ztmZC2w54E3tcsfnXB6dOEc6U9SPvoGOO7+JibUuw34RMgppzn1a4HboscByT/I0MUkaiJ5qUQ
+   oql7xAUWSrbxREkthVTxOuP82Rr8nu69C0qA+7trWUJgX1r9gWr8mgENhf86+WNDbaB7z8JZWiid
+   yz8r5shVrLIIgzjJUp8pRP/cIXq6xx/Tz47AtxtJA7+gaTsYoWCSamHPWcpiL9X6FooUfR7JJzk6
+   4fvChFufRzwNOnfyKk3dwTKa5CRUh+TmptFMTHYv9QORsFg1pXkHbmfiJ0lYHFHrBZOUvpp/Smn3
+   k6bqmOjIgi6u3UFIYKuu5SPQCzo0f4Km1qSDeQ==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=FZQep50RozNVGZn5ot6U18GPetceuS6zcd/ujshGEPA=;
- b=J0d0f/e6H/5q8LkHESHX4jrsGE75YsfXFBpbeqPAwmmUS0fJVYC/ROCg64jBon7mOsNiPZCfWX0q
-   KXOmoM/B3gXSjju+x3rw4kN9XD/p5VHSgzUdylhWg52YY39wgNBSi2T3yjRqwjZHvrvvaTnKmykJ
-   t6n/idMtFhYWP9ToL9yVasDQRxl9Xp9HU+fhe4dQJGKfHTstSbhrDD/PAWDOh6YhoRBgLiOAyFgH
-   RXbRykd/Wjdh59c7MO3u8hAr0IPNpCDR7l7fPbZlOglJmh75HYyp4+PiTTIE1BDaNmeMm+cjkZ87
-   4nebbAh5WMGNgfD3LlcVHWONTuCxX8LrSbhDNQ==
+ bh=/DoZhbB9JFEA48DEuFyaLV5gWDhA8xxlK0iq4tr0hM8=;
+ b=RzYcGBSofQUKDhM2SI4yiBgsNDSBFfT/7KZ66MS+/DBmwwMVq+L9lhORjGH7XjQAYnnPLtBlip95
+   +UB/7HIG6MdjK2Ldtm6hDivkEfSIh3UgCx0mvJYEC/qUto3vtABkcsbKny2aleRB8fTODPQUEpfA
+   JWR97OKIzb6jRf5to5RIJIyIoVaCKuFjr07nJAXItCGzYGuE/Wiod1xOgNx9uWi7DgqFcymHuoyf
+   DonPS1sy4MpPc6aGoKznWvIBw4HNxJJ6kNlZLxnfgxl9iQHG5qlIhr8gob/Vrm027Sfo5SU+lcqP
+   vm4Skv8l0/Ry0l58X76vI2gLMQHm7ZoW0YJXQQ==
 Received: by omta-ad2-fd3-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20230317 64bit (built Mar 17
  2023))
- with ESMTPS id <0RSR00D7H50FMWA0@omta-ad2-fd3-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Fri, 07 Apr 2023 15:43:27 +0000 (GMT)
-ARC-Seal: i=1; a=rsa-sha256; s=arcselector9901; d=microsoft.com; cv=none;
- b=P2VbtCjs1Eotirar8K/97FMklrmL4ndthQ+Ck+9NBTMqASMEj1HhV26K56KohACfMfmkYcb8KN7wtM9nkn646TmUavy6q5LdMHxZ85lx+t+sm3LUGCcO9MdPVJqOXQSt2j72HWhT7T8bUj9sWz6u1LQBZ2RfjqMeJJ3vgJbp+MS4eklbGzoWYJ5r7Pi7DfCe5Db4yPjlfte6NOFUNf88aLGkHa7RjrmdJNtAUdhfGRNmygJkLRlmeRcW+XWhqjDdxm3qLfwlpqG9zaa6UXOaYeJ51P4cYaQXqSnAphTt7Qc1cod+UELF+5DjY0jLyF3hVQbkZ6wVH9jpgHoJcT0xtA==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
- s=arcselector9901;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
- bh=YeA/Tnp346ltmSgRQ5VxumugwKp/S2BiFhBUfR13C+Q=;
- b=OubDDrsWsfPzhkWBUbW5uaw0MZOBawqUDy1LRyTEwZiJZVkPk6WT7mEID0tg5PV+AWrjcGo8YkFe98osO53c8avRuGwXamvDYcO+iJouzxkDh3cNydH2YScZW3tkdPApG0vxbbxQIbMbzRkzK3TMDODnilmXG9lzByAD7XvVlVV9zjn9bIBieY+fy0sy0rpyk83N9a7fzTYrQWopf1a+PITCoDIu1L6RWFnQ1KtALTV+HPW57z7b05xvVGVhIlGKFny/0A7HFcHHuI1BrVF+Me2I/jPCAcX5rAc0y5hSpOBA+1FqJs0dJWxxXnsjzv5EkDD5Bv6KrPCKK7frNV1g+A==
-ARC-Authentication-results: i=1; mx.microsoft.com 1; spf=pass
- smtp.mailfrom=suse.com; dmarc=pass action=none header.from=suse.com; dkim=pass
- header.d=suse.com; arc=none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.com; s=selector1;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
- bh=YeA/Tnp346ltmSgRQ5VxumugwKp/S2BiFhBUfR13C+Q=;
- b=APrIfs2e4r/vUEfjA10regJJ+Rb+mDwchtSnilTiwJGP/9yaRd146CXDtzwC19fnXk/I9OM1XG8avmGk4Zw79d7y79+gSW8GLkHv556HGbSW31cXIyuQoWwXZ2v3PhXJglLZRzJJLOyfRZ7xnLSDSmGkY57ZdKHcxkrW00C4QyjYgLspqIeNfsQzDYuaJ1jOzm9xS3wvfpL6TmVG6DMoygrBBerqTvJ+7mbXfPfZ7kj1DqOITV77YuywDomB+nmk69mjxMZyP0rcY3byHDF5+1+kg/SLXo6gxmQ0EesyWsvVcpiioFReejYDWbOtrRlHbgPBFGjWSmlY37Hth84CNQ==
-Date: Fri, 7 Apr 2023 23:42:53 +0800
-To: joseph.qi@linux.alibaba.com
-Message-id: <20230407154253.2yd26vtpfq6bvq3b@c73>
-References: <20230406154052.9863-1-heming.zhao@suse.com>
-Content-disposition: inline
-In-reply-to: <20230406154052.9863-1-heming.zhao@suse.com>
+ with ESMTPS id <0RSZ00IXZVEUW720@omta-ad2-fd3-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Wed, 12 Apr 2023 08:54:30 +0000 (GMT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linuxfoundation.org;
+ s=korg; t=1681289655; bh=1OJVB0ldD2ZgTOu4PaJAND29jSfl8ug1eWWtSDse6fc=;
+ h=Subject:To:Cc:From:Date:From;
+ b=vzS07Q2eFeF51fWpKQYuRC//JinJzjreYEAzYZL8tQtq2MUXG4gczRgmf7m53MMD1
+ 9Y6VlX87p87JXo9j8Snt/ijdIwYKbHyXKVjXFyrUJIPRhSfBPQB09gkSDIGPwRzUt+
+ 7J2vORefyT+6byb3yC4p7zrr+n/k7+1ji6Ngpq9U=
+To: akpm@linux-foundation.org, gechangwei@live.cn, ghe@suse.com,
+ gregkh@linuxfoundation.org, heming.zhao@suse.com, jlbec@evilplan.org,
+ joseph.qi@linux.alibaba.com, junxiao.bi@oracle.com, mark@fasheh.com,
+ ocfs2-devel@oss.oracle.com, piaojun@huawei.com
+Date: Wed, 12 Apr 2023 10:48:01 +0200
+Message-id: <2023041201-sliceable-sincerity-26e8@gregkh>
 MIME-version: 1.0
-X-Forefront-Antispam-Report: CIP:255.255.255.255; CTRY:; LANG:en; SCL:1; SRV:;
- IPV:NLI; SFV:NSPM; H:PA4PR04MB7997.eurprd04.prod.outlook.com; PTR:; CAT:NONE;
- SFS:(13230028)(7916004)(39860400002)(346002)(396003)(136003)(366004)(376002)(451199021)(38100700002)(6666004)(26005)(9686003)(186003)(6512007)(6506007)(1076003)(83380400001)(44832011)(2906002)(8936002)(5660300002)(86362001)(478600001)(6486002)(66476007)(66946007)(4326008)(6916009)(66556008)(41300700001)(8676002)(316002)(33716001);
- DIR:OUT; SFP:1101;
-X-OriginatorOrg: suse.com
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 07 Apr 2023 15:43:00.6089 (UTC)
-X-Source-IP: 40.107.14.57
-X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10673
+X-Source-IP: 139.178.84.217
+X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10677
  signatures=596816
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0
- lowpriorityscore=0 bulkscore=0 phishscore=0 suspectscore=0 adultscore=0
- malwarescore=0 clxscore=177 impostorscore=0 mlxlogscore=950 mlxscore=0
- priorityscore=48 spamscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2303200000 definitions=main-2304070144 domainage_hfrom=9691
-Cc: ocfs2-devel@oss.oracle.com
-Subject: Re: [Ocfs2-devel] [PATCH] ocfs2: Fix wrong search logic in
-	__ocfs2_resv_find_window
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 phishscore=0
+ adultscore=0 lowpriorityscore=0 bulkscore=0 impostorscore=0 malwarescore=0
+ suspectscore=0 mlxscore=0 mlxlogscore=999 clxscore=236 spamscore=0
+ priorityscore=315 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2303200000 definitions=main-2304120080 domainage_hfrom=7764
+Cc: stable-commits@vger.kernel.org
+Subject: [Ocfs2-devel] Patch
+ "ocfs2: fix freeing uninitialized resource on	ocfs2_dlm_shutdown" has been
+ added to the 5.10-stable tree
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -78,151 +65,123 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: Heming Zhao via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: Heming Zhao <heming.zhao@suse.com>
+From: gregkh--- via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: gregkh@linuxfoundation.org
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-ClientProxiedBy: SG2PR02CA0129.apcprd02.prod.outlook.com
- (2603:1096:4:188::19) To PA4PR04MB7997.eurprd04.prod.outlook.com
- (2603:10a6:102:c9::6)
-X-MS-PublicTrafficType: Email
-X-MS-TrafficTypeDiagnostic: PA4PR04MB7997:EE_|PAXPR04MB8637:EE_
-X-MS-Office365-Filtering-Correlation-Id: 2626b78c-e39e-447e-722a-08db377ec453
-X-MS-Exchange-SenderADCheck: 1
-X-MS-Exchange-AntiSpam-Relay: 0
-X-Microsoft-Antispam: BCL:0;
-X-Microsoft-Antispam-Message-Info:
- LSqc0jCvQ3ViSviNMu8hA5otH3XDUu1vsSXJU9A/m1emZzUB7rWHEe9sghBH4dnMoV+CZ8jYiWsj0KierzScJNS+Fwp7F7OkaAovW8yvttSsNEyEilLxIyh8HDXim7BcETEeH79J5T5MIicSY1En0T/Eq/xVJmBqCRLpudQo580qjIdaPsno+mjvZ6XY2MYir1022zTzkicXZHqJFqq7QmuWrXupy/6i/oQV1ZJHUjoVAACYDPBwIoA9lZghDmx1VskrxXG+crpQYmSjC1GuW2XDEx9h4gpnJR5/2Il5EXPoljuycQO2tPd2ZPBvRw/fXMroVMGHbC8adjNlq/Y80TCyVirppyStLUDFGyAHvlMZon/Fgw03cC+m2HF9jl5ylOMhMJt3XF5XqqMR1C+Z67wqLyYcE2x3/sM9fKYIkoMfc6PRWZ3vK+e2SSwpU9ateiWj79Qki6dcKHH9XifN+CY4Jfd2/V3Qavd9JtV334Md3aXkxTlrP1FPkb3VqTzr+MnSpX5ln5HUSjfwVWW+UrD6MC+H5329wb2KhpVgWd5if9LXTbAqy8pQDrFU8bQj
-X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
-X-MS-Exchange-AntiSpam-MessageData-0:
- =?us-ascii?Q?pGb0tFbHzEuIhJGRc3Vgkf+0GxWCXxIuuRCUwNKGSfnerQfiYlZbdIXCW8Eg?=
- =?us-ascii?Q?TR9klbE1eJNAaAlncol//TUoohDqcNkFOrB8f2AaZn2lfJt+20DkJFjpKVdk?=
- =?us-ascii?Q?qLV4mt0s/BtFHlknF0MNYyXOLlTWTyskPVzTrnp2rbrzuQWoHemRhGdbK+CW?=
- =?us-ascii?Q?rsQiFKbxzTE7+KEOwiTR8qHdVsGfV78xQEcHqZNnz4FS4W4kNexju0GKxJrH?=
- =?us-ascii?Q?De3KGRUwMRUnuXlJlS3WYhHTQhWzhkdoUqBjKzdklSZa/JDCXvobxrCHISot?=
- =?us-ascii?Q?rGFkdAw3ho40DXLp/rB5E2YSEiABl7zbCrOnFFJ1VbeGjb7azls6+ywK2IJj?=
- =?us-ascii?Q?wxmrgzgFgILEbFyOTyAv5otKJe70+VFsveqU1ud6UnH7+M7qXnwN9A20M32h?=
- =?us-ascii?Q?GN2w2CvA7SAych1wg73CfU1mtyi9mlO62VoaxBfw132EQc2IfZV35auXsyVD?=
- =?us-ascii?Q?VC0w31OrYf39zgAzRReV0vxhmaePFMDBSEgQID9GJq9FWaYWClN38xnNFvPN?=
- =?us-ascii?Q?LCbOLTw4+YpLGCVMtLkZJvpzWQpm6inXWjfCPyr+nf5Mua3hZLEtiSnBaZUH?=
- =?us-ascii?Q?UdL0LqcYwXwBba46u2pwhb7WWyxGGec/TVSWy4+nrqCKjmYW4K7/ru6drSNW?=
- =?us-ascii?Q?5Nb8SWF+uR7fKL3Mw4BqS4ldX6EKwPdGqfEx5Lcb90ktGcS3U5+1VcDxe1Hp?=
- =?us-ascii?Q?cI4KwZ1Kt94IfJrMTJ6ZAiM83aIU1SQ5ml6FStpARCbAeKZurkEqJi3stexI?=
- =?us-ascii?Q?1qsurhbjE8RuBe7ZcGKztRFsPwDq8PxKEfvW8pe/y1mUXDVZlro9286cIK/B?=
- =?us-ascii?Q?0tpiqsI1dYPemk2iyFfz9sAcSEgkJeI4JCIOhFarqSNaGagpmmsPRb4pFqwt?=
- =?us-ascii?Q?Hi2oitzykp0CpTC7oLtnrL8/TmP8UgZQ091/C1lJM2w/fEz+v0fHKXKmvsmk?=
- =?us-ascii?Q?mlDYt3ZJbKbMpz+rPzwaxmtelEPEADo71Pd1MiLJ4Vf0/LhXXmijrab+M1p3?=
- =?us-ascii?Q?cAw8K6KMob4SLqNIVg2Bo2yO6XYFL70FWACbwSWuer2F3x/kI9aWSxms+Ot5?=
- =?us-ascii?Q?ioyKlLwI7gW3euzJw0TFxul9NV6t2Hnf+NALuKbPBYOGcuSjO8mXEeEwrz83?=
- =?us-ascii?Q?oQh33Tmyu8id/jDqmdjR0npZY4eawPEHnWi3RMW/7q3vLB5aXEZpTNI84upW?=
- =?us-ascii?Q?nxB0J+qOABMGEK4w56mSqF9mHy9oRbF1MLEwP+1ZJkxoKA0hW9dZd9dFzlXD?=
- =?us-ascii?Q?NvjzFX7uSYsWKQQIAPigsxyN/wvLlQ+6DnH6Oj0o1Zx1MgkUfp8/u6qsrZNV?=
- =?us-ascii?Q?sMOEB23stTWIJT2gmGPK/6qpelTM7mIBSobc6hXcwEs2iRIThHktvHKBuJkQ?=
- =?us-ascii?Q?lsJuvM6AdMRmpdboPAM8IyRoSUtzB/DwO6lrF4+Npkr/c/goPeK4+mYbysGD?=
- =?us-ascii?Q?ClY0i1jLW8upknWCX/R6OH5UedPb1HUbpxZSQKC38oXE+qpRXF4yMwyKZaac?=
- =?us-ascii?Q?KaaRFxX6maADQvPrM81iWPyZ8nzO9XkxInwlJvpqIqhuUbyeDaGUVkSHVQRq?=
- =?us-ascii?Q?Ha/SpUE/uC8kaXq0DN0bdUrDGCGGZOH7cUs/NbKC?=
-X-MS-Exchange-CrossTenant-Network-Message-Id:
- 2626b78c-e39e-447e-722a-08db377ec453
-X-MS-Exchange-CrossTenant-AuthSource: PA4PR04MB7997.eurprd04.prod.outlook.com
-X-MS-Exchange-CrossTenant-AuthAs: Internal
-X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
-X-MS-Exchange-CrossTenant-Id: f7a17af6-1c5c-4a36-aa8b-f5be247aa4ba
-X-MS-Exchange-CrossTenant-MailboxType: HOSTED
-X-MS-Exchange-CrossTenant-UserPrincipalName:
- 01EOvYlDX4GI3pJiRF/O5cof5qdenHaq4qfKht0VNV+K/zW4zSa6AKNOP7gO4Wj2BjJMMptsEAqvOdxnvYOMig==
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: PAXPR04MB8637
-X-ServerName: mail-ve1eur01on2057.outbound.protection.outlook.com
+X-stable: commit
+X-Patchwork-Hint: ignore
+X-ServerName: dfw.source.kernel.org
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 include:spf.suse.com include:amazonses.com
- include:spf.protection.outlook.com include:_spf.qemailserver.com
- include:_spf.salesforce.com -all
+X-Proofpoint-SPF-Record: v=spf1 ip4:72.55.140.81 ip4:52.25.139.140
+ ip4:139.178.84.217 ip6:2604:1380:4641:c500::1 ip4:145.40.68.75
+ ip6:2604:1380:4601:e00::1 ip4:145.40.73.55 ip6:2604:1380:40e1:4800::1
+ include:_spf.google.com include:amazonses.com include:_spf.salesforce.com -all
 X-Spam: Clean
-X-Proofpoint-GUID: EPk-Z1h69_j1wrY_B3aUK_Kg40Qpcwqc
-X-Proofpoint-ORIG-GUID: EPk-Z1h69_j1wrY_B3aUK_Kg40Qpcwqc
+X-Proofpoint-GUID: 4pb0gAWlViTh9J5z7AGYGX7N8ihlUMvy
+X-Proofpoint-ORIG-GUID: 4pb0gAWlViTh9J5z7AGYGX7N8ihlUMvy
 Reporting-Meta:
- AAH/h7ucOvKFohwnJq5EQ0Zg6R4/C1uwuiTw1Pc9G7yFV4Fq8KuyrViYYdnyYSTk
- uzqTcfTdkwl8rU9SCKdhb+PK1VYqQMAABx9s58MfSgCQ8cdcZGKwc7AMX1XnFznm
- +xIHrpdRRPYhZNg5CMlFM7KDbUH3S4NV36HMci8JCWDegaD/tUhdlT6bqCSVuDLi
- 0M4Q9QKSQEVfVCl+zPGoKTNkMvFpcdrAkynBNVp4ybj3eP1uc1RoR5zzf8qAiOCX
- Xfeh7uVPvBwDCBVVr499P9TORM+So40WWdEK0GKw35A7Ww8wiMCQzh41KP7oIvN5
- DVyovcvMxBg8IltaqpG6DC/Xq5qMhTkuB8cILgWaZOV2mheU7PKplQXQ6qv+/I/W
- wOlrQdPLLvh1IQWYy62eRdk6pGHHbJnzZWj8CArf50HrNPlaZ4/3lKMzCsfLyOIO
- XRy3IZRh7430sBmuznpJ7P1oRuKOurG9ofO04/Qw86t1uP1QJOP4Q16xKP8Bjqk5
- QNnpkm0wOrVBhEY0hnJOyY2pDYREgq9SeUiOVEahXdLj
+ AAG8Fd3VFjRF4Nw+3ZiZE9eqJ2vobyj47TYgty+81A/T1DkryEQ56AlYeT//+y3G
+ attDkAqhL3jyt3sAXvVBL6nnEzuMUDj1YuN7sXcZUjUUD/csSLZfKPz9BFrJ6s/R
+ BAdY9dkd4p9uDAJSBYrrTVR43N4eo5j7HUPUiiYHAiZAnIfc3eY43MFkFvoefXz1
+ UQ2enO7dw3X1FNo6woBFiJTMnJEux7phHSuQzE1Z0vA6xoMfdCvJ/EolkVkcITk0
+ LC4QGhsdF4llez5wgdBIGIoi0/ztEaV6sEDWQ5f5utAVA8ngs7LJDsEYbp+awlx6
+ Q/EcOgRgpxUcftheCYQzc06MUq72VHpSiZgQHMFudZLaFzbg95qTiXyZ8E+KpA8X
+ +FdAUImdkfNulkEwK/mrxsbbwRwEhXYgt66g5Fdw6oM0LRZ0c54YU6Afs3BhN36Q
+ CYvvUmURNzDBcvChrypuuJWv/gpLB/iuUxTzNJ+jmyU5toxQnhX0uOiWn432DNf8
+ DHAiLiO+YAC+DxhGe68K/xR6Eygt8LChAkRdyYS2mDomVg==
 
-Hello Joseph,
 
-On Thu, Apr 06, 2023 at 11:40:52PM +0800, Heming Zhao wrote:
-> ** problem **
-> 
-> Current code triggers a defragfs bug [1]:
-> 
-> ```
-> tw-tst:~ # defragfs.ocfs2 /mnt/test_from_dd1
-> defragfs.ocfs2 1.8.7
-> [ERROR]Move extent failed:"/mnt/test_from_dd1" - No space left on device
-> [ERROR]"/mnt/test_from_dd1":No space left on device
-> ```
-> 
-> I added some debug messages in relevant functions. When above error
-> messages appeared, the la-window still had enough continuous bitmap
-> to use, the -ENOSPC is wrong.
-> 
+This is a note to let you know that I've just added the patch titled
 
-There is another problem with la-window alloc flow, and also should have a patch.
-When reservatioins are disabled, ocfs2_local_alloc_find_clear_bits starts linear
-search, and returns 'bitoff:-1' if 'numfound < *numbits'. In my view, this code
-logic is wrong, in this case, it should return max suitable numfound.
+    ocfs2: fix freeing uninitialized resource on ocfs2_dlm_shutdown
 
-The pseudo code:
+to the 5.10-stable tree which can be found at:
+    http://www.kernel.org/git/?p=linux/kernel/git/stable/stable-queue.git;a=summary
 
-```
-diff -Nupr a/localalloc.c b/localalloc.c
---- a/localalloc.c	2023-04-07 23:33:42.077083405 +0800
-+++ b/localalloc.c	2023-04-07 23:35:10.756344502 +0800
-@@ -835,6 +835,7 @@ static int ocfs2_local_alloc_find_clear_
- 				     struct ocfs2_alloc_reservation *resv)
- {
- 	int numfound = 0, bitoff, left, startoff;
-+	unsigned int best_start, best_len = 0;
- 	int local_resv = 0;
- 	struct ocfs2_alloc_reservation r;
- 	void *bitmap = NULL;
-@@ -940,6 +941,10 @@ static int ocfs2_local_alloc_find_clear_
- 			numfound = 1;
- 			startoff = bitoff+1;
- 		}
-+		if (numfound > best_len) {
-+			best_len = numfound;
-+			best_start = startoff - numfound;
-+		}
- 		/* we got everything we needed */
- 		if (numfound == *numbits) {
- 			/* mlog(0, "Found it all!\n"); */
-@@ -949,10 +954,12 @@ static int ocfs2_local_alloc_find_clear_
+The filename of the patch is:
+     ocfs2-fix-freeing-uninitialized-resource-on-ocfs2_dlm_shutdown.patch
+and it can be found in the queue-5.10 subdirectory.
+
+If you, or anyone else, feels it should not be added to the stable tree,
+please let <stable@vger.kernel.org> know about it.
+
+
+From 550842cc60987b269e31b222283ade3e1b6c7fc8 Mon Sep 17 00:00:00 2001
+From: Heming Zhao <ocfs2-devel@oss.oracle.com>
+Date: Mon, 15 Aug 2022 16:57:54 +0800
+Subject: ocfs2: fix freeing uninitialized resource on ocfs2_dlm_shutdown
+
+From: Heming Zhao <ocfs2-devel@oss.oracle.com>
+
+commit 550842cc60987b269e31b222283ade3e1b6c7fc8 upstream.
+
+After commit 0737e01de9c4 ("ocfs2: ocfs2_mount_volume does cleanup job
+before return error"), any procedure after ocfs2_dlm_init() fails will
+trigger crash when calling ocfs2_dlm_shutdown().
+
+ie: On local mount mode, no dlm resource is initialized.  If
+ocfs2_mount_volume() fails in ocfs2_find_slot(), error handling will call
+ocfs2_dlm_shutdown(), then does dlm resource cleanup job, which will
+trigger kernel crash.
+
+This solution should bypass uninitialized resources in
+ocfs2_dlm_shutdown().
+
+Link: https://lkml.kernel.org/r/20220815085754.20417-1-heming.zhao@suse.com
+Fixes: 0737e01de9c4 ("ocfs2: ocfs2_mount_volume does cleanup job before return error")
+Signed-off-by: Heming Zhao <heming.zhao@suse.com>
+Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+Cc: Mark Fasheh <mark@fasheh.com>
+Cc: Joel Becker <jlbec@evilplan.org>
+Cc: Junxiao Bi <junxiao.bi@oracle.com>
+Cc: Changwei Ge <gechangwei@live.cn>
+Cc: Gang He <ghe@suse.com>
+Cc: Jun Piao <piaojun@huawei.com>
+Cc: <stable@vger.kernel.org>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ fs/ocfs2/dlmglue.c |    8 +++++---
+ fs/ocfs2/super.c   |    3 +--
+ 2 files changed, 6 insertions(+), 5 deletions(-)
+
+--- a/fs/ocfs2/dlmglue.c
++++ b/fs/ocfs2/dlmglue.c
+@@ -3396,10 +3396,12 @@ void ocfs2_dlm_shutdown(struct ocfs2_sup
+ 	ocfs2_lock_res_free(&osb->osb_nfs_sync_lockres);
+ 	ocfs2_lock_res_free(&osb->osb_orphan_scan.os_lockres);
  
- 	trace_ocfs2_local_alloc_find_clear_bits_search_bitmap(bitoff, numfound);
+-	ocfs2_cluster_disconnect(osb->cconn, hangup_pending);
+-	osb->cconn = NULL;
++	if (osb->cconn) {
++		ocfs2_cluster_disconnect(osb->cconn, hangup_pending);
++		osb->cconn = NULL;
  
--	if (numfound == *numbits)
--		bitoff = startoff - numfound;
--	else
-+	if (best_len = 0) {
- 		bitoff = -1;
-+	} else {
-+		bitoff = best_start;
-+		*numbits = best_len;
+-	ocfs2_dlm_shutdown_debug(osb);
++		ocfs2_dlm_shutdown_debug(osb);
 +	}
+ }
  
- bail:
- 	if (local_resv)
-```
+ static int ocfs2_drop_lock(struct ocfs2_super *osb,
+--- a/fs/ocfs2/super.c
++++ b/fs/ocfs2/super.c
+@@ -1922,8 +1922,7 @@ static void ocfs2_dismount_volume(struct
+ 	    !ocfs2_is_hard_readonly(osb))
+ 		hangup_needed = 1;
+ 
+-	if (osb->cconn)
+-		ocfs2_dlm_shutdown(osb, hangup_needed);
++	ocfs2_dlm_shutdown(osb, hangup_needed);
+ 
+ 	ocfs2_blockcheck_stats_debugfs_remove(&osb->osb_ecc_stats);
+ 	debugfs_remove_recursive(osb->osb_debug_root);
 
-If you agree with my thinking, I will test & file a formal patch.
 
-Thanks,
-Heming
+Patches currently in stable-queue which might be from ocfs2-devel@oss.oracle.com are
+
+queue-5.10/ocfs2-fix-freeing-uninitialized-resource-on-ocfs2_dlm_shutdown.patch
 
 _______________________________________________
 Ocfs2-devel mailing list
