@@ -1,57 +1,54 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc248.phx1.oracleemaildelivery.com (aib29ajc248.phx1.oracleemaildelivery.com [192.29.103.248])
+Received: from aib29ajc252.phx1.oracleemaildelivery.com (aib29ajc252.phx1.oracleemaildelivery.com [192.29.103.252])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id C099AC77B71
-	for <ocfs2-devel@archiver.kernel.org>; Tue, 18 Apr 2023 09:37:29 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id CB1F5C77B75
+	for <ocfs2-devel@archiver.kernel.org>; Tue, 18 Apr 2023 09:43:31 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=5KwhyB2ti05Guo8nK0/ZKM+6OOu9RRGJLvWwyNdzVfk=;
- b=nBy97eYO/NAc0GFSKuFFVHmbbvQjorJiZDb2NDWKDXHXTGl/DUFUl/Lxi//kEQOygz2JEBVxVvT4
-   14KL6wEfbklBYHl1VWgr35iOjAA/ZKbj41GgSl/WaglznwxK6XK0NBTJm5lMrXaZozWnIcCT8YCO
-   j2WULUaFaIjnKLtM9fu3oWMHirSu/PdlaftrqKSKyXlx86h4NFtu8C3FRIWyvMJRZng7XxomCLYr
-   rYRIw+aIw1JTaoy41ZPwTes2kmm3ZyxEevi/WurzSEzXioSeiSFdeI3tEXKn5L76YDoPTfIjIRnf
-   8wb2w5F8ykPu0qv4WirBfzBSLEKNMluI4Obnrg==
+ bh=jHsJWIk9P39/Wo0Wuh3AMIC/8giDymx2GUSavU5gPww=;
+ b=zdf4MZx47R6VtqGyRtV8dX+SZrW0KsjAoOKBPiwZi/wl+CtQxa4mqieNL5RDmCvc2emsPJtatZKg
+   L4jxJI2RZBD2HpwpCJANE2LlPrsFb1W1u3jE6bMkgs8+x8k0j2DaYdZDjLJEERpN5mJpZF7ge0B+
+   RR6pDWRuI3qDwVIcUPMgEdh58WNgfW/rKZ46mMy/pkoFo1Pa5T24ucflqL2izak3Zn5DKUuQBDcH
+   pOpG/dxR55doOumcmbsYw9sFA10CPQN7clyW90N5azGHqBQb83jblz6DbnMH16TxZ1y8vPFJOPPM
+   TPHk4aY2YnItw+/M9Ohcl9Cd9o4JvjYgpxoXtQ==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=5KwhyB2ti05Guo8nK0/ZKM+6OOu9RRGJLvWwyNdzVfk=;
- b=MwkY1/gyPeuEGxFZ/XrDT0m1aa1xnK5vxACwxP19ApBqmkqj8mREQpqa5xMVpnZx5tLjlri4um5t
-   lTL+HSvMIHMZidjGIHp+1rgwjYlxDzN7dhDuh9d9wW7/sVRpOTbZAxcDPrmbyGd6RAvbFZR8JpD7
-   ZphEq3F9V/T93MZNmKloMM7D1mVLTDFZy+8UnOXUZuOtOnFPc7Yipx6xQU0w+t8jL7p16KH9csxD
-   UXYQiZM2TdwT7E7d4y7l11EozCzw/T5tfMBZApk92zC/aZU2d6i3yHDp5wglh+ENH9alnKwKK+WN
-   0EYuSylB2bFqouus573oKK5xinpCJPC2LFZN9g==
-Received: by omta-ad2-fd1-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
+ bh=jHsJWIk9P39/Wo0Wuh3AMIC/8giDymx2GUSavU5gPww=;
+ b=K0DJe8zcVor+m7HITsn/e7jDXY1rgiY6ryQ3K7CDRsiWlTbxKovGkDsE0oOsDSfMMLgnQyKMC5Za
+   uHgWSN5FV3R24+MDo5khaC4WJGF696i0YpPG5ziUEdPmAKjHJy6Ro98RHa2CyDd8M6J7wJ+IoJrV
+   aJuTTws/csh8UAzfVw8mdUz8RQTbtpwTThv7p+4D7xunL2SM/rUMccqQygH7bSILfss5HIF6GFjJ
+   J0YfJ89vwajswwSChLQ+MxcxE7RetikysuHVydngu8KhmQc23vAly8Q5EOcwES7PrFgGlp5FQR4N
+   Oz9WMyTJefBrLf9OI1I07hDl2rIsA4zWoNLcsg==
+Received: by omta-ad3-fd1-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20230331 64bit (built Mar 31
  2023))
- with ESMTPS id <0RTB006M71EGBK90@omta-ad2-fd1-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Tue, 18 Apr 2023 09:37:28 +0000 (GMT)
-Message-id: <7555eaf9-b195-5189-3928-c7292e4a0ba5@linux.alibaba.com>
-Date: Tue, 18 Apr 2023 17:37:06 +0800
+ with ESMTPS id <0RTB00KRE1OI1070@omta-ad3-fd1-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Tue, 18 Apr 2023 09:43:30 +0000 (GMT)
+Message-id: <5c4d05e2-988b-93a5-aadd-28eaf49ade5e@linux.alibaba.com>
+Date: Tue, 18 Apr 2023 17:43:06 +0800
 MIME-version: 1.0
 User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:102.0)
  Gecko/20100101 Thunderbird/102.10.0
 Content-language: en-US
-To: Christian Brauner <brauner@kernel.org>, Mark Fasheh <mark@fasheh.com>,
- Joel Becker <jlbec@evilplan.org>, Arnd Bergmann <arnd@kernel.org>,
- akpm <akpm@linux-foundation.org>
-References: <20230417205631.1956027-1-arnd@kernel.org>
- <20230418-fortgehen-inkubationszeit-5d3db3f0c2b1@brauner>
-In-reply-to: <20230418-fortgehen-inkubationszeit-5d3db3f0c2b1@brauner>
-X-Source-IP: 115.124.30.110
+To: Heming Zhao <heming.zhao@suse.com>
+References: <20230406154052.9863-1-heming.zhao@suse.com>
+In-reply-to: <20230406154052.9863-1-heming.zhao@suse.com>
+X-Source-IP: 115.124.30.111
 X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10683
  signatures=596816
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 impostorscore=0
- lowpriorityscore=0 mlxscore=0 mlxlogscore=999 adultscore=0 spamscore=0
- priorityscore=188 suspectscore=0 clxscore=60 bulkscore=0 malwarescore=0
- phishscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 clxscore=60
+ lowpriorityscore=0 mlxscore=0 impostorscore=0 spamscore=0 priorityscore=188
+ mlxlogscore=999 phishscore=0 adultscore=0 bulkscore=0 malwarescore=0
+ suspectscore=0 classifier=spam adjust=0 reason=mlx scancount=1
  engine=8.12.0-2303200000 definitions=main-2304180083 domainage_hfrom=8769
-Cc: ocfs2-devel <ocfs2-devel@oss.oracle.com>, Arnd Bergmann <arnd@arndb.de>,
- "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
-Subject: Re: [Ocfs2-devel] [PATCH] ocfs2: reduce ioctl stack usage
+Cc: ocfs2-devel@oss.oracle.com
+Subject: Re: [Ocfs2-devel] [PATCH] ocfs2: Fix wrong search logic in
+	__ocfs2_resv_find_window
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -68,58 +65,179 @@ Reply-to: Joseph Qi <joseph.qi@linux.alibaba.com>
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-Alimail-AntiSpam: AC=PASS; BC=-1|-1; BR=01201311R961e4; CH=green;
- DM=||false|; DS=||; FP=0|-1|-1|-1|0|-1|-1|-1; HT=ay29a033018046049;
- MF=joseph.qi@linux.alibaba.com; NM=1; PH=DS; RN=8; SR=0;
- TI=SMTPD_---0VgPSzNt_1681810626;
-X-ServerName: out30-110.freemail.mail.aliyun.com
+X-Alimail-AntiSpam: AC=PASS; BC=-1|-1; BR=01201311R821e4; CH=green;
+ DM=||false|; DS=||; FP=0|-1|-1|-1|0|-1|-1|-1; HT=ay29a033018046059;
+ MF=joseph.qi@linux.alibaba.com; NM=1; PH=DS; RN=2; SR=0;
+ TI=SMTPD_---0VgPT0n3_1681810986;
+X-ServerName: out30-111.freemail.mail.aliyun.com
 X-Proofpoint-SPF-Result: pass
 X-Proofpoint-SPF-Record: v=spf1 include:spf1.service.alibaba.com
  include:spf2.service.alibaba.com include:spf1.ocm.aliyun.com
  include:spf2.ocm.aliyun.com include:spf1.staff.mail.aliyun.com
  include:a.hichina.mail.aliyun.com include:b.hichina.mail.aliyun.com -all
 X-Spam: Clean
-X-Proofpoint-GUID: iPJXkTYmTpIvO_1z5xteCpYmSGl84uHp
-X-Proofpoint-ORIG-GUID: iPJXkTYmTpIvO_1z5xteCpYmSGl84uHp
+X-Proofpoint-GUID: d0Px-8J3RCKYMGVXAUi8Vr9r_3SciZbP
+X-Proofpoint-ORIG-GUID: d0Px-8J3RCKYMGVXAUi8Vr9r_3SciZbP
 Reporting-Meta:
- AAHh92B/Knefjx7Ln8UFstxbSEQsbMdscL7gGJGRC+7JdkF3JtSCvAi7fFsRUQHN
- 9gdH6OJG/KpLVqbNQAqQOsFCPQzDadAEYA1b9lwOy62A9YziJ2QtuJp8xaM64DzN
- 58ZxaYwW3fzCns9hEX93QLPaKRrXE+9I9cKc0bZkvV97gfK3JFkXaDZJXp3PNK7T
- dBznN8WnWavmEYX91NOvQNGdF1i+cIX4jpAv50G60JFhZCz4kxNhAJp4iSyWr3/V
- xdN+XSZ9jgriLfDQLSFW4f0Ts4ZZXS6QCk19xXz3ZfXcQCw6Zl/GmXaDoCUmP23d
- QlXgf7mZBoontShQ5k1HWPB8P3snW4nk6CDuLKqpRLMSmiYc2lGi0DHUZNctxVbh
- 3gwKPvGiL0Jpzzj0aL6EGGreqH0vyzvMpMHObMEqe7K6vWii7+ud0IJ+N+ipzftY
- lQ0kNy+kAt3raesrbhIow96D4FqPiUZHpjI0owCfudoOYXwyEb5zT2cPSOuvG32K
- FX5s5jFUvmega46YeheoHHZH6AvXM1auaVshD7iaYHEr2Q==
+ AAGrCvn1+1LWlztgdN3YqXrHS7Pv51gKNwWkUyLAqFv7lUUT6k7XZO5AzDbnAviI
+ JMGfAr6ew21FF9uWd3XGQgG5+ySTTr6x254sHyCnjkMTeDSk1hUHJzm55Yy6BdRm
+ gysT8Jnz+mR7M0Ob/A6+wAA4rqltF81P+wFMDZgl9Vz0jDRgHahHN9xMDsL+qPOC
+ hKMIRs/QuOQQ9BhySzTQI74KpPgMEzUYqwqfwYv2uiBG8aMbhDbAQk5jlj9ht25Q
+ pujhESFtdG/z88ybtibM2jaggpz2LAU2t4czGiLTXWhgLVy8Btepm0ghDbL+KLnW
+ v6ArOVWgHBSmguh6aBFcozsXZiL+5vEOSL4x+Vh6mgIt2vQCzj3edWlBzbk1oREg
+ fNNxgyqgE1V1kZ7pBodUXu+sGhMDZx0DMqu7QzHXPkJifJeeRiA9TeNdcyoWICnS
+ ijTapDcDWi3bEdLlmIhGXtcD3ZwuxNfqAg9zD+EHTsG+K/NoXM1tz2FWoLJglLgZ
+ eEpmypFe9Rb1WK3unDKBImil4PCsTBZl/8fo3lYbPe6atg==
 
-Andrew picked ocfs2 patches into -mm tree before.
+Sorry for the late replay since I was busy with other projects these
+days. Will take a look at this patch this weekend.
 
 Thanks,
 Joseph
 
-On 4/18/23 5:17 PM, Christian Brauner wrote:
+On 4/6/23 11:40 PM, Heming Zhao wrote:
+> ** problem **
 > 
-> On Mon, 17 Apr 2023 22:56:24 +0200, Arnd Bergmann wrote:
->> On 32-bit architectures with KASAN_STACK enabled, the total stack usage
->> of the ocfs2_ioctl function grows beyond the warning limit:
->>
->> fs/ocfs2/ioctl.c: In function 'ocfs2_ioctl':
->> fs/ocfs2/ioctl.c:934:1: error: the frame size of 1448 bytes is larger than 1400 bytes [-Werror=frame-larger-than=]
->>
->> Move each of the variables into a basic block, and mark ocfs2_info_handle()
->> as noinline_for_stack, in order to have the variable share stack slots.
->>
->> [...]
+> Current code triggers a defragfs bug [1]:
 > 
-> Going by git log, ocfs2 patches don't go through a separate tree.
-> So unless there are objections I'm taking this through fs.misc,
+> ```
+> tw-tst:~ # defragfs.ocfs2 /mnt/test_from_dd1
+> defragfs.ocfs2 1.8.7
+> [ERROR]Move extent failed:"/mnt/test_from_dd1" - No space left on device
+> [ERROR]"/mnt/test_from_dd1":No space left on device
+> ```
 > 
-> tree: git://git.kernel.org/pub/scm/linux/kernel/git/vfs/idmapping.git
-> branch: fs.misc
-> [1/1] ocfs2: reduce ioctl stack usage
->       commit: 85ef56bc2d65215f43ceb7377ca14a779468928d
+> I added some debug messages in relevant functions. When above error
+> messages appeared, the la-window still had enough continuous bitmap
+> to use, the -ENOSPC is wrong.
 > 
-> Christian
+> ** analysis **
+> 
+> __ocfs2_resv_find_window should use resv node from rb-tree to do linear
+> search. But current code logic uses un-managered area between two resvs.
+> The searching logic deviates from this func job, which should only focus
+> on reservation areas (when rb_root is non NULL). Another issue of
+> __ocfs2_resv_find_window is more inclined to generate inner fragment.
+> It doesn't search & consume existing reservations but be apt to create
+> new reservation item.
+> 
+> This patch pulls this func (__ocfs2_resv_find_window) to do what it
+> should do: search & consume resev. if this func fails to get suitable
+> bitmap area, caller ocfs2_resv_find_window fallbacks to use oldest
+> resv from LRU to do the final search.
+> 
+> [1]: https://bugzilla.suse.com/show_bug.cgi?id=1131931
+> 
+> Signed-off-by: Heming Zhao <heming.zhao@suse.com>
+> ---
+>  fs/ocfs2/reservations.c | 48 +++++++++++++++++++++++++++++------------
+>  1 file changed, 34 insertions(+), 14 deletions(-)
+> 
+> diff --git a/fs/ocfs2/reservations.c b/fs/ocfs2/reservations.c
+> index a9d1296d736d..eda672622d1d 100644
+> --- a/fs/ocfs2/reservations.c
+> +++ b/fs/ocfs2/reservations.c
+> @@ -458,10 +458,11 @@ static void __ocfs2_resv_find_window(struct ocfs2_reservation_map *resmap,
+>  {
+>  	struct rb_root *root = &resmap->m_reservations;
+>  	unsigned int gap_start, gap_end, gap_len;
+> -	struct ocfs2_alloc_reservation *prev_resv, *next_resv;
+> +	struct ocfs2_alloc_reservation *prev_resv, *next_resv, *best_resv;
+>  	struct rb_node *prev, *next;
+>  	unsigned int cstart, clen;
+>  	unsigned int best_start = 0, best_len = 0;
+> +	int create_new = 0;
+>  
+>  	/*
+>  	 * Nasty cases to consider:
+> @@ -540,8 +541,9 @@ static void __ocfs2_resv_find_window(struct ocfs2_reservation_map *resmap,
+>  		if (clen) {
+>  			best_len = clen;
+>  			best_start = cstart;
+> +			create_new = 1;
+>  			if (best_len == wanted)
+> -				goto out_insert;
+> +				goto out_create;
+>  		}
+>  
+>  		prev_resv = next_resv;
+> @@ -557,13 +559,9 @@ static void __ocfs2_resv_find_window(struct ocfs2_reservation_map *resmap,
+>  	while (1) {
+>  		next = rb_next(prev);
+>  		if (next) {
+> -			next_resv = rb_entry(next,
+> -					     struct ocfs2_alloc_reservation,
+> -					     r_node);
+> -
+> -			gap_start = ocfs2_resv_end(prev_resv) + 1;
+> -			gap_end = next_resv->r_start - 1;
+> -			gap_len = gap_end - gap_start + 1;
+> +			gap_start = prev_resv->r_start;
+> +			gap_end = prev_resv->r_start + prev_resv->r_len - 1;
+> +			gap_len = prev_resv->r_len;
+>  		} else {
+>  			/*
+>  			 * We're at the rightmost edge of the
+> @@ -575,8 +573,8 @@ static void __ocfs2_resv_find_window(struct ocfs2_reservation_map *resmap,
+>  			gap_end = resmap->m_bitmap_len - 1;
+>  		}
+>  
+> -		trace_ocfs2_resv_find_window_next(next ? next_resv->r_start: -1,
+> -					next ? ocfs2_resv_end(next_resv) : -1);
+> +		trace_ocfs2_resv_find_window_next(next ? prev_resv->r_start : -1,
+> +					next ? ocfs2_resv_end(prev_resv) : -1);
+>  		/*
+>  		 * No need to check this gap if we have already found
+>  		 * a larger region of free bits.
+> @@ -589,10 +587,16 @@ static void __ocfs2_resv_find_window(struct ocfs2_reservation_map *resmap,
+>  		if (clen == wanted) {
+>  			best_len = clen;
+>  			best_start = cstart;
+> -			goto out_insert;
+> +			best_resv = prev_resv;
+> +			if (!next)
+> +				goto out_create;
+> +			else
+> +				goto out_insert;
+>  		} else if (clen > best_len) {
+>  			best_len = clen;
+>  			best_start = cstart;
+> +			best_resv = prev_resv;
+> +			create_new = 0;
+>  		}
+>  
+>  next_resv:
+> @@ -604,12 +608,28 @@ static void __ocfs2_resv_find_window(struct ocfs2_reservation_map *resmap,
+>  				     r_node);
+>  	}
+>  
+> -out_insert:
+> -	if (best_len) {
+> +	if (!best_len)
+> +		return;
+> +
+> +	if (create_new) {
+> +out_create:
+>  		resv->r_start = best_start;
+>  		resv->r_len = best_len;
+>  		ocfs2_resv_insert(resmap, resv);
+> +		return;
+>  	}
+> +
+> +out_insert:
+> +	if (best_resv->r_len <= wanted) {
+> +		resv->r_start = best_start;
+> +		resv->r_len = best_len;
+> +		__ocfs2_resv_discard(resmap, best_resv);
+> +	} else {
+> +		best_resv->r_len -= best_len;
+> +		resv->r_start = ocfs2_resv_end(best_resv) + 1;
+> +		resv->r_len = best_len;
+> +	}
+> +	ocfs2_resv_insert(resmap, resv);
+>  }
+>  
+>  static void ocfs2_cannibalize_resv(struct ocfs2_reservation_map *resmap,
 
 _______________________________________________
 Ocfs2-devel mailing list
