@@ -1,55 +1,54 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc244.phx1.oracleemaildelivery.com (aib29ajc244.phx1.oracleemaildelivery.com [192.29.103.244])
+Received: from aib29ajc252.phx1.oracleemaildelivery.com (aib29ajc252.phx1.oracleemaildelivery.com [192.29.103.252])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id B079EC6FD18
-	for <ocfs2-devel@archiver.kernel.org>; Tue, 18 Apr 2023 12:57:00 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 5F819C77B75
+	for <ocfs2-devel@archiver.kernel.org>; Wed, 19 Apr 2023 02:00:39 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=UumAVm5igOiQrL8NyYwbWAce6NNnjlT0ESaiA2yP5ag=;
- b=JWSdSWQjKfpiaqXC0CmjRSPBXsx/uQR4iDBP33dTkJmvCyOiEoJN6Xm2oLTVaiP6zY3UiMr1TvO1
-   0hlLodo9VKk0zUqpDyL4ywllvSYrNSrxPod76ehViLJtHIWGquJb22rPdEqxBs0PioU9htCy/wJ2
-   L2KsfdD2Av77NXvCPbvOepLV3+Y2PL1jyQvhJ/FQKhSLCKJSJAG7B/npEBuzd9Nt0czPUAanSwTt
-   ivJwfJOl545gVIFLGCCPuhw45qWTFLhitsjOiKMqEVaqpnqgrsY8VMIzG3AmTYipe28mj5P0roa/
-   I4rmwK7b7nhKjpB02yvgM0ClLzEVqMd2mF1Adw==
+ bh=7a2OAmZVpLsWbzvnfZ75bYKNUuxWo/MYOauxz4IKB54=;
+ b=Jkki6+qSi+nHTFjagaGSkHO0Yy0KhQBjCrUPbMUL0n0C4jayVK58nKKjDIY2pUyIWYQCuC28ddhR
+   L7Pe2tONDCiRSuziHIvXkUDNBu/ik4WE7MOLGSy0e1yKK+lLhaBao+0Xb/jbB8gFkN8PJJxg2Qok
+   gK4Ge14cj+10l/0kBazlbTyIeXbUicaO9BuCEyKH5dUbr1w7jAL3HEtRZUNSDYpDruMyM/YxfL9f
+   Kg7IyxLlAREu84xPA4bz+KJAs7XYzg+4yi+GKZlzD5hwnxo94CM8KsEn2zOCEaidWql2xY/qLM3t
+   e3N5iyRuKLXPOLbiCbEFy7L8W4pZ562/QtRgew==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=UumAVm5igOiQrL8NyYwbWAce6NNnjlT0ESaiA2yP5ag=;
- b=GJByH6Vnc+ZRMnqW+aocOJPAHB5qZT5V6ZBHOzZPeIGBj1Bz6ES1/qFTypU3h3G42Uo7aItI1T01
-   l63DrMnMUMBwLXU3s9GpSC0+x7k6l39v9s2fc02ZE3ZnkVXkssaXRCNtVRt1q/Oq8ye7fbcdAq+8
-   ReEnFDkFgDt1l1iGXR2gCV56Us8bQaSriOKFUalosaNGNh7oUtxzFvRW4rLkkoDGTxbgvetEwiav
-   6MMuNY4W11GlXRlDetcpdwl/g2TuKwsWt2sX28U9ifcHR4LKO1urfu8JZC3VOgA4vJfVRVHRxmBR
-   SKVd6A6XDQgh5MQ7DftecrpOjo4GL9O/rK600g==
-Received: by omta-ad1-fd1-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
+ bh=7a2OAmZVpLsWbzvnfZ75bYKNUuxWo/MYOauxz4IKB54=;
+ b=oycYOnJewg6/TfAoTvW12xJwSaqpMHn0DVrkXpVREF7ci9+2HvZKQQp7XIBFirFk6fn04Vjpr+Qo
+   yQY6KwgEj1+ozob30pk9j2VfSPXz3IwnkhaHiNRGbiHMF76MSuz2/Xe8u7flW+T/UMT35mySd4le
+   jS0aetepJWHfJxLwx8FeUUkd+bgYRHIv7KMhoZcsnt2huiOXUlO5PcsoQvvUWF55MkiEuiMSNJOG
+   kO3o0Kq+t6Dhx+oLMCJIvmYGpbtovOVLzAH3E8qtcDXP+0PWcwvitoT0gZQxWjp/gIntvuoxmRHZ
+   EBp4CT9xR0GHnWJbKn3Th9slgK70oknWC7fVAQ==
+Received: by omta-ad3-fd1-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20230331 64bit (built Mar 31
  2023))
- with ESMTPS id <0RTB00B27AMZAP60@omta-ad1-fd1-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Tue, 18 Apr 2023 12:56:59 +0000 (GMT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org; s=k20201202;
- t=1681822603; bh=bfiHJMtui8taHNlLbuqMhpjAZdV45d/VaQDs8aQUkk4=;
- h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
- b=sHH3P1X2laX/3Z5A9k4BzmLW+A6HOivA2dLhW18Di0VOWELJf+0eomVW7ATy2CGKH
- Pp/jbAaRhYLGf4+83Ktlv8ARJF8WWGrEvyhgYupLgGkrOcpW+q/1aCAeoLQ7LSnY/v
- zAjwHWJuACsJVNinG1ev0PFGUSGhVgMzs8OBmn7q6lyIXanusI3nYu0y33CVKNUVUP
- 5MHRfoPgLzlz5MxhceyR+CtrO+4M0QoF2pMXmXlTwzlGC0AkkW3MeHdZIIUcEQl9fc
- QlLF0u4gtSk6T8PlxNjAxX3e9uxD4GlOVes4OaTjdNfacges6br5hmLvPz/rV/wOn5
- t3JECJ6Gg2MyA==
-Date: Tue, 18 Apr 2023 14:56:38 +0200
-To: Joseph Qi <joseph.qi@linux.alibaba.com>
-Message-id: <20230418-vielmehr-nominieren-7f2adb0f6703@brauner>
+ with ESMTPS id <0RTC00IXHAX2A860@omta-ad3-fd1-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Wed, 19 Apr 2023 02:00:38 +0000 (GMT)
+Message-id: <d1e719ea-95bf-bb96-62db-e550cefe0a80@linux.alibaba.com>
+Date: Wed, 19 Apr 2023 10:00:15 +0800
+MIME-version: 1.0
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:102.0)
+ Gecko/20100101 Thunderbird/102.10.0
+Content-language: en-US
+To: Christian Brauner <brauner@kernel.org>, akpm <akpm@linux-foundation.org>
 References: <20230417205631.1956027-1-arnd@kernel.org>
  <20230418-fortgehen-inkubationszeit-5d3db3f0c2b1@brauner>
  <7555eaf9-b195-5189-3928-c7292e4a0ba5@linux.alibaba.com>
-MIME-version: 1.0
-Content-disposition: inline
-In-reply-to: <7555eaf9-b195-5189-3928-c7292e4a0ba5@linux.alibaba.com>
-X-Source-IP: 139.178.84.217
+ <20230418-vielmehr-nominieren-7f2adb0f6703@brauner>
+In-reply-to: <20230418-vielmehr-nominieren-7f2adb0f6703@brauner>
+X-Source-IP: 115.124.30.101
 X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10684
  signatures=596816
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 clxscore=110
+ adultscore=0 priorityscore=78 impostorscore=0 spamscore=0 mlxscore=0
+ mlxlogscore=914 malwarescore=0 bulkscore=0 phishscore=0 lowpriorityscore=0
+ suspectscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2303200000 definitions=main-2304190015 domainage_hfrom=8770
 Cc: Arnd Bergmann <arnd@kernel.org>, Arnd Bergmann <arnd@arndb.de>,
  "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
  ocfs2-devel <ocfs2-devel@oss.oracle.com>
@@ -65,66 +64,48 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: Christian Brauner via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: Christian Brauner <brauner@kernel.org>
+From: Joseph Qi via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: Joseph Qi <joseph.qi@linux.alibaba.com>
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-ServerName: dfw.source.kernel.org
+X-Alimail-AntiSpam: AC=PASS; BC=-1|-1; BR=01201311R401e4; CH=green;
+ DM=||false|; DS=||; FP=0|-1|-1|-1|0|-1|-1|-1; HT=ay29a033018045176;
+ MF=joseph.qi@linux.alibaba.com; NM=1; PH=DS; RN=8; SR=0;
+ TI=SMTPD_---0VgSa027_1681869616;
+X-ServerName: out30-101.freemail.mail.aliyun.com
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 include:_spf.kernel.org ~all
-X-Proofpoint-Spam-Reason: safe
-X-Spam: OrgSafeList
-X-SpamRule: orgsafelist
-X-Proofpoint-ORIG-GUID: PQDmax-kSAoqZ_-AM4r1S2aX8Z6ldidU
-X-Proofpoint-GUID: PQDmax-kSAoqZ_-AM4r1S2aX8Z6ldidU
+X-Proofpoint-SPF-Record: v=spf1 include:spf1.service.alibaba.com
+ include:spf2.service.alibaba.com include:spf1.ocm.aliyun.com
+ include:spf2.ocm.aliyun.com include:spf1.staff.mail.aliyun.com
+ include:a.hichina.mail.aliyun.com include:b.hichina.mail.aliyun.com -all
+X-Spam: Clean
+X-Proofpoint-GUID: sp6gQf6MFLSSPb--SBRNKBdNXYweqNQ4
+X-Proofpoint-ORIG-GUID: sp6gQf6MFLSSPb--SBRNKBdNXYweqNQ4
 Reporting-Meta:
- AAH7uXz4gqiYlorIrHL17gFEnWQYLtXBJ2Sb3FY/ZqU120cbjt/U8QJKme/EnPr0
- fs75oyl6jrhVqcgDtGyHP0HjajtsJMZ0jsFDsVhvjFhbdA7ij4/mByJQ+bcKKnwK
- wLRHiZ8zkHT2UEAaBRhtzJjIQuxz+4wWaopFvihQqs70NxaIKm4B8L0SMyIfEbBk
- hwLqZ173YnUInBpU4jVYez1UQWSoohFCq8Jn+sBJupxufzJ2T/GFMMoa/gdtnJ2C
- C/uIHTFmA2/lEhQLmfUSjqIBtU1oFnQ81RhIA+odiQu8CmSusK7Jw9icGhHuKpC2
- bLHp0Kdh0bEbAcven5F/2gu6MAgiXGTaQje1juHH61H8Dl5TG0ojWySWXj9A0SAh
- ZZG6YRmJU7XZ3BFS/L6QzyHOyNQTx2mR/KUfFpfL3If5bY3X89cS/Gct/EI5aoic
- ACk51f+tt51tQUCFl2v7CkUl9v782XE6nnlZTlixodQQj/cY40NTCinlJCcyIeYr
- /541AALNgTI+lkvlhiRMywYxL5eLvsc6EM9yHgKOOIV6
+ AAH+oWPPtIFlkWUAnwYVBb+Aad9lWpiVUQXcf2YECTdbDkyzvNrvzmqxQWIduYX3
+ YJw+/KGC3XLbcivA7vk/EpMwTEsYbtB4a/lOruCksC4WHqKMk0CepZ4h2iULvOj/
+ YctQ+f9I6Oq390msTqNZKweN2gqIti0Y4EnGl4gedTWzTpEmfe9adV79sxjxLwlS
+ KY6R0bQXd8Hz79Fb51t017EVYe+K4+2zLfPJ1bZsaRSx2Uu0BG2rjSOyHkOLExtl
+ MA2PGB+tLmRQMCDWHpHBuXcG2JFl5vvw9ocFQy8QVe34AChm8fyDJwFa46V6Btp6
+ XhKaT1iziGicx1dz8dVxli1OaRFkoWu8FmUR/iTbwAOS74/qjfddeca542WDRzIY
+ JE0JP4O9k8llkvhu2wEWKktSmWeagjvDsvcV4lIgr4xsnv5EDayMb5lOLPtkeC+k
+ 3nBzGZYAUh59LXb4VGseJ0y9DAgaLCV6qI9OuWFWWui5BBpQDhq1P5A15+m+2sTQ
+ +c6rVUNOA3JzjFH6HoDdIkKiF5rdX3RRk8NxYKZ5H/DU
 
-On Tue, Apr 18, 2023 at 05:37:06PM +0800, Joseph Qi wrote:
-> Andrew picked ocfs2 patches into -mm tree before.
 
-Yup and that's fine obviously, but this belongs to fs/ and we're aiming
-to take fs/ stuff through the dedicated fs trees going forward.
 
-Thanks!
-Christian
+On 4/18/23 8:56 PM, Christian Brauner wrote:
+> On Tue, Apr 18, 2023 at 05:37:06PM +0800, Joseph Qi wrote:
+>> Andrew picked ocfs2 patches into -mm tree before.
+> Yup and that's fine obviously, but this belongs to fs/ and we're aiming
+> to take fs/ stuff through the dedicated fs trees going forward.
 
-> 
-> Thanks,
-> Joseph
-> 
-> On 4/18/23 5:17 PM, Christian Brauner wrote:
-> > 
-> > On Mon, 17 Apr 2023 22:56:24 +0200, Arnd Bergmann wrote:
-> >> On 32-bit architectures with KASAN_STACK enabled, the total stack usage
-> >> of the ocfs2_ioctl function grows beyond the warning limit:
-> >>
-> >> fs/ocfs2/ioctl.c: In function 'ocfs2_ioctl':
-> >> fs/ocfs2/ioctl.c:934:1: error: the frame size of 1448 bytes is larger than 1400 bytes [-Werror=frame-larger-than=]
-> >>
-> >> Move each of the variables into a basic block, and mark ocfs2_info_handle()
-> >> as noinline_for_stack, in order to have the variable share stack slots.
-> >>
-> >> [...]
-> > 
-> > Going by git log, ocfs2 patches don't go through a separate tree.
-> > So unless there are objections I'm taking this through fs.misc,
-> > 
-> > tree: git://git.kernel.org/pub/scm/linux/kernel/git/vfs/idmapping.git
-> > branch: fs.misc
-> > [1/1] ocfs2: reduce ioctl stack usage
-> >       commit: 85ef56bc2d65215f43ceb7377ca14a779468928d
-> > 
-> > Christian
+Either is fine for me.
+Hi Andrew, what's your opinion?
+
+Thanks,
+Joseph
 
 _______________________________________________
 Ocfs2-devel mailing list
