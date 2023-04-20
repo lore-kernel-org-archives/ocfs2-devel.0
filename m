@@ -1,61 +1,59 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc252.phx1.oracleemaildelivery.com (aib29ajc252.phx1.oracleemaildelivery.com [192.29.103.252])
+Received: from aib29ajc246.phx1.oracleemaildelivery.com (aib29ajc246.phx1.oracleemaildelivery.com [192.29.103.246])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 49A48C77B73
-	for <ocfs2-devel@archiver.kernel.org>; Wed, 19 Apr 2023 21:22:17 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 3BE5EC77B73
+	for <ocfs2-devel@archiver.kernel.org>; Thu, 20 Apr 2023 09:34:36 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=O6GJDrOZNmKI5PWAhnnEtTdxvYGN/lffdVJytu+68fw=;
- b=t682ExTpr73m0Tfynlnd3ZcvJ6F8ywMhXr822vBGQCgJm/WhXoWOz8/bDoql2Mb/FI5WXc9RZFDj
-   LtgDzBBaPt2dBedD1yd0/E9sqw8c2MFMBSF4rEHjhCY7wm4wPFjrCBggnSIkoB7/LLx25NgzJ4fq
-   EhFcvvFC7GSyGxW1GtO/Wmzb7OF3Sw5reC7t7wXGdWfMTzSOgXhziO0XD0Yg4+tjQfHyJ6/Tpv4s
-   A1jpN1xvHS3V6j7iX6m2mh+2Xn0Erc/qy05ZDhSUTKKB0qxPqqFN0vcyP4JJlW02x274Ku5QVoRJ
-   UjgAvQkaQsEs8kv/+QtTPdAadfXTXBEBMjU22Q==
+ bh=5V+zZukpiz1JOQdv1r8MRQMjOup1MJDO/bphwT38IzA=;
+ b=T7K+czVKUeNpjzIPekXL6bkZX+LKYrNelsOQ4iIPaYmxwmnS6WFp0rCBNhT+VIDMu8CTzyujjf1t
+   JqRO/m0Gp62xLNUWyFtOgf8mxlUBC6EFeCG7+HpobWgZlYfQHXLGDhPxh5WdVx8jD1vOGAfHMa8E
+   Q0XBy4mTHoQPYd45goJ4M6M0jhfDaOrLdhTig0IOm9YjkQJznq7SjYSR/dNX7ceQ9BOmzwifz8Tp
+   Bu4AXd3dayMtdZ6RQeAslfxq30diSvx+HMEjCei3/tXzJPAzQ1JyrlbrRRPMn6tN1Tt3jT5578p2
+   /HhPFEq2+EjH8haVyCauXGPi8q7yoOIFl2VdIg==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=O6GJDrOZNmKI5PWAhnnEtTdxvYGN/lffdVJytu+68fw=;
- b=ruFFPM7Qy5oNGZ8IwK1UlvqP+i0w5NEI9U4qqD7qSTLAOkv69zkf2HHB2EmqTpriOE92hYZda0e3
-   B1McIoEbCDDe8QMdYYoRGcotMgSf0JwlU6iKdvt0tXsCWHILw5F3r3mYJF4E+ns48Z2esE2zNTD1
-   fs9NiZhHHr1Ivfn/Te9VQyHMRkOxC4H4L9zX7YunbFOIn62qRrhaj8sQVDvNtOJqLT5T7kHrlxlB
-   HO0bDtE+vWqF6YzkFHpc6CStlf0F6gUvV4jOS3rt3hbEty+P0vJoT/5jtTv8aWK6qIRg0LDShkhY
-   6MF7YJCUH99JpfWQnw9kjm0Chk5rzm884qk55Q==
-Received: by omta-ad3-fd1-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
- (Oracle Communications Messaging Server 8.1.0.1.20230404 64bit (built Apr  4
+ bh=5V+zZukpiz1JOQdv1r8MRQMjOup1MJDO/bphwT38IzA=;
+ b=Z08O8Sng27Y02byJGSL4YrLtsbRHd7trAJXqLPle+dqljvA41SHQg1zMncbEGu49vvlVlnvmn+zw
+   HaD1mnRpNkTKI0MgLX2F5nggPXmK5ZtnGbGIwdz2mFe1ZG+0qUy5LXIImX4T376YMISBUOYZFRQH
+   6v6DqfvSbgVwuDh151jop8MTMDzxZAijEsw2uTEHVJS07XUVSPSnRDhbP9uBMFWO1eeNmSnO56zp
+   0buu/2DTrvICaOU48jZZamFcCLk1o5/kVHG8jdsCkxM2kjOEQ70nKoTk3d56A/9vMgdFpx83wLl1
+   DzaxG1zLl0/8PLvPZPBQeP/NaA8cF92aGw0Y5w==
+Received: by omta-ad1-fd3-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
+ (Oracle Communications Messaging Server 8.1.0.1.20230407 64bit (built Apr  7
  2023))
- with ESMTPS id <0RTD00D22SP4VO10@omta-ad3-fd1-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Wed, 19 Apr 2023 21:22:16 +0000 (GMT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linux-foundation.org;
- s=korg; t=1681939320; bh=8FeQtFAQmPMVFM6tlsPfxwIQGqlujFEHWXaf5ZMyDsM=;
- h=Date:From:To:Cc:Subject:In-Reply-To:References:From;
- b=O6ocRganDUAI/lV4ZCyRbchU+HXxtFyVbREH3btuT0gjfzXgwtyv7D43AyPRMzXyA
- EQ6Pd2R4k+DRhAtQvNH3oWtdQ82oY/hINPkXCHmrPVdxYHYJVGSb2YkAasQvskU9w6
- mcADFIq4WPfezFJM+igySqjMcS2Us4tmG7ZULkt8=
-Date: Wed, 19 Apr 2023 14:21:59 -0700
-To: Joseph Qi <joseph.qi@linux.alibaba.com>
-Message-id: <20230419142159.fd5ca2e91658fe304e317a72@linux-foundation.org>
-In-reply-to: <d1e719ea-95bf-bb96-62db-e550cefe0a80@linux.alibaba.com>
+ with ESMTPS id <0RTE00MQFQLNOR80@omta-ad1-fd3-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Thu, 20 Apr 2023 09:34:35 +0000 (GMT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org; s=k20201202;
+ t=1681983258; bh=oBd1jiFHxIfJOSd/MLajoRXe8BBSyCbVPO9SoZQLpHU=;
+ h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+ b=E0CwMjy1/D/gpKk1NALCWP7VOPf5oYDzx2eZJQZIQXtV8uw8hhemG+mbt/MmLfpA+
+ J4rnI8vUhEM3pF4lJUvsz2BghNd2/OkIBCI8feNxliX7cIOq992BIS2GE6oP/dHd9/
+ yTV1vLJq/XYh5gdr7yFXoaUo+kdAXOvqaEIyrliyKo9Y3uLOGpQ5VD/b40CHJE4vBp
+ i6V94PrPsKoP7/1vm8BFcNZws13u6n2fqMQV7bpQ6kOXlnEko+UQZYTRIuVw6UT6uF
+ XCQYhYHkD7GtC/H5stjxqsB+KGyRD7UlJ7wcd8Pm7IVSlyVmbwekw/2Q1MbEr3WRbk
+ Gue7bJ8c5pVBg==
+Date: Thu, 20 Apr 2023 11:34:13 +0200
+To: Andrew Morton <akpm@linux-foundation.org>
+Message-id: <20230420-wetten-aneignen-8324959e629d@brauner>
 References: <20230417205631.1956027-1-arnd@kernel.org>
  <20230418-fortgehen-inkubationszeit-5d3db3f0c2b1@brauner>
  <7555eaf9-b195-5189-3928-c7292e4a0ba5@linux.alibaba.com>
  <20230418-vielmehr-nominieren-7f2adb0f6703@brauner>
  <d1e719ea-95bf-bb96-62db-e550cefe0a80@linux.alibaba.com>
-X-Mailer: Sylpheed 3.7.0 (GTK+ 2.24.33; x86_64-pc-linux-gnu)
+ <20230419142159.fd5ca2e91658fe304e317a72@linux-foundation.org>
 MIME-version: 1.0
+Content-disposition: inline
+In-reply-to: <20230419142159.fd5ca2e91658fe304e317a72@linux-foundation.org>
 X-Source-IP: 139.178.84.217
 X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10685
  signatures=596816
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 adultscore=0
- mlxscore=0 malwarescore=0 impostorscore=0 spamscore=0 clxscore=213
- lowpriorityscore=0 suspectscore=0 mlxlogscore=895 bulkscore=0
- priorityscore=120 phishscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2303200000 definitions=main-2304190184
-Cc: Arnd Bergmann <arnd@kernel.org>, Christian Brauner <brauner@kernel.org>,
- Arnd Bergmann <arnd@arndb.de>,
+Cc: Arnd Bergmann <arnd@kernel.org>, Arnd Bergmann <arnd@arndb.de>,
  "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
  ocfs2-devel <ocfs2-devel@oss.oracle.com>
 Subject: Re: [Ocfs2-devel] [PATCH] ocfs2: reduce ioctl stack usage
@@ -70,51 +68,67 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: Andrew Morton via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: Andrew Morton <akpm@linux-foundation.org>
+From: Christian Brauner via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: Christian Brauner <brauner@kernel.org>
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
 X-ServerName: dfw.source.kernel.org
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 ip4:140.211.169.12/30 include:_spf.kernel.org
- include:_spf.google.com ~all
-X-Spam: Clean
-X-Proofpoint-GUID: MjbvQllqz1tcrlrjcWlNDWBcM-UwYRw7
-X-Proofpoint-ORIG-GUID: MjbvQllqz1tcrlrjcWlNDWBcM-UwYRw7
+X-Proofpoint-SPF-Record: v=spf1 include:_spf.kernel.org ~all
+X-Proofpoint-Spam-Reason: safe
+X-Spam: OrgSafeList
+X-SpamRule: orgsafelist
+X-Proofpoint-GUID: yuoQgiAAqggGW15NjxTDdQcQFe-fzUjU
+X-Proofpoint-ORIG-GUID: yuoQgiAAqggGW15NjxTDdQcQFe-fzUjU
 Reporting-Meta:
- AAEMmoblMiCe0gU2BaJ1glE2Hp8MKurZ1PZ/C+jzdEJTrY0ADYLq4mdJf7rsTlo3
- AfGmoBxgC/OEKOV99Dt1Y4WPesgLbUWL2f8OA1jrZucZzeEprJPJlD5nK8kCMer/
- pXCuVAkc4TLaH8bYmI1UBZaOPVG9q/GiqFG06QGLXukum4Sp+sE+xqwAnxCU6RiS
- Tv9KN/91BMngL9/akDA9hEVSeK+3tngiN3aWUtH+p3RmTqiHwKAsz+TQBs169BlX
- +Or9Yt++Gb7sA9Z9nVrk55sJ8CM6Zwe48jRtCA8hEJ+Yk1C7sBL/tlh9XmJDnJG3
- VtzXJOo5Vs4V79RiuUdCDTvGvgvIEi0sSW4IbqewXSc3hfReTacpMNSvkL5YtMgg
- 5b8fpakh51XmX7Op9ceFsoo3hEtfhu5v3/v7gmafFl8MOcmwbsZWdUi73uQXT0vY
- M11gIWPiWMWwlk/BWL2ze1470dm0GSu5SNp7b5d1xgZAWsOQM/Qei8XJN42Pa2H/
- U2S24wCbbIMvJEI40tvfDu7i/wh49RW3MEPtZWJxyU8g
+ AAFufDvcffkFs98gtp6W8wl0J27Q2CoCvWH4npAZrD0meyssI2wlk0gq8helVdeP
+ TsSFtTcRYvzz62RnVs1IX/WutNu7gXeyqPOpWVYlGrmssHuMv4t8VP+i4pAyyAtB
+ qzQT2FKR87l7INPMutFKYvEsfDD3H6uLHb9HA9ndn4vfAR8xUMSF8FZP/LCXmpzy
+ G3bJyjR+0fHOId/yQ5Iqsaa9//MRmuBoWTJ2z2yd1lkW5TeSWYYFswYQqherZyl5
+ ooI2WwwPdDPEls/5XDJtSij7obQyzLJR/osqR84F+ApnPvLi2sah3sRLgnAY+rHH
+ dQFxoNVLvAmD/214J3E7UNyg18ynfVIRxwqDDZ90OADacy4FpIJui+GmikusWVk5
+ FGTtKcftxRae4ujnlZFI357KihA5qS+STXxJq1Wa6MIG+/4LK0hp8SNdfJaND4W6
+ qrm5kljCDIo0uCqOmSQDoeYTZdyzfsJztpXDDD0N/83Cgl0IYVvmkyqPiAcFrhkf
+ e/fOFVzwN9dIVegGs7sJRK16VZd7M73eXI/9saVD/1rf
 
-On Wed, 19 Apr 2023 10:00:15 +0800 Joseph Qi <joseph.qi@linux.alibaba.com> wrote:
-
+On Wed, Apr 19, 2023 at 02:21:59PM -0700, Andrew Morton wrote:
+> On Wed, 19 Apr 2023 10:00:15 +0800 Joseph Qi <joseph.qi@linux.alibaba.com> wrote:
 > 
+> > 
+> > 
+> > On 4/18/23 8:56 PM, Christian Brauner wrote:
+> > > On Tue, Apr 18, 2023 at 05:37:06PM +0800, Joseph Qi wrote:
+> > >> Andrew picked ocfs2 patches into -mm tree before.
+> > > Yup and that's fine obviously, but this belongs to fs/ and we're aiming
+> > > to take fs/ stuff through the dedicated fs trees going forward.
+> > 
+> > Either is fine for me.
+> > Hi Andrew, what's your opinion?
 > 
-> On 4/18/23 8:56 PM, Christian Brauner wrote:
-> > On Tue, Apr 18, 2023 at 05:37:06PM +0800, Joseph Qi wrote:
-> >> Andrew picked ocfs2 patches into -mm tree before.
-> > Yup and that's fine obviously, but this belongs to fs/ and we're aiming
-> > to take fs/ stuff through the dedicated fs trees going forward.
+> I've been wrangling ocfs2 for over a decade and this is the first I've
+> heard of this proposal.
 > 
-> Either is fine for me.
-> Hi Andrew, what's your opinion?
+> Who is "we", above?  What was their reasoning?
+> 
+> Who will be responsible for ocfs2 patches?  What will be their workflow
+> and review and test processes?
+> 
+> Overall, what benefit does this proposal offer the ocfs2 project?
 
-I've been wrangling ocfs2 for over a decade and this is the first I've
-heard of this proposal.
+I think I might not have communicated as clearly as I should have.
+Simply because I naively assumed that this is unproblematic.
 
-Who is "we", above?  What was their reasoning?
+By "we" I mean people responsible for "fs/" which now happens to also
+include me. So the goal of this is for patches falling under fs/ to get
+picked up more quickly and broadly and share the maintenance burden.
 
-Who will be responsible for ocfs2 patches?  What will be their workflow
-and review and test processes?
+Since ocfs2 falls under fs/ it felt pretty straightforward that it
+should go via one of the fs/ trees and thus I picked it up and didn't
+bat an eye that it might somehow bother you.
 
-Overall, what benefit does this proposal offer the ocfs2 project?
+For us as in "fs/" it's nicer because it means if we do fs wide changes
+we'll reduce chances of merge conflicts.
 
 _______________________________________________
 Ocfs2-devel mailing list
