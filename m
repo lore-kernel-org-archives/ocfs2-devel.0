@@ -1,51 +1,51 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc250.phx1.oracleemaildelivery.com (aib29ajc250.phx1.oracleemaildelivery.com [192.29.103.250])
+Received: from aib29ajc254.phx1.oracleemaildelivery.com (aib29ajc254.phx1.oracleemaildelivery.com [192.29.103.254])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 4BAFEC77B60
-	for <ocfs2-devel@archiver.kernel.org>; Mon,  1 May 2023 02:27:04 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 6A331C77B73
+	for <ocfs2-devel@archiver.kernel.org>; Mon,  1 May 2023 02:49:13 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=pCwSuaC5atzXsZQyUCjfYDwpTa0LcUChlOaNWRbBrEU=;
- b=Vg1LimBQH+APTFfQD9CwggfT7vKdnbXAzH59n7wzv0XlmSkx/8H4iKQHb/8ScgigCivBFLzQ3aIo
-   gWqaNPQ8lZY1u5OnyJaUb6SitWv/yfxNzuynDe9Y9nI4QnWyRnleQfsSBiPqeMO1wNJb/eqfJEE9
-   xYVKXVYd5Ps7fTBZ9JJA1y9x4I2Gfk8UNLTPLgUYdu1jnaaqPIR1EJCjy2RSo+2b6QiG9UIsFq+u
-   RnvBCPuEcipHqeM3vG5t33KYL/LzIWTe0olTXybaTQeTxq9ZXauKiQCvuNvDmAUvOdv+yeU5q9iI
-   ZdyqlobwenO9dh+PIZ9T6PnuU+j9YNWUwXqr9g==
+ bh=sNKDMHnvYO2++vsHCS3Q8+9B+SlhszZ+gXnQgBY2EE8=;
+ b=ZIF7VG0y/x20OG9W6+zBWAwRN9utTJ/c1p31+MICdgEeJIc5T4vwf625fwAEJllZOtkvpfEdtlI+
+   bAgWQ6YGaHHmZiO8xtNZKaiVLVEjSxCcLWkt+FvYWYR5DbNqAS6WW4xhFDIMxSAJcdOoBme+hJ1X
+   dUXLkCX1BsWmlj7AZMMJJ2gJHpeUrrtvi/0UeWh+l8qcR2+i2/QnQ096mnLtQ02tr0v2mMz+u039
+   qLNTDVUaDwONfYpiesq4HeQvCardGKB8d67Ifcm5n9j14S9xZTTFzAwougO5SN7K6Re0BxI2iq1J
+   Id2rI+aAF26VZ5PLF/arj5pnenSfNkkgwIpGVQ==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=pCwSuaC5atzXsZQyUCjfYDwpTa0LcUChlOaNWRbBrEU=;
- b=qvxDYxgsqgveCIZ1N7pbfKSvknkv9KPWK7I1zi4QBe3FR9YkogMPbg1ztIUaIuFpmoZe9UXgJ1my
-   gZw4pR/SyF1idD08g1lcdyG2KmWYKTMU++83g+A1nsPdWfUiAZ8Imws7ap9hX8E6mD3Jk9ac9PLI
-   z5ylXRbFBpeKQMOo+Q0vVJbxClkecmCDyW+N1TRMl0pdbu2xNY3mF/tuiQdD/qWzg3hApZN3llW7
-   kMkq7w8ma7KuaJcTf3sLDTifTBHkh77W6LA95zkj8ib+AVpRGZzkJ7oIB4VXrdq0X2bB8eDiCjK3
-   3AAjeO117sTSvslNI4x2dS8glNpNlQoAUdS0uw==
-Received: by omta-ad2-fd3-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
+ bh=sNKDMHnvYO2++vsHCS3Q8+9B+SlhszZ+gXnQgBY2EE8=;
+ b=gDEzrFT2YeMPVmwuyANOzEQ+9JwK4PGlSeiA87IqVjv+g4XbLqjO80DyjVj+Ph0RPGPwDY0ueNPP
+   LMPmZCUpJpzLjAzRw9yHmVRfTWnFpUjv8SUxM1vIgyLPqukSocmEyoERwj5kzBoJHWDuV5cq6u5X
+   ExKwpt5q1y68uPZhzyvXTWDdyn+HsmX7lXfaLTtPXBX5b9aeLbH6Bk78BMA3i4FApmOPBsr+XQzE
+   /1WdTeKH9AA9odWKyHRKgd+GnBtXUddrpRL0o4Euhbb0gfEUg7bCv7uRFOW+Df6xTI6m8WiR9nLI
+   DsrX3z+fEmUKjmPypebi6ZrFNWNTZ48A8i7pwA==
+Received: by omta-ad3-fd3-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20230420 64bit (built Apr 20
  2023))
- with ESMTPS id <0RTY0088HK53U960@omta-ad2-fd3-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Mon, 01 May 2023 02:27:03 +0000 (GMT)
+ with ESMTPS id <0RTY005WHL60EI80@omta-ad3-fd3-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Mon, 01 May 2023 02:49:12 +0000 (GMT)
 ARC-Seal: i=1; a=rsa-sha256; s=arcselector9901; d=microsoft.com; cv=none;
- b=Fn2dLE3FZEKpPS62SYl/Kq3rlj/jmmoagkv44asxQ1heOs6ZaKn4R2PlnEj58BFkAywj0GnkN/CULGPk6pHmiltmgY3q2G3rbcslQDbyc/gjBm+3ZyJ6fGqx+vDtQN9N6okkemvxIJi9EvrfiyiLGgVLn/5HR8OUATb4KTzESyU1vL9NJoidzWBjAee6dORI/fojO/CEWcaDfStkrgl8wyMy5eG99nlNi05zvf3HXnEwemf+tfA0oxBpzcGCMiY5+9II7fYHmnTx5s6LKhYLbG+R5cjKp35sO2hgz70RhBudZX+273A806ZT6xPK43rPKlH4p+2jRj1wtPWqe2uVZg==
+ b=SRMNbIYymrO1gietpXHNOvD6WpOIv7hJspyhRoNlErPd1fuSUN+n50Rwchkex7MMRant9szuQpmxId3Wcm4fnxMOvYJjrtTiyWlnciOtrFQto6aVfacU8uYiDV6FjHyUOmYjWIF4c3rgPClhEMsoV9X5HFziZuCNgfGbmlBa8/WQ1p9yCXUnUdHu38h6CTcowCZzPuEjhANUNFH53/KdKbKupRNh8c7KghXjZiwUgkMyDRt41DAe/2l7DV4m6e7phcTh5KpM3TIH+ONOq6QbYMkDisLENQ7wtpDiVVooISqv/UzNKO7kZ0XT9GnQhPBIWVVMH6Yzw3xGN9EvkGkHWw==
 ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
  s=arcselector9901;
  h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
- bh=2SXsBF2l0g3vWXmpP3zGuzuofJWbocz5iEGdDrhLA3U=;
- b=j3kNkCtyei7c9kWonQzfV/4QejULEKO+/hLdo/P18pkEYOEOl2Dm0IqN1KcyxZQyv5NtzX9B3GtHYE2MnVaLcrpaax2GfmmHq6RSV4HT82KpBvW9AniNW9GsTkPZPVqn5nlryn0ukgYGNzifoR10pzxTf0xz9eAM9PSDOCGTPPrGH23Oi5A+5NK/ruFzERTHFFmc5UC9xgucugMRc118iQ7SNugARSdrkV9N/jBgDJtim7yj1xd4S6xRMDpMKj23K5IA3ynbMEaSYQAKxk/UsTEU8uqgTUPB/3DRektWNlVyA4YToUB5gr9PVknvQYHbIRqr7GVUqwc/XOYAFwqVQQ==
+ bh=feePQFY1RckRwKevDsjgyoHABH6HDx5nEmk0QARNmtA=;
+ b=h/Doq14KBCNh/MzbGFW3FzPZc1wjbnaKokzsWjMjK0Y8w3YeBW7JN0Y6bJXlrVmxLQYQCTsoqRVtT7rAEsTExdDdHBw8hMXCfEfhPrkdm0nspZcxI/Jw4j6wNtXLa6d7f9FiB9RKnsoliG33+R98O4koI/1JF1FhY/oqcCfvCm6/lshw6pi2wN+gpl2jcfQ+uQuEjIi32BsSHF0wr3DO0XAMirgZcEB66tvhfLo2EwGMV1ym4CkrxgrlcgJ31+fKob1b4F+NVFKUyNsFSyCBfa2RjCYsiZyASsVkOy9Yt8CKCVIt3MPRjb5zgBtpDyh0QNF7NbXsWXxTunR1I9V37w==
 ARC-Authentication-results: i=1; mx.microsoft.com 1; spf=pass
  smtp.mailfrom=suse.com; dmarc=pass action=none header.from=suse.com; dkim=pass
  header.d=suse.com; arc=none
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.com; s=selector1;
  h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
- bh=2SXsBF2l0g3vWXmpP3zGuzuofJWbocz5iEGdDrhLA3U=;
- b=wWjcaGan19ADZj5kzrJk2DCQ3QGRNgekh3Yympvuhr6M2Ud7Jf+GXdvNXQLc5ykMIT0CXiJWeVFZp5udnsw2Ji09G7aXy9AP3tEhvo2Yov6C5kdeiYgDaScj+2onOuDhDbRTK7PBXZQ6B9ou278uJulH3B2TMWvEE/ebWFWmsLPhqJ7vLBeST6fFEYf6W2CCa+I/CeRZgKWLyHiArzDFQeYcl/oQS5vO+nhorK/6KF7c85XkhRBmgHFd9l0Wct8rcvA4Qygm7fXb6RZ/YMiFF0gDQPPFRLGt7PJ85GfEetZdwFMJIEBu0hyBTHPDG3Mji91Q6RTtqiU0DcMbopSnQw==
-Date: Mon, 1 May 2023 10:26:28 +0800
+ bh=feePQFY1RckRwKevDsjgyoHABH6HDx5nEmk0QARNmtA=;
+ b=PX+pRnvtRlLGw0VfDhE5Sx2JlIENcsJiskaLxKACA9Rgb61+RMPBwANYaAohzKPNqy5hfcRA9pTPPg4XHmJyEXqxtuonvagBxyR9sfyIlPHZkEFNQjvCEAPMIEbCBwHXNNrY7DnEyO/TGZtDdbgKF0LJ9AN0kAUEJK9EiNagZovDaf+6V5i6Sxjr6HOOZlRhIwdE0wwpFHn2CST2gKkzAIJ5Ww99VdOPIqP2C0sEqzF8d3xqJWyGIcyvwgpFJ29pXpiBcr8wsdNQuekhpo83qe2umLcmF0PCqT02IKUvhqNwO7VrBT1wZ45mxsPuG/UYNWh7nT2A2q6blAxRC0RbUg==
+Date: Mon, 1 May 2023 10:48:49 +0800
 To: Joseph Qi <joseph.qi@linux.alibaba.com>
-Message-id: <20230501022628.avrcx3exv3nev3fl@c73>
+Message-id: <20230501024849.hqfubehatdgomhc7@c73>
 References: <20230430031302.15597-1-heming.zhao@suse.com>
  <b2942f09-9797-220f-db72-3b49b0859277@linux.alibaba.com>
 Content-disposition: inline
@@ -53,18 +53,18 @@ In-reply-to: <b2942f09-9797-220f-db72-3b49b0859277@linux.alibaba.com>
 MIME-version: 1.0
 X-Forefront-Antispam-Report: CIP:255.255.255.255; CTRY:; LANG:en; SCL:1; SRV:;
  IPV:NLI; SFV:NSPM; H:PA4PR04MB7997.eurprd04.prod.outlook.com; PTR:; CAT:NONE;
- SFS:(13230028)(7916004)(366004)(39850400004)(136003)(346002)(396003)(376002)(451199021)(478600001)(83380400001)(186003)(6916009)(4326008)(66556008)(66476007)(66946007)(6506007)(6512007)(9686003)(53546011)(6486002)(6666004)(26005)(1076003)(316002)(8936002)(8676002)(44832011)(5660300002)(41300700001)(2906002)(30864003)(38100700002)(33716001)(86362001);
- DIR:OUT; SFP:1101;
+ SFS:(13230028)(7916004)(366004)(39850400004)(136003)(346002)(376002)(396003)(451199021)(2906002)(478600001)(41300700001)(316002)(4326008)(6916009)(66946007)(66556008)(66476007)(5660300002)(44832011)(8936002)(8676002)(33716001)(38100700002)(53546011)(9686003)(6512007)(6506007)(83380400001)(86362001)(6486002)(6666004)(1076003)(26005)(186003); DIR:OUT;
+ SFP:1101;
 X-OriginatorOrg: suse.com
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 01 May 2023 02:26:39.0309 (UTC)
-X-Source-IP: 40.107.22.59
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 01 May 2023 02:48:55.7353 (UTC)
+X-Source-IP: 40.107.22.65
 X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10696
  signatures=596816
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 malwarescore=0
- mlxscore=0 clxscore=208 bulkscore=0 mlxlogscore=999 phishscore=0
- suspectscore=0 impostorscore=0 priorityscore=95 spamscore=0 adultscore=0
- lowpriorityscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2303200000 definitions=main-2305010018 domainage_hfrom=9715
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 priorityscore=90
+ bulkscore=0 adultscore=0 spamscore=0 clxscore=179 malwarescore=0
+ suspectscore=0 mlxscore=0 lowpriorityscore=0 impostorscore=0 mlxlogscore=999
+ phishscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2303200000 definitions=main-2305010021 domainage_hfrom=9715
 Cc: ocfs2-devel@oss.oracle.com
 Subject: Re: [Ocfs2-devel] [PATCH 1/2] ocfs2: fix missing reset j_num_trans	for
  sync
@@ -84,268 +84,90 @@ Reply-to: Heming Zhao <heming.zhao@suse.com>
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-ClientProxiedBy: TYAPR01CA0161.jpnprd01.prod.outlook.com
- (2603:1096:404:7e::29) To PA4PR04MB7997.eurprd04.prod.outlook.com
- (2603:10a6:102:c9::6)
+X-ClientProxiedBy: SG2PR03CA0094.apcprd03.prod.outlook.com (2603:1096:4:7c::22)
+ To PA4PR04MB7997.eurprd04.prod.outlook.com (2603:10a6:102:c9::6)
 X-MS-PublicTrafficType: Email
-X-MS-TrafficTypeDiagnostic: PA4PR04MB7997:EE_|DU0PR04MB9418:EE_
-X-MS-Office365-Filtering-Correlation-Id: f8a9a316-d1f5-4eb9-3e06-08db49eb7e42
+X-MS-TrafficTypeDiagnostic: PA4PR04MB7997:EE_|DU2PR04MB9194:EE_
+X-MS-Office365-Filtering-Correlation-Id: 662d8f1c-8723-4daa-8d9f-08db49ee9b1c
 X-MS-Exchange-SenderADCheck: 1
 X-MS-Exchange-AntiSpam-Relay: 0
 X-Microsoft-Antispam: BCL:0;
 X-Microsoft-Antispam-Message-Info:
- FnuMK/T/iMExIcyuMoaSAVaBxefQjJ4aYHHdK1Um3two8jCu3p6SLhSp7/Hjstt6rfr4ZN2+Uw+M4YBHyKcEQX1aydykX+w4vR+Jmg3PMKAnJs0rcqH4K4HuONectO+iQPfhouCGUzglutVFaMFRwklEvmUuVXoWFeUcw0vdvb4lX28lSa42oV/PKHYwF+jkLozLIUvf0eEjHRO0slvjscYZ7p+zYJaJbPnyEz2n4O8WzJx8K7zDG4qrFsmqIKtDsZKShNfgks14fGcnPzHOhVRfHyZs58xqJ8WuMuIaJPryGvAd8pVA52PCfNc7krupEr4ucd5wTfRUCckKmMd8H4EQMvkn2BipBwjej+qWUvDJUxqNiZyPrhei4bobFyi1D004IxYkgTPaHJmu+xLujoL9z47IPvErarNYSVHn1ub2d6e8sjvMKX0kNPHlwpPoIEG+YYcMTQWauOfQLN4egzMW2a6jRcquCHQagFdZmodACe8YxpGjc6YxYoHEGwvyRv6DlHrGZxxKZvk6Q+1eqtzJPV9XRnRX30EZWQAFyHfGgvvgGEeIuvkkpc1JJOYY
+ DvQbdIxLlHMUK8IoBSrT5hx15zA5/NStJc8Yhl55oPNFzBVcJAFpXFHK9QZpVP7+Sm8Rd2zZduhhqWBJMuhE6wX8Ymi9EDcKMNrLM+MX5/Au2IWckOqH7Mzu42zd+DtmQtj2xnpQR/ifnE+Q6iV2JI8nyLuVFaFftJEIPqysF5dCvOt8MugSizD2eY0n5nI+VkHtbnpmTRGVgOsP6ZUMhBHgdgmNU+agIN5iaSYakCTtVgTlbefPFirBhONI4OKfzZHFt7YTc+y02jBEUWG6ECyjvPn3+7NG6D4vF9FT6n+BRZ0HEUoQdrGVEyLVGxcJGu06Uk1wMeYNOglm4EVHFYGl310smQ6utMUwfsFJECb4J/L6gtz2G5LsHvNyg24c/KDhy/gNQXjBmJzKeKEr/B5Y46DITZBIh411up/ORl4eOaweO/vX/5GVapyhrmYoyZ2v5hgJT3umdv77RGSXTma00UZz6UtENvfzUU4l4Soe2+97BGidrrIp/3tWmGI4tXb8YTCJBASf65z+qtk+Aj8rBkmQ8ANNtsw/rdxrHcyiHk0Q3VnwpmF7bH+SbanJ
 X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
 X-MS-Exchange-AntiSpam-MessageData-0:
- =?us-ascii?Q?IOyJ1WMJqnGAGBdAdQ5n7JoPiJA4IeEkomvit6KIlVs8wGqGXoxJgTdru6wv?=
- =?us-ascii?Q?vxWP3SzpZA2wjmcHP4YSotTHO01q1rK+JYVpHBr/AEPd9VO2SpUr038tIvv4?=
- =?us-ascii?Q?7Zkn9oIbl2sJf23fJ37CPANTIJrnikiChMP3hjhnqCmUj44GT6HrHYx9uURA?=
- =?us-ascii?Q?sGno4ni/IextxLJaMKraqY/1LS01sVwv42d2vsg5a0wlV6v65HSL9rXHo7Pk?=
- =?us-ascii?Q?mUCnmYKQJaKQY83iS8v6u5K8EGMmPskEkQ6U8C86qZvU2yRNrBRS/zfvrC5K?=
- =?us-ascii?Q?E7G8Z+F4imYzTf1cglwgptMjjIUZTvQ3NGlHJSvnJFKu5SxGGIzNgvTiLDq2?=
- =?us-ascii?Q?HxjnohRAxtgAKQxWV/iFwSVvtUvuRL7ZIJGraXOJU2bsBQgiz94iO/BLVTTf?=
- =?us-ascii?Q?D9QbX/Dqr7CWrmHtyeZaSOT3qr8y+Nuou51xMm2ce7XlFTP+2RrvHkD5fveR?=
- =?us-ascii?Q?pOKVFtaqzXU8Ulti5tkrLHnWbN7gHvwi7fmZLRDhR9ikcP7coSVfYN5+dpGi?=
- =?us-ascii?Q?e4gdeRyuOhD7VUAVqNhqjLpUnk9QNdprW77ryvb0po2Vf8SKtQmKvdNgklMT?=
- =?us-ascii?Q?INV+cdh+dR0XUnV3ioJkfb5FIGEJ9kPZc1kKaTcAmUQsOvtVMts+qRP9EDSg?=
- =?us-ascii?Q?PZ9qtbZm3KIdr3QKAuV4BJSowkVOEtA9285amjeyomdguuaowV+3LbGRjK7f?=
- =?us-ascii?Q?kUQs0WLwys4hUtbNZWaZNm0luY1JDP0F9apY4J1wCtrG+6M0B2n56ICN6HM8?=
- =?us-ascii?Q?lwBt2QehG81vytZZ3b1tZWmz/vqERD7u4f4Nv5GsxwfO2hWzo6EznsjIZk0U?=
- =?us-ascii?Q?SBTLLTVGiiI3QXF1nVHlZOzCyUpkIEDZdaSsr30DMOH7T+cAsNE31m3wLLDv?=
- =?us-ascii?Q?D+YKskl6N47rnB8UfVK41LPJNILmEPBAYXrKSrSpFlYbZUtyjPvtoGDuMAiH?=
- =?us-ascii?Q?krcMeC8pdOR0fKjStDJKW+BesMFuzeUYwkYnamUntmWsZDk3rnQqAlIZGw2K?=
- =?us-ascii?Q?em2LwuDmNitcinQPxdqEbHNdW4SSStZ9eY++IYXZphGzeVPsIu4Ne/zxsuQy?=
- =?us-ascii?Q?A8Ol8W+HYPc8664QSTAMMu7UUp2G8bxi+UlH8HF0eYSNPfd55HQ/EysqdiDr?=
- =?us-ascii?Q?s6NMojANsq+PEnjGTx8kZzy4rBYA2Zg6wbEvj/FFjv7GpuO/agOClTzQ203g?=
- =?us-ascii?Q?t7tRLyHkhwPHbfsnRMCaxXdBcTUXqhgCbe+bcafOKA980zW1BGkGTcrbCIej?=
- =?us-ascii?Q?07+S6d4WdRfU8yF0ZCZT31nwzPARXgVDuLdbdgYeM84vx2mCE57hmMDOZRQp?=
- =?us-ascii?Q?LsprehuDpGO0RiGjgImbN3gMJaF1am4f0Ob6sLl3kZiKWMeLG8iQaneYAFXl?=
- =?us-ascii?Q?4UiIMQiVc6vp74xmCSR3WYOvb1OEJu+s/SStPYIS9+6kfAoON/0BvhsfjeID?=
- =?us-ascii?Q?O3e4j3XrskOYoUkHU263RIbBjl70VrOsdIL61WchT8m6SjO4sNIOj+Qr5S1A?=
- =?us-ascii?Q?5FQaw7BUoUXWh12vi4zBCc9PakATfo+nIN1nY6ABAxOeczXw64mNO4R879Ta?=
- =?us-ascii?Q?ImKnRcxsQV0SMLNkQabaqqcjk50reAT+n9VaRtzA?=
+ =?us-ascii?Q?pB+DQgHVjkZlOT5ZkM9WRmAkmHv2ZRUcPVPBT8CtCWQI1+JBoY5NK03TN0u4?=
+ =?us-ascii?Q?zoE/lxYWsH9IoOhXtBGFCbSVNFSvlh1XXxV+L1V3H6DZ5OQrZ67oeutBrINa?=
+ =?us-ascii?Q?Dk3Q4gFaGQaiB2bsnk1PsHa9A6xhhAbh3gsNPg01zPBoOHy9+CgGIvosquuZ?=
+ =?us-ascii?Q?0gW1pVqgQpYfN7yDdqBWZDezJxMnBybfmkcNq0YFf90I4YtLq51MbbrvHIM3?=
+ =?us-ascii?Q?B9sJwVNIrhvnsgYZZqiAgaJ9+JHpp7uGjB3DLmGkivs5bruRhlI+iaehtwmw?=
+ =?us-ascii?Q?av1eYlfySW+OQGWgUygcHXiolD6FauMBa2qN5eJoOM6POSN2XkzIQHShD8oW?=
+ =?us-ascii?Q?7zhL/LPjlpHYL2gOpYxgvqzRXgEig2jYQjmtvkEm0glBTdEg/+994CCwLJzU?=
+ =?us-ascii?Q?Kx6KGuqci/8IagIohFTXnEwSyl2yS1vqP47O5Uh9mEMUjAGaF6skl77xyW48?=
+ =?us-ascii?Q?udxmMrS89yi3FqGmGc87c+QYyi1wtJQr/tKxePlyiWMXmoYd49wCMRffnKCY?=
+ =?us-ascii?Q?aGdr3v2/qYqXmVkZTwsFX+AVIKZYG0Smt/0x3tJsAK7nIwaJTbZIz8j7R48g?=
+ =?us-ascii?Q?/lx9KK1nRR8nXEM4eETtsaIPMAqGEMm+E1Ykg3kjM7mjC2jkWtgBDnWH0bA/?=
+ =?us-ascii?Q?EKRZi5WgswijTT0EuUuAJFVzA9xbG1wn4p2QT5h/qg7UNKCwJ4AkNr6l/h23?=
+ =?us-ascii?Q?f4vdSZJ9ycWJ+K2B8ZeN8T/dpL+YSVxlR0GWS3rLRh02ltFGbZnfCotvNlm5?=
+ =?us-ascii?Q?0jDIMxv8MgULuV/MxNpRforJBgai/fW13gUPyivBT4lyWJlvQF4nY0wA2QLP?=
+ =?us-ascii?Q?WZyluh16khTQWMzpsim0T3UBiyLcMYMkT4ChtMA1jIcwoCJkn12RjyqTvv91?=
+ =?us-ascii?Q?coUhshpffyW3MwFU+FRYpO99X7AVCfwUYUcAQetv6wo0CVb/nf8x1ljm6lE+?=
+ =?us-ascii?Q?/T5bEl+8ARkVAudZ8geFWoBD0iKJkKmTZDj4qE3VesFwYSgVNk+UVylEMEIp?=
+ =?us-ascii?Q?xjW/32KZhatpG8l1I4VkAihA6/CAuZ00ognjIHClH4k9LXdJoR7rlX33/UEr?=
+ =?us-ascii?Q?e/hSMccmyYeANSny+B98bQmj2hmy1SORJuBRfoEGuL5n0EvegQd48a9e73Fa?=
+ =?us-ascii?Q?kAUduf2sm5MCAsZjXZNPOrpXUOhd0Ybmcb5afzB3cRNE5JpZUOSt4kYK4LY7?=
+ =?us-ascii?Q?qnZ0zdTgL56R870+l0c91t/ucPFZP+rHIDRcmQ2Bef/TGu5XySNExe+09UWW?=
+ =?us-ascii?Q?QksZme/zziBik5hDFFdcEbMMyqMtLr2UISdLf32vIPXvf4yKpKYkYqNIGWRV?=
+ =?us-ascii?Q?5v+L3DoRmm25f+frMYxZT+bgy2GUtdCWQFdwS6UBu8dqE0Jq4y00/u/x0+d+?=
+ =?us-ascii?Q?BTR+VGu/KCVrtnxb3gxf9l7LyraYPnIPydR/qa01deJZwi3WS95LcWaIUaYj?=
+ =?us-ascii?Q?Rd6FomPoBVLi6V7Bg09kFVja1R5blsp7AeE1vYnbi2h0q4DgWUPUMDlwTEVl?=
+ =?us-ascii?Q?2L4cAuzeCQ1icU05drD8HnkFmGRqLddz2Wxion1Xm8HhL75azUrshBNKYY3y?=
+ =?us-ascii?Q?mvHFk6aLT4luS23zq03wwlj/zkr9M4dw7RlKZxC9?=
 X-MS-Exchange-CrossTenant-Network-Message-Id:
- f8a9a316-d1f5-4eb9-3e06-08db49eb7e42
+ 662d8f1c-8723-4daa-8d9f-08db49ee9b1c
 X-MS-Exchange-CrossTenant-AuthSource: PA4PR04MB7997.eurprd04.prod.outlook.com
 X-MS-Exchange-CrossTenant-AuthAs: Internal
 X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
 X-MS-Exchange-CrossTenant-Id: f7a17af6-1c5c-4a36-aa8b-f5be247aa4ba
 X-MS-Exchange-CrossTenant-MailboxType: HOSTED
 X-MS-Exchange-CrossTenant-UserPrincipalName:
- e54CBSRGftW1bgo9+b2HO8mMZRz9O5ozgSyKiUtzl9ohmoDz1epNdtHfe+jo0M/72LwAwT7sWzuaIl0rM0S2Ug==
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: DU0PR04MB9418
-X-ServerName: mail-am6eur05on2059.outbound.protection.outlook.com
+ BDaUhoV9fnctqMScc1+sufHiotU8EzNb1Slc2qaPUPxXGmEUS2dQF4kSMt4F6yIDk/50C5mWtPVsPkyE5VxaZQ==
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: DU2PR04MB9194
+X-ServerName: mail-am6eur05on2065.outbound.protection.outlook.com
 X-Proofpoint-SPF-Result: pass
 X-Proofpoint-SPF-Record: v=spf1 include:spf.suse.com include:amazonses.com
  include:spf.protection.outlook.com include:_spf.qemailserver.com
  include:_spf.salesforce.com -all
 X-Spam: Clean
-X-Proofpoint-GUID: SbV2Q3DQ5J7fjKcNXY4Sh3Y1cqjhBkRf
-X-Proofpoint-ORIG-GUID: SbV2Q3DQ5J7fjKcNXY4Sh3Y1cqjhBkRf
+X-Proofpoint-GUID: t5ne6CXhQKCpom_CGDrwcL66yqIHahKg
+X-Proofpoint-ORIG-GUID: t5ne6CXhQKCpom_CGDrwcL66yqIHahKg
 Reporting-Meta:
- AAGcUYav1pZCwLi1WFtWiajddg9ev5ryz3YMV1p+QWYSB2gDRlsyCbioeqD0tRJ9
- IVpKOc0QhIUCiMM+tIJxX3I82vCUPaQEfB1jg+TFi0PA/Buo2V8iqdtHob6Z2BEn
- xEnbDBF3fd6Tox2116DecdfxUub7qIrxcRsb0/+HtbdQBMuqQYqRkdMilPtYOTEK
- wzXup51F8ptzf7mo5+OAYz74UTBtYrrieKquyDY3OjYn/DohJuWiTRYv0MkUIKEn
- Q8st4WT2q3pPGjF0R5KBcBCfFUoIr817je/le8YvR/5rDLSX6jqKDdkDPQSV/Bt2
- Z78t2N+pXTNSOCB7gHNus7edgmd5bYvh0XfAp/iew7zvMxLtYu5M7ON4qFMs4J7P
- jAN4c+gTntIqhVa0R3RUifK4usGk4cbXaPFt0Ndf+8c1rBLusXmobhxd977ERGyk
- kMAAxcnNk5084273QG1Jv7M68VkdoAwVSbf/aZXCIhWTAtyUpwVwCLM2WEAU5Hyo
- ax7bFsW0/9l+aIzSIpmUyZ2YszBDPc2MwuDsCORcNm50
+ AAHKkXffIxKEpexYJdFduxkwX+HTVRhBqTLPhZOy0fthHW77wvAFc3PF2qyMzfRt
+ tkwDnMT8QKJKzEtxF1FemKdGrAhl/s5UkX9KbcOfmpGGXBXO0rF+2FkYOnxbAjUq
+ XbJR/lVb6NT3WbTUTiqDFg2vwBTNEWRw9No93Q80OIJz7J6n5CQCt5+CHAv/wfhR
+ VjM9VntW8tqVtrC9aYoQVRhTdNl5Iw2tU9+KbPnHVMMjQ0MnjuIaeSmGw5MphekM
+ EJHUCH8kllWH7NiRY+Mlngt4607GlUOs+UThgpyRfLMkMDfnrate2IDb5C3mSKWV
+ ERxWjljoEa/hi4Wmaoj0Rex5Q4JprbM1TXoDAr6xnEKDih6glbpLcE73WKgCXWVZ
+ f9pQ378ZWTp5Vqv0fdpLqTpbgRiiLZI+Rtuf99No2TsPwHf9YukTbZNDutJv/8KN
+ cUEfr+i+46ny72lSrTTERtDI52lZj/YT6gKuTh4+H42/rphP0udSzgK1279plQvR
+ wJSN2zi2GUUlVC0dLkEB8XKCvpQsnqQUwM1BuM7XakwdsQ==
 
 On Mon, May 01, 2023 at 10:07:34AM +0800, Joseph Qi wrote:
 > Hi,
 > 
 > What's the journal status in this case?
-jbd2 is marked with JBD2_ABORT
-
 > I wonder why commit thread is not working, which should flush journal
 > and reset j_num_trans during commit cache.
-The reason is in my above answer.
 
-below is the dmesg log for No. 266.
-
-```
-[  595.071807] kernel: dlm: 838DD74847E34AA1839D6C4AA31132F1: joining the lockspace group...
-[  595.080950] kernel: dlm: 838DD74847E34AA1839D6C4AA31132F1: group event done 0
-[  595.081091] kernel: dlm: 838DD74847E34AA1839D6C4AA31132F1: dlm_recover 1
-[  595.081580] kernel: dlm: 838DD74847E34AA1839D6C4AA31132F1: add member 1
-[  595.081886] kernel: dlm: 838DD74847E34AA1839D6C4AA31132F1: dlm_recover_members 1 nodes
-[  595.082173] kernel: dlm: 838DD74847E34AA1839D6C4AA31132F1: generation 1 slots 1 1:1
-[  595.082420] kernel: dlm: 838DD74847E34AA1839D6C4AA31132F1: dlm_recover_directory
-[  595.082696] kernel: dlm: 838DD74847E34AA1839D6C4AA31132F1: dlm_recover_directory 0 in 0 new
-[  595.082932] kernel: dlm: 838DD74847E34AA1839D6C4AA31132F1: dlm_recover_directory 0 out 0 messages
-[  595.083188] kernel: dlm: 838DD74847E34AA1839D6C4AA31132F1: dlm_recover 1 generation 1 done: 0 ms
-[  595.084721] kernel: dlm: 838DD74847E34AA1839D6C4AA31132F1: join complete
-[  595.095436] kernel: ocfs2: Mounting device (253,16) on (node 1, slot 0) with ordered data mode.
-[  595.787078] systemd[1]: Started /usr/bin/bash -c exit 77.
-[  595.802650] systemd[1]: fstests-check.scope: Deactivated successfully.
-[  596.195734] kernel: dlm: 78CE18109AE44E6AA896722A5E25CFC0: joining the lockspace group...
-[  596.206310] kernel: dlm: 78CE18109AE44E6AA896722A5E25CFC0: group event done 0
-[  596.206350] kernel: dlm: 78CE18109AE44E6AA896722A5E25CFC0: dlm_recover 1
-[  596.209667] kernel: dlm: 78CE18109AE44E6AA896722A5E25CFC0: add member 1
-[  596.211433] kernel: dlm: 78CE18109AE44E6AA896722A5E25CFC0: dlm_recover_members 1 nodes
-[  596.213942] kernel: dlm: 78CE18109AE44E6AA896722A5E25CFC0: generation 1 slots 1 1:1
-[  596.215668] kernel: dlm: 78CE18109AE44E6AA896722A5E25CFC0: dlm_recover_directory
-[  596.217171] kernel: dlm: 78CE18109AE44E6AA896722A5E25CFC0: dlm_recover_directory 0 in 0 new
-[  596.218253] kernel: dlm: 78CE18109AE44E6AA896722A5E25CFC0: dlm_recover_directory 0 out 0 messages
-[  596.219401] kernel: dlm: 78CE18109AE44E6AA896722A5E25CFC0: dlm_recover 1 generation 1 done: 0 ms
-[  596.220628] kernel: dlm: 78CE18109AE44E6AA896722A5E25CFC0: join complete
-[  596.224616] kernel: JBD2: Ignoring recovery information on journal
-[  596.229686] kernel: ocfs2: Mounting device (253,32) on (node 1, slot 0) with ordered data mode.
-[  596.870008] systemd[1]: fstest-scratch.mount: Deactivated successfully.
-[  596.236135] kernel: dlm: 78CE18109AE44E6AA896722A5E25CFC0: leaving the lockspace group...
-[  596.237431] kernel: dlm: 78CE18109AE44E6AA896722A5E25CFC0: group event done 0
-[  596.239442] kernel: dlm: 78CE18109AE44E6AA896722A5E25CFC0: release_lockspace final free
-[  596.877286] ocfs2_hb_ctl[5436]: ocfs2_hb_ctl /sbin/ocfs2_hb_ctl -K -u 78CE18109AE44E6AA896722A5E25CFC0
-[  596.248299] kernel: ocfs2: Unmounting device (253,32) on (node 1)
-[  596.255888] kernel: dlm: 838DD74847E34AA1839D6C4AA31132F1: leaving the lockspace group...
-[  596.905718] systemd[1]: fstest-test.mount: Deactivated successfully.
-[  596.280602] kernel: dlm: 838DD74847E34AA1839D6C4AA31132F1: group event done 0
-[  596.281762] kernel: dlm: 838DD74847E34AA1839D6C4AA31132F1: release_lockspace final free
-[  596.921672] ocfs2_hb_ctl[5448]: ocfs2_hb_ctl /sbin/ocfs2_hb_ctl -K -u 838DD74847E34AA1839D6C4AA31132F1
-[  596.299507] kernel: ocfs2: Unmounting device (253,16) on (node 1)
-[  596.481755] kernel: dlm: 838DD74847E34AA1839D6C4AA31132F1: joining the lockspace group...
-[  596.484722] kernel: dlm: 838DD74847E34AA1839D6C4AA31132F1: dlm_recover 1
-[  596.484729] kernel: dlm: 838DD74847E34AA1839D6C4AA31132F1: group event done 0
-[  596.485361] kernel: dlm: 838DD74847E34AA1839D6C4AA31132F1: add member 1
-[  596.485622] kernel: dlm: 838DD74847E34AA1839D6C4AA31132F1: dlm_recover_members 1 nodes
-[  596.485861] kernel: dlm: 838DD74847E34AA1839D6C4AA31132F1: generation 1 slots 1 1:1
-[  596.486063] kernel: dlm: 838DD74847E34AA1839D6C4AA31132F1: dlm_recover_directory
-[  596.486293] kernel: dlm: 838DD74847E34AA1839D6C4AA31132F1: dlm_recover_directory 0 in 0 new
-[  596.486498] kernel: dlm: 838DD74847E34AA1839D6C4AA31132F1: dlm_recover_directory 0 out 0 messages
-[  596.486768] kernel: dlm: 838DD74847E34AA1839D6C4AA31132F1: dlm_recover 1 generation 1 done: 0 ms
-[  596.487037] kernel: dlm: 838DD74847E34AA1839D6C4AA31132F1: join complete
-[  596.491655] kernel: ocfs2: Mounting device (253,16) on (node 1, slot 0) with ordered data mode.
-[  597.139758] root[5475]: run xfstest generic/266
-[  596.505896] unknown: run fstests generic/266 at 2023-05-01 10:19:02
-[  597.186885] systemd[1]: Started /usr/bin/bash -c test -w /proc/self/oom_score_adj && echo 250 > /proc/self/oom_score_adj; exec ./tests/generic/266.
-[  597.566466] kernel: dlm: AB0245F740984C25A9D0907D61DFCF8A: joining the lockspace group...
-[  597.579759] kernel: dlm: AB0245F740984C25A9D0907D61DFCF8A: group event done 0
-[  597.579766] kernel: dlm: AB0245F740984C25A9D0907D61DFCF8A: dlm_recover 1
-[  597.581004] kernel: dlm: AB0245F740984C25A9D0907D61DFCF8A: add member 1
-[  597.581820] kernel: dlm: AB0245F740984C25A9D0907D61DFCF8A: dlm_recover_members 1 nodes
-[  597.582292] kernel: dlm: AB0245F740984C25A9D0907D61DFCF8A: generation 1 slots 1 1:1
-[  597.582894] kernel: dlm: AB0245F740984C25A9D0907D61DFCF8A: dlm_recover_directory
-[  597.583423] kernel: dlm: AB0245F740984C25A9D0907D61DFCF8A: dlm_recover_directory 0 in 0 new
-[  597.583991] kernel: dlm: AB0245F740984C25A9D0907D61DFCF8A: dlm_recover_directory 0 out 0 messages
-[  597.584547] kernel: dlm: AB0245F740984C25A9D0907D61DFCF8A: dlm_recover 1 generation 1 done: 4 ms
-[  597.585079] kernel: dlm: AB0245F740984C25A9D0907D61DFCF8A: join complete
-[  597.590136] kernel: JBD2: Ignoring recovery information on journal
-[  597.594258] kernel: ocfs2: Mounting device (253,32) on (node 1, slot 0) with ordered data mode.
-[  598.239046] systemd[1]: fstest-scratch.mount: Deactivated successfully.
-[  597.606575] kernel: dlm: AB0245F740984C25A9D0907D61DFCF8A: leaving the lockspace group...
-[  597.607446] kernel: dlm: AB0245F740984C25A9D0907D61DFCF8A: group event done 0
-[  598.244507] ocfs2_hb_ctl[5680]: ocfs2_hb_ctl /sbin/ocfs2_hb_ctl -K -u AB0245F740984C25A9D0907D61DFCF8A
-[  597.607843] kernel: dlm: AB0245F740984C25A9D0907D61DFCF8A: release_lockspace final free
-[  597.615474] kernel: ocfs2: Unmounting device (253,32) on (node 1)
-[  597.641624] kernel: dlm: AB0245F740984C25A9D0907D61DFCF8A: joining the lockspace group...
-[  597.659435] kernel: dlm: AB0245F740984C25A9D0907D61DFCF8A: dlm_recover 1
-[  597.659479] kernel: dlm: AB0245F740984C25A9D0907D61DFCF8A: group event done 0
-[  597.661482] kernel: dlm: AB0245F740984C25A9D0907D61DFCF8A: add member 1
-[  597.662340] kernel: dlm: AB0245F740984C25A9D0907D61DFCF8A: dlm_recover_members 1 nodes
-[  597.663211] kernel: dlm: AB0245F740984C25A9D0907D61DFCF8A: generation 1 slots 1 1:1
-[  597.664150] kernel: dlm: AB0245F740984C25A9D0907D61DFCF8A: dlm_recover_directory
-[  597.665466] kernel: dlm: AB0245F740984C25A9D0907D61DFCF8A: dlm_recover_directory 0 in 0 new
-[  597.666370] kernel: dlm: AB0245F740984C25A9D0907D61DFCF8A: dlm_recover_directory 0 out 0 messages
-[  597.667235] kernel: dlm: AB0245F740984C25A9D0907D61DFCF8A: dlm_recover 1 generation 1 done: 0 ms
-[  597.668428] kernel: dlm: AB0245F740984C25A9D0907D61DFCF8A: join complete
-[  600.194974] systemd[1]: Started Daily Cleanup of Snapper Snapshots.
-[  600.207227] dbus-daemon[672]: [system] Activating via systemd: service name='org.opensuse.Snapper' unit='snapperd.service' requested by ':1.10' (uid=0 pid=5728 comm="/usr/lib/snapper/systemd-helper --cleanup")
-[  600.209151] systemd[1]: Starting DBus interface for snapper...
-[  600.217270] dbus-daemon[672]: [system] Successfully activated service 'org.opensuse.Snapper'
-[  600.217370] systemd[1]: Started DBus interface for snapper.
-[  600.218969] systemd[1]: snapper-cleanup.service: Deactivated successfully.
-[  599.608010] kernel: dlm: F06626AE7D754F11A0211679C145C8BF: joining the lockspace group...
-[  599.611041] kernel: dlm: F06626AE7D754F11A0211679C145C8BF: dlm_recover 1
-[  599.611127] kernel: dlm: F06626AE7D754F11A0211679C145C8BF: group event done 0
-[  599.611813] kernel: dlm: F06626AE7D754F11A0211679C145C8BF: add member 1
-[  599.612019] kernel: dlm: F06626AE7D754F11A0211679C145C8BF: dlm_recover_members 1 nodes
-[  599.612227] kernel: dlm: F06626AE7D754F11A0211679C145C8BF: generation 1 slots 1 1:1
-[  599.612397] kernel: dlm: F06626AE7D754F11A0211679C145C8BF: dlm_recover_directory
-[  599.612559] kernel: dlm: F06626AE7D754F11A0211679C145C8BF: dlm_recover_directory 0 in 0 new
-[  599.612712] kernel: dlm: F06626AE7D754F11A0211679C145C8BF: dlm_recover_directory 0 out 0 messages
-[  599.612880] kernel: dlm: F06626AE7D754F11A0211679C145C8BF: dlm_recover 1 generation 1 done: 0 ms
-[  599.613078] kernel: dlm: F06626AE7D754F11A0211679C145C8BF: join complete
-[  599.615320] kernel: JBD2: Ignoring recovery information on journal
-[  599.619221] kernel: ocfs2: Mounting device (254,0) on (node 1, slot 0) with ordered data mode.
-[  600.392044] systemd[1]: fstest-scratch.mount: Deactivated successfully.
-[  599.780111] kernel: dlm: F06626AE7D754F11A0211679C145C8BF: leaving the lockspace group...
-[  599.781949] kernel: dlm: F06626AE7D754F11A0211679C145C8BF: group event done 0
-[  599.784235] kernel: dlm: F06626AE7D754F11A0211679C145C8BF: release_lockspace final free
-[  600.426136] ocfs2_hb_ctl[5762]: ocfs2_hb_ctl /sbin/ocfs2_hb_ctl -K -u F06626AE7D754F11A0211679C145C8BF
-[  599.808566] kernel: ocfs2: Unmounting device (254,0) on (node 1)
-[  599.827803] kernel: dlm: F06626AE7D754F11A0211679C145C8BF: joining the lockspace group...
-[  599.832848] kernel: dlm: F06626AE7D754F11A0211679C145C8BF: dlm_recover 1
-[  599.832984] kernel: dlm: F06626AE7D754F11A0211679C145C8BF: group event done 0
-[  599.833810] kernel: dlm: F06626AE7D754F11A0211679C145C8BF: add member 1
-[  599.834272] kernel: dlm: F06626AE7D754F11A0211679C145C8BF: dlm_recover_members 1 nodes
-[  599.834663] kernel: dlm: F06626AE7D754F11A0211679C145C8BF: generation 1 slots 1 1:1
-[  599.835030] kernel: dlm: F06626AE7D754F11A0211679C145C8BF: dlm_recover_directory
-[  599.835474] kernel: dlm: F06626AE7D754F11A0211679C145C8BF: dlm_recover_directory 0 in 0 new
-[  599.835868] kernel: dlm: F06626AE7D754F11A0211679C145C8BF: dlm_recover_directory 0 out 0 messages
-[  599.836365] kernel: dlm: F06626AE7D754F11A0211679C145C8BF: dlm_recover 1 generation 1 done: 4 ms
-[  599.836829] kernel: dlm: F06626AE7D754F11A0211679C145C8BF: join complete
-[  599.845790] kernel: ocfs2: Mounting device (254,0) on (node 1, slot 0) with ordered data mode.
-[  600.079285] kernel: Buffer I/O error on dev dm-0, logical block 2621424, async page read
-[  600.090845] kernel: (xfs_io,5785,0):ocfs2_inode_lock_update:2354 ERROR: status = -5
-[  600.091387] kernel: (xfs_io,5785,0):ocfs2_inode_lock_full_nested:2502 ERROR: status = -5
-[  600.091924] kernel: (xfs_io,5785,0):ocfs2_statfs:1654 ERROR: status = -5
-[  600.092422] kernel: (xfs_io,5785,0):ocfs2_statfs:1686 ERROR: status = -5
-[  600.094252] kernel: (xfs_io,5785,0):ocfs2_inode_lock_update:2354 ERROR: status = -5
-[  600.095029] kernel: (xfs_io,5785,0):ocfs2_inode_lock_full_nested:2502 ERROR: status = -5
-[  600.095891] kernel: (xfs_io,5785,0):ocfs2_statfs:1654 ERROR: status = -5
-[  600.096698] kernel: (xfs_io,5785,0):ocfs2_statfs:1686 ERROR: status = -5
-[  600.099071] kernel: (xfs_io,5785,0):ocfs2_inode_lock_update:2354 ERROR: status = -5
-[  600.099957] kernel: (xfs_io,5785,0):ocfs2_inode_lock_full_nested:2502 ERROR: status = -5
-[  600.100798] kernel: (xfs_io,5785,0):ocfs2_statfs:1654 ERROR: status = -5
-[  600.101623] kernel: (xfs_io,5785,0):ocfs2_statfs:1686 ERROR: status = -5
-[  600.107094] kernel: (xfs_io,5785,1):ocfs2_get_refcount_tree:358 ERROR: status = -5
-[  600.107659] kernel: (xfs_io,5785,1):ocfs2_lock_refcount_tree:456 ERROR: status = -5
-[  600.108175] kernel: (xfs_io,5785,1):ocfs2_refcount_cow_hunk:3417 ERROR: status = -5
-[  600.108654] kernel: (xfs_io,5785,1):ocfs2_refcount_cow:3478 ERROR: status = -5
-[  600.109128] kernel: (xfs_io,5785,1):ocfs2_prepare_inode_for_write:2326 ERROR: status = -5
-[  600.109613] kernel: (xfs_io,5785,1):ocfs2_file_write_iter:2433 ERROR: status = -5
-[  600.118113] kernel: (umount,5789,3):ocfs2_inode_lock_update:2354 ERROR: status = -5
-[  600.118481] kernel: (umount,5789,3):ocfs2_inode_lock_full_nested:2502 ERROR: status = -5
-[  600.118898] kernel: (umount,5789,3):ocfs2_statfs:1654 ERROR: status = -5
-[  600.119364] kernel: (umount,5789,3):ocfs2_statfs:1686 ERROR: status = -5
-[  600.759255] systemd[1]: fstest-scratch.mount: Deactivated successfully.
-[  600.127135] kernel: Buffer I/O error on dev dm-0, logical block 529, lost sync page write
-[  600.127373] kernel: JBD2: I/O error when updating journal superblock for dm-0-24.
-[  600.127615] kernel: Aborting journal on device dm-0-24.
-[  600.127893] kernel: Buffer I/O error on dev dm-0, logical block 529, lost sync page write
-[  600.128137] kernel: JBD2: I/O error when updating journal superblock for dm-0-24.
-[  600.128362] kernel: (ocfs2cmt-F06626,5771,2):ocfs2_commit_cache:321 ERROR: status = -5
-[  600.128591] kernel: (ocfs2cmt-F06626,5771,2):ocfs2_commit_thread:2346 ERROR: status = -5, journal is already aborted.
-[  601.147704] kernel: (ocfs2cmt-F06626,5771,2):ocfs2_commit_cache:321 ERROR: status = -5
-[  602.171745] kernel: (ocfs2cmt-F06626,5771,2):ocfs2_commit_cache:321 ERROR: status = -5
-[  603.195707] kernel: (ocfs2cmt-F06626,5771,2):ocfs2_commit_cache:321 ERROR: status = -5
-[  604.219709] kernel: (ocfs2cmt-F06626,5771,2):ocfs2_commit_cache:321 ERROR: status = -5
-[  605.243712] kernel: (ocfs2cmt-F06626,5771,2):ocfs2_commit_cache:321 ERROR: status = -5
-[  606.267748] kernel: (ocfs2cmt-F06626,5771,2):ocfs2_commit_cache:321 ERROR: status = -5
-[  607.291715] kernel: (ocfs2cmt-F06626,5771,2):ocfs2_commit_cache:321 ERROR: status = -5
-[  608.315742] kernel: (ocfs2cmt-F06626,5771,2):ocfs2_commit_cache:321 ERROR: status = -5
-[  609.339724] kernel: (ocfs2cmt-F06626,5771,2):ocfs2_commit_cache:321 ERROR: status = -5
-[  610.363774] kernel: (ocfs2cmt-F06626,5771,2):ocfs2_commit_cache:321 ERROR: status = -5
-[  611.387693] kernel: (ocfs2cmt-F06626,5771,2):ocfs2_commit_cache:321 ERROR: status = -5
-[  612.411727] kernel: (ocfs2cmt-F06626,5771,2):ocfs2_commit_cache:321 ERROR: status = -5
-[  613.435719] kernel: (ocfs2cmt-F06626,5771,2):ocfs2_commit_cache:321 ERROR: status = -5
-[  614.459743] kernel: (ocfs2cmt-F06626,5771,2):ocfs2_commit_cache:321 ERROR: status = -5
-[  615.483742] kernel: (ocfs2cmt-F06626,5771,2):ocfs2_commit_cache:321 ERROR: status = -5
-[  615.484503] kernel: (ocfs2cmt-F06626,5771,2):ocfs2_commit_thread:2346 ERROR: status = -5, journal is already aborted.
-[  616.507742] kernel: (ocfs2cmt-F06626,5771,2):ocfs2_commit_cache:321 ERROR: status = -5
-[  617.531751] kernel: (ocfs2cmt-F06626,5771,2):ocfs2_commit_cache:321 ERROR: status = -5
-[  618.555743] kernel: (ocfs2cmt-F06626,5771,2):ocfs2_commit_cache:321 ERROR: status = -5
-[  619.579702] kernel: (ocfs2cmt-F06626,5771,2):ocfs2_commit_cache:321 ERROR: status = -5
-[  620.603758] kernel: (ocfs2cmt-F06626,5771,2):ocfs2_commit_cache:321 ERROR: status = -5
-^C
-tb-fstest1:/usr/src/linux/fs/ocfs2 #
-```
+This rootcasue of NO. 266 is that ocfs2_sync_fs bypasses commit thread and
+directly calls jbd2 APIs to commit journal. This code design makes 'sync'
+doesn't reset ->j_num_trans. So my patch add the kick commit thread action
+in sync path.
 
 Thanks,
 Heming
 
+> 
 > 
 > On 4/30/23 11:13 AM, Heming Zhao wrote:
 > > fstest generic cases 266 272 281 trigger hanging issue when umount.
