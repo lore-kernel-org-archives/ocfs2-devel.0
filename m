@@ -1,53 +1,53 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc248.phx1.oracleemaildelivery.com (aib29ajc248.phx1.oracleemaildelivery.com [192.29.103.248])
+Received: from aib29ajc252.phx1.oracleemaildelivery.com (aib29ajc252.phx1.oracleemaildelivery.com [192.29.103.252])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 61688C7EE2A
-	for <ocfs2-devel@archiver.kernel.org>; Fri, 19 May 2023 07:42:33 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 379EBC77B7A
+	for <ocfs2-devel@archiver.kernel.org>; Sat, 20 May 2023 00:02:27 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=4VnJbSJrHwfB2a97XUKGU897lluoEBK7B8KPJl6IGN4=;
- b=ma/G/hBUNgWzHyl5+gpxZhXPaC9p3566q9oQe+6bI25tSsIxY/PlvK5jViqt0lBoeOnvnsbWMJdy
-   nDYWQe3BnNw0+BDvQcGHiMNM5OtgzCapfQ7cQg1Sz3NLX6sDd8A8mefOs1WvuUUW2i8vRBrrJZ31
-   /HPoQH6/uN0bZb2rg6f4nZG1ugxfj1s4t8B2Lh9NbuWUnrGV0UIiGUEaJUJjqbDzRjdZ7TutabU7
-   c3bXLJA29fP0LnwmazcSPS5ZoarNzM9YAq6reoSG8xyCM6Rac6aZxUVmeOsyf1Mu32mxkLyT8vbn
-   FAnSAU5+IfqQkrA/rtRRPc1yOXz2B0tzJd51hQ==
+ bh=JXhO1W/IcyL+NU8uWcY7ybCb0WdzfmjnLZ7xBeWbQ3U=;
+ b=J6kDBX5EDkMsFYVTsC2ZguioH0xCtlGeDMdr/IRXMO8/05vGLK5H5GOi+8WFRy9ipWHpBOPMLb6T
+   GBxavEj+BmoxaYe0YkwZrcJwipAxGE2YjtSrX2p5P/28bsZdvUL8cBcNjYS6kXB3t5Cpw5beuEG+
+   NQEKzak0gN51x6KjJsgnSPQvgRn6Crm34hHdSXVKdzzFi3Bfq+g+hYBBBglOYqM28Cu1fm1htInS
+   EHd09evAon7nFInAZVyca0l9I0VxLSouklEZPgRV0DA1/hKWiub1F+wqV3+p32WbC0dtF1XHdFYY
+   WqAVhmDchnAZsr2PEYdrIVK3euFkM2RVBi2PJA==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=4VnJbSJrHwfB2a97XUKGU897lluoEBK7B8KPJl6IGN4=;
- b=daX1n1mfNTRLCd21ivZwzsr2kJbYUN6c4UqzXNAQzASU3wTywFjeyAwR1RFe2tMAgafut0tvvUEA
-   SwXHpnGoFvFzvd1vsZ1JB0w+Eb4qadv2xHmyiq0PtReZZ4Ck1kS6Iw4etzFsIDfiSCZ3o/fcIHAX
-   dPVcOiJ+VYqXINelNtC/i172XgvNXfjQoofQBipQZy7xH0/VbhLjjrOnePCMz9Uj5vkv/EF5rHLh
-   uz0RjhEU3IWVdRsrXk8218Ng6wuCUwXyFaPjpQqlnqBcdf4nA6zbNM1gRoUe5ofsJFNKk7311Amr
-   jE2ARr6o2JUZFEQ/UfwndLc3Ah6jrC5irrkdDQ==
-Received: by omta-ad2-fd1-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
+ bh=JXhO1W/IcyL+NU8uWcY7ybCb0WdzfmjnLZ7xBeWbQ3U=;
+ b=Jt8UEUQMn6v6jmSamwxAy/5pBaM0HWzKkobSeTYninlZzqdCl2Io1jTRUVIg1zozH/w9AgOhnDi1
+   Ceh0Vhle7Pg8wqwYg8iIP2RWXl/VC+Zh3SRig8rm/hX21GzsWCL5NzTPtx1BCbvaklGhGJBieru8
+   CzHqVl3Zw713zlZ4mcEKUsfCHP7uk6NPnVekXmwCH+0SuZkItzQKghDWxPMnoto79csNzAuChmFV
+   0eK7QBleOcS+FGQAT3vBr12FCpgPkbEFdfZ5eVBehi6VthOOGpc5lGKe+uOxiRgQIkKZ7LRYpoi2
+   IvnD3Daiwni0/mPKYNl/x2yj2KaeTT+6y8pveQ==
+Received: by omta-ad3-fd1-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20230420 64bit (built Apr 20
  2023))
- with ESMTPS id <0RUW002CKAQVF000@omta-ad2-fd1-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Fri, 19 May 2023 07:42:31 +0000 (GMT)
+ with ESMTPS id <0RUX00O2KK42AZ20@omta-ad3-fd1-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Sat, 20 May 2023 00:02:26 +0000 (GMT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
- s=mimecast20190719; t=1684482137;
+ s=mimecast20190719; t=1684540933;
  h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
  to:to:cc:cc:mime-version:mime-version:
  content-transfer-encoding:content-transfer-encoding:
  in-reply-to:in-reply-to:references:references;
- bh=gBG1rbAQ+/pvrFxoUU2GMJeglrqrT3cq++hcE5SQo7w=;
- b=auxAEAlwthRjC6xSIlM/ZpgRq1TpplkHsMleVoLeA5Lg2NvLq90AmP7LWovhBuNss6Mt7S
- Jv+nPgQDe9H0mBZdEro8Y+m8m11EmF4gyesoAE/IPX8Rg/M0MIUmoqD28s81HJPKPUbU3H
- wBj41jSAHZ7/wxBTMCK/xgBHkG9wjy0=
+ bh=+ZeMoJ3W4+8Si0O+3M8rAaXW1eupuLZDs/fqA89KAPE=;
+ b=Zol/mVEiDADTmjnfvCryYdUK9m3cV8zkVhiISKvYPoxCCt5aEAhVKGvqH4VBIxdRNIMagn
+ LluxyngyAytUhCXX66J4QwrAv7OP6iIK+GHJaGEl5doiwUzg5OioA8PDZx6417OgTgtCYF
+ jdokBsNAvQV2N4TGcn3Tbwp6ZVPpFjA=
 To: Jens Axboe <axboe@kernel.dk>, Al Viro <viro@zeniv.linux.org.uk>,
  Christoph Hellwig <hch@infradead.org>
-Date: Fri, 19 May 2023 08:40:34 +0100
-Message-id: <20230519074047.1739879-20-dhowells@redhat.com>
-In-reply-to: <20230519074047.1739879-1-dhowells@redhat.com>
-References: <20230519074047.1739879-1-dhowells@redhat.com>
+Date: Sat, 20 May 2023 01:00:41 +0100
+Message-id: <20230520000049.2226926-23-dhowells@redhat.com>
+In-reply-to: <20230520000049.2226926-1-dhowells@redhat.com>
+References: <20230520000049.2226926-1-dhowells@redhat.com>
 MIME-version: 1.0
 X-Source-IP: 170.10.129.124
-X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10714
+X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10715
  signatures=596816
 Cc: linux-block@vger.kernel.org, Hillf Danton <hdanton@sina.com>,
  Jan Kara <jack@suse.cz>, David Hildenbrand <david@redhat.com>,
@@ -57,7 +57,7 @@ Cc: linux-block@vger.kernel.org, Hillf Danton <hdanton@sina.com>,
  linux-mm@kvack.org, Jason Gunthorpe <jgg@nvidia.com>,
  linux-fsdevel@vger.kernel.org, Logan Gunthorpe <logang@deltatee.com>,
  ocfs2-devel@oss.oracle.com
-Subject: [Ocfs2-devel] [PATCH v20 19/32] ocfs2: Provide a splice-read stub
+Subject: [Ocfs2-devel] [PATCH v21 22/30] ocfs2: Provide a splice-read stub
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -74,8 +74,8 @@ Reply-to: David Howells <dhowells@redhat.com>
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-MC-Unique: _MfV9O_bPYGXDbkMXz1GRA-1
-X-Scanned-By: MIMEDefang 3.1 on 10.11.54.8
+X-MC-Unique: v3noG5lZOjuaP3G1f6efug-1
+X-Scanned-By: MIMEDefang 3.1 on 10.11.54.2
 X-Proofpoint-SPF-Result: pass
 X-Proofpoint-SPF-Record: v=spf1 ip4:107.21.15.141 ip4:108.177.8.0/21
  ip4:128.17.0.0/20 ip4:128.17.128.0/20 ip4:128.17.192.0/20 ip4:128.17.64.0/20
@@ -95,22 +95,22 @@ X-Proofpoint-SPF-Record: v=spf1 ip4:107.21.15.141 ip4:108.177.8.0/21
 X-Proofpoint-Spam-Reason: safe
 X-Spam: OrgSafeList
 X-SpamRule: orgsafelist
-X-Proofpoint-GUID: GMc6dxZ_WYH7kwQ6BCbdKD4fJidG9Pui
-X-Proofpoint-ORIG-GUID: GMc6dxZ_WYH7kwQ6BCbdKD4fJidG9Pui
+X-Proofpoint-ORIG-GUID: gMCNHyyLNtPygDH1XunTqn3fz0LDhcW7
+X-Proofpoint-GUID: gMCNHyyLNtPygDH1XunTqn3fz0LDhcW7
 Reporting-Meta:
- AAGutpx60ATFMUzML5N7XTojKm8RLyTyyFWfQrm2F9s+eycjqRukLdsyL2U8rJ56
- Ykv0sUhj4o15fOjwdm2BFTvfOyqZrVW2MJ89CO5QBkvjg8LXGDVjxf7/OLQXmaQc
- VPnCCxHZ4xhOOj1mzZ0ycvX4Q442pcnlbt9r1B1xjz2buM2sGXrxybhezuMoIx+A
- qhDNSbZtoQhOzq78+R8zjrUkXNiuAMKjk2nsSUOo7vdV8MnTCd78bI0H2KzZsZro
- Wbzdltr+j0kWswqItY7MPmKD5rCflBncwtPKHw6gzupj6oekLVIGL8IohBsm9TQS
- OqqDlF3V+voZiFpHOlVHcpKc61YsfC2gaEsD34bc6Ssnv1g2j+UMzambUdaCjoQ1
- 1ScDjCq+StiL+srFyRkuVAvYQhlQP6VENaQ0bAs2ATxoXfED95FQOltlKnbK3zSz
- zjaSsJGWM6sobdAfEXSfFoUtdelMezGC24BFOIE4Zw6C1mZGiiaNMI99xEkGq6Zo
- dDcx5S8BME6bfXMqH9491d11GJhBMSW7MPa+FtP+lL0=
+ AAETPw+tDF0ZLzihQf1b+cSK1bjN/GUPxujHv2YxZH6NqSjbTe/D7cdAzGPxIHRI
+ bBygmSzPC0tqP0YerV6ECN9Xo7URG5LMGyy36fjsH4egkIh41P7507bCHxxmqt43
+ 3vwLu5wrhRgSN4ulhDB2Eb1myihbw9v2xKZXcuWMouIumJOBNXaT3KqM8ZXW5bOa
+ NY3K0tnt9MEz+vCo0oESpoSNEM0yr/BnwMAJhiwbjdw6ZCn6Vrf+JM8b14evLeFJ
+ 7bRrOVDfqQyhG1PmPcO6O7ONrFXldACYaaNqGVHvTBSrapBXgWcnoDoLhMPbv8zH
+ 0VIO/GBIbMshIY8Tc5B5gFlDipsL+kKnJhH5a70y22XkxvHCLhg9vo/tDnTenfxj
+ dxH8Ty2XOzL+/5mrWzPjg+XaGZ0By5TL774Pzw5jBObLjpcD9w4ddE7+V2OiDhqS
+ DukTcjkDV4wqFfwAvGD2sFIQAgx29BLU1yKRPA4QLP3A8xfcYsz73eIv1fawpj8r
+ ZuQ1oVy7HlIPEvCO8G6wHY8Dbdlaw2h6c/XqmPq/JELt+Q==
 
 Provide a splice_read stub for ocfs2.  This emits trace lines and does an
-atime lock/update before calling filemap_splice_read().  It doesn't do this
-for around direct_splice_read() as that will call ->read_iter().
+atime lock/update before calling filemap_splice_read().  Splicing from
+direct I/O is handled by the caller.
 
 A couple of new tracepoints are added for this purpose.
 
@@ -126,15 +126,15 @@ cc: linux-fsdevel@vger.kernel.org
 cc: linux-block@vger.kernel.org
 cc: linux-mm@kvack.org
 ---
- fs/ocfs2/file.c        | 42 +++++++++++++++++++++++++++++++++++++++++-
+ fs/ocfs2/file.c        | 39 ++++++++++++++++++++++++++++++++++++++-
  fs/ocfs2/ocfs2_trace.h |  3 +++
- 2 files changed, 44 insertions(+), 1 deletion(-)
+ 2 files changed, 41 insertions(+), 1 deletion(-)
 
 diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-index efb09de4343d..27c54a71ec57 100644
+index efb09de4343d..f7e00b5689d5 100644
 --- a/fs/ocfs2/file.c
 +++ b/fs/ocfs2/file.c
-@@ -2581,6 +2581,46 @@ static ssize_t ocfs2_file_read_iter(struct kiocb *iocb,
+@@ -2581,6 +2581,43 @@ static ssize_t ocfs2_file_read_iter(struct kiocb *iocb,
  	return ret;
  }
  
@@ -151,9 +151,6 @@ index efb09de4343d..27c54a71ec57 100644
 +				     in->f_path.dentry->d_name.len,
 +				     in->f_path.dentry->d_name.name,
 +				     0);
-+
-+	if (in->f_flags & O_DIRECT)
-+		return direct_splice_read(in, ppos, pipe, len, flags);
 +
 +	/*
 +	 * We're fine letting folks race truncates and extending writes with
@@ -181,7 +178,7 @@ index efb09de4343d..27c54a71ec57 100644
  /* Refer generic_file_llseek_unlocked() */
  static loff_t ocfs2_file_llseek(struct file *file, loff_t offset, int whence)
  {
-@@ -2744,7 +2784,7 @@ const struct file_operations ocfs2_fops = {
+@@ -2744,7 +2781,7 @@ const struct file_operations ocfs2_fops = {
  #endif
  	.lock		= ocfs2_lock,
  	.flock		= ocfs2_flock,
