@@ -1,63 +1,73 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc254.phx1.oracleemaildelivery.com (aib29ajc254.phx1.oracleemaildelivery.com [192.29.103.254])
+Received: from aib29ajc252.phx1.oracleemaildelivery.com (aib29ajc252.phx1.oracleemaildelivery.com [192.29.103.252])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id E3EB3C7EE2D
-	for <ocfs2-devel@archiver.kernel.org>; Mon, 22 May 2023 13:52:12 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 7305DC7EE23
+	for <ocfs2-devel@archiver.kernel.org>; Mon, 22 May 2023 16:27:41 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=Xo1zUCzs4CqZiRYn368awJTl/1S9IWTgxoucezWS+no=;
- b=F1flwRY9bRTYiYGdc6tiBahE6wcxqM16L1QggySsMw+/xB6Sg0mdwRwWoEN7tYHtepDaDC1BDx9L
-   fWFHvncYgPRGMTa3yH/s+wHYcNdMnbguJ1NWFFg6KqKOMQoLldHGRf1dwrTy+ImZjTRUpxxEkvi2
-   sxaTCdAHVUI1l2Q1RWRm/2/pW0nj6SH9eUPUAGPLr8iDkrnGbkm9M+m/Vky3QBEeTxA5lKSQlK9l
-   xcHGNRMCkLLu+m9Z+iuKzdTHi9IZYTJ/7l1EXmyr2C+jh20NzuPmdcot4oQ3i5H0foQA+4lHSaqY
-   QElfUTPjAbCH3EZ1/OQxdzeUTaLK8ANq7+e3Lg==
+ bh=3X30DxsuxCtpzpeD4mh99YVgVJpPCLlCdeMFpkKSRaM=;
+ b=xpPB+vg35gBPzd1CXxYeDDvz57qWNL1zqIES9Wyz6Hf7b9W9gep0jpL2MPaR4R0ECtr3X+KTEKYI
+   J1qr4/jTEYi+X3Y4JQfZdXpk128jeYqTVUDL9VBkF8el+Di3ANNsfEYTA/w+aFSwxad4p2UAz/hC
+   qswZeeR+IN6rviAW6pm8HBVYqr0e9xvnbhRgGLL8ha8BcYSXGwQEnf6d4GP5foiENeGGaa819Igw
+   dy2NMpEEzuYkx8JbCfEJykItyPYfUnlqi5K/gQm7Sbsxus+enHUuKzrd6s4KQrkGXNoRzZewnF51
+   oX8QLkSOMkR0mceaSWXZX1KWld/4j/Yb6IMgUw==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=Xo1zUCzs4CqZiRYn368awJTl/1S9IWTgxoucezWS+no=;
- b=hs14KiwaDRRxesjPpftnAIXPP7z9MPcKzpc3QFe4h1heA35fhsvKMNjtUCZvaZgb61yB/Mj45/cs
-   Pm+Mx9jOJQdyYpdRDsRfsq37yEvUnMbmrq3NhaFXqSvCSAtRQslK041/sV22LH+7nGmcz4dBabJM
-   BhvLyq/BDTnJY85ww8j4ERl9YIXj7g/21U8kkuPHtSYNlUpPEZNgZtemYVacvC+l3BM2Bfgp1MTB
-   /1kQNtPMMo+piH6U5DE5u5tfDvTw2WYpeJplIXxEVJY29oBd+YT0eFubPPof74Oc1YzddCd2Qi9P
-   A7BJm5vxXbLmwFWpWnb3JSIlEAG0VAL/RNlzVg==
-Received: by omta-ad3-fd3-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
+ bh=3X30DxsuxCtpzpeD4mh99YVgVJpPCLlCdeMFpkKSRaM=;
+ b=gTXVOMl8EfBhOpw/5ouIMVuBHS/r5w+fHyHfaIizW4aWYNucXl+rscNksKZGFdxc3hj8oVCMZ4i+
+   qt0lvpuRU8zF7d1AykkIEx5eXAxhbMwXsxB2oDkRdNsbeh+LB8jovu80tml06H4sceJveW9vLpLF
+   ZIPbpS7FEtR5iKZMYnY5P1wehfkJ9o/wTEIMnBBcSrvMs5gEvhZGFtm+L68OYjDRdOjunc31on9J
+   RuvsYdzQU/HRASWopzafbTr3oGdy3ZbqNIWdIpBwrPtXqLwD4Jb7PW5/kvM4cMBSzrxezavwFiVs
+   Cm857azT26Oxw291aPlMViuIY8JPP0pPGKRrAw==
+Received: by omta-ad3-fd1-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20230420 64bit (built Apr 20
  2023))
- with ESMTPS id <0RV2001IHBV04X90@omta-ad3-fd3-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Mon, 22 May 2023 13:52:12 +0000 (GMT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
- s=mimecast20190719; t=1684763517;
- h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
- to:to:cc:cc:mime-version:mime-version:
+ with ESMTPS id <0RV200G2LJ25AY00@omta-ad3-fd1-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Mon, 22 May 2023 16:27:41 +0000 (GMT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.de; s=susede2_rsa;
+ t=1684761763;
+ h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+ mime-version:mime-version:content-type:content-type:
  content-transfer-encoding:content-transfer-encoding:
  in-reply-to:in-reply-to:references:references;
- bh=WTfdYshb2SEJ7i+Rhr+GK9rq0gZ3nIJZ8Q96oyv400s=;
- b=QMHnWkdwmwUVxtTZB25jYyJZKx1awXcN7jAmxLn71JU7e3UOpr4eF7v9uC7ngYXxzOTJJd
- qr6o9hChgXuegRMsu6N2DN5DE3KBq/wVGjjUUClrh38h+G3mnaxeIP3HIKe1Pt6nOzTcxa
- 6aEk0Bs5RwfWUfFCEEuoTfQg4vuk97c=
-To: Jens Axboe <axboe@kernel.dk>, Al Viro <viro@zeniv.linux.org.uk>,
- Christoph Hellwig <hch@infradead.org>
-Date: Mon, 22 May 2023 14:50:09 +0100
-Message-id: <20230522135018.2742245-23-dhowells@redhat.com>
-In-reply-to: <20230522135018.2742245-1-dhowells@redhat.com>
-References: <20230522135018.2742245-1-dhowells@redhat.com>
+ bh=GCuK3LPZF5iDHF6eAIMdoiAoNyzIubdp5oaBuFWw3Hg=;
+ b=y0buT+Ce4L02Be6wKZkwOpa/RfvnLye+GPy36fZD27pzS8fsZZ5IGVspUcj6i6MdSiCxxl
+ dj4mgbcgVpODvdt0Gk7FGiYsCVPLo5hUJjn5N27BA1K4h8pLXclDMitoDbELT73dq2/kx5
+ hH7NyqDRjjJL4FVdvYoCK7ESXyo5WGs=
+DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.de;
+ s=susede2_ed25519; t=1684761763;
+ h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+ mime-version:mime-version:content-type:content-type:
+ content-transfer-encoding:content-transfer-encoding:
+ in-reply-to:in-reply-to:references:references;
+ bh=GCuK3LPZF5iDHF6eAIMdoiAoNyzIubdp5oaBuFWw3Hg=;
+ b=RB/kNeMWqcXftJlo79BIV81Malm0prE/Ab5eZ3ZZfKljo9R5gxvRHx6dgWgwgU/1RVF7y9
+ 20It/fzu0BDdaUCg==
+To: Heming Zhao <heming.zhao@suse.com>
+References: <20230522102506.9205-1-lhenriques@suse.de>
+ <a57047d6-8f57-3dde-f15f-b24f63d675cd@linux.alibaba.com>
+ <87h6s47dxw.fsf@brahms.olymp> <20230522123623.eozzedrogy4oaj3w@p15>
+Date: Mon, 22 May 2023 14:22:41 +0100
+In-reply-to: <20230522123623.eozzedrogy4oaj3w@p15>
+ (Heming Zhao's message of "Mon, 22 May 2023 20:36:23 +0800")
+Message-id: <87cz2s7b6m.fsf@brahms.olymp>
 MIME-version: 1.0
-X-Source-IP: 170.10.133.124
+X-Source-IP: 195.135.220.28
 X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10718
  signatures=596816
-Cc: linux-block@vger.kernel.org, Hillf Danton <hdanton@sina.com>,
- Jan Kara <jack@suse.cz>, David Hildenbrand <david@redhat.com>,
- Linus Torvalds <torvalds@linux-foundation.org>,
- Jeff Layton <jlayton@kernel.org>, Christian Brauner <brauner@kernel.org>,
- linux-kernel@vger.kernel.org, David Howells <dhowells@redhat.com>,
- linux-mm@kvack.org, Jason Gunthorpe <jgg@nvidia.com>,
- linux-fsdevel@vger.kernel.org, Logan Gunthorpe <logang@deltatee.com>,
- ocfs2-devel@oss.oracle.com
-Subject: [Ocfs2-devel] [PATCH v22 22/31] ocfs2: Provide a splice-read wrapper
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0
+ priorityscore=162 clxscore=23 mlxscore=0 spamscore=0 mlxlogscore=937
+ bulkscore=0 adultscore=0 suspectscore=0 malwarescore=0 phishscore=0
+ impostorscore=0 lowpriorityscore=0 classifier=spam adjust=0 reason=mlx
+ scancount=1 engine=8.12.0-2304280000 definitions=main-2305220111
+Cc: linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
+Subject: Re: [Ocfs2-devel] [PATCH] ocfs2: fix use-after-free when unmounting
+ read-only filesystem
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -69,164 +79,150 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: David Howells via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: David Howells <dhowells@redhat.com>
-Content-type: text/plain; charset="us-ascii"
-Content-transfer-encoding: 7bit
+From: =?utf-8?Q?Lu=C3=ADs_Henriques?= via Ocfs2-devel
+ <ocfs2-devel@oss.oracle.com>
+Reply-to: =?utf-8?Q?Lu=C3=ADs_Henriques?= <lhenriques@suse.de>
+Content-type: text/plain; charset="utf-8"
+Content-transfer-encoding: base64
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-MC-Unique: VqXNS97OMu6rkAXf15s6Mg-1
-X-Scanned-By: MIMEDefang 3.1 on 10.11.54.9
+X-ServerName: smtp-out1.suse.de
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 ip4:107.21.15.141 ip4:108.177.8.0/21
- ip4:128.17.0.0/20 ip4:128.17.128.0/20 ip4:128.17.192.0/20 ip4:128.17.64.0/20
- ip4:128.245.0.0/20 ip4:128.245.64.0/20 ip4:13.110.208.0/21 ip4:13.110.216.0/22
- ip4:13.110.224.0/20 ip4:13.111.0.0/16 ip4:136.147.128.0/20
- ip4:136.147.176.0/20 ip4:148.105.8.0/21 ip4:149.72.0.0/16 ip4:159.183.0.0/16
- include:spf1.redhat.com -all
-X-Proofpoint-SPF-VenPass: Allowed
-X-ServerName: us-smtp-delivery-124.mimecast.com
-X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 ip4:107.21.15.141 ip4:108.177.8.0/21
- ip4:128.17.0.0/20 ip4:128.17.128.0/20 ip4:128.17.192.0/20 ip4:128.17.64.0/20
- ip4:128.245.0.0/20 ip4:128.245.64.0/20 ip4:13.110.208.0/21 ip4:13.110.216.0/22
- ip4:13.110.224.0/20 ip4:13.111.0.0/16 ip4:136.147.128.0/20
- ip4:136.147.176.0/20 ip4:148.105.8.0/21 ip4:149.72.0.0/16 ip4:159.183.0.0/16
- include:spf1.redhat.com -all
-X-Proofpoint-Spam-Reason: safe
-X-Spam: OrgSafeList
-X-SpamRule: orgsafelist
-X-Proofpoint-GUID: K7_aQkBDi7SCFGsaNwZl9a95yVudGfNh
-X-Proofpoint-ORIG-GUID: K7_aQkBDi7SCFGsaNwZl9a95yVudGfNh
+X-Proofpoint-SPF-Record: v=spf1 mx ip4:195.135.220.0/27
+ ip6:2001:67c:2178:6::/120 ~all
+X-Spam: Clean
+X-Proofpoint-GUID: PdgIAt6hJkOKNwwjl3oQgWWnzlaCQ7rR
+X-Proofpoint-ORIG-GUID: PdgIAt6hJkOKNwwjl3oQgWWnzlaCQ7rR
+X-Mailman-Approved-At: Mon, 22 May 2023 16:27:39 +0000
 Reporting-Meta:
- AAFgYGu87AHz3u15KOOp/DPy7dFbegP5rHfvXADYoIrbQkcgm+vYDObgVVqmM8ql
- D0nkEzwGgssAbbJ2eUR587SAZbAeFuyBEIthKvDbvRz8mIDWGnTakN6MH9flzSH+
- Nc9k08Mnvyf9GEhYLFzDwGsPDgBR7KXIYcRGD1IvrQB+76zA7Fb4PQD89BbLff4V
- sWBiUP+8E87VszQlL7I592ipExckNxoJX7bOdW8c9iXQtf+Esaz/3kScZTBnSc9Z
- XJUSEb/fL9mu5Fqlpx8Cb0oQ6OmB2Y9/CWo8uXe2H2DYqNMa1p+hKX4SNYXUkSQl
- nCYy+Yjvdd7m8EjZT5WcYvQwyD6THGERM60alFcMQ2a+O0NjCiXX4+NiHXxu1+lj
- SpDtm/FH0z/xHFSrW+oIZZThCm/ubO173gzAlnmalmET1ZRNpavozj/rZ4g5ngtu
- EjT9zGoPGbjwbfCcje+h6WU6RTlqCIip5+kUELJoZcUU/PROmt4wPUAiTPMN9d0p
- 1IR6N5CJCnRTHTin0JP1rAolAhe0jpu8WCrHc7Gfkzg=
+ AAFLUvcPaXQ31/2+2R/9D4eHLxDT19thiipwElIiUC/5Dd6U9z+7WIz7tVOkMK0Y
+ 4/Ch8sZWjjJHCC068EXGq+zTkAJ97og9GSf1r2RX0AIm7uBEcH4cam78xmLOvRFn
+ NSVNrifQOihjCV2qIoMww8CCCJbjBHc6TpbOYTCf1kzHZT0ukmwKnN6TrrjqAwaj
+ K5GKaOyl0ld5EMoX008iIJIPb6gVflosR1alxW70JCS7VgdiXnqcvStWbss1i3Bp
+ YFTy6kCHVQ+kk01X4KFtqWD2jUJKrE9lF7nU9VARe426WjSVS3kF44Me0ajNL0Gb
+ NaWWAQgBuZIybYAN9O414vkX9orwcX2A+QRmLo0O8jN1cyptEApExkcCc9QOu++k
+ 4wA9xlrNlyoneVzPAVNYeGu48BYEh3raWDWgfEMkS+OKBrfp0JiQzdJ3rlaEWMwA
+ LNCXFttCwBTJvqf8I/OPUVUiUblGaEwJp3kydkoOtvrk6Bb1UBjEwEOhQMHnRmTB
+ ZjtqQuWn3MURcnQGjLb2GGZ3Asubk6GQEJkPsnZFM7NF
 
-Provide a splice_read wrapper for ocfs2.  This emits trace lines and does
-an atime lock/update before calling filemap_splice_read().  Splicing from
-direct I/O is handled by the caller.
-
-A couple of new tracepoints are added for this purpose.
-
-Signed-off-by: David Howells <dhowells@redhat.com>
-Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-cc: Christoph Hellwig <hch@lst.de>
-cc: Al Viro <viro@zeniv.linux.org.uk>
-cc: Jens Axboe <axboe@kernel.dk>
-cc: Mark Fasheh <mark@fasheh.com>
-cc: Joel Becker <jlbec@evilplan.org>
-cc: ocfs2-devel@oss.oracle.com
-cc: linux-fsdevel@vger.kernel.org
-cc: linux-block@vger.kernel.org
-cc: linux-mm@kvack.org
----
-
-Notes:
-    ver #22:
-     - Adjust a couple of comments mentioning generic_file_splice_read().
-     - Pass 1 to ocfs2_inode_lock_atomic() rather than true.
-     - Pass the splice flags into the tracepoint.
-
- fs/ocfs2/file.c        | 41 +++++++++++++++++++++++++++++++++++++++--
- fs/ocfs2/ocfs2_trace.h |  3 +++
- 2 files changed, 42 insertions(+), 2 deletions(-)
-
-diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-index efb09de4343d..86add13b5f23 100644
---- a/fs/ocfs2/file.c
-+++ b/fs/ocfs2/file.c
-@@ -2552,7 +2552,7 @@ static ssize_t ocfs2_file_read_iter(struct kiocb *iocb,
- 	 *
- 	 * Take and drop the meta data lock to update inode fields
- 	 * like i_size. This allows the checks down below
--	 * generic_file_read_iter() a chance of actually working.
-+	 * copy_splice_read() a chance of actually working.
- 	 */
- 	ret = ocfs2_inode_lock_atime(inode, filp->f_path.mnt, &lock_level,
- 				     !nowait);
-@@ -2581,6 +2581,43 @@ static ssize_t ocfs2_file_read_iter(struct kiocb *iocb,
- 	return ret;
- }
- 
-+static ssize_t ocfs2_file_splice_read(struct file *in, loff_t *ppos,
-+				      struct pipe_inode_info *pipe,
-+				      size_t len, unsigned int flags)
-+{
-+	struct inode *inode = file_inode(in);
-+	ssize_t ret = 0;
-+	int lock_level = 0;
-+
-+	trace_ocfs2_file_splice_read(inode, in, in->f_path.dentry,
-+				     (unsigned long long)OCFS2_I(inode)->ip_blkno,
-+				     in->f_path.dentry->d_name.len,
-+				     in->f_path.dentry->d_name.name,
-+				     flags);
-+
-+	/*
-+	 * We're fine letting folks race truncates and extending writes with
-+	 * read across the cluster, just like they can locally.  Hence no
-+	 * rw_lock during read.
-+	 *
-+	 * Take and drop the meta data lock to update inode fields like i_size.
-+	 * This allows the checks down below filemap_splice_read() a chance of
-+	 * actually working.
-+	 */
-+	ret = ocfs2_inode_lock_atime(inode, in->f_path.mnt, &lock_level, 1);
-+	if (ret < 0) {
-+		if (ret != -EAGAIN)
-+			mlog_errno(ret);
-+		goto bail;
-+	}
-+	ocfs2_inode_unlock(inode, lock_level);
-+
-+	ret = filemap_splice_read(in, ppos, pipe, len, flags);
-+	trace_filemap_splice_read_ret(ret);
-+bail:
-+	return ret;
-+}
-+
- /* Refer generic_file_llseek_unlocked() */
- static loff_t ocfs2_file_llseek(struct file *file, loff_t offset, int whence)
- {
-@@ -2744,7 +2781,7 @@ const struct file_operations ocfs2_fops = {
- #endif
- 	.lock		= ocfs2_lock,
- 	.flock		= ocfs2_flock,
--	.splice_read	= generic_file_splice_read,
-+	.splice_read	= ocfs2_file_splice_read,
- 	.splice_write	= iter_file_splice_write,
- 	.fallocate	= ocfs2_fallocate,
- 	.remap_file_range = ocfs2_remap_file_range,
-diff --git a/fs/ocfs2/ocfs2_trace.h b/fs/ocfs2/ocfs2_trace.h
-index dc4bce1649c1..b8c3d1702076 100644
---- a/fs/ocfs2/ocfs2_trace.h
-+++ b/fs/ocfs2/ocfs2_trace.h
-@@ -1319,6 +1319,8 @@ DEFINE_OCFS2_FILE_OPS(ocfs2_file_splice_write);
- 
- DEFINE_OCFS2_FILE_OPS(ocfs2_file_read_iter);
- 
-+DEFINE_OCFS2_FILE_OPS(ocfs2_file_splice_read);
-+
- DEFINE_OCFS2_ULL_ULL_ULL_EVENT(ocfs2_truncate_file);
- 
- DEFINE_OCFS2_ULL_ULL_EVENT(ocfs2_truncate_file_error);
-@@ -1470,6 +1472,7 @@ TRACE_EVENT(ocfs2_prepare_inode_for_write,
- );
- 
- DEFINE_OCFS2_INT_EVENT(generic_file_read_iter_ret);
-+DEFINE_OCFS2_INT_EVENT(filemap_splice_read_ret);
- 
- /* End of trace events for fs/ocfs2/file.c. */
- 
-
-
-_______________________________________________
-Ocfs2-devel mailing list
-Ocfs2-devel@oss.oracle.com
-https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+SGVtaW5nIFpoYW8gPGhlbWluZy56aGFvQHN1c2UuY29tPiB3cml0ZXM6Cgo+IE9uIE1vbiwgTWF5
+IDIyLCAyMDIzIGF0IDAxOjIzOjA3UE0gKzAxMDAsIEx1w61zIEhlbnJpcXVlcyB3cm90ZToKPj4g
+Sm9zZXBoIFFpIDxqb3NlcGgucWlAbGludXguYWxpYmFiYS5jb20+IHdyaXRlczoKPj4gCj4+ID4g
+T24gNS8yMi8yMyA2OjI1IFBNLCBMdcOtcyBIZW5yaXF1ZXMgd3JvdGU6Cj4+ID4+IEl0J3MgdHJp
+dmlhbCB0byB0cmlnZ2VyIGEgdXNlLWFmdGVyLWZyZWUgYnVnIGluIHRoZSBvY2ZzMiBxdW90YXMg
+Y29kZSB1c2luZwo+PiA+PiBmc3Rlc3QgZ2VuZXJpYy80NTIuICBBZnRlciBtb3VudGluZyBhIGZp
+bGVzeXN0ZW0gYXMgcmVhZC1vbmx5LCBxdW90YXMgYXJlCj4+ID4KPj4gPiBnZW5lcmljLzQ1MiBp
+cyBmb3IgdGVzdGluZyBleHQ0IG1vdW50ZWQgd2l0aCBkYXggYW5kIHJvLgo+PiA+IEJ1dCBvY2Zz
+MiBkb2Vzbid0IHN1cHBvcnQgZGF4IHlldC4KPj4gCj4+IFJpZ2h0LCBidXQgSSB0aGluayBpdCdz
+IHN0aWxsIHVzZWZ1bCB0byBydW4gdGhlICdnZW5lcmljJyB0ZXN0LXN1aXRlIGluIGEKPj4gZmls
+ZXN5c3RlbS4gIFdlIGNhbiBhbHdheXMgZmluZCBpc3N1ZXMgaW4gdGhlIHRlc3QgaXRzZWxmIG9y
+LCBpbiB0aGlzCj4+IGNhc2UsIGEgYnVnIGluIHRoZSBmaWxlc3lzdGVtLgo+Cj4gSXQgbG9va3Mg
+eW91IGRpZCBzb21lIHNwZWNpYWwgc3RlcHMgZm9yIDQ1Mi4gSW4gbXkgZW52LCB3aXRob3V0IGNo
+YW5naW5nCj4gYW55dGhpbmcsIEkgY291bGQgcGFzcyB0aGlzIGNhc2Ugc3VjY2Vzc2Z1bGx5LiAK
+Ck5vLCBJIGhhdmVuJ3QgY2hhbmdlZCBhbnl0aGluZyB0byB0aGUgdGVzdC4gIEkganVzdCBtYWtl
+IHN1cmUgdGhlcmUncyBhCnNjcmF0Y2ggZGV2aWNlIHRvIGJlIHVzZWQuCgpNYXliZSB5b3UgY2Fu
+IHRyeSB0byBlbmFibGUgS0FTQU4gdG8gY2F0Y2ggdGhlIFVBRi4gIEkndmUgZm91bmQgdGhlIGJ1
+Zwp3aXRob3V0IEtBU0FOIChpLmUuIEkgc2F3IGEgTlVMTCBwb2ludGVyIHBhbmljKSwgYnV0IGVu
+YWJsaW5nIGl0IGFsc28KZGV0ZWN0cyB0aGUgaXNzdWUgLS0gc2VlIGJlbG93LgoKQ2hlZXJzLAot
+LSAKTHXDrXMKClsgICA5MS45MjgxMDldID09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09
+PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PQpbICAgOTEuOTI5NTE5XSBCVUc6IEtB
+U0FOOiBzbGFiLXVzZS1hZnRlci1mcmVlIGluIHRpbWVyX2RlbGV0ZSsweDU0LzB4YzAKWyAgIDkx
+LjkzMDg2OV0gUmVhZCBvZiBzaXplIDggYXQgYWRkciBmZmZmODg4MDM4OWE4MjA4IGJ5IHRhc2sg
+dW1vdW50LzY2OQpbICAgOTEuOTMyNTMzXSBDUFU6IDEgUElEOiA2NjkgQ29tbTogdW1vdW50IE5v
+dCB0YWludGVkIDYuNC4wLXJjMyAjMjM2ClsgICA5MS45MzM4MDddIEhhcmR3YXJlIG5hbWU6IFFF
+TVUgU3RhbmRhcmQgUEMgKGk0NDBGWCArIFBJSVgsIDE5OTYpLCBCSU9TIHJlbC0xLjE2LjAtMC1n
+ZDIzOTU1MmMtcmVidWlsdC5vcGVuc3VzZS5vcmcgMDQvMDEvMjAxNApbICAgOTEuOTM2MTU4XSBD
+YWxsIFRyYWNlOgpbICAgOTEuOTM2Njc4XSAgPFRBU0s+ClsgICA5MS45MzcxMjNdICBkdW1wX3N0
+YWNrX2x2bCsweDMyLzB4NTAKWyAgIDkxLjkzNzkwOV0gIHByaW50X3JlcG9ydCsweGM1LzB4NWYw
+ClsgICA5MS45Mzg2ODVdICA/IF9yYXdfc3Bpbl9sb2NrX2lycXNhdmUrMHg3Mi8weGMwClsgICA5
+MS45Mzk2NDJdICA/IF9fdmlydF9hZGRyX3ZhbGlkKzB4YWMvMHgxMzAKWyAgIDkxLjk0MDUzNF0g
+ID8gX19wZnhfX3Jhd19zcGluX2xvY2tfaXJxc2F2ZSsweDEwLzB4MTAKWyAgIDkxLjk0MTU3NF0g
+ID8gdGltZXJfZGVsZXRlKzB4NTQvMHhjMApbICAgOTEuOTQyMzU3XSAga2FzYW5fcmVwb3J0KzB4
+OWUvMHhkMApbICAgOTEuOTQzMTEwXSAgPyB0aW1lcl9kZWxldGUrMHg1NC8weGMwClsgICA5MS45
+NDM5MDJdICB0aW1lcl9kZWxldGUrMHg1NC8weGMwClsgICA5MS45NDQ2NDNdICA/IF9fcGZ4X3Rp
+bWVyX2RlbGV0ZSsweDEwLzB4MTAKWyAgIDkxLjk0NTQ5Ml0gID8gZGV0YWNoX2lmX3BlbmRpbmcr
+MHgxMTIvMHgxNDAKWyAgIDkxLjk0NjQwNV0gIHRyeV90b19ncmFiX3BlbmRpbmcrMHgzMS8weDIz
+MApbICAgOTEuOTQ3MjUyXSAgX19jYW5jZWxfd29ya190aW1lcisweDZjLzB4MjcwClsgICA5MS45
+NDgxMDJdICA/IF9fcGZ4X19fY2FuY2VsX3dvcmtfdGltZXIrMHgxMC8weDEwClsgICA5MS45NDkw
+NzNdICA/IHRyeV90b19ncmFiX3BlbmRpbmcrMHgzMS8weDIzMApbICAgOTEuOTQ5OTU2XSAgPyBf
+X2NhbmNlbF93b3JrKzB4ZTMvMHgxMzAKWyAgIDkxLjk1MDc0Nl0gID8gbXV0ZXhfdW5sb2NrKzB4
+NmIvMHhiMApbICAgOTEuOTUxNDg1XSAgb2NmczJfZGlzYWJsZV9xdW90YXMuaXNyYS4wKzB4M2Uv
+MHhmMCBbb2NmczJdClsgICA5MS45NTI2MzVdICBvY2ZzMl9kaXNtb3VudF92b2x1bWUrMHhkZC8w
+eDQ1MCBbb2NmczJdClsgICA5MS45NTM2NzZdICA/IF9fcGZ4X19fZmlsZW1hcF9mZGF0YXdyaXRl
+X3JhbmdlKzB4MTAvMHgxMApbICAgOTEuOTU0NzU3XSAgPyBfX3BmeF9vY2ZzMl9kaXNtb3VudF92
+b2x1bWUrMHgxMC8weDEwIFtvY2ZzMl0KWyAgIDkxLjk1NTg5OF0gID8gZmlsZW1hcF9jaGVja19l
+cnJvcnMrMHg0Ni8weGIwClsgICA5MS45NTY3MzddICBnZW5lcmljX3NodXRkb3duX3N1cGVyKzB4
+YWEvMHgyODAKWyAgIDkxLjk1NzYwNF0gIGtpbGxfYmxvY2tfc3VwZXIrMHg0Ni8weDcwClsgICA5
+MS45NTg0MTVdICBkZWFjdGl2YXRlX2xvY2tlZF9zdXBlcisweDRkLzB4YjAKWyAgIDkxLjk1OTg2
+MV0gIGNsZWFudXBfbW50KzB4MTM1LzB4MWYwClsgICA5MS45NjA4NjJdICB0YXNrX3dvcmtfcnVu
+KzB4ZTMvMHgxNDAKWyAgIDkxLjk2MTg4N10gID8gX19wZnhfdGFza193b3JrX3J1bisweDEwLzB4
+MTAKWyAgIDkxLjk2Mjg4N10gID8gX194NjRfc3lzX3Vtb3VudCsweGJiLzB4ZDAKWyAgIDkxLjk2
+MzM0M10gIGV4aXRfdG9fdXNlcl9tb2RlX3ByZXBhcmUrMHhkYS8weGUwClsgICA5MS45NjM4Njdd
+ICBzeXNjYWxsX2V4aXRfdG9fdXNlcl9tb2RlKzB4MWQvMHg1MApbICAgOTEuOTY0MzkyXSAgZG9f
+c3lzY2FsbF82NCsweDRmLzB4OTAKWyAgIDkxLjk2NDgwMF0gIGVudHJ5X1NZU0NBTExfNjRfYWZ0
+ZXJfaHdmcmFtZSsweDcyLzB4ZGMKWyAgIDkxLjk2NTM4N10gUklQOiAwMDMzOjB4N2ZhNzY2NGJh
+YWNiClsgICA5MS45NjU3OTZdIENvZGU6IGZhIDkwIDkwIDMxIGY2IGU5IDEzIDAwIDAwIDAwIDBm
+IDFmIDQ0IDAwIDAwIDkwIDkwIDkwIDkwIDkwIDkwIDkwIDkwIDkwIDkwIDkwIDkwIDkwIDkwIGYz
+IDBmIDFlIGZhIDkwIDkwIGI4IGE2IDAwIDAwIDAwIDBmIDA1IDw0OD4gM2QgMDAgZjAgZmYgZmYg
+NzcgMDU4ClsgICA5MS45Njc4NTFdIFJTUDogMDAyYjowMDAwN2ZmYzhkMzBkYTI4IEVGTEFHUzog
+MDAwMDAyNDYgT1JJR19SQVg6IDAwMDAwMDAwMDAwMDAwYTYKWyAgIDkxLjk2ODY3MV0gUkFYOiAw
+MDAwMDAwMDAwMDAwMDAwIFJCWDogMDAwMDU2MjhlZjE3YTljMCBSQ1g6IDAwMDA3ZmE3NjY0YmFh
+Y2IKWyAgIDkxLjk2OTQ2NF0gUkRYOiAwMDAwMDAwMDAwMDAwMDAwIFJTSTogMDAwMDAwMDAwMDAw
+MDAwMCBSREk6IDAwMDA1NjI4ZWYxN2NkZDAKWyAgIDkxLjk3MDI1M10gUkJQOiAwMDAwNTYyOGVm
+MTdhYWQ4IFIwODogMDAwMDAwMDAwMDAwMDA3MyBSMDk6IDAwMDAwMDAwMDAwMDAwMDEKWyAgIDkx
+Ljk3MTAzMV0gUjEwOiAwMDAwMDAwMDAwMDAwMDAwIFIxMTogMDAwMDAwMDAwMDAwMDI0NiBSMTI6
+IDAwMDAwMDAwMDAwMDAwMDAKWyAgIDkxLjk3MTc5MF0gUjEzOiAwMDAwNTYyOGVmMTdjZGQwIFIx
+NDogMDAwMDU2MjhlZjE3YWJmMCBSMTU6IDAwMDA3ZmZjOGQzMTAwODgKWyAgIDkxLjk3MjU0Nl0g
+IDwvVEFTSz4KClsgICA5MS45NzI5NjFdIEFsbG9jYXRlZCBieSB0YXNrIDYzMjoKWyAgIDkxLjk3
+MzM0Ml0gIGthc2FuX3NhdmVfc3RhY2srMHgxYy8weDQwClsgICA5MS45NzM3NjBdICBrYXNhbl9z
+ZXRfdHJhY2srMHgyMS8weDMwClsgICA5MS45NzQxNjBdICBfX2thc2FuX2ttYWxsb2MrMHg4Yi8w
+eDkwClsgICA5MS45NzQ1ODRdICBvY2ZzMl9sb2NhbF9yZWFkX2luZm8rMHhlMy8weDlhMCBbb2Nm
+czJdClsgICA5MS45NzUxNjhdICBkcXVvdF9sb2FkX3F1b3RhX3NiKzB4MzRiLzB4NjgwClsgICA5
+MS45NzU2MjRdICBkcXVvdF9sb2FkX3F1b3RhX2lub2RlKzB4ZmUvMHgxYTAKWyAgIDkxLjk3NjA5
+Ml0gIG9jZnMyX2VuYWJsZV9xdW90YXMrMHgxOTAvMHgyZjAgW29jZnMyXQpbICAgOTEuOTc2Njc5
+XSAgb2NmczJfZmlsbF9zdXBlcisweDE0ZWYvMHgyMTIwIFtvY2ZzMl0KWyAgIDkxLjk3NzI0OV0g
+IG1vdW50X2JkZXYrMHgxYmUvMHgyMDAKWyAgIDkxLjk3NzYyMl0gIGxlZ2FjeV9nZXRfdHJlZSsw
+eDZjLzB4YjAKWyAgIDkxLjk3ODAxNF0gIHZmc19nZXRfdHJlZSsweDNlLzB4MTEwClsgICA5MS45
+Nzg0MTVdICBwYXRoX21vdW50KzB4YTkwLzB4ZTEwClsgICA5MS45Nzg3NzRdICBfX3g2NF9zeXNf
+bW91bnQrMHgxNmYvMHgxYTAKWyAgIDkxLjk3OTE3MV0gIGRvX3N5c2NhbGxfNjQrMHg0My8weDkw
+ClsgICA5MS45Nzk1MzddICBlbnRyeV9TWVNDQUxMXzY0X2FmdGVyX2h3ZnJhbWUrMHg3Mi8weGRj
+CgpbICAgOTEuOTgwMjEzXSBGcmVlZCBieSB0YXNrIDY1MDoKWyAgIDkxLjk4MDUzNV0gIGthc2Fu
+X3NhdmVfc3RhY2srMHgxYy8weDQwClsgICA5MS45ODA5MjVdICBrYXNhbl9zZXRfdHJhY2srMHgy
+MS8weDMwClsgICA5MS45ODEzMTddICBrYXNhbl9zYXZlX2ZyZWVfaW5mbysweDJhLzB4NTAKWyAg
+IDkxLjk4MTc0NF0gIF9fa2FzYW5fc2xhYl9mcmVlKzB4ZjkvMHgxNTAKWyAgIDkxLjk4MjE1MV0g
+IF9fa21lbV9jYWNoZV9mcmVlKzB4ODkvMHgxODAKWyAgIDkxLjk4MjU2OF0gIG9jZnMyX2xvY2Fs
+X2ZyZWVfaW5mbysweDJiYS8weDNmMCBbb2NmczJdClsgICA5MS45ODMxNDBdICBkcXVvdF9kaXNh
+YmxlKzB4MzVmLzB4YTcwClsgICA5MS45ODM1MDldICBvY2ZzMl9zdXNwX3F1b3Rhcy5pc3JhLjAr
+MHgxNTkvMHgxYTAgW29jZnMyXQpbICAgOTEuOTg0MDk2XSAgb2NmczJfcmVtb3VudCsweDE1MC8w
+eDU4MCBbb2NmczJdClsgICA5MS45ODQ1ODRdICByZWNvbmZpZ3VyZV9zdXBlcisweDFhNS8weDNh
+MApbICAgOTEuOTg0OTkzXSAgcGF0aF9tb3VudCsweGM4YS8weGUxMApbICAgOTEuOTg1MzU3XSAg
+X194NjRfc3lzX21vdW50KzB4MTZmLzB4MWEwClsgICA5MS45ODU3NTBdICBkb19zeXNjYWxsXzY0
+KzB4NDMvMHg5MApbICAgOTEuOTg2MTI1XSAgZW50cnlfU1lTQ0FMTF82NF9hZnRlcl9od2ZyYW1l
+KzB4NzIvMHhkYwoKWyAgIDkxLjk4Njc5OV0gVGhlIGJ1Z2d5IGFkZHJlc3MgYmVsb25ncyB0byB0
+aGUgb2JqZWN0IGF0IGZmZmY4ODgwMzg5YTgwMDAKICAgICAgICAgICAgICAgIHdoaWNoIGJlbG9u
+Z3MgdG8gdGhlIGNhY2hlIGttYWxsb2MtMWsgb2Ygc2l6ZSAxMDI0ClsgICA5MS45ODc5NjVdIFRo
+ZSBidWdneSBhZGRyZXNzIGlzIGxvY2F0ZWQgNTIwIGJ5dGVzIGluc2lkZSBvZgogICAgICAgICAg
+ICAgICAgZnJlZWQgMTAyNC1ieXRlIHJlZ2lvbiBbZmZmZjg4ODAzODlhODAwMCwgZmZmZjg4ODAz
+ODlhODQwMCkKClsgICA5MS45ODkyODddIFRoZSBidWdneSBhZGRyZXNzIGJlbG9uZ3MgdG8gdGhl
+IHBoeXNpY2FsIHBhZ2U6ClsgICA5MS45ODk4MTJdIHBhZ2U6MDAwMDAwMDBiYzkzZjRlNCByZWZj
+b3VudDoxIG1hcGNvdW50OjAgbWFwcGluZzowMDAwMDAwMDAwMDAwMDAwIGluZGV4OjB4MCBwZm46
+MHgzODlhOApbICAgOTEuOTkwNzE5XSBoZWFkOjAwMDAwMDAwYmM5M2Y0ZTQgb3JkZXI6MyBlbnRp
+cmVfbWFwY291bnQ6MCBucl9wYWdlc19tYXBwZWQ6MCBwaW5jb3VudDowClsgICA5MS45OTE0ODNd
+IGZsYWdzOiAweDQwMDAwMDAwMDAwMTAyMDAoc2xhYnxoZWFkfHpvbmU9MSkKWyAgIDkxLjk5MTk4
+MV0gcGFnZV90eXBlOiAweGZmZmZmZmZmKCkKWyAgIDkxLjk5MjMyMV0gcmF3OiA0MDAwMDAwMDAw
+MDEwMjAwIGZmZmY4ODgwMDMwNDFkYzAgZGVhZDAwMDAwMDAwMDEwMCBkZWFkMDAwMDAwMDAwMTIy
+ClsgICA5MS45OTMwNjRdIHJhdzogMDAwMDAwMDAwMDAwMDAwMCAwMDAwMDAwMDAwMTAwMDEwIDAw
+MDAwMDAxZmZmZmZmZmYgMDAwMDAwMDAwMDAwMDAwMApbICAgOTEuOTkzODEyXSBwYWdlIGR1bXBl
+ZCBiZWNhdXNlOiBrYXNhbjogYmFkIGFjY2VzcyBkZXRlY3RlZAoKWyAgIDkxLjk5NDUwNV0gTWVt
+b3J5IHN0YXRlIGFyb3VuZCB0aGUgYnVnZ3kgYWRkcmVzczoKWyAgIDkxLjk5NDk3M10gIGZmZmY4
+ODgwMzg5YTgxMDA6IGZiIGZiIGZiIGZiIGZiIGZiIGZiIGZiIGZiIGZiIGZiIGZiIGZiIGZiIGZi
+IGZiClsgICA5MS45OTU2NTZdICBmZmZmODg4MDM4OWE4MTgwOiBmYiBmYiBmYiBmYiBmYiBmYiBm
+YiBmYiBmYiBmYiBmYiBmYiBmYiBmYiBmYiBmYgpbICAgOTEuOTk2MzY2XSA+ZmZmZjg4ODAzODlh
+ODIwMDogZmIgZmIgZmIgZmIgZmIgZmIgZmIgZmIgZmIgZmIgZmIgZmIgZmIgZmIgZmIgZmIKWyAg
+IDkxLjk5NzA1MF0gICAgICAgICAgICAgICAgICAgICAgIF4KWyAgIDkxLjk5NzM5OV0gIGZmZmY4
+ODgwMzg5YTgyODA6IGZiIGZiIGZiIGZiIGZiIGZiIGZiIGZiIGZiIGZiIGZiIGZiIGZiIGZiIGZi
+IGZiClsgICA5MS45OTgwODddICBmZmZmODg4MDM4OWE4MzAwOiBmYiBmYiBmYiBmYiBmYiBmYiBm
+YiBmYiBmYiBmYiBmYiBmYiBmYiBmYiBmYiBmYgpbICAgOTEuOTk4Nzc0XSA9PT09PT09PT09PT09
+PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT0KCl9f
+X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fCk9jZnMyLWRldmVs
+IG1haWxpbmcgbGlzdApPY2ZzMi1kZXZlbEBvc3Mub3JhY2xlLmNvbQpodHRwczovL29zcy5vcmFj
+bGUuY29tL21haWxtYW4vbGlzdGluZm8vb2NmczItZGV2ZWw=
