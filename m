@@ -1,56 +1,56 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc251.phx1.oracleemaildelivery.com (aib29ajc251.phx1.oracleemaildelivery.com [192.29.103.251])
+Received: from aib29ajc244.phx1.oracleemaildelivery.com (aib29ajc244.phx1.oracleemaildelivery.com [192.29.103.244])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id A1726C7EE23
-	for <ocfs2-devel@archiver.kernel.org>; Wed, 31 May 2023 22:14:52 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 213A5C77B73
+	for <ocfs2-devel@archiver.kernel.org>; Thu,  1 Jun 2023 01:23:23 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=yyvAAP84+WgTKR8Km/dMHAD8mixahp9wDxK3BjibkpE=;
- b=eUKYwnbZtvJdgTzt5o4Eeso/NY0ss6e57Ivl9jIrC8m+k965FhOm2wOjZRbu3SEoOsdDxZObZbbM
-   bPuJlqGQp8UNutMgvadnzt3aslxO3KLhALEadVCCPQwc4afDOwZqP+1bu0oHksUlx+WTnHvCBx9m
-   oh4IuGkJm7EGE2NAHvURepENohkwwmSeXKtvSwQLZLlCO/YJHQ+t5rakT7KcWxDcMZJSazNVc+Fw
-   FKB0Drhe6PSFe7H6rlfBedCIpiacwY++LFnMWVAqJtLJ9x9TdoLZtoyoNQpIwHBs0YW08KGYNrb9
-   YZ/0L2f1T28uoujjo4Fn6gsftwUtPD9hXRilTg==
+ bh=WrOb8k7Hq2kr6U3mqOSi/QEvtiq8VqoV0TQI02SU7R8=;
+ b=dc800UYsOqn/dwCe+hXoWR2qKYDmhEmkJ4pigIYb4Yop21MKyPhtumJ8hXC3QXifrWGH+jqpHPK4
+   LR7FFkXWtRY3FQcpVd3lSdkGWYtwbV2/ytdsuwMCW7cyuP3GuYMzHNG+xxJbAEENmI2IbiJBAZ+t
+   25a5kcxjL1RIrxx62YP+ffB1ub7c3aPWTKORXYyfDIfP6nEzi9H+SFQobRVbgWG+S700fwwpEPZr
+   lt8J8KlNz9yJf9AFm9PBNgqqtlaurgNFLEI/PdLgtovyRd2uGIRJhnNdT70qIKAYo+xtMqabanwS
+   yuBTtejVFsmYkAg+FdHbso1o3++IhJGcX/Caqg==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=yyvAAP84+WgTKR8Km/dMHAD8mixahp9wDxK3BjibkpE=;
- b=cau9MvNmEasDwpx5XusnWvLC9vn7ZJse8By5HGtrKeqL0MMXgIuOskxQxnqxE1ipZVkP/X/C/dbs
-   o5RjAaPGSxKC8G/yaS/b2XbuRsJhAwHiNiGr9+caWqdhXTLko+HkFL2j0KWmfMPvTZmXoOlA/9qX
-   EypEK9u4qCvLmc0UZ/fGmqS0gAhQ62UIzCnEb24I0mMRAs+/uHa+tgltjGRAftmBZ1rKdlREKdRt
-   dRHusihd7K+gzT+/m5k77A5n+aK8P8t5oEnwKwVyu+ov9qKXCK/YISAFAqySY0cZlpadHJPKMcD1
-   MrmmKItwWzgl5ODa4peMUorYvzz+cWa/fBFFRw==
-Received: by omta-ad2-fd3-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
+ bh=WrOb8k7Hq2kr6U3mqOSi/QEvtiq8VqoV0TQI02SU7R8=;
+ b=QBYHIbHYZ8HIg7cRjEga6bowtnl7VJzL3v2slnEHMvIo42g2eIOzTqVswdGCc+YGwiVGM5p1ya5g
+   FBvc2qvF0nTJhynXdxuapuOvAnGicxJ4MmKynUrzlh1mMQcrizT66RUVkQGeKlqOb0tUcSsk8fAI
+   X8shYQBqfKjwBRjLYC8wj0GRyKMys/cAhKgbd7+uehMBGC+BBhnjaYJQ+qPxZBs4Jkqm0baHGMMi
+   67Iw6iMmRGiHhby7UhnRDbV8FWrqWneCLqsSHlKqjYh1+07PD4X892ldXGVaTA2fbOrfpMPxvh0/
+   dt3NIcH5jk/LL0F2aZgO60hKfwd3tz8VjlVuvA==
+Received: by omta-ad1-fd1-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20230522 64bit (built May 22
  2023))
- with ESMTPS id <0RVJ00HU4N4RKX60@omta-ad2-fd3-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Wed, 31 May 2023 22:14:51 +0000 (GMT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linux-foundation.org;
- s=korg; t=1685571277; bh=ep+xAxQZMew8zv3uP+eMQY86pESh0Ng4iHByI3d7BjY=;
- h=Date:To:From:Subject:From;
- b=2fuTUfpAumsMVFVP20L7rIaP8GzoIFJhDZO87FvhGrgKGsi+2SOuA7CWirR6jU/lN
- of/VQsZBOd+Btyld4YQywxraOVTum+biVKFRgCkqATyd9T/Djh4Jpjur7MaZQ/n3RT
- EEy2FYU+BgHu/rB7Fhtd1QZI1dkH4WVN30mJMf8I=
-Date: Wed, 31 May 2023 15:14:36 -0700
-To: mm-commits@vger.kernel.org, piaojun@huawei.com, mark@fasheh.com,
- lhenriques@suse.de, junxiao.bi@oracle.com, joseph.qi@linux.alibaba.com,
- jlbec@evilplan.org, ghe@suse.com, gechangwei@live.cn,
- ocfs2-devel@oss.oracle.com, akpm@linux-foundation.org
-Message-id: <20230531221437.2B54FC433EF@smtp.kernel.org>
-X-Source-IP: 139.178.84.217
+ with ESMTPS id <0RVJ00G72VUZUQ50@omta-ad1-fd1-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Thu, 01 Jun 2023 01:23:23 +0000 (GMT)
+Message-id: <4e3eafe6-7f5d-6458-9d0f-f80ad93704dd@linux.alibaba.com>
+Date: Thu, 1 Jun 2023 09:23:06 +0800
+MIME-version: 1.0
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:102.0)
+ Gecko/20100101 Thunderbird/102.11.0
+Content-language: en-US
+To: Andrew Morton <akpm@linux-foundation.org>,
+ =?UTF-8?Q?Lu=c3=ads_Henriques?= <lhenriques@suse.de>
+References: <20230529152645.32680-1-lhenriques@suse.de>
+ <20230531151147.3d98aa2fb1d7f659bccef37b@linux-foundation.org>
+In-reply-to: <20230531151147.3d98aa2fb1d7f659bccef37b@linux-foundation.org>
+X-Source-IP: 115.124.30.132
 X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10727
  signatures=596816
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 suspectscore=0
- clxscore=181 mlxlogscore=999 impostorscore=0 spamscore=0 lowpriorityscore=0
- phishscore=0 priorityscore=30 bulkscore=0 mlxscore=0 malwarescore=0
- adultscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2304280000 definitions=main-2305310187
-Subject: [Ocfs2-devel] + ocfs2-check-new-file-size-on-fallocate-call.patch
-	added to mm-nonmm-unstable branch
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 bulkscore=0
+ priorityscore=0 impostorscore=0 adultscore=0 suspectscore=0 spamscore=0
+ lowpriorityscore=0 clxscore=152 mlxscore=0 mlxlogscore=999 phishscore=0
+ malwarescore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2304280000 definitions=main-2306010009 domainage_hfrom=8813
+Cc: linux-kernel@vger.kernel.org,
+ =?UTF-8?Q?Lu=c3=ads_Henriques_via_Ocfs2-devel?= <ocfs2-devel@oss.oracle.com>
+Subject: Re: [Ocfs2-devel] [PATCH] ocfs2: check new file size on fallocate call
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -62,122 +62,57 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: Andrew Morton via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: Andrew Morton <akpm@linux-foundation.org>
-MIME-version: 1.0
-Content-type: multipart/mixed; boundary="===============4396259428494810224=="
+From: Joseph Qi via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: Joseph Qi <joseph.qi@linux.alibaba.com>
+Content-type: text/plain; charset="utf-8"
+Content-transfer-encoding: base64
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-ServerName: dfw.source.kernel.org
+X-Alimail-AntiSpam: AC=PASS; BC=-1|-1; BR=01201311R791e4; CH=green;
+ DM=||false|; DS=||; FP=0|-1|-1|-1|0|-1|-1|-1; HT=ay29a033018046056;
+ MF=joseph.qi@linux.alibaba.com; NM=1; PH=DS; RN=7; SR=0;
+ TI=SMTPD_---0VjzF489_1685582586;
+X-ServerName: out30-132.freemail.mail.aliyun.com
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 ip4:140.211.169.12/30 include:_spf.kernel.org
- include:_spf.google.com ~all
+X-Proofpoint-SPF-Record: v=spf1 include:spf1.service.alibaba.com
+ include:spf2.service.alibaba.com include:spf1.ocm.aliyun.com
+ include:spf2.ocm.aliyun.com include:spf1.staff.mail.aliyun.com
+ include:a.hichina.mail.aliyun.com include:b.hichina.mail.aliyun.com -all
 X-Spam: Clean
-X-Proofpoint-ORIG-GUID: rSQ75I0y-P8Hv2U71Ctks6NTZbyqeRwj
-X-Proofpoint-GUID: rSQ75I0y-P8Hv2U71Ctks6NTZbyqeRwj
+X-Proofpoint-GUID: X-XgOZdlfODzHFaiGD1lOkBfF1AH7xNP
+X-Proofpoint-ORIG-GUID: X-XgOZdlfODzHFaiGD1lOkBfF1AH7xNP
 Reporting-Meta:
- AAGI6saUUYrNqo3lTClTHjfof4aBD6Z/PMlLUmUWAV8g/QGYXCayRhuVoIV6hGFS
- plnPloZsjJukyTxBv41bZjQfUmjG2Z10RDA9/cshiTrSDeoNLrV9ZtvX3OoQTKAj
- O2kFBqP/A3Kj+nszWq2oZMiPLmzIKLesP7ojpnSEy7WdEpj0lpqeOE5ohvtzDUYT
- Gm7xAPbVGfFTvKOkqGPAOGpW0LKhXDkW8eZYNM5OUqe1lZOz8QvZWsVqwoqBwV6n
- YwMmEg1pTxE02ntNYhfjQ7p9zlAyuJ1VCaxfK2/cqQB4MKD4zidwEd+0KtqYawew
- BUMhkpjXRuxo3mx30V3pqadLHzRzi5JJSpMQAmKTkQ676Y1y5jku8HfesrahPCQ5
- fMO2s8pGGcbEDGkKMGd3Cc2qtXATUZgE450zBejohozKOy6NmbYUFj7oMWQ9g/je
- 2YTnHerOfijcctBWMe3U2Kw8ZtN0fyEyD3Kr+eVAF+ddccLzhlkw+H0WhaVgikFC
- ocW4Vxdmmwfd7BwlNJ0BdtewlTsjhoPxyQkWhpZDRaEJ
+ AAG3V8mA/+Jw2GzdYkYoU+ANvr6TRCpU+wyBMt/le67SNYnSs2Rr22nTsNFQaYB6
+ gc5BeLrIALeoMSXaVUQVIMTN59QyF59Iz5VWZhN9zRNcpgLszbu8LcpPusmc8EZ2
+ cr4xc6lYKQYvvxvHN0EzCWeT91Zonv3Hl7uahxUb0Mq8HzVgSQFZ9xIKnmJeuScN
+ i3NDfp+5wpeRSH6lTsByNv3Xd40Vggu0WZIKh4mUO4kzkIM872EXUQDX9aSBUwBN
+ uUEgctHTP+w1y3DetdRY3uTvXD8NiYEvHAv37Aa/eVTTH3MEl9Ec6AUSrHQR3FXk
+ KSmKwv2ZSYxVP5SWPZ+Ou1f6hAQ0RaGwyGq3OjY+dIgLtV75LxhVo66wNgpDFsyy
+ Obbd3g202arU62Pho/i+UWsWVAMeLLCVpTl+y+0qhys3O9VLW+1qr2sWlLha6qgy
+ jR/y7eJ4GWy2SsdnZYBB550s7LsjOlIfoIRkXp1bu+PFBaEtVQ/9sq+0AKTT7lW5
+ G9WW47QO5vgWLq1U/fNOPcbXGXhq3uA2LcZb7y0LeUaM
 
---===============4396259428494810224==
-Content-Type: text/plain
-
-
-The patch titled
-     Subject: ocfs2: check new file size on fallocate call
-has been added to the -mm mm-nonmm-unstable branch.  Its filename is
-     ocfs2-check-new-file-size-on-fallocate-call.patch
-
-This patch will shortly appear at
-     https://git.kernel.org/pub/scm/linux/kernel/git/akpm/25-new.git/tree/patches/ocfs2-check-new-file-size-on-fallocate-call.patch
-
-This patch will later appear in the mm-nonmm-unstable branch at
-    git://git.kernel.org/pub/scm/linux/kernel/git/akpm/mm
-
-Before you just go and hit "reply", please:
-   a) Consider who else should be cc'ed
-   b) Prefer to cc a suitable mailing list as well
-   c) Ideally: find the original patch on the mailing list and do a
-      reply-to-all to that, adding suitable additional cc's
-
-*** Remember to use Documentation/process/submit-checklist.rst when testing your code ***
-
-The -mm tree is included into linux-next via the mm-everything
-branch at git://git.kernel.org/pub/scm/linux/kernel/git/akpm/mm
-and is updated there every 2-3 working days
-
-------------------------------------------------------
-From: Luís Henriques <ocfs2-devel@oss.oracle.com>
-Subject: ocfs2: check new file size on fallocate call
-Date: Mon, 29 May 2023 16:26:45 +0100
-
-When changing a file size with fallocate() the new size isn't being
-checked.  In particular, the FSIZE ulimit isn't being checked, which makes
-fstest generic/228 fail.  Simply adding a call to inode_newsize_ok() fixes
-this issue.
-
-Link: https://lkml.kernel.org/r/20230529152645.32680-1-lhenriques@suse.de
-Signed-off-by: Luís Henriques <lhenriques@suse.de>
-Reviewed-by: Mark Fasheh <mark@fasheh.com>
-Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-Cc: Joel Becker <jlbec@evilplan.org>
-Cc: Junxiao Bi <junxiao.bi@oracle.com>
-Cc: Changwei Ge <gechangwei@live.cn>
-Cc: Gang He <ghe@suse.com>
-Cc: Jun Piao <piaojun@huawei.com>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
----
-
- fs/ocfs2/file.c |    8 +++++++-
- 1 file changed, 7 insertions(+), 1 deletion(-)
-
---- a/fs/ocfs2/file.c~ocfs2-check-new-file-size-on-fallocate-call
-+++ a/fs/ocfs2/file.c
-@@ -2100,14 +2100,20 @@ static long ocfs2_fallocate(struct file
- 	struct ocfs2_space_resv sr;
- 	int change_size = 1;
- 	int cmd = OCFS2_IOC_RESVSP64;
-+	int ret = 0;
- 
- 	if (mode & ~(FALLOC_FL_KEEP_SIZE | FALLOC_FL_PUNCH_HOLE))
- 		return -EOPNOTSUPP;
- 	if (!ocfs2_writes_unwritten_extents(osb))
- 		return -EOPNOTSUPP;
- 
--	if (mode & FALLOC_FL_KEEP_SIZE)
-+	if (mode & FALLOC_FL_KEEP_SIZE) {
- 		change_size = 0;
-+	} else {
-+		ret = inode_newsize_ok(inode, offset + len);
-+		if (ret)
-+			return ret;
-+	}
- 
- 	if (mode & FALLOC_FL_PUNCH_HOLE)
- 		cmd = OCFS2_IOC_UNRESVSP64;
-_
-
-Patches currently in -mm which might be from ocfs2-devel@oss.oracle.com are
-
-ocfs2-fix-use-after-free-when-unmounting-read-only-filesystem.patch
-ocfs2-check-new-file-size-on-fallocate-call.patch
-
-
-
---===============4396259428494810224==
-Content-Type: text/plain; charset="us-ascii"
-MIME-Version: 1.0
-Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-
-_______________________________________________
-Ocfs2-devel mailing list
-Ocfs2-devel@oss.oracle.com
-https://oss.oracle.com/mailman/listinfo/ocfs2-devel
---===============4396259428494810224==--
+CgpPbiA2LzEvMjMgNjoxMSBBTSwgQW5kcmV3IE1vcnRvbiB3cm90ZToKPiBPbiBNb24sIDI5IE1h
+eSAyMDIzIDE2OjI2OjQ1ICswMTAwIEx1w61zIEhlbnJpcXVlcyB2aWEgT2NmczItZGV2ZWwgPG9j
+ZnMyLWRldmVsQG9zcy5vcmFjbGUuY29tPiB3cm90ZToKPiAKPj4gV2hlbiBjaGFuZ2luZyBhIGZp
+bGUgc2l6ZSB3aXRoIGZhbGxvY2F0ZSgpIHRoZSBuZXcgc2l6ZSBpc24ndCBiZWluZwo+PiBjaGVj
+a2VkLiAgSW4gcGFydGljdWxhciwgdGhlIEZTSVpFIHVsaW1pdCBpc24ndCBiZWluZyBjaGVja2Vk
+LCB3aGljaCBtYWtlcwo+PiBmc3Rlc3QgZ2VuZXJpYy8yMjggZmFpbC4gIFNpbXBseSBhZGRpbmcg
+YSBjYWxsIHRvIGlub2RlX25ld3NpemVfb2soKSBmaXhlcwo+PiB0aGlzIGlzc3VlLgo+Pgo+PiAu
+Li4KPj4KPj4gLS0tIGEvZnMvb2NmczIvZmlsZS5jCj4+ICsrKyBiL2ZzL29jZnMyL2ZpbGUuYwo+
+PiBAQCAtMjEwMCwxNCArMjEwMCwyMCBAQCBzdGF0aWMgbG9uZyBvY2ZzMl9mYWxsb2NhdGUoc3Ry
+dWN0IGZpbGUgKmZpbGUsIGludCBtb2RlLCBsb2ZmX3Qgb2Zmc2V0LAo+PiAgCXN0cnVjdCBvY2Zz
+Ml9zcGFjZV9yZXN2IHNyOwo+PiAgCWludCBjaGFuZ2Vfc2l6ZSA9IDE7Cj4+ICAJaW50IGNtZCA9
+IE9DRlMyX0lPQ19SRVNWU1A2NDsKPj4gKwlpbnQgcmV0ID0gMDsKPj4gIAo+PiAgCWlmIChtb2Rl
+ICYgfihGQUxMT0NfRkxfS0VFUF9TSVpFIHwgRkFMTE9DX0ZMX1BVTkNIX0hPTEUpKQo+PiAgCQly
+ZXR1cm4gLUVPUE5PVFNVUFA7Cj4+ICAJaWYgKCFvY2ZzMl93cml0ZXNfdW53cml0dGVuX2V4dGVu
+dHMob3NiKSkKPj4gIAkJcmV0dXJuIC1FT1BOT1RTVVBQOwo+PiAgCj4+IC0JaWYgKG1vZGUgJiBG
+QUxMT0NfRkxfS0VFUF9TSVpFKQo+PiArCWlmIChtb2RlICYgRkFMTE9DX0ZMX0tFRVBfU0laRSkg
+ewo+PiAgCQljaGFuZ2Vfc2l6ZSA9IDA7Cj4+ICsJfSBlbHNlIHsKPj4gKwkJcmV0ID0gaW5vZGVf
+bmV3c2l6ZV9vayhpbm9kZSwgb2Zmc2V0ICsgbGVuKTsKPj4gKwkJaWYgKHJldCkKPj4gKwkJCXJl
+dHVybiByZXQ7Cj4+ICsJfQo+PiAgCj4gCj4gU28gdXNlcnNwYWNlIGNhbiBleGNlZWQgcmxpbWl0
+KFJMSU1JVF9GU0laRSkuCj4gCj4gRG8gd2UgdGhpbmsgdGhpcyBmbGF3IGlzIHNlcmlvdXMgZW5v
+dWdoIHRvIGp1c3RpZnkgYmFja3BvcnRpbmcgdGhlIGZpeAo+IGludG8gZWFybGllciAtc3RhYmxl
+IGtlcm5lbHM/CgpJIHRoaW5rIGl0J3Mgd29ydGggY2Npbmcgc3RhYmxlIGtlcm5lbCBhcyB3ZWxs
+LgoKVGhhbmtzLApKb3NlcGgKCl9fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
+X19fX19fX19fCk9jZnMyLWRldmVsIG1haWxpbmcgbGlzdApPY2ZzMi1kZXZlbEBvc3Mub3JhY2xl
+LmNvbQpodHRwczovL29zcy5vcmFjbGUuY29tL21haWxtYW4vbGlzdGluZm8vb2NmczItZGV2ZWw=
