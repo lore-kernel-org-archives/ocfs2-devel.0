@@ -1,57 +1,56 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc247.phx1.oracleemaildelivery.com (aib29ajc247.phx1.oracleemaildelivery.com [192.29.103.247])
+Received: from aib29ajc253.phx1.oracleemaildelivery.com (aib29ajc253.phx1.oracleemaildelivery.com [192.29.103.253])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 6BB43C87FDE
-	for <ocfs2-devel@archiver.kernel.org>; Wed,  7 Jun 2023 20:00:26 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id A042FC7EE23
+	for <ocfs2-devel@archiver.kernel.org>; Wed,  7 Jun 2023 20:00:33 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=H6lBHDwd5Y/t35+ev6BMeeQSrD1W0cyXNZwU+uBKAUM=;
- b=tzo3aG50C2oIuzhi/K78Xm+3b3D3YAXGoz2vYN9buoUI15C7inEsVObPfxkbVr0BihEg6OY0L3Mm
-   aMSN5Z2+bMUgWZEsA5eOlwgM34rBaNAd7Kt7Md8FWvIEUsiYnwKvtzf7BQdNbgyncyQy9VaMXSdy
-   cylll9UM6HDwc3lJMdbd+PXB7y1PwHkl4tjV50pgeGm+yr2hYuPOnpI5rFjQhWGyi5NqufNxLloa
-   z7RCe0G3dijOlNreSrF7QZM/4xq83AgafZc+AikpOnFBu+U8In43JS4RsLDJPooGR/8qHeb7vu0i
-   quxTn+K1JO68LvDiLK+SszXoa+XYaSOVOb9yxw==
+ bh=ka+QJC3ziNpcp1BA31thTgSDtjpee88JcUCFc37/jos=;
+ b=H3f6KH2qdLnjmWdKVU2rpkUCWb3/vt0TUCvKaL11gr8XL7mMmZdQj3x91OcWPlLMY2Ohw66iIBZZ
+   +Av++FmtfjeKLg0hM8NMCFCSAjHCnljIYBCe6PgiEA9+d93m/p20iqJFPDJvdWSyjmqk9jw4eCkM
+   m5wqgp8cv02UXH4HksjKB2GuagoSOj60xKua4paN2+rQXG7loXqJ13y7gJK9KUgZp94GlzHp0U2q
+   JTpYtvQlSqjYSSt78a6LnK3sXvWitw/0cg069PrKuKAbhN3iB/w3lmVEqn796cH07EG0nB8ZsfSb
+   Kzwjoj/J1MvWLjcgXNoaS0eLIX8kT3826d3t8g==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=H6lBHDwd5Y/t35+ev6BMeeQSrD1W0cyXNZwU+uBKAUM=;
- b=efNmlra9vpnt8pb9vXTMX3Cd1yhQMShgxeaqWATaZKV7vmaj/KOuDX5kIAW0TrLrNLD4BL4cVPd1
-   o23MJKfCsjXL1TiReTXXJO/zN/S78lpWU7plkEthJAQA0plf7h4qBPdejVswWn355zFm8TGk4Gzx
-   3s2irQElu5yui70qYDRiYwOg3K7HveZgjE5K0DWj/wVoks8AtUmAj2VLzn8+dnbj/lpl4S/SyLS2
-   DJhlEy0lyfmOMnLY/RnT5VDoJ6PWsh3CiQQGxYn2ljTxl/ds77rHjjxyFxS/ltqd72X1YtCt3iPH
-   lSbn4oiuRnHjnk6QomsH2X28ZMw0edbvazEmvQ==
-Received: by omta-ad1-fd3-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
+ bh=ka+QJC3ziNpcp1BA31thTgSDtjpee88JcUCFc37/jos=;
+ b=tZY2TMj7hemGsMyXv1kN9HVx4XONjs1EuNkfkIfk4arl3bAJwJ/0s2jcFilr083hfeq6yZnZVeCO
+   OWqz24EAqODOKAFiPxb3ed05Nz5tLUKU+7666nvc+kYZcowVFUmHwfKBcbBa2C8Z8f8KifCGVWaN
+   8H8sgFf05aKyQYIKUmAMwroKeU5hI36cxMNZxmDaUmm0fcO1ViqA2g0UaSWUsRvoLXHN8t/XV5Si
+   v3TmUmiOlO2+KSbLd5KSpWnw5vMyQegZAHTEeQRcyDfyw3SXRYbLaaS1v6/wOBmcXw759RsnLPk5
+   H4wPkC8FdEKdfU9oDkD/7TPPygTyMu48bw2ZpA==
+Received: by omta-ad3-fd1-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20230523 64bit (built May 23
  2023))
- with ESMTPS id <0RVW004Z4FKP9Y40@omta-ad1-fd3-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Wed, 07 Jun 2023 20:00:25 +0000 (GMT)
+ with ESMTPS id <0RVW001GRFKVGY90@omta-ad3-fd1-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Wed, 07 Jun 2023 20:00:31 +0000 (GMT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linux-foundation.org;
- s=korg; t=1686168011; bh=SUfIK17SIrwqjc6DhxsxfHxoKVKP+436Nuu3YXC3CII=;
+ s=korg; t=1686168018; bh=jxnfoYpXrY6yUsF0XkdI8bJfzO95D9eFQhQYpKJPm24=;
  h=Date:To:From:Subject:From;
- b=WzWusXyoHZGTJhs08dWyBOx3ulMCOirLtOtPp+TMqTw+4mMn8fZaU0NsWdi4nt8P9
- dZB4a0rIGwY9TClg2n6w5hfCm2qL33lWwMUbPswNuxmwSBSHWI7qbwvdMJUIOQKhbj
- 8qnuhXe7zk1SUbMqo1jYt15DXHOQa7ajWtjAF0Pg=
-Date: Wed, 07 Jun 2023 13:00:10 -0700
+ b=jUaHV9JZxHoLj+pWgXm1QVuu+z4Y3ZWxeAmF5TDWsnqqolbIjDmN2n11sKu2NRh/2
+ F7WwOCITWIwl7i3TbMS6cajl3OafSM38UevDuYY7VTNBh1cRoVZnn3SUQBidWGZ20C
+ 1MCjOS2TnfyVKjsChMvSSVhH0g8shFosu37TQfII=
+Date: Wed, 07 Jun 2023 13:00:17 -0700
 To: mm-commits@vger.kernel.org, stable@vger.kernel.org, piaojun@huawei.com,
  mark@fasheh.com, lhenriques@suse.de, junxiao.bi@oracle.com,
  joseph.qi@linux.alibaba.com, jlbec@evilplan.org, ghe@suse.com,
  gechangwei@live.cn, ocfs2-devel@oss.oracle.com, akpm@linux-foundation.org
-Message-id: <20230607200011.77350C433EF@smtp.kernel.org>
+Message-id: <20230607200018.6A0B9C433D2@smtp.kernel.org>
 X-Source-IP: 139.178.84.217
 X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10734
  signatures=596816
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 clxscore=193
- malwarescore=0 priorityscore=154 adultscore=0 mlxscore=0 spamscore=0
- impostorscore=0 lowpriorityscore=0 mlxlogscore=999 suspectscore=0 bulkscore=0
- phishscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 impostorscore=0
+ lowpriorityscore=0 priorityscore=181 spamscore=0 mlxscore=0 phishscore=0
+ mlxlogscore=999 clxscore=189 adultscore=0 suspectscore=0 malwarescore=0
+ bulkscore=0 classifier=spam adjust=0 reason=mlx scancount=1
  engine=8.12.0-2305260000 definitions=main-2306070173
 Subject: [Ocfs2-devel] [merged mm-hotfixes-stable]
-	ocfs2-fix-use-after-free-when-unmounting-read-only-filesystem.patch	removed
- from -mm tree
+	ocfs2-check-new-file-size-on-fallocate-call.patch removed	from -mm tree
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -66,104 +65,52 @@ List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
 From: Andrew Morton via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
 Reply-to: Andrew Morton <akpm@linux-foundation.org>
 MIME-version: 1.0
-Content-type: multipart/mixed; boundary="===============5413395991338444290=="
+Content-type: multipart/mixed; boundary="===============4275501965390892617=="
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
 X-ServerName: dfw.source.kernel.org
 X-Proofpoint-SPF-Result: pass
 X-Proofpoint-SPF-Record: v=spf1 ip4:140.211.169.12/30 include:_spf.kernel.org
  include:_spf.google.com ~all
 X-Spam: Clean
-X-Proofpoint-GUID: BYYzYw16plm_Vof5dARcS732s724mCjD
-X-Proofpoint-ORIG-GUID: BYYzYw16plm_Vof5dARcS732s724mCjD
+X-Proofpoint-GUID: cXvVcYDhC9qJUXQNO9ciM3ELfRog79Sz
+X-Proofpoint-ORIG-GUID: cXvVcYDhC9qJUXQNO9ciM3ELfRog79Sz
 Reporting-Meta:
- AAE9u7b+Tn/eiM1eEi7CWr/p0QpuHczGm+vfXdHdavAwxnfnaqtxKJHPxxDNWzZv
- TqzvqVqru/4hrPfVHSDMlUvJqppAI3z+oOOQtxv4XddEKy5s+2m/i5g2384i3Jz9
- 1gLR9LYO9yScnNhpGwgX2Upbji0AiQCHIRmVCoN8TE8rB0FMT84nzj2i9kU9avgm
- 8ixDG/MQSf9IlXU5RXyKNi5m+0dV0xqydG6UdZDxDFwIWb8DqXCcg05fqHwr1KA0
- Nw7TSFcvwvld0FHCQWMbxLnwl3rDnYoZHebAV0GmB5NLp9o1VJjBuXJ7TmzaRBsn
- 3xltFwBW71OYfu/ClXEwo25IBkjhun3XsdJQ4M4Rd41a06KsQbUSHwzsC7EVHKNJ
- +UM0pXedlgD/GwLUNbar2gteBRZi3Tqufo3j9NKp5vHK2lvWcm/n+Yki5Mi2i3oI
- GjUN5hefjxfM7tIn4ehzmBwELv7M74G6F3Vg5FK9KGYBnMJAhHDqA8s0rH1/qy79
- KPFz3VWU+e9GgRfQ5NUPDfINIRI33c7p7U6MiDlH4OLL
+ AAFCFvipfFw2qlTQHc0udJiN53BW518Rt3a7L8zo3QCzLtB2hPQWMpyZhXGHOf65
+ 4gdEMeGvc5MLfLbLgJkoTU7NRjr3WjtBsf+UsdoaVpvn2ibcANnzhUfl3LKZhgPf
+ SIZr6dKRgdGRavZE/g0zt+hbvnj60SQSKIC7tetED6qpwtMrbCwOIAsu0IcrHHni
+ 1XJBE+vybMgwzgdUQuOocERcIQVb4S/FZjVHavt49i/75kLlmEa889kMqGXD3yxX
+ xAMumYcIFc7muUDH73L5Tlm3sGlHc/XqSOKb12KweHnEYZpkdjD1eSl0dVDu12ft
+ O+MWZ+d80+YVZJdEhYHrJJpKYS2Qf+eUE6vLTP5vL++5EWGx1Mz0inuyPbuaM/S8
+ Uj379Edw1fJMIweQ58r9Vno3f63hE3q1LKbFt4VixYzDO6DI/SLxj+Q2Fu6jhJfV
+ 0hO12M2OPgr1t7MoMF627AYMhpmZmR8/aPfHWq7V8QEpQkeJoCihXR1pe/ggn618
+ sqnwgBmmFGBZzlNGx3ACfVLl/Iz4DjqG7t2PngMYm8S+
 
---===============5413395991338444290==
+--===============4275501965390892617==
 Content-Type: text/plain
 
 
 The quilt patch titled
-     Subject: ocfs2: fix use-after-free when unmounting read-only filesystem
+     Subject: ocfs2: check new file size on fallocate call
 has been removed from the -mm tree.  Its filename was
-     ocfs2-fix-use-after-free-when-unmounting-read-only-filesystem.patch
+     ocfs2-check-new-file-size-on-fallocate-call.patch
 
 This patch was dropped because it was merged into the mm-hotfixes-stable branch
 of git://git.kernel.org/pub/scm/linux/kernel/git/akpm/mm
 
 ------------------------------------------------------
 From: Luís Henriques <ocfs2-devel@oss.oracle.com>
-Subject: ocfs2: fix use-after-free when unmounting read-only filesystem
-Date: Mon, 22 May 2023 11:21:12 +0100
+Subject: ocfs2: check new file size on fallocate call
+Date: Mon, 29 May 2023 16:26:45 +0100
 
-It's trivial to trigger a use-after-free bug in the ocfs2 quotas code using
-fstest generic/452.  After a read-only remount, quotas are suspended and
-ocfs2_mem_dqinfo is freed through ->ocfs2_local_free_info().  When unmounting
-the filesystem, an UAF access to the oinfo will eventually cause a crash.
- 
-BUG: KASAN: slab-use-after-free in timer_delete+0x54/0xc0
-Read of size 8 at addr ffff8880389a8208 by task umount/669
-...
-Call Trace:
- <TASK>
- ...
- timer_delete+0x54/0xc0
- try_to_grab_pending+0x31/0x230
- __cancel_work_timer+0x6c/0x270
- ocfs2_disable_quotas.isra.0+0x3e/0xf0 [ocfs2]
- ocfs2_dismount_volume+0xdd/0x450 [ocfs2]
- generic_shutdown_super+0xaa/0x280
- kill_block_super+0x46/0x70
- deactivate_locked_super+0x4d/0xb0
- cleanup_mnt+0x135/0x1f0
- ...
- </TASK>
+When changing a file size with fallocate() the new size isn't being
+checked.  In particular, the FSIZE ulimit isn't being checked, which makes
+fstest generic/228 fail.  Simply adding a call to inode_newsize_ok() fixes
+this issue.
 
-Allocated by task 632:
- kasan_save_stack+0x1c/0x40
- kasan_set_track+0x21/0x30
- __kasan_kmalloc+0x8b/0x90
- ocfs2_local_read_info+0xe3/0x9a0 [ocfs2]
- dquot_load_quota_sb+0x34b/0x680
- dquot_load_quota_inode+0xfe/0x1a0
- ocfs2_enable_quotas+0x190/0x2f0 [ocfs2]
- ocfs2_fill_super+0x14ef/0x2120 [ocfs2]
- mount_bdev+0x1be/0x200
- legacy_get_tree+0x6c/0xb0
- vfs_get_tree+0x3e/0x110
- path_mount+0xa90/0xe10
- __x64_sys_mount+0x16f/0x1a0
- do_syscall_64+0x43/0x90
- entry_SYSCALL_64_after_hwframe+0x72/0xdc
-
-Freed by task 650:
- kasan_save_stack+0x1c/0x40
- kasan_set_track+0x21/0x30
- kasan_save_free_info+0x2a/0x50
- __kasan_slab_free+0xf9/0x150
- __kmem_cache_free+0x89/0x180
- ocfs2_local_free_info+0x2ba/0x3f0 [ocfs2]
- dquot_disable+0x35f/0xa70
- ocfs2_susp_quotas.isra.0+0x159/0x1a0 [ocfs2]
- ocfs2_remount+0x150/0x580 [ocfs2]
- reconfigure_super+0x1a5/0x3a0
- path_mount+0xc8a/0xe10
- __x64_sys_mount+0x16f/0x1a0
- do_syscall_64+0x43/0x90
- entry_SYSCALL_64_after_hwframe+0x72/0xdc
-
-Link: https://lkml.kernel.org/r/20230522102112.9031-1-lhenriques@suse.de
+Link: https://lkml.kernel.org/r/20230529152645.32680-1-lhenriques@suse.de
 Signed-off-by: Luís Henriques <lhenriques@suse.de>
+Reviewed-by: Mark Fasheh <mark@fasheh.com>
 Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-Tested-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-Cc: Mark Fasheh <mark@fasheh.com>
 Cc: Joel Becker <jlbec@evilplan.org>
 Cc: Junxiao Bi <junxiao.bi@oracle.com>
 Cc: Changwei Ge <gechangwei@live.cn>
@@ -173,24 +120,33 @@ Cc: <stable@vger.kernel.org>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- fs/ocfs2/super.c |    6 ++++--
- 1 file changed, 4 insertions(+), 2 deletions(-)
+ fs/ocfs2/file.c |    8 +++++++-
+ 1 file changed, 7 insertions(+), 1 deletion(-)
 
---- a/fs/ocfs2/super.c~ocfs2-fix-use-after-free-when-unmounting-read-only-filesystem
-+++ a/fs/ocfs2/super.c
-@@ -952,8 +952,10 @@ static void ocfs2_disable_quotas(struct
- 	for (type = 0; type < OCFS2_MAXQUOTAS; type++) {
- 		if (!sb_has_quota_loaded(sb, type))
- 			continue;
--		oinfo = sb_dqinfo(sb, type)->dqi_priv;
--		cancel_delayed_work_sync(&oinfo->dqi_sync_work);
-+		if (!sb_has_quota_suspended(sb, type)) {
-+			oinfo = sb_dqinfo(sb, type)->dqi_priv;
-+			cancel_delayed_work_sync(&oinfo->dqi_sync_work);
-+		}
- 		inode = igrab(sb->s_dquot.files[type]);
- 		/* Turn off quotas. This will remove all dquot structures from
- 		 * memory and so they will be automatically synced to global
+--- a/fs/ocfs2/file.c~ocfs2-check-new-file-size-on-fallocate-call
++++ a/fs/ocfs2/file.c
+@@ -2100,14 +2100,20 @@ static long ocfs2_fallocate(struct file
+ 	struct ocfs2_space_resv sr;
+ 	int change_size = 1;
+ 	int cmd = OCFS2_IOC_RESVSP64;
++	int ret = 0;
+ 
+ 	if (mode & ~(FALLOC_FL_KEEP_SIZE | FALLOC_FL_PUNCH_HOLE))
+ 		return -EOPNOTSUPP;
+ 	if (!ocfs2_writes_unwritten_extents(osb))
+ 		return -EOPNOTSUPP;
+ 
+-	if (mode & FALLOC_FL_KEEP_SIZE)
++	if (mode & FALLOC_FL_KEEP_SIZE) {
+ 		change_size = 0;
++	} else {
++		ret = inode_newsize_ok(inode, offset + len);
++		if (ret)
++			return ret;
++	}
+ 
+ 	if (mode & FALLOC_FL_PUNCH_HOLE)
+ 		cmd = OCFS2_IOC_UNRESVSP64;
 _
 
 Patches currently in -mm which might be from ocfs2-devel@oss.oracle.com are
@@ -198,7 +154,7 @@ Patches currently in -mm which might be from ocfs2-devel@oss.oracle.com are
 
 
 
---===============5413395991338444290==
+--===============4275501965390892617==
 Content-Type: text/plain; charset="us-ascii"
 MIME-Version: 1.0
 Content-Transfer-Encoding: 7bit
@@ -208,4 +164,4 @@ _______________________________________________
 Ocfs2-devel mailing list
 Ocfs2-devel@oss.oracle.com
 https://oss.oracle.com/mailman/listinfo/ocfs2-devel
---===============5413395991338444290==--
+--===============4275501965390892617==--
