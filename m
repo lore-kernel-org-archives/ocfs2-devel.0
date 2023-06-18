@@ -4,83 +4,83 @@ X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 Received: from aib29ajc249.phx1.oracleemaildelivery.com (aib29ajc249.phx1.oracleemaildelivery.com [192.29.103.249])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id F280BEB64DD
-	for <ocfs2-devel@archiver.kernel.org>; Tue, 20 Jun 2023 14:56:30 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 72D7EEB64D7
+	for <ocfs2-devel@archiver.kernel.org>; Tue, 20 Jun 2023 14:56:52 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=J5Q2nMxTPEGbx91acjM+/Ecm9L6znh5S3h7V1f1w6Mw=;
- b=tDi4oBfl07OJJ3tp0i2JcLAu6cE4syHtmOcokLd9UPEYe1QBmifUsvXXvai04XIMtYXKgcImWrZ3
-   rob4yJI7UUB3oLPz3g/Zs2mp3J/+hL7yLpSF1xaZAcKBvCFfd0p/PztPQKhgFPKHh2ZBUh9KrUDx
-   bGYoQsCWuKSNDxIBySt8ELY1B/i8B6Zt5bPpRlyW+duS+qcDt7ekoeHhdbSUFGwPaSwLt845YujC
-   +Tz8oGjKgWMQScrpMnKH0qijeQ6mC7Ewj/RaEb8UbYt+QFEk3oDLu9EcnRs07Qi0xGzZZldAzAeY
-   A2RaJ0onrRUDxiJGRv2CWxTHqH4V65pdsg6sjQ==
+ bh=B3LZYuDAggCmeuAe5G+a/SF1hQe99A7odhSFx/mKTws=;
+ b=RgXouyNDK5H42rVfftXicFKgkjwPfSBIpH8qUfg/yNjsv1KthXbRlTD00s5OHiB3/JiW6wNYVurC
+   SbfAnvC0sk/JfVc1raZGv1Nifob+3EtYX2Jxnzt0dfdCYhcOBwxj9hlYaH5Tlr64oqvrRPNTc1os
+   2iDn0gh2H9gxM58qpDGXbLDrGKP7lHHrfFUVzk7ss/6qEMNr+6JSsrtDma45EoFDORXkDT9qp+j4
+   02Lbo30HI9yxNQxke1AUcq6uap34SgiQnOVRrd5BGvns5YRiE0/joiNejaxxbyh8ZtwEyd1wT98P
+   7Xdj6MJdTiHnkrtvRUTtavFcTg1Qxvzu38I+nA==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=J5Q2nMxTPEGbx91acjM+/Ecm9L6znh5S3h7V1f1w6Mw=;
- b=OIUyYN1rkBuKLyDVD/K2FnAUAbUqcnXpJfic55+0sWdj1EF2qCP2wCUAHMITIjPID50LUqBu+0US
-   B2ne4rSYo7Y6yMp94iERqgJBRM6BuM6Vp8McKv0FO4JUgfHdVgDXWfVgJa3jxFN/joH3vYN6fuwK
-   Sy0JTE0Zex20BlQMQexrCYIoxEfkbzpkNWfHTvZ26TxPRNlyTd3OyNG6a0j0wsd31GVr8fEm437i
-   CIa29vzxmN7Yy43TZH4wq3HZv8Nq5rFFMJJ+5CIQBLTdQlo9QqksYma8wdYiK6shcroeaiICQMuI
-   HqUvgd59/75XhH/arY9m1HrF2fAsY4HNo2VRrQ==
+ bh=B3LZYuDAggCmeuAe5G+a/SF1hQe99A7odhSFx/mKTws=;
+ b=bQ6oVcFi1X73tFdXfVCdXP/FyKx+2csO+jVGlCkkCXcWjdDcgBPKqPKu7qxTv8cwECpbpyhCsKSq
+   vStTME1y/v2xFJfsgrOHicRd1BJfJFZGT08vuX0Y/MjvMAcS0iJ13zKfQbae+nmM1kfZBdmHCwZp
+   NxfM9X0jTbHFR9j+uw8l/BIkiYc2rGj/XefdXrxesGvxWRTQtkRYufv/nM6XN+Ht2F3pJtMjkEOn
+   LEK+Na1+XXqH1kMAxqidi2m0OCA19PXVBwNwSwWmROgwKUu4r8705gBMvR215yEx4ebkVyyC3K9R
+   QD/kZPsQwSoOsEYoKM4U9PAmAM/f97+OOd0JMA==
 Received: by omta-ad2-fd1-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20230523 64bit (built May 23
  2023))
- with ESMTPS id <0RWK00L7645YR5B0@omta-ad2-fd1-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
+ with ESMTPS id <0RWK00L7G45YR5B0@omta-ad2-fd1-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
  ocfs2-devel@archiver.kernel.org; Tue, 20 Jun 2023 14:56:22 +0000 (GMT)
-ARC-Seal: i=1; a=rsa-sha256; t=1687209521; cv=none; d=strato.com;
+ARC-Seal: i=1; a=rsa-sha256; t=1687123984; cv=none; d=strato.com;
  s=strato-dkim-0002;
- b=LFVXYnZJP3AC4ueU5OSFywkBghrWBMJoaPp1Nr786WBT4H25sdRZekQJto2nthGHHl
- 1omr2W+S6zVlnSVtcyAW/YdVI9zlNiyjATrEYkcU71j6CtA346ESRbk3UwBGZjHTUo/a
- JiCy1BwEWoief1uGdfq0aJGOJR/1llf87lIJtGUFoNVkEj/0qxY8x4yYZ/ZwKxa2z/89
- vJyUkfkTLHe+Yw+4c6ka4IzxyuTPz68FbAytIlF9/75kd23AQIpmnMIZkt2pQ4Pl1ZUV
- mUWumFY6Fp4wNkrzM/Sdfod2a1ui+wZkE7jsZVtrhZkUvIQkQyCd4q4Cx+qPd0jZJNK+ eMLg==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; t=1687209521;
+ b=nWSvTOOnO8ugSK6+/H307s3L5N4uQG5KOysBX2IgampHzUt/e1M7vWIgYdM3yVn8L6
+ mF36Wi9H8fUj11MVYKe9B3JL/hDoWwgnzOa3dvcISkQQDSb2WEO0SpuCxbpl9ulC48VA
+ 6OTnqS/TmHNy3oQ4R2DtbjIhU7Nohg+aSNxXIW/hxT2ZMWnTYP5q+8lRRwhkjZdu7w8l
+ M4LdL+lzkB6WNMIUSREXZKPuCvrGYQZzoo743PqH5qMBYNux3lLCwnXbWxglyfCgKp9d
+ JjMRY3fdgtxXhCanLp8cu/y+YDIQJYd/ZKZOPMXDY0KPjjpxCPe64ikJHtlBMzm9mmqZ c3oA==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; t=1687123984;
  s=strato-dkim-0002; d=strato.com;
  h=References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Cc:Date:
- From:Subject:Sender; bh=NGBMcxhHLHH11bvOk7/wD+Xn9RcgMORp7BCVCyG5YE0=;
- b=AmoXSgTVG1F6LCKvW6LHTtlBOukQR3A7nuDxN8+LBG7M15CyW1KdJuR42QHlzHEqJx
- hXvHMHoYFOEsxZ/bZJwDcnxhl06tuw8EXsmoShxmel3WkGFQjzbeMpdGeeeVHTdM2RZ1
- rrLB1+BQ8gVcW4CUd8f9ctiUTuDCfQsRgWabhYkfge5JLkttFrQXxtEd+tXWVtGbSzo5
- qDd5sZAD1xBsZEdIFb4x5VyJEs8msvDVbzNTkDWFQomAx19x4CcI2x/rA8ZDTh8ZS6YL
- RuxWZeeT/2J8qRAa/JvuPLO7ls1FKeb39iIi0p4SARtsnVoIcGUpgFjhiFF+z6pBENyB eL0w==
+ From:Subject:Sender; bh=FiS5DxAChRRX4k3Ho2cvADBUbEW2Co/dwGRsyJUkQbY=;
+ b=F1UqAkcdL/glDaJ1655WMMKUY52RDJgVOqcvh+cD7JNw7DLTJekAmQP9YVLy8YWOBF
+ guSVfoSeB8n1uU731qyZ+2YC7+WmUd1aoBptm75em2DG7A0I9YV9NJuGRMXnCNnXU294
+ CmwqbHfbRSHFnlCjWqWsUA4Re7ELTkbddNyG3e3F5zHhnCOKvViEuF728C4h3kfIP49z
+ ceyU8ATRHqXtto6Jx7yx/Q4/a+0El45664DLB5wW80ELr1N0KPFG7lCoJLDTbf+1GuWJ
+ bW5Tks8uPB7H4X+tPVl3XNjIVDIDbVkrwfOqq5JPKciLf00llz8zYQ8HIq0h2A0FypH/ mlmA==
 ARC-Authentication-results: i=1; strato.com;    arc=none;    dkim=none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; t=1687209521;
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; t=1687123984;
  s=strato-dkim-0002; d=iokpp.de;
  h=References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Cc:Date:
- From:Subject:Sender; bh=NGBMcxhHLHH11bvOk7/wD+Xn9RcgMORp7BCVCyG5YE0=;
- b=fjfTtql55O5eGJWVBFn9vZgvbB6aFpEsu1u1CJBfw2sCVF2CQyHS3QTOcEIoaUef/m
- DMmTxrRdiKmdgn6f3t8nMGFmUoLZhaKk429s3JuidosIF4uHOc6bQCBd+BkuHbJQZBUJ
- 6oW7TZEbzK+myWi7R+bRHSYM5fUxTQsFFc9Hz0ozKdCv7zAtUv4caiswcOCNFAYxUC5B
- BTBfEMTo3gx/EbJamvuYWrMR1gyXSO2UsS8Ack7H3oYCUi7ZA9bfC394OoesAXpaOUl5
- KyRJozJ1VZLUcTjInUbe/Xk+g/o3J9w2RYq6B4tpd8PoiL23dVlHBwCaEX6Vq5X4b227 4tvA==
-DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; t=1687209521;
+ From:Subject:Sender; bh=FiS5DxAChRRX4k3Ho2cvADBUbEW2Co/dwGRsyJUkQbY=;
+ b=PRWXw8CAKoV3Zc0FbJ0k+sd2UEx2mwQS5sPlJ1IMvyUGGrk2/AECJxgw8T9H60V+iT
+ kf2EVFWyYPiH5njS6Yr90PInkPm3bbiSsQOqbEO3o/gQzIMpb4DzqVJRw1SE5b/I2uAx
+ GSla28BN0VEmJRltrEOtfGQvTP6/b2mojhwgA0OmUOhsbDzMpCc4A+/k5f6NOjxIhOLF
+ Yi7snDkMa2CTQrMtS6p8Q0vIAV7Bp+2QT1be6BQJY8RJX9ie+m1vSjmzrnqH2QF5a1vo
+ KuOIRvcXk1STDH86GatVeyNvviTymJ46nAkmGMH1fwNUrLcbDWtT2GXSU5bV+yN964xt 5s8w==
+DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; t=1687123984;
  s=strato-dkim-0003; d=iokpp.de;
  h=References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Cc:Date:
- From:Subject:Sender; bh=NGBMcxhHLHH11bvOk7/wD+Xn9RcgMORp7BCVCyG5YE0=;
- b=jHNcYo6tA2Qyd2g4wy+0S9wCS4sVfUGddQdOOD7Ivi00xskuQrYie0D6cGE0F9UYt0
- edZbZL70/elm5QDN0fBg==
+ From:Subject:Sender; bh=FiS5DxAChRRX4k3Ho2cvADBUbEW2Co/dwGRsyJUkQbY=;
+ b=t62gJy/K2AlLeFVlbN8g/Eh1wVR4obWhlmtyT/E4D34lZw5GOWaD5/PPUg52sfahSL
+ IphcxhR520CJ6vjmIdAw==
 To: viro@zeniv.linux.org.uk, brauner@kernel.org, akpm@linux-foundation.org,
  jack@suse.cz, jack@suse.com, tytso@mit.edu, adilger.kernel@dilger.ca,
  mark@fasheh.com, jlbec@evilplan.org, joseph.qi@linux.alibaba.com
-Date: Mon, 19 Jun 2023 23:18:23 +0200
-Message-id: <20230619211827.707054-2-beanhuo@iokpp.de>
+Date: Sun, 18 Jun 2023 23:32:46 +0200
+Message-id: <20230618213250.694110-2-beanhuo@iokpp.de>
 X-Mailer: git-send-email 2.34.1
-In-reply-to: <20230619211827.707054-1-beanhuo@iokpp.de>
-References: <20230619211827.707054-1-beanhuo@iokpp.de>
+In-reply-to: <20230618213250.694110-1-beanhuo@iokpp.de>
+References: <20230618213250.694110-1-beanhuo@iokpp.de>
 MIME-version: 1.0
-X-Source-IP: 81.169.146.170
-X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10746
+X-Source-IP: 81.169.146.171
+X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10745
  signatures=596816
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 suspectscore=0
- priorityscore=0 bulkscore=0 clxscore=50 phishscore=0 impostorscore=0
- mlxlogscore=478 adultscore=0 mlxscore=0 malwarescore=0 unknownsenderscore=20
- spamscore=0 lowpriorityscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2305260000 definitions=main-2306190196
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 mlxscore=0
+ adultscore=0 priorityscore=0 unknownsenderscore=20 bulkscore=0 suspectscore=0
+ lowpriorityscore=0 malwarescore=0 spamscore=0 mlxlogscore=582 impostorscore=0
+ clxscore=175 phishscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2305260000 definitions=main-2306180205
 Cc: linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org,
  linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com, beanhuo@micron.com
-Subject: [Ocfs2-devel] [PATCH v2 1/5] fs/buffer: clean up block_commit_write
+Subject: [Ocfs2-devel] [PATCH v1 1/5] fs/buffer: clean up block_commit_write
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -99,23 +99,23 @@ Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
 X-RZG-CLASS-ID: mo02
 X-RZG-AUTH:
- ":LmkFe0i9dN8c2t4QQyGBB/NDXvjDB6pBSedrgBzPc9DUyubU4DD1EQ33bneoxgmq7ABeEwyjghc0WGLJ+05px4XK4px0+bSzE8qij5Q="
+ ":LmkFe0i9dN8c2t4QQyGBB/NDXvjDB6pBSedrgBzPc9DUyubU4DD1EQ33bneoxgmq5ARfEwes1hW/CxwfjqKzP/cKnUXGNs35zouFQhI="
 X-ServerName: mo4-p02-ob.smtp.rzone.de
 X-Proofpoint-SPF-Result: None
 X-Spam: Clean
-X-Proofpoint-GUID: 3sjJmE3yFbVZ2yJmtFbjRbZMkUh3YjMJ
-X-Proofpoint-ORIG-GUID: 3sjJmE3yFbVZ2yJmtFbjRbZMkUh3YjMJ
+X-Proofpoint-GUID: EquwXx_iTqlDTpSv_--WLlanpb00bIfT
+X-Proofpoint-ORIG-GUID: EquwXx_iTqlDTpSv_--WLlanpb00bIfT
 X-Mailman-Approved-At: Tue, 20 Jun 2023 14:56:20 +0000
 Reporting-Meta:
- AAEmdgMBAEAP8qGQGTm2UMxULcQPjD4bGQ9MBk0jQmq+tVfixqm/+9Awh/VIUHev
- pCQ5SQwHEwJNzRxq4N1tPnlKzg7x4ouo/4IpR5VeRyEwNFvEYFH47eGiANrRwffG
- FzhFoCF0fx+t9aOdBJBW2a9Ig2YHDtXGjtg4NNIE11nHiOHQDyBmMshxpfJjtdwZ
- LvMWc5NqfOZUE0j8VgofGsotNtsAlARwVwMx/ExJXn0ICHmaWaKKrXqlLhBxVB9Z
- GQa3v+S10YmOICQDww/lUtRgh9n7pTG0RoJisq0xs+9qGri8zlP2dvXWIqEuUkue
- TX5IP8IE7DNoc1X+e0v/iZjTW+WQ7B3ZmsrVI5TTPtH+SbFXD2Vx4FbYeP9aQqyV
- XXRanZTHBMm9p+efchELJdKhzanL9ZrrpGGNbuu1KattnbWRMES+8Mn6yWZ++pk/
- H1UKMn1wgq1Dl1gaZ7S/Cb1We54+v/RHU9EOKHWkjaH6Ic5LKhFrNKNGznEBmPRC
- mD7zNa/ZZfNL0ATyVvUg01u4VXqdZAh5vTXVTd+xs4gb
+ AAHDpdNKOgkuHhNYCU9GXcgZqYaqQXb4j39wnmc4ygVI7iTIW1VXDRMuwKPYHo5u
+ fH08IaJLIZSN350VnoZQyat9BZhVhfu+TeKfO8uwKstjboxTxP4WGALMig6ciPyt
+ wnRZl/JAAhPJS4297KMd8CFdKOvnqaHZMD3bMOAs34FRGxxZHBdka+uYbgDOQtWR
+ kg1bO1zASSEkZxBhp4Rh9lZaieEk20i9szXtTcMij+R4f01Q2noBZahOfqwQLI7d
+ YTMBK8ODxbUGfy+97tWXfRO60bKR0eNem9bL+k9d9Vk6avv8E+HdEWyv3bjgZE5r
+ 0n4Z2V8GqLw9P3ZNt7GxBQ5zCfnp0DLaBcLFi5owlOCN8JbM6sj1dctYn0+zDrq6
+ f993v/LhPRJWl5cjy8K0u+K588ybECVjLU0H3TShyRtqDjdJE5BSfFDOzK3RFV+9
+ E+IqgK+2TOaEOOZ9KvtSBpDdaKygLcTthQT6PQOR7c8IWU50brFk9oRJvdsgwrEU
+ 5Sh0dFJ5zFwRrJKIFFe1C8m9BZnxq4e8LjQj/EvanTg=
 
 From: Bean Huo <beanhuo@micron.com>
 
@@ -125,7 +125,6 @@ __block_commit_write no longer uses this parameter inode, this patch is to
 remove inode and clean up block_commit_write.
 
 Signed-off-by: Bean Huo <beanhuo@micron.com>
-Reviewed-by: Jan Kara <jack@suse.cz>
 ---
  fs/buffer.c | 15 +++------------
  1 file changed, 3 insertions(+), 12 deletions(-)
