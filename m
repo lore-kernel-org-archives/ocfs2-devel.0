@@ -1,87 +1,86 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc245.phx1.oracleemaildelivery.com (aib29ajc245.phx1.oracleemaildelivery.com [192.29.103.245])
+Received: from aib29ajc249.phx1.oracleemaildelivery.com (aib29ajc249.phx1.oracleemaildelivery.com [192.29.103.249])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 55577EB64D7
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id F280BEB64DD
 	for <ocfs2-devel@archiver.kernel.org>; Tue, 20 Jun 2023 14:56:30 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=HG04bPFdVs+rAboOuerMNA7+8HUVz6VInazUKj8dzWI=;
- b=lRMgBCx35fVs5DEFRKGmNtsRtseANonZvYSW/FnoNZrTDkbhcv32ITeVEwO/qayaGcFBxfXRDwGf
-   dcEAIU716CmH7hdEbuXzV3AaVxqOSySYn7aItGeG6XtIaQwP6p3s6EXUfWvwlc9QNam05TVAiZ8F
-   H4/iukdRqX1o+NvtjdCGlmwuus25jLqIirxHLaamtYb2Eu5WN9UrW8YM7KWnXgK60bVbI5BbOuzu
-   Phrq/dTDDiMDkS/cDX021jHfpz8D+9ABy/QmCPewT4LhFvyc0jQ2RmnKNZmsRKhXhFkdI/Ea3+GZ
-   MPL0tYCmtOG4jKT6PbLyQbyAEOpmBTVKgPlkCg==
+ bh=J5Q2nMxTPEGbx91acjM+/Ecm9L6znh5S3h7V1f1w6Mw=;
+ b=tDi4oBfl07OJJ3tp0i2JcLAu6cE4syHtmOcokLd9UPEYe1QBmifUsvXXvai04XIMtYXKgcImWrZ3
+   rob4yJI7UUB3oLPz3g/Zs2mp3J/+hL7yLpSF1xaZAcKBvCFfd0p/PztPQKhgFPKHh2ZBUh9KrUDx
+   bGYoQsCWuKSNDxIBySt8ELY1B/i8B6Zt5bPpRlyW+duS+qcDt7ekoeHhdbSUFGwPaSwLt845YujC
+   +Tz8oGjKgWMQScrpMnKH0qijeQ6mC7Ewj/RaEb8UbYt+QFEk3oDLu9EcnRs07Qi0xGzZZldAzAeY
+   A2RaJ0onrRUDxiJGRv2CWxTHqH4V65pdsg6sjQ==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=HG04bPFdVs+rAboOuerMNA7+8HUVz6VInazUKj8dzWI=;
- b=tfED4C/zMgLQq2Me8hWLxV48LliXdjl6GRop7qX4n/v2NbMsWlnbOT3aGSGwyXFIA4av33WAPF8C
-   jXfPqUkH6UN8L7gwcEy/SNzExSiNeKbL4gXRG4yaiA7UfuIDWyKe008GzC1/nj0Pfs3BxmTzQfOS
-   Y1DzMLYE34avhCsfGhPcbk84IEs/qPLYCBcDR5ZasXQUIy44IVjgaUNnNfZbsH+rPhhVxQ/T5pIt
-   ZFER6oGMDQZx5TCIVwPQsIQoPV7OYv1+4SGGRKSMx8nxYIxWo6kMqkhTdYGmLK6EBNOohyg3vgeB
-   Fd4V+9ucVWk+WY36n0J/PZsjanoXsBSEVlmspQ==
-Received: by omta-ad1-fd1-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
+ bh=J5Q2nMxTPEGbx91acjM+/Ecm9L6znh5S3h7V1f1w6Mw=;
+ b=OIUyYN1rkBuKLyDVD/K2FnAUAbUqcnXpJfic55+0sWdj1EF2qCP2wCUAHMITIjPID50LUqBu+0US
+   B2ne4rSYo7Y6yMp94iERqgJBRM6BuM6Vp8McKv0FO4JUgfHdVgDXWfVgJa3jxFN/joH3vYN6fuwK
+   Sy0JTE0Zex20BlQMQexrCYIoxEfkbzpkNWfHTvZ26TxPRNlyTd3OyNG6a0j0wsd31GVr8fEm437i
+   CIa29vzxmN7Yy43TZH4wq3HZv8Nq5rFFMJJ+5CIQBLTdQlo9QqksYma8wdYiK6shcroeaiICQMuI
+   HqUvgd59/75XhH/arY9m1HrF2fAsY4HNo2VRrQ==
+Received: by omta-ad2-fd1-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20230523 64bit (built May 23
  2023))
- with ESMTPS id <0RWK00BN145YFLB0@omta-ad1-fd1-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
+ with ESMTPS id <0RWK00L7645YR5B0@omta-ad2-fd1-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
  ocfs2-devel@archiver.kernel.org; Tue, 20 Jun 2023 14:56:22 +0000 (GMT)
-ARC-Seal: i=1; a=rsa-sha256; t=1687123985; cv=none; d=strato.com;
+ARC-Seal: i=1; a=rsa-sha256; t=1687209521; cv=none; d=strato.com;
  s=strato-dkim-0002;
- b=LAE7q86rzAmU2pmXqjpSY5LwGTLo9P9aKtp2cfOqbFI7RHUOCTI1MF8XsU9Xo1JDhB
- x0VW2OQuZbbIMP+ZN0+3pA5GjoydH5L1RIvFShJdJEy4b7CGTKYCR6jFoKDOk11jrXZA
- gt7bkgHWcCWa7txlU32h5nil+W8SXK5ICLKy5RZ5AsKthjcYLuvhFl5JV1AvWGzkMx1j
- hVxh/DWjuM8m2y+JNcU3ulC+yELs1eCViYbY7BKrvhbLo0bI0iXYEhnmUOH/1R/E3B8U
- FtVhrMYMxm4Tzr8OyTwl0UWD9NZez1bAbH91ZbcNoP7QV2ZZ0LB+HY1uY6PdTfy7QRrB 61Hw==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; t=1687123985;
+ b=LFVXYnZJP3AC4ueU5OSFywkBghrWBMJoaPp1Nr786WBT4H25sdRZekQJto2nthGHHl
+ 1omr2W+S6zVlnSVtcyAW/YdVI9zlNiyjATrEYkcU71j6CtA346ESRbk3UwBGZjHTUo/a
+ JiCy1BwEWoief1uGdfq0aJGOJR/1llf87lIJtGUFoNVkEj/0qxY8x4yYZ/ZwKxa2z/89
+ vJyUkfkTLHe+Yw+4c6ka4IzxyuTPz68FbAytIlF9/75kd23AQIpmnMIZkt2pQ4Pl1ZUV
+ mUWumFY6Fp4wNkrzM/Sdfod2a1ui+wZkE7jsZVtrhZkUvIQkQyCd4q4Cx+qPd0jZJNK+ eMLg==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; t=1687209521;
  s=strato-dkim-0002; d=strato.com;
  h=References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Cc:Date:
- From:Subject:Sender; bh=5B5W+5M4yQ6bKG+vVuzoT4Vp+ARdlHL0dQxj+aWT0y4=;
- b=EkKDqpIujVv3I9++MhPh7JUlKKRJ0pywsM2CI93xwU/UvZDUWISWNdraw42ycr1XV6
- s4n5FghXNYSo6FE0C4bAtzHTCkxqyB/GGm6mZs/FmS2IEYw6pmYcDYsCTRA/i17Z8sZ4
- ACN4NQhvgXJV2zGPCbsgVKQ/6zCQOHsigwk3nwUsf63ZUl5Bxz1A8KSELEMsC19dFafT
- IBXoY5RDjbdYcdoYHFBSBAXXW09I1mvZI4e2USLcxhyRCtafdnBkhtGKDY4oR+ftOkYO
- OtRjyRH0jMnq1ZNUTH9BPlkyj87JUOfRKilqHUFVNTyE9H6uFNGfW9/u4kGIWQ25UxMy dluA==
+ From:Subject:Sender; bh=NGBMcxhHLHH11bvOk7/wD+Xn9RcgMORp7BCVCyG5YE0=;
+ b=AmoXSgTVG1F6LCKvW6LHTtlBOukQR3A7nuDxN8+LBG7M15CyW1KdJuR42QHlzHEqJx
+ hXvHMHoYFOEsxZ/bZJwDcnxhl06tuw8EXsmoShxmel3WkGFQjzbeMpdGeeeVHTdM2RZ1
+ rrLB1+BQ8gVcW4CUd8f9ctiUTuDCfQsRgWabhYkfge5JLkttFrQXxtEd+tXWVtGbSzo5
+ qDd5sZAD1xBsZEdIFb4x5VyJEs8msvDVbzNTkDWFQomAx19x4CcI2x/rA8ZDTh8ZS6YL
+ RuxWZeeT/2J8qRAa/JvuPLO7ls1FKeb39iIi0p4SARtsnVoIcGUpgFjhiFF+z6pBENyB eL0w==
 ARC-Authentication-results: i=1; strato.com;    arc=none;    dkim=none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; t=1687123985;
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; t=1687209521;
  s=strato-dkim-0002; d=iokpp.de;
  h=References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Cc:Date:
- From:Subject:Sender; bh=5B5W+5M4yQ6bKG+vVuzoT4Vp+ARdlHL0dQxj+aWT0y4=;
- b=URFyVNhQkk1WjaPApLrqX+adaZWYjOiIlbBXdl5kGUI1gANR/SZnEzs0y7UwoLUMyz
- 2CaLiyiOFD21kVRK4dj+u4WgDsU7x/8t4/a2tX+vB0v8b8VSaS+9fFzh/beuQlggg1Kq
- 2FOYq9d0EJJT4OaD21oNgY/KXWHuExtzJnG3ir73wn/H1yHplydNUlu5FoM5KZC7w+3e
- ngGjAcdydG/4fvpL0Rfv7QZxi3EBnbdw9rBtXN3XPV2vn15NRvNCJVDO7Q9JFOC5vpDT
- sfFBhipbowiV+iE9Tg0Xu7lf8cgTz8FDJ78kpOnSPsVPnf9H1KQ/1F/3mK7fgw2Hav3y XyLg==
-DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; t=1687123985;
+ From:Subject:Sender; bh=NGBMcxhHLHH11bvOk7/wD+Xn9RcgMORp7BCVCyG5YE0=;
+ b=fjfTtql55O5eGJWVBFn9vZgvbB6aFpEsu1u1CJBfw2sCVF2CQyHS3QTOcEIoaUef/m
+ DMmTxrRdiKmdgn6f3t8nMGFmUoLZhaKk429s3JuidosIF4uHOc6bQCBd+BkuHbJQZBUJ
+ 6oW7TZEbzK+myWi7R+bRHSYM5fUxTQsFFc9Hz0ozKdCv7zAtUv4caiswcOCNFAYxUC5B
+ BTBfEMTo3gx/EbJamvuYWrMR1gyXSO2UsS8Ack7H3oYCUi7ZA9bfC394OoesAXpaOUl5
+ KyRJozJ1VZLUcTjInUbe/Xk+g/o3J9w2RYq6B4tpd8PoiL23dVlHBwCaEX6Vq5X4b227 4tvA==
+DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; t=1687209521;
  s=strato-dkim-0003; d=iokpp.de;
  h=References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Cc:Date:
- From:Subject:Sender; bh=5B5W+5M4yQ6bKG+vVuzoT4Vp+ARdlHL0dQxj+aWT0y4=;
- b=rXH0HnCIuKZMAhQT/dfven9avZ8tIBFI/MJ5WxYXnufXmubYzYnocg+OMHaFyQiJjL
- zL5crck9utfsfqmr1GAA==
+ From:Subject:Sender; bh=NGBMcxhHLHH11bvOk7/wD+Xn9RcgMORp7BCVCyG5YE0=;
+ b=jHNcYo6tA2Qyd2g4wy+0S9wCS4sVfUGddQdOOD7Ivi00xskuQrYie0D6cGE0F9UYt0
+ edZbZL70/elm5QDN0fBg==
 To: viro@zeniv.linux.org.uk, brauner@kernel.org, akpm@linux-foundation.org,
  jack@suse.cz, jack@suse.com, tytso@mit.edu, adilger.kernel@dilger.ca,
  mark@fasheh.com, jlbec@evilplan.org, joseph.qi@linux.alibaba.com
-Date: Sun, 18 Jun 2023 23:32:47 +0200
-Message-id: <20230618213250.694110-3-beanhuo@iokpp.de>
+Date: Mon, 19 Jun 2023 23:18:23 +0200
+Message-id: <20230619211827.707054-2-beanhuo@iokpp.de>
 X-Mailer: git-send-email 2.34.1
-In-reply-to: <20230618213250.694110-1-beanhuo@iokpp.de>
-References: <20230618213250.694110-1-beanhuo@iokpp.de>
+In-reply-to: <20230619211827.707054-1-beanhuo@iokpp.de>
+References: <20230619211827.707054-1-beanhuo@iokpp.de>
 MIME-version: 1.0
-X-Source-IP: 85.215.255.84
-X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10745
+X-Source-IP: 81.169.146.170
+X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10746
  signatures=596816
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 adultscore=0
- bulkscore=0 priorityscore=0 clxscore=82 unknownsenderscore=20 mlxscore=0
- spamscore=0 malwarescore=0 mlxlogscore=578 impostorscore=0 phishscore=0
- suspectscore=0 lowpriorityscore=0 classifier=spam adjust=0 reason=mlx
- scancount=1 engine=8.12.0-2305260000 definitions=main-2306180205
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 suspectscore=0
+ priorityscore=0 bulkscore=0 clxscore=50 phishscore=0 impostorscore=0
+ mlxlogscore=478 adultscore=0 mlxscore=0 malwarescore=0 unknownsenderscore=20
+ spamscore=0 lowpriorityscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2305260000 definitions=main-2306190196
 Cc: linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org,
  linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com, beanhuo@micron.com
-Subject: [Ocfs2-devel] [PATCH v1 2/5] fs/buffer.c: convert	block_commit_write
- to return void
+Subject: [Ocfs2-devel] [PATCH v2 1/5] fs/buffer: clean up block_commit_write
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -100,85 +99,91 @@ Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
 X-RZG-CLASS-ID: mo02
 X-RZG-AUTH:
- ":LmkFe0i9dN8c2t4QQyGBB/NDXvjDB6pBSedrgBzPc9DUyubU4DD1EQ33bneoxgmq5ARfEwes1hW/CxwfjqKzP/cKnUXGNs35zouFQhI="
+ ":LmkFe0i9dN8c2t4QQyGBB/NDXvjDB6pBSedrgBzPc9DUyubU4DD1EQ33bneoxgmq7ABeEwyjghc0WGLJ+05px4XK4px0+bSzE8qij5Q="
 X-ServerName: mo4-p02-ob.smtp.rzone.de
 X-Proofpoint-SPF-Result: None
 X-Spam: Clean
-X-Proofpoint-GUID: LTS0n4l7rGuy6mfDBMC_WyqetxMDOzp5
-X-Proofpoint-ORIG-GUID: LTS0n4l7rGuy6mfDBMC_WyqetxMDOzp5
+X-Proofpoint-GUID: 3sjJmE3yFbVZ2yJmtFbjRbZMkUh3YjMJ
+X-Proofpoint-ORIG-GUID: 3sjJmE3yFbVZ2yJmtFbjRbZMkUh3YjMJ
 X-Mailman-Approved-At: Tue, 20 Jun 2023 14:56:20 +0000
 Reporting-Meta:
- AAHBm2dhZkqxGMPhVgKVVMPrwHf1IzTVNHmpJCmcsH1m2xW86YRvw1zA0aMZ+RF5
- cksZuV59ngq9laUef9e+lR/jWHJXCmFKywznMIShCrLf4gOAYNNKipnp1bD447i/
- +FNMGWvlzqYrIPqdPA3jwxWI81ihzsZo8+5wPZUomlrwRWPWE3J5RD2jJ/t3VK7o
- XhifeAzbYcfPJiAqB4SHrPEa9ckfI6NgRshVd9t82yyswJchO8GKKY4HzAC2Pvbf
- hLGbcukXf3FyYABNNNs/z/OwaZP/nWzgkbkClhvgVr8kqzPszaisgvuvNudqeedg
- FrjmjoSqvz3h3OqLDUGSQU+mykgMGFgzRUE85tR9sMHaJbAF0OAdS7Yy69EC9O7j
- 1DPagInoVutoRmwy089BGC3kz9zIjqDU/e4+crgf513PPQw6o45h+aOg1scOWzqO
- NwG2hUZkKMMm3MxTJXy99zwPzwJzcQN7qkUbpl4gK4+s66RuuM3Bmb3x7VO2NWMD
- 29vbO+UsvhGTYqiJINwqwybm/q1zirPCpdqCzg6KgF9L
+ AAEmdgMBAEAP8qGQGTm2UMxULcQPjD4bGQ9MBk0jQmq+tVfixqm/+9Awh/VIUHev
+ pCQ5SQwHEwJNzRxq4N1tPnlKzg7x4ouo/4IpR5VeRyEwNFvEYFH47eGiANrRwffG
+ FzhFoCF0fx+t9aOdBJBW2a9Ig2YHDtXGjtg4NNIE11nHiOHQDyBmMshxpfJjtdwZ
+ LvMWc5NqfOZUE0j8VgofGsotNtsAlARwVwMx/ExJXn0ICHmaWaKKrXqlLhBxVB9Z
+ GQa3v+S10YmOICQDww/lUtRgh9n7pTG0RoJisq0xs+9qGri8zlP2dvXWIqEuUkue
+ TX5IP8IE7DNoc1X+e0v/iZjTW+WQ7B3ZmsrVI5TTPtH+SbFXD2Vx4FbYeP9aQqyV
+ XXRanZTHBMm9p+efchELJdKhzanL9ZrrpGGNbuu1KattnbWRMES+8Mn6yWZ++pk/
+ H1UKMn1wgq1Dl1gaZ7S/Cb1We54+v/RHU9EOKHWkjaH6Ic5LKhFrNKNGznEBmPRC
+ mD7zNa/ZZfNL0ATyVvUg01u4VXqdZAh5vTXVTd+xs4gb
 
 From: Bean Huo <beanhuo@micron.com>
 
-block_commit_write() always returns 0, this patch changes it to
-return void.
+Originally inode is used to get blksize, after commit 45bce8f3e343
+("fs/buffer.c: make block-size be per-page and protected by the page lock"),
+__block_commit_write no longer uses this parameter inode, this patch is to
+remove inode and clean up block_commit_write.
 
 Signed-off-by: Bean Huo <beanhuo@micron.com>
+Reviewed-by: Jan Kara <jack@suse.cz>
 ---
- fs/buffer.c                 | 11 +++++------
- include/linux/buffer_head.h |  2 +-
- 2 files changed, 6 insertions(+), 7 deletions(-)
+ fs/buffer.c | 15 +++------------
+ 1 file changed, 3 insertions(+), 12 deletions(-)
 
 diff --git a/fs/buffer.c b/fs/buffer.c
-index b88bb7ec38be..fa09cf94f771 100644
+index a7fc561758b1..b88bb7ec38be 100644
 --- a/fs/buffer.c
 +++ b/fs/buffer.c
-@@ -2116,7 +2116,7 @@ int __block_write_begin(struct page *page, loff_t pos, unsigned len,
+@@ -2116,8 +2116,7 @@ int __block_write_begin(struct page *page, loff_t pos, unsigned len,
  }
  EXPORT_SYMBOL(__block_write_begin);
  
--int block_commit_write(struct page *page, unsigned int from, unsigned int to)
-+void block_commit_write(struct page *page, unsigned int from, unsigned int to)
+-static int __block_commit_write(struct inode *inode, struct page *page,
+-		unsigned from, unsigned to)
++int block_commit_write(struct page *page, unsigned int from, unsigned int to)
  {
  	unsigned block_start, block_end;
  	int partial = 0;
-@@ -2151,7 +2151,6 @@ int block_commit_write(struct page *page, unsigned int from, unsigned int to)
- 	 */
- 	if (!partial)
+@@ -2154,6 +2153,7 @@ static int __block_commit_write(struct inode *inode, struct page *page,
  		SetPageUptodate(page);
--	return 0;
- }
- EXPORT_SYMBOL(block_commit_write);
- 
-@@ -2577,11 +2576,11 @@ int block_page_mkwrite(struct vm_area_struct *vma, struct vm_fault *vmf,
- 		end = PAGE_SIZE;
- 
- 	ret = __block_write_begin(page, 0, end, get_block);
--	if (!ret)
--		ret = block_commit_write(page, 0, end);
--
--	if (unlikely(ret < 0))
-+	if (unlikely(ret))
- 		goto out_unlock;
-+
-+	block_commit_write(page, 0, end);
-+
- 	set_page_dirty(page);
- 	wait_for_stable_page(page);
  	return 0;
-diff --git a/include/linux/buffer_head.h b/include/linux/buffer_head.h
-index 1520793c72da..873653d2f1aa 100644
---- a/include/linux/buffer_head.h
-+++ b/include/linux/buffer_head.h
-@@ -284,7 +284,7 @@ int cont_write_begin(struct file *, struct address_space *, loff_t,
- 			unsigned, struct page **, void **,
- 			get_block_t *, loff_t *);
- int generic_cont_expand_simple(struct inode *inode, loff_t size);
--int block_commit_write(struct page *page, unsigned from, unsigned to);
-+void block_commit_write(struct page *page, unsigned int from, unsigned int to);
- int block_page_mkwrite(struct vm_area_struct *vma, struct vm_fault *vmf,
- 				get_block_t get_block);
- /* Convert errno to return value from ->page_mkwrite() call */
+ }
++EXPORT_SYMBOL(block_commit_write);
+ 
+ /*
+  * block_write_begin takes care of the basic task of block allocation and
+@@ -2188,7 +2188,6 @@ int block_write_end(struct file *file, struct address_space *mapping,
+ 			loff_t pos, unsigned len, unsigned copied,
+ 			struct page *page, void *fsdata)
+ {
+-	struct inode *inode = mapping->host;
+ 	unsigned start;
+ 
+ 	start = pos & (PAGE_SIZE - 1);
+@@ -2214,7 +2213,7 @@ int block_write_end(struct file *file, struct address_space *mapping,
+ 	flush_dcache_page(page);
+ 
+ 	/* This could be a short (even 0-length) commit */
+-	__block_commit_write(inode, page, start, start+copied);
++	block_commit_write(page, start, start+copied);
+ 
+ 	return copied;
+ }
+@@ -2535,14 +2534,6 @@ int cont_write_begin(struct file *file, struct address_space *mapping,
+ }
+ EXPORT_SYMBOL(cont_write_begin);
+ 
+-int block_commit_write(struct page *page, unsigned from, unsigned to)
+-{
+-	struct inode *inode = page->mapping->host;
+-	__block_commit_write(inode,page,from,to);
+-	return 0;
+-}
+-EXPORT_SYMBOL(block_commit_write);
+-
+ /*
+  * block_page_mkwrite() is not allowed to change the file size as it gets
+  * called from a page fault handler when a page is first dirtied. Hence we must
 -- 
 2.34.1
 
