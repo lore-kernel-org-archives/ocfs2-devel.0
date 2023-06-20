@@ -1,73 +1,65 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc246.phx1.oracleemaildelivery.com (aib29ajc246.phx1.oracleemaildelivery.com [192.29.103.246])
+Received: from aib29ajc245.phx1.oracleemaildelivery.com (aib29ajc245.phx1.oracleemaildelivery.com [192.29.103.245])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id CF624EB64DA
-	for <ocfs2-devel@archiver.kernel.org>; Mon, 19 Jun 2023 09:56:56 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 402CBEB64DA
+	for <ocfs2-devel@archiver.kernel.org>; Tue, 20 Jun 2023 03:01:51 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=Qlkkd9/oYsJrX5wVs6PAQRFKWbrX7kGlFcdDEL8i8bk=;
- b=mLf56FbQrZXxdfFN2E4UuuNskZAlxoQWb9VvfYxbyTJbF5Tj4uv2Oy+5/luFmugTazXR7AY0LBEW
-   H8L82fnvDGsFMyMNNt19V0Zca5z9QqTrWbhWqBLjgrjdM0+0mZfxNJrohnz0ic+xxsqye15jgl89
-   Ulpdha2rWkpD5KSjJc10SrxR2dn0J1Jt9XCrr9Vvk5MX0mI1kq11L9KtZsCjVcHkqMIwAhMD31KZ
-   wNyH5ayU+estRhlzrKL/PCNdgu6FSxKAV6qbDzBUthWw6wOQFB0niDu7gL2ky1Q21+wqemCLkz16
-   j9RiSQQjZfPUAF3KmpmH8+pdBWfkz5bkO/H5eA==
+ bh=wn+gKb97RCmzRnA3UzFJLDNJmFbZxzCXasvw8ORjoPk=;
+ b=CCIIC2vdCnAWL5w9GHoGUuL2rRoMUCd/rBxNxgEplBJV7+tkbSYLy19GnNmbjdk2kOdW1smnTDQP
+   TZ5Pwu7ln+HKmwAKIZ0IffnwFTkEFQA8XPavgK9YeCepo9v9P/eqrZnbFY9bCqXuZQlXI6mSwT8a
+   dtH35ZrJQrZHrXLp7Va7/IPzQHb2hIuztJ2wHQXsuqyD973K/7dkfIPJwm2bfq49x0Kg0d0oSmsO
+   E2G/NNb11lS9dtddlasBj0kNMowbT4UX4scmK8iOPe4H79fLj3w/kx20kchSkeOf6wYDJzcvd/sv
+   /v0kgw05J+SdtFTvBwwlt+8eCtlFf3ErTWARwg==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=Qlkkd9/oYsJrX5wVs6PAQRFKWbrX7kGlFcdDEL8i8bk=;
- b=ddheTPCl8UaDfhE0fe2cPPiSUBqBZ+fcx5CXOjsUJ1jp6DTI9VrqhoxmR9beJdEPLkAI/O5D6WPz
-   GRIeA+NUnViWIH90MZQqIgJUBJR1UrUNU0nDiUpqcpgyBgbMEGvVtfYQIYhpNJsROPL4tj7oR/w3
-   ExAqeGv2nYefTszXmFszrYfhjoQUYF33v92gLAZCTyY5SrQFxlnsZmw7eUaX1w56cdejhtkBNnKx
-   i81R1OoJweFSs2oVKx5CYdZDJijTk4OOpKRmeVisNfDWXE9IfONljw4NecqXYT0iHA2wMNTY8Mvp
-   Wxtfi/fhWt5UmcPfD5Ba7VuEhBhOkLQcJHw+jw==
-Received: by omta-ad1-fd3-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
+ bh=wn+gKb97RCmzRnA3UzFJLDNJmFbZxzCXasvw8ORjoPk=;
+ b=iami0OtsuDSnXEl1akxmZN+Nbd8w2/o2Y+KBxpElLbbmuARPBQPxMkNYHlAYk6sebjzWzyPt8/rz
+   ZgaN9lYMweB4qwCPtPDYnLdYyX/FPGMPJ8Ka04BHy1GTTDxJAvt9QO9KMDJJF3ch4so4zPpmtOKe
+   K9R6PHk+np2dxwB8FqW/FixrJ5OHseJFeOH9MuOs41eTFgLbbJmiapHHqAxhsfEeoKn4rg8HY5eC
+   vBmR+goIeBo5aQ3ietV838Fa9oMRfvMN0nnLojPWJ3UkS7qRfUu4RI5yxxeO+Q0HFGWYxjFNUfp9
+   Wr67LupS6o4XawDpPM1UMAX59jPt7RZDWil+Xg==
+Received: by omta-ad1-fd1-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20230523 64bit (built May 23
  2023))
- with ESMTPS id <0RWH00OPKVMWQI30@omta-ad1-fd3-101-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Mon, 19 Jun 2023 09:56:56 +0000 (GMT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.cz; s=susede2_rsa;
- t=1687168603;
- h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
- mime-version:mime-version:content-type:content-type:
- in-reply-to:in-reply-to:references:references;
- bh=muUTjP25aYFmNXaLyBGB13a2mB/gemsyPXw0y/fSJkY=;
- b=tbtiGiX80YAT6jPK+U/vZj+hgHIg9p75BCFi001xezlolDZyipzy07OqrfRefEbf4dV5EM
- qXKCOaiOOm2drgGa2uzkAfBrTMGs0u6y6O+gXdLb9LR8mYoiABphYf2A+3aSuBEeJUSfl0
- 080X67FW1yX8DDMW4ffGWuYyUOV+FXE=
-DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.cz;
- s=susede2_ed25519; t=1687168603;
- h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
- mime-version:mime-version:content-type:content-type:
- in-reply-to:in-reply-to:references:references;
- bh=muUTjP25aYFmNXaLyBGB13a2mB/gemsyPXw0y/fSJkY=;
- b=4yj3hR/7cdSaAU6VGtPxoXcyKUVufEHzpM/+ahqqUyabkHOKXKxncQcCLFyPHoWlgf1yyq
- JQEMpcSJZvgYYYBw==
-Date: Mon, 19 Jun 2023 11:56:42 +0200
+ with ESMTPS id <0RWJ008WM732HZ20@omta-ad1-fd1-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Tue, 20 Jun 2023 03:01:50 +0000 (GMT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=mit.edu; s=outgoing;
+ t=1687230043; bh=3n8GAvW8QrSdojYTtSqja8VtHL/WSJb5DJjbA1RhY/4=;
+ h=Date:From:To:Cc:Subject:References:In-Reply-To;
+ b=aUyd5I4x+bUQbJVVDNU1LP7CcS8iqNF2nVC4QkPqnPVd93PxKQYTmFUwe120hvjHD
+ LB6h2MDwE6KWqQS/tavsoozxBdF8t89kTVyqKzLZ0KJ/kqat81JoV6Y1o6VTQzb/FS
+ YJXhYJkq5smhu/5yG/JJ4PeZ0JGmO7k5uDa6cy5qIEg4W8UqrEmsLlJPkKP0dgCagA
+ wHaY9uUBazQtotST8InhIsVYklyPBIb8xy7TIBYcp69ooaFdxTYfNZ2lj0z0bv/I1r
+ xXTMQf/RSUjW0XIxhx6COquVPobNMxJpZ4pACwe8uQyfu9P2W+Q1CpcRGw0kUCP2FT
+ +SSM25sLqEa4A==
+Date: Mon, 19 Jun 2023 23:00:37 -0400
 To: Bean Huo <beanhuo@iokpp.de>
-Message-id: <20230619095642.vjb5fjyhgnbp2drc@quack3>
-References: <20230618213250.694110-1-beanhuo@iokpp.de>
- <20230618213250.694110-6-beanhuo@iokpp.de>
+Message-id: <20230620030037.GF286961@mit.edu>
+References: <20230619211827.707054-1-beanhuo@iokpp.de>
+ <20230619211827.707054-3-beanhuo@iokpp.de>
 MIME-version: 1.0
 Content-disposition: inline
-In-reply-to: <20230618213250.694110-6-beanhuo@iokpp.de>
-X-Source-IP: 195.135.220.29
-X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10745
+In-reply-to: <20230619211827.707054-3-beanhuo@iokpp.de>
+X-Source-IP: 18.9.28.11
+X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10746
  signatures=596816
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 mlxlogscore=488
- spamscore=0 suspectscore=0 impostorscore=0 bulkscore=0 malwarescore=0
- lowpriorityscore=0 mlxscore=0 adultscore=0 priorityscore=181 clxscore=185
- phishscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2305260000 definitions=main-2306190090
-Cc: brauner@kernel.org, tytso@mit.edu, linux-kernel@vger.kernel.org,
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 mlxlogscore=670
+ priorityscore=78 impostorscore=0 mlxscore=0 clxscore=149 spamscore=0
+ suspectscore=0 phishscore=0 bulkscore=0 malwarescore=0 adultscore=0
+ lowpriorityscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2305260000 definitions=main-2306200026 domainage_hfrom=13907
+Cc: brauner@kernel.org, jack@suse.cz, linux-kernel@vger.kernel.org,
  beanhuo@micron.com, adilger.kernel@dilger.ca, viro@zeniv.linux.org.uk,
- jack@suse.com, linux-fsdevel@vger.kernel.org, jack@suse.cz,
- linux-ext4@vger.kernel.org, ocfs2-devel@oss.oracle.com
-Subject: Re: [Ocfs2-devel] [PATCH v1 5/5] udf: No need to check return value of
- block_commit_write()
+ jack@suse.com, linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org,
+ ocfs2-devel@oss.oracle.com
+Subject: Re: [Ocfs2-devel] [PATCH v2 2/5] ext4: No need to check return value
+ of block_commit_write()
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -79,75 +71,38 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: Jan Kara via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: Jan Kara <jack@suse.cz>
+From: Theodore Ts'o via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: Theodore Ts'o <tytso@mit.edu>
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-ServerName: smtp-out2.suse.de
+X-ServerName: outgoing-auth-1.mit.edu
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 ip4:137.65.0.0/16 ip4:151.155.28.0/17
- ip4:149.44.0.0/16 ip4:147.2.0.0/16 ip4:164.99.0.0/16 ip4:130.57.0.0/16
- ip4:192.31.114.0/24 ip4:195.135.221.0/24 ip4:195.135.220.0/24
- ip4:69.7.179.0/24 ip4:150.215.214.0/24 include:mailcontrol.com ~all
+X-Proofpoint-SPF-Record: v=spf1 include:_s00430413.autospf.email -all
 X-Spam: Clean
-X-Proofpoint-GUID: ngGB41MiKCUeQLswJcmUS4UJly9s8nTq
-X-Proofpoint-ORIG-GUID: ngGB41MiKCUeQLswJcmUS4UJly9s8nTq
+X-Proofpoint-GUID: B36ehU9f6iIZHJZGUfstncBadeS_zwPn
+X-Proofpoint-ORIG-GUID: B36ehU9f6iIZHJZGUfstncBadeS_zwPn
 Reporting-Meta:
- AAHzdHAKMJfkkRzVmtr61aQ2nZ79r4a9DKrLdF1DxK7yAom1D0SJ6ksO7XpOqY7s
- XIWda/JuYuv2BrsQL2klFzZTNRSoOB9A6lkgTaCOIDxTosLD0CW5BLDC4WSmYehz
- ZIf3ljxIdA+sY6H5GGkliClRdCF4cg3oXSyqzeXXBwAm0JnCOxw3SkMTUsP0pzOi
- qhjytMxrP3pAVHiD360hfMtS/P0/XmzmGuJZlP8Cqtf1Fs5ZVMOfHuMiWgH15OFi
- NxR+W21CbxKHQ8RX5aaDmEU2LOhk0HvvR7ULO5JP5BNK8UU/Q6H6XhVef39xryab
- Zxv6LCOO70tu7LKo3D6JABQgdlhhp3a2pZrk+0xmecHtKPueBQnqB5hjoe2UyhCt
- ViTi3HviAaxnmAWugpUHyQ9jLDelm+1vpJFsrsEpPiffYLXgQDXMDRJ08bO7X+4Y
- hRP+tyPKJG5qE02LHNybXxoB1M2UizaSk5yLVOdyvcgAcknEthT4f1fXBM5Gfmlm
- BQrZ6TtJSOUao9z/tpvx4uM1T6c4kBPnaKkhwnSB4eCn
+ AAEO0Sy2sKwV/GIpyIDUn/x952sTidu9ti/OkP5XoqbQqhIqhCSca0+JsUm/m8Mf
+ FZ/TInEJyH/1j9yegpdho7A0ESg1p2ZqKBXNFKPGSZWcodPu4AfcTwrrGN+JvyI2
+ s51jiPtLlymTqTYQn0Z0QY5DWAvV5vF+9rF4AbFGR/Jni9ofbDxQE6jfGMSBcIny
+ 91gat4fifEfRr5fnp4dh+vA3QKO5t9oD00SijkfntVzhE+ciP+ESoAUlkdVYr2Sd
+ HuST0f4x6B5dYmFuUQwuU5/J/8RfjnnPiCe8CuESjr+JkOBB12w71Zzw18u5XQGG
+ W+493wm2NF9EZEO48ZHq8C1nKQ0ricz2+iACOFLRHCsMqVB52CX3WqxCjozTC7SS
+ Ez2lG1ZyJONDjHKWFxTNEMow+BvhzH3LXfNhPcX/x+hXV5HvNmwXDv1EjTuznvL7
+ YB06DU8EP4PWKu3sooJ5BgC8O500VyOINIX4MmPJVAnuBarVSrbFYmGSmauyXg4y
+ J8Yqz3E0c8Byo3npT6ddbMRQFocfE/lpzP5bebPTmR0I
 
-On Sun 18-06-23 23:32:50, Bean Huo wrote:
+On Mon, Jun 19, 2023 at 11:18:24PM +0200, Bean Huo wrote:
 > From: Bean Huo <beanhuo@micron.com>
 > 
-> Remove unnecessary check on the return value of block_commit_write().
+> Remove unnecessary check on the return value of block_commit_write(),
+> because it always returns 0.
 > 
 > Signed-off-by: Bean Huo <beanhuo@micron.com>
+> Reviewed-by: Jan Kara <jack@suse.cz>
 
-Looks good to me. Feel free to add:
-
-Reviewed-by: Jan Kara <jack@suse.cz>
-
-								Honza
-
-> ---
->  fs/udf/file.c | 6 +++---
->  1 file changed, 3 insertions(+), 3 deletions(-)
-> 
-> diff --git a/fs/udf/file.c b/fs/udf/file.c
-> index 8238f742377b..b1a062922a24 100644
-> --- a/fs/udf/file.c
-> +++ b/fs/udf/file.c
-> @@ -67,13 +67,13 @@ static vm_fault_t udf_page_mkwrite(struct vm_fault *vmf)
->  	else
->  		end = PAGE_SIZE;
->  	err = __block_write_begin(page, 0, end, udf_get_block);
-> -	if (!err)
-> -		err = block_commit_write(page, 0, end);
-> -	if (err < 0) {
-> +	if (err) {
->  		unlock_page(page);
->  		ret = block_page_mkwrite_return(err);
->  		goto out_unlock;
->  	}
-> +
-> +	block_commit_write(page, 0, end);
->  out_dirty:
->  	set_page_dirty(page);
->  	wait_for_stable_page(page);
-> -- 
-> 2.34.1
-> 
--- 
-Jan Kara <jack@suse.com>
-SUSE Labs, CR
+Acked-by: Theodore Ts'o <tytso@mit.edu>
 
 _______________________________________________
 Ocfs2-devel mailing list
