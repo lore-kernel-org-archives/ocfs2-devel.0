@@ -1,58 +1,180 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc252.phx1.oracleemaildelivery.com (aib29ajc252.phx1.oracleemaildelivery.com [192.29.103.252])
+Received: from aib29ajc255.phx1.oracleemaildelivery.com (aib29ajc255.phx1.oracleemaildelivery.com [192.29.103.255])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 5CAD0EB64D8
-	for <ocfs2-devel@archiver.kernel.org>; Wed, 21 Jun 2023 14:49:16 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 34FC5EB64D8
+	for <ocfs2-devel@archiver.kernel.org>; Wed, 21 Jun 2023 16:07:04 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=jFhMu8NArsh7RshscY76xRl8AU/kmc2XEvYt8h4VcUU=;
- b=tkLYkPcU778k4SyaCFrVL6Dw/0H3LuGKOQcersqLKTP5YDqoe3/pIbD8xyTcEPQ9npuEzKmIwZ5l
-   wB9lL9cE1UntmNhPXalj086b7FhIm6HGN0r0YT0rbLXc9XXmQ8CmpVLge6X7SFSrrsGJW6uGWd9q
-   kMz3UCCwCR2XGfyx6csJUOpDCUq1ZxGv+ooTS9+jIeP81Uq+rDGJwgLvqK9IX1fQTNVucFWPk0KS
-   bsQzqQCVC6SH+WvOFABFqyGZG9Rr0i7dvxQpdKaCZxbf8Ay25kpqFf4RhrTppz9LvI/Q+tX8NoM2
-   LaiTTALW6T4ZAe6W2Ff6LXv3gvN6Wi4RgIIDxg==
+ bh=52IxTfg6LENuevF0oB7JrZBvlSqVCHr4JqptpQj0qG8=;
+ b=k127nSZlL9SnIyZPLcFtaeMD0RWtacDE8hk1zN3bu46VBcjxjcwnkqKyTfAjWbkSJ5j63THrptem
+   ASuyoee/TRYRDMmJJxRSqqOjYmC5GrNGYYBo5DXjGSNcwOfIEMKSj2WnnRiM8A4vy62loNljYYhH
+   FFkBtTOrUNf80uuvThuTJ4L6QgAjgvnHSAnDH51u0Bs2rghT0/qzMipy60QrUA+Q2OD49IZyvQfu
+   IigGOHIn0uIbgLPQurRNOCyINL+pz1ODfgAsekyoYl/8OJv8fkZLmQHUTeuiVAb6Z+iyllPq3jpi
+   5AL6i53kt4SClxblE1FfIWVTxPWp0FzEP6Uusw==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=jFhMu8NArsh7RshscY76xRl8AU/kmc2XEvYt8h4VcUU=;
- b=BlTu/LBjSjxyv2gjr08T5c7sMfG1j0934/wngv3+g4THW51OPlGRYvl633O+TqCSbJ67A6x+tTMM
-   hFou5TjKTLNxYygDuhktRkqGITwFG8RRKZybxG7PpUEgBb5zLUAvK1nKfHOpxNKX4hNKEC5uOq0w
-   CMYOAiMYryfVjOQ4a7AjEoZITBhgo06vs5+PtAmt0bmf5YfvYqq4mO7RX/Ay7UXNvPMmYM924EP9
-   fZNAOZ5xAtTDL/QWCmYebM+I1GhuT7wGvvUx0gVhR1QmTW5b6jrOf4FAe4lXSl58tzT8OfrWP8UF
-   qrEfWMWIy8GI4ffVAJx8t8ujnI18cxPspP1StA==
-Received: by omta-ad3-fd1-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
+ bh=52IxTfg6LENuevF0oB7JrZBvlSqVCHr4JqptpQj0qG8=;
+ b=PzkljMti08URJMDmcaUUVNCBXhEjsnvrkyfMMhmYw+qB9i+zAZ9MfKlvUHJPNPuSs8H/ia+UXtmU
+   9LrWb4iW1Dnwz71pr4AjbYXeFePY6XYTR6FLFdXMSEc21BreXDgYhJlljV8m7xMtaFSDT/B+lu2b
+   dpXb022VGhzfMs/B0fGCynZbH/f36v5W/3ql+5IC3uk1lJJnZ2Nz4vvNPwXS5XqpeO1GB/Rxm46m
+   TOZaOPOsA3UZmTS0bjwchbAt99S0+5MOWvnmb6O29lL3eGFj5WJ5FPP0PCJ77xMyRK+12oCZTXrJ
+   KB2RyDpOkA687V2Wg/lwWgLfO9+MxVy8JGxZEA==
+Received: by omta-ad3-fd3-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20230523 64bit (built May 23
  2023))
- with ESMTPS id <0RWL00G0NYI32210@omta-ad3-fd1-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Wed, 21 Jun 2023 14:49:15 +0000 (GMT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org; s=k20201202;
- t=1687358944; bh=UuqMBTONYbc7aVinRr/zs9pDqPs8q0L6lD8o19D4jVM=;
- h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
- b=V7LTN3mfcbnP9AWyugkh4MzC5gkZ6+oaj8OapsfvnPRQwD04ZZEWF+OMVViCBosN2
- fnocFQEGmeWE4wZ/IthtLfRmne+mwXR1QMxDsH7RKpllieHcQJCl3zOPRtawnLeqx+
- HMipzqWyf/qgPHVsv14i9dSEkDhU6FHi/I/Xlx0ZnbLggBE0IrA/cRLsAfqWkCo3QS
- y0a61VXFA/Lppyf3hcwJYis1zEXTLgzLTVlj3+9u3BhvOEienc6FylJq/zkMGuCoOr
- x/0UmeT7bpWkphg5ytglGMmLdmc8xdltT3wy0RIPmNg3aWWHrEKPKPKgHei6tvK7Nm
- CKyqox+a2HM4g==
-To: Christian Brauner <brauner@kernel.org>, Mark Fasheh <mark@fasheh.com>,
- Joel Becker <jlbec@evilplan.org>, Joseph Qi <joseph.qi@linux.alibaba.com>
-Date: Wed, 21 Jun 2023 10:46:03 -0400
-Message-id: <20230621144735.55953-49-jlayton@kernel.org>
-X-Mailer: git-send-email 2.41.0
-In-reply-to: <20230621144735.55953-1-jlayton@kernel.org>
-References: <20230621144507.55591-1-jlayton@kernel.org>
- <20230621144735.55953-1-jlayton@kernel.org>
+ with ESMTPS id <0RWM00GGN23RGR20@omta-ad3-fd3-302-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Wed, 21 Jun 2023 16:07:03 +0000 (GMT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=intel.com; i=@intel.com;
+ q=dns/txt; s=Intel; t=1687346280; x=1718882280;
+ h=from:to:cc:subject:in-reply-to:references:date: message-id:mime-version;
+ bh=bNOOeYVCQ7poh+/POpUoy8h5Fc7oKKTV5NlBm31y8T8=;
+ b=ApPnOFBrcbHpM84lXIkCPfg0CKRe5U6lh5Egd+pmdnRJ053x/pZmvifj
+ L9zQN5xw2jTVPSHtNLsCbwOH0EXE++jHjHqeMprK8V8AqJE/2pLM3qkU5
+ bALMAYsUgD5vnw66cPikASRkto+gmSlghN+No+2l/uWrnzUEy7YCaIj5a
+ oJrW5uJ5gravNGKNq1OrCs1BpmI3e0qmDedn4A6Wx79EKERJzh21rZGRU
+ pOTLzK6VGxhg4OIluix62/F+WZ32hqFp2o4ef9X7p4vrjnjtP4fOVkud0
+ LX5EF4FhtdKluO7APTGGBlDqPv1Yq7LxlvCI37Z0vJTlkIA+/zH2gKuPw w==;
+To: Joel Granados <j.granados@samsung.com>, mcgrof@kernel.org,
+ Russell King <linux@armlinux.org.uk>,
+ Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>,
+ Michael Ellerman <mpe@ellerman.id.au>, Heiko Carstens <hca@linux.ibm.com>,
+ Vasily Gorbik <gor@linux.ibm.com>, Alexander Gordeev <agordeev@linux.ibm.com>,
+ Gerald Schaefer <gerald.schaefer@linux.ibm.com>,
+ Andy Lutomirski <luto@kernel.org>, Thomas Gleixner <tglx@linutronix.de>,
+ Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
+ Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
+ Herbert Xu <herbert@gondor.apana.org.au>,
+ "David S. Miller" <davem@davemloft.net>,
+ Russ Weight <russell.h.weight@intel.com>,
+ Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
+ Phillip Potter <phil@philpotter.co.uk>, Clemens Ladisch <clemens@ladisch.de>,
+ Arnd Bergmann <arnd@arndb.de>, Corey Minyard <minyard@acm.org>,
+ Theodore Ts'o <tytso@mit.edu>, "Jason A. Donenfeld" <Jason@zx2c4.com>,
+ Joonas Lahtinen <joonas.lahtinen@linux.intel.com>,
+ Rodrigo Vivi <rodrigo.vivi@intel.com>,
+ Tvrtko Ursulin <tvrtko.ursulin@linux.intel.com>,
+ David Airlie <airlied@gmail.com>, Daniel Vetter <daniel@ffwll.ch>,
+ "K. Y. Srinivasan" <kys@microsoft.com>,
+ Haiyang Zhang <haiyangz@microsoft.com>, Wei Liu <wei.liu@kernel.org>,
+ Dexuan Cui <decui@microsoft.com>, Jason Gunthorpe <jgg@ziepe.ca>,
+ Leon Romanovsky <leon@kernel.org>,
+ Benjamin Herrenschmidt <benh@kernel.crashing.org>, Song Liu <song@kernel.org>,
+ Robin Holt <robinmholt@gmail.com>, Steve Wahl <steve.wahl@hpe.com>,
+ David Ahern <dsahern@kernel.org>, Eric Dumazet <edumazet@google.com>,
+ Jakub Kicinski <kuba@kernel.org>, Paolo Abeni <pabeni@redhat.com>,
+ Sudip Mukherjee <sudipm.mukherjee@gmail.com>,
+ Mark Rutland <mark.rutland@arm.com>,
+ "James E.J. Bottomley" <jejb@linux.ibm.com>,
+ "Martin K. Petersen" <martin.petersen@oracle.com>,
+ Doug Gilbert <dgilbert@interlog.com>, Jiri Slaby <jirislaby@kernel.org>,
+ Juergen Gross <jgross@suse.com>, Stefano Stabellini <sstabellini@kernel.org>,
+ Alexander Viro <viro@zeniv.linux.org.uk>,
+ Christian Brauner <brauner@kernel.org>, Benjamin LaHaise <bcrl@kvack.org>,
+ David Howells <dhowells@redhat.com>, Jan Harkes <jaharkes@cs.cmu.edu>,
+ coda@cs.cmu.edu, Trond Myklebust <trond.myklebust@hammerspace.com>,
+ Anna Schumaker <anna@kernel.org>, Chuck Lever <chuck.lever@oracle.com>,
+ Jeff Layton <jlayton@kernel.org>, Jan Kara <jack@suse.cz>,
+ Anton Altaparmakov <anton@tuxera.com>, Mark Fasheh <mark@fasheh.com>,
+ Joel Becker <jlbec@evilplan.org>, Joseph Qi <joseph.qi@linux.alibaba.com>,
+ Kees Cook <keescook@chromium.org>, Iurii Zaikin <yzaikin@google.com>,
+ Eric Biggers <ebiggers@kernel.org>, "Darrick J. Wong" <djwong@kernel.org>,
+ Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>,
+ Andrii Nakryiko <andrii@kernel.org>, Balbir Singh <bsingharora@gmail.com>,
+ Eric Biederman <ebiederm@xmission.com>,
+ "Naveen N. Rao" <naveen.n.rao@linux.ibm.com>,
+ Anil S Keshavamurthy <anil.s.keshavamurthy@intel.com>,
+ Masami Hiramatsu <mhiramat@kernel.org>, Peter Zijlstra <peterz@infradead.org>,
+ Petr Mladek <pmladek@suse.com>, Sergey Senozhatsky <senozhatsky@chromium.org>,
+ Juri Lelli <juri.lelli@redhat.com>,
+ Vincent Guittot <vincent.guittot@linaro.org>,
+ John Stultz <jstultz@google.com>, Steven Rostedt <rostedt@goodmis.org>,
+ Andrew Morton <akpm@linux-foundation.org>,
+ Mike Kravetz <mike.kravetz@oracle.com>, Muchun Song <muchun.song@linux.dev>,
+ Naoya Horiguchi <naoya.horiguchi@nec.com>,
+ "Matthew Wilcox (Oracle)" <willy@infradead.org>,
+ Joerg Reuter <jreuter@yaina.de>, Ralf Baechle <ralf@linux-mips.org>,
+ Pablo Neira Ayuso <pablo@netfilter.org>,
+ Jozsef Kadlecsik <kadlec@netfilter.org>, Florian Westphal <fw@strlen.de>,
+ Roopa Prabhu <roopa@nvidia.com>, Nikolay Aleksandrov <razor@blackwall.org>,
+ Alexander Aring <alex.aring@gmail.com>,
+ Stefan Schmidt <stefan@datenfreihafen.org>,
+ Miquel Raynal <miquel.raynal@bootlin.com>,
+ Steffen Klassert <steffen.klassert@secunet.com>,
+ Matthieu Baerts <matthieu.baerts@tessares.net>,
+ Mat Martineau <martineau@kernel.org>, Simon Horman <horms@verge.net.au>,
+ Julian Anastasov <ja@ssi.bg>, Remi Denis-Courmont <courmisch@gmail.com>,
+ Santosh Shilimkar <santosh.shilimkar@oracle.com>,
+ Marc Dionne <marc.dionne@auristor.com>, Neil Horman <nhorman@tuxdriver.com>,
+ Marcelo Ricardo Leitner <marcelo.leitner@gmail.com>,
+ Xin Long <lucien.xin@gmail.com>, Karsten Graul <kgraul@linux.ibm.com>,
+ Wenjia Zhang <wenjia@linux.ibm.com>, Jan Karcher <jaka@linux.ibm.com>,
+ Jon Maloy <jmaloy@redhat.com>, Ying Xue <ying.xue@windriver.com>,
+ Martin Schiller <ms@dev.tdt.de>, John Johansen <john.johansen@canonical.com>,
+ Paul Moore <paul@paul-moore.com>, James Morris <jmorris@namei.org>,
+ "Serge E. Hallyn" <serge@hallyn.com>, Jarkko Sakkinen <jarkko@kernel.org>
+In-reply-to: <20230621094817.433842-1-j.granados@samsung.com>
+Organization: Intel Finland Oy - BIC 0357606-4 - Westendinkatu 7, 02160 Espoo
+References: <20230621091000.424843-1-j.granados@samsung.com>
+ <CGME20230621094824eucas1p2b6adfbd3f15ff3665674917f419b25d3@eucas1p2.samsung.com>
+ <20230621094817.433842-1-j.granados@samsung.com>
+Date: Wed, 21 Jun 2023 14:16:55 +0300
+Message-id: <87o7l92hg8.fsf@intel.com>
 MIME-version: 1.0
-X-Source-IP: 139.178.84.217
-X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10748
+X-Source-IP: 192.55.52.136
+X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10747
  signatures=596816
-Cc: Jan Kara <jack@suse.cz>, Al Viro <viro@zeniv.linux.org.uk>,
- ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
-Subject: [Ocfs2-devel] [PATCH 50/79] ocfs2: switch to new ctime accessors
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 malwarescore=0
+ priorityscore=202 impostorscore=0 clxscore=284 suspectscore=0 bulkscore=0
+ spamscore=0 lowpriorityscore=0 mlxlogscore=641 adultscore=0 phishscore=0
+ mlxscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2305260000 definitions=main-2306210094 domainage_hfrom=13602
+Cc: Joel Granados <j.granados@samsung.com>, Miaohe Lin <linmiaohe@huawei.com>,
+ linux-hyperv@vger.kernel.org, linux-ia64@vger.kernel.org,
+ "Rafael J. Wysocki" <rafael@kernel.org>, linux-aio@kvack.org,
+ Amir Goldstein <amir73il@gmail.com>, mptcp@lists.linux.dev,
+ KP Singh <kpsingh@kernel.org>, dri-devel@lists.freedesktop.org,
+ Ben Segall <bsegall@google.com>, linux-mm@kvack.org,
+ linux-sctp@vger.kernel.org, keyrings@vger.kernel.org,
+ Stanislav Fomichev <sdf@google.com>, "H. Peter Anvin" <hpa@zytor.com>,
+ linux-afs@lists.infradead.org, linux-s390@vger.kernel.org,
+ Valentin Schneider <vschneid@redhat.com>, xen-devel@lists.xenproject.org,
+ linux-scsi@vger.kernel.org, dccp@vger.kernel.org, linux-rdma@vger.kernel.org,
+ bridge@lists.linux-foundation.org, John Fastabend <john.fastabend@gmail.com>,
+ linux-ntfs-dev@lists.sourceforge.net,
+ Christophe Leroy <christophe.leroy@csgroup.eu>, codalist@coda.cs.cmu.edu,
+ lvs-devel@vger.kernel.org, Matthew Bobrowski <repnop@google.com>,
+ linux-cachefs@redhat.com, Mel Gorman <mgorman@suse.de>,
+ tipc-discussion@lists.sourceforge.net, Yonghong Song <yhs@fb.com>,
+ Christian Borntraeger <borntraeger@linux.ibm.com>,
+ intel-gfx@lists.freedesktop.org, linux-crypto@vger.kernel.org,
+ linux-wpan@vger.kernel.org, coreteam@netfilter.org,
+ John Ogness <john.ogness@linutronix.de>, Mike Travis <mike.travis@hpe.com>,
+ Boqun Feng <boqun.feng@gmail.com>, apparmor@lists.ubuntu.com,
+ linuxppc-dev@lists.ozlabs.org, Nicholas Piggin <npiggin@gmail.com>,
+ rds-devel@oss.oracle.com, linux-raid@vger.kernel.org,
+ Waiman Long <longman@redhat.com>, linux-hams@vger.kernel.org,
+ openipmi-developer@lists.sourceforge.net,
+ Dietmar Eggemann <dietmar.eggemann@arm.com>,
+ linux-arm-kernel@lists.infradead.org, fsverity@lists.linux.dev,
+ Hao Luo <haoluo@google.com>, linux-nfs@vger.kernel.org,
+ Will Drewry <wad@chromium.org>, linux-x25@vger.kernel.org,
+ Stephen Boyd <sboyd@kernel.org>,
+ Daniel Bristot de Oliveira <bristot@redhat.com>, kexec@lists.infradead.org,
+ linux-kernel@vger.kernel.org, Andy Lutomirski <luto@amacapital.net>,
+ linux-xfs@vger.kernel.org,
+ Oleksandr Tyshchenko <oleksandr_tyshchenko@epam.com>,
+ linux-security-module@vger.kernel.org, netfilter-devel@vger.kernel.org,
+ Sven Schnelle <svens@linux.ibm.com>, Jiri Olsa <jolsa@kernel.org>,
+ netdev@vger.kernel.org, linux-fsdevel@vger.kernel.org, bpf@vger.kernel.org,
+ linux-trace-kernel@vger.kernel.org, Martin KaFai Lau <martin.lau@linux.dev>,
+ ocfs2-devel@oss.oracle.com
+Subject: Re: [Ocfs2-devel] [PATCH 09/11] sysctl: Remove the end element in
+ sysctl table arrays
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -64,450 +186,96 @@ List-Post: <mailto:ocfs2-devel@oss.oracle.com>
 List-Help: <mailto:ocfs2-devel-request@oss.oracle.com?subject=help>
 List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
-From: Jeff Layton via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
-Reply-to: Jeff Layton <jlayton@kernel.org>
+From: Jani Nikula via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
+Reply-to: Jani Nikula <jani.nikula@linux.intel.com>
 Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
-X-ServerName: dfw.source.kernel.org
+X-IronPort-AV: E=McAfee;i="6600,9927,10747"; a="339757987"
+X-IronPort-AV: E=Sophos;i="6.00,260,1681196400"; d="scan'208";a="339757987"
+X-ExtLoop1: 1
+X-IronPort-AV: E=McAfee;i="6600,9927,10747"; a="664623042"
+X-IronPort-AV: E=Sophos;i="6.00,260,1681196400"; d="scan'208";a="664623042"
+X-ServerName: mga12.intel.com
 X-Proofpoint-SPF-Result: pass
-X-Proofpoint-SPF-Record: v=spf1 include:_spf.kernel.org ~all
-X-Proofpoint-Spam-Reason: safe
-X-Spam: OrgSafeList
-X-SpamRule: orgsafelist
-X-Proofpoint-GUID: jims-ES1D9vF59BZEXXVJNXH-crA4IRL
-X-Proofpoint-ORIG-GUID: jims-ES1D9vF59BZEXXVJNXH-crA4IRL
+X-Proofpoint-SPF-Record: v=spf1 include:_spf.intel.com -all
+X-Spam: Clean
+X-Proofpoint-ORIG-GUID: AoxsWRc1oW1fhQhnUDsRX8F4Ig_LQ3O0
+X-Proofpoint-GUID: AoxsWRc1oW1fhQhnUDsRX8F4Ig_LQ3O0
+X-Mailman-Approved-At: Wed, 21 Jun 2023 16:07:01 +0000
 Reporting-Meta:
- AAHZZBVvYib4s3/F8sGJQm1OqULK+Lf2apuRMZSlYn/g1aBFKLIw+LypIBslIWwH
- iIkLpp0NdLa8nfQKtt7sBbKDgMryAAmrDNbpBrEBaFNj1e0/57HAXxokmhSxiaVf
- h8T7wj8Y8RaHQ11IJgOgyU3ITZYMxJu24z5iftVgy0Nxsa1HCGTMRGiK/2wm5dyN
- CGieWC8zwjtDG9YjFbyCPu2v3dPMIvOMuK9ZnkqoW7z5AYT/6G6dNt7ukHDfT9eq
- /YLLXQ4CVrRKWw1lLC9UHBXOMlMhBRPp3UoxLyJY4+PTc9nAd4+kDu24KwUhzI0N
- SbW77lBulxBUcDxhLnoJNqfNO8JdhMjHb/C1oWi4+NnihoKq1K0KjHTAF1Uy7AFH
- JgAKMvpRwYhcKIVqlEzKc3LLkz26sq0d8OPjRO8QF4ZigDK1qYYQG7DfA4N3KTkT
- AG+yfCPc7rRA3Qxz1a5x+WQ2lvFPQR48yF5h1rj0QQiVBX5RZ88AnrneNeVXkQeo
- lYUfWLPOjhocq4Lj9qzi5816o0utm+uT1MDAqjklmyFG
+ AAHJUWYrXSBVZXvJTWkXH4EPs7V7RGtvVe3Ceq/Ks6PJSx8e0xD5hQvotON6KA1x
+ FVPJkQe9oSIaPOHsS//NPZvVrnbgtSiY1wVhjQ72QkFy4J673uhNSTmeTbG4Fv3y
+ lZv9KTC7/8T2K8SorVwAbUd9ezsuEfJbAaC8kWkNuwkIurpcpK+qlpUtXgbYtPNy
+ 5cmLwg5S+EY9Dhkhs2s/WpncmdErumBdxQ4H9qNPLI3/pUDsf1RRK3z+b2pRwhdn
+ vsYGFArr4Y3DhkveAApl7+0i7WsXOgAPHlTjEo5YzPTbxiq4Oxe5OoVCKMu4PxIZ
+ eXBI6GRY7SVLHrE2zPyEKyB+kQQht89v6cMa+wK+lP2oLy/Xk3kQNUAZYw/KoUKR
+ dlHgfMKQV7xSmA2PdChCWzas3qUxTZTf6Y1GdYu55EstzgIjLI3qCHO+he828H6J
+ GjSqcQVYMCHUxGYgca6yOl5x5MfvdkAB5Wi0rkcyhM0VGuAlC2BMK80KhiLdVmAF
+ w+zkaEPiarUkuF/JaKpEAf4x0b1zgClxjMYAAoLrGA==
 
-In later patches, we're going to change how the ctime.tv_nsec field is
-utilized. Switch to using accessor functions instead of raw accesses of
-inode->i_ctime.
+On Wed, 21 Jun 2023, Joel Granados <j.granados@samsung.com> wrote:
+> Remove the empty end element from all the arrays that are passed to the
+> register sysctl calls. In some files this means reducing the explicit
+> array size by one. Also make sure that we are using the size in
+> ctl_table_header instead of evaluating the .procname element.
 
-Signed-off-by: Jeff Layton <jlayton@kernel.org>
----
- fs/ocfs2/acl.c          |  6 +++---
- fs/ocfs2/alloc.c        |  6 +++---
- fs/ocfs2/aops.c         |  2 +-
- fs/ocfs2/dir.c          |  8 ++++----
- fs/ocfs2/dlmfs/dlmfs.c  |  4 ++--
- fs/ocfs2/dlmglue.c      | 10 ++++++----
- fs/ocfs2/file.c         | 16 +++++++++-------
- fs/ocfs2/inode.c        | 14 ++++++++------
- fs/ocfs2/move_extents.c |  6 +++---
- fs/ocfs2/namei.c        | 22 ++++++++++++----------
- fs/ocfs2/refcounttree.c | 14 +++++++-------
- fs/ocfs2/xattr.c        |  6 +++---
- 12 files changed, 61 insertions(+), 53 deletions(-)
+Where's the harm in removing the end elements driver by driver? This is
+an unwieldy patch to handle.
 
-diff --git a/fs/ocfs2/acl.c b/fs/ocfs2/acl.c
-index 9fd03eaf15f8..ad03021412b4 100644
---- a/fs/ocfs2/acl.c
-+++ b/fs/ocfs2/acl.c
-@@ -191,10 +191,10 @@ static int ocfs2_acl_set_mode(struct inode *inode, struct buffer_head *di_bh,
- 	}
- 
- 	inode->i_mode = new_mode;
--	inode->i_ctime = current_time(inode);
-+	inode_ctime_set_current(inode);
- 	di->i_mode = cpu_to_le16(inode->i_mode);
--	di->i_ctime = cpu_to_le64(inode->i_ctime.tv_sec);
--	di->i_ctime_nsec = cpu_to_le32(inode->i_ctime.tv_nsec);
-+	di->i_ctime = cpu_to_le64(inode_ctime_peek(inode).tv_sec);
-+	di->i_ctime_nsec = cpu_to_le32(inode_ctime_peek(inode).tv_nsec);
- 	ocfs2_update_inode_fsync_trans(handle, inode, 0);
- 
- 	ocfs2_journal_dirty(handle, di_bh);
-diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-index 51c93929a146..0455b5e0d659 100644
---- a/fs/ocfs2/alloc.c
-+++ b/fs/ocfs2/alloc.c
-@@ -7436,10 +7436,10 @@ int ocfs2_truncate_inline(struct inode *inode, struct buffer_head *di_bh,
- 	}
- 
- 	inode->i_blocks = ocfs2_inode_sector_count(inode);
--	inode->i_ctime = inode->i_mtime = current_time(inode);
-+	inode->i_mtime = inode_ctime_set_current(inode);
- 
--	di->i_ctime = di->i_mtime = cpu_to_le64(inode->i_ctime.tv_sec);
--	di->i_ctime_nsec = di->i_mtime_nsec = cpu_to_le32(inode->i_ctime.tv_nsec);
-+	di->i_ctime = di->i_mtime = cpu_to_le64(inode_ctime_peek(inode).tv_sec);
-+	di->i_ctime_nsec = di->i_mtime_nsec = cpu_to_le32(inode_ctime_peek(inode).tv_nsec);
- 
- 	ocfs2_update_inode_fsync_trans(handle, inode, 1);
- 	ocfs2_journal_dirty(handle, di_bh);
-diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-index 8dfc284e85f0..873fad14046d 100644
---- a/fs/ocfs2/aops.c
-+++ b/fs/ocfs2/aops.c
-@@ -2048,7 +2048,7 @@ int ocfs2_write_end_nolock(struct address_space *mapping,
- 		}
- 		inode->i_blocks = ocfs2_inode_sector_count(inode);
- 		di->i_size = cpu_to_le64((u64)i_size_read(inode));
--		inode->i_mtime = inode->i_ctime = current_time(inode);
-+		inode->i_mtime = inode_ctime_set_current(inode);
- 		di->i_mtime = di->i_ctime = cpu_to_le64(inode->i_mtime.tv_sec);
- 		di->i_mtime_nsec = di->i_ctime_nsec = cpu_to_le32(inode->i_mtime.tv_nsec);
- 		if (handle)
-diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
-index 694471fc46b8..06fffb5c0fc7 100644
---- a/fs/ocfs2/dir.c
-+++ b/fs/ocfs2/dir.c
-@@ -1658,7 +1658,7 @@ int __ocfs2_add_entry(handle_t *handle,
- 				offset, ocfs2_dir_trailer_blk_off(dir->i_sb));
- 
- 		if (ocfs2_dirent_would_fit(de, rec_len)) {
--			dir->i_mtime = dir->i_ctime = current_time(dir);
-+			dir->i_mtime = inode_ctime_set_current(dir);
- 			retval = ocfs2_mark_inode_dirty(handle, dir, parent_fe_bh);
- 			if (retval < 0) {
- 				mlog_errno(retval);
-@@ -2962,11 +2962,11 @@ static int ocfs2_expand_inline_dir(struct inode *dir, struct buffer_head *di_bh,
- 	ocfs2_dinode_new_extent_list(dir, di);
- 
- 	i_size_write(dir, sb->s_blocksize);
--	dir->i_mtime = dir->i_ctime = current_time(dir);
-+	dir->i_mtime = inode_ctime_set_current(dir);
- 
- 	di->i_size = cpu_to_le64(sb->s_blocksize);
--	di->i_ctime = di->i_mtime = cpu_to_le64(dir->i_ctime.tv_sec);
--	di->i_ctime_nsec = di->i_mtime_nsec = cpu_to_le32(dir->i_ctime.tv_nsec);
-+	di->i_ctime = di->i_mtime = cpu_to_le64(inode_ctime_peek(dir).tv_sec);
-+	di->i_ctime_nsec = di->i_mtime_nsec = cpu_to_le32(inode_ctime_peek(dir).tv_nsec);
- 	ocfs2_update_inode_fsync_trans(handle, dir, 1);
- 
- 	/*
-diff --git a/fs/ocfs2/dlmfs/dlmfs.c b/fs/ocfs2/dlmfs/dlmfs.c
-index ba26c5567cff..8b5a161d827c 100644
---- a/fs/ocfs2/dlmfs/dlmfs.c
-+++ b/fs/ocfs2/dlmfs/dlmfs.c
-@@ -337,7 +337,7 @@ static struct inode *dlmfs_get_root_inode(struct super_block *sb)
- 	if (inode) {
- 		inode->i_ino = get_next_ino();
- 		inode_init_owner(&nop_mnt_idmap, inode, NULL, mode);
--		inode->i_atime = inode->i_mtime = inode->i_ctime = current_time(inode);
-+		inode->i_atime = inode->i_mtime = inode_ctime_set_current(inode);
- 		inc_nlink(inode);
- 
- 		inode->i_fop = &simple_dir_operations;
-@@ -360,7 +360,7 @@ static struct inode *dlmfs_get_inode(struct inode *parent,
- 
- 	inode->i_ino = get_next_ino();
- 	inode_init_owner(&nop_mnt_idmap, inode, parent, mode);
--	inode->i_atime = inode->i_mtime = inode->i_ctime = current_time(inode);
-+	inode->i_atime = inode->i_mtime = inode_ctime_set_current(inode);
- 
- 	ip = DLMFS_I(inode);
- 	ip->ip_conn = DLMFS_I(parent)->ip_conn;
-diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-index c28bc983a7b1..0d5679955657 100644
---- a/fs/ocfs2/dlmglue.c
-+++ b/fs/ocfs2/dlmglue.c
-@@ -2162,6 +2162,7 @@ static void __ocfs2_stuff_meta_lvb(struct inode *inode)
- 	struct ocfs2_inode_info *oi = OCFS2_I(inode);
- 	struct ocfs2_lock_res *lockres = &oi->ip_inode_lockres;
- 	struct ocfs2_meta_lvb *lvb;
-+	struct timespec64 ctime;
- 
- 	lvb = ocfs2_dlm_lvb(&lockres->l_lksb);
- 
-@@ -2184,8 +2185,8 @@ static void __ocfs2_stuff_meta_lvb(struct inode *inode)
- 	lvb->lvb_inlink    = cpu_to_be16(inode->i_nlink);
- 	lvb->lvb_iatime_packed  =
- 		cpu_to_be64(ocfs2_pack_timespec(&inode->i_atime));
--	lvb->lvb_ictime_packed =
--		cpu_to_be64(ocfs2_pack_timespec(&inode->i_ctime));
-+	ctime = inode_ctime_peek(inode);
-+	lvb->lvb_ictime_packed = cpu_to_be64(ocfs2_pack_timespec(&ctime));
- 	lvb->lvb_imtime_packed =
- 		cpu_to_be64(ocfs2_pack_timespec(&inode->i_mtime));
- 	lvb->lvb_iattr    = cpu_to_be32(oi->ip_attr);
-@@ -2208,6 +2209,7 @@ static int ocfs2_refresh_inode_from_lvb(struct inode *inode)
- 	struct ocfs2_inode_info *oi = OCFS2_I(inode);
- 	struct ocfs2_lock_res *lockres = &oi->ip_inode_lockres;
- 	struct ocfs2_meta_lvb *lvb;
-+	struct timespec64 ctime;
- 
- 	mlog_meta_lvb(0, lockres);
- 
-@@ -2238,8 +2240,8 @@ static int ocfs2_refresh_inode_from_lvb(struct inode *inode)
- 			      be64_to_cpu(lvb->lvb_iatime_packed));
- 	ocfs2_unpack_timespec(&inode->i_mtime,
- 			      be64_to_cpu(lvb->lvb_imtime_packed));
--	ocfs2_unpack_timespec(&inode->i_ctime,
--			      be64_to_cpu(lvb->lvb_ictime_packed));
-+	ctime = inode_ctime_peek(inode);
-+	ocfs2_unpack_timespec(&ctime, be64_to_cpu(lvb->lvb_ictime_packed));
- 	spin_unlock(&oi->ip_lock);
- 	return 0;
- }
-diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-index 91a194596552..52f126ebd0c2 100644
---- a/fs/ocfs2/file.c
-+++ b/fs/ocfs2/file.c
-@@ -232,8 +232,10 @@ int ocfs2_should_update_atime(struct inode *inode,
- 		return 0;
- 
- 	if (vfsmnt->mnt_flags & MNT_RELATIME) {
-+		struct timespec64 ctime = inode_ctime_peek(inode);
-+
- 		if ((timespec64_compare(&inode->i_atime, &inode->i_mtime) <= 0) ||
--		    (timespec64_compare(&inode->i_atime, &inode->i_ctime) <= 0))
-+		    (timespec64_compare(&inode->i_atime, &ctime) <= 0))
- 			return 1;
- 
- 		return 0;
-@@ -294,7 +296,7 @@ int ocfs2_set_inode_size(handle_t *handle,
- 
- 	i_size_write(inode, new_i_size);
- 	inode->i_blocks = ocfs2_inode_sector_count(inode);
--	inode->i_ctime = inode->i_mtime = current_time(inode);
-+	inode->i_mtime = inode_ctime_set_current(inode);
- 
- 	status = ocfs2_mark_inode_dirty(handle, inode, fe_bh);
- 	if (status < 0) {
-@@ -415,12 +417,12 @@ static int ocfs2_orphan_for_truncate(struct ocfs2_super *osb,
- 	}
- 
- 	i_size_write(inode, new_i_size);
--	inode->i_ctime = inode->i_mtime = current_time(inode);
-+	inode->i_mtime = inode_ctime_set_current(inode);
- 
- 	di = (struct ocfs2_dinode *) fe_bh->b_data;
- 	di->i_size = cpu_to_le64(new_i_size);
--	di->i_ctime = di->i_mtime = cpu_to_le64(inode->i_ctime.tv_sec);
--	di->i_ctime_nsec = di->i_mtime_nsec = cpu_to_le32(inode->i_ctime.tv_nsec);
-+	di->i_ctime = di->i_mtime = cpu_to_le64(inode_ctime_peek(inode).tv_sec);
-+	di->i_ctime_nsec = di->i_mtime_nsec = cpu_to_le32(inode_ctime_peek(inode).tv_nsec);
- 	ocfs2_update_inode_fsync_trans(handle, inode, 0);
- 
- 	ocfs2_journal_dirty(handle, fe_bh);
-@@ -824,7 +826,7 @@ static int ocfs2_write_zero_page(struct inode *inode, u64 abs_from,
- 	i_size_write(inode, abs_to);
- 	inode->i_blocks = ocfs2_inode_sector_count(inode);
- 	di->i_size = cpu_to_le64((u64)i_size_read(inode));
--	inode->i_mtime = inode->i_ctime = current_time(inode);
-+	inode->i_mtime = inode_ctime_set_current(inode);
- 	di->i_mtime = di->i_ctime = cpu_to_le64(inode->i_mtime.tv_sec);
- 	di->i_ctime_nsec = cpu_to_le32(inode->i_mtime.tv_nsec);
- 	di->i_mtime_nsec = di->i_ctime_nsec;
-@@ -2043,7 +2045,7 @@ static int __ocfs2_change_file_space(struct file *file, struct inode *inode,
- 		goto out_inode_unlock;
- 	}
- 
--	inode->i_ctime = inode->i_mtime = current_time(inode);
-+	inode->i_mtime = inode_ctime_set_current(inode);
- 	ret = ocfs2_mark_inode_dirty(handle, inode, di_bh);
- 	if (ret < 0)
- 		mlog_errno(ret);
-diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-index bb116c39b581..1627948574fc 100644
---- a/fs/ocfs2/inode.c
-+++ b/fs/ocfs2/inode.c
-@@ -263,6 +263,7 @@ void ocfs2_populate_inode(struct inode *inode, struct ocfs2_dinode *fe,
- 	struct super_block *sb;
- 	struct ocfs2_super *osb;
- 	int use_plocks = 1;
-+	struct timespec64 ts;
- 
- 	sb = inode->i_sb;
- 	osb = OCFS2_SB(sb);
-@@ -306,8 +307,9 @@ void ocfs2_populate_inode(struct inode *inode, struct ocfs2_dinode *fe,
- 	inode->i_atime.tv_nsec = le32_to_cpu(fe->i_atime_nsec);
- 	inode->i_mtime.tv_sec = le64_to_cpu(fe->i_mtime);
- 	inode->i_mtime.tv_nsec = le32_to_cpu(fe->i_mtime_nsec);
--	inode->i_ctime.tv_sec = le64_to_cpu(fe->i_ctime);
--	inode->i_ctime.tv_nsec = le32_to_cpu(fe->i_ctime_nsec);
-+	ts.tv_sec = le64_to_cpu(fe->i_ctime);
-+	ts.tv_nsec = le32_to_cpu(fe->i_ctime_nsec);
-+	inode_ctime_set(inode, ts);
- 
- 	if (OCFS2_I(inode)->ip_blkno != le64_to_cpu(fe->i_blkno))
- 		mlog(ML_ERROR,
-@@ -1314,8 +1316,8 @@ int ocfs2_mark_inode_dirty(handle_t *handle,
- 	fe->i_mode = cpu_to_le16(inode->i_mode);
- 	fe->i_atime = cpu_to_le64(inode->i_atime.tv_sec);
- 	fe->i_atime_nsec = cpu_to_le32(inode->i_atime.tv_nsec);
--	fe->i_ctime = cpu_to_le64(inode->i_ctime.tv_sec);
--	fe->i_ctime_nsec = cpu_to_le32(inode->i_ctime.tv_nsec);
-+	fe->i_ctime = cpu_to_le64(inode_ctime_peek(inode).tv_sec);
-+	fe->i_ctime_nsec = cpu_to_le32(inode_ctime_peek(inode).tv_nsec);
- 	fe->i_mtime = cpu_to_le64(inode->i_mtime.tv_sec);
- 	fe->i_mtime_nsec = cpu_to_le32(inode->i_mtime.tv_nsec);
- 
-@@ -1352,8 +1354,8 @@ void ocfs2_refresh_inode(struct inode *inode,
- 	inode->i_atime.tv_nsec = le32_to_cpu(fe->i_atime_nsec);
- 	inode->i_mtime.tv_sec = le64_to_cpu(fe->i_mtime);
- 	inode->i_mtime.tv_nsec = le32_to_cpu(fe->i_mtime_nsec);
--	inode->i_ctime.tv_sec = le64_to_cpu(fe->i_ctime);
--	inode->i_ctime.tv_nsec = le32_to_cpu(fe->i_ctime_nsec);
-+	inode_ctime_set_sec(inode, le64_to_cpu(fe->i_ctime));
-+	inode_ctime_set_nsec(inode, le32_to_cpu(fe->i_ctime_nsec));
- 
- 	spin_unlock(&OCFS2_I(inode)->ip_lock);
- }
-diff --git a/fs/ocfs2/move_extents.c b/fs/ocfs2/move_extents.c
-index b1e32ec4a9d4..f8543a3509ee 100644
---- a/fs/ocfs2/move_extents.c
-+++ b/fs/ocfs2/move_extents.c
-@@ -950,9 +950,9 @@ static int ocfs2_move_extents(struct ocfs2_move_extents_context *context)
- 	}
- 
- 	di = (struct ocfs2_dinode *)di_bh->b_data;
--	inode->i_ctime = current_time(inode);
--	di->i_ctime = cpu_to_le64(inode->i_ctime.tv_sec);
--	di->i_ctime_nsec = cpu_to_le32(inode->i_ctime.tv_nsec);
-+	inode_ctime_set_current(inode);
-+	di->i_ctime = cpu_to_le64(inode_ctime_peek(inode).tv_sec);
-+	di->i_ctime_nsec = cpu_to_le32(inode_ctime_peek(inode).tv_nsec);
- 	ocfs2_update_inode_fsync_trans(handle, inode, 0);
- 
- 	ocfs2_journal_dirty(handle, di_bh);
-diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
-index 17c52225b87d..3e0c6e2c2669 100644
---- a/fs/ocfs2/namei.c
-+++ b/fs/ocfs2/namei.c
-@@ -690,6 +690,7 @@ static int ocfs2_link(struct dentry *old_dentry,
- 	struct ocfs2_dinode *fe = NULL;
- 	struct ocfs2_super *osb = OCFS2_SB(dir->i_sb);
- 	struct ocfs2_dir_lookup_result lookup = { NULL, };
-+	struct timespec64 ts;
- 	sigset_t oldset;
- 	u64 old_de_ino;
- 
-@@ -793,10 +794,10 @@ static int ocfs2_link(struct dentry *old_dentry,
- 	}
- 
- 	inc_nlink(inode);
--	inode->i_ctime = current_time(inode);
-+	ts = inode_ctime_set_current(inode);
- 	ocfs2_set_links_count(fe, inode->i_nlink);
--	fe->i_ctime = cpu_to_le64(inode->i_ctime.tv_sec);
--	fe->i_ctime_nsec = cpu_to_le32(inode->i_ctime.tv_nsec);
-+	fe->i_ctime = cpu_to_le64(ts.tv_sec);
-+	fe->i_ctime_nsec = cpu_to_le32(ts.tv_nsec);
- 	ocfs2_journal_dirty(handle, fe_bh);
- 
- 	err = ocfs2_add_entry(handle, dentry, inode,
-@@ -995,7 +996,7 @@ static int ocfs2_unlink(struct inode *dir,
- 	ocfs2_set_links_count(fe, inode->i_nlink);
- 	ocfs2_journal_dirty(handle, fe_bh);
- 
--	dir->i_ctime = dir->i_mtime = current_time(dir);
-+	dir->i_mtime = inode_ctime_set_current(dir);
- 	if (S_ISDIR(inode->i_mode))
- 		drop_nlink(dir);
- 
-@@ -1537,7 +1538,7 @@ static int ocfs2_rename(struct mnt_idmap *idmap,
- 					 new_dir_bh, &target_insert);
- 	}
- 
--	old_inode->i_ctime = current_time(old_inode);
-+	inode_ctime_set_current(old_inode);
- 	mark_inode_dirty(old_inode);
- 
- 	status = ocfs2_journal_access_di(handle, INODE_CACHE(old_inode),
-@@ -1546,8 +1547,8 @@ static int ocfs2_rename(struct mnt_idmap *idmap,
- 	if (status >= 0) {
- 		old_di = (struct ocfs2_dinode *) old_inode_bh->b_data;
- 
--		old_di->i_ctime = cpu_to_le64(old_inode->i_ctime.tv_sec);
--		old_di->i_ctime_nsec = cpu_to_le32(old_inode->i_ctime.tv_nsec);
-+		old_di->i_ctime = cpu_to_le64(inode_ctime_peek(old_inode).tv_sec);
-+		old_di->i_ctime_nsec = cpu_to_le32(inode_ctime_peek(old_inode).tv_nsec);
- 		ocfs2_journal_dirty(handle, old_inode_bh);
- 	} else
- 		mlog_errno(status);
-@@ -1586,9 +1587,9 @@ static int ocfs2_rename(struct mnt_idmap *idmap,
- 
- 	if (new_inode) {
- 		drop_nlink(new_inode);
--		new_inode->i_ctime = current_time(new_inode);
-+		inode_ctime_set_current(new_inode);
- 	}
--	old_dir->i_ctime = old_dir->i_mtime = current_time(old_dir);
-+	old_dir->i_mtime = inode_ctime_set_current(old_dir);
- 
- 	if (update_dot_dot) {
- 		status = ocfs2_update_entry(old_inode, handle,
-@@ -1610,7 +1611,8 @@ static int ocfs2_rename(struct mnt_idmap *idmap,
- 
- 	if (old_dir != new_dir) {
- 		/* Keep the same times on both directories.*/
--		new_dir->i_ctime = new_dir->i_mtime = old_dir->i_ctime;
-+		new_dir->i_mtime = inode_ctime_peek(old_dir);
-+		inode_ctime_set(new_dir, new_dir->i_mtime);
- 
- 		/*
- 		 * This will also pick up the i_nlink change from the
-diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
-index 564ab48d03ef..8416c624782f 100644
---- a/fs/ocfs2/refcounttree.c
-+++ b/fs/ocfs2/refcounttree.c
-@@ -3750,9 +3750,9 @@ static int ocfs2_change_ctime(struct inode *inode,
- 		goto out_commit;
- 	}
- 
--	inode->i_ctime = current_time(inode);
--	di->i_ctime = cpu_to_le64(inode->i_ctime.tv_sec);
--	di->i_ctime_nsec = cpu_to_le32(inode->i_ctime.tv_nsec);
-+	inode_ctime_set_current(inode);
-+	di->i_ctime = cpu_to_le64(inode_ctime_peek(inode).tv_sec);
-+	di->i_ctime_nsec = cpu_to_le32(inode_ctime_peek(inode).tv_nsec);
- 
- 	ocfs2_journal_dirty(handle, di_bh);
- 
-@@ -4073,10 +4073,10 @@ static int ocfs2_complete_reflink(struct inode *s_inode,
- 		 * we want mtime to appear identical to the source and
- 		 * update ctime.
- 		 */
--		t_inode->i_ctime = current_time(t_inode);
-+		inode_ctime_set_current(t_inode);
- 
--		di->i_ctime = cpu_to_le64(t_inode->i_ctime.tv_sec);
--		di->i_ctime_nsec = cpu_to_le32(t_inode->i_ctime.tv_nsec);
-+		di->i_ctime = cpu_to_le64(inode_ctime_peek(t_inode).tv_sec);
-+		di->i_ctime_nsec = cpu_to_le32(inode_ctime_peek(t_inode).tv_nsec);
- 
- 		t_inode->i_mtime = s_inode->i_mtime;
- 		di->i_mtime = s_di->i_mtime;
-@@ -4456,7 +4456,7 @@ int ocfs2_reflink_update_dest(struct inode *dest,
- 	if (newlen > i_size_read(dest))
- 		i_size_write(dest, newlen);
- 	spin_unlock(&OCFS2_I(dest)->ip_lock);
--	dest->i_ctime = dest->i_mtime = current_time(dest);
-+	dest->i_mtime = inode_ctime_set_current(dest);
- 
- 	ret = ocfs2_mark_inode_dirty(handle, dest, d_bh);
- 	if (ret) {
-diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index 4ac77ff6e676..a137e9e05fa4 100644
---- a/fs/ocfs2/xattr.c
-+++ b/fs/ocfs2/xattr.c
-@@ -3421,9 +3421,9 @@ static int __ocfs2_xattr_set_handle(struct inode *inode,
- 			goto out;
- 		}
- 
--		inode->i_ctime = current_time(inode);
--		di->i_ctime = cpu_to_le64(inode->i_ctime.tv_sec);
--		di->i_ctime_nsec = cpu_to_le32(inode->i_ctime.tv_nsec);
-+		inode_ctime_set_current(inode);
-+		di->i_ctime = cpu_to_le64(inode_ctime_peek(inode).tv_sec);
-+		di->i_ctime_nsec = cpu_to_le32(inode_ctime_peek(inode).tv_nsec);
- 		ocfs2_journal_dirty(ctxt->handle, xis->inode_bh);
- 	}
- out:
+> diff --git a/drivers/gpu/drm/i915/i915_perf.c b/drivers/gpu/drm/i915/i915_perf.c
+> index f43950219ffc..e4d7372afb10 100644
+> --- a/drivers/gpu/drm/i915/i915_perf.c
+> +++ b/drivers/gpu/drm/i915/i915_perf.c
+> @@ -4884,24 +4884,23 @@ int i915_perf_remove_config_ioctl(struct drm_device *dev, void *data,
+>  
+>  static struct ctl_table oa_table[] = {
+>  	{
+> -	 .procname = "perf_stream_paranoid",
+> -	 .data = &i915_perf_stream_paranoid,
+> -	 .maxlen = sizeof(i915_perf_stream_paranoid),
+> -	 .mode = 0644,
+> -	 .proc_handler = proc_dointvec_minmax,
+> -	 .extra1 = SYSCTL_ZERO,
+> -	 .extra2 = SYSCTL_ONE,
+> -	 },
+> +		.procname = "perf_stream_paranoid",
+> +		.data = &i915_perf_stream_paranoid,
+> +		.maxlen = sizeof(i915_perf_stream_paranoid),
+> +		.mode = 0644,
+> +		.proc_handler = proc_dointvec_minmax,
+> +		.extra1 = SYSCTL_ZERO,
+> +		.extra2 = SYSCTL_ONE,
+> +	},
+>  	{
+> -	 .procname = "oa_max_sample_rate",
+> -	 .data = &i915_oa_max_sample_rate,
+> -	 .maxlen = sizeof(i915_oa_max_sample_rate),
+> -	 .mode = 0644,
+> -	 .proc_handler = proc_dointvec_minmax,
+> -	 .extra1 = SYSCTL_ZERO,
+> -	 .extra2 = &oa_sample_rate_hard_limit,
+> -	 },
+> -	{}
+> +		.procname = "oa_max_sample_rate",
+> +		.data = &i915_oa_max_sample_rate,
+> +		.maxlen = sizeof(i915_oa_max_sample_rate),
+> +		.mode = 0644,
+> +		.proc_handler = proc_dointvec_minmax,
+> +		.extra1 = SYSCTL_ZERO,
+> +		.extra2 = &oa_sample_rate_hard_limit,
+> +	}
+>  };
+
+The existing indentation is off, but fixing it doesn't really belong in
+this patch.
+
+BR,
+Jani.
+
+
 -- 
-2.41.0
-
+Jani Nikula, Intel Open Source Graphics Center
 
 _______________________________________________
 Ocfs2-devel mailing list
