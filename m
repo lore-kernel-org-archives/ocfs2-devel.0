@@ -1,88 +1,87 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc250.phx1.oracleemaildelivery.com (aib29ajc250.phx1.oracleemaildelivery.com [192.29.103.250])
+Received: from aib29ajc245.phx1.oracleemaildelivery.com (aib29ajc245.phx1.oracleemaildelivery.com [192.29.103.245])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 2FDE6EB64DA
-	for <ocfs2-devel@archiver.kernel.org>; Mon, 26 Jun 2023 05:55:50 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 20D60EB64DC
+	for <ocfs2-devel@archiver.kernel.org>; Mon, 26 Jun 2023 05:58:25 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=lQ97kuwp2Bsv4YAtFsOcHh0GuOK5qTBYnOV+BsU0uhE=;
- b=PPICHVe93fq/C588xdi+AOnkXVwFFlASr89F4ZchXoZc4KLQVU9UqBXi3fCwP38jESCEB4lwYacg
-   RDvDvvqG20KwGztFGkAlLA8I5W7i3P0nx+ruCPUcLvT/ihj3tUFhY9LQhrLUsdv6V+KAyeiSajtD
-   4BljCuEq4DoRW2j23Ah9Mgdeel+MrMS6DtIyW5Dj0iqpsUd/uWo41+RHiG/1dhS6Y4Etogj6eOoR
-   YOC/I87eWL2DWmvt6Lu+/cxq7eIkTFKlIDbsXfxdiShTd1XzhhVJ1yUhxp437B2zdwpsXxqylOA1
-   dJ6k3IwYjP7c0ACQr0z6CwEt6sC+Q0wKZfbHSw==
+ bh=Dx2sqHBB2kEPEO2SrrJkDJ9RGA/3RgwQpKVY/QQe+F8=;
+ b=3XlEU5UOuzHRiciFFlnaXEfBoF7mn3jN908eR2qxyPG7St+TEZhCliJKUVJVOLEZsZ6gDwxWmWAa
+   nM4reidpEmpwqjnysPsjlZIXTeZCyU0DvWbHX+cqp6RXSXj2lG33pjhPd63LlE2KsXx72j6CBH3A
+   1zBqzSdrRl2x+GDJ/ph4QL4L7Xw0j7AInUzIcqXYAV+EHiTz2X+2ePK8ULcLTiRiyTWMnsqGLk7E
+   TKd5E80V92NwFVbHVagB4uuQdolKBolk2FENjqmwgJ5+spEdLI6Zx5i2FXxxLot59Gjc6UhDhKe9
+   4Ki9QedILNXHbOhO7xsPaqnLwNLg5nbkKHQhTw==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
- bh=lQ97kuwp2Bsv4YAtFsOcHh0GuOK5qTBYnOV+BsU0uhE=;
- b=ekKZ06r4a3bI2TfVp9Ynu0gWJtsMvRXheFVv0c8M3ebUwISbxZ6rtb96ZaoGtnNfWPF++IqRabO2
-   UMJzo794A9NaWlwq9oIHaJzlzSZVyoOYZ7h60WHTDZwaGBFvAO6IkKd5g45OvufrOfe4ktjdYbu6
-   Z22wcP27uTRuxQtTmrDxG4QWeW6H6yftB0N3pEbFhO10OBjuCfdSdnbaWsfOAv+ksgdNUShGgNTh
-   6o6lnuT7r03vrbAwsjLAZBANL5Da+DlRiVK5TnTCTqL5WTjDRK5Mv5LrK6l9gngeTw/c0akBUSzK
-   1rJpbMuQQsKK4TIqTGxa3/TagDCiN43FUk6kTQ==
-Received: by omta-ad2-fd3-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
+ bh=Dx2sqHBB2kEPEO2SrrJkDJ9RGA/3RgwQpKVY/QQe+F8=;
+ b=nBURlJSC30aixJoE2HtbGvdo0vvqZO5u9YN0UaBz9GF99iaKppLr21IPuXs3/YIWDLdy4WGDPq1d
+   q0tZm0WqVsfL8cM0Y+yWMHxVKe2W/Q0YvPFxRFBTnTkdj6AIpfKYH3PvmKJiPTvdRaMG4gdT9V8W
+   bQ7Mjsk/yuEQCnTuvdPw/DI80PseT5zHI2usZ4IGmDIDFZIX253Wcnbdq87OMmEe5e5ueQRdydJ6
+   2bSmF4zHyNLEg/uFZASjYLuR2WXTOoy7BNrjqEP8ZgGBWPupETpM4nPNrB6PGTsCyaP6rCzpkiCc
+   NyY0gNHqxQ7bgwsYfSeZPrMZXBsVDDgH4O4QsA==
+Received: by omta-ad1-fd1-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20230523 64bit (built May 23
  2023))
- with ESMTPS id <0RWU003C1J51N380@omta-ad2-fd3-201-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
- ocfs2-devel@archiver.kernel.org; Mon, 26 Jun 2023 05:55:49 +0000 (GMT)
-ARC-Seal: i=1; a=rsa-sha256; t=1687758928; cv=none; d=strato.com;
+ with ESMTPS id <0RWU00ECWJ9B7G70@omta-ad1-fd1-102-us-phoenix-1.omtaad1.vcndpphx.oraclevcn.com> for
+ ocfs2-devel@archiver.kernel.org; Mon, 26 Jun 2023 05:58:23 +0000 (GMT)
+ARC-Seal: i=1; a=rsa-sha256; t=1687759083; cv=none; d=strato.com;
  s=strato-dkim-0002;
- b=EgqXIH866ELXGq+mpnR4Eo84d907wx4Op+QW5TGOxwRYybbzxwCaqR/QYoo2XHE3sO
- O8hxtrXLtTHIKU2ZSBQKVXcar1ffNhS9uaOvq5SZcIYgfq066kD30uakd8cgODyZMSWd
- Ux0ZFlR6CCQ7fQHYdrqA18kl3kkP5qKnhX5pWIrTDCffwGIJkgnmisTiasfVOc7XR/pz
- wrTKKyIlXdadrwbSTzMXh9GP84vS/ntzDyxuCnw6yI45EdbvJQ9Bvk4S/W3gikyM2yaj
- oNGWiiMM9bhmILZyjElRBDxqmMeAOJfrDumjbsZ8OHlkl86AV71G5hp7wxpDbgjWrruK l8iQ==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; t=1687758928;
+ b=CKl1kh/BAo8d4ZITFElBVOa7nULJxQUj+1zu7sgx8RnsjXYS7Kg34BuvBL+rComCRS
+ aMGOks5RLRWadlBZXcSc9XDADGTNGm5eNnyRr1Wz+HxlAmrpnvphCpvZ4MCtT7LPoU5D
+ qx71XPsJxrTvU8wR8/+6u59g1EKQTaJBz6qqOeQx9KOSnFnZ1pv5FWfptncP4A3Cs/GY
+ uD6HEjlzR5QA0mbdVGFgB4KxjfyzQMpuvM5MHd/OuTSdthW7dBS3JkCv1mueGUDN0YxV
+ jvSJbjSew0u/JNio13fvpAYuNpJHpSiYJ5InCIy+gtOqucalu7lW7WusfBNAJRrLVnh+ chcg==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; t=1687759083;
  s=strato-dkim-0002; d=strato.com;
- h=References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Cc:Date:
- From:Subject:Sender; bh=9JeG8e5YLzIlPXpqO3TJNmd5ODQ+yL/DZJEHg5yXjTE=;
- b=nWoxz5+A/k/RoHG4mmlMrqdSxOOlepNMU8x2QAvJSBtskui+vKEENoLsTc3YTi0hA1
- rPHIzgcl4pBcyJ13X8nDzxUVYmQ4TdvR+y/1AfzGE/l0OBTrb46q2yed4ZXXAgoucuKo
- QttaxXBoGpAweZPDrnQLv1Q14b/XjIrZ7Mqf8Q55pfG3Zs9H8gAll+mZnlzmB4ew5Eif
- fZ3/sAh0WZcgWc9C4aMZ9WgR8FzY8czcPNOD9Rp4d61jOnSyCL3np43woSxh5VgFXtxz
- wQV6b1DDGhYPqdVJtF52We3PeLIZEjiFpGmNnnCw1ZbYrJTRrFt6wkB5cQkXeuyjHigx cJqQ==
+ h=References:In-Reply-To:Date:Cc:To:From:Subject:Message-ID:Cc:Date:
+ From:Subject:Sender; bh=gtZH8ZTdPgSNVa9t73EYpG+kD5sFVs9BHW85u23zt7A=;
+ b=U3zR43BAy+2862GYTaL8CbIwmByKzu/qJhAZFFlU4mmglbWkFUUA+SvUxH36wUPZGM
+ NwL0wzjgb0zzcnvo20de2w7lqvRoPBBnl5q2W9T1diEfZntHm6pGuAYpWKXvie0dFc4a
+ f/xwXr3PO+pSU0fbXmCM8RIfRCPsVzNk5x/yvJl1iCPl2gvQgYG0fXtlf/4t7ZHLd5lP
+ EGfGlGeHaSGxLA7ULXmVCfXYTtNzw33PlABbAc7F/8PPcOk1BZ1UF3FyI7dHCX5ZWSuV
+ y/gEaUOgjkmXmcsTh5cU2A7QiskIXX+tW1NkaS8AWlEiVv6eABYfrhXSwayBk7cP2p8e LQAw==
 ARC-Authentication-results: i=1; strato.com;    arc=none;    dkim=none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; t=1687758928;
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; t=1687759083;
  s=strato-dkim-0002; d=iokpp.de;
- h=References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Cc:Date:
- From:Subject:Sender; bh=9JeG8e5YLzIlPXpqO3TJNmd5ODQ+yL/DZJEHg5yXjTE=;
- b=bhHuxVIF+VVHUfX01w2F4AvCX8xSsCAen9xIdGzxz7X79QsodQ+Qe5KOE7Z44hAggk
- 1NyB5d6YbDMuDUBSN0ZrIKqN/yanGQHGKXLGer0DkdgWTqfUiGsQ9t6g4zRRCjp/sdS2
- 6/c1M/z7gswtwjnPVuyRhdYI4CYQbWEnLrNJ8QxHEyoNDSCwiL26X1JJkpwUE8KcL7m0
- vcMwKFocz7beTTJC+PXYEG8reeORzxxr4uc2Gfy/KH7NwGjvCVbMPc7zIbl13rQd6Q+H
- xl/OEcL4fwFz7LyLsqmzXbeo7n0ItnBLYDjgDlQ+OYmvkrSTR+iX3lRbMw90sqWguYBM +lKg==
-DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; t=1687758928;
+ h=References:In-Reply-To:Date:Cc:To:From:Subject:Message-ID:Cc:Date:
+ From:Subject:Sender; bh=gtZH8ZTdPgSNVa9t73EYpG+kD5sFVs9BHW85u23zt7A=;
+ b=EytPGVy5tJcBww5TmIqfQKwbLj6LpCgbie3fHuss36xwufWhHvwO8F0lrb05wVylJJ
+ N9h3lrw/LG9z3WU56mGfOOiz/zCn1+rLOUKGl8EYpC9ioKfl1A4jTcodu1QJRavA8QSf
+ hI0vh1zXTswZFbbXmTRemf56kYr/WRl/8/ZfX5L1Vtc7Witj99QSi3996ej+5xV8zUkR
+ DbdHCsc/zUQIDMDhSLuPGJDy3RRmosnJUOW9mFqdoV+JPQO65hxJ0TndBpE3l5czAZrg
+ lYdk3NlYy0q4dOYSJfdD2KjfJgmQq+/yhW9AiDp/GTVQj2ySC+2KpnO94XJuI9L1hPTo sGeQ==
+DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; t=1687759083;
  s=strato-dkim-0003; d=iokpp.de;
- h=References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Cc:Date:
- From:Subject:Sender; bh=9JeG8e5YLzIlPXpqO3TJNmd5ODQ+yL/DZJEHg5yXjTE=;
- b=leG3fCEvi5hPT0fBTmq9D2X7bfNIhUAhanHELXceIBPiOCl+GQkXnfPaQBd83VSROr
- xP02/5ZSkcyBilmaNbAw==
+ h=References:In-Reply-To:Date:Cc:To:From:Subject:Message-ID:Cc:Date:
+ From:Subject:Sender; bh=gtZH8ZTdPgSNVa9t73EYpG+kD5sFVs9BHW85u23zt7A=;
+ b=+dkd0g4VvbVAa8otyU5vCOoKWxvRGOx1DJoFaL5XGNR4XZ6HXdeSRscXSDiV3rfivn
+ Fsj0fqiZq82BU1Bc/WDw==
+Message-id: <4ced64b8089232ea94b697dec1c3595c8bf427ad.camel@iokpp.de>
 To: viro@zeniv.linux.org.uk, brauner@kernel.org, akpm@linux-foundation.org,
  jack@suse.cz, jack@suse.com, tytso@mit.edu, adilger.kernel@dilger.ca,
  mark@fasheh.com, jlbec@evilplan.org, joseph.qi@linux.alibaba.com,
  willy@infradead.org, hch@infradead.org
-Date: Mon, 26 Jun 2023 07:55:17 +0200
-Message-id: <20230626055518.842392-2-beanhuo@iokpp.de>
-X-Mailer: git-send-email 2.34.1
-In-reply-to: <20230626055518.842392-1-beanhuo@iokpp.de>
-References: <20230626055518.842392-1-beanhuo@iokpp.de>
+Date: Mon, 26 Jun 2023 07:58:02 +0200
+In-reply-to: <20230626054153.839672-1-beanhuo@iokpp.de>
+References: <20230626054153.839672-1-beanhuo@iokpp.de>
+User-Agent: Evolution 3.44.4-0ubuntu1
 MIME-version: 1.0
-X-Source-IP: 85.215.255.103
+X-Source-IP: 85.215.255.104
 X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10752
  signatures=596816
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 phishscore=0
- priorityscore=181 suspectscore=0 mlxlogscore=837 bulkscore=0 adultscore=0
- lowpriorityscore=0 malwarescore=0 clxscore=136 impostorscore=0 mlxscore=0
- spamscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 malwarescore=0
+ adultscore=0 lowpriorityscore=0 phishscore=0 mlxlogscore=572 suspectscore=0
+ spamscore=0 impostorscore=0 mlxscore=0 bulkscore=0 priorityscore=191
+ clxscore=131 classifier=spam adjust=0 reason=mlx scancount=1
  engine=8.12.0-2305260000 definitions=main-2306260053
 Cc: linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org,
  linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com, beanhuo@micron.com
-Subject: [Ocfs2-devel] [RESEND PATCH v3 1/2] fs/buffer: clean up
-	block_commit_write
+Subject: Re: [Ocfs2-devel] [PATCH v3 0/2] clean up block_commit_write
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
 Precedence: list
@@ -96,86 +95,42 @@ List-Subscribe: <https://oss.oracle.com/mailman/listinfo/ocfs2-devel>,
  <mailto:ocfs2-devel-request@oss.oracle.com?subject=subscribe>
 From: Bean Huo via Ocfs2-devel <ocfs2-devel@oss.oracle.com>
 Reply-to: Bean Huo <beanhuo@iokpp.de>
-Content-type: text/plain; charset="us-ascii"
-Content-transfer-encoding: 7bit
+Content-type: text/plain; charset="utf-8"
+Content-transfer-encoding: base64
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
 X-RZG-CLASS-ID: mo03
 X-RZG-AUTH:
- ":LmkFe0i9dN8c2t4QQyGBB/NDXvjDB6pBSedrgBzPc9DUyubU4DD1QLj68UeUr1+U1RrW5o+P9bSFaHg+gZu+uCjL2b+VQTRnVQrIOQ=="
+ ":LmkFe0i9dN8c2t4QQyGBB/NDXvjDB6pBSeBwhhSxarlUcu05JyMI1zXvWpofGAfnFnDgkM44n56QuhmdHnY0RKOxJL4CsSg7xJ0="
 X-ServerName: mo4-p03-ob.smtp.rzone.de
 X-Proofpoint-SPF-Result: None
 X-Spam: Clean
-X-Proofpoint-GUID: DA7QbgG9un4-XcO7Da5r6eiQSKddP67Z
-X-Proofpoint-ORIG-GUID: DA7QbgG9un4-XcO7Da5r6eiQSKddP67Z
+X-Proofpoint-GUID: y8isjQ_upKmLFKIBuY6DyQh_SPO4NGdY
+X-Proofpoint-ORIG-GUID: y8isjQ_upKmLFKIBuY6DyQh_SPO4NGdY
 Reporting-Meta:
- AAFC9HCU1XToMMuvnkDMaXvZ515zbAiXNMC+n5TJn6uB1nuAPDIbn3tFHN63foa9
- I4GGBroCyPQ8vjAqA9vf96IBd5YGP4QeUR1qStZ/1AKq0ZLHQSWgFwDsIwFxYa48
- PcpYAwxMM0pU/45gdkSMcoCA2gqZ8d22+23Ggf73QXT0M0DqSLlwNuOzajIFVmQq
- e7yrGnF50sZoUNLeCAenwQ9JgKUih93WIiy5WsSojpR0OBK3m31h8/gdSTy0ehYl
- 4diBMap/A+sh5PcVamBWE4+/FXitXz1dSyUqB0ne3qv0ctj0f40DEq+R1bPK04x+
- D5SFyIaCbg0utyZ11SfrPqf1X26YWNc5M4BaUabQVm4f7Dp0jDh6MZd7KfVfbE8z
- T1dR0e4CEZFLFoKM6rsJkRBeUgVozc/WMqffWIGK+CeIugcn4DGJu8EouIgyM2ZR
- Eb5RXC/CrpwH4+8jwL7fVHhI194r/wpK+nsdZkpYPUT8Xva7HrO9NARv5WKt4OGs
- dtiGn33A56XJQwW/0N7+XP1QQmF0NcNmnc4Ne+F/5DkG
+ AAFZal5GOeckqfmMUS1j/Xzagh9UeWYR4HCKkn0DBrUCwy4mquKYilHtnLuRzI5m
+ /iueKyD27S8HP0focNowF69To+LH6GdvpnmiUlnsENLQdJGGl9UOlOluIkXBgs7C
+ CxM5iEB1/9omiRTW3uQossexy4/X07QBs2NHHjLgKK+uewB0I50EuNWxyEAx7j5g
+ XR5ozKtKYgaMkc5hXwaW/hOOApE7aRAO0U2LqzJ1JK5UFpJqZoEyazDQ7o52oT9n
+ 5Vdb8UGkBW8iz+wCZNekd3P7K0ZHwW9yj1jMaaB+nqPPDbKNRg/xTyKAbpEOc1vT
+ L9LAn+rQBANJ3nf5+7oHlNo73Czvph7sFtlZLqcP5K97Y+Ai9LkgDS7Oih9vj9iJ
+ eQ6hmomZu3ALqengnY8fEgXX651pb1K/bINlLfdsmnA4OylnI5rgHs/gg5vbAM/2
+ VRJ0FaexkQNv4nWnIawHDd19cnCB1rm/GRd5TwAfzM+eiQ7NpR4HUpU4xZ8Z8X8i
+ 066oxbzZir14IPo2uRwgrxuyGqy3+jTtFAItsetebs2D
 
-From: Bean Huo <beanhuo@micron.com>
-
-Originally inode is used to get blksize, after commit 45bce8f3e343
-("fs/buffer.c: make block-size be per-page and protected by the page lock"),
-__block_commit_write no longer uses this parameter inode.
-
-Signed-off-by: Bean Huo <beanhuo@micron.com>
----
- fs/buffer.c | 10 ++++------
- 1 file changed, 4 insertions(+), 6 deletions(-)
-
-diff --git a/fs/buffer.c b/fs/buffer.c
-index bd091329026c..50821dfb02f7 100644
---- a/fs/buffer.c
-+++ b/fs/buffer.c
-@@ -2180,8 +2180,7 @@ int __block_write_begin(struct page *page, loff_t pos, unsigned len,
- }
- EXPORT_SYMBOL(__block_write_begin);
- 
--static int __block_commit_write(struct inode *inode, struct folio *folio,
--		size_t from, size_t to)
-+static int __block_commit_write(struct folio *folio, size_t from, size_t to)
- {
- 	size_t block_start, block_end;
- 	bool partial = false;
-@@ -2277,7 +2276,7 @@ int block_write_end(struct file *file, struct address_space *mapping,
- 	flush_dcache_folio(folio);
- 
- 	/* This could be a short (even 0-length) commit */
--	__block_commit_write(inode, folio, start, start + copied);
-+	__block_commit_write(folio, start, start + copied);
- 
- 	return copied;
- }
-@@ -2601,8 +2600,7 @@ EXPORT_SYMBOL(cont_write_begin);
- int block_commit_write(struct page *page, unsigned from, unsigned to)
- {
- 	struct folio *folio = page_folio(page);
--	struct inode *inode = folio->mapping->host;
--	__block_commit_write(inode, folio, from, to);
-+	__block_commit_write(folio, from, to);
- 	return 0;
- }
- EXPORT_SYMBOL(block_commit_write);
-@@ -2650,7 +2648,7 @@ int block_page_mkwrite(struct vm_area_struct *vma, struct vm_fault *vmf,
- 
- 	ret = __block_write_begin_int(folio, 0, end, get_block, NULL);
- 	if (!ret)
--		ret = __block_commit_write(inode, folio, 0, end);
-+		ret = __block_commit_write(folio, 0, end);
- 
- 	if (unlikely(ret < 0))
- 		goto out_unlock;
--- 
-2.34.1
-
-
-_______________________________________________
-Ocfs2-devel mailing list
-Ocfs2-devel@oss.oracle.com
-https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+CgpwbGVhc2UgaWdub3JlIHRoaXMgc2VyaWVzIHBhdGNoIHNpbmNlIGl0IGhhcyBhIHBhdGNoLXNp
+Z25lZCBpc3N1ZSwgScKgCmhhdmUgUkVTRU5UIGl0LiAKCgoKT24gTW9uLCAyMDIzLTA2LTI2IGF0
+IDA3OjQxICswMjAwLCBCZWFuIEh1byB3cm90ZToKPiBjaGFuZ2UgbG9nOgo+IMKgwqDCoCB2MS0t
+djI6Cj4gwqDCoMKgwqDCoMKgwqAgMS4gcmVvcmRlcmVkIHBhdGNoZXMKPiDCoMKgwqAgdjItdjM6
+Cj4gwqDCoMKgwqDCoMKgwqAgMS4gcmViYXNlZCBwYXRjaGVzIHRvCj4gZ2l0Oi8vZ2l0Lmtlcm5l
+bC5vcmcvcHViL3NjbS9saW51eC9rZXJuZWwvZ2l0L25leHQvbGludXgtbmV4dAo+IAo+IAo+IEJl
+YW4gSHVvICgyKToKPiDCoCBmcy9idWZmZXI6IGNsZWFuIHVwIGJsb2NrX2NvbW1pdF93cml0ZQo+
+IMKgIGZzOiBjb252ZXJ0IGJsb2NrX2NvbW1pdF93cml0ZSB0byByZXR1cm4gdm9pZAo+IAo+IMKg
+ZnMvYnVmZmVyLmPCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoCB8IDIwICsrKysrKysr
+LS0tLS0tLS0tLS0tCj4gwqBmcy9leHQ0L21vdmVfZXh0ZW50LmPCoMKgwqDCoMKgwqAgfMKgIDcg
+KystLS0tLQo+IMKgZnMvb2NmczIvZmlsZS5jwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgIHzCoCA3
+ICstLS0tLS0KPiDCoGZzL3VkZi9maWxlLmPCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgIHzC
+oCA2ICsrKy0tLQo+IMKgaW5jbHVkZS9saW51eC9idWZmZXJfaGVhZC5oIHzCoCAyICstCj4gwqA1
+IGZpbGVzIGNoYW5nZWQsIDE1IGluc2VydGlvbnMoKyksIDI3IGRlbGV0aW9ucygtKQo+IAoKX19f
+X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX18KT2NmczItZGV2ZWwg
+bWFpbGluZyBsaXN0Ck9jZnMyLWRldmVsQG9zcy5vcmFjbGUuY29tCmh0dHBzOi8vb3NzLm9yYWNs
+ZS5jb20vbWFpbG1hbi9saXN0aW5mby9vY2ZzMi1kZXZlbA==
