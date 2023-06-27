@@ -1,72 +1,72 @@
 Return-Path: <bounces+ocfs2-devel=archiver.kernel.org@phx1.rp.oracleemaildelivery.com>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-Received: from aib29ajc251.phx1.oracleemaildelivery.com (aib29ajc251.phx1.oracleemaildelivery.com [192.29.103.251])
+Received: from aib29ajc254.phx1.oracleemaildelivery.com (aib29ajc254.phx1.oracleemaildelivery.com [192.29.103.254])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id BAC74C001B0
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id BE11BC001B1
 	for <ocfs2-devel@archiver.kernel.org>; Wed, 28 Jun 2023 00:49:36 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=oss-phx-1109;
  d=oss.oracle.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
  bh=VTNZK6X8nrtXGNGPVt7lNuTYMU7t9fP4gZashOFCvCU=;
- b=AYRUkJNgwyC3p3RJXKuYiVMg3jNm44j2P+e0KwKpqjA+dwXhD2NF3CBPJACsOibIr3oyqQJnK7cl
-   ii6BNTHfRcmDTmVkMam34nNH5xhlbeXkJRHzJXaeUrHLeTc5Kbo6AymG0e1QM+lZqH9PMpxlCKcb
-   O7ktt/7VTiLHlUHRQQcZEfOnBLeyX2mpZpJ2hEAwrRf2rFftks7E8GkfVTJhq6R9T8DIIUKYW2eL
-   0mLfmiMs9E7u8l9Get2ElemUw/QQLJgDQW3jh5/OcHMlFzOJtXKe2C1KTd1kbdXVwY/Un6D0EEq6
-   1Z4evSP9UrjUf6GptJSZrYzbgJ/ra0OMP8y9Fg==
+ b=r5u5//oVsY1UlTgEehernpt0gFq1xljd9vLEX+Jc/54r2UgXFrg5wK9YazXg8AAWNYLlKOO9eh2p
+   0KxO4u9wIn49JO1TZOiF+HDW5nJdFAs2qXjy9Xfcz64PEkQRI+zX4ZyRBqiEpN7/j34gYKShKnf5
+   7n9QLymTOf6VnmCxcSWNoPyJlZSb2c3DlNz4C9gIWljwiysrSGgeUg8aJX51Fgt37llqljwTzb3H
+   WesS4dkOAddnmG1tmepTbXYI/cEsa5gLkAB1P/pBijgXJVqqGfS3YSPCkvo4GgEOsYd4FTFrNjSX
+   AX2vw+b2LrPC65dw1gF2ofqB1qUulrLSuELbdw==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; s=prod-phx-20191217;
  d=phx1.rp.oracleemaildelivery.com;
  h=Date:To:From:Subject:Message-Id:MIME-Version:Sender;
  bh=VTNZK6X8nrtXGNGPVt7lNuTYMU7t9fP4gZashOFCvCU=;
- b=oDyK0/Big6PCSxNwgd7ji2TMk6ZOK0HG4GpQR97hQKpzkIVg/0eHixcydaQTyvqzVuasjla6xi73
-   k8fOHEOeONR7yRox2n7WLb5Ob6Bv8Y4ndvgv//GzMo01TsvB+qXlZ/l5/Mzbokv3WylTGXcKPs6K
-   LfPgE7584DqiJIz6hr0dMCm1ohdV8He79DR2B1XiriXDbnSrR/9HmXKBI/uuzRescWp4oNuk3ko2
-   qddIUWFr400U3CRc0HqjS1Woqn596cKetpuzwme/gmfuBycsf3R1rw1n8RH0SddIC2fVROFjE0+O
-   qpv01DLC1tYqHDsp1nOhD/mGkJcbhfERRZWdZg==
-Received: by omta-ad2-fd3-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com
+ b=Waf1aWXB/wfjp1x+qJgcGPjkjgw+VlTsxJFjIHLOsMtB9dzikSN99/4pg+7Ff6JZjHaqoS/e96mX
+   3ojR2KbR6gdutm0UlMkHX2DKQkvrpTVV5WbwkWmhZ8EAjTU7G4ZAqZpwIUOLQKa24CR6JbCd/PH2
+   lOSm6Sh1aky/kJKN2cn3zBSOxb08Id0HrPVW38kHKr4BYQtGvmU7AVLD3pp516vAWrAzPomP7RTU
+   +HlTCXDD6TeRHW0NsrZjJOHlMEppYklZx73H6sFUA3eqoxoaL/oIxeaB2gkIhjh455jN8gEABpps
+   DkwrMpqB5PBjT6q2754u4LQX+ZvPalnABwPUfQ==
+Received: by omta-ad3-fd3-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com
  (Oracle Communications Messaging Server 8.1.0.1.20230523 64bit (built May 23
  2023))
- with ESMTPS id <0RWX00AASUANT380@omta-ad2-fd3-202-us-phoenix-1.omtaad2.vcndpphx.oraclevcn.com> for
+ with ESMTPS id <0RWX000D2UANYM50@omta-ad3-fd3-301-us-phoenix-1.omtaad3.vcndpphx.oraclevcn.com> for
  ocfs2-devel@archiver.kernel.org; Wed, 28 Jun 2023 00:49:35 +0000 (GMT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=20221208;
- t=1687847325; x=1690439325;
+ t=1687847243; x=1690439243;
  h=message-id:date:subject:cc:to:from:from:to:cc:subject:date
  :message-id:reply-to; bh=/No3uMDFRGop5NHj4Uit0dWC5kLwd6BWdmA86KFwVss=;
- b=oZ1dTy9QsTF25Vj6cN7VtiP6Zq/WmSPT0V+70JONVbv9m/5XkMZ6mjXPLJA8Z3sZyl
- U7VuKuAHoRDK6l3HNc6IEsi4azUzhglWwBfl9L7jcOMSJPeA//swS0DMK/ziwA+PO6Iu
- bWkHtAK4Vy+oxKBoqpv0h63cpA5OoPksTD1/012Wu/vrG0TVWk19xnpG27RUfzfykqvH
- ZXEa15Q6WNouQEltEV/Fvy408J6FbcpN4xtbE9MYjU9jw/2lSlpfy5R4AcJrijc+y5/J
- 80er1QgK8sLvIe5PGtaqGTVORTk2avpGTDK6qqFV7Xc5/qMrw1Gqh+uvpyV+mPp+AC7W QBwQ==
+ b=gPZG04892ZDpvv2WoVXfZ73z3MgOYG66w6V/TweWRVwL+yL9yrr+9ObuMmfDQ8cavP
+ yUGU0gMVwQVaMg7L7ZlT/Bs+iywg4wwW8JFBEBFHSZWWpUnKWRzXKPiOjRCdVU05HOuv
+ 0qWT/uV06b4BbljLkXztkHMq1nhADbPy8mCqQp+heZlX2dAIPHEKWCWHS3gGQOsUoH0c
+ 0SYISV39tcbiqUyZqj0JtRLdG/kOpGkAiPRppF0KafJ78o74lNr53IQ3AgNMi4c08nAi
+ hW5EMNxeBD3SamEieO2i+evqHB7GbSq6bD3BnGKLQIuB8lSwBKQrz+pqXHjH9wn7eAdc a27w==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=1e100.net;
- s=20221208; t=1687847325; x=1690439325;
+ s=20221208; t=1687847243; x=1690439243;
  h=message-id:date:subject:cc:to:from:x-gm-message-state:from:to:cc
  :subject:date:message-id:reply-to;
  bh=/No3uMDFRGop5NHj4Uit0dWC5kLwd6BWdmA86KFwVss=;
- b=ROKjPECjJacdhHFvO8oJ/TStET7ewUxxEaih2UtgsJquZYCrJt1p7mLc9Vk5MnJVf1
- N7YJ2e0dJbEEqVpkf/0uyTaSlr14xur+V40Mjn+iKyD/Bbs6NdlfpzP8Vv4Tzujs9IRB
- JQCFdUXTewROaqLHxaOBc3tsgHwInmOrguhdOkCJ3jgGGVh5pz47JHAFj0kjPZzZBSa4
- V8yKzSefWQIpWZLaWQQ4f5AOF506S8xFftzHH3n8ExykIhwrFdAtE6bWOINMEghr0Cx3
- X3cpbEUZGUubT8z4amIAgjGdm8GH5v1AHedPRgfgRjCjenjMz9NcyuPiZTUOJ0n5b5L9 oaAA==
-X-Gm-Message-State: AC+VfDxNc3kI/UgYfGy1k4F0Sqp+o8FpLyvEvgU4L6mxFfBrWYgs7nx7
- v888fuF5EHFYcY4OoOVfKhzlZOXah/dbzA==
-X-Received: by 2002:a17:902:c946:b0:1b6:7148:f65d with SMTP id
- i6-20020a170902c94600b001b67148f65dmr5128992pla.17.1687847325572; Mon,
- 26 Jun 2023 23:28:45 -0700 (PDT)
+ b=LFh6InF06LHc1BT2x1bb8ls4WntSekNfsxvpu+PzhPfm6M+SqeIlMEyKY34/3nuQAy
+ v8I1ns8ehRy5ipDSuYcha6+4GUqODd3xjPipvf0ys/uj/YwS5GivMMdh7zYE1ensmSMi
+ rx95WAjeTWIl6KI+ChpKFwVE59dgqXI0uo/YsmWHwDk+aaw/dzetFNql6IWgqPBK/XEG
+ uWc9uzhpVDGRdvogvp9kPKlMllm/zbfi6E/qmpU/pRpkZVKTrsKHVOTyw/O6lv9B1wZ9
+ Zfd18diqPzlRbeRU8lJD5sPoaoybsvj/BYbLYta277nxvkFfW/BD4845huXFkMuumZwW N7lw==
+X-Gm-Message-State: AC+VfDwTxpmbzu58qvY3PBU5XdETCfr63W6KPLpWRFJevRauKFwlwy62
+ 5nZQuaddmz6XCsnM/znlDh0=
+X-Received: by 2002:a17:903:41c5:b0:1b6:8863:8c9f with SMTP id
+ u5-20020a17090341c500b001b688638c9fmr8013968ple.6.1687847243096; Mon,
+ 26 Jun 2023 23:27:23 -0700 (PDT)
 To: mark@fasheh.com, jlbec@evilplan.org, joseph.qi@linux.alibaba.com
-Date: Tue, 27 Jun 2023 06:28:31 +0000
-Message-id: <20230627062831.16553-1-dg573847474@gmail.com>
+Date: Tue, 27 Jun 2023 06:26:47 +0000
+Message-id: <20230627062647.16471-1-dg573847474@gmail.com>
 X-Mailer: git-send-email 2.17.1
-X-Source-IP: 209.85.214.177
+X-Source-IP: 209.85.210.173
 X-Proofpoint-Virus-Version: vendor=nai engine=6500 definitions=10753
  signatures=596816
-X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 clxscore=165
- mlxscore=0 unknownsenderscore=20 priorityscore=359 phishscore=0 spamscore=0
- bulkscore=0 mlxlogscore=677 impostorscore=0 lowpriorityscore=0 adultscore=0
- suspectscore=0 malwarescore=0 classifier=spam adjust=0 reason=mlx scancount=1
+X-Proofpoint-Spam-Details: rule=tap_notspam policy=tap score=0 mlxlogscore=677
+ malwarescore=0 adultscore=0 lowpriorityscore=0 priorityscore=359 mlxscore=0
+ suspectscore=0 phishscore=0 unknownsenderscore=20 bulkscore=0 impostorscore=0
+ clxscore=134 spamscore=0 classifier=spam adjust=0 reason=mlx scancount=1
  engine=8.12.0-2305260000 definitions=main-2306270060 domainage_hfrom=10180
-Cc: Chengfeng Ye <dg573847474@gmail.com>, linux-kernel@vger.kernel.org,
- ocfs2-devel@oss.oracle.com
+Cc: Chengfeng Ye <dg573847474@gmail.com>, ocfs2-devel@oss.oracle.com,
+ linux-kernel@vger.kernel.org--thread
 Subject: [Ocfs2-devel] [PATCH] fs: ocfs: fix potential deadlock on	&qs->qs_lock
 X-BeenThere: ocfs2-devel@oss.oracle.com
 X-Mailman-Version: 2.1.15
@@ -86,24 +86,24 @@ Content-type: text/plain; charset="us-ascii"
 Content-transfer-encoding: 7bit
 Errors-to: ocfs2-devel-bounces@oss.oracle.com
 X-Google-Smtp-Source:
- ACHHUZ7g637XMAtoJbXRB6S87o2VxjpHWmvVxxMrfQpBcMcRmEaLubMMSIpP32XzwyKQFk84A7x5VQ==
-X-ServerName: mail-pl1-f177.google.com
+ ACHHUZ7h9qusA7Moswuv1qhUjx17ttt7aWtVHBoNV69aAZfIDIScJ+8II6NVNjljxxt7FwA0qFF2qg==
+X-ServerName: mail-pf1-f173.google.com
 X-Proofpoint-SPF-Result: pass
 X-Proofpoint-SPF-Record: v=spf1 redirect=_spf.google.com
 X-Spam: Clean
-X-Proofpoint-GUID: RPnDecgzUr02wXRckrTo4jBYlE4Sv6ZG
-X-Proofpoint-ORIG-GUID: RPnDecgzUr02wXRckrTo4jBYlE4Sv6ZG
+X-Proofpoint-ORIG-GUID: HpOAWrCMGb5YTkLYQJNrBOTu2DUmFSkh
+X-Proofpoint-GUID: HpOAWrCMGb5YTkLYQJNrBOTu2DUmFSkh
 X-Mailman-Approved-At: Wed, 28 Jun 2023 00:49:34 +0000
 Reporting-Meta:
- AAGKiHd01GWe4sxmU0qQpRfGLRKxa9M1/shxGiK0Yyk1wK0wEK9JtZ3IjOxpWgxX
- MfuO91YgVfwS5d3yCI73hOf+3ataKs8/Y/1E7hKY5N9nuBl5MenwMDWIjIYaKuZW
- FwRz/IC6FmdEq+eQgDGKkbhqxZPBGOKcbdzRdO/h2v5d7MIwA3YG/6aM5NA4Bm4V
- kqSMywqwgyJnJUqjJtd+JssogA8MU3HyhpJtS6r1e7qmbHOm9eWu8KqmFt5jvmXe
- ax991tnYaAMb8nxYV3P5xLM26+YLZYhlFEAWNS/+rYKPwJ1wz//BmlrKyRJJm22/
- o/2Nv99XD5z4+3PD/zn99WpXkM3hmGmnSdAwqVawmd9rgO19fxU3UNCi+geYkpH1
- MU9CVB97merKsMAsw34QBi181TdKKk/4gh69/d/IKhlEJLX9KslZgd3BVgIqR5sO
- UEI1jMvIOf/pnDbcXl/fcodo9oZe9PuQT53eyVsqav5DqMrm5BFc6Uv0mFJDHm2a
- Q2y2Hec7u6hMXo46HOZ1wtVG+404hCcqTY4gAWjhC5fG
+ AAFe19/1LK9Nvr6XY4O0qnKbv7JpvnP+rUcy9mFIivkijrUPPpzWiRJFhV/n5TBz
+ bOap0r0tVCzrdbAO9kaC1lhbQ5L0JiTZrJEDLg6J67Nq7IPPl/2eLt1PYuFp3hva
+ Jm9I9BvbDJeFEUkHGyjJPjywXSL67aopprkftL4F7+W7t7oqBHUadLFHNotQaHUn
+ oF+KC/3R+TNdLW4bHZbbwUfcbP6OhQcEM5imcXXtd1UpOEXMh3i9ocNNI9oKi19M
+ d/WkS2qQraYTAWU4u4zB6Kp5psx99opuZa7bWfHm+sqeCRPAeehPPSBNlaVLnJFm
+ 8cAb+BEqyTFV/ze4Yovwvh/pMvsACyGMtbp4kKiWs+2rr1DttIpS4s4Z0qkKTm2M
+ MGm6/wW66HUTlbPHSOP+tq6MQ9ExhTwnY+uVc3C1DlkeFrZDGAEHjsv10s3zCV4y
+ 4LEfrWyZEoIew55dX1ymfX5zZgxOpVSH4iaDVTXAR6hJ7KX+WMdk/2NC7yole1ba
+ 8AsuWURRUB+z08orZIPBfIK5hheTU4sFFcMZgaRP803Z
 
 As &qs->qs_lock is also acquired by the timer o2net_idle_timer()
 which executes under softirq context, code executing under process
