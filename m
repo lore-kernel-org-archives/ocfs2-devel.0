@@ -1,35 +1,45 @@
-Received: from zeniv.linux.org.uk (zeniv.linux.org.uk [62.89.141.173])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from smtp-out1.suse.de (smtp-out1.suse.de [195.135.220.28])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0528A1847
-	for <ocfs2-devel@lists.linux.dev>; Wed, 28 Jun 2023 03:58:05 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-	d=infradead.org; s=zeniv-20220401; h=Sender:In-Reply-To:Content-Type:
-	MIME-Version:References:Message-ID:Subject:Cc:To:From:Date:Reply-To:
-	Content-Transfer-Encoding:Content-ID:Content-Description;
-	bh=MUXhoKmuZ1A/7U83BdMHC6l86XOAppMGGNlVJYVgIdI=; b=FPcVLapHiYti43T21UgqJy1Oe+
-	BoJDCKJ6MwSyegnBvf0EUAGAh4YXeEcaIHNpPovln791WdOMk8tslF0klSgI362yRSF+YpKSo0/NM
-	K8jgBamTr0XB2sE/wQ/ATLmrtU9g5Gr7hwkw1bhKY0mBb3MPSaVpHoL19SlSHulZBbAdACkFEU55v
-	V/Cw3hdbrtnEwuC/gWwRgFQNT8VaL7mWvsqruAHZSIEkLo0CqSQ7Kh/jsBO24zmelssUkBkYPgoTG
-	jUKXn+ipIbNMu9vxWLJj/EsVrzMV461mq8G5uZ5Ch+R1KimAnAOOxtkndGA0nqRoDG1v53ERpcqlg
-	dCvHG2dw==;
-Received: from jlbec by zeniv.linux.org.uk with local (Exim 4.96 #2 (Red Hat Linux))
-	id 1qEMJZ-000oXj-2S;
-	Wed, 28 Jun 2023 03:57:57 +0000
-Date: Wed, 28 Jun 2023 04:57:57 +0100
-From: Joel Becker <jlbec@evilplan.org>
-To: Joseph Qi <joseph.qi@linux.alibaba.com>
-Cc: Anthony Iliopoulos <ailiop@suse.com>, Mark Fasheh <mark@fasheh.com>,
-	akpm <akpm@linux-foundation.org>, ocfs2-devel@lists.linux.dev,
-	linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org
-Subject: Re: [PATCH 0/2] update ocfs2-devel mailing list addresses
-Message-ID: <ZJuvxQF4epheLig8@ZenIV>
-Mail-Followup-To: Joseph Qi <joseph.qi@linux.alibaba.com>,
-	Anthony Iliopoulos <ailiop@suse.com>, Mark Fasheh <mark@fasheh.com>,
-	akpm <akpm@linux-foundation.org>, ocfs2-devel@lists.linux.dev,
-	linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A204E7469
+	for <ocfs2-devel@lists.linux.dev>; Wed, 28 Jun 2023 08:48:29 +0000 (UTC)
+Received: from imap2.suse-dmz.suse.de (imap2.suse-dmz.suse.de [192.168.254.74])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature ECDSA (P-521) server-digest SHA512)
+	(No client certificate requested)
+	by smtp-out1.suse.de (Postfix) with ESMTPS id 9CA0E2186F;
+	Wed, 28 Jun 2023 08:48:27 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.com; s=susede1;
+	t=1687942107; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+	 mime-version:mime-version:content-type:content-type:
+	 in-reply-to:in-reply-to:references:references;
+	bh=lWHKJY9jffhTkOc71UZZjYPpecflPAFjJhiDX76mBCI=;
+	b=Odo+MtmsCKi/zv71EzJmMtM03h1wgg5Ay19qcJaqjBmMEbKsCsCdI1dMZ8JlVRA4pvEI52
+	YztE/J4qrRHiG2fMagOpCdrAGKZbsxkZtbStE28OqM4UzMHs1I/Cf2iMWqDLvbiTxd52fc
+	TRD4x8AVJOrlIG1L4NombdD77LeXtdg=
+Received: from imap2.suse-dmz.suse.de (imap2.suse-dmz.suse.de [192.168.254.74])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature ECDSA (P-521) server-digest SHA512)
+	(No client certificate requested)
+	by imap2.suse-dmz.suse.de (Postfix) with ESMTPS id DEBF5138E8;
+	Wed, 28 Jun 2023 08:48:26 +0000 (UTC)
+Received: from dovecot-director2.suse.de ([192.168.254.65])
+	by imap2.suse-dmz.suse.de with ESMTPSA
+	id BUgnMtrzm2TXYwAAMHmgww
+	(envelope-from <ailiop@suse.com>); Wed, 28 Jun 2023 08:48:26 +0000
+Date: Wed, 28 Jun 2023 10:48:26 +0200
+From: Anthony Iliopoulos <ailiop@suse.com>
+To: Randy Dunlap <rdunlap@infradead.org>
+Cc: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
+	Joseph Qi <joseph.qi@linux.alibaba.com>,
+	ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org,
+	linux-doc@vger.kernel.org,
+	Konstantin Ryabitsev <konstantin@linuxfoundation.org>
+Subject: Re: [PATCH 1/2] MAINTAINERS: Update ocfs2-devel mailing list address
+Message-ID: <ZJvz2umev6Jjgx47@technoir>
 References: <20230628013437.47030-1-ailiop@suse.com>
- <6d59ab08-070f-1562-2eaa-16b083f1a732@linux.alibaba.com>
+ <20230628013437.47030-2-ailiop@suse.com>
+ <c8976472-ab01-de64-ff1d-9224b6c65633@infradead.org>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -38,38 +48,38 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <6d59ab08-070f-1562-2eaa-16b083f1a732@linux.alibaba.com>
-X-Burt-Line: Trees are cool.
-X-Red-Smith: Ninety feet between bases is perhaps as close as man has ever
- come to perfection.
-Sender: Joel Becker <jlbec@ftp.linux.org.uk>
+In-Reply-To: <c8976472-ab01-de64-ff1d-9224b6c65633@infradead.org>
 
-Yes, thank you.
-
-Acked-by: Joel Becker <jlbec@evilplan.org>
-
-On Wed, Jun 28, 2023 at 10:30:33AM +0800, Joseph Qi wrote:
-> Thanks for this work.
+On Tue, Jun 27, 2023 at 07:44:58PM -0700, Randy Dunlap wrote:
+> Hi,
 > 
-> Acked-by: Joseph Qi <joseph.qi@linux.alibaba.com>
 > 
-> On 6/28/23 9:34 AM, Anthony Iliopoulos wrote:
-> > The ocfs2-devel mailing list has been migrated to kernel.org, update all
-> > related kernel documentation pointers to reflect the change.
+> On 6/27/23 18:34, Anthony Iliopoulos wrote:
+> > The ocfs2-devel mailing list has been migrated to the kernel.org
+> > infrastructure, update the related entry to reflect the change.
 > > 
-> > Anthony Iliopoulos (2):
-> >   MAINTAINERS: Update ocfs2-devel mailing list address
-> >   docs: update ocfs2-devel mailing list address
+> > Signed-off-by: Anthony Iliopoulos <ailiop@suse.com>
+> > ---
+> >  MAINTAINERS | 2 +-
+> >  1 file changed, 1 insertion(+), 1 deletion(-)
 > > 
-> >  Documentation/ABI/obsolete/o2cb       |  4 ++--
-> >  Documentation/ABI/removed/o2cb        |  4 ++--
-> >  Documentation/ABI/stable/o2cb         |  4 ++--
-> >  Documentation/ABI/testing/sysfs-ocfs2 | 12 ++++++------
-> >  Documentation/filesystems/dlmfs.rst   |  2 +-
-> >  Documentation/filesystems/ocfs2.rst   |  2 +-
-> >  MAINTAINERS                           |  2 +-
-> >  fs/ocfs2/Kconfig                      |  6 +++---
-> >  8 files changed, 18 insertions(+), 18 deletions(-)
-> > 
+> > diff --git a/MAINTAINERS b/MAINTAINERS
+> > index 4545d4287305..2e95a8eb924e 100644
+> > --- a/MAINTAINERS
+> > +++ b/MAINTAINERS
+> > @@ -15969,7 +15969,7 @@ ORACLE CLUSTER FILESYSTEM 2 (OCFS2)
+> >  M:	Mark Fasheh <mark@fasheh.com>
+> >  M:	Joel Becker <jlbec@evilplan.org>
+> >  M:	Joseph Qi <joseph.qi@linux.alibaba.com>
+> > -L:	ocfs2-devel@oss.oracle.com (moderated for non-subscribers)
+> > +L:	ocfs2-devel@lists.linux.dev
+> 
+> So the kernel.org admins know about this and have updated
+> lore.kernel.org for the new mailing list, right eh?
 
--- 
+Yes this is in coordination with Konstantin who made this possible, and
+I'll soon ask him to switch lore over to the new list, once the old one
+is fully disabled.
+
+Regards,
+Anthony
