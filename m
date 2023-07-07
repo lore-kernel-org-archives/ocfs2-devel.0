@@ -1,35 +1,113 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1EBE020E0
-	for <ocfs2-devel@lists.linux.dev>; Fri,  7 Jul 2023 10:07:48 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 0DBE7C433C7;
-	Fri,  7 Jul 2023 10:07:46 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9E3FB23BD;
+	Fri,  7 Jul 2023 10:51:00 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 1904CC433C7;
+	Fri,  7 Jul 2023 10:50:42 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1688724467;
-	bh=kzGPfVgAvaDeY9hWrtluqtk55LZVLbnfjmW+3X6ycmg=;
+	s=k20201202; t=1688727060;
+	bh=YY2+JZ9K159BEA5iSbeX62sRGYZcpbUaLjQvLugmLbE=;
 	h=Subject:From:To:Cc:Date:In-Reply-To:References:From;
-	b=Mad+T2+9VvpKPErs4ByJnei/ja9o4eYk+/MLuPICXnw28+DG6llMZJeAxISdsnpcv
-	 h233C9v3a9Zy1NvMWXsGG+MWeYtzn+2kTHO52W4zUOzoKg1fZbhYYJEi/DDgjq6GX9
-	 Q6vARbt3c5UhAaCrWxD15W5hnYvs2DaLUiZiHlQuLRjicp/2ex3JU5r57jM9klD2KT
-	 xfWIMqgz6WdTENM4PupD8T/y5ka0+ebCLpaPDqBYcOy6S/fj9kWOEZIaANAEZnaPFJ
-	 ZE5hwsDpg3Lyxyj4wlacZX0+bZUVBfpT1kMvUdDqMKkmV6KmlBMDt9sis0Muq5gtEX
-	 an71zo5F/oq7g==
-Message-ID: <4f7d791d516897e4b281a5bd3889e83ef7e2b52e.camel@kernel.org>
-Subject: Re: [PATCH v2 62/92] ocfs2: convert to ctime accessor functions
+	b=jXdQbiZ5Du/aIdze7VeTdm89AeKeYW1m4/7P1K420P54fp2uTq7aOaGBMwqlLnw11
+	 5T+jXE1w9xr2TFIydSymIs59E5/D60tiQwOrG5t4hwTmZ4+DNTLa0LgW/JlS7C6Rg0
+	 Mzl7zZGaHcBNbE8fs+RYzBh/pLfQTiwpAzbqUwnaVBq4Wks4CGEmJGniuijWbkznN9
+	 yKSAP4Wd0VGwzQyH6kGj1b/zaEVMosXLl47jzHBi50p2AWNvdkuhe4kCPVw/2GfwLp
+	 PcUD4QVeNETkqKyUuCjgzrA8gjstIliNy9GhxSwhdsoWExJoMegiOtBnIsuS31XbZX
+	 flM91ZzrsjFeA==
+Message-ID: <ff1f471a9d33ae01ad570644273e4e579204a3b6.camel@kernel.org>
+Subject: Re: [apparmor] [PATCH v2 08/92] fs: new helper:
+ simple_rename_timestamp
 From: Jeff Layton <jlayton@kernel.org>
-To: Joseph Qi <joseph.qi@linux.alibaba.com>, Christian Brauner
-	 <brauner@kernel.org>, Mark Fasheh <mark@fasheh.com>, Joel Becker
-	 <jlbec@evilplan.org>
-Cc: Al Viro <viro@zeniv.linux.org.uk>, Jan Kara <jack@suse.cz>, 
-	linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, 
-	ocfs2-devel@lists.linux.dev
-Date: Fri, 07 Jul 2023 06:07:45 -0400
-In-Reply-To: <2033ce6a-761e-b891-42e0-2659506eb61d@linux.alibaba.com>
-References: <20230705185755.579053-1-jlayton@kernel.org>
-	 <20230705190309.579783-1-jlayton@kernel.org>
-	 <20230705190309.579783-60-jlayton@kernel.org>
-	 <2033ce6a-761e-b891-42e0-2659506eb61d@linux.alibaba.com>
+To: Seth Arnold <seth.arnold@canonical.com>
+Cc: Damien Le Moal <dlemoal@kernel.org>, jk@ozlabs.org, arnd@arndb.de, 
+ mpe@ellerman.id.au, npiggin@gmail.com, christophe.leroy@csgroup.eu, 
+ hca@linux.ibm.com, gor@linux.ibm.com, agordeev@linux.ibm.com, 
+ borntraeger@linux.ibm.com, svens@linux.ibm.com, gregkh@linuxfoundation.org,
+  arve@android.com, tkjos@android.com, maco@android.com,
+ joel@joelfernandes.org,  brauner@kernel.org, cmllamas@google.com,
+ surenb@google.com,  dennis.dalessandro@cornelisnetworks.com, jgg@ziepe.ca,
+ leon@kernel.org,  bwarrum@linux.ibm.com, rituagar@linux.ibm.com,
+ ericvh@kernel.org, lucho@ionkov.net,  asmadeus@codewreck.org,
+ linux_oss@crudebyte.com, dsterba@suse.com,  dhowells@redhat.com,
+ marc.dionne@auristor.com, viro@zeniv.linux.org.uk,  raven@themaw.net,
+ luisbg@kernel.org, salah.triki@gmail.com,  aivazian.tigran@gmail.com,
+ ebiederm@xmission.com, keescook@chromium.org,  clm@fb.com,
+ josef@toxicpanda.com, xiubli@redhat.com, idryomov@gmail.com, 
+ jaharkes@cs.cmu.edu, coda@cs.cmu.edu, jlbec@evilplan.org, hch@lst.de, 
+ nico@fluxnic.net, rafael@kernel.org, code@tyhicks.com, ardb@kernel.org, 
+ xiang@kernel.org, chao@kernel.org, huyue2@coolpad.com,
+ jefflexu@linux.alibaba.com,  linkinjeon@kernel.org, sj1557.seo@samsung.com,
+ jack@suse.com, tytso@mit.edu,  adilger.kernel@dilger.ca,
+ jaegeuk@kernel.org, hirofumi@mail.parknet.co.jp,  miklos@szeredi.hu,
+ rpeterso@redhat.com, agruenba@redhat.com, richard@nod.at, 
+ anton.ivanov@cambridgegreys.com, johannes@sipsolutions.net, 
+ mikulas@artax.karlin.mff.cuni.cz, mike.kravetz@oracle.com,
+ muchun.song@linux.dev,  dwmw2@infradead.org, shaggy@kernel.org,
+ tj@kernel.org,  trond.myklebust@hammerspace.com, anna@kernel.org,
+ chuck.lever@oracle.com,  neilb@suse.de, kolga@netapp.com,
+ Dai.Ngo@oracle.com, tom@talpey.com,  konishi.ryusuke@gmail.com,
+ anton@tuxera.com,  almaz.alexandrovich@paragon-software.com,
+ mark@fasheh.com,  joseph.qi@linux.alibaba.com, me@bobcopeland.com,
+ hubcap@omnibond.com,  martin@omnibond.com, amir73il@gmail.com,
+ mcgrof@kernel.org, yzaikin@google.com,  tony.luck@intel.com,
+ gpiccoli@igalia.com, al@alarsen.net, sfrench@samba.org,  pc@manguebit.com,
+ lsahlber@redhat.com, sprasad@microsoft.com,  senozhatsky@chromium.org,
+ phillip@squashfs.org.uk, rostedt@goodmis.org,  mhiramat@kernel.org,
+ dushistov@mail.ru, hdegoede@redhat.com, djwong@kernel.org, 
+ naohiro.aota@wdc.com, jth@kernel.org, ast@kernel.org, daniel@iogearbox.net,
+  andrii@kernel.org, martin.lau@linux.dev, song@kernel.org, yhs@fb.com, 
+ john.fastabend@gmail.com, kpsingh@kernel.org, sdf@google.com,
+ haoluo@google.com,  jolsa@kernel.org, hughd@google.com,
+ akpm@linux-foundation.org, davem@davemloft.net,  edumazet@google.com,
+ kuba@kernel.org, pabeni@redhat.com,  john.johansen@canonical.com,
+ paul@paul-moore.com, jmorris@namei.org,  serge@hallyn.com,
+ stephen.smalley.work@gmail.com, eparis@parisplace.org,  jgross@suse.com,
+ stern@rowland.harvard.edu, lrh2000@pku.edu.cn, 
+ sebastian.reichel@collabora.com, wsa+renesas@sang-engineering.com, 
+ quic_ugoswami@quicinc.com, quic_linyyuan@quicinc.com, john@keeping.me.uk, 
+ error27@gmail.com, quic_uaggarwa@quicinc.com, hayama@lineo.co.jp,
+ jomajm@gmail.com,  axboe@kernel.dk, dhavale@google.com,
+ dchinner@redhat.com, hannes@cmpxchg.org,  zhangpeng362@huawei.com,
+ slava@dubeyko.com, gargaditya08@live.com, 
+ penguin-kernel@I-love.SAKURA.ne.jp, yifeliu@cs.stonybrook.edu, 
+ madkar@cs.stonybrook.edu, ezk@cs.stonybrook.edu, yuzhe@nfschina.com, 
+ willy@infradead.org, okanatov@gmail.com, jeffxu@chromium.org,
+ linux@treblig.org,  mirimmad17@gmail.com, yijiangshan@kylinos.cn,
+ yang.yang29@zte.com.cn,  xu.xin16@zte.com.cn, chengzhihao1@huawei.com,
+ shr@devkernel.io,  Liam.Howlett@Oracle.com, adobriyan@gmail.com,
+ chi.minghao@zte.com.cn,  roberto.sassu@huawei.com, linuszeng@tencent.com,
+ bvanassche@acm.org,  zohar@linux.ibm.com, yi.zhang@huawei.com,
+ trix@redhat.com, fmdefrancesco@gmail.com,  ebiggers@google.com,
+ princekumarmaurya06@gmail.com, chenzhongjin@huawei.com,  riel@surriel.com,
+ shaozhengchao@huawei.com, jingyuwang_vip@163.com, 
+ linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, 
+ linux-s390@vger.kernel.org, linux-rdma@vger.kernel.org, 
+ linux-usb@vger.kernel.org, v9fs@lists.linux.dev,
+ linux-fsdevel@vger.kernel.org,  linux-afs@lists.infradead.org,
+ autofs@vger.kernel.org, linux-mm@kvack.org,  linux-btrfs@vger.kernel.org,
+ ceph-devel@vger.kernel.org,  codalist@coda.cs.cmu.edu,
+ ecryptfs@vger.kernel.org, linux-efi@vger.kernel.org, 
+ linux-erofs@lists.ozlabs.org, linux-ext4@vger.kernel.org, 
+ linux-f2fs-devel@lists.sourceforge.net, cluster-devel@redhat.com, 
+ linux-um@lists.infradead.org, linux-mtd@lists.infradead.org, 
+ jfs-discussion@lists.sourceforge.net, linux-nfs@vger.kernel.org, 
+ linux-nilfs@vger.kernel.org, linux-ntfs-dev@lists.sourceforge.net, 
+ ntfs3@lists.linux.dev, ocfs2-devel@lists.linux.dev, 
+ linux-karma-devel@lists.sourceforge.net, devel@lists.orangefs.org, 
+ linux-unionfs@vger.kernel.org, linux-hardening@vger.kernel.org, 
+ reiserfs-devel@vger.kernel.org, linux-cifs@vger.kernel.org, 
+ samba-technical@lists.samba.org, linux-trace-kernel@vger.kernel.org, 
+ linux-xfs@vger.kernel.org, bpf@vger.kernel.org, netdev@vger.kernel.org, 
+ apparmor@lists.ubuntu.com, linux-security-module@vger.kernel.org, 
+ selinux@vger.kernel.org
+Date: Fri, 07 Jul 2023 06:50:40 -0400
+In-Reply-To: <20230706210236.GB3244704@millbarge>
+References: <20230705185812.579118-1-jlayton@kernel.org>
+	 <20230705185812.579118-3-jlayton@kernel.org>
+	 <3b403ef1-22e6-0220-6c9c-435e3444b4d3@kernel.org>
+	 <7c783969641b67d6ffdfb10e509f382d083c5291.camel@kernel.org>
+	 <20230706210236.GB3244704@millbarge>
 Content-Type: text/plain; charset="ISO-8859-15"
 Content-Transfer-Encoding: quoted-printable
 User-Agent: Evolution 3.48.4 (3.48.4-1.fc38) 
@@ -40,451 +118,144 @@ List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 
-On Fri, 2023-07-07 at 11:15 +0800, Joseph Qi wrote:
->=20
-> On 7/6/23 3:01 AM, Jeff Layton wrote:
-> > In later patches, we're going to change how the inode's ctime field is
-> > used. Switch to using accessor functions instead of raw accesses of
-> > inode->i_ctime.
+On Thu, 2023-07-06 at 21:02 +0000, Seth Arnold wrote:
+> On Wed, Jul 05, 2023 at 08:04:41PM -0400, Jeff Layton wrote:
 > >=20
-> > Signed-off-by: Jeff Layton <jlayton@kernel.org>
-> > ---
-> >  fs/ocfs2/acl.c          |  6 +++---
-> >  fs/ocfs2/alloc.c        |  6 +++---
-> >  fs/ocfs2/aops.c         |  2 +-
-> >  fs/ocfs2/dir.c          |  8 ++++----
-> >  fs/ocfs2/dlmfs/dlmfs.c  |  4 ++--
-> >  fs/ocfs2/dlmglue.c      |  7 +++++--
-> >  fs/ocfs2/file.c         | 16 +++++++++-------
-> >  fs/ocfs2/inode.c        | 12 ++++++------
-> >  fs/ocfs2/move_extents.c |  6 +++---
-> >  fs/ocfs2/namei.c        | 21 +++++++++++----------
-> >  fs/ocfs2/refcounttree.c | 14 +++++++-------
-> >  fs/ocfs2/xattr.c        |  6 +++---
-> >  12 files changed, 57 insertions(+), 51 deletions(-)
+> > I don't believe it's an issue. I've seen nothing in the POSIX spec that
+> > mandates that timestamp updates to different inodes involved in an
+> > operation be set to the _same_ value. It just says they must be updated=
+.
 > >=20
-> > diff --git a/fs/ocfs2/acl.c b/fs/ocfs2/acl.c
-> > index 9fd03eaf15f8..e75137a8e7cb 100644
-> > --- a/fs/ocfs2/acl.c
-> > +++ b/fs/ocfs2/acl.c
-> > @@ -191,10 +191,10 @@ static int ocfs2_acl_set_mode(struct inode *inode=
-, struct buffer_head *di_bh,
-> >  	}
-> > =20
-> >  	inode->i_mode =3D new_mode;
-> > -	inode->i_ctime =3D current_time(inode);
-> > +	inode_set_ctime_current(inode);
-> >  	di->i_mode =3D cpu_to_le16(inode->i_mode);
-> > -	di->i_ctime =3D cpu_to_le64(inode->i_ctime.tv_sec);
-> > -	di->i_ctime_nsec =3D cpu_to_le32(inode->i_ctime.tv_nsec);
-> > +	di->i_ctime =3D cpu_to_le64(inode_get_ctime(inode).tv_sec);
-> > +	di->i_ctime_nsec =3D cpu_to_le32(inode_get_ctime(inode).tv_nsec);
-> >  	ocfs2_update_inode_fsync_trans(handle, inode, 0);
-> > =20
-> >  	ocfs2_journal_dirty(handle, di_bh);
-> > diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-> > index 51c93929a146..aef58f1395c8 100644
-> > --- a/fs/ocfs2/alloc.c
-> > +++ b/fs/ocfs2/alloc.c
-> > @@ -7436,10 +7436,10 @@ int ocfs2_truncate_inline(struct inode *inode, =
-struct buffer_head *di_bh,
-> >  	}
-> > =20
-> >  	inode->i_blocks =3D ocfs2_inode_sector_count(inode);
-> > -	inode->i_ctime =3D inode->i_mtime =3D current_time(inode);
-> > +	inode->i_mtime =3D inode_set_ctime_current(inode);
-> > =20
-> > -	di->i_ctime =3D di->i_mtime =3D cpu_to_le64(inode->i_ctime.tv_sec);
-> > -	di->i_ctime_nsec =3D di->i_mtime_nsec =3D cpu_to_le32(inode->i_ctime.=
-tv_nsec);
-> > +	di->i_ctime =3D di->i_mtime =3D cpu_to_le64(inode_get_ctime(inode).tv=
-_sec);
-> > +	di->i_ctime_nsec =3D di->i_mtime_nsec =3D cpu_to_le32(inode_get_ctime=
-(inode).tv_nsec);
-> > =20
-> >  	ocfs2_update_inode_fsync_trans(handle, inode, 1);
-> >  	ocfs2_journal_dirty(handle, di_bh);
-> > diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-> > index 8dfc284e85f0..0fdba30740ab 100644
-> > --- a/fs/ocfs2/aops.c
-> > +++ b/fs/ocfs2/aops.c
-> > @@ -2048,7 +2048,7 @@ int ocfs2_write_end_nolock(struct address_space *=
-mapping,
-> >  		}
-> >  		inode->i_blocks =3D ocfs2_inode_sector_count(inode);
-> >  		di->i_size =3D cpu_to_le64((u64)i_size_read(inode));
-> > -		inode->i_mtime =3D inode->i_ctime =3D current_time(inode);
-> > +		inode->i_mtime =3D inode_set_ctime_current(inode);
-> >  		di->i_mtime =3D di->i_ctime =3D cpu_to_le64(inode->i_mtime.tv_sec);
-> >  		di->i_mtime_nsec =3D di->i_ctime_nsec =3D cpu_to_le32(inode->i_mtime=
-.tv_nsec);
-> >  		if (handle)
-> > diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
-> > index 694471fc46b8..8b123d543e6e 100644
-> > --- a/fs/ocfs2/dir.c
-> > +++ b/fs/ocfs2/dir.c
-> > @@ -1658,7 +1658,7 @@ int __ocfs2_add_entry(handle_t *handle,
-> >  				offset, ocfs2_dir_trailer_blk_off(dir->i_sb));
-> > =20
-> >  		if (ocfs2_dirent_would_fit(de, rec_len)) {
-> > -			dir->i_mtime =3D dir->i_ctime =3D current_time(dir);
-> > +			dir->i_mtime =3D inode_set_ctime_current(dir);
-> >  			retval =3D ocfs2_mark_inode_dirty(handle, dir, parent_fe_bh);
-> >  			if (retval < 0) {
-> >  				mlog_errno(retval);
-> > @@ -2962,11 +2962,11 @@ static int ocfs2_expand_inline_dir(struct inode=
- *dir, struct buffer_head *di_bh,
-> >  	ocfs2_dinode_new_extent_list(dir, di);
-> > =20
-> >  	i_size_write(dir, sb->s_blocksize);
-> > -	dir->i_mtime =3D dir->i_ctime =3D current_time(dir);
-> > +	dir->i_mtime =3D inode_set_ctime_current(dir);
-> > =20
-> >  	di->i_size =3D cpu_to_le64(sb->s_blocksize);
-> > -	di->i_ctime =3D di->i_mtime =3D cpu_to_le64(dir->i_ctime.tv_sec);
-> > -	di->i_ctime_nsec =3D di->i_mtime_nsec =3D cpu_to_le32(dir->i_ctime.tv=
-_nsec);
-> > +	di->i_ctime =3D di->i_mtime =3D cpu_to_le64(inode_get_ctime(dir).tv_s=
-ec);
-> > +	di->i_ctime_nsec =3D di->i_mtime_nsec =3D cpu_to_le32(inode_get_ctime=
-(dir).tv_nsec);
-> >  	ocfs2_update_inode_fsync_trans(handle, dir, 1);
-> > =20
-> >  	/*
-> > diff --git a/fs/ocfs2/dlmfs/dlmfs.c b/fs/ocfs2/dlmfs/dlmfs.c
-> > index ba26c5567cff..81265123ce6c 100644
-> > --- a/fs/ocfs2/dlmfs/dlmfs.c
-> > +++ b/fs/ocfs2/dlmfs/dlmfs.c
-> > @@ -337,7 +337,7 @@ static struct inode *dlmfs_get_root_inode(struct su=
-per_block *sb)
-> >  	if (inode) {
-> >  		inode->i_ino =3D get_next_ino();
-> >  		inode_init_owner(&nop_mnt_idmap, inode, NULL, mode);
-> > -		inode->i_atime =3D inode->i_mtime =3D inode->i_ctime =3D current_tim=
-e(inode);
-> > +		inode->i_atime =3D inode->i_mtime =3D inode_set_ctime_current(inode)=
-;
-> >  		inc_nlink(inode);
-> > =20
-> >  		inode->i_fop =3D &simple_dir_operations;
-> > @@ -360,7 +360,7 @@ static struct inode *dlmfs_get_inode(struct inode *=
-parent,
-> > =20
-> >  	inode->i_ino =3D get_next_ino();
-> >  	inode_init_owner(&nop_mnt_idmap, inode, parent, mode);
-> > -	inode->i_atime =3D inode->i_mtime =3D inode->i_ctime =3D current_time=
-(inode);
-> > +	inode->i_atime =3D inode->i_mtime =3D inode_set_ctime_current(inode);
-> > =20
-> >  	ip =3D DLMFS_I(inode);
-> >  	ip->ip_conn =3D DLMFS_I(parent)->ip_conn;
-> > diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-> > index c28bc983a7b1..c3e2961ee5db 100644
-> > --- a/fs/ocfs2/dlmglue.c
-> > +++ b/fs/ocfs2/dlmglue.c
-> > @@ -2162,6 +2162,7 @@ static void __ocfs2_stuff_meta_lvb(struct inode *=
-inode)
-> >  	struct ocfs2_inode_info *oi =3D OCFS2_I(inode);
-> >  	struct ocfs2_lock_res *lockres =3D &oi->ip_inode_lockres;
-> >  	struct ocfs2_meta_lvb *lvb;
-> > +	struct timespec64 ctime =3D inode_get_ctime(inode);
-> > =20
-> >  	lvb =3D ocfs2_dlm_lvb(&lockres->l_lksb);
-> > =20
-> > @@ -2185,7 +2186,7 @@ static void __ocfs2_stuff_meta_lvb(struct inode *=
-inode)
-> >  	lvb->lvb_iatime_packed  =3D
-> >  		cpu_to_be64(ocfs2_pack_timespec(&inode->i_atime));
-> >  	lvb->lvb_ictime_packed =3D
-> > -		cpu_to_be64(ocfs2_pack_timespec(&inode->i_ctime));
-> > +		cpu_to_be64(ocfs2_pack_timespec(&ctime));
-> >  	lvb->lvb_imtime_packed =3D
-> >  		cpu_to_be64(ocfs2_pack_timespec(&inode->i_mtime));
-> >  	lvb->lvb_iattr    =3D cpu_to_be32(oi->ip_attr);
-> > @@ -2208,6 +2209,7 @@ static int ocfs2_refresh_inode_from_lvb(struct in=
-ode *inode)
-> >  	struct ocfs2_inode_info *oi =3D OCFS2_I(inode);
-> >  	struct ocfs2_lock_res *lockres =3D &oi->ip_inode_lockres;
-> >  	struct ocfs2_meta_lvb *lvb;
-> > +	struct timespec64 ctime;
-> > =20
-> >  	mlog_meta_lvb(0, lockres);
-> > =20
-> > @@ -2238,8 +2240,9 @@ static int ocfs2_refresh_inode_from_lvb(struct in=
-ode *inode)
-> >  			      be64_to_cpu(lvb->lvb_iatime_packed));
-> >  	ocfs2_unpack_timespec(&inode->i_mtime,
-> >  			      be64_to_cpu(lvb->lvb_imtime_packed));
-> > -	ocfs2_unpack_timespec(&inode->i_ctime,
-> > +	ocfs2_unpack_timespec(&ctime,
-> >  			      be64_to_cpu(lvb->lvb_ictime_packed));
-> > +	inode_set_ctime_to_ts(inode, ctime);
->=20
-> A quick glance, it seems not an equivalent replace.
->=20
-
-
-How so?
-
-The old code unpacked the time directly into the inode->i_ctime. The new
-one unpacks it into a local timespec64 variable and then sets the
-inode->i_ctime to that value. The result should still be the same.
-
-
-> >  	spin_unlock(&oi->ip_lock);
-> >  	return 0;
-> >  }
-> > diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-> > index 9e417cd4fd16..e8c78d16e815 100644
-> > --- a/fs/ocfs2/file.c
-> > +++ b/fs/ocfs2/file.c
-> > @@ -232,8 +232,10 @@ int ocfs2_should_update_atime(struct inode *inode,
-> >  		return 0;
-> > =20
-> >  	if (vfsmnt->mnt_flags & MNT_RELATIME) {
-> > +		struct timespec64 ctime =3D inode_get_ctime(inode);
-> > +
-> >  		if ((timespec64_compare(&inode->i_atime, &inode->i_mtime) <=3D 0) ||
-> > -		    (timespec64_compare(&inode->i_atime, &inode->i_ctime) <=3D 0))
-> > +		    (timespec64_compare(&inode->i_atime, &ctime) <=3D 0))
-> >  			return 1;
-> > =20
-> >  		return 0;
-> > @@ -294,7 +296,7 @@ int ocfs2_set_inode_size(handle_t *handle,
-> > =20
-> >  	i_size_write(inode, new_i_size);
-> >  	inode->i_blocks =3D ocfs2_inode_sector_count(inode);
-> > -	inode->i_ctime =3D inode->i_mtime =3D current_time(inode);
-> > +	inode->i_mtime =3D inode_set_ctime_current(inode);
-> > =20
-> >  	status =3D ocfs2_mark_inode_dirty(handle, inode, fe_bh);
-> >  	if (status < 0) {
-> > @@ -415,12 +417,12 @@ static int ocfs2_orphan_for_truncate(struct ocfs2=
-_super *osb,
-> >  	}
-> > =20
-> >  	i_size_write(inode, new_i_size);
-> > -	inode->i_ctime =3D inode->i_mtime =3D current_time(inode);
-> > +	inode->i_mtime =3D inode_set_ctime_current(inode);
-> > =20
-> >  	di =3D (struct ocfs2_dinode *) fe_bh->b_data;
-> >  	di->i_size =3D cpu_to_le64(new_i_size);
-> > -	di->i_ctime =3D di->i_mtime =3D cpu_to_le64(inode->i_ctime.tv_sec);
-> > -	di->i_ctime_nsec =3D di->i_mtime_nsec =3D cpu_to_le32(inode->i_ctime.=
-tv_nsec);
-> > +	di->i_ctime =3D di->i_mtime =3D cpu_to_le64(inode_get_ctime(inode).tv=
-_sec);
-> > +	di->i_ctime_nsec =3D di->i_mtime_nsec =3D cpu_to_le32(inode_get_ctime=
-(inode).tv_nsec);
-> >  	ocfs2_update_inode_fsync_trans(handle, inode, 0);
-> > =20
-> >  	ocfs2_journal_dirty(handle, fe_bh);
-> > @@ -819,7 +821,7 @@ static int ocfs2_write_zero_page(struct inode *inod=
-e, u64 abs_from,
-> >  	i_size_write(inode, abs_to);
-> >  	inode->i_blocks =3D ocfs2_inode_sector_count(inode);
-> >  	di->i_size =3D cpu_to_le64((u64)i_size_read(inode));
-> > -	inode->i_mtime =3D inode->i_ctime =3D current_time(inode);
-> > +	inode->i_mtime =3D inode_set_ctime_current(inode);
-> >  	di->i_mtime =3D di->i_ctime =3D cpu_to_le64(inode->i_mtime.tv_sec);
-> >  	di->i_ctime_nsec =3D cpu_to_le32(inode->i_mtime.tv_nsec);
-> >  	di->i_mtime_nsec =3D di->i_ctime_nsec;
-> > @@ -2038,7 +2040,7 @@ static int __ocfs2_change_file_space(struct file =
-*file, struct inode *inode,
-> >  		goto out_inode_unlock;
-> >  	}
-> > =20
-> > -	inode->i_ctime =3D inode->i_mtime =3D current_time(inode);
-> > +	inode->i_mtime =3D inode_set_ctime_current(inode);
-> >  	ret =3D ocfs2_mark_inode_dirty(handle, inode, di_bh);
-> >  	if (ret < 0)
-> >  		mlog_errno(ret);
-> > diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-> > index bb116c39b581..e8771600b930 100644
-> > --- a/fs/ocfs2/inode.c
-> > +++ b/fs/ocfs2/inode.c
-> > @@ -306,8 +306,8 @@ void ocfs2_populate_inode(struct inode *inode, stru=
-ct ocfs2_dinode *fe,
-> >  	inode->i_atime.tv_nsec =3D le32_to_cpu(fe->i_atime_nsec);
-> >  	inode->i_mtime.tv_sec =3D le64_to_cpu(fe->i_mtime);
-> >  	inode->i_mtime.tv_nsec =3D le32_to_cpu(fe->i_mtime_nsec);
-> > -	inode->i_ctime.tv_sec =3D le64_to_cpu(fe->i_ctime);
-> > -	inode->i_ctime.tv_nsec =3D le32_to_cpu(fe->i_ctime_nsec);
-> > +	inode_set_ctime(inode, le64_to_cpu(fe->i_ctime),
-> > +		        le32_to_cpu(fe->i_ctime_nsec));
-> > =20
-> >  	if (OCFS2_I(inode)->ip_blkno !=3D le64_to_cpu(fe->i_blkno))
-> >  		mlog(ML_ERROR,
-> > @@ -1314,8 +1314,8 @@ int ocfs2_mark_inode_dirty(handle_t *handle,
-> >  	fe->i_mode =3D cpu_to_le16(inode->i_mode);
-> >  	fe->i_atime =3D cpu_to_le64(inode->i_atime.tv_sec);
-> >  	fe->i_atime_nsec =3D cpu_to_le32(inode->i_atime.tv_nsec);
-> > -	fe->i_ctime =3D cpu_to_le64(inode->i_ctime.tv_sec);
-> > -	fe->i_ctime_nsec =3D cpu_to_le32(inode->i_ctime.tv_nsec);
-> > +	fe->i_ctime =3D cpu_to_le64(inode_get_ctime(inode).tv_sec);
-> > +	fe->i_ctime_nsec =3D cpu_to_le32(inode_get_ctime(inode).tv_nsec);
-> >  	fe->i_mtime =3D cpu_to_le64(inode->i_mtime.tv_sec);
-> >  	fe->i_mtime_nsec =3D cpu_to_le32(inode->i_mtime.tv_nsec);
-> > =20
-> > @@ -1352,8 +1352,8 @@ void ocfs2_refresh_inode(struct inode *inode,
-> >  	inode->i_atime.tv_nsec =3D le32_to_cpu(fe->i_atime_nsec);
-> >  	inode->i_mtime.tv_sec =3D le64_to_cpu(fe->i_mtime);
-> >  	inode->i_mtime.tv_nsec =3D le32_to_cpu(fe->i_mtime_nsec);
-> > -	inode->i_ctime.tv_sec =3D le64_to_cpu(fe->i_ctime);
-> > -	inode->i_ctime.tv_nsec =3D le32_to_cpu(fe->i_ctime_nsec);
-> > +	inode_set_ctime(inode, le64_to_cpu(fe->i_ctime),
-> > +			le32_to_cpu(fe->i_ctime_nsec));
-> > =20
-> >  	spin_unlock(&OCFS2_I(inode)->ip_lock);
-> >  }
-> > diff --git a/fs/ocfs2/move_extents.c b/fs/ocfs2/move_extents.c
-> > index b1e32ec4a9d4..05d67968a3a9 100644
-> > --- a/fs/ocfs2/move_extents.c
-> > +++ b/fs/ocfs2/move_extents.c
-> > @@ -950,9 +950,9 @@ static int ocfs2_move_extents(struct ocfs2_move_ext=
-ents_context *context)
-> >  	}
-> > =20
-> >  	di =3D (struct ocfs2_dinode *)di_bh->b_data;
-> > -	inode->i_ctime =3D current_time(inode);
-> > -	di->i_ctime =3D cpu_to_le64(inode->i_ctime.tv_sec);
-> > -	di->i_ctime_nsec =3D cpu_to_le32(inode->i_ctime.tv_nsec);
-> > +	inode_set_ctime_current(inode);
-> > +	di->i_ctime =3D cpu_to_le64(inode_get_ctime(inode).tv_sec);
-> > +	di->i_ctime_nsec =3D cpu_to_le32(inode_get_ctime(inode).tv_nsec);
-> >  	ocfs2_update_inode_fsync_trans(handle, inode, 0);
-> > =20
-> >  	ocfs2_journal_dirty(handle, di_bh);
-> > diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
-> > index 17c52225b87d..e4a684d45308 100644
-> > --- a/fs/ocfs2/namei.c
-> > +++ b/fs/ocfs2/namei.c
-> > @@ -793,10 +793,10 @@ static int ocfs2_link(struct dentry *old_dentry,
-> >  	}
-> > =20
-> >  	inc_nlink(inode);
-> > -	inode->i_ctime =3D current_time(inode);
-> > +	inode_set_ctime_current(inode);
-> >  	ocfs2_set_links_count(fe, inode->i_nlink);
-> > -	fe->i_ctime =3D cpu_to_le64(inode->i_ctime.tv_sec);
-> > -	fe->i_ctime_nsec =3D cpu_to_le32(inode->i_ctime.tv_nsec);
-> > +	fe->i_ctime =3D cpu_to_le64(inode_get_ctime(inode).tv_sec);
-> > +	fe->i_ctime_nsec =3D cpu_to_le32(inode_get_ctime(inode).tv_nsec);
-> >  	ocfs2_journal_dirty(handle, fe_bh);
-> > =20
-> >  	err =3D ocfs2_add_entry(handle, dentry, inode,
-> > @@ -995,7 +995,7 @@ static int ocfs2_unlink(struct inode *dir,
-> >  	ocfs2_set_links_count(fe, inode->i_nlink);
-> >  	ocfs2_journal_dirty(handle, fe_bh);
-> > =20
-> > -	dir->i_ctime =3D dir->i_mtime =3D current_time(dir);
-> > +	dir->i_mtime =3D inode_set_ctime_current(dir);
-> >  	if (S_ISDIR(inode->i_mode))
-> >  		drop_nlink(dir);
-> > =20
-> > @@ -1537,7 +1537,7 @@ static int ocfs2_rename(struct mnt_idmap *idmap,
-> >  					 new_dir_bh, &target_insert);
-> >  	}
-> > =20
-> > -	old_inode->i_ctime =3D current_time(old_inode);
-> > +	inode_set_ctime_current(old_inode);
-> >  	mark_inode_dirty(old_inode);
-> > =20
-> >  	status =3D ocfs2_journal_access_di(handle, INODE_CACHE(old_inode),
-> > @@ -1546,8 +1546,8 @@ static int ocfs2_rename(struct mnt_idmap *idmap,
-> >  	if (status >=3D 0) {
-> >  		old_di =3D (struct ocfs2_dinode *) old_inode_bh->b_data;
-> > =20
-> > -		old_di->i_ctime =3D cpu_to_le64(old_inode->i_ctime.tv_sec);
-> > -		old_di->i_ctime_nsec =3D cpu_to_le32(old_inode->i_ctime.tv_nsec);
-> > +		old_di->i_ctime =3D cpu_to_le64(inode_get_ctime(old_inode).tv_sec);
-> > +		old_di->i_ctime_nsec =3D cpu_to_le32(inode_get_ctime(old_inode).tv_n=
-sec);
-> >  		ocfs2_journal_dirty(handle, old_inode_bh);
-> >  	} else
-> >  		mlog_errno(status);
-> > @@ -1586,9 +1586,9 @@ static int ocfs2_rename(struct mnt_idmap *idmap,
-> > =20
-> >  	if (new_inode) {
-> >  		drop_nlink(new_inode);
-> > -		new_inode->i_ctime =3D current_time(new_inode);
-> > +		inode_set_ctime_current(new_inode);
-> >  	}
-> > -	old_dir->i_ctime =3D old_dir->i_mtime =3D current_time(old_dir);
-> > +	old_dir->i_mtime =3D inode_set_ctime_current(old_dir);
-> > =20
-> >  	if (update_dot_dot) {
-> >  		status =3D ocfs2_update_entry(old_inode, handle,
-> > @@ -1610,7 +1610,8 @@ static int ocfs2_rename(struct mnt_idmap *idmap,
-> > =20
-> >  	if (old_dir !=3D new_dir) {
-> >  		/* Keep the same times on both directories.*/
-> > -		new_dir->i_ctime =3D new_dir->i_mtime =3D old_dir->i_ctime;
-> > +		new_dir->i_mtime =3D inode_set_ctime_to_ts(new_dir,
-> > +							 inode_get_ctime(old_dir));
-> > =20
-> >  		/*
-> >  		 * This will also pick up the i_nlink change from the
-> > diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
-> > index 564ab48d03ef..25c8ec3c8c3a 100644
-> > --- a/fs/ocfs2/refcounttree.c
-> > +++ b/fs/ocfs2/refcounttree.c
-> > @@ -3750,9 +3750,9 @@ static int ocfs2_change_ctime(struct inode *inode=
+> > It's also hard to believe that any software would depend on this either=
 ,
-> >  		goto out_commit;
-> >  	}
-> > =20
-> > -	inode->i_ctime =3D current_time(inode);
-> > -	di->i_ctime =3D cpu_to_le64(inode->i_ctime.tv_sec);
-> > -	di->i_ctime_nsec =3D cpu_to_le32(inode->i_ctime.tv_nsec);
-> > +	inode_set_ctime_current(inode);
-> > +	di->i_ctime =3D cpu_to_le64(inode_get_ctime(inode).tv_sec);
-> > +	di->i_ctime_nsec =3D cpu_to_le32(inode_get_ctime(inode).tv_nsec);
-> > =20
-> >  	ocfs2_journal_dirty(handle, di_bh);
-> > =20
-> > @@ -4073,10 +4073,10 @@ static int ocfs2_complete_reflink(struct inode =
-*s_inode,
-> >  		 * we want mtime to appear identical to the source and
-> >  		 * update ctime.
-> >  		 */
-> > -		t_inode->i_ctime =3D current_time(t_inode);
-> > +		inode_set_ctime_current(t_inode);
-> > =20
-> > -		di->i_ctime =3D cpu_to_le64(t_inode->i_ctime.tv_sec);
-> > -		di->i_ctime_nsec =3D cpu_to_le32(t_inode->i_ctime.tv_nsec);
-> > +		di->i_ctime =3D cpu_to_le64(inode_get_ctime(t_inode).tv_sec);
-> > +		di->i_ctime_nsec =3D cpu_to_le32(inode_get_ctime(t_inode).tv_nsec);
-> > =20
-> >  		t_inode->i_mtime =3D s_inode->i_mtime;
-> >  		di->i_mtime =3D s_di->i_mtime;
-> > @@ -4456,7 +4456,7 @@ int ocfs2_reflink_update_dest(struct inode *dest,
-> >  	if (newlen > i_size_read(dest))
-> >  		i_size_write(dest, newlen);
-> >  	spin_unlock(&OCFS2_I(dest)->ip_lock);
-> > -	dest->i_ctime =3D dest->i_mtime =3D current_time(dest);
-> > +	dest->i_mtime =3D inode_set_ctime_current(dest);
-> > =20
-> >  	ret =3D ocfs2_mark_inode_dirty(handle, dest, d_bh);
-> >  	if (ret) {
-> > diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-> > index 4ac77ff6e676..6510ad783c91 100644
-> > --- a/fs/ocfs2/xattr.c
-> > +++ b/fs/ocfs2/xattr.c
-> > @@ -3421,9 +3421,9 @@ static int __ocfs2_xattr_set_handle(struct inode =
-*inode,
-> >  			goto out;
-> >  		}
-> > =20
-> > -		inode->i_ctime =3D current_time(inode);
-> > -		di->i_ctime =3D cpu_to_le64(inode->i_ctime.tv_sec);
-> > -		di->i_ctime_nsec =3D cpu_to_le32(inode->i_ctime.tv_nsec);
-> > +		inode_set_ctime_current(inode);
-> > +		di->i_ctime =3D cpu_to_le64(inode_get_ctime(inode).tv_sec);
-> > +		di->i_ctime_nsec =3D cpu_to_le32(inode_get_ctime(inode).tv_nsec);
-> >  		ocfs2_journal_dirty(ctxt->handle, xis->inode_bh);
-> >  	}
-> >  out:
+> > given that it's very inconsistent across filesystems today. AFAICT, thi=
+s
+> > was mostly done in the past just as a matter of convenience.
+>=20
+> I've seen this assumption in several programs:
+>=20
 
+Thanks for looking into this!
+
+To be clear, POSIX doesn't require that _different_ inodes ever be set
+to the same timestamp value. IOW, it certainly doesn't require that the
+source and target directories on a rename() end up with the exact same
+timestamp value.
+
+Granted, POSIX is rather vague on timestamps in general, but most of the
+examples below involve comparing different timestamps on the _same_
+inode.
+
+
+> mutt buffy.c
+> https://sources.debian.org/src/mutt/2.2.9-1/buffy.c/?hl=3D625#L625
+>=20
+>   if (mailbox->newly_created &&
+>       (sb->st_ctime !=3D sb->st_mtime || sb->st_ctime !=3D sb->st_atime))
+>     mailbox->newly_created =3D 0;
+>=20
+
+This should be fine with this patchset. Note that this is comparing
+a/c/mtime on the same inode, and our usual pattern on inode
+instantiation is:
+
+    inode->i_atime =3D inode->i_mtime =3D inode_set_ctime_current(inode);
+
+...which should result in all of inode's timestamps being synchronized.
+
+>=20
+> neomutt mbox/mbox.c
+> https://sources.debian.org/src/neomutt/20220429+dfsg1-4.1/mbox/mbox.c/?hl=
+=3D1820#L1820
+>=20
+>   if (m->newly_created && ((st.st_ctime !=3D st.st_mtime) || (st.st_ctime=
+ !=3D st.st_atime)))
+>     m->newly_created =3D false;
+>=20
+
+Ditto here.
+
+>=20
+> screen logfile.c
+> https://sources.debian.org/src/screen/4.9.0-4/logfile.c/?hl=3D130#L130
+>=20
+>   if ((!s->st_dev && !s->st_ino) ||             /* stat failed, that's ne=
+w! */
+>       !s->st_nlink ||                           /* red alert: file unlink=
+ed */
+>       (s->st_size < o.st_size) ||               /*           file truncat=
+ed */
+>       (s->st_mtime !=3D o.st_mtime) ||            /*            file modi=
+fied */
+>       ((s->st_ctime !=3D o.st_ctime) &&           /*     file changed (mo=
+ved) */
+>        !(s->st_mtime =3D=3D s->st_ctime &&          /*  and it was not a =
+change */
+>          o.st_ctime < s->st_ctime)))            /* due to delayed nfs wri=
+te */
+>   {
+>=20
+
+This one is really weird. You have two different struct stat's, "o" and
+"s". I assume though that these should be stat values from the same
+inode, because otherwise this comparison would make no sense:
+
+      ((s->st_ctime !=3D o.st_ctime) &&           /*     file changed (move=
+d) */
+
+In general, we can never contrive to ensure that the ctime of two
+different inodes are the same, since that is always set by the kernel to
+the current time, and you'd have to ensure that they were created within
+the same jiffy (at least with today's code).
+
+> nemo libnemo-private/nemo-vfs-file.c
+> https://sources.debian.org/src/nemo/5.6.5-1/libnemo-private/nemo-vfs-file=
+.c/?hl=3D344#L344
+>=20
+> 		/* mtime is when the contents changed; ctime is when the
+> 		 * contents or the permissions (inc. owner/group) changed.
+> 		 * So we can only know when the permissions changed if mtime
+> 		 * and ctime are different.
+> 		 */
+> 		if (file->details->mtime =3D=3D file->details->ctime) {
+> 			return FALSE;
+> 		}
+>=20
+
+Ditto here with the first examples. This involves comparing timestamps
+on the same inode, which should be fine.
+
+>=20
+> While looking for more examples, I found a perl test that seems to sugges=
+t
+> that at least Solaris, AFS, AmigaOS, DragonFly BSD do as you suggest:
+> https://sources.debian.org/src/perl/5.36.0-7/t/op/stat.t/?hl=3D158#L140
+>=20
+
+(I kinda miss Perl. I wrote a bunch of stuff in it in the 90's and early
+naughties)
+
+I think this test is supposed to be testing whether the mtime changes on
+link() ?
+
+-----------------8<----------------
+    my($nlink, $mtime, $ctime) =3D (stat($tmpfile))[$NLINK, $MTIME, $CTIME]=
+;
+
+[...]
+
+
+        skip "Solaris tmpfs has different mtime/ctime link semantics", 2
+                                     if $Is_Solaris and $cwd =3D~ m#^/tmp# =
+and
+                                        $mtime && $mtime =3D=3D $ctime;
+-----------------8<----------------
+
+...again, I think this would be ok too since it's just comparing the
+mtime and ctime of the same inode. Granted this is a Solaris-specific
+test, but Linux would be fine here too.
+
+So in conclusion, I don't think this patchset will cause problems with
+any of the above code.
 --=20
 Jeff Layton <jlayton@kernel.org>
