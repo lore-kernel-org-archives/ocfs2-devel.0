@@ -1,102 +1,80 @@
-Received: from mail-oa1-f50.google.com (mail-oa1-f50.google.com [209.85.160.50])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.129.124])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 99EFC111F
-	for <ocfs2-devel@lists.linux.dev>; Mon, 17 Jul 2023 02:16:27 +0000 (UTC)
-Received: by mail-oa1-f50.google.com with SMTP id 586e51a60fabf-1b078b34df5so3139768fac.2
-        for <ocfs2-devel@lists.linux.dev>; Sun, 16 Jul 2023 19:16:27 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20221208; t=1689560186; x=1692152186;
-        h=content-transfer-encoding:in-reply-to:from:references:cc:to
-         :content-language:subject:user-agent:mime-version:date:message-id
-         :from:to:cc:subject:date:message-id:reply-to;
-        bh=WpGf5HYw9iKxlGO7qMoHuSA9bt9rfkxLjUFs6ASrldQ=;
-        b=LR929nXo4qtXXlI7WwYmVDMgChuMI6exRIEj0PesNYcMn1NFfDD6iCWwXT6w2D28YD
-         en23QUKKtzl62AU5cJumUxAqV6D3H99rtsspTXsRjxTUqbb+eiaYkVBkufR0gC+kBwOJ
-         ABC9EFze5Npd9BzQHXVSKZEygKQ8Ffk+NKlRcwNjTuDTx/IgkJ98PJYyXrQSEcGcILjq
-         5rN75sk6owTcwmGyppIm0g4rQpTXEsCbMGlSsz3bf1Wle7a3ulKfa2ImbypoygWSGhR/
-         lseN12o02oaHbF1kcpTy8X78F/D/HOjwM59DXIB/kJdlK0kgEMMzmpZx6PjSORIEI+M+
-         9jtw==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20221208; t=1689560186; x=1692152186;
-        h=content-transfer-encoding:in-reply-to:from:references:cc:to
-         :content-language:subject:user-agent:mime-version:date:message-id
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
-        bh=WpGf5HYw9iKxlGO7qMoHuSA9bt9rfkxLjUFs6ASrldQ=;
-        b=YlCjLmm5OtYFrX64zmJstnKpdQsJx0JuVY4Z9kf223lqu4HTnfTA3W79aMp8Bq579+
-         fBAdkfgvA8siniN2eFejeB0W6fttlrYr9+0mFlipkJ3eMVLcuj/9+Q8gl6x1hMyHhUId
-         eUL309o2SQt2vyV11reRGrPo0Hy+t3+bZggQ06hxDA5xApYoH7cwMZtltN2WMm2PKwXb
-         jxE7DLJv/zh7tCIKhjMpEex6x7wT88UO+tKqm61pir3Zis81lEszlYh++NYIaXSgs8l2
-         veThTFgXGH3hvRgmNrV7CXfHGWWvL2MVep1MGfOs0N+tb+tEyloCEfj6YiEKCwwRCuLP
-         7gyA==
-X-Gm-Message-State: ABy/qLacimSJ+rdXYAM1mk/adhh0H3JoxiYEV40WFQK7nzFJn7IKew8e
-	BI/m4sO0KJL+GFW3+fWuSmI=
-X-Google-Smtp-Source: APBJJlHa75/Z4Ab3wZ55y3ctWJqOisimCDZMZgJ76Ts3Z73cK4whcM9dva6ocPnKgq/ntXb5bWN4dw==
-X-Received: by 2002:a05:6870:569e:b0:1b7:2edd:df6d with SMTP id p30-20020a056870569e00b001b72edddf6dmr11123599oao.10.1689560186431;
-        Sun, 16 Jul 2023 19:16:26 -0700 (PDT)
-Received: from [30.221.131.241] ([47.246.101.49])
-        by smtp.gmail.com with ESMTPSA id d2-20020a170902aa8200b001ac40488620sm11513510plr.92.2023.07.16.19.16.24
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Sun, 16 Jul 2023 19:16:25 -0700 (PDT)
-Message-ID: <00b0a06a-b220-9176-5046-cd6068bf22fd@gmail.com>
-Date: Mon, 17 Jul 2023 10:16:23 +0800
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4A21A16403
+	for <ocfs2-devel@lists.linux.dev>; Tue, 18 Jul 2023 18:07:33 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
+	s=mimecast20190719; t=1689703652;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+	 content-transfer-encoding:content-transfer-encoding:
+	 in-reply-to:in-reply-to:references:references;
+	bh=MtKFy5OXgVICH4eSzUBHyPH3TdnYIlEk7+UESLNSAuI=;
+	b=AqIyTDmO4IEjRbgFv8jki6TVJswWWdJPW2dNV0teecMb/s2f827zPtwMzK1GgmKIcCEaYF
+	0ZQXYXSVq/claCOHpIQhTyR6c+q69oJNazAah8yrOs5GAW1oBSCTIPl5hEq0Z5O4eScgm5
+	KGgidxBKBd9qicdDCVRzol8y65SE3eI=
+Received: from mimecast-mx02.redhat.com (mimecast-mx02.redhat.com
+ [66.187.233.88]) by relay.mimecast.com with ESMTP with STARTTLS
+ (version=TLSv1.2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id
+ us-mta-97-S_0m5qisOG-nAvn7PTtuLg-1; Tue, 18 Jul 2023 14:07:30 -0400
+X-MC-Unique: S_0m5qisOG-nAvn7PTtuLg-1
+Received: from smtp.corp.redhat.com (int-mx04.intmail.prod.int.rdu2.redhat.com [10.11.54.4])
+	(using TLSv1.2 with cipher AECDH-AES256-SHA (256/256 bits))
+	(No client certificate requested)
+	by mimecast-mx02.redhat.com (Postfix) with ESMTPS id 6B1E010113C1;
+	Tue, 18 Jul 2023 18:07:29 +0000 (UTC)
+Received: from fs-i40c-03.fs.lab.eng.bos.redhat.com (fs-i40c-03.fs.lab.eng.bos.redhat.com [10.16.224.23])
+	by smtp.corp.redhat.com (Postfix) with ESMTP id 2DA64200BA8B;
+	Tue, 18 Jul 2023 18:07:29 +0000 (UTC)
+From: Alexander Aring <aahringo@redhat.com>
+To: teigland@redhat.com
+Cc: cluster-devel@redhat.com,
+	aahringo@redhat.com,
+	agruenba@redhat.com,
+	mark@fasheh.com,
+	jlbec@evilplan.org,
+	joseph.qi@linux.alibaba.com,
+	ocfs2-devel@lists.linux.dev
+Subject: [PATCHv3 v6.5-rc2 1/3] fs: dlm: remove twice newline
+Date: Tue, 18 Jul 2023 14:07:19 -0400
+Message-Id: <20230718180721.745569-2-aahringo@redhat.com>
+In-Reply-To: <20230718180721.745569-1-aahringo@redhat.com>
+References: <20230718180721.745569-1-aahringo@redhat.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:102.0)
- Gecko/20100101 Thunderbird/102.13.0
-Subject: Re: [PATCH 2/2] ocfs2: Use struct_size()
-Content-Language: en-US
-To: Christophe JAILLET <christophe.jaillet@wanadoo.fr>,
- Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
- akpm <akpm@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, kernel-janitors@vger.kernel.org,
- ocfs2-devel@lists.linux.dev, Joseph Qi <joseph.qi@linux.alibaba.com>
-References: <c645911ffd2720fce5e344c17de642518cd0db52.1689533270.git.christophe.jaillet@wanadoo.fr>
- <9d99ea2090739f816d0dc0c4ebaa42b26fc48a9e.1689533270.git.christophe.jaillet@wanadoo.fr>
-From: Joseph Qi <jiangqi903@gmail.com>
-In-Reply-To: <9d99ea2090739f816d0dc0c4ebaa42b26fc48a9e.1689533270.git.christophe.jaillet@wanadoo.fr>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+X-Scanned-By: MIMEDefang 3.1 on 10.11.54.4
+X-Mimecast-Spam-Score: 0
+X-Mimecast-Originator: redhat.com
+Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset="US-ASCII"; x-default=true
 
+This patch removes a newline which log_print() already adds, also
+removes wrapped string that causes a checkpatch warning.
 
+Signed-off-by: Alexander Aring <aahringo@redhat.com>
+---
+ fs/dlm/plock.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-On 7/17/23 2:48 AM, Christophe JAILLET wrote:
-> Use struct_size() instead of hand-writing it, when allocating a structure
-> with a flex array.
-> 
-> This is less verbose.
-> 
-> Signed-off-by: Christophe JAILLET <christophe.jaillet@wanadoo.fr>
+diff --git a/fs/dlm/plock.c b/fs/dlm/plock.c
+index 70a4752ed913..a34f605d8505 100644
+--- a/fs/dlm/plock.c
++++ b/fs/dlm/plock.c
+@@ -240,8 +240,8 @@ static int dlm_plock_callback(struct plock_op *op)
+ 	rv = notify(fl, 0);
+ 	if (rv) {
+ 		/* XXX: We need to cancel the fs lock here: */
+-		log_print("dlm_plock_callback: lock granted after lock request "
+-			  "failed; dangling lock!\n");
++		log_print("%s: lock granted after lock request failed; dangling lock!",
++			  __func__);
+ 		goto out;
+ 	}
+ 
+-- 
+2.31.1
 
-Looks fine.
-Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-
-> ---
-> It will also be helpful if the __counted_by() annotation is added with a
-> Coccinelle script such as:
->    https://git.kernel.org/pub/scm/linux/kernel/git/kees/linux.git/commit/?h=devel/counted_by&id=adc5b3cb48a049563dc673f348eab7b6beba8a9b
-> ---
->  fs/ocfs2/journal.c | 6 +++---
->  1 file changed, 3 insertions(+), 3 deletions(-)
-> 
-> diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
-> index 2f7e70109020..4e779efe2a4e 100644
-> --- a/fs/ocfs2/journal.c
-> +++ b/fs/ocfs2/journal.c
-> @@ -114,9 +114,9 @@ int ocfs2_compute_replay_slots(struct ocfs2_super *osb)
->  	if (osb->replay_map)
->  		return 0;
->  
-> -	replay_map = kzalloc(sizeof(struct ocfs2_replay_map) +
-> -			     (osb->max_slots * sizeof(char)), GFP_KERNEL);
-> -
-> +	replay_map = kzalloc(struct_size(replay_map, rm_replay_slots,
-> +					 osb->max_slots),
-> +			     GFP_KERNEL);
->  	if (!replay_map) {
->  		mlog_errno(-ENOMEM);
->  		return -ENOMEM;
