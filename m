@@ -1,46 +1,46 @@
-Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.129.124])
+Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.133.124])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8864D275D6
-	for <ocfs2-devel@lists.linux.dev>; Wed, 19 Jul 2023 18:33:35 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 579921F92E
+	for <ocfs2-devel@lists.linux.dev>; Tue, 25 Jul 2023 14:26:40 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
-	s=mimecast20190719; t=1689791614;
+	s=mimecast20190719; t=1690295199;
 	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
 	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
 	 content-transfer-encoding:content-transfer-encoding:
 	 in-reply-to:in-reply-to:references:references;
-	bh=ur/7tY9x/tRgeuGcTOKDecGX+pLOZx869sm+6cI/oO4=;
-	b=FU8YZXtEZlcxlDEnbk+QA7fyzHsO4Ukjyd2ea5rI9MFfvC2DJInugPi1at1AiFa8/ON1WW
-	0zpHotCRlxZikfIY199CweC4XoPLjlaOr1FpadtEgw7AKFqn6csSsHJBVOsiuEQXJBN8da
-	zT/oSsqAbKTi4zW4pKPRHBImoRe7DNA=
-Received: from mail-yw1-f198.google.com (mail-yw1-f198.google.com
- [209.85.128.198]) by relay.mimecast.com with ESMTP with STARTTLS
+	bh=ZUJ4r2aY+x3CleDJbX/AV/N0fMSOwi5/571RR8N6LrY=;
+	b=fOn1uLrtTsrCCuzYy1d7RZm/hKWpnayHcsWBU0jVQUb7ArZiriPP1UCon5nhsesa2OyAG1
+	dSppyvzlR87NJc4x4rVG6DjDtsuh1sSMZuutEdEBJH1IQx1ViivqVrxNAkifwDG/xf20o9
+	0a/vXTbNmJmWhKjx2gpRToeNTTU+tfI=
+Received: from mail-yw1-f200.google.com (mail-yw1-f200.google.com
+ [209.85.128.200]) by relay.mimecast.com with ESMTP with STARTTLS
  (version=TLSv1.3, cipher=TLS_AES_256_GCM_SHA384) id
- us-mta-131-1xlCr9zXMaCO_ebqX67hVA-1; Wed, 19 Jul 2023 14:33:33 -0400
-X-MC-Unique: 1xlCr9zXMaCO_ebqX67hVA-1
-Received: by mail-yw1-f198.google.com with SMTP id 00721157ae682-56ff81be091so337057b3.0
-        for <ocfs2-devel@lists.linux.dev>; Wed, 19 Jul 2023 11:33:33 -0700 (PDT)
+ us-mta-380-g3pEj2xCNx6VpuO_FczPwg-1; Tue, 25 Jul 2023 10:26:36 -0400
+X-MC-Unique: g3pEj2xCNx6VpuO_FczPwg-1
+Received: by mail-yw1-f200.google.com with SMTP id 00721157ae682-583d1d0de65so37964527b3.0
+        for <ocfs2-devel@lists.linux.dev>; Tue, 25 Jul 2023 07:26:35 -0700 (PDT)
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20221208; t=1689791613; x=1692383613;
+        d=1e100.net; s=20221208; t=1690295195; x=1690899995;
         h=content-transfer-encoding:cc:to:subject:message-id:date:from
          :in-reply-to:references:mime-version:x-gm-message-state:from:to:cc
          :subject:date:message-id:reply-to;
-        bh=ur/7tY9x/tRgeuGcTOKDecGX+pLOZx869sm+6cI/oO4=;
-        b=jqGWqO28ca7LHlsjAxsE+D3+Gn59+gNi9aSjAARAulE1Yo2EDJ5+QmnxBBRFOAekAq
-         oSyQlgS2oQ8/z8qHcpm+bP4uozoUioUrUYY2Afm9QoK8/cjtBV0YysAxQKNW4hHKec/O
-         P4Vav1SbkVpPJCSi4ml7Qhnmm3lpsppG9zty/ApK7aHRgC+cxmn/Z6PLCvHY54qSU5EE
-         aCikpUFt0veQ7rlGLM2Z65ZcQIgV3EdaL8c0Hx7k1xW2IzqacPP0UcfwOL6nUsMmBh+U
-         hO9aO5bo0SXvrOKpLF3RMnAKTObJAsKrrXmkE8RXSb0P8Dko6znVqCXjuqRdnFgnQOE3
-         qYfw==
-X-Gm-Message-State: ABy/qLafgCMpgSGpxliXcqKBa3uxNeA5pxYUxHXyQ/+1DkhlPAALwcjd
-	1XbfGoWa2+BJxLigwmkHq5yGodY1SLiUhD0tQBy/KzZUlHiOUFzZJgcHMTk67mCABwKcvFK1G91
-	+n3k7xV6nsmE+4EDSvE5nm0ut9OT1j4aAGHglbHw=
-X-Received: by 2002:a81:92d3:0:b0:581:2887:22be with SMTP id j202-20020a8192d3000000b00581288722bemr21774100ywg.37.1689791612865;
-        Wed, 19 Jul 2023 11:33:32 -0700 (PDT)
-X-Google-Smtp-Source: APBJJlGBzan3MF717TbeJevLQRirLTiedRen/Yjq7rPm4PF2/R07POBpIIAQkupe9F5A+x6nP2ha/T8mDGhgyrdBxNM=
-X-Received: by 2002:a81:92d3:0:b0:581:2887:22be with SMTP id
- j202-20020a8192d3000000b00581288722bemr21774082ywg.37.1689791612580; Wed, 19
- Jul 2023 11:33:32 -0700 (PDT)
+        bh=ZUJ4r2aY+x3CleDJbX/AV/N0fMSOwi5/571RR8N6LrY=;
+        b=jaShVHFQI3AC4oFHj2l2vbBIpRVjSiHBzy0itaFfhDhv/+qq5o9NOjIr2fkuuNpHUE
+         okU8j276gBAQc0RPOxbwHKVLtULsXcX/PxceT/KeUUZXHjX8bad0ciqqcLLGtzURCArg
+         Th0jlbnzyiqk7f05x0eILUkjscurTedS4xiyFsXNKPabs4KmSfRbERCyb1HtXvCwtDQN
+         K7A+JgU4PtLwEe0sLFG1aqJQ+/98pyJTpz/Qawvv/vCrzCEkfUMK38Awt624ZZxcz5PQ
+         HvTBJBZEYIEaTbnc4Wa+HdUo8T9hHGCmfW1fZSjteW/h2Vvb9zStf3kultEoClMjZ+oN
+         FJ9A==
+X-Gm-Message-State: ABy/qLZCQAUWKg5HETZLfT4g1YvH0R59PXA1aMThtRQPCFlzvT7lMcOw
+	sDbxk63ULHbp2QFnnPxOD52+9gSo2qZ86DhJX/AcHkmTDuk9JnH0VmU9FcGykAB2L9B48I2EVQs
+	QZxnGKoump+YhOdyUer5bQLC5XxA/DhJk/sn5pWk=
+X-Received: by 2002:a0d:ca0e:0:b0:577:4975:c114 with SMTP id m14-20020a0dca0e000000b005774975c114mr9669220ywd.0.1690295195301;
+        Tue, 25 Jul 2023 07:26:35 -0700 (PDT)
+X-Google-Smtp-Source: APBJJlE9UQpxq1fveOaxD31SoTyFiUUMp4sUQ52JsLcD5Jz+oFaONTwQ/ahNSrQ+l7hC+lie+j/6Tk+Nu2tfxvLqH8g=
+X-Received: by 2002:a0d:ca0e:0:b0:577:4975:c114 with SMTP id
+ m14-20020a0dca0e000000b005774975c114mr9669202ywd.0.1690295195091; Tue, 25 Jul
+ 2023 07:26:35 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -50,8 +50,8 @@ MIME-Version: 1.0
 References: <20230718180721.745569-1-aahringo@redhat.com> <20230718180721.745569-4-aahringo@redhat.com>
 In-Reply-To: <20230718180721.745569-4-aahringo@redhat.com>
 From: Alexander Aring <aahringo@redhat.com>
-Date: Wed, 19 Jul 2023 14:33:21 -0400
-Message-ID: <CAK-6q+j10uosheJ=jeU9R7p2kV1niAoMhPOkc7HMtNgkp2e2XQ@mail.gmail.com>
+Date: Tue, 25 Jul 2023 10:26:23 -0400
+Message-ID: <CAK-6q+hOv6qEnStcWD6_OCZH9XO_m+Dh-2KX5rYaXbuNOgp6gw@mail.gmail.com>
 Subject: Re: [PATCHv3 v6.5-rc2 3/3] fs: dlm: fix F_CANCELLK to cancel pending request
 To: teigland@redhat.com
 Cc: cluster-devel@redhat.com, agruenba@redhat.com, mark@fasheh.com, 
@@ -153,12 +153,28 @@ g
 > +       if (!ls)
 > +               return -EINVAL;
 > +
+> +       info.pid =3D fl->fl_pid;
+> +       info.ex =3D (fl->fl_type =3D=3D F_WRLCK);
+> +       info.fsid =3D ls->ls_global_id;
+> +       dlm_put_lockspace(ls);
+> +       info.number =3D number;
+> +       info.start =3D fl->fl_start;
+> +       info.end =3D fl->fl_end;
+> +       info.owner =3D (__u64)fl->fl_pid;
+> +
+> +       rv =3D do_lock_cancel(&info);
+> +       switch (rv) {
+> +       case 0:
+> +               spin_lock(&ops_lock);
+> +               /* lock request to cancel must be on recv_list because
+> +                * do_lock_cancel() synchronizes it.
+> +                */
+> +               op =3D plock_lookup_waiter(&info);
+> +               if (WARN_ON_ONCE(!op)) {
+> +                       rv =3D -ENOLCK;
+> +                       break;
 
-here is a:
-
-memset(&info, 0, sizeof(info));
-
-missing.
+missing spin_unlock() here. I will add it to my upcoming patch series.
 
 - Alex
 
