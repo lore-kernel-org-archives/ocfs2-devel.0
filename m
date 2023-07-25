@@ -1,180 +1,210 @@
-Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.133.124])
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 579921F92E
-	for <ocfs2-devel@lists.linux.dev>; Tue, 25 Jul 2023 14:26:40 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
-	s=mimecast20190719; t=1690295199;
-	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-	 content-transfer-encoding:content-transfer-encoding:
-	 in-reply-to:in-reply-to:references:references;
-	bh=ZUJ4r2aY+x3CleDJbX/AV/N0fMSOwi5/571RR8N6LrY=;
-	b=fOn1uLrtTsrCCuzYy1d7RZm/hKWpnayHcsWBU0jVQUb7ArZiriPP1UCon5nhsesa2OyAG1
-	dSppyvzlR87NJc4x4rVG6DjDtsuh1sSMZuutEdEBJH1IQx1ViivqVrxNAkifwDG/xf20o9
-	0a/vXTbNmJmWhKjx2gpRToeNTTU+tfI=
-Received: from mail-yw1-f200.google.com (mail-yw1-f200.google.com
- [209.85.128.200]) by relay.mimecast.com with ESMTP with STARTTLS
- (version=TLSv1.3, cipher=TLS_AES_256_GCM_SHA384) id
- us-mta-380-g3pEj2xCNx6VpuO_FczPwg-1; Tue, 25 Jul 2023 10:26:36 -0400
-X-MC-Unique: g3pEj2xCNx6VpuO_FczPwg-1
-Received: by mail-yw1-f200.google.com with SMTP id 00721157ae682-583d1d0de65so37964527b3.0
-        for <ocfs2-devel@lists.linux.dev>; Tue, 25 Jul 2023 07:26:35 -0700 (PDT)
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20221208; t=1690295195; x=1690899995;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:x-gm-message-state:from:to:cc
-         :subject:date:message-id:reply-to;
-        bh=ZUJ4r2aY+x3CleDJbX/AV/N0fMSOwi5/571RR8N6LrY=;
-        b=jaShVHFQI3AC4oFHj2l2vbBIpRVjSiHBzy0itaFfhDhv/+qq5o9NOjIr2fkuuNpHUE
-         okU8j276gBAQc0RPOxbwHKVLtULsXcX/PxceT/KeUUZXHjX8bad0ciqqcLLGtzURCArg
-         Th0jlbnzyiqk7f05x0eILUkjscurTedS4xiyFsXNKPabs4KmSfRbERCyb1HtXvCwtDQN
-         K7A+JgU4PtLwEe0sLFG1aqJQ+/98pyJTpz/Qawvv/vCrzCEkfUMK38Awt624ZZxcz5PQ
-         HvTBJBZEYIEaTbnc4Wa+HdUo8T9hHGCmfW1fZSjteW/h2Vvb9zStf3kultEoClMjZ+oN
-         FJ9A==
-X-Gm-Message-State: ABy/qLZCQAUWKg5HETZLfT4g1YvH0R59PXA1aMThtRQPCFlzvT7lMcOw
-	sDbxk63ULHbp2QFnnPxOD52+9gSo2qZ86DhJX/AcHkmTDuk9JnH0VmU9FcGykAB2L9B48I2EVQs
-	QZxnGKoump+YhOdyUer5bQLC5XxA/DhJk/sn5pWk=
-X-Received: by 2002:a0d:ca0e:0:b0:577:4975:c114 with SMTP id m14-20020a0dca0e000000b005774975c114mr9669220ywd.0.1690295195301;
-        Tue, 25 Jul 2023 07:26:35 -0700 (PDT)
-X-Google-Smtp-Source: APBJJlE9UQpxq1fveOaxD31SoTyFiUUMp4sUQ52JsLcD5Jz+oFaONTwQ/ahNSrQ+l7hC+lie+j/6Tk+Nu2tfxvLqH8g=
-X-Received: by 2002:a0d:ca0e:0:b0:577:4975:c114 with SMTP id
- m14-20020a0dca0e000000b005774975c114mr9669202ywd.0.1690295195091; Tue, 25 Jul
- 2023 07:26:35 -0700 (PDT)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5FFA61F17C;
+	Tue, 25 Jul 2023 14:58:51 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 9C1AFC433C7;
+	Tue, 25 Jul 2023 14:58:44 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=k20201202; t=1690297130;
+	bh=kJmXJEYOHolov3dHsrtrgrStBu4dP1/spGmtmesqCM4=;
+	h=From:Subject:Date:To:Cc:From;
+	b=tew70jtU4OJWY1VbyooHq/A2VejA7/kDYVzXCKKk0H55cxVTHNA5fhMx/XsjUHQdE
+	 k5N+TCbrt7BP6IVsZV/kGZrQ02GB42Vzuf0A/KFgIUnPd4ROGpWY2ZHkqKjdfticNu
+	 OMaM7K65I6mQEbZGCqcmN0tUAgZUl/rzmSoYBUrwJChy9IKciiWQK4nWbSqxwsObTI
+	 WPQKI9eXf8A84+Mo2pDjNDrS2sLAG7LjBgXOQD6AC8ZVS0weRNDBcGZHDJasTY4XM+
+	 XZNGcH/BVwcKp56pkarr6oFqhSjNamDWitCJbkz8MEmn3MzaR1dixLan1haVIWlNtj
+	 Ymp6wr5QNgrPg==
+From: Jeff Layton <jlayton@kernel.org>
+Subject: [PATCH v6 0/7] fs: implement multigrain timestamps
+Date: Tue, 25 Jul 2023 10:58:13 -0400
+Message-Id: <20230725-mgctime-v6-0-a794c2b7abca@kernel.org>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-References: <20230718180721.745569-1-aahringo@redhat.com> <20230718180721.745569-4-aahringo@redhat.com>
-In-Reply-To: <20230718180721.745569-4-aahringo@redhat.com>
-From: Alexander Aring <aahringo@redhat.com>
-Date: Tue, 25 Jul 2023 10:26:23 -0400
-Message-ID: <CAK-6q+hOv6qEnStcWD6_OCZH9XO_m+Dh-2KX5rYaXbuNOgp6gw@mail.gmail.com>
-Subject: Re: [PATCHv3 v6.5-rc2 3/3] fs: dlm: fix F_CANCELLK to cancel pending request
-To: teigland@redhat.com
-Cc: cluster-devel@redhat.com, agruenba@redhat.com, mark@fasheh.com, 
-	jlbec@evilplan.org, joseph.qi@linux.alibaba.com, ocfs2-devel@lists.linux.dev
-X-Mimecast-Spam-Score: 0
-X-Mimecast-Originator: redhat.com
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+X-B4-Tracking: v=1; b=H4sIAAbjv2QC/6tWKk4tykwtVrJSqFYqSi3LLM7MzwNyzHQUlJIzE
+ vPSU3UzU4B8JSMDI2MDc0Nj3dz05JLM3FTdNKNEy7RkYyMTS0MLJaDqgqLUtMwKsEnRsbW1AIV
+ mFAhZAAAA
+To: Eric Van Hensbergen <ericvh@kernel.org>, 
+ Latchesar Ionkov <lucho@ionkov.net>, 
+ Dominique Martinet <asmadeus@codewreck.org>, 
+ Christian Schoenebeck <linux_oss@crudebyte.com>, 
+ David Howells <dhowells@redhat.com>, Marc Dionne <marc.dionne@auristor.com>, 
+ Chris Mason <clm@fb.com>, Josef Bacik <josef@toxicpanda.com>, 
+ David Sterba <dsterba@suse.com>, Xiubo Li <xiubli@redhat.com>, 
+ Ilya Dryomov <idryomov@gmail.com>, Jan Harkes <jaharkes@cs.cmu.edu>, 
+ coda@cs.cmu.edu, Tyler Hicks <code@tyhicks.com>, 
+ Gao Xiang <xiang@kernel.org>, Chao Yu <chao@kernel.org>, 
+ Yue Hu <huyue2@coolpad.com>, Jeffle Xu <jefflexu@linux.alibaba.com>, 
+ Namjae Jeon <linkinjeon@kernel.org>, Sungjong Seo <sj1557.seo@samsung.com>, 
+ Jan Kara <jack@suse.com>, Theodore Ts'o <tytso@mit.edu>, 
+ Andreas Dilger <adilger.kernel@dilger.ca>, Jaegeuk Kim <jaegeuk@kernel.org>, 
+ OGAWA Hirofumi <hirofumi@mail.parknet.co.jp>, 
+ Miklos Szeredi <miklos@szeredi.hu>, Bob Peterson <rpeterso@redhat.com>, 
+ Andreas Gruenbacher <agruenba@redhat.com>, 
+ Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Tejun Heo <tj@kernel.org>, 
+ Alexander Viro <viro@zeniv.linux.org.uk>, 
+ Christian Brauner <brauner@kernel.org>, 
+ Trond Myklebust <trond.myklebust@hammerspace.com>, 
+ Anna Schumaker <anna@kernel.org>, 
+ Konstantin Komarov <almaz.alexandrovich@paragon-software.com>, 
+ Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, 
+ Joseph Qi <joseph.qi@linux.alibaba.com>, 
+ Mike Marshall <hubcap@omnibond.com>, 
+ Martin Brandenburg <martin@omnibond.com>, 
+ Luis Chamberlain <mcgrof@kernel.org>, Kees Cook <keescook@chromium.org>, 
+ Iurii Zaikin <yzaikin@google.com>, Steve French <sfrench@samba.org>, 
+ Paulo Alcantara <pc@manguebit.com>, Ronnie Sahlberg <lsahlber@redhat.com>, 
+ Shyam Prasad N <sprasad@microsoft.com>, Tom Talpey <tom@talpey.com>, 
+ Sergey Senozhatsky <senozhatsky@chromium.org>, 
+ Richard Weinberger <richard@nod.at>, Hans de Goede <hdegoede@redhat.com>, 
+ Hugh Dickins <hughd@google.com>, Andrew Morton <akpm@linux-foundation.org>, 
+ "Darrick J. Wong" <djwong@kernel.org>
+Cc: Dave Chinner <david@fromorbit.com>, 
+ Anthony Iliopoulos <ailiop@suse.com>, v9fs@lists.linux.dev, 
+ linux-kernel@vger.kernel.org, linux-afs@lists.infradead.org, 
+ linux-btrfs@vger.kernel.org, ceph-devel@vger.kernel.org, 
+ codalist@coda.cs.cmu.edu, ecryptfs@vger.kernel.org, 
+ linux-erofs@lists.ozlabs.org, linux-fsdevel@vger.kernel.org, 
+ linux-ext4@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, 
+ cluster-devel@redhat.com, linux-nfs@vger.kernel.org, ntfs3@lists.linux.dev, 
+ ocfs2-devel@lists.linux.dev, devel@lists.orangefs.org, 
+ linux-cifs@vger.kernel.org, samba-technical@lists.samba.org, 
+ linux-mtd@lists.infradead.org, linux-mm@kvack.org, 
+ linux-xfs@vger.kernel.org, Jeff Layton <jlayton@kernel.org>
+X-Mailer: b4 0.12.3
+X-Developer-Signature: v=1; a=openpgp-sha256; l=4902; i=jlayton@kernel.org;
+ h=from:subject:message-id; bh=kJmXJEYOHolov3dHsrtrgrStBu4dP1/spGmtmesqCM4=;
+ b=owEBbQKS/ZANAwAIAQAOaEEZVoIVAcsmYgBkv+Mj+zS9rris6Kf5SxMrXR2Y/k9AOCJ9z8KPq
+ j3S+WlmJceJAjMEAAEIAB0WIQRLwNeyRHGyoYTq9dMADmhBGVaCFQUCZL/jIwAKCRAADmhBGVaC
+ FZ/jD/0evq59eIdKfJ48vhkQ834Ov7dXXLAsoPLIBwuMPbqc7pSVOjxB5ATFSwfM9htZKolZ+oY
+ lIU2tVkrgEvzBSvtptGWRr2sarmS792/ET3Q94ZYyI3yGrHeRSXFOCIw1j7WwH2CAixPP7tV3iI
+ CEyu3vkzTFYYrJrAjpZayoN4FMelRFKm9TkDeBNDMR2dHxzPYji2KfnLM8E0QyicvhzMp748ezo
+ gSFE9vYIQeyfCsc0tsb3+xvNeyfrgwWW0Xt+iWheDXhWb2JezV0qwPzhrTI2o0lUu3y5Ak6moUv
+ mxg4LjTEyDiFJS1gFG359AOMdd1Fqe+/hBI/KRZw1FJgHJNrojM6CcefRT/9ld8QucjdHCaei+j
+ wdbwbxqSPCnXE7EyPm6OfdKrz1QY8quS0w28VGDMEoqvWsdi5KDYgaliGZ4xMdeR24lwCGeO1sO
+ CcTk+9XkDMSViFJpiCvlZ1wqjbcy+7bpDotGULl660l29vxwtUOL4OzsFLorGw8J6AVtpr1WcSZ
+ qiHQFHKm0p8TmStpgYdlGpNtZsiMWV5W5ebzMwtMfdk+ItSXAkX5AccmgWA8SF2Lu6i9FkiaOJK
+ 8np/ZINHFrUnnqcT0RhtcBRNRofFbPWW2FPTzqKgpU9tTsrmpbASbI+M+rPlDhulz5q2G6Ka/vp
+ WLXgwe/aGNDuUZQ==
+X-Developer-Key: i=jlayton@kernel.org; a=openpgp;
+ fpr=4BC0D7B24471B2A184EAF5D3000E684119568215
 
-Hi,
+The VFS always uses coarse-grained timestamps when updating the
+ctime and mtime after a change. This has the benefit of allowing
+filesystems to optimize away a lot metadata updates, down to around 1
+per jiffy, even when a file is under heavy writes.
 
-On Tue, Jul 18, 2023 at 2:07=E2=80=AFPM Alexander Aring <aahringo@redhat.co=
-m> wrote:
->
-> This patch fixes the current handling of F_CANCELLK by not just doing a
-> unlock as we need to try to cancel a lock at first. A unlock makes sense
-> on a non-blocking lock request but if it's a blocking lock request we
-> need to cancel the request until it's not granted yet. This patch is fixi=
-ng
-> this behaviour by first try to cancel a lock request and if it's failed
-> it's unlocking the lock which seems to be granted.
->
-> Note: currently the nfs locking handling was disabled by commit
-> 40595cdc93ed ("nfs: block notification on fs with its own ->lock").
-> However DLM was never being updated regarding to this change. Future
-> patches will try to fix lockd lock requests for DLM. This patch is
-> currently assuming the upstream DLM lockd handling is correct.
->
-> Signed-off-by: Alexander Aring <aahringo@redhat.com>
-> ---
->  fs/dlm/plock.c            | 102 +++++++++++++++++++++++++++++++++-----
->  fs/gfs2/file.c            |   9 ++--
->  fs/ocfs2/stack_user.c     |  13 ++---
->  include/linux/dlm_plock.h |   2 +
->  4 files changed, 97 insertions(+), 29 deletions(-)
->
-> diff --git a/fs/dlm/plock.c b/fs/dlm/plock.c
-> index a8ffa0760913..84510994b177 100644
-> --- a/fs/dlm/plock.c
-> +++ b/fs/dlm/plock.c
-> @@ -42,6 +42,27 @@ static inline void set_version(struct dlm_plock_info *=
-info)
->         info->version[2] =3D DLM_PLOCK_VERSION_PATCH;
->  }
->
-> +static struct plock_op *plock_lookup_waiter(const struct dlm_plock_info =
-*info)
-> +{
-> +       struct plock_op *op =3D NULL, *iter;
-> +
-> +       list_for_each_entry(iter, &recv_list, list) {
-> +               if (iter->info.fsid =3D=3D info->fsid &&
-> +                   iter->info.number =3D=3D info->number &&
-> +                   iter->info.owner =3D=3D info->owner &&
-> +                   iter->info.pid =3D=3D info->pid &&
-> +                   iter->info.start =3D=3D info->start &&
-> +                   iter->info.end =3D=3D info->end &&
-> +                   iter->info.ex =3D=3D info->ex &&
-> +                   iter->info.wait) {
-> +                       op =3D iter;
-> +                       break;
-> +               }
-> +       }
-> +
-> +       return op;
-> +}
-> +
->  static int check_version(struct dlm_plock_info *info)
->  {
->         if ((DLM_PLOCK_VERSION_MAJOR !=3D info->version[0]) ||
-> @@ -334,6 +355,73 @@ int dlm_posix_unlock(dlm_lockspace_t *lockspace, u64=
- number, struct file *file,
->  }
->  EXPORT_SYMBOL_GPL(dlm_posix_unlock);
->
-> +/*
-> + * NOTE: This implementation can only handle async lock requests as nfs
-> + * do it. It cannot handle cancellation of a pending lock request sittin=
-g
-> + * in wait_event(), but for now only nfs is the only user local kernel
-> + * user.
-> + */
-> +int dlm_posix_cancel(dlm_lockspace_t *lockspace, u64 number, struct file=
- *file,
-> +                    struct file_lock *fl)
-> +{
-> +       struct dlm_plock_info info;
-> +       struct plock_op *op;
-> +       struct dlm_ls *ls;
-> +       int rv;
-> +
-> +       /* this only works for async request for now and nfs is the only
-> +        * kernel user right now.
-> +        */
-> +       if (WARN_ON_ONCE(!fl->fl_lmops || !fl->fl_lmops->lm_grant))
-> +               return -EOPNOTSUPP;
-> +
-> +       ls =3D dlm_find_lockspace_local(lockspace);
-> +       if (!ls)
-> +               return -EINVAL;
-> +
-> +       info.pid =3D fl->fl_pid;
-> +       info.ex =3D (fl->fl_type =3D=3D F_WRLCK);
-> +       info.fsid =3D ls->ls_global_id;
-> +       dlm_put_lockspace(ls);
-> +       info.number =3D number;
-> +       info.start =3D fl->fl_start;
-> +       info.end =3D fl->fl_end;
-> +       info.owner =3D (__u64)fl->fl_pid;
-> +
-> +       rv =3D do_lock_cancel(&info);
-> +       switch (rv) {
-> +       case 0:
-> +               spin_lock(&ops_lock);
-> +               /* lock request to cancel must be on recv_list because
-> +                * do_lock_cancel() synchronizes it.
-> +                */
-> +               op =3D plock_lookup_waiter(&info);
-> +               if (WARN_ON_ONCE(!op)) {
-> +                       rv =3D -ENOLCK;
-> +                       break;
+Unfortunately, this coarseness has always been an issue when we're
+exporting via NFSv3, which relies on timestamps to validate caches. A
+lot of changes can happen in a jiffy, so timestamps aren't sufficient to
+help the client decide to invalidate the cache.
 
-missing spin_unlock() here. I will add it to my upcoming patch series.
+Even with NFSv4, a lot of exported filesystems don't properly support a
+change attribute and are subject to the same problems with timestamp
+granularity. Other applications have similar issues with timestamps (e.g
+backup applications).
 
-- Alex
+If we were to always use fine-grained timestamps, that would improve the
+situation, but that becomes rather expensive, as the underlying
+filesystem would have to log a lot more metadata updates.
+
+What we need is a way to only use fine-grained timestamps when they are
+being actively queried. The idea is to use an unused bit in the ctime's
+tv_nsec field to mark when the mtime or ctime has been queried via
+getattr. Once that has been marked, the next m/ctime update will use a
+fine-grained timestamp.
+
+This patch series is based on top of Christian's vfs.all branch, which
+has the recent conversion to the new ctime accessors. It should apply
+cleanly on top of linux-next.
+
+The first two patches should probably go in via the vfs tree. Should the
+fs-specific patches go in that way as well, or should they go via
+maintainer trees? Either should be fine.
+
+The first two patches should probably go in via Christian's vfs tree.
+The rest could go via maintainer trees or the vfs tree.
+
+For now, I'd like to get these into linux-next. Christian, would you be
+willing to pick these up for now? Alternately, I can feed them there via
+the iversion branch that Stephen is already pulling in from my tree.
+
+Signed-off-by: Jeff Layton <jlayton@kernel.org>
+base-commit: cf22d118b89a09a0160586412160d89098f7c4c7
+---
+Changes in v6:
+- drop the patch that removed XFS_ICHGTIME_CHG
+- change WARN_ON_ONCE to ASSERT in xfs conversion patch
+
+---
+Jeff Layton (7):
+      fs: pass the request_mask to generic_fillattr
+      fs: add infrastructure for multigrain timestamps
+      tmpfs: bump the mtime/ctime/iversion when page becomes writeable
+      tmpfs: add support for multigrain timestamps
+      xfs: switch to multigrain timestamps
+      ext4: switch to multigrain timestamps
+      btrfs: convert to multigrain timestamps
+
+ fs/9p/vfs_inode.c               |  4 +-
+ fs/9p/vfs_inode_dotl.c          |  4 +-
+ fs/afs/inode.c                  |  2 +-
+ fs/btrfs/file.c                 | 24 ++--------
+ fs/btrfs/inode.c                |  2 +-
+ fs/btrfs/super.c                |  5 ++-
+ fs/ceph/inode.c                 |  2 +-
+ fs/coda/inode.c                 |  3 +-
+ fs/ecryptfs/inode.c             |  5 ++-
+ fs/erofs/inode.c                |  2 +-
+ fs/exfat/file.c                 |  2 +-
+ fs/ext2/inode.c                 |  2 +-
+ fs/ext4/inode.c                 |  2 +-
+ fs/ext4/super.c                 |  2 +-
+ fs/f2fs/file.c                  |  2 +-
+ fs/fat/file.c                   |  2 +-
+ fs/fuse/dir.c                   |  2 +-
+ fs/gfs2/inode.c                 |  2 +-
+ fs/hfsplus/inode.c              |  2 +-
+ fs/inode.c                      | 98 +++++++++++++++++++++++++++++------------
+ fs/kernfs/inode.c               |  2 +-
+ fs/libfs.c                      |  4 +-
+ fs/minix/inode.c                |  2 +-
+ fs/nfs/inode.c                  |  2 +-
+ fs/nfs/namespace.c              |  3 +-
+ fs/ntfs3/file.c                 |  2 +-
+ fs/ocfs2/file.c                 |  2 +-
+ fs/orangefs/inode.c             |  2 +-
+ fs/proc/base.c                  |  4 +-
+ fs/proc/fd.c                    |  2 +-
+ fs/proc/generic.c               |  2 +-
+ fs/proc/proc_net.c              |  2 +-
+ fs/proc/proc_sysctl.c           |  2 +-
+ fs/proc/root.c                  |  3 +-
+ fs/smb/client/inode.c           |  2 +-
+ fs/smb/server/smb2pdu.c         | 22 ++++-----
+ fs/smb/server/vfs.c             |  3 +-
+ fs/stat.c                       | 59 ++++++++++++++++++++-----
+ fs/sysv/itree.c                 |  3 +-
+ fs/ubifs/dir.c                  |  2 +-
+ fs/udf/symlink.c                |  2 +-
+ fs/vboxsf/utils.c               |  2 +-
+ fs/xfs/libxfs/xfs_trans_inode.c |  6 +--
+ fs/xfs/xfs_iops.c               |  4 +-
+ fs/xfs/xfs_super.c              |  2 +-
+ include/linux/fs.h              | 47 ++++++++++++++++++--
+ mm/shmem.c                      | 16 ++++++-
+ 47 files changed, 248 insertions(+), 125 deletions(-)
+---
+base-commit: 810b5fff7917119ea82ff96e312e2d4350d6b681
+change-id: 20230713-mgctime-f2a9fc324918
+
+Best regards,
+-- 
+Jeff Layton <jlayton@kernel.org>
 
