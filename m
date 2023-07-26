@@ -1,179 +1,174 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-yw1-f180.google.com (mail-yw1-f180.google.com [209.85.128.180])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 123A41F17C;
-	Tue, 25 Jul 2023 14:59:37 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id A2936C433AD;
-	Tue, 25 Jul 2023 14:59:30 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1690297176;
-	bh=t187d4hlj7Hd2B853hoiIPlXJE4vBx7O1lkOZGTYDW8=;
-	h=From:Date:Subject:References:In-Reply-To:To:Cc:From;
-	b=SSmBXICMwwOT3suM7Wh9+/efKJhkY/qtCAceKg5JcawInGhDeAcad93pkmikV0o+6
-	 4WemX3e9jmjVTbdAQRpQdyZIhz1g9e0iDBRjM7wITplVnNb0dKwcSeSRf8RXFJDlWS
-	 05qhAWRZOBxveiT38itiEKwwzi2cwotnAfVwMeMGzQCXfg4aP/7QA/7BOeFl3k+q2W
-	 k4L1Wuc6aR3dIYbSuqKgvU4mO6BXIuKAuk+5ULb3C0pXfvdRzoF0OIGIEUDaE/vzJU
-	 9DjaVzezFk7HWbRa31mtwovPb4u6potKHgCKfEVNxB3PuDjxy8+/zOplOia8cZNwpQ
-	 rRGJw4To0RgnQ==
-From: Jeff Layton <jlayton@kernel.org>
-Date: Tue, 25 Jul 2023 10:58:20 -0400
-Subject: [PATCH v6 7/7] btrfs: convert to multigrain timestamps
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6C68710F6
+	for <ocfs2-devel@lists.linux.dev>; Wed, 26 Jul 2023 01:39:39 +0000 (UTC)
+Received: by mail-yw1-f180.google.com with SMTP id 00721157ae682-583f65806f8so34627517b3.0
+        for <ocfs2-devel@lists.linux.dev>; Tue, 25 Jul 2023 18:39:39 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=google.com; s=20221208; t=1690335578; x=1690940378;
+        h=mime-version:references:message-id:in-reply-to:subject:cc:to:from
+         :date:from:to:cc:subject:date:message-id:reply-to;
+        bh=g4+spZWgq0eS9irqfihzysgfAABYfYXXmt6SNBBeIWA=;
+        b=MZxYT2MdZ0Omg+tGFjNofeHkNy3Qahh2PBaeRGC1CPgAvaobe+CbfQzviGlH2bRGld
+         yZXqVlc4rdM7Hn/0uDpIIp7PtuXFyXV1rOEzEcPsa6KfHQ8WsO8NrD1ggf9GGi+atd7F
+         nKDBxVEOzhZviRxzmHMsde7z3UqWCZoSc0lNm1akA/R8EHPW9npAKef3Z/pjfCjWQWBN
+         xmycegOze/hxSYYenv2HpylIbUfqF9JiHr0gy59wVHZoy8dXEq78uEH7BvhlWGHxnNVM
+         Pm/pG6h4Z3mK+EEHLb2xoyIraXRTQQ+dd3MgzFr8XAVX1x101W0eH3RmqvYAcZ2a0tMf
+         tMBA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20221208; t=1690335578; x=1690940378;
+        h=mime-version:references:message-id:in-reply-to:subject:cc:to:from
+         :date:x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
+        bh=g4+spZWgq0eS9irqfihzysgfAABYfYXXmt6SNBBeIWA=;
+        b=iCAnIRgEvAaoaWkRv43UOoOWGLWTfHgSOOxGSa5S/d1WahHRhLgsCFt8gRHNElfl7R
+         uT25BxM3t+cM7ecbYNGUaNNiUiIIFX3zbXXNbkY0a5AmO8exUvX4ZAm96IeRFX0OLozk
+         5pKE3ViSRX9IIgbAmiIUGZ4BEOvR558ihoTZomirtAumW7caiCaHyzuZp/AaZxcWowe+
+         PLDMbQDYU2y0gh9RCdmMOjoAWcJTaOoX9r5maehuwJ/kKN1HwAaYK/ejRpHoyVD3uggH
+         vxspKJZa+8FpyNNEp/lGxnz357cP35usPkmcA2GlQNNSke/2F5onq88K8083AnYZmIiF
+         SIdg==
+X-Gm-Message-State: ABy/qLaJ4iIr7ys+BTJI/c27rFPAUE66QLBMUULQrDSvZaSska8CLJaf
+	2BB7SLXclZk0CEiea/+pK9DCgQ==
+X-Google-Smtp-Source: APBJJlHxqCs0/k9opPHZr1oFjC/IjLn2NWFjtEyuaFY5bDdVyDOg3sTAz2vkUnxY9z5liUX1UEynKA==
+X-Received: by 2002:a81:46c3:0:b0:56d:2189:d87a with SMTP id t186-20020a8146c3000000b0056d2189d87amr821699ywa.15.1690335578030;
+        Tue, 25 Jul 2023 18:39:38 -0700 (PDT)
+Received: from ripple.attlocal.net (172-10-233-147.lightspeed.sntcca.sbcglobal.net. [172.10.233.147])
+        by smtp.gmail.com with ESMTPSA id s10-20020a5b044a000000b00c654cc439fesm3165326ybp.52.2023.07.25.18.39.32
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Tue, 25 Jul 2023 18:39:37 -0700 (PDT)
+Date: Tue, 25 Jul 2023 18:39:25 -0700 (PDT)
+From: Hugh Dickins <hughd@google.com>
+X-X-Sender: hugh@ripple.attlocal.net
+To: Jeff Layton <jlayton@kernel.org>
+cc: Eric Van Hensbergen <ericvh@kernel.org>, 
+    Latchesar Ionkov <lucho@ionkov.net>, 
+    Dominique Martinet <asmadeus@codewreck.org>, 
+    Christian Schoenebeck <linux_oss@crudebyte.com>, 
+    David Howells <dhowells@redhat.com>, 
+    Marc Dionne <marc.dionne@auristor.com>, Chris Mason <clm@fb.com>, 
+    Josef Bacik <josef@toxicpanda.com>, David Sterba <dsterba@suse.com>, 
+    Xiubo Li <xiubli@redhat.com>, Ilya Dryomov <idryomov@gmail.com>, 
+    Jan Harkes <jaharkes@cs.cmu.edu>, coda@cs.cmu.edu, 
+    Tyler Hicks <code@tyhicks.com>, Gao Xiang <xiang@kernel.org>, 
+    Chao Yu <chao@kernel.org>, Yue Hu <huyue2@coolpad.com>, 
+    Jeffle Xu <jefflexu@linux.alibaba.com>, 
+    Namjae Jeon <linkinjeon@kernel.org>, Sungjong Seo <sj1557.seo@samsung.com>, 
+    Jan Kara <jack@suse.com>, Theodore Ts'o <tytso@mit.edu>, 
+    Andreas Dilger <adilger.kernel@dilger.ca>, 
+    Jaegeuk Kim <jaegeuk@kernel.org>, 
+    OGAWA Hirofumi <hirofumi@mail.parknet.co.jp>, 
+    Miklos Szeredi <miklos@szeredi.hu>, Bob Peterson <rpeterso@redhat.com>, 
+    Andreas Gruenbacher <agruenba@redhat.com>, 
+    Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Tejun Heo <tj@kernel.org>, 
+    Alexander Viro <viro@zeniv.linux.org.uk>, 
+    Christian Brauner <brauner@kernel.org>, 
+    Trond Myklebust <trond.myklebust@hammerspace.com>, 
+    Anna Schumaker <anna@kernel.org>, 
+    Konstantin Komarov <almaz.alexandrovich@paragon-software.com>, 
+    Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, 
+    Joseph Qi <joseph.qi@linux.alibaba.com>, 
+    Mike Marshall <hubcap@omnibond.com>, 
+    Martin Brandenburg <martin@omnibond.com>, 
+    Luis Chamberlain <mcgrof@kernel.org>, Kees Cook <keescook@chromium.org>, 
+    Iurii Zaikin <yzaikin@google.com>, Steve French <sfrench@samba.org>, 
+    Paulo Alcantara <pc@manguebit.com>, Ronnie Sahlberg <lsahlber@redhat.com>, 
+    Shyam Prasad N <sprasad@microsoft.com>, Tom Talpey <tom@talpey.com>, 
+    Sergey Senozhatsky <senozhatsky@chromium.org>, 
+    Richard Weinberger <richard@nod.at>, Hans de Goede <hdegoede@redhat.com>, 
+    Hugh Dickins <hughd@google.com>, Andrew Morton <akpm@linux-foundation.org>, 
+    "Darrick J. Wong" <djwong@kernel.org>, Dave Chinner <david@fromorbit.com>, 
+    Anthony Iliopoulos <ailiop@suse.com>, v9fs@lists.linux.dev, 
+    linux-kernel@vger.kernel.org, linux-afs@lists.infradead.org, 
+    linux-btrfs@vger.kernel.org, ceph-devel@vger.kernel.org, 
+    codalist@coda.cs.cmu.edu, ecryptfs@vger.kernel.org, 
+    linux-erofs@lists.ozlabs.org, linux-fsdevel@vger.kernel.org, 
+    linux-ext4@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, 
+    cluster-devel@redhat.com, linux-nfs@vger.kernel.org, ntfs3@lists.linux.dev, 
+    ocfs2-devel@lists.linux.dev, devel@lists.orangefs.org, 
+    linux-cifs@vger.kernel.org, samba-technical@lists.samba.org, 
+    linux-mtd@lists.infradead.org, linux-mm@kvack.org, 
+    linux-xfs@vger.kernel.org
+Subject: Re: [PATCH v6 3/7] tmpfs: bump the mtime/ctime/iversion when page
+ becomes writeable
+In-Reply-To: <20230725-mgctime-v6-3-a794c2b7abca@kernel.org>
+Message-ID: <42c5bbe-a7a4-3546-e898-3f33bd71b062@google.com>
+References: <20230725-mgctime-v6-0-a794c2b7abca@kernel.org> <20230725-mgctime-v6-3-a794c2b7abca@kernel.org>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
-Message-Id: <20230725-mgctime-v6-7-a794c2b7abca@kernel.org>
-References: <20230725-mgctime-v6-0-a794c2b7abca@kernel.org>
-In-Reply-To: <20230725-mgctime-v6-0-a794c2b7abca@kernel.org>
-To: Eric Van Hensbergen <ericvh@kernel.org>, 
- Latchesar Ionkov <lucho@ionkov.net>, 
- Dominique Martinet <asmadeus@codewreck.org>, 
- Christian Schoenebeck <linux_oss@crudebyte.com>, 
- David Howells <dhowells@redhat.com>, Marc Dionne <marc.dionne@auristor.com>, 
- Chris Mason <clm@fb.com>, Josef Bacik <josef@toxicpanda.com>, 
- David Sterba <dsterba@suse.com>, Xiubo Li <xiubli@redhat.com>, 
- Ilya Dryomov <idryomov@gmail.com>, Jan Harkes <jaharkes@cs.cmu.edu>, 
- coda@cs.cmu.edu, Tyler Hicks <code@tyhicks.com>, 
- Gao Xiang <xiang@kernel.org>, Chao Yu <chao@kernel.org>, 
- Yue Hu <huyue2@coolpad.com>, Jeffle Xu <jefflexu@linux.alibaba.com>, 
- Namjae Jeon <linkinjeon@kernel.org>, Sungjong Seo <sj1557.seo@samsung.com>, 
- Jan Kara <jack@suse.com>, Theodore Ts'o <tytso@mit.edu>, 
- Andreas Dilger <adilger.kernel@dilger.ca>, Jaegeuk Kim <jaegeuk@kernel.org>, 
- OGAWA Hirofumi <hirofumi@mail.parknet.co.jp>, 
- Miklos Szeredi <miklos@szeredi.hu>, Bob Peterson <rpeterso@redhat.com>, 
- Andreas Gruenbacher <agruenba@redhat.com>, 
- Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Tejun Heo <tj@kernel.org>, 
- Alexander Viro <viro@zeniv.linux.org.uk>, 
- Christian Brauner <brauner@kernel.org>, 
- Trond Myklebust <trond.myklebust@hammerspace.com>, 
- Anna Schumaker <anna@kernel.org>, 
- Konstantin Komarov <almaz.alexandrovich@paragon-software.com>, 
- Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, 
- Joseph Qi <joseph.qi@linux.alibaba.com>, 
- Mike Marshall <hubcap@omnibond.com>, 
- Martin Brandenburg <martin@omnibond.com>, 
- Luis Chamberlain <mcgrof@kernel.org>, Kees Cook <keescook@chromium.org>, 
- Iurii Zaikin <yzaikin@google.com>, Steve French <sfrench@samba.org>, 
- Paulo Alcantara <pc@manguebit.com>, Ronnie Sahlberg <lsahlber@redhat.com>, 
- Shyam Prasad N <sprasad@microsoft.com>, Tom Talpey <tom@talpey.com>, 
- Sergey Senozhatsky <senozhatsky@chromium.org>, 
- Richard Weinberger <richard@nod.at>, Hans de Goede <hdegoede@redhat.com>, 
- Hugh Dickins <hughd@google.com>, Andrew Morton <akpm@linux-foundation.org>, 
- "Darrick J. Wong" <djwong@kernel.org>
-Cc: Dave Chinner <david@fromorbit.com>, 
- Anthony Iliopoulos <ailiop@suse.com>, v9fs@lists.linux.dev, 
- linux-kernel@vger.kernel.org, linux-afs@lists.infradead.org, 
- linux-btrfs@vger.kernel.org, ceph-devel@vger.kernel.org, 
- codalist@coda.cs.cmu.edu, ecryptfs@vger.kernel.org, 
- linux-erofs@lists.ozlabs.org, linux-fsdevel@vger.kernel.org, 
- linux-ext4@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, 
- cluster-devel@redhat.com, linux-nfs@vger.kernel.org, ntfs3@lists.linux.dev, 
- ocfs2-devel@lists.linux.dev, devel@lists.orangefs.org, 
- linux-cifs@vger.kernel.org, samba-technical@lists.samba.org, 
- linux-mtd@lists.infradead.org, linux-mm@kvack.org, 
- linux-xfs@vger.kernel.org, Jeff Layton <jlayton@kernel.org>
-X-Mailer: b4 0.12.3
-X-Developer-Signature: v=1; a=openpgp-sha256; l=2706; i=jlayton@kernel.org;
- h=from:subject:message-id; bh=t187d4hlj7Hd2B853hoiIPlXJE4vBx7O1lkOZGTYDW8=;
- b=owEBbQKS/ZANAwAIAQAOaEEZVoIVAcsmYgBkv+MkzroP27sCWuNSIgl+Cd1orLkVgLYnAGcGo
- qEGnD3ITTiJAjMEAAEIAB0WIQRLwNeyRHGyoYTq9dMADmhBGVaCFQUCZL/jJAAKCRAADmhBGVaC
- FezWEACH2UPwfc8Rd5LxW2eGVPkB5meVxJPlOLQBj6pWDkW95diD7uXPQto9lmLQF4qdUED+5gy
- WLeo0BKULpIsDQGcmeJ0JkL/JiN2PbntEUg4RArSmU+rbZrR++dnF7ONr6ND9nWmLJNpuajyStV
- pcZilQXeumx55tirF1mt2vbGkXsKu/qHNXXLZ4CnD9fI2bIWLHaqsutS3k6iENOAKoEtdCWwoM9
- FVpdj3qFKKuML2HPLPiNiqSR4PQMpFrJZuJtwugTZ4dV2zGIpz2l4Fo+eJzLD8g3FKg1A3Mk34F
- Uziz080sql3EtQDp+oM7E0vxs8NLvt2bJsGtEl+GEq10Z1KQiGEE118baYC/FF3Y1JhZ8N3o/6n
- NTmLgKCSGgEaX90TUrhvCtvVULKCcbHbm/RkOiIu7CC5iVHPV6RW/oHBDJVwKYW+2MlAb+VY5re
- f+nknpCe54xwkAkjA93/0IhnnhD1PqlAiOzimKBVA2WsnYyUS0Q10BesJm3HaFKmBvca1rkAIvY
- 5RVnuhgAlq6eH4QItdabELeq+RMtIFijqWrAAvDc0GPhlIwBn3i4uHiLu5D086UgM+5Nt7DjCZf
- 3QmNVnOo1Lw9zpdhHxNYnhUO9mT6oJzmtiR5/Z3Ca5TZ+LV2ivQE3dGm4TXhbyY0GAZ/FvepgyX
- df3wfm4D0Ck2M5Q==
-X-Developer-Key: i=jlayton@kernel.org; a=openpgp;
- fpr=4BC0D7B24471B2A184EAF5D3000E684119568215
+Content-Type: text/plain; charset=US-ASCII
 
-Enable multigrain timestamps, which should ensure that there is an
-apparent change to the timestamp whenever it has been written after
-being actively observed via getattr.
+On Tue, 25 Jul 2023, Jeff Layton wrote:
 
-Beyond enabling the FS_MGTIME flag, this patch eliminates
-update_time_for_write, which goes to great pains to avoid in-memory
-stores. Just have it overwrite the timestamps unconditionally.
+> Most filesystems that use the pagecache will update the mtime, ctime,
+> and change attribute when a page becomes writeable. Add a page_mkwrite
+> operation for tmpfs and just use it to bump the mtime, ctime and change
+> attribute.
+> 
+> This fixes xfstest generic/080 on tmpfs.
 
-Signed-off-by: Jeff Layton <jlayton@kernel.org>
----
- fs/btrfs/file.c  | 24 ++++--------------------
- fs/btrfs/super.c |  5 +++--
- 2 files changed, 7 insertions(+), 22 deletions(-)
+Huh.  I didn't notice when this one crept into the multigrain series.
 
-diff --git a/fs/btrfs/file.c b/fs/btrfs/file.c
-index d7a9ece7a40b..b9e75c9f95ac 100644
---- a/fs/btrfs/file.c
-+++ b/fs/btrfs/file.c
-@@ -1106,25 +1106,6 @@ void btrfs_check_nocow_unlock(struct btrfs_inode *inode)
- 	btrfs_drew_write_unlock(&inode->root->snapshot_lock);
- }
- 
--static void update_time_for_write(struct inode *inode)
--{
--	struct timespec64 now, ctime;
--
--	if (IS_NOCMTIME(inode))
--		return;
--
--	now = current_time(inode);
--	if (!timespec64_equal(&inode->i_mtime, &now))
--		inode->i_mtime = now;
--
--	ctime = inode_get_ctime(inode);
--	if (!timespec64_equal(&ctime, &now))
--		inode_set_ctime_to_ts(inode, now);
--
--	if (IS_I_VERSION(inode))
--		inode_inc_iversion(inode);
--}
--
- static int btrfs_write_check(struct kiocb *iocb, struct iov_iter *from,
- 			     size_t count)
- {
-@@ -1156,7 +1137,10 @@ static int btrfs_write_check(struct kiocb *iocb, struct iov_iter *from,
- 	 * need to start yet another transaction to update the inode as we will
- 	 * update the inode when we finish writing whatever data we write.
- 	 */
--	update_time_for_write(inode);
-+	if (!IS_NOCMTIME(inode)) {
-+		inode->i_mtime = inode_set_ctime_current(inode);
-+		inode_inc_iversion(inode);
-+	}
- 
- 	start_pos = round_down(pos, fs_info->sectorsize);
- 	oldsize = i_size_read(inode);
-diff --git a/fs/btrfs/super.c b/fs/btrfs/super.c
-index f1dd172d8d5b..8eda51b095c9 100644
---- a/fs/btrfs/super.c
-+++ b/fs/btrfs/super.c
-@@ -2144,7 +2144,7 @@ static struct file_system_type btrfs_fs_type = {
- 	.name		= "btrfs",
- 	.mount		= btrfs_mount,
- 	.kill_sb	= btrfs_kill_super,
--	.fs_flags	= FS_REQUIRES_DEV | FS_BINARY_MOUNTDATA,
-+	.fs_flags	= FS_REQUIRES_DEV | FS_BINARY_MOUNTDATA | FS_MGTIME,
- };
- 
- static struct file_system_type btrfs_root_fs_type = {
-@@ -2152,7 +2152,8 @@ static struct file_system_type btrfs_root_fs_type = {
- 	.name		= "btrfs",
- 	.mount		= btrfs_mount_root,
- 	.kill_sb	= btrfs_kill_super,
--	.fs_flags	= FS_REQUIRES_DEV | FS_BINARY_MOUNTDATA | FS_ALLOW_IDMAP,
-+	.fs_flags	= FS_REQUIRES_DEV | FS_BINARY_MOUNTDATA |
-+			  FS_ALLOW_IDMAP | FS_MGTIME,
- };
- 
- MODULE_ALIAS_FS("btrfs");
+I'm inclined to NAK this patch: at the very least, it does not belong
+in the series, but should be discussed separately.
 
--- 
-2.41.0
+Yes, tmpfs does not and never has used page_mkwrite, and gains some
+performance advantage from that.  Nobody has ever asked for this
+change before, or not that I recall.
 
+Please drop it from the series: and if you feel strongly, or know
+strong reasons why tmpfs suddenly needs to use page_mkwrite now,
+please argue them separately.  To pass generic/080 is not enough.
+
+Thanks,
+Hugh
+
+> 
+> Signed-off-by: Jeff Layton <jlayton@kernel.org>
+> ---
+>  mm/shmem.c | 12 ++++++++++++
+>  1 file changed, 12 insertions(+)
+> 
+> diff --git a/mm/shmem.c b/mm/shmem.c
+> index b154af49d2df..654d9a585820 100644
+> --- a/mm/shmem.c
+> +++ b/mm/shmem.c
+> @@ -2169,6 +2169,16 @@ static vm_fault_t shmem_fault(struct vm_fault *vmf)
+>  	return ret;
+>  }
+>  
+> +static vm_fault_t shmem_page_mkwrite(struct vm_fault *vmf)
+> +{
+> +	struct vm_area_struct *vma = vmf->vma;
+> +	struct inode *inode = file_inode(vma->vm_file);
+> +
+> +	file_update_time(vma->vm_file);
+> +	inode_inc_iversion(inode);
+> +	return 0;
+> +}
+> +
+>  unsigned long shmem_get_unmapped_area(struct file *file,
+>  				      unsigned long uaddr, unsigned long len,
+>  				      unsigned long pgoff, unsigned long flags)
+> @@ -4210,6 +4220,7 @@ static const struct super_operations shmem_ops = {
+>  
+>  static const struct vm_operations_struct shmem_vm_ops = {
+>  	.fault		= shmem_fault,
+> +	.page_mkwrite	= shmem_page_mkwrite,
+>  	.map_pages	= filemap_map_pages,
+>  #ifdef CONFIG_NUMA
+>  	.set_policy     = shmem_set_policy,
+> @@ -4219,6 +4230,7 @@ static const struct vm_operations_struct shmem_vm_ops = {
+>  
+>  static const struct vm_operations_struct shmem_anon_vm_ops = {
+>  	.fault		= shmem_fault,
+> +	.page_mkwrite	= shmem_page_mkwrite,
+>  	.map_pages	= filemap_map_pages,
+>  #ifdef CONFIG_NUMA
+>  	.set_policy     = shmem_set_policy,
+> 
+> -- 
+> 2.41.0
