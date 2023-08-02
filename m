@@ -1,41 +1,41 @@
-Received: from mail-oi1-f171.google.com (mail-oi1-f171.google.com [209.85.167.171])
+Received: from mail-pl1-f174.google.com (mail-pl1-f174.google.com [209.85.214.174])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3600C63B1
-	for <ocfs2-devel@lists.linux.dev>; Wed,  2 Aug 2023 12:38:36 +0000 (UTC)
-Received: by mail-oi1-f171.google.com with SMTP id 5614622812f47-3a5ad6087a1so4080818b6e.2
-        for <ocfs2-devel@lists.linux.dev>; Wed, 02 Aug 2023 05:38:36 -0700 (PDT)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id BE92463B1
+	for <ocfs2-devel@lists.linux.dev>; Wed,  2 Aug 2023 12:43:39 +0000 (UTC)
+Received: by mail-pl1-f174.google.com with SMTP id d9443c01a7336-1b8b4748fe4so44252935ad.1
+        for <ocfs2-devel@lists.linux.dev>; Wed, 02 Aug 2023 05:43:39 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20221208; t=1690979915; x=1691584715;
+        d=gmail.com; s=20221208; t=1690980219; x=1691585019;
         h=message-id:date:subject:cc:to:from:from:to:cc:subject:date
          :message-id:reply-to;
-        bh=fHj0ogn13uTD9ShXB2epVwSA8wIkWRIMgchHlQuBxLk=;
-        b=WJgrzvkLDCxVrGzix111FmRTltpPpjO64wXrQbc3d4n8G+ckVsq12T9rapATZp2PW+
-         lSIWWFy5GpvB5GHZlX2d0S9+rwXCmZDrWAo4Ujx87DJ4xEWP9lEdJlnieQYQ3xtiVfPI
-         bk3wM9DbfoXAER0cr9qZLNpFF+lxJwht27dY+jWfBPQK5rujlRkkf9+ZgargfUTPoAGo
-         u654rmIL1LsvndT2AqxeattLmn0BrUWY7goKlUuYzMH+EgXpjS3kM0GvJAku+2xS6VP+
-         iULEc+LfoRtGopXWukQld7lm/yNSxkcB7khdxDqFIMwHM3CvhrDxdd5mScx/P21/DFgt
-         xZzw==
+        bh=GxJzp9ATBmLdL264ZO+clCh18DN/3lFofn79g2q4smk=;
+        b=Rrio5nTp2Ow3RU0Y0RsLR0psF9tZECzn3JAi8aF6qwvOO0RnczEnOOLmrsFE0LCG0U
+         zpd4s8KAim7VlJZJ+l4EGQOVWeT10CtBxyN4CVGSuunXNIPQW2C9lZEibQby//mqygZf
+         DC3OStYjeULGvwpnQlQsRZ+hbEW29SBtS2eGhHgptG5hry5bisZF6Ol/dssWLIyceNLI
+         FOzYHgBeydZFj0/vnEFeP8K30FGmUgvVSv+KXD9Qx11l5shqPuR1rdem725uVwc1o94g
+         zJ8WRmaEtoekpKoFd/CSy/M2owNJU/vlFGMBjFdTr0VcIG2JjRvSv6OQmtSij5RLmrFw
+         5K2w==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20221208; t=1690979915; x=1691584715;
+        d=1e100.net; s=20221208; t=1690980219; x=1691585019;
         h=message-id:date:subject:cc:to:from:x-gm-message-state:from:to:cc
          :subject:date:message-id:reply-to;
-        bh=fHj0ogn13uTD9ShXB2epVwSA8wIkWRIMgchHlQuBxLk=;
-        b=cEHE6pY4CwUAl2qx1PFHnclOdhVJtiak+hgDFj3vIhnAovnQqEyiaGPk7mxc9rnqMW
-         L2c7fE2ZO1OHoGsPkAkcYOjCbKIOw7dj2TQhYIjhXKrJF6lAI6b1iFSmAS0qFF1HiZcq
-         sNOBdCNLfBqqJ9lentDnUA0kZk7hHXAiPQdbKr1gkoLkhwuAH0/HvDHp3BqvZdIYU/np
-         qE0z6x991Ab6UOVao99uuKlbQcORNraunjaohH9D5ESiEtSABDH+bi0aDJIj8syYsMNo
-         04WxzmUyNBYW3H9jUdFJtXZHY5ozL16pUDYd8XSypA4VyOd4bA+M5+m6gKjgnXjnvseS
-         sb+Q==
-X-Gm-Message-State: ABy/qLZDpyqIkcbvslTmGJHp6LZqTv2LRHAj6A6foQTnosGLjXJwso8A
-	eEnESsgxIYiVd19HCJbL//Y=
-X-Google-Smtp-Source: APBJJlGx9qMcCJMFddU0V+VzxGFmFG3wURPqhamSEipbPZmZopsqwCEWMBb6mbzA5GhBbttT7CZy1w==
-X-Received: by 2002:a05:6808:2382:b0:3a0:38c2:2654 with SMTP id bp2-20020a056808238200b003a038c22654mr16938376oib.58.1690979915061;
-        Wed, 02 Aug 2023 05:38:35 -0700 (PDT)
+        bh=GxJzp9ATBmLdL264ZO+clCh18DN/3lFofn79g2q4smk=;
+        b=ZUMxhEwW1gXzCwoyJVuamidRBRvEjVGYbcDRol0r7HqjRGxxuT+mmm62p1/hIeLlWW
+         NqeZyDPbFV6pLTTJMjS9lbijmVkOQHrRqB1ras4CzWE2gErLdHQLSckgVD2AwlahP1Jq
+         3nDRQLb1COJezepJBdNIlfe8/DWthzQ8aHyptr3I027KlDqSYjmBe1po8C0SOmgSblV4
+         0LfzP/xzFX/SfzB/EBX+J/FWwJk8pfdOyNlpetCJcwDfkfQazWsKcJsNymTlhg6dC5RN
+         69s4DCocIFT6ACkIn2ZOyU9EH/rWInxMlTzjPYdZHqPmcJVb7D3TyhMeDvT2DCBFpzu5
+         qf/Q==
+X-Gm-Message-State: ABy/qLYQN6HLHQf2y6y1Ja3WIY3b7yhoUqbtzpAnTTbkak2cbbOosane
+	GUwJw4eHxmug6sn5fLRGgXg=
+X-Google-Smtp-Source: APBJJlFR2J588uPiHI1YzTLZ55kMA2lE8AX2sgpHFFtcZqji+j6pH21aKU+hVDcmg4NVKrq88xje3w==
+X-Received: by 2002:a17:902:e741:b0:1b0:307c:e6fe with SMTP id p1-20020a170902e74100b001b0307ce6femr17124366plf.10.1690980218855;
+        Wed, 02 Aug 2023 05:43:38 -0700 (PDT)
 Received: from 377044c6c369.cse.ust.hk (191host097.mobilenet.cse.ust.hk. [143.89.191.97])
-        by smtp.gmail.com with ESMTPSA id 30-20020a17090a001e00b00265c742a262sm1118029pja.4.2023.08.02.05.38.32
+        by smtp.gmail.com with ESMTPSA id m24-20020a170902bb9800b001bbbbda70ccsm12311217pls.158.2023.08.02.05.43.36
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Wed, 02 Aug 2023 05:38:33 -0700 (PDT)
+        Wed, 02 Aug 2023 05:43:38 -0700 (PDT)
 From: Chengfeng Ye <dg573847474@gmail.com>
 To: mark@fasheh.com,
 	jlbec@evilplan.org,
@@ -44,9 +44,9 @@ To: mark@fasheh.com,
 Cc: ocfs2-devel@lists.linux.dev,
 	linux-kernel@vger.kernel.org,
 	Chengfeng Ye <dg573847474@gmail.com>
-Subject: [PATCH v2] ocfs2: cluster: fix potential deadlock on &qs->qs_lock
-Date: Wed,  2 Aug 2023 12:38:24 +0000
-Message-Id: <20230802123824.15301-1-dg573847474@gmail.com>
+Subject: [PATCH] ocfs2: cluster: fix potential deadlodddck on &o2net_debug_lock
+Date: Wed,  2 Aug 2023 12:43:20 +0000
+Message-Id: <20230802124320.15827-1-dg573847474@gmail.com>
 X-Mailer: git-send-email 2.17.1
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
@@ -54,153 +54,171 @@ List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 
-&qs->qs_lock is acquired by timer o2net_idle_timer() along the following
-call chain. Thus the acquisition of the lock under process context should
-disable bottom half, otherwise deadlock could happen if the timer happens
-to preempt the execution while the lock is held in process context on the
-same CPU.
+&o2net_debug_lock is acquired by timer o2net_idle_timer() along the
+following call chain. Thus the acquisition of the lock under process
+context should disable bottom half, otherwise deadlock could happen
+if the timer happens to preempt the execution while the lock is held
+in process context on the same CPU.
 
 <timer interrupt>
         -> o2net_idle_timer()
-        -> o2quo_conn_err()
-        -> spin_lock(&qs->qs_lock)
+        -> queue_delayed_work()
+        -> sc_put()
+        -> sc_kref_release()
+        -> o2net_debug_del_sc()
+        -> spin_lock(&o2net_debug_lock);
 
-Several lock acquisition of &qs->qs_lock under process contex do not
-disable irq or bottom half. The patch fixes these potential deadlocks
-scenerio by using spin_lock_bh() on &qs->qs_lock.
+Several lock acquisition of &o2net_debug_lock under process context
+do not disable irq or bottom half. The patch fixes these potential
+deadlocks scenerio by using spin_lock_bh() on &o2net_debug_lock.
 
 This flaw was found by an experimental static analysis tool I am
-developing for irq-related deadlock. x86_64 allmodconfig using gcc shows
-no new warning.
+developing for irq-related deadlock. x86_64 allmodconfig using gcc
+shows no new warning.
 
 Signed-off-by: Chengfeng Ye <dg573847474@gmail.com>
-
-Changes in v2
-- Consistently use spin_lock_bh() on all potential deadlock sites of
-  &qs->qs_lock
 ---
- fs/ocfs2/cluster/quorum.c | 26 +++++++++++++-------------
- 1 file changed, 13 insertions(+), 13 deletions(-)
+ fs/ocfs2/cluster/netdebug.c | 40 ++++++++++++++++++-------------------
+ 1 file changed, 20 insertions(+), 20 deletions(-)
 
-diff --git a/fs/ocfs2/cluster/quorum.c b/fs/ocfs2/cluster/quorum.c
-index 189c111bc371..15d0ed9c13e5 100644
---- a/fs/ocfs2/cluster/quorum.c
-+++ b/fs/ocfs2/cluster/quorum.c
-@@ -93,7 +93,7 @@ static void o2quo_make_decision(struct work_struct *work)
- 	int lowest_hb, lowest_reachable = 0, fence = 0;
- 	struct o2quo_state *qs = &o2quo_state;
+diff --git a/fs/ocfs2/cluster/netdebug.c b/fs/ocfs2/cluster/netdebug.c
+index 35c05c18de59..bc27301eab6d 100644
+--- a/fs/ocfs2/cluster/netdebug.c
++++ b/fs/ocfs2/cluster/netdebug.c
+@@ -44,17 +44,17 @@ static LIST_HEAD(send_tracking);
  
--	spin_lock(&qs->qs_lock);
-+	spin_lock_bh(&qs->qs_lock);
+ void o2net_debug_add_nst(struct o2net_send_tracking *nst)
+ {
+-	spin_lock(&o2net_debug_lock);
++	spin_lock_bh(&o2net_debug_lock);
+ 	list_add(&nst->st_net_debug_item, &send_tracking);
+-	spin_unlock(&o2net_debug_lock);
++	spin_unlock_bh(&o2net_debug_lock);
+ }
  
- 	lowest_hb = find_first_bit(qs->qs_hb_bm, O2NM_MAX_NODES);
- 	if (lowest_hb != O2NM_MAX_NODES)
-@@ -146,14 +146,14 @@ static void o2quo_make_decision(struct work_struct *work)
+ void o2net_debug_del_nst(struct o2net_send_tracking *nst)
+ {
+-	spin_lock(&o2net_debug_lock);
++	spin_lock_bh(&o2net_debug_lock);
+ 	if (!list_empty(&nst->st_net_debug_item))
+ 		list_del_init(&nst->st_net_debug_item);
+-	spin_unlock(&o2net_debug_lock);
++	spin_unlock_bh(&o2net_debug_lock);
+ }
+ 
+ static struct o2net_send_tracking
+@@ -84,9 +84,9 @@ static void *nst_seq_start(struct seq_file *seq, loff_t *pos)
+ {
+ 	struct o2net_send_tracking *nst, *dummy_nst = seq->private;
+ 
+-	spin_lock(&o2net_debug_lock);
++	spin_lock_bh(&o2net_debug_lock);
+ 	nst = next_nst(dummy_nst);
+-	spin_unlock(&o2net_debug_lock);
++	spin_unlock_bh(&o2net_debug_lock);
+ 
+ 	return nst;
+ }
+@@ -95,13 +95,13 @@ static void *nst_seq_next(struct seq_file *seq, void *v, loff_t *pos)
+ {
+ 	struct o2net_send_tracking *nst, *dummy_nst = seq->private;
+ 
+-	spin_lock(&o2net_debug_lock);
++	spin_lock_bh(&o2net_debug_lock);
+ 	nst = next_nst(dummy_nst);
+ 	list_del_init(&dummy_nst->st_net_debug_item);
+ 	if (nst)
+ 		list_add(&dummy_nst->st_net_debug_item,
+ 			 &nst->st_net_debug_item);
+-	spin_unlock(&o2net_debug_lock);
++	spin_unlock_bh(&o2net_debug_lock);
+ 
+ 	return nst; /* unused, just needs to be null when done */
+ }
+@@ -112,7 +112,7 @@ static int nst_seq_show(struct seq_file *seq, void *v)
+ 	ktime_t now;
+ 	s64 sock, send, status;
+ 
+-	spin_lock(&o2net_debug_lock);
++	spin_lock_bh(&o2net_debug_lock);
+ 	nst = next_nst(dummy_nst);
+ 	if (!nst)
+ 		goto out;
+@@ -145,7 +145,7 @@ static int nst_seq_show(struct seq_file *seq, void *v)
+ 		   (long long)status);
  
  out:
- 	if (fence) {
--		spin_unlock(&qs->qs_lock);
-+		spin_unlock_bh(&qs->qs_lock);
- 		o2quo_fence_self();
- 	} else {
- 		mlog(ML_NOTICE, "not fencing this node, heartbeating: %d, "
- 			"connected: %d, lowest: %d (%sreachable)\n",
- 			qs->qs_heartbeating, qs->qs_connected, lowest_hb,
- 			lowest_reachable ? "" : "un");
--		spin_unlock(&qs->qs_lock);
-+		spin_unlock_bh(&qs->qs_lock);
+-	spin_unlock(&o2net_debug_lock);
++	spin_unlock_bh(&o2net_debug_lock);
  
+ 	return 0;
+ }
+@@ -191,16 +191,16 @@ static const struct file_operations nst_seq_fops = {
+ 
+ void o2net_debug_add_sc(struct o2net_sock_container *sc)
+ {
+-	spin_lock(&o2net_debug_lock);
++	spin_lock_bh(&o2net_debug_lock);
+ 	list_add(&sc->sc_net_debug_item, &sock_containers);
+-	spin_unlock(&o2net_debug_lock);
++	spin_unlock_bh(&o2net_debug_lock);
+ }
+ 
+ void o2net_debug_del_sc(struct o2net_sock_container *sc)
+ {
+-	spin_lock(&o2net_debug_lock);
++	spin_lock_bh(&o2net_debug_lock);
+ 	list_del_init(&sc->sc_net_debug_item);
+-	spin_unlock(&o2net_debug_lock);
++	spin_unlock_bh(&o2net_debug_lock);
+ }
+ 
+ struct o2net_sock_debug {
+@@ -236,9 +236,9 @@ static void *sc_seq_start(struct seq_file *seq, loff_t *pos)
+ 	struct o2net_sock_debug *sd = seq->private;
+ 	struct o2net_sock_container *sc, *dummy_sc = sd->dbg_sock;
+ 
+-	spin_lock(&o2net_debug_lock);
++	spin_lock_bh(&o2net_debug_lock);
+ 	sc = next_sc(dummy_sc);
+-	spin_unlock(&o2net_debug_lock);
++	spin_unlock_bh(&o2net_debug_lock);
+ 
+ 	return sc;
+ }
+@@ -248,12 +248,12 @@ static void *sc_seq_next(struct seq_file *seq, void *v, loff_t *pos)
+ 	struct o2net_sock_debug *sd = seq->private;
+ 	struct o2net_sock_container *sc, *dummy_sc = sd->dbg_sock;
+ 
+-	spin_lock(&o2net_debug_lock);
++	spin_lock_bh(&o2net_debug_lock);
+ 	sc = next_sc(dummy_sc);
+ 	list_del_init(&dummy_sc->sc_net_debug_item);
+ 	if (sc)
+ 		list_add(&dummy_sc->sc_net_debug_item, &sc->sc_net_debug_item);
+-	spin_unlock(&o2net_debug_lock);
++	spin_unlock_bh(&o2net_debug_lock);
+ 
+ 	return sc; /* unused, just needs to be null when done */
+ }
+@@ -349,7 +349,7 @@ static int sc_seq_show(struct seq_file *seq, void *v)
+ 	struct o2net_sock_debug *sd = seq->private;
+ 	struct o2net_sock_container *sc, *dummy_sc = sd->dbg_sock;
+ 
+-	spin_lock(&o2net_debug_lock);
++	spin_lock_bh(&o2net_debug_lock);
+ 	sc = next_sc(dummy_sc);
+ 
+ 	if (sc) {
+@@ -359,7 +359,7 @@ static int sc_seq_show(struct seq_file *seq, void *v)
+ 			sc_show_sock_stats(seq, sc);
  	}
  
-@@ -196,7 +196,7 @@ void o2quo_hb_up(u8 node)
- {
- 	struct o2quo_state *qs = &o2quo_state;
+-	spin_unlock(&o2net_debug_lock);
++	spin_unlock_bh(&o2net_debug_lock);
  
--	spin_lock(&qs->qs_lock);
-+	spin_lock_bh(&qs->qs_lock);
- 
- 	qs->qs_heartbeating++;
- 	mlog_bug_on_msg(qs->qs_heartbeating == O2NM_MAX_NODES,
-@@ -211,7 +211,7 @@ void o2quo_hb_up(u8 node)
- 	else
- 		o2quo_clear_hold(qs, node);
- 
--	spin_unlock(&qs->qs_lock);
-+	spin_unlock_bh(&qs->qs_lock);
+ 	return 0;
  }
- 
- /* hb going down releases any holds we might have had due to this node from
-@@ -220,7 +220,7 @@ void o2quo_hb_down(u8 node)
- {
- 	struct o2quo_state *qs = &o2quo_state;
- 
--	spin_lock(&qs->qs_lock);
-+	spin_lock_bh(&qs->qs_lock);
- 
- 	qs->qs_heartbeating--;
- 	mlog_bug_on_msg(qs->qs_heartbeating < 0,
-@@ -233,7 +233,7 @@ void o2quo_hb_down(u8 node)
- 
- 	o2quo_clear_hold(qs, node);
- 
--	spin_unlock(&qs->qs_lock);
-+	spin_unlock_bh(&qs->qs_lock);
- }
- 
- /* this tells us that we've decided that the node is still heartbeating
-@@ -245,14 +245,14 @@ void o2quo_hb_still_up(u8 node)
- {
- 	struct o2quo_state *qs = &o2quo_state;
- 
--	spin_lock(&qs->qs_lock);
-+	spin_lock_bh(&qs->qs_lock);
- 
- 	mlog(0, "node %u\n", node);
- 
- 	qs->qs_pending = 1;
- 	o2quo_clear_hold(qs, node);
- 
--	spin_unlock(&qs->qs_lock);
-+	spin_unlock_bh(&qs->qs_lock);
- }
- 
- /* This is analogous to hb_up.  as a node's connection comes up we delay the
-@@ -264,7 +264,7 @@ void o2quo_conn_up(u8 node)
- {
- 	struct o2quo_state *qs = &o2quo_state;
- 
--	spin_lock(&qs->qs_lock);
-+	spin_lock_bh(&qs->qs_lock);
- 
- 	qs->qs_connected++;
- 	mlog_bug_on_msg(qs->qs_connected == O2NM_MAX_NODES,
-@@ -279,7 +279,7 @@ void o2quo_conn_up(u8 node)
- 	else
- 		o2quo_clear_hold(qs, node);
- 
--	spin_unlock(&qs->qs_lock);
-+	spin_unlock_bh(&qs->qs_lock);
- }
- 
- /* we've decided that we won't ever be connecting to the node again.  if it's
-@@ -290,7 +290,7 @@ void o2quo_conn_err(u8 node)
- {
- 	struct o2quo_state *qs = &o2quo_state;
- 
--	spin_lock(&qs->qs_lock);
-+	spin_lock_bh(&qs->qs_lock);
- 
- 	if (test_bit(node, qs->qs_conn_bm)) {
- 		qs->qs_connected--;
-@@ -307,7 +307,7 @@ void o2quo_conn_err(u8 node)
- 	mlog(0, "node %u, %d total\n", node, qs->qs_connected);
- 
- 
--	spin_unlock(&qs->qs_lock);
-+	spin_unlock_bh(&qs->qs_lock);
- }
- 
- void o2quo_init(void)
 -- 
 2.17.1
 
