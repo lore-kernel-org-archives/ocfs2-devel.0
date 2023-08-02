@@ -1,146 +1,167 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
+Received: from mx.manguebit.com (mx.manguebit.com [167.235.159.17])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 04665100BE;
-	Wed,  2 Aug 2023 18:21:56 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 51C95C433C8;
-	Wed,  2 Aug 2023 18:21:50 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1691000516;
-	bh=ycwx/5PKSOfdsJleD1GrXVU/2tvqnKBKqdlrqiXz2a4=;
-	h=Subject:From:To:Cc:Date:In-Reply-To:References:From;
-	b=Lq45skxqh7cpBQLhcIe1Gw+lovpqkvSzuzb8uAcyF5FrElk/i/Ef62Ff+U85B0JYe
-	 gb5CgOGTY1TKw/GZkOMcRDcxztlWQJmGUpbe2PB0ZZtJhOtSfNtibfRZFTg6XykiV4
-	 x4PKksy3wl2+3UvlwVruRvycuEHFr6v641nEPFf7oKydUHdevtCfIP62s3qFywogxs
-	 bUSv3T3yZ3RUK3kjfZ3Erjub/WKAY+sdkcU6WTTdHAgJrOMM/i9gdSpZrws8Unwtrq
-	 tNeLRJIXs/0bUybd4cEYmTQYz1K0b/J8KC16T4R6xltE9tlCNFzbPuAaxgMh/CIZB5
-	 7bXA8nQ4jZd1w==
-Message-ID: <16f46a9e6d88582d53d31a320589a7ba9d232e0c.camel@kernel.org>
-Subject: Re: [PATCH v6 5/7] xfs: switch to multigrain timestamps
-From: Jeff Layton <jlayton@kernel.org>
-To: "Darrick J. Wong" <djwong@kernel.org>, Christian Brauner
-	 <brauner@kernel.org>
-Cc: Eric Van Hensbergen <ericvh@kernel.org>, Latchesar Ionkov
- <lucho@ionkov.net>,  Dominique Martinet <asmadeus@codewreck.org>, Christian
- Schoenebeck <linux_oss@crudebyte.com>, David Howells <dhowells@redhat.com>,
- Marc Dionne <marc.dionne@auristor.com>, Chris Mason <clm@fb.com>, Josef
- Bacik <josef@toxicpanda.com>, David Sterba <dsterba@suse.com>,  Xiubo Li
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0F0398821;
+	Wed,  2 Aug 2023 18:54:47 +0000 (UTC)
+Message-ID: <471c346601a7daace902428e56b8579b.pc@manguebit.com>
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=manguebit.com;
+	s=dkim; t=1691002083;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+	 in-reply-to:in-reply-to:references:references;
+	bh=LM5dlnWT81GTwNGuf8M3+0tmWSk26IjSyG3XZJNlGxg=;
+	b=q+WFWoVwU8f/i7FIz0XAfDaWphvSKk6j9cTrweJn7z9x5iBr7hiB35FGPAUBDF4ISjvz5h
+	zznWulE1I6cYjxCc8w+oI7LqEsabOb90uMokjyBo26cUl9nOO1TEwZN8Rko1gnGWvU899Z
+	+EBpH1/sTAIcDBro/WhZd/24PR+naT0wlQBLDVmBmCkMhE+2F6usEQx/ESFOSTzKfD3foi
+	57LqLxR9Es5qHclOHN7ZNd3Wf1NFp5sNHd92kPnDoE27zzkvm/xF1Zegdhw2DWwM4cUSYl
+	FcRs0tYEjK3/9OByMH8nBUpqgGgWvImVoeFcmbN4cGs0tbYOYiDHxrQ3J3/9aA==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=manguebit.com;
+	s=dkim; t=1691002083;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+	 in-reply-to:in-reply-to:references:references;
+	bh=LM5dlnWT81GTwNGuf8M3+0tmWSk26IjSyG3XZJNlGxg=;
+	b=AoW9sil2tg15RxkemetVcD0MQH7aqHOPx9s45t6q2mXk4iNoevRltavPuQhHJickRN06JC
+	9twitSFZovdSmN54RsIMwcP9LbHZ1K86aCiRYdAMGoHCsXm0u0QTFFXXd8+eXqppmU9Kp1
+	Q9pg/HXE5fSlbCGR+84Z036/rAjhvge6A7ij00bIpSGub9bNIOdCFcEgHSqmL5WMnIl1Uf
+	VF0itzVid71/SBJv2BhC3GrS7WwIz1UW8ofISSDCmwhyuSGM2Z2MEfKyccU/HDsRsX7g/2
+	qop6kKp78QWclngeoV7X+/F2IIcl/qVTZIg1Eck9BzyGSdE1iSwHxnOAmhWl8g==
+ARC-Authentication-Results: i=1;
+	ORIGINATING;
+	auth=pass smtp.auth=pc@manguebit.com smtp.mailfrom=pc@manguebit.com
+ARC-Seal: i=1; s=dkim; d=manguebit.com; t=1691002083; a=rsa-sha256;
+	cv=none;
+	b=cp3+mC0OMj7F40WMT7qUHuJDwt5m+4Y0ISygYXiZ4GOzzVuy+cXksXQTjexnbnoHqJnkLv
+	A/Xh4iI5m54yLclEpvkUfV+Z5z+yl3bkiSW7DPqp7d3qf2mgApmdG2r6OnrC3HAVdpFkRR
+	FGIzkra0rLP1oeUH2LzXYwCEn0h5f1JOcg5inVxvd5FI0X3iaV9zS9fxN8/uoNWsRSS8bg
+	YveFBiSbZ9Cz5RuNQ9Dpsxd6wNh4r8y+aIu582+NYrL0UgzojRiCHbVTSN7csXMG8yKhXg
+	YDPPznVWXhPSF0A8cu9cmJOJmS32KIv4mwdX1lo6pb8zpon7EJ1dEyaA13ArHw==
+From: Paulo Alcantara <pc@manguebit.com>
+To: Jeff Layton <jlayton@kernel.org>, Eric Van Hensbergen
+ <ericvh@kernel.org>, Latchesar Ionkov <lucho@ionkov.net>, Dominique
+ Martinet <asmadeus@codewreck.org>, Christian Schoenebeck
+ <linux_oss@crudebyte.com>, David Howells <dhowells@redhat.com>, Marc
+ Dionne <marc.dionne@auristor.com>, Chris Mason <clm@fb.com>, Josef Bacik
+ <josef@toxicpanda.com>, David Sterba <dsterba@suse.com>, Xiubo Li
  <xiubli@redhat.com>, Ilya Dryomov <idryomov@gmail.com>, Jan Harkes
- <jaharkes@cs.cmu.edu>,  coda@cs.cmu.edu, Tyler Hicks <code@tyhicks.com>,
- Gao Xiang <xiang@kernel.org>,  Chao Yu <chao@kernel.org>, Yue Hu
- <huyue2@coolpad.com>, Jeffle Xu <jefflexu@linux.alibaba.com>,  Namjae Jeon
+ <jaharkes@cs.cmu.edu>, coda@cs.cmu.edu, Tyler Hicks <code@tyhicks.com>,
+ Gao Xiang <xiang@kernel.org>, Chao Yu <chao@kernel.org>, Yue Hu
+ <huyue2@coolpad.com>, Jeffle Xu <jefflexu@linux.alibaba.com>, Namjae Jeon
  <linkinjeon@kernel.org>, Sungjong Seo <sj1557.seo@samsung.com>, Jan Kara
- <jack@suse.com>,  Theodore Ts'o <tytso@mit.edu>, Andreas Dilger
+ <jack@suse.com>, Theodore Ts'o <tytso@mit.edu>, Andreas Dilger
  <adilger.kernel@dilger.ca>, Jaegeuk Kim <jaegeuk@kernel.org>, OGAWA
- Hirofumi <hirofumi@mail.parknet.co.jp>, Miklos Szeredi <miklos@szeredi.hu>,
- Bob Peterson <rpeterso@redhat.com>, Andreas Gruenbacher
- <agruenba@redhat.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, 
- Tejun Heo <tj@kernel.org>, Alexander Viro <viro@zeniv.linux.org.uk>,
- Christian Brauner <brauner@kernel.org>, Trond Myklebust
- <trond.myklebust@hammerspace.com>,  Anna Schumaker <anna@kernel.org>,
- Konstantin Komarov <almaz.alexandrovich@paragon-software.com>,  Mark Fasheh
- <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, Joseph Qi
- <joseph.qi@linux.alibaba.com>,  Mike Marshall <hubcap@omnibond.com>, Martin
- Brandenburg <martin@omnibond.com>, Luis Chamberlain <mcgrof@kernel.org>,
- Kees Cook <keescook@chromium.org>, Iurii Zaikin <yzaikin@google.com>, Steve
- French <sfrench@samba.org>, Paulo Alcantara <pc@manguebit.com>, Ronnie
- Sahlberg <lsahlber@redhat.com>, Shyam Prasad N <sprasad@microsoft.com>, Tom
- Talpey <tom@talpey.com>, Sergey Senozhatsky <senozhatsky@chromium.org>,
- Richard Weinberger <richard@nod.at>, Hans de Goede <hdegoede@redhat.com>,
- Hugh Dickins <hughd@google.com>, Andrew Morton <akpm@linux-foundation.org>,
- Dave Chinner <david@fromorbit.com>, Anthony Iliopoulos <ailiop@suse.com>,
- v9fs@lists.linux.dev, linux-kernel@vger.kernel.org, 
- linux-afs@lists.infradead.org, linux-btrfs@vger.kernel.org, 
+ Hirofumi <hirofumi@mail.parknet.co.jp>, Miklos Szeredi
+ <miklos@szeredi.hu>, Bob Peterson <rpeterso@redhat.com>, Andreas
+ Gruenbacher <agruenba@redhat.com>, Greg Kroah-Hartman
+ <gregkh@linuxfoundation.org>, Tejun Heo <tj@kernel.org>, Alexander Viro
+ <viro@zeniv.linux.org.uk>, Christian Brauner <brauner@kernel.org>, Trond
+ Myklebust <trond.myklebust@hammerspace.com>, Anna Schumaker
+ <anna@kernel.org>, Konstantin Komarov
+ <almaz.alexandrovich@paragon-software.com>, Mark Fasheh <mark@fasheh.com>,
+ Joel Becker <jlbec@evilplan.org>, Joseph Qi <joseph.qi@linux.alibaba.com>,
+ Mike Marshall <hubcap@omnibond.com>, Martin Brandenburg
+ <martin@omnibond.com>, Luis Chamberlain <mcgrof@kernel.org>, Kees Cook
+ <keescook@chromium.org>, Iurii Zaikin <yzaikin@google.com>, Steve French
+ <sfrench@samba.org>, Ronnie Sahlberg <lsahlber@redhat.com>, Shyam Prasad N
+ <sprasad@microsoft.com>, Tom Talpey <tom@talpey.com>, Sergey Senozhatsky
+ <senozhatsky@chromium.org>, Richard Weinberger <richard@nod.at>, Hans de
+ Goede <hdegoede@redhat.com>, Hugh Dickins <hughd@google.com>, Andrew
+ Morton <akpm@linux-foundation.org>, "Darrick J. Wong" <djwong@kernel.org>
+Cc: Dave Chinner <david@fromorbit.com>, Anthony Iliopoulos
+ <ailiop@suse.com>, v9fs@lists.linux.dev, linux-kernel@vger.kernel.org,
+ linux-afs@lists.infradead.org, linux-btrfs@vger.kernel.org,
  ceph-devel@vger.kernel.org, codalist@coda.cs.cmu.edu,
- ecryptfs@vger.kernel.org,  linux-erofs@lists.ozlabs.org,
- linux-fsdevel@vger.kernel.org,  linux-ext4@vger.kernel.org,
- linux-f2fs-devel@lists.sourceforge.net,  cluster-devel@redhat.com,
- linux-nfs@vger.kernel.org, ntfs3@lists.linux.dev, 
- ocfs2-devel@lists.linux.dev, devel@lists.orangefs.org, 
- linux-cifs@vger.kernel.org, samba-technical@lists.samba.org, 
- linux-mtd@lists.infradead.org, linux-mm@kvack.org, linux-xfs@vger.kernel.org
-Date: Wed, 02 Aug 2023 14:21:49 -0400
-In-Reply-To: <20230802174853.GC11352@frogsfrogsfrogs>
+ ecryptfs@vger.kernel.org, linux-erofs@lists.ozlabs.org,
+ linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org,
+ linux-f2fs-devel@lists.sourceforge.net, cluster-devel@redhat.com,
+ linux-nfs@vger.kernel.org, ntfs3@lists.linux.dev,
+ ocfs2-devel@lists.linux.dev, devel@lists.orangefs.org,
+ linux-cifs@vger.kernel.org, samba-technical@lists.samba.org,
+ linux-mtd@lists.infradead.org, linux-mm@kvack.org,
+ linux-xfs@vger.kernel.org, Jeff Layton <jlayton@kernel.org>
+Subject: Re: [PATCH v6 1/7] fs: pass the request_mask to generic_fillattr
+In-Reply-To: <20230725-mgctime-v6-1-a794c2b7abca@kernel.org>
 References: <20230725-mgctime-v6-0-a794c2b7abca@kernel.org>
-	 <20230725-mgctime-v6-5-a794c2b7abca@kernel.org>
-	 <20230802174853.GC11352@frogsfrogsfrogs>
-Content-Type: text/plain; charset="ISO-8859-15"
-Content-Transfer-Encoding: quoted-printable
-User-Agent: Evolution 3.48.4 (3.48.4-1.fc38) 
+ <20230725-mgctime-v6-1-a794c2b7abca@kernel.org>
+Date: Wed, 02 Aug 2023 15:47:56 -0300
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
+Content-Type: text/plain
 
-On Wed, 2023-08-02 at 10:48 -0700, Darrick J. Wong wrote:
-> On Tue, Jul 25, 2023 at 10:58:18AM -0400, Jeff Layton wrote:
-> > Enable multigrain timestamps, which should ensure that there is an
-> > apparent change to the timestamp whenever it has been written after
-> > being actively observed via getattr.
-> >=20
-> > Also, anytime the mtime changes, the ctime must also change, and those
-> > are now the only two options for xfs_trans_ichgtime. Have that function
-> > unconditionally bump the ctime, and ASSERT that XFS_ICHGTIME_CHG is
-> > always set.
-> >=20
-> > Signed-off-by: Jeff Layton <jlayton@kernel.org>
-> > ---
-> >  fs/xfs/libxfs/xfs_trans_inode.c | 6 +++---
-> >  fs/xfs/xfs_iops.c               | 4 ++--
-> >  fs/xfs/xfs_super.c              | 2 +-
-> >  3 files changed, 6 insertions(+), 6 deletions(-)
-> >=20
-> > diff --git a/fs/xfs/libxfs/xfs_trans_inode.c b/fs/xfs/libxfs/xfs_trans_=
-inode.c
-> > index 6b2296ff248a..ad22656376d3 100644
-> > --- a/fs/xfs/libxfs/xfs_trans_inode.c
-> > +++ b/fs/xfs/libxfs/xfs_trans_inode.c
-> > @@ -62,12 +62,12 @@ xfs_trans_ichgtime(
-> >  	ASSERT(tp);
-> >  	ASSERT(xfs_isilocked(ip, XFS_ILOCK_EXCL));
-> > =20
-> > -	tv =3D current_time(inode);
-> > +	/* If the mtime changes, then ctime must also change */
-> > +	ASSERT(flags & XFS_ICHGTIME_CHG);
-> > =20
-> > +	tv =3D inode_set_ctime_current(inode);
-> >  	if (flags & XFS_ICHGTIME_MOD)
-> >  		inode->i_mtime =3D tv;
-> > -	if (flags & XFS_ICHGTIME_CHG)
-> > -		inode_set_ctime_to_ts(inode, tv);
-> >  	if (flags & XFS_ICHGTIME_CREATE)
-> >  		ip->i_crtime =3D tv;
-> >  }
-> > diff --git a/fs/xfs/xfs_iops.c b/fs/xfs/xfs_iops.c
-> > index 3a9363953ef2..3f89ef5a2820 100644
-> > --- a/fs/xfs/xfs_iops.c
-> > +++ b/fs/xfs/xfs_iops.c
-> > @@ -573,10 +573,10 @@ xfs_vn_getattr(
-> >  	stat->gid =3D vfsgid_into_kgid(vfsgid);
-> >  	stat->ino =3D ip->i_ino;
-> >  	stat->atime =3D inode->i_atime;
-> > -	stat->mtime =3D inode->i_mtime;
-> > -	stat->ctime =3D inode_get_ctime(inode);
-> >  	stat->blocks =3D XFS_FSB_TO_BB(mp, ip->i_nblocks + ip->i_delayed_blks=
-);
-> > =20
-> > +	fill_mg_cmtime(request_mask, inode, stat);
->=20
-> Huh.  I would've thought @stat would come first since that's what we're
-> acting upon, but ... eh. :)
->=20
-> If everyone else is ok with the fill_mg_cmtime signature,
-> Acked-by: Darrick J. Wong <djwong@kernel.org>
->=20
->=20
+Jeff Layton <jlayton@kernel.org> writes:
 
-Good point. We can change the signature. I think xfs is the only caller
-outside of the generic vfs right now, and it'd be best to do it now.
+> generic_fillattr just fills in the entire stat struct indiscriminately
+> today, copying data from the inode. There is at least one attribute
+> (STATX_CHANGE_COOKIE) that can have side effects when it is reported,
+> and we're looking at adding more with the addition of multigrain
+> timestamps.
+>
+> Add a request_mask argument to generic_fillattr and have most callers
+> just pass in the value that is passed to getattr. Have other callers
+> (e.g. ksmbd) just pass in STATX_BASIC_STATS. Also move the setting of
+> STATX_CHANGE_COOKIE into generic_fillattr.
+>
+> Signed-off-by: Jeff Layton <jlayton@kernel.org>
+> ---
+>  fs/9p/vfs_inode.c       |  4 ++--
+>  fs/9p/vfs_inode_dotl.c  |  4 ++--
+>  fs/afs/inode.c          |  2 +-
+>  fs/btrfs/inode.c        |  2 +-
+>  fs/ceph/inode.c         |  2 +-
+>  fs/coda/inode.c         |  3 ++-
+>  fs/ecryptfs/inode.c     |  5 +++--
+>  fs/erofs/inode.c        |  2 +-
+>  fs/exfat/file.c         |  2 +-
+>  fs/ext2/inode.c         |  2 +-
+>  fs/ext4/inode.c         |  2 +-
+>  fs/f2fs/file.c          |  2 +-
+>  fs/fat/file.c           |  2 +-
+>  fs/fuse/dir.c           |  2 +-
+>  fs/gfs2/inode.c         |  2 +-
+>  fs/hfsplus/inode.c      |  2 +-
+>  fs/kernfs/inode.c       |  2 +-
+>  fs/libfs.c              |  4 ++--
+>  fs/minix/inode.c        |  2 +-
+>  fs/nfs/inode.c          |  2 +-
+>  fs/nfs/namespace.c      |  3 ++-
+>  fs/ntfs3/file.c         |  2 +-
+>  fs/ocfs2/file.c         |  2 +-
+>  fs/orangefs/inode.c     |  2 +-
+>  fs/proc/base.c          |  4 ++--
+>  fs/proc/fd.c            |  2 +-
+>  fs/proc/generic.c       |  2 +-
+>  fs/proc/proc_net.c      |  2 +-
+>  fs/proc/proc_sysctl.c   |  2 +-
+>  fs/proc/root.c          |  3 ++-
+>  fs/smb/client/inode.c   |  2 +-
+>  fs/smb/server/smb2pdu.c | 22 +++++++++++-----------
+>  fs/smb/server/vfs.c     |  3 ++-
+>  fs/stat.c               | 18 ++++++++++--------
+>  fs/sysv/itree.c         |  3 ++-
+>  fs/ubifs/dir.c          |  2 +-
+>  fs/udf/symlink.c        |  2 +-
+>  fs/vboxsf/utils.c       |  2 +-
+>  include/linux/fs.h      |  2 +-
+>  mm/shmem.c              |  2 +-
+>  40 files changed, 70 insertions(+), 62 deletions(-)
+>
+> [...]
+>
+> diff --git a/fs/smb/client/inode.c b/fs/smb/client/inode.c
+> index 218f03dd3f52..93fe43789d7a 100644
+> --- a/fs/smb/client/inode.c
+> +++ b/fs/smb/client/inode.c
+> @@ -2540,7 +2540,7 @@ int cifs_getattr(struct mnt_idmap *idmap, const struct path *path,
+>  			return rc;
+>  	}
+>  
+> -	generic_fillattr(&nop_mnt_idmap, inode, stat);
+> +	generic_fillattr(&nop_mnt_idmap, request_mask, inode, stat);
+>  	stat->blksize = cifs_sb->ctx->bsize;
+>  	stat->ino = CIFS_I(inode)->uniqueid;
 
-Christian, would you prefer that I send an updated series, or patches on
-top of vfs.ctime that can be folded in?
-=20
---=20
-Jeff Layton <jlayton@kernel.org>
+Reviewed-by: Paulo Alcantara (SUSE) <pc@manguebit.com>
