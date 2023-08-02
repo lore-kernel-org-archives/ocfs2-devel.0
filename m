@@ -1,160 +1,206 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-oi1-f171.google.com (mail-oi1-f171.google.com [209.85.167.171])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6CF9A125AD;
-	Fri, 28 Jul 2023 11:01:04 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 71689C433C8;
-	Fri, 28 Jul 2023 11:00:49 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1690542063;
-	bh=OHILmmeiUht8a/iNB32Wqo6p3CZSNTmmXf/wqdU8eyM=;
-	h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-	b=lUHncmkLN11wgaMD1KR1Gy5if09x5xh0KGyx50ZGUuC2fBx+ijTW2wECE/sOye+rG
-	 qDHl4LIc5ruyg2PAO1VZI95ZW/5j7Q0Vo/saVvtDVwvUJlMtgeQjFVYzjalCOIixt6
-	 gEQ+u8asPVZluAxs1HoSNgHXPJA0QhMWBw4NywwMFrjIj9j61U5pX9yO+iEoVUAfbu
-	 mdakOz70WJL7rxDzg7P00Ji6kHPu+xHi68+/TquTtcuasIukOIAL/+DVn48WGku6nx
-	 2ORenDwB3jD7HGc7jH1b/evq7YZ9RS2gsMH8Qjv3EgEZjMk8pxaawj3uGeQKo/zCuQ
-	 +lMRyzmoHCobQ==
-From: Christian Brauner <brauner@kernel.org>
-To: Jeff Layton <jlayton@kernel.org>
-Cc: Christian Brauner <brauner@kernel.org>,
-	Dave Chinner <david@fromorbit.com>,
-	Anthony Iliopoulos <ailiop@suse.com>,
-	v9fs@lists.linux.dev,
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3600C63B1
+	for <ocfs2-devel@lists.linux.dev>; Wed,  2 Aug 2023 12:38:36 +0000 (UTC)
+Received: by mail-oi1-f171.google.com with SMTP id 5614622812f47-3a5ad6087a1so4080818b6e.2
+        for <ocfs2-devel@lists.linux.dev>; Wed, 02 Aug 2023 05:38:36 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20221208; t=1690979915; x=1691584715;
+        h=message-id:date:subject:cc:to:from:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=fHj0ogn13uTD9ShXB2epVwSA8wIkWRIMgchHlQuBxLk=;
+        b=WJgrzvkLDCxVrGzix111FmRTltpPpjO64wXrQbc3d4n8G+ckVsq12T9rapATZp2PW+
+         lSIWWFy5GpvB5GHZlX2d0S9+rwXCmZDrWAo4Ujx87DJ4xEWP9lEdJlnieQYQ3xtiVfPI
+         bk3wM9DbfoXAER0cr9qZLNpFF+lxJwht27dY+jWfBPQK5rujlRkkf9+ZgargfUTPoAGo
+         u654rmIL1LsvndT2AqxeattLmn0BrUWY7goKlUuYzMH+EgXpjS3kM0GvJAku+2xS6VP+
+         iULEc+LfoRtGopXWukQld7lm/yNSxkcB7khdxDqFIMwHM3CvhrDxdd5mScx/P21/DFgt
+         xZzw==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20221208; t=1690979915; x=1691584715;
+        h=message-id:date:subject:cc:to:from:x-gm-message-state:from:to:cc
+         :subject:date:message-id:reply-to;
+        bh=fHj0ogn13uTD9ShXB2epVwSA8wIkWRIMgchHlQuBxLk=;
+        b=cEHE6pY4CwUAl2qx1PFHnclOdhVJtiak+hgDFj3vIhnAovnQqEyiaGPk7mxc9rnqMW
+         L2c7fE2ZO1OHoGsPkAkcYOjCbKIOw7dj2TQhYIjhXKrJF6lAI6b1iFSmAS0qFF1HiZcq
+         sNOBdCNLfBqqJ9lentDnUA0kZk7hHXAiPQdbKr1gkoLkhwuAH0/HvDHp3BqvZdIYU/np
+         qE0z6x991Ab6UOVao99uuKlbQcORNraunjaohH9D5ESiEtSABDH+bi0aDJIj8syYsMNo
+         04WxzmUyNBYW3H9jUdFJtXZHY5ozL16pUDYd8XSypA4VyOd4bA+M5+m6gKjgnXjnvseS
+         sb+Q==
+X-Gm-Message-State: ABy/qLZDpyqIkcbvslTmGJHp6LZqTv2LRHAj6A6foQTnosGLjXJwso8A
+	eEnESsgxIYiVd19HCJbL//Y=
+X-Google-Smtp-Source: APBJJlGx9qMcCJMFddU0V+VzxGFmFG3wURPqhamSEipbPZmZopsqwCEWMBb6mbzA5GhBbttT7CZy1w==
+X-Received: by 2002:a05:6808:2382:b0:3a0:38c2:2654 with SMTP id bp2-20020a056808238200b003a038c22654mr16938376oib.58.1690979915061;
+        Wed, 02 Aug 2023 05:38:35 -0700 (PDT)
+Received: from 377044c6c369.cse.ust.hk (191host097.mobilenet.cse.ust.hk. [143.89.191.97])
+        by smtp.gmail.com with ESMTPSA id 30-20020a17090a001e00b00265c742a262sm1118029pja.4.2023.08.02.05.38.32
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Wed, 02 Aug 2023 05:38:33 -0700 (PDT)
+From: Chengfeng Ye <dg573847474@gmail.com>
+To: mark@fasheh.com,
+	jlbec@evilplan.org,
+	joseph.qi@linux.alibaba.com,
+	akpm@linux-foundation.org
+Cc: ocfs2-devel@lists.linux.dev,
 	linux-kernel@vger.kernel.org,
-	linux-afs@lists.infradead.org,
-	linux-btrfs@vger.kernel.org,
-	ceph-devel@vger.kernel.org,
-	codalist@coda.cs.cmu.edu,
-	ecryptfs@vger.kernel.org,
-	linux-erofs@lists.ozlabs.org,
-	linux-fsdevel@vger.kernel.org,
-	linux-ext4@vger.kernel.org,
-	linux-f2fs-devel@lists.sourceforge.net,
-	cluster-devel@redhat.com,
-	linux-nfs@vger.kernel.org,
-	ntfs3@lists.linux.dev,
-	ocfs2-devel@lists.linux.dev,
-	devel@lists.orangefs.org,
-	linux-cifs@vger.kernel.org,
-	samba-technical@lists.samba.org,
-	linux-mtd@lists.infradead.org,
-	linux-mm@kvack.org,
-	linux-xfs@vger.kernel.org,
-	Eric Van Hensbergen <ericvh@kernel.org>,
-	Latchesar Ionkov <lucho@ionkov.net>,
-	Dominique Martinet <asmadeus@codewreck.org>,
-	Christian Schoenebeck <linux_oss@crudebyte.com>,
-	David Howells <dhowells@redhat.com>,
-	Marc Dionne <marc.dionne@auristor.com>,
-	Chris Mason <clm@fb.com>,
-	Josef Bacik <josef@toxicpanda.com>,
-	David Sterba <dsterba@suse.com>,
-	Xiubo Li <xiubli@redhat.com>,
-	Ilya Dryomov <idryomov@gmail.com>,
-	Jan Harkes <jaharkes@cs.cmu.edu>,
-	coda@cs.cmu.edu,
-	Tyler Hicks <code@tyhicks.com>,
-	Gao Xiang <xiang@kernel.org>,
-	Chao Yu <chao@kernel.org>,
-	Yue Hu <huyue2@coolpad.com>,
-	Jeffle Xu <jefflexu@linux.alibaba.com>,
-	Namjae Jeon <linkinjeon@kernel.org>,
-	Sungjong Seo <sj1557.seo@samsung.com>,
-	Jan Kara <jack@suse.com>,
-	Theodore Ts'o <tytso@mit.edu>,
-	Andreas Dilger <adilger.kernel@dilger.ca>,
-	Jaegeuk Kim <jaegeuk@kernel.org>,
-	OGAWA Hirofumi <hirofumi@mail.parknet.co.jp>,
-	Miklos Szeredi <miklos@szeredi.hu>,
-	Bob Peterson <rpeterso@redhat.com>,
-	Andreas Gruenbacher <agruenba@redhat.com>,
-	Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
-	Tejun Heo <tj@kernel.org>,
-	Alexander Viro <viro@zeniv.linux.org.uk>,
-	Trond Myklebust <trond.myklebust@hammerspace.com>,
-	Anna Schumaker <anna@kernel.org>,
-	Konstantin Komarov <almaz.alexandrovich@paragon-software.com>,
-	Mark Fasheh <mark@fasheh.com>,
-	Joel Becker <jlbec@evilplan.org>,
-	Joseph Qi <joseph.qi@linux.alibaba.com>,
-	Mike Marshall <hubcap@omnibond.com>,
-	Martin Brandenburg <martin@omnibond.com>,
-	Luis Chamberlain <mcgrof@kernel.org>,
-	Kees Cook <keescook@chromium.org>,
-	Iurii Zaikin <yzaikin@google.com>,
-	Steve French <sfrench@samba.org>,
-	Paulo Alcantara <pc@manguebit.com>,
-	Ronnie Sahlberg <lsahlber@redhat.com>,
-	Shyam Prasad N <sprasad@microsoft.com>,
-	Tom Talpey <tom@talpey.com>,
-	Sergey Senozhatsky <senozhatsky@chromium.org>,
-	Richard Weinberger <richard@nod.at>,
-	Hans de Goede <hdegoede@redhat.com>,
-	Hugh Dickins <hughd@google.com>,
-	Andrew Morton <akpm@linux-foundation.org>,
-	"Darrick J. Wong" <djwong@kernel.org>
-Subject: Re: (subset) [PATCH v6 0/7] fs: implement multigrain timestamps
-Date: Fri, 28 Jul 2023 13:00:37 +0200
-Message-Id: <20230728-unrecht-ersichtlich-cfa7d0c703d1@brauner>
-X-Mailer: git-send-email 2.34.1
-In-Reply-To: <20230725-mgctime-v6-0-a794c2b7abca@kernel.org>
-References: <20230725-mgctime-v6-0-a794c2b7abca@kernel.org>
+	Chengfeng Ye <dg573847474@gmail.com>
+Subject: [PATCH v2] ocfs2: cluster: fix potential deadlock on &qs->qs_lock
+Date: Wed,  2 Aug 2023 12:38:24 +0000
+Message-Id: <20230802123824.15301-1-dg573847474@gmail.com>
+X-Mailer: git-send-email 2.17.1
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
-MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-X-Developer-Signature: v=1; a=openpgp-sha256; l=1874; i=brauner@kernel.org; h=from:subject:message-id; bh=4DjYiXolHUh8qQu1N+OzbWT4vtvmgyT4c+N7Ht8XGtY=; b=owGbwMvMwCU28Zj0gdSKO4sYT6slMaQcnsy9IaFu+ZP9z1N8rj/+PH2Pm5FLY6hTmXAw+6xpv069 EIk93lHKwiDGxSArpsji0G4SLrecp2KzUaYGzBxWJpAhDFycAjARMyFGhh2xp3MqP+WJ6kre7E0z/m vxVuf2tOrqbz/KOXZnbdld4czI8C9ly15G/weVYRsOZM6bEHF4077Al0vcwkM2vDFrTz89nQsA
-X-Developer-Key: i=brauner@kernel.org; a=openpgp; fpr=4880B8C9BD0E5106FC070F4F7B3C391EFEA93624
-Content-Transfer-Encoding: 8bit
 
-On Tue, 25 Jul 2023 10:58:13 -0400, Jeff Layton wrote:
-> The VFS always uses coarse-grained timestamps when updating the
-> ctime and mtime after a change. This has the benefit of allowing
-> filesystems to optimize away a lot metadata updates, down to around 1
-> per jiffy, even when a file is under heavy writes.
-> 
-> Unfortunately, this coarseness has always been an issue when we're
-> exporting via NFSv3, which relies on timestamps to validate caches. A
-> lot of changes can happen in a jiffy, so timestamps aren't sufficient to
-> help the client decide to invalidate the cache.
-> 
-> [...]
+&qs->qs_lock is acquired by timer o2net_idle_timer() along the following
+call chain. Thus the acquisition of the lock under process context should
+disable bottom half, otherwise deadlock could happen if the timer happens
+to preempt the execution while the lock is held in process context on the
+same CPU.
 
-Survives xfstests (tmpfs, ext4, overlayfs) and the fs portions of LTP.
-Let's keep our eyes open for any potential issues. Past suspects has
-been IMA interacting with overlayfs. We'll see. Picked everything minus
-the tmpfs-writepage patch that was contentious.
+<timer interrupt>
+        -> o2net_idle_timer()
+        -> o2quo_conn_err()
+        -> spin_lock(&qs->qs_lock)
 
+Several lock acquisition of &qs->qs_lock under process contex do not
+disable irq or bottom half. The patch fixes these potential deadlocks
+scenerio by using spin_lock_bh() on &qs->qs_lock.
+
+This flaw was found by an experimental static analysis tool I am
+developing for irq-related deadlock. x86_64 allmodconfig using gcc shows
+no new warning.
+
+Signed-off-by: Chengfeng Ye <dg573847474@gmail.com>
+
+Changes in v2
+- Consistently use spin_lock_bh() on all potential deadlock sites of
+  &qs->qs_lock
 ---
+ fs/ocfs2/cluster/quorum.c | 26 +++++++++++++-------------
+ 1 file changed, 13 insertions(+), 13 deletions(-)
 
-Applied to the vfs.ctime branch of the vfs/vfs.git tree.
-Patches in the vfs.ctime branch should appear in linux-next soon.
+diff --git a/fs/ocfs2/cluster/quorum.c b/fs/ocfs2/cluster/quorum.c
+index 189c111bc371..15d0ed9c13e5 100644
+--- a/fs/ocfs2/cluster/quorum.c
++++ b/fs/ocfs2/cluster/quorum.c
+@@ -93,7 +93,7 @@ static void o2quo_make_decision(struct work_struct *work)
+ 	int lowest_hb, lowest_reachable = 0, fence = 0;
+ 	struct o2quo_state *qs = &o2quo_state;
+ 
+-	spin_lock(&qs->qs_lock);
++	spin_lock_bh(&qs->qs_lock);
+ 
+ 	lowest_hb = find_first_bit(qs->qs_hb_bm, O2NM_MAX_NODES);
+ 	if (lowest_hb != O2NM_MAX_NODES)
+@@ -146,14 +146,14 @@ static void o2quo_make_decision(struct work_struct *work)
+ 
+ out:
+ 	if (fence) {
+-		spin_unlock(&qs->qs_lock);
++		spin_unlock_bh(&qs->qs_lock);
+ 		o2quo_fence_self();
+ 	} else {
+ 		mlog(ML_NOTICE, "not fencing this node, heartbeating: %d, "
+ 			"connected: %d, lowest: %d (%sreachable)\n",
+ 			qs->qs_heartbeating, qs->qs_connected, lowest_hb,
+ 			lowest_reachable ? "" : "un");
+-		spin_unlock(&qs->qs_lock);
++		spin_unlock_bh(&qs->qs_lock);
+ 
+ 	}
+ 
+@@ -196,7 +196,7 @@ void o2quo_hb_up(u8 node)
+ {
+ 	struct o2quo_state *qs = &o2quo_state;
+ 
+-	spin_lock(&qs->qs_lock);
++	spin_lock_bh(&qs->qs_lock);
+ 
+ 	qs->qs_heartbeating++;
+ 	mlog_bug_on_msg(qs->qs_heartbeating == O2NM_MAX_NODES,
+@@ -211,7 +211,7 @@ void o2quo_hb_up(u8 node)
+ 	else
+ 		o2quo_clear_hold(qs, node);
+ 
+-	spin_unlock(&qs->qs_lock);
++	spin_unlock_bh(&qs->qs_lock);
+ }
+ 
+ /* hb going down releases any holds we might have had due to this node from
+@@ -220,7 +220,7 @@ void o2quo_hb_down(u8 node)
+ {
+ 	struct o2quo_state *qs = &o2quo_state;
+ 
+-	spin_lock(&qs->qs_lock);
++	spin_lock_bh(&qs->qs_lock);
+ 
+ 	qs->qs_heartbeating--;
+ 	mlog_bug_on_msg(qs->qs_heartbeating < 0,
+@@ -233,7 +233,7 @@ void o2quo_hb_down(u8 node)
+ 
+ 	o2quo_clear_hold(qs, node);
+ 
+-	spin_unlock(&qs->qs_lock);
++	spin_unlock_bh(&qs->qs_lock);
+ }
+ 
+ /* this tells us that we've decided that the node is still heartbeating
+@@ -245,14 +245,14 @@ void o2quo_hb_still_up(u8 node)
+ {
+ 	struct o2quo_state *qs = &o2quo_state;
+ 
+-	spin_lock(&qs->qs_lock);
++	spin_lock_bh(&qs->qs_lock);
+ 
+ 	mlog(0, "node %u\n", node);
+ 
+ 	qs->qs_pending = 1;
+ 	o2quo_clear_hold(qs, node);
+ 
+-	spin_unlock(&qs->qs_lock);
++	spin_unlock_bh(&qs->qs_lock);
+ }
+ 
+ /* This is analogous to hb_up.  as a node's connection comes up we delay the
+@@ -264,7 +264,7 @@ void o2quo_conn_up(u8 node)
+ {
+ 	struct o2quo_state *qs = &o2quo_state;
+ 
+-	spin_lock(&qs->qs_lock);
++	spin_lock_bh(&qs->qs_lock);
+ 
+ 	qs->qs_connected++;
+ 	mlog_bug_on_msg(qs->qs_connected == O2NM_MAX_NODES,
+@@ -279,7 +279,7 @@ void o2quo_conn_up(u8 node)
+ 	else
+ 		o2quo_clear_hold(qs, node);
+ 
+-	spin_unlock(&qs->qs_lock);
++	spin_unlock_bh(&qs->qs_lock);
+ }
+ 
+ /* we've decided that we won't ever be connecting to the node again.  if it's
+@@ -290,7 +290,7 @@ void o2quo_conn_err(u8 node)
+ {
+ 	struct o2quo_state *qs = &o2quo_state;
+ 
+-	spin_lock(&qs->qs_lock);
++	spin_lock_bh(&qs->qs_lock);
+ 
+ 	if (test_bit(node, qs->qs_conn_bm)) {
+ 		qs->qs_connected--;
+@@ -307,7 +307,7 @@ void o2quo_conn_err(u8 node)
+ 	mlog(0, "node %u, %d total\n", node, qs->qs_connected);
+ 
+ 
+-	spin_unlock(&qs->qs_lock);
++	spin_unlock_bh(&qs->qs_lock);
+ }
+ 
+ void o2quo_init(void)
+-- 
+2.17.1
 
-Please report any outstanding bugs that were missed during review in a
-new review to the original patch series allowing us to drop it.
-
-It's encouraged to provide Acked-bys and Reviewed-bys even though the
-patch has now been applied. If possible patch trailers will be updated.
-
-Note that commit hashes shown below are subject to change due to rebase,
-trailer updates or similar. If in doubt, please check the listed branch.
-
-tree:   https://git.kernel.org/pub/scm/linux/kernel/git/vfs/vfs.git
-branch: vfs.ctime
-
-[1/7] fs: pass the request_mask to generic_fillattr
-      https://git.kernel.org/vfs/vfs/c/0a6ab6dc6958
-[2/7] fs: add infrastructure for multigrain timestamps
-      https://git.kernel.org/vfs/vfs/c/d242b98ac3e9
-[4/7] tmpfs: add support for multigrain timestamps
-      https://git.kernel.org/vfs/vfs/c/1f31c58cf032
-[5/7] xfs: switch to multigrain timestamps
-      https://git.kernel.org/vfs/vfs/c/859dd91017dd
-[6/7] ext4: switch to multigrain timestamps
-      https://git.kernel.org/vfs/vfs/c/093af249eab4
-[7/7] btrfs: convert to multigrain timestamps
-      https://git.kernel.org/vfs/vfs/c/b90a04d1c30c
