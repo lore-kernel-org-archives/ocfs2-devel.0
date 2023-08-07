@@ -1,64 +1,59 @@
-Received: from out30-98.freemail.mail.aliyun.com (out30-98.freemail.mail.aliyun.com [115.124.30.98])
+Received: from bombadil.infradead.org (bombadil.infradead.org [198.137.202.133])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 945F7A4E
-	for <ocfs2-devel@lists.linux.dev>; Fri,  4 Aug 2023 01:38:44 +0000 (UTC)
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R151e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=ay29a033018046049;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=8;SR=0;TI=SMTPD_---0Vp-Iz30_1691112186;
-Received: from 30.221.128.131(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0Vp-Iz30_1691112186)
-          by smtp.aliyun-inc.com;
-          Fri, 04 Aug 2023 09:23:07 +0800
-Message-ID: <2c123597-e8bd-a0a0-cfb1-2236aa035870@linux.alibaba.com>
-Date: Fri, 4 Aug 2023 09:23:06 +0800
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8B707FC06
+	for <ocfs2-devel@lists.linux.dev>; Mon,  7 Aug 2023 11:26:45 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+	d=infradead.org; s=bombadil.20210309; h=Content-Transfer-Encoding:
+	MIME-Version:Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:Content-Type:
+	Content-ID:Content-Description:In-Reply-To:References;
+	bh=NlmJ2S0P/uz5iMElrPSgS3bSwMmeQoWOLoOqB0sn44Y=; b=XVP8+K26ocL0Ksks2M+bNeKMHi
+	G9Zg5YzDOdSHvH1e8xjVSim+FLLKjjb2wBBaBcc7+A1dqVgofsgk4zNdAd5xipEaAHkdlIQDUGnfi
+	gF3EoxPPoHFWy7FvKOcLKnmo5yF2Brs1mesDSGML2S+9dAw7BAa7757SRfbJgX0DueyZdKHDEew66
+	ePcxdVQuJ2lELZOet8OkKafgpefnleluoChRJQL7fbm1XdsspCgmkSaNdwPO5jwmREwCZyj6t9gHp
+	4fZ9kF89ZZTjXsp01N18uJcghpndtpOCN0bC3+Rq0SmDB9YGkC5AvgzKwZafWAlmnXkVt9V/dq11J
+	Y8vHiYKQ==;
+Received: from [82.33.212.90] (helo=localhost)
+	by bombadil.infradead.org with esmtpsa (Exim 4.96 #2 (Red Hat Linux))
+	id 1qSyNa-00H569-0a;
+	Mon, 07 Aug 2023 11:26:30 +0000
+From: Christoph Hellwig <hch@lst.de>
+To: Al Viro <viro@zeniv.linux.org.uk>,
+	Christian Brauner <brauner@kernel.org>
+Cc: "Theodore Ts'o" <tytso@mit.edu>,
+	Andreas Dilger <adilger.kernel@dilger.ca>,
+	Mark Fasheh <mark@fasheh.com>,
+	Joel Becker <jlbec@evilplan.org>,
+	Joseph Qi <joseph.qi@linux.alibaba.com>,
+	Jens Axboe <axboe@kernel.dk>,
+	linux-fsdevel@vger.kernel.org,
+	linux-ext4@vger.kernel.org,
+	ocfs2-devel@lists.linux.dev,
+	linux-block@vger.kernel.org
+Subject: remove bdev->bd_super
+Date: Mon,  7 Aug 2023 12:26:21 +0100
+Message-Id: <20230807112625.652089-1-hch@lst.de>
+X-Mailer: git-send-email 2.39.2
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:102.0)
- Gecko/20100101 Thunderbird/102.13.0
-Subject: Re: [PATCH] fs: ocfs2: namei: Check return value of ocfs2_add_entry()
-Content-Language: en-US
-To: Artem Chernyshev <artem.chernyshev@red-soft.ru>,
- Joel Becker <jlbec@evilplan.org>, Mark Fasheh <mark@fasheh.com>,
- akpm <akpm@linux-foundation.org>
-Cc: Kurt Hackel <kurt.hackel@oracle.com>, ocfs2-devel@lists.linux.dev,
- linux-kernel@vger.kernel.org, lvc-project@linuxtesting.org
-References: <20230803145417.177649-1-artem.chernyshev@red-soft.ru>
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <20230803145417.177649-1-artem.chernyshev@red-soft.ru>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
+X-SRS-Rewrite: SMTP reverse-path rewritten from <hch@infradead.org> by bombadil.infradead.org. See http://www.infradead.org/rpr.html
 
+Hi all,
 
+this series is against the vfs.super branch in the VFS tree and removes the
+bd_super field in struct block_device.
 
-On 8/3/23 10:54 PM, Artem Chernyshev wrote:
-> Process result of ocfs2_add_entry() in case we have an error
-> value.
-> 
-> Found by Linux Verification Center (linuxtesting.org) with SVACE.
-> 
-> Fixes: ccd979bdbce9 ("[PATCH] OCFS2: The Second Oracle Cluster Filesystem")
-> Signed-off-by: Artem Chernyshev <artem.chernyshev@red-soft.ru>
-
-Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-
-> ---
->  fs/ocfs2/namei.c | 4 ++++
->  1 file changed, 4 insertions(+)
-> 
-> diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
-> index 17c52225b87d..03bccfd183f3 100644
-> --- a/fs/ocfs2/namei.c
-> +++ b/fs/ocfs2/namei.c
-> @@ -1535,6 +1535,10 @@ static int ocfs2_rename(struct mnt_idmap *idmap,
->  		status = ocfs2_add_entry(handle, new_dentry, old_inode,
->  					 OCFS2_I(old_inode)->ip_blkno,
->  					 new_dir_bh, &target_insert);
-> +		if (status < 0) {
-> +			mlog_errno(status);
-> +			goto bail;
-> +		}
->  	}
->  
->  	old_inode->i_ctime = current_time(old_inode);
+Diffstat:
+ fs/buffer.c               |   11 +++--------
+ fs/ext4/ext4_jbd2.c       |    3 +--
+ fs/ext4/super.c           |    1 -
+ fs/ocfs2/journal.c        |    6 +++---
+ fs/romfs/super.c          |    1 -
+ fs/super.c                |    3 ---
+ include/linux/blk_types.h |    1 -
+ 7 files changed, 7 insertions(+), 19 deletions(-)
