@@ -1,43 +1,43 @@
-Received: from smtp-out1.suse.de (smtp-out1.suse.de [195.135.220.28])
+Received: from smtp-out2.suse.de (smtp-out2.suse.de [195.135.220.29])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4044F659;
-	Tue,  8 Aug 2023 09:32:29 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1BCFA8492;
+	Tue,  8 Aug 2023 09:34:00 +0000 (UTC)
 Received: from imap2.suse-dmz.suse.de (imap2.suse-dmz.suse.de [192.168.254.74])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (P-521) server-digest SHA512)
 	(No client certificate requested)
-	by smtp-out1.suse.de (Postfix) with ESMTPS id 43D5822487;
-	Tue,  8 Aug 2023 09:32:27 +0000 (UTC)
+	by smtp-out2.suse.de (Postfix) with ESMTPS id C51A520316;
+	Tue,  8 Aug 2023 09:26:53 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.cz; s=susede2_rsa;
-	t=1691487147; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+	t=1691486813; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
 	 mime-version:mime-version:content-type:content-type:
 	 in-reply-to:in-reply-to:references:references;
-	bh=URemeKpdb8J18iMONbqIB4P02haKyRX6mS8Xu4Mgmc8=;
-	b=kAP4/qU3eebbLi9EbGgoNiblqEAMz2n9d8dDZjEU/zYHxmh4xQUAW4aRmDsDFAo1LDW4XS
-	Jz3jziQyqFQJ2OS6XJQCmcd5h9qdcD3Byn8qpddgol9CAV8ew1WhVYDKOVKgTmZrEM14u3
-	+VucJ+n1ddguqczAaW5Ki56KFXcMMvI=
+	bh=b3NxAQUEhhiHtmalxt25UQpIEh3A8DobG2qOMrP77WQ=;
+	b=AoaZr4oK+uPjgRe+H1N/P4OqdxMzaLQwACpyg7af2LxycPofpRJURn7+dS209wAPqvb2Pa
+	pyguefJyN0BETiXosk+qeiLcs65x2b42r4Xs2kf58Hhxb2lmpsj3DMEMMNaki6d405++FY
+	0hRnLs55sh8fmVIdow8NkLHWnHGd+BI=
 DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.cz;
-	s=susede2_ed25519; t=1691487147;
+	s=susede2_ed25519; t=1691486813;
 	h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
 	 mime-version:mime-version:content-type:content-type:
 	 in-reply-to:in-reply-to:references:references;
-	bh=URemeKpdb8J18iMONbqIB4P02haKyRX6mS8Xu4Mgmc8=;
-	b=zakAo2cWrWyYBcipF4rIUwLGrOqm5ZeFyaCmUH+fTkQWLNKyEQyre7V0L+jFNWPtWdDjYF
-	EO0z/Yllpo+E3ODA==
+	bh=b3NxAQUEhhiHtmalxt25UQpIEh3A8DobG2qOMrP77WQ=;
+	b=fxL/rpYwL46zGUX+wz6hOBohbpcZSktGMd5XhY0mnCjlb5Vurz5pFf3PTuD19V4sOSJ9Wo
+	YCByPZ22Ze/c5AAQ==
 Received: from imap2.suse-dmz.suse.de (imap2.suse-dmz.suse.de [192.168.254.74])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (P-521) server-digest SHA512)
 	(No client certificate requested)
-	by imap2.suse-dmz.suse.de (Postfix) with ESMTPS id 28DCC139E9;
-	Tue,  8 Aug 2023 09:32:27 +0000 (UTC)
+	by imap2.suse-dmz.suse.de (Postfix) with ESMTPS id 9677713451;
+	Tue,  8 Aug 2023 09:26:53 +0000 (UTC)
 Received: from dovecot-director2.suse.de ([192.168.254.65])
 	by imap2.suse-dmz.suse.de with ESMTPSA
-	id K7T5CasL0mR9GwAAMHmgww
-	(envelope-from <jack@suse.cz>); Tue, 08 Aug 2023 09:32:27 +0000
+	id rxmpJF0K0mRqGAAAMHmgww
+	(envelope-from <jack@suse.cz>); Tue, 08 Aug 2023 09:26:53 +0000
 Received: by quack3.suse.cz (Postfix, from userid 1000)
-	id 82443A0769; Tue,  8 Aug 2023 11:32:26 +0200 (CEST)
-Date: Tue, 8 Aug 2023 11:32:26 +0200
+	id 1DB1BA0769; Tue,  8 Aug 2023 11:26:53 +0200 (CEST)
+Date: Tue, 8 Aug 2023 11:26:53 +0200
 From: Jan Kara <jack@suse.cz>
 To: Jeff Layton <jlayton@kernel.org>
 Cc: Alexander Viro <viro@zeniv.linux.org.uk>,
@@ -97,10 +97,10 @@ Cc: Alexander Viro <viro@zeniv.linux.org.uk>,
 	linux-cifs@vger.kernel.org, samba-technical@lists.samba.org,
 	linux-mtd@lists.infradead.org, linux-mm@kvack.org,
 	linux-unionfs@vger.kernel.org, linux-xfs@vger.kernel.org
-Subject: Re: [PATCH v7 05/13] fat: make fat_update_time get its own timestamp
-Message-ID: <20230808093226.bq2qfxv5npckk643@quack3>
+Subject: Re: [PATCH v7 04/13] btrfs: have it use inode_update_timestamps
+Message-ID: <20230808092653.ma6d72b4xwa3jk3f@quack3>
 References: <20230807-mgctime-v7-0-d1dec143a704@kernel.org>
- <20230807-mgctime-v7-5-d1dec143a704@kernel.org>
+ <20230807-mgctime-v7-4-d1dec143a704@kernel.org>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -109,53 +109,46 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20230807-mgctime-v7-5-d1dec143a704@kernel.org>
+In-Reply-To: <20230807-mgctime-v7-4-d1dec143a704@kernel.org>
 
-On Mon 07-08-23 15:38:36, Jeff Layton wrote:
-> In later patches, we're going to drop the "now" parameter from the
-> update_time operation. Fix fat_update_time to fetch its own timestamp.
-> It turns out that this is easily done by just passing a NULL timestamp
-> pointer to fat_update_time.
-             ^^^ fat_truncate_time()
-
-> Also, it may be that things have changed by the time we get to calling
-> fat_update_time after checking inode_needs_update_time. Ensure that we
-> attempt the i_version bump if any of the S_* flags besides S_ATIME are
-> set.
+On Mon 07-08-23 15:38:35, Jeff Layton wrote:
+> In later patches, we're going to drop the "now" argument from the
+> update_time operation. Have btrfs_update_time use the new
+> inode_update_timestamps helper to fetch a new timestamp and update it
+> properly.
 > 
 > Signed-off-by: Jeff Layton <jlayton@kernel.org>
 
-Looks good. Feel free to add:
+Nice cleanup! Feel free to add:
 
 Reviewed-by: Jan Kara <jack@suse.cz>
 
 								Honza
 
 > ---
->  fs/fat/misc.c | 4 ++--
->  1 file changed, 2 insertions(+), 2 deletions(-)
+>  fs/btrfs/inode.c | 9 +--------
+>  1 file changed, 1 insertion(+), 8 deletions(-)
 > 
-> diff --git a/fs/fat/misc.c b/fs/fat/misc.c
-> index 67006ea08db6..8cab87145d63 100644
-> --- a/fs/fat/misc.c
-> +++ b/fs/fat/misc.c
-> @@ -347,14 +347,14 @@ int fat_update_time(struct inode *inode, struct timespec64 *now, int flags)
->  		return 0;
+> diff --git a/fs/btrfs/inode.c b/fs/btrfs/inode.c
+> index 29a20f828dda..d52e7d64570a 100644
+> --- a/fs/btrfs/inode.c
+> +++ b/fs/btrfs/inode.c
+> @@ -6068,14 +6068,7 @@ static int btrfs_update_time(struct inode *inode, struct timespec64 *now,
+>  	if (btrfs_root_readonly(root))
+>  		return -EROFS;
 >  
->  	if (flags & (S_ATIME | S_CTIME | S_MTIME)) {
-> -		fat_truncate_time(inode, now, flags);
-> +		fat_truncate_time(inode, NULL, flags);
->  		if (inode->i_sb->s_flags & SB_LAZYTIME)
->  			dirty_flags |= I_DIRTY_TIME;
->  		else
->  			dirty_flags |= I_DIRTY_SYNC;
->  	}
+> -	if (flags & S_VERSION)
+> -		dirty |= inode_maybe_inc_iversion(inode, dirty);
+> -	if (flags & S_CTIME)
+> -		inode_set_ctime_to_ts(inode, *now);
+> -	if (flags & S_MTIME)
+> -		inode->i_mtime = *now;
+> -	if (flags & S_ATIME)
+> -		inode->i_atime = *now;
+> +	dirty = inode_update_timestamps(inode, flags);
+>  	return dirty ? btrfs_dirty_inode(BTRFS_I(inode)) : 0;
+>  }
 >  
-> -	if ((flags & S_VERSION) && inode_maybe_inc_iversion(inode, false))
-> +	if ((flags & (S_VERSION|S_CTIME|S_MTIME)) && inode_maybe_inc_iversion(inode, false))
->  		dirty_flags |= I_DIRTY_SYNC;
->  
->  	__mark_inode_dirty(inode, dirty_flags);
 > 
 > -- 
 > 2.41.0
