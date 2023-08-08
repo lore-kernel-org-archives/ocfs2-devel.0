@@ -1,83 +1,87 @@
-Received: from out199-10.us.a.mail.aliyun.com (out199-10.us.a.mail.aliyun.com [47.90.199.10])
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 11574191
-	for <ocfs2-devel@lists.linux.dev>; Tue,  8 Aug 2023 00:55:00 +0000 (UTC)
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R501e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=ay29a033018045170;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=12;SR=0;TI=SMTPD_---0VpIkifi_1691456082;
-Received: from 30.221.128.117(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0VpIkifi_1691456082)
-          by smtp.aliyun-inc.com;
-          Tue, 08 Aug 2023 08:54:43 +0800
-Message-ID: <259ff3c4-4d9c-aaf4-c7be-205615c00125@linux.alibaba.com>
-Date: Tue, 8 Aug 2023 08:54:42 +0800
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id DDB73659
+	for <ocfs2-devel@lists.linux.dev>; Tue,  8 Aug 2023 08:57:49 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id BC090C433C8;
+	Tue,  8 Aug 2023 08:57:46 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=k20201202; t=1691485069;
+	bh=jRxjFz09Uh7ZkVIXCQG/65cnOzMIdv2cBiHme7VbOvo=;
+	h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
+	b=EqsWvxVQnUY5uZoUjqDs00BsmyspxW0N3Nd/2KIExW4RCIDtEeMUjmgThJiJypC/J
+	 HYmkIZkSVjOISExgk+Sn52YsNkU3YsV5ktKa+mMzjI7yGQS9Tkzp2Bl2g86u7DKA6t
+	 AGqEdzVHORXG6kMTxD1BjgusWwxkxHHW3pz/fGgHFxgQd151ghwtd2xRW327ZHzTJN
+	 YAm+A3xQXH0+IUsOsJ7Ew9c2uPNTaLWI2TJYriPpGprsNAKzC8UDrjuCjT3Mh3DW9p
+	 KDEV2e49nCCgvtQ+6vRq48quiNlvKFpgyav0i6SkScKbs9fSGbKEOQLQP6lTLY//hm
+	 tkpgCGhKIo7vg==
+From: Christian Brauner <brauner@kernel.org>
+To: Christoph Hellwig <hch@lst.de>
+Cc: Christian Brauner <brauner@kernel.org>,
+	Theodore Ts'o <tytso@mit.edu>,
+	Andreas Dilger <adilger.kernel@dilger.ca>,
+	Mark Fasheh <mark@fasheh.com>,
+	Joel Becker <jlbec@evilplan.org>,
+	Joseph Qi <joseph.qi@linux.alibaba.com>,
+	Jens Axboe <axboe@kernel.dk>,
+	linux-fsdevel@vger.kernel.org,
+	linux-ext4@vger.kernel.org,
+	ocfs2-devel@lists.linux.dev,
+	linux-block@vger.kernel.org,
+	Al Viro <viro@zeniv.linux.org.uk>
+Subject: Re: remove bdev->bd_super
+Date: Tue,  8 Aug 2023 10:57:41 +0200
+Message-Id: <20230808-handhaben-jahrtausend-b3f041767517@brauner>
+X-Mailer: git-send-email 2.34.1
+In-Reply-To: <20230807112625.652089-1-hch@lst.de>
+References: <20230807112625.652089-1-hch@lst.de>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:102.0)
- Gecko/20100101 Thunderbird/102.14.0
-Subject: Re: [PATCH 3/4] ocfs2: stop using bdev->bd_super for journal error
- logging
-To: Christoph Hellwig <hch@lst.de>, Al Viro <viro@zeniv.linux.org.uk>,
- Christian Brauner <brauner@kernel.org>
-Cc: Theodore Ts'o <tytso@mit.edu>, Andreas Dilger <adilger.kernel@dilger.ca>,
- Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
- Jens Axboe <axboe@kernel.dk>, linux-fsdevel@vger.kernel.org,
- linux-ext4@vger.kernel.org, ocfs2-devel@lists.linux.dev,
- linux-block@vger.kernel.org
-References: <20230807112625.652089-1-hch@lst.de>
- <20230807112625.652089-4-hch@lst.de>
-Content-Language: en-US
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <20230807112625.652089-4-hch@lst.de>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="utf-8"
+X-Developer-Signature: v=1; a=openpgp-sha256; l=1671; i=brauner@kernel.org; h=from:subject:message-id; bh=jRxjFz09Uh7ZkVIXCQG/65cnOzMIdv2cBiHme7VbOvo=; b=owGbwMvMwCU28Zj0gdSKO4sYT6slMaRcYm6U+J4hEq746Uy2xOLOqnMH5h2ZfyHO8jrvPJ+E8nd8 u+5xdpSyMIhxMciKKbI4tJuEyy3nqdhslKkBM4eVCWQIAxenAEwkyJORoc1ppZxui2vd8quNwaf/iK fz1S134NFzmV356sx2PTuWO4wMf8S2P7h36dux4y3zpH/dlItfmfMmfEn97E+tNxxLRCUusgAA
+X-Developer-Key: i=brauner@kernel.org; a=openpgp; fpr=4880B8C9BD0E5106FC070F4F7B3C391EFEA93624
+Content-Transfer-Encoding: 8bit
 
-
-
-On 8/7/23 7:26 PM, Christoph Hellwig wrote:
-> All ocfs2 journal error handling and logging is based on buffer_heads,
-> and the owning inode and thus super_block can be retrieved through
-> bh->b_assoc_map->host.  Switch to using that to remove the last users
-> of bdev->bd_super.
+On Mon, 07 Aug 2023 12:26:21 +0100, Christoph Hellwig wrote:
+> this series is against the vfs.super branch in the VFS tree and removes the
+> bd_super field in struct block_device.
 > 
-> Signed-off-by: Christoph Hellwig <hch@lst.de>
-
-Looks fine.
-Acked-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-
-> ---
->  fs/ocfs2/journal.c | 6 +++---
->  1 file changed, 3 insertions(+), 3 deletions(-)
+> Diffstat:
+>  fs/buffer.c               |   11 +++--------
+>  fs/ext4/ext4_jbd2.c       |    3 +--
+>  fs/ext4/super.c           |    1 -
+>  fs/ocfs2/journal.c        |    6 +++---
+>  fs/romfs/super.c          |    1 -
+>  fs/super.c                |    3 ---
+>  include/linux/blk_types.h |    1 -
+>  7 files changed, 7 insertions(+), 19 deletions(-)
 > 
-> diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
-> index 25d8072ccfce46..c19c730c26e270 100644
-> --- a/fs/ocfs2/journal.c
-> +++ b/fs/ocfs2/journal.c
-> @@ -557,7 +557,7 @@ static void ocfs2_abort_trigger(struct jbd2_buffer_trigger_type *triggers,
->  	     (unsigned long)bh,
->  	     (unsigned long long)bh->b_blocknr);
->  
-> -	ocfs2_error(bh->b_bdev->bd_super,
-> +	ocfs2_error(bh->b_assoc_map->host->i_sb,
->  		    "JBD2 has aborted our journal, ocfs2 cannot continue\n");
->  }
->  
-> @@ -780,14 +780,14 @@ void ocfs2_journal_dirty(handle_t *handle, struct buffer_head *bh)
->  		mlog_errno(status);
->  		if (!is_handle_aborted(handle)) {
->  			journal_t *journal = handle->h_transaction->t_journal;
-> -			struct super_block *sb = bh->b_bdev->bd_super;
->  
->  			mlog(ML_ERROR, "jbd2_journal_dirty_metadata failed. "
->  					"Aborting transaction and journal.\n");
->  			handle->h_err = status;
->  			jbd2_journal_abort_handle(handle);
->  			jbd2_journal_abort(journal, status);
-> -			ocfs2_abort(sb, "Journal already aborted.\n");
-> +			ocfs2_abort(bh->b_assoc_map->host->i_sb,
-> +				    "Journal already aborted.\n");
->  		}
->  	}
->  }
+> [...]
+
+Applied to the vfs.super branch of the vfs/vfs.git tree.
+Patches in the vfs.super branch should appear in linux-next soon.
+
+Please report any outstanding bugs that were missed during review in a
+new review to the original patch series allowing us to drop it.
+
+It's encouraged to provide Acked-bys and Reviewed-bys even though the
+patch has now been applied. If possible patch trailers will be updated.
+
+Note that commit hashes shown below are subject to change due to rebase,
+trailer updates or similar. If in doubt, please check the listed branch.
+
+tree:   https://git.kernel.org/pub/scm/linux/kernel/git/vfs/vfs.git
+branch: vfs.super
+
+[1/4] fs: stop using bdev->bd_super in mark_buffer_write_io_error
+      https://git.kernel.org/vfs/vfs/c/0007ce9af88c
+[2/4] ext4: don't use bdev->bd_super in __ext4_journal_get_write_access
+      https://git.kernel.org/vfs/vfs/c/a9572cf0e7d2
+[3/4] ocfs2: stop using bdev->bd_super for journal error logging
+      https://git.kernel.org/vfs/vfs/c/807c772f2a12
+[4/4] fs, block: remove bdev->bd_super
+      https://git.kernel.org/vfs/vfs/c/0a59ff894703
