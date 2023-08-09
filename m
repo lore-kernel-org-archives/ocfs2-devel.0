@@ -1,54 +1,121 @@
-Received: from outgoing.mit.edu (outgoing-auth-1.mit.edu [18.9.28.11])
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9EB9137C
-	for <ocfs2-devel@lists.linux.dev>; Tue,  8 Aug 2023 14:38:22 +0000 (UTC)
-Received: from cwcc.thunk.org (pool-173-48-112-100.bstnma.fios.verizon.net [173.48.112.100])
-	(authenticated bits=0)
-        (User authenticated as tytso@ATHENA.MIT.EDU)
-	by outgoing.mit.edu (8.14.7/8.12.4) with ESMTP id 378EXcUK010681
-	(version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
-	Tue, 8 Aug 2023 10:33:40 -0400
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=mit.edu; s=outgoing;
-	t=1691505224; bh=POsuLKf+nXyR7IYhWeM46kPBqQcMGC9ufKCQTBFFtf0=;
-	h=Date:From:Subject:Message-ID:MIME-Version:Content-Type;
-	b=cOrIQ7oNj6T1c0fsinQ9p/311Q2F4m5/0q05C1455WuPyH2K8UBnhKJSDFgrMhlQ2
-	 95TCUswKGgeZ93icN/qFXvZ4PFIeVLvTqCyGJSkr5/Hz0zYndnZqjL+0GCFPb23rJo
-	 mjok7gxFN5RVi2v0bSORo46pgcUAdq3jATQ1GBTdLppGxI2uy1+snUAiJHOa6PXRdA
-	 j1Bzi2Llx5MGVf77KB/v6kg5g7aPiYYs5cyk5rkLLtv475/vyR4enLzw5BWIelvh61
-	 K1tPTIQp1NAuPNLVO7zDo+czKmufwg3QuqGqX35UsCq0La0KCC/YHTY44JHDVK3fYl
-	 a89nfd/rhOeZQ==
-Received: by cwcc.thunk.org (Postfix, from userid 15806)
-	id ABF4415C04F2; Tue,  8 Aug 2023 10:33:38 -0400 (EDT)
-Date: Tue, 8 Aug 2023 10:33:38 -0400
-From: "Theodore Ts'o" <tytso@mit.edu>
-To: Christoph Hellwig <hch@lst.de>
-Cc: Al Viro <viro@zeniv.linux.org.uk>, Christian Brauner <brauner@kernel.org>,
-        Andreas Dilger <adilger.kernel@dilger.ca>,
-        Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
-        Joseph Qi <joseph.qi@linux.alibaba.com>, Jens Axboe <axboe@kernel.dk>,
-        linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org,
-        ocfs2-devel@lists.linux.dev, linux-block@vger.kernel.org
-Subject: Re: [PATCH 2/4] ext4: don't use bdev->bd_super in
- __ext4_journal_get_write_access
-Message-ID: <20230808143338.GA1523259@mit.edu>
-References: <20230807112625.652089-1-hch@lst.de>
- <20230807112625.652089-3-hch@lst.de>
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9507817D3;
+	Wed,  9 Aug 2023 07:04:30 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id DF415C433C8;
+	Wed,  9 Aug 2023 07:04:15 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=k20201202; t=1691564670;
+	bh=mNaI4yIhrZSJhUwcMni6JCN62HgxRgb2ToogP2H4jFU=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=dm1BfYtz2dqQMxa4y4K1DetMu3X3Ln+bwz+2jEemWCBc68DqnWDXfI9TyuC86JRyc
+	 OV6+7i/vF54n6ROMNvy+VNt+3Tcbr5mPPxWG7+kZZzvdk1l5Y2fXqdyi4kiTIEHp6R
+	 c+NokRM5ch22ngFHcUfi3IxiA2Hed3py0L00cGbjgid38+MsphBbYkHDRv8n5kfv6l
+	 165HU85tqTN8dPjx7l1xQ1d3Tv6OZoFdRY/kHWh7X900UpXqc/s3kp4a/FPaL7/Rze
+	 xRv3G8HkDEWg3uieFtEQ8pvVu174WnaDQBFW7zKSqu+mNZR7+LKPBNsWLcV/CsHS/4
+	 sOc78sTonZdgw==
+Date: Wed, 9 Aug 2023 09:04:12 +0200
+From: Christian Brauner <brauner@kernel.org>
+To: Jan Kara <jack@suse.cz>
+Cc: Jeff Layton <jlayton@kernel.org>,
+	Alexander Viro <viro@zeniv.linux.org.uk>,
+	Eric Van Hensbergen <ericvh@kernel.org>,
+	Latchesar Ionkov <lucho@ionkov.net>,
+	Dominique Martinet <asmadeus@codewreck.org>,
+	Christian Schoenebeck <linux_oss@crudebyte.com>,
+	David Howells <dhowells@redhat.com>,
+	Marc Dionne <marc.dionne@auristor.com>, Chris Mason <clm@fb.com>,
+	Josef Bacik <josef@toxicpanda.com>, David Sterba <dsterba@suse.com>,
+	Xiubo Li <xiubli@redhat.com>, Ilya Dryomov <idryomov@gmail.com>,
+	Jan Harkes <jaharkes@cs.cmu.edu>, coda@cs.cmu.edu,
+	Tyler Hicks <code@tyhicks.com>, Gao Xiang <xiang@kernel.org>,
+	Chao Yu <chao@kernel.org>, Yue Hu <huyue2@coolpad.com>,
+	Jeffle Xu <jefflexu@linux.alibaba.com>,
+	Namjae Jeon <linkinjeon@kernel.org>,
+	Sungjong Seo <sj1557.seo@samsung.com>, Jan Kara <jack@suse.com>,
+	Theodore Ts'o <tytso@mit.edu>,
+	Andreas Dilger <adilger.kernel@dilger.ca>,
+	Jaegeuk Kim <jaegeuk@kernel.org>,
+	OGAWA Hirofumi <hirofumi@mail.parknet.co.jp>,
+	Miklos Szeredi <miklos@szeredi.hu>,
+	Bob Peterson <rpeterso@redhat.com>,
+	Andreas Gruenbacher <agruenba@redhat.com>,
+	Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
+	Tejun Heo <tj@kernel.org>,
+	Trond Myklebust <trond.myklebust@hammerspace.com>,
+	Anna Schumaker <anna@kernel.org>,
+	Konstantin Komarov <almaz.alexandrovich@paragon-software.com>,
+	Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
+	Joseph Qi <joseph.qi@linux.alibaba.com>,
+	Mike Marshall <hubcap@omnibond.com>,
+	Martin Brandenburg <martin@omnibond.com>,
+	Luis Chamberlain <mcgrof@kernel.org>,
+	Kees Cook <keescook@chromium.org>,
+	Iurii Zaikin <yzaikin@google.com>, Steve French <sfrench@samba.org>,
+	Paulo Alcantara <pc@manguebit.com>,
+	Ronnie Sahlberg <ronniesahlberg@gmail.com>,
+	Shyam Prasad N <sprasad@microsoft.com>, Tom Talpey <tom@talpey.com>,
+	Sergey Senozhatsky <senozhatsky@chromium.org>,
+	Richard Weinberger <richard@nod.at>,
+	Hans de Goede <hdegoede@redhat.com>,
+	Hugh Dickins <hughd@google.com>,
+	Andrew Morton <akpm@linux-foundation.org>,
+	Amir Goldstein <amir73il@gmail.com>,
+	"Darrick J. Wong" <djwong@kernel.org>,
+	Benjamin Coddington <bcodding@redhat.com>,
+	linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org,
+	v9fs@lists.linux.dev, linux-afs@lists.infradead.org,
+	linux-btrfs@vger.kernel.org, ceph-devel@vger.kernel.org,
+	codalist@coda.cs.cmu.edu, ecryptfs@vger.kernel.org,
+	linux-erofs@lists.ozlabs.org, linux-ext4@vger.kernel.org,
+	linux-f2fs-devel@lists.sourceforge.net, cluster-devel@redhat.com,
+	linux-nfs@vger.kernel.org, ntfs3@lists.linux.dev,
+	ocfs2-devel@lists.linux.dev, devel@lists.orangefs.org,
+	linux-cifs@vger.kernel.org, samba-technical@lists.samba.org,
+	linux-mtd@lists.infradead.org, linux-mm@kvack.org,
+	linux-unionfs@vger.kernel.org, linux-xfs@vger.kernel.org
+Subject: Re: [PATCH v7 07/13] xfs: have xfs_vn_update_time gets its own
+ timestamp
+Message-ID: <20230809-abartig-lachen-df1965c6b37a@brauner>
+References: <20230807-mgctime-v7-0-d1dec143a704@kernel.org>
+ <20230807-mgctime-v7-7-d1dec143a704@kernel.org>
+ <20230808093903.2cg5wwbwbvflkeph@quack3>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-In-Reply-To: <20230807112625.652089-3-hch@lst.de>
+In-Reply-To: <20230808093903.2cg5wwbwbvflkeph@quack3>
 
-On Mon, Aug 07, 2023 at 12:26:23PM +0100, Christoph Hellwig wrote:
-> __ext4_journal_get_write_access already has a super_block available,
-> and there is no need to go from that to the bdev to go back to the
-> owning super_block.
+On Tue, Aug 08, 2023 at 11:39:03AM +0200, Jan Kara wrote:
+> On Mon 07-08-23 15:38:38, Jeff Layton wrote:
+> > In later patches we're going to drop the "now" parameter from the
+> > update_time operation. Prepare XFS for this by reworking how it fetches
+> > timestamps and sets them in the inode. Ensure that we update the ctime
+> > even if only S_MTIME is set.
+> > 
+> > Signed-off-by: Jeff Layton <jlayton@kernel.org>
+> > ---
+> >  fs/xfs/xfs_iops.c | 12 ++++++++----
+> >  1 file changed, 8 insertions(+), 4 deletions(-)
+> > 
+> > diff --git a/fs/xfs/xfs_iops.c b/fs/xfs/xfs_iops.c
+> > index 731f45391baa..72d18e7840f5 100644
+> > --- a/fs/xfs/xfs_iops.c
+> > +++ b/fs/xfs/xfs_iops.c
+> > @@ -1037,6 +1037,7 @@ xfs_vn_update_time(
+> >  	int			log_flags = XFS_ILOG_TIMESTAMP;
+> >  	struct xfs_trans	*tp;
+> >  	int			error;
+> > +	struct timespec64	now = current_time(inode);
 > 
-> Signed-off-by: Christoph Hellwig <hch@lst.de>
+> No need to fetch current_time() here where you overwrite it just a bit
+> later...
 
-Acked-by: Theodore Ts'o <tytso@mit.edu>
+It also shadows the @now parameter of that function. Since that function
+parameter is dropped in follow-up patches I simply s/now/time/g it here.
+In any case, fixed in-tree.
