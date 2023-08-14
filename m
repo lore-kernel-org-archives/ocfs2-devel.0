@@ -1,30 +1,31 @@
 Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.133.124])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 87627DDD2
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5254DDDDA
 	for <ocfs2-devel@lists.linux.dev>; Mon, 14 Aug 2023 21:11:27 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
-	s=mimecast20190719; t=1692047486;
+	s=mimecast20190719; t=1692047487;
 	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
 	 to:to:cc:cc:mime-version:mime-version:
-	 content-transfer-encoding:content-transfer-encoding;
-	bh=x6X/UhlcOZkD6o+yr1KBD7CLkqi3R+/GBSx6Mum85Rc=;
-	b=WJbQ9xKQsoQG91DMm2jUGsYuidt8TJvZRzAKYy3Ub1S9nHN2ecN/KZi+xcaEHKcc5RIJHS
-	bm0MRpWFJUrKUypQa1RTIRxjFwvebVW2ecVPnmcnZNd3yfifv8/ttEwGj6Mc4hgQJGbeJW
-	rdPfZ1mpRbxK4qTuYtOeHSew8QH0Ayc=
+	 content-transfer-encoding:content-transfer-encoding:
+	 in-reply-to:in-reply-to:references:references;
+	bh=+ha7qooP5xHAJkp/n5Tt2zY2sO83T4RUyDIe+tf4ioM=;
+	b=FLKe5d9+VXl7M+DnAYuQQjccdXxYNXbGUXDjeNmEaeAgRSzWOlUmz5jNKl7BK+27hkYGZA
+	4m1J7yd0nnA89aS64fj+uOVribm/0i7DEvYjcS2ps21cNNnSH9KE/DJj1iK4Xxi4nrRMLj
+	H/608jaWEY1YjN+XxxxJAxlfw7odsew=
 Received: from mimecast-mx02.redhat.com (mimecast-mx02.redhat.com
  [66.187.233.88]) by relay.mimecast.com with ESMTP with STARTTLS
  (version=TLSv1.2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id
- us-mta-56-CyJDJ10jOxaWZtgUFZRwWQ-1; Mon, 14 Aug 2023 17:11:22 -0400
-X-MC-Unique: CyJDJ10jOxaWZtgUFZRwWQ-1
+ us-mta-632-zltn7uhJN3WG1u-waD-sIw-1; Mon, 14 Aug 2023 17:11:23 -0400
+X-MC-Unique: zltn7uhJN3WG1u-waD-sIw-1
 Received: from smtp.corp.redhat.com (int-mx08.intmail.prod.int.rdu2.redhat.com [10.11.54.8])
 	(using TLSv1.2 with cipher AECDH-AES256-SHA (256/256 bits))
 	(No client certificate requested)
-	by mimecast-mx02.redhat.com (Postfix) with ESMTPS id 37EE8185A78B;
+	by mimecast-mx02.redhat.com (Postfix) with ESMTPS id E13F28007A4;
 	Mon, 14 Aug 2023 21:11:22 +0000 (UTC)
 Received: from fs-i40c-03.fs.lab.eng.bos.redhat.com (fs-i40c-03.fs.lab.eng.bos.redhat.com [10.16.224.23])
-	by smtp.corp.redhat.com (Postfix) with ESMTP id B483EC15BAD;
-	Mon, 14 Aug 2023 21:11:21 +0000 (UTC)
+	by smtp.corp.redhat.com (Postfix) with ESMTP id 95902C15BAD;
+	Mon, 14 Aug 2023 21:11:22 +0000 (UTC)
 From: Alexander Aring <aahringo@redhat.com>
 To: linux-nfs@vger.kernel.org
 Cc: cluster-devel@redhat.com,
@@ -37,9 +38,11 @@ Cc: cluster-devel@redhat.com,
 	anna@kernel.org,
 	chuck.lever@oracle.com,
 	jlayton@kernel.org
-Subject: [RFCv2 0/7] fs: nfs: async lock request changes
-Date: Mon, 14 Aug 2023 17:11:09 -0400
-Message-Id: <20230814211116.3224759-1-aahringo@redhat.com>
+Subject: [RFCv2 2/7] lockd: FILE_LOCK_DEFERRED only on FL_SLEEP
+Date: Mon, 14 Aug 2023 17:11:11 -0400
+Message-Id: <20230814211116.3224759-3-aahringo@redhat.com>
+In-Reply-To: <20230814211116.3224759-1-aahringo@redhat.com>
+References: <20230814211116.3224759-1-aahringo@redhat.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -49,55 +52,84 @@ MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 X-Scanned-By: MIMEDefang 3.1 on 10.11.54.8
 
-Hi,
+This patch removes to handle non-blocking lock requests as asynchronous
+lock request returning FILE_LOCK_DEFERRED. When fl_lmops and lm_grant()
+is set and a non-blocking lock request returns FILE_LOCK_DEFERRED will
+end in an WARNING to signal the user the misusage of the API.
 
-this patch series contains changes to lockd asynchronous lock request
-handling over vfs_lock_file(). The only one upstream user so far I see
-is DLM. The current DLM handling of asynchronous lock request is broken.
-Those patches makes the asynchronous lock request handling better, there
-are still issues with fencing or lock cancellation that this patch
-series does not tackle.
+The reason why we moving to make non-blocking lock request as
+synchronized call is that we already doing this behaviour for unlock or
+cancellation as well. Those are POSIX lock operations which are handled
+in an synchronized way and waiting for an answer. For non-blocking lock
+requests the answer will probably arrive in the same time as unlock or
+cancellation operations as those are trylock operations only.
 
-The cifs filesystem is another user of FILE_LOCK_DEFERRED but it does
-not do anything on checking lm_grant() as the asynchronous lock API is
-required to check if it's set.
+In case of a blocking lock request we need to have it asynchronously
+because the time when the lock request getting granted is unknown.
 
-- Alex
+Signed-off-by: Alexander Aring <aahringo@redhat.com>
+---
+ fs/lockd/svclock.c | 39 +++++++--------------------------------
+ 1 file changed, 7 insertions(+), 32 deletions(-)
 
-changes since v2:
- - add dlm fixes/changes to show how the new API should work. It's used
-   by gfs2/ocfs2.
- - handle non-blocking request synchronously. For this reason we needed
-   to introduce a new per nlm_block request to fix a race between
-   request and lm_grant() callback handling, see b_cb_mutex
- - update documentation for new FL_SLEEP handling when lm_grant() is
-   set and new requirement that lm_grant() need to be called from a
-   sleepable contex.
- - clear new CALLBACK PENDING flag when nlm_block is removed from
-   nlm_blocked
- - introduce helper export_op_support_safe_async_lock() to check if
-   the filesystem supports asynchronous lock request calls
- - fix block variable never NULL when iterating over nlm_blocked list
-
-Alexander Aring (7):
-  lockd: fix race in async lock request handling
-  lockd: FILE_LOCK_DEFERRED only on FL_SLEEP
-  lockd: introduce safe async lock op
-  locks: update lock callback documentation
-  dlm: use fl_owner from lockd
-  dlm: use FL_SLEEP to check if blocking request
-  dlm: implement EXPORT_OP_SAFE_ASYNC_LOCK
-
- fs/dlm/plock.c              |  54 +++++++-------
- fs/gfs2/export.c            |   1 +
- fs/lockd/svclock.c          | 140 ++++++++++++++++++++----------------
- fs/locks.c                  |  28 ++++----
- fs/nfsd/nfs4state.c         |  13 +++-
- fs/ocfs2/export.c           |   1 +
- include/linux/exportfs.h    |   8 +++
- include/linux/lockd/lockd.h |   2 +
- 8 files changed, 140 insertions(+), 107 deletions(-)
-
+diff --git a/fs/lockd/svclock.c b/fs/lockd/svclock.c
+index 7d63524bdb81..1e74a578d7de 100644
+--- a/fs/lockd/svclock.c
++++ b/fs/lockd/svclock.c
+@@ -440,31 +440,6 @@ static void nlmsvc_freegrantargs(struct nlm_rqst *call)
+ 	locks_release_private(&call->a_args.lock.fl);
+ }
+ 
+-/*
+- * Deferred lock request handling for non-blocking lock
+- */
+-static __be32
+-nlmsvc_defer_lock_rqst(struct svc_rqst *rqstp, struct nlm_block *block)
+-{
+-	__be32 status = nlm_lck_denied_nolocks;
+-
+-	block->b_flags |= B_QUEUED;
+-
+-	nlmsvc_insert_block(block, NLM_TIMEOUT);
+-
+-	block->b_cache_req = &rqstp->rq_chandle;
+-	if (rqstp->rq_chandle.defer) {
+-		block->b_deferred_req =
+-			rqstp->rq_chandle.defer(block->b_cache_req);
+-		if (block->b_deferred_req != NULL)
+-			status = nlm_drop_reply;
+-	}
+-	dprintk("lockd: nlmsvc_defer_lock_rqst block %p flags %d status %d\n",
+-		block, block->b_flags, ntohl(status));
+-
+-	return status;
+-}
+-
+ /*
+  * Attempt to establish a lock, and if it can't be granted, block it
+  * if required.
+@@ -569,14 +544,14 @@ nlmsvc_lock(struct svc_rqst *rqstp, struct nlm_file *file,
+ 			ret = async_block ? nlm_lck_blocked : nlm_lck_denied;
+ 			goto out_cb_mutex;
+ 		case FILE_LOCK_DEFERRED:
+-			block->b_flags |= B_PENDING_CALLBACK;
++			/* lock requests without waiters are handled in
++			 * a non async way. Let assert this to inform
++			 * the user about a API violation.
++			 */
++			WARN_ON_ONCE(!wait);
+ 
+-			if (wait)
+-				break;
+-			/* Filesystem lock operation is in progress
+-			   Add it to the queue waiting for callback */
+-			ret = nlmsvc_defer_lock_rqst(rqstp, block);
+-			goto out_cb_mutex;
++			block->b_flags |= B_PENDING_CALLBACK;
++			break;
+ 		case -EDEADLK:
+ 			nlmsvc_remove_block(block);
+ 			ret = nlm_deadlock;
 -- 
 2.31.1
 
