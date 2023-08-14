@@ -1,31 +1,31 @@
-Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.133.124])
+Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.129.124])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5254DDDDA
-	for <ocfs2-devel@lists.linux.dev>; Mon, 14 Aug 2023 21:11:27 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 98FBADF4C
+	for <ocfs2-devel@lists.linux.dev>; Mon, 14 Aug 2023 21:11:28 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
 	s=mimecast20190719; t=1692047487;
 	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
 	 to:to:cc:cc:mime-version:mime-version:
 	 content-transfer-encoding:content-transfer-encoding:
 	 in-reply-to:in-reply-to:references:references;
-	bh=+ha7qooP5xHAJkp/n5Tt2zY2sO83T4RUyDIe+tf4ioM=;
-	b=FLKe5d9+VXl7M+DnAYuQQjccdXxYNXbGUXDjeNmEaeAgRSzWOlUmz5jNKl7BK+27hkYGZA
-	4m1J7yd0nnA89aS64fj+uOVribm/0i7DEvYjcS2ps21cNNnSH9KE/DJj1iK4Xxi4nrRMLj
-	H/608jaWEY1YjN+XxxxJAxlfw7odsew=
+	bh=/wqENBbj5y41JI93zB5OgbUzN7ReqPGhx+L0gn4tfM8=;
+	b=YYMhHUPkQ1FHl+1OIjf4w480gy5YiiK3r8DRJ25PTLHslc2D5OxZUMpwJRf3W4ys+sKEpz
+	RPGEa//R4uQUkm0vOGhH9usravC7IjNw+FSk6MWGl1P+MhrXnH9gBeKOasa/sRQK7FkIr6
+	4jk9lVDrU+NE34kEFPZYPfAxWHuaOs0=
 Received: from mimecast-mx02.redhat.com (mimecast-mx02.redhat.com
  [66.187.233.88]) by relay.mimecast.com with ESMTP with STARTTLS
  (version=TLSv1.2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id
- us-mta-632-zltn7uhJN3WG1u-waD-sIw-1; Mon, 14 Aug 2023 17:11:23 -0400
-X-MC-Unique: zltn7uhJN3WG1u-waD-sIw-1
+ us-mta-509-94EUavPJO_GClPydUkdbng-1; Mon, 14 Aug 2023 17:11:24 -0400
+X-MC-Unique: 94EUavPJO_GClPydUkdbng-1
 Received: from smtp.corp.redhat.com (int-mx08.intmail.prod.int.rdu2.redhat.com [10.11.54.8])
 	(using TLSv1.2 with cipher AECDH-AES256-SHA (256/256 bits))
 	(No client certificate requested)
-	by mimecast-mx02.redhat.com (Postfix) with ESMTPS id E13F28007A4;
-	Mon, 14 Aug 2023 21:11:22 +0000 (UTC)
+	by mimecast-mx02.redhat.com (Postfix) with ESMTPS id 96F41185A78F;
+	Mon, 14 Aug 2023 21:11:23 +0000 (UTC)
 Received: from fs-i40c-03.fs.lab.eng.bos.redhat.com (fs-i40c-03.fs.lab.eng.bos.redhat.com [10.16.224.23])
-	by smtp.corp.redhat.com (Postfix) with ESMTP id 95902C15BAD;
-	Mon, 14 Aug 2023 21:11:22 +0000 (UTC)
+	by smtp.corp.redhat.com (Postfix) with ESMTP id 4A510C15BAD;
+	Mon, 14 Aug 2023 21:11:23 +0000 (UTC)
 From: Alexander Aring <aahringo@redhat.com>
 To: linux-nfs@vger.kernel.org
 Cc: cluster-devel@redhat.com,
@@ -38,9 +38,9 @@ Cc: cluster-devel@redhat.com,
 	anna@kernel.org,
 	chuck.lever@oracle.com,
 	jlayton@kernel.org
-Subject: [RFCv2 2/7] lockd: FILE_LOCK_DEFERRED only on FL_SLEEP
-Date: Mon, 14 Aug 2023 17:11:11 -0400
-Message-Id: <20230814211116.3224759-3-aahringo@redhat.com>
+Subject: [RFCv2 4/7] locks: update lock callback documentation
+Date: Mon, 14 Aug 2023 17:11:13 -0400
+Message-Id: <20230814211116.3224759-5-aahringo@redhat.com>
 In-Reply-To: <20230814211116.3224759-1-aahringo@redhat.com>
 References: <20230814211116.3224759-1-aahringo@redhat.com>
 Precedence: bulk
@@ -52,84 +52,57 @@ MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 X-Scanned-By: MIMEDefang 3.1 on 10.11.54.8
 
-This patch removes to handle non-blocking lock requests as asynchronous
-lock request returning FILE_LOCK_DEFERRED. When fl_lmops and lm_grant()
-is set and a non-blocking lock request returns FILE_LOCK_DEFERRED will
-end in an WARNING to signal the user the misusage of the API.
-
-The reason why we moving to make non-blocking lock request as
-synchronized call is that we already doing this behaviour for unlock or
-cancellation as well. Those are POSIX lock operations which are handled
-in an synchronized way and waiting for an answer. For non-blocking lock
-requests the answer will probably arrive in the same time as unlock or
-cancellation operations as those are trylock operations only.
-
-In case of a blocking lock request we need to have it asynchronously
-because the time when the lock request getting granted is unknown.
+This patch updates the existing documentation regarding recent changes
+to vfs_lock_file() and lm_grant() is set. In case of lm_grant() is set
+we only handle FILE_LOCK_DEFERRED in case of FL_SLEEP in fl_flags is not
+set. This is the case of an blocking lock request. Non-blocking lock
+requests, when FL_SLEEP is not set, are handled in a synchronized way.
 
 Signed-off-by: Alexander Aring <aahringo@redhat.com>
 ---
- fs/lockd/svclock.c | 39 +++++++--------------------------------
- 1 file changed, 7 insertions(+), 32 deletions(-)
+ fs/locks.c | 28 ++++++++++++++--------------
+ 1 file changed, 14 insertions(+), 14 deletions(-)
 
-diff --git a/fs/lockd/svclock.c b/fs/lockd/svclock.c
-index 7d63524bdb81..1e74a578d7de 100644
---- a/fs/lockd/svclock.c
-+++ b/fs/lockd/svclock.c
-@@ -440,31 +440,6 @@ static void nlmsvc_freegrantargs(struct nlm_rqst *call)
- 	locks_release_private(&call->a_args.lock.fl);
- }
- 
--/*
-- * Deferred lock request handling for non-blocking lock
-- */
--static __be32
--nlmsvc_defer_lock_rqst(struct svc_rqst *rqstp, struct nlm_block *block)
--{
--	__be32 status = nlm_lck_denied_nolocks;
--
--	block->b_flags |= B_QUEUED;
--
--	nlmsvc_insert_block(block, NLM_TIMEOUT);
--
--	block->b_cache_req = &rqstp->rq_chandle;
--	if (rqstp->rq_chandle.defer) {
--		block->b_deferred_req =
--			rqstp->rq_chandle.defer(block->b_cache_req);
--		if (block->b_deferred_req != NULL)
--			status = nlm_drop_reply;
--	}
--	dprintk("lockd: nlmsvc_defer_lock_rqst block %p flags %d status %d\n",
--		block, block->b_flags, ntohl(status));
--
--	return status;
--}
--
- /*
-  * Attempt to establish a lock, and if it can't be granted, block it
-  * if required.
-@@ -569,14 +544,14 @@ nlmsvc_lock(struct svc_rqst *rqstp, struct nlm_file *file,
- 			ret = async_block ? nlm_lck_blocked : nlm_lck_denied;
- 			goto out_cb_mutex;
- 		case FILE_LOCK_DEFERRED:
--			block->b_flags |= B_PENDING_CALLBACK;
-+			/* lock requests without waiters are handled in
-+			 * a non async way. Let assert this to inform
-+			 * the user about a API violation.
-+			 */
-+			WARN_ON_ONCE(!wait);
- 
--			if (wait)
--				break;
--			/* Filesystem lock operation is in progress
--			   Add it to the queue waiting for callback */
--			ret = nlmsvc_defer_lock_rqst(rqstp, block);
--			goto out_cb_mutex;
-+			block->b_flags |= B_PENDING_CALLBACK;
-+			break;
- 		case -EDEADLK:
- 			nlmsvc_remove_block(block);
- 			ret = nlm_deadlock;
+diff --git a/fs/locks.c b/fs/locks.c
+index df8b26a42524..a8e51f462b43 100644
+--- a/fs/locks.c
++++ b/fs/locks.c
+@@ -2255,21 +2255,21 @@ int fcntl_getlk(struct file *filp, unsigned int cmd, struct flock *flock)
+  * To avoid blocking kernel daemons, such as lockd, that need to acquire POSIX
+  * locks, the ->lock() interface may return asynchronously, before the lock has
+  * been granted or denied by the underlying filesystem, if (and only if)
+- * lm_grant is set. Callers expecting ->lock() to return asynchronously
+- * will only use F_SETLK, not F_SETLKW; they will set FL_SLEEP if (and only if)
+- * the request is for a blocking lock. When ->lock() does return asynchronously,
+- * it must return FILE_LOCK_DEFERRED, and call ->lm_grant() when the lock
+- * request completes.
+- * If the request is for non-blocking lock the file system should return
+- * FILE_LOCK_DEFERRED then try to get the lock and call the callback routine
+- * with the result. If the request timed out the callback routine will return a
++ * lm_grant and FL_SLEEP in fl_flags is set. Callers expecting ->lock() to return
++ * asynchronously will only use F_SETLK, not F_SETLKW; When ->lock() does return
++ * asynchronously, it must return FILE_LOCK_DEFERRED, and call ->lm_grant() when
++ * the lock request completes. The lm_grant() callback must be called in a
++ * sleepable context.
++ *
++ * If the request timed out the ->lm_grant() callback routine will return a
+  * nonzero return code and the file system should release the lock. The file
+- * system is also responsible to keep a corresponding posix lock when it
+- * grants a lock so the VFS can find out which locks are locally held and do
+- * the correct lock cleanup when required.
+- * The underlying filesystem must not drop the kernel lock or call
+- * ->lm_grant() before returning to the caller with a FILE_LOCK_DEFERRED
+- * return code.
++ * system is also responsible to keep a corresponding posix lock when it grants
++ * a lock so the VFS can find out which locks are locally held and do the correct
++ * lock cleanup when required.
++ *
++ * If the request is for non-blocking lock (when F_SETLK and FL_SLEEP in fl_flags is not set)
++ * the file system should return -EAGAIN if failed to acquire or zero if acquiring was
++ * successfully without calling the ->lm_grant() callback routine.
+  */
+ int vfs_lock_file(struct file *filp, unsigned int cmd, struct file_lock *fl, struct file_lock *conf)
+ {
 -- 
 2.31.1
 
