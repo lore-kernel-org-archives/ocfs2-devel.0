@@ -1,181 +1,180 @@
-Received: from mail.parknet.co.jp (mail.parknet.co.jp [210.171.160.6])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 96E9024509;
-	Wed,  9 Aug 2023 22:38:01 +0000 (UTC)
-Received: from ibmpc.myhome.or.jp (server.parknet.ne.jp [210.171.168.39])
-	by mail.parknet.co.jp (Postfix) with ESMTPSA id 3CD87205DB98;
-	Thu, 10 Aug 2023 07:38:00 +0900 (JST)
-Received: from devron.myhome.or.jp (foobar@devron.myhome.or.jp [192.168.0.3])
-	by ibmpc.myhome.or.jp (8.17.2/8.17.2/Debian-1) with ESMTPS id 379Mbwf6230731
-	(version=TLSv1.3 cipher=TLS_AES_256_GCM_SHA384 bits=256 verify=NOT);
-	Thu, 10 Aug 2023 07:38:00 +0900
-Received: from devron.myhome.or.jp (foobar@localhost [127.0.0.1])
-	by devron.myhome.or.jp (8.17.2/8.17.2/Debian-1) with ESMTPS id 379MbwGI248785
-	(version=TLSv1.3 cipher=TLS_AES_256_GCM_SHA384 bits=256 verify=NOT);
-	Thu, 10 Aug 2023 07:37:58 +0900
-Received: (from hirofumi@localhost)
-	by devron.myhome.or.jp (8.17.2/8.17.2/Submit) id 379MbqTh248778;
-	Thu, 10 Aug 2023 07:37:52 +0900
-From: OGAWA Hirofumi <hirofumi@mail.parknet.co.jp>
-To: Jeff Layton <jlayton@kernel.org>
-Cc: Frank Sorenson <sorenson@redhat.com>, Jan Kara <jack@suse.cz>,
-        Alexander Viro <viro@zeniv.linux.org.uk>,
-        Christian Brauner
- <brauner@kernel.org>,
-        Eric Van Hensbergen <ericvh@kernel.org>,
-        Latchesar
- Ionkov <lucho@ionkov.net>,
-        Dominique Martinet <asmadeus@codewreck.org>,
-        Christian Schoenebeck <linux_oss@crudebyte.com>,
-        David Howells
- <dhowells@redhat.com>,
-        Marc Dionne <marc.dionne@auristor.com>, Chris
- Mason <clm@fb.com>,
-        Josef Bacik <josef@toxicpanda.com>, David Sterba
- <dsterba@suse.com>,
-        Xiubo Li <xiubli@redhat.com>, Ilya Dryomov
- <idryomov@gmail.com>,
-        Jan Harkes <jaharkes@cs.cmu.edu>, coda@cs.cmu.edu,
-        Tyler Hicks <code@tyhicks.com>, Gao Xiang <xiang@kernel.org>,
-        Chao Yu
- <chao@kernel.org>,
-        Yue Hu <huyue2@gl0jj8bn.sched.sma.tdnsstic1.cn>,
-        Jeffle Xu <jefflexu@linux.alibaba.com>,
-        Namjae Jeon
- <linkinjeon@kernel.org>,
-        Sungjong Seo <sj1557.seo@samsung.com>, Jan Kara
- <jack@suse.com>,
-        "Theodore Ts'o" <tytso@mit.edu>,
-        Andreas Dilger
- <adilger.kernel@dilger.ca>,
-        Jaegeuk Kim <jaegeuk@kernel.org>, Miklos
- Szeredi <miklos@szeredi.hu>,
-        Bob Peterson <rpeterso@redhat.com>,
-        Andreas
- Gruenbacher <agruenba@redhat.com>,
-        Greg Kroah-Hartman
- <gregkh@linuxfoundation.org>,
-        Tejun Heo <tj@kernel.org>,
-        Trond Myklebust
- <trond.myklebust@hammerspace.com>,
-        Anna Schumaker <anna@kernel.org>,
-        Konstantin Komarov <almaz.alexandrovich@paragon-software.com>,
-        Mark
- Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
-        Joseph Qi
- <joseph.qi@linux.alibaba.com>,
-        Mike Marshall <hubcap@omnibond.com>,
-        Martin Brandenburg <martin@omnibond.com>,
-        Luis Chamberlain
- <mcgrof@kernel.org>,
-        Kees Cook <keescook@chromium.org>, Iurii Zaikin
- <yzaikin@google.com>,
-        Steve French <sfrench@samba.org>, Paulo Alcantara
- <pc@manguebit.com>,
-        Ronnie Sahlberg <ronniesahlberg@gmail.com>,
-        Shyam
- Prasad N <sprasad@microsoft.com>, Tom Talpey <tom@talpey.com>,
-        Sergey
- Senozhatsky <senozhatsky@chromium.org>,
-        Richard Weinberger
- <richard@nod.at>,
-        Hans de Goede <hdegoede@redhat.com>, Hugh Dickins
- <hughd@google.com>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        Amir
- Goldstein <amir73il@gmail.com>,
-        "Darrick J. Wong" <djwong@kernel.org>,
-        Benjamin Coddington <bcodding@redhat.com>,
-        linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org,
-        v9fs@lists.linux.dev, linux-afs@lists.infradead.org,
-        linux-btrfs@vger.kernel.org, ceph-devel@vger.kernel.org,
-        codalist@telemann.coda.cs.cmu.edu, ecryptfs@vger.kernel.org,
-        linux-erofs@lists.ozlabs.org, linux-ext4@vger.kernel.org,
-        linux-f2fs-devel@lists.sourceforge.net, cluster-devel@redhat.com,
-        linux-nfs@vger.kernel.org, ntfs3@lists.linux.dev,
-        ocfs2-devel@lists.linux.dev, devel@lists.orangefs.org,
-        linux-cifs@vger.kernel.org, samba-technical@lists.samba.org,
-        linux-mtd@lists.infradead.org, linux-mm@kvack.org,
-        linux-unionfs@vger.kernel.org, linux-xfs@vger.kernel.org
-Subject: Re: [PATCH v7 05/13] fat: make fat_update_time get its own timestamp
-In-Reply-To: <e4cee2590f5cb9a13a8d4445e550e155d551670d.camel@kernel.org> (Jeff
-	Layton's message of "Wed, 09 Aug 2023 18:07:29 -0400")
-References: <20230807-mgctime-v7-0-d1dec143a704@kernel.org>
-	<20230807-mgctime-v7-5-d1dec143a704@kernel.org>
-	<87msz08vc7.fsf@mail.parknet.co.jp>
-	<52bead1d6a33fec89944b96e2ec20d1ea8747a9a.camel@kernel.org>
-	<878rak8hia.fsf@mail.parknet.co.jp>
-	<20230809150041.452w7gucjmvjnvbg@quack3>
-	<87v8do6y8q.fsf@mail.parknet.co.jp>
-	<2cb998ff14ace352a9dd553e82cfa0aa92ec09ce.camel@kernel.org>
-	<87leek6rh1.fsf@mail.parknet.co.jp>
-	<ccffe6ca3397c8374352b002fe01d55b09d84ef4.camel@kernel.org>
-	<87h6p86p9z.fsf@mail.parknet.co.jp>
-	<edf8e8ca3b38e56f30e0d24ac7293f848ffee371.camel@kernel.org>
-	<87a5v06kij.fsf@mail.parknet.co.jp>
-	<e4cee2590f5cb9a13a8d4445e550e155d551670d.camel@kernel.org>
-Date: Thu, 10 Aug 2023 07:37:52 +0900
-Message-ID: <87zg2z3kqn.fsf@mail.parknet.co.jp>
-User-Agent: Gnus/5.13 (Gnus v5.13)
+Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.133.124])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 48A46C143
+	for <ocfs2-devel@lists.linux.dev>; Mon, 14 Aug 2023 21:11:26 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
+	s=mimecast20190719; t=1692047486;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:
+	 content-transfer-encoding:content-transfer-encoding:
+	 in-reply-to:in-reply-to:references:references;
+	bh=3CdvUCR67HKTzgA8ywdTr8ioyoTx7c9EJeXX3FgxDN0=;
+	b=jKb/I9aHHy+0OSFB8mHwuvxxB4kKZXLxRA2lMz+ZUid0/Y4tdXZtzIHLqS9rTZLfzZtgum
+	VpcS1wmz1pmP1sH23bNqR6NPvG3MkzRTQdwtN6MjlfevseQeCnjWlm2lN9RZBkWRKeGibz
+	bFQ2BGbmc0gv4wsgnjH0M9dXiQKIC3c=
+Received: from mimecast-mx02.redhat.com (66.187.233.73 [66.187.233.73]) by
+ relay.mimecast.com with ESMTP with STARTTLS (version=TLSv1.2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id
+ us-mta-622-IbmwCf1LOECBsoU0pJIQdw-1; Mon, 14 Aug 2023 17:11:23 -0400
+X-MC-Unique: IbmwCf1LOECBsoU0pJIQdw-1
+Received: from smtp.corp.redhat.com (int-mx08.intmail.prod.int.rdu2.redhat.com [10.11.54.8])
+	(using TLSv1.2 with cipher AECDH-AES256-SHA (256/256 bits))
+	(No client certificate requested)
+	by mimecast-mx02.redhat.com (Postfix) with ESMTPS id 41E5C1C0E0C0;
+	Mon, 14 Aug 2023 21:11:23 +0000 (UTC)
+Received: from fs-i40c-03.fs.lab.eng.bos.redhat.com (fs-i40c-03.fs.lab.eng.bos.redhat.com [10.16.224.23])
+	by smtp.corp.redhat.com (Postfix) with ESMTP id E9DD8C15BAD;
+	Mon, 14 Aug 2023 21:11:22 +0000 (UTC)
+From: Alexander Aring <aahringo@redhat.com>
+To: linux-nfs@vger.kernel.org
+Cc: cluster-devel@redhat.com,
+	ocfs2-devel@lists.linux.dev,
+	linux-fsdevel@vger.kernel.org,
+	teigland@redhat.com,
+	rpeterso@redhat.com,
+	agruenba@redhat.com,
+	trond.myklebust@hammerspace.com,
+	anna@kernel.org,
+	chuck.lever@oracle.com,
+	jlayton@kernel.org
+Subject: [RFCv2 3/7] lockd: introduce safe async lock op
+Date: Mon, 14 Aug 2023 17:11:12 -0400
+Message-Id: <20230814211116.3224759-4-aahringo@redhat.com>
+In-Reply-To: <20230814211116.3224759-1-aahringo@redhat.com>
+References: <20230814211116.3224759-1-aahringo@redhat.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Type: text/plain
+Content-Transfer-Encoding: 8bit
+X-Scanned-By: MIMEDefang 3.1 on 10.11.54.8
 
-Jeff Layton <jlayton@kernel.org> writes:
+This patch reverts mostly commit 40595cdc93ed ("nfs: block notification
+on fs with its own ->lock") and introduces an EXPORT_OP_SAFE_ASYNC_LOCK
+export flag to signal that the "own ->lock" implementation supports
+async lock requests. The only main user is DLM that is used by GFS2 and
+OCFS2 filesystem. Those implement their own lock() implementation and
+return FILE_LOCK_DEFERRED as return value. Since commit 40595cdc93ed
+("nfs: block notification on fs with its own ->lock") the DLM
+implementation were never updated. This patch should prepare for DLM
+to set the EXPORT_OP_SAFE_ASYNC_LOCK export flag and update the DLM
+plock implementation regarding to it.
 
-> If you do that then the i_version counter would never be incremented.
-> But...I think I see what you're getting at.
->
-> Most filesystems that support the i_version counter have an on-disk
-> field for it. FAT obviously has no such thing. I suspect the i_version
-> bits in fat_update_time were added by mistake. FAT doesn't set
-> SB_I_VERSION so there's no need to do anything to the i_version field at
-> all.
->
-> Also, given that the mtime and ctime are always kept in sync on FAT,
-> we're probably fine to have it look something like this:
+Signed-off-by: Alexander Aring <aahringo@redhat.com>
+---
+ fs/lockd/svclock.c       |  5 ++---
+ fs/nfsd/nfs4state.c      | 13 ++++++++++---
+ include/linux/exportfs.h |  8 ++++++++
+ 3 files changed, 20 insertions(+), 6 deletions(-)
 
-Yes.
-
-IIRC, when I wrote, I decided to make it keep similar with generic
-function, instead of heavily customize for FAT (for maintenance
-reason). It is why. There would be other places with same reason.
-
-E.g. LAZYTIME check is same reason too. (current FAT doesn't support it)
-
-So I personally I would prefer to leave it. But if you want to remove
-it, it would be ok too.
-
-Thanks.
-
-> --------------------8<------------------
-> int fat_update_time(struct inode *inode, int flags) 
-> { 
->         int dirty_flags = 0;
->
->         if (inode->i_ino == MSDOS_ROOT_INO) 
->                 return 0;
->
->         fat_truncate_time(inode, NULL, flags);
->         if (inode->i_sb->s_flags & SB_LAZYTIME)
->                 dirty_flags |= I_DIRTY_TIME;
->         else
->                 dirty_flags |= I_DIRTY_SYNC;
->
->         __mark_inode_dirty(inode, dirty_flags);
->         return 0;
-> } 
-> --------------------8<------------------
->
-> ...and we should probably do that in a separate patch in advance of the
-> update_time rework, since it's really a different change.
->
-> If you're in agreement, then I'll plan to respin the series with this
-> fixed and resend.
->
-> Thanks for being patient!
+diff --git a/fs/lockd/svclock.c b/fs/lockd/svclock.c
+index 1e74a578d7de..b8bd2b841ee1 100644
+--- a/fs/lockd/svclock.c
++++ b/fs/lockd/svclock.c
+@@ -449,9 +449,7 @@ nlmsvc_lock(struct svc_rqst *rqstp, struct nlm_file *file,
+ 	    struct nlm_host *host, struct nlm_lock *lock, int wait,
+ 	    struct nlm_cookie *cookie, int reclaim)
+ {
+-#if IS_ENABLED(CONFIG_SUNRPC_DEBUG)
+ 	struct inode		*inode = nlmsvc_file_inode(file);
+-#endif
+ 	struct nlm_block	*block = NULL;
+ 	int			error;
+ 	int			mode;
+@@ -465,7 +463,8 @@ nlmsvc_lock(struct svc_rqst *rqstp, struct nlm_file *file,
+ 				(long long)lock->fl.fl_end,
+ 				wait);
+ 
+-	if (nlmsvc_file_file(file)->f_op->lock) {
++	if (!export_op_support_safe_async_lock(inode->i_sb->s_export_op,
++					       nlmsvc_file_file(file)->f_op)) {
+ 		async_block = wait;
+ 		wait = 0;
+ 	}
+diff --git a/fs/nfsd/nfs4state.c b/fs/nfsd/nfs4state.c
+index 3aefbad4cc09..14ca06424ff1 100644
+--- a/fs/nfsd/nfs4state.c
++++ b/fs/nfsd/nfs4state.c
+@@ -7430,6 +7430,7 @@ nfsd4_lock(struct svc_rqst *rqstp, struct nfsd4_compound_state *cstate,
+ 	struct nfsd4_blocked_lock *nbl = NULL;
+ 	struct file_lock *file_lock = NULL;
+ 	struct file_lock *conflock = NULL;
++	struct super_block *sb;
+ 	__be32 status = 0;
+ 	int lkflg;
+ 	int err;
+@@ -7451,6 +7452,7 @@ nfsd4_lock(struct svc_rqst *rqstp, struct nfsd4_compound_state *cstate,
+ 		dprintk("NFSD: nfsd4_lock: permission denied!\n");
+ 		return status;
+ 	}
++	sb = cstate->current_fh.fh_dentry->d_sb;
+ 
+ 	if (lock->lk_is_new) {
+ 		if (nfsd4_has_session(cstate))
+@@ -7502,7 +7504,9 @@ nfsd4_lock(struct svc_rqst *rqstp, struct nfsd4_compound_state *cstate,
+ 	fp = lock_stp->st_stid.sc_file;
+ 	switch (lock->lk_type) {
+ 		case NFS4_READW_LT:
+-			if (nfsd4_has_session(cstate))
++			if (nfsd4_has_session(cstate) ||
++			    export_op_support_safe_async_lock(sb->s_export_op,
++							      nf->nf_file->f_op))
+ 				fl_flags |= FL_SLEEP;
+ 			fallthrough;
+ 		case NFS4_READ_LT:
+@@ -7514,7 +7518,9 @@ nfsd4_lock(struct svc_rqst *rqstp, struct nfsd4_compound_state *cstate,
+ 			fl_type = F_RDLCK;
+ 			break;
+ 		case NFS4_WRITEW_LT:
+-			if (nfsd4_has_session(cstate))
++			if (nfsd4_has_session(cstate) ||
++			    export_op_support_safe_async_lock(sb->s_export_op,
++							      nf->nf_file->f_op))
+ 				fl_flags |= FL_SLEEP;
+ 			fallthrough;
+ 		case NFS4_WRITE_LT:
+@@ -7542,7 +7548,8 @@ nfsd4_lock(struct svc_rqst *rqstp, struct nfsd4_compound_state *cstate,
+ 	 * for file locks), so don't attempt blocking lock notifications
+ 	 * on those filesystems:
+ 	 */
+-	if (nf->nf_file->f_op->lock)
++	if (!export_op_support_safe_async_lock(sb->s_export_op,
++					       nf->nf_file->f_op))
+ 		fl_flags &= ~FL_SLEEP;
+ 
+ 	nbl = find_or_allocate_block(lock_sop, &fp->fi_fhandle, nn);
+diff --git a/include/linux/exportfs.h b/include/linux/exportfs.h
+index 11fbd0ee1370..10358a93cdc1 100644
+--- a/include/linux/exportfs.h
++++ b/include/linux/exportfs.h
+@@ -3,6 +3,7 @@
+ #define LINUX_EXPORTFS_H 1
+ 
+ #include <linux/types.h>
++#include <linux/fs.h>
+ 
+ struct dentry;
+ struct iattr;
+@@ -224,9 +225,16 @@ struct export_operations {
+ 						  atomic attribute updates
+ 						*/
+ #define EXPORT_OP_FLUSH_ON_CLOSE	(0x20) /* fs flushes file data on close */
++#define EXPORT_OP_SAFE_ASYNC_LOCK	(0x40) /* fs can do async lock request */
+ 	unsigned long	flags;
+ };
+ 
++static inline bool export_op_support_safe_async_lock(const struct export_operations *export_ops,
++						     const struct file_operations *f_op)
++{
++	return (export_ops->flags & EXPORT_OP_SAFE_ASYNC_LOCK) || !f_op->lock;
++}
++
+ extern int exportfs_encode_inode_fh(struct inode *inode, struct fid *fid,
+ 				    int *max_len, struct inode *parent,
+ 				    int flags);
 -- 
-OGAWA Hirofumi <hirofumi@mail.parknet.co.jp>
+2.31.1
+
