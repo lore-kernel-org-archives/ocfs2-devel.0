@@ -1,33 +1,32 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B745513AFD
-	for <ocfs2-devel@lists.linux.dev>; Tue, 15 Aug 2023 18:21:21 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 84FB7C433C7;
-	Tue, 15 Aug 2023 18:21:20 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C72B2101FD
+	for <ocfs2-devel@lists.linux.dev>; Wed, 16 Aug 2023 11:37:45 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 38C8BC433C7;
+	Wed, 16 Aug 2023 11:37:44 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1692123681;
-	bh=fKF+2PCMKnno8nH7qPTTbfIaqiCSsM9f+2zvVbfY8eU=;
+	s=k20201202; t=1692185865;
+	bh=RL4m4ONn3JQ2aJBR+dWTncFryUjjHtRlbcL+rnTLBJQ=;
 	h=Subject:From:To:Cc:Date:In-Reply-To:References:From;
-	b=R3J0foj9xewEMjplkVcROv3AAVbIh1XveOy5hmCECKFCBYNnhFpwnVgeFcIsWK4CQ
-	 99H2RAuAwiQPwWsPHBRV4eLmv6UIQTPLoxF4pCxOoJdjSErdF+OPKZa4ghX3sZepzm
-	 0UvuQw6YZeS+sUmD5EP+40fXl5/aKNWmH1wQwuad1ww64edARdV+lZBxR7VPneGwGI
-	 p86qdllbNpSSMGTRtp0nwhKfoaJb+Ze+r/bWVOkOy7FcldK8heyjYCn3F5kQ987chG
-	 56lxeYSVH2cKcRR17g8JOpgVzdzV6t9RfeAF4jZXJmQP0pCG0dKHNWoVIOSaIl6JaD
-	 J03O2TeYobWIA==
-Message-ID: <350395c8906f46ec4634392adb8a9e3927763ef1.camel@kernel.org>
-Subject: Re: [RFCv2 1/7] lockd: fix race in async lock request handling
+	b=ElSdhCW2SgW0LGYw1qdRbeF4aaUkZTfSbwgJkNzEQi74ozYVNsp5Yf/XjHj+oN0Dl
+	 1R1og3BX4xR2gOeZuvgQwISBZhJ+Bs9WaMyhPamZNfQqhqy6dlD+/BKWWzFye0brrV
+	 sMdkjuOZ172KF9MPA14XyxQJu+nu5k+PJxZpYUCyYeSD24IxlN2MH0slrbD6gLFrO+
+	 dd/93H3icHfSQyKMZ1wGf35vP2cdFAcoTaAVLxDMDjw6942Z72gu42cW6/urI8qcXv
+	 Ud3WzdN9C/CeOJVxXMd1rbkZQaps22haTrHskTtOvzJttL6kwL3Z7UX6zoDVEZliFk
+	 5vBgZXQJIcZrw==
+Message-ID: <88ec807d16a7eb2be252eea0c10e3374c01da1bf.camel@kernel.org>
+Subject: Re: [RFCv2 2/7] lockd: FILE_LOCK_DEFERRED only on FL_SLEEP
 From: Jeff Layton <jlayton@kernel.org>
 To: Alexander Aring <aahringo@redhat.com>, linux-nfs@vger.kernel.org
 Cc: cluster-devel@redhat.com, ocfs2-devel@lists.linux.dev, 
 	linux-fsdevel@vger.kernel.org, teigland@redhat.com, rpeterso@redhat.com, 
 	agruenba@redhat.com, trond.myklebust@hammerspace.com, anna@kernel.org, 
 	chuck.lever@oracle.com
-Date: Tue, 15 Aug 2023 14:21:19 -0400
-In-Reply-To: <c049f33344990f74c2b88cc3279a913f6ff6f498.camel@kernel.org>
+Date: Wed, 16 Aug 2023 07:37:42 -0400
+In-Reply-To: <20230814211116.3224759-3-aahringo@redhat.com>
 References: <20230814211116.3224759-1-aahringo@redhat.com>
-	 <20230814211116.3224759-2-aahringo@redhat.com>
-	 <c049f33344990f74c2b88cc3279a913f6ff6f498.camel@kernel.org>
+	 <20230814211116.3224759-3-aahringo@redhat.com>
 Content-Type: text/plain; charset="ISO-8859-15"
 Content-Transfer-Encoding: quoted-printable
 User-Agent: Evolution 3.48.4 (3.48.4-1.fc38) 
@@ -38,146 +37,105 @@ List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 
-On Tue, 2023-08-15 at 13:49 -0400, Jeff Layton wrote:
-> On Mon, 2023-08-14 at 17:11 -0400, Alexander Aring wrote:
-> > This patch fixes a race in async lock request handling between adding
-> > the relevant struct nlm_block to nlm_blocked list after the request was
-> > sent by vfs_lock_file() and nlmsvc_grant_deferred() does a lookup of th=
-e
-> > nlm_block in the nlm_blocked list. It could be that the async request i=
-s
-> > completed before the nlm_block was added to the list. This would end
-> > in a -ENOENT and a kernel log message of "lockd: grant for unknown
-> > block".
-> >=20
-> > To solve this issue we add the nlm_block before the vfs_lock_file() cal=
-l
-> > to be sure it has been added when a possible nlmsvc_grant_deferred() is
-> > called. If the vfs_lock_file() results in an case when it wouldn't be
-> > added to nlm_blocked list, the nlm_block struct will be removed from
-> > this list again.
-> >=20
-> > The introducing of the new B_PENDING_CALLBACK nlm_block flag will handl=
-e
-> > async lock requests on a pending lock requests as a retry on the caller
-> > level to hit the -EAGAIN case.
-> >=20
-> > Signed-off-by: Alexander Aring <aahringo@redhat.com>
-> > ---
-> >  fs/lockd/svclock.c          | 100 ++++++++++++++++++++++++++----------
-> >  include/linux/lockd/lockd.h |   2 +
-> >  2 files changed, 74 insertions(+), 28 deletions(-)
-> >=20
-> >=20
-
-[...]
-
-> > diff --git a/include/linux/lockd/lockd.h b/include/linux/lockd/lockd.h
-> > index f42594a9efe0..91f55458f5fc 100644
-> > --- a/include/linux/lockd/lockd.h
-> > +++ b/include/linux/lockd/lockd.h
-> > @@ -185,10 +185,12 @@ struct nlm_block {
-> >  	struct nlm_file *	b_file;		/* file in question */
-> >  	struct cache_req *	b_cache_req;	/* deferred request handling */
-> >  	struct cache_deferred_req * b_deferred_req
-> > +	struct mutex		b_cb_mutex;	/* callback mutex */
->=20
-> There is no mention at all of this new mutex in the changelog or
-> comments. It's not at all clear to me what this is intended to protect.
-> In general, with lockd being a single-threaded service, we want to avoid
-> sleeping locks. This will need some clear justification.
->=20
-> At a glance, it looks like you're trying to use this to hold
-> B_PENDING_CALLBACK steady while a lock request is being handled. That
-> suggests that you're using this mutex to serialize access to a section
-> of code and not one or more specific data structures. We usually like to
-> avoid that sort of thing, since locks that protect arbitrary sections of
-> code become difficult to work with over time.
->=20
-> I'm going to go out on a limb here though and suggest that there is
-> probably a way to solve this problem that doesn't involve adding new
-> locks.
->=20
-> >  	unsigned int		b_flags;	/* block flags */
-> >  #define B_QUEUED		1	/* lock queued */
-> >  #define B_GOT_CALLBACK		2	/* got lock or conflicting lock */
-> >  #define B_TIMED_OUT		4	/* filesystem too slow to respond */
-> > +#define B_PENDING_CALLBACK	8	/* pending callback for lock request */
-> >  };
-> > =20
-> >  /*
->=20
-> Do we need this new flag at all? It seems redundant. If we have a block
-> on the list, then it is sort of by definition "pending callback". If
-> it's not on the list anymore, then it's not. No?
+On Mon, 2023-08-14 at 17:11 -0400, Alexander Aring wrote:
+> This patch removes to handle non-blocking lock requests as asynchronous
+> lock request returning FILE_LOCK_DEFERRED. When fl_lmops and lm_grant()
+> is set and a non-blocking lock request returns FILE_LOCK_DEFERRED will
+> end in an WARNING to signal the user the misusage of the API.
 >=20
 
-Do we need anything more than a patch along these lines? Note that this
-is untested, so RFC:
+Probably need to rephrase the word salad in the first sentence of the
+commit log. I had to go over it a few times to understand what was going
+on here.
 
----------------------8<-----------------------
+In any case, I'm guessing that the idea here is that GFS2/DLM shouldn't
+ever return FILE_LOCK_DEFERRED if this is a non-wait request (i.e.
+someone called F_SETLK instead of F_SETLKW)?
 
-[RFC PATCH] lockd: alternate fix for race between deferred lock and grant
+That may be ok, but again, lockd goes to great lengths to avoid blocking
+and I think it's generally a good idea. If an upcall to DLM can take a
+long time, it might be a good idea to continue to allow a !wait request
+to return FILE_LOCK_DEFERRED.
 
-Signed-off-by: Jeff Layton <jlayton@kernel.org>
----
- fs/lockd/svclock.c | 9 +++++++--
- 1 file changed, 7 insertions(+), 2 deletions(-)
+I guess this really depends on the current behavior today though. Does
+DLM ever return FILE_LOCK_DEFERRED on a non-blocking lock request?
 
-diff --git a/fs/lockd/svclock.c b/fs/lockd/svclock.c
-index c43ccdf28ed9..e9a84363c26e 100644
---- a/fs/lockd/svclock.c
-+++ b/fs/lockd/svclock.c
-@@ -446,6 +446,8 @@ nlmsvc_defer_lock_rqst(struct svc_rqst *rqstp, struct n=
-lm_block *block)
-=20
- 	block->b_flags |=3D B_QUEUED;
-=20
-+	/* FIXME: remove and reinsert w/o dropping spinlock */
-+	nlmsvc_remove_block(block);
- 	nlmsvc_insert_block(block, NLM_TIMEOUT);
-=20
- 	block->b_cache_req =3D &rqstp->rq_chandle;
-@@ -535,6 +537,9 @@ nlmsvc_lock(struct svc_rqst *rqstp, struct nlm_file *fi=
-le,
- 	if (!wait)
- 		lock->fl.fl_flags &=3D ~FL_SLEEP;
- 	mode =3D lock_to_openmode(&lock->fl);
-+
-+	/* Append to list of blocked */
-+	nlmsvc_insert_block(block, NLM_NEVER);
- 	error =3D vfs_lock_file(file->f_file[mode], F_SETLK, &lock->fl, NULL);
- 	lock->fl.fl_flags &=3D ~FL_SLEEP;
-=20
-@@ -542,6 +547,7 @@ nlmsvc_lock(struct svc_rqst *rqstp, struct nlm_file *fi=
-le,
- 	switch (error) {
- 		case 0:
- 			ret =3D nlm_granted;
-+			nlmsvc_remove_block(block);
- 			goto out;
- 		case -EAGAIN:
- 			/*
-@@ -552,6 +558,7 @@ nlmsvc_lock(struct svc_rqst *rqstp, struct nlm_file *fi=
-le,
- 			if (wait)
- 				break;
- 			ret =3D async_block ? nlm_lck_blocked : nlm_lck_denied;
-+			nlmsvc_remove_block(block);
- 			goto out;
- 		case FILE_LOCK_DEFERRED:
- 			if (wait)
-@@ -570,8 +577,6 @@ nlmsvc_lock(struct svc_rqst *rqstp, struct nlm_file *fi=
-le,
-=20
- 	ret =3D nlm_lck_blocked;
-=20
--	/* Append to list of blocked */
--	nlmsvc_insert_block(block, NLM_NEVER);
- out:
- 	mutex_unlock(&file->f_mutex);
- 	nlmsvc_release_block(block);
+
+> The reason why we moving to make non-blocking lock request as
+> synchronized call is that we already doing this behaviour for unlock or
+> cancellation as well. Those are POSIX lock operations which are handled
+> in an synchronized way and waiting for an answer. For non-blocking lock
+> requests the answer will probably arrive in the same time as unlock or
+> cancellation operations as those are trylock operations only.
+>=20
+> In case of a blocking lock request we need to have it asynchronously
+> because the time when the lock request getting granted is unknown.
+>=20
+> Signed-off-by: Alexander Aring <aahringo@redhat.com>
+> ---
+>  fs/lockd/svclock.c | 39 +++++++--------------------------------
+>  1 file changed, 7 insertions(+), 32 deletions(-)
+>=20
+> diff --git a/fs/lockd/svclock.c b/fs/lockd/svclock.c
+> index 7d63524bdb81..1e74a578d7de 100644
+> --- a/fs/lockd/svclock.c
+> +++ b/fs/lockd/svclock.c
+> @@ -440,31 +440,6 @@ static void nlmsvc_freegrantargs(struct nlm_rqst *ca=
+ll)
+>  	locks_release_private(&call->a_args.lock.fl);
+>  }
+> =20
+> -/*
+> - * Deferred lock request handling for non-blocking lock
+> - */
+> -static __be32
+> -nlmsvc_defer_lock_rqst(struct svc_rqst *rqstp, struct nlm_block *block)
+> -{
+> -	__be32 status =3D nlm_lck_denied_nolocks;
+> -
+> -	block->b_flags |=3D B_QUEUED;
+> -
+> -	nlmsvc_insert_block(block, NLM_TIMEOUT);
+> -
+> -	block->b_cache_req =3D &rqstp->rq_chandle;
+> -	if (rqstp->rq_chandle.defer) {
+> -		block->b_deferred_req =3D
+> -			rqstp->rq_chandle.defer(block->b_cache_req);
+> -		if (block->b_deferred_req !=3D NULL)
+> -			status =3D nlm_drop_reply;
+> -	}
+> -	dprintk("lockd: nlmsvc_defer_lock_rqst block %p flags %d status %d\n",
+> -		block, block->b_flags, ntohl(status));
+> -
+> -	return status;
+> -}
+> -
+>  /*
+>   * Attempt to establish a lock, and if it can't be granted, block it
+>   * if required.
+> @@ -569,14 +544,14 @@ nlmsvc_lock(struct svc_rqst *rqstp, struct nlm_file=
+ *file,
+>  			ret =3D async_block ? nlm_lck_blocked : nlm_lck_denied;
+>  			goto out_cb_mutex;
+>  		case FILE_LOCK_DEFERRED:
+> -			block->b_flags |=3D B_PENDING_CALLBACK;
+> +			/* lock requests without waiters are handled in
+> +			 * a non async way. Let assert this to inform
+> +			 * the user about a API violation.
+> +			 */
+> +			WARN_ON_ONCE(!wait);
+> =20
+> -			if (wait)
+> -				break;
+> -			/* Filesystem lock operation is in progress
+> -			   Add it to the queue waiting for callback */
+> -			ret =3D nlmsvc_defer_lock_rqst(rqstp, block);
+> -			goto out_cb_mutex;
+> +			block->b_flags |=3D B_PENDING_CALLBACK;
+> +			break;
+>  		case -EDEADLK:
+>  			nlmsvc_remove_block(block);
+>  			ret =3D nlm_deadlock;
+
 --=20
-2.41.0
-
-
+Jeff Layton <jlayton@kernel.org>
