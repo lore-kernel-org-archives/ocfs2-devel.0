@@ -1,49 +1,72 @@
-Received: from szxga08-in.huawei.com (szxga08-in.huawei.com [45.249.212.255])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from smtp-out1.suse.de (smtp-out1.suse.de [195.135.220.28])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 323DF17EE
-	for <ocfs2-devel@lists.linux.dev>; Tue, 22 Aug 2023 06:07:54 +0000 (UTC)
-Received: from canpemm500005.china.huawei.com (unknown [172.30.72.55])
-	by szxga08-in.huawei.com (SkyGuard) with ESMTP id 4RVJkf5Tsmz1L9Yk;
-	Tue, 22 Aug 2023 14:06:18 +0800 (CST)
-Received: from [10.174.176.34] (10.174.176.34) by
- canpemm500005.china.huawei.com (7.192.104.229) with Microsoft SMTP Server
- (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
- 15.1.2507.31; Tue, 22 Aug 2023 14:07:46 +0800
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6F3B48F55
+	for <ocfs2-devel@lists.linux.dev>; Tue, 22 Aug 2023 09:57:11 +0000 (UTC)
+Received: from imap2.suse-dmz.suse.de (imap2.suse-dmz.suse.de [192.168.254.74])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature ECDSA (P-521) server-digest SHA512)
+	(No client certificate requested)
+	by smtp-out1.suse.de (Postfix) with ESMTPS id B1E0A22C27;
+	Tue, 22 Aug 2023 09:57:09 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.cz; s=susede2_rsa;
+	t=1692698229; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+	 mime-version:mime-version:content-type:content-type:
+	 in-reply-to:in-reply-to:references:references;
+	bh=7U2NZ9gBWxfHpuzZJzDtLLb5BwFQB7ksHfZ1FviXIic=;
+	b=nWcw18K8U7VM/+JsYDZT2tDiq+CKb75kJ7TWHiMWtPZMYFXSD858+G/7pkmjVH+HsdAtq7
+	CAVH0VAEVBpZu7CDdoPYIaDNF89rPv1kF51gaPoVV6/kR714R6o2VARAe3KSx/COZVZTjf
+	5NF7tExOIfSiwqfOPhbfJskPx/j7Bt8=
+DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.cz;
+	s=susede2_ed25519; t=1692698229;
+	h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+	 mime-version:mime-version:content-type:content-type:
+	 in-reply-to:in-reply-to:references:references;
+	bh=7U2NZ9gBWxfHpuzZJzDtLLb5BwFQB7ksHfZ1FviXIic=;
+	b=Enin00QOQW+utBJfkJDSRot2sJX8/BA7MGMjtqQQzma2I1nMxrm8G5edJB7525uHLLqVok
+	MUfHIj79EG+QQADQ==
+Received: from imap2.suse-dmz.suse.de (imap2.suse-dmz.suse.de [192.168.254.74])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature ECDSA (P-521) server-digest SHA512)
+	(No client certificate requested)
+	by imap2.suse-dmz.suse.de (Postfix) with ESMTPS id A058D13919;
+	Tue, 22 Aug 2023 09:57:09 +0000 (UTC)
+Received: from dovecot-director2.suse.de ([192.168.254.65])
+	by imap2.suse-dmz.suse.de with ESMTPSA
+	id W60QJ3WG5GRpFQAAMHmgww
+	(envelope-from <jack@suse.cz>); Tue, 22 Aug 2023 09:57:09 +0000
+Received: by quack3.suse.cz (Postfix, from userid 1000)
+	id 19A4FA0774; Tue, 22 Aug 2023 11:57:09 +0200 (CEST)
+Date: Tue, 22 Aug 2023 11:57:09 +0200
+From: Jan Kara <jack@suse.cz>
+To: Yang Yingliang <yangyingliang@huawei.com>
+Cc: ocfs2-devel@lists.linux.dev, mark@fasheh.com, jlbec@evilplan.org,
+	joseph.qi@linux.alibaba.com, tytso@mit.edu, yi.zhang@huawei.com,
+	jack@suse.cz
 Subject: Re: [PATCH -next] jbd2,ocfs2: fix wrong pointer pass to PTR_ERR()
-To: Yang Yingliang <yangyingliang@huawei.com>, <ocfs2-devel@lists.linux.dev>
-CC: <mark@fasheh.com>, <jlbec@evilplan.org>, <joseph.qi@linux.alibaba.com>,
-	<tytso@mit.edu>, <jack@suse.cz>
+Message-ID: <20230822095709.tywqhinolf2oprpa@quack3>
 References: <20230822030018.644419-1-yangyingliang@huawei.com>
-From: Zhang Yi <yi.zhang@huawei.com>
-Message-ID: <9e19af43-8dcf-0481-609a-5b34ceddeb48@huawei.com>
-Date: Tue, 22 Aug 2023 14:07:45 +0800
-User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:78.0) Gecko/20100101
- Thunderbird/78.12.0
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 In-Reply-To: <20230822030018.644419-1-yangyingliang@huawei.com>
-Content-Type: text/plain; charset="utf-8"
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
-X-Originating-IP: [10.174.176.34]
-X-ClientProxiedBy: dggems705-chm.china.huawei.com (10.3.19.182) To
- canpemm500005.china.huawei.com (7.192.104.229)
-X-CFilter-Loop: Reflected
 
-On 2023/8/22 11:00, Yang Yingliang wrote:
+On Tue 22-08-23 11:00:18, Yang Yingliang wrote:
 > Fix wrong pointer pass to PTR_ERR() if jbd2_journal_init_inode() fails.
 > 
 > Fixes: c279913275eb ("jbd2: jbd2_journal_init_{dev,inode} return proper error return value")
 > Signed-off-by: Yang Yingliang <yangyingliang@huawei.com>
 
-Ah, my mistake, thanks for the fix.
+Oh right, I've missed this during my review. Feel free to add:
 
-Reviewed-by: Zhang Yi <yi.zhang@huawei.com>
+Reviewed-by: Jan Kara <jack@suse.cz>
+
+								Honza
 
 > ---
 >  fs/ocfs2/journal.c | 2 +-
@@ -62,4 +85,9 @@ Reviewed-by: Zhang Yi <yi.zhang@huawei.com>
 >  		goto done;
 >  	}
 >  
+> -- 
+> 2.25.1
 > 
+-- 
+Jan Kara <jack@suse.com>
+SUSE Labs, CR
