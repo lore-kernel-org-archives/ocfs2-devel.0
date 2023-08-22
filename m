@@ -1,74 +1,50 @@
-Received: from mail-pf1-f169.google.com (mail-pf1-f169.google.com [209.85.210.169])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from szxga08-in.huawei.com (szxga08-in.huawei.com [45.249.212.255])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6B2727F
-	for <ocfs2-devel@lists.linux.dev>; Tue, 22 Aug 2023 03:44:53 +0000 (UTC)
-Received: by mail-pf1-f169.google.com with SMTP id d2e1a72fcca58-68a3ced3ec6so1688470b3a.1
-        for <ocfs2-devel@lists.linux.dev>; Mon, 21 Aug 2023 20:44:53 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20221208; t=1692675892; x=1693280692;
-        h=content-transfer-encoding:in-reply-to:from:references:cc:to
-         :content-language:subject:user-agent:mime-version:date:message-id
-         :from:to:cc:subject:date:message-id:reply-to;
-        bh=hCylLQkD6CaV3LKHdHG4LUWPES565jK7zTqu20KIiGA=;
-        b=Pf6D2uMDIcpNkZI0XgOnB47yazEZL65WItEK4Br1cXPiIPJaqxneCKCZTr6eza+8c9
-         Zmh9Q2gAgquzQ/JRjXTom+zN3pQfpHEwsip5snqLmAjWG8xAtkveuaRf5uQdHOJh1zpc
-         ohX4rBPvGJy8HkBifxFHQ2D8kHBXxoZOWdkb0UvwWMzcniGzj2GhFPtQHHeSX25/ZmJ2
-         m0SmXRbO+gGe3V/I6D0wX5LRMB4le9K8lCe2/YpR64TgoF45HSfPL1x4yJyvXPt1wkVy
-         zNsfIgBKZTJ86HFJTlHkvsy5c9aTD/w0IN0YAfx+5E1mXK41NRuPbY3WrbJ52Toi5Y6c
-         1zWQ==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20221208; t=1692675892; x=1693280692;
-        h=content-transfer-encoding:in-reply-to:from:references:cc:to
-         :content-language:subject:user-agent:mime-version:date:message-id
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
-        bh=hCylLQkD6CaV3LKHdHG4LUWPES565jK7zTqu20KIiGA=;
-        b=bjeXXZqOVCEGAi+RrQj4+OO69ESt4tL9+nM2OzsqUDluihbb5npwsbhM5+DU7JmvFr
-         XdIlvFbBIT5ZO0wGByhkQiiTofmR/dOUZBBMChtSZ9TDmnhu3T1EIryaON+GZSJ+wLtY
-         ZZw/njhcALWHgtWbOBee8JY9WfQli7caCea2+e03NWVBXolke4jlPKY891RYt4dHYVMl
-         ElKMBJ13winO+Vsh2HPj/72UEWpUNWDFa6Ixk3Ek+qwnNM922PXlbKCcolHY9l9+IxEf
-         wPfkljYY7JfhoA6Qnm48H5sh8JQ6Jb1FASARGjTY6nv17e2IhNicMqnp+G+Zbjhg+C55
-         ixmg==
-X-Gm-Message-State: AOJu0YyBOFeBvqoZorXg9aVy3EPcUeOLvdVtW2A0haPZURvIv+aj+Y4d
-	ZXfUcnXK84bDTgkDxISqtQI=
-X-Google-Smtp-Source: AGHT+IHOl0iCW7g3fa1aMRGtEMjgmOjnJJKaBhqs9cqJN+73H2i56rD0fZB6B0k6UhCbqwCvCLTeew==
-X-Received: by 2002:a05:6a00:21cc:b0:68a:5449:7436 with SMTP id t12-20020a056a0021cc00b0068a54497436mr4895777pfj.32.1692675892629;
-        Mon, 21 Aug 2023 20:44:52 -0700 (PDT)
-Received: from [30.221.128.103] ([47.246.101.55])
-        by smtp.gmail.com with ESMTPSA id c9-20020a639609000000b0056569f7cbd2sm6980682pge.37.2023.08.21.20.44.49
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Mon, 21 Aug 2023 20:44:52 -0700 (PDT)
-Message-ID: <04629d94-393d-907a-27bf-789bab239524@gmail.com>
-Date: Tue, 22 Aug 2023 11:44:48 +0800
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 323DF17EE
+	for <ocfs2-devel@lists.linux.dev>; Tue, 22 Aug 2023 06:07:54 +0000 (UTC)
+Received: from canpemm500005.china.huawei.com (unknown [172.30.72.55])
+	by szxga08-in.huawei.com (SkyGuard) with ESMTP id 4RVJkf5Tsmz1L9Yk;
+	Tue, 22 Aug 2023 14:06:18 +0800 (CST)
+Received: from [10.174.176.34] (10.174.176.34) by
+ canpemm500005.china.huawei.com (7.192.104.229) with Microsoft SMTP Server
+ (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
+ 15.1.2507.31; Tue, 22 Aug 2023 14:07:46 +0800
+Subject: Re: [PATCH -next] jbd2,ocfs2: fix wrong pointer pass to PTR_ERR()
+To: Yang Yingliang <yangyingliang@huawei.com>, <ocfs2-devel@lists.linux.dev>
+CC: <mark@fasheh.com>, <jlbec@evilplan.org>, <joseph.qi@linux.alibaba.com>,
+	<tytso@mit.edu>, <jack@suse.cz>
+References: <20230822030018.644419-1-yangyingliang@huawei.com>
+From: Zhang Yi <yi.zhang@huawei.com>
+Message-ID: <9e19af43-8dcf-0481-609a-5b34ceddeb48@huawei.com>
+Date: Tue, 22 Aug 2023 14:07:45 +0800
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:78.0) Gecko/20100101
+ Thunderbird/78.12.0
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:102.0)
- Gecko/20100101 Thunderbird/102.14.0
-Subject: Re: [PATCH -next] jbd2,ocfs2: fix wrong pointer pass to PTR_ERR()
-Content-Language: en-US
-To: Yang Yingliang <yangyingliang@huawei.com>, ocfs2-devel@lists.linux.dev,
- akpm <akpm@linux-foundation.org>
-Cc: mark@fasheh.com, jlbec@evilplan.org, joseph.qi@linux.alibaba.com,
- tytso@mit.edu, yi.zhang@huawei.com, jack@suse.cz
-References: <20230822030018.644419-1-yangyingliang@huawei.com>
-From: Joseph Qi <jiangqi903@gmail.com>
 In-Reply-To: <20230822030018.644419-1-yangyingliang@huawei.com>
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset="utf-8"
+Content-Language: en-US
 Content-Transfer-Encoding: 7bit
+X-Originating-IP: [10.174.176.34]
+X-ClientProxiedBy: dggems705-chm.china.huawei.com (10.3.19.182) To
+ canpemm500005.china.huawei.com (7.192.104.229)
+X-CFilter-Loop: Reflected
 
-
-
-On 8/22/23 11:00 AM, Yang Yingliang wrote:
+On 2023/8/22 11:00, Yang Yingliang wrote:
 > Fix wrong pointer pass to PTR_ERR() if jbd2_journal_init_inode() fails.
 > 
 > Fixes: c279913275eb ("jbd2: jbd2_journal_init_{dev,inode} return proper error return value")
 > Signed-off-by: Yang Yingliang <yangyingliang@huawei.com>
 
-Acked-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+Ah, my mistake, thanks for the fix.
+
+Reviewed-by: Zhang Yi <yi.zhang@huawei.com>
+
 > ---
 >  fs/ocfs2/journal.c | 2 +-
 >  1 file changed, 1 insertion(+), 1 deletion(-)
@@ -86,3 +62,4 @@ Acked-by: Joseph Qi <joseph.qi@linux.alibaba.com>
 >  		goto done;
 >  	}
 >  
+> 
