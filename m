@@ -1,148 +1,131 @@
-Received: from zeniv.linux.org.uk (zeniv.linux.org.uk [62.89.141.173])
+Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.133.124])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7D3FE7E6;
-	Wed, 30 Aug 2023 01:24:23 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-	d=linux.org.uk; s=zeniv-20220401; h=Sender:In-Reply-To:Content-Type:
-	MIME-Version:References:Message-ID:Subject:Cc:To:From:Date:Reply-To:
-	Content-Transfer-Encoding:Content-ID:Content-Description;
-	bh=UGL8Hs7wie/83TbDi9sHxBsPaDb/+1IP8lK74uZbCKw=; b=VMCLMK1iXxNHLo2tyoSLb1HI/I
-	ygrNcHqe5LWzcSOicXKiXv7+aZW1BJ7dB0vjqMCV0MnziRQDnoZOz3XgmiNQiiDnA13PUlmOVrxc4
-	WpSk9x7uA8R3KciGWN7qJ88utnJ3QSHSvYKWfoJJvhO0U1H1/cqwYZYmtvld8BDA8iqcXv8CBaGId
-	erqQdPcYkjIFz/hBJqwMuB/rDK2BOMTdgnlCwnIMFpdDxv6wkG8Wn7rLsnAYsC5D7sc1BRtVulXjw
-	RcKjf3m9ODmy0yW/y+LgeKEyGIU6PCqX4XrC83Co4MtcnJcvY9SuxDXgB2k0Ps8NGdX3ExJB41/fI
-	ibsynONQ==;
-Received: from viro by zeniv.linux.org.uk with local (Exim 4.96 #2 (Red Hat Linux))
-	id 1qb9v5-001yGw-2Z;
-	Wed, 30 Aug 2023 01:22:55 +0000
-Date: Wed, 30 Aug 2023 02:22:55 +0100
-From: Al Viro <viro@zeniv.linux.org.uk>
-To: Jeff Layton <jlayton@kernel.org>
-Cc: Eric Van Hensbergen <ericvh@kernel.org>,
-	Latchesar Ionkov <lucho@ionkov.net>,
-	Dominique Martinet <asmadeus@codewreck.org>,
-	Christian Schoenebeck <linux_oss@crudebyte.com>,
-	David Howells <dhowells@redhat.com>,
-	Marc Dionne <marc.dionne@auristor.com>, Chris Mason <clm@fb.com>,
-	Josef Bacik <josef@toxicpanda.com>, David Sterba <dsterba@suse.com>,
-	Xiubo Li <xiubli@redhat.com>, Ilya Dryomov <idryomov@gmail.com>,
-	Jan Harkes <jaharkes@cs.cmu.edu>, coda@cs.cmu.edu,
-	Tyler Hicks <code@tyhicks.com>, Gao Xiang <xiang@kernel.org>,
-	Chao Yu <chao@kernel.org>, Yue Hu <huyue2@coolpad.com>,
-	Jeffle Xu <jefflexu@linux.alibaba.com>,
-	Namjae Jeon <linkinjeon@kernel.org>,
-	Sungjong Seo <sj1557.seo@samsung.com>, Jan Kara <jack@suse.com>,
-	Theodore Ts'o <tytso@mit.edu>,
-	Andreas Dilger <adilger.kernel@dilger.ca>,
-	Jaegeuk Kim <jaegeuk@kernel.org>,
-	OGAWA Hirofumi <hirofumi@mail.parknet.co.jp>,
-	Miklos Szeredi <miklos@szeredi.hu>,
-	Bob Peterson <rpeterso@redhat.com>,
-	Andreas Gruenbacher <agruenba@redhat.com>,
-	Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
-	Tejun Heo <tj@kernel.org>, Christian Brauner <brauner@kernel.org>,
-	Trond Myklebust <trond.myklebust@hammerspace.com>,
-	Anna Schumaker <anna@kernel.org>,
-	Konstantin Komarov <almaz.alexandrovich@paragon-software.com>,
-	Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
-	Joseph Qi <joseph.qi@linux.alibaba.com>,
-	Mike Marshall <hubcap@omnibond.com>,
-	Martin Brandenburg <martin@omnibond.com>,
-	Luis Chamberlain <mcgrof@kernel.org>,
-	Kees Cook <keescook@chromium.org>,
-	Iurii Zaikin <yzaikin@google.com>, Steve French <sfrench@samba.org>,
-	Paulo Alcantara <pc@manguebit.com>,
-	Ronnie Sahlberg <lsahlber@redhat.com>,
-	Shyam Prasad N <sprasad@microsoft.com>, Tom Talpey <tom@talpey.com>,
-	Sergey Senozhatsky <senozhatsky@chromium.org>,
-	Richard Weinberger <richard@nod.at>,
-	Hans de Goede <hdegoede@redhat.com>,
-	Hugh Dickins <hughd@google.com>,
-	Andrew Morton <akpm@linux-foundation.org>,
-	"Darrick J. Wong" <djwong@kernel.org>,
-	Dave Chinner <david@fromorbit.com>,
-	Anthony Iliopoulos <ailiop@suse.com>, v9fs@lists.linux.dev,
-	linux-kernel@vger.kernel.org, linux-afs@lists.infradead.org,
-	linux-btrfs@vger.kernel.org, ceph-devel@vger.kernel.org,
-	codalist@coda.cs.cmu.edu, ecryptfs@vger.kernel.org,
-	linux-erofs@lists.ozlabs.org, linux-fsdevel@vger.kernel.org,
-	linux-ext4@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net,
-	cluster-devel@redhat.com, linux-nfs@vger.kernel.org,
-	ntfs3@lists.linux.dev, ocfs2-devel@lists.linux.dev,
-	devel@lists.orangefs.org, linux-cifs@vger.kernel.org,
-	samba-technical@lists.samba.org, linux-mtd@lists.infradead.org,
-	linux-mm@kvack.org, linux-xfs@vger.kernel.org
-Subject: Re: [PATCH v6 1/7] fs: pass the request_mask to generic_fillattr
-Message-ID: <20230830012255.GC3390869@ZenIV>
-References: <20230725-mgctime-v6-0-a794c2b7abca@kernel.org>
- <20230725-mgctime-v6-1-a794c2b7abca@kernel.org>
- <20230829224454.GA461907@ZenIV>
- <e1c4a6d5001d029548542a1f10425c5639ce28e4.camel@kernel.org>
- <20230830000221.GB3390869@ZenIV>
- <1005e30582138e203a99f49564e2ef244b8d56aa.camel@kernel.org>
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3DA951C08
+	for <ocfs2-devel@lists.linux.dev>; Wed, 30 Aug 2023 12:15:24 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
+	s=mimecast20190719; t=1693397724;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+	 content-transfer-encoding:content-transfer-encoding:
+	 in-reply-to:in-reply-to:references:references;
+	bh=pXW+YJ7Es1NUxs1wO/8B0lyOdXp6T+rmiitd4bvcpy8=;
+	b=SG+WuMrf5wj6EH0bpIhdtMrbBWrcJEbV1Dq2liUzRemjDqjiHbSKd6vob/iCylWdFKlbNg
+	JyvpUGUoIn82lAOvdJ1LX888EfBHKbPI0PQpUlt5bKwIGIAaq2cK6QWDYQ43VwzSzZdZkJ
+	VHBneZzBphz5VtUCi+nlLgHCdAaw10Y=
+Received: from mail-lj1-f197.google.com (mail-lj1-f197.google.com
+ [209.85.208.197]) by relay.mimecast.com with ESMTP with STARTTLS
+ (version=TLSv1.3, cipher=TLS_AES_256_GCM_SHA384) id
+ us-mta-380-99Ba1X8aNTGwLubsTh9s-A-1; Wed, 30 Aug 2023 08:15:22 -0400
+X-MC-Unique: 99Ba1X8aNTGwLubsTh9s-A-1
+Received: by mail-lj1-f197.google.com with SMTP id 38308e7fff4ca-2bcb47970eeso60312341fa.3
+        for <ocfs2-devel@lists.linux.dev>; Wed, 30 Aug 2023 05:15:22 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20221208; t=1693397721; x=1694002521;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:x-gm-message-state:from:to:cc
+         :subject:date:message-id:reply-to;
+        bh=pXW+YJ7Es1NUxs1wO/8B0lyOdXp6T+rmiitd4bvcpy8=;
+        b=VyXMgbe/bY8uSBHZPmu/1Axtgndsot1QAf0TjPHxTVyhLUsWcO9jJuNu0r+QdmbjUj
+         xeFQfBaaE7HlVlbuT/9WdXSy/hwpiYgqk+G4oEzrvAfE0oETEHEUo60djBMLs/WoHuCm
+         Yb2p3506QARHToFpUBf7ZAbvTs/bdgYH131WOOwm/aKynMkrT+PkrwIBjXr8HKSWmelu
+         YhhTHdxDN64d5TzZy/nJ31QPvh8H9Sc7l8T7PCOE83B+IfpsqEqR5I99SWwfISxUHRe4
+         XgTFrn6l9Ym9MmfzlYuEld1eFv0UxltcEam9xuHfkMN542YD62V4nLAzSvrwWS4Te/PE
+         vHrQ==
+X-Gm-Message-State: AOJu0Yz1pau+wxuowyZqN0TKl0ua+IdiwNJFv2lssT92egrG3xlFjBBo
+	TolaBCC5zffTTZm+y2PAq3M7/LcT8alNvhm1pY+rxS2psDAKAAik7hW6hJS/BXxBpSWx0xBG+sp
+	fUXGSOcwBSQEUGnvR4DNcZf8Bu0Q1bRIVYK2yFuU=
+X-Received: by 2002:a05:6512:3a8e:b0:500:bc5a:517a with SMTP id q14-20020a0565123a8e00b00500bc5a517amr1599280lfu.56.1693397721196;
+        Wed, 30 Aug 2023 05:15:21 -0700 (PDT)
+X-Google-Smtp-Source: AGHT+IFH4CTWLGIc2/L6PKaTeIATaE0rFTOba0dxmf+/1WydwsNUiyEi5RRMTlB/tcj2GzHwHxxqFM7q4A7ioapsKgE=
+X-Received: by 2002:a05:6512:3a8e:b0:500:bc5a:517a with SMTP id
+ q14-20020a0565123a8e00b00500bc5a517amr1599259lfu.56.1693397720785; Wed, 30
+ Aug 2023 05:15:20 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1005e30582138e203a99f49564e2ef244b8d56aa.camel@kernel.org>
-Sender: Al Viro <viro@ftp.linux.org.uk>
+References: <20230823213352.1971009-1-aahringo@redhat.com> <20230823213352.1971009-3-aahringo@redhat.com>
+ <ae36349af354dcf40c29ff1c6bf7d930f08e7115.camel@kernel.org>
+In-Reply-To: <ae36349af354dcf40c29ff1c6bf7d930f08e7115.camel@kernel.org>
+From: Alexander Aring <aahringo@redhat.com>
+Date: Wed, 30 Aug 2023 08:15:09 -0400
+Message-ID: <CAK-6q+hZ8T+Ji5kkmrE4xfA0mf+B7k44nySJqDf2zyJEO3n9Ng@mail.gmail.com>
+Subject: Re: [PATCH 2/7] lockd: don't call vfs_lock_file() for pending requests
+To: Jeff Layton <jlayton@kernel.org>
+Cc: linux-nfs@vger.kernel.org, cluster-devel@redhat.com, 
+	ocfs2-devel@lists.linux.dev, linux-fsdevel@vger.kernel.org, 
+	teigland@redhat.com, rpeterso@redhat.com, agruenba@redhat.com, 
+	trond.myklebust@hammerspace.com, anna@kernel.org, chuck.lever@oracle.com, 
+	fstests@vger.kernel.org
+X-Mimecast-Spam-Score: 0
+X-Mimecast-Originator: redhat.com
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-On Tue, Aug 29, 2023 at 08:43:31PM -0400, Jeff Layton wrote:
-> On Wed, 2023-08-30 at 01:02 +0100, Al Viro wrote:
-> > On Tue, Aug 29, 2023 at 06:58:47PM -0400, Jeff Layton wrote:
-> > > On Tue, 2023-08-29 at 23:44 +0100, Al Viro wrote:
-> > > > On Tue, Jul 25, 2023 at 10:58:14AM -0400, Jeff Layton wrote:
-> > > > > generic_fillattr just fills in the entire stat struct indiscriminately
-> > > > > today, copying data from the inode. There is at least one attribute
-> > > > > (STATX_CHANGE_COOKIE) that can have side effects when it is reported,
-> > > > > and we're looking at adding more with the addition of multigrain
-> > > > > timestamps.
-> > > > > 
-> > > > > Add a request_mask argument to generic_fillattr and have most callers
-> > > > > just pass in the value that is passed to getattr. Have other callers
-> > > > > (e.g. ksmbd) just pass in STATX_BASIC_STATS. Also move the setting of
-> > > > > STATX_CHANGE_COOKIE into generic_fillattr.
-> > > > 
-> > > > Out of curiosity - how much PITA would it be to put request_mask into
-> > > > kstat?  Set it in vfs_getattr_nosec() (and those get_file_..._info()
-> > > > on smbd side) and don't bother with that kind of propagation boilerplate
-> > > > - just have generic_fillattr() pick it there...
-> > > > 
-> > > > Reduces the patchset size quite a bit...
-> > > 
-> > > It could be done. To do that right, I think we'd want to drop
-> > > request_mask from the ->getattr prototype as well and just have
-> > > everything use the mask in the kstat.
-> > > 
-> > > I don't think it'd reduce the size of the patchset in any meaningful
-> > > way, but it might make for a more sensible API over the long haul.
-> > 
-> > ->getattr() prototype change would be decoupled from that - for your
-> > patchset you'd only need the field addition + setting in vfs_getattr_nosec()
-> > (and possibly in ksmbd), with the remainders of both series being
-> > independent from each other.
-> > 
-> > What I suggest is
-> > 
-> > branchpoint -> field addition (trivial commit) -> argument removal
-> > 		|
-> > 		V
-> > your series, starting with "use stat->request_mask in generic_fillattr()"
-> > 
-> > Total size would be about the same, but it would be easier to follow
-> > the less trivial part of that.  Nothing in your branch downstream of
-> > that touches any ->getattr() instances, so it should have no
-> > conflicts with the argument removal side of things.
-> 
-> The only problem with this plan is that Linus has already merged this.
-> I've no issue with adding the request_mask to the kstat and removing it
-> as a separate parameter elsewhere, but I think we'll need to do it on
-> top of what's already been merged.
+Hi,
 
-D'oh...  My apologies; I'll do a branch on top of that (and rebase on
-top of -rc1 once the window closes).
+On Fri, Aug 25, 2023 at 2:10=E2=80=AFPM Jeff Layton <jlayton@kernel.org> wr=
+ote:
+>
+> On Wed, 2023-08-23 at 17:33 -0400, Alexander Aring wrote:
+> > This patch returns nlm_lck_blocked in nlmsvc_lock() when an asynchronou=
+s
+> > lock request is pending. During testing I ran into the case with the
+> > side-effects that lockd is waiting for only one lm_grant() callback
+> > because it's already part of the nlm_blocked list. If another
+> > asynchronous for the same nlm_block is triggered two lm_grant()
+> > callbacks will occur but lockd was only waiting for one.
+> >
+> > To avoid any change of existing users this handling will only being mad=
+e
+> > when export_op_support_safe_async_lock() returns true.
+> >
+> > Signed-off-by: Alexander Aring <aahringo@redhat.com>
+> > ---
+> >  fs/lockd/svclock.c | 24 +++++++++++++++++-------
+> >  1 file changed, 17 insertions(+), 7 deletions(-)
+> >
+> > diff --git a/fs/lockd/svclock.c b/fs/lockd/svclock.c
+> > index 6e3b230e8317..aa4174fbaf5b 100644
+> > --- a/fs/lockd/svclock.c
+> > +++ b/fs/lockd/svclock.c
+> > @@ -531,6 +531,23 @@ nlmsvc_lock(struct svc_rqst *rqstp, struct nlm_fil=
+e *file,
+> >               goto out;
+> >       }
+> >
+> > +     spin_lock(&nlm_blocked_lock);
+> > +     /*
+> > +      * If this is a lock request for an already pending
+> > +      * lock request we return nlm_lck_blocked without calling
+> > +      * vfs_lock_file() again. Otherwise we have two pending
+> > +      * requests on the underlaying ->lock() implementation but
+> > +      * only one nlm_block to being granted by lm_grant().
+> > +      */
+> > +     if (export_op_support_safe_async_lock(inode->i_sb->s_export_op,
+> > +                                           nlmsvc_file_file(file)->f_o=
+p) &&
+> > +         !list_empty(&block->b_list)) {
+> > +             spin_unlock(&nlm_blocked_lock);
+> > +             ret =3D nlm_lck_blocked;
+> > +             goto out;
+> > +     }
+>
+> Looks reasonable. The block->b_list check is subtle, but the comment
+> helps.
+
+thanks. To be honest, I am "a little bit" worried (I am thinking of
+this scenario) that we might have a problem here with multiple
+identically lock requests being granted at the same time. In such
+cases the most fields of struct file_lock are mostly the same and
+nlm_compare_locks() checks exactly on those fields. I am concerned
+this corner case could cause problems, but it is a very rare case and
+it makes totally no sense that an application is doing such a request.
+
+I am currently trying to get an xfstest for this upstream.
+
+- Alex
+
