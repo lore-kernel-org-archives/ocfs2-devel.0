@@ -1,80 +1,150 @@
-Received: from mail-pf1-f174.google.com (mail-pf1-f174.google.com [209.85.210.174])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id CAD975399
-	for <ocfs2-devel@lists.linux.dev>; Thu, 31 Aug 2023 21:04:49 +0000 (UTC)
-Received: by mail-pf1-f174.google.com with SMTP id d2e1a72fcca58-68becf931bfso1022401b3a.0
-        for <ocfs2-devel@lists.linux.dev>; Thu, 31 Aug 2023 14:04:49 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=chromium.org; s=google; t=1693515889; x=1694120689; darn=lists.linux.dev;
-        h=in-reply-to:content-disposition:mime-version:references:message-id
-         :subject:cc:to:from:date:from:to:cc:subject:date:message-id:reply-to;
-        bh=ZIzo2LBD81agdqbnvG9Ei0Uuoz7hAbrfR7IL8DHvg8w=;
-        b=gp8l1NLst8BzAbFpR6D7k93tBZgXIhYXDTrzLDtieXYcRVtQMdgYM8npxZEQ0+kDxo
-         er087C+xNa3Y+QAHOhufuCt+DKno+qAVcoAlyoawyceLUkjCEmgdML5fCcWG7PctpBSo
-         c/T8XkqYYKO0gKds3XowZ840LCsRCDKxGY3VY=
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20221208; t=1693515889; x=1694120689;
-        h=in-reply-to:content-disposition:mime-version:references:message-id
-         :subject:cc:to:from:date:x-gm-message-state:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=ZIzo2LBD81agdqbnvG9Ei0Uuoz7hAbrfR7IL8DHvg8w=;
-        b=jR2IrfKYqReUryJBz1UlV0nPuzqfkEO0ewIAvkaYH2P8zd9rgc1p+yVNx0D6LAw34S
-         QVbFSz7TPyWIqfOTMuitUesrHUOxxmjRkrxYyWJLgjPnWYE+GDA+WyyKMVhx3hwyxNwK
-         8lNZe1zyWjrAJF+6e8ioNCMqgIi1ncqd8LEMU1ghM5oZrOv0ZYqPqR/9OcyfV3V3DWir
-         lHwA/ppzjXmQKKeCKclRZCRE032M26rOixTNMpvCvPb0Y4l3Me7XZN1YC9PIABisQazd
-         D4PjOcHL8lLAWk4b8uj3ZSzjOhV0W5VhJ0ttqGKtZpw1bUJ1kKd5Ap7R0fqWgReOaJN2
-         c9ug==
-X-Gm-Message-State: AOJu0Yw1y3aleRbm5ARFkF1lAMF56rMYPiW4ldvfMBzniUueNdVkQXCB
-	kwoM4v39nsvgZIjVeu3LMInjQDczSYCm4FUadd4=
-X-Google-Smtp-Source: AGHT+IG5mBlw3wr5PKsYkuEkTYsra3ZdB1aft7ZjlwjT5ZLwBCBmO/IK0On1ae0vgAiWOWG8dGIzpQ==
-X-Received: by 2002:a05:6a00:1397:b0:67a:9208:87a with SMTP id t23-20020a056a00139700b0067a9208087amr815479pfg.23.1693515889173;
-        Thu, 31 Aug 2023 14:04:49 -0700 (PDT)
-Received: from www.outflux.net (198-0-35-241-static.hfc.comcastbusiness.net. [198.0.35.241])
-        by smtp.gmail.com with ESMTPSA id j13-20020aa7928d000000b00689f8dc26c2sm1678614pfa.133.2023.08.31.14.04.48
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Thu, 31 Aug 2023 14:04:48 -0700 (PDT)
-Date: Thu, 31 Aug 2023 14:04:48 -0700
-From: Kees Cook <keescook@chromium.org>
-To: Azeem Shaikh <azeemshaikh38@gmail.com>
-Cc: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
-	Joseph Qi <joseph.qi@linux.alibaba.com>,
-	linux-hardening@vger.kernel.org, ocfs2-devel@lists.linux.dev,
-	linux-kernel@vger.kernel.org,
-	Christian Brauner <brauner@kernel.org>,
-	Dave Chinner <dchinner@redhat.com>, Jan Kara <jack@suse.cz>,
-	Jeff Layton <jlayton@kernel.org>
-Subject: Re: [PATCH v2] fs: ocfs2: Replace strlcpy with sysfs_emit
-Message-ID: <202308311404.875ABB0A@keescook>
-References: <20230831193827.1528867-1-azeemshaikh38@gmail.com>
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9BD79C8E6;
+	Mon,  4 Sep 2023 18:11:09 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPS id 26F6EC433BB;
+	Mon,  4 Sep 2023 18:11:09 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=k20201202; t=1693851069;
+	bh=XLoa47KxRcps38wwidPhLGQHNoTClCg5nlSU2UvnxSI=;
+	h=Subject:From:Date:References:In-Reply-To:To:Cc:From;
+	b=XZUD/xT7QAeS9CwkDxlRqT/gRWQx0TmxhnpK0eSpl5TdmWje1tq2yvGH+3vZ2+BCT
+	 jCeZ3PliMwtj4PI/YG14pbxznaZzZiLpm9dwOITxs9QimCVLsdgcY+tXdL8VHHo6Xo
+	 yN1Gfw9YZmIyD8m43UuRL17+XTyHWk7a5WXn6oF5ggWXw6RS9S101xrDjQsPd+ZkCx
+	 1CnWWAtQSCxTFtksNwHsJ+bzmvgeWVNV2ZHBFMah4WlUviOzbSHDkb9JT06sfaty1l
+	 sU4YI09Bt9xI2xASG0RHXL6Mglihp9xk051QekITKNbwSi+f4qbVFzWkXoKrsHAJfp
+	 TL/wsjYXrOQBg==
+Received: from aws-us-west-2-korg-oddjob-1.ci.codeaurora.org (localhost.localdomain [127.0.0.1])
+	by aws-us-west-2-korg-oddjob-1.ci.codeaurora.org (Postfix) with ESMTP id C90EDC2BBD7;
+	Mon,  4 Sep 2023 18:11:08 +0000 (UTC)
+Content-Type: text/plain; charset="utf-8"
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20230831193827.1528867-1-azeemshaikh38@gmail.com>
+Content-Transfer-Encoding: 8bit
+Subject: Re: [f2fs-dev] [PATCH v2 00/89] fs: new accessors for inode->i_ctime
+From: patchwork-bot+f2fs@kernel.org
+Message-Id: 
+ <169385106881.19669.3510550425397118597.git-patchwork-notify@kernel.org>
+Date: Mon, 04 Sep 2023 18:11:08 +0000
+References: <20230705185812.579118-1-jlayton@kernel.org>
+In-Reply-To: <20230705185812.579118-1-jlayton@kernel.org>
+To: Jeff Layton <jlayton@kernel.org>
+Cc: jk@ozlabs.org, arnd@arndb.de, mpe@ellerman.id.au, npiggin@gmail.com,
+ christophe.leroy@csgroup.eu, hca@linux.ibm.com, gor@linux.ibm.com,
+ agordeev@linux.ibm.com, borntraeger@linux.ibm.com, svens@linux.ibm.com,
+ gregkh@linuxfoundation.org, arve@android.com, tkjos@android.com,
+ maco@android.com, joel@joelfernandes.org, brauner@kernel.org,
+ cmllamas@google.com, surenb@google.com,
+ dennis.dalessandro@cornelisnetworks.com, jgg@ziepe.ca, leon@kernel.org,
+ bwarrum@linux.ibm.com, rituagar@linux.ibm.com, ericvh@kernel.org,
+ lucho@ionkov.net, asmadeus@codewreck.org, linux_oss@crudebyte.com,
+ dsterba@suse.com, dhowells@redhat.com, marc.dionne@auristor.com,
+ viro@zeniv.linux.org.uk, raven@themaw.net, luisbg@kernel.org,
+ salah.triki@gmail.com, aivazian.tigran@gmail.com, ebiederm@xmission.com,
+ keescook@chromium.org, clm@fb.com, josef@toxicpanda.com, xiubli@redhat.com,
+ idryomov@gmail.com, jaharkes@cs.cmu.edu, coda@cs.cmu.edu, jlbec@evilplan.org,
+ hch@lst.de, nico@fluxnic.net, rafael@kernel.org, code@tyhicks.com,
+ ardb@kernel.org, xiang@kernel.org, chao@kernel.org, huyue2@coolpad.com,
+ jefflexu@linux.alibaba.com, linkinjeon@kernel.org, sj1557.seo@samsung.com,
+ jack@suse.com, tytso@mit.edu, adilger.kernel@dilger.ca, jaegeuk@kernel.org,
+ hirofumi@mail.parknet.co.jp, miklos@szeredi.hu, rpeterso@redhat.com,
+ agruenba@redhat.com, richard@nod.at, anton.ivanov@cambridgegreys.com,
+ johannes@sipsolutions.net, mikulas@artax.karlin.mff.cuni.cz,
+ mike.kravetz@oracle.com, muchun.song@linux.dev, dwmw2@infradead.org,
+ shaggy@kernel.org, tj@kernel.org, trond.myklebust@hammerspace.com,
+ anna@kernel.org, chuck.lever@oracle.com, neilb@suse.de, kolga@netapp.com,
+ Dai.Ngo@oracle.com, tom@talpey.com, konishi.ryusuke@gmail.com,
+ anton@tuxera.com, almaz.alexandrovich@paragon-software.com, mark@fasheh.com,
+ joseph.qi@linux.alibaba.com, me@bobcopeland.com, hubcap@omnibond.com,
+ martin@omnibond.com, amir73il@gmail.com, mcgrof@kernel.org,
+ yzaikin@google.com, tony.luck@intel.com, gpiccoli@igalia.com, al@alarsen.net,
+ sfrench@samba.org, pc@manguebit.com, lsahlber@redhat.com,
+ sprasad@microsoft.com, senozhatsky@chromium.org, phillip@squashfs.org.uk,
+ rostedt@goodmis.org, mhiramat@kernel.org, dushistov@mail.ru,
+ hdegoede@redhat.com, djwong@kernel.org, dlemoal@kernel.org,
+ naohiro.aota@wdc.com, jth@kernel.org, ast@kernel.org, daniel@iogearbox.net,
+ andrii@kernel.org, martin.lau@linux.dev, song@kernel.org, yhs@fb.com,
+ john.fastabend@gmail.com, kpsingh@kernel.org, sdf@google.com,
+ haoluo@google.com, jolsa@kernel.org, hughd@google.com,
+ akpm@linux-foundation.org, davem@davemloft.net, edumazet@google.com,
+ kuba@kernel.org, pabeni@redhat.com, john.johansen@canonical.com,
+ paul@paul-moore.com, jmorris@namei.org, serge@hallyn.com,
+ stephen.smalley.work@gmail.com, eparis@parisplace.org, jgross@suse.com,
+ stern@rowland.harvard.edu, lrh2000@pku.edu.cn,
+ sebastian.reichel@collabora.com, wsa+renesas@sang-engineering.com,
+ quic_ugoswami@quicinc.com, quic_linyyuan@quicinc.com, john@keeping.me.uk,
+ error27@gmail.com, quic_uaggarwa@quicinc.com, hayama@lineo.co.jp,
+ jomajm@gmail.com, axboe@kernel.dk, dhavale@google.com, dchinner@redhat.com,
+ hannes@cmpxchg.org, zhangpeng362@huawei.com, slava@dubeyko.com,
+ gargaditya08@live.com, penguin-kernel@I-love.SAKURA.ne.jp,
+ yifeliu@cs.stonybrook.edu, madkar@cs.stonybrook.edu, ezk@cs.stonybrook.edu,
+ yuzhe@nfschina.com, willy@infradead.org, okanatov@gmail.com,
+ jeffxu@chromium.org, linux@treblig.org, mirimmad17@gmail.com,
+ yijiangshan@kylinos.cn, yang.yang29@zte.com.cn, xu.xin16@zte.com.cn,
+ chengzhihao1@huawei.com, shr@devkernel.io, Liam.Howlett@Oracle.com,
+ adobriyan@gmail.com, chi.minghao@zte.com.cn, roberto.sassu@huawei.com,
+ linuszeng@tencent.com, bvanassche@acm.org, zohar@linux.ibm.com,
+ yi.zhang@huawei.com, trix@redhat.com, fmdefrancesco@gmail.com,
+ ebiggers@google.com, princekumarmaurya06@gmail.com, chenzhongjin@huawei.com,
+ riel@surriel.com, shaozhengchao@huawei.com, jingyuwang_vip@163.com,
+ linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org,
+ linux-s390@vger.kernel.org, linux-rdma@vger.kernel.org,
+ linux-usb@vger.kernel.org, v9fs@lists.linux.dev,
+ linux-fsdevel@vger.kernel.org, linux-afs@lists.infradead.org,
+ autofs@vger.kernel.org, linux-mm@kvack.org, linux-btrfs@vger.kernel.org,
+ ceph-devel@vger.kernel.org, codalist@coda.cs.cmu.edu,
+ ecryptfs@vger.kernel.org, linux-efi@vger.kernel.org,
+ linux-erofs@lists.ozlabs.org, linux-ext4@vger.kernel.org,
+ linux-f2fs-devel@lists.sourceforge.net, cluster-devel@redhat.com,
+ linux-um@lists.infradead.org, linux-mtd@lists.infradead.org,
+ jfs-discussion@lists.sourceforge.net, linux-nfs@vger.kernel.org,
+ linux-nilfs@vger.kernel.org, linux-ntfs-dev@lists.sourceforge.net,
+ ntfs3@lists.linux.dev, ocfs2-devel@lists.linux.dev,
+ linux-karma-devel@lists.sourceforge.net, devel@lists.orangefs.org,
+ linux-unionfs@vger.kernel.org, linux-hardening@vger.kernel.org,
+ reiserfs-devel@vger.kernel.org, linux-cifs@vger.kernel.org,
+ samba-technical@lists.samba.org, linux-trace-kernel@vger.kernel.org,
+ linux-xfs@vger.kernel.org, bpf@vger.kernel.org, netdev@vger.kernel.org,
+ apparmor@lists.ubuntu.com, linux-security-module@vger.kernel.org,
+ selinux@vger.kernel.org
 
-On Thu, Aug 31, 2023 at 07:38:27PM +0000, Azeem Shaikh wrote:
-> strlcpy() reads the entire source buffer first.
-> This read may exceed the destination size limit.
-> This is both inefficient and can lead to linear read
-> overflows if a source string is not NUL-terminated [1].
-> In an effort to remove strlcpy() completely [2], replace
-> strlcpy() here with sysfs_emit().
-> 
-> Direct replacement is safe here since its ok for `kernel_param_ops.get()`
-> to return -errno [3].
-> 
-> [1] https://www.kernel.org/doc/html/latest/process/deprecated.html#strlcpy
-> [2] https://github.com/KSPP/linux/issues/89
-> [3] https://elixir.bootlin.com/linux/v6.5/source/include/linux/moduleparam.h#L52
-> 
-> Signed-off-by: Azeem Shaikh <azeemshaikh38@gmail.com>
+Hello:
 
-Reviewed-by: Kees Cook <keescook@chromium.org>
+This series was applied to jaegeuk/f2fs.git (dev)
+by Christian Brauner <brauner@kernel.org>:
 
+On Wed,  5 Jul 2023 14:58:09 -0400 you wrote:
+> v2:
+> - prepend patches to add missing ctime updates
+> - add simple_rename_timestamp helper function
+> - rename ctime accessor functions as inode_get_ctime/inode_set_ctime_*
+> - drop individual inode_ctime_set_{sec,nsec} helpers
+> 
+> I've been working on a patchset to change how the inode->i_ctime is
+> accessed in order to give us conditional, high-res timestamps for the
+> ctime and mtime. struct timespec64 has unused bits in it that we can use
+> to implement this. In order to do that however, we need to wrap all
+> accesses of inode->i_ctime to ensure that bits used as flags are
+> appropriately handled.
+> 
+> [...]
+
+Here is the summary with links:
+  - [f2fs-dev,v2,07/92] fs: add ctime accessors infrastructure
+    https://git.kernel.org/jaegeuk/f2fs/c/9b6304c1d537
+  - [f2fs-dev,v2,08/92] fs: new helper: simple_rename_timestamp
+    https://git.kernel.org/jaegeuk/f2fs/c/0c4767923ed6
+  - [f2fs-dev,v2,92/92] fs: rename i_ctime field to __i_ctime
+    https://git.kernel.org/jaegeuk/f2fs/c/13bc24457850
+
+You are awesome, thank you!
 -- 
-Kees Cook
+Deet-doot-dot, I am a bot.
+https://korg.docs.kernel.org/patchwork/pwbot.html
+
+
