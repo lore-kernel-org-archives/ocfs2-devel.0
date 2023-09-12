@@ -1,24 +1,46 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
+Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.133.124])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A06E5C8E7;
-	Mon,  4 Sep 2023 18:11:09 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPS id CC393C433CA;
-	Mon,  4 Sep 2023 18:11:08 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1693851068;
-	bh=KWuluqFF5yFV+lOCkFnoct0phRXw96Jca/CuZaTU2kY=;
-	h=Subject:From:Date:References:In-Reply-To:To:Cc:From;
-	b=K3gkbkhJRwgpsacHeBsq0A7kucjUSGo8OzMP1ouPw/XPyf9sD5QK/Sf142+usc7ZE
-	 C827H7oMTO9xQURopm4EWqGoFioLBjSEY4gmbRDnvHI4L+ywXrxJRVy5ldQmRaAtfj
-	 1pffFi8IArgTV4dPuYUPdlhMXVuT7Hb/6kEuD4lj+4NJdrul8tjUb9OXjEUjpGn+jT
-	 2ndFdt5oPLx5wHtLQ20DiaB9Xl09djxp9OA/4zW9QgSOHR3JDKxABg9kMIgFr5Ox62
-	 wqlEdaiOf1aM8ubxkjKV3yvjnRyA83mc2npN6NfYoiPdtaZLbxGvWm4TgDkfWkglX8
-	 L2qkw/qB1Voxg==
-Received: from aws-us-west-2-korg-oddjob-1.ci.codeaurora.org (localhost.localdomain [127.0.0.1])
-	by aws-us-west-2-korg-oddjob-1.ci.codeaurora.org (Postfix) with ESMTP id A2BE4C04E26;
-	Mon,  4 Sep 2023 18:11:08 +0000 (UTC)
-Content-Type: text/plain; charset="utf-8"
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4B336B679
+	for <ocfs2-devel@lists.linux.dev>; Tue, 12 Sep 2023 21:53:51 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
+	s=mimecast20190719; t=1694555630;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:
+	 content-transfer-encoding:content-transfer-encoding;
+	bh=twgRLEWHQGgDrs33JHbFXACkmGR+Ekoa3f4TUpczBRw=;
+	b=XYcJzyhV1XONbwn6mv588i6teQQLELvCxL35zSD2+MBE/Y485SnTFCBMmYTWp8IA7axPEw
+	2OBhQ08/KwCDVrQ4F5DxEHtJfy+Af0CpM5Kgutj8caeLtypxa+GQ5jcTf2imHt3Rq8HLIo
+	e2jZ04j3rXpM1quJkf5yuWXIA6497rI=
+Received: from mimecast-mx02.redhat.com (mimecast-mx02.redhat.com
+ [66.187.233.88]) by relay.mimecast.com with ESMTP with STARTTLS
+ (version=TLSv1.2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id
+ us-mta-640-NfuNQi9KNDe6K-7MWlQ7wA-1; Tue, 12 Sep 2023 17:53:47 -0400
+X-MC-Unique: NfuNQi9KNDe6K-7MWlQ7wA-1
+Received: from smtp.corp.redhat.com (int-mx01.intmail.prod.int.rdu2.redhat.com [10.11.54.1])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by mimecast-mx02.redhat.com (Postfix) with ESMTPS id 131BF8019DC;
+	Tue, 12 Sep 2023 21:53:47 +0000 (UTC)
+Received: from fs-i40c-03.fs.lab.eng.bos.redhat.com (fs-i40c-03.fs.lab.eng.bos.redhat.com [10.16.224.23])
+	by smtp.corp.redhat.com (Postfix) with ESMTP id 958C840C2009;
+	Tue, 12 Sep 2023 21:53:46 +0000 (UTC)
+From: Alexander Aring <aahringo@redhat.com>
+To: linux-nfs@vger.kernel.org
+Cc: gfs2@lists.linux.dev,
+	ocfs2-devel@lists.linux.dev,
+	linux-fsdevel@vger.kernel.org,
+	teigland@redhat.com,
+	rpeterso@redhat.com,
+	agruenba@redhat.com,
+	trond.myklebust@hammerspace.com,
+	anna@kernel.org,
+	chuck.lever@oracle.com,
+	jlayton@kernel.org,
+	aahringo@redhat.com
+Subject: [PATCHv2 nfsd/master 0/7] lockd: dlm: async lock request changes
+Date: Tue, 12 Sep 2023 17:53:17 -0400
+Message-Id: <20230912215324.3310111-1-aahringo@redhat.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -26,94 +48,73 @@ List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
-Subject: Re: [f2fs-dev] [PATCH v7 00/13] fs: implement multigrain timestamps
-From: patchwork-bot+f2fs@kernel.org
-Message-Id: 
- <169385106866.19669.14483196627780303129.git-patchwork-notify@kernel.org>
-Date: Mon, 04 Sep 2023 18:11:08 +0000
-References: <20230807-mgctime-v7-0-d1dec143a704@kernel.org>
-In-Reply-To: <20230807-mgctime-v7-0-d1dec143a704@kernel.org>
-To: Jeff Layton <jlayton@kernel.org>
-Cc: viro@zeniv.linux.org.uk, brauner@kernel.org, ericvh@kernel.org,
- lucho@ionkov.net, asmadeus@codewreck.org, linux_oss@crudebyte.com,
- dhowells@redhat.com, marc.dionne@auristor.com, clm@fb.com,
- josef@toxicpanda.com, dsterba@suse.com, xiubli@redhat.com,
- idryomov@gmail.com, jaharkes@cs.cmu.edu, coda@cs.cmu.edu, code@tyhicks.com,
- xiang@kernel.org, chao@kernel.org, huyue2@coolpad.com,
- jefflexu@linux.alibaba.com, linkinjeon@kernel.org, sj1557.seo@samsung.com,
- jack@suse.com, tytso@mit.edu, adilger.kernel@dilger.ca, jaegeuk@kernel.org,
- hirofumi@mail.parknet.co.jp, miklos@szeredi.hu, rpeterso@redhat.com,
- agruenba@redhat.com, gregkh@linuxfoundation.org, tj@kernel.org,
- trond.myklebust@hammerspace.com, anna@kernel.org,
- almaz.alexandrovich@paragon-software.com, mark@fasheh.com,
- jlbec@evilplan.org, joseph.qi@linux.alibaba.com, hubcap@omnibond.com,
- martin@omnibond.com, mcgrof@kernel.org, keescook@chromium.org,
- yzaikin@google.com, sfrench@samba.org, pc@manguebit.com,
- ronniesahlberg@gmail.com, sprasad@microsoft.com, tom@talpey.com,
- senozhatsky@chromium.org, richard@nod.at, hdegoede@redhat.com,
- hughd@google.com, akpm@linux-foundation.org, amir73il@gmail.com,
- djwong@kernel.org, bcodding@redhat.com, jack@suse.cz,
- linux-kernel@vger.kernel.org, linux-mm@kvack.org,
- linux-mtd@lists.infradead.org, linux-afs@lists.infradead.org,
- linux-cifs@vger.kernel.org, codalist@coda.cs.cmu.edu,
- cluster-devel@redhat.com, linux-ext4@vger.kernel.org,
- devel@lists.orangefs.org, ecryptfs@vger.kernel.org,
- ocfs2-devel@lists.linux.dev, ceph-devel@vger.kernel.org,
- linux-nfs@vger.kernel.org, v9fs@lists.linux.dev,
- samba-technical@lists.samba.org, linux-unionfs@vger.kernel.org,
- linux-f2fs-devel@lists.sourceforge.net, linux-xfs@vger.kernel.org,
- linux-fsdevel@vger.kernel.org, ntfs3@lists.linux.dev,
- linux-erofs@lists.ozlabs.org, linux-btrfs@vger.kernel.org
+X-Scanned-By: MIMEDefang 3.1 on 10.11.54.1
 
-Hello:
+Hi,
 
-This series was applied to jaegeuk/f2fs.git (dev)
-by Christian Brauner <brauner@kernel.org>:
+I sent this as a PATCH now and drop the RFC. I got some review back from
+Jeff Layton and hope I was successful to follow it. There are still
+issues with lockd and asynchronous lock request but it will at least not
+directly crash when somebody is using nfs on top of GFS2. The issues are
+related to cancellation of locks/lockd decides to drop nlm_block for
+some reasons while pending request is happening.
 
-On Mon, 07 Aug 2023 15:38:31 -0400 you wrote:
-> The VFS always uses coarse-grained timestamps when updating the
-> ctime and mtime after a change. This has the benefit of allowing
-> filesystems to optimize away a lot metadata updates, down to around 1
-> per jiffy, even when a file is under heavy writes.
-> 
-> Unfortunately, this coarseness has always been an issue when we're
-> exporting via NFSv3, which relies on timestamps to validate caches. A
-> lot of changes can happen in a jiffy, so timestamps aren't sufficient to
-> help the client decide to invalidate the cache.
-> 
-> [...]
+I did not change more documentation about the asynchronous lock request
+functionality to not confuse users. In my opinion there should be more
+documentation about what you SHOULD NOT do with this API. Otherwise I
+think the documentation is still correct.
 
-Here is the summary with links:
-  - [f2fs-dev,v7,01/13] fs: remove silly warning from current_time
-    https://git.kernel.org/jaegeuk/f2fs/c/b3030e4f2344
-  - [f2fs-dev,v7,02/13] fs: pass the request_mask to generic_fillattr
-    https://git.kernel.org/jaegeuk/f2fs/c/0d72b92883c6
-  - [f2fs-dev,v7,03/13] fs: drop the timespec64 arg from generic_update_time
-    https://git.kernel.org/jaegeuk/f2fs/c/541d4c798a59
-  - [f2fs-dev,v7,04/13] btrfs: have it use inode_update_timestamps
-    https://git.kernel.org/jaegeuk/f2fs/c/bb7cc0a62e47
-  - [f2fs-dev,v7,05/13] fat: make fat_update_time get its own timestamp
-    (no matching commit)
-  - [f2fs-dev,v7,06/13] ubifs: have ubifs_update_time use inode_update_timestamps
-    (no matching commit)
-  - [f2fs-dev,v7,07/13] xfs: have xfs_vn_update_time gets its own timestamp
-    (no matching commit)
-  - [f2fs-dev,v7,08/13] fs: drop the timespec64 argument from update_time
-    (no matching commit)
-  - [f2fs-dev,v7,09/13] fs: add infrastructure for multigrain timestamps
-    https://git.kernel.org/jaegeuk/f2fs/c/ffb6cf19e063
-  - [f2fs-dev,v7,10/13] tmpfs: add support for multigrain timestamps
-    https://git.kernel.org/jaegeuk/f2fs/c/d48c33972916
-  - [f2fs-dev,v7,11/13] xfs: switch to multigrain timestamps
-    (no matching commit)
-  - [f2fs-dev,v7,12/13] ext4: switch to multigrain timestamps
-    https://git.kernel.org/jaegeuk/f2fs/c/0269b585868e
-  - [f2fs-dev,v7,13/13] btrfs: convert to multigrain timestamps
-    https://git.kernel.org/jaegeuk/f2fs/c/50e9ceef1d4f
+I will send a follow up patch to fsdevel to change all users using
+IS_SETLKW() to use FL_SLEEP to determine if it's blocking or
+non-blocking and send it to fsdevel as it was recommended. This will
+just be a grep and replace patch and look what happens.
 
-You are awesome, thank you!
+- Alex
+
+changes since v2:
+ - remove B_PENDING_CALLBACK paragraph from commit msg. Was a leftover
+   and I forgot to update the commit message.
+ - change function name from export_op_support_safe_async_lock()
+   to exportfs_lock_op_is_async()
+ - change flag name from EXPORT_OP_SAFE_ASYNC_LOCK to
+   EXPORT_OP_ASYNC_LOCK
+ - add documentation for EXPORT_OP_ASYNC_LOCK to
+   Documentation/filesystems/nfs/exporting.rst
+ - add newline between function name and return type of
+   exportfs_lock_op_is_async()
+ - remove f_op->lock() check and mention it in
+   Documentation/filesystems/nfs/exporting.rst to only use it with
+   filesystems implementing their own ->lock()
+ - add kdoc for exportfs_lock_op_is_async()
+
+changes since RFC:
+
+- drop the pending callback flag but introduce "lockd: don't call
+  vfs_lock_file() for pending requests", see patch why I need it.
+- drop per nlm_block callback mutex
+- change async lock request documentation
+- use always FL_SLEEP to determine if it's blocking vs non-blocking in
+  DLM
+
+Alexander Aring (7):
+  lockd: introduce safe async lock op
+  lockd: don't call vfs_lock_file() for pending requests
+  lockd: fix race in async lock request handling
+  lockd: add doc to enable EXPORT_OP_ASYNC_LOCK
+  dlm: use fl_owner from lockd
+  dlm: use FL_SLEEP to determine blocking vs non-blocking
+  dlm: implement EXPORT_OP_ASYNC_LOCK
+
+ Documentation/filesystems/nfs/exporting.rst |  7 ++++
+ fs/dlm/plock.c                              | 20 +++--------
+ fs/gfs2/export.c                            |  1 +
+ fs/lockd/svclock.c                          | 38 ++++++++++++++-------
+ fs/locks.c                                  | 12 ++++---
+ fs/nfsd/nfs4state.c                         | 10 ++++--
+ fs/ocfs2/export.c                           |  1 +
+ include/linux/exportfs.h                    | 14 ++++++++
+ 8 files changed, 67 insertions(+), 36 deletions(-)
+
 -- 
-Deet-doot-dot, I am a bot.
-https://korg.docs.kernel.org/patchwork/pwbot.html
-
+2.31.1
 
