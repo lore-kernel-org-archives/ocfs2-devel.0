@@ -1,31 +1,31 @@
-Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.133.124])
+Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.129.124])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7E2CFBA28
-	for <ocfs2-devel@lists.linux.dev>; Tue, 12 Sep 2023 21:53:53 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2D12FBA36
+	for <ocfs2-devel@lists.linux.dev>; Tue, 12 Sep 2023 21:53:56 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
-	s=mimecast20190719; t=1694555632;
+	s=mimecast20190719; t=1694555635;
 	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
 	 to:to:cc:cc:mime-version:mime-version:
 	 content-transfer-encoding:content-transfer-encoding:
 	 in-reply-to:in-reply-to:references:references;
-	bh=//nek6/ne2ovuV3WtIFZKKv22HdvaTJOJBdTaDhEBYo=;
-	b=GORZkpcG0Qz4jRwnYUlpoU/ygRuP7axnh7fhexVt+9DWbMTzwjW4LXHWcYf6C2kmmgJ5ty
-	f+BX7ib4+6wl/4yvf8I79G3cbpyqWgKnzlOXzSuf9W8H6jLKC+yT+myhZQi5LoAMPep+sc
-	I8dSntA0sjWy0HH9sh9aXX/vgae9Anc=
-Received: from mimecast-mx02.redhat.com (mimecast-mx02.redhat.com
- [66.187.233.88]) by relay.mimecast.com with ESMTP with STARTTLS
- (version=TLSv1.2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id
- us-mta-178-nhOZnKV9MfCsXEZtQEdBIQ-1; Tue, 12 Sep 2023 17:53:48 -0400
-X-MC-Unique: nhOZnKV9MfCsXEZtQEdBIQ-1
+	bh=qoUjRDOou+oTZqqwqurF1Ivsy3RlyYHW0xfYpau32qA=;
+	b=WX//+BkEXwlBVdjKrfKu9t/JGLfGvmuvCeUYl4CFmfREYmuuz3cRbXYXfLlsOIKQMIKYFf
+	fuxX6xmoHtdAAUFD6li6M7icuNv6ogHKIkjNKjxv4xNRXEbXVJSOeAPbtSMU21NEmYQL07
+	X2/cVFfVhvc0Z9EZSIrh1lQaNijCiag=
+Received: from mimecast-mx02.redhat.com (mx-ext.redhat.com [66.187.233.73])
+ by relay.mimecast.com with ESMTP with STARTTLS (version=TLSv1.2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id
+ us-mta-85-dxXtEViPN5CgeWoEZd50fg-1; Tue, 12 Sep 2023 17:53:50 -0400
+X-MC-Unique: dxXtEViPN5CgeWoEZd50fg-1
 Received: from smtp.corp.redhat.com (int-mx01.intmail.prod.int.rdu2.redhat.com [10.11.54.1])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by mimecast-mx02.redhat.com (Postfix) with ESMTPS id BA3BC181A6E6;
-	Tue, 12 Sep 2023 21:53:47 +0000 (UTC)
+	by mimecast-mx02.redhat.com (Postfix) with ESMTPS id 72F2C2999B29;
+	Tue, 12 Sep 2023 21:53:49 +0000 (UTC)
 Received: from fs-i40c-03.fs.lab.eng.bos.redhat.com (fs-i40c-03.fs.lab.eng.bos.redhat.com [10.16.224.23])
-	by smtp.corp.redhat.com (Postfix) with ESMTP id 6D9C940C2009;
-	Tue, 12 Sep 2023 21:53:47 +0000 (UTC)
+	by smtp.corp.redhat.com (Postfix) with ESMTP id 2643C40C2009;
+	Tue, 12 Sep 2023 21:53:49 +0000 (UTC)
 From: Alexander Aring <aahringo@redhat.com>
 To: linux-nfs@vger.kernel.org
 Cc: gfs2@lists.linux.dev,
@@ -39,9 +39,9 @@ Cc: gfs2@lists.linux.dev,
 	chuck.lever@oracle.com,
 	jlayton@kernel.org,
 	aahringo@redhat.com
-Subject: [PATCHv2 nfsd/master 2/7] lockd: don't call vfs_lock_file() for pending requests
-Date: Tue, 12 Sep 2023 17:53:19 -0400
-Message-Id: <20230912215324.3310111-3-aahringo@redhat.com>
+Subject: [PATCHv2 nfsd/master 7/7] dlm: implement EXPORT_OP_ASYNC_LOCK
+Date: Tue, 12 Sep 2023 17:53:24 -0400
+Message-Id: <20230912215324.3310111-8-aahringo@redhat.com>
 In-Reply-To: <20230912215324.3310111-1-aahringo@redhat.com>
 References: <20230912215324.3310111-1-aahringo@redhat.com>
 Precedence: bulk
@@ -53,63 +53,39 @@ MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 X-Scanned-By: MIMEDefang 3.1 on 10.11.54.1
 
-This patch returns nlm_lck_blocked in nlmsvc_lock() when an asynchronous
-lock request is pending. During testing I ran into the case with the
-side-effects that lockd is waiting for only one lm_grant() callback
-because it's already part of the nlm_blocked list. If another
-asynchronous for the same nlm_block is triggered two lm_grant()
-callbacks will occur but lockd was only waiting for one.
+This patch is activating the EXPORT_OP_ASYNC_LOCK export flag to
+signal lockd that both filesystems are able to handle async lock
+requests. The cluster filesystems gfs2 and ocfs2 will redirect their
+lock requests to DLMs plock implementation that can handle async lock
+requests.
 
-To avoid any change of existing users this handling will only being made
-when export_op_support_safe_async_lock() returns true.
-
-Reviewed-by: Jeff Layton <jlayton@kernel.org>
 Signed-off-by: Alexander Aring <aahringo@redhat.com>
 ---
- fs/lockd/svclock.c | 23 ++++++++++++++++-------
- 1 file changed, 16 insertions(+), 7 deletions(-)
+ fs/gfs2/export.c  | 1 +
+ fs/ocfs2/export.c | 1 +
+ 2 files changed, 2 insertions(+)
 
-diff --git a/fs/lockd/svclock.c b/fs/lockd/svclock.c
-index d500e32ebb18..c313622a9578 100644
---- a/fs/lockd/svclock.c
-+++ b/fs/lockd/svclock.c
-@@ -541,6 +541,22 @@ nlmsvc_lock(struct svc_rqst *rqstp, struct nlm_file *file,
- 		goto out;
- 	}
+diff --git a/fs/gfs2/export.c b/fs/gfs2/export.c
+index cf40895233f5..ef1013eff936 100644
+--- a/fs/gfs2/export.c
++++ b/fs/gfs2/export.c
+@@ -192,5 +192,6 @@ const struct export_operations gfs2_export_ops = {
+ 	.fh_to_parent = gfs2_fh_to_parent,
+ 	.get_name = gfs2_get_name,
+ 	.get_parent = gfs2_get_parent,
++	.flags = EXPORT_OP_ASYNC_LOCK,
+ };
  
-+	spin_lock(&nlm_blocked_lock);
-+	/*
-+	 * If this is a lock request for an already pending
-+	 * lock request we return nlm_lck_blocked without calling
-+	 * vfs_lock_file() again. Otherwise we have two pending
-+	 * requests on the underlaying ->lock() implementation but
-+	 * only one nlm_block to being granted by lm_grant().
-+	 */
-+	if (exportfs_lock_op_is_async(inode->i_sb->s_export_op) &&
-+	    !list_empty(&block->b_list)) {
-+		spin_unlock(&nlm_blocked_lock);
-+		ret = nlm_lck_blocked;
-+		goto out;
-+	}
-+	spin_unlock(&nlm_blocked_lock);
-+
- 	if (!wait)
- 		lock->fl.fl_flags &= ~FL_SLEEP;
- 	mode = lock_to_openmode(&lock->fl);
-@@ -553,13 +569,6 @@ nlmsvc_lock(struct svc_rqst *rqstp, struct nlm_file *file,
- 			ret = nlm_granted;
- 			goto out;
- 		case -EAGAIN:
--			/*
--			 * If this is a blocking request for an
--			 * already pending lock request then we need
--			 * to put it back on lockd's block list
--			 */
--			if (wait)
--				break;
- 			ret = async_block ? nlm_lck_blocked : nlm_lck_denied;
- 			goto out;
- 		case FILE_LOCK_DEFERRED:
+diff --git a/fs/ocfs2/export.c b/fs/ocfs2/export.c
+index eaa8c80ace3c..b8b6a191b5cb 100644
+--- a/fs/ocfs2/export.c
++++ b/fs/ocfs2/export.c
+@@ -280,4 +280,5 @@ const struct export_operations ocfs2_export_ops = {
+ 	.fh_to_dentry	= ocfs2_fh_to_dentry,
+ 	.fh_to_parent	= ocfs2_fh_to_parent,
+ 	.get_parent	= ocfs2_get_parent,
++	.flags		= EXPORT_OP_ASYNC_LOCK,
+ };
 -- 
 2.31.1
 
