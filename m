@@ -1,91 +1,82 @@
-Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.129.124])
+Received: from out30-132.freemail.mail.aliyun.com (out30-132.freemail.mail.aliyun.com [115.124.30.132])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2D12FBA36
-	for <ocfs2-devel@lists.linux.dev>; Tue, 12 Sep 2023 21:53:56 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
-	s=mimecast20190719; t=1694555635;
-	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-	 to:to:cc:cc:mime-version:mime-version:
-	 content-transfer-encoding:content-transfer-encoding:
-	 in-reply-to:in-reply-to:references:references;
-	bh=qoUjRDOou+oTZqqwqurF1Ivsy3RlyYHW0xfYpau32qA=;
-	b=WX//+BkEXwlBVdjKrfKu9t/JGLfGvmuvCeUYl4CFmfREYmuuz3cRbXYXfLlsOIKQMIKYFf
-	fuxX6xmoHtdAAUFD6li6M7icuNv6ogHKIkjNKjxv4xNRXEbXVJSOeAPbtSMU21NEmYQL07
-	X2/cVFfVhvc0Z9EZSIrh1lQaNijCiag=
-Received: from mimecast-mx02.redhat.com (mx-ext.redhat.com [66.187.233.73])
- by relay.mimecast.com with ESMTP with STARTTLS (version=TLSv1.2,
- cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id
- us-mta-85-dxXtEViPN5CgeWoEZd50fg-1; Tue, 12 Sep 2023 17:53:50 -0400
-X-MC-Unique: dxXtEViPN5CgeWoEZd50fg-1
-Received: from smtp.corp.redhat.com (int-mx01.intmail.prod.int.rdu2.redhat.com [10.11.54.1])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-	(No client certificate requested)
-	by mimecast-mx02.redhat.com (Postfix) with ESMTPS id 72F2C2999B29;
-	Tue, 12 Sep 2023 21:53:49 +0000 (UTC)
-Received: from fs-i40c-03.fs.lab.eng.bos.redhat.com (fs-i40c-03.fs.lab.eng.bos.redhat.com [10.16.224.23])
-	by smtp.corp.redhat.com (Postfix) with ESMTP id 2643C40C2009;
-	Tue, 12 Sep 2023 21:53:49 +0000 (UTC)
-From: Alexander Aring <aahringo@redhat.com>
-To: linux-nfs@vger.kernel.org
-Cc: gfs2@lists.linux.dev,
-	ocfs2-devel@lists.linux.dev,
-	linux-fsdevel@vger.kernel.org,
-	teigland@redhat.com,
-	rpeterso@redhat.com,
-	agruenba@redhat.com,
-	trond.myklebust@hammerspace.com,
-	anna@kernel.org,
-	chuck.lever@oracle.com,
-	jlayton@kernel.org,
-	aahringo@redhat.com
-Subject: [PATCHv2 nfsd/master 7/7] dlm: implement EXPORT_OP_ASYNC_LOCK
-Date: Tue, 12 Sep 2023 17:53:24 -0400
-Message-Id: <20230912215324.3310111-8-aahringo@redhat.com>
-In-Reply-To: <20230912215324.3310111-1-aahringo@redhat.com>
-References: <20230912215324.3310111-1-aahringo@redhat.com>
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8D49AEB8
+	for <ocfs2-devel@lists.linux.dev>; Wed, 13 Sep 2023 03:53:00 +0000 (UTC)
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R831e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=ay29a033018046059;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=12;SR=0;TI=SMTPD_---0Vrz42ty_1694576860;
+Received: from 30.221.128.188(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0Vrz42ty_1694576860)
+          by smtp.aliyun-inc.com;
+          Wed, 13 Sep 2023 11:47:41 +0800
+Message-ID: <923f3dd1-c264-9d5f-3f17-1212493a7daa@linux.alibaba.com>
+Date: Wed, 13 Sep 2023 11:47:39 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-X-Scanned-By: MIMEDefang 3.1 on 10.11.54.1
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:102.0)
+ Gecko/20100101 Thunderbird/102.15.0
+Subject: Re: [PATCH v2] fs: ocfs2: Replace strlcpy with sysfs_emit
+Content-Language: en-US
+To: Azeem Shaikh <azeemshaikh38@gmail.com>, akpm <akpm@linux-foundation.org>
+Cc: linux-hardening@vger.kernel.org, ocfs2-devel@lists.linux.dev,
+ linux-kernel@vger.kernel.org, Christian Brauner <brauner@kernel.org>,
+ Dave Chinner <dchinner@redhat.com>, Jan Kara <jack@suse.cz>,
+ Jeff Layton <jlayton@kernel.org>, Mark Fasheh <mark@fasheh.com>,
+ Joel Becker <jlbec@evilplan.org>, Kees Cook <keescook@chromium.org>
+References: <20230831193827.1528867-1-azeemshaikh38@gmail.com>
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+In-Reply-To: <20230831193827.1528867-1-azeemshaikh38@gmail.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
-This patch is activating the EXPORT_OP_ASYNC_LOCK export flag to
-signal lockd that both filesystems are able to handle async lock
-requests. The cluster filesystems gfs2 and ocfs2 will redirect their
-lock requests to DLMs plock implementation that can handle async lock
-requests.
 
-Signed-off-by: Alexander Aring <aahringo@redhat.com>
----
- fs/gfs2/export.c  | 1 +
- fs/ocfs2/export.c | 1 +
- 2 files changed, 2 insertions(+)
 
-diff --git a/fs/gfs2/export.c b/fs/gfs2/export.c
-index cf40895233f5..ef1013eff936 100644
---- a/fs/gfs2/export.c
-+++ b/fs/gfs2/export.c
-@@ -192,5 +192,6 @@ const struct export_operations gfs2_export_ops = {
- 	.fh_to_parent = gfs2_fh_to_parent,
- 	.get_name = gfs2_get_name,
- 	.get_parent = gfs2_get_parent,
-+	.flags = EXPORT_OP_ASYNC_LOCK,
- };
- 
-diff --git a/fs/ocfs2/export.c b/fs/ocfs2/export.c
-index eaa8c80ace3c..b8b6a191b5cb 100644
---- a/fs/ocfs2/export.c
-+++ b/fs/ocfs2/export.c
-@@ -280,4 +280,5 @@ const struct export_operations ocfs2_export_ops = {
- 	.fh_to_dentry	= ocfs2_fh_to_dentry,
- 	.fh_to_parent	= ocfs2_fh_to_parent,
- 	.get_parent	= ocfs2_get_parent,
-+	.flags		= EXPORT_OP_ASYNC_LOCK,
- };
--- 
-2.31.1
+On 9/1/23 3:38 AM, Azeem Shaikh wrote:
+> strlcpy() reads the entire source buffer first.
+> This read may exceed the destination size limit.
+> This is both inefficient and can lead to linear read
+> overflows if a source string is not NUL-terminated [1].
+> In an effort to remove strlcpy() completely [2], replace
+> strlcpy() here with sysfs_emit().
+> 
+> Direct replacement is safe here since its ok for `kernel_param_ops.get()`
+> to return -errno [3].
+> 
+> [1] https://www.kernel.org/doc/html/latest/process/deprecated.html#strlcpy
+> [2] https://github.com/KSPP/linux/issues/89
+> [3] https://elixir.bootlin.com/linux/v6.5/source/include/linux/moduleparam.h#L52
+> 
+> Signed-off-by: Azeem Shaikh <azeemshaikh38@gmail.com>
 
+Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+
+> ---
+> v2:
+>  * Removes patch [1/2] which replaced module_param_call with module_param_cb.
+>  * Use sysfs_emit instead of strscpy.
+> 
+> v1:
+>  * https://lore.kernel.org/all/20230830215426.4181755-1-azeemshaikh38@gmail.com/
+> 
+>  fs/ocfs2/dlmfs/dlmfs.c |    3 +--
+>  1 file changed, 1 insertion(+), 2 deletions(-)
+> 
+> diff --git a/fs/ocfs2/dlmfs/dlmfs.c b/fs/ocfs2/dlmfs/dlmfs.c
+> index 81265123ce6c..b38776ba3306 100644
+> --- a/fs/ocfs2/dlmfs/dlmfs.c
+> +++ b/fs/ocfs2/dlmfs/dlmfs.c
+> @@ -80,8 +80,7 @@ static int param_set_dlmfs_capabilities(const char *val,
+>  static int param_get_dlmfs_capabilities(char *buffer,
+>  					const struct kernel_param *kp)
+>  {
+> -	return strlcpy(buffer, DLMFS_CAPABILITIES,
+> -		       strlen(DLMFS_CAPABILITIES) + 1);
+> +	return sysfs_emit(buffer, DLMFS_CAPABILITIES);
+>  }
+>  module_param_call(capabilities, param_set_dlmfs_capabilities,
+>  		  param_get_dlmfs_capabilities, NULL, 0444);
+> --
+> 2.42.0.283.g2d96d420d3-goog
+> 
