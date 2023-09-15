@@ -1,110 +1,124 @@
-Received: from mail-pf1-f172.google.com (mail-pf1-f172.google.com [209.85.210.172])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from omta040.useast.a.cloudfilter.net (omta040.useast.a.cloudfilter.net [44.202.169.39])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id F28161B26F
-	for <ocfs2-devel@lists.linux.dev>; Fri, 15 Sep 2023 20:15:30 +0000 (UTC)
-Received: by mail-pf1-f172.google.com with SMTP id d2e1a72fcca58-68fac16ee5fso2367703b3a.1
-        for <ocfs2-devel@lists.linux.dev>; Fri, 15 Sep 2023 13:15:30 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=chromium.org; s=google; t=1694808930; x=1695413730; darn=lists.linux.dev;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:from:to:cc:subject:date:message-id:reply-to;
-        bh=5U9yAMmxUGtlu2RTV+opnsRR/vKyQ1Eg6VpI2oRXqGs=;
-        b=EA3iQ+YCpPWNy2Q4zFtkdVoxkfSkjqlp1Vk4UW0kOvNsco0no8Uj1AOvmWvh5MKq/e
-         Z4/O2wUlCstB1eqyvmJYVP0Uj00Tj/9/26NgQgPzQT7fFRF/YXnQRTMmAlb9l3yTItrW
-         Ca4cuUTFQ/7gOrYvccaCiSZ1kgOLhWqR87RkQ=
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1694808930; x=1695413730;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:x-gm-message-state:from:to:cc:subject:date:message-id
-         :reply-to;
-        bh=5U9yAMmxUGtlu2RTV+opnsRR/vKyQ1Eg6VpI2oRXqGs=;
-        b=Pza56gk+5L0SU7HtXSvZXKJzWl3G/evB+GI+fEDZeR2xoX4uqUBwsPlWTLOqa6CafU
-         b/t7J7xFzFLeQDr3zGnSScFobjaLTsTBGJnmQENerquhitJukiH9TwOD+ZBMmUx3uVX/
-         F1yO+fhiarDHMZ+FjgiM62tpt54+7c9Otm8V+prGtdODfmt54w0wNbWvlvficctfua73
-         xFeSArqV12QiAidV0uOjo+wNg3zGZtvo512QM+akF55dlTWw8JwApEWd3fLFYyTWbaZU
-         bpSMOpAJX0k4MTA6h6tqXLjLxUCi4hJ26a+TWyI9yOR2mF9DFdCDR+UdUUfu8hastboJ
-         VJJg==
-X-Gm-Message-State: AOJu0YzZHDKtOntxZD04cHEE/UKUE9M9ruG6Tzk4FFvG7Mz43wB1wHXq
-	QFjhjN3/TvPZkCbUzAa6kEq2yw==
-X-Google-Smtp-Source: AGHT+IFiEOjtKML9hAMj7s89s+YrjEI9Ics/TkDbK27NvmtLHbxAe68D4A4yHfRZWvo9JI7q0ksJ7Q==
-X-Received: by 2002:a05:6a20:2583:b0:153:8754:8a7f with SMTP id k3-20020a056a20258300b0015387548a7fmr3347558pzd.4.1694808930405;
-        Fri, 15 Sep 2023 13:15:30 -0700 (PDT)
-Received: from www.outflux.net (198-0-35-241-static.hfc.comcastbusiness.net. [198.0.35.241])
-        by smtp.gmail.com with ESMTPSA id u4-20020a62ed04000000b0068fb9965036sm3308876pfh.109.2023.09.15.13.15.29
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Fri, 15 Sep 2023 13:15:29 -0700 (PDT)
-From: Kees Cook <keescook@chromium.org>
-To: Mark Fasheh <mark@fasheh.com>
-Cc: Kees Cook <keescook@chromium.org>,
-	Joel Becker <jlbec@evilplan.org>,
-	Joseph Qi <joseph.qi@linux.alibaba.com>,
-	ocfs2-devel@lists.linux.dev,
-	Nathan Chancellor <nathan@kernel.org>,
-	Nick Desaulniers <ndesaulniers@google.com>,
-	Tom Rix <trix@redhat.com>,
-	linux-kernel@vger.kernel.org,
-	llvm@lists.linux.dev,
-	linux-hardening@vger.kernel.org
-Subject: [PATCH] ocfs2: Annotate struct ocfs2_slot_info with __counted_by
-Date: Fri, 15 Sep 2023 13:15:23 -0700
-Message-Id: <20230915201522.never.979-kees@kernel.org>
-X-Mailer: git-send-email 2.34.1
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8A06118C2A
+	for <ocfs2-devel@lists.linux.dev>; Fri, 15 Sep 2023 20:50:46 +0000 (UTC)
+Received: from eig-obgw-6009a.ext.cloudfilter.net ([10.0.30.184])
+	by cmsmtp with ESMTP
+	id hAJeqXcLoyYOwhFm2q0wNl; Fri, 15 Sep 2023 20:50:46 +0000
+Received: from gator4166.hostgator.com ([108.167.133.22])
+	by cmsmtp with ESMTPS
+	id hFm1q2DHzOCehhFm1qYHU2; Fri, 15 Sep 2023 20:50:45 +0000
+X-Authority-Analysis: v=2.4 cv=feK+dmcF c=1 sm=1 tr=0 ts=6504c3a5
+ a=1YbLdUo/zbTtOZ3uB5T3HA==:117 a=WzbPXH4gqzPVN0x6HrNMNA==:17
+ a=OWjo9vPv0XrRhIrVQ50Ab3nP57M=:19 a=dLZJa+xiwSxG16/P+YVxDGlgEgI=:19
+ a=IkcTkHD0fZMA:10 a=zNV7Rl7Rt7sA:10 a=wYkD_t78qR0A:10 a=NEAV23lmAAAA:8
+ a=x_RLF880AAAA:8 a=IXr_WNlcAAAA:8 a=SRrdq9N9AAAA:8 a=cm27Pg_UAAAA:8
+ a=VwQbUJbxAAAA:8 a=G5nsRgLVucSo8_3d1RoA:9 a=QEXdDO2ut3YA:10
+ a=jCPSC2jcP07J4OBJNHyf:22 a=K24ECnMRWNUKRqF_MnsZ:22 a=xmb-EsYY8bH0VWELuYED:22
+ a=AjGcO6oz07-iQ99wixmX:22
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+	d=embeddedor.com; s=default; h=Content-Transfer-Encoding:Content-Type:
+	In-Reply-To:From:References:Cc:To:Subject:MIME-Version:Date:Message-ID:Sender
+	:Reply-To:Content-ID:Content-Description:Resent-Date:Resent-From:
+	Resent-Sender:Resent-To:Resent-Cc:Resent-Message-ID:List-Id:List-Help:
+	List-Unsubscribe:List-Subscribe:List-Post:List-Owner:List-Archive;
+	bh=nxvRp4DGgI/6MixR2WlqcSPhzQJquVqoPBvbY8UncWM=; b=nXds5WHz6Ptbe2/HB9I9kDCSE9
+	Lq4v3BlLXWKNpglWH8WUCFTaLFxUEvQTDIZ3Eu2EGfcCwxqhOh1rIKXB2uGfM96xUhyDGSTrWacb1
+	g27LYfvYcH/4en27z4xPrxykTLgF4Oqg+Yqy6Vqkr0ULxChC9vn7I9zzj4kbSDAN1Hlq3Z+O6Ws7i
+	C43pWD3m5jpbWgcLIQHLdjnDNkhMQHWxGJmdvd6t7fcUhqIbkxYch72CIMi9ovmzD53wlA6jKMHY5
+	dJpyYCIBHkPyVzJtyAHHhfrbsmsFqJ0le+cK81Jx/TUktXiZekpMflwTbs71bACupN1FMo7MBQKDB
+	P4bScZ+w==;
+Received: from 187-162-21-192.static.axtel.net ([187.162.21.192]:35644 helo=[192.168.15.8])
+	by gator4166.hostgator.com with esmtpsa  (TLS1.2) tls TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+	(Exim 4.96)
+	(envelope-from <gustavo@embeddedor.com>)
+	id 1qhFm0-002g5A-0y;
+	Fri, 15 Sep 2023 15:50:44 -0500
+Message-ID: <ae45f6a6-8870-d2c8-8c98-a9e7d9d1ba2f@embeddedor.com>
+Date: Fri, 15 Sep 2023 14:51:40 -0600
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-X-Developer-Signature: v=1; a=openpgp-sha256; l=1167; i=keescook@chromium.org;
- h=from:subject:message-id; bh=vVg/lwd/xTHPf1ncyCo+ObbQAlMJgY5cAnP5s625GBY=;
- b=owEBbQKS/ZANAwAKAYly9N/cbcAmAcsmYgBlBLta7z/D+qrhNioYhLhzv1EUA9eiYGgPkff5E
- WkJ6ZVV9kOJAjMEAAEKAB0WIQSlw/aPIp3WD3I+bhOJcvTf3G3AJgUCZQS7WgAKCRCJcvTf3G3A
- Jm5LD/9AgxrbRwWNmusFfPJ9QxfnI7oMtHew9CbcXH9J5762zPWuOe5jVw8WhT+uByyd1i1mixz
- 5el5s969WpfACTpAWuJhC/dB7M4vQwfkdYngKRmI9ur1PJ+4t2AN44FzbEL0g2b3dm2/nYJqU2B
- 6Bn0Nq+cC8LlgpdU6T5vaEUHoMtls5+suDayovc5HuVQiWgA63f0jqxtvXW/eXzZ7PjtEuZrvut
- XMJyOwUDGcR86O4hFOt3lBOxZB/WNl/iYEJiAjksnRhkdshPp4fXzHQTxaHF4VgS993Y3T+1IWV
- 8GlRsZ/6SOwuRU8ZyH3298IY06+Ri3SP6ZGZTdDYELWaSBKTxDG8PTveGNZKjOy+whqwYugCb4p
- xp7eLci8exro42aA49ZptpY+0KaTLA10QN78NVp9rsHmzi1dV7bX9FbkeAk+gVE2mcy+iDmc65O
- 6bLjfR2vvXY8zgk250FYcXj8HrxcGjXAjw8ZWIEFRjY9IiH+F+8aGhc7QICsw/u0gUDjWZskoa2
- 6ir7iarUGsxSiSF0PfeRvgLppdp0iyrKw6u1FIdu1hVbHgTwK32rVJP3eENfmy9GK+DZrEKnVOq
- wXmADnU5lgUCfc3hTRxQhalNw9D6NVB3UClIcZ3ZI3ve7LH3ObESB1Q8b/RkX/Ks9y2PWyYg2Bf
- x8VFe1R RW1mYTMA==
-X-Developer-Key: i=keescook@chromium.org; a=openpgp; fpr=A5C3F68F229DD60F723E6E138972F4DFDC6DC026
-Content-Transfer-Encoding: 8bit
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:102.0) Gecko/20100101
+ Thunderbird/102.13.0
+Subject: Re: [PATCH] ocfs2: Annotate struct ocfs2_slot_info with __counted_by
+Content-Language: en-US
+To: Kees Cook <keescook@chromium.org>, Mark Fasheh <mark@fasheh.com>
+Cc: Joel Becker <jlbec@evilplan.org>, Joseph Qi
+ <joseph.qi@linux.alibaba.com>, ocfs2-devel@lists.linux.dev,
+ Nathan Chancellor <nathan@kernel.org>,
+ Nick Desaulniers <ndesaulniers@google.com>, Tom Rix <trix@redhat.com>,
+ linux-kernel@vger.kernel.org, llvm@lists.linux.dev,
+ linux-hardening@vger.kernel.org
+References: <20230915201522.never.979-kees@kernel.org>
+From: "Gustavo A. R. Silva" <gustavo@embeddedor.com>
+In-Reply-To: <20230915201522.never.979-kees@kernel.org>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
+X-AntiAbuse: This header was added to track abuse, please include it with any abuse report
+X-AntiAbuse: Primary Hostname - gator4166.hostgator.com
+X-AntiAbuse: Original Domain - lists.linux.dev
+X-AntiAbuse: Originator/Caller UID/GID - [47 12] / [47 12]
+X-AntiAbuse: Sender Address Domain - embeddedor.com
+X-BWhitelist: no
+X-Source-IP: 187.162.21.192
+X-Source-L: No
+X-Exim-ID: 1qhFm0-002g5A-0y
+X-Source: 
+X-Source-Args: 
+X-Source-Dir: 
+X-Source-Sender: 187-162-21-192.static.axtel.net ([192.168.15.8]) [187.162.21.192]:35644
+X-Source-Auth: gustavo@embeddedor.com
+X-Email-Count: 497
+X-Org: HG=hgshared;ORG=hostgator;
+X-Source-Cap: Z3V6aWRpbmU7Z3V6aWRpbmU7Z2F0b3I0MTY2Lmhvc3RnYXRvci5jb20=
+X-Local-Domain: yes
+X-CMAE-Envelope: MS4xfMinmvxJtkXRJWovD9t/P30618ab2oCC8VFPRXl1KX/ckkAt+cv+D3hyzf6t7cOh5buZkR9YF74X+4ehboVUdrArabGwXaTYfgYbQkqdQZGsSwIeW5au
+ ID9+LBFvwv11IVkZx3LG+HmkYunTRw1tWcXTzselxzd/AbMwRJ0F0Apqc4gwrp87qLqLNW6lujpFk0Os3BR99NV+9dkIcEx3jxcxHbQqffN2ZsfAhs4JnSrH
 
-Prepare for the coming implementation by GCC and Clang of the __counted_by
-attribute. Flexible array members annotated with __counted_by can have
-their accesses bounds-checked at run-time checking via CONFIG_UBSAN_BOUNDS
-(for array indexing) and CONFIG_FORTIFY_SOURCE (for strcpy/memcpy-family
-functions).
 
-As found with Coccinelle[1], add __counted_by for struct ocfs2_slot_info.
 
-[1] https://github.com/kees/kernel-tools/blob/trunk/coccinelle/examples/counted_by.cocci
+On 9/15/23 14:15, Kees Cook wrote:
+> Prepare for the coming implementation by GCC and Clang of the __counted_by
+> attribute. Flexible array members annotated with __counted_by can have
+> their accesses bounds-checked at run-time checking via CONFIG_UBSAN_BOUNDS
+> (for array indexing) and CONFIG_FORTIFY_SOURCE (for strcpy/memcpy-family
+> functions).
+> 
+> As found with Coccinelle[1], add __counted_by for struct ocfs2_slot_info.
+> 
+> [1] https://github.com/kees/kernel-tools/blob/trunk/coccinelle/examples/counted_by.cocci
+> 
+> Cc: Mark Fasheh <mark@fasheh.com>
+> Cc: Joel Becker <jlbec@evilplan.org>
+> Cc: Joseph Qi <joseph.qi@linux.alibaba.com>
+> Cc: ocfs2-devel@lists.linux.dev
+> Signed-off-by: Kees Cook <keescook@chromium.org>
 
-Cc: Mark Fasheh <mark@fasheh.com>
-Cc: Joel Becker <jlbec@evilplan.org>
-Cc: Joseph Qi <joseph.qi@linux.alibaba.com>
-Cc: ocfs2-devel@lists.linux.dev
-Signed-off-by: Kees Cook <keescook@chromium.org>
----
- fs/ocfs2/slot_map.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+Reviewed-by: Gustavo A. R. Silva <gustavoars@kernel.org>
 
-diff --git a/fs/ocfs2/slot_map.c b/fs/ocfs2/slot_map.c
-index da7718cef735..e544c704b583 100644
---- a/fs/ocfs2/slot_map.c
-+++ b/fs/ocfs2/slot_map.c
-@@ -37,7 +37,7 @@ struct ocfs2_slot_info {
- 	unsigned int si_blocks;
- 	struct buffer_head **si_bh;
- 	unsigned int si_num_slots;
--	struct ocfs2_slot si_slots[];
-+	struct ocfs2_slot si_slots[] __counted_by(si_num_slots);
- };
- 
- 
+Thanks
 -- 
-2.34.1
+Gustavo
 
+> ---
+>   fs/ocfs2/slot_map.c | 2 +-
+>   1 file changed, 1 insertion(+), 1 deletion(-)
+> 
+> diff --git a/fs/ocfs2/slot_map.c b/fs/ocfs2/slot_map.c
+> index da7718cef735..e544c704b583 100644
+> --- a/fs/ocfs2/slot_map.c
+> +++ b/fs/ocfs2/slot_map.c
+> @@ -37,7 +37,7 @@ struct ocfs2_slot_info {
+>   	unsigned int si_blocks;
+>   	struct buffer_head **si_bh;
+>   	unsigned int si_num_slots;
+> -	struct ocfs2_slot si_slots[];
+> +	struct ocfs2_slot si_slots[] __counted_by(si_num_slots);
+>   };
+>   
+>   
