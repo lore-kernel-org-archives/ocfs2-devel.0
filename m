@@ -1,20 +1,20 @@
 Received: from casper.infradead.org (casper.infradead.org [90.155.50.34])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 520F835880;
-	Tue, 19 Sep 2023 04:51:53 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5B71934CFA;
+	Tue, 19 Sep 2023 04:51:59 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
 	d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
 	References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:
 	Content-Type:Content-ID:Content-Description;
-	bh=2AizBRSvoAwMQss5U4Q6NQxeqUYZOASj4Ibiz5oNoKg=; b=V2znE11QCzbIBsv3LQLxDWkQUk
-	BVxYADbK8OVLuf3nE1HOQqQse9s2EvFGORQoD/7LhWbIX2cSA77t3Xbl9ctOdtZxfybufcDiRWt1r
-	wDKrQx2nxuWEuoGZxd2kg+z3WXHcEIm9dOvaQtPP/lGgLhjKRt1AM+V4c1WriiJTkHwoWguEQJdbS
-	pj4ycdFA4+K/yxTHLUNzBfw9PV7DrBmLorm45J/jqnu52fctRy3XQ/TXsNgT/+0+ENSEfad0GDs9w
-	tCMk9cEJOyPK5sl0Yria+Idg6hFCFnRZFNpa4B6JFw7QfKMoy8hG9+MiNZlHLzHNOAR+fwcfIAAhD
-	HEaW+hFw==;
+	bh=L+I9DvSof6rF0/+WfFEflzRDNGmPAVF9Uq3AN/O81lI=; b=ZoolnVe9feCT2roK+dhk59/hXY
+	cLI5lMgwQqWFbGiz9gIVEo4N4j6jhdyd6QmFIGOnzhoqFR7+/lQXH9aqYzakU0QQ5iJE7isb//mwr
+	6QPxcIpH7vIbJc5WWq659v5+WaJWEMGjbQY8Jb3devyaanuVVW1I9jdEqRFuo1cK1WbJw/Z2P4dYe
+	b1JJTAoBgefsiiZD5lyAvr+OSD1s30EXeaDKfZOO/S7TQ23el7XPbweZDrNaEtcUglnIu4baYOV0g
+	di5K5ozKnSP3g5HoCVIvCZCDFqf54XIxoTP7qBccZbF9s0aCMTj5r0hmqO6LbIGKuCMvuYrUE6FSH
+	iwZCXvQA==;
 Received: from willy by casper.infradead.org with local (Exim 4.94.2 #2 (Red Hat Linux))
-	id 1qiSi2-00FFkL-8r; Tue, 19 Sep 2023 04:51:38 +0000
+	id 1qiSi2-00FFkP-EH; Tue, 19 Sep 2023 04:51:38 +0000
 From: "Matthew Wilcox (Oracle)" <willy@infradead.org>
 To: Andrew Morton <akpm@linux-foundation.org>
 Cc: "Matthew Wilcox (Oracle)" <willy@infradead.org>,
@@ -27,9 +27,9 @@ Cc: "Matthew Wilcox (Oracle)" <willy@infradead.org>,
 	reiserfs-devel@vger.kernel.org,
 	linux-ext4@vger.kernel.org,
 	Pankaj Raghav <p.raghav@samsung.com>
-Subject: [PATCH 03/26] ext4: Convert to folio_create_empty_buffers
-Date: Tue, 19 Sep 2023 05:51:12 +0100
-Message-Id: <20230919045135.3635437-4-willy@infradead.org>
+Subject: [PATCH 05/26] gfs2: Convert inode unstuffing to use a folio
+Date: Tue, 19 Sep 2023 05:51:14 +0100
+Message-Id: <20230919045135.3635437-6-willy@infradead.org>
 X-Mailer: git-send-email 2.37.1
 In-Reply-To: <20230919045135.3635437-1-willy@infradead.org>
 References: <20230919045135.3635437-1-willy@infradead.org>
@@ -41,84 +41,121 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-Remove an unnecessary folio->page->folio conversion and take advantage
-of the new return value from folio_create_empty_buffers().
+Use the folio APIs, removing numerous hidden calls to compound_head().
+Also remove the stale comment about the page being looked up if it's NULL.
 
 Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
 ---
- fs/ext4/inode.c       | 14 +++++---------
- fs/ext4/move_extent.c | 11 +++++------
- 2 files changed, 10 insertions(+), 15 deletions(-)
+ fs/gfs2/bmap.c | 48 +++++++++++++++++++++++-------------------------
+ 1 file changed, 23 insertions(+), 25 deletions(-)
 
-diff --git a/fs/ext4/inode.c b/fs/ext4/inode.c
-index 4ce35f1c8b0a..8e431ff2fd95 100644
---- a/fs/ext4/inode.c
-+++ b/fs/ext4/inode.c
-@@ -1020,10 +1020,8 @@ static int ext4_block_write_begin(struct folio *folio, loff_t pos, unsigned len,
- 	BUG_ON(from > to);
+diff --git a/fs/gfs2/bmap.c b/fs/gfs2/bmap.c
+index ef7017fb6951..247d2c16593c 100644
+--- a/fs/gfs2/bmap.c
++++ b/fs/gfs2/bmap.c
+@@ -43,53 +43,51 @@ struct metapath {
+ static int punch_hole(struct gfs2_inode *ip, u64 offset, u64 length);
  
- 	head = folio_buffers(folio);
--	if (!head) {
--		create_empty_buffers(&folio->page, blocksize, 0);
--		head = folio_buffers(folio);
--	}
-+	if (!head)
-+		head = folio_create_empty_buffers(folio, blocksize, 0);
- 	bbits = ilog2(blocksize);
- 	block = (sector_t)folio->index << (PAGE_SHIFT - bbits);
+ /**
+- * gfs2_unstuffer_page - unstuff a stuffed inode into a block cached by a page
++ * gfs2_unstuffer_folio - unstuff a stuffed inode into a block cached by a folio
+  * @ip: the inode
+  * @dibh: the dinode buffer
+  * @block: the block number that was allocated
+- * @page: The (optional) page. This is looked up if @page is NULL
++ * @folio: The folio.
+  *
+  * Returns: errno
+  */
+-
+-static int gfs2_unstuffer_page(struct gfs2_inode *ip, struct buffer_head *dibh,
+-			       u64 block, struct page *page)
++static int gfs2_unstuffer_folio(struct gfs2_inode *ip, struct buffer_head *dibh,
++			       u64 block, struct folio *folio)
+ {
+ 	struct inode *inode = &ip->i_inode;
  
-@@ -1153,7 +1151,7 @@ static int ext4_write_begin(struct file *file, struct address_space *mapping,
- 	 * starting the handle.
- 	 */
- 	if (!folio_buffers(folio))
--		create_empty_buffers(&folio->page, inode->i_sb->s_blocksize, 0);
-+		folio_create_empty_buffers(folio, inode->i_sb->s_blocksize, 0);
+-	if (!PageUptodate(page)) {
+-		void *kaddr = kmap(page);
++	if (!folio_test_uptodate(folio)) {
++		void *kaddr = kmap_local_folio(folio, 0);
+ 		u64 dsize = i_size_read(inode);
+  
+ 		memcpy(kaddr, dibh->b_data + sizeof(struct gfs2_dinode), dsize);
+-		memset(kaddr + dsize, 0, PAGE_SIZE - dsize);
+-		kunmap(page);
++		memset(kaddr + dsize, 0, folio_size(folio) - dsize);
++		kunmap_local(kaddr);
  
- 	folio_unlock(folio);
- 
-@@ -3643,10 +3641,8 @@ static int __ext4_block_zero_page_range(handle_t *handle,
- 	iblock = index << (PAGE_SHIFT - inode->i_sb->s_blocksize_bits);
- 
- 	bh = folio_buffers(folio);
--	if (!bh) {
--		create_empty_buffers(&folio->page, blocksize, 0);
--		bh = folio_buffers(folio);
--	}
-+	if (!bh)
-+		bh = folio_create_empty_buffers(folio, blocksize, 0);
- 
- 	/* Find the buffer that contains "offset" */
- 	pos = blocksize;
-diff --git a/fs/ext4/move_extent.c b/fs/ext4/move_extent.c
-index 18a9e7c47975..7fe448fb948b 100644
---- a/fs/ext4/move_extent.c
-+++ b/fs/ext4/move_extent.c
-@@ -183,10 +183,8 @@ mext_page_mkuptodate(struct folio *folio, unsigned from, unsigned to)
- 
- 	blocksize = i_blocksize(inode);
- 	head = folio_buffers(folio);
--	if (!head) {
--		create_empty_buffers(&folio->page, blocksize, 0);
--		head = folio_buffers(folio);
--	}
-+	if (!head)
-+		head = folio_create_empty_buffers(folio, blocksize, 0);
- 
- 	block = (sector_t)folio->index << (PAGE_SHIFT - inode->i_blkbits);
- 	for (bh = head, block_start = 0; bh != head || !block_start;
-@@ -380,9 +378,10 @@ move_extent_per_page(struct file *o_filp, struct inode *donor_inode,
+-		SetPageUptodate(page);
++		folio_mark_uptodate(folio);
  	}
- 	/* Perform all necessary steps similar write_begin()/write_end()
- 	 * but keeping in mind that i_size will not change */
--	if (!folio_buffers(folio[0]))
--		create_empty_buffers(&folio[0]->page, 1 << orig_inode->i_blkbits, 0);
- 	bh = folio_buffers(folio[0]);
-+	if (!bh)
-+		bh = folio_create_empty_buffers(folio[0],
-+				1 << orig_inode->i_blkbits, 0);
- 	for (i = 0; i < data_offset_in_page; i++)
- 		bh = bh->b_this_page;
- 	for (i = 0; i < block_len_in_page; i++) {
+ 
+ 	if (gfs2_is_jdata(ip)) {
+-		struct buffer_head *bh;
++		struct buffer_head *bh = folio_buffers(folio);
+ 
+-		if (!page_has_buffers(page))
+-			create_empty_buffers(page, BIT(inode->i_blkbits),
+-					     BIT(BH_Uptodate));
++		if (!bh)
++			bh = folio_create_empty_buffers(folio,
++				BIT(inode->i_blkbits), BIT(BH_Uptodate));
+ 
+-		bh = page_buffers(page);
+ 		if (!buffer_mapped(bh))
+ 			map_bh(bh, inode->i_sb, block);
+ 
+ 		set_buffer_uptodate(bh);
+ 		gfs2_trans_add_data(ip->i_gl, bh);
+ 	} else {
+-		set_page_dirty(page);
++		folio_mark_dirty(folio);
+ 		gfs2_ordered_add_inode(ip);
+ 	}
+ 
+ 	return 0;
+ }
+ 
+-static int __gfs2_unstuff_inode(struct gfs2_inode *ip, struct page *page)
++static int __gfs2_unstuff_inode(struct gfs2_inode *ip, struct folio *folio)
+ {
+ 	struct buffer_head *bh, *dibh;
+ 	struct gfs2_dinode *di;
+@@ -118,7 +116,7 @@ static int __gfs2_unstuff_inode(struct gfs2_inode *ip, struct page *page)
+ 					      dibh, sizeof(struct gfs2_dinode));
+ 			brelse(bh);
+ 		} else {
+-			error = gfs2_unstuffer_page(ip, dibh, block, page);
++			error = gfs2_unstuffer_folio(ip, dibh, block, folio);
+ 			if (error)
+ 				goto out_brelse;
+ 		}
+@@ -157,17 +155,17 @@ static int __gfs2_unstuff_inode(struct gfs2_inode *ip, struct page *page)
+ int gfs2_unstuff_dinode(struct gfs2_inode *ip)
+ {
+ 	struct inode *inode = &ip->i_inode;
+-	struct page *page;
++	struct folio *folio;
+ 	int error;
+ 
+ 	down_write(&ip->i_rw_mutex);
+-	page = grab_cache_page(inode->i_mapping, 0);
+-	error = -ENOMEM;
+-	if (!page)
++	folio = filemap_grab_folio(inode->i_mapping, 0);
++	error = PTR_ERR(folio);
++	if (IS_ERR(folio))
+ 		goto out;
+-	error = __gfs2_unstuff_inode(ip, page);
+-	unlock_page(page);
+-	put_page(page);
++	error = __gfs2_unstuff_inode(ip, folio);
++	folio_unlock(folio);
++	folio_put(folio);
+ out:
+ 	up_write(&ip->i_rw_mutex);
+ 	return error;
 -- 
 2.40.1
 
