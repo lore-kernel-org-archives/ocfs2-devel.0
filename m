@@ -1,92 +1,131 @@
-Received: from casper.infradead.org (casper.infradead.org [90.155.50.34])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 302DC34CE1;
-	Tue, 19 Sep 2023 04:52:02 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-	d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
-	References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:
-	Content-Type:Content-ID:Content-Description;
-	bh=AQlSme5gfgF1PuSREZ2XhDo5ATTymBH433vqXKy6HYA=; b=JJppl7UiNVc9XOSJeWze4h14kq
-	Juko1qtn8fJ4aHHuB7zu5C4R7OyJGaSJnUSgzpdxkZ+dqLlTOFpqyWhefQbRcNpLhpNLmvQltWSAn
-	C7ZpO0FcFmc1xx7X5C4bcbD0FKdTf9sXQRQ+banVLKDHHuO/w3zdBvtlLbwI5sFdJ5HPdJW1F9QVO
-	mtSFcSTpG0CM2ReAEuaIBc5UyqeV1+Jb/9DXQhP8hsSjdzGEM2kI/a0JqyP6E6v8V4SgKBYUkTGWg
-	INxIijyxrRagUGRekiCKh78YPLq80p8LPEtBi1aM3YXPnXLahkvXsgQbtM+jDe7ms5QM2kyjHITyA
-	rDOz3Q6Q==;
-Received: from willy by casper.infradead.org with local (Exim 4.94.2 #2 (Red Hat Linux))
-	id 1qiSi2-00FFkT-Va; Tue, 19 Sep 2023 04:51:39 +0000
-From: "Matthew Wilcox (Oracle)" <willy@infradead.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: "Matthew Wilcox (Oracle)" <willy@infradead.org>,
-	linux-fsdevel@vger.kernel.org,
-	gfs2@lists.linux.dev,
-	linux-nilfs@vger.kernel.org,
-	linux-ntfs-dev@lists.sourceforge.net,
-	ntfs3@lists.linux.dev,
-	ocfs2-devel@lists.linux.dev,
-	reiserfs-devel@vger.kernel.org,
-	linux-ext4@vger.kernel.org,
-	Pankaj Raghav <p.raghav@samsung.com>
-Subject: [PATCH 07/26] gfs2; Convert gfs2_getjdatabuf to use a folio
-Date: Tue, 19 Sep 2023 05:51:16 +0100
-Message-Id: <20230919045135.3635437-8-willy@infradead.org>
-X-Mailer: git-send-email 2.37.1
-In-Reply-To: <20230919045135.3635437-1-willy@infradead.org>
-References: <20230919045135.3635437-1-willy@infradead.org>
+Received: from rivendell.linuxfromscratch.org (rivendell.linuxfromscratch.org [208.118.68.85])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 65D6223BC;
+	Tue, 19 Sep 2023 07:14:19 +0000 (UTC)
+Received: from [192.168.3.211] (unknown [36.44.140.33])
+	by rivendell.linuxfromscratch.org (Postfix) with ESMTPSA id 26A431C1DD6;
+	Tue, 19 Sep 2023 07:05:30 +0000 (GMT)
+X-Virus-Status: Clean
+X-Virus-Scanned: clamav-milter 1.0.0 at rivendell.linuxfromscratch.org
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linuxfromscratch.org;
+	s=cert4; t=1695107155;
+	bh=9wNEeAzCOPg0mCdyHRKNEVbZmXBmTaugcI3ERiby3k0=;
+	h=Subject:From:To:Cc:Date:In-Reply-To:References;
+	b=aqoK/Ilc8LvyUE+Xk4kK0TbIhFHarWsn2uBwrCvOIBF6xZoiA1f4tJ9dbKWFKRiu6
+	 paL+GBbo9SPpEBIbiWrsPB0XfpKTd2+G50VtbF86FGHEVOMJSrRDmkMaTUMORk6h/3
+	 qLapgrTCCQmetnyxXQd0oMfEVgIT+/HKvVoU4IKX272amD2+FjwGF7/9QSILQuggfV
+	 BI6kNxpQvUY/+hAogUxC35kr9T5IahyPaFtyYIDE5cZir6pdZggqKuZtpzkHOubZ1J
+	 isHMMtWcQM3xaSsKJn5GsqEfCinyGk71Ww3uWLHV11gy8ssXk8BO2mWnXKo2ok/N19
+	 WGA2g3mo4aO4w==
+Message-ID: <bf0524debb976627693e12ad23690094e4514303.camel@linuxfromscratch.org>
+Subject: Re: [PATCH v7 12/13] ext4: switch to multigrain timestamps
+From: Xi Ruoyao <xry111@linuxfromscratch.org>
+To: Jeff Layton <jlayton@kernel.org>, Alexander Viro
+ <viro@zeniv.linux.org.uk>,  Christian Brauner <brauner@kernel.org>, Eric
+ Van Hensbergen <ericvh@kernel.org>, Latchesar Ionkov <lucho@ionkov.net>,
+ Dominique Martinet <asmadeus@codewreck.org>, Christian Schoenebeck
+ <linux_oss@crudebyte.com>, David Howells <dhowells@redhat.com>, Marc Dionne
+ <marc.dionne@auristor.com>, Chris Mason <clm@fb.com>, Josef Bacik
+ <josef@toxicpanda.com>, David Sterba <dsterba@suse.com>, Xiubo Li
+ <xiubli@redhat.com>, Ilya Dryomov <idryomov@gmail.com>, Jan Harkes
+ <jaharkes@cs.cmu.edu>, coda@cs.cmu.edu, Tyler Hicks <code@tyhicks.com>, Gao
+ Xiang <xiang@kernel.org>, Chao Yu <chao@kernel.org>, Yue Hu
+ <huyue2@coolpad.com>,  Jeffle Xu <jefflexu@linux.alibaba.com>, Namjae Jeon
+ <linkinjeon@kernel.org>, Sungjong Seo <sj1557.seo@samsung.com>, Jan Kara
+ <jack@suse.com>, Theodore Ts'o <tytso@mit.edu>,  Andreas Dilger
+ <adilger.kernel@dilger.ca>, Jaegeuk Kim <jaegeuk@kernel.org>, OGAWA
+ Hirofumi <hirofumi@mail.parknet.co.jp>, Miklos Szeredi <miklos@szeredi.hu>,
+ Bob Peterson <rpeterso@redhat.com>, Andreas Gruenbacher
+ <agruenba@redhat.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
+ Tejun Heo <tj@kernel.org>, Trond Myklebust
+ <trond.myklebust@hammerspace.com>, Anna Schumaker <anna@kernel.org>, 
+ Konstantin Komarov <almaz.alexandrovich@paragon-software.com>, Mark Fasheh
+ <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, Joseph Qi
+ <joseph.qi@linux.alibaba.com>, Mike Marshall <hubcap@omnibond.com>, Martin
+ Brandenburg <martin@omnibond.com>, Luis Chamberlain <mcgrof@kernel.org>,
+ Kees Cook <keescook@chromium.org>, Iurii Zaikin <yzaikin@google.com>, 
+ Steve French <sfrench@samba.org>, Paulo Alcantara <pc@manguebit.com>,
+ Ronnie Sahlberg <ronniesahlberg@gmail.com>, Shyam Prasad N
+ <sprasad@microsoft.com>, Tom Talpey <tom@talpey.com>, Sergey Senozhatsky
+ <senozhatsky@chromium.org>, Richard Weinberger <richard@nod.at>, Hans de
+ Goede <hdegoede@redhat.com>, Hugh Dickins <hughd@google.com>,  Andrew
+ Morton <akpm@linux-foundation.org>, Amir Goldstein <amir73il@gmail.com>,
+ "Darrick J. Wong" <djwong@kernel.org>, Benjamin Coddington
+ <bcodding@redhat.com>
+Cc: linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, 
+ v9fs@lists.linux.dev, linux-afs@lists.infradead.org,
+ linux-btrfs@vger.kernel.org,  ceph-devel@vger.kernel.org,
+ codalist@coda.cs.cmu.edu, ecryptfs@vger.kernel.org, 
+ linux-erofs@lists.ozlabs.org, linux-ext4@vger.kernel.org, 
+ linux-f2fs-devel@lists.sourceforge.net, cluster-devel@redhat.com, 
+ linux-nfs@vger.kernel.org, ntfs3@lists.linux.dev,
+ ocfs2-devel@lists.linux.dev,  devel@lists.orangefs.org,
+ linux-cifs@vger.kernel.org,  samba-technical@lists.samba.org,
+ linux-mtd@lists.infradead.org,  linux-mm@kvack.org,
+ linux-unionfs@vger.kernel.org, linux-xfs@vger.kernel.org,  Jan Kara
+ <jack@suse.cz>, bug-gnulib@gnu.org
+Date: Tue, 19 Sep 2023 15:05:24 +0800
+In-Reply-To: <20230807-mgctime-v7-12-d1dec143a704@kernel.org>
+References: <20230807-mgctime-v7-0-d1dec143a704@kernel.org>
+	 <20230807-mgctime-v7-12-d1dec143a704@kernel.org>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+User-Agent: Evolution 3.50.0 
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+X-Spam-Status: No, score=-3.0 required=5.0 tests=DKIM_SIGNED,DKIM_VALID,
+	DKIM_VALID_AU,DKIM_VALID_EF,RCVD_IN_DNSWL_HI,
+	RCVD_IN_ZEN_BLOCKED_OPENDNS,RDNS_NONE,SPF_FAIL,URIBL_BLOCKED,
+	URIBL_DBL_BLOCKED_OPENDNS,URIBL_ZEN_BLOCKED_OPENDNS autolearn=ham
+	autolearn_force=no version=3.4.6
+X-Spam-Checker-Version: SpamAssassin 3.4.6 (2021-04-09) on
+	rivendell.linuxfromscratch.org
 
-Use the folio APIs, saving four hidden calls to compound_head().
+On Mon, 2023-08-07 at 15:38 -0400, Jeff Layton wrote:
+> Enable multigrain timestamps, which should ensure that there is an
+> apparent change to the timestamp whenever it has been written after
+> being actively observed via getattr.
+>=20
+> For ext4, we only need to enable the FS_MGTIME flag.
 
-Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
----
- fs/gfs2/meta_io.c | 22 ++++++++--------------
- 1 file changed, 8 insertions(+), 14 deletions(-)
+Hi Jeff,
 
-diff --git a/fs/gfs2/meta_io.c b/fs/gfs2/meta_io.c
-index f1fac1b45059..b28196015543 100644
---- a/fs/gfs2/meta_io.c
-+++ b/fs/gfs2/meta_io.c
-@@ -400,26 +400,20 @@ static struct buffer_head *gfs2_getjdatabuf(struct gfs2_inode *ip, u64 blkno)
- {
- 	struct address_space *mapping = ip->i_inode.i_mapping;
- 	struct gfs2_sbd *sdp = GFS2_SB(&ip->i_inode);
--	struct page *page;
-+	struct folio *folio;
- 	struct buffer_head *bh;
- 	unsigned int shift = PAGE_SHIFT - sdp->sd_sb.sb_bsize_shift;
- 	unsigned long index = blkno >> shift; /* convert block to page */
- 	unsigned int bufnum = blkno - (index << shift);
- 
--	page = find_get_page_flags(mapping, index, FGP_LOCK|FGP_ACCESSED);
--	if (!page)
--		return NULL;
--	if (!page_has_buffers(page)) {
--		unlock_page(page);
--		put_page(page);
-+	folio = __filemap_get_folio(mapping, index, FGP_LOCK | FGP_ACCESSED, 0);
-+	if (IS_ERR(folio))
- 		return NULL;
--	}
--	/* Locate header for our buffer within our page */
--	for (bh = page_buffers(page); bufnum--; bh = bh->b_this_page)
--		/* Do nothing */;
--	get_bh(bh);
--	unlock_page(page);
--	put_page(page);
-+	bh = folio_buffers(folio);
-+	if (bh)
-+		get_nth_bh(bh, bufnum);
-+	folio_unlock(folio);
-+	folio_put(folio);
- 	return bh;
- }
- 
--- 
-2.40.1
+This patch causes a gnulib test failure:
+
+$ ~/sources/lfs/grep-3.11/gnulib-tests/test-stat-time
+test-stat-time.c:141: assertion 'statinfo[0].st_mtime < statinfo[2].st_mtim=
+e || (statinfo[0].st_mtime =3D=3D statinfo[2].st_mtime && (get_stat_mtime_n=
+s (&statinfo[0]) < get_stat_mtime_ns (&statinfo[2])))' failed
+Aborted (core dumped)
+
+The source code of the test:
+https://git.savannah.gnu.org/cgit/gnulib.git/tree/tests/test-stat-time.c
+
+Is this an expected change?
+
+> Acked-by: Theodore Ts'o <tytso@mit.edu>
+> Reviewed-by: Jan Kara <jack@suse.cz>
+> Signed-off-by: Jeff Layton <jlayton@kernel.org>
+> ---
+> =C2=A0fs/ext4/super.c | 2 +-
+> =C2=A01 file changed, 1 insertion(+), 1 deletion(-)
+>=20
+> diff --git a/fs/ext4/super.c b/fs/ext4/super.c
+> index b54c70e1a74e..cb1ff47af156 100644
+> --- a/fs/ext4/super.c
+> +++ b/fs/ext4/super.c
+> @@ -7279,7 +7279,7 @@ static struct file_system_type ext4_fs_type =3D {
+> =C2=A0	.init_fs_context	=3D ext4_init_fs_context,
+> =C2=A0	.parameters		=3D ext4_param_specs,
+> =C2=A0	.kill_sb		=3D kill_block_super,
+> -	.fs_flags		=3D FS_REQUIRES_DEV | FS_ALLOW_IDMAP,
+> +	.fs_flags		=3D FS_REQUIRES_DEV | FS_ALLOW_IDMAP |
+> FS_MGTIME,
+> =C2=A0};
+> =C2=A0MODULE_ALIAS_FS("ext4");
+> =C2=A0
+>=20
 
