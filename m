@@ -1,20 +1,20 @@
 Received: from casper.infradead.org (casper.infradead.org [90.155.50.34])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D5BBE34CE1;
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D854A34CE2;
 	Tue, 19 Sep 2023 04:51:47 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
 	d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
-	References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:
-	Content-Type:Content-ID:Content-Description;
-	bh=+wTdVqWyKgBbS+9qDOyV58Ls9Ihpcoj+lHfeR43k9+Q=; b=EjS/vigaWbpkvkGHq21vO/7U48
-	RQAWODt7t/VES3aBpMUIwR5YYN4T23Yijfp7DzSe3jp7TMySxccYDilu/C061YO7Zvc0Xa3XEZyqo
-	vEJu89mX7GcmDNPthus4SryoavJutE7J0LgWie/fLkRXsjbJUu3wQh/lPGBQUlNpuvOLAl9UrE4wq
-	264M38IuMR/1qDkHqrVxNpEMOf5yoOxuScr1xdtx+m4K74BNZY1OZy6yYHJ88XEuTDGSGnUOvsV2t
-	5NwNAEnwlWO6I0eqbfEKWozrz2UvMdvXUfr3KhMwTOIxkj9zlT0wcwyqC+S7pv1+v8WPIT8eAEeBF
-	KvQqUDCg==;
+	Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:Content-Type:Content-ID:
+	Content-Description:In-Reply-To:References;
+	bh=awyfojKMhU8AzVa7YcEsBxlpTOVclzCuTyUo6TQYiIY=; b=Cw5LiD0vn95PKN2IeCDFvMkRoz
+	nIpR3aa2vwbEJhByXcLQUey3cSZoM0mbiK6C+/GUbOFLQ+E3zUMIvi2DG5x6byLlj0amRrNqfwcCn
+	LtMopE0Vn0VS9LVDPKOgfrGBkn29dQ9iOGK93n8Ir7Tt5XPeJl2z3mVUSITyJQ6jfKGH/LDc1qOOC
+	wDjdKBiaRCirlxe/g8scAyXXtJosfVIDgPKczCCQ5grKrjYrChyEcCzmVJhyAF33sTewGexLVVGwO
+	NbHItyH31kAC+tgaegnX0uitTTong1uJkS11wM2b20JpvHaggRs1KVl1ADobtfqliNwoOibJInErH
+	gpxaWVJQ==;
 Received: from willy by casper.infradead.org with local (Exim 4.94.2 #2 (Red Hat Linux))
-	id 1qiSi3-00FFko-CC; Tue, 19 Sep 2023 04:51:39 +0000
+	id 1qiSi2-00FFkF-10; Tue, 19 Sep 2023 04:51:38 +0000
 From: "Matthew Wilcox (Oracle)" <willy@infradead.org>
 To: Andrew Morton <akpm@linux-foundation.org>
 Cc: "Matthew Wilcox (Oracle)" <willy@infradead.org>,
@@ -27,12 +27,10 @@ Cc: "Matthew Wilcox (Oracle)" <willy@infradead.org>,
 	reiserfs-devel@vger.kernel.org,
 	linux-ext4@vger.kernel.org,
 	Pankaj Raghav <p.raghav@samsung.com>
-Subject: [PATCH 10/26] nilfs2: Convert nilfs_grab_buffer() to use a folio
-Date: Tue, 19 Sep 2023 05:51:19 +0100
-Message-Id: <20230919045135.3635437-11-willy@infradead.org>
+Subject: [PATCH 00/26] Finish the create_empty_buffers() transition
+Date: Tue, 19 Sep 2023 05:51:09 +0100
+Message-Id: <20230919045135.3635437-1-willy@infradead.org>
 X-Mailer: git-send-email 2.37.1
-In-Reply-To: <20230919045135.3635437-1-willy@infradead.org>
-References: <20230919045135.3635437-1-willy@infradead.org>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -41,68 +39,72 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-Remove a number of folio->page->folio conversions.
+Pankaj recently added folio_create_empty_buffers() as the folio
+equivalent to create_empty_buffers().  This patch set finishes
+the conversion by first converting all remaining filesystems
+to call folio_create_empty_buffers(), then renaming it back
+to create_empty_buffers().  I took the opportunity to make a few
+simplifications like making folio_create_empty_buffers() return the head
+buffer and extracting get_nth_bh() from nilfs2.
 
-Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
----
- fs/nilfs2/page.c | 26 +++++++++++++-------------
- 1 file changed, 13 insertions(+), 13 deletions(-)
+A few of the patches in this series aren't directly related to
+create_empty_buffers(), but I saw them while I was working on this and
+thought they'd be easy enough to add to this series.  Compile-tested only,
+other than ext4.
 
-diff --git a/fs/nilfs2/page.c b/fs/nilfs2/page.c
-index b4e54d079b7d..1c075bd906c9 100644
---- a/fs/nilfs2/page.c
-+++ b/fs/nilfs2/page.c
-@@ -25,19 +25,19 @@
- 	(BIT(BH_Uptodate) | BIT(BH_Mapped) | BIT(BH_NILFS_Node) |	\
- 	 BIT(BH_NILFS_Volatile) | BIT(BH_NILFS_Checked))
- 
--static struct buffer_head *
--__nilfs_get_page_block(struct page *page, unsigned long block, pgoff_t index,
--		       int blkbits, unsigned long b_state)
-+static struct buffer_head *__nilfs_get_folio_block(struct folio *folio,
-+		unsigned long block, pgoff_t index, int blkbits,
-+		unsigned long b_state)
- 
- {
- 	unsigned long first_block;
--	struct buffer_head *bh;
-+	struct buffer_head *bh = folio_buffers(folio);
- 
--	if (!page_has_buffers(page))
--		create_empty_buffers(page, 1 << blkbits, b_state);
-+	if (!bh)
-+		bh = folio_create_empty_buffers(folio, 1 << blkbits, b_state);
- 
- 	first_block = (unsigned long)index << (PAGE_SHIFT - blkbits);
--	bh = nilfs_page_get_nth_block(page, block - first_block);
-+	bh = get_nth_bh(bh, block - first_block);
- 
- 	touch_buffer(bh);
- 	wait_on_buffer(bh);
-@@ -51,17 +51,17 @@ struct buffer_head *nilfs_grab_buffer(struct inode *inode,
- {
- 	int blkbits = inode->i_blkbits;
- 	pgoff_t index = blkoff >> (PAGE_SHIFT - blkbits);
--	struct page *page;
-+	struct folio *folio;
- 	struct buffer_head *bh;
- 
--	page = grab_cache_page(mapping, index);
--	if (unlikely(!page))
-+	folio = filemap_grab_folio(mapping, index);
-+	if (IS_ERR(folio))
- 		return NULL;
- 
--	bh = __nilfs_get_page_block(page, blkoff, index, blkbits, b_state);
-+	bh = __nilfs_get_folio_block(folio, blkoff, index, blkbits, b_state);
- 	if (unlikely(!bh)) {
--		unlock_page(page);
--		put_page(page);
-+		folio_unlock(folio);
-+		folio_put(folio);
- 		return NULL;
- 	}
- 	return bh;
+Matthew Wilcox (Oracle) (26):
+  buffer: Make folio_create_empty_buffers() return a buffer_head
+  mpage: Convert map_buffer_to_folio() to folio_create_empty_buffers()
+  ext4: Convert to folio_create_empty_buffers
+  buffer: Add get_nth_bh()
+  gfs2: Convert inode unstuffing to use a folio
+  gfs2: Convert gfs2_getbuf() to folios
+  gfs2; Convert gfs2_getjdatabuf to use a folio
+  gfs2: Convert gfs2_write_buf_to_page() to use a folio
+  nilfs2: Convert nilfs_mdt_freeze_buffer to use a folio
+  nilfs2: Convert nilfs_grab_buffer() to use a folio
+  nilfs2: Convert nilfs_copy_page() to nilfs_copy_folio()
+  nilfs2: Convert nilfs_mdt_forget_block() to use a folio
+  nilfs2: Convert nilfs_mdt_get_frozen_buffer to use a folio
+  nilfs2: Remove nilfs_page_get_nth_block
+  nilfs2: Convert nilfs_lookup_dirty_data_buffers to use
+    folio_create_empty_buffers
+  ntfs: Convert ntfs_read_block() to use a folio
+  ntfs: Convert ntfs_writepage to use a folio
+  ntfs: Convert ntfs_prepare_pages_for_non_resident_write() to folios
+  ntfs3: Convert ntfs_zero_range() to use a folio
+  ocfs2: Convert ocfs2_map_page_blocks to use a folio
+  reiserfs: Convert writepage to use a folio
+  ufs: Add ufs_get_locked_folio and ufs_put_locked_folio
+  ufs: Use ufs_get_locked_folio() in ufs_alloc_lastblock()
+  ufs; Convert ufs_change_blocknr() to use folios
+  ufs: Remove ufs_get_locked_page()
+  buffer: Remove folio_create_empty_buffers()
+
+ fs/buffer.c                 |  29 ++--
+ fs/ext4/inode.c             |  14 +-
+ fs/ext4/move_extent.c       |  11 +-
+ fs/gfs2/aops.c              |   2 +-
+ fs/gfs2/bmap.c              |  48 ++++---
+ fs/gfs2/meta_io.c           |  61 ++++-----
+ fs/gfs2/quota.c             |  37 +++---
+ fs/mpage.c                  |   3 +-
+ fs/nilfs2/mdt.c             |  66 +++++-----
+ fs/nilfs2/page.c            |  76 +++++------
+ fs/nilfs2/page.h            |  11 --
+ fs/nilfs2/segment.c         |   7 +-
+ fs/ntfs/aops.c              | 255 +++++++++++++++++-------------------
+ fs/ntfs/file.c              |  89 ++++++-------
+ fs/ntfs3/file.c             |  31 ++---
+ fs/ocfs2/aops.c             |  19 +--
+ fs/reiserfs/inode.c         |  80 +++++------
+ fs/ufs/balloc.c             |  20 ++-
+ fs/ufs/inode.c              |  25 ++--
+ fs/ufs/util.c               |  34 +++--
+ fs/ufs/util.h               |  10 +-
+ include/linux/buffer_head.h |  28 +++-
+ 22 files changed, 458 insertions(+), 498 deletions(-)
+
 -- 
 2.40.1
 
