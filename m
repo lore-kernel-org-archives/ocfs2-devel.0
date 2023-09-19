@@ -1,167 +1,135 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
+Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.133.124])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 05D61347BA;
-	Tue, 19 Sep 2023 20:46:33 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id A819FC433C9;
-	Tue, 19 Sep 2023 20:46:26 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1695156393;
-	bh=BmRXQZIEgC13FrkspW8zNhSJjLbclay0bgLqEV3Rrl8=;
-	h=Subject:From:To:Cc:Date:In-Reply-To:References:From;
-	b=q9KdgZu946MZfw7DxJLZIxiiIbHL9p62pycuILxZHzw8MqP3sd2qzr3E/ZkzfhbEv
-	 Sv560WUNQE0HlwP/5rEqpm3bw7jCmrV5akvxgau1zBqN4rLOK+/ZjoboBONeleNI+5
-	 6SP6lExUu15oD0xQisxQolfz9bgwYx59X/D7X0LTGvi5p2a+XVoY+oMnByTr4quQRa
-	 dZXyYP7t6FAFej2yuwhu+Ce8pxPjyRxtNPk1CXlFaDLgBYYr9H9mjHCggTcasxMD+A
-	 UZV+ik47sNRSAwVomJhe40/Ndx/tHAngLhTIM40zYtZFnzpPzdTJ314IhHsCYJFhNI
-	 PFuADp6gLFx9g==
-Message-ID: <6e6da8a875a0defec1a0f58314995a6a12dca74e.camel@kernel.org>
-Subject: Re: [PATCH v7 12/13] ext4: switch to multigrain timestamps
-From: Jeff Layton <jlayton@kernel.org>
-To: Paul Eggert <eggert@cs.ucla.edu>, Bruno Haible <bruno@clisp.org>, Jan
- Kara <jack@suse.cz>, Xi Ruoyao <xry111@linuxfromscratch.org>,
- bug-gnulib@gnu.org
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Christian Brauner
- <brauner@kernel.org>, Eric Van Hensbergen <ericvh@kernel.org>, Latchesar
- Ionkov <lucho@ionkov.net>, Dominique Martinet <asmadeus@codewreck.org>,
- Christian Schoenebeck <linux_oss@crudebyte.com>, David Howells
- <dhowells@redhat.com>, Marc Dionne <marc.dionne@auristor.com>, Chris Mason
- <clm@fb.com>, Josef Bacik <josef@toxicpanda.com>, David Sterba
- <dsterba@suse.com>, Xiubo Li <xiubli@redhat.com>, Ilya Dryomov
- <idryomov@gmail.com>, Jan Harkes <jaharkes@cs.cmu.edu>, coda@cs.cmu.edu,
- Tyler Hicks <code@tyhicks.com>, Gao Xiang <xiang@kernel.org>, Chao Yu
- <chao@kernel.org>, Yue Hu <huyue2@coolpad.com>,  Jeffle Xu
- <jefflexu@linux.alibaba.com>, Namjae Jeon <linkinjeon@kernel.org>, Sungjong
- Seo <sj1557.seo@samsung.com>, Jan Kara <jack@suse.com>, Theodore Ts'o
- <tytso@mit.edu>,  Andreas Dilger <adilger.kernel@dilger.ca>, Jaegeuk Kim
- <jaegeuk@kernel.org>, OGAWA Hirofumi <hirofumi@mail.parknet.co.jp>, Miklos
- Szeredi <miklos@szeredi.hu>, Bo b Peterson <rpeterso@redhat.com>, Andreas
- Gruenbacher <agruenba@redhat.com>, Greg Kroah-Hartman
- <gregkh@linuxfoundation.org>, Tejun Heo <tj@kernel.org>, Trond Myklebust
- <trond.myklebust@hammerspace.com>, Anna Schumaker <anna@kernel.org>, 
- Konstantin Komarov <almaz.alexandrovich@paragon-software.com>, Mark Fasheh
- <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, Joseph Qi
- <joseph.qi@linux.alibaba.com>, Mike Marshall <hubcap@omnibond.com>, Martin
- Brandenburg <martin@omnibond.com>, Luis Chamberlain <mcgrof@kernel.org>,
- Kees Cook <keescook@chromium.org>, Iurii Zaikin <yzaikin@google.com>, 
- Steve French <sfrench@samba.org>, Paulo Alcantara <pc@manguebit.com>,
- Ronnie Sahlberg <ronniesahlberg@gmail.com>, Shyam Prasad N
- <sprasad@microsoft.com>, Tom Talpey <tom@talpey.com>, Sergey Senozhatsky
- <senozhatsky@chromium.org>, Richard Weinberger <richard@nod.at>, Hans de
- Goede <hdegoede@redhat.com>, Hugh Dickins <hughd@google.com>,  Andrew
- Morton <akpm@linux-foundation.org>, Amir Goldstein <l@gmail.com>, "Darrick
- J. Wong" <djwong@kernel.org>,  Benjamin Coddington <bcodding@redhat.com>,
- linux-fsdevel@vger.kernel.org,  linux-kernel@vger.kernel.org,
- v9fs@lists.linux.dev,  linux-afs@lists.infradead.org,
- linux-btrfs@vger.kernel.org,  ceph-devel@vger.kernel.org,
- codalist@coda.cs.cmu.edu, ecryptfs@vger.kernel.org, 
- linux-erofs@lists.ozlabs.org, linux-ext4@vger.kernel.org, 
- linux-f2fs-devel@lists.sourceforge.net, cluster-devel@redhat.com, 
- linux-nfs@vger.kernel.org, ntfs3@lists.linux.dev,
- ocfs2-devel@lists.linux.dev,  devel@lists.orangefs.org,
- linux-cifs@vger.kernel.org,  samba-technical@lists.samba.org,
- linux-mtd@lists.infradead.org,  linux-mm@kvack.org,
- linux-unionfs@vger.kernel.org, linux-xfs@vger.kernel.org
-Date: Tue, 19 Sep 2023 16:46:25 -0400
-In-Reply-To: <c8315110-4684-9b83-d6c5-751647037623@cs.ucla.edu>
-References: <20230807-mgctime-v7-0-d1dec143a704@kernel.org>
-	 <20230919110457.7fnmzo4nqsi43yqq@quack3>
-	 <1f29102c09c60661758c5376018eac43f774c462.camel@kernel.org>
-	 <4511209.uG2h0Jr0uP@nimes>
-	 <08b5c6fd3b08b87fa564bb562d89381dd4e05b6a.camel@kernel.org>
-	 <c8315110-4684-9b83-d6c5-751647037623@cs.ucla.edu>
-Content-Type: text/plain; charset="ISO-8859-15"
-Content-Transfer-Encoding: quoted-printable
-User-Agent: Evolution 3.48.4 (3.48.4-1.fc38) 
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 70DBF3AC13
+	for <ocfs2-devel@lists.linux.dev>; Tue, 19 Sep 2023 22:27:26 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
+	s=mimecast20190719; t=1695162445;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+	 content-transfer-encoding:content-transfer-encoding:
+	 in-reply-to:in-reply-to:references:references;
+	bh=Ji3zY74AAdaK/amC610EHUTsu6YY14D+u0Ic8yX0wF0=;
+	b=aaYwhVx+5lYtGi5wLsgigFHYNq/AHjQYy/0tXNrn6SLwiyhd2QTcfUX5/RW77nXlcilRFl
+	jak1Y7nqeCHwRU+YrRFBwkhSknzJwN26SoGdgL6VcORZqZQOMu4ypGp8Ycqt0+8XBtp9VU
+	iyK+JNqOxZwQv1pTPlc6TNjc1BOWKGI=
+Received: from mail-pg1-f198.google.com (mail-pg1-f198.google.com
+ [209.85.215.198]) by relay.mimecast.com with ESMTP with STARTTLS
+ (version=TLSv1.3, cipher=TLS_AES_256_GCM_SHA384) id
+ us-mta-482-mdXMkH8RM5SKdUxogRGRlg-1; Tue, 19 Sep 2023 18:27:21 -0400
+X-MC-Unique: mdXMkH8RM5SKdUxogRGRlg-1
+Received: by mail-pg1-f198.google.com with SMTP id 41be03b00d2f7-578e2187f02so31273a12.0
+        for <ocfs2-devel@lists.linux.dev>; Tue, 19 Sep 2023 15:27:21 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1695162441; x=1695767241;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:x-gm-message-state:from:to:cc
+         :subject:date:message-id:reply-to;
+        bh=Ji3zY74AAdaK/amC610EHUTsu6YY14D+u0Ic8yX0wF0=;
+        b=RIs8Wy74laV1BZpS0mguo3luIO8uKoygjSsQ6QEEMeOZpivc1+n5gX3l1P/GZvHWr2
+         KMYY5dbttSZs37fRHVaUDkv166erPbXqq3AyUNku8PqWGYT7H3sZCtOFExYh8mKXLAqH
+         wPVBvWxOagnSuXjJY00/uRr+vNrQgJarna9Dlh3Cqo9KGLJFWMSn1YKVaSsT+Qee/17z
+         MFTHYrcy8KEUNIjyc8lKL3aoEZLNSLtR8lVB774ENXllFDHH4vXGMiKHiTtl51il9KyN
+         a820hyTnuKImajMn2pQJOGMR9aN/OZzLMZwGj2v3Hy4TJVW+C6RcEhYDex9EHvciPs9D
+         SMrw==
+X-Gm-Message-State: AOJu0YydMVDcGRobnG3w38KdgBFasc8z0qT6LFzTb7O+l9LgcVqHLmHf
+	1Nj7kKcC2b3JF1QpdYYD+XEYsbL+Q2Wjw/XfqgLp5OZv6ysa/H9YVSQTPq/ywLNO2w56WvpZcA8
+	rp0rygqLppNBB8rViFeLI7opvPzWe+CdORKTKMRY=
+X-Received: by 2002:a05:6a21:7895:b0:13d:5b8e:db83 with SMTP id bf21-20020a056a21789500b0013d5b8edb83mr970438pzc.9.1695162440765;
+        Tue, 19 Sep 2023 15:27:20 -0700 (PDT)
+X-Google-Smtp-Source: AGHT+IGvdFAMQ3u88UkWAe1LyDTaTZ9DZaFRmPuZojxyrc2071D47l1IiQLEM8pi3uRxKzn4ewwGY98liyEB7kMo1sI=
+X-Received: by 2002:a05:6a21:7895:b0:13d:5b8e:db83 with SMTP id
+ bf21-20020a056a21789500b0013d5b8edb83mr970415pzc.9.1695162440533; Tue, 19 Sep
+ 2023 15:27:20 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
+References: <20230919045135.3635437-1-willy@infradead.org> <20230919045135.3635437-8-willy@infradead.org>
+In-Reply-To: <20230919045135.3635437-8-willy@infradead.org>
+From: Andreas Gruenbacher <agruenba@redhat.com>
+Date: Wed, 20 Sep 2023 00:27:08 +0200
+Message-ID: <CAHc6FU4-RSAsc-LWw2OuLDecofapd30OZhxyjVKLXzJNwh-ZoA@mail.gmail.com>
+Subject: Re: [PATCH 07/26] gfs2; Convert gfs2_getjdatabuf to use a folio
+To: "Matthew Wilcox (Oracle)" <willy@infradead.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-fsdevel@vger.kernel.org, 
+	gfs2@lists.linux.dev, linux-nilfs@vger.kernel.org, 
+	linux-ntfs-dev@lists.sourceforge.net, ntfs3@lists.linux.dev, 
+	ocfs2-devel@lists.linux.dev, reiserfs-devel@vger.kernel.org, 
+	linux-ext4@vger.kernel.org, Pankaj Raghav <p.raghav@samsung.com>
+X-Mimecast-Spam-Score: 0
+X-Mimecast-Originator: redhat.com
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-On Tue, 2023-09-19 at 13:10 -0700, Paul Eggert wrote:
-> On 2023-09-19 09:31, Jeff Layton wrote:
-> > The typical case for make
-> > timestamp comparisons is comparing source files vs. a build target. If
-> > those are being written nearly simultaneously, then that could be an
-> > issue, but is that a typical behavior?
->=20
-> I vaguely remember running into problems with 'make' a while ago=20
-> (perhaps with a BSDish system) when filesystem timestamps were=20
-> arbitrarily truncated in some cases but not others. These files would=20
-> look older than they really were, so 'make' would think they were=20
-> up-to-date when they weren't, and 'make' would omit actions that it=20
-> should have done, thus screwing up the build.
->=20
-> File timestamps can be close together with 'make -j' on fast hosts.=20
-> Sometimes a shell script (or 'make' itself) will run 'make', then modify=
-=20
-> a file F, then immediately run 'make' again; the latter 'make' won't=20
-> work if F's timestamp is mistakenly older than targets that depend on it.
->=20
-> Although 'make'-like apps are the biggest canaries in this coal mine,=20
-> the issue also affects 'find -newer' (as Bruno mentioned), 'rsync -u',=
-=20
-> 'mv -u', 'tar -u', Emacs file-newer-than-file-p, and surely many other=
-=20
-> places. For example, any app that creates a timestamp file, then backs=
-=20
-> up all files newer than that file, would be at risk.
->=20
->=20
-> > I wonder if it would be feasible to just advance the coarse-grained
-> > current_time whenever we end up updating a ctime with a fine-grained
-> > timestamp?
->=20
-> Wouldn't this need to be done globally, that is, not just on a per-file=
-=20
-> or per-filesystem basis? If so, I don't see how we'd avoid locking=20
-> performance issues.
->=20
+Thanks,
 
-Maybe. Another idea might be to introduce a new timekeeper for
-multigrain filesystems, but all of those would likely have to share the
-same coarse-grained clock source.
+but this patch has an unwanted semicolon in the subject.
 
-So yeah, if you stat an inode and then update it, any inode written on a
-multigrain filesystem within the same jiffy-sized window would have to
-log an extra transaction to write out the inode. That's what I meant
-when I was talking about write amplification.
+On Tue, Sep 19, 2023 at 7:00=E2=80=AFAM Matthew Wilcox (Oracle)
+<willy@infradead.org> wrote:
+>
+> Use the folio APIs, saving four hidden calls to compound_head().
+>
+> Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
+> ---
+>  fs/gfs2/meta_io.c | 22 ++++++++--------------
+>  1 file changed, 8 insertions(+), 14 deletions(-)
+>
+> diff --git a/fs/gfs2/meta_io.c b/fs/gfs2/meta_io.c
+> index f1fac1b45059..b28196015543 100644
+> --- a/fs/gfs2/meta_io.c
+> +++ b/fs/gfs2/meta_io.c
+> @@ -400,26 +400,20 @@ static struct buffer_head *gfs2_getjdatabuf(struct =
+gfs2_inode *ip, u64 blkno)
+>  {
+>         struct address_space *mapping =3D ip->i_inode.i_mapping;
+>         struct gfs2_sbd *sdp =3D GFS2_SB(&ip->i_inode);
+> -       struct page *page;
+> +       struct folio *folio;
+>         struct buffer_head *bh;
+>         unsigned int shift =3D PAGE_SHIFT - sdp->sd_sb.sb_bsize_shift;
+>         unsigned long index =3D blkno >> shift; /* convert block to page =
+*/
+>         unsigned int bufnum =3D blkno - (index << shift);
+>
+> -       page =3D find_get_page_flags(mapping, index, FGP_LOCK|FGP_ACCESSE=
+D);
+> -       if (!page)
+> -               return NULL;
+> -       if (!page_has_buffers(page)) {
+> -               unlock_page(page);
+> -               put_page(page);
+> +       folio =3D __filemap_get_folio(mapping, index, FGP_LOCK | FGP_ACCE=
+SSED, 0);
+> +       if (IS_ERR(folio))
+>                 return NULL;
+> -       }
+> -       /* Locate header for our buffer within our page */
+> -       for (bh =3D page_buffers(page); bufnum--; bh =3D bh->b_this_page)
+> -               /* Do nothing */;
+> -       get_bh(bh);
+> -       unlock_page(page);
+> -       put_page(page);
+> +       bh =3D folio_buffers(folio);
+> +       if (bh)
+> +               get_nth_bh(bh, bufnum);
 
->=20
-> PS. Although I'm no expert in the Linux inode code I hope you don't mind=
-=20
-> my asking a question about this part of inode_set_ctime_current:
->=20
-> 	/*
-> 	 * If we've recently updated with a fine-grained timestamp,
-> 	 * then the coarse-grained one may still be earlier than the
-> 	 * existing ctime. Just keep the existing value if so.
-> 	 */
-> 	ctime.tv_sec =3D inode->__i_ctime.tv_sec;
-> 	if (timespec64_compare(&ctime, &now) > 0)
-> 		return ctime;
->=20
-> Suppose root used clock_settime to set the clock backwards. Won't this=
-=20
-> code incorrectly refuse to update the file's timestamp afterwards? That=
-=20
-> is, shouldn't the last line be "goto fine_grained;" rather than "return=
-=20
-> ctime;", with the comment changed from "keep the existing value" to "use=
-=20
-> a fine-grained value"?
+And we need this here:
 
-It is a problem, and Linus pointed that out yesterday, which is why I
-sent this earlier today:
+    bh =3D get_nth_bh(bh, bufnum);
 
-https://lore.kernel.org/linux-fsdevel/20230919-ctime-v1-1-97b3da92f504@kern=
-el.org/T/#u
+> +       folio_unlock(folio);
+> +       folio_put(folio);
+>         return bh;
+>  }
+>
+> --
+> 2.40.1
+>
+>
 
-Bear in mind that we're not dealing with a situation where the value has
-not been queried since its last update, so we don't need to use a fine
-grained timestamp there (and really, it's preferable not to do so). A
-coarse one should be fine in this case.
---=20
-Jeff Layton <jlayton@kernel.org>
+Reviewed-by: Andreas Gruenbacher <agruenba@redhat.com>
+
