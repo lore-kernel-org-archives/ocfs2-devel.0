@@ -1,20 +1,20 @@
 Received: from casper.infradead.org (casper.infradead.org [90.155.50.34])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D854A34CE2;
-	Tue, 19 Sep 2023 04:51:47 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6942134CF6;
+	Tue, 19 Sep 2023 04:51:48 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
 	d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
-	Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:Content-Type:Content-ID:
-	Content-Description:In-Reply-To:References;
-	bh=awyfojKMhU8AzVa7YcEsBxlpTOVclzCuTyUo6TQYiIY=; b=Cw5LiD0vn95PKN2IeCDFvMkRoz
-	nIpR3aa2vwbEJhByXcLQUey3cSZoM0mbiK6C+/GUbOFLQ+E3zUMIvi2DG5x6byLlj0amRrNqfwcCn
-	LtMopE0Vn0VS9LVDPKOgfrGBkn29dQ9iOGK93n8Ir7Tt5XPeJl2z3mVUSITyJQ6jfKGH/LDc1qOOC
-	wDjdKBiaRCirlxe/g8scAyXXtJosfVIDgPKczCCQ5grKrjYrChyEcCzmVJhyAF33sTewGexLVVGwO
-	NbHItyH31kAC+tgaegnX0uitTTong1uJkS11wM2b20JpvHaggRs1KVl1ADobtfqliNwoOibJInErH
-	gpxaWVJQ==;
+	References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:
+	Content-Type:Content-ID:Content-Description;
+	bh=ls5QcLT4iw9HwtdteFtFIYm/lsPpx02xEwWSdEB7w9A=; b=v/s0YAYridL5AWm2wYWPZkGzsB
+	K9clHYJMlcJOaX+NmKb7HW9F2eDrR9hnEfFhe6YOq/YMCptTWYV3mUL+G2wUZGCpLuLp0qpTeuzgI
+	tfpqOXserkhg/kyyX467Dysruzd3eSm3vC0glEAeMMY65rYuin/KFRuS0Lsm8EzJZCmpYoky31QWW
+	yeFE0mR+6iFAOMdA38W8yDlIG1gMZUZEaZpturMo+/2erCJzbJ4Un6ZNsjv4H8NyPK4ef/kgPaHCh
+	mbJX2zDqicJe9xcLmKePQpOVdc2efB17nrycatRVsH+bWRoVmcgvJ+9lCUkxoi7Ky4qPa1vl5H4DH
+	AFTza2Gg==;
 Received: from willy by casper.infradead.org with local (Exim 4.94.2 #2 (Red Hat Linux))
-	id 1qiSi2-00FFkF-10; Tue, 19 Sep 2023 04:51:38 +0000
+	id 1qiSi4-00FFlu-M6; Tue, 19 Sep 2023 04:51:40 +0000
 From: "Matthew Wilcox (Oracle)" <willy@infradead.org>
 To: Andrew Morton <akpm@linux-foundation.org>
 Cc: "Matthew Wilcox (Oracle)" <willy@infradead.org>,
@@ -27,10 +27,12 @@ Cc: "Matthew Wilcox (Oracle)" <willy@infradead.org>,
 	reiserfs-devel@vger.kernel.org,
 	linux-ext4@vger.kernel.org,
 	Pankaj Raghav <p.raghav@samsung.com>
-Subject: [PATCH 00/26] Finish the create_empty_buffers() transition
-Date: Tue, 19 Sep 2023 05:51:09 +0100
-Message-Id: <20230919045135.3635437-1-willy@infradead.org>
+Subject: [PATCH 19/26] ntfs3: Convert ntfs_zero_range() to use a folio
+Date: Tue, 19 Sep 2023 05:51:28 +0100
+Message-Id: <20230919045135.3635437-20-willy@infradead.org>
 X-Mailer: git-send-email 2.37.1
+In-Reply-To: <20230919045135.3635437-1-willy@infradead.org>
+References: <20230919045135.3635437-1-willy@infradead.org>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -39,72 +41,84 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-Pankaj recently added folio_create_empty_buffers() as the folio
-equivalent to create_empty_buffers().  This patch set finishes
-the conversion by first converting all remaining filesystems
-to call folio_create_empty_buffers(), then renaming it back
-to create_empty_buffers().  I took the opportunity to make a few
-simplifications like making folio_create_empty_buffers() return the head
-buffer and extracting get_nth_bh() from nilfs2.
+Use the folio API throughout, saving six hidden calls to compound_head().
 
-A few of the patches in this series aren't directly related to
-create_empty_buffers(), but I saw them while I was working on this and
-thought they'd be easy enough to add to this series.  Compile-tested only,
-other than ext4.
+Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
+---
+ fs/ntfs3/file.c | 31 ++++++++++++++++---------------
+ 1 file changed, 16 insertions(+), 15 deletions(-)
 
-Matthew Wilcox (Oracle) (26):
-  buffer: Make folio_create_empty_buffers() return a buffer_head
-  mpage: Convert map_buffer_to_folio() to folio_create_empty_buffers()
-  ext4: Convert to folio_create_empty_buffers
-  buffer: Add get_nth_bh()
-  gfs2: Convert inode unstuffing to use a folio
-  gfs2: Convert gfs2_getbuf() to folios
-  gfs2; Convert gfs2_getjdatabuf to use a folio
-  gfs2: Convert gfs2_write_buf_to_page() to use a folio
-  nilfs2: Convert nilfs_mdt_freeze_buffer to use a folio
-  nilfs2: Convert nilfs_grab_buffer() to use a folio
-  nilfs2: Convert nilfs_copy_page() to nilfs_copy_folio()
-  nilfs2: Convert nilfs_mdt_forget_block() to use a folio
-  nilfs2: Convert nilfs_mdt_get_frozen_buffer to use a folio
-  nilfs2: Remove nilfs_page_get_nth_block
-  nilfs2: Convert nilfs_lookup_dirty_data_buffers to use
-    folio_create_empty_buffers
-  ntfs: Convert ntfs_read_block() to use a folio
-  ntfs: Convert ntfs_writepage to use a folio
-  ntfs: Convert ntfs_prepare_pages_for_non_resident_write() to folios
-  ntfs3: Convert ntfs_zero_range() to use a folio
-  ocfs2: Convert ocfs2_map_page_blocks to use a folio
-  reiserfs: Convert writepage to use a folio
-  ufs: Add ufs_get_locked_folio and ufs_put_locked_folio
-  ufs: Use ufs_get_locked_folio() in ufs_alloc_lastblock()
-  ufs; Convert ufs_change_blocknr() to use folios
-  ufs: Remove ufs_get_locked_page()
-  buffer: Remove folio_create_empty_buffers()
-
- fs/buffer.c                 |  29 ++--
- fs/ext4/inode.c             |  14 +-
- fs/ext4/move_extent.c       |  11 +-
- fs/gfs2/aops.c              |   2 +-
- fs/gfs2/bmap.c              |  48 ++++---
- fs/gfs2/meta_io.c           |  61 ++++-----
- fs/gfs2/quota.c             |  37 +++---
- fs/mpage.c                  |   3 +-
- fs/nilfs2/mdt.c             |  66 +++++-----
- fs/nilfs2/page.c            |  76 +++++------
- fs/nilfs2/page.h            |  11 --
- fs/nilfs2/segment.c         |   7 +-
- fs/ntfs/aops.c              | 255 +++++++++++++++++-------------------
- fs/ntfs/file.c              |  89 ++++++-------
- fs/ntfs3/file.c             |  31 ++---
- fs/ocfs2/aops.c             |  19 +--
- fs/reiserfs/inode.c         |  80 +++++------
- fs/ufs/balloc.c             |  20 ++-
- fs/ufs/inode.c              |  25 ++--
- fs/ufs/util.c               |  34 +++--
- fs/ufs/util.h               |  10 +-
- include/linux/buffer_head.h |  28 +++-
- 22 files changed, 458 insertions(+), 498 deletions(-)
-
+diff --git a/fs/ntfs3/file.c b/fs/ntfs3/file.c
+index 962f12ce6c0a..a003a69091a2 100644
+--- a/fs/ntfs3/file.c
++++ b/fs/ntfs3/file.c
+@@ -187,7 +187,7 @@ static int ntfs_zero_range(struct inode *inode, u64 vbo, u64 vbo_to)
+ 	struct buffer_head *head, *bh;
+ 	u32 bh_next, bh_off, to;
+ 	sector_t iblock;
+-	struct page *page;
++	struct folio *folio;
+ 
+ 	for (; idx < idx_end; idx += 1, from = 0) {
+ 		page_off = (loff_t)idx << PAGE_SHIFT;
+@@ -195,16 +195,17 @@ static int ntfs_zero_range(struct inode *inode, u64 vbo, u64 vbo_to)
+ 						       PAGE_SIZE;
+ 		iblock = page_off >> inode->i_blkbits;
+ 
+-		page = find_or_create_page(mapping, idx,
+-					   mapping_gfp_constraint(mapping,
+-								  ~__GFP_FS));
+-		if (!page)
+-			return -ENOMEM;
++		folio = __filemap_get_folio(mapping, idx,
++				FGP_LOCK | FGP_ACCESSED | FGP_CREAT,
++				mapping_gfp_constraint(mapping, ~__GFP_FS));
++		if (IS_ERR(folio))
++			return PTR_ERR(folio);
+ 
+-		if (!page_has_buffers(page))
+-			create_empty_buffers(page, blocksize, 0);
++		head = folio_buffers(folio);
++		if (!head)
++			head = folio_create_empty_buffers(folio, blocksize, 0);
+ 
+-		bh = head = page_buffers(page);
++		bh = head;
+ 		bh_off = 0;
+ 		do {
+ 			bh_next = bh_off + blocksize;
+@@ -220,14 +221,14 @@ static int ntfs_zero_range(struct inode *inode, u64 vbo, u64 vbo_to)
+ 			}
+ 
+ 			/* Ok, it's mapped. Make sure it's up-to-date. */
+-			if (PageUptodate(page))
++			if (folio_test_uptodate(folio))
+ 				set_buffer_uptodate(bh);
+ 
+ 			if (!buffer_uptodate(bh)) {
+ 				err = bh_read(bh, 0);
+ 				if (err < 0) {
+-					unlock_page(page);
+-					put_page(page);
++					folio_unlock(folio);
++					folio_put(folio);
+ 					goto out;
+ 				}
+ 			}
+@@ -237,10 +238,10 @@ static int ntfs_zero_range(struct inode *inode, u64 vbo, u64 vbo_to)
+ 		} while (bh_off = bh_next, iblock += 1,
+ 			 head != (bh = bh->b_this_page));
+ 
+-		zero_user_segment(page, from, to);
++		folio_zero_segment(folio, from, to);
+ 
+-		unlock_page(page);
+-		put_page(page);
++		folio_unlock(folio);
++		folio_put(folio);
+ 		cond_resched();
+ 	}
+ out:
 -- 
 2.40.1
 
