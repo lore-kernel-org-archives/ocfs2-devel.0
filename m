@@ -1,20 +1,20 @@
 Received: from casper.infradead.org (casper.infradead.org [90.155.50.34])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id CF1C734CDC;
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id DA4F634CE6;
 	Tue, 19 Sep 2023 04:51:47 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
 	d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
 	References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:
 	Content-Type:Content-ID:Content-Description;
-	bh=PtzeHJtzB8Xd695+Qb2V5yYYQNsOpQ3Yl0mwaGuBV/4=; b=QTFrpw3bHURLE6EYb/R+wluNva
-	FnBtPTD1w+5XMNC7zEhc9bao72bgXNpxKd9qDjhuUyi1OuP6S2MMpTObEptvPQkhWhifCbXvosRRU
-	e8lQf84HnBxa1MgfnDbHOnH/NdKVSKXT9I1ZfvD/Yk4oywa3zMeniEGFTRzWVl47KpSohjCj0nWeQ
-	KMTRaC5Exg3bFQFNKJH7wxQjQzaewJnEQmEGfJuzU4j/MZpiupUYbK/JOi51oS+Otgux4g8Yb+Qav
-	1tTYnMC0HU19LUaCIHSlX1Doe6hKM9E7DF14ZicqYzh3cMxcMxgkZBmcxG54de+EwiKG/t7IMORtB
-	5T5MdMFw==;
+	bh=kMS4yLjT+MvyIpz+8c4RceJl7Cq4cP3Nn5r0TL01AkM=; b=Gna+Nrs1iPcm3EFwmrZCisgDxF
+	l/i6DX/38hzEhDl9on1LFmpXrAhYPkJ5V68yiyuA6l9UXILvc1gxtibKrQVGRHVjtcJ7wlOPBIjF/
+	RB863lpp0nbBCdecrYesQv5ZVNHxIbcU4YA93VliccoRmRKwHiwSVU/2W7GWOwSnoUv87Wf/Fu+QB
+	0Pazbp+1rvyhhansi50qiEWNHRJjK+BlvES+cklfcW7GFI2NZrJn3ltjIvvYHY48plSGJXXuCfbc1
+	WvU6ahflCYXK976m0N50npcMtfyQ9uXq7UW4cKM2QBUoxvrPS9TW3v+mLG7WppG4FIu6/uwVYWiQL
+	CJe5pF5g==;
 Received: from willy by casper.infradead.org with local (Exim 4.94.2 #2 (Red Hat Linux))
-	id 1qiSi3-00FFki-6d; Tue, 19 Sep 2023 04:51:39 +0000
+	id 1qiSi3-00FFl0-Jt; Tue, 19 Sep 2023 04:51:39 +0000
 From: "Matthew Wilcox (Oracle)" <willy@infradead.org>
 To: Andrew Morton <akpm@linux-foundation.org>
 Cc: "Matthew Wilcox (Oracle)" <willy@infradead.org>,
@@ -27,9 +27,9 @@ Cc: "Matthew Wilcox (Oracle)" <willy@infradead.org>,
 	reiserfs-devel@vger.kernel.org,
 	linux-ext4@vger.kernel.org,
 	Pankaj Raghav <p.raghav@samsung.com>
-Subject: [PATCH 09/26] nilfs2: Convert nilfs_mdt_freeze_buffer to use a folio
-Date: Tue, 19 Sep 2023 05:51:18 +0100
-Message-Id: <20230919045135.3635437-10-willy@infradead.org>
+Subject: [PATCH 12/26] nilfs2: Convert nilfs_mdt_forget_block() to use a folio
+Date: Tue, 19 Sep 2023 05:51:21 +0100
+Message-Id: <20230919045135.3635437-13-willy@infradead.org>
 X-Mailer: git-send-email 2.37.1
 In-Reply-To: <20230919045135.3635437-1-willy@infradead.org>
 References: <20230919045135.3635437-1-willy@infradead.org>
@@ -45,51 +45,58 @@ Remove a number of folio->page->folio conversions.
 
 Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
 ---
- fs/nilfs2/mdt.c | 20 +++++++++++---------
- 1 file changed, 11 insertions(+), 9 deletions(-)
+ fs/nilfs2/mdt.c | 30 ++++++++++++++----------------
+ 1 file changed, 14 insertions(+), 16 deletions(-)
 
 diff --git a/fs/nilfs2/mdt.c b/fs/nilfs2/mdt.c
-index 19c8158605ed..db2260d6e44d 100644
+index db2260d6e44d..11b7cf4acc92 100644
 --- a/fs/nilfs2/mdt.c
 +++ b/fs/nilfs2/mdt.c
-@@ -560,17 +560,19 @@ int nilfs_mdt_freeze_buffer(struct inode *inode, struct buffer_head *bh)
+@@ -356,30 +356,28 @@ int nilfs_mdt_delete_block(struct inode *inode, unsigned long block)
+  */
+ int nilfs_mdt_forget_block(struct inode *inode, unsigned long block)
  {
- 	struct nilfs_shadow_map *shadow = NILFS_MDT(inode)->mi_shadow;
- 	struct buffer_head *bh_frozen;
+-	pgoff_t index = (pgoff_t)block >>
+-		(PAGE_SHIFT - inode->i_blkbits);
 -	struct page *page;
+-	unsigned long first_block;
++	pgoff_t index = block >> (PAGE_SHIFT - inode->i_blkbits);
 +	struct folio *folio;
- 	int blkbits = inode->i_blkbits;
++	struct buffer_head *bh;
+ 	int ret = 0;
+ 	int still_dirty;
  
--	page = grab_cache_page(shadow->inode->i_mapping, bh->b_folio->index);
+-	page = find_lock_page(inode->i_mapping, index);
 -	if (!page)
--		return -ENOMEM;
-+	folio = filemap_grab_folio(shadow->inode->i_mapping,
-+			bh->b_folio->index);
++	folio = filemap_lock_folio(inode->i_mapping, index);
 +	if (IS_ERR(folio))
-+		return PTR_ERR(folio);
+ 		return -ENOENT;
  
--	if (!page_has_buffers(page))
--		create_empty_buffers(page, 1 << blkbits, 0);
-+	bh_frozen = folio_buffers(folio);
-+	if (!bh_frozen)
-+		bh_frozen = folio_create_empty_buffers(folio, 1 << blkbits, 0);
+-	wait_on_page_writeback(page);
++	folio_wait_writeback(folio);
  
--	bh_frozen = nilfs_page_get_nth_block(page, bh_offset(bh) >> blkbits);
-+	bh_frozen = get_nth_bh(bh_frozen, bh_offset(bh) >> blkbits);
- 
- 	if (!buffer_uptodate(bh_frozen))
- 		nilfs_copy_buffer(bh_frozen, bh);
-@@ -582,8 +584,8 @@ int nilfs_mdt_freeze_buffer(struct inode *inode, struct buffer_head *bh)
- 		brelse(bh_frozen); /* already frozen */
+-	first_block = (unsigned long)index <<
+-		(PAGE_SHIFT - inode->i_blkbits);
+-	if (page_has_buffers(page)) {
+-		struct buffer_head *bh;
+-
+-		bh = nilfs_page_get_nth_block(page, block - first_block);
++	bh = folio_buffers(folio);
++	if (bh) {
++		unsigned long first_block = index <<
++				(PAGE_SHIFT - inode->i_blkbits);
++		bh = get_nth_bh(bh, block - first_block);
+ 		nilfs_forget_buffer(bh);
  	}
- 
+-	still_dirty = PageDirty(page);
 -	unlock_page(page);
 -	put_page(page);
++	still_dirty = folio_test_dirty(folio);
 +	folio_unlock(folio);
 +	folio_put(folio);
- 	return 0;
- }
  
+ 	if (still_dirty ||
+ 	    invalidate_inode_pages2_range(inode->i_mapping, index, index) != 0)
 -- 
 2.40.1
 
