@@ -1,52 +1,52 @@
-Received: from mail-vs1-f41.google.com (mail-vs1-f41.google.com [209.85.217.41])
+Received: from mail-vk1-f182.google.com (mail-vk1-f182.google.com [209.85.221.182])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B37F023AF;
-	Wed, 20 Sep 2023 04:14:03 +0000 (UTC)
-Received: by mail-vs1-f41.google.com with SMTP id ada2fe7eead31-4525dd7f9d0so1214035137.3;
-        Tue, 19 Sep 2023 21:14:03 -0700 (PDT)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D3F093FF5;
+	Wed, 20 Sep 2023 05:48:11 +0000 (UTC)
+Received: by mail-vk1-f182.google.com with SMTP id 71dfb90a1353d-496a2ff7780so1286891e0c.2;
+        Tue, 19 Sep 2023 22:48:11 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1695183242; x=1695788042; darn=lists.linux.dev;
+        d=gmail.com; s=20230601; t=1695188890; x=1695793690; darn=lists.linux.dev;
         h=content-transfer-encoding:cc:to:subject:message-id:date:from
          :in-reply-to:references:mime-version:from:to:cc:subject:date
          :message-id:reply-to;
-        bh=n0rt7w3e82POtgPKP1THsIMl2ekopUlVw4b9tDepiWE=;
-        b=QmS/iQGqx1wXEQePsbmj1RXVPXyxjJR4/dZN342tvuNN2Z4FEMWbGr/CbkSJ2J6GhM
-         /1TJNUqHUqQXuDVPtkRj8ytSvhP7XfhnyZGp9whf0FElUYxHUpZZj9k6cVfR7NfVtyA5
-         FhfkYQWgxsK/+ZeREcIFVufZsaLApCnuimDoJsKfVTeRZiqFDTsaW8SQRh3/by7eAWyl
-         eoOow8xfoL5pNJ55z1vNOgRLDff0h0v0EGJgzrbIHjHZyXhfMIwOyWPFGPbN+ZbJ2OX0
-         RjbyTta2mpjoEYcrGveTjZ2Fdt/YGTTSkyS0A2zTurWEOODiC97LV2yWdejbVdmeh5je
-         GlkQ==
+        bh=5e3f4QzEJgcH/wzSbDI/gKJD4hMsGrXqzvw2fLNZQag=;
+        b=SOHa1RwsuCuf2LFpWH9/SpmAH7nE8lIZ+JPOcVO/HeLgcApEalpnX9bRmco1IdMHOf
+         5BodxdskPH0nE5RGnA7nbnrEGUX0X14xzgkM2zgRacwIA1in0msHn2J5S+TfWn5/IyDK
+         euiiAlYKkPBfF2rbSDZbsrfSwBYD5I86oKYOmX0y4/jBVnXXNxxvQrmU9NBocXQQtiyE
+         3Qg7YpZ4j5OeHk0cFard3ZWRjvsD6Q0xgNopicHP5dQh0ECITonKLh2NvsBhCVCnvdz9
+         P/34rkkbuVAFfBqHdokR3BRSMMDHB6HcbnBrlnrTwggPJXl0dUlEM5A/UMHEg+YA0JKe
+         SdHA==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1695183242; x=1695788042;
+        d=1e100.net; s=20230601; t=1695188890; x=1695793690;
         h=content-transfer-encoding:cc:to:subject:message-id:date:from
          :in-reply-to:references:mime-version:x-gm-message-state:from:to:cc
          :subject:date:message-id:reply-to;
-        bh=n0rt7w3e82POtgPKP1THsIMl2ekopUlVw4b9tDepiWE=;
-        b=tMYc28FOc7RkPFXoJ2dIz0Te22JJJQWGbEhpd8LK1sz1EkD2nxvg0r87NzEk2FgFqY
-         oqSTmEh9F7X3d1zvLy7Pib7mPVlhHZJkj3NQmHGcuUg5RkN53cbe2QCRo5Qn0y0NvqPV
-         gaOBdVrCCbQLjsjdD12OTy8jaL7NEFlnvDu39O1HCyj70SClRsJ2TsLS8c7i2Iv0OOw4
-         fYA4ya3t6jLC2OZ2V0DUrmSxQlXgOjwLQs+y7gQRDzWA2Ot3YMsQXV/5pFhYSkSltPFV
-         Sa7hcEeVKGWIJIatPUdtqbpRfNxHyh82WiR+FwC4bhZEJF5kPFtECLa6UBcM2hdlCD4N
-         oqng==
-X-Gm-Message-State: AOJu0YzD6ZWbvoR2mubj41SMhpFYXbsrQbu0YCOHu6Riswy7MIMJDiZ+
-	Jhc4ae68W4nCLSDY60FDsjn3pJ65W7njcasvNwE=
-X-Google-Smtp-Source: AGHT+IGCKO6LeP33eZK46vTIa58jvzUXNGW5L0NVntBiKaEkNCqYCRfexXS3jzHPQ4GIsPMvj/0pYBrkJxVEdJ5Rjcw=
-X-Received: by 2002:a05:6102:184:b0:452:635b:8440 with SMTP id
- r4-20020a056102018400b00452635b8440mr1509703vsq.30.1695183242192; Tue, 19 Sep
- 2023 21:14:02 -0700 (PDT)
+        bh=5e3f4QzEJgcH/wzSbDI/gKJD4hMsGrXqzvw2fLNZQag=;
+        b=XTY7+Xvibhtf+hvxCvUy/igEVcqwt9h9gveP5EvexDZfSYq1I/dD4AHoWY4+LGnle0
+         qifFuODNbedHgplzrqORIfA6SWWWoM7hYLZpc1798fnlDXZ3PrN6PYTLmwnJS4ApB412
+         W3oHH/ajx02o9fgOZVnYjarIOndbER+1vhDCokIzJF+DPq3yA1858e+qKOdi/i6vtgf5
+         /bS/29689fk5awoFzdA2nZQ9QfRgNZ0XBLJGOJBvX8t7bgjb0yW7MOyGTRly63e01BFG
+         LjzQxYqt4ReiRasHowZCkrr3mNCso1pElI+pVVMVegssRtHuwVNPtd2N0lUWeyiooSrW
+         nnDQ==
+X-Gm-Message-State: AOJu0YyF4+Q2g2Oi2+gBFb06lXFq+lDu40Rba51rhrdjvnMXjmjtLild
+	p9ECrkY1S8TlTDXx1Q/4pU6qE7/WiEh0iy11J3A=
+X-Google-Smtp-Source: AGHT+IGnBGbbDBAQOh7vcWJKVBasqQrkD7T+LnvSe1XPBdxnGh5r46NefmsuEg6nHj7S9VfFtMPWSsD2r5Md+tnpJVE=
+X-Received: by 2002:a1f:de43:0:b0:496:295a:843 with SMTP id
+ v64-20020a1fde43000000b00496295a0843mr1735552vkg.13.1695188890584; Tue, 19
+ Sep 2023 22:48:10 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-References: <20230919045135.3635437-1-willy@infradead.org> <20230919045135.3635437-11-willy@infradead.org>
-In-Reply-To: <20230919045135.3635437-11-willy@infradead.org>
+References: <20230919045135.3635437-1-willy@infradead.org> <20230919045135.3635437-12-willy@infradead.org>
+In-Reply-To: <20230919045135.3635437-12-willy@infradead.org>
 From: Ryusuke Konishi <konishi.ryusuke@gmail.com>
-Date: Wed, 20 Sep 2023 13:13:45 +0900
-Message-ID: <CAKFNMomBNvU-cRbrHMem8qPtLdfeO7VgKdSwxPixA1-vZMyDVg@mail.gmail.com>
-Subject: Re: [PATCH 10/26] nilfs2: Convert nilfs_grab_buffer() to use a folio
+Date: Wed, 20 Sep 2023 14:47:53 +0900
+Message-ID: <CAKFNMo=WOCiFU0SDFTczCqRPEk3_sH7bXEHaGEE390+ouAuapA@mail.gmail.com>
+Subject: Re: [PATCH 11/26] nilfs2: Convert nilfs_copy_page() to nilfs_copy_folio()
 To: "Matthew Wilcox (Oracle)" <willy@infradead.org>
 Cc: Andrew Morton <akpm@linux-foundation.org>, linux-fsdevel@vger.kernel.org, 
 	gfs2@lists.linux.dev, linux-nilfs@vger.kernel.org, 
@@ -56,82 +56,130 @@ Cc: Andrew Morton <akpm@linux-foundation.org>, linux-fsdevel@vger.kernel.org,
 Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: quoted-printable
 
-On Tue, Sep 19, 2023 at 7:20=E2=80=AFPM Matthew Wilcox (Oracle) wrote:
+On Tue, Sep 19, 2023 at 1:56=E2=80=AFPM Matthew Wilcox (Oracle) wrote:
 >
-> Remove a number of folio->page->folio conversions.
+> Both callers already have a folio, so pass it in and use it directly.
+> Removes a lot of hidden calls to compound_head().
 >
 > Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
 > ---
->  fs/nilfs2/page.c | 26 +++++++++++++-------------
->  1 file changed, 13 insertions(+), 13 deletions(-)
+>  fs/nilfs2/page.c | 50 +++++++++++++++++++++++++-----------------------
+>  1 file changed, 26 insertions(+), 24 deletions(-)
 >
 > diff --git a/fs/nilfs2/page.c b/fs/nilfs2/page.c
-> index b4e54d079b7d..1c075bd906c9 100644
+> index 1c075bd906c9..696215d899bf 100644
 > --- a/fs/nilfs2/page.c
 > +++ b/fs/nilfs2/page.c
-> @@ -25,19 +25,19 @@
->         (BIT(BH_Uptodate) | BIT(BH_Mapped) | BIT(BH_NILFS_Node) |       \
->          BIT(BH_NILFS_Volatile) | BIT(BH_NILFS_Checked))
+> @@ -184,30 +184,32 @@ void nilfs_page_bug(struct page *page)
+>  }
 >
-> -static struct buffer_head *
-> -__nilfs_get_page_block(struct page *page, unsigned long block, pgoff_t i=
-ndex,
-> -                      int blkbits, unsigned long b_state)
-> +static struct buffer_head *__nilfs_get_folio_block(struct folio *folio,
-> +               unsigned long block, pgoff_t index, int blkbits,
-> +               unsigned long b_state)
->
+>  /**
+> - * nilfs_copy_page -- copy the page with buffers
+> - * @dst: destination page
+> - * @src: source page
+> - * @copy_dirty: flag whether to copy dirty states on the page's buffer h=
+eads.
+> + * nilfs_copy_folio -- copy the folio with buffers
+> + * @dst: destination folio
+> + * @src: source folio
+> + * @copy_dirty: flag whether to copy dirty states on the folio's buffer =
+heads.
+>   *
+> - * This function is for both data pages and btnode pages.  The dirty fla=
+g
+> - * should be treated by caller.  The page must not be under i/o.
+> - * Both src and dst page must be locked
+> + * This function is for both data folios and btnode folios.  The dirty f=
+lag
+> + * should be treated by caller.  The folio must not be under i/o.
+> + * Both src and dst folio must be locked
+>   */
+> -static void nilfs_copy_page(struct page *dst, struct page *src, int copy=
+_dirty)
+> +static void nilfs_copy_folio(struct folio *dst, struct folio *src,
+> +               bool copy_dirty)
 >  {
->         unsigned long first_block;
-> -       struct buffer_head *bh;
-> +       struct buffer_head *bh =3D folio_buffers(folio);
+>         struct buffer_head *dbh, *dbufs, *sbh;
+>         unsigned long mask =3D NILFS_BUFFER_INHERENT_BITS;
 >
-> -       if (!page_has_buffers(page))
-> -               create_empty_buffers(page, 1 << blkbits, b_state);
-> +       if (!bh)
-> +               bh =3D folio_create_empty_buffers(folio, 1 << blkbits, b_=
-state);
+> -       BUG_ON(PageWriteback(dst));
+> +       BUG_ON(folio_test_writeback(dst));
 >
->         first_block =3D (unsigned long)index << (PAGE_SHIFT - blkbits);
-> -       bh =3D nilfs_page_get_nth_block(page, block - first_block);
-> +       bh =3D get_nth_bh(bh, block - first_block);
+> -       sbh =3D page_buffers(src);
+> -       if (!page_has_buffers(dst))
+> -               create_empty_buffers(dst, sbh->b_size, 0);
+> +       sbh =3D folio_buffers(src);
+> +       dbh =3D folio_buffers(dst);
+> +       if (!dbh)
+> +               dbh =3D folio_create_empty_buffers(dst, sbh->b_size, 0);
 >
->         touch_buffer(bh);
->         wait_on_buffer(bh);
-> @@ -51,17 +51,17 @@ struct buffer_head *nilfs_grab_buffer(struct inode *i=
-node,
->  {
->         int blkbits =3D inode->i_blkbits;
->         pgoff_t index =3D blkoff >> (PAGE_SHIFT - blkbits);
-> -       struct page *page;
-> +       struct folio *folio;
->         struct buffer_head *bh;
+>         if (copy_dirty)
+>                 mask |=3D BIT(BH_Dirty);
 >
-> -       page =3D grab_cache_page(mapping, index);
-> -       if (unlikely(!page))
-> +       folio =3D filemap_grab_folio(mapping, index);
-> +       if (IS_ERR(folio))
->                 return NULL;
+> -       dbh =3D dbufs =3D page_buffers(dst);
+> +       dbufs =3D dbh;
+>         do {
+>                 lock_buffer(sbh);
+>                 lock_buffer(dbh);
+> @@ -218,16 +220,16 @@ static void nilfs_copy_page(struct page *dst, struc=
+t page *src, int copy_dirty)
+>                 dbh =3D dbh->b_this_page;
+>         } while (dbh !=3D dbufs);
 >
-> -       bh =3D __nilfs_get_page_block(page, blkoff, index, blkbits, b_sta=
-te);
-> +       bh =3D __nilfs_get_folio_block(folio, blkoff, index, blkbits, b_s=
-tate);
->         if (unlikely(!bh)) {
-> -               unlock_page(page);
-> -               put_page(page);
-> +               folio_unlock(folio);
-> +               folio_put(folio);
->                 return NULL;
->         }
->         return bh;
+> -       copy_highpage(dst, src);
+> +       folio_copy(dst, src);
+>
+> -       if (PageUptodate(src) && !PageUptodate(dst))
+> -               SetPageUptodate(dst);
+> -       else if (!PageUptodate(src) && PageUptodate(dst))
+> -               ClearPageUptodate(dst);
+> -       if (PageMappedToDisk(src) && !PageMappedToDisk(dst))
+> -               SetPageMappedToDisk(dst);
+> -       else if (!PageMappedToDisk(src) && PageMappedToDisk(dst))
+> -               ClearPageMappedToDisk(dst);
+> +       if (folio_test_uptodate(src) && !folio_test_uptodate(dst))
+> +               folio_mark_uptodate(dst);
+> +       else if (!folio_test_uptodate(src) && folio_test_uptodate(dst))
+> +               folio_clear_uptodate(dst);
+> +       if (folio_test_mappedtodisk(src) && !folio_test_mappedtodisk(dst)=
+)
+> +               folio_set_mappedtodisk(dst);
+> +       else if (!folio_test_mappedtodisk(src) && folio_test_mappedtodisk=
+(dst))
+> +               folio_clear_mappedtodisk(dst);
+>
+>         do {
+>                 unlock_buffer(sbh);
+> @@ -269,7 +271,7 @@ int nilfs_copy_dirty_pages(struct address_space *dmap=
+,
+>                         NILFS_PAGE_BUG(&folio->page,
+>                                        "found empty page in dat page cach=
+e");
+>
+> -               nilfs_copy_page(&dfolio->page, &folio->page, 1);
+> +               nilfs_copy_folio(dfolio, folio, true);
+>                 filemap_dirty_folio(folio_mapping(dfolio), dfolio);
+>
+>                 folio_unlock(dfolio);
+> @@ -314,7 +316,7 @@ void nilfs_copy_back_pages(struct address_space *dmap=
+,
+>                 if (!IS_ERR(dfolio)) {
+>                         /* overwrite existing folio in the destination ca=
+che */
+>                         WARN_ON(folio_test_dirty(dfolio));
+> -                       nilfs_copy_page(&dfolio->page, &folio->page, 0);
+> +                       nilfs_copy_folio(dfolio, folio, false);
+>                         folio_unlock(dfolio);
+>                         folio_put(dfolio);
+>                         /* Do we not need to remove folio from smap here?=
+ */
 > --
 > 2.40.1
 >
 
 Acked-by: Ryusuke Konishi <konishi.ryusuke@gmail.com>
 
-Looks good to me.
+Everything else looks fine if the folio_copy symbol is exported.
 
 Thanks,
 Ryusuke Konishi
