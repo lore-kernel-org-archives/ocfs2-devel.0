@@ -1,45 +1,40 @@
-Received: from mail-ej1-f45.google.com (mail-ej1-f45.google.com [209.85.218.45])
+Received: from mail-ua1-f47.google.com (mail-ua1-f47.google.com [209.85.222.47])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4D67715A0
-	for <ocfs2-devel@lists.linux.dev>; Fri, 29 Sep 2023 00:25:03 +0000 (UTC)
-Received: by mail-ej1-f45.google.com with SMTP id a640c23a62f3a-9ad8d47ef2fso1737871766b.1
-        for <ocfs2-devel@lists.linux.dev>; Thu, 28 Sep 2023 17:25:03 -0700 (PDT)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id ADA1A4407;
+	Fri, 29 Sep 2023 03:28:10 +0000 (UTC)
+Received: by mail-ua1-f47.google.com with SMTP id a1e0cc1a2514c-7a803afa8c5so5182904241.0;
+        Thu, 28 Sep 2023 20:28:10 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=linux-foundation.org; s=google; t=1695947101; x=1696551901; darn=lists.linux.dev;
-        h=cc:to:subject:message-id:date:from:in-reply-to:references
-         :mime-version:from:to:cc:subject:date:message-id:reply-to;
-        bh=bvzvBt54YKz6rxhAovyc5UddK2JDmyrig02MAqmRW1o=;
-        b=CEKr8YctVhZafHpJ6nPKblVTVVQ+HLih6me5W/egnysT55HB6DOvhbIqmBPA5Q0a1D
-         mIli5xf8Wzxf34cmf3kOIxWhDOMWdE1j7p8gZ7cSOeQdrxLKj3ZzPaOqLWvHIuhlfsuy
-         LDlOy2u/8lDpgp0Q09ZV0IVRIvowIbc7gyT+I=
+        d=gmail.com; s=20230601; t=1695958089; x=1696562889; darn=lists.linux.dev;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=IiAb/i1gc98L6SazD4d4ItKm7HOWY4Sc1dUvsARnIt8=;
+        b=ZHg8pUt0mTao5h5gvaujns+JcntbstR/sIjA0lrIyRTtLp09DBPC63KH7GVdJ7ewbo
+         OU8r8RfVAEb5U+M1Ntf75Ddssg/QvQV1liGu0bDhGKw3oZfTun7IwhgXWC1NfXoww8Zr
+         vwiyi6vZkc6U04rHt6o7HRjjv7ijyyeYaOUxjkksjftpkYrCbBZHKwTzReQSccuDHTzy
+         Rvmyuc/NIHx+P23EKvWmW2T4QvLLs6Fkk9Ql9vRkdh/p4hVnFjodbzTcQhm+6V0852sD
+         LGlhTz7ZAOJFQbxfY+mD7RMKTGLwh68RsMkqN0NVKtkb2ARUD3i3X9+yoHP7UAUL0wSP
+         pB1w==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1695947101; x=1696551901;
-        h=cc:to:subject:message-id:date:from:in-reply-to:references
-         :mime-version:x-gm-message-state:from:to:cc:subject:date:message-id
-         :reply-to;
-        bh=bvzvBt54YKz6rxhAovyc5UddK2JDmyrig02MAqmRW1o=;
-        b=SfKc6QAPhOEKzyewBy4L9PhMCWDuy52aw/39zMxOvAEblI/kXh9NL1ffqF4X8FFotu
-         ZYLikXz5A0mcmBrbBToo2AA50HDEaVN2s3+zLIBfBUB+Jy02J5iYNLr6qXWQLTyBBj80
-         Xz7WlBNKZt8VEmZlPXTxmxQOXnJaJxT64p71I4CR1kgG1jlQa07xoORL5sBfPk0Wx9VW
-         nvD0O6VicXNko7AALcRXgVhinu/ChZS9Er+793O7vl/MqPS7LMkhwc7nKjEFxntXGt2V
-         jBpdMaGSC+x5aYPntSeXnj6gZrh3nsrNYX/TIYUT1A6jsH7L1kicM0FTzsvIJBsKLhPp
-         9VSg==
-X-Gm-Message-State: AOJu0YweC4MLVkso35kFDZTyqLio1mUIWFSfO3N6HJ3O8wvtQNVcgIsq
-	oKxLMH8AeqNKdetT/CP8Da+9K5rifFTIG5Uv7dfNyMBjSDg=
-X-Google-Smtp-Source: AGHT+IFLZdCJLOSo7HbJT6PRfSYDS+7K/o5RibHkhitIz3WwPQ7TcYJMGcct5Hvzk7eJAHFGK5HbWg==
-X-Received: by 2002:a17:906:3098:b0:9ae:7088:6e5d with SMTP id 24-20020a170906309800b009ae70886e5dmr2753583ejv.3.1695947101493;
-        Thu, 28 Sep 2023 17:25:01 -0700 (PDT)
-Received: from mail-ej1-f52.google.com (mail-ej1-f52.google.com. [209.85.218.52])
-        by smtp.gmail.com with ESMTPSA id qk8-20020a170906d9c800b009ad89697c86sm11689714ejb.144.2023.09.28.17.25.01
-        for <ocfs2-devel@lists.linux.dev>
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Thu, 28 Sep 2023 17:25:01 -0700 (PDT)
-Received: by mail-ej1-f52.google.com with SMTP id a640c23a62f3a-9b281a2aa94so1186124966b.2
-        for <ocfs2-devel@lists.linux.dev>; Thu, 28 Sep 2023 17:25:01 -0700 (PDT)
-X-Received: by 2002:aa7:d807:0:b0:530:52d2:f656 with SMTP id
- v7-20020aa7d807000000b0053052d2f656mr2404674edq.21.1695946739584; Thu, 28 Sep
- 2023 17:18:59 -0700 (PDT)
+        d=1e100.net; s=20230601; t=1695958089; x=1696562889;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:x-gm-message-state:from:to:cc
+         :subject:date:message-id:reply-to;
+        bh=IiAb/i1gc98L6SazD4d4ItKm7HOWY4Sc1dUvsARnIt8=;
+        b=SXlnr8LYmi0RO8Y8NUP8FHVPeOnHW9aYDHbykGLxQQjlX5K7VMlBo1fpFvCHKIJCRU
+         UvsLdJEq2WhxM0vjVQWSHMcowRhuWFav3FaBdcDg5KqUHXf5gVWLSHQXy/yMz+RzxD6X
+         NA25N4TXSqnupW3EgX5C19DLnk354HpE+ofHS+DMQDchqbe0MLb8gymH6bS8kRgWlU0W
+         3A5rL0w7gOl3jz/ntSNTI11WO1zB+/53g5lnTJTxAkdc8KU0s9tP3h4dc+mQwJZfBmcf
+         pUF5S2UpqzGJnm6xIbAeFLnUsScRXWRomTnZ2I/dpKG3NFVZJ5sjf+6wXVx2uUazB8jJ
+         uuAw==
+X-Gm-Message-State: AOJu0Yy7kxacWn41cYjWSJp5/bzQyP0oqaPi18B1CKY/PDnBZxbuDfk1
+	tyuMXDJbiKzs91TQwUHX5g7pIqic0HSW0me0lCE=
+X-Google-Smtp-Source: AGHT+IFwxD5MHwB8nCElH3p97gGzSZFtR6vWTxEs/mssfRQyF6PkJIQiA0uHM4z+FM+M3FEQI561MxdOs0m92SBkdVk=
+X-Received: by 2002:a05:6102:d8:b0:452:6da0:678f with SMTP id
+ u24-20020a05610200d800b004526da0678fmr2890488vsp.9.1695958089382; Thu, 28 Sep
+ 2023 20:28:09 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -48,19 +43,17 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 References: <20230928110554.34758-1-jlayton@kernel.org> <20230928110554.34758-2-jlayton@kernel.org>
  <6020d6e7-b187-4abb-bf38-dc09d8bd0f6d@app.fastmail.com> <af047e4a1c6947c59d4a13d4ae221c784a5386b4.camel@kernel.org>
- <20230928171943.GK11439@frogsfrogsfrogs> <6a6f37d16b55a3003af3f3dbb7778a367f68cd8d.camel@kernel.org>
- <20230928212656.GC189345@mit.edu>
-In-Reply-To: <20230928212656.GC189345@mit.edu>
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Thu, 28 Sep 2023 17:18:42 -0700
-X-Gmail-Original-Message-ID: <CAHk-=wjTynK9BdGbi+8eShU77nkPvipFwRxEd1TSBrw2+LiuDg@mail.gmail.com>
-Message-ID: <CAHk-=wjTynK9BdGbi+8eShU77nkPvipFwRxEd1TSBrw2+LiuDg@mail.gmail.com>
+ <20230928171943.GK11439@frogsfrogsfrogs>
+In-Reply-To: <20230928171943.GK11439@frogsfrogsfrogs>
+From: Amir Goldstein <amir73il@gmail.com>
+Date: Fri, 29 Sep 2023 06:27:57 +0300
+Message-ID: <CAOQ4uxjTpPPUa3VXW+DWKy72JABOZBCXD6pjNk-FhJZWnqvNPA@mail.gmail.com>
 Subject: Re: [PATCH 86/87] fs: switch timespec64 fields in inode to discrete integers
-To: "Theodore Ts'o" <tytso@mit.edu>
-Cc: Jeff Layton <jlayton@kernel.org>, "Darrick J. Wong" <djwong@kernel.org>, Arnd Bergmann <arnd@arndb.de>, 
+To: "Darrick J. Wong" <djwong@kernel.org>
+Cc: Jeff Layton <jlayton@kernel.org>, Arnd Bergmann <arnd@arndb.de>, 
 	Alexander Viro <viro@zeniv.linux.org.uk>, Christian Brauner <brauner@kernel.org>, 
-	David Sterba <dsterba@suse.cz>, Amir Goldstein <amir73il@gmail.com>, 
-	"Eric W. Biederman" <ebiederm@xmission.com>, Kees Cook <keescook@chromium.org>, 
+	Linus Torvalds <torvalds@linux-foundation.org>, David Sterba <dsterba@suse.cz>, 
+	"Theodore Ts'o" <tytso@mit.edu>, "Eric W. Biederman" <ebiederm@xmission.com>, Kees Cook <keescook@chromium.org>, 
 	Jeremy Kerr <jk@ozlabs.org>, Michael Ellerman <mpe@ellerman.id.au>, Nicholas Piggin <npiggin@gmail.com>, 
 	Christophe Leroy <christophe.leroy@csgroup.eu>, Heiko Carstens <hca@linux.ibm.com>, 
 	Vasily Gorbik <gor@linux.ibm.com>, Alexander Gordeev <agordeev@linux.ibm.com>, 
@@ -84,7 +77,7 @@ Cc: Jeff Layton <jlayton@kernel.org>, "Darrick J. Wong" <djwong@kernel.org>, Arn
 	Ilya Dryomov <idryomov@gmail.com>, Jan Harkes <jaharkes@cs.cmu.edu>, coda@cs.cmu.edu, 
 	Joel Becker <jlbec@evilplan.org>, Christoph Hellwig <hch@lst.de>, Nicolas Pitre <nico@fluxnic.net>, 
 	"Rafael J . Wysocki" <rafael@kernel.org>, Ard Biesheuvel <ardb@kernel.org>, Gao Xiang <xiang@kernel.org>, 
-	Chao Yu <chao@kernel.org>, Yue Hu <huyue2@gl0jj8bn.sched.sma.tdnsstic1.cn>, 
+	Chao Yu <chao@kernel.org>, Yue Hu <huyue2@coolpad.com>, 
 	Jeffle Xu <jefflexu@linux.alibaba.com>, Namjae Jeon <linkinjeon@kernel.org>, 
 	Sungjong Seo <sj1557.seo@samsung.com>, Jan Kara <jack@suse.com>, 
 	Andreas Dilger <adilger.kernel@dilger.ca>, Jaegeuk Kim <jaegeuk@kernel.org>, 
@@ -126,7 +119,7 @@ Cc: Jeff Layton <jlayton@kernel.org>, "Darrick J. Wong" <djwong@kernel.org>, Arn
 	linux-serial@vger.kernel.org, linux-usb@vger.kernel.org, v9fs@lists.linux.dev, 
 	linux-afs@lists.infradead.org, autofs@vger.kernel.org, 
 	linux-btrfs@vger.kernel.org, ceph-devel@vger.kernel.org, 
-	codalist@telemann.coda.cs.cmu.edu, linux-efi@vger.kernel.org, 
+	codalist@coda.cs.cmu.edu, linux-efi@vger.kernel.org, 
 	linux-erofs@lists.ozlabs.org, linux-ext4@vger.kernel.org, 
 	linux-f2fs-devel@lists.sourceforge.net, gfs2@lists.linux.dev, 
 	linux-um@lists.infradead.org, linux-mtd@lists.infradead.org, 
@@ -141,55 +134,65 @@ Cc: Jeff Layton <jlayton@kernel.org>, "Darrick J. Wong" <djwong@kernel.org>, Arn
 	Netdev <netdev@vger.kernel.org>, apparmor@lists.ubuntu.com, 
 	linux-security-module@vger.kernel.org, selinux@vger.kernel.org
 Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-On Thu, 28 Sept 2023 at 14:28, Theodore Ts'o <tytso@mit.edu> wrote:
+On Thu, Sep 28, 2023 at 8:19=E2=80=AFPM Darrick J. Wong <djwong@kernel.org>=
+ wrote:
 >
-> I don't think anyone will complain about breaking the userspace API
-> --- especially since if, say, the CIA was using this for their spies'
-> drop boxes, they probably wouldn't want to admit it.  :-)
+> On Thu, Sep 28, 2023 at 01:06:03PM -0400, Jeff Layton wrote:
+> > On Thu, 2023-09-28 at 11:48 -0400, Arnd Bergmann wrote:
+> > > On Thu, Sep 28, 2023, at 07:05, Jeff Layton wrote:
+> > > > This shaves 8 bytes off struct inode, according to pahole.
+> > > >
+> > > > Signed-off-by: Jeff Layton <jlayton@kernel.org>
+> > >
+> > > FWIW, this is similar to the approach that Deepa suggested
+> > > back in 2016:
+> > >
+> > > https://lore.kernel.org/lkml/1452144972-15802-3-git-send-email-deepa.=
+kernel@gmail.com/
+> > >
+> > > It was NaKed at the time because of the added complexity,
+> > > though it would have been much easier to do it then,
+> > > as we had to touch all the timespec references anyway.
+> > >
+> > > The approach still seems ok to me, but I'm not sure it's worth
+> > > doing it now if we didn't do it then.
+> > >
+> >
+> > I remember seeing those patches go by. I don't remember that change
+> > being NaK'ed, but I wasn't paying close attention at the time
+> >
+> > Looking at it objectively now, I think it's worth it to recover 8 bytes
+> > per inode and open a 4 byte hole that Amir can use to grow the
+> > i_fsnotify_mask. We might even able to shave off another 12 bytes
+> > eventually if we can move to a single 64-bit word per timestamp.
+>
+> I don't think you can, since btrfs timestamps utilize s64 seconds
+> counting in both directions from the Unix epoch.  They also support ns
+> resolution:
+>
+>         struct btrfs_timespec {
+>                 __le64 sec;
+>                 __le32 nsec;
+>         } __attribute__ ((__packed__));
+>
+> --D
+>
 
-Well, you will find that real apps do kind of of care.
+Sure we can.
+That's what btrfs_inode is for.
+vfs inode also does not store i_otime (birth time) and there is even a
+precedent of vfs/btrfs variable size mismatch:
 
-Just to take a very real example, "git" will very much notice time
-granularity issues and care - because git will cache the 'stat' times
-in the index.
+        /* full 64 bit generation number, struct vfs_inode doesn't have a b=
+ig
+         * enough field for this.
+         */
+        u64 generation;
 
-So if you get a different stat time (because the vfs layer has changed
-some granularity), git will then have to check the files carefully
-again and update the index.
+If we decide that vfs should use "bigtime", btrfs pre-historic
+timestamps are not a show stopper.
 
-You can simulate this "re-check all files" with something like this:
-
-    $ time git diff
-
-    real 0m0.040s
-    user 0m0.035s
-    sys 0m0.264s
-
-    $ rm .git/index && git read-tree HEAD
-
-    $ time git diff
-
-    real 0m9.595s
-    user 0m7.287s
-    sys 0m2.810s
-
-so the difference between just doing a "look, index information
-matches current 'stat' information" and "oops, index does not have the
-stat data" is "40 milliseconds" vs "10 seconds".
-
-That's a big difference, and you'd see that each time the granularity
-changes. But then once the index file has been updated, it's back to
-the good case.
-
-So yes, real programs to cache stat information, and it matters for performance.
-
-But I don't think any actual reasonable program will have
-*correctness* issues, though - because there are certainly filesystems
-out there that don't do nanosecond resolution (and other operations
-like copying trees around will obviously also change times).
-
-Anybody doing steganography in the timestamps is already not going to
-have a great time, really.
-
-                 Linus
+Thanks,
+Amir.
