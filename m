@@ -1,116 +1,167 @@
-Received: from mail-pl1-f179.google.com (mail-pl1-f179.google.com [209.85.214.179])
+Received: from mail-lf1-f45.google.com (mail-lf1-f45.google.com [209.85.167.45])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A1B5817C8
-	for <ocfs2-devel@lists.linux.dev>; Sat, 30 Sep 2023 05:02:06 +0000 (UTC)
-Received: by mail-pl1-f179.google.com with SMTP id d9443c01a7336-1c5ff5f858dso87314145ad.2
-        for <ocfs2-devel@lists.linux.dev>; Fri, 29 Sep 2023 22:02:06 -0700 (PDT)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9FF7AF9CF;
+	Sat, 30 Sep 2023 14:50:55 +0000 (UTC)
+Received: by mail-lf1-f45.google.com with SMTP id 2adb3069b0e04-50336768615so24733639e87.0;
+        Sat, 30 Sep 2023 07:50:55 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1696050126; x=1696654926; darn=lists.linux.dev;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:date:subject:cc:to:from:from:to:cc:subject:date
+        d=gmail.com; s=20230601; t=1696085453; x=1696690253; darn=lists.linux.dev;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:from:to:cc:subject:date
          :message-id:reply-to;
-        bh=ERTq1h2JUPIQir/rEk+r3r2PZJ52vm7XhnYInCUG6b0=;
-        b=XX7Aex8AOU+78QtDt+d+3T6TR0TjHlJyECcf5hZv9v3IKQfAj7rBKpm2aM0oWYkvrS
-         CIqf/qu2ovQCNAAOyXN9akwPV7RwlPeIjU5rkBlqOmpgJ/4tpx07qzLNZvgG3hITL7Wc
-         tzSaVEVg7EgPYtt8ZoOdxrth5H1HEsHvDnJged3SdrXINyouB3zMJEjuK56dJM+KP/lw
-         Dz3fwEeH5ySKzl9w7pxg3Y2yq9FB3EQ+oy6D7nsWkh9lHpar+NAGZZaG+9SyyLXnZ/N7
-         NIlGbQWeqapI7xxQ6ukPwXXA45GVCTRXn+zRJvX6tYg20yK6EmtZM9MlmnbG2ZApNBrF
-         JEvw==
+        bh=laSU2ptF5dJtGJTOfsu2vTDoKsI4bo31YwsLIpMZHsY=;
+        b=BhgULOnF64J3rgXkc9hC1wKtpa2N5bWOCJ6USznHfgM1pGfd5ZPH/LUjtL/onuwStS
+         bDnjDPYHdnfQOzJvzIzIGP69xF73YSyck9aN1q1tO0vKpW3ON+t/I3CV89nzuhjlD0EB
+         2yntKMXs+nR0JZ/EGwlZ/3HERMunfS31uageX91TwMO4W4WvNg4hZrPbANNBTbW2T0JW
+         /MFkOVImfN0WO1l7hUyKCgkHHiNonnXL3Cb59uC8HFYhPa4yaVMrWekOgyMlqMGyvwdX
+         jn8/ezixhq81O+Tmbfj0xIsufvi9ZFYCPXgZnVkbHKozPoJSyKhIdb0QBrHKCB/Unko6
+         IGfA==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1696050126; x=1696654926;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:date:subject:cc:to:from:x-gm-message-state:from:to:cc
+        d=1e100.net; s=20230601; t=1696085453; x=1696690253;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:x-gm-message-state:from:to:cc
          :subject:date:message-id:reply-to;
-        bh=ERTq1h2JUPIQir/rEk+r3r2PZJ52vm7XhnYInCUG6b0=;
-        b=ayfRE+f7XPg7ron7kaYI0T5OI0M7YKS4fntysBjqfXePV1legi34SdaBrpg+6NFimr
-         bdWftD/biotrBOn9gLRjEls/4xl1ZLqBYIkYCT39m2tjeWO6VfUuiMB1Q0Vl1MfFAlYW
-         rYbaPFqDltW5VBzM3GLyrSzLLh9OICY3X7FXX5oibWrsOXLLOlo75iblaujbHJoVPVEM
-         TCeXpCg6kAKZf1QiHsMPSbUq30dofqC21dLCUv+w5ffPIfgC2UVV/MVFlWl2e4F14rqg
-         urX51R7BY8xMOyZlgT1AIaoIcwh8Zkt5DJ8xgi5dm2aoZVNlAZ/FnniS3E2pjhpruU2r
-         gI/w==
-X-Gm-Message-State: AOJu0YyZpq920kMgZ+eNRtJj2vtYJ06hZbepzbHvsVUGVEy/ugGDrf4g
-	gzgZOjPQ8PTPCykgz9G1+AA=
-X-Google-Smtp-Source: AGHT+IE93Nz+CTn1eMCxHn42HhU5uqXNXT05Y4Weq1sWMG/m1tkqHDxA4tUzrKL70aU/jJiOIdVMlw==
-X-Received: by 2002:a17:902:f7c6:b0:1c3:a4f2:7c92 with SMTP id h6-20020a170902f7c600b001c3a4f27c92mr4959184plw.65.1696050125757;
-        Fri, 29 Sep 2023 22:02:05 -0700 (PDT)
-Received: from wedsonaf-dev.home.lan ([189.124.190.154])
-        by smtp.googlemail.com with ESMTPSA id y10-20020a17090322ca00b001c322a41188sm392136plg.117.2023.09.29.22.02.01
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Fri, 29 Sep 2023 22:02:05 -0700 (PDT)
-From: Wedson Almeida Filho <wedsonaf@gmail.com>
-To: Alexander Viro <viro@zeniv.linux.org.uk>,
-	Christian Brauner <brauner@kernel.org>,
-	linux-fsdevel@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org,
-	Wedson Almeida Filho <walmeida@microsoft.com>,
-	Mark Fasheh <mark@fasheh.com>,
-	Joel Becker <jlbec@evilplan.org>,
-	Joseph Qi <joseph.qi@linux.alibaba.com>,
-	ocfs2-devel@lists.linux.dev
-Subject: [PATCH 20/29] ocfs2: move ocfs2_xattr_handlers and ocfs2_xattr_handler_map to .rodata
-Date: Sat, 30 Sep 2023 02:00:24 -0300
-Message-Id: <20230930050033.41174-21-wedsonaf@gmail.com>
-X-Mailer: git-send-email 2.34.1
-In-Reply-To: <20230930050033.41174-1-wedsonaf@gmail.com>
-References: <20230930050033.41174-1-wedsonaf@gmail.com>
+        bh=laSU2ptF5dJtGJTOfsu2vTDoKsI4bo31YwsLIpMZHsY=;
+        b=cLlnQvrU5K68c+g5w59Gf+nBnpB1NZm5koNuJL0Ogyvl0mPwp79yv8mNNgK3FHCmry
+         uJpRzw6B1DthLGT7KdDYgO8G0QJLrIc9hxgceEDabl0tyTc1Ccc8UPai5TFn1oJov9SD
+         Jirnhh6mWZSGYIzsmc57EpyDOBOuoY/XJTdugj6oDt/Z9NJq8VkbBIAgKZpaPKi6Fluj
+         RgP4facuc9QPAsIJb6F+LW4Pe+D50ONYGkjQgBpbor4jFSv49sGXNSmdx/YnoN0BeiVB
+         Ls94x73yyW2DlCXJiDkYtWFHz1/NLZMirpecOJqecchQWF4CqLSTAGgoK8D5tyIv/ktm
+         CQag==
+X-Gm-Message-State: AOJu0YyoG68ptMIkuPa82e9hnoVHYpRXXRVUtFIcVsFuE0tslbWooTLo
+	yWqHybz27iXVO1/vaoLVHTv0t05nav2vcESdBrM=
+X-Google-Smtp-Source: AGHT+IFKxuEfsWI2Hoye015VefDxXDDWWovJHhYR0GsRnul5m9+uvo7GWv6zNWozBrWHqGB+PwbJIGFbA8W5CapoIHU=
+X-Received: by 2002:a05:6512:124a:b0:503:5cd:998b with SMTP id
+ fb10-20020a056512124a00b0050305cd998bmr7557694lfb.28.1696085453195; Sat, 30
+ Sep 2023 07:50:53 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+References: <20230928110554.34758-1-jlayton@kernel.org> <20230928110554.34758-2-jlayton@kernel.org>
+ <6020d6e7-b187-4abb-bf38-dc09d8bd0f6d@app.fastmail.com> <af047e4a1c6947c59d4a13d4ae221c784a5386b4.camel@kernel.org>
+ <20230928171943.GK11439@frogsfrogsfrogs> <6a6f37d16b55a3003af3f3dbb7778a367f68cd8d.camel@kernel.org>
+ <636661.1695969129@warthog.procyon.org.uk>
+In-Reply-To: <636661.1695969129@warthog.procyon.org.uk>
+From: Steve French <smfrench@gmail.com>
+Date: Sat, 30 Sep 2023 09:50:41 -0500
+Message-ID: <CAH2r5ms14hPaz=Ex2a=Dj0Hz3XxYLRKFj_rHHekznTbNJ_wABQ@mail.gmail.com>
+Subject: Re: [PATCH 86/87] fs: switch timespec64 fields in inode to discrete integers
+To: David Howells <dhowells@redhat.com>
+Cc: Jeff Layton <jlayton@kernel.org>, Latchesar Ionkov <lucho@ionkov.net>, 
+	Konstantin Komarov <almaz.alexandrovich@paragon-software.com>, 
+	"Rafael J . Wysocki" <rafael@kernel.org>, "Darrick J. Wong" <djwong@kernel.org>, Anders Larsen <al@alarsen.net>, 
+	Carlos Llamas <cmllamas@google.com>, Andrii Nakryiko <andrii@kernel.org>, 
+	Mattia Dongili <malattia@linux.it>, Hugh Dickins <hughd@google.com>, 
+	John Johansen <john.johansen@canonical.com>, Yonghong Song <yonghong.song@linux.dev>, 
+	Alexander Gordeev <agordeev@linux.ibm.com>, Christoph Hellwig <hch@lst.de>, Mike Marshall <hubcap@omnibond.com>, 
+	Paulo Alcantara <pc@manguebit.com>, linux-xfs@vger.kernel.org, 
+	Michael Ellerman <mpe@ellerman.id.au>, James Morris <jmorris@namei.org>, 
+	Christophe Leroy <christophe.leroy@csgroup.eu>, 
+	Christian Borntraeger <borntraeger@linux.ibm.com>, devel@lists.orangefs.org, 
+	Shyam Prasad N <sprasad@microsoft.com>, linux-um@lists.infradead.org, 
+	Nicholas Piggin <npiggin@gmail.com>, Alexander Viro <viro@zeniv.linux.org.uk>, 
+	Eric Van Hensbergen <ericvh@kernel.org>, Suren Baghdasaryan <surenb@google.com>, 
+	Trond Myklebust <trond.myklebust@hammerspace.com>, Anton Altaparmakov <anton@tuxera.com>, 
+	Christian Brauner <brauner@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, 
+	Stephen Smalley <stephen.smalley.work@gmail.com>, linux-usb@vger.kernel.org, 
+	linux-kernel@vger.kernel.org, Ronnie Sahlberg <lsahlber@redhat.com>, 
+	Sergey Senozhatsky <senozhatsky@chromium.org>, =?UTF-8?B?QXJ2ZSBIasO4bm5ldsOlZw==?= <arve@android.com>, 
+	Chuck Lever <chuck.lever@oracle.com>, Sven Schnelle <svens@linux.ibm.com>, 
+	Jiri Olsa <jolsa@kernel.org>, Jan Kara <jack@suse.com>, Tejun Heo <tj@kernel.org>, 
+	Andrew Morton <akpm@linux-foundation.org>, linux-trace-kernel@vger.kernel.org, 
+	Linus Torvalds <torvalds@linux-foundation.org>, Dave Kleikamp <shaggy@kernel.org>, linux-mm@kvack.org, 
+	Joel Fernandes <joel@joelfernandes.org>, Eric Dumazet <edumazet@google.com>, 
+	Stanislav Fomichev <sdf@google.com>, linux-s390@vger.kernel.org, linux-nilfs@vger.kernel.org, 
+	Paul Moore <paul@paul-moore.com>, Leon Romanovsky <leon@kernel.org>, 
+	John Fastabend <john.fastabend@gmail.com>, Luis Chamberlain <mcgrof@kernel.org>, codalist@coda.cs.cmu.edu, 
+	Iurii Zaikin <yzaikin@google.com>, Namjae Jeon <linkinjeon@kernel.org>, 
+	Masami Hiramatsu <mhiramat@kernel.org>, Todd Kjos <tkjos@android.com>, 
+	Vasily Gorbik <gor@linux.ibm.com>, selinux@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, 
+	reiserfs-devel@vger.kernel.org, Miklos Szeredi <miklos@szeredi.hu>, 
+	Yue Hu <huyue2@coolpad.com>, Jaegeuk Kim <jaegeuk@kernel.org>, 
+	Martijn Coenen <maco@android.com>, OGAWA Hirofumi <hirofumi@mail.parknet.co.jp>, 
+	Hao Luo <haoluo@google.com>, Tony Luck <tony.luck@intel.com>, "Theodore Ts'o" <tytso@mit.edu>, 
+	Nicolas Pitre <nico@fluxnic.net>, linux-ntfs-dev@lists.sourceforge.net, 
+	Muchun Song <muchun.song@linux.dev>, linux-f2fs-devel@lists.sourceforge.net, 
+	"Guilherme G. Piccoli" <gpiccoli@igalia.com>, gfs2@lists.linux.dev, 
+	"Eric W. Biederman" <ebiederm@xmission.com>, Anna Schumaker <anna@kernel.org>, 
+	Brad Warrum <bwarrum@linux.ibm.com>, Mike Kravetz <mike.kravetz@oracle.com>, 
+	linux-efi@vger.kernel.org, Martin Brandenburg <martin@omnibond.com>, 
+	ocfs2-devel@lists.linux.dev, Alexei Starovoitov <ast@kernel.org>, 
+	platform-driver-x86@vger.kernel.org, Chris Mason <clm@fb.com>, 
+	linux-mtd@lists.infradead.org, linux-hardening@vger.kernel.org, 
+	Marc Dionne <marc.dionne@auristor.com>, Jiri Slaby <jirislaby@kernel.org>, 
+	linux-afs@lists.infradead.org, Ian Kent <raven@themaw.net>, 
+	Naohiro Aota <naohiro.aota@wdc.com>, Daniel Borkmann <daniel@iogearbox.net>, 
+	Dennis Dalessandro <dennis.dalessandro@cornelisnetworks.com>, linux-rdma@vger.kernel.org, 
+	coda@cs.cmu.edu, =?UTF-8?Q?Ilpo_J=C3=A4rvinen?= <ilpo.jarvinen@linux.intel.com>, 
+	Ilya Dryomov <idryomov@gmail.com>, Paolo Abeni <pabeni@redhat.com>, 
+	"Serge E. Hallyn" <serge@hallyn.com>, Christian Schoenebeck <linux_oss@crudebyte.com>, 
+	Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, autofs@vger.kernel.org, 
+	Steven Rostedt <rostedt@goodmis.org>, Mark Gross <markgross@kernel.org>, 
+	Damien Le Moal <dlemoal@kernel.org>, Eric Paris <eparis@parisplace.org>, ceph-devel@vger.kernel.org, 
+	Gao Xiang <xiang@kernel.org>, Jan Harkes <jaharkes@cs.cmu.edu>, linux-nfs@vger.kernel.org, 
+	linux-ext4@vger.kernel.org, Olga Kornievskaia <kolga@netapp.com>, Song Liu <song@kernel.org>, 
+	samba-technical@lists.samba.org, Steve French <sfrench@samba.org>, 
+	Jeremy Kerr <jk@ozlabs.org>, Netdev <netdev@vger.kernel.org>, 
+	Bob Peterson <rpeterso@redhat.com>, linux-fsdevel@vger.kernel.org, bpf@vger.kernel.org, 
+	ntfs3@lists.linux.dev, linux-erofs@lists.ozlabs.org, 
+	"David S . Miller" <davem@davemloft.net>, Chandan Babu R <chandan.babu@oracle.com>, 
+	jfs-discussion@lists.sourceforge.net, Jan Kara <jack@suse.cz>, 
+	Neil Brown <neilb@suse.de>, Dominique Martinet <asmadeus@codewreck.org>, 
+	Amir Goldstein <amir73il@gmail.com>, Bob Copeland <me@bobcopeland.com>, KP Singh <kpsingh@kernel.org>, 
+	linux-unionfs@vger.kernel.org, Joseph Qi <joseph.qi@linux.alibaba.com>, 
+	Andreas Dilger <adilger.kernel@dilger.ca>, 
+	Mikulas Patocka <mikulas@artax.karlin.mff.cuni.cz>, Ard Biesheuvel <ardb@kernel.org>, 
+	Anton Ivanov <anton.ivanov@cambridgegreys.com>, Andreas Gruenbacher <agruenba@redhat.com>, 
+	Richard Weinberger <richard@nod.at>, Mark Fasheh <mark@fasheh.com>, Dai Ngo <Dai.Ngo@oracle.com>, 
+	Jason Gunthorpe <jgg@ziepe.ca>, linux-serial@vger.kernel.org, 
+	Jakub Kicinski <kuba@kernel.org>, Salah Triki <salah.triki@gmail.com>, 
+	Evgeniy Dushistov <dushistov@mail.ru>, linux-cifs@vger.kernel.org, 
+	Heiko Carstens <hca@linux.ibm.com>, Chao Yu <chao@kernel.org>, apparmor@lists.ubuntu.com, 
+	Josef Bacik <josef@toxicpanda.com>, Tom Talpey <tom@talpey.com>, 
+	Hans de Goede <hdegoede@redhat.com>, "Tigran A. Aivazian" <aivazian.tigran@gmail.com>, 
+	David Sterba <dsterba@suse.com>, Xiubo Li <xiubli@redhat.com>, 
+	Ryusuke Konishi <konishi.ryusuke@gmail.com>, Johannes Thumshirn <jth@kernel.org>, 
+	Ritu Agarwal <rituagar@linux.ibm.com>, Luis de Bethencourt <luisbg@kernel.org>, 
+	Martin KaFai Lau <martin.lau@linux.dev>, v9fs@lists.linux.dev, David Sterba <dsterba@suse.cz>, 
+	linux-security-module@vger.kernel.org, Jeffle Xu <jefflexu@linux.alibaba.com>, 
+	Phillip Lougher <phillip@squashfs.org.uk>, Johannes Berg <johannes@sipsolutions.net>, 
+	Sungjong Seo <sj1557.seo@samsung.com>, David Woodhouse <dwmw2@infradead.org>, 
+	linux-karma-devel@lists.sourceforge.net, linux-btrfs@vger.kernel.org, 
+	Joel Becker <jlbec@evilplan.org>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-From: Wedson Almeida Filho <walmeida@microsoft.com>
+On Fri, Sep 29, 2023 at 3:06=E2=80=AFAM David Howells via samba-technical
+<samba-technical@lists.samba.org> wrote:
+>
+>
+> Jeff Layton <jlayton@kernel.org> wrote:
+>
+> > Correct. We'd lose some fidelity in currently stored timestamps, but as
+> > Linus and Ted pointed out, anything below ~100ns granularity is
+> > effectively just noise, as that's the floor overhead for calling into
+> > the kernel. It's hard to argue that any application needs that sort of
+> > timestamp resolution, at least with contemporary hardware.
+>
+> Albeit with the danger of making Steve French very happy;-), would it mak=
+e
+> sense to switch internally to Microsoft-style 64-bit timestamps with thei=
+r
+> 100ns granularity?
 
-This makes it harder for accidental or malicious changes to
-ocfs2_xattr_handlers or ocfs2_xattr_handler_map at runtime.
+100ns granularity does seem to make sense and IIRC was used by various
+DCE standards in the 90s and 2000s (not just used for SMB2/SMB3 protocol an=
+d
+various Windows filesystems)
 
-Cc: Mark Fasheh <mark@fasheh.com>
-Cc: Joel Becker <jlbec@evilplan.org>
-Cc: Joseph Qi <joseph.qi@linux.alibaba.com>
-Cc: ocfs2-devel@lists.linux.dev
-Signed-off-by: Wedson Almeida Filho <walmeida@microsoft.com>
----
- fs/ocfs2/xattr.c | 4 ++--
- fs/ocfs2/xattr.h | 2 +-
- 2 files changed, 3 insertions(+), 3 deletions(-)
 
-diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index 4ac77ff6e676..1c54adac1e50 100644
---- a/fs/ocfs2/xattr.c
-+++ b/fs/ocfs2/xattr.c
-@@ -87,14 +87,14 @@ static struct ocfs2_xattr_def_value_root def_xv = {
- 	.xv.xr_list.l_count = cpu_to_le16(1),
- };
- 
--const struct xattr_handler *ocfs2_xattr_handlers[] = {
-+const struct xattr_handler * const ocfs2_xattr_handlers[] = {
- 	&ocfs2_xattr_user_handler,
- 	&ocfs2_xattr_trusted_handler,
- 	&ocfs2_xattr_security_handler,
- 	NULL
- };
- 
--static const struct xattr_handler *ocfs2_xattr_handler_map[OCFS2_XATTR_MAX] = {
-+static const struct xattr_handler * const ocfs2_xattr_handler_map[OCFS2_XATTR_MAX] = {
- 	[OCFS2_XATTR_INDEX_USER]		= &ocfs2_xattr_user_handler,
- 	[OCFS2_XATTR_INDEX_POSIX_ACL_ACCESS]	= &nop_posix_acl_access,
- 	[OCFS2_XATTR_INDEX_POSIX_ACL_DEFAULT]	= &nop_posix_acl_default,
-diff --git a/fs/ocfs2/xattr.h b/fs/ocfs2/xattr.h
-index 00308b57f64f..65e9aa743919 100644
---- a/fs/ocfs2/xattr.h
-+++ b/fs/ocfs2/xattr.h
-@@ -30,7 +30,7 @@ struct ocfs2_security_xattr_info {
- extern const struct xattr_handler ocfs2_xattr_user_handler;
- extern const struct xattr_handler ocfs2_xattr_trusted_handler;
- extern const struct xattr_handler ocfs2_xattr_security_handler;
--extern const struct xattr_handler *ocfs2_xattr_handlers[];
-+extern const struct xattr_handler * const ocfs2_xattr_handlers[];
- 
- ssize_t ocfs2_listxattr(struct dentry *, char *, size_t);
- int ocfs2_xattr_get_nolock(struct inode *, struct buffer_head *, int,
--- 
-2.34.1
+--=20
+Thanks,
 
+Steve
