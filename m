@@ -1,59 +1,114 @@
-Received: from out199-2.us.a.mail.aliyun.com (out199-2.us.a.mail.aliyun.com [47.90.199.2])
+Received: from casper.infradead.org (casper.infradead.org [90.155.50.34])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A00A1657
-	for <ocfs2-devel@lists.linux.dev>; Thu, 12 Oct 2023 01:42:34 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; dkim=none
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R161e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=ay29a033018046051;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=6;SR=0;TI=SMTPD_---0VtyLKrJ_1697073085;
-Received: from 30.221.128.69(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0VtyLKrJ_1697073085)
-          by smtp.aliyun-inc.com;
-          Thu, 12 Oct 2023 09:11:26 +0800
-Message-ID: <6378684c-08a4-778c-e13b-7162cc26e31d@linux.alibaba.com>
-Date: Thu, 12 Oct 2023 09:11:25 +0800
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 537AE36AF6;
+	Mon, 16 Oct 2023 20:11:20 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=infradead.org
+Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=infradead.org
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="mLOzLL1M"
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+	d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
+	References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:
+	Content-Type:Content-ID:Content-Description;
+	bh=7mXlnt1yRIMT4o+dXNcAaQaKhOKfQBuaGyVOIxKhilk=; b=mLOzLL1MAsvOzcF2Nfxy8DlEW9
+	KqVXhXbvURDI6XFJEenJqK0xoOqPMXJEMTTYt/w7KPuNhXf7hgVbqU/yzVTnj8xqbKKYZ848lsrsp
+	sWgSDaoVJ2u8Anm+cyMry3h+5JJKok7IPEz8XLRLV4sfjpfbCNMgvhKxmhNb4iPeOmLfw8HqfPCo+
+	GaJeKn092L2S/NhRc+Y2qApEy0Pjv+69uUInXENTG1ES3OdYfpt8uiWZNcUBxnCXVKwyn1Qdwglc0
+	dbUvBa4yfk0P8B0Pb4n9DSwIp/QZfxMHVsF52xzmuXxasjuojFnh6avfilIZeDJZt3kFLNOw1jzpj
+	k7rRI1sg==;
+Received: from willy by casper.infradead.org with local (Exim 4.94.2 #2 (Red Hat Linux))
+	id 1qsTvp-0085bA-PH; Mon, 16 Oct 2023 20:11:17 +0000
+From: "Matthew Wilcox (Oracle)" <willy@infradead.org>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: "Matthew Wilcox (Oracle)" <willy@infradead.org>,
+	linux-fsdevel@vger.kernel.org,
+	gfs2@lists.linux.dev,
+	linux-nilfs@vger.kernel.org,
+	linux-ntfs-dev@lists.sourceforge.net,
+	ntfs3@lists.linux.dev,
+	ocfs2-devel@lists.linux.dev,
+	reiserfs-devel@vger.kernel.org,
+	linux-ext4@vger.kernel.org,
+	Pankaj Raghav <p.raghav@samsung.com>,
+	Ryusuke Konishi <konishi.ryusuke@gmail.com>
+Subject: [PATCH v2 11/27] nilfs2: Convert nilfs_grab_buffer() to use a folio
+Date: Mon, 16 Oct 2023 21:10:58 +0100
+Message-Id: <20231016201114.1928083-12-willy@infradead.org>
+X-Mailer: git-send-email 2.37.1
+In-Reply-To: <20231016201114.1928083-1-willy@infradead.org>
+References: <20231016201114.1928083-1-willy@infradead.org>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:102.0)
- Gecko/20100101 Thunderbird/102.15.1
-Subject: Re: [PATCH] ocfs2: fix a typo in a comment
-Content-Language: en-US
-To: Yuanheng Zhang <yuanhengzhang1214@gmail.com>, mark@fasheh.com,
- akpm <akpm@linux-foundation.org>
-Cc: jlbec@evilplan.org, ocfs2-devel@lists.linux.dev,
- linux-kernel@vger.kernel.org
-References: <20231011163216.29446-1-yuanhengzhang1214@gmail.com>
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <20231011163216.29446-1-yuanhengzhang1214@gmail.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 
+Remove a number of folio->page->folio conversions.
 
+Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
+Acked-by: Ryusuke Konishi <konishi.ryusuke@gmail.com>
+---
+ fs/nilfs2/page.c | 26 +++++++++++++-------------
+ 1 file changed, 13 insertions(+), 13 deletions(-)
 
-On 10/12/23 12:32 AM, Yuanheng Zhang wrote:
-> Fix spelling typo in comment.
-> 
-> Signed-off-by: Yuanheng Zhang <yuanhengzhang1214@gmail.com>
+diff --git a/fs/nilfs2/page.c b/fs/nilfs2/page.c
+index b4e54d079b7d..1c075bd906c9 100644
+--- a/fs/nilfs2/page.c
++++ b/fs/nilfs2/page.c
+@@ -25,19 +25,19 @@
+ 	(BIT(BH_Uptodate) | BIT(BH_Mapped) | BIT(BH_NILFS_Node) |	\
+ 	 BIT(BH_NILFS_Volatile) | BIT(BH_NILFS_Checked))
+ 
+-static struct buffer_head *
+-__nilfs_get_page_block(struct page *page, unsigned long block, pgoff_t index,
+-		       int blkbits, unsigned long b_state)
++static struct buffer_head *__nilfs_get_folio_block(struct folio *folio,
++		unsigned long block, pgoff_t index, int blkbits,
++		unsigned long b_state)
+ 
+ {
+ 	unsigned long first_block;
+-	struct buffer_head *bh;
++	struct buffer_head *bh = folio_buffers(folio);
+ 
+-	if (!page_has_buffers(page))
+-		create_empty_buffers(page, 1 << blkbits, b_state);
++	if (!bh)
++		bh = folio_create_empty_buffers(folio, 1 << blkbits, b_state);
+ 
+ 	first_block = (unsigned long)index << (PAGE_SHIFT - blkbits);
+-	bh = nilfs_page_get_nth_block(page, block - first_block);
++	bh = get_nth_bh(bh, block - first_block);
+ 
+ 	touch_buffer(bh);
+ 	wait_on_buffer(bh);
+@@ -51,17 +51,17 @@ struct buffer_head *nilfs_grab_buffer(struct inode *inode,
+ {
+ 	int blkbits = inode->i_blkbits;
+ 	pgoff_t index = blkoff >> (PAGE_SHIFT - blkbits);
+-	struct page *page;
++	struct folio *folio;
+ 	struct buffer_head *bh;
+ 
+-	page = grab_cache_page(mapping, index);
+-	if (unlikely(!page))
++	folio = filemap_grab_folio(mapping, index);
++	if (IS_ERR(folio))
+ 		return NULL;
+ 
+-	bh = __nilfs_get_page_block(page, blkoff, index, blkbits, b_state);
++	bh = __nilfs_get_folio_block(folio, blkoff, index, blkbits, b_state);
+ 	if (unlikely(!bh)) {
+-		unlock_page(page);
+-		put_page(page);
++		folio_unlock(folio);
++		folio_put(folio);
+ 		return NULL;
+ 	}
+ 	return bh;
+-- 
+2.40.1
 
-Acked-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-> ---
->  fs/ocfs2/buffer_head_io.c | 2 +-
->  1 file changed, 1 insertion(+), 1 deletion(-)
-> 
-> diff --git a/fs/ocfs2/buffer_head_io.c b/fs/ocfs2/buffer_head_io.c
-> index 196638a22b48..6cb919f60011 100644
-> --- a/fs/ocfs2/buffer_head_io.c
-> +++ b/fs/ocfs2/buffer_head_io.c
-> @@ -158,7 +158,7 @@ int ocfs2_read_blocks_sync(struct ocfs2_super *osb, u64 block,
->  			if (new_bh && bh) {
->  				/* If middle bh fails, let previous bh
->  				 * finish its read and then put it to
-> -				 * aovoid bh leak
-> +				 * avoid bh leak
->  				 */
->  				if (!buffer_jbd(bh))
->  					wait_on_buffer(bh);
