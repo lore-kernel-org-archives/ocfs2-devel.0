@@ -1,24 +1,24 @@
 Received: from casper.infradead.org (casper.infradead.org [90.155.50.34])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 537AE36AF6;
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 53B6F36AFE;
 	Mon, 16 Oct 2023 20:11:20 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=infradead.org
 Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=infradead.org
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="mLOzLL1M"
+	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="wFCkULMj"
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
 	d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
 	References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:
 	Content-Type:Content-ID:Content-Description;
-	bh=7mXlnt1yRIMT4o+dXNcAaQaKhOKfQBuaGyVOIxKhilk=; b=mLOzLL1MAsvOzcF2Nfxy8DlEW9
-	KqVXhXbvURDI6XFJEenJqK0xoOqPMXJEMTTYt/w7KPuNhXf7hgVbqU/yzVTnj8xqbKKYZ848lsrsp
-	sWgSDaoVJ2u8Anm+cyMry3h+5JJKok7IPEz8XLRLV4sfjpfbCNMgvhKxmhNb4iPeOmLfw8HqfPCo+
-	GaJeKn092L2S/NhRc+Y2qApEy0Pjv+69uUInXENTG1ES3OdYfpt8uiWZNcUBxnCXVKwyn1Qdwglc0
-	dbUvBa4yfk0P8B0Pb4n9DSwIp/QZfxMHVsF52xzmuXxasjuojFnh6avfilIZeDJZt3kFLNOw1jzpj
-	k7rRI1sg==;
+	bh=wNJ6b01vEtFMSPcOquC5V/v8dm5R6nJkPliQzhkY6h8=; b=wFCkULMjXDtf6VBDU0ratgV1wJ
+	XXz8QdpLn71DnWCQNUHkvC2z6lMX2mtfoIlnuM7DRNPEQqxoMN8z/T7zr9yIzHqjb+4Ci2l6mG/g6
+	+8IF0oeP4lVAsdPIicw46Ih6TxgW95+0aqORvtej8Dbl2apjcV7S/zdlDIkEs+Ii5mA69YlyfOPlJ
+	pH8zQpWVPIViHAlgz1qNKS88BRxnkCAohcoEqzw+FLRQB+GeyEnnxEcGz3QwbcPGUDkzUK6PLzV5z
+	QlYnAxCq8pzNo6nJlTao0cjMXhX4IYjkOZej0brAiLVimSWFd+0wuE184BBeqNZfbckNkA39/H779
+	LRMVPZhg==;
 Received: from willy by casper.infradead.org with local (Exim 4.94.2 #2 (Red Hat Linux))
-	id 1qsTvp-0085bA-PH; Mon, 16 Oct 2023 20:11:17 +0000
+	id 1qsTvp-0085ai-BR; Mon, 16 Oct 2023 20:11:17 +0000
 From: "Matthew Wilcox (Oracle)" <willy@infradead.org>
 To: Andrew Morton <akpm@linux-foundation.org>
 Cc: "Matthew Wilcox (Oracle)" <willy@infradead.org>,
@@ -31,10 +31,10 @@ Cc: "Matthew Wilcox (Oracle)" <willy@infradead.org>,
 	reiserfs-devel@vger.kernel.org,
 	linux-ext4@vger.kernel.org,
 	Pankaj Raghav <p.raghav@samsung.com>,
-	Ryusuke Konishi <konishi.ryusuke@gmail.com>
-Subject: [PATCH v2 11/27] nilfs2: Convert nilfs_grab_buffer() to use a folio
-Date: Mon, 16 Oct 2023 21:10:58 +0100
-Message-Id: <20231016201114.1928083-12-willy@infradead.org>
+	Andreas Gruenbacher <agruenba@redhat.com>
+Subject: [PATCH v2 08/27] gfs2: Convert gfs2_getjdatabuf to use a folio
+Date: Mon, 16 Oct 2023 21:10:55 +0100
+Message-Id: <20231016201114.1928083-9-willy@infradead.org>
 X-Mailer: git-send-email 2.37.1
 In-Reply-To: <20231016201114.1928083-1-willy@infradead.org>
 References: <20231016201114.1928083-1-willy@infradead.org>
@@ -46,69 +46,53 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-Remove a number of folio->page->folio conversions.
+Use the folio APIs, saving four hidden calls to compound_head().
 
 Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
-Acked-by: Ryusuke Konishi <konishi.ryusuke@gmail.com>
+Reviewed-by: Andreas Gruenbacher <agruenba@redhat.com>
 ---
- fs/nilfs2/page.c | 26 +++++++++++++-------------
- 1 file changed, 13 insertions(+), 13 deletions(-)
+ fs/gfs2/meta_io.c | 22 ++++++++--------------
+ 1 file changed, 8 insertions(+), 14 deletions(-)
 
-diff --git a/fs/nilfs2/page.c b/fs/nilfs2/page.c
-index b4e54d079b7d..1c075bd906c9 100644
---- a/fs/nilfs2/page.c
-+++ b/fs/nilfs2/page.c
-@@ -25,19 +25,19 @@
- 	(BIT(BH_Uptodate) | BIT(BH_Mapped) | BIT(BH_NILFS_Node) |	\
- 	 BIT(BH_NILFS_Volatile) | BIT(BH_NILFS_Checked))
- 
--static struct buffer_head *
--__nilfs_get_page_block(struct page *page, unsigned long block, pgoff_t index,
--		       int blkbits, unsigned long b_state)
-+static struct buffer_head *__nilfs_get_folio_block(struct folio *folio,
-+		unsigned long block, pgoff_t index, int blkbits,
-+		unsigned long b_state)
- 
+diff --git a/fs/gfs2/meta_io.c b/fs/gfs2/meta_io.c
+index f1fac1b45059..f6d40d51f5ed 100644
+--- a/fs/gfs2/meta_io.c
++++ b/fs/gfs2/meta_io.c
+@@ -400,26 +400,20 @@ static struct buffer_head *gfs2_getjdatabuf(struct gfs2_inode *ip, u64 blkno)
  {
- 	unsigned long first_block;
--	struct buffer_head *bh;
-+	struct buffer_head *bh = folio_buffers(folio);
- 
--	if (!page_has_buffers(page))
--		create_empty_buffers(page, 1 << blkbits, b_state);
-+	if (!bh)
-+		bh = folio_create_empty_buffers(folio, 1 << blkbits, b_state);
- 
- 	first_block = (unsigned long)index << (PAGE_SHIFT - blkbits);
--	bh = nilfs_page_get_nth_block(page, block - first_block);
-+	bh = get_nth_bh(bh, block - first_block);
- 
- 	touch_buffer(bh);
- 	wait_on_buffer(bh);
-@@ -51,17 +51,17 @@ struct buffer_head *nilfs_grab_buffer(struct inode *inode,
- {
- 	int blkbits = inode->i_blkbits;
- 	pgoff_t index = blkoff >> (PAGE_SHIFT - blkbits);
+ 	struct address_space *mapping = ip->i_inode.i_mapping;
+ 	struct gfs2_sbd *sdp = GFS2_SB(&ip->i_inode);
 -	struct page *page;
 +	struct folio *folio;
  	struct buffer_head *bh;
+ 	unsigned int shift = PAGE_SHIFT - sdp->sd_sb.sb_bsize_shift;
+ 	unsigned long index = blkno >> shift; /* convert block to page */
+ 	unsigned int bufnum = blkno - (index << shift);
  
--	page = grab_cache_page(mapping, index);
--	if (unlikely(!page))
-+	folio = filemap_grab_folio(mapping, index);
-+	if (IS_ERR(folio))
- 		return NULL;
- 
--	bh = __nilfs_get_page_block(page, blkoff, index, blkbits, b_state);
-+	bh = __nilfs_get_folio_block(folio, blkoff, index, blkbits, b_state);
- 	if (unlikely(!bh)) {
+-	page = find_get_page_flags(mapping, index, FGP_LOCK|FGP_ACCESSED);
+-	if (!page)
+-		return NULL;
+-	if (!page_has_buffers(page)) {
 -		unlock_page(page);
 -		put_page(page);
-+		folio_unlock(folio);
-+		folio_put(folio);
++	folio = __filemap_get_folio(mapping, index, FGP_LOCK | FGP_ACCESSED, 0);
++	if (IS_ERR(folio))
  		return NULL;
- 	}
+-	}
+-	/* Locate header for our buffer within our page */
+-	for (bh = page_buffers(page); bufnum--; bh = bh->b_this_page)
+-		/* Do nothing */;
+-	get_bh(bh);
+-	unlock_page(page);
+-	put_page(page);
++	bh = folio_buffers(folio);
++	if (bh)
++		bh = get_nth_bh(bh, bufnum);
++	folio_unlock(folio);
++	folio_put(folio);
  	return bh;
+ }
+ 
 -- 
 2.40.1
 
