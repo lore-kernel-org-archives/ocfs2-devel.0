@@ -1,24 +1,24 @@
 Received: from casper.infradead.org (casper.infradead.org [90.155.50.34])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id EC1A037C93;
-	Mon, 16 Oct 2023 20:11:28 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 401DE3717A;
+	Mon, 16 Oct 2023 20:11:26 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=infradead.org
 Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=infradead.org
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="aQ/L5W+v"
+	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="Cm2/6gey"
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
 	d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
 	References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:
 	Content-Type:Content-ID:Content-Description;
-	bh=KwH8rvn6FHkzqJHIRCAABfbz3hM6PITuwJk7Xz8AOjo=; b=aQ/L5W+vtpaMF0GGxEFnpR9QFR
-	Rg6gX5J1DlKurWsOfi/JUaqJSjKzMRHed4mWE7xvRljEtuBpd9iDFmk/6iTLA5BW1A2SUA9xfmDbO
-	npA1DDHW82J+bHwrAtiLu0S+b4JybN/6YR1mISEXeN6Z1keZOYQ+HLEeUUNDrt5OF28c7Sdq0UgXH
-	w9/3OjQodRKiWHKE/tYOWm/Glrxz1c3d4h58kFqQo9h+DSI/V8gspltcD44suVtpf0DPYPi7S73G7
-	FQV/9/o8Chtpx3YiLtOXzo13MqtJoOsLRP5e1NIndafj9/RnIVfOBrb2LkTe53YY1r3Zb8nTCb4g2
-	1uXx6r6Q==;
+	bh=5zWLpgCpPdJ2OPyT7ybTpYNCwh68G15oM+bmUL5Qut4=; b=Cm2/6geygP8ZUrICSnQ8OvqL6x
+	VIA3Zg5qgrfDLu//yeF2ucQMzFl7gvU4owiaM10L4uVEb9eU/u734bScQAKRaJTsfr6x+9xOYYeFj
+	hLR54mpl1vQKk+XGT2pRrVEzPK9cWhbHcqDNc8XG1zrm3sMq2c4MU/FgkRgdZTRRuxRURoXTXPIGH
+	wtXKayQ3kcdVe38fW2sAB6je4GpBoAKQiCPSNIKUajYpnWsDIHwqfcDxP0vzo29+ikrjYO99Wn7Rf
+	fqDzW3TnjHGr3z+EE8+spbeIFkmdjkOpEKgydANNzprLs5Kajry6ouFuN4oRJZSpu8fnRMzU7Hadx
+	D3CcqJrQ==;
 Received: from willy by casper.infradead.org with local (Exim 4.94.2 #2 (Red Hat Linux))
-	id 1qsTvo-0085aU-OP; Mon, 16 Oct 2023 20:11:16 +0000
+	id 1qsTvp-0085ac-2Q; Mon, 16 Oct 2023 20:11:17 +0000
 From: "Matthew Wilcox (Oracle)" <willy@infradead.org>
 To: Andrew Morton <akpm@linux-foundation.org>
 Cc: "Matthew Wilcox (Oracle)" <willy@infradead.org>,
@@ -30,10 +30,11 @@ Cc: "Matthew Wilcox (Oracle)" <willy@infradead.org>,
 	ocfs2-devel@lists.linux.dev,
 	reiserfs-devel@vger.kernel.org,
 	linux-ext4@vger.kernel.org,
-	Pankaj Raghav <p.raghav@samsung.com>
-Subject: [PATCH v2 02/27] buffer: Make folio_create_empty_buffers() return a buffer_head
-Date: Mon, 16 Oct 2023 21:10:49 +0100
-Message-Id: <20231016201114.1928083-3-willy@infradead.org>
+	Pankaj Raghav <p.raghav@samsung.com>,
+	Ryusuke Konishi <konishi.ryusuke@gmail.com>
+Subject: [PATCH v2 05/27] buffer: Add get_nth_bh()
+Date: Mon, 16 Oct 2023 21:10:52 +0100
+Message-Id: <20231016201114.1928083-6-willy@infradead.org>
 X-Mailer: git-send-email 2.37.1
 In-Reply-To: <20231016201114.1928083-1-willy@infradead.org>
 References: <20231016201114.1928083-1-willy@infradead.org>
@@ -45,89 +46,66 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-Almost all callers want to know the first BH that was allocated
-for this folio.  We already have that handy, so return it.
+Extract this useful helper from nilfs_page_get_nth_block()
 
 Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
-Reviewed-by: Pankaj Raghav <p.raghav@samsung.com>
+Acked-by: Ryusuke Konishi <konishi.ryusuke@gmail.com>
 ---
- fs/buffer.c                 | 24 +++++++++++++-----------
- include/linux/buffer_head.h |  4 ++--
- 2 files changed, 15 insertions(+), 13 deletions(-)
+ fs/nilfs2/page.h            |  7 +------
+ include/linux/buffer_head.h | 22 ++++++++++++++++++++++
+ 2 files changed, 23 insertions(+), 6 deletions(-)
 
-diff --git a/fs/buffer.c b/fs/buffer.c
-index dec41d84044b..81cdf36e5196 100644
---- a/fs/buffer.c
-+++ b/fs/buffer.c
-@@ -1646,8 +1646,8 @@ EXPORT_SYMBOL(block_invalidate_folio);
-  * block_dirty_folio() via private_lock.  try_to_free_buffers
-  * is already excluded via the folio lock.
-  */
--void folio_create_empty_buffers(struct folio *folio, unsigned long blocksize,
--				unsigned long b_state)
-+struct buffer_head *folio_create_empty_buffers(struct folio *folio,
-+		unsigned long blocksize, unsigned long b_state)
+diff --git a/fs/nilfs2/page.h b/fs/nilfs2/page.h
+index 21ddcdd4d63e..344d71942d36 100644
+--- a/fs/nilfs2/page.h
++++ b/fs/nilfs2/page.h
+@@ -55,12 +55,7 @@ unsigned long nilfs_find_uncommitted_extent(struct inode *inode,
+ static inline struct buffer_head *
+ nilfs_page_get_nth_block(struct page *page, unsigned int count)
  {
- 	struct buffer_head *bh, *head, *tail;
- 	gfp_t gfp = GFP_NOFS | __GFP_ACCOUNT | __GFP_NOFAIL;
-@@ -1674,6 +1674,8 @@ void folio_create_empty_buffers(struct folio *folio, unsigned long blocksize,
- 	}
- 	folio_attach_private(folio, head);
- 	spin_unlock(&folio->mapping->private_lock);
-+
-+	return head;
- }
- EXPORT_SYMBOL(folio_create_empty_buffers);
- 
-@@ -1775,13 +1777,15 @@ static struct buffer_head *folio_create_buffers(struct folio *folio,
- 						struct inode *inode,
- 						unsigned int b_state)
- {
-+	struct buffer_head *bh;
-+
- 	BUG_ON(!folio_test_locked(folio));
- 
--	if (!folio_buffers(folio))
--		folio_create_empty_buffers(folio,
--					   1 << READ_ONCE(inode->i_blkbits),
--					   b_state);
--	return folio_buffers(folio);
-+	bh = folio_buffers(folio);
-+	if (!bh)
-+		bh = folio_create_empty_buffers(folio,
-+				1 << READ_ONCE(inode->i_blkbits), b_state);
-+	return bh;
+-	struct buffer_head *bh = page_buffers(page);
+-
+-	while (count-- > 0)
+-		bh = bh->b_this_page;
+-	get_bh(bh);
+-	return bh;
++	return get_nth_bh(page_buffers(page), count);
  }
  
- /*
-@@ -2681,10 +2685,8 @@ int block_truncate_page(struct address_space *mapping,
- 		return PTR_ERR(folio);
- 
- 	bh = folio_buffers(folio);
--	if (!bh) {
--		folio_create_empty_buffers(folio, blocksize, 0);
--		bh = folio_buffers(folio);
--	}
-+	if (!bh)
-+		bh = folio_create_empty_buffers(folio, blocksize, 0);
- 
- 	/* Find the buffer that contains "offset" */
- 	offset = offset_in_folio(folio, from);
+ #endif /* _NILFS_PAGE_H */
 diff --git a/include/linux/buffer_head.h b/include/linux/buffer_head.h
-index 3dc4720e4773..1001244a8941 100644
+index 1001244a8941..3d85a0cf0ca5 100644
 --- a/include/linux/buffer_head.h
 +++ b/include/linux/buffer_head.h
-@@ -203,8 +203,8 @@ struct buffer_head *alloc_page_buffers(struct page *page, unsigned long size,
- 		bool retry);
- void create_empty_buffers(struct page *, unsigned long,
- 			unsigned long b_state);
--void folio_create_empty_buffers(struct folio *folio, unsigned long blocksize,
--				unsigned long b_state);
-+struct buffer_head *folio_create_empty_buffers(struct folio *folio,
-+		unsigned long blocksize, unsigned long b_state);
- void end_buffer_read_sync(struct buffer_head *bh, int uptodate);
- void end_buffer_write_sync(struct buffer_head *bh, int uptodate);
- void end_buffer_async_write(struct buffer_head *bh, int uptodate);
+@@ -457,6 +457,28 @@ __bread(struct block_device *bdev, sector_t block, unsigned size)
+ 	return __bread_gfp(bdev, block, size, __GFP_MOVABLE);
+ }
+ 
++/**
++ * get_nth_bh - Get a reference on the n'th buffer after this one.
++ * @bh: The buffer to start counting from.
++ * @count: How many buffers to skip.
++ *
++ * This is primarily useful for finding the nth buffer in a folio; in
++ * that case you pass the head buffer and the byte offset in the folio
++ * divided by the block size.  It can be used for other purposes, but
++ * it will wrap at the end of the folio rather than returning NULL or
++ * proceeding to the next folio for you.
++ *
++ * Return: The requested buffer with an elevated refcount.
++ */
++static inline __must_check
++struct buffer_head *get_nth_bh(struct buffer_head *bh, unsigned int count)
++{
++	while (count--)
++		bh = bh->b_this_page;
++	get_bh(bh);
++	return bh;
++}
++
+ bool block_dirty_folio(struct address_space *mapping, struct folio *folio);
+ 
+ #ifdef CONFIG_BUFFER_HEAD
 -- 
 2.40.1
 
