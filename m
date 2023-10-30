@@ -1,59 +1,144 @@
-Received: from out30-132.freemail.mail.aliyun.com (out30-132.freemail.mail.aliyun.com [115.124.30.132])
+Received: from mx0b-00069f02.pphosted.com (mx0b-00069f02.pphosted.com [205.220.177.32])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6F312168D6
-	for <ocfs2-devel@lists.linux.dev>; Fri, 27 Oct 2023 09:57:40 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; dkim=none
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R751e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=ay29a033018045192;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=7;SR=0;TI=SMTPD_---0Vv-c.Z0_1698398805;
-Received: from 30.221.128.176(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0Vv-c.Z0_1698398805)
-          by smtp.aliyun-inc.com;
-          Fri, 27 Oct 2023 17:26:46 +0800
-Message-ID: <1095973e-3577-40bf-23da-725f936a11ad@linux.alibaba.com>
-Date: Fri, 27 Oct 2023 17:26:45 +0800
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2E45A14F90
+	for <ocfs2-devel@lists.linux.dev>; Mon, 30 Oct 2023 12:01:56 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=oracle.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=oracle.com
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key) header.d=oracle.com header.i=@oracle.com header.b="TJ0TFdy9"
+Received: from pps.filterd (m0246631.ppops.net [127.0.0.1])
+	by mx0b-00069f02.pphosted.com (8.17.1.19/8.17.1.19) with ESMTP id 39U3eeh2012096;
+	Mon, 30 Oct 2023 12:01:37 GMT
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=oracle.com; h=from : to : cc :
+ subject : date : message-id : mime-version : content-transfer-encoding;
+ s=corp-2023-03-30; bh=g/NS7/XKKN6DW3ghUpgOmpjRApT8FNo2QIx8wOo4TpE=;
+ b=TJ0TFdy9JHgON2UglDTlmKXB1RksOC6NeTrmopNxAqZkSZxhXELO0gxybSw+TrFf2QJb
+ RzD56lG6c9kr99WQYpmG77OlMSbbInl99SXmVcSyIlRgwbbJ5UubeJFa9fVNBC3Jtfh+
+ VZq4qaIL7dQApdxXHQ0IDux5MgvOd6fGsy+8hHs04VNA5OcIb2jsjnU/NQTmH0TEU45I
+ nlmkj4WUYAvZJBXiY54I98MJ2ELjfHg/IKZCUeO38xaAlFrFKMCTRzzN1LjhCuc6v+AE
+ tNI3iTKdePwIdg7tSxy7nm+7ltfWZBkmvDKeqoK0KOrivttzf4WkJvZcFp2VHXVfPtyV yQ== 
+Received: from phxpaimrmta01.imrmtpd1.prodappphxaev1.oraclevcn.com (phxpaimrmta01.appoci.oracle.com [138.1.114.2])
+	by mx0b-00069f02.pphosted.com (PPS) with ESMTPS id 3u0s33tmd7-1
+	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
+	Mon, 30 Oct 2023 12:01:36 +0000
+Received: from pps.filterd (phxpaimrmta01.imrmtpd1.prodappphxaev1.oraclevcn.com [127.0.0.1])
+	by phxpaimrmta01.imrmtpd1.prodappphxaev1.oraclevcn.com (8.17.1.19/8.17.1.19) with ESMTP id 39UB0pLJ024786;
+	Mon, 30 Oct 2023 12:01:35 GMT
+Received: from pps.reinject (localhost [127.0.0.1])
+	by phxpaimrmta01.imrmtpd1.prodappphxaev1.oraclevcn.com (PPS) with ESMTPS id 3u14x41hk7-1
+	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
+	Mon, 30 Oct 2023 12:01:35 +0000
+Received: from phxpaimrmta01.imrmtpd1.prodappphxaev1.oraclevcn.com (phxpaimrmta01.imrmtpd1.prodappphxaev1.oraclevcn.com [127.0.0.1])
+	by pps.reinject (8.17.1.5/8.17.1.5) with ESMTP id 39UC1ZdU036764;
+	Mon, 30 Oct 2023 12:01:35 GMT
+Received: from sridara-source.osdevelopmeniad.oraclevcn.com (sridara-source.allregionaliads.osdevelopmeniad.oraclevcn.com [100.100.252.239])
+	by phxpaimrmta01.imrmtpd1.prodappphxaev1.oraclevcn.com (PPS) with ESMTP id 3u14x41hhw-1;
+	Mon, 30 Oct 2023 12:01:35 +0000
+From: Srivathsa Dara <srivathsa.d.dara@oracle.com>
+To: mark@fasheh.com, jlbec@evilplan.org, joseph.qi@linux.alibaba.com
+Cc: srivathsa.d.dara@oracle.com, rajesh.sivaramasubramaniom@oracle.com,
+        junxiao.bi@oracle.com, ocfs2-devel@lists.linux.dev,
+        linux-kernel@vger.kernel.org
+Subject: [PATCH] ocfs2: call ocfs2_abort when journal abort
+Date: Mon, 30 Oct 2023 12:00:57 +0000
+Message-Id: <20231030120057.928280-1-srivathsa.d.dara@oracle.com>
+X-Mailer: git-send-email 2.39.3
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:102.0)
- Gecko/20100101 Thunderbird/102.15.1
-Subject: Re: [PATCH] ocfs2: Fix a spelling typo in comment
-Content-Language: en-US
-To: Kunwu Chan <chentao@kylinos.cn>, jlbec@evilplan.org, mark@fasheh.com,
- akpm <akpm@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, ocfs2-devel@lists.linux.dev,
- kunwu.chan@hotmail.com
-References: <20231025072906.14285-1-chentao@kylinos.cn>
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <20231025072906.14285-1-chentao@kylinos.cn>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
+X-Proofpoint-Virus-Version: vendor=baseguard
+ engine=ICAP:2.0.272,Aquarius:18.0.987,Hydra:6.0.619,FMLib:17.11.176.26
+ definitions=2023-10-30_10,2023-10-27_01,2023-05-22_02
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 spamscore=0 adultscore=0 mlxscore=0
+ suspectscore=0 mlxlogscore=999 bulkscore=0 phishscore=0 malwarescore=0
+ classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2310240000
+ definitions=main-2310300091
+X-Proofpoint-GUID: BYdCrLIurlT5tN5rTgZRxugX71dBo0t-
+X-Proofpoint-ORIG-GUID: BYdCrLIurlT5tN5rTgZRxugX71dBo0t-
+
+From: Ryan Ding <ryan.ding@oracle.com>
 
 
+journal can not recover from abort state, so we should take following 
+action to prevent file system from corruption:
 
-On 10/25/23 3:29 PM, Kunwu Chan wrote:
-> fix a spelling typo in comment.
-> 
-> Signed-off-by: Kunwu Chan <chentao@kylinos.cn>
+1. change to readonly filesystem when local mount. We can not afford 
+   further write, so change to RO state is reasonable.
 
-Acked-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-> ---
->  fs/ocfs2/buffer_head_io.c | 2 +-
->  1 file changed, 1 insertion(+), 1 deletion(-)
-> 
-> diff --git a/fs/ocfs2/buffer_head_io.c b/fs/ocfs2/buffer_head_io.c
-> index 6cb919f60011..cdb9b9bdea1f 100644
-> --- a/fs/ocfs2/buffer_head_io.c
-> +++ b/fs/ocfs2/buffer_head_io.c
-> @@ -345,7 +345,7 @@ int ocfs2_read_blocks(struct ocfs2_caching_info *ci, u64 block, int nr,
->  				if (new_bh && bh) {
->  					/* If middle bh fails, let previous bh
->  					 * finish its read and then put it to
-> -					 * aovoid bh leak
-> +					 * avoid bh leak
->  					 */
->  					if (!buffer_jbd(bh))
->  						wait_on_buffer(bh);
+2. panic when cluster mount. Because we can not release lock resource in
+   this state, other node will hung when it require a lock owned by this
+   node. So panic and remaster is a reasonable choise.
+
+ocfs2_abort() will do all the above work.
+
+Signed-off-by: Ryan Ding <ryan.ding@oracle.com>
+Signed-off-by: Srivathsa Dara <srivathsa.d.dara@oracle.com>
+---
+ fs/ocfs2/journal.c | 27 +++++++++++++++------------
+ 1 file changed, 15 insertions(+), 12 deletions(-)
+
+diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
+index ce215565d061..6dace475f019 100644
+--- a/fs/ocfs2/journal.c
++++ b/fs/ocfs2/journal.c
+@@ -14,7 +14,6 @@
+ #include <linux/kthread.h>
+ #include <linux/time.h>
+ #include <linux/random.h>
+-#include <linux/delay.h>
+ #include <linux/writeback.h>
+ 
+ #include <cluster/masklog.h>
+@@ -2326,7 +2325,7 @@ static int __ocfs2_wait_on_mount(struct ocfs2_super *osb, int quota)
+ 
+ static int ocfs2_commit_thread(void *arg)
+ {
+-	int status;
++	int status = 0;
+ 	struct ocfs2_super *osb = arg;
+ 	struct ocfs2_journal *journal = osb->journal;
+ 
+@@ -2340,21 +2339,25 @@ static int ocfs2_commit_thread(void *arg)
+ 		wait_event_interruptible(osb->checkpoint_event,
+ 					 atomic_read(&journal->j_num_trans)
+ 					 || kthread_should_stop());
++		if (status < 0) {
++			/* As we can not terminate by ourself, just enter an
++			 * empty loop to wait for stop.
++			 */
++			continue;
++		}
+ 
+ 		status = ocfs2_commit_cache(osb);
+ 		if (status < 0) {
+-			static unsigned long abort_warn_time;
+-
+-			/* Warn about this once per minute */
+-			if (printk_timed_ratelimit(&abort_warn_time, 60*HZ))
+-				mlog(ML_ERROR, "status = %d, journal is "
+-						"already aborted.\n", status);
+ 			/*
+-			 * After ocfs2_commit_cache() fails, j_num_trans has a
+-			 * non-zero value.  Sleep here to avoid a busy-wait
+-			 * loop.
++			 * journal can not recover from abort state, there is
++			 * no need to keep commit cache. So we should either
++			 * change to readonly(local mount) or just panic
++			 * (cluster mount).
++			 * We should also clear j_num_trans to prevent further
++			 * commit.
+ 			 */
+-			msleep_interruptible(1000);
++			atomic_set(&journal->j_num_trans, 0);
++			ocfs2_abort(osb->sb, "Detected aborted journal");
+ 		}
+ 
+ 		if (kthread_should_stop() && atomic_read(&journal->j_num_trans)){
+-- 
+2.39.3
+
