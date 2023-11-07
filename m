@@ -1,30 +1,29 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0155930D05;
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id EFE2030CF3;
 	Tue,  7 Nov 2023 13:44:46 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="ERDEsjJ3"
-Received: by smtp.kernel.org (Postfix) with ESMTPS id 60C3BC433C7;
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="aEVfle01"
+Received: by smtp.kernel.org (Postfix) with ESMTPS id 85995C433CA;
 	Tue,  7 Nov 2023 13:44:46 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
 	s=k20201202; t=1699364686;
-	bh=BX2Tgmusj22t2ImeDH/Db41rnYDA2OpBkrkY6HkG4Vg=;
-	h=From:Subject:Date:To:Cc:Reply-To:From;
-	b=ERDEsjJ3jcdzHK7bGuPyilBC+mNvR9achV7BxWqpA9vmn/7dGCm2UD8je32dYJ0yL
-	 EH/z/AlZTTt5tMCVS0Ztel5kr8+H7vRNE9cqWDzpShnGJEL4Q0duuzuFZvDWAul9A+
-	 NwrIR3u7rOZwPqZ4diVaGnkW36pVZ4UPFUueEFvVVlnFD8TUnTCM5E5TDh4te6Qm2m
-	 r1VV0TjIlTUso7Dufe1ctz5VLG6uvzr1ig+xGdcPBkQPBVIYmkZpgw062kQ+O6lnOy
-	 xspmbVbYYGYlLwU1k3f0ClKiUvpn0FMp4PNbZZuYJBCY95YoMVloKemUIAasvsO86p
-	 AW3wn0D1cl9vg==
+	bh=rxWCD86XNSuDAvBsfXLMERxDl1CKS+dH3af8HBg07kQ=;
+	h=From:Date:Subject:References:In-Reply-To:To:Cc:Reply-To:From;
+	b=aEVfle01ejHZcEGy0MVOzTlRZzwhHmFN2WCj4tqs0IV6KaIl/4vdxJJ3CtdAMFSo9
+	 ltgl9iZCMmHdYd83TSsvv1Y/mGTOA4NOQwb0Hr4uAZrV+mbeNzTabxUdy/SU1T9GmX
+	 G+gWtuNOX7WD42yuq2Ekc1tWhYP3QfVMageHceT+wgbEHT1WiM+tVyVonFHZ9P/SsC
+	 EgprqyqsRJGa5m0dy2z5n2NBKqk7RgMaNvk6oGz3zMXAoRwT8/PJT5ofzghCcUAlRL
+	 I5mHaobYC1u/yMpTM9v/zFJvtM5RVz2M6itXaJlsbq8H5ah6KmV3kUPgN/kDYVBEW/
+	 2zg+d9ZUYuRcg==
 Received: from aws-us-west-2-korg-lkml-1.web.codeaurora.org (localhost.localdomain [127.0.0.1])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 3B81AC4332F;
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 674A3C41535;
 	Tue,  7 Nov 2023 13:44:46 +0000 (UTC)
 From: Joel Granados via B4 Relay <devnull+j.granados.samsung.com@kernel.org>
-Subject: [PATCH 0/4] sysctl: Remove sentinel elements from fs dir
-Date: Tue, 07 Nov 2023 14:44:19 +0100
-Message-Id:
- <20231107-jag-sysctl_remove_empty_elem_fs-v1-0-7176632fea9f@samsung.com>
+Date: Tue, 07 Nov 2023 14:44:21 +0100
+Subject: [PATCH 2/4] aio: Remove the now superfluous sentinel elements from
+ ctl_table array
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -33,9 +32,12 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-X-B4-Tracking: v=1; b=H4sIADQ/SmUC/x3NQQqDMBBG4avIrBswFrV4FSlBkz86xahkRCri3
- Q0uv817JwkiQ6jJTorYWXiZE/QrIzt28wDFLpmKvHhrndfq1w1KDrHbZCLCssMgrNthMCEYL8r
- 1zvqq/Gjfg1JljfD8fw7t97pun+G/83EAAAA=
+Message-Id:
+ <20231107-jag-sysctl_remove_empty_elem_fs-v1-2-7176632fea9f@samsung.com>
+References:
+ <20231107-jag-sysctl_remove_empty_elem_fs-v1-0-7176632fea9f@samsung.com>
+In-Reply-To:
+ <20231107-jag-sysctl_remove_empty_elem_fs-v1-0-7176632fea9f@samsung.com>
 To: Luis Chamberlain <mcgrof@kernel.org>, willy@infradead.org, 
  josh@joshtriplett.org, Kees Cook <keescook@chromium.org>, 
  David Howells <dhowells@redhat.com>, 
@@ -62,18 +64,18 @@ Cc: linux-cachefs@redhat.com, linux-kernel@vger.kernel.org,
  linux-xfs@vger.kernel.org, codalist@coda.cs.cmu.edu, 
  Joel Granados <j.granados@samsung.com>
 X-Mailer: b4 0.13-dev-86aa5
-X-Developer-Signature: v=1; a=openpgp-sha256; l=10141;
+X-Developer-Signature: v=1; a=openpgp-sha256; l=11575;
  i=j.granados@samsung.com; h=from:subject:message-id;
- bh=C3DmFO8Hz7l/cldXER9EIJKfHb6WTQfVYhuohw0jqAA=;
- b=owEB7QES/pANAwAKAbqXzVK3lkFPAcsmYgBlSj9LnKbg9Qxr7Dcd99rtLU0xLDCzZRMTGLwh9
- e1zls1ye9uJAbMEAAEKAB0WIQSuRwlXJeYxJc7LJ5C6l81St5ZBTwUCZUo/SwAKCRC6l81St5ZB
- TznpC/9XunhpTHq+xhr6kaz5TZDhfTOnYmqXhvejjQi1MwmqTIgaQYEoUiM8w/0O2RIxJU9hChR
- oc3TSlJwhTQGpLQtD329xMm+cVx20uakbjIQXuXTZ0y/E8i1LgUSnxqVDKg3miAzLbNzdRqFmKX
- QxXwnz63qIkYH1Wcb90i08RJpCmWOgGwSZ+fg8GknruPYtsHMFRpFM7oghZ5SNY7h7d8e5rjP5i
- j9fRYr5WD34ytCrJaBKJsTemlRPKBtw8UNnHEPd9BzTQnRCCf6cC+czRbL7ygTKoa25lciGy6Nl
- 4jXSqUir9bE9+U2Uzf3PbjH+oJ90jjCmIjBmxghSOae4S6UByh+bWnzc3F23IpvLv/xHnr7pyHM
- +lNSgUCZhWV1RrN8Z0VWHX3h+PoKFmRDTlQwHMPmUGfW4SCFfY8fAXS5dq3W+Bda4cFz+7iQStz
- BDArwlJ7y7nT+ps9/4EHCT0yEwIT9FmOjOAOAGps9FiDih14BG3BGz4t4z09jACJz1wHo=
+ bh=Bp4t+hG4KxriN9ysmR+FNphfogz/Zbj5hCur76JNJk4=;
+ b=owEB7QES/pANAwAKAbqXzVK3lkFPAcsmYgBlSj9M0gQQGdSO41F/tFzCNJiybCW5DpRQbuKa+
+ 3ea3SYJrneJAbMEAAEKAB0WIQSuRwlXJeYxJc7LJ5C6l81St5ZBTwUCZUo/TAAKCRC6l81St5ZB
+ T/0OC/9NF1yUjynIukW4xr4twuJ6RJ7ZlhvpJGC6JFQ/ZnDqy/dY+psj3a4/wijg0cE2EPQ4VaJ
+ fQyJD54QGHossklBLCKorZRgt9JPVw9KyJNYgppTSckcQHKOwF8AOODgWcdZ+RrYaLhf5HGXtZy
+ y2QHvaR0ohmk/HLtyfg03UWXL4DyFtgFx6YdRWY638ntmc/xy9Wd8uRdKojRTMObLLwN1qHA77L
+ IjnrJAJhSB4lmPBWm9ltGGjq72j5T9fk/1Za7uRO0IKviticlarAPXVIdG+GfEls2+aBT4/WKrZ
+ ebNPqsZi0hoG3pDB4Pgrphn2H1NmY5rMpsiNPbQHPNeoukza+Adxpp+goAD5bCQeaiKknjKUU+E
+ iNiuC8knteEAjr8rPMclNDZ9CmwWMsnOT/41BRAk64HXWI1GbBK6ZAZndd7CWScYNXOP+3pATcq
+ yUiolFbUN81q008Dai2JW3lBWAifZMid5PNbu5Lw7ouLwTy4kxS8//ZHDjr0Utld25CQM=
 X-Developer-Key: i=j.granados@samsung.com; a=openpgp;
  fpr=F1F8E46D30F0F6C4A45FF4465895FAAC338C6E77
 X-Endpoint-Received:
@@ -83,194 +85,20 @@ Reply-To: <j.granados@samsung.com>
 
 From: Joel Granados <j.granados@samsung.com>
 
-What?
-These commits remove the sentinel element (last empty element) from the
-sysctl arrays of all the files under the "fs/" directory that use a
-sysctl array for registration. The merging of the preparation patches
-(in https://lore.kernel.org/all/ZO5Yx5JFogGi%2FcBo@bombadil.infradead.org/)
-to mainline allows us to just remove sentinel elements without changing
-behavior (more info here [1]).
+This commit comes at the tail end of a greater effort to remove the
+empty elements at the end of the ctl_table arrays (sentinels) which
+will reduce the overall build time size of the kernel and run time
+memory bloat by ~64 bytes per sentinel (further information Link :
+https://lore.kernel.org/all/ZO5Yx5JFogGi%2FcBo@bombadil.infradead.org/)
 
-These commits are part of a bigger set (here
-https://github.com/Joelgranados/linux/tree/tag/sysctl_remove_empty_elem_V5)
-that remove the ctl_table sentinel. We make the review process easier by
-chunking the commits into manageable pieces. Each chunk can be reviewed
-separately without noise from parallel sets.
-
-Sending the "fs/*" chunk now that the "drivers/" has been mostly
-reviewed [6]. After this and the "kernel/*" are reviewed we only have 2 more
-chunks ("net/*" and miscellaneous) to complete the sentinel removal.
-Hurray!!!
-
-Why?
-By removing the sysctl sentinel elements we avoid kernel bloat as
-ctl_table arrays get moved out of kernel/sysctl.c into their own
-respective subsystems. This move was started long ago to avoid merge
-conflicts; the sentinel removal bit came after Mathew Wilcox suggested
-it to avoid bloating the kernel by one element as arrays moved out. This
-patchset will reduce the overall build time size of the kernel and run
-time memory bloat by about ~64 bytes per declared ctl_table array. I
-have consolidated some links that shed light on the history of this
-effort [2].
-
-Testing:
-* Ran sysctl selftests (./tools/testing/selftests/sysctl/sysctl.sh)
-* Ran this through 0-day with no errors or warnings
-
-Size saving after this patchset:
-    * bloat-o-meter
-        - The "yesall" config saves 1920 bytes [4]
-        - The "tiny" config saves 576 bytes [5]
-    * If you want to know how many bytes are saved after all the chunks
-      are merged see [3]
-
-Base commit:
-tag: sysctl-6.7-rc1 (8b793bcda61f)
-
-Comments/feedback greatly appreciated
-
-Best
-
-Joel
-
-[1]
-We are able to remove a sentinel table without behavioral change by
-introducing a table_size argument in the same place where procname is
-checked for NULL. The idea is for it to keep stopping when it hits
-->procname == NULL, while the sentinel is still present. And when the
-sentinel is removed, it will stop on the table_size. You can go to 
-(https://lore.kernel.org/all/20230809105006.1198165-1-j.granados@samsung.com/)
-for more information.
-
-[2]
-Links Related to the ctl_table sentinel removal:
-* E-mail threads that summarize the sentinel effort
-  https://lore.kernel.org/all/ZO5Yx5JFogGi%2FcBo@bombadil.infradead.org/
-  https://lore.kernel.org/all/ZMFizKFkVxUFtSqa@bombadil.infradead.org/
-* Replacing the register functions:
-  https://lore.kernel.org/all/20230302204612.782387-1-mcgrof@kernel.org/
-  https://lore.kernel.org/all/20230302202826.776286-1-mcgrof@kernel.org/
-* E-mail threads discussing prposal
-  https://lore.kernel.org/all/20230321130908.6972-1-frank.li@vivo.com
-  https://lore.kernel.org/all/20220220060626.15885-1-tangmeng@uniontech.com
-
-[3]
-Size saving after removing all sentinels:
-  These are the bytes that we save after removing all the sentinels
-  (this plus all the other chunks). I included them to get an idea of
-  how much memory we are talking about.
-    * bloat-o-meter:
-        - The "yesall" configuration results save 9158 bytes
-          https://lore.kernel.org/all/20230621091000.424843-1-j.granados@samsung.com/
-        - The "tiny" config + CONFIG_SYSCTL save 1215 bytes
-          https://lore.kernel.org/all/20230809105006.1198165-1-j.granados@samsung.com/
-    * memory usage:
-        In memory savings are measured to be 7296 bytes. (here is how to
-        measure [7])
-
-[4]
-add/remove: 0/0 grow/shrink: 0/30 up/down: 0/-1920 (-1920)
-Function                                     old     new   delta
-xfs_table                                   1024     960     -64
-vm_userfaultfd_table                         128      64     -64
-test_table_unregister                        128      64     -64
-test_table                                   576     512     -64
-root_table                                   128      64     -64
-pty_table                                    256     192     -64
-ocfs2_nm_table                               128      64     -64
-ntfs_sysctls                                 128      64     -64
-nlm_sysctls                                  448     384     -64
-nfs_cb_sysctls                               192     128     -64
-nfs4_cb_sysctls                              192     128     -64
-namei_sysctls                                320     256     -64
-locks_sysctls                                192     128     -64
-inotify_table                                256     192     -64
-inodes_sysctls                               192     128     -64
-fsverity_sysctl_table                        128      64     -64
-fs_stat_sysctls                              256     192     -64
-fs_shared_sysctls                            192     128     -64
-fs_pipe_sysctls                              256     192     -64
-fs_namespace_sysctls                         128      64     -64
-fs_exec_sysctls                              128      64     -64
-fs_dqstats_table                             576     512     -64
-fs_dcache_sysctls                            128      64     -64
-fanotify_table                               256     192     -64
-epoll_table                                  128      64     -64
-dnotify_sysctls                              128      64     -64
-coredump_sysctls                             256     192     -64
-coda_table                                   256     192     -64
-cachefiles_sysctls                           128      64     -64
-aio_sysctls                                  192     128     -64
-Total: Before=429912331, After=429910411, chg -0.00%
-
-[5]
-add/remove: 0/0 grow/shrink: 0/9 up/down: 0/-576 (-576)
-Function                                     old     new   delta
-root_table                                   128      64     -64
-namei_sysctls                                320     256     -64
-inodes_sysctls                               192     128     -64
-fs_stat_sysctls                              256     192     -64
-fs_shared_sysctls                            192     128     -64
-fs_pipe_sysctls                              256     192     -64
-fs_namespace_sysctls                         128      64     -64
-fs_exec_sysctls                              128      64     -64
-fs_dcache_sysctls                            128      64     -64
-Total: Before=1886645, After=1886069, chg -0.03%
-
-[6]
-https://lore.kernel.org/all/20231002-jag-sysctl_remove_empty_elem_drivers-v2-0-02dd0d46f71e@samsung.com
-
-[7]
-To measure the in memory savings apply this on top of this patchset.
-
-"
-diff --git a/fs/proc/proc_sysctl.c b/fs/proc/proc_sysctl.c
-index c88854df0b62..e0073a627bac 100644
---- a/fs/proc/proc_sysctl.c
-+++ b/fs/proc/proc_sysctl.c
-@@ -976,6 +976,8 @@ static struct ctl_dir *new_dir(struct ctl_table_set *set,
-        table[0].procname = new_name;
-        table[0].mode = S_IFDIR|S_IRUGO|S_IXUGO;
-        init_header(&new->header, set->dir.header.root, set, node, table, 1);
-+       // Counts additional sentinel used for each new dir.
-+       printk("%ld sysctl saved mem kzalloc \n", sizeof(struct ctl_table));
-
-        return new;
- }
-@@ -1199,6 +1201,9 @@ static struct ctl_table_header *new_links(struct ctl_dir *dir, struct ctl_table_
-                link_name += len;
-                link++;
-        }
-+       // Counts additional sentinel used for each new registration
-+       //
-+               printk("%ld sysctl saved mem kzalloc \n", sizeof(struct ctl_table));
-        init_header(links, dir->header.root, dir->header.set, node, link_table,
-                    head->ctl_table_size);
-        links->nreg = nr_entries;
-"
-and then run the following bash script in the kernel:
-
-accum=0
-for n in $(dmesg | grep kzalloc | awk '{print $3}') ; do
-    echo $n
-    accum=$(calc "$accum + $n")
-done
-echo $accum
-
----
+Remove sentinel elements ctl_table struct. Special attention was placed in
+making sure that an empty directory for fs/verity was created when
+CONFIG_FS_VERITY_BUILTIN_SIGNATURES is not defined. In this case we use the
+register sysctl call that expects a size.
 
 Signed-off-by: Joel Granados <j.granados@samsung.com>
-
 ---
-Joel Granados (4):
-      cachefiles: Remove the now superfluous sentinel element from ctl_table array
-      aio: Remove the now superfluous sentinel elements from ctl_table array
-      sysctl:  Remove the now superfluous sentinel elements from ctl_table array
-      coda:  Remove the now superfluous sentinel elements from ctl_table array
-
  fs/aio.c                           | 1 -
- fs/cachefiles/error_inject.c       | 1 -
- fs/coda/sysctl.c                   | 1 -
  fs/coredump.c                      | 1 -
  fs/dcache.c                        | 1 -
  fs/devpts/inode.c                  | 1 -
@@ -297,13 +125,356 @@ Joel Granados (4):
  fs/verity/fsverity_private.h       | 2 +-
  fs/verity/init.c                   | 8 +++++---
  fs/xfs/xfs_sysctl.c                | 2 --
- lib/test_sysctl.c                  | 2 --
- 30 files changed, 6 insertions(+), 34 deletions(-)
----
-base-commit: 8b793bcda61f6c3ed4f5b2ded7530ef6749580cb
-change-id: 20231107-jag-sysctl_remove_empty_elem_fs-dbdcf6581fbe
+ 27 files changed, 6 insertions(+), 30 deletions(-)
 
-Best regards,
+diff --git a/fs/aio.c b/fs/aio.c
+index a4c2a6bac72c..da069d6b6c66 100644
+--- a/fs/aio.c
++++ b/fs/aio.c
+@@ -239,7 +239,6 @@ static struct ctl_table aio_sysctls[] = {
+ 		.mode		= 0644,
+ 		.proc_handler	= proc_doulongvec_minmax,
+ 	},
+-	{}
+ };
+ 
+ static void __init aio_sysctl_init(void)
+diff --git a/fs/coredump.c b/fs/coredump.c
+index 9d235fa14ab9..f258c17c1841 100644
+--- a/fs/coredump.c
++++ b/fs/coredump.c
+@@ -981,7 +981,6 @@ static struct ctl_table coredump_sysctls[] = {
+ 		.mode		= 0644,
+ 		.proc_handler	= proc_dointvec,
+ 	},
+-	{ }
+ };
+ 
+ static int __init init_fs_coredump_sysctls(void)
+diff --git a/fs/dcache.c b/fs/dcache.c
+index 25ac74d30bff..bafdd455b0fe 100644
+--- a/fs/dcache.c
++++ b/fs/dcache.c
+@@ -191,7 +191,6 @@ static struct ctl_table fs_dcache_sysctls[] = {
+ 		.mode		= 0444,
+ 		.proc_handler	= proc_nr_dentry,
+ 	},
+-	{ }
+ };
+ 
+ static int __init init_fs_dcache_sysctls(void)
+diff --git a/fs/devpts/inode.c b/fs/devpts/inode.c
+index 299c295a27a0..a4de1612b1db 100644
+--- a/fs/devpts/inode.c
++++ b/fs/devpts/inode.c
+@@ -69,7 +69,6 @@ static struct ctl_table pty_table[] = {
+ 		.data		= &pty_count,
+ 		.proc_handler	= proc_dointvec,
+ 	},
+-	{}
+ };
+ 
+ struct pts_mount_opts {
+diff --git a/fs/eventpoll.c b/fs/eventpoll.c
+index 1d9a71a0c4c1..975fc5623102 100644
+--- a/fs/eventpoll.c
++++ b/fs/eventpoll.c
+@@ -322,7 +322,6 @@ static struct ctl_table epoll_table[] = {
+ 		.extra1		= &long_zero,
+ 		.extra2		= &long_max,
+ 	},
+-	{ }
+ };
+ 
+ static void __init epoll_sysctls_init(void)
+diff --git a/fs/exec.c b/fs/exec.c
+index 6518e33ea813..7a18bde22f25 100644
+--- a/fs/exec.c
++++ b/fs/exec.c
+@@ -2167,7 +2167,6 @@ static struct ctl_table fs_exec_sysctls[] = {
+ 		.extra1		= SYSCTL_ZERO,
+ 		.extra2		= SYSCTL_TWO,
+ 	},
+-	{ }
+ };
+ 
+ static int __init init_fs_exec_sysctls(void)
+diff --git a/fs/file_table.c b/fs/file_table.c
+index ee21b3da9d08..544f7d4f166f 100644
+--- a/fs/file_table.c
++++ b/fs/file_table.c
+@@ -137,7 +137,6 @@ static struct ctl_table fs_stat_sysctls[] = {
+ 		.extra1		= &sysctl_nr_open_min,
+ 		.extra2		= &sysctl_nr_open_max,
+ 	},
+-	{ }
+ };
+ 
+ static int __init init_fs_stat_sysctls(void)
+diff --git a/fs/inode.c b/fs/inode.c
+index 35fd688168c5..ce16e3cda7bf 100644
+--- a/fs/inode.c
++++ b/fs/inode.c
+@@ -129,7 +129,6 @@ static struct ctl_table inodes_sysctls[] = {
+ 		.mode		= 0444,
+ 		.proc_handler	= proc_nr_inodes,
+ 	},
+-	{ }
+ };
+ 
+ static int __init init_fs_inode_sysctls(void)
+diff --git a/fs/lockd/svc.c b/fs/lockd/svc.c
+index 6579948070a4..f784ff58bfd3 100644
+--- a/fs/lockd/svc.c
++++ b/fs/lockd/svc.c
+@@ -474,7 +474,6 @@ static struct ctl_table nlm_sysctls[] = {
+ 		.mode		= 0644,
+ 		.proc_handler	= proc_dointvec,
+ 	},
+-	{ }
+ };
+ 
+ #endif	/* CONFIG_SYSCTL */
+diff --git a/fs/locks.c b/fs/locks.c
+index 76ad05f8070a..6ecfc422fb37 100644
+--- a/fs/locks.c
++++ b/fs/locks.c
+@@ -111,7 +111,6 @@ static struct ctl_table locks_sysctls[] = {
+ 		.proc_handler	= proc_dointvec,
+ 	},
+ #endif /* CONFIG_MMU */
+-	{}
+ };
+ 
+ static int __init init_fs_locks_sysctls(void)
+diff --git a/fs/namei.c b/fs/namei.c
+index 567ee547492b..fb552161c981 100644
+--- a/fs/namei.c
++++ b/fs/namei.c
+@@ -1070,7 +1070,6 @@ static struct ctl_table namei_sysctls[] = {
+ 		.extra1		= SYSCTL_ZERO,
+ 		.extra2		= SYSCTL_TWO,
+ 	},
+-	{ }
+ };
+ 
+ static int __init init_fs_namei_sysctls(void)
+diff --git a/fs/namespace.c b/fs/namespace.c
+index e157efc54023..e95d4328539d 100644
+--- a/fs/namespace.c
++++ b/fs/namespace.c
+@@ -5008,7 +5008,6 @@ static struct ctl_table fs_namespace_sysctls[] = {
+ 		.proc_handler	= proc_dointvec_minmax,
+ 		.extra1		= SYSCTL_ONE,
+ 	},
+-	{ }
+ };
+ 
+ static int __init init_fs_namespace_sysctls(void)
+diff --git a/fs/nfs/nfs4sysctl.c b/fs/nfs/nfs4sysctl.c
+index e776200e9a11..886a7c4c60b3 100644
+--- a/fs/nfs/nfs4sysctl.c
++++ b/fs/nfs/nfs4sysctl.c
+@@ -34,7 +34,6 @@ static struct ctl_table nfs4_cb_sysctls[] = {
+ 		.mode = 0644,
+ 		.proc_handler = proc_dointvec,
+ 	},
+-	{ }
+ };
+ 
+ int nfs4_register_sysctl(void)
+diff --git a/fs/nfs/sysctl.c b/fs/nfs/sysctl.c
+index f39e2089bc4c..e645be1a3381 100644
+--- a/fs/nfs/sysctl.c
++++ b/fs/nfs/sysctl.c
+@@ -29,7 +29,6 @@ static struct ctl_table nfs_cb_sysctls[] = {
+ 		.mode		= 0644,
+ 		.proc_handler	= proc_dointvec,
+ 	},
+-	{ }
+ };
+ 
+ int nfs_register_sysctl(void)
+diff --git a/fs/notify/dnotify/dnotify.c b/fs/notify/dnotify/dnotify.c
+index ebdcc25df0f7..8151ed5ddefc 100644
+--- a/fs/notify/dnotify/dnotify.c
++++ b/fs/notify/dnotify/dnotify.c
+@@ -29,7 +29,6 @@ static struct ctl_table dnotify_sysctls[] = {
+ 		.mode		= 0644,
+ 		.proc_handler	= proc_dointvec,
+ 	},
+-	{}
+ };
+ static void __init dnotify_sysctl_init(void)
+ {
+diff --git a/fs/notify/fanotify/fanotify_user.c b/fs/notify/fanotify/fanotify_user.c
+index f69c451018e3..80539839af0c 100644
+--- a/fs/notify/fanotify/fanotify_user.c
++++ b/fs/notify/fanotify/fanotify_user.c
+@@ -86,7 +86,6 @@ static struct ctl_table fanotify_table[] = {
+ 		.proc_handler	= proc_dointvec_minmax,
+ 		.extra1		= SYSCTL_ZERO
+ 	},
+-	{ }
+ };
+ 
+ static void __init fanotify_sysctls_init(void)
+diff --git a/fs/notify/inotify/inotify_user.c b/fs/notify/inotify/inotify_user.c
+index 1c4bfdab008d..3e222a271da6 100644
+--- a/fs/notify/inotify/inotify_user.c
++++ b/fs/notify/inotify/inotify_user.c
+@@ -85,7 +85,6 @@ static struct ctl_table inotify_table[] = {
+ 		.proc_handler	= proc_dointvec_minmax,
+ 		.extra1		= SYSCTL_ZERO
+ 	},
+-	{ }
+ };
+ 
+ static void __init inotify_sysctls_init(void)
+diff --git a/fs/ntfs/sysctl.c b/fs/ntfs/sysctl.c
+index 174fe536a1c0..4e980170d86a 100644
+--- a/fs/ntfs/sysctl.c
++++ b/fs/ntfs/sysctl.c
+@@ -28,7 +28,6 @@ static struct ctl_table ntfs_sysctls[] = {
+ 		.mode		= 0644,			/* Mode, proc handler. */
+ 		.proc_handler	= proc_dointvec
+ 	},
+-	{}
+ };
+ 
+ /* Storage for the sysctls header. */
+diff --git a/fs/ocfs2/stackglue.c b/fs/ocfs2/stackglue.c
+index a8d5ca98fa57..20aa37b67cfb 100644
+--- a/fs/ocfs2/stackglue.c
++++ b/fs/ocfs2/stackglue.c
+@@ -658,7 +658,6 @@ static struct ctl_table ocfs2_nm_table[] = {
+ 		.mode		= 0644,
+ 		.proc_handler	= proc_dostring,
+ 	},
+-	{ }
+ };
+ 
+ static struct ctl_table_header *ocfs2_table_header;
+diff --git a/fs/pipe.c b/fs/pipe.c
+index 6c1a9b1db907..6bc1c4ae81d5 100644
+--- a/fs/pipe.c
++++ b/fs/pipe.c
+@@ -1492,7 +1492,6 @@ static struct ctl_table fs_pipe_sysctls[] = {
+ 		.mode		= 0644,
+ 		.proc_handler	= proc_doulongvec_minmax,
+ 	},
+-	{ }
+ };
+ #endif
+ 
+diff --git a/fs/proc/proc_sysctl.c b/fs/proc/proc_sysctl.c
+index de484195f49f..4e06c4d69906 100644
+--- a/fs/proc/proc_sysctl.c
++++ b/fs/proc/proc_sysctl.c
+@@ -71,7 +71,6 @@ static struct ctl_table root_table[] = {
+ 		.procname = "",
+ 		.mode = S_IFDIR|S_IRUGO|S_IXUGO,
+ 	},
+-	{ }
+ };
+ static struct ctl_table_root sysctl_table_root = {
+ 	.default_set.dir.header = {
+diff --git a/fs/quota/dquot.c b/fs/quota/dquot.c
+index 9e72bfe8bbad..69b03e13e6f2 100644
+--- a/fs/quota/dquot.c
++++ b/fs/quota/dquot.c
+@@ -2949,7 +2949,6 @@ static struct ctl_table fs_dqstats_table[] = {
+ 		.proc_handler	= proc_dointvec,
+ 	},
+ #endif
+-	{ },
+ };
+ 
+ static int __init dquot_init(void)
+diff --git a/fs/sysctls.c b/fs/sysctls.c
+index 76a0aee8c229..8dbde9a802fa 100644
+--- a/fs/sysctls.c
++++ b/fs/sysctls.c
+@@ -26,7 +26,6 @@ static struct ctl_table fs_shared_sysctls[] = {
+ 		.extra1		= SYSCTL_ZERO,
+ 		.extra2		= SYSCTL_MAXOLDUID,
+ 	},
+-	{ }
+ };
+ 
+ static int __init init_fs_sysctls(void)
+diff --git a/fs/userfaultfd.c b/fs/userfaultfd.c
+index 56eaae9dac1a..7668285779c1 100644
+--- a/fs/userfaultfd.c
++++ b/fs/userfaultfd.c
+@@ -45,7 +45,6 @@ static struct ctl_table vm_userfaultfd_table[] = {
+ 		.extra1		= SYSCTL_ZERO,
+ 		.extra2		= SYSCTL_ONE,
+ 	},
+-	{ }
+ };
+ #endif
+ 
+diff --git a/fs/verity/fsverity_private.h b/fs/verity/fsverity_private.h
+index d071a6e32581..8191bf7ad706 100644
+--- a/fs/verity/fsverity_private.h
++++ b/fs/verity/fsverity_private.h
+@@ -122,8 +122,8 @@ void __init fsverity_init_info_cache(void);
+ 
+ /* signature.c */
+ 
+-#ifdef CONFIG_FS_VERITY_BUILTIN_SIGNATURES
+ extern int fsverity_require_signatures;
++#ifdef CONFIG_FS_VERITY_BUILTIN_SIGNATURES
+ int fsverity_verify_signature(const struct fsverity_info *vi,
+ 			      const u8 *signature, size_t sig_size);
+ 
+diff --git a/fs/verity/init.c b/fs/verity/init.c
+index a29f062f6047..e31045dd4f6c 100644
+--- a/fs/verity/init.c
++++ b/fs/verity/init.c
+@@ -13,7 +13,6 @@
+ static struct ctl_table_header *fsverity_sysctl_header;
+ 
+ static struct ctl_table fsverity_sysctl_table[] = {
+-#ifdef CONFIG_FS_VERITY_BUILTIN_SIGNATURES
+ 	{
+ 		.procname       = "require_signatures",
+ 		.data           = &fsverity_require_signatures,
+@@ -23,14 +22,17 @@ static struct ctl_table fsverity_sysctl_table[] = {
+ 		.extra1         = SYSCTL_ZERO,
+ 		.extra2         = SYSCTL_ONE,
+ 	},
+-#endif
+-	{ }
+ };
+ 
+ static void __init fsverity_init_sysctl(void)
+ {
++#ifdef CONFIG_FS_VERITY_BUILTIN_SIGNATURES
+ 	fsverity_sysctl_header = register_sysctl("fs/verity",
+ 						 fsverity_sysctl_table);
++#else
++	fsverity_sysctl_header = register_sysctl_sz("fs/verity",
++						 fsverity_sysctl_table, 0);
++#endif
+ 	if (!fsverity_sysctl_header)
+ 		panic("fsverity sysctl registration failed");
+ }
+diff --git a/fs/xfs/xfs_sysctl.c b/fs/xfs/xfs_sysctl.c
+index fade33735393..a191f6560f98 100644
+--- a/fs/xfs/xfs_sysctl.c
++++ b/fs/xfs/xfs_sysctl.c
+@@ -206,8 +206,6 @@ static struct ctl_table xfs_table[] = {
+ 		.extra2		= &xfs_params.stats_clear.max
+ 	},
+ #endif /* CONFIG_PROC_FS */
+-
+-	{}
+ };
+ 
+ int
+
 -- 
-Joel Granados <j.granados@samsung.com>
+2.30.2
 
