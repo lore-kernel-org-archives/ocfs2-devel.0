@@ -1,127 +1,102 @@
-Received: from mx0a-00069f02.pphosted.com (mx0a-00069f02.pphosted.com [205.220.165.32])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from smtp-out1.suse.de (smtp-out1.suse.de [195.135.220.28])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9AF1A4A991
-	for <ocfs2-devel@lists.linux.dev>; Tue, 21 Nov 2023 12:25:38 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=oracle.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=oracle.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D955B4A987
+	for <ocfs2-devel@lists.linux.dev>; Tue, 21 Nov 2023 12:39:29 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=oracle.com header.i=@oracle.com header.b="DMSgh77W"
-Received: from pps.filterd (m0246627.ppops.net [127.0.0.1])
-	by mx0b-00069f02.pphosted.com (8.17.1.19/8.17.1.19) with ESMTP id 3ALB9NaZ009930;
-	Tue, 21 Nov 2023 12:25:29 GMT
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=oracle.com; h=from : to : cc :
- subject : date : message-id : mime-version : content-transfer-encoding;
- s=corp-2023-03-30; bh=MbhGWsApsD/LUIroLWUz2V7v0ub0+Q6g1AnObLHT9PA=;
- b=DMSgh77WvljN5S+h+e850R/avJMsC4zgPoqBSvh5920ZJOzbhwP70qxLHS2VIyX28/9h
- k3KgriGePR9/gNfYRcPzAO02K5+kIzeF8YoANeY6lAz19784A8LAQd8/1LZxwN5CTVAm
- Qw5eR7QV9AXUNtN+48ZhzrmK/hsVCsNflTYA4EVUoGyb34uqNpGSGwwpzSdKa/fYCHaK
- EGyXctGJUqb5mT0mHyFsCEXm2v149l+2Yqa2pRra7pk44Vm4YnxWQT/DRzVHjJJ/cdU3
- qV6eqVPHnxFc0J5LD2F0+XojM2Hl18ZDgTiUVJ1gC1B/Y6oxrTn/M2RRTK+g3cS7mewy jA== 
-Received: from iadpaimrmta03.imrmtpd1.prodappiadaev1.oraclevcn.com (iadpaimrmta03.appoci.oracle.com [130.35.103.27])
-	by mx0b-00069f02.pphosted.com (PPS) with ESMTPS id 3uekv2vxk9-1
-	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Tue, 21 Nov 2023 12:25:29 +0000
-Received: from pps.filterd (iadpaimrmta03.imrmtpd1.prodappiadaev1.oraclevcn.com [127.0.0.1])
-	by iadpaimrmta03.imrmtpd1.prodappiadaev1.oraclevcn.com (8.17.1.19/8.17.1.19) with ESMTP id 3ALBNLXe023548;
-	Tue, 21 Nov 2023 12:25:28 GMT
-Received: from pps.reinject (localhost [127.0.0.1])
-	by iadpaimrmta03.imrmtpd1.prodappiadaev1.oraclevcn.com (PPS) with ESMTPS id 3uekq6w929-1
-	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Tue, 21 Nov 2023 12:25:27 +0000
-Received: from iadpaimrmta03.imrmtpd1.prodappiadaev1.oraclevcn.com (iadpaimrmta03.imrmtpd1.prodappiadaev1.oraclevcn.com [127.0.0.1])
-	by pps.reinject (8.17.1.5/8.17.1.5) with ESMTP id 3ALCPR32036011;
-	Tue, 21 Nov 2023 12:25:27 GMT
-Received: from sridara-source.osdevelopmeniad.oraclevcn.com (sridara-source.allregionaliads.osdevelopmeniad.oraclevcn.com [100.100.252.239])
-	by iadpaimrmta03.imrmtpd1.prodappiadaev1.oraclevcn.com (PPS) with ESMTP id 3uekq6w91q-1;
-	Tue, 21 Nov 2023 12:25:27 +0000
-From: Srivathsa Dara <srivathsa.d.dara@oracle.com>
-To: mark@fasheh.com, jlbec@evilplan.org, joseph.qi@linux.alibaba.com,
-        ailiop@suse.com
-Cc: srivathsa.d.dara@oracle.com, rajesh.sivaramasubramaniom@oracle.com,
-        junxiao.bi@oracle.com, ocfs2-devel@lists.linux.dev,
-        linux-kernel@vger.kernel.org, gautham.ananthakrishna@oracle.com
-Subject: [PATCH v2] ocfs2: call ocfs2_abort when journal abort
-Date: Tue, 21 Nov 2023 12:25:23 +0000
-Message-Id: <20231121122523.1859827-1-srivathsa.d.dara@oracle.com>
-X-Mailer: git-send-email 2.39.3
+	dkim=pass (1024-bit key) header.d=suse.com header.i=@suse.com header.b="jp2FuFEG"
+Received: from imap2.suse-dmz.suse.de (imap2.suse-dmz.suse.de [192.168.254.74])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature ECDSA (P-521) server-digest SHA512)
+	(No client certificate requested)
+	by smtp-out1.suse.de (Postfix) with ESMTPS id 0C93621907;
+	Tue, 21 Nov 2023 12:39:28 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.com; s=susede1;
+	t=1700570368; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+	 mime-version:mime-version:content-type:content-type:
+	 in-reply-to:in-reply-to:references:references;
+	bh=vwx/mAjaJ5YmXpYXiXCJSGhx9zGKVcg1C1LXTsfe5O0=;
+	b=jp2FuFEGEBeVmzAk26U055DEFXDOWUI8qQHLAMK87evzBow6gAXrgGCMliiFQqwRaZBAB8
+	4yQNf3RNaO35xam1dFbfUHxKxfHxg+MMqsq87hWWoe9mzG1fQAxeONiwsjsRz2Quxml5FN
+	Q6yykZ+mKouSKti9kcC0XHXK8doQzl8=
+Received: from imap2.suse-dmz.suse.de (imap2.suse-dmz.suse.de [192.168.254.74])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature ECDSA (P-521) server-digest SHA512)
+	(No client certificate requested)
+	by imap2.suse-dmz.suse.de (Postfix) with ESMTPS id 66958138E3;
+	Tue, 21 Nov 2023 12:39:27 +0000 (UTC)
+Received: from dovecot-director2.suse.de ([192.168.254.65])
+	by imap2.suse-dmz.suse.de with ESMTPSA
+	id j1G9Ff+kXGVBFgAAMHmgww
+	(envelope-from <ailiop@suse.com>); Tue, 21 Nov 2023 12:39:27 +0000
+Date: Tue, 21 Nov 2023 13:39:26 +0100
+From: Anthony Iliopoulos <ailiop@suse.com>
+To: Srivathsa Dara <srivathsa.d.dara@oracle.com>
+Cc: "mark@fasheh.com" <mark@fasheh.com>,
+	"jlbec@evilplan.org" <jlbec@evilplan.org>,
+	"joseph.qi@linux.alibaba.com" <joseph.qi@linux.alibaba.com>,
+	Rajesh Sivaramasubramaniom <rajesh.sivaramasubramaniom@oracle.com>,
+	Junxiao Bi <junxiao.bi@oracle.com>,
+	"ocfs2-devel@lists.linux.dev" <ocfs2-devel@lists.linux.dev>,
+	Gautham Ananthakrishna <gautham.ananthakrishna@oracle.com>
+Subject: Re: [PATCH] ocfs2: call ocfs2_abort when journal abort
+Message-ID: <ZVyk/v4YRCEMOcrY@technoir>
+References: <20231030120057.928280-1-srivathsa.d.dara@oracle.com>
+ <7ABBFC08-4350-4D6C-B740-80DE590F9476@suse.com>
+ <MN2PR10MB43491806209E4381F0359573A0AFA@MN2PR10MB4349.namprd10.prod.outlook.com>
+ <DM6PR10MB4347E075A7DADE3FEA97707BA0BBA@DM6PR10MB4347.namprd10.prod.outlook.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-X-Proofpoint-Virus-Version: vendor=baseguard
- engine=ICAP:2.0.272,Aquarius:18.0.987,Hydra:6.0.619,FMLib:17.11.176.26
- definitions=2023-11-21_05,2023-11-21_01,2023-05-22_02
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 adultscore=0 bulkscore=0 mlxscore=0
- mlxlogscore=999 phishscore=0 malwarescore=0 suspectscore=0 spamscore=0
- classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2311060000
- definitions=main-2311210097
-X-Proofpoint-GUID: OUrioSaDep2pGoVU_BWqoZofVzb3cBW9
-X-Proofpoint-ORIG-GUID: OUrioSaDep2pGoVU_BWqoZofVzb3cBW9
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <DM6PR10MB4347E075A7DADE3FEA97707BA0BBA@DM6PR10MB4347.namprd10.prod.outlook.com>
+Authentication-Results: smtp-out1.suse.de;
+	none
+X-Spam-Level: 
+X-Spam-Score: -3.23
+X-Spamd-Result: default: False [-3.23 / 50.00];
+	 ARC_NA(0.00)[];
+	 TO_DN_EQ_ADDR_SOME(0.00)[];
+	 RCVD_VIA_SMTP_AUTH(0.00)[];
+	 FROM_HAS_DN(0.00)[];
+	 TO_DN_SOME(0.00)[];
+	 TO_MATCH_ENVRCPT_ALL(0.00)[];
+	 NEURAL_HAM_LONG(-1.00)[-1.000];
+	 MIME_GOOD(-0.10)[text/plain];
+	 DKIM_SIGNED(0.00)[suse.com:s=susede1];
+	 NEURAL_HAM_SHORT(-0.20)[-1.000];
+	 RCPT_COUNT_SEVEN(0.00)[8];
+	 FUZZY_BLOCKED(0.00)[rspamd.com];
+	 FROM_EQ_ENVFROM(0.00)[];
+	 MIME_TRACE(0.00)[0:+];
+	 MID_RHS_NOT_FQDN(0.50)[];
+	 RCVD_COUNT_TWO(0.00)[2];
+	 RCVD_TLS_ALL(0.00)[];
+	 BAYES_HAM(-2.43)[97.38%]
+X-Spam-Flag: NO
 
-From: Ryan Ding <ryan.ding@oracle.com>
+On Tue, Nov 21, 2023 at 12:19:03PM +0000, Srivathsa Dara wrote:
+> [Srivathsa]: Isn't it a bad idea to leave the filesystem like a way it is
+> with a journal error. Because journal is not working as expected, we
+> might run into some trouble in future.
 
-Journal can not recover from abort state, so we should panic. Because we
-can not release lock resource in this state, other node will hung when it
-require a lock owned by this node. So, panic and remaster is a reasonable
-choice.
+The journal being in an aborted state is part of the expected design. It
+implies that the filesystem accordingly should be in read-only state.
 
-ocfs2_abort() will do above work.
+Anything else is a bug, and you'd have to be much more specific which
+exact bug you're trying to address. Resorting to panic is simply
+obscuring any potential issues that may actually need fixing.
 
-Co-Developed-by: Srivathsa Dara <srivathsa.d.dara@oracle.com>
-Signed-off-by: Ryan Ding <ryan.ding@oracle.com>
-Signed-off-by: Srivathsa Dara <srivathsa.d.dara@oracle.com>
----
-v1-> v2: Remove redundant code and comments related to local mount.
- fs/ocfs2/journal.c | 16 ++++------------
- 1 file changed, 4 insertions(+), 12 deletions(-)
+> [Srivathsa]:  Switching to read-only and self fencing affect
+> performance in production systems.
 
-diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
-index ce215565d061..52d71e9ded2e 100644
---- a/fs/ocfs2/journal.c
-+++ b/fs/ocfs2/journal.c
-@@ -14,7 +14,6 @@
- #include <linux/kthread.h>
- #include <linux/time.h>
- #include <linux/random.h>
--#include <linux/delay.h>
- #include <linux/writeback.h>
- 
- #include <cluster/masklog.h>
-@@ -2326,7 +2325,7 @@ static int __ocfs2_wait_on_mount(struct ocfs2_super *osb, int quota)
- 
- static int ocfs2_commit_thread(void *arg)
- {
--	int status;
-+	int status = 0;
- 	struct ocfs2_super *osb = arg;
- 	struct ocfs2_journal *journal = osb->journal;
- 
-@@ -2343,18 +2342,11 @@ static int ocfs2_commit_thread(void *arg)
- 
- 		status = ocfs2_commit_cache(osb);
- 		if (status < 0) {
--			static unsigned long abort_warn_time;
--
--			/* Warn about this once per minute */
--			if (printk_timed_ratelimit(&abort_warn_time, 60*HZ))
--				mlog(ML_ERROR, "status = %d, journal is "
--						"already aborted.\n", status);
- 			/*
--			 * After ocfs2_commit_cache() fails, j_num_trans has a
--			 * non-zero value.  Sleep here to avoid a busy-wait
--			 * loop.
-+			 * Journal can not recover from abort state, there is
-+			 * no need to keep commit cache. So, we should panic.
- 			 */
--			msleep_interruptible(1000);
-+			ocfs2_abort(osb->sb, "Detected aborted journal");
- 		}
- 
- 		if (kthread_should_stop() && atomic_read(&journal->j_num_trans)){
--- 
-2.39.3
+How so? Again, please elaborate with specific technical details.
 
+Regards,
+Anthony
