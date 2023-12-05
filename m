@@ -1,27 +1,30 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
+Received: from bombadil.infradead.org (bombadil.infradead.org [198.137.202.133])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7FC591CFBF;
-	Wed, 22 Nov 2023 14:00:41 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 849BED2E3;
+	Tue,  5 Dec 2023 05:45:39 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=kernel.org
+Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=infradead.org
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="BfQB384h"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id AE673C433C8;
-	Wed, 22 Nov 2023 14:00:31 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1700661641;
-	bh=CKpWtcakXU6WLfkLUYMnK2MftqPDlyVQofJh5L4ipog=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=BfQB384hXCtGbDq3OEp+k+dC8Y95OtcvnToRFARS3SDWJ6KN61NI6F7znWBpzVRZy
-	 blYNyv3BkMn8/fMRiDzO1wyob3LYygCpQVnZmCWxpglAOIy6qZeHz6EWpbcx6oEnOQ
-	 ZD1UymrrTktDwQAdyHxQf0fDGf8zTfossoLSeTUZ6pjaVE/PjBDNbDLRKOPWYc+CRb
-	 2hKNctjCDvzK9jCLYwIjwa14u6LOKRZpaQ5fRQhowQWJhI4nHVL83nQSoBQmUEpRzJ
-	 XLCy/aOL44CWepHZTKNk0rkoBdAVTaeY3706+7M2UJUp/16I81Xi0ZCKrlm+l+vLC9
-	 NR+fFXfKYY1/g==
-Date: Wed, 22 Nov 2023 15:00:29 +0100
-From: Christian Brauner <brauner@kernel.org>
-To: j.granados@samsung.com
-Cc: Luis Chamberlain <mcgrof@kernel.org>, willy@infradead.org,
-	josh@joshtriplett.org, Kees Cook <keescook@chromium.org>,
+	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="qOb9FyCp"
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+	d=infradead.org; s=bombadil.20210309; h=Sender:In-Reply-To:Content-Type:
+	MIME-Version:References:Message-ID:Subject:Cc:To:From:Date:Reply-To:
+	Content-Transfer-Encoding:Content-ID:Content-Description;
+	bh=Q4Xwwf+R6mg0IVTeK/i6oqCoh3sFn0GWCi0J13JBtfc=; b=qOb9FyCpYK/4KobvP2uwty+RVC
+	aKcs8RCIM1GaB+jEVQmkuGJdy+OoBGLcX1doQi0if7JBzag9665/MK5OtORAivTDbIIcdyUq2OKzV
+	Xx9UbaJnUzGeeh5RsPVPgY4YqT0DJlxUw1VN1F2mTNvBjhpShrX42o5RXnUV/cXjSQUrRLToGUZSE
+	FmCu84mXqdwf31dZ+O2oxaY3dpe0YxR2cKwZT0rDW7WEmsffmHSRy5nKQqPyOJ72usqptScFFNBh6
+	rYGN3D8F7qyjExbcouVqdX/XtjSmjlnWSxIY2bpgheRYBytg9CEj+V1w3MZOcvh3sPXc3Hqk7855F
+	MMIPMB3g==;
+Received: from mcgrof by bombadil.infradead.org with local (Exim 4.96 #2 (Red Hat Linux))
+	id 1rAOEM-006KRP-0r;
+	Tue, 05 Dec 2023 05:44:26 +0000
+Date: Mon, 4 Dec 2023 21:44:26 -0800
+From: Luis Chamberlain <mcgrof@kernel.org>
+To: Christian Brauner <brauner@kernel.org>
+Cc: j.granados@samsung.com, willy@infradead.org, josh@joshtriplett.org,
+	Kees Cook <keescook@chromium.org>,
 	David Howells <dhowells@redhat.com>,
 	Alexander Viro <viro@zeniv.linux.org.uk>,
 	Benjamin LaHaise <bcrl@kvack.org>,
@@ -51,17 +54,24 @@ Cc: Luis Chamberlain <mcgrof@kernel.org>, willy@infradead.org,
 	fsverity@lists.linux.dev, linux-xfs@vger.kernel.org,
 	codalist@coda.cs.cmu.edu
 Subject: Re: [PATCH v2 0/4] sysctl: Remove sentinel elements from fs dir
-Message-ID: <20231122-undifferenziert-weitschuss-a5d8cc56fbd1@brauner>
+Message-ID: <ZW64um8/nJaxBw5i@bombadil.infradead.org>
 References: <20231121-jag-sysctl_remove_empty_elem_fs-v2-0-39eab723a034@samsung.com>
+ <20231122-undifferenziert-weitschuss-a5d8cc56fbd1@brauner>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20231121-jag-sysctl_remove_empty_elem_fs-v2-0-39eab723a034@samsung.com>
+In-Reply-To: <20231122-undifferenziert-weitschuss-a5d8cc56fbd1@brauner>
+Sender: Luis Chamberlain <mcgrof@infradead.org>
 
-Looks fine,
-Acked-by: Christian Brauner <brauner@kernel.org>
+On Wed, Nov 22, 2023 at 03:00:29PM +0100, Christian Brauner wrote:
+> Looks fine,
+> Acked-by: Christian Brauner <brauner@kernel.org>
+
+Series applied, thanks!
+
+  Luis
