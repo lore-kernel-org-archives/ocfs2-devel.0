@@ -1,62 +1,33 @@
-Received: from bombadil.infradead.org (bombadil.infradead.org [198.137.202.133])
+Received: from zeniv.linux.org.uk (zeniv.linux.org.uk [62.89.141.173])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 849BED2E3;
-	Tue,  5 Dec 2023 05:45:39 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=kernel.org
-Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=infradead.org
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1798DCA47;
+	Wed, 20 Dec 2023 05:26:40 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk
+Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=ftp.linux.org.uk
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="qOb9FyCp"
+	dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b="HDFtu6yu"
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-	d=infradead.org; s=bombadil.20210309; h=Sender:In-Reply-To:Content-Type:
+	d=linux.org.uk; s=zeniv-20220401; h=Sender:In-Reply-To:Content-Type:
 	MIME-Version:References:Message-ID:Subject:Cc:To:From:Date:Reply-To:
 	Content-Transfer-Encoding:Content-ID:Content-Description;
-	bh=Q4Xwwf+R6mg0IVTeK/i6oqCoh3sFn0GWCi0J13JBtfc=; b=qOb9FyCpYK/4KobvP2uwty+RVC
-	aKcs8RCIM1GaB+jEVQmkuGJdy+OoBGLcX1doQi0if7JBzag9665/MK5OtORAivTDbIIcdyUq2OKzV
-	Xx9UbaJnUzGeeh5RsPVPgY4YqT0DJlxUw1VN1F2mTNvBjhpShrX42o5RXnUV/cXjSQUrRLToGUZSE
-	FmCu84mXqdwf31dZ+O2oxaY3dpe0YxR2cKwZT0rDW7WEmsffmHSRy5nKQqPyOJ72usqptScFFNBh6
-	rYGN3D8F7qyjExbcouVqdX/XtjSmjlnWSxIY2bpgheRYBytg9CEj+V1w3MZOcvh3sPXc3Hqk7855F
-	MMIPMB3g==;
-Received: from mcgrof by bombadil.infradead.org with local (Exim 4.96 #2 (Red Hat Linux))
-	id 1rAOEM-006KRP-0r;
-	Tue, 05 Dec 2023 05:44:26 +0000
-Date: Mon, 4 Dec 2023 21:44:26 -0800
-From: Luis Chamberlain <mcgrof@kernel.org>
-To: Christian Brauner <brauner@kernel.org>
-Cc: j.granados@samsung.com, willy@infradead.org, josh@joshtriplett.org,
-	Kees Cook <keescook@chromium.org>,
-	David Howells <dhowells@redhat.com>,
-	Alexander Viro <viro@zeniv.linux.org.uk>,
-	Benjamin LaHaise <bcrl@kvack.org>,
-	Eric Biederman <ebiederm@xmission.com>,
-	Trond Myklebust <trond.myklebust@hammerspace.com>,
-	Anna Schumaker <anna@kernel.org>,
-	Chuck Lever <chuck.lever@oracle.com>,
-	Jeff Layton <jlayton@kernel.org>, Neil Brown <neilb@suse.de>,
-	Olga Kornievskaia <kolga@netapp.com>, Dai Ngo <Dai.Ngo@oracle.com>,
-	Tom Talpey <tom@talpey.com>, Jan Kara <jack@suse.cz>,
-	Amir Goldstein <amir73il@gmail.com>,
-	Matthew Bobrowski <repnop@google.com>,
-	Anton Altaparmakov <anton@tuxera.com>,
-	Namjae Jeon <linkinjeon@kernel.org>, Mark Fasheh <mark@fasheh.com>,
-	Joel Becker <jlbec@evilplan.org>,
-	Joseph Qi <joseph.qi@linux.alibaba.com>,
-	Iurii Zaikin <yzaikin@google.com>,
-	Eric Biggers <ebiggers@kernel.org>,
-	"Theodore Y. Ts'o" <tytso@mit.edu>,
-	Chandan Babu R <chandan.babu@oracle.com>,
-	"Darrick J. Wong" <djwong@kernel.org>,
-	Jan Harkes <jaharkes@cs.cmu.edu>, coda@cs.cmu.edu,
-	linux-cachefs@redhat.com, linux-kernel@vger.kernel.org,
-	linux-fsdevel@vger.kernel.org, linux-aio@kvack.org,
-	linux-mm@kvack.org, linux-nfs@vger.kernel.org,
-	linux-ntfs-dev@lists.sourceforge.net, ocfs2-devel@lists.linux.dev,
-	fsverity@lists.linux.dev, linux-xfs@vger.kernel.org,
-	codalist@coda.cs.cmu.edu
-Subject: Re: [PATCH v2 0/4] sysctl: Remove sentinel elements from fs dir
-Message-ID: <ZW64um8/nJaxBw5i@bombadil.infradead.org>
-References: <20231121-jag-sysctl_remove_empty_elem_fs-v2-0-39eab723a034@samsung.com>
- <20231122-undifferenziert-weitschuss-a5d8cc56fbd1@brauner>
+	bh=duE4g5Ia2UG16LD2iQr91EPGHVpyuW2l4XuSdK8kuqQ=; b=HDFtu6yuFHkNPvIAjEE71Wjv2e
+	NfXTza8VpIokRxipJV1PMES/LsoKt9+MooDUnHOuiMDloPzrN5v4rhbY27Pv23W9dexx8LWbNKJTm
+	bli+odXTQk3b+lb2S/pxT1h1DcQczVabTOF9mpM/sJtAq/GdRBGOeyT23R0IdRa1pJ7Hb58sL1BFN
+	YanO2ZhVurVrq05Agir2ogIS5sG6cYy97P3vQDeJWaIEk/K0xXjRfZ2TFkg9/luGj4s88EriAq4Kd
+	Oze4C+qZaOup21uyvj6no7Q+z1FU8EQR3Zw8zZzFw/Ic3sN+q+KFEZXhOuJnXmK35Sir/HquW1o/n
+	ze+IWVhQ==;
+Received: from viro by zeniv.linux.org.uk with local (Exim 4.96 #2 (Red Hat Linux))
+	id 1rFp6M-00HJE1-39;
+	Wed, 20 Dec 2023 05:26:39 +0000
+Date: Wed, 20 Dec 2023 05:26:38 +0000
+From: Al Viro <viro@zeniv.linux.org.uk>
+To: linux-fsdevel@vger.kernel.org
+Cc: ocfs2-devel@lists.linux.dev
+Subject: [PATCH 14/22] __ocfs2_add_entry(), ocfs2_prepare_dir_for_insert():
+ namelen checks
+Message-ID: <20231220052638.GM1674809@ZenIV>
+References: <20231220051348.GY1674809@ZenIV>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -65,13 +36,46 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20231122-undifferenziert-weitschuss-a5d8cc56fbd1@brauner>
-Sender: Luis Chamberlain <mcgrof@infradead.org>
+In-Reply-To: <20231220051348.GY1674809@ZenIV>
+Sender: Al Viro <viro@ftp.linux.org.uk>
 
-On Wed, Nov 22, 2023 at 03:00:29PM +0100, Christian Brauner wrote:
-> Looks fine,
-> Acked-by: Christian Brauner <brauner@kernel.org>
+namelen can't be zero; neither when it's coming from dentry name,
+nor when dealing with orphans (in ocfs2_orphan_add() and
+__ocfs2_prepare_orphan_dir()).  Rudiment of old ext2 pointless
+check, long gone in ext2 itself...
 
-Series applied, thanks!
+Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
+---
+ fs/ocfs2/dir.c | 9 ---------
+ 1 file changed, 9 deletions(-)
 
-  Luis
+diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
+index a14c8fee6ee5..d620d4c53c6f 100644
+--- a/fs/ocfs2/dir.c
++++ b/fs/ocfs2/dir.c
+@@ -1593,9 +1593,6 @@ int __ocfs2_add_entry(handle_t *handle,
+ 	struct buffer_head *insert_bh = lookup->dl_leaf_bh;
+ 	char *data_start = insert_bh->b_data;
+ 
+-	if (!namelen)
+-		return -EINVAL;
+-
+ 	if (ocfs2_dir_indexed(dir)) {
+ 		struct buffer_head *bh;
+ 
+@@ -4245,12 +4242,6 @@ int ocfs2_prepare_dir_for_insert(struct ocfs2_super *osb,
+ 	trace_ocfs2_prepare_dir_for_insert(
+ 		(unsigned long long)OCFS2_I(dir)->ip_blkno, namelen);
+ 
+-	if (!namelen) {
+-		ret = -EINVAL;
+-		mlog_errno(ret);
+-		goto out;
+-	}
+-
+ 	/*
+ 	 * Do this up front to reduce confusion.
+ 	 *
+-- 
+2.39.2
+
