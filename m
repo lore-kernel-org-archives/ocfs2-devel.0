@@ -1,168 +1,130 @@
-Received: from mail-lj1-f179.google.com (mail-lj1-f179.google.com [209.85.208.179])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from out30-131.freemail.mail.aliyun.com (out30-131.freemail.mail.aliyun.com [115.124.30.131])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id CF23AA31
-	for <ocfs2-devel@lists.linux.dev>; Wed, 13 Mar 2024 12:32:18 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.208.179
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6782F610B
+	for <ocfs2-devel@lists.linux.dev>; Thu, 14 Mar 2024 02:17:24 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.131
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1710333141; cv=none; b=Q1vd1qo52Y8Av+M3TCzkCX9w+nU1CLyExR3dyjKYN4obdvLDzGedL9WxKw2p5MG2Yn7DH/kFJm8KfIk9iCgKdBskarz3IZm0+LvYoBOW1RVYQ4dI/iE2Fqm0Zq2nzPqXU1x4Vgmlfsq/WcE+C6oXGlksyiNvEn+MnBse4gl/8Vw=
+	t=1710382646; cv=none; b=IFgvD5QyuBGbm8P0trvcFwG02A0yRWCLm/yNRHlPp6x2DSi2av6+/+VrCt9lK5eNSxXxr1ZqWvFZHRoCBOdIl4U4upcr5zjjpFEIYsrio1qS+AFzSE67B09UyaVInxiZB590e41AzqSB5riHum0/MeFeHoyqcCwlbSdEqtaejIc=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1710333141; c=relaxed/simple;
-	bh=vw2eeISNd3Z5BxUXHp+BIluQ7bmkUASCLCwz7CUrjJc=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=JcUaQ7GS57rGq0Kyhg/Mq/wLYp/s9ar3bgROd93xc4DKwIheTr7ZV0sn24oDEbFnFPEpmNTkhbGyPNJOY3c3KTIgNF9filwZUCRr6qAijEn6PPtabZDKv7GrV/KftbkzSoECOHpdEhqUWi3pRc5lf5MMh5i2aSlSDz/aeujhSfg=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=Mgn/QnC4; arc=none smtp.client-ip=209.85.208.179
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
+	s=arc-20240116; t=1710382646; c=relaxed/simple;
+	bh=JRryJf1Piro+jJ6Z6etQCq8qhV5fBTKG6O/q478MeW0=;
+	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version; b=ke/DaiiqNZjAaZS3hi/dY5CJ2lFV7VxtoRxjL+GnZyJTtop8OJ5KySjyVPrt+nJZ0vYMKjAFZP+OeOusRaQsJGuKrnaMzt/OfPyif2stGVHvOM1gZTFv30wwevYn8iPbBYqf9YwOojYLg5Q6+xznqCyVBVEdJYyxgujpi9FlYTc=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=D95l+7hd; arc=none smtp.client-ip=115.124.30.131
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="Mgn/QnC4"
-Received: by mail-lj1-f179.google.com with SMTP id 38308e7fff4ca-2d46dd8b0b8so5658511fa.2
-        for <ocfs2-devel@lists.linux.dev>; Wed, 13 Mar 2024 05:32:18 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=suse.com; s=google; t=1710333137; x=1710937937; darn=lists.linux.dev;
-        h=content-transfer-encoding:in-reply-to:from:references:cc:to
-         :content-language:subject:user-agent:mime-version:date:message-id
-         :from:to:cc:subject:date:message-id:reply-to;
-        bh=OSTAbPvYtIZFDmMQUYZPvnC8WctWDpXq5DObcTL3t94=;
-        b=Mgn/QnC4XR6HSIzUkoyxaA/pNOWmfatNO0Uzks/3ABIM54smQlRjuo7t5MPATEZW5y
-         P1ygUgtHVZA5CNCL6eR2JyybzLHE4QW/m4UHzKaDTkhu0MKuG+0S1pwrKOSSYgwPT+io
-         PA4JDpk5nS6ZZ2oH/TFV4Rno/UhCtUaLSAp2hYxLrXy0zppE7gk86u91PJk8MV7n42Xk
-         zdlkSndR7yqrSxkglMJj86b08IYmSOl5e2akZo8EmRqP4kf12+c6LYkCSgbamWRYLabx
-         15aSq1sVRxBo7oEJ4xIrTdcY9dAyVJwkQ9QKj15tmFAAWP4iQ081gLIhNOSzO2E3xtQU
-         6O7A==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1710333137; x=1710937937;
-        h=content-transfer-encoding:in-reply-to:from:references:cc:to
-         :content-language:subject:user-agent:mime-version:date:message-id
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
-        bh=OSTAbPvYtIZFDmMQUYZPvnC8WctWDpXq5DObcTL3t94=;
-        b=rKhJ+mM0TDFEGDJCikqJct629vR2DLM7/GzRLcd3eHAkr9DshW76T0yvt29seBoqXn
-         A76R9Wfxb+gPjlyGBEd7ZyXmNztskbo1WxwEsKhxtTFd+58hWNnD4iwRpUYPuXI4xT5/
-         ZaHbzWsqEmbqlu/Lkl7r6nWysoyjSZmOSP5PnOf/JwGydWnjF6abaAO6qxpBiYQgMWEK
-         f3JYrXiSjWsE9PC2/Psjc1RR1AYD/pwqKtA3vi7KeW1O5IqswTpJO8SAhVdx2bm8MeLp
-         7Q+bEXIqa/UKl2/kbLG85p4CMKua+LPIzWh9FHm3b2HN3dozciVnQlscHCtLM93fH85m
-         XTtg==
-X-Gm-Message-State: AOJu0YwBRQrmDF9vlXgRRQTu/KPjVSeZQ/9A7ViYxO8lFyuRSzzsfBAa
-	ytkqw3EU+S8YQatUc58GaAtxeiWdxvdVVJYNQoz1Q3JMuxlurx5oG7wdDf5i1BI=
-X-Google-Smtp-Source: AGHT+IFl6aqaK0Zzujz+ua2LXyQZac3NzEjR/nvlkVSdnCeLZcnj+gZj8c/q8uIzVBg5lIOzaW+eDA==
-X-Received: by 2002:a2e:be9c:0:b0:2d4:522e:62f3 with SMTP id a28-20020a2ebe9c000000b002d4522e62f3mr5053855ljr.44.1710333136860;
-        Wed, 13 Mar 2024 05:32:16 -0700 (PDT)
-Received: from [10.202.32.28] ([202.127.77.110])
-        by smtp.gmail.com with ESMTPSA id r22-20020a17090a0ad600b0029b2e5bc1b9sm1374264pje.23.2024.03.13.05.32.15
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Wed, 13 Mar 2024 05:32:16 -0700 (PDT)
-Message-ID: <c94f3dd8-7cc6-4a0c-9073-0bb92e81e863@suse.com>
-Date: Wed, 13 Mar 2024 20:32:12 +0800
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="D95l+7hd"
+DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=linux.alibaba.com; s=default;
+	t=1710382635; h=From:To:Subject:Date:Message-Id:MIME-Version;
+	bh=mrJfJYfIa2eTrlhCitDfDspSqJl4KQJVhtNTo16c30E=;
+	b=D95l+7hdL3dXEIh1RhFTDl2qQdXfHfhxMceELb2wshLZzthxgE/tcygvPYiq1TfndkKLPPWCh8dKyK6bBrM/BKN+UvshrdKNIp9NuZmMqVt+1FtEmJpzq0tBZJOFbplB/8ooKBffq+V6+qBoW57r/dZQ8hBWCfLX3tZqqydcVw8=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R491e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=ay29a033018046051;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=3;SR=0;TI=SMTPD_---0W2QaTja_1710382633;
+Received: from localhost(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0W2QaTja_1710382633)
+          by smtp.aliyun-inc.com;
+          Thu, 14 Mar 2024 10:17:14 +0800
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+To: ocfs2-devel@lists.linux.dev
+Cc: Andrew Morton <akpm@linux-foundation.org>,
+	Heming Zhao <heming.zhao@suse.com>
+Subject: [PATCH] ocfs2: correctly use ocfs2_find_next_zero_bit()
+Date: Thu, 14 Mar 2024 10:17:13 +0800
+Message-Id: <20240314021713.240796-1-joseph.qi@linux.alibaba.com>
+X-Mailer: git-send-email 2.24.4
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH] ocfs2: improve write IO performance when fragmentation is
- high
-Content-Language: en-US
-To: Joseph Qi <joseph.qi@linux.alibaba.com>
-Cc: ocfs2-devel@lists.linux.dev, ailiop@suse.com
-References: <20240308015251.32041-1-heming.zhao@suse.com>
- <3de83d2c-729b-453f-b874-3d553b8274a7@linux.alibaba.com>
- <ccbfc231-cb82-4455-a137-7d9c9dab44d5@suse.com>
- <70d119b5-53c0-4a92-84ec-9b5053184959@linux.alibaba.com>
-From: Heming Zhao <heming.zhao@suse.com>
-In-Reply-To: <70d119b5-53c0-4a92-84ec-9b5053184959@linux.alibaba.com>
-Content-Type: text/plain; charset=UTF-8; format=flowed
 Content-Transfer-Encoding: 8bit
 
-On 3/13/24 17:09, Joseph Qi wrote:
-> 
-> 
-> On 3/13/24 9:34 AM, Heming Zhao wrote:
->> Hi Joseph,
->>
->> Before sending v2 patch, I need to explain ocfs2_find_max_contig_free_bits()
->> for you. See the comment in below.
->>
->> On 3/11/24 19:04, Joseph Qi wrote:
->>>
->>> Hi,
->>>
->>> Please see my comments inline.
->>>
->>> On 3/8/24 9:52 AM, Heming Zhao wrote:
->>>> The group_search function ocfs2_cluster_group_search() should
->>>> bypass groups with insufficient space to avoid unnecessary
->>>> searches.
->>>>
->>>> This patch is particularly useful when ocfs2 is handling huge
->>>> number small files, and volume fragmentation is very high.
->>>> In this case, ocfs2 is busy with looking up available la window
->>>> from //global_bitmap.
->>>>
->>>> This patch introduces a new member in the Group Description (gd)
->>>> struct called 'bg_contig_free_bits', representing the max
->>>> contigous free bits in this gd. When ocfs2 allocates a new
->>>> la window from //global_bitmap, 'bg_contig_free_bits' helps
->>>> expedite the search process.
->>>>
->>>> ... ...
->>>>    +/* caller should initialize contig_bits */
->>>> +void ocfs2_find_max_contig_free_bits(void *bitmap,
->>>> +             unsigned int total_bits, int start,
->>>> +             unsigned int *contig_bits)
->>>> +{
->>>> +    int offset, free_bits;
->>>> +
->>>> +    while (start < total_bits) {
->>>> +        offset = ocfs2_find_next_zero_bit(bitmap, total_bits, start);
->>>> +        if (offset == total_bits)
->>>> +            break;
->>>> +
->>>> +        start = ocfs2_find_next_bit(bitmap, total_bits, offset);
->>>> +        free_bits = start - offset;
->>>> +        if (*contig_bits < free_bits)
->>>> +            *contig_bits = free_bits;
->>>> +    }
->>>
->>> Or we can just return the contig_bits. Something like:
->>> unsigned int ocfs2_find_max_contig_free_bits(void *bitmap,
->>>          unsigned int total_bits, int start)
->>> {
->>>      int offset, start;
->>>      unsigned int contig_bits = 0;
->>>
->>>      while () {
->>>          ...
->>>      }
->>>
->>>      return contig_bits;
->>> }
->>
->> the input *contig_bits has two jobs:
->> - return the max contigous free bits of bitmap
->> - if *contig_bits is not ZERO, it keeps the max-contig-bits
->>    from last search. When the input 'start' not zero
->>    (means start from middle of bitmap), the max-contig-bits
->>    from latter part of bitmap may smaller than first part.
->>    at this case, function should keep & return the input
->>    *contig_bits.
->>
-> 
-> IC, I don't think it's a good idea to mix up the 2 responsibilities.
-> You've hidden the logic that it may change the input contig_bits (not
-> the case of first search).
-> You can also implement it something like:
-> 
-> contig_bits = ocfs2_find_max_contig_free_bits();
-> if (config_bits > sr_max_contig_bits)
-> 	sr_max_contig_bits = contig_bits;
-> 
-> This will be more explicit for an optimized search.
-> 
-> Thanks,
-> Joseph
-> 
+If no bits are zero, ocfs2_find_next_zero_bit() will return max size, so
+check the return value with -1 is meaningless.
+Correct this usage and cleanup the code.
 
-Thanks for the explanation, your code logic is better.
+Signed-off-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+---
+ fs/ocfs2/localalloc.c   | 19 ++++++-------------
+ fs/ocfs2/reservations.c |  2 +-
+ fs/ocfs2/suballoc.c     |  6 ++----
+ 3 files changed, 9 insertions(+), 18 deletions(-)
 
-- Heming
+diff --git a/fs/ocfs2/localalloc.c b/fs/ocfs2/localalloc.c
+index c803c10dd97e..33aeaaa056d7 100644
+--- a/fs/ocfs2/localalloc.c
++++ b/fs/ocfs2/localalloc.c
+@@ -863,14 +863,8 @@ static int ocfs2_local_alloc_find_clear_bits(struct ocfs2_super *osb,
+ 
+ 	numfound = bitoff = startoff = 0;
+ 	left = le32_to_cpu(alloc->id1.bitmap1.i_total);
+-	while ((bitoff = ocfs2_find_next_zero_bit(bitmap, left, startoff)) != -1) {
+-		if (bitoff == left) {
+-			/* mlog(0, "bitoff (%d) == left", bitoff); */
+-			break;
+-		}
+-		/* mlog(0, "Found a zero: bitoff = %d, startoff = %d, "
+-		   "numfound = %d\n", bitoff, startoff, numfound);*/
+-
++	while ((bitoff = ocfs2_find_next_zero_bit(bitmap, left, startoff)) <
++	       left) {
+ 		/* Ok, we found a zero bit... is it contig. or do we
+ 		 * start over?*/
+ 		if (bitoff == startoff) {
+@@ -976,9 +970,9 @@ static int ocfs2_sync_local_to_main(struct ocfs2_super *osb,
+ 	start = count = 0;
+ 	left = le32_to_cpu(alloc->id1.bitmap1.i_total);
+ 
+-	while ((bit_off = ocfs2_find_next_zero_bit(bitmap, left, start))
+-	       != -1) {
+-		if ((bit_off < left) && (bit_off == start)) {
++	while ((bit_off = ocfs2_find_next_zero_bit(bitmap, left, start)) <
++	       left) {
++		if (bit_off == start) {
+ 			count++;
+ 			start++;
+ 			continue;
+@@ -1002,8 +996,7 @@ static int ocfs2_sync_local_to_main(struct ocfs2_super *osb,
+ 				goto bail;
+ 			}
+ 		}
+-		if (bit_off >= left)
+-			break;
++
+ 		count = 1;
+ 		start = bit_off + 1;
+ 	}
+diff --git a/fs/ocfs2/reservations.c b/fs/ocfs2/reservations.c
+index a9d1296d736d..1fe61974d9f0 100644
+--- a/fs/ocfs2/reservations.c
++++ b/fs/ocfs2/reservations.c
+@@ -414,7 +414,7 @@ static int ocfs2_resmap_find_free_bits(struct ocfs2_reservation_map *resmap,
+ 
+ 	start = search_start;
+ 	while ((offset = ocfs2_find_next_zero_bit(bitmap, resmap->m_bitmap_len,
+-						 start)) != -1) {
++					start)) < resmap->m_bitmap_len) {
+ 		/* Search reached end of the region */
+ 		if (offset >= (search_start + search_len))
+ 			break;
+diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
+index 166c8918c825..961998415308 100644
+--- a/fs/ocfs2/suballoc.c
++++ b/fs/ocfs2/suballoc.c
+@@ -1290,10 +1290,8 @@ static int ocfs2_block_group_find_clear_bits(struct ocfs2_super *osb,
+ 	found = start = best_offset = best_size = 0;
+ 	bitmap = bg->bg_bitmap;
+ 
+-	while((offset = ocfs2_find_next_zero_bit(bitmap, total_bits, start)) != -1) {
+-		if (offset == total_bits)
+-			break;
+-
++	while ((offset = ocfs2_find_next_zero_bit(bitmap, total_bits, start)) <
++	       total_bits) {
+ 		if (!ocfs2_test_bg_bit_allocatable(bg_bh, offset)) {
+ 			/* We found a zero, but we can't use it as it
+ 			 * hasn't been put to disk yet! */
+-- 
+2.24.4
+
