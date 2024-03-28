@@ -1,274 +1,485 @@
-Received: from mail-wr1-f52.google.com (mail-wr1-f52.google.com [209.85.221.52])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from out30-99.freemail.mail.aliyun.com (out30-99.freemail.mail.aliyun.com [115.124.30.99])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9E4355812E
-	for <ocfs2-devel@lists.linux.dev>; Thu, 28 Mar 2024 08:30:00 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.221.52
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5920024219
+	for <ocfs2-devel@lists.linux.dev>; Thu, 28 Mar 2024 08:47:24 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.99
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1711614603; cv=none; b=SyRXdA67X805V0oc6mgHHsIT9G6jIUyST7BLH22p3aN84C17NMEdE/MB6FgOXzuQMzQI4CpOH9gziwmb/4fbuqR+y+iYz/DoNCQUrPBr6z/j4baYfde3kiD5I+O7Jp1W/Qs+Br7SS2XTbj+A7/p3HDCiTcFQCcWinFQdBaZ0nT0=
+	t=1711615650; cv=none; b=D73DVN+mPpWatYVIKivYtE7/nshWLOxmBIyHXtJopE9bWQKQEmSHGXKt/zDoeJ9SBuxQNH1vbOUBOLz4Xne3Y0YPgr7XvEDiDVH175bjL32uWD8Yf/A1Z6p8o3grqZge7JzkLEnWd5Fah0GA/ucN0CXp4Hn5oXeTY+w2XEfbI2c=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1711614603; c=relaxed/simple;
-	bh=Q0TEkfqZ734OAkVo3eJn5DhMwPk6HWitFWXszy/6yaI=;
-	h=From:To:Cc:Subject:Date:Message-Id:In-Reply-To:References:
-	 MIME-Version; b=UJso0302THb+IvkLkXqNKALyzRGhzbXUff/w8b/5xrrC75wsqAGlxHtgCqk8EfKGI0fmJIC5Jh6MrXbh2yrCiW2P5ylPTrKwusUKotE8gjNBMvbbnpCtO0/FQVYMPMb7uXiDLEUsJX9whXGHptargC/Biz+yMLD4fGBHgfdpP+0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=WWqchexs; arc=none smtp.client-ip=209.85.221.52
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
+	s=arc-20240116; t=1711615650; c=relaxed/simple;
+	bh=haoTBQcFFON7DD2oqqbQARSJ028zwLRivefl3IDP8Ww=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=CJ0gKcvlcbH6cMNMLVxJ2Q94Xv73dBVbs9ty9PVcYsP17khXj6GncLScqW6CT+7Zt6uSGU4ykcvAYkk/ZE06+d20uM19Hs3BySM7zkmaEUS9X2pXEK36qRo2amd1HMBSS/+bxq2NsnWoZEqZQH9vksSO77H+RLTWCjA9QDmH+RQ=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=YZC8pnNL; arc=none smtp.client-ip=115.124.30.99
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="WWqchexs"
-Received: by mail-wr1-f52.google.com with SMTP id ffacd0b85a97d-33d90dfe73cso341781f8f.0
-        for <ocfs2-devel@lists.linux.dev>; Thu, 28 Mar 2024 01:30:00 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=suse.com; s=google; t=1711614599; x=1712219399; darn=lists.linux.dev;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:date:subject:cc:to:from:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=BQRe3A+3g++uHkd3C5qAgwrkUaosDRISKLrq0uWVnUg=;
-        b=WWqchexs3QWnXlEsHMmq50Ng+GZiY4DEKJZHbrlqriMEY3C/6OlzgbsXtdJlosfwSf
-         rjPWGcrLHFZQDHXU9mTG+PFdAUO1rVtDHyPn6vh5apUx9HWYkKIGyrgeZr+vhpdXlPZ7
-         evI+hi3KdoxunyQwuAlWRFeFY2n2W6m7i4BDzd7ogxqI0keaf+mEPY8ueRkKzNVW8WEC
-         49Tz51/3WYmQ3qXl6a0BuMoaVoX7azH9nyAKGxKetzo6vCjWQCkPQuxRBfQRUhDTJsMv
-         ptnvPSmaMd+yAvq461Twe9Ut7dFkLw2Z8+vPbYni0H5E7qCWsWvyEfGT8+md2rElNLuA
-         FXXQ==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1711614599; x=1712219399;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:date:subject:cc:to:from:x-gm-message-state:from:to:cc
-         :subject:date:message-id:reply-to;
-        bh=BQRe3A+3g++uHkd3C5qAgwrkUaosDRISKLrq0uWVnUg=;
-        b=wdq2JxdhW2G9lqrodwdSPiayINYcLgjX5GTU/eNQXZ54Nw0r5gwpSgX5LZVcJS4qAN
-         J8Vqt7uNbuatakgGcf4/fEuaStaXlSdfZh7YbLw89Ke5vSMyfk5l7T2pHoX2J2qwjznL
-         2rjE2MCQFGkTEbR2Cq37VHg4CY2ULdEvnPBEQZBsXeRYLX9PS8Pk0nyx22RzgryFphMd
-         9IUWx4nTiHzgNKnzuSLzMUEDdnyUdzY4Hljq4vK3h+tA0ex7YONSqwbxMAAzy6HjUV07
-         3d08Cd/LaXjImQYGhKUYWO8m0AonAmvpPFZtVO1aa+HC2dGRFC/o5yQ8uSMOE1hIL8gH
-         pRWg==
-X-Forwarded-Encrypted: i=1; AJvYcCU1A2cO+I3tVmso5YtHinVo1G4G0gTTxm53JEB+H/mbf56HQCn1LnQVn27bPrtCckGev/FKmhFL1ASWPa0p1ls7mCcJ1Ao+w++3WSI=
-X-Gm-Message-State: AOJu0YzVIhFpbiH2tRyy+xW7JEJdwcwK5+dc2NaDzTVw4y/TgSpq+8rR
-	QBR9/y7LsEsx5e55Kozj6/yjzOybx8vTG0uZudP0XKxOomhXlZpTVLdQSGljeUG8AZJ2ee0FedN
-	3
-X-Google-Smtp-Source: AGHT+IFwGtXi8qJPm1eMXbHHsnpIdFUATIwjqXdbeqhIVqjVfISfua9rLxBWNAl/Y4pQgZZyVr8F+Q==
-X-Received: by 2002:a5d:4ccc:0:b0:33e:c0fc:5e4b with SMTP id c12-20020a5d4ccc000000b0033ec0fc5e4bmr1294327wrt.2.1711614598862;
-        Thu, 28 Mar 2024 01:29:58 -0700 (PDT)
-Received: from c73.suse.cz ([202.127.77.110])
-        by smtp.gmail.com with ESMTPSA id b15-20020a170902650f00b001e014627baasm955120plk.79.2024.03.28.01.29.56
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Thu, 28 Mar 2024 01:29:58 -0700 (PDT)
-From: Heming Zhao <heming.zhao@suse.com>
-To: joseph.qi@linux.alibaba.com
-Cc: Heming Zhao <heming.zhao@suse.com>,
-	ocfs2-devel@lists.linux.dev,
-	ailiop@suse.com
-Subject: [PATCH v5 4/4] ocfs2: fix sparse warnings
-Date: Thu, 28 Mar 2024 16:29:43 +0800
-Message-Id: <20240328082943.20251-5-heming.zhao@suse.com>
-X-Mailer: git-send-email 2.35.3
-In-Reply-To: <20240328082943.20251-1-heming.zhao@suse.com>
-References: <20240328082943.20251-1-heming.zhao@suse.com>
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="YZC8pnNL"
+DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=linux.alibaba.com; s=default;
+	t=1711615637; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=92fDqBtz92YeRvQev7rAPhbOD8qx/6I3zQXAWMBiaME=;
+	b=YZC8pnNLXTp1+EHnacKuWCpNx2jbrG8NhAv7EUA4speoWOVoPNs44TE/k0/Ns7KD0g+R3Hko3LZOA0Qr7EtXSJjIKeNqk9DXPcehQYVgH1JUtDj/oA2g3A3vd83ePa+k7SDLyEl5X91GmsiVQ9P3AuO0egZMMG9klstt3PMCARs=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R111e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=ay29a033018046060;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=3;SR=0;TI=SMTPD_---0W3SgNBg_1711615634;
+Received: from 30.221.129.70(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0W3SgNBg_1711615634)
+          by smtp.aliyun-inc.com;
+          Thu, 28 Mar 2024 16:47:15 +0800
+Message-ID: <e024b62a-0ae3-45aa-a095-80d14e6c377e@linux.alibaba.com>
+Date: Thu, 28 Mar 2024 16:47:14 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH v5 1/4] ocfs2: improve write IO performance when
+ fragmentation is high
+Content-Language: en-US
+To: Heming Zhao <heming.zhao@suse.com>
+Cc: ocfs2-devel@lists.linux.dev, ailiop@suse.com
+References: <20240328082943.20251-1-heming.zhao@suse.com>
+ <20240328082943.20251-2-heming.zhao@suse.com>
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+In-Reply-To: <20240328082943.20251-2-heming.zhao@suse.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
-1.
-fs/ocfs2/localalloc.c:1224:41: warning: incorrect type in argument 1 (different base types)
-fs/ocfs2/localalloc.c:1224:41:    expected unsigned long long val1
-fs/ocfs2/localalloc.c:1224:41:    got restricted __le32 [usertype] la_bm_off
 
-2.
-fs/ocfs2/export.c:258:32: warning: cast to restricted __le32
-fs/ocfs2/export.c:259:33: warning: cast to restricted __le32
-fs/ocfs2/export.c:260:32: warning: cast to restricted __le32
-fs/ocfs2/export.c:272:32: warning: cast to restricted __le32
-fs/ocfs2/export.c:273:33: warning: cast to restricted __le32
-fs/ocfs2/export.c:274:32: warning: cast to restricted __le32
 
-3.
-fs/ocfs2/inode.c:1623:13: warning: context imbalance in 'ocfs2_inode_cache_lock' - wrong count at exit
-fs/ocfs2/inode.c:1630:13: warning: context imbalance in 'ocfs2_inode_cache_unlock' - unexpected unlock
+On 3/28/24 4:29 PM, Heming Zhao wrote:
+> The group_search function ocfs2_cluster_group_search() should
+> bypass groups with insufficient space to avoid unnecessary
+> searches.
+> 
+> This patch is particularly useful when ocfs2 is handling huge
+> number small files, and volume fragmentation is very high.
+> In this case, ocfs2 is busy with looking up available la window
+> from //global_bitmap.
+> 
+> This patch introduces a new member in the Group Description (gd)
+> struct called 'bg_contig_free_bits', representing the max
+> contigous free bits in this gd. When ocfs2 allocates a new
+> la window from //global_bitmap, 'bg_contig_free_bits' helps
+> expedite the search process.
+> 
+> Let's image below path.
+> 
+> 1. la state (->local_alloc_state) is set THROTTLED or DISABLED.
+> 
+> 2. when user delete a large file and trigger
+>    ocfs2_local_alloc_seen_free_bits set osb->local_alloc_state
+>    unconditionally.
+> 
+> 3. a write IOs thread run and trigger the worst performance path
+> 
+> ```
+> ocfs2_reserve_clusters_with_limit
+>  ocfs2_reserve_local_alloc_bits
+>   ocfs2_local_alloc_slide_window //[1]
+>    + ocfs2_local_alloc_reserve_for_window //[2]
+>    + ocfs2_local_alloc_new_window //[3]
+>       ocfs2_recalc_la_window
+> ```
+> 
+> [1]:
+> will be called when la window bits used up.
+> 
+> [2]:
+> under la state is ENABLED, and this func only check global_bitmap
+> free bits, it will succeed in general.
+> 
+> [3]:
+> will use the default la window size to search clusters then fail.
+> ocfs2_recalc_la_window attempts other la window sizes.
+> the timing complexity is O(n^4), resulting in a significant time
+> cost for scanning global bitmap. This leads to a dramatic slowdown
+> in write I/Os (e.g., user space 'dd').
+> 
+> i.e.
+> an ocfs2 partition size: 1.45TB, cluster size: 4KB,
+> la window default size: 106MB.
+> The partition is fragmentation by creating & deleting huge mount of
+> small files.
+> 
+> before this patch, the timing of [3] should be
+> (the number got from real world):
+> - la window size change order (size: MB):
+>   106, 53, 26.5, 13, 6.5, 3.25, 1.6, 0.8
+>   only 0.8MB succeed, 0.8MB also triggers la window to disable.
+>   ocfs2_local_alloc_new_window retries 8 times, first 7 times totally
+>   runs in worst case.
+> - group chain number: 242
+>   ocfs2_claim_suballoc_bits calls for-loop 242 times
+> - each chain has 49 block group
+>   ocfs2_search_chain calls while-loop 49 times
+> - each bg has 32256 blocks
+>   ocfs2_block_group_find_clear_bits calls while-loop for 32256 bits.
+>   for ocfs2_find_next_zero_bit uses ffz() to find zero bit, let's use
+>   (32256/64) (this is not worst value) for timing calucation.
+> 
+> the loop times: 7*242*49*(32256/64) = 41835024 (~42 million times)
+> 
+> In the worst case, user space writes 1MB data will trigger 42M scanning
+> times.
+> 
+> under this patch, the timing is '7*242*49 = 83006', reduced by three
+> orders of magnitude.
+> 
+> Signed-off-by: Heming Zhao <heming.zhao@suse.com>
 
-4.
-fs/ocfs2/refcounttree.c:633:27: warning: incorrect type in assignment (different base types)
-fs/ocfs2/refcounttree.c:633:27:    expected restricted __le32 [usertype] rf_generation
-fs/ocfs2/refcounttree.c:633:27:    got unsigned int
-
-5.
-fs/ocfs2/dlm/dlmdomain.c:1316:20: warning: context imbalance in 'dlm_query_nodeinfo_handler' - different lock contexts for basic block
-
-6.
-fs/ocfs2/dlm/dlmrecovery.c:2950:9: warning: context imbalance in 'dlm_finalize_reco_handler' - different lock contexts for basic block
-
-Signed-off-by: Heming Zhao <heming.zhao@suse.com>
----
-v5: (first version)
-- localalloc.c fix (No: 1) is split from v4 patch 3/3.
-- new sparse warnings fixes (No: 2~6) for other files.
-
----
- fs/ocfs2/dlm/dlmdomain.c   | 11 +++++------
- fs/ocfs2/dlm/dlmrecovery.c |  4 ++++
- fs/ocfs2/export.c          | 12 ++++++------
- fs/ocfs2/inode.c           |  2 ++
- fs/ocfs2/localalloc.c      |  4 ++--
- fs/ocfs2/refcounttree.c    |  2 +-
- 6 files changed, 20 insertions(+), 15 deletions(-)
-
-diff --git a/fs/ocfs2/dlm/dlmdomain.c b/fs/ocfs2/dlm/dlmdomain.c
-index 5c04dde99981..2e0a2f338282 100644
---- a/fs/ocfs2/dlm/dlmdomain.c
-+++ b/fs/ocfs2/dlm/dlmdomain.c
-@@ -1274,7 +1274,7 @@ static int dlm_query_nodeinfo_handler(struct o2net_msg *msg, u32 len,
- {
- 	struct dlm_query_nodeinfo *qn;
- 	struct dlm_ctxt *dlm = NULL;
--	int locked = 0, status = -EINVAL;
-+	int status = -EINVAL;
- 
- 	qn = (struct dlm_query_nodeinfo *) msg->buf;
- 
-@@ -1290,12 +1290,11 @@ static int dlm_query_nodeinfo_handler(struct o2net_msg *msg, u32 len,
- 	}
- 
- 	spin_lock(&dlm->spinlock);
--	locked = 1;
- 	if (dlm->joining_node != qn->qn_nodenum) {
- 		mlog(ML_ERROR, "Node %d queried nodes on domain %s but "
- 		     "joining node is %d\n", qn->qn_nodenum, qn->qn_domain,
- 		     dlm->joining_node);
--		goto bail;
-+		goto unlock;
- 	}
- 
- 	/* Support for node query was added in 1.1 */
-@@ -1305,14 +1304,14 @@ static int dlm_query_nodeinfo_handler(struct o2net_msg *msg, u32 len,
- 		     "but active dlm protocol is %d.%d\n", qn->qn_nodenum,
- 		     qn->qn_domain, dlm->dlm_locking_proto.pv_major,
- 		     dlm->dlm_locking_proto.pv_minor);
--		goto bail;
-+		goto unlock;
- 	}
- 
- 	status = dlm_match_nodes(dlm, qn);
- 
-+unlock:
-+	spin_unlock(&dlm->spinlock);
- bail:
--	if (locked)
--		spin_unlock(&dlm->spinlock);
- 	spin_unlock(&dlm_domain_lock);
- 
- 	return status;
-diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
-index 50da8af988c1..40a0e5df3de0 100644
---- a/fs/ocfs2/dlm/dlmrecovery.c
-+++ b/fs/ocfs2/dlm/dlmrecovery.c
-@@ -2917,8 +2917,11 @@ int dlm_finalize_reco_handler(struct o2net_msg *msg, u32 len, void *data,
- 		BUG();
- 	}
- 
-+	spin_unlock(&dlm->spinlock);
-+
- 	switch (stage) {
- 		case 1:
-+			spin_lock(&dlm->spinlock);
- 			dlm_finish_local_lockres_recovery(dlm, fr->dead_node, fr->node_idx);
- 			if (dlm->reco.state & DLM_RECO_STATE_FINALIZE) {
- 				mlog(ML_ERROR, "%s: received finalize1 from "
-@@ -2932,6 +2935,7 @@ int dlm_finalize_reco_handler(struct o2net_msg *msg, u32 len, void *data,
- 			spin_unlock(&dlm->spinlock);
- 			break;
- 		case 2:
-+			spin_lock(&dlm->spinlock);
- 			if (!(dlm->reco.state & DLM_RECO_STATE_FINALIZE)) {
- 				mlog(ML_ERROR, "%s: received finalize2 from "
- 				     "new master %u for dead node %u, but "
-diff --git a/fs/ocfs2/export.c b/fs/ocfs2/export.c
-index b8b6a191b5cb..96b684763b39 100644
---- a/fs/ocfs2/export.c
-+++ b/fs/ocfs2/export.c
-@@ -255,9 +255,9 @@ static struct dentry *ocfs2_fh_to_dentry(struct super_block *sb,
- 	if (fh_len < 3 || fh_type > 2)
- 		return NULL;
- 
--	handle.ih_blkno = (u64)le32_to_cpu(fid->raw[0]) << 32;
--	handle.ih_blkno |= (u64)le32_to_cpu(fid->raw[1]);
--	handle.ih_generation = le32_to_cpu(fid->raw[2]);
-+	handle.ih_blkno = (u64)le32_to_cpu((__force __le32)fid->raw[0]) << 32;
-+	handle.ih_blkno |= (u64)le32_to_cpu((__force __le32)fid->raw[1]);
-+	handle.ih_generation = le32_to_cpu((__force __le32)fid->raw[2]);
- 	return ocfs2_get_dentry(sb, &handle);
- }
- 
-@@ -269,9 +269,9 @@ static struct dentry *ocfs2_fh_to_parent(struct super_block *sb,
- 	if (fh_type != 2 || fh_len < 6)
- 		return NULL;
- 
--	parent.ih_blkno = (u64)le32_to_cpu(fid->raw[3]) << 32;
--	parent.ih_blkno |= (u64)le32_to_cpu(fid->raw[4]);
--	parent.ih_generation = le32_to_cpu(fid->raw[5]);
-+	parent.ih_blkno = (u64)le32_to_cpu((__force __le32)fid->raw[3]) << 32;
-+	parent.ih_blkno |= (u64)le32_to_cpu((__force __le32)fid->raw[4]);
-+	parent.ih_generation = le32_to_cpu((__force __le32)fid->raw[5]);
- 	return ocfs2_get_dentry(sb, &parent);
- }
- 
-diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-index 999111bfc271..2cc5c99fe941 100644
---- a/fs/ocfs2/inode.c
-+++ b/fs/ocfs2/inode.c
-@@ -1621,6 +1621,7 @@ static struct super_block *ocfs2_inode_cache_get_super(struct ocfs2_caching_info
- }
- 
- static void ocfs2_inode_cache_lock(struct ocfs2_caching_info *ci)
-+__acquires(&oi->ip_lock)
- {
- 	struct ocfs2_inode_info *oi = cache_info_to_inode(ci);
- 
-@@ -1628,6 +1629,7 @@ static void ocfs2_inode_cache_lock(struct ocfs2_caching_info *ci)
- }
- 
- static void ocfs2_inode_cache_unlock(struct ocfs2_caching_info *ci)
-+__releases(&oi->ip_lock)
- {
- 	struct ocfs2_inode_info *oi = cache_info_to_inode(ci);
- 
-diff --git a/fs/ocfs2/localalloc.c b/fs/ocfs2/localalloc.c
-index b893ef56accd..86cdd60bcaab 100644
---- a/fs/ocfs2/localalloc.c
-+++ b/fs/ocfs2/localalloc.c
-@@ -336,7 +336,7 @@ int ocfs2_load_local_alloc(struct ocfs2_super *osb)
- 		     "found = %u, set = %u, taken = %u, off = %u\n",
- 		     num_used, le32_to_cpu(alloc->id1.bitmap1.i_used),
- 		     le32_to_cpu(alloc->id1.bitmap1.i_total),
--		     OCFS2_LOCAL_ALLOC(alloc)->la_bm_off);
-+		     le32_to_cpu(OCFS2_LOCAL_ALLOC(alloc)->la_bm_off));
- 
- 		status = -EINVAL;
- 		goto bail;
-@@ -1221,7 +1221,7 @@ static int ocfs2_local_alloc_new_window(struct ocfs2_super *osb,
- 			     OCFS2_LOCAL_ALLOC(alloc)->la_bitmap);
- 
- 	trace_ocfs2_local_alloc_new_window_result(
--		OCFS2_LOCAL_ALLOC(alloc)->la_bm_off,
-+		le32_to_cpu(OCFS2_LOCAL_ALLOC(alloc)->la_bm_off),
- 		le32_to_cpu(alloc->id1.bitmap1.i_total));
- 
- bail:
-diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
-index 3f80a56d0d60..1f303b1adf1a 100644
---- a/fs/ocfs2/refcounttree.c
-+++ b/fs/ocfs2/refcounttree.c
-@@ -630,7 +630,7 @@ static int ocfs2_create_refcount_tree(struct inode *inode,
- 	rb->rf_records.rl_count =
- 			cpu_to_le16(ocfs2_refcount_recs_per_rb(osb->sb));
- 	spin_lock(&osb->osb_lock);
--	rb->rf_generation = osb->s_next_generation++;
-+	rb->rf_generation = cpu_to_le32(osb->s_next_generation++);
- 	spin_unlock(&osb->osb_lock);
- 
- 	ocfs2_journal_dirty(handle, new_bh);
--- 
-2.35.3
-
+Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+> ---
+> v5:
+> fix sparse warning for _ocfs2_free_suballoc_bits(), v4 fix is wrong.
+> 
+> v4:
+> fix sparse warning:
+> -  in ocfs2_update_last_group_and_inode(), change
+>    'old_bg_contig_free_bits' type from 'u16' to '__le16'.
+> -  in _ocfs2_free_suballoc_bits(), do le16_to_cpu convert
+>    for assigning 'old_bg_contig_free_bits'.
+> 
+> v3:
+> 1. Fix wrong var length for 'struct ocfs2_group_desc'
+>    .bg_contig_free_bits, change from '__le32' to '__le16'.
+> 2. change all related code to use '__le16' instead of '__le32'.
+>    Please note: change ocfs2_find_max_contig_free_bits() input
+>    parameters and return type to 'u16'.
+> 
+> v2:
+> 1. fix wrong length converting from cpu_to_le16() to cpu_to_le32()
+>    for setting bg->bg_contig_free_bits.
+> 2. change ocfs2_find_max_contig_free_bits return type from 'void' to
+>    'unsigned int'.
+> 3. restore ocfs2_block_group_set_bits() input parameters style, change
+>    parameter 'failure_path' to 'fastpath'.
+> 4. after <3>, add new parameter 'unsigned int max_contig_bits'. 
+> 5. after <3>, restore define 'struct ocfs2_suballoc_result' from
+>    'suballoc.h' to 'suballoc.c'.
+> 6. modify some code indent error.
+> ---
+>  fs/ocfs2/move_extents.c |   2 +-
+>  fs/ocfs2/ocfs2_fs.h     |   3 +-
+>  fs/ocfs2/resize.c       |   8 ++++
+>  fs/ocfs2/suballoc.c     | 100 ++++++++++++++++++++++++++++++++++++----
+>  fs/ocfs2/suballoc.h     |   6 ++-
+>  5 files changed, 108 insertions(+), 11 deletions(-)
+> 
+> diff --git a/fs/ocfs2/move_extents.c b/fs/ocfs2/move_extents.c
+> index 1f9ed117e78b..f9d6a4f9ca92 100644
+> --- a/fs/ocfs2/move_extents.c
+> +++ b/fs/ocfs2/move_extents.c
+> @@ -685,7 +685,7 @@ static int ocfs2_move_extent(struct ocfs2_move_extents_context *context,
+>  	}
+>  
+>  	ret = ocfs2_block_group_set_bits(handle, gb_inode, gd, gd_bh,
+> -					 goal_bit, len);
+> +					 goal_bit, len, 0, 0);
+>  	if (ret) {
+>  		ocfs2_rollback_alloc_dinode_counts(gb_inode, gb_bh, len,
+>  					       le16_to_cpu(gd->bg_chain));
+> diff --git a/fs/ocfs2/ocfs2_fs.h b/fs/ocfs2/ocfs2_fs.h
+> index 7aebdbf5cc0a..c93689b568fe 100644
+> --- a/fs/ocfs2/ocfs2_fs.h
+> +++ b/fs/ocfs2/ocfs2_fs.h
+> @@ -883,7 +883,8 @@ struct ocfs2_group_desc
+>  	__le16	bg_free_bits_count;     /* Free bits count */
+>  	__le16   bg_chain;               /* What chain I am in. */
+>  /*10*/	__le32   bg_generation;
+> -	__le32	bg_reserved1;
+> +	__le16   bg_contig_free_bits;   /* max contig free bits length */
+> +	__le16   bg_reserved1;
+>  	__le64   bg_next_group;          /* Next group in my list, in
+>  					   blocks */
+>  /*20*/	__le64   bg_parent_dinode;       /* dinode which owns me, in
+> diff --git a/fs/ocfs2/resize.c b/fs/ocfs2/resize.c
+> index d65d43c61857..c4a4016d3866 100644
+> --- a/fs/ocfs2/resize.c
+> +++ b/fs/ocfs2/resize.c
+> @@ -91,6 +91,8 @@ static int ocfs2_update_last_group_and_inode(handle_t *handle,
+>  	u16 cl_bpc = le16_to_cpu(cl->cl_bpc);
+>  	u16 cl_cpg = le16_to_cpu(cl->cl_cpg);
+>  	u16 old_bg_clusters;
+> +	u16 contig_bits;
+> +	__le16 old_bg_contig_free_bits;
+>  
+>  	trace_ocfs2_update_last_group_and_inode(new_clusters,
+>  						first_new_cluster);
+> @@ -122,6 +124,11 @@ static int ocfs2_update_last_group_and_inode(handle_t *handle,
+>  		le16_add_cpu(&group->bg_free_bits_count, -1 * backups);
+>  	}
+>  
+> +	contig_bits = ocfs2_find_max_contig_free_bits(group->bg_bitmap,
+> +					le16_to_cpu(group->bg_bits), 0);
+> +	old_bg_contig_free_bits = group->bg_contig_free_bits;
+> +	group->bg_contig_free_bits = cpu_to_le16(contig_bits);
+> +
+>  	ocfs2_journal_dirty(handle, group_bh);
+>  
+>  	/* update the inode accordingly. */
+> @@ -160,6 +167,7 @@ static int ocfs2_update_last_group_and_inode(handle_t *handle,
+>  		le16_add_cpu(&group->bg_free_bits_count, backups);
+>  		le16_add_cpu(&group->bg_bits, -1 * num_bits);
+>  		le16_add_cpu(&group->bg_free_bits_count, -1 * num_bits);
+> +		group->bg_contig_free_bits = old_bg_contig_free_bits;
+>  	}
+>  out:
+>  	if (ret)
+> diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
+> index 166c8918c825..1a7b53fd468d 100644
+> --- a/fs/ocfs2/suballoc.c
+> +++ b/fs/ocfs2/suballoc.c
+> @@ -50,6 +50,10 @@ struct ocfs2_suballoc_result {
+>  	u64		sr_blkno;	/* The first allocated block */
+>  	unsigned int	sr_bit_offset;	/* The bit in the bg */
+>  	unsigned int	sr_bits;	/* How many bits we claimed */
+> +	unsigned int	sr_max_contig_bits; /* The length for contiguous
+> +					     * free bits, only available
+> +					     * for cluster group
+> +					     */
+>  };
+>  
+>  static u64 ocfs2_group_from_res(struct ocfs2_suballoc_result *res)
+> @@ -1272,6 +1276,26 @@ static int ocfs2_test_bg_bit_allocatable(struct buffer_head *bg_bh,
+>  	return ret;
+>  }
+>  
+> +u16 ocfs2_find_max_contig_free_bits(void *bitmap,
+> +			 u16 total_bits, u16 start)
+> +{
+> +	u16 offset, free_bits;
+> +	u16 contig_bits = 0;
+> +
+> +	while (start < total_bits) {
+> +		offset = ocfs2_find_next_zero_bit(bitmap, total_bits, start);
+> +		if (offset == total_bits)
+> +			break;
+> +
+> +		start = ocfs2_find_next_bit(bitmap, total_bits, offset);
+> +		free_bits = start - offset;
+> +		if (contig_bits < free_bits)
+> +			contig_bits = free_bits;
+> +	}
+> +
+> +	return contig_bits;
+> +}
+> +
+>  static int ocfs2_block_group_find_clear_bits(struct ocfs2_super *osb,
+>  					     struct buffer_head *bg_bh,
+>  					     unsigned int bits_wanted,
+> @@ -1280,6 +1304,7 @@ static int ocfs2_block_group_find_clear_bits(struct ocfs2_super *osb,
+>  {
+>  	void *bitmap;
+>  	u16 best_offset, best_size;
+> +	u16 prev_best_size = 0;
+>  	int offset, start, found, status = 0;
+>  	struct ocfs2_group_desc *bg = (struct ocfs2_group_desc *) bg_bh->b_data;
+>  
+> @@ -1308,6 +1333,7 @@ static int ocfs2_block_group_find_clear_bits(struct ocfs2_super *osb,
+>  			/* got a zero after some ones */
+>  			found = 1;
+>  			start = offset + 1;
+> +			prev_best_size = best_size;
+>  		}
+>  		if (found > best_size) {
+>  			best_size = found;
+> @@ -1320,6 +1346,8 @@ static int ocfs2_block_group_find_clear_bits(struct ocfs2_super *osb,
+>  		}
+>  	}
+>  
+> +	/* best_size will be allocated, we save prev_best_size */
+> +	res->sr_max_contig_bits = prev_best_size;
+>  	if (best_size) {
+>  		res->sr_bit_offset = best_offset;
+>  		res->sr_bits = best_size;
+> @@ -1337,11 +1365,15 @@ int ocfs2_block_group_set_bits(handle_t *handle,
+>  					     struct ocfs2_group_desc *bg,
+>  					     struct buffer_head *group_bh,
+>  					     unsigned int bit_off,
+> -					     unsigned int num_bits)
+> +					     unsigned int num_bits,
+> +					     unsigned int max_contig_bits,
+> +					     int fastpath)
+>  {
+>  	int status;
+>  	void *bitmap = bg->bg_bitmap;
+>  	int journal_type = OCFS2_JOURNAL_ACCESS_WRITE;
+> +	unsigned int start = bit_off + num_bits;
+> +	u16 contig_bits;
+>  
+>  	/* All callers get the descriptor via
+>  	 * ocfs2_read_group_descriptor().  Any corruption is a code bug. */
+> @@ -1373,6 +1405,28 @@ int ocfs2_block_group_set_bits(handle_t *handle,
+>  	while(num_bits--)
+>  		ocfs2_set_bit(bit_off++, bitmap);
+>  
+> +	/*
+> +	 * this is optimize path, caller set old contig value
+> +	 * in max_contig_bits to bypass finding action.
+> +	 */
+> +	if (fastpath) {
+> +		bg->bg_contig_free_bits = cpu_to_le16(max_contig_bits);
+> +	} else if (ocfs2_is_cluster_bitmap(alloc_inode)) {
+> +		/*
+> +		 * Usually, the block group bitmap allocates only 1 bit
+> +		 * at a time, while the cluster group allocates n bits
+> +		 * each time. Therefore, we only save the contig bits for
+> +		 * the cluster group.
+> +		 */
+> +		contig_bits = ocfs2_find_max_contig_free_bits(bitmap,
+> +				    le16_to_cpu(bg->bg_bits), start);
+> +		if (contig_bits > max_contig_bits)
+> +			max_contig_bits = contig_bits;
+> +		bg->bg_contig_free_bits = cpu_to_le16(max_contig_bits);
+> +	} else {
+> +		bg->bg_contig_free_bits = 0;
+> +	}
+> +
+>  	ocfs2_journal_dirty(handle, group_bh);
+>  
+>  bail:
+> @@ -1486,7 +1540,12 @@ static int ocfs2_cluster_group_search(struct inode *inode,
+>  
+>  	BUG_ON(!ocfs2_is_cluster_bitmap(inode));
+>  
+> -	if (gd->bg_free_bits_count) {
+> +	if (le16_to_cpu(gd->bg_contig_free_bits) &&
+> +	    le16_to_cpu(gd->bg_contig_free_bits) < bits_wanted)
+> +		return -ENOSPC;
+> +
+> +	/* ->bg_contig_free_bits may un-initialized, so compare again */
+> +	if (le16_to_cpu(gd->bg_free_bits_count) >= bits_wanted) {
+>  		max_bits = le16_to_cpu(gd->bg_bits);
+>  
+>  		/* Tail groups in cluster bitmaps which aren't cpg
+> @@ -1555,7 +1614,7 @@ static int ocfs2_block_group_search(struct inode *inode,
+>  	BUG_ON(min_bits != 1);
+>  	BUG_ON(ocfs2_is_cluster_bitmap(inode));
+>  
+> -	if (bg->bg_free_bits_count) {
+> +	if (le16_to_cpu(bg->bg_free_bits_count) >= bits_wanted) {
+>  		ret = ocfs2_block_group_find_clear_bits(OCFS2_SB(inode->i_sb),
+>  							group_bh, bits_wanted,
+>  							le16_to_cpu(bg->bg_bits),
+> @@ -1715,7 +1774,8 @@ static int ocfs2_search_one_group(struct ocfs2_alloc_context *ac,
+>  	}
+>  
+>  	ret = ocfs2_block_group_set_bits(handle, alloc_inode, gd, group_bh,
+> -					 res->sr_bit_offset, res->sr_bits);
+> +					 res->sr_bit_offset, res->sr_bits,
+> +					 res->sr_max_contig_bits, 0);
+>  	if (ret < 0) {
+>  		ocfs2_rollback_alloc_dinode_counts(alloc_inode, ac->ac_bh,
+>  					       res->sr_bits,
+> @@ -1849,7 +1909,9 @@ static int ocfs2_search_chain(struct ocfs2_alloc_context *ac,
+>  					    bg,
+>  					    group_bh,
+>  					    res->sr_bit_offset,
+> -					    res->sr_bits);
+> +					    res->sr_bits,
+> +					    res->sr_max_contig_bits,
+> +					    0);
+>  	if (status < 0) {
+>  		ocfs2_rollback_alloc_dinode_counts(alloc_inode,
+>  					ac->ac_bh, res->sr_bits, chain);
+> @@ -2163,7 +2225,9 @@ int ocfs2_claim_new_inode_at_loc(handle_t *handle,
+>  					 bg,
+>  					 bg_bh,
+>  					 res->sr_bit_offset,
+> -					 res->sr_bits);
+> +					 res->sr_bits,
+> +					 res->sr_max_contig_bits,
+> +					 0);
+>  	if (ret < 0) {
+>  		ocfs2_rollback_alloc_dinode_counts(ac->ac_inode,
+>  					       ac->ac_bh, res->sr_bits, chain);
+> @@ -2382,11 +2446,13 @@ static int ocfs2_block_group_clear_bits(handle_t *handle,
+>  					struct buffer_head *group_bh,
+>  					unsigned int bit_off,
+>  					unsigned int num_bits,
+> +					unsigned int max_contig_bits,
+>  					void (*undo_fn)(unsigned int bit,
+>  							unsigned long *bmap))
+>  {
+>  	int status;
+>  	unsigned int tmp;
+> +	u16 contig_bits;
+>  	struct ocfs2_group_desc *undo_bg = NULL;
+>  	struct journal_head *jh;
+>  
+> @@ -2433,6 +2499,20 @@ static int ocfs2_block_group_clear_bits(handle_t *handle,
+>  				   num_bits);
+>  	}
+>  
+> +	/*
+> +	 * TODO: even 'num_bits == 1' (the worst case, release 1 cluster),
+> +	 * we still need to rescan whole bitmap.
+> +	 */
+> +	if (ocfs2_is_cluster_bitmap(alloc_inode)) {
+> +		contig_bits = ocfs2_find_max_contig_free_bits(bg->bg_bitmap,
+> +				    le16_to_cpu(bg->bg_bits), 0);
+> +		if (contig_bits > max_contig_bits)
+> +			max_contig_bits = contig_bits;
+> +		bg->bg_contig_free_bits = cpu_to_le16(max_contig_bits);
+> +	} else {
+> +		bg->bg_contig_free_bits = 0;
+> +	}
+> +
+>  	if (undo_fn)
+>  		spin_unlock(&jh->b_state_lock);
+>  
+> @@ -2459,6 +2539,7 @@ static int _ocfs2_free_suballoc_bits(handle_t *handle,
+>  	struct ocfs2_chain_list *cl = &fe->id2.i_chain;
+>  	struct buffer_head *group_bh = NULL;
+>  	struct ocfs2_group_desc *group;
+> +	__le16 old_bg_contig_free_bits = 0;
+>  
+>  	/* The alloc_bh comes from ocfs2_free_dinode() or
+>  	 * ocfs2_free_clusters().  The callers have all locked the
+> @@ -2483,9 +2564,11 @@ static int _ocfs2_free_suballoc_bits(handle_t *handle,
+>  
+>  	BUG_ON((count + start_bit) > le16_to_cpu(group->bg_bits));
+>  
+> +	if (ocfs2_is_cluster_bitmap(alloc_inode))
+> +		old_bg_contig_free_bits = group->bg_contig_free_bits;
+>  	status = ocfs2_block_group_clear_bits(handle, alloc_inode,
+>  					      group, group_bh,
+> -					      start_bit, count, undo_fn);
+> +					      start_bit, count, 0, undo_fn);
+>  	if (status < 0) {
+>  		mlog_errno(status);
+>  		goto bail;
+> @@ -2496,7 +2579,8 @@ static int _ocfs2_free_suballoc_bits(handle_t *handle,
+>  	if (status < 0) {
+>  		mlog_errno(status);
+>  		ocfs2_block_group_set_bits(handle, alloc_inode, group, group_bh,
+> -				start_bit, count);
+> +				start_bit, count,
+> +				le16_to_cpu(old_bg_contig_free_bits), 1);
+>  		goto bail;
+>  	}
+>  
+> diff --git a/fs/ocfs2/suballoc.h b/fs/ocfs2/suballoc.h
+> index 9c74eace3adc..b481b834857d 100644
+> --- a/fs/ocfs2/suballoc.h
+> +++ b/fs/ocfs2/suballoc.h
+> @@ -79,12 +79,16 @@ void ocfs2_rollback_alloc_dinode_counts(struct inode *inode,
+>  			 struct buffer_head *di_bh,
+>  			 u32 num_bits,
+>  			 u16 chain);
+> +u16 ocfs2_find_max_contig_free_bits(void *bitmap,
+> +			 u16 total_bits, u16 start);
+>  int ocfs2_block_group_set_bits(handle_t *handle,
+>  			 struct inode *alloc_inode,
+>  			 struct ocfs2_group_desc *bg,
+>  			 struct buffer_head *group_bh,
+>  			 unsigned int bit_off,
+> -			 unsigned int num_bits);
+> +			 unsigned int num_bits,
+> +			 unsigned int max_contig_bits,
+> +			 int fastpath);
+>  
+>  int ocfs2_claim_metadata(handle_t *handle,
+>  			 struct ocfs2_alloc_context *ac,
