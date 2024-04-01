@@ -1,125 +1,137 @@
-Received: from out30-119.freemail.mail.aliyun.com (out30-119.freemail.mail.aliyun.com [115.124.30.119])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-lj1-f181.google.com (mail-lj1-f181.google.com [209.85.208.181])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A2B6A10E5
-	for <ocfs2-devel@lists.linux.dev>; Mon,  1 Apr 2024 02:02:34 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.119
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 734D31C2D
+	for <ocfs2-devel@lists.linux.dev>; Mon,  1 Apr 2024 03:51:27 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.208.181
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1711936957; cv=none; b=nhyDUV/+7eUqpFGzqepF3g1smTYN48ZNROoNpg6ZoX4rTseEaQQYw5jWSWqWCV2SjcfFgIh0u62XhyPeYnocyaLpEKzV66ycHqNBD7T4ZuonefnCa2X0OEetl8UBhoCdNOFQJlqxXCmwyzzysmRZetbDrtvgT2cWPM9oiYGc6+A=
+	t=1711943490; cv=none; b=d2+iIcNkZrYzI0kiCmUdfIf/9kZAO09ryykc0JiJWuCcdApQTqHTXNiMsY9h7Dy9mye4EejJrqzya4y8W1isX73Hy4UQmtnSRGJHjYX2j7CHN04SwSgcn0zHzLj1lLVnnOd7L3S4w6E/C2DhWQLUEItyk9TRCm1HR/12uI78+Tc=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1711936957; c=relaxed/simple;
-	bh=D11JDRVNc9HNF9p4HvetAa4/1XREDtMeY5ZEd3OAHWo=;
-	h=Message-ID:Date:MIME-Version:Subject:To:References:From:
-	 In-Reply-To:Content-Type; b=cF9sSlHQAKG2mHJRYE/VOlCRaDE3Lt0dBVrJhCPcfxsN2gVeKgR87YqAHCu5KHl1HvZRbROY4LIEizHyDUZ2B5gfEPDH8jDGzF7x0+45eF4k1apoJ6LRKhax7c4w18o9BsMvmU3Se5bZ4dUt4p78Jz+4HtXuJ9vKvxiRLa7Ant0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=jCLvT+CS; arc=none smtp.client-ip=115.124.30.119
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
+	s=arc-20240116; t=1711943490; c=relaxed/simple;
+	bh=eviQCwf2m5wu33J+iMuhand6ORKdtOPjqUCzKDa4ml0=;
+	h=Content-Type:Mime-Version:Subject:From:In-Reply-To:Date:Cc:
+	 Message-Id:References:To; b=SXhuX3u83SUZ8MqjQ61fDP+gV/VM/b7B2bzrvd2kEzGQPwRqk5CH3OQ+nE7Xfb0BAWLVIHgLb52a33w4H/kX/MIEiQlIBrPX55vpPAE5PWjOeom6smNCLQ9BCPig91yjEto54dHzZjzYgaTzqrIsdSeGGsU1I0nJuCv0vLFp6+E=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=L7eG9UWD; arc=none smtp.client-ip=209.85.208.181
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="jCLvT+CS"
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1711936952; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=RRlIDCtJMCOOCGDDe9SB5YSU6CBOK+X9O0XHZnS0MaI=;
-	b=jCLvT+CSH/SXZZQtMgN0/k9Fj5HhuzkqIXfIvZ7KcC4uGDM7e3mb3JXdvDZfxOHYRxBDmmxjrmZHteJysSXTw10aGTYJ8kOAvE0ocH9KcOvH31kItq/OyYfb+Db3LFDyYAr8SOHp1ZzR7VZcIxTYoIfUDEmtptFwMn1KXLxiieg=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R701e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=ay29a033018046049;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=3;SR=0;TI=SMTPD_---0W3d8LOo_1711936951;
-Received: from 30.221.128.209(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0W3d8LOo_1711936951)
-          by smtp.aliyun-inc.com;
-          Mon, 01 Apr 2024 10:02:31 +0800
-Message-ID: <aefacf75-b77d-4217-8c59-813263127016@linux.alibaba.com>
-Date: Mon, 1 Apr 2024 10:02:30 +0800
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="L7eG9UWD"
+Received: by mail-lj1-f181.google.com with SMTP id 38308e7fff4ca-2d6a1af9c07so41949361fa.3
+        for <ocfs2-devel@lists.linux.dev>; Sun, 31 Mar 2024 20:51:27 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=suse.com; s=google; t=1711943485; x=1712548285; darn=lists.linux.dev;
+        h=to:references:message-id:content-transfer-encoding:cc:date
+         :in-reply-to:from:subject:mime-version:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=eviQCwf2m5wu33J+iMuhand6ORKdtOPjqUCzKDa4ml0=;
+        b=L7eG9UWDdgIzouAlmypk5olM49Eu9W+U46uhi5WAjKw3o68EM2zOGvU0r4QMyCJcxw
+         9GHcnYR87bfBwM74JIDWgK8jiSX2MXmdKBevDvaPVqGjEY+azgjKqbrMlftyu8uwvM90
+         vztMdrS4ys41pcBny+Pj9c9vXoPiW2+v+HN8pF9k+J5pclX5+6G5UMJ/7+jePS1383rA
+         uIFrmST6NgH4KnvoaXhhLR/CeL1MwtHDjadrtgMhmO9gSxOertP56vsgipbKXHn/Q7A7
+         U7/3l+pxcKp/7VN9YaTiteyNB1QfYas9pMmkWwWgqx7/xKwjZw6FAhgZDX6Ttgelxzub
+         Vj8g==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1711943485; x=1712548285;
+        h=to:references:message-id:content-transfer-encoding:cc:date
+         :in-reply-to:from:subject:mime-version:x-gm-message-state:from:to:cc
+         :subject:date:message-id:reply-to;
+        bh=eviQCwf2m5wu33J+iMuhand6ORKdtOPjqUCzKDa4ml0=;
+        b=OKYy394hxlpF/J4+l67pysdfwOaxTkkdfUoMa5yNU/Vi6w0JB3qkRlykVdYj/A9+J8
+         Szg3lcJ9TzLDtUDH7GpJffdBjbSyu5TdsHie0c3rU70Jjorifh664SV+T07IqcU8/Inf
+         yCh+i0+F9ugQ2odwaDaCRhi+SMUIdpOqF+ibQulOZ0bzazJqmy5CL9QFoOh9Olz+zwd1
+         SKqkuNkWR5DSd7ZDSijEPXzPgeuiCrGMHMZ8eGtaWJw2znI34vkrA6wQUjHoPEy2waKx
+         nbyExGPtwzOLwIE6PYq6hfxKsdyYl2F3Q04T9QPrhxe25ZmEskLl+Q5JPkDYFh4jmYYh
+         J2gQ==
+X-Gm-Message-State: AOJu0Yz88XiDn4TB0Dzo2zZRG7dQ+1tSQv+SkCG6Cqw37KOYD9RuDgPj
+	sD+lu+SsP6dnQx/NqUOq8dun9z2ezM1vlp3m6jf1Hlo2AVSzOWsW9g5pbqVAxgc=
+X-Google-Smtp-Source: AGHT+IGpv9m2LVmZfKAkt99wyRkwnbC/kXf/HuAbM8CgN9b06IdHn+jaWoRiEne/MWLyjnQkSDJbUg==
+X-Received: by 2002:a05:651c:a0e:b0:2d6:dbf2:bb19 with SMTP id k14-20020a05651c0a0e00b002d6dbf2bb19mr5347949ljq.50.1711943485490;
+        Sun, 31 Mar 2024 20:51:25 -0700 (PDT)
+Received: from smtpclient.apple (ec2-13-212-91-37.ap-southeast-1.compute.amazonaws.com. [13.212.91.37])
+        by smtp.gmail.com with ESMTPSA id y15-20020a17090ad70f00b002a2167c9cf5sm4712031pju.35.2024.03.31.20.51.23
+        (version=TLS1_2 cipher=ECDHE-ECDSA-AES128-GCM-SHA256 bits=128/128);
+        Sun, 31 Mar 2024 20:51:25 -0700 (PDT)
+Content-Type: text/plain;
+	charset=utf-8
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
-MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH 4/4] ocfs2: use coarse time for new created files
-Content-Language: en-US
-To: Su Yue <glass.su@suse.com>, ocfs2-devel@lists.linux.dev,
- akpm <akpm@linux-foundation.org>
+Mime-Version: 1.0 (Mac OS X Mail 16.0 \(3774.200.91.1.1\))
+Subject: Re: [PATCH 1/4] ocfs2: return real error code in
+ ocfs2_dio_wr_get_block
+From: Su Yue <glass.su@suse.com>
+In-Reply-To: <3d6a2f6b-e345-4e31-9388-4d52c9a39739@linux.alibaba.com>
+Date: Mon, 1 Apr 2024 11:51:10 +0800
+Cc: ocfs2-devel@lists.linux.dev
+Content-Transfer-Encoding: quoted-printable
+Message-Id: <AB214E23-7DF8-4F12-8867-2286712DD467@suse.com>
 References: <20240331111744.7224-1-l@damenly.org>
- <20240331111744.7224-5-l@damenly.org>
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <20240331111744.7224-5-l@damenly.org>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+ <20240331111744.7224-2-l@damenly.org>
+ <3d6a2f6b-e345-4e31-9388-4d52c9a39739@linux.alibaba.com>
+To: Joseph Qi <joseph.qi@linux.alibaba.com>
+X-Mailer: Apple Mail (2.3774.200.91.1.1)
 
 
 
-On 3/31/24 7:17 PM, Su Yue wrote:
-> From: Su Yue <glass.su@suse.com>
-> 
-> The default atime related mount option is '-o realtime'
-> which means file atime should be updated if atime <= ctime
-> or atime <= mtime. atime should be updated in the
-> following scenario, but it is not:
-> ==========================================================
-> $ rm /mnt/testfile;
-> $ echo test > /mnt/testfile
-> $ stat -c "%X %Y %Z" /mnt/testfile
-> 1711881646 1711881646 1711881646
-> $ sleep 5
-> $ cat /mnt/testfile > /dev/null
-> $ stat -c "%X %Y %Z" /mnt/testfile
-> 1711881646 1711881646 1711881646
-> ==========================================================
-> 
-> And the reason the atime in the test is not updated is that
-> ocfs2 calls ktime_get_real_ts64() in __ocfs2_mknod_locked during
-> file creation. Then inode_set_ctime_current() is called in
-> inode_set_ctime_current() calls ktime_get_coarse_real_ts64() to
-> get current time.
-> ktime_get_real_ts64() is accurater than ktime_get_coarse_real_ts64().
-> In my test box, I saw ctime set by ktime_get_coarse_real_ts64() is
-> less than ktime_get_real_ts64() even ctime is set later.
-> The ctime of the new inode is smaller than atime.
-> 
-> The call trace is like:
-> 
-> ocfs2_create
->   ocfs2_mknod
->     __ocfs2_mknod_locked
->     ....
-> 
->       ktime_get_real_ts64 <------- set atime,ctime,mtime, more accurate
->       ocfs2_populate_inode
->     ...
->     ocfs2_init_acl
->       ocfs2_acl_set_mode
->         inode_set_ctime_current
->           current_time
->             ktime_get_coarse_real_ts64 <-------less accurate
-> 
-> ocfs2_file_read_iter
->   ocfs2_inode_lock_atime
->     ocfs2_should_update_atime
->       atime <= ctime ? <-------- false, ctime < atime due to accuracy
-> 
-> So here call ktime_get_coarse_real_ts64 to set inode time coarser while
-> creating new files. It may lower the accuracy of file times. But it's not
-> a big deal since we already use coarse time in other places like
-> ocfs2_update_inode_atime and inode_set_ctime_current.
-> 
-> Signed-off-by: Su Yue <glass.su@suse.com>
+> On Apr 1, 2024, at 09:44, Joseph Qi <joseph.qi@linux.alibaba.com> =
+wrote:
+>=20
+>=20
+>=20
+> On 3/31/24 7:17 PM, Su Yue wrote:
+>> From: Su Yue <glass.su@suse.com>
+>>=20
+>> ocfs2_dio_wr_get_block always returns -EIO in case of errors.
+>> However, some programs expect right exit codes while doing dio.
+>> For example, tools like fio treat -ENOSPC as expected code while
+>> doing stress jobs. And quota tools expect -QUOTA when disk quota
+>=20
+> EDQUOT?
+>=20
 
-Looks reasonable.
-Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+Right.
 
-> ---
->  fs/ocfs2/namei.c | 2 +-
->  1 file changed, 1 insertion(+), 1 deletion(-)
-> 
-> diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
-> index 55c9d90caaaf..4d1ea8703fcd 100644
-> --- a/fs/ocfs2/namei.c
-> +++ b/fs/ocfs2/namei.c
-> @@ -566,7 +566,7 @@ static int __ocfs2_mknod_locked(struct inode *dir,
->  	fe->i_last_eb_blk = 0;
->  	strcpy(fe->i_signature, OCFS2_INODE_SIGNATURE);
->  	fe->i_flags |= cpu_to_le32(OCFS2_VALID_FL);
-> -	ktime_get_real_ts64(&ts);
-> +	ktime_get_coarse_real_ts64(&ts);
->  	fe->i_atime = fe->i_ctime = fe->i_mtime =
->  		cpu_to_le64(ts.tv_sec);
->  	fe->i_mtime_nsec = fe->i_ctime_nsec = fe->i_atime_nsec =
+>> exceededs.
+>=20
+> s/exceededs/exceeds
+>=20
+
+Sorry for the typos.
+
+>>=20
+>> -EIO is too strong return code in the dio path. I have checked
+>> return codes from collees of ocfs2_dio_wr_get_block to make sure
+>=20
+> s/collees/callers
+
+The caller of ocfs2_dio_wr_get_block is __blockdev_direct_IO which
+Is widely used and it handles error codes well. Here I mean the
+functions called by ocfs2_dio_wr_get_block and their return codes look
+good and clear. I will make it clear in next version. Thanks.
+
+=E2=80=94=20
+Su
+>=20
+>> the change does not hurt us.
+>>=20
+>> Signed-off-by: Su Yue <glass.su@suse.com>> ---
+>> fs/ocfs2/aops.c | 2 --
+>> 1 file changed, 2 deletions(-)
+>>=20
+>> diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+>> index b82185075de7..f0467d3b3c88 100644
+>> --- a/fs/ocfs2/aops.c
+>> +++ b/fs/ocfs2/aops.c
+>> @@ -2283,8 +2283,6 @@ static int ocfs2_dio_wr_get_block(struct inode =
+*inode, sector_t iblock,
+>> ocfs2_inode_unlock(inode, 1);
+>> brelse(di_bh);
+>> out:
+>> - if (ret < 0)
+>> - ret =3D -EIO;
+>> return ret;
+>> }
+>>=20
+
