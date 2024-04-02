@@ -1,65 +1,65 @@
-Received: from mail-lj1-f178.google.com (mail-lj1-f178.google.com [209.85.208.178])
+Received: from mail-lj1-f177.google.com (mail-lj1-f177.google.com [209.85.208.177])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3712CD502
-	for <ocfs2-devel@lists.linux.dev>; Tue,  2 Apr 2024 01:47:10 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.208.178
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 01076D502
+	for <ocfs2-devel@lists.linux.dev>; Tue,  2 Apr 2024 01:47:13 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.208.177
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1712022433; cv=none; b=hiyfDzew7H1JLexD+ZF3LCxPEbl9uBvllZRFmDyma7lCXuerb8XaQ+1JX/4CnXJYSktXERslUYpCSleg2POf9x+UlCuJEDrTqzFuhmejIBxQF+NARm7z45BxHxHjK54qwms99JWie332Z4tEEyOQtD5jDFbvuhUcNpAnFXdwwlQ=
+	t=1712022436; cv=none; b=fkup0FIzsIQB3acRJ2DaWtzfwTVEAeO/g+s93LyZt3EkLxVvdadqydfYqwLtqP6ieRymvLOEBH8BJXrIkp5bsvmjgw7p5XGcpu2ujytBnKHTHcVxflCdbiCCHYsIBffTqUvm01NlR/URwtnL/H85xA2XO5iCssXge4Jv5Q5wW+w=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1712022433; c=relaxed/simple;
-	bh=T6YcWO6odH19dheHFRMWYbNzbnGbdaXZP3QNSkwknI8=;
+	s=arc-20240116; t=1712022436; c=relaxed/simple;
+	bh=TIoj4b8I1jHFhfIoJ65OFf4T7AVTmE6ONB18D06FN+M=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=hfuje10+GbZVUfoSEt0zrtlDAQU+AbC1W8A+yV60gc8C19ibj7r5noN4vShoGfXP6w9i/YIdbrKAsm9gC86Ls94jaY7mUvLGnfKq9YVzXBI9UA0JiYNSLKGdzju4vDfHVGXTcdfobAVPRJTOuGS/5pGyvYrJy0ALPaNhqmyfImU=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=Ko8J50pt; arc=none smtp.client-ip=209.85.208.178
+	 MIME-Version; b=DQ7H6bSYuxVdffwXKMJnUw3uNzLY0YU6K3bcLVT3w8qbnkbE2SNE0ct3Ob65E9t9S4yt5Jvakqu2rEW865OlG4Log/5GMIiSKSRj8uiYWU565NLcixD5VLTdl6j1VwlQ26FC8witBCtFJWidY4r1+P7WYDHvnXWoEMoPjHjxDrk=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=ZpSUunAU; arc=none smtp.client-ip=209.85.208.177
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="Ko8J50pt"
-Received: by mail-lj1-f178.google.com with SMTP id 38308e7fff4ca-2d476d7972aso66862271fa.1
-        for <ocfs2-devel@lists.linux.dev>; Mon, 01 Apr 2024 18:47:10 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="ZpSUunAU"
+Received: by mail-lj1-f177.google.com with SMTP id 38308e7fff4ca-2d6ee6c9945so34331491fa.3
+        for <ocfs2-devel@lists.linux.dev>; Mon, 01 Apr 2024 18:47:13 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=suse.com; s=google; t=1712022428; x=1712627228; darn=lists.linux.dev;
+        d=suse.com; s=google; t=1712022431; x=1712627231; darn=lists.linux.dev;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:cc:to:from:from:to:cc:subject:date
          :message-id:reply-to;
-        bh=joMMQ8AjA2B9z22TdhbD/nK3xkrl8x7U3+m4r0dQeuo=;
-        b=Ko8J50ptoskfur5N+zJj9BsiOds3kKUy6G8LaXS2HLU8E1pA5MGQh3gNF8PMxScA0D
-         7fNj7zScjCit3oNpvwhoMmuTpJ7d0NSbL5DJR0rQ+biceqFIFcc9f+rUpSm8NywdF3R7
-         knAP2qM5rvKEBmTnE/v0LCRF9xteWP+qgw1AIlkaJxlSk6bjS8TTFMNfyYssqUdunc/H
-         qC1Dn6sk89dLIWbWoSB8q45SDQcgUuvD89kqHenxZUH1M69LLDcH91pNCtIGjOspxJXV
-         UsqVl85gNQ3a2BVWdxXwTc/aVaYjqTcYccdq3cOXwbrlap7/wJL2YiFvwr6Dkbywuy48
-         TB1Q==
+        bh=dCUgws6X8Sh5TTfS/1uimD3a4eMEXUsrpssDQsUE2PY=;
+        b=ZpSUunAU4k6jYbLS4lC/0P0VIPFkhiJFZM0myQeSI1xwwo4gk2aVvyz36r/PMJFsm+
+         5fKSj8lF8LKmAYtBICK1VCafm7rTes2lsoWKGLKxiAkuBKpya7s3umAUaYnLSROIIOCx
+         RpGaCFkFPRWy+q/nhgvkThOrL70+4rB/9y87m4uGIoAop04YxcWm3zNKFiw37tnqBIji
+         G/Yq3JElMwg8IjZo6BG2M3JiSwPK7miHD1JaPJrW7tStkVdvMlJtjneaFG3XuDeth3uE
+         Hz17tkg/FNxHd6rfvoDG2Py9YTtN73C76sKDKGsv3FdzZ9qiWhOWGNQBP+2UKn77hjNZ
+         61oQ==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1712022428; x=1712627228;
+        d=1e100.net; s=20230601; t=1712022431; x=1712627231;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:cc:to:from:x-gm-message-state:from:to:cc
          :subject:date:message-id:reply-to;
-        bh=joMMQ8AjA2B9z22TdhbD/nK3xkrl8x7U3+m4r0dQeuo=;
-        b=EUH4zqMIRlbWdyoNDco8ayyrhWm+PO/goXKGRl80JgrWeHz5+hBSnRfO377ZNKqGnH
-         QZZcz7RVR6IV+CvkV253HKtkC4JVQiK81XJhduhQkW+WxFlBcN3wj6hiy4QwWlvcePJw
-         eHdcc7ezeXLbfO+vVF2XqR1TK/F+Ft9GLfDEkDMqr9BgOf5iWMzcHf3mPekAZMByEgzC
-         TStraOp2msc9StuO8WJoe4qtfRBnTliTiRIXYw2xkgR96oQy3mCACaC3IAMElmoAuMzw
-         1XEsrDiToi5lVKlgAFH7l2PJuSSQg3qXF86a9XWgIfve8lGmVGXEonXDCboWmGJVfvbR
-         VZhg==
-X-Gm-Message-State: AOJu0YwKXp+9bWuRhTsvuBzseVMzaEjoNqak3LzEOVUe1bIqti0V0sqL
-	vrLfqbRRY6MkUb0yB0ICna5+63tVfAOExTOD+hK2LDSmg1LqXD8tZk5IAK+zTl1DdG/+c0llerI
-	9Dvg=
-X-Google-Smtp-Source: AGHT+IFsxnthheZS/7ytHL7jOEB6VxeyXymSkaikEFtdSqlkfjcdYjx+3d8klll9FyihvaKgBHGrKw==
-X-Received: by 2002:a2e:9b07:0:b0:2d6:c2b9:9118 with SMTP id u7-20020a2e9b07000000b002d6c2b99118mr7238642lji.46.1712022428736;
-        Mon, 01 Apr 2024 18:47:08 -0700 (PDT)
+        bh=dCUgws6X8Sh5TTfS/1uimD3a4eMEXUsrpssDQsUE2PY=;
+        b=UZcUq94O1pAcViC+x7OQNvevTx3sAF+V0peOeVLwqoyGjbd2a4F5SzUeBs/08e0CXz
+         EFEPJEdfT7xHnSwcTYWCtUTyrgjeyQk2SgXA+yX4TbmCX9yzGoaV49RefvqSzmffTE3T
+         vMawIbM3Dc7bwSonGmN7ApqJKa5nZJuQdjfwc6wNaeZQy5N0PsnXNu8vekYqkvSk34ht
+         iV7fsC5GwopC0c25r0CtXAM265Af1AJt9CzFscWIxkpImVE+WlPN7BQveSm/JdloyENN
+         85jbE/fWU34uHdOLMdqkZSd50LIvSdK09EOFalvS70STy8oG8Y2VfAxkL6y8zAXzQeuk
+         TeXw==
+X-Gm-Message-State: AOJu0Yw1KLKhqu9KqQbcuudW1uZBwP0NvLTDN7HCNXuogYzrJmSIx9BU
+	cUOFpRvtFApwt/cT+XWMV5h2hoI0MbR7QoJS+vMV1XEebsI0N7NOEN8P8RIsWuBhv43ISIOck3K
+	x5FE=
+X-Google-Smtp-Source: AGHT+IH/Lyjv2zbbb+yO9QBNG6yXqj3OrpJfC/SOBYYJPWr7HOljF4ZAEAiIHE/EOrEPUZTFIbwWLQ==
+X-Received: by 2002:a2e:9059:0:b0:2d8:2714:6d2 with SMTP id n25-20020a2e9059000000b002d8271406d2mr746401ljg.3.1712022431451;
+        Mon, 01 Apr 2024 18:47:11 -0700 (PDT)
 Received: from localhost.localdomain (ec2-13-212-91-37.ap-southeast-1.compute.amazonaws.com. [13.212.91.37])
-        by smtp.gmail.com with ESMTPSA id le15-20020a056a004fcf00b006eade394613sm8049125pfb.198.2024.04.01.18.47.06
+        by smtp.gmail.com with ESMTPSA id le15-20020a056a004fcf00b006eade394613sm8049125pfb.198.2024.04.01.18.47.09
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Mon, 01 Apr 2024 18:47:08 -0700 (PDT)
+        Mon, 01 Apr 2024 18:47:10 -0700 (PDT)
 From: Su Yue <glass.su@suse.com>
 To: ocfs2-devel@lists.linux.dev
 Cc: joseph.qi@linux.alibaba.com,
 	akpm@linux-foundation.org,
 	Su Yue <glass.su@suse.com>
-Subject: [PATCH v2 1/4] ocfs2: return real error code in ocfs2_dio_wr_get_block
-Date: Tue,  2 Apr 2024 09:46:48 +0800
-Message-ID: <20240402014651.13723-2-glass.su@suse.com>
+Subject: [PATCH v2 2/4] ocfs2: fix races between hole punching and AIO+DIO
+Date: Tue,  2 Apr 2024 09:46:49 +0800
+Message-ID: <20240402014651.13723-3-glass.su@suse.com>
 X-Mailer: git-send-email 2.44.0
 In-Reply-To: <20240402014651.13723-1-glass.su@suse.com>
 References: <20240402014651.13723-1-glass.su@suse.com>
@@ -71,37 +71,85 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-ocfs2_dio_wr_get_block always returns -EIO in case of errors.
-However, some programs expect right exit codes while doing dio.
-For example, tools like fio treat -ENOSPC as expected code while
-doing stress jobs. And quota tools expect -EDQUOT when disk quota
-exceeds.
+After commit "ocfs2: return real error code in ocfs2_dio_wr_get_block",
+fstests/generic/300 become from always failed to sometimes failed:
 
--EIO is too strong return code in the dio path.
-The caller of ocfs2_dio_wr_get_block is __blockdev_direct_IO which is
-widely used and it handles error codes well. I have checked functions
-called by ocfs2_dio_wr_get_block and their return codes look good and
-clear. So I think it's safe to let ocfs2_dio_wr_get_block return real
-error code.
+========================================================================
+[  473.293420 ] run fstests generic/300
 
+[  475.296983 ] JBD2: Ignoring recovery information on journal
+[  475.302473 ] ocfs2: Mounting device (253,1) on (node local, slot 0)
+with ordered data mode.
+[  494.290998 ] OCFS2: ERROR (device dm-1): ocfs2_change_extent_flag:
+Owner 5668 has an extent at cpos 78723 which can no longer be found
+[  494.291609 ] On-disk corruption discovered. Please run fsck.ocfs2
+once the filesystem is unmounted.
+[  494.292018 ] OCFS2: File system is now read-only.
+[  494.292224 ] (kworker/19:11,2628,19):ocfs2_mark_extent_written:5272
+ERROR: status = -30
+[  494.292602 ] (kworker/19:11,2628,19):ocfs2_dio_end_io_write:2374
+ERROR: status = -3
+fio: io_u error on file /mnt/scratch/racer: Read-only file system: write
+offset=460849152, buflen=131072
+=========================================================================
+
+In __blockdev_direct_IO, ocfs2_dio_wr_get_block is called to add
+unwritten extents to a list. extents are also inserted into extent tree
+in ocfs2_write_begin_nolock. Then another thread call fallocate to
+puch a hole at one of the unwritten extent. The extent at cpos was
+removed by ocfs2_remove_extent(). At end io worker thread,
+ocfs2_search_extent_list found there is no such extent at the cpos.
+
+    T1                        T2                T3
+                              inode lock
+                                ...
+                                insert extents
+                                ...
+                              inode unlock
+ocfs2_fallocate
+ __ocfs2_change_file_space
+  inode lock
+  lock ip_alloc_sem
+  ocfs2_remove_inode_range inode
+   ocfs2_remove_btree_range
+    ocfs2_remove_extent
+    ^---remove the extent at cpos 78723
+  ...
+  unlock ip_alloc_sem
+  inode unlock
+                                       ocfs2_dio_end_io
+                                        ocfs2_dio_end_io_write
+                                         lock ip_alloc_sem
+                                         ocfs2_mark_extent_written
+                                          ocfs2_change_extent_flag
+                                           ocfs2_search_extent_list
+                                           ^---failed to find extent
+                                          ...
+                                          unlock ip_alloc_sem
+
+In most filesystems, fallocate is not compatible with racing with
+AIO+DIO, so fix it by adding to wait for all dio before
+fallocate/punch_hole like ext4.
+
+Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
 Signed-off-by: Su Yue <glass.su@suse.com>
 ---
- fs/ocfs2/aops.c | 2 --
- 1 file changed, 2 deletions(-)
+ fs/ocfs2/file.c | 2 ++
+ 1 file changed, 2 insertions(+)
 
-diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-index b82185075de7..f0467d3b3c88 100644
---- a/fs/ocfs2/aops.c
-+++ b/fs/ocfs2/aops.c
-@@ -2283,8 +2283,6 @@ static int ocfs2_dio_wr_get_block(struct inode *inode, sector_t iblock,
- 	ocfs2_inode_unlock(inode, 1);
- 	brelse(di_bh);
- out:
--	if (ret < 0)
--		ret = -EIO;
- 	return ret;
- }
+diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+index 0da8e7bd3261..ccc57038a977 100644
+--- a/fs/ocfs2/file.c
++++ b/fs/ocfs2/file.c
+@@ -1936,6 +1936,8 @@ static int __ocfs2_change_file_space(struct file *file, struct inode *inode,
  
+ 	inode_lock(inode);
+ 
++	/* Wait all existing dio workers, newcomers will block on i_rwsem */
++	inode_dio_wait(inode);
+ 	/*
+ 	 * This prevents concurrent writes on other nodes
+ 	 */
 -- 
 2.44.0
 
