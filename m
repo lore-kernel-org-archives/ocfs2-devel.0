@@ -1,222 +1,117 @@
-Received: from smtp-out1.suse.de (smtp-out1.suse.de [195.135.223.130])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from out30-133.freemail.mail.aliyun.com (out30-133.freemail.mail.aliyun.com [115.124.30.133])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 50DB12421A;
-	Fri, 17 May 2024 09:50:25 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=195.135.223.130
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 13DFC33F6
+	for <ocfs2-devel@lists.linux.dev>; Fri, 17 May 2024 10:52:41 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.133
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1715939426; cv=none; b=OLl/7q4lPaBXoKubqOh7ByazS/C29laM7j7ZIcF4c+7zFOBxRBK0bOGKRxpq50Q8ZjDAG7zwULQMiK/dnfQBj9ck2h+3D2VpImyd4OhZBW8ISxXwdyGsLZnnYqWJqUmfLbf2DPR3CMK62gbV3/QVaMR5X642M5JuofH2VcR/ATc=
+	t=1715943165; cv=none; b=n1GobTaZfQ9dO56947Q4m5UjzPl6oVFmNk9dnh6vr3wk5du/IeKT1fE8GVfJOC1H70oM5/eDJd/496lOtWT9Fbad+FNxkvyHvNLIgEsLNXAOC4MbgLx44COcuzGX+ZFCcCF807yTVmP3NMceCnf0R4B7S0m/P88iYWOKFFiA744=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1715939426; c=relaxed/simple;
-	bh=fH748Fp39+O/lxgUrh9rhN64OkwK7uTA4acwzoyb8i0=;
-	h=Date:Message-ID:From:To:Cc:Subject:In-Reply-To:References:
-	 MIME-Version:Content-Type; b=uLi9/uUX4wB4zLhli8czXrvSpOgCThN7G7JlgiTD+JC6iIFsMx4f3N8ijXU1SciAIxTDSyAUI9U8pHavGMryf0eMacRxqIHor5oKy6bdAt7sr7Jr+OJpv0LEZRPodJllu4gmx++JNOgW1/aXv+hgqXFsrDdRs4W0y68cCGu1/pE=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=suse.de; spf=pass smtp.mailfrom=suse.de; dkim=pass (1024-bit key) header.d=suse.de header.i=@suse.de header.b=aqPS27rf; dkim=permerror (0-bit key) header.d=suse.de header.i=@suse.de header.b=ybHcdzif; dkim=pass (1024-bit key) header.d=suse.de header.i=@suse.de header.b=aqPS27rf; dkim=permerror (0-bit key) header.d=suse.de header.i=@suse.de header.b=ybHcdzif; arc=none smtp.client-ip=195.135.223.130
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=suse.de
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.de
+	s=arc-20240116; t=1715943165; c=relaxed/simple;
+	bh=JDqGBD0D5kpmPykpBr4kW+JyQRNpCrU3OX4bPh5dBfA=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=IR1bns+Snx3uZ17yIHxrwvYNrHcELr3Ls2BhySUK6a7ALmixv/4oLkHSFbaLoL9myogZl7QsqzK5QFFpsPRM5k3jR4RXbNNi8CWLGe9G7/km9FxNiIcWH6wCJR6Yo78RRuatho1EcnGvdkp6KzJBJFxX2YTeFnHg5Q+V38q30UI=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=wLhrP9ND; arc=none smtp.client-ip=115.124.30.133
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=suse.de header.i=@suse.de header.b="aqPS27rf";
-	dkim=permerror (0-bit key) header.d=suse.de header.i=@suse.de header.b="ybHcdzif";
-	dkim=pass (1024-bit key) header.d=suse.de header.i=@suse.de header.b="aqPS27rf";
-	dkim=permerror (0-bit key) header.d=suse.de header.i=@suse.de header.b="ybHcdzif"
-Received: from imap1.dmz-prg2.suse.org (unknown [10.150.64.97])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
-	(No client certificate requested)
-	by smtp-out1.suse.de (Postfix) with ESMTPS id 6034E37344;
-	Fri, 17 May 2024 09:50:22 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.de; s=susede2_rsa;
-	t=1715939422; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=8jfFpRbNQ4JylrNPf/Ju6XAY6qQjrc+0U9vxW7VwdqA=;
-	b=aqPS27rfYVOIlQYJQqRWN1OB2KuGqplKO0xASvAy99Em1LNhKAq/Z45rrmqOfomt6ymSXF
-	OiEv1bW+ZdpI213w3TR/RlpBxADCOtSoygZG2IWVCeRjyU7fk9xYWgYywcz+IS9+rfxp20
-	iBC1DT09pzE+KgT4PXFcXk6IVt2gReU=
-DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.de;
-	s=susede2_ed25519; t=1715939422;
-	h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=8jfFpRbNQ4JylrNPf/Ju6XAY6qQjrc+0U9vxW7VwdqA=;
-	b=ybHcdzifmrWaHz4fudlW6TywmF4wPptrNP5A3fPjgJZxiNP8yysPTURMY+P9YDVx2v+UNY
-	h72YrP3bBg//bVBQ==
-Authentication-Results: smtp-out1.suse.de;
-	none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.de; s=susede2_rsa;
-	t=1715939422; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=8jfFpRbNQ4JylrNPf/Ju6XAY6qQjrc+0U9vxW7VwdqA=;
-	b=aqPS27rfYVOIlQYJQqRWN1OB2KuGqplKO0xASvAy99Em1LNhKAq/Z45rrmqOfomt6ymSXF
-	OiEv1bW+ZdpI213w3TR/RlpBxADCOtSoygZG2IWVCeRjyU7fk9xYWgYywcz+IS9+rfxp20
-	iBC1DT09pzE+KgT4PXFcXk6IVt2gReU=
-DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.de;
-	s=susede2_ed25519; t=1715939422;
-	h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=8jfFpRbNQ4JylrNPf/Ju6XAY6qQjrc+0U9vxW7VwdqA=;
-	b=ybHcdzifmrWaHz4fudlW6TywmF4wPptrNP5A3fPjgJZxiNP8yysPTURMY+P9YDVx2v+UNY
-	h72YrP3bBg//bVBQ==
-Received: from imap1.dmz-prg2.suse.org (localhost [127.0.0.1])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
-	(No client certificate requested)
-	by imap1.dmz-prg2.suse.org (Postfix) with ESMTPS id 3DB2D13991;
-	Fri, 17 May 2024 09:50:21 +0000 (UTC)
-Received: from dovecot-director2.suse.de ([2a07:de40:b281:106:10:150:64:167])
-	by imap1.dmz-prg2.suse.org with ESMTPSA
-	id rHjlDV0oR2boBwAAD6G6ig
-	(envelope-from <tiwai@suse.de>); Fri, 17 May 2024 09:50:21 +0000
-Date: Fri, 17 May 2024 11:50:38 +0200
-Message-ID: <87r0e0zs0h.wl-tiwai@suse.de>
-From: Takashi Iwai <tiwai@suse.de>
-To: Steven Rostedt <rostedt@goodmis.org>
-Cc: LKML <linux-kernel@vger.kernel.org>,
-	Linux trace kernel
- <linux-trace-kernel@vger.kernel.org>,
-	Masami Hiramatsu <mhiramat@kernel.org>,
-	Mathieu Desnoyers 
- <mathieu.desnoyers@efficios.com>,
-	Linus Torvalds 
- <torvalds@linux-foundation.org>,
-	linuxppc-dev@lists.ozlabs.org,
-	kvm@vger.kernel.org,
-	linux-block@vger.kernel.org,
-	linux-cxl@vger.kernel.org,
-	linux-media@vger.kernel.org,
-	dri-devel@lists.freedesktop.org,
-	amd-gfx@lists.freedesktop.org,
-	intel-gfx@lists.freedesktop.org,
-	intel-xe@lists.freedesktop.org,
-	linux-arm-msm@vger.kernel.org,
-	freedreno@lists.freedesktop.org,
-	virtualization@lists.linux.dev,
-	linux-rdma@vger.kernel.org,
-	linux-pm@vger.kernel.org,
-	iommu@lists.linux.dev,
-	linux-tegra@vger.kernel.org,
-	netdev@vger.kernel.org,
-	linux-hyperv@vger.kernel.org,
-	ath10k@lists.infradead.org,
-	linux-wireless@vger.kernel.org,
-	ath11k@lists.infradead.org,
-	ath12k@lists.infradead.org,
-	brcm80211@lists.linux.dev,
-	brcm80211-dev-list.pdl@broadcom.com,
-	linux-usb@vger.kernel.org,
-	linux-bcachefs@vger.kernel.org,
-	linux-nfs@vger.kernel.org,
-	ocfs2-devel@lists.linux.dev,
-	linux-cifs@vger.kernel.org,
-	linux-xfs@vger.kernel.org,
-	linux-edac@vger.kernel.org,
-	selinux@vger.kernel.org,
-	linux-btrfs@vger.kernel.org,
-	linux-erofs@lists.ozlabs.org,
-	linux-f2fs-devel@lists.sourceforge.net,
-	linux-hwmon@vger.kernel.org,
-	io-uring@vger.kernel.org,
-	linux-sound@vger.kernel.org,
-	bpf@vger.kernel.org,
-	linux-wpan@vger.kernel.org,
-	dev@openvswitch.org,
-	linux-s390@vger.kernel.org,
-	tipc-discussion@lists.sourceforge.net,
-	Julia 
- Lawall <Julia.Lawall@inria.fr>
-Subject: Re: [PATCH] tracing/treewide: Remove second parameter of __assign_str()
-In-Reply-To: <20240516133454.681ba6a0@rorschach.local.home>
-References: <20240516133454.681ba6a0@rorschach.local.home>
-User-Agent: Wanderlust/2.15.9 (Almost Unreal) Emacs/27.2 Mule/6.0
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="wLhrP9ND"
+DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=linux.alibaba.com; s=default;
+	t=1715943158; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=XHU484ru7u5dgmBpXpNyU6IxS0QHgLQgPSB3Je2RxDQ=;
+	b=wLhrP9ND8dr8jU33OneiiRxYyPHBXACz6y+35TtLckK/BoP82D65aMHXtysklcGkznhsctSx5s5S15Y+oTBmSzfyLSG1XsoNBY94IGHm+xB9Ewo0LMcDkzGj+amQF4MOkaD8/Dg0ULuktXr8wsUMENmHK4FYq9dW9KNCI74NYDA=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R131e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033037067112;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=7;SR=0;TI=SMTPD_---0W6eXBwH_1715943155;
+Received: from 30.221.128.140(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0W6eXBwH_1715943155)
+          by smtp.aliyun-inc.com;
+          Fri, 17 May 2024 18:52:36 +0800
+Message-ID: <1b906ebc-a850-4974-8ceb-e33d88768bf1@linux.alibaba.com>
+Date: Fri, 17 May 2024 18:52:34 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
-MIME-Version: 1.0 (generated by SEMI-EPG 1.14.7 - "Harue")
-Content-Type: text/plain; charset=US-ASCII
-X-Spam-Level: 
-X-Spamd-Result: default: False [-1.80 / 50.00];
-	BAYES_HAM(-3.00)[100.00%];
-	SUSPICIOUS_RECIPS(1.50)[];
-	NEURAL_HAM_LONG(-1.00)[-1.000];
-	MID_CONTAINS_FROM(1.00)[];
-	NEURAL_HAM_SHORT(-0.20)[-1.000];
-	MIME_GOOD(-0.10)[text/plain];
-	TO_DN_SOME(0.00)[];
-	MIME_TRACE(0.00)[0:+];
-	RCVD_VIA_SMTP_AUTH(0.00)[];
-	ARC_NA(0.00)[];
-	RCVD_TLS_ALL(0.00)[];
-	FUZZY_BLOCKED(0.00)[rspamd.com];
-	R_RATELIMIT(0.00)[to_ip_from(RL6rcqepr6awpd9qb5xxedoiwq)];
-	FROM_EQ_ENVFROM(0.00)[];
-	FROM_HAS_DN(0.00)[];
-	DKIM_SIGNED(0.00)[suse.de:s=susede2_rsa,suse.de:s=susede2_ed25519];
-	TO_MATCH_ENVRCPT_ALL(0.00)[];
-	RCPT_COUNT_GT_50(0.00)[50];
-	RCVD_COUNT_TWO(0.00)[2];
-	DBL_BLOCKED_OPENRESOLVER(0.00)[efficios.com:email,inria.fr:email,imap1.dmz-prg2.suse.org:helo,suse.de:email,goodmis.org:email,linux-foundation.org:email]
-X-Spam-Score: -1.80
-X-Spam-Flag: NO
-
-On Thu, 16 May 2024 19:34:54 +0200,
-Steven Rostedt wrote:
-> 
-> From: "Steven Rostedt (Google)" <rostedt@goodmis.org>
-> 
-> [
->    This is a treewide change. I will likely re-create this patch again in
->    the second week of the merge window of v6.10 and submit it then. Hoping
->    to keep the conflicts that it will cause to a minimum.
-> ]
-> 
-> With the rework of how the __string() handles dynamic strings where it
-> saves off the source string in field in the helper structure[1], the
-> assignment of that value to the trace event field is stored in the helper
-> value and does not need to be passed in again.
-> 
-> This means that with:
-> 
->   __string(field, mystring)
-> 
-> Which use to be assigned with __assign_str(field, mystring), no longer
-> needs the second parameter and it is unused. With this, __assign_str()
-> will now only get a single parameter.
-> 
-> There's over 700 users of __assign_str() and because coccinelle does not
-> handle the TRACE_EVENT() macro I ended up using the following sed script:
-> 
->   git grep -l __assign_str | while read a ; do
->       sed -e 's/\(__assign_str([^,]*[^ ,]\) *,[^;]*/\1)/' $a > /tmp/test-file;
->       mv /tmp/test-file $a;
->   done
-> 
-> I then searched for __assign_str() that did not end with ';' as those
-> were multi line assignments that the sed script above would fail to catch.
-> 
-> Note, the same updates will need to be done for:
-> 
->   __assign_str_len()
->   __assign_rel_str()
->   __assign_rel_str_len()
-> 
-> I tested this with both an allmodconfig and an allyesconfig (build only for both).
-> 
-> [1] https://lore.kernel.org/linux-trace-kernel/20240222211442.634192653@goodmis.org/
-> 
-> Cc: Masami Hiramatsu <mhiramat@kernel.org>
-> Cc: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-> Cc: Linus Torvalds <torvalds@linux-foundation.org>
-> Cc: Julia Lawall <Julia.Lawall@inria.fr>
-> Signed-off-by: Steven Rostedt (Google) <rostedt@goodmis.org>
-
-For the sound part
-Acked-by: Takashi Iwai <tiwai@suse.de>
+MIME-Version: 1.0
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH v2 1/2] ocfs2: add bounds checking to
+ ocfs2_xattr_find_entry()
+To: Ferry Meng <mengferry@linux.alibaba.com>, lei lu <llfamsec@gmail.com>,
+ akpm <akpm@linux-foundation.org>
+Cc: linux-kernel@vger.kernel.org, Mark Fasheh <mark@fasheh.com>,
+ Joel Becker <jlbec@evilplan.org>, ocfs2-devel@lists.linux.dev
+References: <20240517094147.87133-1-mengferry@linux.alibaba.com>
+ <20240517094147.87133-2-mengferry@linux.alibaba.com>
+Content-Language: en-US
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+In-Reply-To: <20240517094147.87133-2-mengferry@linux.alibaba.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
 
-thanks,
 
-Takashi
+On 5/17/24 5:41 PM, Ferry Meng wrote:
+> Add a paranoia check to make sure it doesn't stray beyond valid memory
+> region containing ocfs2 xattr entries when scanning for a match.
+> It will prevent out-of-bound access in case of crafted images.
+> 
+> Signed-off-by: Ferry Meng <mengferry@linux.alibaba.com>
+
+Reported-by: lei lu <llfamsec@gmail.com>
+Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+
+> ---
+>  fs/ocfs2/xattr.c | 12 ++++++++----
+>  1 file changed, 8 insertions(+), 4 deletions(-)
+> 
+> diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
+> index 3b81213ed7b8..8aea94c90739 100644
+> --- a/fs/ocfs2/xattr.c
+> +++ b/fs/ocfs2/xattr.c
+> @@ -1062,7 +1062,7 @@ ssize_t ocfs2_listxattr(struct dentry *dentry,
+>  	return i_ret + b_ret;
+>  }
+>  
+> -static int ocfs2_xattr_find_entry(int name_index,
+> +static int ocfs2_xattr_find_entry(struct inode *inode, int name_index,
+>  				  const char *name,
+>  				  struct ocfs2_xattr_search *xs)
+>  {
+> @@ -1076,6 +1076,10 @@ static int ocfs2_xattr_find_entry(int name_index,
+>  	name_len = strlen(name);
+>  	entry = xs->here;
+>  	for (i = 0; i < le16_to_cpu(xs->header->xh_count); i++) {
+> +		if ((void *)entry >= xs->end) {
+> +			ocfs2_error(inode->i_sb, "corrupted xattr entries");
+> +			return -EFSCORRUPTED;
+> +		}
+>  		cmp = name_index - ocfs2_xattr_get_type(entry);
+>  		if (!cmp)
+>  			cmp = name_len - entry->xe_name_len;
+> @@ -1166,7 +1170,7 @@ static int ocfs2_xattr_ibody_get(struct inode *inode,
+>  	xs->base = (void *)xs->header;
+>  	xs->here = xs->header->xh_entries;
+>  
+> -	ret = ocfs2_xattr_find_entry(name_index, name, xs);
+> +	ret = ocfs2_xattr_find_entry(inode, name_index, name, xs);
+>  	if (ret)
+>  		return ret;
+>  	size = le64_to_cpu(xs->here->xe_value_size);
+> @@ -2698,7 +2702,7 @@ static int ocfs2_xattr_ibody_find(struct inode *inode,
+>  
+>  	/* Find the named attribute. */
+>  	if (oi->ip_dyn_features & OCFS2_INLINE_XATTR_FL) {
+> -		ret = ocfs2_xattr_find_entry(name_index, name, xs);
+> +		ret = ocfs2_xattr_find_entry(inode, name_index, name, xs);
+>  		if (ret && ret != -ENODATA)
+>  			return ret;
+>  		xs->not_found = ret;
+> @@ -2833,7 +2837,7 @@ static int ocfs2_xattr_block_find(struct inode *inode,
+>  		xs->end = (void *)(blk_bh->b_data) + blk_bh->b_size;
+>  		xs->here = xs->header->xh_entries;
+>  
+> -		ret = ocfs2_xattr_find_entry(name_index, name, xs);
+> +		ret = ocfs2_xattr_find_entry(inode, name_index, name, xs);
+>  	} else
+>  		ret = ocfs2_xattr_index_block_find(inode, blk_bh,
+>  						   name_index,
