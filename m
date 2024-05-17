@@ -1,100 +1,128 @@
-Received: from out30-97.freemail.mail.aliyun.com (out30-97.freemail.mail.aliyun.com [115.124.30.97])
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 056933D0AF
-	for <ocfs2-devel@lists.linux.dev>; Fri, 17 May 2024 10:53:31 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.97
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0225D3D9E;
+	Fri, 17 May 2024 16:23:13 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1715943214; cv=none; b=hkEDFFL47EiS9aQhQ7C48jqk/p8dKnZwKH4UNlvFWx4csW2k9bzSoDzogFgYfaVpk2GUiPghDosFgEtdg4QSiNX9ajkBBTsCmp3F2akGs9IpZi7U+v4RHGVDbKUAC9InrRFIAYdPLXFuxKSPj+bllSTWFfscvU3j+BvGG7hB9j4=
+	t=1715962994; cv=none; b=JbzhVl9QqOrGn5aI3Lp2QNl3nFNFVGz2U9XaYDDV5FovgM5gKKZAXRXy1/SmO9pdi7wgxYf4Ybf2RQI7LH29HkUaLiMIMdWi2pliMj4nIRJ4+c9q0QjMzoq0sWfXOJpcHg7fErYP1NBGlj//ZNX4xSSk6r7glY0UKNAc0GOIo/w=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1715943214; c=relaxed/simple;
-	bh=E5gD5h7waLiCQD46TNJCji9FfD8rOtnJN1PISy5aSHU=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=GcgJR4vw5i4uiTo3arDK/CC9pPlyhz3f3rICYdAG3I+L/uf5Noa2R8yoVWil2XJ7TYDzqczbNxk1rz/tjNVks2SCFnN4QYbgYBSyfxWfo02Dc2Xe4mUFnPJ4T5dSL/hyI+NQNR5z1DDhiSZHtfVyfCA1fnZ88gbEYqEr4hfrZ8k=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=JjuDLVNQ; arc=none smtp.client-ip=115.124.30.97
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
+	s=arc-20240116; t=1715962994; c=relaxed/simple;
+	bh=uNwlZVn0k6bBYrUn2NOTbtyZjAe9hAwPUWGNLiaSzKs=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=MlIAnJvXoclx91HzV3KHgMAmzFsWWX7APIuqQKg6D8rdDfiO2lBWN8hNUnta8MkPvLMjbRrCzno9d+ey7uKWaxOu5yWMAIKuIS4yXd50yO6+ba4Jn3R+4XC21rSS0pTUnL9jV4xzW+y5gexohMQGsr+7nf1x4bn2gL2/M+fleQw=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=F8J6rGhR; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="JjuDLVNQ"
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1715943209; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=6ewg+pfLX/2tt7Dbv8mKSMb7haYUAuqFESpeYFM6blE=;
-	b=JjuDLVNQ9DlffuRPchq95lSXKxWNfHvU6CMVKmstdish5MoH3UEc5Bh9BIGovjd+XvVMrRHWvhfQF4tXHK7krakV0K1U30gLzWJqc+b8rHgc1dS0beqwkWkuDAR2HWbecwk4ViE6idx96xlX/5wkAgkdMdcIDbrwXNUXlhDiWTw=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R841e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033037067112;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=7;SR=0;TI=SMTPD_---0W6eLjVb_1715943207;
-Received: from 30.221.128.140(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0W6eLjVb_1715943207)
-          by smtp.aliyun-inc.com;
-          Fri, 17 May 2024 18:53:28 +0800
-Message-ID: <784b6bcc-067a-4a27-93e9-60e96da2befb@linux.alibaba.com>
-Date: Fri, 17 May 2024 18:53:27 +0800
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="F8J6rGhR"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 70342C2BD10;
+	Fri, 17 May 2024 16:23:13 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=k20201202; t=1715962993;
+	bh=uNwlZVn0k6bBYrUn2NOTbtyZjAe9hAwPUWGNLiaSzKs=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=F8J6rGhR6abMw+H3e0sNsBE3c0HR9drUMq7zelYKMTQHa0vv/MIG2W8+/hD/7XTI+
+	 9VkRoCKMyZzVY3LjQAv7zTKPKrfWjp+PaYpWL+HZIXKwJ9PpfHkWCOm8/AnprKJTiS
+	 x71fH3FEiRuBcJ7Snaffb4mCRWAYWAV32gCoEeO44TUBKDap7ZLHPJJXjD0QMTmCNO
+	 ZUj+MK/eDva4zMj4VegTwZ0y/H/lyuO2Nk/KqN8YnLbubwD8YFqugReL9OgeiAJUxc
+	 u0pTJlCPPo4/7T1+KTMYWfO14b9TwwHb+K7KeD4YmO6RNA3DpP+PsNxwbeXmOHuVhd
+	 +qE7xoo2PLRTA==
+Date: Fri, 17 May 2024 09:23:12 -0700
+From: "Darrick J. Wong" <djwong@kernel.org>
+To: Steven Rostedt <rostedt@goodmis.org>
+Cc: LKML <linux-kernel@vger.kernel.org>,
+	Linux trace kernel <linux-trace-kernel@vger.kernel.org>,
+	Masami Hiramatsu <mhiramat@kernel.org>,
+	Mathieu Desnoyers <mathieu.desnoyers@efficios.com>,
+	Linus Torvalds <torvalds@linux-foundation.org>,
+	linuxppc-dev@lists.ozlabs.org, kvm@vger.kernel.org,
+	linux-block@vger.kernel.org, linux-cxl@vger.kernel.org,
+	linux-media@vger.kernel.org, dri-devel@lists.freedesktop.org,
+	amd-gfx@lists.freedesktop.org, intel-gfx@lists.freedesktop.org,
+	intel-xe@lists.freedesktop.org, linux-arm-msm@vger.kernel.org,
+	freedreno@lists.freedesktop.org, virtualization@lists.linux.dev,
+	linux-rdma@vger.kernel.org, linux-pm@vger.kernel.org,
+	iommu@lists.linux.dev, linux-tegra@vger.kernel.org,
+	netdev@vger.kernel.org, linux-hyperv@vger.kernel.org,
+	ath10k@lists.infradead.org, linux-wireless@vger.kernel.org,
+	ath11k@lists.infradead.org, ath12k@lists.infradead.org,
+	brcm80211@lists.linux.dev, brcm80211-dev-list.pdl@broadcom.com,
+	linux-usb@vger.kernel.org, linux-bcachefs@vger.kernel.org,
+	linux-nfs@vger.kernel.org, ocfs2-devel@lists.linux.dev,
+	linux-cifs@vger.kernel.org, linux-xfs@vger.kernel.org,
+	linux-edac@vger.kernel.org, selinux@vger.kernel.org,
+	linux-btrfs@vger.kernel.org, linux-erofs@lists.ozlabs.org,
+	linux-f2fs-devel@lists.sourceforge.net, linux-hwmon@vger.kernel.org,
+	io-uring@vger.kernel.org, linux-sound@vger.kernel.org,
+	bpf@vger.kernel.org, linux-wpan@vger.kernel.org,
+	dev@openvswitch.org, linux-s390@vger.kernel.org,
+	tipc-discussion@lists.sourceforge.net,
+	Julia Lawall <Julia.Lawall@inria.fr>
+Subject: Re: [PATCH] tracing/treewide: Remove second parameter of
+ __assign_str()
+Message-ID: <20240517162312.GZ360919@frogsfrogsfrogs>
+References: <20240516133454.681ba6a0@rorschach.local.home>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v2 2/2] ocfs2: strict bound check before memcmp in
- ocfs2_xattr_find_entry()
-To: Ferry Meng <mengferry@linux.alibaba.com>, lei lu <llfamsec@gmail.com>,
- akpm <akpm@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, Mark Fasheh <mark@fasheh.com>,
- Joel Becker <jlbec@evilplan.org>, ocfs2-devel@lists.linux.dev
-References: <20240517094147.87133-1-mengferry@linux.alibaba.com>
- <20240517094147.87133-3-mengferry@linux.alibaba.com>
-Content-Language: en-US
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <20240517094147.87133-3-mengferry@linux.alibaba.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20240516133454.681ba6a0@rorschach.local.home>
 
-
-
-On 5/17/24 5:41 PM, Ferry Meng wrote:
-> xattr in ocfs2 maybe 'non-indexed', which saved with additional space
-> requested. It's better to check if the memory is out of bound before
-> memcmp, although this possibility mainly comes from crafted poisonous
-> images.
+On Thu, May 16, 2024 at 01:34:54PM -0400, Steven Rostedt wrote:
+> From: "Steven Rostedt (Google)" <rostedt@goodmis.org>
 > 
-> Signed-off-by: Ferry Meng <mengferry@linux.alibaba.com>
-
-Reported-by: lei lu <llfamsec@gmail.com>
-Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-
-> ---
->  fs/ocfs2/xattr.c | 15 ++++++++++-----
->  1 file changed, 10 insertions(+), 5 deletions(-)
+> [
+>    This is a treewide change. I will likely re-create this patch again in
+>    the second week of the merge window of v6.10 and submit it then. Hoping
+>    to keep the conflicts that it will cause to a minimum.
+> ]
 > 
-> diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-> index 8aea94c90739..35c0cc2a51af 100644
-> --- a/fs/ocfs2/xattr.c
-> +++ b/fs/ocfs2/xattr.c
-> @@ -1068,7 +1068,7 @@ static int ocfs2_xattr_find_entry(struct inode *inode, int name_index,
->  {
->  	struct ocfs2_xattr_entry *entry;
->  	size_t name_len;
-> -	int i, cmp = 1;
-> +	int i, name_offset, cmp = 1;
->  
->  	if (name == NULL)
->  		return -EINVAL;
-> @@ -1083,10 +1083,15 @@ static int ocfs2_xattr_find_entry(struct inode *inode, int name_index,
->  		cmp = name_index - ocfs2_xattr_get_type(entry);
->  		if (!cmp)
->  			cmp = name_len - entry->xe_name_len;
-> -		if (!cmp)
-> -			cmp = memcmp(name, (xs->base +
-> -				     le16_to_cpu(entry->xe_name_offset)),
-> -				     name_len);
-> +		if (!cmp) {
-> +			name_offset = le16_to_cpu(entry->xe_name_offset);
-> +			if ((xs->base + name_offset + name_len) > xs->end) {
-> +				ocfs2_error(inode->i_sb,
-> +					    "corrupted xattr entries");
-> +				return -EFSCORRUPTED;
-> +			}
-> +			cmp = memcmp(name, (xs->base + name_offset), name_len);
-> +		}
->  		if (cmp == 0)
->  			break;
->  		entry += 1;
+> With the rework of how the __string() handles dynamic strings where it
+> saves off the source string in field in the helper structure[1], the
+> assignment of that value to the trace event field is stored in the helper
+> value and does not need to be passed in again.
+> 
+> This means that with:
+> 
+>   __string(field, mystring)
+> 
+> Which use to be assigned with __assign_str(field, mystring), no longer
+> needs the second parameter and it is unused. With this, __assign_str()
+> will now only get a single parameter.
+> 
+> There's over 700 users of __assign_str() and because coccinelle does not
+> handle the TRACE_EVENT() macro I ended up using the following sed script:
+> 
+>   git grep -l __assign_str | while read a ; do
+>       sed -e 's/\(__assign_str([^,]*[^ ,]\) *,[^;]*/\1)/' $a > /tmp/test-file;
+>       mv /tmp/test-file $a;
+>   done
+> 
+> I then searched for __assign_str() that did not end with ';' as those
+> were multi line assignments that the sed script above would fail to catch.
+> 
+> Note, the same updates will need to be done for:
+> 
+>   __assign_str_len()
+>   __assign_rel_str()
+>   __assign_rel_str_len()
+> 
+> I tested this with both an allmodconfig and an allyesconfig (build only for both).
+> 
+> [1] https://lore.kernel.org/linux-trace-kernel/20240222211442.634192653@goodmis.org/
+> 
+> Cc: Masami Hiramatsu <mhiramat@kernel.org>
+> Cc: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+> Cc: Linus Torvalds <torvalds@linux-foundation.org>
+> Cc: Julia Lawall <Julia.Lawall@inria.fr>
+> Signed-off-by: Steven Rostedt (Google) <rostedt@goodmis.org>
+
+/me finds this pretty magical, but such is the way of macros.
+Thanks for being much smarter about them than me. :)
+
+Acked-by: Darrick J. Wong <djwong@kernel.org>	# xfs
+
+--D
