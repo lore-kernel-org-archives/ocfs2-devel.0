@@ -1,61 +1,61 @@
-Received: from mail-pl1-f177.google.com (mail-pl1-f177.google.com [209.85.214.177])
+Received: from mail-oo1-f45.google.com (mail-oo1-f45.google.com [209.85.161.45])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1971113DDB0;
-	Fri, 17 May 2024 18:00:27 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.214.177
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E4D03653;
+	Sat, 18 May 2024 01:25:11 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.161.45
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1715968829; cv=none; b=NktcL2AmYFjMrv0ajY/dst0adArXhfHFuhoH4OAno3a40tVboxmwWuo74B4JBJXBTCHAfxVDOv5YUuoXzAmRORecTAPkBl5C3/JzvE8+A1RLO+xhYEumL8vuGhWKyAuU5J6SwX7JyhbtCrkYvPqJFfnkKqH2d3kz9IDGaVKs6rI=
+	t=1715995514; cv=none; b=g/84IcyJeQJwhKwS11O8Z03HJqoIzYWm7bOUAsQxTRFLSYOyZrpFIVvx7v+ceCHLWq+07R1pETY+ubwoS1QvKC4Rankq6AzLQxFuC3tV9v/cH1gB0vqydtZtutUC2p4xRKo8ZORczAhwn1CtMihnuOxpHkNV3CY2hPlCOI3eUdg=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1715968829; c=relaxed/simple;
-	bh=hozAzpQMXObpbdTk7Ibzjpn2uslGrLTRVG5E8LS6QJA=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=HwH/jvTwkNY1CGaK1H3l3hV6WqCOVqPoj8nYiJPtHZe5aaDzOerBiTgmTk3dloDvfABHjpRX7HuvVTNvzSZeMtn4gtbXZNoDwdXwxAX1FlNVr29CrBfUPzGS0L5TBZG6j4tzEhSCap+JskwXLYlifjKZJSK1JgyV3g55UGCrATg=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=roeck-us.net; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=MyxThhYP; arc=none smtp.client-ip=209.85.214.177
+	s=arc-20240116; t=1715995514; c=relaxed/simple;
+	bh=c5iU4d0KugAsNiJ78E34UP2hhUUvKxnLdWrV/fkAXuI=;
+	h=Message-ID:Date:MIME-Version:Subject:From:To:Cc:References:
+	 In-Reply-To:Content-Type; b=dNOefcd6juI+hFvcmSzari5LxYlnOPFzMQdp+t/ASy/1841IOrqjj9+fe7eJzOXMpmhWQVjwYoAJ93CTw18jhs5S5eNZljk4EkTXCsjHewS8ncyaOIU3nq5RErlPVR+ep8h0VMaw/YIa3jHS5DpLBbpuGoGh4v5QT2vKK8VQh58=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=roeck-us.net; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=Rw0C5J72; arc=none smtp.client-ip=209.85.161.45
 Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=roeck-us.net
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="MyxThhYP"
-Received: by mail-pl1-f177.google.com with SMTP id d9443c01a7336-1ec4dc64c6cso16043795ad.0;
-        Fri, 17 May 2024 11:00:27 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="Rw0C5J72"
+Received: by mail-oo1-f45.google.com with SMTP id 006d021491bc7-5b279e04391so488602eaf.3;
+        Fri, 17 May 2024 18:25:11 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1715968827; x=1716573627; darn=lists.linux.dev;
-        h=content-transfer-encoding:in-reply-to:autocrypt:from
-         :content-language:references:cc:to:subject:user-agent:mime-version
-         :date:message-id:sender:from:to:cc:subject:date:message-id:reply-to;
-        bh=w/StxRW/VLxGkt1YAzvKzW9ayexnITae0WPMFzYawxM=;
-        b=MyxThhYPVMFusUpo9nxrJCj4Makp4i+19tIOwx06vkejxp5r7pNyJQ2Us162nrLmk2
-         pjlLeaWSar934hJ8hSN6FNNqT9njlQ4XVz0J/Xvd28TTjQKJuMZAYF+kzf8oc+ceP7x2
-         QYqS7DMkAac4Yuv+CK8Np5pLJLizjZvtOjscjWdkeoeBD5aMPhNUa/fufPnsshpMNw+I
-         6onRb3iLTbA98hs/iSrrEq4b9KZ6y/UnT/XAGLSAAFLxSKgk+LjROWR50e+LzORBK3LG
-         OLRmgJis4GadynD2BtMePbgpJ64hrXap4xqaFgHiTOaJ+LwbH8+ltNBQbB/G/orZ3tAl
-         jw2w==
+        d=gmail.com; s=20230601; t=1715995511; x=1716600311; darn=lists.linux.dev;
+        h=content-transfer-encoding:in-reply-to:autocrypt:content-language
+         :references:cc:to:from:subject:user-agent:mime-version:date
+         :message-id:sender:from:to:cc:subject:date:message-id:reply-to;
+        bh=cJqjedwoYcqSzJKmZSEwT+6hVhtxWLfg/8QtauvSdx4=;
+        b=Rw0C5J726+Lqvp8SxRcfLwFwto03B1DuM/YzljzpliiMtlGXJVzeJQN3EItAeM4TpE
+         vJUKIzpvXD/0tnUDAp6koyOzFi8/vVpq9mz/Z8t7tMoF0sQp/NGK/3ktiVURa4Uy2RZq
+         wOe+loKHitRd5yy0J/RPL5CAqcPVyC20bDf/niDsmQag+WKbvAPinPMMtqYJuPZcvL6s
+         yBIDnJhDf8edi61Sg+Qm5sYZ2m7zcaIoBPh9VL57V76+Er5uYRECWWezkglbbDlNmlUu
+         nYUfiWc/vnKMF1NWBIW7X027x6Fy6vtxd2mYEru3VnOGO9R5udQFC5b9lBs8aliGRtvx
+         HD8w==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1715968827; x=1716573627;
-        h=content-transfer-encoding:in-reply-to:autocrypt:from
-         :content-language:references:cc:to:subject:user-agent:mime-version
-         :date:message-id:sender:x-gm-message-state:from:to:cc:subject:date
+        d=1e100.net; s=20230601; t=1715995511; x=1716600311;
+        h=content-transfer-encoding:in-reply-to:autocrypt:content-language
+         :references:cc:to:from:subject:user-agent:mime-version:date
+         :message-id:sender:x-gm-message-state:from:to:cc:subject:date
          :message-id:reply-to;
-        bh=w/StxRW/VLxGkt1YAzvKzW9ayexnITae0WPMFzYawxM=;
-        b=o8YUNH6HIoJ71kKVgyv63Xvic02Ckwj2IF6e0ms7x3XaS6tuG+Jud50V3X7lwJJSdj
-         o2POT/AX6lYNMimyhfclMmegspkl9toTuB9g3hOsHGMRy9xJVtyMuCx9AekwyD3zkJ48
-         7yhZS2I01KvPgQuWx9qIU1WlaWX8WZbt1YR7LaN6tOA/Zl7GeAOM6JuGddpdonZgG3YA
-         Yjb4XA0oup7NwWWKzItlM/GaPAw6m07EYWFRc0encz2QcUEp533jpncGrXpWaPazV0Rd
-         xHycfxYg3L2EiaVcdReRRPGcRcIzteRYDeJ1FEYigJRYVTQkLerUh6FehT97IpREuIZH
-         IKXw==
-X-Forwarded-Encrypted: i=1; AJvYcCV65OMUff9Ft8IZonQvg9JPvnSGvPx6nFoGMeCe9vXMAzSsi70pjr5B4EXdF4a5kDxoD8GnaOGuyOf4UPGV3lvC7VcSUkUqBWKC3ajSphuZyH0oWkZTMZ05Jhnm/mF2Pm6rlbQaVwhBMz9lCQy2kLaZwsuacApkXUL8XiWOFfG9GqS2fnlIhwQ8B2jAKyu+Ahr+kGmdoJ0dpLX63nsP
-X-Gm-Message-State: AOJu0YyG1bncTddwrT//7RJwu8CnUIC3YlZT3WpWuInEoveMTuNPDJAd
-	Ae0DbyYwkHKumNgzcc63275AzhxGH7cdYiptPTnNbtfGu+iPz3DL
-X-Google-Smtp-Source: AGHT+IGZDVzcY7OCALKn8Hd9OAI6XcssKSQlDPeH3SNH0EqlCaPwK+7ssdLCEtEMxDGdIwihVzJtAg==
-X-Received: by 2002:a17:903:120e:b0:1e4:6519:816d with SMTP id d9443c01a7336-1ef43f51feamr267718025ad.48.1715968827236;
-        Fri, 17 May 2024 11:00:27 -0700 (PDT)
+        bh=cJqjedwoYcqSzJKmZSEwT+6hVhtxWLfg/8QtauvSdx4=;
+        b=g5PPd0S0FJsx6H1yefMyzaKhORjQc/2aHEUD1Gy0WHHGcRejC4EPFQe1KSejK7wUuN
+         SvBUMQX58qydBrL94loxq3o/N4e20d69SJEU5LUZfVAgps2s3QU3DsiPL0hc14zTeD7o
+         ldYd49+BZWvKXG9ewn+luNFZHNhvwWuwOZxNUAUiOmVcVVxEA58Zwx/aBiXKVFtSiG7n
+         1I0KG2lVKDDeOCdHL/yykTQ4n0s7RLnbaUHtK3/zMyJgSX38L/ZThaAgmDswBpIg8AxK
+         GyolrjC05AmEg8fAhwO35DUpMUCqxeW9UV3WZJ/cZNEmJmqOsh44Iftt4Tk1SC9s4fVK
+         uwtg==
+X-Forwarded-Encrypted: i=1; AJvYcCUgk881BZ6wZ0YYOWATRvFaXZ0+KBdxujRBYyVNO9Lg36PE+azD4VZd9qZK7tZ1O+cxueUJsMMud+xJ0tJ66CHAba49LggM2+zWsbVdZ8NbuA9kr5W4NfTuS8z8Mfqoox1qzQqmcpASKcAjwszPkEMTzDMfIDL50xool7qcECjV02itXesX9wKH/V2oMUgB4B0U7mt+zfpcSbdEcUmM
+X-Gm-Message-State: AOJu0Ywogc45qUUAV28y03+ev/C8iEYHFdNkF6O8LIthibAl1N1cqfJf
+	um1VUazvORJiW0sCablI3X1KG7UwIBKyCg4WWHf9U2/UQuzN5wDm
+X-Google-Smtp-Source: AGHT+IFRaG5+veBhAS+2oO1Mq9a7mnKgK9vX9unu3cCbE/KbyDzrBjSt084GN8tso2cWg108BqN4VA==
+X-Received: by 2002:a05:6870:a3d2:b0:240:c8ff:c96a with SMTP id 586e51a60fabf-241728fc1damr27553351fac.27.1715995510785;
+        Fri, 17 May 2024 18:25:10 -0700 (PDT)
 Received: from ?IPV6:2600:1700:e321:62f0:329c:23ff:fee3:9d7c? ([2600:1700:e321:62f0:329c:23ff:fee3:9d7c])
-        by smtp.gmail.com with ESMTPSA id d9443c01a7336-1ef0bf30bfesm159992895ad.175.2024.05.17.11.00.23
+        by smtp.gmail.com with ESMTPSA id d2e1a72fcca58-6f4d2a66316sm15339938b3a.35.2024.05.17.18.25.07
         (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Fri, 17 May 2024 11:00:26 -0700 (PDT)
+        Fri, 17 May 2024 18:25:09 -0700 (PDT)
 Sender: Guenter Roeck <groeck7@gmail.com>
-Message-ID: <5cff0ff0-48d1-49f8-84f4-bb33571fdf16@roeck-us.net>
-Date: Fri, 17 May 2024 11:00:22 -0700
+Message-ID: <64db2b94-edb3-4ea3-87cf-bb91746869e6@roeck-us.net>
+Date: Fri, 17 May 2024 18:25:06 -0700
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -65,6 +65,7 @@ MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
 Subject: Re: [PATCH] tracing/treewide: Remove second parameter of
  __assign_str()
+From: Guenter Roeck <linux@roeck-us.net>
 To: Steven Rostedt <rostedt@goodmis.org>
 Cc: LKML <linux-kernel@vger.kernel.org>,
  Linux trace kernel <linux-trace-kernel@vger.kernel.org>,
@@ -95,8 +96,8 @@ Cc: LKML <linux-kernel@vger.kernel.org>,
 References: <20240516133454.681ba6a0@rorschach.local.home>
  <5080f4c5-e0b3-4c2e-9732-f673d7e6ca66@roeck-us.net>
  <20240517134834.43e726dd@gandalf.local.home>
+ <5cff0ff0-48d1-49f8-84f4-bb33571fdf16@roeck-us.net>
 Content-Language: en-US
-From: Guenter Roeck <linux@roeck-us.net>
 Autocrypt: addr=linux@roeck-us.net; keydata=
  xsFNBE6H1WcBEACu6jIcw5kZ5dGeJ7E7B2uweQR/4FGxH10/H1O1+ApmcQ9i87XdZQiB9cpN
  RYHA7RCEK2dh6dDccykQk3bC90xXMPg+O3R+C/SkwcnUak1UZaeK/SwQbq/t0tkMzYDRxfJ7
@@ -140,45 +141,52 @@ Autocrypt: addr=linux@roeck-us.net; keydata=
  WkRwrSuCn7UG+qVWZeKEsFKFOkynOs3pVbcbq1pxbhk3TRWCGRU5JolI4ohy/7JV1TVbjiDI
  HP/aVnm6NC8of26P40Pg8EdAhajZnHHjA7FrJXsy3cyIGqvg9os4rNkUWmrCfLLsZDHD8FnU
  mDW4+i+XlNFUPUYMrIKi9joBhu18ssf5i5Q=
-In-Reply-To: <20240517134834.43e726dd@gandalf.local.home>
+In-Reply-To: <5cff0ff0-48d1-49f8-84f4-bb33571fdf16@roeck-us.net>
 Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 
-On 5/17/24 10:48, Steven Rostedt wrote:
-> On Fri, 17 May 2024 10:36:37 -0700
-> Guenter Roeck <linux@roeck-us.net> wrote:
-> 
->> Building csky:allmodconfig (and others) ... failed
->> --------------
->> Error log:
->> In file included from include/trace/trace_events.h:419,
->>                   from include/trace/define_trace.h:102,
->>                   from drivers/cxl/core/trace.h:737,
->>                   from drivers/cxl/core/trace.c:8:
->> drivers/cxl/core/./trace.h:383:1: error: macro "__assign_str" passed 2 arguments, but takes just 1
+On 5/17/24 11:00, Guenter Roeck wrote:
+> On 5/17/24 10:48, Steven Rostedt wrote:
+>> On Fri, 17 May 2024 10:36:37 -0700
+>> Guenter Roeck <linux@roeck-us.net> wrote:
 >>
->> This is with the patch applied on top of v6.9-8410-gff2632d7d08e.
->> So far that seems to be the only build failure.
->> Introduced with commit 6aec00139d3a8 ("cxl/core: Add region info to
->> cxl_general_media and cxl_dram events"). Guess we'll see more of those
->> towards the end of the commit window.
+>>> Building csky:allmodconfig (and others) ... failed
+>>> --------------
+>>> Error log:
+>>> In file included from include/trace/trace_events.h:419,
+>>>                   from include/trace/define_trace.h:102,
+>>>                   from drivers/cxl/core/trace.h:737,
+>>>                   from drivers/cxl/core/trace.c:8:
+>>> drivers/cxl/core/./trace.h:383:1: error: macro "__assign_str" passed 2 arguments, but takes just 1
+>>>
+>>> This is with the patch applied on top of v6.9-8410-gff2632d7d08e.
+>>> So far that seems to be the only build failure.
+>>> Introduced with commit 6aec00139d3a8 ("cxl/core: Add region info to
+>>> cxl_general_media and cxl_dram events"). Guess we'll see more of those
+>>> towards the end of the commit window.
+>>
+>> Looks like I made this patch just before this commit was pulled into
+>> Linus's tree.
+>>
+>> Which is why I'll apply and rerun the above again probably on Tuesday of
+>> next week against Linus's latest.
+>>
+>> This patch made it through both an allyesconfig and an allmodconfig, but on
+>> the commit I had applied it to, which was:
+>>
+>>    1b294a1f3561 ("Merge tag 'net-next-6.10' of git://git.kernel.org/pub/scm/linux/kernel/git/netdev/net-next")
+>>
+>> I'll be compiling those two builds after I update it then.
+>>
 > 
-> Looks like I made this patch just before this commit was pulled into
-> Linus's tree.
-> 
-> Which is why I'll apply and rerun the above again probably on Tuesday of
-> next week against Linus's latest.
-> 
-> This patch made it through both an allyesconfig and an allmodconfig, but on
-> the commit I had applied it to, which was:
-> 
->    1b294a1f3561 ("Merge tag 'net-next-6.10' of git://git.kernel.org/pub/scm/linux/kernel/git/netdev/net-next")
-> 
-> I'll be compiling those two builds after I update it then.
+> I am currently repeating my test builds with the above errors fixed.
+> That should take a couple of hours. I'll let you know how it goes.
 > 
 
-I am currently repeating my test builds with the above errors fixed.
-That should take a couple of hours. I'll let you know how it goes.
+There are no more build failures caused by this patch after fixing the above
+errors.
+
+Tested-by: Guenter Roeck <linux@roeck-us.net>
 
 Guenter
 
