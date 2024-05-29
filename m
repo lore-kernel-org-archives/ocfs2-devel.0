@@ -1,113 +1,99 @@
-Received: from mail-pf1-f169.google.com (mail-pf1-f169.google.com [209.85.210.169])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from out30-112.freemail.mail.aliyun.com (out30-112.freemail.mail.aliyun.com [115.124.30.112])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E5CE771753
-	for <ocfs2-devel@lists.linux.dev>; Tue, 28 May 2024 12:02:06 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.210.169
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 287547F6
+	for <ocfs2-devel@lists.linux.dev>; Wed, 29 May 2024 01:33:50 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.112
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1716897728; cv=none; b=n5iEk3zK2aovXVeT6aYMhDUtO6vtU32JyTF1/HxlyVjXl3NDjsMfnrdU3jOwgGhzu7cwe9sLWlj/L9JRz7iYuPViXBt0ZFbpLxF4Jbr2W0grgrmvxllNIta9Yom9JtZEeEyf9NYKS9l6jmtuwTmbPupi6EJXZdEWvLe6czhn6Mg=
+	t=1716946434; cv=none; b=KIk77QLppT3Lsuw5UhbDVNguI3T/ZAPX8S1i05GXgYxqPqfGUIy8jbYjTOwQFde4c0OpB9N2iIQcUcgPL8Hc2jbN6RB1/3HaOIFOpSphNNXYt6Ounvcay0Dqxb+sid8f8oeSJB5ieU+syr9k8/VMarvIls72938m9r19t5BLpgQ=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1716897728; c=relaxed/simple;
-	bh=KmPMw1YP4iTEHPXCxr/7IX4DfBeT1f1I7eZOMJUa8HE=;
-	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version; b=H21hDlRdgeg6jhqiUMPjXoL+4Qq4pnD4u05ebOPKcv8fYscedtDRFklVRlXgHboD9qq+nEipThSUJecVjkzoaTLkUdFR6iroQvbZMOGZswDhgyPmhRGwUutPEZoPcGfxMJJ+eKRRgULJfc1Dt0QdSvYzuwIClM640Is++cC6SIQ=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=A9pq+g50; arc=none smtp.client-ip=209.85.210.169
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	s=arc-20240116; t=1716946434; c=relaxed/simple;
+	bh=L1pVllcGBCVxVqyy33QAbOccnHewRIK1xHzMJfXTlI8=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=Nz5hZbSDonRWgQXyyS+RAcgeWIq8iZuAvaYjVpcKo8vI3Pcfp+yZyoan/NlFHHiatXYUoai/q69dGM1l2/PMvyyoYYilOfMYIwkSJBpRWj+uRaq9WaiiJcprRth9je/+bvoDA4+IwXSiiIN9LGJc6AMUuIu6/ETBK/wDNhPBruI=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=amv36OF9; arc=none smtp.client-ip=115.124.30.112
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="A9pq+g50"
-Received: by mail-pf1-f169.google.com with SMTP id d2e1a72fcca58-6fbbd937719so533889b3a.0
-        for <ocfs2-devel@lists.linux.dev>; Tue, 28 May 2024 05:02:06 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1716897726; x=1717502526; darn=lists.linux.dev;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:from:to:cc:subject:date:message-id:reply-to;
-        bh=k/zAQPqNqZCi3VD/hLNFWLQmglumDosNwioeowNlc8M=;
-        b=A9pq+g50E946XEUm734N5wjMD4FrgjalG68K08PE746YBucdp5blMmIo8Rn6Xzr6Yv
-         og2f0kuE2rWozIhFTGYUQe8Yke5YCfv4McOzkLEJ+GDNnzHuSGwW+6zGefyVGCK/zaMH
-         oqRP1e2ZkT2sZJ/mT+qKrar333TtSe4IZ/0Ehx3x31CawiCL0BMLfWx1Dnm85IIO0GiM
-         0eNrsr+3eKS9SIRb0w3dIU8xzBLkkrnAu8M7KTRkYfTucg/D3SQnnBGLot69TNj8K+U/
-         SH1Us9V5g0UmAREHR4jh3PfLh/vJ/R5hcwuuAHTHOMn5N6RqcycTYZ4eBh3W/L0vQFGz
-         t/vg==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1716897726; x=1717502526;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:x-gm-message-state:from:to:cc:subject:date:message-id
-         :reply-to;
-        bh=k/zAQPqNqZCi3VD/hLNFWLQmglumDosNwioeowNlc8M=;
-        b=Sa3guepMR7lLz5C1CDQxu5wkZaCuONXL4ZKmQLfCihBom/Tjv1fcT6r9NqxyRA6NnE
-         VfjHkuHSWqPQUIVAVyrfpSnCHnrKOWHI5YaMyc2gGEbBltoyO1K8KzhV0hNVK5+BUREe
-         Yl+CdQl8mmlagJge2j/P8qGbNS6E4w9PDWCIsZs2IOk2m/Vgl02nJ9Qutb9n1BI5WJ6c
-         FtTFCDgVc3FNhxeXe9DKYbGYPtO32nmskjQVSMSiuMIW5ZBHKGV26h17pGL2hspsqoCP
-         Ezk7h70bdKDc7R1wH+DwIHmKR7nVDT5Ya5hss3M4zpmZiJHLTj4hccKzrCaEIEoG5ppS
-         E3lg==
-X-Forwarded-Encrypted: i=1; AJvYcCXI4CJP7kM4vRw9da1bcD/JY/vn9X9aShixr2i72dOybesJ6Bv97bWVAyDW3tX1ajEOtzcHcekkhrEEMggV5Be2HlytatTf1KHxdas=
-X-Gm-Message-State: AOJu0YzWaZmBVibkhWAEk7QXG6ODdEUSZpKLaUJY/9y7k13YANsiSy+x
-	muqvUW1aLieWcTCDoreZ1wHrD9vBxMrwZYtk19Lyflpjwerk1bqS
-X-Google-Smtp-Source: AGHT+IG8bNy/GlESLk0peHJuJiL6T37jK2OEAhmbOl/iccEIWlrSRcQ8ZlSo3DAsXOgk+oEH4d61Eg==
-X-Received: by 2002:a05:6a20:9688:b0:1af:f875:63b0 with SMTP id adf61e73a8af0-1b212df0513mr10775633637.48.1716897725894;
-        Tue, 28 May 2024 05:02:05 -0700 (PDT)
-Received: from localhost.localdomain ([47.238.252.167])
-        by smtp.gmail.com with ESMTPSA id d2e1a72fcca58-6f8fcfe6cd2sm6283209b3a.162.2024.05.28.05.02.04
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Tue, 28 May 2024 05:02:05 -0700 (PDT)
-From: lei lu <llfamsec@gmail.com>
-To: joseph.qi@linux.alibaba.com
-Cc: mark@fasheh.com,
-	jlbec@evilplan.org,
-	ocfs2-devel@lists.linux.dev,
-	lei lu <llfamsec@gmail.com>
-Subject: [PATCH v2] ocfs2: add bounds checking to ocfs2_search_dirblock()
-Date: Tue, 28 May 2024 20:01:40 +0800
-Message-Id: <20240528120140.15550-1-llfamsec@gmail.com>
-X-Mailer: git-send-email 2.34.1
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="amv36OF9"
+DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=linux.alibaba.com; s=default;
+	t=1716946428; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=L36qkI/8lyHZcLS3URVOzgkjR6SjgInaH97K+pkuAXg=;
+	b=amv36OF9jeTzVj1Kbo5g07EBjEHpfy4BdGWZ2kViu6pOBT+D56ntfA9PyhgzjGo14WFomrnjeM2spy5c3exjjm9rGOXLQLNamklCTBGGYDUhfZJTPyS0bGs3izKzJ7tHSs94L5mJZWP8m1eIBzymh5GFhNrbF8qoZB0+cqh6tyg=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R581e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033032014031;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=4;SR=0;TI=SMTPD_---0W7Qtmnn_1716946427;
+Received: from 30.221.129.43(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0W7Qtmnn_1716946427)
+          by smtp.aliyun-inc.com;
+          Wed, 29 May 2024 09:33:48 +0800
+Message-ID: <22f06d3c-5781-43d8-8169-678ef2299ddb@linux.alibaba.com>
+Date: Wed, 29 May 2024 09:33:47 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH v2] ocfs2: add bounds checking to ocfs2_search_dirblock()
+To: lei lu <llfamsec@gmail.com>
+Cc: mark@fasheh.com, jlbec@evilplan.org, ocfs2-devel@lists.linux.dev
+References: <20240528120140.15550-1-llfamsec@gmail.com>
+Content-Language: en-US
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+In-Reply-To: <20240528120140.15550-1-llfamsec@gmail.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
-Add a check to make sure all members of the ocfs2_dir_entry
-don't stray beyond valid memory region.
 
-Signed-off-by: lei lu <llfamsec@gmail.com>
----
- fs/ocfs2/dir.c | 15 ++++++++-------
- 1 file changed, 8 insertions(+), 7 deletions(-)
 
-diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
-index d620d4c53c6f..56e2f8c62106 100644
---- a/fs/ocfs2/dir.c
-+++ b/fs/ocfs2/dir.c
-@@ -352,19 +352,20 @@ static inline int ocfs2_search_dirblock(struct buffer_head *bh,
- 	de_buf = first_de;
- 	dlimit = de_buf + bytes;
- 
--	while (de_buf < dlimit) {
-+	while (de_buf < dlimit - OCFS2_DIR_MEMBER_LEN) {
- 		/* this code is executed quadratically often */
- 		/* do minimal checking `by hand' */
- 
- 		de = (struct ocfs2_dir_entry *) de_buf;
- 
--		if (de_buf + namelen <= dlimit &&
-+		/* do a full check */
-+		if (!ocfs2_check_dir_entry(dir, de, bh, offset)) {
-+			ret = -1;
-+			goto bail;
-+		}
-+
-+		if (de->name + namelen <= dlimit &&
- 		    ocfs2_match(namelen, name, de)) {
--			/* found a match - just to be sure, do a full check */
--			if (!ocfs2_check_dir_entry(dir, de, bh, offset)) {
--				ret = -1;
--				goto bail;
--			}
- 			*res_dir = de;
- 			ret = 1;
- 			goto bail;
--- 
-2.34.1
+On 5/28/24 8:01 PM, lei lu wrote:
+> Add a check to make sure all members of the ocfs2_dir_entry
+> don't stray beyond valid memory region.
+> 
+> Signed-off-by: lei lu <llfamsec@gmail.com>
+> ---
+>  fs/ocfs2/dir.c | 15 ++++++++-------
+>  1 file changed, 8 insertions(+), 7 deletions(-)
+> 
+> diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
+> index d620d4c53c6f..56e2f8c62106 100644
+> --- a/fs/ocfs2/dir.c
+> +++ b/fs/ocfs2/dir.c
+> @@ -352,19 +352,20 @@ static inline int ocfs2_search_dirblock(struct buffer_head *bh,
+>  	de_buf = first_de;
+>  	dlimit = de_buf + bytes;
+>  
+> -	while (de_buf < dlimit) {
+> +	while (de_buf < dlimit - OCFS2_DIR_MEMBER_LEN) {
+>  		/* this code is executed quadratically often */
+>  		/* do minimal checking `by hand' */
+>  
+>  		de = (struct ocfs2_dir_entry *) de_buf;
+>  
+> -		if (de_buf + namelen <= dlimit &&
+> +		/* do a full check */
+> +		if (!ocfs2_check_dir_entry(dir, de, bh, offset)) {
+> +			ret = -1;
+> +			goto bail;
+> +		}
 
+What's the difference by moving full check above?
+As I commented in v1, we may add a more check in ocfs2_check_dir_entry().
+
+> +
+> +		if (de->name + namelen <= dlimit &&
+
+As discussed in v1, this change looks reasonable.
+
+Thanks,
+Joseph
+
+>  		    ocfs2_match(namelen, name, de)) {
+> -			/* found a match - just to be sure, do a full check */
+> -			if (!ocfs2_check_dir_entry(dir, de, bh, offset)) {
+> -				ret = -1;
+> -				goto bail;
+> -			}
+>  			*res_dir = de;
+>  			ret = 1;
+>  			goto bail;
