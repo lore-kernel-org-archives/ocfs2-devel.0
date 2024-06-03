@@ -1,393 +1,165 @@
-Received: from out30-118.freemail.mail.aliyun.com (out30-118.freemail.mail.aliyun.com [115.124.30.118])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-lj1-f177.google.com (mail-lj1-f177.google.com [209.85.208.177])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2380C134C4
-	for <ocfs2-devel@lists.linux.dev>; Sun,  2 Jun 2024 11:20:55 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.118
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 227F115D1
+	for <ocfs2-devel@lists.linux.dev>; Mon,  3 Jun 2024 02:34:24 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.208.177
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1717327259; cv=none; b=holqnnDrPZuMJTsyYZNIkqo1MnSGDaKXBXKIV7n/wfgDnQdqERhKvWky/ZyXLyDYM0TOFLxiTO1hoP2kGAR7zTcdviXEMjyO0+1Uu3cquKD4RsLhqVQoUH0rlgmmuPSZhjiaVuvleLBKnX+3Q3Ehn5hcTppMx3vo3zQLNlatOsU=
+	t=1717382068; cv=none; b=pXIOdn/u7WEQAyh11q9KBndXL3PzHouCcNUqrkEB9zVWUILu6zmzias5/E76dMAxKYzLcO0s2imuBNagt1Ih9bfQk3u/8pOSXcSGEZmQmu3ZfSAz4ENrZzvyMKSQF2bSfrHt7FMnBdeRQPTUtHXT/rMazac2jvdyA3H1pqKGAXM=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1717327259; c=relaxed/simple;
-	bh=nfipXI94TymEn+qEqBsooHnP2eYjxA86tpwL5xx8DaY=;
-	h=From:To:Cc:Subject:Date:Message-Id:In-Reply-To:References:
-	 MIME-Version; b=jnODqvX9LPFHH7nqov69lNk+QGX//Nw6Fb6iaDkiVE4TfKb6zudq4mcDkYHdBHTgQE38JyGR0EROCK7O7ZAP4yG0mU1TQCNeKyPhXZ9I9UfMX0Tjib2NGKsfE/2wOTg0y8UXsPqSNpuku4HRxk2xVFpCAz0LMoIF2HZFPi35ICQ=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=MZ48sXGG; arc=none smtp.client-ip=115.124.30.118
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
+	s=arc-20240116; t=1717382068; c=relaxed/simple;
+	bh=nVGm4SqZy2ooehr0CQLe36tqhsoi4WEnmCO9tLOWlTU=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=E0GwyNMixMLdO1/baoio/ehsf6o8uhkje4eK7j1Ew8dvVz0SSps3eAtTQnIedOqhX3jaD9uUk2qsnD7ZpBSm2ojvP0w2cju+y0OywSIirQuTf0cJxWwY/Nxp8bspDCOXzgP3stvyDhV0zJtYGmwp8zkx9iylySHVAz6D66HQCWY=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=AMlhHjF3; arc=none smtp.client-ip=209.85.208.177
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="MZ48sXGG"
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1717327248; h=From:To:Subject:Date:Message-Id:MIME-Version;
-	bh=UZu7hMZ3yAcOjo3fr/MnkPuAfXWqV/PzDBww8xuoW7Y=;
-	b=MZ48sXGGHJ7dOcsrccAhEDFta1tpH5FLWfu7B5lJ2LmOAVbESbbs9o6cg/0lrAU5brGxqEo76vFCDuxaSdeup1MFZ4mrrrZitmNGM2hnCIobJLc2WASrFy03lw7I4BqdNXsq9oc5vQBGh7+LgS3eRh2N/XyJNvqKN2MPZxgTwvY=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R881e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033037067109;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=3;SR=0;TI=SMTPD_---0W7eWwLp_1717327245;
-Received: from localhost(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0W7eWwLp_1717327245)
-          by smtp.aliyun-inc.com;
-          Sun, 02 Jun 2024 19:20:46 +0800
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-To: ocfs2-devel@lists.linux.dev
-Cc: Andrew Morton <akpm@linux-foundation.org>,
-	Heming Zhao <heming.zhao@suse.com>
-Subject: [PATCH v2 2/2] ocfs2: fix NULL pointer dereference in ocfs2_abort_trigger()
-Date: Sun,  2 Jun 2024 19:20:45 +0800
-Message-Id: <20240602112045.1112708-1-joseph.qi@linux.alibaba.com>
-X-Mailer: git-send-email 2.39.3
-In-Reply-To: <20240530110630.3933832-2-joseph.qi@linux.alibaba.com>
-References: <20240530110630.3933832-2-joseph.qi@linux.alibaba.com>
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="AMlhHjF3"
+Received: by mail-lj1-f177.google.com with SMTP id 38308e7fff4ca-2e95a75a90eso41268111fa.2
+        for <ocfs2-devel@lists.linux.dev>; Sun, 02 Jun 2024 19:34:24 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=suse.com; s=google; t=1717382063; x=1717986863; darn=lists.linux.dev;
+        h=content-transfer-encoding:in-reply-to:from:references:cc:to
+         :content-language:subject:user-agent:mime-version:date:message-id
+         :from:to:cc:subject:date:message-id:reply-to;
+        bh=O7BTe8X4TlH65ZDjpszfC4HQycMYiCvhKNIygY54tUU=;
+        b=AMlhHjF3+Qw9e/2IfL5zb43L8TzVxJkZhmizmRQSoDirwzZQHpWbpiXuL9oNgyNTdv
+         zucQJDFWjpFfQAG4VAh3MlWkuTptGoc1dG/7ApqhThi4woDjpa+R8b40lFJ1ukS1tP1Y
+         RtqfdnVwdePZBX+dA4GX8OQmPjoMZJ8/bNgvMEBf4qGA4a8KiKj8PPlSXJGRwzcXrq7S
+         IUB62BsyBl32mjioCApsxvtQX6+rVxa3JHmKY3b8Q4AxjYgQQJdigmKj0KkGsrZudZyR
+         hEpeIDdrlfGkdtHWLGqhz/6flwH24HftykVdgPqG3eDbpp9xWi8FTp8OGldxFnEPAAQ2
+         JKfA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1717382063; x=1717986863;
+        h=content-transfer-encoding:in-reply-to:from:references:cc:to
+         :content-language:subject:user-agent:mime-version:date:message-id
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
+        bh=O7BTe8X4TlH65ZDjpszfC4HQycMYiCvhKNIygY54tUU=;
+        b=MP3Vz7o+yJ0ZQ8wQdlMtMIzWQH77E5FUefgyM2O3AP91xXgPYiWVlMGDawJUa3w8On
+         q6mJ0Wg8yEcdNPm+8yIIX9sJkLz2eprb0g20Jio4WqI9VIVNELTGthpL0oPtdOrgDEgW
+         MfLq0vSBZX32cqU4sY+dtnKT5Lq4fvmEksp/fjbspp1D+RDzjhogomIjEMU8fVEBxg9f
+         XsUBzDEJDkjvxXnBkl+yiT7pyn0OnKAtHZVxW4Vlchd+MgPimiBsuUyGDvp9/FOdwtwi
+         S9UkvJu71rfDiSkJkMnTzlR8TfkSMEPA6a8me5WkfR/AYvtr9tTJ1kYS3xCh9yvsS1LO
+         2Ggw==
+X-Forwarded-Encrypted: i=1; AJvYcCVnVVPt6SOiRfkOFQUxI2Tys+322LL0Hx8aFDYNf7UJJJdknav/SoBUjVrfa4XHW9bm2myyUYHHFIjc+EBEvscM8/FCyIaAnRuaY/c=
+X-Gm-Message-State: AOJu0YxNozE2bp7DerJpRdYjjeEKvPhYF7vZiWFGkw8o/cDOewW65nGs
+	EzLSoBegwHgays4YpnC/s1l9vS9RWGTnhsDhjMgkk0b/l4f1VGGenVkwYYEPjoI5NJ4SK0jBOKz
+	U
+X-Google-Smtp-Source: AGHT+IEun4VdutAtlDTQrMFzcjyCCdsGBMEYadCyS46gy85LbYtdZ40PsWkEXZKrpoqeMYCXcrSm0A==
+X-Received: by 2002:a2e:91cf:0:b0:2ea:7f84:e842 with SMTP id 38308e7fff4ca-2ea951b621dmr58097661fa.40.1717382062634;
+        Sun, 02 Jun 2024 19:34:22 -0700 (PDT)
+Received: from [10.202.32.28] ([202.127.77.110])
+        by smtp.gmail.com with ESMTPSA id d9443c01a7336-1f63237901asm53619165ad.93.2024.06.02.19.34.20
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Sun, 02 Jun 2024 19:34:22 -0700 (PDT)
+Message-ID: <d325a6bc-1c17-4507-aa71-041e62ae9216@suse.com>
+Date: Mon, 3 Jun 2024 10:34:17 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH 1/2] ocfs2: fix NULL pointer dereference in
+ ocfs2_journal_dirty()
+Content-Language: en-US
+To: Joseph Qi <joseph.qi@linux.alibaba.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, ocfs2-devel@lists.linux.dev
+References: <20240530110630.3933832-1-joseph.qi@linux.alibaba.com>
+From: Heming Zhao <heming.zhao@suse.com>
+In-Reply-To: <20240530110630.3933832-1-joseph.qi@linux.alibaba.com>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
 
-bdev->bd_super has been removed and commit 8887b94d9322 change the usage
-from bdev->bd_super to b_assoc_map->host->i_sb. Since ocfs2 hasn't set
-bh->b_assoc_map, it will trigger NULL pointer dereference when calling
-into ocfs2_abort_trigger().
+On 5/30/24 19:06, Joseph Qi wrote:
+> bdev->bd_super has been removed and commit 8887b94d9322 change the usage
+> from bdev->bd_super to b_assoc_map->host->i_sb. This introduces the
+> following NULL pointer dereference in ocfs2_journal_dirty() since
+> b_assoc_map is still not initialized.
+> This can be easily reproduced by running xfstests generic/186, which
+> simulate no more credits.
+> 
+> [  134.351592] BUG: kernel NULL pointer dereference, address: 0000000000000000
+> ...
+> [  134.355341] RIP: 0010:ocfs2_journal_dirty+0x14f/0x160 [ocfs2]
+> ...
+> [  134.365071] Call Trace:
+> [  134.365312]  <TASK>
+> [  134.365524]  ? __die_body+0x1e/0x60
+> [  134.365868]  ? page_fault_oops+0x13d/0x4f0
+> [  134.366265]  ? __pfx_bit_wait_io+0x10/0x10
+> [  134.366659]  ? schedule+0x27/0xb0
+> [  134.366981]  ? exc_page_fault+0x6a/0x140
+> [  134.367356]  ? asm_exc_page_fault+0x26/0x30
+> [  134.367762]  ? ocfs2_journal_dirty+0x14f/0x160 [ocfs2]
+> [  134.368305]  ? ocfs2_journal_dirty+0x13d/0x160 [ocfs2]
+> [  134.368837]  ocfs2_create_new_meta_bhs.isra.51+0x139/0x2e0 [ocfs2]
+> [  134.369454]  ocfs2_grow_tree+0x688/0x8a0 [ocfs2]
+> [  134.369927]  ocfs2_split_and_insert.isra.67+0x35c/0x4a0 [ocfs2]
+> [  134.370521]  ocfs2_split_extent+0x314/0x4d0 [ocfs2]
+> [  134.371019]  ocfs2_change_extent_flag+0x174/0x410 [ocfs2]
+> [  134.371566]  ocfs2_add_refcount_flag+0x3fa/0x630 [ocfs2]
+> [  134.372117]  ocfs2_reflink_remap_extent+0x21b/0x4c0 [ocfs2]
+> [  134.372994]  ? inode_update_timestamps+0x4a/0x120
+> [  134.373692]  ? __pfx_ocfs2_journal_access_di+0x10/0x10 [ocfs2]
+> [  134.374545]  ? __pfx_ocfs2_journal_access_di+0x10/0x10 [ocfs2]
+> [  134.375393]  ocfs2_reflink_remap_blocks+0xe4/0x4e0 [ocfs2]
+> [  134.376197]  ocfs2_remap_file_range+0x1de/0x390 [ocfs2]
+> [  134.376971]  ? security_file_permission+0x29/0x50
+> [  134.377644]  vfs_clone_file_range+0xfe/0x320
+> [  134.378268]  ioctl_file_clone+0x45/0xa0
+> [  134.378853]  do_vfs_ioctl+0x457/0x990
+> [  134.379422]  __x64_sys_ioctl+0x6e/0xd0
+> [  134.379987]  do_syscall_64+0x5d/0x170
+> [  134.380550]  entry_SYSCALL_64_after_hwframe+0x76/0x7e
+> [  134.381231] RIP: 0033:0x7fa4926397cb
+> [  134.381786] Code: 73 01 c3 48 8b 0d bd 56 38 00 f7 d8 64 89 01 48 83 c8 ff c3 66 2e 0f 1f 84 00 00 00 00 00 90 f3 0f 1e fa b8 10 00 00 00 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 8b 0d 8d 56 38 00 f7 d8 64 89 01 48
+> [  134.383930] RSP: 002b:00007ffc2b39f7b8 EFLAGS: 00000246 ORIG_RAX: 0000000000000010
+> [  134.384854] RAX: ffffffffffffffda RBX: 0000000000000004 RCX: 00007fa4926397cb
+> [  134.385734] RDX: 00007ffc2b39f7f0 RSI: 000000004020940d RDI: 0000000000000003
+> [  134.386606] RBP: 0000000000000000 R08: 00111a82a4f015bb R09: 00007fa494221000
+> [  134.387476] R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000000
+> [  134.388342] R13: 0000000000f10000 R14: 0000558e844e2ac8 R15: 0000000000f10000
+> [  134.389207]  </TASK>
+> 
+> Fix it by only aborting transaction and journal in ocfs2_journal_dirty()
+> now, and leave ocfs2_abort() later when detecting an aborted handle,
+> e.g. start next transaction. Also log the handle details in this case.
+> 
+> Fixes: 8887b94d9322 ("ocfs2: stop using bdev->bd_super for journal error logging")
+> Cc: stable@vger.kernel.org # 6.6+
+> Signed-off-by: Joseph Qi <joseph.qi@linux.alibaba.com>
 
-Actually this was pointed out in history, see commit 74e364ad1b13. But
-I've made a mistake when reviewing commit 8887b94d9322 and then
-re-introduce this regression.
+Reviewed-by: Heming Zhao <heming.zhao@suse.com>
 
-Since we cannot revive bdev in buffer head, so fix this issue by
-initializing all types of ocfs2 triggers when fill super, and then get
-the specific ocfs2 trigger from ocfs2_caching_info when access journal.
-
-Fixes: 8887b94d9322 ("ocfs2: stop using bdev->bd_super for journal error logging")
-Cc: stable@vger.kernel.org # 6.6+
-Signed-off-by: Joseph Qi <joseph.qi@linux.alibaba.com>
----
- fs/ocfs2/journal.c | 182 +++++++++++++++++++++++++--------------------
- fs/ocfs2/ocfs2.h   |  27 +++++++
- fs/ocfs2/super.c   |   4 +-
- 3 files changed, 131 insertions(+), 82 deletions(-)
-
-diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
-index 27c7683c7d3f..86807086b2df 100644
---- a/fs/ocfs2/journal.c
-+++ b/fs/ocfs2/journal.c
-@@ -479,12 +479,6 @@ int ocfs2_allocate_extend_trans(handle_t *handle, int thresh)
- 	return status;
- }
- 
--
--struct ocfs2_triggers {
--	struct jbd2_buffer_trigger_type	ot_triggers;
--	int				ot_offset;
--};
--
- static inline struct ocfs2_triggers *to_ocfs2_trigger(struct jbd2_buffer_trigger_type *triggers)
- {
- 	return container_of(triggers, struct ocfs2_triggers, ot_triggers);
-@@ -548,85 +542,76 @@ static void ocfs2_db_frozen_trigger(struct jbd2_buffer_trigger_type *triggers,
- static void ocfs2_abort_trigger(struct jbd2_buffer_trigger_type *triggers,
- 				struct buffer_head *bh)
- {
-+	struct ocfs2_triggers *ot = to_ocfs2_trigger(triggers);
-+
- 	mlog(ML_ERROR,
- 	     "ocfs2_abort_trigger called by JBD2.  bh = 0x%lx, "
- 	     "bh->b_blocknr = %llu\n",
- 	     (unsigned long)bh,
- 	     (unsigned long long)bh->b_blocknr);
- 
--	ocfs2_error(bh->b_assoc_map->host->i_sb,
-+	ocfs2_error(ot->sb,
- 		    "JBD2 has aborted our journal, ocfs2 cannot continue\n");
- }
- 
--static struct ocfs2_triggers di_triggers = {
--	.ot_triggers = {
--		.t_frozen = ocfs2_frozen_trigger,
--		.t_abort = ocfs2_abort_trigger,
--	},
--	.ot_offset	= offsetof(struct ocfs2_dinode, i_check),
--};
--
--static struct ocfs2_triggers eb_triggers = {
--	.ot_triggers = {
--		.t_frozen = ocfs2_frozen_trigger,
--		.t_abort = ocfs2_abort_trigger,
--	},
--	.ot_offset	= offsetof(struct ocfs2_extent_block, h_check),
--};
--
--static struct ocfs2_triggers rb_triggers = {
--	.ot_triggers = {
--		.t_frozen = ocfs2_frozen_trigger,
--		.t_abort = ocfs2_abort_trigger,
--	},
--	.ot_offset	= offsetof(struct ocfs2_refcount_block, rf_check),
--};
--
--static struct ocfs2_triggers gd_triggers = {
--	.ot_triggers = {
--		.t_frozen = ocfs2_frozen_trigger,
--		.t_abort = ocfs2_abort_trigger,
--	},
--	.ot_offset	= offsetof(struct ocfs2_group_desc, bg_check),
--};
--
--static struct ocfs2_triggers db_triggers = {
--	.ot_triggers = {
--		.t_frozen = ocfs2_db_frozen_trigger,
--		.t_abort = ocfs2_abort_trigger,
--	},
--};
-+static void ocfs2_setup_csum_triggers(struct super_block *sb,
-+				      enum ocfs2_journal_trigger_type type,
-+				      struct ocfs2_triggers *ot)
-+{
-+	BUG_ON(type >= OCFS2_JOURNAL_TRIGGER_COUNT);
- 
--static struct ocfs2_triggers xb_triggers = {
--	.ot_triggers = {
--		.t_frozen = ocfs2_frozen_trigger,
--		.t_abort = ocfs2_abort_trigger,
--	},
--	.ot_offset	= offsetof(struct ocfs2_xattr_block, xb_check),
--};
-+	switch (type) {
-+	case OCFS2_JTR_DI:
-+		ot->ot_triggers.t_frozen = ocfs2_frozen_trigger;
-+		ot->ot_offset = offsetof(struct ocfs2_dinode, i_check);
-+		break;
-+	case OCFS2_JTR_EB:
-+		ot->ot_triggers.t_frozen = ocfs2_frozen_trigger;
-+		ot->ot_offset = offsetof(struct ocfs2_extent_block, h_check);
-+		break;
-+	case OCFS2_JTR_RB:
-+		ot->ot_triggers.t_frozen = ocfs2_frozen_trigger;
-+		ot->ot_offset = offsetof(struct ocfs2_refcount_block, rf_check);
-+		break;
-+	case OCFS2_JTR_GD:
-+		ot->ot_triggers.t_frozen = ocfs2_frozen_trigger;
-+		ot->ot_offset = offsetof(struct ocfs2_group_desc, bg_check);
-+		break;
-+	case OCFS2_JTR_DB:
-+		ot->ot_triggers.t_frozen = ocfs2_db_frozen_trigger;
-+		break;
-+	case OCFS2_JTR_XB:
-+		ot->ot_triggers.t_frozen = ocfs2_frozen_trigger;
-+		ot->ot_offset = offsetof(struct ocfs2_xattr_block, xb_check);
-+		break;
-+	case OCFS2_JTR_DQ:
-+		ot->ot_triggers.t_frozen = ocfs2_dq_frozen_trigger;
-+		break;
-+	case OCFS2_JTR_DR:
-+		ot->ot_triggers.t_frozen = ocfs2_frozen_trigger;
-+		ot->ot_offset = offsetof(struct ocfs2_dx_root_block, dr_check);
-+		break;
-+	case OCFS2_JTR_DL:
-+		ot->ot_triggers.t_frozen = ocfs2_frozen_trigger;
-+		ot->ot_offset = offsetof(struct ocfs2_dx_leaf, dl_check);
-+		break;
-+	case OCFS2_JTR_NONE:
-+		/* To make compiler happy... */
-+		return;
-+	}
- 
--static struct ocfs2_triggers dq_triggers = {
--	.ot_triggers = {
--		.t_frozen = ocfs2_dq_frozen_trigger,
--		.t_abort = ocfs2_abort_trigger,
--	},
--};
-+	ot->ot_triggers.t_abort = ocfs2_abort_trigger;
-+	ot->sb = sb;
-+}
- 
--static struct ocfs2_triggers dr_triggers = {
--	.ot_triggers = {
--		.t_frozen = ocfs2_frozen_trigger,
--		.t_abort = ocfs2_abort_trigger,
--	},
--	.ot_offset	= offsetof(struct ocfs2_dx_root_block, dr_check),
--};
-+void ocfs2_initialize_journal_triggers(struct super_block *sb,
-+				       struct ocfs2_triggers triggers[])
-+{
-+	enum ocfs2_journal_trigger_type type;
- 
--static struct ocfs2_triggers dl_triggers = {
--	.ot_triggers = {
--		.t_frozen = ocfs2_frozen_trigger,
--		.t_abort = ocfs2_abort_trigger,
--	},
--	.ot_offset	= offsetof(struct ocfs2_dx_leaf, dl_check),
--};
-+	for (type = OCFS2_JTR_DI; type < OCFS2_JOURNAL_TRIGGER_COUNT; type++)
-+		ocfs2_setup_csum_triggers(sb, type, &triggers[type]);
-+}
- 
- static int __ocfs2_journal_access(handle_t *handle,
- 				  struct ocfs2_caching_info *ci,
-@@ -708,56 +693,91 @@ static int __ocfs2_journal_access(handle_t *handle,
- int ocfs2_journal_access_di(handle_t *handle, struct ocfs2_caching_info *ci,
- 			    struct buffer_head *bh, int type)
- {
--	return __ocfs2_journal_access(handle, ci, bh, &di_triggers, type);
-+	struct ocfs2_super *osb = OCFS2_SB(ocfs2_metadata_cache_get_super(ci));
-+
-+	return __ocfs2_journal_access(handle, ci, bh,
-+				      &osb->s_journal_triggers[OCFS2_JTR_DI],
-+				      type);
- }
- 
- int ocfs2_journal_access_eb(handle_t *handle, struct ocfs2_caching_info *ci,
- 			    struct buffer_head *bh, int type)
- {
--	return __ocfs2_journal_access(handle, ci, bh, &eb_triggers, type);
-+	struct ocfs2_super *osb = OCFS2_SB(ocfs2_metadata_cache_get_super(ci));
-+
-+	return __ocfs2_journal_access(handle, ci, bh,
-+				      &osb->s_journal_triggers[OCFS2_JTR_EB],
-+				      type);
- }
- 
- int ocfs2_journal_access_rb(handle_t *handle, struct ocfs2_caching_info *ci,
- 			    struct buffer_head *bh, int type)
- {
--	return __ocfs2_journal_access(handle, ci, bh, &rb_triggers,
-+	struct ocfs2_super *osb = OCFS2_SB(ocfs2_metadata_cache_get_super(ci));
-+
-+	return __ocfs2_journal_access(handle, ci, bh,
-+				      &osb->s_journal_triggers[OCFS2_JTR_RB],
- 				      type);
- }
- 
- int ocfs2_journal_access_gd(handle_t *handle, struct ocfs2_caching_info *ci,
- 			    struct buffer_head *bh, int type)
- {
--	return __ocfs2_journal_access(handle, ci, bh, &gd_triggers, type);
-+	struct ocfs2_super *osb = OCFS2_SB(ocfs2_metadata_cache_get_super(ci));
-+
-+	return __ocfs2_journal_access(handle, ci, bh,
-+				     &osb->s_journal_triggers[OCFS2_JTR_GD],
-+				     type);
- }
- 
- int ocfs2_journal_access_db(handle_t *handle, struct ocfs2_caching_info *ci,
- 			    struct buffer_head *bh, int type)
- {
--	return __ocfs2_journal_access(handle, ci, bh, &db_triggers, type);
-+	struct ocfs2_super *osb = OCFS2_SB(ocfs2_metadata_cache_get_super(ci));
-+
-+	return __ocfs2_journal_access(handle, ci, bh,
-+				     &osb->s_journal_triggers[OCFS2_JTR_DB],
-+				     type);
- }
- 
- int ocfs2_journal_access_xb(handle_t *handle, struct ocfs2_caching_info *ci,
- 			    struct buffer_head *bh, int type)
- {
--	return __ocfs2_journal_access(handle, ci, bh, &xb_triggers, type);
-+	struct ocfs2_super *osb = OCFS2_SB(ocfs2_metadata_cache_get_super(ci));
-+
-+	return __ocfs2_journal_access(handle, ci, bh,
-+				     &osb->s_journal_triggers[OCFS2_JTR_XB],
-+				     type);
- }
- 
- int ocfs2_journal_access_dq(handle_t *handle, struct ocfs2_caching_info *ci,
- 			    struct buffer_head *bh, int type)
- {
--	return __ocfs2_journal_access(handle, ci, bh, &dq_triggers, type);
-+	struct ocfs2_super *osb = OCFS2_SB(ocfs2_metadata_cache_get_super(ci));
-+
-+	return __ocfs2_journal_access(handle, ci, bh,
-+				     &osb->s_journal_triggers[OCFS2_JTR_DQ],
-+				     type);
- }
- 
- int ocfs2_journal_access_dr(handle_t *handle, struct ocfs2_caching_info *ci,
- 			    struct buffer_head *bh, int type)
- {
--	return __ocfs2_journal_access(handle, ci, bh, &dr_triggers, type);
-+	struct ocfs2_super *osb = OCFS2_SB(ocfs2_metadata_cache_get_super(ci));
-+
-+	return __ocfs2_journal_access(handle, ci, bh,
-+				     &osb->s_journal_triggers[OCFS2_JTR_DR],
-+				     type);
- }
- 
- int ocfs2_journal_access_dl(handle_t *handle, struct ocfs2_caching_info *ci,
- 			    struct buffer_head *bh, int type)
- {
--	return __ocfs2_journal_access(handle, ci, bh, &dl_triggers, type);
-+	struct ocfs2_super *osb = OCFS2_SB(ocfs2_metadata_cache_get_super(ci));
-+
-+	return __ocfs2_journal_access(handle, ci, bh,
-+				     &osb->s_journal_triggers[OCFS2_JTR_DL],
-+				     type);
- }
- 
- int ocfs2_journal_access(handle_t *handle, struct ocfs2_caching_info *ci,
-diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
-index a503c553bab2..8fe826143d7b 100644
---- a/fs/ocfs2/ocfs2.h
-+++ b/fs/ocfs2/ocfs2.h
-@@ -284,6 +284,30 @@ enum ocfs2_mount_options
- #define OCFS2_OSB_ERROR_FS	0x0004
- #define OCFS2_DEFAULT_ATIME_QUANTUM	60
- 
-+struct ocfs2_triggers {
-+	struct jbd2_buffer_trigger_type	ot_triggers;
-+	int				ot_offset;
-+	struct super_block		*sb;
-+};
-+
-+enum ocfs2_journal_trigger_type {
-+	OCFS2_JTR_DI,
-+	OCFS2_JTR_EB,
-+	OCFS2_JTR_RB,
-+	OCFS2_JTR_GD,
-+	OCFS2_JTR_DB,
-+	OCFS2_JTR_XB,
-+	OCFS2_JTR_DQ,
-+	OCFS2_JTR_DR,
-+	OCFS2_JTR_DL,
-+	OCFS2_JTR_NONE  /* This must be the last entry */
-+};
-+
-+#define OCFS2_JOURNAL_TRIGGER_COUNT OCFS2_JTR_NONE
-+
-+void ocfs2_initialize_journal_triggers(struct super_block *sb,
-+				       struct ocfs2_triggers triggers[]);
-+
- struct ocfs2_journal;
- struct ocfs2_slot_info;
- struct ocfs2_recovery_map;
-@@ -351,6 +375,9 @@ struct ocfs2_super
- 	struct ocfs2_journal *journal;
- 	unsigned long osb_commit_interval;
- 
-+	/* Journal triggers for checksum */
-+	struct ocfs2_triggers s_journal_triggers[OCFS2_JOURNAL_TRIGGER_COUNT];
-+
- 	struct delayed_work		la_enable_wq;
- 
- 	/*
-diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-index 8aabaed2c1cb..afee70125ae3 100644
---- a/fs/ocfs2/super.c
-+++ b/fs/ocfs2/super.c
-@@ -1075,9 +1075,11 @@ static int ocfs2_fill_super(struct super_block *sb, void *data, int silent)
- 	debugfs_create_file("fs_state", S_IFREG|S_IRUSR, osb->osb_debug_root,
- 			    osb, &ocfs2_osb_debug_fops);
- 
--	if (ocfs2_meta_ecc(osb))
-+	if (ocfs2_meta_ecc(osb)) {
-+		ocfs2_initialize_journal_triggers(sb, osb->s_journal_triggers);
- 		ocfs2_blockcheck_stats_debugfs_install( &osb->osb_ecc_stats,
- 							osb->osb_debug_root);
-+	}
- 
- 	status = ocfs2_mount_volume(sb);
- 	if (status < 0)
--- 
-2.39.3
+> ---
+>   fs/ocfs2/journal.c | 10 ++++++----
+>   1 file changed, 6 insertions(+), 4 deletions(-)
+> 
+> diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
+> index 604fea3a26ff..27c7683c7d3f 100644
+> --- a/fs/ocfs2/journal.c
+> +++ b/fs/ocfs2/journal.c
+> @@ -778,13 +778,15 @@ void ocfs2_journal_dirty(handle_t *handle, struct buffer_head *bh)
+>   		if (!is_handle_aborted(handle)) {
+>   			journal_t *journal = handle->h_transaction->t_journal;
+>   
+> -			mlog(ML_ERROR, "jbd2_journal_dirty_metadata failed. "
+> -					"Aborting transaction and journal.\n");
+> +			mlog(ML_ERROR, "jbd2_journal_dirty_metadata failed: "
+> +			     "handle type %u started at line %u, credits %u/%u "
+> +			     "errcode %d. Aborting transaction and journal.\n",
+> +			     handle->h_type, handle->h_line_no,
+> +			     handle->h_requested_credits,
+> +			     jbd2_handle_buffer_credits(handle), status);
+>   			handle->h_err = status;
+>   			jbd2_journal_abort_handle(handle);
+>   			jbd2_journal_abort(journal, status);
+> -			ocfs2_abort(bh->b_assoc_map->host->i_sb,
+> -				    "Journal already aborted.\n");
+>   		}
+>   	}
+>   }
 
