@@ -1,53 +1,54 @@
-Received: from mail-yb1-f178.google.com (mail-yb1-f178.google.com [209.85.219.178])
+Received: from mail-yb1-f175.google.com (mail-yb1-f175.google.com [209.85.219.175])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 587A0FBE8
-	for <ocfs2-devel@lists.linux.dev>; Sat,  8 Jun 2024 04:23:37 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.219.178
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1E90C3D68
+	for <ocfs2-devel@lists.linux.dev>; Sat,  8 Jun 2024 04:36:40 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.219.175
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1717820619; cv=none; b=aNNamrZJ+UaggYQsSLNyQMPJg3g+CyN4en7bh7XHKhP11Sv0KjE7JlcD6G6zd/vHvvFwJpPiuQipNx4QpVs7ZPDvkmSsvVdHZBWa7I+xI2p7ZxPZxc+9SpZHq8aY7sqYDScveIs1YE8JEeIdyYSKavE8vy78TN4hXmcJYEsNEhU=
+	t=1717821402; cv=none; b=gfYHiz/UWGBowzKC+Mnwo4BRgl88w/yviOCkEgzQxLT98vw1q2aqzY1cbxaQ3ib0FdnBlXEa6jda1J6l3Pygk86AJ/HwzU1MDDrUf7sXhuUqcNIzzly0k/+J1kOx9eFxU1moOBr9LfIkowhKWdOZeqOunzk7psZ6iw+ofE9KvSI=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1717820619; c=relaxed/simple;
-	bh=4V3vHwWtOBxLoGTU77db9xkyGvkTPwJPshkdVvROr0Y=;
+	s=arc-20240116; t=1717821402; c=relaxed/simple;
+	bh=eIwPsclUtm4yVqGTYCMdBtDpHn8WHi9zF/E3HDII8yA=;
 	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
-	 To:Cc:Content-Type; b=KObNSUM+SojMAV7WOox8ZeiEUbXklU7KgljBRq1jKuAjKgozDFq4feDD4YCaB7FkSaiGLBEDF+6Xka5rU1lq/7hOxAEYw0GhE3p4SdNu1VQXYL7JsE818lVOXev4JU2zpiozPj1Tnt96hPNYdftwRtfIZd9vN5xMBys+Rd5nSLk=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=iX7jL0I1; arc=none smtp.client-ip=209.85.219.178
+	 To:Cc:Content-Type; b=i/QhncFzyrPNkaTI65MGjb36UMar0YPMjXzkxidSYxgU/zFpCSp9EGIKjImVEiHbO3h5iP9l7SLXtAtWvMj9hUa9cHc6yOthp8HYz+6yoJStLKAPOaZuPWEYl8CrC8AXHk3rdSKNoUaYpFaCtijcFmilU/TwrmufiA9K2PCj12I=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=NhtwuICy; arc=none smtp.client-ip=209.85.219.175
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="iX7jL0I1"
-Received: by mail-yb1-f178.google.com with SMTP id 3f1490d57ef6-dfb12c0b4ceso57888276.3
-        for <ocfs2-devel@lists.linux.dev>; Fri, 07 Jun 2024 21:23:37 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="NhtwuICy"
+Received: by mail-yb1-f175.google.com with SMTP id 3f1490d57ef6-df771959b5bso2858025276.1
+        for <ocfs2-devel@lists.linux.dev>; Fri, 07 Jun 2024 21:36:40 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1717820616; x=1718425416; darn=lists.linux.dev;
+        d=gmail.com; s=20230601; t=1717821400; x=1718426200; darn=lists.linux.dev;
         h=content-transfer-encoding:cc:to:subject:message-id:date:from
          :in-reply-to:references:mime-version:from:to:cc:subject:date
          :message-id:reply-to;
-        bh=PwgxLawkloFDceeT+hiBETpfY3+zDZvEd5EoKj5YXU4=;
-        b=iX7jL0I1kcp90Pebcn9wg3K9B+9fhwJDR6kKhlFcH1/qkVTOR8WpMFqN5EdCyGzbHU
-         lZ+M15vXRH32foWg4v9Qv6AA/ygLkRv28wndCfMx+WJrET8XhLoeNYELf2AmXOaLt5gd
-         1kvx8GBkXK+3FDGZGveyWexmVM1HWsFHxCyyix20UrQ5rc2tkvEicjoR0NVLE7Q9f5i6
-         yhVYLEDVIGCLhwwS4Gafca6OgiFuV5qUBBcHqmEP5P+9eyde/exQJ5UrAbLK3IDWJqUF
-         CpjRC3CZB3+5HdHUiK4S3Hi75R0jlCTdTgT38IfcSlbXypSy4DjIBVYZf3ZMuCYTMkM3
-         J/IA==
+        bh=EAk9ZqJq6i5QIuPqv9Y7bK2fM20zbdTVUZu55oqTnh4=;
+        b=NhtwuICyKGhD/c6G318RMUwmXqwKV9q/HE8QCW9Vbt/6ABmm4rRHlnPWxezUCZHfKi
+         Lauge6A+WfSG8AU21Na4XdG0A5AzfMFZqMF0nRkoL0mQ7XeSfK9/b70jYVjeycZ3hDVd
+         alBcYg6ZlMo3/dyte6kbIZRpTa4HOQ/3HI3dWjVKl9PthERL8318u4a+clhC9/IVybRV
+         VWc2TKl54/eeH3wx1d1+mF3zUFz6w6pZWuokBJTDUnFKoOHSxSWc3Y55JurIPVpPF9TD
+         SohA6sMeQADZuA25i0kZReep8aKMw+SuLnpiwPuvuBq5vkAd1I8+fa4d4a5bNweSKgWq
+         C2vQ==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1717820616; x=1718425416;
+        d=1e100.net; s=20230601; t=1717821400; x=1718426200;
         h=content-transfer-encoding:cc:to:subject:message-id:date:from
          :in-reply-to:references:mime-version:x-gm-message-state:from:to:cc
          :subject:date:message-id:reply-to;
-        bh=PwgxLawkloFDceeT+hiBETpfY3+zDZvEd5EoKj5YXU4=;
-        b=R8SIqXqfP3Ux+2XwO2FRvA0kzBs703Nn68ql1dz+FYC7iOFVytSNy3/kJRNV10Kv0k
-         x+uVacDkZP5S6OnOTQ8Gb3QqMMnEePRzjkOXHE2KU48pfE7KcMCk24CQ7I/nCJO7kOte
-         ziYLvqFsCInn/08Dw+dFoISAkxkQVtSeOPUnUiKRRh7HV4mSkDunnER1Mb6KfDzwRDO+
-         7T0Se16eDXu4ENlcDzwu/bArxDAD9fWguusOYQKDAjlD59U/YtGnBVv4APxaaafh/Jbe
-         A3f0hwQdYWFpA30HpT4Ye37dh91HkbphNTu1Oimp50m5+cEoYJzerJO8haVUJF5yBFwY
-         LZQg==
-X-Gm-Message-State: AOJu0YxDZImNf/mmuYTLcJWxStIzxcIqml9dJNf3VHLtrkvPWUxlU4FT
-	NFUQHeGieBEIYopb5kL61F+Y2a3ltZz4FFCNJpNBaxp9RkVa825+wdKijZmxBNj0+nJWmdGYSlY
-	a9hx6ztTugFZhiPmbU2v8APYT8opOUb5LI/E/kQ==
-X-Google-Smtp-Source: AGHT+IGViuIzX58C8noBaY+zAycSMSZTgS/JB3iWXvKaFvlwI0yl9STz8deWrl1nDHMjM9uSP8yowvkbl6LluNrAcAM=
-X-Received: by 2002:a25:b43:0:b0:dfb:6ff:403e with SMTP id 3f1490d57ef6-dfb06ff419dmr2362962276.13.1717820616128;
- Fri, 07 Jun 2024 21:23:36 -0700 (PDT)
+        bh=EAk9ZqJq6i5QIuPqv9Y7bK2fM20zbdTVUZu55oqTnh4=;
+        b=ZkXnix5GgoYRqsQB+jThnm8X2WFDt+ZPm4bOZoZfRlHV4DzIE+xPHe67mfFjf7IF64
+         ScjrdAVd5U/PycqBo18+42BxLmX8EJ4lNl+oD3Gcx04OQSaBohJUT8g65fxqzwCGFSmo
+         hfD7EY9rG6kNcGdDNVqQ+Pi0IWZG5ltmpr6R5slt+3Le7DaqeHWli5gsyXhrkkjrnC+k
+         QqOfzG3R/QkxuZ+cgypOSEk47YR/SWo5keX6bwe9LUGSPx8GVRjTLnFNgyXscVlTJPIo
+         oGJKW9XpskmX1OlLnJp6X4k83Sgls29zEOMsh15G306bIZudbLbjy40cceQJ2BQ+yCXC
+         4A1w==
+X-Gm-Message-State: AOJu0YxisVmYsJrCBConxIsqhZRunsb6vJ0B3aNzaVeqMUvV4QS7vfBB
+	4TjKAZKWkfiXgVsJXnDd6BgBCm/H4dRNt+I2Uk1Vb74gClZyreHifcCEGbS1K4cpY3cQtr5D22O
+	xpP5s3UVXnyxSAw+bs06Q/RQzjND1ASooRzB4Rw==
+X-Google-Smtp-Source: AGHT+IHELSatnUhDLvBQxglKPfEf59c2obJuems+EghHdfEX2GPHKolwqjWx6mbIOJRNf6wq0c8P0VWPn9q+/dGRjFM=
+X-Received: by 2002:a25:6c82:0:b0:dfa:b28e:f637 with SMTP id
+ 3f1490d57ef6-dfaf670b6b9mr4057468276.56.1717821400031; Fri, 07 Jun 2024
+ 21:36:40 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -57,8 +58,8 @@ MIME-Version: 1.0
 References: <20240606065455.94846-1-llfamsec@gmail.com> <046696eb-4e56-4190-8295-d77a8b5cb522@linux.alibaba.com>
 In-Reply-To: <046696eb-4e56-4190-8295-d77a8b5cb522@linux.alibaba.com>
 From: lei lu <llfamsec@gmail.com>
-Date: Sat, 8 Jun 2024 12:23:09 +0800
-Message-ID: <CAEBF3_bXhKw+CBsTQBonM3ZTSZB7hyTJiV6wrw7=3pieYT0DYg@mail.gmail.com>
+Date: Sat, 8 Jun 2024 12:36:29 +0800
+Message-ID: <CAEBF3_Y8-x=EEzPAf4WayD3q2fZ8QGN+NP=CMKt9QMZC1vW8bA@mail.gmail.com>
 Subject: Re: [PATCH] ocfs2: add bounds checking to ocfs2_check_dir_entry()
 To: Joseph Qi <joseph.qi@linux.alibaba.com>
 Cc: ocfs2-devel@lists.linux.dev
@@ -98,14 +99,6 @@ ned int size,
 >
 > Don't see why we have to pass 'buf' here.
 > Seems it can be obtained from bh directly.
-
-We can not simply obtained de from bh->b_data. Because in
-ocfs2_search_dirblock, the beginning of bh->b_data is ocfs2_dinode
-(found in caller ocfs2_find_entry_id). But in ocfs2_find_dir_space_el,
-we can see "de =3D (struct ocfs2_dir_entry *) bh->b_data;", which means
-the beginning of bh->b_data is de directly. I'm not sure what's
-causing this difference.
-
 >
 > >                                unsigned long offset)
 > >  {
@@ -126,9 +119,6 @@ r,
 > > +              next_offset !=3D size)
 >
 > Seems we also have to consider meta ecc.
-
-Sorry, I'm not very familiar with this.
-
 >
 > > +             error_msg =3D "directory entry too close to end";
 > >       else if (unlikely(
@@ -160,28 +150,7 @@ ytes offset)) {
 > It looks buggy, even cannot compile.
 > Have you compiled and then verified with your POC?
 
-I have compiled and tested it. And I got an output as below:
-root@syzkaller:~# mount -o loop ocfs2-test.img /mnt/ocfs2-test
-[  116.777184] loop0: detected capacity change from 0 to 40960
-[  116.843546] (mount,232,0):ocfs2_init_global_system_inodes:461
-ERROR: status =3D -22
-[  116.843946] (mount,232,0):ocfs2_init_global_system_inodes:462
-ERROR: Unable to load system inode ?
-[  116.844001] (mount,232,0):ocfs2_init_global_system_inodes:472
-ERROR: status =3D -22
-[  116.844821] (mount,232,0):ocfs2_initialize_super:2251 ERROR: status =3D =
--22
-[  116.845590] (mount,232,0):ocfs2_fill_super:1176 ERROR: status =3D -22
-mount: /mnt/ocfs2-test: wrong fs type, bad option, bad superblock on
-/dev/loop0, missing codepage or.
-
-The ocfs2_check_dir_entry was not called because "de->name + namelen
-<=3D dlimit && ocfs2_match(namelen, name, de)" was not meet. I think
-"while (de_buf < dlimit - OCFS2_DIR_MEMBER_LEN)" has taken effect, and
-we got an error elsewhere.
-
-Thanks,
-LL
+Oh, I see, I am missing a comma here. Sorry for that.
 
 >
 > Thanks,
