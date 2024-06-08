@@ -1,187 +1,290 @@
-Received: from mail-pg1-f171.google.com (mail-pg1-f171.google.com [209.85.215.171])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from out30-113.freemail.mail.aliyun.com (out30-113.freemail.mail.aliyun.com [115.124.30.113])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C1A0219D898
-	for <ocfs2-devel@lists.linux.dev>; Thu,  6 Jun 2024 06:55:27 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.215.171
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B91B363CF
+	for <ocfs2-devel@lists.linux.dev>; Sat,  8 Jun 2024 01:23:19 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.113
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1717656929; cv=none; b=muw1NSjUvmrlJiVXgSSK2Zm1JY4RWGiOAKr1jtq3NLZ4cJQDrW85m1+R8lsZe6eLcARsnqo9er5iFD+4D67R4GsDf7iQGVlUA/ZtjZ0RNYDLytnl+4kq+O9kMakVIqgevg++n8ntTz0lr0tN3gcQl8up88uT4/YtKKBcW5nrEs0=
+	t=1717809803; cv=none; b=Wx1HlOUK3ER5J7icXXFbgiX9d+IBnrE4nbMD9u5Dnwaci2h2iGMwPabJ3Uu9EZ/pqTNrlE0zHkwxZ3e4IqwtO6GWZhK+zb5DDC9BMKNS6u3UK/fKVgJLEMdVaNvnNHwapaMRx7EG9CceDkgv/2kBzGcUSc4GIIMc1iTCFhE9/CE=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1717656929; c=relaxed/simple;
-	bh=h2P2Qlu89EH330ZcrvNCBrHYI0f+Kv0Mt2T3ALCMJeM=;
-	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version; b=WANPLwG3XhaUGHMqeN7kmY2LzlqksOQVopcCNLSzf0U1kcV1QDPc+yWzFvZL1I36hITBUUwj0pjNVjVPPryTtIxiGkqijM683B0YH70oYxz9QSUTFFMyCegpV+IR31y7R7LiDHAo05PTCys9aZk2BAUG4XiR201fk++pkIZ49I8=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=hF/vkBBL; arc=none smtp.client-ip=209.85.215.171
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	s=arc-20240116; t=1717809803; c=relaxed/simple;
+	bh=usmFjaj7bgudJsgMiS5ptxznzZ6dZf47CM2AvCQH8eQ=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=hT/O1tMrmLFJ3KEJHjgrnImRSd0gT0ycXFoHfLOz3YlrKjnszUnWMzWO96khCjvsGJsQD42CnG9C03O9y+WX4UNpJ6tf8boezy33QdrT3ExSg8qd+OiahekuZoaRpilXiB1Rt53MSux/Hi36lH+vEJjPFy7cL2mjDr3UERX/8CQ=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=o/HjkUlE; arc=none smtp.client-ip=115.124.30.113
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="hF/vkBBL"
-Received: by mail-pg1-f171.google.com with SMTP id 41be03b00d2f7-652fd0bb5e6so486948a12.0
-        for <ocfs2-devel@lists.linux.dev>; Wed, 05 Jun 2024 23:55:27 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1717656927; x=1718261727; darn=lists.linux.dev;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:from:to:cc:subject:date:message-id:reply-to;
-        bh=spLDjCPQWlGrMTyIFjNSOgZJP+06NZf9SmzKRrhODqU=;
-        b=hF/vkBBLSOZaE0s66e/KtSKkSLd1qv0fUH/9E1tsq8z5mninm3z9hdDMwBcXBuA0bM
-         9TOA2KMyBUK6zc2VfHAvYZUPnMlJyD1EEDSaJGveQGOCcwU/0mJ+gFPmn6evPRgx0KO7
-         pHrCofLYky4Kc0kOpkWyxLvX4ZS1YabooxzrFNH26G065TNh9hkOk6DaaakqR22H8J53
-         b4Jtfd/a5wW04SrPvIGvx/kILDCrLXWN7Ow3Wz2w5VOy+yg7WLexIKtJFS/sS09Ktzc5
-         UNWL/9JdpfvU/Bl4Xn2IYPMnNBg/0yJlEzMhGOWuOwnuYg1jopjf5dixgG19KLYmW70J
-         9z/Q==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1717656927; x=1718261727;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:x-gm-message-state:from:to:cc:subject:date:message-id
-         :reply-to;
-        bh=spLDjCPQWlGrMTyIFjNSOgZJP+06NZf9SmzKRrhODqU=;
-        b=Wd7bYfS3yMVXRtxI0f27Lhv7jxzlmFCnihZdqQ8SzZr9NfZ71uFZpjetL2EHJCZwdd
-         v9Cd08DKZ0RFVOETHWqDMcEVMf5d/8wze8FWXHCGyfXj2rg4dFDYLOSImsWq/ciFh2RV
-         vPaCBNOhmVZCEk/MF926EpfeCRCIJr4WNzwKuKLaaFSl4unr5svmihNxZ0VM6Wv8M7KA
-         hPF1a9mvswy7hUvTamSmZlRnreCcXWGpl6SU2CgYFzjyP2NZXNiBfVEbRp+JXkv49jpK
-         BG+aqdB1qfWJTnf1Q53jpzlzUu0zr1NOqPjCAsWYkwxQz/HLQ9smuwdLaEff5rTK7gSy
-         w/4A==
-X-Gm-Message-State: AOJu0YwT/MjgkAg6/Nn8eF49QVy3mnLFwAKDtWPecqkUfle1azk6DY1Y
-	Gf7Cz47ojuiNHBjtdlxli638HOGVLjk2/iAXKjS1QgfsbCbB10H46jhpHGowGwk=
-X-Google-Smtp-Source: AGHT+IH6THWzeDtJAwFWkuG4KHkSk2LDSrc3CbOturZoT7gNAAV5d6UIe8PVpS03N3n49l99Lu3EUA==
-X-Received: by 2002:a17:902:ce91:b0:1f4:9b2a:b337 with SMTP id d9443c01a7336-1f6a5a01fd0mr61380645ad.3.1717656926610;
-        Wed, 05 Jun 2024 23:55:26 -0700 (PDT)
-Received: from localhost.localdomain ([47.238.252.167])
-        by smtp.gmail.com with ESMTPSA id d9443c01a7336-1f6bd81bd71sm6758775ad.304.2024.06.05.23.55.25
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Wed, 05 Jun 2024 23:55:26 -0700 (PDT)
-From: lei lu <llfamsec@gmail.com>
-To: ocfs2-devel@lists.linux.dev
-Cc: joseph.qi@linux.alibaba.com
-Subject: [PATCH] ocfs2: add bounds checking to ocfs2_check_dir_entry()
-Date: Thu,  6 Jun 2024 14:54:55 +0800
-Message-Id: <20240606065455.94846-1-llfamsec@gmail.com>
-X-Mailer: git-send-email 2.34.1
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="o/HjkUlE"
+DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=linux.alibaba.com; s=default;
+	t=1717809797; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=R6nt7yUK35vsFklJDNutkBwOnv/Drw8k6tMBrEt6hsc=;
+	b=o/HjkUlE971gtRLH9bqc1Le+pi3dTT6wCHEFn/HXT5Q4Hs1JVS9n676iQ/DRTrLTQMQb9EXlVo6BbhMiH3yqdCuzKdK8URGgKjzI+U4no/X1H0cVpm+OQSHS7bHv29umdjpkcJfpQ/NoyQwy/04x1bMtv8li88aQyIUIspGrqC4=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R171e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033045075189;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=5;SR=0;TI=SMTPD_---0W80E1-B_1717809794;
+Received: from 30.120.131.238(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0W80E1-B_1717809794)
+          by smtp.aliyun-inc.com;
+          Sat, 08 Jun 2024 09:23:15 +0800
+Message-ID: <b05975f7-aa8a-420a-b639-8650480cc834@linux.alibaba.com>
+Date: Sat, 8 Jun 2024 09:23:14 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH] ocfs2: convert to pr_fmt
+To: Longlong Xia <xialonglong@kylinos.cn>, mark@fasheh.com
+Cc: jlbec@evilplan.org, ocfs2-devel@lists.linux.dev,
+ linux-kernel@vger.kernel.org
+References: <20240606022823.1296737-1-xialonglong@kylinos.cn>
+Content-Language: en-US
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+In-Reply-To: <20240606022823.1296737-1-xialonglong@kylinos.cn>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
-This adds sanity checks for ocfs2_dir_entry to make sure all members of
-ocfs2_dir_entry don't stray beyond valid memory region.
+Basically I have no objection to do this convert.
+But if we do this in cluster/tcp.c, while leave others unchanged, then
+it looks inconsistent for the whole ocfs2 code.
 
-Signed-off-by: lei lu <llfamsec@gmail.com>
----
- fs/ocfs2/dir.c | 32 ++++++++++++++++++++------------
- 1 file changed, 20 insertions(+), 12 deletions(-)
+Thanks,
+Joseph
 
-diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
-index d620d4c53c6f..85966385d134 100644
---- a/fs/ocfs2/dir.c
-+++ b/fs/ocfs2/dir.c
-@@ -294,13 +294,14 @@ static void ocfs2_dx_dir_name_hash(struct inode *dir, const char *name, int len,
-  * bh passed here can be an inode block or a dir data block, depending
-  * on the inode inline data flag.
-  */
--static int ocfs2_check_dir_entry(struct inode * dir,
--				 struct ocfs2_dir_entry * de,
--				 struct buffer_head * bh,
-+static int ocfs2_check_dir_entry(struct inode *dir,
-+				 struct ocfs2_dir_entry *de,
-+				 struct buffer_head *bh, char *buf, unsigned int size,
- 				 unsigned long offset)
- {
- 	const char *error_msg = NULL;
- 	const int rlen = le16_to_cpu(de->rec_len);
-+	const unsigned long next_offset = ((char *) de - buf) + rlen;
- 
- 	if (unlikely(rlen < OCFS2_DIR_REC_LEN(1)))
- 		error_msg = "rec_len is smaller than minimal";
-@@ -308,6 +309,11 @@ static int ocfs2_check_dir_entry(struct inode * dir,
- 		error_msg = "rec_len % 4 != 0";
- 	else if (unlikely(rlen < OCFS2_DIR_REC_LEN(de->name_len)))
- 		error_msg = "rec_len is too small for name_len";
-+	else if (unlikely(next_offset > size))
-+		error_msg = "directory entry overrun";
-+	else if (unlikely(next_offset > size - OCFS2_DIR_REC_LEN(1)) &&
-+		 next_offset != size)
-+		error_msg = "directory entry too close to end";
- 	else if (unlikely(
- 		 ((char *) de - bh->b_data) + rlen > dir->i_sb->s_blocksize))
- 		error_msg = "directory entry across blocks";
-@@ -352,16 +358,16 @@ static inline int ocfs2_search_dirblock(struct buffer_head *bh,
- 	de_buf = first_de;
- 	dlimit = de_buf + bytes;
- 
--	while (de_buf < dlimit) {
-+	while (de_buf < dlimit - OCFS2_DIR_MEMBER_LEN) {
- 		/* this code is executed quadratically often */
- 		/* do minimal checking `by hand' */
- 
- 		de = (struct ocfs2_dir_entry *) de_buf;
- 
--		if (de_buf + namelen <= dlimit &&
-+		if (de->name + namelen <= dlimit &&
- 		    ocfs2_match(namelen, name, de)) {
- 			/* found a match - just to be sure, do a full check */
--			if (!ocfs2_check_dir_entry(dir, de, bh, offset)) {
-+			if (!ocfs2_check_dir_entry(dir, de, bh, de_buf, bytes offset)) {
- 				ret = -1;
- 				goto bail;
- 			}
-@@ -1138,7 +1144,7 @@ static int __ocfs2_delete_entry(handle_t *handle, struct inode *dir,
- 	pde = NULL;
- 	de = (struct ocfs2_dir_entry *) first_de;
- 	while (i < bytes) {
--		if (!ocfs2_check_dir_entry(dir, de, bh, i)) {
-+		if (!ocfs2_check_dir_entry(dir, de, bh, first_de, bytes, i)) {
- 			status = -EIO;
- 			mlog_errno(status);
- 			goto bail;
-@@ -1635,7 +1641,7 @@ int __ocfs2_add_entry(handle_t *handle,
- 		/* These checks should've already been passed by the
- 		 * prepare function, but I guess we can leave them
- 		 * here anyway. */
--		if (!ocfs2_check_dir_entry(dir, de, insert_bh, offset)) {
-+		if (!ocfs2_check_dir_entry(dir, de, insert_bh, data_start, size, offset)) {
- 			retval = -ENOENT;
- 			goto bail;
- 		}
-@@ -1774,7 +1780,8 @@ static int ocfs2_dir_foreach_blk_id(struct inode *inode,
- 		}
- 
- 		de = (struct ocfs2_dir_entry *) (data->id_data + ctx->pos);
--		if (!ocfs2_check_dir_entry(inode, de, di_bh, ctx->pos)) {
-+		if (!ocfs2_check_dir_entry(inode, de, di_bh, (char *)data->id_data,
-+					   i_size_read(inode), ctx->pos)) {
- 			/* On error, skip the f_pos to the end. */
- 			ctx->pos = i_size_read(inode);
- 			break;
-@@ -1867,7 +1874,8 @@ static int ocfs2_dir_foreach_blk_el(struct inode *inode,
- 		while (ctx->pos < i_size_read(inode)
- 		       && offset < sb->s_blocksize) {
- 			de = (struct ocfs2_dir_entry *) (bh->b_data + offset);
--			if (!ocfs2_check_dir_entry(inode, de, bh, offset)) {
-+			if (!ocfs2_check_dir_entry(inode, de, bh, bh->b_data,
-+						   i_size_read(inode), offset)) {
- 				/* On error, skip the f_pos to the
- 				   next block. */
- 				ctx->pos = (ctx->pos | (sb->s_blocksize - 1)) + 1;
-@@ -3359,7 +3367,7 @@ static int ocfs2_find_dir_space_id(struct inode *dir, struct buffer_head *di_bh,
- 	while (de_buf < limit) {
- 		de = (struct ocfs2_dir_entry *)de_buf;
- 
--		if (!ocfs2_check_dir_entry(dir, de, di_bh, offset)) {
-+		if (!ocfs2_check_dir_entry(dir, de, di_bh, de_buf, i_size_read(dir), offset)) {
- 			ret = -ENOENT;
- 			goto out;
- 		}
-@@ -3441,7 +3449,7 @@ static int ocfs2_find_dir_space_el(struct inode *dir, const char *name,
- 			/* move to next block */
- 			de = (struct ocfs2_dir_entry *) bh->b_data;
- 		}
--		if (!ocfs2_check_dir_entry(dir, de, bh, offset)) {
-+		if (!ocfs2_check_dir_entry(dir, de, bh, bh->b_data, sb->s_blocksize, offset)) {
- 			status = -ENOENT;
- 			goto bail;
- 		}
--- 
-2.34.1
-
+On 6/6/24 10:28 AM, Longlong Xia wrote:
+> Use the pr_fmt() macro to prefix all the output with "o2net: ".
+> while at it, convert printk(<LEVEL>) to pr_<level>().
+> 
+> Signed-off-by: Longlong Xia <xialonglong@kylinos.cn>
+> ---
+>  fs/ocfs2/cluster/tcp.c | 109 ++++++++++++++++++-----------------------
+>  1 file changed, 49 insertions(+), 60 deletions(-)
+> 
+> diff --git a/fs/ocfs2/cluster/tcp.c b/fs/ocfs2/cluster/tcp.c
+> index 2b8fa3e782fb..fc483c7c4fb4 100644
+> --- a/fs/ocfs2/cluster/tcp.c
+> +++ b/fs/ocfs2/cluster/tcp.c
+> @@ -37,6 +37,8 @@
+>   * and only accepts the connection if the higher numbered node is heartbeating.
+>   */
+>  
+> +#define pr_fmt(fmt) "o2net: " fmt
+> +
+>  #include <linux/kernel.h>
+>  #include <linux/sched/mm.h>
+>  #include <linux/jiffies.h>
+> @@ -528,18 +530,16 @@ static void o2net_set_nn_state(struct o2net_node *nn,
+>  
+>  	if (was_valid && !valid) {
+>  		if (old_sc)
+> -			printk(KERN_NOTICE "o2net: No longer connected to "
+> -				SC_NODEF_FMT "\n", SC_NODEF_ARGS(old_sc));
+> +			pr_notice("No longer connected to " SC_NODEF_FMT "\n",
+> +				  SC_NODEF_ARGS(old_sc));
+>  		o2net_complete_nodes_nsw(nn);
+>  	}
+>  
+>  	if (!was_valid && valid) {
+>  		o2quo_conn_up(o2net_num_from_nn(nn));
+>  		cancel_delayed_work(&nn->nn_connect_expired);
+> -		printk(KERN_NOTICE "o2net: %s " SC_NODEF_FMT "\n",
+> -		       o2nm_this_node() > sc->sc_node->nd_num ?
+> -		       "Connected to" : "Accepted connection from",
+> -		       SC_NODEF_ARGS(sc));
+> +		pr_notice("%s " SC_NODEF_FMT "\n", o2nm_this_node() > sc->sc_node->nd_num ?
+> +			  "Connected to" : "Accepted connection from", SC_NODEF_ARGS(sc));
+>  	}
+>  
+>  	/* trigger the connecting worker func as long as we're not valid,
+> @@ -629,9 +629,8 @@ static void o2net_state_change(struct sock *sk)
+>  		o2net_sc_queue_work(sc, &sc->sc_connect_work);
+>  		break;
+>  	default:
+> -		printk(KERN_INFO "o2net: Connection to " SC_NODEF_FMT
+> -			" shutdown, state %d\n",
+> -			SC_NODEF_ARGS(sc), sk->sk_state);
+> +		pr_notice("Connection to " SC_NODEF_FMT " shutdown, state %d\n",
+> +			  SC_NODEF_ARGS(sc), sk->sk_state);
+>  		o2net_sc_queue_work(sc, &sc->sc_shutdown_work);
+>  		break;
+>  	}
+> @@ -1260,11 +1259,10 @@ static int o2net_check_handshake(struct o2net_sock_container *sc)
+>  	struct o2net_node *nn = o2net_nn_from_num(sc->sc_node->nd_num);
+>  
+>  	if (hand->protocol_version != cpu_to_be64(O2NET_PROTOCOL_VERSION)) {
+> -		printk(KERN_NOTICE "o2net: " SC_NODEF_FMT " Advertised net "
+> -		       "protocol version %llu but %llu is required. "
+> -		       "Disconnecting.\n", SC_NODEF_ARGS(sc),
+> -		       (unsigned long long)be64_to_cpu(hand->protocol_version),
+> -		       O2NET_PROTOCOL_VERSION);
+> +		pr_notice(SC_NODEF_FMT " Advertised net protocol version %llu but %llu is required. Disconnecting.\n",
+> +			SC_NODEF_ARGS(sc),
+> +			(unsigned long long)be64_to_cpu(hand->protocol_version),
+> +			O2NET_PROTOCOL_VERSION);
+>  
+>  		/* don't bother reconnecting if its the wrong version. */
+>  		o2net_ensure_shutdown(nn, sc, -ENOTCONN);
+> @@ -1278,33 +1276,30 @@ static int o2net_check_handshake(struct o2net_sock_container *sc)
+>  	 */
+>  	if (be32_to_cpu(hand->o2net_idle_timeout_ms) !=
+>  				o2net_idle_timeout()) {
+> -		printk(KERN_NOTICE "o2net: " SC_NODEF_FMT " uses a network "
+> -		       "idle timeout of %u ms, but we use %u ms locally. "
+> -		       "Disconnecting.\n", SC_NODEF_ARGS(sc),
+> -		       be32_to_cpu(hand->o2net_idle_timeout_ms),
+> -		       o2net_idle_timeout());
+> +		pr_notice(SC_NODEF_FMT " uses a network idle timeout of %u ms, but we use %u ms locally. Disconnecting.\n",
+> +			  SC_NODEF_ARGS(sc),
+> +			  be32_to_cpu(hand->o2net_idle_timeout_ms),
+> +			  o2net_idle_timeout());
+>  		o2net_ensure_shutdown(nn, sc, -ENOTCONN);
+>  		return -1;
+>  	}
+>  
+>  	if (be32_to_cpu(hand->o2net_keepalive_delay_ms) !=
+>  			o2net_keepalive_delay()) {
+> -		printk(KERN_NOTICE "o2net: " SC_NODEF_FMT " uses a keepalive "
+> -		       "delay of %u ms, but we use %u ms locally. "
+> -		       "Disconnecting.\n", SC_NODEF_ARGS(sc),
+> -		       be32_to_cpu(hand->o2net_keepalive_delay_ms),
+> -		       o2net_keepalive_delay());
+> +		pr_notice(SC_NODEF_FMT " uses a keepalive delay of %u ms, but we use %u ms locally. Disconnecting.\n",
+> +			  SC_NODEF_ARGS(sc),
+> +			  be32_to_cpu(hand->o2net_keepalive_delay_ms),
+> +			  o2net_keepalive_delay());
+>  		o2net_ensure_shutdown(nn, sc, -ENOTCONN);
+>  		return -1;
+>  	}
+>  
+>  	if (be32_to_cpu(hand->o2hb_heartbeat_timeout_ms) !=
+>  			O2HB_MAX_WRITE_TIMEOUT_MS) {
+> -		printk(KERN_NOTICE "o2net: " SC_NODEF_FMT " uses a heartbeat "
+> -		       "timeout of %u ms, but we use %u ms locally. "
+> -		       "Disconnecting.\n", SC_NODEF_ARGS(sc),
+> -		       be32_to_cpu(hand->o2hb_heartbeat_timeout_ms),
+> -		       O2HB_MAX_WRITE_TIMEOUT_MS);
+> +		pr_notice(SC_NODEF_FMT " uses a heartbeat timeout of %u ms, but we use %u ms locally. Disconnecting.\n",
+> +			  SC_NODEF_ARGS(sc),
+> +			  be32_to_cpu(hand->o2hb_heartbeat_timeout_ms),
+> +			  O2HB_MAX_WRITE_TIMEOUT_MS);
+>  		o2net_ensure_shutdown(nn, sc, -ENOTCONN);
+>  		return -1;
+>  	}
+> @@ -1497,9 +1492,8 @@ static void o2net_idle_timer(struct timer_list *t)
+>  	unsigned long msecs = o2net_idle_timeout();
+>  #endif
+>  
+> -	printk(KERN_NOTICE "o2net: Connection to " SC_NODEF_FMT " has been "
+> -	       "idle for %lu.%lu secs.\n",
+> -	       SC_NODEF_ARGS(sc), msecs / 1000, msecs % 1000);
+> +	pr_notice("Connection to " SC_NODEF_FMT " has been idle for %lu.%lu secs.\n",
+> +		  SC_NODEF_ARGS(sc), msecs / 1000, msecs % 1000);
+>  
+>  	/* idle timerout happen, don't shutdown the connection, but
+>  	 * make fence decision. Maybe the connection can recover before
+> @@ -1645,8 +1639,8 @@ static void o2net_start_connect(struct work_struct *work)
+>  
+>  out:
+>  	if (ret && sc) {
+> -		printk(KERN_NOTICE "o2net: Connect attempt to " SC_NODEF_FMT
+> -		       " failed with errno %d\n", SC_NODEF_ARGS(sc), ret);
+> +		pr_notice("Connect attempt to " SC_NODEF_FMT " failed with errno %d\n",
+> +			  SC_NODEF_ARGS(sc), ret);
+>  		/* 0 err so that another will be queued and attempted
+>  		 * from set_nn_state */
+>  		o2net_ensure_shutdown(nn, sc, 0);
+> @@ -1669,12 +1663,10 @@ static void o2net_connect_expired(struct work_struct *work)
+>  
+>  	spin_lock(&nn->nn_lock);
+>  	if (!nn->nn_sc_valid) {
+> -		printk(KERN_NOTICE "o2net: No connection established with "
+> -		       "node %u after %u.%u seconds, check network and"
+> -		       " cluster configuration.\n",
+> -		     o2net_num_from_nn(nn),
+> -		     o2net_idle_timeout() / 1000,
+> -		     o2net_idle_timeout() % 1000);
+> +		pr_notice("No connection established with node %u after %u.%u seconds, check network and cluster configuration.\n",
+> +			  o2net_num_from_nn(nn),
+> +			  o2net_idle_timeout() / 1000,
+> +			  o2net_idle_timeout() % 1000);
+>  
+>  		o2net_set_nn_state(nn, NULL, 0, 0);
+>  	}
+> @@ -1821,9 +1813,9 @@ static int o2net_accept_one(struct socket *sock, int *more)
+>  
+>  	node = o2nm_get_node_by_ip(sin.sin_addr.s_addr);
+>  	if (node == NULL) {
+> -		printk(KERN_NOTICE "o2net: Attempt to connect from unknown "
+> -		       "node at %pI4:%d\n", &sin.sin_addr.s_addr,
+> -		       ntohs(sin.sin_port));
+> +		pr_notice("Attempt to connect from unknown node at %pI4:%d\n",
+> +			  &sin.sin_addr.s_addr,
+> +			  ntohs(sin.sin_port));
+>  		ret = -EINVAL;
+>  		goto out;
+>  	}
+> @@ -1831,15 +1823,13 @@ static int o2net_accept_one(struct socket *sock, int *more)
+>  	if (o2nm_this_node() >= node->nd_num) {
+>  		local_node = o2nm_get_node_by_num(o2nm_this_node());
+>  		if (local_node)
+> -			printk(KERN_NOTICE "o2net: Unexpected connect attempt "
+> -					"seen at node '%s' (%u, %pI4:%d) from "
+> -					"node '%s' (%u, %pI4:%d)\n",
+> -					local_node->nd_name, local_node->nd_num,
+> -					&(local_node->nd_ipv4_address),
+> -					ntohs(local_node->nd_ipv4_port),
+> -					node->nd_name,
+> -					node->nd_num, &sin.sin_addr.s_addr,
+> -					ntohs(sin.sin_port));
+> +			pr_notice("Unexpected connect attempt seen at node '%s' (%u, %pI4:%d) from node '%s' (%u, %pI4:%d)\n",
+> +				  local_node->nd_name, local_node->nd_num,
+> +				  &(local_node->nd_ipv4_address),
+> +				  ntohs(local_node->nd_ipv4_port),
+> +				  node->nd_name,
+> +				  node->nd_num, &sin.sin_addr.s_addr,
+> +				  ntohs(sin.sin_port));
+>  		ret = -EINVAL;
+>  		goto out;
+>  	}
+> @@ -1864,10 +1854,9 @@ static int o2net_accept_one(struct socket *sock, int *more)
+>  		ret = 0;
+>  	spin_unlock(&nn->nn_lock);
+>  	if (ret) {
+> -		printk(KERN_NOTICE "o2net: Attempt to connect from node '%s' "
+> -		       "at %pI4:%d but it already has an open connection\n",
+> -		       node->nd_name, &sin.sin_addr.s_addr,
+> -		       ntohs(sin.sin_port));
+> +		pr_notice("Attempt to connect from node '%s' at %pI4:%d but it already has an open connection\n",
+> +			  node->nd_name, &sin.sin_addr.s_addr,
+> +			  ntohs(sin.sin_port));
+>  		goto out;
+>  	}
+>  
+> @@ -1986,7 +1975,7 @@ static int o2net_open_listening_sock(__be32 addr, __be16 port)
+>  
+>  	ret = sock_create(PF_INET, SOCK_STREAM, IPPROTO_TCP, &sock);
+>  	if (ret < 0) {
+> -		printk(KERN_ERR "o2net: Error %d while creating socket\n", ret);
+> +		pr_err("Error %d while creating socket\n", ret);
+>  		goto out;
+>  	}
+>  
+> @@ -2003,14 +1992,14 @@ static int o2net_open_listening_sock(__be32 addr, __be16 port)
+>  	sock->sk->sk_reuse = SK_CAN_REUSE;
+>  	ret = sock->ops->bind(sock, (struct sockaddr *)&sin, sizeof(sin));
+>  	if (ret < 0) {
+> -		printk(KERN_ERR "o2net: Error %d while binding socket at "
+> -		       "%pI4:%u\n", ret, &addr, ntohs(port)); 
+> +		pr_err("Error %d while binding socket at %pI4:%u\n",
+> +		       ret, &addr, ntohs(port));
+>  		goto out;
+>  	}
+>  
+>  	ret = sock->ops->listen(sock, 64);
+>  	if (ret < 0)
+> -		printk(KERN_ERR "o2net: Error %d while listening on %pI4:%u\n",
+> +		pr_err("Error %d while listening on %pI4:%u\n",
+>  		       ret, &addr, ntohs(port));
+>  
+>  out:
