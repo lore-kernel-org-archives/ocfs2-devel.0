@@ -1,234 +1,99 @@
-Received: from mail-yb1-f175.google.com (mail-yb1-f175.google.com [209.85.219.175])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1E90C3D68
-	for <ocfs2-devel@lists.linux.dev>; Sat,  8 Jun 2024 04:36:40 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.219.175
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A8729181312;
+	Wed, 12 Jun 2024 15:55:57 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1717821402; cv=none; b=gfYHiz/UWGBowzKC+Mnwo4BRgl88w/yviOCkEgzQxLT98vw1q2aqzY1cbxaQ3ib0FdnBlXEa6jda1J6l3Pygk86AJ/HwzU1MDDrUf7sXhuUqcNIzzly0k/+J1kOx9eFxU1moOBr9LfIkowhKWdOZeqOunzk7psZ6iw+ofE9KvSI=
+	t=1718207758; cv=none; b=TqXTeEeTAyXVbweCTjoWfBrrGZJUwDrCPyIDjVgVE3FZ26jyM9Z3RPxx6/LeAjEp3TsP95CT+n6UP0CUMsRsB8M3+YQyKDh1oR2OoF1wnWNVpe8KaS7+09BcaDD6vEo2GpIVOIzC3TiLZ1xqA9gNc9zEuyE5KGmvuf/A4EuNMZA=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1717821402; c=relaxed/simple;
-	bh=eIwPsclUtm4yVqGTYCMdBtDpHn8WHi9zF/E3HDII8yA=;
-	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
-	 To:Cc:Content-Type; b=i/QhncFzyrPNkaTI65MGjb36UMar0YPMjXzkxidSYxgU/zFpCSp9EGIKjImVEiHbO3h5iP9l7SLXtAtWvMj9hUa9cHc6yOthp8HYz+6yoJStLKAPOaZuPWEYl8CrC8AXHk3rdSKNoUaYpFaCtijcFmilU/TwrmufiA9K2PCj12I=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=NhtwuICy; arc=none smtp.client-ip=209.85.219.175
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	s=arc-20240116; t=1718207758; c=relaxed/simple;
+	bh=OGohKvk0MjWf9+Q8+mvrBX+1BAlKKRyUXLbfH75xyb4=;
+	h=Content-Type:MIME-Version:Subject:From:Message-Id:Date:References:
+	 In-Reply-To:To:Cc; b=aVOTTwsJpcctQuUjdTM8dhm19LLOc1Dt6AuwIhKCXrejUHcYcJPE5H4DC9Fzyw6QCAdYqEK0nP0ui81Knrinl0W7LiaUbPTrmLHR1XPSyo1uTsFW2/6YtmNxiP9jkihUCMxy7nnZMPsyNeMQ5f1h0fnSNwiH7kbWlovFqnKdm34=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=kYWVzenO; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="NhtwuICy"
-Received: by mail-yb1-f175.google.com with SMTP id 3f1490d57ef6-df771959b5bso2858025276.1
-        for <ocfs2-devel@lists.linux.dev>; Fri, 07 Jun 2024 21:36:40 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1717821400; x=1718426200; darn=lists.linux.dev;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=EAk9ZqJq6i5QIuPqv9Y7bK2fM20zbdTVUZu55oqTnh4=;
-        b=NhtwuICyKGhD/c6G318RMUwmXqwKV9q/HE8QCW9Vbt/6ABmm4rRHlnPWxezUCZHfKi
-         Lauge6A+WfSG8AU21Na4XdG0A5AzfMFZqMF0nRkoL0mQ7XeSfK9/b70jYVjeycZ3hDVd
-         alBcYg6ZlMo3/dyte6kbIZRpTa4HOQ/3HI3dWjVKl9PthERL8318u4a+clhC9/IVybRV
-         VWc2TKl54/eeH3wx1d1+mF3zUFz6w6pZWuokBJTDUnFKoOHSxSWc3Y55JurIPVpPF9TD
-         SohA6sMeQADZuA25i0kZReep8aKMw+SuLnpiwPuvuBq5vkAd1I8+fa4d4a5bNweSKgWq
-         C2vQ==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1717821400; x=1718426200;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:x-gm-message-state:from:to:cc
-         :subject:date:message-id:reply-to;
-        bh=EAk9ZqJq6i5QIuPqv9Y7bK2fM20zbdTVUZu55oqTnh4=;
-        b=ZkXnix5GgoYRqsQB+jThnm8X2WFDt+ZPm4bOZoZfRlHV4DzIE+xPHe67mfFjf7IF64
-         ScjrdAVd5U/PycqBo18+42BxLmX8EJ4lNl+oD3Gcx04OQSaBohJUT8g65fxqzwCGFSmo
-         hfD7EY9rG6kNcGdDNVqQ+Pi0IWZG5ltmpr6R5slt+3Le7DaqeHWli5gsyXhrkkjrnC+k
-         QqOfzG3R/QkxuZ+cgypOSEk47YR/SWo5keX6bwe9LUGSPx8GVRjTLnFNgyXscVlTJPIo
-         oGJKW9XpskmX1OlLnJp6X4k83Sgls29zEOMsh15G306bIZudbLbjy40cceQJ2BQ+yCXC
-         4A1w==
-X-Gm-Message-State: AOJu0YxisVmYsJrCBConxIsqhZRunsb6vJ0B3aNzaVeqMUvV4QS7vfBB
-	4TjKAZKWkfiXgVsJXnDd6BgBCm/H4dRNt+I2Uk1Vb74gClZyreHifcCEGbS1K4cpY3cQtr5D22O
-	xpP5s3UVXnyxSAw+bs06Q/RQzjND1ASooRzB4Rw==
-X-Google-Smtp-Source: AGHT+IHELSatnUhDLvBQxglKPfEf59c2obJuems+EghHdfEX2GPHKolwqjWx6mbIOJRNf6wq0c8P0VWPn9q+/dGRjFM=
-X-Received: by 2002:a25:6c82:0:b0:dfa:b28e:f637 with SMTP id
- 3f1490d57ef6-dfaf670b6b9mr4057468276.56.1717821400031; Fri, 07 Jun 2024
- 21:36:40 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="kYWVzenO"
+Received: by smtp.kernel.org (Postfix) with ESMTPS id 7AEC7C4DDE4;
+	Wed, 12 Jun 2024 15:55:57 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=k20201202; t=1718207757;
+	bh=OGohKvk0MjWf9+Q8+mvrBX+1BAlKKRyUXLbfH75xyb4=;
+	h=Subject:From:Date:References:In-Reply-To:To:Cc:From;
+	b=kYWVzenO6v46dav7m+6VeeBQvWtkfZ2ijSROLzZNF2xhVox8NT4g6D7nEQ7Yr1CvD
+	 QbMqbzoNwKvtHxN4oOUSJGsdzFSOiqxLCA02gKqMCQ7TCsZzzusBONx5M/RWdCVpV3
+	 EiLccKqgRHfAnZUsG10WiKCsIr5ffuOoIqg1qhcsU6IhDG8FGsX5pkowWNVMy10FlC
+	 cn2EJB/8N7UtSBq02dCqRuSQs3PZ1MDiLAg7XtxdpzyjShLg11I47hWenlonizyvmL
+	 MeVPPNyid+I2VhiIZBpPj5WbK56sRWz78MH6UY8PKtaaCMSFrdgOOixPo+5vEX+bSG
+	 8/iqEXeUVgsUQ==
+Received: from aws-us-west-2-korg-oddjob-1.ci.codeaurora.org (localhost.localdomain [127.0.0.1])
+	by aws-us-west-2-korg-oddjob-1.ci.codeaurora.org (Postfix) with ESMTP id 61107C43618;
+	Wed, 12 Jun 2024 15:55:57 +0000 (UTC)
+Content-Type: text/plain; charset="utf-8"
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-References: <20240606065455.94846-1-llfamsec@gmail.com> <046696eb-4e56-4190-8295-d77a8b5cb522@linux.alibaba.com>
-In-Reply-To: <046696eb-4e56-4190-8295-d77a8b5cb522@linux.alibaba.com>
-From: lei lu <llfamsec@gmail.com>
-Date: Sat, 8 Jun 2024 12:36:29 +0800
-Message-ID: <CAEBF3_Y8-x=EEzPAf4WayD3q2fZ8QGN+NP=CMKt9QMZC1vW8bA@mail.gmail.com>
-Subject: Re: [PATCH] ocfs2: add bounds checking to ocfs2_check_dir_entry()
-To: Joseph Qi <joseph.qi@linux.alibaba.com>
-Cc: ocfs2-devel@lists.linux.dev
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+Content-Transfer-Encoding: 8bit
+Subject: Re: [f2fs-dev] [PATCH] tracing/treewide: Remove second parameter of
+ __assign_str()
+From: patchwork-bot+f2fs@kernel.org
+Message-Id: 
+ <171820775738.32393.13116890369510221266.git-patchwork-notify@kernel.org>
+Date: Wed, 12 Jun 2024 15:55:57 +0000
+References: <20240516133454.681ba6a0@rorschach.local.home>
+In-Reply-To: <20240516133454.681ba6a0@rorschach.local.home>
+To: Steven Rostedt <rostedt@goodmis.org>
+Cc: linux-kernel@vger.kernel.org, linux-trace-kernel@vger.kernel.org,
+ linux-hyperv@vger.kernel.org, kvm@vger.kernel.org,
+ dri-devel@lists.freedesktop.org, ath10k@lists.infradead.org,
+ Julia.Lawall@inria.fr, linux-s390@vger.kernel.org, dev@openvswitch.org,
+ linux-cifs@vger.kernel.org, linux-bcachefs@vger.kernel.org,
+ linux-rdma@vger.kernel.org, amd-gfx@lists.freedesktop.org,
+ io-uring@vger.kernel.org, torvalds@linux-foundation.org,
+ iommu@lists.linux.dev, ath11k@lists.infradead.org,
+ linux-media@vger.kernel.org, linux-wpan@vger.kernel.org,
+ linux-pm@vger.kernel.org, selinux@vger.kernel.org,
+ linux-arm-msm@vger.kernel.org, intel-gfx@lists.freedesktop.org,
+ linux-erofs@lists.ozlabs.org, virtualization@lists.linux.dev,
+ linux-sound@vger.kernel.org, linux-block@vger.kernel.org,
+ ocfs2-devel@lists.linux.dev, mathieu.desnoyers@efficios.com,
+ linux-cxl@vger.kernel.org, linux-tegra@vger.kernel.org,
+ intel-xe@lists.freedesktop.org, linux-edac@vger.kernel.org,
+ linux-hwmon@vger.kernel.org, brcm80211-dev-list.pdl@broadcom.com,
+ linuxppc-dev@lists.ozlabs.org, linux-usb@vger.kernel.org,
+ linux-wireless@vger.kernel.org, brcm80211@lists.linux.dev,
+ linux-f2fs-devel@lists.sourceforge.net, linux-xfs@vger.kernel.org,
+ ath12k@lists.infradead.org, tipc-discussion@lists.sourceforge.net,
+ mhiramat@kernel.org, netdev@vger.kernel.org, bpf@vger.kernel.org,
+ freedreno@lists.freedesktop.org, linux-nfs@vger.kernel.org,
+ linux-btrfs@vger.kernel.org
 
-On Sat, Jun 8, 2024 at 9:41=E2=80=AFAM Joseph Qi <joseph.qi@linux.alibaba.c=
-om> wrote:
->
->
->
-> On 6/6/24 2:54 PM, lei lu wrote:
-> > This adds sanity checks for ocfs2_dir_entry to make sure all members of
-> > ocfs2_dir_entry don't stray beyond valid memory region.
-> >
-> > Signed-off-by: lei lu <llfamsec@gmail.com>
-> > ---
-> >  fs/ocfs2/dir.c | 32 ++++++++++++++++++++------------
-> >  1 file changed, 20 insertions(+), 12 deletions(-)
-> >
-> > diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
-> > index d620d4c53c6f..85966385d134 100644
-> > --- a/fs/ocfs2/dir.c
-> > +++ b/fs/ocfs2/dir.c
-> > @@ -294,13 +294,14 @@ static void ocfs2_dx_dir_name_hash(struct inode *=
-dir, const char *name, int len,
-> >   * bh passed here can be an inode block or a dir data block, depending
-> >   * on the inode inline data flag.
-> >   */
-> > -static int ocfs2_check_dir_entry(struct inode * dir,
-> > -                              struct ocfs2_dir_entry * de,
-> > -                              struct buffer_head * bh,
-> > +static int ocfs2_check_dir_entry(struct inode *dir,
-> > +                              struct ocfs2_dir_entry *de,
-> > +                              struct buffer_head *bh, char *buf, unsig=
-ned int size,
->
-> Don't see why we have to pass 'buf' here.
-> Seems it can be obtained from bh directly.
->
-> >                                unsigned long offset)
-> >  {
-> >       const char *error_msg =3D NULL;
-> >       const int rlen =3D le16_to_cpu(de->rec_len);
-> > +     const unsigned long next_offset =3D ((char *) de - buf) + rlen;
-> >
-> >       if (unlikely(rlen < OCFS2_DIR_REC_LEN(1)))
-> >               error_msg =3D "rec_len is smaller than minimal";
-> > @@ -308,6 +309,11 @@ static int ocfs2_check_dir_entry(struct inode * di=
-r,
-> >               error_msg =3D "rec_len % 4 !=3D 0";
-> >       else if (unlikely(rlen < OCFS2_DIR_REC_LEN(de->name_len)))
-> >               error_msg =3D "rec_len is too small for name_len";
-> > +     else if (unlikely(next_offset > size))
-> > +             error_msg =3D "directory entry overrun";
-> > +     else if (unlikely(next_offset > size - OCFS2_DIR_REC_LEN(1)) &&
-> > +              next_offset !=3D size)
->
-> Seems we also have to consider meta ecc.
->
-> > +             error_msg =3D "directory entry too close to end";
-> >       else if (unlikely(
-> >                ((char *) de - bh->b_data) + rlen > dir->i_sb->s_blocksi=
-ze))
-> >               error_msg =3D "directory entry across blocks";
-> > @@ -352,16 +358,16 @@ static inline int ocfs2_search_dirblock(struct bu=
-ffer_head *bh,
-> >       de_buf =3D first_de;
-> >       dlimit =3D de_buf + bytes;
-> >
-> > -     while (de_buf < dlimit) {
-> > +     while (de_buf < dlimit - OCFS2_DIR_MEMBER_LEN) {
-> >               /* this code is executed quadratically often */
-> >               /* do minimal checking `by hand' */
-> >
-> >               de =3D (struct ocfs2_dir_entry *) de_buf;
-> >
-> > -             if (de_buf + namelen <=3D dlimit &&
-> > +             if (de->name + namelen <=3D dlimit &&
-> >                   ocfs2_match(namelen, name, de)) {
-> >                       /* found a match - just to be sure, do a full che=
-ck */
-> > -                     if (!ocfs2_check_dir_entry(dir, de, bh, offset)) =
-{
-> > +                     if (!ocfs2_check_dir_entry(dir, de, bh, de_buf, b=
-ytes offset)) {
->
-> It looks buggy, even cannot compile.
-> Have you compiled and then verified with your POC?
+Hello:
 
-Oh, I see, I am missing a comma here. Sorry for that.
+This patch was applied to jaegeuk/f2fs.git (dev)
+by Steven Rostedt (Google) <rostedt@goodmis.org>:
 
->
-> Thanks,
-> Joseph
->
-> >                               ret =3D -1;
-> >                               goto bail;
-> >                       }
-> > @@ -1138,7 +1144,7 @@ static int __ocfs2_delete_entry(handle_t *handle,=
- struct inode *dir,
-> >       pde =3D NULL;
-> >       de =3D (struct ocfs2_dir_entry *) first_de;
-> >       while (i < bytes) {
-> > -             if (!ocfs2_check_dir_entry(dir, de, bh, i)) {
-> > +             if (!ocfs2_check_dir_entry(dir, de, bh, first_de, bytes, =
-i)) {
-> >                       status =3D -EIO;
-> >                       mlog_errno(status);
-> >                       goto bail;
-> > @@ -1635,7 +1641,7 @@ int __ocfs2_add_entry(handle_t *handle,
-> >               /* These checks should've already been passed by the
-> >                * prepare function, but I guess we can leave them
-> >                * here anyway. */
-> > -             if (!ocfs2_check_dir_entry(dir, de, insert_bh, offset)) {
-> > +             if (!ocfs2_check_dir_entry(dir, de, insert_bh, data_start=
-, size, offset)) {
-> >                       retval =3D -ENOENT;
-> >                       goto bail;
-> >               }
-> > @@ -1774,7 +1780,8 @@ static int ocfs2_dir_foreach_blk_id(struct inode =
-*inode,
-> >               }
-> >
-> >               de =3D (struct ocfs2_dir_entry *) (data->id_data + ctx->p=
-os);
-> > -             if (!ocfs2_check_dir_entry(inode, de, di_bh, ctx->pos)) {
-> > +             if (!ocfs2_check_dir_entry(inode, de, di_bh, (char *)data=
-->id_data,
-> > +                                        i_size_read(inode), ctx->pos))=
- {
-> >                       /* On error, skip the f_pos to the end. */
-> >                       ctx->pos =3D i_size_read(inode);
-> >                       break;
-> > @@ -1867,7 +1874,8 @@ static int ocfs2_dir_foreach_blk_el(struct inode =
-*inode,
-> >               while (ctx->pos < i_size_read(inode)
-> >                      && offset < sb->s_blocksize) {
-> >                       de =3D (struct ocfs2_dir_entry *) (bh->b_data + o=
-ffset);
-> > -                     if (!ocfs2_check_dir_entry(inode, de, bh, offset)=
-) {
-> > +                     if (!ocfs2_check_dir_entry(inode, de, bh, bh->b_d=
-ata,
-> > +                                                i_size_read(inode), of=
-fset)) {
-> >                               /* On error, skip the f_pos to the
-> >                                  next block. */
-> >                               ctx->pos =3D (ctx->pos | (sb->s_blocksize=
- - 1)) + 1;
-> > @@ -3359,7 +3367,7 @@ static int ocfs2_find_dir_space_id(struct inode *=
-dir, struct buffer_head *di_bh,
-> >       while (de_buf < limit) {
-> >               de =3D (struct ocfs2_dir_entry *)de_buf;
-> >
-> > -             if (!ocfs2_check_dir_entry(dir, de, di_bh, offset)) {
-> > +             if (!ocfs2_check_dir_entry(dir, de, di_bh, de_buf, i_size=
-_read(dir), offset)) {
-> >                       ret =3D -ENOENT;
-> >                       goto out;
-> >               }
-> > @@ -3441,7 +3449,7 @@ static int ocfs2_find_dir_space_el(struct inode *=
-dir, const char *name,
-> >                       /* move to next block */
-> >                       de =3D (struct ocfs2_dir_entry *) bh->b_data;
-> >               }
-> > -             if (!ocfs2_check_dir_entry(dir, de, bh, offset)) {
-> > +             if (!ocfs2_check_dir_entry(dir, de, bh, bh->b_data, sb->s=
-_blocksize, offset)) {
-> >                       status =3D -ENOENT;
-> >                       goto bail;
-> >               }
+On Thu, 16 May 2024 13:34:54 -0400 you wrote:
+> From: "Steven Rostedt (Google)" <rostedt@goodmis.org>
+> 
+> [
+>    This is a treewide change. I will likely re-create this patch again in
+>    the second week of the merge window of v6.10 and submit it then. Hoping
+>    to keep the conflicts that it will cause to a minimum.
+> ]
+> 
+> [...]
+
+Here is the summary with links:
+  - [f2fs-dev] tracing/treewide: Remove second parameter of __assign_str()
+    https://git.kernel.org/jaegeuk/f2fs/c/2c92ca849fcc
+
+You are awesome, thank you!
+-- 
+Deet-doot-dot, I am a bot.
+https://korg.docs.kernel.org/patchwork/pwbot.html
+
+
