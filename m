@@ -1,35 +1,61 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-oi1-f177.google.com (mail-oi1-f177.google.com [209.85.167.177])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A8729181312;
-	Wed, 12 Jun 2024 15:55:57 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D511D79DF
+	for <ocfs2-devel@lists.linux.dev>; Thu, 13 Jun 2024 02:26:03 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.167.177
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1718207758; cv=none; b=TqXTeEeTAyXVbweCTjoWfBrrGZJUwDrCPyIDjVgVE3FZ26jyM9Z3RPxx6/LeAjEp3TsP95CT+n6UP0CUMsRsB8M3+YQyKDh1oR2OoF1wnWNVpe8KaS7+09BcaDD6vEo2GpIVOIzC3TiLZ1xqA9gNc9zEuyE5KGmvuf/A4EuNMZA=
+	t=1718245565; cv=none; b=O9/QEI9XQxtg1HodUJVWv5paRQkrbonCWuOPtaS7rxnRE7IY2ECO6pQArSCVBQC/S9Ol93cGjEP57V37oe+797vGQzUf7hmBUptNDmHGQBVO7tj70UQkHaVAYMKvjXxaIBxH53XTZBI21wsVhelAZDf3imBvAuCFmnoEvkJnoaQ=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1718207758; c=relaxed/simple;
-	bh=OGohKvk0MjWf9+Q8+mvrBX+1BAlKKRyUXLbfH75xyb4=;
-	h=Content-Type:MIME-Version:Subject:From:Message-Id:Date:References:
-	 In-Reply-To:To:Cc; b=aVOTTwsJpcctQuUjdTM8dhm19LLOc1Dt6AuwIhKCXrejUHcYcJPE5H4DC9Fzyw6QCAdYqEK0nP0ui81Knrinl0W7LiaUbPTrmLHR1XPSyo1uTsFW2/6YtmNxiP9jkihUCMxy7nnZMPsyNeMQ5f1h0fnSNwiH7kbWlovFqnKdm34=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=kYWVzenO; arc=none smtp.client-ip=10.30.226.201
+	s=arc-20240116; t=1718245565; c=relaxed/simple;
+	bh=AKp7XjIkKVqaHhUrvaYZ6QUo8h8xwX02DmZbAEkxrxQ=;
+	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version; b=VHP96THE8ou1s06QYLyUdyeTVvWKG0LeUerTm+R7JUFd50AiPrR6+ZHZOqaOzb/mxYj5Kq6vQLKYFCYawUR4aPzxaXdD/61RY8qMuYIRP5UUDEyMp+EVVvNaKz5znbFNxqRBZu4p8KsbI/QKu6VH8D6EiM9+lKyFFoLIWBKu1L8=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=MfexpYUT; arc=none smtp.client-ip=209.85.167.177
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="kYWVzenO"
-Received: by smtp.kernel.org (Postfix) with ESMTPS id 7AEC7C4DDE4;
-	Wed, 12 Jun 2024 15:55:57 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1718207757;
-	bh=OGohKvk0MjWf9+Q8+mvrBX+1BAlKKRyUXLbfH75xyb4=;
-	h=Subject:From:Date:References:In-Reply-To:To:Cc:From;
-	b=kYWVzenO6v46dav7m+6VeeBQvWtkfZ2ijSROLzZNF2xhVox8NT4g6D7nEQ7Yr1CvD
-	 QbMqbzoNwKvtHxN4oOUSJGsdzFSOiqxLCA02gKqMCQ7TCsZzzusBONx5M/RWdCVpV3
-	 EiLccKqgRHfAnZUsG10WiKCsIr5ffuOoIqg1qhcsU6IhDG8FGsX5pkowWNVMy10FlC
-	 cn2EJB/8N7UtSBq02dCqRuSQs3PZ1MDiLAg7XtxdpzyjShLg11I47hWenlonizyvmL
-	 MeVPPNyid+I2VhiIZBpPj5WbK56sRWz78MH6UY8PKtaaCMSFrdgOOixPo+5vEX+bSG
-	 8/iqEXeUVgsUQ==
-Received: from aws-us-west-2-korg-oddjob-1.ci.codeaurora.org (localhost.localdomain [127.0.0.1])
-	by aws-us-west-2-korg-oddjob-1.ci.codeaurora.org (Postfix) with ESMTP id 61107C43618;
-	Wed, 12 Jun 2024 15:55:57 +0000 (UTC)
-Content-Type: text/plain; charset="utf-8"
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="MfexpYUT"
+Received: by mail-oi1-f177.google.com with SMTP id 5614622812f47-3d22368713aso277201b6e.1
+        for <ocfs2-devel@lists.linux.dev>; Wed, 12 Jun 2024 19:26:03 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20230601; t=1718245563; x=1718850363; darn=lists.linux.dev;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:from:to:cc:subject:date:message-id:reply-to;
+        bh=S3efCUc2DqfhW+ogfPiSpA5/WSRriQXorfz/GF6CB80=;
+        b=MfexpYUT6graIRKcBJCkCOP17qhk42J4jxdMWv04vRGBd8f75P8cwtt63BZ1NdXGz/
+         4ilqBTMmrJJ2hx5Pm7gksaykCZqcDYrNabV5SuG95IzjCkNeRK643KvBDxBmY2q4OgUA
+         sTEnGKnXwGuFOS74Es41HgyQNY1uXFK2+KvwDR0xI+fCV6wOBQwNi/tcPloIkp7y5i5F
+         RKVXDw/A4QZIijVR0MUIEjBo79TeDHBlKRfoIX+MnEuw81Z7UagLramHq5H4XogbtVIN
+         KNl5GJunFLafnJAiW85HQhKbCTlnlIEj/9MPkfu2uR6yWtH/RolYqUCtgsTAFefvz8Bn
+         3bZw==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1718245563; x=1718850363;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:x-gm-message-state:from:to:cc:subject:date:message-id
+         :reply-to;
+        bh=S3efCUc2DqfhW+ogfPiSpA5/WSRriQXorfz/GF6CB80=;
+        b=QqBJzmxQOu7BoLV9/7Bcwawb6Kn5HOkww2TvWbViFR9RGhj5w+CQ0zBHw0larf95Hm
+         9NDkk6u59dBjBeVp93Pf7jGXhdKeLQqfhjCj75PDq61HWjgd60MAB4NdS4io68r9nCjZ
+         nexjXoqu4WawkfiOQPHAjdzdHBH04aSDiOUZ0Rv8HsuLUqHFEUZd+Gj+paQ7hWfaqMDG
+         cO1S3Swlv6slp7xWJLLpJjJkG/8szHM3ile3yctNFGKBinZvFHzDrmYcb2Lg+Vmx2P0U
+         aRMdyCRsY9fxdTyep5xzFspjQGk26DXaF9a6+LNWn4aMvm0Sm+gRjaQvuGucZWzyLknD
+         qLvw==
+X-Gm-Message-State: AOJu0YwHNUwcHa/P7/r/V8Eyk86giEIrAlT+PLo1/pUdPO1k3d6QLk0M
+	B8HwpXq35O2SVzlplbe7aMkKQEzXRWbrB/cl9dnO1CUzVIN7s1VIIPL6Qc+X9oc=
+X-Google-Smtp-Source: AGHT+IGLqLoHrWTzY9KNf0UQCB/P+WWMDBIKnkQfHUeV8TgsHcyhiG2hZjFWyXsQ0Qn5Xrl9t5SKJg==
+X-Received: by 2002:a05:6808:2191:b0:3d2:308b:9bb4 with SMTP id 5614622812f47-3d23e0cfbb9mr3999083b6e.43.1718245562199;
+        Wed, 12 Jun 2024 19:26:02 -0700 (PDT)
+Received: from localhost.localdomain ([47.238.252.167])
+        by smtp.gmail.com with ESMTPSA id d2e1a72fcca58-705ccb6b788sm253415b3a.164.2024.06.12.19.26.00
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Wed, 12 Jun 2024 19:26:01 -0700 (PDT)
+From: lei lu <llfamsec@gmail.com>
+To: ocfs2-devel@lists.linux.dev
+Cc: joseph.qi@linux.alibaba.com
+Subject: [PATCH v2] ocfs2: add bounds checking to ocfs2_check_dir_entry()
+Date: Thu, 13 Jun 2024 10:25:38 +0800
+Message-Id: <20240613022538.121631-1-llfamsec@gmail.com>
+X-Mailer: git-send-email 2.34.1
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -37,63 +63,125 @@ List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
-Subject: Re: [f2fs-dev] [PATCH] tracing/treewide: Remove second parameter of
- __assign_str()
-From: patchwork-bot+f2fs@kernel.org
-Message-Id: 
- <171820775738.32393.13116890369510221266.git-patchwork-notify@kernel.org>
-Date: Wed, 12 Jun 2024 15:55:57 +0000
-References: <20240516133454.681ba6a0@rorschach.local.home>
-In-Reply-To: <20240516133454.681ba6a0@rorschach.local.home>
-To: Steven Rostedt <rostedt@goodmis.org>
-Cc: linux-kernel@vger.kernel.org, linux-trace-kernel@vger.kernel.org,
- linux-hyperv@vger.kernel.org, kvm@vger.kernel.org,
- dri-devel@lists.freedesktop.org, ath10k@lists.infradead.org,
- Julia.Lawall@inria.fr, linux-s390@vger.kernel.org, dev@openvswitch.org,
- linux-cifs@vger.kernel.org, linux-bcachefs@vger.kernel.org,
- linux-rdma@vger.kernel.org, amd-gfx@lists.freedesktop.org,
- io-uring@vger.kernel.org, torvalds@linux-foundation.org,
- iommu@lists.linux.dev, ath11k@lists.infradead.org,
- linux-media@vger.kernel.org, linux-wpan@vger.kernel.org,
- linux-pm@vger.kernel.org, selinux@vger.kernel.org,
- linux-arm-msm@vger.kernel.org, intel-gfx@lists.freedesktop.org,
- linux-erofs@lists.ozlabs.org, virtualization@lists.linux.dev,
- linux-sound@vger.kernel.org, linux-block@vger.kernel.org,
- ocfs2-devel@lists.linux.dev, mathieu.desnoyers@efficios.com,
- linux-cxl@vger.kernel.org, linux-tegra@vger.kernel.org,
- intel-xe@lists.freedesktop.org, linux-edac@vger.kernel.org,
- linux-hwmon@vger.kernel.org, brcm80211-dev-list.pdl@broadcom.com,
- linuxppc-dev@lists.ozlabs.org, linux-usb@vger.kernel.org,
- linux-wireless@vger.kernel.org, brcm80211@lists.linux.dev,
- linux-f2fs-devel@lists.sourceforge.net, linux-xfs@vger.kernel.org,
- ath12k@lists.infradead.org, tipc-discussion@lists.sourceforge.net,
- mhiramat@kernel.org, netdev@vger.kernel.org, bpf@vger.kernel.org,
- freedreno@lists.freedesktop.org, linux-nfs@vger.kernel.org,
- linux-btrfs@vger.kernel.org
 
-Hello:
+This adds sanity checks for ocfs2_dir_entry to make sure all members of
+ocfs2_dir_entry don't stray beyond valid memory region.
 
-This patch was applied to jaegeuk/f2fs.git (dev)
-by Steven Rostedt (Google) <rostedt@goodmis.org>:
+Signed-off-by: lei lu <llfamsec@gmail.com>
+---
+ fs/ocfs2/dir.c | 32 ++++++++++++++++++++------------
+ 1 file changed, 20 insertions(+), 12 deletions(-)
 
-On Thu, 16 May 2024 13:34:54 -0400 you wrote:
-> From: "Steven Rostedt (Google)" <rostedt@goodmis.org>
-> 
-> [
->    This is a treewide change. I will likely re-create this patch again in
->    the second week of the merge window of v6.10 and submit it then. Hoping
->    to keep the conflicts that it will cause to a minimum.
-> ]
-> 
-> [...]
-
-Here is the summary with links:
-  - [f2fs-dev] tracing/treewide: Remove second parameter of __assign_str()
-    https://git.kernel.org/jaegeuk/f2fs/c/2c92ca849fcc
-
-You are awesome, thank you!
+diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
+index d620d4c53c6f..7aa4a5733993 100644
+--- a/fs/ocfs2/dir.c
++++ b/fs/ocfs2/dir.c
+@@ -294,13 +294,14 @@ static void ocfs2_dx_dir_name_hash(struct inode *dir, const char *name, int len,
+  * bh passed here can be an inode block or a dir data block, depending
+  * on the inode inline data flag.
+  */
+-static int ocfs2_check_dir_entry(struct inode * dir,
+-				 struct ocfs2_dir_entry * de,
+-				 struct buffer_head * bh,
++static int ocfs2_check_dir_entry(struct inode *dir,
++				 struct ocfs2_dir_entry *de,
++				 struct buffer_head *bh, char *buf, unsigned int size,
+ 				 unsigned long offset)
+ {
+ 	const char *error_msg = NULL;
+ 	const int rlen = le16_to_cpu(de->rec_len);
++	const unsigned long next_offset = ((char *) de - buf) + rlen;
+ 
+ 	if (unlikely(rlen < OCFS2_DIR_REC_LEN(1)))
+ 		error_msg = "rec_len is smaller than minimal";
+@@ -308,6 +309,11 @@ static int ocfs2_check_dir_entry(struct inode * dir,
+ 		error_msg = "rec_len % 4 != 0";
+ 	else if (unlikely(rlen < OCFS2_DIR_REC_LEN(de->name_len)))
+ 		error_msg = "rec_len is too small for name_len";
++	else if (unlikely(next_offset > size))
++		error_msg = "directory entry overrun";
++	else if (unlikely(next_offset > size - OCFS2_DIR_REC_LEN(1)) &&
++		 next_offset != size)
++		error_msg = "directory entry too close to end";
+ 	else if (unlikely(
+ 		 ((char *) de - bh->b_data) + rlen > dir->i_sb->s_blocksize))
+ 		error_msg = "directory entry across blocks";
+@@ -352,16 +358,16 @@ static inline int ocfs2_search_dirblock(struct buffer_head *bh,
+ 	de_buf = first_de;
+ 	dlimit = de_buf + bytes;
+ 
+-	while (de_buf < dlimit) {
++	while (de_buf < dlimit - OCFS2_DIR_MEMBER_LEN) {
+ 		/* this code is executed quadratically often */
+ 		/* do minimal checking `by hand' */
+ 
+ 		de = (struct ocfs2_dir_entry *) de_buf;
+ 
+-		if (de_buf + namelen <= dlimit &&
++		if (de->name + namelen <= dlimit &&
+ 		    ocfs2_match(namelen, name, de)) {
+ 			/* found a match - just to be sure, do a full check */
+-			if (!ocfs2_check_dir_entry(dir, de, bh, offset)) {
++			if (!ocfs2_check_dir_entry(dir, de, bh, de_buf, bytes, offset)) {
+ 				ret = -1;
+ 				goto bail;
+ 			}
+@@ -1138,7 +1144,7 @@ static int __ocfs2_delete_entry(handle_t *handle, struct inode *dir,
+ 	pde = NULL;
+ 	de = (struct ocfs2_dir_entry *) first_de;
+ 	while (i < bytes) {
+-		if (!ocfs2_check_dir_entry(dir, de, bh, i)) {
++		if (!ocfs2_check_dir_entry(dir, de, bh, first_de, bytes, i)) {
+ 			status = -EIO;
+ 			mlog_errno(status);
+ 			goto bail;
+@@ -1635,7 +1641,7 @@ int __ocfs2_add_entry(handle_t *handle,
+ 		/* These checks should've already been passed by the
+ 		 * prepare function, but I guess we can leave them
+ 		 * here anyway. */
+-		if (!ocfs2_check_dir_entry(dir, de, insert_bh, offset)) {
++		if (!ocfs2_check_dir_entry(dir, de, insert_bh, data_start, size, offset)) {
+ 			retval = -ENOENT;
+ 			goto bail;
+ 		}
+@@ -1774,7 +1780,8 @@ static int ocfs2_dir_foreach_blk_id(struct inode *inode,
+ 		}
+ 
+ 		de = (struct ocfs2_dir_entry *) (data->id_data + ctx->pos);
+-		if (!ocfs2_check_dir_entry(inode, de, di_bh, ctx->pos)) {
++		if (!ocfs2_check_dir_entry(inode, de, di_bh, (char *)data->id_data,
++					   i_size_read(inode), ctx->pos)) {
+ 			/* On error, skip the f_pos to the end. */
+ 			ctx->pos = i_size_read(inode);
+ 			break;
+@@ -1867,7 +1874,8 @@ static int ocfs2_dir_foreach_blk_el(struct inode *inode,
+ 		while (ctx->pos < i_size_read(inode)
+ 		       && offset < sb->s_blocksize) {
+ 			de = (struct ocfs2_dir_entry *) (bh->b_data + offset);
+-			if (!ocfs2_check_dir_entry(inode, de, bh, offset)) {
++			if (!ocfs2_check_dir_entry(inode, de, bh, bh->b_data,
++						   i_size_read(inode), offset)) {
+ 				/* On error, skip the f_pos to the
+ 				   next block. */
+ 				ctx->pos = (ctx->pos | (sb->s_blocksize - 1)) + 1;
+@@ -3359,7 +3367,7 @@ static int ocfs2_find_dir_space_id(struct inode *dir, struct buffer_head *di_bh,
+ 	while (de_buf < limit) {
+ 		de = (struct ocfs2_dir_entry *)de_buf;
+ 
+-		if (!ocfs2_check_dir_entry(dir, de, di_bh, offset)) {
++		if (!ocfs2_check_dir_entry(dir, de, di_bh, de_buf, i_size_read(dir), offset)) {
+ 			ret = -ENOENT;
+ 			goto out;
+ 		}
+@@ -3441,7 +3449,7 @@ static int ocfs2_find_dir_space_el(struct inode *dir, const char *name,
+ 			/* move to next block */
+ 			de = (struct ocfs2_dir_entry *) bh->b_data;
+ 		}
+-		if (!ocfs2_check_dir_entry(dir, de, bh, offset)) {
++		if (!ocfs2_check_dir_entry(dir, de, bh, bh->b_data, sb->s_blocksize, offset)) {
+ 			status = -ENOENT;
+ 			goto bail;
+ 		}
 -- 
-Deet-doot-dot, I am a bot.
-https://korg.docs.kernel.org/patchwork/pwbot.html
-
+2.34.1
 
