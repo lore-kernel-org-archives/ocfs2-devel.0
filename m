@@ -1,36 +1,36 @@
-Received: from smtp.smtpout.orange.fr (smtp-25.smtpout.orange.fr [80.12.242.25])
+Received: from smtp.smtpout.orange.fr (smtp-13.smtpout.orange.fr [80.12.242.13])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1A84719B5AE
-	for <ocfs2-devel@lists.linux.dev>; Fri, 14 Jun 2024 16:32:33 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=80.12.242.25
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E5F5282C67
+	for <ocfs2-devel@lists.linux.dev>; Fri, 14 Jun 2024 20:58:29 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=80.12.242.13
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1718382757; cv=none; b=XpdKM4J3Kpb4PlvFAqCU1+mxts9Ybg2y+2AawSaW0ceReneLxbE6b3fR02gb/Z71SX/KpCU2T5w3rq2AF5P4ywIbvadhjV/Pcz7SfGM4bK4xRxsxY9VTLk4q1HBjOhBJ1gQcGgDsTJ2P0MMS/jjfRU0F0Bt1Ulf+ck9b68eVqNY=
+	t=1718398713; cv=none; b=QxUf0wQIUnNZviXiLvkqiIuDfyKBpWdAJu9rWYttEjZjnuGW6sFzjqdIFqDZ+0PZYIPM+Dk3PWrWIfdafwBWS8elsC8vUxqGWfSp4rN8Sio1MWaEys+K4DsKS0RodpnfCkcc9JTKf0U5DHfbiU+BnX6CHn1FMbSsu+pIowgiBrQ=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1718382757; c=relaxed/simple;
-	bh=1JP+d9DTdvRLjHMvjKA/7X/zFiYpxE5Qp6pWEK6Iypg=;
-	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=oeCbGEcy5Mo0ThhOC9s4LnFUnSusytyQX5wDxXIP1/ekAACt6bRtrWPCNyW9YQqE9NxWG9XsB6XKp8bRJkwr6dxrEoPGyOU3U2cdnwGNffKRSUuz8pwVt5S8/opwG+pySGPMG+iEFbl1AdfDC4jhjShuQYTnk1mgi/0ZUmy6MSs=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=wanadoo.fr; spf=pass smtp.mailfrom=wanadoo.fr; dkim=pass (2048-bit key) header.d=wanadoo.fr header.i=@wanadoo.fr header.b=NtWiVGJR; arc=none smtp.client-ip=80.12.242.25
+	s=arc-20240116; t=1718398713; c=relaxed/simple;
+	bh=KMO7Zfugy9M15xMn9DWM7ExCCPIjAnsh8V/2u166Wjk=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=JPn5+i7qshcp3ESaiAgMzBymKXCXMLttsKDrrKMySXEwr8HZc5z2QfeXdKIACkILoCP9THtEaiZqcCZxJWwycrpU1XdarHJ47NMRL+NHQyOy9+rEkZtn/nzdfhoTitVzLYrCSUlHs4+6kyl14cprwgo+vw/yJy1iIrpI/YZv++M=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=wanadoo.fr; spf=pass smtp.mailfrom=wanadoo.fr; dkim=pass (2048-bit key) header.d=wanadoo.fr header.i=@wanadoo.fr header.b=c7RwiNFj; arc=none smtp.client-ip=80.12.242.13
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=wanadoo.fr
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=wanadoo.fr
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=wanadoo.fr header.i=@wanadoo.fr header.b="NtWiVGJR"
+	dkim=pass (2048-bit key) header.d=wanadoo.fr header.i=@wanadoo.fr header.b="c7RwiNFj"
 Received: from fedora.home ([86.243.222.230])
 	by smtp.orange.fr with ESMTPA
-	id I9qmsh97rXS9AI9qmsrRKe; Fri, 14 Jun 2024 18:32:32 +0200
+	id IDz0sVzold4AbIDz0shQqo; Fri, 14 Jun 2024 22:57:21 +0200
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=wanadoo.fr;
-	s=t20230301; t=1718382752;
-	bh=bro9slh5+EDW+lc1vukt0zA8l5VUvTm2syfdLEd7QbY=;
+	s=t20230301; t=1718398641;
+	bh=0gqOmh8tdr4J+MkHrhErZNEY+dxRqhfQP+7M6D3WdV0=;
 	h=From:To:Subject:Date:Message-ID:MIME-Version;
-	b=NtWiVGJRnX0N0vQRD/f8okKtk/cYLhfwJ1ZBBbg+NPe/J9u0xszloqPqDHZ6Y26bY
-	 swjKE/40tm8cSteBDJq/gwM/zH3uZ0iHv/lyqMIarMV+zXbRQUgj3H0+6XdrjWEzY0
-	 2VGQX5SjonUd663BMB6b9r4MCmKKuhLudv3WC40pQMjuvA3fFbv6EcfuNidTiBenkD
-	 XkW5L8TxLrluteVX/W6gdnN5geuB6kKZYLxLZlIEbQSP1Xw1DNxCoNjXXuVyBlA1/I
-	 63W/IxDzYC35goyKZICQx7QsCx5hAD3Lo1sNeALCQ5KnuQYIfNxVmGsvmzwHWHLBBR
-	 jvxljyd8OZOdw==
+	b=c7RwiNFjjLHdqSblMkJBWPJfoTE6MCtHwN7i+OaI4OZa6UlluTrA+5uRTcpd34uS3
+	 U4mdmvU/04dh4Sn6aHNgHbaQn0B28XF/pi9hZIl3S8DVwxQmyDL9Sp+0s6wMtk6aVU
+	 xubrZyUSzfvHM4O1wZH6PVY6wVR3b0oF4JzdRyzqTDuKM0abKgxuWvOdv+sXg7nGr9
+	 Xvp5WeG5DoI6b+iONI4HyFCrOOF990Af8cednrtrIuAGXDa4La5mO0h5nEqlkd/VIb
+	 iI0wTGpOszyubW8KXjjCC7YdpZelgqMIttaAnsJnQUuG2+1KZT1SkdK/v4anT5Kwiz
+	 mb3ZTiGR/9xhg==
 X-ME-Helo: fedora.home
 X-ME-Auth: Y2hyaXN0b3BoZS5qYWlsbGV0QHdhbmFkb28uZnI=
-X-ME-Date: Fri, 14 Jun 2024 18:32:32 +0200
+X-ME-Date: Fri, 14 Jun 2024 22:57:21 +0200
 X-ME-IP: 86.243.222.230
 From: Christophe JAILLET <christophe.jaillet@wanadoo.fr>
 To: Mark Fasheh <mark@fasheh.com>,
@@ -40,9 +40,9 @@ Cc: linux-kernel@vger.kernel.org,
 	kernel-janitors@vger.kernel.org,
 	Christophe JAILLET <christophe.jaillet@wanadoo.fr>,
 	ocfs2-devel@lists.linux.dev
-Subject: [PATCH] ocfs2: Constify struct ocfs2_lock_res_ops
-Date: Fri, 14 Jun 2024 18:25:07 +0200
-Message-ID: <43d3e2ae3a97d3cbe93d6ba6ce48ae5ec04d7526.1718382288.git.christophe.jaillet@wanadoo.fr>
+Subject: [PATCH] ocfs2: Constify struct ocfs2_stack_operations
+Date: Fri, 14 Jun 2024 22:57:09 +0200
+Message-ID: <f52dab89ee0049ec6271de29183a781efbb275ab.1718398605.git.christophe.jaillet@wanadoo.fr>
 X-Mailer: git-send-email 2.45.2
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
@@ -52,142 +52,71 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-"struct ocfs2_lock_res_ops" are not modified in this driver.
+"struct ocfs2_stack_operations" are not modified in this driver.
 
 Constifying this structure moves some data to a read-only section, so
 increase overall security.
 
-In order to do it, "struct ocfs2_lock_res" also needs to be adjusted to
+In order to do it, "struct ocfs2_stack_plugin" also needs to be adjusted to
 this new const qualifier.
 
 On a x86_64, with allmodconfig:
 Before:
 ======
    text	   data	    bss	    dec	    hex	filename
-  83038	   2632	    400	  86070	  15036	fs/ocfs2/dlmglue.o
+   6241	    644	      0	   6885	   1ae5	fs/ocfs2/stack_o2cb.o
 
 After:
 =====
    text	   data	    bss	    dec	    hex	filename
-  83806	   1992	    272	  86070	  15036	fs/ocfs2/dlmglue.o
+   6337	    548	      0	   6885	   1ae5	fs/ocfs2/stack_o2cb.o
 
 Signed-off-by: Christophe JAILLET <christophe.jaillet@wanadoo.fr>
 ---
- fs/ocfs2/dlmglue.c | 28 ++++++++++++++--------------
- fs/ocfs2/ocfs2.h   |  2 +-
- 2 files changed, 15 insertions(+), 15 deletions(-)
+ fs/ocfs2/stack_o2cb.c | 2 +-
+ fs/ocfs2/stack_user.c | 2 +-
+ fs/ocfs2/stackglue.h  | 2 +-
+ 3 files changed, 3 insertions(+), 3 deletions(-)
 
-diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-index cb40cafbc062..da78a04d6f0b 100644
---- a/fs/ocfs2/dlmglue.c
-+++ b/fs/ocfs2/dlmglue.c
-@@ -221,12 +221,12 @@ struct ocfs2_lock_res_ops {
+diff --git a/fs/ocfs2/stack_o2cb.c b/fs/ocfs2/stack_o2cb.c
+index c973c03f6fd8..10157d9d7a9c 100644
+--- a/fs/ocfs2/stack_o2cb.c
++++ b/fs/ocfs2/stack_o2cb.c
+@@ -404,7 +404,7 @@ static int o2cb_cluster_this_node(struct ocfs2_cluster_connection *conn,
+ 	return 0;
+ }
+ 
+-static struct ocfs2_stack_operations o2cb_stack_ops = {
++static const struct ocfs2_stack_operations o2cb_stack_ops = {
+ 	.connect	= o2cb_cluster_connect,
+ 	.disconnect	= o2cb_cluster_disconnect,
+ 	.this_node	= o2cb_cluster_this_node,
+diff --git a/fs/ocfs2/stack_user.c b/fs/ocfs2/stack_user.c
+index c11406cd87a8..77edcd70f72c 100644
+--- a/fs/ocfs2/stack_user.c
++++ b/fs/ocfs2/stack_user.c
+@@ -1065,7 +1065,7 @@ static int user_cluster_this_node(struct ocfs2_cluster_connection *conn,
+ 	return 0;
+ }
+ 
+-static struct ocfs2_stack_operations ocfs2_user_plugin_ops = {
++static const struct ocfs2_stack_operations ocfs2_user_plugin_ops = {
+ 	.connect	= user_cluster_connect,
+ 	.disconnect	= user_cluster_disconnect,
+ 	.this_node	= user_cluster_this_node,
+diff --git a/fs/ocfs2/stackglue.h b/fs/ocfs2/stackglue.h
+index 3636847fae19..02ab072c528a 100644
+--- a/fs/ocfs2/stackglue.h
++++ b/fs/ocfs2/stackglue.h
+@@ -223,7 +223,7 @@ struct ocfs2_stack_operations {
   */
- #define LOCK_TYPE_USES_LVB		0x2
+ struct ocfs2_stack_plugin {
+ 	char *sp_name;
+-	struct ocfs2_stack_operations *sp_ops;
++	const struct ocfs2_stack_operations *sp_ops;
+ 	struct module *sp_owner;
  
--static struct ocfs2_lock_res_ops ocfs2_inode_rw_lops = {
-+static const struct ocfs2_lock_res_ops ocfs2_inode_rw_lops = {
- 	.get_osb	= ocfs2_get_inode_osb,
- 	.flags		= 0,
- };
- 
--static struct ocfs2_lock_res_ops ocfs2_inode_inode_lops = {
-+static const struct ocfs2_lock_res_ops ocfs2_inode_inode_lops = {
- 	.get_osb	= ocfs2_get_inode_osb,
- 	.check_downconvert = ocfs2_check_meta_downconvert,
- 	.set_lvb	= ocfs2_set_meta_lvb,
-@@ -234,50 +234,50 @@ static struct ocfs2_lock_res_ops ocfs2_inode_inode_lops = {
- 	.flags		= LOCK_TYPE_REQUIRES_REFRESH|LOCK_TYPE_USES_LVB,
- };
- 
--static struct ocfs2_lock_res_ops ocfs2_super_lops = {
-+static const struct ocfs2_lock_res_ops ocfs2_super_lops = {
- 	.flags		= LOCK_TYPE_REQUIRES_REFRESH,
- };
- 
--static struct ocfs2_lock_res_ops ocfs2_rename_lops = {
-+static const struct ocfs2_lock_res_ops ocfs2_rename_lops = {
- 	.flags		= 0,
- };
- 
--static struct ocfs2_lock_res_ops ocfs2_nfs_sync_lops = {
-+static const struct ocfs2_lock_res_ops ocfs2_nfs_sync_lops = {
- 	.flags		= 0,
- };
- 
--static struct ocfs2_lock_res_ops ocfs2_trim_fs_lops = {
-+static const struct ocfs2_lock_res_ops ocfs2_trim_fs_lops = {
- 	.flags		= LOCK_TYPE_REQUIRES_REFRESH|LOCK_TYPE_USES_LVB,
- };
- 
--static struct ocfs2_lock_res_ops ocfs2_orphan_scan_lops = {
-+static const struct ocfs2_lock_res_ops ocfs2_orphan_scan_lops = {
- 	.flags		= LOCK_TYPE_REQUIRES_REFRESH|LOCK_TYPE_USES_LVB,
- };
- 
--static struct ocfs2_lock_res_ops ocfs2_dentry_lops = {
-+static const struct ocfs2_lock_res_ops ocfs2_dentry_lops = {
- 	.get_osb	= ocfs2_get_dentry_osb,
- 	.post_unlock	= ocfs2_dentry_post_unlock,
- 	.downconvert_worker = ocfs2_dentry_convert_worker,
- 	.flags		= 0,
- };
- 
--static struct ocfs2_lock_res_ops ocfs2_inode_open_lops = {
-+static const struct ocfs2_lock_res_ops ocfs2_inode_open_lops = {
- 	.get_osb	= ocfs2_get_inode_osb,
- 	.flags		= 0,
- };
- 
--static struct ocfs2_lock_res_ops ocfs2_flock_lops = {
-+static const struct ocfs2_lock_res_ops ocfs2_flock_lops = {
- 	.get_osb	= ocfs2_get_file_osb,
- 	.flags		= 0,
- };
- 
--static struct ocfs2_lock_res_ops ocfs2_qinfo_lops = {
-+static const struct ocfs2_lock_res_ops ocfs2_qinfo_lops = {
- 	.set_lvb	= ocfs2_set_qinfo_lvb,
- 	.get_osb	= ocfs2_get_qinfo_osb,
- 	.flags		= LOCK_TYPE_REQUIRES_REFRESH | LOCK_TYPE_USES_LVB,
- };
- 
--static struct ocfs2_lock_res_ops ocfs2_refcount_block_lops = {
-+static const struct ocfs2_lock_res_ops ocfs2_refcount_block_lops = {
- 	.check_downconvert = ocfs2_check_refcount_downconvert,
- 	.downconvert_worker = ocfs2_refcount_convert_worker,
- 	.flags		= 0,
-@@ -510,7 +510,7 @@ static inline void ocfs2_init_start_time(struct ocfs2_mask_waiter *mw)
- static void ocfs2_lock_res_init_common(struct ocfs2_super *osb,
- 				       struct ocfs2_lock_res *res,
- 				       enum ocfs2_lock_type type,
--				       struct ocfs2_lock_res_ops *ops,
-+				       const struct ocfs2_lock_res_ops *ops,
- 				       void *priv)
- {
- 	res->l_type          = type;
-@@ -553,7 +553,7 @@ void ocfs2_inode_lock_res_init(struct ocfs2_lock_res *res,
- 			       unsigned int generation,
- 			       struct inode *inode)
- {
--	struct ocfs2_lock_res_ops *ops;
-+	const struct ocfs2_lock_res_ops *ops;
- 
- 	switch(type) {
- 		case OCFS2_LOCK_TYPE_RW:
-diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
-index 8fe826143d7b..51c52768132d 100644
---- a/fs/ocfs2/ocfs2.h
-+++ b/fs/ocfs2/ocfs2.h
-@@ -154,7 +154,7 @@ struct ocfs2_lock_stats {
- 
- struct ocfs2_lock_res {
- 	void                    *l_priv;
--	struct ocfs2_lock_res_ops *l_ops;
-+	const struct ocfs2_lock_res_ops *l_ops;
- 
- 
- 	struct list_head         l_blocked_list;
+ 	/* These are managed by the stackglue code. */
 -- 
 2.45.2
 
