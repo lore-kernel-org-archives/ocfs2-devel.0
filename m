@@ -1,122 +1,172 @@
-Received: from smtp.smtpout.orange.fr (smtp-13.smtpout.orange.fr [80.12.242.13])
+Received: from mail-lj1-f170.google.com (mail-lj1-f170.google.com [209.85.208.170])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E5F5282C67
-	for <ocfs2-devel@lists.linux.dev>; Fri, 14 Jun 2024 20:58:29 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=80.12.242.13
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9B7B6525E
+	for <ocfs2-devel@lists.linux.dev>; Sat, 15 Jun 2024 01:21:58 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.208.170
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1718398713; cv=none; b=QxUf0wQIUnNZviXiLvkqiIuDfyKBpWdAJu9rWYttEjZjnuGW6sFzjqdIFqDZ+0PZYIPM+Dk3PWrWIfdafwBWS8elsC8vUxqGWfSp4rN8Sio1MWaEys+K4DsKS0RodpnfCkcc9JTKf0U5DHfbiU+BnX6CHn1FMbSsu+pIowgiBrQ=
+	t=1718414521; cv=none; b=WDzoT96vm4YY5NzLtZbam/WvSMvtKSnDyMIo+rVijdLoV2FX2GdNmCWg5ZKXI1GTH2HIJu7t8E5kkZ2D+Cc3YBMZUee5eDbcV4LXNb19p8ldj3fuAM1zkDXjMciBapatWb3xH8JLESUDu/jwYpX7+y5n5QlGUq55qkbJqTs+NEc=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1718398713; c=relaxed/simple;
-	bh=KMO7Zfugy9M15xMn9DWM7ExCCPIjAnsh8V/2u166Wjk=;
-	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=JPn5+i7qshcp3ESaiAgMzBymKXCXMLttsKDrrKMySXEwr8HZc5z2QfeXdKIACkILoCP9THtEaiZqcCZxJWwycrpU1XdarHJ47NMRL+NHQyOy9+rEkZtn/nzdfhoTitVzLYrCSUlHs4+6kyl14cprwgo+vw/yJy1iIrpI/YZv++M=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=wanadoo.fr; spf=pass smtp.mailfrom=wanadoo.fr; dkim=pass (2048-bit key) header.d=wanadoo.fr header.i=@wanadoo.fr header.b=c7RwiNFj; arc=none smtp.client-ip=80.12.242.13
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=wanadoo.fr
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=wanadoo.fr
+	s=arc-20240116; t=1718414521; c=relaxed/simple;
+	bh=5i7YmcDFr9Ma9v+OHzkd7vU9LV2EAPSdjvhVdMBauNY=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=qaZiSuR3beg0qm7C4wEkSBUEWXMFO6rvelTtXtBgzsSc9GIJUVfs8vY+r4O1eD8nlQwOVW2IahlZv535q8bK73bZEpvLomtXCLkJLDwzpCbLOim2ELlDb/c/Dnkn57uaC+LuInQKudLE3pV83NBi5ZU8h6ntIjpZAUEWNvrnToM=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=ZymF0nzU; arc=none smtp.client-ip=209.85.208.170
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=wanadoo.fr header.i=@wanadoo.fr header.b="c7RwiNFj"
-Received: from fedora.home ([86.243.222.230])
-	by smtp.orange.fr with ESMTPA
-	id IDz0sVzold4AbIDz0shQqo; Fri, 14 Jun 2024 22:57:21 +0200
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=wanadoo.fr;
-	s=t20230301; t=1718398641;
-	bh=0gqOmh8tdr4J+MkHrhErZNEY+dxRqhfQP+7M6D3WdV0=;
-	h=From:To:Subject:Date:Message-ID:MIME-Version;
-	b=c7RwiNFjjLHdqSblMkJBWPJfoTE6MCtHwN7i+OaI4OZa6UlluTrA+5uRTcpd34uS3
-	 U4mdmvU/04dh4Sn6aHNgHbaQn0B28XF/pi9hZIl3S8DVwxQmyDL9Sp+0s6wMtk6aVU
-	 xubrZyUSzfvHM4O1wZH6PVY6wVR3b0oF4JzdRyzqTDuKM0abKgxuWvOdv+sXg7nGr9
-	 Xvp5WeG5DoI6b+iONI4HyFCrOOF990Af8cednrtrIuAGXDa4La5mO0h5nEqlkd/VIb
-	 iI0wTGpOszyubW8KXjjCC7YdpZelgqMIttaAnsJnQUuG2+1KZT1SkdK/v4anT5Kwiz
-	 mb3ZTiGR/9xhg==
-X-ME-Helo: fedora.home
-X-ME-Auth: Y2hyaXN0b3BoZS5qYWlsbGV0QHdhbmFkb28uZnI=
-X-ME-Date: Fri, 14 Jun 2024 22:57:21 +0200
-X-ME-IP: 86.243.222.230
-From: Christophe JAILLET <christophe.jaillet@wanadoo.fr>
-To: Mark Fasheh <mark@fasheh.com>,
-	Joel Becker <jlbec@evilplan.org>,
-	Joseph Qi <joseph.qi@linux.alibaba.com>
-Cc: linux-kernel@vger.kernel.org,
-	kernel-janitors@vger.kernel.org,
-	Christophe JAILLET <christophe.jaillet@wanadoo.fr>,
-	ocfs2-devel@lists.linux.dev
-Subject: [PATCH] ocfs2: Constify struct ocfs2_stack_operations
-Date: Fri, 14 Jun 2024 22:57:09 +0200
-Message-ID: <f52dab89ee0049ec6271de29183a781efbb275ab.1718398605.git.christophe.jaillet@wanadoo.fr>
-X-Mailer: git-send-email 2.45.2
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="ZymF0nzU"
+Received: by mail-lj1-f170.google.com with SMTP id 38308e7fff4ca-2e724bc46c4so29286981fa.2
+        for <ocfs2-devel@lists.linux.dev>; Fri, 14 Jun 2024 18:21:58 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=suse.com; s=google; t=1718414516; x=1719019316; darn=lists.linux.dev;
+        h=content-transfer-encoding:in-reply-to:from:content-language
+         :references:cc:to:subject:user-agent:mime-version:date:message-id
+         :from:to:cc:subject:date:message-id:reply-to;
+        bh=QedNufGBaw/BqYgaJqHLOX7/+H0aUoxhOUKQcGDATsA=;
+        b=ZymF0nzU9mYlST2gj9+yO+I4fWKgpE1mpW3fWMOVdlndpNvFifEZYuw5pIGUTg1qC5
+         8wXAjoH+FnY3WFUr19gkgVBzemLkPglZ/GVr7/ApBJo3foyKSqSFQtDtXcprhqcQ3olC
+         S2L2MYJl9EaMqWfQoRquu43bpX/ITuXbULaHZCQ/0BpJ3xp794TDaXrxBIKW9TUVh357
+         pPs/dCe9MS3nrgChlD9xvY+2em0YhezHp92xlmaDyDBAS19tdzDtgvrT1qNRLQBHJVW1
+         d8x2MReSWjx1MkKeGqNaEGdfZP7qHUy966bPLT4nD+XB+4Umf5zcGLvAKUhM/R4ev1TK
+         qjow==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1718414516; x=1719019316;
+        h=content-transfer-encoding:in-reply-to:from:content-language
+         :references:cc:to:subject:user-agent:mime-version:date:message-id
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
+        bh=QedNufGBaw/BqYgaJqHLOX7/+H0aUoxhOUKQcGDATsA=;
+        b=iUySluUK06oqS1c0L0wdP7rFYg1mdFUBPbkGnyeL8geIBalChDvziUah8XxdChl+BP
+         9qeBFkkuBlgMt4QOZQNqFQu/4svVX3sImbywlLqpHM7UOQN5sd9rgR7HQCkiwz647VUr
+         vnqRk5vjxzMGuqnpzAaJi1PMXrwIHv1PcCmKxcxe1U76BPbVoPn8uufc75fiP1fPHDJ/
+         jLEPMEOc9ABuo6RiC70qYQk05S5MV65x1FwKXm89h/gxnM/CY9mB9/7wglET8xy0WqmQ
+         8dRVuSzcVmaMwS3icXU3qFvranU+C18PXbYFacInS0D83WcbdWwvYff+jByp91QYKJ6g
+         JZRA==
+X-Gm-Message-State: AOJu0YxA3DfNgVTFAlE3pcklyZ/xesUw/PtDT+znieASF+WHLah4PrOE
+	EWIlQhy+zwzOXwiVK8MtOYlqNmmcTzWPANyu8PBad8CPposeMwv4QA5bVPjmE7o=
+X-Google-Smtp-Source: AGHT+IGZaAELCEnNClqLTgObyzbGiDcgHtFTDZIDt3uVKCzVln7tGX0HCDNiircgUzoAxwkN2YCtKQ==
+X-Received: by 2002:a2e:9c05:0:b0:2ec:1ad3:fb0a with SMTP id 38308e7fff4ca-2ec1ad3fc06mr16156281fa.43.1718414516419;
+        Fri, 14 Jun 2024 18:21:56 -0700 (PDT)
+Received: from [10.202.0.23] ([202.127.77.110])
+        by smtp.gmail.com with ESMTPSA id d9443c01a7336-1f855e5b0d4sm38889165ad.42.2024.06.14.18.21.54
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Fri, 14 Jun 2024 18:21:55 -0700 (PDT)
+Message-ID: <2ec660c6-6f5d-448c-8488-3924552e261f@suse.com>
+Date: Sat, 15 Jun 2024 09:21:51 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH] ocfs2: Fix DIO failure due to insufficient transaction
+ credits
+To: Jan Kara <jack@suse.cz>, Joseph Qi <joseph.qi@linux.alibaba.com>
+Cc: ocfs2-devel@lists.linux.dev, Joel Becker <jlbec@evilplan.org>,
+ Mark Fasheh <mark@fasheh.com>
+References: <20240614145243.8837-1-jack@suse.cz>
+Content-Language: en-US
+From: Heming Zhao <heming.zhao@suse.com>
+In-Reply-To: <20240614145243.8837-1-jack@suse.cz>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
 
-"struct ocfs2_stack_operations" are not modified in this driver.
+On 6/14/24 22:52, Jan Kara wrote:
+> The code in ocfs2_dio_end_io_write() estimates number of necessary
+> transaction credits using ocfs2_calc_extend_credits(). This however does
+> not take into account that the IO could be arbitrarily large and can
+> contain arbitrary number of extents. Extent tree manipulations do often
+> extend the current transaction but not in all of the cases. For example
+> if we have only single block extents in the tree,
+> ocfs2_mark_extent_written() will end up calling
+> ocfs2_replace_extent_rec() all the time and we will never extend the
+> current transaction and eventually exhaust all the transaction credits
+> if the IO contains many single block extents. Make sure the transaction
+> always has enough credits for one extent insert before each call of
+> ocfs2_mark_extent_written().
+> 
+> Signed-off-by: Jan Kara <jack@suse.cz>
 
-Constifying this structure moves some data to a read-only section, so
-increase overall security.
+Thanks for Jan's patch, it was used to fix a SUSE customer issue.
 
-In order to do it, "struct ocfs2_stack_plugin" also needs to be adjusted to
-this new const qualifier.
+Reviewed-by: Heming Zhao <heming.zhao@suse.com>
 
-On a x86_64, with allmodconfig:
-Before:
-======
-   text	   data	    bss	    dec	    hex	filename
-   6241	    644	      0	   6885	   1ae5	fs/ocfs2/stack_o2cb.o
-
-After:
-=====
-   text	   data	    bss	    dec	    hex	filename
-   6337	    548	      0	   6885	   1ae5	fs/ocfs2/stack_o2cb.o
-
-Signed-off-by: Christophe JAILLET <christophe.jaillet@wanadoo.fr>
----
- fs/ocfs2/stack_o2cb.c | 2 +-
- fs/ocfs2/stack_user.c | 2 +-
- fs/ocfs2/stackglue.h  | 2 +-
- 3 files changed, 3 insertions(+), 3 deletions(-)
-
-diff --git a/fs/ocfs2/stack_o2cb.c b/fs/ocfs2/stack_o2cb.c
-index c973c03f6fd8..10157d9d7a9c 100644
---- a/fs/ocfs2/stack_o2cb.c
-+++ b/fs/ocfs2/stack_o2cb.c
-@@ -404,7 +404,7 @@ static int o2cb_cluster_this_node(struct ocfs2_cluster_connection *conn,
- 	return 0;
- }
- 
--static struct ocfs2_stack_operations o2cb_stack_ops = {
-+static const struct ocfs2_stack_operations o2cb_stack_ops = {
- 	.connect	= o2cb_cluster_connect,
- 	.disconnect	= o2cb_cluster_disconnect,
- 	.this_node	= o2cb_cluster_this_node,
-diff --git a/fs/ocfs2/stack_user.c b/fs/ocfs2/stack_user.c
-index c11406cd87a8..77edcd70f72c 100644
---- a/fs/ocfs2/stack_user.c
-+++ b/fs/ocfs2/stack_user.c
-@@ -1065,7 +1065,7 @@ static int user_cluster_this_node(struct ocfs2_cluster_connection *conn,
- 	return 0;
- }
- 
--static struct ocfs2_stack_operations ocfs2_user_plugin_ops = {
-+static const struct ocfs2_stack_operations ocfs2_user_plugin_ops = {
- 	.connect	= user_cluster_connect,
- 	.disconnect	= user_cluster_disconnect,
- 	.this_node	= user_cluster_this_node,
-diff --git a/fs/ocfs2/stackglue.h b/fs/ocfs2/stackglue.h
-index 3636847fae19..02ab072c528a 100644
---- a/fs/ocfs2/stackglue.h
-+++ b/fs/ocfs2/stackglue.h
-@@ -223,7 +223,7 @@ struct ocfs2_stack_operations {
-  */
- struct ocfs2_stack_plugin {
- 	char *sp_name;
--	struct ocfs2_stack_operations *sp_ops;
-+	const struct ocfs2_stack_operations *sp_ops;
- 	struct module *sp_owner;
- 
- 	/* These are managed by the stackglue code. */
--- 
-2.45.2
+> ---
+>   fs/ocfs2/aops.c        |  5 +++++
+>   fs/ocfs2/journal.c     | 17 +++++++++++++++++
+>   fs/ocfs2/journal.h     |  2 ++
+>   fs/ocfs2/ocfs2_trace.h |  2 ++
+>   4 files changed, 26 insertions(+)
+> 
+> diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+> index ba790219d528..f4d7c0675651 100644
+> --- a/fs/ocfs2/aops.c
+> +++ b/fs/ocfs2/aops.c
+> @@ -2371,6 +2371,11 @@ static int ocfs2_dio_end_io_write(struct inode *inode,
+>   	}
+>   
+>   	list_for_each_entry(ue, &dwc->dw_zero_list, ue_node) {
+> +		ret = ocfs2_assure_trans_credits(handle, credits);
+> +		if (ret < 0) {
+> +			mlog_errno(ret);
+> +			break;
+> +		}
+>   		ret = ocfs2_mark_extent_written(inode, &et, handle,
+>   						ue->ue_cpos, 1,
+>   						ue->ue_phys,
+> diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
+> index 604fea3a26ff..4866d7d3ac57 100644
+> --- a/fs/ocfs2/journal.c
+> +++ b/fs/ocfs2/journal.c
+> @@ -445,6 +445,23 @@ int ocfs2_extend_trans(handle_t *handle, int nblocks)
+>   	return status;
+>   }
+>   
+> +/*
+> + * Make sure handle has at least 'nblocks' credits available. If it does not
+> + * have that many credits available, we will try to extend the handle to have
+> + * enough credits. If that fails, we will restart transaction to have enough
+> + * credits. Similar notes regarding data consistency and locking implications
+> + * as for ocfs2_extend_trans() apply here.
+> + */
+> +int ocfs2_assure_trans_credits(handle_t *handle, int nblocks)
+> +{
+> +	int old_nblks = jbd2_handle_buffer_credits(handle);
+> +
+> +	trace_ocfs2_assure_trans_credits(old_nblks);
+> +	if (old_nblks >= nblocks)
+> +		return 0;
+> +	return ocfs2_extend_trans(handle, nblocks - old_nblks);
+> +}
+> +
+>   /*
+>    * If we have fewer than thresh credits, extend by OCFS2_MAX_TRANS_DATA.
+>    * If that fails, restart the transaction & regain write access for the
+> diff --git a/fs/ocfs2/journal.h b/fs/ocfs2/journal.h
+> index 41c9fe7e62f9..e3c3a35dc5e0 100644
+> --- a/fs/ocfs2/journal.h
+> +++ b/fs/ocfs2/journal.h
+> @@ -243,6 +243,8 @@ handle_t		    *ocfs2_start_trans(struct ocfs2_super *osb,
+>   int			     ocfs2_commit_trans(struct ocfs2_super *osb,
+>   						handle_t *handle);
+>   int			     ocfs2_extend_trans(handle_t *handle, int nblocks);
+> +int			     ocfs2_assure_trans_credits(handle_t *handle,
+> +						int nblocks);
+>   int			     ocfs2_allocate_extend_trans(handle_t *handle,
+>   						int thresh);
+>   
+> diff --git a/fs/ocfs2/ocfs2_trace.h b/fs/ocfs2/ocfs2_trace.h
+> index ac4fd1d5b128..6c3f4d7df7d6 100644
+> --- a/fs/ocfs2/ocfs2_trace.h
+> +++ b/fs/ocfs2/ocfs2_trace.h
+> @@ -2579,6 +2579,8 @@ DEFINE_OCFS2_ULL_UINT_EVENT(ocfs2_commit_cache_end);
+>   
+>   DEFINE_OCFS2_INT_INT_EVENT(ocfs2_extend_trans);
+>   
+> +DEFINE_OCFS2_INT_EVENT(ocfs2_assure_trans_credits);
+> +
+>   DEFINE_OCFS2_INT_EVENT(ocfs2_extend_trans_restart);
+>   
+>   DEFINE_OCFS2_INT_INT_EVENT(ocfs2_allocate_extend_trans);
 
