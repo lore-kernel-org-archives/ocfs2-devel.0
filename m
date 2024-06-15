@@ -1,32 +1,32 @@
 Received: from out30-131.freemail.mail.aliyun.com (out30-131.freemail.mail.aliyun.com [115.124.30.131])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6423E1396
-	for <ocfs2-devel@lists.linux.dev>; Sat, 15 Jun 2024 01:56:09 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A91BD79F5
+	for <ocfs2-devel@lists.linux.dev>; Sat, 15 Jun 2024 02:27:57 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.131
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1718416574; cv=none; b=XidJmpwG8lsriiXUfh+3y96FnR8G3BVFHtvRela9kBYqrZDgY8HOOgfGiRmMS+T4VXmfMxGusdpAOvUDrhVuSfPIJzku5QgGHnm5+4X0wImraMBEsa4vnT3MrrT8id7xhjBDG+pVjaRJpsYuiZyKSHcb4cdMKrBYI08y7528yA0=
+	t=1718418480; cv=none; b=FNXIm4Uqvrucvd5ALstE2nEUa24dEEL75wkhpvoZxe26uXJbkcUMDXhjIxZpQ899t6u7i8oee9B7uyTjLvOy2nGRg1RPanPWiLwb5fgjNEmpwW5X+uZOF2dvivhPdvc8vig2+1s45bqfW0rrGNDKllU92VEjLHcAH225c191uHk=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1718416574; c=relaxed/simple;
-	bh=btpwMCaZYqjBJXKKWesPMKsIjdi9z1A3+bz3ZX4jOd4=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=b/pLRkVfsVcZP3pY3mhjxhv0Gco/Iim2k4YLAioNMp3fPHnpCaku0WrETRcsjzwFuNKbGSg/0B6+Z6OXZ/973L+h/XYH+9GygGUFkyKFADs4rFrI9RKpAAs6KsH07s/vMRDEFNkM84egxwgQm4/Tc7jg7UDDCkwZ3OaZ3WAlmP4=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=NUY2UFBQ; arc=none smtp.client-ip=115.124.30.131
+	s=arc-20240116; t=1718418480; c=relaxed/simple;
+	bh=ONcnfetFIKzbNM5uqXTMcclrLzmPJnsZxbFZ/nMzOQI=;
+	h=Message-ID:Date:MIME-Version:Subject:To:References:From:Cc:
+	 In-Reply-To:Content-Type; b=O1O5bNfsp+4osTiTN6gpFgPv/0KNYezag8TToY0c2LfQ2xiKCKtucfNyEdEFUAaL/xSTx5JMxmfTJJ4igwqeIfQOgay9c4Os4m7uw7IMuysy5jchBbKpuS2Fyep1LWfFm8/yd/jEhFVUq4KrSXznNTLkh9RVHlBD2xV9fq15djg=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=MT40ZJP2; arc=none smtp.client-ip=115.124.30.131
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="NUY2UFBQ"
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="MT40ZJP2"
 DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
 	d=linux.alibaba.com; s=default;
-	t=1718416568; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=GsU6LAfBKeviD8SMjhUibsN//hTcilE9RsctzEK2pmc=;
-	b=NUY2UFBQO5ih8HZFhyuqi9/115MlEo7ujgLhxMHv6JRivX4QGZjrEbKQQQplJpO2fGnuBIM0qHbxpl+mZ0PhnCTXYTDmNLlwpDCyv4CjnHENyWxstHpb6iC6oIkDe8RtyUpmS7ka5sseX4O6IsfhH60n0s8NtzQiCTTqu+h1bEQ=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R101e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033037067112;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=6;SR=0;TI=SMTPD_---0W8SIhWO_1718416566;
-Received: from 30.32.103.198(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0W8SIhWO_1718416566)
+	t=1718418475; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=G/TFDsOD2VWj5CU9hMCKl/yH2PnQtsjRunqIpv5URBc=;
+	b=MT40ZJP2kmM/HF+hQvXU/hIG54u9mFsW4xU28iiRgRrNnDa39XWlhPaakwDZmfxIsLs8+Y6dAphFxMDDZsOLIMf2Jqb/WCwPxJM4g6JEgPJxeVBhxYNzp/o6xVOOVVL56NJ3jW31S059QFSAMD7c9FI4t71lBiidUx0mqbze0HE=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R551e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033045075189;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=3;SR=0;TI=SMTPD_---0W8SMaKE_1718418473;
+Received: from 30.32.103.198(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0W8SMaKE_1718418473)
           by smtp.aliyun-inc.com;
-          Sat, 15 Jun 2024 09:56:07 +0800
-Message-ID: <4689296d-99c3-4e73-a13d-ea4ac7ec243b@linux.alibaba.com>
-Date: Sat, 15 Jun 2024 09:56:06 +0800
+          Sat, 15 Jun 2024 10:27:54 +0800
+Message-ID: <9d4d24b6-72c7-442d-b8fb-0077e45320c2@linux.alibaba.com>
+Date: Sat, 15 Jun 2024 10:27:53 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -34,113 +34,144 @@ List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH] ocfs2: Fix DIO failure due to insufficient transaction
- credits
-To: Jan Kara <jack@suse.cz>, akpm <akpm@linux-foundation.org>
-Cc: ocfs2-devel@lists.linux.dev, Joel Becker <jlbec@evilplan.org>,
- Mark Fasheh <mark@fasheh.com>, Heming Zhao <heming.zhao@suse.com>
-References: <20240614145243.8837-1-jack@suse.cz>
+Subject: Re: [PATCH v2] ocfs2: add bounds checking to ocfs2_check_dir_entry()
+To: lei lu <llfamsec@gmail.com>, ocfs2-devel@lists.linux.dev
+References: <20240613022538.121631-1-llfamsec@gmail.com>
 Content-Language: en-US
 From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <20240614145243.8837-1-jack@suse.cz>
+Cc: Heming Zhao <heming.zhao@suse.com>
+In-Reply-To: <20240613022538.121631-1-llfamsec@gmail.com>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
 
 
-On 6/14/24 10:52 PM, Jan Kara wrote:
-> The code in ocfs2_dio_end_io_write() estimates number of necessary
-> transaction credits using ocfs2_calc_extend_credits(). This however does
-> not take into account that the IO could be arbitrarily large and can
-> contain arbitrary number of extents. Extent tree manipulations do often
-> extend the current transaction but not in all of the cases. For example
-> if we have only single block extents in the tree,
-> ocfs2_mark_extent_written() will end up calling
-> ocfs2_replace_extent_rec() all the time and we will never extend the
-> current transaction and eventually exhaust all the transaction credits
-> if the IO contains many single block extents. Make sure the transaction
-> always has enough credits for one extent insert before each call of
-> ocfs2_mark_extent_written().
+On 6/13/24 10:25 AM, lei lu wrote:
+> This adds sanity checks for ocfs2_dir_entry to make sure all members of
+> ocfs2_dir_entry don't stray beyond valid memory region.
 > 
-> Signed-off-by: Jan Kara <jack@suse.cz>
-
-Looks good.
-Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-
+> Signed-off-by: lei lu <llfamsec@gmail.com>
 > ---
->  fs/ocfs2/aops.c        |  5 +++++
->  fs/ocfs2/journal.c     | 17 +++++++++++++++++
->  fs/ocfs2/journal.h     |  2 ++
->  fs/ocfs2/ocfs2_trace.h |  2 ++
->  4 files changed, 26 insertions(+)
+>  fs/ocfs2/dir.c | 32 ++++++++++++++++++++------------
+>  1 file changed, 20 insertions(+), 12 deletions(-)
 > 
-> diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-> index ba790219d528..f4d7c0675651 100644
-> --- a/fs/ocfs2/aops.c
-> +++ b/fs/ocfs2/aops.c
-> @@ -2371,6 +2371,11 @@ static int ocfs2_dio_end_io_write(struct inode *inode,
->  	}
+> diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
+> index d620d4c53c6f..7aa4a5733993 100644
+> --- a/fs/ocfs2/dir.c
+> +++ b/fs/ocfs2/dir.c
+> @@ -294,13 +294,14 @@ static void ocfs2_dx_dir_name_hash(struct inode *dir, const char *name, int len,
+>   * bh passed here can be an inode block or a dir data block, depending
+>   * on the inode inline data flag.
+>   */
+> -static int ocfs2_check_dir_entry(struct inode * dir,
+> -				 struct ocfs2_dir_entry * de,
+> -				 struct buffer_head * bh,
+> +static int ocfs2_check_dir_entry(struct inode *dir,
+> +				 struct ocfs2_dir_entry *de,
+> +				 struct buffer_head *bh, char *buf, unsigned int size,
+>  				 unsigned long offset)
+>  {
+>  	const char *error_msg = NULL;
+>  	const int rlen = le16_to_cpu(de->rec_len);
+> +	const unsigned long next_offset = ((char *) de - buf) + rlen;
 >  
->  	list_for_each_entry(ue, &dwc->dw_zero_list, ue_node) {
-> +		ret = ocfs2_assure_trans_credits(handle, credits);
-> +		if (ret < 0) {
-> +			mlog_errno(ret);
-> +			break;
-> +		}
->  		ret = ocfs2_mark_extent_written(inode, &et, handle,
->  						ue->ue_cpos, 1,
->  						ue->ue_phys,
-> diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
-> index 604fea3a26ff..4866d7d3ac57 100644
-> --- a/fs/ocfs2/journal.c
-> +++ b/fs/ocfs2/journal.c
-> @@ -445,6 +445,23 @@ int ocfs2_extend_trans(handle_t *handle, int nblocks)
->  	return status;
->  }
+>  	if (unlikely(rlen < OCFS2_DIR_REC_LEN(1)))
+>  		error_msg = "rec_len is smaller than minimal";
+> @@ -308,6 +309,11 @@ static int ocfs2_check_dir_entry(struct inode * dir,
+>  		error_msg = "rec_len % 4 != 0";
+>  	else if (unlikely(rlen < OCFS2_DIR_REC_LEN(de->name_len)))
+>  		error_msg = "rec_len is too small for name_len";
+> +	else if (unlikely(next_offset > size))
+> +		error_msg = "directory entry overrun";
+> +	else if (unlikely(next_offset > size - OCFS2_DIR_REC_LEN(1)) &&
+> +		 next_offset != size)
+> +		error_msg = "directory entry too close to end";
+>  	else if (unlikely(
+>  		 ((char *) de - bh->b_data) + rlen > dir->i_sb->s_blocksize))
+>  		error_msg = "directory entry across blocks";
+> @@ -352,16 +358,16 @@ static inline int ocfs2_search_dirblock(struct buffer_head *bh,
+>  	de_buf = first_de;
+>  	dlimit = de_buf + bytes;
 >  
-> +/*
-> + * Make sure handle has at least 'nblocks' credits available. If it does not
-> + * have that many credits available, we will try to extend the handle to have
-> + * enough credits. If that fails, we will restart transaction to have enough
-> + * credits. Similar notes regarding data consistency and locking implications
-> + * as for ocfs2_extend_trans() apply here.
-> + */
-> +int ocfs2_assure_trans_credits(handle_t *handle, int nblocks)
-> +{
-> +	int old_nblks = jbd2_handle_buffer_credits(handle);
-> +
-> +	trace_ocfs2_assure_trans_credits(old_nblks);
-> +	if (old_nblks >= nblocks)
-> +		return 0;
-> +	return ocfs2_extend_trans(handle, nblocks - old_nblks);
-> +}
-> +
->  /*
->   * If we have fewer than thresh credits, extend by OCFS2_MAX_TRANS_DATA.
->   * If that fails, restart the transaction & regain write access for the
-> diff --git a/fs/ocfs2/journal.h b/fs/ocfs2/journal.h
-> index 41c9fe7e62f9..e3c3a35dc5e0 100644
-> --- a/fs/ocfs2/journal.h
-> +++ b/fs/ocfs2/journal.h
-> @@ -243,6 +243,8 @@ handle_t		    *ocfs2_start_trans(struct ocfs2_super *osb,
->  int			     ocfs2_commit_trans(struct ocfs2_super *osb,
->  						handle_t *handle);
->  int			     ocfs2_extend_trans(handle_t *handle, int nblocks);
-> +int			     ocfs2_assure_trans_credits(handle_t *handle,
-> +						int nblocks);
->  int			     ocfs2_allocate_extend_trans(handle_t *handle,
->  						int thresh);
+> -	while (de_buf < dlimit) {
+> +	while (de_buf < dlimit - OCFS2_DIR_MEMBER_LEN) {
+>  		/* this code is executed quadratically often */
+>  		/* do minimal checking `by hand' */
 >  
-> diff --git a/fs/ocfs2/ocfs2_trace.h b/fs/ocfs2/ocfs2_trace.h
-> index ac4fd1d5b128..6c3f4d7df7d6 100644
-> --- a/fs/ocfs2/ocfs2_trace.h
-> +++ b/fs/ocfs2/ocfs2_trace.h
-> @@ -2579,6 +2579,8 @@ DEFINE_OCFS2_ULL_UINT_EVENT(ocfs2_commit_cache_end);
+>  		de = (struct ocfs2_dir_entry *) de_buf;
 >  
->  DEFINE_OCFS2_INT_INT_EVENT(ocfs2_extend_trans);
+> -		if (de_buf + namelen <= dlimit &&
+> +		if (de->name + namelen <= dlimit &&
+>  		    ocfs2_match(namelen, name, de)) {
+>  			/* found a match - just to be sure, do a full check */
+> -			if (!ocfs2_check_dir_entry(dir, de, bh, offset)) {
+> +			if (!ocfs2_check_dir_entry(dir, de, bh, de_buf, bytes, offset)) {
+>  				ret = -1;
+>  				goto bail;
+>  			}
+> @@ -1138,7 +1144,7 @@ static int __ocfs2_delete_entry(handle_t *handle, struct inode *dir,
+>  	pde = NULL;
+>  	de = (struct ocfs2_dir_entry *) first_de;
+>  	while (i < bytes) {
+> -		if (!ocfs2_check_dir_entry(dir, de, bh, i)) {
+> +		if (!ocfs2_check_dir_entry(dir, de, bh, first_de, bytes, i)) {
+>  			status = -EIO;
+>  			mlog_errno(status);
+>  			goto bail;
+> @@ -1635,7 +1641,7 @@ int __ocfs2_add_entry(handle_t *handle,
+>  		/* These checks should've already been passed by the
+>  		 * prepare function, but I guess we can leave them
+>  		 * here anyway. */
+> -		if (!ocfs2_check_dir_entry(dir, de, insert_bh, offset)) {
+> +		if (!ocfs2_check_dir_entry(dir, de, insert_bh, data_start, size, offset)) {
+>  			retval = -ENOENT;
+>  			goto bail;
+>  		}
+> @@ -1774,7 +1780,8 @@ static int ocfs2_dir_foreach_blk_id(struct inode *inode,
+>  		}
 >  
-> +DEFINE_OCFS2_INT_EVENT(ocfs2_assure_trans_credits);
-> +
->  DEFINE_OCFS2_INT_EVENT(ocfs2_extend_trans_restart);
+>  		de = (struct ocfs2_dir_entry *) (data->id_data + ctx->pos);
+> -		if (!ocfs2_check_dir_entry(inode, de, di_bh, ctx->pos)) {
+> +		if (!ocfs2_check_dir_entry(inode, de, di_bh, (char *)data->id_data,
+> +					   i_size_read(inode), ctx->pos)) {
+>  			/* On error, skip the f_pos to the end. */
+>  			ctx->pos = i_size_read(inode);
+>  			break;
+> @@ -1867,7 +1874,8 @@ static int ocfs2_dir_foreach_blk_el(struct inode *inode,
+>  		while (ctx->pos < i_size_read(inode)
+>  		       && offset < sb->s_blocksize) {
+>  			de = (struct ocfs2_dir_entry *) (bh->b_data + offset);
+> -			if (!ocfs2_check_dir_entry(inode, de, bh, offset)) {
+> +			if (!ocfs2_check_dir_entry(inode, de, bh, bh->b_data,
+> +						   i_size_read(inode), offset)) {
+
+Seems we have to use sb->s_blocksize instead i_size_read(inode) here.
+This is not the case of inline data.
+
+>  				/* On error, skip the f_pos to the
+>  				   next block. */
+>  				ctx->pos = (ctx->pos | (sb->s_blocksize - 1)) + 1;
+> @@ -3359,7 +3367,7 @@ static int ocfs2_find_dir_space_id(struct inode *dir, struct buffer_head *di_bh,
+>  	while (de_buf < limit) {
+>  		de = (struct ocfs2_dir_entry *)de_buf;
 >  
->  DEFINE_OCFS2_INT_INT_EVENT(ocfs2_allocate_extend_trans);
+> -		if (!ocfs2_check_dir_entry(dir, de, di_bh, offset)) {
+> +		if (!ocfs2_check_dir_entry(dir, de, di_bh, de_buf, i_size_read(dir), offset)) {
+>  			ret = -ENOENT;
+>  			goto out;
+>  		}
+> @@ -3441,7 +3449,7 @@ static int ocfs2_find_dir_space_el(struct inode *dir, const char *name,
+>  			/* move to next block */
+>  			de = (struct ocfs2_dir_entry *) bh->b_data;
+>  		}
+> -		if (!ocfs2_check_dir_entry(dir, de, bh, offset)) {
+> +		if (!ocfs2_check_dir_entry(dir, de, bh, bh->b_data, sb->s_blocksize, offset)) {
+
+Can use blocksize directly since it is already defined.
+
+Thanks,
+Joseph
+
+>  			status = -ENOENT;
+>  			goto bail;
+>  		}
