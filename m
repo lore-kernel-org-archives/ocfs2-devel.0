@@ -1,229 +1,174 @@
-Received: from smtp-out2.suse.de (smtp-out2.suse.de [195.135.223.131])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from out30-131.freemail.mail.aliyun.com (out30-131.freemail.mail.aliyun.com [115.124.30.131])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C20C3190686
-	for <ocfs2-devel@lists.linux.dev>; Mon, 17 Jun 2024 09:55:51 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=195.135.223.131
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2C6C61802A3
+	for <ocfs2-devel@lists.linux.dev>; Mon, 17 Jun 2024 09:58:53 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.131
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1718618153; cv=none; b=MF+jWcSRHArCDgs6tua9KGDLBaqufzRNDb3zlWXmzUHoytQDIb/w7J5ZAviTcWe0ByuhwqN67bE8CtpjG1fkaCTeEDAMghD6qHc+ScXli+hmUAbS2EgXcM4n5itkqONvFxxZbfzvMpOs/ujs9Q6jKAd6EWyhpt06VkI6O4LuKV8=
+	t=1718618336; cv=none; b=og4itkJlzJS8Ar6ILA4WaUsUBhAAkAhRP/1C+wN3df8QOCAVN7LLqaUNoM39+cQ2Vr8QH97RDyAj8yXY5nmzNz/KDjhmiuP5qhq4+YutRb7Poi2W6/++sey/fL6BXwdAqmtSR9UxLQMiBvp2kb5YqBsngXxvdm2snBoh2883MFw=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1718618153; c=relaxed/simple;
-	bh=PYy5OtlAhgNWDPwAzNUP4FYuIXSyme5rRcw7FpEKuUs=;
-	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version; b=N64qvlMppteH9zEQ2h/AsVesicg6m7N5WlX0y2GUEo7t7DNLp6N8viXqmdeIcoofEaIBFTzx+nV7n6NlyIf7T2G9MdphPf64RWQd7FA/ppxGvKSYAHdxKiLprgVaQeBBHmbNhhp7GSDBCs5memenfjrW2Irx5C5adNUADkdmJDg=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=suse.cz; spf=pass smtp.mailfrom=suse.cz; dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b=YzMf7lmV; dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b=O2RMb57/; dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b=hwCst1gz; dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b=aMqxHT0X; arc=none smtp.client-ip=195.135.223.131
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=suse.cz
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.cz
+	s=arc-20240116; t=1718618336; c=relaxed/simple;
+	bh=sq5LPecvhJW8QfYdc45o1X6QCI2WjYtEFYavALjSw3M=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=uwacQ+1/N1KFxPdvTUJeIvCm3nihQcJl6M9fM5ndpx7hbktMaCM2mN0fmdAGW7fRjER071YE44XCLuKWzudS0W4mnAqGsGkCk0pXcmnQgoirXVqNbo1UudYQ0/O11a9eqrOA62TPEUmlmsCJfrd+uxVAaWuajeEfSStvZoVRm6k=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=izkzguej; arc=none smtp.client-ip=115.124.30.131
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b="YzMf7lmV";
-	dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b="O2RMb57/";
-	dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b="hwCst1gz";
-	dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b="aMqxHT0X"
-Received: from imap1.dmz-prg2.suse.org (imap1.dmz-prg2.suse.org [IPv6:2a07:de40:b281:104:10:150:64:97])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
-	(No client certificate requested)
-	by smtp-out2.suse.de (Postfix) with ESMTPS id CAB8F5FE4A;
-	Mon, 17 Jun 2024 09:55:49 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.cz; s=susede2_rsa;
-	t=1718618150; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:  content-transfer-encoding:content-transfer-encoding;
-	bh=yKI1zAE/e4vAUF7ub7lB3ryPe5jg5fPUnvMFQRTHxf4=;
-	b=YzMf7lmV+bTFjwsainlchjxCMZfr+gryD3GGnnM15HDigIS6gC7OTIjenwHLhIrrwTnL2p
-	Haf7zt6ar2yfE8kVxfr8AgNsc8JU2dx7M9n+6nlaVp6K3x+pL+Zek1dUwhm1u9yFki25wl
-	mK15AvhSxBkWDGNZP1u6bPDVw/KM0yU=
-DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.cz;
-	s=susede2_ed25519; t=1718618150;
-	h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:  content-transfer-encoding:content-transfer-encoding;
-	bh=yKI1zAE/e4vAUF7ub7lB3ryPe5jg5fPUnvMFQRTHxf4=;
-	b=O2RMb57/s2TSt5lLd6isl7+G15owUnKpWsn5tHTF5G2QH5ztjA7P6zt9ORVeNd3p/jvE4H
-	APSVuCpPK6I2FuDA==
-Authentication-Results: smtp-out2.suse.de;
-	dkim=pass header.d=suse.cz header.s=susede2_rsa header.b=hwCst1gz;
-	dkim=pass header.d=suse.cz header.s=susede2_ed25519 header.b=aMqxHT0X
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.cz; s=susede2_rsa;
-	t=1718618149; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:  content-transfer-encoding:content-transfer-encoding;
-	bh=yKI1zAE/e4vAUF7ub7lB3ryPe5jg5fPUnvMFQRTHxf4=;
-	b=hwCst1gzM03BhdGQCCNxPbU5uU0kYbMbeAc5s5dG479I+WNZpCin0qtqrzb0j8pEkMugqo
-	vT1furwPDfC/r19CozzJSVlBe3vGuYlS19VmkkWJUGad61anv3wIafYt1T+N9S2aZl7VYO
-	hBfz4WAjBq9EW7mZyR5FiHSOqacFtAU=
-DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.cz;
-	s=susede2_ed25519; t=1718618149;
-	h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:  content-transfer-encoding:content-transfer-encoding;
-	bh=yKI1zAE/e4vAUF7ub7lB3ryPe5jg5fPUnvMFQRTHxf4=;
-	b=aMqxHT0Xh0cZ/ImiP/tDgA0tH6z3nZsUXtV5IrrQ2tWUOy2m2q3ptsDIkNH6Y+ibwIRLr4
-	/r7Uz3YKz7ZtimCA==
-Received: from imap1.dmz-prg2.suse.org (localhost [127.0.0.1])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
-	(No client certificate requested)
-	by imap1.dmz-prg2.suse.org (Postfix) with ESMTPS id B73F4139AB;
-	Mon, 17 Jun 2024 09:55:49 +0000 (UTC)
-Received: from dovecot-director2.suse.de ([2a07:de40:b281:106:10:150:64:167])
-	by imap1.dmz-prg2.suse.org with ESMTPSA
-	id hBR0LCUIcGabfQAAD6G6ig
-	(envelope-from <jack@suse.cz>); Mon, 17 Jun 2024 09:55:49 +0000
-Received: by quack3.suse.cz (Postfix, from userid 1000)
-	id 5822CA0887; Mon, 17 Jun 2024 11:55:45 +0200 (CEST)
-From: Jan Kara <jack@suse.cz>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Joseph Qi <joseph.qi@linux.alibaba.com>,
-	Heming Zhao <heming.zhao@suse.com>,
-	ocfs2-devel@lists.linux.dev,
-	Jan Kara <jack@suse.cz>,
-	stable@vger.kernel.org
-Subject: [PATCH v2] ocfs2: Fix DIO failure due to insufficient transaction credits
-Date: Mon, 17 Jun 2024 11:55:43 +0200
-Message-Id: <20240617095543.6971-1-jack@suse.cz>
-X-Mailer: git-send-email 2.35.3
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="izkzguej"
+DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=linux.alibaba.com; s=default;
+	t=1718618331; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=r0CEwlDzmRba7B6ZDYmWPDZHOFJsNkquq5F2zjbZv2w=;
+	b=izkzguejpYq5U8guLEF9WsRPaSjWS0Ces8uqVPOYBvrLJI/njU5ESzcepSPKuK1YY8PZ3bwHNnoF8e2N1qIZI+40s4SkuW+psbW9j1/zArR7/7rf6lJOQgUAqFynIkJWA+zKeZjRREFtwGB0JqeW4Ig0nit+6BJ6Y4QJEjZh3yc=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R161e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033032014031;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=3;SR=0;TI=SMTPD_---0W8cC0g5_1718618330;
+Received: from 30.221.129.122(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0W8cC0g5_1718618330)
+          by smtp.aliyun-inc.com;
+          Mon, 17 Jun 2024 17:58:51 +0800
+Message-ID: <76e9f48b-8d23-45a5-8cba-1dc7d852781d@linux.alibaba.com>
+Date: Mon, 17 Jun 2024 17:58:50 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-X-Developer-Signature: v=1; a=openpgp-sha256; l=4211; i=jack@suse.cz; h=from:subject; bh=PYy5OtlAhgNWDPwAzNUP4FYuIXSyme5rRcw7FpEKuUs=; b=owEBbQGS/pANAwAIAZydqgc/ZEDZAcsmYgBmcAgQ1BV6gZQcjvr+SzTJ/bnDYtjRduYdVqGY5lPV 9CDrDHqJATMEAAEIAB0WIQSrWdEr1p4yirVVKBycnaoHP2RA2QUCZnAIEAAKCRCcnaoHP2RA2fttCA CKw78V2ew+Kyu8xOD2y5y1Aui2js3Fd5D+lOIpjOJW1qy4cH9HnYxu7Ynhfd5uWJNVQBi8/srGGPKR Vyg3EqgkmQdLz1ZAPwbs0LekcH+wjwVBMNlB9MHEBMl1VXZmBqyPNLBdK7qQgg86x1L8KkFDi5SCGi vtxTw44vAQTjdAa2zlKjVipptIFfcCL8KD+qddhKawCEjCpqo/7ABYgsfBj6EGi6v3LqacmKXTj9gN 107TfXI1JrUf6OdwvJLeNsX6Pdl0udr+MpDdvoWNm0ASg/oxaH1fhqsSb1GFrd0XM6AQ++2B/mvbR/ +ZKdEfrEWHliCP1yQpSE1EZx8An9Mw
-X-Developer-Key: i=jack@suse.cz; a=openpgp; fpr=93C6099A142276A28BBE35D815BC833443038D8C
-Content-Transfer-Encoding: 8bit
-X-Spamd-Result: default: False [-3.01 / 50.00];
-	BAYES_HAM(-3.00)[100.00%];
-	MID_CONTAINS_FROM(1.00)[];
-	NEURAL_HAM_LONG(-1.00)[-1.000];
-	R_MISSING_CHARSET(0.50)[];
-	R_DKIM_ALLOW(-0.20)[suse.cz:s=susede2_rsa,suse.cz:s=susede2_ed25519];
-	NEURAL_HAM_SHORT(-0.20)[-1.000];
-	MIME_GOOD(-0.10)[text/plain];
-	MX_GOOD(-0.01)[];
-	RBL_SPAMHAUS_BLOCKED_OPENRESOLVER(0.00)[2a07:de40:b281:104:10:150:64:97:from];
-	RCVD_VIA_SMTP_AUTH(0.00)[];
-	ARC_NA(0.00)[];
-	TO_DN_SOME(0.00)[];
-	MIME_TRACE(0.00)[0:+];
-	SPAMHAUS_XBL(0.00)[2a07:de40:b281:104:10:150:64:97:from];
-	RECEIVED_SPAMHAUS_BLOCKED_OPENRESOLVER(0.00)[2a07:de40:b281:106:10:150:64:167:received];
-	RCVD_COUNT_THREE(0.00)[3];
-	RCPT_COUNT_FIVE(0.00)[6];
-	FROM_EQ_ENVFROM(0.00)[];
-	FROM_HAS_DN(0.00)[];
-	FUZZY_BLOCKED(0.00)[rspamd.com];
-	DBL_BLOCKED_OPENRESOLVER(0.00)[suse.com:email];
-	RCVD_TLS_LAST(0.00)[];
-	TO_MATCH_ENVRCPT_ALL(0.00)[];
-	DKIM_SIGNED(0.00)[suse.cz:s=susede2_rsa,suse.cz:s=susede2_ed25519];
-	DKIM_TRACE(0.00)[suse.cz:+]
-X-Rspamd-Action: no action
-X-Rspamd-Server: rspamd2.dmz-prg2.suse.org
-X-Rspamd-Queue-Id: CAB8F5FE4A
-X-Spam-Flag: NO
-X-Spam-Score: -3.01
-X-Spam-Level: 
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH v3] ocfs2: add bounds checking to ocfs2_check_dir_entry()
+To: lei lu <llfamsec@gmail.com>, ocfs2-devel@lists.linux.dev
+Cc: heming.zhao@suse.com
+References: <20240615044107.135012-1-llfamsec@gmail.com>
+Content-Language: en-US
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+In-Reply-To: <20240615044107.135012-1-llfamsec@gmail.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
-The code in ocfs2_dio_end_io_write() estimates number of necessary
-transaction credits using ocfs2_calc_extend_credits(). This however does
-not take into account that the IO could be arbitrarily large and can
-contain arbitrary number of extents. Extent tree manipulations do often
-extend the current transaction but not in all of the cases. For example
-if we have only single block extents in the tree,
-ocfs2_mark_extent_written() will end up calling
-ocfs2_replace_extent_rec() all the time and we will never extend the
-current transaction and eventually exhaust all the transaction credits
-if the IO contains many single block extents. Once that happens
-a WARN_ON(jbd2_handle_buffer_credits(handle) <= 0) is triggered in
-jbd2_journal_dirty_metadata() and subsequently OCFS2 aborts in response
-to this error. This was actually triggered by one of our customers on
-a heavily fragmented OCFS2 filesystem.
 
-To fix the issue make sure the transaction always has enough credits for
-one extent insert before each call of ocfs2_mark_extent_written().
 
-CC: stable@vger.kernel.org
-Fixes: c15471f79506 ("ocfs2: fix sparse file & data ordering issue in direct io")
+On 6/15/24 12:41 PM, lei lu wrote:
+> This adds sanity checks for ocfs2_dir_entry to make sure all members of
+> ocfs2_dir_entry don't stray beyond valid memory region.
+> 
+> Signed-off-by: lei lu <llfamsec@gmail.com>
+> ---
+>  fs/ocfs2/dir.c | 32 ++++++++++++++++++++------------
+>  1 file changed, 20 insertions(+), 12 deletions(-)
+> 
+> diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
+> index d620d4c53c6f..ada97ac6e2ea 100644
+> --- a/fs/ocfs2/dir.c
+> +++ b/fs/ocfs2/dir.c
+> @@ -294,13 +294,14 @@ static void ocfs2_dx_dir_name_hash(struct inode *dir, const char *name, int len,
+>   * bh passed here can be an inode block or a dir data block, depending
+>   * on the inode inline data flag.
+>   */
+> -static int ocfs2_check_dir_entry(struct inode * dir,
+> -				 struct ocfs2_dir_entry * de,
+> -				 struct buffer_head * bh,
+> +static int ocfs2_check_dir_entry(struct inode *dir,
+> +				 struct ocfs2_dir_entry *de,
+> +				 struct buffer_head *bh, char *buf, unsigned int size,
+
+I'd like move 'buf' and 'size' each to a new line.
+This is to be consistent with the existing code style.
+
+Other looks good. With the above comments addressed,
 Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-Reviewed-by: Heming Zhao <heming.zhao@suse.com>
-Signed-off-by: Jan Kara <jack@suse.cz>
----
- fs/ocfs2/aops.c        |  5 +++++
- fs/ocfs2/journal.c     | 17 +++++++++++++++++
- fs/ocfs2/journal.h     |  2 ++
- fs/ocfs2/ocfs2_trace.h |  2 ++
- 4 files changed, 26 insertions(+)
 
-Changes since v1:
-* Added Reviewed-by tags, Fixes tag, CC stable
-* Updated changelog to describe better the observed issues
-
-diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-index b82185075de7..469143110f31 100644
---- a/fs/ocfs2/aops.c
-+++ b/fs/ocfs2/aops.c
-@@ -2368,6 +2368,11 @@ static int ocfs2_dio_end_io_write(struct inode *inode,
- 	}
- 
- 	list_for_each_entry(ue, &dwc->dw_zero_list, ue_node) {
-+		ret = ocfs2_assure_trans_credits(handle, credits);
-+		if (ret < 0) {
-+			mlog_errno(ret);
-+			break;
-+		}
- 		ret = ocfs2_mark_extent_written(inode, &et, handle,
- 						ue->ue_cpos, 1,
- 						ue->ue_phys,
-diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
-index 604fea3a26ff..4866d7d3ac57 100644
---- a/fs/ocfs2/journal.c
-+++ b/fs/ocfs2/journal.c
-@@ -445,6 +445,23 @@ int ocfs2_extend_trans(handle_t *handle, int nblocks)
- 	return status;
- }
- 
-+/*
-+ * Make sure handle has at least 'nblocks' credits available. If it does not
-+ * have that many credits available, we will try to extend the handle to have
-+ * enough credits. If that fails, we will restart transaction to have enough
-+ * credits. Similar notes regarding data consistency and locking implications
-+ * as for ocfs2_extend_trans() apply here.
-+ */
-+int ocfs2_assure_trans_credits(handle_t *handle, int nblocks)
-+{
-+	int old_nblks = jbd2_handle_buffer_credits(handle);
-+
-+	trace_ocfs2_assure_trans_credits(old_nblks);
-+	if (old_nblks >= nblocks)
-+		return 0;
-+	return ocfs2_extend_trans(handle, nblocks - old_nblks);
-+}
-+
- /*
-  * If we have fewer than thresh credits, extend by OCFS2_MAX_TRANS_DATA.
-  * If that fails, restart the transaction & regain write access for the
-diff --git a/fs/ocfs2/journal.h b/fs/ocfs2/journal.h
-index 41c9fe7e62f9..e3c3a35dc5e0 100644
---- a/fs/ocfs2/journal.h
-+++ b/fs/ocfs2/journal.h
-@@ -243,6 +243,8 @@ handle_t		    *ocfs2_start_trans(struct ocfs2_super *osb,
- int			     ocfs2_commit_trans(struct ocfs2_super *osb,
- 						handle_t *handle);
- int			     ocfs2_extend_trans(handle_t *handle, int nblocks);
-+int			     ocfs2_assure_trans_credits(handle_t *handle,
-+						int nblocks);
- int			     ocfs2_allocate_extend_trans(handle_t *handle,
- 						int thresh);
- 
-diff --git a/fs/ocfs2/ocfs2_trace.h b/fs/ocfs2/ocfs2_trace.h
-index 9898c11bdfa1..d194d202413d 100644
---- a/fs/ocfs2/ocfs2_trace.h
-+++ b/fs/ocfs2/ocfs2_trace.h
-@@ -2577,6 +2577,8 @@ DEFINE_OCFS2_ULL_UINT_EVENT(ocfs2_commit_cache_end);
- 
- DEFINE_OCFS2_INT_INT_EVENT(ocfs2_extend_trans);
- 
-+DEFINE_OCFS2_INT_EVENT(ocfs2_assure_trans_credits);
-+
- DEFINE_OCFS2_INT_EVENT(ocfs2_extend_trans_restart);
- 
- DEFINE_OCFS2_INT_INT_EVENT(ocfs2_allocate_extend_trans);
--- 
-2.35.3
-
+>  				 unsigned long offset)
+>  {
+>  	const char *error_msg = NULL;
+>  	const int rlen = le16_to_cpu(de->rec_len);
+> +	const unsigned long next_offset = ((char *) de - buf) + rlen;
+>  
+>  	if (unlikely(rlen < OCFS2_DIR_REC_LEN(1)))
+>  		error_msg = "rec_len is smaller than minimal";
+> @@ -308,6 +309,11 @@ static int ocfs2_check_dir_entry(struct inode * dir,
+>  		error_msg = "rec_len % 4 != 0";
+>  	else if (unlikely(rlen < OCFS2_DIR_REC_LEN(de->name_len)))
+>  		error_msg = "rec_len is too small for name_len";
+> +	else if (unlikely(next_offset > size))
+> +		error_msg = "directory entry overrun";
+> +	else if (unlikely(next_offset > size - OCFS2_DIR_REC_LEN(1)) &&
+> +		 next_offset != size)
+> +		error_msg = "directory entry too close to end";
+>  	else if (unlikely(
+>  		 ((char *) de - bh->b_data) + rlen > dir->i_sb->s_blocksize))
+>  		error_msg = "directory entry across blocks";
+> @@ -352,16 +358,16 @@ static inline int ocfs2_search_dirblock(struct buffer_head *bh,
+>  	de_buf = first_de;
+>  	dlimit = de_buf + bytes;
+>  
+> -	while (de_buf < dlimit) {
+> +	while (de_buf < dlimit - OCFS2_DIR_MEMBER_LEN) {
+>  		/* this code is executed quadratically often */
+>  		/* do minimal checking `by hand' */
+>  
+>  		de = (struct ocfs2_dir_entry *) de_buf;
+>  
+> -		if (de_buf + namelen <= dlimit &&
+> +		if (de->name + namelen <= dlimit &&
+>  		    ocfs2_match(namelen, name, de)) {
+>  			/* found a match - just to be sure, do a full check */
+> -			if (!ocfs2_check_dir_entry(dir, de, bh, offset)) {
+> +			if (!ocfs2_check_dir_entry(dir, de, bh, de_buf, bytes, offset)) {
+>  				ret = -1;
+>  				goto bail;
+>  			}
+> @@ -1138,7 +1144,7 @@ static int __ocfs2_delete_entry(handle_t *handle, struct inode *dir,
+>  	pde = NULL;
+>  	de = (struct ocfs2_dir_entry *) first_de;
+>  	while (i < bytes) {
+> -		if (!ocfs2_check_dir_entry(dir, de, bh, i)) {
+> +		if (!ocfs2_check_dir_entry(dir, de, bh, first_de, bytes, i)) {
+>  			status = -EIO;
+>  			mlog_errno(status);
+>  			goto bail;
+> @@ -1635,7 +1641,7 @@ int __ocfs2_add_entry(handle_t *handle,
+>  		/* These checks should've already been passed by the
+>  		 * prepare function, but I guess we can leave them
+>  		 * here anyway. */
+> -		if (!ocfs2_check_dir_entry(dir, de, insert_bh, offset)) {
+> +		if (!ocfs2_check_dir_entry(dir, de, insert_bh, data_start, size, offset)) {
+>  			retval = -ENOENT;
+>  			goto bail;
+>  		}
+> @@ -1774,7 +1780,8 @@ static int ocfs2_dir_foreach_blk_id(struct inode *inode,
+>  		}
+>  
+>  		de = (struct ocfs2_dir_entry *) (data->id_data + ctx->pos);
+> -		if (!ocfs2_check_dir_entry(inode, de, di_bh, ctx->pos)) {
+> +		if (!ocfs2_check_dir_entry(inode, de, di_bh, (char *)data->id_data,
+> +					   i_size_read(inode), ctx->pos)) {
+>  			/* On error, skip the f_pos to the end. */
+>  			ctx->pos = i_size_read(inode);
+>  			break;
+> @@ -1867,7 +1874,8 @@ static int ocfs2_dir_foreach_blk_el(struct inode *inode,
+>  		while (ctx->pos < i_size_read(inode)
+>  		       && offset < sb->s_blocksize) {
+>  			de = (struct ocfs2_dir_entry *) (bh->b_data + offset);
+> -			if (!ocfs2_check_dir_entry(inode, de, bh, offset)) {
+> +			if (!ocfs2_check_dir_entry(inode, de, bh, bh->b_data,
+> +						   sb->s_blocksize, offset)) {
+>  				/* On error, skip the f_pos to the
+>  				   next block. */
+>  				ctx->pos = (ctx->pos | (sb->s_blocksize - 1)) + 1;
+> @@ -3359,7 +3367,7 @@ static int ocfs2_find_dir_space_id(struct inode *dir, struct buffer_head *di_bh,
+>  	while (de_buf < limit) {
+>  		de = (struct ocfs2_dir_entry *)de_buf;
+>  
+> -		if (!ocfs2_check_dir_entry(dir, de, di_bh, offset)) {
+> +		if (!ocfs2_check_dir_entry(dir, de, di_bh, de_buf, i_size_read(dir), offset)) {
+>  			ret = -ENOENT;
+>  			goto out;
+>  		}
+> @@ -3441,7 +3449,7 @@ static int ocfs2_find_dir_space_el(struct inode *dir, const char *name,
+>  			/* move to next block */
+>  			de = (struct ocfs2_dir_entry *) bh->b_data;
+>  		}
+> -		if (!ocfs2_check_dir_entry(dir, de, bh, offset)) {
+> +		if (!ocfs2_check_dir_entry(dir, de, bh, bh->b_data, blocksize, offset)) {
+>  			status = -ENOENT;
+>  			goto bail;
+>  		}
