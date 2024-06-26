@@ -1,58 +1,59 @@
-Received: from mail-lj1-f175.google.com (mail-lj1-f175.google.com [209.85.208.175])
+Received: from mail-lj1-f179.google.com (mail-lj1-f179.google.com [209.85.208.179])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1D3B8184121
-	for <ocfs2-devel@lists.linux.dev>; Sun, 23 Jun 2024 23:29:07 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.208.175
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7DFA23AC16
+	for <ocfs2-devel@lists.linux.dev>; Wed, 26 Jun 2024 08:30:50 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.208.179
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1719185353; cv=none; b=dVS3XtyIbUAO9pBHsisq4W0lN05GphIq4x3+YZH2Iu+5RQlWAvD+F2XaZaKCex+nrj8c6lAtKTg6T2++0IuNw7kZ0PpOBnXARtZzHa4TlxE0MaVG6xKGlUWyq/t5lSC2wGiIzvty7/MUg71f38yvht7k/2InHVdaP3ntboFLwT8=
+	t=1719390653; cv=none; b=tLmVFT9MK1vAqnCgzKOjJfE1ABTwaz+pMaoODphFufCNLJF4YVxlOR4umuD+OVS6/Mtbr2MTbmp/So//kGEwHjoOLf26mZmjxZrRX/54uW/L9Sb2okKhDbLnQw6mD6IUPoSGTCZPYFoLpCnERHvwRwaAGn60oAh7jF/FaKvw+aY=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1719185353; c=relaxed/simple;
-	bh=RZhHQBkAOnyTRgf4GO8Xm+2yNatRpX0EVmuSCrzxRt0=;
+	s=arc-20240116; t=1719390653; c=relaxed/simple;
+	bh=513+L0SiTZg97CVrQwNlh3hWMGPDiCCS4Vn2Q4n3lxU=;
 	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=CTPadxBkWncO2e1MrwomWa079t8mrpO5O8O1u3xAMyKMdta2DcWUaPAxv9+6pQLpd5oXpc9zXxBY00aQuf69h2LwyGhTbFLWVU6xxiRrlE9rGnfKJW1tYm9xOmx32c9ft3x231CxHoQpaT/Rx4yGMrY4lBugD04D7dw+X2qDGL0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=EShsyKI1; arc=none smtp.client-ip=209.85.208.175
+	 In-Reply-To:Content-Type; b=olKJMRrjKn0RbUMfoA6HCjHcLFHb4FmA6Wlclbi1N0+5gFVbW6X4JEaKHO1dazDyVRHiGuupuapXCTYwCFbZJ8hUHv3l4Ey/um+CrxtiXeb+51ljz+GGgYMR1zTwANbpc9lSHbVYnY1Vvj0uQ2OViTiRtZ/iK0PEql2NsO06wgU=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=dQKtIcfX; arc=none smtp.client-ip=209.85.208.179
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="EShsyKI1"
-Received: by mail-lj1-f175.google.com with SMTP id 38308e7fff4ca-2ec50a5e230so23168061fa.0
-        for <ocfs2-devel@lists.linux.dev>; Sun, 23 Jun 2024 16:29:07 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="dQKtIcfX"
+Received: by mail-lj1-f179.google.com with SMTP id 38308e7fff4ca-2ec17eb4493so86757601fa.2
+        for <ocfs2-devel@lists.linux.dev>; Wed, 26 Jun 2024 01:30:50 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=suse.com; s=google; t=1719185346; x=1719790146; darn=lists.linux.dev;
-        h=content-transfer-encoding:in-reply-to:from:content-language
-         :references:cc:to:subject:user-agent:mime-version:date:message-id
+        d=suse.com; s=google; t=1719390648; x=1719995448; darn=lists.linux.dev;
+        h=content-transfer-encoding:in-reply-to:from:references:cc:to
+         :content-language:subject:user-agent:mime-version:date:message-id
          :from:to:cc:subject:date:message-id:reply-to;
-        bh=7s0JSmHqCDZDzr7JtzNrDBxJxp1Z/lnUqYWUZmvOKh8=;
-        b=EShsyKI1FjD7CKfqfEon4pIRxmLw7wWjl7ePcdsvous6BBNpQNwU6ng3WRZXiBCkWM
-         1h0Qml3NWELDI7zV6y6Eq17Qt8pFukJskjNi+2gH98xfprdSojG7hiOagTB+8Ojs+SFX
-         hE3qhcRiXetUadIs7xIYRbeWVCDMM6zhqE98xHIvuegFRzATFfhA5hwA6+PZVmenac/e
-         Ri9ICuSvldJapzH47VpKkqStseIeCyWSoxS4V45UeDZl9EGgCM5fx7v0Pw16u8aR0lxq
-         jHGmBuMAG+hdvZq+QkHww9nqWWcKZoLGmrPKaiGuCvsdCD+zfwYbxF9t3Ik6ILjo4Zp5
-         aZiQ==
+        bh=NO7vChBpXL0TuRHZdXAJugfAw7qCGAFWS08aXayMciQ=;
+        b=dQKtIcfXx+ueApJ+3WZq00t4Zs+BwDndwhbw8YqYmviCYtctQ69S5JDnWnIiiHrlD1
+         H4bteWkOevIfuTsX7oejp+HxsfV0t6fnAYw+euZZPCu70Mq80tsGaeNovTLm1ZdgGdT5
+         7nIEPLfNljIO5NgJ/JgupGpOFX4H3H6Hk4HNGkPEQHdMHhYdrr/A2VxWexnHqRIzjcxF
+         eR4UcwgQknyv7VaqP+/zN4lfXPfsEMx7VBycw+prZ+qvtABjEjZ5xDdtEJZCzf+eRJ7D
+         uCWUQo8DPH3wup6kitE8iKbWbE8vxx2Mv1rREDCusrOVwjAvFnMB6vt/YDEkB5HDt2Iy
+         zzgA==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1719185346; x=1719790146;
-        h=content-transfer-encoding:in-reply-to:from:content-language
-         :references:cc:to:subject:user-agent:mime-version:date:message-id
+        d=1e100.net; s=20230601; t=1719390648; x=1719995448;
+        h=content-transfer-encoding:in-reply-to:from:references:cc:to
+         :content-language:subject:user-agent:mime-version:date:message-id
          :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
-        bh=7s0JSmHqCDZDzr7JtzNrDBxJxp1Z/lnUqYWUZmvOKh8=;
-        b=aCbRLkA1bNeg05yo+pJppVJChsyZTAWDhueZt5WxmggAVJRKNKTi+bZP8i9qBBdWPj
-         pIsnH8P5I/HyeekfQ6FOReNb1lcZXz/lytgWqUNn/hWYovFfz2sMWEinI1tzPkWNDBk+
-         rj9a5LtrnaUynrTsrCziBtjcWo6UnGdnpRrlfEoRkgG87RnHMTLlMVs2icsYWpzNu2VC
-         DUSbBtmfPK/UejiFksmCNoy+r4JxfJh96ZurKUHvBme1+yI1RruEofnnTNJkhOPj3hRl
-         04uLezVry0BO5icSHk8iEHj9ZfihBFklsUFtTY1KrgZx6LyG8Rs223H4XoHwW+5hBLO9
-         TPRQ==
-X-Gm-Message-State: AOJu0YyYoU1FqV309w+ysf+nFGkwmjtjj+6xDWcGIVHgZPyp76tLO9eS
-	kT7wBP1Cph4T41jom6YsTnU7zdF29U5S6Y3ED86m1g7oqi4BkJ8VPSfRHGhW3Ko=
-X-Google-Smtp-Source: AGHT+IGUdIcfl8BeCVBjCPUzmy8izLMt/vqgogkl3VttyxbwqXEXlhAwd7PZSoW53DfFdjCNKjbsXA==
-X-Received: by 2002:a2e:95ca:0:b0:2ec:5200:a941 with SMTP id 38308e7fff4ca-2ec5b2dd968mr17582081fa.38.1719185346052;
-        Sun, 23 Jun 2024 16:29:06 -0700 (PDT)
-Received: from [10.202.32.28] ([202.127.77.110])
-        by smtp.gmail.com with ESMTPSA id d9443c01a7336-1f9ebbb5d03sm50010505ad.258.2024.06.23.16.29.04
+        bh=NO7vChBpXL0TuRHZdXAJugfAw7qCGAFWS08aXayMciQ=;
+        b=G0ZOVf9m1cl0j7ByYbb5FKQChVkEshQMrNWkR7SLIxkxCVZVlXR7X4c2L/fa5qK369
+         jPnio67FfYLcqIn4A7zZuhQrSr2j4NUAmc1Z7le+MscwEJvLAVIPHMgX8PzznqmuWGh9
+         C7MNDdHisFl+OEFnN/cLao2z46ZGumyHrprB8xlv0pCL8yXwYmDDyXwczkbgwqGK04Dq
+         QtlreMT4YaBD1FlMMxlMSNWZf+kS2fMTkgqvvDQlNHSDjNVFzZ18yLv7n3RnPML7vDuD
+         BIY1d2jyWGd7ovrzutx94fX4ODhPDJ5cV0BDASFMyx+BnueZB/q8hH6At0XK/GqSeYfj
+         Sh8g==
+X-Gm-Message-State: AOJu0YzJtd9f0gUPmmgR8WC8GYdP4lXhE/NzlyVkFNsxg0BxsCoWoEOg
+	34H/9pes4b3o4irnGLuRkZpakBQR5ttuS3KjDOfH+h/QBq1Wqo3N5eG+c8C/fXTZrRNXVOZXhUs
+	IC+vxag==
+X-Google-Smtp-Source: AGHT+IFjuORebtrWMtOARsvNMy84nAlFfAAZQUzWPWRb45GGZxa/vZIBtA8UUz27yQtBQOeT8kXDiQ==
+X-Received: by 2002:a2e:8646:0:b0:2ec:56b9:258b with SMTP id 38308e7fff4ca-2ec5b31d606mr76907561fa.33.1719390646380;
+        Wed, 26 Jun 2024 01:30:46 -0700 (PDT)
+Received: from [10.202.0.23] ([202.127.77.110])
+        by smtp.gmail.com with ESMTPSA id d2e1a72fcca58-7068be428d7sm4550464b3a.30.2024.06.26.01.30.44
         (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Sun, 23 Jun 2024 16:29:05 -0700 (PDT)
-Message-ID: <e653befa-f471-4b12-b58d-8557fdfca161@suse.com>
-Date: Mon, 24 Jun 2024 07:29:02 +0800
+        Wed, 26 Jun 2024 01:30:45 -0700 (PDT)
+Message-ID: <0bfdc0ed-18ab-43e7-bc64-2d245e67db74@suse.com>
+Date: Wed, 26 Jun 2024 16:30:41 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -61,14 +62,14 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
 Subject: Re: [PATCH v5] ocfs2: add bounds checking to ocfs2_check_dir_entry()
+Content-Language: en-US
 To: Joseph Qi <joseph.qi@linux.alibaba.com>, lei lu <llfamsec@gmail.com>
 Cc: ocfs2-devel@lists.linux.dev
 References: <20240618065427.143612-1-llfamsec@gmail.com>
  <1af4ff4a-e963-4969-86cc-27419d326614@suse.com>
  <CAEBF3_Yeby=aeq21y5qq-pe9zP5OFV5Fo+FatwPV0cOnDJ+K_Q@mail.gmail.com>
  <6f97e658-6dcd-47e9-9cf4-3b413cdb5b57@linux.alibaba.com>
-Content-Language: en-US
-From: Heming Zhao <heming.zhao@suse.com>
+From: "heming.zhao@suse.com" <heming.zhao@suse.com>
 In-Reply-To: <6f97e658-6dcd-47e9-9cf4-3b413cdb5b57@linux.alibaba.com>
 Content-Type: text/plain; charset=UTF-8; format=flowed
 Content-Transfer-Encoding: 8bit
@@ -77,11 +78,21 @@ On 6/22/24 08:31, Joseph Qi wrote:
 > Hi Heming，
 > Any more comments on this version?
 > 
+> Thanks,
+> Joseph
 
-I was a little bit busy last week, and will recheck the code this
-week and provide my comment.
+I made a mistake in the last mail. For inline mode, the 'size' parameter 
+of ocfs2_check_dir_entry is the size of di->id2.i_data.id_data[], not 
+the whole inode size.
 
--Heming
+ref:
+ocfs2_fill_new_dir_id
+  + size = le16_to_cpu(data->id_count); //id_data[] size 
+
+  + i_size_write(inode, size); //record in inode
+
+So the algorithm of v5 patch is correct. there is only one minor issue 
+needs to be fixed. see below.
 
 > 
 > On 6/18/24 9:09 PM, lei lu wrote:
@@ -167,6 +178,15 @@ week and provide my comment.
 >>>>        else if (unlikely(
 >>>>                 ((char *) de - bh->b_data) + rlen > dir->i_sb->s_blocksize))
 >>>>                error_msg = "directory entry across blocks";
+
+the existing code " '((char *) de - bh->b_data) + rlen > 
+dir->i_sb->s_blocksize' " should be removed. the reason is same with 
+commit 226ba972b0863 ("ext4: refactor __ext4_check_dir_entry() to accept 
+start and size").
+
+Thanks,
+Heming
+
 >>>> @@ -352,16 +360,16 @@ static inline int ocfs2_search_dirblock(struct buffer_head *bh,
 >>>>        de_buf = first_de;
 >>>>        dlimit = de_buf + bytes;
@@ -306,4 +326,3 @@ week and provide my comment.
 >>>>                        goto bail;
 >>>>                }
 >>>
-
