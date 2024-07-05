@@ -1,196 +1,132 @@
-Received: from out30-97.freemail.mail.aliyun.com (out30-97.freemail.mail.aliyun.com [115.124.30.97])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-yb1-f173.google.com (mail-yb1-f173.google.com [209.85.219.173])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id BAFE51940B1
-	for <ocfs2-devel@lists.linux.dev>; Wed, 26 Jun 2024 23:41:40 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.97
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6B01716DC04
+	for <ocfs2-devel@lists.linux.dev>; Fri,  5 Jul 2024 18:42:42 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.219.173
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1719445304; cv=none; b=H+ztZ5wiiqCgeTeV7j4+BM65Bo+fMAnfLpDErHATQS+FPr1dtmxJWUDsuQvklUCTSKxjNbkoyTFS+h2Mw4icIAuoLU6XSbF/axnQ6e779VbZFdZNoSw73S89hsc1mFpEGjn2+QOHnvRJzrCQnXeKRnTK6fV2nxDT/VwJjquiHKQ=
+	t=1720204964; cv=none; b=GlOuwd455CISZ2ioFS/rvnB9tDmLXwwAtO5EUGAGoSYRK6ylyD5vkGtzW0J0c4QRF1tkmiHCvhbvOhC4uluVbwsGXA3yG3fMnlAzhlQiiLLnfwJybw1bujtAQ7YuR6ZY5e6wbDCyuGU9+7y+oDHtYd27Ng3hWqsWpjz/+DX5A9o=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1719445304; c=relaxed/simple;
-	bh=UCMi93VfUaosbAattyv3tcM6wncJnhJtwc9aHc+AFzU=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=OpnBL7qlvgDr+J0U4eGDPdMvQVnIsFFSNp+gGZeZ/eR3hTO6LH9PMI2czriVdHtCbotKwHMqE67tBNXbkrNjXfu5xj++BLzftRS57kmbdxVovZf052pU8ny4l52yRI7dhJ4Ve3ZOwkVgsIUApGv7S/gEZ/pbdaUN4bXClAEL934=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=KOmykp/u; arc=none smtp.client-ip=115.124.30.97
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
+	s=arc-20240116; t=1720204964; c=relaxed/simple;
+	bh=RrJ7rndzVW8wWddDcbK0dznVVkd8oXluEUwtWou4VIo=;
+	h=MIME-Version:From:Date:Message-ID:Subject:To:Content-Type; b=W9d+SyXuDUYh6drJteAI6W1IJeVaBNMO3yclrSTvNkJ7qD0GLJblTKnqrLb53CrwgbgPMR5/9xW/epJGuO31XXJs/ZhRxV5ZgM+AqLDnkEh0VSKenD5cshEYjP9G4WosEPTZrpypRPKNktWBq5xgI7S2FJpN0VJ8uWCTKFrHelc=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=oversightmd.com; spf=none smtp.mailfrom=oversightmd.com; dkim=pass (2048-bit key) header.d=oversightmd-com.20230601.gappssmtp.com header.i=@oversightmd-com.20230601.gappssmtp.com header.b=ZZvqs5o4; arc=none smtp.client-ip=209.85.219.173
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=oversightmd.com
+Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=oversightmd.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="KOmykp/u"
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1719445298; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=jRTLwCmUOROhm11K9m0qxi79ASP7rRkJ4eM89yHbBvg=;
-	b=KOmykp/uYV+pBqdgDsaIiHgbi0chyG9RMk1JKYwqCKXjfMXoAuJGDEcX0IGY584afKj1mynKGmfUEN1o7OvFnuiFFvk0fvsxiRvjmKXS3fxngxILPuvfFcRLF9kXrDgPX7ecy0zUnYH5PUZxwhhhdTLj2Qzi14LHitnJNYWncjw=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R801e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033045075189;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=4;SR=0;TI=SMTPD_---0W9KfV4u_1719445296;
-Received: from 30.120.133.163(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0W9KfV4u_1719445296)
-          by smtp.aliyun-inc.com;
-          Thu, 27 Jun 2024 07:41:37 +0800
-Message-ID: <e99dce61-b618-4df6-b492-6d48992a526e@linux.alibaba.com>
-Date: Thu, 27 Jun 2024 07:41:36 +0800
+	dkim=pass (2048-bit key) header.d=oversightmd-com.20230601.gappssmtp.com header.i=@oversightmd-com.20230601.gappssmtp.com header.b="ZZvqs5o4"
+Received: by mail-yb1-f173.google.com with SMTP id 3f1490d57ef6-e03a8955ae3so1859594276.1
+        for <ocfs2-devel@lists.linux.dev>; Fri, 05 Jul 2024 11:42:42 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=oversightmd-com.20230601.gappssmtp.com; s=20230601; t=1720204961; x=1720809761; darn=lists.linux.dev;
+        h=to:subject:message-id:date:from:mime-version:from:to:cc:subject
+         :date:message-id:reply-to;
+        bh=0U2FOJo9CXRfPq7hAlw+Cbsn/eDhQhZBMrMfpp50/2U=;
+        b=ZZvqs5o47vjyTTNt8nYxT0pwaD1XT8ua4OACZEPxKi8bAyZ09lDskkPdypctB11fDf
+         7UjyhXkFHB22uTpj/LMAHV8KdJcqlUonaLvfsYEqPgYdWDmUCqkTZAePjrAlevj/jOLG
+         zMfRWI53gKo7b5voqzrkNMiG1TnQcDDUXEECqpGWfptAEnEddLaTMWKbaIGceChjmSGe
+         AMaoHH2qeO+eJjQyZCg5eXnfr8SR/xZ4+DR0rmBSKzFoTAWgdi2w9uzlJomJsEj4DqW1
+         huBuIkFTF6oizrdmnP8qWdgaHuMvZeVt3ViE68xTDHT9vZSzgMmgzpjvaTi5ekMrHBzz
+         /V7g==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1720204961; x=1720809761;
+        h=to:subject:message-id:date:from:mime-version:x-gm-message-state
+         :from:to:cc:subject:date:message-id:reply-to;
+        bh=0U2FOJo9CXRfPq7hAlw+Cbsn/eDhQhZBMrMfpp50/2U=;
+        b=Kscfwb0O6++TgfkvA0Th9izMBGSnlSne+JdZh5z1oth2dD8/7F23YhB0UpNWCUDqub
+         WlUoe2KEbaw9aKFI78XF5RmIgJoslFArQ/WTs8+Ix1PQTphGOJ1birjboPdDz9MEuz1J
+         RtIPMtMIuq4fRTDCOs8ycfD6KN+PXYDE48TqNnMi2FFUx/fphEuT2Khc1g7HP9vy3TRr
+         khYYbJxQ12Uk4+6Ctn0H8nsbchrQbIIJXrb9Til9aVu1lJwZASyRYAZOdLQXZKVETLsj
+         z7S9M9S9/kMw/LbSKGCqlC4NvRL+jHvFB/th3cox6DzOXEEAngE4bduwINhPJ9Ho9UGe
+         W4uQ==
+X-Gm-Message-State: AOJu0Yz53B+e12quOX9qwlPNyvvMq72qA2UM10OPfDpPbgTPigSAkRXy
+	bC9cZIZoSdn/9OmgoRUyLNEq17t+cO9mVxQTEndBNl2hVe3xtX3ZK1lhS+bbnrP+02J0b+Im6Ww
+	fEsIfgutSxWMCxo0BKsmHlG46lB4p+2VgvQPPJXqUCzh99na7s4A=
+X-Google-Smtp-Source: AGHT+IH2sXyT58rB5BHU4QOsbUSC4gqtbap+XZGm3FCmdC8caf7w7qOW77mWxkhOba5rleINQly4yKpF1RtpwQ1m5fo=
+X-Received: by 2002:a25:8386:0:b0:dfd:b613:cd5f with SMTP id
+ 3f1490d57ef6-e03c193fa18mr5774337276.5.1720204961076; Fri, 05 Jul 2024
+ 11:42:41 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v6] ocfs2: add bounds checking to ocfs2_check_dir_entry()
-To: Heming Zhao <heming.zhao@suse.com>, lei lu <llfamsec@gmail.com>,
- akpm <akpm@linux-foundation.org>
-Cc: ocfs2-devel@lists.linux.dev
-References: <20240626104433.163270-1-llfamsec@gmail.com>
- <8c923e93-fcdb-4dee-9a7c-f854f35482b9@suse.com>
-Content-Language: en-US
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <8c923e93-fcdb-4dee-9a7c-f854f35482b9@suse.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+From: Paul Sala <paul.sala@oversightmd.com>
+Date: Fri, 5 Jul 2024 14:42:30 -0400
+Message-ID: <CAMnFpKk7DUHEHxH1Bgdc5xkw0YwoiwORXSVzakGOBmx_ejdVkA@mail.gmail.com>
+Subject: OCFS2 on Google Cloud Platform GCP/GCE -- FATAL: Module ocfs2_dlmfs
+ not found linux-modules-extra
+To: ocfs2-devel@lists.linux.dev
+Content-Type: text/plain; charset="UTF-8"
 
+Hi,
 
+I have posted this issue on a few forums with no luck and countless
+google searches, you are my last resort. Hopefully someone can help or
+point me to another help resource.
 
-On 6/26/24 8:45 PM, Heming Zhao wrote:
-> On 6/26/24 18:44, lei lu wrote:
->> This adds sanity checks for ocfs2_dir_entry to make sure all members of
->> ocfs2_dir_entry don't stray beyond valid memory region.
->>
->> Signed-off-by: lei lu <llfamsec@gmail.com>
-> 
-> 
-> Looks good to me.
-> 
-> Reviewed-by: Heming Zhao <heming.zhao@suse.com>
-> 
+I installed OCFS2 on my google cloud server, when I try bringing o2cb
+online, I get this error:
 
-Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+  Loading filesystem "ocfs2_dlmfs": Unable to load filesystem
+"ocfs2_dlmfs" Failed
 
->> ---
->>   fs/ocfs2/dir.c | 46 +++++++++++++++++++++++++++++-----------------
->>   1 file changed, 29 insertions(+), 17 deletions(-)
->>
->> diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
->> index d620d4c53c6f..f0beb173dbba 100644
->> --- a/fs/ocfs2/dir.c
->> +++ b/fs/ocfs2/dir.c
->> @@ -294,13 +294,16 @@ static void ocfs2_dx_dir_name_hash(struct inode *dir, const char *name, int len,
->>    * bh passed here can be an inode block or a dir data block, depending
->>    * on the inode inline data flag.
->>    */
->> -static int ocfs2_check_dir_entry(struct inode * dir,
->> -                 struct ocfs2_dir_entry * de,
->> -                 struct buffer_head * bh,
->> +static int ocfs2_check_dir_entry(struct inode *dir,
->> +                 struct ocfs2_dir_entry *de,
->> +                 struct buffer_head *bh,
->> +                 char *buf,
->> +                 unsigned int size,
->>                    unsigned long offset)
->>   {
->>       const char *error_msg = NULL;
->>       const int rlen = le16_to_cpu(de->rec_len);
->> +    const unsigned long next_offset = ((char *) de - buf) + rlen;
->>         if (unlikely(rlen < OCFS2_DIR_REC_LEN(1)))
->>           error_msg = "rec_len is smaller than minimal";
->> @@ -308,9 +311,11 @@ static int ocfs2_check_dir_entry(struct inode * dir,
->>           error_msg = "rec_len % 4 != 0";
->>       else if (unlikely(rlen < OCFS2_DIR_REC_LEN(de->name_len)))
->>           error_msg = "rec_len is too small for name_len";
->> -    else if (unlikely(
->> -         ((char *) de - bh->b_data) + rlen > dir->i_sb->s_blocksize))
->> -        error_msg = "directory entry across blocks";
->> +    else if (unlikely(next_offset > size))
->> +        error_msg = "directory entry overrun";
->> +    else if (unlikely(next_offset > size - OCFS2_DIR_REC_LEN(1)) &&
->> +         next_offset != size)
->> +        error_msg = "directory entry too close to end";
->>         if (unlikely(error_msg != NULL))
->>           mlog(ML_ERROR, "bad entry in directory #%llu: %s - "
->> @@ -352,16 +357,17 @@ static inline int ocfs2_search_dirblock(struct buffer_head *bh,
->>       de_buf = first_de;
->>       dlimit = de_buf + bytes;
->>   -    while (de_buf < dlimit) {
->> +    while (de_buf < dlimit - OCFS2_DIR_MEMBER_LEN) {
->>           /* this code is executed quadratically often */
->>           /* do minimal checking `by hand' */
->>             de = (struct ocfs2_dir_entry *) de_buf;
->>   -        if (de_buf + namelen <= dlimit &&
->> +        if (de->name + namelen <= dlimit &&
->>               ocfs2_match(namelen, name, de)) {
->>               /* found a match - just to be sure, do a full check */
->> -            if (!ocfs2_check_dir_entry(dir, de, bh, offset)) {
->> +            if (!ocfs2_check_dir_entry(dir, de, bh, first_de,
->> +                           bytes, offset)) {
->>                   ret = -1;
->>                   goto bail;
->>               }
->> @@ -1138,7 +1144,7 @@ static int __ocfs2_delete_entry(handle_t *handle, struct inode *dir,
->>       pde = NULL;
->>       de = (struct ocfs2_dir_entry *) first_de;
->>       while (i < bytes) {
->> -        if (!ocfs2_check_dir_entry(dir, de, bh, i)) {
->> +        if (!ocfs2_check_dir_entry(dir, de, bh, first_de, bytes, i)) {
->>               status = -EIO;
->>               mlog_errno(status);
->>               goto bail;
->> @@ -1635,7 +1641,8 @@ int __ocfs2_add_entry(handle_t *handle,
->>           /* These checks should've already been passed by the
->>            * prepare function, but I guess we can leave them
->>            * here anyway. */
->> -        if (!ocfs2_check_dir_entry(dir, de, insert_bh, offset)) {
->> +        if (!ocfs2_check_dir_entry(dir, de, insert_bh, data_start,
->> +                       size, offset)) {
->>               retval = -ENOENT;
->>               goto bail;
->>           }
->> @@ -1774,7 +1781,8 @@ static int ocfs2_dir_foreach_blk_id(struct inode *inode,
->>           }
->>             de = (struct ocfs2_dir_entry *) (data->id_data + ctx->pos);
->> -        if (!ocfs2_check_dir_entry(inode, de, di_bh, ctx->pos)) {
->> +        if (!ocfs2_check_dir_entry(inode, de, di_bh, (char *)data->id_data,
->> +                       i_size_read(inode), ctx->pos)) {
->>               /* On error, skip the f_pos to the end. */
->>               ctx->pos = i_size_read(inode);
->>               break;
->> @@ -1867,7 +1875,8 @@ static int ocfs2_dir_foreach_blk_el(struct inode *inode,
->>           while (ctx->pos < i_size_read(inode)
->>                  && offset < sb->s_blocksize) {
->>               de = (struct ocfs2_dir_entry *) (bh->b_data + offset);
->> -            if (!ocfs2_check_dir_entry(inode, de, bh, offset)) {
->> +            if (!ocfs2_check_dir_entry(inode, de, bh, bh->b_data,
->> +                           sb->s_blocksize, offset)) {
->>                   /* On error, skip the f_pos to the
->>                      next block. */
->>                   ctx->pos = (ctx->pos | (sb->s_blocksize - 1)) + 1;
->> @@ -3339,7 +3348,7 @@ static int ocfs2_find_dir_space_id(struct inode *dir, struct buffer_head *di_bh,
->>       struct super_block *sb = dir->i_sb;
->>       struct ocfs2_dinode *di = (struct ocfs2_dinode *)di_bh->b_data;
->>       struct ocfs2_dir_entry *de, *last_de = NULL;
->> -    char *de_buf, *limit;
->> +    char *first_de, *de_buf, *limit;
->>       unsigned long offset = 0;
->>       unsigned int rec_len, new_rec_len, free_space;
->>   @@ -3352,14 +3361,16 @@ static int ocfs2_find_dir_space_id(struct inode *dir, struct buffer_head *di_bh,
->>       else
->>           free_space = dir->i_sb->s_blocksize - i_size_read(dir);
->>   -    de_buf = di->id2.i_data.id_data;
->> +    first_de = di->id2.i_data.id_data;
->> +    de_buf = first_de;
->>       limit = de_buf + i_size_read(dir);
->>       rec_len = OCFS2_DIR_REC_LEN(namelen);
->>         while (de_buf < limit) {
->>           de = (struct ocfs2_dir_entry *)de_buf;
->>   -        if (!ocfs2_check_dir_entry(dir, de, di_bh, offset)) {
->> +        if (!ocfs2_check_dir_entry(dir, de, di_bh, first_de,
->> +                       i_size_read(dir), offset)) {
->>               ret = -ENOENT;
->>               goto out;
->>           }
->> @@ -3441,7 +3452,8 @@ static int ocfs2_find_dir_space_el(struct inode *dir, const char *name,
->>               /* move to next block */
->>               de = (struct ocfs2_dir_entry *) bh->b_data;
->>           }
->> -        if (!ocfs2_check_dir_entry(dir, de, bh, offset)) {
->> +        if (!ocfs2_check_dir_entry(dir, de, bh, bh->b_data, blocksize,
->> +                       offset)) {
->>               status = -ENOENT;
->>               goto bail;
->>           }
+The ocfs2 package I installed on my google server is from:
+   https://packages.debian.org/bookworm/ocfs2-tools
+and I installed ocfs2-tools like this:   apt install -y ocfs2-tools
+
+Here is the ocfs2 version I have installed:
+  root@lampstack-vm:~# dpkg -l | grep ocfs
+  ii ocfs2-tools 1.8.7-1+b1 amd64 tools for managing OCFS2 cluster filesystems
+
+I can see the ocfs2 cluster status as shown here:
+  root@lampstack-vm:~# service o2cb status
+  o2cb.service - LSB: Load O2CB cluster services at system boot.
+  Loaded: loaded (/etc/init.d/o2cb; generated)
+  Active: active (exited) since Fri 2024-06-28 17:04:53 UTC; 2 days ago
+  Docs: man:systemd-sysv-generator(8)
+  CPU: 12ms
+ lampstack-vm systemd:Starting o2cb.service - LSB: Load O2CB cluster
+services at system boot
+ lampstack-vm systemd:Started  o2cb.service - LSB: Load O2CB cluster
+services at system boot
+
+But when I try to bring the o2cb online I see this error:
+  root@lampstack-vm:~# service o2cb online
+  checking debugfs...
+  Loading filesystem "ocfs2_dlmfs": Unable to load filesystem
+"ocfs2_dlmfs" Failed
+
+Looking in the syslogs I see:
+ root@lampstack-vm:~# grep -i ocfs /var/log/syslog
+ lampstack-vm systemd: Started ocfs2.service - LSB: Mount OCFS2
+volumes at boot..
+ lampstack-vm modprobe: FATAL: Module ocfs2_stackglue not found in
+directory /lib/modules/6.1.0-21-cloud-amd64
+ lampstack-vm modprobe: FATAL: Module ocfs2_dlmfs not found in
+directory /lib/modules/6.1.0-21-cloud-amd64
+
+My GCP VM kernel is version:
+ root@lampstack-vm:~# hostnamectl
+ Operating System: Debian GNU/Linux 12 (bookworm)
+ Kernel: Linux 6.1.0-21-cloud-amd64
+
+It's my understanding that an OCFS2 installation consists of two
+parts, the kernel module and the tools module.
+I guess installing ocsf2-tools does not install the kernel module?
+From other documentation it appears I need to install the
+linux-modules-extra package for my kernel.
+I have installed the tools module, but I cannot locate the ocfs2
+kernel module for Linux 6.1.0-21-cloud-amd64.
+
+I tried to install linux-modules-extra like this:
+  root@lampstack-vm:~# apt install linux-modules-extra-6.1.0-21-cloud-amd64
+  E: Unable to locate package linux-modules-extra-6.1.0-21-cloud-amd64
+  E: Couldn't find any package by glob linux-modules-extra-6.1.0-21-cloud-amd64
+
+Where can I find the linux-modules-extra-6.1.0-21-cloud-amd64 package?
+What are my options if the linux-modules-extra-6.1.0-21-cloud-amd64
+package is not available?
+
+thank you....paul
