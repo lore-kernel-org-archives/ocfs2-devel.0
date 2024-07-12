@@ -1,132 +1,94 @@
-Received: from out30-98.freemail.mail.aliyun.com (out30-98.freemail.mail.aliyun.com [115.124.30.98])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-il1-f175.google.com (mail-il1-f175.google.com [209.85.166.175])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D0F24812
-	for <ocfs2-devel@lists.linux.dev>; Mon,  8 Jul 2024 03:51:23 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.98
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 52C7513DDDD
+	for <ocfs2-devel@lists.linux.dev>; Fri, 12 Jul 2024 07:52:59 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.166.175
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1720410686; cv=none; b=L9V6bcUAUVBjdM+Fr/BPoFf3XKyfyanFSwUc10lzy+GLLu8KayUA+YsqwbxXp+K/RT4KdoNeS1NoAh6Z7Q+7zCWrxy416Up9rG2dRT5s7PC/hYmWs1yw2KR3hTGuj3KfbkEJE0gx0D3h9Wa2xpELryZIVTljKp5PMkv8qE+jhWI=
+	t=1720770780; cv=none; b=Fe740lWjOZsuHII6fO5ph4sFqoUjbYwn7mIhiLbKIr/4c2JDKTZOHrlZSenwH342+WwtHjvark3/OiubMNwWRAqoeTveS+/qV2a5Sz+5tEeRAvg+PhydeWn/vnwEz2eutf/8fPCeGywFnsD5RgyeE/x8FSTsPxGw3JdHRuS3hLU=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1720410686; c=relaxed/simple;
-	bh=veAz+BxO8wobXWTcYmo7BvUZy+GrbqAIYnVUZUHXYIw=;
-	h=Message-ID:Date:MIME-Version:Subject:To:References:From:
-	 In-Reply-To:Content-Type; b=koE/ckfdozQcYEkG0tnl0CnEHA0jpFIIKhGqgJNlvMqUhrSi9g9Wa2SsvhU1ySl3gRLkzYnKhsg31SZ0j14nPDxab0Qv0URiXg67GA302xSSWVN3cmdhGbZrMQDu/OdbPH9xk5JoYop0HWPo7BoCLLz7wNEjKmlw8SaWnH7BAFY=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=JlLtrW88; arc=none smtp.client-ip=115.124.30.98
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
+	s=arc-20240116; t=1720770780; c=relaxed/simple;
+	bh=LJzFcaO6EhsCzg/RRLtr12hGEwHpHzuasg4wu0U5ahU=;
+	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version; b=PDDMT8OwGiiUf8k2OmbM/fDqOWuKirdBGTOks9NCVr2LNF9UPx4Y3PYdfBXBK0TiU1N0oHvVBwrbUAWw9QdSpGDPzq0l+2GkmCSRnGRPwmRjie6wNIDGtTtulrdixgyqlCZuZiDp+8TNONhtYjSfHRaPvfHpbvRkbfY2LsLQz/E=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=Xd4KAZcy; arc=none smtp.client-ip=209.85.166.175
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="JlLtrW88"
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1720410676; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=eJlP5djid5Zi2rYyudDTPVAZC8Crho3FK+Jkb9yeDKU=;
-	b=JlLtrW88IQKabrb8LwRj33HAnh305AKb64GrI5F3ysvLaS4yXA6RFYaa6AGmH6paKQ1NIRsGjtXnCQxcfL8LjoOPGAsvUL7ObQiQRMTzlGbxtx/aMOUXInaTOUwsL1Rg5s8gPSnbknYif5HVxURjxsg3O4/R0toipnm9ROI1pjs=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R121e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033037067113;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=2;SR=0;TI=SMTPD_---0WA.94h6_1720410675;
-Received: from 30.221.128.107(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0WA.94h6_1720410675)
-          by smtp.aliyun-inc.com;
-          Mon, 08 Jul 2024 11:51:15 +0800
-Message-ID: <144e79d4-9497-4390-9043-9fd5e09a736b@linux.alibaba.com>
-Date: Mon, 8 Jul 2024 11:51:15 +0800
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="Xd4KAZcy"
+Received: by mail-il1-f175.google.com with SMTP id e9e14a558f8ab-389ccd2f0abso5761115ab.2
+        for <ocfs2-devel@lists.linux.dev>; Fri, 12 Jul 2024 00:52:59 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20230601; t=1720770778; x=1721375578; darn=lists.linux.dev;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:from:to:cc:subject:date:message-id:reply-to;
+        bh=UVQecFZQw5pq7o5g7m6MGek0nnZHT+/jF3xC6kNu4h8=;
+        b=Xd4KAZcyUy8UcV7aBQsuPYvB4ovNUV3hVZEHBmHPVTxzUNdfRyxyU1TpCQjm2WKCM3
+         LbbnFEJQEFP0YO96TJW5yR+D2BIxzyuS5bbhvBQ0gvl8SfCb1g9uVli3LXXHqZ6SJCdg
+         AO3269dxYDMqF+23ZU87DFpi+bh9wItWmCTLtB5TMmHzS9GauIJHQ9lP/rZ9Pz7g/gyG
+         ClbdcysJOPWFWxbqdX1JKXdrOXfoI31iS9K3Jj9KsoAuH5ZZueSE2IN53X5CYKZbI7UO
+         K3shf7B7sc68pn3AfulgNu//iVXUX+Zd4AIDYN5sZb58Zcp2Djhgumj51A3jlBvR2pIF
+         oonQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1720770778; x=1721375578;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:x-gm-message-state:from:to:cc:subject:date:message-id
+         :reply-to;
+        bh=UVQecFZQw5pq7o5g7m6MGek0nnZHT+/jF3xC6kNu4h8=;
+        b=JbzmZRD05DQLWQH/6mykdDcHE63FSzgresvlruFnjurkNYsXtDHiKQjbrmW9MWHPiK
+         KuUP4UPYZbjEleNcevvJlLWSsXClT9+u2EtkZ9nD5c5qrEYJ+ekAV0aIO3WKFN9gxkOQ
+         LHuD0w2xsSmc53iYfeFrSL1RuDfnHbgV+E5oBignMIWb5PJ8KX1TAwZ6caPpa2ZPhota
+         kUc8tVzApq4CPFWI8TWpbe437iJUpY8VZi248zK+p9fpoFnAnsEiNDDCcamCsXE+dXci
+         7ANKpxm4ckPRuwY/+09zo3aMw+0ozsbsu7ZONFT9HIihIEkcagAJ/LQMJFoHUnXkrG76
+         GkcQ==
+X-Gm-Message-State: AOJu0YzSmKW1U5Etgi9DauYSpoC9z4oeAMbASUNRYmCziEMklwRgA0ar
+	shSpRg3kDdhWrrfE0cXgTwfXEHxnqKqPSb9hb6FuEHcJ+wuulnbP
+X-Google-Smtp-Source: AGHT+IHKqaI5s8Q13iNv/Hzttv1Yvysgysr7P9Zfb7s3qTANT0kXsnwnsmaGTzPpHTq6TYOEDkx/Iw==
+X-Received: by 2002:a05:6e02:1388:b0:374:aa87:bcaa with SMTP id e9e14a558f8ab-38a583980b0mr135180065ab.14.1720770773331;
+        Fri, 12 Jul 2024 00:52:53 -0700 (PDT)
+Received: from FLYINGPENG-MB1.tencent.com ([103.7.29.30])
+        by smtp.gmail.com with ESMTPSA id d2e1a72fcca58-70b438c6f83sm6834411b3a.82.2024.07.12.00.52.51
+        (version=TLS1_3 cipher=TLS_CHACHA20_POLY1305_SHA256 bits=256/256);
+        Fri, 12 Jul 2024 00:52:52 -0700 (PDT)
+From: flyingpenghao@gmail.com
+X-Google-Original-From: flyingpeng@tencent.com
+To: mark@fasheh.com,
+	jlbec@evilplan.org
+Cc: ocfs2-devel@lists.linux.dev,
+	Peng Hao <flyingpeng@tencent.com>
+Subject: [PATCH]  fs/ocfs2: fix a format error
+Date: Fri, 12 Jul 2024 15:52:46 +0800
+Message-Id: <20240712075246.48975-1-flyingpeng@tencent.com>
+X-Mailer: git-send-email 2.39.3 (Apple Git-146)
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: OCFS2 on Google Cloud Platform GCP/GCE -- FATAL: Module
- ocfs2_dlmfs not found linux-modules-extra
-To: Paul Sala <paul.sala@oversightmd.com>, ocfs2-devel@lists.linux.dev
-References: <CAMnFpKk7DUHEHxH1Bgdc5xkw0YwoiwORXSVzakGOBmx_ejdVkA@mail.gmail.com>
-Content-Language: en-US
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <CAMnFpKk7DUHEHxH1Bgdc5xkw0YwoiwORXSVzakGOBmx_ejdVkA@mail.gmail.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 
-Please provide the following information:
+From: Peng Hao <flyingpeng@tencent.com>
 
-grep OCFS2 /boot/config-`uname -r`
+Replace spaces with tab.
 
-It seems that some ocfs2 modules are missing in your kernel.
-Full ocfs2 modules include:
-ocfs2
-ocfs2_stackglue
-ocfs2_stack_o2cb
-ocfs2_stack_user
-ocfs2_nodemanager
-ocfs2_dlm
-ocfs2_dlmfs
+Signed-off-by: Peng Hao <flyingpeng@tencent.com>
+---
+ fs/ocfs2/cluster/tcp.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
+diff --git a/fs/ocfs2/cluster/tcp.c b/fs/ocfs2/cluster/tcp.c
+index 2b8fa3e782fb..f7a8158e3ee4 100644
+--- a/fs/ocfs2/cluster/tcp.c
++++ b/fs/ocfs2/cluster/tcp.c
+@@ -846,7 +846,7 @@ int o2net_register_handler(u32 msg_type, u32 key, u32 max_len,
+ 	if (o2net_handler_tree_lookup(msg_type, key, &p, &parent))
+ 		ret = -EEXIST;
+ 	else {
+-	        rb_link_node(&nmh->nh_node, parent, p);
++		rb_link_node(&nmh->nh_node, parent, p);
+ 		rb_insert_color(&nmh->nh_node, &o2net_handler_tree);
+ 		list_add_tail(&nmh->nh_unregister_item, unreg_list);
+ 
+-- 
+2.27.0
 
-On 7/6/24 2:42 AM, Paul Sala wrote:
-> Hi,
-> 
-> I have posted this issue on a few forums with no luck and countless
-> google searches, you are my last resort. Hopefully someone can help or
-> point me to another help resource.
-> 
-> I installed OCFS2 on my google cloud server, when I try bringing o2cb
-> online, I get this error:
-> 
->   Loading filesystem "ocfs2_dlmfs": Unable to load filesystem
-> "ocfs2_dlmfs" Failed
-> 
-> The ocfs2 package I installed on my google server is from:
->    https://packages.debian.org/bookworm/ocfs2-tools
-> and I installed ocfs2-tools like this:   apt install -y ocfs2-tools
-> 
-> Here is the ocfs2 version I have installed:
->   root@lampstack-vm:~# dpkg -l | grep ocfs
->   ii ocfs2-tools 1.8.7-1+b1 amd64 tools for managing OCFS2 cluster filesystems
-> 
-> I can see the ocfs2 cluster status as shown here:
->   root@lampstack-vm:~# service o2cb status
->   o2cb.service - LSB: Load O2CB cluster services at system boot.
->   Loaded: loaded (/etc/init.d/o2cb; generated)
->   Active: active (exited) since Fri 2024-06-28 17:04:53 UTC; 2 days ago
->   Docs: man:systemd-sysv-generator(8)
->   CPU: 12ms
->  lampstack-vm systemd:Starting o2cb.service - LSB: Load O2CB cluster
-> services at system boot
->  lampstack-vm systemd:Started  o2cb.service - LSB: Load O2CB cluster
-> services at system boot
-> 
-> But when I try to bring the o2cb online I see this error:
->   root@lampstack-vm:~# service o2cb online
->   checking debugfs...
->   Loading filesystem "ocfs2_dlmfs": Unable to load filesystem
-> "ocfs2_dlmfs" Failed
-> 
-> Looking in the syslogs I see:
->  root@lampstack-vm:~# grep -i ocfs /var/log/syslog
->  lampstack-vm systemd: Started ocfs2.service - LSB: Mount OCFS2
-> volumes at boot..
->  lampstack-vm modprobe: FATAL: Module ocfs2_stackglue not found in
-> directory /lib/modules/6.1.0-21-cloud-amd64
->  lampstack-vm modprobe: FATAL: Module ocfs2_dlmfs not found in
-> directory /lib/modules/6.1.0-21-cloud-amd64
-> 
-> My GCP VM kernel is version:
->  root@lampstack-vm:~# hostnamectl
->  Operating System: Debian GNU/Linux 12 (bookworm)
->  Kernel: Linux 6.1.0-21-cloud-amd64
-> 
-> It's my understanding that an OCFS2 installation consists of two
-> parts, the kernel module and the tools module.
-> I guess installing ocsf2-tools does not install the kernel module?
-> From other documentation it appears I need to install the
-> linux-modules-extra package for my kernel.
-> I have installed the tools module, but I cannot locate the ocfs2
-> kernel module for Linux 6.1.0-21-cloud-amd64.
-> 
-> I tried to install linux-modules-extra like this:
->   root@lampstack-vm:~# apt install linux-modules-extra-6.1.0-21-cloud-amd64
->   E: Unable to locate package linux-modules-extra-6.1.0-21-cloud-amd64
->   E: Couldn't find any package by glob linux-modules-extra-6.1.0-21-cloud-amd64
-> 
-> Where can I find the linux-modules-extra-6.1.0-21-cloud-amd64 package?
-> What are my options if the linux-modules-extra-6.1.0-21-cloud-amd64
-> package is not available?
-> 
-> thank you....paul
