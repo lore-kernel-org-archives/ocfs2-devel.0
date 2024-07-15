@@ -1,28 +1,28 @@
 Received: from dggsgout11.his.huawei.com (dggsgout11.his.huawei.com [45.249.212.51])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E5BD518C320
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7CBB018C16D
 	for <ocfs2-devel@lists.linux.dev>; Mon, 15 Jul 2024 13:07:51 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=45.249.212.51
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1721048873; cv=none; b=gb2Pb9G0Xj/P9/Hfk8t59NKqtyUv9AdBLRINdD1AT1+Ep2OZzSpPdT1GSSeyDE4kQwrbgQ3dgQyvhTeV9CKNjsvT59or8DBBFcX3NDGylVrCYMAOkOHQax5nsBfyIk7lX9duC7BF72cVjJ4LOanqVLj1+pGNXcnwATbPyEWnY0E=
+	t=1721048873; cv=none; b=MzXOQgID61H5u3fIz6AcddaCUkfZBk95OxwPbjrZS2EfjzWIOZHva+N0em4BIaVdJo6hMypQm6GloraWnzCE5BYM5DACMrktP5J3oVzaRHKvvCNCUhwKI1G/+mg4IQ0GgyZCnr4WFAh6JFaHGOhTsb9MySnsuFVwdHGtXdRqNps=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
 	s=arc-20240116; t=1721048873; c=relaxed/simple;
-	bh=xHT4+bFd6sXV4vlzD8qkhOgc25DmDNqPRZ6ChEspulo=;
+	bh=scmUIrpt556yK+4eOEfui3X5RWBuHqjT5k4U/JnHPdw=;
 	h=From:To:Cc:Subject:Date:Message-Id:In-Reply-To:References:
-	 MIME-Version; b=BGFUI3iXM+YBZXEe5Bg3z7YGASj++d0T+Hr4qam4eLNq7n1Z1LrvdV/wVhyR8tpL1Ey4sez1Ovz31AgP3OySPgetassbU95i90e752CqN+NgbOo2+7nvA87nuHKrY7pmT0hWpO4RGMcvUDWWphyBkcC6AG3NQ8hZIpDwFvyu2QA=
+	 MIME-Version; b=GNf4Yn1ESTfdnMblhBiT95hI24fKbppq4TuqgDKHPLVt/qvZGGIFCfqqlCxc+WQJWM+EtnikfJe9yxHtB/Zxp2ryhYXGbYiNl/Aci8Y/1HqEbsu9DWl2CpO3Ig5vJ8AnjbqwI84QORalfXvW0i5SktgCvVJvPk+uy0ziGe21Hgw=
 ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=huaweicloud.com; spf=pass smtp.mailfrom=huaweicloud.com; arc=none smtp.client-ip=45.249.212.51
 Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=huaweicloud.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=huaweicloud.com
-Received: from mail.maildlp.com (unknown [172.19.93.142])
-	by dggsgout11.his.huawei.com (SkyGuard) with ESMTP id 4WN2YT0Pw8z4f3kkH
-	for <ocfs2-devel@lists.linux.dev>; Mon, 15 Jul 2024 21:07:41 +0800 (CST)
+Received: from mail.maildlp.com (unknown [172.19.163.216])
+	by dggsgout11.his.huawei.com (SkyGuard) with ESMTP id 4WN2YL75m9z4f3n6L
+	for <ocfs2-devel@lists.linux.dev>; Mon, 15 Jul 2024 21:07:34 +0800 (CST)
 Received: from mail02.huawei.com (unknown [10.116.40.128])
-	by mail.maildlp.com (Postfix) with ESMTP id ED5481A0181
+	by mail.maildlp.com (Postfix) with ESMTP id 209691A01B9
 	for <ocfs2-devel@lists.linux.dev>; Mon, 15 Jul 2024 21:07:48 +0800 (CST)
 Received: from huaweicloud.com (unknown [10.175.124.27])
-	by APP4 (Coremail) with SMTP id gCh0CgBHKzkhH5VmjCPSAA--.61776S5;
-	Mon, 15 Jul 2024 21:07:48 +0800 (CST)
+	by APP4 (Coremail) with SMTP id gCh0CgBHKzkhH5VmjCPSAA--.61776S3;
+	Mon, 15 Jul 2024 21:07:47 +0800 (CST)
 From: Kemeng Shi <shikemeng@huaweicloud.com>
 To: jack@suse.com
 Cc: mark@fasheh.com,
@@ -33,9 +33,9 @@ Cc: mark@fasheh.com,
 	ocfs2-devel@lists.linux.dev,
 	linux-kernel@vger.kernel.org,
 	linux-mm@kvack.org
-Subject: [PATCH 3/4] quota: remove redundant return at end of void function
-Date: Mon, 15 Jul 2024 21:05:33 +0800
-Message-Id: <20240715130534.2112678-4-shikemeng@huaweicloud.com>
+Subject: [PATCH 1/4] quota: avoid missing put_quota_format when DQUOT_SUSPENDED is passed
+Date: Mon, 15 Jul 2024 21:05:31 +0800
+Message-Id: <20240715130534.2112678-2-shikemeng@huaweicloud.com>
 X-Mailer: git-send-email 2.30.0
 In-Reply-To: <20240715130534.2112678-1-shikemeng@huaweicloud.com>
 References: <20240715130534.2112678-1-shikemeng@huaweicloud.com>
@@ -46,53 +46,54 @@ List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
-X-CM-TRANSID:gCh0CgBHKzkhH5VmjCPSAA--.61776S5
-X-Coremail-Antispam: 1UD129KBjvdXoWrury3ZryfXr4rur1fCF4xtFb_yoWDJFX_Cr
-	yfu34Fyr4Ut3Z3tFWUtr4rJwnaqws8Cw1UXF47t3W3Gw1rtrW8Ar1qvwn3JryDJ347C3y3
-	CrW8CrsrGFWrKjkaLaAFLSUrUUUUjb8apTn2vfkv8UJUUUU8Yxn0WfASr-VFAUDa7-sFnT
-	9fnUUIcSsGvfJTRUUUbTkYFVCjjxCrM7AC8VAFwI0_Wr0E3s1l1xkIjI8I6I8E6xAIw20E
-	Y4v20xvaj40_Wr0E3s1l1IIY67AEw4v_Jr0_Jr4l82xGYIkIc2x26280x7IE14v26r1rM2
-	8IrcIa0xkI8VCY1x0267AKxVW5JVCq3wA2ocxC64kIII0Yj41l84x0c7CEw4AK67xGY2AK
-	021l84ACjcxK6xIIjxv20xvE14v26ryj6F1UM28EF7xvwVC0I7IYx2IY6xkF7I0E14v26r
-	4UJVWxJr1l84ACjcxK6I8E87Iv67AKxVW0oVCq3wA2z4x0Y4vEx4A2jsIEc7CjxVAFwI0_
-	GcCE3s1le2I262IYc4CY6c8Ij28IcVAaY2xG8wAqx4xG64xvF2IEw4CE5I8CrVC2j2WlYx
-	0E2Ix0cI8IcVAFwI0_Jr0_Jr4lYx0Ex4A2jsIE14v26r1j6r4UMcvjeVCFs4IE7xkEbVWU
-	JVW8JwACjcxG0xvY0x0EwIxGrwCY1x0262kKe7AKxVWUtVW8ZwCF04k20xvY0x0EwIxGrw
-	CFx2IqxVCFs4IE7xkEbVWUJVW8JwC20s026c02F40E14v26r1j6r18MI8I3I0E7480Y4vE
-	14v26r106r1rMI8E67AF67kF1VAFwI0_Jw0_GFylIxkGc2Ij64vIr41lIxAIcVC0I7IYx2
-	IY67AKxVWUJVWUCwCI42IY6xIIjxv20xvEc7CjxVAFwI0_Gr0_Cr1lIxAIcVCF04k26cxK
-	x2IYs7xG6r1j6r1xMIIF0xvEx4A2jsIE14v26r1j6r4UMIIF0xvEx4A2jsIEc7CjxVAFwI
-	0_Gr0_Gr1UYxBIdaVFxhVjvjDU0xZFpf9x07UACztUUUUU=
+X-CM-TRANSID:gCh0CgBHKzkhH5VmjCPSAA--.61776S3
+X-Coremail-Antispam: 1UD129KBjvdXoW7XF45GFyDAryfWFW3XF1rXrb_yoWDWrg_K3
+	4Ik3y8ZFWxXF9ag3WqgrWfWrZ09ayrGws3WF4jyrnrJryDGr45ZF4vqF9xAa4kZ3y7t398
+	Zas2yry7KFWrWjkaLaAFLSUrUUUUjb8apTn2vfkv8UJUUUU8Yxn0WfASr-VFAUDa7-sFnT
+	9fnUUIcSsGvfJTRUUUbTxYFVCjjxCrM7AC8VAFwI0_Xr0_Wr1l1xkIjI8I6I8E6xAIw20E
+	Y4v20xvaj40_Wr0E3s1l1IIY67AEw4v_Jr0_Jr4l82xGYIkIc2x26280x7IE14v26r18M2
+	8IrcIa0xkI8VCY1x0267AKxVWUCVW8JwA2ocxC64kIII0Yj41l84x0c7CEw4AK67xGY2AK
+	021l84ACjcxK6xIIjxv20xvE14v26ryj6F1UM28EF7xvwVC0I7IYx2IY6xkF7I0E14v26F
+	4j6r4UJwA2z4x0Y4vEx4A2jsIE14v26rxl6s0DM28EF7xvwVC2z280aVCY1x0267AKxVW0
+	oVCq3wAS0I0E0xvYzxvE52x082IY62kv0487Mc02F40EFcxC0VAKzVAqx4xG6I80ewAv7V
+	C0I7IYx2IY67AKxVWUJVWUGwAv7VC2z280aVAFwI0_Jr0_Gr1lOx8S6xCaFVCjc4AY6r1j
+	6r4UM4x0Y48IcxkI7VAKI48JMxkF7I0En4kS14v26r1q6r43MxAIw28IcxkI7VAKI48JMx
+	C20s026xCaFVCjc4AY6r1j6r4UMI8I3I0E5I8CrVAFwI0_Jr0_Jr4lx2IqxVCjr7xvwVAF
+	wI0_JrI_JrWlx4CE17CEb7AF67AKxVWUtVW8ZwCIc40Y0x0EwIxGrwCI42IY6xIIjxv20x
+	vE14v26r1j6r1xMIIF0xvE2Ix0cI8IcVCY1x0267AKxVW8JVWxJwCI42IY6xAIw20EY4v2
+	0xvaj40_Jr0_JF4lIxAIcVC2z280aVAFwI0_Jr0_Gr1lIxAIcVC2z280aVCY1x0267AKxV
+	W8JVW8JrUvcSsGvfC2KfnxnUUI43ZEXa7IU1_cTDUUUUU==
 X-CM-SenderInfo: 5vklyvpphqwq5kxd4v5lfo033gof0z/
 
-Function dquot_claim_space_nodirty nad dquot_reclaim_space_nodirty have
-no return value, just remove redundant return at end of the functions.
+Avoid missing put_quota_format when DQUOT_SUSPENDED is passed to
+dquot_load_quota_sb.
 
 Signed-off-by: Kemeng Shi <shikemeng@huaweicloud.com>
 ---
- fs/quota/dquot.c | 2 --
- 1 file changed, 2 deletions(-)
+ fs/quota/dquot.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
 
 diff --git a/fs/quota/dquot.c b/fs/quota/dquot.c
-index a08a71890cd8..2ca1f16689de 100644
+index 627eb2f72ef3..23fcf9e9d6c5 100644
 --- a/fs/quota/dquot.c
 +++ b/fs/quota/dquot.c
-@@ -1830,7 +1830,6 @@ void dquot_claim_space_nodirty(struct inode *inode, qsize_t number)
- 	spin_unlock(&inode->i_lock);
- 	mark_all_dquot_dirty(dquots);
- 	srcu_read_unlock(&dquot_srcu, index);
--	return;
- }
- EXPORT_SYMBOL(dquot_claim_space_nodirty);
+@@ -2408,7 +2408,7 @@ static int vfs_setup_quota_inode(struct inode *inode, int type)
+ int dquot_load_quota_sb(struct super_block *sb, int type, int format_id,
+ 	unsigned int flags)
+ {
+-	struct quota_format_type *fmt = find_quota_format(format_id);
++	struct quota_format_type *fmt;
+ 	struct quota_info *dqopt = sb_dqopt(sb);
+ 	int error;
  
-@@ -1872,7 +1871,6 @@ void dquot_reclaim_space_nodirty(struct inode *inode, qsize_t number)
- 	spin_unlock(&inode->i_lock);
- 	mark_all_dquot_dirty(dquots);
- 	srcu_read_unlock(&dquot_srcu, index);
--	return;
- }
- EXPORT_SYMBOL(dquot_reclaim_space_nodirty);
+@@ -2418,6 +2418,7 @@ int dquot_load_quota_sb(struct super_block *sb, int type, int format_id,
+ 	if (WARN_ON_ONCE(flags & DQUOT_SUSPENDED))
+ 		return -EINVAL;
  
++	fmt = find_quota_format(format_id);
+ 	if (!fmt)
+ 		return -ESRCH;
+ 	if (!sb->dq_op || !sb->s_qcop ||
 -- 
 2.30.0
 
