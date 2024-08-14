@@ -1,67 +1,64 @@
-Received: from mail-pl1-f178.google.com (mail-pl1-f178.google.com [209.85.214.178])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.129.124])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D8E37107A0
-	for <ocfs2-devel@lists.linux.dev>; Sat, 10 Aug 2024 19:53:22 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.214.178
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5D3FF1B372E
+	for <ocfs2-devel@lists.linux.dev>; Wed, 14 Aug 2024 14:34:27 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=170.10.129.124
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1723319604; cv=none; b=bjz34CJqQFNdd/nmLYd7od1iYb7/7jJIbmXk1R6m7L5w1fLRME0blbgOARKg+PNphrHDAQrh152Hii0C9lDhE9NwNXPf40lpn+P2vBfXPXKpCB5A+LjK8XitUemH5UtSXTjoIsgI1qcwaH0iSwD1+k0LvyWqv+ExZP1lQXl1OEY=
+	t=1723646070; cv=none; b=YOlwb4vYiVZc3di2mtf6yv13pnKL1Cdd+tLDvzaXPsED+tgd1a1u3gKCUw5MpZC4QzDmOFB0UbECxMH9XNbSDMFeBTw7p1+1n9e5nx3b0E5TxsWrEPRAi8q5RATEUMeZK4wr1bcB0k4fk+z4n9ckaJGRyVzK2T5soDV1u51m/Rc=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1723319604; c=relaxed/simple;
-	bh=BHIU2InSC64hLrVrzlFekZ0somTwM/HyiGBUHzA7vAA=;
-	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version; b=R/3pyTs/Sbpb++xIhxM+5L8rgmexjkg33tLJH6NFo/mFAvIPOsNNZBB81rjq4NBydZy7aeazPaHxJb8bkoax/c+Efh5+7bMoI6wZM1kKUOzTYnoWufOX9jAop1YZEt2JWHqaKiPOm3gHJdRaanAxoaS8rv1Gfb/Bu/Adg1pFH6M=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=CfRC+T7C; arc=none smtp.client-ip=209.85.214.178
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	s=arc-20240116; t=1723646070; c=relaxed/simple;
+	bh=4aol2bQWGqU7zpfnOajf765lcCf+XqwlLCMMBIrDrSA=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=hzK+E3bjn4ucxBbKP/4JBOTJg4k0VdKeyT13XlcDNSelHzHZpbwdMazGp2Z203Rn8MocNKf6SRymIhSv4oj4bU8LlfG0+3ISPhkfjUDuRIPrlQjFC3KdzNgCYyN41ki/+cvSFhUcUfc6A3EhD8tUUXPyDFeFjU9fplttfZXkRHQ=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=redhat.com; spf=pass smtp.mailfrom=redhat.com; dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b=OBkjlbEn; arc=none smtp.client-ip=170.10.129.124
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=redhat.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=redhat.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="CfRC+T7C"
-Received: by mail-pl1-f178.google.com with SMTP id d9443c01a7336-1fc71a8a340so1216555ad.1
-        for <ocfs2-devel@lists.linux.dev>; Sat, 10 Aug 2024 12:53:22 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1723319602; x=1723924402; darn=lists.linux.dev;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:from:to:cc:subject:date:message-id:reply-to;
-        bh=RT/8SZgyxy/IdolTekKRVwjoG2TSesGN9ly9JHx/q30=;
-        b=CfRC+T7CBzYHNxBMvvUES2ohZ3aqEyZVifjHzYoLfNQrfnYTNR39dHhpgCGcwMHu1b
-         uj6176KwaiujsIKUDSbUbSbbf2AXWr3bAX2WQS8hzp9UT+II82jmif+LcOObxAQH1B7Z
-         rOUuhWXW1plSLardgDSPfjB5MmvV6IqvoslqQQZKR+5UvPG3S1fWCoRnqFGXRwJxWSib
-         dUIN+IIgNpRNqpB/7mKwyTAefvPpPfdkmCCRHK2XCute82QzVBmO1AYBfnFr3/WtH9MF
-         kMmKyxPniK7w9zV5qdBzJ5rd1Vjj3qHZVJ58hTAIG6Tr11eympwrajsJDlAYZGedUxtn
-         vyHw==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1723319602; x=1723924402;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:x-gm-message-state:from:to:cc:subject:date:message-id
-         :reply-to;
-        bh=RT/8SZgyxy/IdolTekKRVwjoG2TSesGN9ly9JHx/q30=;
-        b=CS/yPwyb6I60lq70wHkLqB/WRJsabnd7wjBnA3r8IhUVJ2qUTpSGtS8a7KiVxYzKPx
-         /a/gMCe8v3Z3L3mg0l/qCRQf79qgA92Od1hUE4wLS2MjazlchuYt35Lqa4enRQuztRoO
-         4WvRWqcB1O9w7ol1+xSFHelSGdf8eYc9U7qZcyu+rj3ucX2lT4Yio1gywBiNBoSD+CHQ
-         qhtx8RoonzQsBOfAoW7NkxgfB8j0OHeRnW3UinfMIp1OJe7dTXk8j9OoO8+ZuBXbXjLp
-         IaUzJdJv0wQKAx13MHqVOJ9wlrgb6GMC4qzuuWC4BIbgkUn6f56gXAB8NZdH1QC3n0sS
-         eZuA==
-X-Forwarded-Encrypted: i=1; AJvYcCXQ5KHm8pOXnusZBMnBaXSHEfs6Ro9+HDoy1px6uGU4BFZzi5AopDRUVIFdMuB7k/sEXR6oRDUN+5YBC3fIu6hpub1FljBtveTphaw=
-X-Gm-Message-State: AOJu0YxzEsgUw2+HJjkup0HIo5motNPuP19wfg72J2INzlVN7ZR8RF+L
-	BtP3TLEiBNdWimgPttbtmD2wY930disDuF88XePiNF134n7czuNA28bRcQ==
-X-Google-Smtp-Source: AGHT+IEyegN8ne/NBe7gxuyhDgh79XREsz5HAjvumAutY7om9XUbSM263saQc/jYpgj7FaBCSg9lHw==
-X-Received: by 2002:a17:902:d491:b0:1fd:d6d8:134a with SMTP id d9443c01a7336-200ae69dc2bmr40423735ad.11.1723319601970;
-        Sat, 10 Aug 2024 12:53:21 -0700 (PDT)
-Received: from visitorckw-System-Product-Name.. ([140.113.216.168])
-        by smtp.gmail.com with ESMTPSA id d9443c01a7336-200bbb3a8desm14596535ad.281.2024.08.10.12.53.20
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Sat, 10 Aug 2024 12:53:21 -0700 (PDT)
-From: Kuan-Wei Chiu <visitorckw@gmail.com>
-To: mark@fasheh.com,
+	dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b="OBkjlbEn"
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
+	s=mimecast20190719; t=1723646067;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:
+	 content-transfer-encoding:content-transfer-encoding;
+	bh=1mwLzvfKy/AKPotQsw4SiDKdUt3reAnrpkwNcVstlDw=;
+	b=OBkjlbEnJOCD2qHdzNLgLqhRzaoVGtiVZ27WiUvsbxplVcdaPL5m460AUTmydYWlEnBf1o
+	5N6W0BouyauZfTX26GA33vfq66mm5fC9p3out8XxPTOIytKGQD8pP8TCcNas40ryHaCGER
+	XbEz5FeaSj9wWYQKEjFzZORbUb3pvbA=
+Received: from mx-prod-mc-05.mail-002.prod.us-west-2.aws.redhat.com
+ (ec2-54-186-198-63.us-west-2.compute.amazonaws.com [54.186.198.63]) by
+ relay.mimecast.com with ESMTP with STARTTLS (version=TLSv1.3,
+ cipher=TLS_AES_256_GCM_SHA384) id us-mta-627-xmUo1VUkOParfHt08LfSbg-1; Wed,
+ 14 Aug 2024 10:34:25 -0400
+X-MC-Unique: xmUo1VUkOParfHt08LfSbg-1
+Received: from mx-prod-int-01.mail-002.prod.us-west-2.aws.redhat.com (mx-prod-int-01.mail-002.prod.us-west-2.aws.redhat.com [10.30.177.4])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature RSA-PSS (2048 bits) server-digest SHA256)
+	(No client certificate requested)
+	by mx-prod-mc-05.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTPS id 277381955F6A;
+	Wed, 14 Aug 2024 14:34:22 +0000 (UTC)
+Received: from fs-i40c-03.mgmt.fast.eng.rdu2.dc.redhat.com (fs-i40c-03.mgmt.fast.eng.rdu2.dc.redhat.com [10.6.24.150])
+	by mx-prod-int-01.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTP id EFE1E300019A;
+	Wed, 14 Aug 2024 14:34:18 +0000 (UTC)
+From: Alexander Aring <aahringo@redhat.com>
+To: teigland@redhat.com
+Cc: gfs2@lists.linux.dev,
+	song@kernel.org,
+	yukuai3@huawei.com,
+	agruenba@redhat.com,
+	mark@fasheh.com,
 	jlbec@evilplan.org,
-	joseph.qi@linux.alibaba.com
-Cc: jserv@ccns.ncku.edu.tw,
-	ocfs2-devel@lists.linux.dev,
+	joseph.qi@linux.alibaba.com,
+	gregkh@linuxfoundation.org,
+	rafael@kernel.org,
+	akpm@linux-foundation.org,
 	linux-kernel@vger.kernel.org,
-	Kuan-Wei Chiu <visitorckw@gmail.com>
-Subject: [PATCH] ocfs2: Remove custom swap functions in favor of built-in sort swap
-Date: Sun, 11 Aug 2024 03:53:16 +0800
-Message-Id: <20240810195316.186504-1-visitorckw@gmail.com>
-X-Mailer: git-send-email 2.34.1
+	linux-raid@vger.kernel.org,
+	ocfs2-devel@lists.linux.dev,
+	lucien.xin@gmail.com,
+	aahringo@redhat.com
+Subject: [RFC dlm/next 00/12] dlm: net-namespace functionality
+Date: Wed, 14 Aug 2024 10:34:02 -0400
+Message-ID: <20240814143414.1877505-1-aahringo@redhat.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -69,143 +66,125 @@ List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
+X-Scanned-By: MIMEDefang 3.4.1 on 10.30.177.4
 
-The custom swap functions used in ocfs2 do not perform any special
-operations and can be replaced with the built-in swap function of sort.
-This change not only reduces code size but also improves efficiency,
-especially in scenarios where CONFIG_RETPOLINE is enabled, as it makes
-indirect function calls more expensive.
+Hi,
 
-By using the built-in swap, we avoid these costly indirect function
-calls, leading to better performance.
+this patch-series is huge but brings a lot of basic "fun" net-namespace
+functionality to DLM. Currently you need a couple of Linux kernel
+instances running in e.g. Virtual Machines. With this patch-series I
+want to break out of this virtual machine world dealing with multiple
+kernels need to boot them all individually, etc. Now you can use DLM in
+only one Linux kernel instance and each "node" (previously represented
+by a virtual machine) is separate by a net-namespace. Why
+net-namespaces? It just fits to the DLM design for now, you need to have
+them anyway because the internal DLM socket handling on a per node
+basis. What we do additionally is to separate the DLM lockspaces (the
+lockspace that is being registered) by net-namespaces as this represents
+a "network entity" (node). There might be reasons to introduce a
+complete new kind of namespaces (locking namespace?) but I don't want to
+do this step now and as I said net-namespaces are required anyway for
+the DLM sockets.
 
-Signed-off-by: Kuan-Wei Chiu <visitorckw@gmail.com>
----
-Note: Build test only.
+You need some new user space tooling as a new netlink net-namespace aware
+UAPI is introduced (but can co-exist with configfs that operates on
+init_net only). See [0] for more steps, there is a copr repo for the
+new tooling and can be enabled by:
 
- fs/ocfs2/dir.c          | 12 +-----------
- fs/ocfs2/refcounttree.c | 13 +++----------
- fs/ocfs2/xattr.c        | 15 +++------------
- 3 files changed, 7 insertions(+), 33 deletions(-)
+$ dnf copr enable aring/nldlm
+$ dnf install nldlm
 
-diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
-index f0beb173dbba..fa5d0819a997 100644
---- a/fs/ocfs2/dir.c
-+++ b/fs/ocfs2/dir.c
-@@ -3511,16 +3511,6 @@ static int dx_leaf_sort_cmp(const void *a, const void *b)
- 	return 0;
- }
- 
--static void dx_leaf_sort_swap(void *a, void *b, int size)
--{
--	struct ocfs2_dx_entry *entry1 = a;
--	struct ocfs2_dx_entry *entry2 = b;
--
--	BUG_ON(size != sizeof(*entry1));
--
--	swap(*entry1, *entry2);
--}
--
- static int ocfs2_dx_leaf_same_major(struct ocfs2_dx_leaf *dx_leaf)
- {
- 	struct ocfs2_dx_entry_list *dl_list = &dx_leaf->dl_list;
-@@ -3781,7 +3771,7 @@ static int ocfs2_dx_dir_rebalance(struct ocfs2_super *osb, struct inode *dir,
- 	 */
- 	sort(dx_leaf->dl_list.de_entries, num_used,
- 	     sizeof(struct ocfs2_dx_entry), dx_leaf_sort_cmp,
--	     dx_leaf_sort_swap);
-+	     NULL);
- 
- 	ocfs2_journal_dirty(handle, dx_leaf_bh);
- 
-diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
-index 1f303b1adf1a..4f85508538fc 100644
---- a/fs/ocfs2/refcounttree.c
-+++ b/fs/ocfs2/refcounttree.c
-@@ -1392,13 +1392,6 @@ static int cmp_refcount_rec_by_cpos(const void *a, const void *b)
- 	return 0;
- }
- 
--static void swap_refcount_rec(void *a, void *b, int size)
--{
--	struct ocfs2_refcount_rec *l = a, *r = b;
--
--	swap(*l, *r);
--}
--
- /*
-  * The refcount cpos are ordered by their 64bit cpos,
-  * But we will use the low 32 bit to be the e_cpos in the b-tree.
-@@ -1474,7 +1467,7 @@ static int ocfs2_divide_leaf_refcount_block(struct buffer_head *ref_leaf_bh,
- 	 */
- 	sort(&rl->rl_recs, le16_to_cpu(rl->rl_used),
- 	     sizeof(struct ocfs2_refcount_rec),
--	     cmp_refcount_rec_by_low_cpos, swap_refcount_rec);
-+	     cmp_refcount_rec_by_low_cpos, NULL);
- 
- 	ret = ocfs2_find_refcount_split_pos(rl, &cpos, &split_index);
- 	if (ret) {
-@@ -1499,11 +1492,11 @@ static int ocfs2_divide_leaf_refcount_block(struct buffer_head *ref_leaf_bh,
- 
- 	sort(&rl->rl_recs, le16_to_cpu(rl->rl_used),
- 	     sizeof(struct ocfs2_refcount_rec),
--	     cmp_refcount_rec_by_cpos, swap_refcount_rec);
-+	     cmp_refcount_rec_by_cpos, NULL);
- 
- 	sort(&new_rl->rl_recs, le16_to_cpu(new_rl->rl_used),
- 	     sizeof(struct ocfs2_refcount_rec),
--	     cmp_refcount_rec_by_cpos, swap_refcount_rec);
-+	     cmp_refcount_rec_by_cpos, NULL);
- 
- 	*split_cpos = cpos;
- 	return 0;
-diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index 35c0cc2a51af..0e58a5ce539e 100644
---- a/fs/ocfs2/xattr.c
-+++ b/fs/ocfs2/xattr.c
-@@ -4167,15 +4167,6 @@ static int cmp_xe(const void *a, const void *b)
- 	return 0;
- }
- 
--static void swap_xe(void *a, void *b, int size)
--{
--	struct ocfs2_xattr_entry *l = a, *r = b, tmp;
--
--	tmp = *l;
--	memcpy(l, r, sizeof(struct ocfs2_xattr_entry));
--	memcpy(r, &tmp, sizeof(struct ocfs2_xattr_entry));
--}
--
- /*
-  * When the ocfs2_xattr_block is filled up, new bucket will be created
-  * and all the xattr entries will be moved to the new bucket.
-@@ -4241,7 +4232,7 @@ static void ocfs2_cp_xattr_block_to_bucket(struct inode *inode,
- 	trace_ocfs2_cp_xattr_block_to_bucket_end(offset, size, off_change);
- 
- 	sort(target + offset, count, sizeof(struct ocfs2_xattr_entry),
--	     cmp_xe, swap_xe);
-+	     cmp_xe, NULL);
- }
- 
- /*
-@@ -4436,7 +4427,7 @@ static int ocfs2_defrag_xattr_bucket(struct inode *inode,
- 	 */
- 	sort(entries, le16_to_cpu(xh->xh_count),
- 	     sizeof(struct ocfs2_xattr_entry),
--	     cmp_xe_offset, swap_xe);
-+	     cmp_xe_offset, NULL);
- 
- 	/* Move all name/values to the end of the bucket. */
- 	xe = xh->xh_entries;
-@@ -4478,7 +4469,7 @@ static int ocfs2_defrag_xattr_bucket(struct inode *inode,
- 	/* sort the entries by their name_hash. */
- 	sort(entries, le16_to_cpu(xh->xh_count),
- 	     sizeof(struct ocfs2_xattr_entry),
--	     cmp_xe, swap_xe);
-+	     cmp_xe, NULL);
- 
- 	buf = bucket_buf;
- 	for (i = 0; i < bucket->bu_blocks; i++, buf += blocksize)
+or compile it yourself.
+
+Then there is currently a very simple script [1] to show a 3 nodes cluster
+using gfs2 on a multiple loop block devices on a shared loop block device
+image (sounds weird but I do something like that). There are currently
+some user space synchronization issues that I solve by simple sleeps, but
+they are only user space problems.
+
+To test it I recommend some virtual machine "but only one" and run the
+[1] script. Afterwards you have in your executed net-namespace the 3
+mountpoints /cluster/node1, /cluster/node2/ and /cluster/node3. Any vfs
+operations on those mountpoints acts as a per node entity operation.
+
+We can use it for testing, development and also scale testing to have a
+large number of nodes joining a lockspace (which seems to be a problem
+right now). Instead of running 1000 vms, we can run 1000 net-namespaces
+in a more resource limited environment. For me it seems gfs2 can handle
+several mounts and still separate the resource according their global
+variables. Their data structures e.g. glock hash seems to have in their
+key a separation for that (fsid?). However this is still an experimental
+feature we might run into issues that requires more separation related
+to net-namespaces. However basic testing seems to run just fine.
+
+Limitations
+
+I disable any functionality for the DLM character device that allow
+plock handling or do DLM locking from user space. Just don't use any
+plock locking in gfs2 for now. But basic vfs operations should work. You
+can even sniff DLM traffic on the created "dlmsw" virtual bridge.
+
+- Alex
+
+[0] https://gitlab.com/netcoder/nldlm
+[1] https://gitlab.com/netcoder/gfs2ns-examples/-/blob/main/three_nodes
+
+Alexander Aring (12):
+  dlm: introduce dlm_find_lockspace_name()
+  dlm: disallow different configs nodeid storages
+  dlm: add struct net to dlm_new_lockspace()
+  dlm: handle port as __be16 network byte order
+  dlm: use dlm_config as only cluster configuration
+  dlm: dlm_config_info config fields to unsigned int
+  dlm: rename config to configfs
+  kobject: add kset_type_create_and_add() helper
+  kobject: export generic helper ops
+  dlm: separate dlm lockspaces per net-namespace
+  dlm: add nldlm net-namespace aware UAPI
+  gfs2: separate mount context by net-namespaces
+
+ drivers/md/md-cluster.c |    3 +-
+ fs/dlm/Makefile         |    2 +
+ fs/dlm/config.c         | 1291 +++++++++++++++----------------------
+ fs/dlm/config.h         |  215 +++++--
+ fs/dlm/configfs.c       |  882 ++++++++++++++++++++++++++
+ fs/dlm/configfs.h       |   19 +
+ fs/dlm/debug_fs.c       |   24 +-
+ fs/dlm/dir.c            |    4 +-
+ fs/dlm/dlm_internal.h   |   24 +-
+ fs/dlm/lock.c           |   64 +-
+ fs/dlm/lock.h           |    3 +-
+ fs/dlm/lockspace.c      |  220 ++++---
+ fs/dlm/lockspace.h      |   12 +-
+ fs/dlm/lowcomms.c       |  525 ++++++++--------
+ fs/dlm/lowcomms.h       |   29 +-
+ fs/dlm/main.c           |    5 -
+ fs/dlm/member.c         |   36 +-
+ fs/dlm/midcomms.c       |  287 ++++-----
+ fs/dlm/midcomms.h       |   31 +-
+ fs/dlm/nldlm.c          | 1330 +++++++++++++++++++++++++++++++++++++++
+ fs/dlm/nldlm.h          |  176 ++++++
+ fs/dlm/plock.c          |    2 +-
+ fs/dlm/rcom.c           |   16 +-
+ fs/dlm/rcom.h           |    3 +-
+ fs/dlm/recover.c        |   17 +-
+ fs/dlm/user.c           |   63 +-
+ fs/dlm/user.h           |    2 +-
+ fs/gfs2/glock.c         |    8 +
+ fs/gfs2/incore.h        |    2 +
+ fs/gfs2/lock_dlm.c      |    6 +-
+ fs/gfs2/ops_fstype.c    |    5 +
+ fs/gfs2/sys.c           |   27 +-
+ fs/ocfs2/stack_user.c   |    2 +-
+ include/linux/dlm.h     |    9 +-
+ include/linux/kobject.h |   10 +-
+ lib/kobject.c           |   55 +-
+ 36 files changed, 3941 insertions(+), 1468 deletions(-)
+ create mode 100644 fs/dlm/configfs.c
+ create mode 100644 fs/dlm/configfs.h
+ create mode 100644 fs/dlm/nldlm.c
+ create mode 100644 fs/dlm/nldlm.h
+
 -- 
-2.34.1
+2.43.0
 
