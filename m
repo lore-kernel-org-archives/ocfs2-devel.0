@@ -1,95 +1,105 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 69D011547C0;
-	Thu, 15 Aug 2024 05:28:06 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
+Received: from m16.mail.163.com (m16.mail.163.com [117.135.210.3])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 1A2DB177980
+	for <ocfs2-devel@lists.linux.dev>; Thu, 15 Aug 2024 09:23:05 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=117.135.210.3
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1723699686; cv=none; b=oG9T5n1BGo1fiOkeAwadrTcjaLTninywY07pb6LwjtFPuOb0Ev3AWzw8DogNNXloVnVzJ2PDTDPSvLOYxu+RHt/vw96gkiZBNO4M1BTzCs+unJIhJnKD7B0NnBO5DIbUhnuUU2I9pZduvpf9wo+hApI60rl6+SnlZlx9hM6zj2M=
+	t=1723713789; cv=none; b=Q7rfcuXawuuqq6etMenPkPtbt+1f/R/jXJqsFt7hyikHr97aurBO0Fsf+MR464ng8RTUeAENS1+70WXsxN3teRyWK8/qzOxbcJsP0NrS9bt1N42/hlELeuAhMo0T//I6CiLaUl9Y2DIDVAtuVz3Ds4Q3Ansf1dwsF+b6f+eWN0M=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1723699686; c=relaxed/simple;
-	bh=eSAiG30U4Qk4f+W5EYF3TdYcm6s5V1OE+Tr7YHKbOXw=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=XV4YJhdq1Dqkkch2vbN0JNqbrEDVnpuU8emomSbuRManTMRgf8sjNm31TBr7nbp/W8nAoAeekHlrUTnvlMnhaPZEsswsN8X+wlPm0D+NCZdRRWw98NlXkBn6N2S6GzSKx5Rs95JQnfcHg9SEKSy+h617FKxgo+H/QiUYqzqCJYc=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (1024-bit key) header.d=linuxfoundation.org header.i=@linuxfoundation.org header.b=hHw50lU0; arc=none smtp.client-ip=10.30.226.201
+	s=arc-20240116; t=1723713789; c=relaxed/simple;
+	bh=+sObloC1z4b6bN8s4V7hq+Jx047COGCJ+YOBic+8diQ=;
+	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version; b=e8QDRd37/W8c81LLOw0EzyrjJdgPrgpCxzYh4mRpJJrtx1sWDVjdzaoB9R1Y9pXRakys8pNWSe5l1KsgonmoQuwvkQZIog2YT34rv+etEVuXHfsfV+xLqEIjQenuMtrKBtCiQKmjHHkoKj+zcQ7NmUUbZBQy7olSz52iV9igIDY=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=163.com; spf=pass smtp.mailfrom=163.com; dkim=pass (1024-bit key) header.d=163.com header.i=@163.com header.b=P78h8Hkh; arc=none smtp.client-ip=117.135.210.3
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=163.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=163.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linuxfoundation.org header.i=@linuxfoundation.org header.b="hHw50lU0"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 4662BC4AF0A;
-	Thu, 15 Aug 2024 05:28:05 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linuxfoundation.org;
-	s=korg; t=1723699685;
-	bh=eSAiG30U4Qk4f+W5EYF3TdYcm6s5V1OE+Tr7YHKbOXw=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=hHw50lU0zcvoqZryILu6hk6kw/qqvBsksy7t17Z3t5vNSSZFNg3rhC60tZdyDA5uo
-	 7hu123/rmhafQd0QTImyUwCAlCPZwZNcFK51NkilkilfBS4+RDpYaqre/dvQSJHFIv
-	 Cv1qTbJXdv5MOto6QzABXxwsmB26eMuiHLGea0n8=
-Date: Thu, 15 Aug 2024 07:28:02 +0200
-From: Greg KH <gregkh@linuxfoundation.org>
-To: Alexander Aring <aahringo@redhat.com>
-Cc: teigland@redhat.com, gfs2@lists.linux.dev, song@kernel.org,
-	yukuai3@huawei.com, agruenba@redhat.com, mark@fasheh.com,
-	jlbec@evilplan.org, joseph.qi@linux.alibaba.com, rafael@kernel.org,
-	akpm@linux-foundation.org, linux-kernel@vger.kernel.org,
-	linux-raid@vger.kernel.org, ocfs2-devel@lists.linux.dev,
-	lucien.xin@gmail.com
-Subject: Re: [RFC dlm/next 09/12] kobject: export generic helper ops
-Message-ID: <2024081519-caddy-monstrous-b37d@gregkh>
-References: <20240814143414.1877505-1-aahringo@redhat.com>
- <20240814143414.1877505-10-aahringo@redhat.com>
- <2024081445-coffee-antiques-e9cc@gregkh>
- <CAK-6q+hN8ZRAHc7aS7C_RO4pEGN1t3eA_vDChsSgsQOcJEU4vg@mail.gmail.com>
+	dkim=pass (1024-bit key) header.d=163.com header.i=@163.com header.b="P78h8Hkh"
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=163.com;
+	s=s110527; h=From:Subject:Date:Message-Id:MIME-Version; bh=BVHEp
+	73aP48z9WssczRaaj5+TNK0ShKng5OvN16omb4=; b=P78h8HkhRYi1+DrXZ9DOz
+	sJtvtl0YThnQekZwJkZfbIyWTCeCPnErvJ+s4qeymJUvJdcnAvQPFYVePo5/Jr33
+	kIMq44fyVYvP6CKbRIdXa8w6eha6V8TUq2r0z8D6B77OD4YP6Z2xdns//HlPtgB0
+	O3JU4ceCsdF6h58x2QFxfw=
+Received: from localhost.localdomain (unknown [111.48.69.246])
+	by gzga-smtp-mta-g3-1 (Coremail) with SMTP id _____wD3v8_FyL1mrKteCQ--.26237S2;
+	Thu, 15 Aug 2024 17:22:14 +0800 (CST)
+From: Chi Zhiling <chizhiling@163.com>
+To: mark@fasheh.com,
+	jlbec@evilplan.org,
+	joseph.qi@linux.alibaba.com
+Cc: ocfs2-devel@lists.linux.dev,
+	linux-kernel@vger.kernel.org,
+	starzhangzsd@gmail.com,
+	Chi Zhiling <chizhiling@kylinos.cn>,
+	Shida Zhang <zhangshida@kylinos.cn>
+Subject: [PATCH] ocfs2: fix unexpected zeroing of virtual disk
+Date: Thu, 15 Aug 2024 17:21:41 +0800
+Message-Id: <20240815092141.1223238-1-chizhiling@163.com>
+X-Mailer: git-send-email 2.27.0
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
 Content-Transfer-Encoding: 8bit
-In-Reply-To: <CAK-6q+hN8ZRAHc7aS7C_RO4pEGN1t3eA_vDChsSgsQOcJEU4vg@mail.gmail.com>
+X-CM-TRANSID:_____wD3v8_FyL1mrKteCQ--.26237S2
+X-Coremail-Antispam: 1Uf129KBjvJXoW7KryrAF1rJr1kurWfJF1kZrb_yoW8KFW3pr
+	WUJw1UGr48Jr1UZr1Utr13Jr1UJr1DA3WUJr15Jr4xJwn8JF10yw1UJF1UJFWUJ34DJr4U
+	Xr48JryUt345JaUanT9S1TB71UUUUU7qnTZGkaVYY2UrUUUUjbIjqfuFe4nvWSU5nxnvy2
+	9KBjDUYxBIdaVFxhVjvjDU0xZFpf9x07jYdgAUUUUU=
+X-CM-SenderInfo: hfkl6xxlol0wi6rwjhhfrp/1tbiTws8nWXAnaMwBAAAsK
 
-On Wed, Aug 14, 2024 at 04:47:28PM -0400, Alexander Aring wrote:
-> Hi,
-> 
-> On Wed, Aug 14, 2024 at 11:06 AM Greg KH <gregkh@linuxfoundation.org> wrote:
-> >
-> > On Wed, Aug 14, 2024 at 10:34:11AM -0400, Alexander Aring wrote:
-> > > This patch exports generic helpers like kset_release() and
-> > > kset_get_ownership() so users can use them in their own struct kobj_type
-> > > implementation instead of implementing their own functions that do the
-> > > same.
-> >
-> > Why is anyone needing these?  What raw kobjects require this type of
-> > stuff?
-> >
-> 
-> In this patch series I introduced kset_type_create_and_add() to have
-> the possibility to do the exact same what kset_create_and_add() is
-> doing, just setting a different "struct kobj_type", for the kset that
-> is created internally by kset_create_and_add(). I can't use
-> kset_create_and_add() as it always uses "kset_ktype", see [0].
-> 
-> I am doing that to have only a callback for ".child_ns_type" assigned
-> as it returns the "&net_ns_type_operations;" structure to tell
-> underneath everything is separated by net namespaces.
-> I don't want to change anything else so the "struct kobj_type" should
-> look like what kset_create_and_add() is doing. Therefore I am creating
-> the same structure as kset_create_and_add() is using, see [0]. The
-> "kobj_sysfs_ops" structure seems to be already accessible from
-> outside, just the two functions I am exporting in this patch are
-> missing. Or I implement it in the same way in the dlm/gfs2 codebase
-> (that is what nfs is currently doing, see [1]).
-> 
-> And then we are at the two users of those kobjects that are using
-> those functions, it's DLM and GFS2 as they used kset_create_and_add()
-> before and I just want to add the ".child_ns_type" callback. Other
-> users could be nfs [1] (for the release, get_ownership - I have no
-> idea).
+From: Chi Zhiling <chizhiling@kylinos.cn>
 
-Ah, makes much more sense, thanks.  And ick, network namespaces...
+In a guest virtual machine, we found that there is unexpected data
+zeroing problem detected occassionly:
 
-Anyway, feel free to take this through whatever tree the rest of the
-series needs to go through:
+XFS (vdb): Mounting V5 Filesystem
+XFS (vdb): Ending clean mount
+XFS (vdb): Metadata CRC error detected at xfs_refcountbt_read_verify+0x2c/0xf0, xfs_refcountbt block 0x200028
+XFS (vdb): Unmount and run xfs_repair
+XFS (vdb): First 128 bytes of corrupted metadata buffer:
+00000000e0cd2f5e: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
+00000000cafd57f5: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
+00000000d0298d7d: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
+00000000f0698484: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
+00000000adb789a7: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
+000000005292b878: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
+00000000885b4700: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
+00000000fd4b4df7: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
+XFS (vdb): metadata I/O error in "xfs_trans_read_buf_map" at daddr 0x200028 len 8 error 74
+XFS (vdb): Error -117 recovering leftover CoW allocations.
+XFS (vdb): xfs_do_force_shutdown(0x8) called from line 994 of file fs/xfs/xfs_mount.c.  Return address = 000000003a53523a
+XFS (vdb): Corruption of in-memory data detected.  Shutting down filesystem
+XFS (vdb): Please umount the filesystem and rectify the problem(s)
 
-Acked-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+It turns out that the root cause is from the physical host machine.
+More specifically, it is caused by the ocfs2.
+
+when the page_size is 64k, the block should advance by 16 each time
+instead of 1.
+This will lead to a wrong mapping from the page to the disk, which
+will zero some adjacent part of the disk.
+
+Suggested-by: Shida Zhang <zhangshida@kylinos.cn>
+Signed-off-by: Chi Zhiling <chizhiling@kylinos.cn>
+---
+ fs/ocfs2/aops.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+index d6c985cc6353..1fea43c33b6b 100644
+--- a/fs/ocfs2/aops.c
++++ b/fs/ocfs2/aops.c
+@@ -1187,7 +1187,7 @@ static int ocfs2_write_cluster(struct address_space *mapping,
+ 
+ 		/* This is the direct io target page. */
+ 		if (wc->w_pages[i] == NULL) {
+-			p_blkno++;
++			p_blkno += (1 << (PAGE_SHIFT - inode->i_sb->s_blocksize_bits));
+ 			continue;
+ 		}
+ 
+-- 
+2.27.0
+
