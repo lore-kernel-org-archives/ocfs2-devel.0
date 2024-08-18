@@ -1,51 +1,51 @@
-Received: from mail-il1-f197.google.com (mail-il1-f197.google.com [209.85.166.197])
+Received: from mail-io1-f71.google.com (mail-io1-f71.google.com [209.85.166.71])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id AEF4F38DE4
-	for <ocfs2-devel@lists.linux.dev>; Sun, 18 Aug 2024 17:06:26 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.166.197
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4AFCC12FB34
+	for <ocfs2-devel@lists.linux.dev>; Sun, 18 Aug 2024 17:06:27 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.166.71
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1724000788; cv=none; b=QTBIJ8lGRn8XBkhH++BQrSe3nrcXYX/roMaDV1btcZqb1y/fQSCcVHzABA5vyoxsaLXsHaIbQtswOznanbCRzo6r7i90018aKh5ex0ZsiaySU8rosPDZWDNGBEAj7E7waKk21RRjZFjVTiZo7pb1pNj5zk4tq3mC9gwnmsAeybg=
+	t=1724000788; cv=none; b=rAgVm5tFa3LNK6f6kxgpAS2FV2q+5WReCWdXiLpN1mn7n7p1fnVd3H0FuySPhWvmQDdv1WR1o5yij5lWhG6RrL2rFRk4DOc1IhrLaC6DpqoQmgiarvfkeujbjDfcrHrblkVkOk6gR8HnE9jqk8IJhvAdI1piByls8xyUnrrfAFc=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
 	s=arc-20240116; t=1724000788; c=relaxed/simple;
-	bh=iJwakPphHPYHwzrkAzslGWS96UEBbdLTT8XCbzX0Bgg=;
-	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=eYGQweIAxRe5rokZjgK5ykyZ1dKBZqvbgKt+bQU/B3JLS/nT6HZMvzBlZGtGh+Cro3tdIsCD4k0czymDVdrdS24fYNDznQAUzI7bW1p7M5hXlxIkX/BfOvJCJg1AEAoowI4XiMPhxuw7C+pIg7Kk8Bwe9DCo9em908eSGQls0aI=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.166.197
+	bh=7uihQaIe1v3SpARYJseHEKh6z9iSbqvBveQqHa7kFYk=;
+	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=oUt20OBlK9osgkpXcI6/yAuHgL9fTto2wN3+W3jA8PjUTvWSxi4G+9Wlmzn8cOqWJ52JQ1spXKcC37yy9SJ50yYRS8c1Zi+Yn1NfXAbuQ3S8SU15GpUccPRxV7VLTIW2rhN4sXGkrvPKAimObqolqmLOqHvEUFuXrMOix/hTvUE=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.166.71
 Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
-Received: by mail-il1-f197.google.com with SMTP id e9e14a558f8ab-39d2ced7e8eso23908565ab.0
-        for <ocfs2-devel@lists.linux.dev>; Sun, 18 Aug 2024 10:06:26 -0700 (PDT)
+Received: by mail-io1-f71.google.com with SMTP id ca18e2360f4ac-81f8c780fe7so353874439f.1
+        for <ocfs2-devel@lists.linux.dev>; Sun, 18 Aug 2024 10:06:27 -0700 (PDT)
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20230601; t=1724000786; x=1724605586;
         h=to:from:subject:message-id:date:mime-version:x-gm-message-state
          :from:to:cc:subject:date:message-id:reply-to;
-        bh=F6k5L3RJUA8Atp69XBz/9SLJnWddH1C7Vqe9r/sNXeY=;
-        b=QvDDNzRqpM7f9InrRuKseSDGCQz8hbuU4FUrV8gUfFPA+P2SjsDKVdRycyuPCD0Kri
-         AHbpS+wzmYnZQD244e6gaAh3O5XWJGGBGi9in/m+HRLGBsT3GYiLKWfDsPu3ggczcsfE
-         mlc0zugTzlToun7IZYln9q8By50L1zTH2zI3HzJXL5c04S8BKjz0W6OeT1MYzmSzqIVB
-         CrGUAoXLLGOFKBae+ASCDp9QLDoke65wjMy1DfOh4JjffjPeWWY7ys5DAgBmyTpfTmKp
-         bdOeSHF+SGv5f6PBWhc+UxhIfLAJAkZDZXtytjf656fSsVPZAuCVQUs4oF2i/eC24XTl
-         uFJQ==
-X-Forwarded-Encrypted: i=1; AJvYcCVEuNbVCjOlJgLhQa2+wZz+qTJ57n6/jXTEtY1zpnZpjciLgpyTxMPKC/wXZsXNhQDigBL77cwT1IgMYLMV2Y0OY18zAuet1fzzaCc=
-X-Gm-Message-State: AOJu0YzJqdLpOkds/eVT3TIbxL3xSrEa6KDbUDk83TzapzPRXCcH/jyu
-	jnInMxjClSV4uTGyPePuQR4lqhCwCC3F97OQxjJDeYCKSRrbHak9sE+CtcYa2YFkjy8GOTWtxR2
-	TNSdMqtqDg8WceW3EapRCiF5us7YPZEazgfZ3Dwu6VVHMCl9g2bx4Cqc=
-X-Google-Smtp-Source: AGHT+IFCVtinIXSFaARiQ+T5c4yR9LLMwgkMI3RSwgQyYOj9D8ixgrnxGtvtvx7V/VPBBt7kC2D/ojqEjvZLtRsHTUbWOXSmiKhe
+        bh=lVs+Y106R9IQp9A6uG6TsFq3/HHb4uB6f0rcaCLdZuI=;
+        b=GKvoYMfPfoVS9p+ROa2exQGFpQGBrNp/hOG0HrLZ6GbXUORuX+8Ryrv5Ewf6kw9Eyh
+         4NjxL9FBm4B4bslemwLLrMlte7FycCdHIpKbb4PsjECbZ2T+2HI6DwuAlMQtVWghVHW6
+         FQ6S8wGkMva/2rXdhV470jJE6nwWLJ0rIGpE32S6A0avs8bh6dElsmhts0KyiK/MtDM4
+         m738yQ5PglC3FV+zaDAeWG19L4K/hOGWjYyLzhhgtQx1PHyGJu7lAxFjvuVI3WC67ckj
+         dwVYa5K40vXMRujE8Pivhu8dFUDKEc0I9qn/+wnFg3Y8nSoggozZj7LzeFq7LLLaoa4v
+         80uA==
+X-Forwarded-Encrypted: i=1; AJvYcCWFLoDNHMxwbaA5naWmo13gQ3AIlzc45sLxIE97e6hAh6yE+jvsjVpGCZaDXjWNC/tIbECY+yssulTzdXPRZnwaUkFpWBEWNGBrSTc=
+X-Gm-Message-State: AOJu0Yz9v7FEBxaFlklf1qpcg+T0m2OWO8RIRArK6pchJ5KcuGjsQyJM
+	sULkGrVpvRCEDGKhP0TrgjmfcrS7Lq1S8+040Hp1p1lILyvebHOPXnv0sEObNbTUkYD53NXR4W6
+	zoxueOvjleb5eEQLd/XtZJ0eXrBaKBiZLwUB+iYiD2vRAQPS2FUInvtE=
+X-Google-Smtp-Source: AGHT+IGFxLUqEwkzkWLa6Apb7vm5HQFV8SnbEj8QmO9Oli1y7ktbggvOoAEAKr2TOeW5+aLPTlVzsFVGhdHF+fqO9tA0X81SLjLC
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-X-Received: by 2002:a05:6e02:1c04:b0:39d:1a4c:b853 with SMTP id
- e9e14a558f8ab-39d26d9bbe5mr7546375ab.6.1724000785777; Sun, 18 Aug 2024
- 10:06:25 -0700 (PDT)
-Date: Sun, 18 Aug 2024 10:06:25 -0700
+X-Received: by 2002:a05:6602:6c03:b0:81f:8d10:6f00 with SMTP id
+ ca18e2360f4ac-824f269c430mr33999439f.2.1724000786264; Sun, 18 Aug 2024
+ 10:06:26 -0700 (PDT)
+Date: Sun, 18 Aug 2024 10:06:26 -0700
 X-Google-Appengine-App-Id: s~syzkaller
 X-Google-Appengine-App-Id-Alias: syzkaller
-Message-ID: <0000000000006dd465061ff836c9@google.com>
-Subject: [syzbot] [ocfs2?] kernel BUG in ocfs2_set_new_buffer_uptodate
-From: syzbot <syzbot+453873f1588c2d75b447@syzkaller.appspotmail.com>
+Message-ID: <0000000000007541d9061ff83615@google.com>
+Subject: [syzbot] [ocfs2?] WARNING: bad unlock balance in ocfs2_read_blocks
+From: syzbot <syzbot+ab134185af9ef88dfed5@syzkaller.appspotmail.com>
 To: jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
 	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
 	syzkaller-bugs@googlegroups.com
@@ -57,76 +57,76 @@ syzbot found the following issue on:
 
 HEAD commit:    c3f2d783a459 Merge tag 'mm-hotfixes-stable-2024-08-17-19-3..
 git tree:       upstream
-console output: https://syzkaller.appspot.com/x/log.txt?x=1530ec05980000
+console output: https://syzkaller.appspot.com/x/log.txt?x=102f82dd980000
 kernel config:  https://syzkaller.appspot.com/x/.config?x=7229118d88b4a71b
-dashboard link: https://syzkaller.appspot.com/bug?extid=453873f1588c2d75b447
+dashboard link: https://syzkaller.appspot.com/bug?extid=ab134185af9ef88dfed5
 compiler:       Debian clang version 15.0.6, GNU ld (GNU Binutils for Debian) 2.40
-syz repro:      https://syzkaller.appspot.com/x/repro.syz?x=158a2f5d980000
-C reproducer:   https://syzkaller.appspot.com/x/repro.c?x=11543be5980000
+syz repro:      https://syzkaller.appspot.com/x/repro.syz?x=11a0ec05980000
+C reproducer:   https://syzkaller.appspot.com/x/repro.c?x=13ac3093980000
 
 Downloadable assets:
 disk image (non-bootable): https://storage.googleapis.com/syzbot-assets/7bc7510fe41f/non_bootable_disk-c3f2d783.raw.xz
 vmlinux: https://storage.googleapis.com/syzbot-assets/4d927f7c3cfd/vmlinux-c3f2d783.xz
 kernel image: https://storage.googleapis.com/syzbot-assets/ea54bdfad24b/bzImage-c3f2d783.xz
-mounted in repro: https://storage.googleapis.com/syzbot-assets/fe8fff7766d6/mount_0.gz
+mounted in repro #1: https://storage.googleapis.com/syzbot-assets/f0e7bccc5087/mount_0.gz
+mounted in repro #2: https://storage.googleapis.com/syzbot-assets/5861bd127de9/mount_1.gz
 
 IMPORTANT: if you fix the issue, please add the following tag to the commit:
-Reported-by: syzbot+453873f1588c2d75b447@syzkaller.appspotmail.com
+Reported-by: syzbot+ab134185af9ef88dfed5@syzkaller.appspotmail.com
 
-(syz-executor245,5108,0):ocfs2_verify_group_and_input:428 ERROR: add a group which is in the current volume.
-(syz-executor245,5108,0):ocfs2_group_add:511 ERROR: status = -22
-------------[ cut here ]------------
-kernel BUG at fs/ocfs2/uptodate.c:509!
-Oops: invalid opcode: 0000 [#1] PREEMPT SMP KASAN NOPTI
-CPU: 0 UID: 0 PID: 5108 Comm: syz-executor245 Not tainted 6.11.0-rc3-syzkaller-00338-gc3f2d783a459 #0
+loop0: detected capacity change from 0 to 9061
+(syz-executor268,5095,0):ocfs2_read_blocks:240 ERROR: status = -12
+=====================================
+WARNING: bad unlock balance detected!
+6.11.0-rc3-syzkaller-00338-gc3f2d783a459 #0 Not tainted
+-------------------------------------
+syz-executor268/5095 is trying to release lock (&oi->ip_io_mutex) at:
+[<ffffffff837f37f6>] ocfs2_read_blocks+0x11c6/0x1620 fs/ocfs2/buffer_head_io.c:394
+but there are no more locks to release!
+
+other info that might help us debug this:
+1 lock held by syz-executor268/5095:
+ #0: ffff8880207680e0 (&type->s_umount_key#43/1){+.+.}-{3:3}, at: alloc_super+0x221/0x9d0 fs/super.c:344
+
+stack backtrace:
+CPU: 0 UID: 0 PID: 5095 Comm: syz-executor268 Not tainted 6.11.0-rc3-syzkaller-00338-gc3f2d783a459 #0
 Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.16.3-debian-1.16.3-2~bpo12+1 04/01/2014
-RIP: 0010:ocfs2_set_new_buffer_uptodate+0x145/0x160 fs/ocfs2/uptodate.c:509
-Code: 03 42 80 3c 20 00 74 08 48 89 df e8 d5 8a 65 fe 4c 8b 1b 4c 89 ff 5b 41 5c 41 5d 41 5e 41 5f 41 ff e3 cc 90 e8 ec 48 fe fd 90 <0f> 0b e8 e4 48 fe fd 90 0f 0b e8 dc 48 fe fd 90 0f 0b e8 d4 48 fe
-RSP: 0018:ffffc90002cefa50 EFLAGS: 00010293
-RAX: ffffffff83954204 RBX: 0000000000000001 RCX: ffff88801c0d2440
-RDX: 0000000000000000 RSI: 0000000000000001 RDI: 0000000000000000
-RBP: ffffc90002cefcf0 R08: ffffffff839540ee R09: 1ffffffff202fdd5
-R10: dffffc0000000000 R11: fffffbfff202fdd6 R12: dffffc0000000000
-R13: 1ffff9200059df68 R14: ffff88803be1b0e8 R15: ffff88803be632f0
-FS:  000055555a5c8480(0000) GS:ffff888020800000(0000) knlGS:0000000000000000
-CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-CR2: 00000000200000d0 CR3: 00000000190b6000 CR4: 0000000000350ef0
-DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
-DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
 Call Trace:
  <TASK>
- ocfs2_group_add+0x39f/0x15a0 fs/ocfs2/resize.c:507
- ocfs2_ioctl+0x661/0x7e0 fs/ocfs2/ioctl.c:891
- vfs_ioctl fs/ioctl.c:51 [inline]
- __do_sys_ioctl fs/ioctl.c:907 [inline]
- __se_sys_ioctl+0xfc/0x170 fs/ioctl.c:893
+ __dump_stack lib/dump_stack.c:93 [inline]
+ dump_stack_lvl+0x241/0x360 lib/dump_stack.c:119
+ print_unlock_imbalance_bug+0x256/0x2c0 kernel/locking/lockdep.c:5199
+ __lock_release kernel/locking/lockdep.c:5436 [inline]
+ lock_release+0x5cb/0xa30 kernel/locking/lockdep.c:5780
+ __mutex_unlock_slowpath+0xe2/0x750 kernel/locking/mutex.c:912
+ ocfs2_read_blocks+0x11c6/0x1620 fs/ocfs2/buffer_head_io.c:394
+ ocfs2_map_slot_buffers fs/ocfs2/slot_map.c:385 [inline]
+ ocfs2_init_slot_info+0xb35/0x13d0 fs/ocfs2/slot_map.c:424
+ ocfs2_initialize_super fs/ocfs2/super.c:2274 [inline]
+ ocfs2_fill_super+0x31b7/0x5880 fs/ocfs2/super.c:994
+ mount_bdev+0x20a/0x2d0 fs/super.c:1679
+ legacy_get_tree+0xee/0x190 fs/fs_context.c:662
+ vfs_get_tree+0x90/0x2a0 fs/super.c:1800
+ do_new_mount+0x2be/0xb40 fs/namespace.c:3472
+ do_mount fs/namespace.c:3812 [inline]
+ __do_sys_mount fs/namespace.c:4020 [inline]
+ __se_sys_mount+0x2d6/0x3c0 fs/namespace.c:3997
  do_syscall_x64 arch/x86/entry/common.c:52 [inline]
  do_syscall_64+0xf3/0x230 arch/x86/entry/common.c:83
  entry_SYSCALL_64_after_hwframe+0x77/0x7f
-RIP: 0033:0x7f8b013a2259
-Code: 28 00 00 00 75 05 48 83 c4 28 c3 e8 f1 17 00 00 90 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 b8 ff ff ff f7 d8 64 89 01 48
-RSP: 002b:00007ffe3e81d468 EFLAGS: 00000246 ORIG_RAX: 0000000000000010
-RAX: ffffffffffffffda RBX: 0000000000000000 RCX: 00007f8b013a2259
-RDX: 00000000200000c0 RSI: 0000000040186f02 RDI: 0000000000000005
-RBP: 0000000000000000 R08: 0000000000000000 R09: 00007ffe3e81d4a0
-R10: 00007ffe3e81d470 R11: 0000000000000246 R12: 00007ffe3e81d4a0
-R13: 00007ffe3e81d728 R14: 431bde82d7b634db R15: 00007f8b013eb03b
+RIP: 0033:0x7f0669b38cea
+Code: d8 64 89 02 48 c7 c0 ff ff ff ff eb a6 e8 5e 04 00 00 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 40 00 49 89 ca b8 a5 00 00 00 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 b0 ff ff ff f7 d8 64 89 01 48
+RSP: 002b:00007f0669aed048 EFLAGS: 00000282 ORIG_RAX: 00000000000000a5
+RAX: ffffffffffffffda RBX: 0000000020000100 RCX: 00007f0669b38cea
+RDX: 0000000020000100 RSI: 00000000200044c0 RDI: 00007f0669aed0a0
+RBP: 00000000200044c0 R08: 00007f0669aed0e0 R09: 00000000ffffffe8
+R10: 0000000000000000 R11: 0000000000000282 R12: 00007f0669aed0e0
+R13: 000000000000447d R14: 0000000000000000 R15: 0000000020002340
  </TASK>
-Modules linked in:
----[ end trace 0000000000000000 ]---
-RIP: 0010:ocfs2_set_new_buffer_uptodate+0x145/0x160 fs/ocfs2/uptodate.c:509
-Code: 03 42 80 3c 20 00 74 08 48 89 df e8 d5 8a 65 fe 4c 8b 1b 4c 89 ff 5b 41 5c 41 5d 41 5e 41 5f 41 ff e3 cc 90 e8 ec 48 fe fd 90 <0f> 0b e8 e4 48 fe fd 90 0f 0b e8 dc 48 fe fd 90 0f 0b e8 d4 48 fe
-RSP: 0018:ffffc90002cefa50 EFLAGS: 00010293
-RAX: ffffffff83954204 RBX: 0000000000000001 RCX: ffff88801c0d2440
-RDX: 0000000000000000 RSI: 0000000000000001 RDI: 0000000000000000
-RBP: ffffc90002cefcf0 R08: ffffffff839540ee R09: 1ffffffff202fdd5
-R10: dffffc0000000000 R11: fffffbfff202fdd6 R12: dffffc0000000000
-R13: 1ffff9200059df68 R14: ffff88803be1b0e8 R15: ffff88803be632f0
-FS:  000055555a5c8480(0000) GS:ffff888020800000(0000) knlGS:0000000000000000
-CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-CR2: 00000000200000d0 CR3: 00000000190b6000 CR4: 0000000000350ef0
-DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
-DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+(syz-executor268,5095,0):ocfs2_map_slot_buffers:388 ERROR: status = -12
+(syz-executor268,5095,0):ocfs2_init_slot_info:426 ERROR: status = -12
+(syz-executor268,5095,0):ocfs2_initialize_super:2276 ERROR: status = -12
+(syz-executor268,5095,0):ocfs2_fill_super:1178 ERROR: status = -12
 
 
 ---
