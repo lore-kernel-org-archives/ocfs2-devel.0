@@ -1,65 +1,64 @@
-Received: from mail-pf1-f171.google.com (mail-pf1-f171.google.com [209.85.210.171])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from out162-62-57-49.mail.qq.com (out162-62-57-49.mail.qq.com [162.62.57.49])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6520A16B3A3
-	for <ocfs2-devel@lists.linux.dev>; Mon, 19 Aug 2024 13:11:28 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.210.171
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 93FDE154C19
+	for <ocfs2-devel@lists.linux.dev>; Mon, 19 Aug 2024 13:37:39 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=162.62.57.49
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1724073089; cv=none; b=a407cTHE+TY9bbNpx7lgbqyjyicOZE8r1GLMloLTeZ/26eFTzlJvtuAZa1gS6DH/x3iSgdVjvk2MbvOEuJYdgapNoAj/pBDvg3HlDYbxYJUIEpxKo/KX/yHtvyd6OdFqlyfns3QIhzr0R0wig910j6VkMBY1fhl27lC6SGB7wBc=
+	t=1724074663; cv=none; b=MX51F8DqG/EkpsKcv7gBYbITKTeZ6MBwbxpal42fOEMlkRucbNTNDkk5JkT/lVqQ80G680TRib17H580ySHCP867cnI0v+5/NW5BnFW8aK0p/Y8TZ8PrN/D8+PUHz3d3Oe+a5/PgxYrsHz0CWWzjK8PLAeys+ln19+MDv7b9Urg=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1724073089; c=relaxed/simple;
-	bh=suzaPYG/weqSOyhLJ0L0JtHHz91FJ7ZXmaT1QE7YYnk=;
-	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version; b=TZWwsazyfikljymqj0tLFxq88cynSxDHBm7/j0PO1igQUpUVBu2cLJuklfLg5FVBIPPEyWH45kD1pqGJ9AA4NUQxjqZSZoKVpnZRnZZYlp49lUIezWWkktk8c8MH2gPGuYKcZKmq7h/I6pIOVAOGMPFax97pgUCf7AEipmQExvg=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=lNLb4Wkx; arc=none smtp.client-ip=209.85.210.171
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	s=arc-20240116; t=1724074663; c=relaxed/simple;
+	bh=zqQnjPLRzcXO7/t3xlo9e0xwX8HTbgYJiHZTVnSB7PQ=;
+	h=Message-ID:From:To:Cc:Subject:Date:In-Reply-To:References:
+	 MIME-Version; b=XJpSDaL96rCife1oaAdlQ5e0C4t01lBbPFEpXfANemVCUx9/OWIskc42l0e3DhNY+BBMDyLdJ8NS+m4PTdXbIB+1bq9VGWr4vyURoEKi0C4+M4HUl5VuU+Z6g6asoJhPv7RHa/gQxtOSOBlawR6o8DUpyp8reepeI9jIUlSI0Rs=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=qq.com; spf=pass smtp.mailfrom=qq.com; dkim=pass (1024-bit key) header.d=qq.com header.i=@qq.com header.b=GPz4bWYY; arc=none smtp.client-ip=162.62.57.49
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=qq.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=qq.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="lNLb4Wkx"
-Received: by mail-pf1-f171.google.com with SMTP id d2e1a72fcca58-713eeb4e4a9so788120b3a.0
-        for <ocfs2-devel@lists.linux.dev>; Mon, 19 Aug 2024 06:11:28 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1724073087; x=1724677887; darn=lists.linux.dev;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:from:to:cc:subject:date:message-id:reply-to;
-        bh=ZBV7TCWuwtomXpd5sanZarCcoUUz2ISjrDZTysH76E8=;
-        b=lNLb4WkxOUsTDY9j0F6vcPeB4+/LF270bZ+1bNck3cXsSxHBI36mDSCYaLg3trRXCS
-         1gmzjbIayaqaQyGrWSDWI+nE1CVNHFH0oSfvrd5i6Rm9xfPe5m6teRzVxEleuGkUY+BO
-         VWYOnYhYWrbTo9gE0jgvYKbOQrXqb4X+eCjO31biiw0Nso3WXtRIm85Ndsi4CB1pejl0
-         c5g+CVNRlC21LU38LzffOBXuMVsi/jphx+0ewqdkzJ8ealqw7X4L/9ota0fCSqonXrV7
-         gkWgDv+Am/TCVZtbyYJwlpeWlb8IBAnDeek/Ln80zxY0bNxubgai0SRGMPqCRv/6nKxL
-         u+6A==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1724073087; x=1724677887;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:x-gm-message-state:from:to:cc:subject:date:message-id
-         :reply-to;
-        bh=ZBV7TCWuwtomXpd5sanZarCcoUUz2ISjrDZTysH76E8=;
-        b=LjxnwwN5epzaxZPIseV2gGr2Yv+JXDd0ogDdSQrvQbo+8XFmuCEDqhjjRm4UyY1BF7
-         P92cXo9MEaQDgFfzfMQS3S38k74TINMwhQETIgETaWCvloCeNqqQTPyZxXLlKaf5Ep8l
-         dDqkg6dCxXmcDGn2UGi5UNB9A5pki2/cCL9s8uQ1DkUfj5XnbufVJAWL8Uddx0c9gUmS
-         aJP7tRWPFOU0YLzNioupJUC7JMmk5zfkGg8mXSLGAf7RGd+DYmYKK6ubKnEYzk8CpGH/
-         BBpDCK4o9SSdJ8yoTo4vLzX8raOwPUNJ0GuRZ+jvK9Py8Gmxqj9vdsjAiN5MOZQtKFwg
-         HhDg==
-X-Gm-Message-State: AOJu0YwozNuLfq53ZF6pDoz+BrfUSvn+Cd11iou5pzjNCDMSNauCWqYA
-	PKclO3obO9aqVBGQiGxf3Oz0hZ/mGPStuFGOvxBNTDOP87W3U03qLLcaq+FP
-X-Google-Smtp-Source: AGHT+IEXBbKX/k0hjnYmgZLAkYCHe9VDb0i/5hX632wKof0WnfLcnszEDG1yJnkAgEshkVWIPLCDfQ==
-X-Received: by 2002:a05:6a00:10c3:b0:704:1c78:4f8a with SMTP id d2e1a72fcca58-713d7ce86aemr9433356b3a.21.1724073086986;
-        Mon, 19 Aug 2024 06:11:26 -0700 (PDT)
-Received: from localhost ([114.242.33.243])
-        by smtp.gmail.com with ESMTPSA id d2e1a72fcca58-7127af2b942sm6571518b3a.183.2024.08.19.06.11.25
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Mon, 19 Aug 2024 06:11:26 -0700 (PDT)
-From: Julian Sun <sunjunchao2870@gmail.com>
-To: ocfs2-devel@lists.linux.dev
-Cc: joseph.qi@linux.alibaba.com,
+	dkim=pass (1024-bit key) header.d=qq.com header.i=@qq.com header.b="GPz4bWYY"
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=qq.com; s=s201512;
+	t=1724074649; bh=2wMqJMCOY7StTOp6eQQXkHi+RNUVnlidZ7g7RNmnJWo=;
+	h=From:To:Cc:Subject:Date:In-Reply-To:References;
+	b=GPz4bWYY+f0qBkYyom5koO5Xl5QsCAz3M0PJx3UVWRbP4eeiZhMNzLQJ6zqSi8m2J
+	 Et4s39tTyLlBSw6/D1NOP/8uaX6SXXJIMgH9t8LyDWHBl+8W0ZyxrPNYuR5dS4BhkG
+	 5NG8p0By0rGQ/uX7Wq52KWPdw4COQT7zmBWBgGY8=
+Received: from pek-lxu-l1.wrs.com ([111.198.225.4])
+	by newxmesmtplogicsvrszb9-1.qq.com (NewEsmtp) with SMTP
+	id 906174C2; Mon, 19 Aug 2024 21:36:06 +0800
+X-QQ-mid: xmsmtpt1724074566tidpeyyso
+Message-ID: <tencent_879750E9E2EF32CD287A2E6C9C2C856F1C0A@qq.com>
+X-QQ-XMAILINFO: NQR8mRxMnur9PJ3oCcHFUsB6EnKTTSyPOh3P8Ccawdoe1YxxEcwTNkKGAdMYC5
+	 v9KZzQ/WJCM6J1YXHlFlHoFwYOuXepPxbZF7TC6T5Dhd+qgepvkmA+WO31Nnbh1szb+clVRlGjaY
+	 CZD/IjrVNJl32qKun7+jawezUNkS4a0ZoLl4W4Zu8XQyHoAf2j7h8vJfQR5kT+ygiVOxcwyHb2+u
+	 U532pQatigC9vGtx4QIBJNnu6hxqV2F+IRgpjdrDHSSy1rxS1k8nbHiX524jCYu+zzaykpwpVF1e
+	 kM1TxYorQH5zEhqVcRr6/h1+jxz2HUMQM7jWaSI7PnoPMwFVLW/WsEIs3XAxieQJm2Pi1GVuNo1G
+	 o1/WlGPa1A9PqcX4GIKBCJ1GXBvMZuz97ALTeP0FCL0owa6raxdRFUgGTtkXp6MJ5n3l1zgS0XI5
+	 F1bWILXkJpKO4TCaCOR/LOH+/0baDOpFtY9gs7AXzzocn76as1XdO8n3zlcFqrEI9bNz55ahAZ7r
+	 lBibt37HgTfhjsSWxH5rLMe267XcCmMGKRdXvCvewwZZzzT5Zmi3b0sgyDzeShMpGMAuUqeyTT5u
+	 T2vHUDlLCCGPsuQ+EkR40mBvgWBONJw5DwdLAH2l7DEdmaOJintUm0Ya98ghqH9hNWdJY0Fyuy0G
+	 7zZsbw9XDZnNseBhgIDmxXW5JAfuno+oSZ6rgKllohrCPd0O0eBnFR4GcnN2KPZeYy5rBtGQpY12
+	 m0Wzffqp2XEHJe3hLgg2iEWMKgf4WMfZdkw3oRxLvDiKFZj4lWYifxii8j3FmpwM92HF5tEAhSha
+	 ueuNQOgrm7FfGl9eT+PDctpvSGM9wa9sLYtpo87Fhl4FjU+liKU4gEZX/XzdA60QuxIvQ5LdBGXu
+	 agWVGcU6fkjIc/EaF8GuQcgc7mJNTx6HWu2+PhmBAMKA95IVIWI2LHFON2S4OG5vwiTW8371U2Ds
+	 4kBnmFvQY=
+X-QQ-XMRINFO: Mp0Kj//9VHAxr69bL5MkOOs=
+From: Edward Adam Davis <eadavis@qq.com>
+To: syzbot+05b9b39d8bdfe1a0861f@syzkaller.appspotmail.com
+Cc: jack@suse.com,
 	jlbec@evilplan.org,
+	joseph.qi@linux.alibaba.com,
+	linux-ext4@vger.kernel.org,
+	linux-kernel@vger.kernel.org,
 	mark@fasheh.com,
-	Julian Sun <sunjunchao2870@gmail.com>,
-	syzbot+05b9b39d8bdfe1a0861f@syzkaller.appspotmail.com
-Subject: [PATCH] ocfs2: fix null-ptr-deref when journal load failed.
-Date: Mon, 19 Aug 2024 21:11:20 +0800
-Message-Id: <20240819131120.746077-1-sunjunchao2870@gmail.com>
-X-Mailer: git-send-email 2.39.2
+	ocfs2-devel@lists.linux.dev,
+	syzkaller-bugs@googlegroups.com,
+	tytso@mit.edu
+Subject: [PATCH] ocfs2: Fix null-ptr-deref in jbd2_journal_update_sb_log_tail
+Date: Mon, 19 Aug 2024 21:36:06 +0800
+X-OQ-MSGID: <20240819133605.3256941-2-eadavis@qq.com>
+X-Mailer: git-send-email 2.46.0
+In-Reply-To: <000000000000742b9d062005fc1c@google.com>
+References: <000000000000742b9d062005fc1c@google.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -68,93 +67,36 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-During the mounting process, if the jbd2_journal_load()
-call fails, it will internally invoke journal_reset()
-->journal_fail_superblock(), which sets journal->j_sb_buffer
-to NULL. Subsequently, ocfs2_journal_shutdown() calls
-jbd2_journal_flush()->jbd2_cleanup_journal_tail()->
-__jbd2_update_log_tail()->jbd2_journal_update_sb_log_tail()
-->lock_buffer(journal->j_sb_buffer), resulting in a
-null-pointer dereference error.
+Journal too short will cause ocfs2_check_volume failed, and will set
+journal->j_sb_buffer to NULL in journal_fail_superblock before running
+journal shutdown.
 
-To resolve this issue, a new state OCFS2_JOURNAL_INITED
-has been introduced to replace the previous functionality
-of OCFS2_JOURNAL_LOADED, the original OCFS2_JOURNAL_LOADED
-is only set when ocfs2_journal_load() is successful.
-The jbd2_journal_flush() function is allowed to be called
-only when this flag is set. The logic here is that if the
-journal has even not been successfully loaded, there is
-no need to flush the journal.
-
-Link: https://syzkaller.appspot.com/bug?extid=05b9b39d8bdfe1a0861f
-Reported-by: syzbot+05b9b39d8bdfe1a0861f@syzkaller.appspotmail.com
-Signed-off-by: Julian Sun <sunjunchao2870@gmail.com>
+Reported-and-tested-by: syzbot+05b9b39d8bdfe1a0861f@syzkaller.appspotmail.com
+Closes: https://syzkaller.appspot.com/bug?extid=05b9b39d8bdfe1a0861f
+Signed-off-by: Edward Adam Davis <eadavis@qq.com>
 ---
- fs/ocfs2/journal.c | 9 ++++++---
- fs/ocfs2/journal.h | 1 +
- 2 files changed, 7 insertions(+), 3 deletions(-)
+ fs/ocfs2/journal.c | 8 +++++---
+ 1 file changed, 5 insertions(+), 3 deletions(-)
 
 diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
-index 530fba34f6d3..6f837296048f 100644
+index 530fba34f6d3..25821077b855 100644
 --- a/fs/ocfs2/journal.c
 +++ b/fs/ocfs2/journal.c
-@@ -968,7 +968,7 @@ int ocfs2_journal_init(struct ocfs2_super *osb, int *dirty)
- 
- 	ocfs2_set_journal_params(osb);
- 
--	journal->j_state = OCFS2_JOURNAL_LOADED;
-+	journal->j_state = OCFS2_JOURNAL_INITED;
- 
- 	status = 0;
- done:
-@@ -1039,6 +1039,7 @@ void ocfs2_journal_shutdown(struct ocfs2_super *osb)
- 	int status = 0;
- 	struct inode *inode = NULL;
- 	int num_running_trans = 0;
-+	enum ocfs2_journal_state state;
- 
- 	BUG_ON(!osb);
- 
-@@ -1047,8 +1048,9 @@ void ocfs2_journal_shutdown(struct ocfs2_super *osb)
- 		goto done;
- 
- 	inode = journal->j_inode;
-+	state = journal->j_state;
- 
--	if (journal->j_state != OCFS2_JOURNAL_LOADED)
-+	if (state != OCFS2_JOURNAL_INITED)
- 		goto done;
- 
- 	/* need to inc inode use count - jbd2_journal_destroy will iput. */
-@@ -1076,7 +1078,7 @@ void ocfs2_journal_shutdown(struct ocfs2_super *osb)
- 
+@@ -1077,9 +1077,11 @@ void ocfs2_journal_shutdown(struct ocfs2_super *osb)
  	BUG_ON(atomic_read(&(osb->journal->j_num_trans)) != 0);
  
--	if (ocfs2_mount_local(osb)) {
-+	if (ocfs2_mount_local(osb) && state == OCFS2_JOURNAL_LOADED) {
- 		jbd2_journal_lock_updates(journal->j_journal);
- 		status = jbd2_journal_flush(journal->j_journal, 0);
- 		jbd2_journal_unlock_updates(journal->j_journal);
-@@ -1174,6 +1176,7 @@ int ocfs2_journal_load(struct ocfs2_journal *journal, int local, int replayed)
- 		}
- 	} else
- 		osb->commit_task = NULL;
-+	journal->j_state = OCFS2_JOURNAL_LOADED;
- 
- done:
- 	return status;
-diff --git a/fs/ocfs2/journal.h b/fs/ocfs2/journal.h
-index e3c3a35dc5e0..a80f76a8fa0e 100644
---- a/fs/ocfs2/journal.h
-+++ b/fs/ocfs2/journal.h
-@@ -15,6 +15,7 @@
- 
- enum ocfs2_journal_state {
- 	OCFS2_JOURNAL_FREE = 0,
-+	OCFS2_JOURNAL_INITED,
- 	OCFS2_JOURNAL_LOADED,
- 	OCFS2_JOURNAL_IN_SHUTDOWN,
- };
+ 	if (ocfs2_mount_local(osb)) {
+-		jbd2_journal_lock_updates(journal->j_journal);
+-		status = jbd2_journal_flush(journal->j_journal, 0);
+-		jbd2_journal_unlock_updates(journal->j_journal);
++		if (journal->j_journal->j_sb_buffer) {
++			jbd2_journal_lock_updates(journal->j_journal);
++			status = jbd2_journal_flush(journal->j_journal, 0);
++			jbd2_journal_unlock_updates(journal->j_journal);
++		}
+ 		if (status < 0)
+ 			mlog_errno(status);
+ 	}
 -- 
-2.39.2
+2.43.0
 
