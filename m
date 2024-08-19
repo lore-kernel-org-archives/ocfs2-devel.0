@@ -1,151 +1,160 @@
-Received: from mail-io1-f69.google.com (mail-io1-f69.google.com [209.85.166.69])
+Received: from mail-pf1-f171.google.com (mail-pf1-f171.google.com [209.85.210.171])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 707AE158551
-	for <ocfs2-devel@lists.linux.dev>; Mon, 19 Aug 2024 09:32:23 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.166.69
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6520A16B3A3
+	for <ocfs2-devel@lists.linux.dev>; Mon, 19 Aug 2024 13:11:28 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.210.171
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1724059945; cv=none; b=P2rV5I/4U0uuoPKb09uv0sH3vbszE2aIgzHZF2jAQlIkDI6J5uL8aVPiwbxaCjf94oXLmZeBpIYFGstK+zeFRTXtvX65K25EWGqX8NJNdeqYudBO58ZcRnpPvtgKZmViB0YUCgl3G5N9tlEIKNy1/DfYcq0o09bTBmWSw4BzxmY=
+	t=1724073089; cv=none; b=a407cTHE+TY9bbNpx7lgbqyjyicOZE8r1GLMloLTeZ/26eFTzlJvtuAZa1gS6DH/x3iSgdVjvk2MbvOEuJYdgapNoAj/pBDvg3HlDYbxYJUIEpxKo/KX/yHtvyd6OdFqlyfns3QIhzr0R0wig910j6VkMBY1fhl27lC6SGB7wBc=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1724059945; c=relaxed/simple;
-	bh=5rMARzXfjykrfd6VRs6OIjWAzoKwx9rwjE22ch6ES3w=;
-	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=LU4eXPdbqBn+3h9ZQqICnChrDU8yOadZpDLJISc3glEtZgqvPU0IC929LhGTBaFLQ+dc87tlDVaBl4c5unqmdujDj5jjROZIufWocMCg7LlQX6Vb/CjiqDZtHONlRIeYMNL4BIDnuiuBZKxwjnb8n7DFdpGXXu74/frYnty0i50=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.166.69
-Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
-Received: by mail-io1-f69.google.com with SMTP id ca18e2360f4ac-824cae494e3so394266739f.1
-        for <ocfs2-devel@lists.linux.dev>; Mon, 19 Aug 2024 02:32:23 -0700 (PDT)
+	s=arc-20240116; t=1724073089; c=relaxed/simple;
+	bh=suzaPYG/weqSOyhLJ0L0JtHHz91FJ7ZXmaT1QE7YYnk=;
+	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version; b=TZWwsazyfikljymqj0tLFxq88cynSxDHBm7/j0PO1igQUpUVBu2cLJuklfLg5FVBIPPEyWH45kD1pqGJ9AA4NUQxjqZSZoKVpnZRnZZYlp49lUIezWWkktk8c8MH2gPGuYKcZKmq7h/I6pIOVAOGMPFax97pgUCf7AEipmQExvg=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=lNLb4Wkx; arc=none smtp.client-ip=209.85.210.171
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="lNLb4Wkx"
+Received: by mail-pf1-f171.google.com with SMTP id d2e1a72fcca58-713eeb4e4a9so788120b3a.0
+        for <ocfs2-devel@lists.linux.dev>; Mon, 19 Aug 2024 06:11:28 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20230601; t=1724073087; x=1724677887; darn=lists.linux.dev;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:from:to:cc:subject:date:message-id:reply-to;
+        bh=ZBV7TCWuwtomXpd5sanZarCcoUUz2ISjrDZTysH76E8=;
+        b=lNLb4WkxOUsTDY9j0F6vcPeB4+/LF270bZ+1bNck3cXsSxHBI36mDSCYaLg3trRXCS
+         1gmzjbIayaqaQyGrWSDWI+nE1CVNHFH0oSfvrd5i6Rm9xfPe5m6teRzVxEleuGkUY+BO
+         VWYOnYhYWrbTo9gE0jgvYKbOQrXqb4X+eCjO31biiw0Nso3WXtRIm85Ndsi4CB1pejl0
+         c5g+CVNRlC21LU38LzffOBXuMVsi/jphx+0ewqdkzJ8ealqw7X4L/9ota0fCSqonXrV7
+         gkWgDv+Am/TCVZtbyYJwlpeWlb8IBAnDeek/Ln80zxY0bNxubgai0SRGMPqCRv/6nKxL
+         u+6A==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1724059942; x=1724664742;
-        h=to:from:subject:message-id:date:mime-version:x-gm-message-state
-         :from:to:cc:subject:date:message-id:reply-to;
-        bh=31Ti/nVOY7JVVGXS7iHukqNPYzxM76JGPC6XDQTDHuY=;
-        b=hUb/QH03YuoWJBdYbuPWayGVZRJWttcynOg/Zd+H+i7voc7AJ29Ks3+vlA/Ohex5tI
-         Xd7mSR25bdqi9KteS3KXq2qPUFRPBY/30AeI+idK35gcSwPMqcmXc5ZUJjDf8r7cHzJb
-         CZIJLzdeML/k1gHrYshmShco6OIXqYnAQK/YiEXaJtzhHWP2mIbZ+2ZyOXEVihqm+3OB
-         2YVLuFWLxtoDh6Wg/3Dud8vduIyqTXiVFY19qi8n53GNvdY8jBYtEN8JhhjixJwc6D3b
-         RdJsTkCubLuK9VwtP9oH30PHTdkh8A8jcEXZUPy3B5RhLyvMShF/rioI2hEHdmu2pF05
-         YKRg==
-X-Forwarded-Encrypted: i=1; AJvYcCWeVqcXv+ASZ/Sc9yA3IlChqVOa8OguvWjwuQqiYkpZuoGBD9JfIBM5wiT3K9gimjZ6R51PhSFlGKEyd3IIggsbL8bwUL/qDxC5dxk=
-X-Gm-Message-State: AOJu0Yx7UAQ5jVybsT9cVznMFsPchQNFdZyY0BFv7JpC4YwSqVpck660
-	/3lNZzgHSyoAvXEop2M1t0esuaq9dsWyJprTFnG/S72Luwcc5PIVB4eIfD1cQN179XyEp9318Xv
-	NYpZxhv1j/Nm2Swko+XjOl9UgvSZ9gQ0JDFLiBUux04FRsdgm+W+zrRY=
-X-Google-Smtp-Source: AGHT+IF6qveUhN2bNVUNT25upCC6vqQ9wkR5DddErz2BaGezXnt0SC16TLAqfzkPEwvNmJUpTTVpZ5GjGO2r+Pd99XrDX74fqQFT
+        d=1e100.net; s=20230601; t=1724073087; x=1724677887;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:x-gm-message-state:from:to:cc:subject:date:message-id
+         :reply-to;
+        bh=ZBV7TCWuwtomXpd5sanZarCcoUUz2ISjrDZTysH76E8=;
+        b=LjxnwwN5epzaxZPIseV2gGr2Yv+JXDd0ogDdSQrvQbo+8XFmuCEDqhjjRm4UyY1BF7
+         P92cXo9MEaQDgFfzfMQS3S38k74TINMwhQETIgETaWCvloCeNqqQTPyZxXLlKaf5Ep8l
+         dDqkg6dCxXmcDGn2UGi5UNB9A5pki2/cCL9s8uQ1DkUfj5XnbufVJAWL8Uddx0c9gUmS
+         aJP7tRWPFOU0YLzNioupJUC7JMmk5zfkGg8mXSLGAf7RGd+DYmYKK6ubKnEYzk8CpGH/
+         BBpDCK4o9SSdJ8yoTo4vLzX8raOwPUNJ0GuRZ+jvK9Py8Gmxqj9vdsjAiN5MOZQtKFwg
+         HhDg==
+X-Gm-Message-State: AOJu0YwozNuLfq53ZF6pDoz+BrfUSvn+Cd11iou5pzjNCDMSNauCWqYA
+	PKclO3obO9aqVBGQiGxf3Oz0hZ/mGPStuFGOvxBNTDOP87W3U03qLLcaq+FP
+X-Google-Smtp-Source: AGHT+IEXBbKX/k0hjnYmgZLAkYCHe9VDb0i/5hX632wKof0WnfLcnszEDG1yJnkAgEshkVWIPLCDfQ==
+X-Received: by 2002:a05:6a00:10c3:b0:704:1c78:4f8a with SMTP id d2e1a72fcca58-713d7ce86aemr9433356b3a.21.1724073086986;
+        Mon, 19 Aug 2024 06:11:26 -0700 (PDT)
+Received: from localhost ([114.242.33.243])
+        by smtp.gmail.com with ESMTPSA id d2e1a72fcca58-7127af2b942sm6571518b3a.183.2024.08.19.06.11.25
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Mon, 19 Aug 2024 06:11:26 -0700 (PDT)
+From: Julian Sun <sunjunchao2870@gmail.com>
+To: ocfs2-devel@lists.linux.dev
+Cc: joseph.qi@linux.alibaba.com,
+	jlbec@evilplan.org,
+	mark@fasheh.com,
+	Julian Sun <sunjunchao2870@gmail.com>,
+	syzbot+05b9b39d8bdfe1a0861f@syzkaller.appspotmail.com
+Subject: [PATCH] ocfs2: fix null-ptr-deref when journal load failed.
+Date: Mon, 19 Aug 2024 21:11:20 +0800
+Message-Id: <20240819131120.746077-1-sunjunchao2870@gmail.com>
+X-Mailer: git-send-email 2.39.2
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-X-Received: by 2002:a05:6638:370f:b0:4b9:e5b4:67fd with SMTP id
- 8926c6da1cb9f-4cce15cdbd5mr540564173.1.1724059942654; Mon, 19 Aug 2024
- 02:32:22 -0700 (PDT)
-Date: Mon, 19 Aug 2024 02:32:22 -0700
-X-Google-Appengine-App-Id: s~syzkaller
-X-Google-Appengine-App-Id-Alias: syzkaller
-Message-ID: <000000000000742b9d062005fc1c@google.com>
-Subject: [syzbot] [ext4?] [ocfs2?] KASAN: null-ptr-deref Write in jbd2_journal_update_sb_log_tail
-From: syzbot <syzbot+05b9b39d8bdfe1a0861f@syzkaller.appspotmail.com>
-To: jack@suse.com, jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
-	linux-ext4@vger.kernel.org, linux-kernel@vger.kernel.org, mark@fasheh.com, 
-	ocfs2-devel@lists.linux.dev, syzkaller-bugs@googlegroups.com, tytso@mit.edu
-Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
 
-Hello,
+During the mounting process, if the jbd2_journal_load()
+call fails, it will internally invoke journal_reset()
+->journal_fail_superblock(), which sets journal->j_sb_buffer
+to NULL. Subsequently, ocfs2_journal_shutdown() calls
+jbd2_journal_flush()->jbd2_cleanup_journal_tail()->
+__jbd2_update_log_tail()->jbd2_journal_update_sb_log_tail()
+->lock_buffer(journal->j_sb_buffer), resulting in a
+null-pointer dereference error.
 
-syzbot found the following issue on:
+To resolve this issue, a new state OCFS2_JOURNAL_INITED
+has been introduced to replace the previous functionality
+of OCFS2_JOURNAL_LOADED, the original OCFS2_JOURNAL_LOADED
+is only set when ocfs2_journal_load() is successful.
+The jbd2_journal_flush() function is allowed to be called
+only when this flag is set. The logic here is that if the
+journal has even not been successfully loaded, there is
+no need to flush the journal.
 
-HEAD commit:    c3f2d783a459 Merge tag 'mm-hotfixes-stable-2024-08-17-19-3..
-git tree:       upstream
-console output: https://syzkaller.appspot.com/x/log.txt?x=13736c29980000
-kernel config:  https://syzkaller.appspot.com/x/.config?x=7229118d88b4a71b
-dashboard link: https://syzkaller.appspot.com/bug?extid=05b9b39d8bdfe1a0861f
-compiler:       Debian clang version 15.0.6, GNU ld (GNU Binutils for Debian) 2.40
-syz repro:      https://syzkaller.appspot.com/x/repro.syz?x=15f1b191980000
-C reproducer:   https://syzkaller.appspot.com/x/repro.c?x=1042525b980000
-
-Downloadable assets:
-disk image (non-bootable): https://storage.googleapis.com/syzbot-assets/7bc7510fe41f/non_bootable_disk-c3f2d783.raw.xz
-vmlinux: https://storage.googleapis.com/syzbot-assets/4d927f7c3cfd/vmlinux-c3f2d783.xz
-kernel image: https://storage.googleapis.com/syzbot-assets/ea54bdfad24b/bzImage-c3f2d783.xz
-mounted in repro: https://storage.googleapis.com/syzbot-assets/562379f73e38/mount_0.gz
-
-IMPORTANT: if you fix the issue, please add the following tag to the commit:
+Link: https://syzkaller.appspot.com/bug?extid=05b9b39d8bdfe1a0861f
 Reported-by: syzbot+05b9b39d8bdfe1a0861f@syzkaller.appspotmail.com
-
-(syz-executor198,5100,0):ocfs2_check_volume:2481 ERROR: status = -22
-(syz-executor198,5100,0):ocfs2_mount_volume:1821 ERROR: status = -22
-==================================================================
-BUG: KASAN: null-ptr-deref in instrument_atomic_read_write include/linux/instrumented.h:96 [inline]
-BUG: KASAN: null-ptr-deref in test_and_set_bit_lock include/asm-generic/bitops/instrumented-lock.h:57 [inline]
-BUG: KASAN: null-ptr-deref in trylock_buffer include/linux/buffer_head.h:420 [inline]
-BUG: KASAN: null-ptr-deref in lock_buffer include/linux/buffer_head.h:426 [inline]
-BUG: KASAN: null-ptr-deref in jbd2_journal_update_sb_log_tail+0x19b/0x360 fs/jbd2/journal.c:1889
-Write of size 8 at addr 0000000000000000 by task syz-executor198/5100
-
-CPU: 0 UID: 0 PID: 5100 Comm: syz-executor198 Not tainted 6.11.0-rc3-syzkaller-00338-gc3f2d783a459 #0
-Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.16.3-debian-1.16.3-2~bpo12+1 04/01/2014
-Call Trace:
- <TASK>
- __dump_stack lib/dump_stack.c:93 [inline]
- dump_stack_lvl+0x241/0x360 lib/dump_stack.c:119
- print_report+0xe8/0x550 mm/kasan/report.c:491
- kasan_report+0x143/0x180 mm/kasan/report.c:601
- kasan_check_range+0x282/0x290 mm/kasan/generic.c:189
- instrument_atomic_read_write include/linux/instrumented.h:96 [inline]
- test_and_set_bit_lock include/asm-generic/bitops/instrumented-lock.h:57 [inline]
- trylock_buffer include/linux/buffer_head.h:420 [inline]
- lock_buffer include/linux/buffer_head.h:426 [inline]
- jbd2_journal_update_sb_log_tail+0x19b/0x360 fs/jbd2/journal.c:1889
- __jbd2_update_log_tail+0x48/0x3f0 fs/jbd2/journal.c:1079
- jbd2_cleanup_journal_tail+0x230/0x2d0 fs/jbd2/checkpoint.c:334
- jbd2_journal_flush+0x290/0xc10 fs/jbd2/journal.c:2479
- ocfs2_journal_shutdown+0x443/0xbe0 fs/ocfs2/journal.c:1081
- ocfs2_mount_volume+0x169f/0x1940 fs/ocfs2/super.c:1842
- ocfs2_fill_super+0x483b/0x5880 fs/ocfs2/super.c:1084
- mount_bdev+0x20a/0x2d0 fs/super.c:1679
- legacy_get_tree+0xee/0x190 fs/fs_context.c:662
- vfs_get_tree+0x90/0x2a0 fs/super.c:1800
- do_new_mount+0x2be/0xb40 fs/namespace.c:3472
- do_mount fs/namespace.c:3812 [inline]
- __do_sys_mount fs/namespace.c:4020 [inline]
- __se_sys_mount+0x2d6/0x3c0 fs/namespace.c:3997
- do_syscall_x64 arch/x86/entry/common.c:52 [inline]
- do_syscall_64+0xf3/0x230 arch/x86/entry/common.c:83
- entry_SYSCALL_64_after_hwframe+0x77/0x7f
-RIP: 0033:0x7f69037ad16a
-Code: d8 64 89 02 48 c7 c0 ff ff ff ff eb a6 e8 5e 04 00 00 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 40 00 49 89 ca b8 a5 00 00 00 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 b8 ff ff ff f7 d8 64 89 01 48
-RSP: 002b:00007ffed646ff58 EFLAGS: 00000282 ORIG_RAX: 00000000000000a5
-RAX: ffffffffffffffda RBX: 00007ffed646ff70 RCX: 00007f69037ad16a
-RDX: 0000000020004480 RSI: 00000000200044c0 RDI: 00007ffed646ff70
-RBP: 0000000000000004 R08: 00007ffed646ffb0 R09: 0000000000004470
-R10: 0000000000000000 R11: 0000000000000282 R12: 0000000000000000
-R13: 00007ffed646ffb0 R14: 0000000000000003 R15: 0000000001000000
- </TASK>
-==================================================================
-
-
+Signed-off-by: Julian Sun <sunjunchao2870@gmail.com>
 ---
-This report is generated by a bot. It may contain errors.
-See https://goo.gl/tpsmEJ for more information about syzbot.
-syzbot engineers can be reached at syzkaller@googlegroups.com.
+ fs/ocfs2/journal.c | 9 ++++++---
+ fs/ocfs2/journal.h | 1 +
+ 2 files changed, 7 insertions(+), 3 deletions(-)
 
-syzbot will keep track of this issue. See:
-https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
+diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
+index 530fba34f6d3..6f837296048f 100644
+--- a/fs/ocfs2/journal.c
++++ b/fs/ocfs2/journal.c
+@@ -968,7 +968,7 @@ int ocfs2_journal_init(struct ocfs2_super *osb, int *dirty)
+ 
+ 	ocfs2_set_journal_params(osb);
+ 
+-	journal->j_state = OCFS2_JOURNAL_LOADED;
++	journal->j_state = OCFS2_JOURNAL_INITED;
+ 
+ 	status = 0;
+ done:
+@@ -1039,6 +1039,7 @@ void ocfs2_journal_shutdown(struct ocfs2_super *osb)
+ 	int status = 0;
+ 	struct inode *inode = NULL;
+ 	int num_running_trans = 0;
++	enum ocfs2_journal_state state;
+ 
+ 	BUG_ON(!osb);
+ 
+@@ -1047,8 +1048,9 @@ void ocfs2_journal_shutdown(struct ocfs2_super *osb)
+ 		goto done;
+ 
+ 	inode = journal->j_inode;
++	state = journal->j_state;
+ 
+-	if (journal->j_state != OCFS2_JOURNAL_LOADED)
++	if (state != OCFS2_JOURNAL_INITED)
+ 		goto done;
+ 
+ 	/* need to inc inode use count - jbd2_journal_destroy will iput. */
+@@ -1076,7 +1078,7 @@ void ocfs2_journal_shutdown(struct ocfs2_super *osb)
+ 
+ 	BUG_ON(atomic_read(&(osb->journal->j_num_trans)) != 0);
+ 
+-	if (ocfs2_mount_local(osb)) {
++	if (ocfs2_mount_local(osb) && state == OCFS2_JOURNAL_LOADED) {
+ 		jbd2_journal_lock_updates(journal->j_journal);
+ 		status = jbd2_journal_flush(journal->j_journal, 0);
+ 		jbd2_journal_unlock_updates(journal->j_journal);
+@@ -1174,6 +1176,7 @@ int ocfs2_journal_load(struct ocfs2_journal *journal, int local, int replayed)
+ 		}
+ 	} else
+ 		osb->commit_task = NULL;
++	journal->j_state = OCFS2_JOURNAL_LOADED;
+ 
+ done:
+ 	return status;
+diff --git a/fs/ocfs2/journal.h b/fs/ocfs2/journal.h
+index e3c3a35dc5e0..a80f76a8fa0e 100644
+--- a/fs/ocfs2/journal.h
++++ b/fs/ocfs2/journal.h
+@@ -15,6 +15,7 @@
+ 
+ enum ocfs2_journal_state {
+ 	OCFS2_JOURNAL_FREE = 0,
++	OCFS2_JOURNAL_INITED,
+ 	OCFS2_JOURNAL_LOADED,
+ 	OCFS2_JOURNAL_IN_SHUTDOWN,
+ };
+-- 
+2.39.2
 
-If the report is already addressed, let syzbot know by replying with:
-#syz fix: exact-commit-title
-
-If you want syzbot to run the reproducer, reply with:
-#syz test: git://repo/address.git branch-or-commit-hash
-If you attach or paste a git patch, syzbot will apply it before testing.
-
-If you want to overwrite report's subsystems, reply with:
-#syz set subsystems: new-subsystem
-(See the list of subsystem names on the web dashboard)
-
-If the report is a duplicate of another one, reply with:
-#syz dup: exact-subject-of-another-report
-
-If you want to undo deduplication, reply with:
-#syz undup
