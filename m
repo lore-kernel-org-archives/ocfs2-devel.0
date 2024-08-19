@@ -1,175 +1,202 @@
-Received: from mail-lj1-f171.google.com (mail-lj1-f171.google.com [209.85.208.171])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.129.124])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6F400165EEF
-	for <ocfs2-devel@lists.linux.dev>; Mon, 19 Aug 2024 14:47:23 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.208.171
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 85345175D21
+	for <ocfs2-devel@lists.linux.dev>; Mon, 19 Aug 2024 18:38:04 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=170.10.129.124
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1724078845; cv=none; b=iQ8PekzbOstuwGo7F4J+3wEfTzD0lPxZGL5z040EAgK8LsT6IllpSJSrrINC+NGfeYdskzM+TYgki9L47/leoQnAHbv4ylPKyLEGVUcCBpyBu3D2LtDWeVZT4efZUDkElyT5aO8bSFtGXUCXDI7CxPysveW5uXfwOxDxPp8l1wk=
+	t=1724092686; cv=none; b=LKNTfKizEfnv+wKhU9rdzTT47Dk2LarOWGSIQXpvpU5Pu9wUUfIzkXahjV2BkVf9o0F7zakEbc5GkcRZCo3E0A9ULnd2gaIG4YHTup84EFUoOEbwKgCU5kKP/RZgPLyd+T4HxssJjFyLCOZ79VK0GJ5m5XKQ7a9Jos77sT2bKDo=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1724078845; c=relaxed/simple;
-	bh=LNWJB2QBA6KMPjATkJ4SgTGYhAcgrGcClYZNgtavaRQ=;
-	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
-	 To:Cc:Content-Type; b=nsuCO6k5aJIY12p/zu6SbgREarebj2+uZ9c0hjXjVEFY0TAid1gASOPFdldESIZSk0ZMDMODzeinZPda0wX9EROMd+g327wega5OlCxYG54xkj8ghjlJf8SwP6UbggFjjpg/4K4Cy2RHQ4jBz5D+WjzZgcOUL+fwsbhGj9Wnk2k=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=KDrmF+af; arc=none smtp.client-ip=209.85.208.171
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	s=arc-20240116; t=1724092686; c=relaxed/simple;
+	bh=Dsi986bnCsbHtqauDVo1YS7TlumfK4dHdji1502uMCU=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=iWn6/TwKveRk4D+DQ9YDH/zbEqvxzb8/ix4cd31uL1vDAsF0IXg48xbBWIT/l7a5nDJyCd/wBmGEoX5DCe291Mo9HUI/DmrFQhJWF5F4gZK0NKKwInn+nVHwsMk22YULFerFKkN37CH5lEzHEUDnv8TPfqvCRfK5OmvDqLp8HUw=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=redhat.com; spf=pass smtp.mailfrom=redhat.com; dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b=hAjfhzBu; arc=none smtp.client-ip=170.10.129.124
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=redhat.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=redhat.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="KDrmF+af"
-Received: by mail-lj1-f171.google.com with SMTP id 38308e7fff4ca-2f16767830dso48220041fa.0
-        for <ocfs2-devel@lists.linux.dev>; Mon, 19 Aug 2024 07:47:23 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1724078841; x=1724683641; darn=lists.linux.dev;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=+hvQ3u52v0qJKkhIMSDWdBwGwmYs7vrpYpWLlGJR548=;
-        b=KDrmF+afOBCBxufehvc8yIPlJs5NDXS4C93S/6wlAAjEk3YMTXShGnFy6/aqAsYCdW
-         AsfgV0ShouQjQ1cNacQIb76S1WObaivR1dP8onOzU5yRRKe2Kq2MHxyGLo425mbFL2TC
-         jWrKLyHfbUx5XXopnJeDvjDmae2biWOIoTBL8xLAoIl/EjfkXPRX9MFMaICKcVcL+64W
-         OR2zqRZ+QrFivMrO83VY+iutmzftyOt0Sy7DWS4RedyYZgZ5dF86jQkxYmwIy6/yJaFQ
-         PusC1kYSZtJq/CBLeORc8kKfhAaFSCcUfCgaea+UmljvQghQko1NkEJnW4zHqtSx2G2h
-         SMdA==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1724078841; x=1724683641;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:x-gm-message-state:from:to:cc
-         :subject:date:message-id:reply-to;
-        bh=+hvQ3u52v0qJKkhIMSDWdBwGwmYs7vrpYpWLlGJR548=;
-        b=YRtfMjm0u/c0GZUJO2P4/pgLwP2zazTDQcA/AAqVBgyWe/nCvfeKMm09SB5RzewVMI
-         l026ak+ncNKCHz6Fn7BwBwbegpzkeW7+/Jh6ZcXuHP3hV7BybHq/4Ra5eOWuVGra7jZi
-         FiL2snkZREEbJQ2di4t2cFax6bE8UeCmjm0VUdFBL5ROOFAk/6ACLBb7Y+CJffv1+Ikr
-         xc+IF0G+frAIhCfh/lveAQM2qvY4+jKfWE/gL5ZiMNNLqmVOKmQAghAehuA7lONSPEwC
-         Ox57ZZvDLokWO+uRaG2dZzeLbM/NpLXKBKSiE8A6D9nBBAZAEmXJjbKYuKs7o+AWbFxB
-         XorA==
-X-Gm-Message-State: AOJu0YzessuKcgIPwqJfLX68ii3LnJslKoI4uXEqhqBW9a73/S6sXXds
-	o+j/Qf3K+06XqraWFNZybW2sc7bCsey+o5iGfcABC2vS/9cvr9wVbLuHbtHmUlJUsxnSKplOSpQ
-	qg16ka0OurfpZDIHwLQaytjSZUtFxxrIR
-X-Google-Smtp-Source: AGHT+IEs88zzlUiuNbET+7jZKVbZCJAg+gVxCpDfydrYqpD4f+qGR1PPXZpThAya2cO9HgynDqIUPpCO8CGLkUCkizw=
-X-Received: by 2002:a05:651c:a0a:b0:2f3:cbc3:b093 with SMTP id
- 38308e7fff4ca-2f3cf4caf48mr46052731fa.43.1724078840620; Mon, 19 Aug 2024
- 07:47:20 -0700 (PDT)
+	dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b="hAjfhzBu"
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
+	s=mimecast20190719; t=1724092683;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:
+	 content-transfer-encoding:content-transfer-encoding;
+	bh=Ie66L2UI5Ftx141MmDVUIqx4B/BzaYtQchWY/nispII=;
+	b=hAjfhzBu2QWGHcGETATvyH1ZtArcXIx77uQIj3JxjfzlXTXi+COrkahVQDaZDYUY7p9fIU
+	+tHCf9ojFtUonxePywCzXIyAtywPN6XxeK54cFBSq4haQ/YVHKCYUEeTS9h+/huJIkMuvJ
+	eQnqmvwdbr655aa1g+LWzN4Zfvjz6ig=
+Received: from mx-prod-mc-04.mail-002.prod.us-west-2.aws.redhat.com
+ (ec2-54-186-198-63.us-west-2.compute.amazonaws.com [54.186.198.63]) by
+ relay.mimecast.com with ESMTP with STARTTLS (version=TLSv1.3,
+ cipher=TLS_AES_256_GCM_SHA384) id us-mta-93-8n0iIFa8PiSymL_5K2lGTw-1; Mon,
+ 19 Aug 2024 14:38:00 -0400
+X-MC-Unique: 8n0iIFa8PiSymL_5K2lGTw-1
+Received: from mx-prod-int-05.mail-002.prod.us-west-2.aws.redhat.com (mx-prod-int-05.mail-002.prod.us-west-2.aws.redhat.com [10.30.177.17])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature RSA-PSS (2048 bits) server-digest SHA256)
+	(No client certificate requested)
+	by mx-prod-mc-04.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTPS id 99CF519560B7;
+	Mon, 19 Aug 2024 18:37:55 +0000 (UTC)
+Received: from fs-i40c-03.mgmt.fast.eng.rdu2.dc.redhat.com (fs-i40c-03.mgmt.fast.eng.rdu2.dc.redhat.com [10.6.24.150])
+	by mx-prod-int-05.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTP id 552ED19560A3;
+	Mon, 19 Aug 2024 18:37:51 +0000 (UTC)
+From: Alexander Aring <aahringo@redhat.com>
+To: teigland@redhat.com
+Cc: gfs2@lists.linux.dev,
+	song@kernel.org,
+	yukuai3@huawei.com,
+	agruenba@redhat.com,
+	mark@fasheh.com,
+	jlbec@evilplan.org,
+	joseph.qi@linux.alibaba.com,
+	gregkh@linuxfoundation.org,
+	rafael@kernel.org,
+	akpm@linux-foundation.org,
+	linux-kernel@vger.kernel.org,
+	linux-raid@vger.kernel.org,
+	ocfs2-devel@lists.linux.dev,
+	netdev@vger.kernel.org,
+	vvidic@valentin-vidic.from.hr,
+	heming.zhao@suse.com,
+	lucien.xin@gmail.com,
+	aahringo@redhat.com
+Subject: [PATCH dlm/next 00/12] dlm: net-namespace functionality
+Date: Mon, 19 Aug 2024 14:37:30 -0400
+Message-ID: <20240819183742.2263895-1-aahringo@redhat.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-References: <20240819131120.746077-1-sunjunchao2870@gmail.com>
-In-Reply-To: <20240819131120.746077-1-sunjunchao2870@gmail.com>
-From: Julian Sun <sunjunchao2870@gmail.com>
-Date: Mon, 19 Aug 2024 22:47:07 +0800
-Message-ID: <CAHB1NaijrAA999WMG=XsSCKhnvvhYR4qqzJ8uOf58Tnk9ms-xQ@mail.gmail.com>
-Subject: Re: [PATCH] ocfs2: fix null-ptr-deref when journal load failed.
-To: ocfs2-devel@lists.linux.dev
-Cc: joseph.qi@linux.alibaba.com, jlbec@evilplan.org, mark@fasheh.com, 
-	syzbot+05b9b39d8bdfe1a0861f@syzkaller.appspotmail.com, stable@vger.kernel.org
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+Content-Transfer-Encoding: 8bit
+X-Scanned-By: MIMEDefang 3.0 on 10.30.177.17
 
-CC stable
+Hi,
 
-Julian Sun <sunjunchao2870@gmail.com> =E4=BA=8E2024=E5=B9=B48=E6=9C=8819=E6=
-=97=A5=E5=91=A8=E4=B8=80 21:11=E5=86=99=E9=81=93=EF=BC=9A
->
-> During the mounting process, if the jbd2_journal_load()
-> call fails, it will internally invoke journal_reset()
-> ->journal_fail_superblock(), which sets journal->j_sb_buffer
-> to NULL. Subsequently, ocfs2_journal_shutdown() calls
-> jbd2_journal_flush()->jbd2_cleanup_journal_tail()->
-> __jbd2_update_log_tail()->jbd2_journal_update_sb_log_tail()
-> ->lock_buffer(journal->j_sb_buffer), resulting in a
-> null-pointer dereference error.
->
-> To resolve this issue, a new state OCFS2_JOURNAL_INITED
-> has been introduced to replace the previous functionality
-> of OCFS2_JOURNAL_LOADED, the original OCFS2_JOURNAL_LOADED
-> is only set when ocfs2_journal_load() is successful.
-> The jbd2_journal_flush() function is allowed to be called
-> only when this flag is set. The logic here is that if the
-> journal has even not been successfully loaded, there is
-> no need to flush the journal.
->
-> Link: https://syzkaller.appspot.com/bug?extid=3D05b9b39d8bdfe1a0861f
-> Reported-by: syzbot+05b9b39d8bdfe1a0861f@syzkaller.appspotmail.com
-> Signed-off-by: Julian Sun <sunjunchao2870@gmail.com>
-> ---
->  fs/ocfs2/journal.c | 9 ++++++---
->  fs/ocfs2/journal.h | 1 +
->  2 files changed, 7 insertions(+), 3 deletions(-)
->
-> diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
-> index 530fba34f6d3..6f837296048f 100644
-> --- a/fs/ocfs2/journal.c
-> +++ b/fs/ocfs2/journal.c
-> @@ -968,7 +968,7 @@ int ocfs2_journal_init(struct ocfs2_super *osb, int *=
-dirty)
->
->         ocfs2_set_journal_params(osb);
->
-> -       journal->j_state =3D OCFS2_JOURNAL_LOADED;
-> +       journal->j_state =3D OCFS2_JOURNAL_INITED;
->
->         status =3D 0;
->  done:
-> @@ -1039,6 +1039,7 @@ void ocfs2_journal_shutdown(struct ocfs2_super *osb=
-)
->         int status =3D 0;
->         struct inode *inode =3D NULL;
->         int num_running_trans =3D 0;
-> +       enum ocfs2_journal_state state;
->
->         BUG_ON(!osb);
->
-> @@ -1047,8 +1048,9 @@ void ocfs2_journal_shutdown(struct ocfs2_super *osb=
-)
->                 goto done;
->
->         inode =3D journal->j_inode;
-> +       state =3D journal->j_state;
->
-> -       if (journal->j_state !=3D OCFS2_JOURNAL_LOADED)
-> +       if (state !=3D OCFS2_JOURNAL_INITED)
->                 goto done;
->
->         /* need to inc inode use count - jbd2_journal_destroy will iput. =
-*/
-> @@ -1076,7 +1078,7 @@ void ocfs2_journal_shutdown(struct ocfs2_super *osb=
-)
->
->         BUG_ON(atomic_read(&(osb->journal->j_num_trans)) !=3D 0);
->
-> -       if (ocfs2_mount_local(osb)) {
-> +       if (ocfs2_mount_local(osb) && state =3D=3D OCFS2_JOURNAL_LOADED) =
-{
->                 jbd2_journal_lock_updates(journal->j_journal);
->                 status =3D jbd2_journal_flush(journal->j_journal, 0);
->                 jbd2_journal_unlock_updates(journal->j_journal);
-> @@ -1174,6 +1176,7 @@ int ocfs2_journal_load(struct ocfs2_journal *journa=
-l, int local, int replayed)
->                 }
->         } else
->                 osb->commit_task =3D NULL;
-> +       journal->j_state =3D OCFS2_JOURNAL_LOADED;
->
->  done:
->         return status;
-> diff --git a/fs/ocfs2/journal.h b/fs/ocfs2/journal.h
-> index e3c3a35dc5e0..a80f76a8fa0e 100644
-> --- a/fs/ocfs2/journal.h
-> +++ b/fs/ocfs2/journal.h
-> @@ -15,6 +15,7 @@
->
->  enum ocfs2_journal_state {
->         OCFS2_JOURNAL_FREE =3D 0,
-> +       OCFS2_JOURNAL_INITED,
->         OCFS2_JOURNAL_LOADED,
->         OCFS2_JOURNAL_IN_SHUTDOWN,
->  };
-> --
-> 2.39.2
->
+this patch-series is huge but brings a lot of basic "fun" net-namespace
+functionality to DLM. Currently you need a couple of Linux kernel
+instances running in e.g. Virtual Machines. With this patch-series I
+want to break out of this virtual machine world dealing with multiple
+kernels need to boot them all individually, etc. Now you can use DLM in
+only one Linux kernel instance and each "node" (previously represented
+by a virtual machine) is separate by a net-namespace. Why
+net-namespaces? It just fits to the DLM design for now, you need to have
+them anyway because the internal DLM socket handling on a per node
+basis. What we do additionally is to separate the DLM lockspaces (the
+lockspace that is being registered) by net-namespaces as this represents
+a "network entity" (node). There might be reasons to introduce a
+complete new kind of namespaces (locking namespace?) but I don't want to
+do this step now and as I said net-namespaces are required anyway for
+the DLM sockets.
 
+You need some new user space tooling as a new netlink net-namespace
+aware UAPI is introduced (but can co-exist with configfs that operates
+on init_net only). See [0] for more steps, there is a copr repo for the
+new tooling and can be enabled by:
 
---=20
-Julian Sun <sunjunchao2870@gmail.com>
+$ dnf copr enable aring/nldlm
+$ dnf install nldlm
+
+or compile it yourself.
+
+Then there is currently a very simple script [1] to show a 3 nodes
+cluster
+using gfs2 on a multiple loop block devices on a shared loop block
+device
+image (sounds weird but I do something like that). There are currently
+some user space synchronization issues that I solve by simple sleeps,
+but
+they are only user space problems.
+
+To test it I recommend some virtual machine "but only one" and run the
+[1] script. Afterwards you have in your executed net-namespace the 3
+mountpoints /cluster/node1, /cluster/node2/ and /cluster/node3. Any vfs
+operations on those mountpoints acts as a per node entity operation.
+
+We can use it for testing, development and also scale testing to have a
+large number of nodes joining a lockspace (which seems to be a problem
+right now). Instead of running 1000 vms, we can run 1000 net-namespaces
+in a more resource limited environment. For me it seems gfs2 can handle
+several mounts and still separate the resource according their global
+variables. Their data structures e.g. glock hash seems to have in their
+key a separation for that (fsid?). However this is still an experimental
+feature we might run into issues that requires more separation related
+to net-namespaces. However basic testing seems to run just fine.
+
+Limitations
+
+I disable any functionality for the DLM character device that allow
+plock handling or do DLM locking from user space. Just don't use any
+plock locking in gfs2 for now. But basic vfs operations should work. You
+can even sniff DLM traffic on the created "dlmsw" virtual bridge.
+
+- Alex
+
+[0] https://gitlab.com/netcoder/nldlm
+[1] https://gitlab.com/netcoder/gfs2ns-examples/-/blob/main/three_nodes
+
+changes since PATCH:
+ - add comments for lib/kobject.c
+ - add Acked-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+   for kobject patches
+ - add more people, netdev ml in cc
+
+Alexander Aring (12):
+  dlm: introduce dlm_find_lockspace_name()
+  dlm: disallow different configs nodeid storages
+  dlm: add struct net to dlm_new_lockspace()
+  dlm: handle port as __be16 network byte order
+  dlm: use dlm_config as only cluster configuration
+  dlm: dlm_config_info config fields to unsigned int
+  dlm: rename config to configfs
+  kobject: add kset_type_create_and_add() helper
+  kobject: export generic helper ops
+  dlm: separate dlm lockspaces per net-namespace
+  dlm: add nldlm net-namespace aware UAPI
+  gfs2: separate mount context by net-namespaces
+
+ drivers/md/md-cluster.c |    3 +-
+ fs/dlm/Makefile         |    2 +
+ fs/dlm/config.c         | 1291 +++++++++++++++----------------------
+ fs/dlm/config.h         |  215 +++++--
+ fs/dlm/configfs.c       |  882 ++++++++++++++++++++++++++
+ fs/dlm/configfs.h       |   19 +
+ fs/dlm/debug_fs.c       |   24 +-
+ fs/dlm/dir.c            |    4 +-
+ fs/dlm/dlm_internal.h   |   24 +-
+ fs/dlm/lock.c           |   64 +-
+ fs/dlm/lock.h           |    3 +-
+ fs/dlm/lockspace.c      |  220 ++++---
+ fs/dlm/lockspace.h      |   12 +-
+ fs/dlm/lowcomms.c       |  525 ++++++++--------
+ fs/dlm/lowcomms.h       |   29 +-
+ fs/dlm/main.c           |    5 -
+ fs/dlm/member.c         |   36 +-
+ fs/dlm/midcomms.c       |  287 ++++-----
+ fs/dlm/midcomms.h       |   31 +-
+ fs/dlm/nldlm.c          | 1330 +++++++++++++++++++++++++++++++++++++++
+ fs/dlm/nldlm.h          |  176 ++++++
+ fs/dlm/plock.c          |    2 +-
+ fs/dlm/rcom.c           |   16 +-
+ fs/dlm/rcom.h           |    3 +-
+ fs/dlm/recover.c        |   17 +-
+ fs/dlm/user.c           |   63 +-
+ fs/dlm/user.h           |    2 +-
+ fs/gfs2/glock.c         |    8 +
+ fs/gfs2/incore.h        |    2 +
+ fs/gfs2/lock_dlm.c      |    6 +-
+ fs/gfs2/ops_fstype.c    |    5 +
+ fs/gfs2/sys.c           |   27 +-
+ fs/ocfs2/stack_user.c   |    2 +-
+ include/linux/dlm.h     |    9 +-
+ include/linux/kobject.h |   10 +-
+ lib/kobject.c           |   65 +-
+ 36 files changed, 3955 insertions(+), 1464 deletions(-)
+ create mode 100644 fs/dlm/configfs.c
+ create mode 100644 fs/dlm/configfs.h
+ create mode 100644 fs/dlm/nldlm.c
+ create mode 100644 fs/dlm/nldlm.h
+
+-- 
+2.43.0
+
