@@ -1,46 +1,62 @@
-Received: from mx0a-0064b401.pphosted.com (mx0a-0064b401.pphosted.com [205.220.166.238])
+Received: from out162-62-58-216.mail.qq.com (out162-62-58-216.mail.qq.com [162.62.58.216])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3D10610A24
-	for <ocfs2-devel@lists.linux.dev>; Tue, 20 Aug 2024 13:44:53 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=205.220.166.238
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 543A9190670
+	for <ocfs2-devel@lists.linux.dev>; Tue, 20 Aug 2024 13:56:13 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=162.62.58.216
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1724161496; cv=none; b=CV7XjkYSmf7uct8lRLzuu0F66A4DbuWpcGu8UC4Nx7pN7sCgc2lot6qnY++zRgcx0MvJIA15w4OcByX8KV5VD1+4ej/Q6r79K2NmdUo6S6ysz0zO+O1+94jnMrVCMI+lnWzsuzMuM2Q34/3sWIvyYqwHbUqYrbPUQ6xSwaWfNuk=
+	t=1724162177; cv=none; b=Yv/DBgqZ9eDv5h91wMr/4YC8MSl352Opdr3uau45ArFNSZ0Gcs3fAyLYOU3JWrBmsxIGytd7jj9fEI+lDMNGcBTj+XsB44ASqW8LcmZg+Y3U5ytRWHN5Tt+5l9xhGzJVyrPO2J6LN4m1xAAWyQZDx45UTfJV5Yk0Z95fPiIZLvI=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1724161496; c=relaxed/simple;
-	bh=CWXuHPefhdqwaAJThsUE0vknzNBQK4V4XCLNmW4PqE4=;
-	h=From:To:CC:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version:Content-Type; b=nR8GeMoVv+qUU7QYwqPDkMWZs6Wn+eEsO//KCSfNIRL0YQKLVnC+IWKlcKh3eB3ifPTHxn4463naRI99Hf6iXkO4XZ/ws6ZCrp1rGGN0wM2L49wcYiO0LqtTvzcgHN+oo30ABbrFN/7dGmbVpx6dUbkSwszHaQ0VxxfWW2+L7uM=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=windriver.com; spf=pass smtp.mailfrom=windriver.com; arc=none smtp.client-ip=205.220.166.238
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=windriver.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=windriver.com
-Received: from pps.filterd (m0250809.ppops.net [127.0.0.1])
-	by mx0a-0064b401.pphosted.com (8.18.1.2/8.18.1.2) with ESMTP id 47K4UoKC024085;
-	Tue, 20 Aug 2024 06:44:34 -0700
-Received: from ala-exchng01.corp.ad.wrs.com (ala-exchng01.wrs.com [147.11.82.252])
-	by mx0a-0064b401.pphosted.com (PPS) with ESMTPS id 412uck2nmc-1
-	(version=TLSv1.2 cipher=ECDHE-RSA-AES128-GCM-SHA256 bits=128 verify=NOT);
-	Tue, 20 Aug 2024 06:44:34 -0700 (PDT)
-Received: from ala-exchng01.corp.ad.wrs.com (147.11.82.252) by
- ala-exchng01.corp.ad.wrs.com (147.11.82.252) with Microsoft SMTP Server
- (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
- 15.1.2507.39; Tue, 20 Aug 2024 06:44:33 -0700
-Received: from pek-lpd-ccm6.wrs.com (147.11.136.210) by
- ala-exchng01.corp.ad.wrs.com (147.11.82.252) with Microsoft SMTP Server id
- 15.1.2507.39 via Frontend Transport; Tue, 20 Aug 2024 06:44:31 -0700
-From: Lizhi Xu <lizhi.xu@windriver.com>
-To: <heming.zhao@suse.com>
-CC: <jlbec@evilplan.org>, <joseph.qi@linux.alibaba.com>,
-        <linux-kernel@vger.kernel.org>, <lizhi.xu@windriver.com>,
-        <mark@fasheh.com>, <ocfs2-devel@lists.linux.dev>,
-        <syzbot+ab134185af9ef88dfed5@syzkaller.appspotmail.com>,
-        <syzkaller-bugs@googlegroups.com>
-Subject: Re: [PATCH] ocfs2: remove unreasonable unlock
-Date: Tue, 20 Aug 2024 21:44:30 +0800
-Message-ID: <20240820134430.278418-1-lizhi.xu@windriver.com>
-X-Mailer: git-send-email 2.43.0
-In-Reply-To: <e6f16317-6d11-4f14-ba88-6c7b33276285@suse.com>
-References: <e6f16317-6d11-4f14-ba88-6c7b33276285@suse.com>
+	s=arc-20240116; t=1724162177; c=relaxed/simple;
+	bh=55jJYgOUczFj86iKSrhJP2mQI8SrM2z+EKFOQSKC2Ug=;
+	h=Message-ID:From:To:Cc:Subject:Date:In-Reply-To:References:
+	 MIME-Version; b=IGfcUQVHCtnHESsfIW+qbFz6U4VayBpSJ4Wm8B0MAga9gUDb+9mZc21lq8swhvnwPy1RhFniRjCQWkHTqENCs6nmVEduhLTyo0DDsk+plnK8GF0D3dWHPsR4/d+k8Gp5WSbFzJ5qgYoMoSR1QNJkuuELAMfNVDYP9az7jnUQIBM=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=qq.com; spf=pass smtp.mailfrom=qq.com; dkim=pass (1024-bit key) header.d=qq.com header.i=@qq.com header.b=ewG5yDD2; arc=none smtp.client-ip=162.62.58.216
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=qq.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=qq.com
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (1024-bit key) header.d=qq.com header.i=@qq.com header.b="ewG5yDD2"
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=qq.com; s=s201512;
+	t=1724162162; bh=7w2ZeBRO8dWCQ5Ju3weMtW2rPYoozSsTikvsgwQXQ60=;
+	h=From:To:Cc:Subject:Date:In-Reply-To:References;
+	b=ewG5yDD29nwKk/wz1GJCsaz9Q0u/EX+YSDykZEamWFy/eSWhtYWQszkeTQcw7jBFU
+	 YRT8rBNxqiyC7WCMaN75JMTq0kY8dsJCxNeWmlBOyTS3A6G5IwJul61yw+srLOd7kk
+	 Rbaic2QWyB6Ijg8syLsIP+2mUvLkvJPkc1F61iPk=
+Received: from pek-lxu-l1.wrs.com ([111.198.225.4])
+	by newxmesmtplogicsvrszb9-0.qq.com (NewEsmtp) with SMTP
+	id DE680CCA; Tue, 20 Aug 2024 21:55:38 +0800
+X-QQ-mid: xmsmtpt1724162138tw1xzbvi4
+Message-ID: <tencent_16A450176CD77A86C8536B8366297C03A105@qq.com>
+X-QQ-XMAILINFO: NMGzQWUSIfvTPOzuldNXnGcmcxVJyiZqBUaZ/eqKMv37A08Aq287QLK1GsQIGQ
+	 s5vLdnv1VefJJ+MUbLyCxWXUkgczqmfyrzjmMsYec6i976yV4Iz+cD8kVhij4gx2W1HwZLsj+sY8
+	 IFVisBloGxenpUM0Xkmn1TUr7obA6InYSKyO8gzuKl25QedHAc7LaAhQL14JZosnfWOQgOK0HgQC
+	 aBsrQMaygwKTPcZMUWZxG5gWN2XKTV7XzmYuAKkMua95uBNlBMk493eBIKEhh0WGNdjC2kxbqB0g
+	 eEv3g70j0wIA55Dwk3V3/cVzzFlmQk4MS2pgls5TSiMEL0I0IcnYHjV6nYBnX4aYibnmvNpyS6lU
+	 QumZC/DJCTbMHfl3RIKgkDIY0GW+PVUQQM4yaM7nTztq8Xb4uvN3wg3M1FvHYj0+GY4hUgAOfqTp
+	 xtnu+Pd/xXwU8W9E40Hbh0WzDmp+YwiAaVwOa2b0LBgzISQcYhqMoKnuSprnUC1fZN2htoTXBfXv
+	 xM7sSlH5PSFwWNyHQxVK0xuVlooau9wF8KJRYBl682OfzeN/NT/h+BW6t1vb/nNYaGBPJ1skbBoV
+	 dqh8h5rzRI8ZdXacw8WhfhAuPHWhmEkJnYlCG1fN6eB68HdUu7ctMYiqeXezgygiB8Gixf26CBbD
+	 5YKb+6RVJoL0nbbW/b7kqoIhe6YUdtZ/0hx4wNUUk+oC/Jw39SWMR3J+syp/z21XhYh806/QO8gY
+	 hp9v1H4xO4G4BFf4k++B9gC0j0isP5AVxQ/gPDtGXo2vS43SI50okpqgaDov8EUk8meLeP4F6nOH
+	 K6SopTH49Mikpv41L3K1cs4XvLvsoZdHOkYhIS913xhKy4iswkt4H6RewAcyAiEKNiS975k96jd6
+	 5HHKSHceUMH4fogKc7lQ64LGoH1DYcQNGN0kFDk/wBWW13QEhU8c5HI+FnjazkGYIFHEV3MsamuZ
+	 XZdZm0fINM4UmcVWY/T0cNpwU8rkTb
+X-QQ-XMRINFO: Mp0Kj//9VHAxr69bL5MkOOs=
+From: Edward Adam Davis <eadavis@qq.com>
+To: joseph.qi@linux.alibaba.com
+Cc: eadavis@qq.com,
+	jlbec@evilplan.org,
+	linux-kernel@vger.kernel.org,
+	mark@fasheh.com,
+	ocfs2-devel@lists.linux.dev,
+	syzbot+5a64828fcc4c2ad9b04f@syzkaller.appspotmail.com,
+	syzkaller-bugs@googlegroups.com
+Subject: Re: [PATCH] ocfs2: Add i_size check for dir
+Date: Tue, 20 Aug 2024 21:55:39 +0800
+X-OQ-MSGID: <20240820135538.4048106-2-eadavis@qq.com>
+X-Mailer: git-send-email 2.46.0
+In-Reply-To: <205e0d29-2567-4d82-a024-a8e7826d9f18@linux.alibaba.com>
+References: <205e0d29-2567-4d82-a024-a8e7826d9f18@linux.alibaba.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -48,48 +64,38 @@ List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
-Content-Type: text/plain
-X-Authority-Analysis: v=2.4 cv=SIcQV/vH c=1 sm=1 tr=0 ts=66c49dc2 cx=c_pps a=/ZJR302f846pc/tyiSlYyQ==:117 a=/ZJR302f846pc/tyiSlYyQ==:17 a=yoJbH4e0A30A:10 a=iox4zFpeAAAA:8 a=t7CeM3EgAAAA:8 a=nRLMoZkPJ-_k_nL0rzoA:9 a=WzC6qhA0u3u7Ye7llzcV:22
- a=FdTzh2GWekK77mhwV6Dw:22
-X-Proofpoint-ORIG-GUID: wvaevm_1xoCISi8ewTkX2_xohP6QzOUy
-X-Proofpoint-GUID: wvaevm_1xoCISi8ewTkX2_xohP6QzOUy
-X-Proofpoint-Virus-Version: vendor=baseguard
- engine=ICAP:2.0.293,Aquarius:18.0.1039,Hydra:6.0.680,FMLib:17.12.28.16
- definitions=2024-08-20_09,2024-08-19_03,2024-05-17_01
-X-Proofpoint-Spam-Details: rule=outbound_notspam policy=outbound score=0 lowpriorityscore=0
- mlxlogscore=409 clxscore=1015 impostorscore=0 adultscore=0 malwarescore=0
- spamscore=0 bulkscore=0 suspectscore=0 phishscore=0 mlxscore=0
- priorityscore=1501 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.21.0-2407110000 definitions=main-2408200102
 
-On Tue, 20 Aug 2024 19:32:03 +0800, Heming wrote:
-> > In the for-loop after the 'read_failure' label, the condition
-> > '(bh == NULL) && flags includes OCFS2_BH_READAHEAD' is missing.
-> > When this contidion is true, this for-loop will call ocfs2_set_buffer
-> > _uptodate(ci, bh), which then triggers a NULL pointer access error.
+On Tue, 20 Aug 2024 20:44:37 +0800, Joseph Qi wrote:
+> > When the i_size of dir is too large, it will cause limit to overflow and
+> > be less than de_buf, ultimately resulting in last_de not being initialized
+> > and causing uaf issue.
 > >
-> > Changes from V2:
-> > * Make the code more concise
+> > Reported-and-tested-by: syzbot+5a64828fcc4c2ad9b04f@syzkaller.appspotmail.com
+> > Signed-off-by: Edward Adam Davis <eadavis@qq.com>
+> > ---
+> >  fs/ocfs2/dir.c | 2 ++
+> >  1 file changed, 2 insertions(+)
 > >
-> > Reported-and-suggested-by: Heming Zhao <heming.zhao@suse.com>
-> > Signed-off-by: Lizhi Xu <lizhi.xu@windriver.com>
-> > Reviewed-by: Heming Zhao <heming.zhao@suse.com>
+> > diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
+> > index d620d4c53c6f..c308dba6d213 100644
+> > --- a/fs/ocfs2/dir.c
+> > +++ b/fs/ocfs2/dir.c
+> > @@ -3343,6 +3343,8 @@ static int ocfs2_find_dir_space_id(struct inode *dir, struct buffer_head *di_bh,
+> >  	unsigned long offset = 0;
+> >  	unsigned int rec_len, new_rec_len, free_space;
+> >
+> > +	if (i_size_read(dir) > OCFS2_MAX_BLOCKSIZE)
+> > +		return -EINVAL;
 > 
-> I didn't give you my "Reviewed-by" tag for this patch, and you
-> can add my tag only after I send it to you.
-> (take easy, you can get my "Reviewed-by" tag now.)
-> Please remember this rule for next time.
-Got it.
-> 
-> Another issue with this mail is that the change log should be
-> placed before the file list, not in the commit message section.
-Thanks. Its like following:
-Signed-off-by: Lizhi Xu <lizhi.xu@windriver.com>
----
-V2 -> V3: Make the code more concise
-
- fs/ocfs2/buffer_head_io.c | 3 ++-
- 1 file changed, 2 insertions(+), 1 deletion(-)
+> Why OCFS2_MAX_BLOCKSIZE?
+I think it is largest block size in ocfs2, therefore, if it is larger
+than it, it must be incorrect, even though the value of i_size in dir
+in the current issue is much larger than it (i_size_read(dir) is 0x900000000000100).
+> It seems that this is caused by a corrupted dir inode, since this is an
+> inline case, we may try best to make sure it won't exceeds block size?
+> i.e. dir->i_sb->s_blocksize.
+You mean dir->i_sb->s_blocksize bigger than OCFS2_MAX_BLOCKSIZE?
 
 BR,
-Lizhi
+Edward
+
