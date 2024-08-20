@@ -1,147 +1,95 @@
-Received: from out30-100.freemail.mail.aliyun.com (out30-100.freemail.mail.aliyun.com [115.124.30.100])
+Received: from mx0a-0064b401.pphosted.com (mx0a-0064b401.pphosted.com [205.220.166.238])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id EDB312745C
-	for <ocfs2-devel@lists.linux.dev>; Tue, 20 Aug 2024 13:09:13 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.100
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3D10610A24
+	for <ocfs2-devel@lists.linux.dev>; Tue, 20 Aug 2024 13:44:53 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=205.220.166.238
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1724159357; cv=none; b=FjcFlxOprXUxFj/rx6fvBHkzLHs2cD/qtE6D+fbR2AlWEQZ172SX15kdprtwXRBKPAKQKMjKDzIuA63j1k8r3kzl99ri0pZkmeyUyIq+YaaxKf2KFHey5lc1dioFY2Blgxt/SgEWzWuRKSPqza9vJVb83VYXdrwZEULRrkY3vnM=
+	t=1724161496; cv=none; b=CV7XjkYSmf7uct8lRLzuu0F66A4DbuWpcGu8UC4Nx7pN7sCgc2lot6qnY++zRgcx0MvJIA15w4OcByX8KV5VD1+4ej/Q6r79K2NmdUo6S6ysz0zO+O1+94jnMrVCMI+lnWzsuzMuM2Q34/3sWIvyYqwHbUqYrbPUQ6xSwaWfNuk=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1724159357; c=relaxed/simple;
-	bh=wOkh6+AdoB9A4E9pq4GHwsKXjYezM6RzhVCLB3iB0hA=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=FYJNCoISN+s2kfZxFOVZZ2EtU1bnBXsM04aUvq5nbjRmg9EX/idlwgRWEfrkOibkgAbchhNEFi8aGsx1PRtZmEi4VsyLRIPO+N3dthKc0Ykohxubj7cHhtO/N2XIkShvj/WDyqUY5BT15vYlvYnhaI8mIFjbGTF8Kc+uaoG/58o=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=LT9sedmA; arc=none smtp.client-ip=115.124.30.100
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="LT9sedmA"
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1724159349; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=n49gPeUUINkGgbxl9NwKj9bWuhu5XK/BeaCMGdkYnN0=;
-	b=LT9sedmAg2dnmNNdlLUhXDO5BNUNJunTkPcBZ85h90P5fGNFbWfyTFwhpNoAnBUXLA9G4Eqdzee8g1hzTg8vk7DnIrA1qgAKhfRprHlAQl8r1sma8MEHxH8XaEXD9L0pvkjmIa3o9mmYAOJLpCrzoSfKJRdmW5J0slNeHv3/KoI=
-Received: from 30.221.128.199(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0WDIj7JC_1724159033)
-          by smtp.aliyun-inc.com;
-          Tue, 20 Aug 2024 21:03:54 +0800
-Message-ID: <26da607a-530d-4dc1-9040-bf56b406b98f@linux.alibaba.com>
-Date: Tue, 20 Aug 2024 21:03:53 +0800
+	s=arc-20240116; t=1724161496; c=relaxed/simple;
+	bh=CWXuHPefhdqwaAJThsUE0vknzNBQK4V4XCLNmW4PqE4=;
+	h=From:To:CC:Subject:Date:Message-ID:In-Reply-To:References:
+	 MIME-Version:Content-Type; b=nR8GeMoVv+qUU7QYwqPDkMWZs6Wn+eEsO//KCSfNIRL0YQKLVnC+IWKlcKh3eB3ifPTHxn4463naRI99Hf6iXkO4XZ/ws6ZCrp1rGGN0wM2L49wcYiO0LqtTvzcgHN+oo30ABbrFN/7dGmbVpx6dUbkSwszHaQ0VxxfWW2+L7uM=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=windriver.com; spf=pass smtp.mailfrom=windriver.com; arc=none smtp.client-ip=205.220.166.238
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=windriver.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=windriver.com
+Received: from pps.filterd (m0250809.ppops.net [127.0.0.1])
+	by mx0a-0064b401.pphosted.com (8.18.1.2/8.18.1.2) with ESMTP id 47K4UoKC024085;
+	Tue, 20 Aug 2024 06:44:34 -0700
+Received: from ala-exchng01.corp.ad.wrs.com (ala-exchng01.wrs.com [147.11.82.252])
+	by mx0a-0064b401.pphosted.com (PPS) with ESMTPS id 412uck2nmc-1
+	(version=TLSv1.2 cipher=ECDHE-RSA-AES128-GCM-SHA256 bits=128 verify=NOT);
+	Tue, 20 Aug 2024 06:44:34 -0700 (PDT)
+Received: from ala-exchng01.corp.ad.wrs.com (147.11.82.252) by
+ ala-exchng01.corp.ad.wrs.com (147.11.82.252) with Microsoft SMTP Server
+ (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
+ 15.1.2507.39; Tue, 20 Aug 2024 06:44:33 -0700
+Received: from pek-lpd-ccm6.wrs.com (147.11.136.210) by
+ ala-exchng01.corp.ad.wrs.com (147.11.82.252) with Microsoft SMTP Server id
+ 15.1.2507.39 via Frontend Transport; Tue, 20 Aug 2024 06:44:31 -0700
+From: Lizhi Xu <lizhi.xu@windriver.com>
+To: <heming.zhao@suse.com>
+CC: <jlbec@evilplan.org>, <joseph.qi@linux.alibaba.com>,
+        <linux-kernel@vger.kernel.org>, <lizhi.xu@windriver.com>,
+        <mark@fasheh.com>, <ocfs2-devel@lists.linux.dev>,
+        <syzbot+ab134185af9ef88dfed5@syzkaller.appspotmail.com>,
+        <syzkaller-bugs@googlegroups.com>
+Subject: Re: [PATCH] ocfs2: remove unreasonable unlock
+Date: Tue, 20 Aug 2024 21:44:30 +0800
+Message-ID: <20240820134430.278418-1-lizhi.xu@windriver.com>
+X-Mailer: git-send-email 2.43.0
+In-Reply-To: <e6f16317-6d11-4f14-ba88-6c7b33276285@suse.com>
+References: <e6f16317-6d11-4f14-ba88-6c7b33276285@suse.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH] ocfs2: fix null-ptr-deref when journal load failed.
-To: Julian Sun <sunjunchao2870@gmail.com>, ocfs2-devel@lists.linux.dev
-Cc: jlbec@evilplan.org, mark@fasheh.com,
- syzbot+05b9b39d8bdfe1a0861f@syzkaller.appspotmail.com
-References: <20240819131120.746077-1-sunjunchao2870@gmail.com>
-Content-Language: en-US
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <20240819131120.746077-1-sunjunchao2870@gmail.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
+Content-Type: text/plain
+X-Authority-Analysis: v=2.4 cv=SIcQV/vH c=1 sm=1 tr=0 ts=66c49dc2 cx=c_pps a=/ZJR302f846pc/tyiSlYyQ==:117 a=/ZJR302f846pc/tyiSlYyQ==:17 a=yoJbH4e0A30A:10 a=iox4zFpeAAAA:8 a=t7CeM3EgAAAA:8 a=nRLMoZkPJ-_k_nL0rzoA:9 a=WzC6qhA0u3u7Ye7llzcV:22
+ a=FdTzh2GWekK77mhwV6Dw:22
+X-Proofpoint-ORIG-GUID: wvaevm_1xoCISi8ewTkX2_xohP6QzOUy
+X-Proofpoint-GUID: wvaevm_1xoCISi8ewTkX2_xohP6QzOUy
+X-Proofpoint-Virus-Version: vendor=baseguard
+ engine=ICAP:2.0.293,Aquarius:18.0.1039,Hydra:6.0.680,FMLib:17.12.28.16
+ definitions=2024-08-20_09,2024-08-19_03,2024-05-17_01
+X-Proofpoint-Spam-Details: rule=outbound_notspam policy=outbound score=0 lowpriorityscore=0
+ mlxlogscore=409 clxscore=1015 impostorscore=0 adultscore=0 malwarescore=0
+ spamscore=0 bulkscore=0 suspectscore=0 phishscore=0 mlxscore=0
+ priorityscore=1501 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.21.0-2407110000 definitions=main-2408200102
 
-
-
-On 8/19/24 9:11 PM, Julian Sun wrote:
-> During the mounting process, if the jbd2_journal_load()
-> call fails, it will internally invoke journal_reset()
-> ->journal_fail_superblock(), which sets journal->j_sb_buffer
-
-This description is not right.
-journal_reset() fails because of too short journal, then lead to
-jbd2_journal_load() fails with NULL j_sb_buffer.
-
-> to NULL. Subsequently, ocfs2_journal_shutdown() calls
-> jbd2_journal_flush()->jbd2_cleanup_journal_tail()->
-> __jbd2_update_log_tail()->jbd2_journal_update_sb_log_tail()
-> ->lock_buffer(journal->j_sb_buffer), resulting in a
-> null-pointer dereference error.
+On Tue, 20 Aug 2024 19:32:03 +0800, Heming wrote:
+> > In the for-loop after the 'read_failure' label, the condition
+> > '(bh == NULL) && flags includes OCFS2_BH_READAHEAD' is missing.
+> > When this contidion is true, this for-loop will call ocfs2_set_buffer
+> > _uptodate(ci, bh), which then triggers a NULL pointer access error.
+> >
+> > Changes from V2:
+> > * Make the code more concise
+> >
+> > Reported-and-suggested-by: Heming Zhao <heming.zhao@suse.com>
+> > Signed-off-by: Lizhi Xu <lizhi.xu@windriver.com>
+> > Reviewed-by: Heming Zhao <heming.zhao@suse.com>
 > 
-> To resolve this issue, a new state OCFS2_JOURNAL_INITED
-> has been introduced to replace the previous functionality
-> of OCFS2_JOURNAL_LOADED, the original OCFS2_JOURNAL_LOADED
-> is only set when ocfs2_journal_load() is successful.
-
-Or set OCFS2_JOURNAL_LOADED only after JBD2_LOADED?
-
-Thanks,
-Joseph
-
-> The jbd2_journal_flush() function is allowed to be called
-> only when this flag is set. The logic here is that if the
-> journal has even not been successfully loaded, there is
-> no need to flush the journal.
+> I didn't give you my "Reviewed-by" tag for this patch, and you
+> can add my tag only after I send it to you.
+> (take easy, you can get my "Reviewed-by" tag now.)
+> Please remember this rule for next time.
+Got it.
 > 
-> Link: https://syzkaller.appspot.com/bug?extid=05b9b39d8bdfe1a0861f
-> Reported-by: syzbot+05b9b39d8bdfe1a0861f@syzkaller.appspotmail.com
-> Signed-off-by: Julian Sun <sunjunchao2870@gmail.com>
-> ---
->  fs/ocfs2/journal.c | 9 ++++++---
->  fs/ocfs2/journal.h | 1 +
->  2 files changed, 7 insertions(+), 3 deletions(-)
-> 
-> diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
-> index 530fba34f6d3..6f837296048f 100644
-> --- a/fs/ocfs2/journal.c
-> +++ b/fs/ocfs2/journal.c
-> @@ -968,7 +968,7 @@ int ocfs2_journal_init(struct ocfs2_super *osb, int *dirty)
->  
->  	ocfs2_set_journal_params(osb);
->  
-> -	journal->j_state = OCFS2_JOURNAL_LOADED;
-> +	journal->j_state = OCFS2_JOURNAL_INITED;
->  
->  	status = 0;
->  done:
-> @@ -1039,6 +1039,7 @@ void ocfs2_journal_shutdown(struct ocfs2_super *osb)
->  	int status = 0;
->  	struct inode *inode = NULL;
->  	int num_running_trans = 0;
-> +	enum ocfs2_journal_state state;
->  
->  	BUG_ON(!osb);
->  
-> @@ -1047,8 +1048,9 @@ void ocfs2_journal_shutdown(struct ocfs2_super *osb)
->  		goto done;
->  
->  	inode = journal->j_inode;
-> +	state = journal->j_state;
->  
-> -	if (journal->j_state != OCFS2_JOURNAL_LOADED)
-> +	if (state != OCFS2_JOURNAL_INITED)
->  		goto done;
->  
->  	/* need to inc inode use count - jbd2_journal_destroy will iput. */
-> @@ -1076,7 +1078,7 @@ void ocfs2_journal_shutdown(struct ocfs2_super *osb)
->  
->  	BUG_ON(atomic_read(&(osb->journal->j_num_trans)) != 0);
->  
-> -	if (ocfs2_mount_local(osb)) {
-> +	if (ocfs2_mount_local(osb) && state == OCFS2_JOURNAL_LOADED) {
->  		jbd2_journal_lock_updates(journal->j_journal);
->  		status = jbd2_journal_flush(journal->j_journal, 0);
->  		jbd2_journal_unlock_updates(journal->j_journal);
-> @@ -1174,6 +1176,7 @@ int ocfs2_journal_load(struct ocfs2_journal *journal, int local, int replayed)
->  		}
->  	} else
->  		osb->commit_task = NULL;
-> +	journal->j_state = OCFS2_JOURNAL_LOADED;
->  
->  done:
->  	return status;
-> diff --git a/fs/ocfs2/journal.h b/fs/ocfs2/journal.h
-> index e3c3a35dc5e0..a80f76a8fa0e 100644
-> --- a/fs/ocfs2/journal.h
-> +++ b/fs/ocfs2/journal.h
-> @@ -15,6 +15,7 @@
->  
->  enum ocfs2_journal_state {
->  	OCFS2_JOURNAL_FREE = 0,
-> +	OCFS2_JOURNAL_INITED,
->  	OCFS2_JOURNAL_LOADED,
->  	OCFS2_JOURNAL_IN_SHUTDOWN,
->  };
+> Another issue with this mail is that the change log should be
+> placed before the file list, not in the commit message section.
+Thanks. Its like following:
+Signed-off-by: Lizhi Xu <lizhi.xu@windriver.com>
+---
+V2 -> V3: Make the code more concise
+
+ fs/ocfs2/buffer_head_io.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+BR,
+Lizhi
