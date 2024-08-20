@@ -1,188 +1,177 @@
-Received: from mgamail.intel.com (mgamail.intel.com [192.198.163.8])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-il1-f199.google.com (mail-il1-f199.google.com [209.85.166.199])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0EBD2149005;
-	Tue, 20 Aug 2024 07:40:26 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=192.198.163.8
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 40FBD188CBD
+	for <ocfs2-devel@lists.linux.dev>; Tue, 20 Aug 2024 07:58:27 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.166.199
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1724139628; cv=none; b=SmrbbYP9xNyfHOASDP8ASoP1nIXYFRxyzx4YWlP3eCqlB9XXrK0yFoAZSjslzST02auuumiefjAeEnj5mXUPg9/8vE4Uf4J1XZQZPGGudfOBhSmGbAwBhfz0FJ4W9Kz8o7pMfFUyJXeRsmds85iXPUs0v2k5Irz4Rag0WBpj69M=
+	t=1724140709; cv=none; b=PKue9CQaVPzjwgYqth3BZ66WrFLWX0GasGxbpPi1KzTU3624atJEPKCR6+ubDnDYBxQTgnKPNOevsBrpOf76OkM/Ca5qQzjy4GChg3G9hfIZdRKzD3B+gMLydng9V/YCZRer6W8n/SLuzNG3c0U0Rh8WI51GooAvZqA6BjXauUc=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1724139628; c=relaxed/simple;
-	bh=hawFFnGsZ8QIvUfjOYbiKz9xBDXapD08x6QGiLvAwPs=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=XJJ4JsGoZ2b6oV2Hxh0TRa8gk1Xcjpic3GGo0l/sY6vWYB0ihIR/7CeGl719VL0hwba20gD8kT1+dUL8zvqvdAGgsQu6/X+o9033CgFjweRbphrMNhD4gOCS4yhhQpAJDOinOdLfwkQ4c5NqCiCfiWatBxcgfMCjJgSDiK7HVTg=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com; spf=pass smtp.mailfrom=intel.com; dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b=frH76/Tv; arc=none smtp.client-ip=192.198.163.8
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=intel.com
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b="frH76/Tv"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
-  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
-  t=1724139627; x=1755675627;
-  h=date:from:to:cc:subject:message-id:references:
-   mime-version:in-reply-to;
-  bh=hawFFnGsZ8QIvUfjOYbiKz9xBDXapD08x6QGiLvAwPs=;
-  b=frH76/Tv+9ifIDSxpBY3VH9ps0y884t7IF5Ex8vS36mYiIv2KrTqe5Ak
-   a68PyDpHcufaHPlMTPcQX3Cgl0T/DeDmKMLNTovUNz503NMPSqwzB3JFw
-   +3PAlVG20arGqaehpl1fqE0KaZgC/FjbXJutzb7iJ/sebRYb9QAX4lNmJ
-   0a1875KkqgGUs1CpgyYtUxbkQQJhPgxGHCyEMnthvX/HFP8snkBXIK03L
-   oMaymjYIkHQTJk08dOndFwDGlCeahbaNbAd/oc4Jcbv51mrKnMiuG8aU7
-   MRgy3gxvSHrUcf/P0EpZx0XNsJQLYqyohYQFJ44TYAzl+CRTlqknh2p+1
-   g==;
-X-CSE-ConnectionGUID: scJOoLEnS3yDGcrImuoP0A==
-X-CSE-MsgGUID: lv0Cx7yiRameHnzwWvYjGw==
-X-IronPort-AV: E=McAfee;i="6700,10204,11169"; a="39926456"
-X-IronPort-AV: E=Sophos;i="6.10,161,1719903600"; 
-   d="scan'208";a="39926456"
-Received: from fmviesa001.fm.intel.com ([10.60.135.141])
-  by fmvoesa102.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 20 Aug 2024 00:40:25 -0700
-X-CSE-ConnectionGUID: u+Uf2G9mTouWtcLGx/72Lw==
-X-CSE-MsgGUID: Ni+zAIHISxyEEUBu7A5x+g==
-X-ExtLoop1: 1
-X-IronPort-AV: E=Sophos;i="6.10,161,1719903600"; 
-   d="scan'208";a="91406661"
-Received: from lkp-server01.sh.intel.com (HELO 9a732dc145d3) ([10.239.97.150])
-  by fmviesa001.fm.intel.com with ESMTP; 20 Aug 2024 00:40:21 -0700
-Received: from kbuild by 9a732dc145d3 with local (Exim 4.96)
-	(envelope-from <lkp@intel.com>)
-	id 1sgJTW-0009r2-39;
-	Tue, 20 Aug 2024 07:40:18 +0000
-Date: Tue, 20 Aug 2024 15:40:09 +0800
-From: kernel test robot <lkp@intel.com>
-To: Alexander Aring <aahringo@redhat.com>, teigland@redhat.com
-Cc: llvm@lists.linux.dev, oe-kbuild-all@lists.linux.dev,
-	gfs2@lists.linux.dev, song@kernel.org, yukuai3@huawei.com,
-	agruenba@redhat.com, mark@fasheh.com, jlbec@evilplan.org,
-	joseph.qi@linux.alibaba.com, gregkh@linuxfoundation.org,
-	rafael@kernel.org, akpm@linux-foundation.org,
-	linux-kernel@vger.kernel.org, linux-raid@vger.kernel.org,
-	ocfs2-devel@lists.linux.dev, netdev@vger.kernel.org,
-	vvidic@valentin-vidic.from.hr, heming.zhao@suse.com,
-	lucien.xin@gmail.com, aahringo@redhat.com
-Subject: Re: [PATCH dlm/next 11/12] dlm: add nldlm net-namespace aware UAPI
-Message-ID: <202408201509.g1VKeeOl-lkp@intel.com>
-References: <20240819183742.2263895-12-aahringo@redhat.com>
+	s=arc-20240116; t=1724140709; c=relaxed/simple;
+	bh=67qmrw0+WQj84veMh1dqkYoXrsITVb16oR9I5LOUV/s=;
+	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=bWk9xhQMUVspgNp0ZRjV5o+jtDr4DVN0mXdLqAdcqvNiKrZt/6MrlEEyoTa16ScG3B75gj79U7pPMenVLwtCNsxMN4pVOsp2ZK5cHgNFdwPG2+TVfmUFaeWXvshe66yEepWr9bBtb+iwlmDrnvNS2U9SWF/4aKxvzYZNYcSXCz8=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.166.199
+Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
+Received: by mail-il1-f199.google.com with SMTP id e9e14a558f8ab-39d47fe875cso35077395ab.2
+        for <ocfs2-devel@lists.linux.dev>; Tue, 20 Aug 2024 00:58:27 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1724140707; x=1724745507;
+        h=to:from:subject:message-id:date:mime-version:x-gm-message-state
+         :from:to:cc:subject:date:message-id:reply-to;
+        bh=hhNCGOb6XK7oobwH0gSQwHyu2zFQ7pAJNf8SQsyUj7M=;
+        b=jnNxGgnvYWy3LcSlm/zLQxF7DTRFF1sV35VkOLhomW+S0XG4wlhEAUecwTN6T2aMC2
+         L2ArsNeZ4/B/Qno56ShOA7Y10I04/b3MmMc+/011v+mWc7b/zuYNC8SfBENx2KnWLriq
+         iOJ2vqviyn6tdp/CVzRgq2VB8whaqIyJdO85zFE9KDRPv2Xgy8eeNYXY/TH2o8cJi1d3
+         q+iRolxXvtCfCfO7cznHRylXGBoFHxtdPgxn/MOgAsZ3m3lWE1UOi7dQn+txla5JjXex
+         xe7imwOT46FxS8BE15HOFYKLEhoE/r9NfGVF5kM40IRJK3VVwktRzrk/4VbjgprT3Rtv
+         aGng==
+X-Forwarded-Encrypted: i=1; AJvYcCXGW9GPBDeBpKQHhUsCBVsHRLAUXwsOQW/X9MyhRaYGb6aSAfE0K7ifaiRGvrH2NY+0r7RgthBA2kWWxmItbJF0rIHIPkPlUv8cFlE=
+X-Gm-Message-State: AOJu0YzbjwQGWzxZqLf4r4B44XE96SLoeLEzzpTLVpsEVs7Sy9bC0AaT
+	s4LZUZ4F7NqEkCqmZ/6ocEuuEOzQM1c2WVWObMrf6MJxODlYyds2lmpKv2xRvXle8TPd3iYajWQ
+	HcXIXtRiapl1sKytvbJrxzSGdUn2xXHdeF+cJIaCI4yusy1O0ySDDEyU=
+X-Google-Smtp-Source: AGHT+IGBIuavGhgArxoh4WRlwWK6QZx0hVSiwxAc21Pg24ZpJerRdwk6wk1OorjljvTLkmUNY50tBOWJJbLWSVEN+kqZenLrJmZo
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20240819183742.2263895-12-aahringo@redhat.com>
+X-Received: by 2002:a92:c54b:0:b0:397:b509:6441 with SMTP id
+ e9e14a558f8ab-39d26ceb6a7mr11949705ab.2.1724140706365; Tue, 20 Aug 2024
+ 00:58:26 -0700 (PDT)
+Date: Tue, 20 Aug 2024 00:58:26 -0700
+X-Google-Appengine-App-Id: s~syzkaller
+X-Google-Appengine-App-Id-Alias: syzkaller
+Message-ID: <0000000000005894f3062018caf1@google.com>
+Subject: [syzbot] [ocfs2?] general protection fault in ocfs2_prepare_dir_for_insert
+From: syzbot <syzbot+5a64828fcc4c2ad9b04f@syzkaller.appspotmail.com>
+To: jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
+	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
+	syzkaller-bugs@googlegroups.com
+Content-Type: text/plain; charset="UTF-8"
 
-Hi Alexander,
+Hello,
 
-kernel test robot noticed the following build warnings:
+syzbot found the following issue on:
 
-[auto build test WARNING on teigland-dlm/next]
-[also build test WARNING on next-20240820]
-[cannot apply to gfs2/for-next driver-core/driver-core-testing driver-core/driver-core-next driver-core/driver-core-linus linus/master v6.11-rc4]
-[If your patch is applied to the wrong git tree, kindly drop us a note.
-And when submitting patch, we suggest to use '--base' as documented in
-https://git-scm.com/docs/git-format-patch#_base_tree_information]
+HEAD commit:    b0da640826ba Merge tag 'printk-for-6.11-rc5' of git://git...
+git tree:       upstream
+console output: https://syzkaller.appspot.com/x/log.txt?x=10d2076b980000
+kernel config:  https://syzkaller.appspot.com/x/.config?x=df2f0ed7e30a639d
+dashboard link: https://syzkaller.appspot.com/bug?extid=5a64828fcc4c2ad9b04f
+compiler:       Debian clang version 15.0.6, GNU ld (GNU Binutils for Debian) 2.40
+syz repro:      https://syzkaller.appspot.com/x/repro.syz?x=1680ffcb980000
+C reproducer:   https://syzkaller.appspot.com/x/repro.c?x=153aec05980000
 
-url:    https://github.com/intel-lab-lkp/linux/commits/Alexander-Aring/dlm-introduce-dlm_find_lockspace_name/20240820-024440
-base:   https://git.kernel.org/pub/scm/linux/kernel/git/teigland/linux-dlm.git next
-patch link:    https://lore.kernel.org/r/20240819183742.2263895-12-aahringo%40redhat.com
-patch subject: [PATCH dlm/next 11/12] dlm: add nldlm net-namespace aware UAPI
-config: x86_64-buildonly-randconfig-001-20240820 (https://download.01.org/0day-ci/archive/20240820/202408201509.g1VKeeOl-lkp@intel.com/config)
-compiler: clang version 18.1.5 (https://github.com/llvm/llvm-project 617a15a9eac96088ae5e9134248d8236e34b91b1)
-reproduce (this is a W=1 build): (https://download.01.org/0day-ci/archive/20240820/202408201509.g1VKeeOl-lkp@intel.com/reproduce)
+Downloadable assets:
+disk image (non-bootable): https://storage.googleapis.com/syzbot-assets/7bc7510fe41f/non_bootable_disk-b0da6408.raw.xz
+vmlinux: https://storage.googleapis.com/syzbot-assets/f630005f615b/vmlinux-b0da6408.xz
+kernel image: https://storage.googleapis.com/syzbot-assets/4e3e4edbec91/bzImage-b0da6408.xz
+mounted in repro: https://storage.googleapis.com/syzbot-assets/1a3cbd9c01e6/mount_0.gz
 
-If you fix the issue in a separate patch/commit (i.e. not just a new version of
-the same patch/commit), kindly add following tags
-| Reported-by: kernel test robot <lkp@intel.com>
-| Closes: https://lore.kernel.org/oe-kbuild-all/202408201509.g1VKeeOl-lkp@intel.com/
+IMPORTANT: if you fix the issue, please add the following tag to the commit:
+Reported-by: syzbot+5a64828fcc4c2ad9b04f@syzkaller.appspotmail.com
 
-All warnings (new ones prefixed by >>):
+loop0: detected capacity change from 0 to 32768
+JBD2: Ignoring recovery information on journal
+ocfs2: Mounting device (7,0) on (node local, slot 0) with ordered data mode.
+Oops: general protection fault, probably for non-canonical address 0xdffffc0000000001: 0000 [#1] PREEMPT SMP KASAN NOPTI
+KASAN: null-ptr-deref in range [0x0000000000000008-0x000000000000000f]
+CPU: 0 UID: 0 PID: 5096 Comm: syz-executor792 Not tainted 6.11.0-rc4-syzkaller-00002-gb0da640826ba #0
+Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.16.3-debian-1.16.3-2~bpo12+1 04/01/2014
+RIP: 0010:ocfs2_find_dir_space_id fs/ocfs2/dir.c:3406 [inline]
+RIP: 0010:ocfs2_prepare_dir_for_insert+0x3309/0x5c70 fs/ocfs2/dir.c:4280
+Code: 00 00 e8 2a 25 13 fe e9 ba 06 00 00 e8 20 25 13 fe e9 4f 01 00 00 e8 16 25 13 fe 49 8d 7f 08 49 8d 5f 09 48 89 f8 48 c1 e8 03 <42> 0f b6 04 20 84 c0 0f 85 bd 23 00 00 48 89 d8 48 c1 e8 03 42 0f
+RSP: 0018:ffffc9000af9f020 EFLAGS: 00010202
+RAX: 0000000000000001 RBX: 0000000000000009 RCX: ffff88801e27a440
+RDX: 0000000000000000 RSI: 0000000000000400 RDI: 0000000000000008
+RBP: ffffc9000af9f830 R08: ffffffff8380395b R09: ffffffff838090a7
+R10: 0000000000000002 R11: ffff88801e27a440 R12: dffffc0000000000
+R13: ffff88803c660878 R14: f700000000000088 R15: 0000000000000000
+FS:  000055555a677380(0000) GS:ffff888020800000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: 0000560bce569178 CR3: 000000001de5a000 CR4: 0000000000350ef0
+DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+Call Trace:
+ <TASK>
+ ocfs2_mknod+0xcaf/0x2b40 fs/ocfs2/namei.c:292
+ vfs_mknod+0x36d/0x3b0 fs/namei.c:4088
+ do_mknodat+0x3ec/0x5b0
+ __do_sys_mknodat fs/namei.c:4166 [inline]
+ __se_sys_mknodat fs/namei.c:4163 [inline]
+ __x64_sys_mknodat+0xa7/0xc0 fs/namei.c:4163
+ do_syscall_x64 arch/x86/entry/common.c:52 [inline]
+ do_syscall_64+0xf3/0x230 arch/x86/entry/common.c:83
+ entry_SYSCALL_64_after_hwframe+0x77/0x7f
+RIP: 0033:0x7f2dafda3a99
+Code: 28 00 00 00 75 05 48 83 c4 28 c3 e8 f1 17 00 00 90 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 b8 ff ff ff f7 d8 64 89 01 48
+RSP: 002b:00007ffe336a6658 EFLAGS: 00000246 ORIG_RAX: 0000000000000103
+RAX: ffffffffffffffda RBX: 0000000000000000 RCX: 00007f2dafda3a99
+RDX: 00000000000021c0 RSI: 0000000020000040 RDI: 00000000ffffff9c
+RBP: 00007f2dafe1b5f0 R08: 0000000000004480 R09: 000055555a6784c0
+R10: 0000000000000103 R11: 0000000000000246 R12: 00007ffe336a6680
+R13: 00007ffe336a68a8 R14: 431bde82d7b634db R15: 00007f2dafdec03b
+ </TASK>
+Modules linked in:
+---[ end trace 0000000000000000 ]---
+RIP: 0010:ocfs2_find_dir_space_id fs/ocfs2/dir.c:3406 [inline]
+RIP: 0010:ocfs2_prepare_dir_for_insert+0x3309/0x5c70 fs/ocfs2/dir.c:4280
+Code: 00 00 e8 2a 25 13 fe e9 ba 06 00 00 e8 20 25 13 fe e9 4f 01 00 00 e8 16 25 13 fe 49 8d 7f 08 49 8d 5f 09 48 89 f8 48 c1 e8 03 <42> 0f b6 04 20 84 c0 0f 85 bd 23 00 00 48 89 d8 48 c1 e8 03 42 0f
+RSP: 0018:ffffc9000af9f020 EFLAGS: 00010202
+RAX: 0000000000000001 RBX: 0000000000000009 RCX: ffff88801e27a440
+RDX: 0000000000000000 RSI: 0000000000000400 RDI: 0000000000000008
+RBP: ffffc9000af9f830 R08: ffffffff8380395b R09: ffffffff838090a7
+R10: 0000000000000002 R11: ffff88801e27a440 R12: dffffc0000000000
+R13: ffff88803c660878 R14: f700000000000088 R15: 0000000000000000
+FS:  000055555a677380(0000) GS:ffff888020800000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: 0000560bce569178 CR3: 000000001de5a000 CR4: 0000000000350ef0
+DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+----------------
+Code disassembly (best guess):
+   0:	00 00                	add    %al,(%rax)
+   2:	e8 2a 25 13 fe       	call   0xfe132531
+   7:	e9 ba 06 00 00       	jmp    0x6c6
+   c:	e8 20 25 13 fe       	call   0xfe132531
+  11:	e9 4f 01 00 00       	jmp    0x165
+  16:	e8 16 25 13 fe       	call   0xfe132531
+  1b:	49 8d 7f 08          	lea    0x8(%r15),%rdi
+  1f:	49 8d 5f 09          	lea    0x9(%r15),%rbx
+  23:	48 89 f8             	mov    %rdi,%rax
+  26:	48 c1 e8 03          	shr    $0x3,%rax
+* 2a:	42 0f b6 04 20       	movzbl (%rax,%r12,1),%eax <-- trapping instruction
+  2f:	84 c0                	test   %al,%al
+  31:	0f 85 bd 23 00 00    	jne    0x23f4
+  37:	48 89 d8             	mov    %rbx,%rax
+  3a:	48 c1 e8 03          	shr    $0x3,%rax
+  3e:	42                   	rex.X
+  3f:	0f                   	.byte 0xf
 
->> fs/dlm/nldlm.c:195:2: warning: variable 'ls' is used uninitialized whenever 'for' loop exits because its condition is false [-Wsometimes-uninitialized]
-     195 |         list_for_each_entry(ls_iter, &dn->lockspaces, list) {
-         |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-   include/linux/list.h:779:7: note: expanded from macro 'list_for_each_entry'
-     779 |              !list_entry_is_head(pos, head, member);                    \
-         |              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-   fs/dlm/nldlm.c:202:7: note: uninitialized use occurs here
-     202 |         if (!ls) {
-         |              ^~
-   fs/dlm/nldlm.c:195:2: note: remove the condition if it is always true
-     195 |         list_for_each_entry(ls_iter, &dn->lockspaces, list) {
-         |         ^
-   include/linux/list.h:779:7: note: expanded from macro 'list_for_each_entry'
-     779 |              !list_entry_is_head(pos, head, member);                    \
-         |              ^
-   fs/dlm/nldlm.c:185:23: note: initialize the variable 'ls' to silence this warning
-     185 |         struct dlm_cfg_ls *ls, *ls_iter = NULL;
-         |                              ^
-         |                               = NULL
->> fs/dlm/nldlm.c:918:11: warning: variable 'log_level' is used uninitialized whenever 'if' condition is false [-Wsometimes-uninitialized]
-     918 |         else if (dn->config.ci_log_debug)
-         |                  ^~~~~~~~~~~~~~~~~~~~~~~
-   fs/dlm/nldlm.c:921:50: note: uninitialized use occurs here
-     921 |         rv = nla_put_u32(skb, NLDLM_CFG_ATTR_LOG_LEVEL, log_level);
-         |                                                         ^~~~~~~~~
-   fs/dlm/nldlm.c:918:7: note: remove the 'if' if its condition is always true
-     918 |         else if (dn->config.ci_log_debug)
-         |              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
-     919 |                 log_level = NLDLM_LOG_LEVEL_DEBUG;
-   fs/dlm/nldlm.c:868:20: note: initialize the variable 'log_level' to silence this warning
-     868 |         uint32_t log_level;
-         |                           ^
-         |                            = 0
-   2 warnings generated.
 
+---
+This report is generated by a bot. It may contain errors.
+See https://goo.gl/tpsmEJ for more information about syzbot.
+syzbot engineers can be reached at syzkaller@googlegroups.com.
 
-vim +195 fs/dlm/nldlm.c
+syzbot will keep track of this issue. See:
+https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
 
-   181	
-   182	static int nldlm_get_ls(struct sk_buff *msg, struct genl_info *info)
-   183	{
-   184		struct dlm_net *dn = dlm_pernet(sock_net(msg->sk));
- > 185		struct dlm_cfg_ls *ls, *ls_iter = NULL;
-   186		char lsname[DLM_LOCKSPACE_LEN];
-   187		struct sk_buff *skb;
-   188		int rv;
-   189	
-   190		rv = nldlm_parse_ls(info->attrs[NLDLM_ATTR_LS], lsname);
-   191		if (rv < 0)
-   192			return rv;
-   193	
-   194		mutex_lock(&dn->cfg_lock);
- > 195		list_for_each_entry(ls_iter, &dn->lockspaces, list) {
-   196			if (!strncmp(ls_iter->name, lsname, DLM_LOCKSPACE_LEN)) {
-   197				ls = ls_iter;
-   198				break;
-   199			}
-   200		}
-   201	
-   202		if (!ls) {
-   203			rv = -ENOENT;
-   204			goto err;
-   205		}
-   206	
-   207		skb = nlmsg_new(NLMSG_DEFAULT_SIZE, GFP_ATOMIC);
-   208		if (!skb) {
-   209			rv = -ENOMEM;
-   210			goto err;
-   211		}
-   212	
-   213		rv = __nldlm_get_ls(skb, ls, info->snd_portid,
-   214				    info->snd_seq, NULL, 0);
-   215		if (rv < 0) {
-   216			nlmsg_free(skb);
-   217			goto err;
-   218		}
-   219	
-   220		rv = genlmsg_reply(skb, info);
-   221	
-   222	err:
-   223		mutex_unlock(&dn->cfg_lock);
-   224		return rv;
-   225	}
-   226	
+If the report is already addressed, let syzbot know by replying with:
+#syz fix: exact-commit-title
 
--- 
-0-DAY CI Kernel Test Service
-https://github.com/intel/lkp-tests/wiki
+If you want syzbot to run the reproducer, reply with:
+#syz test: git://repo/address.git branch-or-commit-hash
+If you attach or paste a git patch, syzbot will apply it before testing.
+
+If you want to overwrite report's subsystems, reply with:
+#syz set subsystems: new-subsystem
+(See the list of subsystem names on the web dashboard)
+
+If the report is a duplicate of another one, reply with:
+#syz dup: exact-subject-of-another-report
+
+If you want to undo deduplication, reply with:
+#syz undup
