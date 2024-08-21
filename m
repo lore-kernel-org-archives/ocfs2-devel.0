@@ -1,108 +1,106 @@
-Received: from out203-205-221-235.mail.qq.com (out203-205-221-235.mail.qq.com [203.205.221.235])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-wm1-f46.google.com (mail-wm1-f46.google.com [209.85.128.46])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 99D8619ABD3
-	for <ocfs2-devel@lists.linux.dev>; Wed, 21 Aug 2024 11:15:18 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=203.205.221.235
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9C516158A23
+	for <ocfs2-devel@lists.linux.dev>; Wed, 21 Aug 2024 11:40:08 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.46
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1724238921; cv=none; b=jKT3V9uMGGqYBdGIGoVqFn2s34K1z+uq0PYGjF/IJiAnFPBo0u2Lw5QZj5Vy0d7DQ9f8VHokxDFaTni0AT6bhSHDG1dEsJXvsxss2fVbR9ptmwoXp7A0WrubUIoSqXRdFHXZdq+IFHnlBk5fNJhZmYEuKq4PIJmtLFXKF1nqPu0=
+	t=1724240410; cv=none; b=KK0r0yFagkLhfleAUyePG5n/fCID4NU0zarZocx+AuSlziyFBUlziNsbJ/aoX/DHvHSpNOrF8Nbg6eeGOQPBZyOICq/9+FTP7R5YyoSqrz5EvJNUMxsR01KnpHqp/VKwM22Gvt659MKDqs1cysKrDh6cD1V+DaggShASwzulfqw=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1724238921; c=relaxed/simple;
-	bh=l3wvNV+VklR8Lxi8amEs5BeXVWIW8+LaHr/iC9b4Kns=;
-	h=Message-ID:From:To:Cc:Subject:Date:In-Reply-To:References:
-	 MIME-Version; b=DUQEApYBPQ9GAWw3YKp5AHiBhfBq8JI3pgLOj3+6l4CFP4hI/tlMial+PXLWCfgy5bEQLcV06tCSRdAMpp5/6gVfA8Rq1WJx40/4iiZER1Uzz9HvnS8kNDbddLyShj28Ap02+ZFYGQKDbmoXDYRUKgtIAXHpSivbnNYricdrBS8=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=qq.com; spf=pass smtp.mailfrom=qq.com; dkim=pass (1024-bit key) header.d=qq.com header.i=@qq.com header.b=GWJiRM5h; arc=none smtp.client-ip=203.205.221.235
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=qq.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=qq.com
+	s=arc-20240116; t=1724240410; c=relaxed/simple;
+	bh=TxdPXmFR5vjV3UXtB2DcKHBS9FQbWYVADGjWJRmGmK4=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=TTLuR4mmQT0/tFB3pXpjv+AY5Z9GECWuSDEgvF0can9L/N/aSMhgdoUKlFx1BpyRcFpzXGbI+eKQU3zuhAcRnrtHSGCCEc2CZvVWaxSYs9bXqwe3SLH5bCBfK/mL3Kuvn41747uGExJubhH9Wh3iGwJjthkZyA1ZX/EHItW2rTs=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=cBprnIeF; arc=none smtp.client-ip=209.85.128.46
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=qq.com header.i=@qq.com header.b="GWJiRM5h"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=qq.com; s=s201512;
-	t=1724238916; bh=JNZYhdmUEM5+zsieVXil6/J+yfO7Rh4dM5XLtObIkjE=;
-	h=From:To:Cc:Subject:Date:In-Reply-To:References;
-	b=GWJiRM5hjyj/555im3+5FSNRT74nww9UAR3UNbQ8HJFfIqhZH5WW4wzJP8g5wBxkX
-	 90+w7kV5E9pVWX9+G32FMLbLwwWz9esduhSeYo9bjfBmZ2smgumzwizHcUi3C03T7S
-	 gg6tOhTEkrmgbtvFw48JP+DTCY3SXNkwfSiW/6aA=
-Received: from pek-lxu-l1.wrs.com ([111.198.225.4])
-	by newxmesmtplogicsvrszb9-0.qq.com (NewEsmtp) with SMTP
-	id 3C7354F1; Wed, 21 Aug 2024 19:15:07 +0800
-X-QQ-mid: xmsmtpt1724238907tax76rmbm
-Message-ID: <tencent_0DCC0C781E6C402F756C3C9758E9F6EE720A@qq.com>
-X-QQ-XMAILINFO: NMGzQWUSIfvTPOzuldNXnGcmcxVJyiZqBY+ub/YrZ4Moo55x9pyWR+2orsk2xV
-	 l6kRx1MNTmzUXNuVqcjt6ch94+BQoW3kFagmiMHyAN6Nd3sxr0fXYpNj5zbe4UGU5WoDsOcEi3mx
-	 +Yo40N4avGXlg7LL8u0QZWolYwnb3gL+iINcIwx5iPekaHK52fqypyVdl+KYbzkmJWAXTtNpHPvg
-	 3PJQuA84nhm4cqFLAXLheF9w6YxhZLzIVyKPIdK+6aeh9x92Lo1MHq5d8ZMVo2dBIVcdKVLHM3OB
-	 J6NAYYcswdGzTtEVjR7xfc/YTKgy26jOUzxw/dXMlEu4NSi48sSrCc8wyADxOZnm6GxzcvDf9Ihs
-	 7RSfZjiwGh/0N0gQN8uvpM3gUm3FTi5T3vY6mNC86xLeV81R6WyVDa+O9U6/d+T+hWaId7uT5ChV
-	 1NVdUlIFAyQhwrC+gV/4cRVkg1O7BoqdbEeJud0Ioww0SiHBaCp1N5EYBYyEDqJhDX3oKEwnLnAf
-	 yUH9xHpMJ8/hdR1FyH1gY9tdCMGJpbU+3oYW1bkXtHV0G6Byy5to0DSZQBKbhQguabhtWZZrDROk
-	 3GXMeni7YtgxMvOkQ+jTS0QWR6WMqXk6sjVT5l4jGLYVKg8fyEtVVuKRY38nbF/2CILNuCQw0+I1
-	 ErCXOxIbq26vg/AglYssFfIMnlpKdoMYeIHcbOEfG1yY2TS/eLsSPhSxrED6WX/xhAf4j95wZRhy
-	 3HR/kcAPY6/INHkzeL9qJ6yr0/G4o35/N5DOlm3e9EKvevbIAMRSloo63VqQ4lLU6LFAKP8nlpBV
-	 Bmna7Cfyp5cDgzDUC4G+dXpW/XbqkFWfhCA2w42hGA+HS9Q3nMJB43/Gs2EtjM2YS3HHk3AblHCX
-	 cnxQfrUDutiuG9vwHXp89nh03wiSASCLn/N51DpJwijxjPVK8BmVufw9N6N2fK6vX4UccohCbSB4
-	 9S/6S/Bla4zyvFduREUqc1CQexD27zQN4KPEIEOS8=
-X-QQ-XMRINFO: MPJ6Tf5t3I/ycC2BItcBVIA=
-From: Edward Adam Davis <eadavis@qq.com>
-To: joseph.qi@linux.alibaba.com
-Cc: eadavis@qq.com,
-	jlbec@evilplan.org,
-	linux-kernel@vger.kernel.org,
-	mark@fasheh.com,
-	ocfs2-devel@lists.linux.dev,
-	syzbot+5a64828fcc4c2ad9b04f@syzkaller.appspotmail.com,
-	syzkaller-bugs@googlegroups.com
-Subject: Re: [PATCH] ocfs2: Add i_size check for dir
-Date: Wed, 21 Aug 2024 19:15:07 +0800
-X-OQ-MSGID: <20240821111506.555440-2-eadavis@qq.com>
-X-Mailer: git-send-email 2.46.0
-In-Reply-To: <606d781a-2d5c-48fc-bc67-4c7ff66a1dd7@linux.alibaba.com>
-References: <606d781a-2d5c-48fc-bc67-4c7ff66a1dd7@linux.alibaba.com>
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="cBprnIeF"
+Received: by mail-wm1-f46.google.com with SMTP id 5b1f17b1804b1-4290075c7e1so1015395e9.0
+        for <ocfs2-devel@lists.linux.dev>; Wed, 21 Aug 2024 04:40:08 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=suse.com; s=google; t=1724240407; x=1724845207; darn=lists.linux.dev;
+        h=content-transfer-encoding:in-reply-to:from:references:cc:to
+         :content-language:subject:user-agent:mime-version:date:message-id
+         :from:to:cc:subject:date:message-id:reply-to;
+        bh=XQy9LBwp51k85doIAWOjWZXnls3PlfVEFpR3aoQxmj8=;
+        b=cBprnIeFY6SvzNO5mh5Hho0dBBJuW4zKyQLioHgKZCeJZ6OWEVyGKTewdmJTjgnACX
+         MYsIvSi0OVN15tRvyIO6msNXTj7J+kL12kREBVCPlz3Hr3j8QA2gO39wS3+xPowD0AQB
+         TBAlRgJqLDI5BA5DIYkjyCTaVbySfGUt7LaDRnv8H6aiLJiiWTKp+980zv0uqA5PN2Z1
+         N2dw5f1vt9sEtkFWXGCwRz2W+vNbe+xnAfiGuhV15Qq6o8oJz7ZZdcv/7sZWbycjM245
+         QMPNMarmycUILEZGQyqB6DfLa4ZxMc3pjH2WOYRZOTq+6tKZkd0rB9Q5chpxt3GoKuzf
+         QwIA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1724240407; x=1724845207;
+        h=content-transfer-encoding:in-reply-to:from:references:cc:to
+         :content-language:subject:user-agent:mime-version:date:message-id
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
+        bh=XQy9LBwp51k85doIAWOjWZXnls3PlfVEFpR3aoQxmj8=;
+        b=HBBRDdsjYA9eTp25MLFZ1KN+8UDooFvg8zKi+uZ8Gx1wCo3lBzXeoXloR4oNlJvT1K
+         b2hbnSaMYX3WbfSu/7wtCviPLCxCUZcW7JsVi6KyxvkejLvR1R+FmaV1Rb+zlRz7kIiw
+         V6Aq/wF8YLt2OmqUbQi0LbOJdmhg5i0hOWUJCppgcF5dRMDO02OEds+e40KiWnZRn7jt
+         Svkipb1MKzqL7SXQo2e3PERnj8gRPLrNe+peiri1DN1wM2xy10jSHuQCduB3sPX/MsJq
+         jp/cS7JRjYbWxYEpwz2YTtXXGtHpgFv7PX5yYdTbEGM9jQaqanYRFvYBfRYKbRtyNNDC
+         UgmA==
+X-Forwarded-Encrypted: i=1; AJvYcCUEWX6NFmt/i9akALXrGpVU+d8WxF2OObHq7tdbkOvTZHa1R8JoyhnyK1f4MYIACrUmzqdik67FtfbkTQ==@lists.linux.dev
+X-Gm-Message-State: AOJu0YzCnSOEctd5UEThq9bVfenfTjGbMdz5L0IezZcHDUZuJMYGZsEA
+	02otu075w7deOqOkXyY0M/Oma+3vJlAUROR4+XioeNQ3g6p46FyRLlguUT0fsJc=
+X-Google-Smtp-Source: AGHT+IFu+co3QmulLWZnBNYh0+MKW+hT0OnXrUqee+tKbGDEErfOYOQtHNV/NVXtiH45oA614+eEng==
+X-Received: by 2002:a5d:5846:0:b0:367:2da6:aa1b with SMTP id ffacd0b85a97d-372fd710240mr685060f8f.7.1724240406292;
+        Wed, 21 Aug 2024 04:40:06 -0700 (PDT)
+Received: from [10.202.0.23] ([202.127.77.110])
+        by smtp.gmail.com with ESMTPSA id d9443c01a7336-2036fbec3c6sm8908245ad.124.2024.08.21.04.40.03
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Wed, 21 Aug 2024 04:40:05 -0700 (PDT)
+Message-ID: <25f2be6c-3e9c-4484-a44e-d26e9c4c8a74@suse.com>
+Date: Wed, 21 Aug 2024 19:40:01 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH V4 2/2] ocfs2: Fix possible null-ptr-deref in
+ ocfs2_set_buffer_uptodate
+Content-Language: en-US
+To: Lizhi Xu <lizhi.xu@windriver.com>, joseph.qi@linux.alibaba.com
+Cc: jlbec@evilplan.org, linux-kernel@vger.kernel.org, mark@fasheh.com,
+ ocfs2-devel@lists.linux.dev,
+ syzbot+ab134185af9ef88dfed5@syzkaller.appspotmail.com,
+ syzkaller-bugs@googlegroups.com
+References: <1a063827-5cf3-42df-a690-f3c644c10996@linux.alibaba.com>
+ <20240821091459.681136-1-lizhi.xu@windriver.com>
+From: Heming Zhao <heming.zhao@suse.com>
+In-Reply-To: <20240821091459.681136-1-lizhi.xu@windriver.com>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
 
-On Wed, 21 Aug 2024 18:41:06 +0800, Joseph Qi wrote:
->>>> When the i_size of dir is too large, it will cause limit to overflow and
->>>> be less than de_buf, ultimately resulting in last_de not being initialized
->>>> and causing uaf issue.
->>>>
->>>> Reported-and-tested-by: syzbot+5a64828fcc4c2ad9b04f@syzkaller.appspotmail.com
->>>> Signed-off-by: Edward Adam Davis <eadavis@qq.com>
->>>> ---
->>>>  fs/ocfs2/dir.c | 2 ++
->>>>  1 file changed, 2 insertions(+)
->>>>
->>>> diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
->>>> index d620d4c53c6f..c308dba6d213 100644
->>>> --- a/fs/ocfs2/dir.c
->>>> +++ b/fs/ocfs2/dir.c
->>>> @@ -3343,6 +3343,8 @@ static int ocfs2_find_dir_space_id(struct inode *dir, struct buffer_head *di_bh,
->>>>  	unsigned long offset = 0;
->>>>  	unsigned int rec_len, new_rec_len, free_space;
->>>>
->>>> +	if (i_size_read(dir) > OCFS2_MAX_BLOCKSIZE)
->>>> +		return -EINVAL;
+On 8/21/24 17:14, Lizhi Xu wrote:
+> On Wed, 21 Aug 2024 15:58:36 +0800, Joseph Qi wrote:
+>> On 8/21/24 3:37 PM, heming.zhao@suse.com wrote:
+>>> Hi,
 >>>
->>> Why OCFS2_MAX_BLOCKSIZE?
->> I think it is largest block size in ocfs2, therefore, if it is larger
->> than it, it must be incorrect, even though the value of i_size in dir
->> in the current issue is much larger than it (i_size_read(dir) is 0x900000000000100).
->>> It seems that this is caused by a corrupted dir inode, since this is an
->>> inline case, we may try best to make sure it won't exceeds block size?
->>> i.e. dir->i_sb->s_blocksize.
->> You mean dir->i_sb->s_blocksize bigger than OCFS2_MAX_BLOCKSIZE?
+>>> On 8/21/24 14:55, Lizhi Xu wrote:
+>>>> On Wed, 21 Aug 2024 14:23:08 +0800, Heming Zhao wrote:
+>>>>> Where is my "Reviewed-by" tag, and where is [patch 1/2]?
+>>>> Sorry about your "Reviewed-by" tag, I remove it, if you don't mind, you can
+>>>> add it by yourself.
+>>>
+>>> Good answer!
+>>>
+>>> This patch issue was found by me, and I also pointed out how to fix it, then take the time
+>>> to review your code. But in the end, you removed my "Reviewed-by" tag.
+>>>
 >>
->No, I mean check s_blocksize seems more reasonable rather than
->OCFS2_MAX_BLOCKSIZE.
-Perhaps we have different perspectives on the issue. 
-My approach is to set a bottom line for the dir's i_size, and if it
-exceeds the bottom line, the dir will definitely be corrupted.
-And I think OCFS2_MAX_BLOCKSIZE is the reasonable bottom line.
+>> Seems a misunderstanding, take it easy:)
+>> Lizhi may think since this is a new version, it needs a new round review.
+> Yeah, the subject and comments have all been changed.
+> Thank you for defending me:)
 
-BR,
-Edward
+OK.
+
+> 
+> BR,
+> Lizhi
 
