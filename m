@@ -1,31 +1,31 @@
-Received: from out30-101.freemail.mail.aliyun.com (out30-101.freemail.mail.aliyun.com [115.124.30.101])
+Received: from out30-119.freemail.mail.aliyun.com (out30-119.freemail.mail.aliyun.com [115.124.30.119])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0E7411E507
-	for <ocfs2-devel@lists.linux.dev>; Wed, 21 Aug 2024 00:01:10 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.101
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6B32681E
+	for <ocfs2-devel@lists.linux.dev>; Wed, 21 Aug 2024 00:08:47 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.119
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1724198474; cv=none; b=QzZpuaF6X5isqnyCi3SwcYtUVa+go2RZNGrZmoSXYn778HH7k+imt0Wah3762AgZZVE7jU0hSmKZ6O4B1HhKXRs/TvySEcGdxp1OqrAQrkP7dE5WXpgx7wWOFLjyzIl2K71N51Lt8ZX7FbHMJN+vvn/Gv4YX8dwH4eo40TCYhZM=
+	t=1724198931; cv=none; b=aiZlCFmw9AMWNcSrhALB4In1PZRd1eTzagb6XXsKPJ75WfKQrXmY76cBcofe44QgnE2FoYbEDh//OpCNptyxoIo62WbGdlPj2kU+2OxVDi7+kuayE9xBkpYmgQq2iX31dkH5TmsqXG39juNFfdKoQ5upCTYqTguA/tBWgejmJyk=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1724198474; c=relaxed/simple;
-	bh=6NP0d5pzDlhfKsMoiY0GMxdxnmKALz0Fx+ak5WzsELo=;
+	s=arc-20240116; t=1724198931; c=relaxed/simple;
+	bh=p3dA9/En9kfVb7bw9vF09rEAf/8yLOR+1r+RhSE3TTw=;
 	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=lugL8nHGmOqMZBzh0H8/6TdYagdUrYaKiCPRxdWfNO/e3Y9veBoMPcPApn+SL2JaF93fGTC9VFeCPlBwPh514yF6RT1EUqKYCPs3+D1AEjsR47dCTH2k3zO96uyhxbwA6VZqDsbZaaH4pT8nIOumXxW7hhuMCaCfOaUbdS1k5dQ=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=H940xaeP; arc=none smtp.client-ip=115.124.30.101
+	 In-Reply-To:Content-Type; b=dHadagHpMj7UF137p/nNbiuxYPs5oFMIYDUvZia/iEV3ZEF9JHDTeGNKCiSrsorXTUnUWLURWlfZ6sW27hQZEWmYrTmTxIIDm7mZfzxMZLJjJ5/H6zfBS8LBFD1x5kV/ToOCjRr7VGtl5kLOCJxTqUS14mfe7Ga8fAB1X7XbGmk=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=qnPTU+EF; arc=none smtp.client-ip=115.124.30.119
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="H940xaeP"
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="qnPTU+EF"
 DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
 	d=linux.alibaba.com; s=default;
-	t=1724198468; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=pdQnvwC2OPWvP4XcVr70GTE2wb0YbxSFUpju1heYibw=;
-	b=H940xaePC0MAq7NAlTASoq3q2VJrSx72HwfykxXxurSFsV3tf9eXCB+AR4R+BLQZOyU5O3puuHAIYwKuw+sWK2kPo/GuyhuCa7bKMyUaTg8Zc5v0lqXwN0NFDLN+SS7ppeih0Xhh0/CERoUOtH/JP1aLdTqW7EkiPyOKGfC4ce8=
-Received: from 30.171.230.57(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0WDJj8yr_1724198149)
+	t=1724198925; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=GcAXD9iBBfjMXq2km1UKv5nnHqGtH92Htt5r1IL/qZ8=;
+	b=qnPTU+EFn1vBJ1YBAuJjK546eO4Kd6wVz+NM8tjRdYEN+ICI12ywWqyY04SrcW1DMyK1c/2GsHKe/vsNQJZVSVdaCo4tm16xOSVHqxAQd9+yHThuiInXYU8yBYQEy+bwTj4cndm6I0zE5y/YOYjgNqlz9jAmjIwIOLPppiW2C38=
+Received: from 30.171.230.57(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0WDJpstE_1724198924)
           by smtp.aliyun-inc.com;
-          Wed, 21 Aug 2024 07:55:50 +0800
-Message-ID: <6b5b86fe-ffed-4cc9-b73c-ad6ee7bf68f5@linux.alibaba.com>
-Date: Wed, 21 Aug 2024 07:55:49 +0800
+          Wed, 21 Aug 2024 08:08:45 +0800
+Message-ID: <7da687ce-ffb7-44e3-bddc-d5c2f4f48c95@linux.alibaba.com>
+Date: Wed, 21 Aug 2024 08:08:44 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -33,45 +33,63 @@ List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH V3 1/2] ocfs2: remove unreasonable unlock
-To: Lizhi Xu <lizhi.xu@windriver.com>, heming.zhao@suse.com,
- akpm <akpm@linux-foundation.org>
+Subject: Re: [PATCH V3 2/2] ocfs2: Fix uaf in ocfs2_set_buffer_uptodate
+To: Lizhi Xu <lizhi.xu@windriver.com>, heming.zhao@suse.com
 Cc: jlbec@evilplan.org, linux-kernel@vger.kernel.org, mark@fasheh.com,
  ocfs2-devel@lists.linux.dev,
  syzbot+ab134185af9ef88dfed5@syzkaller.appspotmail.com,
  syzkaller-bugs@googlegroups.com
 References: <980b3f4d-f265-4eb4-96a3-8f1a75588193@suse.com>
  <20240820094512.2228159-1-lizhi.xu@windriver.com>
+ <20240820094512.2228159-2-lizhi.xu@windriver.com>
 Content-Language: en-US
 From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <20240820094512.2228159-1-lizhi.xu@windriver.com>
+In-Reply-To: <20240820094512.2228159-2-lizhi.xu@windriver.com>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
 
 
 On 8/20/24 5:45 PM, Lizhi Xu wrote:
-> There was a lock release before exiting, so remove the unreasonable unlock.
+> In the for-loop after the 'read_failure' label, the condition
+> '(bh == NULL) && flags includes OCFS2_BH_READAHEAD' is missing.
+> When this contidion is true, this for-loop will call ocfs2_set_buffer
+> _uptodate(ci, bh), which then triggers a NULL pointer access error.
 > 
-> Reported-and-tested-by: syzbot+ab134185af9ef88dfed5@syzkaller.appspotmail.com
-> Closes: https://syzkaller.appspot.com/bug?extid=ab134185af9ef88dfed5
+
+Or it may simplified as the following:
+
+When doing cleanup, if flags without OCFS2_BH_READAHEAD, it may trigger
+NULL pointer dereference in the following ocfs2_set_buffer_uptodate() if
+bh is NULL.
+
+> Changes from V2:
+> * Make the code more concise
+> 
+
+This is not the right place for changelog.
+
+Thanks,
+Joseph
+
+> Reported-and-suggested-by: Heming Zhao <heming.zhao@suse.com>
 > Signed-off-by: Lizhi Xu <lizhi.xu@windriver.com>
 > Reviewed-by: Heming Zhao <heming.zhao@suse.com>
-
-Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
 > ---
->  fs/ocfs2/buffer_head_io.c | 1 -
->  1 file changed, 1 deletion(-)
+>  fs/ocfs2/buffer_head_io.c | 3 ++-
+>  1 file changed, 2 insertions(+), 1 deletion(-)
 > 
 > diff --git a/fs/ocfs2/buffer_head_io.c b/fs/ocfs2/buffer_head_io.c
-> index cdb9b9bdea1f..e62c7e1de4eb 100644
+> index e62c7e1de4eb..8f714406528d 100644
 > --- a/fs/ocfs2/buffer_head_io.c
 > +++ b/fs/ocfs2/buffer_head_io.c
-> @@ -235,7 +235,6 @@ int ocfs2_read_blocks(struct ocfs2_caching_info *ci, u64 block, int nr,
->  		if (bhs[i] == NULL) {
->  			bhs[i] = sb_getblk(sb, block++);
->  			if (bhs[i] == NULL) {
-> -				ocfs2_metadata_cache_io_unlock(ci);
->  				status = -ENOMEM;
->  				mlog_errno(status);
->  				/* Don't forget to put previous bh! */
+> @@ -388,7 +388,8 @@ int ocfs2_read_blocks(struct ocfs2_caching_info *ci, u64 block, int nr,
+>  		/* Always set the buffer in the cache, even if it was
+>  		 * a forced read, or read-ahead which hasn't yet
+>  		 * completed. */
+> -		ocfs2_set_buffer_uptodate(ci, bh);
+> +		if (bh)
+> +			ocfs2_set_buffer_uptodate(ci, bh);
+>  	}
+>  	ocfs2_metadata_cache_io_unlock(ci);
+>  
