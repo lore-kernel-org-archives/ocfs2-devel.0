@@ -1,93 +1,96 @@
-Received: from mx0b-0064b401.pphosted.com (mx0b-0064b401.pphosted.com [205.220.178.238])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-lf1-f49.google.com (mail-lf1-f49.google.com [209.85.167.49])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3FC031C6B5
-	for <ocfs2-devel@lists.linux.dev>; Wed, 21 Aug 2024 06:15:13 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=205.220.178.238
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1F72616DC29
+	for <ocfs2-devel@lists.linux.dev>; Wed, 21 Aug 2024 06:16:25 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.167.49
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1724220916; cv=none; b=gpS+30NcpuV31g/YBaPjOXrnf2T4egwuKfIZA9xziSxz6pqdtlaFAg8EoSy2ZndYbUU85S4iUJ2hqleXSbC4RA28U+bpaXzNZUnX5dayDVHMz23395W5EYJ5ZsXpUQHFSNDgreSup6S+OxLx7SfxiSiVDLnw81y2ftr5WvJjkEM=
+	t=1724220988; cv=none; b=jvHVmbFGkF0KtkAACpXM4+gbKGSlvVqdQ4skqoDyzvMnf4PkiP100xGK93REWR+CgRCvnEiT6jAb192Fnm8jm28ZfZFSFgDAJ2zwZ+36payVLBPpoXujOJVdd0S9fhiyQX+t2kwWRqQG7B5ZitJutpbHsAzJrHN3sEA6l+kqDNs=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1724220916; c=relaxed/simple;
-	bh=l6RgAg+6ZeJEwjWHPBKA8qfgAIqhdCyu7/TRWnMMufU=;
-	h=From:To:CC:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version:Content-Type; b=EcRFkiIgKA898rf7fBHtYmprO7IRf3kgy7XLj65P5W+jn8bWXyVRy7fwE+TGbdLLzMIb8oQzxqOdVY6DZskqDA73gz7LZoGO3wR3BC7DQ4hMRDQL40rG2OonjUzuKTNJNWKhiAHYXg3yToLYj4xGhxNWfAKQf+E3beX7sYU8v3g=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=windriver.com; spf=pass smtp.mailfrom=windriver.com; arc=none smtp.client-ip=205.220.178.238
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=windriver.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=windriver.com
-Received: from pps.filterd (m0250812.ppops.net [127.0.0.1])
-	by mx0a-0064b401.pphosted.com (8.18.1.2/8.18.1.2) with ESMTP id 47L4OTJR001709;
-	Wed, 21 Aug 2024 06:14:55 GMT
-Received: from ala-exchng01.corp.ad.wrs.com (ala-exchng01.wrs.com [147.11.82.252])
-	by mx0a-0064b401.pphosted.com (PPS) with ESMTPS id 412ju6usb9-1
-	(version=TLSv1.2 cipher=ECDHE-RSA-AES128-GCM-SHA256 bits=128 verify=NOT);
-	Wed, 21 Aug 2024 06:14:55 +0000 (GMT)
-Received: from ala-exchng01.corp.ad.wrs.com (147.11.82.252) by
- ala-exchng01.corp.ad.wrs.com (147.11.82.252) with Microsoft SMTP Server
- (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
- 15.1.2507.39; Tue, 20 Aug 2024 23:14:53 -0700
-Received: from pek-lpd-ccm6.wrs.com (147.11.136.210) by
- ala-exchng01.corp.ad.wrs.com (147.11.82.252) with Microsoft SMTP Server id
- 15.1.2507.39 via Frontend Transport; Tue, 20 Aug 2024 23:14:51 -0700
-From: Lizhi Xu <lizhi.xu@windriver.com>
-To: <lizhi.xu@windriver.com>
-CC: <heming.zhao@suse.com>, <jlbec@evilplan.org>,
-        <joseph.qi@linux.alibaba.com>, <linux-kernel@vger.kernel.org>,
-        <mark@fasheh.com>, <ocfs2-devel@lists.linux.dev>,
-        <syzbot+ab134185af9ef88dfed5@syzkaller.appspotmail.com>,
-        <syzkaller-bugs@googlegroups.com>
-Subject: [PATCH V4 2/2] ocfs2: Fix possible null-ptr-deref in ocfs2_set_buffer_uptodate
-Date: Wed, 21 Aug 2024 14:14:50 +0800
-Message-ID: <20240821061450.3478602-1-lizhi.xu@windriver.com>
-X-Mailer: git-send-email 2.43.0
-In-Reply-To: <20240821055546.3254888-1-lizhi.xu@windriver.com>
-References: <20240821055546.3254888-1-lizhi.xu@windriver.com>
+	s=arc-20240116; t=1724220988; c=relaxed/simple;
+	bh=TFCz7PQJhvKH/U686Gug3qL4/gmui/CXF+yBlr+kKtw=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=JT+v5zH48+8Dzjeyxw/kAfJYdeH4Pe9r5T7hTwrFlLJ+BVNbnj6V2titBjtHTvFnqY40E7eQTrwvaAljNNRDEWQMtbloJQdU4389xZPVPgvsMpMRJo+tmWgeWqhsm021KUDqezXwkB730Hh8eut4QheqpLPzm9EkLt3at8TCE4g=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=aKb0yiAt; arc=none smtp.client-ip=209.85.167.49
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="aKb0yiAt"
+Received: by mail-lf1-f49.google.com with SMTP id 2adb3069b0e04-530ad984f2dso84190e87.1
+        for <ocfs2-devel@lists.linux.dev>; Tue, 20 Aug 2024 23:16:25 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=suse.com; s=google; t=1724220984; x=1724825784; darn=lists.linux.dev;
+        h=content-transfer-encoding:in-reply-to:from:content-language
+         :references:cc:to:subject:user-agent:mime-version:date:message-id
+         :from:to:cc:subject:date:message-id:reply-to;
+        bh=9P4gcxzVu5ZblE5EZdgIWz1gVNiyAoJspohsbbpxAWw=;
+        b=aKb0yiAtQplSXQ56jGZOuebwinJlkotVGIAKtuSVv8mZaOSWal0/QHEtZwJWjsMxuv
+         tm09on1q++1iL5BiINZV4WUrEoHlgeFtxYAqajjRnSvbSeq8iaVBgEOWkdtuNL3kmtpI
+         +PUvGhueK1y99uto6GzQSq0azz+/dCoCBAmPZtfA1fcfi6/tX685PuVBo5hGdMXkRbJ+
+         Eahpkj9ORJsnzkNH2CSBf8o4qV010tWJwuAVllVmNoUAlOrwmvDiHucixVQ/XQ3mDIch
+         9Ovky67qyMNcayGa9NKPWJkiRvWQQ5TZL2J9oE2afM7QmX7J31r6NE499egkaAaXb9/H
+         dlgQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1724220984; x=1724825784;
+        h=content-transfer-encoding:in-reply-to:from:content-language
+         :references:cc:to:subject:user-agent:mime-version:date:message-id
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
+        bh=9P4gcxzVu5ZblE5EZdgIWz1gVNiyAoJspohsbbpxAWw=;
+        b=DqCy6qeBWlT6lM/RDQcFDxJVsTedIzFpHBtWsw4ZTUjjeGgy3etCRfpnqMUdz02Lfn
+         Kn9nj67VpoW6c0cks0aRaZOwxJ+yBQnPktb0k4waK/ipFg3klGdA64ghbnNKLRhtcYca
+         1gxeQPWv9khCCzh0zAyFcxSegT0oYUkiEboGNUrptrBsz8FzB9h9WfGDyE1nO5uJ4gJF
+         hzrYrdsvvCBtQTMwDMwVeu3hcEae0WVxYeoC1za3OzxfkH8sw/iC87pExExVKGIYcW8g
+         Gw1fi0d8gnwoWEnOQ+frXL8Ntxq13baP47G5FkoYwwk6CMP994g+KZ6cFlv+a1ehM8B6
+         lMPQ==
+X-Forwarded-Encrypted: i=1; AJvYcCWuCIWU/bG5POnSyzAjokb3mbr64VKcCMTLLCrmMhRShVnIVKFeOdSS5DeYKdZ46zl5yW0yMoEgWMS0mw==@lists.linux.dev
+X-Gm-Message-State: AOJu0YxArBeng4dN+aWyx9AQC92r9Y3LTLwNfwvN8eidtXmWyFd5KaZO
+	JH2EuUmjd8Hw1IWNP/YCGMqBysRJtTUgq3wEYWEMLxaED4YtJ68/H74ykdlaihU=
+X-Google-Smtp-Source: AGHT+IEurWlDkBYCwKYc8PABk6orI+cY1w8eBbYayTY407u5x81wfTTYFYytldOAJ71ExMNirgbCdQ==
+X-Received: by 2002:a2e:be9e:0:b0:2ee:e196:1486 with SMTP id 38308e7fff4ca-2f3f894c99amr5506261fa.4.1724220983530;
+        Tue, 20 Aug 2024 23:16:23 -0700 (PDT)
+Received: from [10.202.32.28] ([202.127.77.110])
+        by smtp.gmail.com with ESMTPSA id d2e1a72fcca58-7127af18899sm9182877b3a.155.2024.08.20.23.16.19
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Tue, 20 Aug 2024 23:16:22 -0700 (PDT)
+Message-ID: <1c4d5baa-0ee9-46f9-b7d1-cb69387cc0d0@suse.com>
+Date: Wed, 21 Aug 2024 14:16:17 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Content-Type: text/plain
-X-Proofpoint-ORIG-GUID: gjYC9SLvYHY8bYDyLcjO7DUYl5-NFTtO
-X-Authority-Analysis: v=2.4 cv=VdWlP0p9 c=1 sm=1 tr=0 ts=66c585df cx=c_pps a=/ZJR302f846pc/tyiSlYyQ==:117 a=/ZJR302f846pc/tyiSlYyQ==:17 a=yoJbH4e0A30A:10 a=iox4zFpeAAAA:8 a=t7CeM3EgAAAA:8 a=2XkvJDdhvVXYFy9qs80A:9 a=WzC6qhA0u3u7Ye7llzcV:22
- a=FdTzh2GWekK77mhwV6Dw:22
-X-Proofpoint-GUID: gjYC9SLvYHY8bYDyLcjO7DUYl5-NFTtO
-X-Proofpoint-Virus-Version: vendor=baseguard
- engine=ICAP:2.0.293,Aquarius:18.0.1039,Hydra:6.0.680,FMLib:17.12.28.16
- definitions=2024-08-21_06,2024-08-19_03,2024-05-17_01
-X-Proofpoint-Spam-Details: rule=outbound_notspam policy=outbound score=0 clxscore=1015 phishscore=0
- spamscore=0 malwarescore=0 impostorscore=0 mlxscore=0 suspectscore=0
- mlxlogscore=912 lowpriorityscore=0 bulkscore=0 priorityscore=1501
- adultscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.21.0-2407110000 definitions=main-2408210044
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH] ocfs2: Add i_size check for dir
+To: Matthew Wilcox <willy@infradead.org>, joseph.qi@linux.alibaba.com,
+ Edward Adam Davis <eadavis@qq.com>
+Cc: syzbot+5a64828fcc4c2ad9b04f@syzkaller.appspotmail.com,
+ jlbec@evilplan.org, linux-kernel@vger.kernel.org, mark@fasheh.com,
+ ocfs2-devel@lists.linux.dev, syzkaller-bugs@googlegroups.com
+References: <0000000000005894f3062018caf1@google.com>
+ <tencent_EC9ACDC0793A6F742D7D6FA094F0E96AEF0A@qq.com>
+ <ZsSvbDxMtUEHEldl@casper.infradead.org>
+Content-Language: en-US
+From: "heming.zhao@suse.com" <heming.zhao@suse.com>
+In-Reply-To: <ZsSvbDxMtUEHEldl@casper.infradead.org>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
 
-When doing cleanup, if flags without OCFS2_BH_READAHEAD, it may trigger
-NULL pointer dereference in the following ocfs2_set_buffer_uptodate() if
-bh is NULL.
 
-Reported-and-suggested-by: Heming Zhao <heming.zhao@suse.com>
-Signed-off-by: Lizhi Xu <lizhi.xu@windriver.com>
----
-V3 -> V4: Update comments and subject
 
- fs/ocfs2/buffer_head_io.c | 3 ++-
- 1 file changed, 2 insertions(+), 1 deletion(-)
+On 8/20/24 22:59, Matthew Wilcox wrote:
+> On Tue, Aug 20, 2024 at 08:08:38PM +0800, Edward Adam Davis wrote:
+>> When the i_size of dir is too large, it will cause limit to overflow and
+>> be less than de_buf, ultimately resulting in last_de not being initialized
+>> and causing uaf issue.
+>>   
+>> +	if (i_size_read(dir) > OCFS2_MAX_BLOCKSIZE)
+>> +		return -EINVAL;
+> 
+> Surely directories can be more than one block in size?
+> 
 
-diff --git a/fs/ocfs2/buffer_head_io.c b/fs/ocfs2/buffer_head_io.c
-index e62c7e1de4eb..8f714406528d 100644
---- a/fs/ocfs2/buffer_head_io.c
-+++ b/fs/ocfs2/buffer_head_io.c
-@@ -388,7 +388,8 @@ int ocfs2_read_blocks(struct ocfs2_caching_info *ci, u64 block, int nr,
- 		/* Always set the buffer in the cache, even if it was
- 		 * a forced read, or read-ahead which hasn't yet
- 		 * completed. */
--		ocfs2_set_buffer_uptodate(ci, bh);
-+		if (bh)
-+			ocfs2_set_buffer_uptodate(ci, bh);
- 	}
- 	ocfs2_metadata_cache_io_unlock(ci);
- 
--- 
-2.43.0
+The key point above is that the patch uses a hard code value, but in the real world,
+the blocksize can be smaller than OCFS2_MAX_BLOCKSIZE.
 
+-Heming
