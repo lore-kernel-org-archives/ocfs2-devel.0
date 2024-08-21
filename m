@@ -1,86 +1,88 @@
-Received: from mx0b-0064b401.pphosted.com (mx0b-0064b401.pphosted.com [205.220.178.238])
+Received: from out30-113.freemail.mail.aliyun.com (out30-113.freemail.mail.aliyun.com [115.124.30.113])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 57CBF1E6187
-	for <ocfs2-devel@lists.linux.dev>; Wed, 21 Aug 2024 09:15:22 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=205.220.178.238
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 75B811D12FD
+	for <ocfs2-devel@lists.linux.dev>; Wed, 21 Aug 2024 10:41:09 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.113
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1724231725; cv=none; b=UooRAerc3SjpWcN7GkNSqVZJTj6SOqk7CrL99zJgOfWmSTOOztnQf007qFNiQNIjWyQxFQs9j1uObmnciiYHkx2SCjvPlrb/IIxX8ANhTRn+ptK7SlMahGKnDMgKSvU/itKkmu3ToqQgwIhUxiWWBuclxsL3LSWPIL5v+Kk3ZcE=
+	t=1724236873; cv=none; b=SYEHRTCsdmsgR3iFhZnE/XNp3fS1qzGUx3+wAmU+tzlsq4mfObV8LRS00XF27Zrw1uH+ccJveHCLAyPPl5oKaMtTDQrXmqO6uZRY0TQVolLuBc4yIGZgPqIadoY9kcypsHQnLckcxzWvSN/xAo3t3fgrT6+iNtksP51/SFOjJdc=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1724231725; c=relaxed/simple;
-	bh=h4sR+Z0uQ3Nu8ylmSuNrlCa70NIXH8qFhIgnbMAO+Pg=;
-	h=From:To:CC:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version:Content-Type; b=ua3ZOFlbPk1FniR4/YQkDWoPUz2zFFgfanPV5qxNdDtpSKNAFLBwhq4apV+RTV5hrvyGwRVcbbItwERu317TN9M9/TkkjQckSwzY9IJi0JshvqavPhC5yXspZniHe9Ge9fbriXiPhAS1ssv9fIKl3EFYMXjWIrN22614qDNJKYs=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=windriver.com; spf=pass smtp.mailfrom=windriver.com; arc=none smtp.client-ip=205.220.178.238
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=windriver.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=windriver.com
-Received: from pps.filterd (m0250811.ppops.net [127.0.0.1])
-	by mx0a-0064b401.pphosted.com (8.18.1.2/8.18.1.2) with ESMTP id 47L60Jk5019935;
-	Wed, 21 Aug 2024 09:15:04 GMT
-Received: from ala-exchng02.corp.ad.wrs.com (ala-exchng02.wrs.com [147.11.82.254])
-	by mx0a-0064b401.pphosted.com (PPS) with ESMTPS id 412j0xky18-4
-	(version=TLSv1.2 cipher=ECDHE-RSA-AES128-GCM-SHA256 bits=128 verify=NOT);
-	Wed, 21 Aug 2024 09:15:04 +0000 (GMT)
-Received: from ala-exchng01.corp.ad.wrs.com (147.11.82.252) by
- ALA-EXCHNG02.corp.ad.wrs.com (147.11.82.254) with Microsoft SMTP Server
- (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
- 15.1.2507.39; Wed, 21 Aug 2024 02:15:02 -0700
-Received: from pek-lpd-ccm6.wrs.com (147.11.136.210) by
- ala-exchng01.corp.ad.wrs.com (147.11.82.252) with Microsoft SMTP Server id
- 15.1.2507.39 via Frontend Transport; Wed, 21 Aug 2024 02:15:00 -0700
-From: Lizhi Xu <lizhi.xu@windriver.com>
-To: <joseph.qi@linux.alibaba.com>
-CC: <heming.zhao@suse.com>, <jlbec@evilplan.org>,
-        <linux-kernel@vger.kernel.org>, <lizhi.xu@windriver.com>,
-        <mark@fasheh.com>, <ocfs2-devel@lists.linux.dev>,
-        <syzbot+ab134185af9ef88dfed5@syzkaller.appspotmail.com>,
-        <syzkaller-bugs@googlegroups.com>
-Subject: Re: [PATCH V4 2/2] ocfs2: Fix possible null-ptr-deref in ocfs2_set_buffer_uptodate
-Date: Wed, 21 Aug 2024 17:14:59 +0800
-Message-ID: <20240821091459.681136-1-lizhi.xu@windriver.com>
-X-Mailer: git-send-email 2.43.0
-In-Reply-To: <1a063827-5cf3-42df-a690-f3c644c10996@linux.alibaba.com>
-References: <1a063827-5cf3-42df-a690-f3c644c10996@linux.alibaba.com>
+	s=arc-20240116; t=1724236873; c=relaxed/simple;
+	bh=MgqXQfGaLc+nIDTVyDl6f5wXU6tPZonqzL6bIuo4/YM=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=jK42CEK03Xss3SBT4yR4w0qzqwUvVmpu46tv1x4uNX8/zAYsMHY0DuAaOT7EWKEPdcfyeTakLm02S1n6AgL322/mM7QcE1BFofh7oseFjkeWal5RP9wC1D4WIEgVcOn0hQjx0HpD0Xi77kvS08VgmeXLy/29eAi4kimN87bHTno=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=GwX6P8LX; arc=none smtp.client-ip=115.124.30.113
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="GwX6P8LX"
+DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=linux.alibaba.com; s=default;
+	t=1724236868; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=wEhaDbJBW3F/a7RTaPxU6t0bpUhGjfqwIvVd64YX3O4=;
+	b=GwX6P8LXD0igoDIA9x9B8eQ41tI7RCL/HizBIDwaALd1o4+BCbE5U5ZyTdBoogbTGLeLg3qUgsLer/9qjd1cJBxoQ/Yaom4YuawSXKSDDbqgiafmGR1To8fK/gdRn61FsqJkr3VYCnlmSdA0ES93DyetwrwMkI+DMSan6rELDnA=
+Received: from 30.221.129.221(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0WDLhHw4_1724236866)
+          by smtp.aliyun-inc.com;
+          Wed, 21 Aug 2024 18:41:07 +0800
+Message-ID: <606d781a-2d5c-48fc-bc67-4c7ff66a1dd7@linux.alibaba.com>
+Date: Wed, 21 Aug 2024 18:41:06 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Content-Type: text/plain
-X-Authority-Analysis: v=2.4 cv=PszBbBM3 c=1 sm=1 tr=0 ts=66c5b018 cx=c_pps a=K4BcnWQioVPsTJd46EJO2w==:117 a=K4BcnWQioVPsTJd46EJO2w==:17 a=yoJbH4e0A30A:10 a=iox4zFpeAAAA:8 a=9y8SH6q5Cau_Sw3l_tAA:9 a=WzC6qhA0u3u7Ye7llzcV:22
-X-Proofpoint-ORIG-GUID: xX5jtSt2MlpqpSMLXuG_l2NYl7z5pkLW
-X-Proofpoint-GUID: xX5jtSt2MlpqpSMLXuG_l2NYl7z5pkLW
-X-Proofpoint-Virus-Version: vendor=baseguard
- engine=ICAP:2.0.293,Aquarius:18.0.1039,Hydra:6.0.680,FMLib:17.12.28.16
- definitions=2024-08-21_07,2024-08-19_03,2024-05-17_01
-X-Proofpoint-Spam-Details: rule=outbound_notspam policy=outbound score=0 adultscore=0
- lowpriorityscore=0 spamscore=0 phishscore=0 suspectscore=0 clxscore=1015
- mlxscore=0 malwarescore=0 priorityscore=1501 impostorscore=0
- mlxlogscore=613 bulkscore=0 classifier=spam adjust=0 reason=mlx
- scancount=1 engine=8.21.0-2407110000 definitions=main-2408210067
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH] ocfs2: Add i_size check for dir
+To: Edward Adam Davis <eadavis@qq.com>
+Cc: jlbec@evilplan.org, linux-kernel@vger.kernel.org, mark@fasheh.com,
+ ocfs2-devel@lists.linux.dev,
+ syzbot+5a64828fcc4c2ad9b04f@syzkaller.appspotmail.com,
+ syzkaller-bugs@googlegroups.com
+References: <205e0d29-2567-4d82-a024-a8e7826d9f18@linux.alibaba.com>
+ <tencent_16A450176CD77A86C8536B8366297C03A105@qq.com>
+Content-Language: en-US
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+In-Reply-To: <tencent_16A450176CD77A86C8536B8366297C03A105@qq.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
-On Wed, 21 Aug 2024 15:58:36 +0800, Joseph Qi wrote:
-> On 8/21/24 3:37 PM, heming.zhao@suse.com wrote:
-> > Hi,
-> >
-> > On 8/21/24 14:55, Lizhi Xu wrote:
-> >> On Wed, 21 Aug 2024 14:23:08 +0800, Heming Zhao wrote:
-> >>> Where is my "Reviewed-by" tag, and where is [patch 1/2]?
-> >> Sorry about your "Reviewed-by" tag, I remove it, if you don't mind, you can
-> >> add it by yourself.
-> >
-> > Good answer!
-> >
-> > This patch issue was found by me, and I also pointed out how to fix it, then take the time
-> > to review your code. But in the end, you removed my "Reviewed-by" tag.
-> >
+
+
+On 8/20/24 9:55 PM, Edward Adam Davis wrote:
+> On Tue, 20 Aug 2024 20:44:37 +0800, Joseph Qi wrote:
+>>> When the i_size of dir is too large, it will cause limit to overflow and
+>>> be less than de_buf, ultimately resulting in last_de not being initialized
+>>> and causing uaf issue.
+>>>
+>>> Reported-and-tested-by: syzbot+5a64828fcc4c2ad9b04f@syzkaller.appspotmail.com
+>>> Signed-off-by: Edward Adam Davis <eadavis@qq.com>
+>>> ---
+>>>  fs/ocfs2/dir.c | 2 ++
+>>>  1 file changed, 2 insertions(+)
+>>>
+>>> diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
+>>> index d620d4c53c6f..c308dba6d213 100644
+>>> --- a/fs/ocfs2/dir.c
+>>> +++ b/fs/ocfs2/dir.c
+>>> @@ -3343,6 +3343,8 @@ static int ocfs2_find_dir_space_id(struct inode *dir, struct buffer_head *di_bh,
+>>>  	unsigned long offset = 0;
+>>>  	unsigned int rec_len, new_rec_len, free_space;
+>>>
+>>> +	if (i_size_read(dir) > OCFS2_MAX_BLOCKSIZE)
+>>> +		return -EINVAL;
+>>
+>> Why OCFS2_MAX_BLOCKSIZE?
+> I think it is largest block size in ocfs2, therefore, if it is larger
+> than it, it must be incorrect, even though the value of i_size in dir
+> in the current issue is much larger than it (i_size_read(dir) is 0x900000000000100).
+>> It seems that this is caused by a corrupted dir inode, since this is an
+>> inline case, we may try best to make sure it won't exceeds block size?
+>> i.e. dir->i_sb->s_blocksize.
+> You mean dir->i_sb->s_blocksize bigger than OCFS2_MAX_BLOCKSIZE?
 > 
-> Seems a misunderstanding, take it easy:)
-> Lizhi may think since this is a new version, it needs a new round review.
-Yeah, the subject and comments have all been changed.
-Thank you for defending me:)
+No, I mean check s_blocksize seems more reasonable rather than
+OCFS2_MAX_BLOCKSIZE.
 
-BR,
-Lizhi
+Thanks,
+Joseph
