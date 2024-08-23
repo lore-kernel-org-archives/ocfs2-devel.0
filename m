@@ -1,162 +1,180 @@
-Received: from mail-il1-f199.google.com (mail-il1-f199.google.com [209.85.166.199])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from out30-132.freemail.mail.aliyun.com (out30-132.freemail.mail.aliyun.com [115.124.30.132])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B0ED21C2D
-	for <ocfs2-devel@lists.linux.dev>; Fri, 23 Aug 2024 00:00:27 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.166.199
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2B8771BDD0
+	for <ocfs2-devel@lists.linux.dev>; Fri, 23 Aug 2024 01:59:25 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.132
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1724371229; cv=none; b=EGscXL+ACzehaMrOek0Ow+xc3EHHMbziB8wnskjbl8PsfvwRkH3AwmiHHthAafB8TZpYEJWThu7VK7wPh1Q75khIlIlfJp9EDiO4EdvA/lB68Ga69KIDAAwOC6XHj4ffpsQMj4LvXRbw0Bu8dxUEu/LOjgja4G8YmTYt3+T4hLk=
+	t=1724378368; cv=none; b=jfbPpfpHLH56q/9/mOIl0BtnFa7HI0h44KjYfuUD5AJZ+fn1dQIqGHqQYPztGSkLVuUSI4klLqP0GFrFs14iJAdaOsRit3FgJMTAjJG0MbwDY8OMumpuaXutxTgDgO3AjFRqD+P3b/77TQxPgOZaN0MlSxUfBawoV4khm1E/+SE=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1724371229; c=relaxed/simple;
-	bh=GX+vAFBQPMRb4ioEULW38ZYKLzt2D67aw/7WqZOQakI=;
-	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=CGMDVejDUBh3iCpxH3ntD2Yt3x+aBe67S4euRwi2nQruDNXEP0BtT2TL0ZTzhQj3iZHCAQTjGmOUolr4iV+O8LturkfZWBiKYiVJ46s3WoCIi7hKSsSbvcBcbUuRHc7y2om6AuhxAKmGpXhteO4GYQy4W+IC/AXH5yIiuu79Zbc=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.166.199
-Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
-Received: by mail-il1-f199.google.com with SMTP id e9e14a558f8ab-39d2dbd9bebso19735365ab.0
-        for <ocfs2-devel@lists.linux.dev>; Thu, 22 Aug 2024 17:00:27 -0700 (PDT)
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1724371227; x=1724976027;
-        h=to:from:subject:message-id:date:mime-version:x-gm-message-state
-         :from:to:cc:subject:date:message-id:reply-to;
-        bh=JOPpQ7a4Yvwd1RmC/w/uZSVRjCnYJKOpFwEzKsFw7j0=;
-        b=KEZ4lIEwFHSHf5HaYNh6C9qAx0qg/nhBobu1jFXapsUSKb3e2THCDmqxyKIg9lI5gt
-         9qrV9QJJD0q/hKoc0ohhfjW2wsfRIJddBN5tsFuONQndyBIQrJbVvvMBSYM4RLA/S3Py
-         RMBwJq5nRuPCNQqLg9mAMfHETaymePZPeIhVrwEnK9DODr0vQivaKANqbgjRMnKX8VJw
-         JTgkWsifyM2HW0zzWA10PjprQDLkStgtrokvLTZt3X+w3El8dn/v9WP10Uf31Opv9oi1
-         MQtho5V7eFJ/uKv45LJoZ5Hesq05MQ1VKZzYG1cmpCie7J+/Rp1cIihoAyVRLpVloNvV
-         aN1w==
-X-Forwarded-Encrypted: i=1; AJvYcCVSkKAnkeCInEUEuvG15WMTixzyn0vIpIl0J01G3JkdLKHO6SKv3NLPaoSIJdryyKu1kYmqPANH+D11hw==@lists.linux.dev
-X-Gm-Message-State: AOJu0YwmgVcTCJtK+SpBO62nj9j+zwmIBShRIY/vZEfVnYlzV0sc6vk1
-	6gTfNKWe+a7LTAVFu4NhLhLidztKZhkX7pYg/kFcyzRaLUj5ZHqM7w5ZdwfC20Ecd/UMhxL0N4w
-	muDkm0cZP+e8gg6akRL5teBiO9NYJ6yc3EPnyNCHNe1wgBw+IbfVsevc=
-X-Google-Smtp-Source: AGHT+IFMMQ/bjTQQ01pDKJLOXG6Y/PlpbLQd57NDsO2gbEdnRLz0ymf89vy36QujbK9n2k7aCN7dIhr2cRHqMmzNoQU0Ml540MTn
+	s=arc-20240116; t=1724378368; c=relaxed/simple;
+	bh=GQXDz7QhpIGLZQJFhSk2/5m1aeGpwBiQ77zC5wDFzsk=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=CdxVfKRVcIsR8SiDoHYrS+ao42fdpmrvcSsxt5qe+UZhBWX8bW0yvuzxxYaI6dAGVnnlNi7FNiXai5wB+SpKNXteylF2H81FFknzkFDsF0/Qi5+/dcQLhn/kNjbe2FduhV0LY9mijJbiUuCyjFPz2jphmeuXnfkKjsAzX+vAOLE=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=ypDbnM6H; arc=none smtp.client-ip=115.124.30.132
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="ypDbnM6H"
+DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=linux.alibaba.com; s=default;
+	t=1724378363; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=oKLrOfrB7vPhwPDWRYIpd+OtIG6ssC0bcRHISYc6urU=;
+	b=ypDbnM6HQCEsGMtfWY6lf+k/7EJsgmU/3XgdpwzybWsHQGqesWyFO8qkgBcnzE4e1tEuS7zi2LhPaQmZLW5t1Z40IsCzYVt6A0u0Lo7LuFdRstuPNtGC01eLPugQ9rQw7fNBDAW4UVGTQkBHBRjgb22iUk+mitPtp8Oo2dHIdWg=
+Received: from 30.221.129.19(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0WDRo11c_1724378362)
+          by smtp.aliyun-inc.com;
+          Fri, 23 Aug 2024 09:59:22 +0800
+Message-ID: <eb9f35a7-e3ab-47cf-a043-c03f11c21c97@linux.alibaba.com>
+Date: Fri, 23 Aug 2024 09:59:22 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-X-Received: by 2002:a92:c546:0:b0:39d:4d70:7782 with SMTP id
- e9e14a558f8ab-39e3c9f3985mr173015ab.4.1724371226891; Thu, 22 Aug 2024
- 17:00:26 -0700 (PDT)
-Date: Thu, 22 Aug 2024 17:00:26 -0700
-X-Google-Appengine-App-Id: s~syzkaller
-X-Google-Appengine-App-Id-Alias: syzkaller
-Message-ID: <00000000000070a66706204e7698@google.com>
-Subject: [syzbot] [ext4?] [ocfs2?] kernel BUG in jbd2_cleanup_journal_tail
-From: syzbot <syzbot+8512f3dbd96253ffbe27@syzkaller.appspotmail.com>
-To: jack@suse.com, jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
-	linux-ext4@vger.kernel.org, linux-kernel@vger.kernel.org, mark@fasheh.com, 
-	ocfs2-devel@lists.linux.dev, syzkaller-bugs@googlegroups.com, tytso@mit.edu
-Content-Type: text/plain; charset="UTF-8"
-
-Hello,
-
-syzbot found the following issue on:
-
-HEAD commit:    c3f2d783a459 Merge tag 'mm-hotfixes-stable-2024-08-17-19-3..
-git tree:       upstream
-console output: https://syzkaller.appspot.com/x/log.txt?x=16ba0fcb980000
-kernel config:  https://syzkaller.appspot.com/x/.config?x=7229118d88b4a71b
-dashboard link: https://syzkaller.appspot.com/bug?extid=8512f3dbd96253ffbe27
-compiler:       Debian clang version 15.0.6, GNU ld (GNU Binutils for Debian) 2.40
-syz repro:      https://syzkaller.appspot.com/x/repro.syz?x=15a1fc09980000
-C reproducer:   https://syzkaller.appspot.com/x/repro.c?x=11da5cfd980000
-
-Downloadable assets:
-disk image (non-bootable): https://storage.googleapis.com/syzbot-assets/7bc7510fe41f/non_bootable_disk-c3f2d783.raw.xz
-vmlinux: https://storage.googleapis.com/syzbot-assets/4d927f7c3cfd/vmlinux-c3f2d783.xz
-kernel image: https://storage.googleapis.com/syzbot-assets/ea54bdfad24b/bzImage-c3f2d783.xz
-mounted in repro: https://storage.googleapis.com/syzbot-assets/ec5187e2b71d/mount_0.gz
-
-IMPORTANT: if you fix the issue, please add the following tag to the commit:
-Reported-by: syzbot+8512f3dbd96253ffbe27@syzkaller.appspotmail.com
-
-(syz-executor675,5099,0):ocfs2_check_volume:2425 ERROR: ocfs2 journal load failed! -22
-(syz-executor675,5099,0):ocfs2_check_volume:2481 ERROR: status = -22
-(syz-executor675,5099,0):ocfs2_mount_volume:1821 ERROR: status = -22
-------------[ cut here ]------------
-kernel BUG at fs/jbd2/checkpoint.c:321!
-Oops: invalid opcode: 0000 [#1] PREEMPT SMP KASAN NOPTI
-CPU: 0 UID: 0 PID: 5099 Comm: syz-executor675 Not tainted 6.11.0-rc3-syzkaller-00338-gc3f2d783a459 #0
-Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.16.3-debian-1.16.3-2~bpo12+1 04/01/2014
-RIP: 0010:jbd2_cleanup_journal_tail+0x2bf/0x2d0 fs/jbd2/checkpoint.c:321
-Code: 24 40 80 e1 07 80 c1 03 38 c1 0f 8c 65 ff ff ff 48 8d 7c 24 40 e8 51 4d 8a ff e9 56 ff ff ff e8 57 1a 46 09 e8 a2 0b 23 ff 90 <0f> 0b 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 44 00 00 90 90 90 90 90
-RSP: 0018:ffffc90000e36d60 EFLAGS: 00010293
-RAX: ffffffff82707f4e RBX: 0000000000000000 RCX: ffff88801a738000
-RDX: 0000000000000000 RSI: 0000000000000000 RDI: 0000000000000000
-RBP: ffffc90000e36e30 R08: ffffffff82707dd7 R09: 1ffff11003709c16
-R10: dffffc0000000000 R11: ffffed1003709c17 R12: 1ffff920001c6db0
-R13: ffff88801b84e000 R14: 1ffff920001c6db6 R15: 1ffff11003709c00
-FS:  000055555d18e380(0000) GS:ffff888020800000(0000) knlGS:0000000000000000
-CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-CR2: 00007f251d195ed8 CR3: 000000001bee4000 CR4: 0000000000350ef0
-DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
-DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
-Call Trace:
- <TASK>
- jbd2_journal_flush+0x290/0xc10 fs/jbd2/journal.c:2479
- ocfs2_journal_shutdown+0x443/0xbe0 fs/ocfs2/journal.c:1081
- ocfs2_mount_volume+0x169f/0x1940 fs/ocfs2/super.c:1842
- ocfs2_fill_super+0x483b/0x5880 fs/ocfs2/super.c:1084
- mount_bdev+0x20a/0x2d0 fs/super.c:1679
- legacy_get_tree+0xee/0x190 fs/fs_context.c:662
- vfs_get_tree+0x90/0x2a0 fs/super.c:1800
- do_new_mount+0x2be/0xb40 fs/namespace.c:3472
- do_mount fs/namespace.c:3812 [inline]
- __do_sys_mount fs/namespace.c:4020 [inline]
- __se_sys_mount+0x2d6/0x3c0 fs/namespace.c:3997
- do_syscall_x64 arch/x86/entry/common.c:52 [inline]
- do_syscall_64+0xf3/0x230 arch/x86/entry/common.c:83
- entry_SYSCALL_64_after_hwframe+0x77/0x7f
-RIP: 0033:0x7f15c3ba9dea
-Code: d8 64 89 02 48 c7 c0 ff ff ff ff eb a6 e8 5e 04 00 00 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 40 00 49 89 ca b8 a5 00 00 00 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 b8 ff ff ff f7 d8 64 89 01 48
-RSP: 002b:00007ffc0f1577b8 EFLAGS: 00000282 ORIG_RAX: 00000000000000a5
-RAX: ffffffffffffffda RBX: 00007ffc0f1577d0 RCX: 00007f15c3ba9dea
-RDX: 0000000020004440 RSI: 0000000020000040 RDI: 00007ffc0f1577d0
-RBP: 0000000000000004 R08: 00007ffc0f157810 R09: 0000000000004424
-R10: 00000000000008c0 R11: 0000000000000282 R12: 00000000000008c0
-R13: 00007ffc0f157810 R14: 0000000000000003 R15: 0000000001000000
- </TASK>
-Modules linked in:
----[ end trace 0000000000000000 ]---
-RIP: 0010:jbd2_cleanup_journal_tail+0x2bf/0x2d0 fs/jbd2/checkpoint.c:321
-Code: 24 40 80 e1 07 80 c1 03 38 c1 0f 8c 65 ff ff ff 48 8d 7c 24 40 e8 51 4d 8a ff e9 56 ff ff ff e8 57 1a 46 09 e8 a2 0b 23 ff 90 <0f> 0b 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 44 00 00 90 90 90 90 90
-RSP: 0018:ffffc90000e36d60 EFLAGS: 00010293
-RAX: ffffffff82707f4e RBX: 0000000000000000 RCX: ffff88801a738000
-RDX: 0000000000000000 RSI: 0000000000000000 RDI: 0000000000000000
-RBP: ffffc90000e36e30 R08: ffffffff82707dd7 R09: 1ffff11003709c16
-R10: dffffc0000000000 R11: ffffed1003709c17 R12: 1ffff920001c6db0
-R13: ffff88801b84e000 R14: 1ffff920001c6db6 R15: 1ffff11003709c00
-FS:  000055555d18e380(0000) GS:ffff888020800000(0000) knlGS:0000000000000000
-CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-CR2: 00007f251d195ed8 CR3: 000000001bee4000 CR4: 0000000000350ef0
-DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
-DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH] ocfs2: fix null-ptr-deref when journal load failed.
+To: Julian Sun <sunjunchao2870@gmail.com>
+Cc: ocfs2-devel@lists.linux.dev, jlbec@evilplan.org, mark@fasheh.com,
+ syzbot+05b9b39d8bdfe1a0861f@syzkaller.appspotmail.com
+References: <20240819131120.746077-1-sunjunchao2870@gmail.com>
+ <26da607a-530d-4dc1-9040-bf56b406b98f@linux.alibaba.com>
+ <CAHB1NaiJJmf838FwSGM8UZX6ebQn8L2hhFxNAcdmRDfBo1VUyg@mail.gmail.com>
+Content-Language: en-US
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+In-Reply-To: <CAHB1NaiJJmf838FwSGM8UZX6ebQn8L2hhFxNAcdmRDfBo1VUyg@mail.gmail.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 
 
----
-This report is generated by a bot. It may contain errors.
-See https://goo.gl/tpsmEJ for more information about syzbot.
-syzbot engineers can be reached at syzkaller@googlegroups.com.
 
-syzbot will keep track of this issue. See:
-https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
+On 8/20/24 11:19 PM, Julian Sun wrote:
+> Joseph Qi <joseph.qi@linux.alibaba.com> 于2024年8月20日周二 21:03写道：
+>>
+>>
+>>
+>> On 8/19/24 9:11 PM, Julian Sun wrote:
+>>> During the mounting process, if the jbd2_journal_load()
+>>> call fails, it will internally invoke journal_reset()
+>>> ->journal_fail_superblock(), which sets journal->j_sb_buffer
+>>
+>>
+>>> This description is not right.
+>>> journal_reset() fails because of too short journal, then lead to
+>>> jbd2_journal_load() fails with NULL j_sb_buffer.
+> yeah. That's exactly what I described.
+>>
+>>> to NULL. Subsequently, ocfs2_journal_shutdown() calls
+>>> jbd2_journal_flush()->jbd2_cleanup_journal_tail()->
+>>> __jbd2_update_log_tail()->jbd2_journal_update_sb_log_tail()
+>>> ->lock_buffer(journal->j_sb_buffer), resulting in a
+>>> null-pointer dereference error.
+>>>
+>>> To resolve this issue, a new state OCFS2_JOURNAL_INITED
+>>> has been introduced to replace the previous functionality
+>>> of OCFS2_JOURNAL_LOADED, the original OCFS2_JOURNAL_LOADED
+>>> is only set when ocfs2_journal_load() is successful.
+>>
+>>
+>>> Or set OCFS2_JOURNAL_LOADED only after JBD2_LOADED?
+> I don't think this is correct. We first call ocfs2_journal_init(),
+> which allocates some resources, before calling jbd2_journal_load(). If
+> ocfs2_journal_init() succeeds but jbd2_journal_load() fails, this
+> solution may lead to a resource leak.
+> If there is anything important I'm missing, please let me know, thanks.
+> 
 
-If the report is already addressed, let syzbot know by replying with:
-#syz fix: exact-commit-title
+Okay, seems except iput(inode) and kfree(journal), we may have to do the
+following cleanup:
+1) ocfs2_inode_unlock(journal->j_inode);
+2) brelse(journal->j_bh);
+3) OCFS2_I(inode)->ip_open_count--
+4) jbd2_journal_destroy()
+...
 
-If you want syzbot to run the reproducer, reply with:
-#syz test: git://repo/address.git branch-or-commit-hash
-If you attach or paste a git patch, syzbot will apply it before testing.
+So it seems that introducing a new state will be more clear.
 
-If you want to overwrite report's subsystems, reply with:
-#syz set subsystems: new-subsystem
-(See the list of subsystem names on the web dashboard)
+>>> The jbd2_journal_flush() function is allowed to be called
+>>> only when this flag is set. The logic here is that if the
+>>> journal has even not been successfully loaded, there is
+>>> no need to flush the journal.
+>>>
+>>> Link: https://syzkaller.appspot.com/bug?extid=05b9b39d8bdfe1a0861f
+>>> Reported-by: syzbot+05b9b39d8bdfe1a0861f@syzkaller.appspotmail.com
+>>> Signed-off-by: Julian Sun <sunjunchao2870@gmail.com>
+>>> ---
+>>>  fs/ocfs2/journal.c | 9 ++++++---
+>>>  fs/ocfs2/journal.h | 1 +
+>>>  2 files changed, 7 insertions(+), 3 deletions(-)
+>>>
+>>> diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
+>>> index 530fba34f6d3..6f837296048f 100644
+>>> --- a/fs/ocfs2/journal.c
+>>> +++ b/fs/ocfs2/journal.c
+>>> @@ -968,7 +968,7 @@ int ocfs2_journal_init(struct ocfs2_super *osb, int *dirty)
+>>>
+>>>       ocfs2_set_journal_params(osb);
+>>>
+>>> -     journal->j_state = OCFS2_JOURNAL_LOADED;
+>>> +     journal->j_state = OCFS2_JOURNAL_INITED;
+>>>
+>>>       status = 0;
+>>>  done:
+>>> @@ -1039,6 +1039,7 @@ void ocfs2_journal_shutdown(struct ocfs2_super *osb)
+>>>       int status = 0;
+>>>       struct inode *inode = NULL;
+>>>       int num_running_trans = 0;
+>>> +     enum ocfs2_journal_state state;
+>>>
+>>>       BUG_ON(!osb);
+>>>
+>>> @@ -1047,8 +1048,9 @@ void ocfs2_journal_shutdown(struct ocfs2_super *osb)
+>>>               goto done;
+>>>
+>>>       inode = journal->j_inode;
+>>> +     state = journal->j_state;
+>>>
+>>> -     if (journal->j_state != OCFS2_JOURNAL_LOADED)
+>>> +     if (state != OCFS2_JOURNAL_INITED)
 
-If the report is a duplicate of another one, reply with:
-#syz dup: exact-subject-of-another-report
+This is not right.
+What if journal has already been loaded?
 
-If you want to undo deduplication, reply with:
-#syz undup
+Thanks,
+Joseph
+
+>>>               goto done;
+>>>
+>>>       /* need to inc inode use count - jbd2_journal_destroy will iput. */
+>>> @@ -1076,7 +1078,7 @@ void ocfs2_journal_shutdown(struct ocfs2_super *osb)
+>>>
+>>>       BUG_ON(atomic_read(&(osb->journal->j_num_trans)) != 0);
+>>>
+>>> -     if (ocfs2_mount_local(osb)) {
+>>> +     if (ocfs2_mount_local(osb) && state == OCFS2_JOURNAL_LOADED) {
+>>>               jbd2_journal_lock_updates(journal->j_journal);
+>>>               status = jbd2_journal_flush(journal->j_journal, 0);
+>>>               jbd2_journal_unlock_updates(journal->j_journal);
+>>> @@ -1174,6 +1176,7 @@ int ocfs2_journal_load(struct ocfs2_journal *journal, int local, int replayed)
+>>>               }
+>>>       } else
+>>>               osb->commit_task = NULL;
+>>> +     journal->j_state = OCFS2_JOURNAL_LOADED;
+>>>
+>>>  done:
+>>>       return status;
+>>> diff --git a/fs/ocfs2/journal.h b/fs/ocfs2/journal.h
+>>> index e3c3a35dc5e0..a80f76a8fa0e 100644
+>>> --- a/fs/ocfs2/journal.h
+>>> +++ b/fs/ocfs2/journal.h
+>>> @@ -15,6 +15,7 @@
+>>>
+>>>  enum ocfs2_journal_state {
+>>>       OCFS2_JOURNAL_FREE = 0,
+>>> +     OCFS2_JOURNAL_INITED,
+>>>       OCFS2_JOURNAL_LOADED,
+>>>       OCFS2_JOURNAL_IN_SHUTDOWN,
+>>>  };
+> 
+> 
+> Thanks,
