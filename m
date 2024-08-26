@@ -1,113 +1,112 @@
-Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.129.124])
+Received: from sendmail.purelymail.com (sendmail.purelymail.com [34.202.193.197])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1F74C2868D
-	for <ocfs2-devel@lists.linux.dev>; Sun, 25 Aug 2024 19:54:24 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=170.10.129.124
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id DEBEC823AC
+	for <ocfs2-devel@lists.linux.dev>; Mon, 26 Aug 2024 04:23:36 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=34.202.193.197
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1724615666; cv=none; b=ib5z0aTKCBt43QPVAXYVLIEwGr4llEctYIaiVeEF22LMxIAo41yOmIiEUTP+/7qTVtA9FGBhOpijjop0o7kiK/7Rf4S030ifvlmXAwgCkVp8iD1U0Ga0yffRNZCrXNqb9wOCGktf1xYR+xVaKRwhPQEqGG20DoIofQyngVzUxs8=
+	t=1724646218; cv=none; b=sQZS28FyOCMNHXGDV5gxdONvixmaxnc205yf5hANsKJRRZh7zpShx7fAiEUcJo5Aa27jpqeywh6Bp/RJJuKanJIOvreQ1zuJwg4wop39GBtsiN++BdjjqCAcaxeMNtK1Ga0RF45IPASmXn6sAh34JJw1G/xDJSVIIvNL72SiF78=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1724615666; c=relaxed/simple;
-	bh=SZDhFSz5cGQqOrGnjwqK1octDVUeO0+e9a3ispg7DMk=;
-	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
-	 To:Cc:Content-Type; b=Ja6lqj9RiNe1l8g81BrpQZqglWwKZwCbyk1DDkrqmqtYVBZPQUwTN5uE/ECZQiiGCltFiHBWs0+WFyrQ5HYSh6ypiGeQukdFYeiQJzzOCp7o+wXkUVpD1IGBd1Rhx0uyAHaooV9OdDTVc3rtqhbEPR/Mfh0U1h5n7qKJQ2pofEo=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=redhat.com; spf=pass smtp.mailfrom=redhat.com; dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b=CWPU8w/Z; arc=none smtp.client-ip=170.10.129.124
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=redhat.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=redhat.com
+	s=arc-20240116; t=1724646218; c=relaxed/simple;
+	bh=UvRwjVT+wdzSsadX45w3gvGTX/NnPXde2PFuhVgMyuk=;
+	h=Message-ID:Date:MIME-Version:To:Cc:References:Subject:From:
+	 In-Reply-To:Content-Type; b=W3s0OhE0bouevjfYSXhPY2jd/e+ccf92TzfPRaKEPY1gaaRGSOKe/aw4s9tbAfi3Lj2f2oO3nlqQMBTFM4MIj+xHueIVNiwjY0OmcOCSknnwihVr9WLjF59GzuUTzsw9FhOr8TrUh5MFhBaWrliFWx5v0oJcibrBoScvlIS31BY=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=lkcamp.dev; spf=pass smtp.mailfrom=lkcamp.dev; dkim=pass (2048-bit key) header.d=lkcamp.dev header.i=@lkcamp.dev header.b=bdMqW1QJ; dkim=pass (2048-bit key) header.d=purelymail.com header.i=@purelymail.com header.b=DCAKlRMw; arc=none smtp.client-ip=34.202.193.197
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=lkcamp.dev
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=lkcamp.dev
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b="CWPU8w/Z"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
-	s=mimecast20190719; t=1724615664;
-	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-	 content-transfer-encoding:content-transfer-encoding:
-	 in-reply-to:in-reply-to:references:references;
-	bh=SZDhFSz5cGQqOrGnjwqK1octDVUeO0+e9a3ispg7DMk=;
-	b=CWPU8w/Zr3X2eu8X1zdOj4DmiTeGOlTzQkKqaLhBjb253nfbA3zY1B+qOSPuhaIxzbzWDV
-	ZxjJpD0VCsCU1h4aJ9YXqP8bHfaaymltVBjMarwrwR1VV+qAfEVgop/P35N8JMpF0xxugq
-	szzXoqyiVVS5moMUdDjCcOq6ETIn3UY=
-Received: from mail-lj1-f197.google.com (mail-lj1-f197.google.com
- [209.85.208.197]) by relay.mimecast.com with ESMTP with STARTTLS
- (version=TLSv1.3, cipher=TLS_AES_256_GCM_SHA384) id
- us-mta-687-qPbVA3ksObaUzgRHQLHqIw-1; Sun, 25 Aug 2024 15:54:21 -0400
-X-MC-Unique: qPbVA3ksObaUzgRHQLHqIw-1
-Received: by mail-lj1-f197.google.com with SMTP id 38308e7fff4ca-2f4f26b3977so16967361fa.1
-        for <ocfs2-devel@lists.linux.dev>; Sun, 25 Aug 2024 12:54:21 -0700 (PDT)
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1724615660; x=1725220460;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:x-gm-message-state:from:to:cc
-         :subject:date:message-id:reply-to;
-        bh=SZDhFSz5cGQqOrGnjwqK1octDVUeO0+e9a3ispg7DMk=;
-        b=KrRr2h6llUlPBQzYYt43dPZBovQiZ7kqS3MsVwv4rOIj0ZD0feujpvzm5R5EKjMzaK
-         ybkCwDaTlL67VtXaKSjpuCDFYH0HKXFVAUCuAmpVbBxX827YbqhqoTVFhvItZKWGYeQG
-         8PtdYKFBY2hDFgqYLqEc9TY/bVGdihZepw/ptUeLs890Q7P+xgQcmXcrr7mB33USdPi6
-         Pb0nIfl4iXr7xNZYxnnAIqfDPKx6bNT3WQRUBGVCz1nozrrJm7+7Vuajv2nzoQuKZilq
-         WeMhAaLvYJsWfjPrp2XznDi+6Ix20SkufArqnLzojppPhQim8LWUVq9V47P990DkML9E
-         ZNWw==
-X-Forwarded-Encrypted: i=1; AJvYcCX+QojOGeFdQXzi5cyTckiaQORRScVP2VhbNQ1vq70Lsq34jdI8GW8nlPCBgwrWMi509Yd26PMFx28T8Q==@lists.linux.dev
-X-Gm-Message-State: AOJu0YyNdL5+7/Wr2d9uAutXEknprzdyooAEjUn908EiRwibcQjCxmRS
-	345InIBPJYPdl6uk7hqORuUu7tP+yzXDJPpj7BPudol2TrBPQD02pfVjZLPG+4G3g+eIWlks6Y8
-	Y+VfyR4fyu1izJhrxOIX/9JQ+ixNwZ8xlld9Yix7X6mJFIOw2/iYOWnTaiI1Aqb91JuMOE5gdQM
-	oEhN0L+ff/DDjbWuHW67u0VaWXgi6PIC7waEA=
-X-Received: by 2002:a05:651c:88a:b0:2ef:2843:4135 with SMTP id 38308e7fff4ca-2f401ef2f8bmr42010061fa.22.1724615660295;
-        Sun, 25 Aug 2024 12:54:20 -0700 (PDT)
-X-Google-Smtp-Source: AGHT+IFRR2RFGKYRIqaHIAtJY42+DmWhiPgyqSAg1f8W2qWMs4UGf31c1qZMTWRheB2QuKBk9MdDY6hnbgQqeIx520A=
-X-Received: by 2002:a05:651c:88a:b0:2ef:2843:4135 with SMTP id
- 38308e7fff4ca-2f401ef2f8bmr42009901fa.22.1724615659703; Sun, 25 Aug 2024
- 12:54:19 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=lkcamp.dev header.i=@lkcamp.dev header.b="bdMqW1QJ";
+	dkim=pass (2048-bit key) header.d=purelymail.com header.i=@purelymail.com header.b="DCAKlRMw"
+DKIM-Signature: a=rsa-sha256; b=bdMqW1QJ2u29NPdmDJUZAq9T9jEztt7DaxcycYXuW6xHuErAhgCIS7HFwWXiD65P4PUNeVoP1ZKIkG6iwZrq8wl6cFCrzcU47rfERSDFWPnnNaWBr4jGVzsvdYGDYDwvV5Ibwo6bkedFsu98ITdPyPYgRHKs84uCLGbG93fE98E/I5a2s+bZXZLhSfdudVEoQ0dPtH8crE8uRo/Ly7GwvtBj++rJ3L99nap9iG3mLr0lOwyl1HLiRn7fJPd9chYoOFGvf4EdM+IzeezuiZSByPwzTWkCuxmJB4mtKKHXEgI24+gllE5peRbVF6gmFODyrYRlD8mthqZAY3ao7inX4w==; s=purelymail2; d=lkcamp.dev; v=1; bh=UvRwjVT+wdzSsadX45w3gvGTX/NnPXde2PFuhVgMyuk=; h=Received:Date:To:Subject:From;
+DKIM-Signature: a=rsa-sha256; b=DCAKlRMw9waceTuBQgqwEVY+Xq4gqA7NTLZ9Q0Et1SRF5UXNnbrxbShbMgMAYJ6paQd8GB4cww9wmFHPbjv4D36Y7a6Wv5H1Ociw/PCyz+ybCUd85LyX7R2MfMjNKhihK3Ns19VWFcO+ZcdyMYlzHmFL5fK9tl4cxW5qSBABXYi/mMgMSPfBW8nBfDZ8pFmF+FxwS9o8uTbHowTeZf5Acrx+OF3pupaM+pAv3sNbQpuW7eIcK3YuI4zFcwVucA8p0Gatv0WOUVSLgswe6IeIPC6lISZ4fSB6juf2NOi8qfippDe0j+VyJNpLZfCTOsOPxSZQ0N4AmGXRgkuqb4EkUQ==; s=purelymail2; d=purelymail.com; v=1; bh=UvRwjVT+wdzSsadX45w3gvGTX/NnPXde2PFuhVgMyuk=; h=Feedback-ID:Received:Date:To:Subject:From;
+Feedback-ID: 40580:7130:null:purelymail
+X-Pm-Original-To: ocfs2-devel@lists.linux.dev
+Received: by smtp.purelymail.com (Purelymail SMTP) with ESMTPSA id 1044989440;
+          (version=TLSv1.3 cipher=TLS_AES_256_GCM_SHA384);
+          Mon, 26 Aug 2024 04:22:59 +0000 (UTC)
+Message-ID: <d673f289-2385-4949-ac80-f3a502d4deb2@lkcamp.dev>
+Date: Mon, 26 Aug 2024 01:22:54 -0300
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-References: <20240814143414.1877505-1-aahringo@redhat.com> <20240814143414.1877505-9-aahringo@redhat.com>
- <2024082459-neatly-screen-9d29@gregkh>
-In-Reply-To: <2024082459-neatly-screen-9d29@gregkh>
-From: Alexander Aring <aahringo@redhat.com>
-Date: Sun, 25 Aug 2024 15:54:08 -0400
-Message-ID: <CAK-6q+hqhitE=_Lw2kd3kN3-hrquK550-d4jHgrkUX1uqj=zDg@mail.gmail.com>
-Subject: Re: [RFC dlm/next 08/12] kobject: add kset_type_create_and_add() helper
-To: Greg KH <gregkh@linuxfoundation.org>
-Cc: teigland@redhat.com, gfs2@lists.linux.dev, song@kernel.org, 
-	yukuai3@huawei.com, agruenba@redhat.com, mark@fasheh.com, jlbec@evilplan.org, 
-	joseph.qi@linux.alibaba.com, rafael@kernel.org, akpm@linux-foundation.org, 
-	linux-kernel@vger.kernel.org, linux-raid@vger.kernel.org, 
-	ocfs2-devel@lists.linux.dev, lucien.xin@gmail.com
-X-Mimecast-Spam-Score: 0
-X-Mimecast-Originator: redhat.com
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+User-Agent: Mozilla Thunderbird
+To: syzbot+8512f3dbd96253ffbe27@syzkaller.appspotmail.com
+Cc: jack@suse.com, jlbec@evilplan.org, joseph.qi@linux.alibaba.com,
+ linux-ext4@vger.kernel.org, linux-kernel@vger.kernel.org, mark@fasheh.com,
+ ocfs2-devel@lists.linux.dev, syzkaller-bugs@googlegroups.com, tytso@mit.edu,
+ ~lkcamp/discussion@lists.sr.ht
+References: <00000000000070a66706204e7698@google.com>
+Subject: Re: [syzbot] [ext4?] [ocfs2?] kernel BUG in jbd2_cleanup_journal_tail
+Content-Language: en-US
+From: Vinicius Peixoto <vpeixoto@lkcamp.dev>
+In-Reply-To: <00000000000070a66706204e7698@google.com>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
 
-Hi,
+Hi all,
 
-On Sat, Aug 24, 2024 at 1:18=E2=80=AFAM Greg KH <gregkh@linuxfoundation.org=
-> wrote:
->
-> On Wed, Aug 14, 2024 at 10:34:10AM -0400, Alexander Aring wrote:
-> > Currently there exists the kset_create_and_add() helper that does not
-> > allow to have a different ktype for the created kset kobject. To allow
-> > a different ktype this patch will introduce the function
-> > kset_type_create_and_add() that allows to set a different ktype instead
-> > of using the global default kset_ktype variable.
-> >
-> > In my example I need to separate the created kobject inside the kset by
-> > net-namespaces. This patch allows me to do that by providing a user
-> > defined kobj_type structure that implements the necessary namespace
-> > functionality.
-> >
-> > Signed-off-by: Alexander Aring <aahringo@redhat.com>
->
-> Acked-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
->
+I noticed this report from syzbot when going through the preliminary 
+tasks for the Linux Kernel Mentorship Program, and thought I'd take a 
+stab at solving it. I apologize in advance for any mistakes as I'm still 
+very new to kernel development. Either way, here's my analysis:
 
-note that I added the comments the kernel test robot pointed out. [0]
+ From what I can tell by looking at the reproducer from syzbot, it is 
+trying to mount a file filled with bogus data as an ocfs2 disk, and this 
+is triggering an assertion in jbd2_cleanup_journal_tail, which in turn 
+causes a panic.
 
-Thanks.
+The problematic call stack goes roughly like this:
 
-- Alex
+mount_bdev
+   -> ofcs2_mount_volume
+     -> ofcs2_check_volume
+       -> ofcs2_journal_load
+         -> jbd2_journal_load
+           -> journal_reset (fails)
 
-[0] https://lore.kernel.org/gfs2/20240819183742.2263895-9-aahringo@redhat.c=
-om/T/#u
+Since the disk data is bogus, journal_reset fails with -EINVAL ("JBD2: 
+Journal too short (blocks 2-1024)"); this leaves journal->j_head == 
+NULL. However, jbd2_journal_load clears the JBD2_ABORT flag right before 
+calling journal_reset. This leads to a problem later when 
+ofcs2_mount_volume tries to flush the journal as part of the cleanup 
+when aborting the mount operation:
+
+   -> ofcs2_mount_volume (error; goto out_system_inodes)
+     -> ofcs2_journal_shutdown
+       -> jbd2_journal_flush
+         -> jbd2_cleanup_journal_tail (J_ASSERT fails)
+
+This failure happens because of the following code:
+
+         if (is_journal_aborted(journal))
+                 return -EIO;
+
+         if (!jbd2_journal_get_log_tail(journal, &first_tid, &blocknr))
+                 return 1;
+         J_ASSERT(blocknr != 0);
+
+Since JBD2_ABORT was cleared in jbd2_journal_load earlier, we enter 
+jbd2_journal_get_log_tail, which will set *blocknr = journal->j_head 
+(which is NULL) and then trigger the assertion, causing a panic.
+
+I confirmed that setting the JBD2_ABORT flag in journal_reset before 
+returning -EINVAL fixes the problem:
+
+         static int journal_reset(journal_t *journal)
+                         journal_fail_superblock(journal);
+         +               journal->j_flags |= JBD2_ABORT;
+                         return -EINVAL;
+
+You can find a proper patch file + the syzbot re-test result in [1]. 
+However, I'm not entirely sure whether this is the correct decision, and 
+I wanted to confirm that this is an appropriate solution before sending 
+a proper patch to the mailing list.
+
+Thanks in advance,
+Vinicius
+
+[1] https://syzkaller.appspot.com/bug?extid=8512f3dbd96253ffbe27
 
