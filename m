@@ -1,154 +1,151 @@
-Received: from zeniv.linux.org.uk (zeniv.linux.org.uk [62.89.141.173])
+Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.133.124])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3F54F2B9C5;
-	Mon, 26 Aug 2024 19:35:03 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=62.89.141.173
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id BE5D11D27B7
+	for <ocfs2-devel@lists.linux.dev>; Tue, 27 Aug 2024 18:03:07 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=170.10.133.124
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1724700908; cv=none; b=MjBUpSsasQmXdErXK5VvSDx2ZuJ0D7wO3ulINwSxQ126kdQvKMN2gGTs5xlF0Qidx9f8KGDOf02An1yGnU8O3D2YzxREAMIo8aBZuhmqg75LFe7VC9z2C5i0uSRIDN+vd4jG1Xwtq1Y1yvSu2TrGbpobJsnrVpXp7kYPTFuvZ4s=
+	t=1724781790; cv=none; b=nqKzOfntfRKunNVNIohSjdK/xICaMNh41FA49lmrsIIqW0Q8CxrqKddZAsvCinf3JKhTAVKK8tcLz+yd2PJO68NkCNIkGX6KUE3YF9hjlzCe30BjZISPuNLrjBER5v59h2Kz+d7rPwZ+SH9Gfi10J2uSWzfb3+2sppmUp24i/Ak=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1724700908; c=relaxed/simple;
-	bh=k4ybJCK7M0NBIefKLbT7kmgFuCEKaT/XsH34oFmePMw=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=cm6riynSnnvP6IJ2VRB8miJlQ+o6Ez2B83WbIXPdfT8i+/LTwm4uWHkm/tSjeOc7RQFL/4hG5ilUC4kefDWbegZx+cUifRUj3e6THSym8700uLEXh6hD38mnb+FXJ93K35G2XQDoV2NZd3uxgGtJ0aUQVyl0fvLFCp7KGPk5cow=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=evilplan.org; spf=none smtp.mailfrom=ftp.linux.org.uk; dkim=fail (0-bit key) header.d=infradead.org header.i=@infradead.org header.b=B8kFP9dp reason="key not found in DNS"; arc=none smtp.client-ip=62.89.141.173
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=evilplan.org
-Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=ftp.linux.org.uk
+	s=arc-20240116; t=1724781790; c=relaxed/simple;
+	bh=oR96iOXx+rs3wrdkJBENkx2GGB/C+AMxImmsvKqiHvA=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=T8dJ5eMGc/Rdmq2Z/H60vnTUKjvsa45JUYCB6IoKo+EqFacxIFET7RZuxBtSwiMjGfzDCPrp3VnLp+BehL6IZ5yATond7VQKljqoO2N6Z7ndXJ/qBcmIVKFoGtm919Egq8Ry++DqDYcZmRplviP+lOmS41OY7lXWXAmL0xAsyDo=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=redhat.com; spf=pass smtp.mailfrom=redhat.com; dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b=bHb07a7o; arc=none smtp.client-ip=170.10.133.124
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=redhat.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=redhat.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=fail reason="key not found in DNS" (0-bit key) header.d=infradead.org header.i=@infradead.org header.b="B8kFP9dp"
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-	d=infradead.org; s=zeniv-20220401; h=Sender:In-Reply-To:Content-Type:
-	MIME-Version:References:Message-ID:Subject:Cc:To:From:Date:Reply-To:
-	Content-Transfer-Encoding:Content-ID:Content-Description;
-	bh=x1LUPN3CKx9WPRDOw9yP1hDbYZryxyKVndTj2KQF0/o=; b=B8kFP9dp5wqu5sC8A6LXRLE0+b
-	tZazdv9A0tiLeP1ZRCIKSbKvyt998trph3im0Y8GM4CBMvoW3yaC03z8D0KKiGFbUllQtVT4WGBkB
-	SEVEBUmm0DymDvU+DaUPCdxrjDK1A9XUp2EB3Bselhqbem9PRf7tTLYFHq5lp32iS+VOlBYKxU+kU
-	Uf3hzDAFB5Fem2jC42yPV5hzSb2AiOzd8ypzqbxsXbTyzT8Idzh8qLr+BE0zlinxOTMDZ9rlbmlAC
-	Tx3fbTmCR5TP4JRYCtP3xi5uJmZ71QBdkJ9al1RkKw2T0jN5cKzgkdq4u6bVDCewJByYsAgLg9b8o
-	hFyFDQYg==;
-Received: from jlbec by zeniv.linux.org.uk with local (Exim 4.98 #2 (Red Hat Linux))
-	id 1sifUO-00000005Nol-3sQE;
-	Mon, 26 Aug 2024 19:34:56 +0000
-Date: Mon, 26 Aug 2024 12:34:53 -0700
-From: Joel Becker <jlbec@evilplan.org>
-To: Theodore Ts'o <tytso@mit.edu>
-Cc: Vinicius Peixoto <vpeixoto@lkcamp.dev>,
-	syzbot+8512f3dbd96253ffbe27@syzkaller.appspotmail.com,
-	jack@suse.com, joseph.qi@linux.alibaba.com,
-	linux-ext4@vger.kernel.org, linux-kernel@vger.kernel.org,
-	mark@fasheh.com, ocfs2-devel@lists.linux.dev,
-	syzkaller-bugs@googlegroups.com, ~lkcamp/discussion@lists.sr.ht
-Subject: Re: [syzbot] [ext4?] [ocfs2?] kernel BUG in jbd2_cleanup_journal_tail
-Message-ID: <ZszY3SHWTp7XfS3z@google.com>
-Mail-Followup-To: Theodore Ts'o <tytso@mit.edu>,
-	Vinicius Peixoto <vpeixoto@lkcamp.dev>,
-	syzbot+8512f3dbd96253ffbe27@syzkaller.appspotmail.com,
-	jack@suse.com, joseph.qi@linux.alibaba.com,
-	linux-ext4@vger.kernel.org, linux-kernel@vger.kernel.org,
-	mark@fasheh.com, ocfs2-devel@lists.linux.dev,
-	syzkaller-bugs@googlegroups.com, ~lkcamp/discussion@lists.sr.ht
-References: <00000000000070a66706204e7698@google.com>
- <d673f289-2385-4949-ac80-f3a502d4deb2@lkcamp.dev>
- <20240826133208.GB424729@mit.edu>
+	dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b="bHb07a7o"
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
+	s=mimecast20190719; t=1724781786;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:
+	 content-transfer-encoding:content-transfer-encoding;
+	bh=p8/cxNE6VJvsneEbrGqWQbWsphVxB+ixn/SyQ/i73Rc=;
+	b=bHb07a7oLhTnGDNDMXVvU61lKdn22+SEM0ks1WaK/DWhr5WVtQcdtgQja/EDBSAixjDENX
+	pf097P0StQ0ewOVSNNcPjCCVZBjUSkxvWTDdVyIgxO1UlhYZ5wvK41lmbEfsg80iARloMp
+	75cyLi5DbHtE3DcOKZQMHUq3Sr5iUjo=
+Received: from mx-prod-mc-01.mail-002.prod.us-west-2.aws.redhat.com
+ (ec2-54-186-198-63.us-west-2.compute.amazonaws.com [54.186.198.63]) by
+ relay.mimecast.com with ESMTP with STARTTLS (version=TLSv1.3,
+ cipher=TLS_AES_256_GCM_SHA384) id us-mta-86-x4bboJ_cMxOfXXcFMjZ1oA-1; Tue,
+ 27 Aug 2024 14:03:03 -0400
+X-MC-Unique: x4bboJ_cMxOfXXcFMjZ1oA-1
+Received: from mx-prod-int-02.mail-002.prod.us-west-2.aws.redhat.com (mx-prod-int-02.mail-002.prod.us-west-2.aws.redhat.com [10.30.177.15])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature RSA-PSS (2048 bits) server-digest SHA256)
+	(No client certificate requested)
+	by mx-prod-mc-01.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTPS id E8B2C1955D48;
+	Tue, 27 Aug 2024 18:02:58 +0000 (UTC)
+Received: from fs-i40c-03.mgmt.fast.eng.rdu2.dc.redhat.com (fs-i40c-03.mgmt.fast.eng.rdu2.dc.redhat.com [10.6.24.150])
+	by mx-prod-int-02.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTP id EAE651955F1B;
+	Tue, 27 Aug 2024 18:02:53 +0000 (UTC)
+From: Alexander Aring <aahringo@redhat.com>
+To: teigland@redhat.com
+Cc: gfs2@lists.linux.dev,
+	song@kernel.org,
+	yukuai3@huawei.com,
+	agruenba@redhat.com,
+	mark@fasheh.com,
+	jlbec@evilplan.org,
+	joseph.qi@linux.alibaba.com,
+	gregkh@linuxfoundation.org,
+	rafael@kernel.org,
+	akpm@linux-foundation.org,
+	linux-kernel@vger.kernel.org,
+	linux-raid@vger.kernel.org,
+	ocfs2-devel@lists.linux.dev,
+	netdev@vger.kernel.org,
+	vvidic@valentin-vidic.from.hr,
+	heming.zhao@suse.com,
+	lucien.xin@gmail.com,
+	paulmck@kernel.org,
+	rcu@vger.kernel.org,
+	juri.lelli@redhat.com,
+	williams@redhat.com,
+	aahringo@redhat.com
+Subject: [RFC 0/7] dlm: the ultimate verifier for DLM lock correctness
+Date: Tue, 27 Aug 2024 14:02:29 -0400
+Message-ID: <20240827180236.316946-1-aahringo@redhat.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20240826133208.GB424729@mit.edu>
-X-Burt-Line: Trees are cool.
-X-Red-Smith: Ninety feet between bases is perhaps as close as man has ever
- come to perfection.
-Sender: Joel Becker <jlbec@ftp.linux.org.uk>
+Content-Transfer-Encoding: 8bit
+X-Scanned-By: MIMEDefang 3.0 on 10.30.177.15
 
-On Mon, Aug 26, 2024 at 09:32:08AM -0400, Theodore Ts'o wrote:
-> On Mon, Aug 26, 2024 at 01:22:54AM -0300, Vinicius Peixoto wrote:
-> > Since the disk data is bogus, journal_reset fails with -EINVAL ("JBD2:
-> > Journal too short (blocks 2-1024)"); this leaves journal->j_head == NULL.
-> > However, jbd2_journal_load clears the JBD2_ABORT flag right before calling
-> > journal_reset. This leads to a problem later when ofcs2_mount_volume tries
-> > to flush the journal as part of the cleanup when aborting the mount
-> > operation:
-> > 
-> >   -> ofcs2_mount_volume (error; goto out_system_inodes)
-> >     -> ofcs2_journal_shutdown
-> >       -> jbd2_journal_flush
-> >         -> jbd2_cleanup_journal_tail (J_ASSERT fails)
-> > ...
-> The reason why this isn't an issue with ext4 is because the normal
-> "right" way to do this is if jbd2_journal_load() returns an error, is
-> to call jbd2_journal_destroy() to release the data structures with the
-> journal --- and then don't try to use the journal afterwards.
-> 
-> The weird thing is that there are two code paths in ocfs2 that calls
-> jbd2_journal_load().  One is in ocfs2_replay_journal() which does what
-> ext4 does.  The other is ocfs2_load_journal() which does *not* do
-> this, and this is the one which you saw in the syzkaller reproducer.
-> It looks like one codepath is used to replay the ocfs2 for some other
-> node, and the is to load (and presumably later, replay) the journal
-> for the mounting node.
+Hi,
 
-You are correct, Ted, that one path is for the local journal and the
-other is to recover remote journals for other nodes that may have
-crashed.
+I send this rfc patch series to show a (for me) usable use-case for the
+DLM net-namespace functionality that is currently pending, see [0]. This
+patch-series introduce the DLM verifier to check on DLM correctness on
+any workload running on DLM with net-namespace feature. E.g. on gfs2 you
+can just run some filesystem benchmark tests and see if DLM works as
+aspected.
 
-I think the big ordering issue is that we set
-osb->journal->j_state=OCFS2_JOURNAL_LOADED in ocfs2_journal_init(),
-before we've attempted any replay.  Later in ocfs2_journal_shutdown(),
-we check this state and decide to perform cleanup.
+This comes very useful when DLM recovery kicks in e.g. when nodes
+leaving the lockspace due e.g. fencing and recovery solves lock
+dependencies transparently from the user. However there is no "fake
+fencing switch" yet for DLM net-namespaces, but might be an idea for
+future functionality.
 
-Instead, we should not set OCFS2_JOURNAL_LOADED until
-ocfs2_journal_load() has called jbd2_journal_load().  Only then do we
-actually know we have loaded a valid journal.
+There could be bugs in the verifier, that I don't care if they exists...
+We need to check whats happening when the verifier complains but so far
+everything looks fine. It just an issue if the verifier doesn't say
+anything but a small bug introduced in DLM and the verifier will
+complain a lot.
 
-Something like:
+There might be still improvements in the DLM verifier. I needed to
+change a little bit the python scripts to generate the code but I did
+not add them here to this patch series. Also checkpatch complains about
+some things in the verifier code but I oriented myself mostly to the
+other existing verifiers. There is a printout of all holders if those
+violates the DLM compatible locking states. I might improve them when I
+actually try to figure out an existing problem, but for now this
+printout is very minimal.
 
-```
-	status = jbd2_journal_load(journal->j_journal);
-	if (status < 0) {
-		mlog(ML_ERROR, "Failed to load journal!\n");
-		BUG_ON(!igrab(journal->j_inode));
-		jbd2_journal_destroy(journal->j_journal);
-		iput(journal->j_inode)
-		goto done;
-	}
-	journal->j_state = OCFS2_JOURNAL_LOADED;
-```
+I mainly do this work because I prepare more changes in the DLM recovery
+code in future to scale with lockspaces with a lot of members that we
+can easily try out with the net-namespace functionality.
 
-With code like this, when jbd2_journal_load() fails, the future
-ocfs2_journal_shutdown() will exit early, because !OCFS2_JOURNAL_LOADED.
+I cc here the rcu people, may they also get some ideas to check on lock
+correctness using tracing kernel verifier subsystem.
 
-I think this is the right spot; a quick audit of the paths (it has been
-a while) doesn't find any other outstanding state; the rest of journal
-startup, such as the commit thread etc, only happen after this.
+- Alex
 
-> jbd2_journal_destroy().  It would seem like the *right* thing to do is
-> to bump the refcount in ocfs2_journal_init(), and if for some reason
-> the igrab fails, it can just return an error early, instead of having
-> to resort to BUG_ON() later, and if you don't realize that you have to
-> do this weird igrab() before calling jbd2_journal_destroy(), you'll
-> end up leaking the journal inode.
+[0] https://lore.kernel.org/gfs2/20240814143414.1877505-1-aahringo@redhat.com/
 
-There are interactions of journal inodes for nodes we don't own, and
-also connections to cluster locks for our own journal (don't replay
-ourselves while another node has locked it and is recovering us).  So we
-do have some state to keep track of.  But it's been so long that I don't
-recall if there was a specific reason we do this late via igrab(), or if
-it's just that we should have done as you describe and missed it.
-You'll note that I copied the igrab/iput game in my snippet above.
+Alexander Aring (7):
+  dlm: fix possible lkb_resource null dereference
+  dlm: fix swapped args sb_flags vs sb_status
+  dlm: make add_to_waiters() that is can't fail
+  dlm: add our_nodeid to tracepoints
+  dlm: add lkb rv mode to ast tracepoint
+  dlm: add more tracepoints for DLM kernel verifier
+  rv: add dlm compatible lock state kernel verifier
 
-Should someone try to audit the igrab/iput thing later?  Yes.  But it's
-not a necessary part of this fix.
-
-Thanks,
-Joel
+ Documentation/trace/rv/monitor_dlm.rst |  77 +++++
+ fs/dlm/ast.c                           |  30 +-
+ fs/dlm/dlm_internal.h                  |   3 +
+ fs/dlm/lock.c                          |  64 ++--
+ fs/dlm/lockspace.c                     |   4 +
+ fs/dlm/user.c                          |   9 +-
+ include/trace/events/dlm.h             | 121 ++++++-
+ include/trace/events/rv.h              |   9 +
+ kernel/trace/rv/Kconfig                |  18 +
+ kernel/trace/rv/Makefile               |   1 +
+ kernel/trace/rv/monitors/dlm/dlm.c     | 445 +++++++++++++++++++++++++
+ kernel/trace/rv/monitors/dlm/dlm.h     |  38 +++
+ kernel/trace/rv/monitors/dlm/dlm_da.h  | 143 ++++++++
+ tools/verification/models/dlm.dot      |  14 +
+ 14 files changed, 907 insertions(+), 69 deletions(-)
+ create mode 100644 Documentation/trace/rv/monitor_dlm.rst
+ create mode 100644 kernel/trace/rv/monitors/dlm/dlm.c
+ create mode 100644 kernel/trace/rv/monitors/dlm/dlm.h
+ create mode 100644 kernel/trace/rv/monitors/dlm/dlm_da.h
+ create mode 100644 tools/verification/models/dlm.dot
 
 -- 
+2.43.0
 
-"War doesn't determine who's right; war determines who's left."
-
-			http://www.jlbec.org/
-			jlbec@evilplan.org
