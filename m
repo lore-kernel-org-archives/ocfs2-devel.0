@@ -1,46 +1,46 @@
 Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.129.124])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 136A01D2F72
-	for <ocfs2-devel@lists.linux.dev>; Tue, 27 Aug 2024 18:03:22 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 15BE31D4152
+	for <ocfs2-devel@lists.linux.dev>; Tue, 27 Aug 2024 18:03:26 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=170.10.129.124
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1724781804; cv=none; b=ZDp37lT5CVz2ef7I2PzG9GVd73MgNFI9Ge0SjYiXNCJnUqMnb+vHf9YxgL7I3JSpwSHuew7OtMuQ2uYTbLNhKKvEM/PnetsVJi2fjIaNp9WJ+RAAk6yEPRpRm5d5bJKu6WLHio1XCK4XdoYSEhyJcEV18F1DhE7ilzPBfje4NUk=
+	t=1724781807; cv=none; b=AGF18CiaszOeP7Isa8BeWU0hK8ZTIwOb9IRD3IQX8wD+zrwO1maOMrJAxVeHw10B1J61AKwkBNXC+maSgByEDzYi7eSUETI35wi+vs8fJEjjr2I7AI11ORWM3wWVwCr//ueC1JQd98vau1c/sYWaSksR2pQalNeoNYXhVzPGKw4=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1724781804; c=relaxed/simple;
-	bh=LrvL7Ph/QlOSx7zujU2LmzLvPYnl+n/ew0XfqKHb0TI=;
+	s=arc-20240116; t=1724781807; c=relaxed/simple;
+	bh=OJls2vsbsH6uelH/T/HgOzTBW8h0QC3AGr0F+CJvFJs=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=ofzGoEL0C3AgH96d51PPBum1lYJN+r2WmwCQ4/5tUbKgYCNM23iKYbHi+uohzQ/wAAleGcy7pO8TBJUoy5AcVReTi59oTGxfP5mUlKSpHl6XoXqgXOpJJnqpDb40S6R1m9fwu0BkqwDVF17HK0uASiK2Y6Yywuy1GOlE4u4q3qQ=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=redhat.com; spf=pass smtp.mailfrom=redhat.com; dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b=Q1HOQN5F; arc=none smtp.client-ip=170.10.129.124
+	 MIME-Version; b=hSKMiVF2MH3R8NkcXAg/sSg7oTriBRNYEDaKb5pwd+jIEtUla3Uai+xN0uwRkY/BF7OSWQ8kgGqpuwp5fhDmyQWwxt09udbZ4BxJJkDek9v4WMerHZLJHzVsGYzkjwlhCkcW/RNb7HAequiqOLEHbURx+4Koo1wJbxP5DFII4RA=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=redhat.com; spf=pass smtp.mailfrom=redhat.com; dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b=P17UKGtk; arc=none smtp.client-ip=170.10.129.124
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=redhat.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=redhat.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b="Q1HOQN5F"
+	dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b="P17UKGtk"
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
-	s=mimecast20190719; t=1724781802;
+	s=mimecast20190719; t=1724781805;
 	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
 	 to:to:cc:cc:mime-version:mime-version:
 	 content-transfer-encoding:content-transfer-encoding:
 	 in-reply-to:in-reply-to:references:references;
-	bh=SCDbnalavEPDZ6X8+FuzaIDIjdKt3WdCbgJCmYzM6cw=;
-	b=Q1HOQN5FfJbZtAY7f7Ye1EehmxhYb6xCKMbzV/k5mC7bL1X1s9qqMGR3TExi/De9TwEpUq
-	tVOmZN/ro8+c4b/zwDdfiEJ3uuDT+/Bfm807v+ofyQlNMOg7Sp0yMENyM7T6ejz9Nk/ZvY
-	/0+dl/sGw+DXKz7YlYYcbC2LgBPIjhc=
-Received: from mx-prod-mc-02.mail-002.prod.us-west-2.aws.redhat.com
+	bh=0n3QoftpE0QdZNyZ3i3U02OdoDsTNz9pYwwpvpU4g2w=;
+	b=P17UKGtkX+IftFx/3LwlMiNIJ2LssbX4zRIaYVTVUlygg7Wy8SLiyLrxIgKDaiSKgfH0j+
+	xQWKVWUE8eZ9wOQDvHxwwP5VF9v1BeaFl26WDQhjJ5yObhissafa+KmzvYp9LVOMom3MAr
+	r80m7md0pULajt6JTt1zp2aQUHgGaNA=
+Received: from mx-prod-mc-04.mail-002.prod.us-west-2.aws.redhat.com
  (ec2-54-186-198-63.us-west-2.compute.amazonaws.com [54.186.198.63]) by
  relay.mimecast.com with ESMTP with STARTTLS (version=TLSv1.3,
- cipher=TLS_AES_256_GCM_SHA384) id us-mta-629-3JmjOdStOcu7MPESNnoFGg-1; Tue,
- 27 Aug 2024 14:03:18 -0400
-X-MC-Unique: 3JmjOdStOcu7MPESNnoFGg-1
+ cipher=TLS_AES_256_GCM_SHA384) id us-mta-121-IpDebxFUMKGY-2feeLPpiw-1; Tue,
+ 27 Aug 2024 14:03:22 -0400
+X-MC-Unique: IpDebxFUMKGY-2feeLPpiw-1
 Received: from mx-prod-int-02.mail-002.prod.us-west-2.aws.redhat.com (mx-prod-int-02.mail-002.prod.us-west-2.aws.redhat.com [10.30.177.15])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature RSA-PSS (2048 bits) server-digest SHA256)
 	(No client certificate requested)
-	by mx-prod-mc-02.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTPS id DE35C1955D55;
-	Tue, 27 Aug 2024 18:03:14 +0000 (UTC)
+	by mx-prod-mc-04.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTPS id 692F91955D4C;
+	Tue, 27 Aug 2024 18:03:18 +0000 (UTC)
 Received: from fs-i40c-03.mgmt.fast.eng.rdu2.dc.redhat.com (fs-i40c-03.mgmt.fast.eng.rdu2.dc.redhat.com [10.6.24.150])
-	by mx-prod-int-02.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTP id D03CA1955DD8;
-	Tue, 27 Aug 2024 18:03:10 +0000 (UTC)
+	by mx-prod-int-02.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTP id 1B1741955BE1;
+	Tue, 27 Aug 2024 18:03:14 +0000 (UTC)
 From: Alexander Aring <aahringo@redhat.com>
 To: teigland@redhat.com
 Cc: gfs2@lists.linux.dev,
@@ -65,9 +65,9 @@ Cc: gfs2@lists.linux.dev,
 	juri.lelli@redhat.com,
 	williams@redhat.com,
 	aahringo@redhat.com
-Subject: [RFC 4/7] dlm: add our_nodeid to tracepoints
-Date: Tue, 27 Aug 2024 14:02:33 -0400
-Message-ID: <20240827180236.316946-5-aahringo@redhat.com>
+Subject: [RFC 5/7] dlm: add lkb rv mode to ast tracepoint
+Date: Tue, 27 Aug 2024 14:02:34 -0400
+Message-ID: <20240827180236.316946-6-aahringo@redhat.com>
 In-Reply-To: <20240827180236.316946-1-aahringo@redhat.com>
 References: <20240827180236.316946-1-aahringo@redhat.com>
 Precedence: bulk
@@ -79,248 +79,161 @@ MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 X-Scanned-By: MIMEDefang 3.0 on 10.30.177.15
 
-This patch adds our_nodeid to some DLM tracepoints that are necessary
-for the DLM kernel verifier to know from which nodeid the traceevent
-comes from. This is useful when using DLM in net-namespaces to get a
-whole cluster-view of DLM in traces.
+This patch adds the lkb_rv_mode to the ast tracepoint. The lkb_rv_mode
+is the requested mode by dlm_lock() requests. We cannot use lkb_mode as
+dlm internally sometimes changes this value and for cases like the dlm
+kernel verifier we want to check on DLM correctness from what the user
+is seeing. This new tracepoint events tells us what the requested mode
+was.
 
 Signed-off-by: Alexander Aring <aahringo@redhat.com>
 ---
- fs/dlm/ast.c               | 23 +++++++++++++----------
- fs/dlm/dlm_internal.h      |  1 +
- fs/dlm/user.c              |  9 +++++----
- include/trace/events/dlm.h | 36 +++++++++++++++++++++++-------------
- 4 files changed, 42 insertions(+), 27 deletions(-)
+ fs/dlm/ast.c               |  9 +++++----
+ fs/dlm/dlm_internal.h      |  2 ++
+ fs/dlm/lock.c              |  1 +
+ fs/dlm/user.c              |  2 +-
+ include/trace/events/dlm.h | 11 +++++++----
+ 5 files changed, 16 insertions(+), 9 deletions(-)
 
 diff --git a/fs/dlm/ast.c b/fs/dlm/ast.c
-index 0fe8d80ce5e8..01de0d4b9450 100644
+index 01de0d4b9450..fc2ca37011d8 100644
 --- a/fs/dlm/ast.c
 +++ b/fs/dlm/ast.c
-@@ -18,20 +18,21 @@
- #include "user.h"
- #include "ast.h"
- 
--static void dlm_run_callback(uint32_t ls_id, uint32_t lkb_id, int8_t mode,
--			     uint32_t flags, uint8_t sb_flags, int sb_status,
--			     struct dlm_lksb *lksb,
-+static void dlm_run_callback(int our_nodeid, uint32_t ls_id, uint32_t lkb_id,
-+			     int8_t mode, uint32_t flags, uint8_t sb_flags,
-+			     int sb_status, struct dlm_lksb *lksb,
+@@ -24,7 +24,7 @@ static void dlm_run_callback(int our_nodeid, uint32_t ls_id, uint32_t lkb_id,
  			     void (*astfn)(void *astparam),
  			     void (*bastfn)(void *astparam, int mode),
  			     void *astparam, const char *res_name,
- 			     size_t res_length)
+-			     size_t res_length)
++			     size_t res_length, int rv_mode)
  {
  	if (flags & DLM_CB_BAST) {
--		trace_dlm_bast(ls_id, lkb_id, mode, res_name, res_length);
-+		trace_dlm_bast(our_nodeid, ls_id, lkb_id, mode, res_name,
-+			       res_length);
+ 		trace_dlm_bast(our_nodeid, ls_id, lkb_id, mode, res_name,
+@@ -32,7 +32,7 @@ static void dlm_run_callback(int our_nodeid, uint32_t ls_id, uint32_t lkb_id,
  		bastfn(astparam, mode);
  	} else if (flags & DLM_CB_CAST) {
--		trace_dlm_ast(ls_id, lkb_id, sb_flags, sb_status, res_name,
--			      res_length);
-+		trace_dlm_ast(our_nodeid, ls_id, lkb_id, sb_flags, sb_status,
-+			      res_name, res_length);
+ 		trace_dlm_ast(our_nodeid, ls_id, lkb_id, sb_flags, sb_status,
+-			      res_name, res_length);
++			      res_name, res_length, rv_mode);
  		lksb->sb_status = sb_status;
  		lksb->sb_flags = sb_flags;
  		astfn(astparam);
-@@ -40,8 +41,8 @@ static void dlm_run_callback(uint32_t ls_id, uint32_t lkb_id, int8_t mode,
- 
- static void dlm_do_callback(struct dlm_callback *cb)
- {
--	dlm_run_callback(cb->ls_id, cb->lkb_id, cb->mode, cb->flags,
--			 cb->sb_flags, cb->sb_status, cb->lkb_lksb,
-+	dlm_run_callback(cb->our_nodeid, cb->ls_id, cb->lkb_id, cb->mode,
-+			 cb->flags, cb->sb_flags, cb->sb_status, cb->lkb_lksb,
+@@ -44,7 +44,7 @@ static void dlm_do_callback(struct dlm_callback *cb)
+ 	dlm_run_callback(cb->our_nodeid, cb->ls_id, cb->lkb_id, cb->mode,
+ 			 cb->flags, cb->sb_flags, cb->sb_status, cb->lkb_lksb,
  			 cb->astfn, cb->bastfn, cb->astparam,
- 			 cb->res_name, cb->res_length);
+-			 cb->res_name, cb->res_length);
++			 cb->res_name, cb->res_length, cb->rv_mode);
  	dlm_free_cb(cb);
-@@ -130,6 +131,7 @@ int dlm_get_cb(struct dlm_lkb *lkb, uint32_t flags, int mode,
- 		return -ENOMEM;
+ }
  
- 	/* for tracing */
-+	(*cb)->our_nodeid = ls->ls_dn->our_node->id;
+@@ -134,6 +134,7 @@ int dlm_get_cb(struct dlm_lkb *lkb, uint32_t flags, int mode,
+ 	(*cb)->our_nodeid = ls->ls_dn->our_node->id;
  	(*cb)->lkb_id = lkb->lkb_id;
  	(*cb)->ls_id = ls->ls_global_id;
++	(*cb)->rv_mode = lkb->lkb_rv_mode;
  	memcpy((*cb)->res_name, rsb->res_name, rsb->res_length);
-@@ -185,8 +187,9 @@ void dlm_add_cb(struct dlm_lkb *lkb, uint32_t flags, int mode, int status,
- 			list_add(&cb->list, &ls->ls_cb_delay);
- 	} else {
- 		if (test_bit(LSFL_SOFTIRQ, &ls->ls_flags)) {
--			dlm_run_callback(ls->ls_global_id, lkb->lkb_id, mode, flags,
--					 sbflags, status, lkb->lkb_lksb,
-+			dlm_run_callback(ls->ls_dn->our_node->id,
-+					 ls->ls_global_id, lkb->lkb_id, mode,
-+					 flags, sbflags, status, lkb->lkb_lksb,
+ 	(*cb)->res_length = rsb->res_length;
+ 
+@@ -192,7 +193,7 @@ void dlm_add_cb(struct dlm_lkb *lkb, uint32_t flags, int mode, int status,
+ 					 flags, sbflags, status, lkb->lkb_lksb,
  					 lkb->lkb_astfn, lkb->lkb_bastfn,
  					 lkb->lkb_astparam, rsb->res_name,
- 					 rsb->res_length);
+-					 rsb->res_length);
++					 rsb->res_length, lkb->lkb_rv_mode);
+ 		} else {
+ 			rv = dlm_get_queue_cb(lkb, flags, mode, status, sbflags, &cb);
+ 			if (!rv)
 diff --git a/fs/dlm/dlm_internal.h b/fs/dlm/dlm_internal.h
-index 2de5ef2653cd..bc3ff1b64e0c 100644
+index bc3ff1b64e0c..3f630696f7ab 100644
 --- a/fs/dlm/dlm_internal.h
 +++ b/fs/dlm/dlm_internal.h
-@@ -234,6 +234,7 @@ struct dlm_callback {
- 	bool			copy_lvb;
- 	struct dlm_lksb		*lkb_lksb;
- 	unsigned char		lvbptr[DLM_USER_LVB_LEN];
-+	int			our_nodeid;
+@@ -247,6 +247,7 @@ struct dlm_callback {
+ 	size_t			res_length;
+ 	uint32_t		ls_id;
+ 	uint32_t		lkb_id;
++	int			rv_mode;
  
- 	union {
- 		void			*astparam;	/* caller's ast arg */
+ 	struct list_head	list;
+ };
+@@ -296,6 +297,7 @@ struct dlm_lkb {
+ 		void			*lkb_astparam;	/* caller's ast arg */
+ 		struct dlm_user_args	*lkb_ua;
+ 	};
++	int			lkb_rv_mode;
+ 	struct rcu_head		rcu;
+ };
+ 
+diff --git a/fs/dlm/lock.c b/fs/dlm/lock.c
+index 8cb5a537bfd3..21bb9603a0df 100644
+--- a/fs/dlm/lock.c
++++ b/fs/dlm/lock.c
+@@ -2844,6 +2844,7 @@ static int validate_lock_args(struct dlm_ls *ls, struct dlm_lkb *lkb,
+ 	lkb->lkb_lksb = args->lksb;
+ 	lkb->lkb_lvbptr = args->lksb->sb_lvbptr;
+ 	lkb->lkb_ownpid = (int) current->pid;
++	lkb->lkb_rv_mode = args->mode;
+ 	rv = 0;
+  out:
+ 	switch (rv) {
 diff --git a/fs/dlm/user.c b/fs/dlm/user.c
-index 1b682f8f95b6..c4d6e67ff63e 100644
+index c4d6e67ff63e..75fb85676e90 100644
 --- a/fs/dlm/user.c
 +++ b/fs/dlm/user.c
-@@ -868,13 +868,14 @@ static ssize_t device_read(struct file *file, char __user *buf, size_t count,
- 	spin_unlock_bh(&proc->asts_spin);
- 
- 	if (cb->flags & DLM_CB_BAST) {
--		trace_dlm_bast(cb->ls_id, cb->lkb_id, cb->mode, cb->res_name,
--			       cb->res_length);
-+		trace_dlm_bast(cb->our_nodeid, cb->ls_id, cb->lkb_id,
-+			       cb->mode, cb->res_name, cb->res_length);
- 	} else if (cb->flags & DLM_CB_CAST) {
- 		cb->lkb_lksb->sb_status = cb->sb_status;
+@@ -875,7 +875,7 @@ static ssize_t device_read(struct file *file, char __user *buf, size_t count,
  		cb->lkb_lksb->sb_flags = cb->sb_flags;
--		trace_dlm_ast(cb->ls_id, cb->lkb_id, cb->sb_status,
--			      cb->sb_flags, cb->res_name, cb->res_length);
-+		trace_dlm_ast(cb->our_nodeid, cb->ls_id, cb->lkb_id,
-+			      cb->sb_status, cb->sb_flags, cb->res_name,
-+			      cb->res_length);
+ 		trace_dlm_ast(cb->our_nodeid, cb->ls_id, cb->lkb_id,
+ 			      cb->sb_status, cb->sb_flags, cb->res_name,
+-			      cb->res_length);
++			      cb->res_length, cb->rv_mode);
  	}
  
  	ret = copy_result_to_user(&cb->ua,
 diff --git a/include/trace/events/dlm.h b/include/trace/events/dlm.h
-index af160082c9e3..2621bb7ac3a8 100644
+index 2621bb7ac3a8..f8d7ca451760 100644
 --- a/include/trace/events/dlm.h
 +++ b/include/trace/events/dlm.h
-@@ -98,6 +98,7 @@ TRACE_EVENT(dlm_lock_start,
- 	TP_ARGS(ls, lkb, name, namelen, mode, flags),
+@@ -228,10 +228,10 @@ TRACE_EVENT(dlm_ast,
+ 
+ 	TP_PROTO(unsigned int our_nodeid, __u32 ls_id, __u32 lkb_id,
+ 		 __u8 sb_flags, int sb_status, const char *res_name,
+-		 size_t res_length),
++		 size_t res_length, int rv_mode),
+ 
+ 	TP_ARGS(our_nodeid, ls_id, lkb_id, sb_flags, sb_status, res_name,
+-		res_length),
++		res_length, rv_mode),
  
  	TP_STRUCT__entry(
-+		__field(unsigned int, our_nodeid)
- 		__field(__u32, ls_id)
- 		__field(__u32, lkb_id)
- 		__field(int, mode)
-@@ -109,6 +110,7 @@ TRACE_EVENT(dlm_lock_start,
- 	TP_fast_assign(
- 		struct dlm_rsb *r;
- 
-+		__entry->our_nodeid = ls->ls_dn->our_node->id;
- 		__entry->ls_id = ls->ls_global_id;
- 		__entry->lkb_id = lkb->lkb_id;
- 		__entry->mode = mode;
-@@ -123,8 +125,8 @@ TRACE_EVENT(dlm_lock_start,
- 			       __get_dynamic_array_len(res_name));
- 	),
- 
--	TP_printk("ls_id=%u lkb_id=%x mode=%s flags=%s res_name=%s",
--		  __entry->ls_id, __entry->lkb_id,
-+	TP_printk("our_nodeid=%u ls_id=%u lkb_id=%x mode=%s flags=%s res_name=%s",
-+		  __entry->our_nodeid, __entry->ls_id, __entry->lkb_id,
- 		  show_lock_mode(__entry->mode),
- 		  show_lock_flags(__entry->flags),
- 		  __print_hex_str(__get_dynamic_array(res_name),
-@@ -141,6 +143,7 @@ TRACE_EVENT(dlm_lock_end,
- 	TP_ARGS(ls, lkb, name, namelen, mode, flags, error, kernel_lock),
- 
- 	TP_STRUCT__entry(
-+		__field(unsigned int, our_nodeid)
- 		__field(__u32, ls_id)
- 		__field(__u32, lkb_id)
- 		__field(int, mode)
-@@ -153,6 +156,7 @@ TRACE_EVENT(dlm_lock_end,
- 	TP_fast_assign(
- 		struct dlm_rsb *r;
- 
-+		__entry->our_nodeid = ls->ls_dn->our_node->id;
- 		__entry->ls_id = ls->ls_global_id;
- 		__entry->lkb_id = lkb->lkb_id;
- 		__entry->mode = mode;
-@@ -178,8 +182,8 @@ TRACE_EVENT(dlm_lock_end,
- 
- 	),
- 
--	TP_printk("ls_id=%u lkb_id=%x mode=%s flags=%s error=%d res_name=%s",
--		  __entry->ls_id, __entry->lkb_id,
-+	TP_printk("our_nodeid=%u ls_id=%u lkb_id=%x mode=%s flags=%s error=%d res_name=%s",
-+		  __entry->our_nodeid, __entry->ls_id, __entry->lkb_id,
- 		  show_lock_mode(__entry->mode),
- 		  show_lock_flags(__entry->flags), __entry->error,
- 		  __print_hex_str(__get_dynamic_array(res_name),
-@@ -189,12 +193,13 @@ TRACE_EVENT(dlm_lock_end,
- 
- TRACE_EVENT(dlm_bast,
- 
--	TP_PROTO(__u32 ls_id, __u32 lkb_id, int mode,
-+	TP_PROTO(unsigned int our_nodeid, __u32 ls_id, __u32 lkb_id, int mode,
- 		 const char *res_name, size_t res_length),
- 
--	TP_ARGS(ls_id, lkb_id, mode, res_name, res_length),
-+	TP_ARGS(our_nodeid, ls_id, lkb_id, mode, res_name, res_length),
- 
- 	TP_STRUCT__entry(
-+		__field(unsigned int, our_nodeid)
- 		__field(__u32, ls_id)
- 		__field(__u32, lkb_id)
- 		__field(int, mode)
-@@ -202,6 +207,7 @@ TRACE_EVENT(dlm_bast,
- 	),
- 
- 	TP_fast_assign(
-+		__entry->our_nodeid = our_nodeid;
- 		__entry->ls_id = ls_id;
- 		__entry->lkb_id = lkb_id;
- 		__entry->mode = mode;
-@@ -210,8 +216,8 @@ TRACE_EVENT(dlm_bast,
- 		       __get_dynamic_array_len(res_name));
- 	),
- 
--	TP_printk("ls_id=%u lkb_id=%x mode=%s res_name=%s",
--		  __entry->ls_id, __entry->lkb_id,
-+	TP_printk("our_nodeid=%u ls_id=%u lkb_id=%x mode=%s res_name=%s",
-+		  __entry->our_nodeid, __entry->ls_id, __entry->lkb_id,
- 		  show_lock_mode(__entry->mode),
- 		  __print_hex_str(__get_dynamic_array(res_name),
- 				  __get_dynamic_array_len(res_name)))
-@@ -220,12 +226,15 @@ TRACE_EVENT(dlm_bast,
- 
- TRACE_EVENT(dlm_ast,
- 
--	TP_PROTO(__u32 ls_id, __u32 lkb_id, __u8 sb_flags, int sb_status,
--		 const char *res_name, size_t res_length),
-+	TP_PROTO(unsigned int our_nodeid, __u32 ls_id, __u32 lkb_id,
-+		 __u8 sb_flags, int sb_status, const char *res_name,
-+		 size_t res_length),
- 
--	TP_ARGS(ls_id, lkb_id, sb_flags, sb_status, res_name, res_length),
-+	TP_ARGS(our_nodeid, ls_id, lkb_id, sb_flags, sb_status, res_name,
-+		res_length),
- 
- 	TP_STRUCT__entry(
-+		__field(unsigned int, our_nodeid)
- 		__field(__u32, ls_id)
+ 		__field(unsigned int, our_nodeid)
+@@ -239,6 +239,7 @@ TRACE_EVENT(dlm_ast,
  		__field(__u32, lkb_id)
  		__field(__u8, sb_flags)
-@@ -234,6 +243,7 @@ TRACE_EVENT(dlm_ast,
+ 		__field(int, sb_status)
++		__field(int, rv_mode)
+ 		__dynamic_array(unsigned char, res_name, res_length)
  	),
  
- 	TP_fast_assign(
-+		__entry->our_nodeid = our_nodeid;
- 		__entry->ls_id = ls_id;
+@@ -248,16 +249,18 @@ TRACE_EVENT(dlm_ast,
  		__entry->lkb_id = lkb_id;
  		__entry->sb_flags = sb_flags;
-@@ -243,8 +253,8 @@ TRACE_EVENT(dlm_ast,
+ 		__entry->sb_status = sb_status;
++		__entry->rv_mode = rv_mode;
+ 
+ 		memcpy(__get_dynamic_array(res_name), res_name,
  		       __get_dynamic_array_len(res_name));
  	),
  
--	TP_printk("ls_id=%u lkb_id=%x sb_flags=%s sb_status=%d res_name=%s",
--		  __entry->ls_id, __entry->lkb_id,
-+	TP_printk("our_nodeid=%u ls_id=%u lkb_id=%x sb_flags=%s sb_status=%d res_name=%s",
-+		  __entry->our_nodeid, __entry->ls_id, __entry->lkb_id,
+-	TP_printk("our_nodeid=%u ls_id=%u lkb_id=%x sb_flags=%s sb_status=%d res_name=%s",
++	TP_printk("our_nodeid=%u ls_id=%u lkb_id=%x sb_flags=%s sb_status=%d res_name=%s rv_mode=%d",
+ 		  __entry->our_nodeid, __entry->ls_id, __entry->lkb_id,
  		  show_dlm_sb_flags(__entry->sb_flags), __entry->sb_status,
  		  __print_hex_str(__get_dynamic_array(res_name),
- 				  __get_dynamic_array_len(res_name)))
+-				  __get_dynamic_array_len(res_name)))
++				  __get_dynamic_array_len(res_name)),
++		  __entry->rv_mode)
+ 
+ );
+ 
 -- 
 2.43.0
 
