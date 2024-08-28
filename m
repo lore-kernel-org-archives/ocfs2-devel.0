@@ -1,939 +1,216 @@
-Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.129.124])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from smtp-out2.suse.de (smtp-out2.suse.de [195.135.223.131])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C447E1D47A5
-	for <ocfs2-devel@lists.linux.dev>; Tue, 27 Aug 2024 18:03:37 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=170.10.129.124
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id BB7A4166F20
+	for <ocfs2-devel@lists.linux.dev>; Wed, 28 Aug 2024 10:54:59 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=195.135.223.131
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1724781824; cv=none; b=j9uexVYKwQnyFIhw2OVMZTUpFm2DLgAJd5xFv9wVRUDvI3/dVlMlrFvfVFwxbncKuoCOIDtLqRJu2ainX/Wb5qqoySqkxgjXII5RtgrsTp0XOSGAXe2bbestmoaya5ywNdDN5RYrmoFGw57fSFIt6Sl5ixSWqtCzmNkmmQ357k8=
+	t=1724842501; cv=none; b=qoeaqnI51f2Ufmx7eMDv1EX5GTILBuwChf5V9jBEjZdTbDWurVN4yJFcSGm4zqG+WAWCPUQKwRPFJofAof1hTtDMkD46rwiv8UGFoQQh4bSaTtZEA+ypZGXDP3URiBufEiR8ZrCO2tVP2Zgh7sSIXHmjNWgfn0DePAmkxsvh3Js=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1724781824; c=relaxed/simple;
-	bh=2EYGC1vMs0Hpw0whCd3bNyo1/02HGjJXSqnQRxHrocY=;
-	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=Hs3W7rCL/pW0wASjYq0g23Xt8Q7nlJRnJfe4BeH5DSX8ocm2vKAREPGKt7yKM7B0r3elwcDpte7PhLcxHn29KUm3KAlXFdyRfaFeATHuAh+1IZSuQgPHCppmYz/pSOnMeX/NBpJRIa2W2f9mDs/VmPMBX+KXQSLJei7PKIG5Pq0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=redhat.com; spf=pass smtp.mailfrom=redhat.com; dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b=EQrQN1mr; arc=none smtp.client-ip=170.10.129.124
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=redhat.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=redhat.com
+	s=arc-20240116; t=1724842501; c=relaxed/simple;
+	bh=S30IzBTvZMfC9d/ElKB9D8NDvjEbQC5vqnWEYkcJimE=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=K6rBTJCWlF1jF3rddMT1xaVqjlGVRg1749LmeCzlk2TyuBcE7eJJEOCkl7GHdRSR3pHmURoquuZwHunNeah821Oc54gWqTnmjIAnE+Ct9aKlFlr1u+r655DmgoTfQu95L7VAtj4kS0p8uJ0xu1e30EbaxdAKpCtsvW34Y5ME00o=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=suse.cz; spf=pass smtp.mailfrom=suse.cz; dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b=Q5KfTMkc; dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b=YJt1uXAz; dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b=aI4r+ML2; dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b=XECcFiio; arc=none smtp.client-ip=195.135.223.131
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=suse.cz
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.cz
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b="EQrQN1mr"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
-	s=mimecast20190719; t=1724781816;
-	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-	 to:to:cc:cc:mime-version:mime-version:
-	 content-transfer-encoding:content-transfer-encoding:
-	 in-reply-to:in-reply-to:references:references;
-	bh=OpnAX1fOM2MzxfYtvNDSARUGYAHYe8Rt2hfnrOKJSbk=;
-	b=EQrQN1mrWHVAs1KRRpUAxoKyk4TSY9M3yZHoPR32hODt7hA4lNcUH8wRcK4Kn2j1ttdccH
-	NlvbjK10ATDxeGUu8mUP1LEOJjriwurB40XEndAkW9u/3Ednb9yrIszIkoT6wUjN43t0mR
-	UPRhr71jeHDx3CwHuOwD6rDE+9+W47M=
-Received: from mx-prod-mc-05.mail-002.prod.us-west-2.aws.redhat.com
- (ec2-54-186-198-63.us-west-2.compute.amazonaws.com [54.186.198.63]) by
- relay.mimecast.com with ESMTP with STARTTLS (version=TLSv1.3,
- cipher=TLS_AES_256_GCM_SHA384) id us-mta-361-h3AoxaQyPYG3P68gVUJ3tw-1; Tue,
- 27 Aug 2024 14:03:28 -0400
-X-MC-Unique: h3AoxaQyPYG3P68gVUJ3tw-1
-Received: from mx-prod-int-02.mail-002.prod.us-west-2.aws.redhat.com (mx-prod-int-02.mail-002.prod.us-west-2.aws.redhat.com [10.30.177.15])
+	dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b="Q5KfTMkc";
+	dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b="YJt1uXAz";
+	dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b="aI4r+ML2";
+	dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b="XECcFiio"
+Received: from imap1.dmz-prg2.suse.org (imap1.dmz-prg2.suse.org [IPv6:2a07:de40:b281:104:10:150:64:97])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature RSA-PSS (2048 bits) server-digest SHA256)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
 	(No client certificate requested)
-	by mx-prod-mc-05.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTPS id 56C0419560A3;
-	Tue, 27 Aug 2024 18:03:25 +0000 (UTC)
-Received: from fs-i40c-03.mgmt.fast.eng.rdu2.dc.redhat.com (fs-i40c-03.mgmt.fast.eng.rdu2.dc.redhat.com [10.6.24.150])
-	by mx-prod-int-02.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTP id DE0FD1955F1B;
-	Tue, 27 Aug 2024 18:03:21 +0000 (UTC)
-From: Alexander Aring <aahringo@redhat.com>
-To: teigland@redhat.com
-Cc: gfs2@lists.linux.dev,
-	song@kernel.org,
-	yukuai3@huawei.com,
-	agruenba@redhat.com,
-	mark@fasheh.com,
-	jlbec@evilplan.org,
-	joseph.qi@linux.alibaba.com,
-	gregkh@linuxfoundation.org,
-	rafael@kernel.org,
-	akpm@linux-foundation.org,
-	linux-kernel@vger.kernel.org,
-	linux-raid@vger.kernel.org,
-	ocfs2-devel@lists.linux.dev,
-	netdev@vger.kernel.org,
-	vvidic@valentin-vidic.from.hr,
-	heming.zhao@suse.com,
-	lucien.xin@gmail.com,
-	paulmck@kernel.org,
-	rcu@vger.kernel.org,
-	juri.lelli@redhat.com,
-	williams@redhat.com,
-	aahringo@redhat.com
-Subject: [RFC 7/7] rv: add dlm compatible lock state kernel verifier
-Date: Tue, 27 Aug 2024 14:02:36 -0400
-Message-ID: <20240827180236.316946-8-aahringo@redhat.com>
-In-Reply-To: <20240827180236.316946-1-aahringo@redhat.com>
-References: <20240827180236.316946-1-aahringo@redhat.com>
+	by smtp-out2.suse.de (Postfix) with ESMTPS id D77581FC04;
+	Wed, 28 Aug 2024 10:54:56 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.cz; s=susede2_rsa;
+	t=1724842497; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+	 mime-version:mime-version:content-type:content-type:
+	 in-reply-to:in-reply-to:references:references;
+	bh=jB9SfZ0mCFHAKCSMP99d+Ef51sDm553ruU6X+bNK0e4=;
+	b=Q5KfTMkcElxsOKMZ5Ba4jG8GXue1FLKsMI9ijOp/XarfGan+v+2/IclBr6AIqygNQunGM+
+	rlMnZVqMqa4GNgQoahyNBUpVMsdvAQARLZAAJgqUeHDCVpDxoUzqVfkOTBG6QMPxcK1T7H
+	KGLbsQ+qwv+fnxL1aw1ZDVSp3eTXmAc=
+DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.cz;
+	s=susede2_ed25519; t=1724842497;
+	h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+	 mime-version:mime-version:content-type:content-type:
+	 in-reply-to:in-reply-to:references:references;
+	bh=jB9SfZ0mCFHAKCSMP99d+Ef51sDm553ruU6X+bNK0e4=;
+	b=YJt1uXAz6JoaUlOHdVGJhhtV2wIJNkgfJTPMhQ5CzlIN0Oc43oKQv/PecGfuMKdiY41f2a
+	Bbw3w0DEvKBYNTDA==
+Authentication-Results: smtp-out2.suse.de;
+	dkim=pass header.d=suse.cz header.s=susede2_rsa header.b=aI4r+ML2;
+	dkim=pass header.d=suse.cz header.s=susede2_ed25519 header.b=XECcFiio
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.cz; s=susede2_rsa;
+	t=1724842496; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+	 mime-version:mime-version:content-type:content-type:
+	 in-reply-to:in-reply-to:references:references;
+	bh=jB9SfZ0mCFHAKCSMP99d+Ef51sDm553ruU6X+bNK0e4=;
+	b=aI4r+ML2j7+dnebnwxye7zkvZh2Z7HPi6LfF2sIRMWIsJK0+hyTOqpNtgxMvYtWhd5o9aq
+	F7jNPTAuqAbhlCbeI1srvwE0cCUXbloRLi6zb908Qk3bzKz2gP2ZicQZKcDuoC1GCjgFhb
+	cjGlk/rDAfFdZCcfzO2uSQXmaGNP8yA=
+DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.cz;
+	s=susede2_ed25519; t=1724842496;
+	h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+	 mime-version:mime-version:content-type:content-type:
+	 in-reply-to:in-reply-to:references:references;
+	bh=jB9SfZ0mCFHAKCSMP99d+Ef51sDm553ruU6X+bNK0e4=;
+	b=XECcFiio7Bpd/X0jaN/LYv6iatUqlmk0pUqV2eTgCgofIky+GtLIHg54nSztsrnSjbbVTO
+	lBVTwS/lUQe8BEBA==
+Received: from imap1.dmz-prg2.suse.org (localhost [127.0.0.1])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by imap1.dmz-prg2.suse.org (Postfix) with ESMTPS id BA031138D2;
+	Wed, 28 Aug 2024 10:54:56 +0000 (UTC)
+Received: from dovecot-director2.suse.de ([2a07:de40:b281:106:10:150:64:167])
+	by imap1.dmz-prg2.suse.org with ESMTPSA
+	id fBcjLQACz2bNcgAAD6G6ig
+	(envelope-from <jack@suse.cz>); Wed, 28 Aug 2024 10:54:56 +0000
+Received: by quack3.suse.cz (Postfix, from userid 1000)
+	id 3C6A7A0968; Wed, 28 Aug 2024 12:54:52 +0200 (CEST)
+Date: Wed, 28 Aug 2024 12:54:52 +0200
+From: Jan Kara <jack@suse.cz>
+To: Theodore Ts'o <tytso@mit.edu>
+Cc: Vinicius Peixoto <vpeixoto@lkcamp.dev>,
+	syzbot+8512f3dbd96253ffbe27@syzkaller.appspotmail.com,
+	jack@suse.com, jlbec@evilplan.org, joseph.qi@linux.alibaba.com,
+	linux-ext4@vger.kernel.org, linux-kernel@vger.kernel.org,
+	mark@fasheh.com, ocfs2-devel@lists.linux.dev,
+	Julian Sun <sunjunchao2870@gmail.com>,
+	syzkaller-bugs@googlegroups.com, ~lkcamp/discussion@lists.sr.ht
+Subject: Re: [syzbot] [ext4?] [ocfs2?] kernel BUG in jbd2_cleanup_journal_tail
+Message-ID: <20240828105452.z6tqwq47bcnmrevd@quack3>
+References: <00000000000070a66706204e7698@google.com>
+ <d673f289-2385-4949-ac80-f3a502d4deb2@lkcamp.dev>
+ <20240826133208.GB424729@mit.edu>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-X-Scanned-By: MIMEDefang 3.0 on 10.30.177.15
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20240826133208.GB424729@mit.edu>
+X-Rspamd-Queue-Id: D77581FC04
+X-Spam-Level: 
+X-Spamd-Result: default: False [-2.51 / 50.00];
+	BAYES_HAM(-3.00)[99.99%];
+	SUSPICIOUS_RECIPS(1.50)[];
+	NEURAL_HAM_LONG(-1.00)[-1.000];
+	MID_RHS_NOT_FQDN(0.50)[];
+	R_DKIM_ALLOW(-0.20)[suse.cz:s=susede2_rsa,suse.cz:s=susede2_ed25519];
+	NEURAL_HAM_SHORT(-0.20)[-1.000];
+	MIME_GOOD(-0.10)[text/plain];
+	MX_GOOD(-0.01)[];
+	RCVD_COUNT_THREE(0.00)[3];
+	DKIM_SIGNED(0.00)[suse.cz:s=susede2_rsa,suse.cz:s=susede2_ed25519];
+	FUZZY_BLOCKED(0.00)[rspamd.com];
+	ARC_NA(0.00)[];
+	RCPT_COUNT_TWELVE(0.00)[13];
+	RBL_SPAMHAUS_BLOCKED_OPENRESOLVER(0.00)[2a07:de40:b281:104:10:150:64:97:from];
+	MIME_TRACE(0.00)[0:+];
+	SPAMHAUS_XBL(0.00)[2a07:de40:b281:104:10:150:64:97:from];
+	RCVD_TLS_LAST(0.00)[];
+	FREEMAIL_ENVRCPT(0.00)[gmail.com];
+	TO_DN_SOME(0.00)[];
+	DBL_BLOCKED_OPENRESOLVER(0.00)[suse.com:email,imap1.dmz-prg2.suse.org:helo,imap1.dmz-prg2.suse.org:rdns,suse.cz:dkim];
+	RECEIVED_SPAMHAUS_BLOCKED_OPENRESOLVER(0.00)[2a07:de40:b281:106:10:150:64:167:received];
+	FROM_EQ_ENVFROM(0.00)[];
+	FROM_HAS_DN(0.00)[];
+	TO_MATCH_ENVRCPT_ALL(0.00)[];
+	TAGGED_RCPT(0.00)[8512f3dbd96253ffbe27];
+	MISSING_XM_UA(0.00)[];
+	RCVD_VIA_SMTP_AUTH(0.00)[];
+	FREEMAIL_CC(0.00)[lkcamp.dev,syzkaller.appspotmail.com,suse.com,evilplan.org,linux.alibaba.com,vger.kernel.org,fasheh.com,lists.linux.dev,gmail.com,googlegroups.com,lists.sr.ht];
+	DKIM_TRACE(0.00)[suse.cz:+];
+	SUBJECT_HAS_QUESTION(0.00)[]
+X-Rspamd-Server: rspamd2.dmz-prg2.suse.org
+X-Rspamd-Action: no action
+X-Spam-Score: -2.51
+X-Spam-Flag: NO
 
-This patch adds the DLM kernel lock state verifier. It can be simply
-activated by:
+On Mon 26-08-24 09:32:08, Theodore Ts'o wrote:
+> On Mon, Aug 26, 2024 at 01:22:54AM -0300, Vinicius Peixoto wrote:
+> > Since the disk data is bogus, journal_reset fails with -EINVAL ("JBD2:
+> > Journal too short (blocks 2-1024)"); this leaves journal->j_head == NULL.
+> > However, jbd2_journal_load clears the JBD2_ABORT flag right before calling
+> > journal_reset. This leads to a problem later when ofcs2_mount_volume tries
+> > to flush the journal as part of the cleanup when aborting the mount
+> > operation:
+> > 
+> >   -> ofcs2_mount_volume (error; goto out_system_inodes)
+> >     -> ofcs2_journal_shutdown
+> >       -> jbd2_journal_flush
+> >         -> jbd2_cleanup_journal_tail (J_ASSERT fails)
+> > ...
+> >
+> > I confirmed that setting the JBD2_ABORT flag in journal_reset before
+> > returning -EINVAL fixes the problem:
+> > 
+> >         static int journal_reset(journal_t *journal)
+> >                         journal_fail_superblock(journal);
+> >         +               journal->j_flags |= JBD2_ABORT;
+> >                         return -EINVAL;
+> > 
+> > You can find a proper patch file + the syzbot re-test result in [1].
+> > However, I'm not entirely sure whether this is the correct decision, and I
+> > wanted to confirm that this is an appropriate solution before sending a
+> > proper patch to the mailing list.
+> 
+> The reason why this isn't an issue with ext4 is because the normal
+> "right" way to do this is if jbd2_journal_load() returns an error, is
+> to call jbd2_journal_destroy() to release the data structures with the
+> journal --- and then don't try to use the journal afterwards.
 
-echo "dlm" > /sys/kernel/tracing/rv/enabled_monitors
-echo "printk" > /sys/kernel/tracing/rv/monitors/dlm/reactors
+Yep. OCFS2 guys are actually looking into fixing this in OCFS2
+(https://lore.kernel.org/ocfs2-devel/20240819131120.746077-1-sunjunchao2870@gmail.com/)
+Not sure what's the status though. Julian, did you send v2 of your fix?
 
-then run any kind of workload on DLM to check on DLM correctness in
-sense of compatible lock states and their current holders. For example
-there cannot be two lock holders or more for a specific lock holding the
-exclusive lock.
+								Honza
 
-IMPORTANT: This kernel verifier for DLM only makes sense to use it with
-combination of DLM's net-namespace feature to run a DLM cluster on one
-Linux kernel instance. This offers us a whole cluster view in the Linux
-tracing subsystem that this verifier takes advantage of!
-
-The above note is the reason why this verifier works kinda different
-than other verifiers. We build a layer to have a cluster view and check
-if a lock state is still compatible with all current lock holder states.
-That's why we have a rhashtable in the verifier to keep track of all
-current cluster wide locks. However we use da events to check if our
-model is violating or not.
-
-As example gfs2 can be used to produce some kind of filesystem benchmark
-that produces DLM lock handling. This verifier will then check if DLM is
-working as expected.
-
-Most useful feature is checking DLM recovery handling if nodes
-leave the lockspace and DLM is still correct.
-
-Signed-off-by: Alexander Aring <aahringo@redhat.com>
----
- Documentation/trace/rv/monitor_dlm.rst |  77 +++++
- include/trace/events/rv.h              |   9 +
- kernel/trace/rv/Kconfig                |  18 +
- kernel/trace/rv/Makefile               |   1 +
- kernel/trace/rv/monitors/dlm/dlm.c     | 445 +++++++++++++++++++++++++
- kernel/trace/rv/monitors/dlm/dlm.h     |  38 +++
- kernel/trace/rv/monitors/dlm/dlm_da.h  | 143 ++++++++
- tools/verification/models/dlm.dot      |  14 +
- 8 files changed, 745 insertions(+)
- create mode 100644 Documentation/trace/rv/monitor_dlm.rst
- create mode 100644 kernel/trace/rv/monitors/dlm/dlm.c
- create mode 100644 kernel/trace/rv/monitors/dlm/dlm.h
- create mode 100644 kernel/trace/rv/monitors/dlm/dlm_da.h
- create mode 100644 tools/verification/models/dlm.dot
-
-diff --git a/Documentation/trace/rv/monitor_dlm.rst b/Documentation/trace/rv/monitor_dlm.rst
-new file mode 100644
-index 000000000000..95cdf3d1a904
---- /dev/null
-+++ b/Documentation/trace/rv/monitor_dlm.rst
-@@ -0,0 +1,77 @@
-+Monitor dlm
-+============
-+
-+- Name: dlm - dlm runtime lock compatibility verifier.
-+  Only makes sense with DLM net-names paces because we
-+  need the whole traced cluster view.
-+- Type: per-dlm_lock deterministic automaton
-+- Author: Alexander Aring <aahringo@redhat.com>
-+
-+Description
-+-----------
-+
-+This is a per-dlm lock compatibility monitor, with the following
-+definition::
-+
-+               |
-+    with       |
-+   others      v
-+ compatible  +-------------+
-+  +--------- |             |
-+  |          |    valid    |
-+  +--------> |             |
-+             +-------------+
-+               |
-+               | all_unlock
-+               v
-+             #=============#
-+             H     free    H
-+             #=============#
-+
-+This model is on a per cluster wide DLM lock basis. Each cluster
-+node can hold a specific lock resource in a certain lock mode.
-+This lock mode is either compatible or not compatible with all
-+other nodes holding the particular lock resource in a different
-+lock mode. A simple lock state is the Exclusive Lock state. Two
-+nodes can never held the exclusive lock for a specific lock
-+resource at the same time. This is what "with others compatible"
-+edge means when a node changes the lock state and checks if the
-+lock state is still compatible with other holders of the lock, we
-+are still in the valid state.
-+
-+If all holders for a specific lock resource that we track switch
-+to unlock state, we free the monitoring resource as we don't track
-+the lock correctness anymore. The lock can be monitored again if
-+the same lock resource switches to a valid lock state.
-+
-+This monitor introduce also another lock state to signal that a
-+lock state is in transition. The user signals a lock state change
-+and we waiting for a lock state completion (ast) callback. At this
-+time the user cannot assume to hold the state in a certain state
-+until completion and we need to ignore lock holders they are in
-+transition.
-+
-+IMPORTANT NOTE:
-+
-+This monitor makes only sense when having a cluster wide view in
-+the local Linux tracing subsystem. For now this means a DLM user
-+should construct a cluster with several nodes by using
-+net-namespaces. This will allow the DLM monitor to track cluster
-+wide lock changes. The monitor also works on a real cluster with
-+several machines as nodes, but it will not make any sense as we
-+don't check on any cluster-wide DLM correctness. Only for per-node
-+local DLM correctness, which is unlikely to break.
-+
-+There might be ideas to use time synchronized tracing to get a
-+cluster wide Linux tracing view and run the kernel verifier on
-+a real cluster, however this isn't supported yet and only an idea
-+to how to might handle it.
-+
-+This monitor is different than other current monitors. It builds
-+an nonexitent layer that represents the current cluster state that
-+we don't track in such a way in DLM. That's why it only works
-+with DLM and net-namespaces together.
-+
-+Specification
-+-------------
-+Grapviz Dot file in tools/verification/models/dlm.dot
-diff --git a/include/trace/events/rv.h b/include/trace/events/rv.h
-index 56592da9301c..cd031a4d994d 100644
---- a/include/trace/events/rv.h
-+++ b/include/trace/events/rv.h
-@@ -66,6 +66,15 @@ DEFINE_EVENT(error_da_monitor, error_wip,
- 	     TP_PROTO(char *state, char *event),
- 	     TP_ARGS(state, event));
- #endif /* CONFIG_RV_MON_WIP */
-+#ifdef CONFIG_RV_MON_DLM
-+DEFINE_EVENT(event_da_monitor, event_dlm,
-+	    TP_PROTO(char *state, char *event, char *next_state, bool final_state),
-+	    TP_ARGS(state, event, next_state, final_state));
-+
-+DEFINE_EVENT(error_da_monitor, error_dlm,
-+	     TP_PROTO(char *state, char *event),
-+	     TP_ARGS(state, event));
-+#endif /* CONFIG_RV_MON_DLM */
- #endif /* CONFIG_DA_MON_EVENTS_IMPLICIT */
- 
- #ifdef CONFIG_DA_MON_EVENTS_ID
-diff --git a/kernel/trace/rv/Kconfig b/kernel/trace/rv/Kconfig
-index 831779607e84..bc12b72088c4 100644
---- a/kernel/trace/rv/Kconfig
-+++ b/kernel/trace/rv/Kconfig
-@@ -50,6 +50,24 @@ config RV_MON_WWNR
- 	  For further information, see:
- 	    Documentation/trace/rv/monitor_wwnr.rst
- 
-+config RV_MON_DLM
-+	depends on RV
-+	depends on DLM
-+	depends on NET_NS
-+	bool "dlm monitor"
-+	help
-+	  Enable dlm (runtime lock compatibility verifier) sample monitor,
-+	  this monitor will check on DLM lock correctness in sense of
-+	  checking on compatible lock modes during DLM runtime. E.g. two
-+	  cluster wide lock holders that holding the exclusive lock state
-+	  for a specific lock.
-+
-+	  IMPORTANT: the verifier only works on DLMs net-namespace feature
-+	  that is e.g. supported by gfs2.
-+
-+	  For further information, see:
-+	    Documentation/trace/rv/monitor_dlm.rst
-+
- config RV_REACTORS
- 	bool "Runtime verification reactors"
- 	default y
-diff --git a/kernel/trace/rv/Makefile b/kernel/trace/rv/Makefile
-index 963d14875b45..b1ac0d69ebef 100644
---- a/kernel/trace/rv/Makefile
-+++ b/kernel/trace/rv/Makefile
-@@ -3,6 +3,7 @@
- obj-$(CONFIG_RV) += rv.o
- obj-$(CONFIG_RV_MON_WIP) += monitors/wip/wip.o
- obj-$(CONFIG_RV_MON_WWNR) += monitors/wwnr/wwnr.o
-+obj-$(CONFIG_RV_MON_DLM) += monitors/dlm/dlm.o
- obj-$(CONFIG_RV_REACTORS) += rv_reactors.o
- obj-$(CONFIG_RV_REACT_PRINTK) += reactor_printk.o
- obj-$(CONFIG_RV_REACT_PANIC) += reactor_panic.o
-diff --git a/kernel/trace/rv/monitors/dlm/dlm.c b/kernel/trace/rv/monitors/dlm/dlm.c
-new file mode 100644
-index 000000000000..2f384b5b08b6
---- /dev/null
-+++ b/kernel/trace/rv/monitors/dlm/dlm.c
-@@ -0,0 +1,445 @@
-+// SPDX-License-Identifier: GPL-2.0-only
-+
-+#include <linux/ftrace.h>
-+#include <linux/tracepoint.h>
-+#include <linux/console.h>
-+#include <linux/kernel.h>
-+#include <linux/module.h>
-+#include <linux/init.h>
-+#include <linux/rv.h>
-+#include <rv/instrumentation.h>
-+#include <rv/da_monitor.h>
-+
-+#define MODULE_NAME "dlm_rv"
-+#include <trace/events/rv.h>
-+#include <trace/events/dlm.h>
-+
-+#include "dlm.h"
-+#include "dlm_da.h"
-+#include "../../../fs/dlm/lock.h"
-+
-+/* out of DLM DLM API mode values */
-+#define STATE_MODE_UNLOCK -1
-+#define STATE_MODE_IN_TRANSITION -2
-+
-+struct dlm_rv_lock_key {
-+	uint32_t ls_id;
-+	char res_name[DLM_RESNAME_MAXLEN];
-+};
-+
-+struct dlm_rv_lock {
-+	union rv_dlm_lock_monitor rv;
-+
-+	struct dlm_rv_lock_key key;
-+	struct rhash_head node;
-+
-+	struct list_head holders;
-+
-+	/* holder for lock list */
-+	struct list_head list;
-+};
-+
-+/* protected by dlm_rv_hash_lock */
-+struct dlm_rv_holder {
-+	unsigned int nodeid;
-+	int mode;
-+
-+	struct list_head list;
-+};
-+
-+static const struct rhashtable_params dlm_rv_hash_params = {
-+	.nelem_hint = 3, /* start small */
-+	.key_len = sizeof(struct dlm_rv_lock_key),
-+	.key_offset = offsetof(struct dlm_rv_lock, key),
-+	.head_offset = offsetof(struct dlm_rv_lock, node),
-+	.automatic_shrinking = true,
-+};
-+
-+static LIST_HEAD(dlm_rv_locks);
-+static struct rhashtable dlm_rv_hash;
-+static DEFINE_SPINLOCK(dlm_rv_hash_lock);
-+static struct kmem_cache *lk_cache;
-+static struct kmem_cache *hl_cache;
-+
-+/*
-+ * Entry point for the per-dlm_lock monitor.
-+ */
-+#define DECLARE_DA_MON_PER_DLM_LOCK(name, type)							\
-+												\
-+DECLARE_AUTOMATA_HELPERS(name, type)								\
-+DECLARE_DA_MON_GENERIC_HELPERS(name, type)							\
-+DECLARE_DA_MON_MODEL_HANDLER_PER_DLM_LOCK(name, type)						\
-+DECLARE_DA_MON_INIT_PER_DLM_LOCK(name, type)							\
-+DECLARE_DA_MON_MONITOR_HANDLER_PER_DLM_LOCK(name, type)
-+
-+static struct rv_monitor rv_dlm;
-+DECLARE_DA_MON_PER_DLM_LOCK(dlm, unsigned char);
-+
-+static struct dlm_rv_lock *
-+lookup_lock(uint32_t ls_id, const char *res_name, size_t res_length)
-+{
-+	struct dlm_rv_lock_key key = {
-+		.ls_id = ls_id,
-+	};
-+
-+	WARN_ON(res_length > DLM_RESNAME_MAXLEN);
-+
-+	/* the key.res_name is DLM_RESNAME_MAXLEN */
-+	memcpy(&key.res_name, res_name, res_length);
-+	return rhashtable_lookup_fast(&dlm_rv_hash, &key, dlm_rv_hash_params);
-+}
-+
-+static struct dlm_rv_holder *
-+lookup_holder(struct dlm_rv_lock *lk, unsigned int nodeid)
-+{
-+	struct dlm_rv_holder *iter, *hl = NULL;
-+
-+	list_for_each_entry(iter, &lk->holders, list) {
-+		if (iter->nodeid == nodeid) {
-+			hl = iter;
-+			break;
-+		}
-+	}
-+
-+	return hl;
-+}
-+
-+/* set a specific mode to a lock node holder identified by the nodeid */
-+static void set_holder_state(struct dlm_rv_lock *lk, unsigned int nodeid,
-+			     int mode)
-+{
-+	struct dlm_rv_holder *hl;
-+
-+	hl = lookup_holder(lk, nodeid);
-+	if (hl) {
-+		hl->mode = mode;
-+		return;
-+	}
-+
-+	/* we only create holders they are not start with UNLOCK */
-+	if (mode == STATE_MODE_UNLOCK)
-+		return;
-+
-+	hl = kmem_cache_zalloc(hl_cache, GFP_ATOMIC);
-+	if (WARN_ON_ONCE(!hl))
-+		return;
-+
-+	hl->nodeid = nodeid;
-+	hl->mode = mode;
-+
-+	list_add(&hl->list, &lk->holders);
-+}
-+
-+/* check if all lock holders except the one from nodeid is still
-+ * compatible with the mode given by mode. Usually the nodeid which
-+ * is skipped has the applied mode as parameter to check if the
-+ * state change is valid.
-+ */
-+static int check_valid_lock_holders(struct dlm_rv_lock *lk, int mode,
-+				    unsigned int nodeid)
-+{
-+	struct dlm_rv_holder *hl;
-+
-+	list_for_each_entry(hl, &lk->holders, list) {
-+		/* ignore ourself
-+		 * ignore pending lock states
-+		 */
-+		if (hl->nodeid == nodeid ||
-+		    hl->mode == STATE_MODE_IN_TRANSITION)
-+			continue;
-+
-+		if (!dlm_modes_compat(mode, hl->mode))
-+			return 0;
-+	}
-+
-+	return 1;
-+}
-+
-+/* check if all holders for a lock are in unlock state */
-+static int check_all_unlock_holders(struct dlm_rv_lock *lk)
-+{
-+	struct dlm_rv_holder *hl;
-+
-+	/* should never happen but when we delete the lk */
-+	if (WARN_ON(list_empty(&lk->holders)))
-+		return 1;
-+
-+	list_for_each_entry(hl, &lk->holders, list) {
-+		if (hl->mode != STATE_MODE_UNLOCK)
-+			return 0;
-+	}
-+
-+	return 1;
-+}
-+
-+/* drop all lock holders for a specific lock */
-+static void drop_all_lock_holders(struct dlm_rv_lock *lk)
-+{
-+	struct dlm_rv_holder *hl, *tmp;
-+
-+	list_for_each_entry_safe(hl, tmp, &lk->holders, list) {
-+		list_del(&hl->list);
-+		kmem_cache_free(hl_cache, hl);
-+	}
-+}
-+
-+/* unlock specific lock holder if available and if all lock holders
-+ * are in unlock state, we remove and free the lock.
-+ */
-+static void unlock_lock_holder(struct dlm_rv_lock *lk, unsigned int nodeid)
-+{
-+	int rv;
-+
-+	set_holder_state(lk, nodeid, STATE_MODE_UNLOCK);
-+	rv = check_all_unlock_holders(lk);
-+	if (rv) {
-+		drop_all_lock_holders(lk);
-+
-+		list_del(&lk->list);
-+		rhashtable_remove_fast(&dlm_rv_hash, &lk->node,
-+				       dlm_rv_hash_params);
-+		/* move into final state */
-+		da_handle_event_dlm(lk, all_unlock_dlm);
-+		kmem_cache_free(lk_cache, lk);
-+	}
-+}
-+
-+static void handle_dlm_ast(void *data, unsigned int our_nodeid, __u32 ls_id,
-+			   __u32 lkb_id, __u8 sb_flags, int sb_status,
-+			   const char *res_name, size_t res_length, int mode)
-+{
-+	struct dlm_rv_holder *hl;
-+	struct dlm_rv_lock *lk;
-+	int rv;
-+
-+	switch (sb_status) {
-+	case -DLM_EUNLOCK:
-+		/* handle an unlock of an lock we saw before */
-+		spin_lock_bh(&dlm_rv_hash_lock);
-+		/* switch to unlock state if there is a lock available
-+		 * and check if all locks are in unlock mode, see
-+		 * unlock_lock_holder().
-+		 */
-+		lk = lookup_lock(ls_id, res_name, res_length);
-+		if (lk)
-+			unlock_lock_holder(lk, our_nodeid);
-+		spin_unlock_bh(&dlm_rv_hash_lock);
-+		return;
-+	case 0:
-+		/* successful lock state change */
-+		break;
-+	default:
-+		/* ignored */
-+		return;
-+	}
-+
-+	spin_lock_bh(&dlm_rv_hash_lock);
-+	lk = lookup_lock(ls_id, res_name, res_length);
-+	if (!lk) {
-+		/* start to begin tracking DLM cluster lock */
-+		lk = kmem_cache_zalloc(lk_cache, GFP_ATOMIC);
-+		if (WARN_ON_ONCE(!lk)) {
-+			spin_unlock_bh(&dlm_rv_hash_lock);
-+			return;
-+		}
-+
-+		lk->key.ls_id = ls_id;
-+		memcpy(lk->key.res_name, res_name, res_length);
-+		INIT_LIST_HEAD(&lk->holders);
-+
-+		da_monitor_reset_dlm(da_get_monitor_dlm(lk));
-+		da_handle_start_event_dlm(lk, with_others_compatible_dlm);
-+		set_holder_state(lk, our_nodeid, mode);
-+
-+		list_add_tail(&lk->list, &dlm_rv_locks);
-+		rv = rhashtable_insert_fast(&dlm_rv_hash, &lk->node,
-+					    dlm_rv_hash_params);
-+		spin_unlock_bh(&dlm_rv_hash_lock);
-+
-+		WARN_ON(rv);
-+		return;
-+	}
-+
-+	/* lock is known, change it's state and check if it doesn't
-+	 * violate the DLM cluster wide compatible lock modes
-+	 */
-+	set_holder_state(lk, our_nodeid, mode);
-+	rv = check_valid_lock_holders(lk, mode, our_nodeid);
-+	if (rv) {
-+		/* the whole validation process, this event signals
-+		 * everything is fine and DLM works correctly there
-+		 * are no cluster-wide locks that violates DLM locking.
-+		 */
-+		da_handle_event_dlm(lk, with_others_compatible_dlm);
-+	} else {
-+		/* print all holders of the lock when a invalid lock state is entered */
-+		console_lock();
-+		pr_info("---\n");
-+		pr_info("ls_id %u lkb_id: 0x%08x\n", ls_id, lkb_id);
-+		pr_info("holders:\n");
-+		list_for_each_entry(hl, &lk->holders, list) {
-+			pr_info("\tnodeid: %u mode: %d\n", hl->nodeid,
-+				hl->mode);
-+		}
-+		pr_info("---\n");
-+		console_unlock();
-+
-+		/* move into an invalid state change, we don't have a edge for that
-+		 * so we just use event_max_dlm.
-+		 */
-+		da_handle_event_dlm(lk, event_max_dlm);
-+	}
-+	spin_unlock_bh(&dlm_rv_hash_lock);
-+}
-+
-+/* set the holder to transition state as lock downgrades can issue
-+ * grant messages to other nodes we need to ignore if a lock on a
-+ * specific node is in state transition. From point of DLM API
-+ * the user cannot assume to still hold the lock at this point
-+ * anyway.
-+ */
-+static void set_holder_transition(uint32_t ls_id, const char *res_name,
-+				  size_t res_length, uint32_t our_nodeid)
-+{
-+	struct dlm_rv_holder *hl;
-+	struct dlm_rv_lock *lk;
-+
-+	spin_lock_bh(&dlm_rv_hash_lock);
-+	lk = lookup_lock(ls_id, res_name, res_length);
-+	if (lk) {
-+		hl = lookup_holder(lk, our_nodeid);
-+		if (hl)
-+			hl->mode = STATE_MODE_IN_TRANSITION;
-+	}
-+	spin_unlock_bh(&dlm_rv_hash_lock);
-+}
-+
-+/* after a lock request got validated it cannot fail */
-+static void handle_dlm_lock_validated(void *data, struct dlm_ls *ls,
-+				      struct dlm_lkb *lkb,
-+				      struct dlm_args *args,
-+				      const char *res_name, size_t res_length)
-+{
-+	set_holder_transition(ls->ls_global_id, res_name,
-+			      res_length, ls->ls_dn->our_node->id);
-+}
-+
-+static void handle_dlm_unlock_validated(void *data, struct dlm_ls *ls,
-+					struct dlm_lkb *lkb,
-+					struct dlm_args *args)
-+{
-+	set_holder_transition(ls->ls_global_id,
-+			      lkb->lkb_resource->res_name,
-+			      lkb->lkb_resource->res_length,
-+			      ls->ls_dn->our_node->id);
-+}
-+
-+/* remove all holders, recovery will fast this up and we need to drop them */
-+static void handle_dlm_release_lockspace(void *data, unsigned int our_nodeid,
-+					 __u32 ls_id)
-+{
-+	struct dlm_rv_lock *lk, *lk_tmp;
-+
-+	spin_lock_bh(&dlm_rv_hash_lock);
-+	list_for_each_entry_safe(lk, lk_tmp, &dlm_rv_locks, list) {
-+		if (lk->key.ls_id != ls_id)
-+			continue;
-+
-+		/* unlock all locks for the node that calls
-+		 * dlm_release_lockspace(). It's not necessary
-+		 * from the DLM API that a node need to unlock
-+		 * all locks before calling dlm_release_lockspace()
-+		 * there is even an optimization because each recovery
-+		 * will deal with that locally. However we handle a
-+		 * dlm_release_lockspace() on a specific node as
-+		 * unlock all locks.
-+		 */
-+		unlock_lock_holder(lk, our_nodeid);
-+	}
-+	spin_unlock_bh(&dlm_rv_hash_lock);
-+}
-+
-+static void rhash_lock_free(void *ptr, void *arg)
-+{
-+	struct dlm_rv_lock *lk = ptr;
-+
-+	list_del(&lk->list);
-+	drop_all_lock_holders(lk);
-+	kmem_cache_free(lk_cache, lk);
-+}
-+
-+static int enable_dlm(void)
-+{
-+	int retval;
-+
-+	retval = rhashtable_init(&dlm_rv_hash, &dlm_rv_hash_params);
-+	if (retval)
-+		return retval;
-+
-+	retval = da_monitor_init_dlm();
-+	if (retval) {
-+		rhashtable_destroy(&dlm_rv_hash);
-+		return retval;
-+	}
-+
-+	rv_attach_trace_probe("dlm", dlm_ast, handle_dlm_ast);
-+	rv_attach_trace_probe("dlm", dlm_lock_validated, handle_dlm_lock_validated);
-+	rv_attach_trace_probe("dlm", dlm_unlock_validated, handle_dlm_unlock_validated);
-+	rv_attach_trace_probe("dlm", dlm_release_lockspace, handle_dlm_release_lockspace);
-+
-+	return 0;
-+}
-+
-+static void disable_dlm(void)
-+{
-+	rv_dlm.enabled = 0;
-+
-+	rv_detach_trace_probe("dlm", dlm_ast, handle_dlm_ast);
-+	rv_detach_trace_probe("dlm", dlm_lock_validated, handle_dlm_lock_validated);
-+	rv_detach_trace_probe("dlm", dlm_unlock_validated, handle_dlm_unlock_validated);
-+	rv_detach_trace_probe("dlm", dlm_release_lockspace, handle_dlm_release_lockspace);
-+
-+	da_monitor_destroy_dlm();
-+
-+	rhashtable_free_and_destroy(&dlm_rv_hash, rhash_lock_free, NULL);
-+}
-+
-+static struct rv_monitor rv_dlm = {
-+	.name = "dlm",
-+	.description = "dlm runtime lock compatibility verifier",
-+	.enable = enable_dlm,
-+	.disable = disable_dlm,
-+	.reset = da_monitor_reset_all_dlm,
-+	.enabled = 0,
-+};
-+
-+static int __init register_dlm(void)
-+{
-+	lk_cache = KMEM_CACHE(dlm_rv_lock, 0);
-+	if (!lk_cache)
-+		return -ENOMEM;
-+
-+	hl_cache = KMEM_CACHE(dlm_rv_holder, 0);
-+	if (!hl_cache) {
-+		kmem_cache_destroy(lk_cache);
-+		return -ENOMEM;
-+	}
-+
-+	rv_register_monitor(&rv_dlm);
-+	return 0;
-+}
-+
-+static void __exit unregister_dlm(void)
-+{
-+	rv_unregister_monitor(&rv_dlm);
-+
-+	kmem_cache_destroy(hl_cache);
-+	kmem_cache_destroy(lk_cache);
-+}
-+
-+module_init(register_dlm);
-+module_exit(unregister_dlm);
-+
-+MODULE_LICENSE("GPL");
-+MODULE_AUTHOR("Alexander Aring <aahringo@redhat.com>");
-+MODULE_DESCRIPTION("dlm: runtime lock compatibility verifier");
-diff --git a/kernel/trace/rv/monitors/dlm/dlm.h b/kernel/trace/rv/monitors/dlm/dlm.h
-new file mode 100644
-index 000000000000..514614be2ca9
---- /dev/null
-+++ b/kernel/trace/rv/monitors/dlm/dlm.h
-@@ -0,0 +1,38 @@
-+enum states_dlm {
-+	valid_dlm = 0,
-+	free_dlm,
-+	state_max_dlm
-+};
-+
-+#define INVALID_STATE state_max_dlm
-+
-+enum events_dlm {
-+	all_unlock_dlm = 0,
-+	with_others_compatible_dlm,
-+	event_max_dlm
-+};
-+
-+struct automaton_dlm {
-+	char *state_names[state_max_dlm];
-+	char *event_names[event_max_dlm];
-+	unsigned char function[state_max_dlm][event_max_dlm];
-+	unsigned char initial_state;
-+	bool final_states[state_max_dlm];
-+};
-+
-+static const struct automaton_dlm automaton_dlm = {
-+	.state_names = {
-+		"valid",
-+		"free"
-+	},
-+	.event_names = {
-+		"all_unlock",
-+		"with_others_compatible"
-+	},
-+	.function = {
-+		{      free_dlm,     valid_dlm },
-+		{ INVALID_STATE, INVALID_STATE },
-+	},
-+	.initial_state = valid_dlm,
-+	.final_states = { 0, 1 },
-+};
-diff --git a/kernel/trace/rv/monitors/dlm/dlm_da.h b/kernel/trace/rv/monitors/dlm/dlm_da.h
-new file mode 100644
-index 000000000000..064ed5085b30
---- /dev/null
-+++ b/kernel/trace/rv/monitors/dlm/dlm_da.h
-@@ -0,0 +1,143 @@
-+// SPDX-License-Identifier: GPL-2.0-only
-+
-+#ifndef __DLM_DA_RV__
-+#define __DLM_DA_RV__
-+
-+/*
-+ * Event handler for per_dlm_lock monitors.
-+ */
-+#define DECLARE_DA_MON_MODEL_HANDLER_PER_DLM_LOCK(name, type)					\
-+												\
-+static inline bool da_event_##name(struct da_monitor *da_mon, struct dlm_rv_lock *lk,		\
-+				   enum events_##name event)					\
-+{												\
-+	type curr_state = da_monitor_curr_state_##name(da_mon);					\
-+	type next_state = model_get_next_state_##name(curr_state, event);			\
-+												\
-+	if (next_state != INVALID_STATE) {							\
-+		da_monitor_set_state_##name(da_mon, next_state);				\
-+												\
-+		trace_event_##name(model_get_state_name_##name(curr_state),			\
-+				   model_get_event_name_##name(event),				\
-+				   model_get_state_name_##name(next_state),			\
-+				   model_is_final_state_##name(next_state));			\
-+												\
-+		return true;									\
-+	}											\
-+												\
-+	if (rv_reacting_on_##name())								\
-+		cond_react_##name(format_react_msg_##name(curr_state, event));			\
-+												\
-+	trace_error_##name(model_get_state_name_##name(curr_state),				\
-+			   model_get_event_name_##name(event));					\
-+												\
-+	return false;										\
-+}
-+
-+/*
-+ * Functions to define, init and get a per-dlm-lock monitor.
-+ */
-+#define DECLARE_DA_MON_INIT_PER_DLM_LOCK(name, type)						\
-+												\
-+/*												\
-+ * da_get_monitor_##name - return the monitor in the allocated slot for tsk			\
-+ */												\
-+static inline struct da_monitor *da_get_monitor_##name(struct dlm_rv_lock *lk)			\
-+{												\
-+	return &lk->rv.da_mon;									\
-+}												\
-+												\
-+static void da_monitor_reset_all_##name(void)							\
-+{												\
-+}												\
-+												\
-+/*												\
-+ * da_monitor_init_##name - initialize the per-task monitor					\
-+ *												\
-+ * Try to allocate a slot in the task's vector of monitors. If there				\
-+ * is an available slot, use it and reset all task's monitor.					\
-+ */												\
-+static int da_monitor_init_##name(void)								\
-+{												\
-+	da_monitor_reset_all_##name();								\
-+	return 0;										\
-+}												\
-+												\
-+/*												\
-+ * da_monitor_destroy_##name - return the allocated slot					\
-+ */												\
-+static inline void da_monitor_destroy_##name(void)						\
-+{												\
-+	return;											\
-+}
-+
-+/*
-+ * Handle event for per task.
-+ */
-+#define DECLARE_DA_MON_MONITOR_HANDLER_PER_DLM_LOCK(name, type)					\
-+												\
-+static inline void										\
-+__da_handle_event_##name(struct da_monitor *da_mon, struct dlm_rv_lock *lk,			\
-+			 enum events_##name event)						\
-+{												\
-+	bool retval;										\
-+												\
-+	retval = da_event_##name(da_mon, lk, event);						\
-+	if (!retval)										\
-+		da_monitor_reset_##name(da_mon);						\
-+}												\
-+												\
-+/*												\
-+ * da_handle_event_##name - handle an event							\
-+ */												\
-+static inline void										\
-+da_handle_event_##name(struct dlm_rv_lock *lk, enum events_##name event)			\
-+{												\
-+	struct da_monitor *da_mon = da_get_monitor_##name(lk);					\
-+	bool retval;										\
-+												\
-+	retval = da_monitor_handling_event_##name(da_mon);					\
-+	if (!retval)										\
-+		return;										\
-+												\
-+	__da_handle_event_##name(da_mon, lk, event);						\
-+}												\
-+												\
-+/*												\
-+ * da_handle_start_event_##name - start monitoring or handle event				\
-+ *												\
-+ * This function is used to notify the monitor that the system is returning			\
-+ * to the initial state, so the monitor can start monitoring in the next event.			\
-+ * Thus:											\
-+ *												\
-+ * If the monitor already started, handle the event.						\
-+ * If the monitor did not start yet, start the monitor but skip the event.			\
-+ */												\
-+static inline bool										\
-+da_handle_start_event_##name(struct dlm_rv_lock *lk, enum events_##name event)			\
-+{												\
-+	struct da_monitor *da_mon;								\
-+												\
-+	if (!da_monitor_enabled_##name())							\
-+		return 0;									\
-+												\
-+	da_mon = da_get_monitor_##name(lk);							\
-+												\
-+	if (unlikely(!da_monitoring_##name(da_mon))) {						\
-+		da_monitor_start_##name(da_mon);						\
-+		return 0;									\
-+	}											\
-+												\
-+	__da_handle_event_##name(da_mon, lk, event);						\
-+												\
-+	return 1;										\
-+}
-+
-+/*
-+ * Futher monitor types are expected, so make this a union.
-+ */
-+union rv_dlm_lock_monitor {
-+	struct da_monitor da_mon;
-+};
-+
-+#endif /* __DLM_DA_RV__ */
-diff --git a/tools/verification/models/dlm.dot b/tools/verification/models/dlm.dot
-new file mode 100644
-index 000000000000..43092c865e3b
---- /dev/null
-+++ b/tools/verification/models/dlm.dot
-@@ -0,0 +1,14 @@
-+digraph state_automaton {
-+	{node [shape = circle] "valid"};
-+	{node [shape = plaintext, style=invis, label=""] "__init_valid"};
-+	{node [shape = doublecircle] "free"};
-+	"__init_valid" -> "valid";
-+	"valid" [label = "valid", color = green3]
-+	"valid" -> "valid" [ label = "with_others_compatible" ];
-+	"free" [label = "free"]
-+	"valid" -> "free" [ label = "all_unlock" ];
-+	{ rank = min ;
-+		"__init_valid";
-+		"valid";
-+	}
-+}
+> The weird thing is that there are two code paths in ocfs2 that calls
+> jbd2_journal_load().  One is in ocfs2_replay_journal() which does what
+> ext4 does.  The other is ocfs2_load_journal() which does *not* do
+> this, and this is the one which you saw in the syzkaller reproducer.
+> It looks like one codepath is used to replay the ocfs2 for some other
+> node, and the is to load (and presumably later, replay) the journal
+> for the mounting node.
+> 
+> There are also some other things which look very confusing, such as the
+> fact that ocfs2_journal_shutdown calls igrab:
+> 
+> 	/* need to inc inode use count - jbd2_journal_destroy will iput. */
+> 	if (!igrab(inode))
+> 		BUG();
+> 
+> ... which is *weird*.  Normaly the journal inode refcount is expected
+> to be bumped before calling jbd2_journal_init_inode() --- which
+> normally is done by an iget() function, and is needed to make sure the
+> journal inode isn't released out from under the jbd2 layer.  It looks
+> like ocfs2 uses the journal inode for other stuff so get the journal
+> inode without calling something like iget().  Which is OK, I guess,
+> but it means that there are a whole bunch of places where it has to
+> call !BUG_ON(igrab(journal->j_inode) before calling
+> jbd2_journal_destroy().  It would seem like the *right* thing to do is
+> to bump the refcount in ocfs2_journal_init(), and if for some reason
+> the igrab fails, it can just return an error early, instead of having
+> to resort to BUG_ON() later, and if you don't realize that you have to
+> do this weird igrab() before calling jbd2_journal_destroy(), you'll
+> end up leaking the journal inode.
+> 
+> Anyway, I think the right thing to do is to restructure how ocfs2
+> calls the jbd2 journal, but that's going to require a more careful
+> examination of the code paths.  Your patch is a bit of a blunt force
+> hack that should be harmless, but it's probably not the best way to
+> fix the problem, although doing it "right" would be more
+> complicated....
+> 
+> 					- Ted
 -- 
-2.43.0
-
+Jan Kara <jack@suse.com>
+SUSE Labs, CR
