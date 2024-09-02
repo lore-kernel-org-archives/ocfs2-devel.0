@@ -1,59 +1,31 @@
-Received: from mail-wm1-f52.google.com (mail-wm1-f52.google.com [209.85.128.52])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from out30-119.freemail.mail.aliyun.com (out30-119.freemail.mail.aliyun.com [115.124.30.119])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4309D1388
-	for <ocfs2-devel@lists.linux.dev>; Mon,  2 Sep 2024 01:03:45 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.52
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 95B8BBA34
+	for <ocfs2-devel@lists.linux.dev>; Mon,  2 Sep 2024 01:32:58 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.119
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1725239027; cv=none; b=FsiFa1N5b6AmBzLuY/6hw58Y+NFTUuIWOudSzrclDZNTeq83Zn7/GJ8T1Bc/eFgZgkn8HbYMoY+01Nf6A8cX6BZipLbmClQJ4sRK0QvQhO0HYut+u6ZJCdc+zt8F/mHo9o8HG2xyUhjtDSkqbiW25dxPQPOaTgIBFFozUF44Fmo=
+	t=1725240781; cv=none; b=lKf4uNKaYhtJk+SQYpj+2ocz4VqW/pOUZCyolM2zYD4RaKvJ8cDHN7X463p+d32gie+XMJEsobzZUO1R3mTR7zi3OkIHEqk1g6La36HJM2v9mFnvTbeDAH+9m8z12zgJvlKXFlUUGeU3FIKyFJZceZwFel7lHa1rrJmYOtf/hmQ=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1725239027; c=relaxed/simple;
-	bh=fsYVC+tRluVQCdwwY+bKcaaUnBiGi0rTwc3GN8Yg8Cg=;
-	h=Message-ID:Date:MIME-Version:Subject:To:References:From:
-	 In-Reply-To:Content-Type; b=TgHmLvficI0c0MfiiTH6JoZu8CxhU9/9r6ofMras0JX+S2G3927u68KYlVdruXGR8rJDpCNCRnD92ihrYj8czBmdAOIv8NdtpDHTLM8w2tAA5b0tmkmAcjHqEZ2fVrE4sQg9cRCibYKWMST7voqxp7bM4KTvSj/1MAA+qZV8gEE=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=KMjol/2d; arc=none smtp.client-ip=209.85.128.52
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
+	s=arc-20240116; t=1725240781; c=relaxed/simple;
+	bh=Jacoy7d8kVCAhDZz9TUpWUlvRSBq8NGEkkA76CbXDtw=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=iSPmH4GQRH8q3TJ9SDIqyfmzFBRVQyw14XOMBhllsKtbL3Vm0bb6BHSmV2osjVMsTqnN6mtCKYE1C4bFIH2BoWaW62KY5pUEbLqjo/1baYSM/I9aQttej/h2DesbpBCRT/SvuTDr5MFI4aHusO/wFhxicBrvC2mqBFkXgF9i9YE=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=oxX+RGgt; arc=none smtp.client-ip=115.124.30.119
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="KMjol/2d"
-Received: by mail-wm1-f52.google.com with SMTP id 5b1f17b1804b1-42c7bc972a5so1756255e9.0
-        for <ocfs2-devel@lists.linux.dev>; Sun, 01 Sep 2024 18:03:45 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=suse.com; s=google; t=1725239024; x=1725843824; darn=lists.linux.dev;
-        h=content-transfer-encoding:in-reply-to:from:references:to
-         :content-language:subject:user-agent:mime-version:date:message-id
-         :from:to:cc:subject:date:message-id:reply-to;
-        bh=mndv8DRB4gi1GjBSiLtZXqU5jiAp3af5moutOmXPzIE=;
-        b=KMjol/2dmtSeCpXsbZpEsljOVLNjIc2q6QIDafbOtTznsLDS5pKdPM4aMgkqtmtF9A
-         tt+yYDRZnjrr5g3H40Nw5zvOLUfkreswWJO/MHapDzpNQzTf2DOw79a1pmt13IfQWyOK
-         2Y7e4srS5LcAYqyJzSMI6Ktw5QfbwW2chyY2gDQHPiErSRnQ/U7FjEtx6Zc8HlhS/3vI
-         jl8o6C2U3wUD0RQoBtWMIgG/jmUou73CrLeBaUI/RAn5BofbuHZ66HXv5IXoc2mXFyud
-         kRpgo3/UaFg6F4FWilKQKYy1i67ikzMjg0FHLFbd4WHZtf64Ye5abSKMmuZH3B9LlAsp
-         bCWw==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1725239024; x=1725843824;
-        h=content-transfer-encoding:in-reply-to:from:references:to
-         :content-language:subject:user-agent:mime-version:date:message-id
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
-        bh=mndv8DRB4gi1GjBSiLtZXqU5jiAp3af5moutOmXPzIE=;
-        b=etD6fokFp4TAHFt4Icupiq+5/Bnp06eko8QOgKCTg337MIJB3HJv7032cSGgXfjD0i
-         54NuFiOYbkcW1RTgaWHwCpsv0wvK40PBuoWEfAAwBasPTFzr+Fdv0+23BU0JPD2PZtjV
-         KLU6NaHMPIDp1lHlXSjG/HhkMTz38WjmcQSB2B8370V8sHAEnrv4TJPOxV6LHg6g3XYF
-         ZM6reN9FdYcIeMkhh1tOR/d6imN7BNS70aSYeTB1/TezaHPqs8tDYg+YL+s82U8wnp2G
-         +Bq917IeYeU6Ro8h3MLLmu822wF4j9qT+rlvrIPcj5xFMy++oTeCGYzHnPTeGem8TnDN
-         yEqg==
-X-Forwarded-Encrypted: i=1; AJvYcCXhCu+xqrxtwCDfz15C/emJM2MyNA7KSRGtkbbzXsYkSTGKyLD3AopII0hhegORonD4ESY63Kw5MwrKog==@lists.linux.dev
-X-Gm-Message-State: AOJu0YyTeR8Y1nFiGzMO1c8aSZ7CEv+jfT7DkylsbvtA+fKdR0A3Rzfx
-	IEhko+VHehAEZ7snzmx2RK7nV4km6f2qlN158oVAhKJh0YAdBc/PfbcuOMloJZw=
-X-Google-Smtp-Source: AGHT+IFLeyaCM6YzT5deLam+r6JrfsCR7XaQszIQ/J0VOEZvMDpwkzlj543XeMkf6pJ4Yxqjnf31qA==
-X-Received: by 2002:a05:600c:4f4a:b0:426:6fc0:5910 with SMTP id 5b1f17b1804b1-42bbb10d61dmr35742415e9.1.1725239023016;
-        Sun, 01 Sep 2024 18:03:43 -0700 (PDT)
-Received: from [10.202.32.28] ([202.127.77.110])
-        by smtp.gmail.com with ESMTPSA id d9443c01a7336-2056f4158b9sm10495865ad.120.2024.09.01.18.03.39
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Sun, 01 Sep 2024 18:03:42 -0700 (PDT)
-Message-ID: <b716d079-1725-4a89-8998-e0c88b8ea7c5@suse.com>
-Date: Mon, 2 Sep 2024 09:03:37 +0800
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="oxX+RGgt"
+DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=linux.alibaba.com; s=default;
+	t=1725240769; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=pVwvQynDqGl8fIXf6dcBy+Wuy2Th6SN0Jwyb7iNQftg=;
+	b=oxX+RGgtIFUKNaIO7P3cq2XhHea1oc17R1J6fU8lGuVLGovZbMI3VBphiWHh0qkmXX6F7ksR0nzTKHAyvfK+RkCBitCyDW12SQq3d2/IDvZ7YK6+dWQObFvAz0I/3aWtcaipBnFmyj5diSzS3lyqqpaW5gRucb8dNNQDvs36bgM=
+Received: from 30.221.129.135(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0WE0ePki_1725240768)
+          by smtp.aliyun-inc.com;
+          Mon, 02 Sep 2024 09:32:49 +0800
+Message-ID: <f08b8440-5df5-45cb-9ec2-43601b9aadda@linux.alibaba.com>
+Date: Mon, 2 Sep 2024 09:32:48 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -61,49 +33,70 @@ List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH V4 2/2] ocfs2: Fix possible null-ptr-deref in
- ocfs2_set_buffer_uptodate
+Subject: Re: [PATCH v3] ocfs2: fix null-ptr-deref when journal load failed.
+To: Julian Sun <sunjunchao2870@gmail.com>, ocfs2-devel@lists.linux.dev,
+ syzbot+05b9b39d8bdfe1a0861f@syzkaller.appspotmail.com
+Cc: jlbec@evilplan.org, mark@fasheh.com
+References: <20240830110853.101060-1-sunjunchao2870@gmail.com>
 Content-Language: en-US
-To: Andrew Morton <akpm@linux-foundation.org>,
- Lizhi Xu <lizhi.xu@windriver.com>, joseph.qi@linux.alibaba.com,
- jlbec@evilplan.org, linux-kernel@vger.kernel.org, mark@fasheh.com,
- ocfs2-devel@lists.linux.dev,
- syzbot+ab134185af9ef88dfed5@syzkaller.appspotmail.com,
- syzkaller-bugs@googlegroups.com
-References: <1a063827-5cf3-42df-a690-f3c644c10996@linux.alibaba.com>
- <20240821091459.681136-1-lizhi.xu@windriver.com>
- <25f2be6c-3e9c-4484-a44e-d26e9c4c8a74@suse.com>
- <20240821143911.cec82fac50c08947523da2e6@linux-foundation.org>
- <20240901175402.816203db096c2e9e49d75363@linux-foundation.org>
-From: Heming Zhao <heming.zhao@suse.com>
-In-Reply-To: <20240901175402.816203db096c2e9e49d75363@linux-foundation.org>
-Content-Type: text/plain; charset=UTF-8; format=flowed
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+In-Reply-To: <20240830110853.101060-1-sunjunchao2870@gmail.com>
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
-On 9/2/24 08:54, Andrew Morton wrote:
-> On Wed, 21 Aug 2024 14:39:11 -0700 Andrew Morton <akpm@linux-foundation.org> wrote:
-> 
->> OK I think I found the correct patches - v3 of [1/2] and v4 of [2/2].
->>
->> For clarity can we please have a full resend of both patches?
->>
->> And let's please have a [0/n] cover letter which describes the problems
->> which are being addressed and which also briefly describes how they
->> were addressed.
->>
->> Also, it appears that both of these fixes should be backported into
->> -stable kernels.  So let's please try to identify when these bugs were
->> introduced and to add a suitable Fixes: to the individual changelogs.
->>
-> 
-> Again, can we please have a full resend of these two patches with the
-> above issues addressed?  Particularly the identification of the Fixes:
-> targets.
-> 
-> Thanks.
 
-Hello Andrew & Joseph,
 
-If Lizhi still doesn't respond by this Friday, I will send his latest patch set again.
+On 8/30/24 7:08 PM, Julian Sun wrote:
+> During the mounting process, if journal_reset() fails
+> because of too short journal, then lead to
+> jbd2_journal_load() fails with NULL j_sb_buffer.
+> Subsequently, ocfs2_journal_shutdown() calls
+> jbd2_journal_flush()->jbd2_cleanup_journal_tail()->
+> __jbd2_update_log_tail()->jbd2_journal_update_sb_log_tail()
+> ->lock_buffer(journal->j_sb_buffer), resulting in a
+> null-pointer dereference error.
+> 
+> To resolve this issue, we should check the JBD2_LOADED flag to
+> ensure the journal was properly loaded. Additionly, refine
+> code to make it cleaner.
 
--Heming
+s/Additionly/Additionally
+
+Additionally, use journal instead of osb->journal directly to simplify
+the code.
+
+> 
+> Link: https://syzkaller.appspot.com/bug?extid=05b9b39d8bdfe1a0861f
+> Reported-by: syzbot+05b9b39d8bdfe1a0861f@syzkaller.appspotmail.com
+> Suggested-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+> Signed-off-by: Julian Sun <sunjunchao2870@gmail.com>
+> ---
+>  fs/ocfs2/journal.c | 5 +++--
+>  1 file changed, 3 insertions(+), 2 deletions(-)
+> 
+> diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
+> index 530fba34f6d3..ff2a6538b46e 100644
+> --- a/fs/ocfs2/journal.c
+> +++ b/fs/ocfs2/journal.c
+> @@ -1074,9 +1074,10 @@ void ocfs2_journal_shutdown(struct ocfs2_super *osb)
+>  		osb->commit_task = NULL;
+>  	}
+>  
+> -	BUG_ON(atomic_read(&(osb->journal->j_num_trans)) != 0);
+> +	BUG_ON(atomic_read(&(journal->j_num_trans)) != 0);
+> 
+Please do the same change for the above one:
+
+num_running_trans = atomic_read(&(journal->j_num_trans));
+
+> -	if (ocfs2_mount_local(osb)) {
+> +	if (ocfs2_mount_local(osb) &&
+> +	   (journal->j_journal->j_flags & JBD2_LOADED)) {
+Align it to the right place, please.
+
+Thanks,
+Joseph
+>  		jbd2_journal_lock_updates(journal->j_journal);
+>  		status = jbd2_journal_flush(journal->j_journal, 0);
+>  		jbd2_journal_unlock_updates(journal->j_journal);
+
