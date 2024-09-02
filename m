@@ -1,157 +1,96 @@
-Received: from out30-124.freemail.mail.aliyun.com (out30-124.freemail.mail.aliyun.com [115.124.30.124])
+Received: from mx0b-0064b401.pphosted.com (mx0b-0064b401.pphosted.com [205.220.178.238])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5A0BC1D3184
-	for <ocfs2-devel@lists.linux.dev>; Mon,  2 Sep 2024 11:43:49 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.124
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 918901E49F
+	for <ocfs2-devel@lists.linux.dev>; Mon,  2 Sep 2024 14:23:47 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=205.220.178.238
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1725277433; cv=none; b=dJlF2xc2dIu2gTAj34tbw6rtGFnuHhQyrLeH+2Uqqzspv6gd0WFSz0x9E30rgWqmTbKFKJF5FxMC3o71pOaieb+npjTthCMRA/g3F0jwjzkKSTZsprvoDAHa59op+Wbq7vCmBKt4zDqeTxyos8REPlaFcfi5KMgR6+TJVJpAUbg=
+	t=1725287029; cv=none; b=UyJct1lcx7QZ2fOcLsWqz6B/yNRmvJdOdzICEMSC5AJiWXgOJ9bKCg5zGkG1W5wcALnNdEDSmKgTRM/ifXkO4fEWMmstS7kzptB5T6pNNRLkZV7uWbdu/OHhk14hQFUCGeFF3nW/3qFRv4B1VTWhva5zfzBX26XgIJW/s7Hqk58=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1725277433; c=relaxed/simple;
-	bh=x5tMgBrEEKlLU5Afk9WaUgS4zcJ+RyoQmJW8thN7O3M=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=a8OwsgDtQsxyzhipnUPIUUxgQrKGrxMZ9DeDIs0aznocsiEJ7uVTXFlxHssmHvZ0nF8834+S1ILWgJJJGTfgNPGMJLCSWfu+sKohx+VrJ+AJwKa4kqZfbSJN26BFjyIxLpdRxYEgOwneLwzIgPA6BmwWfPM7QMMrfHbfLD1KX4k=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=NnHH21Wz; arc=none smtp.client-ip=115.124.30.124
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="NnHH21Wz"
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1725277427; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=EpaDzX0hYxnpqXgfjqgj8769zqdOSOrb6l5mvkWaOeQ=;
-	b=NnHH21Wz4qWwXwNwx4E68sb0gpZ5voyeG9Kp10vjE0OGIV30gLhVea7L2Hq5QdGgw4a6QpRUFtM1lGQwpMgLX2p9arJMi186bseTBHddk1CBTeZHVo5QWoIVYgKj4BgHFK/4acbGWSQH0kqzvQfY24btE57uVec5hoitIQiKc0U=
-Received: from 30.221.129.135(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0WE8Dc19_1725277424)
-          by smtp.aliyun-inc.com;
-          Mon, 02 Sep 2024 19:43:45 +0800
-Message-ID: <d7d8fb47-c32e-4764-9c96-5d22cb278cb0@linux.alibaba.com>
-Date: Mon, 2 Sep 2024 19:43:44 +0800
+	s=arc-20240116; t=1725287029; c=relaxed/simple;
+	bh=cLqYE5DR32lSkmsgs5xYJbMU44sYK8sXP1WRLE578QQ=;
+	h=From:To:CC:Subject:Date:Message-ID:In-Reply-To:References:
+	 MIME-Version:Content-Type; b=p4C5P0SQWiGRCND6YShcAEYDwAApQXLImut8TciX8akWuh0emf9yGFvMBNji8RXYHWCMK1KTSL/JWH4EU4aUmHo11e+SEtJEx+xKvgobFEgjbSJzEGegv1Tn4iGzLeUDTHRDrL7EUGVFEV3yuzFTO7nuZhR/EJquLt21Z9LiLOc=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=windriver.com; spf=pass smtp.mailfrom=windriver.com; arc=none smtp.client-ip=205.220.178.238
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=windriver.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=windriver.com
+Received: from pps.filterd (m0250812.ppops.net [127.0.0.1])
+	by mx0a-0064b401.pphosted.com (8.18.1.2/8.18.1.2) with ESMTP id 482CEVQ0015030;
+	Mon, 2 Sep 2024 14:23:13 GMT
+Received: from ala-exchng02.corp.ad.wrs.com (ala-exchng02.wrs.com [147.11.82.254])
+	by mx0a-0064b401.pphosted.com (PPS) with ESMTPS id 41bt59a03d-1
+	(version=TLSv1.2 cipher=ECDHE-RSA-AES128-GCM-SHA256 bits=128 verify=NOT);
+	Mon, 02 Sep 2024 14:23:12 +0000 (GMT)
+Received: from ala-exchng01.corp.ad.wrs.com (147.11.82.252) by
+ ALA-EXCHNG02.corp.ad.wrs.com (147.11.82.254) with Microsoft SMTP Server
+ (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
+ 15.1.2507.39; Mon, 2 Sep 2024 07:23:11 -0700
+Received: from pek-lpd-ccm6.wrs.com (147.11.136.210) by
+ ala-exchng01.corp.ad.wrs.com (147.11.82.252) with Microsoft SMTP Server id
+ 15.1.2507.39 via Frontend Transport; Mon, 2 Sep 2024 07:23:09 -0700
+From: Lizhi Xu <lizhi.xu@windriver.com>
+To: <joseph.qi@linux.alibaba.com>
+CC: <akpm@linux-foundation.org>, <heming.zhao@suse.com>, <jlbec@evilplan.org>,
+        <linux-kernel@vger.kernel.org>, <lizhi.xu@windriver.com>,
+        <mark@fasheh.com>, <ocfs2-devel@lists.linux.dev>,
+        <syzbot+ab134185af9ef88dfed5@syzkaller.appspotmail.com>,
+        <syzkaller-bugs@googlegroups.com>
+Subject: Re: [PATCH V4 2/2] ocfs2: Fix possible null-ptr-deref in ocfs2_set_buffer_uptodate
+Date: Mon, 2 Sep 2024 22:23:08 +0800
+Message-ID: <20240902142308.192983-1-lizhi.xu@windriver.com>
+X-Mailer: git-send-email 2.43.0
+In-Reply-To: <18e9dbe0-afe5-48d1-9788-6b13617aff50@linux.alibaba.com>
+References: <18e9dbe0-afe5-48d1-9788-6b13617aff50@linux.alibaba.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v2 2/3] ocfs2: detect released suballocator bg for
- fh_to_[dentry|parent]
-To: Heming Zhao <heming.zhao@suse.com>, glass.su@suse.com
-Cc: ocfs2-devel@lists.linux.dev,
- "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
-References: <20240729080454.12771-1-heming.zhao@suse.com>
- <20240729080454.12771-3-heming.zhao@suse.com>
-Content-Language: en-US
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <20240729080454.12771-3-heming.zhao@suse.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
+Content-Type: text/plain
+X-Proofpoint-ORIG-GUID: PhvzFckevw886VmTD3qoPKTUbHW_C1Gh
+X-Authority-Analysis: v=2.4 cv=DN/d4DNb c=1 sm=1 tr=0 ts=66d5ca50 cx=c_pps a=K4BcnWQioVPsTJd46EJO2w==:117 a=K4BcnWQioVPsTJd46EJO2w==:17 a=EaEq8P2WXUwA:10 a=Z4Rwk6OoAAAA:8 a=R-6jl9kCdR-hZtNxHjAA:9 a=HkZW87K1Qel5hWWM3VKY:22
+X-Proofpoint-GUID: PhvzFckevw886VmTD3qoPKTUbHW_C1Gh
+X-Proofpoint-Virus-Version: vendor=baseguard
+ engine=ICAP:2.0.293,Aquarius:18.0.1039,Hydra:6.0.680,FMLib:17.12.60.29
+ definitions=2024-09-02_04,2024-09-02_01,2024-09-02_01
+X-Proofpoint-Spam-Details: rule=outbound_notspam policy=outbound score=0 clxscore=1011 suspectscore=0
+ spamscore=0 phishscore=0 adultscore=0 mlxscore=0 impostorscore=0
+ lowpriorityscore=0 bulkscore=0 mlxlogscore=834 malwarescore=0
+ priorityscore=1501 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.21.0-2407110000 definitions=main-2409020113
 
+On Mon, 2 Sep 2024 10:20:38 +0800, Joseph Qi wrote:
+>On 9/2/24 9:03 AM, Heming Zhao wrote:
+>> On 9/2/24 08:54, Andrew Morton wrote:
+>>> On Wed, 21 Aug 2024 14:39:11 -0700 Andrew Morton <akpm@linux-foundation.org> wrote:
+>>>
+>>>> OK I think I found the correct patches - v3 of [1/2] and v4 of [2/2].
+>>>>
+>>>> For clarity can we please have a full resend of both patches?
+>>>>
+>>>> And let's please have a [0/n] cover letter which describes the problems
+>>>> which are being addressed and which also briefly describes how they
+>>>> were addressed.
+>>>>
+>>>> Also, it appears that both of these fixes should be backported into
+>>>> -stable kernels.  So let's please try to identify when these bugs were
+>>>> introduced and to add a suitable Fixes: to the individual changelogs.
+>>>>
+>>>
+>>> Again, can we please have a full resend of these two patches with the
+>>> above issues addressed?  Particularly the identification of the Fixes:
+>>> targets.
+>>>
+>>> Thanks.
+>>
+>> Hello Andrew & Joseph,
+>>
+>> If Lizhi still doesn't respond by this Friday, I will send his latest patch set again.
+>>
+>I'll do that, thanks.
+Sorry, I didn't notice these emails. Thanks for your help.
 
-
-On 7/29/24 4:04 PM, Heming Zhao wrote:
-> After ocfs2 has the ability to reclaim suballoc free bg, the
-> suballocator block group may be released. This change makes xfstest
-> case 426 failed.
-> 
-> The existed code call stack:
-> 
-> ocfs2_fh_to_dentry //or ocfs2_fh_to_parent
->  ocfs2_get_dentry
->   ocfs2_test_inode_bit
->    ocfs2_test_suballoc_bit
->     ocfs2_read_group_descriptor
->      + read released bg, triggers validate fails, then cause -EROFS
-> 
-> how to fix:
-> The read bg failure is expectation, we should ignore this error.
-> 
-> Signed-off-by: Heming Zhao <heming.zhao@suse.com>
-> ---
->  fs/ocfs2/suballoc.c | 27 ++++++++++++++++++---------
->  1 file changed, 18 insertions(+), 9 deletions(-)
-> 
-> diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
-> index 1b64f4c87607..dc421f55ed8f 100644
-> --- a/fs/ocfs2/suballoc.c
-> +++ b/fs/ocfs2/suballoc.c
-> @@ -3037,7 +3037,7 @@ static int ocfs2_test_suballoc_bit(struct ocfs2_super *osb,
->  	struct ocfs2_group_desc *group;
->  	struct buffer_head *group_bh = NULL;
->  	u64 bg_blkno;
-> -	int status;
-> +	int status, quiet = 0;
->  
->  	trace_ocfs2_test_suballoc_bit((unsigned long long)blkno,
->  				      (unsigned int)bit);
-> @@ -3053,11 +3053,16 @@ static int ocfs2_test_suballoc_bit(struct ocfs2_super *osb,
->  
->  	bg_blkno = group_blkno ? group_blkno :
->  		   ocfs2_which_suballoc_group(blkno, bit);
-> -	status = ocfs2_read_group_descriptor(suballoc, alloc_di, bg_blkno,
-> +	status = ocfs2_read_hint_group_descriptor(suballoc, alloc_di, bg_blkno,
->  					     &group_bh);
->  	if (status < 0) {
-> -		mlog(ML_ERROR, "read group %llu failed %d\n",
-> -		     (unsigned long long)bg_blkno, status);
-> +		if (status == -EIDRM) {
-
-I don't think EIDRM is a proper error code in this case.
-We can pass a output parameter or a flag to indicate a released one.
-And please explicitly specify that this can be treated normally in
-the related code logic of ocfs2_read_hint_group_descriptor().
-
-Thanks,
-Joseph
-
-> +			quiet = 1;
-> +			status = -EINVAL;
-> +		} else {
-> +			mlog(ML_ERROR, "read group %llu failed %d\n",
-> +					(unsigned long long)bg_blkno, status);
-> +		}
->  		goto bail;
->  	}
->  
-> @@ -3067,7 +3072,7 @@ static int ocfs2_test_suballoc_bit(struct ocfs2_super *osb,
->  bail:
->  	brelse(group_bh);
->  
-> -	if (status)
-> +	if (status && (!quiet))
->  		mlog_errno(status);
->  	return status;
->  }
-> @@ -3087,7 +3092,7 @@ static int ocfs2_test_suballoc_bit(struct ocfs2_super *osb,
->   */
->  int ocfs2_test_inode_bit(struct ocfs2_super *osb, u64 blkno, int *res)
->  {
-> -	int status;
-> +	int status, quiet = 0;
->  	u64 group_blkno = 0;
->  	u16 suballoc_bit = 0, suballoc_slot = 0;
->  	struct inode *inode_alloc_inode;
-> @@ -3129,8 +3134,12 @@ int ocfs2_test_inode_bit(struct ocfs2_super *osb, u64 blkno, int *res)
->  
->  	status = ocfs2_test_suballoc_bit(osb, inode_alloc_inode, alloc_bh,
->  					 group_blkno, blkno, suballoc_bit, res);
-> -	if (status < 0)
-> -		mlog(ML_ERROR, "test suballoc bit failed %d\n", status);
-> +	if (status < 0) {
-> +		if (status == -EINVAL)
-> +			quiet = 1;
-> +		else
-> +			mlog(ML_ERROR, "test suballoc bit failed %d\n", status);
-> +	}
->  
->  	ocfs2_inode_unlock(inode_alloc_inode, 0);
->  	inode_unlock(inode_alloc_inode);
-> @@ -3138,7 +3147,7 @@ int ocfs2_test_inode_bit(struct ocfs2_super *osb, u64 blkno, int *res)
->  	iput(inode_alloc_inode);
->  	brelse(alloc_bh);
->  bail:
-> -	if (status)
-> +	if (status && !quiet)
->  		mlog_errno(status);
->  	return status;
->  }
-
+BR,
+Lizhi
