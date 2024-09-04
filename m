@@ -1,92 +1,109 @@
-Received: from out30-119.freemail.mail.aliyun.com (out30-119.freemail.mail.aliyun.com [115.124.30.119])
+Received: from out30-111.freemail.mail.aliyun.com (out30-111.freemail.mail.aliyun.com [115.124.30.111])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3A82445026
-	for <ocfs2-devel@lists.linux.dev>; Wed,  4 Sep 2024 03:27:57 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.119
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D0AE613B295
+	for <ocfs2-devel@lists.linux.dev>; Wed,  4 Sep 2024 07:10:08 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.111
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1725420480; cv=none; b=i4EyfOfDo8wqDs5MHyiVd+fiBxmQsfOdeUuNlKCKBaMVMmD6ThyrZ//SbP556aMAPcE4jxrgBE2eg7Vhw97ot1NiFs0PYQzWVKtUM+AT0sWM89a1TNUgTjJBSR8BGaCkm43vweL040VW/Asre5kHWwaXmdtKmzb5gWsSMEvjZoE=
+	t=1725433812; cv=none; b=MjFFUxR0tBzTtrHgBXoAoCQv19fv6Hfc530FbHqDI4ikLE3JQOIZHw5GeU+pYUQOJGDrQiD0HThCPTbue7ha2BoJeGI/u2Z2crFiwcVknTgE0clZb8NpRO4rftZM6n0x7zoeVfM5y4Q6BwSAvDK88JbUNlkSJM3Ii1tFEiVXUrc=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1725420480; c=relaxed/simple;
-	bh=iKimEOBU8JyGJrXOzv5YRa89jOelJhmGQlDkUASNshw=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=mp2yBJg/ogQyo4wL4YdyW7Dyf0jEZ3tEZ4fFCbTvOPsFRYDwhcmTOQ6uTewTkaZU81NAAPrWP4nfEyt6UkSTpuSBWBs7oh+V2+gJXr6JKVrZ5m+iOrRgngeYJ0+224JQ72LTWup2VeA1+keqsVxY4SHjcBcGjo+Sk0Nt5AdqHR0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=nRjk/57+; arc=none smtp.client-ip=115.124.30.119
+	s=arc-20240116; t=1725433812; c=relaxed/simple;
+	bh=FAsJlFuEXg96m3eEmDlt+U58YwVf+hRfLm45Q9DMBuI=;
+	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version; b=I7X/cHZdrQ6OfsZilesxC+mX6/c/urgvctxbjatFAB1Qn1OSiYIqEEgnnrOsZ0BkrBMT/0Y+ByvUJDrKSzNzuXo7YL+TL0uLznHzw/V7q1xo5bgLfWKnJHshjt/VQDqoJrBoQN073oKrLX98iAr5D0oQBDCUVHJDtOGl2uq1aTg=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=yj0xEcb9; arc=none smtp.client-ip=115.124.30.111
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="nRjk/57+"
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="yj0xEcb9"
 DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
 	d=linux.alibaba.com; s=default;
-	t=1725420470; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=y3R7YSD9XXAcdGXOjNphN9H4XVNhAwYmwiUf1Q5rd/c=;
-	b=nRjk/57+LAVuv0U4vds2HTy6OShNMxqOHW0l3BY2F+6xTsfJKt9niEv1ec9rWs+ZKgf0tzLpxqFyaNB52GQN9LtSJwbHcAac1mV71A1ZWta2gykszCcbR1xXYm/Be8O3wTPW8PZboF/M8txFkeicdcz+kWFT34qSRkwHLVsyT9c=
-Received: from 30.221.129.119(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0WEFUYf2_1725420467)
+	t=1725433806; h=From:To:Subject:Date:Message-Id:MIME-Version;
+	bh=vqyV76VlKKLAdbpgVAg9s1oydzR37v674r2y+KbzX3c=;
+	b=yj0xEcb9GD8yTdM/DVkecTmvvBqYqGR9PDcQ11LBxFjR7IZ82INwGoS7wzRlAfCro+3IpHmHHZZ6mi+S1F20QLj2lXSQQN5NmLAUPLNK7OkAEPzWYaSa16fq7Mz4RyU1FGtFpfRtEcYg1eA7djc239x5+n6+0aydF2pwlPHkkCA=
+Received: from localhost(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0WEGYp4O_1725433804)
           by smtp.aliyun-inc.com;
-          Wed, 04 Sep 2024 11:27:48 +0800
-Message-ID: <e1496ade-7505-47bb-ac96-4dd48e2e530f@linux.alibaba.com>
-Date: Wed, 4 Sep 2024 11:27:47 +0800
+          Wed, 04 Sep 2024 15:10:05 +0800
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+To: Andrew Morton <akpm@linux-foundation.org>,
+	Heming Zhao <heming.zhao@suse.com>
+Cc: ocfs2-devel@lists.linux.dev,
+	linux-kernel@vger.kernel.org,
+	syzbot+f7af59df5d6b25f0febd@syzkaller.appspotmail.com
+Subject: [PATCH v2 1/2] ocfs2: cancel dqi_sync_work before freeing oinfo
+Date: Wed,  4 Sep 2024 15:10:03 +0800
+Message-Id: <20240904071004.2067695-1-joseph.qi@linux.alibaba.com>
+X-Mailer: git-send-email 2.39.3
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH] ocfs2: cancel dqi_sync_work before freeing oinfo
-To: Heming Zhao <heming.zhao@suse.com>,
- Andrew Morton <akpm@linux-foundation.org>
-Cc: ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org,
- syzbot+f7af59df5d6b25f0febd@syzkaller.appspotmail.com
-References: <20240904020949.1685198-1-joseph.qi@linux.alibaba.com>
- <0d6730e8-9a58-45ba-9e57-c22039f03253@suse.com>
-Content-Language: en-US
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <0d6730e8-9a58-45ba-9e57-c22039f03253@suse.com>
-Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 
+ocfs2_global_read_info() will initialize and schedule dqi_sync_work at
+the end, if error occurs after successfully reading global quota, it
+will trigger the following warning with CONFIG_DEBUG_OBJECTS_* enabled:
 
+ODEBUG: free active (active state 0) object: 00000000d8b0ce28 object type: timer_list hint: qsync_work_fn+0x0/0x16c
 
-On 9/4/24 10:56 AM, Heming Zhao wrote:
-> On 9/4/24 10:09, Joseph Qi wrote:
->> ocfs2_global_read_info() will schedule dqi_sync_work. So any error
->> occurs after it, we have to cancel this delayed work first before
->> freeing oinfo, otherwise it will trigger the following warning with
->> CONFIG_DEBUG_OBJECTS_* enabled:
->>
->> ODEBUG: free active (active state 0) object: 00000000d8b0ce28 object type: timer_list hint: qsync_work_fn+0x0/0x16c
->>
->> Link: https://syzkaller.appspot.com/bug?extid=f7af59df5d6b25f0febd
->> Reported-by: syzbot+f7af59df5d6b25f0febd@syzkaller.appspotmail.com
->> Tested-by: syzbot+f7af59df5d6b25f0febd@syzkaller.appspotmail.com
->> Fixes: 171bf93ce11f ("ocfs2: Periodic quota syncing")
->> Cc: stable@vger.kernel.org
->> Signed-off-by: Joseph Qi <joseph.qi@linux.alibaba.com>
->> ---
->>   fs/ocfs2/quota_local.c | 1 +
->>   1 file changed, 1 insertion(+)
->>
->> diff --git a/fs/ocfs2/quota_local.c b/fs/ocfs2/quota_local.c
->> index 8ce462c64c51..ebe0dbc8db4a 100644
->> --- a/fs/ocfs2/quota_local.c
->> +++ b/fs/ocfs2/quota_local.c
->> @@ -782,6 +782,7 @@ static int ocfs2_local_read_info(struct super_block *sb, int type)
->>           if (locked)
->>               ocfs2_inode_unlock(lqinode, 1);
->>           ocfs2_release_local_quota_bitmaps(&oinfo->dqi_chunk);
->> +        cancel_delayed_work_sync(&oinfo->dqi_sync_work);
->>           kfree(oinfo);
->>       }
->>       brelse(bh);
-> 
-> In my view, there is one problem:
-> If ocfs2_global_read_info() returns error before ->dqi_sync_work is
-> initialized, above code will trigger wild pointer error.
-> 
+This blames there is an active delayed work when freeing oinfo in error
+handling, so cancel dqi_sync_work first. BTW, return status instead of
+-1 when .read_file_info fails.
 
-You're right. Will update and send v2.
+Link: https://syzkaller.appspot.com/bug?extid=f7af59df5d6b25f0febd
+Reported-by: syzbot+f7af59df5d6b25f0febd@syzkaller.appspotmail.com
+Tested-by: syzbot+f7af59df5d6b25f0febd@syzkaller.appspotmail.com
+Fixes: 171bf93ce11f ("ocfs2: Periodic quota syncing")
+Cc: stable@vger.kernel.org
+Signed-off-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+---
+ fs/ocfs2/quota_local.c | 8 ++++++--
+ 1 file changed, 6 insertions(+), 2 deletions(-)
 
-Thanks,
-Joseph
+diff --git a/fs/ocfs2/quota_local.c b/fs/ocfs2/quota_local.c
+index 8ce462c64c51..73d3367c533b 100644
+--- a/fs/ocfs2/quota_local.c
++++ b/fs/ocfs2/quota_local.c
+@@ -692,7 +692,7 @@ static int ocfs2_local_read_info(struct super_block *sb, int type)
+ 	int status;
+ 	struct buffer_head *bh = NULL;
+ 	struct ocfs2_quota_recovery *rec;
+-	int locked = 0;
++	int locked = 0, global_read = 0;
+ 
+ 	info->dqi_max_spc_limit = 0x7fffffffffffffffLL;
+ 	info->dqi_max_ino_limit = 0x7fffffffffffffffLL;
+@@ -700,6 +700,7 @@ static int ocfs2_local_read_info(struct super_block *sb, int type)
+ 	if (!oinfo) {
+ 		mlog(ML_ERROR, "failed to allocate memory for ocfs2 quota"
+ 			       " info.");
++		status = -ENOMEM;
+ 		goto out_err;
+ 	}
+ 	info->dqi_priv = oinfo;
+@@ -712,6 +713,7 @@ static int ocfs2_local_read_info(struct super_block *sb, int type)
+ 	status = ocfs2_global_read_info(sb, type);
+ 	if (status < 0)
+ 		goto out_err;
++	global_read = 1;
+ 
+ 	status = ocfs2_inode_lock(lqinode, &oinfo->dqi_lqi_bh, 1);
+ 	if (status < 0) {
+@@ -782,10 +784,12 @@ static int ocfs2_local_read_info(struct super_block *sb, int type)
+ 		if (locked)
+ 			ocfs2_inode_unlock(lqinode, 1);
+ 		ocfs2_release_local_quota_bitmaps(&oinfo->dqi_chunk);
++		if (global_read)
++			cancel_delayed_work_sync(&oinfo->dqi_sync_work);
+ 		kfree(oinfo);
+ 	}
+ 	brelse(bh);
+-	return -1;
++	return status;
+ }
+ 
+ /* Write local info to quota file */
+-- 
+2.39.3
 
