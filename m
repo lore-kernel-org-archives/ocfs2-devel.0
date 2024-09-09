@@ -1,123 +1,110 @@
-Received: from mail-wm1-f46.google.com (mail-wm1-f46.google.com [209.85.128.46])
+Received: from mail-108-mta94.mxroute.com (mail-108-mta94.mxroute.com [136.175.108.94])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8CEB0101F2
-	for <ocfs2-devel@lists.linux.dev>; Mon,  9 Sep 2024 01:03:05 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.46
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 80A0A6AB8
+	for <ocfs2-devel@lists.linux.dev>; Mon,  9 Sep 2024 01:46:59 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=136.175.108.94
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1725843789; cv=none; b=ALvh7yT8hs63EEaqlvD09skkHcI5bCPGqfjAxTkahYyf9MeCkvU+P3MYsBXbytp6F8N3R053HgCQUVzZFVwFImyx2xffbdOlIZpZ0S+PQPdx4aBtFVOOHPD5b6Xzxz44qIWvNNYsCgRdZvPRadtSdMnhcPlLjbGpzWlzCjr0VrA=
+	t=1725846423; cv=none; b=tyVApDGT6vCVynNvLsPE9AIVrscfHag4aFXk0LyitY+pAuQj2O0A1aJqFynDTQL9/FQFFIOQP4HBkW6QmRVeGZ0OiSIKBvs+Gi3TVPSQUOSHRwEcMczvyUTiWwiv+L2g+3amshDbDmMC4LKI+WiK7QVc9uklKAzikWL0oDppGZY=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1725843789; c=relaxed/simple;
-	bh=khk30wY3xXyR9sRYV8s5FHMtDbhrQkXYCwdpJoT8eiQ=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=lEc/mMy5HUVHgkr+Iud5KLv7EYrMoeemPRL+2AMo1BwU2lU1vezuPV+lUIGHnSv7H/Tk5CY2VMupnRM0L9MYLIDmhDwG+siD5IGwXqtHtxrByfuU38NBdycnsT4ljFutUtv9d7EDj+tMe9SBQN63xFNAG44TPn9kCr2SHKT7sE0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=LbtXIuaa; arc=none smtp.client-ip=209.85.128.46
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
+	s=arc-20240116; t=1725846423; c=relaxed/simple;
+	bh=Vl1XZQ4ehWXP1MzoYo8Qi2riUZwXqRvGjH4Pc4zllU8=;
+	h=References:From:To:Cc:Subject:Date:In-reply-to:Message-ID:
+	 MIME-Version:Content-Type; b=bJEhwAMtScHNf74ZePKQVkDzMegmywKg1uz2qZoDCYntbl3j38D4BekaLLylYvKUzR/com7ec3Budz7HDZxpLWCG9yGURZuow/p7xr+F6npfHTtdifpYXdN61c7nYM2DiSozAcM/TKYBM/1oGwh8yO5vIFjTj+a5sgb7eAtB8IQ=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=damenly.org; spf=pass smtp.mailfrom=damenly.org; dkim=pass (2048-bit key) header.d=damenly.org header.i=@damenly.org header.b=Bd2s99wG; arc=none smtp.client-ip=136.175.108.94
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=damenly.org
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=damenly.org
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="LbtXIuaa"
-Received: by mail-wm1-f46.google.com with SMTP id 5b1f17b1804b1-42ca2ce583cso3748705e9.0
-        for <ocfs2-devel@lists.linux.dev>; Sun, 08 Sep 2024 18:03:05 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=suse.com; s=google; t=1725843784; x=1726448584; darn=lists.linux.dev;
-        h=content-transfer-encoding:in-reply-to:from:content-language
-         :references:cc:to:subject:user-agent:mime-version:date:message-id
-         :from:to:cc:subject:date:message-id:reply-to;
-        bh=OV7VGKDNa+MYCPDaH3eYbggjB6/nkG30q/dMutycMh8=;
-        b=LbtXIuaayJH1O8/ou4/F3ARv6JYu2/Q5Cf4vTGhsEdK66RDJuGVVXDJcfxHx3FJEgS
-         uaQ6xU61vNeR61u0eZlq/ehgPPO5E4pYPjfDEmwmXuAN/PAvt697Td5/1fag9zm0rDX8
-         xG/BrlvgT0e7JAk4dCzpKaNPn2WUtS6Ov0XwKg4Ewjzo/XE4ErIWP7KKgj3JlfsJaccj
-         Nj8vmHQXv+PQj4ndSTQvLe/qJfa3WBm/KSrXJ2WyqktxRpx6RWQr8qxt9xr+9DfJ6KJS
-         /gIVJlj0M5G05LKNZT7DpEeNX91vrfO2YFXQeuxpLpbfiuPtKuNRyIj/zdLH+gep6JkL
-         eFPg==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1725843784; x=1726448584;
-        h=content-transfer-encoding:in-reply-to:from:content-language
-         :references:cc:to:subject:user-agent:mime-version:date:message-id
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
-        bh=OV7VGKDNa+MYCPDaH3eYbggjB6/nkG30q/dMutycMh8=;
-        b=QTyQiouGgw7QBYEDvNoK+eWxw9e05fauSem2kdDo/4aC3xPEbI9vt/NiUJTsvxHBtp
-         p2ZDg0Rgs2OR5w+1FGpNewMSkuRJEh1FMXgf3Twq2wYBcT2kZ5Sd6XkoSEGaQrj3VkO8
-         8oWuBeas67FfjtIy0tQxLxNIJavxmF5fEGknQQTOhSpm+gOGT/0jjYBCNNdjiYFTVHdE
-         moYICvQQh0xOy8ayBSXV3U0u7wrZu29Vb3HiSgUNM4fFFm3oKMW23w2t0kpnEM4Nwy7Y
-         MRu2PLOfud6eddJw5dY0xw8fEVlRPoiEJg5A4pmNHFNGzcoLLUS1LCkdpsM0gROBSe5i
-         gstg==
-X-Gm-Message-State: AOJu0Yyksi1zkQen0HYA5Fj4TEJGPooe4x8pJ4cJpFjEyCiMVcAR1Bf6
-	VxKKoC7u6X69/EXZefGA3oB2XCNlMLRB6fBDicFZyED5QFDnC5l6RNvDRg/LZ28=
-X-Google-Smtp-Source: AGHT+IG+Q3rwxK84PkFA2rjUi4Xr9PUnKPR3t9AIPNqqCub9ivi56tLrKglxADx78f/P33lxOLQ8xg==
-X-Received: by 2002:a5d:6d08:0:b0:374:d088:476f with SMTP id ffacd0b85a97d-37889659481mr2967933f8f.5.1725843783325;
-        Sun, 08 Sep 2024 18:03:03 -0700 (PDT)
-Received: from [10.202.0.23] ([202.127.77.110])
-        by smtp.gmail.com with ESMTPSA id d2e1a72fcca58-718e58c6a3csm2497871b3a.65.2024.09.08.18.03.01
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Sun, 08 Sep 2024 18:03:02 -0700 (PDT)
-Message-ID: <094ef45c-3268-4155-b867-56d06e80ba69@suse.com>
-Date: Mon, 9 Sep 2024 09:02:59 +0800
+	dkim=pass (2048-bit key) header.d=damenly.org header.i=@damenly.org header.b="Bd2s99wG"
+Received: from filter006.mxroute.com ([136.175.111.3] filter006.mxroute.com)
+ (Authenticated sender: mN4UYu2MZsgR)
+ by mail-108-mta94.mxroute.com (ZoneMTA) with ESMTPSA id 191d471a7800003e01.005
+ for <ocfs2-devel@lists.linux.dev>
+ (version=TLSv1.3 cipher=TLS_AES_256_GCM_SHA384);
+ Mon, 09 Sep 2024 01:41:43 +0000
+X-Zone-Loop: 63055891f5f7d862a42858eef0a9742aa88f84370612
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed; d=damenly.org
+	; s=x; h=Content-Type:MIME-Version:Message-ID:In-reply-to:Date:Subject:Cc:To:
+	From:References:Sender:Reply-To:Content-Transfer-Encoding:Content-ID:
+	Content-Description:Resent-Date:Resent-From:Resent-Sender:Resent-To:Resent-Cc
+	:Resent-Message-ID:List-Id:List-Help:List-Unsubscribe:List-Subscribe:
+	List-Post:List-Owner:List-Archive;
+	bh=9kRBX5Xxgx81I3Dt5y40OjvVhxCTtAFEHcZ7ysdiK3o=; b=Bd2s99wGK2LpVqDTjcFj9OPMed
+	XC5i0b0X7rWKQzgJcnbYzkkmm4D2+iPZyQDMKgbMVkQw0naiR29S2xIX/TjNplRqJwYYcTPatqZb9
+	dK5MUd7uKk5eLlyAmo/Jf9koVj2QiIyuVdIKDrYfOiXRhLAC9rgy5G3VvG01qRnpZNDjDDTiyhCzc
+	CGev11Ps3S0eL5T3i2JYZtCNxdDdNnWecZuJqcw6SnHHUfDTCNwLYEdTWm0lkRxFJmUbtNVUHNQ1U
+	2ELEJFA8vCrB5znplZ4VSmn6bl71MtXt5cP0zvd41b8rVlZdvDAa/g/dJsJSX0NK3NkBomNvckl5M
+	oVutAlDQ==;
+References: <20240906221208.136692-1-ghanshyam1898@gmail.com>
+User-agent: mu4e 1.7.5; emacs 28.2
+From: Su Yue <l@damenly.org>
+To: Ghanshyam Agrawal <ghanshyam1898@gmail.com>
+Cc: mark@fasheh.com, jlbec@evilplan.org, joseph.qi@linux.alibaba.com,
+ ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org,
+ syzbot+adfd64e93c46b99c957e@syzkaller.appspotmail.com
+Subject: Re: [PATCH] ocfs2: bug fix when bh is null
+Date: Mon, 09 Sep 2024 09:39:50 +0800
+In-reply-to: <20240906221208.136692-1-ghanshyam1898@gmail.com>
+Message-ID: <ikv5ob7f.fsf@damenly.org>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v3 1/3] ocfs2: give ocfs2 the ability to reclaim suballoc
- free bg
-To: joseph.qi@linux.alibaba.com, glass.su@suse.com
-Cc: ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org
-References: <20240908140705.19169-1-heming.zhao@suse.com>
- <20240908140705.19169-2-heming.zhao@suse.com>
-Content-Language: en-US
-From: Heming Zhao <heming.zhao@suse.com>
-In-Reply-To: <20240908140705.19169-2-heming.zhao@suse.com>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; format=flowed
+X-Authenticated-Id: l@damenly.org
 
-On 9/8/24 22:07, Heming Zhao wrote:
-> The current ocfs2 code can't reclaim suballocator block group space.
-> This cause ocfs2 to hold onto a lot of space in some cases. for example,
-> when creating lots of small files, the space is held/managed by
-> '//inode_alloc'. After the user deletes all the small files, the space
-> never returns to '//global_bitmap'. This issue prevents ocfs2 from
-> providing the needed space even when there is enough free space in a
-> small ocfs2 volume.
-> This patch gives ocfs2 the ability to reclaim suballoc free space when
-> the block group is freed. For performance reasons, this patch keeps
-> the first suballocator block group.
-> 
-> Signed-off-by: Heming Zhao <heming.zhao@suse.com>
-> Reviewed-by: Su Yue <glass.su@suse.com>
+
+On Sat 07 Sep 2024 at 03:42, Ghanshyam Agrawal 
+<ghanshyam1898@gmail.com> wrote:
+
+Commit message please even it's simple in one line.
+
+> Reported-by: 
+> syzbot+adfd64e93c46b99c957e@syzkaller.appspotmail.com
+> Closes: 
+> https://syzkaller.appspot.com/bug?extid=adfd64e93c46b99c957e
+>
+I think it's fixed by 
+https://lore.kernel.org/ocfs2-devel/20240902023636.1843422-1-joseph.qi@linux.alibaba.com/T/#t 
+.
+
+--
+Su
+
+> Signed-off-by: Ghanshyam Agrawal <ghanshyam1898@gmail.com>
 > ---
->   fs/ocfs2/suballoc.c | 302 ++++++++++++++++++++++++++++++++++++++++++--
->   1 file changed, 292 insertions(+), 10 deletions(-)
-> 
-> diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
-> index f7b483f0de2a..d62010166c34 100644
-> --- a/fs/ocfs2/suballoc.c
-> +++ b/fs/ocfs2/suballoc.c
-> ... ...
->   
-> +/*
-> + * Reclaim the suballocator managed space to main bitmap.
-> + * This function first works on the suballocator then switch to the
-> + * main bitmap.
-
-need to revise above comment:
-This function first works on the suballocator to perform the
-cleanup rec/alloc_inode job, then switches to the main bitmap
-to reclaim released space.
-
--Heming
-
-> + *
-> + * handle: The transaction handle
-> + * alloc_inode: The suballoc inode
-> + * alloc_bh: The buffer_head of suballoc inode
-> + * group_bh: The group descriptor buffer_head of suballocator managed.
-> + *           Caller should release the input group_bh.
-> + */
-> +static int _reclaim_to_main_bm(handle_t *handle,
-> +			struct inode *alloc_inode,
-> +			struct buffer_head *alloc_bh,
-> +			struct buffer_head *group_bh)
-> +{
-
+>  fs/ocfs2/buffer_head_io.c | 1 -
+>  fs/ocfs2/uptodate.c       | 2 +-
+>  2 files changed, 1 insertion(+), 2 deletions(-)
+>
+> diff --git a/fs/ocfs2/buffer_head_io.c 
+> b/fs/ocfs2/buffer_head_io.c
+> index cdb9b9bdea1f..e62c7e1de4eb 100644
+> --- a/fs/ocfs2/buffer_head_io.c
+> +++ b/fs/ocfs2/buffer_head_io.c
+> @@ -235,7 +235,6 @@ int ocfs2_read_blocks(struct 
+> ocfs2_caching_info *ci, u64 block, int nr,
+>  		if (bhs[i] == NULL) {
+>  			bhs[i] = sb_getblk(sb, block++);
+>  			if (bhs[i] == NULL) {
+> -				ocfs2_metadata_cache_io_unlock(ci);
+>  				status = -ENOMEM;
+>  				mlog_errno(status);
+>  				/* Don't forget to put previous bh! */
+> diff --git a/fs/ocfs2/uptodate.c b/fs/ocfs2/uptodate.c
+> index 09854925fa5c..3242291402c3 100644
+> --- a/fs/ocfs2/uptodate.c
+> +++ b/fs/ocfs2/uptodate.c
+> @@ -471,7 +471,7 @@ void ocfs2_set_buffer_uptodate(struct 
+> ocfs2_caching_info *ci,
+>
+>  	/* The block may very well exist in our cache already, so 
+>  avoid
+>  	 * doing any more work in that case. */
+> -	if (ocfs2_buffer_cached(ci, bh))
+> +	if (bh == NULL || ocfs2_buffer_cached(ci, bh))
+>  		return;
+>
+>  	trace_ocfs2_set_buffer_uptodate_begin(
