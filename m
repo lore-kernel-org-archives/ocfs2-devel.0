@@ -1,188 +1,275 @@
-Received: from mx0a-00069f02.pphosted.com (mx0a-00069f02.pphosted.com [205.220.165.32])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-io1-f72.google.com (mail-io1-f72.google.com [209.85.166.72])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6AB3B17ADE2
-	for <ocfs2-devel@lists.linux.dev>; Tue, 10 Sep 2024 04:40:54 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=205.220.165.32
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id EE364219F3
+	for <ocfs2-devel@lists.linux.dev>; Tue, 10 Sep 2024 05:07:23 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.166.72
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1725943257; cv=none; b=Mi2oCBDPmvR/SgXzrwUWCo88OjXOm836wvht0iDAqp3iBmkAYymjDxpN7kNsyWXeJaq8mpS6GT6s4Sxw73xgXmV5zfmTj367POjrTqtxYcUYXaLNkMVyxgthZJmgLAazD4N1l/b7cMS85DLOFfQqn23GABtHJUx3O8ki4OYZP/I=
+	t=1725944846; cv=none; b=uGYLUBbtHZ9jPTkqTnZEzXhfgoT+seDulyRxFGhdPNDTEX+nFG2ZSWJRGsPUqA28xUFs04FW/GwYU1z70Cu8X+l0pmtwum2vG1rDssyPjVc5+udJApKS5CjOFjnqhBrpJrao6esT6Cb3FKoJrEdu0+rnOjsq2HLPTZh1EBG610w=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1725943257; c=relaxed/simple;
-	bh=LYPJYmRGPuWIQI7MxAV4tFKAbX4znCi6gd/93MIJhuM=;
-	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version; b=fw9xMZp9A7+bsEGgZliJCPRv9CKl3UJoKU/EnFnbQxrg0XnV1ZbvopK5tnQKMEeNyntNf+tlR0isHhfVtslA7oJzgvd003cLppHDd+rlnJFoMgEQl7cGQLmSPggr96XfPwcUpVZONwyhjqiAAHliHVA5rheXyhi3X7QnuZI8BzY=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=oracle.com; spf=pass smtp.mailfrom=oracle.com; dkim=pass (2048-bit key) header.d=oracle.com header.i=@oracle.com header.b=oe8wwcG3; arc=none smtp.client-ip=205.220.165.32
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=oracle.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=oracle.com
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=oracle.com header.i=@oracle.com header.b="oe8wwcG3"
-Received: from pps.filterd (m0246629.ppops.net [127.0.0.1])
-	by mx0b-00069f02.pphosted.com (8.18.1.2/8.18.1.2) with ESMTP id 48A2tVXr020454;
-	Tue, 10 Sep 2024 04:40:48 GMT
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=oracle.com; h=
-	from:to:cc:subject:date:message-id:mime-version
-	:content-transfer-encoding; s=corp-2023-11-20; bh=bFsHWpijZBnbG2
-	v0Z/CmAKGrSERhkPXMGxrB2aTn5Hw=; b=oe8wwcG3pnO0t+5vJZe4ESdcNFoUAB
-	sa/7uuUa7XbpWVCyIa8351c8WdSdQvCfIxDdSXVitYyxuyEO6zE2zxqlUMoe0R/a
-	YnBApuekR1+MKBGm0jxPLqV8iD1B7vqxKXjlOe8yAPfZkvY8RUSJQEA1X/GDKzBo
-	Q99snmAeY71AywxTmfs8q+LDVwQHRp/TVb4Je0AHSeVFZuMhlgsrqRrDq1sxNZU1
-	O1jMyr1VbMJEK0WBg7GOnJwYQC1PPuYa0dYvgiZ6OQeElbcpQSUsC544b/1RFbf5
-	V4vBS5tH9YOho43dTaF3C83rqCdMjPsWeKv+4Awybt9nhr/Vx4cD7+bw==
-Received: from iadpaimrmta03.imrmtpd1.prodappiadaev1.oraclevcn.com (iadpaimrmta03.appoci.oracle.com [130.35.103.27])
-	by mx0b-00069f02.pphosted.com (PPS) with ESMTPS id 41geq9mgvc-1
-	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Tue, 10 Sep 2024 04:40:48 +0000 (GMT)
-Received: from pps.filterd (iadpaimrmta03.imrmtpd1.prodappiadaev1.oraclevcn.com [127.0.0.1])
-	by iadpaimrmta03.imrmtpd1.prodappiadaev1.oraclevcn.com (8.18.1.2/8.18.1.2) with ESMTP id 48A3H6c7005931;
-	Tue, 10 Sep 2024 04:40:47 GMT
-Received: from pps.reinject (localhost [127.0.0.1])
-	by iadpaimrmta03.imrmtpd1.prodappiadaev1.oraclevcn.com (PPS) with ESMTPS id 41gd981yx3-1
-	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Tue, 10 Sep 2024 04:40:47 +0000
-Received: from iadpaimrmta03.imrmtpd1.prodappiadaev1.oraclevcn.com (iadpaimrmta03.imrmtpd1.prodappiadaev1.oraclevcn.com [127.0.0.1])
-	by pps.reinject (8.17.1.5/8.17.1.5) with ESMTP id 48A4ZkR5014596;
-	Tue, 10 Sep 2024 04:40:46 GMT
-Received: from gmananth-20230209-1132.osdevelopmeniad.oraclevcn.com (gmananth-20230209-1132.appad3iad.osdevelopmeniad.oraclevcn.com [100.100.242.10])
-	by iadpaimrmta03.imrmtpd1.prodappiadaev1.oraclevcn.com (PPS) with ESMTP id 41gd981ywf-1;
-	Tue, 10 Sep 2024 04:40:46 +0000
-From: Gautham Ananthakrishna <gautham.ananthakrishna@oracle.com>
-To: joseph.qi@linux.alibaba.com
-Cc: gautham.ananthakrishna@oracle.com, junxiao.bi@oracle.com,
-        rajesh.sivaramasubramaniom@oracle.com, ocfs2-devel@lists.linux.dev
-Subject: [PATCH RFC 1/1] ocfs2: reserve space for inline xattr before attaching reflink tree
-Date: Tue, 10 Sep 2024 04:40:45 +0000
-Message-Id: <20240910044045.257958-1-gautham.ananthakrishna@oracle.com>
-X-Mailer: git-send-email 2.39.3
+	s=arc-20240116; t=1725944846; c=relaxed/simple;
+	bh=7S0hJvHbgmqAAcLRKrVDTR4MAxUmyxt2GoK4gTWdgl0=;
+	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=ieDifSw96+J0DV85Csur1sVannKv3ubX1JOunJKxF1xOKYyJKPX5H0jZblGgBE4O3TInE3mncHgKW3VIAqPO+GDSjgYCH16PjbDs11of5Oa4BQHA7HYVyHeb8ghxRcPilDvV9mTcJ30JPnbEo+sFh0+5C/bq19Uygo9Ug5pfVtI=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.166.72
+Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
+Received: by mail-io1-f72.google.com with SMTP id ca18e2360f4ac-82cfb2e416eso139228739f.1
+        for <ocfs2-devel@lists.linux.dev>; Mon, 09 Sep 2024 22:07:23 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1725944843; x=1726549643;
+        h=to:from:subject:message-id:date:mime-version:x-gm-message-state
+         :from:to:cc:subject:date:message-id:reply-to;
+        bh=9SXDnA9lKkNsCLkNce6CxppRr00jEciXixLlw0VSjBE=;
+        b=wSVLk/OOYi6QaSpMVIhsPAOKNiEqR8fZAgEVUCGqGWbkLF5+hfIxOn5w1nXmM6XF3t
+         IHbARLrKhbQo4ryoqsIojCpCdy51pchsI3X+Xcp9eV9lh4uS80DG3PQ+ZTtILcZUxV5b
+         mqOmos2cAiFTKZ1bv6KCk61tdU7QDV/VPxZTZavp0T1c0x2E2KAz5pKfEV5vF4GX+C/0
+         essxSne59ZGU6dLmg6dGNWi6qugblcdI5pahazqNum0TpzOZZfVAH+6k/PUrU6Sw/1I0
+         r0OMZeXHmZ85Jp7ABdeDEQ2jq5PJD4sF51DvVAYoj+I/kzBIDs2aNf4xQi2OVPs01lo1
+         xqgg==
+X-Forwarded-Encrypted: i=1; AJvYcCXCP3Ic2zDJefle2uy7TKONFpszwYAW2+ZS7vPuL8kvRrAVjxaRWxf3UAQUrYtnpuszHYTqxU1ZjJAPRg==@lists.linux.dev
+X-Gm-Message-State: AOJu0YxzWH5Uhn2Q9K9GA13A5rAxz5MzxAynA3NF19ycFATVg3r6iLhn
+	HgpHbsckZJcHFa9eivT/DVdIN9Rhv+OfQVvTV1i72XNT6uwoITPgNg+EGE7+HCwP8iXZ6mpbRUE
+	0Tj+4Eou3raqWFe6joUTaSJgBaMYLu3sZuy82LvhEMEK/rc7BpQl8z7Y=
+X-Google-Smtp-Source: AGHT+IEwpDfwB6ArkQjelJh8a31HAPBFZgJF9m4oZsj7M+t8s5OCZmA+7WhhFRFy6+E8g2vE6COrRNFzow29zYnFeZcZ5NzRb6ra
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-X-Proofpoint-Virus-Version: vendor=baseguard
- engine=ICAP:2.0.293,Aquarius:18.0.1039,Hydra:6.0.680,FMLib:17.12.60.29
- definitions=2024-09-09_12,2024-09-09_02,2024-09-02_01
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 spamscore=0 malwarescore=0
- mlxlogscore=999 bulkscore=0 adultscore=0 phishscore=0 suspectscore=0
- mlxscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2408220000 definitions=main-2409100032
-X-Proofpoint-ORIG-GUID: mNKS0f3s2maDjx5dwxspdLl3iUcuvIVI
-X-Proofpoint-GUID: mNKS0f3s2maDjx5dwxspdLl3iUcuvIVI
+X-Received: by 2002:a05:6602:6303:b0:82a:a998:ebab with SMTP id
+ ca18e2360f4ac-82aa998f645mr931223739f.11.1725944843110; Mon, 09 Sep 2024
+ 22:07:23 -0700 (PDT)
+Date: Mon, 09 Sep 2024 22:07:23 -0700
+X-Google-Appengine-App-Id: s~syzkaller
+X-Google-Appengine-App-Id-Alias: syzkaller
+Message-ID: <000000000000469efa0621bcd98a@google.com>
+Subject: [syzbot] [ocfs2?] possible deadlock in ocfs2_xattr_set
+From: syzbot <syzbot+ba9a789bd1f4d21fcefe@syzkaller.appspotmail.com>
+To: jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
+	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
+	syzkaller-bugs@googlegroups.com
+Content-Type: text/plain; charset="UTF-8"
 
-One of our customers reported a crash and a corrupted ocfs2 filesystem.
-The crash was due to the detection of corruption. Upon troubleshooting,
-the fsck -fn output showed the below corruption
+Hello,
 
-[EXTENT_LIST_FREE] Extent list in owner 33080590 claims 230 as the next free chain record,
-but fsck believes the largest valid value is 227.  Clamp the next record value? n
+syzbot found the following issue on:
 
-The stat output from the debugfs.ocfs2 showed the following corruption
-where the "Next Free Rec:" had overshot the "Count:" in the root metadata
-block.
+HEAD commit:    b831f83e40a2 Merge tag 'bpf-6.11-rc7' of git://git.kernel...
+git tree:       upstream
+console output: https://syzkaller.appspot.com/x/log.txt?x=12a2affb980000
+kernel config:  https://syzkaller.appspot.com/x/.config?x=660f6eb11f9c7dc5
+dashboard link: https://syzkaller.appspot.com/bug?extid=ba9a789bd1f4d21fcefe
+compiler:       Debian clang version 15.0.6, GNU ld (GNU Binutils for Debian) 2.40
 
-        Inode: 33080590   Mode: 0640   Generation: 2619713622 (0x9c25a856)
-        FS Generation: 904309833 (0x35e6ac49)
-        CRC32: 00000000   ECC: 0000
-        Type: Regular   Attr: 0x0   Flags: Valid
-        Dynamic Features: (0x16) HasXattr InlineXattr Refcounted
-        Extended Attributes Block: 0  Extended Attributes Inline Size: 256
-        User: 0 (root)   Group: 0 (root)   Size: 281320357888
-        Links: 1   Clusters: 141738
-        ctime: 0x66911b56 0x316edcb8 -- Fri Jul 12 06:02:30.829349048 2024
-        atime: 0x66911d6b 0x7f7a28d -- Fri Jul 12 06:11:23.133669517 2024
-        mtime: 0x66911b56 0x12ed75d7 -- Fri Jul 12 06:02:30.317552087 2024
-        dtime: 0x0 -- Wed Dec 31 17:00:00 1969
-        Refcount Block: 2777346
-        Last Extblk: 2886943   Orphan Slot: 0
-        Sub Alloc Slot: 0   Sub Alloc Bit: 14
-        Tree Depth: 1   Count: 227   Next Free Rec: 230
-        ## Offset        Clusters       Block#
-        0  0             2310           2776351
-        1  2310          2139           2777375
-        2  4449          1221           2778399
-        3  5670          731            2779423
-        4  6401          566            2780447
-        .......          ....           .......
-        .......          ....           .......
+Unfortunately, I don't have any reproducer for this issue yet.
 
-The issue was in the reflink workfow while reserving space for inline xattr.
-The problematic function is ocfs2_reflink_xattr_inline(). By the time this
-function is called the reflink tree is already recreated at the destination
-inode from the source inode. At this point, this function reserves space
-space inline xattrs at the destination inode without even checking if there
-is space at the root metadata block. It simply reduces the l_count from 243
-to 227 thereby making space of 256 bytes for inline xattr whereas the inode
-already has extents beyond this index (in this case upto 230), thereby causing
-corruption.
+Downloadable assets:
+disk image (non-bootable): https://storage.googleapis.com/syzbot-assets/7bc7510fe41f/non_bootable_disk-b831f83e.raw.xz
+vmlinux: https://storage.googleapis.com/syzbot-assets/ab02bf22935d/vmlinux-b831f83e.xz
+kernel image: https://storage.googleapis.com/syzbot-assets/c1101078451d/bzImage-b831f83e.xz
 
-The fix for this is to reserve space for inline metadata before the at the
-destination inode before the reflink tree gets recreated. The customer has
-verified the fix.
+IMPORTANT: if you fix the issue, please add the following tag to the commit:
+Reported-by: syzbot+ba9a789bd1f4d21fcefe@syzkaller.appspotmail.com
 
-Signed-off-by: Gautham Ananthakrishna <gautham.ananthakrishna@oracle.com>
+loop0: detected capacity change from 0 to 32768
+=======================================================
+WARNING: The mand mount option has been deprecated and
+         and is ignored by this kernel. Remove the mand
+         option from the mount to silence this warning.
+=======================================================
+ocfs2: Mounting device (7,0) on (node local, slot 0) with ordered data mode.
+======================================================
+WARNING: possible circular locking dependency detected
+6.11.0-rc6-syzkaller-00183-gb831f83e40a2 #0 Not tainted
+------------------------------------------------------
+syz.0.0/5118 is trying to acquire lock:
+ffff88803f583480 (&ocfs2_sysfile_lock_key[args->fi_sysfile_type]#6){+.+.}-{3:3}, at: inode_lock include/linux/fs.h:800 [inline]
+ffff88803f583480 (&ocfs2_sysfile_lock_key[args->fi_sysfile_type]#6){+.+.}-{3:3}, at: ocfs2_xattr_set+0xe9e/0x1930 fs/ocfs2/xattr.c:3623
+
+but task is already holding lock:
+ffff88803f584e38 (&oi->ip_xattr_sem){++++}-{3:3}, at: ocfs2_xattr_set+0x633/0x1930 fs/ocfs2/xattr.c:3584
+
+which lock already depends on the new lock.
+
+
+the existing dependency chain (in reverse order) is:
+
+-> #4 (&oi->ip_xattr_sem){++++}-{3:3}:
+       lock_acquire+0x1ed/0x550 kernel/locking/lockdep.c:5759
+       down_read+0xb1/0xa40 kernel/locking/rwsem.c:1526
+       ocfs2_init_acl+0x397/0x930 fs/ocfs2/acl.c:366
+       ocfs2_mknod+0x1c05/0x2b40 fs/ocfs2/namei.c:408
+       ocfs2_create+0x1ab/0x480 fs/ocfs2/namei.c:672
+       lookup_open fs/namei.c:3578 [inline]
+       open_last_lookups fs/namei.c:3647 [inline]
+       path_openat+0x1a9a/0x3470 fs/namei.c:3883
+       do_filp_open+0x235/0x490 fs/namei.c:3913
+       do_sys_openat2+0x13e/0x1d0 fs/open.c:1416
+       do_sys_open fs/open.c:1431 [inline]
+       __do_sys_openat fs/open.c:1447 [inline]
+       __se_sys_openat fs/open.c:1442 [inline]
+       __x64_sys_openat+0x247/0x2a0 fs/open.c:1442
+       do_syscall_x64 arch/x86/entry/common.c:52 [inline]
+       do_syscall_64+0xf3/0x230 arch/x86/entry/common.c:83
+       entry_SYSCALL_64_after_hwframe+0x77/0x7f
+
+-> #3 (jbd2_handle){++++}-{0:0}:
+       lock_acquire+0x1ed/0x550 kernel/locking/lockdep.c:5759
+       start_this_handle+0x1eb4/0x2110 fs/jbd2/transaction.c:448
+       jbd2__journal_start+0x2da/0x5d0 fs/jbd2/transaction.c:505
+       jbd2_journal_start+0x29/0x40 fs/jbd2/transaction.c:544
+       ocfs2_start_trans+0x3c9/0x700 fs/ocfs2/journal.c:352
+       ocfs2_mknod+0x150c/0x2b40 fs/ocfs2/namei.c:359
+       ocfs2_create+0x1ab/0x480 fs/ocfs2/namei.c:672
+       lookup_open fs/namei.c:3578 [inline]
+       open_last_lookups fs/namei.c:3647 [inline]
+       path_openat+0x1a9a/0x3470 fs/namei.c:3883
+       do_filp_open+0x235/0x490 fs/namei.c:3913
+       do_sys_openat2+0x13e/0x1d0 fs/open.c:1416
+       do_sys_open fs/open.c:1431 [inline]
+       __do_sys_openat fs/open.c:1447 [inline]
+       __se_sys_openat fs/open.c:1442 [inline]
+       __x64_sys_openat+0x247/0x2a0 fs/open.c:1442
+       do_syscall_x64 arch/x86/entry/common.c:52 [inline]
+       do_syscall_64+0xf3/0x230 arch/x86/entry/common.c:83
+       entry_SYSCALL_64_after_hwframe+0x77/0x7f
+
+-> #2 (&journal->j_trans_barrier){.+.+}-{3:3}:
+       lock_acquire+0x1ed/0x550 kernel/locking/lockdep.c:5759
+       down_read+0xb1/0xa40 kernel/locking/rwsem.c:1526
+       ocfs2_start_trans+0x3be/0x700 fs/ocfs2/journal.c:350
+       ocfs2_mknod+0x150c/0x2b40 fs/ocfs2/namei.c:359
+       ocfs2_create+0x1ab/0x480 fs/ocfs2/namei.c:672
+       lookup_open fs/namei.c:3578 [inline]
+       open_last_lookups fs/namei.c:3647 [inline]
+       path_openat+0x1a9a/0x3470 fs/namei.c:3883
+       do_filp_open+0x235/0x490 fs/namei.c:3913
+       do_sys_openat2+0x13e/0x1d0 fs/open.c:1416
+       do_sys_open fs/open.c:1431 [inline]
+       __do_sys_openat fs/open.c:1447 [inline]
+       __se_sys_openat fs/open.c:1442 [inline]
+       __x64_sys_openat+0x247/0x2a0 fs/open.c:1442
+       do_syscall_x64 arch/x86/entry/common.c:52 [inline]
+       do_syscall_64+0xf3/0x230 arch/x86/entry/common.c:83
+       entry_SYSCALL_64_after_hwframe+0x77/0x7f
+
+-> #1 (sb_internal#2){.+.+}-{0:0}:
+       lock_acquire+0x1ed/0x550 kernel/locking/lockdep.c:5759
+       percpu_down_read include/linux/percpu-rwsem.h:51 [inline]
+       __sb_start_write include/linux/fs.h:1676 [inline]
+       sb_start_intwrite include/linux/fs.h:1859 [inline]
+       ocfs2_start_trans+0x2b9/0x700 fs/ocfs2/journal.c:348
+       ocfs2_remove_btree_range+0x8e4/0x1860 fs/ocfs2/alloc.c:5752
+       ocfs2_commit_truncate+0xcca/0x2560 fs/ocfs2/alloc.c:7353
+       ocfs2_truncate_file+0xd0e/0x1560 fs/ocfs2/file.c:509
+       ocfs2_setattr+0x1217/0x1f50 fs/ocfs2/file.c:1208
+       notify_change+0xbca/0xe90 fs/attr.c:503
+       do_truncate+0x220/0x310 fs/open.c:65
+       vfs_truncate+0x2e1/0x3b0 fs/open.c:111
+       do_sys_truncate+0xdb/0x190 fs/open.c:134
+       do_syscall_x64 arch/x86/entry/common.c:52 [inline]
+       do_syscall_64+0xf3/0x230 arch/x86/entry/common.c:83
+       entry_SYSCALL_64_after_hwframe+0x77/0x7f
+
+-> #0 (&ocfs2_sysfile_lock_key[args->fi_sysfile_type]#6){+.+.}-{3:3}:
+       check_prev_add kernel/locking/lockdep.c:3133 [inline]
+       check_prevs_add kernel/locking/lockdep.c:3252 [inline]
+       validate_chain+0x18e0/0x5900 kernel/locking/lockdep.c:3868
+       __lock_acquire+0x137a/0x2040 kernel/locking/lockdep.c:5142
+       lock_acquire+0x1ed/0x550 kernel/locking/lockdep.c:5759
+       down_write+0x99/0x220 kernel/locking/rwsem.c:1579
+       inode_lock include/linux/fs.h:800 [inline]
+       ocfs2_xattr_set+0xe9e/0x1930 fs/ocfs2/xattr.c:3623
+       __vfs_setxattr+0x468/0x4a0 fs/xattr.c:200
+       __vfs_setxattr_noperm+0x12e/0x660 fs/xattr.c:234
+       vfs_setxattr+0x221/0x430 fs/xattr.c:321
+       do_setxattr fs/xattr.c:629 [inline]
+       path_setxattr+0x37e/0x4d0 fs/xattr.c:658
+       __do_sys_lsetxattr fs/xattr.c:683 [inline]
+       __se_sys_lsetxattr fs/xattr.c:679 [inline]
+       __x64_sys_lsetxattr+0xb8/0xd0 fs/xattr.c:679
+       do_syscall_x64 arch/x86/entry/common.c:52 [inline]
+       do_syscall_64+0xf3/0x230 arch/x86/entry/common.c:83
+       entry_SYSCALL_64_after_hwframe+0x77/0x7f
+
+other info that might help us debug this:
+
+Chain exists of:
+  &ocfs2_sysfile_lock_key[args->fi_sysfile_type]#6 --> jbd2_handle --> &oi->ip_xattr_sem
+
+ Possible unsafe locking scenario:
+
+       CPU0                    CPU1
+       ----                    ----
+  lock(&oi->ip_xattr_sem);
+                               lock(jbd2_handle);
+                               lock(&oi->ip_xattr_sem);
+  lock(&ocfs2_sysfile_lock_key[args->fi_sysfile_type]#6);
+
+ *** DEADLOCK ***
+
+3 locks held by syz.0.0/5118:
+ #0: ffff88804ab5a420 (sb_writers#10){.+.+}-{0:0}, at: mnt_want_write+0x3f/0x90 fs/namespace.c:515
+ #1: ffff88803f585100 (&sb->s_type->i_mutex_key#19){+.+.}-{3:3}, at: inode_lock include/linux/fs.h:800 [inline]
+ #1: ffff88803f585100 (&sb->s_type->i_mutex_key#19){+.+.}-{3:3}, at: vfs_setxattr+0x1e1/0x430 fs/xattr.c:320
+ #2: ffff88803f584e38 (&oi->ip_xattr_sem){++++}-{3:3}, at: ocfs2_xattr_set+0x633/0x1930 fs/ocfs2/xattr.c:3584
+
+stack backtrace:
+CPU: 0 UID: 0 PID: 5118 Comm: syz.0.0 Not tainted 6.11.0-rc6-syzkaller-00183-gb831f83e40a2 #0
+Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.16.3-debian-1.16.3-2~bpo12+1 04/01/2014
+Call Trace:
+ <TASK>
+ __dump_stack lib/dump_stack.c:93 [inline]
+ dump_stack_lvl+0x241/0x360 lib/dump_stack.c:119
+ check_noncircular+0x36a/0x4a0 kernel/locking/lockdep.c:2186
+ check_prev_add kernel/locking/lockdep.c:3133 [inline]
+ check_prevs_add kernel/locking/lockdep.c:3252 [inline]
+ validate_chain+0x18e0/0x5900 kernel/locking/lockdep.c:3868
+ __lock_acquire+0x137a/0x2040 kernel/locking/lockdep.c:5142
+ lock_acquire+0x1ed/0x550 kernel/locking/lockdep.c:5759
+ down_write+0x99/0x220 kernel/locking/rwsem.c:1579
+ inode_lock include/linux/fs.h:800 [inline]
+ ocfs2_xattr_set+0xe9e/0x1930 fs/ocfs2/xattr.c:3623
+ __vfs_setxattr+0x468/0x4a0 fs/xattr.c:200
+ __vfs_setxattr_noperm+0x12e/0x660 fs/xattr.c:234
+ vfs_setxattr+0x221/0x430 fs/xattr.c:321
+ do_setxattr fs/xattr.c:629 [inline]
+ path_setxattr+0x37e/0x4d0 fs/xattr.c:658
+ __do_sys_lsetxattr fs/xattr.c:683 [inline]
+ __se_sys_lsetxattr fs/xattr.c:679 [inline]
+ __x64_sys_lsetxattr+0xb8/0xd0 fs/xattr.c:679
+ do_syscall_x64 arch/x86/entry/common.c:52 [inline]
+ do_syscall_64+0xf3/0x230 arch/x86/entry/common.c:83
+ entry_SYSCALL_64_after_hwframe+0x77/0x7f
+RIP: 0033:0x7fd4c4f7cef9
+Code: ff ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 40 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 a8 ff ff ff f7 d8 64 89 01 48
+RSP: 002b:00007fd4c5d46038 EFLAGS: 00000246 ORIG_RAX: 00000000000000bd
+RAX: ffffffffffffffda RBX: 00007fd4c5135f80 RCX: 00007fd4c4f7cef9
+RDX: 0000000020000180 RSI: 0000000020000140 RDI: 0000000020000100
+RBP: 00007fd4c4fef01e R08: 0000000000000001 R09: 0000000000000000
+R10: 0000000000000027 R11: 0000000000000246 R12: 0000000000000000
+R13: 0000000000000000 R14: 00007fd4c5135f80 R15: 00007fffe9f7afe8
+ </TASK>
+
+
 ---
- fs/ocfs2/refcounttree.c | 18 ++++++++++++++++++
- fs/ocfs2/xattr.c        | 11 +----------
- 2 files changed, 19 insertions(+), 10 deletions(-)
+This report is generated by a bot. It may contain errors.
+See https://goo.gl/tpsmEJ for more information about syzbot.
+syzbot engineers can be reached at syzkaller@googlegroups.com.
 
-diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
-index 3f80a56d0d60..c0edb32a7ff6 100644
---- a/fs/ocfs2/refcounttree.c
-+++ b/fs/ocfs2/refcounttree.c
-@@ -25,6 +25,7 @@
- #include "namei.h"
- #include "ocfs2_trace.h"
- #include "file.h"
-+#include "symlink.h"
- 
- #include <linux/bio.h>
- #include <linux/blkdev.h>
-@@ -4182,6 +4183,23 @@ static int __ocfs2_reflink(struct dentry *old_dentry,
- 		goto out_unlock;
- 	}
- 
-+	if ((OCFS2_I(inode)->ip_dyn_features & OCFS2_HAS_XATTR_FL) &&
-+		(OCFS2_I(inode)->ip_dyn_features & OCFS2_INLINE_XATTR_FL)) {
-+		/*
-+		 * Adjust extent record count to reserve space for extended attribute.
-+		 * Inline data count had been adjusted in ocfs2_duplicate_inline_data().
-+		 */
-+		if (!(OCFS2_I(new_inode)->ip_dyn_features & OCFS2_INLINE_DATA_FL) &&
-+			!(ocfs2_inode_is_fast_symlink(new_inode))) {
-+			struct ocfs2_dinode *new_di = new_bh->b_data;
-+			struct ocfs2_dinode *old_di = old_bh->b_data;
-+			struct ocfs2_extent_list *el = &new_di->id2.i_list;
-+			int inline_size = le16_to_cpu(old_di->i_xattr_inline_size);
-+			le16_add_cpu(&el->l_count, -(inline_size /
-+					sizeof(struct ocfs2_extent_rec)));
-+		}
-+	}
-+
- 	ret = ocfs2_create_reflink_node(inode, old_bh,
- 					new_inode, new_bh, preserve);
- 	if (ret) {
-diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index 3b81213ed7b8..a9f716ec89e2 100644
---- a/fs/ocfs2/xattr.c
-+++ b/fs/ocfs2/xattr.c
-@@ -6511,16 +6511,7 @@ static int ocfs2_reflink_xattr_inline(struct ocfs2_xattr_reflink *args)
- 	}
- 
- 	new_oi = OCFS2_I(args->new_inode);
--	/*
--	 * Adjust extent record count to reserve space for extended attribute.
--	 * Inline data count had been adjusted in ocfs2_duplicate_inline_data().
--	 */
--	if (!(new_oi->ip_dyn_features & OCFS2_INLINE_DATA_FL) &&
--	    !(ocfs2_inode_is_fast_symlink(args->new_inode))) {
--		struct ocfs2_extent_list *el = &new_di->id2.i_list;
--		le16_add_cpu(&el->l_count, -(inline_size /
--					sizeof(struct ocfs2_extent_rec)));
--	}
-+
- 	spin_lock(&new_oi->ip_lock);
- 	new_oi->ip_dyn_features |= OCFS2_HAS_XATTR_FL | OCFS2_INLINE_XATTR_FL;
- 	new_di->i_dyn_features = cpu_to_le16(new_oi->ip_dyn_features);
--- 
-2.39.3
+syzbot will keep track of this issue. See:
+https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
 
+If the report is already addressed, let syzbot know by replying with:
+#syz fix: exact-commit-title
+
+If you want to overwrite report's subsystems, reply with:
+#syz set subsystems: new-subsystem
+(See the list of subsystem names on the web dashboard)
+
+If the report is a duplicate of another one, reply with:
+#syz dup: exact-subject-of-another-report
+
+If you want to undo deduplication, reply with:
+#syz undup
