@@ -1,292 +1,86 @@
-Received: from mail-il1-f198.google.com (mail-il1-f198.google.com [209.85.166.198])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A330F19E981
-	for <ocfs2-devel@lists.linux.dev>; Thu, 12 Sep 2024 09:36:26 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.166.198
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1581B19F404;
+	Thu, 12 Sep 2024 10:07:39 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1726133788; cv=none; b=qZExyjoceWq5m03Qs1PgC1taga7R05QLrtPAexmx3VJP6PMmNEAPiox24Y1K8mSV70dfNJAkvrAqEAiTDEv/UB4HqAuu0i1sLnuYOICcZ9XF21K4OYXoyqmMStXq6ChK6T4STCZpCqDA35U2rg/nGzIaVFQL2OLx341H6Ixb3JU=
+	t=1726135660; cv=none; b=BnBBZBNwq2Ui7yq3zba2wRrHSeEFya9sTqYVQzoVAS99esF/NH0NxlqGUggmTIeev9rCteqjV7qeP01ZHWbnYhySYCZI3Ly5VepQxJqyo3f8wa6Yj1s9V9A+G9zZwaCLO1Up5njA+/G+7s/8V/W1bXvMTkIUCQMRp+8UtxeWWvo=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1726133788; c=relaxed/simple;
-	bh=/5rCSYh3OOoOdW5qy97tWya33IRuk3CnW3Uk9vBpkhc=;
-	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=r5V63DKN5hJx+F4wS32ld+nVvnOuPdx3A+sMtPXqPXEV3I1Eiirl7xsvz18RLaUxHt+WB52c/4OVT9No1deOtstBnxL9wb76zbpQ7Uht0FaLF7198+NguVlRXA0Cl6285VcxzeMRiyBJcALOczmHjuuapmdBJ+hGB2YRZfYGNtA=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.166.198
-Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
-Received: by mail-il1-f198.google.com with SMTP id e9e14a558f8ab-3a04af50632so11237675ab.2
-        for <ocfs2-devel@lists.linux.dev>; Thu, 12 Sep 2024 02:36:26 -0700 (PDT)
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1726133786; x=1726738586;
-        h=to:from:subject:message-id:date:mime-version:x-gm-message-state
-         :from:to:cc:subject:date:message-id:reply-to;
-        bh=wKzpwmXtJs8+zMgm8/Gj8QTmX0gdH+yJ20Wf+Bo+YBs=;
-        b=jm/WoyqC4thZUryCbjSwCHhexPs+YLR0P3cDroZkNyYw9N8kjkKNdof8uwvHo3tGyE
-         tuwNjAzFAnhwcV9EBWEnWqGkspJLonoWESRgrKfrFD3W6tsH5J7S4y7IIAF/CH3ZoiGx
-         omWYmAOXMArC3xJpn9328jUiADGBgukNfim7VJM7gKIc+CnCBRRWz1Q051JXLWauhsnQ
-         hq7LA484+OjOyu9dbJku1CZH1t/JMqJxNM2FIZ3Qj6h0zSvy0LrB2WWNV1Wc+7ejHirZ
-         kxK3ZnByasMYoFX43hbsQTbKWm7S9cSrlq2wsV+nAoF3vapnWsT+CbJ2ZFYcPLB71lQq
-         WEgQ==
-X-Forwarded-Encrypted: i=1; AJvYcCXHCNj9CUlJ3xWdDOVi9YE0AeGgqIEOyyjfxNB0islsmgjIsDHP/EhOdeiQ36ZvjVujBD5JejV381tIQA==@lists.linux.dev
-X-Gm-Message-State: AOJu0YyAW/BxhNtRpWNZD1OBt5osiuaccC5IAPYxCBcp+1icmGK38sVH
-	9EbMWKCxF+traug9My2HddChYOxLwdH6yXwK9QtUX09mG9PxaLcobooKMyCylm7jHlehMVgeKfb
-	UjdKRF/iSru9FjaN/H9eqSXpOa8YZa6yrZiYOT3b9jvz0sQS0Jm6+L3Y=
-X-Google-Smtp-Source: AGHT+IFWRoFQcL2sK2gixMvV/dxKGVbbVQon4ElG+KkcZaHJBrsUUFilop/H7XlQ5K/0PnQsMbUhfYGSVneJZkdY6hf8mNTGQZ3L
+	s=arc-20240116; t=1726135660; c=relaxed/simple;
+	bh=IpdC1qHf35nRG6qUjgDllXwIwjChqVrshS7gOGlNxCk=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=PdKc15De0Ui0fk2m9jr9EQuV7w9hErQBYTL8KPWl6RhVucgEZ+Lp0wUFbDOzDgvBLccFPY7EyMsuRZV1k6lE72islnX3jBxWioPNnw5PkVaDEMTd76bJTiA9fl70TZ9KnRNwnISGKZ+7JTsLTZb2xLDXh1sHR9lWDpAA01KX6vo=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=K48XCpxE; arc=none smtp.client-ip=10.30.226.201
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="K48XCpxE"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id E7194C4CEC3;
+	Thu, 12 Sep 2024 10:07:34 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=k20201202; t=1726135659;
+	bh=IpdC1qHf35nRG6qUjgDllXwIwjChqVrshS7gOGlNxCk=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=K48XCpxEBtS3sCUM32a2hL29xTUoKht3NYuzmOq/4grw8ydiTrinOYO/kFGu+xyLz
+	 I+8FSSXQMEVaSYYHKtnR91/4vrZLCuKKFGfi1oXHR63EQZ8McOhZ8vt5vsVwU0INT6
+	 3tifCnKVxu5JL1tourN6tczzGgBI0qwwWilMxlOOOPCs5rNNm6douO2FT5OkNHg5qk
+	 QcLd1zEu3GCunannyrXiV2rOvoRh2ECgVeLAOOExb4vtguFq+eCerN3ZnKlP/sjUhL
+	 LYdtJXE+3UZsjeZbon2gun4DlRaw/OUlBL0Tu+s7LbGOMkmF7fH9GBU+LGLeCvsI57
+	 FXwyA//Yt594Q==
+Date: Thu, 12 Sep 2024 12:07:31 +0200
+From: Christian Brauner <brauner@kernel.org>
+To: Benjamin Coddington <bcodding@redhat.com>
+Cc: Chuck Lever <chuck.lever@oracle.com>, Jeff Layton <jlayton@kernel.org>, 
+	Amir Goldstein <amir73il@gmail.com>, Neil Brown <neilb@suse.de>, Trond Myklebust <trondmy@kernel.org>, 
+	Anna Schumaker <anna@kernel.org>, Jonathan Corbet <corbet@lwn.net>, 
+	Andreas Gruenbacher <agruenba@redhat.com>, Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, 
+	Joseph Qi <joseph.qi@linux.alibaba.com>, Alexander Viro <viro@zeniv.linux.org.uk>, 
+	Jan Kara <jack@suse.cz>, Alexander Ahring Oder Aring <aahringo@redhat.com>, 
+	linux-fsdevel@vger.kernel.org, linux-nfs@vger.kernel.org, linux-doc@vger.kernel.org, 
+	linux-kernel@vger.kernel.org, gfs2@lists.linux.dev, ocfs2-devel@lists.linux.dev
+Subject: Re: [PATCH v1 0/4] Fixup NLM and kNFSD file lock callbacks
+Message-ID: <20240912-zuspielen-selektiert-01ef380e0c1b@brauner>
+References: <cover.1726083391.git.bcodding@redhat.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-X-Received: by 2002:a05:6e02:174b:b0:39d:55fd:7625 with SMTP id
- e9e14a558f8ab-3a08494abbamr20889565ab.22.1726133785670; Thu, 12 Sep 2024
- 02:36:25 -0700 (PDT)
-Date: Thu, 12 Sep 2024 02:36:25 -0700
-X-Google-Appengine-App-Id: s~syzkaller
-X-Google-Appengine-App-Id-Alias: syzkaller
-Message-ID: <000000000000213f750621e8d7d2@google.com>
-Subject: [syzbot] [ocfs2?] possible deadlock in ocfs2_read_virt_blocks
-From: syzbot <syzbot+8b11b4c34ed0362b217a@syzkaller.appspotmail.com>
-To: jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
-	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
-	syzkaller-bugs@googlegroups.com
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <cover.1726083391.git.bcodding@redhat.com>
 
-Hello,
+On Wed, Sep 11, 2024 at 03:42:56PM GMT, Benjamin Coddington wrote:
+> Last year both GFS2 and OCFS2 had some work done to make their locking more
+> robust when exported over NFS.  Unfortunately, part of that work caused both
+> NLM (for NFS v3 exports) and kNFSD (for NFSv4.1+ exports) to no longer send
+> lock notifications to clients.
+> 
+> This in itself is not a huge problem because most NFS clients will still
+> poll the server in order to acquire a conflicted lock, but now that I've
+> noticed it I can't help but try to fix it because there are big advantages
+> for setups that might depend on timely lock notifications, and we've
+> supported that as a feature for a long time.
+> 
+> Its important for NLM and kNFSD that they do not block their kernel threads
+> inside filesystem's file_lock implementations because that can produce
+> deadlocks.  We used to make sure of this by only trusting that
+> posix_lock_file() can correctly handle blocking lock calls asynchronously,
+> so the lock managers would only setup their file_lock requests for async
+> callbacks if the filesystem did not define its own lock() file operation.
+> 
+> However, when GFS2 and OCFS2 grew the capability to correctly
+> handle blocking lock requests asynchronously, they started signalling this
+> behavior with EXPORT_OP_ASYNC_LOCK, and the check for also trusting
+> posix_lock_file() was inadvertently dropped, so now most filesystems no
+> longer produce lock notifications when exported over NFS.
+> 
+> I tried to fix this by simply including the old check for lock(), but the
+> resulting include mess and layering violations was more than I could accept.
+> There's a much cleaner way presented here using an fop_flag, which while
+> potentially flag-greedy, greatly simplifies the problem and grooms the
 
-syzbot found the following issue on:
+It's fine. I've explicitly added the fop_flags so that stuff like this
+we would not want to put into f->f_mode can live there.
 
-HEAD commit:    7c6a3a65ace7 minmax: reduce min/max macro expansion in ato..
-git tree:       upstream
-console output: https://syzkaller.appspot.com/x/log.txt?x=10b55807980000
-kernel config:  https://syzkaller.appspot.com/x/.config?x=61d235cb8d15001c
-dashboard link: https://syzkaller.appspot.com/bug?extid=8b11b4c34ed0362b217a
-compiler:       Debian clang version 15.0.6, GNU ld (GNU Binutils for Debian) 2.40
-
-Unfortunately, I don't have any reproducer for this issue yet.
-
-Downloadable assets:
-disk image (non-bootable): https://storage.googleapis.com/syzbot-assets/7bc7510fe41f/non_bootable_disk-7c6a3a65.raw.xz
-vmlinux: https://storage.googleapis.com/syzbot-assets/1a9a78c56595/vmlinux-7c6a3a65.xz
-kernel image: https://storage.googleapis.com/syzbot-assets/1b4e1f2187a1/bzImage-7c6a3a65.xz
-
-IMPORTANT: if you fix the issue, please add the following tag to the commit:
-Reported-by: syzbot+8b11b4c34ed0362b217a@syzkaller.appspotmail.com
-
-======================================================
-WARNING: possible circular locking dependency detected
-6.11.0-rc7-syzkaller-00021-g7c6a3a65ace7 #0 Not tainted
-------------------------------------------------------
-syz.0.0/5120 is trying to acquire lock:
-ffff88804b8c3f60 (&oi->ip_alloc_sem){++++}-{3:3}, at: ocfs2_read_virt_blocks+0x2ca/0xa50 fs/ocfs2/extent_map.c:976
-
-but task is already holding lock:
-ffff88803d352958 (jbd2_handle){++++}-{0:0}, at: start_this_handle+0x1e94/0x2110 fs/jbd2/transaction.c:448
-
-which lock already depends on the new lock.
-
-
-the existing dependency chain (in reverse order) is:
-
--> #5 (jbd2_handle){++++}-{0:0}:
-       lock_acquire+0x1ed/0x550 kernel/locking/lockdep.c:5759
-       start_this_handle+0x1eb4/0x2110 fs/jbd2/transaction.c:448
-       jbd2__journal_start+0x2da/0x5d0 fs/jbd2/transaction.c:505
-       jbd2_journal_start+0x29/0x40 fs/jbd2/transaction.c:544
-       ocfs2_start_trans+0x3c9/0x700 fs/ocfs2/journal.c:352
-       ocfs2_mknod+0x150c/0x2b40 fs/ocfs2/namei.c:359
-       ocfs2_mkdir+0x1ab/0x480 fs/ocfs2/namei.c:655
-       vfs_mkdir+0x2f9/0x4f0 fs/namei.c:4210
-       do_mkdirat+0x264/0x3a0 fs/namei.c:4233
-       __do_sys_mkdirat fs/namei.c:4248 [inline]
-       __se_sys_mkdirat fs/namei.c:4246 [inline]
-       __x64_sys_mkdirat+0x87/0xa0 fs/namei.c:4246
-       do_syscall_x64 arch/x86/entry/common.c:52 [inline]
-       do_syscall_64+0xf3/0x230 arch/x86/entry/common.c:83
-       entry_SYSCALL_64_after_hwframe+0x77/0x7f
-
--> #4 (&journal->j_trans_barrier){.+.+}-{3:3}:
-       lock_acquire+0x1ed/0x550 kernel/locking/lockdep.c:5759
-       down_read+0xb1/0xa40 kernel/locking/rwsem.c:1526
-       ocfs2_start_trans+0x3be/0x700 fs/ocfs2/journal.c:350
-       ocfs2_mknod+0x150c/0x2b40 fs/ocfs2/namei.c:359
-       ocfs2_mkdir+0x1ab/0x480 fs/ocfs2/namei.c:655
-       vfs_mkdir+0x2f9/0x4f0 fs/namei.c:4210
-       do_mkdirat+0x264/0x3a0 fs/namei.c:4233
-       __do_sys_mkdirat fs/namei.c:4248 [inline]
-       __se_sys_mkdirat fs/namei.c:4246 [inline]
-       __x64_sys_mkdirat+0x87/0xa0 fs/namei.c:4246
-       do_syscall_x64 arch/x86/entry/common.c:52 [inline]
-       do_syscall_64+0xf3/0x230 arch/x86/entry/common.c:83
-       entry_SYSCALL_64_after_hwframe+0x77/0x7f
-
--> #3 (sb_internal#2){.+.+}-{0:0}:
-       lock_acquire+0x1ed/0x550 kernel/locking/lockdep.c:5759
-       percpu_down_read include/linux/percpu-rwsem.h:51 [inline]
-       __sb_start_write include/linux/fs.h:1676 [inline]
-       sb_start_intwrite include/linux/fs.h:1859 [inline]
-       ocfs2_start_trans+0x2b9/0x700 fs/ocfs2/journal.c:348
-       ocfs2_mknod+0x150c/0x2b40 fs/ocfs2/namei.c:359
-       ocfs2_mkdir+0x1ab/0x480 fs/ocfs2/namei.c:655
-       vfs_mkdir+0x2f9/0x4f0 fs/namei.c:4210
-       do_mkdirat+0x264/0x3a0 fs/namei.c:4233
-       __do_sys_mkdirat fs/namei.c:4248 [inline]
-       __se_sys_mkdirat fs/namei.c:4246 [inline]
-       __x64_sys_mkdirat+0x87/0xa0 fs/namei.c:4246
-       do_syscall_x64 arch/x86/entry/common.c:52 [inline]
-       do_syscall_64+0xf3/0x230 arch/x86/entry/common.c:83
-       entry_SYSCALL_64_after_hwframe+0x77/0x7f
-
--> #2 (&ocfs2_sysfile_lock_key[args->fi_sysfile_type]#4){+.+.}-{3:3}:
-       lock_acquire+0x1ed/0x550 kernel/locking/lockdep.c:5759
-       down_write+0x99/0x220 kernel/locking/rwsem.c:1579
-       inode_lock include/linux/fs.h:800 [inline]
-       ocfs2_reserve_local_alloc_bits+0x132/0x2870 fs/ocfs2/localalloc.c:636
-       ocfs2_reserve_clusters_with_limit+0x1b8/0xb60 fs/ocfs2/suballoc.c:1166
-       ocfs2_mknod+0x1486/0x2b40 fs/ocfs2/namei.c:352
-       ocfs2_mkdir+0x1ab/0x480 fs/ocfs2/namei.c:655
-       vfs_mkdir+0x2f9/0x4f0 fs/namei.c:4210
-       do_mkdirat+0x264/0x3a0 fs/namei.c:4233
-       __do_sys_mkdirat fs/namei.c:4248 [inline]
-       __se_sys_mkdirat fs/namei.c:4246 [inline]
-       __x64_sys_mkdirat+0x87/0xa0 fs/namei.c:4246
-       do_syscall_x64 arch/x86/entry/common.c:52 [inline]
-       do_syscall_64+0xf3/0x230 arch/x86/entry/common.c:83
-       entry_SYSCALL_64_after_hwframe+0x77/0x7f
-
--> #1 (&ocfs2_sysfile_lock_key[args->fi_sysfile_type]#3){+.+.}-{3:3}:
-       lock_acquire+0x1ed/0x550 kernel/locking/lockdep.c:5759
-       down_write+0x99/0x220 kernel/locking/rwsem.c:1579
-       inode_lock include/linux/fs.h:800 [inline]
-       ocfs2_reserve_suballoc_bits+0x192/0x4eb0 fs/ocfs2/suballoc.c:786
-       ocfs2_reserve_new_metadata_blocks+0x41c/0x9c0 fs/ocfs2/suballoc.c:982
-       ocfs2_expand_inline_dir fs/ocfs2/dir.c:2819 [inline]
-       ocfs2_extend_dir+0xdef/0x53d0 fs/ocfs2/dir.c:3181
-       ocfs2_prepare_dir_for_insert+0x33d1/0x5c70 fs/ocfs2/dir.c:4296
-       ocfs2_mknod+0xcaf/0x2b40 fs/ocfs2/namei.c:292
-       ocfs2_create+0x1ab/0x480 fs/ocfs2/namei.c:672
-       lookup_open fs/namei.c:3578 [inline]
-       open_last_lookups fs/namei.c:3647 [inline]
-       path_openat+0x1a9a/0x3470 fs/namei.c:3883
-       do_filp_open+0x235/0x490 fs/namei.c:3913
-       do_sys_openat2+0x13e/0x1d0 fs/open.c:1416
-       do_sys_open fs/open.c:1431 [inline]
-       __do_sys_openat fs/open.c:1447 [inline]
-       __se_sys_openat fs/open.c:1442 [inline]
-       __x64_sys_openat+0x247/0x2a0 fs/open.c:1442
-       do_syscall_x64 arch/x86/entry/common.c:52 [inline]
-       do_syscall_64+0xf3/0x230 arch/x86/entry/common.c:83
-       entry_SYSCALL_64_after_hwframe+0x77/0x7f
-
--> #0 (&oi->ip_alloc_sem){++++}-{3:3}:
-       check_prev_add kernel/locking/lockdep.c:3133 [inline]
-       check_prevs_add kernel/locking/lockdep.c:3252 [inline]
-       validate_chain+0x18e0/0x5900 kernel/locking/lockdep.c:3868
-       __lock_acquire+0x137a/0x2040 kernel/locking/lockdep.c:5142
-       lock_acquire+0x1ed/0x550 kernel/locking/lockdep.c:5759
-       down_read+0xb1/0xa40 kernel/locking/rwsem.c:1526
-       ocfs2_read_virt_blocks+0x2ca/0xa50 fs/ocfs2/extent_map.c:976
-       ocfs2_read_dir_block+0x106/0x5c0 fs/ocfs2/dir.c:508
-       ocfs2_dir_foreach_blk_el fs/ocfs2/dir.c:1827 [inline]
-       ocfs2_dir_foreach_blk+0x2ca/0x1b20 fs/ocfs2/dir.c:1913
-       ocfs2_dir_foreach fs/ocfs2/dir.c:1923 [inline]
-       ocfs2_empty_dir+0x134/0x800 fs/ocfs2/dir.c:2137
-       ocfs2_rename+0x25f1/0x4210 fs/ocfs2/namei.c:1498
-       vfs_rename+0xbdb/0xf00 fs/namei.c:4966
-       do_renameat2+0xd94/0x13f0 fs/namei.c:5123
-       __do_sys_rename fs/namei.c:5170 [inline]
-       __se_sys_rename fs/namei.c:5168 [inline]
-       __x64_sys_rename+0x82/0x90 fs/namei.c:5168
-       do_syscall_x64 arch/x86/entry/common.c:52 [inline]
-       do_syscall_64+0xf3/0x230 arch/x86/entry/common.c:83
-       entry_SYSCALL_64_after_hwframe+0x77/0x7f
-
-other info that might help us debug this:
-
-Chain exists of:
-  &oi->ip_alloc_sem --> &journal->j_trans_barrier --> jbd2_handle
-
- Possible unsafe locking scenario:
-
-       CPU0                    CPU1
-       ----                    ----
-  rlock(jbd2_handle);
-                               lock(&journal->j_trans_barrier);
-                               lock(jbd2_handle);
-  rlock(&oi->ip_alloc_sem);
-
- *** DEADLOCK ***
-
-7 locks held by syz.0.0/5120:
- #0: ffff8880120d2420 (sb_writers#10){.+.+}-{0:0}, at: mnt_want_write+0x3f/0x90 fs/namespace.c:515
- #1: ffff88804b8f89c0 (&type->i_mutex_dir_key#6/1){+.+.}-{3:3}, at: inode_lock_nested include/linux/fs.h:835 [inline]
- #1: ffff88804b8f89c0 (&type->i_mutex_dir_key#6/1){+.+.}-{3:3}, at: lock_rename fs/namei.c:3147 [inline]
- #1: ffff88804b8f89c0 (&type->i_mutex_dir_key#6/1){+.+.}-{3:3}, at: do_renameat2+0x62c/0x13f0 fs/namei.c:5058
- #2: ffff88804b8c42c0 (&sb->s_type->i_mutex_key#20){+.+.}-{3:3}, at: inode_lock include/linux/fs.h:800 [inline]
- #2: ffff88804b8c42c0 (&sb->s_type->i_mutex_key#20){+.+.}-{3:3}, at: vfs_rename+0x6cb/0xf00 fs/namei.c:4931
- #3: ffff88804b8fdf40 (&ocfs2_sysfile_lock_key[args->fi_sysfile_type]){+.+.}-{3:3}, at: inode_lock include/linux/fs.h:800 [inline]
- #3: ffff88804b8fdf40 (&ocfs2_sysfile_lock_key[args->fi_sysfile_type]){+.+.}-{3:3}, at: ocfs2_lookup_lock_orphan_dir+0x102/0x350 fs/ocfs2/namei.c:2127
- #4: ffff8880120d2610 (sb_internal#2){.+.+}-{0:0}, at: ocfs2_rename+0x1ebe/0x4210 fs/ocfs2/namei.c:1487
- #5: ffff88801259bce8 (&journal->j_trans_barrier){.+.+}-{3:3}, at: ocfs2_start_trans+0x3be/0x700 fs/ocfs2/journal.c:350
- #6: ffff88803d352958 (jbd2_handle){++++}-{0:0}, at: start_this_handle+0x1e94/0x2110 fs/jbd2/transaction.c:448
-
-stack backtrace:
-CPU: 0 UID: 0 PID: 5120 Comm: syz.0.0 Not tainted 6.11.0-rc7-syzkaller-00021-g7c6a3a65ace7 #0
-Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.16.3-debian-1.16.3-2~bpo12+1 04/01/2014
-Call Trace:
- <TASK>
- __dump_stack lib/dump_stack.c:93 [inline]
- dump_stack_lvl+0x241/0x360 lib/dump_stack.c:119
- check_noncircular+0x36a/0x4a0 kernel/locking/lockdep.c:2186
- check_prev_add kernel/locking/lockdep.c:3133 [inline]
- check_prevs_add kernel/locking/lockdep.c:3252 [inline]
- validate_chain+0x18e0/0x5900 kernel/locking/lockdep.c:3868
- __lock_acquire+0x137a/0x2040 kernel/locking/lockdep.c:5142
- lock_acquire+0x1ed/0x550 kernel/locking/lockdep.c:5759
- down_read+0xb1/0xa40 kernel/locking/rwsem.c:1526
- ocfs2_read_virt_blocks+0x2ca/0xa50 fs/ocfs2/extent_map.c:976
- ocfs2_read_dir_block+0x106/0x5c0 fs/ocfs2/dir.c:508
- ocfs2_dir_foreach_blk_el fs/ocfs2/dir.c:1827 [inline]
- ocfs2_dir_foreach_blk+0x2ca/0x1b20 fs/ocfs2/dir.c:1913
- ocfs2_dir_foreach fs/ocfs2/dir.c:1923 [inline]
- ocfs2_empty_dir+0x134/0x800 fs/ocfs2/dir.c:2137
- ocfs2_rename+0x25f1/0x4210 fs/ocfs2/namei.c:1498
- vfs_rename+0xbdb/0xf00 fs/namei.c:4966
- do_renameat2+0xd94/0x13f0 fs/namei.c:5123
- __do_sys_rename fs/namei.c:5170 [inline]
- __se_sys_rename fs/namei.c:5168 [inline]
- __x64_sys_rename+0x82/0x90 fs/namei.c:5168
- do_syscall_x64 arch/x86/entry/common.c:52 [inline]
- do_syscall_64+0xf3/0x230 arch/x86/entry/common.c:83
- entry_SYSCALL_64_after_hwframe+0x77/0x7f
-RIP: 0033:0x7f0ffc77def9
-Code: ff ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 40 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 a8 ff ff ff f7 d8 64 89 01 48
-RSP: 002b:00007f0ffd512038 EFLAGS: 00000246 ORIG_RAX: 0000000000000052
-RAX: ffffffffffffffda RBX: 00007f0ffc936058 RCX: 00007f0ffc77def9
-RDX: 0000000000000000 RSI: 00000000200000c0 RDI: 0000000020000200
-RBP: 00007f0ffc7f0b76 R08: 0000000000000000 R09: 0000000000000000
-R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000000
-R13: 0000000000000000 R14: 00007f0ffc936058 R15: 00007ffcf5c18e98
- </TASK>
-(syz.0.0,5120,0):ocfs2_rename:1698 ERROR: status = -39
-
-
----
-This report is generated by a bot. It may contain errors.
-See https://goo.gl/tpsmEJ for more information about syzbot.
-syzbot engineers can be reached at syzkaller@googlegroups.com.
-
-syzbot will keep track of this issue. See:
-https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
-
-If the report is already addressed, let syzbot know by replying with:
-#syz fix: exact-commit-title
-
-If you want to overwrite report's subsystems, reply with:
-#syz set subsystems: new-subsystem
-(See the list of subsystem names on the web dashboard)
-
-If the report is a duplicate of another one, reply with:
-#syz dup: exact-subject-of-another-report
-
-If you want to undo deduplication, reply with:
-#syz undup
+> way for future uses by both filesystems and lock managers alike.
