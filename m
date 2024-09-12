@@ -1,51 +1,51 @@
-Received: from mail-io1-f70.google.com (mail-io1-f70.google.com [209.85.166.70])
+Received: from mail-io1-f71.google.com (mail-io1-f71.google.com [209.85.166.71])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 73AB2188910
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E9BA118B49C
 	for <ocfs2-devel@lists.linux.dev>; Thu, 12 Sep 2024 09:35:26 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.166.70
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.166.71
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1726133728; cv=none; b=iJ6fXghb16GTeu+a5YitQdsGqHGGY72YMoI9s5IX9fh8PLj6mWd0LvWjIxKa/gk+n9og2AIRNnzsNpQ/BZi6RcIRWNMNc7iWEziPHINseHWBcZ2vIQZ1uOFMk7n1/8uk5qUS+3am/7vAJdmbV7D9vhYCWFQS1b8/WniGEhcfmy4=
+	t=1726133728; cv=none; b=SgL0Rw8hHj2fBh1RorqCYkSOmb25Loq1O3iSi2YFJZns+B6kZqhawrOdQOKRr2JqEmxQm45FTKpz8SS4vIIoK7IFDZxiPw7YwFAS8RnxVJRnMl+njd2fWSrWrLUArD3SKMnuhVBSODe/AvRBXQeOeiuQtNBU8VH6Xpn8kGNn7m0=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
 	s=arc-20240116; t=1726133728; c=relaxed/simple;
-	bh=wFhCi5VmSJlgtwgAu7Pd9/mRRVOe5wUKgRfaHpKkULc=;
-	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=Tl90fnM0AF+bbor3lw9HccxxKqvtjYLwFIUaS7yp8D/WYKvOf0zJz7Gc0SMEjoVIz4/+wFGGuEhUJ0psNMw9fo7irRIli6si6i8wgxR/CK55iTthleNje6LpAH/u+INWiM6a7dSXHktI/ugnK6vrIKdsumQpnNBO0y5WY4ZqU5w=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.166.70
+	bh=ehpA70HSEZqRTxvErOSz9/BzASFw9HrdY9tUr0JEKRA=;
+	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=VA/6nX/7OxjWHG8WoPriXsQZi2O4YQiPF8VJx10D9P6or00zaXkrZg540bWG5txP7mMyeAdzRr62CXd4Av7viA0W+vM4uig7B3D94hszL8nPATBi32X3BzRE620bFeVGR097lOTuvggOTC8Kr5VxcfFpOm274o93FrXuXuWguQ4=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.166.71
 Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
-Received: by mail-io1-f70.google.com with SMTP id ca18e2360f4ac-82cd682f1d2so113671839f.3
+Received: by mail-io1-f71.google.com with SMTP id ca18e2360f4ac-82cedb7a183so124480239f.0
         for <ocfs2-devel@lists.linux.dev>; Thu, 12 Sep 2024 02:35:26 -0700 (PDT)
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1726133725; x=1726738525;
+        d=1e100.net; s=20230601; t=1726133726; x=1726738526;
         h=to:from:subject:message-id:date:mime-version:x-gm-message-state
          :from:to:cc:subject:date:message-id:reply-to;
-        bh=leSsjH7jxikPbIcZP28apZ0TC6eXU6I+eLmVefOLtzo=;
-        b=Qib6l7wQExyatcp3YKrFnTQbzwk0My0rh/SBD2XsHg4jZ9/+bkYdQunxijZ7OGlREx
-         RuDaJTvAEeAV9k/4WIUdBto4wqqt5c1OfefrfnOsHlQBO0EnnEqGij0ETDipcsWT46Bd
-         1W5Tt/RL8SiTTtevdN5ntH5W34xjn2pcta1OGPHIowbmO2kd3OvqgjN6fgqJDRfFx0CT
-         fBnigAAOSYdJJFORir+pPwBwmwcL9F0xiv/y3aAY4JUvmVsAJiKskfWsfLxvVlBo88bA
-         6t0aEHtipFBTdEETnL6qDjxb/mW11VSb0hr0Qhz9XTQ8KcbYAAraOoGQUCTn41lVBiOa
-         sv+w==
-X-Forwarded-Encrypted: i=1; AJvYcCUeIiy+hzoS8cUSz+cNhNkz1GuZl+7cI6A9oIxXVW3OaefkvphT2mbrJd6BQ1pEBitBg0Id6wyifzgVog==@lists.linux.dev
-X-Gm-Message-State: AOJu0YwT36G3vLkhfCwgus4X+yN7eUKXfr+i2IR/zxyJ1PudpizRt7ja
-	XskpLI5O1bLda+bNipSGmAJwIGt5BtBMSqpnaQz4SA8LYTsOldIYMiLIHe4mmGQtMYFv04eD3Rm
-	Cx00lvvLGspS9xsu6IAzKobMEfTQG1ok4OTVElQEcGGADc5o1TVNCjRU=
-X-Google-Smtp-Source: AGHT+IFik8hWZiJnMlHkx+JEQxGT2Dx65fwyeW5mk+X4+YSP+S0+4WFY4ge97ftbPXpTKomBGErXddjbhpqp9R3Ksf5UA5KuiOeH
+        bh=2qwD8LnIsOP3W2sx9rgr6wCqCLnQ7bgsKr0t6sHDDlE=;
+        b=iSjJaaoKDXmOt7bibODMrrJWbIzcbETnyiGeV0SdD4nUFWsfxPDrn6iGc2qc9Y7PR/
+         OAPkfzJ0FbmqujwBHT8/kh7d0JgOtu6nEskklm65KBjN0uNJIbNaS/Y+mJtNjS30mMzz
+         eYA9eO0xQc6saEiOUi1Z5gqxIMpw/smkKTrzEvA7ltOaL8F7N1GWhWqEcw19VupoACx/
+         UULUKbsGz21LPKHEeF1n0RtaCDHPDbptUgCxbeOMwx6MdkWhltHUQ6D3Uo8k/rUQq8kF
+         eMDgpR97lsCyk9vz4d8KFmwoefo3Von9CWiJjz0eSXHhGf+EkMkU4qDK14f5+wWVYxUU
+         JKLA==
+X-Forwarded-Encrypted: i=1; AJvYcCUYYYncf1kF/iAuR5mq/z+3tCBWdrCKlLCnXwZKxkN8wcZGmpE32/5y091SXZ9o1DaHdLwCL/leuVG9EA==@lists.linux.dev
+X-Gm-Message-State: AOJu0Yyg5GIR2ybQbMiGyYHlLIwuSQ9EXR/rqviXagvgJx1UyDhiXo19
+	z0BxL1pBF2aw1WDbuWp+rX5ynJzUaR5lm5z/N3U/kK5lTAb/pY7PLUneuagaMqmgBF0OyXY7rXQ
+	dS+yK3XFuS7sngxK+8ytratE6xblOVOhZ6pC/vYsHj7sl0NeqMBTPyo4=
+X-Google-Smtp-Source: AGHT+IEXdrRKxrVhwO+ACttb2I+d/6P89mocz2lytkCP2q37sDiR/aeyUjAvgagC5f1LH+YL7Ji6EQlXbP3qkK6FJQgYWjtr/xEK
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-X-Received: by 2002:a92:c267:0:b0:39d:47cf:2c7f with SMTP id
- e9e14a558f8ab-3a08494dc27mr19692185ab.24.1726133725471; Thu, 12 Sep 2024
- 02:35:25 -0700 (PDT)
-Date: Thu, 12 Sep 2024 02:35:25 -0700
+X-Received: by 2002:a05:6e02:1fce:b0:39d:323d:89b2 with SMTP id
+ e9e14a558f8ab-3a08495e116mr20121375ab.26.1726133726057; Thu, 12 Sep 2024
+ 02:35:26 -0700 (PDT)
+Date: Thu, 12 Sep 2024 02:35:26 -0700
 X-Google-Appengine-App-Id: s~syzkaller
 X-Google-Appengine-App-Id-Alias: syzkaller
-Message-ID: <0000000000008abaa00621e8d340@google.com>
-Subject: [syzbot] [ocfs2?] possible deadlock in ocfs2_write_begin_nolock
-From: syzbot <syzbot+cf0ed67a79e4fadd9f91@syzkaller.appspotmail.com>
+Message-ID: <00000000000093a1ca0621e8d336@google.com>
+Subject: [syzbot] [ocfs2?] possible deadlock in ocfs2_page_mkwrite
+From: syzbot <syzbot+2e6495950edcf7fbfccf@syzkaller.appspotmail.com>
 To: jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
 	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
 	syzkaller-bugs@googlegroups.com
@@ -57,9 +57,9 @@ syzbot found the following issue on:
 
 HEAD commit:    8d8d276ba2fb Merge tag 'trace-v6.11-rc6' of git://git.kern..
 git tree:       upstream
-console output: https://syzkaller.appspot.com/x/log.txt?x=1478649f980000
+console output: https://syzkaller.appspot.com/x/log.txt?x=119fa477980000
 kernel config:  https://syzkaller.appspot.com/x/.config?x=61d235cb8d15001c
-dashboard link: https://syzkaller.appspot.com/bug?extid=cf0ed67a79e4fadd9f91
+dashboard link: https://syzkaller.appspot.com/bug?extid=2e6495950edcf7fbfccf
 compiler:       Debian clang version 15.0.6, GNU ld (GNU Binutils for Debian) 2.40
 
 Unfortunately, I don't have any reproducer for this issue yet.
@@ -70,7 +70,7 @@ vmlinux: https://storage.googleapis.com/syzbot-assets/d23708af23a4/vmlinux-8d8d2
 kernel image: https://storage.googleapis.com/syzbot-assets/1aed2837c105/bzImage-8d8d276b.xz
 
 IMPORTANT: if you fix the issue, please add the following tag to the commit:
-Reported-by: syzbot+cf0ed67a79e4fadd9f91@syzkaller.appspotmail.com
+Reported-by: syzbot+2e6495950edcf7fbfccf@syzkaller.appspotmail.com
 
 loop0: detected capacity change from 0 to 32768
 =======================================================
@@ -84,102 +84,96 @@ WARNING: possible circular locking dependency detected
 6.11.0-rc7-syzkaller-00020-g8d8d276ba2fb #0 Not tainted
 ------------------------------------------------------
 syz.0.0/5113 is trying to acquire lock:
-ffff88803dd20610 (sb_internal#2){.+.+}-{0:0}, at: ocfs2_write_begin_inline fs/ocfs2/aops.c:1480 [inline]
-ffff88803dd20610 (sb_internal#2){.+.+}-{0:0}, at: ocfs2_try_to_write_inline_data fs/ocfs2/aops.c:1583 [inline]
-ffff88803dd20610 (sb_internal#2){.+.+}-{0:0}, at: ocfs2_write_begin_nolock+0x226b/0x4d30 fs/ocfs2/aops.c:1669
+ffff88804bc43f60 (&oi->ip_alloc_sem){++++}-{3:3}, at: ocfs2_page_mkwrite+0x347/0xed0 fs/ocfs2/mmap.c:142
 
 but task is already holding lock:
-ffff88803d8adbe0 (&oi->ip_alloc_sem){++++}-{3:3}, at: ocfs2_write_begin+0x1d1/0x3a0 fs/ocfs2/aops.c:1901
+ffff88804ac2e518 (sb_pagefaults){.+.+}-{0:0}, at: do_page_mkwrite+0x19b/0x480 mm/memory.c:3142
 
 which lock already depends on the new lock.
 
 
 the existing dependency chain (in reverse order) is:
 
--> #4 (&oi->ip_alloc_sem){++++}-{3:3}:
+-> #2 (sb_pagefaults){.+.+}-{0:0}:
        lock_acquire+0x1ed/0x550 kernel/locking/lockdep.c:5759
-       down_write+0x99/0x220 kernel/locking/rwsem.c:1579
-       ocfs2_try_remove_refcount_tree+0xb6/0x330 fs/ocfs2/refcounttree.c:931
-       ocfs2_xattr_set+0xa4f/0x1930 fs/ocfs2/xattr.c:3670
-       ocfs2_set_acl+0x4cb/0x580 fs/ocfs2/acl.c:254
-       ocfs2_iop_set_acl+0x24a/0x3c0 fs/ocfs2/acl.c:286
-       set_posix_acl fs/posix_acl.c:955 [inline]
-       vfs_set_acl+0x7fd/0xa60 fs/posix_acl.c:1134
-       do_setxattr fs/xattr.c:626 [inline]
-       path_setxattr+0x3bd/0x4d0 fs/xattr.c:658
-       __do_sys_lsetxattr fs/xattr.c:683 [inline]
-       __se_sys_lsetxattr fs/xattr.c:679 [inline]
-       __x64_sys_lsetxattr+0xb8/0xd0 fs/xattr.c:679
+       percpu_down_read include/linux/percpu-rwsem.h:51 [inline]
+       __sb_start_write include/linux/fs.h:1676 [inline]
+       sb_start_pagefault include/linux/fs.h:1841 [inline]
+       ocfs2_page_mkwrite+0x223/0xed0 fs/ocfs2/mmap.c:122
+       do_page_mkwrite+0x19b/0x480 mm/memory.c:3142
+       wp_page_shared mm/memory.c:3545 [inline]
+       do_wp_page+0x23d9/0x52f0 mm/memory.c:3695
+       handle_pte_fault+0x115a/0x6fc0 mm/memory.c:5537
+       __handle_mm_fault mm/memory.c:5664 [inline]
+       handle_mm_fault+0x1109/0x1bc0 mm/memory.c:5832
+       do_user_addr_fault arch/x86/mm/fault.c:1389 [inline]
+       handle_page_fault arch/x86/mm/fault.c:1481 [inline]
+       exc_page_fault+0x2b9/0x8c0 arch/x86/mm/fault.c:1539
+       asm_exc_page_fault+0x26/0x30 arch/x86/include/asm/idtentry.h:623
+       rep_movs_alternative+0x4a/0x70 arch/x86/lib/copy_user_64.S:65
+       copy_user_generic arch/x86/include/asm/uaccess_64.h:110 [inline]
+       raw_copy_to_user arch/x86/include/asm/uaccess_64.h:131 [inline]
+       copy_to_user_iter lib/iov_iter.c:25 [inline]
+       iterate_ubuf include/linux/iov_iter.h:29 [inline]
+       iterate_and_advance2 include/linux/iov_iter.h:245 [inline]
+       iterate_and_advance include/linux/iov_iter.h:271 [inline]
+       _copy_to_iter+0x26b/0x1960 lib/iov_iter.c:185
+       copy_to_iter include/linux/uio.h:196 [inline]
+       get_random_bytes_user+0x1e5/0x420 drivers/char/random.c:464
+       __do_sys_getrandom drivers/char/random.c:1406 [inline]
+       __se_sys_getrandom drivers/char/random.c:1380 [inline]
+       __x64_sys_getrandom+0x152/0x250 drivers/char/random.c:1380
        do_syscall_x64 arch/x86/entry/common.c:52 [inline]
        do_syscall_64+0xf3/0x230 arch/x86/entry/common.c:83
        entry_SYSCALL_64_after_hwframe+0x77/0x7f
 
--> #3 (&oi->ip_xattr_sem){++++}-{3:3}:
+-> #1 (&mm->mmap_lock){++++}-{3:3}:
        lock_acquire+0x1ed/0x550 kernel/locking/lockdep.c:5759
-       down_read+0xb1/0xa40 kernel/locking/rwsem.c:1526
-       ocfs2_init_acl+0x397/0x930 fs/ocfs2/acl.c:366
-       ocfs2_mknod+0x1c05/0x2b40 fs/ocfs2/namei.c:408
-       ocfs2_mkdir+0x1ab/0x480 fs/ocfs2/namei.c:655
-       vfs_mkdir+0x2f9/0x4f0 fs/namei.c:4210
-       do_mkdirat+0x264/0x3a0 fs/namei.c:4233
-       __do_sys_mkdirat fs/namei.c:4248 [inline]
-       __se_sys_mkdirat fs/namei.c:4246 [inline]
-       __x64_sys_mkdirat+0x87/0xa0 fs/namei.c:4246
+       __might_fault+0xc6/0x120 mm/memory.c:6387
+       _inline_copy_to_user include/linux/uaccess.h:176 [inline]
+       _copy_to_user+0x2a/0xb0 lib/usercopy.c:26
+       copy_to_user include/linux/uaccess.h:209 [inline]
+       fiemap_fill_next_extent+0x235/0x410 fs/ioctl.c:145
+       ocfs2_fiemap+0x9f1/0xf80 fs/ocfs2/extent_map.c:796
+       ioctl_fiemap fs/ioctl.c:220 [inline]
+       do_vfs_ioctl+0x1c07/0x2e50 fs/ioctl.c:841
+       __do_sys_ioctl fs/ioctl.c:905 [inline]
+       __se_sys_ioctl+0x81/0x170 fs/ioctl.c:893
        do_syscall_x64 arch/x86/entry/common.c:52 [inline]
        do_syscall_64+0xf3/0x230 arch/x86/entry/common.c:83
        entry_SYSCALL_64_after_hwframe+0x77/0x7f
 
--> #2 (jbd2_handle){++++}-{0:0}:
-       lock_acquire+0x1ed/0x550 kernel/locking/lockdep.c:5759
-       start_this_handle+0x1eb4/0x2110 fs/jbd2/transaction.c:448
-       jbd2__journal_start+0x2da/0x5d0 fs/jbd2/transaction.c:505
-       jbd2_journal_start+0x29/0x40 fs/jbd2/transaction.c:544
-       ocfs2_start_trans+0x3c9/0x700 fs/ocfs2/journal.c:352
-       ocfs2_mknod+0x150c/0x2b40 fs/ocfs2/namei.c:359
-       ocfs2_mkdir+0x1ab/0x480 fs/ocfs2/namei.c:655
-       vfs_mkdir+0x2f9/0x4f0 fs/namei.c:4210
-       do_mkdirat+0x264/0x3a0 fs/namei.c:4233
-       __do_sys_mkdirat fs/namei.c:4248 [inline]
-       __se_sys_mkdirat fs/namei.c:4246 [inline]
-       __x64_sys_mkdirat+0x87/0xa0 fs/namei.c:4246
-       do_syscall_x64 arch/x86/entry/common.c:52 [inline]
-       do_syscall_64+0xf3/0x230 arch/x86/entry/common.c:83
-       entry_SYSCALL_64_after_hwframe+0x77/0x7f
-
--> #1 (&journal->j_trans_barrier){.+.+}-{3:3}:
-       lock_acquire+0x1ed/0x550 kernel/locking/lockdep.c:5759
-       down_read+0xb1/0xa40 kernel/locking/rwsem.c:1526
-       ocfs2_start_trans+0x3be/0x700 fs/ocfs2/journal.c:350
-       ocfs2_mknod+0x150c/0x2b40 fs/ocfs2/namei.c:359
-       ocfs2_mkdir+0x1ab/0x480 fs/ocfs2/namei.c:655
-       vfs_mkdir+0x2f9/0x4f0 fs/namei.c:4210
-       do_mkdirat+0x264/0x3a0 fs/namei.c:4233
-       __do_sys_mkdirat fs/namei.c:4248 [inline]
-       __se_sys_mkdirat fs/namei.c:4246 [inline]
-       __x64_sys_mkdirat+0x87/0xa0 fs/namei.c:4246
-       do_syscall_x64 arch/x86/entry/common.c:52 [inline]
-       do_syscall_64+0xf3/0x230 arch/x86/entry/common.c:83
-       entry_SYSCALL_64_after_hwframe+0x77/0x7f
-
--> #0 (sb_internal#2){.+.+}-{0:0}:
+-> #0 (&oi->ip_alloc_sem){++++}-{3:3}:
        check_prev_add kernel/locking/lockdep.c:3133 [inline]
        check_prevs_add kernel/locking/lockdep.c:3252 [inline]
        validate_chain+0x18e0/0x5900 kernel/locking/lockdep.c:3868
        __lock_acquire+0x137a/0x2040 kernel/locking/lockdep.c:5142
        lock_acquire+0x1ed/0x550 kernel/locking/lockdep.c:5759
-       percpu_down_read include/linux/percpu-rwsem.h:51 [inline]
-       __sb_start_write include/linux/fs.h:1676 [inline]
-       sb_start_intwrite include/linux/fs.h:1859 [inline]
-       ocfs2_start_trans+0x2b9/0x700 fs/ocfs2/journal.c:348
-       ocfs2_write_begin_inline fs/ocfs2/aops.c:1480 [inline]
-       ocfs2_try_to_write_inline_data fs/ocfs2/aops.c:1583 [inline]
-       ocfs2_write_begin_nolock+0x226b/0x4d30 fs/ocfs2/aops.c:1669
-       ocfs2_write_begin+0x205/0x3a0 fs/ocfs2/aops.c:1903
-       generic_perform_write+0x399/0x840 mm/filemap.c:4019
-       ocfs2_file_write_iter+0x17b4/0x1f60 fs/ocfs2/file.c:2455
-       new_sync_write fs/read_write.c:497 [inline]
-       vfs_write+0xa72/0xc90 fs/read_write.c:590
-       ksys_write+0x1a0/0x2c0 fs/read_write.c:643
+       down_write+0x99/0x220 kernel/locking/rwsem.c:1579
+       ocfs2_page_mkwrite+0x347/0xed0 fs/ocfs2/mmap.c:142
+       do_page_mkwrite+0x19b/0x480 mm/memory.c:3142
+       wp_page_shared mm/memory.c:3545 [inline]
+       do_wp_page+0x23d9/0x52f0 mm/memory.c:3695
+       handle_pte_fault+0x115a/0x6fc0 mm/memory.c:5537
+       __handle_mm_fault mm/memory.c:5664 [inline]
+       handle_mm_fault+0x1109/0x1bc0 mm/memory.c:5832
+       do_user_addr_fault arch/x86/mm/fault.c:1389 [inline]
+       handle_page_fault arch/x86/mm/fault.c:1481 [inline]
+       exc_page_fault+0x2b9/0x8c0 arch/x86/mm/fault.c:1539
+       asm_exc_page_fault+0x26/0x30 arch/x86/include/asm/idtentry.h:623
+       rep_movs_alternative+0x4a/0x70 arch/x86/lib/copy_user_64.S:65
+       copy_user_generic arch/x86/include/asm/uaccess_64.h:110 [inline]
+       raw_copy_to_user arch/x86/include/asm/uaccess_64.h:131 [inline]
+       copy_to_user_iter lib/iov_iter.c:25 [inline]
+       iterate_ubuf include/linux/iov_iter.h:29 [inline]
+       iterate_and_advance2 include/linux/iov_iter.h:245 [inline]
+       iterate_and_advance include/linux/iov_iter.h:271 [inline]
+       _copy_to_iter+0x26b/0x1960 lib/iov_iter.c:185
+       copy_to_iter include/linux/uio.h:196 [inline]
+       get_random_bytes_user+0x1e5/0x420 drivers/char/random.c:464
+       __do_sys_getrandom drivers/char/random.c:1406 [inline]
+       __se_sys_getrandom drivers/char/random.c:1380 [inline]
+       __x64_sys_getrandom+0x152/0x250 drivers/char/random.c:1380
        do_syscall_x64 arch/x86/entry/common.c:52 [inline]
        do_syscall_64+0xf3/0x230 arch/x86/entry/common.c:83
        entry_SYSCALL_64_after_hwframe+0x77/0x7f
@@ -187,26 +181,24 @@ the existing dependency chain (in reverse order) is:
 other info that might help us debug this:
 
 Chain exists of:
-  sb_internal#2 --> &oi->ip_xattr_sem --> &oi->ip_alloc_sem
+  &oi->ip_alloc_sem --> &mm->mmap_lock --> sb_pagefaults
 
  Possible unsafe locking scenario:
 
        CPU0                    CPU1
        ----                    ----
+  rlock(sb_pagefaults);
+                               lock(&mm->mmap_lock);
+                               lock(sb_pagefaults);
   lock(&oi->ip_alloc_sem);
-                               lock(&oi->ip_xattr_sem);
-                               lock(&oi->ip_alloc_sem);
-  rlock(sb_internal#2);
 
  *** DEADLOCK ***
 
-4 locks held by syz.0.0/5113:
- #0: ffff8880127505c8 (&f->f_pos_lock){+.+.}-{3:3}, at: __fdget_pos+0x24e/0x310 fs/file.c:1187
- #1: ffff88803dd20420 (sb_writers#10){.+.+}-{0:0}, at: file_start_write include/linux/fs.h:2882 [inline]
- #1: ffff88803dd20420 (sb_writers#10){.+.+}-{0:0}, at: vfs_write+0x227/0xc90 fs/read_write.c:586
- #2: ffff88803d8adf40 (&sb->s_type->i_mutex_key#19){+.+.}-{3:3}, at: inode_lock include/linux/fs.h:800 [inline]
- #2: ffff88803d8adf40 (&sb->s_type->i_mutex_key#19){+.+.}-{3:3}, at: ocfs2_file_write_iter+0x46a/0x1f60 fs/ocfs2/file.c:2387
- #3: ffff88803d8adbe0 (&oi->ip_alloc_sem){++++}-{3:3}, at: ocfs2_write_begin+0x1d1/0x3a0 fs/ocfs2/aops.c:1901
+2 locks held by syz.0.0/5113:
+ #0: ffff888040731e18 (&mm->mmap_lock){++++}-{3:3}, at: mmap_read_trylock include/linux/mmap_lock.h:163 [inline]
+ #0: ffff888040731e18 (&mm->mmap_lock){++++}-{3:3}, at: get_mmap_lock_carefully mm/memory.c:5869 [inline]
+ #0: ffff888040731e18 (&mm->mmap_lock){++++}-{3:3}, at: lock_mm_and_find_vma+0x32/0x2f0 mm/memory.c:5929
+ #1: ffff88804ac2e518 (sb_pagefaults){.+.+}-{0:0}, at: do_page_mkwrite+0x19b/0x480 mm/memory.c:3142
 
 stack backtrace:
 CPU: 0 UID: 0 PID: 5113 Comm: syz.0.0 Not tainted 6.11.0-rc7-syzkaller-00020-g8d8d276ba2fb #0
@@ -221,31 +213,80 @@ Call Trace:
  validate_chain+0x18e0/0x5900 kernel/locking/lockdep.c:3868
  __lock_acquire+0x137a/0x2040 kernel/locking/lockdep.c:5142
  lock_acquire+0x1ed/0x550 kernel/locking/lockdep.c:5759
- percpu_down_read include/linux/percpu-rwsem.h:51 [inline]
- __sb_start_write include/linux/fs.h:1676 [inline]
- sb_start_intwrite include/linux/fs.h:1859 [inline]
- ocfs2_start_trans+0x2b9/0x700 fs/ocfs2/journal.c:348
- ocfs2_write_begin_inline fs/ocfs2/aops.c:1480 [inline]
- ocfs2_try_to_write_inline_data fs/ocfs2/aops.c:1583 [inline]
- ocfs2_write_begin_nolock+0x226b/0x4d30 fs/ocfs2/aops.c:1669
- ocfs2_write_begin+0x205/0x3a0 fs/ocfs2/aops.c:1903
- generic_perform_write+0x399/0x840 mm/filemap.c:4019
- ocfs2_file_write_iter+0x17b4/0x1f60 fs/ocfs2/file.c:2455
- new_sync_write fs/read_write.c:497 [inline]
- vfs_write+0xa72/0xc90 fs/read_write.c:590
- ksys_write+0x1a0/0x2c0 fs/read_write.c:643
+ down_write+0x99/0x220 kernel/locking/rwsem.c:1579
+ ocfs2_page_mkwrite+0x347/0xed0 fs/ocfs2/mmap.c:142
+ do_page_mkwrite+0x19b/0x480 mm/memory.c:3142
+ wp_page_shared mm/memory.c:3545 [inline]
+ do_wp_page+0x23d9/0x52f0 mm/memory.c:3695
+ handle_pte_fault+0x115a/0x6fc0 mm/memory.c:5537
+ __handle_mm_fault mm/memory.c:5664 [inline]
+ handle_mm_fault+0x1109/0x1bc0 mm/memory.c:5832
+ do_user_addr_fault arch/x86/mm/fault.c:1389 [inline]
+ handle_page_fault arch/x86/mm/fault.c:1481 [inline]
+ exc_page_fault+0x2b9/0x8c0 arch/x86/mm/fault.c:1539
+ asm_exc_page_fault+0x26/0x30 arch/x86/include/asm/idtentry.h:623
+RIP: 0010:rep_movs_alternative+0x4a/0x70 arch/x86/lib/copy_user_64.S:71
+Code: 75 f1 c3 cc cc cc cc 66 0f 1f 84 00 00 00 00 00 48 8b 06 48 89 07 48 83 c6 08 48 83 c7 08 83 e9 08 74 df 83 f9 08 73 e8 eb c9 <f3> a4 c3 cc cc cc cc 48 89 c8 48 c1 e9 03 83 e0 07 f3 48 a5 89 c1
+RSP: 0018:ffffc9000b62faf8 EFLAGS: 00050246
+RAX: ffffffff84b01901 RBX: 0000000000000040 RCX: 0000000000000040
+RDX: 0000000000000000 RSI: ffffc9000b62fd40 RDI: 0000000020000240
+RBP: ffffc9000b62fc70 R08: ffffc9000b62fd7f R09: 1ffff920016c5faf
+R10: dffffc0000000000 R11: fffff520016c5fb0 R12: 1ffff920016c5fc9
+R13: 0000000020000240 R14: ffffc9000b62fe48 R15: ffffc9000b62fd40
+ copy_user_generic arch/x86/include/asm/uaccess_64.h:110 [inline]
+ raw_copy_to_user arch/x86/include/asm/uaccess_64.h:131 [inline]
+ copy_to_user_iter lib/iov_iter.c:25 [inline]
+ iterate_ubuf include/linux/iov_iter.h:29 [inline]
+ iterate_and_advance2 include/linux/iov_iter.h:245 [inline]
+ iterate_and_advance include/linux/iov_iter.h:271 [inline]
+ _copy_to_iter+0x26b/0x1960 lib/iov_iter.c:185
+ copy_to_iter include/linux/uio.h:196 [inline]
+ get_random_bytes_user+0x1e5/0x420 drivers/char/random.c:464
+ __do_sys_getrandom drivers/char/random.c:1406 [inline]
+ __se_sys_getrandom drivers/char/random.c:1380 [inline]
+ __x64_sys_getrandom+0x152/0x250 drivers/char/random.c:1380
  do_syscall_x64 arch/x86/entry/common.c:52 [inline]
  do_syscall_64+0xf3/0x230 arch/x86/entry/common.c:83
  entry_SYSCALL_64_after_hwframe+0x77/0x7f
-RIP: 0033:0x7f082557def9
+RIP: 0033:0x7f375117def9
 Code: ff ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 40 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 a8 ff ff ff f7 d8 64 89 01 48
-RSP: 002b:00007f08263b3038 EFLAGS: 00000246 ORIG_RAX: 0000000000000001
-RAX: ffffffffffffffda RBX: 00007f0825735f80 RCX: 00007f082557def9
-RDX: 0000000000000004 RSI: 0000000020000300 RDI: 0000000000000005
-RBP: 00007f08255f0b56 R08: 0000000000000000 R09: 0000000000000000
+RSP: 002b:00007f3751e92038 EFLAGS: 00000246 ORIG_RAX: 000000000000013e
+RAX: ffffffffffffffda RBX: 00007f3751335f80 RCX: 00007f375117def9
+RDX: 0000000000000000 RSI: 00000000ffffff9a RDI: 0000000020000240
+RBP: 00007f37511f09f6 R08: 0000000000000000 R09: 0000000000000000
 R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000000
-R13: 0000000000000000 R14: 00007f0825735f80 R15: 00007ffcf3da0618
+R13: 0000000000000000 R14: 00007f3751335f80 R15: 00007fff8387faa8
  </TASK>
+----------------
+Code disassembly (best guess):
+   0:	75 f1                	jne    0xfffffff3
+   2:	c3                   	ret
+   3:	cc                   	int3
+   4:	cc                   	int3
+   5:	cc                   	int3
+   6:	cc                   	int3
+   7:	66 0f 1f 84 00 00 00 	nopw   0x0(%rax,%rax,1)
+   e:	00 00
+  10:	48 8b 06             	mov    (%rsi),%rax
+  13:	48 89 07             	mov    %rax,(%rdi)
+  16:	48 83 c6 08          	add    $0x8,%rsi
+  1a:	48 83 c7 08          	add    $0x8,%rdi
+  1e:	83 e9 08             	sub    $0x8,%ecx
+  21:	74 df                	je     0x2
+  23:	83 f9 08             	cmp    $0x8,%ecx
+  26:	73 e8                	jae    0x10
+  28:	eb c9                	jmp    0xfffffff3
+* 2a:	f3 a4                	rep movsb %ds:(%rsi),%es:(%rdi) <-- trapping instruction
+  2c:	c3                   	ret
+  2d:	cc                   	int3
+  2e:	cc                   	int3
+  2f:	cc                   	int3
+  30:	cc                   	int3
+  31:	48 89 c8             	mov    %rcx,%rax
+  34:	48 c1 e9 03          	shr    $0x3,%rcx
+  38:	83 e0 07             	and    $0x7,%eax
+  3b:	f3 48 a5             	rep movsq %ds:(%rsi),%es:(%rdi)
+  3e:	89 c1                	mov    %eax,%ecx
 
 
 ---
