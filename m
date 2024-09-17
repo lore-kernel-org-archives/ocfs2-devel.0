@@ -1,51 +1,51 @@
 Received: from mail-il1-f197.google.com (mail-il1-f197.google.com [209.85.166.197])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id DB96A4594D
-	for <ocfs2-devel@lists.linux.dev>; Mon, 16 Sep 2024 18:35:30 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 60B6F4C66
+	for <ocfs2-devel@lists.linux.dev>; Tue, 17 Sep 2024 13:24:31 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.166.197
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1726511733; cv=none; b=AWx9EvbwfPkVCtK93OAC91BI+wbs1cBJ5NylPQhVaGnrhgibkH2gDWqUzWWTDThzo2DuJfKNzS1cf0WDCefgG3YpHByc5fn6TOK5h6VzFqovOp8qJEkkGpneiYvwZqiFL7FOPf3/j3AFrI8nqGqUmPtDAKo3ERP1sYqrGGWKknE=
+	t=1726579474; cv=none; b=RnJSBJDEhPRtwdw94sp11KOIKV2c7QBSGM9z+Wzo1TVVgbuBWoQH7mVh1jaDi2kle5z5VN85phlxlBkObn5G6OOylSiF07pndmXLcWDUHzpDd1Fh7HIraFeXhEycrDanO++q3QmNNTv/C9S4Q5QQxZzcAQwpfGMogtin14al6Yw=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1726511733; c=relaxed/simple;
-	bh=OeW1zo2Pzi8hlSbFCN2pGdCLeVgoIrCu3RMvHINlCdo=;
-	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=Tm8SVFD8iOT8TJHsOUrn5MSHB5s575efdRrn+LsJrUskP8H8j0YDv75pBPv+9iE0XknESwOXu/t1j5XZUpIvSVAxP6Podi2UjzxS1dPnNt6tUN81LeR13Dd5scceeBRo80uj/4qFnfpSU+bBKeko/9jKMaiIPnib4CULxa9sLVs=
+	s=arc-20240116; t=1726579474; c=relaxed/simple;
+	bh=EBzTUG5OWhBLXbcnlkL2ykN2YhIZagERGwbVbL8JXYc=;
+	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=h5pdShfuYIXeTllvdvZ0MilZpOnoqzSCY6XPvp6n64/wRVW/oSAdN+uF2Df4PcN6a0O3r4nNC+lt8R1d6J9/yav56fh04jjyT1moLd4bkPqc1BpgmE7PrRzCc5hAA1xATRuLl24e3LjIsTjNibnER7/oIs/2MA0T7TzQ6PGfYO8=
 ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.166.197
 Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
-Received: by mail-il1-f197.google.com with SMTP id e9e14a558f8ab-3a047cb2e7dso91222455ab.3
-        for <ocfs2-devel@lists.linux.dev>; Mon, 16 Sep 2024 11:35:30 -0700 (PDT)
+Received: by mail-il1-f197.google.com with SMTP id e9e14a558f8ab-3a08f88aeceso55271265ab.0
+        for <ocfs2-devel@lists.linux.dev>; Tue, 17 Sep 2024 06:24:31 -0700 (PDT)
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1726511730; x=1727116530;
+        d=1e100.net; s=20230601; t=1726579470; x=1727184270;
         h=to:from:subject:message-id:date:mime-version:x-gm-message-state
          :from:to:cc:subject:date:message-id:reply-to;
-        bh=4w651fin08fFpocCDC+J1rLWeqXcKcKUsoUPWvIibs0=;
-        b=Vt+IjCyVvZoEYQ3BL4v3k7DiwCHEN3oznj8X1/e11XJuC1/07GlTCcvQQN19Cpgg0B
-         m58p+1fsGF0onzz6wv1Yp1dH3kxQtLwv90C+6lNX2mfZhh9mYI8MADHRz+hrFcWrSBq3
-         0LwF1EjCCczP1sWhDceLLJ41pVvM+XXxl0+65DCZnXrxQTl3ezRWu9fuDKOksLmUvyY/
-         N+AzzmTmejDRfW8flxDI8uF5az0JShB+ta1TX9HKW8h67JPw/nka6hjgvgfWhMZLnAUN
-         oCsdb8JNd9i1fQMgSuiC+FGrXCPxG0q2xM8q/uWGx0fPKRnQuDe/Te+baRr18SE86Zj7
-         1+Gw==
-X-Forwarded-Encrypted: i=1; AJvYcCWMkXq31J6wC7tiV+mYpyMY2L4ilTwHww6WlVoLrOC7T+KfmhtMDt+WTKtta+MNZfL3lG2Yz80t8biYgQ==@lists.linux.dev
-X-Gm-Message-State: AOJu0YzHFods9hlE1lz0VxlBL0KLyk7JEM/KfekRbfeGeyBrZ5tJ0Aw/
-	p2ePb6YhjmnHDhS9FPrGlDasvKfiEnSPUGcm+HpMv6HhRHcwvdVfTMXA2v0iPUO3PDajDvMp8qQ
-	fq+QN3/S7F4SGwyW7Zqil/9+nLfO8BgacVWNjz35Qfm/FZCbNEUa48dQ=
-X-Google-Smtp-Source: AGHT+IFfw6K9Cu8yKEzmYzYwa8uczL+X8Qupl5U/ew71UYSssT9ypPVrYkevmSJglG9W4yQmjlToi1rklcKGBPwS6APld+3j7iOX
+        bh=DlBQ+f3ydEruwd0b8+A66aD2kQMS5RvxA8pHIQi31R4=;
+        b=e/KcK4jD5e4gyQtup4HjKM+ZZllGiVFCXjtQrrB4cVJKCtvvdqc4ZueFqsOSF5kZeH
+         wdH/6ebUDbQwW9jY/8WsbhcMVajrwBEdVuexb/gVa8LhKvsc9SgTpIY3ERbx/NNajPHD
+         qknUbW9lQXR2lthonCZoR9kieChgBTW6xpIb21LBm0Ihr81v9TFkqdiUBXap0Lt+99Tf
+         0XPBdCzhpSIVTukaH6gMXUq1XXKeMn2x9Zb8+uf8kq5llciG1lOKmIghFgHeKkm98VQ5
+         dUSTjCuc47CVtgsUzDJkDcZplUKCXdyQ+6kovy9n5RA2Rn1lC2uyTRzjZU+L8atZi8hz
+         ngsQ==
+X-Forwarded-Encrypted: i=1; AJvYcCW697+b/GphEf6gTyzYZxg1mWw+aJ//89UsTri6xF4H/6+/b79c0MEm7H7H79Ai287aGRQEMfHFvAOerQ==@lists.linux.dev
+X-Gm-Message-State: AOJu0Yzh9AuQe1+vfaRGNyVhXkLGuJ8huhodWMrihfqG/oYFjHGjL1R6
+	LAwzXhjP5v3IMGdhhAvitW8KkTv4dgY/VDUPjMMvk6w3i/R5tdNdmldO3LSLtHLfpu3FJtYU7L7
+	y/8yL+4NUt4pgL9PPfpdl6Y77UTWjLAzp6UApnxX6QrDsiJuPkirkdzo=
+X-Google-Smtp-Source: AGHT+IGUY3Fxyo6duWWPlDx1pQ9OUwr912CSHssG3vDxXEM/I/ZBAcjl6NvkUvA9DKOvQTayDaXaJnmFxgiwYHW21D4kHyRlSOg0
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-X-Received: by 2002:a05:6e02:591:b0:3a0:9de2:ca89 with SMTP id
- e9e14a558f8ab-3a09de2ce70mr38600075ab.17.1726511730057; Mon, 16 Sep 2024
- 11:35:30 -0700 (PDT)
-Date: Mon, 16 Sep 2024 11:35:29 -0700
+X-Received: by 2002:a05:6e02:1e0c:b0:3a0:9043:59b8 with SMTP id
+ e9e14a558f8ab-3a09043628emr119788345ab.12.1726579470384; Tue, 17 Sep 2024
+ 06:24:30 -0700 (PDT)
+Date: Tue, 17 Sep 2024 06:24:30 -0700
 X-Google-Appengine-App-Id: s~syzkaller
 X-Google-Appengine-App-Id-Alias: syzkaller
-Message-ID: <0000000000005ef449062240d69c@google.com>
-Subject: [syzbot] [ocfs2?] kernel BUG in ocfs2_write_cluster_by_desc
-From: syzbot <syzbot+18a87160c7d64ba2e2f6@syzkaller.appspotmail.com>
+Message-ID: <66e9830e.050a0220.115905.000e.GAE@google.com>
+Subject: [syzbot] [ocfs2?] INFO: trying to register non-static key in ocfs2_dlm_shutdown
+From: syzbot <syzbot+d7935821694d430624ea@syzkaller.appspotmail.com>
 To: jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
 	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
 	syzkaller-bugs@googlegroups.com
@@ -55,83 +55,146 @@ Hello,
 
 syzbot found the following issue on:
 
-HEAD commit:    adfc3ded5c33 Merge tag 'for-6.12/io_uring-discard-20240913..
+HEAD commit:    a430d95c5efa Merge tag 'lsm-pr-20240911' of git://git.kern..
 git tree:       upstream
-console output: https://syzkaller.appspot.com/x/log.txt?x=1066a8a9980000
-kernel config:  https://syzkaller.appspot.com/x/.config?x=71033c66cc4b01c4
-dashboard link: https://syzkaller.appspot.com/bug?extid=18a87160c7d64ba2e2f6
+console output: https://syzkaller.appspot.com/x/log.txt?x=11a8dfc7980000
+kernel config:  https://syzkaller.appspot.com/x/.config?x=1653f803fffa3848
+dashboard link: https://syzkaller.appspot.com/bug?extid=d7935821694d430624ea
 compiler:       Debian clang version 15.0.6, GNU ld (GNU Binutils for Debian) 2.40
-syz repro:      https://syzkaller.appspot.com/x/repro.syz?x=15e45c07980000
-C reproducer:   https://syzkaller.appspot.com/x/repro.c?x=13ab5500580000
+
+Unfortunately, I don't have any reproducer for this issue yet.
 
 Downloadable assets:
-disk image (non-bootable): https://storage.googleapis.com/syzbot-assets/7bc7510fe41f/non_bootable_disk-adfc3ded.raw.xz
-vmlinux: https://storage.googleapis.com/syzbot-assets/14d8d89edd95/vmlinux-adfc3ded.xz
-kernel image: https://storage.googleapis.com/syzbot-assets/77b35977c15b/bzImage-adfc3ded.xz
-mounted in repro: https://storage.googleapis.com/syzbot-assets/e39a4142077d/mount_0.gz
+disk image: https://storage.googleapis.com/syzbot-assets/d3504d54974f/disk-a430d95c.raw.xz
+vmlinux: https://storage.googleapis.com/syzbot-assets/c6ac1db8c146/vmlinux-a430d95c.xz
+kernel image: https://storage.googleapis.com/syzbot-assets/938026534cb3/bzImage-a430d95c.xz
 
 IMPORTANT: if you fix the issue, please add the following tag to the commit:
-Reported-by: syzbot+18a87160c7d64ba2e2f6@syzkaller.appspotmail.com
+Reported-by: syzbot+d7935821694d430624ea@syzkaller.appspotmail.com
 
-         option from the mount to silence this warning.
-=======================================================
-ocfs2: Mounting device (7,0) on (node local, slot 0) with ordered data mode.
-------------[ cut here ]------------
-kernel BUG at fs/ocfs2/aops.c:1179!
-Oops: invalid opcode: 0000 [#1] PREEMPT SMP KASAN NOPTI
-CPU: 0 UID: 0 PID: 5093 Comm: syz-executor394 Not tainted 6.11.0-syzkaller-02520-gadfc3ded5c33 #0
-Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.16.3-debian-1.16.3-2~bpo12+1 04/01/2014
-RIP: 0010:ocfs2_write_cluster fs/ocfs2/aops.c:1179 [inline]
-RIP: 0010:ocfs2_write_cluster_by_desc+0x1fc7/0x1ff0 fs/ocfs2/aops.c:1240
-Code: 03 48 8d bc 24 30 02 00 00 48 c7 c6 77 b1 0b 8e ba 7e 04 00 00 48 c7 c1 00 ef 48 8c e8 92 93 1d 00 90 0f 0b e8 5a f1 12 fe 90 <0f> 0b e8 52 f1 12 fe 90 0f 0b e8 4a f1 12 fe 90 0f 0b e8 42 f1 12
-RSP: 0018:ffffc90002c0ee20 EFLAGS: 00010293
-RAX: ffffffff8380b546 RBX: ffff888042afc1a0 RCX: ffff88801e3e2440
-RDX: 0000000000000000 RSI: 0000000000000000 RDI: 0000000000000000
-RBP: ffffc90002c0f170 R08: ffffffff83809cae R09: 1ffff1100855f804
-R10: dffffc0000000000 R11: ffffed100855f805 R12: 0000000000000000
-R13: ffff888041224000 R14: ffff888042afc178 R15: 0000000000000000
-FS:  000055555ae8d380(0000) GS:ffff88801fe00000(0000) knlGS:0000000000000000
-CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-CR2: 0000000020201000 CR3: 00000000378be000 CR4: 0000000000350ef0
-DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
-DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+INFO: trying to register non-static key.
+The code is fine but needs lockdep annotation, or maybe
+you didn't initialize this object before use?
+turning off the locking correctness validator.
+CPU: 1 UID: 0 PID: 7384 Comm: syz-executor Not tainted 6.11.0-syzkaller-02574-ga430d95c5efa #0
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 08/06/2024
 Call Trace:
  <TASK>
- ocfs2_write_begin_nolock+0x3a2f/0x4ec0 fs/ocfs2/aops.c:1816
- ocfs2_write_begin+0x205/0x3a0 fs/ocfs2/aops.c:1903
- generic_perform_write+0x37e/0x730 mm/filemap.c:4025
- ocfs2_file_write_iter+0x17b1/0x1f50 fs/ocfs2/file.c:2456
- new_sync_write fs/read_write.c:590 [inline]
- vfs_write+0xa6d/0xc90 fs/read_write.c:683
- ksys_write+0x1a0/0x2c0 fs/read_write.c:736
- do_syscall_x64 arch/x86/entry/common.c:52 [inline]
- do_syscall_64+0xf3/0x230 arch/x86/entry/common.c:83
+ __dump_stack lib/dump_stack.c:93 [inline]
+ dump_stack_lvl+0x241/0x360 lib/dump_stack.c:119
+ assign_lock_key+0x238/0x270 kernel/locking/lockdep.c:975
+ register_lock_class+0x1cf/0x980 kernel/locking/lockdep.c:1288
+ __lock_acquire+0xf0/0x2040 kernel/locking/lockdep.c:5019
+ lock_acquire+0x1ed/0x550 kernel/locking/lockdep.c:5759
+ __raw_spin_lock_irqsave include/linux/spinlock_api_smp.h:110 [inline]
+ _raw_spin_lock_irqsave+0xd5/0x120 kernel/locking/spinlock.c:162
+ ocfs2_mark_lockres_freeing+0x15e/0x690 fs/ocfs2/dlmglue.c:3516
+ ocfs2_simple_drop_lockres fs/ocfs2/dlmglue.c:3572 [inline]
+ ocfs2_drop_osb_locks fs/ocfs2/dlmglue.c:3580 [inline]
+ ocfs2_dlm_shutdown+0x3a/0x240 fs/ocfs2/dlmglue.c:3390
+ ocfs2_dismount_volume+0x487/0x8f0 fs/ocfs2/super.c:1920
+ generic_shutdown_super+0x13b/0x2d0 fs/super.c:642
+ kill_block_super+0x44/0x90 fs/super.c:1696
+ deactivate_locked_super+0xc6/0x130 fs/super.c:473
+ cleanup_mnt+0x41f/0x4b0 fs/namespace.c:1373
+ task_work_run+0x251/0x310 kernel/task_work.c:228
+ resume_user_mode_work include/linux/resume_user_mode.h:50 [inline]
+ exit_to_user_mode_loop kernel/entry/common.c:114 [inline]
+ exit_to_user_mode_prepare include/linux/entry-common.h:328 [inline]
+ __syscall_exit_to_user_mode_work kernel/entry/common.c:207 [inline]
+ syscall_exit_to_user_mode+0x168/0x370 kernel/entry/common.c:218
+ do_syscall_64+0x100/0x230 arch/x86/entry/common.c:89
  entry_SYSCALL_64_after_hwframe+0x77/0x7f
-RIP: 0033:0x7f459d01dad9
-Code: 28 00 00 00 75 05 48 83 c4 28 c3 e8 f1 17 00 00 90 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 b8 ff ff ff f7 d8 64 89 01 48
-RSP: 002b:00007ffd75106768 EFLAGS: 00000246 ORIG_RAX: 0000000000000001
-RAX: ffffffffffffffda RBX: 0000000000000000 RCX: 00007f459d01dad9
-RDX: 000000000208e24b RSI: 0000000020000240 RDI: 0000000000000004
-RBP: 00007f459d0955f0 R08: 000055555ae8e4c0 R09: 000055555ae8e4c0
-R10: 0000000000004428 R11: 0000000000000246 R12: 00007ffd75106790
-R13: 00007ffd751069b8 R14: 431bde82d7b634db R15: 00007f459d06603b
+RIP: 0033:0x7ff0e037f227
+Code: a8 ff ff ff f7 d8 64 89 01 48 83 c8 ff c3 0f 1f 44 00 00 31 f6 e9 09 00 00 00 66 0f 1f 84 00 00 00 00 00 b8 a6 00 00 00 0f 05 <48> 3d 00 f0 ff ff 77 01 c3 48 c7 c2 a8 ff ff ff f7 d8 64 89 02 b8
+RSP: 002b:00007fff70c741b8 EFLAGS: 00000246 ORIG_RAX: 00000000000000a6
+RAX: 0000000000000000 RBX: 0000000000000000 RCX: 00007ff0e037f227
+RDX: 0000000000000000 RSI: 0000000000000009 RDI: 00007fff70c74270
+RBP: 00007fff70c74270 R08: 0000000000000000 R09: 0000000000000000
+R10: 00000000ffffffff R11: 0000000000000246 R12: 00007fff70c752f0
+R13: 00007ff0e03f0a14 R14: 0000000000061ea2 R15: 00007fff70c75330
+ </TASK>
+ocfs2: Unmounting device (7,4) on (node local)
+Oops: general protection fault, probably for non-canonical address 0xdffffc0000000001: 0000 [#1] PREEMPT SMP KASAN NOPTI
+KASAN: null-ptr-deref in range [0x0000000000000008-0x000000000000000f]
+CPU: 1 UID: 0 PID: 7384 Comm: syz-executor Not tainted 6.11.0-syzkaller-02574-ga430d95c5efa #0
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 08/06/2024
+RIP: 0010:ocfs2_clear_inode fs/ocfs2/inode.c:1208 [inline]
+RIP: 0010:ocfs2_evict_inode+0xdd3/0x4680 fs/ocfs2/inode.c:1220
+Code: 00 00 4c 89 e0 48 c1 e8 03 42 80 3c 30 00 74 08 4c 89 e7 e8 cf 3f 73 fe 4c 01 f3 4d 8b 24 24 49 83 c4 08 4c 89 e0 48 c1 e8 03 <42> 80 3c 30 00 74 08 4c 89 e7 e8 ae 3f 73 fe 49 8b 3c 24 49 81 c7
+RSP: 0018:ffffc9000cd37320 EFLAGS: 00010212
+RAX: 0000000000000001 RBX: fffff520019a6e78 RCX: ffff88802ef63c00
+RDX: 0000000000000000 RSI: 0000000000000000 RDI: 0000000000000000
+RBP: ffffc9000cd37a70 R08: ffffffff8387ab2e R09: 1ffff1100cabf0be
+R10: dffffc0000000000 R11: ffffed100cabf0bf R12: 0000000000000008
+R13: 1ffff1100cabf0ec R14: dffffc0000000000 R15: ffff8880655f8878
+FS:  000055558db0c500(0000) GS:ffff8880b8900000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: 00007f4628955f98 CR3: 0000000069526000 CR4: 0000000000350ef0
+Call Trace:
+ <TASK>
+ evict+0x4ea/0x9b0 fs/inode.c:731
+ __ocfs2_free_slot_info fs/ocfs2/slot_map.c:307 [inline]
+ ocfs2_free_slot_info+0x94/0x270 fs/ocfs2/slot_map.c:443
+ ocfs2_delete_osb+0x58/0x180 fs/ocfs2/super.c:2499
+ ocfs2_dismount_volume+0x594/0x8f0 fs/ocfs2/super.c:1938
+ generic_shutdown_super+0x13b/0x2d0 fs/super.c:642
+ kill_block_super+0x44/0x90 fs/super.c:1696
+ deactivate_locked_super+0xc6/0x130 fs/super.c:473
+ cleanup_mnt+0x41f/0x4b0 fs/namespace.c:1373
+ task_work_run+0x251/0x310 kernel/task_work.c:228
+ resume_user_mode_work include/linux/resume_user_mode.h:50 [inline]
+ exit_to_user_mode_loop kernel/entry/common.c:114 [inline]
+ exit_to_user_mode_prepare include/linux/entry-common.h:328 [inline]
+ __syscall_exit_to_user_mode_work kernel/entry/common.c:207 [inline]
+ syscall_exit_to_user_mode+0x168/0x370 kernel/entry/common.c:218
+ do_syscall_64+0x100/0x230 arch/x86/entry/common.c:89
+ entry_SYSCALL_64_after_hwframe+0x77/0x7f
+RIP: 0033:0x7ff0e037f227
+Code: a8 ff ff ff f7 d8 64 89 01 48 83 c8 ff c3 0f 1f 44 00 00 31 f6 e9 09 00 00 00 66 0f 1f 84 00 00 00 00 00 b8 a6 00 00 00 0f 05 <48> 3d 00 f0 ff ff 77 01 c3 48 c7 c2 a8 ff ff ff f7 d8 64 89 02 b8
+RSP: 002b:00007fff70c741b8 EFLAGS: 00000246 ORIG_RAX: 00000000000000a6
+RAX: 0000000000000000 RBX: 0000000000000000 RCX: 00007ff0e037f227
+RDX: 0000000000000000 RSI: 0000000000000009 RDI: 00007fff70c74270
+RBP: 00007fff70c74270 R08: 0000000000000000 R09: 0000000000000000
+R10: 00000000ffffffff R11: 0000000000000246 R12: 00007fff70c752f0
+R13: 00007ff0e03f0a14 R14: 0000000000061ea2 R15: 00007fff70c75330
  </TASK>
 Modules linked in:
 ---[ end trace 0000000000000000 ]---
-RIP: 0010:ocfs2_write_cluster fs/ocfs2/aops.c:1179 [inline]
-RIP: 0010:ocfs2_write_cluster_by_desc+0x1fc7/0x1ff0 fs/ocfs2/aops.c:1240
-Code: 03 48 8d bc 24 30 02 00 00 48 c7 c6 77 b1 0b 8e ba 7e 04 00 00 48 c7 c1 00 ef 48 8c e8 92 93 1d 00 90 0f 0b e8 5a f1 12 fe 90 <0f> 0b e8 52 f1 12 fe 90 0f 0b e8 4a f1 12 fe 90 0f 0b e8 42 f1 12
-RSP: 0018:ffffc90002c0ee20 EFLAGS: 00010293
-RAX: ffffffff8380b546 RBX: ffff888042afc1a0 RCX: ffff88801e3e2440
+RIP: 0010:ocfs2_clear_inode fs/ocfs2/inode.c:1208 [inline]
+RIP: 0010:ocfs2_evict_inode+0xdd3/0x4680 fs/ocfs2/inode.c:1220
+Code: 00 00 4c 89 e0 48 c1 e8 03 42 80 3c 30 00 74 08 4c 89 e7 e8 cf 3f 73 fe 4c 01 f3 4d 8b 24 24 49 83 c4 08 4c 89 e0 48 c1 e8 03 <42> 80 3c 30 00 74 08 4c 89 e7 e8 ae 3f 73 fe 49 8b 3c 24 49 81 c7
+RSP: 0018:ffffc9000cd37320 EFLAGS: 00010212
+RAX: 0000000000000001 RBX: fffff520019a6e78 RCX: ffff88802ef63c00
 RDX: 0000000000000000 RSI: 0000000000000000 RDI: 0000000000000000
-RBP: ffffc90002c0f170 R08: ffffffff83809cae R09: 1ffff1100855f804
-R10: dffffc0000000000 R11: ffffed100855f805 R12: 0000000000000000
-R13: ffff888041224000 R14: ffff888042afc178 R15: 0000000000000000
-FS:  000055555ae8d380(0000) GS:ffff88801fe00000(0000) knlGS:0000000000000000
+RBP: ffffc9000cd37a70 R08: ffffffff8387ab2e R09: 1ffff1100cabf0be
+R10: dffffc0000000000 R11: ffffed100cabf0bf R12: 0000000000000008
+R13: 1ffff1100cabf0ec R14: dffffc0000000000 R15: ffff8880655f8878
+FS:  000055558db0c500(0000) GS:ffff8880b8800000(0000) knlGS:0000000000000000
 CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-CR2: 0000000020201000 CR3: 00000000378be000 CR4: 0000000000350ef0
-DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
-DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+CR2: 00007f4cb1707ab8 CR3: 0000000069526000 CR4: 0000000000350ef0
+----------------
+Code disassembly (best guess):
+   0:	00 00                	add    %al,(%rax)
+   2:	4c 89 e0             	mov    %r12,%rax
+   5:	48 c1 e8 03          	shr    $0x3,%rax
+   9:	42 80 3c 30 00       	cmpb   $0x0,(%rax,%r14,1)
+   e:	74 08                	je     0x18
+  10:	4c 89 e7             	mov    %r12,%rdi
+  13:	e8 cf 3f 73 fe       	call   0xfe733fe7
+  18:	4c 01 f3             	add    %r14,%rbx
+  1b:	4d 8b 24 24          	mov    (%r12),%r12
+  1f:	49 83 c4 08          	add    $0x8,%r12
+  23:	4c 89 e0             	mov    %r12,%rax
+  26:	48 c1 e8 03          	shr    $0x3,%rax
+* 2a:	42 80 3c 30 00       	cmpb   $0x0,(%rax,%r14,1) <-- trapping instruction
+  2f:	74 08                	je     0x39
+  31:	4c 89 e7             	mov    %r12,%rdi
+  34:	e8 ae 3f 73 fe       	call   0xfe733fe7
+  39:	49 8b 3c 24          	mov    (%r12),%rdi
+  3d:	49                   	rex.WB
+  3e:	81                   	.byte 0x81
+  3f:	c7                   	.byte 0xc7
 
 
 ---
@@ -144,10 +207,6 @@ https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
 
 If the report is already addressed, let syzbot know by replying with:
 #syz fix: exact-commit-title
-
-If you want syzbot to run the reproducer, reply with:
-#syz test: git://repo/address.git branch-or-commit-hash
-If you attach or paste a git patch, syzbot will apply it before testing.
 
 If you want to overwrite report's subsystems, reply with:
 #syz set subsystems: new-subsystem
