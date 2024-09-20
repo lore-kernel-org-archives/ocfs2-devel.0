@@ -1,166 +1,133 @@
-Received: from mail-wr1-f53.google.com (mail-wr1-f53.google.com [209.85.221.53])
+Received: from mail-il1-f200.google.com (mail-il1-f200.google.com [209.85.166.200])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2FD6E1957F8
-	for <ocfs2-devel@lists.linux.dev>; Thu, 19 Sep 2024 08:13:37 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.221.53
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9D669F4FA
+	for <ocfs2-devel@lists.linux.dev>; Fri, 20 Sep 2024 15:21:23 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.166.200
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1726733620; cv=none; b=N0P3ldVWdmEh6JNimuy0/RhMyyklKUeOJZuULpQq8J5aa59DKQ0k1D4tshh6+xbiDrK8UKWV7KDLZV8f4tToyh5Coo6wjN3ZXDgX4dfvIPuzP3nxovb6XjbZDlHcfO+qTny7CNaFmliFi7yABwp5haZg1GgWc1c/5zNycAw40RA=
+	t=1726845685; cv=none; b=Xk43t0pqcUysySqRoaJXHGnoDgTPLrPnXChESc3UcmVKWo3wxw2aWUu8VZkmu4tZT0coJ/0hucUV3KwmnAJNZtkYrErHuJc7E39tdXxvRvIaTecvnrX1ZbfpFkpeV51w7PNyFis6NVVLsNMakYw8pzYfk7+2XHONi4g/EQJdIb4=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1726733620; c=relaxed/simple;
-	bh=/K69nVLEcIWxNDNpRWx7rCcqnjzJo3uCpRufVr1clJM=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=DDEtTBqz0Y3WSHXNYIn+d0ssKJZduahss/l9ta2ZQF/f2mNnZm4c7HssB5VeEEAzUndxV3ippj9lwDEl2yeieIIWk7s2MS5HHfjsm+iTmeGwZ02BnYNLKhXbdHqIlCcculBWlB9oL4pGfnZQG0WQqXStIxn4Uglpx20dO5tq050=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=Nx789p2r; arc=none smtp.client-ip=209.85.221.53
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="Nx789p2r"
-Received: by mail-wr1-f53.google.com with SMTP id ffacd0b85a97d-378f90ad334so18584f8f.1
-        for <ocfs2-devel@lists.linux.dev>; Thu, 19 Sep 2024 01:13:37 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=suse.com; s=google; t=1726733616; x=1727338416; darn=lists.linux.dev;
-        h=content-transfer-encoding:in-reply-to:from:references:cc:to
-         :content-language:subject:user-agent:mime-version:date:message-id
-         :from:to:cc:subject:date:message-id:reply-to;
-        bh=DiM72tMP3gxKJwMlvFMrAxAdtPBT77eodGymGn5dVag=;
-        b=Nx789p2rkX3ECqD75aj2R1JSth9/qOFKtGBXQzh+i8clPZHyMmKSbISvHpd9Q0VYZ0
-         BlahMuRHgslEs3oQvsKtZ6/BG+SQ0NeTpPmvJbIKx8aH7x3b7eq9F+iWui4yw9VxlcJ6
-         gIJdcXtbEHqBYu+AhpbtoBW+8w6pfGWaEWvXpa2VO9mILGtPQwMp1T07autN5nKF4ksP
-         NBtyLqZwm9An6Mm/6y11WJEzQW7e+Va8RqBng0yVMDmYgGgA23hZD2pI1+lNHaJao5H8
-         t/MRJF0RxiIpjaDosh/nxV4XPMGMkrUYvY+q3jyxho2MtVvPluUeY2qMSuv8F3otkaNz
-         fhTQ==
+	s=arc-20240116; t=1726845685; c=relaxed/simple;
+	bh=ZKN/Jx0Cgg3E49vF+Ha0Y1UmXQXpo/qvF2nu4rNnzQo=;
+	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=PdHNj6Ck9VXPwQ1I5PtKiMP184xVCXmef8xahA/pB7vimcx2rdHCaQUCyhOfJOHICNyFJWWsVJXoiYsBIg6nH/KwKYX0Ap8crw1rXNKluhqDPpea9VG/v27K4v2JNcM0sNR3h8PNGE0NEm9x9uQGONVSCt/c4uDnwKs53GrHNbw=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.166.200
+Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
+Received: by mail-il1-f200.google.com with SMTP id e9e14a558f8ab-3a09da3baa8so29066095ab.1
+        for <ocfs2-devel@lists.linux.dev>; Fri, 20 Sep 2024 08:21:23 -0700 (PDT)
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1726733616; x=1727338416;
-        h=content-transfer-encoding:in-reply-to:from:references:cc:to
-         :content-language:subject:user-agent:mime-version:date:message-id
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
-        bh=DiM72tMP3gxKJwMlvFMrAxAdtPBT77eodGymGn5dVag=;
-        b=GfHB7ajYzvPD/ScLqOY3bddcH2LYgXSrEC/teXpFtIJziONju7c6U2DNA9r3lXQ7xS
-         wWmbqBHmoVYO1bcrCW6tg6h80M3JzPztIQBVBCpqklLzV06UN5bRBkhr/nD/WqidQn3W
-         iKizwE8vZpBUU8Q5FKSu7ewErSGIguBWv3rolyesftvrn7d0+YUOBc1/0D0gwJ5puiPo
-         Ft1d3fE1TFcoa2mn8WOaaRkagLYTY/LBlVFu8smEcIJ2G1ILz5wXcTwH1Pj/jXG9EIoi
-         rFOhsH8Fjgf/7edQYIw6fZpj+mt9H/zqagaG2b0QBWknlx7N5IqZMcB1OVjDp6v6T4rd
-         mTUA==
-X-Forwarded-Encrypted: i=1; AJvYcCU1E7WIMnY9YKQYGkwyy8nQNpf0VcP0yw7dLsy5Db4dBttGa0cW2nwYRrl/ZvdqA+ZjqvDIFtiPKrHi/Q==@lists.linux.dev
-X-Gm-Message-State: AOJu0YyyquQsBgGGG1rMk63Pl7wAptRzZhnOtTPcu3ghUIgW+VLmGGau
-	sASALx9vX76BrrG+KHGUtABAuMcsIr7/Au/zsweiB0LTgjubuIEwYqVx0Jg6Lh4=
-X-Google-Smtp-Source: AGHT+IEcmmdy/00oElpFksWs4lsAsMJXe4ZQ0aVnGocJkWEcop5ZUHKg12MuKLRImgdJxyEubGoH+A==
-X-Received: by 2002:a05:6000:1f89:b0:374:d2b4:d9d0 with SMTP id ffacd0b85a97d-378c295451cmr7365205f8f.0.1726733616350;
-        Thu, 19 Sep 2024 01:13:36 -0700 (PDT)
-Received: from ?IPV6:2408:8409:2432:371d:7607:a570:bf1c:aad6? ([2408:8409:2432:371d:7607:a570:bf1c:aad6])
-        by smtp.gmail.com with ESMTPSA id d2e1a72fcca58-71944b7b59csm7772163b3a.103.2024.09.19.01.13.32
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Thu, 19 Sep 2024 01:13:35 -0700 (PDT)
-Message-ID: <2690bc1f-049f-4a27-823e-5da0ae1bdcda@suse.com>
-Date: Thu, 19 Sep 2024 16:13:30 +0800
+        d=1e100.net; s=20230601; t=1726845683; x=1727450483;
+        h=to:from:subject:message-id:date:mime-version:x-gm-message-state
+         :from:to:cc:subject:date:message-id:reply-to;
+        bh=Fr78q/KfWsNOxKd5MbJvZ/ms4Nh44n0ECdqoTNwBoQ0=;
+        b=RQ5QscHOUBjtT35vSz0R3iXTlQBG0iLV5srUvyP4d/+kdUq/n8+JilWPmL/ASOV7WY
+         CNo5K78ZxS7n38fSHKitLI73fFOV5y8mTMzQ/GQQSBXXv/Ef/VBwTcJeefTVWs2xv79g
+         QZGKpTMQ5Zr6TjU8AbGYdk0wyhNT7Q8lejpdSO1n4qb/8b4DssurtgBYSb+2MYS81+Xc
+         QBdlwyO0Sj/F1uq0xxvg1n72g2pep5lETvUljBgYE5TXHh25TF4ATk2Cs0f/MkTc6XBI
+         e8+xTATZ7X4lkmm6gYHPyQ50CRWH4WaOnxB+x6p/vcvOm6u4kE8KRMUdGkpjdQXNcI58
+         jnHg==
+X-Forwarded-Encrypted: i=1; AJvYcCWSMsuQ9AdKyHUvF7cGOukK7kcUnfldCYZ/NQE+fZF6h8hH9OTb6K20SissoLQOsryt5RtJ9tdtghUyng==@lists.linux.dev
+X-Gm-Message-State: AOJu0YwVxp58TuCKx58pO1j5zUVk2s8ntaoTvkeuubnvIppr6IDVrxSa
+	wGC72POfSOq2RqpZfE7ldPSbq6kgUcRdDrzEW4aE1hJURBmzMbInZEGFxhkUmtlwOutjcQMxPIJ
+	xQ9QAX9gFhPqhNFNNazT2zM1Hoqn1k3Ip4Ip+H7N12XoazyxBooktnRM=
+X-Google-Smtp-Source: AGHT+IFJ7PooyB6Fp2shSustKNFxH99VCZua4ONb9rvwq7nmc5I2bzlN/pp+wfJk9EL3oWivxGfTtqa9mhtGxXQ6zuroZ2O3MP+i
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH 1/2] ocfs2: Fix deadlock in ocfs2_read_virt_blocks
-Content-Language: en-US
-To: Mohammed Anees <pvmohammedanees2003@gmail.com>,
- ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org
-Cc: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
- Joseph Qi <joseph.qi@linux.alibaba.com>,
- syzbot+18a87160c7d64ba2e2f6@syzkaller.appspotmail.com
-References: <20240918172026.2532-1-pvmohammedanees2003@gmail.com>
- <20240918172026.2532-2-pvmohammedanees2003@gmail.com>
-From: "heming.zhao@suse.com" <heming.zhao@suse.com>
-In-Reply-To: <20240918172026.2532-2-pvmohammedanees2003@gmail.com>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
+X-Received: by 2002:a05:6e02:17cc:b0:3a0:a057:6908 with SMTP id
+ e9e14a558f8ab-3a0c8a225edmr25801565ab.11.1726845682764; Fri, 20 Sep 2024
+ 08:21:22 -0700 (PDT)
+Date: Fri, 20 Sep 2024 08:21:22 -0700
+X-Google-Appengine-App-Id: s~syzkaller
+X-Google-Appengine-App-Id-Alias: syzkaller
+Message-ID: <66ed92f2.050a0220.29194.005a.GAE@google.com>
+Subject: [syzbot] [ocfs2?] KMSAN: uninit-value in from_kuid (2)
+From: syzbot <syzbot+6c55f725d1bdc8c52058@syzkaller.appspotmail.com>
+To: jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
+	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
+	syzkaller-bugs@googlegroups.com
+Content-Type: text/plain; charset="UTF-8"
+
+Hello,
+
+syzbot found the following issue on:
+
+HEAD commit:    2004cef11ea0 Merge tag 'sched-core-2024-09-19' of git://gi..
+git tree:       upstream
+console+strace: https://syzkaller.appspot.com/x/log.txt?x=1737fb00580000
+kernel config:  https://syzkaller.appspot.com/x/.config?x=ea86c03799707382
+dashboard link: https://syzkaller.appspot.com/bug?extid=6c55f725d1bdc8c52058
+compiler:       Debian clang version 15.0.6, GNU ld (GNU Binutils for Debian) 2.40
+syz repro:      https://syzkaller.appspot.com/x/repro.syz?x=16ad1607980000
+C reproducer:   https://syzkaller.appspot.com/x/repro.c?x=10b7fb00580000
+
+Downloadable assets:
+disk image: https://storage.googleapis.com/syzbot-assets/712bb1e6270f/disk-2004cef1.raw.xz
+vmlinux: https://storage.googleapis.com/syzbot-assets/4c85f46e8c8b/vmlinux-2004cef1.xz
+kernel image: https://storage.googleapis.com/syzbot-assets/9e811c6cc65b/bzImage-2004cef1.xz
+mounted in repro: https://storage.googleapis.com/syzbot-assets/2a5b0a53fa65/mount_0.gz
+
+IMPORTANT: if you fix the issue, please add the following tag to the commit:
+Reported-by: syzbot+6c55f725d1bdc8c52058@syzkaller.appspotmail.com
+
+ocfs2: Mounting device (7,0) on (node local, slot 0) with ordered data mode.
+=====================================================
+BUG: KMSAN: uninit-value in map_id_up_base kernel/user_namespace.c:355 [inline]
+BUG: KMSAN: uninit-value in map_id_up kernel/user_namespace.c:385 [inline]
+BUG: KMSAN: uninit-value in from_kuid+0x41e/0x990 kernel/user_namespace.c:433
+ map_id_up_base kernel/user_namespace.c:355 [inline]
+ map_id_up kernel/user_namespace.c:385 [inline]
+ from_kuid+0x41e/0x990 kernel/user_namespace.c:433
+ ocfs2_setattr+0x254/0x3140 fs/ocfs2/file.c:1133
+ notify_change+0x1a8e/0x1b80 fs/attr.c:503
+ do_truncate fs/open.c:65 [inline]
+ do_ftruncate+0x8c1/0xbf0 fs/open.c:181
+ do_sys_ftruncate fs/open.c:199 [inline]
+ __do_sys_ftruncate fs/open.c:207 [inline]
+ __se_sys_ftruncate fs/open.c:205 [inline]
+ __x64_sys_ftruncate+0x133/0x280 fs/open.c:205
+ x64_sys_call+0x9e4/0x3ba0 arch/x86/include/generated/asm/syscalls_64.h:78
+ do_syscall_x64 arch/x86/entry/common.c:52 [inline]
+ do_syscall_64+0xcd/0x1e0 arch/x86/entry/common.c:83
+ entry_SYSCALL_64_after_hwframe+0x77/0x7f
+
+Local variable newattrs.i created at:
+ do_truncate fs/open.c:43 [inline]
+ do_ftruncate+0x600/0xbf0 fs/open.c:181
+ do_sys_ftruncate fs/open.c:199 [inline]
+ __do_sys_ftruncate fs/open.c:207 [inline]
+ __se_sys_ftruncate fs/open.c:205 [inline]
+ __x64_sys_ftruncate+0x133/0x280 fs/open.c:205
+
+CPU: 0 UID: 0 PID: 5177 Comm: syz-executor217 Not tainted 6.11.0-syzkaller-07337-g2004cef11ea0 #0
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 08/06/2024
+=====================================================
 
 
+---
+This report is generated by a bot. It may contain errors.
+See https://goo.gl/tpsmEJ for more information about syzbot.
+syzbot engineers can be reached at syzkaller@googlegroups.com.
 
-On 9/19/24 01:20, Mohammed Anees wrote:
-> syzbot has found a kernel BUG in ocfs2_write_cluster_by_desc,
-> while the next patch in the series resolves this, another
-> bug has been detected due to a potential deadlock [1].
-> 
-> The scenario is depicted here,
-> 
-> 	CPU0					CPU1
-> lock(&ocfs2_file_ip_alloc_sem_key);
->                                 lock(&osb->system_file_mutex);
->                                 lock(&ocfs2_file_ip_alloc_sem_key);
-> lock(&osb->system_file_mutex);
-> 
-> The function calls which could lead to this are:
-> 
-> CPU0
-> ocfs2_write_begin - lock(&ocfs2_file_ip_alloc_sem_key);
-> .
-> .
-> .
-> ocfs2_get_system_file_inode - lock(&osb->system_file_mutex);
-> 
-> CPU1 -
-> ocfs2_get_system_file_inode - lock(&osb->system_file_mutex);
-> .
-> .
-> .
-> ocfs2_read_virt_blocks - lock(&ocfs2_file_ip_alloc_sem_key);
-> 
-> This issue can be resolved by making the down_read -> down_read_try
-> in the ocfs2_read_virt_blocks.
-> 
-> [1] https://syzkaller.appspot.com/bug?extid=18a87160c7d64ba2e2f6
+syzbot will keep track of this issue. See:
+https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
 
-I haven't checked this patch, but in my view, following URL is correct.
-https://syzkaller.appspot.com/bug?extid=e0055ea09f1f5e6fabdd
+If the report is already addressed, let syzbot know by replying with:
+#syz fix: exact-commit-title
 
-Heming
-> 
-> Reported-and-tested-by: syzbot+18a87160c7d64ba2e2f6@syzkaller.appspotmail.com
-> Closes: https://syzkaller.appspot.com/bug?extid=18a87160c7d64ba2e2f6
-> Signed-off-by: Mohammed Anees <pvmohammedanees2003@gmail.com>
-> ---
->   fs/ocfs2/extent_map.c | 16 +++++++++++++++-
->   1 file changed, 15 insertions(+), 1 deletion(-)
-> 
-> diff --git a/fs/ocfs2/extent_map.c b/fs/ocfs2/extent_map.c
-> index 70a768b62..f83d0a3b6 100644
-> --- a/fs/ocfs2/extent_map.c
-> +++ b/fs/ocfs2/extent_map.c
-> @@ -12,6 +12,7 @@
->   #include <linux/slab.h>
->   #include <linux/types.h>
->   #include <linux/fiemap.h>
-> +#include <linux/delay.h>
->   
->   #include <cluster/masklog.h>
->   
-> @@ -961,6 +962,8 @@ int ocfs2_read_virt_blocks(struct inode *inode, u64 v_block, int nr,
->   	int rc = 0;
->   	u64 p_block, p_count;
->   	int i, count, done = 0;
-> +	int retries, max_retries = 5;
-> +	int retry_delay_ms = 30;
->   
->   	trace_ocfs2_read_virt_blocks(
->   	     inode, (unsigned long long)v_block, nr, bhs, flags,
-> @@ -973,7 +976,18 @@ int ocfs2_read_virt_blocks(struct inode *inode, u64 v_block, int nr,
->   	}
->   
->   	while (done < nr) {
-> -		down_read(&OCFS2_I(inode)->ip_alloc_sem);
-> +		retries = 0;
-> +		while (retries < max_retries) {
-> +			if (down_read_trylock(&OCFS2_I(inode)->ip_alloc_sem))
-> +				break; // Lock acquired
-> +			msleep(retry_delay_ms);
-> +			retries++;
-> +		}
-> +		if (retries == max_retries) {
-> +			rc = -EAGAIN;
-> +			mlog(ML_ERROR, "Cannot acquire lock\n");
-> +			break;
-> +		}
->   		rc = ocfs2_extent_map_get_blocks(inode, v_block + done,
->   						 &p_block, &p_count, NULL);
->   		up_read(&OCFS2_I(inode)->ip_alloc_sem);
+If you want syzbot to run the reproducer, reply with:
+#syz test: git://repo/address.git branch-or-commit-hash
+If you attach or paste a git patch, syzbot will apply it before testing.
+
+If you want to overwrite report's subsystems, reply with:
+#syz set subsystems: new-subsystem
+(See the list of subsystem names on the web dashboard)
+
+If the report is a duplicate of another one, reply with:
+#syz dup: exact-subject-of-another-report
+
+If you want to undo deduplication, reply with:
+#syz undup
