@@ -1,85 +1,73 @@
-Received: from out162-62-57-49.mail.qq.com (out162-62-57-49.mail.qq.com [162.62.57.49])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-io1-f72.google.com (mail-io1-f72.google.com [209.85.166.72])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id EC28179EA
-	for <ocfs2-devel@lists.linux.dev>; Sat, 21 Sep 2024 02:49:12 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=162.62.57.49
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 02F172119
+	for <ocfs2-devel@lists.linux.dev>; Sat, 21 Sep 2024 04:32:02 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.166.72
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1726886955; cv=none; b=s3wquhORalhJ35c13Cr9yCerqusT9a7w3336ZSmWmluqTwX5N1HbZnYtJJDJFRQTOX0m+CbD2/9a8exJ/aUwZX4bKQFHUQt4hyvFuvDYzqRQE1Sa42IMtg5sm11Y6KmRQy6sf/7oCAUn40Z2FzxLDvCQqgTUK/oxxnCrdG3bCFw=
+	t=1726893124; cv=none; b=Oem4c6Tnd3qGdSMFkGCJ/0h9pWwEqKxR9Rwv9i5gCVFhPtgxnwzoE3IqjESUAFM2ME8cuRzjRmkNFNBcbcLIpMp5/Zhubx+72tHYrDltU4qrH8jazijY+koFs2GRINfCFP4h5bS4KQNJ5XlSGCmhRa7VfL0Z1cw8n15mghhN8s8=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1726886955; c=relaxed/simple;
-	bh=F5Cc4Qnuaq4/+TFIiSCQCb2clyGJ26TQzJlfEiKKZWo=;
-	h=Message-ID:From:To:Cc:Subject:Date:In-Reply-To:References:
-	 MIME-Version; b=dr588FEZ0xus8BD7pNi0Tjk8P4MJIBJMRlDvvQyreVc1UECA4dbDbGh2vx3DWRiXV/SIN+FBRYu+r+AJ/hPUZOkdUFZjNC2NBdwppLDPz/lDkRnmdekeV2Gt0w9irM2RH3gJoAFCMWXLOiRXLTPER2ElfA5dSVOHBfSetRMRcnE=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=qq.com; spf=pass smtp.mailfrom=qq.com; dkim=pass (1024-bit key) header.d=qq.com header.i=@qq.com header.b=anpLix85; arc=none smtp.client-ip=162.62.57.49
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=qq.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=qq.com
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=qq.com header.i=@qq.com header.b="anpLix85"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=qq.com; s=s201512;
-	t=1726886940; bh=0+nXvJ0cpAFTJs+fwZb26FfD211gL4HLCxWS5HqA8DM=;
-	h=From:To:Cc:Subject:Date:In-Reply-To:References;
-	b=anpLix85z6roelSXP+sDbjWBigy96Q+s36GX5ESxDFXz1u8Gk1CXq/CxzDhBhoFEV
-	 W2fMl3Mfiao6gNjT0iyyAUluqY5jojlJCBeq5FASr7FDWylyAin7eZ+bTb/fk7ofwy
-	 pYe17c5j3eueQvukiybiRi2AfBWEWX2WtneEjAMA=
-Received: from pek-lxu-l1.wrs.com ([111.198.224.50])
-	by newxmesmtplogicsvrszc13-0.qq.com (NewEsmtp) with SMTP
-	id A1B9CAEE; Sat, 21 Sep 2024 10:40:27 +0800
-X-QQ-mid: xmsmtpt1726886427t223q0w76
-Message-ID: <tencent_E64425D6BAF8BBC833499EEE1BDC4BD41B08@qq.com>
-X-QQ-XMAILINFO: Mdc3TkmnJyI/+lCY4jeTXxmHgKoCtwmy3yHPYaDt/h8VF5Ip8kmXhY2W5ngqm+
-	 yvpDRP0B0VBwM7R1CPcV+HOrlcBhfufv/3PDblVwEXXLX5CAaXP6GIzaez8k3k42MbgWDaNSEIIO
-	 FZHAl33uiox60tTQINGZRJ5AtFss7Y96i7DCoUS6L2LCaU05pHAARBF+1MQ3RwLRgg8LlC9iJ3wz
-	 VqXqfm51FYeDMRVuHy5u3pZIQb2tfVodC/hmgi7goZ6FYPzRUgwuYMlDyAiEB6oP0yfLF5uZveY3
-	 HGyiBU4ape+dABVxPygf6yey/81FGcU02jtilqCMmwTKFblCQTP3bM0AvxZbIhMu1KAolxa9rwAR
-	 YZvCS0K4M1YvoIkktLv2QxJWbIbQ2yvGTdIGF7MCZ6IqdAn0A81P+iDLahGf5IjPB8MtxO5gnedE
-	 kpumL/n0jJZaYxVDQsJEPXEin8nJOHy3lIzflGlfCQU3qMdZ09m/VWwh3+SWhFp0s8AF7BkXoCuV
-	 Cs91FO0j5C7V0VO5LOGv2Q7jMMh79qL1X+T2MDaYTpKlPDeu9YRlvbMSL59zSjPPEew7nVhRMYfW
-	 7vGKWKMw4kz5aJ245SQDVY7PS6Ivt2ZYVu6XXI5kWbMp9ardLuNtLojwKPxiCi4vDFtwTLUE459d
-	 g/fiXpFMgCqQ8i1f9/iYmZHK4qn7ZKPB5heMRMtcVRPJmKGt548ub57Ehez8KtCanIDVfRxHimwP
-	 sWqfnb813MfDGNfc2gQ5CpN53elqhH0SkOlMPas+aIqXMI3YaSMsjYGUpMibVmbQSM1NUgSYgDHB
-	 o5N+0Tze2zG0y8ajvD6HM9loLwFFh5wLf2YQuU1Ino9Npr1EVF4fDQQtCnZkyYPHxi/EQcimyleE
-	 S0q+4Had6cKP8dg0/604ow82Xf7YXh2hU14ArYqYizmzcVvatsyfsdKyY8VtM2aRapifpxefiD
-X-QQ-XMRINFO: Mp0Kj//9VHAxr69bL5MkOOs=
-From: Edward Adam Davis <eadavis@qq.com>
-To: syzbot+6c55f725d1bdc8c52058@syzkaller.appspotmail.com
-Cc: jlbec@evilplan.org,
-	joseph.qi@linux.alibaba.com,
-	linux-kernel@vger.kernel.org,
-	mark@fasheh.com,
-	ocfs2-devel@lists.linux.dev,
-	syzkaller-bugs@googlegroups.com
-Subject: Re: [syzbot] [ocfs2?] KMSAN: uninit-value in from_kuid (2)
-Date: Sat, 21 Sep 2024 10:40:28 +0800
-X-OQ-MSGID: <20240921024027.1240120-2-eadavis@qq.com>
-X-Mailer: git-send-email 2.46.0
-In-Reply-To: <66ed92f2.050a0220.29194.005a.GAE@google.com>
-References: <66ed92f2.050a0220.29194.005a.GAE@google.com>
+	s=arc-20240116; t=1726893124; c=relaxed/simple;
+	bh=dEJRLbwriepgA8+heAwnMgcv4g/JJ4a4/mj1GxmJHRA=;
+	h=MIME-Version:Date:In-Reply-To:Message-ID:Subject:From:To:
+	 Content-Type; b=IjRxSXbamrTi1FR6rfx0uk/AmgEwGOfeI6HQW+7m6/xQVBt3+2F8Au2svv9be4Fxhr3NWu4LWAuky+9DOA0yVftZdTXF+YWebqXqcLRUF7RlVf5UZqANhuJK8KrRfr880ZjfUbKbyDEK7l4VMYMfE2VjytyaoJ7rbMg8gVAVyCI=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.166.72
+Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
+Received: by mail-io1-f72.google.com with SMTP id ca18e2360f4ac-82cd682f1d2so356286239f.3
+        for <ocfs2-devel@lists.linux.dev>; Fri, 20 Sep 2024 21:32:02 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1726893122; x=1727497922;
+        h=to:from:subject:message-id:in-reply-to:date:mime-version
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
+        bh=vuNcgYuN5DBSEVplwSPWmZCV6DyfXmkHpp3huHRYLW8=;
+        b=HPlTciuEQJoFCdwN8WGby/hSEU1pClgLo4ZX+jRw/Ddc+eUFqNZo79I7TdmHV6ECqd
+         3t5xd+zL9+ixsKxdAYCiJnZFsIZNDJXtK5ash1LgQfiGBlyo1JOKPp42ASZFdnsbdh4o
+         XicXzQ9r9vH4TuW7IfHlcuDZupL89XS84w6p5Jxc4xd0rLsZhp3w+/+V+wi7wp7VYuqi
+         BauHfDPyj9An/LBFODcQdkMoCjtH6lKz2OmWh/IZ+bisnB9l2VGPSJAnNKQuKO94JGNc
+         6c2SOmroVE1hQTDAHIpJOQiqvCqZ3xtNegh/5lodW8A4a69y6kp2k/KYd57SIvG8cBZk
+         LhQw==
+X-Forwarded-Encrypted: i=1; AJvYcCUNLzi9MXOEFXqwDUI1/r4GYV0k4qUFjseiVAcbCuBFU2zmmdf2DMjWtfTZLkvRTeaNbxHjQsbvYV8Y7w==@lists.linux.dev
+X-Gm-Message-State: AOJu0YyrDKO9dqDiPFWyAgMnA5kBDcHGuSrIzD/Uv+mnAFLFiJ8TG9yw
+	YldNV/BExzzZ7IbwCCcsn0Nmbdz9h53UoosKZkPNHwGFGQ18FH8jeeh1cBT1outR05bBTiKT8cy
+	xptybZx6lY26ylqfEIC8h0/vjhG12NvYmgzgEyQpqh44jvcgoRQO6jrY=
+X-Google-Smtp-Source: AGHT+IEulUQBpl4tL0SqCT1/1/6jseazyTqTRbHZh6NpB8nmbgYhVnxlc8yT+zTDXNyXaNSC+Dg4EMhbqT3YK41tClxIk4Rkja50
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+X-Received: by 2002:a05:6e02:1a85:b0:3a0:4d1f:519c with SMTP id
+ e9e14a558f8ab-3a0c8c6b184mr57606895ab.3.1726893122095; Fri, 20 Sep 2024
+ 21:32:02 -0700 (PDT)
+Date: Fri, 20 Sep 2024 21:32:02 -0700
+In-Reply-To: <tencent_E64425D6BAF8BBC833499EEE1BDC4BD41B08@qq.com>
+X-Google-Appengine-App-Id: s~syzkaller
+X-Google-Appengine-App-Id-Alias: syzkaller
+Message-ID: <66ee4c42.050a0220.3195df.002d.GAE@google.com>
+Subject: Re: [syzbot] [ocfs2?] KMSAN: uninit-value in from_kuid (2)
+From: syzbot <syzbot+6c55f725d1bdc8c52058@syzkaller.appspotmail.com>
+To: eadavis@qq.com, jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
+	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
+	syzkaller-bugs@googlegroups.com
+Content-Type: text/plain; charset="UTF-8"
 
-use inode's uid and gid to replace attr
+Hello,
 
-#syz test
+syzbot has tested the proposed patch and the reproducer did not trigger any issue:
 
-diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-index ccc57038a977..d4be183bf149 100644
---- a/fs/ocfs2/file.c
-+++ b/fs/ocfs2/file.c
-@@ -1129,8 +1129,8 @@ int ocfs2_setattr(struct mnt_idmap *idmap, struct dentry *dentry,
- 			    (unsigned long long)OCFS2_I(inode)->ip_blkno,
- 			    dentry->d_name.len, dentry->d_name.name,
- 			    attr->ia_valid, attr->ia_mode,
--			    from_kuid(&init_user_ns, attr->ia_uid),
--			    from_kgid(&init_user_ns, attr->ia_gid));
-+			    from_kuid(&init_user_ns, inode->i_uid),
-+			    from_kgid(&init_user_ns, inode->i_gid));
- 
- 	/* ensuring we don't even attempt to truncate a symlink */
- 	if (S_ISLNK(inode->i_mode))
+Reported-by: syzbot+6c55f725d1bdc8c52058@syzkaller.appspotmail.com
+Tested-by: syzbot+6c55f725d1bdc8c52058@syzkaller.appspotmail.com
 
+Tested on:
+
+commit:         1868f9d0 Merge tag 'for-linux-6.12-ofs1' of git://git...
+git tree:       upstream
+console output: https://syzkaller.appspot.com/x/log.txt?x=1152ee9f980000
+kernel config:  https://syzkaller.appspot.com/x/.config?x=acaa65be5f19fc5a
+dashboard link: https://syzkaller.appspot.com/bug?extid=6c55f725d1bdc8c52058
+compiler:       Debian clang version 15.0.6, GNU ld (GNU Binutils for Debian) 2.40
+patch:          https://syzkaller.appspot.com/x/patch.diff?x=136b7607980000
+
+Note: testing is done by a robot and is best-effort only.
