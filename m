@@ -1,31 +1,59 @@
-Received: from out30-132.freemail.mail.aliyun.com (out30-132.freemail.mail.aliyun.com [115.124.30.132])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-wm1-f52.google.com (mail-wm1-f52.google.com [209.85.128.52])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id F325F1103
-	for <ocfs2-devel@lists.linux.dev>; Mon, 23 Sep 2024 02:52:08 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.132
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 71AA718C324
+	for <ocfs2-devel@lists.linux.dev>; Mon, 23 Sep 2024 08:16:03 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.52
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1727059933; cv=none; b=HNGTbFA8XN9gZ9sLLlPc/I0zVdI20owL/rXuSIM/X6+jI+PFFkhjys0SQ4JEFLC5qpbNOvF/j8GF+VVwfn/oaNQ7nGOThKHcWZpGtaMTzfACf0yqWY/kmBOTZVm1QLLxPKoI0uXeoBOgk6K493/aE4REiYEBkvae4OGV7qg0ZZw=
+	t=1727079368; cv=none; b=QxoQAB3wYIizmXDAIBVhtFEaDqiN0QAT4fISRk6LPHsmClR5d2vzVvS9OnWO2ZMn4Jg5f6dhqBgpv70Gc8/PiO3tNFEjahhhcIoF7RZYh/yAXfkI1X6NA6nhQSBdaswQeltMCy+3/stcYPTeIPle5313lCjDVWZlCPzUX7XRKvo=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1727059933; c=relaxed/simple;
-	bh=T95bhtE4ahzeAXj9o+UbB8jJyiaq+V9Y+k+RIg5NH3M=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=YQ3A+5GZTsuU9PggOmmD7X7GZmLpvtU4/bn2LZl82dV6xvq5K8MYh8cTgGfkj7qk2kTNuS4SQ3yeerMAc/wrjiN52peqinuPgQalUqUssjfq5kveyW6jVUpyxjeIzYmhGhQB+KLzY4Hho0QOqEVPugQzGYfqg29mMHQmIIsHgiI=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=tZE8QoYe; arc=none smtp.client-ip=115.124.30.132
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
+	s=arc-20240116; t=1727079368; c=relaxed/simple;
+	bh=nhyA89QWnnx2FmkbVTxycOy83Nv1/mW01Jb+W8K38Ds=;
+	h=Message-ID:Date:MIME-Version:Subject:To:References:Cc:From:
+	 In-Reply-To:Content-Type; b=aZ7+RIbDVxohxuEFqbqoXNSC9G6wXiJHCzT66Ix99nz4rjykPsNAYIVQzF/pDSXGYFcguXcnvPqfvPuvkyNQHYayzQjFWAQas+AVJxS452K4jwBDjRQAtrq30DreZHcGWr85SFRbw6vPyUEmFSglU0RBE3O0Rx6+4u3trMs4d98=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=Iu847/FS; arc=none smtp.client-ip=209.85.128.52
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="tZE8QoYe"
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1727059921; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=r4XJOtNI53//80tJmFNGm+o5EdJOnmpi3+8PaJ8QvK8=;
-	b=tZE8QoYeoR8HWQtRYlTbKWHUKw1r5fd/a/5cxvHncDbYEXnzL877ZWokazWNmh6lGgo82BmdKlqfnI++RAU2v3ylK03nYTsp5eL4ewRfIU4lTzy6a1b/h0nOCxtHSyi6LUfcbbYElNnYkl0NepXS2Vfo9wILGg2MTlWk67CTCvE=
-Received: from 30.221.132.125(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0WFRyaS8_1727059919)
-          by smtp.aliyun-inc.com;
-          Mon, 23 Sep 2024 10:52:00 +0800
-Message-ID: <e758ca0a-0ee7-4dff-8379-6d43397fddf0@linux.alibaba.com>
-Date: Mon, 23 Sep 2024 10:51:58 +0800
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="Iu847/FS"
+Received: by mail-wm1-f52.google.com with SMTP id 5b1f17b1804b1-42cdefe9ae8so5960905e9.1
+        for <ocfs2-devel@lists.linux.dev>; Mon, 23 Sep 2024 01:16:03 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=suse.com; s=google; t=1727079362; x=1727684162; darn=lists.linux.dev;
+        h=content-transfer-encoding:in-reply-to:from:cc:references:to
+         :content-language:subject:user-agent:mime-version:date:message-id
+         :from:to:cc:subject:date:message-id:reply-to;
+        bh=nWOcTPwwf7Z/BAt3ngEueyugAgcowiKUH3melF7Cxsg=;
+        b=Iu847/FSxUlmzbig8ibuphLJOxpy1TmXeZIzNZabGvT463rrUV3GZ23SeEac+j4UA0
+         89yKs2nfoDFD/ATFtACXo28d/uT619pmeeu4QtICEDRCCRAjhW6UtS7XT+85B5MjRfoP
+         TGZWJPtcpxp8101kM0uSnAu2eKIVfotIgqkum4EGZd9ehJ+GUjlKtbJJi/DvCkIDZ6Ym
+         enfHc4hmYMHf3bmxDhhz9hAV7l4ejYCeoF0vUXmxKNIyMRg5L7UrsWiTyx2jlX6Fotd+
+         8OxlYHEXdJ3SMA2eEoQ90ar4AmhIcA98mNVJzCosKdKZNew8KlmOvSOwJLDMH5AkJbdl
+         ZAtQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1727079362; x=1727684162;
+        h=content-transfer-encoding:in-reply-to:from:cc:references:to
+         :content-language:subject:user-agent:mime-version:date:message-id
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
+        bh=nWOcTPwwf7Z/BAt3ngEueyugAgcowiKUH3melF7Cxsg=;
+        b=djIqPoX1tlBVncrwq85DA4ovK/7xDCHH1PysjqW2szMSBgy1h8vzLz3M84vYv0tFOV
+         Kvh5XaTgXoMEvJgdCn7a4xBWRdRC8XWdP7rPEujNnCuS9mfG5bB9qcEcqyH547P1LqT/
+         zmbYyXpF9FahKmJT4LVXmGrBwD3lakh/5RifASoJDxdYbzj6O9rgU5CtURgTi4goxs4a
+         JS15TbwlrbVya+IsXTrf8nnvrGicCeM5NRwCL0MGD3WTi13qm9KawR2zh9/erLDFKMOj
+         TwqdytgPR+vLnZFIGszBBF6b95bVc37buTrShL6iLSdFfcQq1uC9THffKOkgSJlU+fdR
+         AWhA==
+X-Forwarded-Encrypted: i=1; AJvYcCW2W9AwS3WpkDRA1BKLCRoUg5pfzaQVL9e+qYKw9A8j4c8v0k9S13EgWtgPIbre/BGS9Xh5DmT0QJlACg==@lists.linux.dev
+X-Gm-Message-State: AOJu0Yyf7iZAmdUkwe8XTy7pXslRD84m48BVw1XIQ8HOXsIUXWyI+mYv
+	OufH1+Re/rjTuMDdHvOJe77rVmjHmNKWbQ30G8bw3Fee4VQfMBUUAuTy5EsWz/A=
+X-Google-Smtp-Source: AGHT+IHbdxRSD1sPI5JLKyTtMB4Ok5vqE859Zp3ofCigxPO4cBfVIBrjsI0N/b0/rh4D4OfFwNx4dg==
+X-Received: by 2002:adf:ab12:0:b0:37b:8b7c:107a with SMTP id ffacd0b85a97d-37b8b7c120bmr17728f8f.8.1727079361625;
+        Mon, 23 Sep 2024 01:16:01 -0700 (PDT)
+Received: from ?IPV6:2408:8409:2440:c1a:5215:bb45:d9a6:6f23? ([2408:8409:2440:c1a:5215:bb45:d9a6:6f23])
+        by smtp.gmail.com with ESMTPSA id d9443c01a7336-2079473e8a2sm129039435ad.251.2024.09.23.01.15.57
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Mon, 23 Sep 2024 01:16:01 -0700 (PDT)
+Message-ID: <0a4b798a-db82-40da-9167-141b684f43fa@suse.com>
+Date: Mon, 23 Sep 2024 16:15:53 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -33,116 +61,53 @@ List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH] ocfs2: Fix deadlock in ocfs2_get_system_file_inode
-To: Mohammed Anees <pvmohammedanees2003@gmail.com>,
- ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org
-Cc: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
- syzbot+e0055ea09f1f5e6fabdd@syzkaller.appspotmail.com
-References: <20240921175034.11222-1-pvmohammedanees2003@gmail.com>
+Subject: Re: [syzbot] [ocfs2?] kernel BUG in ocfs2_write_cluster_by_desc
 Content-Language: en-US
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <20240921175034.11222-1-pvmohammedanees2003@gmail.com>
-Content-Type: text/plain; charset=UTF-8
+To: syzbot <syzbot+18a87160c7d64ba2e2f6@syzkaller.appspotmail.com>
+References: <0000000000005ef449062240d69c@google.com>
+Cc: Joseph Qi <joseph.qi@linux.alibaba.com>, linux-kernel@vger.kernel.org,
+ ocfs2-devel@lists.linux.dev, Mohammed Anees <pvmohammedanees2003@gmail.com>,
+ syzkaller-bugs@googlegroups.com
+From: "heming.zhao@suse.com" <heming.zhao@suse.com>
+In-Reply-To: <0000000000005ef449062240d69c@google.com>
+Content-Type: text/plain; charset=UTF-8; format=flowed
 Content-Transfer-Encoding: 7bit
 
+Regarding the mail thread: [PATCH 2/2] osfs2: Fix kernel BUG in ocfs2_write_cluster
 
+Both ocfs2_search_chain and ocfs2_search_one_group call ocfs2_cluster_group_search to search for an extent cluster block. It seems that the ocfs2_cluster_group_search() sets wrong res->sr_bit_offset.
 
-On 9/22/24 1:50 AM, Mohammed Anees wrote:
-> syzbot has found a possible deadlock in ocfs2_get_system_file_inode [1].
-> 
-> The scenario is depicted here,
-> 
-> 	CPU0					CPU1
-> lock(&ocfs2_file_ip_alloc_sem_key);
->                                lock(&osb->system_file_mutex);
->                                lock(&ocfs2_file_ip_alloc_sem_key);
-> lock(&osb->system_file_mutex);
-> 
-> The function calls which could lead to this are:
-> 
-> CPU0
-> ocfs2_write_begin - lock(&ocfs2_file_ip_alloc_sem_key);
-> .
+Just from the code logic, in ocfs2_block_group_find_clear_bits(), the ocfs2_find_next_zero_bit() returns ZERO which can trigger this bug. But in the real world, this function never return 0, because the 0-bit is always set to 1 for the cluster-group itself.
 
+let's verify my thoughts.
 
-From the report link, it's ocfs2_mknod(), but not
-ocfs2_write_begin().
+#syz test
 
-> .
-> .
-> ocfs2_get_system_file_inode - lock(&osb->system_file_mutex);
-> 
-> CPU1 -
-> ocfs2_get_system_file_inode - lock(&osb->system_file_mutex);
-
-From the report link, it is in the flow of ocfs2_fill_super().
-I'm not sure how it actually happens since user has to mount ocfs2
-before doing any operations, e.g. create a file.
-Anyway, since many flows will call ocfs2_get_system_file_inode(),
-so it will theoretically happen.
-
-> .
-> .
-> .
-> ocfs2_read_virt_blocks - lock(&ocfs2_file_ip_alloc_sem_key);
-> 
-> This issue can be resolved by making the down_read -> down_read_try
-> in the ocfs2_read_virt_blocks.
-> 
-> [1] https://syzkaller.appspot.com/bug?extid=e0055ea09f1f5e6fabdd
-> 
-> Reported-and-tested-by: syzbot+e0055ea09f1f5e6fabdd@syzkaller.appspotmail.com
-> Closes: https://syzkaller.appspot.com/bug?extid=e0055ea09f1f5e6fabdd
-> Signed-off-by: Mohammed Anees <pvmohammedanees2003@gmail.com>
-> ---
->  fs/ocfs2/extent_map.c | 16 +++++++++++++++-
->  1 file changed, 15 insertions(+), 1 deletion(-)
-> 
-> diff --git a/fs/ocfs2/extent_map.c b/fs/ocfs2/extent_map.c
-> index 70a768b62..f83d0a3b6 100644
-> --- a/fs/ocfs2/extent_map.c
-> +++ b/fs/ocfs2/extent_map.c
-> @@ -12,6 +12,7 @@
->  #include <linux/slab.h>
->  #include <linux/types.h>
->  #include <linux/fiemap.h>
-> +#include <linux/delay.h>
->  
->  #include <cluster/masklog.h>
->  
-> @@ -961,6 +962,8 @@ int ocfs2_read_virt_blocks(struct inode *inode, u64 v_block, int nr,
->  	int rc = 0;
->  	u64 p_block, p_count;
->  	int i, count, done = 0;
-> +	int retries, max_retries = 5;
-> +	int retry_delay_ms = 30;
->  
->  	trace_ocfs2_read_virt_blocks(
->  	     inode, (unsigned long long)v_block, nr, bhs, flags,
-> @@ -973,7 +976,18 @@ int ocfs2_read_virt_blocks(struct inode *inode, u64 v_block, int nr,
->  	}
->  
->  	while (done < nr) {
-> -		down_read(&OCFS2_I(inode)->ip_alloc_sem);
-> +		retries = 0;
-> +		while (retries < max_retries) {
-> +			if (down_read_trylock(&OCFS2_I(inode)->ip_alloc_sem))
-> +				break; // Lock acquired
-> +			msleep(retry_delay_ms);
-> +			retries++;
-> +		}
-
-I'd like just use down_read_trylock() and fail directly if can't.
-
-Thanks,
-Joseph
-
-> +		if (retries == max_retries) {
-> +			rc = -EAGAIN;
-> +			mlog(ML_ERROR, "Cannot acquire lock\n");
-> +			break;
-> +		}
->  		rc = ocfs2_extent_map_get_blocks(inode, v_block + done,
->  						 &p_block, &p_count, NULL);
->  		up_read(&OCFS2_I(inode)->ip_alloc_sem);
-
+diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
+index f7b483f0de2a..d4e563281c9e 100644
+--- a/fs/ocfs2/suballoc.c
++++ b/fs/ocfs2/suballoc.c
+@@ -1346,13 +1346,17 @@ static int ocfs2_block_group_find_clear_bits(struct ocfs2_super *osb,
+  
+  	/* best_size will be allocated, we save prev_best_size */
+  	res->sr_max_contig_bits = prev_best_size;
+-	if (best_size) {
+-		res->sr_bit_offset = best_offset;
+-		res->sr_bits = best_size;
+-	} else {
++	if (!best_size) {
+  		status = -ENOSPC;
+-		/* No error log here -- see the comment above
+-		 * ocfs2_test_bg_bit_allocatable */
++	} else {
++		if (best_size) {
++			res->sr_bit_offset = best_offset;
++			res->sr_bits = best_size;
++		} else {
++			status = -ENOSPC;
++			/* No error log here -- see the comment above
++			 * ocfs2_test_bg_bit_allocatable */
++		}
+  	}
+  
+  	return status;
