@@ -1,132 +1,79 @@
-Received: from mail-oi1-f172.google.com (mail-oi1-f172.google.com [209.85.167.172])
+Received: from mail-il1-f199.google.com (mail-il1-f199.google.com [209.85.166.199])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 089E4199E80
-	for <ocfs2-devel@lists.linux.dev>; Mon, 23 Sep 2024 13:29:12 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.167.172
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 294DE2C95
+	for <ocfs2-devel@lists.linux.dev>; Mon, 23 Sep 2024 22:04:02 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.166.199
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1727098154; cv=none; b=r8UMG0FkTeJyR4SOowPF3B/pvSzxuijCWPoE2ypeP7AJ0pTNkBtsXoYzf+HgZIRZ1xZIS5WuyOuApnQYYXp46maj1v9Br8FeL8tPmOAsGSG0nBE5TickXaZ+i1FyDy/JlIw/es4FAzrNGBQtaHUIIXI8x5DqKUIfHfPkZ+oYZ40=
+	t=1727129044; cv=none; b=FHz4gApBpfYeiv1Kb/0VoCUipfiH+Yd6Co5RKNKvR1uQnEHIlfn9YB+87alfU6mlGHhrEp5YUziSOehSh5MKFpgEvqFq+1jAqu0SZTIgIhZiG4NCvwInZ4bXGdR3EHJN5yoVzSwBou0KQyVss9m83mkNsbbLx9VjLciaF6dv2cY=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1727098154; c=relaxed/simple;
-	bh=fA1caZBG5nKM86v8pgROglEl/a7P1ZoaIM8TTpkv+20=;
-	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=YrwSEKgH1yHKyR7Gmer66SGn8F/21fta3lnzA6unGrQYvvwfRHcscaBgr4E86oDH8BJnU2TZ92p3sch/32O6LhCQLcBq8voa34zCxK8HrGwyl4UlSkske372Xk2uZu4fD+jFSp5wJP4oL5w339lOjJwTliBUTjahzQQLaDN7Lig=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=FlpHlZ4k; arc=none smtp.client-ip=209.85.167.172
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="FlpHlZ4k"
-Received: by mail-oi1-f172.google.com with SMTP id 5614622812f47-3e034fac53bso1886789b6e.3
-        for <ocfs2-devel@lists.linux.dev>; Mon, 23 Sep 2024 06:29:12 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1727098152; x=1727702952; darn=lists.linux.dev;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:from:to:cc:subject:date:message-id:reply-to;
-        bh=ZXEl1hOP9YAeajQxkxfICFrSdnHviVjv168PjTg2DCA=;
-        b=FlpHlZ4kvaHZVkxAe8e/JMCeMvRlJ4o+uFojoflzfzwc7op8/xO8M1ZwyFtNo6leVo
-         A2fSgjlFGpA5CZ/9ZTF+u/IR4An2HbvgGdX+uwckOKEt2lo4uENmFfziDW1P+EfIEpri
-         RD+piAh5IROnDyKqgBz+/zk8rSAeuKfvby6AghQAiG2oL2g1igVcGI1Y+urJbhNotJt8
-         r+I37RpHmT9Wz6N1hSd/CeK2fdwvIxlhUKKdHe7B2KKwg+6wUe13JLqphdWMGuNl7lIr
-         4USLWAAMRjZFjscQLmRAZ3ojPDpFsnf3wyOK31tSV/5iGvKM6M7HoOcDDTKgcu1V5G/5
-         eIsw==
+	s=arc-20240116; t=1727129044; c=relaxed/simple;
+	bh=h/Kh/4ihRaTZWCDJUjsWAub24OCXdZphUlAwufe879E=;
+	h=MIME-Version:Date:In-Reply-To:Message-ID:Subject:From:To:
+	 Content-Type; b=dV7ZFhEO1S/rrd5q+CxLQiO6oJN8wgbilPWKyr2L4vDn8OGr3KCXsR8dZUBV8DaoovjCcTDe9gvzHc72iYEqtdgpJbHjZpt+ZZzk3d+HPwNlcwbIDITDsL9BZzys8fLt4+A9zagFEyTpyrWlPx7OuKBYPGlkQmljqz857DFTZnU=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.166.199
+Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
+Received: by mail-il1-f199.google.com with SMTP id e9e14a558f8ab-3a0a08aa0f1so66202485ab.0
+        for <ocfs2-devel@lists.linux.dev>; Mon, 23 Sep 2024 15:04:02 -0700 (PDT)
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1727098152; x=1727702952;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:x-gm-message-state:from:to:cc:subject:date:message-id
-         :reply-to;
-        bh=ZXEl1hOP9YAeajQxkxfICFrSdnHviVjv168PjTg2DCA=;
-        b=f/mgDZRPTdpFef6tXyaoKOpJ0GtyekEZUJIq1gv7S7mFGd6Dpxzd46x2Trjd4anBod
-         A5PWNevhIOVFHj9gcAqPyumPiJ2Efy4onfJIJrIi1KUZtqFmrYHuO6b/VP/GVtNEVoiV
-         oKBOgK2W2j9+5zYKRKIBYhYo0PyUqHxUnrvy8cCIYu8TWRbE7zbgp9p0YOiGsk1thPty
-         exiEZcIxYTZ51ATl+ZA9OWPVMU4DI6t8Eu0kpo1N0NGRv+i/WB/0MjgpLQIH3wjlYY0k
-         bJ6mdhz+Yn1l+Bu0XcjkFbvUe4ntXMic9R6AoRuEueFZ4d2ld3h2JADp4SCPWUmqRvR0
-         yCdA==
-X-Gm-Message-State: AOJu0YzEYdelY11KUftnZyvrmnEzOcQynafLVhbR21L233DocoVmqcEN
-	auq27F9WcCjUs9GAoLCJBnNc6ZLNYc/RMz9y6tHxcFkJObEK1K/HQqEdEwG0
-X-Google-Smtp-Source: AGHT+IEtMp1dtNK760vUQmqf5mZ8ZEYPjoY4hTHyW3phHAlm3RmlQ0e6Co508kW8A/IADca7dM7IvA==
-X-Received: by 2002:a05:6808:3089:b0:3e0:515c:ff5e with SMTP id 5614622812f47-3e271b8af16mr7995854b6e.1.1727098151727;
-        Mon, 23 Sep 2024 06:29:11 -0700 (PDT)
-Received: from archlinux.. ([2405:201:e00c:517f:5e87:9cff:fe63:6000])
-        by smtp.googlemail.com with ESMTPSA id 41be03b00d2f7-7db498d9850sm15154604a12.10.2024.09.23.06.29.08
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Mon, 23 Sep 2024 06:29:11 -0700 (PDT)
-From: Mohammed Anees <pvmohammedanees2003@gmail.com>
-To: ocfs2-devel@lists.linux.dev,
-	linux-kernel@vger.kernel.org
-Cc: Mark Fasheh <mark@fasheh.com>,
-	Joel Becker <jlbec@evilplan.org>,
-	Joseph Qi <joseph.qi@linux.alibaba.com>,
-	Mohammed Anees <pvmohammedanees2003@gmail.com>,
-	syzbot+e0055ea09f1f5e6fabdd@syzkaller.appspotmail.com
-Subject: [PATCH v2] ocfs2: Fix deadlock in ocfs2_get_system_file_inode
-Date: Mon, 23 Sep 2024 13:28:54 +0000
-Message-ID: <20240923132854.13936-1-pvmohammedanees2003@gmail.com>
-X-Mailer: git-send-email 2.46.0
+        d=1e100.net; s=20230601; t=1727129042; x=1727733842;
+        h=to:from:subject:message-id:in-reply-to:date:mime-version
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
+        bh=vQMax4HhqwTv6Gt4Rt+eMIQV9ULWIeqJRLKYlQdnQ3w=;
+        b=irP4WEq7kRsUS+WXmoB+V46/wZHwsb/BlTzWQeqXYlyRLdkkuqzlnhwJrG5zHCWA1X
+         x341vn8TIsV5blQczHY1h/fDU82WkRC8RmnlmUkEvPBX2x2CwnDTriwbTLim/QaQimX4
+         qfMqazkVlWolG0wSZPQlteTbmnlCxf8jMVOqOWMpyg9fcEy5dvAafxtRfOPQ5+EaWiOz
+         3HShZFxPDzpE/yI+mjzSG/pesxEXV7tqoRDwX823f4BAqPiD8Ir6RJ1v4sw3PdB82EtZ
+         p73QlNhZaquUadEDGLv27OJm83Sn8K0Xz/P6fk6xX9+xbO3F4wtSbkY9k7epSGJ9mhX8
+         F8xQ==
+X-Forwarded-Encrypted: i=1; AJvYcCWhmeH/8RqOLfhPvLYCwYv2xlyhtuxQhpWpxEANPqwmr3Ztsbwixmh8wgi3TQ25wV3onjCrPec8OlR6WQ==@lists.linux.dev
+X-Gm-Message-State: AOJu0YzfRflxQtCC9jaKs/ApNOs5Lw0dsCdrGGgrklGotGpzC5LEiKt/
+	YzYxHJYy/yHL7GP/n+AtVPyE6QcTrC4+tq8AmJzSP2kNKWKdAqLk3YoWtGkqlvejhiY6YyY26ZT
+	yNNDTfSvFJaR3VzCgepjIyegfRSKMR/GwubbrW+mWWiiLUbYYUKwGvJY=
+X-Google-Smtp-Source: AGHT+IHcOid/VFKx1yq8EM7fYZcnhzf2KHqDZPsgGE/+Ce1IK/o3bKwulkMGwU/7rKHTd0y5ctAOFNZTIVptWvAa//qymdmGDaZE
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+X-Received: by 2002:a05:6e02:1a2d:b0:3a0:9ea3:8d79 with SMTP id
+ e9e14a558f8ab-3a0c8d12eebmr110480395ab.16.1727129042225; Mon, 23 Sep 2024
+ 15:04:02 -0700 (PDT)
+Date: Mon, 23 Sep 2024 15:04:02 -0700
+In-Reply-To: <00000000000032dd730620055fde@google.com>
+X-Google-Appengine-App-Id: s~syzkaller
+X-Google-Appengine-App-Id-Alias: syzkaller
+Message-ID: <66f1e5d2.050a0220.3eed3.001a.GAE@google.com>
+Subject: Re: [syzbot] [ocfs2?] possible deadlock in ocfs2_try_remove_refcount_tree
+From: syzbot <syzbot+1fed2de07d8e11a3ec1b@syzkaller.appspotmail.com>
+To: djahchankoike@gmail.com, eadavis@qq.com, elic@nvidia.com, 
+	jasowang@redhat.com, jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
+	linux-kernel@vger.kernel.org, mark@fasheh.com, mst@redhat.com, 
+	ocfs2-devel@lists.linux.dev, ocfs2-devel@oss.oracle.com, parav@nvidia.com, 
+	syzkaller-bugs@googlegroups.com
+Content-Type: text/plain; charset="UTF-8"
 
-syzbot has found a possible deadlock in ocfs2_get_system_file_inode [1].
+syzbot has bisected this issue to:
 
-The scenario is depicted here,
+commit a3c06ae158dd6fa8336157c31d9234689d068d02
+Author: Parav Pandit <parav@nvidia.com>
+Date:   Tue Jan 5 10:32:03 2021 +0000
 
-	CPU0					CPU1
-lock(&ocfs2_file_ip_alloc_sem_key);
-                               lock(&osb->system_file_mutex);
-                               lock(&ocfs2_file_ip_alloc_sem_key);
-lock(&osb->system_file_mutex);
+    vdpa_sim_net: Add support for user supported devices
 
-The function calls which could lead to this are:
+bisection log:  https://syzkaller.appspot.com/x/bisect.txt?x=11f6ca27980000
+start commit:   de5cb0dcb74c Merge branch 'address-masking'
+git tree:       upstream
+final oops:     https://syzkaller.appspot.com/x/report.txt?x=13f6ca27980000
+console output: https://syzkaller.appspot.com/x/log.txt?x=15f6ca27980000
+kernel config:  https://syzkaller.appspot.com/x/.config?x=74ffdb3b3fad1a43
+dashboard link: https://syzkaller.appspot.com/bug?extid=1fed2de07d8e11a3ec1b
+syz repro:      https://syzkaller.appspot.com/x/repro.syz?x=12f23880580000
+C reproducer:   https://syzkaller.appspot.com/x/repro.c?x=15851c27980000
 
-CPU0
-ocfs2_mknod - lock(&ocfs2_file_ip_alloc_sem_key);
-.
-.
-.
-ocfs2_get_system_file_inode - lock(&osb->system_file_mutex);
+Reported-by: syzbot+1fed2de07d8e11a3ec1b@syzkaller.appspotmail.com
+Fixes: a3c06ae158dd ("vdpa_sim_net: Add support for user supported devices")
 
-CPU1 -
-ocfs2_file_super - lock(&osb->system_file_mutex);
-.
-.
-.
-ocfs2_read_virt_blocks - lock(&ocfs2_file_ip_alloc_sem_key);
-
-This issue can be resolved by making the down_read -> down_read_try
-in the ocfs2_read_virt_blocks.
-
-[1] https://syzkaller.appspot.com/bug?extid=e0055ea09f1f5e6fabdd
-
-Reported-and-tested-by: syzbot+e0055ea09f1f5e6fabdd@syzkaller.appspotmail.com
-Closes: https://syzkaller.appspot.com/bug?extid=e0055ea09f1f5e6fabdd
-Signed-off-by: Mohammed Anees <pvmohammedanees2003@gmail.com>
----
-v2:
-- Remove retries when doing down_read_trylock() and fail directly
----
- fs/ocfs2/extent_map.c | 7 ++++++-
- 1 file changed, 6 insertions(+), 1 deletions(-)
-
-diff --git a/fs/ocfs2/extent_map.c b/fs/ocfs2/extent_map.c
-index 70a768b62..48919464a 100644
---- a/fs/ocfs2/extent_map.c
-+++ b/fs/ocfs2/extent_map.c
-@@ -973,7 +973,12 @@ int ocfs2_read_virt_blocks(struct inode *inode, u64 v_block, int nr,
- 	}
- 
- 	while (done < nr) {
--		down_read(&OCFS2_I(inode)->ip_alloc_sem);
-+		if (!down_read_trylock(&OCFS2_I(inode)->ip_alloc_sem))
-+			rc = -EAGAIN;
-+		if (rc) {
-+			mlog(ML_ERROR, "Resource is temporarily unavailable\n");
-+			break;
-+		}
- 		rc = ocfs2_extent_map_get_blocks(inode, v_block + done,
- 						 &p_block, &p_count, NULL);
- 		up_read(&OCFS2_I(inode)->ip_alloc_sem);
--- 
-2.46.0
+For information about bisection process see: https://goo.gl/tpsmEJ#bisection
