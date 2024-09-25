@@ -1,31 +1,31 @@
-Received: from out30-131.freemail.mail.aliyun.com (out30-131.freemail.mail.aliyun.com [115.124.30.131])
+Received: from out30-118.freemail.mail.aliyun.com (out30-118.freemail.mail.aliyun.com [115.124.30.118])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 98CD5946F
-	for <ocfs2-devel@lists.linux.dev>; Wed, 25 Sep 2024 02:24:26 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.131
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 69011647
+	for <ocfs2-devel@lists.linux.dev>; Wed, 25 Sep 2024 02:42:50 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.118
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1727231069; cv=none; b=Lxr88fpvcHlHEPietoqmvwh2JAGmf5IhE/MEqg6FiLPWNcI0blfamz+52wlUllIEJYp5gxpQkeXtNMirrjvTKPkiE15ADwyNwI2CyXgpl9whZYdbNOGZ6eBPhA9Khtmbg5k7d8zxz1SWX1f6cGxDEtpgpyzcvaH1NvHBjDnw8z0=
+	t=1727232174; cv=none; b=O5gvpfVmCMY5jtmW9Izi5MaJ9/VD2U7mlrYsbZilJV+CWY4S0FoJvcGTZg8Tg+I0PWaEG10WUEtjKd+3L95IdjxTOtRq2FA2v5XtFJY3oxZ5BG3BI5KVyyuI8R/65CZNkHbewpRQSfDkyBHPebqhW3+yOcd8vxplVRqBqJi6Y8k=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1727231069; c=relaxed/simple;
-	bh=1hfjPVR8xYUNEGOQYEwDTU/sigNSviBYkdwpcTH1enA=;
+	s=arc-20240116; t=1727232174; c=relaxed/simple;
+	bh=pk16FU0jqCWEz5qwZOqKQ5LOhMBth8LFh3+8dptD44A=;
 	h=Message-ID:Date:MIME-Version:Subject:To:References:From:
-	 In-Reply-To:Content-Type; b=mAgRltLDwF9UkALOo0VewhtAHFvNkpVnsuVrfXFx8Zf/DIcyGCRIDHix/LRs4q9v3kU5jwS1Mk9+OEoBKM/mSfl0g/FyDhaGRd12ud61gNU0cuIwhdmVLLS54FDk8Pen4Hgjlaq0GlSqOeXSHXSKYpzjb6QUtT1TeJ1EpjJJAzA=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=vBxbZb4U; arc=none smtp.client-ip=115.124.30.131
+	 In-Reply-To:Content-Type; b=V+Vu6RDh8lrqSxiz2RVL4TH8A9zjeHfw47YyyG8AcHmKWsTvfE8ipkZS7MMdHhccTEjIdZbs3DAw9oVliPyVjM1ZczNVvVwnMZIWibIGd3nIZ3zxg+9/q1N1YNcMJbgrkwjaoqgkpN8ZBsR3NGdZ8RvtalH/+Z6uUqCBnRHCz7s=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=JxETSPJY; arc=none smtp.client-ip=115.124.30.118
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="vBxbZb4U"
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="JxETSPJY"
 DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
 	d=linux.alibaba.com; s=default;
-	t=1727231058; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=ctPCbbIrXfLhie32yFDtiMEmUEiu5OCZekEIljzc/7k=;
-	b=vBxbZb4Usv7aZtO2fAWl8xfJhp6BkUt3GX+HT8ywbhTOCWLlKfPl2Br0u7mw6479NUqQXj3SLGE8yLiD+TrzsfC3YmKMLD88TQQn6ztZNOPvM39DrgIxXH/UBy0R+kM2KQyFKRCaciO/LiylQ0e9Xo5elvtV+sNhoiLkhQzRNH4=
-Received: from 30.221.129.244(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0WFhmHNe_1727230740)
+	t=1727232168; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=tjVC1aUdoTmdruYGqSmUnsIu8sHZfc2Gkh6qidXwjCw=;
+	b=JxETSPJYyQBNCn5JuUcbaCY2QFOo+Diydh05rQDVjGTpzuA15zBKx47hjy8ApRcXLHVSmE/5Qvf5xZbqIED3pFWlqHDjXXl5XdsbClvqR2L0Zfd3fbV1fjpOvGFTrpJWUtO1sLcUmW+XiVSS6i534HZ+Myqf/4YgP+YUpqXYLjo=
+Received: from 30.221.129.244(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0WFi1x5u_1727232167)
           by smtp.aliyun-inc.com;
-          Wed, 25 Sep 2024 10:19:00 +0800
-Message-ID: <3a4a1d88-0a5c-4636-ace9-ffc269c64d4b@linux.alibaba.com>
-Date: Wed, 25 Sep 2024 10:19:00 +0800
+          Wed, 25 Sep 2024 10:42:48 +0800
+Message-ID: <6e7d21ec-f4c0-4c94-85b1-afa308fdcdba@linux.alibaba.com>
+Date: Wed, 25 Sep 2024 10:42:47 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -47,23 +47,24 @@ Content-Transfer-Encoding: 7bit
 This blames p_blkno is uninitialized when ocfs2_extent_map_get_blocks()
 fails.
 
-#syz test: upstream
+#syz test
 
 diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
 index 1fea43c33b6b..db72b3e924b3 100644
 --- a/fs/ocfs2/aops.c
 +++ b/fs/ocfs2/aops.c
 @@ -156,9 +156,8 @@ int ocfs2_get_block(struct inode *inode, sector_t iblock,
-        err = ocfs2_extent_map_get_blocks(inode, iblock, &p_blkno, &count,
-                                          &ext_flags);
-        if (err) {
--               mlog(ML_ERROR, "Error %d from get_blocks(0x%p, %llu, 1, "
--                    "%llu, NULL)\n", err, inode, (unsigned long long)iblock,
--                    (unsigned long long)p_blkno);
-+               mlog(ML_ERROR, "get_blocks() failed, inode: 0x%p, "
-+                    "block: %llu\n", inode, (unsigned long long)iblock);
-                goto bail;
-        }
+ 	err = ocfs2_extent_map_get_blocks(inode, iblock, &p_blkno, &count,
+ 					  &ext_flags);
+ 	if (err) {
+-		mlog(ML_ERROR, "Error %d from get_blocks(0x%p, %llu, 1, "
+-		     "%llu, NULL)\n", err, inode, (unsigned long long)iblock,
+-		     (unsigned long long)p_blkno);
++		mlog(ML_ERROR, "get_blocks() failed, inode: 0x%p, "
++		     "block: %llu\n", inode, (unsigned long long)iblock);
+ 		goto bail;
+ 	}
+
 
 On 9/25/24 9:28 AM, syzbot wrote:
 > Hello,
