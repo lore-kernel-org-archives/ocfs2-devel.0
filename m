@@ -1,51 +1,51 @@
 Received: from mail-il1-f199.google.com (mail-il1-f199.google.com [209.85.166.199])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5E03238F97
-	for <ocfs2-devel@lists.linux.dev>; Sat, 28 Sep 2024 19:49:30 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 244A2155392
+	for <ocfs2-devel@lists.linux.dev>; Sat, 28 Sep 2024 20:44:26 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.166.199
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1727552971; cv=none; b=txBP14W90/TPpCiXTO8bGGFZf/+wxLvGIQP9sqcbHm+y+QPpg58QNqfdcyipfT6NcODduSXwdT9S2p2dloFnOLGA+pB+UvDSjR4hNvzQD7OIhlWUczIlW/w9uD2aIaDp6h4TOnu7HUGZZbi7afUDuOY4ytpSPkWtCOV5hA39chk=
+	t=1727556268; cv=none; b=t7q4rFFmeHWNuz21Awxsmk2wwpW31E8KxAK9BJHKXvccY+SgRolRwbyILbnDZJnhHtiqNlOVRASe6G/KffUOdiN9HtZLtCD/dlCRgeBuU89FglNt6SH981zsbKcwEXUp60OL4ax0yFrNMQTreMRiOhvHihum4qkVLjSDwxED0TI=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1727552971; c=relaxed/simple;
-	bh=6FlHeSW3PTIX1u1iE/uqFaOyn9oWo+au0hXrLQrWoE8=;
-	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=lWfpZW47F56Zy27YnSM7tMXmW7I6WXCK2G3c8j34EifYnrP6FvQV3HdYhoiR7bF7CTxLmDrcgf7V1Te402Bb787QleIu9T155fg5c7gnzpmvsHdBbYTzc8OomkD2M5EL6HQipn9LtZIkTKrhIgNkwinSPzvIlE3sroBu92AZJA8=
+	s=arc-20240116; t=1727556268; c=relaxed/simple;
+	bh=xK92XJKpvl2jznIpsqasxgaiZMbexEahTGhd22IAd+0=;
+	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=YZUMwNin8WOpluZE5Hd1KeJGN3eKy9ZmqHjz07k5PPV5sx1rN/ENfjobXwfTb1De6bJ9ZW4ygFN6gOLYIvzqJFE7j7UMEo4V2LqqvW/KvVU1911widVhxCNPYFPzfPuDnTOkC6dH6reMDP8ohcjDgrjfUS6pnjblPWhwVFgg2jU=
 ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.166.199
 Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
-Received: by mail-il1-f199.google.com with SMTP id e9e14a558f8ab-3a342e7e49cso41332535ab.0
-        for <ocfs2-devel@lists.linux.dev>; Sat, 28 Sep 2024 12:49:30 -0700 (PDT)
+Received: by mail-il1-f199.google.com with SMTP id e9e14a558f8ab-3a0ce7e621aso31726385ab.1
+        for <ocfs2-devel@lists.linux.dev>; Sat, 28 Sep 2024 13:44:26 -0700 (PDT)
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1727552969; x=1728157769;
+        d=1e100.net; s=20230601; t=1727556266; x=1728161066;
         h=to:from:subject:message-id:date:mime-version:x-gm-message-state
          :from:to:cc:subject:date:message-id:reply-to;
-        bh=U1Y2nY2DxZJa6WbAmluQE8FAM91TucuqHCkoV2WObGQ=;
-        b=XA1oYlFqFq99EaGvin1OOrxL3lDqi3rRgb3pZWVXaUPpod2qyg5v3Zxr3lftKITzFC
-         /oJUOzm+HKlDV9XQQPzVOXHiLR+NmnI+by9iQwE5jLi8SZbd/5Y5OLovY0sN4EKkJ40j
-         UqgevufCfyv4UsEtrsdKii+mtpsp8t6znCoKbOGqek3wVyfpBTg5BTQuo8bSngUNUeu9
-         a+kZfv/YWTYHV+98/54qh0yLajumvosfw7VQU3bopMSXkYWOub3JZcyLebNJ0lATIANZ
-         5lWNGsXXUArSfzIR+9OmHVQaxDp7nLPsVtuKGXh+QkQJbCmKMrbmKQdntD2A/4tY74qF
-         mfag==
-X-Forwarded-Encrypted: i=1; AJvYcCUmUEnG1KtwaPeAU4ou1Ny85ggtOKE63Q5RkqhcQNXroZCG7Q5zZeAKqro3nFxL/R7aZZxwoVl3VfSmmg==@lists.linux.dev
-X-Gm-Message-State: AOJu0Yw3SF903/QEIsi7QYA2Ci0/IA0OxXq4Iz3kpH10hLLDG8JYwZa2
-	Ilq9na7lmVyLE5ZCcoPKbLugQwzcAOzuFD2DKFojPAa2jSaM+eylEJdk62zDlqEF4kR0zDyQjLh
-	hNMNTun1J/SxhE4hpcEPNDRSgBWdYFe70sNupRPEAE+N4v3fSiRNeiSA=
-X-Google-Smtp-Source: AGHT+IFNfHhNY9rbX5RHJ0LgkrEPamonjFF/fhkhcNKiv6P24aCAbDGYkjwgj18jKn3Ou1vN17MuARB28mvMQ15cKR8lGlhmnMDc
+        bh=B9DhHbIR63gmvOumtrcegz/GcZHaECsxMzy9DdG8O6Y=;
+        b=ZjPGAoUrpwegVLo7pFKnH9auTSl5NNxqQqmCtaA7qifxDApSAreXfPVH0s6nwn7gTW
+         kpxkPbiMy8nUjWjTNpA6FQX02r19UnFTaFtq7KYhcaPwaa/v30WK/wbhvHXQfl/leLfA
+         IcOBKW4ZnGhZY8fHKNdrSbsYtpgmczww1RLlo3JxJJePf+kLzhbDJ+a2BR+m938F0sWy
+         anvb8JN1Xn0gcCNijBQraKW0M+4LC5UfE7tQxW1/jTqxtHGCr/PwKefNXyIEonVtswGh
+         4ESSXv9cTP+XwRRizE8JmiQUB2xuULuke5owo3Xixshy+KIR2O26CLR3h9HW9c1NiRJ8
+         OEOw==
+X-Forwarded-Encrypted: i=1; AJvYcCX7/7HzfrERW2HMN6CB+jwRjMlZ1LjR++DmC0OBqgA4HWYnEl3dMIYaDPdC9dhK1fJG7ZK3iB2QIPjBqg==@lists.linux.dev
+X-Gm-Message-State: AOJu0YxsVf7/E9MQboknP6yk5SMUL6tU/dn3qzyh2SiZhQwIv2xpt0Zj
+	kev3jXGgVVVypmze/V41nCW3haFVt5MK/Y5CjaLaQWVwzZ2CSM8U2akXbcEz9RuD5y//DuEOCX2
+	XWeOwLXRtTdOfI4pMdoYZDkZIJP8Erw+gTo05bHzlsLkVqdxd+BGKj1A=
+X-Google-Smtp-Source: AGHT+IH9uy43cE84OGkK4+G7+6S+jrXHy7Ngr4SCn/n87lL0UH3lbuPaT/7/vfnruhVrQZPq7Ku79nf3YcR2E4xYE9xStjeZ2mAS
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-X-Received: by 2002:a05:6e02:1445:b0:3a0:933d:d307 with SMTP id
- e9e14a558f8ab-3a34516a172mr58437585ab.8.1727552969544; Sat, 28 Sep 2024
- 12:49:29 -0700 (PDT)
-Date: Sat, 28 Sep 2024 12:49:29 -0700
+X-Received: by 2002:a05:6e02:17ca:b0:39d:4ef6:b36d with SMTP id
+ e9e14a558f8ab-3a345166ea6mr58883555ab.7.1727556266161; Sat, 28 Sep 2024
+ 13:44:26 -0700 (PDT)
+Date: Sat, 28 Sep 2024 13:44:26 -0700
 X-Google-Appengine-App-Id: s~syzkaller
 X-Google-Appengine-App-Id-Alias: syzkaller
-Message-ID: <66f85dc9.050a0220.aab67.0007.GAE@google.com>
-Subject: [syzbot] [ocfs2?] kernel BUG in ocfs2_truncate_log_needs_flush
-From: syzbot <syzbot+e1e7130b99d8a4ac02e4@syzkaller.appspotmail.com>
+Message-ID: <66f86aaa.050a0220.4a974.000e.GAE@google.com>
+Subject: [syzbot] [ocfs2?] KASAN: use-after-free Read in __ocfs2_flush_truncate_log
+From: syzbot <syzbot+4d55dad3a9e8e9f7d2b5@syzkaller.appspotmail.com>
 To: jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
 	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
 	syzkaller-bugs@googlegroups.com
@@ -57,79 +57,105 @@ syzbot found the following issue on:
 
 HEAD commit:    abf2050f51fd Merge tag 'media/v6.12-1' of git://git.kernel..
 git tree:       upstream
-console output: https://syzkaller.appspot.com/x/log.txt?x=10f9b107980000
+console output: https://syzkaller.appspot.com/x/log.txt?x=1603b107980000
 kernel config:  https://syzkaller.appspot.com/x/.config?x=bc30a30374b0753
-dashboard link: https://syzkaller.appspot.com/bug?extid=e1e7130b99d8a4ac02e4
+dashboard link: https://syzkaller.appspot.com/bug?extid=4d55dad3a9e8e9f7d2b5
 compiler:       Debian clang version 15.0.6, GNU ld (GNU Binutils for Debian) 2.40
-
-Unfortunately, I don't have any reproducer for this issue yet.
+syz repro:      https://syzkaller.appspot.com/x/repro.syz?x=1507aa27980000
+C reproducer:   https://syzkaller.appspot.com/x/repro.c?x=12d2c99f980000
 
 Downloadable assets:
 disk image (non-bootable): https://storage.googleapis.com/syzbot-assets/7bc7510fe41f/non_bootable_disk-abf2050f.raw.xz
 vmlinux: https://storage.googleapis.com/syzbot-assets/2179ebeade58/vmlinux-abf2050f.xz
 kernel image: https://storage.googleapis.com/syzbot-assets/f05289b5cf7c/bzImage-abf2050f.xz
+mounted in repro: https://storage.googleapis.com/syzbot-assets/fd7a8b92de34/mount_0.gz
 
 IMPORTANT: if you fix the issue, please add the following tag to the commit:
-Reported-by: syzbot+e1e7130b99d8a4ac02e4@syzkaller.appspotmail.com
+Reported-by: syzbot+4d55dad3a9e8e9f7d2b5@syzkaller.appspotmail.com
 
-(syz.0.0,5112,0):ocfs2_truncate_log_needs_flush:5822 ERROR: bug expression: le16_to_cpu(tl->tl_used) > le16_to_cpu(tl->tl_count)
-(syz.0.0,5112,0):ocfs2_truncate_log_needs_flush:5822 ERROR: slot 0, invalid truncate log parameters: used = 64512, count = 39
-------------[ cut here ]------------
-kernel BUG at fs/ocfs2/alloc.c:5822!
-Oops: invalid opcode: 0000 [#1] PREEMPT SMP KASAN NOPTI
-CPU: 0 UID: 0 PID: 5112 Comm: syz.0.0 Not tainted 6.11.0-syzkaller-09959-gabf2050f51fd #0
+==================================================================
+BUG: KASAN: use-after-free in ocfs2_replay_truncate_records fs/ocfs2/alloc.c:5959 [inline]
+BUG: KASAN: use-after-free in __ocfs2_flush_truncate_log+0x824/0x1250 fs/ocfs2/alloc.c:6054
+Read of size 4 at addr ffff888045e6fac0 by task kworker/u4:3/41
+
+CPU: 0 UID: 0 PID: 41 Comm: kworker/u4:3 Not tainted 6.11.0-syzkaller-09959-gabf2050f51fd #0
 Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.16.3-debian-1.16.3-2~bpo12+1 04/01/2014
-RIP: 0010:ocfs2_truncate_log_needs_flush+0x312/0x320 fs/ocfs2/alloc.c:5819
-Code: 0f b7 00 4c 89 f7 48 c7 c6 42 42 11 8e ba be 16 00 00 48 c7 c1 60 0a 49 8c 45 89 e0 41 89 d9 50 e8 d3 aa 20 00 48 83 c4 08 90 <0f> 0b e8 c7 30 41 08 0f 1f 80 00 00 00 00 90 90 90 90 90 90 90 90
-RSP: 0018:ffffc90003727540 EFLAGS: 00010292
-RAX: 72ffad2bcd159b00 RBX: 000000000000fc00 RCX: 72ffad2bcd159b00
-RDX: 0000000000000000 RSI: 0000000080000000 RDI: 0000000000000000
-RBP: ffffc90003727610 R08: ffffffff81746c8c R09: 1ffff920006e4e18
-R10: dffffc0000000000 R11: fffff520006e4e19 R12: 0000000000000000
-R13: ffff888000503ac2 R14: ffffc900037275a0 R15: 1000000000000000
-FS:  00007f582a3f36c0(0000) GS:ffff88801fc00000(0000) knlGS:0000000000000000
-CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-CR2: 00007f582a3f2f98 CR3: 000000003f8ac000 CR4: 0000000000350ef0
-DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
-DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+Workqueue: ocfs2_wq ocfs2_truncate_log_worker
 Call Trace:
  <TASK>
- ocfs2_xattr_set+0xeab/0x1930 fs/ocfs2/xattr.c:3625
- __vfs_setxattr+0x468/0x4a0 fs/xattr.c:200
- __vfs_setxattr_noperm+0x12e/0x660 fs/xattr.c:234
- vfs_setxattr+0x221/0x430 fs/xattr.c:321
- do_setxattr fs/xattr.c:629 [inline]
- path_setxattr+0x37e/0x4d0 fs/xattr.c:658
- __do_sys_setxattr fs/xattr.c:676 [inline]
- __se_sys_setxattr fs/xattr.c:672 [inline]
- __x64_sys_setxattr+0xbb/0xd0 fs/xattr.c:672
+ __dump_stack lib/dump_stack.c:94 [inline]
+ dump_stack_lvl+0x241/0x360 lib/dump_stack.c:120
+ print_address_description mm/kasan/report.c:377 [inline]
+ print_report+0x169/0x550 mm/kasan/report.c:488
+ kasan_report+0x143/0x180 mm/kasan/report.c:601
+ ocfs2_replay_truncate_records fs/ocfs2/alloc.c:5959 [inline]
+ __ocfs2_flush_truncate_log+0x824/0x1250 fs/ocfs2/alloc.c:6054
+ ocfs2_flush_truncate_log fs/ocfs2/alloc.c:6076 [inline]
+ ocfs2_truncate_log_worker+0xa2/0x1b0 fs/ocfs2/alloc.c:6089
+ process_one_work kernel/workqueue.c:3229 [inline]
+ process_scheduled_works+0xa63/0x1850 kernel/workqueue.c:3310
+ worker_thread+0x870/0xd30 kernel/workqueue.c:3391
+ kthread+0x2f0/0x390 kernel/kthread.c:389
+ ret_from_fork+0x4b/0x80 arch/x86/kernel/process.c:147
+ ret_from_fork_asm+0x1a/0x30 arch/x86/entry/entry_64.S:244
+ </TASK>
+
+The buggy address belongs to the physical page:
+page: refcount:0 mapcount:0 mapping:0000000000000000 index:0x4d pfn:0x45e6f
+flags: 0x4fff00000000000(node=1|zone=1|lastcpupid=0x7ff)
+raw: 04fff00000000000 ffffea0001179b88 ffffea0001179c08 0000000000000000
+raw: 000000000000004d 0000000000000000 00000000ffffffff 0000000000000000
+page dumped because: kasan: bad access detected
+page_owner tracks the page as freed
+page last allocated via order 0, migratetype Movable, gfp_mask 0x140cca(GFP_HIGHUSER_MOVABLE|__GFP_COMP), pid 5109, tgid 5109 (syz-executor412), ts 88738057363, free_ts 88913146991
+ set_page_owner include/linux/page_owner.h:32 [inline]
+ post_alloc_hook+0x1f3/0x230 mm/page_alloc.c:1537
+ prep_new_page mm/page_alloc.c:1545 [inline]
+ get_page_from_freelist+0x3045/0x3190 mm/page_alloc.c:3457
+ __alloc_pages_noprof+0x256/0x6c0 mm/page_alloc.c:4733
+ alloc_pages_mpol_noprof+0x3e8/0x680 mm/mempolicy.c:2265
+ folio_alloc_mpol_noprof+0x36/0x50 mm/mempolicy.c:2283
+ shmem_alloc_folio mm/shmem.c:1774 [inline]
+ shmem_alloc_and_add_folio+0x49b/0x13d0 mm/shmem.c:1813
+ shmem_get_folio_gfp+0x5a9/0x20a0 mm/shmem.c:2335
+ shmem_get_folio mm/shmem.c:2441 [inline]
+ shmem_write_begin+0x17e/0x460 mm/shmem.c:3046
+ generic_perform_write+0x344/0x6d0 mm/filemap.c:4050
+ shmem_file_write_iter+0xf9/0x120 mm/shmem.c:3221
+ new_sync_write fs/read_write.c:590 [inline]
+ vfs_write+0xa6d/0xc90 fs/read_write.c:683
+ ksys_write+0x183/0x2b0 fs/read_write.c:736
  do_syscall_x64 arch/x86/entry/common.c:52 [inline]
  do_syscall_64+0xf3/0x230 arch/x86/entry/common.c:83
  entry_SYSCALL_64_after_hwframe+0x77/0x7f
-RIP: 0033:0x7f582957def9
-Code: ff ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 40 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 a8 ff ff ff f7 d8 64 89 01 48
-RSP: 002b:00007f582a3f3038 EFLAGS: 00000246 ORIG_RAX: 00000000000000bc
-RAX: ffffffffffffffda RBX: 00007f5829736058 RCX: 00007f582957def9
-RDX: 00000000200013c0 RSI: 0000000020000140 RDI: 0000000020000100
-RBP: 00007f58295f0b76 R08: 0000000000000000 R09: 0000000000000000
-R10: 0000000000000700 R11: 0000000000000246 R12: 0000000000000000
-R13: 0000000000000001 R14: 00007f5829736058 R15: 00007ffca764d158
- </TASK>
-Modules linked in:
----[ end trace 0000000000000000 ]---
-RIP: 0010:ocfs2_truncate_log_needs_flush+0x312/0x320 fs/ocfs2/alloc.c:5819
-Code: 0f b7 00 4c 89 f7 48 c7 c6 42 42 11 8e ba be 16 00 00 48 c7 c1 60 0a 49 8c 45 89 e0 41 89 d9 50 e8 d3 aa 20 00 48 83 c4 08 90 <0f> 0b e8 c7 30 41 08 0f 1f 80 00 00 00 00 90 90 90 90 90 90 90 90
-RSP: 0018:ffffc90003727540 EFLAGS: 00010292
-RAX: 72ffad2bcd159b00 RBX: 000000000000fc00 RCX: 72ffad2bcd159b00
-RDX: 0000000000000000 RSI: 0000000080000000 RDI: 0000000000000000
-RBP: ffffc90003727610 R08: ffffffff81746c8c R09: 1ffff920006e4e18
-R10: dffffc0000000000 R11: fffff520006e4e19 R12: 0000000000000000
-R13: ffff888000503ac2 R14: ffffc900037275a0 R15: 1000000000000000
-FS:  00007f582a3f36c0(0000) GS:ffff88801fc00000(0000) knlGS:0000000000000000
-CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-CR2: 0000000000000000 CR3: 000000003f8ac000 CR4: 0000000000350ef0
-DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
-DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+page last free pid 5109 tgid 5109 stack trace:
+ reset_page_owner include/linux/page_owner.h:25 [inline]
+ free_pages_prepare mm/page_alloc.c:1108 [inline]
+ free_unref_folios+0xf12/0x18d0 mm/page_alloc.c:2686
+ folios_put_refs+0x76c/0x860 mm/swap.c:1007
+ folio_batch_release include/linux/pagevec.h:101 [inline]
+ shmem_undo_range+0x64c/0x1cf0 mm/shmem.c:1032
+ shmem_truncate_range mm/shmem.c:1144 [inline]
+ shmem_evict_inode+0x29b/0xa80 mm/shmem.c:1272
+ evict+0x4e8/0x9b0 fs/inode.c:723
+ __dentry_kill+0x20d/0x630 fs/dcache.c:615
+ dput+0x19f/0x2b0 fs/dcache.c:857
+ __fput+0x5d2/0x880 fs/file_table.c:439
+ __do_sys_close fs/open.c:1565 [inline]
+ __se_sys_close fs/open.c:1550 [inline]
+ __x64_sys_close+0x7f/0x110 fs/open.c:1550
+ do_syscall_x64 arch/x86/entry/common.c:52 [inline]
+ do_syscall_64+0xf3/0x230 arch/x86/entry/common.c:83
+ entry_SYSCALL_64_after_hwframe+0x77/0x7f
+
+Memory state around the buggy address:
+ ffff888045e6f980: ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+ ffff888045e6fa00: ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+>ffff888045e6fa80: ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+                                           ^
+ ffff888045e6fb00: ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+ ffff888045e6fb80: ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+==================================================================
 
 
 ---
@@ -142,6 +168,10 @@ https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
 
 If the report is already addressed, let syzbot know by replying with:
 #syz fix: exact-commit-title
+
+If you want syzbot to run the reproducer, reply with:
+#syz test: git://repo/address.git branch-or-commit-hash
+If you attach or paste a git patch, syzbot will apply it before testing.
 
 If you want to overwrite report's subsystems, reply with:
 #syz set subsystems: new-subsystem
