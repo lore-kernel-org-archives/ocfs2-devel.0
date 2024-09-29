@@ -1,54 +1,54 @@
-Received: from mail-io1-f71.google.com (mail-io1-f71.google.com [209.85.166.71])
+Received: from mail-il1-f199.google.com (mail-il1-f199.google.com [209.85.166.199])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4F4361E507
-	for <ocfs2-devel@lists.linux.dev>; Sun, 29 Sep 2024 15:22:31 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.166.71
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2F2C517BED0
+	for <ocfs2-devel@lists.linux.dev>; Sun, 29 Sep 2024 17:12:32 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.166.199
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1727623352; cv=none; b=ECSRhTy7LQCky7gpIwqfoCKJafUTxxxyH1ZI199faBcqufe4Tqf3kO+B4uasaoKg59ssaEkmNp0RR8iDaVB3mzO3SkXNT1anJGeJ6z4kBDc7UYt49TXE/FDPNlewiiuljBo8IyfnB5ccjq4gXUVIJh8Sy/+kn3/wJgi9jOk2ZOs=
+	t=1727629954; cv=none; b=cHjvAP+bGA5TYJke9m6/+qZ3FxVUFPoRuGbS4HsCjpNN6Wh/ZWLg2mZ6e+VVTvT1ExK3Jpy7CEIftD2aTzob289VPuC3JbdA6PUKTNI/QwzQsC4YdmTNGv/ZDKap/9FACBcWdEpoScy8rJSrU300J1pdB2LWivtdh9tc3zgXSKg=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1727623352; c=relaxed/simple;
-	bh=2ex9y0UsAPBlrPOfl1FUXYE5dT3frzyx3jDpwpdno7I=;
-	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=OhWHaW18uG9dAcK/hknbBufz6IG8/wLcfcj+c8+wIn09Nthpjm+ldiXzDz6ehhgPFieIxcYs9uV/sNGma5vuxG3NBwAyL3H5bSbUtZIahKEjbzaN0gxAJJLNGq2jOhIYLg4vhMBSNiinDISYT/+IbeRXrohi3+tHSRXVRWFfZkE=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.166.71
+	s=arc-20240116; t=1727629954; c=relaxed/simple;
+	bh=EaXRUEmfB79k/Z0BeIOPUDzlzgGDwf/cukr9QkhFr/w=;
+	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=XkO0RYx2ylGi8AJbFzkFaAchB7gw/XgTXVgLKCJBjS5mmnGyTfHzD+Gfs+jDSmPAXvjPtYtaAafNB+B12yex7XP03gq3HOAcgyTl2s4AWpLxeilm+p9HG/T1Oxd8PLo2MwzQ8lClk/iPo60swUDBVxB554FXiO6QWT78G3E7geo=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.166.199
 Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
-Received: by mail-io1-f71.google.com with SMTP id ca18e2360f4ac-8324396d0abso320179139f.0
-        for <ocfs2-devel@lists.linux.dev>; Sun, 29 Sep 2024 08:22:31 -0700 (PDT)
+Received: by mail-il1-f199.google.com with SMTP id e9e14a558f8ab-3a3440fc2d3so29933915ab.2
+        for <ocfs2-devel@lists.linux.dev>; Sun, 29 Sep 2024 10:12:32 -0700 (PDT)
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1727623350; x=1728228150;
+        d=1e100.net; s=20230601; t=1727629952; x=1728234752;
         h=to:from:subject:message-id:date:mime-version:x-gm-message-state
          :from:to:cc:subject:date:message-id:reply-to;
-        bh=HKwGfbNeJAtsIYhH979/UVUtLhmIoByeYMt6WVw6JG0=;
-        b=O+cDSZcImsxH331DHtauMoQEQ3mSqEpPkU2o568RkkdZTCx2h7yMd0GmOhgNSyHXLR
-         AG1MbhH5edbP4Kc9NmM3OHGiTCjBHviFCX4+BWkfagz5AUSlPIQ3ujUdyZW2P0bV8Vrk
-         FCZe7vWwzE1pAtTcKA0gX87lvIsl06mJ8MPmdVFP8SDqt7E0jEw8M54FOYV0xwDsYFO7
-         237GtxMDhKfB/aVi5ybNOEjO2wpxOSiLTj2udDIbZD+LVI6xDBDMyuw4Nkpe9AxvmlKb
-         Pm0O7Iw0z4L3SvVdpvIu0fKQEj5wom12kcg0y0ZNQIUt/mgGI8EM97tWaNBj5/U7ydYg
-         iZpw==
-X-Forwarded-Encrypted: i=1; AJvYcCW1AncLlCJDymj8FkR9n7elCG53Foapb1T1b0I9xLyUZYuhWYXJnljs0URV5QvgZUtNwkMrfUPnZfvJBg==@lists.linux.dev
-X-Gm-Message-State: AOJu0YyXEkGVQ6aolsO4yrlBzPw3I0stGz6xxeYmMfxU1/CPrZX2WeFt
-	7uhxCe/W7VodMd1LPl71ejG2N6eFKGWnM9QWy1vuiQL1izaKWBmB04TYgTax2s8eRCcdvvLzqMe
-	o8CyYGrp4UD0CESnCkFOjflb3+034/1GMgwmCjar9E+GU8fqhPu++TWQ=
-X-Google-Smtp-Source: AGHT+IH8jlOx3Vo5HWli/Hxb2cni/8759hXOSCk1x2fiNXKQSlODEvqhOq0Gu9RaiQG/5abR4DQZ2PPYp+RcUZ83ZNuv7Q/+6hcn
+        bh=5oLiFtWq3lpVzqaTZ+/xin618Ir4btGMwE3p+GRGDS8=;
+        b=KemvfdcjRafUUejA2JGbJTGu65rdVvHhz+tcXnSbtoKiFStjwknlOSbWfTmIYwVwZu
+         lsh2c2vShu8YL3nB/hkCQ+RzhOJwxo8/2JipBvu2eHT0sJBsCcW1UkkCPphPe80SmZqU
+         TiHzJjUunHGdEw7vU4KKdh0irxPq5InIvTsRy0T/ez5IV5RWeutP+mKMzM2uLKxKCLrj
+         4joAo+FZCg8chPxBBRx+c89ZUfxxDTqz2lZL96+b2Bo6DZdaS5nUGA7QSWFbi8cLmsZO
+         CkclOYSHetZ5+QnLOKeprAnaw9lwA7IJR32IC9eHvJetD/u+nlfHVWFiZ7jG5aWlZK2B
+         kgCw==
+X-Forwarded-Encrypted: i=1; AJvYcCXsaXlyHpmDuXUnRf6cWeADwiBVu89oE3EVg4H8wsSiPYRZz5LFOZmdE4dYJRtbLfIdGbJTQisjDqLeHg==@lists.linux.dev
+X-Gm-Message-State: AOJu0YyW7V2AiHAV6WJmYMrElwWrvlYEzt1SgKYYYNIrG8mSD4D9KyJq
+	Q2whzxC5qfTTKn7QGnp0gEq+ByskTLX6GeXvkONIp1WMsIUwtppSu1m1HTFwoENileVIpX6vH3G
+	hhy7wp3KPeHl5upwFabz5EUdKsotsZlgsSzoQgEWMHu/uUXZ4rm7lZrU=
+X-Google-Smtp-Source: AGHT+IHxgiVeJXHJ017W8Jzgtl1T+AZNKyPUUAUgljHC66OS0lsN4Nq4JhLIOFPVmVbbbE0ijf0zKcbfmIW266Zr3fWHC7K1k0HB
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-X-Received: by 2002:a05:6e02:b23:b0:3a0:ab86:928f with SMTP id
- e9e14a558f8ab-3a3452cfda8mr60038855ab.26.1727623350448; Sun, 29 Sep 2024
- 08:22:30 -0700 (PDT)
-Date: Sun, 29 Sep 2024 08:22:30 -0700
+X-Received: by 2002:a05:6e02:1d84:b0:3a2:74eb:91fa with SMTP id
+ e9e14a558f8ab-3a3451c1b12mr71194785ab.25.1727629952365; Sun, 29 Sep 2024
+ 10:12:32 -0700 (PDT)
+Date: Sun, 29 Sep 2024 10:12:32 -0700
 X-Google-Appengine-App-Id: s~syzkaller
 X-Google-Appengine-App-Id-Alias: syzkaller
-Message-ID: <66f970b6.050a0220.6bad9.001a.GAE@google.com>
-Subject: [syzbot] [ocfs2?] kernel BUG in ocfs2_page_mkwrite
-From: syzbot <syzbot+c3ef47c4433fe4281f50@syzkaller.appspotmail.com>
-To: jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
-	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
-	syzkaller-bugs@googlegroups.com
+Message-ID: <66f98a80.050a0220.6bad9.0021.GAE@google.com>
+Subject: [syzbot] [ext4?] [ocfs2?] WARNING in jbd2_journal_update_sb_log_tail
+From: syzbot <syzbot+96ee12698391289383dd@syzkaller.appspotmail.com>
+To: jack@suse.com, jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
+	linux-ext4@vger.kernel.org, linux-kernel@vger.kernel.org, mark@fasheh.com, 
+	ocfs2-devel@lists.linux.dev, syzkaller-bugs@googlegroups.com, tytso@mit.edu
 Content-Type: text/plain; charset="UTF-8"
 
 Hello,
@@ -57,83 +57,69 @@ syzbot found the following issue on:
 
 HEAD commit:    684a64bf32b6 Merge tag 'nfs-for-6.12-1' of git://git.linux..
 git tree:       upstream
-console output: https://syzkaller.appspot.com/x/log.txt?x=1518ca80580000
+console output: https://syzkaller.appspot.com/x/log.txt?x=138c0907980000
 kernel config:  https://syzkaller.appspot.com/x/.config?x=bd75e1a00004094f
-dashboard link: https://syzkaller.appspot.com/bug?extid=c3ef47c4433fe4281f50
+dashboard link: https://syzkaller.appspot.com/bug?extid=96ee12698391289383dd
 compiler:       Debian clang version 15.0.6, GNU ld (GNU Binutils for Debian) 2.40
-
-Unfortunately, I don't have any reproducer for this issue yet.
+syz repro:      https://syzkaller.appspot.com/x/repro.syz?x=13bea99f980000
+C reproducer:   https://syzkaller.appspot.com/x/repro.c?x=17d04aa9980000
 
 Downloadable assets:
 disk image (non-bootable): https://storage.googleapis.com/syzbot-assets/7bc7510fe41f/non_bootable_disk-684a64bf.raw.xz
 vmlinux: https://storage.googleapis.com/syzbot-assets/f05b4b08a420/vmlinux-684a64bf.xz
 kernel image: https://storage.googleapis.com/syzbot-assets/d59f9edaf3bc/bzImage-684a64bf.xz
+mounted in repro: https://storage.googleapis.com/syzbot-assets/a82758cb7d80/mount_0.gz
 
 IMPORTANT: if you fix the issue, please add the following tag to the commit:
-Reported-by: syzbot+c3ef47c4433fe4281f50@syzkaller.appspotmail.com
+Reported-by: syzbot+96ee12698391289383dd@syzkaller.appspotmail.com
 
-Buffer I/O error on dev loop0, logical block 11096, async page read
-Buffer I/O error on dev loop0, logical block 11097, async page read
-(syz.0.0,5102,0):ocfs2_extend_trans:438 ERROR: status = -30
-(syz.0.0,5102,0):ocfs2_try_to_merge_extent:3809 ERROR: status = -30
-(syz.0.0,5102,0):__ocfs2_journal_access:705 ERROR: Error -30 getting 1 access to buffer!
-(syz.0.0,5102,0):ocfs2_write_end_nolock:1967 ERROR: status = -30
+(syz-executor214,5103,0):ocfs2_block_check_validate:402 ERROR: CRC32 failed: stored: 0xb3775c19, computed 0x2dd1c265. Applying ECC.
+JBD2: Ignoring recovery information on journal
 ------------[ cut here ]------------
-kernel BUG at fs/ocfs2/mmap.c:107!
-Oops: invalid opcode: 0000 [#1] PREEMPT SMP KASAN NOPTI
-CPU: 0 UID: 0 PID: 5102 Comm: syz.0.0 Not tainted 6.11.0-syzkaller-10547-g684a64bf32b6 #0
+WARNING: CPU: 0 PID: 5103 at fs/jbd2/journal.c:1887 jbd2_journal_update_sb_log_tail+0x2ba/0x360 fs/jbd2/journal.c:1887
+Modules linked in:
+CPU: 0 UID: 0 PID: 5103 Comm: syz-executor214 Not tainted 6.11.0-syzkaller-10547-g684a64bf32b6 #0
 Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.16.3-debian-1.16.3-2~bpo12+1 04/01/2014
-RIP: 0010:__ocfs2_page_mkwrite fs/ocfs2/mmap.c:107 [inline]
-RIP: 0010:ocfs2_page_mkwrite+0xec0/0xed0 fs/ocfs2/mmap.c:144
-Code: 06 50 05 fe 4c 89 f0 48 83 e0 01 75 0a e8 18 4b 05 fe e9 44 f7 ff ff 49 ff ce e8 0b 4b 05 fe e9 3c f7 ff ff e8 01 4b 05 fe 90 <0f> 0b e8 f9 4a 05 fe e9 3a fe ff ff 0f 1f 40 00 90 90 90 90 90 90
-RSP: 0018:ffffc9000b0a7540 EFLAGS: 00010293
-RAX: ffffffff838f6a3f RBX: 00000000ffffffe2 RCX: ffff8880006d2440
-RDX: 0000000000000000 RSI: 0000000000001000 RDI: 00000000ffffffe2
-RBP: ffffc9000b0a76e8 R08: ffffffff838f678a R09: 1ffffffff284d117
-R10: dffffc0000000000 R11: fffffbfff284d118 R12: 000000000000e000
-R13: 1ffffd4000270684 R14: 0000000000001000 R15: 0000000000000000
-FS:  000055558f8ee500(0000) GS:ffff88801fc00000(0000) knlGS:0000000000000000
+RIP: 0010:jbd2_journal_update_sb_log_tail+0x2ba/0x360 fs/jbd2/journal.c:1887
+Code: 1c ff 41 80 3c 2c 00 74 08 4c 89 ff e8 9f 71 86 ff 41 80 27 f7 4c 89 f7 e8 f3 1c 56 09 31 ed e9 72 fe ff ff e8 47 c4 1c ff 90 <0f> 0b 90 41 80 3c 2c 00 75 d5 eb db 44 89 f1 80 e1 07 80 c1 03 38
+RSP: 0018:ffffc90000e46d70 EFLAGS: 00010293
+RAX: ffffffff8277f0f9 RBX: 0000000000000000 RCX: ffff8880002ba440
+RDX: 0000000000000000 RSI: 0000000000000000 RDI: 0000000000000000
+RBP: dffffc0000000000 R08: ffffffff8277f0c9 R09: fffff520001c8d9c
+R10: dffffc0000000000 R11: fffff520001c8d9c R12: 1ffff1100808bc00
+R13: ffff88803d2e301c R14: ffff88804045e0b0 R15: ffff88804045e000
+FS:  000055558c7ca380(0000) GS:ffff88801fc00000(0000) knlGS:0000000000000000
 CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-CR2: 000000002000e000 CR3: 000000004b98e000 CR4: 0000000000350ef0
+CR2: 00007fd277995ed8 CR3: 000000003fef2000 CR4: 0000000000350ef0
 DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
 DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
 Call Trace:
  <TASK>
- do_page_mkwrite+0x198/0x480 mm/memory.c:3162
- wp_page_shared mm/memory.c:3563 [inline]
- do_wp_page+0x23d3/0x52d0 mm/memory.c:3713
- handle_pte_fault+0x10e3/0x6800 mm/memory.c:5767
- __handle_mm_fault mm/memory.c:5894 [inline]
- handle_mm_fault+0x1106/0x1bb0 mm/memory.c:6062
- do_user_addr_fault arch/x86/mm/fault.c:1389 [inline]
- handle_page_fault arch/x86/mm/fault.c:1481 [inline]
- exc_page_fault+0x2b9/0x8c0 arch/x86/mm/fault.c:1539
- asm_exc_page_fault+0x26/0x30 arch/x86/include/asm/idtentry.h:623
-RIP: 0033:0x7f815a94740c
-Code: 00 00 00 74 a0 83 f9 c0 0f 87 56 fe ff ff 62 e1 fe 28 6f 4e 01 48 29 fe 48 83 c7 3f 49 8d 0c 10 48 83 e7 c0 48 01 fe 48 29 f9 <f3> a4 62 c1 fe 28 7f 00 62 c1 fe 28 7f 48 01 c3 0f 1f 40 00 4c 8b
-RSP: 002b:00007fffee1acf88 EFLAGS: 00010202
-RAX: 0000000020009680 RBX: 0000000000000004 RCX: 0000000000000b8b
-RDX: 000000000000550b RSI: 00007f815a21333e RDI: 000000002000e000
-RBP: 00007f815ab37a80 R08: 0000000020009680 R09: 0000000000000002
-R10: 0000000000000000 R11: 0000000000000002 R12: 00000000000120b8
-R13: 00007fffee1ad090 R14: 0000000000000032 R15: fffffffffffffffe
+ journal_reset fs/jbd2/journal.c:1779 [inline]
+ jbd2_journal_load+0x708/0xbc0 fs/jbd2/journal.c:2109
+ ocfs2_journal_load+0xed/0x6d0 fs/ocfs2/journal.c:1143
+ ocfs2_check_volume fs/ocfs2/super.c:2421 [inline]
+ ocfs2_mount_volume+0xc12/0x1940 fs/ocfs2/super.c:1817
+ ocfs2_fill_super+0x475a/0x5750 fs/ocfs2/super.c:1084
+ mount_bdev+0x20a/0x2d0 fs/super.c:1679
+ legacy_get_tree+0xee/0x190 fs/fs_context.c:662
+ vfs_get_tree+0x90/0x2b0 fs/super.c:1800
+ do_new_mount+0x2be/0xb40 fs/namespace.c:3507
+ do_mount fs/namespace.c:3847 [inline]
+ __do_sys_mount fs/namespace.c:4055 [inline]
+ __se_sys_mount+0x2d6/0x3c0 fs/namespace.c:4032
+ do_syscall_x64 arch/x86/entry/common.c:52 [inline]
+ do_syscall_64+0xf3/0x230 arch/x86/entry/common.c:83
+ entry_SYSCALL_64_after_hwframe+0x77/0x7f
+RIP: 0033:0x7fb2af90112a
+Code: d8 64 89 02 48 c7 c0 ff ff ff ff eb a6 e8 5e 04 00 00 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 40 00 49 89 ca b8 a5 00 00 00 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 b8 ff ff ff f7 d8 64 89 01 48
+RSP: 002b:00007ffe3f741ce8 EFLAGS: 00000282 ORIG_RAX: 00000000000000a5
+RAX: ffffffffffffffda RBX: 00007ffe3f741d00 RCX: 00007fb2af90112a
+RDX: 0000000020004740 RSI: 0000000020004780 RDI: 00007ffe3f741d00
+RBP: 0000000000000004 R08: 00007ffe3f741d40 R09: 0000000000004701
+R10: 000000000100000a R11: 0000000000000282 R12: 000000000100000a
+R13: 00007ffe3f741d40 R14: 0000000000000003 R15: 0000000001000000
  </TASK>
-Modules linked in:
----[ end trace 0000000000000000 ]---
-RIP: 0010:__ocfs2_page_mkwrite fs/ocfs2/mmap.c:107 [inline]
-RIP: 0010:ocfs2_page_mkwrite+0xec0/0xed0 fs/ocfs2/mmap.c:144
-Code: 06 50 05 fe 4c 89 f0 48 83 e0 01 75 0a e8 18 4b 05 fe e9 44 f7 ff ff 49 ff ce e8 0b 4b 05 fe e9 3c f7 ff ff e8 01 4b 05 fe 90 <0f> 0b e8 f9 4a 05 fe e9 3a fe ff ff 0f 1f 40 00 90 90 90 90 90 90
-RSP: 0018:ffffc9000b0a7540 EFLAGS: 00010293
-RAX: ffffffff838f6a3f RBX: 00000000ffffffe2 RCX: ffff8880006d2440
-RDX: 0000000000000000 RSI: 0000000000001000 RDI: 00000000ffffffe2
-RBP: ffffc9000b0a76e8 R08: ffffffff838f678a R09: 1ffffffff284d117
-R10: dffffc0000000000 R11: fffffbfff284d118 R12: 000000000000e000
-R13: 1ffffd4000270684 R14: 0000000000001000 R15: 0000000000000000
-FS:  000055558f8ee500(0000) GS:ffff88801fc00000(0000) knlGS:0000000000000000
-CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-CR2: 000055af02d95058 CR3: 000000004b98e000 CR4: 0000000000350ef0
-DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
-DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
 
 
 ---
@@ -146,6 +132,10 @@ https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
 
 If the report is already addressed, let syzbot know by replying with:
 #syz fix: exact-commit-title
+
+If you want syzbot to run the reproducer, reply with:
+#syz test: git://repo/address.git branch-or-commit-hash
+If you attach or paste a git patch, syzbot will apply it before testing.
 
 If you want to overwrite report's subsystems, reply with:
 #syz set subsystems: new-subsystem
