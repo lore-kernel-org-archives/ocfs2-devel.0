@@ -1,307 +1,475 @@
-Received: from mail-io1-f70.google.com (mail-io1-f70.google.com [209.85.166.70])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from out30-118.freemail.mail.aliyun.com (out30-118.freemail.mail.aliyun.com [115.124.30.118])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id BEDCB18E059
-	for <ocfs2-devel@lists.linux.dev>; Mon,  7 Oct 2024 09:15:21 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.166.70
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 21C301FEFB8
+	for <ocfs2-devel@lists.linux.dev>; Tue,  8 Oct 2024 07:16:09 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.118
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1728292523; cv=none; b=WAKy2Q7bCwd3PE1FunBjsbo9BhIM/TtVCT8g13IeB+f8aYEDQPlCMkb4s7g5yh9gYAk6LptnObyHtbOIuvV4/px1YXSPa9EEmZoM89tYdr3vtQaPrz1P0LnNjKcLaR9PIJC+YgDVaYyMisk+xs2ReV9wPM/dJasdiI0O83uADTA=
+	t=1728371773; cv=none; b=ZH2b3otN4xYWRN2zBOwVmexawkUYqU3Jm0LamEmatt556+W4Oup5bRBi7E78sTVcHmcBXDB9sMb5sx6hRa1clwrBBwWXMUaGenXreNf8R63HNJMGmtVrSSrym4+i/3XMS1UrwAY4XJCpMqC/bjvvmtNTt/Khm4k9PVRg9lr7X+M=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1728292523; c=relaxed/simple;
-	bh=J+H2WhR3dR3cDdUivy8O1/d/bgmeC0CQiJc1a+ZNs7o=;
-	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=QnPngmLcgZZL7LF3jxI3iCM+/hyYKfGTLpb99cIqu6ytPQKG10mBUFyRoHCrRNGk2T5gkOF7MZO6qlCuJn+wZDF21W1s1HZYmAa9hgl2IOZvS6FOE3Ug2ZGN4H/UU4QSQ2dt2mk7mewJcI59jRAT6HGjVBK8WdRzG4FdAcGphMc=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.166.70
-Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
-Received: by mail-io1-f70.google.com with SMTP id ca18e2360f4ac-82cf30e0092so386581339f.3
-        for <ocfs2-devel@lists.linux.dev>; Mon, 07 Oct 2024 02:15:21 -0700 (PDT)
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1728292521; x=1728897321;
-        h=to:from:subject:message-id:date:mime-version:x-gm-message-state
-         :from:to:cc:subject:date:message-id:reply-to;
-        bh=6C8BeosAWbbybQdA11WLjYr0lz2A0As583HUCTx5Nao=;
-        b=RxY/0wKsxTXUQ/ooUgreyi8y9UsVTO937dAMeAfhrjumsutplKKYukH8qr0gRiUP6s
-         DiEPPjIMIlw8Cgcs+9BlirhLzkLq4wvjiMICC16RLc1u9QDBBTaLngGv8M1UXSsBXK1U
-         lc906GD+CR5hU83cqcnQmZu2ZNERnDfxnPCHpME10CFZRbaVtlgg3B0ewcs3tfoFVSzy
-         i/QkFLZWhKbgOAseKjK82EpGxVESZS6XscxirDbPQlPPvAHgXEoDsIn2jUNkjOVJ8t0y
-         sYxm2FDy7ZmTnfsIc+/z3IzYERIiiVlRkUUkK61RfQv7pV3WkHOotZz575eLM3BV6JPV
-         ms0g==
-X-Forwarded-Encrypted: i=1; AJvYcCXyJix38DzBWpK5V+k680YX7ZhTaP3T4qfnjOJFDZqcuAYK8kQamljSg20LhGU30K9OpnDyXYs7gAO0lg==@lists.linux.dev
-X-Gm-Message-State: AOJu0YwAW+j62Bl2t5cOOkSuZvwZq829eJtGJvZS0r3IfGSZgswe0mJm
-	QWC6FWDjQpFLgpy9cDEqinSI3OWJJ7KY4si/mEVpBTes4kqeaBznYmGs82pwSzJxBpdeiqRb2Nl
-	g0MiGv83XdVa01gp0TYrlf8ES8cH7urBdZYpBaKa24x2tl/Ze3nGJ7ZA=
-X-Google-Smtp-Source: AGHT+IHOq40TCRztjfXgMYvkwY7CjGLUZWm7JsRcsHvAUwPK2wi9xUAoRzpZGOXfzXj9N2J7IXx2C48/uqkXjvMtFLA2LhlKR9Qq
+	s=arc-20240116; t=1728371773; c=relaxed/simple;
+	bh=rtkrD4f2rOIynpLUKG1rlAu1OAKCi17kS8kOlgC2RVo=;
+	h=Message-ID:Date:MIME-Version:From:Subject:To:Cc:References:
+	 In-Reply-To:Content-Type; b=C99d816qhq/FHC0pKF4Bw8ulxY1w4RKX5zyfim5cYOB3whVmYB9fZPfAIlE69Qp6sdDT7+hLPOBnEcR/yLvgqrUCx8OMUgeoiiXFH1O9tyCQ3t6GTF7mDT4ao2Ez7BCt/h+vZ5qCzFKmxoxGKf7Vn4m8Bz++lpOnfvc4Xlt2lSg=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=K8JT2S5r; arc=none smtp.client-ip=115.124.30.118
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="K8JT2S5r"
+DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=linux.alibaba.com; s=default;
+	t=1728371767; h=Message-ID:Date:MIME-Version:From:Subject:To:Content-Type;
+	bh=kQZOquBZLLuyMS9xrh1If+tcT93EFgT74Gbfn4NFaQQ=;
+	b=K8JT2S5rEOo+i2haLnyv7g9qJyvyHzZ83xBUSoy9egx29geikWZ9UBGNLEJqHZNX/4Eox9EUp3loiMWegvEVfrZxOitSY7GkZrY2mFA4pjLRni9wAlhE5IvrNO7Ol4UpcKYDdTS0eM3a2eIfPpOfzjyFQj/fEQ8mFoMtPgWw1nc=
+Received: from 30.221.129.116(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0WGbLaYm_1728371766)
+          by smtp.aliyun-inc.com;
+          Tue, 08 Oct 2024 15:16:07 +0800
+Message-ID: <c87729aa-79ca-47ca-97b5-4af7c3829e12@linux.alibaba.com>
+Date: Tue, 8 Oct 2024 15:16:06 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-X-Received: by 2002:a05:6602:2c03:b0:82c:fdc2:e25a with SMTP id
- ca18e2360f4ac-834f7a90c2cmr1158372139f.0.1728292520912; Mon, 07 Oct 2024
- 02:15:20 -0700 (PDT)
-Date: Mon, 07 Oct 2024 02:15:20 -0700
-X-Google-Appengine-App-Id: s~syzkaller
-X-Google-Appengine-App-Id-Alias: syzkaller
-Message-ID: <6703a6a8.050a0220.49194.0500.GAE@google.com>
-Subject: [syzbot] [ocfs2?] possible deadlock in ocfs2_write_info
-From: syzbot <syzbot+94932b9f2c4c6a9e8fee@syzkaller.appspotmail.com>
-To: jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
-	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
-	syzkaller-bugs@googlegroups.com
-Content-Type: text/plain; charset="UTF-8"
-
-Hello,
-
-syzbot found the following issue on:
-
-HEAD commit:    f23aa4c0761a Merge tag 'hid-for-linus-2024090201' of git:/..
-git tree:       upstream
-console output: https://syzkaller.appspot.com/x/log.txt?x=119393d0580000
-kernel config:  https://syzkaller.appspot.com/x/.config?x=f8af0b3195caed62
-dashboard link: https://syzkaller.appspot.com/bug?extid=94932b9f2c4c6a9e8fee
-compiler:       Debian clang version 15.0.6, GNU ld (GNU Binutils for Debian) 2.40
-
-Unfortunately, I don't have any reproducer for this issue yet.
-
-Downloadable assets:
-disk image: https://storage.googleapis.com/syzbot-assets/98e7ebb9603f/disk-f23aa4c0.raw.xz
-vmlinux: https://storage.googleapis.com/syzbot-assets/2b99ed3c1261/vmlinux-f23aa4c0.xz
-kernel image: https://storage.googleapis.com/syzbot-assets/9c2b8860052e/bzImage-f23aa4c0.xz
-
-IMPORTANT: if you fix the issue, please add the following tag to the commit:
-Reported-by: syzbot+94932b9f2c4c6a9e8fee@syzkaller.appspotmail.com
-
-======================================================
-WARNING: possible circular locking dependency detected
-6.12.0-rc1-syzkaller-00042-gf23aa4c0761a #0 Not tainted
-------------------------------------------------------
-syz.0.149/6839 is trying to acquire lock:
-ffff88806c57e610 (sb_internal#3){.+.+}-{0:0}, at: ocfs2_write_info+0x128/0x3a0 fs/ocfs2/quota_global.c:992
-
-but task is already holding lock:
-ffff88807d164da0 (&ocfs2_quota_ip_alloc_sem_key){++++}-{3:3}, at: ocfs2_lock_global_qf+0x225/0x2b0 fs/ocfs2/quota_global.c:314
-
-which lock already depends on the new lock.
+User-Agent: Mozilla Thunderbird
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+Subject: Re: [PATCH v3 1/3] ocfs2: give ocfs2 the ability to reclaim suballoc
+ free bg
+To: Heming Zhao <heming.zhao@suse.com>, glass.su@suse.com
+Cc: ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org
+References: <20240908140705.19169-1-heming.zhao@suse.com>
+ <20240908140705.19169-2-heming.zhao@suse.com>
+Content-Language: en-US
+In-Reply-To: <20240908140705.19169-2-heming.zhao@suse.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
 
-the existing dependency chain (in reverse order) is:
 
--> #6 (&ocfs2_quota_ip_alloc_sem_key){++++}-{3:3}:
-       lock_acquire+0x1ed/0x550 kernel/locking/lockdep.c:5825
-       down_write+0x99/0x220 kernel/locking/rwsem.c:1577
-       ocfs2_lock_global_qf+0x225/0x2b0 fs/ocfs2/quota_global.c:314
-       ocfs2_acquire_dquot+0x2b0/0xb80 fs/ocfs2/quota_global.c:823
-       dqget+0x770/0xeb0 fs/quota/dquot.c:976
-       ocfs2_setattr+0x1123/0x1f50 fs/ocfs2/file.c:1240
-       notify_change+0xbca/0xe90 fs/attr.c:503
-       chown_common+0x501/0x850 fs/open.c:793
-       vfs_fchown fs/open.c:861 [inline]
-       ksys_fchown+0xe3/0x160 fs/open.c:872
-       __do_sys_fchown fs/open.c:880 [inline]
-       __se_sys_fchown fs/open.c:878 [inline]
-       __x64_sys_fchown+0x7a/0x90 fs/open.c:878
-       do_syscall_x64 arch/x86/entry/common.c:52 [inline]
-       do_syscall_64+0xf3/0x230 arch/x86/entry/common.c:83
-       entry_SYSCALL_64_after_hwframe+0x77/0x7f
+On 9/8/24 10:07 PM, Heming Zhao wrote:
+> The current ocfs2 code can't reclaim suballocator block group space.
+> This cause ocfs2 to hold onto a lot of space in some cases. for example,
+> when creating lots of small files, the space is held/managed by
+> '//inode_alloc'. After the user deletes all the small files, the space
+> never returns to '//global_bitmap'. This issue prevents ocfs2 from
+> providing the needed space even when there is enough free space in a
+> small ocfs2 volume.
+> This patch gives ocfs2 the ability to reclaim suballoc free space when
+> the block group is freed. For performance reasons, this patch keeps
+> the first suballocator block group.
+> 
+> Signed-off-by: Heming Zhao <heming.zhao@suse.com>
+> Reviewed-by: Su Yue <glass.su@suse.com>
+> ---
+>  fs/ocfs2/suballoc.c | 302 ++++++++++++++++++++++++++++++++++++++++++--
+>  1 file changed, 292 insertions(+), 10 deletions(-)
+> 
+> diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
+> index f7b483f0de2a..d62010166c34 100644
+> --- a/fs/ocfs2/suballoc.c
+> +++ b/fs/ocfs2/suballoc.c
+> @@ -294,6 +294,68 @@ static int ocfs2_validate_group_descriptor(struct super_block *sb,
+>  	return ocfs2_validate_gd_self(sb, bh, 0);
+>  }
+>  
+> +/*
+> + * hint gd may already be released in _ocfs2_free_suballoc_bits(),
+> + * we first check gd descriptor signature, then do the
+> + * ocfs2_read_group_descriptor() jobs.
+> + *
+> + * When the group descriptor is invalid, we return 'rc=0' and
+> + * '*released=1'. The caller should handle this case. Otherwise,
+> + * we return the real error code.
+> + */
+> +static int ocfs2_read_hint_group_descriptor(struct inode *inode,
+> +			struct ocfs2_dinode *di, u64 gd_blkno,
+> +			struct buffer_head **bh, int *released)
+> +{
+> +	int rc;
+> +	struct buffer_head *tmp = *bh;
+> +	struct ocfs2_group_desc *gd;
+> +
+> +	*released = 0;
 
--> #5 (&ocfs2_sysfile_lock_key[args->fi_sysfile_type]#2){+.+.}-{3:3}:
-       lock_acquire+0x1ed/0x550 kernel/locking/lockdep.c:5825
-       down_write+0x99/0x220 kernel/locking/rwsem.c:1577
-       inode_lock include/linux/fs.h:815 [inline]
-       ocfs2_lock_global_qf+0x206/0x2b0 fs/ocfs2/quota_global.c:313
-       ocfs2_acquire_dquot+0x2b0/0xb80 fs/ocfs2/quota_global.c:823
-       dqget+0x770/0xeb0 fs/quota/dquot.c:976
-       ocfs2_setattr+0x1123/0x1f50 fs/ocfs2/file.c:1240
-       notify_change+0xbca/0xe90 fs/attr.c:503
-       chown_common+0x501/0x850 fs/open.c:793
-       vfs_fchown fs/open.c:861 [inline]
-       ksys_fchown+0xe3/0x160 fs/open.c:872
-       __do_sys_fchown fs/open.c:880 [inline]
-       __se_sys_fchown fs/open.c:878 [inline]
-       __x64_sys_fchown+0x7a/0x90 fs/open.c:878
-       do_syscall_x64 arch/x86/entry/common.c:52 [inline]
-       do_syscall_64+0xf3/0x230 arch/x86/entry/common.c:83
-       entry_SYSCALL_64_after_hwframe+0x77/0x7f
+I'd like the caller is responsible for the initialization.
 
--> #4 (&dquot->dq_lock){+.+.}-{3:3}:
-       lock_acquire+0x1ed/0x550 kernel/locking/lockdep.c:5825
-       __mutex_lock_common kernel/locking/mutex.c:608 [inline]
-       __mutex_lock+0x136/0xd70 kernel/locking/mutex.c:752
-       wait_on_dquot fs/quota/dquot.c:355 [inline]
-       dqget+0x6e6/0xeb0 fs/quota/dquot.c:971
-       dquot_transfer+0x2c2/0x6d0 fs/quota/dquot.c:2139
-       ext4_setattr+0xaf3/0x1bc0 fs/ext4/inode.c:5368
-       notify_change+0xbca/0xe90 fs/attr.c:503
-       chown_common+0x501/0x850 fs/open.c:793
-       do_fchownat+0x16a/0x240 fs/open.c:824
-       __do_sys_lchown fs/open.c:849 [inline]
-       __se_sys_lchown fs/open.c:847 [inline]
-       __x64_sys_lchown+0x85/0xa0 fs/open.c:847
-       do_syscall_x64 arch/x86/entry/common.c:52 [inline]
-       do_syscall_64+0xf3/0x230 arch/x86/entry/common.c:83
-       entry_SYSCALL_64_after_hwframe+0x77/0x7f
+> +
+> +	rc = ocfs2_read_block(INODE_CACHE(inode), gd_blkno, &tmp, NULL);
+> +	if (rc)
+> +		goto out;
+> +
+> +	gd = (struct ocfs2_group_desc *) tmp->b_data;
+> +	if (!OCFS2_IS_VALID_GROUP_DESC(gd)) {
 
--> #3 (&ei->xattr_sem){++++}-{3:3}:
-       lock_acquire+0x1ed/0x550 kernel/locking/lockdep.c:5825
-       down_write+0x99/0x220 kernel/locking/rwsem.c:1577
-       ext4_write_lock_xattr fs/ext4/xattr.h:154 [inline]
-       ext4_xattr_set_handle+0x277/0x1580 fs/ext4/xattr.c:2373
-       ext4_initxattrs+0xa3/0x120 fs/ext4/xattr_security.c:44
-       security_inode_init_security+0x29c/0x480 security/security.c:1846
-       __ext4_new_inode+0x3635/0x4380 fs/ext4/ialloc.c:1323
-       ext4_create+0x279/0x550 fs/ext4/namei.c:2834
-       lookup_open fs/namei.c:3595 [inline]
-       open_last_lookups fs/namei.c:3694 [inline]
-       path_openat+0x1c03/0x3590 fs/namei.c:3930
-       do_filp_open+0x235/0x490 fs/namei.c:3960
-       do_sys_openat2+0x13e/0x1d0 fs/open.c:1415
-       do_sys_open fs/open.c:1430 [inline]
-       __do_sys_openat fs/open.c:1446 [inline]
-       __se_sys_openat fs/open.c:1441 [inline]
-       __x64_sys_openat+0x247/0x2a0 fs/open.c:1441
-       do_syscall_x64 arch/x86/entry/common.c:52 [inline]
-       do_syscall_64+0xf3/0x230 arch/x86/entry/common.c:83
-       entry_SYSCALL_64_after_hwframe+0x77/0x7f
+How to distinguish the release case or a bug?
 
--> #2 (jbd2_handle){++++}-{0:0}:
-       lock_acquire+0x1ed/0x550 kernel/locking/lockdep.c:5825
-       start_this_handle+0x1eb4/0x2110 fs/jbd2/transaction.c:448
-       jbd2__journal_start+0x2da/0x5d0 fs/jbd2/transaction.c:505
-       jbd2_journal_start+0x29/0x40 fs/jbd2/transaction.c:544
-       ocfs2_start_trans+0x3c9/0x700 fs/ocfs2/journal.c:352
-       ocfs2_modify_bh+0xed/0x4d0 fs/ocfs2/quota_local.c:101
-       ocfs2_local_read_info+0x158f/0x19f0 fs/ocfs2/quota_local.c:771
-       dquot_load_quota_sb+0x762/0xbb0 fs/quota/dquot.c:2458
-       dquot_load_quota_inode+0x320/0x600 fs/quota/dquot.c:2495
-       ocfs2_enable_quotas+0x169/0x450 fs/ocfs2/super.c:926
-       ocfs2_fill_super+0x4c8d/0x5750 fs/ocfs2/super.c:1141
-       mount_bdev+0x20a/0x2d0 fs/super.c:1679
-       legacy_get_tree+0xee/0x190 fs/fs_context.c:662
-       vfs_get_tree+0x90/0x2b0 fs/super.c:1800
-       do_new_mount+0x2be/0xb40 fs/namespace.c:3507
-       do_mount fs/namespace.c:3847 [inline]
-       __do_sys_mount fs/namespace.c:4055 [inline]
-       __se_sys_mount+0x2d6/0x3c0 fs/namespace.c:4032
-       do_syscall_x64 arch/x86/entry/common.c:52 [inline]
-       do_syscall_64+0xf3/0x230 arch/x86/entry/common.c:83
-       entry_SYSCALL_64_after_hwframe+0x77/0x7f
+> +		/*
+> +		 * Invalid gd cache was set in ocfs2_read_block(),
+> +		 * which will affect block_group allocation.
+> +		 * Path:
+> +		 * ocfs2_reserve_suballoc_bits
+> +		 *  ocfs2_block_group_alloc
+> +		 *   ocfs2_block_group_alloc_contig
+> +		 *    ocfs2_set_new_buffer_uptodate
+> +		 */
+> +		ocfs2_remove_from_cache(INODE_CACHE(inode), tmp);
+> +		*released = 1; /* we return 'rc=0' for this case */
+> +		goto free_bh;
+> +	}
+> +
+> +	/* below jobs same with ocfs2_read_group_descriptor() */
+> +	if (!buffer_jbd(tmp)) {
+> +		rc = ocfs2_validate_group_descriptor(inode->i_sb, tmp);
+> +		if (rc)
+> +			goto free_bh;
+> +	}
+> +
+> +	rc = ocfs2_validate_gd_parent(inode->i_sb, di, tmp, 0);
+> +	if (rc)
+> +		goto free_bh;
+> +
+> +	/* If ocfs2_read_block() got us a new bh, pass it up. */
+> +	if (!*bh)
+> +		*bh = tmp;
+> +
+> +	return rc;
+> +
+> +free_bh:
+> +	brelse(tmp);
+> +out:
+> +	return rc;
+> +}
+> +
+>  int ocfs2_read_group_descriptor(struct inode *inode, struct ocfs2_dinode *di,
+>  				u64 gd_blkno, struct buffer_head **bh)
+>  {
+> @@ -1722,7 +1784,7 @@ static int ocfs2_search_one_group(struct ocfs2_alloc_context *ac,
+>  				  u32 bits_wanted,
+>  				  u32 min_bits,
+>  				  struct ocfs2_suballoc_result *res,
+> -				  u16 *bits_left)
+> +				  u16 *bits_left, int *released)
+>  {
+>  	int ret;
+>  	struct buffer_head *group_bh = NULL;
+> @@ -1730,9 +1792,11 @@ static int ocfs2_search_one_group(struct ocfs2_alloc_context *ac,
+>  	struct ocfs2_dinode *di = (struct ocfs2_dinode *)ac->ac_bh->b_data;
+>  	struct inode *alloc_inode = ac->ac_inode;
+>  
+> -	ret = ocfs2_read_group_descriptor(alloc_inode, di,
+> -					  res->sr_bg_blkno, &group_bh);
+> -	if (ret < 0) {
+> +	ret = ocfs2_read_hint_group_descriptor(alloc_inode, di,
+> +				res->sr_bg_blkno, &group_bh, released);
+> +	if (*released) {
+> +		return 0;
+> +	} else if (ret < 0) {
+>  		mlog_errno(ret);
+>  		return ret;
+>  	}
+> @@ -1934,7 +1998,7 @@ static int ocfs2_claim_suballoc_bits(struct ocfs2_alloc_context *ac,
+>  				     u32 min_bits,
+>  				     struct ocfs2_suballoc_result *res)
+>  {
+> -	int status;
+> +	int status, released;
+>  	u16 victim, i;
+>  	u16 bits_left = 0;
+>  	u64 hint = ac->ac_last_group;
+> @@ -1961,6 +2025,7 @@ static int ocfs2_claim_suballoc_bits(struct ocfs2_alloc_context *ac,
+>  		goto bail;
+>  	}
+>  
+> +	/* the hint bg may already be released, we quiet search this group. */
+>  	res->sr_bg_blkno = hint;
+>  	if (res->sr_bg_blkno) {
+>  		/* Attempt to short-circuit the usual search mechanism
+> @@ -1968,7 +2033,12 @@ static int ocfs2_claim_suballoc_bits(struct ocfs2_alloc_context *ac,
+>  		 * allocation group. This helps us maintain some
+>  		 * contiguousness across allocations. */
+>  		status = ocfs2_search_one_group(ac, handle, bits_wanted,
+> -						min_bits, res, &bits_left);
+> +						min_bits, res, &bits_left,
+> +						&released);
+> +		if (released) {
+> +			res->sr_bg_blkno = 0;
+> +			goto chain_search;
+> +		}
+>  		if (!status)
+>  			goto set_hint;
+>  		if (status < 0 && status != -ENOSPC) {
+> @@ -1976,7 +2046,7 @@ static int ocfs2_claim_suballoc_bits(struct ocfs2_alloc_context *ac,
+>  			goto bail;
+>  		}
+>  	}
+> -
+> +chain_search:
+>  	cl = (struct ocfs2_chain_list *) &fe->id2.i_chain;
+>  
+>  	victim = ocfs2_find_victim_chain(cl);
+> @@ -2077,6 +2147,12 @@ int ocfs2_claim_metadata(handle_t *handle,
+>  	return status;
+>  }
+>  
+> +/*
+> + * after ocfs2 has the ability to release block group unused space,
+> + * the ->ip_last_used_group may be invalid. so this function returns
+> + * ac->ac_last_group need to verify.
+> + * refer the 'hint' in ocfs2_claim_suballoc_bits() for more details.
+> + */
+>  static void ocfs2_init_inode_ac_group(struct inode *dir,
+>  				      struct buffer_head *parent_di_bh,
+>  				      struct ocfs2_alloc_context *ac)
+> @@ -2514,6 +2590,197 @@ static int ocfs2_block_group_clear_bits(handle_t *handle,
+>  	return status;
+>  }
+>  
+> +/*
+> + * Reclaim the suballocator managed space to main bitmap.
+> + * This function first works on the suballocator then switch to the
+> + * main bitmap.
+> + *
+> + * handle: The transaction handle
+> + * alloc_inode: The suballoc inode
+> + * alloc_bh: The buffer_head of suballoc inode
+> + * group_bh: The group descriptor buffer_head of suballocator managed.
+> + *           Caller should release the input group_bh.
+> + */
+> +static int _reclaim_to_main_bm(handle_t *handle,
 
--> #1 (&journal->j_trans_barrier){.+.+}-{3:3}:
-       lock_acquire+0x1ed/0x550 kernel/locking/lockdep.c:5825
-       down_read+0xb1/0xa40 kernel/locking/rwsem.c:1524
-       ocfs2_start_trans+0x3be/0x700 fs/ocfs2/journal.c:350
-       ocfs2_modify_bh+0xed/0x4d0 fs/ocfs2/quota_local.c:101
-       ocfs2_local_read_info+0x158f/0x19f0 fs/ocfs2/quota_local.c:771
-       dquot_load_quota_sb+0x762/0xbb0 fs/quota/dquot.c:2458
-       dquot_load_quota_inode+0x320/0x600 fs/quota/dquot.c:2495
-       ocfs2_enable_quotas+0x169/0x450 fs/ocfs2/super.c:926
-       ocfs2_fill_super+0x4c8d/0x5750 fs/ocfs2/super.c:1141
-       mount_bdev+0x20a/0x2d0 fs/super.c:1679
-       legacy_get_tree+0xee/0x190 fs/fs_context.c:662
-       vfs_get_tree+0x90/0x2b0 fs/super.c:1800
-       do_new_mount+0x2be/0xb40 fs/namespace.c:3507
-       do_mount fs/namespace.c:3847 [inline]
-       __do_sys_mount fs/namespace.c:4055 [inline]
-       __se_sys_mount+0x2d6/0x3c0 fs/namespace.c:4032
-       do_syscall_x64 arch/x86/entry/common.c:52 [inline]
-       do_syscall_64+0xf3/0x230 arch/x86/entry/common.c:83
-       entry_SYSCALL_64_after_hwframe+0x77/0x7f
+Better to rename it to _ocfs2_reclaim_suballoc_to_main().
 
--> #0 (sb_internal#3){.+.+}-{0:0}:
-       check_prev_add kernel/locking/lockdep.c:3161 [inline]
-       check_prevs_add kernel/locking/lockdep.c:3280 [inline]
-       validate_chain+0x18ef/0x5920 kernel/locking/lockdep.c:3904
-       __lock_acquire+0x1384/0x2050 kernel/locking/lockdep.c:5202
-       lock_acquire+0x1ed/0x550 kernel/locking/lockdep.c:5825
-       percpu_down_read include/linux/percpu-rwsem.h:51 [inline]
-       __sb_start_write include/linux/fs.h:1716 [inline]
-       sb_start_intwrite include/linux/fs.h:1899 [inline]
-       ocfs2_start_trans+0x2b9/0x700 fs/ocfs2/journal.c:348
-       ocfs2_write_info+0x128/0x3a0 fs/ocfs2/quota_global.c:992
-       quota_setinfo+0x3e1/0x500 fs/quota/quota.c:174
-       __do_sys_quotactl fs/quota/quota.c:961 [inline]
-       __se_sys_quotactl+0x2c4/0xa30 fs/quota/quota.c:917
-       do_syscall_x64 arch/x86/entry/common.c:52 [inline]
-       do_syscall_64+0xf3/0x230 arch/x86/entry/common.c:83
-       entry_SYSCALL_64_after_hwframe+0x77/0x7f
+> +			struct inode *alloc_inode,
+> +			struct buffer_head *alloc_bh,
+> +			struct buffer_head *group_bh)
+> +{
+> +	int idx, status = 0;
+> +	int i, next_free_rec, len = 0;
+> +	__le16 old_bg_contig_free_bits = 0;
+> +	u16 start_bit;
+> +	u32 tmp_used;
+> +	u64 bg_blkno, start_blk;
+> +	unsigned int count;
+> +	struct ocfs2_chain_rec *rec;
+> +	struct buffer_head *main_bm_bh = NULL;
+> +	struct inode *main_bm_inode = NULL;
+> +	struct ocfs2_super *osb = OCFS2_SB(alloc_inode->i_sb);
+> +	struct ocfs2_dinode *fe = (struct ocfs2_dinode *) alloc_bh->b_data;
+> +	struct ocfs2_chain_list *cl = &fe->id2.i_chain;
+> +	struct ocfs2_group_desc *group = (struct ocfs2_group_desc *) group_bh->b_data;
+> +
+> +	idx = le16_to_cpu(group->bg_chain);
+> +	rec = &(cl->cl_recs[idx]);
+> +
+> +	status = ocfs2_extend_trans(handle,
+> +				ocfs2_calc_group_alloc_credits(osb->sb,
+> +						 le16_to_cpu(cl->cl_cpg)));
+> +	if (status) {
+> +		mlog_errno(status);
+> +		goto bail;
+> +	}
+> +	status = ocfs2_journal_access_di(handle, INODE_CACHE(alloc_inode),
+> +					 alloc_bh, OCFS2_JOURNAL_ACCESS_WRITE);
+> +	if (status < 0) {
+> +		mlog_errno(status);
+> +		goto bail;
+> +	}
+> +
+> +	/*
+> +	 * Only clear the suballocator rec item in-place.
+> +	 *
+> +	 * If idx is not the last, we don't compress (remove the empty item)
+> +	 * the cl_recs[]. If not, we need to do lots jobs.
+> +	 *
+> +	 * Compress cl_recs[] code example:
+> +	 * if (idx != cl->cl_next_free_rec - 1)
+> +	 * 	memmove(&cl->cl_recs[idx], &cl->cl_recs[idx + 1],
+> +	 * 		sizeof(struct ocfs2_chain_rec) *
+> +	 * 		(cl->cl_next_free_rec - idx - 1));
+> +	 * for(i = idx; i < cl->cl_next_free_rec-1; i++) {
+> +	 * 	group->bg_chain = "later group->bg_chain";
+> +	 * 	group->bg_blkno = xxx;
+> +	 * 	... ...
+> +	 * }
+> +	 */
+> +
+> +	tmp_used = le32_to_cpu(fe->id1.bitmap1.i_total);
+> +	fe->id1.bitmap1.i_total = cpu_to_le32(tmp_used - le32_to_cpu(rec->c_total));
+> +
+> +	/* Substraction 1 for the block group itself */
+> +	tmp_used = le32_to_cpu(fe->id1.bitmap1.i_used);
+> +	fe->id1.bitmap1.i_used = cpu_to_le32(tmp_used - 1);
+> +
+> +	tmp_used = le32_to_cpu(fe->i_clusters);
+> +	fe->i_clusters = cpu_to_le32(tmp_used - le16_to_cpu(cl->cl_cpg));
+> +
+> +	spin_lock(&OCFS2_I(alloc_inode)->ip_lock);
+> +	OCFS2_I(alloc_inode)->ip_clusters -= le32_to_cpu(fe->i_clusters);
+> +	fe->i_size = cpu_to_le64(ocfs2_clusters_to_bytes(alloc_inode->i_sb,
+> +					     le32_to_cpu(fe->i_clusters)));
+> +	spin_unlock(&OCFS2_I(alloc_inode)->ip_lock);
+> +	i_size_write(alloc_inode, le64_to_cpu(fe->i_size));
+> +	alloc_inode->i_blocks = ocfs2_inode_sector_count(alloc_inode);
+> +
+> +	ocfs2_journal_dirty(handle, alloc_bh);
+> +	ocfs2_update_inode_fsync_trans(handle, alloc_inode, 0);
+> +
+> +	start_blk = le64_to_cpu(rec->c_blkno);
+> +	count = le32_to_cpu(rec->c_total) / le16_to_cpu(cl->cl_bpc);
+> +
+> +	/*
+> +	 * If the rec is the last one, let's compress the chain list by
+> +	 * removing the empty cl_recs[] at the end.
+> +	 */
+> +	next_free_rec = le16_to_cpu(cl->cl_next_free_rec);
+> +	if (idx == (next_free_rec - 1)) {
+> +		len++; /* the last item should be counted first */
+> +		for (i = (next_free_rec - 2); i > 0; i--) {
+> +			if (cl->cl_recs[i].c_free == cl->cl_recs[i].c_total)
+> +				len++;
+> +			else
+> +				break;
+> +		}
+> +	}
+> +	le16_add_cpu(&cl->cl_next_free_rec, -len);
+> +
+> +	rec->c_free = 0;
+> +	rec->c_total = 0;
+> +	rec->c_blkno = 0;
+> +	ocfs2_remove_from_cache(INODE_CACHE(alloc_inode), group_bh);
+> +	memset(group, 0, sizeof(struct ocfs2_group_desc));
+> +
+> +	/* prepare job for reclaim clusters */
+> +	main_bm_inode = ocfs2_get_system_file_inode(osb,
+> +						    GLOBAL_BITMAP_SYSTEM_INODE,
+> +						    OCFS2_INVALID_SLOT);
+> +	if (!main_bm_inode)
+> +		goto bail; /* ignore the error in reclaim path */
+> +
+> +	inode_lock(main_bm_inode);
+> +
+> +	status = ocfs2_inode_lock(main_bm_inode, &main_bm_bh, 1);
+> +	if (status < 0)
+> +		goto free_bm_inode; /* ignore the error in reclaim path */
+> +
+> +	ocfs2_block_to_cluster_group(main_bm_inode, start_blk, &bg_blkno,
+> +				     &start_bit);
+> +	fe = (struct ocfs2_dinode *) main_bm_bh->b_data;
+> +	cl = &fe->id2.i_chain;
+> +	/* reuse group_bh, caller will release the input group_bh */
+> +	group_bh = NULL;
+> +
+> +	/* reclaim clusters to global_bitmap */
+> +	status = ocfs2_read_group_descriptor(main_bm_inode, fe, bg_blkno,
+> +					     &group_bh);
+> +	if (status < 0) {
+> +		mlog_errno(status);
+> +		goto free_bm_bh;
+> +	}
+> +	group = (struct ocfs2_group_desc *) group_bh->b_data;
+> +
+> +	if ((count + start_bit) > le16_to_cpu(group->bg_bits)) {
+> +		ocfs2_error(alloc_inode->i_sb,
+> +			"reclaim length (%d) beyands block group length (%d)",
+> +			count + start_bit, le16_to_cpu(group->bg_bits));
+> +		goto free_group_bh;
+> +	}
+> +
+> +	old_bg_contig_free_bits = group->bg_contig_free_bits;
+> +	status = ocfs2_block_group_clear_bits(handle, main_bm_inode,
+> +					      group, group_bh,
+> +					      start_bit, count, 0,
+> +					      _ocfs2_clear_bit);
+> +	if (status < 0) {
+> +		mlog_errno(status);
+> +		goto free_group_bh;
+> +	}
+> +
+> +	status = ocfs2_journal_access_di(handle, INODE_CACHE(main_bm_inode),
+> +					 main_bm_bh, OCFS2_JOURNAL_ACCESS_WRITE);
+> +	if (status < 0) {
+> +		mlog_errno(status);
+> +		ocfs2_block_group_set_bits(handle, main_bm_inode, group, group_bh,
+> +				start_bit, count,
+> +				le16_to_cpu(old_bg_contig_free_bits), 1);
+> +		goto free_group_bh;
+> +	}
+> +
+> +	idx = le16_to_cpu(group->bg_chain);
+> +	rec = &(cl->cl_recs[idx]);
+> +
+> +	le32_add_cpu(&rec->c_free, count);
+> +	tmp_used = le32_to_cpu(fe->id1.bitmap1.i_used);
+> +	fe->id1.bitmap1.i_used = cpu_to_le32(tmp_used - count);
+> +	ocfs2_journal_dirty(handle, main_bm_bh);
+> +
+> +free_group_bh:
+> +	brelse(group_bh);
+> +
+> +free_bm_bh:
+> +	ocfs2_inode_unlock(main_bm_inode, 1);
+> +	brelse(main_bm_bh);
+> +
+> +free_bm_inode:
+> +	inode_unlock(main_bm_inode);
+> +	iput(main_bm_inode);
+> +
+> +bail:
+> +	return status;
+> +}
+> +
+>  /*
+>   * expects the suballoc inode to already be locked.
+>   */
+> @@ -2526,12 +2793,13 @@ static int _ocfs2_free_suballoc_bits(handle_t *handle,
+>  				     void (*undo_fn)(unsigned int bit,
+>  						     unsigned long *bitmap))
+>  {
+> -	int status = 0;
+> +	int idx, status = 0;
+>  	u32 tmp_used;
+>  	struct ocfs2_dinode *fe = (struct ocfs2_dinode *) alloc_bh->b_data;
+>  	struct ocfs2_chain_list *cl = &fe->id2.i_chain;
+>  	struct buffer_head *group_bh = NULL;
+>  	struct ocfs2_group_desc *group;
+> +	struct ocfs2_chain_rec *rec;
+>  	__le16 old_bg_contig_free_bits = 0;
+>  
+>  	/* The alloc_bh comes from ocfs2_free_dinode() or
+> @@ -2577,12 +2845,26 @@ static int _ocfs2_free_suballoc_bits(handle_t *handle,
+>  		goto bail;
+>  	}
+>  
+> -	le32_add_cpu(&cl->cl_recs[le16_to_cpu(group->bg_chain)].c_free,
+> -		     count);
+> +	idx = le16_to_cpu(group->bg_chain);
+> +	rec = &(cl->cl_recs[idx]);
+> +
+> +	le32_add_cpu(&rec->c_free, count);
+>  	tmp_used = le32_to_cpu(fe->id1.bitmap1.i_used);
+>  	fe->id1.bitmap1.i_used = cpu_to_le32(tmp_used - count);
+>  	ocfs2_journal_dirty(handle, alloc_bh);
+>  
+> +	/*
+> +	 * Reclaim suballocator free space.
+> +	 * Bypass: global_bitmap, not empty rec, first rec in cl_recs[]
 
-other info that might help us debug this:
+s/not empty rec/non empty rec
 
-Chain exists of:
-  sb_internal#3 --> &ocfs2_sysfile_lock_key[args->fi_sysfile_type]#2 --> &ocfs2_quota_ip_alloc_sem_key
+Thanks,
+Joseph
 
- Possible unsafe locking scenario:
+> +	 */
+> +	if (ocfs2_is_cluster_bitmap(alloc_inode) ||
+> +	    (le32_to_cpu(rec->c_free) != (le32_to_cpu(rec->c_total) - 1)) ||
+> +	    (le16_to_cpu(cl->cl_next_free_rec) == 1)) {
+> +		goto bail;
+> +	}
+> +
+> +	_reclaim_to_main_bm(handle, alloc_inode, alloc_bh, group_bh);
+> +
+>  bail:
+>  	brelse(group_bh);
+>  	return status;
 
-       CPU0                    CPU1
-       ----                    ----
-  lock(&ocfs2_quota_ip_alloc_sem_key);
-                               lock(&ocfs2_sysfile_lock_key[args->fi_sysfile_type]#2);
-                               lock(&ocfs2_quota_ip_alloc_sem_key);
-  rlock(sb_internal#3);
-
- *** DEADLOCK ***
-
-3 locks held by syz.0.149/6839:
- #0: ffff88806c57e0e0 (&type->s_umount_key#79){++++}-{3:3}, at: __super_lock fs/super.c:58 [inline]
- #0: ffff88806c57e0e0 (&type->s_umount_key#79){++++}-{3:3}, at: super_lock+0x27c/0x400 fs/super.c:120
- #1: ffff88807d165100 (&ocfs2_sysfile_lock_key[args->fi_sysfile_type]#8){+.+.}-{3:3}, at: inode_lock include/linux/fs.h:815 [inline]
- #1: ffff88807d165100 (&ocfs2_sysfile_lock_key[args->fi_sysfile_type]#8){+.+.}-{3:3}, at: ocfs2_lock_global_qf+0x206/0x2b0 fs/ocfs2/quota_global.c:313
- #2: ffff88807d164da0 (&ocfs2_quota_ip_alloc_sem_key){++++}-{3:3}, at: ocfs2_lock_global_qf+0x225/0x2b0 fs/ocfs2/quota_global.c:314
-
-stack backtrace:
-CPU: 0 UID: 0 PID: 6839 Comm: syz.0.149 Not tainted 6.12.0-rc1-syzkaller-00042-gf23aa4c0761a #0
-Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 09/13/2024
-Call Trace:
- <TASK>
- __dump_stack lib/dump_stack.c:94 [inline]
- dump_stack_lvl+0x241/0x360 lib/dump_stack.c:120
- print_circular_bug+0x13a/0x1b0 kernel/locking/lockdep.c:2074
- check_noncircular+0x36a/0x4a0 kernel/locking/lockdep.c:2206
- check_prev_add kernel/locking/lockdep.c:3161 [inline]
- check_prevs_add kernel/locking/lockdep.c:3280 [inline]
- validate_chain+0x18ef/0x5920 kernel/locking/lockdep.c:3904
- __lock_acquire+0x1384/0x2050 kernel/locking/lockdep.c:5202
- lock_acquire+0x1ed/0x550 kernel/locking/lockdep.c:5825
- percpu_down_read include/linux/percpu-rwsem.h:51 [inline]
- __sb_start_write include/linux/fs.h:1716 [inline]
- sb_start_intwrite include/linux/fs.h:1899 [inline]
- ocfs2_start_trans+0x2b9/0x700 fs/ocfs2/journal.c:348
- ocfs2_write_info+0x128/0x3a0 fs/ocfs2/quota_global.c:992
- quota_setinfo+0x3e1/0x500 fs/quota/quota.c:174
- __do_sys_quotactl fs/quota/quota.c:961 [inline]
- __se_sys_quotactl+0x2c4/0xa30 fs/quota/quota.c:917
- do_syscall_x64 arch/x86/entry/common.c:52 [inline]
- do_syscall_64+0xf3/0x230 arch/x86/entry/common.c:83
- entry_SYSCALL_64_after_hwframe+0x77/0x7f
-RIP: 0033:0x7f330bf7dff9
-Code: ff ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 40 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 a8 ff ff ff f7 d8 64 89 01 48
-RSP: 002b:00007f330cd0b038 EFLAGS: 00000246 ORIG_RAX: 00000000000000b3
-RAX: ffffffffffffffda RBX: 00007f330c135f80 RCX: 00007f330bf7dff9
-RDX: 0000000000000000 RSI: 0000000020000380 RDI: ffffffff80000600
-RBP: 00007f330bff0296 R08: 0000000000000000 R09: 0000000000000000
-R10: 0000000020000000 R11: 0000000000000246 R12: 0000000000000000
-R13: 0000000000000000 R14: 00007f330c135f80 R15: 00007ffe6a815898
- </TASK>
-
-
----
-This report is generated by a bot. It may contain errors.
-See https://goo.gl/tpsmEJ for more information about syzbot.
-syzbot engineers can be reached at syzkaller@googlegroups.com.
-
-syzbot will keep track of this issue. See:
-https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
-
-If the report is already addressed, let syzbot know by replying with:
-#syz fix: exact-commit-title
-
-If you want to overwrite report's subsystems, reply with:
-#syz set subsystems: new-subsystem
-(See the list of subsystem names on the web dashboard)
-
-If the report is a duplicate of another one, reply with:
-#syz dup: exact-subject-of-another-report
-
-If you want to undo deduplication, reply with:
-#syz undup
