@@ -1,119 +1,96 @@
-Received: from mail-108-mta53.mxroute.com (mail-108-mta53.mxroute.com [136.175.108.53])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from out30-99.freemail.mail.aliyun.com (out30-99.freemail.mail.aliyun.com [115.124.30.99])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4AF871754B
-	for <ocfs2-devel@lists.linux.dev>; Fri, 11 Oct 2024 01:52:23 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=136.175.108.53
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id BC150E56C
+	for <ocfs2-devel@lists.linux.dev>; Fri, 11 Oct 2024 02:01:51 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.99
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1728611546; cv=none; b=SToh8TjSv3MQlGrnI8QRg+5IevY75aGeVIadGeKGpKhVK+psic4oXVNMIM+UbxsZXmQN2Qtfc75w6UP2ks4mmmR5f6DXhuUdWLLbLyxps6GjQL7zR75CyIdjZ+y3max8FjORHIf1z72gzJlOZBWtunP9m1rq2jQo67/Js8l0B3k=
+	t=1728612114; cv=none; b=HsjB54hx24OCCtCPlUSCn5GZmHCYUoCKa+bf9zEKZ4wu14Iltzb37UkKLzDotF5PCJvlEnwOqH4u2Kbsrd9ISFhFBVaPJIKbwY9W+j+dk9FQ6pL5KBeiauWUrNGcVaay7WBiw7KYqrglHJcWJkUh7j1khZh6sPgDDaURYNaWYx4=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1728611546; c=relaxed/simple;
-	bh=eMEi30HCHoAAv+JpEoZK1ER7d1QkHukLsqPSuZDJKOk=;
-	h=References:From:To:Cc:Subject:Date:In-reply-to:Message-ID:
-	 MIME-Version:Content-Type; b=pKuFhlUHjjE+RHTE3MCM9lzJ6seVQiyTZ8VW3ipc3FuzEPI2i3Lno+l5pKqzNwKEFnv/o+H9FXm4j7SV38toZBjyQXDR6RvvvBCgv+3zuEB6Fy02FotaatJJfx8y9eAC3qJPJCPMs3eYvhNb3UIOeAg2OA+83OlUXtDq7OxF22k=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=damenly.org; spf=pass smtp.mailfrom=damenly.org; dkim=pass (2048-bit key) header.d=damenly.org header.i=@damenly.org header.b=Dgnq+EqG; arc=none smtp.client-ip=136.175.108.53
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=damenly.org
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=damenly.org
+	s=arc-20240116; t=1728612114; c=relaxed/simple;
+	bh=5YT2MH1SphLD8yHu2ulmt0PGxbNLsGIh/lMJ2PXkc+g=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=dcyEu7tDPu62IO9AaD7GYhWlBCvfR8/I1Ml25p/EhXYjHdh3o4b35YrlcyiT7td9LCUWjAvmQwdYxclwDckxElt0vyQr4KxZKT/s6ethWfxUCuM2+XF82R6Tr+btRIW9WyQrvSEVktue8SZFwq7ZQr6MUF7F0p6HpSiziUQ9zZQ=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=n5TEXOXO; arc=none smtp.client-ip=115.124.30.99
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=damenly.org header.i=@damenly.org header.b="Dgnq+EqG"
-Received: from filter006.mxroute.com ([136.175.111.3] filter006.mxroute.com)
- (Authenticated sender: mN4UYu2MZsgR)
- by mail-108-mta53.mxroute.com (ZoneMTA) with ESMTPSA id 19279421bf90003e01.005
- for <ocfs2-devel@lists.linux.dev>
- (version=TLSv1.3 cipher=TLS_AES_256_GCM_SHA384);
- Fri, 11 Oct 2024 01:47:08 +0000
-X-Zone-Loop: d10abf5224315a6e7f965d41115baaa458f2b3ac390a
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed; d=damenly.org
-	; s=x; h=Content-Type:MIME-Version:Message-ID:In-reply-to:Date:Subject:Cc:To:
-	From:References:Sender:Reply-To:Content-Transfer-Encoding:Content-ID:
-	Content-Description:Resent-Date:Resent-From:Resent-Sender:Resent-To:Resent-Cc
-	:Resent-Message-ID:List-Id:List-Help:List-Unsubscribe:List-Subscribe:
-	List-Post:List-Owner:List-Archive;
-	bh=pdzEL4cm+5xHpBoIcDQGXqMijQus5IPuZqSbT5JzXiA=; b=Dgnq+EqGvWgMGgCsRfZZK0D65V
-	+14hm3ZdjxuNAjEsCQybe9vOSGdflkuUx57no2qIArOPftpNyGLR/jDMD3azilgZBRkark8P/W7x4
-	92evQO7sjOd7CpPtS8cj5YECPKIQKvTyxccKrt0RZClJiE/B2154TKXCmIJp9XzLZrTrw5Pd2bA0B
-	IeZJ67jH7YHFuKrYj9B2T94ChTIyGC5ueS+i69BAP1Qc1m8RardY/PoOAI2hvhTkBavIn3yVG7VEl
-	2y2A9hhwb+7C/5F0gxEyDOYbr1KgwrvfuqYoRewEdJj53bPrt2cCLJefQC4AmxK0LnKPFMibgvxvL
-	bmV/bKEw==;
-References: <4195446e-2d2b-442c-a1ad-b1498d243a70@linux.alibaba.com>
- <tencent_91D2962236324AA47465761367183C8F3709@qq.com>
-User-agent: mu4e 1.7.5; emacs 28.2
-From: Su Yue <l@damenly.org>
-To: Edward Adam Davis <eadavis@qq.com>
-Cc: joseph.qi@linux.alibaba.com, jlbec@evilplan.org,
- linux-kernel@vger.kernel.org, mark@fasheh.com,
- ocfs2-devel@lists.linux.dev,
- syzbot+81092778aac03460d6b7@syzkaller.appspotmail.com,
- syzkaller-bugs@googlegroups.com
-Subject: Re: [PATCH V2] ocfs2: pass u64 to ocfs2_truncate_inline maybe overflow
-Date: Fri, 11 Oct 2024 09:07:09 +0800
-In-reply-to: <tencent_91D2962236324AA47465761367183C8F3709@qq.com>
-Message-ID: <ed4no1gp.fsf@damenly.org>
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="n5TEXOXO"
+DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=linux.alibaba.com; s=default;
+	t=1728612109; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=duKuP/OKhaeT4t3udU5f6xeBjrv0An1V+wIGEM26XZM=;
+	b=n5TEXOXOXyAemuS2fVFiiViAk6fTZ8wKhKMkkPXNFv4bLQGKsw0LExlbyj4/WNIQoWSjmyjKx/qxoTrN9HW0viA71C7ZZVAW/vweXYvKxwFWQwbI9kV+o1g+THVvHxgOtdCvSosRLZOw6Xu+eDNXbFVsVy4t9E2qjqHD1JfMp9Q=
+Received: from 30.221.129.65(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0WGoD5Hf_1728612108 cluster:ay36)
+          by smtp.aliyun-inc.com;
+          Fri, 11 Oct 2024 10:01:49 +0800
+Message-ID: <a9a6f5ce-e0ef-4b5e-bfe8-7657ad1a8dac@linux.alibaba.com>
+Date: Fri, 11 Oct 2024 10:01:48 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Type: text/plain; format=flowed
-X-Authenticated-Id: l@damenly.org
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH V2] ocfs2: pass u64 to ocfs2_truncate_inline maybe
+ overflow
+To: Su Yue <l@damenly.org>, Edward Adam Davis <eadavis@qq.com>
+Cc: jlbec@evilplan.org, linux-kernel@vger.kernel.org, mark@fasheh.com,
+ ocfs2-devel@lists.linux.dev,
+ syzbot+81092778aac03460d6b7@syzkaller.appspotmail.com,
+ syzkaller-bugs@googlegroups.com
+References: <4195446e-2d2b-442c-a1ad-b1498d243a70@linux.alibaba.com>
+ <tencent_91D2962236324AA47465761367183C8F3709@qq.com>
+ <ed4no1gp.fsf@damenly.org>
+Content-Language: en-US
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+In-Reply-To: <ed4no1gp.fsf@damenly.org>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 
 
-On Thu 10 Oct 2024 at 22:31, Edward Adam Davis <eadavis@qq.com> 
-wrote:
 
-> Syzbot reported a kernel BUG in ocfs2_truncate_inline.
-> There are two reasons for this: first, the parameter value 
-> passed is greater
-> than UINT_MAX, second, the start and end parameters of 
-> ocfs2_truncate_inline
-> are "unsigned int".
->
-> So, we need to add a sanity check for byte_start and byte_len 
-> right before
-> ocfs2_truncate_inline() in ocfs2_remove_inode_range(), if they 
-> are greater
-> than UINT_MAX return -EFBIG.
->
-> Reported-by: 
-> syzbot+81092778aac03460d6b7@syzkaller.appspotmail.com
-> Closes: 
-> https://syzkaller.appspot.com/bug?extid=81092778aac03460d6b7
-> Signed-off-by: Edward Adam Davis <eadavis@qq.com>
-> ---
-> V1 -> V2: move sanity check to ocfs2_remove_inode_range
->
->  fs/ocfs2/file.c | 5 +++++
->  1 file changed, 5 insertions(+)
->
-> diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-> index ad131a2fc58e..05d6a8acfcda 100644
-> --- a/fs/ocfs2/file.c
-> +++ b/fs/ocfs2/file.c
-> @@ -1784,6 +1784,11 @@ int ocfs2_remove_inode_range(struct inode 
-> *inode,
->  		return 0;
->
->  	if (OCFS2_I(inode)->ip_dyn_features & OCFS2_INLINE_DATA_FL) {
-> +		if (byte_start > UINT_MAX || byte_start + byte_len > 
-> UINT_MAX) {
->
-Why not use ocfs2_max_inline_data_with_xattr() here? Yes, UINT_MAX 
-indeed
-solves overflow problem Syzbot reported but you can find much 
-lowerer
-limit if once looked into inline data structures.
-Also, ocfs2_truncate_inline() can be enhanced e.g. replace
-BUG_ON(start > end) with error out.
+On 10/11/24 9:07 AM, Su Yue wrote:
+> 
+> On Thu 10 Oct 2024 at 22:31, Edward Adam Davis <eadavis@qq.com> wrote:
+> 
+>> Syzbot reported a kernel BUG in ocfs2_truncate_inline.
+>> There are two reasons for this: first, the parameter value passed is greater
+>> than UINT_MAX, second, the start and end parameters of ocfs2_truncate_inline
+>> are "unsigned int".
+>>
+>> So, we need to add a sanity check for byte_start and byte_len right before
+>> ocfs2_truncate_inline() in ocfs2_remove_inode_range(), if they are greater
+>> than UINT_MAX return -EFBIG.
+>>
+>> Reported-by: syzbot+81092778aac03460d6b7@syzkaller.appspotmail.com
+>> Closes: https://syzkaller.appspot.com/bug?extid=81092778aac03460d6b7
+>> Signed-off-by: Edward Adam Davis <eadavis@qq.com>
+>> ---
+>> V1 -> V2: move sanity check to ocfs2_remove_inode_range
+>>
+>>  fs/ocfs2/file.c | 5 +++++
+>>  1 file changed, 5 insertions(+)
+>>
+>> diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+>> index ad131a2fc58e..05d6a8acfcda 100644
+>> --- a/fs/ocfs2/file.c
+>> +++ b/fs/ocfs2/file.c
+>> @@ -1784,6 +1784,11 @@ int ocfs2_remove_inode_range(struct inode *inode,
+>>          return 0;
+>>
+>>      if (OCFS2_I(inode)->ip_dyn_features & OCFS2_INLINE_DATA_FL) {
+>> +        if (byte_start > UINT_MAX || byte_start + byte_len > UINT_MAX) {
+>>
+> Why not use ocfs2_max_inline_data_with_xattr() here? Yes, UINT_MAX indeed
+> solves overflow problem Syzbot reported but you can find much lowerer
+> limit if once looked into inline data structures.
 
---
-Su
+Right, since it is inline data, so the offset can't exceeds block size
+at least. You can refer bad inline data check in
+ocfs2_read_inline_data().
 
-
-> +			ret = -EFBIG;
-> +			mlog_errno(ret);
-> +			goto out;
-> +		}
->  		ret = ocfs2_truncate_inline(inode, di_bh, byte_start,
->  					    byte_start + byte_len, 0);
->  		if (ret) {
+Thanks,
+Joseph
+ 
