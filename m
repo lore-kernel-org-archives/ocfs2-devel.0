@@ -1,61 +1,62 @@
-Received: from xmbghk7.mail.qq.com (xmbghk7.mail.qq.com [43.163.128.44])
+Received: from out203-205-221-235.mail.qq.com (out203-205-221-235.mail.qq.com [203.205.221.235])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D4D5836B
-	for <ocfs2-devel@lists.linux.dev>; Sun, 13 Oct 2024 13:36:48 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=43.163.128.44
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9B23B13CFBD
+	for <ocfs2-devel@lists.linux.dev>; Sun, 13 Oct 2024 23:31:38 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=203.205.221.235
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1728826615; cv=none; b=j3sYkKV+Vwht50ARQS5AjqLzm7sCI4XTBBhD9CInRs6HORpgUkalNQmL9Os+3L8hMCyUtAJPfzSJq+wItkpZ7pLmZ+GvjzN6vNxXuZY9M1AME6LyCSTQ+ApikuARDfYdvsQxERshF146UbcdGmIRfjvvZrKr3+6o7tGi8X83e9A=
+	t=1728862300; cv=none; b=cgv8Eo2xN/smANSXTWNIm5/JYSLfss+pUw8H06ZWgyk+KAwfg+bpjZw6SNoB/LBg5IO8JO7sqQj8gnELu/2FerWDaeVNIll3HEPgmD/I0o/dPNzMsmzTnksTJmA8lac6fCSUe8REME5SkJAhHypbX+Eo5uOrL4hX6w/lYVG2eSM=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1728826615; c=relaxed/simple;
-	bh=pytNIx+jKapQeucboWpIMiXRULkceqL/mqWhiMqw3ys=;
+	s=arc-20240116; t=1728862300; c=relaxed/simple;
+	bh=jGBFm8DMVRl+cIY9ik911TDLmRtGw1gRGfluIuBTu50=;
 	h=Message-ID:From:To:Cc:Subject:Date:In-Reply-To:References:
-	 MIME-Version; b=PG5yamKqUbMXLdTU98YImauwlEbJIiyxANYxIiZqJseFNuOsHxgDeo5BVVjzFR2SmO6oWrihcqNQFZ74YmSInGLasRjGt2MY2R71RkZ8z3BOtu0rTnq+ocLYt8TeRl/fMUeaNYxjZxn3giMUTQJw+qiG2MBDyaiCNXf8Vy0Nzlg=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=qq.com; spf=pass smtp.mailfrom=qq.com; dkim=pass (1024-bit key) header.d=qq.com header.i=@qq.com header.b=OeXpgvpf; arc=none smtp.client-ip=43.163.128.44
+	 MIME-Version; b=udwERsaV7gVCFIcY2ShvQYQ22UYr6FuuZtKUADkZn69jh47K9vnfUM+YHpN7RvsZY37jVKB8lOoF1Ny/T4ydm1EEuoZbioVEHQ1haBScfvpQCcypf4tyft/Uts9u2GsJJs0K9ZMQMwJbgoT89UuBFQigQEdNIyEqQgpPHHdSsdU=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=qq.com; spf=pass smtp.mailfrom=qq.com; dkim=pass (1024-bit key) header.d=qq.com header.i=@qq.com header.b=QKS6y3iF; arc=none smtp.client-ip=203.205.221.235
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=qq.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=qq.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=qq.com header.i=@qq.com header.b="OeXpgvpf"
+	dkim=pass (1024-bit key) header.d=qq.com header.i=@qq.com header.b="QKS6y3iF"
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=qq.com; s=s201512;
-	t=1728826306; bh=Ir7E+cd5nsOzSK0P0aZLBMENQat91iTQBb56dgtbmEs=;
+	t=1728862291; bh=XgZ2Qa49k9aedugWqM8fyjuzPj2TUY+YDIuYoW1HvKQ=;
 	h=From:To:Cc:Subject:Date:In-Reply-To:References;
-	b=OeXpgvpfayrRPYX8wCotBgrzqjprgHa/24dzuR7/KQ3cgYpoMjFiaF+USnJhVnVlt
-	 Ikux9aVNrhj9REzWZsZ//drajgVm95iIPEvBXLA9sixGTXd6JiXT90r71VbtJ4+6ck
-	 WXPqnCW4OcBQYkWEKsHF/qhmLmn8iSYBeo6jHkKQ=
+	b=QKS6y3iFqmSjrKttogO/aFRaIi4Ofabvv0gJe98vXXzPYFfnLssix63r0GkFSApzT
+	 s5OBpzmx8vW9iVX8KF24E8s+VFdq7dk8OjqCcpy3VHe73ChLhNadA7HYYEdaqEDfkW
+	 hpYiaFvGs1f04baoaC4coXVU1wVI9+Cm2yBb6S24=
 Received: from pek-lxu-l1.wrs.com ([111.198.224.50])
-	by newxmesmtplogicsvrszc16-0.qq.com (NewEsmtp) with SMTP
-	id 65C9E00E; Sun, 13 Oct 2024 21:25:28 +0800
-X-QQ-mid: xmsmtpt1728825928tuc1jd0oz
-Message-ID: <tencent_10694B411BC625A4BA1BBB8033959EA31B08@qq.com>
-X-QQ-XMAILINFO: NNoVXaH09J17YzWnYinin4OpNa5hWNReprXjMDMRP0ViCefJFVfE8aLnkkSzDl
-	 5hZMY+CQUPkOipzrGnfacN9Q6P9oc719e5WG+5IYtTfcOYrKOBfN7qjVkRJ5XTRL/ONKqMtn7FmI
-	 oIX2fZfoOluhJyZqfDaiwAEXqt9D7Hwp48wHKx4te5yPdPvj37bKiiWlKRO0rtbuDSIYs29oZI9/
-	 YwlnjGM6WIQq8Z2j9tLnjILJYZG2nUOkoEtAHgs0WzXj4WRdnEK+4d9SNnihfGx/aKktWUmof8Jc
-	 GqDS+5cp/Js1uDKDNfO1lLhbEH2eGEtVp4/UT7mq18D/qTcGFbPbL3CgW8xGpvoWpOWSlrdJgWyS
-	 qqqfYgoFih51oiLe+N1nuuz3jzw9v80X3JMI3pzXZUNV27BFMhY9OKpDrffCe4PtvHeNI0T0F70d
-	 1YAF/cZPXM7kB5w4aDO3mraF48/BhQ2XOvKeEJKKlGiTVrX+cEtdv/1sL9EXMbw1ojws9KD7j95J
-	 zeofwsOccS+JO48ADpnTZLxvwYgIh1x9aI/Hq8DFqmcgZVhuSl4w2goaniczNUMec6Sfwv47s3RF
-	 eX8Th56DaNdgQm0gWDl77jxHGH1n0XjtV+5vgpIXlmAD8PilGge2YDtEPFXI4Gsuah3QZWnF1C0p
-	 MmHp10au50fCdxlwW+ev3JV8tcZvMJogp7Zl/7EoTxumP/rk/S1VMfQWSHcBqS80x5CmA5LqXqLf
-	 27cT/Bvfc9Kv+8Z4wKpGYI5cqIcRakg7QkNH6b0/eZ2yUejbqvfhmYqibDHkcv5JKS0K+3SZkQvy
-	 NqGa38g7Hw9Av0nZc8/9WrHLaERSD4ups4qeeO21KD6xNkb4MK2Sg7+tWobPz+jg7AjC/FJde6/P
-	 R7Y16S//VzURG8PpPxBri/geZk8FqslzG+hWV39Ry4S1SLL1IeNoTQBNZu2e6PaKscVE+6H51W83
-	 kdKAn1nY0=
-X-QQ-XMRINFO: Mp0Kj//9VHAxr69bL5MkOOs=
+	by newxmesmtplogicsvrszb20-0.qq.com (NewEsmtp) with SMTP
+	id 7DCA7EAA; Mon, 14 Oct 2024 07:31:28 +0800
+X-QQ-mid: xmsmtpt1728862288taar3kl0i
+Message-ID: <tencent_9D4C78EA6D442CB56C2C97D4EB8EEC26CC0A@qq.com>
+X-QQ-XMAILINFO: MHMAY6vlphTX6XyXC55uj4E8fpoHQg/ZXEe/hS1KFNm1+NahFbJBRIjLh55sjA
+	 6Ki78I0cZJse6XOR9kN88c8wHvhenGXs160BhK+yqdIbzO6knO4UH75AnkvB/cAz5br317cCl2gS
+	 bnAVYhV1efWM1W+8U+bS0KVbLMWNKGcGGTAD3nqQKskfba++8u+K9aPuQ+HTWbR5fMzOwStujB9p
+	 NgZ4xere46d1FDdHJH/RbXFt3/tfXJUdmskeclcWlInymzmgGGG0QyL+q6npjpMZ07p1ZuFGhNeo
+	 oh63dmQjAZ7N0QZL5HS0uw2JPRBPcSYc8mxGVnNG+/pZBiA+UI7u1sOX6i/O76CFwlOKXcvNuFj3
+	 xEyDaEA/jI4q20WGel2qyQZqWQSvzgR91HCR27i1Cg4HzXsLVjPuaPN6Z8YrTov8D694dhBxZF+N
+	 mcTxgiYbyB46sE1GGuUaoJMrlyCoA4jtmx6FhbRXa6QwsTkO+7gJ3OzM35uD8WUIvGih4ouBfVga
+	 aEgIAlpUIKWInEGqETej8btPuQuGLjVj54IZdnoGSkhRiRHX4sQCBqOcjEw22HjPdIRqC9EdICFD
+	 HGUSBYf0wfBSFKzQur5j0utMlfZ4SSDzqHfWrJtLuObsO4ApklaH07VCEntoCy8NQUsw1pQAl5bI
+	 Q92otsuNDib6Eio4Jy5XoWCyJAfpIGuJsRlDNHOZjnE5fpyriZK2O6/jMCHUBz3IIFp5vt0b/Ocy
+	 yqk0/PV32uWGskQcHc8rw7mWq8Z3qEUr+009eS9TW+yuoL6dyzm+df/T2LDUjI2WP7z9XxRlkwp9
+	 YAuazHwQblrG6Vy6UxiaCxLCyYWQdgrBOs+GHSv3MQqdgGD8QIsqbn2l63pEoOBE63Dm8hcueXym
+	 bfYqhEbgB1fSEYbWFGMhZ9oSmWmfcT5KNV1n70Ojjrg85vA/fH5KwCrEG3mOtTHuojuldBzwDoPR
+	 RmhWUxd60tXifbo9tfDArq6eIPGCEAp5ioaaRkKjl2p+UekxrXC7K1SgHGYyEEDAIFHq0+LPo=
+X-QQ-XMRINFO: NI4Ajvh11aEj8Xl/2s1/T8w=
 From: Edward Adam Davis <eadavis@qq.com>
-To: syzbot+797d4829dafe3f11dce7@syzkaller.appspotmail.com
+To: eadavis@qq.com
 Cc: jlbec@evilplan.org,
 	joseph.qi@linux.alibaba.com,
 	linux-kernel@vger.kernel.org,
 	mark@fasheh.com,
 	ocfs2-devel@lists.linux.dev,
+	syzbot+797d4829dafe3f11dce7@syzkaller.appspotmail.com,
 	syzkaller-bugs@googlegroups.com
-Subject: [PATCH] ocfs2: BUG is meaningless when the flags is 0
-Date: Sun, 13 Oct 2024 21:25:29 +0800
-X-OQ-MSGID: <20241013132528.2763484-2-eadavis@qq.com>
+Subject: [PATCH V2] ocfs2: BUG is meaningless when the flags is 0
+Date: Mon, 14 Oct 2024 07:31:28 +0800
+X-OQ-MSGID: <20241013233127.2836641-2-eadavis@qq.com>
 X-Mailer: git-send-email 2.47.0
-In-Reply-To: <670a46a0.050a0220.4cbc0.001e.GAE@google.com>
-References: <670a46a0.050a0220.4cbc0.001e.GAE@google.com>
+In-Reply-To: <tencent_10694B411BC625A4BA1BBB8033959EA31B08@qq.com>
+References: <tencent_10694B411BC625A4BA1BBB8033959EA31B08@qq.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -114,6 +115,8 @@ Reported-and-tested-by: syzbot+797d4829dafe3f11dce7@syzkaller.appspotmail.com
 Closes: https://syzkaller.appspot.com/bug?extid=797d4829dafe3f11dce7
 Signed-off-by: Edward Adam Davis <eadavis@qq.com>
 ---
+V1 -> V2: keep rc to 0 when falgs contains READHEAD
+
  fs/ocfs2/extent_map.c | 3 ++-
  1 file changed, 2 insertions(+), 1 deletion(-)
 
@@ -127,7 +130,7 @@ index f7672472fa82..0043c2428ef2 100644
  	    i_size_read(inode)) {
 -		BUG_ON(!(flags & OCFS2_BH_READAHEAD));
 +		BUG_ON(flags && !(flags & OCFS2_BH_READAHEAD));
-+		rc = flags ?: -EIO;
++		rc = flags ? 0 : -EIO;
  		goto out;
  	}
  
