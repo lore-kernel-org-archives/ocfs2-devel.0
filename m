@@ -1,86 +1,70 @@
-Received: from mail-il1-f198.google.com (mail-il1-f198.google.com [209.85.166.198])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from xmbghk7.mail.qq.com (xmbghk7.mail.qq.com [43.163.128.44])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 62A1114D29D
-	for <ocfs2-devel@lists.linux.dev>; Sat, 12 Oct 2024 09:51:29 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.166.198
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D4D5836B
+	for <ocfs2-devel@lists.linux.dev>; Sun, 13 Oct 2024 13:36:48 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=43.163.128.44
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1728726690; cv=none; b=O2O+wDqhRu68Hds0LZQ/XgY1acy3KFsKTepOj3+JcR+u6yIkM1uMQNwXuD60+xGqK4o2UMk5Hh5SSOzDyqna3ffnCQTTq1b4yazjYqUdTWOSfC2k/bZDUOrfFE4YpryBDz7YEYXZZYE7SP3McssozFLATw2iqM0ZIlUDHC5yQl4=
+	t=1728826615; cv=none; b=j3sYkKV+Vwht50ARQS5AjqLzm7sCI4XTBBhD9CInRs6HORpgUkalNQmL9Os+3L8hMCyUtAJPfzSJq+wItkpZ7pLmZ+GvjzN6vNxXuZY9M1AME6LyCSTQ+ApikuARDfYdvsQxERshF146UbcdGmIRfjvvZrKr3+6o7tGi8X83e9A=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1728726690; c=relaxed/simple;
-	bh=1wZHRsNIL3b+zY4gZFxYiMfK+2HIge8wzhwItDkcSuo=;
-	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=Er0pIyIkKtHXOGsoAO7lqh0TCRway0xAc1cbPRgURDS1hgi55hbQdi+ohJgz1BIKX0iEAHwu00uqll/Z/INwxwLQ6nQnqysus2SdBETXMXbTN5qaotp8FQfI3k+31HeDyRjYhGw6HruiSQrHupCgZbjbFbUztZwkywePg09u2DQ=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.166.198
-Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
-Received: by mail-il1-f198.google.com with SMTP id e9e14a558f8ab-3a3bcae85a5so4290475ab.1
-        for <ocfs2-devel@lists.linux.dev>; Sat, 12 Oct 2024 02:51:29 -0700 (PDT)
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1728726688; x=1729331488;
-        h=to:from:subject:message-id:date:mime-version:x-gm-message-state
-         :from:to:cc:subject:date:message-id:reply-to;
-        bh=ISkzNIwcxKCi4MsIw6vsqZY/ns0b+a54JSlHPYleXCs=;
-        b=pPCOUGTIhxR5voW+JTjildBy3tLmXmNDIgMaGGhmtWknBnJ+NIX7+tqEtl8Zkyrms5
-         JyscBSA7MK+aNvPohmnBVKcFhaIKTOGVebgVWZTiPX93n0F5cUIkrQ9k5U+K9wkQ4HmU
-         xmmlyi5HC6LyA8HdiVTdZHdtY6fj7cQClsGPUgcj8swwS2Vs2FwxfUjWZDooeKgDpP3p
-         aLOsN1sU4MyIyOyAE//IBfgBziDAVjKR6UBhQFQFQiy2U81yRir5pYSvODpAWPP+XSaM
-         PqinTKTL0CweWOd3BIsOeOGS7b6kgSBVH2N7wsgJOnuQ8p9kVpV51lLHxbz4zqSMx64G
-         w4uQ==
-X-Forwarded-Encrypted: i=1; AJvYcCUgLd+g/TpPukR+aYdep2X2ciP5O6FHm8uUOYvh0hKMHMow3y1uajPUu7eHeuoenv5fDo2sseRl6jZAew==@lists.linux.dev
-X-Gm-Message-State: AOJu0YzwUC1z3HgcComGDiX3tgfkoywlSbbPR6i2NmaN91cfrPOYCAPl
-	/eNYcUd2P+WWO9ZkIP9f/c6NVXhOAzLaPaLY92hhuNBNs93IE522iwGMftulQU7jU5FIA1bAflH
-	95T0Y+mD3Dx8kbb9syBQwavE+K9qAx3VUhpggOhvLynH2Dk0qVsMuh7A=
-X-Google-Smtp-Source: AGHT+IGDY6tlmGxCjDErUZ9fIN/FYDK4Wwk0kUq8g8AHRcmWNkYpH1TsCAhMU+P84G9sojLNsiW3h/yfBnvicxZjfeUzvnES7gLV
+	s=arc-20240116; t=1728826615; c=relaxed/simple;
+	bh=pytNIx+jKapQeucboWpIMiXRULkceqL/mqWhiMqw3ys=;
+	h=Message-ID:From:To:Cc:Subject:Date:In-Reply-To:References:
+	 MIME-Version; b=PG5yamKqUbMXLdTU98YImauwlEbJIiyxANYxIiZqJseFNuOsHxgDeo5BVVjzFR2SmO6oWrihcqNQFZ74YmSInGLasRjGt2MY2R71RkZ8z3BOtu0rTnq+ocLYt8TeRl/fMUeaNYxjZxn3giMUTQJw+qiG2MBDyaiCNXf8Vy0Nzlg=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=qq.com; spf=pass smtp.mailfrom=qq.com; dkim=pass (1024-bit key) header.d=qq.com header.i=@qq.com header.b=OeXpgvpf; arc=none smtp.client-ip=43.163.128.44
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=qq.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=qq.com
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (1024-bit key) header.d=qq.com header.i=@qq.com header.b="OeXpgvpf"
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=qq.com; s=s201512;
+	t=1728826306; bh=Ir7E+cd5nsOzSK0P0aZLBMENQat91iTQBb56dgtbmEs=;
+	h=From:To:Cc:Subject:Date:In-Reply-To:References;
+	b=OeXpgvpfayrRPYX8wCotBgrzqjprgHa/24dzuR7/KQ3cgYpoMjFiaF+USnJhVnVlt
+	 Ikux9aVNrhj9REzWZsZ//drajgVm95iIPEvBXLA9sixGTXd6JiXT90r71VbtJ4+6ck
+	 WXPqnCW4OcBQYkWEKsHF/qhmLmn8iSYBeo6jHkKQ=
+Received: from pek-lxu-l1.wrs.com ([111.198.224.50])
+	by newxmesmtplogicsvrszc16-0.qq.com (NewEsmtp) with SMTP
+	id 65C9E00E; Sun, 13 Oct 2024 21:25:28 +0800
+X-QQ-mid: xmsmtpt1728825928tuc1jd0oz
+Message-ID: <tencent_10694B411BC625A4BA1BBB8033959EA31B08@qq.com>
+X-QQ-XMAILINFO: NNoVXaH09J17YzWnYinin4OpNa5hWNReprXjMDMRP0ViCefJFVfE8aLnkkSzDl
+	 5hZMY+CQUPkOipzrGnfacN9Q6P9oc719e5WG+5IYtTfcOYrKOBfN7qjVkRJ5XTRL/ONKqMtn7FmI
+	 oIX2fZfoOluhJyZqfDaiwAEXqt9D7Hwp48wHKx4te5yPdPvj37bKiiWlKRO0rtbuDSIYs29oZI9/
+	 YwlnjGM6WIQq8Z2j9tLnjILJYZG2nUOkoEtAHgs0WzXj4WRdnEK+4d9SNnihfGx/aKktWUmof8Jc
+	 GqDS+5cp/Js1uDKDNfO1lLhbEH2eGEtVp4/UT7mq18D/qTcGFbPbL3CgW8xGpvoWpOWSlrdJgWyS
+	 qqqfYgoFih51oiLe+N1nuuz3jzw9v80X3JMI3pzXZUNV27BFMhY9OKpDrffCe4PtvHeNI0T0F70d
+	 1YAF/cZPXM7kB5w4aDO3mraF48/BhQ2XOvKeEJKKlGiTVrX+cEtdv/1sL9EXMbw1ojws9KD7j95J
+	 zeofwsOccS+JO48ADpnTZLxvwYgIh1x9aI/Hq8DFqmcgZVhuSl4w2goaniczNUMec6Sfwv47s3RF
+	 eX8Th56DaNdgQm0gWDl77jxHGH1n0XjtV+5vgpIXlmAD8PilGge2YDtEPFXI4Gsuah3QZWnF1C0p
+	 MmHp10au50fCdxlwW+ev3JV8tcZvMJogp7Zl/7EoTxumP/rk/S1VMfQWSHcBqS80x5CmA5LqXqLf
+	 27cT/Bvfc9Kv+8Z4wKpGYI5cqIcRakg7QkNH6b0/eZ2yUejbqvfhmYqibDHkcv5JKS0K+3SZkQvy
+	 NqGa38g7Hw9Av0nZc8/9WrHLaERSD4ups4qeeO21KD6xNkb4MK2Sg7+tWobPz+jg7AjC/FJde6/P
+	 R7Y16S//VzURG8PpPxBri/geZk8FqslzG+hWV39Ry4S1SLL1IeNoTQBNZu2e6PaKscVE+6H51W83
+	 kdKAn1nY0=
+X-QQ-XMRINFO: Mp0Kj//9VHAxr69bL5MkOOs=
+From: Edward Adam Davis <eadavis@qq.com>
+To: syzbot+797d4829dafe3f11dce7@syzkaller.appspotmail.com
+Cc: jlbec@evilplan.org,
+	joseph.qi@linux.alibaba.com,
+	linux-kernel@vger.kernel.org,
+	mark@fasheh.com,
+	ocfs2-devel@lists.linux.dev,
+	syzkaller-bugs@googlegroups.com
+Subject: [PATCH] ocfs2: BUG is meaningless when the flags is 0
+Date: Sun, 13 Oct 2024 21:25:29 +0800
+X-OQ-MSGID: <20241013132528.2763484-2-eadavis@qq.com>
+X-Mailer: git-send-email 2.47.0
+In-Reply-To: <670a46a0.050a0220.4cbc0.001e.GAE@google.com>
+References: <670a46a0.050a0220.4cbc0.001e.GAE@google.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-X-Received: by 2002:a92:ca4b:0:b0:395:e85e:f2fa with SMTP id
- e9e14a558f8ab-3a3b5844745mr39881005ab.1.1728726688320; Sat, 12 Oct 2024
- 02:51:28 -0700 (PDT)
-Date: Sat, 12 Oct 2024 02:51:28 -0700
-X-Google-Appengine-App-Id: s~syzkaller
-X-Google-Appengine-App-Id-Alias: syzkaller
-Message-ID: <670a46a0.050a0220.4cbc0.001e.GAE@google.com>
-Subject: [syzbot] [ocfs2?] kernel BUG in ocfs2_read_virt_blocks
-From: syzbot <syzbot+797d4829dafe3f11dce7@syzkaller.appspotmail.com>
-To: jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
-	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
-	syzkaller-bugs@googlegroups.com
-Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
 
-Hello,
-
-syzbot found the following issue on:
-
-HEAD commit:    87d6aab2389e Merge tag 'for_linus' of git://git.kernel.org..
-git tree:       upstream
-console+strace: https://syzkaller.appspot.com/x/log.txt?x=17fbbb80580000
-kernel config:  https://syzkaller.appspot.com/x/.config?x=7a3fccdd0bb995
-dashboard link: https://syzkaller.appspot.com/bug?extid=797d4829dafe3f11dce7
-compiler:       Debian clang version 15.0.6, GNU ld (GNU Binutils for Debian) 2.40
-syz repro:      https://syzkaller.appspot.com/x/repro.syz?x=13c117d0580000
-C reproducer:   https://syzkaller.appspot.com/x/repro.c?x=1007bb80580000
-
-Downloadable assets:
-disk image: https://storage.googleapis.com/syzbot-assets/47c26a185f6d/disk-87d6aab2.raw.xz
-vmlinux: https://storage.googleapis.com/syzbot-assets/fe82dfdaaac4/vmlinux-87d6aab2.xz
-kernel image: https://storage.googleapis.com/syzbot-assets/ecaba119a5f0/bzImage-87d6aab2.xz
-mounted in repro: https://storage.googleapis.com/syzbot-assets/197dcbc41fea/mount_0.gz
-
-Bisection is inconclusive: the issue happens on the oldest tested release.
-
-bisection log:  https://syzkaller.appspot.com/x/bisect.txt?x=114db707980000
-final oops:     https://syzkaller.appspot.com/x/report.txt?x=134db707980000
-console output: https://syzkaller.appspot.com/x/log.txt?x=154db707980000
-
-IMPORTANT: if you fix the issue, please add the following tag to the commit:
-Reported-by: syzbot+797d4829dafe3f11dce7@syzkaller.appspotmail.com
-
-JBD2: Ignoring recovery information on journal
-ocfs2: Mounting device (7,0) on (node local, slot 0) with ordered data mode.
+Syzbot reported a BUG in ocfs2_read_virt_blocks.
 ------------[ cut here ]------------
 kernel BUG at fs/ocfs2/extent_map.c:971!
 Oops: invalid opcode: 0000 [#1] PREEMPT SMP KASAN PTI
@@ -102,7 +86,7 @@ DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
 Call Trace:
  <TASK>
  ocfs2_read_dir_block+0x106/0x5c0 fs/ocfs2/dir.c:508
- ocfs2_find_dir_space_el fs/ocfs2/dir.c:3427 [inline]
+ ocfs2_find_dir_space_el fs/ocfs2/dir.c:3427 [inline]           // status = ocfs2_read_dir_block(dir, 0, &bh, 0);
  ocfs2_prepare_dir_for_insert+0x3f2/0x5c60 fs/ocfs2/dir.c:4274
  ocfs2_mknod+0xcaf/0x2b40 fs/ocfs2/namei.c:292
  ocfs2_create+0x1ab/0x480 fs/ocfs2/namei.c:672
@@ -118,54 +102,35 @@ Call Trace:
  do_syscall_x64 arch/x86/entry/common.c:52 [inline]
  do_syscall_64+0xf3/0x230 arch/x86/entry/common.c:83
  entry_SYSCALL_64_after_hwframe+0x77/0x7f
-RIP: 0033:0x7fa356467d59
-Code: 28 00 00 00 75 05 48 83 c4 28 c3 e8 f1 17 00 00 90 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 b8 ff ff ff f7 d8 64 89 01 48
-RSP: 002b:00007ffe912bab08 EFLAGS: 00000246 ORIG_RAX: 0000000000000101
-RAX: ffffffffffffffda RBX: 0000000000000000 RCX: 00007fa356467d59
-RDX: 000000000000275a RSI: 0000000020000040 RDI: 00000000ffffff9c
-RBP: 00007fa3564e05f0 R08: 0000000000004472 R09: 000055557cd564c0
-R10: 0000000000000000 R11: 0000000000000246 R12: 00007ffe912bab30
-R13: 00007ffe912bad58 R14: 431bde82d7b634db R15: 00007fa3564b103b
- </TASK>
-Modules linked in:
----[ end trace 0000000000000000 ]---
-RIP: 0010:ocfs2_read_virt_blocks+0xaa3/0xb20 fs/ocfs2/extent_map.c:971
-Code: 8b 54 24 30 8b 4c 24 1c 4c 8b 44 24 38 45 89 e1 ff 74 24 48 e8 7e 0a 0c 00 48 83 c4 08 eb 25 e8 43 d2 34 08 e8 ee d1 0c fe 90 <0f> 0b e8 e6 d1 0c fe 4c 89 e8 45 89 e5 49 89 c4 e9 01 f7 ff ff e8
-RSP: 0018:ffffc90002e2e820 EFLAGS: 00010293
-RAX: ffffffff83881432 RBX: 0000000000000000 RCX: ffff88802d3e9e00
-RDX: 0000000000000000 RSI: 0000000000000000 RDI: 0000000000000000
-RBP: ffffc90002e2e9f0 R08: ffffffff83880eae R09: 1ffffffff203781d
-R10: dffffc0000000000 R11: fffffbfff203781e R12: ffff8880764d8878
-R13: 0000000000000000 R14: 0000000000000000 R15: 1ffff920005c5d18
-FS:  000055557cd55380(0000) GS:ffff8880b8700000(0000) knlGS:0000000000000000
-CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-CR2: 00005628fd41e058 CR3: 000000002d2e6000 CR4: 00000000003526f0
-DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
-DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
 
+It is because the parameter v_block passed to ocfs2_read_virt_blocks() is 0,
+nr is 1, and inode->i_size is 0, and flags are also 0.
+In this path, v_block, flags, and nr are fixed values that are hard coded,
+so if i_size is 0, the bug will be triggered.
+Therefore, it is more meaningful to check if the flags contain the READHEAD
+bit when their value is non-zero.
 
+Reported-and-tested-by: syzbot+797d4829dafe3f11dce7@syzkaller.appspotmail.com
+Closes: https://syzkaller.appspot.com/bug?extid=797d4829dafe3f11dce7
+Signed-off-by: Edward Adam Davis <eadavis@qq.com>
 ---
-This report is generated by a bot. It may contain errors.
-See https://goo.gl/tpsmEJ for more information about syzbot.
-syzbot engineers can be reached at syzkaller@googlegroups.com.
+ fs/ocfs2/extent_map.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
 
-syzbot will keep track of this issue. See:
-https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
-For information about bisection process see: https://goo.gl/tpsmEJ#bisection
+diff --git a/fs/ocfs2/extent_map.c b/fs/ocfs2/extent_map.c
+index f7672472fa82..0043c2428ef2 100644
+--- a/fs/ocfs2/extent_map.c
++++ b/fs/ocfs2/extent_map.c
+@@ -968,7 +968,8 @@ int ocfs2_read_virt_blocks(struct inode *inode, u64 v_block, int nr,
+ 
+ 	if (((v_block + nr - 1) << inode->i_sb->s_blocksize_bits) >=
+ 	    i_size_read(inode)) {
+-		BUG_ON(!(flags & OCFS2_BH_READAHEAD));
++		BUG_ON(flags && !(flags & OCFS2_BH_READAHEAD));
++		rc = flags ?: -EIO;
+ 		goto out;
+ 	}
+ 
+-- 
+2.43.0
 
-If the report is already addressed, let syzbot know by replying with:
-#syz fix: exact-commit-title
-
-If you want syzbot to run the reproducer, reply with:
-#syz test: git://repo/address.git branch-or-commit-hash
-If you attach or paste a git patch, syzbot will apply it before testing.
-
-If you want to overwrite report's subsystems, reply with:
-#syz set subsystems: new-subsystem
-(See the list of subsystem names on the web dashboard)
-
-If the report is a duplicate of another one, reply with:
-#syz dup: exact-subject-of-another-report
-
-If you want to undo deduplication, reply with:
-#syz undup
