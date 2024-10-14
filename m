@@ -1,134 +1,73 @@
-Received: from out30-101.freemail.mail.aliyun.com (out30-101.freemail.mail.aliyun.com [115.124.30.101])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-il1-f200.google.com (mail-il1-f200.google.com [209.85.166.200])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C36BF143C5D
-	for <ocfs2-devel@lists.linux.dev>; Mon, 14 Oct 2024 06:34:03 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.101
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C27AF148827
+	for <ocfs2-devel@lists.linux.dev>; Mon, 14 Oct 2024 07:00:03 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.166.200
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1728887646; cv=none; b=py03gZFyHA8ghBis1xoUrn6NvxIHQn0EnMydGuSKgGGchhal+QvPC91CfEsE3zKzIWYUWqAMz+ddbelWicDbpIgXC1O7WGkfl4R+jNmxFMjvDO4Md0zqxu1zi6c+33ofqCZvewAFmjglCzPahOzQx3gsL1t6galS5M0DltHX9zA=
+	t=1728889205; cv=none; b=AStEM94KIT0Yi1r89uD/cqZ5+FN7kUtEcIEUdYCsKaQGKLIs3XvaSD/wY8lAdqn8QgGIrQowlCpyrJouT7ik5FCCpbsW/s1ulfCObl0BBvhPte3odzuPDHAwc2S1kovaHNIbV4CnkECvccbetTNJy4UMX9zR/ImJs7lG3QsGbYI=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1728887646; c=relaxed/simple;
-	bh=vI6zfZOAnEVuWkZk+6GqCLQDFURf4rfFVzjuwaY+aRE=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=oP3t3M17BeYGn7L5XlE6k17TGL4DOUOZiQ4Sj3isT1vmw9K56pDXMDds7keFbNdTUedCAfct2Pgf/1Gd9pb8ISi6d5M5/98pBHw14ighemtFQnkRIhVu1ZWH/4xHFXUTmN7cIyIDMeFYRMxKzz9ipao3VS/bIz0/rlTPJUGQMFQ=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=gU4/39Uk; arc=none smtp.client-ip=115.124.30.101
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="gU4/39Uk"
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1728887636; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=9iTqTFZay+eh5uh2AMI2uElpAwer6VJtK6rahZrN4AE=;
-	b=gU4/39UkF6tCrCMDNyOtAv+55p8G6pbNycKljLeYVeHBEU7PAZp+Xb6KFs23Wl0Lbyjpa7ywaHKT2aHtBwHW4Q4TJTte/CajMQNNnbgFndNGEKfDqMqdyFHWI6r9kvl+7eX22lIT4Ak6Kv3ecHg9YSbycw3BvuWi0RvgOlpMRZY=
-Received: from 30.221.132.11(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0WH10Xau_1728887635 cluster:ay36)
-          by smtp.aliyun-inc.com;
-          Mon, 14 Oct 2024 14:33:55 +0800
-Message-ID: <431f1d14-ba07-4903-ab02-b4628e0f1973@linux.alibaba.com>
-Date: Mon, 14 Oct 2024 14:33:54 +0800
+	s=arc-20240116; t=1728889205; c=relaxed/simple;
+	bh=UVeWoj5Og+wsSq9WC972/2Jqtj7IYT6e/JNvd8LqKOA=;
+	h=MIME-Version:Date:In-Reply-To:Message-ID:Subject:From:To:
+	 Content-Type; b=iRDsCzqtX/969jwrnM60VWTaHE0FQNNFxqeComDzfLXjqZ7y3tqTCd726xGYv9EBCEol74LSHWWLT1+q35M4ZwNHitwr1xeDotJBUMzKeK3imDSEu6b3avtKb8M1Zjo1PZ6VyasljYibBVLi7P8etmr/wY+7nPrflylYdN0XujI=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.166.200
+Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
+Received: by mail-il1-f200.google.com with SMTP id e9e14a558f8ab-3a3a6afd01eso30412425ab.3
+        for <ocfs2-devel@lists.linux.dev>; Mon, 14 Oct 2024 00:00:03 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1728889203; x=1729494003;
+        h=to:from:subject:message-id:in-reply-to:date:mime-version
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
+        bh=5tQ9QvYQlzu+5EQLgcSwBsHR+7o1ULHR0qfz4ooAiis=;
+        b=jM0EQilyZy/rpnDF5/ZI5eqUf4ygdjlvs1rQyKy0KTy5SAgqejhUN8KIU0Ri7XrbBa
+         YcSOm31zutSX2jB2bmWe3KlA3akHkKs0lBcZEupxdBn0OVm3kuIyck9WLK2AMq9yhZqC
+         Kw4hhdJ71yZQsz3x6aH5t4+TElyalCvNPptM7sVjUTiw7rRLRqsP5sFro8HBCLDsXriw
+         xtby6nYmhoX/tmHZ2F8/QQ3ye9yqg8ewlE4o547LBU0cFKFyy1YcZUW8LJv/hPDvN10U
+         S0zU/UrA+UncjXheVFkXlYd2Vqq7KSs5IvpNbSPjO0tQMjxEIBkC2mQ+RB0AYhDUWJkz
+         S9Jg==
+X-Forwarded-Encrypted: i=1; AJvYcCWE1dSqliq1nXhkHpx2gw/Nys0aSW7UXEWUmiKPsui1D2HoZGmabvQQBizeQt8tB+11hDV6uBKwF2bNyQ==@lists.linux.dev
+X-Gm-Message-State: AOJu0Yx1r3msyNIeUoyX42l12OmzxUlGaL08OdtcvXIms/HJLsN0NW7A
+	+QEjlbk1iG9C38y/Cw+d8TTMEg3pnX550hmVNxFed3LQHvV6RRQAEqac54Ogj+swnevM0PFEf8/
+	xIMv0K/KE1LSURoPrZ00ubLViN/ojug74Nr5QTol6VEgL0UI+/1aXPcY=
+X-Google-Smtp-Source: AGHT+IFPLvjoT1nCozSMVZ+82FBS4ca4DzmtsttPjqOJfzG/6nwVAEmMWDEs1IpVyod9cH6mpqA6VJA3nNIidyPjIoR/8n2wPf0e
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH V2] ocfs2: BUG is meaningless when the flags is 0
-To: Edward Adam Davis <eadavis@qq.com>
-Cc: jlbec@evilplan.org, linux-kernel@vger.kernel.org, mark@fasheh.com,
- ocfs2-devel@lists.linux.dev,
- syzbot+797d4829dafe3f11dce7@syzkaller.appspotmail.com,
- syzkaller-bugs@googlegroups.com
-References: <tencent_10694B411BC625A4BA1BBB8033959EA31B08@qq.com>
- <tencent_9D4C78EA6D442CB56C2C97D4EB8EEC26CC0A@qq.com>
-Content-Language: en-US
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <tencent_9D4C78EA6D442CB56C2C97D4EB8EEC26CC0A@qq.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+X-Received: by 2002:a92:ca4a:0:b0:3a0:4250:165f with SMTP id
+ e9e14a558f8ab-3a3b5c7389dmr79375795ab.0.1728889202945; Mon, 14 Oct 2024
+ 00:00:02 -0700 (PDT)
+Date: Mon, 14 Oct 2024 00:00:02 -0700
+In-Reply-To: <658bf0ce-9565-4b47-9043-a853374a74fa@suse.com>
+X-Google-Appengine-App-Id: s~syzkaller
+X-Google-Appengine-App-Id-Alias: syzkaller
+Message-ID: <670cc172.050a0220.3e960.0058.GAE@google.com>
+Subject: Re: [syzbot] [ocfs2?] kernel BUG in ocfs2_read_virt_blocks
+From: syzbot <syzbot+797d4829dafe3f11dce7@syzkaller.appspotmail.com>
+To: eadavis@qq.com, heming.zhao@suse.com, jlbec@evilplan.org, 
+	joseph.qi@linux.alibaba.com, linux-kernel@vger.kernel.org, mark@fasheh.com, 
+	ocfs2-devel@lists.linux.dev, syzkaller-bugs@googlegroups.com
+Content-Type: text/plain; charset="UTF-8"
 
+Hello,
 
+syzbot has tested the proposed patch and the reproducer did not trigger any issue:
 
-On 10/14/24 7:31 AM, Edward Adam Davis wrote:
-> Syzbot reported a BUG in ocfs2_read_virt_blocks.
-> ------------[ cut here ]------------
-> kernel BUG at fs/ocfs2/extent_map.c:971!
-> Oops: invalid opcode: 0000 [#1] PREEMPT SMP KASAN PTI
-> CPU: 1 UID: 0 PID: 5221 Comm: syz-executor117 Not tainted 6.12.0-rc2-syzkaller-00006-g87d6aab2389e #0
-> Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 09/13/2024
-> RIP: 0010:ocfs2_read_virt_blocks+0xaa3/0xb20 fs/ocfs2/extent_map.c:971
-> Code: 8b 54 24 30 8b 4c 24 1c 4c 8b 44 24 38 45 89 e1 ff 74 24 48 e8 7e 0a 0c 00 48 83 c4 08 eb 25 e8 43 d2 34 08 e8 ee d1 0c fe 90 <0f> 0b e8 e6 d1 0c fe 4c 89 e8 45 89 e5 49 89 c4 e9 01 f7 ff ff e8
-> RSP: 0018:ffffc90002e2e820 EFLAGS: 00010293
-> RAX: ffffffff83881432 RBX: 0000000000000000 RCX: ffff88802d3e9e00
-> RDX: 0000000000000000 RSI: 0000000000000000 RDI: 0000000000000000
-> RBP: ffffc90002e2e9f0 R08: ffffffff83880eae R09: 1ffffffff203781d
-> R10: dffffc0000000000 R11: fffffbfff203781e R12: ffff8880764d8878
-> R13: 0000000000000000 R14: 0000000000000000 R15: 1ffff920005c5d18
-> FS:  000055557cd55380(0000) GS:ffff8880b8700000(0000) knlGS:0000000000000000
-> CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-> CR2: 00005628fd41e058 CR3: 000000002d2e6000 CR4: 00000000003526f0
-> DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
-> DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
-> Call Trace:
->  <TASK>
->  ocfs2_read_dir_block+0x106/0x5c0 fs/ocfs2/dir.c:508
->  ocfs2_find_dir_space_el fs/ocfs2/dir.c:3427 [inline]           // status = ocfs2_read_dir_block(dir, 0, &bh, 0);
+Reported-by: syzbot+797d4829dafe3f11dce7@syzkaller.appspotmail.com
+Tested-by: syzbot+797d4829dafe3f11dce7@syzkaller.appspotmail.com
 
-Keep the original stacks is enough.
+Tested on:
 
->  ocfs2_prepare_dir_for_insert+0x3f2/0x5c60 fs/ocfs2/dir.c:4274
->  ocfs2_mknod+0xcaf/0x2b40 fs/ocfs2/namei.c:292
->  ocfs2_create+0x1ab/0x480 fs/ocfs2/namei.c:672
->  lookup_open fs/namei.c:3595 [inline]
->  open_last_lookups fs/namei.c:3694 [inline]
->  path_openat+0x1c03/0x3590 fs/namei.c:3930
->  do_filp_open+0x235/0x490 fs/namei.c:3960
->  do_sys_openat2+0x13e/0x1d0 fs/open.c:1415
->  do_sys_open fs/open.c:1430 [inline]
->  __do_sys_openat fs/open.c:1446 [inline]
->  __se_sys_openat fs/open.c:1441 [inline]
->  __x64_sys_openat+0x247/0x2a0 fs/open.c:1441
->  do_syscall_x64 arch/x86/entry/common.c:52 [inline]
->  do_syscall_64+0xf3/0x230 arch/x86/entry/common.c:83
->  entry_SYSCALL_64_after_hwframe+0x77/0x7f
-> 
-> It is because the parameter v_block passed to ocfs2_read_virt_blocks() is 0,
-> nr is 1, and inode->i_size is 0, and flags are also 0.
-> In this path, v_block, flags, and nr are fixed values that are hard coded,
-> so if i_size is 0, the bug will be triggered.
-> Therefore, it is more meaningful to check if the flags contain the READHEAD
-> bit when their value is non-zero.
-> 
-> Reported-and-tested-by: syzbot+797d4829dafe3f11dce7@syzkaller.appspotmail.com
-> Closes: https://syzkaller.appspot.com/bug?extid=797d4829dafe3f11dce7
-> Signed-off-by: Edward Adam Davis <eadavis@qq.com>
-> ---
-> V1 -> V2: keep rc to 0 when falgs contains READHEAD
-> 
->  fs/ocfs2/extent_map.c | 3 ++-
->  1 file changed, 2 insertions(+), 1 deletion(-)
-> 
-> diff --git a/fs/ocfs2/extent_map.c b/fs/ocfs2/extent_map.c
-> index f7672472fa82..0043c2428ef2 100644
-> --- a/fs/ocfs2/extent_map.c
-> +++ b/fs/ocfs2/extent_map.c
-> @@ -968,7 +968,8 @@ int ocfs2_read_virt_blocks(struct inode *inode, u64 v_block, int nr,
->  
->  	if (((v_block + nr - 1) << inode->i_sb->s_blocksize_bits) >=
->  	    i_size_read(inode)) {
-> -		BUG_ON(!(flags & OCFS2_BH_READAHEAD));
-> +		BUG_ON(flags && !(flags & OCFS2_BH_READAHEAD));
+commit:         6485cf5e Merge tag 'hid-for-linus-2024101301' of git:/..
+git tree:       upstream
+console output: https://syzkaller.appspot.com/x/log.txt?x=17169440580000
+kernel config:  https://syzkaller.appspot.com/x/.config?x=164d2822debd8b0d
+dashboard link: https://syzkaller.appspot.com/bug?extid=797d4829dafe3f11dce7
+compiler:       Debian clang version 15.0.6, GNU ld (GNU Binutils for Debian) 2.40
+patch:          https://syzkaller.appspot.com/x/patch.diff?x=12e20030580000
 
-I don't think this is a right fix.
-As you described in commit log, I think the root cause is the inode size
-is 0, which mean no blocks actually.
-So it seems we have to add a sanity check for this case.
-
-Thanks,
-Joseph
-
-> +		rc = flags ? 0 : -EIO;
->  		goto out;
->  	}
->  
-
+Note: testing is done by a robot and is best-effort only.
