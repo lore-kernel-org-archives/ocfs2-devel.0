@@ -1,139 +1,185 @@
-Received: from out203-205-221-235.mail.qq.com (out203-205-221-235.mail.qq.com [203.205.221.235])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-il1-f197.google.com (mail-il1-f197.google.com [209.85.166.197])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9B23B13CFBD
-	for <ocfs2-devel@lists.linux.dev>; Sun, 13 Oct 2024 23:31:38 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=203.205.221.235
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6FA8A3E47B
+	for <ocfs2-devel@lists.linux.dev>; Mon, 14 Oct 2024 06:17:23 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.166.197
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1728862300; cv=none; b=cgv8Eo2xN/smANSXTWNIm5/JYSLfss+pUw8H06ZWgyk+KAwfg+bpjZw6SNoB/LBg5IO8JO7sqQj8gnELu/2FerWDaeVNIll3HEPgmD/I0o/dPNzMsmzTnksTJmA8lac6fCSUe8REME5SkJAhHypbX+Eo5uOrL4hX6w/lYVG2eSM=
+	t=1728886645; cv=none; b=j5j9QOAn0dyBcPoc1kaeLXJvErv2NVZXxQ8a234eOU+NNcbUdoV3U9asIbmEHO5CQYshwAAYCYmrbhC3idim+b1/vz4xX2fLf4z4W/8o9kxJ51/2FCpHh7QGTLZyebgl+xCCRa8KyYRJrTeGZakIMrmqP3OeGlrfIEemCdYCAjY=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1728862300; c=relaxed/simple;
-	bh=jGBFm8DMVRl+cIY9ik911TDLmRtGw1gRGfluIuBTu50=;
-	h=Message-ID:From:To:Cc:Subject:Date:In-Reply-To:References:
-	 MIME-Version; b=udwERsaV7gVCFIcY2ShvQYQ22UYr6FuuZtKUADkZn69jh47K9vnfUM+YHpN7RvsZY37jVKB8lOoF1Ny/T4ydm1EEuoZbioVEHQ1haBScfvpQCcypf4tyft/Uts9u2GsJJs0K9ZMQMwJbgoT89UuBFQigQEdNIyEqQgpPHHdSsdU=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=qq.com; spf=pass smtp.mailfrom=qq.com; dkim=pass (1024-bit key) header.d=qq.com header.i=@qq.com header.b=QKS6y3iF; arc=none smtp.client-ip=203.205.221.235
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=qq.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=qq.com
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=qq.com header.i=@qq.com header.b="QKS6y3iF"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=qq.com; s=s201512;
-	t=1728862291; bh=XgZ2Qa49k9aedugWqM8fyjuzPj2TUY+YDIuYoW1HvKQ=;
-	h=From:To:Cc:Subject:Date:In-Reply-To:References;
-	b=QKS6y3iFqmSjrKttogO/aFRaIi4Ofabvv0gJe98vXXzPYFfnLssix63r0GkFSApzT
-	 s5OBpzmx8vW9iVX8KF24E8s+VFdq7dk8OjqCcpy3VHe73ChLhNadA7HYYEdaqEDfkW
-	 hpYiaFvGs1f04baoaC4coXVU1wVI9+Cm2yBb6S24=
-Received: from pek-lxu-l1.wrs.com ([111.198.224.50])
-	by newxmesmtplogicsvrszb20-0.qq.com (NewEsmtp) with SMTP
-	id 7DCA7EAA; Mon, 14 Oct 2024 07:31:28 +0800
-X-QQ-mid: xmsmtpt1728862288taar3kl0i
-Message-ID: <tencent_9D4C78EA6D442CB56C2C97D4EB8EEC26CC0A@qq.com>
-X-QQ-XMAILINFO: MHMAY6vlphTX6XyXC55uj4E8fpoHQg/ZXEe/hS1KFNm1+NahFbJBRIjLh55sjA
-	 6Ki78I0cZJse6XOR9kN88c8wHvhenGXs160BhK+yqdIbzO6knO4UH75AnkvB/cAz5br317cCl2gS
-	 bnAVYhV1efWM1W+8U+bS0KVbLMWNKGcGGTAD3nqQKskfba++8u+K9aPuQ+HTWbR5fMzOwStujB9p
-	 NgZ4xere46d1FDdHJH/RbXFt3/tfXJUdmskeclcWlInymzmgGGG0QyL+q6npjpMZ07p1ZuFGhNeo
-	 oh63dmQjAZ7N0QZL5HS0uw2JPRBPcSYc8mxGVnNG+/pZBiA+UI7u1sOX6i/O76CFwlOKXcvNuFj3
-	 xEyDaEA/jI4q20WGel2qyQZqWQSvzgR91HCR27i1Cg4HzXsLVjPuaPN6Z8YrTov8D694dhBxZF+N
-	 mcTxgiYbyB46sE1GGuUaoJMrlyCoA4jtmx6FhbRXa6QwsTkO+7gJ3OzM35uD8WUIvGih4ouBfVga
-	 aEgIAlpUIKWInEGqETej8btPuQuGLjVj54IZdnoGSkhRiRHX4sQCBqOcjEw22HjPdIRqC9EdICFD
-	 HGUSBYf0wfBSFKzQur5j0utMlfZ4SSDzqHfWrJtLuObsO4ApklaH07VCEntoCy8NQUsw1pQAl5bI
-	 Q92otsuNDib6Eio4Jy5XoWCyJAfpIGuJsRlDNHOZjnE5fpyriZK2O6/jMCHUBz3IIFp5vt0b/Ocy
-	 yqk0/PV32uWGskQcHc8rw7mWq8Z3qEUr+009eS9TW+yuoL6dyzm+df/T2LDUjI2WP7z9XxRlkwp9
-	 YAuazHwQblrG6Vy6UxiaCxLCyYWQdgrBOs+GHSv3MQqdgGD8QIsqbn2l63pEoOBE63Dm8hcueXym
-	 bfYqhEbgB1fSEYbWFGMhZ9oSmWmfcT5KNV1n70Ojjrg85vA/fH5KwCrEG3mOtTHuojuldBzwDoPR
-	 RmhWUxd60tXifbo9tfDArq6eIPGCEAp5ioaaRkKjl2p+UekxrXC7K1SgHGYyEEDAIFHq0+LPo=
-X-QQ-XMRINFO: NI4Ajvh11aEj8Xl/2s1/T8w=
-From: Edward Adam Davis <eadavis@qq.com>
-To: eadavis@qq.com
-Cc: jlbec@evilplan.org,
-	joseph.qi@linux.alibaba.com,
-	linux-kernel@vger.kernel.org,
-	mark@fasheh.com,
-	ocfs2-devel@lists.linux.dev,
-	syzbot+797d4829dafe3f11dce7@syzkaller.appspotmail.com,
-	syzkaller-bugs@googlegroups.com
-Subject: [PATCH V2] ocfs2: BUG is meaningless when the flags is 0
-Date: Mon, 14 Oct 2024 07:31:28 +0800
-X-OQ-MSGID: <20241013233127.2836641-2-eadavis@qq.com>
-X-Mailer: git-send-email 2.47.0
-In-Reply-To: <tencent_10694B411BC625A4BA1BBB8033959EA31B08@qq.com>
-References: <tencent_10694B411BC625A4BA1BBB8033959EA31B08@qq.com>
+	s=arc-20240116; t=1728886645; c=relaxed/simple;
+	bh=FuSlxbMfeRmXypGhWxhFJ8OCi9c5Q63HRLEBD628/+Y=;
+	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=qrYUeoh2Nkm/jF28SiATBHsn2i1QcApcjWz2T+gaxo8sczeZvHXxoSyefplxkQQce67/L056s5orGfDSLWJvNbAt9QVEnnOavbAZjBBPKPvcsIV2sGIDtD3cvQLS6NVmyXPPmY1Q6stSeoB4x/yX3XQBYupdJjQll31HjBm2qAg=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.166.197
+Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
+Received: by mail-il1-f197.google.com with SMTP id e9e14a558f8ab-3a3c4554d29so5306305ab.1
+        for <ocfs2-devel@lists.linux.dev>; Sun, 13 Oct 2024 23:17:23 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1728886642; x=1729491442;
+        h=to:from:subject:message-id:date:mime-version:x-gm-message-state
+         :from:to:cc:subject:date:message-id:reply-to;
+        bh=B6SLUhu9WKh2xClqb5Vsket9NVDXVbBlHIM8iF15Kng=;
+        b=imAYjjssuK9oyVCtz1kztAAZOe7lJ59lHaD2ASQwWUB97z1U5i5AcRV+fGJLJCyJ+R
+         aw1tKsIAdDBp6GgQe5B2843DqKYtAfqWB7uDixmxnB0znG5x3a2Ol5vEjROkIyDuomnR
+         Z4bkI3cOFEhObUiEZQMNf5LCWVs4Y7n3NUnPoRmigWdY+Sy3HBps/1N2AApNOVcU56Hd
+         eiC4sg2x7Z0+GyfdpLZpGpXvcaJ5g2CiEqBs041zFo3CM8ZK/F+9ebiLPeHxJHdVyQP6
+         GRCInG0e67xZoqGwuy0VvrfnJMDWCvTpyf+V5ZxxXfqkjECk1NiojGxOUe4yagxUtL4e
+         FVyQ==
+X-Forwarded-Encrypted: i=1; AJvYcCWKBMq8zHdWyo+5Dlu0VkklWGUK12VK27CmyBUzZirQ9+M9/CtWZp0QaEWPPTC62YrDduOtQgkqXDaYqQ==@lists.linux.dev
+X-Gm-Message-State: AOJu0YzoDA1COEgD9a0J/agcIVCP4OBsY1Shb1cyOLPZPTvZrj0b4bO+
+	jurlHAmHdnkhd9cyzrZ7MsNtYUk8HX9n/Yz6+brckjNMwh3zAn0K1vxrmVcXjiM/0oBS5DlYh97
+	SqyMXu39MaxaXsGoB/aYsOmoIydWTZ1ZCvHgVfq5EXbs+PBp0E9bs744=
+X-Google-Smtp-Source: AGHT+IF0KpBUXtqkzLwJiDpYmExyMkV1rKRbG/VoTqbvM2rsUGprgHORYYlAh+CBuRNIjWhFq9FQ7p8IMDvfTD3aHG2bRpbTQ9Fk
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+X-Received: by 2002:a05:6e02:178b:b0:3a0:8d60:8b7d with SMTP id
+ e9e14a558f8ab-3a3bcdbdb3emr43271045ab.11.1728886642595; Sun, 13 Oct 2024
+ 23:17:22 -0700 (PDT)
+Date: Sun, 13 Oct 2024 23:17:22 -0700
+X-Google-Appengine-App-Id: s~syzkaller
+X-Google-Appengine-App-Id-Alias: syzkaller
+Message-ID: <670cb772.050a0220.3e960.0056.GAE@google.com>
+Subject: [syzbot] [ocfs2?] general protection fault in ocfs2_evict_inode
+From: syzbot <syzbot+0058ba2149d0a0c61344@syzkaller.appspotmail.com>
+To: jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
+	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
+	syzkaller-bugs@googlegroups.com
+Content-Type: text/plain; charset="UTF-8"
 
-Syzbot reported a BUG in ocfs2_read_virt_blocks.
-------------[ cut here ]------------
-kernel BUG at fs/ocfs2/extent_map.c:971!
-Oops: invalid opcode: 0000 [#1] PREEMPT SMP KASAN PTI
-CPU: 1 UID: 0 PID: 5221 Comm: syz-executor117 Not tainted 6.12.0-rc2-syzkaller-00006-g87d6aab2389e #0
+Hello,
+
+syzbot found the following issue on:
+
+HEAD commit:    33ce24234fca Add linux-next specific files for 20241008
+git tree:       linux-next
+console output: https://syzkaller.appspot.com/x/log.txt?x=14148f07980000
+kernel config:  https://syzkaller.appspot.com/x/.config?x=4750ca93740b938d
+dashboard link: https://syzkaller.appspot.com/bug?extid=0058ba2149d0a0c61344
+compiler:       Debian clang version 15.0.6, GNU ld (GNU Binutils for Debian) 2.40
+
+Unfortunately, I don't have any reproducer for this issue yet.
+
+Downloadable assets:
+disk image: https://storage.googleapis.com/syzbot-assets/ee8dc2df0c57/disk-33ce2423.raw.xz
+vmlinux: https://storage.googleapis.com/syzbot-assets/dc473c0fa06e/vmlinux-33ce2423.xz
+kernel image: https://storage.googleapis.com/syzbot-assets/4671f1ca2e61/bzImage-33ce2423.xz
+
+IMPORTANT: if you fix the issue, please add the following tag to the commit:
+Reported-by: syzbot+0058ba2149d0a0c61344@syzkaller.appspotmail.com
+
+ocfs2: Unmounting device (7,4) on (node local)
+Oops: general protection fault, probably for non-canonical address 0xdffffc0000000001: 0000 [#1] PREEMPT SMP KASAN PTI
+KASAN: null-ptr-deref in range [0x0000000000000008-0x000000000000000f]
+CPU: 1 UID: 0 PID: 11386 Comm: syz.4.712 Not tainted 6.12.0-rc2-next-20241008-syzkaller #0
 Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 09/13/2024
-RIP: 0010:ocfs2_read_virt_blocks+0xaa3/0xb20 fs/ocfs2/extent_map.c:971
-Code: 8b 54 24 30 8b 4c 24 1c 4c 8b 44 24 38 45 89 e1 ff 74 24 48 e8 7e 0a 0c 00 48 83 c4 08 eb 25 e8 43 d2 34 08 e8 ee d1 0c fe 90 <0f> 0b e8 e6 d1 0c fe 4c 89 e8 45 89 e5 49 89 c4 e9 01 f7 ff ff e8
-RSP: 0018:ffffc90002e2e820 EFLAGS: 00010293
-RAX: ffffffff83881432 RBX: 0000000000000000 RCX: ffff88802d3e9e00
+RIP: 0010:ocfs2_clear_inode fs/ocfs2/inode.c:1208 [inline]
+RIP: 0010:ocfs2_evict_inode+0xdd3/0x4680 fs/ocfs2/inode.c:1220
+Code: 00 00 4c 89 e0 48 c1 e8 03 42 80 3c 30 00 74 08 4c 89 e7 e8 5f 17 71 fe 4c 01 f3 4d 8b 24 24 49 83 c4 08 4c 89 e0 48 c1 e8 03 <42> 80 3c 30 00 74 08 4c 89 e7 e8 3e 17 71 fe 49 8b 3c 24 49 81 c7
+RSP: 0018:ffffc9000349ef00 EFLAGS: 00010202
+RAX: 0000000000000001 RBX: fffff52000693df4 RCX: ffff88802db11e00
 RDX: 0000000000000000 RSI: 0000000000000000 RDI: 0000000000000000
-RBP: ffffc90002e2e9f0 R08: ffffffff83880eae R09: 1ffffffff203781d
-R10: dffffc0000000000 R11: fffffbfff203781e R12: ffff8880764d8878
-R13: 0000000000000000 R14: 0000000000000000 R15: 1ffff920005c5d18
-FS:  000055557cd55380(0000) GS:ffff8880b8700000(0000) knlGS:0000000000000000
+RBP: ffffc9000349f650 R08: ffffffff838d937e R09: 1ffff1100bf6f616
+R10: dffffc0000000000 R11: ffffed100bf6f617 R12: 0000000000000008
+R13: 1ffff1100bf6f644 R14: dffffc0000000000 R15: ffff88805fb7b338
+FS:  0000000000000000(0000) GS:ffff8880b8700000(0000) knlGS:0000000000000000
 CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-CR2: 00005628fd41e058 CR3: 000000002d2e6000 CR4: 00000000003526f0
+CR2: 0000000021000000 CR3: 000000002dcfc000 CR4: 00000000003526f0
 DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
 DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
 Call Trace:
  <TASK>
- ocfs2_read_dir_block+0x106/0x5c0 fs/ocfs2/dir.c:508
- ocfs2_find_dir_space_el fs/ocfs2/dir.c:3427 [inline]           // status = ocfs2_read_dir_block(dir, 0, &bh, 0);
- ocfs2_prepare_dir_for_insert+0x3f2/0x5c60 fs/ocfs2/dir.c:4274
- ocfs2_mknod+0xcaf/0x2b40 fs/ocfs2/namei.c:292
- ocfs2_create+0x1ab/0x480 fs/ocfs2/namei.c:672
- lookup_open fs/namei.c:3595 [inline]
- open_last_lookups fs/namei.c:3694 [inline]
- path_openat+0x1c03/0x3590 fs/namei.c:3930
- do_filp_open+0x235/0x490 fs/namei.c:3960
- do_sys_openat2+0x13e/0x1d0 fs/open.c:1415
- do_sys_open fs/open.c:1430 [inline]
- __do_sys_openat fs/open.c:1446 [inline]
- __se_sys_openat fs/open.c:1441 [inline]
- __x64_sys_openat+0x247/0x2a0 fs/open.c:1441
- do_syscall_x64 arch/x86/entry/common.c:52 [inline]
- do_syscall_64+0xf3/0x230 arch/x86/entry/common.c:83
+ evict+0x4e8/0x9b0 fs/inode.c:808
+ __ocfs2_free_slot_info fs/ocfs2/slot_map.c:307 [inline]
+ ocfs2_free_slot_info+0x94/0x270 fs/ocfs2/slot_map.c:443
+ ocfs2_delete_osb+0x58/0x180 fs/ocfs2/super.c:2497
+ ocfs2_dismount_volume+0x594/0x8f0 fs/ocfs2/super.c:1936
+ generic_shutdown_super+0x139/0x2d0 fs/super.c:642
+ kill_block_super+0x44/0x90 fs/super.c:1696
+ deactivate_locked_super+0xc4/0x130 fs/super.c:473
+ cleanup_mnt+0x41f/0x4b0 fs/namespace.c:1373
+ task_work_run+0x24f/0x310 kernel/task_work.c:228
+ exit_task_work include/linux/task_work.h:40 [inline]
+ do_exit+0xa2f/0x28e0 kernel/exit.c:939
+ do_group_exit+0x207/0x2c0 kernel/exit.c:1088
+ get_signal+0x16a3/0x1740 kernel/signal.c:2917
+ arch_do_signal_or_restart+0x96/0x860 arch/x86/kernel/signal.c:337
+ exit_to_user_mode_loop kernel/entry/common.c:111 [inline]
+ exit_to_user_mode_prepare include/linux/entry-common.h:328 [inline]
+ __syscall_exit_to_user_mode_work kernel/entry/common.c:207 [inline]
+ syscall_exit_to_user_mode+0xc9/0x370 kernel/entry/common.c:218
+ do_syscall_64+0x100/0x230 arch/x86/entry/common.c:89
  entry_SYSCALL_64_after_hwframe+0x77/0x7f
+RIP: 0033:0x7f581257dff9
+Code: Unable to access opcode bytes at 0x7f581257dfcf.
+RSP: 002b:00007f5813441038 EFLAGS: 00000246 ORIG_RAX: 0000000000000000
+RAX: 0000000000ffecc0 RBX: 00007f5812735f80 RCX: 00007f581257dff9
+RDX: 7706c522012798af RSI: 0000000020001340 RDI: 0000000000000005
+RBP: 00007f58125f0296 R08: 0000000000000000 R09: 0000000000000000
+R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000000
+R13: 0000000000000000 R14: 00007f5812735f80 R15: 00007ffd87bff1c8
+ </TASK>
+Modules linked in:
+---[ end trace 0000000000000000 ]---
+RIP: 0010:ocfs2_clear_inode fs/ocfs2/inode.c:1208 [inline]
+RIP: 0010:ocfs2_evict_inode+0xdd3/0x4680 fs/ocfs2/inode.c:1220
+Code: 00 00 4c 89 e0 48 c1 e8 03 42 80 3c 30 00 74 08 4c 89 e7 e8 5f 17 71 fe 4c 01 f3 4d 8b 24 24 49 83 c4 08 4c 89 e0 48 c1 e8 03 <42> 80 3c 30 00 74 08 4c 89 e7 e8 3e 17 71 fe 49 8b 3c 24 49 81 c7
+RSP: 0018:ffffc9000349ef00 EFLAGS: 00010202
+RAX: 0000000000000001 RBX: fffff52000693df4 RCX: ffff88802db11e00
+RDX: 0000000000000000 RSI: 0000000000000000 RDI: 0000000000000000
+RBP: ffffc9000349f650 R08: ffffffff838d937e R09: 1ffff1100bf6f616
+R10: dffffc0000000000 R11: ffffed100bf6f617 R12: 0000000000000008
+R13: 1ffff1100bf6f644 R14: dffffc0000000000 R15: ffff88805fb7b338
+FS:  0000000000000000(0000) GS:ffff8880b8700000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: 0000000021000000 CR3: 000000002dcfc000 CR4: 00000000003526f0
+DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+----------------
+Code disassembly (best guess):
+   0:	00 00                	add    %al,(%rax)
+   2:	4c 89 e0             	mov    %r12,%rax
+   5:	48 c1 e8 03          	shr    $0x3,%rax
+   9:	42 80 3c 30 00       	cmpb   $0x0,(%rax,%r14,1)
+   e:	74 08                	je     0x18
+  10:	4c 89 e7             	mov    %r12,%rdi
+  13:	e8 5f 17 71 fe       	call   0xfe711777
+  18:	4c 01 f3             	add    %r14,%rbx
+  1b:	4d 8b 24 24          	mov    (%r12),%r12
+  1f:	49 83 c4 08          	add    $0x8,%r12
+  23:	4c 89 e0             	mov    %r12,%rax
+  26:	48 c1 e8 03          	shr    $0x3,%rax
+* 2a:	42 80 3c 30 00       	cmpb   $0x0,(%rax,%r14,1) <-- trapping instruction
+  2f:	74 08                	je     0x39
+  31:	4c 89 e7             	mov    %r12,%rdi
+  34:	e8 3e 17 71 fe       	call   0xfe711777
+  39:	49 8b 3c 24          	mov    (%r12),%rdi
+  3d:	49                   	rex.WB
+  3e:	81                   	.byte 0x81
+  3f:	c7                   	.byte 0xc7
 
-It is because the parameter v_block passed to ocfs2_read_virt_blocks() is 0,
-nr is 1, and inode->i_size is 0, and flags are also 0.
-In this path, v_block, flags, and nr are fixed values that are hard coded,
-so if i_size is 0, the bug will be triggered.
-Therefore, it is more meaningful to check if the flags contain the READHEAD
-bit when their value is non-zero.
 
-Reported-and-tested-by: syzbot+797d4829dafe3f11dce7@syzkaller.appspotmail.com
-Closes: https://syzkaller.appspot.com/bug?extid=797d4829dafe3f11dce7
-Signed-off-by: Edward Adam Davis <eadavis@qq.com>
 ---
-V1 -> V2: keep rc to 0 when falgs contains READHEAD
+This report is generated by a bot. It may contain errors.
+See https://goo.gl/tpsmEJ for more information about syzbot.
+syzbot engineers can be reached at syzkaller@googlegroups.com.
 
- fs/ocfs2/extent_map.c | 3 ++-
- 1 file changed, 2 insertions(+), 1 deletion(-)
+syzbot will keep track of this issue. See:
+https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
 
-diff --git a/fs/ocfs2/extent_map.c b/fs/ocfs2/extent_map.c
-index f7672472fa82..0043c2428ef2 100644
---- a/fs/ocfs2/extent_map.c
-+++ b/fs/ocfs2/extent_map.c
-@@ -968,7 +968,8 @@ int ocfs2_read_virt_blocks(struct inode *inode, u64 v_block, int nr,
- 
- 	if (((v_block + nr - 1) << inode->i_sb->s_blocksize_bits) >=
- 	    i_size_read(inode)) {
--		BUG_ON(!(flags & OCFS2_BH_READAHEAD));
-+		BUG_ON(flags && !(flags & OCFS2_BH_READAHEAD));
-+		rc = flags ? 0 : -EIO;
- 		goto out;
- 	}
- 
--- 
-2.43.0
+If the report is already addressed, let syzbot know by replying with:
+#syz fix: exact-commit-title
 
+If you want to overwrite report's subsystems, reply with:
+#syz set subsystems: new-subsystem
+(See the list of subsystem names on the web dashboard)
+
+If the report is a duplicate of another one, reply with:
+#syz dup: exact-subject-of-another-report
+
+If you want to undo deduplication, reply with:
+#syz undup
