@@ -1,297 +1,217 @@
-Received: from mail-il1-f197.google.com (mail-il1-f197.google.com [209.85.166.197])
+Received: from mail-il1-f200.google.com (mail-il1-f200.google.com [209.85.166.200])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E372C136658
-	for <ocfs2-devel@lists.linux.dev>; Thu, 17 Oct 2024 21:21:30 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.166.197
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 77EA41CC8B0
+	for <ocfs2-devel@lists.linux.dev>; Sat, 19 Oct 2024 06:17:33 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.166.200
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1729200095; cv=none; b=Jj/v4wgAhgyyapXijmcezZL9TPkDQc7tdQS7Bon801JotfkLkI2q4xJYLOngK8l3xJWNnY2PyUSA5XZR8ziRS5HoCWWk5XxMWRnLNbdkjHZErrgd9yjYHWuWT6hdnJ2RLB+586xRV0c1Pu7Y8SuQAY1cl3ONVucc4Q+4s5yNWEc=
+	t=1729318655; cv=none; b=tmSDMmVxGDqv/ZdLnVBLtEt1DsN2sHjr2pVQwLj/eVlfFOzdq7q4TE1MJW2+Yw3V4pWEWZJ8mXG3Mv8lP8XKKdGRJysEMaFLKJklhTleeeqIW5mptRyTFqjKAzcW4JhyPONGeoxzwlDGCnluTTTqL5o01N2U8b6KvTJwBZMxVCY=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1729200095; c=relaxed/simple;
-	bh=TPAFi+YDnRYmSvYW/EO2qgXWsvlyqTz3MBANC5PBkf4=;
-	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=AkmS45RgVZlFkdWkKYTSoA6KJPEMtCiPh6nseQsJmOTMioRF9XxX1SAG6H2UE/IVD37f2T25XxTODg2k5d9Pvgv8rzYftjjekN6hm/fZCqXHpDbqJTcW1dtLNLTZSNnvqIawZQlQ0qal4ZXKQY/yD/Mw1GwAFFaK/yBJVxlGQpQ=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.166.197
+	s=arc-20240116; t=1729318655; c=relaxed/simple;
+	bh=pCb6Vf0xt/nErwNGbj/HtBBpyAUfs/WvsUmXEMBiMbY=;
+	h=MIME-Version:Date:In-Reply-To:Message-ID:Subject:From:To:
+	 Content-Type; b=liS51tkp1QjlCiYlHJ+UfCTXgHHHgXSS3DWFJYPfGJiuJHCOfoDcZDK/dI4GWcwLpaojDUVj0O4RXSO1WKEksf2Ynw8WI8RVkGwMxmT5kvmm39MU1bNHRdfeuHC+szWYzg5Wz9NO0DutKB11ejzksJaUWBW1cuy3DIbGPQqOD9U=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.166.200
 Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
-Received: by mail-il1-f197.google.com with SMTP id e9e14a558f8ab-3a3a6afd01eso11120325ab.3
-        for <ocfs2-devel@lists.linux.dev>; Thu, 17 Oct 2024 14:21:30 -0700 (PDT)
+Received: by mail-il1-f200.google.com with SMTP id e9e14a558f8ab-3a3ae775193so31235985ab.1
+        for <ocfs2-devel@lists.linux.dev>; Fri, 18 Oct 2024 23:17:33 -0700 (PDT)
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1729200090; x=1729804890;
-        h=to:from:subject:message-id:date:mime-version:x-gm-message-state
-         :from:to:cc:subject:date:message-id:reply-to;
-        bh=Kotyd4snE8baBuA+sQCwzR32Y28QQZjhdeIWnPUdo5o=;
-        b=oO5xjqmFILmh8Hmv61+ldvbA4wB9gjlpw8xPsD04RVTOTpyOflt4cZJK25c4Wh+ZZt
-         Washp7o7mcP3hpQ0JBtV0uUL3msf5r7zd01RRlOqJM1J+DXJaITegQqkb2mcSz7nm6rr
-         Acq6jmYp0KqkvLJxQksl0UHG+z9Suz3A1RHX1L004Gd+o3CfqHwUDWO0kg2ygnxfiFOx
-         KRRnCMXFJgnHWuHa70gxoN2M7bKi4w1h//dmgLQ8VWfV47DuUlurR+93ZqpeQkCKviha
-         gJJvpZTTd3L631YPwW5PhEbktO5c9ahy5mlgXuvE2R7oIl2mSqCRY+LbuNBQ2+V2A62E
-         s5+A==
-X-Forwarded-Encrypted: i=1; AJvYcCUgBM5Ts9xWc/+nUmOVKVivf6pyjRKWnTnNibdaRlLx2DKpm753dLuw+dsa77Q9BA/iLuQKYpA5Fwnnxw==@lists.linux.dev
-X-Gm-Message-State: AOJu0YziHEZlTKGADEnKUtCjyxC9KNHbYP2TXJ8dgjlhzZkhyjweRzSN
-	zj9cVq7NXeHBGz0aWaCalBVEYPmuOD/dsZ+FotwsZJYrZIfOBmCXy3PWZTHvLjOJiga3MADMVKi
-	ETSyq1EIIkiTxKpwn2UBZ7BJRiVGnvdUCd2Jh0haGUDgAO+jCKzWytkk=
-X-Google-Smtp-Source: AGHT+IHJ6DDyblu1fDGtQbnYrofnV7Mv6m0hOa7gAYTaMOMXXp+ysLy0tqdiiy+k0ounTx6ZSZjUnlgZhTanoWGu9QcJRgaFclcE
+        d=1e100.net; s=20230601; t=1729318652; x=1729923452;
+        h=to:from:subject:message-id:in-reply-to:date:mime-version
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
+        bh=E3dHI7vFuVTi22tig/S/B1drGrwXthGedqNaCXEPDuQ=;
+        b=EqvcEZolOT5aF8kZrRMwsrNO/IdbgYl4oqWLrp69RNzn8Xe+SPFIIoBV7Mu6ZKJg7X
+         WWBcCY/qgG8em28TmScrMKetwB5beLSzoHC5Affp4cyXlHG6Y6Uq+PhbHeii7q5piLnK
+         30BHRu+XhZbnX5t/e5F/PKpO5ZO6re8pSy6SI+0nQxbgWYqOBq4oJ/5sgAFfMbHmOUbu
+         r7L+z87RIbPqaXRALeHmSnP/DRFDdYAI3NDNRbEbI7sqxKziAj4UKn08TPHJavWozNyo
+         PTo5SQtIZAALDkqFkG7YE1Ef7eqnsxCnt+oQxthnbPaWnGZER3xjZy0G9VnDQUzNwfYM
+         3tIQ==
+X-Forwarded-Encrypted: i=1; AJvYcCUpR1dEWW1ygPB1TYT21rk2Dh/TQ2HdRmYu/X9D7dCzTbbt0Q0bbRl+YkLnlHI7P/Y33vIgTrBc2Lji5g==@lists.linux.dev
+X-Gm-Message-State: AOJu0YwKg2VxZhUKHgY5ZSjCJaLzlIKJeML23fJmWTMajNJsAwA0CAET
+	e4IeBI59hdx+CiajV7NR77JoJHKsoU5HZJvxct27zv1XRC+WVhDgA6oPwJXP3vHVX0uneTrQDyS
+	S2qI7DC9gSxrmR2RdzIzEQXcZ8QZ+DKo4Ece9SQ7v3nxni0aTriHwF5Q=
+X-Google-Smtp-Source: AGHT+IHUO5IjMFwmA29Lc8PTwRi3+682lG25ej9Z6Atr2VkxhXWKp8q4vEKDXTnk5TpmQAxdYCHIyzvcSt9+uoOrqYB8TeFQSpAc
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-X-Received: by 2002:a05:6e02:20c5:b0:3a0:7687:8c2d with SMTP id
- e9e14a558f8ab-3a3f40cc458mr1408345ab.26.1729200089998; Thu, 17 Oct 2024
- 14:21:29 -0700 (PDT)
-Date: Thu, 17 Oct 2024 14:21:29 -0700
+X-Received: by 2002:a92:190d:0:b0:3a0:915d:a4a7 with SMTP id
+ e9e14a558f8ab-3a3f4050120mr38985245ab.2.1729318652494; Fri, 18 Oct 2024
+ 23:17:32 -0700 (PDT)
+Date: Fri, 18 Oct 2024 23:17:32 -0700
+In-Reply-To: <66e9830e.050a0220.115905.000e.GAE@google.com>
 X-Google-Appengine-App-Id: s~syzkaller
 X-Google-Appengine-App-Id-Alias: syzkaller
-Message-ID: <67117fd9.050a0220.10f4f4.0004.GAE@google.com>
-Subject: [syzbot] [ocfs2?] KASAN: slab-use-after-free Read in ocfs2_reserve_suballoc_bits
-From: syzbot <syzbot+af14efe17dfa46173239@syzkaller.appspotmail.com>
+Message-ID: <67134efc.050a0220.34b26a.0002.GAE@google.com>
+Subject: Re: [syzbot] [ocfs2?] INFO: trying to register non-static key in ocfs2_dlm_shutdown
+From: syzbot <syzbot+d7935821694d430624ea@syzkaller.appspotmail.com>
 To: jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
 	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
 	syzkaller-bugs@googlegroups.com
 Content-Type: text/plain; charset="UTF-8"
 
-Hello,
+syzbot has found a reproducer for the following issue on:
 
-syzbot found the following issue on:
-
-HEAD commit:    36c254515dc6 Merge tag 'powerpc-6.12-4' of git://git.kerne..
+HEAD commit:    b04ae0f45168 Merge tag 'v6.12-rc3-smb3-client-fixes' of gi..
 git tree:       upstream
-console+strace: https://syzkaller.appspot.com/x/log.txt?x=12c12887980000
-kernel config:  https://syzkaller.appspot.com/x/.config?x=7a3fccdd0bb995
-dashboard link: https://syzkaller.appspot.com/bug?extid=af14efe17dfa46173239
+console output: https://syzkaller.appspot.com/x/log.txt?x=179fb487980000
+kernel config:  https://syzkaller.appspot.com/x/.config?x=cfbd94c114a3d407
+dashboard link: https://syzkaller.appspot.com/bug?extid=d7935821694d430624ea
 compiler:       Debian clang version 15.0.6, GNU ld (GNU Binutils for Debian) 2.40
-syz repro:      https://syzkaller.appspot.com/x/repro.syz?x=13444727980000
-C reproducer:   https://syzkaller.appspot.com/x/repro.c?x=11861440580000
+syz repro:      https://syzkaller.appspot.com/x/repro.syz?x=11635240580000
+C reproducer:   https://syzkaller.appspot.com/x/repro.c?x=10227c5f980000
 
 Downloadable assets:
-disk image: https://storage.googleapis.com/syzbot-assets/83cbc0a1ac4c/disk-36c25451.raw.xz
-vmlinux: https://storage.googleapis.com/syzbot-assets/88a3bfaf55e9/vmlinux-36c25451.xz
-kernel image: https://storage.googleapis.com/syzbot-assets/09cc9b57b1d2/bzImage-36c25451.xz
-mounted in repro: https://storage.googleapis.com/syzbot-assets/76a33c6d871d/mount_0.gz
-
-Bisection is inconclusive: the issue happens on the oldest tested release.
-
-bisection log:  https://syzkaller.appspot.com/x/bisect.txt?x=14db585f980000
-final oops:     https://syzkaller.appspot.com/x/report.txt?x=16db585f980000
-console output: https://syzkaller.appspot.com/x/log.txt?x=12db585f980000
+disk image (non-bootable): https://storage.googleapis.com/syzbot-assets/7feb34a89c2a/non_bootable_disk-b04ae0f4.raw.xz
+vmlinux: https://storage.googleapis.com/syzbot-assets/3e40a4ec7885/vmlinux-b04ae0f4.xz
+kernel image: https://storage.googleapis.com/syzbot-assets/9312d8ec05d3/bzImage-b04ae0f4.xz
+mounted in repro: https://storage.googleapis.com/syzbot-assets/f8241812bcfe/mount_2.gz
 
 IMPORTANT: if you fix the issue, please add the following tag to the commit:
-Reported-by: syzbot+af14efe17dfa46173239@syzkaller.appspotmail.com
+Reported-by: syzbot+d7935821694d430624ea@syzkaller.appspotmail.com
 
-ocfs2: Mounting device (7,0) on (node local, slot 0) with ordered data mode.
-==================================================================
-BUG: KASAN: slab-use-after-free in ocfs2_find_smallest_chain fs/ocfs2/suballoc.c:413 [inline]
-BUG: KASAN: slab-use-after-free in ocfs2_block_group_alloc_contig fs/ocfs2/suballoc.c:430 [inline]
-BUG: KASAN: slab-use-after-free in ocfs2_block_group_alloc fs/ocfs2/suballoc.c:699 [inline]
-BUG: KASAN: slab-use-after-free in ocfs2_reserve_suballoc_bits+0x1023/0x4eb0 fs/ocfs2/suballoc.c:832
-Read of size 4 at addr ffff888074488004 by task syz-executor305/5228
-
-CPU: 1 UID: 0 PID: 5228 Comm: syz-executor305 Not tainted 6.12.0-rc2-syzkaller-00307-g36c254515dc6 #0
-Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 09/13/2024
+loop0: detected capacity change from 0 to 32768
+ocfs2: Readonly device (7,0) detected. Cluster services will not be used for this mount. Recovery will be skipped.
+ocfs2: Mounting device (7,0) on (node local, slot 65535) with ordered data mode.
+INFO: trying to register non-static key.
+The code is fine but needs lockdep annotation, or maybe
+you didn't initialize this object before use?
+turning off the locking correctness validator.
+CPU: 0 UID: 0 PID: 5091 Comm: syz-executor302 Not tainted 6.12.0-rc3-syzkaller-00319-gb04ae0f45168 #0
+Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.16.3-debian-1.16.3-2~bpo12+1 04/01/2014
 Call Trace:
  <TASK>
  __dump_stack lib/dump_stack.c:94 [inline]
  dump_stack_lvl+0x241/0x360 lib/dump_stack.c:120
- print_address_description mm/kasan/report.c:377 [inline]
- print_report+0x169/0x550 mm/kasan/report.c:488
- kasan_report+0x143/0x180 mm/kasan/report.c:601
- ocfs2_find_smallest_chain fs/ocfs2/suballoc.c:413 [inline]
- ocfs2_block_group_alloc_contig fs/ocfs2/suballoc.c:430 [inline]
- ocfs2_block_group_alloc fs/ocfs2/suballoc.c:699 [inline]
- ocfs2_reserve_suballoc_bits+0x1023/0x4eb0 fs/ocfs2/suballoc.c:832
- ocfs2_reserve_new_metadata_blocks+0x41c/0x9c0 fs/ocfs2/suballoc.c:982
- ocfs2_mknod+0x143a/0x2b40 fs/ocfs2/namei.c:345
- ocfs2_create+0x1ab/0x480 fs/ocfs2/namei.c:672
- lookup_open fs/namei.c:3595 [inline]
- open_last_lookups fs/namei.c:3694 [inline]
- path_openat+0x1c03/0x3590 fs/namei.c:3930
- do_filp_open+0x235/0x490 fs/namei.c:3960
- do_sys_openat2+0x13e/0x1d0 fs/open.c:1415
- do_sys_open fs/open.c:1430 [inline]
- __do_sys_open fs/open.c:1438 [inline]
- __se_sys_open fs/open.c:1434 [inline]
- __x64_sys_open+0x225/0x270 fs/open.c:1434
+ assign_lock_key+0x241/0x280 kernel/locking/lockdep.c:981
+ register_lock_class+0x1cf/0x980 kernel/locking/lockdep.c:1295
+ __lock_acquire+0xf0/0x2050 kernel/locking/lockdep.c:5077
+ lock_acquire+0x1ed/0x550 kernel/locking/lockdep.c:5825
+ __raw_spin_lock_irqsave include/linux/spinlock_api_smp.h:110 [inline]
+ _raw_spin_lock_irqsave+0xd5/0x120 kernel/locking/spinlock.c:162
+ ocfs2_mark_lockres_freeing+0x15e/0x690 fs/ocfs2/dlmglue.c:3513
+ ocfs2_simple_drop_lockres fs/ocfs2/dlmglue.c:3569 [inline]
+ ocfs2_drop_osb_locks fs/ocfs2/dlmglue.c:3577 [inline]
+ ocfs2_dlm_shutdown+0x3a/0x240 fs/ocfs2/dlmglue.c:3387
+ ocfs2_dismount_volume+0x487/0x8f0 fs/ocfs2/super.c:1918
+ generic_shutdown_super+0x139/0x2d0 fs/super.c:642
+ kill_block_super+0x44/0x90 fs/super.c:1696
+ deactivate_locked_super+0xc4/0x130 fs/super.c:473
+ cleanup_mnt+0x41f/0x4b0 fs/namespace.c:1373
+ task_work_run+0x24f/0x310 kernel/task_work.c:228
+ exit_task_work include/linux/task_work.h:40 [inline]
+ do_exit+0xa2f/0x28e0 kernel/exit.c:939
+ do_group_exit+0x207/0x2c0 kernel/exit.c:1088
+ __do_sys_exit_group kernel/exit.c:1099 [inline]
+ __se_sys_exit_group kernel/exit.c:1097 [inline]
+ __x64_sys_exit_group+0x3f/0x40 kernel/exit.c:1097
+ x64_sys_call+0x2634/0x2640 arch/x86/include/generated/asm/syscalls_64.h:232
  do_syscall_x64 arch/x86/entry/common.c:52 [inline]
  do_syscall_64+0xf3/0x230 arch/x86/entry/common.c:83
  entry_SYSCALL_64_after_hwframe+0x77/0x7f
-RIP: 0033:0x7f7cbf1f9749
-Code: 28 00 00 00 75 05 48 83 c4 28 c3 e8 b1 1c 00 00 90 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 b8 ff ff ff f7 d8 64 89 01 48
-RSP: 002b:00007ffdbbfdc928 EFLAGS: 00000246 ORIG_RAX: 0000000000000002
-RAX: ffffffffffffffda RBX: 0000000000000003 RCX: 00007f7cbf1f9749
-RDX: 0000000000000000 RSI: 0000000004008040 RDI: 0000000020000200
-RBP: 0000000000000000 R08: 0000000000004441 R09: 00007ffdbbfdc95c
-R10: 00007ffdbbfdc7f0 R11: 0000000000000246 R12: 00007ffdbbfdc95c
-R13: 0000000000000001 R14: 431bde82d7b634db R15: 00007ffdbbfdc990
+RIP: 0033:0x7f3bc9aeed89
+Code: Unable to access opcode bytes at 0x7f3bc9aeed5f.
+RSP: 002b:00007fffe69f4fd8 EFLAGS: 00000246 ORIG_RAX: 00000000000000e7
+RAX: ffffffffffffffda RBX: 0000000000000001 RCX: 00007f3bc9aeed89
+RDX: 000000000000003c RSI: 00000000000000e7 RDI: 0000000000000001
+RBP: 00007f3bc9b6f390 R08: ffffffffffffffb8 R09: 0000000000004469
+R10: 0000000000000000 R11: 0000000000000246 R12: 00007f3bc9b6f390
+R13: 0000000000000000 R14: 00007f3bc9b70100 R15: 00007f3bc9abd060
  </TASK>
-
-Allocated by task 5158:
- kasan_save_stack mm/kasan/common.c:47 [inline]
- kasan_save_track+0x3f/0x80 mm/kasan/common.c:68
- unpoison_slab_object mm/kasan/common.c:319 [inline]
- __kasan_slab_alloc+0x66/0x80 mm/kasan/common.c:345
- kasan_slab_alloc include/linux/kasan.h:247 [inline]
- slab_post_alloc_hook mm/slub.c:4085 [inline]
- slab_alloc_node mm/slub.c:4134 [inline]
- kmem_cache_alloc_noprof+0x135/0x2a0 mm/slub.c:4141
- skb_clone+0x20c/0x390 net/core/skbuff.c:2084
- dev_queue_xmit_nit+0x419/0xc10 net/core/dev.c:2315
- xmit_one net/core/dev.c:3584 [inline]
- dev_hard_start_xmit+0x15f/0x7e0 net/core/dev.c:3604
- sch_direct_xmit+0x29c/0x5d0 net/sched/sch_generic.c:343
- __dev_xmit_skb net/core/dev.c:3821 [inline]
- __dev_queue_xmit+0x1a2d/0x3ed0 net/core/dev.c:4394
- neigh_output include/net/neighbour.h:542 [inline]
- ip_finish_output2+0xe70/0x1390 net/ipv4/ip_output.c:236
- ip_local_out net/ipv4/ip_output.c:130 [inline]
- __ip_queue_xmit+0x118c/0x1b80 net/ipv4/ip_output.c:536
- __tcp_transmit_skb+0x2544/0x3b30 net/ipv4/tcp_output.c:1466
- tcp_cleanup_rbuf net/ipv4/tcp.c:1516 [inline]
- tcp_recvmsg_locked+0x330f/0x3c80 net/ipv4/tcp.c:2821
- tcp_recvmsg+0x25d/0x920 net/ipv4/tcp.c:2851
- inet_recvmsg+0x150/0x2d0 net/ipv4/af_inet.c:885
- sock_recvmsg_nosec net/socket.c:1051 [inline]
- sock_recvmsg+0x1ae/0x280 net/socket.c:1073
- sock_read_iter+0x2c4/0x3d0 net/socket.c:1143
- new_sync_read fs/read_write.c:488 [inline]
- vfs_read+0x9bb/0xbc0 fs/read_write.c:569
- ksys_read+0x183/0x2b0 fs/read_write.c:712
+ocfs2: Unmounting device (7,0) on (node local)
+Oops: general protection fault, probably for non-canonical address 0xdffffc0000000001: 0000 [#1] PREEMPT SMP KASAN NOPTI
+KASAN: null-ptr-deref in range [0x0000000000000008-0x000000000000000f]
+CPU: 0 UID: 0 PID: 5091 Comm: syz-executor302 Not tainted 6.12.0-rc3-syzkaller-00319-gb04ae0f45168 #0
+Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.16.3-debian-1.16.3-2~bpo12+1 04/01/2014
+RIP: 0010:ocfs2_clear_inode fs/ocfs2/inode.c:1208 [inline]
+RIP: 0010:ocfs2_evict_inode+0xdd3/0x4680 fs/ocfs2/inode.c:1220
+Code: 00 00 4c 89 e0 48 c1 e8 03 42 80 3c 30 00 74 08 4c 89 e7 e8 bf 77 71 fe 4c 01 f3 4d 8b 24 24 49 83 c4 08 4c 89 e0 48 c1 e8 03 <42> 80 3c 30 00 74 08 4c 89 e7 e8 9e 77 71 fe 49 8b 3c 24 49 81 c7
+RSP: 0018:ffffc9000af67180 EFLAGS: 00010202
+RAX: 0000000000000001 RBX: fffff520015ece44 RCX: ffff888000bfc880
+RDX: 0000000000000000 RSI: 0000000000000000 RDI: 0000000000000000
+RBP: ffffc9000af678d0 R08: ffffffff838d258e R09: 1ffff11008c13616
+R10: dffffc0000000000 R11: ffffed1008c13617 R12: 0000000000000008
+R13: 1ffff11008c13644 R14: dffffc0000000000 R15: ffff88804609b338
+FS:  0000000000000000(0000) GS:ffff88801fc00000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: 00007f3bc9b39378 CR3: 0000000011c58000 CR4: 0000000000352ef0
+DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+Call Trace:
+ <TASK>
+ evict+0x4e8/0x9b0 fs/inode.c:725
+ __ocfs2_free_slot_info fs/ocfs2/slot_map.c:307 [inline]
+ ocfs2_free_slot_info+0x94/0x270 fs/ocfs2/slot_map.c:443
+ ocfs2_delete_osb+0x58/0x180 fs/ocfs2/super.c:2497
+ ocfs2_dismount_volume+0x594/0x8f0 fs/ocfs2/super.c:1936
+ generic_shutdown_super+0x139/0x2d0 fs/super.c:642
+ kill_block_super+0x44/0x90 fs/super.c:1696
+ deactivate_locked_super+0xc4/0x130 fs/super.c:473
+ cleanup_mnt+0x41f/0x4b0 fs/namespace.c:1373
+ task_work_run+0x24f/0x310 kernel/task_work.c:228
+ exit_task_work include/linux/task_work.h:40 [inline]
+ do_exit+0xa2f/0x28e0 kernel/exit.c:939
+ do_group_exit+0x207/0x2c0 kernel/exit.c:1088
+ __do_sys_exit_group kernel/exit.c:1099 [inline]
+ __se_sys_exit_group kernel/exit.c:1097 [inline]
+ __x64_sys_exit_group+0x3f/0x40 kernel/exit.c:1097
+ x64_sys_call+0x2634/0x2640 arch/x86/include/generated/asm/syscalls_64.h:232
  do_syscall_x64 arch/x86/entry/common.c:52 [inline]
  do_syscall_64+0xf3/0x230 arch/x86/entry/common.c:83
  entry_SYSCALL_64_after_hwframe+0x77/0x7f
-
-Freed by task 5158:
- kasan_save_stack mm/kasan/common.c:47 [inline]
- kasan_save_track+0x3f/0x80 mm/kasan/common.c:68
- kasan_save_free_info+0x40/0x50 mm/kasan/generic.c:579
- poison_slab_object mm/kasan/common.c:247 [inline]
- __kasan_slab_free+0x59/0x70 mm/kasan/common.c:264
- kasan_slab_free include/linux/kasan.h:230 [inline]
- slab_free_hook mm/slub.c:2342 [inline]
- slab_free mm/slub.c:4579 [inline]
- kmem_cache_free+0x1a2/0x420 mm/slub.c:4681
- packet_rcv+0x16f/0x14b0 net/packet/af_packet.c:2290
- dev_queue_xmit_nit+0xad4/0xc10 net/core/dev.c:2347
- xmit_one net/core/dev.c:3584 [inline]
- dev_hard_start_xmit+0x15f/0x7e0 net/core/dev.c:3604
- sch_direct_xmit+0x29c/0x5d0 net/sched/sch_generic.c:343
- __dev_xmit_skb net/core/dev.c:3821 [inline]
- __dev_queue_xmit+0x1a2d/0x3ed0 net/core/dev.c:4394
- neigh_output include/net/neighbour.h:542 [inline]
- ip_finish_output2+0xe70/0x1390 net/ipv4/ip_output.c:236
- ip_local_out net/ipv4/ip_output.c:130 [inline]
- __ip_queue_xmit+0x118c/0x1b80 net/ipv4/ip_output.c:536
- __tcp_transmit_skb+0x2544/0x3b30 net/ipv4/tcp_output.c:1466
- tcp_cleanup_rbuf net/ipv4/tcp.c:1516 [inline]
- tcp_recvmsg_locked+0x330f/0x3c80 net/ipv4/tcp.c:2821
- tcp_recvmsg+0x25d/0x920 net/ipv4/tcp.c:2851
- inet_recvmsg+0x150/0x2d0 net/ipv4/af_inet.c:885
- sock_recvmsg_nosec net/socket.c:1051 [inline]
- sock_recvmsg+0x1ae/0x280 net/socket.c:1073
- sock_read_iter+0x2c4/0x3d0 net/socket.c:1143
- new_sync_read fs/read_write.c:488 [inline]
- vfs_read+0x9bb/0xbc0 fs/read_write.c:569
- ksys_read+0x183/0x2b0 fs/read_write.c:712
- do_syscall_x64 arch/x86/entry/common.c:52 [inline]
- do_syscall_64+0xf3/0x230 arch/x86/entry/common.c:83
- entry_SYSCALL_64_after_hwframe+0x77/0x7f
-
-The buggy address belongs to the object at ffff888074488000
- which belongs to the cache skbuff_head_cache of size 240
-The buggy address is located 4 bytes inside of
- freed 240-byte region [ffff888074488000, ffff8880744880f0)
-
-The buggy address belongs to the physical page:
-page: refcount:1 mapcount:0 mapping:0000000000000000 index:0x0 pfn:0x74488
-flags: 0xfff00000000000(node=0|zone=1|lastcpupid=0x7ff)
-page_type: f5(slab)
-raw: 00fff00000000000 ffff888140ee6780 dead000000000122 0000000000000000
-raw: 0000000000000000 00000000000c000c 00000001f5000000 0000000000000000
-page dumped because: kasan: bad access detected
-page_owner tracks the page as allocated
-page last allocated via order 0, migratetype Unmovable, gfp_mask 0x52820(GFP_ATOMIC|__GFP_NOWARN|__GFP_NORETRY|__GFP_COMP), pid 5158, tgid 5158 (sshd), ts 46020041993, free_ts 46019511087
- set_page_owner include/linux/page_owner.h:32 [inline]
- post_alloc_hook+0x1f3/0x230 mm/page_alloc.c:1537
- prep_new_page mm/page_alloc.c:1545 [inline]
- get_page_from_freelist+0x3039/0x3180 mm/page_alloc.c:3457
- __alloc_pages_noprof+0x292/0x710 mm/page_alloc.c:4733
- alloc_pages_mpol_noprof+0x3e8/0x680 mm/mempolicy.c:2265
- alloc_slab_page+0x6a/0x120 mm/slub.c:2412
- allocate_slab+0x5a/0x2f0 mm/slub.c:2578
- new_slab mm/slub.c:2631 [inline]
- ___slab_alloc+0xcd1/0x14b0 mm/slub.c:3818
- __slab_alloc+0x58/0xa0 mm/slub.c:3908
- __slab_alloc_node mm/slub.c:3961 [inline]
- slab_alloc_node mm/slub.c:4122 [inline]
- kmem_cache_alloc_noprof+0x1c1/0x2a0 mm/slub.c:4141
- skb_clone+0x20c/0x390 net/core/skbuff.c:2084
- dev_queue_xmit_nit+0x419/0xc10 net/core/dev.c:2315
- xmit_one net/core/dev.c:3584 [inline]
- dev_hard_start_xmit+0x15f/0x7e0 net/core/dev.c:3604
- sch_direct_xmit+0x29c/0x5d0 net/sched/sch_generic.c:343
- __dev_xmit_skb net/core/dev.c:3821 [inline]
- __dev_queue_xmit+0x1a2d/0x3ed0 net/core/dev.c:4394
- neigh_output include/net/neighbour.h:542 [inline]
- ip_finish_output2+0xe70/0x1390 net/ipv4/ip_output.c:236
- ip_local_out net/ipv4/ip_output.c:130 [inline]
- __ip_queue_xmit+0x118c/0x1b80 net/ipv4/ip_output.c:536
-page last free pid 5158 tgid 5158 stack trace:
- reset_page_owner include/linux/page_owner.h:25 [inline]
- free_pages_prepare mm/page_alloc.c:1108 [inline]
- free_unref_page+0xcd0/0xf00 mm/page_alloc.c:2638
- skb_free_frag include/linux/skbuff.h:3399 [inline]
- skb_free_head net/core/skbuff.c:1096 [inline]
- skb_release_data+0x6dc/0x8a0 net/core/skbuff.c:1125
- skb_release_all net/core/skbuff.c:1190 [inline]
- __napi_kfree_skb net/core/skbuff.c:1480 [inline]
- kfree_skb_napi_cache net/core/skbuff.c:7115 [inline]
- skb_attempt_defer_free+0x42f/0x5c0 net/core/skbuff.c:7137
- tcp_eat_recv_skb net/ipv4/tcp.c:1526 [inline]
- tcp_recvmsg_locked+0x2995/0x3c80 net/ipv4/tcp.c:2805
- tcp_recvmsg+0x25d/0x920 net/ipv4/tcp.c:2851
- inet_recvmsg+0x150/0x2d0 net/ipv4/af_inet.c:885
- sock_recvmsg_nosec net/socket.c:1051 [inline]
- sock_recvmsg+0x1ae/0x280 net/socket.c:1073
- sock_read_iter+0x2c4/0x3d0 net/socket.c:1143
- new_sync_read fs/read_write.c:488 [inline]
- vfs_read+0x9bb/0xbc0 fs/read_write.c:569
- ksys_read+0x183/0x2b0 fs/read_write.c:712
- do_syscall_x64 arch/x86/entry/common.c:52 [inline]
- do_syscall_64+0xf3/0x230 arch/x86/entry/common.c:83
- entry_SYSCALL_64_after_hwframe+0x77/0x7f
-
-Memory state around the buggy address:
- ffff888074487f00: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
- ffff888074487f80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
->ffff888074488000: fa fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
-                   ^
- ffff888074488080: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fc fc
- ffff888074488100: fc fc fc fc fc fc fc fc fa fb fb fb fb fb fb fb
-==================================================================
+RIP: 0033:0x7f3bc9aeed89
+Code: Unable to access opcode bytes at 0x7f3bc9aeed5f.
+RSP: 002b:00007fffe69f4fd8 EFLAGS: 00000246 ORIG_RAX: 00000000000000e7
+RAX: ffffffffffffffda RBX: 0000000000000001 RCX: 00007f3bc9aeed89
+RDX: 000000000000003c RSI: 00000000000000e7 RDI: 0000000000000001
+RBP: 00007f3bc9b6f390 R08: ffffffffffffffb8 R09: 0000000000004469
+R10: 0000000000000000 R11: 0000000000000246 R12: 00007f3bc9b6f390
+R13: 0000000000000000 R14: 00007f3bc9b70100 R15: 00007f3bc9abd060
+ </TASK>
+Modules linked in:
+---[ end trace 0000000000000000 ]---
+RIP: 0010:ocfs2_clear_inode fs/ocfs2/inode.c:1208 [inline]
+RIP: 0010:ocfs2_evict_inode+0xdd3/0x4680 fs/ocfs2/inode.c:1220
+Code: 00 00 4c 89 e0 48 c1 e8 03 42 80 3c 30 00 74 08 4c 89 e7 e8 bf 77 71 fe 4c 01 f3 4d 8b 24 24 49 83 c4 08 4c 89 e0 48 c1 e8 03 <42> 80 3c 30 00 74 08 4c 89 e7 e8 9e 77 71 fe 49 8b 3c 24 49 81 c7
+RSP: 0018:ffffc9000af67180 EFLAGS: 00010202
+RAX: 0000000000000001 RBX: fffff520015ece44 RCX: ffff888000bfc880
+RDX: 0000000000000000 RSI: 0000000000000000 RDI: 0000000000000000
+RBP: ffffc9000af678d0 R08: ffffffff838d258e R09: 1ffff11008c13616
+R10: dffffc0000000000 R11: ffffed1008c13617 R12: 0000000000000008
+R13: 1ffff11008c13644 R14: dffffc0000000000 R15: ffff88804609b338
+FS:  0000000000000000(0000) GS:ffff88801fc00000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: 00007f3bc9b39378 CR3: 0000000011c58000 CR4: 0000000000352ef0
+DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+----------------
+Code disassembly (best guess):
+   0:	00 00                	add    %al,(%rax)
+   2:	4c 89 e0             	mov    %r12,%rax
+   5:	48 c1 e8 03          	shr    $0x3,%rax
+   9:	42 80 3c 30 00       	cmpb   $0x0,(%rax,%r14,1)
+   e:	74 08                	je     0x18
+  10:	4c 89 e7             	mov    %r12,%rdi
+  13:	e8 bf 77 71 fe       	call   0xfe7177d7
+  18:	4c 01 f3             	add    %r14,%rbx
+  1b:	4d 8b 24 24          	mov    (%r12),%r12
+  1f:	49 83 c4 08          	add    $0x8,%r12
+  23:	4c 89 e0             	mov    %r12,%rax
+  26:	48 c1 e8 03          	shr    $0x3,%rax
+* 2a:	42 80 3c 30 00       	cmpb   $0x0,(%rax,%r14,1) <-- trapping instruction
+  2f:	74 08                	je     0x39
+  31:	4c 89 e7             	mov    %r12,%rdi
+  34:	e8 9e 77 71 fe       	call   0xfe7177d7
+  39:	49 8b 3c 24          	mov    (%r12),%rdi
+  3d:	49                   	rex.WB
+  3e:	81                   	.byte 0x81
+  3f:	c7                   	.byte 0xc7
 
 
 ---
-This report is generated by a bot. It may contain errors.
-See https://goo.gl/tpsmEJ for more information about syzbot.
-syzbot engineers can be reached at syzkaller@googlegroups.com.
-
-syzbot will keep track of this issue. See:
-https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
-For information about bisection process see: https://goo.gl/tpsmEJ#bisection
-
-If the report is already addressed, let syzbot know by replying with:
-#syz fix: exact-commit-title
-
 If you want syzbot to run the reproducer, reply with:
 #syz test: git://repo/address.git branch-or-commit-hash
 If you attach or paste a git patch, syzbot will apply it before testing.
-
-If you want to overwrite report's subsystems, reply with:
-#syz set subsystems: new-subsystem
-(See the list of subsystem names on the web dashboard)
-
-If the report is a duplicate of another one, reply with:
-#syz dup: exact-subject-of-another-report
-
-If you want to undo deduplication, reply with:
-#syz undup
