@@ -1,142 +1,78 @@
-Received: from mx.treblig.org (mx.treblig.org [46.235.229.95])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-il1-f197.google.com (mail-il1-f197.google.com [209.85.166.197])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 91BF71BDE6;
-	Tue, 22 Oct 2024 00:25:50 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=46.235.229.95
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1FAC9139580
+	for <ocfs2-devel@lists.linux.dev>; Tue, 22 Oct 2024 15:31:03 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.166.197
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1729556752; cv=none; b=Nn1S4NMREB2iUaTSatMMT27qiZA7tTk0yAiwppnedkSDQypEBhPnxN79/+ehVY6TccQyBXSk+PpMrj3KAb99saeJSjsSn/bopfYkPvfqccGAnTFEoYM2R4m/ti1o8UToGiT6fEIFNfktXZRab54Z3VYCzbF8H9UKc3jj0XbtzdQ=
+	t=1729611065; cv=none; b=LV5Do9U0O/4bixJq3URWmndPmjO6C1LWXSnV6O5v9w7EFBiADUkMPiz0I8Q7iZDWOw0kWg7h+PW+6Vb+yTrfAxw0dNAsiVpqm+Xej4A3Cb/ULeWNmvzd7Urz7T8tiVqUSTKbOKKFXzkM9ydZu/hNMxVilLlnJxwQsZ+bDa+SyoU=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1729556752; c=relaxed/simple;
-	bh=+dQEqyR1FwmTFvq/RxzO/cnLV1+2Py1q3UpkJBRDW+Q=;
-	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=pWi/8gshG8Tn8MEhTh03YuBoOsNoWzaNQOMJnu3pdCdv+KGXWy+gfKMYwWX40muuzOXykrYx0nAMUxKE+NfNXBTomDZI8FEH9BJTv0VInXc0+KlVlbYZ0cq7K2c6m0k4pO0dLLPJA0/fyAAeM8pUh4cNSbyWtv6GJfszh7wMtcc=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=treblig.org; spf=pass smtp.mailfrom=treblig.org; dkim=pass (2048-bit key) header.d=treblig.org header.i=@treblig.org header.b=TuXXxyim; arc=none smtp.client-ip=46.235.229.95
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=treblig.org
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=treblig.org
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=treblig.org header.i=@treblig.org header.b="TuXXxyim"
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed; d=treblig.org
-	; s=bytemarkmx; h=MIME-Version:Message-ID:Date:Subject:From:Content-Type:From
-	:Subject; bh=Dtc7LdzxqLP/AAZKaGDFqbUfwMnenAfL2h3IaUrggsY=; b=TuXXxyimsJ8g6/sN
-	MDYAvzntpb4A6j9S7rXcoEC7S1YzvRjEneesBdjI6CROncqZGMK0/NbsugZkfItdbZyYcXD1Yl+bw
-	z2C1/b2L1QdiyQLl3eCchYAr/w7mqR+GG4Nd2kmbX64ucI/4Nz5/P+1eX+mCA3fmvNTDfR1Mv4+jk
-	slqXP7gKvNfC4qZrppjNF5r34EW2qoOjXNpZf1xGDFphOH2hG8o1qwous/Qd4eKH5p91hT32uz85P
-	UUiI0P2TwswvIjJOC1+jHXfpyRqIfDD8YSif4RcBUj7pXab2KUTCeOt8Qoe2XpOh97a9rIkOnk6Wt
-	TrrdC8cYuBLwXLHWFw==;
-Received: from localhost ([127.0.0.1] helo=dalek.home.treblig.org)
-	by mx.treblig.org with esmtp (Exim 4.96)
-	(envelope-from <linux@treblig.org>)
-	id 1t32iV-00CeIJ-2l;
-	Tue, 22 Oct 2024 00:25:43 +0000
-From: linux@treblig.org
-To: mark@fasheh.com,
-	jlbec@evilplan.org,
-	joseph.qi@linux.alibaba.com
-Cc: ocfs2-devel@lists.linux.dev,
-	linux-kernel@vger.kernel.org,
-	"Dr. David Alan Gilbert" <linux@treblig.org>
-Subject: [PATCH] ocfs2: Remove unused errmsg function and table
-Date: Tue, 22 Oct 2024 01:25:43 +0100
-Message-ID: <20241022002543.302606-1-linux@treblig.org>
-X-Mailer: git-send-email 2.47.0
+	s=arc-20240116; t=1729611065; c=relaxed/simple;
+	bh=dx6QxTPa/+mQ4n+fH7ym50nfkVSbWreEqPOdi1FIoYM=;
+	h=MIME-Version:Date:In-Reply-To:Message-ID:Subject:From:To:
+	 Content-Type; b=iQ7eowiVAHbj4A5kj1IvOGsz4QfgP3/5AJBljpP05EoiWUq35livdaU64Rg/N4bwngRtgDle8Ooca8W7h+o1hJMaOtaGCmxBjSMR62a14swvWPQKwh3xaR0hxKVcRl6PNW/QeQuC3ZYYn7D+YH4m63pcRGWh0jEZyD2vxHRqwxs=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.166.197
+Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
+Received: by mail-il1-f197.google.com with SMTP id e9e14a558f8ab-3a3c4ed972bso50873025ab.2
+        for <ocfs2-devel@lists.linux.dev>; Tue, 22 Oct 2024 08:31:03 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1729611063; x=1730215863;
+        h=to:from:subject:message-id:in-reply-to:date:mime-version
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
+        bh=dLrx1E+31Z4OW10+IEI8u+uVs3kTaeUo1vQAtWeI+J4=;
+        b=gGMlGYOeAxubDc2H6ji2VLvJJxOX3KKkzTUHmpbLDKQ6kR47ZjwCEHHDUboJF0QhQg
+         y6Q0RVYE99Fv0/8xKx34IloqRbrDfRiLsgJ2KMq3QnraN7EGUTTKnt/QD+SgckVm97PV
+         VjWpUxgdqfHxFA4FLYKuHdObmeQwpGeflZZGVAHNeX+k3/qpLcUo0h2v+N9yyHx60e3t
+         N/cqK1/GOFUN+NhidTR55cU63UnBBViR8Y0cDO2rZI4YvujR/2WWPlKkV7eBnLZOAyhZ
+         AwTbC7zU5E3w89oZ+7fUe1pPjbdE6lvmnXtqTjWO6ggWtmF6zNI9Z6NF9kgeBnyOuC4m
+         N2PA==
+X-Forwarded-Encrypted: i=1; AJvYcCXopBEM7AZHNJIIjsMZD1YWD57X0VZ2c/NaktNT0oEXWx1WFeuWQvndjwD4L2wUIWe5L3WjCei7dJhi5w==@lists.linux.dev
+X-Gm-Message-State: AOJu0YwRACqiCS2Kcr6kqsXgUiQ3Z88nhK1Ge2HEHA3h1KpkBFrDizK4
+	JrRWQwRTwbHfMYwbieqLvukKjLrtTvpfUQ1yR6dGRjkp+Nw6HOq59hzJq+PANchRaAsT+Uka9RY
+	ilKLfSohkpkCqdrWOrtzTk9F5xWPiSa348T34JfgJFtMvRHQgErRdLJY=
+X-Google-Smtp-Source: AGHT+IFdvdlR6YQIyahOfH75Uqz6F9rwXGlLNt6wjo6UobtDESeiz2U3sOfU7f8neUoYGbvAvpvZ+CegSDI7C76l/r4XCb5cvuup
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+X-Received: by 2002:a05:6e02:b4f:b0:3a3:449b:597b with SMTP id
+ e9e14a558f8ab-3a3f40a7ea9mr128631495ab.18.1729611063108; Tue, 22 Oct 2024
+ 08:31:03 -0700 (PDT)
+Date: Tue, 22 Oct 2024 08:31:03 -0700
+In-Reply-To: <000000000000ae358c06202ca726@google.com>
+X-Google-Appengine-App-Id: s~syzkaller
+X-Google-Appengine-App-Id-Alias: syzkaller
+Message-ID: <6717c537.050a0220.10f4f4.0146.GAE@google.com>
+Subject: Re: [syzbot] [ocfs2?] possible deadlock in ocfs2_setattr
+From: syzbot <syzbot+d78497256d53041ee229@syzkaller.appspotmail.com>
+To: eadavis@qq.com, elic@nvidia.com, jasowang@redhat.com, jlbec@evilplan.org, 
+	joseph.qi@linux.alibaba.com, linux-kernel@vger.kernel.org, mark@fasheh.com, 
+	mst@redhat.com, ocfs2-devel@lists.linux.dev, ocfs2-devel@oss.oracle.com, 
+	parav@nvidia.com, syzkaller-bugs@googlegroups.com
+Content-Type: text/plain; charset="UTF-8"
 
-From: "Dr. David Alan Gilbert" <linux@treblig.org>
+syzbot has bisected this issue to:
 
-dlm_errmsg() has been unused since 2010's
-commit 0016eedc4185 ("ocfs2_dlmfs: Use the stackglue.")
+commit a3c06ae158dd6fa8336157c31d9234689d068d02
+Author: Parav Pandit <parav@nvidia.com>
+Date:   Tue Jan 5 10:32:03 2021 +0000
 
-Remove dlm_errmsg() and the message table it indexes.
+    vdpa_sim_net: Add support for user supported devices
 
-Signed-off-by: Dr. David Alan Gilbert <linux@treblig.org>
----
- fs/ocfs2/dlm/dlmapi.h   |  2 --
- fs/ocfs2/dlm/dlmdebug.c | 53 -----------------------------------------
- 2 files changed, 55 deletions(-)
+bisection log:  https://syzkaller.appspot.com/x/bisect.txt?x=17fc2640580000
+start commit:   d12937763990 Merge tag 'for-linus' of git://git.kernel.org..
+git tree:       upstream
+final oops:     https://syzkaller.appspot.com/x/report.txt?x=14022640580000
+console output: https://syzkaller.appspot.com/x/log.txt?x=10022640580000
+kernel config:  https://syzkaller.appspot.com/x/.config?x=41330fd2db03893d
+dashboard link: https://syzkaller.appspot.com/bug?extid=d78497256d53041ee229
+syz repro:      https://syzkaller.appspot.com/x/repro.syz?x=12d0dc87980000
+C reproducer:   https://syzkaller.appspot.com/x/repro.c?x=14e19430580000
 
-diff --git a/fs/ocfs2/dlm/dlmapi.h b/fs/ocfs2/dlm/dlmapi.h
-index bae60ca2672a..847a52dcbe7d 100644
---- a/fs/ocfs2/dlm/dlmapi.h
-+++ b/fs/ocfs2/dlm/dlmapi.h
-@@ -62,8 +62,6 @@ enum dlm_status {
- 	DLM_MAXSTATS,             /* 41: upper limit for return code validation */
- };
- 
--/* for pretty-printing dlm_status error messages */
--const char *dlm_errmsg(enum dlm_status err);
- /* for pretty-printing dlm_status error names */
- const char *dlm_errname(enum dlm_status err);
- 
-diff --git a/fs/ocfs2/dlm/dlmdebug.c b/fs/ocfs2/dlm/dlmdebug.c
-index be5e9ed7da8d..e9ef4e2b0e75 100644
---- a/fs/ocfs2/dlm/dlmdebug.c
-+++ b/fs/ocfs2/dlm/dlmdebug.c
-@@ -164,59 +164,6 @@ static const char *dlm_errnames[] = {
- 	[DLM_MAXSTATS] =		"DLM_MAXSTATS",
- };
- 
--static const char *dlm_errmsgs[] = {
--	[DLM_NORMAL] = 			"request in progress",
--	[DLM_GRANTED] = 		"request granted",
--	[DLM_DENIED] = 			"request denied",
--	[DLM_DENIED_NOLOCKS] = 		"request denied, out of system resources",
--	[DLM_WORKING] = 		"async request in progress",
--	[DLM_BLOCKED] = 		"lock request blocked",
--	[DLM_BLOCKED_ORPHAN] = 		"lock request blocked by a orphan lock",
--	[DLM_DENIED_GRACE_PERIOD] = 	"topological change in progress",
--	[DLM_SYSERR] = 			"system error",
--	[DLM_NOSUPPORT] = 		"unsupported",
--	[DLM_CANCELGRANT] = 		"can't cancel convert: already granted",
--	[DLM_IVLOCKID] = 		"bad lockid",
--	[DLM_SYNC] = 			"synchronous request granted",
--	[DLM_BADTYPE] = 		"bad resource type",
--	[DLM_BADRESOURCE] = 		"bad resource handle",
--	[DLM_MAXHANDLES] = 		"no more resource handles",
--	[DLM_NOCLINFO] = 		"can't contact cluster manager",
--	[DLM_NOLOCKMGR] = 		"can't contact lock manager",
--	[DLM_NOPURGED] = 		"can't contact purge daemon",
--	[DLM_BADARGS] = 		"bad api args",
--	[DLM_VOID] = 			"no status",
--	[DLM_NOTQUEUED] = 		"NOQUEUE was specified and request failed",
--	[DLM_IVBUFLEN] = 		"invalid resource name length",
--	[DLM_CVTUNGRANT] = 		"attempted to convert ungranted lock",
--	[DLM_BADPARAM] = 		"invalid lock mode specified",
--	[DLM_VALNOTVALID] = 		"value block has been invalidated",
--	[DLM_REJECTED] = 		"request rejected, unrecognized client",
--	[DLM_ABORT] = 			"blocked lock request cancelled",
--	[DLM_CANCEL] = 			"conversion request cancelled",
--	[DLM_IVRESHANDLE] = 		"invalid resource handle",
--	[DLM_DEADLOCK] = 		"deadlock recovery refused this request",
--	[DLM_DENIED_NOASTS] = 		"failed to allocate AST",
--	[DLM_FORWARD] = 		"request must wait for primary's response",
--	[DLM_TIMEOUT] = 		"timeout value for lock has expired",
--	[DLM_IVGROUPID] = 		"invalid group specification",
--	[DLM_VERS_CONFLICT] = 		"version conflicts prevent request handling",
--	[DLM_BAD_DEVICE_PATH] = 	"Locks device does not exist or path wrong",
--	[DLM_NO_DEVICE_PERMISSION] = 	"Client has insufficient perms for device",
--	[DLM_NO_CONTROL_DEVICE] = 	"Cannot set options on opened device ",
--	[DLM_RECOVERING] = 		"lock resource being recovered",
--	[DLM_MIGRATING] = 		"lock resource being migrated",
--	[DLM_MAXSTATS] = 		"invalid error number",
--};
--
--const char *dlm_errmsg(enum dlm_status err)
--{
--	if (err >= DLM_MAXSTATS || err < 0)
--		return dlm_errmsgs[DLM_MAXSTATS];
--	return dlm_errmsgs[err];
--}
--EXPORT_SYMBOL_GPL(dlm_errmsg);
--
- const char *dlm_errname(enum dlm_status err)
- {
- 	if (err >= DLM_MAXSTATS || err < 0)
--- 
-2.47.0
+Reported-by: syzbot+d78497256d53041ee229@syzkaller.appspotmail.com
+Fixes: a3c06ae158dd ("vdpa_sim_net: Add support for user supported devices")
 
+For information about bisection process see: https://goo.gl/tpsmEJ#bisection
