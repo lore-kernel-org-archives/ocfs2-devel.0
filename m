@@ -1,31 +1,31 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id BD4C71D63F1;
-	Mon, 28 Oct 2024 10:51:30 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8FEB51D9662;
+	Mon, 28 Oct 2024 10:52:30 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1730112690; cv=none; b=TZsllIORweIx5zgyBF/Ew9oOfItV5E+8EVFXOY5AUTho3gpwAp0kUDqBXZUzIIA0ss3cSBQ/aAM/gJp2x7nODpyCU99f3ZwZZe+f+AaRkNAOxTmQ4C0gNoDJR+8IFx2L/y+HxcLWiSBibKAU1ekihqQv2YA5PJPLF+GXD9PvwMk=
+	t=1730112750; cv=none; b=vGh9oEg2AQuz/3CaTZFojCj4A/JjgGX9PYKvENTzddIm1sv0tosQZI1j0Jl+u7FM/d+874U+dGhuekrG8iq8LDJ+YC+gKtn2SDGJKbQcEqlW/kFITCtxJmZ8o0Ld4CiG+cXnIuH+/IgChrvo16wY+8jugq7TmVGBaQBCoQIvsJY=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1730112690; c=relaxed/simple;
-	bh=E+FH3jjpqV5vvtaT2OrB0vidObJVqTBRDahSFj3xrws=;
+	s=arc-20240116; t=1730112750; c=relaxed/simple;
+	bh=arMwxinWHAgbPzKFM5f5eoyycVjW9OhBsBK9DIjViqI=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=kRCtgrJJ2Z2B2aaT9LZVIfMcto4+MHL4QlAysiPmNpfa3CqpA1s9hhDbqbrleHTFV2WEIYRnM+eD3BlHeQpzSB9gy+6iVvM3nz/+6vwbgAu6DxMaOSNjda2UfQRPJu1f+nzAzG7YWRgTsOz0zQS5nMlgQzMJ+BynPkwqP3xohzo=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=p0Qtn7Fv; arc=none smtp.client-ip=10.30.226.201
+	 MIME-Version; b=iLMi7bJDVirvxoQSv47Tv8o/zjwJG7VZOwFPmvSBI4Wp14O/pbIq5Ee7atpBN5RdNYqIauW3mh64va63ZBLCo0JTLP3MVdTfgRnfDpJZWymOUiXx2ixor5weVk0G9OuRTrInJLZEEERcK909nVQQGCoURLUyJjQ7WOZK7xRGKD8=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=scLm5Aji; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="p0Qtn7Fv"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 04BD8C4CEE8;
-	Mon, 28 Oct 2024 10:51:28 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="scLm5Aji"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id E0CDAC4CEE7;
+	Mon, 28 Oct 2024 10:52:28 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1730112690;
-	bh=E+FH3jjpqV5vvtaT2OrB0vidObJVqTBRDahSFj3xrws=;
+	s=k20201202; t=1730112750;
+	bh=arMwxinWHAgbPzKFM5f5eoyycVjW9OhBsBK9DIjViqI=;
 	h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-	b=p0Qtn7FvuBErVWfnPKs5CBhH5yt/KmFnNczlRPyoDH0jI2DQqmq8v0cIXU2RrOhP1
-	 N7cBgM5/N9dzgSL7nSPOIMrFsijABzLz/89+6bWps4/kLJaJaLW2vF8SwI0Ez5K5LV
-	 IQFz77yrW8fTsPX/Fw8A+WR789+v4sZ8a7aHn1ZdVMNiOz7MCn5CCF8xSiNES25REU
-	 OOQHKv1RwkCMEWIcMxAmlOg/KpUaX26+IVKkJjL8SNoM/LYxUxRRBHNVW/fepnUxy7
-	 I/pje3VlDeXNZEt03wInkEsk75knAyeodyfw3aJi4L87/0r833XQEpAnzf57E0Bc5w
-	 /2WzHGboCjeow==
+	b=scLm5AjixamLqZr+WlVPGYusQs/ii9Y9scD0TMklDYMf+FCPHmaV7JiZnNJP4cNzd
+	 s59+8ZJ4pEg3VrOTTGEBSHgghpj6TBuIVx+NKWgd3kYeUzueMYB744XfYNk3hbWGG0
+	 ueQs0GnC9vdIzfD+cvFYvGW0e6RGP4+YoVtDOC5UyyDKw798bcECP3E380TJ5dS6ot
+	 I6we+a8ibY3GfmyNIretDoBoMQmqwRNnZIDUtj5sNFKy6VBzG0/UdmqbfOehUZjVVY
+	 +0IftKMw6b1rRK5rykeP5/eTcXcL2/1muTJ1HK3/J/Jntrolh6l1hdkhxFXx2RloTy
+	 TWMS2SqZFwtRg==
 From: Sasha Levin <sashal@kernel.org>
 To: linux-kernel@vger.kernel.org,
 	stable@vger.kernel.org
@@ -38,12 +38,12 @@ Cc: Alessandro Zanni <alessandro.zanni87@gmail.com>,
 	jlbec@evilplan.org,
 	joseph.qi@linux.alibaba.com,
 	ocfs2-devel@lists.linux.dev
-Subject: [PATCH AUTOSEL 6.11 13/32] fs: Fix uninitialized value issue in from_kuid and from_kgid
-Date: Mon, 28 Oct 2024 06:49:55 -0400
-Message-ID: <20241028105050.3559169-13-sashal@kernel.org>
+Subject: [PATCH AUTOSEL 6.6 05/15] fs: Fix uninitialized value issue in from_kuid and from_kgid
+Date: Mon, 28 Oct 2024 06:52:01 -0400
+Message-ID: <20241028105218.3559888-5-sashal@kernel.org>
 X-Mailer: git-send-email 2.43.0
-In-Reply-To: <20241028105050.3559169-1-sashal@kernel.org>
-References: <20241028105050.3559169-1-sashal@kernel.org>
+In-Reply-To: <20241028105218.3559888-1-sashal@kernel.org>
+References: <20241028105218.3559888-1-sashal@kernel.org>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -52,7 +52,7 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 X-stable: review
 X-Patchwork-Hint: Ignore
-X-stable-base: Linux 6.11.5
+X-stable-base: Linux 6.6.58
 Content-Transfer-Encoding: 8bit
 
 From: Alessandro Zanni <alessandro.zanni87@gmail.com>
@@ -77,7 +77,7 @@ Signed-off-by: Sasha Levin <sashal@kernel.org>
  1 file changed, 6 insertions(+), 3 deletions(-)
 
 diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-index ccc57038a9779..849783ecaa3cb 100644
+index 8bbe4a2b48a2a..4ee2f109b9e59 100644
 --- a/fs/ocfs2/file.c
 +++ b/fs/ocfs2/file.c
 @@ -1128,9 +1128,12 @@ int ocfs2_setattr(struct mnt_idmap *idmap, struct dentry *dentry,
