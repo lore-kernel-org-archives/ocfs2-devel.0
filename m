@@ -1,71 +1,71 @@
-Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.129.124])
+Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.133.124])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8B82D1DB350
-	for <ocfs2-devel@lists.linux.dev>; Mon, 28 Oct 2024 14:44:50 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=170.10.129.124
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6053133F3
+	for <ocfs2-devel@lists.linux.dev>; Mon, 28 Oct 2024 14:44:52 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=170.10.133.124
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1730126692; cv=none; b=hceufLX5IJtafsVlLNr8VGt2tNYi67C+L0Iy9aFcFuAWJywJNMpaRB/dIrVvECXs2L0KNjsDuilwsWx5egLmgsH5ySOAfnALFu4ZVOzG5ihgnO6kfKPkfEX0lxEnBhxM/4ly37IqlhX6rvKfAlsyKEst1WnwLlJRr6twzA0f+2Y=
+	t=1730126696; cv=none; b=UO8pOFv2zbmHrMDVruek948Iashw6D3efSP9YhU9AfZMbRyR+NtA2WVtxarGZ30oM0k/zU+pobs1+iNdPaw9ZqiQD0uFQVf3V9auxRrcUmflpwnuu5yp12F3uAhpkJOzRAfw+JX2Bblz5Fzh2lQc3Xl1UpSKVJX8POhxVb1b69k=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1730126692; c=relaxed/simple;
-	bh=p7yMguCBKmD9r0RbDe7chkG0LWFM96Paqn++IF1pTag=;
+	s=arc-20240116; t=1730126696; c=relaxed/simple;
+	bh=KaguSsfLC8s5xcqjBbtcVfO0s2uKH78ssHO4nMTmwZI=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version:Content-Type; b=nRid8W5TGsAlTRQMWIZIONSSsfjywCfuCjAbtYWzd9n3opqZlTKu9vzscL7hgDiheWreswv+gw2Ppzh10Ik1HN3sG95i6iQ1EqU29rRTYElS80iy10cq1BK4wcUSBy3FB5XwmXTwdW7RZZJvFkItOzfJMPp2VlJ21fuVgAs15pM=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=redhat.com; spf=pass smtp.mailfrom=redhat.com; dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b=BBWEfuK1; arc=none smtp.client-ip=170.10.129.124
+	 MIME-Version:Content-Type; b=Rti3SWMUZ9MT3c/b+v3T7BLl3FmQyW+fDeFjf+XaM0w2nlwiDRAJdHivSLEOGb7GxKcfRTwjMWle+J9edmTUYHXVJIGDyAJSQwRXYxsrLwCvp9IE/Kei95C/vozofazDx1kTmqf3/TlJtGJBmuPvkfxIS+ZSMC+mDRYaNP5Trec=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=redhat.com; spf=pass smtp.mailfrom=redhat.com; dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b=EluDIflE; arc=none smtp.client-ip=170.10.133.124
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=redhat.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=redhat.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b="BBWEfuK1"
+	dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b="EluDIflE"
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
-	s=mimecast20190719; t=1730126689;
+	s=mimecast20190719; t=1730126691;
 	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
 	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
 	 content-transfer-encoding:content-transfer-encoding:
 	 in-reply-to:in-reply-to:references:references;
-	bh=WkUbSQrMk+dfn1VmSJ/MQOaPLbP4AoqiC7gCqTffvD0=;
-	b=BBWEfuK1gnGlcWnCh4qOaHisEuXyQcg2WSX8EzoeFtZaibqVApxJR15kIAxvOgxF1UsWW9
-	AfDHyBfhyCz2dWldrWITHlv+jY6oZ3KRC79wgYsqDIiob2G3jQ8KYYl0ouZT/LWFjiEHKZ
-	Xn2qnTvXndeo+voRoQeGDATD0QWklhM=
-Received: from mail-il1-f199.google.com (mail-il1-f199.google.com
- [209.85.166.199]) by relay.mimecast.com with ESMTP with STARTTLS
+	bh=grejxkvax8afQ/ClILD/3hlxO18LhRtyvQ0IFAOyo20=;
+	b=EluDIflEsuMzY9lSTP/C4YsySCunxMvx7TcyraeDch/pGgbDr/WHW7NBoCkXu1auaYCha8
+	9QFCKw0W6qZMuOf0zmEta+wilK0zqfo91fbVVl2eNeVEiWFclSpqHtlPz41Y7ztUlMVhpg
+	d2uDjxDI7VWWm6zPg046n79c1LeKSPc=
+Received: from mail-il1-f197.google.com (mail-il1-f197.google.com
+ [209.85.166.197]) by relay.mimecast.com with ESMTP with STARTTLS
  (version=TLSv1.3, cipher=TLS_AES_256_GCM_SHA384) id
- us-mta-453-C9-_KHZROwuhUmLF-z5nsw-1; Mon, 28 Oct 2024 10:44:48 -0400
-X-MC-Unique: C9-_KHZROwuhUmLF-z5nsw-1
-Received: by mail-il1-f199.google.com with SMTP id e9e14a558f8ab-3a3da2d46b9so41698025ab.0
-        for <ocfs2-devel@lists.linux.dev>; Mon, 28 Oct 2024 07:44:48 -0700 (PDT)
+ us-mta-686-O3kJSQ_xN2u3sKruRH8-3Q-1; Mon, 28 Oct 2024 10:44:50 -0400
+X-MC-Unique: O3kJSQ_xN2u3sKruRH8-3Q-1
+Received: by mail-il1-f197.google.com with SMTP id e9e14a558f8ab-3a4e86fb603so27333085ab.3
+        for <ocfs2-devel@lists.linux.dev>; Mon, 28 Oct 2024 07:44:50 -0700 (PDT)
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1730126687; x=1730731487;
+        d=1e100.net; s=20230601; t=1730126689; x=1730731489;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:cc:to:from:x-gm-message-state:from:to:cc
          :subject:date:message-id:reply-to;
-        bh=WkUbSQrMk+dfn1VmSJ/MQOaPLbP4AoqiC7gCqTffvD0=;
-        b=FfDR6La3xixsYkmQoRiGFFaBcFKTZpZBRPcvOTmKYW24twVWpZRjUCSOdtVHhguMC8
-         ERsaHcQFr/lFNCb1UGwPB2p5ZdUC1bR/owbO8tbnzirOv/0G72lIWjIF2oUxF6LXYgkx
-         sTRxkVlaHRiPhB9fwT0Q+wmz+KklPLrcvhVh+6CB8VXqRtFK/xp+OpR6Yuf1x6EbKERr
-         uM2fk3xjslB6JmZ9KmR/OzmVN0M+hkASE5TUjrYxsGFlQS3F+bUgV3kppo1KouJLdwEz
-         qFxvh2tcob3zRVCm7AJuwCo9e/GrXVUdLTkW4PF6rq2tY6modstQQVmkPrfLhZiOPeDV
-         5wqA==
-X-Gm-Message-State: AOJu0YxxxRVjLcEEkVMIyFZRAR3m8Rbct47tRLRUQa9r2vE0xOCeWDfr
-	pHuA52tcTD04LvYVVTwaJdA3eM67+Akv4OELwlqdcivoOIGph1dq7kRlPs+Pr68mlL28sbOPgOK
-	bGpUNaw1esQnliwI0uk9H8vettWetGT2SfAjVBJk3SiXcJBmSp1Exe0XgDFYy4xGEu2WVIvGIXD
-	PW3apznLbQ2+nFZyuIH7bVkmuAX5APCxLgAdldIYQLewNNyw==
-X-Received: by 2002:a05:6e02:1568:b0:3a4:e637:7b4 with SMTP id e9e14a558f8ab-3a4ed264e4fmr80315045ab.5.1730126687519;
-        Mon, 28 Oct 2024 07:44:47 -0700 (PDT)
-X-Google-Smtp-Source: AGHT+IFF3DMl7xOxwGbg4xC9bOP6dzwpEZfUfbOMAtAWsx2huxbC6q63xUTpQXk0Lfsbplz1K7wJBg==
-X-Received: by 2002:a05:6e02:1568:b0:3a4:e637:7b4 with SMTP id e9e14a558f8ab-3a4ed264e4fmr80314705ab.5.1730126687076;
-        Mon, 28 Oct 2024 07:44:47 -0700 (PDT)
+        bh=grejxkvax8afQ/ClILD/3hlxO18LhRtyvQ0IFAOyo20=;
+        b=OD+ZTgJ2L49GWU50BAjlfPYajdpe3vAMwtEnndyQ2BKCipdIkWFYCRjWdTVM1xI6Xe
+         7RPgiHRH5V320JbYs3xbqhFvC++7i1Lo3z9BNF5ZTNawMSwCx16J382QwXvCHBYDiT6e
+         52QrN2XLJ4fs3SRiPcqnO61OliW9f6EKu/ncspY7b+JbK7KbVViob6kgglIvr4BhqFF/
+         lFIHNbSJAYsrlmq6niv+Zr+ETVAd7PPqyWZHbWet5OKr6k7AK039tsCZ9EF7rv3AbAOa
+         p3pW5C7+o9HAyTUK2a8sCeWxxyF2RfQmHX7TfgxOVb0RV40O3QqhVn1kAngrEsG5QUXH
+         D/tQ==
+X-Gm-Message-State: AOJu0Yy3Sl7R9xuU5Y59t3OTTdZybWSciCun4KSGStrGPjIbYlQx13wl
+	n3jdYpuo3h9Xp3DMQibMiqC9OqHNtqrm4JXuR+dY+U3AdBQ1Ki4WzZDgAjc7OiDTE3uTUzAPa8s
+	1W74aRZLuv9Ngr7NZiV0gl+HGffwZ4WhY8Xihdq9BPKj3c72Kgq2Q2ihARMgVLxhkPZNZOrHP4l
+	7cWE/BiA/Cnh9ws2aIbcAlfrpb4OlrAwDkpf81osEv0h/lig==
+X-Received: by 2002:a05:6e02:1a4e:b0:3a3:b4ec:b400 with SMTP id e9e14a558f8ab-3a4ed2df0f2mr83773605ab.17.1730126689006;
+        Mon, 28 Oct 2024 07:44:49 -0700 (PDT)
+X-Google-Smtp-Source: AGHT+IH2G77aqjtN5TAFS21q2TPPEF8gkLRSltTGrppi+P/GnkhwXxCMkaqmPMF57km+ZZs19hftcA==
+X-Received: by 2002:a05:6e02:1a4e:b0:3a3:b4ec:b400 with SMTP id e9e14a558f8ab-3a4ed2df0f2mr83773135ab.17.1730126688447;
+        Mon, 28 Oct 2024 07:44:48 -0700 (PDT)
 Received: from fedora-rawhide.sandeen.net ([65.128.110.20])
-        by smtp.gmail.com with ESMTPSA id e9e14a558f8ab-3a4e6e56c62sm16760705ab.56.2024.10.28.07.44.46
+        by smtp.gmail.com with ESMTPSA id e9e14a558f8ab-3a4e6e56c62sm16760705ab.56.2024.10.28.07.44.47
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Mon, 28 Oct 2024 07:44:46 -0700 (PDT)
+        Mon, 28 Oct 2024 07:44:47 -0700 (PDT)
 From: Eric Sandeen <sandeen@redhat.com>
 To: ocfs2-devel@lists.linux.dev
 Cc: joseph.qi@linux.alibaba.com,
 	brauner@kernel.org,
 	Eric Sandeen <sandeen@redhat.com>
-Subject: [RFC PATCH 1/2] dlmfs: convert to the new mount API
-Date: Mon, 28 Oct 2024 09:41:14 -0500
-Message-ID: <20241028144443.609151-2-sandeen@redhat.com>
+Subject: [RFC PATCH 2/2] ocfs2: convert to the new mount API
+Date: Mon, 28 Oct 2024 09:41:15 -0500
+Message-ID: <20241028144443.609151-3-sandeen@redhat.com>
 X-Mailer: git-send-email 2.46.0
 In-Reply-To: <20241028144443.609151-1-sandeen@redhat.com>
 References: <20241028144443.609151-1-sandeen@redhat.com>
@@ -80,68 +80,841 @@ X-Mimecast-Originator: redhat.com
 Content-Transfer-Encoding: 8bit
 Content-Type: text/plain; charset="US-ASCII"; x-default=true
 
-Convert dlmfs to the new mount API.
+Convert ocfs2 to the new mount API.
 
 Signed-off-by: Eric Sandeen <sandeen@redhat.com>
 ---
- fs/ocfs2/dlmfs/dlmfs.c | 23 ++++++++++++++++-------
- 1 file changed, 16 insertions(+), 7 deletions(-)
+ fs/ocfs2/ocfs2_trace.h |  20 +-
+ fs/ocfs2/super.c       | 589 +++++++++++++++++++----------------------
+ 2 files changed, 277 insertions(+), 332 deletions(-)
 
-diff --git a/fs/ocfs2/dlmfs/dlmfs.c b/fs/ocfs2/dlmfs/dlmfs.c
-index 7fc0e920eda7..2a7f36643895 100644
---- a/fs/ocfs2/dlmfs/dlmfs.c
-+++ b/fs/ocfs2/dlmfs/dlmfs.c
-@@ -20,6 +20,7 @@
+diff --git a/fs/ocfs2/ocfs2_trace.h b/fs/ocfs2/ocfs2_trace.h
+index 0511c69c9fde..54ed1495de9a 100644
+--- a/fs/ocfs2/ocfs2_trace.h
++++ b/fs/ocfs2/ocfs2_trace.h
+@@ -1658,34 +1658,34 @@ TRACE_EVENT(ocfs2_remount,
+ );
  
- #include <linux/module.h>
- #include <linux/fs.h>
+ TRACE_EVENT(ocfs2_fill_super,
+-	TP_PROTO(void *sb, void *data, int silent),
+-	TP_ARGS(sb, data, silent),
++	TP_PROTO(void *sb, void *fc, int silent),
++	TP_ARGS(sb, fc, silent),
+ 	TP_STRUCT__entry(
+ 		__field(void *, sb)
+-		__field(void *, data)
++		__field(void *, fc)
+ 		__field(int, silent)
+ 	),
+ 	TP_fast_assign(
+ 		__entry->sb = sb;
+-		__entry->data = data;
++		__entry->fc = fc;
+ 		__entry->silent = silent;
+ 	),
+ 	TP_printk("%p %p %d", __entry->sb,
+-		  __entry->data, __entry->silent)
++		  __entry->fc, __entry->silent)
+ );
+ 
+ TRACE_EVENT(ocfs2_parse_options,
+-	TP_PROTO(int is_remount, char *options),
+-	TP_ARGS(is_remount, options),
++	TP_PROTO(int is_remount, const char *option),
++	TP_ARGS(is_remount, option),
+ 	TP_STRUCT__entry(
+ 		__field(int, is_remount)
+-		__string(options, options)
++		__string(option, option)
+ 	),
+ 	TP_fast_assign(
+ 		__entry->is_remount = is_remount;
+-		__assign_str(options);
++		__assign_str(option);
+ 	),
+-	TP_printk("%d %s", __entry->is_remount, __get_str(options))
++	TP_printk("%d %s", __entry->is_remount, __get_str(option))
+ );
+ 
+ DEFINE_OCFS2_POINTER_EVENT(ocfs2_put_super);
+diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+index 3d404624bb96..110ffc4bb840 100644
+--- a/fs/ocfs2/super.c
++++ b/fs/ocfs2/super.c
+@@ -19,10 +19,10 @@
+ #include <linux/blkdev.h>
+ #include <linux/socket.h>
+ #include <linux/inet.h>
+-#include <linux/parser.h>
++#include <linux/fs_parser.h>
 +#include <linux/fs_context.h>
- #include <linux/pagemap.h>
- #include <linux/types.h>
- #include <linux/slab.h>
-@@ -506,9 +507,7 @@ static int dlmfs_unlink(struct inode *dir,
+ #include <linux/crc32.h>
+ #include <linux/debugfs.h>
+-#include <linux/mount.h>
+ #include <linux/seq_file.h>
+ #include <linux/quotaops.h>
+ #include <linux/signal.h>
+@@ -80,17 +80,15 @@ struct mount_options
+ 	unsigned int	resv_level;
+ 	int		dir_resv_level;
+ 	char		cluster_stack[OCFS2_STACK_LABEL_LEN + 1];
++	bool		user_stack;
+ };
+ 
+-static int ocfs2_parse_options(struct super_block *sb, char *options,
+-			       struct mount_options *mopt,
+-			       int is_remount);
++static int ocfs2_parse_param(struct fs_context *fc, struct fs_parameter *param);
+ static int ocfs2_check_set_options(struct super_block *sb,
+ 				   struct mount_options *options);
+ static int ocfs2_show_options(struct seq_file *s, struct dentry *root);
+ static void ocfs2_put_super(struct super_block *sb);
+ static int ocfs2_mount_volume(struct super_block *sb);
+-static int ocfs2_remount(struct super_block *sb, int *flags, char *data);
+ static void ocfs2_dismount_volume(struct super_block *sb, int mnt_err);
+ static int ocfs2_initialize_mem_caches(void);
+ static void ocfs2_free_mem_caches(void);
+@@ -135,7 +133,6 @@ static const struct super_operations ocfs2_sops = {
+ 	.evict_inode	= ocfs2_evict_inode,
+ 	.sync_fs	= ocfs2_sync_fs,
+ 	.put_super	= ocfs2_put_super,
+-	.remount_fs	= ocfs2_remount,
+ 	.show_options   = ocfs2_show_options,
+ 	.quota_read	= ocfs2_quota_read,
+ 	.quota_write	= ocfs2_quota_write,
+@@ -144,15 +141,10 @@ static const struct super_operations ocfs2_sops = {
+ 
+ enum {
+ 	Opt_barrier,
+-	Opt_err_panic,
+-	Opt_err_ro,
++	Opt_errors,
+ 	Opt_intr,
+-	Opt_nointr,
+-	Opt_hb_none,
+-	Opt_hb_local,
+-	Opt_hb_global,
+-	Opt_data_ordered,
+-	Opt_data_writeback,
++	Opt_heartbeat,
++	Opt_data,
+ 	Opt_atime_quantum,
+ 	Opt_slot,
+ 	Opt_commit,
+@@ -160,52 +152,64 @@ enum {
+ 	Opt_localflocks,
+ 	Opt_stack,
+ 	Opt_user_xattr,
+-	Opt_nouser_xattr,
+ 	Opt_inode64,
+ 	Opt_acl,
+-	Opt_noacl,
+ 	Opt_usrquota,
+ 	Opt_grpquota,
+-	Opt_coherency_buffered,
+-	Opt_coherency_full,
++	Opt_coherency,
+ 	Opt_resv_level,
+ 	Opt_dir_resv_level,
+ 	Opt_journal_async_commit,
+-	Opt_err_cont,
+-	Opt_err,
+ };
+ 
+-static const match_table_t tokens = {
+-	{Opt_barrier, "barrier=%u"},
+-	{Opt_err_panic, "errors=panic"},
+-	{Opt_err_ro, "errors=remount-ro"},
+-	{Opt_intr, "intr"},
+-	{Opt_nointr, "nointr"},
+-	{Opt_hb_none, OCFS2_HB_NONE},
+-	{Opt_hb_local, OCFS2_HB_LOCAL},
+-	{Opt_hb_global, OCFS2_HB_GLOBAL},
+-	{Opt_data_ordered, "data=ordered"},
+-	{Opt_data_writeback, "data=writeback"},
+-	{Opt_atime_quantum, "atime_quantum=%u"},
+-	{Opt_slot, "preferred_slot=%u"},
+-	{Opt_commit, "commit=%u"},
+-	{Opt_localalloc, "localalloc=%d"},
+-	{Opt_localflocks, "localflocks"},
+-	{Opt_stack, "cluster_stack=%s"},
+-	{Opt_user_xattr, "user_xattr"},
+-	{Opt_nouser_xattr, "nouser_xattr"},
+-	{Opt_inode64, "inode64"},
+-	{Opt_acl, "acl"},
+-	{Opt_noacl, "noacl"},
+-	{Opt_usrquota, "usrquota"},
+-	{Opt_grpquota, "grpquota"},
+-	{Opt_coherency_buffered, "coherency=buffered"},
+-	{Opt_coherency_full, "coherency=full"},
+-	{Opt_resv_level, "resv_level=%u"},
+-	{Opt_dir_resv_level, "dir_resv_level=%u"},
+-	{Opt_journal_async_commit, "journal_async_commit"},
+-	{Opt_err_cont, "errors=continue"},
+-	{Opt_err, NULL}
++static const struct constant_table ocfs2_param_errors[] = {
++	{"panic",	OCFS2_MOUNT_ERRORS_PANIC},
++	{"remount-ro",	OCFS2_MOUNT_ERRORS_ROFS},
++	{"continue",	OCFS2_MOUNT_ERRORS_CONT},
++	{}
++};
++
++static const struct constant_table ocfs2_param_heartbeat[] = {
++	{"local",	OCFS2_MOUNT_HB_LOCAL},
++	{"none",	OCFS2_MOUNT_HB_NONE},
++	{"global",	OCFS2_MOUNT_HB_GLOBAL},
++	{}
++};
++
++static const struct constant_table ocfs2_param_data[] = {
++	{"writeback",	OCFS2_MOUNT_DATA_WRITEBACK},
++	{"ordered",	0},
++	{}
++};
++
++static const struct constant_table ocfs2_param_coherency[] = {
++	{"buffered",	OCFS2_MOUNT_COHERENCY_BUFFERED},
++	{"full",	0},
++	{}
++};
++
++static const struct fs_parameter_spec ocfs2_param_spec[] = {
++	fsparam_u32	("barrier",	Opt_barrier),
++	fsparam_enum	("errors",	Opt_errors,	ocfs2_param_errors),
++	fsparam_flag_no	("intr",	Opt_intr),
++	fsparam_enum	("heartbeat",	Opt_heartbeat,	ocfs2_param_heartbeat),
++	fsparam_enum	("data",	Opt_data,	ocfs2_param_data),
++	fsparam_u32	("atime_quantum", Opt_atime_quantum),
++	fsparam_u32	("preferred_slot", Opt_slot),
++	fsparam_u32	("commit",	Opt_commit),
++	fsparam_s32	("localalloc",	Opt_localalloc),
++	fsparam_flag	("localflocks",	Opt_localflocks),
++	fsparam_string	("cluster_stack", Opt_stack),
++	fsparam_flag_no	("user_xattr",	Opt_user_xattr),
++	fsparam_flag	("inode64",	Opt_inode64),
++	fsparam_flag_no	("acl",		Opt_acl),
++	fsparam_flag	("usrquota",	Opt_usrquota),
++	fsparam_flag	("grpquota",	Opt_grpquota),
++	fsparam_enum	("coherency",	Opt_coherency,	ocfs2_param_coherency),
++	fsparam_u32	("resv_level",	Opt_resv_level),
++	fsparam_u32	("dir_resv_level",	Opt_dir_resv_level),
++	fsparam_flag	("journal_async_commit", Opt_journal_async_commit),
++	{}
+ };
+ 
+ #ifdef CONFIG_DEBUG_FS
+@@ -600,32 +604,32 @@ static unsigned long long ocfs2_max_file_offset(unsigned int bbits,
+ 	return (((unsigned long long)bytes) << bitshift) - trim;
+ }
+ 
+-static int ocfs2_remount(struct super_block *sb, int *flags, char *data)
++static int ocfs2_reconfigure(struct fs_context *fc)
+ {
+ 	int incompat_features;
+ 	int ret = 0;
+-	struct mount_options parsed_options;
++	struct mount_options *parsed_options = fc->fs_private;
++	struct super_block *sb = fc->root->d_sb;
+ 	struct ocfs2_super *osb = OCFS2_SB(sb);
+ 	u32 tmp;
+ 
+ 	sync_filesystem(sb);
+ 
+-	if (!ocfs2_parse_options(sb, data, &parsed_options, 1) ||
+-	    !ocfs2_check_set_options(sb, &parsed_options)) {
++	if (!ocfs2_check_set_options(sb, parsed_options)) {
+ 		ret = -EINVAL;
+ 		goto out;
+ 	}
+ 
+ 	tmp = OCFS2_MOUNT_HB_LOCAL | OCFS2_MOUNT_HB_GLOBAL |
+ 		OCFS2_MOUNT_HB_NONE;
+-	if ((osb->s_mount_opt & tmp) != (parsed_options.mount_opt & tmp)) {
++	if ((osb->s_mount_opt & tmp) != (parsed_options->mount_opt & tmp)) {
+ 		ret = -EINVAL;
+ 		mlog(ML_ERROR, "Cannot change heartbeat mode on remount\n");
+ 		goto out;
+ 	}
+ 
+ 	if ((osb->s_mount_opt & OCFS2_MOUNT_DATA_WRITEBACK) !=
+-	    (parsed_options.mount_opt & OCFS2_MOUNT_DATA_WRITEBACK)) {
++	    (parsed_options->mount_opt & OCFS2_MOUNT_DATA_WRITEBACK)) {
+ 		ret = -EINVAL;
+ 		mlog(ML_ERROR, "Cannot change data mode on remount\n");
+ 		goto out;
+@@ -634,16 +638,16 @@ static int ocfs2_remount(struct super_block *sb, int *flags, char *data)
+ 	/* Probably don't want this on remount; it might
+ 	 * mess with other nodes */
+ 	if (!(osb->s_mount_opt & OCFS2_MOUNT_INODE64) &&
+-	    (parsed_options.mount_opt & OCFS2_MOUNT_INODE64)) {
++	    (parsed_options->mount_opt & OCFS2_MOUNT_INODE64)) {
+ 		ret = -EINVAL;
+ 		mlog(ML_ERROR, "Cannot enable inode64 on remount\n");
+ 		goto out;
+ 	}
+ 
+ 	/* We're going to/from readonly mode. */
+-	if ((bool)(*flags & SB_RDONLY) != sb_rdonly(sb)) {
++	if ((bool)(fc->sb_flags & SB_RDONLY) != sb_rdonly(sb)) {
+ 		/* Disable quota accounting before remounting RO */
+-		if (*flags & SB_RDONLY) {
++		if (fc->sb_flags & SB_RDONLY) {
+ 			ret = ocfs2_susp_quotas(osb, 0);
+ 			if (ret < 0)
+ 				goto out;
+@@ -657,7 +661,7 @@ static int ocfs2_remount(struct super_block *sb, int *flags, char *data)
+ 			goto unlock_osb;
+ 		}
+ 
+-		if (*flags & SB_RDONLY) {
++		if (fc->sb_flags & SB_RDONLY) {
+ 			sb->s_flags |= SB_RDONLY;
+ 			osb->osb_flags |= OCFS2_OSB_SOFT_RO;
+ 		} else {
+@@ -678,11 +682,11 @@ static int ocfs2_remount(struct super_block *sb, int *flags, char *data)
+ 			sb->s_flags &= ~SB_RDONLY;
+ 			osb->osb_flags &= ~OCFS2_OSB_SOFT_RO;
+ 		}
+-		trace_ocfs2_remount(sb->s_flags, osb->osb_flags, *flags);
++		trace_ocfs2_remount(sb->s_flags, osb->osb_flags, fc->sb_flags);
+ unlock_osb:
+ 		spin_unlock(&osb->osb_lock);
+ 		/* Enable quota accounting after remounting RW */
+-		if (!ret && !(*flags & SB_RDONLY)) {
++		if (!ret && !(fc->sb_flags & SB_RDONLY)) {
+ 			if (sb_any_quota_suspended(sb))
+ 				ret = ocfs2_susp_quotas(osb, 1);
+ 			else
+@@ -701,11 +705,11 @@ static int ocfs2_remount(struct super_block *sb, int *flags, char *data)
+ 	if (!ret) {
+ 		/* Only save off the new mount options in case of a successful
+ 		 * remount. */
+-		osb->s_mount_opt = parsed_options.mount_opt;
+-		osb->s_atime_quantum = parsed_options.atime_quantum;
+-		osb->preferred_slot = parsed_options.slot;
+-		if (parsed_options.commit_interval)
+-			osb->osb_commit_interval = parsed_options.commit_interval;
++		osb->s_mount_opt = parsed_options->mount_opt;
++		osb->s_atime_quantum = parsed_options->atime_quantum;
++		osb->preferred_slot = parsed_options->slot;
++		if (parsed_options->commit_interval)
++			osb->osb_commit_interval = parsed_options->commit_interval;
+ 
+ 		if (!ocfs2_is_hard_readonly(osb))
+ 			ocfs2_set_journal_params(osb);
+@@ -966,23 +970,18 @@ static void ocfs2_disable_quotas(struct ocfs2_super *osb)
+ 	}
+ }
+ 
+-static int ocfs2_fill_super(struct super_block *sb, void *data, int silent)
++static int ocfs2_fill_super(struct super_block *sb, struct fs_context *fc)
+ {
+ 	struct dentry *root;
+ 	int status, sector_size;
+-	struct mount_options parsed_options;
++	struct mount_options *parsed_options = fc->fs_private;
+ 	struct inode *inode = NULL;
+ 	struct ocfs2_super *osb = NULL;
+ 	struct buffer_head *bh = NULL;
+ 	char nodestr[12];
+ 	struct ocfs2_blockcheck_stats stats;
+ 
+-	trace_ocfs2_fill_super(sb, data, silent);
+-
+-	if (!ocfs2_parse_options(sb, data, &parsed_options, 0)) {
+-		status = -EINVAL;
+-		goto out;
+-	}
++	trace_ocfs2_fill_super(sb, fc, fc->sb_flags & SB_SILENT);
+ 
+ 	/* probe for superblock */
+ 	status = ocfs2_sb_probe(sb, &bh, &sector_size, &stats);
+@@ -999,24 +998,24 @@ static int ocfs2_fill_super(struct super_block *sb, void *data, int silent)
+ 
+ 	osb = OCFS2_SB(sb);
+ 
+-	if (!ocfs2_check_set_options(sb, &parsed_options)) {
++	if (!ocfs2_check_set_options(sb, parsed_options)) {
+ 		status = -EINVAL;
+ 		goto out_super;
+ 	}
+-	osb->s_mount_opt = parsed_options.mount_opt;
+-	osb->s_atime_quantum = parsed_options.atime_quantum;
+-	osb->preferred_slot = parsed_options.slot;
+-	osb->osb_commit_interval = parsed_options.commit_interval;
++	osb->s_mount_opt = parsed_options->mount_opt;
++	osb->s_atime_quantum = parsed_options->atime_quantum;
++	osb->preferred_slot = parsed_options->slot;
++	osb->osb_commit_interval = parsed_options->commit_interval;
+ 
+-	ocfs2_la_set_sizes(osb, parsed_options.localalloc_opt);
+-	osb->osb_resv_level = parsed_options.resv_level;
+-	osb->osb_dir_resv_level = parsed_options.resv_level;
+-	if (parsed_options.dir_resv_level == -1)
+-		osb->osb_dir_resv_level = parsed_options.resv_level;
++	ocfs2_la_set_sizes(osb, parsed_options->localalloc_opt);
++	osb->osb_resv_level = parsed_options->resv_level;
++	osb->osb_dir_resv_level = parsed_options->resv_level;
++	if (parsed_options->dir_resv_level == -1)
++		osb->osb_dir_resv_level = parsed_options->resv_level;
+ 	else
+-		osb->osb_dir_resv_level = parsed_options.dir_resv_level;
++		osb->osb_dir_resv_level = parsed_options->dir_resv_level;
+ 
+-	status = ocfs2_verify_userspace_stack(osb, &parsed_options);
++	status = ocfs2_verify_userspace_stack(osb, parsed_options);
+ 	if (status)
+ 		goto out_super;
+ 
+@@ -1180,27 +1179,72 @@ static int ocfs2_fill_super(struct super_block *sb, void *data, int silent)
  	return status;
  }
  
--static int dlmfs_fill_super(struct super_block * sb,
--			    void * data,
--			    int silent)
-+static int dlmfs_fill_super(struct super_block *sb, struct fs_context *fc)
- {
- 	sb->s_maxbytes = MAX_LFS_FILESIZE;
- 	sb->s_blocksize = PAGE_SIZE;
-@@ -556,17 +555,27 @@ static const struct inode_operations dlmfs_file_inode_operations = {
- 	.setattr	= dlmfs_file_setattr,
- };
- 
--static struct dentry *dlmfs_mount(struct file_system_type *fs_type,
--	int flags, const char *dev_name, void *data)
-+static int dlmfs_get_tree(struct fs_context *fc)
- {
--	return mount_nodev(fs_type, flags, data, dlmfs_fill_super);
-+	return get_tree_nodev(fc, dlmfs_fill_super);
+-static struct dentry *ocfs2_mount(struct file_system_type *fs_type,
+-			int flags,
+-			const char *dev_name,
+-			void *data)
++static int ocfs2_get_tree(struct fs_context *fc)
++{
++	return get_tree_bdev(fc, ocfs2_fill_super);
 +}
 +
-+static const struct fs_context_operations dlmfs_context_ops = {
-+	.get_tree       = dlmfs_get_tree,
++static void ocfs2_free_fc(struct fs_context *fc)
+ {
+-	return mount_bdev(fs_type, flags, dev_name, data, ocfs2_fill_super);
++	kfree(fc->fs_private);
++}
++
++static const struct fs_context_operations ocfs2_context_ops = {
++	.parse_param	= ocfs2_parse_param,
++	.get_tree	= ocfs2_get_tree,
++	.reconfigure	= ocfs2_reconfigure,
++	.free		= ocfs2_free_fc,
 +};
 +
-+static int dlmfs_init_fs_context(struct fs_context *fc)
++static int ocfs2_init_fs_context(struct fs_context *fc)
 +{
-+	fc->ops = &dlmfs_context_ops;
++	struct mount_options *mopt;
++
++	mopt = kzalloc(sizeof(struct mount_options), GFP_KERNEL);
++	if (!mopt)
++		return -EINVAL;
++
++	mopt->commit_interval = 0;
++	mopt->mount_opt = OCFS2_MOUNT_NOINTR;
++	mopt->atime_quantum = OCFS2_DEFAULT_ATIME_QUANTUM;
++	mopt->slot = OCFS2_INVALID_SLOT;
++	mopt->localalloc_opt = -1;
++	mopt->cluster_stack[0] = '\0';
++	mopt->resv_level = OCFS2_DEFAULT_RESV_LEVEL;
++	mopt->dir_resv_level = -1;
++
++	fc->fs_private = mopt;
++	fc->ops = &ocfs2_context_ops;
 +
 +	return 0;
  }
  
- static struct file_system_type dlmfs_fs_type = {
- 	.owner		= THIS_MODULE,
- 	.name		= "ocfs2_dlmfs",
--	.mount		= dlmfs_mount,
- 	.kill_sb	= kill_litter_super,
-+	.init_fs_context = dlmfs_init_fs_context,
+ static struct file_system_type ocfs2_fs_type = {
+ 	.owner          = THIS_MODULE,
+ 	.name           = "ocfs2",
+-	.mount          = ocfs2_mount,
+ 	.kill_sb        = kill_block_super,
+ 	.fs_flags       = FS_REQUIRES_DEV|FS_RENAME_DOES_D_MOVE,
+-	.next           = NULL
++	.next           = NULL,
++	.init_fs_context = ocfs2_init_fs_context,
++	.parameters	= ocfs2_param_spec,
  };
- MODULE_ALIAS_FS("ocfs2_dlmfs");
+ MODULE_ALIAS_FS("ocfs2");
  
+ static int ocfs2_check_set_options(struct super_block *sb,
+ 				   struct mount_options *options)
+ {
++	if (options->user_stack == 0) {
++		u32 tmp;
++
++		/* Ensure only one heartbeat mode */
++		tmp = options->mount_opt & (OCFS2_MOUNT_HB_LOCAL |
++					    OCFS2_MOUNT_HB_GLOBAL |
++					    OCFS2_MOUNT_HB_NONE);
++		if (hweight32(tmp) != 1) {
++			mlog(ML_ERROR, "Invalid heartbeat mount options\n");
++			return 0;
++		}
++	}
+ 	if (options->mount_opt & OCFS2_MOUNT_USRQUOTA &&
+ 	    !OCFS2_HAS_RO_COMPAT_FEATURE(sb,
+ 					 OCFS2_FEATURE_RO_COMPAT_USRQUOTA)) {
+@@ -1232,241 +1276,142 @@ static int ocfs2_check_set_options(struct super_block *sb,
+ 	return 1;
+ }
+ 
+-static int ocfs2_parse_options(struct super_block *sb,
+-			       char *options,
+-			       struct mount_options *mopt,
+-			       int is_remount)
++static int ocfs2_parse_param(struct fs_context *fc, struct fs_parameter *param)
+ {
+-	int status, user_stack = 0;
+-	char *p;
+-	u32 tmp;
+-	int token, option;
+-	substring_t args[MAX_OPT_ARGS];
+-
+-	trace_ocfs2_parse_options(is_remount, options ? options : "(none)");
+-
+-	mopt->commit_interval = 0;
+-	mopt->mount_opt = OCFS2_MOUNT_NOINTR;
+-	mopt->atime_quantum = OCFS2_DEFAULT_ATIME_QUANTUM;
+-	mopt->slot = OCFS2_INVALID_SLOT;
+-	mopt->localalloc_opt = -1;
+-	mopt->cluster_stack[0] = '\0';
+-	mopt->resv_level = OCFS2_DEFAULT_RESV_LEVEL;
+-	mopt->dir_resv_level = -1;
+-
+-	if (!options) {
+-		status = 1;
+-		goto bail;
+-	}
+-
+-	while ((p = strsep(&options, ",")) != NULL) {
+-		if (!*p)
+-			continue;
+-
+-		token = match_token(p, tokens, args);
+-		switch (token) {
+-		case Opt_hb_local:
+-			mopt->mount_opt |= OCFS2_MOUNT_HB_LOCAL;
+-			break;
+-		case Opt_hb_none:
+-			mopt->mount_opt |= OCFS2_MOUNT_HB_NONE;
+-			break;
+-		case Opt_hb_global:
+-			mopt->mount_opt |= OCFS2_MOUNT_HB_GLOBAL;
+-			break;
+-		case Opt_barrier:
+-			if (match_int(&args[0], &option)) {
+-				status = 0;
+-				goto bail;
+-			}
+-			if (option)
+-				mopt->mount_opt |= OCFS2_MOUNT_BARRIER;
+-			else
+-				mopt->mount_opt &= ~OCFS2_MOUNT_BARRIER;
+-			break;
+-		case Opt_intr:
+-			mopt->mount_opt &= ~OCFS2_MOUNT_NOINTR;
+-			break;
+-		case Opt_nointr:
++	struct fs_parse_result result;
++	int opt;
++	struct mount_options *mopt = fc->fs_private;
++	bool is_remount = (fc->purpose & FS_CONTEXT_FOR_RECONFIGURE);
++
++	trace_ocfs2_parse_options(is_remount, param->key);
++
++	opt = fs_parse(fc, ocfs2_param_spec, param, &result);
++	if (opt < 0)
++		return opt;
++
++	switch (opt) {
++	case Opt_heartbeat:
++		mopt->mount_opt |= result.uint_32;
++		break;
++	case Opt_barrier:
++		if (result.uint_32)
++			mopt->mount_opt |= OCFS2_MOUNT_BARRIER;
++		else
++			mopt->mount_opt &= ~OCFS2_MOUNT_BARRIER;
++		break;
++	case Opt_intr:
++		if (result.negated)
+ 			mopt->mount_opt |= OCFS2_MOUNT_NOINTR;
+-			break;
+-		case Opt_err_panic:
+-			mopt->mount_opt &= ~OCFS2_MOUNT_ERRORS_CONT;
+-			mopt->mount_opt &= ~OCFS2_MOUNT_ERRORS_ROFS;
+-			mopt->mount_opt |= OCFS2_MOUNT_ERRORS_PANIC;
+-			break;
+-		case Opt_err_ro:
+-			mopt->mount_opt &= ~OCFS2_MOUNT_ERRORS_CONT;
+-			mopt->mount_opt &= ~OCFS2_MOUNT_ERRORS_PANIC;
+-			mopt->mount_opt |= OCFS2_MOUNT_ERRORS_ROFS;
+-			break;
+-		case Opt_err_cont:
+-			mopt->mount_opt &= ~OCFS2_MOUNT_ERRORS_ROFS;
+-			mopt->mount_opt &= ~OCFS2_MOUNT_ERRORS_PANIC;
+-			mopt->mount_opt |= OCFS2_MOUNT_ERRORS_CONT;
+-			break;
+-		case Opt_data_ordered:
+-			mopt->mount_opt &= ~OCFS2_MOUNT_DATA_WRITEBACK;
+-			break;
+-		case Opt_data_writeback:
+-			mopt->mount_opt |= OCFS2_MOUNT_DATA_WRITEBACK;
+-			break;
+-		case Opt_user_xattr:
+-			mopt->mount_opt &= ~OCFS2_MOUNT_NOUSERXATTR;
+-			break;
+-		case Opt_nouser_xattr:
++		else
++			mopt->mount_opt &= ~OCFS2_MOUNT_NOINTR;
++		break;
++	case Opt_errors:
++		mopt->mount_opt &= ~(OCFS2_MOUNT_ERRORS_CONT |
++				     OCFS2_MOUNT_ERRORS_ROFS |
++				     OCFS2_MOUNT_ERRORS_PANIC);
++		mopt->mount_opt |= result.uint_32;
++		break;
++	case Opt_data:
++		mopt->mount_opt &= ~OCFS2_MOUNT_DATA_WRITEBACK;
++		mopt->mount_opt |= result.uint_32;
++		break;
++	case Opt_user_xattr:
++		if (result.negated)
+ 			mopt->mount_opt |= OCFS2_MOUNT_NOUSERXATTR;
+-			break;
+-		case Opt_atime_quantum:
+-			if (match_int(&args[0], &option)) {
+-				status = 0;
+-				goto bail;
+-			}
+-			if (option >= 0)
+-				mopt->atime_quantum = option;
+-			break;
+-		case Opt_slot:
+-			if (match_int(&args[0], &option)) {
+-				status = 0;
+-				goto bail;
+-			}
+-			if (option)
+-				mopt->slot = (u16)option;
+-			break;
+-		case Opt_commit:
+-			if (match_int(&args[0], &option)) {
+-				status = 0;
+-				goto bail;
+-			}
+-			if (option < 0)
+-				return 0;
+-			if (option == 0)
+-				option = JBD2_DEFAULT_MAX_COMMIT_AGE;
+-			mopt->commit_interval = HZ * option;
+-			break;
+-		case Opt_localalloc:
+-			if (match_int(&args[0], &option)) {
+-				status = 0;
+-				goto bail;
+-			}
+-			if (option >= 0)
+-				mopt->localalloc_opt = option;
+-			break;
+-		case Opt_localflocks:
+-			/*
+-			 * Changing this during remount could race
+-			 * flock() requests, or "unbalance" existing
+-			 * ones (e.g., a lock is taken in one mode but
+-			 * dropped in the other). If users care enough
+-			 * to flip locking modes during remount, we
+-			 * could add a "local" flag to individual
+-			 * flock structures for proper tracking of
+-			 * state.
+-			 */
+-			if (!is_remount)
+-				mopt->mount_opt |= OCFS2_MOUNT_LOCALFLOCKS;
+-			break;
+-		case Opt_stack:
+-			/* Check both that the option we were passed
+-			 * is of the right length and that it is a proper
+-			 * string of the right length.
+-			 */
+-			if (((args[0].to - args[0].from) !=
+-			     OCFS2_STACK_LABEL_LEN) ||
+-			    (strnlen(args[0].from,
+-				     OCFS2_STACK_LABEL_LEN) !=
+-			     OCFS2_STACK_LABEL_LEN)) {
+-				mlog(ML_ERROR,
+-				     "Invalid cluster_stack option\n");
+-				status = 0;
+-				goto bail;
+-			}
+-			memcpy(mopt->cluster_stack, args[0].from,
+-			       OCFS2_STACK_LABEL_LEN);
+-			mopt->cluster_stack[OCFS2_STACK_LABEL_LEN] = '\0';
+-			/*
+-			 * Open code the memcmp here as we don't have
+-			 * an osb to pass to
+-			 * ocfs2_userspace_stack().
+-			 */
+-			if (memcmp(mopt->cluster_stack,
+-				   OCFS2_CLASSIC_CLUSTER_STACK,
+-				   OCFS2_STACK_LABEL_LEN))
+-				user_stack = 1;
+-			break;
+-		case Opt_inode64:
+-			mopt->mount_opt |= OCFS2_MOUNT_INODE64;
+-			break;
+-		case Opt_usrquota:
+-			mopt->mount_opt |= OCFS2_MOUNT_USRQUOTA;
+-			break;
+-		case Opt_grpquota:
+-			mopt->mount_opt |= OCFS2_MOUNT_GRPQUOTA;
+-			break;
+-		case Opt_coherency_buffered:
+-			mopt->mount_opt |= OCFS2_MOUNT_COHERENCY_BUFFERED;
+-			break;
+-		case Opt_coherency_full:
+-			mopt->mount_opt &= ~OCFS2_MOUNT_COHERENCY_BUFFERED;
+-			break;
+-		case Opt_acl:
+-			mopt->mount_opt |= OCFS2_MOUNT_POSIX_ACL;
+-			mopt->mount_opt &= ~OCFS2_MOUNT_NO_POSIX_ACL;
+-			break;
+-		case Opt_noacl:
++		else
++			mopt->mount_opt &= ~OCFS2_MOUNT_NOUSERXATTR;
++		break;
++	case Opt_atime_quantum:
++		mopt->atime_quantum = result.uint_32;
++		break;
++	case Opt_slot:
++		if (result.uint_32)
++			mopt->slot = (u16)result.uint_32;
++		break;
++	case Opt_commit:
++		if (result.uint_32 == 0)
++			mopt->commit_interval = HZ * JBD2_DEFAULT_MAX_COMMIT_AGE;
++		else
++			mopt->commit_interval = HZ * result.uint_32;
++		break;
++	case Opt_localalloc:
++		if (result.int_32 >= 0)
++			mopt->localalloc_opt = result.int_32;
++		break;
++	case Opt_localflocks:
++		/*
++		 * Changing this during remount could race flock() requests, or
++		 * "unbalance" existing ones (e.g., a lock is taken in one mode
++		 * but dropped in the other). If users care enough to flip
++		 * locking modes during remount, we could add a "local" flag to
++		 * individual flock structures for proper tracking of state.
++		 */
++		if (!is_remount)
++			mopt->mount_opt |= OCFS2_MOUNT_LOCALFLOCKS;
++		break;
++	case Opt_stack:
++		/* Check both that the option we were passed is of the right
++		 * length and that it is a proper string of the right length.
++		 */
++		if (strlen(param->string) != OCFS2_STACK_LABEL_LEN) {
++			mlog(ML_ERROR, "Invalid cluster_stack option\n");
++			return -EINVAL;
++		}
++		memcpy(mopt->cluster_stack, param->string, OCFS2_STACK_LABEL_LEN);
++		mopt->cluster_stack[OCFS2_STACK_LABEL_LEN] = '\0';
++		/*
++		 * Open code the memcmp here as we don't have an osb to pass
++		 * to ocfs2_userspace_stack().
++		 */
++		if (memcmp(mopt->cluster_stack,
++			   OCFS2_CLASSIC_CLUSTER_STACK,
++			   OCFS2_STACK_LABEL_LEN))
++			mopt->user_stack = 1;
++		break;
++	case Opt_inode64:
++		mopt->mount_opt |= OCFS2_MOUNT_INODE64;
++		break;
++	case Opt_usrquota:
++		mopt->mount_opt |= OCFS2_MOUNT_USRQUOTA;
++		break;
++	case Opt_grpquota:
++		mopt->mount_opt |= OCFS2_MOUNT_GRPQUOTA;
++		break;
++	case Opt_coherency:
++		mopt->mount_opt &= ~OCFS2_MOUNT_COHERENCY_BUFFERED;
++		mopt->mount_opt |= result.uint_32;
++		break;
++	case Opt_acl:
++		if (result.negated) {
+ 			mopt->mount_opt |= OCFS2_MOUNT_NO_POSIX_ACL;
+ 			mopt->mount_opt &= ~OCFS2_MOUNT_POSIX_ACL;
++		} else {
++			mopt->mount_opt |= OCFS2_MOUNT_POSIX_ACL;
++			mopt->mount_opt &= ~OCFS2_MOUNT_NO_POSIX_ACL;
++		}
++		break;
++	case Opt_resv_level:
++		if (is_remount)
+ 			break;
+-		case Opt_resv_level:
+-			if (is_remount)
+-				break;
+-			if (match_int(&args[0], &option)) {
+-				status = 0;
+-				goto bail;
+-			}
+-			if (option >= OCFS2_MIN_RESV_LEVEL &&
+-			    option < OCFS2_MAX_RESV_LEVEL)
+-				mopt->resv_level = option;
+-			break;
+-		case Opt_dir_resv_level:
+-			if (is_remount)
+-				break;
+-			if (match_int(&args[0], &option)) {
+-				status = 0;
+-				goto bail;
+-			}
+-			if (option >= OCFS2_MIN_RESV_LEVEL &&
+-			    option < OCFS2_MAX_RESV_LEVEL)
+-				mopt->dir_resv_level = option;
+-			break;
+-		case Opt_journal_async_commit:
+-			mopt->mount_opt |= OCFS2_MOUNT_JOURNAL_ASYNC_COMMIT;
++		if (result.uint_32 >= OCFS2_MIN_RESV_LEVEL &&
++		    result.uint_32 < OCFS2_MAX_RESV_LEVEL)
++			mopt->resv_level = result.uint_32;
++		break;
++	case Opt_dir_resv_level:
++		if (is_remount)
+ 			break;
+-		default:
+-			mlog(ML_ERROR,
+-			     "Unrecognized mount option \"%s\" "
+-			     "or missing value\n", p);
+-			status = 0;
+-			goto bail;
+-		}
+-	}
+-
+-	if (user_stack == 0) {
+-		/* Ensure only one heartbeat mode */
+-		tmp = mopt->mount_opt & (OCFS2_MOUNT_HB_LOCAL |
+-					 OCFS2_MOUNT_HB_GLOBAL |
+-					 OCFS2_MOUNT_HB_NONE);
+-		if (hweight32(tmp) != 1) {
+-			mlog(ML_ERROR, "Invalid heartbeat mount options\n");
+-			status = 0;
+-			goto bail;
+-		}
++		if (result.uint_32 >= OCFS2_MIN_RESV_LEVEL &&
++		    result.uint_32 < OCFS2_MAX_RESV_LEVEL)
++			mopt->dir_resv_level = result.uint_32;
++		break;
++	case Opt_journal_async_commit:
++		mopt->mount_opt |= OCFS2_MOUNT_JOURNAL_ASYNC_COMMIT;
++		break;
++	default:
++		return -EINVAL;
+ 	}
+ 
+-	status = 1;
+-
+-bail:
+-	return status;
++	return 0;
+ }
+ 
+ static int ocfs2_show_options(struct seq_file *s, struct dentry *root)
 -- 
 2.46.0
 
