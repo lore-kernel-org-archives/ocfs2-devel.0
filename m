@@ -1,101 +1,92 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
+Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.129.124])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9CDD520493E;
-	Mon, 28 Oct 2024 10:53:48 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D6CD033F3
+	for <ocfs2-devel@lists.linux.dev>; Mon, 28 Oct 2024 14:44:49 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=170.10.129.124
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1730112828; cv=none; b=gWS+YP10NqfVBGcT5BTx2OYem3xTNHOxb36UV/bEJ3yC8eEr8H9rcWZZxQllBFJ9CWgWrv+ZOSJrDUK+z7aMoiMiuXE4NPcPtO/1wxsllZL+sNzHEnBfRZax+wpFeCajuNoJQKZ8v+DdOfchDVD0Y3q/bUJg9fWOoLIWvdItwoI=
+	t=1730126691; cv=none; b=bUGjrhO70w/BdXZ6gcsD2cSrOwsF3zZtgxKySI5eGgJcDu7LpXqBnOm6o/o0j4kjmUBANOfcldZSdgGl1oRAmWbmk7bE2ggKuU99X3I+j7HmIFgKyXAL6WcmaS8+1eaIpJ8v6JOXLk8ds7orlvh0kVNSNml5SBY9/EkNLt1/euU=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1730112828; c=relaxed/simple;
-	bh=iY6hqw+w+5Uk+0uOnHmszNCdRWJRxWBSunc10i/cPdg=;
-	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=SeUYgopsfk7zd5korW6Alhvp8PvtG6B/O6tBsd7N7OW9Y08hfqGeswr4LketkwqEo2y+lw7heCwpRJbFodHqXvcRZy9SBlt7Lla7pLgmA46Asbc8itmUEs7YH0s1lkimEt/4oqlSO/767HsZMW/X9llLXMplzFbxSy+2dyka4m4=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=BjCGw/5U; arc=none smtp.client-ip=10.30.226.201
+	s=arc-20240116; t=1730126691; c=relaxed/simple;
+	bh=znU5A+8VZXCo7Tt8b7kpt9R6DpphHbl1H0lXUcGjyZk=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version:Content-Type; b=I8BWrc3Lr+4wgwhLiHot8Lryg+PsljedQ4zzXq9pm2ctTtfEXB+AtNEKdZJWK9Awq58gCymCXf6QSHUvIAV3soSIRYPXmqcYtTtn1rbIScR3CRoPf4FWBnsGJc1WrZbu+82VUIT5rrNvvtUAHoEdJU4Bkq3UQQU+lZ6BkZ2x0UQ=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=redhat.com; spf=pass smtp.mailfrom=redhat.com; dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b=B1jI3iGW; arc=none smtp.client-ip=170.10.129.124
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=redhat.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=redhat.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="BjCGw/5U"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 22959C4CEC3;
-	Mon, 28 Oct 2024 10:53:47 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1730112828;
-	bh=iY6hqw+w+5Uk+0uOnHmszNCdRWJRxWBSunc10i/cPdg=;
-	h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-	b=BjCGw/5UXSp2S1lyEGWe4JY0iWeJiXkmgRxiwR4eKwGbEdRlTbNTlnvMjKl+8CLF5
-	 7Ms3XXIqR0l91ubrIFLTtOTak0LAzqDtr33GwlahTY8I783xjBKIfzOWP7pmCu6TSw
-	 DuIlnBqz65KAfSnehqivcjQGRWDfeghU/EIQpBPtckwB+bCy2aG1Fr4OxW8vCePsj/
-	 6r9wxSBl3vlayFPkdvtir7rU5nlQaOXRTUVku4MiHX++X1fRQWART7a9VHPjoDnjNO
-	 FqcKxZqg1OFuU1VbK9zknrWC7WP6oQUwkFKYD9gHYWtZCIM1BfHe4F3zIdwQcElFJe
-	 zXX+yYYJe9Zmw==
-From: Sasha Levin <sashal@kernel.org>
-To: linux-kernel@vger.kernel.org,
-	stable@vger.kernel.org
-Cc: Alessandro Zanni <alessandro.zanni87@gmail.com>,
-	syzbot+6c55f725d1bdc8c52058@syzkaller.appspotmail.com,
-	Jan Kara <jack@suse.cz>,
-	Christian Brauner <brauner@kernel.org>,
-	Sasha Levin <sashal@kernel.org>,
-	mark@fasheh.com,
-	jlbec@evilplan.org,
-	joseph.qi@linux.alibaba.com,
-	ocfs2-devel@lists.linux.dev
-Subject: [PATCH AUTOSEL 4.19 2/3] fs: Fix uninitialized value issue in from_kuid and from_kgid
-Date: Mon, 28 Oct 2024 06:53:42 -0400
-Message-ID: <20241028105343.3560809-2-sashal@kernel.org>
-X-Mailer: git-send-email 2.43.0
-In-Reply-To: <20241028105343.3560809-1-sashal@kernel.org>
-References: <20241028105343.3560809-1-sashal@kernel.org>
+	dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b="B1jI3iGW"
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
+	s=mimecast20190719; t=1730126688;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+	 content-transfer-encoding:content-transfer-encoding;
+	bh=znU5A+8VZXCo7Tt8b7kpt9R6DpphHbl1H0lXUcGjyZk=;
+	b=B1jI3iGWoe6e2MrvhiPs5AVftU0cAzOj50tDDPPJily0AbR0jsFaPLBEiKw4i40yp4QKaV
+	RFKdqjw5QXJHpjOp45K3Zg3zVQvm+bIZp6Fdt9bKT8LhXs09mj+V+ZHKDdkre/NUYuisqr
+	wVAHH39OnMRP8a6OaFGCpqmjy+txrgM=
+Received: from mail-il1-f198.google.com (mail-il1-f198.google.com
+ [209.85.166.198]) by relay.mimecast.com with ESMTP with STARTTLS
+ (version=TLSv1.3, cipher=TLS_AES_256_GCM_SHA384) id
+ us-mta-501-k3-gyxwzMOGyeeuk_mTvTQ-1; Mon, 28 Oct 2024 10:44:47 -0400
+X-MC-Unique: k3-gyxwzMOGyeeuk_mTvTQ-1
+Received: by mail-il1-f198.google.com with SMTP id e9e14a558f8ab-3a4e86fb603so27332865ab.3
+        for <ocfs2-devel@lists.linux.dev>; Mon, 28 Oct 2024 07:44:47 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1730126687; x=1730731487;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:x-gm-message-state:from:to:cc:subject:date:message-id
+         :reply-to;
+        bh=znU5A+8VZXCo7Tt8b7kpt9R6DpphHbl1H0lXUcGjyZk=;
+        b=pvh2zgBvIgMDMmdqulyTEN7JKuZMWdnryYqY+ZvO7OmXD/se5NI5Um5kaLzGxv7ovF
+         YKPuIf2JtPMKMHFTjj4L9Z5xUnYzXasVLJ2OxyczJtbJC2Ynapsz/LGyOq9QejcnEQJJ
+         951VAxP66LBUhPmmPUtG2evwWuoE/GKEHl7gWwYaE0r8qluk+v6maINtQnaRIWK2Ivm3
+         hnovF3UTavNKVke/UqOmSbWmO4kNdmehkDSfHUt7caFDtBd3LbAYhzqBUFeiIbKlCWgV
+         c95L7SlTtX+waXQpAcNQ4Xgr3ZNa+zxeSR7Uy5dQoGoBmkSZfOe57oRSfNzx/0+HAdU6
+         zrBQ==
+X-Gm-Message-State: AOJu0Ywel9MBvq8Gpq5+WTtigRan3DyriTRe4MecCJQcD3oYo+xIgBEC
+	PtqOUyeg2/9U/BH0fPxJZz5XxiLW3E0gzJWspBKrlwO7glaGWQtNvzUGJWe7septdttB5Nu0GmX
+	hl+3+L/oQSPN5lgX+c6QQQaEoDnFzZbBXXyKblOIOPDtuBgbbmyvJQcbpyQelE4Il4pZIJ9ixON
+	nItEy7KzAEqlN6F+iM2ks056N7NGoaVl0K0SFQI4z+h6KHJQ==
+X-Received: by 2002:a05:6e02:1a4e:b0:3a3:b4ec:b400 with SMTP id e9e14a558f8ab-3a4ed2df0f2mr83772025ab.17.1730126686978;
+        Mon, 28 Oct 2024 07:44:46 -0700 (PDT)
+X-Google-Smtp-Source: AGHT+IF87O8LsyZUwTn9FgOP3xZY1o145Wta1hlaECM+jAnXGlKB4BxGWkS1jcoc3kmurJb1Mo64aQ==
+X-Received: by 2002:a05:6e02:1a4e:b0:3a3:b4ec:b400 with SMTP id e9e14a558f8ab-3a4ed2df0f2mr83771455ab.17.1730126686316;
+        Mon, 28 Oct 2024 07:44:46 -0700 (PDT)
+Received: from fedora-rawhide.sandeen.net ([65.128.110.20])
+        by smtp.gmail.com with ESMTPSA id e9e14a558f8ab-3a4e6e56c62sm16760705ab.56.2024.10.28.07.44.45
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Mon, 28 Oct 2024 07:44:45 -0700 (PDT)
+From: Eric Sandeen <sandeen@redhat.com>
+To: ocfs2-devel@lists.linux.dev
+Cc: joseph.qi@linux.alibaba.com,
+	brauner@kernel.org
+Subject: [RFC PATCH 0/2] ocfs2, dlmfs: convert to the new mount API
+Date: Mon, 28 Oct 2024 09:41:13 -0500
+Message-ID: <20241028144443.609151-1-sandeen@redhat.com>
+X-Mailer: git-send-email 2.46.0
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-X-stable: review
-X-Patchwork-Hint: Ignore
-X-stable-base: Linux 4.19.322
+X-Mimecast-Spam-Score: 0
+X-Mimecast-Originator: redhat.com
 Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset="US-ASCII"; x-default=true
 
-From: Alessandro Zanni <alessandro.zanni87@gmail.com>
+This has been tested to some degree with a local ocfs2 mount, but I am
+not able to do a proper testing in a clustered environment. I have
+confirmed that AFAICT, random combinations of valid and/or invalid mount
+options on the local mount behave the same before and after these
+changes.
 
-[ Upstream commit 15f34347481648a567db67fb473c23befb796af5 ]
+(Just a side note: I had to omit "ro" mount testing, because simply
+mounting a local ocfs2 filesystem as ro, then unmounting, panics the
+kernel with or without these changes. I haven't looked into why.)
 
-ocfs2_setattr() uses attr->ia_mode, attr->ia_uid and attr->ia_gid in
-a trace point even though ATTR_MODE, ATTR_UID and ATTR_GID aren't set.
+Any feedback greatly appreciated, thanks!
 
-Initialize all fields of newattrs to avoid uninitialized variables, by
-checking if ATTR_MODE, ATTR_UID, ATTR_GID are initialized, otherwise 0.
+-Eric
 
-Reported-by: syzbot+6c55f725d1bdc8c52058@syzkaller.appspotmail.com
-Closes: https://syzkaller.appspot.com/bug?extid=6c55f725d1bdc8c52058
-Signed-off-by: Alessandro Zanni <alessandro.zanni87@gmail.com>
-Link: https://lore.kernel.org/r/20241017120553.55331-1-alessandro.zanni87@gmail.com
-Reviewed-by: Jan Kara <jack@suse.cz>
-Signed-off-by: Christian Brauner <brauner@kernel.org>
-Signed-off-by: Sasha Levin <sashal@kernel.org>
----
- fs/ocfs2/file.c | 9 ++++++---
- 1 file changed, 6 insertions(+), 3 deletions(-)
-
-diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-index a6f486f4138f5..2ad01ff8c1a8e 100644
---- a/fs/ocfs2/file.c
-+++ b/fs/ocfs2/file.c
-@@ -1143,9 +1143,12 @@ int ocfs2_setattr(struct dentry *dentry, struct iattr *attr)
- 	trace_ocfs2_setattr(inode, dentry,
- 			    (unsigned long long)OCFS2_I(inode)->ip_blkno,
- 			    dentry->d_name.len, dentry->d_name.name,
--			    attr->ia_valid, attr->ia_mode,
--			    from_kuid(&init_user_ns, attr->ia_uid),
--			    from_kgid(&init_user_ns, attr->ia_gid));
-+			    attr->ia_valid,
-+				attr->ia_valid & ATTR_MODE ? attr->ia_mode : 0,
-+				attr->ia_valid & ATTR_UID ?
-+					from_kuid(&init_user_ns, attr->ia_uid) : 0,
-+				attr->ia_valid & ATTR_GID ?
-+					from_kgid(&init_user_ns, attr->ia_gid) : 0);
- 
- 	/* ensuring we don't even attempt to truncate a symlink */
- 	if (S_ISLNK(inode->i_mode))
--- 
-2.43.0
 
