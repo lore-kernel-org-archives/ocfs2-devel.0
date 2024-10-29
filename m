@@ -1,186 +1,149 @@
-Received: from mail-il1-f199.google.com (mail-il1-f199.google.com [209.85.166.199])
+Received: from mail-wm1-f47.google.com (mail-wm1-f47.google.com [209.85.128.47])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A4832196D9D
-	for <ocfs2-devel@lists.linux.dev>; Tue, 29 Oct 2024 17:49:21 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.166.199
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E463318FDC5
+	for <ocfs2-devel@lists.linux.dev>; Tue, 29 Oct 2024 22:43:16 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.47
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1730224164; cv=none; b=YEYfn/WWN57dUdLyeBVe+wNkz0kcoC74AlG5iwetvuYclT5jPAEJef6q1/7mX+Mov8PdGF8UnajH4B2l78T0VEzx+0R0XRpidH0lNpFs5/qDxdvsn/t4E69c4eBNv8mRrtbvRBpIH2AYb08Kgxg67+qZfcXO0PuKdTnt7b2g/pY=
+	t=1730241799; cv=none; b=PUeusjSLAs2cTenRJiBQnbRbwib/LURNKis+DQFp3JJjl0NBGCqDyJG/CYMSYrFA0CzajFK3RGoxSrlQvznXAPCcTCYvYFAHELxW7d1LeBdrMgk1sYmm7mSTN/IIyGc+pm/kGEcEpo0dCfPPAsXH7UN4AhLmOu2cYPyYBHzK+DA=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1730224164; c=relaxed/simple;
-	bh=v9FcYbdc8oNUuLYBmqu+05VscTa0cr3dZnDMafd9WCc=;
-	h=MIME-Version:Date:In-Reply-To:Message-ID:Subject:From:To:
-	 Content-Type; b=QSsUKUaLR/ZACSnL1v8gZaCJbfCPTtZS5tFe9ChZjynw08Phi25CXSWIsftQQp4cAUxZJhLoJvA8XC7TIXJCiSVjPFXHsJegCE9rlpNyxIgfG2rJnIcbEuhBKAvdIxQPXYV+lGcoyQvwyECiHuucWBIams5YUOdg3vXjcJb8yRE=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.166.199
-Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
-Received: by mail-il1-f199.google.com with SMTP id e9e14a558f8ab-3a3c4554d29so51231065ab.1
-        for <ocfs2-devel@lists.linux.dev>; Tue, 29 Oct 2024 10:49:21 -0700 (PDT)
+	s=arc-20240116; t=1730241799; c=relaxed/simple;
+	bh=xBy/03HYfBlb70X4LjELrQm6dmLET2cm759oyRzlIKg=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=qA1Lep6UdLsKdPTaJI4a4Go9EJoLUK4ls7/GIycKR5a1fuohjruBgk84MSoTLiL5ikQTOLXplcRWHHZleT9GS5VO5cjrvtstN2WrJu6t8d2JUd+UrTGCkCLf3/ZuwX7sBuVdvYEYYlQJoSkJNnA7Fyj3DKvTZm/ftNSfkxxXhUI=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=HzEroCXK; arc=none smtp.client-ip=209.85.128.47
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="HzEroCXK"
+Received: by mail-wm1-f47.google.com with SMTP id 5b1f17b1804b1-4315e62afe0so60954065e9.1
+        for <ocfs2-devel@lists.linux.dev>; Tue, 29 Oct 2024 15:43:16 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20230601; t=1730241795; x=1730846595; darn=lists.linux.dev;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:from:to:cc:subject:date:message-id:reply-to;
+        bh=NpE1d0EoW69nYU3J7zp+HGEmecn3oGwA/5+kV7hcNXc=;
+        b=HzEroCXKiVSO7Fk1u/0ierOxbeiwShrKZ6K9X4t+U7vSnyGTnv1MsjdDciA6QoSwUj
+         kTdhwBICQwiohKMIIibHP/Ry8fI83zSPBS4y/qs89w8OGPL1tWbteIpNGgd00TcbwM9J
+         FGoeMx0zfnRcup0vChuX0ONG/HaUjN67Q0Wx680ogs7Kbz08Dsg5BN3ezhMKotaFzyfv
+         2XHF9KXdKJmebRc0pe3KroLBnCWNh1o7KyF3TGXPJzYIxb47OmjBibOCSGfVV08h/b3m
+         m+EdCSHIxWpyBtEPtgovFWxDBpdD7H6wUha3Lr4xS3KfO5n+0B6Qn0OgZRBG+RLOO7/C
+         oS6Q==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1730224161; x=1730828961;
-        h=to:from:subject:message-id:in-reply-to:date:mime-version
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
-        bh=sRQrusRNJf38zUHFOuTpNiEov4y+QOY79xt1z6RqcII=;
-        b=R1Rcq7KLQS0lt+vA8pKc9RwShn198iTJuxzRuVAU3oWYOFFLty2wOHS6kvkhVjJAn0
-         +Wdo1zBoDNJ5U/DVUtoa5wbXY6VuelaDE+prlxwq7Gb4magIcnqf9o4YVrfUc6ADZmLJ
-         0WfEtZfB/SIWsDgEmLs3tR9MmLg38/WTBP2/QNApkFvtUYrF43l9uMjg7aGFTq0iyiHx
-         tjj+P5AvBD5D7IuhU0q+CJigLE6i7hfvPn6Ng07O2op7B9QVN733e0/Ul928MoPcrx2r
-         d1oRDFFDSY0W7mpoEZXWPQM1bd7Cmp2zf06jYy4rZ8SvhQ3YbTcS6mbgLcn4/wVBOllx
-         133w==
-X-Forwarded-Encrypted: i=1; AJvYcCVc9deTPxnMob8PRNUN4cWt9narV1+GvkO/Iiag/t/tl7xJkYLCtSteOPiHPlkwEPv3xefXMYQd9XEEog==@lists.linux.dev
-X-Gm-Message-State: AOJu0YydmOtPb1SKlSiSTRS5H4FrDWadkQL+jGld7qajLO/P1kAV5PyJ
-	s2+zFW4HFP1lmrNAx8YAlDMllf/twvTStOwEBkeEG7SjmdMwZa1Po5OLz8fmurLpqyINa8u5x95
-	6yTD4vVqYzjjBSPflx8hGgmBTBIZwHdWZe00RXVLrbfq6bRwY5+Z5KVE=
-X-Google-Smtp-Source: AGHT+IExR9jQugmuJZ8ciAXnBAqg6k0PWbBbV+h/n6DjFo47ur9I5gL7bxe/jnCs+87FpMxOquNdOcvZ5t9VE+ULDhiScv2U7hNx
+        d=1e100.net; s=20230601; t=1730241795; x=1730846595;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:x-gm-message-state:from:to:cc:subject:date:message-id
+         :reply-to;
+        bh=NpE1d0EoW69nYU3J7zp+HGEmecn3oGwA/5+kV7hcNXc=;
+        b=adtKrrgLu5l5btoRAaH2XGX4WscLApcwtGBrLErGDzgvMNGBkjm9AC1U5kqWaP6pP2
+         K7fa+0W3s5MRPmtG7dPDq7xYhEhPuJMI4vbcke4LlH5gnVbo+hxQMdbijgbt1rpTVzlA
+         IcXze+9ESvZ1VR/kU9Udyi/v3+B6fIxsMwx7SbqWvJ3qcv5utTHZSP+adwyCf4wHUmqZ
+         sQiTPlhR4GgPho0rUS1fQWqCA7XV3fKHGnHr8WJgbGEgtnuDrbm7QMLr3JQDLoPKLCA1
+         u2RzFdQ4fGPxz0vgcDVzetxUIyi+8wtQqWloLpYDQal7UmT9mmQWpS7ncaxoDNj9Natx
+         1cxQ==
+X-Gm-Message-State: AOJu0YxcdhqtsDXzdXnfC16G7hVYo6KEnXL++rknuS73VkgmUotdKw7j
+	floLuY8M7HW2jN1f9p+141Y+DiSsDwzNyv6BPGg6OKOErYfRJInh
+X-Google-Smtp-Source: AGHT+IFK9fk5eMXXFOs6cc2VOy6ViQTADXNGFL9a2kyUdP69q3i86yTHcyTIUMuBDor6JBl+F+zQDA==
+X-Received: by 2002:a05:6000:eca:b0:37d:4a16:81d6 with SMTP id ffacd0b85a97d-38061141921mr10080745f8f.24.1730241794879;
+        Tue, 29 Oct 2024 15:43:14 -0700 (PDT)
+Received: from dev7.kernelcare.com ([2a01:4f8:201:23::2])
+        by smtp.gmail.com with ESMTPSA id ffacd0b85a97d-38058b13251sm13747192f8f.6.2024.10.29.15.43.13
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Tue, 29 Oct 2024 15:43:14 -0700 (PDT)
+From: Andrew Kanner <andrew.kanner@gmail.com>
+To: mark@fasheh.com,
+	jlbec@evilplan.org,
+	joseph.qi@linux.alibaba.com
+Cc: ocfs2-devel@lists.linux.dev,
+	linux-kernel@vger.kernel.org,
+	Andrew Kanner <andrew.kanner@gmail.com>,
+	stable@vger.kernel.org,
+	syzbot+386ce9e60fa1b18aac5b@syzkaller.appspotmail.com
+Subject: [PATCH] ocfs2: remove entry once instead of null-ptr-dereference in ocfs2_xa_remove()
+Date: Tue, 29 Oct 2024 23:43:05 +0100
+Message-ID: <20241029224304.2169092-2-andrew.kanner@gmail.com>
+X-Mailer: git-send-email 2.43.5
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-X-Received: by 2002:a05:6e02:164b:b0:3a2:7651:9867 with SMTP id
- e9e14a558f8ab-3a4ed2b28damr128429795ab.13.1730224160879; Tue, 29 Oct 2024
- 10:49:20 -0700 (PDT)
-Date: Tue, 29 Oct 2024 10:49:20 -0700
-In-Reply-To: <66f6bfa7.050a0220.38ace9.001a.GAE@google.com>
-X-Google-Appengine-App-Id: s~syzkaller
-X-Google-Appengine-App-Id-Alias: syzkaller
-Message-ID: <67212020.050a0220.11b624.04c4.GAE@google.com>
-Subject: Re: [syzbot] [ocfs2?] KASAN: use-after-free Read in ocfs2_dir_foreach_blk
-From: syzbot <syzbot+b20bbf680bb0f2ecedae@syzkaller.appspotmail.com>
-To: jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
-	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
-	syzkaller-bugs@googlegroups.com
-Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
 
-syzbot has found a reproducer for the following issue on:
+Syzkaller is able to provoke null-ptr-dereference in ocfs2_xa_remove():
 
-HEAD commit:    e42b1a9a2557 Merge tag 'spi-fix-v6.12-rc5' of git://git.ke..
-git tree:       upstream
-console output: https://syzkaller.appspot.com/x/log.txt?x=170b064b980000
-kernel config:  https://syzkaller.appspot.com/x/.config?x=4aec7739e14231a7
-dashboard link: https://syzkaller.appspot.com/bug?extid=b20bbf680bb0f2ecedae
-compiler:       Debian clang version 15.0.6, GNU ld (GNU Binutils for Debian) 2.40
-syz repro:      https://syzkaller.appspot.com/x/repro.syz?x=108b064b980000
-C reproducer:   https://syzkaller.appspot.com/x/repro.c?x=14a5f0e7980000
+[   57.319872] (a.out,1161,7):ocfs2_xa_remove:2028 ERROR: status = -12
+[   57.320420] (a.out,1161,7):ocfs2_xa_cleanup_value_truncate:1999 ERROR: Partial truncate while removing xattr overlay.upper.  Leaking 1 clusters and removing the entry
+[   57.321727] BUG: kernel NULL pointer dereference, address: 0000000000000004
+[...]
+[   57.325727] RIP: 0010:ocfs2_xa_block_wipe_namevalue+0x2a/0xc0
+[...]
+[   57.331328] Call Trace:
+[   57.331477]  <TASK>
+[...]
+[   57.333511]  ? do_user_addr_fault+0x3e5/0x740
+[   57.333778]  ? exc_page_fault+0x70/0x170
+[   57.334016]  ? asm_exc_page_fault+0x2b/0x30
+[   57.334263]  ? __pfx_ocfs2_xa_block_wipe_namevalue+0x10/0x10
+[   57.334596]  ? ocfs2_xa_block_wipe_namevalue+0x2a/0xc0
+[   57.334913]  ocfs2_xa_remove_entry+0x23/0xc0
+[   57.335164]  ocfs2_xa_set+0x704/0xcf0
+[   57.335381]  ? _raw_spin_unlock+0x1a/0x40
+[   57.335620]  ? ocfs2_inode_cache_unlock+0x16/0x20
+[   57.335915]  ? trace_preempt_on+0x1e/0x70
+[   57.336153]  ? start_this_handle+0x16c/0x500
+[   57.336410]  ? preempt_count_sub+0x50/0x80
+[   57.336656]  ? _raw_read_unlock+0x20/0x40
+[   57.336906]  ? start_this_handle+0x16c/0x500
+[   57.337162]  ocfs2_xattr_block_set+0xa6/0x1e0
+[   57.337424]  __ocfs2_xattr_set_handle+0x1fd/0x5d0
+[   57.337706]  ? ocfs2_start_trans+0x13d/0x290
+[   57.337971]  ocfs2_xattr_set+0xb13/0xfb0
+[   57.338207]  ? dput+0x46/0x1c0
+[   57.338393]  ocfs2_xattr_trusted_set+0x28/0x30
+[   57.338665]  ? ocfs2_xattr_trusted_set+0x28/0x30
+[   57.338948]  __vfs_removexattr+0x92/0xc0
+[   57.339182]  __vfs_removexattr_locked+0xd5/0x190
+[   57.339456]  ? preempt_count_sub+0x50/0x80
+[   57.339705]  vfs_removexattr+0x5f/0x100
+[...]
 
-Downloadable assets:
-disk image (non-bootable): https://storage.googleapis.com/syzbot-assets/7feb34a89c2a/non_bootable_disk-e42b1a9a.raw.xz
-vmlinux: https://storage.googleapis.com/syzbot-assets/3e2253169da8/vmlinux-e42b1a9a.xz
-kernel image: https://storage.googleapis.com/syzbot-assets/b9d2f5008f24/bzImage-e42b1a9a.xz
-mounted in repro #1: https://storage.googleapis.com/syzbot-assets/1da7d3546e21/mount_0.gz
-mounted in repro #2: https://storage.googleapis.com/syzbot-assets/019e0246868a/mount_3.gz
+Reproducer uses faultinject facility to fail ocfs2_xa_remove() ->
+ocfs2_xa_value_truncate() with -ENOMEM.
 
-IMPORTANT: if you fix the issue, please add the following tag to the commit:
-Reported-by: syzbot+b20bbf680bb0f2ecedae@syzkaller.appspotmail.com
+In this case the comment mentions that we can return 0 if
+ocfs2_xa_cleanup_value_truncate() is going to wipe the entry
+anyway. But the following 'rc' check is wrong and execution flow do
+'ocfs2_xa_remove_entry(loc);' twice:
+* 1st: in ocfs2_xa_cleanup_value_truncate();
+* 2nd: returning back to ocfs2_xa_remove() instead of going to 'out'.
 
-(kworker/u4:4,1025,0):ocfs2_read_blocks_sync:112 ERROR: status = -12
-(kworker/u4:4,1025,0):ocfs2_read_locked_inode:521 ERROR: status = -12
-==================================================================
-BUG: KASAN: slab-out-of-bounds in ocfs2_check_dir_entry fs/ocfs2/dir.c:321 [inline]
-BUG: KASAN: slab-out-of-bounds in ocfs2_dir_foreach_blk_id fs/ocfs2/dir.c:1784 [inline]
-BUG: KASAN: slab-out-of-bounds in ocfs2_dir_foreach_blk+0x1ab6/0x1b20 fs/ocfs2/dir.c:1912
-Read of size 8 at addr ffff888040701778 by task kworker/u4:4/1025
+Fix this by skipping the 2nd removal of the same entry and making
+syzkaller repro happy.
 
-CPU: 0 UID: 0 PID: 1025 Comm: kworker/u4:4 Not tainted 6.12.0-rc5-syzkaller-00005-ge42b1a9a2557 #0
-Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.16.3-debian-1.16.3-2~bpo12+1 04/01/2014
-Workqueue: ocfs2_wq ocfs2_complete_recovery
-Call Trace:
- <TASK>
- __dump_stack lib/dump_stack.c:94 [inline]
- dump_stack_lvl+0x241/0x360 lib/dump_stack.c:120
- print_address_description mm/kasan/report.c:377 [inline]
- print_report+0x169/0x550 mm/kasan/report.c:488
- kasan_report+0x143/0x180 mm/kasan/report.c:601
- ocfs2_check_dir_entry fs/ocfs2/dir.c:321 [inline]
- ocfs2_dir_foreach_blk_id fs/ocfs2/dir.c:1784 [inline]
- ocfs2_dir_foreach_blk+0x1ab6/0x1b20 fs/ocfs2/dir.c:1912
- ocfs2_dir_foreach+0xb4/0x100 fs/ocfs2/dir.c:1923
- ocfs2_queue_orphans fs/ocfs2/journal.c:2186 [inline]
- ocfs2_recover_orphans fs/ocfs2/journal.c:2270 [inline]
- ocfs2_complete_recovery+0xcf1/0x25c0 fs/ocfs2/journal.c:1351
- process_one_work kernel/workqueue.c:3229 [inline]
- process_scheduled_works+0xa63/0x1850 kernel/workqueue.c:3310
- worker_thread+0x870/0xd30 kernel/workqueue.c:3391
- kthread+0x2f0/0x390 kernel/kthread.c:389
- ret_from_fork+0x4b/0x80 arch/x86/kernel/process.c:147
- ret_from_fork_asm+0x1a/0x30 arch/x86/entry/entry_64.S:244
- </TASK>
-
-Allocated by task 1:
- kasan_save_stack mm/kasan/common.c:47 [inline]
- kasan_save_track+0x3f/0x80 mm/kasan/common.c:68
- unpoison_slab_object mm/kasan/common.c:319 [inline]
- __kasan_slab_alloc+0x66/0x80 mm/kasan/common.c:345
- kasan_slab_alloc include/linux/kasan.h:247 [inline]
- slab_post_alloc_hook mm/slub.c:4085 [inline]
- slab_alloc_node mm/slub.c:4134 [inline]
- kmem_cache_alloc_noprof+0x135/0x2a0 mm/slub.c:4141
- __kernfs_new_node+0xd8/0x870 fs/kernfs/dir.c:624
- kernfs_new_node+0x137/0x240 fs/kernfs/dir.c:700
- __kernfs_create_file+0x49/0x2e0 fs/kernfs/file.c:1034
- sysfs_add_file_mode_ns+0x24a/0x310 fs/sysfs/file.c:307
- create_files fs/sysfs/group.c:76 [inline]
- internal_create_group+0x7a7/0x11d0 fs/sysfs/group.c:180
- sysfs_slab_add+0x157/0x290 mm/slub.c:7104
- slab_sysfs_init+0x66/0x170 mm/slub.c:7184
- do_one_initcall+0x248/0x880 init/main.c:1269
- do_initcall_level+0x157/0x210 init/main.c:1331
- do_initcalls+0x3f/0x80 init/main.c:1347
- kernel_init_freeable+0x435/0x5d0 init/main.c:1580
- kernel_init+0x1d/0x2b0 init/main.c:1469
- ret_from_fork+0x4b/0x80 arch/x86/kernel/process.c:147
- ret_from_fork_asm+0x1a/0x30 arch/x86/entry/entry_64.S:244
-
-The buggy address belongs to the object at ffff888040701690
- which belongs to the cache kernfs_node_cache of size 176
-The buggy address is located 56 bytes to the right of
- allocated 176-byte region [ffff888040701690, ffff888040701740)
-
-The buggy address belongs to the physical page:
-page: refcount:1 mapcount:0 mapping:0000000000000000 index:0x0 pfn:0x40701
-flags: 0x4fff00000000000(node=1|zone=1|lastcpupid=0x7ff)
-page_type: f5(slab)
-raw: 04fff00000000000 ffff888030407dc0 dead000000000122 0000000000000000
-raw: 0000000000000000 0000000000110011 00000001f5000000 0000000000000000
-page dumped because: kasan: bad access detected
-page_owner tracks the page as allocated
-page last allocated via order 0, migratetype Unmovable, gfp_mask 0x52cc0(GFP_KERNEL|__GFP_NOWARN|__GFP_NORETRY|__GFP_COMP), pid 1, tgid 1 (swapper/0), ts 22332972406, free_ts 0
- set_page_owner include/linux/page_owner.h:32 [inline]
- post_alloc_hook+0x1f3/0x230 mm/page_alloc.c:1537
- prep_new_page mm/page_alloc.c:1545 [inline]
- get_page_from_freelist+0x3045/0x3190 mm/page_alloc.c:3457
- __alloc_pages_noprof+0x292/0x710 mm/page_alloc.c:4733
- alloc_pages_mpol_noprof+0x3e8/0x680 mm/mempolicy.c:2265
- alloc_slab_page+0x6a/0x120 mm/slub.c:2412
- allocate_slab+0x5a/0x2f0 mm/slub.c:2578
- new_slab mm/slub.c:2631 [inline]
- ___slab_alloc+0xcd1/0x14b0 mm/slub.c:3818
- __slab_alloc+0x58/0xa0 mm/slub.c:3908
- __slab_alloc_node mm/slub.c:3961 [inline]
- slab_alloc_node mm/slub.c:4122 [inline]
- kmem_cache_alloc_noprof+0x1c1/0x2a0 mm/slub.c:4141
- __kernfs_new_node+0xd8/0x870 fs/kernfs/dir.c:624
- kernfs_new_node+0x137/0x240 fs/kernfs/dir.c:700
- __kernfs_create_file+0x49/0x2e0 fs/kernfs/file.c:1034
- sysfs_add_file_mode_ns+0x24a/0x310 fs/sysfs/file.c:307
- create_files fs/sysfs/group.c:76 [inline]
- internal_create_group+0x7a7/0x11d0 fs/sysfs/group.c:180
- sysfs_slab_add+0x157/0x290 mm/slub.c:7104
- slab_sysfs_init+0x66/0x170 mm/slub.c:7184
-page_owner free stack trace missing
-
-Memory state around the buggy address:
- ffff888040701600: 00 00 00 00 00 00 00 00 00 00 fc fc fc fc fc fc
- ffff888040701680: fc fc 00 00 00 00 00 00 00 00 00 00 00 00 00 00
->ffff888040701700: 00 00 00 00 00 00 00 00 fc fc fc fc fc fc fc fc
-                                                                ^
- ffff888040701780: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
- ffff888040701800: 00 00 00 00 00 00 fc fc fc fc fc fc fc fc 00 00
-==================================================================
-
-
+Cc: stable@vger.kernel.org
+Fixes: 399ff3a748cf ("ocfs2: Handle errors while setting external xattr values.")
+Reported-by: syzbot+386ce9e60fa1b18aac5b@syzkaller.appspotmail.com
+Closes: https://lore.kernel.org/all/671e13ab.050a0220.2b8c0f.01d0.GAE@google.com/T/
+Tested-by: syzbot+386ce9e60fa1b18aac5b@syzkaller.appspotmail.com
+Signed-off-by: Andrew Kanner <andrew.kanner@gmail.com>
 ---
-If you want syzbot to run the reproducer, reply with:
-#syz test: git://repo/address.git branch-or-commit-hash
-If you attach or paste a git patch, syzbot will apply it before testing.
+ fs/ocfs2/xattr.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
+index dd0a05365e79..5bc4d660e15a 100644
+--- a/fs/ocfs2/xattr.c
++++ b/fs/ocfs2/xattr.c
+@@ -2036,7 +2036,7 @@ static int ocfs2_xa_remove(struct ocfs2_xa_loc *loc,
+ 				rc = 0;
+ 			ocfs2_xa_cleanup_value_truncate(loc, "removing",
+ 							orig_clusters);
+-			if (rc)
++			if (rc == 0)
+ 				goto out;
+ 		}
+ 	}
+-- 
+2.43.5
+
