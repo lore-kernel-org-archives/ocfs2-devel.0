@@ -1,147 +1,130 @@
-Received: from mail-il1-f197.google.com (mail-il1-f197.google.com [209.85.166.197])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from forward102a.mail.yandex.net (forward102a.mail.yandex.net [178.154.239.85])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6CD481EE02E
-	for <ocfs2-devel@lists.linux.dev>; Tue, 29 Oct 2024 05:25:21 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.166.197
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8F4401DEFFD
+	for <ocfs2-devel@lists.linux.dev>; Tue, 29 Oct 2024 09:18:15 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=178.154.239.85
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1730179523; cv=none; b=CAVFmyn6xAWHd8wJ8JIy4kj6p2WFggMJaoDxRfZPMo4Vw4H8oNy5C7yFXYxJN2d9Cqu//lbw83rbLrWc5Bx4VvKZsSVOJXfLuxpTf41/WWRNixful0eu10v4CdTs9REGcR9XoxE5sybIKzKJRFW7apflapaS4pA2cEINaImhQVQ=
+	t=1730193500; cv=none; b=GQmNr8K31uwuwhd5EtoKwfgT6/+C4sManaCFRC2oWtE75S0x1UySzjwq0lDbq+1lpE0TJADDeL8du2is8xq6wJE5NpuM4F7hs4HgbiJkXUG2RkXLHrXwZgo1bB5tndMuUV9lb+yeKYwE0clXzhUb6m3e+Gr/1MJOJcCmCqSox9k=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1730179523; c=relaxed/simple;
-	bh=ouaRojEgmeFmyMh3Zx7lTlSsvvjtG/+KEMGk818F4Mc=;
-	h=MIME-Version:Date:In-Reply-To:Message-ID:Subject:From:To:
-	 Content-Type; b=RqYkpiqd8AvhikOyFM8mmWdLM8/inBdoHGpQAGxIGTMW89rR29bUeSvXfsRdPD2iQyeU4i5GqiTpQ+VrUdrT3f1bqMCzrl+FnKDXLZW0QH/QlEMwNxQ6mTGM6kd9ZIT/LapcdXf+/5wQRBvp0PqDSlUC7MgWugcRnWKJXh+oT7A=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.166.197
-Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
-Received: by mail-il1-f197.google.com with SMTP id e9e14a558f8ab-3a4e77be28dso35119015ab.1
-        for <ocfs2-devel@lists.linux.dev>; Mon, 28 Oct 2024 22:25:21 -0700 (PDT)
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1730179520; x=1730784320;
-        h=to:from:subject:message-id:in-reply-to:date:mime-version
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
-        bh=UtLW7kt2lpVHCZBstYleod/T5Fypm0cx/Eb+Hfave2Q=;
-        b=S1ZfWmDO8JS9g52Q9PPMDCuCCCGgBK0X7YVnpCtZRJt4bpOKZpD+g75qgSKayQ1b1H
-         xljjoYx/lIOyk25yfL9uExUI61mGVVGot1X3nhs4JnxVjTR55QnMlBkM7vTUxiP9Z+oL
-         HSVUd/fihXfTluTKJMxYd1pWzksXMbtLAvUMr1ROyyoYOmPMXPMzKdBqutlL25vR8Eqc
-         l+pD87aj1SEjJJCFrkP9/gh3/ths62S2ByQ/mWJO66O2QWU+ag2nmMz+bpwM18d5M44m
-         Pwa+nVsnG97bp+OgJrGe/ksFY/uINiSSlNCGTnK5MUcXsC5tfs8ihBsze4sKCXTeoLuw
-         l+Kg==
-X-Forwarded-Encrypted: i=1; AJvYcCXTpzV2m8LZlgF/nAUin9L8lh7NHaWLLKjel13dVLpbCun2WaNV6NSXziD03FmuGwIrqCpr6SQb6yYvug==@lists.linux.dev
-X-Gm-Message-State: AOJu0YxT0OOMbB5bwQF2YWP5ExvgiZRavaiT+NEHY7qoZc6h3BHZsOg0
-	O0p4Z/SGCAzG6sLbZ2dmjB5QmvFt6VhldSRxxvxMUvwUklCbkLmmF3a2JjQBDKMIF9fX+d9J61c
-	J59JIf+HORyLBgZVxFLeBxNcoTR9VBxLTuJ6hNos/33pBrW4/YF+aRzM=
-X-Google-Smtp-Source: AGHT+IFe3uyW25N53YtvRDYKHHo1+Ozqb90PdGhTd/1aG/Clhiy6nI8K2C/S13CG9yigzDdYzaEZ2NIeIIayh+fZNmy47K/114Zy
+	s=arc-20240116; t=1730193500; c=relaxed/simple;
+	bh=teXQZfMeCcYdefhY9Io8QkwBowdZudmiQWGwVQdlBsg=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=FGcO0BJBHO6zugu7XGejUgP+EoSRpu5277Iq7X8Hla/wfaOFoe1rGlioemKouTfHKDGkf6VnQ8QyYzcnkPBgx/n97vdauSyPqSpCj3RBEb+s6fqlYT0mtZmHBVAJASYNYOXebMGc7s4TeKe/9QXquKILI4yC/nKPXNDFfDC3mRw=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru; spf=pass smtp.mailfrom=yandex.ru; dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b=Ky6QyXb1; arc=none smtp.client-ip=178.154.239.85
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=yandex.ru
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b="Ky6QyXb1"
+Received: from mail-nwsmtp-smtp-production-main-84.vla.yp-c.yandex.net (mail-nwsmtp-smtp-production-main-84.vla.yp-c.yandex.net [IPv6:2a02:6b8:c15:2e15:0:640:bcf8:0])
+	by forward102a.mail.yandex.net (Yandex) with ESMTPS id 1DFA360A85;
+	Tue, 29 Oct 2024 12:18:08 +0300 (MSK)
+Received: by mail-nwsmtp-smtp-production-main-84.vla.yp-c.yandex.net (smtp/Yandex) with ESMTPSA id 6IVbUSBoAmI0-mAKfQtHc;
+	Tue, 29 Oct 2024 12:18:07 +0300
+X-Yandex-Fwd: 1
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=yandex.ru; s=mail;
+	t=1730193487; bh=cFON25ShtDr3zm5hd8aONWGlQSMpfkDLWyGmOgO/CXk=;
+	h=Message-ID:Date:Cc:Subject:To:From;
+	b=Ky6QyXb1mpFEMsBDFu9B8uFHKhszg1OmKu8VjNygxn4bwYIXlKqVdQWoG289I3HmT
+	 0PcCZQ+cT+2LpR/ojtKiAWgAr3GG3keDkrG7CC6JARZ4Tsmd3VQ9lWTMwzUToT7yo0
+	 HIFHTOD68DNekmPBw9/i9fHAsA5IGHLaJfH6ZQ/g=
+Authentication-Results: mail-nwsmtp-smtp-production-main-84.vla.yp-c.yandex.net; dkim=pass header.i=@yandex.ru
+From: Dmitry Antipov <dmantipov@yandex.ru>
+To: Mark Fasheh <mark@fasheh.com>,
+	Joel Becker <jlbec@evilplan.org>,
+	Joseph Qi <joseph.qi@linux.alibaba.com>
+Cc: ocfs2-devel@lists.linux.dev,
+	lvc-project@linuxtesting.org,
+	Dmitry Antipov <dmantipov@yandex.ru>,
+	syzbot+a73e253cca4f0230a5a5@syzkaller.appspotmail.com
+Subject: [PATCH] ocfs2: fix uninitialized value in ocfs2_file_read_iter()
+Date: Tue, 29 Oct 2024 12:17:36 +0300
+Message-ID: <20241029091736.1501946-1-dmantipov@yandex.ru>
+X-Mailer: git-send-email 2.47.0
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-X-Received: by 2002:a05:6e02:1d06:b0:3a4:ecdb:d615 with SMTP id
- e9e14a558f8ab-3a4ed28e34emr97439485ab.8.1730179520514; Mon, 28 Oct 2024
- 22:25:20 -0700 (PDT)
-Date: Mon, 28 Oct 2024 22:25:20 -0700
-In-Reply-To: <00000000000042f2c5062143e9fd@google.com>
-X-Google-Appengine-App-Id: s~syzkaller
-X-Google-Appengine-App-Id-Alias: syzkaller
-Message-ID: <672071c0.050a0220.11b624.04bd.GAE@google.com>
-Subject: Re: [syzbot] [ocfs2] kernel BUG in jbd2_journal_dirty_metadata
-From: syzbot <syzbot+c28d8da3e83b3cc68dc6@syzkaller.appspotmail.com>
-To: jack@suse.com, jack@suse.cz, jlbec@evilplan.org, 
-	joseph.qi@linux.alibaba.com, linux-ext4@vger.kernel.org, 
-	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
-	syzkaller-bugs@googlegroups.com, tytso@mit.edu
-Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
 
-syzbot has found a reproducer for the following issue on:
+Syzbot has reported the following KMSAN splat:
 
-HEAD commit:    e42b1a9a2557 Merge tag 'spi-fix-v6.12-rc5' of git://git.ke..
-git tree:       upstream
-console output: https://syzkaller.appspot.com/x/log.txt?x=14efef57980000
-kernel config:  https://syzkaller.appspot.com/x/.config?x=4aec7739e14231a7
-dashboard link: https://syzkaller.appspot.com/bug?extid=c28d8da3e83b3cc68dc6
-compiler:       Debian clang version 15.0.6, GNU ld (GNU Binutils for Debian) 2.40
-syz repro:      https://syzkaller.appspot.com/x/repro.syz?x=10d2064b980000
-C reproducer:   https://syzkaller.appspot.com/x/repro.c?x=12efef57980000
+BUG: KMSAN: uninit-value in ocfs2_file_read_iter+0x9a4/0xf80
+ ocfs2_file_read_iter+0x9a4/0xf80
+ __io_read+0x8d4/0x20f0
+ io_read+0x3e/0xf0
+ io_issue_sqe+0x42b/0x22c0
+ io_wq_submit_work+0xaf9/0xdc0
+ io_worker_handle_work+0xd13/0x2110
+ io_wq_worker+0x447/0x1410
+ ret_from_fork+0x6f/0x90
+ ret_from_fork_asm+0x1a/0x30
 
-Downloadable assets:
-disk image (non-bootable): https://storage.googleapis.com/syzbot-assets/7feb34a89c2a/non_bootable_disk-e42b1a9a.raw.xz
-vmlinux: https://storage.googleapis.com/syzbot-assets/3e2253169da8/vmlinux-e42b1a9a.xz
-kernel image: https://storage.googleapis.com/syzbot-assets/b9d2f5008f24/bzImage-e42b1a9a.xz
-mounted in repro #1: https://storage.googleapis.com/syzbot-assets/5f7c8b60a2d3/mount_0.gz
-mounted in repro #2: https://storage.googleapis.com/syzbot-assets/0a01b18a6599/mount_9.gz
-
-IMPORTANT: if you fix the issue, please add the following tag to the commit:
-Reported-by: syzbot+c28d8da3e83b3cc68dc6@syzkaller.appspotmail.com
-
-(syz-executor419,5307,0):ocfs2_xa_prepare_entry:2152 ERROR: status = -30
-(syz-executor419,5307,0):ocfs2_xa_set:2255 ERROR: status = -30
-JBD2: assertion failure: h_type=0 h_line_no=0 block_no=19105 jlist=0
-------------[ cut here ]------------
-kernel BUG at fs/jbd2/transaction.c:1529!
-Oops: invalid opcode: 0000 [#1] PREEMPT SMP KASAN NOPTI
-CPU: 0 UID: 0 PID: 5307 Comm: syz-executor419 Not tainted 6.12.0-rc5-syzkaller-00005-ge42b1a9a2557 #0
-Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.16.3-debian-1.16.3-2~bpo12+1 04/01/2014
-RIP: 0010:jbd2_journal_dirty_metadata+0xbed/0xc00 fs/jbd2/transaction.c:1528
-Code: 89 ff e9 88 fd ff ff 89 d9 80 e1 07 80 c1 03 38 c1 0f 8c af fd ff ff 48 89 df e8 fe 1d 89 ff e9 a2 fd ff ff e8 64 61 1f ff 90 <0f> 0b e8 5c 61 1f ff 90 0f 0b 66 0f 1f 84 00 00 00 00 00 90 90 90
-RSP: 0018:ffffc9000cf66a38 EFLAGS: 00010293
-RAX: ffffffff8275772c RBX: 0000000000000000 RCX: ffff888000938000
-RDX: 0000000000000000 RSI: 0000000000000000 RDI: 0000000000000001
-RBP: 1ffff1100350b135 R08: ffffffff82756f44 R09: 1ffff11003f8519a
-R10: dffffc0000000000 R11: ffffed1003f8519b R12: ffff88801a8589ac
-R13: dffffc0000000000 R14: 0000000000000000 R15: ffff88801a858968
-FS:  00005555742c7380(0000) GS:ffff88801fc00000(0000) knlGS:0000000000000000
-CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-CR2: 0000000000000000 CR3: 0000000032b9e000 CR4: 0000000000352ef0
-DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
-DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
-Call Trace:
- <TASK>
- ocfs2_journal_dirty+0x156/0x7c0 fs/ocfs2/journal.c:812
- ocfs2_xa_journal_dirty fs/ocfs2/xattr.c:1453 [inline]
- ocfs2_xa_set+0x225b/0x2b40 fs/ocfs2/xattr.c:2264
- ocfs2_xattr_block_set+0x46e/0x3390 fs/ocfs2/xattr.c:2986
- __ocfs2_xattr_set_handle+0x67a/0x10a0 fs/ocfs2/xattr.c:3388
- ocfs2_xattr_set+0x128c/0x1930 fs/ocfs2/xattr.c:3651
- __vfs_setxattr+0x468/0x4a0 fs/xattr.c:200
- __vfs_setxattr_noperm+0x12e/0x660 fs/xattr.c:234
- vfs_setxattr+0x221/0x430 fs/xattr.c:321
- do_setxattr fs/xattr.c:629 [inline]
- path_setxattr+0x37e/0x4d0 fs/xattr.c:658
- __do_sys_lsetxattr fs/xattr.c:683 [inline]
- __se_sys_lsetxattr fs/xattr.c:679 [inline]
- __x64_sys_lsetxattr+0xb8/0xd0 fs/xattr.c:679
- do_syscall_x64 arch/x86/entry/common.c:52 [inline]
- do_syscall_64+0xf3/0x230 arch/x86/entry/common.c:83
+Uninit was created at:
+ __alloc_pages_noprof+0x9a7/0xe00
+ alloc_pages_mpol_noprof+0x299/0x990
+ alloc_pages_noprof+0x1bf/0x1e0
+ allocate_slab+0x33a/0x1250
+ ___slab_alloc+0x12ef/0x35e0
+ kmem_cache_alloc_bulk_noprof+0x486/0x1330
+ __io_alloc_req_refill+0x84/0x560
+ io_submit_sqes+0x172f/0x2f30
+ __se_sys_io_uring_enter+0x406/0x41c0
+ __x64_sys_io_uring_enter+0x11f/0x1a0
+ x64_sys_call+0x2b54/0x3ba0
+ do_syscall_64+0xcd/0x1e0
  entry_SYSCALL_64_after_hwframe+0x77/0x7f
-RIP: 0033:0x7f84c9e37bb9
-Code: 28 00 00 00 75 05 48 83 c4 28 c3 e8 61 17 00 00 90 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 b8 ff ff ff f7 d8 64 89 01 48
-RSP: 002b:00007ffced766518 EFLAGS: 00000246 ORIG_RAX: 00000000000000bd
-RAX: ffffffffffffffda RBX: 0031656c69662f2e RCX: 00007f84c9e37bb9
-RDX: 0000000000000000 RSI: 0000000020000240 RDI: 00000000200000c0
-RBP: 00007f84c9eb4610 R08: 0000000000000000 R09: 00007ffced7666e8
-R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000001
-R13: 00007ffced7666d8 R14: 0000000000000001 R15: 0000000000000001
- </TASK>
-Modules linked in:
----[ end trace 0000000000000000 ]---
-RIP: 0010:jbd2_journal_dirty_metadata+0xbed/0xc00 fs/jbd2/transaction.c:1528
-Code: 89 ff e9 88 fd ff ff 89 d9 80 e1 07 80 c1 03 38 c1 0f 8c af fd ff ff 48 89 df e8 fe 1d 89 ff e9 a2 fd ff ff e8 64 61 1f ff 90 <0f> 0b e8 5c 61 1f ff 90 0f 0b 66 0f 1f 84 00 00 00 00 00 90 90 90
-RSP: 0018:ffffc9000cf66a38 EFLAGS: 00010293
-RAX: ffffffff8275772c RBX: 0000000000000000 RCX: ffff888000938000
-RDX: 0000000000000000 RSI: 0000000000000000 RDI: 0000000000000001
-RBP: 1ffff1100350b135 R08: ffffffff82756f44 R09: 1ffff11003f8519a
-R10: dffffc0000000000 R11: ffffed1003f8519b R12: ffff88801a8589ac
-R13: dffffc0000000000 R14: 0000000000000000 R15: ffff88801a858968
-FS:  00005555742c7380(0000) GS:ffff88801fc00000(0000) knlGS:0000000000000000
-CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-CR2: 0000000000000000 CR3: 0000000032b9e000 CR4: 0000000000352ef0
-DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
-DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
 
+Since an instance of 'struct kiocb' may be passed from the block layer
+with 'private' field uninitialized, introduce 'ocfs2_iocb_init_rw_locked()'
+and use it from where 'ocfs2_dio_end_io()' might take care, i.e. in
+'ocfs2_file_read_iter()' and 'ocfs2_file_write_iter()'.
 
+Reported-by: syzbot+a73e253cca4f0230a5a5@syzkaller.appspotmail.com
+Closes: https://syzkaller.appspot.com/bug?extid=a73e253cca4f0230a5a5
+Fixes: 7cdfc3a1c397 ("ocfs2: Remember rw lock level during direct io")
+Signed-off-by: Dmitry Antipov <dmantipov@yandex.ru>
 ---
-If you want syzbot to run the reproducer, reply with:
-#syz test: git://repo/address.git branch-or-commit-hash
-If you attach or paste a git patch, syzbot will apply it before testing.
+ fs/ocfs2/aops.h | 2 ++
+ fs/ocfs2/file.c | 4 ++++
+ 2 files changed, 6 insertions(+)
+
+diff --git a/fs/ocfs2/aops.h b/fs/ocfs2/aops.h
+index 45db1781ea73..1d1b4b7edba0 100644
+--- a/fs/ocfs2/aops.h
++++ b/fs/ocfs2/aops.h
+@@ -70,6 +70,8 @@ enum ocfs2_iocb_lock_bits {
+ 	OCFS2_IOCB_NUM_LOCKS
+ };
+ 
++#define ocfs2_iocb_init_rw_locked(iocb) \
++	(iocb->private = NULL)
+ #define ocfs2_iocb_clear_rw_locked(iocb) \
+ 	clear_bit(OCFS2_IOCB_RW_LOCK, (unsigned long *)&iocb->private)
+ #define ocfs2_iocb_rw_locked_level(iocb) \
+diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+index 58887456e3c5..1e37176ac405 100644
+--- a/fs/ocfs2/file.c
++++ b/fs/ocfs2/file.c
+@@ -2390,6 +2390,8 @@ static ssize_t ocfs2_file_write_iter(struct kiocb *iocb,
+ 	} else
+ 		inode_lock(inode);
+ 
++	ocfs2_iocb_init_rw_locked(iocb);
++
+ 	/*
+ 	 * Concurrent O_DIRECT writes are allowed with
+ 	 * mount_option "coherency=buffered".
+@@ -2536,6 +2538,8 @@ static ssize_t ocfs2_file_read_iter(struct kiocb *iocb,
+ 	if (!direct_io && nowait)
+ 		return -EOPNOTSUPP;
+ 
++	ocfs2_iocb_init_rw_locked(iocb);
++
+ 	/*
+ 	 * buffered reads protect themselves in ->read_folio().  O_DIRECT reads
+ 	 * need locks to protect pending reads from racing with truncate.
+-- 
+2.47.0
+
