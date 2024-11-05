@@ -1,134 +1,165 @@
-Received: from out30-133.freemail.mail.aliyun.com (out30-133.freemail.mail.aliyun.com [115.124.30.133])
+Received: from forward206b.mail.yandex.net (forward206b.mail.yandex.net [178.154.239.151])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 84ADD79FD
-	for <ocfs2-devel@lists.linux.dev>; Mon,  4 Nov 2024 01:15:57 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.133
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 657941D6DA1
+	for <ocfs2-devel@lists.linux.dev>; Tue,  5 Nov 2024 14:13:57 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=178.154.239.151
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1730682961; cv=none; b=owCgXoQiaRqxihv9RGXvthJL3MVHI3Lz3cBj5paJA0Gl6McAgNzGiZXA2BqGA8/no2ruw1eM5e8IRbIGtZ8PGTTJ+c691dSdnTPJS7psi8UOyt/W7SYtARMagGjXrCIRdAZzzP9KZiRdXIcpKTWZEXl801VYG9JCVSz3cEKdZ0M=
+	t=1730816041; cv=none; b=aCP1thytEs372yrOX+lLs3tM/9MV/ZADOVPzwLcZ7zn2nEGwVQW3C3TQabBofwHQ9vOfzkJsiDpGokInfSSBsUSxFvc3JARyZOfITe9I3kUxc/zWQmJexzARwDuosdhnzoQ2m0ptuFHNFUSIGi/Wz4wbT/tL723Wmiw9j27M2j8=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1730682961; c=relaxed/simple;
-	bh=WNs+UH3SpsEIYRPFhnWPBSZQBvS7lYt80V6GL8k2VzE=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=E2bb+knZlYhLusPRWHkqnK3Klfg4i9zFBs4YTiGoUlevSgqR6zjswAF1KUc9+yj8UONBWpT69eEctv6MfbUEND/Uw5zzFZYALgyrCgb0LOAEiKduA57mQxPAt5ZysA4FIFZqnO9Qd9XW61nSDkH5X6Mi4VdDfYSsohBZw2MXtkM=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=W8YGY93I; arc=none smtp.client-ip=115.124.30.133
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
+	s=arc-20240116; t=1730816041; c=relaxed/simple;
+	bh=UMenjfaiEcNqYMVafOrDysL8ohgN6g6+Dvu+A0ISi7U=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=F5aML98P1FFWtG4P3yq3LhLOr+xKw4z0a8hXbCQBStzYckDNO7P+o9b2pwe2k9P/dIHmHTo5o3wt6LTzmKWoM2I23hXCn1KIdKfOEw6h44KZMYYYToTI4zufWDyRa8u/GAtXZ+DiEgseaIBE2hfcqapV44paBUm3TCALY4D7koY=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru; spf=pass smtp.mailfrom=yandex.ru; dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b=doHN29s4; arc=none smtp.client-ip=178.154.239.151
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=yandex.ru
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="W8YGY93I"
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1730682950; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=YKwzODTGntxvRaGSa0E2AfCTO5CCgMMH1hNGzM2whho=;
-	b=W8YGY93Isxv4zUfGLdJk/f+efjjR0blrMscHcp4kUwOSlE5sbw0BhTvzu9lthZpyiWMdQF+zt1ZXSQRgB7rRsZNBgK+FHaRCfw90UNqkugyeXjY7pg0Yl0O+j5eY99XlVl9bAeaW8CjLhVkl89YYr1TaJqXp0xHZiDOtJxrEvy0=
-Received: from 30.221.129.11(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0WIZbQlw_1730682948 cluster:ay36)
-          by smtp.aliyun-inc.com;
-          Mon, 04 Nov 2024 09:15:49 +0800
-Message-ID: <9d41cff9-2474-4425-bb52-5f7489669abd@linux.alibaba.com>
-Date: Mon, 4 Nov 2024 09:15:48 +0800
+	dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b="doHN29s4"
+Received: from forward100b.mail.yandex.net (forward100b.mail.yandex.net [IPv6:2a02:6b8:c02:900:1:45:d181:d100])
+	by forward206b.mail.yandex.net (Yandex) with ESMTPS id 7F83F683DF
+	for <ocfs2-devel@lists.linux.dev>; Tue,  5 Nov 2024 17:07:10 +0300 (MSK)
+Received: from mail-nwsmtp-smtp-production-main-45.sas.yp-c.yandex.net (mail-nwsmtp-smtp-production-main-45.sas.yp-c.yandex.net [IPv6:2a02:6b8:c16:179d:0:640:38f5:0])
+	by forward100b.mail.yandex.net (Yandex) with ESMTPS id E9F4460E77;
+	Tue,  5 Nov 2024 17:07:01 +0300 (MSK)
+Received: by mail-nwsmtp-smtp-production-main-45.sas.yp-c.yandex.net (smtp/Yandex) with ESMTPSA id x6hBmdJrK0U0-XCqixgJI;
+	Tue, 05 Nov 2024 17:07:01 +0300
+X-Yandex-Fwd: 1
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=yandex.ru; s=mail;
+	t=1730815621; bh=27M8geo5nTuULRaYQ2luMKX18mhEGWUaFiOCe3+cj54=;
+	h=Message-ID:Date:Cc:Subject:To:From;
+	b=doHN29s4JLARe8unZIU9ILLeDpSwq8MxQOUSCegegoYE/90Iz7Bf2n/TVNeDIskmW
+	 bg9GuH3NM8YIjV938A3FkruxXujIJY81wE1RHre6CQE47nPSYZVsXUFcd7BHaBPGoj
+	 uqe9kX8q5k5O9BSD/2fMOy4UONdt9sXSha64AQCs=
+Authentication-Results: mail-nwsmtp-smtp-production-main-45.sas.yp-c.yandex.net; dkim=pass header.i=@yandex.ru
+From: Dmitry Antipov <dmantipov@yandex.ru>
+To: Mark Fasheh <mark@fasheh.com>,
+	Joel Becker <jlbec@evilplan.org>,
+	Joseph Qi <joseph.qi@linux.alibaba.com>
+Cc: ocfs2-devel@lists.linux.dev,
+	linux-fsdevel@vger.kernel.org,
+	lvc-project@linuxtesting.org,
+	Dmitry Antipov <dmantipov@yandex.ru>,
+	syzbot+56f7cd1abe4b8e475180@syzkaller.appspotmail.com
+Subject: [PATCH] ocfs2: fix UBSAN warning in ocfs2_verify_volume()
+Date: Tue,  5 Nov 2024 17:05:14 +0300
+Message-ID: <20241105140514.2646545-1-dmantipov@yandex.ru>
+X-Mailer: git-send-email 2.47.0
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v2] ocfs2: remove entry once instead of
- null-ptr-dereference in ocfs2_xa_remove()
-To: Andrew Kanner <andrew.kanner@gmail.com>, mark@fasheh.com,
- jlbec@evilplan.org, akpm <akpm@linux-foundation.org>
-Cc: ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org,
- syzbot+386ce9e60fa1b18aac5b@syzkaller.appspotmail.com
-References: <20241103193845.2940988-1-andrew.kanner@gmail.com>
-Content-Language: en-US
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <20241103193845.2940988-1-andrew.kanner@gmail.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 
+Syzbot has reported the following splat triggered by UBSAN:
 
+UBSAN: shift-out-of-bounds in fs/ocfs2/super.c:2336:10
+shift exponent 32768 is too large for 32-bit type 'int'
+CPU: 2 UID: 0 PID: 5255 Comm: repro Not tainted 6.12.0-rc4-syzkaller-00047-gc2ee9f594da8 #0
+Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.16.3-3.fc41 04/01/2014
+Call Trace:
+ <TASK>
+ dump_stack_lvl+0x241/0x360
+ ? __pfx_dump_stack_lvl+0x10/0x10
+ ? __pfx__printk+0x10/0x10
+ ? __asan_memset+0x23/0x50
+ ? lockdep_init_map_type+0xa1/0x910
+ __ubsan_handle_shift_out_of_bounds+0x3c8/0x420
+ ocfs2_fill_super+0xf9c/0x5750
+ ? __pfx_ocfs2_fill_super+0x10/0x10
+ ? __pfx_validate_chain+0x10/0x10
+ ? __pfx_validate_chain+0x10/0x10
+ ? validate_chain+0x11e/0x5920
+ ? __lock_acquire+0x1384/0x2050
+ ? __pfx_validate_chain+0x10/0x10
+ ? string+0x26a/0x2b0
+ ? widen_string+0x3a/0x310
+ ? string+0x26a/0x2b0
+ ? bdev_name+0x2b1/0x3c0
+ ? pointer+0x703/0x1210
+ ? __pfx_pointer+0x10/0x10
+ ? __pfx_format_decode+0x10/0x10
+ ? __lock_acquire+0x1384/0x2050
+ ? vsnprintf+0x1ccd/0x1da0
+ ? snprintf+0xda/0x120
+ ? __pfx_lock_release+0x10/0x10
+ ? do_raw_spin_lock+0x14f/0x370
+ ? __pfx_snprintf+0x10/0x10
+ ? set_blocksize+0x1f9/0x360
+ ? sb_set_blocksize+0x98/0xf0
+ ? setup_bdev_super+0x4e6/0x5d0
+ mount_bdev+0x20c/0x2d0
+ ? __pfx_ocfs2_fill_super+0x10/0x10
+ ? __pfx_mount_bdev+0x10/0x10
+ ? vfs_parse_fs_string+0x190/0x230
+ ? __pfx_vfs_parse_fs_string+0x10/0x10
+ legacy_get_tree+0xf0/0x190
+ ? __pfx_ocfs2_mount+0x10/0x10
+ vfs_get_tree+0x92/0x2b0
+ do_new_mount+0x2be/0xb40
+ ? __pfx_do_new_mount+0x10/0x10
+ __se_sys_mount+0x2d6/0x3c0
+ ? __pfx___se_sys_mount+0x10/0x10
+ ? do_syscall_64+0x100/0x230
+ ? __x64_sys_mount+0x20/0xc0
+ do_syscall_64+0xf3/0x230
+ entry_SYSCALL_64_after_hwframe+0x77/0x7f
+RIP: 0033:0x7f37cae96fda
+Code: 48 8b 0d 51 ce 0c 00 f7 d8 64 89 01 48 83 c8 ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 44 00 00 49 89 ca b8 a5 00 00 00 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 8b 0d 1e ce 0c 00 f7 d8 64 89 01 48
+RSP: 002b:00007fff6c1aa228 EFLAGS: 00000206 ORIG_RAX: 00000000000000a5
+RAX: ffffffffffffffda RBX: 00007fff6c1aa240 RCX: 00007f37cae96fda
+RDX: 00000000200002c0 RSI: 0000000020000040 RDI: 00007fff6c1aa240
+RBP: 0000000000000004 R08: 00007fff6c1aa280 R09: 0000000000000000
+R10: 00000000000008c0 R11: 0000000000000206 R12: 00000000000008c0
+R13: 00007fff6c1aa280 R14: 0000000000000003 R15: 0000000001000000
+ </TASK>
 
-On 11/4/24 3:38 AM, Andrew Kanner wrote:
-> Syzkaller is able to provoke null-ptr-dereference in ocfs2_xa_remove():
-> 
-> [   57.319872] (a.out,1161,7):ocfs2_xa_remove:2028 ERROR: status = -12
-> [   57.320420] (a.out,1161,7):ocfs2_xa_cleanup_value_truncate:1999 ERROR: Partial truncate while removing xattr overlay.upper.  Leaking 1 clusters and removing the entry
-> [   57.321727] BUG: kernel NULL pointer dereference, address: 0000000000000004
-> [...]
-> [   57.325727] RIP: 0010:ocfs2_xa_block_wipe_namevalue+0x2a/0xc0
-> [...]
-> [   57.331328] Call Trace:
-> [   57.331477]  <TASK>
-> [...]
-> [   57.333511]  ? do_user_addr_fault+0x3e5/0x740
-> [   57.333778]  ? exc_page_fault+0x70/0x170
-> [   57.334016]  ? asm_exc_page_fault+0x2b/0x30
-> [   57.334263]  ? __pfx_ocfs2_xa_block_wipe_namevalue+0x10/0x10
-> [   57.334596]  ? ocfs2_xa_block_wipe_namevalue+0x2a/0xc0
-> [   57.334913]  ocfs2_xa_remove_entry+0x23/0xc0
-> [   57.335164]  ocfs2_xa_set+0x704/0xcf0
-> [   57.335381]  ? _raw_spin_unlock+0x1a/0x40
-> [   57.335620]  ? ocfs2_inode_cache_unlock+0x16/0x20
-> [   57.335915]  ? trace_preempt_on+0x1e/0x70
-> [   57.336153]  ? start_this_handle+0x16c/0x500
-> [   57.336410]  ? preempt_count_sub+0x50/0x80
-> [   57.336656]  ? _raw_read_unlock+0x20/0x40
-> [   57.336906]  ? start_this_handle+0x16c/0x500
-> [   57.337162]  ocfs2_xattr_block_set+0xa6/0x1e0
-> [   57.337424]  __ocfs2_xattr_set_handle+0x1fd/0x5d0
-> [   57.337706]  ? ocfs2_start_trans+0x13d/0x290
-> [   57.337971]  ocfs2_xattr_set+0xb13/0xfb0
-> [   57.338207]  ? dput+0x46/0x1c0
-> [   57.338393]  ocfs2_xattr_trusted_set+0x28/0x30
-> [   57.338665]  ? ocfs2_xattr_trusted_set+0x28/0x30
-> [   57.338948]  __vfs_removexattr+0x92/0xc0
-> [   57.339182]  __vfs_removexattr_locked+0xd5/0x190
-> [   57.339456]  ? preempt_count_sub+0x50/0x80
-> [   57.339705]  vfs_removexattr+0x5f/0x100
-> [...]
-> 
-> Reproducer uses faultinject facility to fail ocfs2_xa_remove() ->
-> ocfs2_xa_value_truncate() with -ENOMEM.
-> 
-> In this case the comment mentions that we can return 0 if
-> ocfs2_xa_cleanup_value_truncate() is going to wipe the entry
-> anyway. But the following 'rc' check is wrong and execution flow do
-> 'ocfs2_xa_remove_entry(loc);' twice:
-> * 1st: in ocfs2_xa_cleanup_value_truncate();
-> * 2nd: returning back to ocfs2_xa_remove() instead of going to 'out'.
-> 
-> Fix this by skipping the 2nd removal of the same entry and making
-> syzkaller repro happy.
-> 
-> Cc: stable@vger.kernel.org
-> Fixes: 399ff3a748cf ("ocfs2: Handle errors while setting external xattr values.")
-> Reported-by: syzbot+386ce9e60fa1b18aac5b@syzkaller.appspotmail.com
-> Closes: https://lore.kernel.org/all/671e13ab.050a0220.2b8c0f.01d0.GAE@google.com/T/
-> Tested-by: syzbot+386ce9e60fa1b18aac5b@syzkaller.appspotmail.com
-> Signed-off-by: Andrew Kanner <andrew.kanner@gmail.com>
+For a really damaged superblock, the value of 'i_super.s_blocksize_bits'
+may exceed the maximum possible shift for an underlying 'int'. So add an
+extra check whether the aforementioned field represents the valid block
+size, which is 512 bytes, 1K, 2K, or 4K.
 
-Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-> ---
-> 
-> Notes (akanner):
->     v2: remove rc check completely, suggested by Joseph Qi <joseph.qi@linux.alibaba.com>
->     v1: https://lore.kernel.org/all/20241029224304.2169092-2-andrew.kanner@gmail.com/T/
-> 
->  fs/ocfs2/xattr.c | 3 +--
->  1 file changed, 1 insertion(+), 2 deletions(-)
-> 
-> diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-> index dd0a05365e79..73a6f6fd8a8e 100644
-> --- a/fs/ocfs2/xattr.c
-> +++ b/fs/ocfs2/xattr.c
-> @@ -2036,8 +2036,7 @@ static int ocfs2_xa_remove(struct ocfs2_xa_loc *loc,
->  				rc = 0;
->  			ocfs2_xa_cleanup_value_truncate(loc, "removing",
->  							orig_clusters);
-> -			if (rc)
-> -				goto out;
-> +			goto out;
->  		}
->  	}
->  
+Reported-by: syzbot+56f7cd1abe4b8e475180@syzkaller.appspotmail.com
+Closes: https://syzkaller.appspot.com/bug?extid=56f7cd1abe4b8e475180
+Fixes: ccd979bdbce9 ("[PATCH] OCFS2: The Second Oracle Cluster Filesystem")
+Signed-off-by: Dmitry Antipov <dmantipov@yandex.ru>
+---
+ fs/ocfs2/super.c | 13 +++++++++----
+ 1 file changed, 9 insertions(+), 4 deletions(-)
+
+diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+index 3d404624bb96..9852067570e3 100644
+--- a/fs/ocfs2/super.c
++++ b/fs/ocfs2/super.c
+@@ -2319,6 +2319,7 @@ static int ocfs2_verify_volume(struct ocfs2_dinode *di,
+ 			       struct ocfs2_blockcheck_stats *stats)
+ {
+ 	int status = -EAGAIN;
++	u32 blkszbit;
+ 
+ 	if (memcmp(di->i_signature, OCFS2_SUPER_BLOCK_SIGNATURE,
+ 		   strlen(OCFS2_SUPER_BLOCK_SIGNATURE)) == 0) {
+@@ -2333,11 +2334,15 @@ static int ocfs2_verify_volume(struct ocfs2_dinode *di,
+ 				goto out;
+ 		}
+ 		status = -EINVAL;
+-		if ((1 << le32_to_cpu(di->id2.i_super.s_blocksize_bits)) != blksz) {
++		/* Acceptable block sizes are 512 bytes, 1K, 2K and 4K. */
++		blkszbit = le32_to_cpu(di->id2.i_super.s_blocksize_bits);
++		if (blkszbit < 9 || blkszbit > 12) {
+ 			mlog(ML_ERROR, "found superblock with incorrect block "
+-			     "size: found %u, should be %u\n",
+-			     1 << le32_to_cpu(di->id2.i_super.s_blocksize_bits),
+-			       blksz);
++			     "size bit: found %u, should be 9, 10, 11, or 12\n",
++			     blkszbit);
++		} else if ((1 << le32_to_cpu(blkszbit)) != blksz) {
++			mlog(ML_ERROR, "found superblock with incorrect block "
++			     "size: found %u, should be %u\n", 1 << blkszbit, blksz);
+ 		} else if (le16_to_cpu(di->id2.i_super.s_major_rev_level) !=
+ 			   OCFS2_MAJOR_REV_LEVEL ||
+ 			   le16_to_cpu(di->id2.i_super.s_minor_rev_level) !=
+-- 
+2.47.0
 
