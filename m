@@ -1,167 +1,158 @@
-Received: from out30-100.freemail.mail.aliyun.com (out30-100.freemail.mail.aliyun.com [115.124.30.100])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-il1-f198.google.com (mail-il1-f198.google.com [209.85.166.198])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 941011DE3D7
-	for <ocfs2-devel@lists.linux.dev>; Wed,  6 Nov 2024 11:27:38 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.100
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id EFABA645
+	for <ocfs2-devel@lists.linux.dev>; Wed,  6 Nov 2024 17:37:36 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.166.198
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1730892461; cv=none; b=UVKM2x/Y8jJ0BcVNpbzSiCimfkxH5P4lOghyCdYutxXcyJC5yFW3ZXLQn2d8xhkEZ9LYTt5IDox1b0iyg5CjGrnWhJhw9eBLshSzM08dg2HhRaFsoZUEuik0u0NCtcsWYd9fm2rwyaApL9m1FsrTHMeIxZwBhDWPvb6vp3KQUS8=
+	t=1730914658; cv=none; b=ADiAmbFnRkVdsEri7Q+TnpeutumpHo58FhxZGSil8oh/nk56P3eXe2RjanZFwPLzZJu4h5m3xeMGbDlHM7q316ntbiB3WnNbLNK8Sp6d8FFgeYRS7IwDOusKFYzNKZy8nhkmBAYauJAghUJPdD8uZ21HbJIQ8grpLIBaj9hAJHM=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1730892461; c=relaxed/simple;
-	bh=IWfiV9C2TNo1i32RgtTKpGKTtcqS+aKGASZSVO1pxko=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=iepmny3K7g88x6Yi/8YoV6y0ko+zZJuORTkjKQpMoPeOAkPAfIgK9accWsqP35E+r6LYSp+esdMqSWQc8DHLn7eb5DV9VCLA36pDKNeq8iy2FZwip5RcDnvK9LjszcGyuI/+DibJariLH7zQ9/lBKcMyElNL6Uo1O0tWlGcive8=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=SXshlaeV; arc=none smtp.client-ip=115.124.30.100
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="SXshlaeV"
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1730892456; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=p7ZHQ5mkOZNXXRb8gvuUfgRIvKUxX4RcPlPJpX0awus=;
-	b=SXshlaeVX48tx+L6kZjUztc/vDET2ZxCIOXyiG1j/PS7IJg6CxSGKH+wSsOVPDsAl925CD2BOLm44l2itfu6Pwq9nPN0VxnUsbTJOnYfS28m0DkdShiLymxktYJz3nDHcsYhPQ2exSbVrWh0dmLmSi4zOvQVOhqe3Mjd6ufqYRY=
-Received: from 30.221.128.239(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0WIr70yP_1730892443 cluster:ay36)
-          by smtp.aliyun-inc.com;
-          Wed, 06 Nov 2024 19:27:35 +0800
-Message-ID: <00ac127c-898f-464b-ad2e-ce974b5d350d@linux.alibaba.com>
-Date: Wed, 6 Nov 2024 19:27:23 +0800
+	s=arc-20240116; t=1730914658; c=relaxed/simple;
+	bh=Ml1nBf4Qqa8qI+74pfnybsjCQ3Xwijakij0vUSFkXmQ=;
+	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=IiWvbWU3G/6iJB0p8lUzdKCcR+ltbSQU35gn9qN/eHjcLFKbcg3zZIduQ3pQtHT9V2/m/67zEVdRIngR+DZqXoDGMlmdEuSxYlanOh110uRCQvGwmnANcolU/6NUvt7NXuxjwKb/0+OHlrnN9N8t1xQVBHWhQl3EhoGzXJCP0LU=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.166.198
+Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
+Received: by mail-il1-f198.google.com with SMTP id e9e14a558f8ab-3a6b2581364so1207395ab.0
+        for <ocfs2-devel@lists.linux.dev>; Wed, 06 Nov 2024 09:37:36 -0800 (PST)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1730914656; x=1731519456;
+        h=to:from:subject:message-id:date:mime-version:x-gm-message-state
+         :from:to:cc:subject:date:message-id:reply-to;
+        bh=wKkPZnsKw5Ly8IgM6wcmmxhijd2CBCP7ffFrYQmFB3E=;
+        b=hDzxawM9CZq49SpJ1ys2PDmxyexyjjCUJj8u7nn9e5ifjCV+zjwFgJo3YaYE/6+/Oo
+         Q8SYxd9Gm+5bXPR+HzXT+vLj2BOBNVB+ylDOoNwiBiOT1zBY0nlteZsbgUsLCjVTSLaQ
+         RwctimWWR4aQ/KVqSXx/gSRhEzCUVR7o02Sfv7v7fOZJTSj4+6lhkgnq+NpyTKVwW8+P
+         ko21VsE7x8gDcr+AOnQVpUaNG3FV7EYQil25Pfb2xrSrW1a6JGoqK5IFgi6Imuc5n+G2
+         HDMeMGg6VCYKcezd4FpNPk7OCxIPmpUzMmn3zuOSlwf3RF+lfkPZi68bW9UICNE7hV1h
+         Kr8A==
+X-Forwarded-Encrypted: i=1; AJvYcCWXim5SvJrJlk5HQvg+4FnRT85zVHxz4Eg9EKst86CE45aBjbBeNR5HGyu20Of6xVFg8ASRSRWDyE7mPQ==@lists.linux.dev
+X-Gm-Message-State: AOJu0YwWmxA/HGhLnB8zt4+ljwhWVrL75uV0+m0BAYXWRSkDgtgSah6s
+	mgbVXqlStcvJDgnx3VGgOtCudWJsNC5sAcGt1Lg9iZU5+Xh+ojV0apvYrxMT2kWYjB8eRDtVLHo
+	Ak5fpcy4AXUG82HLMezQCkqTrRzsgTj2VgnIIVt0Df4VW4cnRfspzwRY=
+X-Google-Smtp-Source: AGHT+IG+E911eimZoBT9V3TXhgXNTH+C+SwSavAPi1H5SVSntJq9c7u6+70MHMNv3+bKuQBKamkcpLfTSkEIARspSRlu2S2fXhkD
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v2] ocfs2: fix UBSAN warning in ocfs2_verify_volume()
-To: Dmitry Antipov <dmantipov@yandex.ru>, Mark Fasheh <mark@fasheh.com>,
- Joel Becker <jlbec@evilplan.org>, akpm <akpm@linux-foundation.org>
-Cc: ocfs2-devel@lists.linux.dev, linux-fsdevel@vger.kernel.org,
- lvc-project@linuxtesting.org,
- syzbot+56f7cd1abe4b8e475180@syzkaller.appspotmail.com
-References: <8a14ce14-8c91-4778-84d8-2eebec945325@linux.alibaba.com>
- <20241106092100.2661330-1-dmantipov@yandex.ru>
-Content-Language: en-US
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <20241106092100.2661330-1-dmantipov@yandex.ru>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+X-Received: by 2002:a05:6e02:1746:b0:3a6:c716:ab1f with SMTP id
+ e9e14a558f8ab-3a6c716ae23mr150450175ab.9.1730914656203; Wed, 06 Nov 2024
+ 09:37:36 -0800 (PST)
+Date: Wed, 06 Nov 2024 09:37:36 -0800
+X-Google-Appengine-App-Id: s~syzkaller
+X-Google-Appengine-App-Id-Alias: syzkaller
+Message-ID: <672ba960.050a0220.350062.0277.GAE@google.com>
+Subject: [syzbot] [ocfs2?] kernel BUG in ocfs2_truncate_log_append
+From: syzbot <syzbot+a66542ca5ebb4233b563@syzkaller.appspotmail.com>
+To: jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
+	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
+	syzkaller-bugs@googlegroups.com
+Content-Type: text/plain; charset="UTF-8"
+
+Hello,
+
+syzbot found the following issue on:
+
+HEAD commit:    11066801dd4b Merge tag 'linux_kselftest-fixes-6.12-rc6' of..
+git tree:       upstream
+console output: https://syzkaller.appspot.com/x/log.txt?x=161ed630580000
+kernel config:  https://syzkaller.appspot.com/x/.config?x=672325e7ab17fdf7
+dashboard link: https://syzkaller.appspot.com/bug?extid=a66542ca5ebb4233b563
+compiler:       Debian clang version 15.0.6, GNU ld (GNU Binutils for Debian) 2.40
+syz repro:      https://syzkaller.appspot.com/x/repro.syz?x=10c0f55f980000
+C reproducer:   https://syzkaller.appspot.com/x/repro.c?x=12482b40580000
+
+Downloadable assets:
+disk image (non-bootable): https://storage.googleapis.com/syzbot-assets/7feb34a89c2a/non_bootable_disk-11066801.raw.xz
+vmlinux: https://storage.googleapis.com/syzbot-assets/b062b193560b/vmlinux-11066801.xz
+kernel image: https://storage.googleapis.com/syzbot-assets/5b6da4ee7c42/bzImage-11066801.xz
+mounted in repro: https://storage.googleapis.com/syzbot-assets/3a77709f2405/mount_0.gz
+
+IMPORTANT: if you fix the issue, please add the following tag to the commit:
+Reported-by: syzbot+a66542ca5ebb4233b563@syzkaller.appspotmail.com
+
+(syz-executor404,5313,0):ocfs2_truncate_log_append:5874 ERROR: bug expression: tl_count > ocfs2_truncate_recs_per_inode(osb->sb) || tl_count == 0
+(syz-executor404,5313,0):ocfs2_truncate_log_append:5874 ERROR: Truncate record count on #77 invalid wanted 39, actual 2087
+------------[ cut here ]------------
+kernel BUG at fs/ocfs2/alloc.c:5874!
+Oops: invalid opcode: 0000 [#1] PREEMPT SMP KASAN NOPTI
+CPU: 0 UID: 0 PID: 5313 Comm: syz-executor404 Not tainted 6.12.0-rc5-syzkaller-00299-g11066801dd4b #0
+Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.16.3-debian-1.16.3-2~bpo12+1 04/01/2014
+RIP: 0010:ocfs2_truncate_log_append+0x9a8/0x9c0 fs/ocfs2/alloc.c:5868
+Code: bc 24 a0 00 00 00 48 c7 c6 ac ae 12 8e ba f2 16 00 00 48 c7 c1 c0 18 49 8c 4d 89 f0 41 89 d9 50 e8 ad 90 20 00 48 83 c4 08 90 <0f> 0b e8 71 87 11 fe 90 0f 0b e8 69 87 11 fe 90 0f 0b e8 f1 d3 43
+RSP: 0018:ffffc9000cf16f40 EFLAGS: 00010292
+RAX: b4b54f1d10640800 RBX: 0000000000000027 RCX: b4b54f1d10640800
+RDX: 0000000000000000 RSI: 0000000080000000 RDI: 0000000000000000
+RBP: ffffc9000cf17070 R08: ffffffff8174a14c R09: 1ffff11003f8519a
+R10: dffffc0000000000 R11: ffffed1003f8519b R12: 1ffff110085f5f58
+R13: ffffff3800000000 R14: 000000000000004d R15: ffff8880438f0008
+FS:  00005555722df380(0000) GS:ffff88801fc00000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: 000000002000f000 CR3: 000000004010e000 CR4: 0000000000352ef0
+DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+Call Trace:
+ <TASK>
+ ocfs2_remove_btree_range+0x1303/0x1860 fs/ocfs2/alloc.c:5789
+ ocfs2_remove_inode_range+0xff3/0x29f0 fs/ocfs2/file.c:1907
+ ocfs2_reflink_remap_extent fs/ocfs2/refcounttree.c:4537 [inline]
+ ocfs2_reflink_remap_blocks+0xcd4/0x1f30 fs/ocfs2/refcounttree.c:4684
+ ocfs2_remap_file_range+0x5fa/0x8d0 fs/ocfs2/file.c:2736
+ vfs_copy_file_range+0xc07/0x1510 fs/read_write.c:1615
+ __do_sys_copy_file_range fs/read_write.c:1705 [inline]
+ __se_sys_copy_file_range+0x3f2/0x5d0 fs/read_write.c:1668
+ do_syscall_x64 arch/x86/entry/common.c:52 [inline]
+ do_syscall_64+0xf3/0x230 arch/x86/entry/common.c:83
+ entry_SYSCALL_64_after_hwframe+0x77/0x7f
+RIP: 0033:0x7fd327167af9
+Code: 28 00 00 00 75 05 48 83 c4 28 c3 e8 61 17 00 00 90 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 b8 ff ff ff f7 d8 64 89 01 48
+RSP: 002b:00007ffe6b8e22e8 EFLAGS: 00000246 ORIG_RAX: 0000000000000146
+RAX: ffffffffffffffda RBX: 00007fd3271b005e RCX: 00007fd327167af9
+RDX: 0000000000000006 RSI: 0000000000000000 RDI: 0000000000000004
+RBP: 00007fd3271de610 R08: 000000000000d8c2 R09: 0000000000000000
+R10: 0000000020000640 R11: 0000000000000246 R12: 0000000000000001
+R13: 00007ffe6b8e24b8 R14: 0000000000000001 R15: 0000000000000001
+ </TASK>
+Modules linked in:
+---[ end trace 0000000000000000 ]---
+RIP: 0010:ocfs2_truncate_log_append+0x9a8/0x9c0 fs/ocfs2/alloc.c:5868
+Code: bc 24 a0 00 00 00 48 c7 c6 ac ae 12 8e ba f2 16 00 00 48 c7 c1 c0 18 49 8c 4d 89 f0 41 89 d9 50 e8 ad 90 20 00 48 83 c4 08 90 <0f> 0b e8 71 87 11 fe 90 0f 0b e8 69 87 11 fe 90 0f 0b e8 f1 d3 43
+RSP: 0018:ffffc9000cf16f40 EFLAGS: 00010292
+RAX: b4b54f1d10640800 RBX: 0000000000000027 RCX: b4b54f1d10640800
+RDX: 0000000000000000 RSI: 0000000080000000 RDI: 0000000000000000
+RBP: ffffc9000cf17070 R08: ffffffff8174a14c R09: 1ffff11003f8519a
+R10: dffffc0000000000 R11: ffffed1003f8519b R12: 1ffff110085f5f58
+R13: ffffff3800000000 R14: 000000000000004d R15: ffff8880438f0008
+FS:  00005555722df380(0000) GS:ffff88801fc00000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: 000000002000f000 CR3: 000000004010e000 CR4: 0000000000352ef0
+DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
 
 
+---
+This report is generated by a bot. It may contain errors.
+See https://goo.gl/tpsmEJ for more information about syzbot.
+syzbot engineers can be reached at syzkaller@googlegroups.com.
 
-On 11/6/24 5:21 PM, Dmitry Antipov wrote:
-> Syzbot has reported the following splat triggered by UBSAN:
-> 
-> UBSAN: shift-out-of-bounds in fs/ocfs2/super.c:2336:10
-> shift exponent 32768 is too large for 32-bit type 'int'
-> CPU: 2 UID: 0 PID: 5255 Comm: repro Not tainted 6.12.0-rc4-syzkaller-00047-gc2ee9f594da8 #0
-> Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.16.3-3.fc41 04/01/2014
-> Call Trace:
->  <TASK>
->  dump_stack_lvl+0x241/0x360
->  ? __pfx_dump_stack_lvl+0x10/0x10
->  ? __pfx__printk+0x10/0x10
->  ? __asan_memset+0x23/0x50
->  ? lockdep_init_map_type+0xa1/0x910
->  __ubsan_handle_shift_out_of_bounds+0x3c8/0x420
->  ocfs2_fill_super+0xf9c/0x5750
->  ? __pfx_ocfs2_fill_super+0x10/0x10
->  ? __pfx_validate_chain+0x10/0x10
->  ? __pfx_validate_chain+0x10/0x10
->  ? validate_chain+0x11e/0x5920
->  ? __lock_acquire+0x1384/0x2050
->  ? __pfx_validate_chain+0x10/0x10
->  ? string+0x26a/0x2b0
->  ? widen_string+0x3a/0x310
->  ? string+0x26a/0x2b0
->  ? bdev_name+0x2b1/0x3c0
->  ? pointer+0x703/0x1210
->  ? __pfx_pointer+0x10/0x10
->  ? __pfx_format_decode+0x10/0x10
->  ? __lock_acquire+0x1384/0x2050
->  ? vsnprintf+0x1ccd/0x1da0
->  ? snprintf+0xda/0x120
->  ? __pfx_lock_release+0x10/0x10
->  ? do_raw_spin_lock+0x14f/0x370
->  ? __pfx_snprintf+0x10/0x10
->  ? set_blocksize+0x1f9/0x360
->  ? sb_set_blocksize+0x98/0xf0
->  ? setup_bdev_super+0x4e6/0x5d0
->  mount_bdev+0x20c/0x2d0
->  ? __pfx_ocfs2_fill_super+0x10/0x10
->  ? __pfx_mount_bdev+0x10/0x10
->  ? vfs_parse_fs_string+0x190/0x230
->  ? __pfx_vfs_parse_fs_string+0x10/0x10
->  legacy_get_tree+0xf0/0x190
->  ? __pfx_ocfs2_mount+0x10/0x10
->  vfs_get_tree+0x92/0x2b0
->  do_new_mount+0x2be/0xb40
->  ? __pfx_do_new_mount+0x10/0x10
->  __se_sys_mount+0x2d6/0x3c0
->  ? __pfx___se_sys_mount+0x10/0x10
->  ? do_syscall_64+0x100/0x230
->  ? __x64_sys_mount+0x20/0xc0
->  do_syscall_64+0xf3/0x230
->  entry_SYSCALL_64_after_hwframe+0x77/0x7f
-> RIP: 0033:0x7f37cae96fda
-> Code: 48 8b 0d 51 ce 0c 00 f7 d8 64 89 01 48 83 c8 ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 44 00 00 49 89 ca b8 a5 00 00 00 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 8b 0d 1e ce 0c 00 f7 d8 64 89 01 48
-> RSP: 002b:00007fff6c1aa228 EFLAGS: 00000206 ORIG_RAX: 00000000000000a5
-> RAX: ffffffffffffffda RBX: 00007fff6c1aa240 RCX: 00007f37cae96fda
-> RDX: 00000000200002c0 RSI: 0000000020000040 RDI: 00007fff6c1aa240
-> RBP: 0000000000000004 R08: 00007fff6c1aa280 R09: 0000000000000000
-> R10: 00000000000008c0 R11: 0000000000000206 R12: 00000000000008c0
-> R13: 00007fff6c1aa280 R14: 0000000000000003 R15: 0000000001000000
->  </TASK>
-> 
-> For a really damaged superblock, the value of 'i_super.s_blocksize_bits'
-> may exceed the maximum possible shift for an underlying 'int'. So add an
-> extra check whether the aforementioned field represents the valid block
-> size, which is 512 bytes, 1K, 2K, or 4K.
-> 
-> Reported-by: syzbot+56f7cd1abe4b8e475180@syzkaller.appspotmail.com
-> Closes: https://syzkaller.appspot.com/bug?extid=56f7cd1abe4b8e475180
-> Fixes: ccd979bdbce9 ("[PATCH] OCFS2: The Second Oracle Cluster Filesystem")
-> Signed-off-by: Dmitry Antipov <dmantipov@yandex.ru>
+syzbot will keep track of this issue. See:
+https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
 
-Cc: <stable@vger.kernel.org>
-Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+If the report is already addressed, let syzbot know by replying with:
+#syz fix: exact-commit-title
 
-> ---
-> v2: variable name and message nits as suggested by Joseph
-> ---
->  fs/ocfs2/super.c | 13 +++++++++----
->  1 file changed, 9 insertions(+), 4 deletions(-)
-> 
-> diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-> index 3d404624bb96..c79b4291777f 100644
-> --- a/fs/ocfs2/super.c
-> +++ b/fs/ocfs2/super.c
-> @@ -2319,6 +2319,7 @@ static int ocfs2_verify_volume(struct ocfs2_dinode *di,
->  			       struct ocfs2_blockcheck_stats *stats)
->  {
->  	int status = -EAGAIN;
-> +	u32 blksz_bits;
->  
->  	if (memcmp(di->i_signature, OCFS2_SUPER_BLOCK_SIGNATURE,
->  		   strlen(OCFS2_SUPER_BLOCK_SIGNATURE)) == 0) {
-> @@ -2333,11 +2334,15 @@ static int ocfs2_verify_volume(struct ocfs2_dinode *di,
->  				goto out;
->  		}
->  		status = -EINVAL;
-> -		if ((1 << le32_to_cpu(di->id2.i_super.s_blocksize_bits)) != blksz) {
-> +		/* Acceptable block sizes are 512 bytes, 1K, 2K and 4K. */
-> +		blksz_bits = le32_to_cpu(di->id2.i_super.s_blocksize_bits);
-> +		if (blksz_bits < 9 || blksz_bits > 12) {
->  			mlog(ML_ERROR, "found superblock with incorrect block "
-> -			     "size: found %u, should be %u\n",
-> -			     1 << le32_to_cpu(di->id2.i_super.s_blocksize_bits),
-> -			       blksz);
-> +			     "size bits: found %u, should be 9, 10, 11, or 12\n",
-> +			     blksz_bits);
-> +		} else if ((1 << le32_to_cpu(blksz_bits)) != blksz) {
-> +			mlog(ML_ERROR, "found superblock with incorrect block "
-> +			     "size: found %u, should be %u\n", 1 << blksz_bits, blksz);
->  		} else if (le16_to_cpu(di->id2.i_super.s_major_rev_level) !=
->  			   OCFS2_MAJOR_REV_LEVEL ||
->  			   le16_to_cpu(di->id2.i_super.s_minor_rev_level) !=
+If you want syzbot to run the reproducer, reply with:
+#syz test: git://repo/address.git branch-or-commit-hash
+If you attach or paste a git patch, syzbot will apply it before testing.
 
+If you want to overwrite report's subsystems, reply with:
+#syz set subsystems: new-subsystem
+(See the list of subsystem names on the web dashboard)
+
+If the report is a duplicate of another one, reply with:
+#syz dup: exact-subject-of-another-report
+
+If you want to undo deduplication, reply with:
+#syz undup
