@@ -1,78 +1,81 @@
-Received: from mail-il1-f198.google.com (mail-il1-f198.google.com [209.85.166.198])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from out30-118.freemail.mail.aliyun.com (out30-118.freemail.mail.aliyun.com [115.124.30.118])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 01FD21E1C2B
-	for <ocfs2-devel@lists.linux.dev>; Fri,  8 Nov 2024 22:52:06 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.166.198
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A8FE61B95B
+	for <ocfs2-devel@lists.linux.dev>; Mon, 11 Nov 2024 01:38:30 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.118
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1731106328; cv=none; b=D2/Us3HqI8ehsRoO8SlSD0ZslPbqH82UR5uoTAgE2jLDwLU3X/S61RZUgCcKD3jZvg30L4UrnmV7/MRSptiDh4KWgKDh9iSS19FWnYd51eY5Sx/6UvAZCvTGahzOOMBpt2oXvGh3EyHAuWgRSBf+CijYi9PnoV7dB1Ptv2xMxAQ=
+	t=1731289114; cv=none; b=lQ7s8a6cgrHS2ER0Ls9aUoYE0xmmjuinVazNNa7ifXZdxdFkBo8K5sd2ZXmylmthFX1CBR4jesZwwBLuqoytJfGdlG4wqdypylAslqx0xqwY84etBf2YcppDeWxVU4Gtv1hP5f12yojDXpgSqzs9eseJPS9G7CGUxtZrN/sbJtU=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1731106328; c=relaxed/simple;
-	bh=gXuLGF578FK4RZlFtxXap1q1f9VhDLzruBlXgif8FQ0=;
-	h=MIME-Version:Date:In-Reply-To:Message-ID:Subject:From:To:
-	 Content-Type; b=SG/sRfrMbAuU1Kbif+r4t8hZ+nAlzRVcMR8+FJqeV6ZIGqbEz0dHrvAf+EC9akXu2+uZrtyFsLi1WxRujiKIoz1YRq9Qoc+Z3+/OdP4cBiuyiZuGJrmqF/IZlKO1zfG9vkU2Y8b0hlTqyPBpB6HcJDm60xhviCW7jImtBEyv6es=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.166.198
-Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
-Received: by mail-il1-f198.google.com with SMTP id e9e14a558f8ab-3a6b563871eso30025645ab.1
-        for <ocfs2-devel@lists.linux.dev>; Fri, 08 Nov 2024 14:52:06 -0800 (PST)
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1731106326; x=1731711126;
-        h=to:from:subject:message-id:in-reply-to:date:mime-version
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
-        bh=PIxqD+aLEH51VZN4dZGxv/q7c0bPHrWNxFiPAB9YqpQ=;
-        b=LrBdajLM9qkOgfU5MI6Soi+Vr8yeob966uKt3cD2UCvVmzB9t7OoTpVqVdJpLJYLHY
-         s/iqA3bGx9jl+2kUcr0hZY3v1cBhkqiuO+3rKUJofYGYJ1CQAE0qN0vfWKuELuNqXxq9
-         NA83ozGnqQn0pXyAxELAQuktn0zSJ+Li0yYSv3l4qaR3uwR4T1jfkr55cJMBlxjPiYu5
-         rHW5rGkM775iwjPV2tB+BjoTIFOXb0KwIfCnyBHZUdsws6eDIsFEd6flqKymMzTyXA2i
-         pNRQJ5mfy5T2Vcrkl3CFwAGmRA8VygAjvu2SeFHKLZF7DI8ylwV/XLmMvVKZPKRlu5SL
-         2Twg==
-X-Forwarded-Encrypted: i=1; AJvYcCW8rrFrVdDiw7cNxRo+me/Aw7pO9Kzi9YiM6EOAnqwBCf1xACN9iLiCHQhfvg/geJW9FL+GwYrwNhCxng==@lists.linux.dev
-X-Gm-Message-State: AOJu0YzqbQ78JQ9bfd8wIpXI7G2culf4HSJ7T78GMgzv74NnL4BLuaSl
-	0emSFViK3O53CnflckSV6UBv/tJpfuPx5q/v5BbE0aGhVszLCzvisJQ0KqdeYvQC+AX+WWZe97A
-	dX0Fq3DxkdsYcZ00mtmlfWVElMVyRpY47GDWIMRQ/XuMf9WoKkCm1uBk=
-X-Google-Smtp-Source: AGHT+IHYLwe/jDyb+uvjyVbo2F1hg9+ZmWROr3ediAD7vJOcWA0mv5EcUjS01nO6RSDEi6GiY7/7geX5jGYVVDzYIXxXk6JH4klM
+	s=arc-20240116; t=1731289114; c=relaxed/simple;
+	bh=YlAhbnm1I5k+kU1PvnjADRjTwfieELE3uO4yvcd449A=;
+	h=Message-ID:Date:MIME-Version:Subject:To:References:From:Cc:
+	 In-Reply-To:Content-Type; b=j+8s7qgdqTAZQqiJPgWwOIc4M6rVq1MoPOVaJCWC2mNMVwTgbPsQIOBgS7eDZdvikTfdXERte9tzZxFN0/F0C6sLU3ZM2RfeRPjgOUl88NVJce7APlfoI/4CZnuUK+NcI4NQFt1Fd0dGqCIuQAJZdjaUW1qBcurJU3Ysc2WjBSk=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=JPRpQQ0H; arc=none smtp.client-ip=115.124.30.118
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="JPRpQQ0H"
+DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=linux.alibaba.com; s=default;
+	t=1731289108; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=OOO5xPN3ZUpfGW6Ti+5DdkzIsYWm8WcDbrIu5y57poI=;
+	b=JPRpQQ0H9+HJhk8RKeVeaHEUzOncu2dx2vCYJHOkexHNGgtm9pyLWJbH/kxZ1tez4r5OnhXykLSEPVTQdqTLFSXHMsdS7TOiV4z1rMOSOq8yOq4yBtDU3zqws9OfXYmedzXcyNbg1JS9/AXJSRuHXtURuMiZWEtRE7388Yk/xlw=
+Received: from 30.221.129.158(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0WJ3xLg5_1731289107 cluster:ay36)
+          by smtp.aliyun-inc.com;
+          Mon, 11 Nov 2024 09:38:28 +0800
+Message-ID: <614f6304-f096-41f7-b0a4-05127904e601@linux.alibaba.com>
+Date: Mon, 11 Nov 2024 09:38:27 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-X-Received: by 2002:a05:6e02:1e0a:b0:3a5:e3bc:c1bf with SMTP id
- e9e14a558f8ab-3a6f1a592f1mr54177235ab.23.1731106326139; Fri, 08 Nov 2024
- 14:52:06 -0800 (PST)
-Date: Fri, 08 Nov 2024 14:52:06 -0800
-In-Reply-To: <66e9830e.050a0220.115905.000e.GAE@google.com>
-X-Google-Appengine-App-Id: s~syzkaller
-X-Google-Appengine-App-Id-Alias: syzkaller
-Message-ID: <672e9616.050a0220.138bd5.0034.GAE@google.com>
-Subject: Re: [syzbot] [ocfs2?] INFO: trying to register non-static key in ocfs2_dlm_shutdown
-From: syzbot <syzbot+d7935821694d430624ea@syzkaller.appspotmail.com>
-To: akpm@linux-foundation.org, jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
-	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
-	ocfs2-devel@oss.oracle.com, syzkaller-bugs@googlegroups.com, 
-	torvalds@linux-foundation.org, vvidic@valentin-vidic.from.hr
-Content-Type: text/plain; charset="UTF-8"
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH] ocfs2: update seq_file index in ocfs2_dlm_seq_next
+To: Wengang Wang <wen.gang.wang@oracle.com>, ocfs2-devel@lists.linux.dev
+References: <20241108192829.58813-1-wen.gang.wang@oracle.com>
+Content-Language: en-US
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+In-Reply-To: <20241108192829.58813-1-wen.gang.wang@oracle.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
-syzbot has bisected this issue to:
 
-commit da5e7c87827e8caa6a1eeec6d95dcf74ab592a01
-Author: Valentin Vidic <vvidic@valentin-vidic.from.hr>
-Date:   Fri Nov 5 20:34:49 2021 +0000
 
-    ocfs2: cleanup journal init and shutdown
+On 11/9/24 3:28 AM, Wengang Wang wrote:
+> The following INFO level message was seen:
+> 
+> seq_file: buggy .next function ocfs2_dlm_seq_next [ocfs2] did not
+> update position index
+> 
+> Fix:
+> Updata m->index to make seq_read_iter happy though the index its self makes
+> no sense to ocfs2_dlm_seq_next.
+> 
+> Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
+> ---
+>  fs/ocfs2/dlmglue.c | 1 +
+>  1 file changed, 1 insertion(+)
+> 
+> diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
+> index 60df52e4c1f8..349d131369cf 100644
+> --- a/fs/ocfs2/dlmglue.c
+> +++ b/fs/ocfs2/dlmglue.c
+> @@ -3120,6 +3120,7 @@ static void *ocfs2_dlm_seq_next(struct seq_file *m, void *v, loff_t *pos)
+>  	}
+>  	spin_unlock(&ocfs2_dlm_tracking_lock);
+>  
+> +	m->index++;
 
-bisection log:  https://syzkaller.appspot.com/x/bisect.txt?x=128b2ea7980000
-start commit:   c88416ba074a Add linux-next specific files for 20241101
-git tree:       linux-next
-final oops:     https://syzkaller.appspot.com/x/report.txt?x=118b2ea7980000
-console output: https://syzkaller.appspot.com/x/log.txt?x=168b2ea7980000
-kernel config:  https://syzkaller.appspot.com/x/.config?x=704b6be2ac2f205f
-dashboard link: https://syzkaller.appspot.com/bug?extid=d7935821694d430624ea
-syz repro:      https://syzkaller.appspot.com/x/repro.syz?x=1445ab40580000
-C reproducer:   https://syzkaller.appspot.com/x/repro.c?x=1200e987980000
+We can directly use '(*pos)++' instead.
 
-Reported-by: syzbot+d7935821694d430624ea@syzkaller.appspotmail.com
-Fixes: da5e7c87827e ("ocfs2: cleanup journal init and shutdown")
+Thanks,
+Joseph
 
-For information about bisection process see: https://goo.gl/tpsmEJ#bisection
+>  	return iter;
+>  }
+>  
+
