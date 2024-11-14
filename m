@@ -1,65 +1,46 @@
-Received: from mail-pl1-f173.google.com (mail-pl1-f173.google.com [209.85.214.173])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from forward100d.mail.yandex.net (forward100d.mail.yandex.net [178.154.239.211])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B4296189F52
-	for <ocfs2-devel@lists.linux.dev>; Wed, 13 Nov 2024 08:41:13 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.214.173
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7397346BF
+	for <ocfs2-devel@lists.linux.dev>; Thu, 14 Nov 2024 04:39:11 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=178.154.239.211
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1731487275; cv=none; b=HErQ5KXMHpuehg4sgH1jzH4qxssIuYmhvivgIRk8ctvrercXoso9TBIdrAOa1EmopPGWc+eBKDucpWUHnYOo7zHeRi2EqVV+TVASufhLANWiZWYUVDPu2s2+bHo2uMZeoCgbdjoX1W99CuNkwddVPpZkubRUX0qIgdkOe5j2q4w=
+	t=1731559156; cv=none; b=Pm4xT3KC70Wv7m79eBT9lc0zbzYK6ABnzOAY+0QHdNgXFqn9bmGFP5PjG0GoJlPykopMjYf30kD7qEByFr2V6iK4L3qZDBT/g6nYMps9K27Uuvb+Gk5W5DYxYZpLwiLJci7oLYikgF9hVewN0NYZg0ulyUZPPnakaQixUmSfxqA=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1731487275; c=relaxed/simple;
-	bh=9ac3S7GwjMYsuWPSg9A6e77/XxzmBRaa86u9PtncFZM=;
-	h=From:To:Subject:Date:Message-Id:MIME-Version; b=nktE4Os/3qCkCQjODZXWUATKWSOFym3B3ovYxHthQjsrRkEAOR61NjD0K7bgEV/sb6+K7CZKK6QMnXcqYLQn58t6PpD3HaiX/Pq6jLUMIn+Zeyn9Wu1lh0dyS+gZrXri6iP61VptKImw2vfgLYQITupFnqiNyRF4o4TKo9Jmv7o=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=jNALe/jZ; arc=none smtp.client-ip=209.85.214.173
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	s=arc-20240116; t=1731559156; c=relaxed/simple;
+	bh=yF5klxCfMAWZbW/ekeWy+BENsCiSnblO6fJEbf1XnjY=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=byst80H1DhAHZwFLJA7rws2V9HFHGUkcc4zy1qZXbGy04TBGt8aGKeP9b/EFe/c67/5coEpUi04nzGXLNE9G8Aqw+vumeko0IKi8ekz1iqKcwbFfM/ruf5rpe5YPgJsevICEtn7t/0ujaC432A+HMdVzBRIEgqrNj7rcIjsX/S8=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru; spf=pass smtp.mailfrom=yandex.ru; dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b=gxRQ2rWX; arc=none smtp.client-ip=178.154.239.211
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=yandex.ru
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="jNALe/jZ"
-Received: by mail-pl1-f173.google.com with SMTP id d9443c01a7336-20c9978a221so74343585ad.1
-        for <ocfs2-devel@lists.linux.dev>; Wed, 13 Nov 2024 00:41:13 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1731487273; x=1732092073; darn=lists.linux.dev;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:to
-         :from:from:to:cc:subject:date:message-id:reply-to;
-        bh=hARpX5ZPx74ElNUTsqJ78OBOuYxJi1lpnBAIag7Jp+g=;
-        b=jNALe/jZIhnlBufnqQDXZybnptbcSihUPZe7S7aZbtR12M7KuluuVl7/aijT0/TXOC
-         tfT+FdlmsZVeqCA3cSZK49oan+bYZouDK+FenhzG+L6H5rIRQ/hRJADBOaSExN17Dshh
-         DuWRHV2zidtCN8dXM7SrjasaybY/BHDEW55wkAS4FMfA0cp5HpfAKHUWFUQOld2rGIrb
-         wmbhvc7tbEaf1jdKMFZf9HC2fkV1/EyD1tRId7vG2Z4oI+uLAZOevVShiXDjJF7aJAKt
-         y8lPdSoF2MgBrPqUAlMaN3R7/QP2hULZgmZ+6voh/7M8hi8e/dGWiAQ0dH9J7Hjmct33
-         K7ew==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1731487273; x=1732092073;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:to
-         :from:x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
-        bh=hARpX5ZPx74ElNUTsqJ78OBOuYxJi1lpnBAIag7Jp+g=;
-        b=q8hDhNmTLzcaKuqOd4OqoGrK24dmZoNUF5IabkZhx895kWgEg0qZrlsiKYkg5myY1C
-         to5SJ1E+qKcl5SKIRaJatAfvp+dYvuiNErRJbJuIuG26L7IURyGX4OjmMblzMl4ivRXn
-         JgJbDrlUQ6oNvJlSXf0E0vknrT5P1CkVcY/1nNOkxmxdEhwgRaH3NHkVwQIi9OoUHds+
-         W3f4+q1CipeLscOCm8Rwn46OB0TxdmIbJCX7nrwIDv75t4HvCpkfm5w/ZXFggGIjC86d
-         OaTmP2ZwNMijGS1R7uMlV++cm141qvMLoMXIRG4nBtRrgxllM+Cx1qhw0O7LGvdzvGrh
-         P2qw==
-X-Forwarded-Encrypted: i=1; AJvYcCWHdoFceEzBoMG9WQQPbV+V5lm6WzK0WU/wrlvl2THvxwU3XhfOI0NYOhktBN2SN8sNilLLD9JoCyR1lQ==@lists.linux.dev
-X-Gm-Message-State: AOJu0YxFZPxu3eM5nvvwbtUke92qGcBkgDnZLDfwibms749S3dlh45pe
-	M4nuySyL0f//WX9jS+8SznfJa5eW+gl9ujPp1JD6X2TbpI3xYeYG
-X-Google-Smtp-Source: AGHT+IGIEuI1rvXnQCvJTS4p7g2yPIXhYnzr0HRFq8xLhfWXpkWFmXjk7RUi+cYqXEN3kz7hHMHcYw==
-X-Received: by 2002:a17:902:f54d:b0:20c:ecc9:c50b with SMTP id d9443c01a7336-21183d67ce4mr251260245ad.42.1731487272793;
-        Wed, 13 Nov 2024 00:41:12 -0800 (PST)
-Received: from debian.resnet.ucla.edu (s-169-232-97-87.resnet.ucla.edu. [169.232.97.87])
-        by smtp.googlemail.com with ESMTPSA id d9443c01a7336-21177ddd616sm105613825ad.63.2024.11.13.00.41.12
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Wed, 13 Nov 2024 00:41:12 -0800 (PST)
-From: Daniel Yang <danielyangkang@gmail.com>
+	dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b="gxRQ2rWX"
+Received: from mail-nwsmtp-smtp-production-main-42.myt.yp-c.yandex.net (mail-nwsmtp-smtp-production-main-42.myt.yp-c.yandex.net [IPv6:2a02:6b8:c12:1320:0:640:729a:0])
+	by forward100d.mail.yandex.net (Yandex) with ESMTPS id 71D7C609C2;
+	Thu, 14 Nov 2024 07:39:03 +0300 (MSK)
+Received: by mail-nwsmtp-smtp-production-main-42.myt.yp-c.yandex.net (smtp/Yandex) with ESMTPSA id 1dDif1QOr0U0-HhEJDhnw;
+	Thu, 14 Nov 2024 07:39:02 +0300
+X-Yandex-Fwd: 1
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=yandex.ru; s=mail;
+	t=1731559142; bh=B2Pefr84L3Rnlg3nmBNUusAhFtcFDYnLwV7zE1fjd54=;
+	h=Message-ID:Date:Cc:Subject:To:From;
+	b=gxRQ2rWXRNr5DyQV9TCtlst5ThbhGUSY7EsI6usrOaNSXFlYcGMdgaSj0jsrKTS4G
+	 bLg/9IRCUh+Ht0NWsXpf3vA1M7kQESrrXlcJZmAtgM/jbDMVL6NTp5rjiJm1rO3t6G
+	 nA63nZmqqG6M8vF7IIiyU8b+96bIKbLPk0SMGGbY=
+Authentication-Results: mail-nwsmtp-smtp-production-main-42.myt.yp-c.yandex.net; dkim=pass header.i=@yandex.ru
+From: Dmitry Antipov <dmantipov@yandex.ru>
 To: Mark Fasheh <mark@fasheh.com>,
 	Joel Becker <jlbec@evilplan.org>,
-	Joseph Qi <joseph.qi@linux.alibaba.com>,
-	"GitAuthor: Daniel Yang" <danielyangkang@gmail.com>,
-	ocfs2-devel@lists.linux.dev (open list:ORACLE CLUSTER FILESYSTEM 2 (OCFS2)),
-	linux-kernel@vger.kernel.org (open list)
-Subject: [PATCH] ocfs2: heartbeat: replace simple_strtoul with kstrtoul
-Date: Wed, 13 Nov 2024 00:41:07 -0800
-Message-Id: <20241113084108.186506-1-danielyangkang@gmail.com>
-X-Mailer: git-send-email 2.39.5
+	Joseph Qi <joseph.qi@linux.alibaba.com>
+Cc: ocfs2-devel@lists.linux.dev,
+	linux-fsdevel@vger.kernel.org,
+	lvc-project@linuxtesting.org,
+	Dmitry Antipov <dmantipov@yandex.ru>,
+	syzbot+453873f1588c2d75b447@syzkaller.appspotmail.com
+Subject: [PATCH] ocfs2: uncache inode which has failed entering the group
+Date: Thu, 14 Nov 2024 07:38:44 +0300
+Message-ID: <20241114043844.111847-1-dmantipov@yandex.ru>
+X-Mailer: git-send-email 2.47.0
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -68,55 +49,79 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-The function simple_strtoul is deprecated due to ignoring overflows and
-also requires clunkier error checking. Replacing with kstrtoul() leads
-to safer code and cleaner error checking.
+Syzbot has reported the following BUG:
 
-Signed-off-by: Daniel Yang <danielyangkang@gmail.com>
+kernel BUG at fs/ocfs2/uptodate.c:509!
+...
+Call Trace:
+ <TASK>
+ ? __die_body+0x5f/0xb0
+ ? die+0x9e/0xc0
+ ? do_trap+0x15a/0x3a0
+ ? ocfs2_set_new_buffer_uptodate+0x145/0x160
+ ? do_error_trap+0x1dc/0x2c0
+ ? ocfs2_set_new_buffer_uptodate+0x145/0x160
+ ? __pfx_do_error_trap+0x10/0x10
+ ? handle_invalid_op+0x34/0x40
+ ? ocfs2_set_new_buffer_uptodate+0x145/0x160
+ ? exc_invalid_op+0x38/0x50
+ ? asm_exc_invalid_op+0x1a/0x20
+ ? ocfs2_set_new_buffer_uptodate+0x2e/0x160
+ ? ocfs2_set_new_buffer_uptodate+0x144/0x160
+ ? ocfs2_set_new_buffer_uptodate+0x145/0x160
+ ocfs2_group_add+0x39f/0x15a0
+ ? __pfx_ocfs2_group_add+0x10/0x10
+ ? __pfx_lock_acquire+0x10/0x10
+ ? mnt_get_write_access+0x68/0x2b0
+ ? __pfx_lock_release+0x10/0x10
+ ? rcu_read_lock_any_held+0xb7/0x160
+ ? __pfx_rcu_read_lock_any_held+0x10/0x10
+ ? smack_log+0x123/0x540
+ ? mnt_get_write_access+0x68/0x2b0
+ ? mnt_get_write_access+0x68/0x2b0
+ ? mnt_get_write_access+0x226/0x2b0
+ ocfs2_ioctl+0x65e/0x7d0
+ ? __pfx_ocfs2_ioctl+0x10/0x10
+ ? smack_file_ioctl+0x29e/0x3a0
+ ? __pfx_smack_file_ioctl+0x10/0x10
+ ? lockdep_hardirqs_on_prepare+0x43d/0x780
+ ? __pfx_lockdep_hardirqs_on_prepare+0x10/0x10
+ ? __pfx_ocfs2_ioctl+0x10/0x10
+ __se_sys_ioctl+0xfb/0x170
+ do_syscall_64+0xf3/0x230
+ entry_SYSCALL_64_after_hwframe+0x77/0x7f
+...
+ </TASK>
+
+When 'ioctl(OCFS2_IOC_GROUP_ADD, ...)' has failed for the particular
+inode in 'ocfs2_verify_group_and_input()', corresponding buffer head
+remains cached and subsequent call to the same 'ioctl()' for the same
+inode issues the BUG() in 'ocfs2_set_new_buffer_uptodate()' (trying
+to cache the same buffer head of that inode). Fix this by uncaching
+the buffer head with 'ocfs2_remove_from_cache()' on error path in
+'ocfs2_group_add()'.
+
+Reported-by: syzbot+453873f1588c2d75b447@syzkaller.appspotmail.com
+Closes: https://syzkaller.appspot.com/bug?extid=453873f1588c2d75b447
+Fixes: ccd979bdbce9 ("[PATCH] OCFS2: The Second Oracle Cluster Filesystem")
+Signed-off-by: Dmitry Antipov <dmantipov@yandex.ru>
 ---
- fs/ocfs2/cluster/heartbeat.c | 15 +++++++++------
- 1 file changed, 9 insertions(+), 6 deletions(-)
+ fs/ocfs2/resize.c | 2 ++
+ 1 file changed, 2 insertions(+)
 
-diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
-index dff18efbc..4fc1b23f1 100644
---- a/fs/ocfs2/cluster/heartbeat.c
-+++ b/fs/ocfs2/cluster/heartbeat.c
-@@ -1537,8 +1537,9 @@ static int o2hb_read_block_input(struct o2hb_region *reg,
- 	unsigned long bytes;
- 	char *p = (char *)page;
+diff --git a/fs/ocfs2/resize.c b/fs/ocfs2/resize.c
+index c4a4016d3866..b0733c08ed13 100644
+--- a/fs/ocfs2/resize.c
++++ b/fs/ocfs2/resize.c
+@@ -574,6 +574,8 @@ int ocfs2_group_add(struct inode *inode, struct ocfs2_new_group_input *input)
+ 	ocfs2_commit_trans(osb, handle);
  
--	bytes = simple_strtoul(p, &p, 0);
--	if (!p || (*p && (*p != '\n')))
-+	int ret = kstrtoul(p, 0, &bytes);
-+
-+	if (ret)
- 		return -EINVAL;
+ out_free_group_bh:
++	if (ret < 0)
++		ocfs2_remove_from_cache(INODE_CACHE(inode), group_bh);
+ 	brelse(group_bh);
  
- 	/* Heartbeat and fs min / max block sizes are the same. */
-@@ -1627,8 +1628,9 @@ static ssize_t o2hb_region_blocks_store(struct config_item *item,
- 	if (reg->hr_bdev_file)
- 		return -EINVAL;
- 
--	tmp = simple_strtoul(p, &p, 0);
--	if (!p || (*p && (*p != '\n')))
-+	int ret = kstrtoul(p, 0, &tmp);
-+
-+	if (ret)
- 		return -EINVAL;
- 
- 	if (tmp > O2NM_MAX_NODES || tmp == 0)
-@@ -2142,8 +2144,9 @@ static ssize_t o2hb_heartbeat_group_dead_threshold_store(struct config_item *ite
- 	unsigned long tmp;
- 	char *p = (char *)page;
- 
--	tmp = simple_strtoul(p, &p, 10);
--	if (!p || (*p && (*p != '\n')))
-+	int ret = kstrtoul(p, 10, &tmp);
-+
-+	if (ret)
-                 return -EINVAL;
- 
- 	/* this will validate ranges for us. */
+ out_unlock:
 -- 
-2.39.5
+2.47.0
 
