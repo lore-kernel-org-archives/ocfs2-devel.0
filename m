@@ -1,157 +1,146 @@
-Received: from out30-124.freemail.mail.aliyun.com (out30-124.freemail.mail.aliyun.com [115.124.30.124])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-io1-f69.google.com (mail-io1-f69.google.com [209.85.166.69])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id EAFBD132139
-	for <ocfs2-devel@lists.linux.dev>; Thu, 28 Nov 2024 03:27:49 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.124
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 40FFA1547EE
+	for <ocfs2-devel@lists.linux.dev>; Thu, 28 Nov 2024 09:07:24 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.166.69
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1732764473; cv=none; b=MplripAc42UkEhRn/KB57ZHlK/izTPI3zqTiK/035PDqjcF8VqvPAlfI50yHK7zjLS4u68opYHdPZjwNVUL/ixZu8L51Vg1jCRR1rZWJkvglKx1DvyTxBnKopcA3R3dYXxSyKgA7B1z38U4WQBWOGUhwnzqtU5HO4khS/FLIxnM=
+	t=1732784845; cv=none; b=EJdPCKSBogCSUuwipIw4l6f97DsnJyYsn4jJxAfA0A/+ahRjLZdGcDGsmyws79U6HsGifCsbJTeBBvNMdiH1/+OQfdPEyoIriOFcHHNyBiwcNQo0s2sPJ4j+QwexHEJMNqNX7oV1zRZk6ysQ4FaHJIwuvL21SQRxnngzy/EZacs=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1732764473; c=relaxed/simple;
-	bh=Uf6l3zPeK1hlEFgnmIPsW8FXsCFCKsXyx9g/RHOiOhc=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=itwS8TW54z/Yp5IAKkuK/glRc8w4Pm7QEz0djlDO+SaFQniS2/Kb1iP87DcULGWG7jcanrkpSbcTKBIcX/z3uUkcDc44OkK8yypqKt7wd1wxZvjoOn3DIKrMnzRcw5hIKhIZrb3tMU3tiLR/ySN07fb7HbZWcUPrJB5eXWWXa28=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=c44vtPjq; arc=none smtp.client-ip=115.124.30.124
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="c44vtPjq"
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1732764467; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=8WbltdsvGRiUJyi6JblPC5zaJY2uOIx/GnOIMySKCZI=;
-	b=c44vtPjqhfRy/hTTMLeufXrgQbbJWbQ3iyKigC0mgJ2RoBbtTMSkO3RUNvzeti3314XU3oMEwdNUn/iDlPTALZQtH/R3flrQFdQWmTYzQY35/o08/Uzwnm54ShEYqJ8d82cPHO1UKnNDgdq/uW0kLL5sAVYdM8rnPnkW5cfGnt0=
-Received: from 30.221.130.57(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0WKOEBn9_1732764465 cluster:ay36)
-          by smtp.aliyun-inc.com;
-          Thu, 28 Nov 2024 11:27:46 +0800
-Message-ID: <e50fa38e-af09-4e85-b0f8-237448026486@linux.alibaba.com>
-Date: Thu, 28 Nov 2024 11:27:45 +0800
+	s=arc-20240116; t=1732784845; c=relaxed/simple;
+	bh=SPXbvgRpSUPKNeuCmCZ4GEbx9xuC0Y9jezQfKH53BTc=;
+	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=bGadwoISiIrG9f6XXNe9xPPgRULKZZt7pxHaOlyFS9QlkofrAV1k4Ll6qcPcstI8G8m2JryKmibPY+10TVFBWQ/hZYol4SYg69uEbUMb+s7XLi/tbAUlOR9IkmmQksq867XZzCyEym5rMMXFcp3yJiZ5WksGXFlMlg80zMwdhT0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.166.69
+Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
+Received: by mail-io1-f69.google.com with SMTP id ca18e2360f4ac-843faa97bf9so50826639f.3
+        for <ocfs2-devel@lists.linux.dev>; Thu, 28 Nov 2024 01:07:24 -0800 (PST)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1732784843; x=1733389643;
+        h=to:from:subject:message-id:date:mime-version:x-gm-message-state
+         :from:to:cc:subject:date:message-id:reply-to;
+        bh=L6TE4e4Bb5OrTmbFbuc0RLRJY6XYdoSFPb2NDKZfHFA=;
+        b=sOQ4DDUKqR6lpzknC5MqBgaxlwJ1iTYa4ahFn3bfz1XYtCBwlUkPWdqAQyx2bezxSY
+         0GcncYo947g/w3jOxXLOFZ93PIFV19Nr3/nF3bIU+1A11ichNYxCU2vgFov/m35yNKwk
+         bliWBQinT4sBJb1Wob2JxfULPxMZ2d2K06C9pKTWqzMbi/0jCWovEIOgSG+3xIv9E/8i
+         WNIQHoSuEwNxqxYKnV+gn9RMT2ynX5BuBr8+wNzU5zcVR/1v33XwT1CUtJJZ5A/Hxdw0
+         R/xcht/oZJBC/HRNrJ1hVsH+zlqjGb7Z3xonV4KB0R/8jmuQxBUx9Au1C1du/a6kKSaX
+         ddKA==
+X-Forwarded-Encrypted: i=1; AJvYcCVRSQSILHEZ+x7XSS8WDzCG1N8UV35WYgBFtYb+zoGAsOpdMxhvYVHsbnAyoj4sQv6f+65uhyCUCxxogA==@lists.linux.dev
+X-Gm-Message-State: AOJu0YzInlHrlGfZ8p9xsuB+WDu6WcbKXIug3TcyO0ew16exqolkGuhI
+	FATU6PrdZXXZb4O+mTRrXBUb+/RKZPwrW0E3Zpw9V2f331H0L58xuHMGBN5M72Zupj6lsMQpAh2
+	tgTHB02sMGrHnhBsNtRfqsMF9PUCKlTbeYAOQ3gOJHl29WadhpgNUkYk=
+X-Google-Smtp-Source: AGHT+IGl4NsuasVX4CbzS7/Pe1vbj3ipLwcVldBd2NiLWYDrblcA4ibVU7akFLUQYOZfzOGEWFcXG4q5HcnQ35CN/HzSEDayr92b
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH] ocfs2: fix directory entry check in
- ocfs2_search_dirblock()
-To: Dmitry Antipov <dmantipov@yandex.ru>, Mark Fasheh <mark@fasheh.com>,
- Joel Becker <jlbec@evilplan.org>
-Cc: ocfs2-devel@lists.linux.dev, lvc-project@linuxtesting.org,
- syzbot+b9704899e166798d57c9@syzkaller.appspotmail.com
-References: <20241119170745.464799-1-dmantipov@yandex.ru>
-Content-Language: en-US
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <20241119170745.464799-1-dmantipov@yandex.ru>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+X-Received: by 2002:a05:6e02:3702:b0:3a7:c5ca:ac9f with SMTP id
+ e9e14a558f8ab-3a7c5caad62mr72505205ab.6.1732784843472; Thu, 28 Nov 2024
+ 01:07:23 -0800 (PST)
+Date: Thu, 28 Nov 2024 01:07:23 -0800
+X-Google-Appengine-App-Id: s~syzkaller
+X-Google-Appengine-App-Id-Alias: syzkaller
+Message-ID: <674832cb.050a0220.253251.007a.GAE@google.com>
+Subject: [syzbot] [ocfs2?] WARNING in poll_select_finish
+From: syzbot <syzbot+15f68436afaf0cc3af11@syzkaller.appspotmail.com>
+To: brauner@kernel.org, jack@suse.cz, jlbec@evilplan.org, 
+	joseph.qi@linux.alibaba.com, linux-fsdevel@vger.kernel.org, 
+	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
+	syzkaller-bugs@googlegroups.com, viro@zeniv.linux.org.uk
+Content-Type: text/plain; charset="UTF-8"
+
+Hello,
+
+syzbot found the following issue on:
+
+HEAD commit:    7b1d1d4cfac0 Merge remote-tracking branch 'iommu/arm/smmu'..
+git tree:       git://git.kernel.org/pub/scm/linux/kernel/git/arm64/linux.git for-kernelci
+console output: https://syzkaller.appspot.com/x/log.txt?x=127619c0580000
+kernel config:  https://syzkaller.appspot.com/x/.config?x=dfe1e340fbee3d16
+dashboard link: https://syzkaller.appspot.com/bug?extid=15f68436afaf0cc3af11
+compiler:       Debian clang version 15.0.6, GNU ld (GNU Binutils for Debian) 2.40
+userspace arch: arm64
+syz repro:      https://syzkaller.appspot.com/x/repro.syz?x=12368530580000
+
+Downloadable assets:
+disk image: https://storage.googleapis.com/syzbot-assets/354fe38e2935/disk-7b1d1d4c.raw.xz
+vmlinux: https://storage.googleapis.com/syzbot-assets/f12e0b1ef3fd/vmlinux-7b1d1d4c.xz
+kernel image: https://storage.googleapis.com/syzbot-assets/291dbc519bb3/Image-7b1d1d4c.gz.xz
+mounted in repro: https://storage.googleapis.com/syzbot-assets/c8d5f19b6cc3/mount_0.gz
+
+IMPORTANT: if you fix the issue, please add the following tag to the commit:
+Reported-by: syzbot+15f68436afaf0cc3af11@syzkaller.appspotmail.com
+
+------------[ cut here ]------------
+WARNING: CPU: 0 PID: 6595 at include/linux/sched/signal.h:548 restore_saved_sigmask_unless include/linux/sched/signal.h:548 [inline]
+WARNING: CPU: 0 PID: 6595 at include/linux/sched/signal.h:548 poll_select_finish+0x71c/0x7e0 fs/select.c:301
+Modules linked in:
+CPU: 0 UID: 0 PID: 6595 Comm: syz.0.15 Not tainted 6.12.0-syzkaller-g7b1d1d4cfac0 #0
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 09/13/2024
+pstate: 80400005 (Nzcv daif +PAN -UAO -TCO -DIT -SSBS BTYPE=--)
+pc : restore_saved_sigmask_unless include/linux/sched/signal.h:548 [inline]
+pc : poll_select_finish+0x71c/0x7e0 fs/select.c:301
+lr : restore_saved_sigmask_unless include/linux/sched/signal.h:548 [inline]
+lr : poll_select_finish+0x71c/0x7e0 fs/select.c:301
+sp : ffff8000a02e7b20
+x29: ffff8000a02e7c20 x28: dfff800000000000 x27: 0000000000000000
+x26: ffff70001405cf6c x25: 0000000000000002 x24: ffff8000a02e7ce0
+x23: 0000000000000008 x22: ffff8000a02e7ba0 x21: ffff0000d55cbc80
+x20: 0000000000000008 x19: 00000000fffffdfe x18: 1fffe000366c6876
+x17: ffff80008f81d000 x16: ffff80008b3edfc8 x15: 0000000000000002
+x14: 1ffff0001405cf74 x13: 0000000000000000 x12: 0000000000000000
+x11: ffff70001405cf76 x10: 0000000000ff0100 x9 : 0000000000000000
+x8 : ffff0000d55cbc80 x7 : 0000000000000000 x6 : 0000000000000000
+x5 : 0000000000000001 x4 : 0000000000000000 x3 : 0000000000000010
+x2 : 0000000000000000 x1 : 0000000000000000 x0 : 0000000000000000
+Call trace:
+ restore_saved_sigmask_unless include/linux/sched/signal.h:548 [inline] (P)
+ poll_select_finish+0x71c/0x7e0 fs/select.c:301 (P)
+ restore_saved_sigmask_unless include/linux/sched/signal.h:548 [inline] (L)
+ poll_select_finish+0x71c/0x7e0 fs/select.c:301 (L)
+ __do_sys_ppoll fs/select.c:1122 [inline]
+ __se_sys_ppoll fs/select.c:1101 [inline]
+ __arm64_sys_ppoll+0x2d8/0x358 fs/select.c:1101
+ __invoke_syscall arch/arm64/kernel/syscall.c:35 [inline]
+ invoke_syscall+0x98/0x2b8 arch/arm64/kernel/syscall.c:49
+ el0_svc_common+0x130/0x23c arch/arm64/kernel/syscall.c:132
+ do_el0_svc+0x48/0x58 arch/arm64/kernel/syscall.c:151
+ el0_svc+0x54/0x168 arch/arm64/kernel/entry-common.c:744
+ el0t_64_sync_handler+0x84/0x108 arch/arm64/kernel/entry-common.c:762
+ el0t_64_sync+0x198/0x19c arch/arm64/kernel/entry.S:600
+irq event stamp: 796
+hardirqs last  enabled at (795): [<ffff80008b4b56a4>] __exit_to_kernel_mode arch/arm64/kernel/entry-common.c:85 [inline]
+hardirqs last  enabled at (795): [<ffff80008b4b56a4>] exit_to_kernel_mode+0xdc/0x10c arch/arm64/kernel/entry-common.c:95
+hardirqs last disabled at (796): [<ffff80008b4b302c>] el1_dbg+0x24/0x80 arch/arm64/kernel/entry-common.c:488
+softirqs last  enabled at (752): [<ffff80008002f3d8>] local_bh_enable+0x10/0x34 include/linux/bottom_half.h:32
+softirqs last disabled at (750): [<ffff80008002f3a4>] local_bh_disable+0x10/0x34 include/linux/bottom_half.h:19
+---[ end trace 0000000000000000 ]---
 
 
+---
+This report is generated by a bot. It may contain errors.
+See https://goo.gl/tpsmEJ for more information about syzbot.
+syzbot engineers can be reached at syzkaller@googlegroups.com.
 
-On 11/20/24 1:07 AM, Dmitry Antipov wrote:
-> Syzbot has reported the following KASAN splat:
-> 
-> BUG: KASAN: slab-use-after-free in ocfs2_search_dirblock+0x26b/0x830
-> Read of size 1 at addr ffff888012009982 by task repro/5388
-> ...
-> Call Trace:
->  <TASK>
->  dump_stack_lvl+0x241/0x360
->  ? __pfx_dump_stack_lvl+0x10/0x10
->  ? __pfx__printk+0x10/0x10
->  ? _printk+0xd5/0x120
->  ? __virt_addr_valid+0x183/0x530
->  ? __virt_addr_valid+0x183/0x530
->  print_report+0x169/0x550
->  ? __virt_addr_valid+0x183/0x530
->  ? __virt_addr_valid+0x183/0x530
->  ? __virt_addr_valid+0x45f/0x530
->  ? __phys_addr+0xba/0x170
->  ? ocfs2_search_dirblock+0x26b/0x830
->  kasan_report+0x143/0x180
->  ? ocfs2_search_dirblock+0x26b/0x830
->  ocfs2_search_dirblock+0x26b/0x830
->  ? ocfs2_read_inode_block+0x14c/0x1e0
->  ? __pfx_ocfs2_search_dirblock+0x10/0x10
->  ? validate_chain+0x11e/0x5900
->  ocfs2_find_entry+0x1169/0x2780
->  ? mark_lock+0x9a/0x350
->  ? __lock_acquire+0x137a/0x2040
->  ? __pfx_ocfs2_find_entry+0x10/0x10
->  ? __pfx_lock_acquire+0x10/0x10
->  ? ocfs2_inode_lock_full_nested+0x17b/0x1c10
->  ? __pfx_lock_release+0x10/0x10
->  ? do_raw_spin_lock+0x14f/0x370
->  ? do_raw_spin_unlock+0x58/0x8b0
->  ? _raw_spin_unlock+0x28/0x50
->  ? ocfs2_inode_lock_full_nested+0xb2f/0x1c10
->  ? __pfx_ocfs2_inode_lock_full_nested+0x10/0x10
->  ocfs2_find_files_on_disk+0xff/0x360
->  ocfs2_lookup_ino_from_name+0xb1/0x1e0
->  ? __pfx_ocfs2_lookup_ino_from_name+0x10/0x10
->  ocfs2_lookup+0x292/0xa60
->  ? __pfx_ocfs2_lookup+0x10/0x10
->  ? from_kgid+0x1a7/0x730
->  ? make_vfsgid+0x46/0x90
->  ? HAS_UNMAPPED_ID+0xf9/0x150
->  ? inode_permission+0xff/0x460
->  ? __pfx_ocfs2_permission+0x10/0x10
->  ? bpf_lsm_inode_create+0x9/0x10
->  ? security_inode_create+0xc2/0x110
->  ? __pfx_ocfs2_lookup+0x10/0x10
->  path_openat+0x11ce/0x3470
->  ? __pfx_path_openat+0x10/0x10
->  do_filp_open+0x235/0x490
->  ? __pfx_do_filp_open+0x10/0x10
->  ? _raw_spin_unlock+0x28/0x50
->  ? alloc_fd+0x5a1/0x640
->  do_sys_openat2+0x13e/0x1d0
->  ? mntput_no_expire+0xc2/0x850
->  ? __pfx_do_sys_openat2+0x10/0x10
->  ? __pfx_mntput_no_expire+0x10/0x10
->  __x64_sys_openat+0x247/0x2a0
->  ? __pfx___x64_sys_openat+0x10/0x10
->  ? do_syscall_64+0x100/0x230
->  ? do_syscall_64+0xb6/0x230
->  do_syscall_64+0xf3/0x230
->  entry_SYSCALL_64_after_hwframe+0x77/0x7f
-> ...
->  </TASK>
-> 
-> This happens when 'ocfs2_search_dirblock()' makes an attempt to
-> jump over (presumably invalid) on-disk directory entry which size
-> exceeds 'sizeof(struct ocfs2_dir_entry)', thus touching memory
-> used by others (including the previously freed one). So just
-> bail out if such a directory entry is found.
-> 
-> Reported-by: syzbot+b9704899e166798d57c9@syzkaller.appspotmail.com
-> Closes: https://syzkaller.appspot.com/bug?extid=b9704899e166798d57c9
-> Fixes: ccd979bdbce9 ("[PATCH] OCFS2: The Second Oracle Cluster Filesystem")
-> Signed-off-by: Dmitry Antipov <dmantipov@yandex.ru>
-> ---
->  fs/ocfs2/dir.c | 2 +-
->  1 file changed, 1 insertion(+), 1 deletion(-)
-> 
-> diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
-> index 213206ebdd58..7a8040a47e82 100644
-> --- a/fs/ocfs2/dir.c
-> +++ b/fs/ocfs2/dir.c
-> @@ -378,7 +378,7 @@ static inline int ocfs2_search_dirblock(struct buffer_head *bh,
->  
->  		/* prevent looping on a bad block */
->  		de_len = le16_to_cpu(de->rec_len);
-> -		if (de_len <= 0) {
-> +		if (de_len <= 0 || de_len > sizeof(*de)) {
->  			ret = -1;
->  			goto bail;
->  		}
+syzbot will keep track of this issue. See:
+https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
 
-This is caused by a crafted image, and de->rec_len will be checked when
-ocfs2_add_entry().
-It seems we can make the check here more precisely by using
-OCFS2_DIR_REC_LEN().Something like:
-  de_len > OCFS2_DIR_REC_LEN(de->name_len)
+If the report is already addressed, let syzbot know by replying with:
+#syz fix: exact-commit-title
 
-Thanks,
-Joseph
+If you want syzbot to run the reproducer, reply with:
+#syz test: git://repo/address.git branch-or-commit-hash
+If you attach or paste a git patch, syzbot will apply it before testing.
 
+If you want to overwrite report's subsystems, reply with:
+#syz set subsystems: new-subsystem
+(See the list of subsystem names on the web dashboard)
+
+If the report is a duplicate of another one, reply with:
+#syz dup: exact-subject-of-another-report
+
+If you want to undo deduplication, reply with:
+#syz undup
