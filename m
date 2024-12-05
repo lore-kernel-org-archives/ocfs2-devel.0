@@ -1,42 +1,42 @@
 Received: from casper.infradead.org (casper.infradead.org [90.155.50.34])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4510B226ECC
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5261C226ECF
 	for <ocfs2-devel@lists.linux.dev>; Thu,  5 Dec 2024 17:17:05 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=90.155.50.34
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1733419026; cv=none; b=Nc7IcVcxXstQhc1qeW8TMdmwJK5SMF2WrjQzXfSyrQmOjjdROFmcB7qK3YZ6L4wxKqcsW4T75rzSFJpHDr4az59xnExoauJDqFmzfxp/RQrQnF6FY0jdtfgMgV+kGE+AKQPbWdfNosYPrt8T/WNzbmdcVTP0fvbDmb+6034XBvw=
+	t=1733419027; cv=none; b=FOgTNShXRsRJvij/09by6ClYP0FCpzcVGbfDLN1rpwnI8wXLH2/crtY9Rwct2n4lYGIp2JGZiraNRmEJY8b1R4INxFN5A8H60papVICi/VWGwArSwmC5nRkJuzMEF85QpDtY8vLTLacLPNfdspz/ryCx0cGtdx9LYcn9mxROI84=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1733419026; c=relaxed/simple;
-	bh=fQvv5Sl7EZkIHkeHfZ48z5PGkR9/ySURx28UcBtDb70=;
+	s=arc-20240116; t=1733419027; c=relaxed/simple;
+	bh=q97iOLYZh28Pzi/NTDtDX1YEulKdraYnePyT6i7EKDw=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=HFeBlYxCjrO55G7yqy4SsJb434Vw5nxoZ8IsrrJQAkPEnZJrB/HckQLl5bQQzpC/ZN27yr5raVfz8Z6Jv4T0VNap+D5W8uPSvUZmGb3RwwXB0OwRYGYcFmlEHTvGX2vl6A+rBAMYXi25rSVSNQAXoAJ2a74qppxvPKa4AdKgxC8=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=infradead.org; spf=none smtp.mailfrom=infradead.org; dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b=sdnUCJQ0; arc=none smtp.client-ip=90.155.50.34
+	 MIME-Version; b=r3wrfphBR5Yl+hstU7pXiviH8o6/dXduAxbfFU9xdhjusC5scF39VAvZLnBT8G5QepQc4EJFlLzXQYKTVGrA71ImHDPiJs4Cf73kPU/wq2bJXk2P/DNelooRQvtKGgZ+XduVJb+9HmEkxcA6RVsn+Ajz9QKrSuRtFKJEsUb1F28=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=infradead.org; spf=none smtp.mailfrom=infradead.org; dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b=fH65bsQQ; arc=none smtp.client-ip=90.155.50.34
 Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=infradead.org
 Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=infradead.org
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="sdnUCJQ0"
+	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="fH65bsQQ"
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
 	d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
 	References:In-Reply-To:Message-ID:Date:Subject:Cc:To:From:Sender:Reply-To:
 	Content-Type:Content-ID:Content-Description;
-	bh=ASxegapsLTTvXMrOJXt+9JDzCb9WinP9tSqjYHXc/JU=; b=sdnUCJQ0EAQffBYp3SnUmT79wo
-	9MX+V/0QzGk4T8Mel2s0vw0ZpfkFVhj/1pIn74ioxG1EWFje2ucMCe1xoWO2jQGvmoDpPATikC0k4
-	vTw1IjBH8ITtdaQq7tQOC4YI/Vyg7YCBwtfCM+5685Tl0bHtw109X4sZDSagIWlvBODNGN3cCW0w7
-	Sr0mBf2DSfhITjqzhRJKcCnpujn4ZVPGxAz2LdKHNO+dGRmjbco7NhtSbwvlIrPxwGUsMP1NS29lu
-	w16tOZkD4+6Btvq/FB96BB2S3M1DeDnafWZHAnopDvRu7i1vbR7N1sTIkzfitWqAW+FR3OXIElyby
-	LMBBs7Ig==;
+	bh=OBUKwkpBr9YZoOfwJw0seJGO9CGQYHD0wrE36thU/L4=; b=fH65bsQQAr8YCu6PU3OIQmlUku
+	2TDXAM3xVu7seMImy8lAL3gLO3/TDXyRAOv5JZ8mFEhczgb6G0UEekYXw8R/s4fe/wILaFg2eLxl6
+	csFUDOIGX/CqSQ/brJhtZttQyBwEqduzoQ5fCNBRUqJ0sYciiln03BC/1DmDcsh7RCBPCuDbh94rT
+	nlV5SXfrrYpNW/Fl37zGjIaZlf5fhTsGmltjCScdUXbA+NqQkLUJiYdoChku9idFdMaY7vzupFGEK
+	T92UGPWhaKpfClwqy7Nq2uf/Ge0V9QNqAm6Xy2wcOjQdLzvHHCkSrCjFzY3EVyoJTmdJtjofjaOB9
+	j3sd6Daw==;
 Received: from willy by casper.infradead.org with local (Exim 4.98 #2 (Red Hat Linux))
-	id 1tJFTG-0000000DLGE-2p0Z;
+	id 1tJFTG-0000000DLGC-2RKO;
 	Thu, 05 Dec 2024 17:16:58 +0000
 From: "Matthew Wilcox (Oracle)" <willy@infradead.org>
 To: Joseph Qi <joseph.qi@linux.alibaba.com>
 Cc: Mark Tinguely <mark.tinguely@oracle.com>,
 	ocfs2-devel@lists.linux.dev,
 	"Matthew Wilcox (Oracle)" <willy@infradead.org>
-Subject: [PATCH 12/23] ocfs2: Use a folio in ocfs2_prepare_page_for_write()
-Date: Thu,  5 Dec 2024 17:16:40 +0000
-Message-ID: <20241205171653.3179945-13-willy@infradead.org>
+Subject: [PATCH 11/23] ocfs2: Use a folio in ocfs2_write_end_nolock()
+Date: Thu,  5 Dec 2024 17:16:39 +0000
+Message-ID: <20241205171653.3179945-12-willy@infradead.org>
 X-Mailer: git-send-email 2.47.0
 In-Reply-To: <20241205171653.3179945-1-willy@infradead.org>
 References: <20241205171653.3179945-1-willy@infradead.org>
@@ -50,67 +50,106 @@ Content-Transfer-Encoding: 8bit
 
 From: Mark Tinguely <mark.tinguely@oracle.com>
 
-Update to the new APIs.  Removes a few page->folio conversions.
+Remove an access to page->index.  Remove some PAGE_SIZE assumptions.
 
 Signed-off-by: Mark Tinguely <mark.tinguely@oracle.com>
 Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
 ---
- fs/ocfs2/aops.c | 18 +++++++++---------
- 1 file changed, 9 insertions(+), 9 deletions(-)
+ fs/ocfs2/aops.c | 37 +++++++++++++++++--------------------
+ 1 file changed, 17 insertions(+), 20 deletions(-)
 
 diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-index cc252a1170ad..9ce8debbd282 100644
+index 8dda080743b7..cc252a1170ad 100644
 --- a/fs/ocfs2/aops.c
 +++ b/fs/ocfs2/aops.c
-@@ -963,10 +963,10 @@ static int ocfs2_prepare_folio_for_write(struct inode *inode, u64 *p_blkno,
- 	/* treat the write as new if the a hole/lseek spanned across
- 	 * the page boundary.
- 	 */
--	new = new | ((i_size_read(inode) <= page_offset(page)) &&
--			(page_offset(page) <= user_pos));
-+	new = new | ((i_size_read(inode) <= folio_pos(folio)) &&
-+			(folio_pos(folio) <= user_pos));
+@@ -1952,17 +1952,16 @@ static void ocfs2_write_end_inline(struct inode *inode, loff_t pos,
+ 	     le16_to_cpu(di->i_dyn_features));
+ }
  
--	if (page == &wc->w_target_folio->page) {
-+	if (folio == wc->w_target_folio) {
- 		map_from = user_pos & (PAGE_SIZE - 1);
- 		map_to = map_from + user_len;
+-int ocfs2_write_end_nolock(struct address_space *mapping,
+-			   loff_t pos, unsigned len, unsigned copied, void *fsdata)
++int ocfs2_write_end_nolock(struct address_space *mapping, loff_t pos,
++		unsigned len, unsigned copied, void *fsdata)
+ {
+ 	int i, ret;
+-	unsigned from, to, start = pos & (PAGE_SIZE - 1);
++	size_t from, to, start = pos & (PAGE_SIZE - 1);
+ 	struct inode *inode = mapping->host;
+ 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+ 	struct ocfs2_write_ctxt *wc = fsdata;
+ 	struct ocfs2_dinode *di = (struct ocfs2_dinode *)wc->w_di_bh->b_data;
+ 	handle_t *handle = wc->w_handle;
+-	struct page *tmppage;
  
-@@ -990,7 +990,7 @@ static int ocfs2_prepare_folio_for_write(struct inode *inode, u64 *p_blkno,
+ 	BUG_ON(!list_empty(&wc->w_unwritten_list));
+ 
+@@ -1993,32 +1992,32 @@ int ocfs2_write_end_nolock(struct address_space *mapping,
+ 					       start+len);
+ 		else {
+ 			/*
+-			 * When page is fully beyond new isize (data copy
+-			 * failed), do not bother zeroing the page. Invalidate
++			 * When folio is fully beyond new isize (data copy
++			 * failed), do not bother zeroing the folio. Invalidate
+ 			 * it instead so that writeback does not get confused
+ 			 * put page & buffer dirty bits into inconsistent
+ 			 * state.
+ 			 */
+-			block_invalidate_folio(wc->w_target_folio,
+-						0, PAGE_SIZE);
++			block_invalidate_folio(wc->w_target_folio, 0,
++					folio_size(wc->w_target_folio));
  		}
- 	} else {
- 		/*
--		 * If we haven't allocated the new page yet, we
-+		 * If we haven't allocated the new folio yet, we
- 		 * shouldn't be writing it out without copying user
- 		 * data. This is likely a math error from the caller.
- 		 */
-@@ -1008,20 +1008,20 @@ static int ocfs2_prepare_folio_for_write(struct inode *inode, u64 *p_blkno,
+ 	}
+ 	if (wc->w_target_folio)
+ 		flush_dcache_folio(wc->w_target_folio);
+ 
+ 	for (i = 0; i < wc->w_num_folios; i++) {
+-		tmppage = &wc->w_folios[i]->page;
++		struct folio *folio = wc->w_folios[i];
+ 
+-		/* This is the direct io target page. */
+-		if (tmppage == NULL)
++		/* This is the direct io target folio */
++		if (folio == NULL)
+ 			continue;
+ 
+-		if (tmppage == &wc->w_target_folio->page) {
++		if (folio == wc->w_target_folio) {
+ 			from = wc->w_target_from;
+ 			to = wc->w_target_to;
+ 
+-			BUG_ON(from > PAGE_SIZE ||
+-			       to > PAGE_SIZE ||
++			BUG_ON(from > folio_size(folio) ||
++			       to > folio_size(folio) ||
+ 			       to < from);
+ 		} else {
+ 			/*
+@@ -2027,19 +2026,17 @@ int ocfs2_write_end_nolock(struct address_space *mapping,
+ 			 * to flush their entire range.
+ 			 */
+ 			from = 0;
+-			to = PAGE_SIZE;
++			to = folio_size(folio);
+ 		}
+ 
+-		if (page_has_buffers(tmppage)) {
++		if (folio_buffers(folio)) {
+ 			if (handle && ocfs2_should_order_data(inode)) {
+-				loff_t start_byte =
+-					((loff_t)tmppage->index << PAGE_SHIFT) +
+-					from;
++				loff_t start_byte = folio_pos(folio) + from;
+ 				loff_t length = to - from;
+ 				ocfs2_jbd2_inode_add_write(handle, inode,
+ 							   start_byte, length);
+ 			}
+-			block_commit_write(tmppage, from, to);
++			block_commit_write(&folio->page, from, to);
+ 		}
  	}
  
- 	/*
--	 * Parts of newly allocated pages need to be zero'd.
-+	 * Parts of newly allocated folios need to be zero'd.
- 	 *
- 	 * Above, we have also rewritten 'to' and 'from' - as far as
- 	 * the rest of the function is concerned, the entire cluster
--	 * range inside of a page needs to be written.
-+	 * range inside of a folio needs to be written.
- 	 *
--	 * We can skip this if the page is up to date - it's already
-+	 * We can skip this if the folio is uptodate - it's already
- 	 * been zero'd from being read in as a hole.
- 	 */
--	if (new && !PageUptodate(page))
-+	if (new && !folio_test_uptodate(folio))
- 		ocfs2_clear_page_regions(page, OCFS2_SB(inode->i_sb),
- 					 cpos, user_data_from, user_data_to);
- 
--	flush_dcache_page(page);
-+	flush_dcache_folio(folio);
- 
- out:
- 	return ret;
 -- 
 2.45.2
 
