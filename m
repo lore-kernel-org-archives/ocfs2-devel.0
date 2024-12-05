@@ -1,42 +1,42 @@
 Received: from casper.infradead.org (casper.infradead.org [90.155.50.34])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A044222579F
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A037322579D
 	for <ocfs2-devel@lists.linux.dev>; Thu,  5 Dec 2024 17:17:01 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=90.155.50.34
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1733419023; cv=none; b=NlFII6sHJmBv6aL6AvhG6SyvrzBi/29/qcKJPHW53LAWghcKVL5WBEA9sjw5Qcz+rBmMVwrA1XRvTFvEd86n+lHRLlC1CjW1qwnH0V783qp2LMEHFyWVJL3qsUvGLf4tFCL2sNBHeg65EJmAZOd6hyATcvruoF8LbkVaK6h8cgs=
+	t=1733419023; cv=none; b=QfL+PPKvmlkLPMx0oHdxzw6YfaxdZCZdSKZ3OsoVaC2KNP40B5TaHrx+2KQuAut9Wr43mBLakPF1eU2MKXuLeRms9pIHdsSxYGoGEV1UL0udUl63NN2LZsyynbFlnwu10X2T7pS1j3EazkTFBioOyv287+a1+a1jvPDGDX8b/oQ=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
 	s=arc-20240116; t=1733419023; c=relaxed/simple;
-	bh=H1yOemQFTMZ0muW/AU4827FjAk2NFjOHZy55MorHuTY=;
+	bh=uFeWHBGTjdPxajyLI5qqpAR4Ejy3DGLOS9zTG5Fdkdo=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=VaNK1KqTNztciFvMRXU9S33BeGj2hZHfGkSZEU2hVrZskG/3zOArWI1Fw1ns72EE1kL7cVnRAap919zKIlBZW89Izdpt+3CpKC6zqdawTXUmQocXkCP3G0JA46Vo3un+xQMof15Ttx/228QIWh1yB9akQ5lAtVvwOeTFi1sgq8o=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=infradead.org; spf=none smtp.mailfrom=infradead.org; dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b=hEDUeKmR; arc=none smtp.client-ip=90.155.50.34
+	 MIME-Version; b=Rr0ooSwsggZ/RLpT3n/kUX6oiZIMOroAL2c7juHJ+ayPezm9ETZhPB/j+P7o3WAsbep1yfom+ezfOX6jpR7yvhQGMIEgoHtDr2bQGYLKq1KiDiNEb+sFKWotKi8bkT8k3b/FT9dn8AGQjc1IA0hXSUOIAgFtSoTIF8SNxD3/cWs=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=infradead.org; spf=none smtp.mailfrom=infradead.org; dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b=FJ3CJRC5; arc=none smtp.client-ip=90.155.50.34
 Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=infradead.org
 Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=infradead.org
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="hEDUeKmR"
+	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="FJ3CJRC5"
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
 	d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
 	References:In-Reply-To:Message-ID:Date:Subject:Cc:To:From:Sender:Reply-To:
 	Content-Type:Content-ID:Content-Description;
-	bh=CAYIV0lvBXBf6GuA7JjRogDKn8RDhTxg8nqbcVw6i3E=; b=hEDUeKmRbVRaq2YH2iPYdRFLsk
-	5E8w7nhYu5fvabpYB+jhX3HEXgHkgciSduU/2LQmulY/Tlr9BcvDPlSj15NWmX/8fbZvusGF8R8ez
-	+RBR1yDGjYdlFdAf4XzkdM1jqdWxoVeP26b2Cx8YgNOO7UkoW0PRgJn8ladCGZjDmfgs/nEIpgqX+
-	+8DpkAVGcGgi+XuvuCs0w17I4MHrrqgHYWPiqJILU3EyWFAxvm0NHTWtZZtUP7fCdZHm7QxmAS0Yn
-	awCMjnuWHkH+CJMOFIlsQzWQBllkC10iieZhnTHidTWVsPMEbMEOJJovhaZsqTz/UFK7cbjVHPfvd
-	KRcroegA==;
+	bh=72BKIgdnaEH0NqQiIR5xnue352hkq41VyzkpRVNz0Q8=; b=FJ3CJRC5zVsSv5SydpU+3CvYAL
+	Q2NP9ZlAokNR7QB3yvtRkbD1uBLJCT8R7JvfKFF4aDLZZMrK2lkn/0UskCIl2KG/4jBzyY6bz03xr
+	9zmNaL25aPJfCgmgjBj1FNSnuc9lA05lsp6QxCWOw2GiQ2ILRKEzsRXCIvxHh+CH/CIg3Q5LCfXpR
+	mzl8vAkszA/F7ZHPwJgGJmGyFKMfy2sJzsQ9qyMQSNJd2/Gg99yx/6jtNZloIdkVWTxvvh/VuBiWF
+	97ldk9R+C1a3HyastQuVYkQSGro8WQOL0sy4RFqQ/vh2A5o1QMQMQu0hLkari/oWtTw77DmxGubKv
+	Ydc0pv1g==;
 Received: from willy by casper.infradead.org with local (Exim 4.98 #2 (Red Hat Linux))
-	id 1tJFTH-0000000DLGf-3XgO;
+	id 1tJFTH-0000000DLGT-1E4k;
 	Thu, 05 Dec 2024 17:16:59 +0000
 From: "Matthew Wilcox (Oracle)" <willy@infradead.org>
 To: Joseph Qi <joseph.qi@linux.alibaba.com>
 Cc: Mark Tinguely <mark.tinguely@oracle.com>,
 	ocfs2-devel@lists.linux.dev,
 	"Matthew Wilcox (Oracle)" <willy@infradead.org>
-Subject: [PATCH 22/23] ocfs2: Support large folios in ocfs2_zero_cluster_folios()
-Date: Thu,  5 Dec 2024 17:16:50 +0000
-Message-ID: <20241205171653.3179945-23-willy@infradead.org>
+Subject: [PATCH 18/23] ocfs2: Convert ocfs2_map_and_dirty_page() to ocfs2_map_and_dirty_folio()
+Date: Thu,  5 Dec 2024 17:16:46 +0000
+Message-ID: <20241205171653.3179945-19-willy@infradead.org>
 X-Mailer: git-send-email 2.47.0
 In-Reply-To: <20241205171653.3179945-1-willy@infradead.org>
 References: <20241205171653.3179945-1-willy@infradead.org>
@@ -50,53 +50,99 @@ Content-Transfer-Encoding: 8bit
 
 From: Mark Tinguely <mark.tinguely@oracle.com>
 
-Remove assumptions that a folio is one page in size.
+All callers now have a folio, so skip the folio->page->folio conversion.
 
 Signed-off-by: Mark Tinguely <mark.tinguely@oracle.com>
 Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
 ---
- fs/ocfs2/alloc.c | 14 +++++---------
- 1 file changed, 5 insertions(+), 9 deletions(-)
+ fs/ocfs2/alloc.c        | 17 ++++++++---------
+ fs/ocfs2/alloc.h        |  6 +++---
+ fs/ocfs2/refcounttree.c |  5 ++---
+ 3 files changed, 13 insertions(+), 15 deletions(-)
 
 diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-index 36b536b54a2d..3bff9314f8e0 100644
+index dfcdafc11377..c8d9d5e9a7fd 100644
 --- a/fs/ocfs2/alloc.c
 +++ b/fs/ocfs2/alloc.c
-@@ -6851,7 +6851,6 @@ static void ocfs2_zero_cluster_folios(struct inode *inode, loff_t start,
- 		u64 phys, handle_t *handle)
+@@ -6808,11 +6808,10 @@ static int ocfs2_zero_func(handle_t *handle, struct buffer_head *bh)
+ 	return 0;
+ }
+ 
+-void ocfs2_map_and_dirty_page(struct inode *inode, handle_t *handle,
+-			      unsigned int from, unsigned int to,
+-			      struct page *page, int zero, u64 *phys)
++void ocfs2_map_and_dirty_folio(struct inode *inode, handle_t *handle,
++		size_t from, size_t to, struct folio *folio, int zero,
++		u64 *phys)
  {
- 	int i;
--	unsigned int from, to = PAGE_SIZE;
- 	struct super_block *sb = inode->i_sb;
+-	struct folio *folio = page_folio(page);
+ 	int ret, partial = 0;
+ 	loff_t start_byte = folio_pos(folio) + from;
+ 	loff_t length = to - from;
+@@ -6871,8 +6870,8 @@ static void ocfs2_zero_cluster_folios(struct inode *inode, loff_t start,
+ 		BUG_ON(from > PAGE_SIZE);
+ 		BUG_ON(to > PAGE_SIZE);
  
- 	BUG_ON(!ocfs2_sparse_alloc(OCFS2_SB(sb)));
-@@ -6859,21 +6858,18 @@ static void ocfs2_zero_cluster_folios(struct inode *inode, loff_t start,
- 	if (numfolios == 0)
- 		goto out;
+-		ocfs2_map_and_dirty_page(inode, handle, from, to, &folio->page, 1,
+-					 &phys);
++		ocfs2_map_and_dirty_folio(inode, handle, from, to, folio, 1,
++				&phys);
  
--	to = PAGE_SIZE;
- 	for (i = 0; i < numfolios; i++) {
- 		struct folio *folio = folios[i];
-+		size_t to = folio_size(folio);
-+		size_t from = offset_in_folio(folio, start);
- 
--		from = start & (PAGE_SIZE - 1);
--		if ((end >> PAGE_SHIFT) == folio->index)
--			to = end & (PAGE_SIZE - 1);
--
--		BUG_ON(from > PAGE_SIZE);
--		BUG_ON(to > PAGE_SIZE);
-+		if (to > end - folio_pos(folio))
-+			to = end - folio_pos(folio);
- 
- 		ocfs2_map_and_dirty_folio(inode, handle, from, to, folio, 1,
- 				&phys);
- 
--		start = (folio->index + 1) << PAGE_SHIFT;
-+		start = folio_next_index(folio) << PAGE_SHIFT;
+ 		start = (folio->index + 1) << PAGE_SHIFT;
  	}
- out:
- 	if (folios)
+@@ -7120,7 +7119,7 @@ int ocfs2_convert_inline_data_to_extents(struct inode *inode,
+ 
+ 		/*
+ 		 * Save two copies, one for insert, and one that can
+-		 * be changed by ocfs2_map_and_dirty_page() below.
++		 * be changed by ocfs2_map_and_dirty_folio() below.
+ 		 */
+ 		block = phys = ocfs2_clusters_to_blocks(inode->i_sb, bit_off);
+ 
+@@ -7143,8 +7142,8 @@ int ocfs2_convert_inline_data_to_extents(struct inode *inode,
+ 			goto out_unlock;
+ 		}
+ 
+-		ocfs2_map_and_dirty_page(inode, handle, 0, page_end, &folio->page, 0,
+-					 &phys);
++		ocfs2_map_and_dirty_folio(inode, handle, 0, page_end, folio, 0,
++				&phys);
+ 	}
+ 
+ 	spin_lock(&oi->ip_lock);
+diff --git a/fs/ocfs2/alloc.h b/fs/ocfs2/alloc.h
+index 6a2aca1a062e..1c0c83362904 100644
+--- a/fs/ocfs2/alloc.h
++++ b/fs/ocfs2/alloc.h
+@@ -254,9 +254,9 @@ static inline int ocfs2_is_empty_extent(struct ocfs2_extent_rec *rec)
+ 	return !rec->e_leaf_clusters;
+ }
+ 
+-void ocfs2_map_and_dirty_page(struct inode *inode, handle_t *handle,
+-			      unsigned int from, unsigned int to,
+-			      struct page *page, int zero, u64 *phys);
++void ocfs2_map_and_dirty_folio(struct inode *inode, handle_t *handle,
++		size_t from, size_t to, struct folio *folio, int zero,
++		u64 *phys);
+ /*
+  * Structures which describe a path through a btree, and functions to
+  * manipulate them.
+diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
+index 68e0339690e9..693665a36855 100644
+--- a/fs/ocfs2/refcounttree.c
++++ b/fs/ocfs2/refcounttree.c
+@@ -2975,9 +2975,8 @@ int ocfs2_duplicate_clusters_by_page(handle_t *handle,
+ 			}
+ 		}
+ 
+-		ocfs2_map_and_dirty_page(inode,
+-					 handle, from, to,
+-					 &folio->page, 0, &new_block);
++		ocfs2_map_and_dirty_folio(inode, handle, from, to,
++				folio, 0, &new_block);
+ 		folio_mark_accessed(folio);
+ unlock:
+ 		folio_unlock(folio);
 -- 
 2.45.2
 
