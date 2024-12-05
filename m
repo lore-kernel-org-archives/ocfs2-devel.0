@@ -1,42 +1,42 @@
 Received: from casper.infradead.org (casper.infradead.org [90.155.50.34])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5C30E226ED6
-	for <ocfs2-devel@lists.linux.dev>; Thu,  5 Dec 2024 17:17:07 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 26A46226ED3
+	for <ocfs2-devel@lists.linux.dev>; Thu,  5 Dec 2024 17:17:10 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=90.155.50.34
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1733419028; cv=none; b=Z+AIqpimXNg23AQRAfeRqUdu8GgGaJ2oOy9YOngEuZkCwM+YW59315wXv8OU8S9xfBF8p8LqeEG0tcfx5OrWjMspkPNHec3um2hy/J57IG+T7WMBHI17fdIFYSYAzMT+WtOx4jjQ/e5RpIgCOMtPTl0/wZaoNbJFetPK4XaM6cU=
+	t=1733419031; cv=none; b=orPG0Ct37naDH+wewL7L4qqG5GDoNFTv7NY4nG6cx4kedxQU27Y0pAAYMEjht40TcJb243n7LQshqAVg7ROeWsE3omHl4bUpsSVTYH5BQTioFgkj7EWv3sU0WJekEP8ahqXavNVrU5vCnRIJMN4eI4lzOE3gBSZ7Z8rKO0YPD2Q=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1733419028; c=relaxed/simple;
-	bh=sz/1TgSG/YFjVIblpFHI84bB/oYWk8dsdXtDiQQjyaw=;
+	s=arc-20240116; t=1733419031; c=relaxed/simple;
+	bh=bPhplidBwP866DB1BHiMFKxsD6egrujx2QzIL0v5txw=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=ByPdpZzBh7OJ0bdWYXqMc/9wM9uusk9X3eDKOWUA5GqtXtGmseyWgx77hiGY0u2ARg7R8NWkWJehrRdH1gKObAhT8g13Ktv8lZ4m+VyHnxNAHMkEpntv8p1Ox6fc6MWodp0SDmLeBDQLYmqHIgnTTHFQO6KJdyO/zU59vb8tCU0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=infradead.org; spf=none smtp.mailfrom=infradead.org; dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b=IgyNPUxS; arc=none smtp.client-ip=90.155.50.34
+	 MIME-Version; b=m7wFCUB28jXjIZxDfTqwOgXHVvem1GQ33GFCwn7SAI/VMm0meKpbIuSEKNTVD9l9H7ltMdAfqYQ8mFLV2uX+eyR8n/TtXya/f+YKFdVShkViSeSWf3rCSjaF/GfhO/kD4YvxzycW4LHHq7XYSJWS1CVWtgS8emh3+jMXTRx3fdU=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=infradead.org; spf=none smtp.mailfrom=infradead.org; dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b=WZXMqiHR; arc=none smtp.client-ip=90.155.50.34
 Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=infradead.org
 Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=infradead.org
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="IgyNPUxS"
+	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="WZXMqiHR"
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
 	d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
 	References:In-Reply-To:Message-ID:Date:Subject:Cc:To:From:Sender:Reply-To:
 	Content-Type:Content-ID:Content-Description;
-	bh=KblIVmxpEco2yqyBjKmuEMH7jBMf12lFTg6fcR2SQyk=; b=IgyNPUxSrJHr23SHGexJPhZUHS
-	SnI8v99YPSMFXaL/oMNvtD9OT5wXPxIJBaqyrflRwsiK4Xzy6MeaCid0pbRiQUdqsqXB3Am9VlN6i
-	iW8lsRRmX0nF1L9nJZIg7WHLTDLZnIucGRkpjrwxW500AXrTeNVz3l/NS8MLuTixhxzG9MXz+IZ6O
-	2+z8GOP4m4EGRkDBRUY+jb6le2ZCWmFTIFGZXSOyR2rlWb36gN6vRiU5fSFxH17isnsbcWbFzeA8a
-	NNMGolweXU4f2S4nO+f7EZKYNeOb5gX1fzwnKMzTd2+/M3CkdQKOVwEdNfLkDgHxiYZzAh+59TUQ1
-	8Bd9r1DA==;
+	bh=ZnDPC/cUztlHqoXv6mY9VL4Zs18mgm4ZZNHtdRsRqYk=; b=WZXMqiHRKtMMf6Vt0aYcwduXxR
+	Wm6npG6W+vxDVcnwwl9HQL6T4PjNRmWsqXPaxadPkzLmtfSkiuFOHYCnrhRJFKXSXdJmJl2P5KqMh
+	bjoftFOMQ4zN5Y5Al3RgrF2KLDwsXyt9sxO9ox9oGm8zF3DoEhmG3g40mTAe8IZMZzABy5e5qZfLo
+	3nCFEnqoeS0HbXPW9IpTpk2cnNI4rDlPdvXuTlPvMrOh78DN2RTYqEVPb5B4rvZz65JsX6ZWz8ZCM
+	nYpoA6wWcRgJEjQNisyj7QltDT/zjgU1WDTyg6GlSwW/YFG2auHLHBVS1tn+5a7AuB/+PVy+1At46
+	yHuUztTg==;
 Received: from willy by casper.infradead.org with local (Exim 4.98 #2 (Red Hat Linux))
-	id 1tJFTH-0000000DLGY-2E03;
-	Thu, 05 Dec 2024 17:16:59 +0000
+	id 1tJFTG-0000000DLG1-0oid;
+	Thu, 05 Dec 2024 17:16:58 +0000
 From: "Matthew Wilcox (Oracle)" <willy@infradead.org>
 To: Joseph Qi <joseph.qi@linux.alibaba.com>
-Cc: "Matthew Wilcox (Oracle)" <willy@infradead.org>,
+Cc: Mark Tinguely <mark.tinguely@oracle.com>,
 	ocfs2-devel@lists.linux.dev,
-	Mark Tinguely <mark.tinguely@oracle.com>
-Subject: [PATCH 19/23] ocfs2: Convert ocfs2_read_inline_data() to take a folio
-Date: Thu,  5 Dec 2024 17:16:47 +0000
-Message-ID: <20241205171653.3179945-20-willy@infradead.org>
+	"Matthew Wilcox (Oracle)" <willy@infradead.org>
+Subject: [PATCH 07/23] ocfs2: Convert ocfs2_readpage_inline() to take a folio
+Date: Thu,  5 Dec 2024 17:16:35 +0000
+Message-ID: <20241205171653.3179945-8-willy@infradead.org>
 X-Mailer: git-send-email 2.47.0
 In-Reply-To: <20241205171653.3179945-1-willy@infradead.org>
 References: <20241205171653.3179945-1-willy@infradead.org>
@@ -48,104 +48,57 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-All callers now have a folio, so pass it in.  We can use
-folio_fill_tail() instead of open-coding it.  Saves a call to
-compound_head().
+From: Mark Tinguely <mark.tinguely@oracle.com>
 
+Save a couple of calls to compound_head() by using a folio throughout
+this function.
+
+Signed-off-by: Mark Tinguely <mark.tinguely@oracle.com>
 Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
 ---
- fs/ocfs2/alloc.c |  2 +-
- fs/ocfs2/aops.c  | 20 ++++++--------------
- fs/ocfs2/aops.h  |  2 +-
- 3 files changed, 8 insertions(+), 16 deletions(-)
+ fs/ocfs2/aops.c | 10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
 
-diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-index c8d9d5e9a7fd..36b536b54a2d 100644
---- a/fs/ocfs2/alloc.c
-+++ b/fs/ocfs2/alloc.c
-@@ -7135,7 +7135,7 @@ int ocfs2_convert_inline_data_to_extents(struct inode *inode,
- 		 * This should populate the 1st page for us and mark
- 		 * it up to date.
- 		 */
--		ret = ocfs2_read_inline_data(inode, &folio->page, di_bh);
-+		ret = ocfs2_read_inline_data(inode, folio, di_bh);
- 		if (ret) {
- 			mlog_errno(ret);
- 			need_free = 1;
 diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-index f1eba968563f..80fe7a68cbcc 100644
+index aac644a0d25d..1896a1d24173 100644
 --- a/fs/ocfs2/aops.c
 +++ b/fs/ocfs2/aops.c
-@@ -215,10 +215,9 @@ int ocfs2_get_block(struct inode *inode, sector_t iblock,
- 	return err;
- }
- 
--int ocfs2_read_inline_data(struct inode *inode, struct page *page,
-+int ocfs2_read_inline_data(struct inode *inode, struct folio *folio,
- 			   struct buffer_head *di_bh)
- {
--	void *kaddr;
- 	loff_t size;
- 	struct ocfs2_dinode *di = (struct ocfs2_dinode *)di_bh->b_data;
- 
-@@ -230,7 +229,7 @@ int ocfs2_read_inline_data(struct inode *inode, struct page *page,
- 
- 	size = i_size_read(inode);
- 
--	if (size > PAGE_SIZE ||
-+	if (size > folio_size(folio) ||
- 	    size > ocfs2_max_inline_data_with_xattr(inode->i_sb, di)) {
- 		ocfs2_error(inode->i_sb,
- 			    "Inode %llu has with inline data has bad size: %Lu\n",
-@@ -239,15 +238,8 @@ int ocfs2_read_inline_data(struct inode *inode, struct page *page,
- 		return -EROFS;
- 	}
- 
--	kaddr = kmap_atomic(page);
--	if (size)
--		memcpy(kaddr, di->id2.i_data.id_data, size);
--	/* Clear the remaining part of the page */
--	memset(kaddr + size, 0, PAGE_SIZE - size);
--	flush_dcache_page(page);
--	kunmap_atomic(kaddr);
--
--	SetPageUptodate(page);
-+	folio_fill_tail(folio, 0, di->id2.i_data.id_data, size);
-+	folio_mark_uptodate(folio);
- 
+@@ -252,12 +252,12 @@ int ocfs2_read_inline_data(struct inode *inode, struct page *page,
  	return 0;
  }
-@@ -266,7 +258,7 @@ static int ocfs2_readpage_inline(struct inode *inode, struct folio *folio)
+ 
+-static int ocfs2_readpage_inline(struct inode *inode, struct page *page)
++static int ocfs2_readpage_inline(struct inode *inode, struct folio *folio)
+ {
+ 	int ret;
+ 	struct buffer_head *di_bh = NULL;
+ 
+-	BUG_ON(!PageLocked(page));
++	BUG_ON(!folio_test_locked(folio));
+ 	BUG_ON(!(OCFS2_I(inode)->ip_dyn_features & OCFS2_INLINE_DATA_FL));
+ 
+ 	ret = ocfs2_read_inode_block(inode, &di_bh);
+@@ -266,9 +266,9 @@ static int ocfs2_readpage_inline(struct inode *inode, struct page *page)
  		goto out;
  	}
  
--	ret = ocfs2_read_inline_data(inode, &folio->page, di_bh);
-+	ret = ocfs2_read_inline_data(inode, folio, di_bh);
+-	ret = ocfs2_read_inline_data(inode, page, di_bh);
++	ret = ocfs2_read_inline_data(inode, &folio->page, di_bh);
  out:
- 	folio_unlock(folio);
+-	unlock_page(page);
++	folio_unlock(folio);
  
-@@ -1506,7 +1498,7 @@ static int ocfs2_write_begin_inline(struct address_space *mapping,
- 		ocfs2_set_inode_data_inline(inode, di);
+ 	brelse(di_bh);
+ 	return ret;
+@@ -322,7 +322,7 @@ static int ocfs2_read_folio(struct file *file, struct folio *folio)
+ 	}
  
- 	if (!folio_test_uptodate(folio)) {
--		ret = ocfs2_read_inline_data(inode, &folio->page, wc->w_di_bh);
-+		ret = ocfs2_read_inline_data(inode, folio, wc->w_di_bh);
- 		if (ret) {
- 			ocfs2_commit_trans(osb, handle);
- 
-diff --git a/fs/ocfs2/aops.h b/fs/ocfs2/aops.h
-index cf8d202d9a8b..6f25066e5756 100644
---- a/fs/ocfs2/aops.h
-+++ b/fs/ocfs2/aops.h
-@@ -41,7 +41,7 @@ int ocfs2_write_begin_nolock(struct address_space *mapping,
- 		struct folio **foliop, void **fsdata,
- 		struct buffer_head *di_bh, struct folio *mmap_folio);
- 
--int ocfs2_read_inline_data(struct inode *inode, struct page *page,
-+int ocfs2_read_inline_data(struct inode *inode, struct folio *folio,
- 			   struct buffer_head *di_bh);
- int ocfs2_size_fits_inline_data(struct buffer_head *di_bh, u64 new_size);
- 
+ 	if (oi->ip_dyn_features & OCFS2_INLINE_DATA_FL)
+-		ret = ocfs2_readpage_inline(inode, &folio->page);
++		ret = ocfs2_readpage_inline(inode, folio);
+ 	else
+ 		ret = block_read_full_folio(folio, ocfs2_get_block);
+ 	unlock = 0;
 -- 
 2.45.2
 
