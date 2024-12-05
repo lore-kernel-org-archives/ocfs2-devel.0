@@ -1,42 +1,42 @@
 Received: from casper.infradead.org (casper.infradead.org [90.155.50.34])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1D427226EDE
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1D3A4225771
 	for <ocfs2-devel@lists.linux.dev>; Thu,  5 Dec 2024 17:17:31 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=90.155.50.34
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1733419052; cv=none; b=SPbGy8PzBuR9CuhoytmJGNe2Y/3UzSlmPtdhuVYdo2UXOSGsWet0pPem2SRoua5L9gFNYYj4rZXrrqvytyV61zscI49ebkkIa2LhFH4Kuf5S5CMidUFWJLiutxVfB3rD1ISYYfdO+xYPu+wI/wYsQOk1Mm/ngglarOMkE7slfOk=
+	t=1733419052; cv=none; b=eWrZ+uYPCVXWj0/CZbIQu3dQJ/2kzZxHulDZ16VZvVib1hrbjk/Nz3NBuhvTgQFtj60xugIoRpP6+pJQ946sbMCx0VbVqc04nrN68KYcM2axbIXyfP7mQva3ktpN4vRnvVKDf8eZ6oZftH6M822WZ/znkt/HbfZkyr4c54qco1A=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
 	s=arc-20240116; t=1733419052; c=relaxed/simple;
-	bh=wlv6N9lMsZJnyr5EjbhX0vGKk36/kJ+MsWhETXMfw+o=;
+	bh=6fR8f8+LGeDTaaQVeUbng9ZDbQRCBSI7JuuVlSd5RQw=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=AuMrcRb/kvoF28BUluOazklGKz+3GSPCMF67rWRAevmHmW4lFRU9oSM5VDkEhsvPUwYDcgiG0gXifR2/qfPhhwCv06o1Xob9EHFXbgxTz0L2P0yoIAMvGF+li3OTgXOTb5hzwAgtwv3DtAz8RKiERrNFHwmEcAKtgocICYSYogg=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=infradead.org; spf=none smtp.mailfrom=infradead.org; dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b=DiCk+cr+; arc=none smtp.client-ip=90.155.50.34
+	 MIME-Version; b=Nks02ftSDmewektoIPvrJbe0WcQ4b+Dm4VQ7yIiYE6uA4RRrTJYjHXvfm8EDK3bxX/oz9bNPf0QmAys5zPn9hH9vEvsQpZHHDscFeLEStEhg4NkpdJO51LQN2x4uKSJdmJsvVghbieliE08wjXmBJQDZgulbX2IZG3Yc/Aebx8U=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=infradead.org; spf=none smtp.mailfrom=infradead.org; dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b=pbe1xFZt; arc=none smtp.client-ip=90.155.50.34
 Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=infradead.org
 Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=infradead.org
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="DiCk+cr+"
+	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="pbe1xFZt"
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
 	d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
 	References:In-Reply-To:Message-ID:Date:Subject:Cc:To:From:Sender:Reply-To:
 	Content-Type:Content-ID:Content-Description;
-	bh=OWPYwJHsbe8+Xvq+8+JVMaQlULm41wzo2YKYKt+QVME=; b=DiCk+cr+iePLUXOb73M9ortm6o
-	kFTsPt7rYyJlEv73yZdExsnNUlgQWo6sV97X7Qyn0c38SgyR8bZIxq6Lh8d+2tMbde3u2HIHqDu4E
-	sUkfHhtNqRnF+j7zwNg4BGhFKnjjNp4zKdSLprLTeKMonm/syLINf4He4Y9oL1cPthRAYxY0oWyV9
-	Qn0FbnXWtdO94aSTAIY6oDXNEgSIsSoq/uubSbxo3HAQZ1WbWJ54BDJhpP2Omzr1ghXmIcovksLky
-	eP9OI7QRcVDlATD34NaAmqpbaUfCG6Tik8WrTB3R8MDwWrb7ev+HVQ72KgCu7hMUwnprWrW771A3b
-	QRqrWT2A==;
+	bh=fdg2uRUNQgIAA/fpwgKroqdo3N6ku16P/WgOrL/JiCw=; b=pbe1xFZtdnM16W5D5vC4uefLmc
+	sZONyQi6g3oobbwUk60OkKKngoc82Dsx8wyXwsOY+R+7/3x4+WomCrZ3bcmfk5iXPGE2Qd+oqAkLv
+	Tk+ff9kordJdxS5TUeYPZbKTWwdweXEDuu994oeyo58GqKpq9YkqReBvUJoHB5kmHJk0vG57wmC+N
+	DbGnA8/R4wxoUvpQRddGakUMf7aelGMjF5pyJJ+t9Ukkv7Zte2JYt87zclg3Wug4wIPQ14VwZyqEF
+	2ATE64IgI6Y6Wott6sMnyxBf1Sw/ibCfR8M0S5RGAM+k3HAjps+GOCSF+/Y1oxTtjG/9bv2oOFEPB
+	E8aucP2Q==;
 Received: from willy by casper.infradead.org with local (Exim 4.98 #2 (Red Hat Linux))
-	id 1tJFTH-0000000DLGR-0abt;
-	Thu, 05 Dec 2024 17:16:59 +0000
+	id 1tJFTG-0000000DLG4-1Fqa;
+	Thu, 05 Dec 2024 17:16:58 +0000
 From: "Matthew Wilcox (Oracle)" <willy@infradead.org>
 To: Joseph Qi <joseph.qi@linux.alibaba.com>
 Cc: Mark Tinguely <mark.tinguely@oracle.com>,
 	ocfs2-devel@lists.linux.dev,
 	"Matthew Wilcox (Oracle)" <willy@infradead.org>
-Subject: [PATCH 17/23] ocfs2: Convert ocfs2_duplicate_clusters_by_page() to use a folio
-Date: Thu,  5 Dec 2024 17:16:45 +0000
-Message-ID: <20241205171653.3179945-18-willy@infradead.org>
+Subject: [PATCH 08/23] ocfs2: Convert ocfs2_inode_lock_with_page() to ocfs2_inode_lock_with_folio()
+Date: Thu,  5 Dec 2024 17:16:36 +0000
+Message-ID: <20241205171653.3179945-9-willy@infradead.org>
 X-Mailer: git-send-email 2.47.0
 In-Reply-To: <20241205171653.3179945-1-willy@infradead.org>
 References: <20241205171653.3179945-1-willy@infradead.org>
@@ -50,101 +50,89 @@ Content-Transfer-Encoding: 8bit
 
 From: Mark Tinguely <mark.tinguely@oracle.com>
 
-Retrieve folios from the page cache, not pages, and use a folio
-throughout this function.  Removes seven calls to compound_head().
+Saves a hidden call to compound_head().
 
 Signed-off-by: Mark Tinguely <mark.tinguely@oracle.com>
 Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
 ---
- fs/ocfs2/refcounttree.c | 32 +++++++++++++++-----------------
- 1 file changed, 15 insertions(+), 17 deletions(-)
+ fs/ocfs2/aops.c    |  2 +-
+ fs/ocfs2/dlmglue.c | 18 ++++++++----------
+ fs/ocfs2/dlmglue.h |  6 ++----
+ 3 files changed, 11 insertions(+), 15 deletions(-)
 
-diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
-index 004393b13c0a..68e0339690e9 100644
---- a/fs/ocfs2/refcounttree.c
-+++ b/fs/ocfs2/refcounttree.c
-@@ -2902,7 +2902,6 @@ int ocfs2_duplicate_clusters_by_page(handle_t *handle,
- 	int ret = 0, partial;
- 	struct super_block *sb = inode->i_sb;
- 	u64 new_block = ocfs2_clusters_to_blocks(sb, new_cluster);
--	struct page *page;
- 	pgoff_t page_index;
- 	unsigned int from, to;
- 	loff_t offset, end, map_end;
-@@ -2921,6 +2920,7 @@ int ocfs2_duplicate_clusters_by_page(handle_t *handle,
- 		end = i_size_read(inode);
+diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+index 1896a1d24173..161f2dc00b00 100644
+--- a/fs/ocfs2/aops.c
++++ b/fs/ocfs2/aops.c
+@@ -283,7 +283,7 @@ static int ocfs2_read_folio(struct file *file, struct folio *folio)
  
- 	while (offset < end) {
-+		struct folio *folio;
- 		page_index = offset >> PAGE_SHIFT;
- 		map_end = ((loff_t)page_index + 1) << PAGE_SHIFT;
- 		if (map_end > end)
-@@ -2933,9 +2933,10 @@ int ocfs2_duplicate_clusters_by_page(handle_t *handle,
- 			to = map_end & (PAGE_SIZE - 1);
+ 	trace_ocfs2_readpage((unsigned long long)oi->ip_blkno, folio->index);
  
- retry:
--		page = find_or_create_page(mapping, page_index, GFP_NOFS);
--		if (!page) {
--			ret = -ENOMEM;
-+		folio = __filemap_get_folio(mapping, page_index,
-+				FGP_LOCK | FGP_ACCESSED | FGP_CREAT, GFP_NOFS);
-+		if (IS_ERR(folio)) {
-+			ret = PTR_ERR(folio);
- 			mlog_errno(ret);
- 			break;
- 		}
-@@ -2945,9 +2946,9 @@ int ocfs2_duplicate_clusters_by_page(handle_t *handle,
- 		 * page, so write it back.
- 		 */
- 		if (PAGE_SIZE <= OCFS2_SB(sb)->s_clustersize) {
--			if (PageDirty(page)) {
--				unlock_page(page);
--				put_page(page);
-+			if (folio_test_dirty(folio)) {
-+				folio_unlock(folio);
-+				folio_put(folio);
+-	ret = ocfs2_inode_lock_with_page(inode, NULL, 0, &folio->page);
++	ret = ocfs2_inode_lock_with_folio(inode, NULL, 0, folio);
+ 	if (ret != 0) {
+ 		if (ret == AOP_TRUNCATED_PAGE)
+ 			unlock = 0;
+diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
+index 60df52e4c1f8..acebfa19ea6f 100644
+--- a/fs/ocfs2/dlmglue.c
++++ b/fs/ocfs2/dlmglue.c
+@@ -2529,30 +2529,28 @@ int ocfs2_inode_lock_full_nested(struct inode *inode,
  
- 				ret = filemap_write_and_wait_range(mapping,
- 						offset, map_end - 1);
-@@ -2955,9 +2956,7 @@ int ocfs2_duplicate_clusters_by_page(handle_t *handle,
- 			}
- 		}
+ /*
+  * This is working around a lock inversion between tasks acquiring DLM
+- * locks while holding a page lock and the downconvert thread which
+- * blocks dlm lock acquiry while acquiring page locks.
++ * locks while holding a folio lock and the downconvert thread which
++ * blocks dlm lock acquiry while acquiring folio locks.
+  *
+- * ** These _with_page variantes are only intended to be called from aop
+- * methods that hold page locks and return a very specific *positive* error
++ * ** These _with_folio variantes are only intended to be called from aop
++ * methods that hold folio locks and return a very specific *positive* error
+  * code that aop methods pass up to the VFS -- test for errors with != 0. **
+  *
+  * The DLM is called such that it returns -EAGAIN if it would have
+  * blocked waiting for the downconvert thread.  In that case we unlock
+- * our page so the downconvert thread can make progress.  Once we've
++ * our folio so the downconvert thread can make progress.  Once we've
+  * done this we have to return AOP_TRUNCATED_PAGE so the aop method
+  * that called us can bubble that back up into the VFS who will then
+  * immediately retry the aop call.
+  */
+-int ocfs2_inode_lock_with_page(struct inode *inode,
+-			      struct buffer_head **ret_bh,
+-			      int ex,
+-			      struct page *page)
++int ocfs2_inode_lock_with_folio(struct inode *inode,
++		struct buffer_head **ret_bh, int ex, struct folio *folio)
+ {
+ 	int ret;
  
--		if (!PageUptodate(page)) {
--			struct folio *folio = page_folio(page);
--
-+		if (!folio_test_uptodate(folio)) {
- 			ret = block_read_full_folio(folio, ocfs2_get_block);
- 			if (ret) {
- 				mlog_errno(ret);
-@@ -2966,8 +2965,8 @@ int ocfs2_duplicate_clusters_by_page(handle_t *handle,
- 			folio_lock(folio);
- 		}
- 
--		if (page_has_buffers(page)) {
--			ret = walk_page_buffers(handle, page_buffers(page),
-+		if (folio_buffers(folio)) {
-+			ret = walk_page_buffers(handle, folio_buffers(folio),
- 						from, to, &partial,
- 						ocfs2_clear_cow_buffer);
- 			if (ret) {
-@@ -2978,12 +2977,11 @@ int ocfs2_duplicate_clusters_by_page(handle_t *handle,
- 
- 		ocfs2_map_and_dirty_page(inode,
- 					 handle, from, to,
--					 page, 0, &new_block);
--		mark_page_accessed(page);
-+					 &folio->page, 0, &new_block);
-+		folio_mark_accessed(folio);
- unlock:
+ 	ret = ocfs2_inode_lock_full(inode, ret_bh, ex, OCFS2_LOCK_NONBLOCK);
+ 	if (ret == -EAGAIN) {
 -		unlock_page(page);
--		put_page(page);
--		page = NULL;
 +		folio_unlock(folio);
-+		folio_put(folio);
- 		offset = map_end;
- 		if (ret)
- 			break;
+ 		/*
+ 		 * If we can't get inode lock immediately, we should not return
+ 		 * directly here, since this will lead to a softlockup problem.
+diff --git a/fs/ocfs2/dlmglue.h b/fs/ocfs2/dlmglue.h
+index e5da5809ed95..a3ebd7303ea2 100644
+--- a/fs/ocfs2/dlmglue.h
++++ b/fs/ocfs2/dlmglue.h
+@@ -137,10 +137,8 @@ int ocfs2_inode_lock_full_nested(struct inode *inode,
+ 			 int ex,
+ 			 int arg_flags,
+ 			 int subclass);
+-int ocfs2_inode_lock_with_page(struct inode *inode,
+-			      struct buffer_head **ret_bh,
+-			      int ex,
+-			      struct page *page);
++int ocfs2_inode_lock_with_folio(struct inode *inode,
++		struct buffer_head **ret_bh, int ex, struct folio *folio);
+ /* Variants without special locking class or flags */
+ #define ocfs2_inode_lock_full(i, r, e, f)\
+ 		ocfs2_inode_lock_full_nested(i, r, e, f, OI_LS_NORMAL)
 -- 
 2.45.2
 
