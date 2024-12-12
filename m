@@ -1,169 +1,74 @@
-Received: from forward100a.mail.yandex.net (forward100a.mail.yandex.net [178.154.239.83])
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3CD331BD9F9
-	for <ocfs2-devel@lists.linux.dev>; Tue, 10 Dec 2024 16:38:04 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=178.154.239.83
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5E61D20C009;
+	Thu, 12 Dec 2024 08:18:34 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1733848690; cv=none; b=MC0hWyxnokXM3+BhpU9HxRnrr3iqwLHES3tuKVVCg0XxHSBQPB96avYlgofMXf/UCHUmD2PpDz2+VBw3WD26ab/9grM7/fQA17v0yEKD4D2czaqrNRt0wAIDpxEZwo5yXjqiyafaP+SpqAcnmEjxBZNJyCaSHNUmzc103BgrnZI=
+	t=1733991515; cv=none; b=UYyDLangzhMMN1L2NsOXQJn3boRdlHH/qWul4hlfPALK8uuDRz+vYNAYv7arOB6TACuitJdTEaXJtTnz0R+cidKemwi6LxTJx8QmVXnPfmh3rmpqxElvw4ho66YiQ7fMDFp+nuj1SlDlSYhHwz8yLidjCQ39OfnBqrRwIYnyT8M=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1733848690; c=relaxed/simple;
-	bh=2GGiuRt5m4fR+HfOLxdOZmF6BABvHlu0ZSC+HNhYus8=;
-	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=RV0P1kFf65UAfWpaBmYx6YPN73HIm1F3ntG4nFMtDP/z7uyOKkZ09qqdoqy/g7fhldqLwwOaqVldpoByhmNkz9flXnDSBxqhYxJ+m1qxPevDGDDd+9d8yjLnsjcAIDl66C2OhodcTTsKXZP0XYWOqSJuYs4swTxR83Cqv44OmCQ=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru; spf=pass smtp.mailfrom=yandex.ru; dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b=aeiUmt05; arc=none smtp.client-ip=178.154.239.83
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=yandex.ru
+	s=arc-20240116; t=1733991515; c=relaxed/simple;
+	bh=/NdEOIdaBTTmlN/1YJBk7TcJe9e+1DlVJvKlF+ySpuM=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=liLBCs9GFYObuSgxR3lR6rPWTC+fSOaQWPpKHefyWxMQEjjgY029xgNwrL4dtHCDXrEImR0DSQoyqoMw1V46ODGgHsL2vpxVKCVTgC6VIHGkQuAjlzug0QJD/byQIywPssHkSsGOUxl6YCgDBMfe1aSFqlqAWnuT8/Uek++gkrM=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (1024-bit key) header.d=linuxfoundation.org header.i=@linuxfoundation.org header.b=ZRmKGHf1; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b="aeiUmt05"
-Received: from mail-nwsmtp-smtp-production-main-67.vla.yp-c.yandex.net (mail-nwsmtp-smtp-production-main-67.vla.yp-c.yandex.net [IPv6:2a02:6b8:c15:2c1c:0:640:7de8:0])
-	by forward100a.mail.yandex.net (Yandex) with ESMTPS id 6C3E6470BE;
-	Tue, 10 Dec 2024 19:37:57 +0300 (MSK)
-Received: by mail-nwsmtp-smtp-production-main-67.vla.yp-c.yandex.net (smtp/Yandex) with ESMTPSA id ubp8Sx4OpiE0-n3Cefxn4;
-	Tue, 10 Dec 2024 19:37:56 +0300
-X-Yandex-Fwd: 1
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=yandex.ru; s=mail;
-	t=1733848676; bh=GDtzDCNWWvPTlEeA02bCkmdthSLKu43VRBzKZottOZo=;
-	h=Message-ID:Date:Cc:Subject:To:From;
-	b=aeiUmt05BdfOYzHgHbWRyGfViKRKnKTEiRtLx9HbyvPI2o+WMqfrJt1T4VJWK/XiE
-	 BUEdRUBPXf9paEF4FSm+osSBUGKFWBtVfihivbs5w2a4+hTMVohYc9Ak6jtCoyOF8E
-	 jrkx3J2IKKh3vNg4sVJjB6o8uFEO9HG66baRWZVA=
-Authentication-Results: mail-nwsmtp-smtp-production-main-67.vla.yp-c.yandex.net; dkim=pass header.i=@yandex.ru
-From: Dmitry Antipov <dmantipov@yandex.ru>
-To: Mark Fasheh <mark@fasheh.com>,
-	Joel Becker <jlbec@evilplan.org>,
-	Joseph Qi <joseph.qi@linux.alibaba.com>
-Cc: ocfs2-devel@lists.linux.dev,
-	Dmitry Antipov <dmantipov@yandex.ru>
-Subject: [PATCH] ocfs2: avoid extra calls to strlen()
-Date: Tue, 10 Dec 2024 19:37:23 +0300
-Message-ID: <20241210163723.20137-1-dmantipov@yandex.ru>
-X-Mailer: git-send-email 2.47.1
+	dkim=pass (1024-bit key) header.d=linuxfoundation.org header.i=@linuxfoundation.org header.b="ZRmKGHf1"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 7125BC4CECE;
+	Thu, 12 Dec 2024 08:18:34 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linuxfoundation.org;
+	s=korg; t=1733991514;
+	bh=/NdEOIdaBTTmlN/1YJBk7TcJe9e+1DlVJvKlF+ySpuM=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=ZRmKGHf11uRE6X8nPQPFvHiUoJK4QIrHTJDxu9TPJyLJt2MfjMiTivrXc03KEwgRS
+	 GaWEUEFhzlqV45M94vL8gp4VB+e/pB1M8wl6citu5VRTDl2r92aDMzcr4KG1X4lyIC
+	 657q/KeYaghxjWaLrZnJ9TnkUn3VmIsV2gNIIQ6g=
+Date: Thu, 12 Dec 2024 09:18:31 +0100
+From: Greg KH <gregkh@linuxfoundation.org>
+To: Heming Zhao <heming.zhao@suse.com>
+Cc: Joseph Qi <joseph.qi@linux.alibaba.com>, ocfs2-devel@lists.linux.dev,
+	linux-kernel@vger.kernel.org, akpm@linux-foundation.org,
+	Heming Zhao <heing.zhao@suse.com>, stable@vger.kernel.org
+Subject: Re: [PATCH 1/2] ocfs2: Revert "ocfs2: fix the la space leak when
+ unmounting an ocfs2 volume"
+Message-ID: <2024121218-corner-repair-09fa@gregkh>
+References: <20241204033243.8273-1-heming.zhao@suse.com>
+ <20241204033243.8273-2-heming.zhao@suse.com>
+ <6c3e1f5a-916c-4959-a505-d3d3917e5c9c@linux.alibaba.com>
+ <79b86b7b-8a65-49b8-aa33-bb73de47ad37@suse.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <79b86b7b-8a65-49b8-aa33-bb73de47ad37@suse.com>
 
-Since 'ocfs2_sprintf_system_inode_name()' returns the
-number of characters emitted, avoid extra calls to
-'strlen()' where appropriate. Compile tested only.
+On Wed, Dec 04, 2024 at 02:46:15PM +0800, Heming Zhao wrote:
+> On 12/4/24 11:47, Joseph Qi wrote:
+> > 
+> > 
+> > On 12/4/24 11:32 AM, Heming Zhao wrote:
+> > > This reverts commit dfe6c5692fb5 ("ocfs2: fix the la space leak when
+> > > unmounting an ocfs2 volume").
+> > > 
+> > > In commit dfe6c5692fb5, the commit log stating "This bug has existed
+> > > since the initial OCFS2 code." is incorrect. The correct introduction
+> > > commit is 30dd3478c3cd ("ocfs2: correctly use ocfs2_find_next_zero_bit()").
+> > > 
+> > 
+> > Could you please elaborate more how it happens?
+> > And it seems no difference with the new version. So we may submit a
+> > standalone revert patch to those backported stable kernels (< 6.10).
+> 
+> commit log from patch [2/2] should be revised.
+> change: This bug has existed since the initial OCFS2 code.
+> to    : This bug was introduced by commit 30dd3478c3cd ("ocfs2: correctly use ocfs2_find_next_zero_bit()")
 
-Signed-off-by: Dmitry Antipov <dmantipov@yandex.ru>
----
- fs/ocfs2/ioctl.c        | 21 +++++++++------------
- fs/ocfs2/move_extents.c |  9 +++++----
- fs/ocfs2/sysfile.c      | 12 ++++++------
- 3 files changed, 20 insertions(+), 22 deletions(-)
+So can you please send a new version of this series?
 
-diff --git a/fs/ocfs2/ioctl.c b/fs/ocfs2/ioctl.c
-index 71beef7f8a60..cec70bf4e478 100644
---- a/fs/ocfs2/ioctl.c
-+++ b/fs/ocfs2/ioctl.c
-@@ -329,7 +329,7 @@ static int ocfs2_info_handle_freeinode(struct inode *inode,
- 	u32 i;
- 	u64 blkno = -1;
- 	char namebuf[40];
--	int status, type = INODE_ALLOC_SYSTEM_INODE;
-+	int len, status, type = INODE_ALLOC_SYSTEM_INODE;
- 	struct ocfs2_info_freeinode *oifi = NULL;
- 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
- 	struct inode *inode_alloc = NULL;
-@@ -358,12 +358,11 @@ static int ocfs2_info_handle_freeinode(struct inode *inode,
- 				goto bail;
- 			}
- 		} else {
--			ocfs2_sprintf_system_inode_name(namebuf,
--							sizeof(namebuf),
--							type, i);
-+			len = ocfs2_sprintf_system_inode_name(namebuf,
-+							      sizeof(namebuf),
-+							      type, i);
- 			status = ocfs2_lookup_ino_from_name(osb->sys_root_inode,
--							    namebuf,
--							    strlen(namebuf),
-+							    namebuf, len,
- 							    &blkno);
- 			if (status < 0) {
- 				status = -ENOENT;
-@@ -616,7 +615,7 @@ static int ocfs2_info_handle_freefrag(struct inode *inode,
- {
- 	u64 blkno = -1;
- 	char namebuf[40];
--	int status, type = GLOBAL_BITMAP_SYSTEM_INODE;
-+	int len, status, type = GLOBAL_BITMAP_SYSTEM_INODE;
- 
- 	struct ocfs2_info_freefrag *oiff;
- 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
-@@ -651,12 +650,10 @@ static int ocfs2_info_handle_freefrag(struct inode *inode,
- 			goto bail;
- 		}
- 	} else {
--		ocfs2_sprintf_system_inode_name(namebuf, sizeof(namebuf), type,
--						OCFS2_INVALID_SLOT);
-+		len = ocfs2_sprintf_system_inode_name(namebuf, sizeof(namebuf),
-+						      type, OCFS2_INVALID_SLOT);
- 		status = ocfs2_lookup_ino_from_name(osb->sys_root_inode,
--						    namebuf,
--						    strlen(namebuf),
--						    &blkno);
-+						    namebuf, len, &blkno);
- 		if (status < 0) {
- 			status = -ENOENT;
- 			goto bail;
-diff --git a/fs/ocfs2/move_extents.c b/fs/ocfs2/move_extents.c
-index f9d6a4f9ca92..c1b7c6cee95d 100644
---- a/fs/ocfs2/move_extents.c
-+++ b/fs/ocfs2/move_extents.c
-@@ -364,7 +364,7 @@ static int ocfs2_find_victim_alloc_group(struct inode *inode,
- 					 int *vict_bit,
- 					 struct buffer_head **ret_bh)
- {
--	int ret, i, bits_per_unit = 0;
-+	int len, ret, i, bits_per_unit = 0;
- 	u64 blkno;
- 	char namebuf[40];
- 
-@@ -375,9 +375,10 @@ static int ocfs2_find_victim_alloc_group(struct inode *inode,
- 	struct ocfs2_dinode *ac_dinode;
- 	struct ocfs2_group_desc *bg;
- 
--	ocfs2_sprintf_system_inode_name(namebuf, sizeof(namebuf), type, slot);
--	ret = ocfs2_lookup_ino_from_name(osb->sys_root_inode, namebuf,
--					 strlen(namebuf), &blkno);
-+	len = ocfs2_sprintf_system_inode_name(namebuf, sizeof(namebuf),
-+					      type, slot);
-+	ret = ocfs2_lookup_ino_from_name(osb->sys_root_inode,
-+					 namebuf, len, &blkno);
- 	if (ret) {
- 		ret = -ENOENT;
- 		goto out;
-diff --git a/fs/ocfs2/sysfile.c b/fs/ocfs2/sysfile.c
-index 53a945da873b..d53a6cc866be 100644
---- a/fs/ocfs2/sysfile.c
-+++ b/fs/ocfs2/sysfile.c
-@@ -127,14 +127,14 @@ static struct inode * _ocfs2_get_system_file_inode(struct ocfs2_super *osb,
- 	char namebuf[40];
- 	struct inode *inode = NULL;
- 	u64 blkno;
--	int status = 0;
-+	int len, status = 0;
- 
--	ocfs2_sprintf_system_inode_name(namebuf,
--					sizeof(namebuf),
--					type, slot);
-+	len = ocfs2_sprintf_system_inode_name(namebuf,
-+					      sizeof(namebuf),
-+					      type, slot);
- 
--	status = ocfs2_lookup_ino_from_name(osb->sys_root_inode, namebuf,
--					    strlen(namebuf), &blkno);
-+	status = ocfs2_lookup_ino_from_name(osb->sys_root_inode,
-+					    namebuf, len, &blkno);
- 	if (status < 0) {
- 		goto bail;
- 	}
--- 
-2.47.1
+thanks,
 
+greg k-h
