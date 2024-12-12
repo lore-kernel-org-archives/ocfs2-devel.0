@@ -1,35 +1,35 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8CBC01F0E57;
-	Thu, 12 Dec 2024 11:40:51 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id DFECA1F0E57;
+	Thu, 12 Dec 2024 11:41:00 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1734003651; cv=none; b=QsM8QPFIFx/AN5hEvGq9cDhHv/KL9SolVX9vUv/axfBRUnl53yaeN9uVZ2zp8o4Egy/yZNTIW42jGgcqvdSkvCbC3r+BLTfLmfuRmDrajAzB7hRvHie15bb8MqwMU8TnOT7KWwUAhe1h3eRVHkRw8IjrYGbp5CoxIIoHEv/fWXY=
+	t=1734003661; cv=none; b=hmxAz3pUdi9JzX7U6BsawnbOcLGzVssm6O6CUM46Vjsatf2WwdqhHlSJ1O8nR25MPwhZ/uNjm2+nfDDyr9agX1B57vgccfXXxSI8Ml5RcIECxDUlc/VuZtQX67jLL/hNJULtnVwN4Sn4b/oajsS1Xubxcf6gM4265NmT2BlROes=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1734003651; c=relaxed/simple;
-	bh=lUnXATx33k30iUnw5gvU5Lv4AMRhHzFWQYQQMQg1dWc=;
+	s=arc-20240116; t=1734003661; c=relaxed/simple;
+	bh=TIZHSsujcBatkUwn5hFPDWcNdlDDrcbFfCF/P6Xn6s8=;
 	h=Subject:To:Cc:From:Date:In-Reply-To:Message-ID:MIME-Version:
-	 Content-Type; b=CR1XYOtFitCHw27HkCfiCiup9OoF8gtbNC/z/PrZj2CKeGbqHAtmdoQ61Gu68PmnCKRm9N7kL9YDV15/BvLiDVkmUS5rEW2NpfVsllNqVsK4IHzxvLNXQPtm3rVHO93tSElmOXLB3vickx7FPxnayTCkEmJzQEsR+Nd46CMoRF4=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (1024-bit key) header.d=linuxfoundation.org header.i=@linuxfoundation.org header.b=ACYBJmdP; arc=none smtp.client-ip=10.30.226.201
+	 Content-Type; b=h63Y/X6epldI9iSKnYkT/OhvicNL6c7AZavcg3LqTa+q/GSGOIR6h5dJDFOMXQUt/Av718pFgur3Q46E3F1CbJpVFGTolFVfucI5cAZoJ9LMKIXtOwEyTLIb2046z5TCE590qK1nYbA322l7NtXCLiOZX9U8Zbh50PTNwkaKIDM=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (1024-bit key) header.d=linuxfoundation.org header.i=@linuxfoundation.org header.b=BiVHHnnd; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linuxfoundation.org header.i=@linuxfoundation.org header.b="ACYBJmdP"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 2B559C4CECE;
-	Thu, 12 Dec 2024 11:40:49 +0000 (UTC)
+	dkim=pass (1024-bit key) header.d=linuxfoundation.org header.i=@linuxfoundation.org header.b="BiVHHnnd"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 4CA70C4CED4;
+	Thu, 12 Dec 2024 11:41:00 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linuxfoundation.org;
-	s=korg; t=1734003651;
-	bh=lUnXATx33k30iUnw5gvU5Lv4AMRhHzFWQYQQMQg1dWc=;
+	s=korg; t=1734003660;
+	bh=TIZHSsujcBatkUwn5hFPDWcNdlDDrcbFfCF/P6Xn6s8=;
 	h=Subject:To:Cc:From:Date:In-Reply-To:From;
-	b=ACYBJmdPyLeQBduc3MQXp3qAy88UmisU9KBGWXsNlHPg8hMIeq1bN9VHWrM472AlK
-	 WvMc4a1QemkrmyUKYDieCVpbKs4sglW2Ybd63COyfZaxdvOuBL/iCkQOrQcUx3UAQV
-	 vVScsVId1yn+FFRIUOvUQKJzP+E9EAl5lCGbGF64=
-Subject: Patch "ocfs2: Revert "ocfs2: fix the la space leak when unmounting an ocfs2 volume"" has been added to the 6.1-stable tree
+	b=BiVHHnndJXwPRi8IrxP+U6dKmbj1V0+dhJrY6MmKaH7ceIAZCGVG4NJdksYfWXYOY
+	 gtv9LhIrS4ufIw92mdRmFJmoR3O2/n3M0Z3xFOLvq7B5J3+Br6lBSrxomlizz5cw9+
+	 Adr0giHlAzWaOJEzTAph5KRy5SYyZUU5QoJmOolI=
+Subject: Patch "ocfs2: Revert "ocfs2: fix the la space leak when unmounting an ocfs2 volume"" has been added to the 6.6-stable tree
 To: gregkh@linuxfoundation.org,heming.zhao@suse.com,joseph.qi@linux.alibaba.com,ocfs2-devel@lists.linux.dev
 Cc: <stable-commits@vger.kernel.org>
 From: <gregkh@linuxfoundation.org>
-Date: Thu, 12 Dec 2024 12:40:47 +0100
+Date: Thu, 12 Dec 2024 12:40:58 +0100
 In-Reply-To: <20241212113107.9792-1-heming.zhao@suse.com>
-Message-ID: <2024121247-afflicted-vitality-105a@gregkh>
+Message-ID: <2024121257-progress-esophagus-845e@gregkh>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -46,12 +46,12 @@ This is a note to let you know that I've just added the patch titled
 
     ocfs2: Revert "ocfs2: fix the la space leak when unmounting an ocfs2 volume"
 
-to the 6.1-stable tree which can be found at:
+to the 6.6-stable tree which can be found at:
     http://www.kernel.org/git/?p=linux/kernel/git/stable/stable-queue.git;a=summary
 
 The filename of the patch is:
      ocfs2-revert-ocfs2-fix-the-la-space-leak-when-unmounting-an-ocfs2-volume.patch
-and it can be found in the queue-6.1 subdirectory.
+and it can be found in the queue-6.6 subdirectory.
 
 If you, or anyone else, feels it should not be added to the stable tree,
 please let <stable@vger.kernel.org> know about it.
@@ -119,4 +119,4 @@ Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 
 Patches currently in stable-queue which might be from heming.zhao@suse.com are
 
-queue-6.1/ocfs2-revert-ocfs2-fix-the-la-space-leak-when-unmounting-an-ocfs2-volume.patch
+queue-6.6/ocfs2-revert-ocfs2-fix-the-la-space-leak-when-unmounting-an-ocfs2-volume.patch
