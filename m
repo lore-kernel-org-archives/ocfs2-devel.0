@@ -1,124 +1,175 @@
-Received: from mail-qt1-f180.google.com (mail-qt1-f180.google.com [209.85.160.180])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from out30-101.freemail.mail.aliyun.com (out30-101.freemail.mail.aliyun.com [115.124.30.101])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id F08621A8F92
-	for <ocfs2-devel@lists.linux.dev>; Fri, 13 Dec 2024 08:36:47 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.160.180
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1DCBF1B6D0B
+	for <ocfs2-devel@lists.linux.dev>; Fri, 13 Dec 2024 10:09:25 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.101
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1734079009; cv=none; b=RyDZSbBiGTwZuBsEjIsG5/k+eyXA/T/iOTIOg4xxdHAoPYzpmgGBgm3qEhKpquZmCukj9NLZI2CK9+DcBZ0Sr3BbpEOyTa1BDLknvzROzSHB2SJuocHw4BT/XERBRdRMvhcoFlUybFsHGnfjtnXLCT9sCynptqZt6h64oSvXiF0=
+	t=1734084571; cv=none; b=UIBap+xD7C4PDm827Xqb6RdvjY7RsM1m5Cky6CkP1vZsQSI8u+gnbU8LfFSWaON0l1lDVmWuTjB5etE80CnpWJFYZfdArnR8Lg58EBWrXy3UJoiQKFckx0S7LKpcS1FIwBwE4jUQgtRzzIuol3qI0FQE6IfsWtFMeLfIsCCGB8k=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1734079009; c=relaxed/simple;
-	bh=JKyRigM/AhzU/31X9Efi+u7E+mLq71Us/+kxx01u0P4=;
-	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
-	 To:Cc:Content-Type; b=iDXDvedxQXMWD7AqlMy4vDlDe0tuYqFsqKgBeVfzqJGskp1k7cytqhIqNLrPfBPfutxfedyfw46HK2rvWztUEUyZ4l/3ab0akGiVc8ITVfKouEQGfJAVeCogQ5+BHLkX7llt03UNQPp8fujQ0p6W6mvOqXCuKgSHr/ms33Z9H8U=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=Dinaq2BN; arc=none smtp.client-ip=209.85.160.180
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	s=arc-20240116; t=1734084571; c=relaxed/simple;
+	bh=iaDAbwrPmDGRPnheYeU8uuut3mA3jdQDZUuDHWtDWKY=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=teUac8F8AwDu3KXb0jeSSsSMTwnpDWBMxs+0plNP2RjjgI5BDoBOdbRQ7jqo+mRY8DIK8bxDEn/m0dSr2ZbcZ9VF3GM/WDAJC0WtMn7yZftWk6nJwBsbG3kSyMQV2Y6gFihRKMqS6u0jya043vYcEeEdaIBAQQZUz3pBgSIZ6nY=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=Q+kvnsdm; arc=none smtp.client-ip=115.124.30.101
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="Dinaq2BN"
-Received: by mail-qt1-f180.google.com with SMTP id d75a77b69052e-4678f681608so15962011cf.1
-        for <ocfs2-devel@lists.linux.dev>; Fri, 13 Dec 2024 00:36:47 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1734079007; x=1734683807; darn=lists.linux.dev;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=KRt1MXIvY7wy4Sl3wPWxh5TWbRsTuTxrC9cGCSyNao0=;
-        b=Dinaq2BNYH23DyFqnKIv5ijeGz7ly0Vi3aNAmIHtIK5OvG52f7sdtoZHWLkUhXsFbi
-         HFOb+WwC8r/GzZHoBzVDb9G/rWzU7LRGzZqwtgr+56K5vzeRNhF7XRQ4KApPv5J02m6n
-         o7EFnl15gtTwj6sQkf1dUddo4WJiH5VU96pOJYmtcuzJh2NC3n1zHphLWhNObQGPdFAl
-         x699Q6qjkJDTSw/xmARTTcMhoOlbBslp3Dvh1toS85hACpaHOAHKRk+0X3M6Oeik/Qe7
-         Mxu+ou4bWcItHHKQY3ZfEC6F15VOV8QjELvcEWocHB4L3Jp/DFK1JNQixX2Xt727zTzh
-         6JQg==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1734079007; x=1734683807;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:x-gm-message-state:from:to:cc
-         :subject:date:message-id:reply-to;
-        bh=KRt1MXIvY7wy4Sl3wPWxh5TWbRsTuTxrC9cGCSyNao0=;
-        b=fjLEHjnQYkC+ProvqfllvFd2zwu7ayy1vtqWwWEInS9+DX/ur87LQPLuHFDZCw1K2o
-         0z+SB0Yt2nZghpo/s7JgSSI14Xe6edx03t0uFS+bGGMfhfLckqCN4I2gcXBfGVf/OV12
-         KqXlzUmMQuF6Kb10QYyDvIlrvMq3mOf+MfsRmEeXTaQrYqLCfEaYCsZt1uODArRSRDQQ
-         CbugjAnX2xAQMcHx8VXzKTF/LCkpv3otiE0sJwZyrncX/0O42uZ4Q4s05ItfX2envahU
-         +3eCdYOW+Z6CqffCGvwVe9XdoZzMEI/qXoYESyoGuAGC7h8oExsQqdBpmo+0eF5W9mxx
-         7NLg==
-X-Forwarded-Encrypted: i=1; AJvYcCVQwiWMUNHkOUaLRxysQcpJ/eDdcRw8/UFP/odgryNm8TYXvbVhTPm1PzCD9sY3wiBs/9aIQ7Wxn9UMYw==@lists.linux.dev
-X-Gm-Message-State: AOJu0Yyx6RBo9NRNLHVH3gX6BMbyOfdREsxEKTzFjJBXz9lvu2aaJhdL
-	ogz/4ogv374suVP2Q7BGqsKinsIohmpBgw0EZRfC+tOBu3yvoQpgSoYhHqlsZNmsv5GPIpt89Lz
-	E9Ac06K9dwcXyoJiZNJDtd8cSBpk=
-X-Gm-Gg: ASbGnctCo3uxWipFQvgzdsXfljCot/fQXBHyHA5wVxrjV+SiOjlKinVHl7Wl/VcckZq
-	vToxFeTz5LXZRFL2TVds+UrWAqL/SVDU6/jrjmhk=
-X-Google-Smtp-Source: AGHT+IEt1cOWo4VsTmw/6EdhS/KZ00UrsyLMhWiucugMYEeldbYzELrBj4wzlhuYfpJWzQ/nKiHjbqdqIiCiPqivAYk=
-X-Received: by 2002:a05:6214:301e:b0:6cb:ee08:c1e8 with SMTP id
- 6a1803df08f44-6dc8ca869aamr25025096d6.23.1734079006748; Fri, 13 Dec 2024
- 00:36:46 -0800 (PST)
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="Q+kvnsdm"
+DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=linux.alibaba.com; s=default;
+	t=1734084563; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=g/5yxSldhprT7Tl5A9HoAftj5KWV1zOYfWRvSZizeEU=;
+	b=Q+kvnsdmn7LP6r34mB3z9yX5ixZRK9QYqzMy7M7o9v/uAR65SYibk3Gtekac3GzCKgQsHSjJhfPXDvz340eHRuOE88676wcwW5kAwkd8N3VUEYXeeCMSrK9hZxikPBo7uu+dGOuvZ2KB4qXNYQriiHgmhkepIV8gp6uLuyqAaZk=
+Received: from 30.221.145.112(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0WLOq7PO_1734084558 cluster:ay36)
+          by smtp.aliyun-inc.com;
+          Fri, 13 Dec 2024 18:09:19 +0800
+Message-ID: <67115400-0e6d-4ef6-82ae-d776c6617033@linux.alibaba.com>
+Date: Fri, 13 Dec 2024 18:09:18 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-References: <20241213054610.55843-1-laoar.shao@gmail.com> <20241213054610.55843-2-laoar.shao@gmail.com>
- <Z1vq2-V7vB5KhBR9@pathway.suse.cz>
-In-Reply-To: <Z1vq2-V7vB5KhBR9@pathway.suse.cz>
-From: Yafang Shao <laoar.shao@gmail.com>
-Date: Fri, 13 Dec 2024 16:36:10 +0800
-Message-ID: <CALOAHbAD-USZYry6dToxDTM-OO1+Rz0g6XQkCjhzhWDt7g4MGw@mail.gmail.com>
-Subject: Re: [PATCH 1/7] vsprintf: Add %pTN to print task name
-To: Petr Mladek <pmladek@suse.com>, Linus Torvalds <torvalds@linux-foundation.org>
-Cc: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, 
-	linux-security-module@vger.kernel.org, x86@kernel.org, 
-	linux-snps-arc@lists.infradead.org, linux-wireless@vger.kernel.org, 
-	intel-gfx@lists.freedesktop.org, intel-xe@lists.freedesktop.org, 
-	nouveau@lists.freedesktop.org, dri-devel@lists.freedesktop.org, 
-	ocfs2-devel@lists.linux.dev, Steven Rostedt <rostedt@goodmis.org>, 
-	Andy Shevchenko <andriy.shevchenko@linux.intel.com>, 
-	Rasmus Villemoes <linux@rasmusvillemoes.dk>, Sergey Senozhatsky <senozhatsky@chromium.org>, 
-	Andy Whitcroft <apw@canonical.com>, Joe Perches <joe@perches.com>, 
-	Dwaipayan Ray <dwaipayanray1@gmail.com>, Lukas Bulwahn <lukas.bulwahn@gmail.com>
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
-
-On Fri, Dec 13, 2024 at 4:05=E2=80=AFPM Petr Mladek <pmladek@suse.com> wrot=
-e:
->
-> On Fri 2024-12-13 13:46:04, Yafang Shao wrote:
-> > Since the task->comm is guaranteed to be NUL-ternimated, we can print i=
-t
-> > directly. Add a new vsnprintf format specifier "%pTN" to print task com=
-m,
-> > where 'p' represents the task Pointer, 'T' stands for Task, and 'N' den=
-ots
-> > Name. With this abstraction, the user no longer needs to care about
-> > retrieving task name.
->
-> What is the advantage, please?
-
-The advantage is that it provides the flexibility to modify the comm
-representation to meet future requirements. For instance, we could
-rename it to "task_name" and increase its size.
-
->
-> Honestly, I believe that the meaning of
->
->         printk("%s\n", task->comm);
->
-> is much more clear than using a cryptic %pXYZ modifier:
->
->         printk("%pTN\n", task);
->
->
-> The %pXYZ modifiers makes sense only when the formatting of the printed
-> information needs some processing. But this is a plain string.
-
-That makes sense to me.
-
-> IMHO, it is not worth it. In fact, I believe that it is a
-> counter productive.
-
-Linus, what are your thoughts?
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH] ocfs2: avoid extra calls to strlen()
+To: Dmitry Antipov <dmantipov@yandex.ru>, Mark Fasheh <mark@fasheh.com>,
+ Joel Becker <jlbec@evilplan.org>
+Cc: ocfs2-devel@lists.linux.dev
+References: <20241210163723.20137-1-dmantipov@yandex.ru>
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+In-Reply-To: <20241210163723.20137-1-dmantipov@yandex.ru>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
 
---
-Regards
-Yafang
+
+On 2024/12/11 00:37, Dmitry Antipov wrote:
+> Since 'ocfs2_sprintf_system_inode_name()' returns the
+> number of characters emitted, avoid extra calls to
+> 'strlen()' where appropriate. Compile tested only.
+> 
+
+Ummm... It seems this is not an equivalent replace. 
+snprintf() returns the number of characters which would be generated,
+while strlen() returns the actually written characters.
+
+Thanks,
+Joseph
+
+> Signed-off-by: Dmitry Antipov <dmantipov@yandex.ru>
+> ---
+>  fs/ocfs2/ioctl.c        | 21 +++++++++------------
+>  fs/ocfs2/move_extents.c |  9 +++++----
+>  fs/ocfs2/sysfile.c      | 12 ++++++------
+>  3 files changed, 20 insertions(+), 22 deletions(-)
+> 
+> diff --git a/fs/ocfs2/ioctl.c b/fs/ocfs2/ioctl.c
+> index 71beef7f8a60..cec70bf4e478 100644
+> --- a/fs/ocfs2/ioctl.c
+> +++ b/fs/ocfs2/ioctl.c
+> @@ -329,7 +329,7 @@ static int ocfs2_info_handle_freeinode(struct inode *inode,
+>  	u32 i;
+>  	u64 blkno = -1;
+>  	char namebuf[40];
+> -	int status, type = INODE_ALLOC_SYSTEM_INODE;
+> +	int len, status, type = INODE_ALLOC_SYSTEM_INODE;
+>  	struct ocfs2_info_freeinode *oifi = NULL;
+>  	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+>  	struct inode *inode_alloc = NULL;
+> @@ -358,12 +358,11 @@ static int ocfs2_info_handle_freeinode(struct inode *inode,
+>  				goto bail;
+>  			}
+>  		} else {
+> -			ocfs2_sprintf_system_inode_name(namebuf,
+> -							sizeof(namebuf),
+> -							type, i);
+> +			len = ocfs2_sprintf_system_inode_name(namebuf,
+> +							      sizeof(namebuf),
+> +							      type, i);
+>  			status = ocfs2_lookup_ino_from_name(osb->sys_root_inode,
+> -							    namebuf,
+> -							    strlen(namebuf),
+> +							    namebuf, len,
+>  							    &blkno);
+>  			if (status < 0) {
+>  				status = -ENOENT;
+> @@ -616,7 +615,7 @@ static int ocfs2_info_handle_freefrag(struct inode *inode,
+>  {
+>  	u64 blkno = -1;
+>  	char namebuf[40];
+> -	int status, type = GLOBAL_BITMAP_SYSTEM_INODE;
+> +	int len, status, type = GLOBAL_BITMAP_SYSTEM_INODE;
+>  
+>  	struct ocfs2_info_freefrag *oiff;
+>  	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+> @@ -651,12 +650,10 @@ static int ocfs2_info_handle_freefrag(struct inode *inode,
+>  			goto bail;
+>  		}
+>  	} else {
+> -		ocfs2_sprintf_system_inode_name(namebuf, sizeof(namebuf), type,
+> -						OCFS2_INVALID_SLOT);
+> +		len = ocfs2_sprintf_system_inode_name(namebuf, sizeof(namebuf),
+> +						      type, OCFS2_INVALID_SLOT);
+>  		status = ocfs2_lookup_ino_from_name(osb->sys_root_inode,
+> -						    namebuf,
+> -						    strlen(namebuf),
+> -						    &blkno);
+> +						    namebuf, len, &blkno);
+>  		if (status < 0) {
+>  			status = -ENOENT;
+>  			goto bail;
+> diff --git a/fs/ocfs2/move_extents.c b/fs/ocfs2/move_extents.c
+> index f9d6a4f9ca92..c1b7c6cee95d 100644
+> --- a/fs/ocfs2/move_extents.c
+> +++ b/fs/ocfs2/move_extents.c
+> @@ -364,7 +364,7 @@ static int ocfs2_find_victim_alloc_group(struct inode *inode,
+>  					 int *vict_bit,
+>  					 struct buffer_head **ret_bh)
+>  {
+> -	int ret, i, bits_per_unit = 0;
+> +	int len, ret, i, bits_per_unit = 0;
+>  	u64 blkno;
+>  	char namebuf[40];
+>  
+> @@ -375,9 +375,10 @@ static int ocfs2_find_victim_alloc_group(struct inode *inode,
+>  	struct ocfs2_dinode *ac_dinode;
+>  	struct ocfs2_group_desc *bg;
+>  
+> -	ocfs2_sprintf_system_inode_name(namebuf, sizeof(namebuf), type, slot);
+> -	ret = ocfs2_lookup_ino_from_name(osb->sys_root_inode, namebuf,
+> -					 strlen(namebuf), &blkno);
+> +	len = ocfs2_sprintf_system_inode_name(namebuf, sizeof(namebuf),
+> +					      type, slot);
+> +	ret = ocfs2_lookup_ino_from_name(osb->sys_root_inode,
+> +					 namebuf, len, &blkno);
+>  	if (ret) {
+>  		ret = -ENOENT;
+>  		goto out;
+> diff --git a/fs/ocfs2/sysfile.c b/fs/ocfs2/sysfile.c
+> index 53a945da873b..d53a6cc866be 100644
+> --- a/fs/ocfs2/sysfile.c
+> +++ b/fs/ocfs2/sysfile.c
+> @@ -127,14 +127,14 @@ static struct inode * _ocfs2_get_system_file_inode(struct ocfs2_super *osb,
+>  	char namebuf[40];
+>  	struct inode *inode = NULL;
+>  	u64 blkno;
+> -	int status = 0;
+> +	int len, status = 0;
+>  
+> -	ocfs2_sprintf_system_inode_name(namebuf,
+> -					sizeof(namebuf),
+> -					type, slot);
+> +	len = ocfs2_sprintf_system_inode_name(namebuf,
+> +					      sizeof(namebuf),
+> +					      type, slot);
+>  
+> -	status = ocfs2_lookup_ino_from_name(osb->sys_root_inode, namebuf,
+> -					    strlen(namebuf), &blkno);
+> +	status = ocfs2_lookup_ino_from_name(osb->sys_root_inode,
+> +					    namebuf, len, &blkno);
+>  	if (status < 0) {
+>  		goto bail;
+>  	}
+
