@@ -1,175 +1,91 @@
-Received: from out30-101.freemail.mail.aliyun.com (out30-101.freemail.mail.aliyun.com [115.124.30.101])
+Received: from mail.alien8.de (mail.alien8.de [65.109.113.108])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1DCBF1B6D0B
-	for <ocfs2-devel@lists.linux.dev>; Fri, 13 Dec 2024 10:09:25 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.101
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id DE6F31AB6D8
+	for <ocfs2-devel@lists.linux.dev>; Fri, 13 Dec 2024 13:27:50 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=65.109.113.108
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1734084571; cv=none; b=UIBap+xD7C4PDm827Xqb6RdvjY7RsM1m5Cky6CkP1vZsQSI8u+gnbU8LfFSWaON0l1lDVmWuTjB5etE80CnpWJFYZfdArnR8Lg58EBWrXy3UJoiQKFckx0S7LKpcS1FIwBwE4jUQgtRzzIuol3qI0FQE6IfsWtFMeLfIsCCGB8k=
+	t=1734096473; cv=none; b=ZlIWe76imwQW3Hmo7XPz74VxV5q5vMvKmkSeOOWVPnjpENALq35qwLafF5aelDpmPAZbEuwmEfhong/e1zKTVCJAQjeegvs63ZTs6IZQvkF8lQB2ntfZifWxzi4dBqdf4kUXIeqpkZ5L3P+WEX4NyQbhWPrytwLxiCzUm1un3hw=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1734084571; c=relaxed/simple;
-	bh=iaDAbwrPmDGRPnheYeU8uuut3mA3jdQDZUuDHWtDWKY=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=teUac8F8AwDu3KXb0jeSSsSMTwnpDWBMxs+0plNP2RjjgI5BDoBOdbRQ7jqo+mRY8DIK8bxDEn/m0dSr2ZbcZ9VF3GM/WDAJC0WtMn7yZftWk6nJwBsbG3kSyMQV2Y6gFihRKMqS6u0jya043vYcEeEdaIBAQQZUz3pBgSIZ6nY=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=Q+kvnsdm; arc=none smtp.client-ip=115.124.30.101
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
+	s=arc-20240116; t=1734096473; c=relaxed/simple;
+	bh=bxt/ucduwPrssRD95ItPQSQOqvnWV7JgVW5NkbSy77E=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=uvgzJgD46dhoMK8juiKbDwi7ton9QBTpgN3lwQmEPhvylHgBnImu2OgBX+MTrROAwVHMdBjo1zrFckgB2EizR7hB8uuwj61kXBsDMzio0lrN2OqAu02onyhEmFUxCD8thB+N9JwFICLVo3R7Tawf7uKOxzIkEG1cXBHFxQNZbvY=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=alien8.de; spf=pass smtp.mailfrom=alien8.de; dkim=pass (4096-bit key) header.d=alien8.de header.i=@alien8.de header.b=TCdKp5dG; arc=none smtp.client-ip=65.109.113.108
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=alien8.de
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=alien8.de
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="Q+kvnsdm"
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1734084563; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=g/5yxSldhprT7Tl5A9HoAftj5KWV1zOYfWRvSZizeEU=;
-	b=Q+kvnsdmn7LP6r34mB3z9yX5ixZRK9QYqzMy7M7o9v/uAR65SYibk3Gtekac3GzCKgQsHSjJhfPXDvz340eHRuOE88676wcwW5kAwkd8N3VUEYXeeCMSrK9hZxikPBo7uu+dGOuvZ2KB4qXNYQriiHgmhkepIV8gp6uLuyqAaZk=
-Received: from 30.221.145.112(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0WLOq7PO_1734084558 cluster:ay36)
-          by smtp.aliyun-inc.com;
-          Fri, 13 Dec 2024 18:09:19 +0800
-Message-ID: <67115400-0e6d-4ef6-82ae-d776c6617033@linux.alibaba.com>
-Date: Fri, 13 Dec 2024 18:09:18 +0800
+	dkim=pass (4096-bit key) header.d=alien8.de header.i=@alien8.de header.b="TCdKp5dG"
+Received: from localhost (localhost.localdomain [127.0.0.1])
+	by mail.alien8.de (SuperMail on ZX Spectrum 128k) with ESMTP id B0D4540E0169;
+	Fri, 13 Dec 2024 13:27:47 +0000 (UTC)
+X-Virus-Scanned: Debian amavisd-new at mail.alien8.de
+Authentication-Results: mail.alien8.de (amavisd-new); dkim=pass (4096-bit key)
+	header.d=alien8.de
+Received: from mail.alien8.de ([127.0.0.1])
+	by localhost (mail.alien8.de [127.0.0.1]) (amavisd-new, port 10026)
+	with ESMTP id sGcE60KnN3ec; Fri, 13 Dec 2024 13:27:44 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=alien8.de; s=alien8;
+	t=1734096462; bh=fx6NJswxnApctvUDdLiVKEkcBeLJJ6f/OgTP8Pi/0ME=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=TCdKp5dGfLFekVy98Z5cRjbFBjMfVvYyRYfkhUYQV27uBBXCYYZh9p+mOk9Fgf+Os
+	 pQnkema3VHjYt9PUh0meOBj5NrPk/zKO+QDenixpK9n+dz4n1W1+s+KDo+a/POiJM5
+	 Jf6qn/XogPW/5jtU4WaIDhZKUdouklEFEDqlqUxQY/zqmsi+ilibsowZBZAyXy4Y1x
+	 TpfygtsV0EIon2P3uQJgohoT4cvoEShfdG4TimQLth0mosUPdNeCeUnCPY7vJpG8jp
+	 FMDw44tc9UZ8zLBh5SjSjW+tYFB4s0xcTFhxdZaxrRiBX6ofb+4X6HzSOYzqwyuH19
+	 3Gkh2PB0uUC+JXk2zhzsze0kIwSidQFUGAMJuPIsUXASeoSmC8/pKQYSSGpe+44W7X
+	 wfaRwlYuRha6hXFbAGc3543MSmoNrbjsNXBdfC4dqq55iCvp1sGLVzoHBrZ6ElvUth
+	 Xr+52lDoTAkJQ9VOWavMmRSsyh9669yeE7txdySAT/BnY2u4V0QitRMiF/v+BjKPP3
+	 KRaaFCcHHir2sRjQSC0fOS2DqMpzcB0re3ld0RlRsARj0Xcy3Re1L5ZPKAiOs62UDt
+	 Jv74MNH+taDciFgIldizxt2pc4BNlWyyNgb6b/mcvo5h8L2N4EtjOHDklrGej/mcSh
+	 CG5OdhA4dM08z1FXqQoO86yE=
+Received: from zn.tnic (p200300ea971f9372329c23fffea6a903.dip0.t-ipconnect.de [IPv6:2003:ea:971f:9372:329c:23ff:fea6:a903])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange ECDHE (P-256) server-signature ECDSA (P-256) server-digest SHA256)
+	(No client certificate requested)
+	by mail.alien8.de (SuperMail on ZX Spectrum 128k) with ESMTPSA id 2E54840E015F;
+	Fri, 13 Dec 2024 13:27:19 +0000 (UTC)
+Date: Fri, 13 Dec 2024 14:27:09 +0100
+From: Borislav Petkov <bp@alien8.de>
+To: Kalle Valo <kvalo@kernel.org>
+Cc: Petr Mladek <pmladek@suse.com>, Yafang Shao <laoar.shao@gmail.com>,
+	torvalds@linux-foundation.org, akpm@linux-foundation.org,
+	linux-kernel@vger.kernel.org, linux-security-module@vger.kernel.org,
+	x86@kernel.org, linux-snps-arc@lists.infradead.org,
+	linux-wireless@vger.kernel.org, intel-gfx@lists.freedesktop.org,
+	intel-xe@lists.freedesktop.org, nouveau@lists.freedesktop.org,
+	dri-devel@lists.freedesktop.org, ocfs2-devel@lists.linux.dev,
+	Steven Rostedt <rostedt@goodmis.org>,
+	Andy Shevchenko <andriy.shevchenko@linux.intel.com>,
+	Rasmus Villemoes <linux@rasmusvillemoes.dk>,
+	Sergey Senozhatsky <senozhatsky@chromium.org>,
+	Andy Whitcroft <apw@canonical.com>, Joe Perches <joe@perches.com>,
+	Dwaipayan Ray <dwaipayanray1@gmail.com>,
+	Lukas Bulwahn <lukas.bulwahn@gmail.com>
+Subject: Re: [PATCH 1/7] vsprintf: Add %pTN to print task name
+Message-ID: <20241213132709.GAZ1w2LW4LgHi-6XfZ@fat_crate.local>
+References: <20241213054610.55843-1-laoar.shao@gmail.com>
+ <20241213054610.55843-2-laoar.shao@gmail.com>
+ <Z1vq2-V7vB5KhBR9@pathway.suse.cz>
+ <87r06crnew.fsf@kernel.org>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH] ocfs2: avoid extra calls to strlen()
-To: Dmitry Antipov <dmantipov@yandex.ru>, Mark Fasheh <mark@fasheh.com>,
- Joel Becker <jlbec@evilplan.org>
-Cc: ocfs2-devel@lists.linux.dev
-References: <20241210163723.20137-1-dmantipov@yandex.ru>
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <20241210163723.20137-1-dmantipov@yandex.ru>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <87r06crnew.fsf@kernel.org>
 
+On Fri, Dec 13, 2024 at 10:35:03AM +0200, Kalle Valo wrote:
+> I agree, it makes the code harder to read for someone who is not
+> familiar with all the %p magic we have (like me).
 
++1
 
-On 2024/12/11 00:37, Dmitry Antipov wrote:
-> Since 'ocfs2_sprintf_system_inode_name()' returns the
-> number of characters emitted, avoid extra calls to
-> 'strlen()' where appropriate. Compile tested only.
-> 
+-- 
+Regards/Gruss,
+    Boris.
 
-Ummm... It seems this is not an equivalent replace. 
-snprintf() returns the number of characters which would be generated,
-while strlen() returns the actually written characters.
-
-Thanks,
-Joseph
-
-> Signed-off-by: Dmitry Antipov <dmantipov@yandex.ru>
-> ---
->  fs/ocfs2/ioctl.c        | 21 +++++++++------------
->  fs/ocfs2/move_extents.c |  9 +++++----
->  fs/ocfs2/sysfile.c      | 12 ++++++------
->  3 files changed, 20 insertions(+), 22 deletions(-)
-> 
-> diff --git a/fs/ocfs2/ioctl.c b/fs/ocfs2/ioctl.c
-> index 71beef7f8a60..cec70bf4e478 100644
-> --- a/fs/ocfs2/ioctl.c
-> +++ b/fs/ocfs2/ioctl.c
-> @@ -329,7 +329,7 @@ static int ocfs2_info_handle_freeinode(struct inode *inode,
->  	u32 i;
->  	u64 blkno = -1;
->  	char namebuf[40];
-> -	int status, type = INODE_ALLOC_SYSTEM_INODE;
-> +	int len, status, type = INODE_ALLOC_SYSTEM_INODE;
->  	struct ocfs2_info_freeinode *oifi = NULL;
->  	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
->  	struct inode *inode_alloc = NULL;
-> @@ -358,12 +358,11 @@ static int ocfs2_info_handle_freeinode(struct inode *inode,
->  				goto bail;
->  			}
->  		} else {
-> -			ocfs2_sprintf_system_inode_name(namebuf,
-> -							sizeof(namebuf),
-> -							type, i);
-> +			len = ocfs2_sprintf_system_inode_name(namebuf,
-> +							      sizeof(namebuf),
-> +							      type, i);
->  			status = ocfs2_lookup_ino_from_name(osb->sys_root_inode,
-> -							    namebuf,
-> -							    strlen(namebuf),
-> +							    namebuf, len,
->  							    &blkno);
->  			if (status < 0) {
->  				status = -ENOENT;
-> @@ -616,7 +615,7 @@ static int ocfs2_info_handle_freefrag(struct inode *inode,
->  {
->  	u64 blkno = -1;
->  	char namebuf[40];
-> -	int status, type = GLOBAL_BITMAP_SYSTEM_INODE;
-> +	int len, status, type = GLOBAL_BITMAP_SYSTEM_INODE;
->  
->  	struct ocfs2_info_freefrag *oiff;
->  	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
-> @@ -651,12 +650,10 @@ static int ocfs2_info_handle_freefrag(struct inode *inode,
->  			goto bail;
->  		}
->  	} else {
-> -		ocfs2_sprintf_system_inode_name(namebuf, sizeof(namebuf), type,
-> -						OCFS2_INVALID_SLOT);
-> +		len = ocfs2_sprintf_system_inode_name(namebuf, sizeof(namebuf),
-> +						      type, OCFS2_INVALID_SLOT);
->  		status = ocfs2_lookup_ino_from_name(osb->sys_root_inode,
-> -						    namebuf,
-> -						    strlen(namebuf),
-> -						    &blkno);
-> +						    namebuf, len, &blkno);
->  		if (status < 0) {
->  			status = -ENOENT;
->  			goto bail;
-> diff --git a/fs/ocfs2/move_extents.c b/fs/ocfs2/move_extents.c
-> index f9d6a4f9ca92..c1b7c6cee95d 100644
-> --- a/fs/ocfs2/move_extents.c
-> +++ b/fs/ocfs2/move_extents.c
-> @@ -364,7 +364,7 @@ static int ocfs2_find_victim_alloc_group(struct inode *inode,
->  					 int *vict_bit,
->  					 struct buffer_head **ret_bh)
->  {
-> -	int ret, i, bits_per_unit = 0;
-> +	int len, ret, i, bits_per_unit = 0;
->  	u64 blkno;
->  	char namebuf[40];
->  
-> @@ -375,9 +375,10 @@ static int ocfs2_find_victim_alloc_group(struct inode *inode,
->  	struct ocfs2_dinode *ac_dinode;
->  	struct ocfs2_group_desc *bg;
->  
-> -	ocfs2_sprintf_system_inode_name(namebuf, sizeof(namebuf), type, slot);
-> -	ret = ocfs2_lookup_ino_from_name(osb->sys_root_inode, namebuf,
-> -					 strlen(namebuf), &blkno);
-> +	len = ocfs2_sprintf_system_inode_name(namebuf, sizeof(namebuf),
-> +					      type, slot);
-> +	ret = ocfs2_lookup_ino_from_name(osb->sys_root_inode,
-> +					 namebuf, len, &blkno);
->  	if (ret) {
->  		ret = -ENOENT;
->  		goto out;
-> diff --git a/fs/ocfs2/sysfile.c b/fs/ocfs2/sysfile.c
-> index 53a945da873b..d53a6cc866be 100644
-> --- a/fs/ocfs2/sysfile.c
-> +++ b/fs/ocfs2/sysfile.c
-> @@ -127,14 +127,14 @@ static struct inode * _ocfs2_get_system_file_inode(struct ocfs2_super *osb,
->  	char namebuf[40];
->  	struct inode *inode = NULL;
->  	u64 blkno;
-> -	int status = 0;
-> +	int len, status = 0;
->  
-> -	ocfs2_sprintf_system_inode_name(namebuf,
-> -					sizeof(namebuf),
-> -					type, slot);
-> +	len = ocfs2_sprintf_system_inode_name(namebuf,
-> +					      sizeof(namebuf),
-> +					      type, slot);
->  
-> -	status = ocfs2_lookup_ino_from_name(osb->sys_root_inode, namebuf,
-> -					    strlen(namebuf), &blkno);
-> +	status = ocfs2_lookup_ino_from_name(osb->sys_root_inode,
-> +					    namebuf, len, &blkno);
->  	if (status < 0) {
->  		goto bail;
->  	}
-
+https://people.kernel.org/tglx/notes-about-netiquette
