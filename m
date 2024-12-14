@@ -1,31 +1,31 @@
-Received: from out30-98.freemail.mail.aliyun.com (out30-98.freemail.mail.aliyun.com [115.124.30.98])
+Received: from out30-110.freemail.mail.aliyun.com (out30-110.freemail.mail.aliyun.com [115.124.30.110])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C28ECD53C
-	for <ocfs2-devel@lists.linux.dev>; Sat, 14 Dec 2024 14:09:03 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.98
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id AFEC2D53C
+	for <ocfs2-devel@lists.linux.dev>; Sat, 14 Dec 2024 14:10:13 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.110
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1734185346; cv=none; b=DOKmQFVAMycAKuoFTJoUzmmIg4l0w6vEIpg1esfs8dCdwurisuODFWpeNxYu2MaeIuvPh+ISimjwQX36JHG77LJp0WvbXJTUxRcTKmGgIbr0OsXdJeV/cIxqTWlho+WDPwriNegCexc/vnowll2riq4g1ZTM+j7U4LYs7XVMTW8=
+	t=1734185417; cv=none; b=EG+jwVUQSm0Rgj/rowk8Px14kvEbWGJyhGr0r42yBiHk6oCqtizWCLFQLwoutTzcbm+58VOrTgU3IcgC7O4jEQGjwvG4gSmyoSyryIPT3s5OlFgipfGb0WI1gKVZoazTd3AHrCyLwLmqlXq/QkI9XH0G3Nl4aPBcCu6zls3QmZs=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1734185346; c=relaxed/simple;
-	bh=0lGojVxo5XH25MYfuSYVjas1WNSa2TTOa1ZAag18opI=;
+	s=arc-20240116; t=1734185417; c=relaxed/simple;
+	bh=N2l0Tkxcnq/408IrAbdYvclnGFQ4uorARe4X+CW3lvc=;
 	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=EijLdmxOVCtrE9msKeSUbUQDpHed4wcd0ZmYJls5u0YWSszmOy+lxeiZ77dFTeRWkUGJQsdbgwzLUp6fEWPOg5oABCy1Awqm3YIhmyvVNbBayQxirC1YBMraJeBPsxr0NhC9riF5kvVRg8bq7/X9igubcYl9SASkN0dfbMXiTUw=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=dycj0c8I; arc=none smtp.client-ip=115.124.30.98
+	 In-Reply-To:Content-Type; b=LYXU4o6Fyw0ThQP8CKm+qxT59aT+Vw2pgy6+GY2VrSZmUgEJ/9o3iMbysS4LeQXTv9q4wWzwSpMf5uXI0gEcWg0B9O9L7AV7iFU1Ddlg9DiLO0lEjhOE+cBQZauuKAZl8l2BsTsd6GbzO1ccrvq4o6eQDuvx/7ddLIjedqAgGkU=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=V2IOir3j; arc=none smtp.client-ip=115.124.30.110
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="dycj0c8I"
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="V2IOir3j"
 DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
 	d=linux.alibaba.com; s=default;
-	t=1734185341; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=FFfUJEid6t2Q+X5lpTNnDb5Cwg9LaWWvPeaN1iwsWGQ=;
-	b=dycj0c8IiCLCATIz71HStLirZluVTH/nF+9VM4JBgUs/KmiFCr+tBG/wsVVNsZBTidfpA0ip/I6komLseRm9y1bVBZNm2bTE8YwK/BQVRQDsuKcmKDp+fueOV0moC0UteSbgD6Ec3Uu9OrPInRNI068RjamlsQKIvFTFncFoKPs=
-Received: from 30.120.185.40(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0WLRjCTv_1734185339 cluster:ay36)
+	t=1734185405; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=5Oz220WKFk/DHVnQ7+DBHRH5+g5oMgrGK2Ur9MOZjPQ=;
+	b=V2IOir3jN9eehSJjlUGzISQ+gZ1gNxJ/uPw8flFEaucvyKuY6cu/nsg6ewT5jrNJ+nX/kWxFY2e04ZI+4NvydvOwxsGN1yoHdLFAaGt4KaWAixyIJ69ZSYyPiSowrc47D5Ws1aw9R/J/qQJ0sUf5MALEnwHnMg01IyGbAf54qLo=
+Received: from 30.120.185.40(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0WLReV03_1734185403 cluster:ay36)
           by smtp.aliyun-inc.com;
-          Sat, 14 Dec 2024 22:09:00 +0800
-Message-ID: <970aecd3-0c0c-4ddd-9b76-d2f26f5f1bc1@linux.alibaba.com>
-Date: Sat, 14 Dec 2024 22:08:59 +0800
+          Sat, 14 Dec 2024 22:10:04 +0800
+Message-ID: <809c9259-8f74-4c00-80c8-0028285116e7@linux.alibaba.com>
+Date: Sat, 14 Dec 2024 22:10:03 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -33,15 +33,15 @@ List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH 07/23] ocfs2: Convert ocfs2_readpage_inline() to take a
- folio
+Subject: Re: [PATCH 08/23] ocfs2: Convert ocfs2_inode_lock_with_page() to
+ ocfs2_inode_lock_with_folio()
 To: "Matthew Wilcox (Oracle)" <willy@infradead.org>,
  akpm <akpm@linux-foundation.org>
 Cc: Mark Tinguely <mark.tinguely@oracle.com>, ocfs2-devel@lists.linux.dev
 References: <20241205171653.3179945-1-willy@infradead.org>
- <20241205171653.3179945-8-willy@infradead.org>
+ <20241205171653.3179945-9-willy@infradead.org>
 From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <20241205171653.3179945-8-willy@infradead.org>
+In-Reply-To: <20241205171653.3179945-9-willy@infradead.org>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
@@ -50,8 +50,7 @@ Content-Transfer-Encoding: 7bit
 On 2024/12/6 01:16, Matthew Wilcox (Oracle) wrote:
 > From: Mark Tinguely <mark.tinguely@oracle.com>
 > 
-> Save a couple of calls to compound_head() by using a folio throughout
-> this function.
+> Saves a hidden call to compound_head().
 > 
 > Signed-off-by: Mark Tinguely <mark.tinguely@oracle.com>
 > Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
@@ -60,47 +59,82 @@ Looks good.
 Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
 
 > ---
->  fs/ocfs2/aops.c | 10 +++++-----
->  1 file changed, 5 insertions(+), 5 deletions(-)
+>  fs/ocfs2/aops.c    |  2 +-
+>  fs/ocfs2/dlmglue.c | 18 ++++++++----------
+>  fs/ocfs2/dlmglue.h |  6 ++----
+>  3 files changed, 11 insertions(+), 15 deletions(-)
 > 
 > diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-> index aac644a0d25d..1896a1d24173 100644
+> index 1896a1d24173..161f2dc00b00 100644
 > --- a/fs/ocfs2/aops.c
 > +++ b/fs/ocfs2/aops.c
-> @@ -252,12 +252,12 @@ int ocfs2_read_inline_data(struct inode *inode, struct page *page,
->  	return 0;
->  }
+> @@ -283,7 +283,7 @@ static int ocfs2_read_folio(struct file *file, struct folio *folio)
 >  
-> -static int ocfs2_readpage_inline(struct inode *inode, struct page *page)
-> +static int ocfs2_readpage_inline(struct inode *inode, struct folio *folio)
+>  	trace_ocfs2_readpage((unsigned long long)oi->ip_blkno, folio->index);
+>  
+> -	ret = ocfs2_inode_lock_with_page(inode, NULL, 0, &folio->page);
+> +	ret = ocfs2_inode_lock_with_folio(inode, NULL, 0, folio);
+>  	if (ret != 0) {
+>  		if (ret == AOP_TRUNCATED_PAGE)
+>  			unlock = 0;
+> diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
+> index 60df52e4c1f8..acebfa19ea6f 100644
+> --- a/fs/ocfs2/dlmglue.c
+> +++ b/fs/ocfs2/dlmglue.c
+> @@ -2529,30 +2529,28 @@ int ocfs2_inode_lock_full_nested(struct inode *inode,
+>  
+>  /*
+>   * This is working around a lock inversion between tasks acquiring DLM
+> - * locks while holding a page lock and the downconvert thread which
+> - * blocks dlm lock acquiry while acquiring page locks.
+> + * locks while holding a folio lock and the downconvert thread which
+> + * blocks dlm lock acquiry while acquiring folio locks.
+>   *
+> - * ** These _with_page variantes are only intended to be called from aop
+> - * methods that hold page locks and return a very specific *positive* error
+> + * ** These _with_folio variantes are only intended to be called from aop
+> + * methods that hold folio locks and return a very specific *positive* error
+>   * code that aop methods pass up to the VFS -- test for errors with != 0. **
+>   *
+>   * The DLM is called such that it returns -EAGAIN if it would have
+>   * blocked waiting for the downconvert thread.  In that case we unlock
+> - * our page so the downconvert thread can make progress.  Once we've
+> + * our folio so the downconvert thread can make progress.  Once we've
+>   * done this we have to return AOP_TRUNCATED_PAGE so the aop method
+>   * that called us can bubble that back up into the VFS who will then
+>   * immediately retry the aop call.
+>   */
+> -int ocfs2_inode_lock_with_page(struct inode *inode,
+> -			      struct buffer_head **ret_bh,
+> -			      int ex,
+> -			      struct page *page)
+> +int ocfs2_inode_lock_with_folio(struct inode *inode,
+> +		struct buffer_head **ret_bh, int ex, struct folio *folio)
 >  {
 >  	int ret;
->  	struct buffer_head *di_bh = NULL;
 >  
-> -	BUG_ON(!PageLocked(page));
-> +	BUG_ON(!folio_test_locked(folio));
->  	BUG_ON(!(OCFS2_I(inode)->ip_dyn_features & OCFS2_INLINE_DATA_FL));
->  
->  	ret = ocfs2_read_inode_block(inode, &di_bh);
-> @@ -266,9 +266,9 @@ static int ocfs2_readpage_inline(struct inode *inode, struct page *page)
->  		goto out;
->  	}
->  
-> -	ret = ocfs2_read_inline_data(inode, page, di_bh);
-> +	ret = ocfs2_read_inline_data(inode, &folio->page, di_bh);
->  out:
-> -	unlock_page(page);
-> +	folio_unlock(folio);
->  
->  	brelse(di_bh);
->  	return ret;
-> @@ -322,7 +322,7 @@ static int ocfs2_read_folio(struct file *file, struct folio *folio)
->  	}
->  
->  	if (oi->ip_dyn_features & OCFS2_INLINE_DATA_FL)
-> -		ret = ocfs2_readpage_inline(inode, &folio->page);
-> +		ret = ocfs2_readpage_inline(inode, folio);
->  	else
->  		ret = block_read_full_folio(folio, ocfs2_get_block);
->  	unlock = 0;
+>  	ret = ocfs2_inode_lock_full(inode, ret_bh, ex, OCFS2_LOCK_NONBLOCK);
+>  	if (ret == -EAGAIN) {
+> -		unlock_page(page);
+> +		folio_unlock(folio);
+>  		/*
+>  		 * If we can't get inode lock immediately, we should not return
+>  		 * directly here, since this will lead to a softlockup problem.
+> diff --git a/fs/ocfs2/dlmglue.h b/fs/ocfs2/dlmglue.h
+> index e5da5809ed95..a3ebd7303ea2 100644
+> --- a/fs/ocfs2/dlmglue.h
+> +++ b/fs/ocfs2/dlmglue.h
+> @@ -137,10 +137,8 @@ int ocfs2_inode_lock_full_nested(struct inode *inode,
+>  			 int ex,
+>  			 int arg_flags,
+>  			 int subclass);
+> -int ocfs2_inode_lock_with_page(struct inode *inode,
+> -			      struct buffer_head **ret_bh,
+> -			      int ex,
+> -			      struct page *page);
+> +int ocfs2_inode_lock_with_folio(struct inode *inode,
+> +		struct buffer_head **ret_bh, int ex, struct folio *folio);
+>  /* Variants without special locking class or flags */
+>  #define ocfs2_inode_lock_full(i, r, e, f)\
+>  		ocfs2_inode_lock_full_nested(i, r, e, f, OI_LS_NORMAL)
 
