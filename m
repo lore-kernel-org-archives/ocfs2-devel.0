@@ -1,98 +1,90 @@
-Received: from mgamail.intel.com (mgamail.intel.com [198.175.65.13])
+Received: from out30-99.freemail.mail.aliyun.com (out30-99.freemail.mail.aliyun.com [115.124.30.99])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 815EC1E32DD
-	for <ocfs2-devel@lists.linux.dev>; Fri, 13 Dec 2024 17:11:14 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=198.175.65.13
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4C4A418D620
+	for <ocfs2-devel@lists.linux.dev>; Sat, 14 Dec 2024 12:03:39 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.99
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1734109875; cv=none; b=URay70AJCrr6q4jxJdNyhktfeDwL8Zl9KEjY/tu0A1H2S+JXuzQRe98uI96MssK/AUTr8/Y+j/tkJaDHCTbjOwZ3k0NqqLvMkcG74au9zvO5X9YmY0DqsL63r4uLPwzdqWp1m2hbf2C44ArDduQfAsvlGj0QW2BTf2Z4XJjNhv0=
+	t=1734177823; cv=none; b=iqDWhTfqYPLm4YC3DAHKJEsK2Oq0MQWCzYwV2lGG0V1ji+s9ar1GrxEc7+QsU+hP8cH0OHu7Hk1mtsyGk7SkRD7X5ffAdL8bFodY5q0cc++XNG9EQHCYtvQAwFM9V/Gv2CqoI2HHWgYwesEOZxR7EEU8bNtEL0fMaaPcVqWhfSM=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1734109875; c=relaxed/simple;
-	bh=43lcs1+73oMcgYgVNa8OI3qmg7j0TEA5KYxken4+b0I=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=D0qiJ8wfOspulZJGs3tmg5Iu7zmORBEYowYLTDXemme51xTII58YqUlKnnHkSszUNj2+kJG+aKHMBPseXolWed268D7WjA399pkOkp8bF039VMH+dLr5Ousw3FpsbyPooSmPGRd/LSSGXVwPyL+TmWo0pyJE/rES64Q2a7kymF8=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.intel.com; spf=none smtp.mailfrom=linux.intel.com; dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b=GkxOFPVD; arc=none smtp.client-ip=198.175.65.13
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.intel.com
-Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=linux.intel.com
+	s=arc-20240116; t=1734177823; c=relaxed/simple;
+	bh=2vKlmrrpIW698UnsIFpSEzPxUWPaGsvoO22QxKykQDA=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=VM90nsuEqE1uHB/YMkn3tvG9mSrEddOffJGXTsmZ3xKOWazy0e9RBCC2z3khBa7svL5hZi4nwIKCFOWhu2WnKnwlu4zu3p2UiTMyuKiVfV1fooIRQOVs3QawmaO59SXcuzh4HBdQLi028TSY9MPZGuYiuFA+Wr+06nTbckjFeTA=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=YwaRmx+I; arc=none smtp.client-ip=115.124.30.99
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b="GkxOFPVD"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
-  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
-  t=1734109874; x=1765645874;
-  h=date:from:to:cc:subject:message-id:references:
-   mime-version:in-reply-to;
-  bh=43lcs1+73oMcgYgVNa8OI3qmg7j0TEA5KYxken4+b0I=;
-  b=GkxOFPVDo+0aPYwy7ad6SkQ2luH3OYIZy/eD47jBuGp6E3yBJToWjZPt
-   FlFH2mgqhYHJLu9E/9yfVjbajw/0plskprwaPHPy4FC0V/2vei3P2WBrt
-   8PXkj3e4gAWgY0wAwmua0/Rkc13v60rc5Cni30gpnhj57omPVeMl6h8hk
-   TUqUMuyKmscjpPNsUU0LZlrOexktcPGxVnXrhhA5jterdoW7n4iU/n6vp
-   FrpArLw7QIATo+2qIci7MpUqBxjeGjIpkAPC2cpNT9y6KBBZR+ICpSRxM
-   uhbJatHwZFtbbrKIY8XesjcAdbHegXbho2BhuReAk1L1yIOnBO9cffynV
-   g==;
-X-CSE-ConnectionGUID: b+hxlMpIQ1Oc9/JG6g5cIg==
-X-CSE-MsgGUID: awfBLRYZQXGxpCgIB2pGIA==
-X-IronPort-AV: E=McAfee;i="6700,10204,11282"; a="45576428"
-X-IronPort-AV: E=Sophos;i="6.12,224,1728975600"; 
-   d="scan'208";a="45576428"
-Received: from orviesa005.jf.intel.com ([10.64.159.145])
-  by orvoesa105.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 13 Dec 2024 09:11:14 -0800
-X-CSE-ConnectionGUID: THz8Mw9lT1KULhWa98pHdg==
-X-CSE-MsgGUID: 088O5EVCSju/YnpNX2zO4A==
-X-ExtLoop1: 1
-X-IronPort-AV: E=Sophos;i="6.12,224,1728975600"; 
-   d="scan'208";a="101560852"
-Received: from smile.fi.intel.com ([10.237.72.154])
-  by orviesa005.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 13 Dec 2024 09:11:09 -0800
-Received: from andy by smile.fi.intel.com with local (Exim 4.98)
-	(envelope-from <andriy.shevchenko@linux.intel.com>)
-	id 1tM9Bx-00000007Q2C-0sOT;
-	Fri, 13 Dec 2024 19:11:05 +0200
-Date: Fri, 13 Dec 2024 19:11:04 +0200
-From: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
-To: Borislav Petkov <bp@alien8.de>
-Cc: Kalle Valo <kvalo@kernel.org>, Petr Mladek <pmladek@suse.com>,
-	Yafang Shao <laoar.shao@gmail.com>, torvalds@linux-foundation.org,
-	akpm@linux-foundation.org, linux-kernel@vger.kernel.org,
-	linux-security-module@vger.kernel.org, x86@kernel.org,
-	linux-snps-arc@lists.infradead.org, linux-wireless@vger.kernel.org,
-	intel-gfx@lists.freedesktop.org, intel-xe@lists.freedesktop.org,
-	nouveau@lists.freedesktop.org, dri-devel@lists.freedesktop.org,
-	ocfs2-devel@lists.linux.dev, Steven Rostedt <rostedt@goodmis.org>,
-	Rasmus Villemoes <linux@rasmusvillemoes.dk>,
-	Sergey Senozhatsky <senozhatsky@chromium.org>,
-	Andy Whitcroft <apw@canonical.com>, Joe Perches <joe@perches.com>,
-	Dwaipayan Ray <dwaipayanray1@gmail.com>,
-	Lukas Bulwahn <lukas.bulwahn@gmail.com>
-Subject: Re: [PATCH 1/7] vsprintf: Add %pTN to print task name
-Message-ID: <Z1xqqENp6n6HZ_gM@smile.fi.intel.com>
-References: <20241213054610.55843-1-laoar.shao@gmail.com>
- <20241213054610.55843-2-laoar.shao@gmail.com>
- <Z1vq2-V7vB5KhBR9@pathway.suse.cz>
- <87r06crnew.fsf@kernel.org>
- <20241213132709.GAZ1w2LW4LgHi-6XfZ@fat_crate.local>
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="YwaRmx+I"
+DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=linux.alibaba.com; s=default;
+	t=1734177812; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=CgI3UuXkNtpIu8Hz80ke2Gq99NhpHVLzX2ZaWjPXS5I=;
+	b=YwaRmx+IuJ7qNdG2QCf5dpt8zqqYfl6qNfyfZsiAu7i574ZoYYAYkqDkyBkwmuHe5pxsGvFEwGglwjDbc+8vy+FxXSsPU3KZ4n9U9pP6ehqJ2+RRt6lA5BBzEFj4y3f3b/hK2C49nwndIjhwsodEAV0Li+OS8MXRJ52C0WbD53w=
+Received: from 30.120.185.40(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0WLRSZeC_1734177810 cluster:ay36)
+          by smtp.aliyun-inc.com;
+          Sat, 14 Dec 2024 20:03:31 +0800
+Message-ID: <f0279f1a-936e-45c2-9f57-0b82c3fffcd9@linux.alibaba.com>
+Date: Sat, 14 Dec 2024 20:03:30 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20241213132709.GAZ1w2LW4LgHi-6XfZ@fat_crate.local>
-Organization: Intel Finland Oy - BIC 0357606-4 - Westendinkatu 7, 02160 Espoo
-
-On Fri, Dec 13, 2024 at 02:27:09PM +0100, Borislav Petkov wrote:
-> On Fri, Dec 13, 2024 at 10:35:03AM +0200, Kalle Valo wrote:
-> > I agree, it makes the code harder to read for someone who is not
-> > familiar with all the %p magic we have (like me).
-
-> +1
-
-And me too. In case one thinks of unprintable characters, %pE is for that.
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH 01/23] ocfs2: Handle a symlink read error correctly
+To: "Matthew Wilcox (Oracle)" <willy@infradead.org>
+Cc: ocfs2-devel@lists.linux.dev, Mark Tinguely <mark.tinguely@oracle.com>,
+ stable@vger.kernel.org
+References: <20241205171653.3179945-1-willy@infradead.org>
+ <20241205171653.3179945-2-willy@infradead.org>
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+In-Reply-To: <20241205171653.3179945-2-willy@infradead.org>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
 
--- 
-With Best Regards,
-Andy Shevchenko
 
+On 2024/12/6 01:16, Matthew Wilcox (Oracle) wrote:
+> If we can't read the buffer, be sure to unlock the page before
+> returning.
+> 
+> Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
+> Cc: stable@vger.kernel.org
+> ---
+>  fs/ocfs2/symlink.c | 5 +++--
+>  1 file changed, 3 insertions(+), 2 deletions(-)
+> 
+> diff --git a/fs/ocfs2/symlink.c b/fs/ocfs2/symlink.c
+> index d4c5fdcfa1e4..f5cf2255dc09 100644
+> --- a/fs/ocfs2/symlink.c
+> +++ b/fs/ocfs2/symlink.c
+> @@ -65,7 +65,7 @@ static int ocfs2_fast_symlink_read_folio(struct file *f, struct folio *folio)
+>  
+
+Better to move calling ocfs2_read_inode_block() here.
+
+Thanks,
+Joseph
+
+>  	if (status < 0) {
+>  		mlog_errno(status);
+> -		return status;
+> +		goto out;
+>  	}
+>  
+>  	fe = (struct ocfs2_dinode *) bh->b_data;
+> @@ -76,9 +76,10 @@ static int ocfs2_fast_symlink_read_folio(struct file *f, struct folio *folio)
+>  	memcpy(kaddr, link, len + 1);
+>  	kunmap_atomic(kaddr);
+>  	SetPageUptodate(page);
+> +out:
+>  	unlock_page(page);
+>  	brelse(bh);
+> -	return 0;
+> +	return status;
+>  }
+>  
+>  const struct address_space_operations ocfs2_fast_symlink_aops = {
 
