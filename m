@@ -1,114 +1,107 @@
-Received: from forward103b.mail.yandex.net (forward103b.mail.yandex.net [178.154.239.150])
+Received: from out30-112.freemail.mail.aliyun.com (out30-112.freemail.mail.aliyun.com [115.124.30.112])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B38FE1DDC3F
-	for <ocfs2-devel@lists.linux.dev>; Tue, 17 Dec 2024 10:44:33 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=178.154.239.150
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C14D81D90AD
+	for <ocfs2-devel@lists.linux.dev>; Tue, 17 Dec 2024 12:35:55 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.112
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1734432277; cv=none; b=nE5rKuEZNkgwU4ME/3TrkIDV+3/+hXhmL8ifzulqmcFtfen/RT8PB9GJlMT10arsdJnrzRrSXFWZRmmiA/isId5XlCZoWjiIsxxBPiCqzCDpodQwAs3ytpfb6S0qNYNww5f1EUfaymPm47e81FnURH2ovzcdUtG/wKb20o7LbTA=
+	t=1734438958; cv=none; b=qzIy+7oRmj2Tm13aXOA5o9Eff6ZQ1FM6MTlZ4B8NZsvBHHPBsFkS1e8+Z4Q6oNx1y/yllsAuFTOO9jwyaN7ckYnV35PE8r2Q/w6egjYgaUo8bMleAt3pAaPaJ5G5NF4pdYXhJ9yw2fw0KPrRdXlyG+l+zxE+PML7VPwsc0dj9N8=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1734432277; c=relaxed/simple;
-	bh=8C0/0INpS+2jFXAyQCtZl+L1xNZWxLVWvD84gscX6cU=;
-	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=IH8QBm1AxV1/Y4onlo8c/kzJ92YOOgqUrHQRoqFVyFL0PdWyktCH/USYZAr/SfK1dORwkY0vQFKTp7hCocB2zvEurMwRHhzrRFaAqXJjZoxovKrydL/3BuIZB+pFIELgCk4H9Qw21UsaXKvBLrOzHGE0R8B4L3mL4sLWNK7rGOw=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru; spf=pass smtp.mailfrom=yandex.ru; dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b=FkDckJ5U; arc=none smtp.client-ip=178.154.239.150
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=yandex.ru
+	s=arc-20240116; t=1734438958; c=relaxed/simple;
+	bh=sqKkRZksVUeZVFhDKfPmfafbSD6yBYhW5Q/1vVAv5CI=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=ToHRyrA0lHVPkx1MTy7mOf94la97DUbytfQ7SbRKD9GcsB+C76FkFuBdVE5ihaixrqmEidOeqe1CwTkx2ttgLew93tNJZWQwmQibNF2jiRFy7MzVwpR7tWOlCeNYIjKrXmQjAP5zanq4nZ2kbRy2THtGEkbqTw4IAcnXMeE8/aU=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=Xi4YdacL; arc=none smtp.client-ip=115.124.30.112
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b="FkDckJ5U"
-Received: from mail-nwsmtp-smtp-production-main-10.sas.yp-c.yandex.net (mail-nwsmtp-smtp-production-main-10.sas.yp-c.yandex.net [IPv6:2a02:6b8:c10:2222:0:640:c513:0])
-	by forward103b.mail.yandex.net (Yandex) with ESMTPS id 0D61160D19;
-	Tue, 17 Dec 2024 13:44:26 +0300 (MSK)
-Received: by mail-nwsmtp-smtp-production-main-10.sas.yp-c.yandex.net (smtp/Yandex) with ESMTPSA id NiNGRlCOmGk0-mjC7fnO3;
-	Tue, 17 Dec 2024 13:44:25 +0300
-X-Yandex-Fwd: 1
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=yandex.ru; s=mail;
-	t=1734432265; bh=5FetM0ib2kXs6sXpK+ytKZOfLLGjYdaOi/1la2kBbOg=;
-	h=Message-ID:Date:Cc:Subject:To:From;
-	b=FkDckJ5U9a+u/WfJ09YdcmaiwxISDVq14Ton5I1K71P18Zh1m/2Q7c2gOZd5EIdsL
-	 ToJez1wM2GOF5oCS01ViSp/VVg0aQ7vGkfAStt/raSYaF6UuQ5oJA79YROWIkoq6lk
-	 jZn1NnpIo1OIQou7AFb7vplDk+XmY0axbKXmtfqo=
-Authentication-Results: mail-nwsmtp-smtp-production-main-10.sas.yp-c.yandex.net; dkim=pass header.i=@yandex.ru
-From: Dmitry Antipov <dmantipov@yandex.ru>
-To: Mark Fasheh <mark@fasheh.com>,
-	Joel Becker <jlbec@evilplan.org>,
-	Joseph Qi <joseph.qi@linux.alibaba.com>
-Cc: ocfs2-devel@lists.linux.dev,
-	lvc-project@linuxtesting.org,
-	Dmitry Antipov <dmantipov@yandex.ru>,
-	syzbot+c16daba279a1161acfb0@syzkaller.appspotmail.com
-Subject: [PATCH] ocfs2: add extent record check in ocfs2_commit_truncate()
-Date: Tue, 17 Dec 2024 13:43:45 +0300
-Message-ID: <20241217104345.358461-1-dmantipov@yandex.ru>
-X-Mailer: git-send-email 2.47.1
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="Xi4YdacL"
+DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=linux.alibaba.com; s=default;
+	t=1734438947; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=cxpXJZRKPdL3JtCadcEw4asuX7c+VcjU2sev26XlNqA=;
+	b=Xi4YdacLCpOZXB2hjMXdzUNqm3KcjTXpuvsNAg5Q+fKSUz662yYnuY1XmocTCalPe47DN71Wv+Wykod9Qr5ecZohFqmtitfRAnnAuvCOBoRwbylZ8NW1iu6+8vIGNpEw+HAx/isxv4TB1w397mr8OcCuR2IGmr4AKgG5fgNq2Nw=
+Received: from 30.221.145.236(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0WLjD.Zq_1734438945 cluster:ay36)
+          by smtp.aliyun-inc.com;
+          Tue, 17 Dec 2024 20:35:46 +0800
+Message-ID: <ac900a5e-9a3d-4e6e-8218-fc56bef8142e@linux.alibaba.com>
+Date: Tue, 17 Dec 2024 20:35:44 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH] ocfs2: fix slab-use-after-free due to dangling pointer
+ dqi_priv
+To: Dennis Lam <dennis.lamerice@gmail.com>, mark@fasheh.com,
+ jlbec@evilplan.org
+Cc: ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org,
+ syzbot+d173bf8a5a7faeede34c@syzkaller.appspotmail.com
+References: <20241215035828.106936-2-dennis.lamerice@gmail.com>
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+In-Reply-To: <20241215035828.106936-2-dennis.lamerice@gmail.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
-Syzbot has reported the following BUG():
 
-Kernel BUG at fs/ocfs2/alloc.c:686!
-...
-RIP: 0010:ocfs2_new_path fs/ocfs2/alloc.c:686 [inline]
-RIP: 0010:ocfs2_commit_truncate+0x2547/0x2550 fs/ocfs2/alloc.c:7234
-Call Trace:
- <TASK>
- ocfs2_truncate_for_delete fs/ocfs2/inode.c:623 [inline]
- ocfs2_wipe_inode fs/ocfs2/inode.c:790 [inline]
- ocfs2_delete_inode fs/ocfs2/inode.c:1079 [inline]
- ocfs2_evict_inode+0x1c46/0x4630 fs/ocfs2/inode.c:1216
- evict+0x4e8/0x9a0 fs/inode.c:796
- d_delete_notify include/linux/fsnotify.h:332 [inline]
- vfs_rmdir+0x3d7/0x510 fs/namei.c:4407
- do_rmdir+0x3b5/0x580 fs/namei.c:4453
- __do_sys_rmdir fs/namei.c:4472 [inline]
- __se_sys_rmdir fs/namei.c:4470 [inline]
- __x64_sys_rmdir+0x47/0x50 fs/namei.c:4470
- do_syscall_x64 arch/x86/entry/common.c:52 [inline]
- do_syscall_64+0xf3/0x230 arch/x86/entry/common.c:83
- entry_SYSCALL_64_after_hwframe+0x77/0x7f
- ...
- </TASK>
 
-In 'ocfs2_commit_truncate()', add an extra extent tree depth check
-to refuse further operations on (presumably) corrupted on-disk inode.
+On 2024/12/15 11:58, Dennis Lam wrote:
+> When mounting ocfs2 and then remounting it as read-only, a
+> slab-use-after-free occurs after the user uses a syscall to
+> quota_getnextquota. Specifically, sb_dqinfo(sb, type)->dqi_priv is the
+> dangling pointer.
+> 
+> During the remounting process, the pointer dqi_priv is freed but is
+> never set as null leaving it to to be accessed. Additionally, the
+> read-only option for remounting sets the DQUOT_SUSPENDED flag instead of
+> setting the DQUOT_USAGE_ENABLED flags. Moreover, later in the process of
+> getting the next quota, the function ocfs2_get_next_id is called and
+> only checks the quota usage flags and not the quota suspended flags.
+> 
+> To fix this, I set dqi_priv to null when it is freed after remounting
+> with read-only and put a check for DQUOT_SUSPENDED in ocfs2_get_next_id.
+> 
+> Signed-off-by: Dennis Lam <dennis.lamerice@gmail.com>
+> Reported-by: syzbot+d173bf8a5a7faeede34c@syzkaller.appspotmail.com
+> Closes: https://lore.kernel.org/all/6731d26f.050a0220.1fb99c.014b.GAE@google.com/T/
+> ---
+>  fs/ocfs2/quota_global.c | 3 ++-
+>  fs/ocfs2/quota_local.c  | 1 +
+>  2 files changed, 3 insertions(+), 1 deletion(-)
+> 
+> diff --git a/fs/ocfs2/quota_global.c b/fs/ocfs2/quota_global.c
+> index 2b0daced98eb..c6d38340d6d4 100644
+> --- a/fs/ocfs2/quota_global.c
+> +++ b/fs/ocfs2/quota_global.c
+> @@ -893,7 +893,8 @@ static int ocfs2_get_next_id(struct super_block *sb, struct kqid *qid)
+>  	int status = 0;
+>  
+>  	trace_ocfs2_get_next_id(from_kqid(&init_user_ns, *qid), type);
+> -	if (!sb_has_quota_loaded(sb, type)) {
+> +	if (!sb_has_quota_loaded(sb, type) ||
+> +			sb_dqopt(sb)->flags & DQUOT_SUSPENDED) {
 
-Reported-by: syzbot+c16daba279a1161acfb0@syzkaller.appspotmail.com
-Closes: https://syzkaller.appspot.com/bug?extid=c16daba279a1161acfb0
-Fixes: 78f94673d7fa ("Ocfs2: Optimize ocfs2 truncate to use ocfs2_remove_btree_range() instead.")
-Signed-off-by: Dmitry Antipov <dmantipov@yandex.ru>
----
- fs/ocfs2/alloc.c | 8 ++++++++
- 1 file changed, 8 insertions(+)
+Looks reasonable.
+We can just use !sb_has_quota_active() instead.
 
-diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-index 395e23920632..040aa2694f53 100644
---- a/fs/ocfs2/alloc.c
-+++ b/fs/ocfs2/alloc.c
-@@ -7219,12 +7219,20 @@ int ocfs2_commit_truncate(struct ocfs2_super *osb,
- 	struct ocfs2_extent_rec *rec;
- 	struct ocfs2_path *path = NULL;
- 	struct ocfs2_dinode *di = (struct ocfs2_dinode *)di_bh->b_data;
-+	u16 tree_depth = le16_to_cpu(di->id2.i_list.l_tree_depth);
- 	struct ocfs2_extent_list *root_el = &(di->id2.i_list);
- 	u64 refcount_loc = le64_to_cpu(di->i_refcount_loc);
- 	struct ocfs2_extent_tree et;
- 	struct ocfs2_cached_dealloc_ctxt dealloc;
- 	struct ocfs2_refcount_tree *ref_tree = NULL;
- 
-+	if (unlikely(tree_depth >= OCFS2_MAX_PATH_DEPTH)) {
-+		ocfs2_error(inode->i_sb,
-+			    "dinode %llu has invalid extent record depth %u\n",
-+			    (u64)di_bh->b_blocknr, tree_depth);
-+		return -EINVAL;
-+	}
-+
- 	ocfs2_init_dinode_extent_tree(&et, INODE_CACHE(inode), di_bh);
- 	ocfs2_init_dealloc_ctxt(&dealloc);
- 
--- 
-2.47.1
+Thanks,
+Joseph
+
+>  		status = -ESRCH;
+>  		goto out;
+>  	}
+> diff --git a/fs/ocfs2/quota_local.c b/fs/ocfs2/quota_local.c
+> index 73d3367c533b..2956d888c131 100644
+> --- a/fs/ocfs2/quota_local.c
+> +++ b/fs/ocfs2/quota_local.c
+> @@ -867,6 +867,7 @@ static int ocfs2_local_free_info(struct super_block *sb, int type)
+>  	brelse(oinfo->dqi_libh);
+>  	brelse(oinfo->dqi_lqi_bh);
+>  	kfree(oinfo);
+> +	info->dqi_priv = NULL;
+>  	return status;
+>  }
+>  
 
