@@ -1,146 +1,114 @@
-Received: from verein.lst.de (verein.lst.de [213.95.11.211])
+Received: from forward103b.mail.yandex.net (forward103b.mail.yandex.net [178.154.239.150])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 567A014601C;
-	Tue, 17 Dec 2024 03:59:52 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=213.95.11.211
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B38FE1DDC3F
+	for <ocfs2-devel@lists.linux.dev>; Tue, 17 Dec 2024 10:44:33 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=178.154.239.150
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1734407994; cv=none; b=rci/S5DNstgyawDn3N/A9qTDdj+4yF/AHabAVCHd9SteaNOB9cIEfZBOYje+CSHPqZ+BfWaLGi8nXXR7ZWy9tgBSAgTqX4OKrQpFTWZNEsqTLbjM2usmK3GTh1qSmatVdIGH3yKN9dwBev3Gkrc9GWgQk3c0GwDEsNt1CIpa4SA=
+	t=1734432277; cv=none; b=nE5rKuEZNkgwU4ME/3TrkIDV+3/+hXhmL8ifzulqmcFtfen/RT8PB9GJlMT10arsdJnrzRrSXFWZRmmiA/isId5XlCZoWjiIsxxBPiCqzCDpodQwAs3ytpfb6S0qNYNww5f1EUfaymPm47e81FnURH2ovzcdUtG/wKb20o7LbTA=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1734407994; c=relaxed/simple;
-	bh=GXKY4ibAqf+fScHyj3FgJPIYI3um2k9fkI7luLsdvHI=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=W/FQa5LBZnCi381+LD7PIyCSPL553ldAh7xG24nFDLuNzHmQfQvV3BXkToEiiz4lT+S+W88naskrgtmWT3dHG4sYig6WRnJNn1Zqf0hWqBBQxBvuUiXYi5iJnxBKigt5wPHkWvu+1qa4Hg3B2uK2mqtbCRwhTzB1QrAswP9RLl4=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=lst.de; spf=pass smtp.mailfrom=lst.de; arc=none smtp.client-ip=213.95.11.211
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=lst.de
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=lst.de
-Received: by verein.lst.de (Postfix, from userid 2407)
-	id 8E68768C4E; Tue, 17 Dec 2024 04:59:43 +0100 (CET)
-Date: Tue, 17 Dec 2024 04:59:43 +0100
-From: Christoph Hellwig <hch@lst.de>
-To: Kees Cook <kees@kernel.org>
-Cc: Jakub Kicinski <kuba@kernel.org>, Cheng Xu <chengyou@linux.alibaba.com>,
-	Kai Shen <kaishen@linux.alibaba.com>,
-	Jason Gunthorpe <jgg@ziepe.ca>, Leon Romanovsky <leon@kernel.org>,
-	Christian Benvenuti <benve@cisco.com>,
-	Nelson Escobar <neescoba@cisco.com>,
-	Bernard Metzler <bmt@zurich.ibm.com>,
-	Karsten Keil <isdn@linux-pingi.de>,
-	Michal Ostrowski <mostrows@earthlink.net>,
-	Andrew Lunn <andrew+netdev@lunn.ch>,
-	"David S. Miller" <davem@davemloft.net>,
-	Eric Dumazet <edumazet@google.com>, Paolo Abeni <pabeni@redhat.com>,
-	Keith Busch <kbusch@kernel.org>, Jens Axboe <axboe@kernel.dk>,
-	Christoph Hellwig <hch@lst.de>, Sagi Grimberg <sagi@grimberg.me>,
-	Chaitanya Kulkarni <kch@nvidia.com>, Lee Duncan <lduncan@suse.com>,
-	Chris Leech <cleech@redhat.com>,
-	Mike Christie <michael.christie@oracle.com>,
-	"James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>,
-	"Martin K. Petersen" <martin.petersen@oracle.com>,
-	Bjorn Andersson <andersson@kernel.org>,
-	Konrad Dybcio <konradybcio@kernel.org>,
-	Alexander Aring <aahringo@redhat.com>,
-	David Teigland <teigland@redhat.com>,
-	Trond Myklebust <trondmy@kernel.org>,
-	Anna Schumaker <anna@kernel.org>, Mark Fasheh <mark@fasheh.com>,
+	s=arc-20240116; t=1734432277; c=relaxed/simple;
+	bh=8C0/0INpS+2jFXAyQCtZl+L1xNZWxLVWvD84gscX6cU=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=IH8QBm1AxV1/Y4onlo8c/kzJ92YOOgqUrHQRoqFVyFL0PdWyktCH/USYZAr/SfK1dORwkY0vQFKTp7hCocB2zvEurMwRHhzrRFaAqXJjZoxovKrydL/3BuIZB+pFIELgCk4H9Qw21UsaXKvBLrOzHGE0R8B4L3mL4sLWNK7rGOw=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru; spf=pass smtp.mailfrom=yandex.ru; dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b=FkDckJ5U; arc=none smtp.client-ip=178.154.239.150
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=yandex.ru
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b="FkDckJ5U"
+Received: from mail-nwsmtp-smtp-production-main-10.sas.yp-c.yandex.net (mail-nwsmtp-smtp-production-main-10.sas.yp-c.yandex.net [IPv6:2a02:6b8:c10:2222:0:640:c513:0])
+	by forward103b.mail.yandex.net (Yandex) with ESMTPS id 0D61160D19;
+	Tue, 17 Dec 2024 13:44:26 +0300 (MSK)
+Received: by mail-nwsmtp-smtp-production-main-10.sas.yp-c.yandex.net (smtp/Yandex) with ESMTPSA id NiNGRlCOmGk0-mjC7fnO3;
+	Tue, 17 Dec 2024 13:44:25 +0300
+X-Yandex-Fwd: 1
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=yandex.ru; s=mail;
+	t=1734432265; bh=5FetM0ib2kXs6sXpK+ytKZOfLLGjYdaOi/1la2kBbOg=;
+	h=Message-ID:Date:Cc:Subject:To:From;
+	b=FkDckJ5U9a+u/WfJ09YdcmaiwxISDVq14Ton5I1K71P18Zh1m/2Q7c2gOZd5EIdsL
+	 ToJez1wM2GOF5oCS01ViSp/VVg0aQ7vGkfAStt/raSYaF6UuQ5oJA79YROWIkoq6lk
+	 jZn1NnpIo1OIQou7AFb7vplDk+XmY0axbKXmtfqo=
+Authentication-Results: mail-nwsmtp-smtp-production-main-10.sas.yp-c.yandex.net; dkim=pass header.i=@yandex.ru
+From: Dmitry Antipov <dmantipov@yandex.ru>
+To: Mark Fasheh <mark@fasheh.com>,
 	Joel Becker <jlbec@evilplan.org>,
-	Joseph Qi <joseph.qi@linux.alibaba.com>,
-	Namjae Jeon <linkinjeon@kernel.org>,
-	Steve French <sfrench@samba.org>,
-	Sergey Senozhatsky <senozhatsky@chromium.org>,
-	Tom Talpey <tom@talpey.com>, Simon Horman <horms@kernel.org>,
-	Chuck Lever <chuck.lever@oracle.com>,
-	Jeff Layton <jlayton@kernel.org>, Neil Brown <neilb@suse.de>,
-	Olga Kornievskaia <okorniev@redhat.com>,
-	Dai Ngo <Dai.Ngo@oracle.com>, David Ahern <dsahern@kernel.org>,
-	Joerg Reuter <jreuter@yaina.de>,
-	Marcel Holtmann <marcel@holtmann.org>,
-	Johan Hedberg <johan.hedberg@gmail.com>,
-	Luiz Augusto von Dentz <luiz.dentz@gmail.com>,
-	Oliver Hartkopp <socketcan@hartkopp.net>,
-	Marc Kleine-Budde <mkl@pengutronix.de>,
-	Robin van der Gracht <robin@protonic.nl>,
-	Oleksij Rempel <o.rempel@pengutronix.de>,
-	Alexandra Winter <wintera@linux.ibm.com>,
-	Thorsten Winkler <twinkler@linux.ibm.com>,
-	James Chapman <jchapman@katalix.com>,
-	Krzysztof Kozlowski <krzk@kernel.org>,
-	Willem de Bruijn <willemdebruijn.kernel@gmail.com>,
-	Remi Denis-Courmont <courmisch@gmail.com>,
-	Manivannan Sadhasivam <manivannan.sadhasivam@linaro.org>,
-	Allison Henderson <allison.henderson@oracle.com>,
-	Marcelo Ricardo Leitner <marcelo.leitner@gmail.com>,
-	Xin Long <lucien.xin@gmail.com>,
-	Wenjia Zhang <wenjia@linux.ibm.com>,
-	Jan Karcher <jaka@linux.ibm.com>,
-	"D. Wythe" <alibuda@linux.alibaba.com>,
-	Tony Lu <tonylu@linux.alibaba.com>,
-	Wen Gu <guwen@linux.alibaba.com>, Jon Maloy <jmaloy@redhat.com>,
-	Ying Xue <ying.xue@windriver.com>,
-	Stefano Garzarella <sgarzare@redhat.com>,
-	Martin Schiller <ms@dev.tdt.de>,
-	Kentaro Takeda <takedakn@nttdata.co.jp>,
-	Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>,
-	Paul Moore <paul@paul-moore.com>, James Morris <jmorris@namei.org>,
-	"Serge E. Hallyn" <serge@hallyn.com>,
-	Guillaume Nault <gnault@redhat.com>,
-	Ahelenia =?utf-8?Q?Ziemia=C5=84ska?= <nabijaczleweli@nabijaczleweli.xyz>,
-	Andrew Morton <akpm@linux-foundation.org>,
-	Wu Yunchuan <yunchuan@nfschina.com>,
-	Max Gurtovoy <mgurtovoy@nvidia.com>,
-	Maurizio Lombardi <mlombard@redhat.com>,
-	David Howells <dhowells@redhat.com>,
-	Atte =?iso-8859-1?Q?Heikkil=E4?= <atteh.mailbox@gmail.com>,
-	Vincent Duvert <vincent.ldev@duvert.net>,
-	Denis Kirjanov <kirjanov@gmail.com>,
-	Lukas Bulwahn <lukas.bulwahn@gmail.com>,
-	Arnd Bergmann <arnd@arndb.de>, Thomas Huth <thuth@redhat.com>,
-	Andrew Waterman <waterman@eecs.berkeley.edu>,
-	Palmer Dabbelt <palmer@dabbelt.com>,
-	Andrej Shadura <andrew.shadura@collabora.co.uk>,
-	Ying Hsu <yinghsu@chromium.org>,
-	Kuniyuki Iwashima <kuniyu@amazon.com>,
-	Tom Parkin <tparkin@katalix.com>,
-	Jason Xing <kernelxing@tencent.com>,
-	Dan Carpenter <error27@gmail.com>, Hyunwoo Kim <v4bel@theori.io>,
-	Bernard Pidoux <f6bvp@free.fr>,
-	Sangsoo Lee <constant.lee@samsung.com>,
-	Doug Brown <doug@schmorgal.com>,
-	Ignat Korchagin <ignat@cloudflare.com>,
-	Gou Hao <gouhao@uniontech.com>,
-	Mina Almasry <almasrymina@google.com>,
-	Abhishek Chauhan <quic_abchauha@quicinc.com>,
-	Yajun Deng <yajun.deng@linux.dev>, Michal Luczaj <mhal@rbox.co>,
-	Jiri Pirko <jiri@resnulli.us>, syzbot <syzkaller@googlegroups.com>,
-	linux-kernel@vger.kernel.org, kernel@pengutronix.de,
-	linux-rdma@vger.kernel.org, netdev@vger.kernel.org,
-	linux-nvme@lists.infradead.org, open-iscsi@googlegroups.com,
-	linux-scsi@vger.kernel.org, linux-arm-msm@vger.kernel.org,
-	target-devel@vger.kernel.org, gfs2@lists.linux.dev,
-	linux-nfs@vger.kernel.org, ocfs2-devel@lists.linux.dev,
-	linux-cifs@vger.kernel.org, linux-hams@vger.kernel.org,
-	linux-bluetooth@vger.kernel.org, linux-can@vger.kernel.org,
-	linux-s390@vger.kernel.org, rds-devel@oss.oracle.com,
-	linux-sctp@vger.kernel.org, tipc-discussion@lists.sourceforge.net,
-	virtualization@lists.linux.dev, linux-x25@vger.kernel.org,
-	linux-security-module@vger.kernel.org,
-	syzbot+d7ce59b06b3eb14fd218@syzkaller.appspotmail.com,
-	linux-hardening@vger.kernel.org
-Subject: Re: [PATCH] net: Convert proto_ops::getname to sockaddr_storage
-Message-ID: <20241217035943.GB14719@lst.de>
-References: <20241217023417.work.145-kees@kernel.org>
+	Joseph Qi <joseph.qi@linux.alibaba.com>
+Cc: ocfs2-devel@lists.linux.dev,
+	lvc-project@linuxtesting.org,
+	Dmitry Antipov <dmantipov@yandex.ru>,
+	syzbot+c16daba279a1161acfb0@syzkaller.appspotmail.com
+Subject: [PATCH] ocfs2: add extent record check in ocfs2_commit_truncate()
+Date: Tue, 17 Dec 2024 13:43:45 +0300
+Message-ID: <20241217104345.358461-1-dmantipov@yandex.ru>
+X-Mailer: git-send-email 2.47.1
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20241217023417.work.145-kees@kernel.org>
-User-Agent: Mutt/1.5.17 (2007-11-01)
+Content-Transfer-Encoding: 8bit
 
-Would be nice to avoid a bunch of the overly long lines, but the
-fundamental changes looks good:
+Syzbot has reported the following BUG():
 
-Reviewed-by: Christoph Hellwig <hch@lst.de>
+Kernel BUG at fs/ocfs2/alloc.c:686!
+...
+RIP: 0010:ocfs2_new_path fs/ocfs2/alloc.c:686 [inline]
+RIP: 0010:ocfs2_commit_truncate+0x2547/0x2550 fs/ocfs2/alloc.c:7234
+Call Trace:
+ <TASK>
+ ocfs2_truncate_for_delete fs/ocfs2/inode.c:623 [inline]
+ ocfs2_wipe_inode fs/ocfs2/inode.c:790 [inline]
+ ocfs2_delete_inode fs/ocfs2/inode.c:1079 [inline]
+ ocfs2_evict_inode+0x1c46/0x4630 fs/ocfs2/inode.c:1216
+ evict+0x4e8/0x9a0 fs/inode.c:796
+ d_delete_notify include/linux/fsnotify.h:332 [inline]
+ vfs_rmdir+0x3d7/0x510 fs/namei.c:4407
+ do_rmdir+0x3b5/0x580 fs/namei.c:4453
+ __do_sys_rmdir fs/namei.c:4472 [inline]
+ __se_sys_rmdir fs/namei.c:4470 [inline]
+ __x64_sys_rmdir+0x47/0x50 fs/namei.c:4470
+ do_syscall_x64 arch/x86/entry/common.c:52 [inline]
+ do_syscall_64+0xf3/0x230 arch/x86/entry/common.c:83
+ entry_SYSCALL_64_after_hwframe+0x77/0x7f
+ ...
+ </TASK>
+
+In 'ocfs2_commit_truncate()', add an extra extent tree depth check
+to refuse further operations on (presumably) corrupted on-disk inode.
+
+Reported-by: syzbot+c16daba279a1161acfb0@syzkaller.appspotmail.com
+Closes: https://syzkaller.appspot.com/bug?extid=c16daba279a1161acfb0
+Fixes: 78f94673d7fa ("Ocfs2: Optimize ocfs2 truncate to use ocfs2_remove_btree_range() instead.")
+Signed-off-by: Dmitry Antipov <dmantipov@yandex.ru>
+---
+ fs/ocfs2/alloc.c | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
+index 395e23920632..040aa2694f53 100644
+--- a/fs/ocfs2/alloc.c
++++ b/fs/ocfs2/alloc.c
+@@ -7219,12 +7219,20 @@ int ocfs2_commit_truncate(struct ocfs2_super *osb,
+ 	struct ocfs2_extent_rec *rec;
+ 	struct ocfs2_path *path = NULL;
+ 	struct ocfs2_dinode *di = (struct ocfs2_dinode *)di_bh->b_data;
++	u16 tree_depth = le16_to_cpu(di->id2.i_list.l_tree_depth);
+ 	struct ocfs2_extent_list *root_el = &(di->id2.i_list);
+ 	u64 refcount_loc = le64_to_cpu(di->i_refcount_loc);
+ 	struct ocfs2_extent_tree et;
+ 	struct ocfs2_cached_dealloc_ctxt dealloc;
+ 	struct ocfs2_refcount_tree *ref_tree = NULL;
+ 
++	if (unlikely(tree_depth >= OCFS2_MAX_PATH_DEPTH)) {
++		ocfs2_error(inode->i_sb,
++			    "dinode %llu has invalid extent record depth %u\n",
++			    (u64)di_bh->b_blocknr, tree_depth);
++		return -EINVAL;
++	}
++
+ 	ocfs2_init_dinode_extent_tree(&et, INODE_CACHE(inode), di_bh);
+ 	ocfs2_init_dealloc_ctxt(&dealloc);
+ 
+-- 
+2.47.1
+
