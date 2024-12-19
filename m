@@ -1,109 +1,122 @@
-Received: from out30-101.freemail.mail.aliyun.com (out30-101.freemail.mail.aliyun.com [115.124.30.101])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-pf1-f182.google.com (mail-pf1-f182.google.com [209.85.210.182])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7A1A0B665
-	for <ocfs2-devel@lists.linux.dev>; Thu, 19 Dec 2024 02:24:58 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.101
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 97A4513B58C
+	for <ocfs2-devel@lists.linux.dev>; Thu, 19 Dec 2024 02:35:01 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.210.182
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1734575101; cv=none; b=hF+3C0wbrJtA7uUDfMubm7wZ6VaW5dT/yRpKypBgF8NaVTvXMsm7veSKTe5eX2lrT9tDzPskVVVb7rD+XK7mOSy1tW5FZgBP0fHsNj8JFkr+coT56+PY9VxaYim0Wlw4jikc+lx/z2n1aPnyvAUMNM8xeyR399IKRqmDfzKVrpQ=
+	t=1734575703; cv=none; b=rZJF4PVcLimxw6zDhf3asimEL7mhLjLu1eHKiao4NBegyERNIs8lraA1JGy2M+D8wQQbeD9vSINhuBiCL1emHQoBP3mYk4I8SCx9UYA0u5aVpKtpGkdjlIVVCxU7Li7Vh0EK8i/h1WUgWNk9iGt+GGQiRfNNNLD2CUG7dtBs3W8=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1734575101; c=relaxed/simple;
-	bh=ZbArbbV3yorjTKFyb36xndw6Gkgc1uZVkmF/s99xooM=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=eQAKpfdJEPG4Z8b7PigDQbgZ0IbJHV/irjPPFLBBm8KhzSNX5YN0FAbL9otOyO1/bZclIiz5IZz9BlDGelY2/Ri1HggHFjHeebexshNDP0jufarqQPQXLXa8c1xyzInYTVBy0wWncfQsi2C2wOvkDExSi2oK5+S8/TnO7EzQIy0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=N/55xl1V; arc=none smtp.client-ip=115.124.30.101
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
+	s=arc-20240116; t=1734575703; c=relaxed/simple;
+	bh=Q/OzGJuA13XAM54QEDmg31aplMOMUc0jAFVuTy4gpzc=;
+	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version:Content-Type; b=e7YSUmlMhUrWhewMN4mwqWAyRhxJpu1uRPmIgNzgu5yjvvAfkBDCM7c7RdnOvZhOcMJbya1m2NB8E0cyW/Z0gqSrOe7McwJPV9omauyQUVYESs5oOBfEkxC4mm33fLd1lzmoeiCus9x9jIJLIYvu4kKBn6E0YTfcURx4BQEMxCc=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=jBi7JDFr; arc=none smtp.client-ip=209.85.210.182
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="N/55xl1V"
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1734575096; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=Ck4ON6qKb1rZXZEhZ7LwxnXEdLKblYXLYD8/jclut8c=;
-	b=N/55xl1VhvEVRsxRA6epMe+lif226R8db4WEG7VSxyb9CRvnAI/sCFElA+dAS+UBWp760yLxxKXnA138pQUbE9s9GwbQcAVUb7CTg8id43beRkZoo+HFt4xuKj46dzaPMmLLsm3E7Pc4agZ4fR4iEtiAaHVYPHRaFNwkkbdr/mA=
-Received: from 30.221.145.61(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0WLoZtHq_1734575093 cluster:ay36)
-          by smtp.aliyun-inc.com;
-          Thu, 19 Dec 2024 10:24:54 +0800
-Message-ID: <f61955e5-9cfe-41af-aece-283b811817a8@linux.alibaba.com>
-Date: Thu, 19 Dec 2024 10:24:53 +0800
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="jBi7JDFr"
+Received: by mail-pf1-f182.google.com with SMTP id d2e1a72fcca58-7242f559a9fso419423b3a.1
+        for <ocfs2-devel@lists.linux.dev>; Wed, 18 Dec 2024 18:35:01 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20230601; t=1734575701; x=1735180501; darn=lists.linux.dev;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:from:to:cc:subject:date:message-id:reply-to;
+        bh=ewYmRGbtjw/u5CZQB/fGCIYq/IkhzVppRPs0v4hq1mw=;
+        b=jBi7JDFrEqC/V1PFIT3hFhST+7GRqT16jtCkIEp9mhpX2SBDmJg8f5jbntTmfK5lir
+         4CGp6PWAgvVpUGsi+GjaoF83Ma1owC93m9ACm0bX95zqtfbtR+G/zchjvH6slgNFKQ3U
+         c7I6+kZZtXocqrpRqgdfVW/FOW4vhmADJ8u8NKEvvqwdCQpQPJhAyqJw/sDX8LIqQu59
+         9lNYuOdUgocLuo2r7/wsqG6OR4LkfUyXhYHAGYR9uyXLYNfMU8Ib9TCy/vFuVcmLKFlz
+         oIBd1bMgB4GSNdiDZhTOnf9xurm3k7hWSbMU9D53u/girvE9rH4CRY1AZV2EGh6WAHRr
+         lt/w==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1734575701; x=1735180501;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:x-gm-message-state:from:to:cc:subject:date:message-id
+         :reply-to;
+        bh=ewYmRGbtjw/u5CZQB/fGCIYq/IkhzVppRPs0v4hq1mw=;
+        b=kLl+R5vz2lAU7MTpWeTdn2mwoATxhlR9UTD+u7pgYE3ct3O8QxVSgoGcxwiz/h5pLJ
+         r+drnwNhwrvLTrgIyBH75sJs0EOl8fjMYi/ebXjCyt6WQlmYLgqcTzDFi2AhmWRXjnmq
+         kycz7fw8Ie6UB3WDy6W515PoxuaKppqiu04GJ3ufhTL0ZdVbAeD0SxLjYcSp9AOQrHCQ
+         Y/Y2/b3OaGHXQg7k6FEl2RL7nsBC18PjcwwD3GQMuAT1AwebB/lN2capte9AFrlQqWch
+         7E/qKqLeAXc0Ac6s1zRWJv1LL0AeQ9482Mqk+oh+QvhZDWKnpNmDv8XIcsKjLVqBntKw
+         AbYA==
+X-Forwarded-Encrypted: i=1; AJvYcCUXGIAikMwxUAEfbVYNjd+tmEVAbtEC1gs9Ei+wyZWlmi48Ll18eLdGpES+AWO7HMku9kr2d0t6HLDYMw==@lists.linux.dev
+X-Gm-Message-State: AOJu0YxK2yblaKTyleaSarNU/4NMSQRvaUA0ngYZ3iHfiZF3U0Df9p7Y
+	k9npQDs9K5tfSit+9x0R8aJHflZFDE6em6f6C8MdX/fp6wLahfZi
+X-Gm-Gg: ASbGncvLf4bRf2RxJ26wKN23JJ9nqQbSSWlhWWqOwkN5sLCopct0P64C2FNa7UvdfvC
+	9g3IOEKYxn4+vBQH4MNdnpql5i9oTCMeecZfUfVVHRJ5jFAc9pTn3oKFDHcGjw1ana2cOsnsrfA
+	dNPFUZ9RcWAdQYz0vKV+Rbd2wlSRAS6r0rXY8xNuhZgqcd24BKE+93iU7arHH2r07NakUw7mYyG
+	TdR9JuFFhDZUDfIdqxujiq73K5xRgEnG4GqSyX7kGKvt/dbi8wLjlzGjS5L7vwTmw3PmzHjZARH
+	Mi7h92s=
+X-Google-Smtp-Source: AGHT+IGkt8eWE3wh1dURnDDolV6IzXf9MexDfJ0kaeAEgc6DDmy7cFDTyCLLAMMKibF6E7v5iDX6cg==
+X-Received: by 2002:aa7:9316:0:b0:724:ed8f:4d35 with SMTP id d2e1a72fcca58-72a8d2e0557mr8641134b3a.26.1734575700792;
+        Wed, 18 Dec 2024 18:35:00 -0800 (PST)
+Received: from localhost.localdomain ([180.159.118.224])
+        by smtp.gmail.com with ESMTPSA id 41be03b00d2f7-842b821da83sm142163a12.40.2024.12.18.18.34.56
+        (version=TLS1_3 cipher=TLS_CHACHA20_POLY1305_SHA256 bits=256/256);
+        Wed, 18 Dec 2024 18:35:00 -0800 (PST)
+From: Yafang Shao <laoar.shao@gmail.com>
+To: akpm@linux-foundation.org
+Cc: torvalds@linux-foundation.org,
+	pmladek@suse.com,
+	kvalo@kernel.org,
+	bp@alien8.de,
+	andriy.shevchenko@linux.intel.com,
+	linux-mm@kvack.org,
+	linux-kernel@vger.kernel.org,
+	linux-security-module@vger.kernel.org,
+	x86@kernel.org,
+	linux-snps-arc@lists.infradead.org,
+	linux-wireless@vger.kernel.org,
+	intel-gfx@lists.freedesktop.org,
+	intel-xe@lists.freedesktop.org,
+	nouveau@lists.freedesktop.org,
+	dri-devel@lists.freedesktop.org,
+	ocfs2-devel@lists.linux.dev,
+	Yafang Shao <laoar.shao@gmail.com>
+Subject: [PATCH v2 0/5] Remove get_task_comm() and print task comm directly
+Date: Thu, 19 Dec 2024 10:34:47 +0800
+Message-Id: <20241219023452.69907-1-laoar.shao@gmail.com>
+X-Mailer: git-send-email 2.37.1 (Apple Git-137.1)
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v2] ocfs2: fix slab-use-after-free due to dangling pointer
- dqi_priv
-To: Dennis Lam <dennis.lamerice@gmail.com>, mark@fasheh.com,
- jlbec@evilplan.org, akpm <akpm@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, ocfs2-devel@lists.linux.dev,
- syzbot+d173bf8a5a7faeede34c@syzkaller.appspotmail.com
-References: <20241218023924.22821-2-dennis.lamerice@gmail.com>
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <20241218023924.22821-2-dennis.lamerice@gmail.com>
 Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 
+Since task->comm is guaranteed to be NUL-terminated, we can print it
+directly without the need to copy it into a separate buffer. This
+simplifies the code and avoids unnecessary operations.
 
+v1->v2:
+- Don't add "%pTN" (Petr, Kalle, Borislav, Andy, Linus)
 
-On 2024/12/18 10:39, Dennis Lam wrote:
-> When mounting ocfs2 and then remounting it as read-only, a
-> slab-use-after-free occurs after the user uses a syscall to
-> quota_getnextquota. Specifically, sb_dqinfo(sb, type)->dqi_priv is the
-> dangling pointer.
-> 
-> During the remounting process, the pointer dqi_priv is freed but is
-> never set as null leaving it to to be accessed. Additionally, the
-> read-only option for remounting sets the DQUOT_SUSPENDED flag instead of
-> setting the DQUOT_USAGE_ENABLED flags. Moreover, later in the process of
-> getting the next quota, the function ocfs2_get_next_id is called and
-> only checks the quota usage flags and not the quota suspended flags.
-> 
-> To fix this, I set dqi_priv to null when it is freed after remounting
-> with read-only and put a check for DQUOT_SUSPENDED in ocfs2_get_next_id.
-> 
-> Signed-off-by: Dennis Lam <dennis.lamerice@gmail.com>
-> Reported-by: syzbot+d173bf8a5a7faeede34c@syzkaller.appspotmail.com
-> Tested-by: syzbot+d173bf8a5a7faeede34c@syzkaller.appspotmail.com
-> Closes: https://lore.kernel.org/all/6731d26f.050a0220.1fb99c.014b.GAE@google.com/T/
+v1: https://lore.kernel.org/all/20241213054610.55843-1-laoar.shao@gmail.com/
 
-Fixes: 8f9e8f5fcc05 ("ocfs2: Fix Q_GETNEXTQUOTA for filesystem without quotas")
-Cc: <stable@vger.kernel.org>
-Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+Yafang Shao (5):
+  kernel: Remove get_task_comm() and print task comm directly
+  arch: Remove get_task_comm() and print task comm directly
+  net: Remove get_task_comm() and print task comm directly
+  security: Remove get_task_comm() and print task comm directly
+  drivers: Remove get_task_comm() and print task comm directly
 
-> ---
-> Changes in v2:
-> - replaced dquot suspended check with !sb_has_quota_active instead
-> - link to v1: https://lore.kernel.org/lkml/20241215035828.106936-2-dennis.lamerice@gmail.com/
-> 
->  fs/ocfs2/quota_global.c | 2 +-
->  fs/ocfs2/quota_local.c  | 1 +
->  2 files changed, 2 insertions(+), 1 deletion(-)
-> 
-> diff --git a/fs/ocfs2/quota_global.c b/fs/ocfs2/quota_global.c
-> index 2b0daced98eb..096b799d60a0 100644
-> --- a/fs/ocfs2/quota_global.c
-> +++ b/fs/ocfs2/quota_global.c
-> @@ -893,7 +893,7 @@ static int ocfs2_get_next_id(struct super_block *sb, struct kqid *qid)
->  	int status = 0;
->  
->  	trace_ocfs2_get_next_id(from_kqid(&init_user_ns, *qid), type);
-> -	if (!sb_has_quota_loaded(sb, type)) {
-> +	if (!sb_has_quota_active(sb, type)){
->  		status = -ESRCH;
->  		goto out;
->  	}
-> diff --git a/fs/ocfs2/quota_local.c b/fs/ocfs2/quota_local.c
-> index 73d3367c533b..2956d888c131 100644
-> --- a/fs/ocfs2/quota_local.c
-> +++ b/fs/ocfs2/quota_local.c
-> @@ -867,6 +867,7 @@ static int ocfs2_local_free_info(struct super_block *sb, int type)
->  	brelse(oinfo->dqi_libh);
->  	brelse(oinfo->dqi_lqi_bh);
->  	kfree(oinfo);
-> +	info->dqi_priv = NULL;
->  	return status;
->  }
->  
+ arch/arc/kernel/unaligned.c                         |  5 ++---
+ arch/x86/kernel/vm86_32.c                           |  5 ++---
+ drivers/accel/habanalabs/common/context.c           |  3 +--
+ drivers/accel/habanalabs/common/habanalabs_ioctl.c  | 11 +++--------
+ drivers/gpu/drm/i915/display/intel_display_driver.c |  6 ++----
+ drivers/gpu/drm/nouveau/nouveau_chan.c              |  4 +---
+ drivers/gpu/drm/nouveau/nouveau_drm.c               |  5 ++---
+ drivers/tty/tty_io.c                                |  3 +--
+ kernel/capability.c                                 |  8 ++------
+ kernel/futex/waitwake.c                             |  3 +--
+ net/wireless/wext-core.c                            |  4 +---
+ security/yama/yama_lsm.c                            |  4 +---
+ 12 files changed, 19 insertions(+), 42 deletions(-)
+
+-- 
+2.43.5
 
