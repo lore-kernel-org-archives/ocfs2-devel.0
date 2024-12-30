@@ -1,105 +1,119 @@
-Received: from out30-98.freemail.mail.aliyun.com (out30-98.freemail.mail.aliyun.com [115.124.30.98])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-ed1-f45.google.com (mail-ed1-f45.google.com [209.85.208.45])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id CE13622611
-	for <ocfs2-devel@lists.linux.dev>; Mon, 30 Dec 2024 01:57:46 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.98
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C295633F6
+	for <ocfs2-devel@lists.linux.dev>; Mon, 30 Dec 2024 02:05:30 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.208.45
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1735523869; cv=none; b=YVYcfxqyFxIsgHoR37vqpgVfC+9W5WSKoJK7gaty7VPpR05+0gnApQhBeLTn4ef/5mDXj8tuiMBJI8wVYhtj7a3XGtPoFgVOcCHnCZyDy+RU2F7EwYBPBm1BbTosXvdP/MVNirWrcNFq7BKmbuX3V2ak7PkpBktKZk373443MsU=
+	t=1735524333; cv=none; b=Sp0gIwYKar6SzrF/XODXYOayrRJqIY4NZu8FhJoesW5zK90eQlKXrCXXHiiHnTiujPCLi+jXcdgYoGlLuYV8yPL/7WQxynUe3uh+mdetEieyuW9l8hdetREhXhCgfOLNkXQUWr0O7Px4Jw/+RuUwCfdluO0u4LNT0feywBBxbFs=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1735523869; c=relaxed/simple;
-	bh=Ul83KNzJzx3in51FGkQCkLdK4B/cczJ8NuvIR4BZiuw=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=NTt4XKUG7LNIUGpnIepNClMkJe3IjtAWnfplPnZHqoALaJCWSRJT70p4GCNlfWKK/IjKAo0koxw/86ZaRlkM6/Na1X7E5HSbkfgntO9VquxQbJR4RG5Opa8NG+p4oezFF0mmqyrWTcsEtdvr8jzB+1vpab7JvDakesam6wCvccI=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=QVT3KCfe; arc=none smtp.client-ip=115.124.30.98
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
+	s=arc-20240116; t=1735524333; c=relaxed/simple;
+	bh=0o49vux7kpu/U2dAIXto8nm3Qyjs2S9VwSM0CWcxGRQ=;
+	h=Content-Type:Mime-Version:Subject:From:In-Reply-To:Date:Cc:
+	 Message-Id:References:To; b=tfg6uXgQ+Gb7BJ/XRq5jEcVK0bwqJ3REAUq6PzrKORWYCl/pWLP33GlUTcWpJss9w931GZ+Zc2eKQ2kUUcKwuGcdrFU4fqacOyX9H3/JpND7gfQ4UNFmHx5eP/pbwBg6DRYUFKi5ahwdaailVojOB9aTKN2Vqbe0xvjZaGZsJmQ=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=d3Ev9+8+; arc=none smtp.client-ip=209.85.208.45
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="QVT3KCfe"
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1735523858; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=v3fE39W7EIXD5rqVGnrW7lwTUmq11ZgIHh6chag5fj4=;
-	b=QVT3KCfeEmxwmbXdu6GoBzCkVszEv80csIT5ZgtRhCNvEWAQEmaWnApqiwx7UCsohsg7I56ufia18EHIPMi0TwY5hsNGYQp7t/jS/C0zfZ5vGHzn/ef0u3+83aLKX6s1l7Khi3/+c2v/ckp5XRc5gMRr4jndX8AYYOZ9PM8NSi8=
-Received: from 30.221.129.25(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0WMRUSLj_1735523856 cluster:ay36)
-          by smtp.aliyun-inc.com;
-          Mon, 30 Dec 2024 09:57:37 +0800
-Message-ID: <83d4d0d4-c702-49c1-bc7b-45d207f8208e@linux.alibaba.com>
-Date: Mon, 30 Dec 2024 09:57:36 +0800
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="d3Ev9+8+"
+Received: by mail-ed1-f45.google.com with SMTP id 4fb4d7f45d1cf-5d3e9a88793so15630940a12.1
+        for <ocfs2-devel@lists.linux.dev>; Sun, 29 Dec 2024 18:05:30 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=suse.com; s=google; t=1735524329; x=1736129129; darn=lists.linux.dev;
+        h=to:references:message-id:content-transfer-encoding:cc:date
+         :in-reply-to:from:subject:mime-version:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=ipYHxwxET2ijxkhDERoKjVZ7M95QddGx/4uWqTjY/6E=;
+        b=d3Ev9+8+zqf6qtLOFWl2pnCmKOuQZGIjKHoX8QOk935ThSsMJrj+aQhOu0PzpT/I6y
+         cM8LsY7bc+uW0eAp4sS9SrSxJeqCU9J57PIYRfPuq6TKPZ8bcfGxKMpFhboazAlyiEmZ
+         p/KcNFb7KzxKD849uio4R/28s6YgOJuLyLf9OrJAXsQPI0YXkU/dCCc7liOcsgqNbiE4
+         r/Tc5ej29DL0OrPRcPraygpnItm+7uTIbAnwAV0LTmbC48NLgV++cmkPiybXYzyyAMs+
+         KeW6LWqwe5q3tz6vWwo0C0bBwJB3BnFT2cncrOaJu+2EYmmzuwRn81OdHGrUgVr9kC6C
+         8/kA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1735524329; x=1736129129;
+        h=to:references:message-id:content-transfer-encoding:cc:date
+         :in-reply-to:from:subject:mime-version:x-gm-message-state:from:to:cc
+         :subject:date:message-id:reply-to;
+        bh=ipYHxwxET2ijxkhDERoKjVZ7M95QddGx/4uWqTjY/6E=;
+        b=mVm//xJs8OYCHcvii3QDkVBJOgDMo2FMlp/6Ci0TSTf2mUy0TnVaVl1csLHMuvFDxf
+         p/ExrXUyHqqqYbjXW1/5ZmoR6AaGBsxSdODUf+A1CO3FUSWQ45Fz93SDP/XpRNLY2Uy2
+         R6bnEd5lwwisqfnzgVkAuLh9AVgapXQJzWYFy+UFeR2y9UDwEOlZfCc8Z2iUfprzU2Rp
+         b6aHw/kcEG7vboNjRhoBonZUvrqKSa4SwWVWutZVklbMrKTGQZn2PKzAqH3clzf+bcEz
+         IVA+hnAYGuqywNDOH5iJ6/u8+h3QIh0JREXjWXZJ8f+715evi+bKGFM35CktrabDrbjw
+         DgEQ==
+X-Forwarded-Encrypted: i=1; AJvYcCXDmI3Nk+eEk5I9SSZeo0ilEupKHzIIw1dWLP2+Q0u9wL0cd0NXJluR8jJp96xcrKuulMgfpuzep/pHHw==@lists.linux.dev
+X-Gm-Message-State: AOJu0YznMADp94U9P0bcbuxu1JtaAHehrK0q7XnNd/YJom/fFL0e44rG
+	DDS9sJUpcPa+nw2QNuYtTAM+/PidIjWruz6cuSAjcZgkMbbNKpr5UJihER1WpYI=
+X-Gm-Gg: ASbGncv6UZ6OOhg/5Fgz9NnwNIJAPZNDOibygIvhqYbPoxEU14NSjooVPaLSJNrcYWL
+	S7ZDj1DWX50cxESlzhruoTjDZtUvMz8VfoxnVu7+3oneQ4LA/HspAAzOUTqaJUPjIEUPrQ0LFvv
+	uyRgD2vh8S2JEetpwpkfkd451wXAn6mzeOswx561+yogKhiZ3vlf0dJv/Zb5qX1mo4dbeRg6qJ3
+	pSmq+XYQKvllpfh1FV9/tI2hUMZeCLNOgTGLXgf7OubengWS63a+EyGd85C
+X-Google-Smtp-Source: AGHT+IFbAWzBjjDDtEpBuc5KU9AW3yIz/HBhtOARyc1odcYgiJBz+KiOYD0kSb1iPWvlbNCKe2NbwQ==
+X-Received: by 2002:a05:6402:358f:b0:5d3:e63c:7d71 with SMTP id 4fb4d7f45d1cf-5d81dd90636mr27085095a12.11.1735524329126;
+        Sun, 29 Dec 2024 18:05:29 -0800 (PST)
+Received: from smtpclient.apple ([23.247.139.60])
+        by smtp.gmail.com with ESMTPSA id 98e67ed59e1d1-2f4477c4cc5sm21874175a91.12.2024.12.29.18.05.26
+        (version=TLS1_2 cipher=ECDHE-ECDSA-AES128-GCM-SHA256 bits=128/128);
+        Sun, 29 Dec 2024 18:05:28 -0800 (PST)
+Content-Type: text/plain;
+	charset=utf-8
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
-MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH] ocfs2: uncache inode after ocfs2_search_dirblock() search
- failure
-To: Dmitry Antipov <dmantipov@yandex.ru>, Mark Fasheh <mark@fasheh.com>,
- Joel Becker <jlbec@evilplan.org>
-Cc: ocfs2-devel@lists.linux.dev, lvc-project@linuxtesting.org,
- syzbot+7aef76bdb53b83d62a9e@syzkaller.appspotmail.com
-References: <20241227130717.144988-1-dmantipov@yandex.ru>
- <844e9f34-1ef8-49ef-9f42-54fdeeefc18d@linux.alibaba.com>
- <e62a8e43-015a-4b3d-a018-641ecde36962@yandex.ru>
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <e62a8e43-015a-4b3d-a018-641ecde36962@yandex.ru>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Mime-Version: 1.0 (Mac OS X Mail 16.0 \(3826.200.121\))
+Subject: Re: [PATCH] ocfs2: add extent record check in ocfs2_commit_truncate()
+From: Glass Su <glass.su@suse.com>
+In-Reply-To: <Z3EpSTa5KzSazonJ@casper.infradead.org>
+Date: Mon, 30 Dec 2024 10:05:14 +0800
+Cc: Dmitry Antipov <dmantipov@yandex.ru>,
+ Mark Fasheh <mark@fasheh.com>,
+ Joel Becker <jlbec@evilplan.org>,
+ Joseph Qi <joseph.qi@linux.alibaba.com>,
+ ocfs2-devel@lists.linux.dev,
+ lvc-project@linuxtesting.org,
+ syzbot+c16daba279a1161acfb0@syzkaller.appspotmail.com
+Content-Transfer-Encoding: quoted-printable
+Message-Id: <A4DC5E5D-8736-45AA-8B8E-8124422B89B3@suse.com>
+References: <20241217104345.358461-1-dmantipov@yandex.ru>
+ <BCB4B87E-9C81-4212-8C05-CE160130A399@suse.com>
+ <Z3EpSTa5KzSazonJ@casper.infradead.org>
+To: Matthew Wilcox <willy@infradead.org>
+X-Mailer: Apple Mail (2.3826.200.121)
 
 
 
-On 2024/12/29 00:33, Dmitry Antipov wrote:
-> On 12/28/24 3:27 PM, Joseph Qi wrote:
-> 
->> Hi, don't see the relationship between above logic and the triggered
->> bug.
->> Could you please elobrate more how it happens?
-> 
-> As triggered by the syzbot's reproducer, the problem is initiated by
-> 'mknodat()'...
-> 
-> -> mknodat()
->  ...
->  -> filename_create()
->   ...
->   -> ocfs2_lookup()
->    -> ocfs2_find_files_on_disk()
->     -> ocfs2_find_entry()
->      -> ocfs2_find_entry_id()
->       ...
->       -> ocfs2_read_inode_block()
->        -> ocfs2_read_blocks()
->         -> ocfs2_set_buffer_uptodate()    ;; [1] Buffer head is now cached
->       ...
->       if (found == 1)
->               return di_bh;               ;; Buffer head will be used
->       /* Hmm..... */                      ;; [2]
->       brelse(di_bh);                      ;; [3] Buffer head is now unused
-> 
-> ...with followed 'ioctl()':
-> 
-> -> ioctl(..., OCFS2_IOC_GROUP_ADD, ...)
->  -> ocfs2_ioctl()
->   -> ocfs2_group_add()
->    -> ocfs2_read_blocks_sync()
->     -> ocfs2_set_new_buffer_uptodate()    ;; OOPS [4]
+> On Dec 29, 2024, at 18:49, Matthew Wilcox <willy@infradead.org> wrote:
+>=20
+> On Sun, Dec 29, 2024 at 10:05:17AM +0800, Glass Su wrote:
+>>> +++ b/fs/ocfs2/alloc.c
+>>> @@ -7219,12 +7219,20 @@ int ocfs2_commit_truncate(struct ocfs2_super =
+*osb,
+>>> struct ocfs2_extent_rec *rec;
+>>> struct ocfs2_path *path =3D NULL;
+>>> struct ocfs2_dinode *di =3D (struct ocfs2_dinode *)di_bh->b_data;
+>>> + u16 tree_depth =3D le16_to_cpu(di->id2.i_list.l_tree_depth);
+>>=20
+>> No need of tree_depth. Just call
+>> If (unlikely(le16_to_cpu(di->id2.i_list.l_tree_depth) >=3D =
+OCFS2_MAX_PATH_DEPTH))  {
+>=20
+> That seems more complicated to me.  I find the original easier to =
+read.
+>=20
+>>> + if (unlikely(tree_depth >=3D OCFS2_MAX_PATH_DEPTH)) {
+>>> + ocfs2_error(inode->i_sb,
+>>> +    "dinode %llu has invalid extent record depth %u\n",
+>>> +    (u64)di_bh->b_blocknr, tree_depth);
+>>> + return -EINVAL;
+>>=20
+>> -EIO is better.
+>=20
+> -EFSCORRUPTED is surely the right errno here?
 
-This is a group bh, but the above bh in ocfs2_find_entry() seems not.
+Indeed. -EIO is an old school errno. -EFSCORRUPTED is more accurate.
 
-> 
-> OOPS at [4] happens becase the corresponding buffer head is not actually
-> "new". It was "new" at [1] but was not exprunged from the inode cache
-> before 'brelse()' at [3]. I.e. OCFS2 cache has an inconsistent view of
-> the data provided by the block layer, and it is expected that adding
-> 'ocfs2_remove_from_cache()' at [2] should fix this problem.
-> 
-
-Even if found, the returned di_bh will also be brelsed in
-ocfs2_free_dir_lookup_result() without removing from cache.
-So if it is the case, it seems that it will also BUG when found.
-
-Thanks,
-Joseph
-
-
+=E2=80=94=20
+Su=
