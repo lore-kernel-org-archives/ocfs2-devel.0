@@ -1,129 +1,99 @@
-Received: from mail-il1-f200.google.com (mail-il1-f200.google.com [209.85.166.200])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from forward501a.mail.yandex.net (forward501a.mail.yandex.net [178.154.239.81])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4526C2AF04
-	for <ocfs2-devel@lists.linux.dev>; Mon, 30 Dec 2024 02:40:03 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.166.200
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2C46B158851
+	for <ocfs2-devel@lists.linux.dev>; Mon, 30 Dec 2024 07:02:07 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=178.154.239.81
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1735526404; cv=none; b=uFozsW7gHbYKSobC7FIXr8diVMXVz3eNoP3M0G7oJlT32oZc4dP3gVNvTIl7uIbOuCw7Tb9T+ysIC7x/zPGf3rIfIYIxazhERllzV6hEdNiaP3jWNZn7qAnJgVT4Wh0OcLMfFY35JacXa6CHJ86xh/xjbplYAl9JbnuXFi4ANrg=
+	t=1735542132; cv=none; b=WOyfMzOajZLTSYXJhARq24WvnE+0CRwoZQ8tmZTc/F8D//MLOUrms4gsXm2n/GdhBqnM2U7J/r6fmlw91qw2h4JFTa/lYyqqYQT5PC62mHy9D3cAPzSSg9F3dFLx5IFl+8zNKyjeOX9IrQS+nUX3eMnYlCDRzUfJSats52vhq6k=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1735526404; c=relaxed/simple;
-	bh=cuTdM4lkm7bAMUDs1nbbXscuD967/zqwxBBf46TTMmg=;
-	h=MIME-Version:Date:In-Reply-To:Message-ID:Subject:From:To:
-	 Content-Type; b=LflNAOcGOxfXpOUdcSis7fLzlr/YhPW6MtWHAnoFRjOakPu4RtkVuvfTEYsmd6ZWy8Y2Y6SiV5AV0/o8e6yJo0VCCXVu0HhKWnKrhNa/WbwldqncwObGPHmWR700fz4BnHH58iRo20NKR8YwVGebxMPQLg02SD7wldvgVpbItn0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.166.200
-Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
-Received: by mail-il1-f200.google.com with SMTP id e9e14a558f8ab-3a7e4bfae54so86142435ab.0
-        for <ocfs2-devel@lists.linux.dev>; Sun, 29 Dec 2024 18:40:03 -0800 (PST)
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1735526402; x=1736131202;
-        h=to:from:subject:message-id:in-reply-to:date:mime-version
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
-        bh=rFd4czk0PYPGWITZiB8Qo4AwdOPEM2gAzHOjO41rScc=;
-        b=oEuBr8/xy8p+rjgAu1WdWxp+0BMbevY06vQ/sC30P+/wDHfjIwDt5vAVgc/Xp9t3QD
-         Rwy+khgU0NdZtVwo+d0bVIz8eyHgjSxaddaBxtsxuBFb+/AiChwjI0Br/i6hIxFg4530
-         i37fpfFi4rjkhhNpva+3fTdlFryQ5mFLpOChHAsODS2aF7pAVsn8OvJudRKVF5vYL124
-         POEyNi2aJ+sdkp6pQbgZoRAObdi0OUNMzlzKNRdZa3kH6CYUPVgS2PKfNi2cjmhL/yiy
-         l6Q7uv6vN/3boyRXmkORtW3n12SMgJt+4hd3TiZ2byMt30oSuCZ4wW4+MQrKunAlxH3/
-         vyEg==
-X-Forwarded-Encrypted: i=1; AJvYcCXrVZpMGi5h2GQOuK5+BLz73quEaTsiQ7XhyBQB8mjJyj13mWYyQb1XpR8MYFW/yK3xkLopkYGaJmpXuQ==@lists.linux.dev
-X-Gm-Message-State: AOJu0YxwQHJqRs66rrD0MA5X8mejq1AFfZNMKTfkeV1wmk3gyh+Yk4Or
-	eRJYevmKnWGMJLmX24DKRqwZuz/yX8wyafawj0/zkTSG2fHaC1N4qLzKMWjnDs52E6T2JUOtWLs
-	ebyzxLCsdKzcYaFYu6Enu03C/o6RrCH14Oet1CyNYLqBmwpTU2BfFAAE=
-X-Google-Smtp-Source: AGHT+IGAC8RqxZ/H0AgXvennnS804l5xUcfjOZr6APiHBToH4CIgDmirjEsTKVN5otmXk38jZm7cKXFqAPXJbofz53Qe8nQlK4O6
+	s=arc-20240116; t=1735542132; c=relaxed/simple;
+	bh=3RF48BWYLfm4kU5j0wldYdqbsrxq6MZ580BlzjGy33U=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=Tn5iNdXe7QXWOdONvG2/rhD6YyYvX8m/ry27zehI68TCTK9fSSaHe0veZkbbpEYe8bw5m3qZnKSnxNsFN7SPnNWTpnewZZVwtNJUO5sqM8fwPy0R1N4WzIbyVldQP5hh4nsO0jRc17rZUDzM01s9CBKvgp7UUu1HcQ7XwNzpdpM=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru; spf=pass smtp.mailfrom=yandex.ru; dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b=B4amsyrj; arc=none smtp.client-ip=178.154.239.81
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=yandex.ru
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b="B4amsyrj"
+Received: from mail-nwsmtp-smtp-production-main-52.vla.yp-c.yandex.net (mail-nwsmtp-smtp-production-main-52.vla.yp-c.yandex.net [IPv6:2a02:6b8:c0d:9:0:640:2d51:0])
+	by forward501a.mail.yandex.net (Yandex) with ESMTPS id 2A89960B3D;
+	Mon, 30 Dec 2024 09:53:58 +0300 (MSK)
+Received: by mail-nwsmtp-smtp-production-main-52.vla.yp-c.yandex.net (smtp/Yandex) with ESMTPSA id srW2EFXOheA0-Vzyrsy0E;
+	Mon, 30 Dec 2024 09:53:57 +0300
+X-Yandex-Fwd: 1
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=yandex.ru; s=mail;
+	t=1735541637; bh=3RF48BWYLfm4kU5j0wldYdqbsrxq6MZ580BlzjGy33U=;
+	h=In-Reply-To:To:From:Cc:Date:References:Subject:Message-ID;
+	b=B4amsyrjnC0mW5oh/UhHgN3+7+XFWep3Iv6pg6hM4DxmnYbNEUI6udhpWa0QXv4E1
+	 hVxiot4+QRTt7atOVyhiQXufbx0zZj1BxwLexamFVnRnSFTy4TLc2rVgVuPngjoDt4
+	 UHCECKrST+K8X7HZyvqHZ0NMmvhm5HtpKVqEsdOk=
+Authentication-Results: mail-nwsmtp-smtp-production-main-52.vla.yp-c.yandex.net; dkim=pass header.i=@yandex.ru
+Message-ID: <e1ad9c00-4e68-4c81-a063-bc81ffd4ec16@yandex.ru>
+Date: Mon, 30 Dec 2024 09:53:53 +0300
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-X-Received: by 2002:a05:6e02:b29:b0:3a7:9736:501e with SMTP id
- e9e14a558f8ab-3c2d2881756mr253730595ab.14.1735526402464; Sun, 29 Dec 2024
- 18:40:02 -0800 (PST)
-Date: Sun, 29 Dec 2024 18:40:02 -0800
-In-Reply-To: <F98EECF0-AC75-4617-9D1B-5D095D3B7DFA@suse.com>
-X-Google-Appengine-App-Id: s~syzkaller
-X-Google-Appengine-App-Id-Alias: syzkaller
-Message-ID: <67720802.050a0220.2f3838.04b5.GAE@google.com>
-Subject: Re: [syzbot] [ocfs2?] kernel BUG in ocfs2_truncate_log_append
-From: syzbot <syzbot+a66542ca5ebb4233b563@syzkaller.appspotmail.com>
-To: glass.su@suse.com, jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
-	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
-	syzkaller-bugs@googlegroups.com
-Content-Type: text/plain; charset="UTF-8"
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH] ocfs2: add extent record check in ocfs2_commit_truncate()
+To: Joseph Qi <joseph.qi@linux.alibaba.com>, Glass Su <glass.su@suse.com>,
+ Matthew Wilcox <willy@infradead.org>
+Cc: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
+ ocfs2-devel@lists.linux.dev, lvc-project@linuxtesting.org,
+ syzbot+c16daba279a1161acfb0@syzkaller.appspotmail.com
+References: <20241217104345.358461-1-dmantipov@yandex.ru>
+ <BCB4B87E-9C81-4212-8C05-CE160130A399@suse.com>
+ <Z3EpSTa5KzSazonJ@casper.infradead.org>
+ <A4DC5E5D-8736-45AA-8B8E-8124422B89B3@suse.com>
+ <4a74859a-a0a4-419e-b481-f1ffc4e77e85@linux.alibaba.com>
+Content-Language: en-MW
+From: Dmitry Antipov <dmantipov@yandex.ru>
+Autocrypt: addr=dmantipov@yandex.ru; keydata=
+ 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
+ A/UwwXBRuvydGV0=
+In-Reply-To: <4a74859a-a0a4-419e-b481-f1ffc4e77e85@linux.alibaba.com>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
 
-Hello,
+On 12/30/24 5:26 AM, Joseph Qi wrote:
 
-syzbot has tested the proposed patch but the reproducer is still triggering an issue:
-kernel BUG in ocfs2_truncate_log_append
+> It seems that it is caused by a crafted ocfs2 image.
 
-(syz.0.15,5809,0):ocfs2_truncate_log_append:5874 ERROR: bug expression: tl_count > ocfs2_truncate_recs_per_inode(osb->sb) || tl_count == 0
-(syz.0.15,5809,0):ocfs2_truncate_log_append:5874 ERROR: Truncate record count on #77 invalid wanted 39, actual 2087
-------------[ cut here ]------------
-kernel BUG at fs/ocfs2/alloc.c:5874!
-Oops: invalid opcode: 0000 [#1] PREEMPT SMP KASAN NOPTI
-CPU: 0 UID: 0 PID: 5809 Comm: syz.0.15 Not tainted 6.13.0-rc5-syzkaller-gfc033cf25e61-dirty #0
-Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.16.3-debian-1.16.3-2~bpo12+1 04/01/2014
-RIP: 0010:ocfs2_truncate_log_append+0x9a8/0x9c0 fs/ocfs2/alloc.c:5868
-Code: bc 24 a0 00 00 00 48 c7 c6 dd 83 0d 8e ba f2 16 00 00 48 c7 c1 40 4a 47 8c 4d 89 f0 41 89 d9 50 e8 6d 7d 20 00 48 83 c4 08 90 <0f> 0b e8 11 bf 21 fe 90 0f 0b e8 09 bf 21 fe 90 0f 0b e8 c1 24 40
-RSP: 0018:ffffc900027def60 EFLAGS: 00010296
-RAX: d6f52f3429698400 RBX: 0000000000000027 RCX: d6f52f3429698400
-RDX: 0000000000000000 RSI: 0000000080000000 RDI: 0000000000000000
-RBP: ffffc900027df090 R08: ffffffff817f0a3c R09: 1ffff11003f8519a
-R10: dffffc0000000000 R11: ffffed1003f8519b R12: 1ffff11009d5dd58
-R13: ffffff3800000000 R14: 000000000000004d R15: ffff88801227c008
-FS:  00007f02de6956c0(0000) GS:ffff88801fc00000(0000) knlGS:0000000000000000
-CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-CR2: 000000002000f000 CR3: 00000000444da000 CR4: 0000000000352ef0
-DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
-DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
-Call Trace:
- <TASK>
- ocfs2_remove_btree_range+0x1303/0x1860 fs/ocfs2/alloc.c:5789
- ocfs2_remove_inode_range+0xff3/0x29c0 fs/ocfs2/file.c:1907
- ocfs2_reflink_remap_extent fs/ocfs2/refcounttree.c:4537 [inline]
- ocfs2_reflink_remap_blocks+0xcd4/0x1f30 fs/ocfs2/refcounttree.c:4684
- ocfs2_remap_file_range+0x5fa/0x8d0 fs/ocfs2/file.c:2740
- vfs_copy_file_range+0xc07/0x1510 fs/read_write.c:1584
- __do_sys_copy_file_range fs/read_write.c:1670 [inline]
- __se_sys_copy_file_range+0x3fa/0x600 fs/read_write.c:1637
- do_syscall_x64 arch/x86/entry/common.c:52 [inline]
- do_syscall_64+0xf3/0x230 arch/x86/entry/common.c:83
- entry_SYSCALL_64_after_hwframe+0x77/0x7f
-RIP: 0033:0x7f02dd97e719
-Code: ff ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 40 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 a8 ff ff ff f7 d8 64 89 01 48
-RSP: 002b:00007f02de695038 EFLAGS: 00000246 ORIG_RAX: 0000000000000146
-RAX: ffffffffffffffda RBX: 00007f02ddb35f80 RCX: 00007f02dd97e719
-RDX: 0000000000000006 RSI: 0000000000000000 RDI: 0000000000000004
-RBP: 00007f02dd9f132e R08: 000000000000d8c2 R09: 0000000000000000
-R10: 0000000020000640 R11: 0000000000000246 R12: 0000000000000000
-R13: 0000000000000000 R14: 00007f02ddb35f80 R15: 00007ffc7cf04758
- </TASK>
-Modules linked in:
----[ end trace 0000000000000000 ]---
-RIP: 0010:ocfs2_truncate_log_append+0x9a8/0x9c0 fs/ocfs2/alloc.c:5868
-Code: bc 24 a0 00 00 00 48 c7 c6 dd 83 0d 8e ba f2 16 00 00 48 c7 c1 40 4a 47 8c 4d 89 f0 41 89 d9 50 e8 6d 7d 20 00 48 83 c4 08 90 <0f> 0b e8 11 bf 21 fe 90 0f 0b e8 09 bf 21 fe 90 0f 0b e8 c1 24 40
-RSP: 0018:ffffc900027def60 EFLAGS: 00010296
-RAX: d6f52f3429698400 RBX: 0000000000000027 RCX: d6f52f3429698400
-RDX: 0000000000000000 RSI: 0000000080000000 RDI: 0000000000000000
-RBP: ffffc900027df090 R08: ffffffff817f0a3c R09: 1ffff11003f8519a
-R10: dffffc0000000000 R11: ffffed1003f8519b R12: 1ffff11009d5dd58
-R13: ffffff3800000000 R14: 000000000000004d R15: ffff88801227c008
-FS:  00007f02de6956c0(0000) GS:ffff88801fc00000(0000) knlGS:0000000000000000
-CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-CR2: 000000002000f000 CR3: 00000000444da000 CR4: 0000000000352ef0
-DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
-DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+Sure, this is the syzkaller's default method to find bugs in filesystems code.
 
-
-Tested on:
-
-commit:         fc033cf2 Linux 6.13-rc5
-git tree:       upstream
-console output: https://syzkaller.appspot.com/x/log.txt?x=1136aaf8580000
-kernel config:  https://syzkaller.appspot.com/x/.config?x=f52ce141d88125fd
-dashboard link: https://syzkaller.appspot.com/bug?extid=a66542ca5ebb4233b563
-compiler:       Debian clang version 15.0.6, GNU ld (GNU Binutils for Debian) 2.40
-patch:          https://syzkaller.appspot.com/x/patch.diff?x=10ffa818580000
+Dmitry
 
