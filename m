@@ -1,70 +1,73 @@
-Received: from mail-pl1-f177.google.com (mail-pl1-f177.google.com [209.85.214.177])
+Received: from mail-pj1-f48.google.com (mail-pj1-f48.google.com [209.85.216.48])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5637714F9CC
-	for <ocfs2-devel@lists.linux.dev>; Fri,  3 Jan 2025 03:28:43 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.214.177
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B653B14F9CC
+	for <ocfs2-devel@lists.linux.dev>; Fri,  3 Jan 2025 03:28:49 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.216.48
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1735874924; cv=none; b=mSJlJQnLyDm0hxyqJr3BKDbuLi5NwloP3IR5/dRTJfpE9WQDGYFMhQtTe0s01qQFS7sPI+kFVx7TEkntUvrsWgdAdhgHTzjRsLf0IlD7B6i1+wG3EGV4xKVwHpnqgcHqrhiPNvkUY3tssQV6+cuUG+KBzxzfj49oB987fC/a5qY=
+	t=1735874931; cv=none; b=i+aeihKkol9gMd+5cikbU/xhtVvidQg81mium9dpokNVeyj2UYy0bAkrNueNAcY0wCPCdClvxZ3H6NmSTq1AUJEjYxDxUOlRA6kSWgo1oqlmI74Hi42a838xXb6ioQwuoSGYZYoPmopD+ZR4hjKi63vhXmF2TMJUG02hFgDhs88=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1735874924; c=relaxed/simple;
-	bh=pVjlt3JHf8b/drKpTqCxbWC3H47UktMzF71Cw1EvA2o=;
-	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version; b=CvuIfUBr1AL6806s31LSgwxEeAoXsFRYe3PzRY/Ndi2ViS+RnbtQC3q9NxefG4KJL8jini5lrFCkfjnX3SmfAiXR+07VwK5RQg1P4bcGtOZ+Ivc5jv3192xI0V7tJ57kJ+quT6jItum6Gz7k3mBdnkpACcxwyObYe59dCvH479k=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=loJc0VOk; arc=none smtp.client-ip=209.85.214.177
+	s=arc-20240116; t=1735874931; c=relaxed/simple;
+	bh=HF6CLTSBia3PN8p7gsra1zbLOkYyiHLUcVSbx56CRyQ=;
+	h=From:To:Cc:Subject:Date:Message-Id:In-Reply-To:References:
+	 MIME-Version; b=LX2UmnOlWUAZgv68JC/E+YwTRuPWd142exClewZ8gjzVRH7UY9cb+lBbafoX7CHU6AAIMb7pXXl9L4LYHPQB9jUJiSs5+/laOjM4tkJiKoj8Q5fCN/oJtleF9W/4OId/ukJypU3dMzvvE0Pn839z5jIsShTRcFRstsJllYQnQ2U=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=mSGIKl4o; arc=none smtp.client-ip=209.85.216.48
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="loJc0VOk"
-Received: by mail-pl1-f177.google.com with SMTP id d9443c01a7336-2166022c5caso144484635ad.2
-        for <ocfs2-devel@lists.linux.dev>; Thu, 02 Jan 2025 19:28:43 -0800 (PST)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="mSGIKl4o"
+Received: by mail-pj1-f48.google.com with SMTP id 98e67ed59e1d1-2ee709715d9so13251035a91.3
+        for <ocfs2-devel@lists.linux.dev>; Thu, 02 Jan 2025 19:28:49 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1735874922; x=1736479722; darn=lists.linux.dev;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:from:to:cc:subject:date:message-id:reply-to;
-        bh=xqK23JGhdkMF9qPxExfbgEqP6XodTjKcge8WwFLrcJo=;
-        b=loJc0VOkd4R65x+O9eLWil7SHqx2K+laFMFNKKNNQDTBJL42vrwWjS6wkFw3rvjOgQ
-         6+bU9E9/RYSnajCQVy0LP5vvXIHAY8I+E6IoFvz1dOL7IvDs0DiG/DHJf2IvSfMBgjVl
-         IIQp7ArlhkuZPnG5T3nxa6gqUiide+v7MNzQZOw1AiWZEnYC9rMqowHaZANTn66hCqJ5
-         EVa2bwLli8aqnHTRPh/xPhX/KceZg0TzuWEnVJpipmRWm3QNztFGQVA5O2A7rQgQdBLI
-         8E02/h9/9TxRMe2tJgSbBXZeSJ7zzLtnG8BPVpZyBZHV45U28vrHZGDAkgCo8qE89xVw
-         r2DA==
+        d=gmail.com; s=20230601; t=1735874928; x=1736479728; darn=lists.linux.dev;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:date:subject:cc:to:from:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=NPw/+eEI6q85PypD7ZdL/BIEur4VeNZSSSnVlY4IS0E=;
+        b=mSGIKl4oymtdDLnw/HxzYrXVTgTB9A+5Budzi2RlJ6rx1krMs4Pwz3jzw/AU0/l8cJ
+         dVrzbJor5ZVLJjC9NCapZD86NE6IfgmhDTGmK4pl0y6jXS22d3uy+EpkkGbOrIjOp9A3
+         40KbmAbssZTlOMlM/8rvBxLYl6r1+FfXV0xpNOEAF1MfxO0eWwfqbczIKvkOkkdQw56+
+         1FQ3kDeIMq1JL5jA6uOxJrUkCB+km9ysMD5MG503uqjnQ5I7swTjFn4+DWCfwhfuzSdy
+         BN8fEYTF2MQsK0TgF042CLrdB68NJifqznOvyo0Ku9TTQ4d2SsKAsjvEp2RS5jXLAqVI
+         UnoQ==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1735874922; x=1736479722;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:x-gm-message-state:from:to:cc:subject:date:message-id
-         :reply-to;
-        bh=xqK23JGhdkMF9qPxExfbgEqP6XodTjKcge8WwFLrcJo=;
-        b=YEDKpJ/fSnkVvvrsMsVtsRuDrJ0qCo5RkJG4YKq1OP6twEsNHOCe/LF95RfIE8iqzr
-         wN2X9Nxr3+9lKI886kDBgGTBJyiQ30OrnfpThQF2BLEgzb3I8UTmNWB1yy0KmH4qh4z2
-         bImOq1/9rapHzXUtoPY3+BbpZR7oEUUZzaGD58ojOVUqrDxjstu/igtDPCMyU3eJoBlQ
-         BVsSLrnyfY9OYuWl2cbKawlz+RasSCpEWEmBTy4BotcvloaNd0in+QNoscDlP/IbUBzl
-         JQ8A7FHlF8Sh64KtIEsPEAuO+l6MEvOOfXf126xVgBjwD6YZK000cPd7yAHVEq0ILCXh
-         upyA==
-X-Gm-Message-State: AOJu0YxXdelr0OkIwtx8CafVD0/M6HExf4KqsZbTA3+vuDNd45utUuZI
-	wYQMZruSu40sA5I1mjgKcCBN1fBEH28qrRh5Q2OojRK+UVIgTPZyRZ0Ox3fEHtGKtA==
-X-Gm-Gg: ASbGncteBy5dWYF73LyG0wPeln4H1yuSu/yd8wQPmYDjnRcJ286wnq029QDC8c+6QnA
-	wOzkMWDwtRtlnAIhUIwy/XJcYN2nW2XZPbqwbgOWB7rNJ7vbNyDZ+thvqvAW2TNJK9zzihy3ten
-	fWwGvIRrMjnQnlr9DzCtjbW9R0MPF/a3eL0KiIs7NIzNDZhog5pboCLOVCBHprIsb7j8ikrxVoS
-	gNOH1Rt6kzuFFEFX7UrVSyFBfFzI0Z5EO8wTU0V/ftHcFYpjWEXz0dckq7RQjTLuPUebgyMqXCf
-	l2KCoygY297LIQ==
-X-Google-Smtp-Source: AGHT+IGI3Bdv70enk0g9lQ+BTkVJdEnDekiR138NVq+mSYKQm/0+UDBULg35RxpFG9xg9CfJxJ+nGQ==
-X-Received: by 2002:a05:6300:6681:b0:1e0:c6c0:1e1f with SMTP id adf61e73a8af0-1e5e07f8a98mr67526365637.36.1735874921601;
-        Thu, 02 Jan 2025 19:28:41 -0800 (PST)
+        d=1e100.net; s=20230601; t=1735874928; x=1736479728;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:date:subject:cc:to:from:x-gm-message-state:from:to:cc
+         :subject:date:message-id:reply-to;
+        bh=NPw/+eEI6q85PypD7ZdL/BIEur4VeNZSSSnVlY4IS0E=;
+        b=XcToRlkrei6rxZVF7fCP7snu05eJgk+Rs0NKZv1RyvK/xaESk8nMk8MxChxYS24gZN
+         WSz9pNV0jV9ojRVAoklMcf0jhC8wpdt1Jz8AxcWDbK238VsJqwOFMvUtj3mwgURWmg4F
+         dOCl1TSaD8kiDeo48WrenViegN819UNy15bAqzYPGxQEWr5zg1bCwQqyzaSHgqXcEoDC
+         XSH+kXZkhlkD/dnaGwIVKiWtZtq7ZeAwQsBx7WontUdZmiEUQNRP+npHApT9XqMMPKdI
+         s2ddkU8GfrUcO0Wisj8GitbD2dBZGnIcRBFSIjlJ2gnZ5AHuKIqGMdEBVehgwBEFhkJ+
+         BmHw==
+X-Gm-Message-State: AOJu0YzR+rIzbC+YOykWnaAakHr6sTdRrcG7fmYUFctASjMA5J10FITX
+	HTMXbjgYbI1RpNCA3c7ZNtjMLWAgCcTpIenAbJAOIbaGmfIbWEDh2p8RpgDKmmrhSg==
+X-Gm-Gg: ASbGncuL6U/SdA4vKzHYho47ssXKllnDdW2tcXIJGvYsw7SDPXqeq/s0Cuk2iLbd/+9
+	ADzuTh56se6x9PD7GzKp4vfNbRBfFd2Y4y5aKlqWUgUYNU+tGfRJrRRd6bRqtfkSOxJ6T/s7Nm7
+	GhsP0MSbXQy0bakpCyLWG/tE51KyVKBcL6PQY1u3o/PrRonBMPIXE6MpB4JRsBhHi6yhOOu8pNB
+	MDgrGrn8uwDwKEiF4dVWt7dR26y2aBK13Sj82Hx6vreWTCL+CpVQP2AydGBt5L7Y5Q+PjEht4f5
+	aXDNUdN+1Oahow==
+X-Google-Smtp-Source: AGHT+IG2H66oFfWraOKFVtXPIllnGugDg3hmy4cJYKt/IGUYuMCzC/6RyuPmaaVkn9M3D4+E6PfXMQ==
+X-Received: by 2002:a17:90b:54c6:b0:2f4:434d:c7f0 with SMTP id 98e67ed59e1d1-2f452e22c43mr88191962a91.12.1735874928019;
+        Thu, 02 Jan 2025 19:28:48 -0800 (PST)
 Received: from localhost ([206.237.119.147])
-        by smtp.gmail.com with ESMTPSA id 41be03b00d2f7-842e36caf84sm23040907a12.74.2025.01.02.19.28.40
+        by smtp.gmail.com with ESMTPSA id d9443c01a7336-219dc96eb40sm235622415ad.86.2025.01.02.19.28.47
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Thu, 02 Jan 2025 19:28:41 -0800 (PST)
+        Thu, 02 Jan 2025 19:28:47 -0800 (PST)
 From: Julian Sun <sunjunchao2870@gmail.com>
 To: ocfs2-devel@lists.linux.dev
 Cc: mark@fasheh.com,
 	jlbec@evilplan.org,
 	joseph.qi@linux.alibaba.com,
-	Julian Sun <sunjunchao2870@gmail.com>,
-	syzbot+2313dda4dc4885c93578@syzkaller.appspotmail.com
-Subject: [PATCH v2 1/2] ocfs2: Check el->l_next_free_rec in ocfs2_get_clusters_nocache
-Date: Fri,  3 Jan 2025 11:28:36 +0800
-Message-Id: <20250103032837.815858-1-sunjunchao2870@gmail.com>
+	Julian Sun <sunjunchao2870@gmail.com>
+Subject: [PATCH v2 2/2] ocfs2: Correct l_next_free_rec in online check
+Date: Fri,  3 Jan 2025 11:28:37 +0800
+Message-Id: <20250103032837.815858-2-sunjunchao2870@gmail.com>
 X-Mailer: git-send-email 2.39.5
+In-Reply-To: <20250103032837.815858-1-sunjunchao2870@gmail.com>
+References: <20250103032837.815858-1-sunjunchao2870@gmail.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -73,48 +76,56 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-Hi,
+Correct the value of l_next_free_rec to l_count during the online
+check, as done in the check_el() function in ocfs2_tools.
 
-Recently syzbot reported a use-after-free issue[1].
-
-The root cause of the problem is that the journal
-inode recorded in this file system image is corrupted.
-The value of "di->id2.i_list.l_next_free_rec" is 8193,
-which is greater than the value of "di->id2.i_list.l_count" (19).
-
-To solve this problem, an additional check should be added
-within ocfs2_get_clusters_nocache(). If the check fails, an error will
-be returned and the file system will be set to read-only.
-
-[1]: https://lore.kernel.org/all/67577778.050a0220.a30f1.01bc.GAE@google.com/T/
-
-Reported-and-tested-by: syzbot+2313dda4dc4885c93578@syzkaller.appspotmail.com
-Closes: https://syzkaller.appspot.com/bug?extid=2313dda4dc4885c93578
 Signed-off-by: Julian Sun <sunjunchao2870@gmail.com>
 ---
- fs/ocfs2/extent_map.c | 9 +++++++++
- 1 file changed, 9 insertions(+)
+ fs/ocfs2/inode.c | 24 ++++++++++++++++++++++++
+ 1 file changed, 24 insertions(+)
 
-diff --git a/fs/ocfs2/extent_map.c b/fs/ocfs2/extent_map.c
-index f7672472fa82..83d3343b3e3c 100644
---- a/fs/ocfs2/extent_map.c
-+++ b/fs/ocfs2/extent_map.c
-@@ -435,6 +435,15 @@ static int ocfs2_get_clusters_nocache(struct inode *inode,
- 		}
+diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
+index 2cc5c99fe941..1c396c547d9d 100644
+--- a/fs/ocfs2/inode.c
++++ b/fs/ocfs2/inode.c
+@@ -200,6 +200,20 @@ struct inode *ocfs2_iget(struct ocfs2_super *osb, u64 blkno, unsigned flags,
+ 	return inode;
+ }
+ 
++static int ocfs2_dinode_has_extents(struct ocfs2_dinode *di)
++{
++	/* inodes flagged with other stuff in id2 */
++	if (di->i_flags & (OCFS2_SUPER_BLOCK_FL | OCFS2_LOCAL_ALLOC_FL |
++			   OCFS2_CHAIN_FL | OCFS2_DEALLOC_FL))
++		return 0;
++	/* i_flags doesn't indicate when id2 is a fast symlink */
++	if (S_ISLNK(di->i_mode) && di->i_size && di->i_clusters == 0)
++		return 0;
++	if (di->i_dyn_features & OCFS2_INLINE_DATA_FL)
++		return 0;
++
++	return 1;
++}
+ 
+ /*
+  * here's how inodes get read from disk:
+@@ -1547,6 +1561,16 @@ static int ocfs2_filecheck_repair_inode_block(struct super_block *sb,
+ 		     le32_to_cpu(di->i_fs_generation));
  	}
  
-+	if (le16_to_cpu(el->l_next_free_rec) > le16_to_cpu(el->l_count)) {
-+		ret = ocfs2_error(inode->i_sb, "Invalid dinode #%llu: next_free_rec is %u, count is %u\n",
-+				  (unsigned long long)di_bh->b_blocknr,
-+				  le16_to_cpu(di->id2.i_list.l_next_free_rec),
-+				  le16_to_cpu(di->id2.i_list.l_count));
-+
-+		goto out;
++	if (ocfs2_dinode_has_extents(di) &&
++	    le16_to_cpu(di->id2.i_list.l_next_free_rec) > le16_to_cpu(di->id2.i_list.l_count)) {
++		di->id2.i_list.l_next_free_rec = di->id2.i_list.l_count;
++		changed = 1;
++		mlog(ML_ERROR,
++		     "Filecheck: reset dinode #%llu: l_next_free_rec to %u\n",
++		     (unsigned long long)bh->b_blocknr,
++		     le16_to_cpu(di->id2.i_list.l_next_free_rec));
 +	}
 +
- 	i = ocfs2_search_extent_list(el, v_cluster);
- 	if (i == -1) {
- 		/*
+ 	if (changed || ocfs2_validate_meta_ecc(sb, bh->b_data, &di->i_check)) {
+ 		ocfs2_compute_meta_ecc(sb, bh->b_data, &di->i_check);
+ 		mark_buffer_dirty(bh);
 -- 
 2.39.5
 
