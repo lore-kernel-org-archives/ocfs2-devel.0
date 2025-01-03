@@ -1,103 +1,120 @@
-Received: from out30-111.freemail.mail.aliyun.com (out30-111.freemail.mail.aliyun.com [115.124.30.111])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-pl1-f181.google.com (mail-pl1-f181.google.com [209.85.214.181])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 81C031B87EC
-	for <ocfs2-devel@lists.linux.dev>; Fri,  3 Jan 2025 09:54:27 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.111
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 269D328E8
+	for <ocfs2-devel@lists.linux.dev>; Fri,  3 Jan 2025 13:12:31 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.214.181
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1735898072; cv=none; b=Ty5XT9Kss1Q75pROt76a+xtapBPlygL6A3ASUVdMALLJ595VR70+t0yZibnOm6MGvyDzJvqunA+rO5mW5jHxa9YRhIzrCum5mHg2pDpXbwkpmt1NuSRYhqYtUuR9XLk2yVGX9Uohg0WsQgV4Q6ismHXOcIf7IfuzBrNyEjeX8W8=
+	t=1735909953; cv=none; b=qlbtevjxnA7b5PvH9QPTP4l/518F9ZJ5whK7kOXIXpnpdBVHDuXnQ+1VYez4kLmqJBIm6+gZZ87GzM4B0p2HpK5bp5VIsewZ/PLVd/0UOptj7aZ4P/6BOiCFPYdSwKedG2UaTsxpybjbnY3u8QWsf7DsSJ3pkIgDXsilbWM/Pfs=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1735898072; c=relaxed/simple;
-	bh=Uu6GlRU1XZpOIePyFJjiPNFbM4Tm9n5OrfYdmzK2rWk=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=eMiYXb0aFbqohggMECDWauu5idvG4oYTEmmLPq3MUFpXsw8RGAixoT4qo52XBs7s1DtL9GQw2g1QicSfnYwqRPRYYjTmkANAvrA+UgnzUaUFX1F/3gCMr2ecnIky0EX2jif23yX0q0sDMrPptMtF518pseuw/nzXKw2yIfDJVoU=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=jCjJZ4se; arc=none smtp.client-ip=115.124.30.111
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
+	s=arc-20240116; t=1735909953; c=relaxed/simple;
+	bh=Y6aHpUaNKKdE6rqche/JFbjHqWlXcjjXCl0TW6wS1as=;
+	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version; b=phbJpowo866HoCK1qGyhgExGpjqMdoiVPtWeCteMQVWrdYZ0USDyween5pzuiXyEKTCmyukI5Msgl6Pe1KEPXncX/dOj+6BVL7FJnJ2J6JO4JmOWS6UyDYZsclCufgB/YNcvCuWKdC1vLq+mcHTB6u1G0QHGcHTEWtBUHcDPucw=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=Aw2F8YT3; arc=none smtp.client-ip=209.85.214.181
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="jCjJZ4se"
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1735898059; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=SeyzzZhHlf5Q4Fro5pEMFrHsl5pNoReQfeQuAPW436I=;
-	b=jCjJZ4seV2sB0Tb7WQguf7InDITFf83qagKWN1MzFhD8X2KX/YZX5A9fbL94up0SoVXIdRHfrJ1PjUAsR2Zj/LYHG1jz7z9KwUvUI49oDa0A0E32k0YYR4d0f6CoQocu0NHyiAxj8LLh59U8YmrARXavm/8GtZLQY8FtkO3aDq4=
-Received: from 30.221.128.253(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0WMsy1-a_1735898058 cluster:ay36)
-          by smtp.aliyun-inc.com;
-          Fri, 03 Jan 2025 17:54:18 +0800
-Message-ID: <3ffdfa39-17f8-4d92-ba16-147810ed0031@linux.alibaba.com>
-Date: Fri, 3 Jan 2025 17:54:17 +0800
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="Aw2F8YT3"
+Received: by mail-pl1-f181.google.com with SMTP id d9443c01a7336-219f8263ae0so126007315ad.0
+        for <ocfs2-devel@lists.linux.dev>; Fri, 03 Jan 2025 05:12:31 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20230601; t=1735909951; x=1736514751; darn=lists.linux.dev;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:from:to:cc:subject:date:message-id:reply-to;
+        bh=sMM3PdvqZ6pLL+cWu8YeRIsroFE3nD5UW9cl8O3WBCA=;
+        b=Aw2F8YT3BTlreM8+5jDpq1YBuxkaRcaOkC5N1fPdUj0r/G9BGjDTnizdzLIZcGeU5A
+         Yh/k3wrFiciAoFKbcve0U5kPB2yf4fw8GnluVTia6o/x/+tuxXj9dSZrWB8u0vqCTcFx
+         DLj6CMiHfdcyiqM1i2ESdUARklv/TbGhY0SXKTVcZkmfERC7UY7FiwlhpesM7SH9Uiz0
+         /jg1m/0gLaClLKXEfcw1FzDCfwDEjOjeKw1RAcIIvGg9+GTcq1JrtyX06DxtZw30jHDf
+         srngDftsJMJT4HNEj55qJ+oeDiFoIJf8Qtek+vUpU9cE8G37MdTVZX3li8LvGQYFZltH
+         lUsg==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1735909951; x=1736514751;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:x-gm-message-state:from:to:cc:subject:date:message-id
+         :reply-to;
+        bh=sMM3PdvqZ6pLL+cWu8YeRIsroFE3nD5UW9cl8O3WBCA=;
+        b=OP6l6gqRkw7uZf8h42M88GvHwT67bwC/k4SP9nFYeV1+VxQJnWWguj1//lLhHB8C2D
+         E1fVzGuKJrixGZj5SZTPb2TIN6LTTHvE9+cvV+kxMaIKgY8Wfgav5mqA4+AEdvvppwmh
+         ZArfDVIta+P+ML9uniIjGVJNY/TK+tSQBg8z+0qKptJlLoUsF5hbJJkNuF3P/SM+O4Lc
+         iJcLipJoAVDpsXyfvlBVdH3aIuLvbZI7lWjP1/Nfn8NYqOG6FpixLU8fKBJ8nhSoPT5W
+         J7MHFlBMyseDM8VVrByy2KKtWMhtNwSqtrRaBlLzs8WKwdbpmRBGW+yGbxGDlx767iB2
+         d0mg==
+X-Gm-Message-State: AOJu0YxP8ZgMyqCaQHLw76dz8ClKi6hk2kutHnP60fBX1JlxOc9XyHUN
+	6tzu3ow/JEk8ks0lGBlappoSmSHGAUaxWlcanAJekOEXWaWRXlEpbYPHGvihOcdr0w==
+X-Gm-Gg: ASbGncuPadgjJ6+LmRsWUGotEvaJmMj289btB5SD0iIsjbguTzJNJkSK9HI8XkfBwlR
+	OqDjDXQ7KdIuxZf5g2sYETZU2STVF965GYXqyi7dVu88LSvXLQiN12eeDvPOfgdIogWDUcTl8xh
+	nw+SjnigvRkFMBAjFXMDhCkNWCLyVOiB0kQLEutKPDVQ6MTYJQY7ofNkyv/jxRO+0HEXsoQ7rd2
+	Djsp6HyfM7RWR8ah0cfKj3tmwfOW4qBlaxZyEHYsQD7i5jZTfU4O8FD2xiJf3yFdw2jJO2q2kD1
+	TQEOGqn+JeFmGA==
+X-Google-Smtp-Source: AGHT+IG3O2BaM51LGvW8bZi9ruBBZKrl6z1toKrPM6k9H/UWHU2Cp1ns2KNFRj01JEdaY+uIhLHe4Q==
+X-Received: by 2002:a05:6a21:6da2:b0:1db:de38:294b with SMTP id adf61e73a8af0-1e5e0819216mr84372069637.38.1735909950810;
+        Fri, 03 Jan 2025 05:12:30 -0800 (PST)
+Received: from localhost ([206.237.119.147])
+        by smtp.gmail.com with ESMTPSA id 41be03b00d2f7-842b31eeff3sm20326647a12.33.2025.01.03.05.12.29
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Fri, 03 Jan 2025 05:12:30 -0800 (PST)
+From: Julian Sun <sunjunchao2870@gmail.com>
+To: ocfs2-devel@lists.linux.dev
+Cc: mark@fasheh.com,
+	jlbec@evilplan.org,
+	joseph.qi@linux.alibaba.com,
+	Julian Sun <sunjunchao2870@gmail.com>,
+	syzbot+2313dda4dc4885c93578@syzkaller.appspotmail.com
+Subject: [PATCH v4 1/2] ocfs2: Check el->l_next_free_rec in ocfs2_get_clusters_nocache
+Date: Fri,  3 Jan 2025 21:12:25 +0800
+Message-Id: <20250103131226.1262042-1-sunjunchao2870@gmail.com>
+X-Mailer: git-send-email 2.39.5
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v3 2/2] ocfs2: Correct l_next_free_rec in online check
-To: Julian Sun <sunjunchao2870@gmail.com>, ocfs2-devel@lists.linux.dev
-Cc: mark@fasheh.com, jlbec@evilplan.org
-References: <20250103050202.825893-1-sunjunchao2870@gmail.com>
- <20250103050202.825893-2-sunjunchao2870@gmail.com>
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <20250103050202.825893-2-sunjunchao2870@gmail.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 
+Recently syzbot reported a use-after-free issue[1].
 
+The root cause of the problem is that the journal
+inode recorded in this file system image is corrupted.
+The value of "di->id2.i_list.l_next_free_rec" is 8193,
+which is greater than the value of "di->id2.i_list.l_count" (19).
 
-On 2025/1/3 13:02, Julian Sun wrote:
-> Correct the value of l_next_free_rec to l_count during the online
-> check, as done in the check_el() function in ocfs2_tools.
-> 
-> Signed-off-by: Julian Sun <sunjunchao2870@gmail.com>
+To solve this problem, an additional check should be added
+within ocfs2_get_clusters_nocache(). If the check fails, an error will
+be returned and the file system will be set to read-only.
 
-Looks fine.
-Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+[1]: https://lore.kernel.org/all/67577778.050a0220.a30f1.01bc.GAE@google.com/T/
 
-> ---
->  fs/ocfs2/inode.c | 24 ++++++++++++++++++++++++
->  1 file changed, 24 insertions(+)
-> 
-> diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-> index 2cc5c99fe941..1c396c547d9d 100644
-> --- a/fs/ocfs2/inode.c
-> +++ b/fs/ocfs2/inode.c
-> @@ -200,6 +200,20 @@ struct inode *ocfs2_iget(struct ocfs2_super *osb, u64 blkno, unsigned flags,
->  	return inode;
->  }
->  
-> +static int ocfs2_dinode_has_extents(struct ocfs2_dinode *di)
-> +{
-> +	/* inodes flagged with other stuff in id2 */
-> +	if (di->i_flags & (OCFS2_SUPER_BLOCK_FL | OCFS2_LOCAL_ALLOC_FL |
-> +			   OCFS2_CHAIN_FL | OCFS2_DEALLOC_FL))
-> +		return 0;
-> +	/* i_flags doesn't indicate when id2 is a fast symlink */
-> +	if (S_ISLNK(di->i_mode) && di->i_size && di->i_clusters == 0)
-> +		return 0;
-> +	if (di->i_dyn_features & OCFS2_INLINE_DATA_FL)
-> +		return 0;
-> +
-> +	return 1;
-> +}
->  
->  /*
->   * here's how inodes get read from disk:
-> @@ -1547,6 +1561,16 @@ static int ocfs2_filecheck_repair_inode_block(struct super_block *sb,
->  		     le32_to_cpu(di->i_fs_generation));
->  	}
->  
-> +	if (ocfs2_dinode_has_extents(di) &&
-> +	    le16_to_cpu(di->id2.i_list.l_next_free_rec) > le16_to_cpu(di->id2.i_list.l_count)) {
-> +		di->id2.i_list.l_next_free_rec = di->id2.i_list.l_count;
-> +		changed = 1;
-> +		mlog(ML_ERROR,
-> +		     "Filecheck: reset dinode #%llu: l_next_free_rec to %u\n",
-> +		     (unsigned long long)bh->b_blocknr,
-> +		     le16_to_cpu(di->id2.i_list.l_next_free_rec));
-> +	}
-> +
->  	if (changed || ocfs2_validate_meta_ecc(sb, bh->b_data, &di->i_check)) {
->  		ocfs2_compute_meta_ecc(sb, bh->b_data, &di->i_check);
->  		mark_buffer_dirty(bh);
+Reported-and-tested-by: syzbot+2313dda4dc4885c93578@syzkaller.appspotmail.com
+Closes: https://syzkaller.appspot.com/bug?extid=2313dda4dc4885c93578
+Signed-off-by: Julian Sun <sunjunchao2870@gmail.com>
+---
+ fs/ocfs2/extent_map.c | 11 +++++++++++
+ 1 file changed, 11 insertions(+)
+
+diff --git a/fs/ocfs2/extent_map.c b/fs/ocfs2/extent_map.c
+index f7672472fa82..a326c08d9145 100644
+--- a/fs/ocfs2/extent_map.c
++++ b/fs/ocfs2/extent_map.c
+@@ -435,6 +435,17 @@ static int ocfs2_get_clusters_nocache(struct inode *inode,
+ 		}
+ 	}
+ 
++	if (le16_to_cpu(el->l_next_free_rec) > le16_to_cpu(el->l_count)) {
++		ocfs2_error(inode->i_sb,
++			    "Inode %lu has bad extent next_free_rec %u count %u in block %llu\n",
++			    inode->i_ino,
++			    le16_to_cpu(el->l_next_free_rec),
++			    le16_to_cpu(el->l_count),
++			    (unsigned long long)eb_bh->b_blocknr);
++		ret = -EROFS;
++		goto out;
++	}
++
+ 	i = ocfs2_search_extent_list(el, v_cluster);
+ 	if (i == -1) {
+ 		/*
+-- 
+2.39.5
 
