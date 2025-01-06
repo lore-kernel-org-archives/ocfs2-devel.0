@@ -1,132 +1,129 @@
-Received: from mail-lj1-f181.google.com (mail-lj1-f181.google.com [209.85.208.181])
+Received: from mail-il1-f198.google.com (mail-il1-f198.google.com [209.85.166.198])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8F3C929A0
-	for <ocfs2-devel@lists.linux.dev>; Mon,  6 Jan 2025 06:12:22 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.208.181
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2D3FF15666A
+	for <ocfs2-devel@lists.linux.dev>; Mon,  6 Jan 2025 06:25:03 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.166.198
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1736143944; cv=none; b=QTMHlBfv28s269NZH3sERrYJ4uCE8e6znj26/bsylMtZegLV3qBT2d7Jn8dkgeHVBxZGKdk0wu+o5xnThrFhjjcKPxa6VZ8dnLbQ/LVNUGZL6jBfD5SqbB55f4v0fXwVwGv79Wo6f3w8A52Nkebk6Eqx7OQi8iSTnFX/yJhTJwE=
+	t=1736144705; cv=none; b=Pb4FYXLNpvAW65zBQCIVn4MDsqijxdAatCN3RuM7VDDyBu0Hqa7ueWfpM4/AOcWQ2+GIP9bDCcIXHnzHi5s/XyYIXrblesQS2kppp5PFJ1+Ig96wolnNKaJPj7/pcU6PbUmq3ZWdFqSTswBb4hmhWKUdl5//0dmjkI6uS2Pix6g=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1736143944; c=relaxed/simple;
-	bh=PjuEwQkIh6E0dwCoDechuMeQAfz6AEbkoMjwwVr54KA=;
-	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
-	 To:Cc:Content-Type; b=cGOjXQ49XmHdUlFrlQmzkaz+4XptFjw+GwY6MTWNctm9+hZChJpNL9zkqJnGLx+geePKWsJUIWv3i1hz1bu1O1ryyiFtQPoU0PEpNog+ZpQozz6tALldiavnaM+azPlm+/ZehCJpDPclogJPQgT2tLYoaRVwbr3OqMGK0tc6V6Q=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=DegbGObj; arc=none smtp.client-ip=209.85.208.181
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="DegbGObj"
-Received: by mail-lj1-f181.google.com with SMTP id 38308e7fff4ca-304d760f0dfso29573111fa.2
-        for <ocfs2-devel@lists.linux.dev>; Sun, 05 Jan 2025 22:12:22 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1736143941; x=1736748741; darn=lists.linux.dev;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=NG7iWSsVdjInDq3pOte5pqLvixSMaEdOmh4efd18XIQ=;
-        b=DegbGObjGl8mfufbK9WF7W/olNk6j93U7G2qNzs8Hc/762FGlv4Bh/MOZbSGesfqaS
-         nepOVRvgvLE4PxzAy9o5SMqqLmp9ClKON629WY1TVqf43WojduMlosAhN9BFayAx9Ma3
-         npruVF4/g/ncWU42J9qiOyK+SpZX6YwLRJb6jBd0c/XlM5cxTdDwwx/7w4OhZm/deKI3
-         0eYDEwB41C3OuP7G0EkJjDqkK5D3P8VUjPYVRrNZLSJIarBWLRxJFAo8YBRQflSgsbeR
-         j0OaqaAqNTEU9dMQJOs/gi1BbV/ItcszhXxzOQqU4XTRcKvcSm9HuiEBKAM7QunbRCw+
-         gPJg==
+	s=arc-20240116; t=1736144705; c=relaxed/simple;
+	bh=LYuQC+yw4GGguc2gm5QWSojWTg5aVxRHtjTyq/xkTpQ=;
+	h=MIME-Version:Date:In-Reply-To:Message-ID:Subject:From:To:
+	 Content-Type; b=iIYW3z/+fJ+qgbOZ9ppWY6Q8OJrMlD3q3UqhhtWk5Rr/y9lTXMbwonxQdU+oHM4YETKxpfQyWSrrjkIwHrqOFjZ4GqdEEb0N8WtVsg/zA4ynkRsycnAN4OkLuGbhk7V9gXSXRioR8blEtu/pMyMcaaczEMKmW+RIgSs1zVn7xxo=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.166.198
+Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
+Received: by mail-il1-f198.google.com with SMTP id e9e14a558f8ab-3a9d4ea9e0cso138122185ab.0
+        for <ocfs2-devel@lists.linux.dev>; Sun, 05 Jan 2025 22:25:03 -0800 (PST)
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1736143941; x=1736748741;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:x-gm-message-state:from:to:cc
-         :subject:date:message-id:reply-to;
-        bh=NG7iWSsVdjInDq3pOte5pqLvixSMaEdOmh4efd18XIQ=;
-        b=ZxIwMP38AU3PwLYqn+0BonpHkCKnVDOFYr2UHMzGR4PS7viJHaGG+TPj/RsyXcWHGY
-         S/YpWrkxKh/0StZasj6uR9UlOFbEC13N5bLN93RUsGuAxvJtwo0CiStlgqcWY/PRQxNN
-         FEjb3JKMlkVnR5RvGHxZQAHqDJsgpjU597jywX3dJqudBJNfjvW8V8+lnLdogujYb8d5
-         vh/WptJisTCIdmULiueouY3sUEsWxY34M9bq6m6kQ6AB1sNjKDYKTu/8uHSdugHL0cW2
-         9E/tT8pNthb2tEieAuKC5JLBqRuxJ/AY4mSEl202tTFNXnJNvywH8lvzrP9NRwSOTwVy
-         dgWA==
-X-Gm-Message-State: AOJu0YysNjQIsbYrOveAWdkFNHx4B5p3Eld0y5KjlBapTGvPcoT4Sp2p
-	SvfW4irp1clA+e4JmayvhkgorV8w9YDkPKOXxgyBkKLP0oxRAHfU4cDNdMDCW6U7aGa86bsYzsz
-	MWnEci7ef9CfZOCVgBIaEE2daLm1fcK1KdAXJTBtv
-X-Gm-Gg: ASbGnctZffo24eAW6NNtlrEZkV9eNswdD5zqoy8pEMWglIJM2MIoz2qzSeZ+W7+ISXV
-	hAH6hsGWGgy9DTQq5Oe6fDjLx+y/84B1G6vA8AYo=
-X-Google-Smtp-Source: AGHT+IFFG4OW34TSmyzievNUcf97u9SeW5i9tynMi3d4mlApjmB+JtWGGF0s+cSCVA8IqUc91VNGhpBp9TQl9ZT7ULs=
-X-Received: by 2002:a05:6512:e98:b0:541:21d7:7056 with SMTP id
- 2adb3069b0e04-542295301b4mr18315718e87.17.1736143940416; Sun, 05 Jan 2025
- 22:12:20 -0800 (PST)
+        d=1e100.net; s=20230601; t=1736144703; x=1736749503;
+        h=to:from:subject:message-id:in-reply-to:date:mime-version
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
+        bh=q84u+dsdlcLRH1SUCFrF/rzaG/ts/JoKR2QXMS2SLq4=;
+        b=a17p8jO2QM/6kSFhZCZaPDFwlgJWAV5avt3cAhxhKeOKq+E6Q2gxchYSgzDRiOW8r1
+         Pt+VaoiiOSM+c2yGhOua1uPapiohHSdy2YhlV9yNVXnzU9EP+8svIERCtp7QxEP0APqp
+         P2HVw1ywda6PxiyJ66Wujx6AfkkCpq2lFDX588vMVAFI+geDiwFzC378cSPG9+r5SOGo
+         f2qktqicbrsdC6pEuq0zuxU//0ATweZkXNKmbKat6gzAhBk4HAHA+86fvsauc11Ls3Pr
+         r3l4OH3W7FZV2w0CeabKLevnCOiFs+/nHVRuHrqzNFYrgjOGg2py3VwBxxo8173rGmVc
+         eHNw==
+X-Forwarded-Encrypted: i=1; AJvYcCUSKs/L7St17XsTMyH8d3eCB3VfOnOiSi3zhCxoz29BoQeK+c4XDnGvHKRhlFCr/pQE7TNSNzffiJquRQ==@lists.linux.dev
+X-Gm-Message-State: AOJu0YwXV1lQLF9pf2egCScQt68EpHUoKi75ySaHqD7qPFV/XF7Rtw4H
+	XsvewdP1uqyzIsHJV9MwvzpBMQdPAcUfTUG5WVznLqzNo1Olx8tPgOvqMeA01vtmyPzVr9QftaX
+	eku1wZcR/qpp7BzZUmb9BsA0a7N5vic7SmUwijTefzKN6kNeqIB5ITf0=
+X-Google-Smtp-Source: AGHT+IErjpdwNvqHpltG1/nefJ+KLa/AhO4SoNvgWleB7/okkcfYFeJUpdD60P272eORFEiCfrlrObgKHbdP0ib2Xkl+FWa3Fec9
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-References: <20250106023432.1320904-1-sunjunchao2870@gmail.com> <1e00e9b9-8600-4e30-af00-748c8545353e@linux.alibaba.com>
-In-Reply-To: <1e00e9b9-8600-4e30-af00-748c8545353e@linux.alibaba.com>
-From: Julian Sun <sunjunchao2870@gmail.com>
-Date: Mon, 6 Jan 2025 14:12:09 +0800
-Message-ID: <CAHB1NagXLbPnbbO9DctCm-YYV-y0ib0AvfAK6nawSRV6o2PWyA@mail.gmail.com>
-Subject: Re: [PATCH v5 1/2] ocfs2: Check el->l_next_free_rec in ocfs2_get_clusters_nocache
-To: Joseph Qi <joseph.qi@linux.alibaba.com>
-Cc: ocfs2-devel@lists.linux.dev, akpm <akpm@linux-foundation.org>, mark@fasheh.com, 
-	jlbec@evilplan.org, syzbot+2313dda4dc4885c93578@syzkaller.appspotmail.com
+X-Received: by 2002:a05:6e02:12cb:b0:3a7:d792:d6ad with SMTP id
+ e9e14a558f8ab-3c2d5918ac8mr352461045ab.22.1736144703291; Sun, 05 Jan 2025
+ 22:25:03 -0800 (PST)
+Date: Sun, 05 Jan 2025 22:25:03 -0800
+In-Reply-To: <1A32B849-6C84-44AD-8747-CF3983926C29@suse.com>
+X-Google-Appengine-App-Id: s~syzkaller
+X-Google-Appengine-App-Id-Alias: syzkaller
+Message-ID: <677b773f.050a0220.3b3668.0004.GAE@google.com>
+Subject: Re: [syzbot] [ocfs2?] kernel BUG in ocfs2_truncate_log_append
+From: syzbot <syzbot+a66542ca5ebb4233b563@syzkaller.appspotmail.com>
+To: glass.su@suse.com, jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
+	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
+	syzkaller-bugs@googlegroups.com
 Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
 
-I really appreciate your comments and suggestions, thank you!
+Hello,
 
-Joseph Qi <joseph.qi@linux.alibaba.com> =E4=BA=8E2025=E5=B9=B41=E6=9C=886=
-=E6=97=A5=E5=91=A8=E4=B8=80 13:30=E5=86=99=E9=81=93=EF=BC=9A
->
->
->
-> On 2025/1/6 10:34, Julian Sun wrote:
-> > Recently syzbot reported a use-after-free issue[1].
-> >
-> > The root cause of the problem is that the journal
-> > inode recorded in this file system image is corrupted.
-> > The value of "di->id2.i_list.l_next_free_rec" is 8193,
-> > which is greater than the value of "di->id2.i_list.l_count" (19).
-> >
-> > To solve this problem, an additional check should be added
-> > within ocfs2_get_clusters_nocache(). If the check fails, an error will
-> > be returned and the file system will be set to read-only.
-> >
-> > [1]: https://lore.kernel.org/all/67577778.050a0220.a30f1.01bc.GAE@googl=
-e.com/T/
-> >
-> > Reported-and-tested-by: syzbot+2313dda4dc4885c93578@syzkaller.appspotma=
-il.com
-> > Closes: https://syzkaller.appspot.com/bug?extid=3D2313dda4dc4885c93578
-> > Signed-off-by: Julian Sun <sunjunchao2870@gmail.com>
->
-> Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-> > ---
-> >  fs/ocfs2/extent_map.c | 10 ++++++++++
-> >  1 file changed, 10 insertions(+)
-> >
-> > diff --git a/fs/ocfs2/extent_map.c b/fs/ocfs2/extent_map.c
-> > index f7672472fa82..930150ed5db1 100644
-> > --- a/fs/ocfs2/extent_map.c
-> > +++ b/fs/ocfs2/extent_map.c
-> > @@ -435,6 +435,16 @@ static int ocfs2_get_clusters_nocache(struct inode=
- *inode,
-> >               }
-> >       }
-> >
-> > +     if (le16_to_cpu(el->l_next_free_rec) > le16_to_cpu(el->l_count)) =
-{
-> > +             ocfs2_error(inode->i_sb,
-> > +                         "Inode %lu has an invalid extent (next_free_r=
-ec %u, count %u)\n",
-> > +                         inode->i_ino,
-> > +                         le16_to_cpu(el->l_next_free_rec),
-> > +                         le16_to_cpu(el->l_count));
-> > +             ret =3D -EROFS;
-> > +             goto out;
-> > +     }
-> > +
-> >       i =3D ocfs2_search_extent_list(el, v_cluster);
-> >       if (i =3D=3D -1) {
-> >               /*
->
+syzbot has tested the proposed patch but the reproducer is still triggering an issue:
+kernel BUG in ocfs2_truncate_log_append
+
+(syz.0.15,5818,0):ocfs2_truncate_log_append:5874 ERROR: bug expression: tl_count > ocfs2_truncate_recs_per_inode(osb->sb) || tl_count == 0
+(syz.0.15,5818,0):ocfs2_truncate_log_append:5874 ERROR: Truncate record count on #77 invalid wanted 39, actual 2087
+------------[ cut here ]------------
+kernel BUG at fs/ocfs2/alloc.c:5874!
+Oops: invalid opcode: 0000 [#1] PREEMPT SMP KASAN NOPTI
+CPU: 0 UID: 0 PID: 5818 Comm: syz.0.15 Not tainted 6.13.0-rc4-syzkaller-g7dace56f464b #0
+Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.16.3-debian-1.16.3-2~bpo12+1 04/01/2014
+RIP: 0010:ocfs2_truncate_log_append+0x9a8/0x9c0 fs/ocfs2/alloc.c:5868
+Code: bc 24 a0 00 00 00 48 c7 c6 0f 85 0d 8e ba f2 16 00 00 48 c7 c1 00 4b 47 8c 4d 89 f0 41 89 d9 50 e8 ed 7d 20 00 48 83 c4 08 90 <0f> 0b e8 91 bd 21 fe 90 0f 0b e8 89 bd 21 fe 90 0f 0b e8 e1 22 40
+RSP: 0018:ffffc90002a7ef60 EFLAGS: 00010296
+RAX: 3de6beb9eda26200 RBX: 0000000000000027 RCX: 3de6beb9eda26200
+RDX: 0000000000000000 RSI: 0000000080000000 RDI: 0000000000000000
+RBP: ffffc90002a7f090 R08: ffffffff817f0a8c R09: 1ffff9200054fd5c
+R10: dffffc0000000000 R11: fffff5200054fd5d R12: 1ffff11007e58958
+R13: ffffff3800000000 R14: 000000000000004d R15: ffff88804f32c008
+FS:  00007f7dae2556c0(0000) GS:ffff88801fc00000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: 000000002000f000 CR3: 0000000056b52000 CR4: 0000000000352ef0
+DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+Call Trace:
+ <TASK>
+ ocfs2_remove_btree_range+0x1303/0x1860 fs/ocfs2/alloc.c:5789
+ ocfs2_remove_inode_range+0xff3/0x29c0 fs/ocfs2/file.c:1907
+ ocfs2_reflink_remap_extent fs/ocfs2/refcounttree.c:4537 [inline]
+ ocfs2_reflink_remap_blocks+0xcd4/0x1f30 fs/ocfs2/refcounttree.c:4684
+ ocfs2_remap_file_range+0x5fa/0x8d0 fs/ocfs2/file.c:2740
+ vfs_copy_file_range+0xc07/0x1510 fs/read_write.c:1584
+ __do_sys_copy_file_range fs/read_write.c:1670 [inline]
+ __se_sys_copy_file_range+0x3fa/0x600 fs/read_write.c:1637
+ do_syscall_x64 arch/x86/entry/common.c:52 [inline]
+ do_syscall_64+0xf3/0x230 arch/x86/entry/common.c:83
+ entry_SYSCALL_64_after_hwframe+0x77/0x7f
+RIP: 0033:0x7f7dad37e719
+Code: ff ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 40 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 a8 ff ff ff f7 d8 64 89 01 48
+RSP: 002b:00007f7dae255038 EFLAGS: 00000246 ORIG_RAX: 0000000000000146
+RAX: ffffffffffffffda RBX: 00007f7dad535f80 RCX: 00007f7dad37e719
+RDX: 0000000000000006 RSI: 0000000000000000 RDI: 0000000000000004
+RBP: 00007f7dad3f132e R08: 000000000000d8c2 R09: 0000000000000000
+R10: 0000000020000640 R11: 0000000000000246 R12: 0000000000000000
+R13: 0000000000000000 R14: 00007f7dad535f80 R15: 00007ffffb564de8
+ </TASK>
+Modules linked in:
+---[ end trace 0000000000000000 ]---
+RIP: 0010:ocfs2_truncate_log_append+0x9a8/0x9c0 fs/ocfs2/alloc.c:5868
+Code: bc 24 a0 00 00 00 48 c7 c6 0f 85 0d 8e ba f2 16 00 00 48 c7 c1 00 4b 47 8c 4d 89 f0 41 89 d9 50 e8 ed 7d 20 00 48 83 c4 08 90 <0f> 0b e8 91 bd 21 fe 90 0f 0b e8 89 bd 21 fe 90 0f 0b e8 e1 22 40
+RSP: 0018:ffffc90002a7ef60 EFLAGS: 00010296
+RAX: 3de6beb9eda26200 RBX: 0000000000000027 RCX: 3de6beb9eda26200
+RDX: 0000000000000000 RSI: 0000000080000000 RDI: 0000000000000000
+RBP: ffffc90002a7f090 R08: ffffffff817f0a8c R09: 1ffff9200054fd5c
+R10: dffffc0000000000 R11: fffff5200054fd5d R12: 1ffff11007e58958
+R13: ffffff3800000000 R14: 000000000000004d R15: ffff88804f32c008
+FS:  00007f7dae2556c0(0000) GS:ffff88801fc00000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: 000000002000f000 CR3: 0000000056b52000 CR4: 0000000000352ef0
+DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
 
 
---=20
-Julian Sun <sunjunchao2870@gmail.com>
+Tested on:
+
+commit:         7dace56f ocfs2: check dir i_size in ocfs2_find_entry
+git tree:       https://github.com/Damenly/linux ocfs2-syz
+console output: https://syzkaller.appspot.com/x/log.txt?x=12b4b9c4580000
+kernel config:  https://syzkaller.appspot.com/x/.config?x=e5ad6ebf66b1e197
+dashboard link: https://syzkaller.appspot.com/bug?extid=a66542ca5ebb4233b563
+compiler:       Debian clang version 15.0.6, GNU ld (GNU Binutils for Debian) 2.40
+
+Note: no patches were applied.
