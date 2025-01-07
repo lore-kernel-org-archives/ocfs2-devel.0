@@ -1,31 +1,31 @@
-Received: from out30-97.freemail.mail.aliyun.com (out30-97.freemail.mail.aliyun.com [115.124.30.97])
+Received: from out30-124.freemail.mail.aliyun.com (out30-124.freemail.mail.aliyun.com [115.124.30.124])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 555701E491C
-	for <ocfs2-devel@lists.linux.dev>; Tue,  7 Jan 2025 09:47:02 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.97
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 133F61E3DCC
+	for <ocfs2-devel@lists.linux.dev>; Tue,  7 Jan 2025 11:38:53 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.124
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1736243227; cv=none; b=UV/G6qI/hbiePVzyqbXGmAf719VJLUgvxG69KB1breXp56QOHFS4+zea2VtNQJ6NQEBZ1SgcRWmEqxRLHcX8ecF5sDIf9XmWvv5eVi+X+7dZ2Rkyg7UKeCWK+PfJEiHXA24aBv6eSXqZGTq6+zsLv3yEh+SSIsj9sNCt7rtSPBM=
+	t=1736249938; cv=none; b=FrM9z9BZ4HEUl0C5zSwr85JRlXviDEf/ab94rO1YNQN5fpgPPw3r5gpuWECLY8DyWZSs1ftJflGd5ST0B+S+3gNNk4efohPe0ieNpqtgk+l7qkaj74aFwSFH+TXFTtmlz2rHLXICB6sdtikjI/j8uUvbDLFcaRexCzt7Vmy0tko=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1736243227; c=relaxed/simple;
-	bh=X3aXrFF7GksVfYHMfE5hPT7U/m5rgFrJX3hmALPtkc8=;
-	h=Message-ID:Date:MIME-Version:Subject:To:References:Cc:From:
-	 In-Reply-To:Content-Type; b=mPCek5wLeOkJbgLgg1iiPHdpIMEglZHy9IZjdSxDeYxNdMOwxy9j45pWAZwbDLTxBo600oUXy0gMwpyfcxOpvKIjIxOb2T+UFhuM7ZEh0laYpOgJFR8T7ooiJsKTuSTY+550dNAiqXDGt0KlbgM/vQNBtkNh+lzArJQDb7ejHp0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=NP1MWjhf; arc=none smtp.client-ip=115.124.30.97
+	s=arc-20240116; t=1736249938; c=relaxed/simple;
+	bh=PrB3Fr4s7FDtwbweDg17cRAzzQYBQLQFf9cCFMCGveA=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=YiqTmyjPJhcdZMdbJlwcKFJ2vx16rBcKm+xWFO99CBfN2bih6GPtxUwjZwn0nt+3qSnqcSmCWfGUd3FmknP5cr5ZLGoKm+O+iJsyNV8E4a0KMtLTaQ09yeia/W7+YalGsMi48l1XO5fRuuqkDIJdpjzxIq2W99Kp4jWat9FI8W4=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=sJiVD3x7; arc=none smtp.client-ip=115.124.30.124
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="NP1MWjhf"
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="sJiVD3x7"
 DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
 	d=linux.alibaba.com; s=default;
-	t=1736243214; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=hbH6rsC0+5ZYtPmL20ZBcKaqnRgdlkKnheT3CVonFgY=;
-	b=NP1MWjhfTmUPIu5DA8ssZYFM+rcikToryUWxXGnmpCvLpCVAV28uY0xPLw0cC2/SzRCJAo4GjIp+yC4NijmFyCvVmvT3ZSZWIbNW1L/FFIVf0I2lDxvl5uwSTOCCFQvJWFXc3mWOj6QtyZ2/8LR+usRCYHEkmSTwp/yd7JkbOAA=
-Received: from 30.221.129.26(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0WNAF0TB_1736243213 cluster:ay36)
+	t=1736249931; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=McX/q3p/SAm7qC/JWTu4ugEzfTM3XFkHG1Eid3ybb6k=;
+	b=sJiVD3x73Yb9AlqCjPdOXQhFNrFFj51mc7gXPg4jMd9BAgUP13iozGT+MCrKy4nKp1+Ms2WplKUKssR1XRO5arz/sFjXyPyY6kpPFe9mxaoQAKxrtaF/nOBrs9cl+bJUbh8574o8eEj9pTNWsu5P+lEEDesj7lEgJc+NuPgOdOU=
+Received: from 30.221.129.26(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0WNATcYC_1736249927 cluster:ay36)
           by smtp.aliyun-inc.com;
-          Tue, 07 Jan 2025 17:46:54 +0800
-Message-ID: <c68084d8-8925-4782-8d40-d6d74a415f97@linux.alibaba.com>
-Date: Tue, 7 Jan 2025 17:46:53 +0800
+          Tue, 07 Jan 2025 19:38:47 +0800
+Message-ID: <88b41e58-2878-4719-8efe-446c58b1f5e1@linux.alibaba.com>
+Date: Tue, 7 Jan 2025 19:38:45 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -33,67 +33,56 @@ List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH] ocfs2: mark dquot as inactive if failed to start trans
- while releasing dquot
-To: Su Yue <glass.su@suse.com>, akpm <akpm@linux-foundation.org>
-References: <20250106140653.92292-1-glass.su@suse.com>
-Cc: "ocfs2-devel@lists.linux.dev" <ocfs2-devel@lists.linux.dev>
+Subject: Re: [PATCH] generic/620: add '-J block64' mkfs option for ocfs2
+To: Glass Su <glass.su@suse.com>, "Darrick J. Wong" <djwong@kernel.org>,
+ Mark Fasheh <mark@fasheh.com>
+Cc: fstests@vger.kernel.org, ocfs2-devel@lists.linux.dev
+References: <20250106140104.91880-1-glass.su@suse.com>
+ <20250107021254.GP6160@frogsfrogsfrogs>
+ <6B45499F-7306-478A-A860-73E02D47FCF3@suse.com>
 From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <20250106140653.92292-1-glass.su@suse.com>
+In-Reply-To: <6B45499F-7306-478A-A860-73E02D47FCF3@suse.com>
 Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 
 
 
-On 2025/1/6 22:06, Su Yue wrote:
-> While running fstests generic/329, the kernel workqueue
-> quota_release_workfn is dead looping in calling ocfs2_release_dquot().
-> The ocfs2 state is already readonly but ocfs2_release_dquot wants to
-> start a transaction but fails and returns.
+On 2025/1/7 10:42, Glass Su wrote:
 > 
-> =====================================================================
-> [ 2918.123602 ][  T275 ] On-disk corruption discovered. Please run
-> fsck.ocfs2 once the filesystem is unmounted.
-> [ 2918.124034 ][  T275 ] (kworker/u135:1,275,11):ocfs2_release_dquot:765
-> ERROR: status = -30
-> [ 2918.124452 ][  T275 ] (kworker/u135:1,275,11):ocfs2_release_dquot:795
-> ERROR: status = -30
-> [ 2918.124883 ][  T275 ] (kworker/u135:1,275,11):ocfs2_start_trans:357
-> ERROR: status = -30
-> [ 2918.125276 ][  T275 ] OCFS2: abort (device dm-0): ocfs2_start_trans:
-> Detected aborted journal
-> [ 2918.125710 ][  T275 ] On-disk corruption discovered. Please run
-> fsck.ocfs2 once the filesystem is unmounted.
-> =====================================================================
 > 
-> The function, ocfs2_release_dquot is much like dquot_release(), which is
-> called by ext4 to handle similar situation. So here fix it by marking
-> the dquot as inactive like what dquot_release() does.
+>> On Jan 7, 2025, at 10:12, Darrick J. Wong <djwong@kernel.org> wrote:
+>>
+>> On Mon, Jan 06, 2025 at 10:01:04PM +0800, Su Yue wrote:
+>>> mkfs.ocfs2 is using 32bit journal as default.
+>>> For 16T size device support, '-J block64' should be used.
+>>>
+>>> Signed-off-by: Su Yue <glass.su@suse.com>
+>>> ---
+>>> tests/generic/620 | 3 +++
+>>> 1 file changed, 3 insertions(+)
+>>>
+>>> diff --git a/tests/generic/620 b/tests/generic/620
+>>> index 3f1ce45a55fd..60e5a2cacdda 100755
+>>> --- a/tests/generic/620
+>>> +++ b/tests/generic/620
+>>> @@ -41,6 +41,9 @@ sectors=$((2*1024*1024*1024*17))
+>>> chunk_size=128
+>>>
+>>> _dmhugedisk_init $sectors $chunk_size
+>>> +
+>>> +[ "$FSTYP" = "ocfs2"  ] && MKFS_OPTIONS="$MKFS_OPTIONS -J block64"
+>>
+>> Won't mkfs.ocfs2 turn on block64 on a > 16T volume without prompting?
+>>
+> It won’t. Only error will be printed:
 > 
-> Fixes: 9e33d69f553a ("ocfs2: Implementation of local and global quota file handling")
-> Signed-off-by: Su Yue <glass.su@suse.com>
-
-Looks sane.
-Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-
-> ---
->  fs/ocfs2/quota_global.c | 5 +++++
->  1 file changed, 5 insertions(+)
+> ERROR: jbd can only store block numbers in 32 bits. /dev/mapper/huge-test.620 can hold 4563402752 blocks
+> which overflows this limit. If you have a new enough Ocfs2 with JBD2 support, you can try formatting with the "-Jblock64" option to turn on support for this size block device.
 > 
-> diff --git a/fs/ocfs2/quota_global.c b/fs/ocfs2/quota_global.c
-> index 2b0daced98eb..2c42966cea20 100644
-> --- a/fs/ocfs2/quota_global.c
-> +++ b/fs/ocfs2/quota_global.c
-> @@ -761,6 +761,11 @@ static int ocfs2_release_dquot(struct dquot *dquot)
->  	handle = ocfs2_start_trans(osb,
->  		ocfs2_calc_qdel_credits(dquot->dq_sb, dquot->dq_id.type));
->  	if (IS_ERR(handle)) {
-> +		/*
-> +		 * Mark dquot as inactive to avoid endless cycle in
-> +		 * quota_release_workfn().
-> +		 */
-> +		clear_bit(DQ_ACTIVE_B, &dquot->dq_flags);
->  		status = PTR_ERR(handle);
->  		mlog_errno(status);
->  		goto out_ilock;
+> It’s 2025 now. Maybe it’s time to make mkfs.ocfs2  turn on block64 if device size > 16T.
+> 
+> Maintainers may know some stories.  Joseph?
+> 
 
+AFAIK, standard 32-bit journal is the default journal format for ocfs2
+since the beginning.
