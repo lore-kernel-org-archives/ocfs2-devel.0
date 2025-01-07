@@ -1,142 +1,77 @@
-Received: from smtp-out2.suse.de (smtp-out2.suse.de [195.135.223.131])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 63A1E1DED46
-	for <ocfs2-devel@lists.linux.dev>; Mon,  6 Jan 2025 17:47:07 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=195.135.223.131
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 132D928691;
+	Tue,  7 Jan 2025 02:12:54 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1736185630; cv=none; b=MPrNW4fdAMP2OSKGOyLtwxK/W7nDis9fwHoRLGKxME9SYP1Wwg2ym6ozCMyD0FD7UC9/ySZZg2QjPJmRx+08pMOBBDh/+H7f0npERMZ24fDrBQ8lyXxUviw52d4kObqRIwgM5fu46yepv6lZxlbyRjWwkfyiGjkbKrHqwlEp+lo=
+	t=1736215975; cv=none; b=N8qewfPt2B0zeGYVFjwExzVyEwYXIaHi2kPAACCGKFitz4NZgqrzGORCa+Ip99BdC6UbzEMNgDwzpRmLWxWJ7cZgBt5U2P86HB2SURhFYxfADSPQkLDdPwc7ePvcKFAYVik1MUnE/J6iFG/yjNO1+WNnfy2NXmecfjmU2oUoVgk=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1736185630; c=relaxed/simple;
-	bh=a6kz5Tt/09AWtMtktdHp+XvDl7QFCYGVFrnsfJtJjdo=;
-	h=Date:From:To:Cc:Subject:Message-ID:In-Reply-To:References:
-	 MIME-Version:Content-Type; b=V32t3sf7BiILnVvWqfeP7DOD/bsYyuGbN00zHvtOKNsUlIbv/p+o/wh1/oa8YcAoMSYFmWjmD2j7dQXODnUyltpWU2MkT6wzzpRxnJDDCAe0h3SFKjVZZuzdlu6gMkMN3NKutmPO84D7UD0OTp9U5v0Z6x5btNVPwgahRlyEUsg=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=suse.de; spf=pass smtp.mailfrom=suse.de; dkim=pass (1024-bit key) header.d=suse.de header.i=@suse.de header.b=N23hUi5z; dkim=permerror (0-bit key) header.d=suse.de header.i=@suse.de header.b=OWnwgOt2; dkim=pass (1024-bit key) header.d=suse.de header.i=@suse.de header.b=VG1M/1gK; dkim=permerror (0-bit key) header.d=suse.de header.i=@suse.de header.b=0cbCyHFk; arc=none smtp.client-ip=195.135.223.131
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=suse.de
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.de
+	s=arc-20240116; t=1736215975; c=relaxed/simple;
+	bh=oenYNeG+gnXZ4H5JoJghjClCQ0G0h7QENPx8F3zC6oA=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=nk7KLapTyd4w8EI+fUDFENzotfW384F7/+FgBT9jREXHDgat/A24kXqZuM2YQrfxc0yRPrLrNFUfbdPsWvFRmf7Q//6ao+D2GRDU7UkgANMHANhr9e0RkHpm28mHo8hzTxk+7IBl3z5P50+Fmj4BtdOjteULRYKCvLbZs16vqPw=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=O58M++VH; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=suse.de header.i=@suse.de header.b="N23hUi5z";
-	dkim=permerror (0-bit key) header.d=suse.de header.i=@suse.de header.b="OWnwgOt2";
-	dkim=pass (1024-bit key) header.d=suse.de header.i=@suse.de header.b="VG1M/1gK";
-	dkim=permerror (0-bit key) header.d=suse.de header.i=@suse.de header.b="0cbCyHFk"
-Received: from imap1.dmz-prg2.suse.org (imap1.dmz-prg2.suse.org [IPv6:2a07:de40:b281:104:10:150:64:97])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
-	(No client certificate requested)
-	by smtp-out2.suse.de (Postfix) with ESMTPS id 741A01F44E;
-	Mon,  6 Jan 2025 17:47:03 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.de; s=susede2_rsa;
-	t=1736185625; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:content-type:content-type:
-	 content-transfer-encoding:content-transfer-encoding:
-	 in-reply-to:in-reply-to:references:references;
-	bh=wCyexgqF3uhrsEN9aoYoz8ANXjITaW8yZ35u5rQfGTo=;
-	b=N23hUi5zcH9kyUb9P9LbQrsmDtUGPSJfRbCL8H65C2etenyUhMLJSlbkLERG5qVxPHSTN0
-	iNc56Li4+233AImA1w9qRKGmQsw8CqK59niNYfINqXZLjkBeMUOz4WwnUGsfxJCYHie3Pj
-	zEZZAiqK785lhx+p0bn9kvknc9L3u7I=
-DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.de;
-	s=susede2_ed25519; t=1736185625;
-	h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:content-type:content-type:
-	 content-transfer-encoding:content-transfer-encoding:
-	 in-reply-to:in-reply-to:references:references;
-	bh=wCyexgqF3uhrsEN9aoYoz8ANXjITaW8yZ35u5rQfGTo=;
-	b=OWnwgOt2GDd/1hmwZHAKn5+fCecucGxfkX2Z+eBg2aItARB1hsudbeH9ZWY/Hr6xfKi06/
-	CeIGKNxgfIVkl0DA==
-Authentication-Results: smtp-out2.suse.de;
-	dkim=pass header.d=suse.de header.s=susede2_rsa header.b="VG1M/1gK";
-	dkim=pass header.d=suse.de header.s=susede2_ed25519 header.b=0cbCyHFk
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.de; s=susede2_rsa;
-	t=1736185623; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:content-type:content-type:
-	 content-transfer-encoding:content-transfer-encoding:
-	 in-reply-to:in-reply-to:references:references;
-	bh=wCyexgqF3uhrsEN9aoYoz8ANXjITaW8yZ35u5rQfGTo=;
-	b=VG1M/1gKQTMWqWG7m5h1HWTOuHvlxiAd/QuQzNXv2rI9rJZaDeFcXPVNChkm2j6vBr4UWh
-	CIFVqmfAoaFHvsZRsGcq2yU7SVwXOsRpULk2uVxUxe7dP9brm/ucSgYuAwic0qijreRu7O
-	z+r5gz6fcQlFYtBqYfppTdhnxIjB1j4=
-DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.de;
-	s=susede2_ed25519; t=1736185623;
-	h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:content-type:content-type:
-	 content-transfer-encoding:content-transfer-encoding:
-	 in-reply-to:in-reply-to:references:references;
-	bh=wCyexgqF3uhrsEN9aoYoz8ANXjITaW8yZ35u5rQfGTo=;
-	b=0cbCyHFkWQkWUs5Oc0kD9SBkgIqUiCDYdGWnxCQGvP5OeUA9q7GG9z2m6tv7oRT9asCDHV
-	TieFja2TOOM8+fAg==
-Received: from imap1.dmz-prg2.suse.org (localhost [127.0.0.1])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
-	(No client certificate requested)
-	by imap1.dmz-prg2.suse.org (Postfix) with ESMTPS id 43423139AB;
-	Mon,  6 Jan 2025 17:47:03 +0000 (UTC)
-Received: from dovecot-director2.suse.de ([2a07:de40:b281:106:10:150:64:167])
-	by imap1.dmz-prg2.suse.org with ESMTPSA
-	id ZfGbDhcXfGcXbQAAD6G6ig
-	(envelope-from <ddiss@suse.de>); Mon, 06 Jan 2025 17:47:03 +0000
-Date: Tue, 7 Jan 2025 04:47:02 +1100
-From: David Disseldorp <ddiss@suse.de>
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="O58M++VH"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id CE644C4CED2;
+	Tue,  7 Jan 2025 02:12:54 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=k20201202; t=1736215974;
+	bh=oenYNeG+gnXZ4H5JoJghjClCQ0G0h7QENPx8F3zC6oA=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=O58M++VHHsjec9HmfX80PLUbkeogEBmxU3IXcwXUP8HwB7kgRB311AeL7wAdziY4B
+	 ks1/1faN/+9ynybDxBxX7WoK680NeqVg0fKEXpVIQf1oD/XWcxAm1TT7oKDdd+nkDT
+	 oFgA8yj8cF3tg2ZpxWTrYf5wLW7UgFrwv9KII+mk/BVru3H2zxrOgqYjXI5azdIs8J
+	 gCVsL9e2nlB+XNP48llBfM696gEd7MwHVXs4DxUzemiSujny4dPwaDQivGKw7W9UpV
+	 vMLlRTagyQxbY+Ktl3B2rFD4ErrKefd+ErWrtt3AG5Xyi1up83klxDgXozXnKZyl91
+	 5/VUDpCR9kYlA==
+Date: Mon, 6 Jan 2025 18:12:54 -0800
+From: "Darrick J. Wong" <djwong@kernel.org>
 To: Su Yue <glass.su@suse.com>
 Cc: fstests@vger.kernel.org, ocfs2-devel@lists.linux.dev
-Subject: Re: [PATCH] common/quota: filter out option projquota in
- _qmount_option for ocfs2
-Message-ID: <20250107044702.7fb7edaa.ddiss@suse.de>
-In-Reply-To: <20250106140124.91928-1-glass.su@suse.com>
-References: <20250106140124.91928-1-glass.su@suse.com>
+Subject: Re: [PATCH] generic/620: add '-J block64' mkfs option for ocfs2
+Message-ID: <20250107021254.GP6160@frogsfrogsfrogs>
+References: <20250106140104.91880-1-glass.su@suse.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-X-Rspamd-Queue-Id: 741A01F44E
-X-Spam-Score: -3.51
-X-Rspamd-Action: no action
-X-Spamd-Result: default: False [-3.51 / 50.00];
-	BAYES_HAM(-3.00)[99.99%];
-	NEURAL_HAM_LONG(-1.00)[-1.000];
-	MID_CONTAINS_FROM(1.00)[];
-	R_DKIM_ALLOW(-0.20)[suse.de:s=susede2_rsa,suse.de:s=susede2_ed25519];
-	NEURAL_HAM_SHORT(-0.20)[-1.000];
-	MIME_GOOD(-0.10)[text/plain];
-	MX_GOOD(-0.01)[];
-	RCVD_VIA_SMTP_AUTH(0.00)[];
-	ARC_NA(0.00)[];
-	SPAMHAUS_XBL(0.00)[2a07:de40:b281:104:10:150:64:97:from];
-	RBL_SPAMHAUS_BLOCKED_OPENRESOLVER(0.00)[2a07:de40:b281:104:10:150:64:97:from];
-	TO_DN_SOME(0.00)[];
-	MIME_TRACE(0.00)[0:+];
-	MISSING_XM_UA(0.00)[];
-	FUZZY_BLOCKED(0.00)[rspamd.com];
-	RCVD_TLS_ALL(0.00)[];
-	RCPT_COUNT_THREE(0.00)[3];
-	FROM_EQ_ENVFROM(0.00)[];
-	FROM_HAS_DN(0.00)[];
-	RECEIVED_SPAMHAUS_BLOCKED_OPENRESOLVER(0.00)[2a07:de40:b281:106:10:150:64:167:received];
-	RCVD_COUNT_TWO(0.00)[2];
-	TO_MATCH_ENVRCPT_ALL(0.00)[];
-	DBL_BLOCKED_OPENRESOLVER(0.00)[imap1.dmz-prg2.suse.org:rdns,imap1.dmz-prg2.suse.org:helo,suse.de:dkim,suse.de:mid,suse.de:email];
-	DKIM_SIGNED(0.00)[suse.de:s=susede2_rsa,suse.de:s=susede2_ed25519];
-	DKIM_TRACE(0.00)[suse.de:+]
-X-Rspamd-Server: rspamd1.dmz-prg2.suse.org
-X-Spam-Flag: NO
-X-Spam-Level: 
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20250106140104.91880-1-glass.su@suse.com>
 
-On Mon,  6 Jan 2025 22:01:24 +0800, Su Yue wrote:
-
-> ocfs2 doesn't support projquota but does support usrquota an grpquota.
-> For now, two tests generic/594 and generic/603 are for testing
-> usrquota,grpquota and projquota. The mount option 'projquota' causes
-> failure of ocfs2 mount.
+On Mon, Jan 06, 2025 at 10:01:04PM +0800, Su Yue wrote:
+> mkfs.ocfs2 is using 32bit journal as default.
+> For 16T size device support, '-J block64' should be used.
 > 
-> To make things simple, just skip the tests for ocfs2.
-> However, we can't just put '_require_prjquota $SCRATCH_DEV' before
-> _qmount because f2fs and xfs need runtime after mount of SCRATCH_DEV.
+> Signed-off-by: Su Yue <glass.su@suse.com>
+> ---
+>  tests/generic/620 | 3 +++
+>  1 file changed, 3 insertions(+)
+> 
+> diff --git a/tests/generic/620 b/tests/generic/620
+> index 3f1ce45a55fd..60e5a2cacdda 100755
+> --- a/tests/generic/620
+> +++ b/tests/generic/620
+> @@ -41,6 +41,9 @@ sectors=$((2*1024*1024*1024*17))
+>  chunk_size=128
+>  
+>  _dmhugedisk_init $sectors $chunk_size
+> +
+> +[ "$FSTYP" = "ocfs2"  ] && MKFS_OPTIONS="$MKFS_OPTIONS -J block64"
 
-All _require_prjquota callers provide a $SCRATCH_DEV parameter, so
-changing the order and mkfsing / mounting to check support for f2fs and
-xfs should be an option. Still, this approach looks reasonable too:
+Won't mkfs.ocfs2 turn on block64 on a > 16T volume without prompting?
 
-Reviewed-by: David Disseldorp <ddiss@suse.de>
+--D
+
+> +
+>  _mkfs_dev $DMHUGEDISK_DEV
+>  _mount $DMHUGEDISK_DEV $SCRATCH_MNT || _fail "mount failed for $DMHUGEDISK_DEV $SCRATCH_MNT"
+>  testfile=$SCRATCH_MNT/testfile-$seq
+> -- 
+> 2.47.1
+> 
+> 
