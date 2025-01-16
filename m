@@ -1,192 +1,176 @@
-Received: from out30-97.freemail.mail.aliyun.com (out30-97.freemail.mail.aliyun.com [115.124.30.97])
+Received: from metis.whiteo.stw.pengutronix.de (metis.whiteo.stw.pengutronix.de [185.203.201.7])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 06D2D32C8E
-	for <ocfs2-devel@lists.linux.dev>; Thu, 16 Jan 2025 03:01:33 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.97
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 64E7D142E83
+	for <ocfs2-devel@lists.linux.dev>; Thu, 16 Jan 2025 07:54:40 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=185.203.201.7
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1736996497; cv=none; b=Cc+a9xk2dE6PiwzQJkS/vH671GIv6UJTrQ/efd6EVpgzfSCKO/VBV2VKTPmQq5BdS1xXK9xNHOaa9fJSa0gr319DknPs1gtetpB0njhNvX6etY6d8+LEyzUOU2PQQRfyyF1ZPmuaZ5drlt6qTvHbklQJ72sKBGKUQQUiYCcRTGk=
+	t=1737014082; cv=none; b=O5igLrTn/6rhsQPM+Oot2HTJj3yE/ziOV4U8/zdcnaF48rJqOUbx97WAI6wGxKTEDbOnrX018pzndvOWAJoJMwFF/OAfAIRoEZrcj7l/xoo7ZqvK29k4Zh8VH7/njMEiHRwIZYtQq4lZ8wHmaEOMIoaLSNi+XohowWG2PK8xl0o=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1736996497; c=relaxed/simple;
-	bh=CQBxsnnGAbS6cf9Sx20K+EKPjzS33oEcZ6r+A2f0FQ0=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=MpkPeJR8i9XBQfFEMXkvDM2A5BBnHU2W12EghuVhVgt50vaEPyxinH9r4jvlBo69ASJTVyb2F8UEqPzr1jnHNyF3IRRmjYjQin1IPXLuJqqevuaSidkyvl+VUm8PDf4oMUx+rHXEE1Dhp4e18W6+g1OaIfdy8IQqxT5j2ls5gC4=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=Tlw8eVNJ; arc=none smtp.client-ip=115.124.30.97
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="Tlw8eVNJ"
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1736996486; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=8tIui0c4oe379rCp3d9VGYe3E38u8fZ6MXw2bYJMzfM=;
-	b=Tlw8eVNJwFr4QOHxb1+hwkpqYOdmXzgQZGCQ5AcF9mJw9P9Y0bUyyMCEAzyJ0oE9GlWvgl7f44cAqeb+gr37kzpozpg+9GCIhPvZwTCsuxYhHncgkmMWk/55bl6E5TxShitU8cHt4cNJkEaWKI7HXrxkKzUTu1tkTQx8fwl4HNg=
-Received: from 30.221.128.237(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0WNkFeLz_1736996484 cluster:ay36)
-          by smtp.aliyun-inc.com;
-          Thu, 16 Jan 2025 11:01:24 +0800
-Message-ID: <a35d219d-3a70-4642-9f49-d3808449b2d7@linux.alibaba.com>
-Date: Thu, 16 Jan 2025 11:01:22 +0800
+	s=arc-20240116; t=1737014082; c=relaxed/simple;
+	bh=7M65RmMX3Ry4OaGybSFFVt26wFFfaatRGurZ9wLro+M=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=boHKtj8WxsXVCyfSybjgSyrt/hWzqfPXCpvIabfUlAFxcMbZaXomV8oNMcgi40GXvS5tHeOQ2zXbigTgswpNhU92OdnIVGamg51oOg8KtOQRAJDmb/ggmjnhf80lLG824sxAAZuDC+8/gmqlTTmrjpEuFyysDsUqIrY2kQDFJF0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=pengutronix.de; spf=pass smtp.mailfrom=pengutronix.de; arc=none smtp.client-ip=185.203.201.7
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=pengutronix.de
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=pengutronix.de
+Received: from drehscheibe.grey.stw.pengutronix.de ([2a0a:edc0:0:c01:1d::a2])
+	by metis.whiteo.stw.pengutronix.de with esmtps (TLS1.3:ECDHE_RSA_AES_256_GCM_SHA384:256)
+	(Exim 4.92)
+	(envelope-from <mkl@pengutronix.de>)
+	id 1tYKhY-00075C-P9; Thu, 16 Jan 2025 08:54:04 +0100
+Received: from moin.white.stw.pengutronix.de ([2a0a:edc0:0:b01:1d::7b] helo=bjornoya.blackshift.org)
+	by drehscheibe.grey.stw.pengutronix.de with esmtps  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+	(Exim 4.96)
+	(envelope-from <mkl@pengutronix.de>)
+	id 1tYKhT-000DS2-0M;
+	Thu, 16 Jan 2025 08:53:59 +0100
+Received: from pengutronix.de (pd9e59fec.dip0.t-ipconnect.de [217.229.159.236])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange ECDHE (prime256v1) server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(Client did not present a certificate)
+	(Authenticated sender: mkl-all@blackshift.org)
+	by smtp.blackshift.org (Postfix) with ESMTPSA id 165233A99BF;
+	Thu, 16 Jan 2025 07:53:43 +0000 (UTC)
+Date: Thu, 16 Jan 2025 08:53:42 +0100
+From: Marc Kleine-Budde <mkl@pengutronix.de>
+To: Kees Cook <kees@kernel.org>
+Cc: Jakub Kicinski <kuba@kernel.org>, 
+	Cheng Xu <chengyou@linux.alibaba.com>, Kai Shen <kaishen@linux.alibaba.com>, 
+	Jason Gunthorpe <jgg@ziepe.ca>, Leon Romanovsky <leon@kernel.org>, 
+	Christian Benvenuti <benve@cisco.com>, Nelson Escobar <neescoba@cisco.com>, 
+	Bernard Metzler <bmt@zurich.ibm.com>, Karsten Keil <isdn@linux-pingi.de>, 
+	Michal Ostrowski <mostrows@earthlink.net>, Andrew Lunn <andrew+netdev@lunn.ch>, 
+	"David S. Miller" <davem@davemloft.net>, Eric Dumazet <edumazet@google.com>, 
+	Paolo Abeni <pabeni@redhat.com>, Keith Busch <kbusch@kernel.org>, Jens Axboe <axboe@kernel.dk>, 
+	Christoph Hellwig <hch@lst.de>, Sagi Grimberg <sagi@grimberg.me>, 
+	Chaitanya Kulkarni <kch@nvidia.com>, Lee Duncan <lduncan@suse.com>, Chris Leech <cleech@redhat.com>, 
+	Mike Christie <michael.christie@oracle.com>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, 
+	"Martin K. Petersen" <martin.petersen@oracle.com>, Bjorn Andersson <andersson@kernel.org>, 
+	Konrad Dybcio <konradybcio@kernel.org>, Alexander Aring <aahringo@redhat.com>, 
+	David Teigland <teigland@redhat.com>, Trond Myklebust <trondmy@kernel.org>, 
+	Anna Schumaker <anna@kernel.org>, Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, 
+	Joseph Qi <joseph.qi@linux.alibaba.com>, Namjae Jeon <linkinjeon@kernel.org>, 
+	Steve French <sfrench@samba.org>, Sergey Senozhatsky <senozhatsky@chromium.org>, 
+	Tom Talpey <tom@talpey.com>, Simon Horman <horms@kernel.org>, 
+	Chuck Lever <chuck.lever@oracle.com>, Jeff Layton <jlayton@kernel.org>, Neil Brown <neilb@suse.de>, 
+	Olga Kornievskaia <okorniev@redhat.com>, Dai Ngo <Dai.Ngo@oracle.com>, David Ahern <dsahern@kernel.org>, 
+	Joerg Reuter <jreuter@yaina.de>, Marcel Holtmann <marcel@holtmann.org>, 
+	Johan Hedberg <johan.hedberg@gmail.com>, Luiz Augusto von Dentz <luiz.dentz@gmail.com>, 
+	Oliver Hartkopp <socketcan@hartkopp.net>, Robin van der Gracht <robin@protonic.nl>, 
+	Oleksij Rempel <o.rempel@pengutronix.de>, Alexandra Winter <wintera@linux.ibm.com>, 
+	Thorsten Winkler <twinkler@linux.ibm.com>, James Chapman <jchapman@katalix.com>, 
+	Krzysztof Kozlowski <krzk@kernel.org>, Willem de Bruijn <willemdebruijn.kernel@gmail.com>, 
+	Remi Denis-Courmont <courmisch@gmail.com>, Manivannan Sadhasivam <manivannan.sadhasivam@linaro.org>, 
+	Allison Henderson <allison.henderson@oracle.com>, Marcelo Ricardo Leitner <marcelo.leitner@gmail.com>, 
+	Xin Long <lucien.xin@gmail.com>, Wenjia Zhang <wenjia@linux.ibm.com>, 
+	Jan Karcher <jaka@linux.ibm.com>, "D. Wythe" <alibuda@linux.alibaba.com>, 
+	Tony Lu <tonylu@linux.alibaba.com>, Wen Gu <guwen@linux.alibaba.com>, Jon Maloy <jmaloy@redhat.com>, 
+	Ying Xue <ying.xue@windriver.com>, Stefano Garzarella <sgarzare@redhat.com>, 
+	Martin Schiller <ms@dev.tdt.de>, Kentaro Takeda <takedakn@nttdata.co.jp>, 
+	Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Paul Moore <paul@paul-moore.com>, 
+	James Morris <jmorris@namei.org>, "Serge E. Hallyn" <serge@hallyn.com>, 
+	Guillaume Nault <gnault@redhat.com>, 
+	Ahelenia =?utf-8?Q?Ziemia=C5=84ska?= <nabijaczleweli@nabijaczleweli.xyz>, Andrew Morton <akpm@linux-foundation.org>, 
+	Wu Yunchuan <yunchuan@nfschina.com>, Max Gurtovoy <mgurtovoy@nvidia.com>, 
+	Maurizio Lombardi <mlombard@redhat.com>, David Howells <dhowells@redhat.com>, 
+	Atte =?utf-8?B?SGVpa2tpbMOk?= <atteh.mailbox@gmail.com>, Vincent Duvert <vincent.ldev@duvert.net>, 
+	Denis Kirjanov <kirjanov@gmail.com>, Lukas Bulwahn <lukas.bulwahn@gmail.com>, 
+	Arnd Bergmann <arnd@arndb.de>, Thomas Huth <thuth@redhat.com>, 
+	Andrew Waterman <waterman@eecs.berkeley.edu>, Palmer Dabbelt <palmer@dabbelt.com>, 
+	Andrej Shadura <andrew.shadura@collabora.co.uk>, Ying Hsu <yinghsu@chromium.org>, 
+	Kuniyuki Iwashima <kuniyu@amazon.com>, Tom Parkin <tparkin@katalix.com>, 
+	Jason Xing <kernelxing@tencent.com>, Dan Carpenter <error27@gmail.com>, Hyunwoo Kim <v4bel@theori.io>, 
+	Bernard Pidoux <f6bvp@free.fr>, Sangsoo Lee <constant.lee@samsung.com>, 
+	Doug Brown <doug@schmorgal.com>, Ignat Korchagin <ignat@cloudflare.com>, 
+	Gou Hao <gouhao@uniontech.com>, Mina Almasry <almasrymina@google.com>, 
+	Abhishek Chauhan <quic_abchauha@quicinc.com>, Yajun Deng <yajun.deng@linux.dev>, Michal Luczaj <mhal@rbox.co>, 
+	Jiri Pirko <jiri@resnulli.us>, syzbot <syzkaller@googlegroups.com>, 
+	linux-kernel@vger.kernel.org, kernel@pengutronix.de, linux-rdma@vger.kernel.org, 
+	netdev@vger.kernel.org, linux-nvme@lists.infradead.org, open-iscsi@googlegroups.com, 
+	linux-scsi@vger.kernel.org, linux-arm-msm@vger.kernel.org, target-devel@vger.kernel.org, 
+	gfs2@lists.linux.dev, linux-nfs@vger.kernel.org, ocfs2-devel@lists.linux.dev, 
+	linux-cifs@vger.kernel.org, linux-hams@vger.kernel.org, linux-bluetooth@vger.kernel.org, 
+	linux-can@vger.kernel.org, linux-s390@vger.kernel.org, rds-devel@oss.oracle.com, 
+	linux-sctp@vger.kernel.org, tipc-discussion@lists.sourceforge.net, 
+	virtualization@lists.linux.dev, linux-x25@vger.kernel.org, linux-security-module@vger.kernel.org, 
+	syzbot+d7ce59b06b3eb14fd218@syzkaller.appspotmail.com, linux-hardening@vger.kernel.org
+Subject: Re: [PATCH] net: Convert proto_ops::getname to sockaddr_storage
+Message-ID: <20250116-light-panda-of-reverence-2f5da8-mkl@pengutronix.de>
+References: <20241217023417.work.145-kees@kernel.org>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH] ocfs2: check dir i_size in ocfs2_find_entry
-To: Heming Zhao <heming.zhao@suse.com>, Su Yue <glass.su@suse.com>,
- akpm <akpm@linux-foundation.org>
-Cc: Jiacheng Xu <stitch@zju.edu.cn>, ocfs2-devel@lists.linux.dev,
- syzbot+5a64828fcc4c2ad9b04f@syzkaller.appspotmail.com
-References: <20250106140640.92260-1-glass.su@suse.com>
- <b6fc362d-cf7f-4cd1-bc10-60748eed620b@suse.com>
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <b6fc362d-cf7f-4cd1-bc10-60748eed620b@suse.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Content-Type: multipart/signed; micalg=pgp-sha512;
+	protocol="application/pgp-signature"; boundary="nbdyd5ky7ajuduf3"
+Content-Disposition: inline
+In-Reply-To: <20241217023417.work.145-kees@kernel.org>
+X-SA-Exim-Connect-IP: 2a0a:edc0:0:c01:1d::a2
+X-SA-Exim-Mail-From: mkl@pengutronix.de
+X-SA-Exim-Scanned: No (on metis.whiteo.stw.pengutronix.de); SAEximRunCond expanded to false
+X-PTX-Original-Recipient: ocfs2-devel@lists.linux.dev
 
 
+--nbdyd5ky7ajuduf3
+Content-Type: text/plain; protected-headers=v1; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
+Subject: Re: [PATCH] net: Convert proto_ops::getname to sockaddr_storage
+MIME-Version: 1.0
 
-On 2025/1/9 19:50, Heming Zhao wrote:
-> On 1/6/25 22:06, Su Yue wrote:
->> syz reports an out of bounds read:
->>
->> ==================================================================
->> BUG: KASAN: slab-out-of-bounds in ocfs2_match fs/ocfs2/dir.c:334
->> [inline]
->> BUG: KASAN: slab-out-of-bounds in ocfs2_search_dirblock+0x283/0x6e0
->> fs/ocfs2/dir.c:367
->> Read of size 1 at addr ffff88804d8b9982 by task syz-executor.2/14802
->>
->> CPU: 0 UID: 0 PID: 14802 Comm: syz-executor.2 Not tainted 6.13.0-rc4 #2
->> Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.15.0-1
->> 04/01/2014
->> Sched_ext: serialise (enabled+all), task: runnable_at=-10ms
->> Call Trace:
->> <TASK>
->> __dump_stack lib/dump_stack.c:94 [inline]
->> dump_stack_lvl+0x229/0x350 lib/dump_stack.c:120
->> print_address_description mm/kasan/report.c:378 [inline]
->> print_report+0x164/0x530 mm/kasan/report.c:489
->> kasan_report+0x147/0x180 mm/kasan/report.c:602
->> ocfs2_match fs/ocfs2/dir.c:334 [inline]
->> ocfs2_search_dirblock+0x283/0x6e0 fs/ocfs2/dir.c:367
->> ocfs2_find_entry_id fs/ocfs2/dir.c:414 [inline]
->> ocfs2_find_entry+0x1143/0x2db0 fs/ocfs2/dir.c:1078
->> ocfs2_find_files_on_disk+0x18e/0x530 fs/ocfs2/dir.c:1981
->> ocfs2_lookup_ino_from_name+0xb6/0x110 fs/ocfs2/dir.c:2003
->> ocfs2_lookup+0x30a/0xd40 fs/ocfs2/namei.c:122
->> lookup_open fs/namei.c:3627 [inline]
->> open_last_lookups fs/namei.c:3748 [inline]
->> path_openat+0x145a/0x3870 fs/namei.c:3984
->> do_filp_open+0xe9/0x1c0 fs/namei.c:4014
->> do_sys_openat2+0x135/0x1d0 fs/open.c:1402
->> do_sys_open fs/open.c:1417 [inline]
->> __do_sys_openat fs/open.c:1433 [inline]
->> __se_sys_openat fs/open.c:1428 [inline]
->> __x64_sys_openat+0x15d/0x1c0 fs/open.c:1428
->> do_syscall_x64 arch/x86/entry/common.c:52 [inline]
->> do_syscall_64+0xf6/0x210 arch/x86/entry/common.c:83
->> entry_SYSCALL_64_after_hwframe+0x77/0x7f
->> RIP: 0033:0x7f01076903ad
->> Code: c3 e8 a7 2b 00 00 0f 1f 80 00 00 00 00 f3 0f 1e fa 48 89 f8 48 89
->> f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01
->> f0 ff ff 73 01 c3 48 c7 c1 b0 ff ff ff f7 d8 64 89 01 48
->> RSP: 002b:00007f01084acfc8 EFLAGS: 00000246 ORIG_RAX: 0000000000000101
->> RAX: ffffffffffffffda RBX: 00007f01077cbf80 RCX: 00007f01076903ad
->> RDX: 0000000000105042 RSI: 0000000020000080 RDI: ffffffffffffff9c
->> RBP: 00007f01077cbf80 R08: 0000000000000000 R09: 0000000000000000
->> R10: 00000000000001ff R11: 0000000000000246 R12: 0000000000000000
->> R13: 00007f01077cbf80 R14: 00007f010764fc90 R15: 00007f010848d000
->> </TASK>
->> ==================================================================
->>
->> And a general protection fault in ocfs2_prepare_dir_for_insert:
->>
->> ==================================================================
->> loop0: detected capacity change from 0 to 32768
->> JBD2: Ignoring recovery information on journal
->> ocfs2: Mounting device (7,0) on (node local, slot 0) with ordered data
->> mode.
->> Oops: general protection fault, probably for non-canonical address
->> 0xdffffc0000000001: 0000 [#1] PREEMPT SMP KASAN NOPTI
->> KASAN: null-ptr-deref in range [0x0000000000000008-0x000000000000000f]
->> CPU: 0 UID: 0 PID: 5096 Comm: syz-executor792 Not tainted
->> 6.11.0-rc4-syzkaller-00002-gb0da640826ba #0
->> Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS
->> 1.16.3-debian-1.16.3-2~bpo12+1 04/01/2014
->> RIP: 0010:ocfs2_find_dir_space_id fs/ocfs2/dir.c:3406 [inline]
->> RIP: 0010:ocfs2_prepare_dir_for_insert+0x3309/0x5c70 fs/ocfs2/dir.c:4280
->> Code: 00 00 e8 2a 25 13 fe e9 ba 06 00 00 e8 20 25 13 fe e9 4f 01 00 00
->> e8 16 25 13 fe 49 8d 7f 08 49 8d 5f 09 48 89 f8 48 c1 e8 03 <42> 0f b6
->> 04 20 84 c0 0f 85 bd 23 00 00 48 89 d8 48 c1 e8 03 42 0f
->> RSP: 0018:ffffc9000af9f020 EFLAGS: 00010202
->> RAX: 0000000000000001 RBX: 0000000000000009 RCX: ffff88801e27a440
->> RDX: 0000000000000000 RSI: 0000000000000400 RDI: 0000000000000008
->> RBP: ffffc9000af9f830 R08: ffffffff8380395b R09: ffffffff838090a7
->> R10: 0000000000000002 R11: ffff88801e27a440 R12: dffffc0000000000
->> R13: ffff88803c660878 R14: f700000000000088 R15: 0000000000000000
->> FS:  000055555a677380(0000) GS:ffff888020800000(0000)
->> knlGS:0000000000000000
->> CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
->> CR2: 0000560bce569178 CR3: 000000001de5a000 CR4: 0000000000350ef0
->> DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
->> DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
->> Call Trace:
->> <TASK>
->> ocfs2_mknod+0xcaf/0x2b40 fs/ocfs2/namei.c:292
->> vfs_mknod+0x36d/0x3b0 fs/namei.c:4088
->> do_mknodat+0x3ec/0x5b0
->> __do_sys_mknodat fs/namei.c:4166 [inline]
->> __se_sys_mknodat fs/namei.c:4163 [inline]
->> __x64_sys_mknodat+0xa7/0xc0 fs/namei.c:4163
->> do_syscall_x64 arch/x86/entry/common.c:52 [inline]
->> do_syscall_64+0xf3/0x230 arch/x86/entry/common.c:83
->> entry_SYSCALL_64_after_hwframe+0x77/0x7f
->> RIP: 0033:0x7f2dafda3a99
->> Code: 28 00 00 00 75 05 48 83 c4 28 c3 e8 f1 17 00 00 90 48 89
->> f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08
->> 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 b8 ff ff ff f7 d8
->> 64 89 01 48
->> RSP: 002b:00007ffe336a6658 EFLAGS: 00000246 ORIG_RAX:
->> 0000000000000103
->> RAX: ffffffffffffffda RBX: 0000000000000000 RCX:
->> 00007f2dafda3a99
->> RDX: 00000000000021c0 RSI: 0000000020000040 RDI:
->> 00000000ffffff9c
->> RBP: 00007f2dafe1b5f0 R08: 0000000000004480 R09:
->> 000055555a6784c0
->> R10: 0000000000000103 R11: 0000000000000246 R12:
->> 00007ffe336a6680
->> R13: 00007ffe336a68a8 R14: 431bde82d7b634db R15:
->> 00007f2dafdec03b
->> </TASK>
->> ==================================================================
->>
->> The two reports are all caused invalid negative i_size of dir inode.
->> For ocfs2, dir_inode can't be negative or zero.
->>
->> Here add a check in which is called by ocfs2_check_dir_for_entry().
->> It fixes the second report as ocfs2_check_dir_for_entry() must
->> be called before ocfs2_prepare_dir_for_insert().
->> Also set a up limit for dir with OCFS2_INLINE_DATA_FL. The i_size
->> can't be great than blocksize.
->>
->> Reported-by: Jiacheng Xu <stitch@zju.edu.cn>
->> Link: https://lore.kernel.org/ocfs2-devel/17a04f01.1ae74.19436d003fc.Coremail.stitch@zju.edu.cn/T/#u
->> Reported-by: syzbot+5a64828fcc4c2ad9b04f@syzkaller.appspotmail.com
->> Link: https://lore.kernel.org/all/0000000000005894f3062018caf1@google.com/T/
->> Fixes: 9b7895efac90 ("ocfs2: Add a name indexed b-tree to directory inodes")
->> Signed-off-by: Su Yue <glass.su@suse.com>
->> ---
->>   fs/ocfs2/dir.c | 25 +++++++++++++++++++++----
->>   1 file changed, 21 insertions(+), 4 deletions(-)
-> 
-> Reviewed-by: Heming Zhao <heming.zhao@suse.com>
-> 
-> ps: leave the 'Fixes:' tag to Joseph. For my side, I prefer to remove it.
-> 
+On 16.12.2024 18:34:28, Kees Cook wrote:
+> The proto_ops::getname callback was long ago backed by sockaddr_storage,
+> but the replacement of it for sockaddr was never done. Plumb it through
+> all the getname() callbacks, adjust prototypes, and fix casts.
+>=20
+> There are a few cases where the backing object is _not_ a sockaddr_storage
+> and converting it looks painful. In those cases, they use a cast to
+> struct sockaddr_storage. They appear well bounds-checked, so the risk
+> is no worse that we have currently.
+>=20
+> Other casts to sockaddr are removed, though to avoid spilling this
+> change into BPF (which becomes a much larger set of changes), cast the
+> sockaddr_storage instances there to sockaddr for the time being.
+>=20
+> In theory this could be split up into per-caller patches that add more
+> casts that all later get removed, but it seemed like there are few
+> enough callers that it seems feasible to do this in a single patch. Most
+> conversions are mechanical, so review should be fairly easy. (Famous
+> last words.)
+>=20
+> Signed-off-by: Kees Cook <kees@kernel.org>
+> ---
+>  net/can/isotp.c                               |  3 +-
+>  net/can/j1939/socket.c                        |  2 +-
+>  net/can/raw.c                                 |  2 +-
 
-Looks good to me.
-Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+Acked-by: Marc Kleine-Budde <mkl@pengutronix.de> # for net/can
 
+regards,
+Marc
+
+--=20
+Pengutronix e.K.                 | Marc Kleine-Budde          |
+Embedded Linux                   | https://www.pengutronix.de |
+Vertretung N=C3=BCrnberg              | Phone: +49-5121-206917-129 |
+Amtsgericht Hildesheim, HRA 2686 | Fax:   +49-5121-206917-9   |
+
+--nbdyd5ky7ajuduf3
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iQEzBAABCgAdFiEEUEC6huC2BN0pvD5fKDiiPnotvG8FAmeIuv8ACgkQKDiiPnot
+vG/tCQgAnoYMQthE5qhN4islXZibYx3HOEVpQp20V/CdVVRH56MNpoQvsjN0F5I9
+Pe8FiGuyUR9fNqhHJPDV5qTZfzq6vRSoc7PpwLTwF9ReyzpbKcMrYcmv/Wkbso1k
+faQaG0U/F/5wp2/nsK1h/PUHRvlwFfLs41wCCmlXQDks5vvt1U+8F/0mUiM/L0yT
+SQG9iudLNDMEv22xlkR1e90s94ARgRIKcBcOZ9LudgYLwGmT8I3JAenyHET3Q8d2
+GWVaepqliLBxoq7pfWcJm1yFL8DFp2xSUy/gP7BqrfKIJoJhRqOR2EXGSgAZ6rek
+c/YmUBVaGDu2ZBkxhzlB6NKXFu9dBA==
+=LAEY
+-----END PGP SIGNATURE-----
+
+--nbdyd5ky7ajuduf3--
