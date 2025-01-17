@@ -1,176 +1,183 @@
-Received: from metis.whiteo.stw.pengutronix.de (metis.whiteo.stw.pengutronix.de [185.203.201.7])
+Received: from out-183.mta0.migadu.com (out-183.mta0.migadu.com [91.218.175.183])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 64E7D142E83
-	for <ocfs2-devel@lists.linux.dev>; Thu, 16 Jan 2025 07:54:40 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=185.203.201.7
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id CECAC1FBE8C
+	for <ocfs2-devel@lists.linux.dev>; Fri, 17 Jan 2025 09:15:23 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=91.218.175.183
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1737014082; cv=none; b=O5igLrTn/6rhsQPM+Oot2HTJj3yE/ziOV4U8/zdcnaF48rJqOUbx97WAI6wGxKTEDbOnrX018pzndvOWAJoJMwFF/OAfAIRoEZrcj7l/xoo7ZqvK29k4Zh8VH7/njMEiHRwIZYtQq4lZ8wHmaEOMIoaLSNi+XohowWG2PK8xl0o=
+	t=1737105327; cv=none; b=IRUttpsVSLOW6emmIaX6MehENrtyL4Vz3BkFHkm7fZJiHDk9p0gfRLY/uC5erVZnhEBFiwW/P5pLMRByvP2O9jyCoBXp1f7r1HJGSIUApM2UovsQzjQd6BQViXrd2Zhd3B1xhSDs71Z5QSU31SwCenferntcQQonC753cedykVU=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1737014082; c=relaxed/simple;
-	bh=7M65RmMX3Ry4OaGybSFFVt26wFFfaatRGurZ9wLro+M=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=boHKtj8WxsXVCyfSybjgSyrt/hWzqfPXCpvIabfUlAFxcMbZaXomV8oNMcgi40GXvS5tHeOQ2zXbigTgswpNhU92OdnIVGamg51oOg8KtOQRAJDmb/ggmjnhf80lLG824sxAAZuDC+8/gmqlTTmrjpEuFyysDsUqIrY2kQDFJF0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=pengutronix.de; spf=pass smtp.mailfrom=pengutronix.de; arc=none smtp.client-ip=185.203.201.7
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=pengutronix.de
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=pengutronix.de
-Received: from drehscheibe.grey.stw.pengutronix.de ([2a0a:edc0:0:c01:1d::a2])
-	by metis.whiteo.stw.pengutronix.de with esmtps (TLS1.3:ECDHE_RSA_AES_256_GCM_SHA384:256)
-	(Exim 4.92)
-	(envelope-from <mkl@pengutronix.de>)
-	id 1tYKhY-00075C-P9; Thu, 16 Jan 2025 08:54:04 +0100
-Received: from moin.white.stw.pengutronix.de ([2a0a:edc0:0:b01:1d::7b] helo=bjornoya.blackshift.org)
-	by drehscheibe.grey.stw.pengutronix.de with esmtps  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
-	(Exim 4.96)
-	(envelope-from <mkl@pengutronix.de>)
-	id 1tYKhT-000DS2-0M;
-	Thu, 16 Jan 2025 08:53:59 +0100
-Received: from pengutronix.de (pd9e59fec.dip0.t-ipconnect.de [217.229.159.236])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange ECDHE (prime256v1) server-signature RSA-PSS (4096 bits) server-digest SHA256)
-	(Client did not present a certificate)
-	(Authenticated sender: mkl-all@blackshift.org)
-	by smtp.blackshift.org (Postfix) with ESMTPSA id 165233A99BF;
-	Thu, 16 Jan 2025 07:53:43 +0000 (UTC)
-Date: Thu, 16 Jan 2025 08:53:42 +0100
-From: Marc Kleine-Budde <mkl@pengutronix.de>
-To: Kees Cook <kees@kernel.org>
-Cc: Jakub Kicinski <kuba@kernel.org>, 
-	Cheng Xu <chengyou@linux.alibaba.com>, Kai Shen <kaishen@linux.alibaba.com>, 
-	Jason Gunthorpe <jgg@ziepe.ca>, Leon Romanovsky <leon@kernel.org>, 
-	Christian Benvenuti <benve@cisco.com>, Nelson Escobar <neescoba@cisco.com>, 
-	Bernard Metzler <bmt@zurich.ibm.com>, Karsten Keil <isdn@linux-pingi.de>, 
-	Michal Ostrowski <mostrows@earthlink.net>, Andrew Lunn <andrew+netdev@lunn.ch>, 
-	"David S. Miller" <davem@davemloft.net>, Eric Dumazet <edumazet@google.com>, 
-	Paolo Abeni <pabeni@redhat.com>, Keith Busch <kbusch@kernel.org>, Jens Axboe <axboe@kernel.dk>, 
-	Christoph Hellwig <hch@lst.de>, Sagi Grimberg <sagi@grimberg.me>, 
-	Chaitanya Kulkarni <kch@nvidia.com>, Lee Duncan <lduncan@suse.com>, Chris Leech <cleech@redhat.com>, 
-	Mike Christie <michael.christie@oracle.com>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, 
-	"Martin K. Petersen" <martin.petersen@oracle.com>, Bjorn Andersson <andersson@kernel.org>, 
-	Konrad Dybcio <konradybcio@kernel.org>, Alexander Aring <aahringo@redhat.com>, 
-	David Teigland <teigland@redhat.com>, Trond Myklebust <trondmy@kernel.org>, 
-	Anna Schumaker <anna@kernel.org>, Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, 
-	Joseph Qi <joseph.qi@linux.alibaba.com>, Namjae Jeon <linkinjeon@kernel.org>, 
-	Steve French <sfrench@samba.org>, Sergey Senozhatsky <senozhatsky@chromium.org>, 
-	Tom Talpey <tom@talpey.com>, Simon Horman <horms@kernel.org>, 
-	Chuck Lever <chuck.lever@oracle.com>, Jeff Layton <jlayton@kernel.org>, Neil Brown <neilb@suse.de>, 
-	Olga Kornievskaia <okorniev@redhat.com>, Dai Ngo <Dai.Ngo@oracle.com>, David Ahern <dsahern@kernel.org>, 
-	Joerg Reuter <jreuter@yaina.de>, Marcel Holtmann <marcel@holtmann.org>, 
-	Johan Hedberg <johan.hedberg@gmail.com>, Luiz Augusto von Dentz <luiz.dentz@gmail.com>, 
-	Oliver Hartkopp <socketcan@hartkopp.net>, Robin van der Gracht <robin@protonic.nl>, 
-	Oleksij Rempel <o.rempel@pengutronix.de>, Alexandra Winter <wintera@linux.ibm.com>, 
-	Thorsten Winkler <twinkler@linux.ibm.com>, James Chapman <jchapman@katalix.com>, 
-	Krzysztof Kozlowski <krzk@kernel.org>, Willem de Bruijn <willemdebruijn.kernel@gmail.com>, 
-	Remi Denis-Courmont <courmisch@gmail.com>, Manivannan Sadhasivam <manivannan.sadhasivam@linaro.org>, 
-	Allison Henderson <allison.henderson@oracle.com>, Marcelo Ricardo Leitner <marcelo.leitner@gmail.com>, 
-	Xin Long <lucien.xin@gmail.com>, Wenjia Zhang <wenjia@linux.ibm.com>, 
-	Jan Karcher <jaka@linux.ibm.com>, "D. Wythe" <alibuda@linux.alibaba.com>, 
-	Tony Lu <tonylu@linux.alibaba.com>, Wen Gu <guwen@linux.alibaba.com>, Jon Maloy <jmaloy@redhat.com>, 
-	Ying Xue <ying.xue@windriver.com>, Stefano Garzarella <sgarzare@redhat.com>, 
-	Martin Schiller <ms@dev.tdt.de>, Kentaro Takeda <takedakn@nttdata.co.jp>, 
-	Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Paul Moore <paul@paul-moore.com>, 
-	James Morris <jmorris@namei.org>, "Serge E. Hallyn" <serge@hallyn.com>, 
-	Guillaume Nault <gnault@redhat.com>, 
-	Ahelenia =?utf-8?Q?Ziemia=C5=84ska?= <nabijaczleweli@nabijaczleweli.xyz>, Andrew Morton <akpm@linux-foundation.org>, 
-	Wu Yunchuan <yunchuan@nfschina.com>, Max Gurtovoy <mgurtovoy@nvidia.com>, 
-	Maurizio Lombardi <mlombard@redhat.com>, David Howells <dhowells@redhat.com>, 
-	Atte =?utf-8?B?SGVpa2tpbMOk?= <atteh.mailbox@gmail.com>, Vincent Duvert <vincent.ldev@duvert.net>, 
-	Denis Kirjanov <kirjanov@gmail.com>, Lukas Bulwahn <lukas.bulwahn@gmail.com>, 
-	Arnd Bergmann <arnd@arndb.de>, Thomas Huth <thuth@redhat.com>, 
-	Andrew Waterman <waterman@eecs.berkeley.edu>, Palmer Dabbelt <palmer@dabbelt.com>, 
-	Andrej Shadura <andrew.shadura@collabora.co.uk>, Ying Hsu <yinghsu@chromium.org>, 
-	Kuniyuki Iwashima <kuniyu@amazon.com>, Tom Parkin <tparkin@katalix.com>, 
-	Jason Xing <kernelxing@tencent.com>, Dan Carpenter <error27@gmail.com>, Hyunwoo Kim <v4bel@theori.io>, 
-	Bernard Pidoux <f6bvp@free.fr>, Sangsoo Lee <constant.lee@samsung.com>, 
-	Doug Brown <doug@schmorgal.com>, Ignat Korchagin <ignat@cloudflare.com>, 
-	Gou Hao <gouhao@uniontech.com>, Mina Almasry <almasrymina@google.com>, 
-	Abhishek Chauhan <quic_abchauha@quicinc.com>, Yajun Deng <yajun.deng@linux.dev>, Michal Luczaj <mhal@rbox.co>, 
-	Jiri Pirko <jiri@resnulli.us>, syzbot <syzkaller@googlegroups.com>, 
-	linux-kernel@vger.kernel.org, kernel@pengutronix.de, linux-rdma@vger.kernel.org, 
-	netdev@vger.kernel.org, linux-nvme@lists.infradead.org, open-iscsi@googlegroups.com, 
-	linux-scsi@vger.kernel.org, linux-arm-msm@vger.kernel.org, target-devel@vger.kernel.org, 
-	gfs2@lists.linux.dev, linux-nfs@vger.kernel.org, ocfs2-devel@lists.linux.dev, 
-	linux-cifs@vger.kernel.org, linux-hams@vger.kernel.org, linux-bluetooth@vger.kernel.org, 
-	linux-can@vger.kernel.org, linux-s390@vger.kernel.org, rds-devel@oss.oracle.com, 
-	linux-sctp@vger.kernel.org, tipc-discussion@lists.sourceforge.net, 
-	virtualization@lists.linux.dev, linux-x25@vger.kernel.org, linux-security-module@vger.kernel.org, 
-	syzbot+d7ce59b06b3eb14fd218@syzkaller.appspotmail.com, linux-hardening@vger.kernel.org
-Subject: Re: [PATCH] net: Convert proto_ops::getname to sockaddr_storage
-Message-ID: <20250116-light-panda-of-reverence-2f5da8-mkl@pengutronix.de>
-References: <20241217023417.work.145-kees@kernel.org>
+	s=arc-20240116; t=1737105327; c=relaxed/simple;
+	bh=UL1kpnlJRe2FgSJIxN1ALQxE11N5PZHZiLtw1uBLpvk=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=Gv2t7DMVqODvaAjoLYgRXqCyiw74QQAITdyKSVfRdfkD98SzN6Rusimm4RH+sVDOafZVDzmU95JYZzCTzqw8zqXllb3KKjbttCsiBcsBKI+bsGLWPN536idv+k9I8gMep0o2vSNJhA0eGXRhU78aPk1GRxOssR80QwD/DOF+rLw=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev; spf=pass smtp.mailfrom=linux.dev; dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b=JuERleFQ; arc=none smtp.client-ip=91.218.175.183
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.dev
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b="JuERleFQ"
+X-Report-Abuse: Please report any abuse attempt to abuse@migadu.com and include these headers.
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.dev; s=key1;
+	t=1737105307;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:
+	 content-transfer-encoding:content-transfer-encoding;
+	bh=j4joo8wSmYF825mfUffHK2AkzP0a4DjGhE5PHP7VknU=;
+	b=JuERleFQSlylWcBNegVaBkhmfJs4rS+uUuKrFJORNwYjQoGLbordnjCX/aIPZVvKoaG+nq
+	SldUgYNnnfly5SJDy+VH7sxKWrm4nJTopAizITRn3/1hxr6FUmA0+RbI/z/I2h0kFTAV5I
+	fVGwfntci6qj6V6DJipk5t5eaz7b3Jc=
+From: Thorsten Blum <thorsten.blum@linux.dev>
+To: Mark Fasheh <mark@fasheh.com>,
+	Joel Becker <jlbec@evilplan.org>,
+	Joseph Qi <joseph.qi@linux.alibaba.com>,
+	"Dr. David Alan Gilbert" <linux@treblig.org>,
+	Andrew Morton <akpm@linux-foundation.org>
+Cc: Thorsten Blum <thorsten.blum@linux.dev>,
+	ocfs2-devel@lists.linux.dev,
+	linux-kernel@vger.kernel.org
+Subject: [PATCH] ocfs2: Use str_yes_no() and str_no_yes() helper functions
+Date: Fri, 17 Jan 2025 10:13:29 +0100
+Message-ID: <20250117091335.1189-2-thorsten.blum@linux.dev>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha512;
-	protocol="application/pgp-signature"; boundary="nbdyd5ky7ajuduf3"
-Content-Disposition: inline
-In-Reply-To: <20241217023417.work.145-kees@kernel.org>
-X-SA-Exim-Connect-IP: 2a0a:edc0:0:c01:1d::a2
-X-SA-Exim-Mail-From: mkl@pengutronix.de
-X-SA-Exim-Scanned: No (on metis.whiteo.stw.pengutronix.de); SAEximRunCond expanded to false
-X-PTX-Original-Recipient: ocfs2-devel@lists.linux.dev
+Content-Transfer-Encoding: 8bit
+X-Migadu-Flow: FLOW_OUT
 
+Remove hard-coded strings by using the str_yes_no() and str_no_yes()
+helper functions.
 
---nbdyd5ky7ajuduf3
-Content-Type: text/plain; protected-headers=v1; charset=utf-8
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
-Subject: Re: [PATCH] net: Convert proto_ops::getname to sockaddr_storage
-MIME-Version: 1.0
+Signed-off-by: Thorsten Blum <thorsten.blum@linux.dev>
+---
+ fs/ocfs2/dlm/dlmdebug.c    |  9 +++++----
+ fs/ocfs2/dlm/dlmmaster.c   | 12 ++++++------
+ fs/ocfs2/dlm/dlmrecovery.c |  7 +++----
+ fs/ocfs2/dlmglue.c         |  3 ++-
+ 4 files changed, 16 insertions(+), 15 deletions(-)
 
-On 16.12.2024 18:34:28, Kees Cook wrote:
-> The proto_ops::getname callback was long ago backed by sockaddr_storage,
-> but the replacement of it for sockaddr was never done. Plumb it through
-> all the getname() callbacks, adjust prototypes, and fix casts.
->=20
-> There are a few cases where the backing object is _not_ a sockaddr_storage
-> and converting it looks painful. In those cases, they use a cast to
-> struct sockaddr_storage. They appear well bounds-checked, so the risk
-> is no worse that we have currently.
->=20
-> Other casts to sockaddr are removed, though to avoid spilling this
-> change into BPF (which becomes a much larger set of changes), cast the
-> sockaddr_storage instances there to sockaddr for the time being.
->=20
-> In theory this could be split up into per-caller patches that add more
-> casts that all later get removed, but it seemed like there are few
-> enough callers that it seems feasible to do this in a single patch. Most
-> conversions are mechanical, so review should be fairly easy. (Famous
-> last words.)
->=20
-> Signed-off-by: Kees Cook <kees@kernel.org>
-> ---
->  net/can/isotp.c                               |  3 +-
->  net/can/j1939/socket.c                        |  2 +-
->  net/can/raw.c                                 |  2 +-
+diff --git a/fs/ocfs2/dlm/dlmdebug.c b/fs/ocfs2/dlm/dlmdebug.c
+index e9ef4e2b0e75..fe4fdd09bae3 100644
+--- a/fs/ocfs2/dlm/dlmdebug.c
++++ b/fs/ocfs2/dlm/dlmdebug.c
+@@ -14,6 +14,7 @@
+ #include <linux/spinlock.h>
+ #include <linux/debugfs.h>
+ #include <linux/export.h>
++#include <linux/string_choices.h>
+ 
+ #include "../cluster/heartbeat.h"
+ #include "../cluster/nodemanager.h"
+@@ -90,12 +91,12 @@ void __dlm_print_one_lock_resource(struct dlm_lock_resource *res)
+ 	       buf, res->owner, res->state);
+ 	printk("  last used: %lu, refcnt: %u, on purge list: %s\n",
+ 	       res->last_used, kref_read(&res->refs),
+-	       list_empty(&res->purge) ? "no" : "yes");
++	       str_no_yes(list_empty(&res->purge)));
+ 	printk("  on dirty list: %s, on reco list: %s, "
+ 	       "migrating pending: %s\n",
+-	       list_empty(&res->dirty) ? "no" : "yes",
+-	       list_empty(&res->recovering) ? "no" : "yes",
+-	       res->migration_pending ? "yes" : "no");
++	       str_no_yes(list_empty(&res->dirty)),
++	       str_no_yes(list_empty(&res->recovering)),
++	       str_yes_no(res->migration_pending));
+ 	printk("  inflight locks: %d, asts reserved: %d\n",
+ 	       res->inflight_locks, atomic_read(&res->asts_reserved));
+ 	dlm_print_lockres_refmap(res);
+diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
+index d610da8e2f24..86bb1a03bcc1 100644
+--- a/fs/ocfs2/dlm/dlmmaster.c
++++ b/fs/ocfs2/dlm/dlmmaster.c
+@@ -21,7 +21,7 @@
+ #include <linux/inet.h>
+ #include <linux/spinlock.h>
+ #include <linux/delay.h>
+-
++#include <linux/string_choices.h>
+ 
+ #include "../cluster/heartbeat.h"
+ #include "../cluster/nodemanager.h"
+@@ -2859,7 +2859,7 @@ static int dlm_mark_lockres_migrating(struct dlm_ctxt *dlm,
+ 	dlm_lockres_release_ast(dlm, res);
+ 
+ 	mlog(0, "about to wait on migration_wq, dirty=%s\n",
+-	       res->state & DLM_LOCK_RES_DIRTY ? "yes" : "no");
++	       str_yes_no(res->state & DLM_LOCK_RES_DIRTY));
+ 	/* if the extra ref we just put was the final one, this
+ 	 * will pass thru immediately.  otherwise, we need to wait
+ 	 * for the last ast to finish. */
+@@ -2869,12 +2869,12 @@ static int dlm_mark_lockres_migrating(struct dlm_ctxt *dlm,
+ 		   msecs_to_jiffies(1000));
+ 	if (ret < 0) {
+ 		mlog(0, "woken again: migrating? %s, dead? %s\n",
+-		       res->state & DLM_LOCK_RES_MIGRATING ? "yes":"no",
+-		       test_bit(target, dlm->domain_map) ? "no":"yes");
++		       str_yes_no(res->state & DLM_LOCK_RES_MIGRATING),
++		       str_no_yes(test_bit(target, dlm->domain_map)));
+ 	} else {
+ 		mlog(0, "all is well: migrating? %s, dead? %s\n",
+-		       res->state & DLM_LOCK_RES_MIGRATING ? "yes":"no",
+-		       test_bit(target, dlm->domain_map) ? "no":"yes");
++		       str_yes_no(res->state & DLM_LOCK_RES_MIGRATING),
++		       str_no_yes(test_bit(target, dlm->domain_map)));
+ 	}
+ 	if (!dlm_migration_can_proceed(dlm, res, target)) {
+ 		mlog(0, "trying again...\n");
+diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
+index 50da8af988c1..380f9b777ad5 100644
+--- a/fs/ocfs2/dlm/dlmrecovery.c
++++ b/fs/ocfs2/dlm/dlmrecovery.c
+@@ -22,7 +22,7 @@
+ #include <linux/timer.h>
+ #include <linux/kthread.h>
+ #include <linux/delay.h>
+-
++#include <linux/string_choices.h>
+ 
+ #include "../cluster/heartbeat.h"
+ #include "../cluster/nodemanager.h"
+@@ -581,8 +581,7 @@ static int dlm_remaster_locks(struct dlm_ctxt *dlm, u8 dead_node)
+ 							   msecs_to_jiffies(1000));
+ 					mlog(0, "waited 1 sec for %u, "
+ 					     "dead? %s\n", ndata->node_num,
+-					     dlm_is_node_dead(dlm, ndata->node_num) ?
+-					     "yes" : "no");
++					     str_yes_no(dlm_is_node_dead(dlm, ndata->node_num)));
+ 				} else {
+ 					/* -ENOMEM on the other node */
+ 					mlog(0, "%s: node %u returned "
+@@ -677,7 +676,7 @@ static int dlm_remaster_locks(struct dlm_ctxt *dlm, u8 dead_node)
+ 		spin_unlock(&dlm_reco_state_lock);
+ 
+ 		mlog(0, "pass #%d, all_nodes_done?: %s\n", ++pass,
+-		     all_nodes_done?"yes":"no");
++		     str_yes_no(all_nodes_done));
+ 		if (all_nodes_done) {
+ 			int ret;
+ 
+diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
+index 764ecbd5ad41..30e4fedb3f02 100644
+--- a/fs/ocfs2/dlmglue.c
++++ b/fs/ocfs2/dlmglue.c
+@@ -19,6 +19,7 @@
+ #include <linux/delay.h>
+ #include <linux/quotaops.h>
+ #include <linux/sched/signal.h>
++#include <linux/string_choices.h>
+ 
+ #define MLOG_MASK_PREFIX ML_DLM_GLUE
+ #include <cluster/masklog.h>
+@@ -4339,7 +4340,7 @@ static void ocfs2_process_blocked_lock(struct ocfs2_super *osb,
+ 		ocfs2_schedule_blocked_lock(osb, lockres);
+ 
+ 	mlog(ML_BASTS, "lockres %s, requeue = %s.\n", lockres->l_name,
+-	     ctl.requeue ? "yes" : "no");
++	     str_yes_no(ctl.requeue));
+ 	spin_unlock_irqrestore(&lockres->l_lock, flags);
+ 
+ 	if (ctl.unblock_action != UNBLOCK_CONTINUE
+-- 
+2.48.0
 
-Acked-by: Marc Kleine-Budde <mkl@pengutronix.de> # for net/can
-
-regards,
-Marc
-
---=20
-Pengutronix e.K.                 | Marc Kleine-Budde          |
-Embedded Linux                   | https://www.pengutronix.de |
-Vertretung N=C3=BCrnberg              | Phone: +49-5121-206917-129 |
-Amtsgericht Hildesheim, HRA 2686 | Fax:   +49-5121-206917-9   |
-
---nbdyd5ky7ajuduf3
-Content-Type: application/pgp-signature; name="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-
-iQEzBAABCgAdFiEEUEC6huC2BN0pvD5fKDiiPnotvG8FAmeIuv8ACgkQKDiiPnot
-vG/tCQgAnoYMQthE5qhN4islXZibYx3HOEVpQp20V/CdVVRH56MNpoQvsjN0F5I9
-Pe8FiGuyUR9fNqhHJPDV5qTZfzq6vRSoc7PpwLTwF9ReyzpbKcMrYcmv/Wkbso1k
-faQaG0U/F/5wp2/nsK1h/PUHRvlwFfLs41wCCmlXQDks5vvt1U+8F/0mUiM/L0yT
-SQG9iudLNDMEv22xlkR1e90s94ARgRIKcBcOZ9LudgYLwGmT8I3JAenyHET3Q8d2
-GWVaepqliLBxoq7pfWcJm1yFL8DFp2xSUy/gP7BqrfKIJoJhRqOR2EXGSgAZ6rek
-c/YmUBVaGDu2ZBkxhzlB6NKXFu9dBA==
-=LAEY
------END PGP SIGNATURE-----
-
---nbdyd5ky7ajuduf3--
