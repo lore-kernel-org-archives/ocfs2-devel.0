@@ -1,166 +1,204 @@
-Received: from mail-il1-f206.google.com (mail-il1-f206.google.com [209.85.166.206])
+Received: from mail-il1-f205.google.com (mail-il1-f205.google.com [209.85.166.205])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E23291EEE9
-	for <ocfs2-devel@lists.linux.dev>; Sun,  2 Feb 2025 05:08:26 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.166.206
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 323472F3B
+	for <ocfs2-devel@lists.linux.dev>; Sun,  2 Feb 2025 09:01:24 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.166.205
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1738472908; cv=none; b=uVAOUp1i8NO8QrwY2/zlPaJl11TcoNJByeRl8OIJ5WU8vsCM/7jDPAqDZRKDZybZDfRBB9yic8cThsli7abF87O/+MRe/dcgBt5S3IoKC4fcnTLC5NOrPCnooGnVBPv/kra+cN+Fv4feHmOyVUS7S4w79y3DIzDMciitAoV9/ZM=
+	t=1738486886; cv=none; b=U8my+TY67SaPi4zupnrXYyfrTqiokFXPbLTvZWcWYeJU2ectEAkmK6ClLV35qnA2IsKvRNF7h3qRmKYiy38kjj9SFKhcCLX8+vOMrFNcJYH6TWeOKGf9PXpp6Hvvq+niYHkordRcYenwtuPoJLGGCjMw0XHejDl0r1LOhGZ5LcA=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1738472908; c=relaxed/simple;
-	bh=10+q2USENm0O2mnYgP2SdcSi2OiECTJOXx5J1Of340k=;
-	h=MIME-Version:Date:In-Reply-To:Message-ID:Subject:From:To:
-	 Content-Type; b=ned8hA7XjqXfRolmuSfDXkT9SqtLDHXfTK19ts7S4fLtXj3bnfM+yVLsNBDY98IuPc6l1JUSVEcR1khylTOxFskqlreijSMclyr/3p+WrKRjFL9tYl0cX+SHHNaSXlY79jtWBfjjA+cbdHSSDObbSXOK51Cm0NwUf5h+rrQPGAs=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.166.206
+	s=arc-20240116; t=1738486886; c=relaxed/simple;
+	bh=9iGKCcRBaEhUImdQIY9K0fjLjHWMCRaAT/OSx18ySQw=;
+	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=GAOK5yVXUjzZDfRImzFC9mgM5CQEje+4BdMZ4sWuLcQNoJBNjeP7GgaHqqhkZrDwYa4P1v60DB3lXSZrquULyG48TFVzNKowfinyJEGiL+0qfvv3/reDaOc8RQlev5i9qB4NX325Q4uumv3WqzChbA9P3HBzaIqY+cSlKuGWnVg=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.166.205
 Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
-Received: by mail-il1-f206.google.com with SMTP id e9e14a558f8ab-3a814bfb77bso28962485ab.0
-        for <ocfs2-devel@lists.linux.dev>; Sat, 01 Feb 2025 21:08:26 -0800 (PST)
+Received: by mail-il1-f205.google.com with SMTP id e9e14a558f8ab-3cfb20d74b5so22568085ab.3
+        for <ocfs2-devel@lists.linux.dev>; Sun, 02 Feb 2025 01:01:24 -0800 (PST)
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1738472906; x=1739077706;
-        h=to:from:subject:message-id:in-reply-to:date:mime-version
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
-        bh=+TH0j3bkIsLW/Wptm4tihJHXBlgsdnRdS0VgXtEGtuo=;
-        b=JHdId2HgzbsRhPeZRfHQK07psa/CcUGDkYuPYohjriYfMEmAv8ojjFY3/niQjV3OiG
-         P9Icd4leh0FEZ3KhdXp1HQLpaiM7x6kA2VcgHkp0XJ49YvQg2RBgvKSqhx3lZmC8fwBo
-         /vu3ISb3vEEX4yS7wtkl4Wi+mlSph2eEnG/6KM4Ucixv0NpQu/8UppVo+gzhQhYduZfj
-         zrqFj70koTZ0KjOGe+TBzDA5dbxhs9sffZFdHSsjc6ALG8BWPkTDwgrCA6EJhMN501DU
-         PFW7cSHInJLbK7DLsn6PoodtaLDvajcaXUKpYE5gDU0NDg0daw2/fpNA2/8pOenZmSmC
-         izYA==
-X-Forwarded-Encrypted: i=1; AJvYcCV7x62DoUNXBmw/Gd89gwhBUSu21fctIWHPlStTdy+ZqMbRE6+eeCGGlpVG3e5uB4p843oQhbRLcCtTuQ==@lists.linux.dev
-X-Gm-Message-State: AOJu0Yy+YxIrnXqRf4/zfKUmGK1XdbROPtDrNYH4Ahi56paUS1wB5DCJ
-	q7lofSLtRFO4xKWqT1MvTQlQMPBwvUcduUmfs5VNyYg4mI14K0SgKRnXXtFKyGidC4PJe7d40Q2
-	f1Qu56h/9yTB2/XEO7B1s+dkKgqckCmAdwKuGr7sIt24Ozl3Ylvu3eyk=
-X-Google-Smtp-Source: AGHT+IEMYBz6TSyoOWTIwaSW7uaHekBklp08pW3Q/DLxKLw8eGY7j+kBFZVE03whp/yUI+O0vPDIfbBUNBTA1stXdLno3Wftey6Q
+        d=1e100.net; s=20230601; t=1738486884; x=1739091684;
+        h=to:from:subject:message-id:date:mime-version:x-gm-message-state
+         :from:to:cc:subject:date:message-id:reply-to;
+        bh=V57rJ3ELYBRW5+QuiDo9Cfsx+p4tjsLmtCQ2LZVd8lw=;
+        b=fABfX2F2rgmpyPvdO6UGRzYj7pb9gPCyEegLEswvESeI9kJMRmh4UgQVD60AUazvOS
+         scauO/uLighXbnQ/ECeAZnpvbDYFBjqtbc25f3BP2PftRs18Lrxv4fpq+Xl2RA2KWC9u
+         JWMReiTh6KkSDW5Rvi226lqw+X1vwLHM5kHIDpUylaw0Sah4buILNV/+PHtWFLHBPMGJ
+         e8ueq15X8j4ig1iW/eaftkw/2DLS9PLF6MJ0eQFIL4loGqfyW6X5LYLjg/0/zwwaywM+
+         Ec5DVH37KlVTPJAsP5gtrPkYx1j643k/Rz1YanPnNg12d0xMDeJDnJJS1SAsW24Rh9GC
+         I9CA==
+X-Forwarded-Encrypted: i=1; AJvYcCUrL50u5AViLt8uD+fi9bEXCKVtqIUcKH9ozNWV2fYVuyo5pA3RCNGB+n/H8Miw4OGXS7ryM5/zy2i9EA==@lists.linux.dev
+X-Gm-Message-State: AOJu0YwBrTNK6WcdbuNxS/VpkZwdPV8Me7wSU1JOZc7YkS3DvB+Z0HUc
+	U4j7wIMLCfphwjKdHn4rivs3EtajrsEDPeOAqEm4FMjm2WxvYpuN1c8ZzKUIwZ8RMrgTAW2eZQU
+	Ai6XsUxQqiQ7jyuNDTVLLjbyyr2bNHr5pytQVlM0tNdksOvxcRUrMv5c=
+X-Google-Smtp-Source: AGHT+IGvwTTHiVO2StBHXLQBe5FpZoqsxclhJQlr/hq9CdU4cPRKT1xx/PgN2JrXLU+KIa4saOjuHVkr6lkskkN4JX4EmpzTsXWS
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-X-Received: by 2002:a05:6e02:1688:b0:3a9:cde3:2ecc with SMTP id
- e9e14a558f8ab-3d012ab22a3mr90353865ab.6.1738472905964; Sat, 01 Feb 2025
- 21:08:25 -0800 (PST)
-Date: Sat, 01 Feb 2025 21:08:25 -0800
-In-Reply-To: <679d38b6.050a0220.d7c5a.0053.GAE@google.com>
+X-Received: by 2002:a05:6e02:2149:b0:3cf:cbac:3ba6 with SMTP id
+ e9e14a558f8ab-3cffe37cef5mr165348165ab.5.1738486884265; Sun, 02 Feb 2025
+ 01:01:24 -0800 (PST)
+Date: Sun, 02 Feb 2025 01:01:24 -0800
 X-Google-Appengine-App-Id: s~syzkaller
 X-Google-Appengine-App-Id-Alias: syzkaller
-Message-ID: <679efdc9.050a0220.163cdc.002a.GAE@google.com>
-Subject: Re: [syzbot] [ocfs2?] BUG: unable to handle kernel paging request in folio_unlock
-From: syzbot <syzbot+2d57a8e099fe62bd60f0@syzkaller.appspotmail.com>
+Message-ID: <679f3464.050a0220.d7c5a.006d.GAE@google.com>
+Subject: [syzbot] [ocfs2?] possible deadlock in ocfs2_finish_quota_recovery
+From: syzbot <syzbot+f59a1ae7b7227c859b8f@syzkaller.appspotmail.com>
 To: jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
 	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
 	syzkaller-bugs@googlegroups.com
 Content-Type: text/plain; charset="UTF-8"
 
-syzbot has found a reproducer for the following issue on:
+Hello,
 
-HEAD commit:    69e858e0b8b2 Merge tag 'uml-for-linus-6.14-rc1' of git://g..
+syzbot found the following issue on:
+
+HEAD commit:    69b8923f5003 Merge tag 'for-linus-6.14-ofs4' of git://git...
 git tree:       upstream
-console output: https://syzkaller.appspot.com/x/log.txt?x=137be724580000
-kernel config:  https://syzkaller.appspot.com/x/.config?x=d033b14aeef39158
-dashboard link: https://syzkaller.appspot.com/bug?extid=2d57a8e099fe62bd60f0
+console output: https://syzkaller.appspot.com/x/log.txt?x=100c4eb0580000
+kernel config:  https://syzkaller.appspot.com/x/.config?x=57ab43c279fa614d
+dashboard link: https://syzkaller.appspot.com/bug?extid=f59a1ae7b7227c859b8f
 compiler:       Debian clang version 15.0.6, GNU ld (GNU Binutils for Debian) 2.40
-syz repro:      https://syzkaller.appspot.com/x/repro.syz?x=17b1d5f8580000
-C reproducer:   https://syzkaller.appspot.com/x/repro.c?x=17c72d18580000
+
+Unfortunately, I don't have any reproducer for this issue yet.
 
 Downloadable assets:
-disk image (non-bootable): https://storage.googleapis.com/syzbot-assets/7feb34a89c2a/non_bootable_disk-69e858e0.raw.xz
-vmlinux: https://storage.googleapis.com/syzbot-assets/a53b888c1f3f/vmlinux-69e858e0.xz
-kernel image: https://storage.googleapis.com/syzbot-assets/6b5e17edafc0/bzImage-69e858e0.xz
-mounted in repro: https://storage.googleapis.com/syzbot-assets/4e6ad1d359e4/mount_0.gz
+disk image: https://storage.googleapis.com/syzbot-assets/ea84ac864e92/disk-69b8923f.raw.xz
+vmlinux: https://storage.googleapis.com/syzbot-assets/6a465997b4e0/vmlinux-69b8923f.xz
+kernel image: https://storage.googleapis.com/syzbot-assets/d72b67b2bd15/bzImage-69b8923f.xz
 
 IMPORTANT: if you fix the issue, please add the following tag to the commit:
-Reported-by: syzbot+2d57a8e099fe62bd60f0@syzkaller.appspotmail.com
+Reported-by: syzbot+f59a1ae7b7227c859b8f@syzkaller.appspotmail.com
 
-R13: 00007fff1f775058 R14: 431bde82d7b634db R15: 00007fe1ac9c701d
- </TASK>
-(syz-executor147,5303,0):ocfs2_grab_folios_for_write:1080 ERROR: status = -12
-(syz-executor147,5303,0):ocfs2_write_begin_nolock:1798 ERROR: status = -12
-BUG: unable to handle page fault for address: fffffffffffffffc
-#PF: supervisor read access in kernel mode
-#PF: error_code(0x0000) - not-present page
-PGD e73c067 P4D e73c067 PUD e73e067 PMD 0 
-Oops: Oops: 0000 [#1] PREEMPT SMP KASAN NOPTI
-CPU: 0 UID: 0 PID: 5303 Comm: syz-executor147 Not tainted 6.13.0-syzkaller-09760-g69e858e0b8b2 #0
-Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.16.3-debian-1.16.3-2~bpo12+1 04/01/2014
-RIP: 0010:const_folio_flags include/linux/page-flags.h:310 [inline]
-RIP: 0010:folio_test_locked include/linux/page-flags.h:510 [inline]
-RIP: 0010:folio_unlock+0x3b/0x170 mm/filemap.c:1499
-Code: 49 bf 00 00 00 00 00 fc ff df e8 b0 56 c7 ff 4d 8d 66 08 4d 89 e5 49 c1 ed 03 43 80 7c 3d 00 00 74 08 4c 89 e7 e8 95 eb 2d 00 <49> 8b 1c 24 48 89 de 48 83 e6 01 31 ff e8 63 5b c7 ff 48 83 e3 01
-RSP: 0018:ffffc9000d327128 EFLAGS: 00010246
-RAX: ffffffff81f81610 RBX: 1ffff1100232e806 RCX: ffff88801ce4a440
-RDX: 0000000000000000 RSI: 0000000000000001 RDI: fffffffffffffff4
-RBP: ffff888011974030 R08: ffffffff83ad8572 R09: 1ffffffff203680e
-R10: dffffc0000000000 R11: fffffbfff203680f R12: fffffffffffffffc
-R13: 1fffffffffffffff R14: fffffffffffffff4 R15: dffffc0000000000
-FS:  00005555865c0380(0000) GS:ffff88801fc00000(0000) knlGS:0000000000000000
-CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-CR2: fffffffffffffffc CR3: 0000000041da6000 CR4: 0000000000352ef0
-DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
-DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+ocfs2: Finishing quota recovery on device (7,0) for slot 0
+======================================================
+WARNING: possible circular locking dependency detected
+6.13.0-syzkaller-09793-g69b8923f5003 #0 Not tainted
+------------------------------------------------------
+kworker/u8:6/1142 is trying to acquire lock:
+ffff888055ab40e0 (&type->s_umount_key#51){++++}-{4:4}, at: ocfs2_finish_quota_recovery+0x15c/0x22a0 fs/ocfs2/quota_local.c:603
+
+but task is already holding lock:
+ffffc90003c4fc60 ((work_completion)(&journal->j_recovery_work)){+.+.}-{0:0}, at: process_one_work kernel/workqueue.c:3212 [inline]
+ffffc90003c4fc60 ((work_completion)(&journal->j_recovery_work)){+.+.}-{0:0}, at: process_scheduled_works+0x976/0x1840 kernel/workqueue.c:3317
+
+which lock already depends on the new lock.
+
+
+the existing dependency chain (in reverse order) is:
+
+-> #2 ((work_completion)(&journal->j_recovery_work)){+.+.}-{0:0}:
+       lock_acquire+0x1ed/0x550 kernel/locking/lockdep.c:5851
+       process_one_work kernel/workqueue.c:3212 [inline]
+       process_scheduled_works+0x994/0x1840 kernel/workqueue.c:3317
+       worker_thread+0x870/0xd30 kernel/workqueue.c:3398
+       kthread+0x7a9/0x920 kernel/kthread.c:464
+       ret_from_fork+0x4b/0x80 arch/x86/kernel/process.c:148
+       ret_from_fork_asm+0x1a/0x30 arch/x86/entry/entry_64.S:244
+
+-> #1 ((wq_completion)ocfs2_wq){+.+.}-{0:0}:
+       lock_acquire+0x1ed/0x550 kernel/locking/lockdep.c:5851
+       touch_wq_lockdep_map+0xc7/0x170 kernel/workqueue.c:3905
+       __flush_workqueue+0x14a/0x1280 kernel/workqueue.c:3947
+       ocfs2_shutdown_local_alloc+0x109/0xa90 fs/ocfs2/localalloc.c:380
+       ocfs2_dismount_volume+0x202/0x910 fs/ocfs2/super.c:1822
+       generic_shutdown_super+0x139/0x2d0 fs/super.c:642
+       kill_block_super+0x44/0x90 fs/super.c:1710
+       deactivate_locked_super+0xc4/0x130 fs/super.c:473
+       cleanup_mnt+0x41f/0x4b0 fs/namespace.c:1413
+       task_work_run+0x24f/0x310 kernel/task_work.c:227
+       resume_user_mode_work include/linux/resume_user_mode.h:50 [inline]
+       exit_to_user_mode_loop kernel/entry/common.c:114 [inline]
+       exit_to_user_mode_prepare include/linux/entry-common.h:329 [inline]
+       __syscall_exit_to_user_mode_work kernel/entry/common.c:207 [inline]
+       syscall_exit_to_user_mode+0x13f/0x340 kernel/entry/common.c:218
+       do_syscall_64+0x100/0x230 arch/x86/entry/common.c:89
+       entry_SYSCALL_64_after_hwframe+0x77/0x7f
+
+-> #0 (&type->s_umount_key#51){++++}-{4:4}:
+       check_prev_add kernel/locking/lockdep.c:3163 [inline]
+       check_prevs_add kernel/locking/lockdep.c:3282 [inline]
+       validate_chain+0x18ef/0x5920 kernel/locking/lockdep.c:3906
+       __lock_acquire+0x1397/0x2100 kernel/locking/lockdep.c:5228
+       lock_acquire+0x1ed/0x550 kernel/locking/lockdep.c:5851
+       down_read+0xb1/0xa40 kernel/locking/rwsem.c:1524
+       ocfs2_finish_quota_recovery+0x15c/0x22a0 fs/ocfs2/quota_local.c:603
+       ocfs2_complete_recovery+0x17c1/0x25c0 fs/ocfs2/journal.c:1357
+       process_one_work kernel/workqueue.c:3236 [inline]
+       process_scheduled_works+0xa66/0x1840 kernel/workqueue.c:3317
+       worker_thread+0x870/0xd30 kernel/workqueue.c:3398
+       kthread+0x7a9/0x920 kernel/kthread.c:464
+       ret_from_fork+0x4b/0x80 arch/x86/kernel/process.c:148
+       ret_from_fork_asm+0x1a/0x30 arch/x86/entry/entry_64.S:244
+
+other info that might help us debug this:
+
+Chain exists of:
+  &type->s_umount_key#51 --> (wq_completion)ocfs2_wq --> (work_completion)(&journal->j_recovery_work)
+
+ Possible unsafe locking scenario:
+
+       CPU0                    CPU1
+       ----                    ----
+  lock((work_completion)(&journal->j_recovery_work));
+                               lock((wq_completion)ocfs2_wq);
+                               lock((work_completion)(&journal->j_recovery_work));
+  rlock(&type->s_umount_key#51);
+
+ *** DEADLOCK ***
+
+2 locks held by kworker/u8:6/1142:
+ #0: ffff88802420b148 ((wq_completion)ocfs2_wq){+.+.}-{0:0}, at: process_one_work kernel/workqueue.c:3211 [inline]
+ #0: ffff88802420b148 ((wq_completion)ocfs2_wq){+.+.}-{0:0}, at: process_scheduled_works+0x93b/0x1840 kernel/workqueue.c:3317
+ #1: ffffc90003c4fc60 ((work_completion)(&journal->j_recovery_work)){+.+.}-{0:0}, at: process_one_work kernel/workqueue.c:3212 [inline]
+ #1: ffffc90003c4fc60 ((work_completion)(&journal->j_recovery_work)){+.+.}-{0:0}, at: process_scheduled_works+0x976/0x1840 kernel/workqueue.c:3317
+
+stack backtrace:
+CPU: 0 UID: 0 PID: 1142 Comm: kworker/u8:6 Not tainted 6.13.0-syzkaller-09793-g69b8923f5003 #0
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 12/27/2024
+Workqueue: ocfs2_wq ocfs2_complete_recovery
 Call Trace:
  <TASK>
- ocfs2_unlock_and_free_folios+0x71/0x1a0 fs/ocfs2/aops.c:772
- ocfs2_free_write_ctxt fs/ocfs2/aops.c:820 [inline]
- ocfs2_write_begin_nolock+0x3908/0x4e40 fs/ocfs2/aops.c:1837
- ocfs2_write_begin+0x205/0x3a0 fs/ocfs2/aops.c:1889
- generic_perform_write+0x346/0x990 mm/filemap.c:4189
- ocfs2_file_write_iter+0x19af/0x2180 fs/ocfs2/file.c:2469
- new_sync_write fs/read_write.c:586 [inline]
- vfs_write+0xacf/0xd10 fs/read_write.c:679
- ksys_write+0x18f/0x2b0 fs/read_write.c:731
- do_syscall_x64 arch/x86/entry/common.c:52 [inline]
- do_syscall_64+0xf3/0x230 arch/x86/entry/common.c:83
- entry_SYSCALL_64_after_hwframe+0x77/0x7f
-RIP: 0033:0x7fe1ac985889
-Code: 28 00 00 00 75 05 48 83 c4 28 c3 e8 d1 1a 00 00 90 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 b8 ff ff ff f7 d8 64 89 01 48
-RSP: 002b:00007fff1f774df8 EFLAGS: 00000246 ORIG_RAX: 0000000000000001
-RAX: ffffffffffffffda RBX: 00007fff1f774e10 RCX: 00007fe1ac985889
-RDX: 00000000ffffff6a RSI: 0000000020000000 RDI: 0000000000000004
-RBP: 0000000000000001 R08: 00007fff1f774b97 R09: 00005555865c1378
-R10: 0000000000000001 R11: 0000000000000246 R12: 00007fff1f774e30
-R13: 00007fff1f775058 R14: 431bde82d7b634db R15: 00007fe1ac9c701d
+ __dump_stack lib/dump_stack.c:94 [inline]
+ dump_stack_lvl+0x241/0x360 lib/dump_stack.c:120
+ print_circular_bug+0x13a/0x1b0 kernel/locking/lockdep.c:2076
+ check_noncircular+0x36a/0x4a0 kernel/locking/lockdep.c:2208
+ check_prev_add kernel/locking/lockdep.c:3163 [inline]
+ check_prevs_add kernel/locking/lockdep.c:3282 [inline]
+ validate_chain+0x18ef/0x5920 kernel/locking/lockdep.c:3906
+ __lock_acquire+0x1397/0x2100 kernel/locking/lockdep.c:5228
+ lock_acquire+0x1ed/0x550 kernel/locking/lockdep.c:5851
+ down_read+0xb1/0xa40 kernel/locking/rwsem.c:1524
+ ocfs2_finish_quota_recovery+0x15c/0x22a0 fs/ocfs2/quota_local.c:603
+ ocfs2_complete_recovery+0x17c1/0x25c0 fs/ocfs2/journal.c:1357
+ process_one_work kernel/workqueue.c:3236 [inline]
+ process_scheduled_works+0xa66/0x1840 kernel/workqueue.c:3317
+ worker_thread+0x870/0xd30 kernel/workqueue.c:3398
+ kthread+0x7a9/0x920 kernel/kthread.c:464
+ ret_from_fork+0x4b/0x80 arch/x86/kernel/process.c:148
+ ret_from_fork_asm+0x1a/0x30 arch/x86/entry/entry_64.S:244
  </TASK>
-Modules linked in:
-CR2: fffffffffffffffc
----[ end trace 0000000000000000 ]---
-RIP: 0010:const_folio_flags include/linux/page-flags.h:310 [inline]
-RIP: 0010:folio_test_locked include/linux/page-flags.h:510 [inline]
-RIP: 0010:folio_unlock+0x3b/0x170 mm/filemap.c:1499
-Code: 49 bf 00 00 00 00 00 fc ff df e8 b0 56 c7 ff 4d 8d 66 08 4d 89 e5 49 c1 ed 03 43 80 7c 3d 00 00 74 08 4c 89 e7 e8 95 eb 2d 00 <49> 8b 1c 24 48 89 de 48 83 e6 01 31 ff e8 63 5b c7 ff 48 83 e3 01
-RSP: 0018:ffffc9000d327128 EFLAGS: 00010246
-RAX: ffffffff81f81610 RBX: 1ffff1100232e806 RCX: ffff88801ce4a440
-RDX: 0000000000000000 RSI: 0000000000000001 RDI: fffffffffffffff4
-RBP: ffff888011974030 R08: ffffffff83ad8572 R09: 1ffffffff203680e
-R10: dffffc0000000000 R11: fffffbfff203680f R12: fffffffffffffffc
-R13: 1fffffffffffffff R14: fffffffffffffff4 R15: dffffc0000000000
-FS:  00005555865c0380(0000) GS:ffff88801fc00000(0000) knlGS:0000000000000000
-CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-CR2: fffffffffffffffc CR3: 0000000041da6000 CR4: 0000000000352ef0
-DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
-DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
-----------------
-Code disassembly (best guess):
-   0:	49 bf 00 00 00 00 00 	movabs $0xdffffc0000000000,%r15
-   7:	fc ff df
-   a:	e8 b0 56 c7 ff       	call   0xffc756bf
-   f:	4d 8d 66 08          	lea    0x8(%r14),%r12
-  13:	4d 89 e5             	mov    %r12,%r13
-  16:	49 c1 ed 03          	shr    $0x3,%r13
-  1a:	43 80 7c 3d 00 00    	cmpb   $0x0,0x0(%r13,%r15,1)
-  20:	74 08                	je     0x2a
-  22:	4c 89 e7             	mov    %r12,%rdi
-  25:	e8 95 eb 2d 00       	call   0x2debbf
-* 2a:	49 8b 1c 24          	mov    (%r12),%rbx <-- trapping instruction
-  2e:	48 89 de             	mov    %rbx,%rsi
-  31:	48 83 e6 01          	and    $0x1,%rsi
-  35:	31 ff                	xor    %edi,%edi
-  37:	e8 63 5b c7 ff       	call   0xffc75b9f
-  3c:	48 83 e3 01          	and    $0x1,%rbx
 
 
 ---
-If you want syzbot to run the reproducer, reply with:
-#syz test: git://repo/address.git branch-or-commit-hash
-If you attach or paste a git patch, syzbot will apply it before testing.
+This report is generated by a bot. It may contain errors.
+See https://goo.gl/tpsmEJ for more information about syzbot.
+syzbot engineers can be reached at syzkaller@googlegroups.com.
+
+syzbot will keep track of this issue. See:
+https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
+
+If the report is already addressed, let syzbot know by replying with:
+#syz fix: exact-commit-title
+
+If you want to overwrite report's subsystems, reply with:
+#syz set subsystems: new-subsystem
+(See the list of subsystem names on the web dashboard)
+
+If the report is a duplicate of another one, reply with:
+#syz dup: exact-subject-of-another-report
+
+If you want to undo deduplication, reply with:
+#syz undup
