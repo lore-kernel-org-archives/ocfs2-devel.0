@@ -1,146 +1,102 @@
-Received: from mail-il1-f208.google.com (mail-il1-f208.google.com [209.85.166.208])
+Received: from mail-il1-f206.google.com (mail-il1-f206.google.com [209.85.166.206])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E43A6165EFC
-	for <ocfs2-devel@lists.linux.dev>; Fri, 31 Jan 2025 20:55:18 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.166.208
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E23291EEE9
+	for <ocfs2-devel@lists.linux.dev>; Sun,  2 Feb 2025 05:08:26 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.166.206
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1738356920; cv=none; b=Csa2zjstm9jT9OTc6ZM/8lxa2zEce7/R7gltFJZZtB/gAhDfrFYeuHJXhyQWTj07okoDyCH/JQ8NR/wmwgiTkg7Qe+RCr2YQ1ezE0GjVFmzMK3B9C3gxepi9Ny3xfJUwKxUrEAGXGWXs/78ybH9L8iI35ZR/wFN3tSEHl5STE00=
+	t=1738472908; cv=none; b=uVAOUp1i8NO8QrwY2/zlPaJl11TcoNJByeRl8OIJ5WU8vsCM/7jDPAqDZRKDZybZDfRBB9yic8cThsli7abF87O/+MRe/dcgBt5S3IoKC4fcnTLC5NOrPCnooGnVBPv/kra+cN+Fv4feHmOyVUS7S4w79y3DIzDMciitAoV9/ZM=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1738356920; c=relaxed/simple;
-	bh=Yv5gmhbsXPbLXOWvZRPDkMa4ffP0MNtv1qSAV1/CbHw=;
-	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=oPXVWdY9TSTrmSfMa2udgcB/qD5vGaJBZ7JuR59QliidRe2lVU1qbUfYFnVHH+7ZSr26xh4sSRajPHM9WkIUVfVg+NHqIOyb/iKVBU3/JQiEE2MQl5962fOnheQ73n2zndWtLzGKP48MpJV0uKPXyuOqS7mpyk04Y/dfEzOpimc=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.166.208
+	s=arc-20240116; t=1738472908; c=relaxed/simple;
+	bh=10+q2USENm0O2mnYgP2SdcSi2OiECTJOXx5J1Of340k=;
+	h=MIME-Version:Date:In-Reply-To:Message-ID:Subject:From:To:
+	 Content-Type; b=ned8hA7XjqXfRolmuSfDXkT9SqtLDHXfTK19ts7S4fLtXj3bnfM+yVLsNBDY98IuPc6l1JUSVEcR1khylTOxFskqlreijSMclyr/3p+WrKRjFL9tYl0cX+SHHNaSXlY79jtWBfjjA+cbdHSSDObbSXOK51Cm0NwUf5h+rrQPGAs=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.166.206
 Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
-Received: by mail-il1-f208.google.com with SMTP id e9e14a558f8ab-3cf6c83560fso15974675ab.2
-        for <ocfs2-devel@lists.linux.dev>; Fri, 31 Jan 2025 12:55:18 -0800 (PST)
+Received: by mail-il1-f206.google.com with SMTP id e9e14a558f8ab-3a814bfb77bso28962485ab.0
+        for <ocfs2-devel@lists.linux.dev>; Sat, 01 Feb 2025 21:08:26 -0800 (PST)
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1738356918; x=1738961718;
-        h=to:from:subject:message-id:date:mime-version:x-gm-message-state
-         :from:to:cc:subject:date:message-id:reply-to;
-        bh=yzsgNdgIYd9HcrjFHxY90O435o+c5Mzw+Ck+s9qz+Lk=;
-        b=L0HT1Nb7gsRfjlgj1rAoaB/C4ZnUhersAOO9DZif34DOfUlEr57mNkpsaLOIM760Ng
-         3o6CWt2w8cSjb04TKJYo7vYgSM6N+bgyagonQ5tMra1ciCSdMmbGewkN3G7t1PQ0VteB
-         1XsJKHsgQSKoc3hQRT7he2ppGfwQzg2GIj3Wi6fVIrxiqzfrtX6A4/NuEKDpsptHXfQI
-         q6In4qdsPo3tzMU9ov2xxkHngKKASYD4FQnxt573g/mNI4NLzQT3aV04DibkjN3w3ZdR
-         fLGXdMdcOG9Z9YmEb6+H+Hj4j+s01FqF62ZGOfZbKl2arSTsiJA9p330Ft9pBCknddoI
-         LI3A==
-X-Forwarded-Encrypted: i=1; AJvYcCW8WlI6AzKLcNdw7Ahnzi9osfp0qt8aKXrbn6u1wtoQqZe7GyeCe314oew1jE+aWkt8SDsinct4RHfQwQ==@lists.linux.dev
-X-Gm-Message-State: AOJu0Yz/q3irVRnmmAxTfrDOxl2X7+WJmKH0w5YDfLfKBUivbS2r2jqt
-	PMsLjjOKZT2UoEMd5l8u0UFtY3N1oYiFs3qluXgcd9ih5xYypgwJl7dfF3eBtRjF5nC3H+W/ZKy
-	8pWcRvqI6McJR4ZauuRyweHJcFTEpBQeiMLiQNsiHQS/NatIdZ5FvhCQ=
-X-Google-Smtp-Source: AGHT+IE7Oda+EIafkSrsWkrxHNl1hLhXlZNpdflSBASYTbkoHFGaeIoJLJJSgjAALtV2jJAP05e8dqMwvoR0aJDKFB/jgS91OY2M
+        d=1e100.net; s=20230601; t=1738472906; x=1739077706;
+        h=to:from:subject:message-id:in-reply-to:date:mime-version
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
+        bh=+TH0j3bkIsLW/Wptm4tihJHXBlgsdnRdS0VgXtEGtuo=;
+        b=JHdId2HgzbsRhPeZRfHQK07psa/CcUGDkYuPYohjriYfMEmAv8ojjFY3/niQjV3OiG
+         P9Icd4leh0FEZ3KhdXp1HQLpaiM7x6kA2VcgHkp0XJ49YvQg2RBgvKSqhx3lZmC8fwBo
+         /vu3ISb3vEEX4yS7wtkl4Wi+mlSph2eEnG/6KM4Ucixv0NpQu/8UppVo+gzhQhYduZfj
+         zrqFj70koTZ0KjOGe+TBzDA5dbxhs9sffZFdHSsjc6ALG8BWPkTDwgrCA6EJhMN501DU
+         PFW7cSHInJLbK7DLsn6PoodtaLDvajcaXUKpYE5gDU0NDg0daw2/fpNA2/8pOenZmSmC
+         izYA==
+X-Forwarded-Encrypted: i=1; AJvYcCV7x62DoUNXBmw/Gd89gwhBUSu21fctIWHPlStTdy+ZqMbRE6+eeCGGlpVG3e5uB4p843oQhbRLcCtTuQ==@lists.linux.dev
+X-Gm-Message-State: AOJu0Yy+YxIrnXqRf4/zfKUmGK1XdbROPtDrNYH4Ahi56paUS1wB5DCJ
+	q7lofSLtRFO4xKWqT1MvTQlQMPBwvUcduUmfs5VNyYg4mI14K0SgKRnXXtFKyGidC4PJe7d40Q2
+	f1Qu56h/9yTB2/XEO7B1s+dkKgqckCmAdwKuGr7sIt24Ozl3Ylvu3eyk=
+X-Google-Smtp-Source: AGHT+IEMYBz6TSyoOWTIwaSW7uaHekBklp08pW3Q/DLxKLw8eGY7j+kBFZVE03whp/yUI+O0vPDIfbBUNBTA1stXdLno3Wftey6Q
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-X-Received: by 2002:a05:6e02:1a4c:b0:3cf:cd3c:bdfd with SMTP id
- e9e14a558f8ab-3cffe4478e9mr121503305ab.12.1738356918019; Fri, 31 Jan 2025
- 12:55:18 -0800 (PST)
-Date: Fri, 31 Jan 2025 12:55:18 -0800
+X-Received: by 2002:a05:6e02:1688:b0:3a9:cde3:2ecc with SMTP id
+ e9e14a558f8ab-3d012ab22a3mr90353865ab.6.1738472905964; Sat, 01 Feb 2025
+ 21:08:25 -0800 (PST)
+Date: Sat, 01 Feb 2025 21:08:25 -0800
+In-Reply-To: <679d38b6.050a0220.d7c5a.0053.GAE@google.com>
 X-Google-Appengine-App-Id: s~syzkaller
 X-Google-Appengine-App-Id-Alias: syzkaller
-Message-ID: <679d38b6.050a0220.d7c5a.0053.GAE@google.com>
-Subject: [syzbot] [ocfs2?] BUG: unable to handle kernel paging request in folio_unlock
+Message-ID: <679efdc9.050a0220.163cdc.002a.GAE@google.com>
+Subject: Re: [syzbot] [ocfs2?] BUG: unable to handle kernel paging request in folio_unlock
 From: syzbot <syzbot+2d57a8e099fe62bd60f0@syzkaller.appspotmail.com>
 To: jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
 	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
 	syzkaller-bugs@googlegroups.com
 Content-Type: text/plain; charset="UTF-8"
 
-Hello,
+syzbot has found a reproducer for the following issue on:
 
-syzbot found the following issue on:
-
-HEAD commit:    b4b0881156fb Merge tag 'docs-6.14-2' of git://git.lwn.net/..
+HEAD commit:    69e858e0b8b2 Merge tag 'uml-for-linus-6.14-rc1' of git://g..
 git tree:       upstream
-console output: https://syzkaller.appspot.com/x/log.txt?x=10139ddf980000
+console output: https://syzkaller.appspot.com/x/log.txt?x=137be724580000
 kernel config:  https://syzkaller.appspot.com/x/.config?x=d033b14aeef39158
 dashboard link: https://syzkaller.appspot.com/bug?extid=2d57a8e099fe62bd60f0
 compiler:       Debian clang version 15.0.6, GNU ld (GNU Binutils for Debian) 2.40
-
-Unfortunately, I don't have any reproducer for this issue yet.
+syz repro:      https://syzkaller.appspot.com/x/repro.syz?x=17b1d5f8580000
+C reproducer:   https://syzkaller.appspot.com/x/repro.c?x=17c72d18580000
 
 Downloadable assets:
-disk image (non-bootable): https://storage.googleapis.com/syzbot-assets/7feb34a89c2a/non_bootable_disk-b4b08811.raw.xz
-vmlinux: https://storage.googleapis.com/syzbot-assets/3efac40869da/vmlinux-b4b08811.xz
-kernel image: https://storage.googleapis.com/syzbot-assets/9e9697356805/bzImage-b4b08811.xz
+disk image (non-bootable): https://storage.googleapis.com/syzbot-assets/7feb34a89c2a/non_bootable_disk-69e858e0.raw.xz
+vmlinux: https://storage.googleapis.com/syzbot-assets/a53b888c1f3f/vmlinux-69e858e0.xz
+kernel image: https://storage.googleapis.com/syzbot-assets/6b5e17edafc0/bzImage-69e858e0.xz
+mounted in repro: https://storage.googleapis.com/syzbot-assets/4e6ad1d359e4/mount_0.gz
 
 IMPORTANT: if you fix the issue, please add the following tag to the commit:
 Reported-by: syzbot+2d57a8e099fe62bd60f0@syzkaller.appspotmail.com
 
-loop0: detected capacity change from 0 to 32768
-=======================================================
-WARNING: The mand mount option has been deprecated and
-         and is ignored by this kernel. Remove the mand
-         option from the mount to silence this warning.
-=======================================================
-ocfs2: Mounting device (7,0) on (node local, slot 0) with writeback data mode.
-FAULT_INJECTION: forcing a failure.
-name fail_page_alloc, interval 1, probability 0, space 0, times 1
-CPU: 0 UID: 0 PID: 5324 Comm: syz.0.0 Not tainted 6.13.0-syzkaller-09585-gb4b0881156fb #0
-Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.16.3-debian-1.16.3-2~bpo12+1 04/01/2014
-Call Trace:
- <TASK>
- __dump_stack lib/dump_stack.c:94 [inline]
- dump_stack_lvl+0x241/0x360 lib/dump_stack.c:120
- fail_dump lib/fault-inject.c:73 [inline]
- should_fail_ex+0x40a/0x550 lib/fault-inject.c:174
- prepare_alloc_pages+0x1da/0x5b0 mm/page_alloc.c:4514
- __alloc_frozen_pages_noprof+0x16f/0x710 mm/page_alloc.c:4728
- alloc_pages_mpol+0x311/0x660 mm/mempolicy.c:2270
- alloc_frozen_pages_noprof mm/mempolicy.c:2341 [inline]
- alloc_pages_noprof+0x121/0x190 mm/mempolicy.c:2361
- folio_alloc_noprof+0x1e/0x30 mm/mempolicy.c:2371
- filemap_alloc_folio_noprof+0xe1/0x540 mm/filemap.c:1019
- __filemap_get_folio+0x438/0xae0 mm/filemap.c:1970
- ocfs2_grab_folios_for_write+0x562/0xda0 fs/ocfs2/aops.c:1075
- ocfs2_write_begin_nolock+0x3476/0x4e40 fs/ocfs2/aops.c:1783
- ocfs2_write_begin+0x205/0x3a0 fs/ocfs2/aops.c:1889
- generic_perform_write+0x346/0x990 mm/filemap.c:4189
- __generic_file_write_iter+0x1b5/0x230 mm/filemap.c:4287
- ocfs2_file_write_iter+0x19af/0x2180 fs/ocfs2/file.c:2469
- aio_write+0x56b/0x7c0 fs/aio.c:1633
- io_submit_one+0x8a7/0x18a0 fs/aio.c:2052
- __do_sys_io_submit fs/aio.c:2111 [inline]
- __se_sys_io_submit+0x171/0x2e0 fs/aio.c:2081
- do_syscall_x64 arch/x86/entry/common.c:52 [inline]
- do_syscall_64+0xf3/0x230 arch/x86/entry/common.c:83
- entry_SYSCALL_64_after_hwframe+0x77/0x7f
-RIP: 0033:0x7fdec0b8cda9
-Code: ff ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 40 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 a8 ff ff ff f7 d8 64 89 01 48
-RSP: 002b:00007fdec1acd038 EFLAGS: 00000246 ORIG_RAX: 00000000000000d1
-RAX: ffffffffffffffda RBX: 00007fdec0da5fa0 RCX: 00007fdec0b8cda9
-RDX: 0000000020000540 RSI: 000000000000003b RDI: 00007fdec1a83000
-RBP: 00007fdec1acd090 R08: 0000000000000000 R09: 0000000000000000
-R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000002
-R13: 0000000000000000 R14: 00007fdec0da5fa0 R15: 00007fff1ee8e6b8
+R13: 00007fff1f775058 R14: 431bde82d7b634db R15: 00007fe1ac9c701d
  </TASK>
-(syz.0.0,5324,0):ocfs2_grab_folios_for_write:1080 ERROR: status = -12
-(syz.0.0,5324,0):ocfs2_write_begin_nolock:1798 ERROR: status = -12
+(syz-executor147,5303,0):ocfs2_grab_folios_for_write:1080 ERROR: status = -12
+(syz-executor147,5303,0):ocfs2_write_begin_nolock:1798 ERROR: status = -12
 BUG: unable to handle page fault for address: fffffffffffffffc
 #PF: supervisor read access in kernel mode
 #PF: error_code(0x0000) - not-present page
 PGD e73c067 P4D e73c067 PUD e73e067 PMD 0 
 Oops: Oops: 0000 [#1] PREEMPT SMP KASAN NOPTI
-CPU: 0 UID: 0 PID: 5324 Comm: syz.0.0 Not tainted 6.13.0-syzkaller-09585-gb4b0881156fb #0
+CPU: 0 UID: 0 PID: 5303 Comm: syz-executor147 Not tainted 6.13.0-syzkaller-09760-g69e858e0b8b2 #0
 Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.16.3-debian-1.16.3-2~bpo12+1 04/01/2014
 RIP: 0010:const_folio_flags include/linux/page-flags.h:310 [inline]
 RIP: 0010:folio_test_locked include/linux/page-flags.h:510 [inline]
 RIP: 0010:folio_unlock+0x3b/0x170 mm/filemap.c:1499
 Code: 49 bf 00 00 00 00 00 fc ff df e8 b0 56 c7 ff 4d 8d 66 08 4d 89 e5 49 c1 ed 03 43 80 7c 3d 00 00 74 08 4c 89 e7 e8 95 eb 2d 00 <49> 8b 1c 24 48 89 de 48 83 e6 01 31 ff e8 63 5b c7 ff 48 83 e3 01
-RSP: 0018:ffffc9000d286e68 EFLAGS: 00010246
-RAX: ffffffff81f815e0 RBX: 1ffff1100a540006 RCX: ffff88801d06a440
+RSP: 0018:ffffc9000d327128 EFLAGS: 00010246
+RAX: ffffffff81f81610 RBX: 1ffff1100232e806 RCX: ffff88801ce4a440
 RDX: 0000000000000000 RSI: 0000000000000001 RDI: fffffffffffffff4
-RBP: ffff888052a00030 R08: ffffffff83ad8522 R09: 1ffffffff20367ee
-R10: dffffc0000000000 R11: fffffbfff20367ef R12: fffffffffffffffc
+RBP: ffff888011974030 R08: ffffffff83ad8572 R09: 1ffffffff203680e
+R10: dffffc0000000000 R11: fffffbfff203680f R12: fffffffffffffffc
 R13: 1fffffffffffffff R14: fffffffffffffff4 R15: dffffc0000000000
-FS:  00007fdec1acd6c0(0000) GS:ffff88801fc00000(0000) knlGS:0000000000000000
+FS:  00005555865c0380(0000) GS:ffff88801fc00000(0000) knlGS:0000000000000000
 CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-CR2: fffffffffffffffc CR3: 0000000043fb0000 CR4: 0000000000352ef0
+CR2: fffffffffffffffc CR3: 0000000041da6000 CR4: 0000000000352ef0
 DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
 DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
 Call Trace:
@@ -150,23 +106,21 @@ Call Trace:
  ocfs2_write_begin_nolock+0x3908/0x4e40 fs/ocfs2/aops.c:1837
  ocfs2_write_begin+0x205/0x3a0 fs/ocfs2/aops.c:1889
  generic_perform_write+0x346/0x990 mm/filemap.c:4189
- __generic_file_write_iter+0x1b5/0x230 mm/filemap.c:4287
  ocfs2_file_write_iter+0x19af/0x2180 fs/ocfs2/file.c:2469
- aio_write+0x56b/0x7c0 fs/aio.c:1633
- io_submit_one+0x8a7/0x18a0 fs/aio.c:2052
- __do_sys_io_submit fs/aio.c:2111 [inline]
- __se_sys_io_submit+0x171/0x2e0 fs/aio.c:2081
+ new_sync_write fs/read_write.c:586 [inline]
+ vfs_write+0xacf/0xd10 fs/read_write.c:679
+ ksys_write+0x18f/0x2b0 fs/read_write.c:731
  do_syscall_x64 arch/x86/entry/common.c:52 [inline]
  do_syscall_64+0xf3/0x230 arch/x86/entry/common.c:83
  entry_SYSCALL_64_after_hwframe+0x77/0x7f
-RIP: 0033:0x7fdec0b8cda9
-Code: ff ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 40 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 a8 ff ff ff f7 d8 64 89 01 48
-RSP: 002b:00007fdec1acd038 EFLAGS: 00000246 ORIG_RAX: 00000000000000d1
-RAX: ffffffffffffffda RBX: 00007fdec0da5fa0 RCX: 00007fdec0b8cda9
-RDX: 0000000020000540 RSI: 000000000000003b RDI: 00007fdec1a83000
-RBP: 00007fdec1acd090 R08: 0000000000000000 R09: 0000000000000000
-R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000002
-R13: 0000000000000000 R14: 00007fdec0da5fa0 R15: 00007fff1ee8e6b8
+RIP: 0033:0x7fe1ac985889
+Code: 28 00 00 00 75 05 48 83 c4 28 c3 e8 d1 1a 00 00 90 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 b8 ff ff ff f7 d8 64 89 01 48
+RSP: 002b:00007fff1f774df8 EFLAGS: 00000246 ORIG_RAX: 0000000000000001
+RAX: ffffffffffffffda RBX: 00007fff1f774e10 RCX: 00007fe1ac985889
+RDX: 00000000ffffff6a RSI: 0000000020000000 RDI: 0000000000000004
+RBP: 0000000000000001 R08: 00007fff1f774b97 R09: 00005555865c1378
+R10: 0000000000000001 R11: 0000000000000246 R12: 00007fff1f774e30
+R13: 00007fff1f775058 R14: 431bde82d7b634db R15: 00007fe1ac9c701d
  </TASK>
 Modules linked in:
 CR2: fffffffffffffffc
@@ -175,15 +129,15 @@ RIP: 0010:const_folio_flags include/linux/page-flags.h:310 [inline]
 RIP: 0010:folio_test_locked include/linux/page-flags.h:510 [inline]
 RIP: 0010:folio_unlock+0x3b/0x170 mm/filemap.c:1499
 Code: 49 bf 00 00 00 00 00 fc ff df e8 b0 56 c7 ff 4d 8d 66 08 4d 89 e5 49 c1 ed 03 43 80 7c 3d 00 00 74 08 4c 89 e7 e8 95 eb 2d 00 <49> 8b 1c 24 48 89 de 48 83 e6 01 31 ff e8 63 5b c7 ff 48 83 e3 01
-RSP: 0018:ffffc9000d286e68 EFLAGS: 00010246
-RAX: ffffffff81f815e0 RBX: 1ffff1100a540006 RCX: ffff88801d06a440
+RSP: 0018:ffffc9000d327128 EFLAGS: 00010246
+RAX: ffffffff81f81610 RBX: 1ffff1100232e806 RCX: ffff88801ce4a440
 RDX: 0000000000000000 RSI: 0000000000000001 RDI: fffffffffffffff4
-RBP: ffff888052a00030 R08: ffffffff83ad8522 R09: 1ffffffff20367ee
-R10: dffffc0000000000 R11: fffffbfff20367ef R12: fffffffffffffffc
+RBP: ffff888011974030 R08: ffffffff83ad8572 R09: 1ffffffff203680e
+R10: dffffc0000000000 R11: fffffbfff203680f R12: fffffffffffffffc
 R13: 1fffffffffffffff R14: fffffffffffffff4 R15: dffffc0000000000
-FS:  00007fdec1acd6c0(0000) GS:ffff88801fc00000(0000) knlGS:0000000000000000
+FS:  00005555865c0380(0000) GS:ffff88801fc00000(0000) knlGS:0000000000000000
 CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-CR2: fffffffffffffffc CR3: 0000000043fb0000 CR4: 0000000000352ef0
+CR2: fffffffffffffffc CR3: 0000000041da6000 CR4: 0000000000352ef0
 DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
 DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
 ----------------
@@ -207,22 +161,6 @@ Code disassembly (best guess):
 
 
 ---
-This report is generated by a bot. It may contain errors.
-See https://goo.gl/tpsmEJ for more information about syzbot.
-syzbot engineers can be reached at syzkaller@googlegroups.com.
-
-syzbot will keep track of this issue. See:
-https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
-
-If the report is already addressed, let syzbot know by replying with:
-#syz fix: exact-commit-title
-
-If you want to overwrite report's subsystems, reply with:
-#syz set subsystems: new-subsystem
-(See the list of subsystem names on the web dashboard)
-
-If the report is a duplicate of another one, reply with:
-#syz dup: exact-subject-of-another-report
-
-If you want to undo deduplication, reply with:
-#syz undup
+If you want syzbot to run the reproducer, reply with:
+#syz test: git://repo/address.git branch-or-commit-hash
+If you attach or paste a git patch, syzbot will apply it before testing.
