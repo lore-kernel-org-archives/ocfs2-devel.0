@@ -1,36 +1,46 @@
-Received: from air.basealt.ru (air.basealt.ru [193.43.8.18])
+Received: from casper.infradead.org (casper.infradead.org [90.155.50.34])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D48666F073
-	for <ocfs2-devel@lists.linux.dev>; Thu, 13 Feb 2025 19:16:57 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=193.43.8.18
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id BF19B1714B7;
+	Thu, 13 Feb 2025 21:45:39 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=90.155.50.34
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1739474220; cv=none; b=O6h2LaVP6eBfSXLI7yADVHSwf1F1jXdaZPUcYE5hO2E4z0QniAXPMknMiOXudq9eCJwN+M+KKEBA0op3GzPHgwDRWYXsQyG9cJ2wl0NJ1Novlg2Bqe122fThIsC0qf8Uw+6qnXclgE02Unac9SsulOrhak+8sFNPCQQANdSakBo=
+	t=1739483142; cv=none; b=Z8VaxnUTZ2CJAeDoM0t4pP8IEG4MaWjRN4LRoVluMDKxKhCCRxBQCXWnBXEiNDTCshungzeB6+/yUHuHQrSP1sBNN1BKv4rZB06UF6Dp9eSvTfPZkMqbQ8szEP47N6/UmsL7Uncy6KN4+t4B/lYuFFm6PCjXJPh9rAmrLOkAYhg=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1739474220; c=relaxed/simple;
-	bh=QvA3KPL6cTcXNJAL8Q++bBi7XpqTvPThW7tuQ2n+tXA=;
-	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version; b=NQ78pEHe75F2ESrx4E5XUz+JRlsrc8F9zH1tJrgoBNQuV4er5iwiGmIZy7QVtmHSPkVRyNwxPCBofmPml1ZC/l1L4/5ewvJsVfnxId02nAOhtLpnsjv9AsziXnrmmBD9p5Y3rEBcvB5BJgjMcfXrvEt9pua5RCNf5YWPrUG8RJU=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=altlinux.org; spf=pass smtp.mailfrom=altlinux.org; arc=none smtp.client-ip=193.43.8.18
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=altlinux.org
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=altlinux.org
-Received: from altlinux.ipa.basealt.ru (unknown [178.76.204.78])
-	(Authenticated sender: kovalevvv)
-	by air.basealt.ru (Postfix) with ESMTPSA id 5B05E23382;
-	Thu, 13 Feb 2025 22:16:48 +0300 (MSK)
-From: Vasiliy Kovalev <kovalev@altlinux.org>
-To: linux-kernel@vger.kernel.org,
+	s=arc-20240116; t=1739483142; c=relaxed/simple;
+	bh=yBr5n64/ykMjm6l699ntGDgQuyR6cT5PkvcbbqbzmQo=;
+	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
+	 MIME-Version; b=TNdao16aypN0QX8ZEy5jVKydbwawvR0xLrqE7qVqagvUy21X8ZymL/+bgcL0SmcXGIU2Yn1JumcDdaODTEUTrT9O7fome3ziYn/NPWAGLn6SP2+F3cuWhtYXZyP1pqFNNh5z+bnJ/6XysQ42HMYUjMqUaMOW/ej27CpzFt9id8Y=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=infradead.org; spf=none smtp.mailfrom=infradead.org; dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b=cyG2EoIW; arc=none smtp.client-ip=90.155.50.34
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=infradead.org
+Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=infradead.org
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="cyG2EoIW"
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+	d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
+	References:In-Reply-To:Message-ID:Date:Subject:Cc:To:From:Sender:Reply-To:
+	Content-Type:Content-ID:Content-Description;
+	bh=p9WBGnIqtnFeSuvIK0AsG0uMMrdub4bF1vsPcqX4HAQ=; b=cyG2EoIWONYhj7peuUCs4NAsL1
+	tmsMbZw+7Y7C9MYhSACypSFmY6pR6NmdoohrXiQ1DZqaeI7l48ewCFqZQWK4dAbOdqAuPV7Tymdfl
+	S4LcXf+V1v6go5UPfhcqiUzEyvDbp5xR/9TY5GJ4yZADJBguNHbxrh+b6jgmY1Cgint1vH+d7SFuN
+	hxfyvDVZBSZdPnzDlCjOqpPbaDgiaRWe4PLgCL20i0isarjE6rO4zZm//cGg44jWQ2l6vP8/Wmxf9
+	KTSS6eaHAHCaN0Mj6rx9dkiQp5cGcdw7La1cP6IXiKvwxvkQdpPmE7b8O3HmOMWAxVcvXKOW44yEB
+	toifb11g==;
+Received: from willy by casper.infradead.org with local (Exim 4.98 #2 (Red Hat Linux))
+	id 1tih1c-00000009PJ5-0zjo;
+	Thu, 13 Feb 2025 21:45:36 +0000
+From: "Matthew Wilcox (Oracle)" <willy@infradead.org>
+To: Joseph Qi <joseph.qi@linux.alibaba.com>
+Cc: "Matthew Wilcox (Oracle)" <willy@infradead.org>,
+	Mark Tinguely <mark.tinguely@oracle.com>,
 	ocfs2-devel@lists.linux.dev,
-	Kurt Hackel <kurt.hackel@oracle.com>,
-	Joseph Qi <joseph.qi@linux.alibaba.com>,
-	Joel Becker <jlbec@evilplan.org>,
-	Mark Fasheh <mark@fasheh.com>
-Cc: kovalev@altlinux.org,
-	lvc-project@linuxtesting.org,
-	syzbot+66c146268dc88f4341fd@syzkaller.appspotmail.com
-Subject: [PATCH] ocfs2: validate l_tree_depth to avoid out-of-bounds access
-Date: Thu, 13 Feb 2025 22:16:42 +0300
-Message-Id: <20250213191642.720812-1-kovalev@altlinux.org>
-X-Mailer: git-send-email 2.33.8
+	linux-fsdevel@vger.kernel.org
+Subject: [PATCH 2/2] ocfs2: Remove reference to bh->b_page
+Date: Thu, 13 Feb 2025 21:45:31 +0000
+Message-ID: <20250213214533.2242224-2-willy@infradead.org>
+X-Mailer: git-send-email 2.48.1
+In-Reply-To: <20250213214533.2242224-1-willy@infradead.org>
+References: <20250213214533.2242224-1-willy@infradead.org>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -39,43 +49,27 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-The l_tree_depth field in struct ocfs2_extent_list is defined
-as __le16, but according to the comments in the structure
-definition, the high 8 bits must not be used, meaning its
-maximum valid value is 255.
+Buffer heads are attached to folios, not to pages.  Also
+flush_dcache_page() is now deprecated in favour of flush_dcache_folio().
 
-Add a check to prevent out-of-bounds access if l_tree_depth
-has an invalid value, which may occur when reading from a
-corrupted mounted disk [1].
-
-Fixes: ccd979bdbce9 ("[PATCH] OCFS2: The Second Oracle Cluster Filesystem")
-Reported-by: syzbot+66c146268dc88f4341fd@syzkaller.appspotmail.com
-Closes: https://syzkaller.appspot.com/bug?extid=66c146268dc88f4341fd [1]
-Signed-off-by: Vasiliy Kovalev <kovalev@altlinux.org>
+Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
 ---
- fs/ocfs2/extent_map.c | 9 +++++++++
- 1 file changed, 9 insertions(+)
+ fs/ocfs2/quota_global.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/fs/ocfs2/extent_map.c b/fs/ocfs2/extent_map.c
-index 930150ed5db15..0d9c25fdec029 100644
---- a/fs/ocfs2/extent_map.c
-+++ b/fs/ocfs2/extent_map.c
-@@ -415,6 +415,15 @@ static int ocfs2_get_clusters_nocache(struct inode *inode,
- 	tree_height = le16_to_cpu(el->l_tree_depth);
- 
- 	if (tree_height > 0) {
-+		if (unlikely(tree_height > 255)) {
-+			ocfs2_error(inode->i_sb,
-+				    "Inode %lu has too large l_tree_depth=%u in leaf block %llu\n",
-+				    inode->i_ino, tree_height,
-+				    (unsigned long long)di_bh->b_blocknr);
-+			ret = -EROFS;
-+			goto out;
-+		}
-+
- 		ret = ocfs2_find_leaf(INODE_CACHE(inode), el, v_cluster,
- 				      &eb_bh);
- 		if (ret) {
+diff --git a/fs/ocfs2/quota_global.c b/fs/ocfs2/quota_global.c
+index 15d9acd456ec..e85b1ccf81be 100644
+--- a/fs/ocfs2/quota_global.c
++++ b/fs/ocfs2/quota_global.c
+@@ -273,7 +273,7 @@ ssize_t ocfs2_quota_write(struct super_block *sb, int type,
+ 	if (new)
+ 		memset(bh->b_data, 0, sb->s_blocksize);
+ 	memcpy(bh->b_data + offset, data, len);
+-	flush_dcache_page(bh->b_page);
++	flush_dcache_folio(bh->b_folio);
+ 	set_buffer_uptodate(bh);
+ 	unlock_buffer(bh);
+ 	ocfs2_set_buffer_uptodate(INODE_CACHE(gqinode), bh);
 -- 
-2.42.2
+2.47.2
 
