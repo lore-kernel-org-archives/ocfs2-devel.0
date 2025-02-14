@@ -1,96 +1,98 @@
-Received: from casper.infradead.org (casper.infradead.org [90.155.50.34])
+Received: from out30-110.freemail.mail.aliyun.com (out30-110.freemail.mail.aliyun.com [115.124.30.110])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7AD6626619B;
-	Thu, 13 Feb 2025 21:45:42 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=90.155.50.34
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C73CB173
+	for <ocfs2-devel@lists.linux.dev>; Fri, 14 Feb 2025 01:32:35 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.110
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1739483144; cv=none; b=c1rTecxDFCCW6y6VpLdFDWpccmaxW+adk8O12FgL/jryOA2TRqJyAbiCM9Dn4Q03Vo4n7w87tz4Y3nnVQciFxD94MLPuTGeUpVH8NHI5c0X+vEFnwdb8P12vow2Kbx1+Eco1v6bz0xAJGgN08qrzO41t+GH+qHlp6TiTTd8+cjM=
+	t=1739496759; cv=none; b=m5iCvoV1iMtBildtgeMMwTr/tJy8r5fmS+fxgvkB5ppj0EFKuiDHZQ8lAkp8Ag+wMT/s1Bh63gTJXn6RGlMYLk63K0XDYM2d7SsEBSb9g5/goEQKpvtXBXtf1oR2JYIQBHlOZEcHRqaJ4voR57Ex9qlemdFqaX7BTsfdw4HTb8o=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1739483144; c=relaxed/simple;
-	bh=fUBtFvvJHRLK+SDuu3RCloY1xYnVPpd9PSso9zmAJvY=;
-	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=eRhuUKGlLvQCwtSdGnT+NXEr3NmekcwlTYNWCJtOSClt27TQx9oaHkPVyJdBPHoAIJU/PxTQ2QtUAl72AtWPgG1Pu5XV3z0JrolTTK/zAl1XHV1XPdYQ6u9x8QKxRDQtkP3OFl0Do0dXSQQaLCH/HKU9POofZPOIp6RmR8655eI=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=infradead.org; spf=none smtp.mailfrom=infradead.org; dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b=mydFkLWX; arc=none smtp.client-ip=90.155.50.34
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=infradead.org
-Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=infradead.org
+	s=arc-20240116; t=1739496759; c=relaxed/simple;
+	bh=2uSckVcs76p3zYym1bAgvw9YRROzbo19nGBzSrVElAo=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=t+5O64O9Wug65stRAqwF10rOVvKdHC693YRsXROOcGrameXJ2LmKAUl6UTJQx+nvlYB7j1AB+V3LL2nhv8dJNHGTI1Ep2n2NhF55WaGmktQp/62KclytzkK6qdyIZ252KlQmoznyN3OoG2W7kL/QsyjJqxKDsjktcj6FYw43Zzc=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=uw4ze9uM; arc=none smtp.client-ip=115.124.30.110
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="mydFkLWX"
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-	d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
-	Message-ID:Date:Subject:Cc:To:From:Sender:Reply-To:Content-Type:Content-ID:
-	Content-Description:In-Reply-To:References;
-	bh=YomykI0Ujf1LnWUgNzfl0FjziVHhPoqYtSuIaORBnbM=; b=mydFkLWXvo2vVmPJ5wSTRVJuow
-	Aqju14Qe7Wnd6muoQNsV7KNpLh1t3n6CN725deHbW8y133PWm9m8W7T+FNQt91JA9JBnScgqgKw6o
-	D8GmKg/4zHhJyeQEUZh/ttU31W+eIkinMBC6RdtdjuErFUbb2F8DTuZmi1cZfIkTK2l+zLSxFLSk2
-	g1xG96C8d1wkqPu2iTwTg6EXVrfnPH4kCbpZ0EG/TgGc/R+O4j0hr7rChaOkFWG/uLS7DWTwB5l3s
-	Cce8N42pPE2ov4ZAbdwD2TVXCGY42kiEy6+pwXgmLFT1h+nZZVi+Fw82bQ2occxDRft/jyn+oy9Ca
-	j6vC8o6w==;
-Received: from willy by casper.infradead.org with local (Exim 4.98 #2 (Red Hat Linux))
-	id 1tih1b-00000009PJ3-0QB2;
-	Thu, 13 Feb 2025 21:45:35 +0000
-From: "Matthew Wilcox (Oracle)" <willy@infradead.org>
-To: Joseph Qi <joseph.qi@linux.alibaba.com>
-Cc: "Matthew Wilcox (Oracle)" <willy@infradead.org>,
-	Mark Tinguely <mark.tinguely@oracle.com>,
-	ocfs2-devel@lists.linux.dev,
-	linux-fsdevel@vger.kernel.org
-Subject: [PATCH 1/2] ocfs2: Use memcpy_to_folio() in ocfs2_symlink_get_block()
-Date: Thu, 13 Feb 2025 21:45:30 +0000
-Message-ID: <20250213214533.2242224-1-willy@infradead.org>
-X-Mailer: git-send-email 2.48.1
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="uw4ze9uM"
+DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=linux.alibaba.com; s=default;
+	t=1739496753; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=RBKILsyIl1yZ1hVvw97X7/UfLhWAE5fedW8tf0jFanE=;
+	b=uw4ze9uMpAwqtJlLiFxVUxis89ogqtI/m1JMglmMZlh+eH9deQJe5rIUqz0WuaDvliWoU0h/s9LarK9UZ5WYZKDsWZ5ubZTUA9VKkbSSRxOj0yydA20fQicES284Argq4mynVrsR7uY7fSRPBTPy7i55gGuXjwhzb1+67MpEJFc=
+Received: from 30.221.128.236(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0WPP0Lgc_1739496751 cluster:ay36)
+          by smtp.aliyun-inc.com;
+          Fri, 14 Feb 2025 09:32:32 +0800
+Message-ID: <1528e1cb-278c-4c8c-994b-ce7ed9731f63@linux.alibaba.com>
+Date: Fri, 14 Feb 2025 09:32:31 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH 1/2] ocfs2: Use memcpy_to_folio() in
+ ocfs2_symlink_get_block()
+To: "Matthew Wilcox (Oracle)" <willy@infradead.org>,
+ akpm <akpm@linux-foundation.org>
+Cc: Mark Tinguely <mark.tinguely@oracle.com>, ocfs2-devel@lists.linux.dev,
+ linux-fsdevel@vger.kernel.org
+References: <20250213214533.2242224-1-willy@infradead.org>
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+In-Reply-To: <20250213214533.2242224-1-willy@infradead.org>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
-Replace use of kmap_atomic() with the higher-level construct
-memcpy_to_folio().  This removes a use of b_page and supports
-large folios as well as being easier to understand.  It also
-removes the check for kmap_atomic() failing (because it can't).
 
-Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
----
- fs/ocfs2/aops.c | 17 +++++------------
- 1 file changed, 5 insertions(+), 12 deletions(-)
 
-diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-index 5bbeb6fbb1ac..ccf2930cd2e6 100644
---- a/fs/ocfs2/aops.c
-+++ b/fs/ocfs2/aops.c
-@@ -46,7 +46,6 @@ static int ocfs2_symlink_get_block(struct inode *inode, sector_t iblock,
- 	struct buffer_head *bh = NULL;
- 	struct buffer_head *buffer_cache_bh = NULL;
- 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
--	void *kaddr;
- 
- 	trace_ocfs2_symlink_get_block(
- 			(unsigned long long)OCFS2_I(inode)->ip_blkno,
-@@ -91,17 +90,11 @@ static int ocfs2_symlink_get_block(struct inode *inode, sector_t iblock,
- 		 * could've happened. Since we've got a reference on
- 		 * the bh, even if it commits while we're doing the
- 		 * copy, the data is still good. */
--		if (buffer_jbd(buffer_cache_bh)
--		    && ocfs2_inode_is_new(inode)) {
--			kaddr = kmap_atomic(bh_result->b_page);
--			if (!kaddr) {
--				mlog(ML_ERROR, "couldn't kmap!\n");
--				goto bail;
--			}
--			memcpy(kaddr + (bh_result->b_size * iblock),
--			       buffer_cache_bh->b_data,
--			       bh_result->b_size);
--			kunmap_atomic(kaddr);
-+		if (buffer_jbd(buffer_cache_bh) && ocfs2_inode_is_new(inode)) {
-+			memcpy_to_folio(bh_result->b_folio,
-+					bh_result->b_size * iblock,
-+					buffer_cache_bh->b_data,
-+					bh_result->b_size);
- 			set_buffer_uptodate(bh_result);
- 		}
- 		brelse(buffer_cache_bh);
--- 
-2.47.2
+On 2025/2/14 05:45, Matthew Wilcox (Oracle) wrote:
+> Replace use of kmap_atomic() with the higher-level construct
+> memcpy_to_folio().  This removes a use of b_page and supports
+> large folios as well as being easier to understand.  It also
+> removes the check for kmap_atomic() failing (because it can't).
+> 
+> Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
+
+Acked-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+> ---
+>  fs/ocfs2/aops.c | 17 +++++------------
+>  1 file changed, 5 insertions(+), 12 deletions(-)
+> 
+> diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+> index 5bbeb6fbb1ac..ccf2930cd2e6 100644
+> --- a/fs/ocfs2/aops.c
+> +++ b/fs/ocfs2/aops.c
+> @@ -46,7 +46,6 @@ static int ocfs2_symlink_get_block(struct inode *inode, sector_t iblock,
+>  	struct buffer_head *bh = NULL;
+>  	struct buffer_head *buffer_cache_bh = NULL;
+>  	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+> -	void *kaddr;
+>  
+>  	trace_ocfs2_symlink_get_block(
+>  			(unsigned long long)OCFS2_I(inode)->ip_blkno,
+> @@ -91,17 +90,11 @@ static int ocfs2_symlink_get_block(struct inode *inode, sector_t iblock,
+>  		 * could've happened. Since we've got a reference on
+>  		 * the bh, even if it commits while we're doing the
+>  		 * copy, the data is still good. */
+> -		if (buffer_jbd(buffer_cache_bh)
+> -		    && ocfs2_inode_is_new(inode)) {
+> -			kaddr = kmap_atomic(bh_result->b_page);
+> -			if (!kaddr) {
+> -				mlog(ML_ERROR, "couldn't kmap!\n");
+> -				goto bail;
+> -			}
+> -			memcpy(kaddr + (bh_result->b_size * iblock),
+> -			       buffer_cache_bh->b_data,
+> -			       bh_result->b_size);
+> -			kunmap_atomic(kaddr);
+> +		if (buffer_jbd(buffer_cache_bh) && ocfs2_inode_is_new(inode)) {
+> +			memcpy_to_folio(bh_result->b_folio,
+> +					bh_result->b_size * iblock,
+> +					buffer_cache_bh->b_data,
+> +					bh_result->b_size);
+>  			set_buffer_uptodate(bh_result);
+>  		}
+>  		brelse(buffer_cache_bh);
 
