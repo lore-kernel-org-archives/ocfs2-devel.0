@@ -1,98 +1,151 @@
-Received: from mail-il1-f200.google.com (mail-il1-f200.google.com [209.85.166.200])
+Received: from mail-wr1-f50.google.com (mail-wr1-f50.google.com [209.85.221.50])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 02176228CBA
-	for <ocfs2-devel@lists.linux.dev>; Wed, 26 Feb 2025 12:08:27 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.166.200
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6BB553594D
+	for <ocfs2-devel@lists.linux.dev>; Sat,  1 Mar 2025 14:41:42 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.221.50
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1740571709; cv=none; b=Yw2WYgDLrdr8wc/wU+lgwwc2UfJSLpR1ckW7y2q9Bl1fzkGa5yhdra6MSnjwcss8OAo6KxS7i+JL5vapQV+QH0uawfwVsMJ3ndLNuv9L7opVBIg/A+8ih1ZdfyeGaBt7dhQRERnXIiDzLWZC0qruNBv6/RquUyF4m42uZkzVE1A=
+	t=1740840104; cv=none; b=e3awpq+ghU6+VKC2S0jnwb58LUXfUr8WCCuguh/5Sgoo3SDjcTXVcY3/5oA3qiCK35WUFe9tUu0gPH0/BfkvlueedbReBnEeRKGk0gwE+W2UfLgydffGotT8F4/lwFi1c7MC1B4qNIpqW0Slb3NVzF9xLzgHdEdQ/0LfbF2dl6M=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1740571709; c=relaxed/simple;
-	bh=BfWDkOXIVi+phnC5usme1ejCUSGSAk+7jajQgA99Mpc=;
-	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=cyjaA9DLNK0n24HZjnDgJE0GlU8UqvfSkRrHClOQJ4O1nq6ai+o0dt9EkByziw0rUJZ905jq3R33hAhGmBSpoG9VCq7qq9yA8sYvJFyMGHCMJAakBB47gOBY6VfH6nibBBzv72TcaF6MTgTy1YXAUA7Ou1eAgCM2yhnoDwtTARI=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.166.200
-Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
-Received: by mail-il1-f200.google.com with SMTP id e9e14a558f8ab-3d054d79dacso130658685ab.2
-        for <ocfs2-devel@lists.linux.dev>; Wed, 26 Feb 2025 04:08:27 -0800 (PST)
+	s=arc-20240116; t=1740840104; c=relaxed/simple;
+	bh=iVyKzVfxR8LdP5by3NoY8zhrOtkB7jVDbkJlfjDY8OE=;
+	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version; b=i33y+QhGTXfY+eBFUMVdcDqKH90N6ZvAnsxa7pY/0n0pQTNi74Rivh3Bsft9g1TgAuJumlUfif01CMu5UVjRVpEYQSthqTltJ9E3WE1ekV6Wb0osQyK1hi3BSsngAdX9G4c4DalRRtlQ4vn3HR4bp2JQmWl3SOKWBa00EHSIrQ8=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=kiplnksl; arc=none smtp.client-ip=209.85.221.50
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="kiplnksl"
+Received: by mail-wr1-f50.google.com with SMTP id ffacd0b85a97d-390df942558so2401497f8f.2
+        for <ocfs2-devel@lists.linux.dev>; Sat, 01 Mar 2025 06:41:42 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20230601; t=1740840101; x=1741444901; darn=lists.linux.dev;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:from:to:cc:subject:date:message-id:reply-to;
+        bh=XCZ2IYJ2ToIg9/KMdOINj9YW27Hjn4u6ydCp4dWPNz0=;
+        b=kiplnkslCDdyR/x1Vrbgu7Hj5VXfM1n+zqxf1zoDgY4j47h5Au8VVhcb+dGFavXb7v
+         +zKcYRoISDNvQTvRsSeZxK2W7WrjIjT8AXhqQBQhPwRiuiIYcO0OGpaOel4gf9DkJiKj
+         9w3vAkCbgxHZOtAyIzpjPzttu15vEGjASYZWl7GuQu4a9BVZPJghtrYirpd3Tt4pCytf
+         MbDJ+He6U8Jhu1JXJHs7igssnyH1sEONrM1Hq+5R5ThJ+Hiovb35av2zS7CBE8kITNNT
+         HKBPVl4AJRIFM1tWHXRsi9wGAJUgzWsjSFdh33h8o+9P7bnfzpZqIbHpj+5rcuX4EXBO
+         8voA==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1740571707; x=1741176507;
-        h=to:from:subject:message-id:date:mime-version:x-gm-message-state
-         :from:to:cc:subject:date:message-id:reply-to;
-        bh=AcUYnbqSgo+CcVUyhkeERgrvliM1pLqawbgYN6ofh6o=;
-        b=eDv3Nx1+3JmKJSQxlU7dXrWkrPHo3Dxjfxyps850QluoRlEguGviH1k77h584E3YIY
-         4c3zAp3r7YJ1PuaH7dZ+H+uPoalM1A4yRtljq+toOabeToX0xOf2PkwtL9M9WWiUwi2T
-         sSj8sXpwYjnj/uMgsva5GSXSwQF25nJbE8Ae95UlGR2RaUvYpE6wWW7gnTTsE6MfSjUQ
-         AMG8yi0RuWIh0f4KJuTWlAHAqkMMdHTjJUgq8n97CxXmXvasz/Fe5v3c3HlpwsPRlAsf
-         6XiMmYjbpk5fThpw7Vk4gNtJBTDWsJ1058PDKvjWxiKFJ67BAmAIfCWcGf3WgXHkJI4y
-         tLWA==
-X-Forwarded-Encrypted: i=1; AJvYcCWfqn/nWSVwSneqxaDiHntD7suoGrsu/YSlKzDY0IgmYoL21+sppvxy8Oi7bR66tXpyVAQSyyTgyLnK4w==@lists.linux.dev
-X-Gm-Message-State: AOJu0Ywa49GHTXp44W2Bjc8Ju2synZRVc7eLw39v8mYHb7zzO/y2M6Dk
-	Pg+oi03NX541dOtMoqJmxdvFOxY/HhTp9RKn3pPs2Q6dEJJgDZaTotah9MXSqCQ/QDNPdSJ5H5u
-	q+HR/T3v+Abe5pyrJS/wcGAtU+bx39RdwLyS+/kB6cYy0vOIHx/qaAZ8=
-X-Google-Smtp-Source: AGHT+IF6mdZ701nOiNAl8RxdOOSTjQsu8YRQ0S+3sDbzfX8SF2PQDNX7VTMhgiAWIFnZd0ct5bmnznMC2/tBM3Rj2oozHtgakMzE
+        d=1e100.net; s=20230601; t=1740840101; x=1741444901;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:x-gm-message-state:from:to:cc:subject:date:message-id
+         :reply-to;
+        bh=XCZ2IYJ2ToIg9/KMdOINj9YW27Hjn4u6ydCp4dWPNz0=;
+        b=o6+0nP51Nxh32ZdUypph9JC+Pcd4wMES1+br1LMNs/2HDnYMJKp7mRv0vvGxtOea1B
+         XQvbGgFgu8aXbGRsacY/DwDwh0dmFMK9tSxvq+wPtTrsP4ClTNI2tHM66UBE28g/h2u5
+         yCVs9sxEQ1B/FpXDtpsIUrvDT7BcmyZu9PsJqkpmk508WbCY14Mk2ri4jUB/19xQpvAL
+         VNNtVoQjjzcSCW26/fcaKClTa9Lf7J2QUh6wQvAwHrzBJXUV1G0OxGNNXFuB0OFZnfIw
+         jD4/nWkfECRpUH6RWQY5kENsr7isnyAsotgwmqGPdJSFxK67HQyE2cKv5wH8RxkUnYRl
+         4XQg==
+X-Gm-Message-State: AOJu0Ywzj8egVg/9XpjXT6EqPaI5mkfJV5wxRyC6FQMTRXVFRUmTNAWM
+	6GXNG6dAB5v7mR6n9dKOxNhBJRIBIInc9mZdaqkZWjzwxVtWt/X9
+X-Gm-Gg: ASbGncvAakH/D65Zolwj2KCIcYybhw7q7kCHEgY+s0V9ydLVv51mDzA3nQY3JHktGAM
+	JhYQOazVGbpBv9WTFXEKJ4qs7zRbHDH4O9Yc0xxSI/izjuBr730HBHgK//1EZnmW45C83VgnC6F
+	rUt+cacfMX5mraAkdreIl7AQRMwSiaRijUv7TbzdRiWRzO6KP9hba03MMGhISxyfFkT5+dqmGzI
+	WlLJs+z6wNjWEUkyDT309nI0Uf1SZCkNcLLehbURoZBxsAgoBb+C0rEsdckdVQsV/WA63q7r2nK
+	6lez2OPzLMl6r1ghfHDA0W85j5sfO5GsqRvencWqzfDlrXU7jvA9KhnU0Ko=
+X-Google-Smtp-Source: AGHT+IE7BqfWKIc6fP9w4TydXM/STuAZnBVGkxNgCzpMCvHzilFb+OhHXakcpD6IR5NJpQlPSJwzCA==
+X-Received: by 2002:a5d:6da3:0:b0:38d:d666:5448 with SMTP id ffacd0b85a97d-390eca52d9bmr7180064f8f.40.1740840100500;
+        Sat, 01 Mar 2025 06:41:40 -0800 (PST)
+Received: from localhost.localdomain ([2a02:c7c:6696:8300:913b:dad9:fe38:d4f4])
+        by smtp.gmail.com with ESMTPSA id ffacd0b85a97d-390e4844a22sm8572051f8f.74.2025.03.01.06.41.38
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Sat, 01 Mar 2025 06:41:39 -0800 (PST)
+From: Qasim Ijaz <qasdev00@gmail.com>
+To: mark@fasheh.com,
+	jlbec@evilplan.org,
+	joseph.qi@linux.alibaba.com
+Cc: ocfs2-devel@lists.linux.dev,
+	linux-kernel@vger.kernel.org,
+	syzbot <syzbot+e41e83af7a07a4df8051@syzkaller.appspotmail.com>,
+	stable@vger.kernel.org
+Subject: [PATCH] ocfs2: Validate chain list bits per cluster to prevent div-by-zero
+Date: Sat,  1 Mar 2025 14:40:37 +0000
+Message-Id: <20250301144037.45920-1-qasdev00@gmail.com>
+X-Mailer: git-send-email 2.39.5
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-X-Received: by 2002:a05:6e02:4602:b0:3d3:ce1b:5e84 with SMTP id
- e9e14a558f8ab-3d3ce1b6053mr42976725ab.22.1740571707224; Wed, 26 Feb 2025
- 04:08:27 -0800 (PST)
-Date: Wed, 26 Feb 2025 04:08:27 -0800
-X-Google-Appengine-App-Id: s~syzkaller
-X-Google-Appengine-App-Id-Alias: syzkaller
-Message-ID: <67bf043b.050a0220.38b081.0131.GAE@google.com>
-Subject: [syzbot] Monthly ocfs2 report (Feb 2025)
-From: syzbot <syzbot+list1987609f74d4a4c47bb7@syzkaller.appspotmail.com>
-To: jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
-	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
-	syzkaller-bugs@googlegroups.com
-Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
 
-Hello ocfs2 maintainers/developers,
+The call trace shows that the div error occurs on the following line where the code sets 
+the e_cpos member of the extent record while dividing bg_bits by the bits per 
+cluster value from the chain list:
 
-This is a 31-day syzbot report for the ocfs2 subsystem.
-All related reports/information can be found at:
-https://syzkaller.appspot.com/upstream/s/ocfs2
+		rec->e_cpos = cpu_to_le32(le16_to_cpu(bg->bg_bits) /
+				  le16_to_cpu(cl->cl_bpc));
+				  
+Looking at the code disassembly we see the problem occurred during the divw instruction
+which performs a 16-bit unsigned divide operation. The main ways a divide error can occur is
+if:
 
-During the period, 8 new issues were detected and 0 were fixed.
-In total, 79 issues are still open and 15 have already been fixed.
+1) the divisor is 0
+2) if the quotient is too large for the designated register (overflow).
 
-Some of the still happening issues:
+Normally the divisor being 0 is the most common cause for a division error to occur.
 
-Ref  Crashes Repro Title
-<1>  122045  Yes   possible deadlock in ocfs2_try_remove_refcount_tree
-                   https://syzkaller.appspot.com/bug?extid=1fed2de07d8e11a3ec1b
-<2>  34468   Yes   possible deadlock in dqget
-                   https://syzkaller.appspot.com/bug?extid=6e493c165d26d6fcbf72
-<3>  26481   Yes   possible deadlock in ocfs2_acquire_dquot
-                   https://syzkaller.appspot.com/bug?extid=51244a05705883616c95
-<4>  12874   Yes   possible deadlock in ocfs2_reserve_suballoc_bits
-                   https://syzkaller.appspot.com/bug?extid=5d516fba7bc3c966c9a9
-<5>  9837    Yes   possible deadlock in ocfs2_init_acl
-                   https://syzkaller.appspot.com/bug?extid=4007ab5229e732466d9f
-<6>  9270    Yes   possible deadlock in ocfs2_reserve_local_alloc_bits
-                   https://syzkaller.appspot.com/bug?extid=843fa26882088a9ee7e3
-<7>  4178    Yes   possible deadlock in ocfs2_setattr
-                   https://syzkaller.appspot.com/bug?extid=d78497256d53041ee229
-<8>  2878    Yes   possible deadlock in deactivate_super (2)
-                   https://syzkaller.appspot.com/bug?extid=180dd013ba371eabc162
-<9>  1874    No    possible deadlock in ocfs2_xattr_set
-                   https://syzkaller.appspot.com/bug?extid=ba9a789bd1f4d21fcefe
-<10> 1656    No    possible deadlock in ocfs2_lock_global_qf
-                   https://syzkaller.appspot.com/bug?extid=b53d753ae8fb473e2397
+Focusing on the bits per cluster cl->cl_bpc (since it is the divisor) we see that cl is created in
+ocfs2_block_group_alloc(), cl is derived from ocfs2_dinode->id2.i_chain. To fix this issue we should 
+verify the cl_bpc member in the chain list to ensure it is valid and non-zero.
 
+Looking through the rest of the OCFS2 code it seems like there are other places which could benefit 
+from improved checks of the cl_bpc members of chain lists like the following:
+
+In ocfs2_group_extend():
+
+	cl_bpc = le16_to_cpu(fe->id2.i_chain.cl_bpc);
+	if (le16_to_cpu(group->bg_bits) / cl_bpc + new_clusters >
+		le16_to_cpu(fe->id2.i_chain.cl_cpg)) {
+		ret = -EINVAL;
+		goto out_unlock;
+	}
+
+Reported-by: syzbot <syzbot+e41e83af7a07a4df8051@syzkaller.appspotmail.com>
+Closes: https://syzkaller.appspot.com/bug?extid=e41e83af7a07a4df8051
+Cc: stable@vger.kernel.org
+Signed-off-by: Qasim Ijaz <qasdev00@gmail.com>
 ---
-This report is generated by a bot. It may contain errors.
-See https://goo.gl/tpsmEJ for more information about syzbot.
-syzbot engineers can be reached at syzkaller@googlegroups.com.
+ fs/ocfs2/resize.c   | 4 ++--
+ fs/ocfs2/suballoc.c | 5 +++++
+ 2 files changed, 7 insertions(+), 2 deletions(-)
 
-To disable reminders for individual bugs, reply with the following command:
-#syz set <Ref> no-reminders
+diff --git a/fs/ocfs2/resize.c b/fs/ocfs2/resize.c
+index b0733c08ed13..22352c027ecd 100644
+--- a/fs/ocfs2/resize.c
++++ b/fs/ocfs2/resize.c
+@@ -329,8 +329,8 @@ int ocfs2_group_extend(struct inode * inode, int new_clusters)
+ 	group = (struct ocfs2_group_desc *)group_bh->b_data;
+ 
+ 	cl_bpc = le16_to_cpu(fe->id2.i_chain.cl_bpc);
+-	if (le16_to_cpu(group->bg_bits) / cl_bpc + new_clusters >
+-		le16_to_cpu(fe->id2.i_chain.cl_cpg)) {
++	if (!cl_bpc || le16_to_cpu(group->bg_bits) / cl_bpc + new_clusters >
++		       le16_to_cpu(fe->id2.i_chain.cl_cpg)) {
+ 		ret = -EINVAL;
+ 		goto out_unlock;
+ 	}
+diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
+index f7b483f0de2a..844cb36bd7ab 100644
+--- a/fs/ocfs2/suballoc.c
++++ b/fs/ocfs2/suballoc.c
+@@ -671,6 +671,11 @@ static int ocfs2_block_group_alloc(struct ocfs2_super *osb,
+ 	BUG_ON(ocfs2_is_cluster_bitmap(alloc_inode));
+ 
+ 	cl = &fe->id2.i_chain;
++	if (!le16_to_cpu(cl->cl_bpc)) {
++		status = -EINVAL;
++		goto bail;
++	}
++
+ 	status = ocfs2_reserve_clusters_with_limit(osb,
+ 						   le16_to_cpu(cl->cl_cpg),
+ 						   max_block, flags, &ac);
+-- 
+2.39.5
 
-To change bug's subsystems, reply with:
-#syz set <Ref> subsystems: new-subsystem
-
-You may send multiple commands in a single email message.
