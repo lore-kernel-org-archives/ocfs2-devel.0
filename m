@@ -1,181 +1,203 @@
-Received: from mxhk.zte.com.cn (mxhk.zte.com.cn [63.216.63.35])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-io1-f77.google.com (mail-io1-f77.google.com [209.85.166.77])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 45C1D18DF89
-	for <ocfs2-devel@lists.linux.dev>; Sat, 15 Mar 2025 06:16:48 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=63.216.63.35
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 69A7918A93F
+	for <ocfs2-devel@lists.linux.dev>; Sat, 15 Mar 2025 11:28:29 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.166.77
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1742019409; cv=none; b=kCRDqHZ2qsgWTBhIF+7iCZSe6WRnL77KFQxXh5tf0Q0lkLAC86kcBM6RWh4Sz1JEuuJ3Ht7shmVcjPwH0eouRM0erELVIUXnsavlUC2EMJlr0lIi0kKLHUjywHZSJ9/EfAqUp0aAp9Qhmx9OnIc/XSlG7T9ABbdpENMhWXK4hAA=
+	t=1742038111; cv=none; b=uQvNRqDlX6c5nVZJs/2Q/7g/qQe8BtQmVrR6OQh7V0lRlzVHHX4VAbJpXe+HiZeoYbAPl2I/bMZPl+vozoOaON1v+UtTihCUkSzjuklCrR389xQ2D0VYJGhKUZ0ZYRcLVOQGRZCGokRTBLFcppYt/Sufpu2TbqR/9eYmsk3SUCk=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1742019409; c=relaxed/simple;
-	bh=583kABhI8raiQnwGKga+jZCC+lHUu/5HvgiUa9urVzA=;
-	h=Date:Message-ID:Mime-Version:From:To:Cc:Subject:Content-Type; b=MuoU6ikhXPxbFS2X10xPp5neGqSQxwVkVmyVGuPfubpOFQe5whLepj/6b6ZZcQrjezncTPv1M3wrJXDetZuVyH5fg/wCJxjEne/4rcT5SDCL3JoE+KKB8KOqsFvpXPOXLM2cP52qSMlPXOcqmldRGXtvsoDGtFfW7qUNPfiBW1w=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zte.com.cn; spf=pass smtp.mailfrom=zte.com.cn; arc=none smtp.client-ip=63.216.63.35
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zte.com.cn
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=zte.com.cn
-Received: from mse-fl1.zte.com.cn (unknown [10.5.228.132])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-	(No client certificate requested)
-	by mxhk.zte.com.cn (FangMail) with ESMTPS id 4ZF9xB6sDXz5B1J4;
-	Sat, 15 Mar 2025 14:16:46 +0800 (CST)
-Received: from xaxapp04.zte.com.cn ([10.99.98.157])
-	by mse-fl1.zte.com.cn with SMTP id 52F6Gdbn011369;
-	Sat, 15 Mar 2025 14:16:39 +0800 (+08)
-	(envelope-from xie.ludan@zte.com.cn)
-Received: from mapi (xaxapp04[null])
-	by mapi (Zmail) with MAPI id mid32;
-	Sat, 15 Mar 2025 14:16:40 +0800 (CST)
-Date: Sat, 15 Mar 2025 14:16:40 +0800 (CST)
-X-Zmail-TransId: 2afb67d51b4834b-61146
-X-Mailer: Zmail v1.0
-Message-ID: <20250315141640564lv7R0CwIRPsmittXXjLbB@zte.com.cn>
+	s=arc-20240116; t=1742038111; c=relaxed/simple;
+	bh=pvfjdYSUt2n/ZwRU+Co2SQodwKeyPhv1FS9k8PUZSjA=;
+	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=kNADJIfeoEeL4Zm8QQirhMdYgYnE6L3EV1lx/IWv1xDadaRS/cm3Hi20LbgvdwZ5cHzaoZmeYdT65USWCp1gvdncdJNneQUPXdEXdsChYHGIc3t5ScBImcvC0BaUxI4JpH6ZVeLcn1NIXJbbBy94rlZb9KNKFRRXZzA5hzlhS30=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.166.77
+Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
+Received: by mail-io1-f77.google.com with SMTP id ca18e2360f4ac-85b5a7981ccso301410239f.2
+        for <ocfs2-devel@lists.linux.dev>; Sat, 15 Mar 2025 04:28:29 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1742038108; x=1742642908;
+        h=to:from:subject:message-id:date:mime-version:x-gm-message-state
+         :from:to:cc:subject:date:message-id:reply-to;
+        bh=UgXQDnHoXFRYXrEu/79dfVBcLtArnNDlUuUQ8+tXDd4=;
+        b=ha/JHEZlnU6ErlH2jL1l6eBc5UGwOBEfEaoU3h2LwkiFBz8mVdK3tFuzRJQJ7SbeHf
+         SsALEZksI/JFyvjt7sCw5VJ8wr9rVfDZ3FTmmsGcvOpEOQkWjf8ez153shXqgBP4/2x5
+         xKV79ZRWdT2/JMudYctV8IBqAZSO+GB13c3dfduFYSqgrJjDpGI30yUq+6Ioh/k5H9AE
+         6BRN810moWw8VBUx179mN0bHTCi6+dsNojm4W1lXbh2gw3rvE6mUOplHNSXrirucf0FS
+         Y0xzhSjlgq4M/LHgFzOstoLTP89trEGL7A0zIa7Y4T94MTH+Ljk84fX2kFRXBly0nhTN
+         sFnw==
+X-Forwarded-Encrypted: i=1; AJvYcCUj8Rl8cmg6+oOgzlwP8uL7lwbcWaED8oB2CfQox7CYhOueBVH+C+3ffL6FatTWrzGW0S5S2Nxry5eydA==@lists.linux.dev
+X-Gm-Message-State: AOJu0YxVRf+QNg9tleXB1SB/gPQRAVsZOd+HzC6tF5C0CMcBPLSoPBeI
+	DAv79uKaXduBu8XZvHBBb1YC5BBtX+sSEuHQN7tC60snXrQRtzeU1BPnn/XrMdOVCN1oMJIji5X
+	dQBbxfNl7B9MFEONl7RSJvJy2YqiVcgpENM7LI+hVU6yzeh0kSCSB1R4=
+X-Google-Smtp-Source: AGHT+IGkMp7pv0neRCLy6oDApp9bpKtRz7NxSlMZH0fDD6fJBOSmsSr+dR9CqBLjVeBdCiPlnU/c+qu6B/niejhqtp9tI0KM7YOG
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
-Mime-Version: 1.0
-From: <xie.ludan@zte.com.cn>
-To: <mark@fasheh.com>
-Cc: <jlbec@evilplan.org>, <joseph.qi@linux.alibaba.com>,
-        <akpm@linux-foundation.org>, <viro@zeniv.linux.org.uk>,
-        <brauner@kernel.org>, <danielyangkang@gmail.com>,
-        <dmantipov@yandex.ru>, <ocfs2-devel@lists.linux.dev>,
-        <linux-kernel@vger.kernel.org>
-Subject: =?UTF-8?B?W1BBVENIIGxpbnV4LW5leHRdIG9jZnMyOiB1c2Ugc3lzZnNfZW1pdCgpIGluc3RlYWQgb2Ygc2NucHJpbnRmKCku?=
-Content-Type: multipart/mixed;
-	boundary="=====_001_next====="
-X-MAIL:mse-fl1.zte.com.cn 52F6Gdbn011369
-X-Fangmail-Anti-Spam-Filtered: true
-X-Fangmail-MID-QID: 67D51B4E.002/4ZF9xB6sDXz5B1J4
+MIME-Version: 1.0
+X-Received: by 2002:a05:6e02:1fea:b0:3d1:883c:6e86 with SMTP id
+ e9e14a558f8ab-3d483a09c3emr56534355ab.8.1742038108532; Sat, 15 Mar 2025
+ 04:28:28 -0700 (PDT)
+Date: Sat, 15 Mar 2025 04:28:28 -0700
+X-Google-Appengine-App-Id: s~syzkaller
+X-Google-Appengine-App-Id-Alias: syzkaller
+Message-ID: <67d5645c.050a0220.1dc86f.0004.GAE@google.com>
+Subject: [syzbot] [ocfs2?] possible deadlock in __ocfs2_flush_truncate_log
+From: syzbot <syzbot+6bf948e47f9bac7aacfa@syzkaller.appspotmail.com>
+To: jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
+	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
+	syzkaller-bugs@googlegroups.com
+Content-Type: text/plain; charset="UTF-8"
+
+Hello,
+
+syzbot found the following issue on:
+
+HEAD commit:    4003c9e78778 Merge tag 'net-6.14-rc7' of git://git.kernel...
+git tree:       upstream
+console output: https://syzkaller.appspot.com/x/log.txt?x=114d0fa8580000
+kernel config:  https://syzkaller.appspot.com/x/.config?x=eb44f62cb82f8a0a
+dashboard link: https://syzkaller.appspot.com/bug?extid=6bf948e47f9bac7aacfa
+compiler:       Debian clang version 15.0.6, GNU ld (GNU Binutils for Debian) 2.40
+syz repro:      https://syzkaller.appspot.com/x/repro.syz?x=119f2c78580000
+C reproducer:   https://syzkaller.appspot.com/x/repro.c?x=1469304c580000
+
+Downloadable assets:
+disk image (non-bootable): https://storage.googleapis.com/syzbot-assets/7feb34a89c2a/non_bootable_disk-4003c9e7.raw.xz
+vmlinux: https://storage.googleapis.com/syzbot-assets/d5eb122d2f89/vmlinux-4003c9e7.xz
+kernel image: https://storage.googleapis.com/syzbot-assets/51856a1503a2/bzImage-4003c9e7.xz
+mounted in repro: https://storage.googleapis.com/syzbot-assets/2e8806b27a27/mount_0.gz
+  fsck result: OK (log: https://syzkaller.appspot.com/x/fsck.log?x=100d7654580000)
+
+IMPORTANT: if you fix the issue, please add the following tag to the commit:
+Reported-by: syzbot+6bf948e47f9bac7aacfa@syzkaller.appspotmail.com
+
+======================================================
+WARNING: possible circular locking dependency detected
+6.14.0-rc6-syzkaller-00103-g4003c9e78778 #0 Not tainted
+------------------------------------------------------
+kworker/u4:1/14 is trying to acquire lock:
+ffff8880447bd100 (&ocfs2_sysfile_lock_key[args->fi_sysfile_type]#5){+.+.}-{4:4}, at: inode_lock include/linux/fs.h:877 [inline]
+ffff8880447bd100 (&ocfs2_sysfile_lock_key[args->fi_sysfile_type]#5){+.+.}-{4:4}, at: __ocfs2_flush_truncate_log+0x388/0x1240 fs/ocfs2/alloc.c:6046
+
+but task is already holding lock:
+ffff8880447c3480 (&ocfs2_sysfile_lock_key[args->fi_sysfile_type]#6){+.+.}-{4:4}, at: inode_lock include/linux/fs.h:877 [inline]
+ffff8880447c3480 (&ocfs2_sysfile_lock_key[args->fi_sysfile_type]#6){+.+.}-{4:4}, at: ocfs2_flush_truncate_log fs/ocfs2/alloc.c:6075 [inline]
+ffff8880447c3480 (&ocfs2_sysfile_lock_key[args->fi_sysfile_type]#6){+.+.}-{4:4}, at: ocfs2_truncate_log_worker+0x9a/0x1b0 fs/ocfs2/alloc.c:6089
+
+which lock already depends on the new lock.
 
 
+the existing dependency chain (in reverse order) is:
 
---=====_001_next=====
-Content-Type: multipart/related;
-	boundary="=====_002_next====="
+-> #1 (&ocfs2_sysfile_lock_key[args->fi_sysfile_type]#6){+.+.}-{4:4}:
+       lock_acquire+0x1ed/0x550 kernel/locking/lockdep.c:5851
+       down_write+0x99/0x220 kernel/locking/rwsem.c:1577
+       inode_lock include/linux/fs.h:877 [inline]
+       ocfs2_move_extent fs/ocfs2/move_extents.c:640 [inline]
+       __ocfs2_move_extents_range+0x1f0b/0x4440 fs/ocfs2/move_extents.c:860
+       ocfs2_move_extents+0x3ee/0xac0 fs/ocfs2/move_extents.c:927
+       ocfs2_ioctl_move_extents+0x61a/0x830 fs/ocfs2/move_extents.c:1053
+       ocfs2_ioctl+0x196/0x7d0 fs/ocfs2/ioctl.c:946
+       vfs_ioctl fs/ioctl.c:51 [inline]
+       __do_sys_ioctl fs/ioctl.c:906 [inline]
+       __se_sys_ioctl+0xf5/0x170 fs/ioctl.c:892
+       do_syscall_x64 arch/x86/entry/common.c:52 [inline]
+       do_syscall_64+0xf3/0x230 arch/x86/entry/common.c:83
+       entry_SYSCALL_64_after_hwframe+0x77/0x7f
 
+-> #0 (&ocfs2_sysfile_lock_key[args->fi_sysfile_type]#5){+.+.}-{4:4}:
+       check_prev_add kernel/locking/lockdep.c:3163 [inline]
+       check_prevs_add kernel/locking/lockdep.c:3282 [inline]
+       validate_chain+0x18ef/0x5920 kernel/locking/lockdep.c:3906
+       __lock_acquire+0x1397/0x2100 kernel/locking/lockdep.c:5228
+       lock_acquire+0x1ed/0x550 kernel/locking/lockdep.c:5851
+       down_write+0x99/0x220 kernel/locking/rwsem.c:1577
+       inode_lock include/linux/fs.h:877 [inline]
+       __ocfs2_flush_truncate_log+0x388/0x1240 fs/ocfs2/alloc.c:6046
+       ocfs2_flush_truncate_log fs/ocfs2/alloc.c:6076 [inline]
+       ocfs2_truncate_log_worker+0xa2/0x1b0 fs/ocfs2/alloc.c:6089
+       process_one_work kernel/workqueue.c:3238 [inline]
+       process_scheduled_works+0xabe/0x18e0 kernel/workqueue.c:3319
+       worker_thread+0x870/0xd30 kernel/workqueue.c:3400
+       kthread+0x7a9/0x920 kernel/kthread.c:464
+       ret_from_fork+0x4b/0x80 arch/x86/kernel/process.c:148
+       ret_from_fork_asm+0x1a/0x30 arch/x86/entry/entry_64.S:244
 
---=====_002_next=====
-Content-Type: multipart/alternative;
-	boundary="=====_003_next====="
+other info that might help us debug this:
 
+ Possible unsafe locking scenario:
 
---=====_003_next=====
-Content-Type: text/plain;
-	charset="UTF-8"
-Content-Transfer-Encoding: base64
+       CPU0                    CPU1
+       ----                    ----
+  lock(&ocfs2_sysfile_lock_key[args->fi_sysfile_type]#6);
+                               lock(&ocfs2_sysfile_lock_key[args->fi_sysfile_type]#5);
+                               lock(&ocfs2_sysfile_lock_key[args->fi_sysfile_type]#6);
+  lock(&ocfs2_sysfile_lock_key[args->fi_sysfile_type]#5);
 
-RnJvbTogWGllTHVkYW4gPHhpZS5sdWRhbkB6dGUuY29tLmNuPg0KDQpGb2xsb3cgdGhlIGFkdmlj
-ZSBpbiBEb2N1bWVudGF0aW9uL2ZpbGVzeXN0ZW1zL3N5c2ZzLnJzdDoNCnNob3coKSBzaG91bGQg
-b25seSB1c2Ugc3lzZnNfZW1pdCgpIG9yIHN5c2ZzX2VtaXRfYXQoKSB3aGVuIGZvcm1hdHRpbmcN
-CnRoZSB2YWx1ZSB0byBiZSByZXR1cm5lZCB0byB1c2VyIHNwYWNlLg0KDQpTaWduZWQtb2ZmLWJ5
-OiBYaWVMdWRhbiA8eGllLmx1ZGFuQHp0ZS5jb20uY24+DQotLS0NCiBmcy9vY2ZzMi9jbHVzdGVy
-L2hlYXJ0YmVhdC5jIHwgMTAgKysrKystLS0tLQ0KIDEgZmlsZSBjaGFuZ2VkLCA1IGluc2VydGlv
-bnMoKyksIDUgZGVsZXRpb25zKC0pDQoNCmRpZmYgLS1naXQgYS9mcy9vY2ZzMi9jbHVzdGVyL2hl
-YXJ0YmVhdC5jIGIvZnMvb2NmczIvY2x1c3Rlci9oZWFydGJlYXQuYw0KaW5kZXggNzI0MzUwOTI1
-YWZmLi44MjgyZmMxOTM5MDYgMTAwNjQ0DQotLS0gYS9mcy9vY2ZzMi9jbHVzdGVyL2hlYXJ0YmVh
-dC5jDQorKysgYi9mcy9vY2ZzMi9jbHVzdGVyL2hlYXJ0YmVhdC5jDQpAQCAtMTMwOCw3ICsxMzA4
-LDcgQEAgc3RhdGljIGludCBvMmhiX2RlYnVnX29wZW4oc3RydWN0IGlub2RlICppbm9kZSwgc3Ry
-dWN0IGZpbGUgKmZpbGUpDQogDQogCWNhc2UgTzJIQl9EQl9UWVBFX1JFR0lPTl9OVU1CRVI6DQog
-CQlyZWcgPSAoc3RydWN0IG8yaGJfcmVnaW9uICopZGItPmRiX2RhdGE7DQotCQlvdXQgKz0gc2Nu
-cHJpbnRmKGJ1ZiArIG91dCwgUEFHRV9TSVpFIC0gb3V0LCAiJWRcbiIsDQorCQlvdXQgKz0gc3lz
-ZnNfZW1pdChidWYgKyBvdXQsICIlZFxuIiwNCiAJCQkJcmVnLT5ocl9yZWdpb25fbnVtKTsNCiAJ
-CWdvdG8gZG9uZTsNCiANCkBAIC0xMzE4LDEyICsxMzE4LDEyIEBAIHN0YXRpYyBpbnQgbzJoYl9k
-ZWJ1Z19vcGVuKHN0cnVjdCBpbm9kZSAqaW5vZGUsIHN0cnVjdCBmaWxlICpmaWxlKQ0KIAkJLyog
-SWYgMCwgaXQgaGFzIG5ldmVyIGJlZW4gc2V0IGJlZm9yZSAqLw0KIAkJaWYgKGx0cykNCiAJCQls
-dHMgPSBqaWZmaWVzX3RvX21zZWNzKGppZmZpZXMgLSBsdHMpOw0KLQkJb3V0ICs9IHNjbnByaW50
-ZihidWYgKyBvdXQsIFBBR0VfU0laRSAtIG91dCwgIiVsdVxuIiwgbHRzKTsNCisJCW91dCArPSBz
-eXNmc19lbWl0KGJ1ZiArIG91dCwgIiVsdVxuIiwgbHRzKTsNCiAJCWdvdG8gZG9uZTsNCiANCiAJ
-Y2FzZSBPMkhCX0RCX1RZUEVfUkVHSU9OX1BJTk5FRDoNCiAJCXJlZyA9IChzdHJ1Y3QgbzJoYl9y
-ZWdpb24gKilkYi0+ZGJfZGF0YTsNCi0JCW91dCArPSBzY25wcmludGYoYnVmICsgb3V0LCBQQUdF
-X1NJWkUgLSBvdXQsICIldVxuIiwNCisJCW91dCArPSBzeXNmc19lbWl0KGJ1ZiArIG91dCwgIiV1
-XG4iLA0KIAkJCQkhIXJlZy0+aHJfaXRlbV9waW5uZWQpOw0KIAkJZ290byBkb25lOw0KIA0KQEAg
-LTEzMzIsOCArMTMzMiw4IEBAIHN0YXRpYyBpbnQgbzJoYl9kZWJ1Z19vcGVuKHN0cnVjdCBpbm9k
-ZSAqaW5vZGUsIHN0cnVjdCBmaWxlICpmaWxlKQ0KIAl9DQogDQogCXdoaWxlICgoaSA9IGZpbmRf
-bmV4dF9iaXQobWFwLCBkYi0+ZGJfbGVuLCBpICsgMSkpIDwgZGItPmRiX2xlbikNCi0JCW91dCAr
-PSBzY25wcmludGYoYnVmICsgb3V0LCBQQUdFX1NJWkUgLSBvdXQsICIlZCAiLCBpKTsNCi0Jb3V0
-ICs9IHNjbnByaW50ZihidWYgKyBvdXQsIFBBR0VfU0laRSAtIG91dCwgIlxuIik7DQorCQlvdXQg
-Kz0gc3lzZnNfZW1pdChidWYgKyBvdXQsICIlZCAiLCBpKTsNCisJb3V0ICs9IHN5c2ZzX2VtaXQo
-YnVmICsgb3V0LCAiXG4iKTsNCiANCiBkb25lOg0KIAlpX3NpemVfd3JpdGUoaW5vZGUsIG91dCk7
-DQotLSANCjIuMjUuMQ==
+ *** DEADLOCK ***
 
+3 locks held by kworker/u4:1/14:
+ #0: ffff88803f7b2948 ((wq_completion)ocfs2_wq){+.+.}-{0:0}, at: process_one_work kernel/workqueue.c:3213 [inline]
+ #0: ffff88803f7b2948 ((wq_completion)ocfs2_wq){+.+.}-{0:0}, at: process_scheduled_works+0x98b/0x18e0 kernel/workqueue.c:3319
+ #1: ffffc9000040fc60 ((work_completion)(&(&osb->osb_truncate_log_wq)->work)){+.+.}-{0:0}, at: process_one_work kernel/workqueue.c:3214 [inline]
+ #1: ffffc9000040fc60 ((work_completion)(&(&osb->osb_truncate_log_wq)->work)){+.+.}-{0:0}, at: process_scheduled_works+0x9c6/0x18e0 kernel/workqueue.c:3319
+ #2: ffff8880447c3480 (&ocfs2_sysfile_lock_key[args->fi_sysfile_type]#6){+.+.}-{4:4}, at: inode_lock include/linux/fs.h:877 [inline]
+ #2: ffff8880447c3480 (&ocfs2_sysfile_lock_key[args->fi_sysfile_type]#6){+.+.}-{4:4}, at: ocfs2_flush_truncate_log fs/ocfs2/alloc.c:6075 [inline]
+ #2: ffff8880447c3480 (&ocfs2_sysfile_lock_key[args->fi_sysfile_type]#6){+.+.}-{4:4}, at: ocfs2_truncate_log_worker+0x9a/0x1b0 fs/ocfs2/alloc.c:6089
 
---=====_003_next=====
-Content-Type: text/html ;
-	charset="UTF-8"
-Content-Transfer-Encoding: base64
-
-PGRpdiBjbGFzcz0iemNvbnRlbnRSb3ciPjxwPjxzcGFuIHN0eWxlPSJmb250LWZhbWlseTogQXJp
-YWwsIEhlbHZldGljYSwgJnF1b3Q7TWljcm9zb2Z0IFlhaGVpJnF1b3Q7LCBzYW5zLXNlcmlmOyBi
-YWNrZ3JvdW5kLWNvbG9yOiByZ2IoMjU1LCAyNTUsIDI1NSk7Ij5Gcm9tOiBYaWVMdWRhbiAmbHQ7
-eGllLmx1ZGFuQHp0ZS5jb20uY24mZ3Q7PC9zcGFuPjwvcD48cD48YnI+PC9wPjxwPkZvbGxvdyB0
-aGUgYWR2aWNlIGluIERvY3VtZW50YXRpb24vZmlsZXN5c3RlbXMvc3lzZnMucnN0OjwvcD48cD5z
-aG93KCkgc2hvdWxkIG9ubHkgdXNlIHN5c2ZzX2VtaXQoKSBvciBzeXNmc19lbWl0X2F0KCkgd2hl
-biBmb3JtYXR0aW5nPC9wPjxwPnRoZSB2YWx1ZSB0byBiZSByZXR1cm5lZCB0byB1c2VyIHNwYWNl
-LjwvcD48cD48YnI+PC9wPjxwPlNpZ25lZC1vZmYtYnk6IFhpZUx1ZGFuICZsdDt4aWUubHVkYW5A
-enRlLmNvbS5jbiZndDs8L3A+PHA+LS0tPC9wPjxwPiZuYnNwO2ZzL29jZnMyL2NsdXN0ZXIvaGVh
-cnRiZWF0LmMgfCAxMCArKysrKy0tLS0tPC9wPjxwPiZuYnNwOzEgZmlsZSBjaGFuZ2VkLCA1IGlu
-c2VydGlvbnMoKyksIDUgZGVsZXRpb25zKC0pPC9wPjxwPjxicj48L3A+PHA+ZGlmZiAtLWdpdCBh
-L2ZzL29jZnMyL2NsdXN0ZXIvaGVhcnRiZWF0LmMgYi9mcy9vY2ZzMi9jbHVzdGVyL2hlYXJ0YmVh
-dC5jPC9wPjxwPmluZGV4IDcyNDM1MDkyNWFmZi4uODI4MmZjMTkzOTA2IDEwMDY0NDwvcD48cD4t
-LS0gYS9mcy9vY2ZzMi9jbHVzdGVyL2hlYXJ0YmVhdC5jPC9wPjxwPisrKyBiL2ZzL29jZnMyL2Ns
-dXN0ZXIvaGVhcnRiZWF0LmM8L3A+PHA+QEAgLTEzMDgsNyArMTMwOCw3IEBAIHN0YXRpYyBpbnQg
-bzJoYl9kZWJ1Z19vcGVuKHN0cnVjdCBpbm9kZSAqaW5vZGUsIHN0cnVjdCBmaWxlICpmaWxlKTwv
-cD48cD4mbmJzcDs8L3A+PHA+Jm5ic3A7PHNwYW4gc3R5bGU9IndoaXRlLXNwYWNlOnByZSI+CTwv
-c3Bhbj5jYXNlIE8ySEJfREJfVFlQRV9SRUdJT05fTlVNQkVSOjwvcD48cD4mbmJzcDs8c3BhbiBz
-dHlsZT0id2hpdGUtc3BhY2U6cHJlIj4JCTwvc3Bhbj5yZWcgPSAoc3RydWN0IG8yaGJfcmVnaW9u
-ICopZGItJmd0O2RiX2RhdGE7PC9wPjxwPi08c3BhbiBzdHlsZT0id2hpdGUtc3BhY2U6cHJlIj4J
-CTwvc3Bhbj5vdXQgKz0gc2NucHJpbnRmKGJ1ZiArIG91dCwgUEFHRV9TSVpFIC0gb3V0LCAiJWRc
-biIsPC9wPjxwPis8c3BhbiBzdHlsZT0id2hpdGUtc3BhY2U6cHJlIj4JCTwvc3Bhbj5vdXQgKz0g
-c3lzZnNfZW1pdChidWYgKyBvdXQsICIlZFxuIiw8L3A+PHA+Jm5ic3A7PHNwYW4gc3R5bGU9Indo
-aXRlLXNwYWNlOnByZSI+CQkJCTwvc3Bhbj5yZWctJmd0O2hyX3JlZ2lvbl9udW0pOzwvcD48cD4m
-bmJzcDs8c3BhbiBzdHlsZT0id2hpdGUtc3BhY2U6cHJlIj4JCTwvc3Bhbj5nb3RvIGRvbmU7PC9w
-PjxwPiZuYnNwOzwvcD48cD5AQCAtMTMxOCwxMiArMTMxOCwxMiBAQCBzdGF0aWMgaW50IG8yaGJf
-ZGVidWdfb3BlbihzdHJ1Y3QgaW5vZGUgKmlub2RlLCBzdHJ1Y3QgZmlsZSAqZmlsZSk8L3A+PHA+
-Jm5ic3A7PHNwYW4gc3R5bGU9IndoaXRlLXNwYWNlOnByZSI+CQk8L3NwYW4+LyogSWYgMCwgaXQg
-aGFzIG5ldmVyIGJlZW4gc2V0IGJlZm9yZSAqLzwvcD48cD4mbmJzcDs8c3BhbiBzdHlsZT0id2hp
-dGUtc3BhY2U6cHJlIj4JCTwvc3Bhbj5pZiAobHRzKTwvcD48cD4mbmJzcDs8c3BhbiBzdHlsZT0i
-d2hpdGUtc3BhY2U6cHJlIj4JCQk8L3NwYW4+bHRzID0gamlmZmllc190b19tc2VjcyhqaWZmaWVz
-IC0gbHRzKTs8L3A+PHA+LTxzcGFuIHN0eWxlPSJ3aGl0ZS1zcGFjZTpwcmUiPgkJPC9zcGFuPm91
-dCArPSBzY25wcmludGYoYnVmICsgb3V0LCBQQUdFX1NJWkUgLSBvdXQsICIlbHVcbiIsIGx0cyk7
-PC9wPjxwPis8c3BhbiBzdHlsZT0id2hpdGUtc3BhY2U6cHJlIj4JCTwvc3Bhbj5vdXQgKz0gc3lz
-ZnNfZW1pdChidWYgKyBvdXQsICIlbHVcbiIsIGx0cyk7PC9wPjxwPiZuYnNwOzxzcGFuIHN0eWxl
-PSJ3aGl0ZS1zcGFjZTpwcmUiPgkJPC9zcGFuPmdvdG8gZG9uZTs8L3A+PHA+Jm5ic3A7PC9wPjxw
-PiZuYnNwOzxzcGFuIHN0eWxlPSJ3aGl0ZS1zcGFjZTpwcmUiPgk8L3NwYW4+Y2FzZSBPMkhCX0RC
-X1RZUEVfUkVHSU9OX1BJTk5FRDo8L3A+PHA+Jm5ic3A7PHNwYW4gc3R5bGU9IndoaXRlLXNwYWNl
-OnByZSI+CQk8L3NwYW4+cmVnID0gKHN0cnVjdCBvMmhiX3JlZ2lvbiAqKWRiLSZndDtkYl9kYXRh
-OzwvcD48cD4tPHNwYW4gc3R5bGU9IndoaXRlLXNwYWNlOnByZSI+CQk8L3NwYW4+b3V0ICs9IHNj
-bnByaW50ZihidWYgKyBvdXQsIFBBR0VfU0laRSAtIG91dCwgIiV1XG4iLDwvcD48cD4rPHNwYW4g
-c3R5bGU9IndoaXRlLXNwYWNlOnByZSI+CQk8L3NwYW4+b3V0ICs9IHN5c2ZzX2VtaXQoYnVmICsg
-b3V0LCAiJXVcbiIsPC9wPjxwPiZuYnNwOzxzcGFuIHN0eWxlPSJ3aGl0ZS1zcGFjZTpwcmUiPgkJ
-CQk8L3NwYW4+ISFyZWctJmd0O2hyX2l0ZW1fcGlubmVkKTs8L3A+PHA+Jm5ic3A7PHNwYW4gc3R5
-bGU9IndoaXRlLXNwYWNlOnByZSI+CQk8L3NwYW4+Z290byBkb25lOzwvcD48cD4mbmJzcDs8L3A+
-PHA+QEAgLTEzMzIsOCArMTMzMiw4IEBAIHN0YXRpYyBpbnQgbzJoYl9kZWJ1Z19vcGVuKHN0cnVj
-dCBpbm9kZSAqaW5vZGUsIHN0cnVjdCBmaWxlICpmaWxlKTwvcD48cD4mbmJzcDs8c3BhbiBzdHls
-ZT0id2hpdGUtc3BhY2U6cHJlIj4JPC9zcGFuPn08L3A+PHA+Jm5ic3A7PC9wPjxwPiZuYnNwOzxz
-cGFuIHN0eWxlPSJ3aGl0ZS1zcGFjZTpwcmUiPgk8L3NwYW4+d2hpbGUgKChpID0gZmluZF9uZXh0
-X2JpdChtYXAsIGRiLSZndDtkYl9sZW4sIGkgKyAxKSkgJmx0OyBkYi0mZ3Q7ZGJfbGVuKTwvcD48
-cD4tPHNwYW4gc3R5bGU9IndoaXRlLXNwYWNlOnByZSI+CQk8L3NwYW4+b3V0ICs9IHNjbnByaW50
-ZihidWYgKyBvdXQsIFBBR0VfU0laRSAtIG91dCwgIiVkICIsIGkpOzwvcD48cD4tPHNwYW4gc3R5
-bGU9IndoaXRlLXNwYWNlOnByZSI+CTwvc3Bhbj5vdXQgKz0gc2NucHJpbnRmKGJ1ZiArIG91dCwg
-UEFHRV9TSVpFIC0gb3V0LCAiXG4iKTs8L3A+PHA+KzxzcGFuIHN0eWxlPSJ3aGl0ZS1zcGFjZTpw
-cmUiPgkJPC9zcGFuPm91dCArPSBzeXNmc19lbWl0KGJ1ZiArIG91dCwgIiVkICIsIGkpOzwvcD48
-cD4rPHNwYW4gc3R5bGU9IndoaXRlLXNwYWNlOnByZSI+CTwvc3Bhbj5vdXQgKz0gc3lzZnNfZW1p
-dChidWYgKyBvdXQsICJcbiIpOzwvcD48cD4mbmJzcDs8L3A+PHA+Jm5ic3A7ZG9uZTo8L3A+PHA+
-Jm5ic3A7PHNwYW4gc3R5bGU9IndoaXRlLXNwYWNlOnByZSI+CTwvc3Bhbj5pX3NpemVfd3JpdGUo
-aW5vZGUsIG91dCk7PC9wPjxwPi0tJm5ic3A7PC9wPjxwPjIuMjUuMTwvcD48cCBzdHlsZT0iZm9u
-dC1zaXplOjE0cHg7Zm9udC1mYW1pbHk65b6u6L2v6ZuF6buRLE1pY3Jvc29mdCBZYUhlaTsiPjxi
-cj48L3A+PHAgc3R5bGU9ImZvbnQtc2l6ZToxNHB4O2ZvbnQtZmFtaWx5OuW+rui9r+mbhem7kSxN
-aWNyb3NvZnQgWWFIZWk7Ij48YnI+PC9wPjxwIHN0eWxlPSJmb250LXNpemU6MTRweDtmb250LWZh
-bWlseTrlvq7ova/pm4Xpu5EsTWljcm9zb2Z0IFlhSGVpOyI+PGJyPjwvcD48cCBzdHlsZT0iZm9u
-dC1zaXplOjE0cHg7Zm9udC1mYW1pbHk65b6u6L2v6ZuF6buRLE1pY3Jvc29mdCBZYUhlaTsiPjxi
-cj48L3A+PC9kaXY+
+stack backtrace:
+CPU: 0 UID: 0 PID: 14 Comm: kworker/u4:1 Not tainted 6.14.0-rc6-syzkaller-00103-g4003c9e78778 #0
+Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.16.3-debian-1.16.3-2~bpo12+1 04/01/2014
+Workqueue: ocfs2_wq ocfs2_truncate_log_worker
+Call Trace:
+ <TASK>
+ __dump_stack lib/dump_stack.c:94 [inline]
+ dump_stack_lvl+0x241/0x360 lib/dump_stack.c:120
+ print_circular_bug+0x13a/0x1b0 kernel/locking/lockdep.c:2076
+ check_noncircular+0x36a/0x4a0 kernel/locking/lockdep.c:2208
+ check_prev_add kernel/locking/lockdep.c:3163 [inline]
+ check_prevs_add kernel/locking/lockdep.c:3282 [inline]
+ validate_chain+0x18ef/0x5920 kernel/locking/lockdep.c:3906
+ __lock_acquire+0x1397/0x2100 kernel/locking/lockdep.c:5228
+ lock_acquire+0x1ed/0x550 kernel/locking/lockdep.c:5851
+ down_write+0x99/0x220 kernel/locking/rwsem.c:1577
+ inode_lock include/linux/fs.h:877 [inline]
+ __ocfs2_flush_truncate_log+0x388/0x1240 fs/ocfs2/alloc.c:6046
+ ocfs2_flush_truncate_log fs/ocfs2/alloc.c:6076 [inline]
+ ocfs2_truncate_log_worker+0xa2/0x1b0 fs/ocfs2/alloc.c:6089
+ process_one_work kernel/workqueue.c:3238 [inline]
+ process_scheduled_works+0xabe/0x18e0 kernel/workqueue.c:3319
+ worker_thread+0x870/0xd30 kernel/workqueue.c:3400
+ kthread+0x7a9/0x920 kernel/kthread.c:464
+ ret_from_fork+0x4b/0x80 arch/x86/kernel/process.c:148
+ ret_from_fork_asm+0x1a/0x30 arch/x86/entry/entry_64.S:244
+ </TASK>
 
 
---=====_003_next=====--
+---
+This report is generated by a bot. It may contain errors.
+See https://goo.gl/tpsmEJ for more information about syzbot.
+syzbot engineers can be reached at syzkaller@googlegroups.com.
 
---=====_002_next=====--
+syzbot will keep track of this issue. See:
+https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
 
---=====_001_next=====--
+If the report is already addressed, let syzbot know by replying with:
+#syz fix: exact-commit-title
 
+If you want syzbot to run the reproducer, reply with:
+#syz test: git://repo/address.git branch-or-commit-hash
+If you attach or paste a git patch, syzbot will apply it before testing.
+
+If you want to overwrite report's subsystems, reply with:
+#syz set subsystems: new-subsystem
+(See the list of subsystem names on the web dashboard)
+
+If the report is a duplicate of another one, reply with:
+#syz dup: exact-subject-of-another-report
+
+If you want to undo deduplication, reply with:
+#syz undup
