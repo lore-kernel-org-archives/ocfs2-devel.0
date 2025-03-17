@@ -1,203 +1,143 @@
-Received: from mail-io1-f77.google.com (mail-io1-f77.google.com [209.85.166.77])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 69A7918A93F
-	for <ocfs2-devel@lists.linux.dev>; Sat, 15 Mar 2025 11:28:29 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.166.77
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7E8254430;
+	Mon, 17 Mar 2025 06:20:58 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1742038111; cv=none; b=uQvNRqDlX6c5nVZJs/2Q/7g/qQe8BtQmVrR6OQh7V0lRlzVHHX4VAbJpXe+HiZeoYbAPl2I/bMZPl+vozoOaON1v+UtTihCUkSzjuklCrR389xQ2D0VYJGhKUZ0ZYRcLVOQGRZCGokRTBLFcppYt/Sufpu2TbqR/9eYmsk3SUCk=
+	t=1742192458; cv=none; b=ZIYAVWW9gsJbGMolAkNUnIN+l7TIfktzLqvR6+OPT+1Ynm8xkxsPaNZCu1LpyQvgzFFGLLtJRh4cmPAgpc8q+NFtpCBa9JBsBuhlg7SGNROyu0zRmqKJfOOZUGWW+0eMoh47oIbp5nETeedkLoKrvI9JbOdk4bmu5W/6rSMar5g=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1742038111; c=relaxed/simple;
-	bh=pvfjdYSUt2n/ZwRU+Co2SQodwKeyPhv1FS9k8PUZSjA=;
-	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=kNADJIfeoEeL4Zm8QQirhMdYgYnE6L3EV1lx/IWv1xDadaRS/cm3Hi20LbgvdwZ5cHzaoZmeYdT65USWCp1gvdncdJNneQUPXdEXdsChYHGIc3t5ScBImcvC0BaUxI4JpH6ZVeLcn1NIXJbbBy94rlZb9KNKFRRXZzA5hzlhS30=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.166.77
-Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
-Received: by mail-io1-f77.google.com with SMTP id ca18e2360f4ac-85b5a7981ccso301410239f.2
-        for <ocfs2-devel@lists.linux.dev>; Sat, 15 Mar 2025 04:28:29 -0700 (PDT)
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1742038108; x=1742642908;
-        h=to:from:subject:message-id:date:mime-version:x-gm-message-state
-         :from:to:cc:subject:date:message-id:reply-to;
-        bh=UgXQDnHoXFRYXrEu/79dfVBcLtArnNDlUuUQ8+tXDd4=;
-        b=ha/JHEZlnU6ErlH2jL1l6eBc5UGwOBEfEaoU3h2LwkiFBz8mVdK3tFuzRJQJ7SbeHf
-         SsALEZksI/JFyvjt7sCw5VJ8wr9rVfDZ3FTmmsGcvOpEOQkWjf8ez153shXqgBP4/2x5
-         xKV79ZRWdT2/JMudYctV8IBqAZSO+GB13c3dfduFYSqgrJjDpGI30yUq+6Ioh/k5H9AE
-         6BRN810moWw8VBUx179mN0bHTCi6+dsNojm4W1lXbh2gw3rvE6mUOplHNSXrirucf0FS
-         Y0xzhSjlgq4M/LHgFzOstoLTP89trEGL7A0zIa7Y4T94MTH+Ljk84fX2kFRXBly0nhTN
-         sFnw==
-X-Forwarded-Encrypted: i=1; AJvYcCUj8Rl8cmg6+oOgzlwP8uL7lwbcWaED8oB2CfQox7CYhOueBVH+C+3ffL6FatTWrzGW0S5S2Nxry5eydA==@lists.linux.dev
-X-Gm-Message-State: AOJu0YxVRf+QNg9tleXB1SB/gPQRAVsZOd+HzC6tF5C0CMcBPLSoPBeI
-	DAv79uKaXduBu8XZvHBBb1YC5BBtX+sSEuHQN7tC60snXrQRtzeU1BPnn/XrMdOVCN1oMJIji5X
-	dQBbxfNl7B9MFEONl7RSJvJy2YqiVcgpENM7LI+hVU6yzeh0kSCSB1R4=
-X-Google-Smtp-Source: AGHT+IGkMp7pv0neRCLy6oDApp9bpKtRz7NxSlMZH0fDD6fJBOSmsSr+dR9CqBLjVeBdCiPlnU/c+qu6B/niejhqtp9tI0KM7YOG
+	s=arc-20240116; t=1742192458; c=relaxed/simple;
+	bh=6avnnkGStpdEgMGZiPC/B0bGMi+/oYvepTgvlfgBaIE=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=Igu0Z59sOBLVYlqjiNp5x95KqSag/2lHCl6TSGT9B9DdP1K3Rdov4sfVphNgEPTN+9QS/cP8W9Keom2qhRwp9sXw9iJijXjsU7OXOxNisPJZLFg+eKChKBKcV+68bAEslUU0x1UqZRa8F4GuL+tIF5TnnOc/O+CDKSqsdEWJVL8=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=gOMWfEu7; arc=none smtp.client-ip=10.30.226.201
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="gOMWfEu7"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id AE8D0C4CEE3;
+	Mon, 17 Mar 2025 06:20:55 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=k20201202; t=1742192457;
+	bh=6avnnkGStpdEgMGZiPC/B0bGMi+/oYvepTgvlfgBaIE=;
+	h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
+	b=gOMWfEu76MHTLqDkwpUi0pFmp1MHICZaHMPcOCEdObn4dUEflU2gSxICbcQxSvLj4
+	 vDv17d7O1+EImlwwWF0Zo3Cm1AJjr9KgfGlc5+ts4E58qK5yMyLoajzmyaL00g8sYm
+	 MvimnfktLOv2Sa6foWxubFmVU6YLKevK6Bxo6la27tKhF+uzcoDZ9rWYPh+uO0nVyf
+	 p3BNEBXioWgBS/Syp3xV8wAH6SGFdlDsOABs5M94vV/xr3Y45+1icgD86B/n5r88Ei
+	 Cw9WhRV89lMFUhwn6Hk5bBuGMRFmLt4YYePF3hFq+7Q280sad3CFn2oe2BAvfRBWhW
+	 YBEgp/hfdRxQg==
+Message-ID: <feb009f6-79b9-499e-a909-3d27c4fb9fad@kernel.org>
+Date: Mon, 17 Mar 2025 07:20:54 +0100
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-X-Received: by 2002:a05:6e02:1fea:b0:3d1:883c:6e86 with SMTP id
- e9e14a558f8ab-3d483a09c3emr56534355ab.8.1742038108532; Sat, 15 Mar 2025
- 04:28:28 -0700 (PDT)
-Date: Sat, 15 Mar 2025 04:28:28 -0700
-X-Google-Appengine-App-Id: s~syzkaller
-X-Google-Appengine-App-Id-Alias: syzkaller
-Message-ID: <67d5645c.050a0220.1dc86f.0004.GAE@google.com>
-Subject: [syzbot] [ocfs2?] possible deadlock in __ocfs2_flush_truncate_log
-From: syzbot <syzbot+6bf948e47f9bac7aacfa@syzkaller.appspotmail.com>
-To: jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
-	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
-	syzkaller-bugs@googlegroups.com
-Content-Type: text/plain; charset="UTF-8"
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH linux-next] ocfs2: use sysfs_emit() instead of
+ scnprintf().
+To: xie.ludan@zte.com.cn, mark@fasheh.com
+Cc: jlbec@evilplan.org, joseph.qi@linux.alibaba.com,
+ akpm@linux-foundation.org, viro@zeniv.linux.org.uk, brauner@kernel.org,
+ danielyangkang@gmail.com, dmantipov@yandex.ru, ocfs2-devel@lists.linux.dev,
+ linux-kernel@vger.kernel.org
+References: <20250315141640564lv7R0CwIRPsmittXXjLbB@zte.com.cn>
+Content-Language: en-US
+From: Jiri Slaby <jirislaby@kernel.org>
+Autocrypt: addr=jirislaby@kernel.org; keydata=
+ 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
+In-Reply-To: <20250315141640564lv7R0CwIRPsmittXXjLbB@zte.com.cn>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 8bit
 
-Hello,
-
-syzbot found the following issue on:
-
-HEAD commit:    4003c9e78778 Merge tag 'net-6.14-rc7' of git://git.kernel...
-git tree:       upstream
-console output: https://syzkaller.appspot.com/x/log.txt?x=114d0fa8580000
-kernel config:  https://syzkaller.appspot.com/x/.config?x=eb44f62cb82f8a0a
-dashboard link: https://syzkaller.appspot.com/bug?extid=6bf948e47f9bac7aacfa
-compiler:       Debian clang version 15.0.6, GNU ld (GNU Binutils for Debian) 2.40
-syz repro:      https://syzkaller.appspot.com/x/repro.syz?x=119f2c78580000
-C reproducer:   https://syzkaller.appspot.com/x/repro.c?x=1469304c580000
-
-Downloadable assets:
-disk image (non-bootable): https://storage.googleapis.com/syzbot-assets/7feb34a89c2a/non_bootable_disk-4003c9e7.raw.xz
-vmlinux: https://storage.googleapis.com/syzbot-assets/d5eb122d2f89/vmlinux-4003c9e7.xz
-kernel image: https://storage.googleapis.com/syzbot-assets/51856a1503a2/bzImage-4003c9e7.xz
-mounted in repro: https://storage.googleapis.com/syzbot-assets/2e8806b27a27/mount_0.gz
-  fsck result: OK (log: https://syzkaller.appspot.com/x/fsck.log?x=100d7654580000)
-
-IMPORTANT: if you fix the issue, please add the following tag to the commit:
-Reported-by: syzbot+6bf948e47f9bac7aacfa@syzkaller.appspotmail.com
-
-======================================================
-WARNING: possible circular locking dependency detected
-6.14.0-rc6-syzkaller-00103-g4003c9e78778 #0 Not tainted
-------------------------------------------------------
-kworker/u4:1/14 is trying to acquire lock:
-ffff8880447bd100 (&ocfs2_sysfile_lock_key[args->fi_sysfile_type]#5){+.+.}-{4:4}, at: inode_lock include/linux/fs.h:877 [inline]
-ffff8880447bd100 (&ocfs2_sysfile_lock_key[args->fi_sysfile_type]#5){+.+.}-{4:4}, at: __ocfs2_flush_truncate_log+0x388/0x1240 fs/ocfs2/alloc.c:6046
-
-but task is already holding lock:
-ffff8880447c3480 (&ocfs2_sysfile_lock_key[args->fi_sysfile_type]#6){+.+.}-{4:4}, at: inode_lock include/linux/fs.h:877 [inline]
-ffff8880447c3480 (&ocfs2_sysfile_lock_key[args->fi_sysfile_type]#6){+.+.}-{4:4}, at: ocfs2_flush_truncate_log fs/ocfs2/alloc.c:6075 [inline]
-ffff8880447c3480 (&ocfs2_sysfile_lock_key[args->fi_sysfile_type]#6){+.+.}-{4:4}, at: ocfs2_truncate_log_worker+0x9a/0x1b0 fs/ocfs2/alloc.c:6089
-
-which lock already depends on the new lock.
-
-
-the existing dependency chain (in reverse order) is:
-
--> #1 (&ocfs2_sysfile_lock_key[args->fi_sysfile_type]#6){+.+.}-{4:4}:
-       lock_acquire+0x1ed/0x550 kernel/locking/lockdep.c:5851
-       down_write+0x99/0x220 kernel/locking/rwsem.c:1577
-       inode_lock include/linux/fs.h:877 [inline]
-       ocfs2_move_extent fs/ocfs2/move_extents.c:640 [inline]
-       __ocfs2_move_extents_range+0x1f0b/0x4440 fs/ocfs2/move_extents.c:860
-       ocfs2_move_extents+0x3ee/0xac0 fs/ocfs2/move_extents.c:927
-       ocfs2_ioctl_move_extents+0x61a/0x830 fs/ocfs2/move_extents.c:1053
-       ocfs2_ioctl+0x196/0x7d0 fs/ocfs2/ioctl.c:946
-       vfs_ioctl fs/ioctl.c:51 [inline]
-       __do_sys_ioctl fs/ioctl.c:906 [inline]
-       __se_sys_ioctl+0xf5/0x170 fs/ioctl.c:892
-       do_syscall_x64 arch/x86/entry/common.c:52 [inline]
-       do_syscall_64+0xf3/0x230 arch/x86/entry/common.c:83
-       entry_SYSCALL_64_after_hwframe+0x77/0x7f
-
--> #0 (&ocfs2_sysfile_lock_key[args->fi_sysfile_type]#5){+.+.}-{4:4}:
-       check_prev_add kernel/locking/lockdep.c:3163 [inline]
-       check_prevs_add kernel/locking/lockdep.c:3282 [inline]
-       validate_chain+0x18ef/0x5920 kernel/locking/lockdep.c:3906
-       __lock_acquire+0x1397/0x2100 kernel/locking/lockdep.c:5228
-       lock_acquire+0x1ed/0x550 kernel/locking/lockdep.c:5851
-       down_write+0x99/0x220 kernel/locking/rwsem.c:1577
-       inode_lock include/linux/fs.h:877 [inline]
-       __ocfs2_flush_truncate_log+0x388/0x1240 fs/ocfs2/alloc.c:6046
-       ocfs2_flush_truncate_log fs/ocfs2/alloc.c:6076 [inline]
-       ocfs2_truncate_log_worker+0xa2/0x1b0 fs/ocfs2/alloc.c:6089
-       process_one_work kernel/workqueue.c:3238 [inline]
-       process_scheduled_works+0xabe/0x18e0 kernel/workqueue.c:3319
-       worker_thread+0x870/0xd30 kernel/workqueue.c:3400
-       kthread+0x7a9/0x920 kernel/kthread.c:464
-       ret_from_fork+0x4b/0x80 arch/x86/kernel/process.c:148
-       ret_from_fork_asm+0x1a/0x30 arch/x86/entry/entry_64.S:244
-
-other info that might help us debug this:
-
- Possible unsafe locking scenario:
-
-       CPU0                    CPU1
-       ----                    ----
-  lock(&ocfs2_sysfile_lock_key[args->fi_sysfile_type]#6);
-                               lock(&ocfs2_sysfile_lock_key[args->fi_sysfile_type]#5);
-                               lock(&ocfs2_sysfile_lock_key[args->fi_sysfile_type]#6);
-  lock(&ocfs2_sysfile_lock_key[args->fi_sysfile_type]#5);
-
- *** DEADLOCK ***
-
-3 locks held by kworker/u4:1/14:
- #0: ffff88803f7b2948 ((wq_completion)ocfs2_wq){+.+.}-{0:0}, at: process_one_work kernel/workqueue.c:3213 [inline]
- #0: ffff88803f7b2948 ((wq_completion)ocfs2_wq){+.+.}-{0:0}, at: process_scheduled_works+0x98b/0x18e0 kernel/workqueue.c:3319
- #1: ffffc9000040fc60 ((work_completion)(&(&osb->osb_truncate_log_wq)->work)){+.+.}-{0:0}, at: process_one_work kernel/workqueue.c:3214 [inline]
- #1: ffffc9000040fc60 ((work_completion)(&(&osb->osb_truncate_log_wq)->work)){+.+.}-{0:0}, at: process_scheduled_works+0x9c6/0x18e0 kernel/workqueue.c:3319
- #2: ffff8880447c3480 (&ocfs2_sysfile_lock_key[args->fi_sysfile_type]#6){+.+.}-{4:4}, at: inode_lock include/linux/fs.h:877 [inline]
- #2: ffff8880447c3480 (&ocfs2_sysfile_lock_key[args->fi_sysfile_type]#6){+.+.}-{4:4}, at: ocfs2_flush_truncate_log fs/ocfs2/alloc.c:6075 [inline]
- #2: ffff8880447c3480 (&ocfs2_sysfile_lock_key[args->fi_sysfile_type]#6){+.+.}-{4:4}, at: ocfs2_truncate_log_worker+0x9a/0x1b0 fs/ocfs2/alloc.c:6089
-
-stack backtrace:
-CPU: 0 UID: 0 PID: 14 Comm: kworker/u4:1 Not tainted 6.14.0-rc6-syzkaller-00103-g4003c9e78778 #0
-Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.16.3-debian-1.16.3-2~bpo12+1 04/01/2014
-Workqueue: ocfs2_wq ocfs2_truncate_log_worker
-Call Trace:
- <TASK>
- __dump_stack lib/dump_stack.c:94 [inline]
- dump_stack_lvl+0x241/0x360 lib/dump_stack.c:120
- print_circular_bug+0x13a/0x1b0 kernel/locking/lockdep.c:2076
- check_noncircular+0x36a/0x4a0 kernel/locking/lockdep.c:2208
- check_prev_add kernel/locking/lockdep.c:3163 [inline]
- check_prevs_add kernel/locking/lockdep.c:3282 [inline]
- validate_chain+0x18ef/0x5920 kernel/locking/lockdep.c:3906
- __lock_acquire+0x1397/0x2100 kernel/locking/lockdep.c:5228
- lock_acquire+0x1ed/0x550 kernel/locking/lockdep.c:5851
- down_write+0x99/0x220 kernel/locking/rwsem.c:1577
- inode_lock include/linux/fs.h:877 [inline]
- __ocfs2_flush_truncate_log+0x388/0x1240 fs/ocfs2/alloc.c:6046
- ocfs2_flush_truncate_log fs/ocfs2/alloc.c:6076 [inline]
- ocfs2_truncate_log_worker+0xa2/0x1b0 fs/ocfs2/alloc.c:6089
- process_one_work kernel/workqueue.c:3238 [inline]
- process_scheduled_works+0xabe/0x18e0 kernel/workqueue.c:3319
- worker_thread+0x870/0xd30 kernel/workqueue.c:3400
- kthread+0x7a9/0x920 kernel/kthread.c:464
- ret_from_fork+0x4b/0x80 arch/x86/kernel/process.c:148
- ret_from_fork_asm+0x1a/0x30 arch/x86/entry/entry_64.S:244
- </TASK>
+On 15. 03. 25, 7:16, xie.ludan@zte.com.cn wrote:
+> From: XieLudan <xie.ludan@zte.com.cn>
+> 
+> 
+> Follow the advice in Documentation/filesystems/sysfs.rst:
+> 
+> show() should only use sysfs_emit() or sysfs_emit_at() when formatting
+> 
+> the value to be returned to user space.
+> 
+> 
+> Signed-off-by: XieLudan <xie.ludan@zte.com.cn>
+> 
+> ---
+> 
+>   fs/ocfs2/cluster/heartbeat.c | 10 +++++-----
+> 
+>   1 file changed, 5 insertions(+), 5 deletions(-)
+> 
+> 
+> diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
+> 
+> index 724350925aff..8282fc193906 100644
+> 
+> --- a/fs/ocfs2/cluster/heartbeat.c
+> 
+> +++ b/fs/ocfs2/cluster/heartbeat.c
+> 
+> @@ -1308,7 +1308,7 @@ static int o2hb_debug_open(struct inode *inode, 
+> struct file *file)
+> 
+> case O2HB_DB_TYPE_REGION_NUMBER:
+> 
+> reg = (struct o2hb_region *)db->db_data;
+> 
+> -out += scnprintf(buf + out, PAGE_SIZE - out, "%d\n",
+> 
+> +out += sysfs_emit(buf + out, "%d\n",
 
 
----
-This report is generated by a bot. It may contain errors.
-See https://goo.gl/tpsmEJ for more information about syzbot.
-syzbot engineers can be reached at syzkaller@googlegroups.com.
+This is wrong too [1].
 
-syzbot will keep track of this issue. See:
-https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
+[1] 
+https://lore.kernel.org/all/9c552d9a-2d46-4069-a9c4-35fab857bfc3@kernel.org/
 
-If the report is already addressed, let syzbot know by replying with:
-#syz fix: exact-commit-title
+regards,
+-- 
+js
+suse labs
 
-If you want syzbot to run the reproducer, reply with:
-#syz test: git://repo/address.git branch-or-commit-hash
-If you attach or paste a git patch, syzbot will apply it before testing.
-
-If you want to overwrite report's subsystems, reply with:
-#syz set subsystems: new-subsystem
-(See the list of subsystem names on the web dashboard)
-
-If the report is a duplicate of another one, reply with:
-#syz dup: exact-subject-of-another-report
-
-If you want to undo deduplication, reply with:
-#syz undup
