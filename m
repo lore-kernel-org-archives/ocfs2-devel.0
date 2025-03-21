@@ -1,143 +1,147 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-il1-f206.google.com (mail-il1-f206.google.com [209.85.166.206])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7E8254430;
-	Mon, 17 Mar 2025 06:20:58 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 322561D5174
+	for <ocfs2-devel@lists.linux.dev>; Fri, 21 Mar 2025 20:52:33 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.166.206
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1742192458; cv=none; b=ZIYAVWW9gsJbGMolAkNUnIN+l7TIfktzLqvR6+OPT+1Ynm8xkxsPaNZCu1LpyQvgzFFGLLtJRh4cmPAgpc8q+NFtpCBa9JBsBuhlg7SGNROyu0zRmqKJfOOZUGWW+0eMoh47oIbp5nETeedkLoKrvI9JbOdk4bmu5W/6rSMar5g=
+	t=1742590355; cv=none; b=jBjOF65Lcd4Y1Fx8UqVtf/lJZIcHTLn88HDS940SzfaItBAzL0fmNrr+27zkJShObYnbf4aXQ05pkvpASPS6z25s3n6TkSzA7EynBy7hqeY5wYXGJKDA+GWGnCZOMWSUIw4Gjml8jb3LIjFBn3rgBhtTaai4DZsGFVtZMAOdgoo=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1742192458; c=relaxed/simple;
-	bh=6avnnkGStpdEgMGZiPC/B0bGMi+/oYvepTgvlfgBaIE=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=Igu0Z59sOBLVYlqjiNp5x95KqSag/2lHCl6TSGT9B9DdP1K3Rdov4sfVphNgEPTN+9QS/cP8W9Keom2qhRwp9sXw9iJijXjsU7OXOxNisPJZLFg+eKChKBKcV+68bAEslUU0x1UqZRa8F4GuL+tIF5TnnOc/O+CDKSqsdEWJVL8=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=gOMWfEu7; arc=none smtp.client-ip=10.30.226.201
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="gOMWfEu7"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id AE8D0C4CEE3;
-	Mon, 17 Mar 2025 06:20:55 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1742192457;
-	bh=6avnnkGStpdEgMGZiPC/B0bGMi+/oYvepTgvlfgBaIE=;
-	h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
-	b=gOMWfEu76MHTLqDkwpUi0pFmp1MHICZaHMPcOCEdObn4dUEflU2gSxICbcQxSvLj4
-	 vDv17d7O1+EImlwwWF0Zo3Cm1AJjr9KgfGlc5+ts4E58qK5yMyLoajzmyaL00g8sYm
-	 MvimnfktLOv2Sa6foWxubFmVU6YLKevK6Bxo6la27tKhF+uzcoDZ9rWYPh+uO0nVyf
-	 p3BNEBXioWgBS/Syp3xV8wAH6SGFdlDsOABs5M94vV/xr3Y45+1icgD86B/n5r88Ei
-	 Cw9WhRV89lMFUhwn6Hk5bBuGMRFmLt4YYePF3hFq+7Q280sad3CFn2oe2BAvfRBWhW
-	 YBEgp/hfdRxQg==
-Message-ID: <feb009f6-79b9-499e-a909-3d27c4fb9fad@kernel.org>
-Date: Mon, 17 Mar 2025 07:20:54 +0100
+	s=arc-20240116; t=1742590355; c=relaxed/simple;
+	bh=cEeHfF389YJJ77d+pLffUqBUg+SjwSCK7+5MeXmENsI=;
+	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=k3rI9ZVheYl7k3Jd3ZqppVAJOz/OgvM4vqy5KdcbuhwWaxl/uowk9SsB4JkkOdP+x/vcNRbpcaPF/PZDpoETPuT8ewStVyB9UnIRaAh5hdf3AgvUAjU1ycBebHmMngEydkqwQGt+tpoE5oDYiM9uCDccDwIkVcDeqsUxAFUhEj4=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.166.206
+Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
+Received: by mail-il1-f206.google.com with SMTP id e9e14a558f8ab-3d2b3882febso21469945ab.1
+        for <ocfs2-devel@lists.linux.dev>; Fri, 21 Mar 2025 13:52:33 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1742590353; x=1743195153;
+        h=to:from:subject:message-id:date:mime-version:x-gm-message-state
+         :from:to:cc:subject:date:message-id:reply-to;
+        bh=h78MLdZ+nHhjTPfp8MYeVUe2SK0b8Rg0EhTM48s1c2U=;
+        b=ZJl1svxh9Bu1Iw+AD5YuX0JCn9q6eWeWGfNg7/lfL6RzCAqELkHoiaikPxB403udGj
+         +mWES5OY2/Hj51hSyJjl5EYMLf5XY+0MMJN3oksFIMR9sHY2G6yA3zKyb0FKI3da6eFy
+         aRrUVebxigtIUaqZ/9bug2D/o3YCTdMEh2AY7+/+qsVGyCdT18veY6NvtaWACswAY8iA
+         OTTwWhBeVoXsY9z71G0Rj5ii8KhoM5dKxozyf1RAHhBoWRd4JGmIaP4/AFjspqXIv1NG
+         bALeN29n7O4RGXRpn+BiuPpD2bAyQ6rxeoa/6p9U2zXx/2XMgTFwa9uCY7VSTOI0vVOG
+         4WoA==
+X-Forwarded-Encrypted: i=1; AJvYcCXpB1YAmZnJEEyEWXGvIoxTH28euk110uQ/NlHwbwrOTqJVmRrIdhuUS0ofxEIqgCz20YkgY0BMqJKZCg==@lists.linux.dev
+X-Gm-Message-State: AOJu0YyIT6mdehIWd+3P1WSABPZn5xwH2+QA2L8/IBlArFn+ygynKJ3S
+	Y+A4BItH0pFIxJ7SqKZlZtIyFoq322fea3bBPh7Am1A6zo9cPfIvuVsh0ZeIlXltbZaqoIMfTqP
+	FZixU083z1P+UVjMnyl7Y9ralizPkokEpw3PazZFT+ZeDYWK8HzZc2U0=
+X-Google-Smtp-Source: AGHT+IHNzs3AoAiAn+Jmmpq61eppd95WGDpwVLyXgU7nqyiiUH+UikNyqswo2o99q4HUv5sQuCgS9mFR1C3VWRgsfD6HijwewMPt
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH linux-next] ocfs2: use sysfs_emit() instead of
- scnprintf().
-To: xie.ludan@zte.com.cn, mark@fasheh.com
-Cc: jlbec@evilplan.org, joseph.qi@linux.alibaba.com,
- akpm@linux-foundation.org, viro@zeniv.linux.org.uk, brauner@kernel.org,
- danielyangkang@gmail.com, dmantipov@yandex.ru, ocfs2-devel@lists.linux.dev,
- linux-kernel@vger.kernel.org
-References: <20250315141640564lv7R0CwIRPsmittXXjLbB@zte.com.cn>
-Content-Language: en-US
-From: Jiri Slaby <jirislaby@kernel.org>
-Autocrypt: addr=jirislaby@kernel.org; keydata=
- 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
-In-Reply-To: <20250315141640564lv7R0CwIRPsmittXXjLbB@zte.com.cn>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 8bit
+X-Received: by 2002:a05:6e02:1908:b0:3d0:47cf:869c with SMTP id
+ e9e14a558f8ab-3d59617bb79mr50728885ab.19.1742590353311; Fri, 21 Mar 2025
+ 13:52:33 -0700 (PDT)
+Date: Fri, 21 Mar 2025 13:52:33 -0700
+X-Google-Appengine-App-Id: s~syzkaller
+X-Google-Appengine-App-Id-Alias: syzkaller
+Message-ID: <67ddd191.050a0220.25ae54.006a.GAE@google.com>
+Subject: [syzbot] [ocfs2?] KMSAN: uninit-value in _find_next_bit
+From: syzbot <syzbot+7ea0b96c4ddb49fd1a70@syzkaller.appspotmail.com>
+To: jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
+	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
+	syzkaller-bugs@googlegroups.com
+Content-Type: text/plain; charset="UTF-8"
 
-On 15. 03. 25, 7:16, xie.ludan@zte.com.cn wrote:
-> From: XieLudan <xie.ludan@zte.com.cn>
-> 
-> 
-> Follow the advice in Documentation/filesystems/sysfs.rst:
-> 
-> show() should only use sysfs_emit() or sysfs_emit_at() when formatting
-> 
-> the value to be returned to user space.
-> 
-> 
-> Signed-off-by: XieLudan <xie.ludan@zte.com.cn>
-> 
-> ---
-> 
->   fs/ocfs2/cluster/heartbeat.c | 10 +++++-----
-> 
->   1 file changed, 5 insertions(+), 5 deletions(-)
-> 
-> 
-> diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
-> 
-> index 724350925aff..8282fc193906 100644
-> 
-> --- a/fs/ocfs2/cluster/heartbeat.c
-> 
-> +++ b/fs/ocfs2/cluster/heartbeat.c
-> 
-> @@ -1308,7 +1308,7 @@ static int o2hb_debug_open(struct inode *inode, 
-> struct file *file)
-> 
-> case O2HB_DB_TYPE_REGION_NUMBER:
-> 
-> reg = (struct o2hb_region *)db->db_data;
-> 
-> -out += scnprintf(buf + out, PAGE_SIZE - out, "%d\n",
-> 
-> +out += sysfs_emit(buf + out, "%d\n",
+Hello,
+
+syzbot found the following issue on:
+
+HEAD commit:    76b6905c11fd Merge tag 'mm-hotfixes-stable-2025-03-17-20-0..
+git tree:       upstream
+console+strace: https://syzkaller.appspot.com/x/log.txt?x=16e3c5e4580000
+kernel config:  https://syzkaller.appspot.com/x/.config?x=1d4644c4063c5098
+dashboard link: https://syzkaller.appspot.com/bug?extid=7ea0b96c4ddb49fd1a70
+compiler:       Debian clang version 15.0.6, GNU ld (GNU Binutils for Debian) 2.40
+syz repro:      https://syzkaller.appspot.com/x/repro.syz?x=10060a78580000
+C reproducer:   https://syzkaller.appspot.com/x/repro.c?x=137eb19b980000
+
+Downloadable assets:
+disk image: https://storage.googleapis.com/syzbot-assets/65bb985940e1/disk-76b6905c.raw.xz
+vmlinux: https://storage.googleapis.com/syzbot-assets/0f4133d60a27/vmlinux-76b6905c.xz
+kernel image: https://storage.googleapis.com/syzbot-assets/0ca5769b6e70/bzImage-76b6905c.xz
+mounted in repro: https://storage.googleapis.com/syzbot-assets/d3375a361225/mount_0.gz
+  fsck result: OK (log: https://syzkaller.appspot.com/x/fsck.log?x=108c9068580000)
+
+IMPORTANT: if you fix the issue, please add the following tag to the commit:
+Reported-by: syzbot+7ea0b96c4ddb49fd1a70@syzkaller.appspotmail.com
+
+BUG: KMSAN: uninit-value in _find_next_bit+0x11c/0x130 lib/find_bit.c:145
+ _find_next_bit+0x11c/0x130 lib/find_bit.c:145
+ find_next_bit include/linux/find.h:69 [inline]
+ ocfs2_recover_local_quota_file fs/ocfs2/quota_local.c:488 [inline]
+ ocfs2_finish_quota_recovery+0xc4f/0x3ea0 fs/ocfs2/quota_local.c:641
+ ocfs2_complete_recovery+0x229f/0x38a0 fs/ocfs2/journal.c:1357
+ process_one_work kernel/workqueue.c:3238 [inline]
+ process_scheduled_works+0xc1a/0x1e80 kernel/workqueue.c:3319
+ worker_thread+0xea7/0x14f0 kernel/workqueue.c:3400
+ kthread+0x6b9/0xef0 kernel/kthread.c:464
+ ret_from_fork+0x6d/0x90 arch/x86/kernel/process.c:148
+ ret_from_fork_asm+0x1a/0x30 arch/x86/entry/entry_64.S:244
+
+Uninit was created at:
+ slab_post_alloc_hook mm/slub.c:4121 [inline]
+ slab_alloc_node mm/slub.c:4164 [inline]
+ __do_kmalloc_node mm/slub.c:4293 [inline]
+ __kmalloc_noprof+0x923/0x1230 mm/slub.c:4306
+ kmalloc_noprof include/linux/slab.h:905 [inline]
+ ocfs2_add_recovery_chunk fs/ocfs2/quota_local.c:305 [inline]
+ ocfs2_recovery_load_quota+0x415/0x1150 fs/ocfs2/quota_local.c:360
+ ocfs2_local_read_info+0x139e/0x2c10 fs/ocfs2/quota_local.c:753
+ dquot_load_quota_sb+0xa35/0xdc0 fs/quota/dquot.c:2459
+ dquot_load_quota_inode+0x662/0x9f0 fs/quota/dquot.c:2496
+ ocfs2_enable_quotas+0x1d4/0x6e0 fs/ocfs2/super.c:930
+ ocfs2_fill_super+0xa6b7/0xb550 fs/ocfs2/super.c:1140
+ get_tree_bdev_flags+0x6ec/0x910 fs/super.c:1636
+ get_tree_bdev+0x37/0x50 fs/super.c:1659
+ ocfs2_get_tree+0x34/0x40 fs/ocfs2/super.c:1184
+ vfs_get_tree+0xb1/0x5a0 fs/super.c:1814
+ do_new_mount+0x71f/0x15e0 fs/namespace.c:3560
+ path_mount+0x742/0x1f10 fs/namespace.c:3887
+ do_mount fs/namespace.c:3900 [inline]
+ __do_sys_mount fs/namespace.c:4111 [inline]
+ __se_sys_mount+0x71f/0x800 fs/namespace.c:4088
+ __x64_sys_mount+0xe4/0x150 fs/namespace.c:4088
+ x64_sys_call+0x39bf/0x3c30 arch/x86/include/generated/asm/syscalls_64.h:166
+ do_syscall_x64 arch/x86/entry/common.c:52 [inline]
+ do_syscall_64+0xcd/0x1e0 arch/x86/entry/common.c:83
+ entry_SYSCALL_64_after_hwframe+0x77/0x7f
+
+CPU: 0 UID: 0 PID: 3555 Comm: kworker/u8:11 Not tainted 6.14.0-rc7-syzkaller-00067-g76b6905c11fd #0
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 02/12/2025
+Workqueue: ocfs2_wq ocfs2_complete_recovery
+=====================================================
 
 
-This is wrong too [1].
+---
+This report is generated by a bot. It may contain errors.
+See https://goo.gl/tpsmEJ for more information about syzbot.
+syzbot engineers can be reached at syzkaller@googlegroups.com.
 
-[1] 
-https://lore.kernel.org/all/9c552d9a-2d46-4069-a9c4-35fab857bfc3@kernel.org/
+syzbot will keep track of this issue. See:
+https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
 
-regards,
--- 
-js
-suse labs
+If the report is already addressed, let syzbot know by replying with:
+#syz fix: exact-commit-title
 
+If you want syzbot to run the reproducer, reply with:
+#syz test: git://repo/address.git branch-or-commit-hash
+If you attach or paste a git patch, syzbot will apply it before testing.
+
+If you want to overwrite report's subsystems, reply with:
+#syz set subsystems: new-subsystem
+(See the list of subsystem names on the web dashboard)
+
+If the report is a duplicate of another one, reply with:
+#syz dup: exact-subject-of-another-report
+
+If you want to undo deduplication, reply with:
+#syz undup
