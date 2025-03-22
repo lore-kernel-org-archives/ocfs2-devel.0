@@ -1,147 +1,123 @@
-Received: from mail-il1-f206.google.com (mail-il1-f206.google.com [209.85.166.206])
+Received: from mail-qt1-f175.google.com (mail-qt1-f175.google.com [209.85.160.175])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 322561D5174
-	for <ocfs2-devel@lists.linux.dev>; Fri, 21 Mar 2025 20:52:33 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.166.206
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D05001FBE8B
+	for <ocfs2-devel@lists.linux.dev>; Sat, 22 Mar 2025 17:53:09 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.160.175
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1742590355; cv=none; b=jBjOF65Lcd4Y1Fx8UqVtf/lJZIcHTLn88HDS940SzfaItBAzL0fmNrr+27zkJShObYnbf4aXQ05pkvpASPS6z25s3n6TkSzA7EynBy7hqeY5wYXGJKDA+GWGnCZOMWSUIw4Gjml8jb3LIjFBn3rgBhtTaai4DZsGFVtZMAOdgoo=
+	t=1742665992; cv=none; b=o+h1f3HAXIgK7HoeYKhsUOoTxsk8x4LFwy7npxHHEhgzPNWhmRast5ypkAI0atqwpTKKxYBI6bSZOkCNHC75ROjooZi5JfjGH6T+67bi63D8KaaKUWDKOWa1p6szi2T4zySyM9Ummg+jLNagr0PaWMu3f4Kz5TDNXCz+H/uy9Z8=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1742590355; c=relaxed/simple;
-	bh=cEeHfF389YJJ77d+pLffUqBUg+SjwSCK7+5MeXmENsI=;
-	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=k3rI9ZVheYl7k3Jd3ZqppVAJOz/OgvM4vqy5KdcbuhwWaxl/uowk9SsB4JkkOdP+x/vcNRbpcaPF/PZDpoETPuT8ewStVyB9UnIRaAh5hdf3AgvUAjU1ycBebHmMngEydkqwQGt+tpoE5oDYiM9uCDccDwIkVcDeqsUxAFUhEj4=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.166.206
-Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
-Received: by mail-il1-f206.google.com with SMTP id e9e14a558f8ab-3d2b3882febso21469945ab.1
-        for <ocfs2-devel@lists.linux.dev>; Fri, 21 Mar 2025 13:52:33 -0700 (PDT)
+	s=arc-20240116; t=1742665992; c=relaxed/simple;
+	bh=tmtEIbsWyNywcdc7xXNKcatnpc3yUWgEIBW0lF0HLpM=;
+	h=MIME-Version:From:Date:Message-ID:Subject:To:Content-Type; b=eaJtxFu0sg9DUg/OWBIAEzhoNxWopcNHWINxd78gU6FZrRFselFqrdeoQI8EEKwO+GUEs11p6UdGP4GLMhYcLSUDimQtjaN00TcV0hDZEgsr2UmGtzkRm2s8t2wFqQ4bSdCheGDDCdhvHhRHD/X8ZC8WOE6zo92VI5mN1QrorYs=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=H/G7Tzd5; arc=none smtp.client-ip=209.85.160.175
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="H/G7Tzd5"
+Received: by mail-qt1-f175.google.com with SMTP id d75a77b69052e-477282401b3so12426301cf.1
+        for <ocfs2-devel@lists.linux.dev>; Sat, 22 Mar 2025 10:53:09 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20230601; t=1742665988; x=1743270788; darn=lists.linux.dev;
+        h=to:subject:message-id:date:from:mime-version:from:to:cc:subject
+         :date:message-id:reply-to;
+        bh=PBCKG58OWbq4NvEZOol9u+x0f2IAGLNFGfS/6kDnnOs=;
+        b=H/G7Tzd5u5Cj6prLxbZIEZ6YBmi27UdGZGuLP+dQ4xTlZaDq1sEtmx/sYfORuTut7C
+         YEEaP7PtPSJY6WqSFneAG6GRlboGhA89RKMT6G2wgjcqTuTWGqh0g1+Aan20vvcYkwEl
+         0zq4yC3gxb0X9ajHeTBl7tDSUI9NNn8FzLF3a9pdT6XHOUxXcgJ2ivMzgVRkLc5GneD6
+         KfKh22wqXJDIh/KgvfzyX1sYsHxNxTLol/MtwFpcivpwDd6GdCDEXTCDfhra5+ZKtF05
+         wXrDfhL3QUmSYOcQSm+gSh5RAT7tM5eDwKZs+3G68YtMmMg6lRIUA2WgfhimGA5+WvJW
+         DXCw==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1742590353; x=1743195153;
-        h=to:from:subject:message-id:date:mime-version:x-gm-message-state
+        d=1e100.net; s=20230601; t=1742665988; x=1743270788;
+        h=to:subject:message-id:date:from:mime-version:x-gm-message-state
          :from:to:cc:subject:date:message-id:reply-to;
-        bh=h78MLdZ+nHhjTPfp8MYeVUe2SK0b8Rg0EhTM48s1c2U=;
-        b=ZJl1svxh9Bu1Iw+AD5YuX0JCn9q6eWeWGfNg7/lfL6RzCAqELkHoiaikPxB403udGj
-         +mWES5OY2/Hj51hSyJjl5EYMLf5XY+0MMJN3oksFIMR9sHY2G6yA3zKyb0FKI3da6eFy
-         aRrUVebxigtIUaqZ/9bug2D/o3YCTdMEh2AY7+/+qsVGyCdT18veY6NvtaWACswAY8iA
-         OTTwWhBeVoXsY9z71G0Rj5ii8KhoM5dKxozyf1RAHhBoWRd4JGmIaP4/AFjspqXIv1NG
-         bALeN29n7O4RGXRpn+BiuPpD2bAyQ6rxeoa/6p9U2zXx/2XMgTFwa9uCY7VSTOI0vVOG
-         4WoA==
-X-Forwarded-Encrypted: i=1; AJvYcCXpB1YAmZnJEEyEWXGvIoxTH28euk110uQ/NlHwbwrOTqJVmRrIdhuUS0ofxEIqgCz20YkgY0BMqJKZCg==@lists.linux.dev
-X-Gm-Message-State: AOJu0YyIT6mdehIWd+3P1WSABPZn5xwH2+QA2L8/IBlArFn+ygynKJ3S
-	Y+A4BItH0pFIxJ7SqKZlZtIyFoq322fea3bBPh7Am1A6zo9cPfIvuVsh0ZeIlXltbZaqoIMfTqP
-	FZixU083z1P+UVjMnyl7Y9ralizPkokEpw3PazZFT+ZeDYWK8HzZc2U0=
-X-Google-Smtp-Source: AGHT+IHNzs3AoAiAn+Jmmpq61eppd95WGDpwVLyXgU7nqyiiUH+UikNyqswo2o99q4HUv5sQuCgS9mFR1C3VWRgsfD6HijwewMPt
+        bh=PBCKG58OWbq4NvEZOol9u+x0f2IAGLNFGfS/6kDnnOs=;
+        b=RHnTw6bL6LBcEQo36Iv3SXo8hxg3g0h2mLISgTwUTb+tOGfuBIujx8OM7RE65E3s4u
+         hlQUJ3oVWSLr5sleuSTDbh2G1cHxWXlj0BBodxGC6CKini8gM+DEx0pmfhqZOytpXn/7
+         Z59yjxcp2tL2DqaJDs6OZJ6ePm6uRtF+AR0mILHYIymsxSbyZzHOGfZrhTTZ2C6j3Dgk
+         8f/IZDHHjUoz7+sIYzqrsePka2J57D9s5vlKXKLXnLNp3FXSNleVVtm8urZmsrR4UpRy
+         ZcHLozw2D1qt52LdSFrzvCIm/s94ysUqJYvvIcx5b7kDruwyIbJDJabZ+lnHUnctzcpi
+         0djg==
+X-Forwarded-Encrypted: i=1; AJvYcCXE3YH4apBo9A/A4ICpP2e4EvX7EGOuxWA6lSUh8H1DL+HUxr/gMuW2wan/fKKL9g19LIIYPpTXoCrv0Q==@lists.linux.dev
+X-Gm-Message-State: AOJu0Yw3TW30I5T+pHvdF/bg6JNaC7VN+1SJyyh9jp29ChNt5xjMTpXc
+	hUGvA7NlSiSa5Euc+5F91z6ZfkeQwxyhjV6A6S3XMRkOFw1vCF6UhmFipzZcQZEUG+OLQMcKO9X
+	xLtOQhNFYS4dncbdw0xj0J0B4EMk=
+X-Gm-Gg: ASbGnctagZcpXTNp0ZMvNy1rNKrUiWrdlgCe2WOhvjsz1mrlHCWEUUGWgxieyI3ZZjv
+	43198gdn5xpUXrObgLZISF5R+MRrlvLFcKWcMazvj2AntbJKlCdFarbSRYFJZLNVgsGFHHeBD4Z
+	as2P59drq7xJOJfnLh4/hsyvPzW3sJEbOrKp7T
+X-Google-Smtp-Source: AGHT+IGKK3NV4bw7gpIlEDbh27zEF4Gn+ZrEB8R9BgsJQaz208yDYG9AhP01a8FuE9lZ3805g1ZbUm04iE5GwYxdvJw=
+X-Received: by 2002:a05:622a:4c12:b0:476:9296:80a4 with SMTP id
+ d75a77b69052e-4771dd57f2dmr102326501cf.7.1742665988449; Sat, 22 Mar 2025
+ 10:53:08 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-X-Received: by 2002:a05:6e02:1908:b0:3d0:47cf:869c with SMTP id
- e9e14a558f8ab-3d59617bb79mr50728885ab.19.1742590353311; Fri, 21 Mar 2025
- 13:52:33 -0700 (PDT)
-Date: Fri, 21 Mar 2025 13:52:33 -0700
-X-Google-Appengine-App-Id: s~syzkaller
-X-Google-Appengine-App-Id-Alias: syzkaller
-Message-ID: <67ddd191.050a0220.25ae54.006a.GAE@google.com>
-Subject: [syzbot] [ocfs2?] KMSAN: uninit-value in _find_next_bit
-From: syzbot <syzbot+7ea0b96c4ddb49fd1a70@syzkaller.appspotmail.com>
-To: jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
-	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
-	syzkaller-bugs@googlegroups.com
+From: Zhiyu Zhang <zhiyuzhang999@gmail.com>
+Date: Sun, 23 Mar 2025 01:52:57 +0800
+X-Gm-Features: AQ5f1Jrp16QlfX2NcM--u10pTmWnZ6Q-G-eiKeKZdQgh0QhR53jQFg-Ds2gxi7c
+Message-ID: <CALf2hKtnFskBvmZeigK_=mqq9Vd4TWT+YOXcwfNNt1ydOY=0Yg@mail.gmail.com>
+Subject: [Kernel Bug] BUG: unable to handle kernel paging request in const_folio_flags
+To: mark@fasheh.com, jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
+	ocfs2-devel@lists.linux.dev, willy@infradead.org, akpm@linux-foundation.org, 
+	linux-fsdevel@vger.kernel.org, syzkaller <syzkaller@googlegroups.com>
 Content-Type: text/plain; charset="UTF-8"
 
-Hello,
+Dear Developers and Maintainers,
 
-syzbot found the following issue on:
+We would like to report a Linux kernel bug titled "BUG: unable to
+handle kernel paging request in const_folio_flags" found in
+Linux-6.14-rc7 by our modified tool. We have reproduced the crash and
+applied a patch that can avoid the kernel panic. Here are the relevant
+attachments:
 
-HEAD commit:    76b6905c11fd Merge tag 'mm-hotfixes-stable-2025-03-17-20-0..
-git tree:       upstream
-console+strace: https://syzkaller.appspot.com/x/log.txt?x=16e3c5e4580000
-kernel config:  https://syzkaller.appspot.com/x/.config?x=1d4644c4063c5098
-dashboard link: https://syzkaller.appspot.com/bug?extid=7ea0b96c4ddb49fd1a70
-compiler:       Debian clang version 15.0.6, GNU ld (GNU Binutils for Debian) 2.40
-syz repro:      https://syzkaller.appspot.com/x/repro.syz?x=10060a78580000
-C reproducer:   https://syzkaller.appspot.com/x/repro.c?x=137eb19b980000
+kernel config: https://drive.google.com/file/d/1vHuHlQyiKlXbyuo03sZTiuaA5jZ5MtV6/view?usp=sharing
+report: https://drive.google.com/file/d/11LD1uFid1u3r7brsvd85-SrBzvXwH-w2/view?usp=sharing
+syz reproducer:
+https://drive.google.com/file/d/10v3FtkewHcAnTjsUGqFCDl7k7hiCJ12-/view?usp=sharing
+C reproducer: https://drive.google.com/file/d/1L9WTVbO2pfqXLjXyQcMy4f-Am3obTJcN/view?usp=sharing
+crash log: https://drive.google.com/file/d/1zwYU3061pnTSVIEpuZ-EBR7FYvWPxX4z/view?usp=sharing
 
-Downloadable assets:
-disk image: https://storage.googleapis.com/syzbot-assets/65bb985940e1/disk-76b6905c.raw.xz
-vmlinux: https://storage.googleapis.com/syzbot-assets/0f4133d60a27/vmlinux-76b6905c.xz
-kernel image: https://storage.googleapis.com/syzbot-assets/0ca5769b6e70/bzImage-76b6905c.xz
-mounted in repro: https://storage.googleapis.com/syzbot-assets/d3375a361225/mount_0.gz
-  fsck result: OK (log: https://syzkaller.appspot.com/x/fsck.log?x=108c9068580000)
+We speculate this vulnerability arises from a missing check for error
+pointers in the array folios[i] within the function
+ocfs2_unlock_and_free_folios(). When the kernel fails to write or
+allocate folios for writing (e.g., due to OOM), the wc->w_folios[i]
+may be assigned an error pointer (e.g., -ENOMEM) in
+fs/ocfs2/aops.c:1075, which is then returned as an error to
+ocfs2_write_begin_nolock(). Within ocfs2_unlock_and_free_folios(),
+there is no proper handling for error pointers, so the function
+attempts to process folios[i] directly. This results in the kernel
+attempting to dereference an invalid pointer during the call chain:
+ocfs2_unlock_and_free_folios->folio_unlock->folio_test_locked->const_folio_flags.
+Specifically, during debugging, we observe that the kernel attempts to
+read data from rbx+0x8 (where rbx = 0xfffffffffffffff4), causing a
+page fault and kernel panic.
 
-IMPORTANT: if you fix the issue, please add the following tag to the commit:
-Reported-by: syzbot+7ea0b96c4ddb49fd1a70@syzkaller.appspotmail.com
+I tested the following patch, which prevents the kernel panic by
+checking for error pointers before accessing folios[i]:
 
-BUG: KMSAN: uninit-value in _find_next_bit+0x11c/0x130 lib/find_bit.c:145
- _find_next_bit+0x11c/0x130 lib/find_bit.c:145
- find_next_bit include/linux/find.h:69 [inline]
- ocfs2_recover_local_quota_file fs/ocfs2/quota_local.c:488 [inline]
- ocfs2_finish_quota_recovery+0xc4f/0x3ea0 fs/ocfs2/quota_local.c:641
- ocfs2_complete_recovery+0x229f/0x38a0 fs/ocfs2/journal.c:1357
- process_one_work kernel/workqueue.c:3238 [inline]
- process_scheduled_works+0xc1a/0x1e80 kernel/workqueue.c:3319
- worker_thread+0xea7/0x14f0 kernel/workqueue.c:3400
- kthread+0x6b9/0xef0 kernel/kthread.c:464
- ret_from_fork+0x6d/0x90 arch/x86/kernel/process.c:148
- ret_from_fork_asm+0x1a/0x30 arch/x86/entry/entry_64.S:244
+--- a/fs/ocfs2/aops.c
++++ b/fs/ocfs2/aops.c
+@@ -767,7 +767,7 @@ void ocfs2_unlock_and_free_folios(struct folio
+**folios, int num_folios)
+        int i;
 
-Uninit was created at:
- slab_post_alloc_hook mm/slub.c:4121 [inline]
- slab_alloc_node mm/slub.c:4164 [inline]
- __do_kmalloc_node mm/slub.c:4293 [inline]
- __kmalloc_noprof+0x923/0x1230 mm/slub.c:4306
- kmalloc_noprof include/linux/slab.h:905 [inline]
- ocfs2_add_recovery_chunk fs/ocfs2/quota_local.c:305 [inline]
- ocfs2_recovery_load_quota+0x415/0x1150 fs/ocfs2/quota_local.c:360
- ocfs2_local_read_info+0x139e/0x2c10 fs/ocfs2/quota_local.c:753
- dquot_load_quota_sb+0xa35/0xdc0 fs/quota/dquot.c:2459
- dquot_load_quota_inode+0x662/0x9f0 fs/quota/dquot.c:2496
- ocfs2_enable_quotas+0x1d4/0x6e0 fs/ocfs2/super.c:930
- ocfs2_fill_super+0xa6b7/0xb550 fs/ocfs2/super.c:1140
- get_tree_bdev_flags+0x6ec/0x910 fs/super.c:1636
- get_tree_bdev+0x37/0x50 fs/super.c:1659
- ocfs2_get_tree+0x34/0x40 fs/ocfs2/super.c:1184
- vfs_get_tree+0xb1/0x5a0 fs/super.c:1814
- do_new_mount+0x71f/0x15e0 fs/namespace.c:3560
- path_mount+0x742/0x1f10 fs/namespace.c:3887
- do_mount fs/namespace.c:3900 [inline]
- __do_sys_mount fs/namespace.c:4111 [inline]
- __se_sys_mount+0x71f/0x800 fs/namespace.c:4088
- __x64_sys_mount+0xe4/0x150 fs/namespace.c:4088
- x64_sys_call+0x39bf/0x3c30 arch/x86/include/generated/asm/syscalls_64.h:166
- do_syscall_x64 arch/x86/entry/common.c:52 [inline]
- do_syscall_64+0xcd/0x1e0 arch/x86/entry/common.c:83
- entry_SYSCALL_64_after_hwframe+0x77/0x7f
+        for(i = 0; i < num_folios; i++) {
+-               if (!folios[i])
++               if (!folios[i] || IS_ERR(folios[i]))    // or use
+IS_ERR_OR_NULL instead
+                        continue;
+                folio_unlock(folios[i]);
+                folio_mark_accessed(folios[i]);
 
-CPU: 0 UID: 0 PID: 3555 Comm: kworker/u8:11 Not tainted 6.14.0-rc7-syzkaller-00067-g76b6905c11fd #0
-Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 02/12/2025
-Workqueue: ocfs2_wq ocfs2_complete_recovery
-=====================================================
+However, I am not sure if the analysis and patch are appropriate.
+Could you check this issue? With the verification, I would like to
+submit a patch.
 
+Wish you a nice day!
 
----
-This report is generated by a bot. It may contain errors.
-See https://goo.gl/tpsmEJ for more information about syzbot.
-syzbot engineers can be reached at syzkaller@googlegroups.com.
-
-syzbot will keep track of this issue. See:
-https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
-
-If the report is already addressed, let syzbot know by replying with:
-#syz fix: exact-commit-title
-
-If you want syzbot to run the reproducer, reply with:
-#syz test: git://repo/address.git branch-or-commit-hash
-If you attach or paste a git patch, syzbot will apply it before testing.
-
-If you want to overwrite report's subsystems, reply with:
-#syz set subsystems: new-subsystem
-(See the list of subsystem names on the web dashboard)
-
-If the report is a duplicate of another one, reply with:
-#syz dup: exact-subject-of-another-report
-
-If you want to undo deduplication, reply with:
-#syz undup
+Best,
+Zhiyu Zhang
