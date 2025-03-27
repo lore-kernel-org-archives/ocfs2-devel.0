@@ -1,157 +1,120 @@
-Received: from mail-wr1-f47.google.com (mail-wr1-f47.google.com [209.85.221.47])
+Received: from mail-wm1-f42.google.com (mail-wm1-f42.google.com [209.85.128.42])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4165925771
-	for <ocfs2-devel@lists.linux.dev>; Thu, 27 Mar 2025 06:22:21 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.221.47
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 943DB2FB2
+	for <ocfs2-devel@lists.linux.dev>; Thu, 27 Mar 2025 06:43:31 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.42
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1743056544; cv=none; b=YJxCZWRJXHhEGHtSeC95jaPZFIm8Huw8R3YCG9/h1prAYBRxZxKdAEWrpnxE3/J2j+1YrDopeJxSshE+MmJFn7eni3OFFz00eMhC/4aWxhc2GkMNEq3uHv9tCtVuFGApgn4+YC5rlxS3ab/QnKh0fup56qhjvueRnnYnYZDBU5I=
+	t=1743057815; cv=none; b=jsOkh83PzdD/ryrzD3L+mVdSzFPIiRM1n3xQxshNySpa4+Qy6NKw6/v+YQNfKzcwNR3sElDSBZzboD5mAxnr7/vOvuFeo3WUmxVXpUdiDxAkz0tmFVUM/e6oi4rHmyliF8trEpfd39B38bihQl1ZzbEF/NHcx8RSgZESPS39sZg=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1743056544; c=relaxed/simple;
-	bh=T4o7Npfj8cfRlK+HiHE2jL+iHCod3eTKeuSvzkqtAmg=;
-	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=ut40bCQX+haYod1XNA1OIkQwtt4Os2XwgRiRw3cVrv1xM5Of6Nx+DX6U6AihVqxVIRvOHyRciXgZD5EwBMOo6F5fCYATUWg1isQT5Q8rRLHnCxR1UxhaN0RHBbdTQU+YGFEAvzDIRmH9/OJDrsYfcFG9jiV7+ixidYo1jssBinQ=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=baFhKDCi; arc=none smtp.client-ip=209.85.221.47
+	s=arc-20240116; t=1743057815; c=relaxed/simple;
+	bh=n66ybPgUp9VVv9SCPEE/AWLxGlIns+SPIQDz3xX2DrQ=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=p+VfobYhpd4+88TalgWqSVlDnjfyeLdNmxIpI4mn7YWaUX7b1WGpunFhjzRnVrWA3sXH1up2pqyPnTJxRdjhArWk+d/Sx5hEMTUUdkG02Fj070wy+Niaexg7KPL0MPh0vB0qHtMr8tf1SzEAH7exMmC9hy9OOnyzIXQXDmnBT48=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=SrdSG6VY; arc=none smtp.client-ip=209.85.128.42
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="baFhKDCi"
-Received: by mail-wr1-f47.google.com with SMTP id ffacd0b85a97d-39ab85402c9so7846f8f.2
-        for <ocfs2-devel@lists.linux.dev>; Wed, 26 Mar 2025 23:22:21 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="SrdSG6VY"
+Received: by mail-wm1-f42.google.com with SMTP id 5b1f17b1804b1-43cf89f81c5so796435e9.2
+        for <ocfs2-devel@lists.linux.dev>; Wed, 26 Mar 2025 23:43:31 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=suse.com; s=google; t=1743056540; x=1743661340; darn=lists.linux.dev;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:from:to:cc:subject:date:message-id:reply-to;
-        bh=r3UZwovF22qijSvqeoxOLD33tI0BeZTaoA548D9DPe0=;
-        b=baFhKDCisdDqlS/erQB/qte0OQu+tyqdxgVGahZ9X71xKm6nNkTn6JZ3sbRMXki3Y4
-         NiF+x06mqVTzivdjGiXiW2r9fsjQUzEb+tlZgl1yGDKLQ5JUUQeQ258mEKBuxVFIgfrh
-         7yGylKRCN8uVDXOvDiG/gY1W02cqR9mMvBCpJzYb+uSWKnlLDJcu65ucdCFlPL4mLzHk
-         LQQs01vH4PbsZ2WcAK4+aqqJE6SknXQ6+ZxBmikL60X/UooXo6IREaVMpVW38gUeVW0P
-         by/AAWtLVVln0gJmFYSJnivOuWLaO15RXeZ4WPacKEWL4mQDyag3ar9kB4sdjikrpvzo
-         7Z2w==
+        d=suse.com; s=google; t=1743057810; x=1743662610; darn=lists.linux.dev;
+        h=content-transfer-encoding:in-reply-to:content-language:from
+         :references:cc:to:subject:user-agent:mime-version:date:message-id
+         :from:to:cc:subject:date:message-id:reply-to;
+        bh=OYQRSLDDu+9ncKrO0EiMnXhUcVzXwRWAsy/yjivhkeY=;
+        b=SrdSG6VYn/0xisC6lOk6/V0KxhMoHnQaK5cAgbhFXtUMW1kaKEOdZAwBPf0EBxFHTK
+         OWcXUZEVVsFt/Ywr4HiIPhunid2AYVLRQ9nkoJd3L2p0FEe09ZJ/jazfOPEJ5L4kdRzT
+         H3uw8rxyNU62UHcLlCP5ZgNSvNp7hyTp08X9zSAJBB5rlXQdktcQ6PKJg8ZMw6XTnKR2
+         Sc0b0PJG1G0RNi17vd0Vl00i1M05Q8tJL7HGuPOCCSffk401zcWQMQLwwhT7HKzojvl7
+         xEmYuBsEjrjrI7Ch8XigxyhngB4ItsulaMUqL43ZCYgS0DMVhlXVVRZPWgagUrsVOEtm
+         ckqA==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1743056540; x=1743661340;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:x-gm-message-state:from:to:cc:subject:date:message-id
-         :reply-to;
-        bh=r3UZwovF22qijSvqeoxOLD33tI0BeZTaoA548D9DPe0=;
-        b=Qs4rCxWAJgFgejSGLJKFc2IVCVOEdscrGLp7Y7BLXLSGpVetW5mBhubHyqaJ0K2R3O
-         d7oJK9MYtsi40/ljaoLJKisdq+Mfqet2S4Dw/QLNkWQWQRXC2eD6kDLHhG4yYiRPBbf8
-         dnRIfgYI7UNFwQrQVboc00+AQBP68Xy+bBlyhFbO6Xt/R0RU529la31w3tisQN2FVbSy
-         KFcJerUYBvNaXWVDdl9dtmax2U1hdu6us6UKzMc273fOLkF9ht9uE0na5DTwAsTJ9FiI
-         9o1zaus8P5Rwgx3qgWMShgtpD95+BRrQ4F5sOVg40lem3SebK40QHlP5Hjz75uMHBPDm
-         FJlA==
-X-Forwarded-Encrypted: i=1; AJvYcCXB1mt5fkOnwPNSKy01vVX2tn5J8gCwizoDp8OM8ArdSvEMG5BjZb5E0iSGZHTVtwZSDEM8vGuV7GE64w==@lists.linux.dev
-X-Gm-Message-State: AOJu0YyLomQLxNOjnrwJVemaqAbU6kalumFA2VU1yDAUJfWYGYUebSp9
-	REEyJZ7cKs1QKW/1G9lNzXo118ynWrwEg14Fath2HiXtODpB1PIxj6c/jQ9NVSD5iQzSAHGlLkC
-	5
-X-Gm-Gg: ASbGncs8mOQoRtYru/jdi8hz5IE6kTzdiY003RO2pReo1yEu8x2EiC09uwAt86Z1UOh
-	9Ctj09Uo6gZwSBBqdNcRZeTTIcdv+S4VD65dE7XkUrmSRR8SVVRrKp0hSljwsHi2795zCFd8dLQ
-	erMKlydep1kKlEmcmLFm106y55ZISYZL0Y9AWL9Y//8yLazBV3LtK8gbiA4nuQYlmM25FtKFcZq
-	uBad0+dZtc/4dZVsV3n85ArEFXTrYx0OgjloPecyIXJxonhtoWIT8XGckoH1xkujNXqu0m+XPeg
-	1SsyiJjaPf3ekfTRQVpAZBtpdfdnlpDb6zJQg6EOAXX8PA==
-X-Google-Smtp-Source: AGHT+IFPV1X+WPIdzKvzEsnhwRDFRN40tBTiwfautnBLvhKsJ62Gnvc+1vpqvvIJ/NOs7QjBHrbz4Q==
-X-Received: by 2002:a05:6000:1fa7:b0:38f:2224:73a1 with SMTP id ffacd0b85a97d-39ad2adbd01mr391838f8f.2.1743056540464;
-        Wed, 26 Mar 2025 23:22:20 -0700 (PDT)
-Received: from p15.suse.cz ([202.127.77.110])
-        by smtp.gmail.com with ESMTPSA id d2e1a72fcca58-73905fa97fdsm13418293b3a.26.2025.03.26.23.22.18
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Wed, 26 Mar 2025 23:22:19 -0700 (PDT)
-From: Heming Zhao <heming.zhao@suse.com>
-To: joseph.qi@linux.alibaba.com
-Cc: Heming Zhao <heming.zhao@suse.com>,
-	ocfs2-devel@lists.linux.dev,
-	linux-kernel@vger.kernel.org,
-	gautham.ananthakrishna@oracle.com
-Subject: [PATCH] ocfs2: fixing global bitmap allocating failure for discontig type
-Date: Thu, 27 Mar 2025 14:22:00 +0800
-Message-ID: <20250327062209.19201-1-heming.zhao@suse.com>
-X-Mailer: git-send-email 2.43.0
+        d=1e100.net; s=20230601; t=1743057810; x=1743662610;
+        h=content-transfer-encoding:in-reply-to:content-language:from
+         :references:cc:to:subject:user-agent:mime-version:date:message-id
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
+        bh=OYQRSLDDu+9ncKrO0EiMnXhUcVzXwRWAsy/yjivhkeY=;
+        b=TbSvTE9+EZaPnqRoGv8HM+3wLjpDo1YrZHEK3EcCo9qsu9At9v36BiJ8gLKYjFhYL2
+         yLcxyP3lL39XEstGdfOezIxlo4tpnr6QtHcCtzbE+D0wNMsuDM0IQOBwEfkXIV2lmKtQ
+         6cXXFnnymD4PRrebKN8typSFOHQibop5k2ZvTioZ/5BPAZHfMTKn1caIZ5pk9gMH8/SV
+         CVXH2igUeGMBQgA5UcE1Isugq6jbdVtcSGfXrD3y7c3Sag/HPAFtfdHjvxCYTr2IUOPg
+         ZJZL2J9idAPqOCKd1DBM7WjezYRue+3gtZT9lRX4M2OK4VOjkbkcQbmXYc/BlXAyIi4N
+         qQKQ==
+X-Gm-Message-State: AOJu0Yy18Uy+RaEaocfxeXr1N1OvJuEYPq2mz2ypQeWBnS/xWIrFcNpX
+	D0m5MHOp5c5WaYctc3ZY2aezSgVWUbYVM02qWKufGBMmcwqkIq7JVjEwGlWyBvM=
+X-Gm-Gg: ASbGnctenY/tj7KudLRnvxkSS7Do1FePO/W8qt2t2WTG1dkxmBpxz2CR+kB2SvD0rv5
+	vQC9GuTcweQrT4Bm6PfIIYwpxSuoZMfTyxvXV23a9iXK4+W5et23AlZF0ZiPBxf2n5YwPNou5oN
+	kV9/H3Pw7kKpygr1qkW0JBsikjF0dfkSYXfJjGB/jlx+SVn0NbTxXxVVaqSMd+wK5rRzp+dS7VN
+	hJwgqvgwTFGRC4ljRcT1Tx507OW5r6I3Al2eBpdDAnGgYkGOGIqJTKsf1AqKfyHM9qI8ak7Wn+n
+	xxLNXK+y4fwU5FMpreQDiWcDqgbhSRWusEHRaa7xoiMRJY4t4ZhYtU/VKGiHvw==
+X-Google-Smtp-Source: AGHT+IG7uoZZ4cy3JAa+yLXGMZkwdOi8KblqHkzfjjsnlqCUlO76I+Ifh2Yz3Zl2jw/WLzCs0lckWA==
+X-Received: by 2002:a5d:47c3:0:b0:382:4e71:1a12 with SMTP id ffacd0b85a97d-39ad2ada142mr343227f8f.1.1743057809776;
+        Wed, 26 Mar 2025 23:43:29 -0700 (PDT)
+Received: from [10.202.112.30] ([202.127.77.110])
+        by smtp.gmail.com with ESMTPSA id d9443c01a7336-22780f4d5f5sm121269285ad.79.2025.03.26.23.43.27
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Wed, 26 Mar 2025 23:43:29 -0700 (PDT)
+Message-ID: <faef812f-0adc-4a46-951a-5453927c2819@suse.com>
+Date: Thu, 27 Mar 2025 14:43:26 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH] ocfs2: fixing global bitmap allocating failure for
+ discontig type
+To: joseph.qi@linux.alibaba.com
+Cc: ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org,
+ gautham.ananthakrishna@oracle.com
+References: <20250327062209.19201-1-heming.zhao@suse.com>
+From: Heming Zhao <heming.zhao@suse.com>
+Content-Language: en-US
+In-Reply-To: <20250327062209.19201-1-heming.zhao@suse.com>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
 
-The commit 4eb7b93e0310 ("ocfs2: improve write IO performance when
-fragmentation is high") introduced a regression. In the discontiguous
-extent allocation case, ocfs2_cluster_group_search() is comparing with
-the wrong target length, which causes allocation failure.
+Hello list,
 
-Call stack:
-ocfs2_mkdir()
- ocfs2_reserve_new_inode()
-  ocfs2_reserve_suballoc_bits()
-   ocfs2_block_group_alloc()
-    ocfs2_block_group_alloc_discontig()
-     __ocfs2_claim_clusters()
-      ocfs2_claim_suballoc_bits()
-       ocfs2_search_chain()
-        ocfs2_cluster_group_search()
+I wrote this patch based on Gautham's patch code logic. Because I lack a
+test script to verify this patch, this patch only passes compilation.
 
-Reported-by: Gautham Ananthakrishna <gautham.ananthakrishna@oracle.com>
-Fixes: 4eb7b93e0310 ("ocfs2: improve write IO performance when fragmentation is high")
-Signed-off-by: Heming Zhao <heming.zhao@suse.com>
----
- fs/ocfs2/suballoc.c | 14 +++++++++++---
- fs/ocfs2/suballoc.h |  1 +
- 2 files changed, 12 insertions(+), 3 deletions(-)
+btw, another topic (unrelated to this bug) is that ocfs2-test fails to run
+on the latest Linux distributions (e.g., openSUSE Tumbleweed). I am focusing
+on fixing this problem, but it requires some time. I have created a personal
+repository [1]. Once I finish the verification process for ocfs2-test, I will
+submit a PR to the upstream GitHub repository [2] (the suse-py3 branch).
 
-diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
-index f7b483f0de2a..3dea082f6e91 100644
---- a/fs/ocfs2/suballoc.c
-+++ b/fs/ocfs2/suballoc.c
-@@ -698,10 +698,12 @@ static int ocfs2_block_group_alloc(struct ocfs2_super *osb,
- 
- 	bg_bh = ocfs2_block_group_alloc_contig(osb, handle, alloc_inode,
- 					       ac, cl);
--	if (PTR_ERR(bg_bh) == -ENOSPC)
-+	if (PTR_ERR(bg_bh) == -ENOSPC) {
-+		ac->ac_which = OCFS2_AC_USE_MAIN_DISCONTIG;
- 		bg_bh = ocfs2_block_group_alloc_discontig(handle,
- 							  alloc_inode,
- 							  ac, cl);
-+	}
- 	if (IS_ERR(bg_bh)) {
- 		status = PTR_ERR(bg_bh);
- 		bg_bh = NULL;
-@@ -2365,7 +2367,8 @@ int __ocfs2_claim_clusters(handle_t *handle,
- 	BUG_ON(ac->ac_bits_given >= ac->ac_bits_wanted);
- 
- 	BUG_ON(ac->ac_which != OCFS2_AC_USE_LOCAL
--	       && ac->ac_which != OCFS2_AC_USE_MAIN);
-+	       && ac->ac_which != OCFS2_AC_USE_MAIN
-+	       && ac->ac_which != OCFS2_AC_USE_MAIN_DISCONTIG);
- 
- 	if (ac->ac_which == OCFS2_AC_USE_LOCAL) {
- 		WARN_ON(min_clusters > 1);
-@@ -2427,7 +2430,12 @@ int ocfs2_claim_clusters(handle_t *handle,
- 			 u32 *cluster_start,
- 			 u32 *num_clusters)
- {
--	unsigned int bits_wanted = ac->ac_bits_wanted - ac->ac_bits_given;
-+	unsigned int bits_wanted;
-+
-+	if (ac->ac_which == OCFS2_AC_USE_MAIN)
-+		bits_wanted = ac->ac_bits_wanted - ac->ac_bits_given;
-+	else /* ac_which == OCFS2_AC_USE_MAIN_DISCONTIG */
-+		bits_wanted = min_clusters;
- 
- 	return __ocfs2_claim_clusters(handle, ac, min_clusters,
- 				      bits_wanted, cluster_start, num_clusters);
-diff --git a/fs/ocfs2/suballoc.h b/fs/ocfs2/suballoc.h
-index b481b834857d..bcf2ed4a8631 100644
---- a/fs/ocfs2/suballoc.h
-+++ b/fs/ocfs2/suballoc.h
-@@ -29,6 +29,7 @@ struct ocfs2_alloc_context {
- #define OCFS2_AC_USE_MAIN  2
- #define OCFS2_AC_USE_INODE 3
- #define OCFS2_AC_USE_META  4
-+#define OCFS2_AC_USE_MAIN_DISCONTIG  5
- 	u32    ac_which;
- 
- 	/* these are used by the chain search */
--- 
-2.43.0
+[1]: https://build.opensuse.org/package/show/home:hmzhao:branches:network:ha-clustering:Factory/ocfs2-test
+[2]: https://github.com/markfasheh/ocfs2-test
 
+- Heming
+
+On 3/27/25 14:22, Heming Zhao wrote:
+> The commit 4eb7b93e0310 ("ocfs2: improve write IO performance when
+> fragmentation is high") introduced a regression. In the discontiguous
+> extent allocation case, ocfs2_cluster_group_search() is comparing with
+> the wrong target length, which causes allocation failure.
+> 
+> Call stack:
+> ocfs2_mkdir()
+>   ocfs2_reserve_new_inode()
+>    ocfs2_reserve_suballoc_bits()
+>     ocfs2_block_group_alloc()
+>      ocfs2_block_group_alloc_discontig()
+>       __ocfs2_claim_clusters()
+>        ocfs2_claim_suballoc_bits()
+>         ocfs2_search_chain()
+>          ocfs2_cluster_group_search()
+> 
+> Reported-by: Gautham Ananthakrishna <gautham.ananthakrishna@oracle.com>
+> Fixes: 4eb7b93e0310 ("ocfs2: improve write IO performance when fragmentation is high")
+> Signed-off-by: Heming Zhao <heming.zhao@suse.com>
+> ---
+>   fs/ocfs2/suballoc.c | 14 +++++++++++---
+>   fs/ocfs2/suballoc.h |  1 +
+>   2 files changed, 12 insertions(+), 3 deletions(-)
+>
