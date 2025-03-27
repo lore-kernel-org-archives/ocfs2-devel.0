@@ -1,63 +1,64 @@
-Received: from mail-wm1-f42.google.com (mail-wm1-f42.google.com [209.85.128.42])
+Received: from mail-wm1-f48.google.com (mail-wm1-f48.google.com [209.85.128.48])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 943DB2FB2
-	for <ocfs2-devel@lists.linux.dev>; Thu, 27 Mar 2025 06:43:31 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.42
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D3DD442069
+	for <ocfs2-devel@lists.linux.dev>; Thu, 27 Mar 2025 06:53:25 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.48
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1743057815; cv=none; b=jsOkh83PzdD/ryrzD3L+mVdSzFPIiRM1n3xQxshNySpa4+Qy6NKw6/v+YQNfKzcwNR3sElDSBZzboD5mAxnr7/vOvuFeo3WUmxVXpUdiDxAkz0tmFVUM/e6oi4rHmyliF8trEpfd39B38bihQl1ZzbEF/NHcx8RSgZESPS39sZg=
+	t=1743058408; cv=none; b=fj3fGsT3+D722GTrajvzyiQ5eqcso3G7B0XmEmeWUkxYfiJqiArQYdiAsmr7UENIeAk1NN+rbP7rWAHV018i2CY83k4c1XNVwbGbsA6nXgmXzU2GODNln0qEM1zahUx28zUbOulIcfAApUk3PtOHbkU0DJp2Gk4Gc/cSn7I42NY=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1743057815; c=relaxed/simple;
-	bh=n66ybPgUp9VVv9SCPEE/AWLxGlIns+SPIQDz3xX2DrQ=;
+	s=arc-20240116; t=1743058408; c=relaxed/simple;
+	bh=gmjJJW9kLnwVf4ojgXk72+SIvB4JBqU2VPR6QGUBIts=;
 	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=p+VfobYhpd4+88TalgWqSVlDnjfyeLdNmxIpI4mn7YWaUX7b1WGpunFhjzRnVrWA3sXH1up2pqyPnTJxRdjhArWk+d/Sx5hEMTUUdkG02Fj070wy+Niaexg7KPL0MPh0vB0qHtMr8tf1SzEAH7exMmC9hy9OOnyzIXQXDmnBT48=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=SrdSG6VY; arc=none smtp.client-ip=209.85.128.42
+	 In-Reply-To:Content-Type; b=DMY9fX4vcYvdx242G23N0RJdHmRGIw0zQiYrrDnna/vt2w2KMuM9Wah/9mUz9AQXwyfZhy4MBr3IKToIIo0l8Hbv3PYaEvN52l3RG9ta+3dCqbvLKzX2+F8CMzAC7bklRue42PTiRKOj77zSjLFWeKaf4zfEwTpFK68GzhEhtBc=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=DU7FJCMi; arc=none smtp.client-ip=209.85.128.48
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="SrdSG6VY"
-Received: by mail-wm1-f42.google.com with SMTP id 5b1f17b1804b1-43cf89f81c5so796435e9.2
-        for <ocfs2-devel@lists.linux.dev>; Wed, 26 Mar 2025 23:43:31 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="DU7FJCMi"
+Received: by mail-wm1-f48.google.com with SMTP id 5b1f17b1804b1-43cf861f936so1048545e9.3
+        for <ocfs2-devel@lists.linux.dev>; Wed, 26 Mar 2025 23:53:25 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=suse.com; s=google; t=1743057810; x=1743662610; darn=lists.linux.dev;
+        d=suse.com; s=google; t=1743058404; x=1743663204; darn=lists.linux.dev;
         h=content-transfer-encoding:in-reply-to:content-language:from
          :references:cc:to:subject:user-agent:mime-version:date:message-id
          :from:to:cc:subject:date:message-id:reply-to;
-        bh=OYQRSLDDu+9ncKrO0EiMnXhUcVzXwRWAsy/yjivhkeY=;
-        b=SrdSG6VYn/0xisC6lOk6/V0KxhMoHnQaK5cAgbhFXtUMW1kaKEOdZAwBPf0EBxFHTK
-         OWcXUZEVVsFt/Ywr4HiIPhunid2AYVLRQ9nkoJd3L2p0FEe09ZJ/jazfOPEJ5L4kdRzT
-         H3uw8rxyNU62UHcLlCP5ZgNSvNp7hyTp08X9zSAJBB5rlXQdktcQ6PKJg8ZMw6XTnKR2
-         Sc0b0PJG1G0RNi17vd0Vl00i1M05Q8tJL7HGuPOCCSffk401zcWQMQLwwhT7HKzojvl7
-         xEmYuBsEjrjrI7Ch8XigxyhngB4ItsulaMUqL43ZCYgS0DMVhlXVVRZPWgagUrsVOEtm
-         ckqA==
+        bh=t1PDL49wsR8t3oK5tOwSBTXVuxib+JRofPTqoaO+MbY=;
+        b=DU7FJCMiiMYW2ptHGbOnT+e24IUeFdEmoa+5PNUgxwKm4uSFCTuJURZZT839lr6ZuT
+         S4PVwH7YEjXL5icoJ5P9/B2QqXUOO1IYgC3YyhYz0pAq8g2ZX+f/4mujLr/vEPikzcdB
+         TPHgH2hUH2ncpRLcY+pu23Ah4u9ldSzZr5R6QNopVkJyrtw+8OlZ6ujwuIAZ1ytH3PHA
+         GqPiGo++3esKqvi8Ycx+1KH4H7dNhUXH53KzZX8gFM/s6+gwtZldlGkpn2YgKAwftPYe
+         EHrVf6+lKan7a9ddALHG5YyBxI4eb2NIW/v7QxT4NslySiaaEWHx7H/XwUEC7yrVqjv+
+         4Yzg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1743057810; x=1743662610;
+        d=1e100.net; s=20230601; t=1743058404; x=1743663204;
         h=content-transfer-encoding:in-reply-to:content-language:from
          :references:cc:to:subject:user-agent:mime-version:date:message-id
          :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
-        bh=OYQRSLDDu+9ncKrO0EiMnXhUcVzXwRWAsy/yjivhkeY=;
-        b=TbSvTE9+EZaPnqRoGv8HM+3wLjpDo1YrZHEK3EcCo9qsu9At9v36BiJ8gLKYjFhYL2
-         yLcxyP3lL39XEstGdfOezIxlo4tpnr6QtHcCtzbE+D0wNMsuDM0IQOBwEfkXIV2lmKtQ
-         6cXXFnnymD4PRrebKN8typSFOHQibop5k2ZvTioZ/5BPAZHfMTKn1caIZ5pk9gMH8/SV
-         CVXH2igUeGMBQgA5UcE1Isugq6jbdVtcSGfXrD3y7c3Sag/HPAFtfdHjvxCYTr2IUOPg
-         ZJZL2J9idAPqOCKd1DBM7WjezYRue+3gtZT9lRX4M2OK4VOjkbkcQbmXYc/BlXAyIi4N
-         qQKQ==
-X-Gm-Message-State: AOJu0Yy18Uy+RaEaocfxeXr1N1OvJuEYPq2mz2ypQeWBnS/xWIrFcNpX
-	D0m5MHOp5c5WaYctc3ZY2aezSgVWUbYVM02qWKufGBMmcwqkIq7JVjEwGlWyBvM=
-X-Gm-Gg: ASbGnctenY/tj7KudLRnvxkSS7Do1FePO/W8qt2t2WTG1dkxmBpxz2CR+kB2SvD0rv5
-	vQC9GuTcweQrT4Bm6PfIIYwpxSuoZMfTyxvXV23a9iXK4+W5et23AlZF0ZiPBxf2n5YwPNou5oN
-	kV9/H3Pw7kKpygr1qkW0JBsikjF0dfkSYXfJjGB/jlx+SVn0NbTxXxVVaqSMd+wK5rRzp+dS7VN
-	hJwgqvgwTFGRC4ljRcT1Tx507OW5r6I3Al2eBpdDAnGgYkGOGIqJTKsf1AqKfyHM9qI8ak7Wn+n
-	xxLNXK+y4fwU5FMpreQDiWcDqgbhSRWusEHRaa7xoiMRJY4t4ZhYtU/VKGiHvw==
-X-Google-Smtp-Source: AGHT+IG7uoZZ4cy3JAa+yLXGMZkwdOi8KblqHkzfjjsnlqCUlO76I+Ifh2Yz3Zl2jw/WLzCs0lckWA==
-X-Received: by 2002:a5d:47c3:0:b0:382:4e71:1a12 with SMTP id ffacd0b85a97d-39ad2ada142mr343227f8f.1.1743057809776;
-        Wed, 26 Mar 2025 23:43:29 -0700 (PDT)
+        bh=t1PDL49wsR8t3oK5tOwSBTXVuxib+JRofPTqoaO+MbY=;
+        b=qnc0WpmuwHH8bmdyxYXBSWcwcDxtEMn48ZGXjiaB+y31KZyhCq4yRIuWWSc6Oqs3F5
+         dDS1FUo64IModDHB46VJRPSkLk9UiIqGT9ByKkuJXlFa9AXmOpmY3gtb95L9v2Qy2cdN
+         GwJl+PSbNiymaJwkEFZFd0IeFN+TljsMvFMUlWCJS6hU8gk7Hrq2OEk4jkWGPqyNcYW+
+         ZOLSQuKebgAb7q5K6XGHe2JLVTOawbn8mNCkplbVOHX1aljgAzrNPfP2KVCWS8QfZmv8
+         IDak38g3AA/6WS/k3kCu9hhXOSNtfbB80T1+xNlFb3Aphgj8VCEwwCZnxXUD8GTIXagT
+         Ddbg==
+X-Forwarded-Encrypted: i=1; AJvYcCV8EBByBvHRotqQh61Iylo+cCO9S8GL63Dyxy9dC3djnzPSIzdiHWjic4ZhMbZxQobVnE6SjwupIacrYA==@lists.linux.dev
+X-Gm-Message-State: AOJu0YwLeQ7O+UMchFFO6L3TypwYz57W80WvT8h/hvIlju/ZmWBTzneU
+	Xgd0QUtCi1NPA/quq+RXeBFMNA6Isn1lmalicLeyaN+sUihEgDd4mG9MBbjPVu4=
+X-Gm-Gg: ASbGnctiqt3sfG3nsyv04BBpjPvOGNWmJ5/i4hpDJJq3FX8l5GJDpyEMqJlnEGx49EU
+	5qJoJ3bw2EjFyxoMtZ+CRxNszCrITFf819HyP4DesY2F9u/e/1FZussFOkyTPo7Zq/ruM55oJSP
+	ls/4sQ+TG2JeRscBD3le9a7NT6pRjHGHHu/IZpMynnAfBnZKbGva5R3Gyea4fXm4j9G5wJxo8va
+	vNxE6xgHMAHXof53NJT0BpCt6tOLTo9KQSn0IV2zyucB0nvyGdiTKjpY9ggu++6+5Xk0QOM76T9
+	i5iJqkEk6+IOOKbRk5oqWL1Vv9a8WakpSiSZil3ohZBYDfmgNhY=
+X-Google-Smtp-Source: AGHT+IEdkz6q64rsYV3VZmc/ZfV6ChqPaq/S6W1mt38Hq+RVFgHVVbpHCU3NX5s/6fNrItFngbvoXQ==
+X-Received: by 2002:a5d:47c7:0:b0:38d:be5e:b2a7 with SMTP id ffacd0b85a97d-39ad2b19b7fmr398048f8f.10.1743058403991;
+        Wed, 26 Mar 2025 23:53:23 -0700 (PDT)
 Received: from [10.202.112.30] ([202.127.77.110])
-        by smtp.gmail.com with ESMTPSA id d9443c01a7336-22780f4d5f5sm121269285ad.79.2025.03.26.23.43.27
+        by smtp.gmail.com with ESMTPSA id d9443c01a7336-22780f45e9esm121332185ad.88.2025.03.26.23.53.21
         (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Wed, 26 Mar 2025 23:43:29 -0700 (PDT)
-Message-ID: <faef812f-0adc-4a46-951a-5453927c2819@suse.com>
-Date: Thu, 27 Mar 2025 14:43:26 +0800
+        Wed, 26 Mar 2025 23:53:23 -0700 (PDT)
+Message-ID: <bcce4e5c-d739-4b1c-86bd-d165ec0780be@suse.com>
+Date: Thu, 27 Mar 2025 14:53:20 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -65,56 +66,89 @@ List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH] ocfs2: fixing global bitmap allocating failure for
- discontig type
-To: joseph.qi@linux.alibaba.com
-Cc: ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org,
- gautham.ananthakrishna@oracle.com
-References: <20250327062209.19201-1-heming.zhao@suse.com>
+Subject: Re: [PATCH RFC 1/1] ocfs2: fix write IO performance improvement for
+ high fragmentation
+To: Gautham Ananthakrishna <gautham.ananthakrishna@oracle.com>,
+ "joseph.qi@linux.alibaba.com" <joseph.qi@linux.alibaba.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
+ "ocfs2-devel@lists.linux.dev" <ocfs2-devel@lists.linux.dev>,
+ Rajesh Sivaramasubramaniom <rajesh.sivaramasubramaniom@oracle.com>,
+ Junxiao Bi <junxiao.bi@oracle.com>,
+ "akpm@linux-foundation.org" <akpm@linux-foundation.org>
+References: <20250324054851.2509325-1-gautham.ananthakrishna@oracle.com>
+ <199205d8-20fb-463d-9065-8021b3cf7cb8@suse.com>
+ <DS7PR10MB48784AA2A065605733B79499F7A12@DS7PR10MB4878.namprd10.prod.outlook.com>
 From: Heming Zhao <heming.zhao@suse.com>
 Content-Language: en-US
-In-Reply-To: <20250327062209.19201-1-heming.zhao@suse.com>
+In-Reply-To: <DS7PR10MB48784AA2A065605733B79499F7A12@DS7PR10MB4878.namprd10.prod.outlook.com>
 Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 
-Hello list,
+On 3/27/25 14:21, Gautham Ananthakrishna wrote:
+> HI Heming,
+> 
+> Sharing the test suite may not be practical (it has shell scripts, python and C binaries). However, I can take a look into your patch and run a quick test.
+> 
+> Thanks,
+> Gautham.
+> 
 
-I wrote this patch based on Gautham's patch code logic. Because I lack a
-test script to verify this patch, this patch only passes compilation.
-
-btw, another topic (unrelated to this bug) is that ocfs2-test fails to run
-on the latest Linux distributions (e.g., openSUSE Tumbleweed). I am focusing
-on fixing this problem, but it requires some time. I have created a personal
-repository [1]. Once I finish the verification process for ocfs2-test, I will
-submit a PR to the upstream GitHub repository [2] (the suse-py3 branch).
-
-[1]: https://build.opensuse.org/package/show/home:hmzhao:branches:network:ha-clustering:Factory/ocfs2-test
-[2]: https://github.com/markfasheh/ocfs2-test
+Thank you for your quick reply and willingness to help.
 
 - Heming
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+> *From:* Heming Zhao <heming.zhao@suse.com>
+> *Sent:* Thursday, March 27, 2025 11:39 AM
+> *To:* Gautham Ananthakrishna <gautham.ananthakrishna@oracle.com>; joseph.qi@linux.alibaba.com <joseph.qi@linux.alibaba.com>
+> *Cc:* linux-kernel@vger.kernel.org <linux-kernel@vger.kernel.org>; ocfs2-devel@lists.linux.dev <ocfs2-devel@lists.linux.dev>; Rajesh Sivaramasubramaniom <rajesh.sivaramasubramaniom@oracle.com>; Junxiao Bi <junxiao.bi@oracle.com>; akpm@linux-foundation.org <akpm@linux-foundation.org>
+> *Subject:* Re: [PATCH RFC 1/1] ocfs2: fix write IO performance improvement for high fragmentation
+> Hello Gautham,
+> 
+> Thanks for locating the issue and submitting a patch.
+> Is it possible to share your test case for this bug?
+> 
+> The key of this bug is ocfs2_cluster_group_search() comparing with wrong
+> bits size. I have another fix for this bug and will send it to this mailing
+> list later.
+> 
+> Thanks,
+> Heming
+> 
+> On 3/24/25 13:48, Gautham Ananthakrishna wrote:
+>> The commit 4eb7b93e03101fd3f35e69affe566e4b1e3e3dca caused a regression
+>> in our test suite in discontig extent tests. Upon troubleshooting I found
+>> The following issues.
+>> 
+>> 1. The function ocfs2_cluster_group_search() was called for discontig allocations
+>> as well. But it checks only the contiguous bits 'bg_contig_free_bits'.
+>> It hit the ENOSPC in the following case in one of the tests.
+>> 
+>> ocfs2_mkdir()
+>>   ocfs2_reserve_new_inode()
+>>    ocfs2_reserve_suballoc_bits()
+>>     ocfs2_block_group_alloc()
+>>      ocfs2_block_group_alloc_discontig()
+>>       __ocfs2_claim_clusters()
+>>        ocfs2_claim_suballoc_bits()
+>>         ocfs2_search_chain()
+>>          ocfs2_cluster_group_search()
+>> 
+>> Looked like the commit did not consider discontig searches. To fix this,
+>> I have split ocfs2_cluster_group_search() into *_common(), *_contig() and
+>> *_discontig()
+>> 
+>> 2. That commit enforced ocfs2_cluster_group_search() to search only the
+>> 'bits_wanted' number of bits whereas ocfs2_block_group_find_clear_bits()
+>> fills the best available size and the function ocfs2_cluster_group_search()
+>> itself is supposed to search 'min_bits' at the minimum and need not be
+>> 'bits_wanted' always.
+>> 
+>> Fixed the above issues in this patch.
+>> This patch fixes 4eb7b93e03101fd3f35e69affe566e4b1e3e3dca
+>> 
+>> Signed-off-by: Gautham Ananthakrishna <gautham.ananthakrishna@oracle.com>
+>> ---
+>>   fs/ocfs2/suballoc.c | 146 ++++++++++++++++++++++++++++----------------
+>>   1 file changed, 95 insertions(+), 51 deletions(-)
+>> 
 
-On 3/27/25 14:22, Heming Zhao wrote:
-> The commit 4eb7b93e0310 ("ocfs2: improve write IO performance when
-> fragmentation is high") introduced a regression. In the discontiguous
-> extent allocation case, ocfs2_cluster_group_search() is comparing with
-> the wrong target length, which causes allocation failure.
-> 
-> Call stack:
-> ocfs2_mkdir()
->   ocfs2_reserve_new_inode()
->    ocfs2_reserve_suballoc_bits()
->     ocfs2_block_group_alloc()
->      ocfs2_block_group_alloc_discontig()
->       __ocfs2_claim_clusters()
->        ocfs2_claim_suballoc_bits()
->         ocfs2_search_chain()
->          ocfs2_cluster_group_search()
-> 
-> Reported-by: Gautham Ananthakrishna <gautham.ananthakrishna@oracle.com>
-> Fixes: 4eb7b93e0310 ("ocfs2: improve write IO performance when fragmentation is high")
-> Signed-off-by: Heming Zhao <heming.zhao@suse.com>
-> ---
->   fs/ocfs2/suballoc.c | 14 +++++++++++---
->   fs/ocfs2/suballoc.h |  1 +
->   2 files changed, 12 insertions(+), 3 deletions(-)
->
