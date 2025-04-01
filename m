@@ -1,98 +1,204 @@
-Received: from mail-il1-f199.google.com (mail-il1-f199.google.com [209.85.166.199])
+Received: from mail-wm1-f41.google.com (mail-wm1-f41.google.com [209.85.128.41])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5E8FA211282
-	for <ocfs2-devel@lists.linux.dev>; Mon, 31 Mar 2025 13:08:22 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.166.199
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 75F474685
+	for <ocfs2-devel@lists.linux.dev>; Tue,  1 Apr 2025 04:47:54 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.41
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1743426503; cv=none; b=j0yGLYmI3Nd4NYvaPGVe5pix+dGfV+zE1Qk92s/xIBnvgD0xtGJTIG+bPSQB0FJY2X/h4KRsD+vZRaEA/Ichhtq/pSqcRvLoAfxMu4ftL6rWu+h++WYzq1OhlkWVnEL+mxITmfF2S+bPyGIfJSuD9H6U7N0K+tcDeM/P3Vafy2U=
+	t=1743482877; cv=none; b=eDrqov04EtEPrvfM3qykeSrCPxlRh2O+BKrBtcjuU3U6Oe63RiJ4j7dWXjDeMDC5k92tZrLhtGBo9IbdMBFgCbM+gAaVu0NWX9yX1PjravuKNcjBsZ5ggjhjrXXZotx3Ad0RbyU09CA2yMW4K5VJNnkj+6Aq178pRvUjCW68cKk=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1743426503; c=relaxed/simple;
-	bh=rQOhOxCeXpud3m5iVUI722VfHj3ccanf8lV7ulNXxHQ=;
-	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=H+HfBijNHE160nMP1HSd5a7tCNAfLd0YPqe6w+SLepzz5TxXpbtrSqDxc9bkL+mJTU9XuO53kgiRVdbPdWyYTM55xLBroIeJnbtKwX8O/MNmUMBCul3SiTJUCngJ2rc5qKTt4yMEX0iDaFxeaxxpQNvwlTyo4ea4YFNwwaNSDMA=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.166.199
-Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
-Received: by mail-il1-f199.google.com with SMTP id e9e14a558f8ab-3d6c613bd79so4443515ab.2
-        for <ocfs2-devel@lists.linux.dev>; Mon, 31 Mar 2025 06:08:22 -0700 (PDT)
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1743426501; x=1744031301;
-        h=to:from:subject:message-id:date:mime-version:x-gm-message-state
+	s=arc-20240116; t=1743482877; c=relaxed/simple;
+	bh=pdRlylRtWscqEnVbh/Va6IKnH/B2Bw87mJrwkBXsEno=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=juGnNScAQJzGlxvQdqT61q82PET/ei8ZGQyHU7zNWOkor3qx0x1UhwdGPdz5WH2DDKgK0UsC1cztp08KF+YdGB6ySNv2HhL/on7GleYQxaiLMCGFYwqSqk7r9XHE4syLkDEleXZUOTd2cMap/aNQMjYlhzgfL0a4eGqE0R1ibik=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=QrTWkZx2; arc=none smtp.client-ip=209.85.128.41
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="QrTWkZx2"
+Received: by mail-wm1-f41.google.com with SMTP id 5b1f17b1804b1-43935d1321aso4749675e9.1
+        for <ocfs2-devel@lists.linux.dev>; Mon, 31 Mar 2025 21:47:54 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=suse.com; s=google; t=1743482873; x=1744087673; darn=lists.linux.dev;
+        h=content-transfer-encoding:in-reply-to:content-language:from
+         :references:cc:to:subject:user-agent:mime-version:date:message-id
          :from:to:cc:subject:date:message-id:reply-to;
-        bh=zbm7YxpkiWUEYakqF/l2hEzPdOv29cwCLbKsQd8Pxlc=;
-        b=Rr10c0qcPXSwLgfVD+wme+lduQoCZewFRSTXKfYf4SBQAtDj3gykHdKih2WcUsztzq
-         gz0pSUokGX9d2S62NbXqxM7G2CyGQo9TF0dTPhT5HEgRKF8Dps098mhXNnwn8acyLp8B
-         MqSvzflsf00evQW6i6wnJQctVRM2EM3LaixVvK0fQXQEwa64EEczM0pU/khR16uhFm1n
-         uy3sk7g2qV5SL8rfrxT9OjQOQvLKBQOgbx9UakCKUkRtoxY8U+B0AZcAHmjH4dao82Cl
-         vmtgOh3UGrlVKvAo6W2Wp+UGPK40uxagpK3+gXF31fQgDJQvpTLWpivgSnLkg2JdfRtC
-         90Mw==
-X-Forwarded-Encrypted: i=1; AJvYcCUsng9cpJoiGq0EFjqIEwYGpQBZW58b1PG/T9Jb5XE/11MBuN0tFZx21zOc2eDtF5fVZoAZxTKZxeDKcQ==@lists.linux.dev
-X-Gm-Message-State: AOJu0Yy6RHrN6b8h7cvgL+OtUuqtNB2lWtLbGIQRrTZv8e7qJCyJJAfG
-	FXjCPHOjr3U1TNNNN6wtuVUhkpT+iODeTWo301Isf20NXHbRV2DTDPX4muPCzKqS5n38fW1wS8Z
-	949Y7kLAudOVGN99nS4utKpKPeBZcnbSv/F4iYrWliNJbmv0LV8dWgWM=
-X-Google-Smtp-Source: AGHT+IE6ZyQphv/9VcMGurb/ClAhzOMXBXjCpRW/LTu7Xme2g0kHWZ7CMOIu3sFP2LtcaRePEYPC2jlS1Ehx78SGZYD2RxUxGvK2
+        bh=pdRlylRtWscqEnVbh/Va6IKnH/B2Bw87mJrwkBXsEno=;
+        b=QrTWkZx2abOPviYEoZoF6RDW4moLt4HzUM7PN9KkXHxyPeeQage2Jc1eE5NUS148mT
+         qOoFopkyvvluS5IGB/FgJrOW4gbKpR3ELrmzT8JDnf2Xj2nrD8WB+jhHVNFJq76VFOqN
+         ZneFSBG/Baq0GyIc/k9RqN//HjhlCpVNT31AthhcRqzhsUVdSV59BkdqzXe8wer8H8Sq
+         S68iiEQeCQP2pRAxuXb+qj/y4IJB41rFfT4GGNzlbwNmrrgbVnp/s8gPeTrC6OxQipX3
+         kUYNoOC9jf6LV05JklJqkEVU/NwqCBMNEskNZ1d/ihhUBD5gEI/hnbAChWwtgPh2L5bj
+         8aAA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1743482873; x=1744087673;
+        h=content-transfer-encoding:in-reply-to:content-language:from
+         :references:cc:to:subject:user-agent:mime-version:date:message-id
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
+        bh=pdRlylRtWscqEnVbh/Va6IKnH/B2Bw87mJrwkBXsEno=;
+        b=Bvbjv6zO1HGG+kk2jCCkrKQumEW5wBXW/caau0Ta2qW/TR2D+ZTrJejiyVUjiyUXaZ
+         JJHNTWVduMgf+XKTlBeD/0VnoKy7w3u4Ca+3VitEmMnaAPhkwLOFhS+3K2jtFzsSmGOM
+         EDbkt9P2WnqHdhE8qePci7jePyy0G7zosxA1OMykQXfESlpIiyvqDpImQmZCzugQcz5J
+         0QMn2/u1GdNtx0n2vRpjfYRzApiyjogqYRe0xjcMr3c/kNJB1qlz32BuAo9ZzgBXnvRt
+         HlWx+4AEBBRF2HNO+v+4kYudJdPIVJZDLINaKHJMBQIaNDQ7cOkvsVi382XcW4kQw5nd
+         lXTA==
+X-Forwarded-Encrypted: i=1; AJvYcCXbarjhC3iLm44Kzt8izBtxuVPVee2faiFCjbEo+RboSKNz9IRKpFGJJl9a9zXt8SJKmJHWBoPGeVO1YA==@lists.linux.dev
+X-Gm-Message-State: AOJu0Yy1XNfpKOWiUxmTQpc0MwftoascFDQxws6/wG3nI1YVM5lCZ4Bb
+	2fFP/H8YHuzR017NrK/FYqxXJBqofVAl+NaeVZ+LZbbAvk/8eZhEMpk3q/RftOk=
+X-Gm-Gg: ASbGnctE09eeg/KOWzK+2SetFtIX4FopOJCdKGoiirUzbt7oxPG/Oaxd2hQUzFDk7OC
+	+bYBOBIrx6nlK9qnuHE8U1tpQYlXwe+pzQzjBcNnOvTHiqPlO81UruNMRo33/jla8xHH8WtYUoy
+	RR44dSn6nSdmcxMm2MStg7SvLwmM8wIJuke9BHRXeeBG2ekV8Iz9IejpSZNL10aWC8phnGpguwm
+	kJe35CwWnwv2t7ZEZpu8709kjjChJ6sZxI/OvuxHlaw26wjuc6riwicuqXXTUZzBVp+Y9ltUDpE
+	jQiGxhphlrARAi9AKlIfI7HWUUqS5ame7qoEwljfbZOM8gdupHk=
+X-Google-Smtp-Source: AGHT+IEeY2bNytPb3ihsugWoNW8hGrlgWaIes48R1sCfv8Mlmy6uP59V7H9Zdjiarts27iYBmLepKA==
+X-Received: by 2002:a05:600c:1f10:b0:439:90f5:3919 with SMTP id 5b1f17b1804b1-43ea93c960dmr2921125e9.4.1743482872710;
+        Mon, 31 Mar 2025 21:47:52 -0700 (PDT)
+Received: from [10.202.112.30] ([202.127.77.110])
+        by smtp.gmail.com with ESMTPSA id 41be03b00d2f7-af93b6a093bsm7074323a12.28.2025.03.31.21.47.50
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Mon, 31 Mar 2025 21:47:52 -0700 (PDT)
+Message-ID: <895c59e3-01ab-46e1-b02b-7e65a8484e1c@suse.com>
+Date: Tue, 1 Apr 2025 12:47:48 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-X-Received: by 2002:a05:6e02:1989:b0:3d0:bd5:b863 with SMTP id
- e9e14a558f8ab-3d5e0a004bbmr79287575ab.20.1743426501461; Mon, 31 Mar 2025
- 06:08:21 -0700 (PDT)
-Date: Mon, 31 Mar 2025 06:08:21 -0700
-X-Google-Appengine-App-Id: s~syzkaller
-X-Google-Appengine-App-Id-Alias: syzkaller
-Message-ID: <67ea93c5.050a0220.1547ec.0143.GAE@google.com>
-Subject: [syzbot] Monthly ocfs2 report (Mar 2025)
-From: syzbot <syzbot+list9c9e80ed7b87cb3956a3@syzkaller.appspotmail.com>
-To: jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
-	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
-	syzkaller-bugs@googlegroups.com
-Content-Type: text/plain; charset="UTF-8"
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH RFC 1/1] ocfs2: fix write IO performance improvement for
+ high fragmentation
+To: "joseph.qi@linux.alibaba.com" <joseph.qi@linux.alibaba.com>,
+ Gautham Ananthakrishna <gautham.ananthakrishna@oracle.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
+ "ocfs2-devel@lists.linux.dev" <ocfs2-devel@lists.linux.dev>,
+ Rajesh Sivaramasubramaniom <rajesh.sivaramasubramaniom@oracle.com>,
+ Junxiao Bi <junxiao.bi@oracle.com>,
+ "akpm@linux-foundation.org" <akpm@linux-foundation.org>
+References: <20250324054851.2509325-1-gautham.ananthakrishna@oracle.com>
+ <199205d8-20fb-463d-9065-8021b3cf7cb8@suse.com>
+ <DS7PR10MB48784AA2A065605733B79499F7A12@DS7PR10MB4878.namprd10.prod.outlook.com>
+ <bcce4e5c-d739-4b1c-86bd-d165ec0780be@suse.com>
+ <DS7PR10MB48780B38CDE017917218F22CF7AC2@DS7PR10MB4878.namprd10.prod.outlook.com>
+From: Heming Zhao <heming.zhao@suse.com>
+Content-Language: en-US
+In-Reply-To: <DS7PR10MB48780B38CDE017917218F22CF7AC2@DS7PR10MB4878.namprd10.prod.outlook.com>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: base64
 
-Hello ocfs2 maintainers/developers,
-
-This is a 31-day syzbot report for the ocfs2 subsystem.
-All related reports/information can be found at:
-https://syzkaller.appspot.com/upstream/s/ocfs2
-
-During the period, 4 new issues were detected and 0 were fixed.
-In total, 73 issues are still open and 15 have already been fixed.
-
-Some of the still happening issues:
-
-Ref  Crashes Repro Title
-<1>  146425  Yes   possible deadlock in ocfs2_try_remove_refcount_tree
-                   https://syzkaller.appspot.com/bug?extid=1fed2de07d8e11a3ec1b
-<2>  42712   Yes   possible deadlock in dqget
-                   https://syzkaller.appspot.com/bug?extid=6e493c165d26d6fcbf72
-<3>  32565   Yes   possible deadlock in ocfs2_acquire_dquot
-                   https://syzkaller.appspot.com/bug?extid=51244a05705883616c95
-<4>  15089   Yes   possible deadlock in ocfs2_reserve_suballoc_bits
-                   https://syzkaller.appspot.com/bug?extid=5d516fba7bc3c966c9a9
-<5>  10599   Yes   possible deadlock in ocfs2_reserve_local_alloc_bits
-                   https://syzkaller.appspot.com/bug?extid=843fa26882088a9ee7e3
-<6>  10568   Yes   possible deadlock in ocfs2_init_acl
-                   https://syzkaller.appspot.com/bug?extid=4007ab5229e732466d9f
-<7>  6346    Yes   possible deadlock in deactivate_super (2)
-                   https://syzkaller.appspot.com/bug?extid=180dd013ba371eabc162
-<8>  5249    Yes   possible deadlock in ocfs2_setattr
-                   https://syzkaller.appspot.com/bug?extid=d78497256d53041ee229
-<9>  2125    No    possible deadlock in ocfs2_xattr_set
-                   https://syzkaller.appspot.com/bug?extid=ba9a789bd1f4d21fcefe
-<10> 1957    No    possible deadlock in ocfs2_lock_global_qf
-                   https://syzkaller.appspot.com/bug?extid=b53d753ae8fb473e2397
-
----
-This report is generated by a bot. It may contain errors.
-See https://goo.gl/tpsmEJ for more information about syzbot.
-syzbot engineers can be reached at syzkaller@googlegroups.com.
-
-To disable reminders for individual bugs, reply with the following command:
-#syz set <Ref> no-reminders
-
-To change bug's subsystems, reply with:
-#syz set <Ref> subsystems: new-subsystem
-
-You may send multiple commands in a single email message.
+VGhhbmsgR2F1dGhhbSBmb3IgdGhlIHRlc3Rpbmcgam9iLg0KDQpQaW5nIEpvc2VwaC4uLg0K
+TGV0J3MgcXVpY2tseSBmaXggdGhpcyBidWcuDQpUaGVyZSBhcmUgdHdvIHdheXMgdG8gZml4
+IHRoZSBpc3N1ZSBpbiBjb21taXQgNGViN2I5M2UwMzEwOg0KLSBBYXV0aGFtOiBodHRwczov
+L2xvcmUua2VybmVsLm9yZy9vY2ZzMi1kZXZlbC9iY2NlNGU1Yy1kNzM5LTRiMWMtODZiZC1k
+MTY1ZWMwNzgwYmVAc3VzZS5jb20vVC8jdA0KLSBIZW1pbmc6IGh0dHBzOi8vbG9yZS5rZXJu
+ZWwub3JnL29jZnMyLWRldmVsL2ZhZWY4MTJmLTBhZGMtNGE0Ni05NTFhLTU0NTM5MjdjMjgx
+OUBzdXNlLmNvbS9ULyN0DQoNCkluIG15IHZpZXcsIG15IHBhdGNoIGlzIG1vcmUgYmV0dGVy
+Lg0KDQotIEhlbWluZw0KDQpPbiA0LzEvMjUgMTI6MzIsIEdhdXRoYW0gQW5hbnRoYWtyaXNo
+bmEgd3JvdGU6DQo+IEhJIEhlbWluZywNCj4gDQo+IEkgcmFuIHRoZSB0ZXN0cyBvbiB5b3Vy
+IHBhdGNoLCBhbmQgaXQgaXMgd29ya2luZyBmaW5lLiBUaGUgZGlzY29udGlnX3J1bm5lci5z
+aCB3YXMgZmFpbGluZyBlYXJsaWVyIGluICJJbm9kZXMgQmxvY2sgR3JvdXAgVGVzdCIuDQo+
+IA0KPiBUaGFua3MsDQo+IEdhdXRoYW0uDQo+IC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLQ0KPiAqRnJv
+bToqIEhlbWluZyBaaGFvIDxoZW1pbmcuemhhb0BzdXNlLmNvbT4NCj4gKlNlbnQ6KiBUaHVy
+c2RheSwgTWFyY2ggMjcsIDIwMjUgMTI6MjMgUE0NCj4gKlRvOiogR2F1dGhhbSBBbmFudGhh
+a3Jpc2huYSA8Z2F1dGhhbS5hbmFudGhha3Jpc2huYUBvcmFjbGUuY29tPjsgam9zZXBoLnFp
+QGxpbnV4LmFsaWJhYmEuY29tIDxqb3NlcGgucWlAbGludXguYWxpYmFiYS5jb20+DQo+ICpD
+YzoqIGxpbnV4LWtlcm5lbEB2Z2VyLmtlcm5lbC5vcmcgPGxpbnV4LWtlcm5lbEB2Z2VyLmtl
+cm5lbC5vcmc+OyBvY2ZzMi1kZXZlbEBsaXN0cy5saW51eC5kZXYgPG9jZnMyLWRldmVsQGxp
+c3RzLmxpbnV4LmRldj47IFJhamVzaCBTaXZhcmFtYXN1YnJhbWFuaW9tIDxyYWplc2guc2l2
+YXJhbWFzdWJyYW1hbmlvbUBvcmFjbGUuY29tPjsgSnVueGlhbyBCaSA8anVueGlhby5iaUBv
+cmFjbGUuY29tPjsgYWtwbUBsaW51eC1mb3VuZGF0aW9uLm9yZyA8YWtwbUBsaW51eC1mb3Vu
+ZGF0aW9uLm9yZz4NCj4gKlN1YmplY3Q6KiBSZTogW1BBVENIIFJGQyAxLzFdIG9jZnMyOiBm
+aXggd3JpdGUgSU8gcGVyZm9ybWFuY2UgaW1wcm92ZW1lbnQgZm9yIGhpZ2ggZnJhZ21lbnRh
+dGlvbg0KPiBPbiAzLzI3LzI1IDE0OjIxLCBHYXV0aGFtIEFuYW50aGFrcmlzaG5hIHdyb3Rl
+Og0KPj4gSEkgSGVtaW5nLA0KPj4gDQo+PiBTaGFyaW5nIHRoZSB0ZXN0IHN1aXRlIG1heSBu
+b3QgYmUgcHJhY3RpY2FsIChpdCBoYXMgc2hlbGwgc2NyaXB0cywgcHl0aG9uIGFuZCBDIGJp
+bmFyaWVzKS4gSG93ZXZlciwgSSBjYW4gdGFrZSBhIGxvb2sgaW50byB5b3VyIHBhdGNoIGFu
+ZCBydW4gYSBxdWljayB0ZXN0Lg0KPj4gDQo+PiBUaGFua3MsDQo+PiBHYXV0aGFtLg0KPj4g
+DQo+IA0KPiBUaGFuayB5b3UgZm9yIHlvdXIgcXVpY2sgcmVwbHkgYW5kIHdpbGxpbmduZXNz
+IHRvIGhlbHAuDQo+IA0KPiAtIEhlbWluZw0KPiAtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0NCj4+ICpG
+cm9tOiogSGVtaW5nIFpoYW8gPGhlbWluZy56aGFvQHN1c2UuY29tPg0KPj4gKlNlbnQ6KiBU
+aHVyc2RheSwgTWFyY2ggMjcsIDIwMjUgMTE6MzkgQU0NCj4+ICpUbzoqIEdhdXRoYW0gQW5h
+bnRoYWtyaXNobmEgPGdhdXRoYW0uYW5hbnRoYWtyaXNobmFAb3JhY2xlLmNvbT47IGpvc2Vw
+aC5xaUBsaW51eC5hbGliYWJhLmNvbSA8am9zZXBoLnFpQGxpbnV4LmFsaWJhYmEuY29tPg0K
+Pj4gKkNjOiogbGludXgta2VybmVsQHZnZXIua2VybmVsLm9yZyA8bGludXgta2VybmVsQHZn
+ZXIua2VybmVsLm9yZz47IG9jZnMyLWRldmVsQGxpc3RzLmxpbnV4LmRldiA8b2NmczItZGV2
+ZWxAbGlzdHMubGludXguZGV2PjsgUmFqZXNoIFNpdmFyYW1hc3VicmFtYW5pb20gPHJhamVz
+aC5zaXZhcmFtYXN1YnJhbWFuaW9tQG9yYWNsZS5jb20+OyBKdW54aWFvIEJpIDxqdW54aWFv
+LmJpQG9yYWNsZS5jb20+OyBha3BtQGxpbnV4LWZvdW5kYXRpb24ub3JnIDxha3BtQGxpbnV4
+LWZvdW5kYXRpb24ub3JnPg0KPj4gKlN1YmplY3Q6KiBSZTogW1BBVENIIFJGQyAxLzFdIG9j
+ZnMyOiBmaXggd3JpdGUgSU8gcGVyZm9ybWFuY2UgaW1wcm92ZW1lbnQgZm9yIGhpZ2ggZnJh
+Z21lbnRhdGlvbg0KPj4gSGVsbG8gR2F1dGhhbSwNCj4+IA0KPj4gVGhhbmtzIGZvciBsb2Nh
+dGluZyB0aGUgaXNzdWUgYW5kIHN1Ym1pdHRpbmcgYSBwYXRjaC4NCj4+IElzIGl0IHBvc3Np
+YmxlIHRvIHNoYXJlIHlvdXIgdGVzdCBjYXNlIGZvciB0aGlzIGJ1Zz8NCj4+IA0KPj4gVGhl
+IGtleSBvZiB0aGlzIGJ1ZyBpcyBvY2ZzMl9jbHVzdGVyX2dyb3VwX3NlYXJjaCgpIGNvbXBh
+cmluZyB3aXRoIHdyb25nDQo+PiBiaXRzIHNpemUuIEkgaGF2ZSBhbm90aGVyIGZpeCBmb3Ig
+dGhpcyBidWcgYW5kIHdpbGwgc2VuZCBpdCB0byB0aGlzIG1haWxpbmcNCj4+IGxpc3QgbGF0
+ZXIuDQo+PiANCj4+IFRoYW5rcywNCj4+IEhlbWluZw0KPj4gDQo+PiBPbiAzLzI0LzI1IDEz
+OjQ4LCBHYXV0aGFtIEFuYW50aGFrcmlzaG5hIHdyb3RlOg0KPj4+IFRoZSBjb21taXQgNGVi
+N2I5M2UwMzEwMWZkM2YzNWU2OWFmZmU1NjZlNGIxZTNlM2RjYSBjYXVzZWQgYSByZWdyZXNz
+aW9uDQo+Pj4gaW4gb3VyIHRlc3Qgc3VpdGUgaW4gZGlzY29udGlnIGV4dGVudCB0ZXN0cy4g
+VXBvbiB0cm91Ymxlc2hvb3RpbmcgSSBmb3VuZA0KPj4+IFRoZSBmb2xsb3dpbmcgaXNzdWVz
+Lg0KPj4+IA0KPj4+IDEuIFRoZSBmdW5jdGlvbiBvY2ZzMl9jbHVzdGVyX2dyb3VwX3NlYXJj
+aCgpIHdhcyBjYWxsZWQgZm9yIGRpc2NvbnRpZyBhbGxvY2F0aW9ucw0KPj4+IGFzIHdlbGwu
+IEJ1dCBpdCBjaGVja3Mgb25seSB0aGUgY29udGlndW91cyBiaXRzICdiZ19jb250aWdfZnJl
+ZV9iaXRzJy4NCj4+PiBJdCBoaXQgdGhlIEVOT1NQQyBpbiB0aGUgZm9sbG93aW5nIGNhc2Ug
+aW4gb25lIG9mIHRoZSB0ZXN0cy4NCj4+PiANCj4+PiBvY2ZzMl9ta2RpcigpDQo+Pj7CoMKg
+IG9jZnMyX3Jlc2VydmVfbmV3X2lub2RlKCkNCj4+PsKgwqDCoCBvY2ZzMl9yZXNlcnZlX3N1
+YmFsbG9jX2JpdHMoKQ0KPj4+wqDCoMKgwqAgb2NmczJfYmxvY2tfZ3JvdXBfYWxsb2MoKQ0K
+Pj4+wqDCoMKgwqDCoCBvY2ZzMl9ibG9ja19ncm91cF9hbGxvY19kaXNjb250aWcoKQ0KPj4+
+wqDCoMKgwqDCoMKgIF9fb2NmczJfY2xhaW1fY2x1c3RlcnMoKQ0KPj4+wqDCoMKgwqDCoMKg
+wqAgb2NmczJfY2xhaW1fc3ViYWxsb2NfYml0cygpDQo+Pj7CoMKgwqDCoMKgwqDCoMKgIG9j
+ZnMyX3NlYXJjaF9jaGFpbigpDQo+Pj7CoMKgwqDCoMKgwqDCoMKgwqAgb2NmczJfY2x1c3Rl
+cl9ncm91cF9zZWFyY2goKQ0KPj4+IA0KPj4+IExvb2tlZCBsaWtlIHRoZSBjb21taXQgZGlk
+IG5vdCBjb25zaWRlciBkaXNjb250aWcgc2VhcmNoZXMuIFRvIGZpeCB0aGlzLA0KPj4+IEkg
+aGF2ZSBzcGxpdCBvY2ZzMl9jbHVzdGVyX2dyb3VwX3NlYXJjaCgpIGludG8gKl9jb21tb24o
+KSwgKl9jb250aWcoKSBhbmQNCj4+PiAqX2Rpc2NvbnRpZygpDQo+Pj4gDQo+Pj4gMi4gVGhh
+dCBjb21taXQgZW5mb3JjZWQgb2NmczJfY2x1c3Rlcl9ncm91cF9zZWFyY2goKSB0byBzZWFy
+Y2ggb25seSB0aGUNCj4+PiAnYml0c193YW50ZWQnIG51bWJlciBvZiBiaXRzIHdoZXJlYXMg
+b2NmczJfYmxvY2tfZ3JvdXBfZmluZF9jbGVhcl9iaXRzKCkNCj4+PiBmaWxscyB0aGUgYmVz
+dCBhdmFpbGFibGUgc2l6ZSBhbmQgdGhlIGZ1bmN0aW9uIG9jZnMyX2NsdXN0ZXJfZ3JvdXBf
+c2VhcmNoKCkNCj4+PiBpdHNlbGYgaXMgc3VwcG9zZWQgdG8gc2VhcmNoICdtaW5fYml0cycg
+YXQgdGhlIG1pbmltdW0gYW5kIG5lZWQgbm90IGJlDQo+Pj4gJ2JpdHNfd2FudGVkJyBhbHdh
+eXMuDQo+Pj4gDQo+Pj4gRml4ZWQgdGhlIGFib3ZlIGlzc3VlcyBpbiB0aGlzIHBhdGNoLg0K
+Pj4+IFRoaXMgcGF0Y2ggZml4ZXMgNGViN2I5M2UwMzEwMWZkM2YzNWU2OWFmZmU1NjZlNGIx
+ZTNlM2RjYQ0KPj4+IA0KPj4+IFNpZ25lZC1vZmYtYnk6IEdhdXRoYW0gQW5hbnRoYWtyaXNo
+bmEgPGdhdXRoYW0uYW5hbnRoYWtyaXNobmFAb3JhY2xlLmNvbT4NCj4+PiAtLS0NCj4+PsKg
+wqAgZnMvb2NmczIvc3ViYWxsb2MuYyB8IDE0NiArKysrKysrKysrKysrKysrKysrKysrKysr
+KysrLS0tLS0tLS0tLS0tLS0tLQ0KPj4+wqDCoCAxIGZpbGUgY2hhbmdlZCwgOTUgaW5zZXJ0
+aW9ucygrKSwgNTEgZGVsZXRpb25zKC0pDQo+Pj4gDQo+IA0KDQo=
