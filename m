@@ -1,31 +1,31 @@
-Received: from out30-131.freemail.mail.aliyun.com (out30-131.freemail.mail.aliyun.com [115.124.30.131])
+Received: from out30-100.freemail.mail.aliyun.com (out30-100.freemail.mail.aliyun.com [115.124.30.100])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 33DEE194AD5
-	for <ocfs2-devel@lists.linux.dev>; Sat, 12 Apr 2025 23:47:45 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.131
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2F8041A0BC9
+	for <ocfs2-devel@lists.linux.dev>; Sat, 12 Apr 2025 23:49:16 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.100
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1744501670; cv=none; b=kwrRKtucX2OZs13RXbCgaRW1D0yD8TH6FT4p4KPXMBm6Iu4iSkQo+hPQRyEtGyimNALLaKkrr3zWLbvAOL+rjhzaVUBRwnUfHDro5cCY2bSkpFtAIntL2Iz6B13OP0X4ifAHhuIJKlPKWV26s8qCKafLkM4KNCPuuFx57pUihPM=
+	t=1744501763; cv=none; b=BfrdyEo/y1bcaPGwcJUc9R2lvDGyP8+9T4rfZO6pvU1i6mKcKSbMB8OspBhh72Eb9xea5Kb/KzU0jDrl7MX1AYuiXk60KqDc6o9pH5UtMcPvlKwMuhslcz++DY9/Q6xlqDkw0sAKlbWx8NQyU/EpTCPIIfgVdYw2+SbCvDohmC4=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1744501670; c=relaxed/simple;
-	bh=YY7Muxx2VHyl2KIJgoBZZAPx6kPG48VM8wqu+PB1XSg=;
+	s=arc-20240116; t=1744501763; c=relaxed/simple;
+	bh=uX2BY3FrOB9e87FFO8t8hGGHygSRrfFaU1rwCItA4Aw=;
 	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=GlDgrxdwaOGz7fWZGkzi4WA9VeEAzqWpfXb6VrHjqwUgKFuGd8nqxTFlNqlXUXBPcb5a4CuwFWLqgymfdzGswRwvIoOkKUQ5GXCwhMAHiprWVGdzybOMSJ7Whh06WCTLbVWpUB/5rqPJk6sUJC6c4DwuMyuwEWHg+FAVmrAOGCA=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=XgG7G1Bm; arc=none smtp.client-ip=115.124.30.131
+	 In-Reply-To:Content-Type; b=iW0XctOH9VKQR2aZ6QEWoTtdNRvm6UgU1yuOTOlZBxhfFr8+fD6UCapIBV1w1DhZGHFmwH0Cz+TeFs+OTc9D5+ty1rpwm8yy2Rzria22dzAX77BqS/lgRQ3HKQOOzLz68ebh6xDvCXn/fV/KStCkX4jloXlc/Jc2EYBaf6/Fpqk=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=Kkl4aEzx; arc=none smtp.client-ip=115.124.30.100
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="XgG7G1Bm"
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="Kkl4aEzx"
 DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
 	d=linux.alibaba.com; s=default;
-	t=1744501658; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=4jPbQvsvZBRt5p/DT1a1z0KMZ7DdFMY/fFDaSoky6pI=;
-	b=XgG7G1BmMnThYoT1OFKxF146/R9X8kPIZFjru9IvVJrFcvMmclxzmInNwDkt0+R0LHNhZPiQucPSXQrqG4wMnY4xIOqx84rWefLk3xcfp62p1e6N18X6gTU5fdxAEDAwmKevxAAL/58o4BA4JcfZdtniTBQFTyX0tb5yy5W7Rt8=
-Received: from 30.212.138.182(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0WWZU9rC_1744501655 cluster:ay36)
+	t=1744501749; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=KgSkZ2xZt9soRwSwJHmQBs+HS1ERTglPiadRqBx/qIo=;
+	b=Kkl4aEzx/H+h0dmQJU6EkCAF+MMrE4dDInb0SH3/mKvkJSFX43F0c9Sh1vmw4/RD9UIeC5JayZzVvMmfoJoeCsQtNYmSqc0wodr/SZPZGbqGf26p1O1zpDGbujaWqma298Xa2uGnUmhV9blq7/HBcpwO3P2NSFkdNrWvdCSZjJY=
+Received: from 30.212.138.182(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0WWZSJr3_1744501747 cluster:ay36)
           by smtp.aliyun-inc.com;
-          Sun, 13 Apr 2025 07:47:37 +0800
-Message-ID: <7de24670-89cc-4502-adbe-308bd5786f1d@linux.alibaba.com>
-Date: Sun, 13 Apr 2025 07:47:34 +0800
+          Sun, 13 Apr 2025 07:49:08 +0800
+Message-ID: <b37df1b1-38ed-4f2b-bf62-eee9dab64835@linux.alibaba.com>
+Date: Sun, 13 Apr 2025 07:49:07 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -33,72 +33,40 @@ List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: v2 [PATCH] ocfs2: fix panic in failed foilio allocation
-To: Mark Tinguely <mark.tinguely@oracle.com>, ocfs2-devel@lists.linux.dev,
- akpm <akpm@linux-foundation.org>
-Cc: stable@vger.kernel.org, Changwei Ge <gechangwei@live.cn>,
- Joel Becker <jlbec@evilplan.org>, Junxiao Bi <junxiao.bi@oracle.com>,
- Mark Fasheh <mark@fasheh.com>, Matthew Wilcox <willy@infradead.org>
-References: <20250411160213.19322-1-mark.tinguely@oracle.com>
- <c879a52b-835c-4fa0-902b-8b2e9196dcbd@oracle.com>
+Subject: Re: [PATCH] ocfs2: Simplify return statement in
+ ocfs2_filecheck_attr_store()
+To: Thorsten Blum <thorsten.blum@linux.dev>, Mark Fasheh <mark@fasheh.com>,
+ Joel Becker <jlbec@evilplan.org>, akpm <akpm@linux-foundation.org>
+Cc: ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org
+References: <20250408103408.804253-1-thorsten.blum@linux.dev>
 From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <c879a52b-835c-4fa0-902b-8b2e9196dcbd@oracle.com>
+In-Reply-To: <20250408103408.804253-1-thorsten.blum@linux.dev>
 Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Content-Transfer-Encoding: 7bit
 
 
 
-On 2025/4/12 00:31, Mark Tinguely wrote:
-> In the page to order 0 folio conversion series, the commit
-> 7e119cff9d0a, "ocfs2: convert w_pages to w_folios" and
-> commit 9a5e08652dc4b, "ocfs2: use an array of folios
-> instead of an array of pages", saves -ENOMEM in the
-> folio array upon allocation failure and calls the folio
-> array free code. The folio array free code expects either
-> valid folio pointers or NULL. Finding the -ENOMEM will
-> result in a panic. Fix by NULLing the error folio entry.
+On 2025/4/8 18:34, Thorsten Blum wrote:
+> Don't negate 'ret' and simplify the return statement.
 > 
-> Signed-off-by: Mark Tinguely <mark.tinguely@oracle.com>
-
-Fixes: 7e119cff9d0a ("ocfs2: convert w_pages to w_folios")
-Fixes: 9a5e08652dc4b ("ocfs2: use an array of folios instead of an array of pages")
+> No functional changes intended.
+> 
+> Signed-off-by: Thorsten Blum <thorsten.blum@linux.dev>
 
 Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-> Cc: stable@vger.kernel.org
-> Cc: Changwei Ge <gechangwei@live.cn>
-> Cc: Joel Becker <jlbec@evilplan.org>
-> Cc: Junxiao Bi <junxiao.bi@oracle.com>
-> Cc: Mark Fasheh <mark@fasheh.com>
-> Cc: Matthew Wilcox <willy@infradead.org>
 > ---
-> v2: sorry, ocfs2_grab_folios() needs the same change.
->     the other callers do not need the change.
-> ---
->  fs/ocfs2/alloc.c | 1 +
->  fs/ocfs2/aops.c  | 1 +
->  2 files changed, 2 insertions(+)
+>  fs/ocfs2/filecheck.c | 2 +-
+>  1 file changed, 1 insertion(+), 1 deletion(-)
 > 
-> diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-> index b8ac85b548c7..821cb7874685 100644
-> --- a/fs/ocfs2/alloc.c
-> +++ b/fs/ocfs2/alloc.c
-> @@ -6918,6 +6918,7 @@ static int ocfs2_grab_folios(struct inode *inode, loff_t start, loff_t end,
->          if (IS_ERR(folios[numfolios])) {
->              ret = PTR_ERR(folios[numfolios]);
->              mlog_errno(ret);
-> +            folios[numfolios] = NULL;
->              goto out;
->          }
->  diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-> index 40b6bce12951..89aadc6cdd87 100644
-> --- a/fs/ocfs2/aops.c
-> +++ b/fs/ocfs2/aops.c
-> @@ -1071,6 +1071,7 @@ static int ocfs2_grab_folios_for_write(struct address_space *mapping,
->              if (IS_ERR(wc->w_folios[i])) {
->                  ret = PTR_ERR(wc->w_folios[i]);
->                  mlog_errno(ret);
-> +                wc->w_folios[i] = NULL;
->                  goto out;
->              }
->          }
+> diff --git a/fs/ocfs2/filecheck.c b/fs/ocfs2/filecheck.c
+> index 1ad7106741f8..3ad7baf67658 100644
+> --- a/fs/ocfs2/filecheck.c
+> +++ b/fs/ocfs2/filecheck.c
+> @@ -505,5 +505,5 @@ static ssize_t ocfs2_filecheck_attr_store(struct kobject *kobj,
+>  		ocfs2_filecheck_handle_entry(ent, entry);
+>  
+>  exit:
+> -	return (!ret ? count : ret);
+> +	return ret ?: count;
+>  }
 
