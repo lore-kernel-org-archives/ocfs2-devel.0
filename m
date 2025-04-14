@@ -1,63 +1,63 @@
-Received: from mail-wr1-f42.google.com (mail-wr1-f42.google.com [209.85.221.42])
+Received: from mail-wm1-f44.google.com (mail-wm1-f44.google.com [209.85.128.44])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2D6FC1885B4
-	for <ocfs2-devel@lists.linux.dev>; Mon, 14 Apr 2025 02:29:30 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.221.42
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B5B4529D19
+	for <ocfs2-devel@lists.linux.dev>; Mon, 14 Apr 2025 03:32:34 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.44
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1744597773; cv=none; b=ovoyc8idjjn67Yjdk3YRHZJE/hTHRnzltDgR81Mq455C8J3Iefquw8YURDg34KRqPImKrP+rEp0bn/MbEdEvgSFKNx6A0SsLPO72m/e+wlIp365LknUqOGMcY4z1MvqH2YAWOAVhiZD5HPAGOsOxySjTcAVDclCMt0X8KY+887o=
+	t=1744601557; cv=none; b=kRIvjP2fd01/hCgF8R87Ocs3AcSDEyOjhUAr5mQJtf0Gxdf+YDeM9bqRylVjwA8UT6GeZwgrQg+MRaGQ/5DK26sFpe9vYqp9J34QA68w/vAC0f/+QJJNWYZFP/W+KzXu4vPwu3/ZFI8miDbzEc85ErI5e+5tZpCKgrX3OjUuUfc=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1744597773; c=relaxed/simple;
-	bh=duUdqV/PyusSf4IrhTIyC8v5JbWgR40LB41+sVv0tUs=;
+	s=arc-20240116; t=1744601557; c=relaxed/simple;
+	bh=HtBRew0JrEvOtBYq4QPsIKQr0DvikryI56JZjDM9q6U=;
 	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=TrUCVxhEDf0mQxj2P1KgLOSc02RUMLYCGZlJAs1HvjPY7aT9Y/yAJFyZpNi/Rly7rr+2QRl2GjKi+YGZAo6EnlPTcEBYSFTIRNS8mpKr51tya4D6XvFotdbH+O+C22x/KnnJ4UgeFFvKnKAUWlLFMSm/D7GYKkqJcqQa1RyHxKA=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=FkIdJtY4; arc=none smtp.client-ip=209.85.221.42
+	 In-Reply-To:Content-Type; b=MhEb5ziTQjYZEQ3ZkikzxejRYKC83wbg8fwBcAdfspGeE3lxsDN28fpNI5dTuc8SGkgt1XIp6aM8wyyV8Fiy58Th3hnIao//54MYDaGibjYvASz1ctDTNnncKNMRoWmmdXnlH2WJcNSpNtGxtDaSzsI72wRCPi/bk3molXKLWiw=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=etNNc449; arc=none smtp.client-ip=209.85.128.44
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="FkIdJtY4"
-Received: by mail-wr1-f42.google.com with SMTP id ffacd0b85a97d-39123d2eb7fso148161f8f.1
-        for <ocfs2-devel@lists.linux.dev>; Sun, 13 Apr 2025 19:29:30 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="etNNc449"
+Received: by mail-wm1-f44.google.com with SMTP id 5b1f17b1804b1-43eeb4e09b5so3730885e9.1
+        for <ocfs2-devel@lists.linux.dev>; Sun, 13 Apr 2025 20:32:34 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=suse.com; s=google; t=1744597769; x=1745202569; darn=lists.linux.dev;
+        d=suse.com; s=google; t=1744601553; x=1745206353; darn=lists.linux.dev;
         h=content-transfer-encoding:in-reply-to:content-language:from
          :references:cc:to:subject:user-agent:mime-version:date:message-id
          :from:to:cc:subject:date:message-id:reply-to;
-        bh=hR0gizsErti/TGxroMR8utxXV6Vg5v4cpuJKOHjP578=;
-        b=FkIdJtY46zBC3h8pFI4yNN52cBV8iMIV7D7ci9iYDqVMxDoJJLLG+jN3Gaq2e3XtaS
-         7TWggfxNIRhkkIPKQiWZGpgnkiCbSahAG2iJgMgKy/2RG3s5ZgG9qjTX9/UgV7gEiEJb
-         9icmATUzBf3irrI7L46uffGl5T40iRzHL6XQp98LAWUVqMmrjtdHnwkCdLMj7dm41Mo8
-         8xKD8/siQmaMrtH1di1lEjP6T3BgjqwLDC3AHmCfX0q2Euu4M5ZOB9HsIsxw8wA9USsW
-         z/0MtPePZXE1+K2QOhFFkloymEPdPyxOnJIjD6zYknRjrdwJHviYIGR0RZVUe2zZhz3a
-         BNVg==
+        bh=kxvzAVD+b+K7b2LEXDynHWcZkMZbyWAEc+btpOiEFgY=;
+        b=etNNc449xx04u0jmrELOGklQN8LYaFUbwXb9RzabDDzym7Q7xNMeM+IRXudbcdZTBl
+         bAOiA/zWwe4V5w/0HkCX6FhHnKz/m3892YiHvmb9pChxvUblXG1O09daUu16D+v3KEQA
+         LTmtoL1WlgwbbpIQFhUIYrkLw/SKg90BIVdd96W5pSEjcjWW9L2VSBeKpdCynWEkMcBy
+         9tzyZJ8LmSHcq9K1N10hNuecdtglWKnnoM0yEepvimgIx88V7gYXGqmoXUbKztqnl5Ve
+         5bVzBXxWJ8x4XF+Y1iuovLAML1tkKWaE9/VJxlHl6Gnvlc+6QeZf4rnEbRBfSZUrBjPu
+         /SkQ==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1744597769; x=1745202569;
+        d=1e100.net; s=20230601; t=1744601553; x=1745206353;
         h=content-transfer-encoding:in-reply-to:content-language:from
          :references:cc:to:subject:user-agent:mime-version:date:message-id
          :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
-        bh=hR0gizsErti/TGxroMR8utxXV6Vg5v4cpuJKOHjP578=;
-        b=IYPb1ajdEgWLFHDCzmPqBIeAJ0o5EkoI392+uv2ieqHdR61fRiD6gaopI/zZ3Bibfg
-         q/59DrZs+GnB8P5z+4syMV57gCKwsDVmO/3umUg6f0sObwpJ83tmpuBZT4kuADWKzA2a
-         EdC60AL3z/ynffgxkqVyR7r2ZyKZgHmkWiTMWEJiXZ88ou403hhU08x/vBb0RWRjyOiX
-         t+MKdIxMwUi/CPkOVND9flKMZua6v64+CpzDWToDbXvZNW/kwKwEgJM7Idj/MBV7kI7I
-         ztKhdXKe4Pz2RyYNIn2UhSKE/SUjS4qnXEEpIq23VzGaDHZrx1dajwlQyoUG2XxNNucw
-         +6Sg==
-X-Gm-Message-State: AOJu0YzWKzhCN+6gN7w/AdaMsAo1kD+uYyF2qEvrW/NPqujENPmwYm4j
-	JaJriMtdg7WJ7oct4HS5Q9oIi7LYqxivMeAy8sQomoO7MvfdRBW8YmBSev7DVJc=
-X-Gm-Gg: ASbGncsJ44MuMMWnyFNhRXig0ts15f42sHgFQmjv4WXMbB4O7ztcPHytlXopXTGEt07
-	e0PlTCmZwyp4fPtfMshemW5gMt84aQ5VjWFEx6lxIF5ONjtrRhdS38EJrvkdcuI9BrKJypPjc+B
-	qVabyQyCvtXGwJT30/Ui8nzk8oLwfsi4xGDBi9ZYgrVnylippGZSTpdNNQcQaWp2tn41+maSRIp
-	8+Xz/geG/M2gjXRdEyARz68sO+jx7O0NcKprAtJ+OU271sfG/WvuDGakA0XhUTJFj8yHnrLaeKc
-	6WV9cle83U7YljPoL5EsCX68x/JA7HjJawC9WQ+kpGu6THo=
-X-Google-Smtp-Source: AGHT+IFmUpcwPvEBGN8XjxBXwOtk2acq8URqHo+Q36iwySwg1DCxzO2m9xibFGCavUkHKNEgnyHH+w==
-X-Received: by 2002:a05:6000:2484:b0:39c:1258:2c32 with SMTP id ffacd0b85a97d-39ec37565b1mr2676998f8f.16.1744597769246;
-        Sun, 13 Apr 2025 19:29:29 -0700 (PDT)
+        bh=kxvzAVD+b+K7b2LEXDynHWcZkMZbyWAEc+btpOiEFgY=;
+        b=vw3mpaaVrwn7FbXTrWEJuJl2/z+CDrdPgQH3tbcq+756CXdKmyr+qAOs3mKNl830Oq
+         ENn8WKI/sKYbDkW4teVztxEPnlYkJSioGOCCGinv9nZtgPEx3anT31kMz2KujKGivYdH
+         N18ORBzKS3lrCpK8qXGQTtg1t40nZlhrwKpL9nNPW5gZf33JrZnCsA3CUkn6KuRUG8B4
+         c6JsureZ2NXwXPsWYuW8KOQFllKDafiCwldWma9S+c4KB1lwsJD1fqpvUyshPkNc9LXR
+         GbzyCraXCX0zh1VFMPTwTPJCS/TDj1deOB7LRDfyVyfpZChabjgjJ4XmPM9XfD98+3B2
+         6B5w==
+X-Gm-Message-State: AOJu0YxUMYsvB1yNWrC676RsmMgVE6NoZV6rA5mGVxCj4mH1Nhwp4HNj
+	LdEdvGBSY1/SfLKsD4OXbQoXH5V7fZiPX42RCgVLNINZsQQQNVUnsqZXWoink04=
+X-Gm-Gg: ASbGnct78YOqfub1I2RaAQs6gUyRudILEgqH0V+T/uzH2dJkbF7YMiLPQBhf8r9qWSV
+	aXbmGXx4ExVsya+DAFfasxJnqgh632k0dvaRD29NDPHDQNPgcCh/J/xKQsH5Z4burXKXbLxUdJc
+	wPq7nnBmvO2C1vmJnIXx4GM2H6P2TqvrDt+EWa8SqaTL/F1kuJ4SKbFk/+Kdp7pkiDVwlvXp4Ll
+	pQ8sGJO1L32YxSSp5jZYWmdthwyeryFIlATLn8n3lnYQJ8apaWgdHU3GAT4syia1w2iOCR8KVkY
+	qra/fph2xnPRnQ+/cuDwuoS3hBp/EYmHyNEkJ88iDX3A1oA=
+X-Google-Smtp-Source: AGHT+IH9FkFVmN72NScAmq1zaLdvdfVAUzzhsAs0uyDSeninS3qW8FoG2MiHfljiAzxIPGlcXl0EzQ==
+X-Received: by 2002:a05:6000:2504:b0:385:de67:229e with SMTP id ffacd0b85a97d-39eaaec374dmr2807309f8f.11.1744601552828;
+        Sun, 13 Apr 2025 20:32:32 -0700 (PDT)
 Received: from [10.202.112.30] ([202.127.77.110])
-        by smtp.gmail.com with ESMTPSA id 41be03b00d2f7-b02a11d2654sm8369962a12.35.2025.04.13.19.29.27
+        by smtp.gmail.com with ESMTPSA id d2e1a72fcca58-73bd219d98bsm5861828b3a.11.2025.04.13.20.32.30
         (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Sun, 13 Apr 2025 19:29:28 -0700 (PDT)
-Message-ID: <b8c3e32e-02d8-4f80-8c2c-5bad9a31ac59@suse.com>
-Date: Mon, 14 Apr 2025 10:29:24 +0800
+        Sun, 13 Apr 2025 20:32:32 -0700 (PDT)
+Message-ID: <7241eee3-8d6b-4034-a124-c04e9d06614a@suse.com>
+Date: Mon, 14 Apr 2025 11:32:29 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -67,9 +67,9 @@ MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
 Subject: Re: [PATCH 1/1] ocfs2: fix the issue with discontiguous allocation in
  the global_bitmap
-To: Joseph Qi <joseph.qi@linux.alibaba.com>, akpm <akpm@linux-foundation.org>
+To: Joseph Qi <joseph.qi@linux.alibaba.com>
 Cc: ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org,
- gautham.ananthakrishna@oracle.com
+ akpm <akpm@linux-foundation.org>, gautham.ananthakrishna@oracle.com
 References: <20250408152311.16196-1-heming.zhao@suse.com>
  <20250408152311.16196-2-heming.zhao@suse.com>
  <d48df38c-ff38-45c2-b941-8f51990e4699@linux.alibaba.com>
@@ -79,7 +79,7 @@ In-Reply-To: <d48df38c-ff38-45c2-b941-8f51990e4699@linux.alibaba.com>
 Content-Type: text/plain; charset=UTF-8; format=flowed
 Content-Transfer-Encoding: 7bit
 
-Hi Joseph & Andrew,
+Hi Joseph,
 
 On 4/13/25 09:06, Joseph Qi wrote:
 > 
@@ -166,17 +166,19 @@ On 4/13/25 09:06, Joseph Qi wrote:
 >> +				bits_wanted = min_bits;
 > 
 > This seems only valid when bits_wanted changed?
+
+Good catch. the correct style:
+
+if (bits_wanted > contig_bits && contig_bits > min_bits)
+         bits_wanted = contig_bits;
+
+- Heming
+
 > 
 > BTW, the previous fix hasn't been merged yet:
 > https://git.kernel.org/pub/scm/linux/kernel/git/next/linux-next.git/commit/fs/ocfs2?h=next-20250411&id=767ba8b7cba3ca7a560d632f267f7aea35d54810
 > 
 > So should we drop that first and fold it into a whole one?
-
-Thanks for the reminder, I rechecked the ocfs2-test cases.
-In my view, in Gautham's patch, the analysis is wrong.
-the call stack isn't from ocfs2_mkdir(), the correct one should be
-OCFS2_IOC_RESVSP64.
-
-Let's recall the first patch, and let me resend the v2 patch with a whole one.
-
-- Heming
+> 
+> Thanks,
+> Joseph
