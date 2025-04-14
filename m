@@ -1,184 +1,124 @@
-Received: from mail-wm1-f44.google.com (mail-wm1-f44.google.com [209.85.128.44])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from smtpbgsg1.qq.com (smtpbgsg1.qq.com [54.254.200.92])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B5B4529D19
-	for <ocfs2-devel@lists.linux.dev>; Mon, 14 Apr 2025 03:32:34 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.44
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id CC14319CC0A
+	for <ocfs2-devel@lists.linux.dev>; Mon, 14 Apr 2025 04:29:02 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=54.254.200.92
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1744601557; cv=none; b=kRIvjP2fd01/hCgF8R87Ocs3AcSDEyOjhUAr5mQJtf0Gxdf+YDeM9bqRylVjwA8UT6GeZwgrQg+MRaGQ/5DK26sFpe9vYqp9J34QA68w/vAC0f/+QJJNWYZFP/W+KzXu4vPwu3/ZFI8miDbzEc85ErI5e+5tZpCKgrX3OjUuUfc=
+	t=1744604946; cv=none; b=U/rAQrUTlrCyA6cwNQ3c2Attamfiyb6FF4HdMSi6Ex4Bd8EKchSTqcZSPIKZsC5AsPOnB3+gVo+0n0E3hOsnFM9ttuv94VSHQI4YwSbKN0Up1I+ZMuW2LrM9L4fbHMS1cp1coaX1Xtcl1/w9+lq+9XcLNlz89pioboLskj2jyMg=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1744601557; c=relaxed/simple;
-	bh=HtBRew0JrEvOtBYq4QPsIKQr0DvikryI56JZjDM9q6U=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=MhEb5ziTQjYZEQ3ZkikzxejRYKC83wbg8fwBcAdfspGeE3lxsDN28fpNI5dTuc8SGkgt1XIp6aM8wyyV8Fiy58Th3hnIao//54MYDaGibjYvASz1ctDTNnncKNMRoWmmdXnlH2WJcNSpNtGxtDaSzsI72wRCPi/bk3molXKLWiw=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=etNNc449; arc=none smtp.client-ip=209.85.128.44
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
+	s=arc-20240116; t=1744604946; c=relaxed/simple;
+	bh=dFjpoHLwYiryRQGd0iDHH8wwDO4qSKHsYv4Y+8fobRA=;
+	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
+	 MIME-Version; b=kxJ8S1KBerE/OpK8Ew/+jZQyaBxY2GBsFzZMm5FqvlagLAhCShO7Q0TsbtxT/BxKIqLU7aLUBqKfrnJV2E2mVAjv/RVOepKpTsMiu9mmqMG0BgSVaoRP/oSbK2aY81fkptYLwDOVf03AGd80PBtoY45FtEu3j32Xnzk8r96kILI=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=uniontech.com; spf=pass smtp.mailfrom=uniontech.com; dkim=pass (1024-bit key) header.d=uniontech.com header.i=@uniontech.com header.b=IvvA24aZ; arc=none smtp.client-ip=54.254.200.92
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=uniontech.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=uniontech.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="etNNc449"
-Received: by mail-wm1-f44.google.com with SMTP id 5b1f17b1804b1-43eeb4e09b5so3730885e9.1
-        for <ocfs2-devel@lists.linux.dev>; Sun, 13 Apr 2025 20:32:34 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=suse.com; s=google; t=1744601553; x=1745206353; darn=lists.linux.dev;
-        h=content-transfer-encoding:in-reply-to:content-language:from
-         :references:cc:to:subject:user-agent:mime-version:date:message-id
-         :from:to:cc:subject:date:message-id:reply-to;
-        bh=kxvzAVD+b+K7b2LEXDynHWcZkMZbyWAEc+btpOiEFgY=;
-        b=etNNc449xx04u0jmrELOGklQN8LYaFUbwXb9RzabDDzym7Q7xNMeM+IRXudbcdZTBl
-         bAOiA/zWwe4V5w/0HkCX6FhHnKz/m3892YiHvmb9pChxvUblXG1O09daUu16D+v3KEQA
-         LTmtoL1WlgwbbpIQFhUIYrkLw/SKg90BIVdd96W5pSEjcjWW9L2VSBeKpdCynWEkMcBy
-         9tzyZJ8LmSHcq9K1N10hNuecdtglWKnnoM0yEepvimgIx88V7gYXGqmoXUbKztqnl5Ve
-         5bVzBXxWJ8x4XF+Y1iuovLAML1tkKWaE9/VJxlHl6Gnvlc+6QeZf4rnEbRBfSZUrBjPu
-         /SkQ==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1744601553; x=1745206353;
-        h=content-transfer-encoding:in-reply-to:content-language:from
-         :references:cc:to:subject:user-agent:mime-version:date:message-id
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
-        bh=kxvzAVD+b+K7b2LEXDynHWcZkMZbyWAEc+btpOiEFgY=;
-        b=vw3mpaaVrwn7FbXTrWEJuJl2/z+CDrdPgQH3tbcq+756CXdKmyr+qAOs3mKNl830Oq
-         ENn8WKI/sKYbDkW4teVztxEPnlYkJSioGOCCGinv9nZtgPEx3anT31kMz2KujKGivYdH
-         N18ORBzKS3lrCpK8qXGQTtg1t40nZlhrwKpL9nNPW5gZf33JrZnCsA3CUkn6KuRUG8B4
-         c6JsureZ2NXwXPsWYuW8KOQFllKDafiCwldWma9S+c4KB1lwsJD1fqpvUyshPkNc9LXR
-         GbzyCraXCX0zh1VFMPTwTPJCS/TDj1deOB7LRDfyVyfpZChabjgjJ4XmPM9XfD98+3B2
-         6B5w==
-X-Gm-Message-State: AOJu0YxUMYsvB1yNWrC676RsmMgVE6NoZV6rA5mGVxCj4mH1Nhwp4HNj
-	LdEdvGBSY1/SfLKsD4OXbQoXH5V7fZiPX42RCgVLNINZsQQQNVUnsqZXWoink04=
-X-Gm-Gg: ASbGnct78YOqfub1I2RaAQs6gUyRudILEgqH0V+T/uzH2dJkbF7YMiLPQBhf8r9qWSV
-	aXbmGXx4ExVsya+DAFfasxJnqgh632k0dvaRD29NDPHDQNPgcCh/J/xKQsH5Z4burXKXbLxUdJc
-	wPq7nnBmvO2C1vmJnIXx4GM2H6P2TqvrDt+EWa8SqaTL/F1kuJ4SKbFk/+Kdp7pkiDVwlvXp4Ll
-	pQ8sGJO1L32YxSSp5jZYWmdthwyeryFIlATLn8n3lnYQJ8apaWgdHU3GAT4syia1w2iOCR8KVkY
-	qra/fph2xnPRnQ+/cuDwuoS3hBp/EYmHyNEkJ88iDX3A1oA=
-X-Google-Smtp-Source: AGHT+IH9FkFVmN72NScAmq1zaLdvdfVAUzzhsAs0uyDSeninS3qW8FoG2MiHfljiAzxIPGlcXl0EzQ==
-X-Received: by 2002:a05:6000:2504:b0:385:de67:229e with SMTP id ffacd0b85a97d-39eaaec374dmr2807309f8f.11.1744601552828;
-        Sun, 13 Apr 2025 20:32:32 -0700 (PDT)
-Received: from [10.202.112.30] ([202.127.77.110])
-        by smtp.gmail.com with ESMTPSA id d2e1a72fcca58-73bd219d98bsm5861828b3a.11.2025.04.13.20.32.30
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Sun, 13 Apr 2025 20:32:32 -0700 (PDT)
-Message-ID: <7241eee3-8d6b-4034-a124-c04e9d06614a@suse.com>
-Date: Mon, 14 Apr 2025 11:32:29 +0800
+	dkim=pass (1024-bit key) header.d=uniontech.com header.i=@uniontech.com header.b="IvvA24aZ"
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=uniontech.com;
+	s=onoh2408; t=1744604854;
+	bh=ZzX8Z/mzhOSbpQ+4ov+n9ydOOvnwhcefBMjmLVxlxxQ=;
+	h=From:To:Subject:Date:Message-ID:MIME-Version;
+	b=IvvA24aZ8DwzauZLL+3crgEvRg8zBZf4h0CFReeajIh0XtEVQK5qWNfqVLaCC2RIv
+	 l0lj+m5jcpseWJ993EXIJosAu1+fQiax8jpP7j3U4lu7bJTHI4lhWChqlZTpu9ihrE
+	 CA2YNITZyNlOe93ipe/uqOsf+PFtjYmiSBiVV6pg=
+X-QQ-mid: bizesmtpip4t1744604807t2f7bca
+X-QQ-Originating-IP: IlhwnyCWyIUNtgBVZwfyEMeZ6zSVm/eWDs20XGO8Rsw=
+Received: from localhost.localdomain ( [localhost])
+	by bizesmtp.qq.com (ESMTP) with 
+	id ; Mon, 14 Apr 2025 12:26:42 +0800 (CST)
+X-QQ-SSF: 0000000000000000000000000000000
+X-QQ-GoodBg: 1
+X-BIZMAIL-ID: 8640425311280884179
+EX-QQ-RecipientCnt: 15
+From: WangYuli <wangyuli@uniontech.com>
+To: wangyuli@uniontech.com
+Cc: akpm@linux-foundation.org,
+	guanwentao@uniontech.com,
+	linux-kernel@vger.kernel.org,
+	mingo@kernel.org,
+	niecheng1@uniontech.com,
+	tglx@linutronix.de,
+	zhanjun@uniontech.com,
+	Mark Fasheh <mark@fasheh.com>,
+	Joel Becker <jlbec@evilplan.org>,
+	Joseph Qi <joseph.qi@linux.alibaba.com>,
+	Jakub Kicinski <kuba@kernel.org>,
+	Jens Axboe <axboe@kernel.dk>,
+	Dmitry Antipov <dmantipov@yandex.ru>,
+	ocfs2-devel@lists.linux.dev
+Subject: [PATCH v2 2/5] ocfs2: o2net_idle_timer: Rename del_timer_sync in comment
+Date: Mon, 14 Apr 2025 12:26:26 +0800
+Message-ID: <83353E80121F81DD+20250414042629.63019-2-wangyuli@uniontech.com>
+X-Mailer: git-send-email 2.49.0
+In-Reply-To: <37A1CE32D2AEA134+20250414042251.61846-1-wangyuli@uniontech.com>
+References: <37A1CE32D2AEA134+20250414042251.61846-1-wangyuli@uniontech.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH 1/1] ocfs2: fix the issue with discontiguous allocation in
- the global_bitmap
-To: Joseph Qi <joseph.qi@linux.alibaba.com>
-Cc: ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org,
- akpm <akpm@linux-foundation.org>, gautham.ananthakrishna@oracle.com
-References: <20250408152311.16196-1-heming.zhao@suse.com>
- <20250408152311.16196-2-heming.zhao@suse.com>
- <d48df38c-ff38-45c2-b941-8f51990e4699@linux.alibaba.com>
-From: Heming Zhao <heming.zhao@suse.com>
-Content-Language: en-US
-In-Reply-To: <d48df38c-ff38-45c2-b941-8f51990e4699@linux.alibaba.com>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
+X-QQ-SENDSIZE: 520
+Feedback-ID: bizesmtpip:uniontech.com:qybglogicsvrgz:qybglogicsvrgz8a-1
+X-QQ-XMAILINFO: NDzbcI2eQBLkmTFSIFOYz/4/TWAIYIlyD1Mc1Vs+f96itrSHEMWkl+fI
+	pDCWmKs7OpGeVawB9fii/rrtBgktCfynY3NLGs1ZUx7V2Lkq7CCWzLSzMUIESJQIjSH1x7B
+	QAT5pfiuVokqbYjV2iLWrFJ+AChqJrjxFYI2SE+4MMQe8CxivWvhnsyga9k3uKhYUerkMhi
+	grBGWyZkVa6hRrJ92FMAsSQQKm7yxfyfNTcmuY+ktLy2P/IQczt2D5ysJvmI1HLVFzxkzrl
+	AVVL9ARPK+XAYvSE4Ak2EjN2W111IdV5DQ7gFJYwkUZ+AHUfXBRFSK2/X1yyy+Swmb8l4YY
+	2uF3W3iZqoWp9XAO+Lt4na1eGg3J4mRGv9thyCpquf5mFsuLR7JZqISyEe0g/hqn2binWI3
+	G/0kUsofZlFllFDk9cU/JBIwYJ97ICUyiYCAVNcj0ZGKEMZZqx+brKiK/B56cOjO/RYQQYR
+	SpNVcE01dV6FVdIDWnxy4JcUiACk5CawkfOqxTGHxZPzFwXOITrOLv/r+IL+U10AbepCyqt
+	6mmncHB49oy85bj4quHwFHfBRnjtKuiTixv2TvTcZkFIR1TSOipvjPP9ZdLyIUYtUiMZYCE
+	dvxzFlEv+6ap3DaDfSbs77WNcYXAxWkOrUDnG5Ql5now4xGmuW1UuRuLOEzJT/Z3O6wDxoY
+	Mkg/rIEDcmvMMNjzk/siMszixpSmm/4sWgsq2vCmW0Ftz80zJuyDWldZwm3TFgGrkZYD/s1
+	91jTRTZPzWTdi/P7kZzJfWgj1Xfy2ivdDJoC54AFU5CMSeu/ho34/7OrOC9s07UIxEzYNqM
+	wG4Tjp2Qca9KTpIdU5VCYXQ1wWWYrv4DyKMH2IUlYXFvJb9wcZrSbvNXxgy9IHhFih7xSH4
+	zc3Uyj7BNYcqeX41Zrha+ShkAwXt81eWbaarVy1VULVAaIAg5aT+U0IZ52F+zdwihZ3YQsI
+	0hMhUp6qCRE346oVuZWzvAPInIOCxStGm9exFqHy1cXFVaI9OxXMAh9sTFiEEx97+NeWZIy
+	QAXortwLGxho3iB6jypQrCvK9nRDbofe2a7qyhOCf8SmLIb9ol
+X-QQ-XMRINFO: OD9hHCdaPRBwq3WW+NvGbIU=
+X-QQ-RECHKSPAM: 0
 
-Hi Joseph,
+Commit 8fa7292fee5c ("treewide: Switch/rename to timer_delete[_sync]()")
+switched del_timer_sync to timer_delete_sync, but did not modify the
+comment for o2net_idle_timer(). Now fix it.
 
-On 4/13/25 09:06, Joseph Qi wrote:
-> 
-> 
-> On 2025/4/8 23:23, Heming Zhao wrote:
->> The commit 4eb7b93e0310 ("ocfs2: improve write IO performance when
->> fragmentation is high") introduced another regression.
->>
->> The following ocfs2-test case can trigger this issue:
->>> ${RESV_UNWRITTEN_BIN} -f ${WORK_PLACE}/large_testfile -s 0 -l \
->>> $((${FILE_MAJOR_SIZE_M}*1024*1024))
->>
->> In my env, test disk size (by "fdisk -l <dev>"):
->>> 53687091200 bytes, 104857600 sectors.
->>
->> Above command is:
->>> /usr/local/ocfs2-test/bin/resv_unwritten -f \
->>> /mnt/ocfs2/ocfs2-activate-discontig-bg-dir/large_testfile -s 0 -l \
->>> 53187969024
->>
->> Error log:
->>> [*] Reserve 50724M space for a LARGE file, reserve 200M space for future test.
->>> ioctl error 28: "No space left on device"
->>> resv allocation failed Unknown error -1
->>> reserve unwritten region from 0 to 53187969024.
->>
->> Call flow:
->> __ocfs2_change_file_space //by ioctl OCFS2_IOC_RESVSP64
->>   ocfs2_allocate_unwritten_extents //start:0 len:53187969024
->>    while()
->>     + ocfs2_get_clusters //cpos:0, alloc_size:1623168 (cluster number)
->>     + ocfs2_extend_allocation
->>       + ocfs2_lock_allocators
->>       |  + choose OCFS2_AC_USE_MAIN & ocfs2_cluster_group_search
->>       |
->>       + ocfs2_add_inode_data
->>          ocfs2_add_clusters_in_btree
->>           __ocfs2_claim_clusters
->>            ocfs2_claim_suballoc_bits
->>            + During the allocation of the final part of the large file
->> 	    (around 47GB), no chain had the required contiguous
->>              bits_wanted. Consequently, the allocation failed.
->>
->> How to fix:
->> When OCFS2 is encountering fragmented allocation, the file system should
->> stop attempting bits_wanted contiguous allocation and instead provide the
->> largest available contiguous free bits from the cluster groups.
->>
->> Signed-off-by: Heming Zhao <heming.zhao@suse.com>
->> Fixes: 4eb7b93e0310 ("ocfs2: improve write IO performance when fragmentation is high")
->> ---
->>   fs/ocfs2/suballoc.c | 36 +++++++++++++++++++++++++++++-------
->>   1 file changed, 29 insertions(+), 7 deletions(-)
->>
->> diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
->> index fde75f2af37a..2e1689fc6cf7 100644
->> --- a/fs/ocfs2/suballoc.c
->> +++ b/fs/ocfs2/suballoc.c
->> @@ -1796,6 +1796,7 @@ static int ocfs2_search_chain(struct ocfs2_alloc_context *ac,
->>   {
->>   	int status;
->>   	u16 chain;
->> +	u32 contig_bits;
->>   	u64 next_group;
->>   	struct inode *alloc_inode = ac->ac_inode;
->>   	struct buffer_head *group_bh = NULL;
->> @@ -1821,10 +1822,23 @@ static int ocfs2_search_chain(struct ocfs2_alloc_context *ac,
->>   	status = -ENOSPC;
->>   	/* for now, the chain search is a bit simplistic. We just use
->>   	 * the 1st group with any empty bits. */
->> -	while ((status = ac->ac_group_search(alloc_inode, group_bh,
->> -					     bits_wanted, min_bits,
->> -					     ac->ac_max_block,
->> -					     res)) == -ENOSPC) {
->> +	while (1) {
->> +		if (ac->ac_which == OCFS2_AC_USE_MAIN_DISCONTIG) {
->> +			contig_bits = le16_to_cpu(bg->bg_contig_free_bits);
->> +			if (!contig_bits)
->> +				contig_bits = ocfs2_find_max_contig_free_bits(bg->bg_bitmap,
->> +						le16_to_cpu(bg->bg_bits), 0);
->> +			if (bits_wanted > contig_bits)
->> +				bits_wanted = contig_bits;
->> +			if (bits_wanted < min_bits)
->> +				bits_wanted = min_bits;
-> 
-> This seems only valid when bits_wanted changed?
+Cc: Mark Fasheh <mark@fasheh.com>
+Cc: Joel Becker <jlbec@evilplan.org>
+Cc: Joseph Qi <joseph.qi@linux.alibaba.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Jakub Kicinski <kuba@kernel.org>
+Cc: WangYuli <wangyuli@uniontech.com>
+Cc: Jens Axboe <axboe@kernel.dk>
+Cc: Dmitry Antipov <dmantipov@yandex.ru>
+Cc: ocfs2-devel@lists.linux.dev
+Cc: linux-kernel@vger.kernel.org
+Acked-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+Signed-off-by: WangYuli <wangyuli@uniontech.com>
+---
+Changelog:
+ *v1->v2: Add Joseph Qi's "Acked-by" tag.
+---
+ fs/ocfs2/cluster/tcp.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-Good catch. the correct style:
+diff --git a/fs/ocfs2/cluster/tcp.c b/fs/ocfs2/cluster/tcp.c
+index fce9beb214f0..43e652a2adaf 100644
+--- a/fs/ocfs2/cluster/tcp.c
++++ b/fs/ocfs2/cluster/tcp.c
+@@ -1483,7 +1483,7 @@ static void o2net_sc_send_keep_req(struct work_struct *work)
+ 	sc_put(sc);
+ }
+ 
+-/* socket shutdown does a del_timer_sync against this as it tears down.
++/* socket shutdown does a timer_delete_sync against this as it tears down.
+  * we can't start this timer until we've got to the point in sc buildup
+  * where shutdown is going to be involved */
+ static void o2net_idle_timer(struct timer_list *t)
+-- 
+2.49.0
 
-if (bits_wanted > contig_bits && contig_bits > min_bits)
-         bits_wanted = contig_bits;
-
-- Heming
-
-> 
-> BTW, the previous fix hasn't been merged yet:
-> https://git.kernel.org/pub/scm/linux/kernel/git/next/linux-next.git/commit/fs/ocfs2?h=next-20250411&id=767ba8b7cba3ca7a560d632f267f7aea35d54810
-> 
-> So should we drop that first and fold it into a whole one?
-> 
-> Thanks,
-> Joseph
