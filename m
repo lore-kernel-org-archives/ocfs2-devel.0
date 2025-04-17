@@ -1,151 +1,97 @@
-Received: from mail-il1-f207.google.com (mail-il1-f207.google.com [209.85.166.207])
+Received: from mail-wm1-f44.google.com (mail-wm1-f44.google.com [209.85.128.44])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 029951C1F02
-	for <ocfs2-devel@lists.linux.dev>; Wed, 16 Apr 2025 02:09:28 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.166.207
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id F0166187553
+	for <ocfs2-devel@lists.linux.dev>; Thu, 17 Apr 2025 04:03:54 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.44
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1744769370; cv=none; b=Q0r7/qsJLuLVdriq9Fyu0Xaq5AiTskz0jtFDnR4+7BLnmTr5Vbcw7Oq7IqDhmX8izYxa8sBG9be+1CYj5m5DV2oin6AMWzSOsEP/LP2UmfuaerMDDDhHkhpEeZiB9xzRKc+hx8T6zIwmM0V0BWHt4nlxbMOLWcQv6D55zS7Aw+k=
+	t=1744862637; cv=none; b=cF52i/z/PVzQKeqUR2hlAJGeBHFZPiHoz/n30p/UsGrtHDU5wFfR3ui6wj8IPu/VtK6232ebFGztVma+1PI8x/ZCiCUVTgKORiByIDImX3ccBICUplq66gqk1C3VRYX6fgfJTekj7BE0s07jLRrT5+w1jCssaR+D643O3eewJDs=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1744769370; c=relaxed/simple;
-	bh=gh4Q5OI2jD51kB1ouzMitVmeY7dP7R2Lgb8/VFm23JU=;
-	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=OCC9JaEAQZEIUJyaFNWfKvWQ5YQs1F9sYBN4UOiZ7FKSfeTKSOXoJ5FNza5dAC6tXMGg1t/cLbLrqye8rNprYbr+XZH/TRgm22QAY+bLpxocKJaCkcNH6A3Vt3hjRdbx6z4HiSpr2ch/K8It+KqZACo9QqhDq/c5HNfvcB+SYqE=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.166.207
-Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
-Received: by mail-il1-f207.google.com with SMTP id e9e14a558f8ab-3d443811ed2so103508415ab.3
-        for <ocfs2-devel@lists.linux.dev>; Tue, 15 Apr 2025 19:09:28 -0700 (PDT)
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1744769368; x=1745374168;
-        h=to:from:subject:message-id:date:mime-version:x-gm-message-state
+	s=arc-20240116; t=1744862637; c=relaxed/simple;
+	bh=cFYmkmGsKJNq1fkV3vfj912JTE93U02zLkiX+nJL3xM=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=e/cWrLHrR76SiU+Sk/wUOvmUwSx3/Mnenf9InjeU0x6asEn0N1XGUZSb9CSILza5cmKPeHDMFhpynLaqlbpmFm/lvDkfebPTeIHVAp9xSigVp7EvGfcicXbC6MJt5yjxpoNFqMNLSixW3BfaMuWdYUy7bIY7utidT6hOgAijx3Q=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=dNGNSeCu; arc=none smtp.client-ip=209.85.128.44
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="dNGNSeCu"
+Received: by mail-wm1-f44.google.com with SMTP id 5b1f17b1804b1-43eeb4e09b5so555465e9.1
+        for <ocfs2-devel@lists.linux.dev>; Wed, 16 Apr 2025 21:03:54 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=suse.com; s=google; t=1744862633; x=1745467433; darn=lists.linux.dev;
+        h=content-transfer-encoding:in-reply-to:content-language:from
+         :references:cc:to:subject:user-agent:mime-version:date:message-id
          :from:to:cc:subject:date:message-id:reply-to;
-        bh=10tAS0ZrAdySKIVyo27zRIx7YkYMzhlQeYEjIVo6oVs=;
-        b=CMXTDNh6OqsJsTef1Lg0jl2yNH4bwmvwYVBAGNA8bMpbhYQscSwoPmZcLXtQdgvvb9
-         JK5ltUVa5+1GnUXPUomn0zI/xOLp8aCm3+zZgtAQBklx9ipAxPkYcSB3vqEr0tQKpP5W
-         NEvdHpjNBI5SOYRMSI/WKR0NyPRFtH1S/srNG/yrrJsIlSQgzoZ94jLzumcM2/3EvI6S
-         nh1QXaz1PqGo2Zx7XBFt/ZHxV/vtB2s19LP2ElJ+7otaGVHb4AwPwwsytyzZtX+4EiUJ
-         7OtY2DQ3ASmq964i07Qg+sGk5KIvscXnFLGPtItrkSd/VcjR68i+JV7RePrhUjWHVosA
-         qR4w==
-X-Forwarded-Encrypted: i=1; AJvYcCVfRsbTXAZrt9In6bkx35aA6cSOyWDLEb942QC2Gd3epy4qZ646u94BwmozP2Us8eR6i7NNZFKtoatinw==@lists.linux.dev
-X-Gm-Message-State: AOJu0Yx1v0GHdCpELwBhSsTikl7d5R1QjQlmmUF1GZ0yYeMtP/H1FWkf
-	KNcfdBn/a4si8l8+KojJ90fVvYF5aAujt5rtjbScX9zQtSFI56781LVwk0pqOZrzJH/kEZlYu0E
-	f71/Pysl1YcLkPT/JrIenzw8Ys99IPyKCxJa514+bYdAELfoEmw4uAT8=
-X-Google-Smtp-Source: AGHT+IEhO/o5vp+DfBEKeWGXr9Wvc+cRH/GSKNI8DbKKNq6smqwR9eXEd3K88LMZTXEWyj80IgRRGPEy1sRYwZq1Y0VuTo6npsNj
+        bh=W7KuPj20ipm9eqNUt7W5lhYtAlVF1K9kw6ltcUM3R1I=;
+        b=dNGNSeCulxYBGm1NOnl0BoN1p93a2n9pN45Y4ER1TVF2aeN8bG08z34xjsDQ6XXXZL
+         oKZX0Fj/hDwYd0qMvcNUWkIimaaEV5fV2rEKB0+2vgu7XZWnaYlc6G2Axwhx7wYP2iv5
+         zZgdgjBT9SMhAiGMFpDgmTZzwpVjCStSHZwMvC5G5KVNRdErbJIhhyUx9k2iYgMFgExc
+         M1PXsbRDTMJpk7mjvxCP5qNr8Gg5Z+xQc9e+WSLH8n2334rj32ub6Ibkrza0FNntGlrc
+         Jk1rZuZYn7QL0lst6Nz8aoWXjqAV8Mqu3ATxqXQyw8rwMegXA54R46ehKzUgwZu1LrgB
+         Fzig==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1744862633; x=1745467433;
+        h=content-transfer-encoding:in-reply-to:content-language:from
+         :references:cc:to:subject:user-agent:mime-version:date:message-id
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
+        bh=W7KuPj20ipm9eqNUt7W5lhYtAlVF1K9kw6ltcUM3R1I=;
+        b=T9qcQ57MO8DbDjGpqQ3bjlq1WVjkrUPiKJ7ju6f7UpHmrr0+2xn1iJXnWp1RqP5CBP
+         W/WEY7Yh8OaaKgesxH6PHXO5E594h+Eud1DvpNi6y0JW4NEqPvAn0p1cfGSrIk0SVCgC
+         YJobL3Mqy+/HlTWwFlyKTwNGJbF7Vm4a4hCqSFznfDcfTo9CTwhLXb55xgGE+r3GLjlt
+         tABHK2Gg9F1/i9M0PEKz8jsx9xCPQjqzOXxEndNKUiGBsswzNiwaGiah1Yvu665/CkGm
+         IY9Tgmx01VTOoB3ZxardMKgINxHlpdL4P90VIBTorbc9CdUqUMtdX1XdRCFQmC/biwqh
+         nQEg==
+X-Forwarded-Encrypted: i=1; AJvYcCUUu7qEFjhLuvi3LuEGFqUaW43ooWVgS939qGYkHvTA3e48e+IzyFZLII2QHeNCm23qR6G1mDJzg409KQ==@lists.linux.dev
+X-Gm-Message-State: AOJu0YxpX9sT2Ne+b27SwsAK1mWe4m0DdmQRtXHmAOKaudjtoKIPgygI
+	ysarbORu4Jq64mkH5sg8bxPv+ISn+YOrRdBkA8izqY4jxXLAV3+pANLNnXkebLM=
+X-Gm-Gg: ASbGncu09Rpff6sNcEJWCJnDq/Emx2BBJELnde9vqmH4GU6WIcIvqwXC32XhOqFir0u
+	OLO60pgOIqkMpfGY/MfrJxteHKkL4wNZlZouuUcPx6qzvkuKCOmMyByHXg0w4/O4Xj+NiJCVM6z
+	VGST2oXnYnTk0VUbkWDRDHwgAw4Wu36BRAYede7yIqdEl1L5/+qvL7LF5OJe4ovuVBFLvCacvFF
+	/u6zuOijpgTYasPM4u4C9mn5WQ2EwwbEom9cpQEtfOq9JmL88wvlvcsto9hXlXucCkz2j2DIrG2
+	LG+d3hxUht1oOX+fTkGUf/pqsxTex+Xzx2QJwc0uVu2AE/0=
+X-Google-Smtp-Source: AGHT+IEP02h+5rE2YoY6sc8apWqQofgtYhqoySVQ8thqsCMPIraS40t765lMjwc+rYWk/RwhHJ94Eg==
+X-Received: by 2002:a05:6000:4202:b0:39c:13fa:3e0 with SMTP id ffacd0b85a97d-39ee8fabd25mr473297f8f.9.1744862633002;
+        Wed, 16 Apr 2025 21:03:53 -0700 (PDT)
+Received: from [10.202.112.30] ([202.127.77.110])
+        by smtp.gmail.com with ESMTPSA id 98e67ed59e1d1-308611f3f54sm2522269a91.13.2025.04.16.21.03.50
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Wed, 16 Apr 2025 21:03:52 -0700 (PDT)
+Message-ID: <89d94f84-8e88-4860-aaf7-102a51c11537@suse.com>
+Date: Thu, 17 Apr 2025 12:03:48 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-X-Received: by 2002:a05:6e02:190c:b0:3d4:6dcf:d8f5 with SMTP id
- e9e14a558f8ab-3d815af7e5cmr44515ab.1.1744769368081; Tue, 15 Apr 2025 19:09:28
- -0700 (PDT)
-Date: Tue, 15 Apr 2025 19:09:28 -0700
-X-Google-Appengine-App-Id: s~syzkaller
-X-Google-Appengine-App-Id-Alias: syzkaller
-Message-ID: <67ff1158.050a0220.d2ea7.0004.GAE@google.com>
-Subject: [syzbot] [ocfs2?] kernel BUG in __ocfs2_move_extents_range
-From: syzbot <syzbot+f2107d999290b8166267@syzkaller.appspotmail.com>
-To: jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
-	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
-	syzkaller-bugs@googlegroups.com
-Content-Type: text/plain; charset="UTF-8"
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH 0/3] ocfs2: Fix deadlocks in quota recovery
+To: Jan Kara <jack@suse.cz>, Joseph Qi <joseph.qi@linux.alibaba.com>,
+ syzbot+f59a1ae7b7227c859b8f@syzkaller.appspotmail.com
+Cc: Murad Masimov <m.masimov@mt-integration.ru>, ocfs2-devel@lists.linux.dev
+References: <20250403112908.13750-1-jack@suse.cz>
+From: Heming Zhao <heming.zhao@suse.com>
+Content-Language: en-US
+In-Reply-To: <20250403112908.13750-1-jack@suse.cz>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
 
-Hello,
+I created a branch for these 3 patch files. Let's ask syzbot to test them.
 
-syzbot found the following issue on:
+syzbot page: https://syzkaller.appspot.com/bug?extid=f59a1ae7b7227c859b8f
 
-HEAD commit:    e618ee89561b Merge tag 'spi-fix-v6.15-rc1' of git://git.ke..
-git tree:       upstream
-console output: https://syzkaller.appspot.com/x/log.txt?x=125f1c04580000
-kernel config:  https://syzkaller.appspot.com/x/.config?x=eecd7902e39d7933
-dashboard link: https://syzkaller.appspot.com/bug?extid=f2107d999290b8166267
-compiler:       Debian clang version 15.0.6, GNU ld (GNU Binutils for Debian) 2.40
+#syz test: https://github.com/zhaohem/linux jans_ocfs2
 
-Unfortunately, I don't have any reproducer for this issue yet.
+On 4/3/25 19:32, Jan Kara wrote:
+> Hello,
+> 
+> this implements another approach to fixing quota recovery deadlocks. We avoid
+> grabbing sb->s_umount semaphore from ocfs2_finish_quota_recovery() and instead
+> stop quota recovery early in ocfs2_dismount_volume(). Please review and test,
+> the series has been only lightly tested in local mode as I don't have
+> proper OCFS2 test setup.
+> 
+> 								Honza
+> 
 
-Downloadable assets:
-disk image (non-bootable): https://storage.googleapis.com/syzbot-assets/7feb34a89c2a/non_bootable_disk-e618ee89.raw.xz
-vmlinux: https://storage.googleapis.com/syzbot-assets/2ce493533ba3/vmlinux-e618ee89.xz
-kernel image: https://storage.googleapis.com/syzbot-assets/3c0d2abdecc5/bzImage-e618ee89.xz
-
-IMPORTANT: if you fix the issue, please add the following tag to the commit:
-Reported-by: syzbot+f2107d999290b8166267@syzkaller.appspotmail.com
-
-------------[ cut here ]------------
-kernel BUG at fs/ocfs2/suballoc.c:1380!
-Oops: invalid opcode: 0000 [#1] SMP KASAN NOPTI
-CPU: 0 UID: 0 PID: 5328 Comm: syz.0.0 Not tainted 6.15.0-rc1-syzkaller-00288-ge618ee89561b #0 PREEMPT(full) 
-Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.16.3-debian-1.16.3-2~bpo12+1 04/01/2014
-RIP: 0010:ocfs2_block_group_set_bits+0x891/0x9d0 fs/ocfs2/suballoc.c:1380
-Code: 89 f1 80 e1 07 fe c1 38 c1 0f 8c ef fe ff ff 4c 89 f7 e8 52 05 5d fe e9 e2 fe ff ff e8 28 dd f2 fd 90 0f 0b e8 20 dd f2 fd 90 <0f> 0b f3 0f 1e fa 65 44 8b 35 15 48 98 0f bf 07 00 00 00 44 89 f6
-RSP: 0018:ffffc9000d407300 EFLAGS: 00010293
-RAX: ffffffff83d07810 RBX: 0000000000000054 RCX: ffff888000c08000
-RDX: 0000000000000000 RSI: 0000000000000116 RDI: 0000000000000054
-RBP: ffffc9000d407420 R08: ffffffff83d070bf R09: 0000000000000116
-R10: 0000000000000006 R11: ffff888000c08000 R12: 0000000000000116
-R13: dffffc0000000000 R14: ffff888042da4000 R15: ffff88804594cfb8
-FS:  00007f60de8656c0(0000) GS:ffff88808c594000(0000) knlGS:0000000000000000
-CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-CR2: 00007f6ef7f74580 CR3: 0000000042f8c000 CR4: 0000000000352ef0
-DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
-DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
-Call Trace:
- <TASK>
- ocfs2_move_extent fs/ocfs2/move_extents.c:687 [inline]
- __ocfs2_move_extents_range+0x3517/0x4470 fs/ocfs2/move_extents.c:860
- ocfs2_move_extents+0x3f0/0xac0 fs/ocfs2/move_extents.c:927
- ocfs2_ioctl_move_extents+0x61c/0x840 fs/ocfs2/move_extents.c:1053
- ocfs2_ioctl+0x19b/0x7f0 fs/ocfs2/ioctl.c:946
- vfs_ioctl fs/ioctl.c:51 [inline]
- __do_sys_ioctl fs/ioctl.c:906 [inline]
- __se_sys_ioctl+0xf1/0x160 fs/ioctl.c:892
- do_syscall_x64 arch/x86/entry/syscall_64.c:63 [inline]
- do_syscall_64+0xf3/0x230 arch/x86/entry/syscall_64.c:94
- entry_SYSCALL_64_after_hwframe+0x77/0x7f
-RIP: 0033:0x7f60dd98d169
-Code: ff ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 40 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 a8 ff ff ff f7 d8 64 89 01 48
-RSP: 002b:00007f60de865038 EFLAGS: 00000246 ORIG_RAX: 0000000000000010
-RAX: ffffffffffffffda RBX: 00007f60ddba6080 RCX: 00007f60dd98d169
-RDX: 00002000000000c0 RSI: 0000000040406f06 RDI: 0000000000000005
-RBP: 00007f60dda0e990 R08: 0000000000000000 R09: 0000000000000000
-R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000000
-R13: 0000000000000000 R14: 00007f60ddba6080 R15: 00007ffe756de308
- </TASK>
-Modules linked in:
----[ end trace 0000000000000000 ]---
-RIP: 0010:ocfs2_block_group_set_bits+0x891/0x9d0 fs/ocfs2/suballoc.c:1380
-Code: 89 f1 80 e1 07 fe c1 38 c1 0f 8c ef fe ff ff 4c 89 f7 e8 52 05 5d fe e9 e2 fe ff ff e8 28 dd f2 fd 90 0f 0b e8 20 dd f2 fd 90 <0f> 0b f3 0f 1e fa 65 44 8b 35 15 48 98 0f bf 07 00 00 00 44 89 f6
-RSP: 0018:ffffc9000d407300 EFLAGS: 00010293
-RAX: ffffffff83d07810 RBX: 0000000000000054 RCX: ffff888000c08000
-RDX: 0000000000000000 RSI: 0000000000000116 RDI: 0000000000000054
-RBP: ffffc9000d407420 R08: ffffffff83d070bf R09: 0000000000000116
-R10: 0000000000000006 R11: ffff888000c08000 R12: 0000000000000116
-R13: dffffc0000000000 R14: ffff888042da4000 R15: ffff88804594cfb8
-FS:  00007f60de8656c0(0000) GS:ffff88808c594000(0000) knlGS:0000000000000000
-CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-CR2: 00007f6ef7f74580 CR3: 0000000042f8c000 CR4: 0000000000352ef0
-DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
-DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
-
-
----
-This report is generated by a bot. It may contain errors.
-See https://goo.gl/tpsmEJ for more information about syzbot.
-syzbot engineers can be reached at syzkaller@googlegroups.com.
-
-syzbot will keep track of this issue. See:
-https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
-
-If the report is already addressed, let syzbot know by replying with:
-#syz fix: exact-commit-title
-
-If you want to overwrite report's subsystems, reply with:
-#syz set subsystems: new-subsystem
-(See the list of subsystem names on the web dashboard)
-
-If the report is a duplicate of another one, reply with:
-#syz dup: exact-subject-of-another-report
-
-If you want to undo deduplication, reply with:
-#syz undup
