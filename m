@@ -1,204 +1,177 @@
-Received: from out30-111.freemail.mail.aliyun.com (out30-111.freemail.mail.aliyun.com [115.124.30.111])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-io1-f78.google.com (mail-io1-f78.google.com [209.85.166.78])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 51140236445
-	for <ocfs2-devel@lists.linux.dev>; Thu, 17 Apr 2025 11:11:33 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.111
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5351217C219
+	for <ocfs2-devel@lists.linux.dev>; Sat, 19 Apr 2025 11:02:25 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.166.78
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1744888299; cv=none; b=O/lvLv/PDXyl+1NVqQlAJBCyT6YO08y1lQWvQttNaoSN1jq5OHnBRFE02vgHJGLKg0s2YPuuwmWbOqVULsRZmchjOdwm7rxHfHlxXuGXr5feAupMMQ4kzVRklDfiGrc/r7G9dufh5PWBe0nRCdEkBURoRm4kRmtsDMHxjdAw9kM=
+	t=1745060547; cv=none; b=r6Z2IdviDT2NSjXXlEgRebRCv/CAc6pnx4H96HP0YGL7WGh4c1k8MNqI7upgFB8xNbLHnizoSVlpeCgoGgcVbADWJZ2V2fUos30raeaP/bKxYgMZNzfMAEGAG/8OJxo69zOpWueHy4B58D5EgEyX7Hb7Sh19kUBr7I6oQhqHM1Q=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1744888299; c=relaxed/simple;
-	bh=iPlBiPeQvYwklJSnGwieziVFHlC8ZbDVfSa4gQiyems=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=NZWEW8lYX5e9M3Jz/tYx+Azs67bjXYFv9B1o9enwQTqtuarGqtv8VS87KHXnUnmZcdmu27TTSZ444vl+ijFgeoS2alVsw/7YDJBd9IFL+OdNkN01TP2Gc1uY+18LTgQkhZqmZ6LgBInOuCHnZ3hfM8u09D1YV5FBUuD/i6GhjiU=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=xFihB03c; arc=none smtp.client-ip=115.124.30.111
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="xFihB03c"
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1744888286; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=Ih4D2hjc1RuSPbkNyhYdhil7SRFVem/SvdPeGCUUw2w=;
-	b=xFihB03cZVzQTdJTSNxx43tzLtq8t9+zxw+8VMNT+y9DcWkXfgXAkTN0srStv826YgqcDR1VDekazA1ZKSDRqkeJYjHBujUlrL9MeGQnsk4gfA6qv0df/Dcmrz/2yCX0Fur803wklumMeSEaopwVMYmJP/kndkI8z1bhpHxewiQ=
-Received: from 30.221.145.47(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0WXEiprf_1744888283 cluster:ay36)
-          by smtp.aliyun-inc.com;
-          Thu, 17 Apr 2025 19:11:24 +0800
-Message-ID: <518cd8d7-394c-4b19-a0b9-f73219c621de@linux.alibaba.com>
-Date: Thu, 17 Apr 2025 19:11:23 +0800
+	s=arc-20240116; t=1745060547; c=relaxed/simple;
+	bh=j7FwO2l9S0QmP4nxvJ2rDoyVmG4aTFv1LllhmMD3eXY=;
+	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=iAECpYNkeR6/2FSNW3C6BJxNDtjZ0OKZTqr9rWJM4tMpOSHmCr6HPwwIiws19B7CEDyyv+A344b+4ShtkesSPPkuLdkjzRQBHqufdjehiDweMvjdhgk8vxVEU4lerUWa7z5ngwU0gywT9Kz8rlbxBo6jZcAEbQs4Im7ztRl488Q=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.166.78
+Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
+Received: by mail-io1-f78.google.com with SMTP id ca18e2360f4ac-849d26dd331so329086139f.1
+        for <ocfs2-devel@lists.linux.dev>; Sat, 19 Apr 2025 04:02:25 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1745060544; x=1745665344;
+        h=to:from:subject:message-id:date:mime-version:x-gm-message-state
+         :from:to:cc:subject:date:message-id:reply-to;
+        bh=dnthPBfvaEqWHBvCO77erjYDeS1wsd+KvgMIgGq5O9M=;
+        b=X6mgoXyWdSEQurQqliERLTplcHdGLQrhcOKGrSZlATVhJVJ9T9yJ86vb43kBMz0u0y
+         HMKonoBwbiNeKvPW2oOwQzWYQxr6QoMcHsXcHkMOEZMKMFI2rK0mNEoJCehNPHVNWSq3
+         DZmvxXn0ftlqDLedM7D7SS+Ey1d5aQUGBQirP1JkQGxkFMJlRz5NLxTKPRoO1ofdjYAm
+         c0ay21nPm4zd6v3aUPshOFkEZ1DeegqLgkZucngq7bbiSJPDQxLEV/METK2FIzGMgDyp
+         NA6rXhJyTBXQpq8j3WLSQgsA7Z9x/SvZSn7S3UVIsJOErhdjoq1htDrOcchK08y6O9wp
+         gKIA==
+X-Forwarded-Encrypted: i=1; AJvYcCXUYV6fRc6yXW9XaxeSd66UU5Rr+h+4RUOm1cudYGzuX0fcwDl9L7xfeqKC1DtOcDXF16Bx41ZLiAzX0g==@lists.linux.dev
+X-Gm-Message-State: AOJu0Ywo3VGrUoxRJvfjF88B0uk+u4QMuwvORugVrXz4osffe2GqwosB
+	tgJoG/LTI5oCD5aHGay+4HIr+EpN2HhS6xIYlPTOvMreC5a8WVyRCT0thy8j+PccoY7KGuLf4to
+	ypgz3wQaaFPS9QZxaSeMakcOJ6lmsncNBCCAHX0tu2D4NNLE63R2/R+s=
+X-Google-Smtp-Source: AGHT+IHBRORsgVD6xrKi3sXfub+esEBTYoU9fRFbVL8zWu6tskX1/nBiKFsUQTcGhTkgxC8U/r8RCcuWaSzq38hVVOTgeiMQnMT1
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v2 1/1] ocfs2: fix the issue with discontiguous allocation
- in the global_bitmap
-To: Heming Zhao <heming.zhao@suse.com>, akpm <akpm@linux-foundation.org>
-Cc: ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org,
- gautham.ananthakrishna@oracle.com
-References: <20250414060125.19938-1-heming.zhao@suse.com>
- <20250414060125.19938-2-heming.zhao@suse.com>
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <20250414060125.19938-2-heming.zhao@suse.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+X-Received: by 2002:a05:6e02:b41:b0:3d5:890b:d9e1 with SMTP id
+ e9e14a558f8ab-3d8b694907emr41996275ab.1.1745060544423; Sat, 19 Apr 2025
+ 04:02:24 -0700 (PDT)
+Date: Sat, 19 Apr 2025 04:02:24 -0700
+X-Google-Appengine-App-Id: s~syzkaller
+X-Google-Appengine-App-Id-Alias: syzkaller
+Message-ID: <680382c0.050a0220.297747.001b.GAE@google.com>
+Subject: [syzbot] [ocfs2?] possible deadlock in ocfs2_try_to_free_truncate_log (2)
+From: syzbot <syzbot+c535cfdd86331295512d@syzkaller.appspotmail.com>
+To: jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
+	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
+	syzkaller-bugs@googlegroups.com
+Content-Type: text/plain; charset="UTF-8"
+
+Hello,
+
+syzbot found the following issue on:
+
+HEAD commit:    834a4a689699 Merge tag 'for-linus' of git://git.kernel.org..
+git tree:       upstream
+console output: https://syzkaller.appspot.com/x/log.txt?x=171ff398580000
+kernel config:  https://syzkaller.appspot.com/x/.config?x=a972ee73c2fcf8ca
+dashboard link: https://syzkaller.appspot.com/bug?extid=c535cfdd86331295512d
+compiler:       Debian clang version 15.0.6, GNU ld (GNU Binutils for Debian) 2.40
+
+Unfortunately, I don't have any reproducer for this issue yet.
+
+Downloadable assets:
+disk image (non-bootable): https://storage.googleapis.com/syzbot-assets/7feb34a89c2a/non_bootable_disk-834a4a68.raw.xz
+vmlinux: https://storage.googleapis.com/syzbot-assets/4454365a3050/vmlinux-834a4a68.xz
+kernel image: https://storage.googleapis.com/syzbot-assets/2d99dbd9f6f4/bzImage-834a4a68.xz
+
+IMPORTANT: if you fix the issue, please add the following tag to the commit:
+Reported-by: syzbot+c535cfdd86331295512d@syzkaller.appspotmail.com
+
+loop0: detected capacity change from 0 to 32768
+=======================================================
+WARNING: The mand mount option has been deprecated and
+         and is ignored by this kernel. Remove the mand
+         option from the mount to silence this warning.
+=======================================================
+ocfs2: Mounting device (7,0) on (node local, slot 0) with ordered data mode.
+netlink: 'syz.0.0': attribute type 15 has an invalid length.
+(syz.0.0,5322,0):ocfs2_dio_end_io:2398 ERROR: Direct IO failed, bytes = -28
+============================================
+WARNING: possible recursive locking detected
+6.15.0-rc2-syzkaller-00037-g834a4a689699 #0 Not tainted
+--------------------------------------------
+syz.0.0/5322 is trying to acquire lock:
+ffff888045d83480 (&ocfs2_sysfile_lock_key[args->fi_sysfile_type]#6){+.+.}-{4:4}, at: inode_lock include/linux/fs.h:867 [inline]
+ffff888045d83480 (&ocfs2_sysfile_lock_key[args->fi_sysfile_type]#6){+.+.}-{4:4}, at: ocfs2_try_to_free_truncate_log+0xd8/0x430 fs/ocfs2/alloc.c:6132
+
+but task is already holding lock:
+ffff888045d83480 (&ocfs2_sysfile_lock_key[args->fi_sysfile_type]#6){+.+.}-{4:4}, at: inode_lock include/linux/fs.h:867 [inline]
+ffff888045d83480 (&ocfs2_sysfile_lock_key[args->fi_sysfile_type]#6){+.+.}-{4:4}, at: ocfs2_defrag_extent fs/ocfs2/move_extents.c:247 [inline]
+ffff888045d83480 (&ocfs2_sysfile_lock_key[args->fi_sysfile_type]#6){+.+.}-{4:4}, at: __ocfs2_move_extents_range+0x1540/0x4470 fs/ocfs2/move_extents.c:857
+
+other info that might help us debug this:
+ Possible unsafe locking scenario:
+
+       CPU0
+       ----
+  lock(&ocfs2_sysfile_lock_key[args->fi_sysfile_type]#6);
+  lock(&ocfs2_sysfile_lock_key[args->fi_sysfile_type]#6);
+
+ *** DEADLOCK ***
+
+ May be due to missing lock nesting notation
+
+5 locks held by syz.0.0/5322:
+ #0: ffff88803ee5c420 (sb_writers#12){.+.+}-{0:0}, at: mnt_want_write_file+0x5e/0x200 fs/namespace.c:600
+ #1: ffff888045d842c0 (&sb->s_type->i_mutex_key#20){+.+.}-{4:4}, at: inode_lock include/linux/fs.h:867 [inline]
+ #1: ffff888045d842c0 (&sb->s_type->i_mutex_key#20){+.+.}-{4:4}, at: ocfs2_move_extents+0x1c7/0xac0 fs/ocfs2/move_extents.c:905
+ #2: ffff888045d83f60 (&oi->ip_alloc_sem){++++}-{4:4}, at: ocfs2_move_extents+0x3cd/0xac0 fs/ocfs2/move_extents.c:925
+ #3: ffff888045d7ed80 (&ocfs2_sysfile_lock_key[args->fi_sysfile_type]#3){+.+.}-{4:4}, at: inode_lock include/linux/fs.h:867 [inline]
+ #3: ffff888045d7ed80 (&ocfs2_sysfile_lock_key[args->fi_sysfile_type]#3){+.+.}-{4:4}, at: ocfs2_reserve_suballoc_bits+0x18d/0x4f30 fs/ocfs2/suballoc.c:786
+ #4: ffff888045d83480 (&ocfs2_sysfile_lock_key[args->fi_sysfile_type]#6){+.+.}-{4:4}, at: inode_lock include/linux/fs.h:867 [inline]
+ #4: ffff888045d83480 (&ocfs2_sysfile_lock_key[args->fi_sysfile_type]#6){+.+.}-{4:4}, at: ocfs2_defrag_extent fs/ocfs2/move_extents.c:247 [inline]
+ #4: ffff888045d83480 (&ocfs2_sysfile_lock_key[args->fi_sysfile_type]#6){+.+.}-{4:4}, at: __ocfs2_move_extents_range+0x1540/0x4470 fs/ocfs2/move_extents.c:857
+
+stack backtrace:
+CPU: 0 UID: 0 PID: 5322 Comm: syz.0.0 Not tainted 6.15.0-rc2-syzkaller-00037-g834a4a689699 #0 PREEMPT(full) 
+Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.16.3-debian-1.16.3-2~bpo12+1 04/01/2014
+Call Trace:
+ <TASK>
+ __dump_stack lib/dump_stack.c:94 [inline]
+ dump_stack_lvl+0x241/0x360 lib/dump_stack.c:120
+ print_deadlock_bug+0x2be/0x2d0 kernel/locking/lockdep.c:3042
+ check_deadlock kernel/locking/lockdep.c:3094 [inline]
+ validate_chain+0x928/0x24e0 kernel/locking/lockdep.c:3896
+ __lock_acquire+0xad5/0xd80 kernel/locking/lockdep.c:5235
+ lock_acquire+0x116/0x2f0 kernel/locking/lockdep.c:5866
+ down_write+0x9c/0x220 kernel/locking/rwsem.c:1577
+ inode_lock include/linux/fs.h:867 [inline]
+ ocfs2_try_to_free_truncate_log+0xd8/0x430 fs/ocfs2/alloc.c:6132
+ ocfs2_reserve_clusters_with_limit+0x4ec/0xb60 fs/ocfs2/suballoc.c:1184
+ ocfs2_defrag_extent fs/ocfs2/move_extents.c:266 [inline]
+ __ocfs2_move_extents_range+0x19c8/0x4470 fs/ocfs2/move_extents.c:857
+ ocfs2_move_extents+0x3f0/0xac0 fs/ocfs2/move_extents.c:927
+ ocfs2_ioctl_move_extents+0x61c/0x840 fs/ocfs2/move_extents.c:1053
+ ocfs2_ioctl+0x19b/0x7f0 fs/ocfs2/ioctl.c:946
+ vfs_ioctl fs/ioctl.c:51 [inline]
+ __do_sys_ioctl fs/ioctl.c:906 [inline]
+ __se_sys_ioctl+0xf1/0x160 fs/ioctl.c:892
+ do_syscall_x64 arch/x86/entry/syscall_64.c:63 [inline]
+ do_syscall_64+0xf3/0x230 arch/x86/entry/syscall_64.c:94
+ entry_SYSCALL_64_after_hwframe+0x77/0x7f
+RIP: 0033:0x7fe8d0d8d169
+Code: ff ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 40 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 a8 ff ff ff f7 d8 64 89 01 48
+RSP: 002b:00007fe8d1b27038 EFLAGS: 00000246 ORIG_RAX: 0000000000000010
+RAX: ffffffffffffffda RBX: 00007fe8d0fa5fa0 RCX: 00007fe8d0d8d169
+RDX: 00002000000000c0 RSI: 0000000040406f06 RDI: 0000000000000004
+RBP: 00007fe8d0e0e990 R08: 0000000000000000 R09: 0000000000000000
+R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000000
+R13: 0000000000000000 R14: 00007fe8d0fa5fa0 R15: 00007ffc184f1808
+ </TASK>
 
 
+---
+This report is generated by a bot. It may contain errors.
+See https://goo.gl/tpsmEJ for more information about syzbot.
+syzbot engineers can be reached at syzkaller@googlegroups.com.
 
-On 2025/4/14 14:01, Heming Zhao wrote:
-> The commit 4eb7b93e0310 ("ocfs2: improve write IO performance when
-> fragmentation is high") introduced another regression.
-> 
-> The following ocfs2-test case can trigger this issue:
->> discontig_runner.sh => activate_discontig_bg.sh => resv_unwritten:
->> ${RESV_UNWRITTEN_BIN} -f ${WORK_PLACE}/large_testfile -s 0 -l \
->> $((${FILE_MAJOR_SIZE_M}*1024*1024))
-> 
-> In my env, test disk size (by "fdisk -l <dev>"):
->> 53687091200 bytes, 104857600 sectors.
-> 
-> Above command is:
->> /usr/local/ocfs2-test/bin/resv_unwritten -f \
->> /mnt/ocfs2/ocfs2-activate-discontig-bg-dir/large_testfile -s 0 -l \
->> 53187969024
-> 
-> Error log:
->> [*] Reserve 50724M space for a LARGE file, reserve 200M space for future test.
->> ioctl error 28: "No space left on device"
->> resv allocation failed Unknown error -1
->> reserve unwritten region from 0 to 53187969024.
-> 
-> Call flow:
-> __ocfs2_change_file_space //by ioctl OCFS2_IOC_RESVSP64
->  ocfs2_allocate_unwritten_extents //start:0 len:53187969024
->   while()
->    + ocfs2_get_clusters //cpos:0, alloc_size:1623168 (cluster number)
->    + ocfs2_extend_allocation
->      + ocfs2_lock_allocators
->      |  + choose OCFS2_AC_USE_MAIN & ocfs2_cluster_group_search
->      |
->      + ocfs2_add_inode_data
->         ocfs2_add_clusters_in_btree
->          __ocfs2_claim_clusters
->           ocfs2_claim_suballoc_bits
->           + During the allocation of the final part of the large file
-> 	    (after ~47GB), no chain had the required contiguous
->             bits_wanted. Consequently, the allocation failed.
-> 
-> How to fix:
-> When OCFS2 is encountering fragmented allocation, the file system should
-> stop attempting bits_wanted contiguous allocation and instead provide the
-> largest available contiguous free bits from the cluster groups.
-> 
-> Reported-by: Gautham Ananthakrishna <gautham.ananthakrishna@oracle.com>
-> Signed-off-by: Heming Zhao <heming.zhao@suse.com>
-> Fixes: 4eb7b93e0310 ("ocfs2: improve write IO performance when fragmentation is high")
+syzbot will keep track of this issue. See:
+https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
 
-Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-> ---
->  fs/ocfs2/suballoc.c | 38 ++++++++++++++++++++++++++++++++------
->  fs/ocfs2/suballoc.h |  1 +
->  2 files changed, 33 insertions(+), 6 deletions(-)
-> 
-> diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
-> index f7b483f0de2a..6ac4dcd54588 100644
-> --- a/fs/ocfs2/suballoc.c
-> +++ b/fs/ocfs2/suballoc.c
-> @@ -698,10 +698,12 @@ static int ocfs2_block_group_alloc(struct ocfs2_super *osb,
->  
->  	bg_bh = ocfs2_block_group_alloc_contig(osb, handle, alloc_inode,
->  					       ac, cl);
-> -	if (PTR_ERR(bg_bh) == -ENOSPC)
-> +	if (PTR_ERR(bg_bh) == -ENOSPC) {
-> +		ac->ac_which = OCFS2_AC_USE_MAIN_DISCONTIG;
->  		bg_bh = ocfs2_block_group_alloc_discontig(handle,
->  							  alloc_inode,
->  							  ac, cl);
-> +	}
->  	if (IS_ERR(bg_bh)) {
->  		status = PTR_ERR(bg_bh);
->  		bg_bh = NULL;
-> @@ -1794,6 +1796,7 @@ static int ocfs2_search_chain(struct ocfs2_alloc_context *ac,
->  {
->  	int status;
->  	u16 chain;
-> +	u32 contig_bits;
->  	u64 next_group;
->  	struct inode *alloc_inode = ac->ac_inode;
->  	struct buffer_head *group_bh = NULL;
-> @@ -1819,10 +1822,21 @@ static int ocfs2_search_chain(struct ocfs2_alloc_context *ac,
->  	status = -ENOSPC;
->  	/* for now, the chain search is a bit simplistic. We just use
->  	 * the 1st group with any empty bits. */
-> -	while ((status = ac->ac_group_search(alloc_inode, group_bh,
-> -					     bits_wanted, min_bits,
-> -					     ac->ac_max_block,
-> -					     res)) == -ENOSPC) {
-> +	while (1) {
-> +		if (ac->ac_which == OCFS2_AC_USE_MAIN_DISCONTIG) {
-> +			contig_bits = le16_to_cpu(bg->bg_contig_free_bits);
-> +			if (!contig_bits)
-> +				contig_bits = ocfs2_find_max_contig_free_bits(bg->bg_bitmap,
-> +						le16_to_cpu(bg->bg_bits), 0);
-> +			if (bits_wanted > contig_bits && contig_bits >= min_bits)
-> +				bits_wanted = contig_bits;
-> +		}
-> +
-> +		status = ac->ac_group_search(alloc_inode, group_bh,
-> +				bits_wanted, min_bits,
-> +				ac->ac_max_block, res);
-> +		if (status != -ENOSPC)
-> +			break;
->  		if (!bg->bg_next_group)
->  			break;
->  
-> @@ -1982,6 +1996,7 @@ static int ocfs2_claim_suballoc_bits(struct ocfs2_alloc_context *ac,
->  	victim = ocfs2_find_victim_chain(cl);
->  	ac->ac_chain = victim;
->  
-> +search:
->  	status = ocfs2_search_chain(ac, handle, bits_wanted, min_bits,
->  				    res, &bits_left);
->  	if (!status) {
-> @@ -2022,6 +2037,16 @@ static int ocfs2_claim_suballoc_bits(struct ocfs2_alloc_context *ac,
->  		}
->  	}
->  
-> +	/* Chains can't supply the bits_wanted contiguous space.
-> +	 * We should switch to using every single bit when allocating
-> +	 * from the global bitmap. */
-> +	if (i == le16_to_cpu(cl->cl_next_free_rec) &&
-> +	    status == -ENOSPC && ac->ac_which == OCFS2_AC_USE_MAIN) {
-> +		ac->ac_which = OCFS2_AC_USE_MAIN_DISCONTIG;
-> +		ac->ac_chain = victim;
-> +		goto search;
-> +	}
-> +
->  set_hint:
->  	if (status != -ENOSPC) {
->  		/* If the next search of this group is not likely to
-> @@ -2365,7 +2390,8 @@ int __ocfs2_claim_clusters(handle_t *handle,
->  	BUG_ON(ac->ac_bits_given >= ac->ac_bits_wanted);
->  
->  	BUG_ON(ac->ac_which != OCFS2_AC_USE_LOCAL
-> -	       && ac->ac_which != OCFS2_AC_USE_MAIN);
-> +	       && ac->ac_which != OCFS2_AC_USE_MAIN
-> +	       && ac->ac_which != OCFS2_AC_USE_MAIN_DISCONTIG);
->  
->  	if (ac->ac_which == OCFS2_AC_USE_LOCAL) {
->  		WARN_ON(min_clusters > 1);
-> diff --git a/fs/ocfs2/suballoc.h b/fs/ocfs2/suballoc.h
-> index b481b834857d..bcf2ed4a8631 100644
-> --- a/fs/ocfs2/suballoc.h
-> +++ b/fs/ocfs2/suballoc.h
-> @@ -29,6 +29,7 @@ struct ocfs2_alloc_context {
->  #define OCFS2_AC_USE_MAIN  2
->  #define OCFS2_AC_USE_INODE 3
->  #define OCFS2_AC_USE_META  4
-> +#define OCFS2_AC_USE_MAIN_DISCONTIG  5
->  	u32    ac_which;
->  
->  	/* these are used by the chain search */
+If the report is already addressed, let syzbot know by replying with:
+#syz fix: exact-commit-title
 
+If you want to overwrite report's subsystems, reply with:
+#syz set subsystems: new-subsystem
+(See the list of subsystem names on the web dashboard)
+
+If the report is a duplicate of another one, reply with:
+#syz dup: exact-subject-of-another-report
+
+If you want to undo deduplication, reply with:
+#syz undup
