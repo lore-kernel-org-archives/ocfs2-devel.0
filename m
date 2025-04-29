@@ -1,141 +1,98 @@
-Received: from smtp-out2.suse.de (smtp-out2.suse.de [195.135.223.131])
+Received: from mail-io1-f69.google.com (mail-io1-f69.google.com [209.85.166.69])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 23184101DE
-	for <ocfs2-devel@lists.linux.dev>; Fri, 25 Apr 2025 13:39:27 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=195.135.223.131
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 747592C375C
+	for <ocfs2-devel@lists.linux.dev>; Tue, 29 Apr 2025 12:47:31 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.166.69
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1745588369; cv=none; b=NtbscMdCS2app50PmiN2gX+ZyjljbtFRKidTuR+EF13SnOvrouaKmtjtwKyxDdHBGrI0+lasrk2Qfc4L3FPBMVo6HTGz+I02PE+SeH7skPZOxF/wjUKTiBGo0YK9lDrZKxi/Wnu1R4NmHvPQLCjPfym2tACpIcqq2U+c6uxhhmw=
+	t=1745930852; cv=none; b=Phb5x9A7mRJoHksWXQBVd5TitX4nOY7Eiqeor2oqTpyMn18/c/t5rmzQdyvHzADNfGsc1ZONPJdev6lFN1VA6kBb8P0yyGHYYb1gfgX2a4fsmdWt79m+hwzxnbMSRrrDzHdbUzZG8RkoJFnU2CvIpADIjlWuM6wMdF5yqG8uNsE=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1745588369; c=relaxed/simple;
-	bh=ZaPNY5QyUHrfImHHkisC884lkBHX6go1KNhNzI8xw80=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=OjyQ204QddUesaRM8qlFFVfn3OLT450wzenDquRegPd322dXF2Dni6JWzy++8gpGnIZ7iWDnV7rd7Yc3PnNLNCq/EEBOev000xdTdruaQX6QePZxben+CtOtIT8q+tj2y2mfBoDpWl3sEHPCDSsdQAs5KmK2noSO0H/Ufm4/wLg=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=suse.cz; spf=pass smtp.mailfrom=suse.cz; dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b=mtAZYVud; dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b=zr1BQy8R; dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b=mtAZYVud; dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b=zr1BQy8R; arc=none smtp.client-ip=195.135.223.131
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=suse.cz
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.cz
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b="mtAZYVud";
-	dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b="zr1BQy8R";
-	dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b="mtAZYVud";
-	dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b="zr1BQy8R"
-Received: from imap1.dmz-prg2.suse.org (unknown [10.150.64.97])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
-	(No client certificate requested)
-	by smtp-out2.suse.de (Postfix) with ESMTPS id 20CC01F399;
-	Fri, 25 Apr 2025 13:39:26 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.cz; s=susede2_rsa;
-	t=1745588366; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=2z3avC5rP8cDX29I7eAhyduMafWtO/6c40mWDHzeywE=;
-	b=mtAZYVud83IfA5M5tBNxXTNFunLsr+1acgRutR20oI3kMQtN5/xzqLOix3RIZlftrcQtl0
-	1BWJhJ9FDMmdtQIX91q4k5SwLULtf3fVMyA09S3NoI6c0yGCCy/f/CET4lNKGbTj3ldape
-	bhFWft9BK1wbtNQl2cjuhyDzFmM5NzU=
-DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.cz;
-	s=susede2_ed25519; t=1745588366;
-	h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=2z3avC5rP8cDX29I7eAhyduMafWtO/6c40mWDHzeywE=;
-	b=zr1BQy8Rpv79Yi5RkPBF3mp0+0nj3w0l13+yN89YBu4Dq3hbnixjr7OFvD2L44ikN5D/kh
-	r+0M7ZLvDXBy54Cg==
-Authentication-Results: smtp-out2.suse.de;
-	none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.cz; s=susede2_rsa;
-	t=1745588366; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=2z3avC5rP8cDX29I7eAhyduMafWtO/6c40mWDHzeywE=;
-	b=mtAZYVud83IfA5M5tBNxXTNFunLsr+1acgRutR20oI3kMQtN5/xzqLOix3RIZlftrcQtl0
-	1BWJhJ9FDMmdtQIX91q4k5SwLULtf3fVMyA09S3NoI6c0yGCCy/f/CET4lNKGbTj3ldape
-	bhFWft9BK1wbtNQl2cjuhyDzFmM5NzU=
-DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.cz;
-	s=susede2_ed25519; t=1745588366;
-	h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=2z3avC5rP8cDX29I7eAhyduMafWtO/6c40mWDHzeywE=;
-	b=zr1BQy8Rpv79Yi5RkPBF3mp0+0nj3w0l13+yN89YBu4Dq3hbnixjr7OFvD2L44ikN5D/kh
-	r+0M7ZLvDXBy54Cg==
-Received: from imap1.dmz-prg2.suse.org (localhost [127.0.0.1])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
-	(No client certificate requested)
-	by imap1.dmz-prg2.suse.org (Postfix) with ESMTPS id 16CFA1388F;
-	Fri, 25 Apr 2025 13:39:26 +0000 (UTC)
-Received: from dovecot-director2.suse.de ([2a07:de40:b281:106:10:150:64:167])
-	by imap1.dmz-prg2.suse.org with ESMTPSA
-	id EyKMBY6QC2jqVgAAD6G6ig
-	(envelope-from <jack@suse.cz>); Fri, 25 Apr 2025 13:39:26 +0000
-Received: by quack3.suse.cz (Postfix, from userid 1000)
-	id 997EEA0944; Fri, 25 Apr 2025 15:39:17 +0200 (CEST)
-Date: Fri, 25 Apr 2025 15:39:17 +0200
-From: Jan Kara <jack@suse.cz>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Jan Kara <jack@suse.cz>, ocfs2-devel@lists.linux.dev, 
-	Joseph Qi <joseph.qi@linux.alibaba.com>, Heming Zhao <heming.zhao@suse.com>, 
-	Murad Masimov <m.masimov@mt-integration.ru>
-Subject: Re: [PATCH v3 0/3] ocfs2: Fix deadlocks in quota recovery
-Message-ID: <vu7b252xprdj7k25aox2qx7vlpyvr42fb6ex55qkcjkkmhxapw@icfo3gjt7sqc>
-References: <20250424134301.1392-1-jack@suse.cz>
- <20250424151745.5a62839115508bcaf05f3dcc@linux-foundation.org>
+	s=arc-20240116; t=1745930852; c=relaxed/simple;
+	bh=cFF6VU1FyugaAJfxTA/LO9ddZ+pDnBgTgMqHrjX799U=;
+	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=Bys0zeo9QF7CDyHHLzuc8EY3/YMfAaloX014a/YHoOZPSawvLYezei3vs2a6Ky/Dv+Sd/Bq8DCEXqbz497qr1eW6GoB84dDr65Pau2aWIccY3gsiG6sjui24zOM7Dn7xbXKieS2CNWaelsT3Uti4tQOdNl956N3xYr+B13sOc4g=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.166.69
+Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
+Received: by mail-io1-f69.google.com with SMTP id ca18e2360f4ac-861d6e340e2so560338239f.2
+        for <ocfs2-devel@lists.linux.dev>; Tue, 29 Apr 2025 05:47:31 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1745930850; x=1746535650;
+        h=to:from:subject:message-id:date:mime-version:x-gm-message-state
+         :from:to:cc:subject:date:message-id:reply-to;
+        bh=1lBvDxpT3qeCElgQSmEgjirhy8ts7wnaWc0xcs/cQkA=;
+        b=G+Ye6Ji3gYcdgOLlMrE04PYtuPCk0IO6ggaC32ig8luA5iJcdUEfAUuAIPRFF7XK41
+         qoWy/0/z2e/t9/WH+hgUVkhb/BOMzX9vDxa/MZVragzANC4HISC2mQ4xofn+sgsu78iL
+         TUpkLDMeGDc7RcE7OivRJbXJfoFdSXXHAB78+z5htkdkyYCaNiTV4uQLCNV5Ts3nOTT/
+         ED+LbwRQyutJ1XF7FLtpWq2fjIXPbr0JTe9LXvOAgvFFWm/n5zzj+QkwMq6WUblrht9l
+         rhRbWyZ02DYBzYNe0jR8tF5ub+Uq04sZJp7rSKQm3eEVwcbF0bhj6pE5UYFkglceWQf9
+         iCzQ==
+X-Forwarded-Encrypted: i=1; AJvYcCUfwpgwScpoyOQh3ewNUWYzvzoj5Jh257gTS1utjm4wqMcRtpcJ5NPd2pfBcDm1fLu3wIDIGzFsuYG7Dg==@lists.linux.dev
+X-Gm-Message-State: AOJu0Yw9RU67sqqVsasqkVfeGMN6qj2j9ffXrM4ekiRUKYWMOPhQGVu+
+	RwVvd8NBU/CUMhMSd+ungi55POKoyS+uJ0J/BVGge+U91CsV/7p33laQuQsY5gBMMwd0AGjREyE
+	TsrKGrahE94EEtsb8gcKEuh8tZ0WWTHs9FCwsXZV0cugWPPnMvj5n3O8=
+X-Google-Smtp-Source: AGHT+IEYNvZE6kKWhT93yep1SZFjQTCGkUfGLqor7tn2UjjmQO0T/emH97LXWiNj/tKXcQbPoDaf8F8q8j+VWtoruKLl0BIEOoqp
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20250424151745.5a62839115508bcaf05f3dcc@linux-foundation.org>
-X-Spam-Score: -3.80
-X-Spamd-Result: default: False [-3.80 / 50.00];
-	BAYES_HAM(-3.00)[99.99%];
-	NEURAL_HAM_LONG(-1.00)[-1.000];
-	MID_RHS_NOT_FQDN(0.50)[];
-	NEURAL_HAM_SHORT(-0.20)[-1.000];
-	MIME_GOOD(-0.10)[text/plain];
-	RCVD_VIA_SMTP_AUTH(0.00)[];
-	ARC_NA(0.00)[];
-	MIME_TRACE(0.00)[0:+];
-	MISSING_XM_UA(0.00)[];
-	TO_DN_SOME(0.00)[];
-	RCVD_COUNT_THREE(0.00)[3];
-	FROM_HAS_DN(0.00)[];
-	DKIM_SIGNED(0.00)[suse.cz:s=susede2_rsa,suse.cz:s=susede2_ed25519];
-	FROM_EQ_ENVFROM(0.00)[];
-	RCPT_COUNT_FIVE(0.00)[6];
-	TO_MATCH_ENVRCPT_ALL(0.00)[];
-	FUZZY_BLOCKED(0.00)[rspamd.com];
-	RCVD_TLS_LAST(0.00)[];
-	DBL_BLOCKED_OPENRESOLVER(0.00)[imap1.dmz-prg2.suse.org:helo,suse.com:email]
-X-Spam-Flag: NO
-X-Spam-Level: 
+X-Received: by 2002:a05:6602:27c6:b0:85b:b82f:965b with SMTP id
+ ca18e2360f4ac-86467fd5c6bmr1468087539f.12.1745930850563; Tue, 29 Apr 2025
+ 05:47:30 -0700 (PDT)
+Date: Tue, 29 Apr 2025 05:47:30 -0700
+X-Google-Appengine-App-Id: s~syzkaller
+X-Google-Appengine-App-Id-Alias: syzkaller
+Message-ID: <6810ca62.050a0220.16fb2c.0002.GAE@google.com>
+Subject: [syzbot] Monthly ocfs2 report (Apr 2025)
+From: syzbot <syzbot+list2798b3e8aee0b9ae07b2@syzkaller.appspotmail.com>
+To: jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
+	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
+	syzkaller-bugs@googlegroups.com
+Content-Type: text/plain; charset="UTF-8"
 
-On Thu 24-04-25 15:17:45, Andrew Morton wrote:
-> On Thu, 24 Apr 2025 15:45:10 +0200 Jan Kara <jack@suse.cz> wrote:
-> 
-> > this implements another approach to fixing quota recovery deadlocks. We avoid
-> > grabbing sb->s_umount semaphore from ocfs2_finish_quota_recovery() and instead
-> > stop quota recovery early in ocfs2_dismount_volume(). Andrew, patches seem
-> > to be ready. Can you please merge them? Thanks!
-> 
-> No probs.
+Hello ocfs2 maintainers/developers,
 
-Thanks!
+This is a 31-day syzbot report for the ocfs2 subsystem.
+All related reports/information can be found at:
+https://syzkaller.appspot.com/upstream/s/ocfs2
 
-> Should these be backported into -stable?  I assume there's no
-> identifiable Fixes:.
+During the period, 3 new issues were detected and 0 were fixed.
+In total, 72 issues are still open and 16 have already been fixed.
 
-Yes, I guess it qualifies for -stable. And I forgot to add proper Fixes
-tag. It should be:
+Some of the still happening issues:
 
-Fixes: 5f530de63cfc ("ocfs2: Use s_umount for quota recovery protection")
+Ref  Crashes Repro Title
+<1>  168860  Yes   possible deadlock in ocfs2_try_remove_refcount_tree
+                   https://syzkaller.appspot.com/bug?extid=1fed2de07d8e11a3ec1b
+<2>  49590   Yes   possible deadlock in dqget
+                   https://syzkaller.appspot.com/bug?extid=6e493c165d26d6fcbf72
+<3>  37759   Yes   possible deadlock in ocfs2_acquire_dquot
+                   https://syzkaller.appspot.com/bug?extid=51244a05705883616c95
+<4>  17497   Yes   possible deadlock in ocfs2_reserve_suballoc_bits
+                   https://syzkaller.appspot.com/bug?extid=5d516fba7bc3c966c9a9
+<5>  11874   Yes   possible deadlock in ocfs2_reserve_local_alloc_bits
+                   https://syzkaller.appspot.com/bug?extid=843fa26882088a9ee7e3
+<6>  11560   Yes   possible deadlock in ocfs2_init_acl
+                   https://syzkaller.appspot.com/bug?extid=4007ab5229e732466d9f
+<7>  7792    Yes   possible deadlock in deactivate_super (2)
+                   https://syzkaller.appspot.com/bug?extid=180dd013ba371eabc162
+<8>  6409    Yes   possible deadlock in ocfs2_setattr
+                   https://syzkaller.appspot.com/bug?extid=d78497256d53041ee229
+<9>  2378    No    possible deadlock in ocfs2_xattr_set
+                   https://syzkaller.appspot.com/bug?extid=ba9a789bd1f4d21fcefe
+<10> 2198    No    possible deadlock in ocfs2_lock_global_qf
+                   https://syzkaller.appspot.com/bug?extid=b53d753ae8fb473e2397
 
-Thanks!
-								Honza
--- 
-Jan Kara <jack@suse.com>
-SUSE Labs, CR
+---
+This report is generated by a bot. It may contain errors.
+See https://goo.gl/tpsmEJ for more information about syzbot.
+syzbot engineers can be reached at syzkaller@googlegroups.com.
+
+To disable reminders for individual bugs, reply with the following command:
+#syz set <Ref> no-reminders
+
+To change bug's subsystems, reply with:
+#syz set <Ref> subsystems: new-subsystem
+
+You may send multiple commands in a single email message.
