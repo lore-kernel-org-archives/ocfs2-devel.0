@@ -1,119 +1,160 @@
-Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.133.124])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-io1-f80.google.com (mail-io1-f80.google.com [209.85.166.80])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 509762222AA
-	for <ocfs2-devel@lists.linux.dev>; Thu, 22 May 2025 09:11:28 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=170.10.133.124
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id AF6FA1487ED
+	for <ocfs2-devel@lists.linux.dev>; Sun, 25 May 2025 10:51:32 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.166.80
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1747905090; cv=none; b=QmiEkbeaHmlFSoPqrNybqBf5UMEC991Cncfct4+SgcLICBHHvqJ3CwhQ4biE/3ND8f5a7L3SWoZpRIymUPtiStG8h5RhUa6V52RAoJhNlck4X0NicPcaxAydbbhf+k+kQUMf9/m/J6WzM52ycDrwVlPyGBh87YyTxeal5wFk+jU=
+	t=1748170294; cv=none; b=DVNzDJR/R2NyW7nQMgPCOEFa/huq0DHomF15HYyq/gK7Eyu4JyPcXvVQjlWCKWntKMM741Vjd68LFRi7eXOT05KYdx6n8niV8EXRF+zLv/91ipzv70AZfxl8tMPycAPSosiIaCJ5iAnNYIURwQ5FE1b5ZVPBCTBQ/5hO3I6crSY=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1747905090; c=relaxed/simple;
-	bh=ZDC9x4MYunxqEojxt2QMnAUa/sa1GbM7hsgeW5aenQ0=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=rPAV9jQLPqapWP+NUW87FFAG81MeEsPL6DLexQkGqJ/EbjY5SCvsy7eOUT4bgiq2B7XWiil8FNTA1Hw9pL0owlkORk6jon9G2NNeVGcBvyxEqdTaodpDtSxgsUK4jIHqonwcvPSIaM5AmWV7NtINhzEydp2zgv/rDQasZYiHmdU=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com; spf=pass smtp.mailfrom=redhat.com; dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b=d0RkTwnL; arc=none smtp.client-ip=170.10.133.124
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=redhat.com
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b="d0RkTwnL"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
-	s=mimecast20190719; t=1747905088;
-	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-	 content-transfer-encoding:content-transfer-encoding:
-	 in-reply-to:in-reply-to:references:references;
-	bh=Efw/xOoBR5JtsAGWTbkGb39F5QrJRSJy0Aiy1rPkylA=;
-	b=d0RkTwnLqSfj3Fchi08koiFF1bUS0ZYlIgM/GNhR1Y13qYukU1EOmapWj7fQLJqamI8sRj
-	RvbS366oTj1FIHYXBTkgj+d8E0MEoHGXeUTAyIQoaDilumkmo5HNl0lnXIOCWkCHOkbeJD
-	z8fNqrXBRtlmXpR+IU57searNgtoRvU=
-Received: from mail-wm1-f69.google.com (mail-wm1-f69.google.com
- [209.85.128.69]) by relay.mimecast.com with ESMTP with STARTTLS
- (version=TLSv1.3, cipher=TLS_AES_256_GCM_SHA384) id
- us-mta-358-zgYyRHeuPpS5cQ885qz_AQ-1; Thu, 22 May 2025 05:11:25 -0400
-X-MC-Unique: zgYyRHeuPpS5cQ885qz_AQ-1
-X-Mimecast-MFC-AGG-ID: zgYyRHeuPpS5cQ885qz_AQ_1747905084
-Received: by mail-wm1-f69.google.com with SMTP id 5b1f17b1804b1-43ea256f039so60909985e9.0
-        for <ocfs2-devel@lists.linux.dev>; Thu, 22 May 2025 02:11:24 -0700 (PDT)
+	s=arc-20240116; t=1748170294; c=relaxed/simple;
+	bh=Oa34/m9hCBxB+jJeUi3f27Wm/DyeXjvNCF008TtGAQQ=;
+	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=UcQJPTa3WXEYWrIYPAjIuz2W+JhEj5nj7r4QqABOvMqxj8I7InvYphiPU6vDsk/URGkraEGyQq1eT663YMwvo3aZCEf2Doblxmg1u4crH0brVwJZUMFqI+fP0X7qlbTBIgsSD8HLlS9XWcqIEBRipPR0bf1UIyfpbtLONCC94YI=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.166.80
+Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
+Received: by mail-io1-f80.google.com with SMTP id ca18e2360f4ac-85b3888569bso111317339f.1
+        for <ocfs2-devel@lists.linux.dev>; Sun, 25 May 2025 03:51:32 -0700 (PDT)
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1747905084; x=1748509884;
-        h=content-transfer-encoding:in-reply-to:from:content-language
-         :references:cc:to:subject:user-agent:mime-version:date:message-id
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
-        bh=Efw/xOoBR5JtsAGWTbkGb39F5QrJRSJy0Aiy1rPkylA=;
-        b=ZHFYFtAzJpRD25T3j6u4hyex/uS6aDMTwf2eQmhbWGfLoAr6AxAQgNfdksvRZ66YxX
-         IDljXOCjAMIZE9NFMsfeOFOzaFC4qds/0PiXRCRtBkbqpoojS3fg58bQ4EYTZ/pztqCo
-         QHPsIFB4SV/9utbMMcoNbNOJKNmA5cutNfINLWTBBNkF25/7W7DB91P40gi36DvlcU5X
-         Ad613mvFqB6ja8BedSIpKvW2whuevbqcfXosU1vaGiky487MALNrYSsd/P9NapHnQ1oO
-         Sa5oyrHFNxfQt42ZCsf3ndJj0d9zBbUklA0bbxQr+nb17kSHoU16kdFyEk0kBD6xDwXF
-         lzbw==
-X-Forwarded-Encrypted: i=1; AJvYcCW5WCKDEk/n0sBySl+1aT2bdtGWfOfeogBo4/2wGdNQYB7uiemfpQg8a2mEP0NcQGiiVYTer6XYaLxl2g==@lists.linux.dev
-X-Gm-Message-State: AOJu0YxYTeRxbiXY+tsj0d7/t8YX5LOQiM+vrMujjRnrhy/eWRlCBG8i
-	FKtGQ+MMZu+AF4zS8MMkI8FaBVoPZECsglvaBp5GGsp5N5N700uoJDyK/plSSzamKhnDKIGVT9p
-	hUctQq/psQa4foUHv5SO1hhbc7np6laa2/lUU7zAf0jZuX4xabrKi5D8OzZUFEzMO
-X-Gm-Gg: ASbGncvbZ5Y4aJDMjPCxZTtad0FeWW4F0OpI6FnB6RafKfp/D8vStG6vQuCLTkjjxgd
-	EHSebuaF0ILGhdzGmHzcjTS0GcqKvxLBzTJsqh7SvgwcqAq++xICHDSZxlIz7vBPAiRvH3USRgd
-	C2RKi12E25kWlt6+GS9kYB1TMvlENZo6ZpXtClC7hUQ9mWx76EHip72ZEwYNFVKXaWlXtM5GrWg
-	V3dXqSgFXQ/vSOiybijbCDI7ZrxPq0p1ooHEAeDV54zp0tu2CpJzMm4PfJla6HA/wgcfAEpN+3M
-	IrU0ot578UDN6/YN9pc=
-X-Received: by 2002:a05:600c:a016:b0:441:d2d8:bd8b with SMTP id 5b1f17b1804b1-442fd622c81mr247895255e9.8.1747905083659;
-        Thu, 22 May 2025 02:11:23 -0700 (PDT)
-X-Google-Smtp-Source: AGHT+IEciTJ/zcRf4AXElu0pqBhYj5jKqeehae3NT83Gy64LvlkBARBipL5idMvjE3WFf06oe/P65g==
-X-Received: by 2002:a05:600c:a016:b0:441:d2d8:bd8b with SMTP id 5b1f17b1804b1-442fd622c81mr247894945e9.8.1747905083275;
-        Thu, 22 May 2025 02:11:23 -0700 (PDT)
-Received: from ?IPV6:2a0d:3344:247a:1010::f39? ([2a0d:3344:247a:1010::f39])
-        by smtp.gmail.com with ESMTPSA id 5b1f17b1804b1-447f6f05581sm97329145e9.13.2025.05.22.02.11.21
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Thu, 22 May 2025 02:11:22 -0700 (PDT)
-Message-ID: <f8640da1-c442-4704-8f0a-8d498e1b7e16@redhat.com>
-Date: Thu, 22 May 2025 11:11:20 +0200
+        d=1e100.net; s=20230601; t=1748170292; x=1748775092;
+        h=to:from:subject:message-id:date:mime-version:x-gm-message-state
+         :from:to:cc:subject:date:message-id:reply-to;
+        bh=xtRZa0aVmC1OpZ7OQyz5QGz3z13z+YI/OAolGa309pI=;
+        b=WIJTUCtLSttEI6eXBMrMJ96MiestTSSYdq6DhwcpFHp7mXk2N7IVVwLbfxHNs7m5xL
+         geKALHhZevRKtoU+lVxEzb30eaP3fXdWfG+NoHxa4ZqXBmMhi7+696Kc+suGkccLwZCX
+         AzSCcQGuIjAxu9F17qL7yhaYcssJUsgX5HvEERWqB0DxNsLQsnYnimEx+J0CwXLGErTf
+         GyoLy8KEJU+R6jy27CRvP2WUiJ8oXYOOrfxlEPOE1FaIfxE+Ix6kVE6ljsJVv66JVgeV
+         cprk1KswE30ZBq8v0OyLQGIKQDbKlnDcmJLk3qCF2GsHxNUtvzntIlWxOCmg179uYW6I
+         tQ5A==
+X-Forwarded-Encrypted: i=1; AJvYcCXKurbpCXYFGYvzec9bfahItkydXB8srIlTY+Syyc5N6n0ASDV2ZwL59g8bat7K4m+aZDwWxfCGH1pkuA==@lists.linux.dev
+X-Gm-Message-State: AOJu0YyyfnkIfBKpDLRODOCdMB0DZwUTNDapC8mH9M70CzF86I/q9/lp
+	PWg3XBN+b/p6ERvULtDiuoSjUqMV81aPNZcjOE13aPqYQo4uyu96F5JstDz8q5T4VR9qmdjK//V
+	ZFra7OHsclJz8tM8TfhTxaHAbZMgjdZ3YNSS5bNscqwj39jOk4qi31XeDuPI=
+X-Google-Smtp-Source: AGHT+IFlld98JAlDwwVSrgQIBcz+fyTpGDHPtAwKORBWq9vFvptyfXeFQkTa1r8prfYf6v4+YiyxhlSPv5x/c9mOWMAzySwJIv7W
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v1 net-next 5/6] socket: Replace most sock_create() calls
- with sock_create_kern().
-To: Kuniyuki Iwashima <kuniyu@amazon.com>,
- "David S. Miller" <davem@davemloft.net>, Eric Dumazet <edumazet@google.com>,
- Jakub Kicinski <kuba@kernel.org>, Willem de Bruijn <willemb@google.com>
-Cc: Simon Horman <horms@kernel.org>, Kuniyuki Iwashima <kuni1840@gmail.com>,
- netdev@vger.kernel.org, Jason Gunthorpe <jgg@ziepe.ca>,
- Leon Romanovsky <leon@kernel.org>,
- "Martin K. Petersen" <martin.petersen@oracle.com>,
- linux-scsi@vger.kernel.org, target-devel@vger.kernel.org,
- Juergen Gross <jgross@suse.com>, Stefano Stabellini
- <sstabellini@kernel.org>, xen-devel@lists.xenproject.org,
- Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
- ocfs2-devel@lists.linux.dev
-References: <20250517035120.55560-1-kuniyu@amazon.com>
- <20250517035120.55560-6-kuniyu@amazon.com>
-From: Paolo Abeni <pabeni@redhat.com>
-In-Reply-To: <20250517035120.55560-6-kuniyu@amazon.com>
-X-Mimecast-Spam-Score: 0
-X-Mimecast-MFC-PROC-ID: SeRBPHCXb8VzQf4QwhO0ojcjRZBfPMCayqDcxq_mOZs_1747905084
-X-Mimecast-Originator: redhat.com
-Content-Language: en-US
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+X-Received: by 2002:a05:6602:360b:b0:85b:4310:a91c with SMTP id
+ ca18e2360f4ac-86cbb5eedc9mr565893239f.1.1748170291751; Sun, 25 May 2025
+ 03:51:31 -0700 (PDT)
+Date: Sun, 25 May 2025 03:51:31 -0700
+X-Google-Appengine-App-Id: s~syzkaller
+X-Google-Appengine-App-Id-Alias: syzkaller
+Message-ID: <6832f633.a70a0220.253bc2.0087.GAE@google.com>
+Subject: [syzbot] [ocfs2?] kernel BUG in __ocfs2_decrease_refcount
+From: syzbot <syzbot+7774dd506af3f6fb5df5@syzkaller.appspotmail.com>
+To: jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
+	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
+	syzkaller-bugs@googlegroups.com
+Content-Type: text/plain; charset="UTF-8"
 
-On 5/17/25 5:50 AM, Kuniyuki Iwashima wrote:
-> Except for only one user, sctp_do_peeloff(), all sockets created
-> by drivers and fs are not tied to userspace processes nor exposed
-> via file descriptors.
-> 
-> Let's use sock_create_kern() for such in-kernel use cases as CIFS
-> client and NFS.
-> 
-> Signed-off-by: Kuniyuki Iwashima <kuniyu@amazon.com>
+Hello,
 
-The change makes sense to me, but it has a semantic change, let's add
-more CCs.
+syzbot found the following issue on:
 
-Link to the full series:
+HEAD commit:    b36ddb9210e6 Merge tag 'for-linus-6.15-ofs2' of git://git...
+git tree:       upstream
+console output: https://syzkaller.appspot.com/x/log.txt?x=12fb69f4580000
+kernel config:  https://syzkaller.appspot.com/x/.config?x=9fd1c9848687d742
+dashboard link: https://syzkaller.appspot.com/bug?extid=7774dd506af3f6fb5df5
+compiler:       Debian clang version 20.1.6 (++20250514063057+1e4d39e07757-1~exp1~20250514183223.118), Debian LLD 20.1.6
 
-https://lore.kernel.org/all/20250517035120.55560-1-kuniyu@amazon.com/
+Unfortunately, I don't have any reproducer for this issue yet.
 
-/P
+Downloadable assets:
+disk image (non-bootable): https://storage.googleapis.com/syzbot-assets/d900f083ada3/non_bootable_disk-b36ddb92.raw.xz
+vmlinux: https://storage.googleapis.com/syzbot-assets/2e5bf04315bb/vmlinux-b36ddb92.xz
+kernel image: https://storage.googleapis.com/syzbot-assets/14f603b88226/bzImage-b36ddb92.xz
 
+IMPORTANT: if you fix the issue, please add the following tag to the commit:
+Reported-by: syzbot+7774dd506af3f6fb5df5@syzkaller.appspotmail.com
+
+(syz.0.0,5319,0):ocfs2_dio_end_io:2398 ERROR: Direct IO failed, bytes = -28
+------------[ cut here ]------------
+kernel BUG at fs/ocfs2/refcounttree.c:2242!
+Oops: invalid opcode: 0000 [#1] SMP KASAN NOPTI
+CPU: 0 UID: 0 PID: 5319 Comm: syz.0.0 Not tainted 6.15.0-rc7-syzkaller-00002-gb36ddb9210e6 #0 PREEMPT(full) 
+Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.16.3-debian-1.16.3-2~bpo12+1 04/01/2014
+RIP: 0010:__ocfs2_decrease_refcount+0x1603/0x1780 fs/ocfs2/refcounttree.c:2242
+Code: fe c6 05 07 19 cb 0b 01 90 48 c7 c7 40 5b aa 8b e8 52 34 e6 fd 90 0f 0b 90 90 e9 a7 eb ff ff e8 43 6c b8 07 e8 ae d7 21 fe 90 <0f> 0b e8 a6 d7 21 fe 90 0f 0b e8 9e d7 21 fe 90 0f 0b e8 96 d7 21
+RSP: 0018:ffffc9000d3b6880 EFLAGS: 00010287
+RAX: ffffffff839e1a22 RBX: 0000000000000000 RCX: 0000000000100000
+RDX: ffffc9000e613000 RSI: 0000000000004b6e RDI: 0000000000004b6f
+RBP: ffffc9000d3b6b40 R08: ffff88801f6da440 R09: 0000000000000006
+R10: 00000000fffffffc R11: 0000000000000002 R12: 0000000000000000
+R13: dffffc0000000000 R14: ffffc9000d3b6930 R15: 0000000000000001
+FS:  00007f9d9ebc46c0(0000) GS:ffff88808d6c2000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: 0000555b9e1cb168 CR3: 00000000353f0000 CR4: 0000000000352ef0
+DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+Call Trace:
+ <TASK>
+ ocfs2_decrease_refcount+0x573/0x730 fs/ocfs2/refcounttree.c:2312
+ ocfs2_remove_btree_range+0x11c0/0x1540 fs/ocfs2/alloc.c:5791
+ ocfs2_commit_truncate+0xb64/0x21d0 fs/ocfs2/alloc.c:7373
+ ocfs2_truncate_file+0xca2/0x1420 fs/ocfs2/file.c:509
+ ocfs2_setattr+0x1520/0x1b40 fs/ocfs2/file.c:1212
+ notify_change+0xb36/0xe40 fs/attr.c:552
+ do_truncate+0x19a/0x220 fs/open.c:65
+ handle_truncate fs/namei.c:3501 [inline]
+ do_open fs/namei.c:3884 [inline]
+ path_openat+0x306c/0x3830 fs/namei.c:4039
+ do_filp_open+0x1fa/0x410 fs/namei.c:4066
+ do_sys_openat2+0x121/0x1c0 fs/open.c:1429
+ do_sys_open fs/open.c:1444 [inline]
+ __do_sys_creat fs/open.c:1522 [inline]
+ __se_sys_creat fs/open.c:1516 [inline]
+ __x64_sys_creat+0x8f/0xc0 fs/open.c:1516
+ do_syscall_x64 arch/x86/entry/syscall_64.c:63 [inline]
+ do_syscall_64+0xf6/0x210 arch/x86/entry/syscall_64.c:94
+ entry_SYSCALL_64_after_hwframe+0x77/0x7f
+RIP: 0033:0x7f9d9dd8e969
+Code: ff ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 40 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 a8 ff ff ff f7 d8 64 89 01 48
+RSP: 002b:00007f9d9ebc4038 EFLAGS: 00000246 ORIG_RAX: 0000000000000055
+RAX: ffffffffffffffda RBX: 00007f9d9dfb6080 RCX: 00007f9d9dd8e969
+RDX: 0000000000000000 RSI: 0000000000000011 RDI: 00002000000002c0
+RBP: 00007f9d9de10ab1 R08: 0000000000000000 R09: 0000000000000000
+R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000000
+R13: 0000000000000000 R14: 00007f9d9dfb6080 R15: 00007ffeb64bb688
+ </TASK>
+Modules linked in:
+---[ end trace 0000000000000000 ]---
+RIP: 0010:__ocfs2_decrease_refcount+0x1603/0x1780 fs/ocfs2/refcounttree.c:2242
+Code: fe c6 05 07 19 cb 0b 01 90 48 c7 c7 40 5b aa 8b e8 52 34 e6 fd 90 0f 0b 90 90 e9 a7 eb ff ff e8 43 6c b8 07 e8 ae d7 21 fe 90 <0f> 0b e8 a6 d7 21 fe 90 0f 0b e8 9e d7 21 fe 90 0f 0b e8 96 d7 21
+RSP: 0018:ffffc9000d3b6880 EFLAGS: 00010287
+RAX: ffffffff839e1a22 RBX: 0000000000000000 RCX: 0000000000100000
+RDX: ffffc9000e613000 RSI: 0000000000004b6e RDI: 0000000000004b6f
+RBP: ffffc9000d3b6b40 R08: ffff88801f6da440 R09: 0000000000000006
+R10: 00000000fffffffc R11: 0000000000000002 R12: 0000000000000000
+R13: dffffc0000000000 R14: ffffc9000d3b6930 R15: 0000000000000001
+FS:  00007f9d9ebc46c0(0000) GS:ffff88808d6c2000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: 0000555b9e1cb168 CR3: 00000000353f0000 CR4: 0000000000352ef0
+DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+
+
+---
+This report is generated by a bot. It may contain errors.
+See https://goo.gl/tpsmEJ for more information about syzbot.
+syzbot engineers can be reached at syzkaller@googlegroups.com.
+
+syzbot will keep track of this issue. See:
+https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
+
+If the report is already addressed, let syzbot know by replying with:
+#syz fix: exact-commit-title
+
+If you want to overwrite report's subsystems, reply with:
+#syz set subsystems: new-subsystem
+(See the list of subsystem names on the web dashboard)
+
+If the report is a duplicate of another one, reply with:
+#syz dup: exact-subject-of-another-report
+
+If you want to undo deduplication, reply with:
+#syz undup
