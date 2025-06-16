@@ -1,44 +1,74 @@
-Received: from mx0b-0064b401.pphosted.com (mx0b-0064b401.pphosted.com [205.220.178.238])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-pg1-f171.google.com (mail-pg1-f171.google.com [209.85.215.171])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E8440360
-	for <ocfs2-devel@lists.linux.dev>; Mon, 16 Jun 2025 01:32:07 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=205.220.178.238
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id AD0D12264AC;
+	Mon, 16 Jun 2025 10:51:07 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.215.171
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1750037530; cv=none; b=iatcdWXbb9jBoNTJRVuAGXUHJFKGxNmD4L5UvASNq2XQNRNM1yW8h8X5m9sFw6kf4QZN41vtse1RjfL41ULQWtd+uUQE4Ols6wiLM61hmqmAeYlHWAkzNDQ5SzSkEPf8sHwEjc4+Yj8q0D6iuaWMrxCwMNhyyGW+Tsf6GdoAWiI=
+	t=1750071069; cv=none; b=fCpGqucqNNfiNybBCd3OG4oIRWAdU0P9EFmuzHUDpazt7lSSARMeXIys1/Ir8tK1/vC1wfKLHeLgPBklq1ZdhA6WDlFlh7zZqFVL6FMNyB9SXJmegK2E5Txa+4iZydIzRbqEnfLXS0mlHYX1O+XQtvYwaAiyYsUonoJfMysWV2E=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1750037530; c=relaxed/simple;
-	bh=VSafLg20ijrLrjjSIN/9RD2FHjGJsFhkBCHmI+gvDPU=;
-	h=From:To:CC:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version:Content-Type; b=tqqv/Ckb8GtZFVHIC28oYAlkxNGen1SbCO47Kf4f+o94o84Dw6o8jaxBPlq1yT/FDq375Eb5sChotteRq9NqbgjHuCnFoU5TUDOVwpRf0k+fEolSCtE/rgyBbQ9JH98rFguWOfQnAofwN+Lrs3ph1/pWHVB8JrYfkLvOZpjTQi8=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=windriver.com; spf=pass smtp.mailfrom=windriver.com; arc=none smtp.client-ip=205.220.178.238
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=windriver.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=windriver.com
-Received: from pps.filterd (m0250812.ppops.net [127.0.0.1])
-	by mx0a-0064b401.pphosted.com (8.18.1.2/8.18.1.2) with ESMTP id 55G1QftV017685;
-	Mon, 16 Jun 2025 01:31:45 GMT
-Received: from ala-exchng02.corp.ad.wrs.com (ala-exchng02.wrs.com [147.11.82.254])
-	by mx0a-0064b401.pphosted.com (PPS) with ESMTPS id 4790281ag1-1
-	(version=TLSv1.2 cipher=ECDHE-RSA-AES128-GCM-SHA256 bits=128 verify=NOT);
-	Mon, 16 Jun 2025 01:31:44 +0000 (GMT)
-Received: from ala-exchng01.corp.ad.wrs.com (147.11.82.252) by
- ALA-EXCHNG02.corp.ad.wrs.com (147.11.82.254) with Microsoft SMTP Server
- (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
- 15.1.2507.43; Sun, 15 Jun 2025 18:31:43 -0700
-Received: from pek-lpd-ccm6.wrs.com (147.11.136.210) by
- ala-exchng01.corp.ad.wrs.com (147.11.82.252) with Microsoft SMTP Server id
- 15.1.2507.57 via Frontend Transport; Sun, 15 Jun 2025 18:31:41 -0700
-From: Lizhi Xu <lizhi.xu@windriver.com>
-To: <syzbot+c2ea94ae47cd7e3881ec@syzkaller.appspotmail.com>
-CC: <jlbec@evilplan.org>, <joseph.qi@linux.alibaba.com>,
-        <linux-kernel@vger.kernel.org>, <mark@fasheh.com>,
-        <ocfs2-devel@lists.linux.dev>, <syzkaller-bugs@googlegroups.com>
-Subject: [PATCH] ocfs2: reset folio to NULL when get folio fails
-Date: Mon, 16 Jun 2025 09:31:40 +0800
-Message-ID: <20250616013140.3602219-1-lizhi.xu@windriver.com>
-X-Mailer: git-send-email 2.43.0
-In-Reply-To: <684efdcd.050a0220.be214.02c1.GAE@google.com>
-References: <684efdcd.050a0220.be214.02c1.GAE@google.com>
+	s=arc-20240116; t=1750071069; c=relaxed/simple;
+	bh=mW/gM49W+/lH6XeJ73Jgnv8wvFZuY8rej9CVO1OjhSw=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=Pfo53Y2/2lbR4Ma2lTjwT8s1okYVgw9kZtxARQO+hE40Qw5e8OVuAC0gRwipUmLCPDHbS6dKm/B8vleYFs5PIA8AuNQR308NSOXBDyO+sKo8xELt98AiJhczTBtdY4XDeXKNRhnvjdHX69RsgDzlqIhpNInvAeKxuA6wY99yoog=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=aiRr597n; arc=none smtp.client-ip=209.85.215.171
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="aiRr597n"
+Received: by mail-pg1-f171.google.com with SMTP id 41be03b00d2f7-b2f0faeb994so4845235a12.0;
+        Mon, 16 Jun 2025 03:51:07 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20230601; t=1750071067; x=1750675867; darn=lists.linux.dev;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:from:to:cc:subject:date:message-id:reply-to;
+        bh=XiZT8fyfWnDQ5DnwRzZVizGiA0t8KqH/r5W4lxBjzhw=;
+        b=aiRr597nFRWbS2Id87eeyTEDHCF4UQyo3VqQCHE/AxciYDsjhQYsABk84WWrXuos+N
+         tzsKTRstD3fC/cg1Of3eLncxgzpQZxpiyGMX6DbQCDqr3XnbKphhN1ZoHWHR4ykph1IZ
+         l8Q+7yJtwGG8Y0xZ/gRWd3f+t3KZpR1ZWHNji9gCYkaMriQKhjdsj9CgKaT4ow8ch6y8
+         QVjT6SieGs75lC0QwhSn7xFgen4V6FhTJCRV9Wt0E8SpJjuCs4TyxHkC2+HVx4lqtHWu
+         Ha5AGkmGDVptES/iiRlLPhc6mRGb+4JJZD0wNjca5GvBNylPg3uBmA/9VW/oMEPoFM0h
+         YBSA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1750071067; x=1750675867;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:x-gm-message-state:from:to:cc:subject:date:message-id
+         :reply-to;
+        bh=XiZT8fyfWnDQ5DnwRzZVizGiA0t8KqH/r5W4lxBjzhw=;
+        b=qzbwri6Xtih10CBuunIuz4QVpxqJhvz3jcJLP+8Izcjf2C+bN+b7/yzPSzUtyz/0lV
+         RkRpJ4/IZc+IUSyGtSTYutjcZZ2vfXk4qGrG6vmKJZgGXNnDqlz+OiAXp/Onipbb0X26
+         FxQAaFoxYqEqgH4yQzcd/fXkf6fy2Lo0DD+dToVokV9oiEYMiKWOX0eBZT85HHKm9DyI
+         uzsAFgHrAtZEKnSmCWWgY8HLuA9VfEScrzC6fSsWVBuLjThMWoDWL2+4mteB3cxb6S60
+         xyLntToiILxkeZ23qmH7oy8nYEA3b6c2zqUFB8GlPU7KFHRsRGF/WzI0i0K/EbPUR30c
+         FnAQ==
+X-Forwarded-Encrypted: i=1; AJvYcCVhMPX3OoMwU8+8g4WbwiWNVxoVpCiKkRK04I7IkvzlpcHpT6wUf46UyXkBQrbIfgmOR3WYhvOmKnc2BLM=@lists.linux.dev, AJvYcCWLSfLczUFmmTeepuLTf+MdZ5FJ1CwwpMRRvUxUEbZOM+ShWAiUP4Hv3SDCGi1T39kOlj1JES03yEB/EWUFBCDyWVQPwA==@lists.linux.dev
+X-Gm-Message-State: AOJu0YxhL1cntcV+JdTpryTmMiR0femVaIXXP18ZagHbWwK2+y1+9GAB
+	CvyY4UcpG1a3nAMR+gKIccDhk6EbgYGN2ID+wNNtX7H9mz1yWpUwI45n
+X-Gm-Gg: ASbGnctNjk+QUBnvF5daM5iOIQjBOwZesl9iMc2l0wZIcS8fFjqliFctm4Dh1FWBkn9
+	ElhQxTVh2qsJbwcnpfT2FnSMyjNCTzVcd3Vgr1dh0AwkticXHPqASlVlxv346GeqRmrS9Gdd4hX
+	sOQKN8xr6UGLOANm0///yesMKeVcOeHoMzbJeuZASqKJhWTtBqWNoVkdTaptv/ORptoLG+jMTKI
+	oan7QhCrrgaoSO3IvQfoZLcGgG2jFG16CVfiXPHEl4R4VxK4isgvaUVde0KhjQzRSQ7QBoaLxK3
+	O4rVFwV2wf0cr6M2b3LTDnuZtuj+8MEy62cJ80H8jA8f5JdYqcSFJ0IM2sSgySXWiBB7KkeMZlM
+	u3jEc6CtW/qm1bNd7Iw==
+X-Google-Smtp-Source: AGHT+IE4omYKJqyL/KYZqyQgCYrH8mhzUBKZKG0S+o6pOvpI7nPqf26GDX0iloH0LttyYw/5k0ECNQ==
+X-Received: by 2002:a05:6a21:150b:b0:215:ead1:b867 with SMTP id adf61e73a8af0-21fbd56945amr14844625637.14.1750071066946;
+        Mon, 16 Jun 2025 03:51:06 -0700 (PDT)
+Received: from manjaro.domain.name ([2401:4900:1c68:884c:5800:7324:c411:408d])
+        by smtp.gmail.com with ESMTPSA id 41be03b00d2f7-b2fe15bb83asm5508221a12.0.2025.06.16.03.51.03
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Mon, 16 Jun 2025 03:51:06 -0700 (PDT)
+From: Pranav Tyagi <pranav.tyagi03@gmail.com>
+To: mark@fasheh.com,
+	jlbec@evilplan.org,
+	joseph.qi@linux.alibaba.com
+Cc: skhan@linuxfoundation.org,
+	ocfs2-devel@lists.linux.dev,
+	linux-kernel@vger.kernel.org,
+	linux-kernel-mentees@lists.linux.dev,
+	Pranav Tyagi <pranav.tyagi03@gmail.com>
+Subject: [PATCH] fs/ocfs2: use scnprintf() in show functions
+Date: Mon, 16 Jun 2025 16:20:28 +0530
+Message-ID: <20250616105028.371633-1-pranav.tyagi03@gmail.com>
+X-Mailer: git-send-email 2.49.0
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -46,49 +76,92 @@ List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
-Content-Type: text/plain
-X-Proofpoint-Spam-Details-Enc: AW1haW4tMjUwNjE2MDAwOSBTYWx0ZWRfX3DYRoYSkBAM8 nZAjbVYaiMkoTLbY8oRQkQoF6CbBbwa/yj/khCl83stPKD4II5F9zuXjjwZHS4PhtK0LmXEYdP9 BcnfJwF81/6F+uwyU2Kh+DPYo7+uJMzQWCcKYGRPA2YR+0C1KaupmNi1Xyv5tb7+LD4bZgyp2Fx
- i8qYTxhlhYmogh/TgT+hxYeeZea+9BpPBfmr+aFgEIFVf41rxfp+L2MHfC0uoWOx1kd16dkKarN 2gdd5IVtS6jHdTJVQoidNzEMHmXc4/fgsKnHKIC59tFxEcXiyyh5T9WxcPlV8tVdcyu97Rm7bxI hg49A2UPIs3As/0w097oeQlfYCEtwvQw8hTxZO9kXrMyGHLJwts3kIs9sNwzYJBfGikaUxw5asb
- ntTKxiktAp+6xgI+e01k3ii4iOo6raLkZBEGDOKpRLSER7orqZFCUBx20OhFEGxECTlaw9sj
-X-Proofpoint-GUID: DMiliXBUZePCpmRx072qLsN4UuLpnDAE
-X-Authority-Analysis: v=2.4 cv=ar2yCTZV c=1 sm=1 tr=0 ts=684f7400 cx=c_pps a=K4BcnWQioVPsTJd46EJO2w==:117 a=K4BcnWQioVPsTJd46EJO2w==:17 a=6IFa9wvqVegA:10 a=edf1wS77AAAA:8 a=hSkVLCK3AAAA:8 a=t7CeM3EgAAAA:8 a=VIXK_nqSdHjJPRK1elYA:9 a=DcSpbTIhAlouE1Uv7lRv:22
- a=cQPPKAXgyycSBL8etih5:22 a=FdTzh2GWekK77mhwV6Dw:22
-X-Proofpoint-ORIG-GUID: DMiliXBUZePCpmRx072qLsN4UuLpnDAE
-X-Proofpoint-Virus-Version: vendor=baseguard
- engine=ICAP:2.0.293,Aquarius:18.0.1099,Hydra:6.0.736,FMLib:17.12.80.40
- definitions=2025-06-15_10,2025-06-13_01,2025-03-28_01
-X-Proofpoint-Spam-Details: rule=outbound_notspam policy=outbound score=0 spamscore=0 phishscore=0
- mlxscore=0 lowpriorityscore=0 suspectscore=0 priorityscore=1501
- malwarescore=0 mlxlogscore=999 impostorscore=0 clxscore=1011 bulkscore=0
- adultscore=0 classifier=spam authscore=0 authtc=n/a authcc= route=outbound
- adjust=0 reason=mlx scancount=1 engine=8.21.0-2505280000
- definitions=main-2506160009
 
-The reproducer uses FAULT_INJECTION to make memory allocation fail, which
-causes __filemap_get_folio() to fail, when initializing w_folios[i] in
-ocfs2_grab_folios_for_write(), it only returns an error code and the value
-of w_folios[i] is the error code, which causes ocfs2_unlock_and_free_folios()
-to recycle the invalid w_folios[i] when releasing folios.
+Replace all snprintf() instances with scnprintf(). snprintf() returns
+the number of bytes that would have been written had there been enough
+space. For sysfs attributes, snprintf() should not be used for the
+show() method. Instead use scnprintf() which returns the number of bytes
+actually written.
 
-Reported-by: syzbot+c2ea94ae47cd7e3881ec@syzkaller.appspotmail.com
-Closes: https://syzkaller.appspot.com/bug?extid=c2ea94ae47cd7e3881ec
-Signed-off-by: Lizhi Xu <lizhi.xu@windriver.com>
+Signed-off-by: Pranav Tyagi <pranav.tyagi03@gmail.com>
 ---
- fs/ocfs2/aops.c | 1 +
- 1 file changed, 1 insertion(+)
+ fs/ocfs2/cluster/masklog.c |  2 +-
+ fs/ocfs2/cluster/sys.c     |  2 +-
+ fs/ocfs2/stackglue.c       | 14 +++++++-------
+ 3 files changed, 9 insertions(+), 9 deletions(-)
 
-diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-index 40b6bce12951..89aadc6cdd87 100644
---- a/fs/ocfs2/aops.c
-+++ b/fs/ocfs2/aops.c
-@@ -1071,6 +1071,7 @@ static int ocfs2_grab_folios_for_write(struct address_space *mapping,
- 			if (IS_ERR(wc->w_folios[i])) {
- 				ret = PTR_ERR(wc->w_folios[i]);
- 				mlog_errno(ret);
-+				wc->w_folios[i] = NULL;
- 				goto out;
- 			}
- 		}
+diff --git a/fs/ocfs2/cluster/masklog.c b/fs/ocfs2/cluster/masklog.c
+index 563881ddbf00..0bc21dc71d29 100644
+--- a/fs/ocfs2/cluster/masklog.c
++++ b/fs/ocfs2/cluster/masklog.c
+@@ -28,7 +28,7 @@ static ssize_t mlog_mask_show(u64 mask, char *buf)
+ 	else
+ 		state = "off";
+ 
+-	return snprintf(buf, PAGE_SIZE, "%s\n", state);
++	return scnprintf(buf, PAGE_SIZE, "%s\n", state);
+ }
+ 
+ static ssize_t mlog_mask_store(u64 mask, const char *buf, size_t count)
+diff --git a/fs/ocfs2/cluster/sys.c b/fs/ocfs2/cluster/sys.c
+index 022f716c74ff..23febbe3dc5d 100644
+--- a/fs/ocfs2/cluster/sys.c
++++ b/fs/ocfs2/cluster/sys.c
+@@ -21,7 +21,7 @@
+ static ssize_t version_show(struct kobject *kobj, struct kobj_attribute *attr,
+ 			    char *buf)
+ {
+-	return snprintf(buf, PAGE_SIZE, "%u\n", O2NM_API_VERSION);
++	return scnprintf(buf, PAGE_SIZE, "%u\n", O2NM_API_VERSION);
+ }
+ static struct kobj_attribute attr_version =
+ 	__ATTR(interface_revision, S_IRUGO, version_show, NULL);
+diff --git a/fs/ocfs2/stackglue.c b/fs/ocfs2/stackglue.c
+index a28c127b9934..9af03869a04b 100644
+--- a/fs/ocfs2/stackglue.c
++++ b/fs/ocfs2/stackglue.c
+@@ -477,9 +477,9 @@ static ssize_t ocfs2_max_locking_protocol_show(struct kobject *kobj,
+ 
+ 	spin_lock(&ocfs2_stack_lock);
+ 	if (locking_max_version.pv_major)
+-		ret = snprintf(buf, PAGE_SIZE, "%u.%u\n",
+-			       locking_max_version.pv_major,
+-			       locking_max_version.pv_minor);
++		ret = scnprintf(buf, PAGE_SIZE, "%u.%u\n",
++				locking_max_version.pv_major,
++				locking_max_version.pv_minor);
+ 	spin_unlock(&ocfs2_stack_lock);
+ 
+ 	return ret;
+@@ -525,8 +525,8 @@ static ssize_t ocfs2_active_cluster_plugin_show(struct kobject *kobj,
+ 
+ 	spin_lock(&ocfs2_stack_lock);
+ 	if (active_stack) {
+-		ret = snprintf(buf, PAGE_SIZE, "%s\n",
+-			       active_stack->sp_name);
++		ret = scnprintf(buf, PAGE_SIZE, "%s\n",
++				active_stack->sp_name);
+ 		if (ret >= PAGE_SIZE)
+ 			ret = -E2BIG;
+ 	}
+@@ -545,7 +545,7 @@ static ssize_t ocfs2_cluster_stack_show(struct kobject *kobj,
+ {
+ 	ssize_t ret;
+ 	spin_lock(&ocfs2_stack_lock);
+-	ret = snprintf(buf, PAGE_SIZE, "%s\n", cluster_stack_name);
++	ret = scnprintf(buf, PAGE_SIZE, "%s\n", cluster_stack_name);
+ 	spin_unlock(&ocfs2_stack_lock);
+ 
+ 	return ret;
+@@ -595,7 +595,7 @@ static ssize_t ocfs2_dlm_recover_show(struct kobject *kobj,
+ 					struct kobj_attribute *attr,
+ 					char *buf)
+ {
+-	return snprintf(buf, PAGE_SIZE, "1\n");
++	return scnprintf(buf, PAGE_SIZE, "1\n");
+ }
+ 
+ static struct kobj_attribute ocfs2_attr_dlm_recover_support =
 -- 
-2.43.0
+2.49.0
 
