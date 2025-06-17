@@ -1,82 +1,101 @@
-Received: from szxga03-in.huawei.com (szxga03-in.huawei.com [45.249.212.189])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-108-mta187.mxroute.com (mail-108-mta187.mxroute.com [136.175.108.187])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7B7371EB2F
-	for <ocfs2-devel@lists.linux.dev>; Tue, 17 Jun 2025 01:32:07 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=45.249.212.189
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 57FD03BBF2
+	for <ocfs2-devel@lists.linux.dev>; Tue, 17 Jun 2025 02:10:32 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=136.175.108.187
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1750123930; cv=none; b=MNYyVnBPjIOI22+LCMJ0miQO4Bg2Qra5tIiUUUGyzY04fhazEIEFuOQ3Dd717/rOvdkpAFx2srw6QGevH6j2/fV5zZsvFS6uNNSilbwNqj1rQMeAxGWlItmM0XhVtjr6IwtdMNcTWG9rRbTGswf+aFO/aLNcFLzv32xHwFzlY2c=
+	t=1750126234; cv=none; b=SmExNW8SXFcJ03rriZoArWyHz5o4MVMnbbgYxUIyqjgnBrWB598CUrUI6OB8XTrcCBiR/jEzThU2OxhHCimeagi2ywolNRVr++eQB9/kx5WFRSOg5zMiCk88GdroYpUvnnEDAmXPVh/jVOqqueeykfkH/aPRghdKjLCvOuZdvBo=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1750123930; c=relaxed/simple;
-	bh=c3rnSQ8qzh586vqOQyofBBqwBvt5+OMWLozqQdqHF6A=;
-	h=From:To:CC:Subject:Date:Message-ID:MIME-Version:Content-Type; b=YcvrX+/XjvRjT+BSHy9hOv7Ro1Ylsc81ngvIyKTnca4hohuNDVhWaapc5LRl9y2l/22+JfGDLWm/3b6W01XNF5fV+8h7ak4fSUDy2pm1Su8w+LzDnFFHa6vO9WW4qDZxgi7pPQzv+pl1/uYsRS1sqnPB58WHrwfUQ4Xj8sSoWoc=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=huawei.com; spf=pass smtp.mailfrom=huawei.com; arc=none smtp.client-ip=45.249.212.189
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=huawei.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=huawei.com
-Received: from mail.maildlp.com (unknown [172.19.88.105])
-	by szxga03-in.huawei.com (SkyGuard) with ESMTP id 4bLq4n2yhQzdbhy;
-	Tue, 17 Jun 2025 09:28:09 +0800 (CST)
-Received: from dggemv712-chm.china.huawei.com (unknown [10.1.198.32])
-	by mail.maildlp.com (Postfix) with ESMTPS id 71DAD1403D3;
-	Tue, 17 Jun 2025 09:32:03 +0800 (CST)
-Received: from kwepemn100013.china.huawei.com (7.202.194.116) by
- dggemv712-chm.china.huawei.com (10.1.198.32) with Microsoft SMTP Server
- (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id
- 15.2.1544.11; Tue, 17 Jun 2025 09:32:03 +0800
-Received: from huawei.com (10.175.101.6) by kwepemn100013.china.huawei.com
- (7.202.194.116) with Microsoft SMTP Server (version=TLS1_2,
- cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.2.1544.11; Tue, 17 Jun
- 2025 09:32:02 +0800
-From: Long Li <leo.lilong@huawei.com>
-To: <mark@fasheh.com>, <jlbec@evilplan.org>, <joseph.qi@linux.alibaba.com>
-CC: <ocfs2-devel@lists.linux.dev>, <leo.lilong@huawei.com>,
-	<yangerkun@huawei.com>, <lonuxli.64@gmail.com>
-Subject: [PATCH] ocfs2: remove redundant NULL check in rename path
-Date: Tue, 17 Jun 2025 09:25:34 +0800
-Message-ID: <20250617012534.3458669-1-leo.lilong@huawei.com>
-X-Mailer: git-send-email 2.39.2
+	s=arc-20240116; t=1750126234; c=relaxed/simple;
+	bh=/a46r7Mu9WXNJHqQ3QS7z08DmrHsMwu8VrLm5BDG4iI=;
+	h=From:To:Cc:Subject:In-Reply-To:References:Date:Message-ID:
+	 MIME-Version:Content-Type; b=Wesm9b9a+1WxerKRsZVUKZq7BUu27Uu95iwefQmHep5D7hIj75nYetFqBGmkH7Z3YiQkLAqVZBiqKo2ApZWZtpd8L1z9WECRjQ948mRYP5dkMrRImFmBu6+jzBBcSimiLfxrfcX2DTRHYqJxbLwTVAP35pmAwVDRiwnh+NxtIwc=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=damenly.org; spf=pass smtp.mailfrom=damenly.org; dkim=pass (2048-bit key) header.d=damenly.org header.i=@damenly.org header.b=LQSIL0mb; arc=none smtp.client-ip=136.175.108.187
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=damenly.org
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=damenly.org
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key) header.d=damenly.org header.i=@damenly.org header.b="LQSIL0mb"
+Received: from filter006.mxroute.com ([136.175.111.3] filter006.mxroute.com)
+ (Authenticated sender: mN4UYu2MZsgR)
+ by mail-108-mta187.mxroute.com (ZoneMTA) with ESMTPSA id 1977ba244da0008631.007
+ for <ocfs2-devel@lists.linux.dev>
+ (version=TLSv1.3 cipher=TLS_AES_256_GCM_SHA384);
+ Tue, 17 Jun 2025 02:05:21 +0000
+X-Zone-Loop: 5e3437f2a263862f93df6fbff2a67c69d7b3474f42cb
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed; d=damenly.org
+	; s=x; h=Content-Type:MIME-Version:Date:References:In-Reply-To:Subject:Cc:To:
+	From:Sender:Reply-To:Content-Transfer-Encoding:Content-ID:Content-Description
+	:Resent-Date:Resent-From:Resent-Sender:Resent-To:Resent-Cc:Resent-Message-ID:
+	List-Id:List-Help:List-Unsubscribe:List-Subscribe:List-Post:List-Owner:
+	List-Archive; bh=BdQV0BPArgBNN0b2VqLsIkjqYBvc0CBsoE7fNjAbCMw=; b=LQSIL0mbjOel
+	sBA2SZ1EKT9mLJFyJ3/GaxLHKSS3KHN4F8Q3c6fnSfO3VnTkp1qybfhDrJsmreAr34u0/9LTjsW6j
+	bZJ135NZi6MCfRk0P8txIJFv50tbQY5efAMC0C9+dU83tjH+9LDUPvDyJ8V68UzU3x2SN5ErXNs0g
+	gpWg2nlDhkVEpCIE7itdMlGRRGQcO8Nl0cyqWC7nSA5sFchyNG+Rv51lk1fZqeesJD6nJcczZ/v1w
+	NTOOvqTqU0QCEuYmLNBkn7OxpAl09RpqPKLamMoy3vQ5E8YCI2tsz/cEGGtgRhyriIIwosLa0j1ct
+	YGSTJjExsIZllayGExOoug==;
+From: Su Yue <l@damenly.org>
+To: Long Li <leo.lilong@huawei.com>
+Cc: <mark@fasheh.com>,  <jlbec@evilplan.org>,
+  <joseph.qi@linux.alibaba.com>,  <ocfs2-devel@lists.linux.dev>,
+  <yangerkun@huawei.com>,  <lonuxli.64@gmail.com>
+Subject: Re: [PATCH] ocfs2: remove redundant NULL check in rename path
+In-Reply-To: <20250617012534.3458669-1-leo.lilong@huawei.com> (Long Li's
+	message of "Tue, 17 Jun 2025 09:25:34 +0800")
+References: <20250617012534.3458669-1-leo.lilong@huawei.com>
+User-Agent: mu4e 1.12.7; emacs 30.1
+Date: Tue, 17 Jun 2025 10:05:11 +0800
+Message-ID: <qzzjxgvc.fsf@damenly.org>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Content-Type: text/plain
-X-ClientProxiedBy: kwepems200001.china.huawei.com (7.221.188.67) To
- kwepemn100013.china.huawei.com (7.202.194.116)
+Content-Type: text/plain; format=flowed
+X-Authenticated-Id: l@damenly.org
 
-The code checks newfe_bh for NULL after it has already been dereferenced
-to access b_data. This NULL check is unnecessary for two reasons:
+On Tue 17 Jun 2025 at 09:25, Long Li <leo.lilong@huawei.com> 
+wrote:
 
-1. If ocfs2_inode_lock() succeeds (returns >= 0), newfe_bh is guaranteed
-   to be valid.
-2. We've already dereferenced newfe_bh to access b_data, so it must be
-   non-NULL at this point.
+> The code checks newfe_bh for NULL after it has already been 
+> dereferenced
+> to access b_data. This NULL check is unnecessary for two 
+> reasons:
+>
+> 1. If ocfs2_inode_lock() succeeds (returns >= 0), newfe_bh is 
+> guaranteed
+>    to be valid.
+> 2. We've already dereferenced newfe_bh to access b_data, so it 
+> must be
+>    non-NULL at this point.
+>
+> Remove the redundant NULL check in the 
+> trace_ocfs2_rename_over_existing()
+> call to improve code clarity.
+>
+> Signed-off-by: Long Li <leo.lilong@huawei.com>
+>
 
-Remove the redundant NULL check in the trace_ocfs2_rename_over_existing()
-call to improve code clarity.
-
-Signed-off-by: Long Li <leo.lilong@huawei.com>
----
- fs/ocfs2/namei.c | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
-
-diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
-index 99278c8f0e24..26bc59c3a813 100644
---- a/fs/ocfs2/namei.c
-+++ b/fs/ocfs2/namei.c
-@@ -1452,8 +1452,8 @@ static int ocfs2_rename(struct mnt_idmap *idmap,
- 		newfe = (struct ocfs2_dinode *) newfe_bh->b_data;
- 
- 		trace_ocfs2_rename_over_existing(
--		     (unsigned long long)newfe_blkno, newfe_bh, newfe_bh ?
--		     (unsigned long long)newfe_bh->b_blocknr : 0ULL);
-+		     (unsigned long long)newfe_blkno, newfe_bh,
-+		     (unsigned long long)newfe_bh->b_blocknr);
- 
- 		if (S_ISDIR(new_inode->i_mode) || (new_inode->i_nlink == 1)) {
- 			status = ocfs2_prepare_orphan_dir(osb, &orphan_dir,
--- 
-2.39.2
-
+Reviewed-by: Su Yue <glass.su@suse.com>
+> ---
+>  fs/ocfs2/namei.c | 4 ++--
+>  1 file changed, 2 insertions(+), 2 deletions(-)
+>
+> diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
+> index 99278c8f0e24..26bc59c3a813 100644
+> --- a/fs/ocfs2/namei.c
+> +++ b/fs/ocfs2/namei.c
+> @@ -1452,8 +1452,8 @@ static int ocfs2_rename(struct mnt_idmap 
+> *idmap,
+>  		newfe = (struct ocfs2_dinode *) newfe_bh->b_data;
+>
+>  		trace_ocfs2_rename_over_existing(
+> -		     (unsigned long long)newfe_blkno, newfe_bh, newfe_bh ?
+> -		     (unsigned long long)newfe_bh->b_blocknr : 0ULL);
+> +		     (unsigned long long)newfe_blkno, newfe_bh,
+> +		     (unsigned long long)newfe_bh->b_blocknr);
+>
+>  		if (S_ISDIR(new_inode->i_mode) || (new_inode->i_nlink == 
+>  1)) {
+>  			status = ocfs2_prepare_orphan_dir(osb, &orphan_dir,
