@@ -1,101 +1,81 @@
-Received: from mail-108-mta187.mxroute.com (mail-108-mta187.mxroute.com [136.175.108.187])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from out30-131.freemail.mail.aliyun.com (out30-131.freemail.mail.aliyun.com [115.124.30.131])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 57FD03BBF2
-	for <ocfs2-devel@lists.linux.dev>; Tue, 17 Jun 2025 02:10:32 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=136.175.108.187
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 02BB384A3E
+	for <ocfs2-devel@lists.linux.dev>; Tue, 17 Jun 2025 03:46:00 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.131
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1750126234; cv=none; b=SmExNW8SXFcJ03rriZoArWyHz5o4MVMnbbgYxUIyqjgnBrWB598CUrUI6OB8XTrcCBiR/jEzThU2OxhHCimeagi2ywolNRVr++eQB9/kx5WFRSOg5zMiCk88GdroYpUvnnEDAmXPVh/jVOqqueeykfkH/aPRghdKjLCvOuZdvBo=
+	t=1750131963; cv=none; b=osGY+BYc45VLMTRKCYSHtVIhUhWx7RYwlG8ytJShVBgFyBqFh66bEvlpQEnZgXj6MZnRMqSK4YX0t0nwqAOu1EvL48/+njAxwj7K+/8fldXL0aAsLf6X+UAR3eWlizY0wT1zzTrM9TVY8PHBfItgvQIkTNOLbea148wNCS8xPso=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1750126234; c=relaxed/simple;
-	bh=/a46r7Mu9WXNJHqQ3QS7z08DmrHsMwu8VrLm5BDG4iI=;
-	h=From:To:Cc:Subject:In-Reply-To:References:Date:Message-ID:
-	 MIME-Version:Content-Type; b=Wesm9b9a+1WxerKRsZVUKZq7BUu27Uu95iwefQmHep5D7hIj75nYetFqBGmkH7Z3YiQkLAqVZBiqKo2ApZWZtpd8L1z9WECRjQ948mRYP5dkMrRImFmBu6+jzBBcSimiLfxrfcX2DTRHYqJxbLwTVAP35pmAwVDRiwnh+NxtIwc=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=damenly.org; spf=pass smtp.mailfrom=damenly.org; dkim=pass (2048-bit key) header.d=damenly.org header.i=@damenly.org header.b=LQSIL0mb; arc=none smtp.client-ip=136.175.108.187
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=damenly.org
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=damenly.org
+	s=arc-20240116; t=1750131963; c=relaxed/simple;
+	bh=EVmPOSuwAmSIzBpYblPdbnWUzE8rHXEf3JdvJyVg1V8=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=a/fRWHGNxJYPqOoW76/oy/PalC+khdKbN5NgYC0DlQY9d2rsK//hoiTuCEViwIjlpuoTvAtxuQhVtFHWauDLT9XiTYrCDEEG2QuK0s/jlK5bdPxXpg0eWLAOyhh3vYyJBhh/0nWNYKbF/l04OGXm6JAi/Kpva9s8SuobNwaLvvY=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=dOAQ1Jh9; arc=none smtp.client-ip=115.124.30.131
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=damenly.org header.i=@damenly.org header.b="LQSIL0mb"
-Received: from filter006.mxroute.com ([136.175.111.3] filter006.mxroute.com)
- (Authenticated sender: mN4UYu2MZsgR)
- by mail-108-mta187.mxroute.com (ZoneMTA) with ESMTPSA id 1977ba244da0008631.007
- for <ocfs2-devel@lists.linux.dev>
- (version=TLSv1.3 cipher=TLS_AES_256_GCM_SHA384);
- Tue, 17 Jun 2025 02:05:21 +0000
-X-Zone-Loop: 5e3437f2a263862f93df6fbff2a67c69d7b3474f42cb
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed; d=damenly.org
-	; s=x; h=Content-Type:MIME-Version:Date:References:In-Reply-To:Subject:Cc:To:
-	From:Sender:Reply-To:Content-Transfer-Encoding:Content-ID:Content-Description
-	:Resent-Date:Resent-From:Resent-Sender:Resent-To:Resent-Cc:Resent-Message-ID:
-	List-Id:List-Help:List-Unsubscribe:List-Subscribe:List-Post:List-Owner:
-	List-Archive; bh=BdQV0BPArgBNN0b2VqLsIkjqYBvc0CBsoE7fNjAbCMw=; b=LQSIL0mbjOel
-	sBA2SZ1EKT9mLJFyJ3/GaxLHKSS3KHN4F8Q3c6fnSfO3VnTkp1qybfhDrJsmreAr34u0/9LTjsW6j
-	bZJ135NZi6MCfRk0P8txIJFv50tbQY5efAMC0C9+dU83tjH+9LDUPvDyJ8V68UzU3x2SN5ErXNs0g
-	gpWg2nlDhkVEpCIE7itdMlGRRGQcO8Nl0cyqWC7nSA5sFchyNG+Rv51lk1fZqeesJD6nJcczZ/v1w
-	NTOOvqTqU0QCEuYmLNBkn7OxpAl09RpqPKLamMoy3vQ5E8YCI2tsz/cEGGtgRhyriIIwosLa0j1ct
-	YGSTJjExsIZllayGExOoug==;
-From: Su Yue <l@damenly.org>
-To: Long Li <leo.lilong@huawei.com>
-Cc: <mark@fasheh.com>,  <jlbec@evilplan.org>,
-  <joseph.qi@linux.alibaba.com>,  <ocfs2-devel@lists.linux.dev>,
-  <yangerkun@huawei.com>,  <lonuxli.64@gmail.com>
-Subject: Re: [PATCH] ocfs2: remove redundant NULL check in rename path
-In-Reply-To: <20250617012534.3458669-1-leo.lilong@huawei.com> (Long Li's
-	message of "Tue, 17 Jun 2025 09:25:34 +0800")
-References: <20250617012534.3458669-1-leo.lilong@huawei.com>
-User-Agent: mu4e 1.12.7; emacs 30.1
-Date: Tue, 17 Jun 2025 10:05:11 +0800
-Message-ID: <qzzjxgvc.fsf@damenly.org>
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="dOAQ1Jh9"
+DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=linux.alibaba.com; s=default;
+	t=1750131953; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=su8AjYq1mTXuvuqEJMcdWzV7oOfzvL5oojBam3qcnoE=;
+	b=dOAQ1Jh99oK9j5r9eQGRmj9+ncubiwT9b3eAuEfB3hQkJtxetpGRDbTnUAyO4ADMFqKzzmE0ZUAV6yQ+OcOBrK3RXWV+ymnmYaVOStyZYFWvcfR2Czhv1gLHb19XfZe5dUvlvTpdMzZRsqMNPcp8VfNueghP/7ja4f696l7ibO0=
+Received: from 30.221.144.119(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0We7Hh50_1750131951 cluster:ay36)
+          by smtp.aliyun-inc.com;
+          Tue, 17 Jun 2025 11:45:52 +0800
+Message-ID: <cc276140-8214-42d2-9224-619906364982@linux.alibaba.com>
+Date: Tue, 17 Jun 2025 11:45:51 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Type: text/plain; format=flowed
-X-Authenticated-Id: l@damenly.org
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH] ocfs2: reset folio to NULL when get folio fails
+To: Lizhi Xu <lizhi.xu@windriver.com>,
+ syzbot+c2ea94ae47cd7e3881ec@syzkaller.appspotmail.com,
+ akpm <akpm@linux-foundation.org>
+Cc: jlbec@evilplan.org, linux-kernel@vger.kernel.org, mark@fasheh.com,
+ ocfs2-devel@lists.linux.dev, syzkaller-bugs@googlegroups.com
+References: <684efdcd.050a0220.be214.02c1.GAE@google.com>
+ <20250616013140.3602219-1-lizhi.xu@windriver.com>
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+In-Reply-To: <20250616013140.3602219-1-lizhi.xu@windriver.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
-On Tue 17 Jun 2025 at 09:25, Long Li <leo.lilong@huawei.com> 
-wrote:
 
-> The code checks newfe_bh for NULL after it has already been 
-> dereferenced
-> to access b_data. This NULL check is unnecessary for two 
-> reasons:
->
-> 1. If ocfs2_inode_lock() succeeds (returns >= 0), newfe_bh is 
-> guaranteed
->    to be valid.
-> 2. We've already dereferenced newfe_bh to access b_data, so it 
-> must be
->    non-NULL at this point.
->
-> Remove the redundant NULL check in the 
-> trace_ocfs2_rename_over_existing()
-> call to improve code clarity.
->
-> Signed-off-by: Long Li <leo.lilong@huawei.com>
->
 
-Reviewed-by: Su Yue <glass.su@suse.com>
+On 2025/6/16 09:31, Lizhi Xu wrote:
+> The reproducer uses FAULT_INJECTION to make memory allocation fail, which
+> causes __filemap_get_folio() to fail, when initializing w_folios[i] in
+> ocfs2_grab_folios_for_write(), it only returns an error code and the value
+> of w_folios[i] is the error code, which causes ocfs2_unlock_and_free_folios()
+> to recycle the invalid w_folios[i] when releasing folios.
+> 
+> Reported-by: syzbot+c2ea94ae47cd7e3881ec@syzkaller.appspotmail.com
+> Closes: https://syzkaller.appspot.com/bug?extid=c2ea94ae47cd7e3881ec
+> Signed-off-by: Lizhi Xu <lizhi.xu@windriver.com>
+
+Looks good.
+Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+
 > ---
->  fs/ocfs2/namei.c | 4 ++--
->  1 file changed, 2 insertions(+), 2 deletions(-)
->
-> diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
-> index 99278c8f0e24..26bc59c3a813 100644
-> --- a/fs/ocfs2/namei.c
-> +++ b/fs/ocfs2/namei.c
-> @@ -1452,8 +1452,8 @@ static int ocfs2_rename(struct mnt_idmap 
-> *idmap,
->  		newfe = (struct ocfs2_dinode *) newfe_bh->b_data;
->
->  		trace_ocfs2_rename_over_existing(
-> -		     (unsigned long long)newfe_blkno, newfe_bh, newfe_bh ?
-> -		     (unsigned long long)newfe_bh->b_blocknr : 0ULL);
-> +		     (unsigned long long)newfe_blkno, newfe_bh,
-> +		     (unsigned long long)newfe_bh->b_blocknr);
->
->  		if (S_ISDIR(new_inode->i_mode) || (new_inode->i_nlink == 
->  1)) {
->  			status = ocfs2_prepare_orphan_dir(osb, &orphan_dir,
+>  fs/ocfs2/aops.c | 1 +
+>  1 file changed, 1 insertion(+)
+> 
+> diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+> index 40b6bce12951..89aadc6cdd87 100644
+> --- a/fs/ocfs2/aops.c
+> +++ b/fs/ocfs2/aops.c
+> @@ -1071,6 +1071,7 @@ static int ocfs2_grab_folios_for_write(struct address_space *mapping,
+>  			if (IS_ERR(wc->w_folios[i])) {
+>  				ret = PTR_ERR(wc->w_folios[i]);
+>  				mlog_errno(ret);
+> +				wc->w_folios[i] = NULL;
+>  				goto out;
+>  			}
+>  		}
+
