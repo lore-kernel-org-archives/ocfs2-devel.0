@@ -1,106 +1,123 @@
-Received: from zeniv.linux.org.uk (zeniv.linux.org.uk [62.89.141.173])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-pl1-f180.google.com (mail-pl1-f180.google.com [209.85.214.180])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D3ACD282EB;
-	Thu, 26 Jun 2025 03:34:17 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=62.89.141.173
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B59ED1F19A
+	for <ocfs2-devel@lists.linux.dev>; Fri, 27 Jun 2025 02:39:33 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.214.180
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1750908860; cv=none; b=Omn5LSUjIKtw+L8R6YEOrW8rY6fScp1l9iYukyDmYIbDwccSemgTG7rx9+vEWN64xYQcgvJEgtHlxBW2XeQ0CQ/m49OjX2k7CVCRv7A8eW+JA4FFftFprEs9PnxeK8eM4TQ8VVPVE9CggdHHvA1vYIREe1fJW9lUyOrkrhMi16k=
+	t=1750991975; cv=none; b=fceX2doikm/qkaVxnk5ZUeg/AmruEhlsOoX3zBrkioYP1hhjdpK1sxIdtAZK70XICnmjO15gL6JuHmGQ0duWKdeHJNjEsPc8fkIyrd4yXwsfsRfanyIeUiOz13Q2oV6zy+4rqjcXWCgwj8rdyeov3wbvL+5CTDH8Qb74qxZicOU=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1750908860; c=relaxed/simple;
-	bh=JdFL+DurqCH71s/6ds1Pl9Z4B1ZcvOyBExK7IPWkSxw=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=ZaRF+n3M7Bl96GA/Qe5Lg2oShX1fvA/rbLU8kTEPBAWnWNeQmi6JVRbz2FdVz7DPUUIrICfxojb90HalFaCm5lndotAjfmnpN/33TXFmQtnNLlJJAOyGVxkYfMvMdwGhYP/9TIoa6VVP1pDoeF4potxiKgNVvguLsjSaE38s04k=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk; spf=none smtp.mailfrom=ftp.linux.org.uk; dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b=syGYz0q1; arc=none smtp.client-ip=62.89.141.173
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk
-Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=ftp.linux.org.uk
+	s=arc-20240116; t=1750991975; c=relaxed/simple;
+	bh=vvXfD1IfkO52OboqRZXTZrSZOnFkJz+wyFRQ1bQn7AY=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=dAfoidvX5WFO+o9c7TW/TQSM6bbZnICy+vlKSt9oztpuv64vKfBycpHaSBt0vILOx8DrKHj4L9rZXB7e0p1W7M9rzA98pxxztj58x0TVz3ofRjvMLsXFsP0EeLoIeQLFJgOUK6lIWUGxe3XgX1wd/8xEpFxuUZHg4BdyHiyD6/I=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=A0BxJrl8; arc=none smtp.client-ip=209.85.214.180
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b="syGYz0q1"
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-	d=linux.org.uk; s=zeniv-20220401; h=Sender:In-Reply-To:Content-Type:
-	MIME-Version:References:Message-ID:Subject:Cc:To:From:Date:Reply-To:
-	Content-Transfer-Encoding:Content-ID:Content-Description;
-	bh=xjFDA2GkJiXpWNrvkJ64etUEx2N5io25QFzgQ0wijOM=; b=syGYz0q177vJXqMXDy0hAzhc+a
-	TLcaB0r9spkI4eQJi/VE79xl8AMD/rXV7mfvqSp0SVKra/nqqxpxox4bTAJZTHklFbaimO8JBSFmj
-	bdbp4r5HfV1lxPaCPTR2Q1QUbFCvllySeDeoGzzVxxQlE6zMTqjPRTEuRxmVv33yRS+LIMLuWMZMc
-	8DMCgSgCGQq4wxRuTgVKBmZ/9Dma+0m1k68mVD1T9TNbrf3w4uGpU3qgNlmVuKLjqo+7Jlr/HjmvW
-	D9BUka2OpLEbCnjfHZTQO2k5v9zje8ikXEW2YiSBOk2si4DlLZQ1SHij358LNWiP8ndX/rFz4l/h5
-	SzbGEOnQ==;
-Received: from viro by zeniv.linux.org.uk with local (Exim 4.98.2 #2 (Red Hat Linux))
-	id 1uUdNL-0000000B2G8-0WRT;
-	Thu, 26 Jun 2025 03:34:11 +0000
-Date: Thu, 26 Jun 2025 04:34:11 +0100
-From: Al Viro <viro@zeniv.linux.org.uk>
-To: Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>
-Cc: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
-	Joseph Qi <joseph.qi@linux.alibaba.com>,
-	Richard Weinberger <richard@nod.at>, ocfs2-devel@lists.linux.dev,
-	linux-fsdevel <linux-fsdevel@vger.kernel.org>,
-	LKML <linux-kernel@vger.kernel.org>,
-	Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH] ocfs2: update d_splice_alias() return code checking
-Message-ID: <20250626033411.GU1880847@ZenIV>
-References: <d689279f-03ed-4f9b-8fde-713b2431f303@I-love.SAKURA.ne.jp>
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="A0BxJrl8"
+Received: by mail-pl1-f180.google.com with SMTP id d9443c01a7336-235d6de331fso23826145ad.3
+        for <ocfs2-devel@lists.linux.dev>; Thu, 26 Jun 2025 19:39:33 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20230601; t=1750991973; x=1751596773; darn=lists.linux.dev;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:from:to:cc:subject:date:message-id:reply-to;
+        bh=Q+Xmpn0m1NNRLGqOUCu2eX/6jrBk9qwF49IxfMBhpEU=;
+        b=A0BxJrl8xaVlLRkvEhuPFS+DWOpsQKb+l/HT3zqf1KoQJn4GLg0TzxtyR1wj0Hi6Kt
+         P/N+Xm5O+B76tM2XIY0UOTJt3t3wDfKt08iEZe0vRGjo4TkfcWA1uo2I99yFl99lBtiJ
+         S8mk7T36oEGLSjgZPuW7diDW1npc7/RETVpTp+r/TCDPREGrLOHv5OeD/1hivBSWwxPV
+         ZvxK3O4g8qjvBRqRmjQtKcPTiKM04dGqhVKOzVh3Rj7dS5OET4WKVHWpXOekZEi2oEfZ
+         Lls5TaqBwvrhWp9PMzU7Cf1yLh85K9IBlU7JRapcbma/jsBM2HtP2dyrh4dZuvpFWHvf
+         7Mwg==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1750991973; x=1751596773;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:x-gm-message-state:from:to:cc:subject:date:message-id
+         :reply-to;
+        bh=Q+Xmpn0m1NNRLGqOUCu2eX/6jrBk9qwF49IxfMBhpEU=;
+        b=DYnRnh7CfGuuzIqFimuavO+cjbC36K5LkhIyFWEgr76HyL+jGg5wQ3yw8JKt4C2alK
+         +Rslg6JlaiJTn5Y00KMVe9/5TJirHmWSdIIgoYv0IsHblfiNb8DnE8nEXwKnI77nMyNx
+         /2ZP1GLJL8ckcZBrzMHLY+Vsr3OHUfbxUAIRjjTmHOXgkCGjSbeAxd+HL5K8b6lmBryZ
+         qZEneNSX0Wqx4oboj1JmEQUGbhJtxgr6ELGAnoymLp+NEpNZdkh0xRyJaP591J1NOi6o
+         Jgg99gIn92WxC6wIbQXBXBH4GE4GPDY1SnOF9IjMMTA9W9xDLKC6T15aLLx8gwAHfMyN
+         F7Zg==
+X-Forwarded-Encrypted: i=1; AJvYcCU/+B+Hjc/v3AbVaGtN2ZrHOmzJUV6bNHWQBVnLjvMlbXNnHrRUdeZ6N5EglV62oJa07SHorsvJtJqWUg==@lists.linux.dev
+X-Gm-Message-State: AOJu0Yw5KRzbJotKMxoJ1EU/HIS0Fquz1Vcu9VOrBF0YVs50e4OBTiD5
+	ddVTarkLZrU8GvJQyy7W2ZhAM1ZaB3LoUtYc0hyF/Xny52FUx6EJ9G60
+X-Gm-Gg: ASbGncsbX1uCITR/FKFlLWCvuQtomOYFtcGa/9YI1EPxdY1AN6WJ9WQrDi/9k8QscNH
+	bX0aJbpe7X0E7TZRHf7wu/Y5t3nP+Gpxc6NMaP22j9gu1VrKwVDtLwkLt+VU+PXjLWsktX3fnmb
+	d0h26MTz1hrUwfN1GuRsZvHDuAc+ZJKZXMyeS7Xq1OC3lNVQboZqW3Gt4lahdeGa7SE8JrYCAXP
+	fUbtNDWyM03s/0tujE/u1kfEjYuFznosPtHTxzpUrNv0x/QvI4YoDGE1dDoAp3QQItdaMFDcAxz
+	oIGKUK4jhSf+7X+S8teDgBqLuhJ7FYQIJMU97BFARrk39dS9J4nuKnhuS5c1qZkUyn39TfAGbPG
+	5E0guOPON3iD6LbVQwMu0b3qC8Ruo/Tl6kOhIDQ==
+X-Google-Smtp-Source: AGHT+IGT6mSXkMoZBI9eS+i+6n5dkAlAiLro6eu3jOH5Rab/6j/ltru+m7KO0gmlC0KataXVrNbGHA==
+X-Received: by 2002:a17:903:2f4c:b0:234:eb6:a35d with SMTP id d9443c01a7336-23ac4606503mr22426855ad.27.1750991972966;
+        Thu, 26 Jun 2025 19:39:32 -0700 (PDT)
+Received: from ipravd-Nitro-AN515-55.hsd1.ca.comcast.net ([2601:646:a000:5fc0:ac9:41cf:eabf:a84b])
+        by smtp.gmail.com with ESMTPSA id d9443c01a7336-23acb3c5bc7sm4037755ad.221.2025.06.26.19.39.30
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Thu, 26 Jun 2025 19:39:32 -0700 (PDT)
+From: Ivan Pravdin <ipravdin.official@gmail.com>
+To: mark@fasheh.com,
+	jlbec@evilplan.org,
+	joseph.qi@linux.alibaba.com,
+	ocfs2-devel@lists.linux.dev,
+	linux-kernel@vger.kernel.org
+Cc: Ivan Pravdin <ipravdin.official@gmail.com>,
+	syzbot+20282c1b2184a857ac4c@syzkaller.appspotmail.com
+Subject: [PATCH] ocfs2: Avoid NULL pointer dereference in dx_dir_lookup_rec()
+Date: Thu, 26 Jun 2025 22:38:30 -0400
+Message-ID: <20250627023830.150291-1-ipravdin.official@gmail.com>
+X-Mailer: git-send-email 2.45.2
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <d689279f-03ed-4f9b-8fde-713b2431f303@I-love.SAKURA.ne.jp>
-Sender: Al Viro <viro@ftp.linux.org.uk>
+Content-Transfer-Encoding: 8bit
 
-On Thu, Jun 26, 2025 at 11:14:59AM +0900, Tetsuo Handa wrote:
+When a directory entry is not found, ocfs2_dx_dir_lookup_rec() prints an
+error message that unconditionally dereferences the 'rec' pointer.
+However, if 'rec' is NULL, this leads to a NULL pointer dereference and
+a kernel panic.
 
-> But when commit b5ae6b15bd73 ("merge d_materialise_unique() into
-> d_splice_alias()") was merged into v3.19-rc1, d_splice_alias() started
-> returning -ELOOP as one of ERR_PTR values.
-> 
-> As a result, when syzkaller mounts a crafted ocfs2 filesystem image that
-> hits d_splice_alias() == -ELOOP case from ocfs2_lookup(), ocfs2_lookup()
-> fails to handle -ELOOP case and generic_shutdown_super() hits "VFS: Busy
-> inodes after unmount" message.
-> 
-> Don't call ocfs2_dentry_attach_lock() nor ocfs2_dentry_attach_gen()
-> when d_splice_alias() returned -ELOOP.
-> 
-> Reported-by: syzbot <syzbot+1134d3a5b062e9665a7a@syzkaller.appspotmail.com>
-> Closes: https://syzkaller.appspot.com/bug?extid=1134d3a5b062e9665a7a
-> Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-> ---
-> This patch wants review from maintainers. I'm not familiar with this change.
+Add an explicit check for a NULL 'rec' and use an alternate error
+message in that case to avoid unsafe access.
 
-Not the right fix.  If nothing else, -ELOOP is not the only possible value
-there.
+Reported-by: syzbot+20282c1b2184a857ac4c@syzkaller.appspotmail.com
+Closes: https://lore.kernel.org/all/67483b75.050a0220.253251.007c.GAE@google.com/T/
+Signed-off-by: Ivan Pravdin <ipravdin.official@gmail.com>
+---
+ fs/ocfs2/dir.c | 16 +++++++++++-----
+ 1 file changed, 11 insertions(+), 5 deletions(-)
 
-This
-                status = ocfs2_dentry_attach_lock(dentry, inode,
-                                                  OCFS2_I(dir)->ip_blkno);
-                if (status) {
-                        mlog_errno(status);
-                        ret = ERR_PTR(status);
-                        goto bail_unlock;
-                }
-looks like pretty obvious leak in its own right?  What's more, on IS_ERR(ret)
-we should stop playing silly buggers and just return the damn error.
+diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
+index 7799f4d16ce9..dccf0349e523 100644
+--- a/fs/ocfs2/dir.c
++++ b/fs/ocfs2/dir.c
+@@ -809,11 +809,17 @@ static int ocfs2_dx_dir_lookup_rec(struct inode *inode,
+ 	}
+ 
+ 	if (!found) {
+-		ret = ocfs2_error(inode->i_sb,
+-				  "Inode %lu has bad extent record (%u, %u, 0) in btree\n",
+-				  inode->i_ino,
+-				  le32_to_cpu(rec->e_cpos),
+-				  ocfs2_rec_clusters(el, rec));
++		if (rec) {
++			ret = ocfs2_error(inode->i_sb,
++					"Inode %lu has bad extent record (%u, %u, 0) in btree\n",
++					inode->i_ino,
++					le32_to_cpu(rec->e_cpos),
++					ocfs2_rec_clusters(el, rec));
++		} else {
++			ret = ocfs2_error(inode->i_sb,
++					"Inode %lu has no extent records in btree\n",
++					inode->i_ino);
++		}
+ 		goto out;
+ 	}
+ 
+-- 
+2.45.2
 
-So basically
-        ret = d_splice_alias(inode, dentry);
-	if (IS_ERR(ret))
-		goto bail_unlock;
-	if (inode) {
-		if (ret)
-			dentry = ret;
-                status = ocfs2_dentry_attach_lock(dentry, inode,
-                                                  OCFS2_I(dir)->ip_blkno);
-		if (unlikely(status)) {
-			if (ret)
-				dput(ret);
-			ret = ERR_PTR(status);
-		}
-	} else {
-                ocfs2_dentry_attach_gen(dentry);
-	}
-bail_unlock:
