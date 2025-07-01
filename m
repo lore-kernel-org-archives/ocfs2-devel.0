@@ -1,125 +1,98 @@
-Received: from mail-pl1-f176.google.com (mail-pl1-f176.google.com [209.85.214.176])
+Received: from mail-io1-f69.google.com (mail-io1-f69.google.com [209.85.166.69])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4E3FF13AD26
-	for <ocfs2-devel@lists.linux.dev>; Tue,  1 Jul 2025 02:37:40 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.214.176
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 781B027380B
+	for <ocfs2-devel@lists.linux.dev>; Tue,  1 Jul 2025 10:01:30 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.166.69
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1751337461; cv=none; b=PemY8D4K0yZd9DazO2wGkFAfeiSZA8GeMPMINdQDiO3ii9Mz9jeymqrdpTzL8raBo2cQit+2Jy4cWGJ5RXw2z+YTcy5o++zC0vijWHhZ/dHEkDMCwunMWaTDbpLNxc/tq258E8Bpfsz2ftxJMp5duZ5hujICcLMHthzIeiO6oWU=
+	t=1751364092; cv=none; b=SwTfoZV+8HCJKItWcs96vl/Jz/XCmewg4JGQ0ev87wdSAUX34K18wr1b6u2+ECrLWwy7H+HdDL6EWnb2dcO40vNlBTGLZm0f39JRjM4vvcl/dNPz5/IWeFjTRT2+Egy1/dNRZy8RRkypOWtcjzQdz4i06d3g7No2zs//iuYrmUY=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1751337461; c=relaxed/simple;
-	bh=zv8H/ueXxWC5DLY5dbZxw8M8pOFqP7G7c0K9+DxAf18=;
-	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=IH7BhRpYV8Bq5+ctqn52cup4Ba+sm86uRQg8PbxwntEyffY01a219orIKNeQfXTUCqIfzq85bXrmADBEeNHMvEfJ/XMF4xkL2reUZpoi0LqQwd+Ma0DXNhZgtdx4Wq6xLbvRZ+RSGV4582cyU1DR2T42BHMx2DUrNaO2G6a0djo=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=SK7jYmwb; arc=none smtp.client-ip=209.85.214.176
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="SK7jYmwb"
-Received: by mail-pl1-f176.google.com with SMTP id d9443c01a7336-236377f00easo32319745ad.1
-        for <ocfs2-devel@lists.linux.dev>; Mon, 30 Jun 2025 19:37:40 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1751337459; x=1751942259; darn=lists.linux.dev;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:from:to:cc:subject:date:message-id:reply-to;
-        bh=HUEbK//prruDZHN241dDRLIKIkZ6TnXwENFQ7i5Q1V0=;
-        b=SK7jYmwbope6il8FccOlcHn01oZ4SaheWuwBFluMzSmv6HRBwn4iJH3bE6JKIvuDXu
-         84BrHRu2ODnNNCv4wHFi0sByIu/Dwn+qgVrISLSflTmdszdnh0SjlM7L8ctLiz8TOKLc
-         NXSS3hBYgAAfTMkaK9zlE/hQegZZ4VBTfTdnUJq95ETrEbKZ9Ie1woYcZEkYnJTMVbyB
-         QGU0Nuk0fxIMszWc+fhrwIlQTqI2T7x34X+DTsxZUXZTgFSfnNNgEwoGWuUJLDM27OPa
-         ZcVDHU94MVMyabMWNtvFQn5ScHjRci+lvWUMIfxlchpjTfq+A6Ufobxwx4EKZKQh6yJ3
-         gxzQ==
+	s=arc-20240116; t=1751364092; c=relaxed/simple;
+	bh=P5Rt189e8qUG+MHvROZmWhZjXpiZa0oSmFfwPWBZtUg=;
+	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=bz30Nu94lfTe6z5UiQyHZI5lWf6Gwoy2UFgwbuy9itm+4TXFDkMib31dhRwrr4a9w3GuyefHOQYEgg2wtHEQF4/SGK8Vb9P5PLQWXoaDmOs2Gp/xZj6HudefSC2oTHq+FY77rWO/0kMja4HpA5YGmxEEJbBKe9Q8OTCpUPkl2B8=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.166.69
+Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
+Received: by mail-io1-f69.google.com with SMTP id ca18e2360f4ac-87595d00ca0so537903839f.2
+        for <ocfs2-devel@lists.linux.dev>; Tue, 01 Jul 2025 03:01:30 -0700 (PDT)
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1751337459; x=1751942259;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:x-gm-message-state:from:to:cc:subject:date:message-id
-         :reply-to;
-        bh=HUEbK//prruDZHN241dDRLIKIkZ6TnXwENFQ7i5Q1V0=;
-        b=E2czo15fUtEw2rXABazySkSDWQk2wlZ7kZrHEpug2pI/sF5qchjrrK48EcRXPIrvfc
-         ShFxK7PxxYfSWsawKD3N32bQW47Knbm7PQOf1z3pAAeLaOF3QgmjrS+c1pEfFmj1mKz5
-         gokjr+Y2T1vwcsHFPBREu+vHM7hYf3hky+LFm4qtN7Qvt9LOUY/rRfhQB1P3v2JbRR3p
-         fHISAuPx4cFHVl5Boraimj5pw0O6CRXQVgsZyBGpr7xVn9mwqFjENcGiwd4wVJp8viH+
-         IGfSUTJj+ahtDTq5Y+eWmG/C8CFOxKYe/TihSbFlQ/aOmQwhrt3BvQ1x4sxyCbMQFDll
-         bp3A==
-X-Forwarded-Encrypted: i=1; AJvYcCU8E/DM5HM+3aXKIIQ2awXI6O53YpIgerUyWWC9OcqsRXgRZO55upLY3xIW0n21i+7zQ/Q6PfIj9gehcQ==@lists.linux.dev
-X-Gm-Message-State: AOJu0YwRnnp7zxothmXp6DjNV6rTxYpuxsgYXWDUTBq36sgDq+iXTWor
-	R42Io/WhNppPXqFucg4AZkZK/s6Ax8S9rBe7LkUP8FTaLpnOZlLwaejj
-X-Gm-Gg: ASbGncuuj54G9LEJ9xl2y0zdnopYWwj8DmmVLmaYrmZ11usy55Pli1w8eQODWNMnQfA
-	v0MABl8dEj6PhzsiFx2+1oMSL3q8Fm6XCb3cHigIMN2Q0tFcyoGIvefONktrND4IrHzhWLngn3S
-	LLQEr+jOJ23VuRSE1zJ411gAb8WLzpW0f/4UPxF65FbzlI0xq841zAYlB+sOZ/vG1NRHzFR/9G8
-	g0HhZbt/spls5LiZ9MuzOSwkHlAA6gWwk7ymkl4A+4poec/bYjkQ1hM/0s/ZxGAbFsIrJWlfY2O
-	pmGd+zPJtOPSiRTiU0VcBrI9BUoupKVCdXN7jtjDpvvQ642gQ1UhkaijvBD7m8snXc5QBXNdmed
-	+z/vU6OgEIBaxvAzv4AGi125J9swowFRykmfltyocf6arnd6Q
-X-Google-Smtp-Source: AGHT+IHyuRcYmYE04g95LBJExejQ8LrpV+fanzEQ2/mJIcpOF7EtQio0DMLDMxrMqUaUoP91ln/zVg==
-X-Received: by 2002:a17:903:1988:b0:234:bef7:e227 with SMTP id d9443c01a7336-23ac3dec2ccmr188501485ad.18.1751337459451;
-        Mon, 30 Jun 2025 19:37:39 -0700 (PDT)
-Received: from ipravd-Nitro-AN515-55.hsd1.ca.comcast.net ([2601:646:a000:5fc0:185e:4baa:85df:637])
-        by smtp.gmail.com with ESMTPSA id 41be03b00d2f7-b34e31db000sm9017202a12.65.2025.06.30.19.37.38
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Mon, 30 Jun 2025 19:37:39 -0700 (PDT)
-From: Ivan Pravdin <ipravdin.official@gmail.com>
-To: mark@fasheh.com,
-	jlbec@evilplan.org,
-	joseph.qi@linux.alibaba.com,
-	ocfs2-devel@lists.linux.dev,
-	linux-kernel@vger.kernel.org
-Cc: Ivan Pravdin <ipravdin.official@gmail.com>,
-	syzbot+20282c1b2184a857ac4c@syzkaller.appspotmail.com
-Subject: [PATCH v2] ocfs2: Avoid NULL pointer dereference in dx_dir_lookup_rec()
-Date: Mon, 30 Jun 2025 22:37:17 -0400
-Message-ID: <20250701023717.543972-1-ipravdin.official@gmail.com>
-X-Mailer: git-send-email 2.45.2
+        d=1e100.net; s=20230601; t=1751364089; x=1751968889;
+        h=to:from:subject:message-id:date:mime-version:x-gm-message-state
+         :from:to:cc:subject:date:message-id:reply-to;
+        bh=JBnYfLShZRP+QHc7hp6xE5I2iMcE/JPwNu1jf/ePmmo=;
+        b=p9mW9hJIPRDDrGIO5p9epQSSN2L6lBMPjHMssMXJBR3Ttrp3qj6Ncw7iWs2A4axORJ
+         wfHrEwRpT4QiQK2maMC857JLnF1ZENYtAN7g2Glm0hZ5u3BsLpKX/rBNDw1d2lm9BEiX
+         yyH7rA2u7ovEwSQ+F7L8gStoq/WCwfKX1ix8quVnLAy6Wd/TS5mbRD9KWhjtOOf7Opn9
+         cyxuLryCLiPAuban7Y5jxmcQ0BtMz2YblFOX5wPc8ICP9UvrK2fqYZTS5fHMr0mTRTWg
+         aa6XhsiKeARxgn1EaBmUEjQYyDQCQWPV0NE/c+NzMp2Fu3rbM2SYa1XG4Ctd2zw8Lptc
+         fp9g==
+X-Forwarded-Encrypted: i=1; AJvYcCWMJ/WSY6KFxIUJMLTsxyjT0x6QyQ/b1XMjI9RfclCBE0qE8k/XkzlwAXyTtHE3PJ/XCJXc5NQktu42Yw==@lists.linux.dev
+X-Gm-Message-State: AOJu0Yw3P9QuRN6WqKzJ8EynTwyP00RmVmymxKjw3TD3MGu3ESkpOJFM
+	0W3RJKe/p0RLLeW6akxukOM8vha5pwP8qwXmm2nn7u/KS7eKrDsqt/ypD5RcyH+Tlu1aeX/Jjey
+	oiBsQRTFstw9z7/nXYhCSGbMJoqri5/sTCcHglV3MvyNYGPat3yj1ksmLGDQ=
+X-Google-Smtp-Source: AGHT+IHgtx7SqShvK0/sNakTaVtzibjONzpxOzeKpEIP0Jy8y46gQyIV2NTDXUQD4Cc414qVDKPq5z23SppLkt2Y/BoTCvaEWEau
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+X-Received: by 2002:a05:6602:1691:b0:876:1c5e:8c50 with SMTP id
+ ca18e2360f4ac-876885d256amr1917863439f.7.1751364089410; Tue, 01 Jul 2025
+ 03:01:29 -0700 (PDT)
+Date: Tue, 01 Jul 2025 03:01:29 -0700
+X-Google-Appengine-App-Id: s~syzkaller
+X-Google-Appengine-App-Id-Alias: syzkaller
+Message-ID: <6863b1f9.a70a0220.3b7e22.1936.GAE@google.com>
+Subject: [syzbot] Monthly ocfs2 report (Jul 2025)
+From: syzbot <syzbot+listcb86ed7f103eeb1415ee@syzkaller.appspotmail.com>
+To: jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
+	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
+	syzkaller-bugs@googlegroups.com
+Content-Type: text/plain; charset="UTF-8"
 
-When a directory entry is not found, ocfs2_dx_dir_lookup_rec() prints an
-error message that unconditionally dereferences the 'rec' pointer.
-However, if 'rec' is NULL, this leads to a NULL pointer dereference and
-a kernel panic.
+Hello ocfs2 maintainers/developers,
 
-Add an explicit check for a NULL 'rec' and use an alternate error
-message in that case to avoid unsafe access.
+This is a 31-day syzbot report for the ocfs2 subsystem.
+All related reports/information can be found at:
+https://syzkaller.appspot.com/upstream/s/ocfs2
 
-Reported-by: syzbot+20282c1b2184a857ac4c@syzkaller.appspotmail.com
-Closes: https://lore.kernel.org/all/67cd7e29.050a0220.e1a89.0007.GAE@google.com/
-Signed-off-by: Ivan Pravdin <ipravdin.official@gmail.com>
+During the period, 4 new issues were detected and 0 were fixed.
+In total, 69 issues are still open and 17 have already been fixed.
+
+Some of the still happening issues:
+
+Ref  Crashes Repro Title
+<1>  65257   Yes   possible deadlock in dqget
+                   https://syzkaller.appspot.com/bug?extid=6e493c165d26d6fcbf72
+<2>  47058   Yes   possible deadlock in ocfs2_acquire_dquot
+                   https://syzkaller.appspot.com/bug?extid=51244a05705883616c95
+<3>  22465   Yes   possible deadlock in ocfs2_reserve_suballoc_bits
+                   https://syzkaller.appspot.com/bug?extid=5d516fba7bc3c966c9a9
+<4>  14511   Yes   possible deadlock in ocfs2_init_acl
+                   https://syzkaller.appspot.com/bug?extid=4007ab5229e732466d9f
+<5>  14041   Yes   possible deadlock in ocfs2_reserve_local_alloc_bits
+                   https://syzkaller.appspot.com/bug?extid=843fa26882088a9ee7e3
+<6>  8235    Yes   possible deadlock in ocfs2_setattr
+                   https://syzkaller.appspot.com/bug?extid=d78497256d53041ee229
+<7>  3182    No    possible deadlock in ocfs2_xattr_set
+                   https://syzkaller.appspot.com/bug?extid=ba9a789bd1f4d21fcefe
+<8>  2603    No    possible deadlock in ocfs2_lock_global_qf
+                   https://syzkaller.appspot.com/bug?extid=b53d753ae8fb473e2397
+<9>  2163    Yes   possible deadlock in __ocfs2_flush_truncate_log
+                   https://syzkaller.appspot.com/bug?extid=6bf948e47f9bac7aacfa
+<10> 1551    Yes   possible deadlock in ocfs2_del_inode_from_orphan
+                   https://syzkaller.appspot.com/bug?extid=78359d5fbb04318c35e9
+
 ---
-v1 -> v2: Changed 'Closes:' tag to point to the correct bug report.
+This report is generated by a bot. It may contain errors.
+See https://goo.gl/tpsmEJ for more information about syzbot.
+syzbot engineers can be reached at syzkaller@googlegroups.com.
 
- fs/ocfs2/dir.c | 16 +++++++++++-----
- 1 file changed, 11 insertions(+), 5 deletions(-)
+To disable reminders for individual bugs, reply with the following command:
+#syz set <Ref> no-reminders
 
-diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
-index 7799f4d16ce9..dccf0349e523 100644
---- a/fs/ocfs2/dir.c
-+++ b/fs/ocfs2/dir.c
-@@ -809,11 +809,17 @@ static int ocfs2_dx_dir_lookup_rec(struct inode *inode,
- 	}
- 
- 	if (!found) {
--		ret = ocfs2_error(inode->i_sb,
--				  "Inode %lu has bad extent record (%u, %u, 0) in btree\n",
--				  inode->i_ino,
--				  le32_to_cpu(rec->e_cpos),
--				  ocfs2_rec_clusters(el, rec));
-+		if (rec) {
-+			ret = ocfs2_error(inode->i_sb,
-+					"Inode %lu has bad extent record (%u, %u, 0) in btree\n",
-+					inode->i_ino,
-+					le32_to_cpu(rec->e_cpos),
-+					ocfs2_rec_clusters(el, rec));
-+		} else {
-+			ret = ocfs2_error(inode->i_sb,
-+					"Inode %lu has no extent records in btree\n",
-+					inode->i_ino);
-+		}
- 		goto out;
- 	}
- 
--- 
-2.45.2
+To change bug's subsystems, reply with:
+#syz set <Ref> subsystems: new-subsystem
 
+You may send multiple commands in a single email message.
