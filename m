@@ -1,31 +1,31 @@
-Received: from out30-110.freemail.mail.aliyun.com (out30-110.freemail.mail.aliyun.com [115.124.30.110])
+Received: from out30-99.freemail.mail.aliyun.com (out30-99.freemail.mail.aliyun.com [115.124.30.99])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id EA26F8633F
-	for <ocfs2-devel@lists.linux.dev>; Tue,  8 Jul 2025 00:56:16 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.110
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C27B881ACA
+	for <ocfs2-devel@lists.linux.dev>; Tue,  8 Jul 2025 00:59:15 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.99
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1751936179; cv=none; b=MFU6kr9jxdh+6HkO9+J90mlkz6Pvlv3sYRCxUeBKhPJVaajam6gCKCCSivuitoHfm9G/nGZphT/SnNmbKSPlrE4Lah7D4VM8rp+Lv4ymlKrFYFDC2MvA/I7Zjchtf4+e/H3bI8x74VssPAs26YB/O8O6oXC+rdIxnkptrkl7jY8=
+	t=1751936359; cv=none; b=FiZhvpPRy98tFl7ueGZDXiEgHTQ4QWSBtHmZsz6jHbplciTKXMQOgwBf9MkwQwhpc1n0ZZg28mFoOHrkmtMFQxb6PEa6kt1IZZd7kB14P6iWBBeq3YjqzaKVRK9ju/NB+Q/jx8yMN1CFB8zA6iT8KlDvVvlAvnf03Dr9d2jDJT8=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1751936179; c=relaxed/simple;
-	bh=gKzYZKEM18iJ8wliO5ywfTKA/wRjzfDEXO1rWz0ze/Y=;
+	s=arc-20240116; t=1751936359; c=relaxed/simple;
+	bh=pM9dYLWatSwaxucX+LnqjPG6C6W/esF84y9eDra37d0=;
 	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=SYR0v6/nWAsUK6lCLl+vAkVbHtoTv7IlfmE7quTFwXdhGdrNGekLF9mRkwV6nyXnnh5PfbCgB8biqeYa2E6xpfTAXjCd7U4KsYEHmaWMjXd/ZZ48Wu1YeXrbDyDJeuuSbb4rynPCxrULr2Yg+v4sNqLOQsh3ewyoYxQaJ6T7ozw=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=eZD4+EdT; arc=none smtp.client-ip=115.124.30.110
+	 In-Reply-To:Content-Type; b=PEeM6I/xX8BgrlgqLubCCz2OpS0iFltvqLjO7r+u1cRypFDCAr0mY4N2w/QsCZQMivTev0GV8V/jDFOO/6tGD3755466ax2T2+RX0/RrMBFuyyafmaflg3c5sMmb8StqeF303UXyuTr0f01sO08Fr5vcdieIzjcKs7wA6uPvrlg=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=JvzZx2Mp; arc=none smtp.client-ip=115.124.30.99
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="eZD4+EdT"
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="JvzZx2Mp"
 DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
 	d=linux.alibaba.com; s=default;
-	t=1751936169; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=tQWA0OJ15gb+o59aK8rJt+7RU1yraqUvbj8vhnlJAq4=;
-	b=eZD4+EdT/tGpU0AzCRLKV5mCB9bLQA+COgKkYkVz1j0IpjqgFdPMn57eyZ11BHRcqO4fQb4GkIQIyN61boHBlUwRCXEqqrl/2mRs5QFLlnGUVWKvHnMTlGm8i3z0azvgJMryOVDXkmg/XOVXlg+csEhM2TKWDLz5AZ681daPVP0=
-Received: from 30.221.128.116(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0WiI9BZO_1751936168 cluster:ay36)
+	t=1751936353; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=PbspvFHHJE7N1XKNWATpHnYf3TkWrZp08xKIarGIekI=;
+	b=JvzZx2MpuKgAmyXKxeZg1JxIsGWhXPtiU8lEX1LQdVCGwnSoK2cNXvXqHEEQsUL6S5dK0z4WahfPfnG/Awb6ykVKRssBRsHyBs28KE1dOCSs23OJvp66346WDCb+7u+SdfwIQXNUxQYfz5cPllBtYHbuJG9IyrXC8HPB3AXLdx4=
+Received: from 30.221.128.116(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0WiI9CPa_1751936352 cluster:ay36)
           by smtp.aliyun-inc.com;
-          Tue, 08 Jul 2025 08:56:08 +0800
-Message-ID: <44eb7510-2096-416d-b1b8-cbdc62313502@linux.alibaba.com>
-Date: Tue, 8 Jul 2025 08:56:06 +0800
+          Tue, 08 Jul 2025 08:59:12 +0800
+Message-ID: <3ac6bcb9-ac73-492c-a9f6-fbfb827c5967@linux.alibaba.com>
+Date: Tue, 8 Jul 2025 08:59:12 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -33,108 +33,60 @@ List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v3] ocfs2: avoid potential ABBA deadlock by reordering
- tl_inode lock
+Subject: Re: [PATCH v3] ocfs2: Avoid NULL pointer dereference in
+ dx_dir_lookup_rec()
 To: Ivan Pravdin <ipravdin.official@gmail.com>, mark@fasheh.com,
- jlbec@evilplan.org, ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org
-Cc: syzbot+6bf948e47f9bac7aacfa@syzkaller.appspotmail.com
-References: <20250708003519.379597-1-ipravdin.official@gmail.com>
+ jlbec@evilplan.org, ocfs2-devel@lists.linux.dev,
+ linux-kernel@vger.kernel.org, akpm <akpm@linux-foundation.org>
+Cc: syzbot+20282c1b2184a857ac4c@syzkaller.appspotmail.com
+References: <20250708001009.372263-1-ipravdin.official@gmail.com>
 From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <20250708003519.379597-1-ipravdin.official@gmail.com>
+In-Reply-To: <20250708001009.372263-1-ipravdin.official@gmail.com>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
 
 
-On 2025/7/8 08:35, Ivan Pravdin wrote:
-> In ocfs2_move_extent(), tl_inode is currently locked after the global
-> bitmap inode. However, in ocfs2_flush_truncate_log(), the lock order
-> is reversed: tl_inode is locked first, followed by the global bitmap
-> inode.
+On 2025/7/8 08:10, Ivan Pravdin wrote:
+> When a directory entry is not found, ocfs2_dx_dir_lookup_rec() prints an
+> error message that unconditionally dereferences the 'rec' pointer.
+> However, if 'rec' is NULL, this leads to a NULL pointer dereference and
+> a kernel panic.
 > 
-> This creates a classic ABBA deadlock scenario if two threads attempt
-> these operations concurrently and acquire the locks in different orders.
+> Add an explicit check empty extent list to avoid dereferencing NULL
+> 'rec' pointer.
 > 
-> To prevent this, move the tl_inode locking earlier in
-> ocfs2_move_extent(), so that it always precedes the global bitmap
-> inode lock.
-> 
-> No functional changes beyond lock ordering.
-> 
-> Reported-by: syzbot+6bf948e47f9bac7aacfa@syzkaller.appspotmail.com
-> Closes: https://lore.kernel.org/all/67d5645c.050a0220.1dc86f.0004.GAE@google.com/
+> Reported-by: syzbot+20282c1b2184a857ac4c@syzkaller.appspotmail.com
+> Closes: https://lore.kernel.org/all/67cd7e29.050a0220.e1a89.0007.GAE@google.com/
 > Signed-off-by: Ivan Pravdin <ipravdin.official@gmail.com>
+
+Looks fine.
+
+Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
 > ---
-> v1 -> v2: Fixed unlocking order in ocfs2_move_extent.
-> v2 -> v3: Added missing out_unlock_tl_inode and renamed out_unlock_gb_mutex to
-> 		  out_unlock_gb_inode and out_unlock_gb_inode to out_unlock.
+> v1 -> v2: Changed 'Closes:' tag to point to the correct bug report.
+> v2 -> v3: Added an explicit check for empty extent list before dereferencing 'rec'.
 > 
->  fs/ocfs2/move_extents.c | 19 +++++++++----------
->  1 file changed, 9 insertions(+), 10 deletions(-)
+>  fs/ocfs2/dir.c | 8 ++++++++
+>  1 file changed, 8 insertions(+)
 > 
-> diff --git a/fs/ocfs2/move_extents.c b/fs/ocfs2/move_extents.c
-> index 369c7d27befd..9d1fa8ecd97e 100644
-> --- a/fs/ocfs2/move_extents.c
-> +++ b/fs/ocfs2/move_extents.c
-> @@ -617,6 +617,8 @@ static int ocfs2_move_extent(struct ocfs2_move_extents_context *context,
->  	 */
->  	credits += OCFS2_INODE_UPDATE_CREDITS + 1;
+> diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
+> index 7799f4d16ce9..acbae902ae3a 100644
+> --- a/fs/ocfs2/dir.c
+> +++ b/fs/ocfs2/dir.c
+> @@ -798,6 +798,14 @@ static int ocfs2_dx_dir_lookup_rec(struct inode *inode,
+>  		}
+>  	}
 >  
-> +	inode_lock(tl_inode);
+> +	if (le16_to_cpu(el->l_next_free_rec) == 0) {
+> +		ret = ocfs2_error(inode->i_sb,
+> +				  "Inode %lu has empty extent list at depth %u\n",
+> +				  inode->i_ino, 
+> +				  le16_to_cpu(el->l_tree_depth));
+> +		goto out;
+> +	}
 > +
->  	/*
->  	 * ocfs2_move_extent() didn't reserve any clusters in lock_allocators()
->  	 * logic, while we still need to lock the global_bitmap.
-> @@ -626,7 +628,7 @@ static int ocfs2_move_extent(struct ocfs2_move_extents_context *context,
->  	if (!gb_inode) {
->  		mlog(ML_ERROR, "unable to get global_bitmap inode\n");
->  		ret = -EIO;
-> -		goto out;
-> +		goto out_unlock_tl_inode;
->  	}
->  
->  	inode_lock(gb_inode);
-> @@ -634,16 +636,14 @@ static int ocfs2_move_extent(struct ocfs2_move_extents_context *context,
->  	ret = ocfs2_inode_lock(gb_inode, &gb_bh, 1);
->  	if (ret) {
->  		mlog_errno(ret);
-> -		goto out_unlock_gb_mutex;
-> +		goto out_unlock_gb_inode;
->  	}
->  
-> -	inode_lock(tl_inode);
-> -
->  	handle = ocfs2_start_trans(osb, credits);
->  	if (IS_ERR(handle)) {
->  		ret = PTR_ERR(handle);
->  		mlog_errno(ret);
-> -		goto out_unlock_tl_inode;
-> +		goto out_unlock;
->  	}
->  
->  	new_phys_blkno = ocfs2_clusters_to_blocks(inode->i_sb, *new_phys_cpos);
-> @@ -703,13 +703,12 @@ static int ocfs2_move_extent(struct ocfs2_move_extents_context *context,
->  out_commit:
->  	ocfs2_commit_trans(osb, handle);
->  	brelse(gd_bh);
-> -
-> -out_unlock_tl_inode:
-> -	inode_unlock(tl_inode);
-> -
-> +out_unlock:
->  	ocfs2_inode_unlock(gb_inode, 1);
-> -out_unlock_gb_mutex:
-> +out_unlock_gb_inode:
->  	inode_unlock(gb_inode);
-> +out_unlock_tl_inode:
-> +	inode_unlock(tl_inode);
-
-Ummm... I'd rather keep gb_inode cleanup together.
-
-Thanks,
-Joseph
-
->  	brelse(gb_bh);
->  	iput(gb_inode);
->  
+>  	found = 0;
+>  	for (i = le16_to_cpu(el->l_next_free_rec) - 1; i >= 0; i--) {
+>  		rec = &el->l_recs[i];
 
