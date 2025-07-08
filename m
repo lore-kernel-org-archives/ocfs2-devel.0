@@ -1,118 +1,196 @@
-Received: from mail-pl1-f170.google.com (mail-pl1-f170.google.com [209.85.214.170])
+Received: from mail-pl1-f175.google.com (mail-pl1-f175.google.com [209.85.214.175])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 88BEA7464
-	for <ocfs2-devel@lists.linux.dev>; Tue,  8 Jul 2025 00:11:02 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.214.170
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B379F7464
+	for <ocfs2-devel@lists.linux.dev>; Tue,  8 Jul 2025 00:12:53 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.214.175
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1751933464; cv=none; b=q1j3XvwOoEjH5Ll4MO33G95FVhvYunIzTCFPrVxG0BtvmQJ1LA1cq1V5nv2qKUfRfyH66lzOzlXZDKR+qS8j+XKcsVh5ORZ/DicOymyEAX8RL3qhMe1Wk/H70+peBAXMXvDv2WJBvBjAVwH1RIQlhLPgSYaIDdYG0FEsTGp7VcM=
+	t=1751933575; cv=none; b=QE1zLWKSlE3tAu2JOW/eRUinvUc4odv9A70iLcUWrHRQ+DxLXNWrk6t5z2n4Uh45QyuPL2gd/Z0P+E25+jtnNr01271kKK/JlckYteI5ttZbJS14m9GxGxTGumxxHKde00y9YM50JI4Tkdp4QxGYf5s5j/mVIHqxPQmHY+nKJTE=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1751933464; c=relaxed/simple;
-	bh=hTEgnzFsn58I7qCWXrtgfCzqxG3NFcTiCpWp5P3knE0=;
-	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=jyutv4DChEt6sp5ZBE8BwDFS6Rn4WnLKtOGbwpK5OcBKNlRlzxQbX4UQa/xRGGIR1nAEq3i9oKSIzvAHFuIhxtCrJ/eC/m8Pvbth+q5IZybIrwKEX9ezYKpG4ffmJ4f43NrRkLSOdRfh3O5RMvdFd08wX6Lkfs6FgfnPpMTwQGs=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=JgWHf9mz; arc=none smtp.client-ip=209.85.214.170
+	s=arc-20240116; t=1751933575; c=relaxed/simple;
+	bh=Cg4tCmXPkkrOzlKioCxtCYjIxNt95LxUF88Gb+F6is8=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=JVac13hst/pdY1l1kBbxDWKjlGsDtwxitYnOpWjXJrKl0KfluWc8vG8L0yA94P4l7jxjauNSf14NTL9goQEJ6RrPBDDaLrBVCe5d40CNkTWpWxEQLgXQeYV19r5Sdk0vLtPHgw6u8DVp99e4WosP4kJ+HBbGNbIBDJvAsTClFm8=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=cegliNsN; arc=none smtp.client-ip=209.85.214.175
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="JgWHf9mz"
-Received: by mail-pl1-f170.google.com with SMTP id d9443c01a7336-235ef62066eso59496765ad.3
-        for <ocfs2-devel@lists.linux.dev>; Mon, 07 Jul 2025 17:11:02 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="cegliNsN"
+Received: by mail-pl1-f175.google.com with SMTP id d9443c01a7336-235ef62066eso59517005ad.3
+        for <ocfs2-devel@lists.linux.dev>; Mon, 07 Jul 2025 17:12:53 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1751933462; x=1752538262; darn=lists.linux.dev;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:from:to:cc:subject:date:message-id:reply-to;
-        bh=BfCZij8RJREKbVNdbJw+wlokllFTjyfrm2PqoXoq6YI=;
-        b=JgWHf9mzGeGEGbAjkLyygni3E565Ean7TNa4yrrmge76p0XfvQXXgEWM8nwF07O5yE
-         V5ntjP2OTw6j0WopPexAKM6mtOFBVjJ0qbRamAISr48BDWOaN5SPiDy5dSE0hTc1bYNN
-         k8uFZNtMG4Bte2WbCoSkW7yZ/Ufn0taOtCz2sZdiLWwbcJ4wP+TDw6c32TQaK7L5Nw91
-         PnD4UaLUP4dras9gOEW/Y+clNe8BitD+CMvyd9SJWsS3VrE9ojl90Hn6VUiKKqbmbbjN
-         0yNPFUf1Jv/ASlLAIr5N6Ydy7h0o48UQ/QggN/v/eaOvJNarFt6hJGr3LFzvuU2UMShp
-         A/Bw==
+        d=gmail.com; s=20230601; t=1751933573; x=1752538373; darn=lists.linux.dev;
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:cc:to:from:date:from:to:cc:subject:date:message-id:reply-to;
+        bh=JlDwzugOo/DKjpqS8sAMSEvnbA//RO2aaxdwNuyUoE8=;
+        b=cegliNsNJOp9jl8gI+PTvfILvzFx+2CTUAm70ar3e1UOxDoAM3BasYxCdy4tCfJzvl
+         YPRaqy4onqi4wCxqi+KZeF0ZKu8GBilv7+Wn+BLTr8AJLZZhqNi64UZDbj0QqDlm5WJ8
+         tVad5EPAFg8D5XZ91ETIHDUjnz2p60Qt07Rz+6bM1CFKqRsBvwkk1tFnnbK7gKGjoh/G
+         goEDJ0k9OSXug1b/Dt4x6Bd79DhU8kNyDvkEBjMCATu4kM9M6ucB9TR2JSy32SLG57/e
+         BebLdCVcioxBZm5+0KUh/zhKljleHMBSvTp89lR0ts0Xq58uhaJ5JwHoI2T1Nqi6ywCq
+         fAjQ==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1751933462; x=1752538262;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:x-gm-message-state:from:to:cc:subject:date:message-id
-         :reply-to;
-        bh=BfCZij8RJREKbVNdbJw+wlokllFTjyfrm2PqoXoq6YI=;
-        b=cIWgFNrr///6CvGXY7DO/H5D9p8wbvWnV5bul/9cDX6/zBc36igvqN1D9F/uEkdA7A
-         fsQ5cWywMGRs0HfA+R6IHLKimnP5gRUpDlTkewdRY/29L6HLJKNsfNG8g29EExw+cJ4U
-         Z4yFiN3/7e2JuXanZq/Z4pMXICG/b7CoSCrFmeFGRGK38+J93c3IcUoMwwf318MhwLJY
-         aB0k7NNqc6AjQV1V23+rAuvIZFqRCK0dyT9h4RonkaNbsZ3np13YqWaX1Hf76W+dtQrQ
-         BphvvK3MhlccTWgp3Ym8oKngV6ZfJegHyq6LLyZ2lSToi8Ydt/T4bmnp/bvagfEnwjNm
-         QNiA==
-X-Forwarded-Encrypted: i=1; AJvYcCUFIdsy/v6FxVk/c4dWNTUbG4uuaAMrrpQpSt+wG+uVtEZOm8f9d+9nplvaOg+9qfQurvLd2OIMJHCahg==@lists.linux.dev
-X-Gm-Message-State: AOJu0YxN1LDedNGy/arb0vyGfpj/aBh8JUuIgvEdRrF+t02he1fB2+c3
-	wDt992McmSH/eme/6VytLt7SGvy2VKsaOmODSuxix0Wrx8gwKXNKce1R
-X-Gm-Gg: ASbGncsDI91xmNwIb5wfY9aFVeMTfmm/znj/jquehvJGddfTDUe+o7/GcnR2mnVRbL3
-	/oqenHigTV/vgBMeaqoTYBVeMD5rdcJ7C7QFCi1lurrXH30G14twVGnm7AeyY996l/rvuKeifPR
-	D1UwvKfXl2YJAL4TOcxDPzCuiQYEYtFTJUfSz0Ci1vD/g95SMfDZ9rFlUKe37CtUcD+6+bqMjwx
-	RewZ8ulpN+bkdVcDqY8hYo9M8LESIk2E2Ww/96YRVTC8cCmY1YWiT0HvX4bRlOxdIyv0wy0bHRc
-	J5678Qg0yiWTo+0u7Xe/wpcwBg0ndQe+wL8P9FR2JmbVAwYerzPQn4sWy1Eu04js/8cd8duOH91
-	4AtK3MF+cis4wqG+4qGmy2qpxVulgWHog3CZU2yY=
-X-Google-Smtp-Source: AGHT+IGLVmMcadCxwlrT4ZGji6+CcJm/SC8kmOZnTvgPO526njwVB4crClOviGUc7HUtFOwFwrs4nw==
-X-Received: by 2002:a17:902:ea04:b0:234:c5c1:9b84 with SMTP id d9443c01a7336-23dd1d586cfmr7340745ad.37.1751933461712;
-        Mon, 07 Jul 2025 17:11:01 -0700 (PDT)
-Received: from ipravd-Nitro-AN515-55.hsd1.ca.comcast.net ([2601:646:a000:5fc0:268b:48b1:88cf:6e90])
-        by smtp.gmail.com with ESMTPSA id d9443c01a7336-23c845bd366sm102928615ad.240.2025.07.07.17.11.00
+        d=1e100.net; s=20230601; t=1751933573; x=1752538373;
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:cc:to:from:date:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=JlDwzugOo/DKjpqS8sAMSEvnbA//RO2aaxdwNuyUoE8=;
+        b=tXiGvR9XY+Gq4xR0zBkwTQXELybWPC20eRsvxJmISmGw5x2bMEVPsDAUjeCVXwwN6v
+         Sjo8AgCYI6Dv5coYfhYx4id3J5eU7JGBqkDSl5O6LMdHJsVC+FcS3bfd2mK1lbW3nIUx
+         ksRgNJRZ47OiCegZS+zIuXS9kiatVUidNUrbeIeSkv0BVNY2i6p7tAXYEieNuVBfsI3P
+         5DxUI0owuNDAzQhl5LHLf2jAvTl8M7qXK7Gfg+fNXQlh8qY8wzS6cZnPlVUlR7rajiuF
+         uafT85/w+CIzFfmp82r3bKqrSBnYwy+urL8dbXy6F2O3HauzIcEXCQrcff8ZRwDZeVFs
+         3hqw==
+X-Forwarded-Encrypted: i=1; AJvYcCU8oazCJf7TTOkArgiX5D6KkB4YN37S5BLmgjyCuLRNj+5FJy0UeDyhKHUWDgZ1CAvVyws7mPmiYb0fvA==@lists.linux.dev
+X-Gm-Message-State: AOJu0Yzoay2GE4j2ivXCsbISj4HiNTdz2tCkeltOOifoo/Ff0ZypaVd8
+	cHmMnWGDZWsEB/uNjveOuPp6HMWDUde66FGleEFTpv3NtUZY3Zbad6IK
+X-Gm-Gg: ASbGncux3T9QS0ufxTN2MHd92QEY+Si33wcvxmr1P8LZyEVdzE8zEIMHSRwcXHGpakA
+	p4083emm3hZokD+QEQc+9xgnLQEihYnlJiro+lLvh+01e2r51jg8beNUbYmAF+WPDt3h6bzTts3
+	S6cGK0mdzL6n9Ci06ubWUNh0V1r6ak/b0N4qu+dVt1ZFEXodSoCxr5X4/8OKmRInDNdjjl7E23a
+	J3gB1GiXUJz872z0uEH0/vpP1YENRGTiKP2f/sxtURSbem07924tCuCHexi3PgJG5Iwy0mxkKpb
+	XkDTtcjR/WSmlLJ3N+dVaeNqVZuyOuxCSDXt1+GyafYiGnE4KMwuJNdt4jpdGf1zxavpKPflHYk
+	QNHWPgl8kBQhZ
+X-Google-Smtp-Source: AGHT+IGlPYMAjX8N776SnDST+Z1sse3S9TOfo1i7zhuj4vhzwygHl5zuojjfRSeH5rNOjJDfITTiyg==
+X-Received: by 2002:a17:903:4b2d:b0:238:f2a:8893 with SMTP id d9443c01a7336-23dd1d5dcb4mr8076965ad.42.1751933572939;
+        Mon, 07 Jul 2025 17:12:52 -0700 (PDT)
+Received: from ipravd-Nitro-AN515-55 ([2601:646:a000:5fc0:268b:48b1:88cf:6e90])
+        by smtp.gmail.com with ESMTPSA id d9443c01a7336-23c845810a5sm101956885ad.180.2025.07.07.17.12.52
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Mon, 07 Jul 2025 17:11:01 -0700 (PDT)
+        Mon, 07 Jul 2025 17:12:52 -0700 (PDT)
+Date: Mon, 7 Jul 2025 20:12:49 -0400
 From: Ivan Pravdin <ipravdin.official@gmail.com>
-To: mark@fasheh.com,
-	jlbec@evilplan.org,
-	joseph.qi@linux.alibaba.com,
-	ocfs2-devel@lists.linux.dev,
-	linux-kernel@vger.kernel.org
-Cc: Ivan Pravdin <ipravdin.official@gmail.com>,
-	syzbot+20282c1b2184a857ac4c@syzkaller.appspotmail.com
-Subject: [PATCH v3] ocfs2: Avoid NULL pointer dereference in dx_dir_lookup_rec()
-Date: Mon,  7 Jul 2025 20:10:09 -0400
-Message-ID: <20250708001009.372263-1-ipravdin.official@gmail.com>
-X-Mailer: git-send-email 2.45.2
+To: Joseph Qi <joseph.qi@linux.alibaba.com>, mark@fasheh.com, 
+	jlbec@evilplan.org, ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org
+Cc: syzbot+6bf948e47f9bac7aacfa@syzkaller.appspotmail.com
+Subject: Re: [PATCH v2] ocfs2: avoid potential ABBA deadlock by reordering
+ tl_inode lock
+Message-ID: <kxo27vjuqawoynwttpg56tzhvxeuobmvgdfglp5g2xcuy4vfnq@t7t4zxq27qon>
+References: <20250707032951.361331-1-ipravdin.official@gmail.com>
+ <11999e4c-b0ef-4718-8e93-75363729515a@linux.alibaba.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <11999e4c-b0ef-4718-8e93-75363729515a@linux.alibaba.com>
 
-When a directory entry is not found, ocfs2_dx_dir_lookup_rec() prints an
-error message that unconditionally dereferences the 'rec' pointer.
-However, if 'rec' is NULL, this leads to a NULL pointer dereference and
-a kernel panic.
+On Mon, Jul 07, 2025 at 01:58:35PM GMT, Joseph Qi wrote:
+> >  	/*
+> >  	 * ocfs2_move_extent() didn't reserve any clusters in lock_allocators()
+> >  	 * logic, while we still need to lock the global_bitmap.
+> > @@ -637,13 +639,11 @@ static int ocfs2_move_extent(struct ocfs2_move_extents_context *context,
+> >  		goto out_unlock_gb_mutex;
+> >  	}
+> >
+> 
+> You've missed unlock tl_inode when ocfs2_get_system_file_inode() fails.
 
-Add an explicit check empty extent list to avoid dereferencing NULL
-'rec' pointer.
+I will add it, thanks.
 
-Reported-by: syzbot+20282c1b2184a857ac4c@syzkaller.appspotmail.com
-Closes: https://lore.kernel.org/all/67cd7e29.050a0220.e1a89.0007.GAE@google.com/
-Signed-off-by: Ivan Pravdin <ipravdin.official@gmail.com>
----
-v1 -> v2: Changed 'Closes:' tag to point to the correct bug report.
-v2 -> v3: Added an explicit check for empty extent list before dereferencing 'rec'.
+> 
+>   
+> > -	inode_lock(tl_inode);
+> > -
+> >  	handle = ocfs2_start_trans(osb, credits);
+> >  	if (IS_ERR(handle)) {
+> >  		ret = PTR_ERR(handle);
+> >  		mlog_errno(ret);
+> > -		goto out_unlock_tl_inode;
+> > +		goto out_unlock_gb_inode;
+> >  	}
+> >  
+> >  	new_phys_blkno = ocfs2_clusters_to_blocks(inode->i_sb, *new_phys_cpos);
+> > @@ -704,12 +704,13 @@ static int ocfs2_move_extent(struct ocfs2_move_extents_context *context,
+> >  	ocfs2_commit_trans(osb, handle);
+> >  	brelse(gd_bh);
+> >  
+> > -out_unlock_tl_inode:
+> > -	inode_unlock(tl_inode);
+> > -
+> > +out_unlock_gb_inode:
+> >  	ocfs2_inode_unlock(gb_inode, 1);
+> > +
+> >  out_unlock_gb_mutex:
+> 
+> inode lock has changed to rw_semaphore, so 'mutex' is no longer proper. 
+> 
+> >  	inode_unlock(gb_inode);
+> > +
+> > +	inode_unlock(tl_inode);
+> >  	brelse(gb_bh);
+> >  	iput(gb_inode);
+> >  
+> 
+> How about the following alternative:
+> 
+> diff --git a/fs/ocfs2/move_extents.c b/fs/ocfs2/move_extents.c
+> index 369c7d27befd..d56c337204f6 100644
+> --- a/fs/ocfs2/move_extents.c
+> +++ b/fs/ocfs2/move_extents.c
+> @@ -611,6 +611,8 @@ static int ocfs2_move_extent(struct ocfs2_move_extents_context *context,
+>  		goto out;
+>  	}
+>  
+> +	inode_lock(tl_inode);
+> +
+>  	/*
+>  	 * need to count 2 extra credits for global_bitmap inode and
+>  	 * group descriptor.
+> @@ -626,7 +628,7 @@ static int ocfs2_move_extent(struct ocfs2_move_extents_context *context,
+>  	if (!gb_inode) {
+>  		mlog(ML_ERROR, "unable to get global_bitmap inode\n");
+>  		ret = -EIO;
+> -		goto out;
+> +		goto out_unlock_tl_inode;
+>  	}
+>  
+>  	inode_lock(gb_inode);
+> @@ -634,16 +636,14 @@ static int ocfs2_move_extent(struct ocfs2_move_extents_context *context,
+>  	ret = ocfs2_inode_lock(gb_inode, &gb_bh, 1);
+>  	if (ret) {
+>  		mlog_errno(ret);
+> -		goto out_unlock_gb_mutex;
+> +		goto out_unlock_gb_inode;
+>  	}
+>  
+> -	inode_lock(tl_inode);
+> -
+>  	handle = ocfs2_start_trans(osb, credits);
+>  	if (IS_ERR(handle)) {
+>  		ret = PTR_ERR(handle);
+>  		mlog_errno(ret);
+> -		goto out_unlock_tl_inode;
+> +		goto out_unlock;
+>  	}
+>  
+>  	new_phys_blkno = ocfs2_clusters_to_blocks(inode->i_sb, *new_phys_cpos);
+> @@ -703,16 +703,14 @@ static int ocfs2_move_extent(struct ocfs2_move_extents_context *context,
+>  out_commit:
+>  	ocfs2_commit_trans(osb, handle);
+>  	brelse(gd_bh);
+> -
+> -out_unlock_tl_inode:
+> -	inode_unlock(tl_inode);
+> -
+> +out_unlock:
+>  	ocfs2_inode_unlock(gb_inode, 1);
+> -out_unlock_gb_mutex:
+> +out_unlock_gb_inode:
+>  	inode_unlock(gb_inode);
+>  	brelse(gb_bh);
+>  	iput(gb_inode);
+> -
+> +out_unlock_tl_inode:
+> +	inode_unlock(tl_inode);
+>  out:
+>  	if (context->meta_ac) {
+>  		ocfs2_free_alloc_context(context->meta_ac);
+> 
+> 
 
- fs/ocfs2/dir.c | 8 ++++++++
- 1 file changed, 8 insertions(+)
+This is definitely better. I will update the patch, thank you.
 
-diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
-index 7799f4d16ce9..acbae902ae3a 100644
---- a/fs/ocfs2/dir.c
-+++ b/fs/ocfs2/dir.c
-@@ -798,6 +798,14 @@ static int ocfs2_dx_dir_lookup_rec(struct inode *inode,
- 		}
- 	}
- 
-+	if (le16_to_cpu(el->l_next_free_rec) == 0) {
-+		ret = ocfs2_error(inode->i_sb,
-+				  "Inode %lu has empty extent list at depth %u\n",
-+				  inode->i_ino, 
-+				  le16_to_cpu(el->l_tree_depth));
-+		goto out;
-+	}
-+
- 	found = 0;
- 	for (i = le16_to_cpu(el->l_next_free_rec) - 1; i >= 0; i--) {
- 		rec = &el->l_recs[i];
--- 
-2.45.2
-
+	Ivan Pravdin
