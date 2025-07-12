@@ -1,157 +1,165 @@
-Received: from mail-io1-f78.google.com (mail-io1-f78.google.com [209.85.166.78])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6B5E7158DAC
-	for <ocfs2-devel@lists.linux.dev>; Fri, 11 Jul 2025 16:45:34 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.166.78
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 100BE19DF60;
+	Sat, 12 Jul 2025 23:18:13 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1752252336; cv=none; b=hzIGQ0dD+NpqXamk9Ayln8Xj+bXIXAunp8gojHeWQP3d/x5cHbNIztB55hx+xuqVojZRKffICyo1Tuhoy96Kn/MexNAITFJfMaOG+9sEgndld8PQfe9koS1ZKPmLjrQY8/QVwzyOGMcaP/h4ZUzGvsfO5aJEDkkvgv+Z4GTY/fo=
+	t=1752362294; cv=none; b=JyVl5UbdLaGXiPhvQx/YhnpTqUog1B192PkMb+nPAkS2PUN8zADzA1h7uPExA2mG9IxAY2/7bBsClNePUMgpBZZFo3nLPbzdcgQPM5/wgL6a/05H/p9NqsjJKy+Y1enOXpjOkKYz4VLAe1hgto/wmQ5oqnkvUF0zMiUFVLmPfPE=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1752252336; c=relaxed/simple;
-	bh=U8rtxlH0XaZDEaBMRNa2KGvLQ/MK49Be3B3sLYvwd5Q=;
-	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=V9UtBrc6rn3kc6025OhQFvBX1GT0hBgCee3xfsv8W2odVM5LEST/9GexXseU3CT09hDXPzjLJoWS339zf5v2oV8bj4Q2GDjsymNMTyq2wnSdKRKP5+tZCHkdPGsIpo0p7uJC90d2L9kw04CTvzpoDh6CFGdCG1OMIa16UgnTvgw=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.166.78
-Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
-Received: by mail-io1-f78.google.com with SMTP id ca18e2360f4ac-875bd5522e9so215507539f.2
-        for <ocfs2-devel@lists.linux.dev>; Fri, 11 Jul 2025 09:45:34 -0700 (PDT)
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1752252333; x=1752857133;
-        h=to:from:subject:message-id:date:mime-version:x-gm-message-state
-         :from:to:cc:subject:date:message-id:reply-to;
-        bh=VABQq6clAbkWUdOYNzYc9iQd65dtpXS3iY2Z8Y1HDsU=;
-        b=r7McWrk17ijvOfFB+Pg8QnF4cAoG+hYZBNhreXgdR0+p+j6bsP6Vxsd2UYtjUc2GsK
-         W/d0LWyBJ07AJV0EnA1pFi9MJ3fb5bGcwjcDWhAP4PE79LKgR4vSdvv813xgQhEp4ID3
-         v4zUpUnxyu8jWdb1qVPRY39jg2LFukky+/Kfkq6Aqv9bYJx+8jI6eLYy/MTlXQm3+gnm
-         NKygyZznpfBuMMz9aYjgby1xR9BPH7r754eswS0g9y29v6COII4rMQDYO18oBdIyoIMO
-         ZpjYTqZvrxhUpCe27KSOjTVziXgVa/0EG4LUSRT3no/hiP0U9dObwg3ilnz+M/Eiia3J
-         /TCg==
-X-Forwarded-Encrypted: i=1; AJvYcCVaGOzyuJEt4WhqIa2GH57wFDrdGs/eB6WF3n3HKrbO9QTLoZ4Ybqwkup6WaELl+cWA+mpscWaE+0gkJg==@lists.linux.dev
-X-Gm-Message-State: AOJu0YxbhsfKVqu4HDc0LWa42dErnc3OLQP3ZowXtpUJn8SBGvgVKx9o
-	/4agCKxXZIPNkPnsNQqqFC7thFiX6u+Em8EEx1iwbFEWMy+MWwNYfvEcMyQgmomO0naKn3pavBv
-	u1HGW4ys+s0w5P7h6RS7LSqCBTQC2iV3fpG9y/NugfzEaUIEABO4vBq+xBSs=
-X-Google-Smtp-Source: AGHT+IEwK4QlIslDs3x7cwpRkWnuKvamjsjEMwyTySNMtTCxZaSuKOm07E/6SIHV/FPLFPUFmpkd3YCu8qwGO0ZheCPftccMVIaf
+	s=arc-20240116; t=1752362294; c=relaxed/simple;
+	bh=r1SaOoZt7FzQ6Gt3JS5iJQ6793PbUaiJfuBYkJxxFwA=;
+	h=Date:From:To:Cc:Subject:Message-Id:In-Reply-To:References:
+	 Mime-Version:Content-Type; b=q4+wR4F2EJOB86Ib7qqrwFH5kfRzc8dmWjoKuMA3jDgN6pkXDbTlubetvucdA7BDJLH7ocd7qG672yub+mEfj3cAigM0uGHy4x8eEL7hYZ4IJJHJvzXOnUtFhDTJskFl/GsCw3M3bggblPjTAsu5kXh9ibfjOvEmHTV4GzZGjAQ=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b=LTgbB66i; arc=none smtp.client-ip=10.30.226.201
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b="LTgbB66i"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id AE2A0C4CEEF;
+	Sat, 12 Jul 2025 23:18:13 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linux-foundation.org;
+	s=korg; t=1752362293;
+	bh=r1SaOoZt7FzQ6Gt3JS5iJQ6793PbUaiJfuBYkJxxFwA=;
+	h=Date:From:To:Cc:Subject:In-Reply-To:References:From;
+	b=LTgbB66iEBsXt7LbwFWnZ5SrXdHATRRE/wAIRhpWOc7hY4A6j/AAzkXGD/iY7PeE2
+	 DpZafWDJXTdOoZYOesNQG7sbzBz0CPDtv/I7xpjDCyfIkSrVpVfaxM2DQz5JF+aGkE
+	 0LH2vBVN4c5j+MjOHGJXBHxqmYN3p8auqirYfd3s=
+Date: Sat, 12 Jul 2025 16:18:13 -0700
+From: Andrew Morton <akpm@linux-foundation.org>
+To: =?UTF-8?B?55m954OB5YaJ?= <baishuoran@hrbeu.edu.cn>
+Cc: "Kun Hu" <huk23@m.fudan.edu.cn>, "Jiaji Qin" <jjtan24@m.fudan.edu.cn>,
+ syzkaller@googlegroups.com, linux-kernel@vger.kernel.org,
+ ocfs2-devel@lists.linux.dev
+Subject: Re: BUG: unable to handle kernel paging request in
+ const_folio_flags
+Message-Id: <20250712161813.44b62c947535cb78a3a4c9be@linux-foundation.org>
+In-Reply-To: <45a4da17.13ec7.197f8ec50fb.Coremail.baishuoran@hrbeu.edu.cn>
+References: <45a4da17.13ec7.197f8ec50fb.Coremail.baishuoran@hrbeu.edu.cn>
+X-Mailer: Sylpheed 3.8.0beta1 (GTK+ 2.24.33; x86_64-pc-linux-gnu)
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
-MIME-Version: 1.0
-X-Received: by 2002:a05:6602:4804:b0:873:1cc0:ae59 with SMTP id
- ca18e2360f4ac-879787fc64emr482396539f.5.1752252333610; Fri, 11 Jul 2025
- 09:45:33 -0700 (PDT)
-Date: Fri, 11 Jul 2025 09:45:33 -0700
-X-Google-Appengine-App-Id: s~syzkaller
-X-Google-Appengine-App-Id-Alias: syzkaller
-Message-ID: <68713fad.a00a0220.26a83e.0057.GAE@google.com>
-Subject: [syzbot] [ocfs2?] kernel BUG in ocfs2_truncate_log_needs_flush (2)
-From: syzbot <syzbot+c24237f0eee59c0c2abb@syzkaller.appspotmail.com>
-To: jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
-	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
-	syzkaller-bugs@googlegroups.com
-Content-Type: text/plain; charset="UTF-8"
+Mime-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 
-Hello,
+(cc ocfs2-devel)
 
-syzbot found the following issue on:
+On Fri, 11 Jul 2025 17:58:46 +0800 (GMT+08:00) 白烁冉 <baishuoran@hrbeu.edu.cn> wrote:
 
-HEAD commit:    8c2e52ebbe88 eventpoll: don't decrement ep refcount while ..
-git tree:       upstream
-console output: https://syzkaller.appspot.com/x/log.txt?x=177cea8c580000
-kernel config:  https://syzkaller.appspot.com/x/.config?x=b309c907eaab29da
-dashboard link: https://syzkaller.appspot.com/bug?extid=c24237f0eee59c0c2abb
-compiler:       Debian clang version 20.1.7 (++20250616065708+6146a88f6049-1~exp1~20250616065826.132), Debian LLD 20.1.7
-syz repro:      https://syzkaller.appspot.com/x/repro.syz?x=12e99bd4580000
-C reproducer:   https://syzkaller.appspot.com/x/repro.c?x=1702c0f0580000
-
-Downloadable assets:
-disk image (non-bootable): https://storage.googleapis.com/syzbot-assets/d900f083ada3/non_bootable_disk-8c2e52eb.raw.xz
-vmlinux: https://storage.googleapis.com/syzbot-assets/fd9c3cb36878/vmlinux-8c2e52eb.xz
-kernel image: https://storage.googleapis.com/syzbot-assets/0f323b0a9d42/bzImage-8c2e52eb.xz
-mounted in repro: https://storage.googleapis.com/syzbot-assets/d0ab42c91b28/mount_0.gz
-  fsck result: OK (log: https://syzkaller.appspot.com/x/fsck.log?x=14e99bd4580000)
-
-IMPORTANT: if you fix the issue, please add the following tag to the commit:
-Reported-by: syzbot+c24237f0eee59c0c2abb@syzkaller.appspotmail.com
-
-(syz.0.16,5478,0):ocfs2_truncate_log_needs_flush:5830 ERROR: bug expression: le16_to_cpu(tl->tl_used) > le16_to_cpu(tl->tl_count)
-(syz.0.16,5478,0):ocfs2_truncate_log_needs_flush:5830 ERROR: slot 0, invalid truncate log parameters: used = 128, count = 39
-------------[ cut here ]------------
-kernel BUG at fs/ocfs2/alloc.c:5830!
-Oops: invalid opcode: 0000 [#1] SMP KASAN NOPTI
-CPU: 0 UID: 0 PID: 5478 Comm: syz.0.16 Not tainted 6.16.0-rc5-syzkaller-00053-g8c2e52ebbe88 #0 PREEMPT(full) 
-Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.16.3-debian-1.16.3-2~bpo12+1 04/01/2014
-RIP: 0010:ocfs2_truncate_log_needs_flush+0x2d8/0x2e0 fs/ocfs2/alloc.c:5827
-Code: 0f b7 00 4c 89 e7 48 c7 c6 35 c0 a6 8d ba c6 16 00 00 48 c7 c1 c0 23 ca 8b 45 89 e8 45 89 f9 50 e8 5d 11 1e 00 48 83 c4 08 90 <0f> 0b 66 0f 1f 44 00 00 90 90 90 90 90 90 90 90 90 90 90 90 90 90
-RSP: 0018:ffffc90002c7f540 EFLAGS: 00010292
-RAX: c11493c73e537600 RBX: ffff888031704174 RCX: c11493c73e537600
-RDX: 0000000000000000 RSI: 0000000080000000 RDI: 0000000000000000
-RBP: ffffc90002c7f610 R08: ffffc90002c7f107 R09: 1ffff9200058fe20
-R10: dffffc0000000000 R11: fffff5200058fe21 R12: ffffc90002c7f5a0
-R13: 0000000000000000 R14: 1ffff11007d6bf58 R15: 0000000000000080
-FS:  000055557c057500(0000) GS:ffff88808d21b000(0000) knlGS:0000000000000000
-CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-CR2: 0000200000001400 CR3: 000000004f209000 CR4: 0000000000352ef0
-Call Trace:
- <TASK>
- ocfs2_xattr_set+0xaea/0x11f0 fs/ocfs2/xattr.c:3624
- __vfs_setxattr+0x439/0x480 fs/xattr.c:200
- __vfs_setxattr_noperm+0x12d/0x660 fs/xattr.c:234
- vfs_setxattr+0x16b/0x2f0 fs/xattr.c:321
- do_setxattr fs/xattr.c:636 [inline]
- filename_setxattr+0x274/0x600 fs/xattr.c:665
- path_setxattrat+0x364/0x3a0 fs/xattr.c:713
- __do_sys_setxattr fs/xattr.c:747 [inline]
- __se_sys_setxattr fs/xattr.c:743 [inline]
- __x64_sys_setxattr+0xbc/0xe0 fs/xattr.c:743
- do_syscall_x64 arch/x86/entry/syscall_64.c:63 [inline]
- do_syscall_64+0xfa/0x3b0 arch/x86/entry/syscall_64.c:94
- entry_SYSCALL_64_after_hwframe+0x77/0x7f
-RIP: 0033:0x7f0edcd8e929
-Code: ff ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 40 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 a8 ff ff ff f7 d8 64 89 01 48
-RSP: 002b:00007ffd28be2a78 EFLAGS: 00000246 ORIG_RAX: 00000000000000bc
-RAX: ffffffffffffffda RBX: 00007f0edcfb5fa0 RCX: 00007f0edcd8e929
-RDX: 0000200000001400 RSI: 0000200000000240 RDI: 00002000000001c0
-RBP: 00007f0edce10b39 R08: 0000000000000000 R09: 0000000000000000
-R10: 0000000000000841 R11: 0000000000000246 R12: 0000000000000000
-R13: 00007f0edcfb5fa0 R14: 00007f0edcfb5fa0 R15: 0000000000000005
- </TASK>
-Modules linked in:
----[ end trace 0000000000000000 ]---
-RIP: 0010:ocfs2_truncate_log_needs_flush+0x2d8/0x2e0 fs/ocfs2/alloc.c:5827
-Code: 0f b7 00 4c 89 e7 48 c7 c6 35 c0 a6 8d ba c6 16 00 00 48 c7 c1 c0 23 ca 8b 45 89 e8 45 89 f9 50 e8 5d 11 1e 00 48 83 c4 08 90 <0f> 0b 66 0f 1f 44 00 00 90 90 90 90 90 90 90 90 90 90 90 90 90 90
-RSP: 0018:ffffc90002c7f540 EFLAGS: 00010292
-RAX: c11493c73e537600 RBX: ffff888031704174 RCX: c11493c73e537600
-RDX: 0000000000000000 RSI: 0000000080000000 RDI: 0000000000000000
-RBP: ffffc90002c7f610 R08: ffffc90002c7f107 R09: 1ffff9200058fe20
-R10: dffffc0000000000 R11: fffff5200058fe21 R12: ffffc90002c7f5a0
-R13: 0000000000000000 R14: 1ffff11007d6bf58 R15: 0000000000000080
-FS:  000055557c057500(0000) GS:ffff88808d21b000(0000) knlGS:0000000000000000
-CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-CR2: 0000200000001400 CR3: 000000004f209000 CR4: 0000000000352ef0
-
-
----
-This report is generated by a bot. It may contain errors.
-See https://goo.gl/tpsmEJ for more information about syzbot.
-syzbot engineers can be reached at syzkaller@googlegroups.com.
-
-syzbot will keep track of this issue. See:
-https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
-
-If the report is already addressed, let syzbot know by replying with:
-#syz fix: exact-commit-title
-
-If you want syzbot to run the reproducer, reply with:
-#syz test: git://repo/address.git branch-or-commit-hash
-If you attach or paste a git patch, syzbot will apply it before testing.
-
-If you want to overwrite report's subsystems, reply with:
-#syz set subsystems: new-subsystem
-(See the list of subsystem names on the web dashboard)
-
-If the report is a duplicate of another one, reply with:
-#syz dup: exact-subject-of-another-report
-
-If you want to undo deduplication, reply with:
-#syz undup
+> Dear Maintainers,
+> 
+> 
+> When using our customized Syzkaller to fuzz the latest Linux kernel, the following crash (121th)was triggered.
+> 
+> 
+> 
+> 
+> HEAD commit: 6537cfb395f352782918d8ee7b7f10ba2cc3cbf2
+> git tree: upstream
+> Output: https://github.com/pghk13/Kernel-Bug/blob/main/0702_6.14/BUG%3A%20unable%20to%20handle%20kernel%20paging%20request%20in%20const_folio_flags/121report.txt
+> Kernel config:https://github.com/pghk13/Kernel-Bug/blob/main/0702_6.14/config.txt
+> C reproducer:https://github.com/pghk13/Kernel-Bug/blob/main/0702_6.14/BUG%3A%20unable%20to%20handle%20kernel%20paging%20request%20in%20const_folio_flags/121repro.c
+> Syzlang reproducer:https://github.com/pghk13/Kernel-Bug/blob/main/0702_6.14/BUG%3A%20unable%20to%20handle%20kernel%20paging%20request%20in%20const_folio_flags/121repro.txt
+> 
+> Our reproducer uses mounts a constructed filesystem image.
+>  
+>  This may be an error code mistakenly used as a pointer bug, occurring around line 308 of the code: 1. OCFS2 error handling issue: ocfs2_write_begin_nolock returns -ENOMEM (-12) when it encounters a memory allocation failure. 2. Incorrect error handling: In the error handling path, a certain function (most likely ocfs2_unlock_and_free_folios) incorrectly passed the error code -12 as a valid folio pointer to folio_unlock.
+> 
+> We have reproduced this issue several times on 6.14 again.
+> 
+> 
+> 
+> 
+> 
+> 
+> If you fix this issue, please add the following tag to the commit:
+> Reported-by: Kun Hu <huk23@m.fudan.edu.cn>, Jiaji Qin <jjtan24@m.fudan.edu.cn>, Shuoran Bai <baishuoran@hrbeu.edu.cn>
+> 
+> (syz.5.1560,31124,2):ocfs2_write_begin_nolock:1798 ERROR: status = -12
+> BUG: unable to handle page fault for address: fffffffffffffffc
+> #PF: supervisor read access in kernel mode
+> #PF: error_code(0x0000) - not-present page
+> PGD df84067 P4D df84067 PUD df86067 
+> PMD 0 
+> Oops: Oops: 0000 [#1] PREEMPT SMP KASAN NOPTI
+> CPU: 2 UID: 0 PID: 31124 Comm: syz.5.1560 Not tainted 6.14.0 #1
+> Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.13.0-1ubuntu1.1 04/01/2014
+> RIP: 0010:const_folio_flags.constprop.0+0x27/0x70
+> Code: 90 90 90 41 54 49 89 fc 53 e8 65 c3 ca ff 49 8d 7c 24 08 48 b8 00 00 00 00 00 fc ff df 48 89 fa 48 c1 ea 03 80 3c 02 00 75 3e <49> 8b 5c 24 08 31 ff 83 e3 01 48 89 de e8 77 c5 ca ff 48 85 db 75
+> RSP: 0018:ffffc90011eef678 EFLAGS: 00010246
+> RAX: dffffc0000000000 RBX: ffff888079f54030 RCX: ffffffff839c06f7
+> RDX: 1fffffffffffffff RSI: ffff888059b2a480 RDI: fffffffffffffffc
+> RBP: fffffffffffffff4 R08: 0000000000000000 R09: fffffbfff20c2fa3
+> R10: fffffbfff20c2fa2 R11: ffffffff90617d17 R12: fffffffffffffff4
+> R13: 000000000000000e R14: dffffc0000000000 R15: 0000000000000001
+> FS:  00007f2d805f6700(0000) GS:ffff88802b900000(0000) knlGS:0000000000000000
+> CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+> CR2: fffffffffffffffc CR3: 000000004039e000 CR4: 0000000000750ef0
+> PKRU: 80000000
+> Call Trace:
+>  <TASK>
+>  folio_unlock+0x16/0xd0
+>  ocfs2_unlock_and_free_folios+0x8c/0x1b0
+>  ocfs2_write_begin_nolock+0x115d/0x4f60
+>  ocfs2_write_begin+0x1d9/0x350
+>  generic_perform_write+0x3e0/0x8c0
+>  __generic_file_write_iter+0x1f6/0x240
+>  ocfs2_file_write_iter+0xc44/0x2380
+>  vfs_write+0xba2/0x1100
+>  ksys_write+0x122/0x240
+>  do_syscall_64+0xcf/0x250
+>  entry_SYSCALL_64_after_hwframe+0x77/0x7f
+> RIP: 0033:0x7f2d827acadd
+> Code: 02 b8 ff ff ff ff c3 66 0f 1f 44 00 00 f3 0f 1e fa 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 b0 ff ff ff f7 d8 64 89 01 48
+> RSP: 002b:00007f2d805f5ba8 EFLAGS: 00000246 ORIG_RAX: 0000000000000001
+> RAX: ffffffffffffffda RBX: 00007f2d829a5fa0 RCX: 00007f2d827acadd
+> RDX: 000000000000045c RSI: 0000000020000400 RDI: 0000000000000005
+> RBP: 00007f2d805f5c00 R08: 0000000000000000 R09: 0000000000000000
+> R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000004
+> R13: 00007f2d829a5fac R14: 00007f2d829a6038 R15: 00007f2d805f5d40
+>  </TASK>
+> Modules linked in:
+> CR2: fffffffffffffffc
+> ---[ end trace 0000000000000000 ]---
+> RIP: 0010:const_folio_flags.constprop.0+0x27/0x70
+> Code: 90 90 90 41 54 49 89 fc 53 e8 65 c3 ca ff 49 8d 7c 24 08 48 b8 00 00 00 00 00 fc ff df 48 89 fa 48 c1 ea 03 80 3c 02 00 75 3e <49> 8b 5c 24 08 31 ff 83 e3 01 48 89 de e8 77 c5 ca ff 48 85 db 75
+> RSP: 0018:ffffc90011eef678 EFLAGS: 00010246
+> RAX: dffffc0000000000 RBX: ffff888079f54030 RCX: ffffffff839c06f7
+> RDX: 1fffffffffffffff RSI: ffff888059b2a480 RDI: fffffffffffffffc
+> RBP: fffffffffffffff4 R08: 0000000000000000 R09: fffffbfff20c2fa3
+> R10: fffffbfff20c2fa2 R11: ffffffff90617d17 R12: fffffffffffffff4
+> R13: 000000000000000e R14: dffffc0000000000 R15: 0000000000000001
+> FS:  00007f2d805f6700(0000) GS:ffff88802b900000(0000) knlGS:0000000000000000
+> CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+> CR2: fffffffffffffffc CR3: 000000004039e000 CR4: 0000000000750ef0
+> PKRU: 80000000
+> ----------------
+> Code disassembly (best guess):
+>    0: 90                    nop
+>    1: 90                    nop
+>    2: 90                    nop
+>    3: 41 54                push   %r12
+>    5: 49 89 fc              mov    %rdi,%r12
+>    8: 53                    push   %rbx
+>    9: e8 65 c3 ca ff        callq  0xffcac373
+>    e: 49 8d 7c 24 08        lea    0x8(%r12),%rdi
+>   13: 48 b8 00 00 00 00 00 movabs $0xdffffc0000000000,%rax
+>   1a: fc ff df
+>   1d: 48 89 fa              mov    %rdi,%rdx
+>   20: 48 c1 ea 03          shr    $0x3,%rdx
+>   24: 80 3c 02 00          cmpb   $0x0,(%rdx,%rax,1)
+>   28: 75 3e                jne    0x68
+> * 2a: 49 8b 5c 24 08        mov    0x8(%r12),%rbx <-- trapping instruction
+>   2f: 31 ff                xor    %edi,%edi
+>   31: 83 e3 01              and    $0x1,%ebx
+>   34: 48 89 de              mov    %rbx,%rsi
+>   37: e8 77 c5 ca ff        callq  0xffcac5b3
+>   3c: 48 85 db              test   %rbx,%rbx
+>   3f: 75                    .byte 0x75
+> 
+> 
+> 
+> thanks,
+> Kun Hu
