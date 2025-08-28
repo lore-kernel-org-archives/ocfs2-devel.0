@@ -1,31 +1,31 @@
 Received: from out30-132.freemail.mail.aliyun.com (out30-132.freemail.mail.aliyun.com [115.124.30.132])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E8A651DF254
-	for <ocfs2-devel@lists.linux.dev>; Thu, 28 Aug 2025 01:03:45 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4CE8C13FEE
+	for <ocfs2-devel@lists.linux.dev>; Thu, 28 Aug 2025 01:11:01 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.132
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1756343029; cv=none; b=JjiCggx6A0Wab9TUXsMeFxV2ltFFrtNJv/20iJ0PA5AWGN9f+3t8HLmvOi7Dm6kQZTAD9M8RqJJH5UEyekNM7XioFSpzHG9nRxLUyW6lGieHFeRcpmU3aVvlT46Yq21dFagpuLdMJkPm7NCmToFIl+XVuG8V5HdqbIpwFTHEdvc=
+	t=1756343467; cv=none; b=qjiW3G9cCw4VuZPfZka9stAoHOsdeQfMZDk/l6254eWenRUiYdMN1/lkwoWZnAQs9S68K1VoBTEXxqGR0LQoKx5jSXY28O3XWSOJd5UIDCDcsRZ01LDLqPoZq/jL768tpaxm+G/RBVeDhXyErZtV9ce1Vxska/4QsIncGVdC6x8=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1756343029; c=relaxed/simple;
-	bh=tKcnvLLBsvKSv5OWx1mabZbZWfL28xHnYbqqqyxXyW8=;
+	s=arc-20240116; t=1756343467; c=relaxed/simple;
+	bh=T54sChdFCQYgAIe63tS9H5O7JGsgrowHeQQI8195BAY=;
 	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=p0m9oZ2Ev+AAZlgc31usZ1LvSowF7AFuzaPuNhsEVsqBlGDfW8eKOBmXdjhZYY1xYOuJNQo8EvE8xKUcivQcjPRf3h8rYuFTSTe6rqRLxXjgMZmqz7UTyzmEqmO/vk6KIaLHM0L65Vrdcfvjo6I/8hhNiv/cpjygsicvbit502k=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=kpak/VjX; arc=none smtp.client-ip=115.124.30.132
+	 In-Reply-To:Content-Type; b=tduaHlQJOKgyktnS/3Oog3/q7NNDkvNSYK/nElDdYFH9f2E0HAvkbf5/8+AteLCg8GPUXkfUNCGC0I8+uT3MUiHx0DFbm+MQT0YGqQy2FOkbImkFqmSnqjsKj6nuFc2uZWesY1Am7/KrRkLJxBR1qomYmrWw+SPSow7DOx2uyg8=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=RsyobB3G; arc=none smtp.client-ip=115.124.30.132
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="kpak/VjX"
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="RsyobB3G"
 DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
 	d=linux.alibaba.com; s=default;
-	t=1756343018; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=DwQVbUGKQ9bT1yKqfpUYBYb78nastbbRLboAJD8/Wqw=;
-	b=kpak/VjXI7aekqXUwGqUD0gMRJo+6ye7Aoei74/4Lsnv+oXhfNIkjscmL9EZhBVGTzQMnBWBEqNDBIQU01GYdJffdN1DEHwij5NNBZuF6w7JD2Tq3lDCi46TIJgbFZwPMiEX5USxlotHPd2EUg6FlkI+QNidE4c9/9YdMF8HZhk=
-Received: from 30.221.144.151(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0Wmkryrg_1756343016 cluster:ay36)
+	t=1756343459; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=8f3eyUP4EDg8Z+h3Vm1+LYpznbLQKSbkGehfEGu1b9k=;
+	b=RsyobB3GTSyyyTEnpNOAI0XTNF0ZxyW7MVHxgmOxW9iqknQQ7duzFYEElRGFoiL6hk5Isp4SumFT7ENNBZNrRM9BelfySGABYSPo4T/3dXKc/QoiyZ/tXQzEJ9Wxz/m+1jt+VFgRyfH4xhm+cnOYt6BQgMHuvnUupYeDPpkzW+Y=
+Received: from 30.221.144.151(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0WmkrGUA_1756343458 cluster:ay36)
           by smtp.aliyun-inc.com;
-          Thu, 28 Aug 2025 09:03:37 +0800
-Message-ID: <9ef8124b-224d-42b9-9dc7-15a10f3821e6@linux.alibaba.com>
-Date: Thu, 28 Aug 2025 09:03:36 +0800
+          Thu, 28 Aug 2025 09:10:59 +0800
+Message-ID: <e0af0cee-9477-4179-ade5-7df879e22f02@linux.alibaba.com>
+Date: Thu, 28 Aug 2025 09:10:58 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -33,56 +33,84 @@ List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH] ocfs2: add suballoc slot check in
- ocfs2_validate_inode_block()
-To: Dmitry Antipov <dmantipov@yandex.ru>, Mark Fasheh <mark@fasheh.com>,
- Joel Becker <jlbec@evilplan.org>, akpm <akpm@linux-foundation.org>
-Cc: ocfs2-devel@lists.linux.dev,
- syzbot+900962ac9bf1860033f2@syzkaller.appspotmail.com
-References: <20250826095106.666980-1-dmantipov@yandex.ru>
+Subject: Re: [PATCH] Documentation: ocfs2: Properly reindent filecheck
+ operations list
+To: Bagas Sanjaya <bagasdotme@gmail.com>,
+ Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
+ Linux Documentation <linux-doc@vger.kernel.org>,
+ Linux ocfs2 <ocfs2-devel@lists.linux.dev>
+Cc: Jonathan Corbet <corbet@lwn.net>, Mark Fasheh <mark@fasheh.com>,
+ Joel Becker <jlbec@evilplan.org>
+References: <20250826024756.16073-1-bagasdotme@gmail.com>
 From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <20250826095106.666980-1-dmantipov@yandex.ru>
+In-Reply-To: <20250826024756.16073-1-bagasdotme@gmail.com>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
 
 
-On 2025/8/26 17:51, Dmitry Antipov wrote:
-> In 'ocfs2_validate_inode_block()', add suballoc slot check
-> similar to one in 'ocfs2_get_suballoc_slot_bit()', thus
-> preventing an out-of-bounds accesses for 'local_system_inodes'
-> in 'get_local_system_inode()'.
+On 2025/8/26 10:47, Bagas Sanjaya wrote:
+> Some of texts in filecheck operations list are indented out of the list.
+> In particular, the third operation is shown not as the third list
+> item but rather as a separate paragraph.
 > 
-> Reported-by: syzbot+900962ac9bf1860033f2@syzkaller.appspotmail.com
-> Closes: https://syzkaller.appspot.com/bug?extid=900962ac9bf1860033f2
-> Signed-off-by: Dmitry Antipov <dmantipov@yandex.ru>
-
-Looks fine.
-
-Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-> ---
-> Most likely this fixes https://syzkaller.appspot.com/bug?extid=a77d690840e60bc2ddd8 as well.
-> ---
->  fs/ocfs2/inode.c | 8 ++++++++
->  1 file changed, 8 insertions(+)
+> Reindent the list so that gets properly rendered as such.
 > 
-> diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-> index 14bf440ea4df..07cd3b4aa9cb 100644
-> --- a/fs/ocfs2/inode.c
-> +++ b/fs/ocfs2/inode.c
-> @@ -1492,6 +1492,14 @@ int ocfs2_validate_inode_block(struct super_block *sb,
->  		goto bail;
->  	}
+> Signed-off-by: Bagas Sanjaya <bagasdotme@gmail.com>
+
+Acked-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+> ---
+>  .../filesystems/ocfs2-online-filecheck.rst    | 20 +++++++++----------
+>  1 file changed, 10 insertions(+), 10 deletions(-)
+> 
+> diff --git a/Documentation/filesystems/ocfs2-online-filecheck.rst b/Documentation/filesystems/ocfs2-online-filecheck.rst
+> index 2257bb53edc1b1..9e8449416e0bee 100644
+> --- a/Documentation/filesystems/ocfs2-online-filecheck.rst
+> +++ b/Documentation/filesystems/ocfs2-online-filecheck.rst
+> @@ -58,33 +58,33 @@ inode, fixing inode and setting the size of result record history.
+>      # echo "<inode>" > /sys/fs/ocfs2/<devname>/filecheck/check
+>      # cat /sys/fs/ocfs2/<devname>/filecheck/check
 >  
-> +	if (le16_to_cpu(di->i_suballoc_slot) != (u16)OCFS2_INVALID_SLOT &&
-> +	    (u32)le16_to_cpu(di->i_suballoc_slot) > OCFS2_SB(sb)->max_slots - 1) {
-> +		rc = ocfs2_error(sb, "Invalid dinode %llu: suballoc slot %u\n",
-> +				 (unsigned long long)bh->b_blocknr,
-> +				 le16_to_cpu(di->i_suballoc_slot));
-> +		goto bail;
-> +	}
-> +
->  	rc = 0;
+> -The output is like this::
+> +   The output is like this::
 >  
->  bail:
+>      INO		DONE	ERROR
+>      39502		1	GENERATION
+>  
+> -    <INO> lists the inode numbers.
+> -    <DONE> indicates whether the operation has been finished.
+> -    <ERROR> says what kind of errors was found. For the detailed error numbers,
+> -    please refer to the file linux/fs/ocfs2/filecheck.h.
+> +   <INO> lists the inode numbers.
+> +   <DONE> indicates whether the operation has been finished.
+> +   <ERROR> says what kind of errors was found. For the detailed error numbers,
+> +   please refer to the file linux/fs/ocfs2/filecheck.h.
+>  
+>  2. If you determine to fix this inode, do::
+>  
+>      # echo "<inode>" > /sys/fs/ocfs2/<devname>/filecheck/fix
+>      # cat /sys/fs/ocfs2/<devname>/filecheck/fix
+>  
+> -The output is like this:::
+> +   The output is like this::
+>  
+>      INO		DONE	ERROR
+>      39502		1	SUCCESS
+>  
+> -This time, the <ERROR> column indicates whether this fix is successful or not.
+> +   This time, the <ERROR> column indicates whether this fix is successful or not.
+>  
+>  3. The record cache is used to store the history of check/fix results. It's
+> -default size is 10, and can be adjust between the range of 10 ~ 100. You can
+> -adjust the size like this::
+> +   default size is 10, and can be adjust between the range of 10 ~ 100. You can
+> +   adjust the size like this::
+>  
+> -  # echo "<size>" > /sys/fs/ocfs2/<devname>/filecheck/set
+> +    # echo "<size>" > /sys/fs/ocfs2/<devname>/filecheck/set
+>  
+>  Fixing stuff
+>  ============
+> 
+> base-commit: ee9a6691935490dc39605882b41b9452844d5e4e
 
