@@ -1,537 +1,308 @@
-Received: from mail-wm1-f47.google.com (mail-wm1-f47.google.com [209.85.128.47])
+Received: from smtp-out1.suse.de (smtp-out1.suse.de [195.135.223.130])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0263D280A20
-	for <ocfs2-devel@lists.linux.dev>; Tue,  9 Sep 2025 09:14:32 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.47
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 201B524DD0E
+	for <ocfs2-devel@lists.linux.dev>; Tue,  9 Sep 2025 09:49:42 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=195.135.223.130
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1757409275; cv=none; b=e5UePeNqnHNOer6TjoyX3XGaW8SI7ROIuwxoaYxiA/h38QPMubKl7pgU8Ov4jZaKk5XQ/TIWjQwT0VimZRz3BmrUnAgpvKyQC9xVXIwZZO815rTv0IIuGTFuKp1l5O7qgQY86pZFnHYkVId3qAEIzzGnh/ej8MX/GuYZ89RzJYI=
+	t=1757411385; cv=none; b=lvQ0CvTnThvbzh2/At6ZuxfrSVSxB7PVoPv3WMOggDu88pbnoKLkaeeXJ7f2PtY2qclV6oF8KdZ4fNcNsSPdBZ5oawjJ/I8Hh7Drv9Pp4R4MFa1OgloNfNx6ax4cFG2uMANe25oBhlZdyyGrW/SCkfQCfKrDiYvhW76FxHxULpQ=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1757409275; c=relaxed/simple;
-	bh=IMseACTiSvlyfiyb+LeynI6JiS3FUZBsMYDVNhYzMhU=;
-	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=TUa2W4f2gSHe4RgY56/U1qqTUcq/GpkBD6AzaZMH296PfWm1ZYC6uiGKIz8rQIdxYfyeD9ThYjR6JPx8xz0gVpfn0yZYxO7l3VbTS/s6beg+riW4QieO+qxpkNS4ec5kWXu/Onr3n0pZ66vdMRs0r3FiJ3n8r5fYszitujM8DIA=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=KH0ELImE; arc=none smtp.client-ip=209.85.128.47
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	s=arc-20240116; t=1757411385; c=relaxed/simple;
+	bh=ox/Y7Duzxf955fK6HeVZhZn7CK3O2AuI5JvWJdrieZw=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=cFe0XY4s40c68NZNk6PXnA/jCF6AvAXEp9VYYfQsILhNeIGhudYlVqyN8Zk5xIIRHIlPXPMzQtP81LTz0hBPQGgQCYcjTa3B2ranFc22TUTkXhKdU0Tm2f1vvwdb4Jmv35yhiVUPDcCO34kg3IOY1noBZGBU9ldsX0+MBIHnlVk=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=suse.cz; spf=pass smtp.mailfrom=suse.cz; dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b=tRza3wJt; dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b=3IwoZkEc; dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b=tRza3wJt; dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b=3IwoZkEc; arc=none smtp.client-ip=195.135.223.130
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=suse.cz
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.cz
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="KH0ELImE"
-Received: by mail-wm1-f47.google.com with SMTP id 5b1f17b1804b1-45cb6428c46so47577615e9.1
-        for <ocfs2-devel@lists.linux.dev>; Tue, 09 Sep 2025 02:14:32 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1757409271; x=1758014071; darn=lists.linux.dev;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:date:subject:cc:to:from:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=QxYF3RT5zHEtZoH+0QZfPrO40F2dnCdJJPKEE+ejIoU=;
-        b=KH0ELImE+jSgWXSj8uRJEQMpcS7n77xKpnT68/pUvF37Ipif64qbkW9YH/iG4E0qDr
-         wA1w+1qZCpgc2yMotpOQiRuinGixloh4UjIYyPnrzl73zHVggPpVDl9gg1xxz6fUZJl4
-         hfDZQuxi5NTgsPa3AKVAOD5l3J21gNPT10QJdOtdqTN+ZUnmE4eahfV0oKPWeR441GZ0
-         TafYZNB/LPWGGCy0PdraGIrvnrOk8ljAc38ebR3F69+tF3WtOjeCQHMQW4ibfCNKwpkq
-         +DURlK6Xa354tGcTQH5KQ9PjR+3/SEsK/mszxlJNYTUlaEBHByEEM9yTEL50xCE18ipy
-         Nr/A==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1757409271; x=1758014071;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:date:subject:cc:to:from:x-gm-message-state:from:to:cc
-         :subject:date:message-id:reply-to;
-        bh=QxYF3RT5zHEtZoH+0QZfPrO40F2dnCdJJPKEE+ejIoU=;
-        b=AMLlm5W+aXuyRIg6/1NAe9gZm1zTPO8qzplNEL0T7b6D3y9Ry2lNbaXpIMk3pp+sCN
-         THRXwGcZa6H6mDEzZ5ob5K97bb36VG3rQCOkc67NOY9eAI8oYPJZ32xk81uDOaYiWu2B
-         z+VhTl0bDQ4pR0jBcLjl8PcwD9UmD5Obh0EpQGlq/2oGa85UrPMnqyz9Z5WQmQfsvbms
-         n34OYtMIIXohnrLrdcQKD5as5/WL1qMo9sAYVLEvqdU3IqR8+mhW314XlJ4DS+U1pFVb
-         pZJSajs0+fMHkaYE27YGz8K/UsnHNHnQrcIJMa44/AEw88OpOnZMsLhkX7VvCtog5qX2
-         5d/A==
-X-Forwarded-Encrypted: i=1; AJvYcCXzBveU8iIjVy1ktJyAQMHtNTHWkrs+wIAR3GInY3WzCaq2rXqwum090IT2JxrxCcWhO7poC2aDHDdD8g==@lists.linux.dev
-X-Gm-Message-State: AOJu0YwP7BaPQjBY9TfCNqH08TGkm5Zuvn9g1xFwh5CO5effONJGHB1w
-	IjrcgcsX3l7A8Acxo/CexiXBQnnhxHoNOAQiJNCXawgnz7H+j8MJrqMe
-X-Gm-Gg: ASbGnctjex9fNtu3WozL5wVW9TQrLU1JXbI4mW+wSw4XcRBU7TO1eaCvNaEWzWL0/Wn
-	IRSjNCfJZnTf6sd6Z017/85TxLHxTlkgkyiHrvlEndfh7ky1zHB9AEu/nZP1L+GMAkPLUl3ijbj
-	37oyY8wItQV4NteDST0U/gkH185cXgpC4qZN7gknafuBxW1F46LRTgbNUQjRB2NxV/b40gDbLIr
-	aI2wJh/TWhoYjlneJ3lr00t/MC+ZT97ueIqIutsJgr0gPbQDZJN6Rjo7j5mEip9BhFUt+mgts5g
-	22PDcHX4flglrPrwhRs9QqDHfqWkqRbzS5dpY8fyEVAu4VWewFdVLoZAOKqy7uylriNKt25EYib
-	LCXivHvWjMjXbnfSbN5RfLT/gRlWccYrBIs7HMlt2bEVqMlyDWt4=
-X-Google-Smtp-Source: AGHT+IFi9+++EXFDxbZpee7QFWmtTnxdJJIkcvTcwNq69a2UHcOEtGo+RK/G6yNxl517a45cK9euag==
-X-Received: by 2002:a05:600c:1c19:b0:45b:7d24:beac with SMTP id 5b1f17b1804b1-45df2e0495bmr6716185e9.10.1757409270816;
-        Tue, 09 Sep 2025 02:14:30 -0700 (PDT)
-Received: from f.. (cst-prg-84-152.cust.vodafone.cz. [46.135.84.152])
-        by smtp.gmail.com with ESMTPSA id ffacd0b85a97d-3e7521bff6esm1810784f8f.13.2025.09.09.02.14.27
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Tue, 09 Sep 2025 02:14:30 -0700 (PDT)
-From: Mateusz Guzik <mjguzik@gmail.com>
-To: brauner@kernel.org
-Cc: viro@zeniv.linux.org.uk,
-	jack@suse.cz,
-	linux-kernel@vger.kernel.org,
-	linux-fsdevel@vger.kernel.org,
-	josef@toxicpanda.com,
-	kernel-team@fb.com,
-	amir73il@gmail.com,
-	linux-btrfs@vger.kernel.org,
-	linux-ext4@vger.kernel.org,
-	linux-xfs@vger.kernel.org,
-	ocfs2-devel@lists.linux.dev,
-	Mateusz Guzik <mjguzik@gmail.com>
-Subject: [PATCH v2 10/10] fs: retire the I_WILL_FREE flag
-Date: Tue,  9 Sep 2025 11:13:44 +0200
-Message-ID: <20250909091344.1299099-11-mjguzik@gmail.com>
-X-Mailer: git-send-email 2.43.0
-In-Reply-To: <20250909091344.1299099-1-mjguzik@gmail.com>
-References: <20250909091344.1299099-1-mjguzik@gmail.com>
+	dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b="tRza3wJt";
+	dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b="3IwoZkEc";
+	dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b="tRza3wJt";
+	dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b="3IwoZkEc"
+Received: from imap1.dmz-prg2.suse.org (imap1.dmz-prg2.suse.org [IPv6:2a07:de40:b281:104:10:150:64:97])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by smtp-out1.suse.de (Postfix) with ESMTPS id 0FD54228EB;
+	Tue,  9 Sep 2025 09:49:41 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.cz; s=susede2_rsa;
+	t=1757411381; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+	 mime-version:mime-version:content-type:content-type:
+	 content-transfer-encoding:content-transfer-encoding:
+	 in-reply-to:in-reply-to:references:references;
+	bh=fzFD/mj/9qouxyLspGWBMV14EmxGoefpLw1efZstuj0=;
+	b=tRza3wJtuPLt6Rab0MKR+Y4bZwPquTA+dRwnKRU/pV207BLyCLBe/0WLTa4+Oy1hlDUJ9r
+	CRUJgUpjO/BMG+2kd3V7PvwrBSZdyHiBZMPuSHTWD+FGc/VpOOgUeCQ6bj1QTu8Ogriwg7
+	mAzznRBWU7KNXdLRPatjhMjtlgoUu4U=
+DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.cz;
+	s=susede2_ed25519; t=1757411381;
+	h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+	 mime-version:mime-version:content-type:content-type:
+	 content-transfer-encoding:content-transfer-encoding:
+	 in-reply-to:in-reply-to:references:references;
+	bh=fzFD/mj/9qouxyLspGWBMV14EmxGoefpLw1efZstuj0=;
+	b=3IwoZkEcEY/+ESzmVyHEcXNJ0TiFD9TGfrJq43sk3hvdQQytpI3wGkNMceBhWoF3e9smvs
+	/ILBrQB7VJeZBJBw==
+Authentication-Results: smtp-out1.suse.de;
+	dkim=pass header.d=suse.cz header.s=susede2_rsa header.b=tRza3wJt;
+	dkim=pass header.d=suse.cz header.s=susede2_ed25519 header.b=3IwoZkEc
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.cz; s=susede2_rsa;
+	t=1757411381; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+	 mime-version:mime-version:content-type:content-type:
+	 content-transfer-encoding:content-transfer-encoding:
+	 in-reply-to:in-reply-to:references:references;
+	bh=fzFD/mj/9qouxyLspGWBMV14EmxGoefpLw1efZstuj0=;
+	b=tRza3wJtuPLt6Rab0MKR+Y4bZwPquTA+dRwnKRU/pV207BLyCLBe/0WLTa4+Oy1hlDUJ9r
+	CRUJgUpjO/BMG+2kd3V7PvwrBSZdyHiBZMPuSHTWD+FGc/VpOOgUeCQ6bj1QTu8Ogriwg7
+	mAzznRBWU7KNXdLRPatjhMjtlgoUu4U=
+DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.cz;
+	s=susede2_ed25519; t=1757411381;
+	h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+	 mime-version:mime-version:content-type:content-type:
+	 content-transfer-encoding:content-transfer-encoding:
+	 in-reply-to:in-reply-to:references:references;
+	bh=fzFD/mj/9qouxyLspGWBMV14EmxGoefpLw1efZstuj0=;
+	b=3IwoZkEcEY/+ESzmVyHEcXNJ0TiFD9TGfrJq43sk3hvdQQytpI3wGkNMceBhWoF3e9smvs
+	/ILBrQB7VJeZBJBw==
+Received: from imap1.dmz-prg2.suse.org (localhost [127.0.0.1])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by imap1.dmz-prg2.suse.org (Postfix) with ESMTPS id F25E91365E;
+	Tue,  9 Sep 2025 09:49:40 +0000 (UTC)
+Received: from dovecot-director2.suse.de ([2a07:de40:b281:106:10:150:64:167])
+	by imap1.dmz-prg2.suse.org with ESMTPSA
+	id oQMqOzT4v2gGFQAAD6G6ig
+	(envelope-from <jack@suse.cz>); Tue, 09 Sep 2025 09:49:40 +0000
+Received: by quack3.suse.cz (Postfix, from userid 1000)
+	id 45798A0A2D; Tue,  9 Sep 2025 11:49:40 +0200 (CEST)
+Date: Tue, 9 Sep 2025 11:49:40 +0200
+From: Jan Kara <jack@suse.cz>
+To: Joseph Qi <joseph.qi@linux.alibaba.com>
+Cc: Jan Kara <jack@suse.cz>, Mateusz Guzik <mjguzik@gmail.com>, 
+	Mark Tinguely <mark.tinguely@oracle.com>, ocfs2-devel@lists.linux.dev, viro@zeniv.linux.org.uk, 
+	linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, josef@toxicpanda.com, 
+	jlbec@evilplan.org, mark@fasheh.com, brauner@kernel.org, willy@infradead.org, 
+	david@fromorbit.com
+Subject: Re: [External] : [PATCH] ocfs2: retire ocfs2_drop_inode() and
+ I_WILL_FREE usage
+Message-ID: <a3hdepfrx3styl62viehd56akiu7fthobe2ldj7j4viopfle5b@44mnouc76e3x>
+References: <766vdz3ecpm7hv4sp5r3uu4ezggm532ng7fdklb2nrupz6minz@qcws3ufabnjp>
+ <20250904154245.644875-1-mjguzik@gmail.com>
+ <f3671198-5231-41cf-b0bc-d1280992947a@oracle.com>
+ <CAGudoHHT=P_UyZZpx5tBRHPE+irh1b7PxFXZAHjdHNLcEWOxAQ@mail.gmail.com>
+ <8ddcaa59-0cf0-4b7c-a121-924105f7f5a6@linux.alibaba.com>
+ <rvavp2omizs6e3qf6xpjpycf6norhfhnkrle4fq4632atgar5v@dghmwbctf2mm>
+ <f9014fdb-95c8-4faa-8c42-c1ceea49cbd9@linux.alibaba.com>
+ <fureginotssirocugn3aznor4vhbpadhwy7fhaxzeullhrzp7y@bg5gzdv6mrif>
+ <b9957de7-737c-454a-83b1-6cb2a4070fcf@linux.alibaba.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
 Content-Transfer-Encoding: 8bit
+In-Reply-To: <b9957de7-737c-454a-83b1-6cb2a4070fcf@linux.alibaba.com>
+X-Spamd-Result: default: False [-4.01 / 50.00];
+	BAYES_HAM(-3.00)[100.00%];
+	NEURAL_HAM_LONG(-1.00)[-1.000];
+	MID_RHS_NOT_FQDN(0.50)[];
+	R_DKIM_ALLOW(-0.20)[suse.cz:s=susede2_rsa,suse.cz:s=susede2_ed25519];
+	NEURAL_HAM_SHORT(-0.20)[-1.000];
+	MIME_GOOD(-0.10)[text/plain];
+	MX_GOOD(-0.01)[];
+	DKIM_SIGNED(0.00)[suse.cz:s=susede2_rsa,suse.cz:s=susede2_ed25519];
+	RCVD_TLS_LAST(0.00)[];
+	RCVD_COUNT_THREE(0.00)[3];
+	FREEMAIL_ENVRCPT(0.00)[gmail.com];
+	RBL_SPAMHAUS_BLOCKED_OPENRESOLVER(0.00)[2a07:de40:b281:104:10:150:64:97:from];
+	RCPT_COUNT_TWELVE(0.00)[14];
+	FUZZY_RATELIMITED(0.00)[rspamd.com];
+	MIME_TRACE(0.00)[0:+];
+	ARC_NA(0.00)[];
+	TO_MATCH_ENVRCPT_ALL(0.00)[];
+	FREEMAIL_CC(0.00)[suse.cz,gmail.com,oracle.com,lists.linux.dev,zeniv.linux.org.uk,vger.kernel.org,toxicpanda.com,evilplan.org,fasheh.com,kernel.org,infradead.org,fromorbit.com];
+	DKIM_TRACE(0.00)[suse.cz:+];
+	SPAMHAUS_XBL(0.00)[2a07:de40:b281:104:10:150:64:97:from];
+	DNSWL_BLOCKED(0.00)[2a07:de40:b281:106:10:150:64:167:received,2a07:de40:b281:104:10:150:64:97:from];
+	FROM_EQ_ENVFROM(0.00)[];
+	FROM_HAS_DN(0.00)[];
+	TO_DN_SOME(0.00)[];
+	DWL_DNSWL_BLOCKED(0.00)[suse.cz:dkim];
+	REDIRECTOR_URL(0.00)[urldefense.com];
+	RECEIVED_SPAMHAUS_BLOCKED_OPENRESOLVER(0.00)[2a07:de40:b281:106:10:150:64:167:received];
+	MISSING_XM_UA(0.00)[];
+	RCVD_VIA_SMTP_AUTH(0.00)[];
+	DBL_BLOCKED_OPENRESOLVER(0.00)[imap1.dmz-prg2.suse.org:helo,imap1.dmz-prg2.suse.org:rdns,oracle.com:email,suse.com:email,suse.cz:dkim]
+X-Spam-Flag: NO
+X-Spam-Level: 
+X-Rspamd-Queue-Id: 0FD54228EB
+X-Rspamd-Server: rspamd2.dmz-prg2.suse.org
+X-Rspamd-Action: no action
+X-Spam-Score: -4.01
 
-Signed-off-by: Mateusz Guzik <mjguzik@gmail.com>
----
- block/bdev.c                     |  2 +-
- fs/bcachefs/fs.c                 |  2 +-
- fs/btrfs/inode.c                 |  2 +-
- fs/crypto/keyring.c              |  2 +-
- fs/drop_caches.c                 |  2 +-
- fs/ext4/inode.c                  |  4 ++--
- fs/fs-writeback.c                | 20 +++++++++----------
- fs/gfs2/ops_fstype.c             |  2 +-
- fs/inode.c                       | 18 ++++++++---------
- fs/notify/fsnotify.c             |  8 ++++----
- fs/quota/dquot.c                 |  2 +-
- fs/xfs/scrub/common.c            |  3 +--
- include/linux/fs.h               | 34 +++++++++++++-------------------
- include/trace/events/writeback.h |  3 +--
- security/landlock/fs.c           |  2 +-
- 15 files changed, 48 insertions(+), 58 deletions(-)
+On Tue 09-09-25 09:23:56, Joseph Qi wrote:
+> On 2025/9/8 21:54, Jan Kara wrote:
+> > On Mon 08-09-25 20:41:21, Joseph Qi wrote:
+> >>
+> >>
+> >> On 2025/9/8 18:23, Jan Kara wrote:
+> >>> On Mon 08-09-25 09:51:36, Joseph Qi wrote:
+> >>>> On 2025/9/5 00:22, Mateusz Guzik wrote:
+> >>>>> On Thu, Sep 4, 2025 at 6:15 PM Mark Tinguely <mark.tinguely@oracle.com> wrote:
+> >>>>>>
+> >>>>>> On 9/4/25 10:42 AM, Mateusz Guzik wrote:
+> >>>>>>> This postpones the writeout to ocfs2_evict_inode(), which I'm told is
+> >>>>>>> fine (tm).
+> >>>>>>>
+> >>>>>>> The intent is to retire the I_WILL_FREE flag.
+> >>>>>>>
+> >>>>>>> Signed-off-by: Mateusz Guzik <mjguzik@gmail.com>
+> >>>>>>> ---
+> >>>>>>>
+> >>>>>>> ACHTUNG: only compile-time tested. Need an ocfs2 person to ack it.
+> >>>>>>>
+> >>>>>>> btw grep shows comments referencing ocfs2_drop_inode() which are already
+> >>>>>>> stale on the stock kernel, I opted to not touch them.
+> >>>>>>>
+> >>>>>>> This ties into an effort to remove the I_WILL_FREE flag, unblocking
+> >>>>>>> other work. If accepted would be probably best taken through vfs
+> >>>>>>> branches with said work, see https://urldefense.com/v3/__https://git.kernel.org/pub/scm/linux/kernel/git/vfs/vfs.git/log/?h=vfs-6.18.inode.refcount.preliminaries__;!!ACWV5N9M2RV99hQ!OLwk8DVo7uvC-Pd6XVTiUCgP6MUDMKBMEyuV27h_yPGXOjaq078-kMdC9ILFoYQh-4WX93yb0nMfBDFFY_0$
+> >>>>>>>
+> >>>>>>>   fs/ocfs2/inode.c       | 23 ++---------------------
+> >>>>>>>   fs/ocfs2/inode.h       |  1 -
+> >>>>>>>   fs/ocfs2/ocfs2_trace.h |  2 --
+> >>>>>>>   fs/ocfs2/super.c       |  2 +-
+> >>>>>>>   4 files changed, 3 insertions(+), 25 deletions(-)
+> >>>>>>>
+> >>>>>>> diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
+> >>>>>>> index 6c4f78f473fb..5f4a2cbc505d 100644
+> >>>>>>> --- a/fs/ocfs2/inode.c
+> >>>>>>> +++ b/fs/ocfs2/inode.c
+> >>>>>>> @@ -1290,6 +1290,8 @@ static void ocfs2_clear_inode(struct inode *inode)
+> >>>>>>>
+> >>>>>>>   void ocfs2_evict_inode(struct inode *inode)
+> >>>>>>>   {
+> >>>>>>> +     write_inode_now(inode, 1);
+> >>>>>>> +
+> >>>>>>>       if (!inode->i_nlink ||
+> >>>>>>>           (OCFS2_I(inode)->ip_flags & OCFS2_INODE_MAYBE_ORPHANED)) {
+> >>>>>>>               ocfs2_delete_inode(inode);
+> >>>>>>> @@ -1299,27 +1301,6 @@ void ocfs2_evict_inode(struct inode *inode)
+> >>>>>>>       ocfs2_clear_inode(inode);
+> >>>>>>>   }
+> >>>>>>>
+> >>>>>>> -/* Called under inode_lock, with no more references on the
+> >>>>>>> - * struct inode, so it's safe here to check the flags field
+> >>>>>>> - * and to manipulate i_nlink without any other locks. */
+> >>>>>>> -int ocfs2_drop_inode(struct inode *inode)
+> >>>>>>> -{
+> >>>>>>> -     struct ocfs2_inode_info *oi = OCFS2_I(inode);
+> >>>>>>> -
+> >>>>>>> -     trace_ocfs2_drop_inode((unsigned long long)oi->ip_blkno,
+> >>>>>>> -                             inode->i_nlink, oi->ip_flags);
+> >>>>>>> -
+> >>>>>>> -     assert_spin_locked(&inode->i_lock);
+> >>>>>>> -     inode->i_state |= I_WILL_FREE;
+> >>>>>>> -     spin_unlock(&inode->i_lock);
+> >>>>>>> -     write_inode_now(inode, 1);
+> >>>>>>> -     spin_lock(&inode->i_lock);
+> >>>>>>> -     WARN_ON(inode->i_state & I_NEW);
+> >>>>>>> -     inode->i_state &= ~I_WILL_FREE;
+> >>>>>>> -
+> >>>>>>> -     return 1;
+> >>>>>>> -}
+> >>>>>>> -
+> >>>>>>>   /*
+> >>>>>>>    * This is called from our getattr.
+> >>>>>>>    */
+> >>>>>>> diff --git a/fs/ocfs2/inode.h b/fs/ocfs2/inode.h
+> >>>>>>> index accf03d4765e..07bd838e7843 100644
+> >>>>>>> --- a/fs/ocfs2/inode.h
+> >>>>>>> +++ b/fs/ocfs2/inode.h
+> >>>>>>> @@ -116,7 +116,6 @@ static inline struct ocfs2_caching_info *INODE_CACHE(struct inode *inode)
+> >>>>>>>   }
+> >>>>>>>
+> >>>>>>>   void ocfs2_evict_inode(struct inode *inode);
+> >>>>>>> -int ocfs2_drop_inode(struct inode *inode);
+> >>>>>>>
+> >>>>>>>   /* Flags for ocfs2_iget() */
+> >>>>>>>   #define OCFS2_FI_FLAG_SYSFILE               0x1
+> >>>>>>> diff --git a/fs/ocfs2/ocfs2_trace.h b/fs/ocfs2/ocfs2_trace.h
+> >>>>>>> index 54ed1495de9a..4b32fb5658ad 100644
+> >>>>>>> --- a/fs/ocfs2/ocfs2_trace.h
+> >>>>>>> +++ b/fs/ocfs2/ocfs2_trace.h
+> >>>>>>> @@ -1569,8 +1569,6 @@ DEFINE_OCFS2_ULL_ULL_UINT_EVENT(ocfs2_delete_inode);
+> >>>>>>>
+> >>>>>>>   DEFINE_OCFS2_ULL_UINT_EVENT(ocfs2_clear_inode);
+> >>>>>>>
+> >>>>>>> -DEFINE_OCFS2_ULL_UINT_UINT_EVENT(ocfs2_drop_inode);
+> >>>>>>> -
+> >>>>>>>   TRACE_EVENT(ocfs2_inode_revalidate,
+> >>>>>>>       TP_PROTO(void *inode, unsigned long long ino,
+> >>>>>>>                unsigned int flags),
+> >>>>>>> diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+> >>>>>>> index 53daa4482406..e4b0d25f4869 100644
+> >>>>>>> --- a/fs/ocfs2/super.c
+> >>>>>>> +++ b/fs/ocfs2/super.c
+> >>>>>>> @@ -129,7 +129,7 @@ static const struct super_operations ocfs2_sops = {
+> >>>>>>>       .statfs         = ocfs2_statfs,
+> >>>>>>>       .alloc_inode    = ocfs2_alloc_inode,
+> >>>>>>>       .free_inode     = ocfs2_free_inode,
+> >>>>>>> -     .drop_inode     = ocfs2_drop_inode,
+> >>>>>>> +     .drop_inode     = generic_delete_inode,
+> >>>>>>>       .evict_inode    = ocfs2_evict_inode,
+> >>>>>>>       .sync_fs        = ocfs2_sync_fs,
+> >>>>>>>       .put_super      = ocfs2_put_super,
+> >>>>>>
+> >>>>>>
+> >>>>>> I agree, fileystems should not use I_FREEING/I_WILL_FREE.
+> >>>>>> Doing the sync write_inode_now() should be fine in ocfs_evict_inode().
+> >>>>>>
+> >>>>>> Question is ocfs_drop_inode. In commit 513e2dae9422:
+> >>>>>>   ocfs2: flush inode data to disk and free inode when i_count becomes zero
+> >>>>>> the return of 1 drops immediate to fix a memory caching issue.
+> >>>>>> Shouldn't .drop_inode() still return 1?
+> >>>>>
+> >>>>> generic_delete_inode is a stub doing just that.
+> >>>>>
+> >>>> In case of "drop = 0", it may return directly without calling evict().
+> >>>> This seems break the expectation of commit 513e2dae9422.
+> >>>
+> >>> generic_delete_inode() always returns 1 so evict() will be called.
+> >>> ocfs2_drop_inode() always returns 1 as well after 513e2dae9422. So I'm not
+> >>> sure which case of "drop = 0" do you see...
+> >>>
+> >> I don't see a real case, just in theory.
+> >> As I described before, if we make sure write_inode_now() will be called
+> >> in iput_final(), it would be fine.
+> > 
+> > I'm sorry but I still don't quite understand what you are proposing. If
+> > ->drop() returns 1, the filesystem wants to remove the inode from cache
+> > (perhaps because it was deleted). Hence iput_final() doesn't bother with
+> > writing out such inodes. This doesn't work well with ocfs2 wanting to
+> > always drop inodes hence ocfs2 needs to write the inode itself in
+> > ocfs2_evice_inode(). Perhaps you have some modification to iput_final() in
+> > mind but I'm not sure how that would work so can you perhaps suggest a
+> > patch if you think iput_final() should work differently? Thanks!
+> > 
+> I'm just discussing if generic_delete_inode() will always returns 1. And
+> if it is, I'm fine with this change. Sorry for the confusion.
 
-diff --git a/block/bdev.c b/block/bdev.c
-index 77f04042ac67..fb280f7b04c0 100644
---- a/block/bdev.c
-+++ b/block/bdev.c
-@@ -1265,7 +1265,7 @@ void sync_bdevs(bool wait)
- 		struct block_device *bdev;
- 
- 		spin_lock(&inode->i_lock);
--		if (inode_state_read(inode) & (I_FREEING|I_WILL_FREE|I_NEW) ||
-+		if (inode_state_read(inode) & (I_NEW | I_FREEING) ||
- 		    mapping->nrpages == 0) {
- 			spin_unlock(&inode->i_lock);
- 			continue;
-diff --git a/fs/bcachefs/fs.c b/fs/bcachefs/fs.c
-index 172685ced878..1aeacc9a945e 100644
---- a/fs/bcachefs/fs.c
-+++ b/fs/bcachefs/fs.c
-@@ -347,7 +347,7 @@ static struct bch_inode_info *bch2_inode_hash_find(struct bch_fs *c, struct btre
- 			spin_unlock(&inode->v.i_lock);
- 			return NULL;
- 		}
--		if ((inode_state_read(&inode->v) & (I_FREEING|I_WILL_FREE))) {
-+		if (inode_state_read(&inode->v) & I_FREEING) {
- 			if (!trans) {
- 				__wait_on_freeing_inode(c, inode, inum);
- 			} else {
-diff --git a/fs/btrfs/inode.c b/fs/btrfs/inode.c
-index 1cfdba42f072..5a3cb16a9420 100644
---- a/fs/btrfs/inode.c
-+++ b/fs/btrfs/inode.c
-@@ -3856,7 +3856,7 @@ static int btrfs_add_inode_to_root(struct btrfs_inode *inode, bool prealloc)
- 		ASSERT(ret != -ENOMEM);
- 		return ret;
- 	} else if (existing) {
--		WARN_ON(!(inode_state_read_unlocked(&existing->vfs_inode) & (I_WILL_FREE | I_FREEING)));
-+		WARN_ON(!(inode_state_read_unlocked(&existing->vfs_inode) & I_FREEING));
- 	}
- 
- 	return 0;
-diff --git a/fs/crypto/keyring.c b/fs/crypto/keyring.c
-index 34beb60bc24e..b64726176218 100644
---- a/fs/crypto/keyring.c
-+++ b/fs/crypto/keyring.c
-@@ -957,7 +957,7 @@ static void evict_dentries_for_decrypted_inodes(struct fscrypt_master_key *mk)
- 	list_for_each_entry(ci, &mk->mk_decrypted_inodes, ci_master_key_link) {
- 		inode = ci->ci_inode;
- 		spin_lock(&inode->i_lock);
--		if (inode_state_read(inode) & (I_FREEING | I_WILL_FREE | I_NEW)) {
-+		if (inode_state_read(inode) & (I_NEW | I_FREEING)) {
- 			spin_unlock(&inode->i_lock);
- 			continue;
- 		}
-diff --git a/fs/drop_caches.c b/fs/drop_caches.c
-index 73175ac2fe92..687795d7846b 100644
---- a/fs/drop_caches.c
-+++ b/fs/drop_caches.c
-@@ -28,7 +28,7 @@ static void drop_pagecache_sb(struct super_block *sb, void *unused)
- 		 * inodes without pages but we deliberately won't in case
- 		 * we need to reschedule to avoid softlockups.
- 		 */
--		if ((inode_state_read(inode) & (I_FREEING|I_WILL_FREE|I_NEW)) ||
-+		if ((inode_state_read(inode) & (I_NEW | I_FREEING)) ||
- 		    (mapping_empty(inode->i_mapping) && !need_resched())) {
- 			spin_unlock(&inode->i_lock);
- 			continue;
-diff --git a/fs/ext4/inode.c b/fs/ext4/inode.c
-index 55d87fa1c5af..db9a24ca7192 100644
---- a/fs/ext4/inode.c
-+++ b/fs/ext4/inode.c
-@@ -425,7 +425,7 @@ void ext4_check_map_extents_env(struct inode *inode)
- 	if (!S_ISREG(inode->i_mode) ||
- 	    IS_NOQUOTA(inode) || IS_VERITY(inode) ||
- 	    is_special_ino(inode->i_sb, inode->i_ino) ||
--	    (inode_state_read_unlocked(inode) & (I_FREEING | I_WILL_FREE | I_NEW)) ||
-+	    (inode_state_read_unlocked(inode) & (I_NEW | I_FREEING)) ||
- 	    ext4_test_inode_flag(inode, EXT4_INODE_EA_INODE) ||
- 	    ext4_verity_in_progress(inode))
- 		return;
-@@ -4581,7 +4581,7 @@ int ext4_truncate(struct inode *inode)
- 	 * or it's a completely new inode. In those cases we might not
- 	 * have i_rwsem locked because it's not necessary.
- 	 */
--	if (!(inode_state_read_unlocked(inode) & (I_NEW|I_FREEING)))
-+	if (!(inode_state_read_unlocked(inode) & (I_NEW | I_FREEING)))
- 		WARN_ON(!inode_is_locked(inode));
- 	trace_ext4_truncate_enter(inode);
- 
-diff --git a/fs/fs-writeback.c b/fs/fs-writeback.c
-index 67c2157a7d21..a3fb9004b581 100644
---- a/fs/fs-writeback.c
-+++ b/fs/fs-writeback.c
-@@ -405,10 +405,10 @@ static bool inode_do_switch_wbs(struct inode *inode,
- 	xa_lock_irq(&mapping->i_pages);
- 
- 	/*
--	 * Once I_FREEING or I_WILL_FREE are visible under i_lock, the eviction
--	 * path owns the inode and we shouldn't modify ->i_io_list.
-+	 * Once I_FREEING is visible under i_lock, the eviction path owns the
-+	 * inode and we shouldn't modify ->i_io_list.
- 	 */
--	if (unlikely(inode_state_read(inode) & (I_FREEING | I_WILL_FREE)))
-+	if (unlikely(inode_state_read(inode) & I_FREEING))
- 		goto skip_switch;
- 
- 	trace_inode_switch_wbs(inode, old_wb, new_wb);
-@@ -561,7 +561,7 @@ static bool inode_prepare_wbs_switch(struct inode *inode,
- 	/* while holding I_WB_SWITCH, no one else can update the association */
- 	spin_lock(&inode->i_lock);
- 	if (!(inode->i_sb->s_flags & SB_ACTIVE) ||
--	    inode_state_read(inode) & (I_WB_SWITCH | I_FREEING | I_WILL_FREE) ||
-+	    inode_state_read(inode) & (I_WB_SWITCH | I_FREEING) ||
- 	    inode_to_wb(inode) == new_wb) {
- 		spin_unlock(&inode->i_lock);
- 		return false;
-@@ -1759,7 +1759,7 @@ __writeback_single_inode(struct inode *inode, struct writeback_control *wbc)
-  * whether it is a data-integrity sync (%WB_SYNC_ALL) or not (%WB_SYNC_NONE).
-  *
-  * To prevent the inode from going away, either the caller must have a reference
-- * to the inode, or the inode must have I_WILL_FREE or I_FREEING set.
-+ * to the inode, or the inode must have I_FREEING set.
-  */
- static int writeback_single_inode(struct inode *inode,
- 				  struct writeback_control *wbc)
-@@ -1769,9 +1769,7 @@ static int writeback_single_inode(struct inode *inode,
- 
- 	spin_lock(&inode->i_lock);
- 	if (!icount_read(inode))
--		WARN_ON(!(inode_state_read(inode) & (I_WILL_FREE|I_FREEING)));
--	else
--		WARN_ON(inode_state_read(inode) & I_WILL_FREE);
-+		WARN_ON(!(inode_state_read(inode) & I_FREEING));
- 
- 	if (inode_state_read(inode) & I_SYNC) {
- 		/*
-@@ -1929,7 +1927,7 @@ static long writeback_sb_inodes(struct super_block *sb,
- 		 * kind writeout is handled by the freer.
- 		 */
- 		spin_lock(&inode->i_lock);
--		if (inode_state_read(inode) & (I_NEW | I_FREEING | I_WILL_FREE)) {
-+		if (inode_state_read(inode) & (I_NEW | I_FREEING)) {
- 			redirty_tail_locked(inode, wb);
- 			spin_unlock(&inode->i_lock);
- 			continue;
-@@ -2697,7 +2695,7 @@ static void wait_sb_inodes(struct super_block *sb)
- 		spin_unlock_irq(&sb->s_inode_wblist_lock);
- 
- 		spin_lock(&inode->i_lock);
--		if (inode_state_read(inode) & (I_FREEING|I_WILL_FREE|I_NEW)) {
-+		if (inode_state_read(inode) & (I_NEW | I_FREEING)) {
- 			spin_unlock(&inode->i_lock);
- 
- 			spin_lock_irq(&sb->s_inode_wblist_lock);
-@@ -2846,7 +2844,7 @@ EXPORT_SYMBOL(sync_inodes_sb);
-  * This function commits an inode to disk immediately if it is dirty. This is
-  * primarily needed by knfsd.
-  *
-- * The caller must either have a ref on the inode or must have set I_WILL_FREE.
-+ * The caller must either have a ref on the inode or must have set I_FREEING.
-  */
- int write_inode_now(struct inode *inode, int sync)
- {
-diff --git a/fs/gfs2/ops_fstype.c b/fs/gfs2/ops_fstype.c
-index 3ccd902ec5ba..240894adb34d 100644
---- a/fs/gfs2/ops_fstype.c
-+++ b/fs/gfs2/ops_fstype.c
-@@ -1749,7 +1749,7 @@ static void gfs2_evict_inodes(struct super_block *sb)
- 	spin_lock(&sb->s_inode_list_lock);
- 	list_for_each_entry(inode, &sb->s_inodes, i_sb_list) {
- 		spin_lock(&inode->i_lock);
--		if ((inode_state_read(inode) & (I_FREEING|I_WILL_FREE|I_NEW)) &&
-+		if ((inode_state_read(inode) & (I_NEW | I_FREEING)) &&
- 		    !need_resched()) {
- 			spin_unlock(&inode->i_lock);
- 			continue;
-diff --git a/fs/inode.c b/fs/inode.c
-index 9c695339ec3e..6a69de0bf7bd 100644
---- a/fs/inode.c
-+++ b/fs/inode.c
-@@ -532,7 +532,7 @@ EXPORT_SYMBOL(ihold);
- 
- static void __inode_add_lru(struct inode *inode, bool rotate)
- {
--	if (inode_state_read(inode) & (I_DIRTY_ALL | I_SYNC | I_FREEING | I_WILL_FREE))
-+	if (inode_state_read(inode) & (I_DIRTY_ALL | I_SYNC | I_FREEING))
- 		return;
- 	if (icount_read(inode))
- 		return;
-@@ -577,7 +577,7 @@ static void inode_lru_list_del(struct inode *inode)
- static void inode_pin_lru_isolating(struct inode *inode)
- {
- 	lockdep_assert_held(&inode->i_lock);
--	WARN_ON(inode_state_read(inode) & (I_LRU_ISOLATING | I_FREEING | I_WILL_FREE));
-+	WARN_ON(inode_state_read(inode) & (I_LRU_ISOLATING | I_FREEING));
- 	inode_state_add(inode, I_LRU_ISOLATING);
- }
- 
-@@ -879,7 +879,7 @@ void evict_inodes(struct super_block *sb)
- 			spin_unlock(&inode->i_lock);
- 			continue;
- 		}
--		if (inode_state_read(inode) & (I_NEW | I_FREEING | I_WILL_FREE)) {
-+		if (inode_state_read(inode) & (I_NEW | I_FREEING)) {
- 			spin_unlock(&inode->i_lock);
- 			continue;
- 		}
-@@ -1025,7 +1025,7 @@ static struct inode *find_inode(struct super_block *sb,
- 		if (!test(inode, data))
- 			continue;
- 		spin_lock(&inode->i_lock);
--		if (inode_state_read(inode) & (I_FREEING|I_WILL_FREE)) {
-+		if (inode_state_read(inode) & I_FREEING) {
- 			__wait_on_freeing_inode(inode, is_inode_hash_locked);
- 			goto repeat;
- 		}
-@@ -1066,7 +1066,7 @@ static struct inode *find_inode_fast(struct super_block *sb,
- 		if (inode->i_sb != sb)
- 			continue;
- 		spin_lock(&inode->i_lock);
--		if (inode_state_read(inode) & (I_FREEING|I_WILL_FREE)) {
-+		if (inode_state_read(inode) & I_FREEING) {
- 			__wait_on_freeing_inode(inode, is_inode_hash_locked);
- 			goto repeat;
- 		}
-@@ -1538,7 +1538,7 @@ EXPORT_SYMBOL(iunique);
- struct inode *igrab(struct inode *inode)
- {
- 	spin_lock(&inode->i_lock);
--	if (!(inode_state_read(inode) & (I_FREEING|I_WILL_FREE))) {
-+	if (!(inode_state_read(inode) & I_FREEING)) {
- 		__iget(inode);
- 		spin_unlock(&inode->i_lock);
- 	} else {
-@@ -1728,7 +1728,7 @@ struct inode *find_inode_rcu(struct super_block *sb, unsigned long hashval,
- 
- 	hlist_for_each_entry_rcu(inode, head, i_hash) {
- 		if (inode->i_sb == sb &&
--		    !(inode_state_read_unlocked(inode) & (I_FREEING | I_WILL_FREE)) &&
-+		    !(inode_state_read_unlocked(inode) & I_FREEING) &&
- 		    test(inode, data))
- 			return inode;
- 	}
-@@ -1767,7 +1767,7 @@ struct inode *find_inode_by_ino_rcu(struct super_block *sb,
- 	hlist_for_each_entry_rcu(inode, head, i_hash) {
- 		if (inode->i_ino == ino &&
- 		    inode->i_sb == sb &&
--		    !(inode_state_read_unlocked(inode) & (I_FREEING | I_WILL_FREE)))
-+		    !(inode_state_read_unlocked(inode) & I_FREEING))
- 		    return inode;
- 	}
- 	return NULL;
-@@ -1789,7 +1789,7 @@ int insert_inode_locked(struct inode *inode)
- 			if (old->i_sb != sb)
- 				continue;
- 			spin_lock(&old->i_lock);
--			if (inode_state_read(old) & (I_FREEING|I_WILL_FREE)) {
-+			if (inode_state_read(old) & I_FREEING) {
- 				spin_unlock(&old->i_lock);
- 				continue;
- 			}
-diff --git a/fs/notify/fsnotify.c b/fs/notify/fsnotify.c
-index 8e504b40fb39..82b0e97454db 100644
---- a/fs/notify/fsnotify.c
-+++ b/fs/notify/fsnotify.c
-@@ -47,12 +47,12 @@ static void fsnotify_unmount_inodes(struct super_block *sb)
- 	spin_lock(&sb->s_inode_list_lock);
- 	list_for_each_entry(inode, &sb->s_inodes, i_sb_list) {
- 		/*
--		 * We cannot __iget() an inode in state I_FREEING,
--		 * I_WILL_FREE, or I_NEW which is fine because by that point
--		 * the inode cannot have any associated watches.
-+		 * We cannot __iget() an inode in state I_NEW or I_FREEING
-+		 * which is fine because by that point the inode cannot have
-+		 * any associated watches.
- 		 */
- 		spin_lock(&inode->i_lock);
--		if (inode_state_read(inode) & (I_FREEING|I_WILL_FREE|I_NEW)) {
-+		if (inode_state_read(inode) & (I_NEW | I_FREEING)) {
- 			spin_unlock(&inode->i_lock);
- 			continue;
- 		}
-diff --git a/fs/quota/dquot.c b/fs/quota/dquot.c
-index beb3d82a2915..bd5b1d10a52a 100644
---- a/fs/quota/dquot.c
-+++ b/fs/quota/dquot.c
-@@ -1030,7 +1030,7 @@ static int add_dquot_ref(struct super_block *sb, int type)
- 	spin_lock(&sb->s_inode_list_lock);
- 	list_for_each_entry(inode, &sb->s_inodes, i_sb_list) {
- 		spin_lock(&inode->i_lock);
--		if ((inode_state_read(inode) & (I_FREEING|I_WILL_FREE|I_NEW)) ||
-+		if ((inode_state_read(inode) & (I_NEW | I_FREEING)) ||
- 		    !atomic_read(&inode->i_writecount) ||
- 		    !dqinit_needed(inode, type)) {
- 			spin_unlock(&inode->i_lock);
-diff --git a/fs/xfs/scrub/common.c b/fs/xfs/scrub/common.c
-index 2ef7742be7d3..e678f944206f 100644
---- a/fs/xfs/scrub/common.c
-+++ b/fs/xfs/scrub/common.c
-@@ -1086,8 +1086,7 @@ xchk_install_handle_inode(
- 
- /*
-  * Install an already-referenced inode for scrubbing.  Get our own reference to
-- * the inode to make disposal simpler.  The inode must not be in I_FREEING or
-- * I_WILL_FREE state!
-+ * the inode to make disposal simpler.  The inode must not have I_FREEING set.
-  */
- int
- xchk_install_live_inode(
-diff --git a/include/linux/fs.h b/include/linux/fs.h
-index f933d181a40e..40c4c0e8dd45 100644
---- a/include/linux/fs.h
-+++ b/include/linux/fs.h
-@@ -671,8 +671,8 @@ is_uncached_acl(struct posix_acl *acl)
-  * I_DIRTY_DATASYNC, I_DIRTY_PAGES, and I_DIRTY_TIME.
-  *
-  * Four bits define the lifetime of an inode.  Initially, inodes are I_NEW,
-- * until that flag is cleared.  I_WILL_FREE, I_FREEING and I_CLEAR are set at
-- * various stages of removing an inode.
-+ * until that flag is cleared.  I_FREEING and I_CLEAR are set at various stages
-+ * of removing an inode.
-  *
-  * Two bits are used for locking and completion notification, I_NEW and I_SYNC.
-  *
-@@ -696,24 +696,21 @@ is_uncached_acl(struct posix_acl *acl)
-  *			New inodes set I_NEW.  If two processes both create
-  *			the same inode, one of them will release its inode and
-  *			wait for I_NEW to be released before returning.
-- *			Inodes in I_WILL_FREE, I_FREEING or I_CLEAR state can
-- *			also cause waiting on I_NEW, without I_NEW actually
-- *			being set.  find_inode() uses this to prevent returning
-- *			nearly-dead inodes.
-- * I_WILL_FREE		Must be set when calling write_inode_now() if i_count
-- *			is zero.  I_FREEING must be set when I_WILL_FREE is
-- *			cleared.
-+ *			Inodes in I_FREEING or I_CLEAR state can also cause
-+ *			waiting on I_NEW, without I_NEW actually being set.
-+ *			find_inode() uses this to prevent returning nearly-dead
-+ *			inodes.
-  * I_FREEING		Set when inode is about to be freed but still has dirty
-  *			pages or buffers attached or the inode itself is still
-  *			dirty.
-  * I_CLEAR		Added by clear_inode().  In this state the inode is
-  *			clean and can be destroyed.  Inode keeps I_FREEING.
-  *
-- *			Inodes that are I_WILL_FREE, I_FREEING or I_CLEAR are
-- *			prohibited for many purposes.  iget() must wait for
-- *			the inode to be completely released, then create it
-- *			anew.  Other functions will just ignore such inodes,
-- *			if appropriate.  I_NEW is used for waiting.
-+ *			Inodes that are I_FREEING or I_CLEAR are prohibited for
-+ *			many purposes.  iget() must wait for the inode to be
-+ *			completely released, then create it anew.  Other
-+ *			functions will just ignore such inodes, if appropriate.
-+ *			I_NEW is used for waiting.
-  *
-  * I_SYNC		Writeback of inode is running. The bit is set during
-  *			data writeback, and cleared with a wakeup on the bit
-@@ -743,8 +740,6 @@ is_uncached_acl(struct posix_acl *acl)
-  * I_LRU_ISOLATING	Inode is pinned being isolated from LRU without holding
-  *			i_count.
-  *
-- * Q: What is the difference between I_WILL_FREE and I_FREEING?
-- *
-  * __I_{SYNC,NEW,LRU_ISOLATING} are used to derive unique addresses to wait
-  * upon. There's one free address left.
-  */
-@@ -764,7 +759,7 @@ enum inode_state_flags_enum {
- 	I_DIRTY_SYNC		= (1U << 4),
- 	I_DIRTY_DATASYNC	= (1U << 5),
- 	I_DIRTY_PAGES		= (1U << 6),
--	I_WILL_FREE		= (1U << 7),
-+	I_PINNING_NETFS_WB	= (1U << 7),
- 	I_FREEING		= (1U << 8),
- 	I_CLEAR			= (1U << 9),
- 	I_REFERENCED		= (1U << 10),
-@@ -775,7 +770,6 @@ enum inode_state_flags_enum {
- 	I_CREATING		= (1U << 15),
- 	I_DONTCACHE		= (1U << 16),
- 	I_SYNC_QUEUED		= (1U << 17),
--	I_PINNING_NETFS_WB	= (1U << 18)
- };
- 
- #define I_DIRTY_INODE (I_DIRTY_SYNC | I_DIRTY_DATASYNC)
-@@ -2664,8 +2658,8 @@ static inline int icount_read(const struct inode *inode)
-  */
- static inline bool inode_is_dirtytime_only(struct inode *inode)
- {
--	return (inode_state_read_unlocked(inode) & (I_DIRTY_TIME | I_NEW |
--				  I_FREEING | I_WILL_FREE)) == I_DIRTY_TIME;
-+	return (inode_state_read_unlocked(inode) &
-+		(I_DIRTY_TIME | I_NEW | I_FREEING)) == I_DIRTY_TIME;
- }
- 
- extern void inc_nlink(struct inode *inode);
-diff --git a/include/trace/events/writeback.h b/include/trace/events/writeback.h
-index 82f6b7f26c29..1c6700011f08 100644
---- a/include/trace/events/writeback.h
-+++ b/include/trace/events/writeback.h
-@@ -15,7 +15,7 @@
- 		{I_DIRTY_DATASYNC,	"I_DIRTY_DATASYNC"},	\
- 		{I_DIRTY_PAGES,		"I_DIRTY_PAGES"},	\
- 		{I_NEW,			"I_NEW"},		\
--		{I_WILL_FREE,		"I_WILL_FREE"},		\
-+		{I_PINNING_NETFS_WB,	"I_PINNING_NETFS_WB"},	\
- 		{I_FREEING,		"I_FREEING"},		\
- 		{I_CLEAR,		"I_CLEAR"},		\
- 		{I_SYNC,		"I_SYNC"},		\
-@@ -27,7 +27,6 @@
- 		{I_CREATING,		"I_CREATING"},		\
- 		{I_DONTCACHE,		"I_DONTCACHE"},		\
- 		{I_SYNC_QUEUED,		"I_SYNC_QUEUED"},	\
--		{I_PINNING_NETFS_WB,	"I_PINNING_NETFS_WB"},	\
- 		{I_LRU_ISOLATING,	"I_LRU_ISOLATING"}	\
- 	)
- 
-diff --git a/security/landlock/fs.c b/security/landlock/fs.c
-index 56c30d04971f..4135c11ac939 100644
---- a/security/landlock/fs.c
-+++ b/security/landlock/fs.c
-@@ -1296,7 +1296,7 @@ static void hook_sb_delete(struct super_block *const sb)
- 		 * iput() for the same Landlock object.  Also checks I_NEW
- 		 * because such inode cannot be tied to an object.
- 		 */
--		if (inode_state_read(inode) & (I_FREEING | I_WILL_FREE | I_NEW)) {
-+		if (inode_state_read(inode) & (I_NEW | I_FREEING)) {
- 			spin_unlock(&inode->i_lock);
- 			continue;
- 		}
+generic_delete_inode() is defined as:
+
+int generic_delete_inode(struct inode *inode)
+{               
+        return 1;
+}
+
+So the return is pretty much guaranteed :). But I agree with Mateusz the
+function name could be less confusing.
+
+								Honza
 -- 
-2.43.0
-
+Jan Kara <jack@suse.com>
+SUSE Labs, CR
