@@ -1,63 +1,63 @@
-Received: from mail-wm1-f53.google.com (mail-wm1-f53.google.com [209.85.128.53])
+Received: from mail-wr1-f51.google.com (mail-wr1-f51.google.com [209.85.221.51])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id CC2632989B7
-	for <ocfs2-devel@lists.linux.dev>; Tue,  9 Sep 2025 09:14:14 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.53
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 17FEC296BA2
+	for <ocfs2-devel@lists.linux.dev>; Tue,  9 Sep 2025 09:14:16 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.221.51
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1757409256; cv=none; b=Hmh5Qt/FiOS00d6zyfI78UiyOVyRpAgoGXYunLAmYPJiK0kLK0vzURoiDJ5ZsQ/hEHQHwx6etXz9eZSVqaN0EAqvkVZW8qDUkXBQRAltq8+lVvmv36TnaiZFFoAIjdKYeCcLBQdxruRZo3UNOYus/d5aDVVsfQoE/WH3LMeRu7Q=
+	t=1757409258; cv=none; b=YrTKu7pbxGGMkgjDm/fiU2TyJMlP+7U2naZ2bVMwkkPpPtfqgHb4/gXLJzMrfcaZBLrekZFNCXFvvTfCqpqw5hWPa96zAs+y9izNr2Zw8/7LLZgjwtGHBp4kcHrFfnev9fezH4ibHLLfjNefVi35skjrAXb/2+6xpPhfGsr4zhw=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1757409256; c=relaxed/simple;
-	bh=Ygd2xNOZ6wJl+5bd6IH5BNX7SOauXKYvij+j9ifOwTw=;
+	s=arc-20240116; t=1757409258; c=relaxed/simple;
+	bh=BdTaArvmGkBuLGGtyHfh2TGj+o6P+9OkZp4zyvMpLBM=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=R8Q0srojhyL44hgEhrbL4Ykag2vUY3P4dqTGK35j4XPLQHd+9nZaNySlH647vgweOSiWSduaRTcFu7Evy+TOI9xYGOGTez5Cb9rDyl7lt/ElVzGm3ejAGqgU7vpSXrGL2DOgR1hLFRh8eB2IaLerDlS+ZOtLvGCq4CDzDuNyGZI=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=Iey3xi9B; arc=none smtp.client-ip=209.85.128.53
+	 MIME-Version; b=rlFFyHV7AUbIJ4pwlC8MYfcrq/t2zlQqBeZF1PUzL+wRbwSl9pe77Isb5UF2j35keMAOnm2uNiRzNH2HLiLxYjYL7P89IDca02Q8itgwEefLxe79DvF72nCYHELBEzLauNWmZuT6hy5shq/wZ7wmpnnpQZ28UKp2lEynFHjeSi8=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=APoXzftk; arc=none smtp.client-ip=209.85.221.51
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="Iey3xi9B"
-Received: by mail-wm1-f53.google.com with SMTP id 5b1f17b1804b1-45decc9e83dso4239095e9.0
-        for <ocfs2-devel@lists.linux.dev>; Tue, 09 Sep 2025 02:14:14 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="APoXzftk"
+Received: by mail-wr1-f51.google.com with SMTP id ffacd0b85a97d-3c68ac7e18aso3371827f8f.2
+        for <ocfs2-devel@lists.linux.dev>; Tue, 09 Sep 2025 02:14:16 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1757409253; x=1758014053; darn=lists.linux.dev;
+        d=gmail.com; s=20230601; t=1757409255; x=1758014055; darn=lists.linux.dev;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:cc:to:from:from:to:cc:subject:date
          :message-id:reply-to;
-        bh=Oqrc3yRxVyX7zMtuBTJxbswEHmIj2FBD0Au1ZvwTXKg=;
-        b=Iey3xi9Bor1oDjxq8h3o9czbeGxB1m1txiHItc5Gz+4xbu3KfUESOEQrvdBWutK32l
-         wbmQ7OiMLfGWU9BqfZppbVr2ve83VOEQrecVzaLgiq1q0ueZgv1sztp8g+LVkhpM+rMb
-         LtHmr9lDtIP+E8p0FW3gnumC3FNeHZA5jEUjCKdIBR4R416OPZ7xHud0QlHM2Dn8K4Sc
-         4X3WyU3XNEvEnK52Q8Xgf4AEInkXgPTiLnRxzotRO5lMy18dSsAH82VLc3lAWbVPWYt5
-         USjjKOzjWd2mFU8gZQOfD8J5QM+XmaJNKfp0LAGqdc0nVtZSKxFbXH2N7uroQO/GpcMc
-         2xAA==
+        bh=zAkwWZPKx/h0WObhLl7ADVXI+izd4bElBlrOtR29tis=;
+        b=APoXzftkaMjVyTDNWEQiZErtd1ypUx1OhOweRIWD0d83HpyBP2EaBo8bgEllu+s0GV
+         fR7QSbaV4yWRCIHCz0mBZl52cRcnxqffB6OQwSQ7kuoMMTV9K56AAXGX8/nV+pWhL/mK
+         oWSwEHzRqBKHnqONQZiAXifr1txDDiLgCSQab0lkkLqKMeaiey+mYIFvv2vDevVgPcb6
+         nQHYWnmqI0iGkjeFvY0HE3Ugb8t0ZWeqvN+xIz9ShMg22yQCYp1Nw9l1vfhTOUEGZjE4
+         PiR3ZlXgWK1Kfw1ygavelYtdcGxuPdZNj3iCIXhSsUF5+TXKgOT6iv80f0VNJ0sXxPL+
+         8iBQ==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1757409253; x=1758014053;
+        d=1e100.net; s=20230601; t=1757409255; x=1758014055;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:cc:to:from:x-gm-message-state:from:to:cc
          :subject:date:message-id:reply-to;
-        bh=Oqrc3yRxVyX7zMtuBTJxbswEHmIj2FBD0Au1ZvwTXKg=;
-        b=GFmr+ZezzqvnawAwQEWrx35aK0N3QCs472KWRDuKl/pQSs9eKfK63Uj8gaQb3EA12H
-         y3NQYH4E7TEWjMwK9QSd5pC55JW21KordO/0qoI6+XjDGO1ho4cn5EjytzaZ1yW6rog2
-         VzYRyvZBB/cPufqfinitEt+Xi50C1pjzpe1VzUXMsmLOfdrUCD8oWY8xorThkedFKYRM
-         msT3ERjnISEd7WibNPXk+cFbFp3bzMUscBLoykEti0SIZEbYSDeVY+nai7NFN/K7BGlY
-         ytQUiepKrxAxF9JANc7uhdiEGLrzaEbHyi9DdprvoPDPWmSBi/VnlLAgUH1xZU5fKfUI
-         uY1w==
-X-Forwarded-Encrypted: i=1; AJvYcCWaAYz/RmEq1BI8D4Tbj6+c/G9oa/HeQ6RWDWxXfm7RMgeCHmusMmKVFb62acvV/z0vSX6ztZORWScHzg==@lists.linux.dev
-X-Gm-Message-State: AOJu0YxvH4DL4d7UhMDbpN0OJcT4pXEB+muZJQabe2vR1hDeUGzu7oF1
-	QT7iI6WytgvNPalgSMsUFhyGwZd3CP45dBxn24kvS4WUfvhbL3eww+2w
-X-Gm-Gg: ASbGncuOE4E8FuNE99U+ohXjJOJ2PSt1YONtwWjTaSPHhfSZnyW0e2KuPa6lVhxe0Uz
-	BHxsMvclt/8dhV35jjUWqP+L2N+ZR0sY7SI+9gXrc2wu6OI702qPuHEwRX9Kx1KA0W15dN2rNQ3
-	mvfD89T0Wj0IYacqnWt+nm6LnMrpBShk/aUXnpdtkiyqGGD40Hu+aT4mL0VJ43dthQvkAFIGQ2a
-	nMocOtkBWLaS7XqAzf40ik84mBcdcl4j11W+aHQ04vrKSWnJvagKZgo7++qj/coSu/msE0sqisO
-	U/Q6zu8OoJiVmu7PiZJcZDDz3eDZSYnJvBRFqlX4K4RZPZwXcSiwFlpXZee5lPcywl/mus7SmKj
-	1j7f/IZxuL4VfMCd/VfsCJ7IzjLxef24d00JTmPKUfS9XVX8YgV8=
-X-Google-Smtp-Source: AGHT+IHAbfflRnixVZpH4RBMAgPFhxkpEzJjRDnWXqCOhfzm++EGw6quNoSwW084M8/CBIXis2UE7g==
-X-Received: by 2002:a05:600c:5247:b0:45d:e285:c4d7 with SMTP id 5b1f17b1804b1-45de285c731mr70343735e9.9.1757409253090;
-        Tue, 09 Sep 2025 02:14:13 -0700 (PDT)
+        bh=zAkwWZPKx/h0WObhLl7ADVXI+izd4bElBlrOtR29tis=;
+        b=bXC6nE6BPD9WXr0GaPKzYFlvTQEB3SAqCiZomxMbuLpPfUMvYR3Qp7p8Lc4W1tBvnS
+         dR40MqmfEt/fFs4Sd23HHjhRy8Ea1NDvkigUnoyhwYNV4TMiddGSfCCFW6xUrlBaJpjb
+         enJX3ScG0j7UEygsao8Sizyvreme8sZ+a3rtM9ecp7wedf0xx1CFLrXy7It1h0Mo2sfH
+         n/rxSc4YSN4LCb9nUPEGbxIUD5VZX9chc1p5Gr0HKSJl53gPMpW6iNA+jVHUkzdTB7v6
+         D66wOjftfZzjsa9YQQmcUIw/iBHIB5+JqfzCzxdyFBqdX7q/BiH/yi+D3hzvK28rswYA
+         2y+Q==
+X-Forwarded-Encrypted: i=1; AJvYcCWCPJlEKTlNSbcmbgv6WiBCP177HZNIocaGLtPrEj4ENtvlHTNpt9E2IA0YH8ep2REoByvA0kd7VL9QQg==@lists.linux.dev
+X-Gm-Message-State: AOJu0YytMRxLtMEVbg6B3r4POv/eDKZO2Ga0PKnht5JOiCjU/5jQ5lBy
+	kIvcI8v8E6ziW/S3cTGlIXb4K6iTcnWhrKhH6IX4HuOLwY3qCK4iOol5AXBRF5Tz
+X-Gm-Gg: ASbGncuHOjsQmSBR8fmOVvMYTt440JMiE2PJfOhZMmNA/7Z0TlS3Qc/DKfMiLwRpN6/
+	++cr5NqZ4GEXSTJtgoD9QpkfCR3d3v0E+E3GU78tzmkQwC1mfqqTZhtwc540r97frriY/EY7UJv
+	dFH+3vBg/27JEdt3YChrBamhnPt8SgS2FjrK9yncWmI0vgx68YYaLehWVgF7JLtzofMrQJUtuKs
+	i6LOdpSppKFfoxHR1BcT2NVjp1W1ndrozak2n1Umsa5W/eq7LjbRS74Vf84b72LyKTuI+Afpl8j
+	0BkmhLgdV1E9oIZlYG/2a5zKdpo6Jhuk+wr9sawWu/hBDWF6XfIDkzxbZilJZQshUP+4K0wB5pf
+	vbsiSUqzq7JGrP+EJGILs/Qd/t5RqBFOAX44oCAWL
+X-Google-Smtp-Source: AGHT+IHFR5glDC7pT0pDvmRqpKg6rH7YeMgcZQ374nE01iyhNYdctYhtZjBoNSHdXlfL7T1OlO5Mow==
+X-Received: by 2002:a05:6000:248a:b0:3e4:f194:2887 with SMTP id ffacd0b85a97d-3e6462583c1mr7538835f8f.30.1757409254879;
+        Tue, 09 Sep 2025 02:14:14 -0700 (PDT)
 Received: from f.. (cst-prg-84-152.cust.vodafone.cz. [46.135.84.152])
-        by smtp.gmail.com with ESMTPSA id ffacd0b85a97d-3e7521bff6esm1810784f8f.13.2025.09.09.02.14.09
+        by smtp.gmail.com with ESMTPSA id ffacd0b85a97d-3e7521bff6esm1810784f8f.13.2025.09.09.02.14.13
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Tue, 09 Sep 2025 02:14:12 -0700 (PDT)
+        Tue, 09 Sep 2025 02:14:14 -0700 (PDT)
 From: Mateusz Guzik <mjguzik@gmail.com>
 To: brauner@kernel.org
 Cc: viro@zeniv.linux.org.uk,
@@ -72,9 +72,9 @@ Cc: viro@zeniv.linux.org.uk,
 	linux-xfs@vger.kernel.org,
 	ocfs2-devel@lists.linux.dev,
 	Mateusz Guzik <mjguzik@gmail.com>
-Subject: [PATCH v2 04/10] btrfs: use the new ->i_state accessors
-Date: Tue,  9 Sep 2025 11:13:38 +0200
-Message-ID: <20250909091344.1299099-5-mjguzik@gmail.com>
+Subject: [PATCH v2 05/10] ext4: use the new ->i_state accessors
+Date: Tue,  9 Sep 2025 11:13:39 +0200
+Message-ID: <20250909091344.1299099-6-mjguzik@gmail.com>
 X-Mailer: git-send-email 2.43.0
 In-Reply-To: <20250909091344.1299099-1-mjguzik@gmail.com>
 References: <20250909091344.1299099-1-mjguzik@gmail.com>
@@ -88,58 +88,81 @@ Content-Transfer-Encoding: 8bit
 
 Signed-off-by: Mateusz Guzik <mjguzik@gmail.com>
 ---
- fs/btrfs/inode.c | 10 +++++-----
- 1 file changed, 5 insertions(+), 5 deletions(-)
+ fs/ext4/inode.c  | 10 +++++-----
+ fs/ext4/orphan.c |  4 ++--
+ 2 files changed, 7 insertions(+), 7 deletions(-)
 
-diff --git a/fs/btrfs/inode.c b/fs/btrfs/inode.c
-index 5bcd8e25fa78..1cfdba42f072 100644
---- a/fs/btrfs/inode.c
-+++ b/fs/btrfs/inode.c
-@@ -3856,7 +3856,7 @@ static int btrfs_add_inode_to_root(struct btrfs_inode *inode, bool prealloc)
- 		ASSERT(ret != -ENOMEM);
- 		return ret;
- 	} else if (existing) {
--		WARN_ON(!(existing->vfs_inode.i_state & (I_WILL_FREE | I_FREEING)));
-+		WARN_ON(!(inode_state_read_unlocked(&existing->vfs_inode) & (I_WILL_FREE | I_FREEING)));
- 	}
+diff --git a/fs/ext4/inode.c b/fs/ext4/inode.c
+index ed54c4d0f2f9..55d87fa1c5af 100644
+--- a/fs/ext4/inode.c
++++ b/fs/ext4/inode.c
+@@ -425,7 +425,7 @@ void ext4_check_map_extents_env(struct inode *inode)
+ 	if (!S_ISREG(inode->i_mode) ||
+ 	    IS_NOQUOTA(inode) || IS_VERITY(inode) ||
+ 	    is_special_ino(inode->i_sb, inode->i_ino) ||
+-	    (inode->i_state & (I_FREEING | I_WILL_FREE | I_NEW)) ||
++	    (inode_state_read_unlocked(inode) & (I_FREEING | I_WILL_FREE | I_NEW)) ||
+ 	    ext4_test_inode_flag(inode, EXT4_INODE_EA_INODE) ||
+ 	    ext4_verity_in_progress(inode))
+ 		return;
+@@ -3473,7 +3473,7 @@ static bool ext4_inode_datasync_dirty(struct inode *inode)
+ 	/* Any metadata buffers to write? */
+ 	if (!list_empty(&inode->i_mapping->i_private_list))
+ 		return true;
+-	return inode->i_state & I_DIRTY_DATASYNC;
++	return inode_state_read_unlocked(inode) & I_DIRTY_DATASYNC;
+ }
  
- 	return 0;
-@@ -5317,7 +5317,7 @@ static void evict_inode_truncate_pages(struct inode *inode)
- 	struct extent_io_tree *io_tree = &BTRFS_I(inode)->io_tree;
- 	struct rb_node *node;
+ static void ext4_set_iomap(struct inode *inode, struct iomap *iomap,
+@@ -4581,7 +4581,7 @@ int ext4_truncate(struct inode *inode)
+ 	 * or it's a completely new inode. In those cases we might not
+ 	 * have i_rwsem locked because it's not necessary.
+ 	 */
+-	if (!(inode->i_state & (I_NEW|I_FREEING)))
++	if (!(inode_state_read_unlocked(inode) & (I_NEW|I_FREEING)))
+ 		WARN_ON(!inode_is_locked(inode));
+ 	trace_ext4_truncate_enter(inode);
  
--	ASSERT(inode->i_state & I_FREEING);
-+	ASSERT(inode_state_read_unlocked(inode) & I_FREEING);
- 	truncate_inode_pages_final(&inode->i_data);
- 
- 	btrfs_drop_extent_map_range(BTRFS_I(inode), 0, (u64)-1, false);
-@@ -5745,7 +5745,7 @@ struct btrfs_inode *btrfs_iget_path(u64 ino, struct btrfs_root *root,
+@@ -5239,7 +5239,7 @@ struct inode *__ext4_iget(struct super_block *sb, unsigned long ino,
+ 	inode = iget_locked(sb, ino);
  	if (!inode)
  		return ERR_PTR(-ENOMEM);
+-	if (!(inode->i_state & I_NEW)) {
++	if (!(inode_state_read_unlocked(inode) & I_NEW)) {
+ 		ret = check_igot_inode(inode, flags, function, line);
+ 		if (ret) {
+ 			iput(inode);
+@@ -5570,7 +5570,7 @@ static void __ext4_update_other_inode_time(struct super_block *sb,
+ 	if (inode_is_dirtytime_only(inode)) {
+ 		struct ext4_inode_info	*ei = EXT4_I(inode);
  
--	if (!(inode->vfs_inode.i_state & I_NEW))
-+	if (!(inode_state_read_unlocked(&inode->vfs_inode) & I_NEW))
- 		return inode;
+-		inode->i_state &= ~I_DIRTY_TIME;
++		inode_state_del(inode, I_DIRTY_TIME);
+ 		spin_unlock(&inode->i_lock);
  
- 	ret = btrfs_read_locked_inode(inode, path);
-@@ -5769,7 +5769,7 @@ struct btrfs_inode *btrfs_iget(u64 ino, struct btrfs_root *root)
- 	if (!inode)
- 		return ERR_PTR(-ENOMEM);
+ 		spin_lock(&ei->i_raw_lock);
+diff --git a/fs/ext4/orphan.c b/fs/ext4/orphan.c
+index 7c7f792ad6ab..70444810bd7a 100644
+--- a/fs/ext4/orphan.c
++++ b/fs/ext4/orphan.c
+@@ -107,7 +107,7 @@ int ext4_orphan_add(handle_t *handle, struct inode *inode)
+ 	if (!sbi->s_journal || is_bad_inode(inode))
+ 		return 0;
  
--	if (!(inode->vfs_inode.i_state & I_NEW))
-+	if (!(inode_state_read_unlocked(&inode->vfs_inode) & I_NEW))
- 		return inode;
- 
- 	path = btrfs_alloc_path();
-@@ -7435,7 +7435,7 @@ static void btrfs_invalidate_folio(struct folio *folio, size_t offset,
- 	u64 page_start = folio_pos(folio);
- 	u64 page_end = page_start + folio_size(folio) - 1;
- 	u64 cur;
--	int inode_evicting = inode->vfs_inode.i_state & I_FREEING;
-+	int inode_evicting = inode_state_read_unlocked(&inode->vfs_inode) & I_FREEING;
- 
+-	WARN_ON_ONCE(!(inode->i_state & (I_NEW | I_FREEING)) &&
++	WARN_ON_ONCE(!(inode_state_read_unlocked(inode) & (I_NEW | I_FREEING)) &&
+ 		     !inode_is_locked(inode));
  	/*
- 	 * We have folio locked so no new ordered extent can be created on this
+ 	 * Inode orphaned in orphan file or in orphan list?
+@@ -236,7 +236,7 @@ int ext4_orphan_del(handle_t *handle, struct inode *inode)
+ 	if (!sbi->s_journal && !(sbi->s_mount_state & EXT4_ORPHAN_FS))
+ 		return 0;
+ 
+-	WARN_ON_ONCE(!(inode->i_state & (I_NEW | I_FREEING)) &&
++	WARN_ON_ONCE(!(inode_state_read_unlocked(inode) & (I_NEW | I_FREEING)) &&
+ 		     !inode_is_locked(inode));
+ 	if (ext4_test_inode_state(inode, EXT4_STATE_ORPHAN_FILE))
+ 		return ext4_orphan_file_del(handle, inode);
 -- 
 2.43.0
 
