@@ -1,63 +1,63 @@
-Received: from mail-wm1-f54.google.com (mail-wm1-f54.google.com [209.85.128.54])
+Received: from mail-wm1-f42.google.com (mail-wm1-f42.google.com [209.85.128.42])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6610328D82A
-	for <ocfs2-devel@lists.linux.dev>; Tue,  9 Sep 2025 09:14:25 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.54
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E647A2C08D9
+	for <ocfs2-devel@lists.linux.dev>; Tue,  9 Sep 2025 09:14:28 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.42
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1757409267; cv=none; b=JB3RCR/knJNvrRun1uBhzhTogp7KYTokh+deANOK6X0QJs4hu3ZazBfnc+BKXKwfskeX+KksaixgemaYsDzN6OLOSqHO3Wsw+seJxqo8sk1FJOoj0Dck6b6Q+LzyDoClWLdd5LgKNUK9M6jk5c8PqWmZtwDtto9TrIcQq+Gvb28=
+	t=1757409270; cv=none; b=ojd3ZJtwDjcvOZ5kQ6O5Rm9ErfMb/mAb6xpVkgbhdbGqV+XLG+0dRktrxjzJRzSyXToCJ1WrKsYsHs7LA1Q83T3KlJHtzGCyUkjm4sIv0hHjlV1gVaHsDvLqtYOnqxBeUccJ89xnWXexJ8T6TYJydjSnrfvCQLfhyBDkEQU+0bA=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1757409267; c=relaxed/simple;
-	bh=yPAQgvf69HeHuHpAroxlVxtZBxPIMT9A8QM9ZG6Y9j0=;
+	s=arc-20240116; t=1757409270; c=relaxed/simple;
+	bh=eRFMjyzp2oGycBxV/BqaSJ27ZRWUJFSdWHeBZPduE80=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=mUu+cgggIAVR7XP2nhA+KnwiU9EZAkMX7skmhL/8eEnxyVUVCPB0c0p/woW+waEt7SE+/t2L9WIsEgLlBAzuJrxyRbiJLgkzh3trvacumVD6Z4c/AN/LfOYTt2OjTPCUCM1lJNk9T7Jdo7/TxBI9PlBFmwc9IIKq8QdWajoh9No=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=EawENTFL; arc=none smtp.client-ip=209.85.128.54
+	 MIME-Version; b=ZX6Wna+pTOZNvAjLLrD3AEv1C5efQNoj1I4urDJ8DLahRc/gXlCAtqV1lLHS6FHXTpWSUMPA6zvnMNAB9fGsjdGydIHIGkUP+bMXVA2gTTqsKllYV93T5Vofb/PVXjx205n4Em4itEXqQrDOnYel5O4amufVAlNngnJHnujIZIs=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=gg3xvysJ; arc=none smtp.client-ip=209.85.128.42
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="EawENTFL"
-Received: by mail-wm1-f54.google.com with SMTP id 5b1f17b1804b1-45de6490e74so17973065e9.2
-        for <ocfs2-devel@lists.linux.dev>; Tue, 09 Sep 2025 02:14:25 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="gg3xvysJ"
+Received: by mail-wm1-f42.google.com with SMTP id 5b1f17b1804b1-45cb6428c46so47576835e9.1
+        for <ocfs2-devel@lists.linux.dev>; Tue, 09 Sep 2025 02:14:28 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1757409264; x=1758014064; darn=lists.linux.dev;
+        d=gmail.com; s=20230601; t=1757409267; x=1758014067; darn=lists.linux.dev;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:cc:to:from:from:to:cc:subject:date
          :message-id:reply-to;
-        bh=lPWaEeGmiR1jD0YeutpHA3nvEpV9+sv5w9Xmw28cyr4=;
-        b=EawENTFLKf5D7DVzllW3E/w3lZw/+REpael87/dQX6tpRZs2dfvi4lrlXl0N6zykhQ
-         jXwZ5belzof6gc9SYcuePgbf2gDK6dOOFjiYDfg/PRerF5amzW1r9Hb/XNGD4KcF2WpN
-         f6uGC+B8MX1At259efps85Xgw3H3IJwLBS+ceMEWZXKhMLmh/XnNhsEi8JBNVfY4aOoh
-         oDVml4LiKBD7WPRGlYOJCE04zTJQeEnoTwBKlfNVFrHyfEGzR583btzt01xvf6zGxLbJ
-         wPYBPXi8BwAnKyhcu6ffAcp9zEdZxRixBqB/QAK+dAECrEwbEFv55sb+UqyW/xjsSKsU
-         MaxA==
+        bh=pGeEYXDQB6umQx6HKeL3+YR9XaxrRRDu5k2GywHVd3M=;
+        b=gg3xvysJw3tQNZidNdxAKj5eDEmmmnuTPcaNXVymwClrNrf2/HPczSpZ7fp7m1w/ro
+         a2srDV/yXgtzJsRcfJDmZcz5lZB85j9hd6kzOQwDqTdvJ8LVHkG4AQAGz9F89ZnUsQCC
+         uxtjfeFZFtgy32VZN2zdEIVftDRku9y8dhtfVZ4vghPBGAREJGRxAjoqpx3lsdpi+Qhj
+         TYpP/xPW2G9diEb6ns3FCv/KVxBYTmDLHmHIx3r09ygx/gMhGmfiEcR+X1212/8H9qmr
+         TJjnBbbMuPPV/abHtouqGWJwkDCErOwgN0hPxBwCQW5zYt85nmY9XS6fcvJZZ5jBZEyS
+         6SBw==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1757409264; x=1758014064;
+        d=1e100.net; s=20230601; t=1757409267; x=1758014067;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:cc:to:from:x-gm-message-state:from:to:cc
          :subject:date:message-id:reply-to;
-        bh=lPWaEeGmiR1jD0YeutpHA3nvEpV9+sv5w9Xmw28cyr4=;
-        b=RkhhGddz8IM0XQmQxxjHjy8VR5dZ9TM2mQzPtUu9/lxgqXEuybB3EGAy1bkAO5luNr
-         aKY21D/JI6UJSMpPo6RLEAZTUaZTuWYyxRqOH/0YPyz3OxDbFGymJJqvw4U02H6wm16C
-         JJSYipF83RrgbanwDWcms2rfgMdLcfQuaDKKPRHosJ34YIh6gJC1wxf9gVNjDu/rnnyJ
-         JM9dh5pGuMaUHlv2dkXypT/H1XUJcHuwaww2OcsvVusXqWp49imAWzpdtXBmrzFeV+Xv
-         aFtO3AnrvgM3FXankpB8q3AS3vrZimNAdOe4KzM/vk+BPTOOTDBWqFlxEjaVjGRb7iKl
-         dqvw==
-X-Forwarded-Encrypted: i=1; AJvYcCUaXvKd5GF0upoM1u84K9/POmlUf1/bkgl2aW9JIJHT+ZsEgukFIK1+0Z63p3Mx7+4UApSkayDj4Hq5tQ==@lists.linux.dev
-X-Gm-Message-State: AOJu0YxCljXXvneEjAldoZK+hR5nlYoI5zvKiKyrJQmkcPv5NVSVfsWA
-	XtuZEWuZoSSKqTf+M7TS/Wf7g2jCr0isYLqBTBi8rpDd5HRo3SeUEOD9
-X-Gm-Gg: ASbGncujYn5ZA26Vx2lNnZjMAyz8UcPlF/Ku005GKxWdpABODa7D4c5OE8ojSzYwTdP
-	IEXiUMNJWx6P2iNPH94wlXbQeNgDKsYIfNabhOCM8fv9ILB+wq3cyTtY2/UnThyu52gv2Xcwf+6
-	vC8oxdsz/C5AGHQK9k91jTukqtd9DbbogqGDhF3gwv3IiOPln5Q3xS/Ic0BY1myjuM2BNzQn6Ug
-	Eic+6uq4PgCv0TJldy/GX+BDykNQ5pSNXjJ20ImqsHJmOKlKAqP41S5eqpnW8oLV/cTK76RHdmS
-	5Mxxx1heencTBgJgufxD26Fv0dUqakYXcehynz6eLgoT3+/D3d9GTgailOJX/qhXVjS6Bqhd8fg
-	uvkAa3BHCPiDyglEMXMn67vygdgzaud7zKAr8Ikw2Jg9F3ePi+BE=
-X-Google-Smtp-Source: AGHT+IFJdhaaMaOuMypuGEFJh2pVDDxn5sp6WwusH/tMuWzKs+ug4owdxuI3aGQKmhUZs1+gw1gFJQ==
-X-Received: by 2002:a05:6000:4027:b0:3e7:42e5:63dd with SMTP id ffacd0b85a97d-3e742e56a53mr8650428f8f.56.1757409263541;
-        Tue, 09 Sep 2025 02:14:23 -0700 (PDT)
+        bh=pGeEYXDQB6umQx6HKeL3+YR9XaxrRRDu5k2GywHVd3M=;
+        b=ViTD2BbIuQBQVY6BwVnbcTYE4Igfvy76SJljrroIPjFPNJrKixFy0T1JEbeWm66U5G
+         tdVM00u8pMDwkN7tM8rPmR/VxPGiUhZsZ4wFbRdpt3ekI9rvlhuLM4AUBVk+Ui7nsBrn
+         PY47WOjMk0pE/8npn6Z2Aym18KZSaD5hm/ARA4h5LdVbi6vI/FkQk7qnILNDA3nFlVgp
+         T7C24cnMSXGQA5LghsLsNobKZOMAEa4qhQAWLsius1vVR8YvOg2twl8zYkCcdnGxfb0Q
+         emxxfxtukzjuo0AeWOarxqWf/y4WieGyEmUpm6Pt0AgWSC8uOQrPrpEnW7hiHKsRd67X
+         /RVA==
+X-Forwarded-Encrypted: i=1; AJvYcCXmN19sV40kBI9qF4qCsv2he+DVg2lAhcMskIQnXU/OdX2HT9bMTcKReixYDdSeT9Nb4sxrtCVtMJ30ng==@lists.linux.dev
+X-Gm-Message-State: AOJu0YwuRhtiNNH8pN3jCam4/WMj++KdXPDSpOjp4egDdL53GjTS6dxb
+	F+T9oxHNX93SaoPwuIIkXHWZAs9FIe/Y8/VSKvCMqM/nXRUuJ2tPi6PH
+X-Gm-Gg: ASbGncvpxxnoeDiz5d+K2Cyso8AvAo/49EkdMa9u9/dZS+CgFtvZS1oZ0Yf9R/TqmLs
+	CCXDeVpMEF5RIfJ2MmNCoqF2jt6vJy1jc9FeImMmCdsaioABVUBpk81X6vnrMlgWpQ/Gwk1BZUp
+	cVKcsHcT0iiqlF3I2yDduiEGYhP0d5gSP3OnyiKj5eDxxOKdJlU+QbZq2W9rzortnpmj/pYIcOj
+	RrYA5LCPF3hIsFv12lER+D86wb8heH98A/Q0Ar3STPAulpq4sEgREQcu1TAOGxzZAo2FcmrKkZx
+	XQt5d3ow5zg7XuOdIWuR1kxCOzlf9jw83B9r1dC4Ri4iOrmUeKSQUZouew7Mwzsl6dKqJ2ZAs/5
+	/FtyesH3jW0ZGSxEzIQ0h7o86aE/MpVZVFd6ZpETd
+X-Google-Smtp-Source: AGHT+IG73BUdVqF7npmnaqNpM6L2M9vasLYgSIvBku9zwGGD2nanT1deNZNWSqsd32FJ9AMUZgh3Vw==
+X-Received: by 2002:a05:600c:1f11:b0:45d:db2a:ce4a with SMTP id 5b1f17b1804b1-45de07ee7b3mr93383135e9.9.1757409267121;
+        Tue, 09 Sep 2025 02:14:27 -0700 (PDT)
 Received: from f.. (cst-prg-84-152.cust.vodafone.cz. [46.135.84.152])
-        by smtp.gmail.com with ESMTPSA id ffacd0b85a97d-3e7521bff6esm1810784f8f.13.2025.09.09.02.14.19
+        by smtp.gmail.com with ESMTPSA id ffacd0b85a97d-3e7521bff6esm1810784f8f.13.2025.09.09.02.14.23
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Tue, 09 Sep 2025 02:14:23 -0700 (PDT)
+        Tue, 09 Sep 2025 02:14:26 -0700 (PDT)
 From: Mateusz Guzik <mjguzik@gmail.com>
 To: brauner@kernel.org
 Cc: viro@zeniv.linux.org.uk,
@@ -72,9 +72,9 @@ Cc: viro@zeniv.linux.org.uk,
 	linux-xfs@vger.kernel.org,
 	ocfs2-devel@lists.linux.dev,
 	Mateusz Guzik <mjguzik@gmail.com>
-Subject: [PATCH v2 08/10] ocfs2: retire ocfs2_drop_inode() and I_WILL_FREE usage
-Date: Tue,  9 Sep 2025 11:13:42 +0200
-Message-ID: <20250909091344.1299099-9-mjguzik@gmail.com>
+Subject: [PATCH v2 09/10] fs: set I_FREEING instead of I_WILL_FREE in iput_final() prior to writeback
+Date: Tue,  9 Sep 2025 11:13:43 +0200
+Message-ID: <20250909091344.1299099-10-mjguzik@gmail.com>
 X-Mailer: git-send-email 2.43.0
 In-Reply-To: <20250909091344.1299099-1-mjguzik@gmail.com>
 References: <20250909091344.1299099-1-mjguzik@gmail.com>
@@ -86,99 +86,38 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-This postpones the writeout to ocfs2_evict_inode(), which I'm told is
-fine (tm).
-
 This is in preparation for I_WILL_FREE flag removal.
 
-Reviewed-by: Jan Kara <jack@suse.cz>
 Signed-off-by: Mateusz Guzik <mjguzik@gmail.com>
 ---
- fs/ocfs2/inode.c       | 23 ++---------------------
- fs/ocfs2/inode.h       |  1 -
- fs/ocfs2/ocfs2_trace.h |  2 --
- fs/ocfs2/super.c       |  2 +-
- 4 files changed, 3 insertions(+), 25 deletions(-)
+ fs/inode.c | 5 ++---
+ 1 file changed, 2 insertions(+), 3 deletions(-)
 
-diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-index 02312d4fbd7b..671c2303019b 100644
---- a/fs/ocfs2/inode.c
-+++ b/fs/ocfs2/inode.c
-@@ -1287,6 +1287,8 @@ static void ocfs2_clear_inode(struct inode *inode)
+diff --git a/fs/inode.c b/fs/inode.c
+index 20f36d54348c..9c695339ec3e 100644
+--- a/fs/inode.c
++++ b/fs/inode.c
+@@ -1880,18 +1880,17 @@ static void iput_final(struct inode *inode)
+ 		return;
+ 	}
  
- void ocfs2_evict_inode(struct inode *inode)
- {
-+	write_inode_now(inode, 1);
++	inode_state_add(inode, I_FREEING);
 +
- 	if (!inode->i_nlink ||
- 	    (OCFS2_I(inode)->ip_flags & OCFS2_INODE_MAYBE_ORPHANED)) {
- 		ocfs2_delete_inode(inode);
-@@ -1296,27 +1298,6 @@ void ocfs2_evict_inode(struct inode *inode)
- 	ocfs2_clear_inode(inode);
- }
+ 	if (!drop) {
+-		inode_state_add(inode, I_WILL_FREE);
+ 		spin_unlock(&inode->i_lock);
  
--/* Called under inode_lock, with no more references on the
-- * struct inode, so it's safe here to check the flags field
-- * and to manipulate i_nlink without any other locks. */
--int ocfs2_drop_inode(struct inode *inode)
--{
--	struct ocfs2_inode_info *oi = OCFS2_I(inode);
--
--	trace_ocfs2_drop_inode((unsigned long long)oi->ip_blkno,
--				inode->i_nlink, oi->ip_flags);
--
--	assert_spin_locked(&inode->i_lock);
--	inode_state_add(inode, I_WILL_FREE);
--	spin_unlock(&inode->i_lock);
--	write_inode_now(inode, 1);
--	spin_lock(&inode->i_lock);
--	WARN_ON(inode_state_read(inode) & I_NEW);
--	inode_state_del(inode, I_WILL_FREE);
--
--	return 1;
--}
--
- /*
-  * This is called from our getattr.
-  */
-diff --git a/fs/ocfs2/inode.h b/fs/ocfs2/inode.h
-index accf03d4765e..07bd838e7843 100644
---- a/fs/ocfs2/inode.h
-+++ b/fs/ocfs2/inode.h
-@@ -116,7 +116,6 @@ static inline struct ocfs2_caching_info *INODE_CACHE(struct inode *inode)
- }
+ 		write_inode_now(inode, 1);
  
- void ocfs2_evict_inode(struct inode *inode);
--int ocfs2_drop_inode(struct inode *inode);
+ 		spin_lock(&inode->i_lock);
+-		inode_state_del(inode, I_WILL_FREE);
+ 		WARN_ON(inode_state_read(inode) & I_NEW);
+ 	}
  
- /* Flags for ocfs2_iget() */
- #define OCFS2_FI_FLAG_SYSFILE		0x1
-diff --git a/fs/ocfs2/ocfs2_trace.h b/fs/ocfs2/ocfs2_trace.h
-index 54ed1495de9a..4b32fb5658ad 100644
---- a/fs/ocfs2/ocfs2_trace.h
-+++ b/fs/ocfs2/ocfs2_trace.h
-@@ -1569,8 +1569,6 @@ DEFINE_OCFS2_ULL_ULL_UINT_EVENT(ocfs2_delete_inode);
- 
- DEFINE_OCFS2_ULL_UINT_EVENT(ocfs2_clear_inode);
- 
--DEFINE_OCFS2_ULL_UINT_UINT_EVENT(ocfs2_drop_inode);
--
- TRACE_EVENT(ocfs2_inode_revalidate,
- 	TP_PROTO(void *inode, unsigned long long ino,
- 		 unsigned int flags),
-diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-index 53daa4482406..e4b0d25f4869 100644
---- a/fs/ocfs2/super.c
-+++ b/fs/ocfs2/super.c
-@@ -129,7 +129,7 @@ static const struct super_operations ocfs2_sops = {
- 	.statfs		= ocfs2_statfs,
- 	.alloc_inode	= ocfs2_alloc_inode,
- 	.free_inode	= ocfs2_free_inode,
--	.drop_inode	= ocfs2_drop_inode,
-+	.drop_inode	= generic_delete_inode,
- 	.evict_inode	= ocfs2_evict_inode,
- 	.sync_fs	= ocfs2_sync_fs,
- 	.put_super	= ocfs2_put_super,
+-	inode_state_add(inode, I_FREEING);
+ 	if (!list_empty(&inode->i_lru))
+ 		inode_lru_list_del(inode);
+ 	spin_unlock(&inode->i_lock);
 -- 
 2.43.0
 
