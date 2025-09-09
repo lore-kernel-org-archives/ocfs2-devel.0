@@ -1,59 +1,59 @@
-Received: from mail-ej1-f51.google.com (mail-ej1-f51.google.com [209.85.218.51])
+Received: from mail-ed1-f41.google.com (mail-ed1-f41.google.com [209.85.208.41])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E10B32D23A4
-	for <ocfs2-devel@lists.linux.dev>; Tue,  9 Sep 2025 09:53:14 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.218.51
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0F8E82D23BC
+	for <ocfs2-devel@lists.linux.dev>; Tue,  9 Sep 2025 09:57:25 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.208.41
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1757411598; cv=none; b=NlWRnxR8PnjaKTeqijmYW9UgDCciGmslEFeoKwj49UzrWSIkx+Nkh9WuZvxmryQu92BExgO8VqOysuGvbOkCtSKPSR0NYEPXWH43rpUWMY9vAVZ6k/8EhmbhqxmL+Y6egh5v1c8RWmNpT71NkSj96I4gDgYfXXgkFjzHe6znvvE=
+	t=1757411847; cv=none; b=mF1j5C8r3KNNzUtdm+rZyqagFdgbS/O1S9cqnBk1Y2OfvwLdSQ7fYv77/56VuO+LG8tXkd6SnxntTfSIFrfWiwRkcr00JOL2bFNbfMlw5X4CrQv9Tz4AvxlGMdRNo4u7xjmH5S8llFcQuw2BwOw4LZpvrwKoFYazhS97O8P5kTg=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1757411598; c=relaxed/simple;
-	bh=fMLxq6TiucmvR7bYhmILcv7h/Uv9JsbdS4EC9Fmg0gY=;
+	s=arc-20240116; t=1757411847; c=relaxed/simple;
+	bh=RAE17ZYZWlIDCZkrsAY+6DPY1arC89Zp2iFLktMJp94=;
 	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
-	 To:Cc:Content-Type; b=uzBt1p5WNh/C1mc56M3Y0gIMO+C+4MU5hcxAy5lKegbtHGwBQesaZrCKjUMKlTOMT4HjU9TpIHEaNsVeORw+0MV47qet/8lJCibYgCwCb1kLxGPqEP0EXZpJwEC6lJJzYBLJXx/alWFWuQWjKckaQxSCJP1kBD3L5i6Ngu8SYdc=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=Cqnn+bzM; arc=none smtp.client-ip=209.85.218.51
+	 To:Cc:Content-Type; b=M82jEnyv4sV8I/pGuhsmJNx4D5d7lTpE6Q6J80jBc67U+5JQeMzVpHs5nA8qoVXprM3X+ILH0xtzDSSu93Mp3rlpvAMRgoI3kVT65V3kT6UL/1gXV4TnkuQmG1bfBcblhUs2dWeBSHOTcd+6E8Y62vCgvP5yGvW01MfOgYBrMlw=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=N6B5w9af; arc=none smtp.client-ip=209.85.208.41
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="Cqnn+bzM"
-Received: by mail-ej1-f51.google.com with SMTP id a640c23a62f3a-b042eb09948so1046657366b.3
-        for <ocfs2-devel@lists.linux.dev>; Tue, 09 Sep 2025 02:53:14 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="N6B5w9af"
+Received: by mail-ed1-f41.google.com with SMTP id 4fb4d7f45d1cf-620724883e6so9058088a12.2
+        for <ocfs2-devel@lists.linux.dev>; Tue, 09 Sep 2025 02:57:25 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1757411593; x=1758016393; darn=lists.linux.dev;
+        d=gmail.com; s=20230601; t=1757411844; x=1758016644; darn=lists.linux.dev;
         h=content-transfer-encoding:cc:to:subject:message-id:date:from
          :in-reply-to:references:mime-version:from:to:cc:subject:date
          :message-id:reply-to;
-        bh=fMLxq6TiucmvR7bYhmILcv7h/Uv9JsbdS4EC9Fmg0gY=;
-        b=Cqnn+bzM0ysCkWBdDaAfa6i//b2P19UwDD0LSGt0G0JVjSeVNKwZxaiFSEq9JspT0a
-         7SIvV0p/RE2GEk8B+tVck1i1Osl14rnIj1BuA2vmluynpw2ZUXyjyxkPRluKWrbxqjAh
-         hHn9B35r5eqCO80sGTYrSBMkFW84oLtm5oIKlx4sZWXTP4/l6Sd5eZAwqO0K94aa2vVp
-         2m0Axq+cCL92gacJuIzO0pWLXyiYqkPeiZiNXLjNBMuAHrkwLHXTbVioK7zU7vWgIyN+
-         C0Ih9rVlodXA7VM0xnivKxSM5elgVv6L4Fhvszp2HnCl0NkTSa4xBHCA3NiH1APxXOpe
-         3kAw==
+        bh=RAE17ZYZWlIDCZkrsAY+6DPY1arC89Zp2iFLktMJp94=;
+        b=N6B5w9afW7XRRBFmEtZfz28g9iraeXrMRyLzJThFch8I//RhjbGQRQz87Z+EVDqgMj
+         KQCUDdRv7fHZ6sJb9R3zJ1j9ThEDdDv65OWd6/SEaA+BkIt4ZdmnMFjmFp4VEzOPg9jn
+         eAhKBVYkXPWFQ/uB3z0kUc9tQWs0I39bAAB/yUn5HxpjNKotm5eVKSSMIYzQ6pOixp6Z
+         N5OU+nulKPq686+le48SzpnDfBtG4vWwg/3JTYe3RqB2WSI/SSO9LMldzgYYddNTFS1N
+         GJU+LLKRi3JIyRxLCTy8XJ94hkwQZAAxFQI2KQAOGVDoFZsG7Vg2bGJ+5g39GEjOvkmC
+         EBFQ==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1757411593; x=1758016393;
+        d=1e100.net; s=20230601; t=1757411844; x=1758016644;
         h=content-transfer-encoding:cc:to:subject:message-id:date:from
          :in-reply-to:references:mime-version:x-gm-message-state:from:to:cc
          :subject:date:message-id:reply-to;
-        bh=fMLxq6TiucmvR7bYhmILcv7h/Uv9JsbdS4EC9Fmg0gY=;
-        b=ii2fW9TY6KZkSEnICQ6FUlhe+EHlKZj5ZBGIfyXCih/UH8ifGvu8Fj6uB4P5I6ELqT
-         FvQpdJzisL3oLlKjNfNE3ATVH7ZGMOjLVNFVO1OXnR3Kh1N/qLcT4WE0Bl+vhgq2P65P
-         gzff80UpVhr7E9anu6yZ6t9v6DHUqqxyguPFhFI21MExRzlBymr6S/uJiQ6s9vObZoJY
-         9Z/mbD/ClK4L1gutCf0YUClZ3fxxqZoNTPqVb8Cra9+QjAPdrbEyfxx5LiEWMSuUEyey
-         PhJM1a/IUKuSFyxLXwqu4x9NUbKhTcsYSXYtIsZ6OaRpZicZ1advWCgrcEfVZx7LIAnk
-         MWoQ==
-X-Forwarded-Encrypted: i=1; AJvYcCUfPl3/E7OWjrgaqygb7d2GlF74AuaY2AQ/rhPsjR+jih64C0Nc8AERLWPfXYSII50EPX0WajrmhvgwOg==@lists.linux.dev
-X-Gm-Message-State: AOJu0Yxlw1V2c9VH20mMsQvQdFo7xcIK6k6dxNihD4/fZUmb63tir7aw
-	pCk6dza6xK0kc+EQH2FUayHGX8ixAncHWokltTNtYbn6LXsAMFWZ9zSRo9X+ifMNpy1UGiVP3Qr
-	JVAvsUHNS6cWWZ/Ikiqk0jugNvZVSmAc=
-X-Gm-Gg: ASbGncuAJC4P2/ghAfq70Cx5zZHxHRW4vIIfs1viHzkgG6UPeTymJFLsLXwqYDKEw7M
-	72NWC3PobTXwWuq8NfB/PL5oqcaSQSIneuRIkv8Ejs0k4A8Io1rqHqh1GUw6Y0Xo/vnXyFCh313
-	1/MkrPm69E3hMlqYiDXAJb2QMxUs3zHagpMOgHJUqFMOjerxkcx0Zbl10J9KHAmwernSVCghapD
-	rt4VgFGsov/Z3X/CQ==
-X-Google-Smtp-Source: AGHT+IE5lbqVo6j80scniqpSUIcsKgunf5VRTh8IsKCrX6AXDUK5P5Dj58UVpkT6jLLAC0fHmgDiA+ax2oWOoXko3OE=
-X-Received: by 2002:a17:907:3e20:b0:b04:8955:ec71 with SMTP id
- a640c23a62f3a-b04b14abdd1mr1040581066b.23.1757411592835; Tue, 09 Sep 2025
- 02:53:12 -0700 (PDT)
+        bh=RAE17ZYZWlIDCZkrsAY+6DPY1arC89Zp2iFLktMJp94=;
+        b=xUySl8aJAEVDnEVG8FDEeKMgkElVAXUaLGsMe+jQTIVQx9YpZqIFTnrtZiFcpAFwUK
+         JMYbFynTEY1PqZVRwjUpOJCQdYBpMTyzC1xOshALRR9wKW4Ie6dlsofa5oL8+QWig6Nz
+         n3ipUUwwl6e5nTUYZDhJGIeIWijY0y3AqFm7VKcEs47cs48EaqQC+zCql2u1ZNsFIROe
+         y45D6orJFh0Ade4ixgEA8gyMZX40HjYhhUSvPNOq6Ro1arK56r+fMzxVoIhtr4D92Ekz
+         CxppFfU+nOz4+J7maDe3OyaSmh074IdF7t8RZHifYzRiMUP/fAifgTdJQ/3ckbbGNL1f
+         6hew==
+X-Forwarded-Encrypted: i=1; AJvYcCUCuTi+5VsQxFGeYvn+e6h4h+4cdGmvlTcTCj3W89Orud2pUzncCtGLI1H/LrWrH958CnWmGA8aa2FIdQ==@lists.linux.dev
+X-Gm-Message-State: AOJu0YwhFCLSBNOTthxYqjJz1X1bl6GhAyj/W2sgc/hecw8e66YwvCIE
+	QSO75fw0UCMdAs4Ju7P21m9so7SLUyFYGSbUbxsiaTX0cVS7Xs9OR9kWBu0ZGeH+k25qXOhcYHk
+	CmlyUy66/blT8jrnwHjE6zEc2P0gXYFA=
+X-Gm-Gg: ASbGncslPDMvzQkavHY4B80HY1nmjdt5ZHBsBjdDk+Mac3bKsgxkrYT4UpcAAwC5wox
+	B1ZK30HYxsVM/GqGlA5pu/An/qmt39at1wx9mf1KNA4qN9Yy6Y7GQKPhd/kopzZQYzhLyN+YISz
+	Vyy6GIo1Z0gtazrtArwxkpXKZW2r3vp+MJxtTew18aX+oozSyC2BVQPNU2YSj+kdxsFYC48NVoN
+	GeryeQ=
+X-Google-Smtp-Source: AGHT+IFf/ZoRT5HaF6kxr9rOT2RZ/8rZlOcLf23MX89bg8+alXq2taVr5i1vpDSwq2raUZjmK7nkmcK3Ji+N/jYHCSo=
+X-Received: by 2002:a05:6402:2794:b0:62b:2f0:974f with SMTP id
+ 4fb4d7f45d1cf-62b02f09bebmr3813819a12.15.1757411843927; Tue, 09 Sep 2025
+ 02:57:23 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -65,12 +65,13 @@ References: <766vdz3ecpm7hv4sp5r3uu4ezggm532ng7fdklb2nrupz6minz@qcws3ufabnjp>
  <CAGudoHHT=P_UyZZpx5tBRHPE+irh1b7PxFXZAHjdHNLcEWOxAQ@mail.gmail.com>
  <8ddcaa59-0cf0-4b7c-a121-924105f7f5a6@linux.alibaba.com> <rvavp2omizs6e3qf6xpjpycf6norhfhnkrle4fq4632atgar5v@dghmwbctf2mm>
  <f9014fdb-95c8-4faa-8c42-c1ceea49cbd9@linux.alibaba.com> <fureginotssirocugn3aznor4vhbpadhwy7fhaxzeullhrzp7y@bg5gzdv6mrif>
- <CAGudoHGui53Ryz1zunmd=G=Rr9cZOsWPFW7+GGBmxN4U_BNE4A@mail.gmail.com> <tmovxjz7ouxzj5r2evjjpiujqeod3e22dtlriqqlgqwy4rnoxd@eppnh4jf72dq>
-In-Reply-To: <tmovxjz7ouxzj5r2evjjpiujqeod3e22dtlriqqlgqwy4rnoxd@eppnh4jf72dq>
+ <CAGudoHGui53Ryz1zunmd=G=Rr9cZOsWPFW7+GGBmxN4U_BNE4A@mail.gmail.com>
+ <tmovxjz7ouxzj5r2evjjpiujqeod3e22dtlriqqlgqwy4rnoxd@eppnh4jf72dq> <CAGudoHHNhf2epYMLwmna3WVvbMuiHFmPX+ByVbt8Qf3Dm4QZeg@mail.gmail.com>
+In-Reply-To: <CAGudoHHNhf2epYMLwmna3WVvbMuiHFmPX+ByVbt8Qf3Dm4QZeg@mail.gmail.com>
 From: Mateusz Guzik <mjguzik@gmail.com>
-Date: Tue, 9 Sep 2025 11:52:59 +0200
-X-Gm-Features: AS18NWDFJ_osJRVbnAUraWGjWXB7TrxUdlg8pq3rQrOexAxnp7yjh67liY3VHfc
-Message-ID: <CAGudoHHNhf2epYMLwmna3WVvbMuiHFmPX+ByVbt8Qf3Dm4QZeg@mail.gmail.com>
+Date: Tue, 9 Sep 2025 11:57:11 +0200
+X-Gm-Features: AS18NWDvNMnekQfsZG-s3JBWxVpGxDm3JdJDNsFjC1VMfTBR1aZ0-dcOy76lqUQ
+Message-ID: <CAGudoHEBDA1XKu8WTPQ4Nn+GTUWg_FMUavcAddBQ=5doY1aQxw@mail.gmail.com>
 Subject: Re: [External] : [PATCH] ocfs2: retire ocfs2_drop_inode() and
  I_WILL_FREE usage
 To: Jan Kara <jack@suse.cz>
@@ -82,22 +83,32 @@ Cc: Joseph Qi <joseph.qi@linux.alibaba.com>, Mark Tinguely <mark.tinguely@oracle
 Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: quoted-printable
 
-On Tue, Sep 9, 2025 at 11:51=E2=80=AFAM Jan Kara <jack@suse.cz> wrote:
+On Tue, Sep 9, 2025 at 11:52=E2=80=AFAM Mateusz Guzik <mjguzik@gmail.com> w=
+rote:
 >
-> On Mon 08-09-25 17:39:22, Mateusz Guzik wrote:
-> > I think generic_delete_inode is a really bad name for what the routine
-> > is doing and it perhaps contributes to the confusion in the thread.
+> On Tue, Sep 9, 2025 at 11:51=E2=80=AFAM Jan Kara <jack@suse.cz> wrote:
 > >
-> > Perhaps it could be renamed to inode_op_stub_always_drop or similar? I
-> > don't for specifics, apart from explicitly stating that the return
-> > value is to drop and bonus points for a prefix showing this is an
-> > inode thing.
+> > On Mon 08-09-25 17:39:22, Mateusz Guzik wrote:
+> > > I think generic_delete_inode is a really bad name for what the routin=
+e
+> > > is doing and it perhaps contributes to the confusion in the thread.
+> > >
+> > > Perhaps it could be renamed to inode_op_stub_always_drop or similar? =
+I
+> > > don't for specifics, apart from explicitly stating that the return
+> > > value is to drop and bonus points for a prefix showing this is an
+> > > inode thing.
+> >
+> > I think inode_always_drop() would be fine...
 >
-> I think inode_always_drop() would be fine...
+> sgtm. unfortunately there are quite a few consumers, so I don't know
+> if this is worth the churn and consequently I'm not going for it.
+>
+> But should you feel inclined... ;-)
 
-sgtm. unfortunately there are quite a few consumers, so I don't know
-if this is worth the churn and consequently I'm not going for it.
+Actually got one better: inode_just_drop(), so that it is clear this
+is not doing anything else.
 
-But should you feel inclined... ;-)
+Perhaps something to do after the dust settles.
 --=20
 Mateusz Guzik <mjguzik gmail.com>
