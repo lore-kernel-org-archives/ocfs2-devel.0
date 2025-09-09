@@ -1,225 +1,337 @@
-Received: from out30-99.freemail.mail.aliyun.com (out30-99.freemail.mail.aliyun.com [115.124.30.99])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-wr1-f52.google.com (mail-wr1-f52.google.com [209.85.221.52])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7469315A848
-	for <ocfs2-devel@lists.linux.dev>; Tue,  9 Sep 2025 01:24:00 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.99
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2A87B283CB5
+	for <ocfs2-devel@lists.linux.dev>; Tue,  9 Sep 2025 09:14:03 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.221.52
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1757381043; cv=none; b=Egv2+FRxAkwk5JKDyqnmPnk67dcTvwqNHsZjtPXW7HXWGVHMuKFChKjAuAXsBMWvvRVZwosXQiFgZgGMsogdl2L4nwO3ZTulqhJ12UF1XpEvjdKmqcHlXzHw2/vjiFC7ecgGxXrBC15mjKek8a4pA0ld3ne9ML3g6cRkbT3sFG0=
+	t=1757409245; cv=none; b=iIjIS64hHGs8O0kbHV2YZGdfOQB/u5LcjAaxdLPfRd9J5mVPf0c0EKp77G63WLLFGtU92JRO2u8jBNnGpAw2ZYd6lLp0QlbnnbrjFbejQnHdl+DKzcDVmCROq8uYJXJ9s2p5QJvh8d1wqe1BMFIFaQ+RHMLNzgj18+vsjRGPH9Q=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1757381043; c=relaxed/simple;
-	bh=9t2jjirqgihqXvU4UKP2Qi897S5wE8kf1WG1+WY/JJg=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=kHB97tKt5whBwkF7VI+O3w12Lns74s18NuZR/pfzEjMOZf0oErqeggCiAkx2T1Ej2GCJmdGsjrpQqE4LauqeB8/BXKyyLziyeDlQhrGsmv0UmnML9JVGP2SJC35WKa0Ux86XdXcE3RvJVs51RWq99el6KierPL1cix4xT0akHF8=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=Y1TzdXqT; arc=none smtp.client-ip=115.124.30.99
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
+	s=arc-20240116; t=1757409245; c=relaxed/simple;
+	bh=m7+EjSEw7wGjGIHmJWC2yW7fI5jbNMbgdH73UJbKpuE=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=S1aWp/abLHtI57ZmWAmpLkT/IP2j/d0i8zBaWKOl/lKm4qBQSwaHF87X5zqYLxboAlq2h4t0bDcfbfP7Aoz0GQL9Fcl4ILj1uCksXOw63KciU+gXIaLbLxHfvvAfqDxwqIJyCVdXCAoqAeJqabCgPOY//NfqmDUcye9XJ7cfCCs=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=WDcKFtxq; arc=none smtp.client-ip=209.85.221.52
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="Y1TzdXqT"
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1757381038; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=zhR/uQdxVtluM9E+dpo+PTxBDDk8oslc9nOQJ4GqiME=;
-	b=Y1TzdXqTiuGT5kh7pfQrUjgOQDU4ZMzKCcbCr0/K4FPxzr72AACZmHpxkCf04KSc+DAE/J+YBKhllKTFWN06KdF8RDi9SnKAKD8PjHDUma4Eu8H8759q5gUtVcTZj6O9hEud2X2zpI9fueexeXRkffZONlYNzE0wFFCVkqEcaDc=
-Received: from 30.221.128.137(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0WnbolA6_1757381036 cluster:ay36)
-          by smtp.aliyun-inc.com;
-          Tue, 09 Sep 2025 09:23:57 +0800
-Message-ID: <b9957de7-737c-454a-83b1-6cb2a4070fcf@linux.alibaba.com>
-Date: Tue, 9 Sep 2025 09:23:56 +0800
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="WDcKFtxq"
+Received: by mail-wr1-f52.google.com with SMTP id ffacd0b85a97d-3df726ecff3so2832253f8f.3
+        for <ocfs2-devel@lists.linux.dev>; Tue, 09 Sep 2025 02:14:02 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20230601; t=1757409241; x=1758014041; darn=lists.linux.dev;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:from:to:cc:subject:date:message-id:reply-to;
+        bh=ka25j5M/VbSSUXNqqPV03aOJpdPrHGb9SiYreXMkqJ8=;
+        b=WDcKFtxqg7IIm1Ar11lv9uufqXVsc2RCcxpKRGm79HPZSaAgzpulimqypo5jQZuZzY
+         NrcHALFvypa/vvpJoq2cCTyI0JVb94D1W9t1wPLdmvOCp6Expy2aJ0VqV15Fs+QesO0h
+         ScWStz/x6QHjTQYE9muOvKhEDtzYGTL+TK7S7eG1iHpIyoeT4FmhBOtwOcbxSzfIxyIc
+         JznfWZDD0GxSXztDgW3orbe/iuJwsfa3WyAbLreEuMmymtrySAHmAhOpyJJnG4TiterF
+         HekHOOkkdUgEq1kAcIyTdwwgVsKrkBsqIRmYDrjEXGySMxDOtK8948h+t8m0upfV4Lm9
+         dXIg==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1757409241; x=1758014041;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:x-gm-message-state:from:to:cc:subject:date:message-id
+         :reply-to;
+        bh=ka25j5M/VbSSUXNqqPV03aOJpdPrHGb9SiYreXMkqJ8=;
+        b=L+aeFcvmt9vA0317lWTcprkblaAS5J+N8IKtJzJsGztjxHI1LeJuQEMbWerDSPT841
+         E9MCRgdz+Xqmzet/5F/WdI4o1eVU4xH9fGv8x5A3f8Da9TAUrxDN3nWVcKm/V/DYP4Qb
+         5dIgfDwsX9MAvF8oWYtFUz9/0AKFnR7BU9T/xSHP+L9BLG0ULOUb1OkrZsctH2wC5IPs
+         OyYTjFcCuNtvEe+GZQwjIhZZ6uHwmB+W6NTMHuWIPM10OxAEOO+adlpU0Gp4tXRlbAHt
+         fKN0PMn9MuaF4BF/a6zKWVM7/wKOlyGAluVLsrR9sx81AOJb7/iP8JuHmw4MoVQ+oPCA
+         ttzw==
+X-Forwarded-Encrypted: i=1; AJvYcCUK9gTKU09fDEw6737TomTEM173cegYBGWk/WPWp5W7OPD6Mmv5ggBHRBwHGTKpBHmQYZVKZe9U/Af3Uw==@lists.linux.dev
+X-Gm-Message-State: AOJu0YwztUw+ttd1jqf6ciladUlz7zT8Vqhe+MJSmEwlF7ku28OviHsY
+	09q3VOavQlPjQ1aFCrOKx5hf1NTC3l8JSRCCrAHFOJJ7sKhS/B+JZmVt
+X-Gm-Gg: ASbGncsBLlf7jYhmQ5LjTc8hNhkYvwS1mhozODZcTkQcUe3l9efIjtNSpVogfhKRj/9
+	y+Vd0DicI+Ooy3dSuyvnDL8Xd51bPt1i5R6d0rjiHFAkf3/rGlgOXT5zSl2eGq2SAMZBYrT0lfZ
+	7xVhFn/vs2AMPSLmDH2dRm/1MEDpD2jYyHTR06CEzJY59VhJPTtVUEy77KAL5uO9CN9iWw6dJ9a
+	Ynve0lbj5vOJN/z3hUveH191LG3PXcUJjxqZlAXuxYVyMGFYxlXu4dvCn5ww0W1KkMqHXuSVoFr
+	40aDBGstB+rNPWU+9cSD3aLdpoDQ+dKnaImZ37f2SrsrTT5kdCIeKMTKv485fATE5amzkglfS8b
+	fl3AVCIsPZ/xaer0kf70WlX1LcUu+6oSCnuIT7l72eU6pm+japVk=
+X-Google-Smtp-Source: AGHT+IHFEehIPgdcNTbNx4qOhQtSRG+TRsytb4QDyjjp512DHDqKl5O00OUvTsgL0ex7EVMGQT0V4Q==
+X-Received: by 2002:a05:6000:22c3:b0:3de:78c8:11fc with SMTP id ffacd0b85a97d-3e6497c0668mr9444917f8f.63.1757409240911;
+        Tue, 09 Sep 2025 02:14:00 -0700 (PDT)
+Received: from f.. (cst-prg-84-152.cust.vodafone.cz. [46.135.84.152])
+        by smtp.gmail.com with ESMTPSA id ffacd0b85a97d-3e7521bff6esm1810784f8f.13.2025.09.09.02.13.59
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Tue, 09 Sep 2025 02:14:00 -0700 (PDT)
+From: Mateusz Guzik <mjguzik@gmail.com>
+To: brauner@kernel.org
+Cc: viro@zeniv.linux.org.uk,
+	jack@suse.cz,
+	linux-kernel@vger.kernel.org,
+	linux-fsdevel@vger.kernel.org,
+	josef@toxicpanda.com,
+	kernel-team@fb.com,
+	amir73il@gmail.com,
+	linux-btrfs@vger.kernel.org,
+	linux-ext4@vger.kernel.org,
+	linux-xfs@vger.kernel.org,
+	ocfs2-devel@lists.linux.dev,
+	Mateusz Guzik <mjguzik@gmail.com>
+Subject: [WIP RFC PATCH v2 00/10] i_state accessors + I_WILL_FREE removal
+Date: Tue,  9 Sep 2025 11:13:34 +0200
+Message-ID: <20250909091344.1299099-1-mjguzik@gmail.com>
+X-Mailer: git-send-email 2.43.0
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [External] : [PATCH] ocfs2: retire ocfs2_drop_inode() and
- I_WILL_FREE usage
-To: Jan Kara <jack@suse.cz>
-Cc: Mateusz Guzik <mjguzik@gmail.com>,
- Mark Tinguely <mark.tinguely@oracle.com>, ocfs2-devel@lists.linux.dev,
- viro@zeniv.linux.org.uk, linux-kernel@vger.kernel.org,
- linux-fsdevel@vger.kernel.org, josef@toxicpanda.com, jlbec@evilplan.org,
- mark@fasheh.com, brauner@kernel.org, willy@infradead.org, david@fromorbit.com
-References: <766vdz3ecpm7hv4sp5r3uu4ezggm532ng7fdklb2nrupz6minz@qcws3ufabnjp>
- <20250904154245.644875-1-mjguzik@gmail.com>
- <f3671198-5231-41cf-b0bc-d1280992947a@oracle.com>
- <CAGudoHHT=P_UyZZpx5tBRHPE+irh1b7PxFXZAHjdHNLcEWOxAQ@mail.gmail.com>
- <8ddcaa59-0cf0-4b7c-a121-924105f7f5a6@linux.alibaba.com>
- <rvavp2omizs6e3qf6xpjpycf6norhfhnkrle4fq4632atgar5v@dghmwbctf2mm>
- <f9014fdb-95c8-4faa-8c42-c1ceea49cbd9@linux.alibaba.com>
- <fureginotssirocugn3aznor4vhbpadhwy7fhaxzeullhrzp7y@bg5gzdv6mrif>
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <fureginotssirocugn3aznor4vhbpadhwy7fhaxzeullhrzp7y@bg5gzdv6mrif>
-Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 
+NOTE: this is a WIP not meant to be included anywhere yet and perhaps
+should be split into 2 patchsets.
 
+It is generated against against:
+https://git.kernel.org/pub/scm/linux/kernel/git/vfs/vfs.git/commit/?h=vfs-6.18.inode.refcount.preliminaries
 
-On 2025/9/8 21:54, Jan Kara wrote:
-> On Mon 08-09-25 20:41:21, Joseph Qi wrote:
->>
->>
->> On 2025/9/8 18:23, Jan Kara wrote:
->>> On Mon 08-09-25 09:51:36, Joseph Qi wrote:
->>>> On 2025/9/5 00:22, Mateusz Guzik wrote:
->>>>> On Thu, Sep 4, 2025 at 6:15 PM Mark Tinguely <mark.tinguely@oracle.com> wrote:
->>>>>>
->>>>>> On 9/4/25 10:42 AM, Mateusz Guzik wrote:
->>>>>>> This postpones the writeout to ocfs2_evict_inode(), which I'm told is
->>>>>>> fine (tm).
->>>>>>>
->>>>>>> The intent is to retire the I_WILL_FREE flag.
->>>>>>>
->>>>>>> Signed-off-by: Mateusz Guzik <mjguzik@gmail.com>
->>>>>>> ---
->>>>>>>
->>>>>>> ACHTUNG: only compile-time tested. Need an ocfs2 person to ack it.
->>>>>>>
->>>>>>> btw grep shows comments referencing ocfs2_drop_inode() which are already
->>>>>>> stale on the stock kernel, I opted to not touch them.
->>>>>>>
->>>>>>> This ties into an effort to remove the I_WILL_FREE flag, unblocking
->>>>>>> other work. If accepted would be probably best taken through vfs
->>>>>>> branches with said work, see https://urldefense.com/v3/__https://git.kernel.org/pub/scm/linux/kernel/git/vfs/vfs.git/log/?h=vfs-6.18.inode.refcount.preliminaries__;!!ACWV5N9M2RV99hQ!OLwk8DVo7uvC-Pd6XVTiUCgP6MUDMKBMEyuV27h_yPGXOjaq078-kMdC9ILFoYQh-4WX93yb0nMfBDFFY_0$
->>>>>>>
->>>>>>>   fs/ocfs2/inode.c       | 23 ++---------------------
->>>>>>>   fs/ocfs2/inode.h       |  1 -
->>>>>>>   fs/ocfs2/ocfs2_trace.h |  2 --
->>>>>>>   fs/ocfs2/super.c       |  2 +-
->>>>>>>   4 files changed, 3 insertions(+), 25 deletions(-)
->>>>>>>
->>>>>>> diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
->>>>>>> index 6c4f78f473fb..5f4a2cbc505d 100644
->>>>>>> --- a/fs/ocfs2/inode.c
->>>>>>> +++ b/fs/ocfs2/inode.c
->>>>>>> @@ -1290,6 +1290,8 @@ static void ocfs2_clear_inode(struct inode *inode)
->>>>>>>
->>>>>>>   void ocfs2_evict_inode(struct inode *inode)
->>>>>>>   {
->>>>>>> +     write_inode_now(inode, 1);
->>>>>>> +
->>>>>>>       if (!inode->i_nlink ||
->>>>>>>           (OCFS2_I(inode)->ip_flags & OCFS2_INODE_MAYBE_ORPHANED)) {
->>>>>>>               ocfs2_delete_inode(inode);
->>>>>>> @@ -1299,27 +1301,6 @@ void ocfs2_evict_inode(struct inode *inode)
->>>>>>>       ocfs2_clear_inode(inode);
->>>>>>>   }
->>>>>>>
->>>>>>> -/* Called under inode_lock, with no more references on the
->>>>>>> - * struct inode, so it's safe here to check the flags field
->>>>>>> - * and to manipulate i_nlink without any other locks. */
->>>>>>> -int ocfs2_drop_inode(struct inode *inode)
->>>>>>> -{
->>>>>>> -     struct ocfs2_inode_info *oi = OCFS2_I(inode);
->>>>>>> -
->>>>>>> -     trace_ocfs2_drop_inode((unsigned long long)oi->ip_blkno,
->>>>>>> -                             inode->i_nlink, oi->ip_flags);
->>>>>>> -
->>>>>>> -     assert_spin_locked(&inode->i_lock);
->>>>>>> -     inode->i_state |= I_WILL_FREE;
->>>>>>> -     spin_unlock(&inode->i_lock);
->>>>>>> -     write_inode_now(inode, 1);
->>>>>>> -     spin_lock(&inode->i_lock);
->>>>>>> -     WARN_ON(inode->i_state & I_NEW);
->>>>>>> -     inode->i_state &= ~I_WILL_FREE;
->>>>>>> -
->>>>>>> -     return 1;
->>>>>>> -}
->>>>>>> -
->>>>>>>   /*
->>>>>>>    * This is called from our getattr.
->>>>>>>    */
->>>>>>> diff --git a/fs/ocfs2/inode.h b/fs/ocfs2/inode.h
->>>>>>> index accf03d4765e..07bd838e7843 100644
->>>>>>> --- a/fs/ocfs2/inode.h
->>>>>>> +++ b/fs/ocfs2/inode.h
->>>>>>> @@ -116,7 +116,6 @@ static inline struct ocfs2_caching_info *INODE_CACHE(struct inode *inode)
->>>>>>>   }
->>>>>>>
->>>>>>>   void ocfs2_evict_inode(struct inode *inode);
->>>>>>> -int ocfs2_drop_inode(struct inode *inode);
->>>>>>>
->>>>>>>   /* Flags for ocfs2_iget() */
->>>>>>>   #define OCFS2_FI_FLAG_SYSFILE               0x1
->>>>>>> diff --git a/fs/ocfs2/ocfs2_trace.h b/fs/ocfs2/ocfs2_trace.h
->>>>>>> index 54ed1495de9a..4b32fb5658ad 100644
->>>>>>> --- a/fs/ocfs2/ocfs2_trace.h
->>>>>>> +++ b/fs/ocfs2/ocfs2_trace.h
->>>>>>> @@ -1569,8 +1569,6 @@ DEFINE_OCFS2_ULL_ULL_UINT_EVENT(ocfs2_delete_inode);
->>>>>>>
->>>>>>>   DEFINE_OCFS2_ULL_UINT_EVENT(ocfs2_clear_inode);
->>>>>>>
->>>>>>> -DEFINE_OCFS2_ULL_UINT_UINT_EVENT(ocfs2_drop_inode);
->>>>>>> -
->>>>>>>   TRACE_EVENT(ocfs2_inode_revalidate,
->>>>>>>       TP_PROTO(void *inode, unsigned long long ino,
->>>>>>>                unsigned int flags),
->>>>>>> diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
->>>>>>> index 53daa4482406..e4b0d25f4869 100644
->>>>>>> --- a/fs/ocfs2/super.c
->>>>>>> +++ b/fs/ocfs2/super.c
->>>>>>> @@ -129,7 +129,7 @@ static const struct super_operations ocfs2_sops = {
->>>>>>>       .statfs         = ocfs2_statfs,
->>>>>>>       .alloc_inode    = ocfs2_alloc_inode,
->>>>>>>       .free_inode     = ocfs2_free_inode,
->>>>>>> -     .drop_inode     = ocfs2_drop_inode,
->>>>>>> +     .drop_inode     = generic_delete_inode,
->>>>>>>       .evict_inode    = ocfs2_evict_inode,
->>>>>>>       .sync_fs        = ocfs2_sync_fs,
->>>>>>>       .put_super      = ocfs2_put_super,
->>>>>>
->>>>>>
->>>>>> I agree, fileystems should not use I_FREEING/I_WILL_FREE.
->>>>>> Doing the sync write_inode_now() should be fine in ocfs_evict_inode().
->>>>>>
->>>>>> Question is ocfs_drop_inode. In commit 513e2dae9422:
->>>>>>   ocfs2: flush inode data to disk and free inode when i_count becomes zero
->>>>>> the return of 1 drops immediate to fix a memory caching issue.
->>>>>> Shouldn't .drop_inode() still return 1?
->>>>>
->>>>> generic_delete_inode is a stub doing just that.
->>>>>
->>>> In case of "drop = 0", it may return directly without calling evict().
->>>> This seems break the expectation of commit 513e2dae9422.
->>>
->>> generic_delete_inode() always returns 1 so evict() will be called.
->>> ocfs2_drop_inode() always returns 1 as well after 513e2dae9422. So I'm not
->>> sure which case of "drop = 0" do you see...
->>>
->> I don't see a real case, just in theory.
->> As I described before, if we make sure write_inode_now() will be called
->> in iput_final(), it would be fine.
-> 
-> I'm sorry but I still don't quite understand what you are proposing. If
-> ->drop() returns 1, the filesystem wants to remove the inode from cache
-> (perhaps because it was deleted). Hence iput_final() doesn't bother with
-> writing out such inodes. This doesn't work well with ocfs2 wanting to
-> always drop inodes hence ocfs2 needs to write the inode itself in
-> ocfs2_evice_inode(). Perhaps you have some modification to iput_final() in
-> mind but I'm not sure how that would work so can you perhaps suggest a
-> patch if you think iput_final() should work differently? Thanks!
-> 
-I'm just discussing if generic_delete_inode() will always returns 1. And
-if it is, I'm fine with this change. Sorry for the confusion.
+The first patch in the series is ready to use(tm) and was sent
+separately here:
+https://lore.kernel.org/linux-fsdevel/20250909082613.1296550-1-mjguzik@gmail.com/T/#u
 
-Before commit 513e2dae9422, ocfs2_drop_inode() may return 1 and postpone
-the work to orphan scan. So commit 513e2dae9422 make write_inode_now()
-is determinately called by move it to drop_inode().
+It is included in this posting as the newly patched routine has to get
+patched further due to the i_state accessor thing. Having it here should
+make it handier to test for interested.
 
-Now this patch move write_inode_now() down to evict(), and in iput_final()
-it has:
+This is a cleaned up continuation of the churn-ey patch which merely removed I_WILL_FREE:
+https://lore.kernel.org/linux-fsdevel/20250902145428.456510-1-mjguzik@gmail.com/
 
-if (!drop &&
-    !(inode->i_state & I_DONTCACHE) &&
-    (sb->s_flags & SB_ACTIVE)) {
-	......
-	return;
+The entire thing is a response to the patchset by Josef Bacik concerning
+refcount changes, see:
+https://lore.kernel.org/linux-fsdevel/cover.1756222464.git.josef@toxicpanda.com/
+
+I'm writing my second reply to that patchset, but in the meantime the
+stuff below should facilitate work forward, regardless if the refcount
+patchset goes in or not.
+
+The patchset splits churn from actual changes.
+
+Plain ->i_state access is still possible to reduce upfront churn, only
+some of the tree got covered so far.
+
+short rundown:
+  fs: hide ->i_state handling behind accessors
+
+This is churn-ey and should largely be a nop, worst case there will be
+failed lock assertions if I messed up some annotations and which should
+be easy to sort out. It covers fs/*.c and friends, but no filesystems.
+
+  bcachefs: use the new ->i_state accessors
+  btrfs: use the new ->i_state accessors
+  ext4: use the new ->i_state accessors
+  gfs2: use the new ->i_state accessors
+  ocfs2: use the new ->i_state accessors
+
+This patches only the filesystems which reference I_WILL_FREE. Again
+should be a nop.
+
+  ocfs2: retire ocfs2_drop_inode() and I_WILL_FREE usage
+
+Actual change, needs ocfs2 folks approval.
+
+  fs: set I_FREEING instead of I_WILL_FREE in iput_final() prior to
+    writeback
+
+Actual change. I_WILL_FREE still exists as a macro but is no longer set
+by anything. As of right now I'm not fully confident this is correct,
+the writeback code is more fuck-ey than not. However, figuring this out
+is imo a hard prerequisite for the refcount patchset by Josef anyway.
+
+  fs: retire the I_WILL_FREE flag
+
+Churn change to whack the flag. It also uses the opportunity to do some
+cosmetics.
+
+Onto the rationale:
+
+I. i_state
+
+The handling in the stock kernel is highly error prone and with 0 assert
+coverage.
+
+Notably there is nothing guaranteeing the caller owns the necessary lock
+when making changes. But apart from that there are spots which look at
+->i_state several times and it is unclear if they think it is stable or
+not. Moreover spots used on inode teardown use WRITE_ONCE, some spots in
+hash lookup use READ_ONCE, but everyone else issues plain loads and
+stores which invites compiler mischief.
+
+All of this is easily preventable.
+
+The ideal state as I see it would also hide the field behind a struct so
+that plain open-coded accesses fail to compile. Not done yet to reduce
+churn.
+
+Another step not taken here but to be sorted out later is strict
+handling of flags, where it is illegal to clear flags which are not
+present and to set flags which are already set -- the kernel should know
+whether a given flag can legally be present or not (trivial example:
+I_FREEING).  Setting a flag which is already set is more likely to be a
+logic error than not. If it turns out there are cases where a flag can
+be legally already present/missing, an additional helper can be added to
+forego the assertion.
+
+Practical examples:
+	spin_lock(&inode->i_lock);
+	if (inode_state_read(inode) & I_WHATEVER) {
+		....
+	}
+	spin_unlock(&inode->i_lock);
+
+This asserts the lock is held.
+
+But if the caller is looking to do a lockless check first, they can do
+it and explicitly denote this is what they want:
+
+	if (inode_state_read_unlocked(inode) & I_WHATEVER) {
+		spin_lock(&inode->i_lock);
+		if (inode_state_read(inode) & I_WHATEVER) {
+			....
+		}
+		spin_unlock(&inode->i_lock);
+	}
+
+Similarly:
+	state = inode_state_read_unlocked(inode);
+	if (state & I_CRAP) {
+	} else (state & I_MEH) {
+	}
+	...
+
+We are guaranteed no mischief and the caller acknowledges the value in
+the inode could have changed from under them and the code is READ_ONCE
+(as opposed to plain ->i_state loads now).
+
+Furthermore, should better lifecycle tracking get introduced, the
+helpers can validate no flags get added when it is invalid to do so.
+
+The *current* routines are as below. I don't care about specific
+names, I do care about semantics.
+
+/*
+ * i_state handling
+ *
+ * We hide all of it behind helpers so that we can validate consumers.
+ */
+static inline enum inode_state_flags_enum inode_state_read(struct inode *inode)
+{
+        lockdep_assert_held(&inode->i_lock);
+        return inode->i_state;
 }
 
-So we have to make sure the above condition is not true, otherwise it
-breaks the case commit 513e2dae9422 describes.
+static inline enum inode_state_flags_enum inode_state_read_unlocked(struct inode *inode)
+{
+        return READ_ONCE(inode->i_state);
+}
 
-Thanks,
-Joseph
+static inline void inode_state_add(struct inode *inode,
+                                         enum inode_state_flags_enum newflags)
+{
+        lockdep_assert_held(&inode->i_lock);
+        WRITE_ONCE(inode->i_state, inode->i_state | newflags);
+}
+
+static inline void inode_state_del(struct inode *inode,
+                                         enum inode_state_flags_enum rmflags)
+{
+        lockdep_assert_held(&inode->i_lock);
+        WRITE_ONCE(inode->i_state, inode->i_state & ~rmflags);
+}
+
+static inline void inode_state_set_unchecked(struct inode *inode,
+                                                   enum inode_state_flags_enum newflags)
+{
+        WRITE_ONCE(inode->i_state, newflags);
+}
+
+The inode_state_set_unchecked() crapper is there to handle early access
+during inode construction (before it lands in the hash).
+
+II. I_WILL_FREE removal
+
+Sounds like nobody likes this flag and even the developer documenting it
+in fs.h was not able to provide a justification for its existence,
+merely stating how it is used.
+
+As far as I can tell the only use was to allow ->drop_inode() handlers
+to drop ->i_lock and still prevent anyone from picking up the inode. I
+*suspect* this was used instead of I_FREEING because the routine could
+have decided to *not* drop afterwards. Differentiating between
+indicating the inode is going down vs just telling the consumer to
+bugger off for the time being seemed like an ok idea.
+
+However, the only filesystem using today is ocfs2, it always returns
+"drop it" and this usage does not even have to be there. Removed in one
+of the patches.
+
+Apart from that the only use was write_inode_now() call in iput_final()
+prior to setting I_FREEING anyway. This probably works as posted here,
+but there might be some fuckery to sort out in writeback to truly
+eliminate the flag. In the worst case it's just some work, but *so far*
+I'm not staking anything on the patchset being fully correct yet.
+
+tl;dr the flag does not have to be there, but there may be dragons in
+writeback (to be seen). No matter what, shaking bugs out of this should
+be considered a pre-requisite for any future work regarding inode
+lifecycle (whether the refcount patchset lands or not, imo it should not
+which I'll elaborate on later in that thread).
+
+Apart from that the I_CREATING flag seems to have inconsistent handling,
+but that's for another e-mail after I get a better hang of it.
+
+So.. comments?
+
+Mateusz Guzik (10):
+  fs: expand dump_inode()
+  fs: hide ->i_state handling behind accessors
+  bcachefs: use the new ->i_state accessors
+  btrfs: use the new ->i_state accessors
+  ext4: use the new ->i_state accessors
+  gfs2: use the new ->i_state accessors
+  ocfs2: use the new ->i_state accessors
+  ocfs2: retire ocfs2_drop_inode() and I_WILL_FREE usage
+  fs: set I_FREEING instead of I_WILL_FREE in iput_final() prior to
+    writeback
+  fs: retire the I_WILL_FREE flag
+
+ block/bdev.c                     |   4 +-
+ fs/bcachefs/fs.c                 |   8 +-
+ fs/btrfs/inode.c                 |  10 +--
+ fs/buffer.c                      |   4 +-
+ fs/crypto/keyring.c              |   2 +-
+ fs/crypto/keysetup.c             |   2 +-
+ fs/dcache.c                      |   8 +-
+ fs/drop_caches.c                 |   2 +-
+ fs/ext4/inode.c                  |  10 +--
+ fs/ext4/orphan.c                 |   4 +-
+ fs/fs-writeback.c                | 131 +++++++++++++++----------------
+ fs/gfs2/file.c                   |   2 +-
+ fs/gfs2/glops.c                  |   2 +-
+ fs/gfs2/inode.c                  |   4 +-
+ fs/gfs2/ops_fstype.c             |   2 +-
+ fs/inode.c                       | 115 ++++++++++++++-------------
+ fs/libfs.c                       |   6 +-
+ fs/namei.c                       |   8 +-
+ fs/notify/fsnotify.c             |   8 +-
+ fs/ocfs2/dlmglue.c               |   2 +-
+ fs/ocfs2/inode.c                 |  27 +------
+ fs/ocfs2/inode.h                 |   1 -
+ fs/ocfs2/ocfs2_trace.h           |   2 -
+ fs/ocfs2/super.c                 |   2 +-
+ fs/pipe.c                        |   2 +-
+ fs/quota/dquot.c                 |   2 +-
+ fs/sync.c                        |   2 +-
+ fs/xfs/scrub/common.c            |   3 +-
+ include/linux/backing-dev.h      |   5 +-
+ include/linux/fs.h               |  75 ++++++++++++------
+ include/linux/writeback.h        |   4 +-
+ include/trace/events/writeback.h |  11 ++-
+ security/landlock/fs.c           |  12 +--
+ 33 files changed, 249 insertions(+), 233 deletions(-)
+
+-- 
+2.43.0
 
