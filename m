@@ -1,124 +1,159 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
+Received: from zeniv.linux.org.uk (zeniv.linux.org.uk [62.89.141.173])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2E4CB202F70;
-	Mon, 15 Sep 2025 14:16:27 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 11827320F
+	for <ocfs2-devel@lists.linux.dev>; Mon, 15 Sep 2025 19:33:24 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=62.89.141.173
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1757945787; cv=none; b=qMS2iFHmyEo54WgLOoi7fOpw7aASyDNOxSn3If4+dSOv1zhTa89/EOgHTBL3vVgqL6b0Vpzqxf6SRhzL4wAkUUg77dsjkgcQeku5N0TkpLuTaYG4PeDLu72kM6066DaWbIBauuQ1UceFHT5peMbnxa8xk2zAOxlq9Yvb70y/VIU=
+	t=1757964811; cv=none; b=qm03De4q9czI/D81JWOR9fJpeEwkILXJrW5+ywxfnuuMjwpZrwZijrJcmANl0Mwsx2roBsVGXFC8gIA4A6P07Of0ou4OBZhAbe/0r/Nfc7KRGqMyYay8VlnPl6dOjNjmm7SS9sAjjMZnooDwRw1C3LkrIreErpE02pWBA9eRYMk=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1757945787; c=relaxed/simple;
-	bh=375vrJnuhArZHx8LwQ+Xj/EZHelElcdhjqklqPfxGQI=;
+	s=arc-20240116; t=1757964811; c=relaxed/simple;
+	bh=pjzd8pQuKxzYkuZM20tPwv8q871Whbzseio2ANPiCnk=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=K4ke+CvloIFMZP/XQRngHvZUqsvdfpq4kBn8W38FCKzFNU8qOKSXH9tOdZbX38Rs490YOnMkEeUQpCrPM5vFZsct0Uq6oRFkCOc+8Zvu20JdPl6zpziwpUiVChGaeGpWSZUCfpPNBJPMFDavUT9JRC1+Ae2p8Qw7ALoBm2exLwU=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=n+bqU/Do; arc=none smtp.client-ip=10.30.226.201
+	 Content-Type:Content-Disposition:In-Reply-To; b=HN5b9P85futH21kNevAnrtvVWKM+OvUYOTJBgkowdXS4eEwVdk86RmGO42Vn3eFsBgSf/qnRGMudf1VIeSc1OgTSETviuQfNnz+LFe5Ok9pCCWFiPgkurYS8tv9xn0dl/KXp3X5nzlgHu5WdTsRJN5VbALP4uOZ3UWN38GjrfbA=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=evilplan.org; spf=none smtp.mailfrom=ftp.linux.org.uk; dkim=fail (0-bit key) header.d=infradead.org header.i=@infradead.org header.b=Bys7orlI reason="key not found in DNS"; arc=none smtp.client-ip=62.89.141.173
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=evilplan.org
+Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=ftp.linux.org.uk
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="n+bqU/Do"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 33626C4CEF1;
-	Mon, 15 Sep 2025 14:16:24 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1757945786;
-	bh=375vrJnuhArZHx8LwQ+Xj/EZHelElcdhjqklqPfxGQI=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=n+bqU/DovpD+6zwqc3EBHNvup8SLG0XJY5F/PxifROMh/B3w4z8HmOU73Dnu66g4L
-	 /db6k93F+MsKAx9Icdya6yZjTvsNEIGK9Dn+xllzQiQmTk+KwCCVxPcb/Gfe2YEHz8
-	 ellg9+Gae13XCGjMjayrAKkZ5XhOjMEREhmTw+xO3zuOCnkZIFjRi1j+YYWqbSTo7F
-	 Mi8b4tP+CFiWWmx7kdR2DA+fXyDjqBxb++E62g8YhZRNqNDlxUR5KYHctkB9L1gIPY
-	 AHCLEt2/v4WSMIEpRL60Lg2twaqR5yuDp+L5KbIag9PpLvflan6c3YQoMujpIuSGdx
-	 3JIwaupI464ig==
-Date: Mon, 15 Sep 2025 16:16:21 +0200
-From: Christian Brauner <brauner@kernel.org>
-To: Mateusz Guzik <mjguzik@gmail.com>
-Cc: viro@zeniv.linux.org.uk, jack@suse.cz, linux-kernel@vger.kernel.org, 
-	linux-fsdevel@vger.kernel.org, josef@toxicpanda.com, kernel-team@fb.com, amir73il@gmail.com, 
-	linux-btrfs@vger.kernel.org, linux-ext4@vger.kernel.org, linux-xfs@vger.kernel.org, 
+	dkim=fail reason="key not found in DNS" (0-bit key) header.d=infradead.org header.i=@infradead.org header.b="Bys7orlI"
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+	d=infradead.org; s=zeniv-20220401; h=Sender:In-Reply-To:Content-Type:
+	MIME-Version:References:Message-ID:Subject:Cc:To:From:Date:Reply-To:
+	Content-Transfer-Encoding:Content-ID:Content-Description;
+	bh=JkLtlrY+ize8Y8pFQl9k6znsSzzqZpnjjdgK4v1eFww=; b=Bys7orlIYNIvzt1spg5eDfzlu+
+	Kkrm8spbPezBDfukmVCqbHHrVneQ1wRlfuxlzQGuznktktg6vyWlDqALGu2BYQkLO4LvgnmTkPQbd
+	PmW7tXgpn7XueyXEWeXSdFmBmbqT8tKfrTz7+LGvucEJMMi5XVmxuwDdXKzhFFWlbQK1gcx2vcQjJ
+	esvFTWffn42MrPSKNtOvLQG9KeHSzMUB7TMvrOoQp1QLa9SqkPhRbxuF//PnMMMiXWasLFw34+XD8
+	hql+EGhlCRnpx3i5NJz0YcG/AVlfvdrrE3enP8sL1OWT6JUJ8DAyCT/KAW1i3oA4FGEGdE/oiH45u
+	3pZgRl/w==;
+Received: from jlbec by zeniv.linux.org.uk with local (Exim 4.98.2 #2 (Red Hat Linux))
+	id 1uyEwy-0000000GoC5-33dt;
+	Mon, 15 Sep 2025 19:33:20 +0000
+Date: Mon, 15 Sep 2025 12:33:16 -0700
+From: Joel Becker <jlbec@evilplan.org>
+To: Dmitry Antipov <dmantipov@yandex.ru>
+Cc: Mark Fasheh <mark@fasheh.com>, Joseph Qi <joseph.qi@linux.alibaba.com>,
 	ocfs2-devel@lists.linux.dev
-Subject: Re: [PATCH v3 2/4] fs: hide ->i_state handling behind accessors
-Message-ID: <20250915-geowissenschaften-euphorie-3413b3f9fedd@brauner>
-References: <20250911045557.1552002-1-mjguzik@gmail.com>
- <20250911045557.1552002-3-mjguzik@gmail.com>
- <20250915-erstflug-kassieren-37e5b3f5b998@brauner>
- <CAGudoHG7uPDFH9K9sjnEZxZ_DtXC-ZqSkwzCJUmw1yKAzEA+dQ@mail.gmail.com>
- <20250915-tricksen-militant-406d4cb8ebda@brauner>
- <CAGudoHETnk1NJe_7TAsweokKia2xtKH0bLn-V7+hcE1voiqrhw@mail.gmail.com>
+Subject: Re: [PATCH] ocfs2: avoid extra calls to strlen() after
+ ocfs2_sprintf_system_inode_name()
+Message-ID: <aMhp_C36-ch4aO_X@google.com>
+References: <20250915121906.514039-1-dmantipov@yandex.ru>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <CAGudoHETnk1NJe_7TAsweokKia2xtKH0bLn-V7+hcE1voiqrhw@mail.gmail.com>
+In-Reply-To: <20250915121906.514039-1-dmantipov@yandex.ru>
+X-Burt-Line: Trees are cool.
+X-Red-Smith: Ninety feet between bases is perhaps as close as man has ever
+ come to perfection.
+Sender: Joel Becker <jlbec@ftp.linux.org.uk>
 
-On Mon, Sep 15, 2025 at 03:48:29PM +0200, Mateusz Guzik wrote:
-> On Mon, Sep 15, 2025 at 3:41 PM Christian Brauner <brauner@kernel.org> wrote:
-> >
-> > On Mon, Sep 15, 2025 at 03:27:16PM +0200, Mateusz Guzik wrote:
-> > > On Mon, Sep 15, 2025 at 2:41 PM Christian Brauner <brauner@kernel.org> wrote:
-> > > >
-> > > > On Thu, Sep 11, 2025 at 06:55:55AM +0200, Mateusz Guzik wrote:
-> > > > > Signed-off-by: Mateusz Guzik <mjguzik@gmail.com>
-> > > > > ---
-> > > >
-> > > > I would do:
-> > > >
-> > > > inode_state()
-> > > > inode_state_raw()
-> > > >
-> > > > Similar to
-> > > >
-> > > > rcu_derefence()
-> > > > rcu_dereference_raw()
-> > > >
-> > >
-> > > I don't follow how to fit this in here.
-> > >
-> > > Here is the complete list:
-> > > inode_state_read
-> > > inode_state_read_unstable
-> > >
-> > > first is a plain read + lockdep assert, second is a READ_ONCE
-> > >
-> > > inode_state_add
-> > > inode_state_add_unchecked
-> > > inode_state_del
-> > > inode_state_del_unchecked
-> > > inode_state_set_unchecked
-> > >
-> > > Routine with _unchecked forego asserts, otherwise the op checks lockdep.
-> > >
-> > > I guess _unchecked could be _raw, but I don't see how to fit this into
-> > > the read thing.
-> >
-> > _raw() is adapted from rcu which is why I'm very familiar with what it
-> > means: rcu_dereference() performs checks and rcu_dereference_raw()
-> > doesn't. It's just a naming convention that we already have and are
-> > accustomed to.
-> >
-> > >
-> > > Can you just spell out the names you want for all of these?
-> >
-> > just use _raw() imho
-> >
-> 
-> For these no problem:
-> inode_state_add
-> inode_state_add_raw
-> inode_state_del
-> inode_state_del_raw
-> inode_state_set_raw
-> 
-> But for the read side:
-> inode_state_read
-> inode_state_read_unstable
-> 
-> The _unstable thing makes sure to prevent surprise re-reads
-> specifically because the lock is not expected to be held.
-> Giving it the _raw suffix would suggest it is plain inode_state_read
-> without lockdep, which is imo misleading.
-> 
-> But I'm not going to die on this hill.
+Reviewed-by: Joel Becker <jlbec@evilplan.org>
 
-Ok.
+On Mon, Sep 15, 2025 at 03:19:06PM +0300, Dmitry Antipov wrote:
+> Since 'ocfs2_sprintf_system_inode_name()' uses 'snprintf()' and returns
+> the number of characters emitted, callers of the former are better to
+> use that return value instead of an explicit calls to 'strlen()'.
+> 
+> Signed-off-by: Dmitry Antipov <dmantipov@yandex.ru>
+> ---
+>  fs/ocfs2/ioctl.c        | 18 +++++++-----------
+>  fs/ocfs2/move_extents.c |  6 +++---
+>  fs/ocfs2/sysfile.c      | 12 ++++++------
+>  3 files changed, 16 insertions(+), 20 deletions(-)
+> 
+> diff --git a/fs/ocfs2/ioctl.c b/fs/ocfs2/ioctl.c
+> index db14c92302a1..b6864602814c 100644
+> --- a/fs/ocfs2/ioctl.c
+> +++ b/fs/ocfs2/ioctl.c
+> @@ -358,13 +358,11 @@ static int ocfs2_info_handle_freeinode(struct inode *inode,
+>  				goto bail;
+>  			}
+>  		} else {
+> -			ocfs2_sprintf_system_inode_name(namebuf,
+> -							sizeof(namebuf),
+> -							type, i);
+> +			int len = ocfs2_sprintf_system_inode_name(namebuf,
+> +								  sizeof(namebuf),
+> +								  type, i);
+>  			status = ocfs2_lookup_ino_from_name(osb->sys_root_inode,
+> -							    namebuf,
+> -							    strlen(namebuf),
+> -							    &blkno);
+> +							    namebuf, len, &blkno);
+>  			if (status < 0) {
+>  				status = -ENOENT;
+>  				goto bail;
+> @@ -651,12 +649,10 @@ static int ocfs2_info_handle_freefrag(struct inode *inode,
+>  			goto bail;
+>  		}
+>  	} else {
+> -		ocfs2_sprintf_system_inode_name(namebuf, sizeof(namebuf), type,
+> -						OCFS2_INVALID_SLOT);
+> +		int len = ocfs2_sprintf_system_inode_name(namebuf, sizeof(namebuf),
+> +							  type, OCFS2_INVALID_SLOT);
+>  		status = ocfs2_lookup_ino_from_name(osb->sys_root_inode,
+> -						    namebuf,
+> -						    strlen(namebuf),
+> -						    &blkno);
+> +						    namebuf, len, &blkno);
+>  		if (status < 0) {
+>  			status = -ENOENT;
+>  			goto bail;
+> diff --git a/fs/ocfs2/move_extents.c b/fs/ocfs2/move_extents.c
+> index cbe2f8ed8897..a2b4c3f2a71c 100644
+> --- a/fs/ocfs2/move_extents.c
+> +++ b/fs/ocfs2/move_extents.c
+> @@ -375,9 +375,9 @@ static int ocfs2_find_victim_alloc_group(struct inode *inode,
+>  	struct ocfs2_dinode *ac_dinode;
+>  	struct ocfs2_group_desc *bg;
+>  
+> -	ocfs2_sprintf_system_inode_name(namebuf, sizeof(namebuf), type, slot);
+> -	ret = ocfs2_lookup_ino_from_name(osb->sys_root_inode, namebuf,
+> -					 strlen(namebuf), &blkno);
+> +	i = ocfs2_sprintf_system_inode_name(namebuf, sizeof(namebuf), type, slot);
+> +	ret = ocfs2_lookup_ino_from_name(osb->sys_root_inode, namebuf, i, &blkno);
+> +
+>  	if (ret) {
+>  		ret = -ENOENT;
+>  		goto out;
+> diff --git a/fs/ocfs2/sysfile.c b/fs/ocfs2/sysfile.c
+> index 53a945da873b..d53a6cc866be 100644
+> --- a/fs/ocfs2/sysfile.c
+> +++ b/fs/ocfs2/sysfile.c
+> @@ -127,14 +127,14 @@ static struct inode * _ocfs2_get_system_file_inode(struct ocfs2_super *osb,
+>  	char namebuf[40];
+>  	struct inode *inode = NULL;
+>  	u64 blkno;
+> -	int status = 0;
+> +	int len, status = 0;
+>  
+> -	ocfs2_sprintf_system_inode_name(namebuf,
+> -					sizeof(namebuf),
+> -					type, slot);
+> +	len = ocfs2_sprintf_system_inode_name(namebuf,
+> +					      sizeof(namebuf),
+> +					      type, slot);
+>  
+> -	status = ocfs2_lookup_ino_from_name(osb->sys_root_inode, namebuf,
+> -					    strlen(namebuf), &blkno);
+> +	status = ocfs2_lookup_ino_from_name(osb->sys_root_inode,
+> +					    namebuf, len, &blkno);
+>  	if (status < 0) {
+>  		goto bail;
+>  	}
+> -- 
+> 2.51.0
+> 
+
+-- 
+
+"Anything that is too stupid to be spoken is sung."  
+        - Voltaire
+
+			http://www.jlbec.org/
+			jlbec@evilplan.org
