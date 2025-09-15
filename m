@@ -1,142 +1,224 @@
-Received: from forward101a.mail.yandex.net (forward101a.mail.yandex.net [178.154.239.84])
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 633BC306D3F
-	for <ocfs2-devel@lists.linux.dev>; Mon, 15 Sep 2025 12:19:37 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=178.154.239.84
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 122AC3081B7;
+	Mon, 15 Sep 2025 12:21:07 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1757938780; cv=none; b=iX0wCSb7G8+BnRevJNbJxPyQQ5QfVJuQ2rR7EVx7TyzgmqrX7XFohElmlxNxMPtyF0LGurppE7qNGCp/LrijbUpP937RPOAi49LLjJrTPmqP0Tw6/A7lH15LzVUpZl/odhSQgVTytevQeBJQd435B1s7RI6a9BpV1zh/s1LY/ck=
+	t=1757938868; cv=none; b=Lr+fmhaOzA7QGMaPMBmv2mixJRlfssVnCmDSUlb6MTy1VWx2pqxBkWksWmY4epuOdeO2EiFQPm+h0rH8NOmRGJRY4ryJfRY7pL7ZZo/19Bgy2SO1hgm19ovgwjfl2x/jkaPEJXBB+K7dl1JNQ1XxNcUPWxPcQAamdcY+OK6D8Co=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1757938780; c=relaxed/simple;
-	bh=2oCTa0uy7LSyBk1zthRNcSj/CMeHHgTnNxQetcxqgzU=;
-	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=Lqfpq0qofDy7pJ82FPpeKEuKvUqbMVLzpIcCeOcgG/aCXzZ/dttezJWCFAteRuw0NKGU5KDkvDLtwNk+ZCQQJPwFxzMDmduXibsqTbVjosG7S/uQdkdTVtdEeWV41zMn/06sX8a1NrtxF1YcHQn7SGKZ6IC7xpWGiuPpiHojgd8=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru; spf=pass smtp.mailfrom=yandex.ru; dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b=Kqaa4XyD; arc=none smtp.client-ip=178.154.239.84
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=yandex.ru
+	s=arc-20240116; t=1757938868; c=relaxed/simple;
+	bh=8lfc6XMmCEqrdB6ag90R+cZmEFmO/+qdAqdG2uHElgY=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=TvjSCpMK/2aNL3ueWsGf1vQ2ScGPrhly1BLeJH92SMUdPWAXHuJp/q3KMl4v6MedgGF3EKsxOn/nRRiH/skiD2QgJ/DkMHS3+z8AsOMFg8ng1xAHAAoPHTc9o/Grhoqqqq8QTuCPqwPodKv1tw6at+sOkTAhS1SU9Bri1tdUKPg=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=E2vy+jzO; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b="Kqaa4XyD"
-Received: from mail-nwsmtp-smtp-production-main-55.vla.yp-c.yandex.net (mail-nwsmtp-smtp-production-main-55.vla.yp-c.yandex.net [IPv6:2a02:6b8:c1f:582e:0:640:200:0])
-	by forward101a.mail.yandex.net (Yandex) with ESMTPS id 8055980CFA;
-	Mon, 15 Sep 2025 15:19:28 +0300 (MSK)
-Received: by mail-nwsmtp-smtp-production-main-55.vla.yp-c.yandex.net (smtp/Yandex) with ESMTPSA id QJO92Q0MKmI0-ApRv4P7i;
-	Mon, 15 Sep 2025 15:19:27 +0300
-X-Yandex-Fwd: 1
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=yandex.ru; s=mail;
-	t=1757938767; bh=r0IPCvh+lPpt196yVQRAAClGo2CwIJlqhqjQiFO7oFQ=;
-	h=Message-ID:Date:Cc:Subject:To:From;
-	b=Kqaa4XyDTdZSfhOyGZR8ZMFr6u8cj5imqvf/WOM2A/5xqwKKMZLSXb13B+2Bk1kw9
-	 /5k5j21+lUsmWkgXUOF4Rg2NqNZa9HJNA4RY2ZY8gnKY0ZxJRXfgjTBRpHcxCznjYo
-	 ZDkKJDYGFFVeLXigAUTrQqCD1zc/iUvj5oVO8P90=
-Authentication-Results: mail-nwsmtp-smtp-production-main-55.vla.yp-c.yandex.net; dkim=pass header.i=@yandex.ru
-From: Dmitry Antipov <dmantipov@yandex.ru>
-To: Mark Fasheh <mark@fasheh.com>,
-	Joel Becker <jlbec@evilplan.org>,
-	Joseph Qi <joseph.qi@linux.alibaba.com>
-Cc: ocfs2-devel@lists.linux.dev,
-	Dmitry Antipov <dmantipov@yandex.ru>
-Subject: [PATCH] ocfs2: avoid extra calls to strlen() after ocfs2_sprintf_system_inode_name()
-Date: Mon, 15 Sep 2025 15:19:06 +0300
-Message-ID: <20250915121906.514039-1-dmantipov@yandex.ru>
-X-Mailer: git-send-email 2.51.0
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="E2vy+jzO"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id BDA75C4CEF5;
+	Mon, 15 Sep 2025 12:21:04 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=k20201202; t=1757938867;
+	bh=8lfc6XMmCEqrdB6ag90R+cZmEFmO/+qdAqdG2uHElgY=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=E2vy+jzOOvWjLtfVkBg+1i/BTUsPhURr6bEieNtkgZI/ilXfym63hUkcu1bcMi6qN
+	 +IWn1gJHUssY5s+irbl1BegmcWrGw4bLTx7s5vsb637yMnRvlKl+svwzA4+DpuKjhw
+	 VhSi+FtGemVi5uL//6v6U51Q9/HuIIyS7dn8W9YHGrKIslSGshMbU4p6Qq9Qw5B8IM
+	 vCNy9DTOQm64Aqhf/zhvSc5JFI01oibrEAC8Qc3yOWPEMgzLtw6K+We3ohdUAG6Bbu
+	 YiidQM7wbH3dL0z0C+ptVCHCUTqoDw4yE6yQOVcYpk3eKoI2UrNgULkBTMPyNZs6ep
+	 cgHlVudFh83CQ==
+Date: Mon, 15 Sep 2025 14:21:02 +0200
+From: Christian Brauner <brauner@kernel.org>
+To: Joseph Qi <joseph.qi@linux.alibaba.com>
+Cc: Jan Kara <jack@suse.cz>, Mateusz Guzik <mjguzik@gmail.com>, 
+	Mark Tinguely <mark.tinguely@oracle.com>, ocfs2-devel@lists.linux.dev, viro@zeniv.linux.org.uk, 
+	linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, josef@toxicpanda.com, 
+	jlbec@evilplan.org, mark@fasheh.com, willy@infradead.org, david@fromorbit.com
+Subject: Re: [External] : [PATCH] ocfs2: retire ocfs2_drop_inode() and
+ I_WILL_FREE usage
+Message-ID: <20250915-trieb-undeutlich-e68568ff9fe7@brauner>
+References: <20250904154245.644875-1-mjguzik@gmail.com>
+ <f3671198-5231-41cf-b0bc-d1280992947a@oracle.com>
+ <CAGudoHHT=P_UyZZpx5tBRHPE+irh1b7PxFXZAHjdHNLcEWOxAQ@mail.gmail.com>
+ <8ddcaa59-0cf0-4b7c-a121-924105f7f5a6@linux.alibaba.com>
+ <rvavp2omizs6e3qf6xpjpycf6norhfhnkrle4fq4632atgar5v@dghmwbctf2mm>
+ <f9014fdb-95c8-4faa-8c42-c1ceea49cbd9@linux.alibaba.com>
+ <fureginotssirocugn3aznor4vhbpadhwy7fhaxzeullhrzp7y@bg5gzdv6mrif>
+ <b9957de7-737c-454a-83b1-6cb2a4070fcf@linux.alibaba.com>
+ <a3hdepfrx3styl62viehd56akiu7fthobe2ldj7j4viopfle5b@44mnouc76e3x>
+ <02814cfb-9a51-4e67-942c-4da0c57a75c4@linux.alibaba.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
 Content-Transfer-Encoding: 8bit
+In-Reply-To: <02814cfb-9a51-4e67-942c-4da0c57a75c4@linux.alibaba.com>
 
-Since 'ocfs2_sprintf_system_inode_name()' uses 'snprintf()' and returns
-the number of characters emitted, callers of the former are better to
-use that return value instead of an explicit calls to 'strlen()'.
+On Tue, Sep 09, 2025 at 05:58:21PM +0800, Joseph Qi wrote:
+> 
+> 
+> On 2025/9/9 17:49, Jan Kara wrote:
+> > On Tue 09-09-25 09:23:56, Joseph Qi wrote:
+> >> On 2025/9/8 21:54, Jan Kara wrote:
+> >>> On Mon 08-09-25 20:41:21, Joseph Qi wrote:
+> >>>>
+> >>>>
+> >>>> On 2025/9/8 18:23, Jan Kara wrote:
+> >>>>> On Mon 08-09-25 09:51:36, Joseph Qi wrote:
+> >>>>>> On 2025/9/5 00:22, Mateusz Guzik wrote:
+> >>>>>>> On Thu, Sep 4, 2025 at 6:15 PM Mark Tinguely <mark.tinguely@oracle.com> wrote:
+> >>>>>>>>
+> >>>>>>>> On 9/4/25 10:42 AM, Mateusz Guzik wrote:
+> >>>>>>>>> This postpones the writeout to ocfs2_evict_inode(), which I'm told is
+> >>>>>>>>> fine (tm).
+> >>>>>>>>>
+> >>>>>>>>> The intent is to retire the I_WILL_FREE flag.
+> >>>>>>>>>
+> >>>>>>>>> Signed-off-by: Mateusz Guzik <mjguzik@gmail.com>
+> >>>>>>>>> ---
+> >>>>>>>>>
+> >>>>>>>>> ACHTUNG: only compile-time tested. Need an ocfs2 person to ack it.
+> >>>>>>>>>
+> >>>>>>>>> btw grep shows comments referencing ocfs2_drop_inode() which are already
+> >>>>>>>>> stale on the stock kernel, I opted to not touch them.
+> >>>>>>>>>
+> >>>>>>>>> This ties into an effort to remove the I_WILL_FREE flag, unblocking
+> >>>>>>>>> other work. If accepted would be probably best taken through vfs
+> >>>>>>>>> branches with said work, see https://urldefense.com/v3/__https://git.kernel.org/pub/scm/linux/kernel/git/vfs/vfs.git/log/?h=vfs-6.18.inode.refcount.preliminaries__;!!ACWV5N9M2RV99hQ!OLwk8DVo7uvC-Pd6XVTiUCgP6MUDMKBMEyuV27h_yPGXOjaq078-kMdC9ILFoYQh-4WX93yb0nMfBDFFY_0$
+> >>>>>>>>>
+> >>>>>>>>>   fs/ocfs2/inode.c       | 23 ++---------------------
+> >>>>>>>>>   fs/ocfs2/inode.h       |  1 -
+> >>>>>>>>>   fs/ocfs2/ocfs2_trace.h |  2 --
+> >>>>>>>>>   fs/ocfs2/super.c       |  2 +-
+> >>>>>>>>>   4 files changed, 3 insertions(+), 25 deletions(-)
+> >>>>>>>>>
+> >>>>>>>>> diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
+> >>>>>>>>> index 6c4f78f473fb..5f4a2cbc505d 100644
+> >>>>>>>>> --- a/fs/ocfs2/inode.c
+> >>>>>>>>> +++ b/fs/ocfs2/inode.c
+> >>>>>>>>> @@ -1290,6 +1290,8 @@ static void ocfs2_clear_inode(struct inode *inode)
+> >>>>>>>>>
+> >>>>>>>>>   void ocfs2_evict_inode(struct inode *inode)
+> >>>>>>>>>   {
+> >>>>>>>>> +     write_inode_now(inode, 1);
+> >>>>>>>>> +
+> >>>>>>>>>       if (!inode->i_nlink ||
+> >>>>>>>>>           (OCFS2_I(inode)->ip_flags & OCFS2_INODE_MAYBE_ORPHANED)) {
+> >>>>>>>>>               ocfs2_delete_inode(inode);
+> >>>>>>>>> @@ -1299,27 +1301,6 @@ void ocfs2_evict_inode(struct inode *inode)
+> >>>>>>>>>       ocfs2_clear_inode(inode);
+> >>>>>>>>>   }
+> >>>>>>>>>
+> >>>>>>>>> -/* Called under inode_lock, with no more references on the
+> >>>>>>>>> - * struct inode, so it's safe here to check the flags field
+> >>>>>>>>> - * and to manipulate i_nlink without any other locks. */
+> >>>>>>>>> -int ocfs2_drop_inode(struct inode *inode)
+> >>>>>>>>> -{
+> >>>>>>>>> -     struct ocfs2_inode_info *oi = OCFS2_I(inode);
+> >>>>>>>>> -
+> >>>>>>>>> -     trace_ocfs2_drop_inode((unsigned long long)oi->ip_blkno,
+> >>>>>>>>> -                             inode->i_nlink, oi->ip_flags);
+> >>>>>>>>> -
+> >>>>>>>>> -     assert_spin_locked(&inode->i_lock);
+> >>>>>>>>> -     inode->i_state |= I_WILL_FREE;
+> >>>>>>>>> -     spin_unlock(&inode->i_lock);
+> >>>>>>>>> -     write_inode_now(inode, 1);
+> >>>>>>>>> -     spin_lock(&inode->i_lock);
+> >>>>>>>>> -     WARN_ON(inode->i_state & I_NEW);
+> >>>>>>>>> -     inode->i_state &= ~I_WILL_FREE;
+> >>>>>>>>> -
+> >>>>>>>>> -     return 1;
+> >>>>>>>>> -}
+> >>>>>>>>> -
+> >>>>>>>>>   /*
+> >>>>>>>>>    * This is called from our getattr.
+> >>>>>>>>>    */
+> >>>>>>>>> diff --git a/fs/ocfs2/inode.h b/fs/ocfs2/inode.h
+> >>>>>>>>> index accf03d4765e..07bd838e7843 100644
+> >>>>>>>>> --- a/fs/ocfs2/inode.h
+> >>>>>>>>> +++ b/fs/ocfs2/inode.h
+> >>>>>>>>> @@ -116,7 +116,6 @@ static inline struct ocfs2_caching_info *INODE_CACHE(struct inode *inode)
+> >>>>>>>>>   }
+> >>>>>>>>>
+> >>>>>>>>>   void ocfs2_evict_inode(struct inode *inode);
+> >>>>>>>>> -int ocfs2_drop_inode(struct inode *inode);
+> >>>>>>>>>
+> >>>>>>>>>   /* Flags for ocfs2_iget() */
+> >>>>>>>>>   #define OCFS2_FI_FLAG_SYSFILE               0x1
+> >>>>>>>>> diff --git a/fs/ocfs2/ocfs2_trace.h b/fs/ocfs2/ocfs2_trace.h
+> >>>>>>>>> index 54ed1495de9a..4b32fb5658ad 100644
+> >>>>>>>>> --- a/fs/ocfs2/ocfs2_trace.h
+> >>>>>>>>> +++ b/fs/ocfs2/ocfs2_trace.h
+> >>>>>>>>> @@ -1569,8 +1569,6 @@ DEFINE_OCFS2_ULL_ULL_UINT_EVENT(ocfs2_delete_inode);
+> >>>>>>>>>
+> >>>>>>>>>   DEFINE_OCFS2_ULL_UINT_EVENT(ocfs2_clear_inode);
+> >>>>>>>>>
+> >>>>>>>>> -DEFINE_OCFS2_ULL_UINT_UINT_EVENT(ocfs2_drop_inode);
+> >>>>>>>>> -
+> >>>>>>>>>   TRACE_EVENT(ocfs2_inode_revalidate,
+> >>>>>>>>>       TP_PROTO(void *inode, unsigned long long ino,
+> >>>>>>>>>                unsigned int flags),
+> >>>>>>>>> diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+> >>>>>>>>> index 53daa4482406..e4b0d25f4869 100644
+> >>>>>>>>> --- a/fs/ocfs2/super.c
+> >>>>>>>>> +++ b/fs/ocfs2/super.c
+> >>>>>>>>> @@ -129,7 +129,7 @@ static const struct super_operations ocfs2_sops = {
+> >>>>>>>>>       .statfs         = ocfs2_statfs,
+> >>>>>>>>>       .alloc_inode    = ocfs2_alloc_inode,
+> >>>>>>>>>       .free_inode     = ocfs2_free_inode,
+> >>>>>>>>> -     .drop_inode     = ocfs2_drop_inode,
+> >>>>>>>>> +     .drop_inode     = generic_delete_inode,
+> >>>>>>>>>       .evict_inode    = ocfs2_evict_inode,
+> >>>>>>>>>       .sync_fs        = ocfs2_sync_fs,
+> >>>>>>>>>       .put_super      = ocfs2_put_super,
+> >>>>>>>>
+> >>>>>>>>
+> >>>>>>>> I agree, fileystems should not use I_FREEING/I_WILL_FREE.
+> >>>>>>>> Doing the sync write_inode_now() should be fine in ocfs_evict_inode().
+> >>>>>>>>
+> >>>>>>>> Question is ocfs_drop_inode. In commit 513e2dae9422:
+> >>>>>>>>   ocfs2: flush inode data to disk and free inode when i_count becomes zero
+> >>>>>>>> the return of 1 drops immediate to fix a memory caching issue.
+> >>>>>>>> Shouldn't .drop_inode() still return 1?
+> >>>>>>>
+> >>>>>>> generic_delete_inode is a stub doing just that.
+> >>>>>>>
+> >>>>>> In case of "drop = 0", it may return directly without calling evict().
+> >>>>>> This seems break the expectation of commit 513e2dae9422.
+> >>>>>
+> >>>>> generic_delete_inode() always returns 1 so evict() will be called.
+> >>>>> ocfs2_drop_inode() always returns 1 as well after 513e2dae9422. So I'm not
+> >>>>> sure which case of "drop = 0" do you see...
+> >>>>>
+> >>>> I don't see a real case, just in theory.
+> >>>> As I described before, if we make sure write_inode_now() will be called
+> >>>> in iput_final(), it would be fine.
+> >>>
+> >>> I'm sorry but I still don't quite understand what you are proposing. If
+> >>> ->drop() returns 1, the filesystem wants to remove the inode from cache
+> >>> (perhaps because it was deleted). Hence iput_final() doesn't bother with
+> >>> writing out such inodes. This doesn't work well with ocfs2 wanting to
+> >>> always drop inodes hence ocfs2 needs to write the inode itself in
+> >>> ocfs2_evice_inode(). Perhaps you have some modification to iput_final() in
+> >>> mind but I'm not sure how that would work so can you perhaps suggest a
+> >>> patch if you think iput_final() should work differently? Thanks!
+> >>>
+> >> I'm just discussing if generic_delete_inode() will always returns 1. And
+> >> if it is, I'm fine with this change. Sorry for the confusion.
+> > 
+> > generic_delete_inode() is defined as:
+> > 
+> > int generic_delete_inode(struct inode *inode)
+> > {               
+> >         return 1;
+> > }
+> > 
+> > So the return is pretty much guaranteed :). But I agree with Mateusz the
+> > function name could be less confusing.
+> > 
+> Oops, I've mixed it with generic_drop_inode()...
 
-Signed-off-by: Dmitry Antipov <dmantipov@yandex.ru>
----
- fs/ocfs2/ioctl.c        | 18 +++++++-----------
- fs/ocfs2/move_extents.c |  6 +++---
- fs/ocfs2/sysfile.c      | 12 ++++++------
- 3 files changed, 16 insertions(+), 20 deletions(-)
-
-diff --git a/fs/ocfs2/ioctl.c b/fs/ocfs2/ioctl.c
-index db14c92302a1..b6864602814c 100644
---- a/fs/ocfs2/ioctl.c
-+++ b/fs/ocfs2/ioctl.c
-@@ -358,13 +358,11 @@ static int ocfs2_info_handle_freeinode(struct inode *inode,
- 				goto bail;
- 			}
- 		} else {
--			ocfs2_sprintf_system_inode_name(namebuf,
--							sizeof(namebuf),
--							type, i);
-+			int len = ocfs2_sprintf_system_inode_name(namebuf,
-+								  sizeof(namebuf),
-+								  type, i);
- 			status = ocfs2_lookup_ino_from_name(osb->sys_root_inode,
--							    namebuf,
--							    strlen(namebuf),
--							    &blkno);
-+							    namebuf, len, &blkno);
- 			if (status < 0) {
- 				status = -ENOENT;
- 				goto bail;
-@@ -651,12 +649,10 @@ static int ocfs2_info_handle_freefrag(struct inode *inode,
- 			goto bail;
- 		}
- 	} else {
--		ocfs2_sprintf_system_inode_name(namebuf, sizeof(namebuf), type,
--						OCFS2_INVALID_SLOT);
-+		int len = ocfs2_sprintf_system_inode_name(namebuf, sizeof(namebuf),
-+							  type, OCFS2_INVALID_SLOT);
- 		status = ocfs2_lookup_ino_from_name(osb->sys_root_inode,
--						    namebuf,
--						    strlen(namebuf),
--						    &blkno);
-+						    namebuf, len, &blkno);
- 		if (status < 0) {
- 			status = -ENOENT;
- 			goto bail;
-diff --git a/fs/ocfs2/move_extents.c b/fs/ocfs2/move_extents.c
-index cbe2f8ed8897..a2b4c3f2a71c 100644
---- a/fs/ocfs2/move_extents.c
-+++ b/fs/ocfs2/move_extents.c
-@@ -375,9 +375,9 @@ static int ocfs2_find_victim_alloc_group(struct inode *inode,
- 	struct ocfs2_dinode *ac_dinode;
- 	struct ocfs2_group_desc *bg;
- 
--	ocfs2_sprintf_system_inode_name(namebuf, sizeof(namebuf), type, slot);
--	ret = ocfs2_lookup_ino_from_name(osb->sys_root_inode, namebuf,
--					 strlen(namebuf), &blkno);
-+	i = ocfs2_sprintf_system_inode_name(namebuf, sizeof(namebuf), type, slot);
-+	ret = ocfs2_lookup_ino_from_name(osb->sys_root_inode, namebuf, i, &blkno);
-+
- 	if (ret) {
- 		ret = -ENOENT;
- 		goto out;
-diff --git a/fs/ocfs2/sysfile.c b/fs/ocfs2/sysfile.c
-index 53a945da873b..d53a6cc866be 100644
---- a/fs/ocfs2/sysfile.c
-+++ b/fs/ocfs2/sysfile.c
-@@ -127,14 +127,14 @@ static struct inode * _ocfs2_get_system_file_inode(struct ocfs2_super *osb,
- 	char namebuf[40];
- 	struct inode *inode = NULL;
- 	u64 blkno;
--	int status = 0;
-+	int len, status = 0;
- 
--	ocfs2_sprintf_system_inode_name(namebuf,
--					sizeof(namebuf),
--					type, slot);
-+	len = ocfs2_sprintf_system_inode_name(namebuf,
-+					      sizeof(namebuf),
-+					      type, slot);
- 
--	status = ocfs2_lookup_ino_from_name(osb->sys_root_inode, namebuf,
--					    strlen(namebuf), &blkno);
-+	status = ocfs2_lookup_ino_from_name(osb->sys_root_inode,
-+					    namebuf, len, &blkno);
- 	if (status < 0) {
- 		goto bail;
- 	}
--- 
-2.51.0
-
+Not that uncommon of a mixup...
