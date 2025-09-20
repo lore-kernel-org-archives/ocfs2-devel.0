@@ -1,33 +1,33 @@
 Received: from zeniv.linux.org.uk (zeniv.linux.org.uk [62.89.141.173])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id F1A29239E65;
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id F19A21F3B8A;
 	Sat, 20 Sep 2025 07:48:02 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=62.89.141.173
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1758354485; cv=none; b=V3IT0QpRW7cm4oh6x+KhB8uJO8Dncq5kVboETUM1/a9NP97E4Y6U2hZdwn24haGAKhhzx2tXmDRJJqCW0BFCO2E9KkPf+cLqZPvCgLQbOe4DVSuv/2SFXNWUVVxc7XiBD5wAbmrM9NGTapXkV8R2pJwCAVDPN/NQ3pzzccLi++A=
+	t=1758354486; cv=none; b=mcQXSoDRqHlZbXIO3PSPpYvqmK2v76y8p2GT6QZcQKhrulukM+Rv6WUGQWeHAmpN12Vh+3vizDES1GDvBZraQ3S1ckVjyC01M7YH+Sw4B8gMahzvmAjx+x44FvR6l8Cow19fvSsRN9V44oV/L5iERufkfympyKOgsLv2c6xaAgA=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1758354485; c=relaxed/simple;
-	bh=CmBAj6SZmkdIqzVE+Bt2tphEnNfb1rQMUst6bRBRWcc=;
+	s=arc-20240116; t=1758354486; c=relaxed/simple;
+	bh=XeT+CBmMBkE0j292qvh8EZoOntFUKCwK+Q6z8Ch3hpA=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=gp3EdMhAJryC5BQUeR/8WgyR9ceo3h9yNu8S/jLDBkvfmaKXuq2AOOJwymF5qfJ4B0NtJZfx2nyicE8mm5y00avPN577e3fK8GAXvivfiWRwB/WBiQzQOzFzysYmI4M9olukTnOYSNCdb9Q2a2mL9flw+lXWkiqbLapLSChF41U=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk; spf=none smtp.mailfrom=ftp.linux.org.uk; dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b=At+UaxpN; arc=none smtp.client-ip=62.89.141.173
+	 MIME-Version; b=oaMEor+lWbS9BW7EwKLAjN6Fg8oTebrjumjoXW4Lq7YNctXABUVVUFbsFaRkeblwwkSs2hCzGCnvenRrq5sGrOenhf/r3rnpC++3lPKLq8Kgf+u3+O7bu7v4PwTi/pIm4De9NI+hxTRyXIpeFlns2NVY315YD7O3k+8ECBURdDI=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk; spf=none smtp.mailfrom=ftp.linux.org.uk; dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b=AQsoIyYj; arc=none smtp.client-ip=62.89.141.173
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk
 Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=ftp.linux.org.uk
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b="At+UaxpN"
+	dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b="AQsoIyYj"
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
 	d=linux.org.uk; s=zeniv-20220401; h=Sender:Content-Transfer-Encoding:
 	MIME-Version:References:In-Reply-To:Message-ID:Date:Subject:Cc:To:From:
 	Reply-To:Content-Type:Content-ID:Content-Description;
-	bh=hCMtMhULL7XDxvS3BuBaCCDeHUz+bOSHTg4tb+kn7fM=; b=At+UaxpNTkftavSE6llQ5dPtmK
-	stWIwaBRCHUBwgK2ou2lPFv7M1vk74cWDAJgj3vPyzmq6nqE7UQYSrX5EXhuFPJaLUtTnUyo9ADTl
-	jEv1nIBQLq/Mzy9VvLr1b1ncpAnrl/5jw2i5LkQ2fHneinkA2Oei70cZGg0K4tXCem8As0drg6BBQ
-	hrhNNQQP7Q7OXDJlof5AQvRdBv9v95GQygGi/K9Wbf3TjCQOIogJ0G6v5tJpsoxK1KgYitdK9zdWm
-	+MjWq9el653871LxjjDa1uXAi5L8D7bUSIRzu9OA1hcA6RVXUPyTN2R6QyfugDc7IxYtVz3uT6mHO
-	IO2EIr1A==;
+	bh=PAHSdKFZnF4Zow5YQA+xZ1lkb5Ydb+4Xwjcy3wk/6d4=; b=AQsoIyYjFl5JWsVoWRzNaCVStQ
+	vfys2KyjQRZsc+oeGdfzgBSJpg3xWyZFHINqZvwJAziA91IMOtKItmxc1KDPkt0i6g5b13GWHHUNa
+	PzZSQvGOVcmh4oE0GnFRnGbTL4GLrUs7T9THfqQjcHZpIFMadfIPbv0iuRdZ1Fs8l+vyrryvzxWcC
+	SPERbfKp6XLxjdyiPMwaIYZ+9NAglN6uRStI02sMIHWP7wV7hX8fG7bJdjsfFwzHeq9GQzM4bJGc8
+	++/1XTR87dLoJozQkKIvWstA1ZlBoZ3R5HKA7oNIhRLMhFnYU9j15bZPzbCbDEW7pap4SPWsVpifV
+	rFnv3rvQ==;
 Received: from viro by zeniv.linux.org.uk with local (Exim 4.98.2 #2 (Red Hat Linux))
-	id 1uzsK8-0000000ExBr-1Xyp;
+	id 1uzsK8-0000000ExCP-3wgx;
 	Sat, 20 Sep 2025 07:48:00 +0000
 From: Al Viro <viro@zeniv.linux.org.uk>
 To: linux-fsdevel@vger.kernel.org
@@ -48,9 +48,9 @@ Cc: torvalds@linux-foundation.org,
 	casey@schaufler-ca.com,
 	linuxppc-dev@lists.ozlabs.org,
 	borntraeger@linux.ibm.com
-Subject: [PATCH 03/39] introduce a flag for explicitly marking persistently pinned dentries
-Date: Sat, 20 Sep 2025 08:47:22 +0100
-Message-ID: <20250920074759.3564072-3-viro@zeniv.linux.org.uk>
+Subject: [PATCH 07/39] procfs: make /self and /thread_self dentries persistent
+Date: Sat, 20 Sep 2025 08:47:26 +0100
+Message-ID: <20250920074759.3564072-7-viro@zeniv.linux.org.uk>
 X-Mailer: git-send-email 2.49.0
 In-Reply-To: <20250920074759.3564072-1-viro@zeniv.linux.org.uk>
 References: <20250920074156.GK39973@ZenIV>
@@ -64,141 +64,172 @@ MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: Al Viro <viro@ftp.linux.org.uk>
 
-Some filesystems use a kinda-sorta controlled dentry refcount leak to pin
-dentries of created objects in dcache (and undo it when removing those).
-Reference is grabbed and not released, but it's not actually _stored_
-anywhere.  That works, but it's hard to follow and verify; among other
-things, we have no way to tell _which_ of the increments is intended
-to be an unpaired one.  Worse, on removal we need to decide whether
-the reference had already been dropped, which can be non-trivial if
-that removal is on umount and we need to figure out if this dentry is
-pinned due to e.g. unlink() not done.  Usually that is handled by using
-kill_litter_super() as ->kill_sb(), but there are open-coded special
-cases of the same (consider e.g. /proc/self).
-
-Things get simpler if we introduce a new dentry flag (DCACHE_PERSISTENT)
-marking those "leaked" dentries.  Having it set claims responsibility
-for +1 in refcount.
-
-The end result this series is aiming for:
-
-* get these unbalanced dget() and dput() replaced with new primitives that
-  would, in addition to adjusting refcount, set and clear persistency flag.
-* instead of having kill_litter_super() mess with removing the remaining
-  "leaked" references (e.g. for all tmpfs files that hadn't been removed
-  prior to umount), have the regular shrink_dcache_for_umount() strip
-  DCACHE_PERSISTENT of all dentries, dropping the corresponding
-  reference if it had been set.  After that kill_litter_super() becomes
-  an equivalent of kill_anon_super().
-
-Doing that in a single step is not feasible - it would affect too many places
-in too many filesystems.  It has to be split into a series.
-
-Here we
-	* introduce the new flag
-	* teach shrink_dcache_for_umount() to handle it (i.e. remove
-and drop refcount on anything that survives to umount with that flag
-still set)
-	* teach kill_litter_super() that anything with that flag does
-*not* need to be unpinned.
-
-Next commits will add primitives for maintaing that flag and convert the
-common helpers to those.  After that - a long series of per-filesystem
-patches converting to those primitives.
+... and there's no need to remember those pointers anywhere - ->kill_sb()
+no longer needs to bother since kill_anon_super() will take care of
+them anyway and proc_pid_readdir() only wants the inumbers, which
+we had in a couple of static variables all along.
 
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- fs/dcache.c            | 27 ++++++++++++++++++++++-----
- include/linux/dcache.h |  1 +
- 2 files changed, 23 insertions(+), 5 deletions(-)
+ fs/proc/base.c          |  6 ++----
+ fs/proc/internal.h      |  1 +
+ fs/proc/root.c          | 14 ++++----------
+ fs/proc/self.c          | 10 +++-------
+ fs/proc/thread_self.c   | 11 +++--------
+ include/linux/proc_fs.h |  2 --
+ 6 files changed, 13 insertions(+), 31 deletions(-)
 
-diff --git a/fs/dcache.c b/fs/dcache.c
-index 60046ae23d51..e34290e15fd2 100644
---- a/fs/dcache.c
-+++ b/fs/dcache.c
-@@ -1511,6 +1511,15 @@ static enum d_walk_ret select_collect(void *_data, struct dentry *dentry)
+diff --git a/fs/proc/base.c b/fs/proc/base.c
+index 62d35631ba8c..f5071b0bdb1b 100644
+--- a/fs/proc/base.c
++++ b/fs/proc/base.c
+@@ -3583,14 +3583,12 @@ int proc_pid_readdir(struct file *file, struct dir_context *ctx)
+ 		return 0;
+ 
+ 	if (pos == TGID_OFFSET - 2) {
+-		struct inode *inode = d_inode(fs_info->proc_self);
+-		if (!dir_emit(ctx, "self", 4, inode->i_ino, DT_LNK))
++		if (!dir_emit(ctx, "self", 4, self_inum, DT_LNK))
+ 			return 0;
+ 		ctx->pos = pos = pos + 1;
+ 	}
+ 	if (pos == TGID_OFFSET - 1) {
+-		struct inode *inode = d_inode(fs_info->proc_thread_self);
+-		if (!dir_emit(ctx, "thread-self", 11, inode->i_ino, DT_LNK))
++		if (!dir_emit(ctx, "thread-self", 11, thread_self_inum, DT_LNK))
+ 			return 0;
+ 		ctx->pos = pos = pos + 1;
+ 	}
+diff --git a/fs/proc/internal.h b/fs/proc/internal.h
+index e737401d7383..e165e406c14d 100644
+--- a/fs/proc/internal.h
++++ b/fs/proc/internal.h
+@@ -373,6 +373,7 @@ static inline void proc_tty_init(void) {}
+ extern struct proc_dir_entry proc_root;
+ 
+ extern void proc_self_init(void);
++extern unsigned self_inum, thread_self_inum;
+ 
+ /*
+  * task_[no]mmu.c
+diff --git a/fs/proc/root.c b/fs/proc/root.c
+index ed86ac710384..7cedc08b92d3 100644
+--- a/fs/proc/root.c
++++ b/fs/proc/root.c
+@@ -261,17 +261,11 @@ static void proc_kill_sb(struct super_block *sb)
+ {
+ 	struct proc_fs_info *fs_info = proc_sb_info(sb);
+ 
+-	if (!fs_info) {
+-		kill_anon_super(sb);
+-		return;
+-	}
+-
+-	dput(fs_info->proc_self);
+-	dput(fs_info->proc_thread_self);
+-
+ 	kill_anon_super(sb);
+-	put_pid_ns(fs_info->pid_ns);
+-	kfree_rcu(fs_info, rcu);
++	if (fs_info) {
++		put_pid_ns(fs_info->pid_ns);
++		kfree_rcu(fs_info, rcu);
++	}
+ }
+ 
+ static struct file_system_type proc_fs_type = {
+diff --git a/fs/proc/self.c b/fs/proc/self.c
+index b46fbfd22681..62d2c0cfe35c 100644
+--- a/fs/proc/self.c
++++ b/fs/proc/self.c
+@@ -31,12 +31,11 @@ static const struct inode_operations proc_self_inode_operations = {
+ 	.get_link	= proc_self_get_link,
+ };
+ 
+-static unsigned self_inum __ro_after_init;
++unsigned self_inum __ro_after_init;
+ 
+ int proc_setup_self(struct super_block *s)
+ {
+ 	struct inode *root_inode = d_inode(s->s_root);
+-	struct proc_fs_info *fs_info = proc_sb_info(s);
+ 	struct dentry *self;
+ 	int ret = -ENOMEM;
+ 
+@@ -51,18 +50,15 @@ int proc_setup_self(struct super_block *s)
+ 			inode->i_uid = GLOBAL_ROOT_UID;
+ 			inode->i_gid = GLOBAL_ROOT_GID;
+ 			inode->i_op = &proc_self_inode_operations;
+-			d_add(self, inode);
++			d_make_persistent(self, inode);
+ 			ret = 0;
+-		} else {
+-			dput(self);
+ 		}
++		dput(self);
+ 	}
+ 	inode_unlock(root_inode);
+ 
+ 	if (ret)
+ 		pr_err("proc_fill_super: can't allocate /proc/self\n");
+-	else
+-		fs_info->proc_self = self;
+ 
+ 	return ret;
+ }
+diff --git a/fs/proc/thread_self.c b/fs/proc/thread_self.c
+index 0e5050d6ab64..d6113dbe58e0 100644
+--- a/fs/proc/thread_self.c
++++ b/fs/proc/thread_self.c
+@@ -31,12 +31,11 @@ static const struct inode_operations proc_thread_self_inode_operations = {
+ 	.get_link	= proc_thread_self_get_link,
+ };
+ 
+-static unsigned thread_self_inum __ro_after_init;
++unsigned thread_self_inum __ro_after_init;
+ 
+ int proc_setup_thread_self(struct super_block *s)
+ {
+ 	struct inode *root_inode = d_inode(s->s_root);
+-	struct proc_fs_info *fs_info = proc_sb_info(s);
+ 	struct dentry *thread_self;
+ 	int ret = -ENOMEM;
+ 
+@@ -51,19 +50,15 @@ int proc_setup_thread_self(struct super_block *s)
+ 			inode->i_uid = GLOBAL_ROOT_UID;
+ 			inode->i_gid = GLOBAL_ROOT_GID;
+ 			inode->i_op = &proc_thread_self_inode_operations;
+-			d_add(thread_self, inode);
++			d_make_persistent(thread_self, inode);
+ 			ret = 0;
+-		} else {
+-			dput(thread_self);
+ 		}
++		dput(thread_self);
+ 	}
+ 	inode_unlock(root_inode);
+ 
+ 	if (ret)
+ 		pr_err("proc_fill_super: can't allocate /proc/thread-self\n");
+-	else
+-		fs_info->proc_thread_self = thread_self;
+-
  	return ret;
  }
  
-+static enum d_walk_ret select_collect_umount(void *_data, struct dentry *dentry)
-+{
-+	if (dentry->d_flags & DCACHE_PERSISTENT) {
-+		dentry->d_flags &= ~DCACHE_PERSISTENT;
-+		dentry->d_lockref.count--;
-+	}
-+	return select_collect(_data, dentry);
-+}
-+
- static enum d_walk_ret select_collect2(void *_data, struct dentry *dentry)
- {
- 	struct select_data *data = _data;
-@@ -1539,18 +1548,20 @@ static enum d_walk_ret select_collect2(void *_data, struct dentry *dentry)
- }
+diff --git a/include/linux/proc_fs.h b/include/linux/proc_fs.h
+index f139377f4b31..19d1c5e5f335 100644
+--- a/include/linux/proc_fs.h
++++ b/include/linux/proc_fs.h
+@@ -66,8 +66,6 @@ enum proc_pidonly {
  
- /**
-- * shrink_dcache_parent - prune dcache
-+ * shrink_dcache_tree - prune dcache
-  * @parent: parent of entries to prune
-+ * @for_umount: true if we want to unpin the persistent ones
-  *
-  * Prune the dcache to remove unused children of the parent dentry.
-  */
--void shrink_dcache_parent(struct dentry *parent)
-+static void shrink_dcache_tree(struct dentry *parent, bool for_umount)
- {
- 	for (;;) {
- 		struct select_data data = {.start = parent};
- 
- 		INIT_LIST_HEAD(&data.dispose);
--		d_walk(parent, &data, select_collect);
-+		d_walk(parent, &data,
-+			for_umount ? select_collect_umount : select_collect);
- 
- 		if (!list_empty(&data.dispose)) {
- 			shrink_dentry_list(&data.dispose);
-@@ -1575,6 +1586,11 @@ void shrink_dcache_parent(struct dentry *parent)
- 			shrink_dentry_list(&data.dispose);
- 	}
- }
-+
-+void shrink_dcache_parent(struct dentry *parent)
-+{
-+	shrink_dcache_tree(parent, false);
-+}
- EXPORT_SYMBOL(shrink_dcache_parent);
- 
- static enum d_walk_ret umount_check(void *_data, struct dentry *dentry)
-@@ -1601,7 +1617,7 @@ static enum d_walk_ret umount_check(void *_data, struct dentry *dentry)
- 
- static void do_one_tree(struct dentry *dentry)
- {
--	shrink_dcache_parent(dentry);
-+	shrink_dcache_tree(dentry, true);
- 	d_walk(dentry, dentry, umount_check);
- 	d_drop(dentry);
- 	dput(dentry);
-@@ -3108,7 +3124,8 @@ static enum d_walk_ret d_genocide_kill(void *data, struct dentry *dentry)
- {
- 	struct dentry *root = data;
- 	if (dentry != root) {
--		if (d_unhashed(dentry) || !dentry->d_inode)
-+		if (d_unhashed(dentry) || !dentry->d_inode ||
-+		    dentry->d_flags & DCACHE_PERSISTENT)
- 			return D_WALK_SKIP;
- 
- 		if (!(dentry->d_flags & DCACHE_GENOCIDE)) {
-diff --git a/include/linux/dcache.h b/include/linux/dcache.h
-index cc3e1c1a3454..946f40168c73 100644
---- a/include/linux/dcache.h
-+++ b/include/linux/dcache.h
-@@ -222,6 +222,7 @@ enum dentry_flags {
- 	DCACHE_PAR_LOOKUP		= BIT(24),	/* being looked up (with parent locked shared) */
- 	DCACHE_DENTRY_CURSOR		= BIT(25),
- 	DCACHE_NORCU			= BIT(26),	/* No RCU delay for freeing */
-+	DCACHE_PERSISTENT		= BIT(27)
- };
- 
- #define DCACHE_MANAGED_DENTRY \
+ struct proc_fs_info {
+ 	struct pid_namespace *pid_ns;
+-	struct dentry *proc_self;        /* For /proc/self */
+-	struct dentry *proc_thread_self; /* For /proc/thread-self */
+ 	kgid_t pid_gid;
+ 	enum proc_hidepid hide_pid;
+ 	enum proc_pidonly pidonly;
 -- 
 2.47.3
 
