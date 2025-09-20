@@ -1,77 +1,194 @@
-Received: from mail-il1-f199.google.com (mail-il1-f199.google.com [209.85.166.199])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from zeniv.linux.org.uk (zeniv.linux.org.uk [62.89.141.173])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6FF1E1D6DB6
-	for <ocfs2-devel@lists.linux.dev>; Fri, 19 Sep 2025 04:01:03 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.166.199
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D18FCA55;
+	Sat, 20 Sep 2025 07:42:04 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=62.89.141.173
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1758254464; cv=none; b=H1nWD43cSD4Nkw5b2gmyv9IvmrNIsefo8izn0G3mKPsq9Lk5og8gubBMsneUA6nNXIBEYT15CdM/lV4HoK5+3SsoQxRlBZemNY+VwKsFFf7Ho2CFxhOmnJlm3D9EU2yixTcvbTAT4M/JlxYVCuOMO8zdjIvqCRvWYaguU4rO35o=
+	t=1758354128; cv=none; b=Fiu/omP3tgv0i0UH7ExnzxA1xY+uofU5wY/TDk15IJZj0+4DNjSQCSnxPvaWUtkYi2IFnD6eR9qQW4M+ZD9wd2RRLM2A7aGG6nj86BSw+w+jMBtgdPJ+S6T/qRjlDByf0Li/UfQSXy+d7eDF1NCT7svFy5RPDO9Nj7vju4ZUf0Q=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1758254464; c=relaxed/simple;
-	bh=ouvabztvBePsJ3eaH5/w487SdXuqBTErwzdVgnyu3ZU=;
-	h=MIME-Version:Date:In-Reply-To:Message-ID:Subject:From:To:
-	 Content-Type; b=V3n+35iM09vyDqh69f/GFxMAg0hR9DvcFB/eGU6ngrwz7rC4EUtltnYSzl5lQ4GbDxO/1Ltsk1DyyNih3ZoBHfNKxyt/09v+gM+jL2hvI6MVOqkeq/49F27Y9GANne89kb7Xdyhq4xL9HCawdLCDlFNAKLraLvd6p+hVHCMGDgw=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.166.199
-Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
-Received: by mail-il1-f199.google.com with SMTP id e9e14a558f8ab-4240a41d2caso20644035ab.3
-        for <ocfs2-devel@lists.linux.dev>; Thu, 18 Sep 2025 21:01:03 -0700 (PDT)
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1758254462; x=1758859262;
-        h=to:from:subject:message-id:in-reply-to:date:mime-version
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
-        bh=IulN+igi3cpw905djkzcEMAptMFKIjnsWKZB5c5SZ2E=;
-        b=UiloaAD9EKTY2/HB3D61CxBNUPWkC/f4/e9T3g1VDDZzwaRWJb0nayuY35RUu+zZbc
-         0L01PM2cP56blaZszKN5/jw25e3Bi1N90y0r4DGg72FiTO5wf930fRVj6jPb0SOnMfsm
-         vDZXQm1HhS1mz1Ir92OBqLjVImkUX927yh8ens1eVC/biS3WU1kLqo7ZvP057hM76OXy
-         z5UQJoUlm6d0HeTDDiBKx+KBAuInfA1zVZNxjNsBnkvaVivDrvRukyVZ+75bIpjMaEpC
-         QGDfxWCFwP85rEY9BTzOCbgxFNJt7GYhmJlvq/tg+dGWxyo11mAT92VherJ6HV+onZvF
-         M3Ig==
-X-Forwarded-Encrypted: i=1; AJvYcCU4qtb/Dq29qTdDcRumwL6UlUoq6VnARL4hChAIyab9r0tE2otIOXvb2x+wnSczGHm7hHc11TFh74QlpQ==@lists.linux.dev
-X-Gm-Message-State: AOJu0YxzS3DbIK0BrIwdumGjVV+7RlkfL6td9BrcgNHLcGBiUctdyAhp
-	7N4JjVI09BAay/dmmo1KB001xWoTqKo62jhl+g+B+sS1hapDNIct6TPvj8SEvGMYxT4iMveN0Ua
-	WwenzIA6Sae+60PhZtbPkdaCEWgTwCprqxCJKamO5Q0aRzcWJZ2zEANFGGuI=
-X-Google-Smtp-Source: AGHT+IHm+W8tdy68zb31OkCXSByh73N7mrHV77cGbyN2ywRb3nvvaxdLIN0Ne7mxO8w4bZQz4Zp5leyCBiPf2MBrJnKAl9rcZsLE
+	s=arc-20240116; t=1758354128; c=relaxed/simple;
+	bh=A3huVRc6A2csEyMmMgXe98OEaz3Ab/XmeK1z1R3vyZ0=;
+	h=Date:From:To:Cc:Subject:Message-ID:MIME-Version:Content-Type:
+	 Content-Disposition; b=jQirpKwt2Y/upcD9p7OjE+xyt5l99w5o1AEra5KkF+2GCAgU7WYlEJhWOv/vnMl2IZkPbs8CUqtrbwBmSZWKBIlDU+xcEZS+5jrsR0nVziU4OC8LqCj3VCn0Pu2fYal3d9RprXodgf6QBpeSDNEf4NzD6LvcLAelWPWllps+gJE=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk; spf=none smtp.mailfrom=ftp.linux.org.uk; dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b=VdNrb6s7; arc=none smtp.client-ip=62.89.141.173
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk
+Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=ftp.linux.org.uk
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b="VdNrb6s7"
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+	d=linux.org.uk; s=zeniv-20220401; h=Sender:Content-Description:Content-Type:
+	MIME-Version:Message-ID:Subject:Cc:To:From:Date:Reply-To:
+	Content-Transfer-Encoding:Content-ID:In-Reply-To:References;
+	bh=oOCcbpCsT+zvuGsYMYIhlU7EGFEAzg77GcV6TXrg+wI=; b=VdNrb6s7Ppzquet+fhlCfW7h+O
+	U02VJRZD01jqmmWq8luID9ZxhvGVspUTY4nW/p8P6sydj6Fh/zdOxwlaySXBB2o8ahurxu8m3/ZBq
+	bg/bnm5KYL9Pe7gXJDeBPNWwS6t00mVZfB9upTq6q1l9AAEuvMS/3se6NUNTC2v1b96pRaz32ogAB
+	IZjAmCZrj2r2JFuJznwECCDmp7ubClVul7WeFcbIJOo983wNLuGkwdTeAIPXqQWnQwLvqtlx4O/sb
+	AVqVl+vJtVbzTxrgkAWWDpl7EQYGAK9TNIGABimVcXzMRVynmmmX5N9Gzbv0/5Y1DH2CzzML2Cfvk
+	fzPQ7s5A==;
+Received: from viro by zeniv.linux.org.uk with local (Exim 4.98.2 #2 (Red Hat Linux))
+	id 1uzsEG-0000000Euuv-3pwa;
+	Sat, 20 Sep 2025 07:41:57 +0000
+Date: Sat, 20 Sep 2025 08:41:56 +0100
+From: Al Viro <viro@zeniv.linux.org.uk>
+To: linux-fsdevel@vger.kernel.org
+Cc: Linus Torvalds <torvalds@linux-foundation.org>,
+	Christian Brauner <brauner@kernel.org>, Jan Kara <jack@suse.cz>,
+	Ian Kent <raven@themaw.net>, Miklos Szeredi <miklos@szeredi.hu>,
+	Andreas Hindborg <a.hindborg@kernel.org>, linux-mm@kvack.org,
+	linux-efi@vger.kernel.org, ocfs2-devel@lists.linux.dev,
+	Kees Cook <kees@kernel.org>, Steven Rostedt <rostedt@goodmis.org>,
+	Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
+	linux-usb@vger.kernel.org, Paul Moore <paul@paul-moore.com>,
+	Casey Schaufler <casey@schaufler-ca.com>,
+	linuxppc-dev@lists.ozlabs.org,
+	Christian Borntraeger <borntraeger@linux.ibm.com>
+Subject: [PATCHES][RFC] the meat of tree-in-dcache series
+Message-ID: <20250920074156.GK39973@ZenIV>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-X-Received: by 2002:a05:6e02:4606:b0:424:8598:59c4 with SMTP id
- e9e14a558f8ab-42485985d46mr4379665ab.18.1758254462605; Thu, 18 Sep 2025
- 21:01:02 -0700 (PDT)
-Date: Thu, 18 Sep 2025 21:01:02 -0700
-In-Reply-To: <000000000000c7e54f0621e8a14f@google.com>
-X-Google-Appengine-App-Id: s~syzkaller
-X-Google-Appengine-App-Id-Alias: syzkaller
-Message-ID: <68ccd57e.050a0220.28a605.0019.GAE@google.com>
-Subject: Re: [syzbot] [ocfs2?] KASAN: slab-use-after-free Read in ocfs2_fault
-From: syzbot <syzbot+a49010a0e8fcdeea075f@syzkaller.appspotmail.com>
-To: jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
-	linux-kernel@vger.kernel.org, mark@fasheh.com, masahiroy@kernel.org, 
-	ocfs2-devel@lists.linux.dev, syzkaller-bugs@googlegroups.com
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Description: reas Hindborg <a.hindborg@kernel.org>, linux-mm@kvack.org, linux-efi@vger.kernel.org, ocfs2-devel@lists.linux.dev, Kees Cook <kees@
+Content-Disposition: inline
+Sender: Al Viro <viro@ftp.linux.org.uk>
 
-syzbot has bisected this issue to:
+[my apologies for the size of patchbomb and the size of Cc; this series
+really affects a lot of places, if lightly]
 
-commit f79dc03fe68c79d388908182e68d702f7f1786bc
-Author: Masahiro Yamada <masahiroy@kernel.org>
-Date:   Tue Jun 18 10:35:21 2024 +0000
+Some filesystems use a kinda-sorta controlled dentry refcount leak to pin
+dentries of created objects in dcache (and undo it when removing those).
+Reference is grabbed and not released, but it's not actually _stored_
+anywhere.  That works, but it's hard to follow and verify; among other
+things, we have no way to tell _which_ of the increments is intended
+to be an unpaired one.  Worse, on removal we need to decide whether
+the reference had already been dropped, which can be non-trivial if
+that removal is on umount and we need to figure out if this dentry is
+pinned due to e.g. unlink() not done.  Usually that is handled by using
+kill_litter_super() as ->kill_sb(), but there are open-coded special
+cases of the same (consider e.g. /proc/self).
 
-    kconfig: refactor choice value calculation
+Things get simpler if we introduce a new dentry flag (DCACHE_PERSISTENT)
+marking those "leaked" dentries.  Having it set claims responsibility
+for +1 in refcount.
 
-bisection log:  https://syzkaller.appspot.com/x/bisect.txt?x=1154ee42580000
-start commit:   8b789f2b7602 Merge tag 'mm-hotfixes-stable-2025-09-17-21-1..
-git tree:       upstream
-final oops:     https://syzkaller.appspot.com/x/report.txt?x=1354ee42580000
-console output: https://syzkaller.appspot.com/x/log.txt?x=1554ee42580000
-kernel config:  https://syzkaller.appspot.com/x/.config?x=f5b21423ca3f0a96
-dashboard link: https://syzkaller.appspot.com/bug?extid=a49010a0e8fcdeea075f
-syz repro:      https://syzkaller.appspot.com/x/repro.syz?x=179f40e2580000
-C reproducer:   https://syzkaller.appspot.com/x/repro.c?x=109acf62580000
+The end result this series is aiming for:
 
-Reported-by: syzbot+a49010a0e8fcdeea075f@syzkaller.appspotmail.com
-Fixes: f79dc03fe68c ("kconfig: refactor choice value calculation")
+* get these unbalanced dget() and dput() replaced with new primitives that
+  would, in addition to adjusting refcount, set and clear persistency flag.
+* instead of having kill_litter_super() mess with removing the remaining
+  "leaked" references (e.g. for all tmpfs files that hadn't been removed
+  prior to umount), have the regular shrink_dcache_for_umount() strip
+  DCACHE_PERSISTENT of all dentries, dropping the corresponding
+  reference if it had been set.  After that kill_litter_super() becomes
+  an equivalent of kill_anon_super().
 
-For information about bisection process see: https://goo.gl/tpsmEJ#bisection
+Doing that in a single step is not feasible - it would affect too many places
+in too many filesystems.  It has to be split into a series.
+
+This work has really started early in 2024; quite a few preliminary pieces
+have already gone into mainline.  This chunk is finally getting to the
+meat of that stuff - infrastructure and most of the conversions to it.
+
+Some pieces are still sitting in the local branches, but the bulk of
+that stuff is here.
+
+The branch is -rc5-based; it lives in
+git://git.kernel.org/pub/scm/linux/kernel/git/viro/vfs.git #work.persistency
+individual patches in followups.
+
+Please, help with review and testing; it does appear to survive the local beating,
+but extra eyes on it would be very welcome.
+
+First two commits add a couple of useful helpers, the next three add the
+infrastructure and the rest consists of per-filesystem conversions.
+
+Shortlog:
+      new helper: simple_remove_by_name()
+      new helper: simple_done_creating()
+      introduce a flag for explicitly marking persistently pinned dentries
+      primitives for maintaining persisitency
+      convert simple_{link,unlink,rmdir,rename,fill_super}() to new primitives
+      convert ramfs and tmpfs
+      procfs: make /self and /thread_self dentries persistent
+      configfs, securityfs: kill_litter_super() not needed
+      convert xenfs
+      convert smackfs
+      convert hugetlbfs
+      convert mqueue
+      convert bpf
+      convert dlmfs
+      convert fuse_ctl
+      convert pstore
+      convert tracefs
+      convert debugfs
+      debugfs: remove duplicate checks in callers of start_creating()
+      convert efivarfs
+      convert spufs
+      convert ibmasmfs
+      ibmasmfs: get rid of ibmasmfs_dir_ops
+      convert devpts
+      binderfs: use simple_start_creating()
+      binderfs_binder_ctl_create(): kill a bogus check
+      convert binderfs
+      autofs_{rmdir,unlink}: dentry->d_fsdata->dentry == dentry there
+      convert autofs
+      convert binfmt_misc
+      convert selinuxfs
+      functionfs: switch to simple_remove_by_name()
+      convert functionfs
+      gadgetfs: switch to simple_remove_by_name()
+      convert gadgetfs
+      hypfs: don't pin dentries twice
+      hypfs: switch hypfs_create_str() to returning int
+      hypfs: swich hypfs_create_u64() to returning int
+      convert hypfs
+
+Diffstat:
+ arch/powerpc/platforms/cell/spufs/inode.c | 15 ++---
+ arch/s390/hypfs/hypfs.h                   |  6 +-
+ arch/s390/hypfs/hypfs_diag_fs.c           | 60 +++++++-------------
+ arch/s390/hypfs/hypfs_vm_fs.c             | 21 +++----
+ arch/s390/hypfs/inode.c                   | 82 +++++++++------------------
+ drivers/android/binderfs.c                | 82 +++++++--------------------
+ drivers/base/devtmpfs.c                   |  2 +-
+ drivers/misc/ibmasm/ibmasmfs.c            | 24 ++++----
+ drivers/usb/gadget/function/f_fs.c        | 54 ++++++++----------
+ drivers/usb/gadget/legacy/inode.c         | 49 ++++++++--------
+ drivers/xen/xenfs/super.c                 |  2 +-
+ fs/autofs/inode.c                         |  2 +-
+ fs/autofs/root.c                          | 11 ++--
+ fs/binfmt_misc.c                          | 69 +++++++++++------------
+ fs/configfs/mount.c                       |  2 +-
+ fs/dcache.c                               | 93 ++++++++++++++++++++++++-------
+ fs/debugfs/inode.c                        | 32 +++--------
+ fs/devpts/inode.c                         | 57 +++++++------------
+ fs/efivarfs/inode.c                       |  7 +--
+ fs/efivarfs/super.c                       |  5 +-
+ fs/fuse/control.c                         | 19 ++++---
+ fs/hugetlbfs/inode.c                      | 12 ++--
+ fs/libfs.c                                | 31 +++++++++--
+ fs/ocfs2/dlmfs/dlmfs.c                    |  8 +--
+ fs/proc/base.c                            |  6 +-
+ fs/proc/internal.h                        |  1 +
+ fs/proc/root.c                            | 14 ++---
+ fs/proc/self.c                            | 10 +---
+ fs/proc/thread_self.c                     | 11 +---
+ fs/pstore/inode.c                         |  7 ++-
+ fs/ramfs/inode.c                          |  8 +--
+ fs/tracefs/event_inode.c                  |  4 +-
+ fs/tracefs/inode.c                        | 13 ++---
+ include/linux/dcache.h                    |  3 +
+ include/linux/fs.h                        |  3 +
+ include/linux/proc_fs.h                   |  2 -
+ init/do_mounts.c                          |  2 +-
+ ipc/mqueue.c                              | 12 +---
+ kernel/bpf/inode.c                        | 15 ++---
+ mm/shmem.c                                | 23 ++------
+ security/inode.c                          |  2 +-
+ security/selinux/selinuxfs.c              | 52 +++++++++--------
+ security/smack/smackfs.c                  |  2 +-
+ 43 files changed, 412 insertions(+), 523 deletions(-)
