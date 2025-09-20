@@ -1,34 +1,34 @@
 Received: from zeniv.linux.org.uk (zeniv.linux.org.uk [62.89.141.173])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4F6DF274650;
-	Sat, 20 Sep 2025 07:48:04 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7221F26B760;
+	Sat, 20 Sep 2025 07:48:03 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=62.89.141.173
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1758354486; cv=none; b=t+W2j4z22a2jY8Cn/lscjKr+VVTR/4pVyGZQu5+IuwQJ2lB3opDQcSoXEkBNMlpoVYdDyJ+mYYq+TGuA/jUyvXbJOYhDIPkP7k2YdRFNG5R4OBdpXNCcIjEwqi5Suoe5jhS47tBKYF1dfk6KBwdS+qtFA2qAyqTxZdPU2jysVAc=
+	t=1758354486; cv=none; b=MfebumLsKLikcTvI6jXaW2U3e4CgcuI06tKkuGRl8p3JF/UEp0ZJLSlyXO5omwwEa8e1EgCgBqQfGDI67tcrBLsxFVnrYn4GvmJKNdPw3VWYJT/ti4+ezXLzLUr09p01Yzi3UUOorPyXureAxepWYRNld5AXnvpOLsSfh8NEdBo=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
 	s=arc-20240116; t=1758354486; c=relaxed/simple;
-	bh=ew5MaNSGvOEN/k9ubJTx+6dF0rGFfbpnoAp4SyX0ank=;
+	bh=Qi1qlxhtZp5ShORpYA1LTVNlPEa4Tehby19wHdxyCI0=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=k0wTaqcZMpEZW/mGnDVAzE8FHfdoux54LUPiQgPA8LWk+Z282fdx0V0iyy93Bbh8ojA5OfmzEKMeS0ir3xk/JZWN0KnVGtUPyRSnpooowJrNmLnz1CDH+RbrxozKDFQsZZ9r1Wi2COmwruqY8ETPhwN910jidfhYguO/obZZpZk=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk; spf=none smtp.mailfrom=ftp.linux.org.uk; dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b=OQ5r0/I/; arc=none smtp.client-ip=62.89.141.173
+	 MIME-Version; b=RlTrhJl3RF/kqSGL9LjTB+9LP+ZtbJYLI743hZegAPAnYML/bNKhux+kvz4yqhBUms22rJ31cP/kp9kI3THag/c3b1Gs/becTqTtkq+oCFQAnp7Nd2Bf1LCqSZ6byxUYec+SvvZ2wmaRPCFNtanlN94i/RH0sXG4ppAZMKdW2nE=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk; spf=none smtp.mailfrom=ftp.linux.org.uk; dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b=gOsZ11R9; arc=none smtp.client-ip=62.89.141.173
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk
 Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=ftp.linux.org.uk
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b="OQ5r0/I/"
+	dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b="gOsZ11R9"
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
 	d=linux.org.uk; s=zeniv-20220401; h=Sender:Content-Transfer-Encoding:
 	MIME-Version:References:In-Reply-To:Message-ID:Date:Subject:Cc:To:From:
 	Reply-To:Content-Type:Content-ID:Content-Description;
-	bh=fWCUlMHi5omKZPse+rHltZIDpXcWWINKvoa2e5LYjd4=; b=OQ5r0/I/W6hUt+8wYII9TXI3wg
-	zfMjZaN34q0Ac1B99Lez2+ujRCnk1aQp8ARPfAvAk68N6YSBlmO+HGFatdr1fYzQjHYSMZjRHE1Zt
-	kaUyGIy2gHYuaGfG1meTLYQho2c7tPjSRrwm7oaHXte/uU6vFyh3TaNlkVx12zYqg4nHwOwg43JZb
-	QqcaKOpff728N/6TdZ0WPMKp1IaidA6NJSGjvwObYSNsO08+R3DLlY5fIsaqw1xiGnD1AW0QABOVF
-	7iw2dGUfxkNxRmIkTipCa/rLuayyHJAfnGPslDHNrGXxtoM86CMGESCM9fYweXe0NWDct/PI/7ln+
-	cYyomVEA==;
+	bh=h7zac5CXxUxkb7q5ONcJstI1n7DJUlke+AKINjwUKhw=; b=gOsZ11R95Mc6khqYieAvGNI546
+	t4Q3F2LQ7usNltEcKyWm/9q4pggxTthiwjrBd5D4D6ge/9g4pAacGuMO+LGMFkuKgNcAetY1uRIjn
+	1qm8refseK5xgcF0CtotO59paOWWy2bEc6aCmUneBZZJ2yDM3AirMhLl3Fuz4pwnJS4EJnLbHoDJs
+	7ZfBeVXB9yoK+zD+iEbTR75Eao9+iKvcSvcdLCPmoLcgSC1KsAv1kl7D2ExJ2MaIaiLRuPw1Ivapi
+	0y0XdSclxK2XOFjXsEvYABaBSFZ/vhA541uq1Fso7uSMCuhN5Du2vVdFUz8AQy/207j12dYYopi5y
+	SapVXyqA==;
 Received: from viro by zeniv.linux.org.uk with local (Exim 4.98.2 #2 (Red Hat Linux))
-	id 1uzsK9-0000000ExDn-44H6;
-	Sat, 20 Sep 2025 07:48:02 +0000
+	id 1uzsK9-0000000ExCp-1Qie;
+	Sat, 20 Sep 2025 07:48:01 +0000
 From: Al Viro <viro@zeniv.linux.org.uk>
 To: linux-fsdevel@vger.kernel.org
 Cc: torvalds@linux-foundation.org,
@@ -48,9 +48,9 @@ Cc: torvalds@linux-foundation.org,
 	casey@schaufler-ca.com,
 	linuxppc-dev@lists.ozlabs.org,
 	borntraeger@linux.ibm.com
-Subject: [PATCH 15/39] convert fuse_ctl
-Date: Sat, 20 Sep 2025 08:47:34 +0100
-Message-ID: <20250920074759.3564072-15-viro@zeniv.linux.org.uk>
+Subject: [PATCH 10/39] convert smackfs
+Date: Sat, 20 Sep 2025 08:47:29 +0100
+Message-ID: <20250920074759.3564072-10-viro@zeniv.linux.org.uk>
 X-Mailer: git-send-email 2.49.0
 In-Reply-To: <20250920074759.3564072-1-viro@zeniv.linux.org.uk>
 References: <20250920074156.GK39973@ZenIV>
@@ -64,52 +64,27 @@ MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: Al Viro <viro@ftp.linux.org.uk>
 
-objects are created in fuse_ctl_add_dentry() by d_alloc_name()+d_add(),
-removed by simple_remove_by_name().
-
-What we return is a borrowed reference - it is valid until the call of
-fuse_ctl_remove_conn() and we depend upon the exclusion (on fuse_mutex)
-for safety.  Return value is used only within the caller
-(fuse_ctl_add_conn()).
-
-Replace d_add() with d_make_persistent() + dput().  dput() is paired
-with d_alloc_name() and return value is the result of d_make_persistent().
+Entirely static tree populated by simple_fill_super().  Can use
+kill_anon_super() as-is.
 
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- fs/fuse/control.c | 12 +++++++++---
- 1 file changed, 9 insertions(+), 3 deletions(-)
+ security/smack/smackfs.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/fs/fuse/control.c b/fs/fuse/control.c
-index 31fa816d0189..adcb81e04802 100644
---- a/fs/fuse/control.c
-+++ b/fs/fuse/control.c
-@@ -234,8 +234,14 @@ static struct dentry *fuse_ctl_add_dentry(struct dentry *parent,
- 	inode->i_fop = fop;
- 	set_nlink(inode, nlink);
- 	inode->i_private = fc;
--	d_add(dentry, inode);
--
-+	d_make_persistent(dentry, inode);
-+	dput(dentry);
-+
-+	/*
-+	 * We are returning a borrowed reference here - it's only good while
-+	 * fuse_mutex is held.  Actually it's d_make_persistent() return
-+	 * value...
-+	 */
- 	return dentry;
- }
+diff --git a/security/smack/smackfs.c b/security/smack/smackfs.c
+index b1e5e62f5cbd..e989ae3890c7 100644
+--- a/security/smack/smackfs.c
++++ b/security/smack/smackfs.c
+@@ -2960,7 +2960,7 @@ static int smk_init_fs_context(struct fs_context *fc)
+ static struct file_system_type smk_fs_type = {
+ 	.name		= "smackfs",
+ 	.init_fs_context = smk_init_fs_context,
+-	.kill_sb	= kill_litter_super,
++	.kill_sb	= kill_anon_super,
+ };
  
-@@ -345,7 +351,7 @@ static void fuse_ctl_kill_sb(struct super_block *sb)
- 	fuse_control_sb = NULL;
- 	mutex_unlock(&fuse_mutex);
- 
--	kill_litter_super(sb);
-+	kill_anon_super(sb);
- }
- 
- static struct file_system_type fuse_ctl_fs_type = {
+ static struct vfsmount *smackfs_mount;
 -- 
 2.47.3
 
