@@ -1,34 +1,34 @@
 Received: from zeniv.linux.org.uk (zeniv.linux.org.uk [62.89.141.173])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9206B26FA52;
-	Sat, 20 Sep 2025 07:48:03 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1C59D288522;
+	Sat, 20 Sep 2025 07:48:07 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=62.89.141.173
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1758354489; cv=none; b=NrNvtXCa+UMolXiTRHYfdDiWuZUdhaNo9gRvz6G0ln5M/urLJTkwP5rKaXpnKbNne8v57ShEsWP/Junad3mOjcKTApMCnFtZc8pr71wu8fh3yGk8KeQ05+v/z2WD/YAzKdsMSkFnBmBARKT3Qy+VDT+sb3uAYVIAVK9jSJbf2yM=
+	t=1758354489; cv=none; b=IwbLeGg0ZZizBQB168vx3JcceBLAv1H+JABlTfx8g046TEZ4+kzegZTFkdIwfLfk1BRfDnTFeXIAILt0e8khI5fQmfwSz+M8X3aHnb3CH/FIn97mhc+6lqmddT1yUQ9EpK1V/4iOVXHbA+lEdbpgIJNp5qDQC7vHFze1cREU/uc=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
 	s=arc-20240116; t=1758354489; c=relaxed/simple;
-	bh=aQb2qy2J1pCZ1132PoicrKjRnzTEBFPwnGLeE5EsJfc=;
+	bh=soHi416DSE0pnYSMl4YmsflCDJfcWBHwcCLNR5cniFg=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=RraeIY9JL/jDeX5L9/MKx+hca0SCxhnfmEyVtjXUJCjv5virpmFLMnoR/pGDo7Nf0jHq8JV/0Q+YMEfxzJ8gGChSdvCUNmo+KxkOHy8zNBTXCEQl1+8WRIBllBDEuovlVJtI+MXaFE+o+KiWRhBGEsnzEODyLylqZ7guJYAtlEo=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk; spf=none smtp.mailfrom=ftp.linux.org.uk; dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b=vtuBnJp1; arc=none smtp.client-ip=62.89.141.173
+	 MIME-Version; b=iunXyyRV7CoSivo+8qDvPMw9WyTKU9tY52WUURJ/DftUKmkpvnabcNUfZb58YCRmp6z+BRTimxtDPUIUvxG5BCq20iV2EIlW2D12FUF78xjWOWpoc/Ej7+rjYwI7fsbgrvOanhr61yJCttqm2dqd+T5Y2zvRuEjGu6Oi7vH3xeM=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk; spf=none smtp.mailfrom=ftp.linux.org.uk; dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b=jaQK8cKf; arc=none smtp.client-ip=62.89.141.173
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk
 Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=ftp.linux.org.uk
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b="vtuBnJp1"
+	dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b="jaQK8cKf"
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
 	d=linux.org.uk; s=zeniv-20220401; h=Sender:Content-Transfer-Encoding:
 	MIME-Version:References:In-Reply-To:Message-ID:Date:Subject:Cc:To:From:
 	Reply-To:Content-Type:Content-ID:Content-Description;
-	bh=JiG9nHcsxcwZpHb/L0Tx41DaV7imD29tLb/ai1sU578=; b=vtuBnJp1FKdRJaUi9wf6dBa+cw
-	yFyba5mUeAFRsUmJroWbhRl2eUzKZlVVNqj5veAhvT6EC9M+C9P1/Y8zGdTeqZE/bI1HCme8sHdO9
-	GcPjmOj3eT9y485+3rjAUNq69uFkp69CbzOdiVe81V46rzs0RvAuwHALDxEHK9F+mtRy7IyEHwrkQ
-	W48r8UtFZtMv4LD8awybcvRGhiXenr5wHvuktQ8hFQb+XjdjbkZfFpItsbQfdQktAwp+/VAEU1+5f
-	6XYhchXPqQgz+DLx4WbjOi5xYPuroCrhW+UL2w1nNz90dt4otfrX1DERefvNIrWozjB1cTQ8oHCXr
-	q1esPHew==;
+	bh=09KvsjW0ORXF5yAgFsWr4BmJpUanJ8JfB+m1F7eGQps=; b=jaQK8cKfGBnniJ4xeduBuQ4mdy
+	Z8Qh0j68aqBnrjxEeoVTW67vl2L9GR+wcjUmE89Mle6Q0bb7rqeHVynY9bc9tpgu5c4WmNLaHTz8X
+	pFRwaQvcdhRslmEdhfemL9wmhLt/ZRnjNK8/6wVMphnzkYT81oAUr3WBFPmzUNXaKcTJoPn5wwBwc
+	3gT57+VI+M0C00eOsH5pS2UWTzhm3bdqs39h/XrVkl+cBOEFT7NpLQAwdCOKXhmimfGv9/rNxJhf8
+	Nk/W5J5B2wgPV7mcNvQdzkMn0mOJWtnkhY+5Q6eDuX1azINcV1hEDsPAZ76dQYgApjHI3y0T0qVvI
+	VWGDlqAw==;
 Received: from viro by zeniv.linux.org.uk with local (Exim 4.98.2 #2 (Red Hat Linux))
-	id 1uzsK9-0000000ExD1-2NQ8;
-	Sat, 20 Sep 2025 07:48:01 +0000
+	id 1uzsKC-0000000ExGw-3OF2;
+	Sat, 20 Sep 2025 07:48:04 +0000
 From: Al Viro <viro@zeniv.linux.org.uk>
 To: linux-fsdevel@vger.kernel.org
 Cc: torvalds@linux-foundation.org,
@@ -48,9 +48,9 @@ Cc: torvalds@linux-foundation.org,
 	casey@schaufler-ca.com,
 	linuxppc-dev@lists.ozlabs.org,
 	borntraeger@linux.ibm.com
-Subject: [PATCH 12/39] convert mqueue
-Date: Sat, 20 Sep 2025 08:47:31 +0100
-Message-ID: <20250920074759.3564072-12-viro@zeniv.linux.org.uk>
+Subject: [PATCH 26/39] binderfs_binder_ctl_create(): kill a bogus check
+Date: Sat, 20 Sep 2025 08:47:45 +0100
+Message-ID: <20250920074759.3564072-26-viro@zeniv.linux.org.uk>
 X-Mailer: git-send-email 2.49.0
 In-Reply-To: <20250920074759.3564072-1-viro@zeniv.linux.org.uk>
 References: <20250920074156.GK39973@ZenIV>
@@ -64,56 +64,34 @@ MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: Al Viro <viro@ftp.linux.org.uk>
 
-All modifications via normal VFS codepaths; just take care of making
-persistent in in mqueue_create_attr() and discardable in mqueue_unlink()
-and it doesn't need kill_litter_super() at all.
+It's called once, during binderfs mount, right after allocating
+root dentry.  Checking that it hadn't been already called is
+only obfuscating things.
 
-mqueue_unlink() side is best handled by having it call simple_unlink()
-rather than duplicating its guts...
+Looks like that bogosity had been copied from devpts...
 
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- ipc/mqueue.c | 12 +++---------
- 1 file changed, 3 insertions(+), 9 deletions(-)
+ drivers/android/binderfs.c | 6 ------
+ 1 file changed, 6 deletions(-)
 
-diff --git a/ipc/mqueue.c b/ipc/mqueue.c
-index 093551fe66a7..5737130137bf 100644
---- a/ipc/mqueue.c
-+++ b/ipc/mqueue.c
-@@ -599,8 +599,7 @@ static int mqueue_create_attr(struct dentry *dentry, umode_t mode, void *arg)
- 	dir->i_size += DIRENT_SIZE;
- 	simple_inode_init_ts(dir);
+diff --git a/drivers/android/binderfs.c b/drivers/android/binderfs.c
+index 41a0f3c26fcf..bb81280a3e9f 100644
+--- a/drivers/android/binderfs.c
++++ b/drivers/android/binderfs.c
+@@ -395,12 +395,6 @@ static int binderfs_binder_ctl_create(struct super_block *sb)
+ 	if (!device)
+ 		return -ENOMEM;
  
--	d_instantiate(dentry, inode);
--	dget(dentry);
-+	d_make_persistent(dentry, inode);
- 	return 0;
- out_unlock:
- 	spin_unlock(&mq_lock);
-@@ -617,13 +616,8 @@ static int mqueue_create(struct mnt_idmap *idmap, struct inode *dir,
- 
- static int mqueue_unlink(struct inode *dir, struct dentry *dentry)
- {
--	struct inode *inode = d_inode(dentry);
+-	/* If we have already created a binder-control node, return. */
+-	if (info->control_dentry) {
+-		ret = 0;
+-		goto out;
+-	}
 -
--	simple_inode_init_ts(dir);
- 	dir->i_size -= DIRENT_SIZE;
--	drop_nlink(inode);
--	dput(dentry);
--	return 0;
-+	return simple_unlink(dir, dentry);
- }
- 
- /*
-@@ -1638,7 +1632,7 @@ static const struct fs_context_operations mqueue_fs_context_ops = {
- static struct file_system_type mqueue_fs_type = {
- 	.name			= "mqueue",
- 	.init_fs_context	= mqueue_init_fs_context,
--	.kill_sb		= kill_litter_super,
-+	.kill_sb		= kill_anon_super,
- 	.fs_flags		= FS_USERNS_MOUNT,
- };
- 
+ 	ret = -ENOMEM;
+ 	inode = new_inode(sb);
+ 	if (!inode)
 -- 
 2.47.3
 
