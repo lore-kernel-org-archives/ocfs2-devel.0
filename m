@@ -1,34 +1,34 @@
 Received: from zeniv.linux.org.uk (zeniv.linux.org.uk [62.89.141.173])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9C98E276041;
-	Sat, 20 Sep 2025 07:48:05 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 93B002749C5;
+	Sat, 20 Sep 2025 07:48:04 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=62.89.141.173
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1758354487; cv=none; b=ROopup/3VYrdYgozfGcZPd87ms2NmmjXxgXEPTJq1OkHjbNgJkmxEATqLwFs5/TVyEP8eYGVdjH3PQlq/D5AstMiHGgj7ag+hGPz9CYl14rKtzHMO6VuhOsZiaSlaRees/Z8j3Yk8P2q8hozBRjS5nU1kNXWZsVW4G1g0ODl+vQ=
+	t=1758354487; cv=none; b=QIY/UtpYiQl95W9+5VY+yApXBFLzzZhp4EjzEmUl9U2Ygw+SYf/MATMLjgeX3nL0Wem/00fhete/dbUk6Y/XvqU9PH6g2JT/X8Urw0/8j+L/AspQBC1ABqQ0UYMm87mREQAom3vDjX+tskZhXSQ+jw7w2jwB3B08oU7LT02a9+M=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
 	s=arc-20240116; t=1758354487; c=relaxed/simple;
-	bh=3/7wTnp+BUluB0yOKxyyf9McG0O9FqLVmSTXxagaJjY=;
+	bh=pfDtlIgV2LBEjsb/aUM9dZDlLqvkBkhHD1AP4d33njU=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=hnFxQZisp3sRTXBQ2p0hqLRniX1OsNVsZ7TAc4Dbb91hDSLhqXbXRFijL0FKV/9p0tlu+F+z6gjBWgijITot1VdDEKgplaHjDjQF+3LCbd9Jj1DngqauWks2izQ/GiqgPdWsEVQCGSgkKdrusuWkDCF8GK6Ei6An+F5eLHs7Owo=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk; spf=none smtp.mailfrom=ftp.linux.org.uk; dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b=h1PYM7wF; arc=none smtp.client-ip=62.89.141.173
+	 MIME-Version; b=OoF5mxu5k9vrFsfHuB1xK8st0LmUAQiIMq+Rxrj+LHkCNXKknJ8ScI25Xi7WukKW81miGhVA6SGXwwAduNOM8aoyGbz+j5Yf73+xQ6MNO1ELjB7eUt6c8U8XJ+iuqbC/q/dwaZMIViQSirHQbNffzfECE/E/P78Hvgw0OW5yEtM=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk; spf=none smtp.mailfrom=ftp.linux.org.uk; dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b=t9iONXrV; arc=none smtp.client-ip=62.89.141.173
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk
 Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=ftp.linux.org.uk
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b="h1PYM7wF"
+	dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b="t9iONXrV"
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
 	d=linux.org.uk; s=zeniv-20220401; h=Sender:Content-Transfer-Encoding:
 	MIME-Version:References:In-Reply-To:Message-ID:Date:Subject:Cc:To:From:
 	Reply-To:Content-Type:Content-ID:Content-Description;
-	bh=wxn4MG/UuDcxk84tNsHI6sa3Q9kQYypoP2eBG9UjNw0=; b=h1PYM7wF8GAZQmFHnTVD3Eal5G
-	3sfQyHpwrCnfb8nq8dYDmp7db1lsQsiW0zGzVQqf1H2/iK9U857ZYv0k6fJaskP3ZAh/lIXWQAQRm
-	0Eqw7E+Y1UY+lxLUe8EHmLK3j1RaYCGVO4yoX4JPLStirWyDq8N85LAX/8T5rTBj5an57+vcyFlg0
-	jhPbS9IcCglfgZAOoJAftuvBRe1W2kHTcTm36SQ6aSvBSUTow/nSc5uRWjdqUDbEvGwWlobmtwXN3
-	YXuF5pGdUjk0SF4X9GcEAKh9hwMi1J0h77z7/c5seKNFmRikgDkUnShQND1x2e3QtbH6HF1a4IAhh
-	UlLYEIwA==;
+	bh=Rblw1/+FVpnDSF+tGzA58CitG6ZVFpPLgpN9TawlUAc=; b=t9iONXrVV2xYR0Ohv6Uqq876VT
+	EOLP68t82ONpzCjT6GTEie1WbU4Z5xuFIUQfrY7W3q92BniOaKvWeviTTUUvh/+gK6WzBnInI47DQ
+	x3iQ1kIlshSd70ZWXETqVX7uIwzov3t0WdsszcElheVQ2bY76i0NDZRonXWE7dQyC9EiAmEQ6Bscb
+	CjwXDS52jAujjzTldVIar/giui3Tc2BusRDf1/9QdkxmGstJBQO+kgyXUVlaXTOwelnzqjDTz1r+S
+	6EokSysi9b0Fmqf/9VicVzGeuaGtZddJ9ODEOvwWRo69viMy5RpA5RqkrUcO3jKzhP58lRog6xhzc
+	2jQZqg1A==;
 Received: from viro by zeniv.linux.org.uk with local (Exim 4.98.2 #2 (Red Hat Linux))
-	id 1uzsKB-0000000ExFi-2BZc;
-	Sat, 20 Sep 2025 07:48:03 +0000
+	id 1uzsKA-0000000ExEK-1Zwa;
+	Sat, 20 Sep 2025 07:48:02 +0000
 From: Al Viro <viro@zeniv.linux.org.uk>
 To: linux-fsdevel@vger.kernel.org
 Cc: torvalds@linux-foundation.org,
@@ -48,9 +48,9 @@ Cc: torvalds@linux-foundation.org,
 	casey@schaufler-ca.com,
 	linuxppc-dev@lists.ozlabs.org,
 	borntraeger@linux.ibm.com
-Subject: [PATCH 21/39] convert spufs
-Date: Sat, 20 Sep 2025 08:47:40 +0100
-Message-ID: <20250920074759.3564072-21-viro@zeniv.linux.org.uk>
+Subject: [PATCH 16/39] convert pstore
+Date: Sat, 20 Sep 2025 08:47:35 +0100
+Message-ID: <20250920074759.3564072-16-viro@zeniv.linux.org.uk>
 X-Mailer: git-send-email 2.49.0
 In-Reply-To: <20250920074759.3564072-1-viro@zeniv.linux.org.uk>
 References: <20250920074156.GK39973@ZenIV>
@@ -64,75 +64,51 @@ MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: Al Viro <viro@ftp.linux.org.uk>
 
-have spufs_new_file() use d_make_persistent() instead of d_add() and
-do an uncondition dput() in the caller; the rest is completely
-straightforward.
+object creation by d_alloc_name()+d_add() in pstore_mkfile(), removal -
+via normal VFS codepaths (with ->unlink() using simple_unlink()) or
+in pstore_put_backend_records() via locked_recursive_removal()
+
+Replace d_add() with d_make_persistent()+dput() - that's what really
+happens there.  The reference that goes into record->dentry is valid
+only until the unlink (and explicitly cleared by pstore_unlink()).
 
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- arch/powerpc/platforms/cell/spufs/inode.c | 15 ++++++---------
- 1 file changed, 6 insertions(+), 9 deletions(-)
+ fs/pstore/inode.c | 7 ++++---
+ 1 file changed, 4 insertions(+), 3 deletions(-)
 
-diff --git a/arch/powerpc/platforms/cell/spufs/inode.c b/arch/powerpc/platforms/cell/spufs/inode.c
-index 7ec60290abe6..f21f7a76ef0b 100644
---- a/arch/powerpc/platforms/cell/spufs/inode.c
-+++ b/arch/powerpc/platforms/cell/spufs/inode.c
-@@ -127,7 +127,7 @@ spufs_new_file(struct super_block *sb, struct dentry *dentry,
- 	inode->i_fop = fops;
- 	inode->i_size = size;
- 	inode->i_private = SPUFS_I(inode)->i_ctx = get_spu_context(ctx);
--	d_add(dentry, inode);
-+	d_make_persistent(dentry, inode);
- out:
- 	return ret;
- }
-@@ -163,10 +163,9 @@ static int spufs_fill_dir(struct dentry *dir,
- 			return -ENOMEM;
- 		ret = spufs_new_file(dir->d_sb, dentry, files->ops,
- 					files->mode & mode, files->size, ctx);
--		if (ret) {
--			dput(dentry);
-+		dput(dentry);
-+		if (ret)
- 			return ret;
--		}
- 		files++;
- 	}
- 	return 0;
-@@ -241,11 +240,10 @@ spufs_mkdir(struct inode *dir, struct dentry *dentry, unsigned int flags,
+diff --git a/fs/pstore/inode.c b/fs/pstore/inode.c
+index 1a2e1185426c..bad479fbb0ff 100644
+--- a/fs/pstore/inode.c
++++ b/fs/pstore/inode.c
+@@ -373,7 +373,7 @@ int pstore_mkfile(struct dentry *root, struct pstore_record *record)
+ 	if (!dentry)
+ 		return -ENOMEM;
  
- 	inode_lock(inode);
+-	private->dentry = dentry;
++	private->dentry = dentry; // borrowed
+ 	private->record = record;
+ 	inode->i_size = private->total_size = size;
+ 	inode->i_private = private;
+@@ -382,7 +382,8 @@ int pstore_mkfile(struct dentry *root, struct pstore_record *record)
+ 		inode_set_mtime_to_ts(inode,
+ 				      inode_set_ctime_to_ts(inode, record->time));
  
--	dget(dentry);
- 	inc_nlink(dir);
- 	inc_nlink(inode);
+-	d_add(dentry, no_free_ptr(inode));
++	d_make_persistent(dentry, no_free_ptr(inode));
++	dput(dentry);
  
--	d_instantiate(dentry, inode);
-+	d_make_persistent(dentry, inode);
+ 	list_add(&(no_free_ptr(private))->list, &records_list);
  
- 	if (flags & SPU_CREATE_NOSCHED)
- 		ret = spufs_fill_dir(dentry, spufs_dir_nosched_contents,
-@@ -479,10 +477,9 @@ spufs_mkgang(struct inode *dir, struct dentry *dentry, umode_t mode)
- 	inode->i_op = &simple_dir_inode_operations;
- 	inode->i_fop = &simple_dir_operations;
+@@ -465,7 +466,7 @@ static void pstore_kill_sb(struct super_block *sb)
+ 	guard(mutex)(&pstore_sb_lock);
+ 	WARN_ON(pstore_sb && pstore_sb != sb);
  
--	d_instantiate(dentry, inode);
--	dget(dentry);
- 	inc_nlink(dir);
- 	inc_nlink(d_inode(dentry));
-+	d_make_persistent(dentry, inode);
- 	return ret;
+-	kill_litter_super(sb);
++	kill_anon_super(sb);
+ 	pstore_sb = NULL;
  
- out_iput:
-@@ -780,7 +777,7 @@ static struct file_system_type spufs_type = {
- 	.name = "spufs",
- 	.init_fs_context = spufs_init_fs_context,
- 	.parameters	= spufs_fs_parameters,
--	.kill_sb = kill_litter_super,
-+	.kill_sb = kill_anon_super,
- };
- MODULE_ALIAS_FS("spufs");
- 
+ 	guard(mutex)(&records_list_lock);
 -- 
 2.47.3
 
