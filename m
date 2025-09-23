@@ -1,76 +1,61 @@
-Received: from mail-io1-f70.google.com (mail-io1-f70.google.com [209.85.166.70])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0CFE628134D
-	for <ocfs2-devel@lists.linux.dev>; Mon, 22 Sep 2025 21:21:03 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.166.70
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 33AB31DD877;
+	Tue, 23 Sep 2025 08:10:45 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1758576065; cv=none; b=YmUMDCB99lMAqVaRKDCEzo/+AxlcAcPkmvIi5HqVgmPT+3zCADj5zEUu4x6dbbGAzjp4iPv740pTNCg3Smw88sbVNnO9EboawkdoZg9PmLudZL3V7HHHH6sPC+tiGFpC6POpgw0xPnxLyR7cwGo+k1MugmELNSyIFsmLVi2GBzo=
+	t=1758615045; cv=none; b=r3tteOj7d+0lItUbMxO/sGoS6sPCplEno0o8e0v8gxZ12KXB93QjvrYmrDRlLjEZQD5z4A86Dp2AK1wQo9zb3KzJhPwmmMG0udWTeLGDnJR32EKhB1fqdyLYNLetl5ArBM9+X40iCICkunUdmR5P3um/77mV6hseu0x3Rrrbo90=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1758576065; c=relaxed/simple;
-	bh=r3NpGz1qBNHJUaKYOiNUrMQdMwwoP6Ucp5LUoYR9YGI=;
-	h=MIME-Version:Date:In-Reply-To:Message-ID:Subject:From:To:
-	 Content-Type; b=MD1vgYXXyBwdV4jLuvg4mnHrK8J6Eodkos9uSrrb4cwFlolTN8yO9NcJEzZvr7ZvAY0iSQxjOhAZjPIek9jky/bnHfY0ZupsLFSjhybE4swDljPLtWW6DQqvvLHOPIESB4mnecmXTfxwnIQ1shHDDsYYX1sL6yLmRw16nnGFdaM=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.166.70
-Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
-Received: by mail-io1-f70.google.com with SMTP id ca18e2360f4ac-889b8d8b6b7so540323139f.1
-        for <ocfs2-devel@lists.linux.dev>; Mon, 22 Sep 2025 14:21:03 -0700 (PDT)
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1758576063; x=1759180863;
-        h=to:from:subject:message-id:in-reply-to:date:mime-version
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
-        bh=pEXVzVh1xRpn36QUJyWBl0yE9J7HW6QGqDG73VIJJTE=;
-        b=n8j0L+MklfIl11O8vQf069fiJGJC1ake+Lq02t//KNwayt+AospLNHGgmO5ovOpDDW
-         hCg8h9DzglFBY/t2doazXT3tJK0r8S2w3FSKdYSUn55s6J7fDmlqsGIO9tmXpXWht8Hu
-         1BOcTGS28sxnDx1abfLpo0PA/Iud+V1z48qdi6xFO+VLAMscpHV7d3DuuZ4uEhFNO4hw
-         Wsw/IfnErkOVuJFjBzRl3bPPr56zBjBqbWdoDe1Okq8xe89uc/UxvQMk3iICDfOuoMKO
-         rjicPgcwoV7aSmdkPkKsBiTFBtknL4bTHpAlgmAI/K8VFKb0trGIOPQeXrss9wTLyolK
-         wqtA==
-X-Forwarded-Encrypted: i=1; AJvYcCXJ2yKoiaL9Lw0C4XdbnSJMAeptwjseHGQCVVRdnnOYCBVBXP7O1Ff/18MwbM2jsUV6w7dFK1JD1Hs9pQ==@lists.linux.dev
-X-Gm-Message-State: AOJu0YzL4ILIqo3/Vz6cOz62oir2HtjkNFMoLkFbdifDynodNjydLAyY
-	RlvjrogfsIDPBz2/icdfsw7HvVHiun+p5wT3zajE2/Nz/aa2itdPScUJvCENPj4jveKazbLeO66
-	+ZH1yMINakJonLeAdv+gNSeap0JFafaC3pC6PfwswBiA8AotgP9QRF3GJQ7E=
-X-Google-Smtp-Source: AGHT+IHJ5Lcy1PFoE+1HFqUxDvjXb3iEWiVH3SD6SKxbsyUcUF2l8Pan6sffL9AvGWy5az5bN517uy1gywSblFEpVuz8oT8HE9qK
+	s=arc-20240116; t=1758615045; c=relaxed/simple;
+	bh=iW3WPoagLwoxw6Vm11W1B8DLUUbl+cSm5INVhgNbxS0=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=mxxCBmAUtgjaJ75GnklGnDBN+f5Bre5lBmBbir4gnKx4XcvpttWhMwNDQLkBfvgHWi79nniVG7QbNGSpQ8pJ0fLDISsyd2KPmqALfhe5BJith8GaA+9BYFSN7AMvIuYI9e7Y/piNKc84rGzi+HfhOMfTw8+zTPLBoXH9S1Joe6I=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (1024-bit key) header.d=linuxfoundation.org header.i=@linuxfoundation.org header.b=CUu1lvbZ; arc=none smtp.client-ip=10.30.226.201
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (1024-bit key) header.d=linuxfoundation.org header.i=@linuxfoundation.org header.b="CUu1lvbZ"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 9BF88C4CEF5;
+	Tue, 23 Sep 2025 08:10:43 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linuxfoundation.org;
+	s=korg; t=1758615044;
+	bh=iW3WPoagLwoxw6Vm11W1B8DLUUbl+cSm5INVhgNbxS0=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=CUu1lvbZ9Vi1eiQbP9TyKCBWnxSO+wgYt1w5dZjQNLBYdyQNp1x8oj13nSFHO0dgh
+	 sjOnfLjfTdgRefJ7Ti7MyNKmVPU7anyFQuO3d/EvN39oDlbBs+7nY2MgKdB0As76IL
+	 NzTQk5WZKpQpx4s86jlO4XYnqAhAVOnyTfn93l2U=
+Date: Tue, 23 Sep 2025 10:10:40 +0200
+From: Greg KH <gregkh@linuxfoundation.org>
+To: Al Viro <viro@zeniv.linux.org.uk>
+Cc: linux-fsdevel@vger.kernel.org, torvalds@linux-foundation.org,
+	brauner@kernel.org, jack@suse.cz, raven@themaw.net,
+	miklos@szeredi.hu, a.hindborg@kernel.org, linux-mm@kvack.org,
+	linux-efi@vger.kernel.org, ocfs2-devel@lists.linux.dev,
+	kees@kernel.org, rostedt@goodmis.org, linux-usb@vger.kernel.org,
+	paul@paul-moore.com, casey@schaufler-ca.com,
+	linuxppc-dev@lists.ozlabs.org, borntraeger@linux.ibm.com
+Subject: Re: [PATCH 19/39] debugfs: remove duplicate checks in callers of
+ start_creating()
+Message-ID: <2025092331-magnolia-educated-cd0f@gregkh>
+References: <20250920074156.GK39973@ZenIV>
+ <20250920074759.3564072-1-viro@zeniv.linux.org.uk>
+ <20250920074759.3564072-19-viro@zeniv.linux.org.uk>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-X-Received: by 2002:a05:6e02:1542:b0:424:86d:7bb9 with SMTP id
- e9e14a558f8ab-42582209805mr3563505ab.0.1758576062967; Mon, 22 Sep 2025
- 14:21:02 -0700 (PDT)
-Date: Mon, 22 Sep 2025 14:21:02 -0700
-In-Reply-To: <672b23bd.050a0220.2a847.1ba3.GAE@google.com>
-X-Google-Appengine-App-Id: s~syzkaller
-X-Google-Appengine-App-Id-Alias: syzkaller
-Message-ID: <68d1bdbe.a70a0220.1b52b.0003.GAE@google.com>
-Subject: Re: [syzbot] [ocfs2?] INFO: task hung in flush_delayed_work
-From: syzbot <syzbot+ab509d831d9b0222f5fd@syzkaller.appspotmail.com>
-To: akpm@linux-foundation.org, glass.su@suse.com, jack@suse.com, 
-	jlbec@evilplan.org, joseph.qi@linux.alibaba.com, linux-kernel@vger.kernel.org, 
-	mark@fasheh.com, ocfs2-devel@lists.linux.dev, syzkaller-bugs@googlegroups.com
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20250920074759.3564072-19-viro@zeniv.linux.org.uk>
 
-syzbot suspects this issue was fixed by commit:
+On Sat, Sep 20, 2025 at 08:47:38AM +0100, Al Viro wrote:
+> we'd already verified that DEBUGFS_ALLOW_API was there in
+> start_creating() - it would've failed otherwise
+> 
+> Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
+> ---
+>  fs/debugfs/inode.c | 15 ---------------
+>  1 file changed, 15 deletions(-)
 
-commit 276c61385f6bc3223a5ecd307cf4aba2dfbb9a31
-Author: Su Yue <glass.su@suse.com>
-Date:   Mon Jan 6 14:06:53 2025 +0000
-
-    ocfs2: mark dquot as inactive if failed to start trans while releasing dquot
-
-bisection log:  https://syzkaller.appspot.com/x/bisect.txt?x=140da8e2580000
-start commit:   2e1b3cc9d7f7 Merge tag 'arm-fixes-6.12-2' of git://git.ker..
-git tree:       upstream
-kernel config:  https://syzkaller.appspot.com/x/.config?x=11254d3590b16717
-dashboard link: https://syzkaller.appspot.com/bug?extid=ab509d831d9b0222f5fd
-syz repro:      https://syzkaller.appspot.com/x/repro.syz?x=142f4e30580000
-C reproducer:   https://syzkaller.appspot.com/x/repro.c?x=12c00d87980000
-
-If the result looks correct, please mark the issue as fixed by replying with:
-
-#syz fix: ocfs2: mark dquot as inactive if failed to start trans while releasing dquot
-
-For information about bisection process see: https://goo.gl/tpsmEJ#bisection
+Acked-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
