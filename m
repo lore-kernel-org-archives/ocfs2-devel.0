@@ -1,123 +1,191 @@
-Received: from mail-wm1-f52.google.com (mail-wm1-f52.google.com [209.85.128.52])
+Received: from mail-wm1-f42.google.com (mail-wm1-f42.google.com [209.85.128.42])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6756F22FE18
-	for <ocfs2-devel@lists.linux.dev>; Wed,  1 Oct 2025 01:12:51 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.52
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4A5FF2D6E78
+	for <ocfs2-devel@lists.linux.dev>; Fri,  3 Oct 2025 02:37:01 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.42
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1759281174; cv=none; b=SoamYXpJV7vHWW1bNrD+2yUVdMcr+kE2PkuEoBzQLpD3DB8SpSrl264yGZOShZKTdizD8SB0OrfZ2IJecY2lEXAUB6ypoauhG3o1UQG02TPPOFJi2ZKOJ0/w1DjSp6Adl/i/yBDgLV8Wstlt39H+MxcwKGXc5T3bnrRo5ITWghs=
+	t=1759459025; cv=none; b=qVpsAvNqA7vD9jANS4W5lD4OrOz7F6o0PlJBhbCsYG39+KejhA6S7ORlVYhcnJtHdQ8LQqVULH/gqSRvGiLzUUoSYMw5mSRVrhg1HwU+7IJ2r+EJjfGUh3ETW4jfELJ+1OpbbHTyEzMbVTbAfsAu6XiFb5/CirPo9MqVBt6tFCM=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1759281174; c=relaxed/simple;
-	bh=HcaXh4P9HgGp/QKV4iNNFCz3EFW0eIMdMUIieGhQ0UE=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=cH5NA7V79TejWtJ4pHcp+V0Zr5ah3XYsf+z9NqKxEpEoNnjdaq6zBMT2FFptpF6wy+/HnZLWNFoJGrYykfTEWXT4bjHmUEQzoPX/pV2/GhMniV/tIrQGQ3QNnJgWVmrpEphQWUZOdEQJDo2BONQeTHsyQ+NvUklS8luFArWwHWo=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=EsvlJZun; arc=none smtp.client-ip=209.85.128.52
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
+	s=arc-20240116; t=1759459025; c=relaxed/simple;
+	bh=PMyWwSVypT6YzQkLu9bGNQp85E1aA4w3ZEet4c0nf08=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=ukhwRwUwGFojPpufLGfloWyfnwSKlJweMMlOZObBDtRVs1nj1sAkhV4Hd2V4j15SlPjqkrRz5XoAuU954oVdyQIQa2qLE3VUs5gYhzq5/MvnsW/KaheyP9lZzEtJJ4HrhL1Iavnmdru/Pi1zu7kH2SS3fUrdbwg3ye//1Pd+Ly0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=j4mNl1BO; arc=none smtp.client-ip=209.85.128.42
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="EsvlJZun"
-Received: by mail-wm1-f52.google.com with SMTP id 5b1f17b1804b1-46e2cfbf764so8829775e9.1
-        for <ocfs2-devel@lists.linux.dev>; Tue, 30 Sep 2025 18:12:51 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="j4mNl1BO"
+Received: by mail-wm1-f42.google.com with SMTP id 5b1f17b1804b1-46e2826d5c6so13416685e9.1
+        for <ocfs2-devel@lists.linux.dev>; Thu, 02 Oct 2025 19:37:00 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=suse.com; s=google; t=1759281170; x=1759885970; darn=lists.linux.dev;
-        h=content-transfer-encoding:in-reply-to:content-language:from
-         :references:cc:to:subject:user-agent:mime-version:date:message-id
-         :from:to:cc:subject:date:message-id:reply-to;
-        bh=+yAwyN5j5aLe+2zl6/iClEiJPWHXrqzCkW8YeMKnmtg=;
-        b=EsvlJZunWRnHc46SmVgRFobdtPtWWyxMgXNnnXdkapN9NE1VpG60aKaAPHsRxjexx0
-         vJFImQxhRupm1J6WBcMi0VD9dVPToP0DGEC+s+3fwx2ZDiWDb/TL3LdT0BdQVjjfiEHW
-         m8OvIVHwzD2mbgLpN/5G7eFpxRpCc+q4AHkWgwuGknF+G9Wa3WQE0gj0GyWepbYHr+9u
-         LDU4wHqzFMJ6HvKkwD40aIxcvpBsxI8RY35LBkAR26uMHDxnKusm2kEVkV04oowfrDIL
-         RmqHRjFhUoxasYQwqNpN70Ec7b6ddaD2j2/VyK94jkDyDaxJTVHgDs6Mfv2YRxSOLFKY
-         Barw==
+        d=gmail.com; s=20230601; t=1759459019; x=1760063819; darn=lists.linux.dev;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:from:to:cc:subject:date:message-id:reply-to;
+        bh=kInZH3ybt0N4GUH4VhcSZWifxUtF3rFyE9dacK0tDJw=;
+        b=j4mNl1BOR2YoArDc+aqjpmKgLP9HHlEEusDJOZ9x+ZIFIPGFDuNIrlr1+Z/IG6TF4g
+         vybDhhPWycoQcjxn8Mta+oqvk9Qp5PIZFN+eztCTXyYMA1uII5X70lC+HC5VGtSjw+27
+         aH323AOYfhtaf/LNH/0tfencgTvj0VDXvJ8mdIoEGAS3arBdeQsLlxdtpe7Pdzwkbxs8
+         Gx54CP+nX+sLjuoy3Xxs1xGxBSg8CQK/RjRXCkLrpIVRRvJdkNIFVJzbnU2U9UYJ7fUl
+         +rkcWr1njh0vrTMZ4l+L9zI+XPBU4UnyIDyhsiqry9SdTD69G1AnO5pGbZY/4tXwXGUJ
+         CBUA==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1759281170; x=1759885970;
-        h=content-transfer-encoding:in-reply-to:content-language:from
-         :references:cc:to:subject:user-agent:mime-version:date:message-id
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
-        bh=+yAwyN5j5aLe+2zl6/iClEiJPWHXrqzCkW8YeMKnmtg=;
-        b=HqLVbRHmbbIdsKo79p5c8e+l2fi+d5ruo1P1HJRFgRN0+KVYt9ZaUAP4qSkdf1+BlO
-         Q9AxMDUpX/OIr/jOyXPHbAeSisQKn/TqKVl/TVERXFoM+EdxIFWB4XIX+3Fw3lKNwboP
-         f3tDyEVE4cHCoV2KGZDiILDSQVyjnyLjDkvSZ+j/WadClkD07eeR025du7HIVXuqMT1u
-         4kNSm43E1Z842u3SeOnBkvrbMNVSPZylTk7ZVtTSPcapW9deI+hZCtNn0okYpADUZIEc
-         xkaNiuBou7e+9+6tYqOGk+cPIHyReD0IIXpmQB0s7cDFCBWXc3+tEjKavhLRUury8lo6
-         pqWA==
-X-Gm-Message-State: AOJu0YzCaTGs7HraZVa9cJ0X+VJxO0ldQlPHrdU9cHcpQ/JrrDtOhXXM
-	UkFqKEySWmYVZJjFdhLr8cbTJ5+6x1NE4XsBQhM5FwQehbrRRV2M2TZNq2qmd2rCFZE=
-X-Gm-Gg: ASbGncur1PYbeh4CWdLH49yZk7WHYq9dR0RgIkw/JgSbTXIfHM1akiafqF7Iz5LO/+1
-	WMhiuMzEdrhU416HCET1KfkWwC2caLSvWhRmvYt0FAcU6nWFPcjYAUykBiivlv4uMCKM5SxGFr8
-	v5xmLEIjO2jXJkcApXfFjAFHfwunql2zIq9o132CWZMYjfEzCAJrJlgzs2cd/zTKox5qh/HxdIH
-	SPsQG6zL5gSCcS58VCHdpGktpaxeOKpxUx3Fb33tkEtgSOm0AshTGWQiCWG6XiIRHva/9+/p0d9
-	QDEFr3VgWJgjYsBZHN2ON7fssKRHC5NTexNOXTTlyqcTI/rvSnlTHxEkf9G2XvvAuLDVfXu5nn/
-	vtFVvo6Z573rg+WldveH8zRTJIFZGntxf6R9/+PFz1F4WiiT6IjXT0/LQi5R2orgW
-X-Google-Smtp-Source: AGHT+IH9RhDHohCs00KBpDY16zwzq4wmV7w/S02iV0tUmgTukDJU4Z14JEZ/9KGgnPXyhUOOH5CXMQ==
-X-Received: by 2002:a05:600c:8b16:b0:45f:2d07:7bb with SMTP id 5b1f17b1804b1-46e612861bfmr6751915e9.4.1759281169640;
-        Tue, 30 Sep 2025 18:12:49 -0700 (PDT)
-Received: from [10.202.112.30] ([202.127.77.110])
-        by smtp.gmail.com with ESMTPSA id 98e67ed59e1d1-339a6e9d25bsm857845a91.5.2025.09.30.18.12.46
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Tue, 30 Sep 2025 18:12:49 -0700 (PDT)
-Message-ID: <8af5355e-5a05-46c5-bee6-c7ed3de71c0b@suse.com>
-Date: Wed, 1 Oct 2025 09:12:43 +0800
+        d=1e100.net; s=20230601; t=1759459019; x=1760063819;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:x-gm-message-state:from:to:cc:subject:date:message-id
+         :reply-to;
+        bh=kInZH3ybt0N4GUH4VhcSZWifxUtF3rFyE9dacK0tDJw=;
+        b=YyMbCU3LFwP41+pLxnDi7RIlSB8cDdtEJFdCxI45LV2sRN22oIRESFof3R52wPPChB
+         +M4GKdKtZo3SKLJtGxXXsF7pOPNGWo1vKLQ5j1U/+Q5EE8L6KNFzb0McK0PxxRdeJtMW
+         fvXTjHRaei8P80ZCagRjRLVpDgYMBMrCT+qAjKLF6OoqIuoU//VKoJ8PXkCfznChxnxw
+         cg2zJVNe7j+/6/YOPXLntF4aaEXzFNexOIb2oH4zM6GEA+icoOh6Mr2Z9jv5mC+kcIxX
+         R7WnB6WjXHSaff0m1OEETJR6L7TV+1bxhVQKjQsUXT8/PYlcsMGw57630xUqUVnY4IFS
+         87dQ==
+X-Gm-Message-State: AOJu0Yy7FG149xSUX8TI4l6+z4nbtHBka8KD+3Xykz2RCcI5vRMBAHTx
+	kfh3QmVPJDvBaL04xovxKRe9JspkNXM2zp2yBa04rjT+UdqseLIwjeI+9wqWHA==
+X-Gm-Gg: ASbGncuL1xAzXGSRp9ofxpSXjYDs4uiNpbCMFkq/XQaUNbeg2+dxwAED8T5TqLyOmhS
+	Nv48IUNsiDEsgIXtGR+kX4rGcYiEN/8pEhBt1ucsIR1ZEVxe0dHKFk3bRYZj9EJ0QIR/rK+obi3
+	bac9MziksHir9rAXIqgm3UcHfjKNqAIWiUi/GZ62a2yd71ffA4oSAf2XTIql6umyPYe0R2ZJeOY
+	PiESU/L0Iih292afg17RuoD1eIqnNPN0Mt58o6bnj5eghJuDobtSGY1xgn6UH49vUoIc/wgCPGI
+	p6zpGFBcGrpgEunsnzezZjXuXsKSijJr5z+VXJiuBRCfyqAzhG5Vmu+4ouNRGKjonDZBNcge/im
+	ixDzSouNNsYcpeQLGJkDW4QuzwHyj0VDtMjCpL+P5dS2KuZik8ekDtjqdG5K4FUhtDePshwxi+L
+	jDxchGVK0xa+aYmM3zmpZKgargc4xwdg==
+X-Google-Smtp-Source: AGHT+IFnJmy/ISWGEMnszAV7obn8uhvVoBfP0ixq0j6PZ8m6J96bhx4tpgaPl980VA8pVhJ6UOgtKg==
+X-Received: by 2002:a05:600c:8b6e:b0:46e:3d50:362a with SMTP id 5b1f17b1804b1-46e710ffff6mr8234125e9.4.1759459019014;
+        Thu, 02 Oct 2025 19:36:59 -0700 (PDT)
+Received: from f.. (cst-prg-21-74.cust.vodafone.cz. [46.135.21.74])
+        by smtp.gmail.com with ESMTPSA id 5b1f17b1804b1-46e619c3ac3sm108743995e9.9.2025.10.02.19.36.56
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Thu, 02 Oct 2025 19:36:58 -0700 (PDT)
+From: Mateusz Guzik <mjguzik@gmail.com>
+To: ocfs2-devel@lists.linux.dev
+Cc: jack@suse.cz,
+	viro@zeniv.linux.org.uk,
+	linux-kernel@vger.kernel.org,
+	linux-fsdevel@vger.kernel.org,
+	joseph.qi@linux.alibaba.com,
+	brauner@kernel.org,
+	Mateusz Guzik <mjguzik@gmail.com>
+Subject: [PATCH v2] ocfs2: retire ocfs2_drop_inode() and I_WILL_FREE usage
+Date: Fri,  3 Oct 2025 04:36:52 +0200
+Message-ID: <20251003023652.249775-1-mjguzik@gmail.com>
+X-Mailer: git-send-email 2.43.0
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH] ocfs2: add extra consistency check to
- ocfs2_dx_dir_lookup()
-To: Dmitry Antipov <dmantipov@yandex.ru>, Mark Fasheh <mark@fasheh.com>,
- Joel Becker <jlbec@evilplan.org>, Joseph Qi <joseph.qi@linux.alibaba.com>
-Cc: ocfs2-devel@lists.linux.dev, lvc-project@linuxtesting.org,
- syzbot+30b53487d00b4f7f0922@syzkaller.appspotmail.com
-References: <20250929170434.1757820-1-dmantipov@yandex.ru>
-From: Heming Zhao <heming.zhao@suse.com>
-Content-Language: en-US
-In-Reply-To: <20250929170434.1757820-1-dmantipov@yandex.ru>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 
-Hi,
+This postpones the writeout to ocfs2_evict_inode(), which I'm told is
+fine (tm).
 
-On 9/30/25 01:04, Dmitry Antipov wrote:
-> In 'ocfs2_dx_dir_lookup()', check whether an extent list length
-> of the directory indexing block matches the one configured via
-> the superblock parameters established at mount, thus preventing
-> an out-of-bounds accesses in 'ocfs2_dx_dir_lookup_rec()'.
-> 
-> Reported-by: syzbot+30b53487d00b4f7f0922@syzkaller.appspotmail.com
-> Closes: https://syzkaller.appspot.com/bug?extid=30b53487d00b4f7f0922
-> Signed-off-by: Dmitry Antipov <dmantipov@yandex.ru>
-> ---
->   fs/ocfs2/dir.c | 7 +++++++
->   1 file changed, 7 insertions(+)
-> 
-> diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
-> index 8c9c4825f984..ff632f1337b7 100644
-> --- a/fs/ocfs2/dir.c
-> +++ b/fs/ocfs2/dir.c
-> @@ -865,6 +865,13 @@ static int ocfs2_dx_dir_lookup(struct inode *inode,
->   	u64 blkno;
->   	u32 name_hash = hinfo->major_hash;
->   
-> +	if (le16_to_cpu(el->l_count) !=
-> +	    ocfs2_extent_recs_per_dx_root(inode->i_sb)) {
-> +		ret = -EFSCORRUPTED;
-> +		mlog_errno(ret);
-> +		goto out;
-> +	}
-> +
->   	ret = ocfs2_dx_dir_lookup_rec(inode, el, name_hash, &cpos, &blkno,
->   				      &clen);
->   	if (ret) {
+The intent is to retire the I_WILL_FREE flag.
 
-In my view, relocating the sanity check to ocfs2_dx_dir_lookup_rec() is more
-reasonable.
+Reviewed-by: Jan Kara <jack@suse.cz>
+Signed-off-by: Mateusz Guzik <mjguzik@gmail.com>
+---
 
-Another minor issue is that EFSCORRUPTED belongs to jbd2; we need to either
-define it or simply use EUCLEAN instead.
+v2:
+- rebase -- generic_delete_inode -> inode_just_drop
 
-Thanks,
-Heming
+The original posting got derailed and then this got lost in the shuffle,
+see: https://lore.kernel.org/linux-fsdevel/20250904154245.644875-1-mjguzik@gmail.com/
+
+This is the only filesystem using the flag. The only other spot is in
+iput_final().
+
+I have a wip patch to sort out the writeback vs iput situation a little
+bit and need this out of the way.
+
+Even if said patch does not go in, this clearly pushes things forward by
+removing flag usage.
+
+ fs/ocfs2/inode.c       | 23 ++---------------------
+ fs/ocfs2/inode.h       |  1 -
+ fs/ocfs2/ocfs2_trace.h |  2 --
+ fs/ocfs2/super.c       |  2 +-
+ 4 files changed, 3 insertions(+), 25 deletions(-)
+
+diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
+index fcc89856ab95..84115bf8b464 100644
+--- a/fs/ocfs2/inode.c
++++ b/fs/ocfs2/inode.c
+@@ -1290,6 +1290,8 @@ static void ocfs2_clear_inode(struct inode *inode)
+ 
+ void ocfs2_evict_inode(struct inode *inode)
+ {
++	write_inode_now(inode, 1);
++
+ 	if (!inode->i_nlink ||
+ 	    (OCFS2_I(inode)->ip_flags & OCFS2_INODE_MAYBE_ORPHANED)) {
+ 		ocfs2_delete_inode(inode);
+@@ -1299,27 +1301,6 @@ void ocfs2_evict_inode(struct inode *inode)
+ 	ocfs2_clear_inode(inode);
+ }
+ 
+-/* Called under inode_lock, with no more references on the
+- * struct inode, so it's safe here to check the flags field
+- * and to manipulate i_nlink without any other locks. */
+-int ocfs2_drop_inode(struct inode *inode)
+-{
+-	struct ocfs2_inode_info *oi = OCFS2_I(inode);
+-
+-	trace_ocfs2_drop_inode((unsigned long long)oi->ip_blkno,
+-				inode->i_nlink, oi->ip_flags);
+-
+-	assert_spin_locked(&inode->i_lock);
+-	inode->i_state |= I_WILL_FREE;
+-	spin_unlock(&inode->i_lock);
+-	write_inode_now(inode, 1);
+-	spin_lock(&inode->i_lock);
+-	WARN_ON(inode->i_state & I_NEW);
+-	inode->i_state &= ~I_WILL_FREE;
+-
+-	return 1;
+-}
+-
+ /*
+  * This is called from our getattr.
+  */
+diff --git a/fs/ocfs2/inode.h b/fs/ocfs2/inode.h
+index accf03d4765e..07bd838e7843 100644
+--- a/fs/ocfs2/inode.h
++++ b/fs/ocfs2/inode.h
+@@ -116,7 +116,6 @@ static inline struct ocfs2_caching_info *INODE_CACHE(struct inode *inode)
+ }
+ 
+ void ocfs2_evict_inode(struct inode *inode);
+-int ocfs2_drop_inode(struct inode *inode);
+ 
+ /* Flags for ocfs2_iget() */
+ #define OCFS2_FI_FLAG_SYSFILE		0x1
+diff --git a/fs/ocfs2/ocfs2_trace.h b/fs/ocfs2/ocfs2_trace.h
+index 54ed1495de9a..4b32fb5658ad 100644
+--- a/fs/ocfs2/ocfs2_trace.h
++++ b/fs/ocfs2/ocfs2_trace.h
+@@ -1569,8 +1569,6 @@ DEFINE_OCFS2_ULL_ULL_UINT_EVENT(ocfs2_delete_inode);
+ 
+ DEFINE_OCFS2_ULL_UINT_EVENT(ocfs2_clear_inode);
+ 
+-DEFINE_OCFS2_ULL_UINT_UINT_EVENT(ocfs2_drop_inode);
+-
+ TRACE_EVENT(ocfs2_inode_revalidate,
+ 	TP_PROTO(void *inode, unsigned long long ino,
+ 		 unsigned int flags),
+diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+index 53daa4482406..2c7ba1480f7a 100644
+--- a/fs/ocfs2/super.c
++++ b/fs/ocfs2/super.c
+@@ -129,7 +129,7 @@ static const struct super_operations ocfs2_sops = {
+ 	.statfs		= ocfs2_statfs,
+ 	.alloc_inode	= ocfs2_alloc_inode,
+ 	.free_inode	= ocfs2_free_inode,
+-	.drop_inode	= ocfs2_drop_inode,
++	.drop_inode	= inode_just_drop,
+ 	.evict_inode	= ocfs2_evict_inode,
+ 	.sync_fs	= ocfs2_sync_fs,
+ 	.put_super	= ocfs2_put_super,
+-- 
+2.43.0
+
