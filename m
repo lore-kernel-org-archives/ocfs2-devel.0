@@ -1,191 +1,98 @@
-Received: from mail-wm1-f42.google.com (mail-wm1-f42.google.com [209.85.128.42])
+Received: from mail-io1-f72.google.com (mail-io1-f72.google.com [209.85.166.72])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4A5FF2D6E78
-	for <ocfs2-devel@lists.linux.dev>; Fri,  3 Oct 2025 02:37:01 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.42
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3CA7B18D636
+	for <ocfs2-devel@lists.linux.dev>; Fri,  3 Oct 2025 06:37:32 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.166.72
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1759459025; cv=none; b=qVpsAvNqA7vD9jANS4W5lD4OrOz7F6o0PlJBhbCsYG39+KejhA6S7ORlVYhcnJtHdQ8LQqVULH/gqSRvGiLzUUoSYMw5mSRVrhg1HwU+7IJ2r+EJjfGUh3ETW4jfELJ+1OpbbHTyEzMbVTbAfsAu6XiFb5/CirPo9MqVBt6tFCM=
+	t=1759473453; cv=none; b=pWslcuMz8XA/tJ8Xy3+SlZGPDhIIEA8WjbIUexohllv+9x7oi4Ws3AcDaMmEciubf2BO5+OdRxkQiud6yH/Kl6oSPVK0maNAuhZz8PcshgMniG6165y4njHuCa4dX0+KdTG+FqZTxPo6paHX1RjQFBl8mmXHbgjs3+4pVA28UJE=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1759459025; c=relaxed/simple;
-	bh=PMyWwSVypT6YzQkLu9bGNQp85E1aA4w3ZEet4c0nf08=;
-	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=ukhwRwUwGFojPpufLGfloWyfnwSKlJweMMlOZObBDtRVs1nj1sAkhV4Hd2V4j15SlPjqkrRz5XoAuU954oVdyQIQa2qLE3VUs5gYhzq5/MvnsW/KaheyP9lZzEtJJ4HrhL1Iavnmdru/Pi1zu7kH2SS3fUrdbwg3ye//1Pd+Ly0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=j4mNl1BO; arc=none smtp.client-ip=209.85.128.42
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="j4mNl1BO"
-Received: by mail-wm1-f42.google.com with SMTP id 5b1f17b1804b1-46e2826d5c6so13416685e9.1
-        for <ocfs2-devel@lists.linux.dev>; Thu, 02 Oct 2025 19:37:00 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1759459019; x=1760063819; darn=lists.linux.dev;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:from:to:cc:subject:date:message-id:reply-to;
-        bh=kInZH3ybt0N4GUH4VhcSZWifxUtF3rFyE9dacK0tDJw=;
-        b=j4mNl1BOR2YoArDc+aqjpmKgLP9HHlEEusDJOZ9x+ZIFIPGFDuNIrlr1+Z/IG6TF4g
-         vybDhhPWycoQcjxn8Mta+oqvk9Qp5PIZFN+eztCTXyYMA1uII5X70lC+HC5VGtSjw+27
-         aH323AOYfhtaf/LNH/0tfencgTvj0VDXvJ8mdIoEGAS3arBdeQsLlxdtpe7Pdzwkbxs8
-         Gx54CP+nX+sLjuoy3Xxs1xGxBSg8CQK/RjRXCkLrpIVRRvJdkNIFVJzbnU2U9UYJ7fUl
-         +rkcWr1njh0vrTMZ4l+L9zI+XPBU4UnyIDyhsiqry9SdTD69G1AnO5pGbZY/4tXwXGUJ
-         CBUA==
+	s=arc-20240116; t=1759473453; c=relaxed/simple;
+	bh=Iw9xjZ1vWLPSTLaVnGi84/o4A8VHXmGMgcZQsWzTbaI=;
+	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=kAfzdG4VbPg9XOzzfBDulGU7Z0Gnuz9zegAay6yo5Jx0g4Lk4ghLgIxIdpnL3zJfbjQ1dyRZdDIG7HpzaGGRkSiSJzewdItXFSBE1b5FQOZOflGa17D7m5Jjz8EoVxc9nTFt5INx5VTk196u+IelFH1ruUShfolNMOQ/BCv6szE=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.166.72
+Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
+Received: by mail-io1-f72.google.com with SMTP id ca18e2360f4ac-90efeb58159so224674339f.0
+        for <ocfs2-devel@lists.linux.dev>; Thu, 02 Oct 2025 23:37:32 -0700 (PDT)
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1759459019; x=1760063819;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:x-gm-message-state:from:to:cc:subject:date:message-id
-         :reply-to;
-        bh=kInZH3ybt0N4GUH4VhcSZWifxUtF3rFyE9dacK0tDJw=;
-        b=YyMbCU3LFwP41+pLxnDi7RIlSB8cDdtEJFdCxI45LV2sRN22oIRESFof3R52wPPChB
-         +M4GKdKtZo3SKLJtGxXXsF7pOPNGWo1vKLQ5j1U/+Q5EE8L6KNFzb0McK0PxxRdeJtMW
-         fvXTjHRaei8P80ZCagRjRLVpDgYMBMrCT+qAjKLF6OoqIuoU//VKoJ8PXkCfznChxnxw
-         cg2zJVNe7j+/6/YOPXLntF4aaEXzFNexOIb2oH4zM6GEA+icoOh6Mr2Z9jv5mC+kcIxX
-         R7WnB6WjXHSaff0m1OEETJR6L7TV+1bxhVQKjQsUXT8/PYlcsMGw57630xUqUVnY4IFS
-         87dQ==
-X-Gm-Message-State: AOJu0Yy7FG149xSUX8TI4l6+z4nbtHBka8KD+3Xykz2RCcI5vRMBAHTx
-	kfh3QmVPJDvBaL04xovxKRe9JspkNXM2zp2yBa04rjT+UdqseLIwjeI+9wqWHA==
-X-Gm-Gg: ASbGncuL1xAzXGSRp9ofxpSXjYDs4uiNpbCMFkq/XQaUNbeg2+dxwAED8T5TqLyOmhS
-	Nv48IUNsiDEsgIXtGR+kX4rGcYiEN/8pEhBt1ucsIR1ZEVxe0dHKFk3bRYZj9EJ0QIR/rK+obi3
-	bac9MziksHir9rAXIqgm3UcHfjKNqAIWiUi/GZ62a2yd71ffA4oSAf2XTIql6umyPYe0R2ZJeOY
-	PiESU/L0Iih292afg17RuoD1eIqnNPN0Mt58o6bnj5eghJuDobtSGY1xgn6UH49vUoIc/wgCPGI
-	p6zpGFBcGrpgEunsnzezZjXuXsKSijJr5z+VXJiuBRCfyqAzhG5Vmu+4ouNRGKjonDZBNcge/im
-	ixDzSouNNsYcpeQLGJkDW4QuzwHyj0VDtMjCpL+P5dS2KuZik8ekDtjqdG5K4FUhtDePshwxi+L
-	jDxchGVK0xa+aYmM3zmpZKgargc4xwdg==
-X-Google-Smtp-Source: AGHT+IFnJmy/ISWGEMnszAV7obn8uhvVoBfP0ixq0j6PZ8m6J96bhx4tpgaPl980VA8pVhJ6UOgtKg==
-X-Received: by 2002:a05:600c:8b6e:b0:46e:3d50:362a with SMTP id 5b1f17b1804b1-46e710ffff6mr8234125e9.4.1759459019014;
-        Thu, 02 Oct 2025 19:36:59 -0700 (PDT)
-Received: from f.. (cst-prg-21-74.cust.vodafone.cz. [46.135.21.74])
-        by smtp.gmail.com with ESMTPSA id 5b1f17b1804b1-46e619c3ac3sm108743995e9.9.2025.10.02.19.36.56
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Thu, 02 Oct 2025 19:36:58 -0700 (PDT)
-From: Mateusz Guzik <mjguzik@gmail.com>
-To: ocfs2-devel@lists.linux.dev
-Cc: jack@suse.cz,
-	viro@zeniv.linux.org.uk,
-	linux-kernel@vger.kernel.org,
-	linux-fsdevel@vger.kernel.org,
-	joseph.qi@linux.alibaba.com,
-	brauner@kernel.org,
-	Mateusz Guzik <mjguzik@gmail.com>
-Subject: [PATCH v2] ocfs2: retire ocfs2_drop_inode() and I_WILL_FREE usage
-Date: Fri,  3 Oct 2025 04:36:52 +0200
-Message-ID: <20251003023652.249775-1-mjguzik@gmail.com>
-X-Mailer: git-send-email 2.43.0
+        d=1e100.net; s=20230601; t=1759473451; x=1760078251;
+        h=to:from:subject:message-id:date:mime-version:x-gm-message-state
+         :from:to:cc:subject:date:message-id:reply-to;
+        bh=JwfPH6QsY0nv1o1GdekHEB1BRHSJMz8P6fbDeMft/k0=;
+        b=Bxo5DRSio+gJhJWSDzZ5ool2KiJBcq/lszlT4DTKPKO1WvXs/QLoI8xlMgluyDFgYn
+         SkeLXmXYEJb4cc+VfXPCXAMKurB3zKFtQa9pqJmg8zHbQgjpZ7SCy5T63RCcHsY2bbH5
+         qA/7DcpWdFx0rdZd6ZxqHjhPn32B9B8/RmS6nOHAcMPnCS15BXcoXrfryWEPTuXUvtqA
+         Sk9FfWw1s6cfabqA8qIQIh7cSDqQKjiJdONS9jLm66iYQ5J70C7A/ReYKV7zv/Hhm8f0
+         UyugPDlEKPP5OfjF2jHvs/cRbVbRVBePQ5dK6pqgDpmEecQgD5nihs5o/L5TFDE6GqlS
+         WCew==
+X-Forwarded-Encrypted: i=1; AJvYcCUe2ZHtBl9SSwG9lG1DY8NB/78HaIACgL3BstHvWLccT7H2ayml3qMIHcqxAw6yPCb7qwzWJav0D22xhA==@lists.linux.dev
+X-Gm-Message-State: AOJu0YxCcl5nHDVOOl4GZ1HikRLjooK44s/+2/nVhsd+IPfXN5sVGnNp
+	/yAXRYeFkZXGO65zQzOoOcjcEH8tohyje6Cd+5O51LHHAODPj+Y6B4SQmUBWBYDcMesZ7jzxHfB
+	paAaSZ6GhE4rwJN5WjjnPN8kAqG23RrR00EGc2X8g8Yt0hqQ2JYD1ZOkqI10=
+X-Google-Smtp-Source: AGHT+IH6Ys1z6GxkrIh1QKXWVeCKFXB29e28kBd0pswO2vcf8bOKMsllkyPPHe5Ns0Wr7tP9v9SAkubuzXBBdbgJsTucOSe3S/Ef
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+X-Received: by 2002:a05:6e02:3783:b0:42d:cea4:eca2 with SMTP id
+ e9e14a558f8ab-42e7adb4ba5mr23963615ab.29.1759473451426; Thu, 02 Oct 2025
+ 23:37:31 -0700 (PDT)
+Date: Thu, 02 Oct 2025 23:37:31 -0700
+X-Google-Appengine-App-Id: s~syzkaller
+X-Google-Appengine-App-Id-Alias: syzkaller
+Message-ID: <68df6f2b.050a0220.2c17c1.001a.GAE@google.com>
+Subject: [syzbot] Monthly ocfs2 report (Oct 2025)
+From: syzbot <syzbot+list9f3b98537c8cbdd7becc@syzkaller.appspotmail.com>
+To: jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
+	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
+	syzkaller-bugs@googlegroups.com
+Content-Type: text/plain; charset="UTF-8"
 
-This postpones the writeout to ocfs2_evict_inode(), which I'm told is
-fine (tm).
+Hello ocfs2 maintainers/developers,
 
-The intent is to retire the I_WILL_FREE flag.
+This is a 31-day syzbot report for the ocfs2 subsystem.
+All related reports/information can be found at:
+https://syzkaller.appspot.com/upstream/s/ocfs2
 
-Reviewed-by: Jan Kara <jack@suse.cz>
-Signed-off-by: Mateusz Guzik <mjguzik@gmail.com>
+During the period, 3 new issues were detected and 0 were fixed.
+In total, 68 issues are still open and 22 have already been fixed.
+
+Some of the still happening issues:
+
+Ref  Crashes Repro Title
+<1>  281324  Yes   possible deadlock in ocfs2_try_remove_refcount_tree
+                   https://syzkaller.appspot.com/bug?extid=1fed2de07d8e11a3ec1b
+<2>  83983   Yes   possible deadlock in dqget
+                   https://syzkaller.appspot.com/bug?extid=6e493c165d26d6fcbf72
+<3>  59630   Yes   possible deadlock in ocfs2_acquire_dquot
+                   https://syzkaller.appspot.com/bug?extid=51244a05705883616c95
+<4>  30450   Yes   possible deadlock in ocfs2_reserve_suballoc_bits
+                   https://syzkaller.appspot.com/bug?extid=5d516fba7bc3c966c9a9
+<5>  19560   Yes   possible deadlock in ocfs2_init_acl
+                   https://syzkaller.appspot.com/bug?extid=4007ab5229e732466d9f
+<6>  18277   Yes   possible deadlock in ocfs2_reserve_local_alloc_bits
+                   https://syzkaller.appspot.com/bug?extid=843fa26882088a9ee7e3
+<7>  11625   Yes   possible deadlock in ocfs2_setattr
+                   https://syzkaller.appspot.com/bug?extid=d78497256d53041ee229
+<8>  4857    No    possible deadlock in ocfs2_xattr_set
+                   https://syzkaller.appspot.com/bug?extid=ba9a789bd1f4d21fcefe
+<9>  3408    Yes   kernel BUG in ocfs2_write_cluster_by_desc
+                   https://syzkaller.appspot.com/bug?extid=18a87160c7d64ba2e2f6
+<10> 3185    Yes   possible deadlock in ocfs2_lock_global_qf
+                   https://syzkaller.appspot.com/bug?extid=b53d753ae8fb473e2397
+
 ---
+This report is generated by a bot. It may contain errors.
+See https://goo.gl/tpsmEJ for more information about syzbot.
+syzbot engineers can be reached at syzkaller@googlegroups.com.
 
-v2:
-- rebase -- generic_delete_inode -> inode_just_drop
+To disable reminders for individual bugs, reply with the following command:
+#syz set <Ref> no-reminders
 
-The original posting got derailed and then this got lost in the shuffle,
-see: https://lore.kernel.org/linux-fsdevel/20250904154245.644875-1-mjguzik@gmail.com/
+To change bug's subsystems, reply with:
+#syz set <Ref> subsystems: new-subsystem
 
-This is the only filesystem using the flag. The only other spot is in
-iput_final().
-
-I have a wip patch to sort out the writeback vs iput situation a little
-bit and need this out of the way.
-
-Even if said patch does not go in, this clearly pushes things forward by
-removing flag usage.
-
- fs/ocfs2/inode.c       | 23 ++---------------------
- fs/ocfs2/inode.h       |  1 -
- fs/ocfs2/ocfs2_trace.h |  2 --
- fs/ocfs2/super.c       |  2 +-
- 4 files changed, 3 insertions(+), 25 deletions(-)
-
-diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-index fcc89856ab95..84115bf8b464 100644
---- a/fs/ocfs2/inode.c
-+++ b/fs/ocfs2/inode.c
-@@ -1290,6 +1290,8 @@ static void ocfs2_clear_inode(struct inode *inode)
- 
- void ocfs2_evict_inode(struct inode *inode)
- {
-+	write_inode_now(inode, 1);
-+
- 	if (!inode->i_nlink ||
- 	    (OCFS2_I(inode)->ip_flags & OCFS2_INODE_MAYBE_ORPHANED)) {
- 		ocfs2_delete_inode(inode);
-@@ -1299,27 +1301,6 @@ void ocfs2_evict_inode(struct inode *inode)
- 	ocfs2_clear_inode(inode);
- }
- 
--/* Called under inode_lock, with no more references on the
-- * struct inode, so it's safe here to check the flags field
-- * and to manipulate i_nlink without any other locks. */
--int ocfs2_drop_inode(struct inode *inode)
--{
--	struct ocfs2_inode_info *oi = OCFS2_I(inode);
--
--	trace_ocfs2_drop_inode((unsigned long long)oi->ip_blkno,
--				inode->i_nlink, oi->ip_flags);
--
--	assert_spin_locked(&inode->i_lock);
--	inode->i_state |= I_WILL_FREE;
--	spin_unlock(&inode->i_lock);
--	write_inode_now(inode, 1);
--	spin_lock(&inode->i_lock);
--	WARN_ON(inode->i_state & I_NEW);
--	inode->i_state &= ~I_WILL_FREE;
--
--	return 1;
--}
--
- /*
-  * This is called from our getattr.
-  */
-diff --git a/fs/ocfs2/inode.h b/fs/ocfs2/inode.h
-index accf03d4765e..07bd838e7843 100644
---- a/fs/ocfs2/inode.h
-+++ b/fs/ocfs2/inode.h
-@@ -116,7 +116,6 @@ static inline struct ocfs2_caching_info *INODE_CACHE(struct inode *inode)
- }
- 
- void ocfs2_evict_inode(struct inode *inode);
--int ocfs2_drop_inode(struct inode *inode);
- 
- /* Flags for ocfs2_iget() */
- #define OCFS2_FI_FLAG_SYSFILE		0x1
-diff --git a/fs/ocfs2/ocfs2_trace.h b/fs/ocfs2/ocfs2_trace.h
-index 54ed1495de9a..4b32fb5658ad 100644
---- a/fs/ocfs2/ocfs2_trace.h
-+++ b/fs/ocfs2/ocfs2_trace.h
-@@ -1569,8 +1569,6 @@ DEFINE_OCFS2_ULL_ULL_UINT_EVENT(ocfs2_delete_inode);
- 
- DEFINE_OCFS2_ULL_UINT_EVENT(ocfs2_clear_inode);
- 
--DEFINE_OCFS2_ULL_UINT_UINT_EVENT(ocfs2_drop_inode);
--
- TRACE_EVENT(ocfs2_inode_revalidate,
- 	TP_PROTO(void *inode, unsigned long long ino,
- 		 unsigned int flags),
-diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-index 53daa4482406..2c7ba1480f7a 100644
---- a/fs/ocfs2/super.c
-+++ b/fs/ocfs2/super.c
-@@ -129,7 +129,7 @@ static const struct super_operations ocfs2_sops = {
- 	.statfs		= ocfs2_statfs,
- 	.alloc_inode	= ocfs2_alloc_inode,
- 	.free_inode	= ocfs2_free_inode,
--	.drop_inode	= ocfs2_drop_inode,
-+	.drop_inode	= inode_just_drop,
- 	.evict_inode	= ocfs2_evict_inode,
- 	.sync_fs	= ocfs2_sync_fs,
- 	.put_super	= ocfs2_put_super,
--- 
-2.43.0
-
+You may send multiple commands in a single email message.
