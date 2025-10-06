@@ -1,120 +1,79 @@
-Received: from mail-pf1-f179.google.com (mail-pf1-f179.google.com [209.85.210.179])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A28A535971
-	for <ocfs2-devel@lists.linux.dev>; Sun,  5 Oct 2025 15:14:12 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.210.179
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C22AB2652B0;
+	Mon,  6 Oct 2025 11:37:29 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1759677254; cv=none; b=NeVlQVqp86C50h1Rb4VXYjDauArJnheo8TXSKek89FhcJsxGpeYWUBKMBeSnikbCg6nASMyyE0V2CjVHFKrLNo0i7PF5ySRqoER4UGkGiDvPrmupPEOOy8FhEBbKc9QoG0mVT5wzjaiPlrTC+4xV+zUHlnl2w+G8Hd/nb1qZp/Y=
+	t=1759750649; cv=none; b=XoBo7fva7ZbjEKW1zhw7TYeDZeyS8+CXsMVdF9SiOobiP5AxJtptAi8IY6WWHV1TzsqN/d5xM3N2Gw1CB7gM5QXr1/65T4quenIa3p8g2yGWOKraO7XVnxVIq3njqRZYNYlq0C+YjgBfv1ZHB1l31xsIP6+Bw6d3jJ/bGRhUWjM=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1759677254; c=relaxed/simple;
-	bh=8TnJB3YQxRebJGGTR6fB5k3Fr5QTJA2vinNsLRimdFY=;
-	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version; b=BY3CL/XLLudw4JyZX6MliTgQ5tKNhRUGTip6MKnCyFRaW7teElMsHVCpIna1eR4mqLy1Ywt8pGXBCoK99z2N0mkckxGgQ6iiNNec7+Zu81Gmzj8ZMCgOqE5lJm/Tt9A6UNuZIZCYpG+PS6fRho3tseakLZ2zcLRrbCFUj8ptlOQ=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=ee.vjti.ac.in; spf=none smtp.mailfrom=ee.vjti.ac.in; dkim=pass (1024-bit key) header.d=vjti.ac.in header.i=@vjti.ac.in header.b=AWvXNVVh; arc=none smtp.client-ip=209.85.210.179
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=ee.vjti.ac.in
-Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=ee.vjti.ac.in
+	s=arc-20240116; t=1759750649; c=relaxed/simple;
+	bh=pKtMhkOu7g8zA3ZhO3kCTRpbb9O+N/vKPekloahsxls=;
+	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
+	 MIME-Version:Content-Type; b=PV4ybM2IJJBWv4x00lUotiTSvIHiancCtxO+CCdHS2w978DameP/jBFuTHVYQOjYAe8ArY5cpVNZUsDvbhau9dKIx5bJsVQfmkTFb8/PNXExjF4V5OStOY1RKlOAw9qyVtVL8lOwhQZ6rmSX0MlVgtgv/ePI8yhahvYzos6iYTE=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=koFsu0GM; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=vjti.ac.in header.i=@vjti.ac.in header.b="AWvXNVVh"
-Received: by mail-pf1-f179.google.com with SMTP id d2e1a72fcca58-76e6cbb991aso3263440b3a.1
-        for <ocfs2-devel@lists.linux.dev>; Sun, 05 Oct 2025 08:14:12 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=vjti.ac.in; s=google; t=1759677252; x=1760282052; darn=lists.linux.dev;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:from:to:cc:subject:date:message-id:reply-to;
-        bh=gG6l4sZPIWetTmhsdiktxSijsm0HjkE1waDz9JdkO8I=;
-        b=AWvXNVVhdFVYMr8n3AB244hyvYxy8AJZEkcHUSUToka/1cOJcTzhhwlaZInmcp5+Wx
-         qlzrwcNC2k3svzH92rkELf8G8sGRDXTuz7Xj485HAxuFZ/ziXgOIn1MrWWhr6mBN3zvM
-         JsKWy63EvW1y/xTFGxHbARd8vnlWLxwFv0YUs=
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1759677252; x=1760282052;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:x-gm-message-state:from:to:cc:subject:date:message-id
-         :reply-to;
-        bh=gG6l4sZPIWetTmhsdiktxSijsm0HjkE1waDz9JdkO8I=;
-        b=RSIVe42uRlUQWmv40l3cvTeXUYkTDTSjt7Km7836PWYYRDE2oiUiSvZwcLn4TY2GhA
-         U6JbinLJXJg6FAgMMYhO36M3/HDInphi38h+ja1W6PGXqW3gx8pIQjUxVcFTlS3livLr
-         kHh4tBpE0HpKWEABypmbRa6LY1OQkZWQLbBmbARGJI0cmJO6rJ3NS/NYPHQ7R7bJ95mS
-         xvtXuz5uwab4Psgkz/lgs1CBMri6jFxbM8nXT9wi6o4We3xYVm3kOfYQ5nrXqyaIxFO+
-         i2Z11WSTniczFzwOVmdplVOGWAixbYMIhCOh+wymM5XMzb6ZBtDQVxSqQY++gBoUSAe9
-         8sDQ==
-X-Forwarded-Encrypted: i=1; AJvYcCUtyO4K08SrEXNtSG16V4mXm67UiOdKTQJE0q2zZ/Y1LNfINpZBWwOjkihkXbcA51nvOpmUZEV7XVOVNQ==@lists.linux.dev
-X-Gm-Message-State: AOJu0YyK48ClDNKgRAORCdzhUatnZJltXO12uOOvkTwIWyAoMkNjWPhg
-	DDNDxdd+9gNdrFBzLC9581V1uKwRphNMPullAsOdqsEqcQR+xpQ8P/R4eO7apryJBsA=
-X-Gm-Gg: ASbGnctht1pF2D7NixkCMu5JB+CWXwvR3VjuTvT5kc+bwszZR2wYxnpPXdyA47YjBxl
-	GRu/mLkT69FWGLIIXVm7QUi0mSaHA+UCiTCdaEQH88RExUXOO97ZSeBcBDyNBzIwBFy8juFgUri
-	RybF5iEqmaSaQrtHwCBjtR5MfqDrSrR/Zk5sWjftWRbbVo57KvUqD8Pc1m57fGSGvETr7gix/vr
-	kVYfONvK8WLv/jbQ+myw5o4fdHCLOxrqimoLdm7a+Snv0uHMd/X6CCjsa7RggMtDeHTqUbndGOw
-	3eGXUqYRasEE8WIA9grAdV/WBPClIwO9DMQE5SOqjTohXHI0ipaH+QgsOXuULedfHitSItyupDu
-	vSdgaoAlZ7HyCZnCVGPjw6otoP82d/4RXONcaAexv/N0Qm0dhB/lXEBhiPciUZ8UL5YoFBaf9td
-	9YKvKpsOmM6vNFaPY5mbgC0wU9Oj84jKbfXtOM
-X-Google-Smtp-Source: AGHT+IGh0K+r8nflRBqpJ94if0tMDpZ97UVi7zrbovtIuV6dpxWvrRhjhNVlFvK8HpnBFUsSZQ597Q==
-X-Received: by 2002:a17:903:198b:b0:267:da75:e0f with SMTP id d9443c01a7336-28e9a543a8emr91836865ad.11.1759677251745;
-        Sun, 05 Oct 2025 08:14:11 -0700 (PDT)
-Received: from ranegod-HP-ENVY-x360-Convertible-13-bd0xxx.. ([2405:201:31:d016:7b29:830:6e7c:1c3e])
-        by smtp.gmail.com with ESMTPSA id d9443c01a7336-28e8d111a37sm105437955ad.8.2025.10.05.08.14.08
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Sun, 05 Oct 2025 08:14:11 -0700 (PDT)
-From: ssrane_b23@ee.vjti.ac.in
-X-Google-Original-From: ssranevjti@gmail.com
-To: Mark Fasheh <mark@fasheh.com>
-Cc: Joel Becker <jlbec@evilplan.org>,
-	Joseph Qi <joseph.qi@linux.alibaba.com>,
-	ocfs2-devel@lists.linux.dev,
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="koFsu0GM"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 63439C4CEF5;
+	Mon,  6 Oct 2025 11:37:27 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=k20201202; t=1759750649;
+	bh=pKtMhkOu7g8zA3ZhO3kCTRpbb9O+N/vKPekloahsxls=;
+	h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
+	b=koFsu0GMBBz8LA/3zLwmYLR+hiozePtTjeKJ2v7PgIrWYvFL+h6czxlRpwc5OP0uy
+	 m5L7Ec/N8xNZlv2iGK9GqavxlEUnLjB0vt3cJ/2okoeomEtdpBDBVcA7w8C5G+mR7e
+	 w5mhSThKtScEpsr0iZOf1iP/vdyxDrrnh8kydVsOnJq1UfvmDY3Dtua923lZVqRBen
+	 tCy0+EI78JG0ZM0pw3lnVW+JI9iUv6O8ovSekcXELL9nLcs6vxvyiAtpFKGeNuysyF
+	 AYLyxqFE/a0Kr5b9UdCqO6ix1BCXdkGjnnyDoClty2TpqSQVydpZTIx6qmIv2zgphf
+	 tCDuOGAegggTA==
+From: Christian Brauner <brauner@kernel.org>
+To: ocfs2-devel@lists.linux.dev,
+	Mateusz Guzik <mjguzik@gmail.com>
+Cc: Christian Brauner <brauner@kernel.org>,
+	jack@suse.cz,
+	viro@zeniv.linux.org.uk,
 	linux-kernel@vger.kernel.org,
-	syzbot+30b53487d00b4f7f0922@syzkaller.appspotmail.com,
-	Shaurya Rane <ssrane_b23@ee.vjti.ac.in>
-Subject: [PATCH] ocfs2: Fix use-after-free in ocfs2_dx_dir_lookup_rec
-Date: Sun,  5 Oct 2025 20:44:03 +0530
-Message-Id: <20251005151403.9012-1-ssranevjti@gmail.com>
-X-Mailer: git-send-email 2.34.1
+	linux-fsdevel@vger.kernel.org,
+	joseph.qi@linux.alibaba.com
+Subject: Re: [PATCH v2] ocfs2: retire ocfs2_drop_inode() and I_WILL_FREE usage
+Date: Mon,  6 Oct 2025 13:37:24 +0200
+Message-ID: <20251006-geprahlt-ballnacht-6e680dfc62b0@brauner>
+X-Mailer: git-send-email 2.47.3
+In-Reply-To: <20251003023652.249775-1-mjguzik@gmail.com>
+References: <20251003023652.249775-1-mjguzik@gmail.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+X-Developer-Signature: v=1; a=openpgp-sha256; l=990; i=brauner@kernel.org; h=from:subject:message-id; bh=pKtMhkOu7g8zA3ZhO3kCTRpbb9O+N/vKPekloahsxls=; b=owGbwMvMwCU28Zj0gdSKO4sYT6slMWQ8XvnlzcUbk1dnM9hxlIacK12webqWCvvmuuulUr8fh a24mf9xV0cpC4MYF4OsmCKLQ7tJuNxynorNRpkaMHNYmUCGMHBxCsBELn1l+GeSyuX07P/Us+fD ny3Pult3/9LjnCJL1cU//BQfcUTfNrjB8N85f2/EXMWf+w5ZMeveqmnhWnqArfRm9lmPaEOmGQX yWzkB
+X-Developer-Key: i=brauner@kernel.org; a=openpgp; fpr=4880B8C9BD0E5106FC070F4F7B3C391EFEA93624
 Content-Transfer-Encoding: 8bit
 
-From: Shaurya Rane <ssrane_b23@ee.vjti.ac.in>
+On Fri, 03 Oct 2025 04:36:52 +0200, Mateusz Guzik wrote:
+> This postpones the writeout to ocfs2_evict_inode(), which I'm told is
+> fine (tm).
+> 
+> The intent is to retire the I_WILL_FREE flag.
+> 
+> 
 
-A syzbot report triggered a KASAN use-after-free read when creating a
-file on a corrupted OCFS2 filesystem image.
+Applied to the vfs-6.19.inode branch of the vfs/vfs.git tree.
+Patches in the vfs-6.19.inode branch should appear in linux-next soon.
 
-The crash occurs in an error-handling path within the
-ocfs2_dx_dir_lookup_rec function. When the function fails to find a
-matching extent record (`found` is false), it attempts to log details
-about the corruption by reading from the `rec` variable.
+Please report any outstanding bugs that were missed during review in a
+new review to the original patch series allowing us to drop it.
 
-According to the KASAN report, the memory pointed to by `rec` can be
-invalid at this point, leading to a kernel crash.
+It's encouraged to provide Acked-bys and Reviewed-bys even though the
+patch has now been applied. If possible patch trailers will be updated.
 
-Fix this by modifying the error message to use only variables that are
-known to be safe, such as the inode number and the extent block's
-buffer head block number. This preserves the valuable error log for
-debugging corrupted filesystems while preventing the memory safety
-violation.
+Note that commit hashes shown below are subject to change due to rebase,
+trailer updates or similar. If in doubt, please check the listed branch.
 
-Reported-by: syzbot+30b53487d00b4f7f0922@syzkaller.appspotmail.com
-Tested-by: syzbot+30b53487d00b4f7f0922@syzkaller.appspotmail.com
-Signed-off-by: Shaurya Rane <ssrane_b23@ee.vjti.ac.in>
----
- fs/ocfs2/dir.c | 3 +--
- 1 file changed, 1 insertion(+), 2 deletions(-)
+tree:   https://git.kernel.org/pub/scm/linux/kernel/git/vfs/vfs.git
+branch: vfs-6.19.inode
 
-diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
-index 8c9c4825f984..8c4dd61efa8d 100644
---- a/fs/ocfs2/dir.c
-+++ b/fs/ocfs2/dir.c
-@@ -820,8 +820,7 @@ static int ocfs2_dx_dir_lookup_rec(struct inode *inode,
- 		ret = ocfs2_error(inode->i_sb,
- 				  "Inode %lu has bad extent record (%u, %u, 0) in btree\n",
- 				  inode->i_ino,
--				  le32_to_cpu(rec->e_cpos),
--				  ocfs2_rec_clusters(el, rec));
-+				  eb_bh ? (unsigned long long)eb_bh->b_blocknr : 0);
- 		goto out;
- 	}
- 
--- 
-2.34.1
-
+[1/1] ocfs2: retire ocfs2_drop_inode() and I_WILL_FREE usage
+      https://git.kernel.org/vfs/vfs/c/20bca90a05e3
