@@ -1,52 +1,43 @@
-Received: from forward205a.mail.yandex.net (forward205a.mail.yandex.net [178.154.239.88])
+Received: from forward102d.mail.yandex.net (forward102d.mail.yandex.net [178.154.239.213])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C71A21FAC4B
-	for <ocfs2-devel@lists.linux.dev>; Tue,  7 Oct 2025 09:54:44 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=178.154.239.88
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4D4B72DCF41
+	for <ocfs2-devel@lists.linux.dev>; Tue,  7 Oct 2025 12:35:41 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=178.154.239.213
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1759830888; cv=none; b=Zxi6feEolKAo1Q5n5VXwUlUj8BMtZoRR+MC+imAMQNYMXQs5vdD790HjF3YydD7EYhEPFxkRTOJYCQbtGAH4/Hy3Rwx+SVXB+ke9eGEtb8kqbExZCQl4rr0Yt0mWoECLZ4+IPMiAraUnKhI42Qs9uYmRHt7bz5XVL1ZlM2C1xu8=
+	t=1759840545; cv=none; b=MSs9dP+NFhcq/pWkSZWDAfpBy3B5VWfIPwBtU3mpoWZ0M5xVyGYFa762OWavtIPRiBjn63GF55VAyxLi1X39g3sADIWkTOn8UrGjoJ/Q9Vd6VCAKxRFXC0BH/iXQIy1v9mablw9AvD3VS97UwnON4oIAc5MZusmCgUZiBbS1tHs=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1759830888; c=relaxed/simple;
-	bh=w+tGjNNOrnirzeeboSOULAeHfCLgYDli+3SdbAaUTzU=;
-	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=iXUkp5CVieOrIgOV+YfIga//6q3PKb4WaRx1vi/e4NxPq230wBbrsunHxVSV9/Ymdf8RtMT39tWZxrD3o1akLTsQLqBdeIcpNyuKbbeqtm2FtPgZVdqnDfQeAoFeK+z3v2T+Z5pyfw3M2EFR5u2MdXhemuvoQwGhxDP8OjffSwc=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru; spf=pass smtp.mailfrom=yandex.ru; dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b=IgptCBrU; arc=none smtp.client-ip=178.154.239.88
+	s=arc-20240116; t=1759840545; c=relaxed/simple;
+	bh=ELJYoW6FOCHRifIsUfj1Fi6XF6ahiz6li36P0fRML/o=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=EooGRnRAwFJFaXfaeDT5Mt5NAfOXM52VG4eUf0J5stX0H8S6xJBAKloVPceEa2uxTv42Caj81QoVWTovNPUiE+EHwHk+xXCv1BHqAGElu+NdQkdngMTkAfGI+h8RW+vDr7Fx47C5zzyUzH/K8lBko86qi3BhxJRA0ymkJMvGUOY=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru; spf=pass smtp.mailfrom=yandex.ru; dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b=lxIJ4iTk; arc=none smtp.client-ip=178.154.239.213
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=yandex.ru
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b="IgptCBrU"
-Received: from forward100a.mail.yandex.net (forward100a.mail.yandex.net [IPv6:2a02:6b8:c0e:500:1:45:d181:d100])
-	by forward205a.mail.yandex.net (Yandex) with ESMTPS id 41F1EC6153
-	for <ocfs2-devel@lists.linux.dev>; Tue, 07 Oct 2025 12:47:04 +0300 (MSK)
-Received: from mail-nwsmtp-smtp-production-main-55.vla.yp-c.yandex.net (mail-nwsmtp-smtp-production-main-55.vla.yp-c.yandex.net [IPv6:2a02:6b8:c1f:582e:0:640:200:0])
-	by forward100a.mail.yandex.net (Yandex) with ESMTPS id E3515C007D;
-	Tue, 07 Oct 2025 12:46:55 +0300 (MSK)
-Received: by mail-nwsmtp-smtp-production-main-55.vla.yp-c.yandex.net (smtp/Yandex) with ESMTPSA id skhrr19LQOs0-yNqfaPLt;
-	Tue, 07 Oct 2025 12:46:55 +0300
+	dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b="lxIJ4iTk"
+Received: from mail-nwsmtp-smtp-production-main-57.klg.yp-c.yandex.net (mail-nwsmtp-smtp-production-main-57.klg.yp-c.yandex.net [IPv6:2a02:6b8:c42:31a4:0:640:3040:0])
+	by forward102d.mail.yandex.net (Yandex) with ESMTPS id C1C82C0110;
+	Tue, 07 Oct 2025 15:35:37 +0300 (MSK)
+Received: by mail-nwsmtp-smtp-production-main-57.klg.yp-c.yandex.net (smtp/Yandex) with ESMTPSA id aZk0bf9L8eA0-y0Nq3Ye8;
+	Tue, 07 Oct 2025 15:35:37 +0300
 X-Yandex-Fwd: 1
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=yandex.ru; s=mail;
-	t=1759830415; bh=kNyFgfu+mEVsqFvCWeOAj/Qz6xzvPt3AQ1lkmA6P60c=;
-	h=Message-ID:Date:In-Reply-To:Cc:Subject:References:To:From;
-	b=IgptCBrUKtct5BKrd/Us4DdIWE/JkttCA7vLvsvP9PZKaDFm6YtCH9Xkv1olWG52Y
-	 5Ir19JRS46WzSalpQEcUDY2juKd2knuYVlAuk30e57SrCjJFTowEsz7+DYiArtQ7Xi
-	 5A8evzFRbhoZjFnFgFbl4o4TZ1PnW0LFysqVdMFM=
-Authentication-Results: mail-nwsmtp-smtp-production-main-55.vla.yp-c.yandex.net; dkim=pass header.i=@yandex.ru
+	t=1759840537; bh=IsLI13Uf0Fi6adnErKNRKlvpHyskKzV7eStiNqOYyI0=;
+	h=Message-ID:Date:Cc:Subject:To:From;
+	b=lxIJ4iTk4SrFHhnBXXwinPOwXs6MHaV5PwuS2REcxseMLdHFPwE4hUNHqG2GASIVP
+	 ZDJOd+U+Miw0bz3ZkVZ2h+mFzVB8N1U/MwsoB7gCVHkycyQvLEgLnNltcdyN50i1vB
+	 wxQGcsAtcSOiyFeHOdnoxMMxICxgyYQUVRFgLxUs=
+Authentication-Results: mail-nwsmtp-smtp-production-main-57.klg.yp-c.yandex.net; dkim=pass header.i=@yandex.ru
 From: Dmitry Antipov <dmantipov@yandex.ru>
-To: Heming Zhao <heming.zhao@suse.com>,
-	Mark Fasheh <mark@fasheh.com>,
+To: Mark Fasheh <mark@fasheh.com>,
 	Joel Becker <jlbec@evilplan.org>,
 	Joseph Qi <joseph.qi@linux.alibaba.com>
 Cc: ocfs2-devel@lists.linux.dev,
-	lvc-project@linuxtesting.org,
-	Dmitry Antipov <dmantipov@yandex.ru>,
-	syzbot+30b53487d00b4f7f0922@syzkaller.appspotmail.com
-Subject: [PATCH v2] ocfs2: add extra consistency check to ocfs2_dx_dir_lookup_rec()
-Date: Tue,  7 Oct 2025 12:46:26 +0300
-Message-ID: <20251007094626.196143-1-dmantipov@yandex.ru>
+	Dmitry Antipov <dmantipov@yandex.ru>
+Subject: [PATCH] ocfs2: annotate flexible array members with __counted_by_le()
+Date: Tue,  7 Oct 2025 15:35:26 +0300
+Message-ID: <20251007123526.213150-1-dmantipov@yandex.ru>
 X-Mailer: git-send-email 2.51.0
-In-Reply-To: <8af5355e-5a05-46c5-bee6-c7ed3de71c0b@suse.com>
-References: <8af5355e-5a05-46c5-bee6-c7ed3de71c0b@suse.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -55,40 +46,86 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-In 'ocfs2_dx_dir_lookup_rec()', check whether an extent list length
-of the directory indexing block matches the one configured via the
-superblock parameters established at mount, thus preventing an
-out-of-bounds accesses while iterating over the extent records below.
+Annotate flexible array members of 'struct ocfs2_extent_list',
+'struct ocfs2_chain_list', 'struct ocfs2_truncate_log',
+'struct ocfs2_dx_entry_list', 'ocfs2_refcount_list' and
+'struct ocfs2_xattr_header' with  '__counted_by_le()'
+attribute to improve array bounds checking when
+CONFIG_UBSAN_BOUNDS is enabled.
 
-Reported-by: syzbot+30b53487d00b4f7f0922@syzkaller.appspotmail.com
-Closes: https://syzkaller.appspot.com/bug?extid=30b53487d00b4f7f0922
 Signed-off-by: Dmitry Antipov <dmantipov@yandex.ru>
 ---
-v2: move sanity check to ocfs2_dx_dir_lookup_rec() (Heming Zhao)
-    and rely on the convenient ocfs2_error() to handle error
----
- fs/ocfs2/dir.c | 8 ++++++++
- 1 file changed, 8 insertions(+)
+ fs/ocfs2/ocfs2_fs.h | 22 ++++++++++++++--------
+ 1 file changed, 14 insertions(+), 8 deletions(-)
 
-diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
-index 8c9c4825f984..ece0462a5d26 100644
---- a/fs/ocfs2/dir.c
-+++ b/fs/ocfs2/dir.c
-@@ -778,6 +778,14 @@ static int ocfs2_dx_dir_lookup_rec(struct inode *inode,
- 	struct ocfs2_extent_block *eb;
- 	struct ocfs2_extent_rec *rec = NULL;
+diff --git a/fs/ocfs2/ocfs2_fs.h b/fs/ocfs2/ocfs2_fs.h
+index ae0e44e5f2ad..f7763da5c4a2 100644
+--- a/fs/ocfs2/ocfs2_fs.h
++++ b/fs/ocfs2/ocfs2_fs.h
+@@ -468,7 +468,8 @@ struct ocfs2_extent_list {
+ 	__le16 l_reserved1;
+ 	__le64 l_reserved2;		/* Pad to
+ 					   sizeof(ocfs2_extent_rec) */
+-/*10*/	struct ocfs2_extent_rec l_recs[];	/* Extent records */
++					/* Extent records */
++/*10*/	struct ocfs2_extent_rec l_recs[] __counted_by_le(l_count);
+ };
  
-+	if (le16_to_cpu(el->l_count) !=
-+	    ocfs2_extent_recs_per_dx_root(inode->i_sb)) {
-+		ret = ocfs2_error(inode->i_sb,
-+				  "Inode %lu has invalid extent list length %u\n",
-+				  inode->i_ino, le16_to_cpu(el->l_count));
-+		goto out;
-+	}
-+
- 	if (el->l_tree_depth) {
- 		ret = ocfs2_find_leaf(INODE_CACHE(inode), el, major_hash,
- 				      &eb_bh);
+ /*
+@@ -482,7 +483,8 @@ struct ocfs2_chain_list {
+ 	__le16 cl_count;		/* Total chains in this list */
+ 	__le16 cl_next_free_rec;	/* Next unused chain slot */
+ 	__le64 cl_reserved1;
+-/*10*/	struct ocfs2_chain_rec cl_recs[];	/* Chain records */
++					/* Chain records */
++/*10*/	struct ocfs2_chain_rec cl_recs[] __counted_by_le(cl_count);
+ };
+ 
+ /*
+@@ -494,7 +496,8 @@ struct ocfs2_truncate_log {
+ /*00*/	__le16 tl_count;		/* Total records in this log */
+ 	__le16 tl_used;			/* Number of records in use */
+ 	__le32 tl_reserved1;
+-/*08*/	struct ocfs2_truncate_rec tl_recs[];	/* Truncate records */
++					/* Truncate records */
++/*08*/	struct ocfs2_truncate_rec tl_recs[] __counted_by_le(tl_count);
+ };
+ 
+ /*
+@@ -796,9 +799,10 @@ struct ocfs2_dx_entry_list {
+ 					 * possible in de_entries */
+ 	__le16		de_num_used;	/* Current number of
+ 					 * de_entries entries */
+-	struct	ocfs2_dx_entry		de_entries[];	/* Indexed dir entries
+-							 * in a packed array of
+-							 * length de_num_used */
++					/* Indexed dir entries in a packed
++					 * array of length de_num_used.
++					 */
++	struct	ocfs2_dx_entry		de_entries[] __counted_by_le(de_count);
+ };
+ 
+ #define OCFS2_DX_FLAG_INLINE	0x01
+@@ -934,7 +938,8 @@ struct ocfs2_refcount_list {
+ 	__le16 rl_used;		/* Current number of used records */
+ 	__le32 rl_reserved2;
+ 	__le64 rl_reserved1;	/* Pad to sizeof(ocfs2_refcount_record) */
+-/*10*/	struct ocfs2_refcount_rec rl_recs[];	/* Refcount records */
++				/* Refcount records */
++/*10*/	struct ocfs2_refcount_rec rl_recs[] __counted_by_le(rl_count);
+ };
+ 
+ 
+@@ -1020,7 +1025,8 @@ struct ocfs2_xattr_header {
+ 						    buckets.  A block uses
+ 						    xb_check and sets
+ 						    this field to zero.) */
+-	struct ocfs2_xattr_entry xh_entries[]; /* xattr entry list. */
++						/* xattr entry list. */
++	struct ocfs2_xattr_entry xh_entries[] __counted_by_le(xh_count);
+ };
+ 
+ /*
 -- 
 2.51.0
 
