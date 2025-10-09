@@ -1,71 +1,72 @@
-Received: from mail-pl1-f182.google.com (mail-pl1-f182.google.com [209.85.214.182])
+Received: from mail-pj1-f53.google.com (mail-pj1-f53.google.com [209.85.216.53])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 19D9D2EA736
-	for <ocfs2-devel@lists.linux.dev>; Thu,  9 Oct 2025 14:29:23 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.214.182
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id AEF3021B918
+	for <ocfs2-devel@lists.linux.dev>; Thu,  9 Oct 2025 15:49:12 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.216.53
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1760020165; cv=none; b=and+z5G9Fp31jUgYy1gvJlriBKqS8SeIP0IC2otjxXFqMT4TdMpzzED+v2GR1AkgBVhv3Q4lDTKSkYc7G2HVqRCJX/mQRXaaBV9XiSJuOpOGPvcVecP+llXw3ZXref+STXBWYNTRYSqf1i+gtsorx2Bl7ckQkhxKnb+H2NzPtf4=
+	t=1760024955; cv=none; b=uHiG8b6oAiRIEWnDBp+kIXmrjhcdliTNQmpPCQLmfFuUTfp8th3LUcK5eEfYhIMYXKp/MBr8W4CXahFXeudhXxASziWyFfY4q0bvwdlLzZjvVA3bHPDp/AXcxGxeYAn/QltOORfWD0x8Ppe4yMBa2X6FB3rvTg/pxcwEXAfkcUI=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1760020165; c=relaxed/simple;
-	bh=zeDf6KdhYAzkJxWgKM7teSxvMdUp3SBOEpzJkkS8EKc=;
-	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=gx8A4EjQO+U8G+9gYT7kk51k2Feofh2FKxQxIxGOlFo+dbRk0rdCAFlFpzYGGBPfLYkFNCBC7gPUmVjKseDHCOSMpyq31Qz/rzGbtHJwS0uU8/+a4cxrQnGwh8VeW1SMjDjrFhDnste1+2CaYB/lkfHznh/ypoEw+H0yD2KuOrM=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=jumjmuwJ; arc=none smtp.client-ip=209.85.214.182
+	s=arc-20240116; t=1760024955; c=relaxed/simple;
+	bh=GuLLQAKATyLvjbNuey46y06cX5Vw7qz03m0TI8g/60o=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=OFG9BUyrybxhud6bFPQ2uXDiNYIGBAwtISg5X0gjjdE1Vh80jnAZ2iA7GOR+k9YSA6gpvf8TNLenj3wCktX+vxO1vBPdF/8yUn/pftLSLahbmyHXbaErPAFYGuNLjiP5PioxikdAvV0QmHa7iscLT7zA/ywGm/mDXdslY6UwqIc=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=XpBK+ab2; arc=none smtp.client-ip=209.85.216.53
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="jumjmuwJ"
-Received: by mail-pl1-f182.google.com with SMTP id d9443c01a7336-271d1305ad7so16801995ad.2
-        for <ocfs2-devel@lists.linux.dev>; Thu, 09 Oct 2025 07:29:23 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="XpBK+ab2"
+Received: by mail-pj1-f53.google.com with SMTP id 98e67ed59e1d1-330469eb750so1479833a91.2
+        for <ocfs2-devel@lists.linux.dev>; Thu, 09 Oct 2025 08:49:12 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1760020163; x=1760624963; darn=lists.linux.dev;
+        d=gmail.com; s=20230601; t=1760024952; x=1760629752; darn=lists.linux.dev;
         h=content-transfer-encoding:mime-version:message-id:date:subject:cc
          :to:from:from:to:cc:subject:date:message-id:reply-to;
-        bh=U/74xq4XJsElEDgJYijZf54I5DhXyuQKsFilC0hgNrc=;
-        b=jumjmuwJi6Iktfw34mi8n7yVcnMI7OEv/8CDDFoEegNGiL5bHHcESOy+6dVJlSahsD
-         DEQAzPD5YHs/JzMNw+A2sbPff5nf6R52BQ/lWQuBEEHfH1bcAp2A5SOij7tKbOmoZm1h
-         S9Ix+kXSLUVZrLRELSRAfR3ojZ9erZ3RjvYMfWAOEQjwACAGlvpk+WEAAxkRp55h18D/
-         ZF4SCy9xZQXqyemp9vUMpeKasZznoWvmMODNZc5cE+sinQPsu9E/g/BF4/26sckU0R0y
-         URMuOOG89xzj9MIhEC8YoJa+kwXMgwzuswgx7xnkkhpSmTSX8XKI6E2L3W9IkwzgsJFn
-         Yusw==
+        bh=j1GcN+G00e8rgYgWddESo3aRTzLrdG6jM+98jl/EWDU=;
+        b=XpBK+ab2FY55xHd/1Rs0NDS2wh/Ol5hn/iuc7taC7+uoACySsgG9ZU86UfqCRwPY4/
+         j/hl2e6FWyBO5fA9fxPSj/ZtjcThxJ8RnF8+/tdNSMlwkRStQnXBY681YchzbceHuAev
+         lY1Pt9bz+ZSCNzbOXLNva8eSssKxDdtey00/3bAIh5+LziHn4V08zm1EaJijHDE/86kp
+         cEKCbtiNvNdanBQllGPDBYuHX24rfAZPjqzbJpZHOxzoRM8HZXwL5sq56jcdzkoP0FeL
+         N+6aWWRPO9lM9h8KDBj4jV6PUCXXyjeSfdkQ9HxNuPu4LZ2SHLzfE2VWjckRQWW2xpvc
+         CgGw==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1760020163; x=1760624963;
+        d=1e100.net; s=20230601; t=1760024952; x=1760629752;
         h=content-transfer-encoding:mime-version:message-id:date:subject:cc
          :to:from:x-gm-message-state:from:to:cc:subject:date:message-id
          :reply-to;
-        bh=U/74xq4XJsElEDgJYijZf54I5DhXyuQKsFilC0hgNrc=;
-        b=A5GpOrP54PAVu9oa+TvAg/3HaKtp6fM9YBxfCiYa9dEqwJ+D+zr2m3ee/3Af9PHHeR
-         eNZVfPG58ydMQ5bpFzJsvSfX9y4jpRKGQZAXXpd1s1Fxw/i6sbIRghacQrx3x5egOc9u
-         Puod3uZL6PmkL2QqrmxoY05DEVN5NAqoh8Q2RhewlFUk1yIyetg0ZkdWGF42L4R5J85r
-         BHTz/MxeNKAK4ofbyzfw2kQDG3KjBM4Owplnwlmj74yAEPhMmL26ScdHWkeBkBEAyhv3
-         X8YJx0JfSeiKOHLMh/nRAZBl90QUr28QxeUQPraDUYEROs3yIMiUkAJVUpik7yTpfvq9
-         vLdg==
-X-Gm-Message-State: AOJu0YyEhZvrMY6NWai3aN23uSfXmcGmb96IWGORIM07/ncgYlVarVka
-	Kj3T9Dfd9pF4OsA9QLZrU3diHl67Qw/vIObEPk8PMN1yj+4/TzP/8N1b
-X-Gm-Gg: ASbGncvJ7qwsNJSqYfaN9ZCYBhxi8eWVvbIH1cQaTysJM9T2TReoJfg+YWYpN22wnv8
-	DgLj7bqenyAJCtbAqF2jaSLyGIAW+x6nPhiaqFEo2B93xPRvq7WPqkuRUasVWlqAqP2Iht+qm1l
-	sMeHbgTWsDYb/HLbAnTRVS29XXD4g/W7SYuviTubMDwDYdFFxf+iTe6ZZZtdeMTfMROWCmAcwfe
-	rr/pNqR3Z0+oX9TQk4ybnLrIxtHooPm2YPLce8rg+XgompxMmfWBiT1zDEdlL+g3sJvby7NBoUH
-	u6W6Z2TvBzdDb7RDrotKfieeohRolU06XqtO+zTIpbPflPRnXN28coLtAOCTYeIVZ3OP9lnCVT4
-	30LCPNAIxy3oNH0ecz5jMoM8E5feH8ror0CDoC3PaGdVJucnPNiyADa8rzLuWZKoRUhNc2UGBYJ
-	LKtK1cHBGA5j0K7etNzdCBlDPtKvY=
-X-Google-Smtp-Source: AGHT+IFB4dSwBRuZ4Sz99mGQnC+OkqQeSCmKq0qSpJyArZKnozhvJoOda9lEv+5VZ+rvS9S7fjQ3xQ==
-X-Received: by 2002:a17:903:1ac8:b0:264:8a8d:92e8 with SMTP id d9443c01a7336-2902741cdfbmr105368775ad.59.1760020163233;
-        Thu, 09 Oct 2025 07:29:23 -0700 (PDT)
+        bh=j1GcN+G00e8rgYgWddESo3aRTzLrdG6jM+98jl/EWDU=;
+        b=nLGMvZfTU95wzyeLChJeWHUdUN1tVGqUzmeGWTSFoTTklqVTiILv0wljAhuUNFKaIh
+         6+f3ajr6vu+IlTTEL34/mHk9dWAmbg2l9q4d2AaoFEwwl/om3NDMSiMt/PBQKbgc5NbX
+         P9APMC00omk9TrRjXYkjKYPmjVYf0QXMhskgKDQdo7kz/+7O94NBM15ioUQYKWMhRoSz
+         gqFfGTkj66nxic+82DvAy7lLQyICcRLP0HpPTFvC89RSF4852XnRrd5BIARf3M2iu8ID
+         MH3IeEWEHdmC9IfMkqr8o5OfumdJ+Kudau7UY/pizV5Kyp21LFnFyNKmu5F/50jLm66Y
+         CQ9Q==
+X-Gm-Message-State: AOJu0YxeuWtTQFItydVE5zYxjqyra2yn1CfLlnqI108mcu3Hg/6723sF
+	C86ISTImuN1ffDyBhH89Cb4YGLy4bebCwFA1S8/uSmvxq4KuPWNRvxYB
+X-Gm-Gg: ASbGncv496PPgtlSEx9ud/5Po0s/zw6UnbSRZ4XuOQvS61sBEtiGPwne4p2AeOiYrD9
+	LM+XIquLAPfCcAKFTEQxgAokYFkGN2pJmjtUtWNy5TXar04j55bJfM8kvryfMCgzBkoktSmqjA4
+	rF0PtL4YOIxTh/5TZsU0UrBUojjyh6Hr0a4gXXlEf60WsLSO5yPdzdbVX7BN3te2zYWTvGzAGmN
+	uvrXe6ru/+Aal+4QO7CmBCYTwWyzvfAPqF/ijrwzw8nHz1mI30Z4saskIkxuCMUABSNcDepjnsT
+	yxTmJ39A92az2gKNrGyfAtmo+MSk7Jvq2futQXvyyt7MRRSNDXj+xvNtFxZpDwZ6UTe+zc5V/No
+	9QZaYgSl7RqiJaYWLTMxggLeeAchg1X1Rs3FxRhBJTH7TL6gZhaooyRzQGBMrsCRFN1Rx+gnTur
+	PCuNPXuZX5eKyVUbgER21Qmyltkgw=
+X-Google-Smtp-Source: AGHT+IGPxJaBI26Q/y09qEXEoJ1IfSAYTKBwEim3r875wNzdr7XXReJ2+3sYc7blAxyeynmq02rbiw==
+X-Received: by 2002:a17:90b:4a06:b0:32e:dd8c:dd2a with SMTP id 98e67ed59e1d1-33b50f2c758mr10974597a91.0.1760024951818;
+        Thu, 09 Oct 2025 08:49:11 -0700 (PDT)
 Received: from deepanshu-kernel-hacker.. ([2405:201:682f:389d:60a2:fbdd:54e6:8eb3])
-        by smtp.gmail.com with ESMTPSA id d9443c01a7336-29034f961c5sm30527265ad.129.2025.10.09.07.29.20
+        by smtp.gmail.com with ESMTPSA id 98e67ed59e1d1-33b61a3cbf2sm232811a91.8.2025.10.09.08.49.08
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Thu, 09 Oct 2025 07:29:22 -0700 (PDT)
+        Thu, 09 Oct 2025 08:49:11 -0700 (PDT)
 From: Deepanshu Kartikey <kartikey406@gmail.com>
-To: joseph.qi@linux.alibaba.com,
-	mark@fasheh.com,
-	jlbec@evilplan.org
+To: mark@fasheh.com,
+	jlbec@evilplan.org,
+	joseph.qi@linux.alibaba.com
 Cc: ocfs2-devel@lists.linux.dev,
 	linux-kernel@vger.kernel.org,
+	Deepanshu Kartikey <kartikey406@gmail.com>,
 	syzbot+6fdd8fa3380730a4b22c@syzkaller.appspotmail.com
-Subject: Re: [PATCH] ocfs2: fix stale extent map cache during COW operations
-Date: Thu,  9 Oct 2025 19:59:16 +0530
-Message-ID: <20251009142917.517229-1-kartikey406@gmail.com>
+Subject: [PATCH v2] ocfs2: clear extent cache after moving/defragmenting extents
+Date: Thu,  9 Oct 2025 21:19:03 +0530
+Message-ID: <20251009154903.522339-1-kartikey406@gmail.com>
 X-Mailer: git-send-email 2.43.0
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
@@ -75,29 +76,58 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
+The extent map cache can become stale when extents are moved or
+defragmented, causing subsequent operations to see outdated extent
+flags. This triggers a BUG_ON in ocfs2_refcount_cal_cow_clusters().
 
-Hi Joseph,
+The problem occurs when:
+1. copy_file_range() creates a reflinked extent with OCFS2_EXT_REFCOUNTED
+2. ioctl(FITRIM) triggers ocfs2_move_extents()
+3. __ocfs2_move_extents_range() reads and caches the extent (flags=0x2)
+4. ocfs2_move_extent()/ocfs2_defrag_extent() calls __ocfs2_move_extent()
+   which clears OCFS2_EXT_REFCOUNTED flag on disk (flags=0x0)
+5. The extent map cache is not invalidated after the move
+6. Later write() operations read stale cached flags (0x2) but disk has
+   updated flags (0x0), causing a mismatch
+7. BUG_ON(!(rec->e_flags & OCFS2_EXT_REFCOUNTED)) triggers
 
-Thank you for the review. You are absolutely right - the cache clearing at the end of ocfs2_refcount_cow_hunk() should handle the COW path correctly.
+Fix by clearing the extent map cache after each extent move/defrag
+operation in __ocfs2_move_extents_range(). This ensures subsequent
+operations read fresh extent data from disk.
 
-After further investigation with the syzbot reproducer and extensive debugging, I found the real issue is in the FITRIM/move_extents code path. The bug occurs when:
+Link: https://lore.kernel.org/all/20251009142917.517229-1-kartikey406@gmail.com/T/
+Reported-by: syzbot+6fdd8fa3380730a4b22c@syzkaller.appspotmail.com
+Tested-by: syzbot+6fdd8fa3380730a4b22c@syzkaller.appspotmail.com
+Closes: https://syzkaller.appspot.com/bug?id=2959889e1f6e216585ce522f7e8bc002b46ad9e7
+Signed-off-by: Deepanshu Kartikey <kartikey406@gmail.com>
+---
+Changes in v2:
+  - Fix moved to __ocfs2_move_extents_range() instead of ocfs2_refcount_cow()
+  - The real issue is in FITRIM/move_extents code path, not COW path
+  - COW path already clears cache at end of ocfs2_refcount_cow_hunk()
 
-1. copy_file_range() creates a reflinked extent with flags=0x2 (OCFS2_EXT_REFCOUNTED)
-2. ioctl(FITRIM) is called, which triggers ocfs2_move_extents()
-3. In __ocfs2_move_extents_range(), the while loop:
-   - Calls ocfs2_get_clusters() which reads extent with flags=0x2 and caches it
-   - Then calls ocfs2_move_extent() or ocfs2_defrag_extent()
-   - Both eventually call __ocfs2_move_extent() which contains:
-       replace_rec.e_flags = ext_flags & ~OCFS2_EXT_REFCOUNTED;
-   - This clears the refcount flag and writes to disk with flags=0x0
-4. However, the extent map cache is NOT cleared after the move operation
-5. Cache still contains stale flags=0x2 while disk has flags=0x0
-6. Later, when write() triggers COW, ocfs2_refcount_cal_cow_clusters() reads:
-   - From cache: flags=0x2 (stale)
-   - From disk extent tree: flags=0x0 (correct)
-7. The mismatch triggers: BUG_ON(!(rec->e_flags & OCFS2_EXT_REFCOUNTED))
+ fs/ocfs2/move_extents.c | 5 +++++
+ 1 file changed, 5 insertions(+)
+---
+ fs/ocfs2/move_extents.c | 5 +++++
+ 1 file changed, 5 insertions(+)
 
-The proper fix should be in __ocfs2_move_extents_range() to clear the extent cache after each move/defrag operation completes. I will send a v2 patch with this fix.
+diff --git a/fs/ocfs2/move_extents.c b/fs/ocfs2/move_extents.c
+index 86f2631e6360..10923bf7c8b8 100644
+--- a/fs/ocfs2/move_extents.c
++++ b/fs/ocfs2/move_extents.c
+@@ -867,6 +867,11 @@ static int __ocfs2_move_extents_range(struct buffer_head *di_bh,
+ 			mlog_errno(ret);
+ 			goto out;
+ 		}
++		/*
++		 * Invalidate extent cache after moving/defragging to prevent
++		 * stale cached data with outdated extent flags.
++		 */
++		ocfs2_extent_map_trunc(inode, cpos);
+ 
+ 		context->clusters_moved += alloc_size;
+ next:
+-- 
+2.43.0
 
-Thanks,
-Deepanshu
