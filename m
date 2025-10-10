@@ -1,204 +1,107 @@
-Received: from mgamail.intel.com (mgamail.intel.com [192.198.163.13])
+Received: from out30-131.freemail.mail.aliyun.com (out30-131.freemail.mail.aliyun.com [115.124.30.131])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0A2541C5D7D;
-	Fri, 10 Oct 2025 00:53:20 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=192.198.163.13
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id F417019E97B
+	for <ocfs2-devel@lists.linux.dev>; Fri, 10 Oct 2025 01:21:13 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.131
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1760057603; cv=none; b=sUY7+g/ykUdUIAkvVrN443Yt4wRGKen+LZ20CiQ1YWwfhYESYIsV+IMAoLHfNU4HbTwPSZ14riPahNc5xwVZSYFjZLcntipa0Qmuzs24mAOFr4asWl4U5Cq8HlLtNhaUKtYGeAeKP3aYNzM3WatiiqW2selbshDl/mbVV/n+ju4=
+	t=1760059277; cv=none; b=OTeSSBWUAccwewmj3hh/lU2jkT3bhRMbkkz1BHX4liEehCXsU3gtuwNLtMVbIZelMLHW3b2KAVLunYpkvv0usETzu9X7OnoRU207gIDAjmtIcOmiAjc+Wi6L9NSMrh28TE/5g4bfzZ5Ziwu+mHySWgDvEy4FbtC9uSJ9CMki1rs=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1760057603; c=relaxed/simple;
-	bh=Wga/aebCRWdiAWHpaU8AXh6U7vsHDFqO9Xvrom8jolo=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=OE6xeoJ1Q420L5VWNywxhj3WKldiZVbteXz1LTjmrdKY7LiyJWq7WJdETzt5SX63OX10ndDn/W42BUAhOyOCR3bon4iU7VrZ6cgKT8LlSFylJlPCf04Z3piBlXSljh+jFGBnG3ekTjdHVAbhzDjXuDjwdktbh//k2AGWGL8EgaI=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com; spf=pass smtp.mailfrom=intel.com; dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b=fwpikYRL; arc=none smtp.client-ip=192.198.163.13
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=intel.com
+	s=arc-20240116; t=1760059277; c=relaxed/simple;
+	bh=xUtmWe67ZqFeLIiEL9eePSKMyiEK2CmZPDmwXazHsD8=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=TLu8E5AVcGkGtQSxR4xftbImGM2/KmswfMhTmXwhgZJZpKGBwrY0b0sa8zp/PFU4q6lRO6qHnh/l9paFsCZdxDyqicXdTw0nhhTAXX4PDZBtYg0XfVEkMrmu1zOk6Fp+0FJD5f69WwXE2LY3ch4ljKpoSL9I/Gso1Dj1Wka84s0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=vmMnu0rc; arc=none smtp.client-ip=115.124.30.131
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b="fwpikYRL"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
-  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
-  t=1760057601; x=1791593601;
-  h=date:from:to:cc:subject:message-id:references:
-   mime-version:in-reply-to;
-  bh=Wga/aebCRWdiAWHpaU8AXh6U7vsHDFqO9Xvrom8jolo=;
-  b=fwpikYRLl7RCDwQCCPA95R5jpE068SUKCjLeJNv1yO7AuL//ZE2DWXfq
-   hDG7pxGsWKEnuLaf/s/lxFG71iwLY3Eywlw+Y0Xnu3DNmJuhbidSuCZaH
-   ABkPQvaHe2iSOnFRqwRdhQDn4ohP968/bdR0qDkZHe3OBIRbVMRgx+I/q
-   3f44a07Eg0Oke2b5MwLl1aUj9UD0zPA8jwkVPnSvFXGm3TycUlZwommS/
-   h0pQfoe9Kyli8Y+oH5SMx+hvOTu+I4Rn27Y0KdncOkc9SbDZK7qawD3th
-   +MiTf9GuikHKbOj+0utBeE2jpfn8yt4yfTBZFpu5+wVqv05RrFjJKvvMt
-   Q==;
-X-CSE-ConnectionGUID: oFspPeOlR7advOjOiMF8pw==
-X-CSE-MsgGUID: pECS5GhTTrWs9R0xBYaRSQ==
-X-IronPort-AV: E=McAfee;i="6800,10657,11577"; a="64898213"
-X-IronPort-AV: E=Sophos;i="6.19,217,1754982000"; 
-   d="scan'208";a="64898213"
-Received: from orviesa002.jf.intel.com ([10.64.159.142])
-  by fmvoesa107.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 09 Oct 2025 17:53:20 -0700
-X-CSE-ConnectionGUID: 4QLDYU65SZGnRrRsXlGYEw==
-X-CSE-MsgGUID: UDeu69kFRyqGchrUMdhs5Q==
-X-ExtLoop1: 1
-X-IronPort-AV: E=Sophos;i="6.19,217,1754982000"; 
-   d="scan'208";a="211497284"
-Received: from lkp-server01.sh.intel.com (HELO 6a630e8620ab) ([10.239.97.150])
-  by orviesa002.jf.intel.com with ESMTP; 09 Oct 2025 17:53:17 -0700
-Received: from kbuild by 6a630e8620ab with local (Exim 4.96)
-	(envelope-from <lkp@intel.com>)
-	id 1v71Ni-0001h5-2H;
-	Fri, 10 Oct 2025 00:53:14 +0000
-Date: Fri, 10 Oct 2025 08:52:17 +0800
-From: kernel test robot <lkp@intel.com>
-To: ssrane_b23@ee.vjti.ac.in, Mark Fasheh <mark@fasheh.com>
-Cc: oe-kbuild-all@lists.linux.dev, Joel Becker <jlbec@evilplan.org>,
-	Joseph Qi <joseph.qi@linux.alibaba.com>,
-	ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org,
-	syzbot+30b53487d00b4f7f0922@syzkaller.appspotmail.com,
-	Shaurya Rane <ssrane_b23@ee.vjti.ac.in>
-Subject: Re: [PATCH] ocfs2: Fix use-after-free in ocfs2_dx_dir_lookup_rec
-Message-ID: <202510100838.uqgonWvJ-lkp@intel.com>
-References: <20251005151403.9012-1-ssranevjti@gmail.com>
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="vmMnu0rc"
+DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=linux.alibaba.com; s=default;
+	t=1760059271; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=2ao8FChmO4IoZqDlweIZMfaW7a93d3gZNFGiNAvuUFk=;
+	b=vmMnu0rck7NL0iHyEJFLt2iUuEQoB+I7PmItRn1PlJvUp9FPCHnc0GLokqU1wuM5I0aOMZGpYRwNd0lwYQ+jc7YZKrQzAlj74kQ8AkskAZWOM5DqbdPM+gozqp6V5UX653DzRuXR9lT1p29JPomOWJU2q86s3wZv1vU4ZBjShEc=
+Received: from 30.221.128.133(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0Wpr7EAm_1760059270 cluster:ay36)
+          by smtp.aliyun-inc.com;
+          Fri, 10 Oct 2025 09:21:10 +0800
+Message-ID: <94c9efca-2805-4fcb-a52b-e26eac8f58e1@linux.alibaba.com>
+Date: Fri, 10 Oct 2025 09:21:09 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20251005151403.9012-1-ssranevjti@gmail.com>
-
-Hi,
-
-kernel test robot noticed the following build warnings:
-
-[auto build test WARNING on brauner-vfs/vfs.all]
-[also build test WARNING on linus/master v6.17 next-20251009]
-[If your patch is applied to the wrong git tree, kindly drop us a note.
-And when submitting patch, we suggest to use '--base' as documented in
-https://git-scm.com/docs/git-format-patch#_base_tree_information]
-
-url:    https://github.com/intel-lab-lkp/linux/commits/ssrane_b23-ee-vjti-ac-in/ocfs2-Fix-use-after-free-in-ocfs2_dx_dir_lookup_rec/20251009-163456
-base:   https://git.kernel.org/pub/scm/linux/kernel/git/vfs/vfs.git vfs.all
-patch link:    https://lore.kernel.org/r/20251005151403.9012-1-ssranevjti%40gmail.com
-patch subject: [PATCH] ocfs2: Fix use-after-free in ocfs2_dx_dir_lookup_rec
-config: m68k-allyesconfig (https://download.01.org/0day-ci/archive/20251010/202510100838.uqgonWvJ-lkp@intel.com/config)
-compiler: m68k-linux-gcc (GCC) 15.1.0
-reproduce (this is a W=1 build): (https://download.01.org/0day-ci/archive/20251010/202510100838.uqgonWvJ-lkp@intel.com/reproduce)
-
-If you fix the issue in a separate patch/commit (i.e. not just a new version of
-the same patch/commit), kindly add following tags
-| Reported-by: kernel test robot <lkp@intel.com>
-| Closes: https://lore.kernel.org/oe-kbuild-all/202510100838.uqgonWvJ-lkp@intel.com/
-
-All warnings (new ones prefixed by >>):
-
-   In file included from fs/ocfs2/dir.c:45:
-   fs/ocfs2/dir.c: In function 'ocfs2_dx_dir_lookup_rec':
->> fs/ocfs2/dir.c:821:35: warning: format '%u' expects argument of type 'unsigned int', but argument 5 has type 'long long unsigned int' [-Wformat=]
-     821 |                                   "Inode %lu has bad extent record (%u, %u, 0) in btree\n",
-         |                                   ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-     822 |                                   inode->i_ino,
-     823 |                                   eb_bh ? (unsigned long long)eb_bh->b_blocknr : 0);
-         |                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-         |                                                                                |
-         |                                                                                long long unsigned int
-   fs/ocfs2/super.h:18:48: note: in definition of macro 'ocfs2_error'
-      18 |         __ocfs2_error(sb, __PRETTY_FUNCTION__, fmt, ##__VA_ARGS__)
-         |                                                ^~~
-   fs/ocfs2/dir.c:821:70: note: format string is defined here
-     821 |                                   "Inode %lu has bad extent record (%u, %u, 0) in btree\n",
-         |                                                                     ~^
-         |                                                                      |
-         |                                                                      unsigned int
-         |                                                                     %llu
->> fs/ocfs2/dir.c:821:35: warning: format '%u' expects a matching 'unsigned int' argument [-Wformat=]
-     821 |                                   "Inode %lu has bad extent record (%u, %u, 0) in btree\n",
-         |                                   ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-   fs/ocfs2/super.h:18:48: note: in definition of macro 'ocfs2_error'
-      18 |         __ocfs2_error(sb, __PRETTY_FUNCTION__, fmt, ##__VA_ARGS__)
-         |                                                ^~~
-   fs/ocfs2/dir.c:821:74: note: format string is defined here
-     821 |                                   "Inode %lu has bad extent record (%u, %u, 0) in btree\n",
-         |                                                                         ~^
-         |                                                                          |
-         |                                                                          unsigned int
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH v2] ocfs2: clear extent cache after moving/defragmenting
+ extents
+To: Deepanshu Kartikey <kartikey406@gmail.com>, mark@fasheh.com,
+ jlbec@evilplan.org, akpm <akpm@linux-foundation.org>
+Cc: ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org,
+ syzbot+6fdd8fa3380730a4b22c@syzkaller.appspotmail.com
+References: <20251009154903.522339-1-kartikey406@gmail.com>
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+In-Reply-To: <20251009154903.522339-1-kartikey406@gmail.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
 
-vim +821 fs/ocfs2/dir.c
 
-316f4b9f98a353a Mark Fasheh       2007-09-07  768  
-9b7895efac906d6 Mark Fasheh       2008-11-12  769  static int ocfs2_dx_dir_lookup_rec(struct inode *inode,
-9b7895efac906d6 Mark Fasheh       2008-11-12  770  				   struct ocfs2_extent_list *el,
-9b7895efac906d6 Mark Fasheh       2008-11-12  771  				   u32 major_hash,
-9b7895efac906d6 Mark Fasheh       2008-11-12  772  				   u32 *ret_cpos,
-9b7895efac906d6 Mark Fasheh       2008-11-12  773  				   u64 *ret_phys_blkno,
-9b7895efac906d6 Mark Fasheh       2008-11-12  774  				   unsigned int *ret_clen)
-23193e513d1cd69 Mark Fasheh       2007-09-12  775  {
-9b7895efac906d6 Mark Fasheh       2008-11-12  776  	int ret = 0, i, found;
-9b7895efac906d6 Mark Fasheh       2008-11-12  777  	struct buffer_head *eb_bh = NULL;
-9b7895efac906d6 Mark Fasheh       2008-11-12  778  	struct ocfs2_extent_block *eb;
-9b7895efac906d6 Mark Fasheh       2008-11-12  779  	struct ocfs2_extent_rec *rec = NULL;
-23193e513d1cd69 Mark Fasheh       2007-09-12  780  
-9b7895efac906d6 Mark Fasheh       2008-11-12  781  	if (el->l_tree_depth) {
-facdb77f54f09a3 Joel Becker       2009-02-12  782  		ret = ocfs2_find_leaf(INODE_CACHE(inode), el, major_hash,
-facdb77f54f09a3 Joel Becker       2009-02-12  783  				      &eb_bh);
-9b7895efac906d6 Mark Fasheh       2008-11-12  784  		if (ret) {
-9b7895efac906d6 Mark Fasheh       2008-11-12  785  			mlog_errno(ret);
-9b7895efac906d6 Mark Fasheh       2008-11-12  786  			goto out;
-9b7895efac906d6 Mark Fasheh       2008-11-12  787  		}
-23193e513d1cd69 Mark Fasheh       2007-09-12  788  
-9b7895efac906d6 Mark Fasheh       2008-11-12  789  		eb = (struct ocfs2_extent_block *) eb_bh->b_data;
-9b7895efac906d6 Mark Fasheh       2008-11-12  790  		el = &eb->h_list;
-4a12ca3a00a244e Mark Fasheh       2008-11-12  791  
-9b7895efac906d6 Mark Fasheh       2008-11-12  792  		if (el->l_tree_depth) {
-17a5b9ab32fe046 Goldwyn Rodrigues 2015-09-04  793  			ret = ocfs2_error(inode->i_sb,
-7ecef14ab1db961 Joe Perches       2015-09-04  794  					  "Inode %lu has non zero tree depth in btree tree block %llu\n",
-7ecef14ab1db961 Joe Perches       2015-09-04  795  					  inode->i_ino,
-9b7895efac906d6 Mark Fasheh       2008-11-12  796  					  (unsigned long long)eb_bh->b_blocknr);
-9b7895efac906d6 Mark Fasheh       2008-11-12  797  			goto out;
-9b7895efac906d6 Mark Fasheh       2008-11-12  798  		}
-23193e513d1cd69 Mark Fasheh       2007-09-12  799  	}
-23193e513d1cd69 Mark Fasheh       2007-09-12  800  
-44acc46d182ff36 Ivan Pravdin      2025-07-07  801  	if (le16_to_cpu(el->l_next_free_rec) == 0) {
-44acc46d182ff36 Ivan Pravdin      2025-07-07  802  		ret = ocfs2_error(inode->i_sb,
-44acc46d182ff36 Ivan Pravdin      2025-07-07  803  				  "Inode %lu has empty extent list at depth %u\n",
-44acc46d182ff36 Ivan Pravdin      2025-07-07  804  				  inode->i_ino,
-44acc46d182ff36 Ivan Pravdin      2025-07-07  805  				  le16_to_cpu(el->l_tree_depth));
-44acc46d182ff36 Ivan Pravdin      2025-07-07  806  		goto out;
-44acc46d182ff36 Ivan Pravdin      2025-07-07  807  	}
-44acc46d182ff36 Ivan Pravdin      2025-07-07  808  
-9b7895efac906d6 Mark Fasheh       2008-11-12  809  	found = 0;
-9b7895efac906d6 Mark Fasheh       2008-11-12  810  	for (i = le16_to_cpu(el->l_next_free_rec) - 1; i >= 0; i--) {
-9b7895efac906d6 Mark Fasheh       2008-11-12  811  		rec = &el->l_recs[i];
-9b7895efac906d6 Mark Fasheh       2008-11-12  812  
-9b7895efac906d6 Mark Fasheh       2008-11-12  813  		if (le32_to_cpu(rec->e_cpos) <= major_hash) {
-9b7895efac906d6 Mark Fasheh       2008-11-12  814  			found = 1;
-9b7895efac906d6 Mark Fasheh       2008-11-12  815  			break;
-9b7895efac906d6 Mark Fasheh       2008-11-12  816  		}
-9b7895efac906d6 Mark Fasheh       2008-11-12  817  	}
-9b7895efac906d6 Mark Fasheh       2008-11-12  818  
-9b7895efac906d6 Mark Fasheh       2008-11-12  819  	if (!found) {
-7ecef14ab1db961 Joe Perches       2015-09-04  820  		ret = ocfs2_error(inode->i_sb,
-7ecef14ab1db961 Joe Perches       2015-09-04 @821  				  "Inode %lu has bad extent record (%u, %u, 0) in btree\n",
-7ecef14ab1db961 Joe Perches       2015-09-04  822  				  inode->i_ino,
-82a88475c352f95 Shaurya Rane      2025-10-05  823  				  eb_bh ? (unsigned long long)eb_bh->b_blocknr : 0);
-9b7895efac906d6 Mark Fasheh       2008-11-12  824  		goto out;
-9b7895efac906d6 Mark Fasheh       2008-11-12  825  	}
-9b7895efac906d6 Mark Fasheh       2008-11-12  826  
-9b7895efac906d6 Mark Fasheh       2008-11-12  827  	if (ret_phys_blkno)
-9b7895efac906d6 Mark Fasheh       2008-11-12  828  		*ret_phys_blkno = le64_to_cpu(rec->e_blkno);
-9b7895efac906d6 Mark Fasheh       2008-11-12  829  	if (ret_cpos)
-9b7895efac906d6 Mark Fasheh       2008-11-12  830  		*ret_cpos = le32_to_cpu(rec->e_cpos);
-9b7895efac906d6 Mark Fasheh       2008-11-12  831  	if (ret_clen)
-9b7895efac906d6 Mark Fasheh       2008-11-12  832  		*ret_clen = le16_to_cpu(rec->e_leaf_clusters);
-9b7895efac906d6 Mark Fasheh       2008-11-12  833  
-9b7895efac906d6 Mark Fasheh       2008-11-12  834  out:
-9b7895efac906d6 Mark Fasheh       2008-11-12  835  	brelse(eb_bh);
-9b7895efac906d6 Mark Fasheh       2008-11-12  836  	return ret;
-9b7895efac906d6 Mark Fasheh       2008-11-12  837  }
-38760e243249f03 Mark Fasheh       2007-09-11  838  
+On 2025/10/9 23:49, Deepanshu Kartikey wrote:
+> The extent map cache can become stale when extents are moved or
+> defragmented, causing subsequent operations to see outdated extent
+> flags. This triggers a BUG_ON in ocfs2_refcount_cal_cow_clusters().
+> 
+> The problem occurs when:
+> 1. copy_file_range() creates a reflinked extent with OCFS2_EXT_REFCOUNTED
+> 2. ioctl(FITRIM) triggers ocfs2_move_extents()
+> 3. __ocfs2_move_extents_range() reads and caches the extent (flags=0x2)
+> 4. ocfs2_move_extent()/ocfs2_defrag_extent() calls __ocfs2_move_extent()
+>    which clears OCFS2_EXT_REFCOUNTED flag on disk (flags=0x0)
+> 5. The extent map cache is not invalidated after the move
+> 6. Later write() operations read stale cached flags (0x2) but disk has
+>    updated flags (0x0), causing a mismatch
+> 7. BUG_ON(!(rec->e_flags & OCFS2_EXT_REFCOUNTED)) triggers
+> 
+> Fix by clearing the extent map cache after each extent move/defrag
+> operation in __ocfs2_move_extents_range(). This ensures subsequent
+> operations read fresh extent data from disk.
+> 
+> Link: https://lore.kernel.org/all/20251009142917.517229-1-kartikey406@gmail.com/T/
+> Reported-by: syzbot+6fdd8fa3380730a4b22c@syzkaller.appspotmail.com
+> Tested-by: syzbot+6fdd8fa3380730a4b22c@syzkaller.appspotmail.com
+> Closes: https://syzkaller.appspot.com/bug?id=2959889e1f6e216585ce522f7e8bc002b46ad9e7
+> Signed-off-by: Deepanshu Kartikey <kartikey406@gmail.com>
 
--- 
-0-DAY CI Kernel Test Service
-https://github.com/intel/lkp-tests/wiki
+Looks fine.
+Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+
+> ---
+> Changes in v2:
+>   - Fix moved to __ocfs2_move_extents_range() instead of ocfs2_refcount_cow()
+>   - The real issue is in FITRIM/move_extents code path, not COW path
+>   - COW path already clears cache at end of ocfs2_refcount_cow_hunk()
+> 
+>  fs/ocfs2/move_extents.c | 5 +++++
+>  1 file changed, 5 insertions(+)
+> ---
+>  fs/ocfs2/move_extents.c | 5 +++++
+>  1 file changed, 5 insertions(+)
+> 
+> diff --git a/fs/ocfs2/move_extents.c b/fs/ocfs2/move_extents.c
+> index 86f2631e6360..10923bf7c8b8 100644
+> --- a/fs/ocfs2/move_extents.c
+> +++ b/fs/ocfs2/move_extents.c
+> @@ -867,6 +867,11 @@ static int __ocfs2_move_extents_range(struct buffer_head *di_bh,
+>  			mlog_errno(ret);
+>  			goto out;
+>  		}
+> +		/*
+> +		 * Invalidate extent cache after moving/defragging to prevent
+> +		 * stale cached data with outdated extent flags.
+> +		 */
+> +		ocfs2_extent_map_trunc(inode, cpos);
+>  
+>  		context->clusters_moved += alloc_size;
+>  next:
+
