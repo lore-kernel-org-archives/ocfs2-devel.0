@@ -1,134 +1,95 @@
-Received: from out30-100.freemail.mail.aliyun.com (out30-100.freemail.mail.aliyun.com [115.124.30.100])
+Received: from forward201a.mail.yandex.net (forward201a.mail.yandex.net [178.154.239.92])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6E98616EB42
-	for <ocfs2-devel@lists.linux.dev>; Fri, 10 Oct 2025 07:01:41 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.100
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3CF4E25A65B
+	for <ocfs2-devel@lists.linux.dev>; Fri, 10 Oct 2025 09:28:58 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=178.154.239.92
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1760079707; cv=none; b=nFZBlgRAyIgg1C3cZevYVrW+tCw/OWz/FB5LwnWIl9x7ITEt68d9fsa3ZjvHdKWxh0j4ePBCmogKoeh74Ag9ypkn5mDNWNH9dTp+exiFB7bcAUh/LLbPI9EFRngZlnLJ9RvEQPCilLwiYpNABa6UKYbpL/cFmY9t26hJyTZ+O6U=
+	t=1760088542; cv=none; b=NgT4z8/RSruSuQUoRLxfBV1VR+rRa+Og8ulXW65IqziiJ+S46IFqrJuRMyaQzdH6WtHDxgDsUpdFZL2PmIH+4F641kVBVtn2SOA2an20OoHW7TCr820IzLe47Sf6tyBxSlue+v86UkAIW+C5ZT5lflp+yC9UlPATCBNb1WL2uO0=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1760079707; c=relaxed/simple;
-	bh=b2ErG0qvqA8tQoCTvxi8yHD4lca11UqlJtk09ljmaYE=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=Emxm+TBWFREvwSJgJJLTb+wA5AKO2Zo3jFHtluE+sAjHQBKHogC6ea+g4e2xQV6m6HPsJmUF95+JeaU1FhpcFuE+0RvWU/ERQBvESzQFh/hLyZSDYbDGCYEKniGqJxUaQRm2EqTu5vY2cKwXF+g4m7dovRBqirxnNNXPWC9EO5g=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=aHuJW31D; arc=none smtp.client-ip=115.124.30.100
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
+	s=arc-20240116; t=1760088542; c=relaxed/simple;
+	bh=t57QBDo4Jai7Ua2Kj3O0V93aqYNCIFTXLyoFndmnoPY=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=CYGS5w8FiUEvmYh0KQMS6oy6Q6aqMIro1mP5nc19oSxDlCiwcpR8Fd1yVneJL2HL8SEVrDNIx7lUhwSTsjJgkofOYaG2lab916ChyAoRoiAnYFau+ywQ2w0WRxmVrjMN6gzfPOfpEwQ44nKHATV9fzNRM2br0FJV05b2DHANWcY=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru; spf=pass smtp.mailfrom=yandex.ru; dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b=aVbdSmla; arc=none smtp.client-ip=178.154.239.92
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=yandex.ru
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="aHuJW31D"
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1760079697; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=mXKmbyFX3FA0cJsrVAYB0qCaQXErnYlYAHAHM5ZoNdY=;
-	b=aHuJW31DGDK3WBNLcCdauhwuLHg6ojd0PauDMJ9lnqUI0xCJaNi+IYYzan5+tpckqD7EH2/+YelCOMEXpbrlQRlAE7d7i6+x2lAdU5qC9wWovMN86dwZz60O0JY1jo489jkTec8zirSi81awnOLLdnlqTP3tuot7dP7etB4yGy4=
-Received: from 30.221.128.133(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0WpsVtab_1760079696 cluster:ay36)
-          by smtp.aliyun-inc.com;
-          Fri, 10 Oct 2025 15:01:36 +0800
-Message-ID: <7e7bf269-1e9a-45c5-b8c1-7ead30490956@linux.alibaba.com>
-Date: Fri, 10 Oct 2025 15:01:35 +0800
+	dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b="aVbdSmla"
+Received: from forward101a.mail.yandex.net (forward101a.mail.yandex.net [IPv6:2a02:6b8:c0e:500:1:45:d181:d101])
+	by forward201a.mail.yandex.net (Yandex) with ESMTPS id 2271584F99
+	for <ocfs2-devel@lists.linux.dev>; Fri, 10 Oct 2025 12:21:57 +0300 (MSK)
+Received: from mail-nwsmtp-smtp-production-main-84.vla.yp-c.yandex.net (mail-nwsmtp-smtp-production-main-84.vla.yp-c.yandex.net [IPv6:2a02:6b8:c1f:1311:0:640:df31:0])
+	by forward101a.mail.yandex.net (Yandex) with ESMTPS id 9AE3380C37;
+	Fri, 10 Oct 2025 12:21:48 +0300 (MSK)
+Received: by mail-nwsmtp-smtp-production-main-84.vla.yp-c.yandex.net (smtp/Yandex) with ESMTPSA id lLHPqbkLQ0U0-gVAzoh19;
+	Fri, 10 Oct 2025 12:21:48 +0300
+X-Yandex-Fwd: 1
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=yandex.ru; s=mail;
+	t=1760088108; bh=+Dsv2SmgYtPv8sD3EpC/uSTadJoBBJ+EbovdoM/VX3o=;
+	h=Message-ID:Date:Cc:Subject:To:From;
+	b=aVbdSmlaA6tR/ZSM3qu5XIMdzgLv8TMWfX4pHnO2IbfKDsHQ1/5WFE7A9mvhsVyEt
+	 tFmCISwjkbx2YIe2Uo6Uh8ZUTYF8vWB0RnkxTyO4YiRlz0sVW5/WzXjGMEI00SZ0PB
+	 fvM2jbufCSbj0b/f0F8XrWR1bAg6znkm6XYJt2ec=
+Authentication-Results: mail-nwsmtp-smtp-production-main-84.vla.yp-c.yandex.net; dkim=pass header.i=@yandex.ru
+From: Dmitry Antipov <dmantipov@yandex.ru>
+To: Mark Fasheh <mark@fasheh.com>,
+	Joel Becker <jlbec@evilplan.org>,
+	Joseph Qi <joseph.qi@linux.alibaba.com>
+Cc: Heming Zhao <heming.zhao@suse.com>,
+	ocfs2-devel@lists.linux.dev,
+	lvc-project@linuxtesting.org,
+	Dmitry Antipov <dmantipov@yandex.ru>,
+	syzbot+b20bbf680bb0f2ecedae@syzkaller.appspotmail.com
+Subject: [PATCH] ocfs2: add boundary check to ocfs2_check_dir_entry()
+Date: Fri, 10 Oct 2025 12:21:30 +0300
+Message-ID: <20251010092130.621495-1-dmantipov@yandex.ru>
+X-Mailer: git-send-email 2.51.0
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH] ocfs2: annotate flexible array members with
- __counted_by_le()
-To: Dmitry Antipov <dmantipov@yandex.ru>, Mark Fasheh <mark@fasheh.com>,
- Joel Becker <jlbec@evilplan.org>, akpm <akpm@linux-foundation.org>
-Cc: ocfs2-devel@lists.linux.dev
-References: <20251007123526.213150-1-dmantipov@yandex.ru>
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <20251007123526.213150-1-dmantipov@yandex.ru>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 
+In 'ocfs2_check_dir_entry()', add extra check whether at least the
+smallest possible dirent may be located at the specified offset
+within bh's data, thus preventing an out-of-bounds accesses below.
 
+Reported-by: syzbot+b20bbf680bb0f2ecedae@syzkaller.appspotmail.com
+Closes: https://syzkaller.appspot.com/bug?extid=b20bbf680bb0f2ecedae
+Signed-off-by: Dmitry Antipov <dmantipov@yandex.ru>
+---
+ fs/ocfs2/dir.c | 16 ++++++++++++++--
+ 1 file changed, 14 insertions(+), 2 deletions(-)
 
-On 2025/10/7 20:35, Dmitry Antipov wrote:
-> Annotate flexible array members of 'struct ocfs2_extent_list',
-> 'struct ocfs2_chain_list', 'struct ocfs2_truncate_log',
-> 'struct ocfs2_dx_entry_list', 'ocfs2_refcount_list' and
-> 'struct ocfs2_xattr_header' with  '__counted_by_le()'
-> attribute to improve array bounds checking when
-> CONFIG_UBSAN_BOUNDS is enabled.
-> 
-> Signed-off-by: Dmitry Antipov <dmantipov@yandex.ru>
-
-Looks fine.
-Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-
-> ---
->  fs/ocfs2/ocfs2_fs.h | 22 ++++++++++++++--------
->  1 file changed, 14 insertions(+), 8 deletions(-)
-> 
-> diff --git a/fs/ocfs2/ocfs2_fs.h b/fs/ocfs2/ocfs2_fs.h
-> index ae0e44e5f2ad..f7763da5c4a2 100644
-> --- a/fs/ocfs2/ocfs2_fs.h
-> +++ b/fs/ocfs2/ocfs2_fs.h
-> @@ -468,7 +468,8 @@ struct ocfs2_extent_list {
->  	__le16 l_reserved1;
->  	__le64 l_reserved2;		/* Pad to
->  					   sizeof(ocfs2_extent_rec) */
-> -/*10*/	struct ocfs2_extent_rec l_recs[];	/* Extent records */
-> +					/* Extent records */
-> +/*10*/	struct ocfs2_extent_rec l_recs[] __counted_by_le(l_count);
->  };
->  
->  /*
-> @@ -482,7 +483,8 @@ struct ocfs2_chain_list {
->  	__le16 cl_count;		/* Total chains in this list */
->  	__le16 cl_next_free_rec;	/* Next unused chain slot */
->  	__le64 cl_reserved1;
-> -/*10*/	struct ocfs2_chain_rec cl_recs[];	/* Chain records */
-> +					/* Chain records */
-> +/*10*/	struct ocfs2_chain_rec cl_recs[] __counted_by_le(cl_count);
->  };
->  
->  /*
-> @@ -494,7 +496,8 @@ struct ocfs2_truncate_log {
->  /*00*/	__le16 tl_count;		/* Total records in this log */
->  	__le16 tl_used;			/* Number of records in use */
->  	__le32 tl_reserved1;
-> -/*08*/	struct ocfs2_truncate_rec tl_recs[];	/* Truncate records */
-> +					/* Truncate records */
-> +/*08*/	struct ocfs2_truncate_rec tl_recs[] __counted_by_le(tl_count);
->  };
->  
->  /*
-> @@ -796,9 +799,10 @@ struct ocfs2_dx_entry_list {
->  					 * possible in de_entries */
->  	__le16		de_num_used;	/* Current number of
->  					 * de_entries entries */
-> -	struct	ocfs2_dx_entry		de_entries[];	/* Indexed dir entries
-> -							 * in a packed array of
-> -							 * length de_num_used */
-> +					/* Indexed dir entries in a packed
-> +					 * array of length de_num_used.
-> +					 */
-> +	struct	ocfs2_dx_entry		de_entries[] __counted_by_le(de_count);
->  };
->  
->  #define OCFS2_DX_FLAG_INLINE	0x01
-> @@ -934,7 +938,8 @@ struct ocfs2_refcount_list {
->  	__le16 rl_used;		/* Current number of used records */
->  	__le32 rl_reserved2;
->  	__le64 rl_reserved1;	/* Pad to sizeof(ocfs2_refcount_record) */
-> -/*10*/	struct ocfs2_refcount_rec rl_recs[];	/* Refcount records */
-> +				/* Refcount records */
-> +/*10*/	struct ocfs2_refcount_rec rl_recs[] __counted_by_le(rl_count);
->  };
->  
->  
-> @@ -1020,7 +1025,8 @@ struct ocfs2_xattr_header {
->  						    buckets.  A block uses
->  						    xb_check and sets
->  						    this field to zero.) */
-> -	struct ocfs2_xattr_entry xh_entries[]; /* xattr entry list. */
-> +						/* xattr entry list. */
-> +	struct ocfs2_xattr_entry xh_entries[] __counted_by_le(xh_count);
->  };
->  
->  /*
+diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
+index 8c9c4825f984..c523816a3ebb 100644
+--- a/fs/ocfs2/dir.c
++++ b/fs/ocfs2/dir.c
+@@ -302,8 +302,20 @@ static int ocfs2_check_dir_entry(struct inode *dir,
+ 				 unsigned long offset)
+ {
+ 	const char *error_msg = NULL;
+-	const int rlen = le16_to_cpu(de->rec_len);
+-	const unsigned long next_offset = ((char *) de - buf) + rlen;
++	unsigned long next_offset;
++	int rlen;
++
++	if (offset > size - OCFS2_DIR_REC_LEN(1)) {
++		/* Dirent is (maybe partially) beyond the buffer
++		 * boundaries so touching 'de' members is unsafe.
++		 */
++		mlog(ML_ERROR, "out-of-bounds entry in directory #%llu: offset=%lu",
++		     (unsigned long long)OCFS2_I(dir)->ip_blkno, offset);
++		return 0;
++	}
++
++	rlen = le16_to_cpu(de->rec_len);
++	next_offset = ((char *) de - buf) + rlen;
+ 
+ 	if (unlikely(rlen < OCFS2_DIR_REC_LEN(1)))
+ 		error_msg = "rec_len is smaller than minimal";
+-- 
+2.51.0
 
