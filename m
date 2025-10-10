@@ -1,31 +1,31 @@
-Received: from out30-101.freemail.mail.aliyun.com (out30-101.freemail.mail.aliyun.com [115.124.30.101])
+Received: from out30-100.freemail.mail.aliyun.com (out30-100.freemail.mail.aliyun.com [115.124.30.100])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8CA9E14286
-	for <ocfs2-devel@lists.linux.dev>; Fri, 10 Oct 2025 06:55:59 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.101
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6E98616EB42
+	for <ocfs2-devel@lists.linux.dev>; Fri, 10 Oct 2025 07:01:41 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.100
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1760079361; cv=none; b=KtqZPbC4KHh03tthEoCy9lukCMV3Pg4dn7NQeKizrcwfqVXc1h9SeKuYa/C5o1wlk17BnI4UTAX6Hr2fD1BA2k0WecZ/hSz1uOXmyQp5kkpEVcgPGCUtN64DPAqCMvwsK4QeDeLCK6AJKckXUyJ0cQVCVPOjt9vUHyciX4e9BUA=
+	t=1760079707; cv=none; b=nFZBlgRAyIgg1C3cZevYVrW+tCw/OWz/FB5LwnWIl9x7ITEt68d9fsa3ZjvHdKWxh0j4ePBCmogKoeh74Ag9ypkn5mDNWNH9dTp+exiFB7bcAUh/LLbPI9EFRngZlnLJ9RvEQPCilLwiYpNABa6UKYbpL/cFmY9t26hJyTZ+O6U=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1760079361; c=relaxed/simple;
-	bh=raFZ+P+s/ST/v5A5HASyq3xsWcHC7c5CZvErNvjrPGs=;
+	s=arc-20240116; t=1760079707; c=relaxed/simple;
+	bh=b2ErG0qvqA8tQoCTvxi8yHD4lca11UqlJtk09ljmaYE=;
 	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=LyMrYvnhOJKOmWTY0hQmjzMA2zOhhFq+xSNLED/JVOIhH72EdJYrF2uwxEGCK4UJIk6xdnottwfjDmR6dhGfdECYNGf4srgz0V4wwYRbIBSYhP4PhMnxaF+meKcTCOU1AgFmE/uvauYMpnmtKuD2N8QXm5YsC0RgBjYP/u7/N2k=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=nZLds8uQ; arc=none smtp.client-ip=115.124.30.101
+	 In-Reply-To:Content-Type; b=Emxm+TBWFREvwSJgJJLTb+wA5AKO2Zo3jFHtluE+sAjHQBKHogC6ea+g4e2xQV6m6HPsJmUF95+JeaU1FhpcFuE+0RvWU/ERQBvESzQFh/hLyZSDYbDGCYEKniGqJxUaQRm2EqTu5vY2cKwXF+g4m7dovRBqirxnNNXPWC9EO5g=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=aHuJW31D; arc=none smtp.client-ip=115.124.30.100
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="nZLds8uQ"
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="aHuJW31D"
 DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
 	d=linux.alibaba.com; s=default;
-	t=1760079350; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=pTKOBzFsIxYOdkULzoYSPwXX9Gf35h3bJKkOf5UfQ3Q=;
-	b=nZLds8uQtt43lk5i/jk+76nKbKF0grZmnSkvHKEVBFLBsXbPDCXKmU0ZCr1sej2VHE8Kr2s5LZu1X2mIYYdSelchMkDLXOb5gL8i9Y5grHtiUqsDl7lwhSY4uwjyI4GLPMBEhb31RaoOpy+xBk9gpOMPp0ZZLIeUEIQELpvhAw0=
-Received: from 30.221.128.133(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0WpsOp07_1760079349 cluster:ay36)
+	t=1760079697; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=mXKmbyFX3FA0cJsrVAYB0qCaQXErnYlYAHAHM5ZoNdY=;
+	b=aHuJW31DGDK3WBNLcCdauhwuLHg6ojd0PauDMJ9lnqUI0xCJaNi+IYYzan5+tpckqD7EH2/+YelCOMEXpbrlQRlAE7d7i6+x2lAdU5qC9wWovMN86dwZz60O0JY1jo489jkTec8zirSi81awnOLLdnlqTP3tuot7dP7etB4yGy4=
+Received: from 30.221.128.133(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0WpsVtab_1760079696 cluster:ay36)
           by smtp.aliyun-inc.com;
-          Fri, 10 Oct 2025 14:55:49 +0800
-Message-ID: <f6e102dd-af4a-4ce0-a73c-a9fa1309b8ea@linux.alibaba.com>
-Date: Fri, 10 Oct 2025 14:55:49 +0800
+          Fri, 10 Oct 2025 15:01:36 +0800
+Message-ID: <7e7bf269-1e9a-45c5-b8c1-7ead30490956@linux.alibaba.com>
+Date: Fri, 10 Oct 2025 15:01:35 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -33,78 +33,102 @@ List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v2] ocfs2: add extra consistency check to
- ocfs2_dx_dir_lookup_rec()
-To: Heming Zhao <heming.zhao@suse.com>, Dmitry Antipov <dmantipov@yandex.ru>,
- Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>
-Cc: ocfs2-devel@lists.linux.dev, lvc-project@linuxtesting.org,
- syzbot+30b53487d00b4f7f0922@syzkaller.appspotmail.com
-References: <8af5355e-5a05-46c5-bee6-c7ed3de71c0b@suse.com>
- <20251007094626.196143-1-dmantipov@yandex.ru>
- <93f3ef3c-0363-430b-acf8-db70bd4a4b16@suse.com>
- <35fdecc4-39f3-4f3b-b1fa-95c9a8134f18@linux.alibaba.com>
- <7398fad7-3727-411b-a648-bfd0ca915f82@suse.com>
+Subject: Re: [PATCH] ocfs2: annotate flexible array members with
+ __counted_by_le()
+To: Dmitry Antipov <dmantipov@yandex.ru>, Mark Fasheh <mark@fasheh.com>,
+ Joel Becker <jlbec@evilplan.org>, akpm <akpm@linux-foundation.org>
+Cc: ocfs2-devel@lists.linux.dev
+References: <20251007123526.213150-1-dmantipov@yandex.ru>
 From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <7398fad7-3727-411b-a648-bfd0ca915f82@suse.com>
+In-Reply-To: <20251007123526.213150-1-dmantipov@yandex.ru>
 Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Content-Transfer-Encoding: 7bit
 
 
 
-On 2025/10/10 14:43, Heming Zhao wrote:
-> On 10/10/25 14:36, Joseph Qi wrote:
->>
->>
->> On 2025/10/10 13:53, Heming Zhao wrote:
->>> Hi Joseph,
->>>
->>> Do you have time to check my following comment?
->>>
->>> On 10/7/25 17:46, Dmitry Antipov wrote:
->>>> In 'ocfs2_dx_dir_lookup_rec()', check whether an extent list length
->>>> of the directory indexing block matches the one configured via the
->>>> superblock parameters established at mount, thus preventing an
->>>> out-of-bounds accesses while iterating over the extent records below.
->>>>
->>>> Reported-by: syzbot+30b53487d00b4f7f0922@syzkaller.appspotmail.com
->>>> Closes: https://syzkaller.appspot.com/bug?extid=30b53487d00b4f7f0922
->>>> Signed-off-by: Dmitry Antipov <dmantipov@yandex.ru>
->>>> ---
->>>> v2: move sanity check to ocfs2_dx_dir_lookup_rec() (Heming Zhao)
->>>>       and rely on the convenient ocfs2_error() to handle error
->>>> ---
->>>>    fs/ocfs2/dir.c | 8 ++++++++
->>>>    1 file changed, 8 insertions(+)
->>>>
->>>> diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
->>>> index 8c9c4825f984..ece0462a5d26 100644
->>>> --- a/fs/ocfs2/dir.c
->>>> +++ b/fs/ocfs2/dir.c
->>>> @@ -778,6 +778,14 @@ static int ocfs2_dx_dir_lookup_rec(struct inode *inode,
->>>>        struct ocfs2_extent_block *eb;
->>>>        struct ocfs2_extent_rec *rec = NULL;
->>>>    +    if (le16_to_cpu(el->l_count) !=
->>>> +        ocfs2_extent_recs_per_dx_root(inode->i_sb)) {
->>>
->>> el->l_count represents the length of the array l_recs[], the max value is
->>> ocfs2_extent_recs_per_dx_root(sb). Therefore, we should use "<=" instead of "!=".
->>>
->>
->> In ocfs2_dx_dir_attach_index():
->>    dx_root->dr_list.l_count = cpu_to_le16(ocfs2_extent_recs_per_dx_root(osb->sb))
->>
->> And the above path is non-inline case, so it seems '!=' is correct.
->>
->> Thanks,
->> Joseph
->>
->>
+On 2025/10/7 20:35, Dmitry Antipov wrote:
+> Annotate flexible array members of 'struct ocfs2_extent_list',
+> 'struct ocfs2_chain_list', 'struct ocfs2_truncate_log',
+> 'struct ocfs2_dx_entry_list', 'ocfs2_refcount_list' and
+> 'struct ocfs2_xattr_header' with  '__counted_by_le()'
+> attribute to improve array bounds checking when
+> CONFIG_UBSAN_BOUNDS is enabled.
 > 
-> Totally understand, thanks for the explanation.
-> And this patch looks good to me.
-> 
-Could you also give your RVB?
+> Signed-off-by: Dmitry Antipov <dmantipov@yandex.ru>
 
-Thanks,
-Joseph
+Looks fine.
+Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+
+> ---
+>  fs/ocfs2/ocfs2_fs.h | 22 ++++++++++++++--------
+>  1 file changed, 14 insertions(+), 8 deletions(-)
+> 
+> diff --git a/fs/ocfs2/ocfs2_fs.h b/fs/ocfs2/ocfs2_fs.h
+> index ae0e44e5f2ad..f7763da5c4a2 100644
+> --- a/fs/ocfs2/ocfs2_fs.h
+> +++ b/fs/ocfs2/ocfs2_fs.h
+> @@ -468,7 +468,8 @@ struct ocfs2_extent_list {
+>  	__le16 l_reserved1;
+>  	__le64 l_reserved2;		/* Pad to
+>  					   sizeof(ocfs2_extent_rec) */
+> -/*10*/	struct ocfs2_extent_rec l_recs[];	/* Extent records */
+> +					/* Extent records */
+> +/*10*/	struct ocfs2_extent_rec l_recs[] __counted_by_le(l_count);
+>  };
+>  
+>  /*
+> @@ -482,7 +483,8 @@ struct ocfs2_chain_list {
+>  	__le16 cl_count;		/* Total chains in this list */
+>  	__le16 cl_next_free_rec;	/* Next unused chain slot */
+>  	__le64 cl_reserved1;
+> -/*10*/	struct ocfs2_chain_rec cl_recs[];	/* Chain records */
+> +					/* Chain records */
+> +/*10*/	struct ocfs2_chain_rec cl_recs[] __counted_by_le(cl_count);
+>  };
+>  
+>  /*
+> @@ -494,7 +496,8 @@ struct ocfs2_truncate_log {
+>  /*00*/	__le16 tl_count;		/* Total records in this log */
+>  	__le16 tl_used;			/* Number of records in use */
+>  	__le32 tl_reserved1;
+> -/*08*/	struct ocfs2_truncate_rec tl_recs[];	/* Truncate records */
+> +					/* Truncate records */
+> +/*08*/	struct ocfs2_truncate_rec tl_recs[] __counted_by_le(tl_count);
+>  };
+>  
+>  /*
+> @@ -796,9 +799,10 @@ struct ocfs2_dx_entry_list {
+>  					 * possible in de_entries */
+>  	__le16		de_num_used;	/* Current number of
+>  					 * de_entries entries */
+> -	struct	ocfs2_dx_entry		de_entries[];	/* Indexed dir entries
+> -							 * in a packed array of
+> -							 * length de_num_used */
+> +					/* Indexed dir entries in a packed
+> +					 * array of length de_num_used.
+> +					 */
+> +	struct	ocfs2_dx_entry		de_entries[] __counted_by_le(de_count);
+>  };
+>  
+>  #define OCFS2_DX_FLAG_INLINE	0x01
+> @@ -934,7 +938,8 @@ struct ocfs2_refcount_list {
+>  	__le16 rl_used;		/* Current number of used records */
+>  	__le32 rl_reserved2;
+>  	__le64 rl_reserved1;	/* Pad to sizeof(ocfs2_refcount_record) */
+> -/*10*/	struct ocfs2_refcount_rec rl_recs[];	/* Refcount records */
+> +				/* Refcount records */
+> +/*10*/	struct ocfs2_refcount_rec rl_recs[] __counted_by_le(rl_count);
+>  };
+>  
+>  
+> @@ -1020,7 +1025,8 @@ struct ocfs2_xattr_header {
+>  						    buckets.  A block uses
+>  						    xb_check and sets
+>  						    this field to zero.) */
+> -	struct ocfs2_xattr_entry xh_entries[]; /* xattr entry list. */
+> +						/* xattr entry list. */
+> +	struct ocfs2_xattr_entry xh_entries[] __counted_by_le(xh_count);
+>  };
+>  
+>  /*
 
