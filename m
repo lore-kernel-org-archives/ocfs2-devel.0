@@ -1,154 +1,113 @@
-Received: from mail-wm1-f52.google.com (mail-wm1-f52.google.com [209.85.128.52])
+Received: from mail-pl1-f174.google.com (mail-pl1-f174.google.com [209.85.214.174])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4BF3D21B905
-	for <ocfs2-devel@lists.linux.dev>; Sat, 11 Oct 2025 07:31:43 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.52
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A5A071D63FB
+	for <ocfs2-devel@lists.linux.dev>; Sat, 11 Oct 2025 07:42:34 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.214.174
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1760167905; cv=none; b=nPEAK2LYYptvAQfsjA7eqCZ+cnPtdNOJRgkQq8QWa4rkvAKyGL6/DiMujYvB3uVV9oiKWgHCwsnPIAemTguMikQjyg/1DkhadrLcxNynZcb59e9Pm3mxbow8JuaedA5TS99SrOSBfdTZkT5WlyaQRkP9iAHJBqTXFuRIMfQ/vmQ=
+	t=1760168556; cv=none; b=TdsYBlRmQZNEL61e10hNVMj5CeN82UnJw4JvaGdq1sDOHg5to68gQLhbq5f7ck3DYjIdun+2amHUwUWSOxidpF3AV6o5suSzwFT7GMC+RBKo0yAx07PALVxoGuDA3yBUJN/nITlR3KSF4e0b5eBv6rLUIDww+wBQ8QNwWxBlaug=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1760167905; c=relaxed/simple;
-	bh=4ZQMZ6lu98hFT5R3rQTJZOSGHKLpEJ+yNr9McwBwSuI=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=ADQ7eGSnPZjwysIo1A5pXIFKqZzb5AZptEETAqqkISPTi4MRSGeISYR13gSmzUrJS/E7IciiqNcSjVArmm+cwFHEuhn/JK2N149sIsfVrlWdMASKyb5aLlQIWQ+92Jm80cToQf7DBheYd29BLC6S77L/rl44+W1b0ysBOpXWNf4=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=TiNkCN30; arc=none smtp.client-ip=209.85.128.52
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
+	s=arc-20240116; t=1760168556; c=relaxed/simple;
+	bh=NpFtc9Ia/VUtbsEj0nTLyL2x93ej74vMvRzTFZH2utg=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=BXdKRpmqhYg0nkPPoBey2oCiE/CH8Oul6SYsv9JhCSC4kmG3vs+inJZyt+HsjIS0K9h7aE19RG9wHOVhO5vOiFkERr9119OyFUDNaTqUFkzGrOyujtsl6Trz3uQU8I57902YnJr3A9hNWoMNxSDaLeg3UKGo+cNp2fbk99ZtenY=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=NB10ezse; arc=none smtp.client-ip=209.85.214.174
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="TiNkCN30"
-Received: by mail-wm1-f52.google.com with SMTP id 5b1f17b1804b1-46e33cec8edso2096815e9.2
-        for <ocfs2-devel@lists.linux.dev>; Sat, 11 Oct 2025 00:31:43 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="NB10ezse"
+Received: by mail-pl1-f174.google.com with SMTP id d9443c01a7336-27ee41e0798so44638725ad.1
+        for <ocfs2-devel@lists.linux.dev>; Sat, 11 Oct 2025 00:42:34 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=suse.com; s=google; t=1760167901; x=1760772701; darn=lists.linux.dev;
-        h=content-transfer-encoding:in-reply-to:content-language:from
-         :references:cc:to:subject:user-agent:mime-version:date:message-id
-         :from:to:cc:subject:date:message-id:reply-to;
-        bh=tbYY7sY8Jo2X7gob7T9wRzQDhnsoRHBvrry0f0lUkwI=;
-        b=TiNkCN30SpA75kxEAW/2EtvB8sDwYIAyfMBgKq/eQStkjiQlhR4z0yHOYaSWLUJ0BQ
-         QrNYsH0B+na8LHiaMzW/R03444+1sM3teuqwmUf/lMar3HoMDwhYyNqT54Eq03u1OALE
-         KkFc81mpQkC7VD6qBp4I4zAVIWLbpgHtLb+vjuAPDidqDlFpK+wwi7LtpNefTq5N3pQM
-         kmxZXz0BmYj2SJbhAAWBG3gtwERe5tK2+CWYRlwitDOPOlakoeIFswNIONLhSvo8LszL
-         7hjhRyAfwzR9XFYmVY/b8TbkerwE3Ml7HTO1RMc12tZPAVzc9metKqoRk/5Ut6Z3GX75
-         LYWQ==
+        d=gmail.com; s=20230601; t=1760168554; x=1760773354; darn=lists.linux.dev;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:from:to:cc:subject:date:message-id:reply-to;
+        bh=cZO3ywerteuN+FePy9qJsgDAwYZUo+tnTmcRp4rGvok=;
+        b=NB10ezse76zM3cODzgLgcm6bTNWbCL1Qhc+/gSJOSYQp3R4A4tzOc9dOnGdAvLBo0b
+         C0XqkkfiOXeWwGJXaq18+f/5wQo7p2d0OuRSbx7MPdK9LrtkBH3FmJX6xikH6pN9ouGV
+         LFPPPPx5otG4a576uRwmJoeSbr4NOK1vJkE89UoXqnRFCuAN1LRsNvJNXhkYzX2vMFKD
+         T/jFWhQn04DphHNC+dGmWmMEIALiuZixfcFV+ah5G0dCWsROQkitXHSCJOrHmXTZMCNl
+         xqjLbc7i4NgPf2znPb1YbjUbrXmbMDVTBMI11OaAneu3tZRDCJIoVWm9xii2wvjhw48M
+         zzyA==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1760167901; x=1760772701;
-        h=content-transfer-encoding:in-reply-to:content-language:from
-         :references:cc:to:subject:user-agent:mime-version:date:message-id
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
-        bh=tbYY7sY8Jo2X7gob7T9wRzQDhnsoRHBvrry0f0lUkwI=;
-        b=X2oDK85me7yOOz6sctnQbgdpS7duDtETSeYmCpQ0UgkWMn2PWX57TQBVA/Wz5HfcSb
-         XlPyC/+q0vdaGtJv8KEDgGfQkULi+bgTJqUKvCG9Hmk1sqpn6V217f9pZes88Jl7bzIf
-         P0rhuRZ+pYiJntvfadUmZ/JIcJWkjIpD8RAH40d7UyzVRO6LckSZSlI+zgP46+r8V/p3
-         Sw22rMbCllIjqu2LpuIp36Y4xN3aATq21eTp0nxDHrzSpFuWBiXf/qvhPMAt8lkvzj7V
-         qN70rOVQQK5YEN1uXTtT6a8JHfHbkICpvYW1er2KQ6PdCf41mDdEkObcUXjWjMtP+4wX
-         xh0w==
-X-Gm-Message-State: AOJu0YzFoFHPeWd2cgtjAcx7Kl5duURq+vFtDYTJYlnv1Enjntn4uI1y
-	2c8zGa5tErQYtdQlt5PfStrBo8wVtkiI9cDs9koQNgHs5fG5yRRzNlg/izmgPhwT7jA=
-X-Gm-Gg: ASbGncvsNY8Ja4j5AB9ubXXajnFp40LTi1TmY/fuzqG/JFrD+5jr/FGSjnPPCXSVj1A
-	/zTVcZekQGLfhoet4TAQgbHzlsu3cuhX3l57nYyjAJiMHGTzOa8OSZPx4LJR9iHSSEEyA3gimNj
-	caMrRWOqAEA9bmI3iKpdDmBhSc857V/mryqF+g+YN9Wo53Bnag9FLlvcPiortyWj16ApRYzS/27
-	iJSwAILvYIMFI6ecQe2Tv9Cw2drUASd7SwkRI0cZaB1Ze1YQhHgmtkWWJoQW6xmxDI8V4sXbVEt
-	VYnmf1J2AHdxZGux/zS1y6Gek7Z1CWBvxpUDGIHsPlIMphxSgbpb3Gte9L3aV+Hio7Dlcf78/5u
-	YN2vfDK6vGaAdPq4Qa4ONgG6lCf+X5HkLPrKguS6VW3jNpn8mvp8EhrIR3do=
-X-Google-Smtp-Source: AGHT+IH3Fu1/FK2XkLjEzPs+tdGWk8//yg/29/qkmRtovY3U1OJ54a6kwdpjvuNZuN8cPifJyZtrZw==
-X-Received: by 2002:a05:600c:4e93:b0:45f:2919:5e9c with SMTP id 5b1f17b1804b1-46fa9a8ae60mr55204465e9.2.1760167901536;
-        Sat, 11 Oct 2025 00:31:41 -0700 (PDT)
-Received: from [10.202.112.30] ([202.127.77.110])
-        by smtp.gmail.com with ESMTPSA id 98e67ed59e1d1-33b626403desm5241528a91.7.2025.10.11.00.31.37
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Sat, 11 Oct 2025 00:31:40 -0700 (PDT)
-Message-ID: <d4398dec-0b71-4070-b542-b595edd0f8e4@suse.com>
-Date: Sat, 11 Oct 2025 15:31:35 +0800
+        d=1e100.net; s=20230601; t=1760168554; x=1760773354;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:x-gm-message-state:from:to:cc:subject:date:message-id
+         :reply-to;
+        bh=cZO3ywerteuN+FePy9qJsgDAwYZUo+tnTmcRp4rGvok=;
+        b=ecOOtybr310cR1LHuhu824pTlnP1XC+GxA5o5lUr9Z7HgZ18hPbY+SiOTMb/qmTceS
+         wzYC7a3dPaOTek9rHb4K4qK5SXtl48muhL/AiV1eQvSDPEzqXJZeAM2FnFG+HLXA6arK
+         6tfxDuT1fEY4zwqm4oWvpU0SDbcbXkFvHv9nPx2tReZtoOPhtZncqxjF59xJhJ/NrXNg
+         2dxw+apPxN3h425ZXvsCAzuN1N1p7zWYUHcKXhbOSDFF7a8m9Jet/UbXnWs7wV6KbTp/
+         dZDRwPgzFEeXXRiDg5bJNNECziGmXlvPUWofFsZ3e6likwmqNAqtqBRtrsMqJ4w86aX4
+         z/pw==
+X-Gm-Message-State: AOJu0YyIwcwJicn6yZ6UHQqNkQxpPuY8fJCnbrfmIesphL077Sq1XBHu
+	Fy03gDH1meVxS0pPlhtXlMTDzHaxA8JO82os3ifZEz8vtHzL+eVzMfHbSMyEGu3SJsI=
+X-Gm-Gg: ASbGnct+o7YhQO9zGJjYt9X+EF6bDaw+bMyNCKguBuKgbwTceo9RVCjxe4xJKNHy2SA
+	mXMc4+6aV4UoGFNPvFoRkYCXrjEmSLfRvx7pZlu2YhJ9XtYzRNm3Vkn4nJ7Dz03EggnIwmUcV3O
+	ie2jWVoTciVBMr/7Hlz+R4FLCrFqK609qYP12cyAHMv4TtcMjcMB0T7hSqUiiCtDDtz/GcHm2iE
+	cNaKORipZJa7NfuM+/imFcuiObON3hpFz1bMjX9TUl57LbruUX78jJUwNBqpdIKyBlH/LJcaj4o
+	y5d5EahjmsPSwG/QFPNdn4yE7dN5g2T9v0upzvVoBZ/+1Zc5uWU4HiLkuiQqgkF5zg8FpLxRhXz
+	siQm540lArgiR5mDk+17pmwhhFclTb6oKx6mdsmBPNLW/TiXjZAXcg0irSyhtUYSKm+D9nA182/
+	cA7InB6UNhDCNkQ9mBheE3mP9rC4Yqbyo=
+X-Google-Smtp-Source: AGHT+IHVzsN4OObaUacV8+iwbdoA5hLuvUY03lsbXr/AKHdhX4aXGovoDEJRDGRsbYt7U199Icby8Q==
+X-Received: by 2002:a17:902:f607:b0:25c:7434:1c03 with SMTP id d9443c01a7336-290273568e4mr188544205ad.10.1760168553718;
+        Sat, 11 Oct 2025 00:42:33 -0700 (PDT)
+Received: from deepanshu-kernel-hacker.. ([2405:201:682f:389d:87ea:a5ed:8e4:bfcc])
+        by smtp.gmail.com with ESMTPSA id d9443c01a7336-29034de6e2asm77493045ad.23.2025.10.11.00.42.30
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Sat, 11 Oct 2025 00:42:32 -0700 (PDT)
+From: Deepanshu Kartikey <kartikey406@gmail.com>
+To: heming.zhao@suse.com,
+	joseph.qi@linux.alibaba.com,
+	mark@fasheh.com,
+	jlbec@evilplan.org
+Cc: ocfs2-devel@lists.linux.dev,
+	linux-kernel@vger.kernel.org,
+	syzbot+6fdd8fa3380730a4b22c@syzkaller.appspotmail.com
+Subject: Re: [PATCH] ocfs2: fix stale extent map cache during COW operations
+Date: Sat, 11 Oct 2025 13:12:26 +0530
+Message-ID: <20251011074226.821546-1-kartikey406@gmail.com>
+X-Mailer: git-send-email 2.43.0
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v2] ocfs2: clear extent cache after moving/defragmenting
- extents
-To: Joseph Qi <joseph.qi@linux.alibaba.com>,
- Deepanshu Kartikey <kartikey406@gmail.com>, mark@fasheh.com,
- jlbec@evilplan.org, akpm <akpm@linux-foundation.org>
-Cc: ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org,
- syzbot+6fdd8fa3380730a4b22c@syzkaller.appspotmail.com
-References: <20251009154903.522339-1-kartikey406@gmail.com>
- <94c9efca-2805-4fcb-a52b-e26eac8f58e1@linux.alibaba.com>
-From: Heming Zhao <heming.zhao@suse.com>
-Content-Language: en-US
-In-Reply-To: <94c9efca-2805-4fcb-a52b-e26eac8f58e1@linux.alibaba.com>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 
-Hi Joseph,
 
-please check my comments in another mail.
+Hi Heming,
 
-https://lore.kernel.org/all/20251009142917.517229-1-kartikey406@gmail.com/T/#m0c02c884701c12d71206d0f9aba4450879b18e0c
+Thank you for the detailed analysis and feedback.
 
-- Heming
+I appreciate your review. However, I'm trying to understand your explanation 
+better. You mentioned that step 5 (write with zeros) cleans the file data 
+and causes the refcount flag mismatch. 
 
-On 10/10/25 09:21, Joseph Qi wrote:
-> 
-> 
-> On 2025/10/9 23:49, Deepanshu Kartikey wrote:
->> The extent map cache can become stale when extents are moved or
->> defragmented, causing subsequent operations to see outdated extent
->> flags. This triggers a BUG_ON in ocfs2_refcount_cal_cow_clusters().
->>
->> The problem occurs when:
->> 1. copy_file_range() creates a reflinked extent with OCFS2_EXT_REFCOUNTED
->> 2. ioctl(FITRIM) triggers ocfs2_move_extents()
->> 3. __ocfs2_move_extents_range() reads and caches the extent (flags=0x2)
->> 4. ocfs2_move_extent()/ocfs2_defrag_extent() calls __ocfs2_move_extent()
->>     which clears OCFS2_EXT_REFCOUNTED flag on disk (flags=0x0)
->> 5. The extent map cache is not invalidated after the move
->> 6. Later write() operations read stale cached flags (0x2) but disk has
->>     updated flags (0x0), causing a mismatch
->> 7. BUG_ON(!(rec->e_flags & OCFS2_EXT_REFCOUNTED)) triggers
->>
->> Fix by clearing the extent map cache after each extent move/defrag
->> operation in __ocfs2_move_extents_range(). This ensures subsequent
->> operations read fresh extent data from disk.
->>
->> Link: https://lore.kernel.org/all/20251009142917.517229-1-kartikey406@gmail.com/T/
->> Reported-by: syzbot+6fdd8fa3380730a4b22c@syzkaller.appspotmail.com
->> Tested-by: syzbot+6fdd8fa3380730a4b22c@syzkaller.appspotmail.com
->> Closes: https://syzkaller.appspot.com/bug?id=2959889e1f6e216585ce522f7e8bc002b46ad9e7
->> Signed-off-by: Deepanshu Kartikey <kartikey406@gmail.com>
-> 
-> Looks fine.
-> Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-> 
->> ---
->> Changes in v2:
->>    - Fix moved to __ocfs2_move_extents_range() instead of ocfs2_refcount_cow()
->>    - The real issue is in FITRIM/move_extents code path, not COW path
->>    - COW path already clears cache at end of ocfs2_refcount_cow_hunk()
->>
->>   fs/ocfs2/move_extents.c | 5 +++++
->>   1 file changed, 5 insertions(+)
->> ---
->>   fs/ocfs2/move_extents.c | 5 +++++
->>   1 file changed, 5 insertions(+)
->>
->> diff --git a/fs/ocfs2/move_extents.c b/fs/ocfs2/move_extents.c
->> index 86f2631e6360..10923bf7c8b8 100644
->> --- a/fs/ocfs2/move_extents.c
->> +++ b/fs/ocfs2/move_extents.c
->> @@ -867,6 +867,11 @@ static int __ocfs2_move_extents_range(struct buffer_head *di_bh,
->>   			mlog_errno(ret);
->>   			goto out;
->>   		}
->> +		/*
->> +		 * Invalidate extent cache after moving/defragging to prevent
->> +		 * stale cached data with outdated extent flags.
->> +		 */
->> +		ocfs2_extent_map_trunc(inode, cpos);
->>   
->>   		context->clusters_moved += alloc_size;
->>   next:
-> 
-> 
+Looking at the C reproducer, I see:
+- Step 7: copy_file_range() creates reflinked extent (flags=0x2)
+- Step 8: ioctl(fd, 0x40406f06, ...) which is FITRIM
+- Step 9: write() triggers the BUG_ON
 
+In my analysis, step 8 (FITRIM) calls ocfs2_move_extents() -> 
+__ocfs2_move_extents_range() -> ocfs2_move_extent() -> __ocfs2_move_extent().
+
+Inside __ocfs2_move_extent() at line 50, I found:
+    replace_rec.e_flags = ext_flags & ~OCFS2_EXT_REFCOUNTED;
+
+This explicitly clears the OCFS2_EXT_REFCOUNTED flag when writing to disk, 
+but the extent cache is not invalidated afterward.
+
+Could you help me understand:
+1. How does the write operation in step 5 clear the refcount flag on disk?
+2. Are you suggesting there might be two separate bugs - one in the FITRIM 
+   path (which v2 fixes) and another in a different path (which v1 would fix)?
+
+My v2 patch has been merged into linux-next. If you believe v1 addresses a 
+different bug scenario, I'm happy to submit it as an additional patch.
+
+Thanks for your time and expertise!
+
+Best regards,
+Deepanshu
