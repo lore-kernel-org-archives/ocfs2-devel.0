@@ -1,98 +1,84 @@
-Received: from out30-112.freemail.mail.aliyun.com (out30-112.freemail.mail.aliyun.com [115.124.30.112])
+Received: from forward100a.mail.yandex.net (forward100a.mail.yandex.net [178.154.239.83])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0F07C221FBA;
-	Mon, 13 Oct 2025 08:59:18 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.112
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7B30E2E2DC4
+	for <ocfs2-devel@lists.linux.dev>; Mon, 13 Oct 2025 10:38:35 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=178.154.239.83
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1760345961; cv=none; b=J42ZGSNhYUYGTXdrmgU8/0Qz9mdtECASAeITv9wP8yHIbYXGmGly5H5yu7A/hdVmy/StvJK67QfExanwDmY4TL68IGprThLs1W1KrD/fMl3hEbABrPcYZA68Q3pVFjGvDFC52zoOgoVd7LMuftWFJMZXfH/QSxoWMZZlJMchLGM=
+	t=1760351918; cv=none; b=RKp7n/gKZ2O1ScXHloY/H9zSUgtPAY+gGtSGX7gIpAO9PN6A3rJrtbPWZkFJGfpCE+lqACDeZbX82RIsHUHKo/q96X8U+BoJP4y5r8FMN3JH0+4TlXD9Xq9GjwmRBajth7O3kidniVqdxvtBqSeCLk6TWA5DNZsJCNKbb4p17WU=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1760345961; c=relaxed/simple;
-	bh=EXvJRkz0VSwDTyo3GX8GBzx1dSMrLhm3KkeVbCu6644=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=pQbr4jdHBcYeU2R/vbh54s9xBy3n55vzmN+CZ8t7eN4oI41uOAB4adNAzBBDgS9zy74sjh9O9JoO44OakC8827juGfsa95mdP0iEv1lob74CBU5bDGXO6grWeWj+s+M4NEp+i/KZOcYJeYnA9Ha7e43YCve5scM939QYYFKhB0w=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=h3LaqdNR; arc=none smtp.client-ip=115.124.30.112
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
+	s=arc-20240116; t=1760351918; c=relaxed/simple;
+	bh=fAAp1hNHN5d1YGPNLsOdjOGRIkAPsS7hWfNjWVzHc2Q=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=BwwPOwRjx8DDIJt3GJH6oyqnlhCXiEUVga0CURCd6/KhvUg87AYX2UrK3qozz4+I470qzDndvjCych3iAdN2ZSS4pc5JYgWe+cDhTtbPApYAY8jgr5B5zFKxGWpd3/h0sSyVF104IYFn1++9alr58zA6V9q4h7vHnDJYIW67SkQ=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru; spf=pass smtp.mailfrom=yandex.ru; dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b=nQUT7fIR; arc=none smtp.client-ip=178.154.239.83
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=yandex.ru
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="h3LaqdNR"
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1760345956; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=gGIOd7Ex2m90KckglAwHsiXkn+YFnTKWdf60l+zhCdc=;
-	b=h3LaqdNRHndzkRMufqmKcgJ7nMw9gmr2DxCZkxLSn3tWuuMOUs5UOAOrxr7OSasAqIqROY4s+gg5v27gKZvRZjfwJPoEox0HTVXN/EeCGzzliOwlBrqVy3lSbuTOloh2RYeLZSiQMEQHDszJQlShZYIONDMhzIq8OPMurstPjV4=
-Received: from 30.221.129.221(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0Wq2ERPx_1760345954 cluster:ay36)
-          by smtp.aliyun-inc.com;
-          Mon, 13 Oct 2025 16:59:15 +0800
-Message-ID: <9b8abc79-8605-4c13-9d9f-972f90418cd2@linux.alibaba.com>
-Date: Mon, 13 Oct 2025 16:59:14 +0800
+	dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b="nQUT7fIR"
+Received: from mail-nwsmtp-smtp-production-main-64.vla.yp-c.yandex.net (mail-nwsmtp-smtp-production-main-64.vla.yp-c.yandex.net [IPv6:2a02:6b8:c1d:2a1c:0:640:8b3d:0])
+	by forward100a.mail.yandex.net (Yandex) with ESMTPS id 7FD98C0078;
+	Mon, 13 Oct 2025 13:38:27 +0300 (MSK)
+Received: by mail-nwsmtp-smtp-production-main-64.vla.yp-c.yandex.net (smtp/Yandex) with ESMTPSA id PcLCwZOLxeA0-YV5rOQVx;
+	Mon, 13 Oct 2025 13:38:26 +0300
+X-Yandex-Fwd: 1
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=yandex.ru; s=mail;
+	t=1760351906; bh=4q4FnW+oosFlbISp7IPu+A+S0xKZAUykkjP+42fG8m8=;
+	h=Message-ID:Date:Cc:Subject:To:From;
+	b=nQUT7fIR9ByetOqxjvffiXbBADK3wJR+B7+S/eQpLu5JILQvmzbi9XHMX7WO8NbEf
+	 qwZSI6A7pz+kUsGy+noGNWcmsZymDjTaxNUCG7sdonp5kCC8YVe7o7XDsDPugZv344
+	 wK1euzLlEtsfyf2YVF4DaA+hFbgyoe+Gyi9CtLjI=
+Authentication-Results: mail-nwsmtp-smtp-production-main-64.vla.yp-c.yandex.net; dkim=pass header.i=@yandex.ru
+From: Dmitry Antipov <dmantipov@yandex.ru>
+To: Heming Zhao <heming.zhao@suse.com>,
+	Mark Fasheh <mark@fasheh.com>,
+	Joel Becker <jlbec@evilplan.org>,
+	Joseph Qi <joseph.qi@linux.alibaba.com>
+Cc: ocfs2-devel@lists.linux.dev,
+	lvc-project@linuxtesting.org,
+	Dmitry Antipov <dmantipov@yandex.ru>,
+	syzbot+ded9116588a7b73c34bc@syzkaller.appspotmail.com
+Subject: [PATCH] ocfs2: add directory size check to ocfs2_find_dir_space_id()
+Date: Mon, 13 Oct 2025 13:37:09 +0300
+Message-ID: <20251013103709.146001-1-dmantipov@yandex.ru>
+X-Mailer: git-send-email 2.51.0
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH 03/10] ocfs2: don't opencode filemap_fdatawrite_range in
- ocfs2_journal_submit_inode_data_buffers
-To: Christoph Hellwig <hch@lst.de>,
- "Matthew Wilcox (Oracle)" <willy@infradead.org>,
- Eric Van Hensbergen <ericvh@kernel.org>, Latchesar Ionkov
- <lucho@ionkov.net>, Dominique Martinet <asmadeus@codewreck.org>,
- Christian Schoenebeck <linux_oss@crudebyte.com>, Chris Mason <clm@fb.com>,
- David Sterba <dsterba@suse.com>, Mark Fasheh <mark@fasheh.com>,
- Joel Becker <jlbec@evilplan.org>
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>,
- Christian Brauner <brauner@kernel.org>, Josef Bacik <josef@toxicpanda.com>,
- Jan Kara <jack@suse.cz>, linux-block@vger.kernel.org, v9fs@lists.linux.dev,
- linux-btrfs@vger.kernel.org, linux-ext4@vger.kernel.org,
- linux-fsdevel@vger.kernel.org, jfs-discussion@lists.sourceforge.net,
- ocfs2-devel@lists.linux.dev, linux-xfs@vger.kernel.org, linux-mm@kvack.org
-References: <20251013025808.4111128-1-hch@lst.de>
- <20251013025808.4111128-4-hch@lst.de>
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <20251013025808.4111128-4-hch@lst.de>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 
+In 'ocfs2_find_dir_space_id()', add extra check whether the directory
+data block is large enough to hold at least one directory entry, and
+raise 'ocfs2_error()' if the former is unexpectedly small.
 
+Reported-by: syzbot+ded9116588a7b73c34bc@syzkaller.appspotmail.com
+Closes: https://syzkaller.appspot.com/bug?extid=ded9116588a7b73c34bc
+Signed-off-by: Dmitry Antipov <dmantipov@yandex.ru>
+---
+ fs/ocfs2/dir.c | 8 ++++++++
+ 1 file changed, 8 insertions(+)
 
-On 2025/10/13 10:57, Christoph Hellwig wrote:
-> Use filemap_fdatawrite_range instead of opencoding the logic using
-> filemap_fdatawrite_wbc.  There is a slight change in the conversion
-> as nr_to_write is now set to LONG_MAX instead of double the number
-> of the pages in the range.  LONG_MAX is the usual nr_to_write for
-> WB_SYNC_ALL writeback, and the value expected by lower layers here.
-> 
-> Signed-off-by: Christoph Hellwig <hch@lst.de>
-
-Looks fine to me.
-Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-
-> ---
->  fs/ocfs2/journal.c | 11 ++---------
->  1 file changed, 2 insertions(+), 9 deletions(-)
-> 
-> diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
-> index e5f58ff2175f..85239807dec7 100644
-> --- a/fs/ocfs2/journal.c
-> +++ b/fs/ocfs2/journal.c
-> @@ -902,15 +902,8 @@ int ocfs2_journal_alloc(struct ocfs2_super *osb)
->  
->  static int ocfs2_journal_submit_inode_data_buffers(struct jbd2_inode *jinode)
->  {
-> -	struct address_space *mapping = jinode->i_vfs_inode->i_mapping;
-> -	struct writeback_control wbc = {
-> -		.sync_mode =  WB_SYNC_ALL,
-> -		.nr_to_write = mapping->nrpages * 2,
-> -		.range_start = jinode->i_dirty_start,
-> -		.range_end = jinode->i_dirty_end,
-> -	};
-> -
-> -	return filemap_fdatawrite_wbc(mapping, &wbc);
-> +	return filemap_fdatawrite_range(jinode->i_vfs_inode->i_mapping,
-> +			jinode->i_dirty_start, jinode->i_dirty_end);
->  }
->  
->  int ocfs2_journal_init(struct ocfs2_super *osb, int *dirty)
+diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
+index b9bf1428a3d9..3c2dacba9b0a 100644
+--- a/fs/ocfs2/dir.c
++++ b/fs/ocfs2/dir.c
+@@ -3444,6 +3444,14 @@ static int ocfs2_find_dir_space_id(struct inode *dir, struct buffer_head *di_bh,
+ 		offset += le16_to_cpu(de->rec_len);
+ 	}
+ 
++	if (!last_de) {
++		ret = ocfs2_error(sb, "Directory entry (#%llu: size=%lld) "
++				  "is unexpectedly short",
++				  (unsigned long long)OCFS2_I(dir)->ip_blkno,
++				  i_size_read(dir));
++		goto out;
++	}
++
+ 	/*
+ 	 * We're going to require expansion of the directory - figure
+ 	 * out how many blocks we'll need so that a place for the
+-- 
+2.51.0
 
