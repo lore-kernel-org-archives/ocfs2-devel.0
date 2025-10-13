@@ -1,73 +1,73 @@
-Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.129.124])
+Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.133.124])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id AAE26271468
-	for <ocfs2-devel@lists.linux.dev>; Mon, 13 Oct 2025 12:48:55 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=170.10.129.124
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6956826F2B9
+	for <ocfs2-devel@lists.linux.dev>; Mon, 13 Oct 2025 12:50:31 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=170.10.133.124
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1760359737; cv=none; b=WesxYSMME8Ga4MkElv0bHMz5yWuOm90IjC3vn/qGnFiXmxTE8suAvP43fSxi4eAHw1G+cG0pCr07E96vlncCpuJGKeLO3GP/lgJf5kf/5IL8SpiiKyJUFTXCoi9wrbtnCQx5VeI5ldSPW2dEA/JCnRnSx29HLxlj2FOwXmed5yo=
+	t=1760359833; cv=none; b=SK/B0SPlkIg66ByrVKDTeCQDCIpAJ4/2lBruseUSsRNhGINfCDvbyr6RY+meOx7R50bHmLJDgreswZut5oy5Hmr1qPwqBJAhao9rGjAdjYjL5YU42LxE3xn3GdE3MN6F8+/5Xr0asVH2T4+UJufLeZHPPI9y/EscyjbwWgB4+CU=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1760359737; c=relaxed/simple;
-	bh=q1/1g1aOp688VA6iTlmc6G4Gt6IPhwQ6SlSbAlgfVko=;
+	s=arc-20240116; t=1760359833; c=relaxed/simple;
+	bh=/vbJN+GTFa73FryYW5KO21cm50erek3RkwQo2KmYHuE=;
 	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=MGSmOi46F2qZ6EUedIad21xg9GoJ1WdnjRfJHhL013dYLrjqYJZlTthVwdl/8YYSK0PgeIbMFvJE/3Lal61kFuUKigYKQD/ktTkFWxBpGzMlviAxXX+pAoO7MBc1io4JDHgD5adArfzcJyVUGHiyk+v0M1ZpFzu9D84qSQcBrjk=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com; spf=pass smtp.mailfrom=redhat.com; dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b=gCeK9oDb; arc=none smtp.client-ip=170.10.129.124
+	 In-Reply-To:Content-Type; b=K0xbZAHXkBtUslMknfeqZJKDwRVniXll3OW0pXd9pG5KKwJu2UbwQWTHb6hwdhasSfnFIzRnw2roJgyyEwyUyb43xHO72GKQ5WmqfQtwTKfW7EAwTMYgfFkPraq0gCF6wIfNOiGx9V0nCdDik9wES5IfaqD+hp0FVx2Y3KIAOOE=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com; spf=pass smtp.mailfrom=redhat.com; dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b=ApjK8+TF; arc=none smtp.client-ip=170.10.133.124
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=redhat.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b="gCeK9oDb"
+	dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b="ApjK8+TF"
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
-	s=mimecast20190719; t=1760359734;
+	s=mimecast20190719; t=1760359830;
 	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
 	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
 	 content-transfer-encoding:content-transfer-encoding:
 	 in-reply-to:in-reply-to:references:references:autocrypt:autocrypt;
-	bh=V6YxR1nTJCDrfaOZFN3CnG2vV5jcoOfzGFCcTcZo0jw=;
-	b=gCeK9oDbwUpVGMJ5X0xQoBymzfm5LIlOlFfHGArX5/g7WHLGr51MhRSij2X5tRlyKBSCae
-	noFeR2Ep06+Y5IVIA08vsZ3x8Ro3M4Gw5OxZhmAO3pPVejO29nGTsMW3vk4spQnSUvfoXa
-	vEyBf2buwCQswLRQJlF+bjUxusvbmVY=
-Received: from mail-wm1-f70.google.com (mail-wm1-f70.google.com
- [209.85.128.70]) by relay.mimecast.com with ESMTP with STARTTLS
+	bh=fmLpGViBdbcMLzx1bb+Kxqb3+3UtyUNscErHdno+a+c=;
+	b=ApjK8+TFmj8PXajDObDIt9yfNi3EoONxgd2NJAwnKwimYfnsS5Oir/jBFUCDgIB+kXO8Bd
+	hsEiNDymu2Eb70hbPA/2uDUyE3j1Hld+btEopoW/4UU4jt88msJmn0VS3QcDn/KIAjykAZ
+	pVUXyuQrVIsA8qlwe/Q2TGF5t5bpQPY=
+Received: from mail-wm1-f69.google.com (mail-wm1-f69.google.com
+ [209.85.128.69]) by relay.mimecast.com with ESMTP with STARTTLS
  (version=TLSv1.3, cipher=TLS_AES_256_GCM_SHA384) id
- us-mta-465-MkelnnpsP1itDGkVNFZqaw-1; Mon, 13 Oct 2025 08:48:53 -0400
-X-MC-Unique: MkelnnpsP1itDGkVNFZqaw-1
-X-Mimecast-MFC-AGG-ID: MkelnnpsP1itDGkVNFZqaw_1760359732
-Received: by mail-wm1-f70.google.com with SMTP id 5b1f17b1804b1-46e2c11b94cso29430275e9.3
-        for <ocfs2-devel@lists.linux.dev>; Mon, 13 Oct 2025 05:48:53 -0700 (PDT)
+ us-mta-90-SShkVrPMPNWoGDvSegP5sA-1; Mon, 13 Oct 2025 08:50:29 -0400
+X-MC-Unique: SShkVrPMPNWoGDvSegP5sA-1
+X-Mimecast-MFC-AGG-ID: SShkVrPMPNWoGDvSegP5sA_1760359828
+Received: by mail-wm1-f69.google.com with SMTP id 5b1f17b1804b1-46e3ed6540fso27944785e9.0
+        for <ocfs2-devel@lists.linux.dev>; Mon, 13 Oct 2025 05:50:29 -0700 (PDT)
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1760359732; x=1760964532;
+        d=1e100.net; s=20230601; t=1760359828; x=1760964628;
         h=content-transfer-encoding:in-reply-to:autocrypt:content-language
          :from:references:cc:to:subject:user-agent:mime-version:date
          :message-id:x-gm-message-state:from:to:cc:subject:date:message-id
          :reply-to;
-        bh=V6YxR1nTJCDrfaOZFN3CnG2vV5jcoOfzGFCcTcZo0jw=;
-        b=vhZvgr2Ox2Kh0z6kHFdSlBnk/14i7FX6KPskgHeNbtq5xsZC8Lgg7wkcYGlR6Tf8Q5
-         gjAYz1DmAFt1TKzI8PIkCg7x/n4Vbp90TJYl902S4wZChx7wj/ADhXuUbXoD85Xy8mdr
-         HaNwP5NrTgloQaoBnelcafEt5UfYuuHWrtj1M+bsyTJ4rVO0Gs5lXrayB6fBbFyahXP+
-         oZ9B4LEdvm1a2F8i16yP78YFko8fiVKvibx8V/3IlTB10LJUwTnFQQ/+eK+uGFwmS58V
-         F6Pt+yGYe3j5t7i2X+WHEmrw/a8k+0+O8+xHRIsJyUZyfkaepIxRnyyeojJel8s/itfK
-         Xodw==
-X-Forwarded-Encrypted: i=1; AJvYcCWUnEH2G/WZ8FQu8bvxzjB5m6cMLoRfo5QHyJLOJiIsAWJVUTL+oX0zPJLqe+BkFKnyTVHQuvzGg6UYIA==@lists.linux.dev
-X-Gm-Message-State: AOJu0YxYffNAZlRqzX6ErvZKs9TNkMSKgFGWlB8UWKI8gCio3Vf/odU2
-	d9vD8t1fHqGDXSS69Ag2F1BMs5FtTqm///9o+FKe4J+811tMRq4Y1WmoOt69Spr1sOPqkTCg/pG
-	eGE0xLr7zxLz0hQ+iUmD8ijmlROyGMz1PEqeSB5bmeFUx1P96lJv9tA9XMn7EEPWU
-X-Gm-Gg: ASbGnctsAiotoPx88Y1hy8K5m1eWUgU15XFljBglvB4Lti42Dq1YKWrGgGBUFm9Zxkj
-	xuKDpjJidwTfD0d3sILExlqQXEwtZt1uZEnrTm/8sGBNxvGxZGDe7+wJCIr8YEXPoaeOtKi/k+8
-	G38kv2akS5K2tFjOuzjLA4JpXjD/kdSOlir25lht5lcyyIBEHBwVmInPQR4b6BeqIViQvq6F7Yw
-	ppr9FrELa1xKuz7jwQ4VopJDSgkN5vMg8rPeWXqFA9S10Yl9vlbjy+gZ3GWO9xdPosjYrCUNf0S
-	XIL8T6p3jLfjwbO5J7g7GPS/Fkan+6VdNaeRrsOCJuzim1p0PUMvhLs+PD5ygGt95VWXVfg48nU
-	6k54=
-X-Received: by 2002:a05:600c:530e:b0:46e:4c90:81d0 with SMTP id 5b1f17b1804b1-46fa9a8f1c5mr144086875e9.2.1760359731942;
-        Mon, 13 Oct 2025 05:48:51 -0700 (PDT)
-X-Google-Smtp-Source: AGHT+IGGLnouyUlx2MAgaHkKm2L1dKdQ4wuo7Nrhykv7xLHekC80pf6DEJPuKh5QZvTCPV+to9J8TA==
-X-Received: by 2002:a05:600c:530e:b0:46e:4c90:81d0 with SMTP id 5b1f17b1804b1-46fa9a8f1c5mr144086535e9.2.1760359731494;
-        Mon, 13 Oct 2025 05:48:51 -0700 (PDT)
+        bh=fmLpGViBdbcMLzx1bb+Kxqb3+3UtyUNscErHdno+a+c=;
+        b=QlSIplEDRFNUH5K/FsuyBkRfX8dsKvt/VVLFjf/0a2+ZN+IYBVaesb0P6qEcAdROjr
+         GeArgTD6uDBa7afdOGNiraU29vVKwVlOtepR0nPdURl5pZwV3LRoPJ7xm3vq6F23CCcG
+         Nf8gipSA5CNQGyMutQIA2NkojBJwB64424PYTJ9u/djnJQyxtLhK9IUha3QmbRm0Tsa1
+         fTg3Vd+2KW0yN5XyxVTQQVl2ax7yt3I+c4AiFfyeIPtwTZLQkNtexU6M7WM40deqQzPV
+         00fMH6dnlL16lsXyPzXDMo7g9FUVU2mIqXjK63yeQdYoqmrasUXr0YSpuwLSH0kBedTY
+         qFhQ==
+X-Forwarded-Encrypted: i=1; AJvYcCXkASgiRXVacoNy+fwNFDvyMOEYK6QOB77K0M/WGuaxO1GiTlAS1RIwrnsapVZfXkxaqzQau5WHBIoqjg==@lists.linux.dev
+X-Gm-Message-State: AOJu0YyjQyfeRxQqRuKsPG4p69GD6fbk1Wyda2cpgpNzJRboGO0lPUbK
+	D1SEioA0tpGS7aV6AstduaX5kVlr0Tj6lJPKX2PooZMP5zWHzjy/iCgDaTbr8BaADGqjcJWVaan
+	mT1heatq8HHAmZpHdkmEqjgmHgIFmOHqbv1fACvtIosVaQlpfT/hBmDMVfjI9tL75
+X-Gm-Gg: ASbGncvpYJiHGcmpaB3ZWslUrWa8B+NoXKNAg3P/xYoLmICpXA0vK5aCe2PpXkFAdSU
+	918lZi6z9Eavh3obebQj9G4UgklRIDJmhy/wq6wpJXFJT7OSjj9272yDeRIqnGw0wfBD6VOSogG
+	GoLHBe2QnNVNXFMWcZ/fYMZto9hlz6kb5rhO1Pux4EgyruJlgPyCHaglGB3LBmC2cJAqwos/5Ng
+	8CEBW49Id3fbOJlhgtf+Rnq3H4NhqprrmNK60+j4viXr7vJaxNWhH47hZJmUvArqg5ZD0IChqS5
+	wdYvjduQAQ2XLalzav7FSWsf+99of4oi7osucaWS0qj9AocArr0mGbvdAVqSyeUSykkagd10qAE
+	z6Xk=
+X-Received: by 2002:a05:600c:6011:b0:45c:b642:87a6 with SMTP id 5b1f17b1804b1-46fa28bbca1mr126817195e9.0.1760359827997;
+        Mon, 13 Oct 2025 05:50:27 -0700 (PDT)
+X-Google-Smtp-Source: AGHT+IGMMoKs4VS2gHV3gKsNnQk9DNjQ77BVoRLFBciblN4uYmPY7ldMdNRqp+3ZL0M1o/a3ErG8+Q==
+X-Received: by 2002:a05:600c:6011:b0:45c:b642:87a6 with SMTP id 5b1f17b1804b1-46fa28bbca1mr126817005e9.0.1760359827614;
+        Mon, 13 Oct 2025 05:50:27 -0700 (PDT)
 Received: from [192.168.3.141] (tmo-083-189.customers.d1-online.com. [80.187.83.189])
-        by smtp.gmail.com with ESMTPSA id 5b1f17b1804b1-46fb497aec2sm189420095e9.1.2025.10.13.05.48.48
+        by smtp.gmail.com with ESMTPSA id 5b1f17b1804b1-46fb49c3e49sm183435545e9.16.2025.10.13.05.50.24
         (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Mon, 13 Oct 2025 05:48:51 -0700 (PDT)
-Message-ID: <41f5cd92-6bd8-46d4-afce-3c14a1cd48dc@redhat.com>
-Date: Mon, 13 Oct 2025 14:48:48 +0200
+        Mon, 13 Oct 2025 05:50:27 -0700 (PDT)
+Message-ID: <3fdede63-0bb7-4618-af45-6605ed25b6c0@redhat.com>
+Date: Mon, 13 Oct 2025 14:50:24 +0200
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -75,7 +75,7 @@ List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH 06/10] mm,btrfs: add a filemap_fdatawrite_kick_nr helper
+Subject: Re: [PATCH 08/10] mm: remove filemap_fdatawrite_wbc
 To: Christoph Hellwig <hch@lst.de>,
  "Matthew Wilcox (Oracle)" <willy@infradead.org>,
  Eric Van Hensbergen <ericvh@kernel.org>, Latchesar Ionkov
@@ -90,7 +90,7 @@ Cc: Alexander Viro <viro@zeniv.linux.org.uk>,
  linux-fsdevel@vger.kernel.org, jfs-discussion@lists.sourceforge.net,
  ocfs2-devel@lists.linux.dev, linux-xfs@vger.kernel.org, linux-mm@kvack.org
 References: <20251013025808.4111128-1-hch@lst.de>
- <20251013025808.4111128-7-hch@lst.de>
+ <20251013025808.4111128-9-hch@lst.de>
 From: David Hildenbrand <david@redhat.com>
 Autocrypt: addr=david@redhat.com; keydata=
  xsFNBFXLn5EBEAC+zYvAFJxCBY9Tr1xZgcESmxVNI/0ffzE/ZQOiHJl6mGkmA1R7/uUpiCjJ
@@ -136,50 +136,21 @@ Autocrypt: addr=david@redhat.com; keydata=
  3iyY2Nsd7JxfKu1PRhCGwXzRw5TlfEsoRI7V9A8isUCoqE2Dzh3FvYHVeX4Us+bRL/oqareJ
  CIFqgYMyvHj7Q06kTKmauOe4Nf0l0qEkIuIzfoLJ3qr5UyXc2hLtWyT9Ir+lYlX9efqh7mOY
  qIws/H2t
-In-Reply-To: <20251013025808.4111128-7-hch@lst.de>
+In-Reply-To: <20251013025808.4111128-9-hch@lst.de>
 X-Mimecast-Spam-Score: 0
-X-Mimecast-MFC-PROC-ID: Z1Xq5jWDJR0r1oZAjsDEJ1sAr-V9qPEG2fDvpo3f4zE_1760359732
+X-Mimecast-MFC-PROC-ID: GnuGLaL4IzXK0cRGbZik2wdk_8mIgMeQyVwiyvMVMNw_1760359828
 X-Mimecast-Originator: redhat.com
 Content-Language: en-US
 Content-Type: text/plain; charset=UTF-8; format=flowed
 Content-Transfer-Encoding: 7bit
 
-
-> @@ -474,6 +474,28 @@ int filemap_flush(struct address_space *mapping)
->   }
->   EXPORT_SYMBOL(filemap_flush);
->   
-> +/*
-> + * Start writeback on @nr_to_write pages from @mapping.  No one but the existing
-> + * btrfs caller should be using this.  Talk to linux-mm if you think adding a
-> + * new caller is a good idea.
-> + */
-
-Nit: We seem to prefer proper kerneldoc for filemap_fdatawrite* functions.
-
-> +int filemap_fdatawrite_kick_nr(struct address_space *mapping, long *nr_to_write)
-> +{
-> +	struct writeback_control wbc = {
-> +		.nr_to_write = *nr_to_write,
-> +		.sync_mode = WB_SYNC_NONE,
-> +		.range_start = 0,
-> +		.range_end = LLONG_MAX,
-> +	};
-> +	int ret;
-> +
-> +	ret = filemap_fdatawrite_wbc(mapping, &wbc);
-> +	if (!ret)
-> +		*nr_to_write = wbc.nr_to_write;
-> +	return ret;
-> +}
-> +EXPORT_SYMBOL_FOR_MODULES(filemap_fdatawrite_kick_nr, "btrfs");
-> +
->   /**
->    * filemap_range_has_page - check if a page exists in range.
->    * @mapping:           address space within which to check
-
-
-I think there is still a discussion on the name, but in general LGTM
+On 13.10.25 04:58, Christoph Hellwig wrote:
+> Replace filemap_fdatawrite_wbc, which exposes a writeback_control to the
+> callers with a __filemap_fdatawrite helper that takes all the possible
+> arguments and declares the writeback_control itself.
+> 
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
+> ---
 
 Reviewed-by: David Hildenbrand <david@redhat.com>
 
