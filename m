@@ -1,84 +1,169 @@
-Received: from forward100a.mail.yandex.net (forward100a.mail.yandex.net [178.154.239.83])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from smtp-out1.suse.de (smtp-out1.suse.de [195.135.223.130])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7B30E2E2DC4
-	for <ocfs2-devel@lists.linux.dev>; Mon, 13 Oct 2025 10:38:35 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=178.154.239.83
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2A2D4222587
+	for <ocfs2-devel@lists.linux.dev>; Mon, 13 Oct 2025 11:32:21 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=195.135.223.130
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1760351918; cv=none; b=RKp7n/gKZ2O1ScXHloY/H9zSUgtPAY+gGtSGX7gIpAO9PN6A3rJrtbPWZkFJGfpCE+lqACDeZbX82RIsHUHKo/q96X8U+BoJP4y5r8FMN3JH0+4TlXD9Xq9GjwmRBajth7O3kidniVqdxvtBqSeCLk6TWA5DNZsJCNKbb4p17WU=
+	t=1760355143; cv=none; b=V/y+iy6SKG+MkEo0aS1QY0YqzbnhGHHB1KCf7XHn3blUQPVrFz6uH8kRFwmbqLpJlIqcksiLm+PFgRlYZoij6rpMRL725tj5hAHfFo/0GkUQwnv+FoyUZcQVcpslKtCZ/aXWzQ7Opds+oOWWkYZ5+FmaPOQNWlaNYlgFn7Qet9k=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1760351918; c=relaxed/simple;
-	bh=fAAp1hNHN5d1YGPNLsOdjOGRIkAPsS7hWfNjWVzHc2Q=;
-	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=BwwPOwRjx8DDIJt3GJH6oyqnlhCXiEUVga0CURCd6/KhvUg87AYX2UrK3qozz4+I470qzDndvjCych3iAdN2ZSS4pc5JYgWe+cDhTtbPApYAY8jgr5B5zFKxGWpd3/h0sSyVF104IYFn1++9alr58zA6V9q4h7vHnDJYIW67SkQ=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru; spf=pass smtp.mailfrom=yandex.ru; dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b=nQUT7fIR; arc=none smtp.client-ip=178.154.239.83
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=yandex.ru
+	s=arc-20240116; t=1760355143; c=relaxed/simple;
+	bh=0xosZGkTXmSnEMdEcfXUoHuhuRB8W/qpykqw2fzqVZ0=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=U39RhNzhw86FX7TUZeyihzoLCO/uGVd0WoRPHvuXB8BHeSkazDP3iheirj60YkobDEpqkvxgB0l9H/Lc+gEKt0daqp7ISt+ToYFLbdc5FRX0UfkVyXLiTFXcjADfkd9/E/Y1Tt1z4LMGcai5w1FKGnnyKD2e2eS8mCc8z3kTYLw=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=suse.cz; spf=pass smtp.mailfrom=suse.cz; dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b=c2pY3Q60; dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b=PKyKaGFX; dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b=c2pY3Q60; dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b=PKyKaGFX; arc=none smtp.client-ip=195.135.223.130
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=suse.cz
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.cz
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b="nQUT7fIR"
-Received: from mail-nwsmtp-smtp-production-main-64.vla.yp-c.yandex.net (mail-nwsmtp-smtp-production-main-64.vla.yp-c.yandex.net [IPv6:2a02:6b8:c1d:2a1c:0:640:8b3d:0])
-	by forward100a.mail.yandex.net (Yandex) with ESMTPS id 7FD98C0078;
-	Mon, 13 Oct 2025 13:38:27 +0300 (MSK)
-Received: by mail-nwsmtp-smtp-production-main-64.vla.yp-c.yandex.net (smtp/Yandex) with ESMTPSA id PcLCwZOLxeA0-YV5rOQVx;
-	Mon, 13 Oct 2025 13:38:26 +0300
-X-Yandex-Fwd: 1
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=yandex.ru; s=mail;
-	t=1760351906; bh=4q4FnW+oosFlbISp7IPu+A+S0xKZAUykkjP+42fG8m8=;
-	h=Message-ID:Date:Cc:Subject:To:From;
-	b=nQUT7fIR9ByetOqxjvffiXbBADK3wJR+B7+S/eQpLu5JILQvmzbi9XHMX7WO8NbEf
-	 qwZSI6A7pz+kUsGy+noGNWcmsZymDjTaxNUCG7sdonp5kCC8YVe7o7XDsDPugZv344
-	 wK1euzLlEtsfyf2YVF4DaA+hFbgyoe+Gyi9CtLjI=
-Authentication-Results: mail-nwsmtp-smtp-production-main-64.vla.yp-c.yandex.net; dkim=pass header.i=@yandex.ru
-From: Dmitry Antipov <dmantipov@yandex.ru>
-To: Heming Zhao <heming.zhao@suse.com>,
-	Mark Fasheh <mark@fasheh.com>,
-	Joel Becker <jlbec@evilplan.org>,
-	Joseph Qi <joseph.qi@linux.alibaba.com>
-Cc: ocfs2-devel@lists.linux.dev,
-	lvc-project@linuxtesting.org,
-	Dmitry Antipov <dmantipov@yandex.ru>,
-	syzbot+ded9116588a7b73c34bc@syzkaller.appspotmail.com
-Subject: [PATCH] ocfs2: add directory size check to ocfs2_find_dir_space_id()
-Date: Mon, 13 Oct 2025 13:37:09 +0300
-Message-ID: <20251013103709.146001-1-dmantipov@yandex.ru>
-X-Mailer: git-send-email 2.51.0
+	dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b="c2pY3Q60";
+	dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b="PKyKaGFX";
+	dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b="c2pY3Q60";
+	dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b="PKyKaGFX"
+Received: from imap1.dmz-prg2.suse.org (unknown [10.150.64.97])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by smtp-out1.suse.de (Postfix) with ESMTPS id 4135121A0B;
+	Mon, 13 Oct 2025 11:32:19 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.cz; s=susede2_rsa;
+	t=1760355139; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+	 mime-version:mime-version:content-type:content-type:
+	 in-reply-to:in-reply-to:references:references;
+	bh=OJD2D5sOD1UwFVRnLiisA06ok66jFshkpFT7U5auYaU=;
+	b=c2pY3Q60rdySkJnHio1esw2RtxdDS1I/ROgZuToYDooNtM5rlAyGD3QtN3IG5Biyk9zkDd
+	okc+vn2gfnqpE+l51QceqRYB1D59POM0BcYhL7iEbOXycj1ovhLT9DyS1f8xJx6reFNUId
+	CuxNanTwAusOc1HkfPI2SLlSS1FzxMY=
+DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.cz;
+	s=susede2_ed25519; t=1760355139;
+	h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+	 mime-version:mime-version:content-type:content-type:
+	 in-reply-to:in-reply-to:references:references;
+	bh=OJD2D5sOD1UwFVRnLiisA06ok66jFshkpFT7U5auYaU=;
+	b=PKyKaGFXDxUdTiiurMffn9aZFLjkmr8MgiOPS9YDScwKazJYvsQqAb+UV2lM1fMEPkFYXF
+	1HdhYBXBMD1JZjAw==
+Authentication-Results: smtp-out1.suse.de;
+	none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.cz; s=susede2_rsa;
+	t=1760355139; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+	 mime-version:mime-version:content-type:content-type:
+	 in-reply-to:in-reply-to:references:references;
+	bh=OJD2D5sOD1UwFVRnLiisA06ok66jFshkpFT7U5auYaU=;
+	b=c2pY3Q60rdySkJnHio1esw2RtxdDS1I/ROgZuToYDooNtM5rlAyGD3QtN3IG5Biyk9zkDd
+	okc+vn2gfnqpE+l51QceqRYB1D59POM0BcYhL7iEbOXycj1ovhLT9DyS1f8xJx6reFNUId
+	CuxNanTwAusOc1HkfPI2SLlSS1FzxMY=
+DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.cz;
+	s=susede2_ed25519; t=1760355139;
+	h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+	 mime-version:mime-version:content-type:content-type:
+	 in-reply-to:in-reply-to:references:references;
+	bh=OJD2D5sOD1UwFVRnLiisA06ok66jFshkpFT7U5auYaU=;
+	b=PKyKaGFXDxUdTiiurMffn9aZFLjkmr8MgiOPS9YDScwKazJYvsQqAb+UV2lM1fMEPkFYXF
+	1HdhYBXBMD1JZjAw==
+Received: from imap1.dmz-prg2.suse.org (localhost [127.0.0.1])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by imap1.dmz-prg2.suse.org (Postfix) with ESMTPS id 327D61374A;
+	Mon, 13 Oct 2025 11:32:19 +0000 (UTC)
+Received: from dovecot-director2.suse.de ([2a07:de40:b281:106:10:150:64:167])
+	by imap1.dmz-prg2.suse.org with ESMTPSA
+	id C3H+C0Pj7GgJZwAAD6G6ig
+	(envelope-from <jack@suse.cz>); Mon, 13 Oct 2025 11:32:19 +0000
+Received: by quack3.suse.cz (Postfix, from userid 1000)
+	id CD496A0A58; Mon, 13 Oct 2025 13:32:03 +0200 (CEST)
+Date: Mon, 13 Oct 2025 13:32:03 +0200
+From: Jan Kara <jack@suse.cz>
+To: Christoph Hellwig <hch@lst.de>
+Cc: "Matthew Wilcox (Oracle)" <willy@infradead.org>, 
+	Eric Van Hensbergen <ericvh@kernel.org>, Latchesar Ionkov <lucho@ionkov.net>, 
+	Dominique Martinet <asmadeus@codewreck.org>, Christian Schoenebeck <linux_oss@crudebyte.com>, 
+	Chris Mason <clm@fb.com>, David Sterba <dsterba@suse.com>, Mark Fasheh <mark@fasheh.com>, 
+	Joel Becker <jlbec@evilplan.org>, Joseph Qi <joseph.qi@linux.alibaba.com>, 
+	Alexander Viro <viro@zeniv.linux.org.uk>, Christian Brauner <brauner@kernel.org>, 
+	Josef Bacik <josef@toxicpanda.com>, Jan Kara <jack@suse.cz>, linux-block@vger.kernel.org, 
+	v9fs@lists.linux.dev, linux-btrfs@vger.kernel.org, linux-ext4@vger.kernel.org, 
+	linux-fsdevel@vger.kernel.org, jfs-discussion@lists.sourceforge.net, 
+	ocfs2-devel@lists.linux.dev, linux-xfs@vger.kernel.org, linux-mm@kvack.org
+Subject: Re: [PATCH 01/10] mm: don't opencode filemap_fdatawrite_range in
+ filemap_invalidate_inode
+Message-ID: <wxziorjgzpc5nlktnl53ctsroriqvwjkuvwsgznl63oeid4cvp@p7mkzimdgltg>
+References: <20251013025808.4111128-1-hch@lst.de>
+ <20251013025808.4111128-2-hch@lst.de>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20251013025808.4111128-2-hch@lst.de>
+X-Spamd-Result: default: False [-3.80 / 50.00];
+	BAYES_HAM(-3.00)[100.00%];
+	NEURAL_HAM_LONG(-1.00)[-1.000];
+	MID_RHS_NOT_FQDN(0.50)[];
+	NEURAL_HAM_SHORT(-0.20)[-1.000];
+	MIME_GOOD(-0.10)[text/plain];
+	MISSING_XM_UA(0.00)[];
+	FROM_HAS_DN(0.00)[];
+	MIME_TRACE(0.00)[0:+];
+	ARC_NA(0.00)[];
+	RCPT_COUNT_TWELVE(0.00)[24];
+	RCVD_VIA_SMTP_AUTH(0.00)[];
+	RCVD_COUNT_THREE(0.00)[3];
+	TO_DN_SOME(0.00)[];
+	FROM_EQ_ENVFROM(0.00)[];
+	FUZZY_RATELIMITED(0.00)[rspamd.com];
+	TO_MATCH_ENVRCPT_ALL(0.00)[];
+	DKIM_SIGNED(0.00)[suse.cz:s=susede2_rsa,suse.cz:s=susede2_ed25519];
+	RCVD_TLS_LAST(0.00)[];
+	DBL_BLOCKED_OPENRESOLVER(0.00)[suse.com:email,imap1.dmz-prg2.suse.org:helo]
+X-Spam-Flag: NO
+X-Spam-Score: -3.80
+X-Spam-Level: 
 
-In 'ocfs2_find_dir_space_id()', add extra check whether the directory
-data block is large enough to hold at least one directory entry, and
-raise 'ocfs2_error()' if the former is unexpectedly small.
+On Mon 13-10-25 11:57:56, Christoph Hellwig wrote:
+> Use filemap_fdatawrite_range instead of opencoding the logic using
+> filemap_fdatawrite_wbc.
+> 
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
 
-Reported-by: syzbot+ded9116588a7b73c34bc@syzkaller.appspotmail.com
-Closes: https://syzkaller.appspot.com/bug?extid=ded9116588a7b73c34bc
-Signed-off-by: Dmitry Antipov <dmantipov@yandex.ru>
----
- fs/ocfs2/dir.c | 8 ++++++++
- 1 file changed, 8 insertions(+)
+Looks good. Feel free to add:
 
-diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
-index b9bf1428a3d9..3c2dacba9b0a 100644
---- a/fs/ocfs2/dir.c
-+++ b/fs/ocfs2/dir.c
-@@ -3444,6 +3444,14 @@ static int ocfs2_find_dir_space_id(struct inode *dir, struct buffer_head *di_bh,
- 		offset += le16_to_cpu(de->rec_len);
- 	}
- 
-+	if (!last_de) {
-+		ret = ocfs2_error(sb, "Directory entry (#%llu: size=%lld) "
-+				  "is unexpectedly short",
-+				  (unsigned long long)OCFS2_I(dir)->ip_blkno,
-+				  i_size_read(dir));
-+		goto out;
-+	}
-+
- 	/*
- 	 * We're going to require expansion of the directory - figure
- 	 * out how many blocks we'll need so that a place for the
+Reviewed-by: Jan Kara <jack@suse.cz>
+
+								Honza
+
+> ---
+>  mm/filemap.c | 12 ++----------
+>  1 file changed, 2 insertions(+), 10 deletions(-)
+> 
+> diff --git a/mm/filemap.c b/mm/filemap.c
+> index 13f0259d993c..99d6919af60d 100644
+> --- a/mm/filemap.c
+> +++ b/mm/filemap.c
+> @@ -4457,16 +4457,8 @@ int filemap_invalidate_inode(struct inode *inode, bool flush,
+>  	unmap_mapping_pages(mapping, first, nr, false);
+>  
+>  	/* Write back the data if we're asked to. */
+> -	if (flush) {
+> -		struct writeback_control wbc = {
+> -			.sync_mode	= WB_SYNC_ALL,
+> -			.nr_to_write	= LONG_MAX,
+> -			.range_start	= start,
+> -			.range_end	= end,
+> -		};
+> -
+> -		filemap_fdatawrite_wbc(mapping, &wbc);
+> -	}
+> +	if (flush)
+> +		filemap_fdatawrite_range(mapping, start, end);
+>  
+>  	/* Wait for writeback to complete on all folios and discard. */
+>  	invalidate_inode_pages2_range(mapping, start / PAGE_SIZE, end / PAGE_SIZE);
+> -- 
+> 2.47.3
+> 
 -- 
-2.51.0
-
+Jan Kara <jack@suse.com>
+SUSE Labs, CR
