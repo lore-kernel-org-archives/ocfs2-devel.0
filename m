@@ -1,24 +1,24 @@
 Received: from verein.lst.de (verein.lst.de [213.95.11.211])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A333E30ACFB;
-	Tue, 14 Oct 2025 04:52:42 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B134630ACFB;
+	Tue, 14 Oct 2025 04:53:29 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=213.95.11.211
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1760417564; cv=none; b=nnzHvbX8TV4m1RGThxpngQC/Lb5Pss1+9wo4kDRCwmrsPAJq5Xsj4Bj4HsHKBz3gvBQ2lSaFeWUSe8Yb3dQqbWWtJv4JLBzFIU3s3YsqUgOv8hxQr6lRkmswFUlmTMZg3l5N013HdixZb556pNmExTCQeSMk1jMk59fQGZEyPYk=
+	t=1760417611; cv=none; b=UHHxh96XjlBmEJ7sHiyDd0lAHcnjqkdOsJpjkjEi8aoPC0f42yOhEIr3LnKdSVFNVLkovYfKT4OY566NuWUwAftznkVLC0f8tpJKrRE5e7RU1vc6J/o+5sG0wJ4ico29s8X085jeSyaJH1p3nsGZr5JYs0YNOEvxgh32299+Wqw=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1760417564; c=relaxed/simple;
-	bh=1Sa6+1YPcU+XRcR73T5IqK/4H93tZJ4/84XKW/+56PE=;
+	s=arc-20240116; t=1760417611; c=relaxed/simple;
+	bh=EIMyaPN+e4RlDyzsTqvcbYfkjxs+/uvliBFzVy4ZHVY=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=UVSoiFxMmJAW9Q3WA5vUJFhAuXrO2yMMNeXX80qSf5isfqdDKMkJhbun9UB+BtiZENEWl5YAvw8b6W5mkUsAFj1A54MlyHlWPm9zQrdG1lRu59B6G1ksuxLDXIZW4zjaP4X3Wi7adACvt9KLi8+8wHrVpQcH57CGa52MsOGj320=
+	 Content-Type:Content-Disposition:In-Reply-To; b=E3chWJArLqXppquyjlscPg0uIcDxJ77wfRbaKRwAyhscs96GQxPdi4p0JwOxpNFYjMf+O0CD0SUgRs20AVw2Cp9/YwxXceq2iGe97ysPYfGTenYdNdqLpvNyU5Hmb/CZX9SNM7gP8jD9Q5M576B4wKyiz3rElG24/nqDerMuF8w=
 ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=lst.de; spf=pass smtp.mailfrom=lst.de; arc=none smtp.client-ip=213.95.11.211
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=lst.de
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=lst.de
 Received: by verein.lst.de (Postfix, from userid 2407)
-	id 1B7E3227AA8; Tue, 14 Oct 2025 06:52:36 +0200 (CEST)
-Date: Tue, 14 Oct 2025 06:52:36 +0200
+	id E5B4F227AAA; Tue, 14 Oct 2025 06:53:25 +0200 (CEST)
+Date: Tue, 14 Oct 2025 06:53:25 +0200
 From: Christoph Hellwig <hch@lst.de>
-To: Damien Le Moal <dlemoal@kernel.org>
+To: Jan Kara <jack@suse.cz>
 Cc: Christoph Hellwig <hch@lst.de>,
 	"Matthew Wilcox (Oracle)" <willy@infradead.org>,
 	Eric Van Hensbergen <ericvh@kernel.org>,
@@ -30,15 +30,14 @@ Cc: Christoph Hellwig <hch@lst.de>,
 	Joseph Qi <joseph.qi@linux.alibaba.com>,
 	Alexander Viro <viro@zeniv.linux.org.uk>,
 	Christian Brauner <brauner@kernel.org>,
-	Josef Bacik <josef@toxicpanda.com>, Jan Kara <jack@suse.cz>,
-	linux-block@vger.kernel.org, v9fs@lists.linux.dev,
-	linux-btrfs@vger.kernel.org, linux-ext4@vger.kernel.org,
-	linux-fsdevel@vger.kernel.org, jfs-discussion@lists.sourceforge.net,
-	ocfs2-devel@lists.linux.dev, linux-xfs@vger.kernel.org,
-	linux-mm@kvack.org
+	Josef Bacik <josef@toxicpanda.com>, linux-block@vger.kernel.org,
+	v9fs@lists.linux.dev, linux-btrfs@vger.kernel.org,
+	linux-ext4@vger.kernel.org, linux-fsdevel@vger.kernel.org,
+	jfs-discussion@lists.sourceforge.net, ocfs2-devel@lists.linux.dev,
+	linux-xfs@vger.kernel.org, linux-mm@kvack.org
 Subject: Re: [PATCH 07/10] mm: remove __filemap_fdatawrite
-Message-ID: <20251014045236.GC30978@lst.de>
-References: <20251013025808.4111128-1-hch@lst.de> <20251013025808.4111128-8-hch@lst.de> <4e508d42-9cd4-481a-904f-535b1de0b765@kernel.org>
+Message-ID: <20251014045325.GD30978@lst.de>
+References: <20251013025808.4111128-1-hch@lst.de> <20251013025808.4111128-8-hch@lst.de> <t4y7xtgfnzfpfupnb7on33n6qzrfxfphsm2hqsa5rx4liqvvbc@wwj7ckhyilpo>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -47,16 +46,17 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <4e508d42-9cd4-481a-904f-535b1de0b765@kernel.org>
+In-Reply-To: <t4y7xtgfnzfpfupnb7on33n6qzrfxfphsm2hqsa5rx4liqvvbc@wwj7ckhyilpo>
 User-Agent: Mutt/1.5.17 (2007-11-01)
 
-On Mon, Oct 13, 2025 at 05:02:50PM +0900, Damien Le Moal wrote:
-> >  int filemap_fdatawrite(struct address_space *mapping)
-> >  {
-> > -	return __filemap_fdatawrite(mapping, WB_SYNC_ALL);
-> > +	return filemap_fdatawrite_range(mapping, 0, LONG_MAX);
+On Mon, Oct 13, 2025 at 01:59:21PM +0200, Jan Kara wrote:
+> > -	return __filemap_fdatawrite(mapping, WB_SYNC_NONE);
+> > +	return filemap_fdatawrite_range_kick(mapping, 0, LLONG_MAX);
+> >  }
+> >  EXPORT_SYMBOL(filemap_flush);
 > 
-> This should be LLONG_MAX, no ?
+> filemap_fdatawrite_range_kick() doesn't exist at this point in the series.
 
-Yes, fixed.
+It does exist even in the current upstream kernel.
+filemap_fdatawrite_kick doesn't exist yet.
 
