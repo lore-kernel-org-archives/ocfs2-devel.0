@@ -1,98 +1,164 @@
-Received: from forward201d.mail.yandex.net (forward201d.mail.yandex.net [178.154.239.220])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from smtp-out2.suse.de (smtp-out2.suse.de [195.135.223.131])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A8B181E47CC
-	for <ocfs2-devel@lists.linux.dev>; Tue, 14 Oct 2025 07:11:53 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=178.154.239.220
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D8FA02EA49F
+	for <ocfs2-devel@lists.linux.dev>; Tue, 14 Oct 2025 09:33:33 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=195.135.223.131
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1760425917; cv=none; b=XCBeRoqEjNqilPxoreuZ+EhrNH2vkPncc01j2DElw4pmr7+H/XbxgY1MlrqVm2C5y1l9j4qkcQPfuUwMiqK1+DYNqXKG/X3KGIaNWsoiPYocN9Q2WQ+J3vyIawnbqfx5yBrllhqpS+6/XhC8CKsEQ3Ydi7uqRT48apv8iU7hqDg=
+	t=1760434415; cv=none; b=PBAWKtqtCKhqYQEjB4qvAkblnyB0iP7wh9G5gcWsmi6YJTZFCgVCw9/sN2d0758h8zZsBHMfdy58KDFl5BtjbCVaj7M207LljJxCR6Wm28dh0O7aIYxD0JputyTgoPMcs2I0ApnNXGyFOLSssr/6s5Nj23Nq+LxdFHMAG1LrzWE=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1760425917; c=relaxed/simple;
-	bh=W5zrwHqd1Okq/951rJ+c9pjRtf75PL05C3TWoKFAOCw=;
-	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=ne1huskMUudTk6ifs1Vee+Y2YZO7vrF3vlIl2mCnhdB3H6kz+FF6wcNicqqQmW8trVJJv0cXLXYtd+7l1Ft5e5W+eDHl1E7qMlvD2PXvvlzGeKISp7Ac31xAe3bshQ4r3/z7IYgOqHrYQVEafA6UY1XGYTuaJ4jKL8hB+W6Wz/A=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru; spf=pass smtp.mailfrom=yandex.ru; dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b=A1BJuQle; arc=none smtp.client-ip=178.154.239.220
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=yandex.ru
+	s=arc-20240116; t=1760434415; c=relaxed/simple;
+	bh=puQyyfq+pN2h54oc/BWNK/2Vp0IFA+7A0vuXLLsaJO4=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=kZn++fMHGYXxV1ujySvF0aenkPwOz+deLcm1x1mbld8cOi7ObSpO01Gcb330UBRV1m3o5eYRLdDsjVh7rJUfEf14O/9vW2fDRk0XaP43+jMNp3Mi3Wy68AGFJJGfsltEybJQU+3xnBOvVLLKaV0xdhA843eypuKr2/4y+s22diA=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=suse.cz; spf=pass smtp.mailfrom=suse.cz; dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b=xHzzbtQG; dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b=16qmTPMq; dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b=NaECqKgg; dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b=vP5VAX//; arc=none smtp.client-ip=195.135.223.131
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=suse.cz
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.cz
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b="A1BJuQle"
-Received: from forward100d.mail.yandex.net (forward100d.mail.yandex.net [IPv6:2a02:6b8:c41:1300:1:45:d181:d100])
-	by forward201d.mail.yandex.net (Yandex) with ESMTPS id 9AE1082735
-	for <ocfs2-devel@lists.linux.dev>; Tue, 14 Oct 2025 10:03:41 +0300 (MSK)
-Received: from mail-nwsmtp-smtp-production-main-95.klg.yp-c.yandex.net (mail-nwsmtp-smtp-production-main-95.klg.yp-c.yandex.net [IPv6:2a02:6b8:c42:81cc:0:640:2c74:0])
-	by forward100d.mail.yandex.net (Yandex) with ESMTPS id B8207C0062;
-	Tue, 14 Oct 2025 10:03:32 +0300 (MSK)
-Received: by mail-nwsmtp-smtp-production-main-95.klg.yp-c.yandex.net (smtp/Yandex) with ESMTPSA id U3Jm2BULsSw0-WJRqf3em;
-	Tue, 14 Oct 2025 10:03:32 +0300
-X-Yandex-Fwd: 1
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=yandex.ru; s=mail;
-	t=1760425412; bh=F3SFskHb20DEag7E5nolVMWRjpSOFa8MTTlB3ZhmaXI=;
-	h=Message-ID:Date:In-Reply-To:Cc:Subject:References:To:From;
-	b=A1BJuQlefGsM8W9E6YlPnefd4IEkov2a9jkO+QZunOz641SoimQbbxeZ9z8ep/sST
-	 jgxw/JKJvo92pqm3P21urbk5xwa19+CwUPuQnlahhAVfVMSMwg51NH0PtzLYjzgZL1
-	 GDqcN7IG5Xg5VqzsD0e0iDLXYRViA36/RkY8Zrxs=
-Authentication-Results: mail-nwsmtp-smtp-production-main-95.klg.yp-c.yandex.net; dkim=pass header.i=@yandex.ru
-From: Dmitry Antipov <dmantipov@yandex.ru>
-To: Heming Zhao <heming.zhao@suse.com>,
-	Mark Fasheh <mark@fasheh.com>,
-	Joel Becker <jlbec@evilplan.org>,
-	Joseph Qi <joseph.qi@linux.alibaba.com>
-Cc: ocfs2-devel@lists.linux.dev,
-	lvc-project@linuxtesting.org,
-	Dmitry Antipov <dmantipov@yandex.ru>
-Subject: [PATCH v2] ocfs2: fix __counted_by_le() usage in ocfs2_expand_inline_dx_root()
-Date: Tue, 14 Oct 2025 10:03:24 +0300
-Message-ID: <20251014070324.130313-1-dmantipov@yandex.ru>
-X-Mailer: git-send-email 2.51.0
-In-Reply-To: <9efedaaf-3600-4d1e-9fb7-77f55f1524e5@suse.com>
-References: <9efedaaf-3600-4d1e-9fb7-77f55f1524e5@suse.com>
+	dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b="xHzzbtQG";
+	dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b="16qmTPMq";
+	dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b="NaECqKgg";
+	dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b="vP5VAX//"
+Received: from imap1.dmz-prg2.suse.org (imap1.dmz-prg2.suse.org [IPv6:2a07:de40:b281:104:10:150:64:97])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by smtp-out2.suse.de (Postfix) with ESMTPS id B12311F7B2;
+	Tue, 14 Oct 2025 09:33:30 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.cz; s=susede2_rsa;
+	t=1760434412; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+	 mime-version:mime-version:content-type:content-type:
+	 in-reply-to:in-reply-to:references:references;
+	bh=Bu1v0ZsOdAGwtYXCG/q/PJru4MIkuHqF/5/HnD8J37w=;
+	b=xHzzbtQGIwea3na2nDBBtUHQCYVl+R4lrrOdnSJT/vknDNYjr+zb3BH7kF5R8Z9ReIr7s7
+	8oeltK+lIpc7uiNPWBJFa/vsDggH3nWXkJCf5EllL+ZK7tZpRWDcVZnkLDXOS2PLphnnqA
+	qhzt/HIwd8Ivy1zbyofvraqcWTE4jW8=
+DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.cz;
+	s=susede2_ed25519; t=1760434412;
+	h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+	 mime-version:mime-version:content-type:content-type:
+	 in-reply-to:in-reply-to:references:references;
+	bh=Bu1v0ZsOdAGwtYXCG/q/PJru4MIkuHqF/5/HnD8J37w=;
+	b=16qmTPMq9Ya8DnrCMADkaJsMgrCHAKaNUvd3JQofXIz30IZYTJ5fsx6dhNS9LiGSVjSJhf
+	4MfmzQ8JrkN89pBA==
+Authentication-Results: smtp-out2.suse.de;
+	dkim=pass header.d=suse.cz header.s=susede2_rsa header.b=NaECqKgg;
+	dkim=pass header.d=suse.cz header.s=susede2_ed25519 header.b="vP5VAX//"
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.cz; s=susede2_rsa;
+	t=1760434410; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+	 mime-version:mime-version:content-type:content-type:
+	 in-reply-to:in-reply-to:references:references;
+	bh=Bu1v0ZsOdAGwtYXCG/q/PJru4MIkuHqF/5/HnD8J37w=;
+	b=NaECqKggLq8fTYGbKvSAiCuRZdr3+9HhjsTNR1BSu02lITDfqhzA6+TCH9jpKHWdpZGzr7
+	5FuW51Eo1RgIg7MgMNtHA4/HgVwLVezGUtBiUaNxgWNpcDkh7Z3ajhSreD7VB41gTDBOQe
+	ej4qi+L9Rs2qxglM5o2QF1emQgcqt48=
+DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.cz;
+	s=susede2_ed25519; t=1760434410;
+	h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+	 mime-version:mime-version:content-type:content-type:
+	 in-reply-to:in-reply-to:references:references;
+	bh=Bu1v0ZsOdAGwtYXCG/q/PJru4MIkuHqF/5/HnD8J37w=;
+	b=vP5VAX//BKm3YMo8HYPJx5WbHvSRihWzLL6OI67rr+DUiEHOr+lFjqNyOD/u5H7D/BSFWt
+	+EUkM3zJxNArduCg==
+Received: from imap1.dmz-prg2.suse.org (localhost [127.0.0.1])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by imap1.dmz-prg2.suse.org (Postfix) with ESMTPS id A16C4139B0;
+	Tue, 14 Oct 2025 09:33:30 +0000 (UTC)
+Received: from dovecot-director2.suse.de ([2a07:de40:b281:106:10:150:64:167])
+	by imap1.dmz-prg2.suse.org with ESMTPSA
+	id eaVjJ+oY7mjaUgAAD6G6ig
+	(envelope-from <jack@suse.cz>); Tue, 14 Oct 2025 09:33:30 +0000
+Received: by quack3.suse.cz (Postfix, from userid 1000)
+	id 3B1F7A0A58; Tue, 14 Oct 2025 11:33:26 +0200 (CEST)
+Date: Tue, 14 Oct 2025 11:33:26 +0200
+From: Jan Kara <jack@suse.cz>
+To: Christoph Hellwig <hch@lst.de>
+Cc: Jan Kara <jack@suse.cz>, Damien Le Moal <dlemoal@kernel.org>, 
+	"Matthew Wilcox (Oracle)" <willy@infradead.org>, Eric Van Hensbergen <ericvh@kernel.org>, 
+	Latchesar Ionkov <lucho@ionkov.net>, Dominique Martinet <asmadeus@codewreck.org>, 
+	Christian Schoenebeck <linux_oss@crudebyte.com>, Chris Mason <clm@fb.com>, David Sterba <dsterba@suse.com>, 
+	Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, 
+	Joseph Qi <joseph.qi@linux.alibaba.com>, Alexander Viro <viro@zeniv.linux.org.uk>, 
+	Christian Brauner <brauner@kernel.org>, Josef Bacik <josef@toxicpanda.com>, linux-block@vger.kernel.org, 
+	v9fs@lists.linux.dev, linux-btrfs@vger.kernel.org, linux-ext4@vger.kernel.org, 
+	linux-fsdevel@vger.kernel.org, jfs-discussion@lists.sourceforge.net, 
+	ocfs2-devel@lists.linux.dev, linux-xfs@vger.kernel.org, linux-mm@kvack.org
+Subject: Re: [PATCH 06/10] mm,btrfs: add a filemap_fdatawrite_kick_nr helper
+Message-ID: <qh7xhmefm54k3hgny3iwkxbdrgjf35swqokiiicu5gg3ahvf4s@xhyw4sfagjgw>
+References: <20251013025808.4111128-1-hch@lst.de>
+ <20251013025808.4111128-7-hch@lst.de>
+ <74593bac-929b-4496-80e0-43d0f54d6b4c@kernel.org>
+ <4bcpiwrhbrraau7nlp6mxbffprtnlv3piqyn7xkm7j2txxqlmn@3knyilc526ts>
+ <20251014044723.GA30978@lst.de>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20251014044723.GA30978@lst.de>
+X-Spam-Level: 
+X-Spam-Flag: NO
+X-Rspamd-Queue-Id: B12311F7B2
+X-Rspamd-Action: no action
+X-Rspamd-Server: rspamd1.dmz-prg2.suse.org
+X-Spamd-Result: default: False [-4.01 / 50.00];
+	BAYES_HAM(-3.00)[99.99%];
+	NEURAL_HAM_LONG(-1.00)[-1.000];
+	MID_RHS_NOT_FQDN(0.50)[];
+	R_DKIM_ALLOW(-0.20)[suse.cz:s=susede2_rsa,suse.cz:s=susede2_ed25519];
+	NEURAL_HAM_SHORT(-0.20)[-1.000];
+	MIME_GOOD(-0.10)[text/plain];
+	MX_GOOD(-0.01)[];
+	DKIM_SIGNED(0.00)[suse.cz:s=susede2_rsa,suse.cz:s=susede2_ed25519];
+	RCVD_COUNT_THREE(0.00)[3];
+	FUZZY_RATELIMITED(0.00)[rspamd.com];
+	MIME_TRACE(0.00)[0:+];
+	ARC_NA(0.00)[];
+	RCPT_COUNT_TWELVE(0.00)[25];
+	FROM_HAS_DN(0.00)[];
+	RCVD_TLS_LAST(0.00)[];
+	TO_MATCH_ENVRCPT_ALL(0.00)[];
+	RECEIVED_SPAMHAUS_BLOCKED_OPENRESOLVER(0.00)[2a07:de40:b281:106:10:150:64:167:received];
+	FROM_EQ_ENVFROM(0.00)[];
+	TO_DN_SOME(0.00)[];
+	RCVD_VIA_SMTP_AUTH(0.00)[];
+	DKIM_TRACE(0.00)[suse.cz:+];
+	MISSING_XM_UA(0.00)[];
+	DBL_BLOCKED_OPENRESOLVER(0.00)[imap1.dmz-prg2.suse.org:rdns,imap1.dmz-prg2.suse.org:helo,suse.com:email]
+X-Spam-Score: -4.01
 
-After annotating 'l_recs[]' VLA member of 'struct ocfs2_extent_list'
-with '__counted_by_le(l_count)', 'l_count' should be initialized
-before touching 'l_recs[]' with 'memset()' to avoid false positives
-from buffer overflow guards when CONFIG_UBSAN_BOUNDS is enabled.
+On Tue 14-10-25 06:47:23, Christoph Hellwig wrote:
+> On Mon, Oct 13, 2025 at 01:58:15PM +0200, Jan Kara wrote:
+> > I don't love filemap_fdatawrite_kick_nr() either. Your
+> > filemap_fdatawrite_nrpages() is better but so far we had the distinction
+> > that filemap_fdatawrite* is for data integrity writeback and filemap_flush
+> > is for memory cleaning writeback. And in some places this is important
+> > distinction which I'd like to keep obvious in the naming. So I'd prefer
+> > something like filemap_flush_nrpages() (to stay consistent with previous
+> > naming) or if Christoph doesn't like flush (as that's kind of overloaded
+> > word) we could have filemap_writeback_nrpages().
+> 
+> Not a big fan of flush, but the important point in this series is
+> to have consistent naming.
 
-Fixes: aa545adbe491 ("ocfs2: annotate flexible array members with __counted_by_le()")
-Signed-off-by: Dmitry Antipov <dmantipov@yandex.ru>
----
-v2: adjust 'memset()' call to clear 'l_recs[]' of 'dr_list' only
-    and initialize the rest of the members explicitly (Heming Zhao)
+I fully agree on that.
 
-note: since the commit in subject is not merged to upstream yet, Fixes: reference is taken from
-https://web.git.kernel.org/pub/scm/linux/kernel/git/akpm/mm.git/commit/?h=mm-nonmm-unstable&id=aa545adbe491
----
- fs/ocfs2/dir.c | 9 +++++++--
- 1 file changed, 7 insertions(+), 2 deletions(-)
+>  If we don't like the kick naming we should standardize on _flush (or
+>  whatever) and have the _range and _nrpages variants of whatever we pick
+>  for the base name.
+> 
+> Anyone with strong feelings and or good ideas about naming please speak
+> up now.
 
-diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
-index 8c9c4825f984..48b092bc83d4 100644
---- a/fs/ocfs2/dir.c
-+++ b/fs/ocfs2/dir.c
-@@ -4104,10 +4104,15 @@ static int ocfs2_expand_inline_dx_root(struct inode *dir,
- 	}
- 
- 	dx_root->dr_flags &= ~OCFS2_DX_FLAG_INLINE;
--	memset(&dx_root->dr_list, 0, osb->sb->s_blocksize -
--	       offsetof(struct ocfs2_dx_root_block, dr_list));
-+
-+	dx_root->dr_list.l_tree_depth = 0;
- 	dx_root->dr_list.l_count =
- 		cpu_to_le16(ocfs2_extent_recs_per_dx_root(osb->sb));
-+	dx_root->dr_list.l_next_free_rec = 0;
-+	memset(&dx_root->dr_list.l_recs, 0,
-+	       osb->sb->s_blocksize -
-+	       (offsetof(struct ocfs2_dx_root_block, dr_list) +
-+		offsetof(struct ocfs2_extent_list, l_recs)));
- 
- 	/* This should never fail considering we start with an empty
- 	 * dx_root. */
+I agree with either keeping filemap_flush* or using filemap_writeback* (and
+renaming filemap_flush to filemap_writeback).
+
+								Honza
 -- 
-2.51.0
-
+Jan Kara <jack@suse.com>
+SUSE Labs, CR
