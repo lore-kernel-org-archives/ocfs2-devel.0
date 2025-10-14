@@ -1,103 +1,67 @@
-Received: from out30-99.freemail.mail.aliyun.com (out30-99.freemail.mail.aliyun.com [115.124.30.99])
+Received: from verein.lst.de (verein.lst.de [213.95.11.211])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 948B21DFCB
-	for <ocfs2-devel@lists.linux.dev>; Tue, 14 Oct 2025 01:50:16 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.99
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id BE9D91DA62E;
+	Tue, 14 Oct 2025 04:44:27 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=213.95.11.211
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1760406622; cv=none; b=MHuZG0e4tlCRJd6lXz8pA25fCzBoP3sN7UQxcYzftgStxwVdRvS2LC0jyk4pcGNFEwpZB0/CHAlDT9sLfTOtw578AiT0l5mYYy9WU0AFhk+jaDxxcjsTJ+wxSKfWGagixXv+2Hxb82c9l8JpnYYr/aBkTYHYoh9zDc7IMW7XPDg=
+	t=1760417069; cv=none; b=pwQR73jDoTiWhPevLFC+OMme8XC2oBmoU8mUhemay9YbG95aG42gYlP0ff2SXiphANETquXA1eKpFkPoITMlIbdfixMf8ppex291VqNEm7Afpa6AKvWsF28q19/7/OS10tNzy01daCRE66BuKyjnLFDl/FD5JTwj92/3mZEoizg=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1760406622; c=relaxed/simple;
-	bh=PQNxGGumugj9aH0dTYJS4VS5zuo/m44xQg2NmTec9Fs=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=HN06qRNjjwc8kTGlzNWbEMIAsV9UsKwnccPk7x7SVfvCLGdhlrJq300oDxzg8b/RVw+hEjnPiJBfkAvma5FycIEpxY8qSjySILoN0xzJaTaVuYF58KjCLIycvr0XAhujMT0BVK3aL4XuW1q8U9J58c9kLjRlNwIeZKiWUuINvLg=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=VGwMeQwZ; arc=none smtp.client-ip=115.124.30.99
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="VGwMeQwZ"
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1760406608; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=7+NFG660eEbV4xby1BalJ48cNaoHJOhLTyVrInEsLXo=;
-	b=VGwMeQwZuiTlRS9/4kR0h356YBY0JSmmL1jiVz691zeQlcYCuFSD8CYxSUMVDsxi/jMRPfqf7ZnE2NxMyWUvKuU8TnLnlAMhB13NZjcAYrL3mzLk70nQn1i30EAxErJqdHvDBVHNr31tvfkRFJDBRkbve4kpIginWHaVh7aRTqo=
-Received: from 30.221.128.131(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0Wq9tArR_1760406606 cluster:ay36)
-          by smtp.aliyun-inc.com;
-          Tue, 14 Oct 2025 09:50:07 +0800
-Message-ID: <17ed3d05-ef27-44dd-83a0-a8bdb0069511@linux.alibaba.com>
-Date: Tue, 14 Oct 2025 09:50:06 +0800
+	s=arc-20240116; t=1760417069; c=relaxed/simple;
+	bh=3xzfzkbgYIg9IfR3Ir94hE3O8Ov0sXJ49fRS3a8QW2U=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=mdWd3M+DaURQo4lLIWkFN/+4KJCREMlQmjJ2ehDXLEKeG2/JF3SKUN9mHYDvAGFv3K7J2LLGgdQO3/zIFHhEEpdpWvBMhfQm6hIDCmamiGab9ToGQ8Zu2+xTH7AMwZ7KgE/BFW8/64Gi7LKUtWAxh9MWm7i9nAd/s0P5Txa9j/c=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=lst.de; spf=pass smtp.mailfrom=lst.de; arc=none smtp.client-ip=213.95.11.211
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=lst.de
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=lst.de
+Received: by verein.lst.de (Postfix, from userid 2407)
+	id 26F11227A87; Tue, 14 Oct 2025 06:44:22 +0200 (CEST)
+Date: Tue, 14 Oct 2025 06:44:21 +0200
+From: hch <hch@lst.de>
+To: Johannes Thumshirn <Johannes.Thumshirn@wdc.com>
+Cc: hch <hch@lst.de>, "Matthew Wilcox (Oracle)" <willy@infradead.org>,
+	Eric Van Hensbergen <ericvh@kernel.org>,
+	Latchesar Ionkov <lucho@ionkov.net>,
+	Dominique Martinet <asmadeus@codewreck.org>,
+	Christian Schoenebeck <linux_oss@crudebyte.com>,
+	Chris Mason <clm@fb.com>, David Sterba <dsterba@suse.com>,
+	Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
+	Joseph Qi <joseph.qi@linux.alibaba.com>,
+	Alexander Viro <viro@zeniv.linux.org.uk>,
+	Christian Brauner <brauner@kernel.org>,
+	Josef Bacik <josef@toxicpanda.com>, Jan Kara <jack@suse.cz>,
+	"linux-block@vger.kernel.org" <linux-block@vger.kernel.org>,
+	"v9fs@lists.linux.dev" <v9fs@lists.linux.dev>,
+	"linux-btrfs@vger.kernel.org" <linux-btrfs@vger.kernel.org>,
+	"linux-ext4@vger.kernel.org" <linux-ext4@vger.kernel.org>,
+	"linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>,
+	"jfs-discussion@lists.sourceforge.net" <jfs-discussion@lists.sourceforge.net>,
+	"ocfs2-devel@lists.linux.dev" <ocfs2-devel@lists.linux.dev>,
+	"linux-xfs@vger.kernel.org" <linux-xfs@vger.kernel.org>,
+	"linux-mm@kvack.org" <linux-mm@kvack.org>
+Subject: Re: [PATCH 04/10] btrfs: use the local tmp_inode variable in
+ start_delalloc_inodes
+Message-ID: <20251014044421.GA30920@lst.de>
+References: <20251013025808.4111128-1-hch@lst.de> <20251013025808.4111128-5-hch@lst.de> <aae79ea0-f056-4da7-8a87-4d4fd6aea85f@wdc.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH] ocfs2: fix __counted_by_le() usage in
- ocfs2_expand_inline_dx_root()
-To: Heming Zhao <heming.zhao@suse.com>, Dmitry Antipov <dmantipov@yandex.ru>,
- akpm <akpm@linux-foundation.org>
-Cc: ocfs2-devel@lists.linux.dev, lvc-project@linuxtesting.org,
- Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>
-References: <20251013153002.167377-1-dmantipov@yandex.ru>
- <0383ab66-9b8a-4e10-b6a9-d25d127dd797@linux.alibaba.com>
- <9efedaaf-3600-4d1e-9fb7-77f55f1524e5@suse.com>
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <9efedaaf-3600-4d1e-9fb7-77f55f1524e5@suse.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <aae79ea0-f056-4da7-8a87-4d4fd6aea85f@wdc.com>
+User-Agent: Mutt/1.5.17 (2007-11-01)
 
+On Mon, Oct 13, 2025 at 08:11:35AM +0000, Johannes Thumshirn wrote:
+> If you have to repost this for some reason, can you rename tmp_inode to 
+> vfs_inode or sth like that?
+> 
+> The name is really confusing and the commit introducing it doesn't 
+> describe it really either.
 
-
-On 2025/10/14 09:44, Heming Zhao wrote:
-> Hi,
-> 
-> I have a different view.
-> 
-> On 10/14/25 08:55, Joseph Qi wrote:
->>
->>
->> On 2025/10/13 23:30, Dmitry Antipov wrote:
->>> After annotating 'l_recs[]' VLA member of 'struct ocfs2_extent_list'
->>> with '__counted_by_le(l_count)', 'l_count' should be initialized
->>> before touching 'l_recs[]' with 'memset()' to avoid false positives
->>> from buffer overflow guards when CONFIG_UBSAN_BOUNDS is enabled.
->>>
->>> Fixes: aa545adbe491 ("ocfs2: annotate flexible array members with __counted_by_le()")
->>> Signed-off-by: Dmitry Antipov <dmantipov@yandex.ru>
->>
->> Looks fine.
->> Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
->>
->> Andrew, could you please help fold this into the origin patch? Thanks.
->>
->>> ---
->>> note: since the commit in subject is not merged to upstream yet, Fixes: reference is taken from
->>> https://web.git.kernel.org/pub/scm/linux/kernel/git/akpm/mm.git/commit/?h=mm-nonmm-unstable&id=aa545adbe491
->>> ---
->>>   fs/ocfs2/dir.c | 4 ++--
->>>   1 file changed, 2 insertions(+), 2 deletions(-)
->>>
->>> diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
->>> index 3c2dacba9b0a..d9a2fcb63bbb 100644
->>> --- a/fs/ocfs2/dir.c
->>> +++ b/fs/ocfs2/dir.c
->>> @@ -4133,10 +4133,10 @@ static int ocfs2_expand_inline_dx_root(struct inode *dir,
->>>       }
->>>         dx_root->dr_flags &= ~OCFS2_DX_FLAG_INLINE;
->>> -    memset(&dx_root->dr_list, 0, osb->sb->s_blocksize -
->>> -           offsetof(struct ocfs2_dx_root_block, dr_list));
->>>       dx_root->dr_list.l_count =
->>>           cpu_to_le16(ocfs2_extent_recs_per_dx_root(osb->sb));
-> 
-> If the memset cleans dx_root->dr_list->l_recs[], or "osb->sb->s_blocksize -
-> (offsetof(struct ocfs2_dx_root_block, dr_list) + offsetof(struct ocfs2_extent_list, l_recs))" this patch is correct.
-> 
-> But the subsequent memset() call cleans all the members of dr_list.
-> Therefore, dr_list.l_count is reset to ZERO and the data is corrupted.
-> 
-Oops, my mistake.
-Yes, you're right. Thanks for pointing out this.
-
-Joseph
+It is.  vfs_inode is kinda weird, too.  The problem is that inode
+is used for the btrfs_inode.  But if there's consensus on a name
+I'll happily change it.
 
