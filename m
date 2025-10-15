@@ -1,139 +1,158 @@
-Received: from mail-pj1-f44.google.com (mail-pj1-f44.google.com [209.85.216.44])
+Received: from mail-il1-f205.google.com (mail-il1-f205.google.com [209.85.166.205])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3A7A72D9EDA
-	for <ocfs2-devel@lists.linux.dev>; Tue, 14 Oct 2025 20:45:55 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.216.44
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 64F4F30597E
+	for <ocfs2-devel@lists.linux.dev>; Wed, 15 Oct 2025 02:12:27 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.166.205
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1760474756; cv=none; b=T2BS6kHIjU40C/i7peyRG51cwnBbIx/TfBpJ2uYEJTCdJ9h4ey0FRbC0ijUXozfE1gui41g2410HN+tQuPQlODYekCkTHgxlzlxHIcebyTyhBwjfstiYI2G7fAy+/+h6P1u+oNhV5p/Ik/K2VOBGt71YK6W+cic1TBP63PPvntk=
+	t=1760494349; cv=none; b=jgfUPIvh+VuC1XEDJ/Vt+J8YCZ8a7Eejgfu4OMZPyFspl1zCYvjesm/vhUSuDgZybnRRkeQfufVwc57pv505HCdrmR4oazRY88hViE2e8+7vNbRskr3fDQE2KvSewBGcaeJPacUkoamcZKHSyIYNQ7wSRUsZskkl64V0Y/JfL7Y=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1760474756; c=relaxed/simple;
-	bh=mLMiOvkuQ1waPsYJBAJdPUyickusJQ8ORxj4y3Zep3Q=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=BP+K++VmIgvC14Eu0ip+2aTyDEZRdGmaH05GvE+D2OCdMUZh+6ylst0qTuHQe7t3otGXpBgo1bovf9KvoAhw/y2QlSjysTY5uVEYCtR3dYNb+uC0VGWqyMcal4owdbtPwPFuFvXXOD8yhvO0KseNrPOhn2p3op1uVvex5PsT4+g=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=fromorbit.com; spf=pass smtp.mailfrom=fromorbit.com; dkim=pass (2048-bit key) header.d=fromorbit-com.20230601.gappssmtp.com header.i=@fromorbit-com.20230601.gappssmtp.com header.b=srjW0sRV; arc=none smtp.client-ip=209.85.216.44
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=fromorbit.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=fromorbit.com
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=fromorbit-com.20230601.gappssmtp.com header.i=@fromorbit-com.20230601.gappssmtp.com header.b="srjW0sRV"
-Received: by mail-pj1-f44.google.com with SMTP id 98e67ed59e1d1-33274fcf5c1so6133054a91.1
-        for <ocfs2-devel@lists.linux.dev>; Tue, 14 Oct 2025 13:45:55 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=fromorbit-com.20230601.gappssmtp.com; s=20230601; t=1760474754; x=1761079554; darn=lists.linux.dev;
-        h=in-reply-to:content-disposition:mime-version:references:message-id
-         :subject:cc:to:from:date:from:to:cc:subject:date:message-id:reply-to;
-        bh=ProMLWdJiYhd+ReUg4Q/nfu5OGup3NKBCnvPEIlS8hk=;
-        b=srjW0sRVUYqmtK+ZSoMIdjhhPUxzBaO40zIjQzPVsYAcGpkffC/OwGwZlsPK3EV3Qr
-         Df0I//tFySUBtMsJdbts2zToYSGfUuQRmaUYxOPcvJMxbDXzGxYTjPrK+besiQJSVhpW
-         g33T59dNLzCrsq2smo3W9HBZUw5PNIJjg72wq42P4gVEFKax3XD8Jr6QGgmQt6V/aLwE
-         oZbHQ1TD+tX2cUGt9iw1iGDxQD9KSr+B8OEyqvMAa39cAdL0HPeRzGzGfLRyQJjPVLyF
-         oG2NzTUuDUHb+XXz2jmY4H1iU4AordQvLQGlnICMLri1HjY9ZnXrZjbUsrkKUujoNq0l
-         cazg==
+	s=arc-20240116; t=1760494349; c=relaxed/simple;
+	bh=eKGNpUKyDE2VQSL6YlYyTmtjhvMrD1dZuDR+y2pvnn0=;
+	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=JhazfPuTwgnZPVhcZMdprR0qPVptjqZRd6FqNN8d7fy+/fnWpmhE8PjB6bUe/YS8A4idkwEudnkt3JJ8mdu7TZaHTyf9bWgBaasw5UJWxzhUWNUeHPllG2bWzYBABHCN4Bh6XomHMVeByQQEtYIaJ4LEAL5h8+cVRrNLbGCUqRo=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.166.205
+Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
+Received: by mail-il1-f205.google.com with SMTP id e9e14a558f8ab-42486f6da6fso164075995ab.2
+        for <ocfs2-devel@lists.linux.dev>; Tue, 14 Oct 2025 19:12:27 -0700 (PDT)
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1760474754; x=1761079554;
-        h=in-reply-to:content-disposition:mime-version:references:message-id
-         :subject:cc:to:from:date:x-gm-message-state:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=ProMLWdJiYhd+ReUg4Q/nfu5OGup3NKBCnvPEIlS8hk=;
-        b=nOTtKPIhXUXbLTiwQQVBP3E5YqpeIf8Fzzq88cuPTwOBQ+EI6AqtGvU6t8AUYOmV5w
-         /lniyVuLYeCuXZk69+Euuvz6jYaaurSiUhDZrN4FXzSDBJ3hnJFF9Y4/Js+VpKAoLYDr
-         tOCSTwCMa4sy7St4GBhlCoRLM+kMxke3VjDGq69yFTcFsrBYQNU7joXklOFWVFC4l04f
-         JB7Xqsdud1mNMAxstdZCaSZjhzcmp2UrBDhZTlfvLmceYX4+GBo/5tbfmCRDPgEdVmDt
-         BAT+CeyaoysotbhMNWszrBWrr5l2Pub8EkAs3BI/EQRCXY+PEcqaJSSb88duYtgh2Z5e
-         1MJA==
-X-Forwarded-Encrypted: i=1; AJvYcCXISwGLjmCpDnHqIbKeC8XItjlKAwdS0tLb4N4cZAkOAdFcXfL++6DN3fH9zpTqvmkpXym9vuht+WR7SA==@lists.linux.dev
-X-Gm-Message-State: AOJu0YzORroAfubl5LQzf/E3gEKAAL3Dg+v2PWqyeIJ909z3ipDiWQx7
-	oGWStADdMDqNzXxk98HTKXLeJEqwG2OK0dxSlUww3z4+ZT7/PC8OsIeFkZW5gvJPfjarseCdwGT
-	y1egH
-X-Gm-Gg: ASbGncsKDrSlrdAcUBubmgtJzc4gEDorPQq0Dumly5DyTkr/4eCftlTr3nHs0/+e/hN
-	LAKozyJ9zH/8gDRgDnVdzEiQWHRcd18rPnjDIlFLtuKUl2M/xZrgjVbx3gmmuJJlWMaRlX8OmxB
-	bJTU3lQUZ5/PO2xeTGt9fQNaxYPna3ewfWf6paurpU7xssuXvV8UprWBC8N7w37ua7oB8XXJarb
-	6hw8INfV4+aO1dNOQOTOOUiK7oWpJnUzFWKE4cHO3bSg3n9Frl+ZJPetuVEwWfJ5J9U+HIoazr4
-	C/YPjg71hLOah00/ilujTQjQwfA+fpVA4//dvpsjhpepKQ73ac1MFqLB2ln5Gp0v6vhL4+v9mZ2
-	l4tcfh3Ffcewtv2lh56F8nurP64GPD8NtDbunQ3BB70ZmjFEK0RDn3jjZE3UMxn5S3ORXToudwF
-	6CjpisqDMCVZhBsTH4
-X-Google-Smtp-Source: AGHT+IEha/464YLIDe1S05FMmmIwJiiHJqNozxP/E/7ahWiUSHSloNCgr/S9uHudRNKH/rfSTuG4WQ==
-X-Received: by 2002:a17:90b:3947:b0:31e:c95a:cef8 with SMTP id 98e67ed59e1d1-33b5139a259mr32044929a91.32.1760474754350;
-        Tue, 14 Oct 2025 13:45:54 -0700 (PDT)
-Received: from dread.disaster.area (pa49-180-91-142.pa.nsw.optusnet.com.au. [49.180.91.142])
-        by smtp.gmail.com with ESMTPSA id 98e67ed59e1d1-33b62631266sm16839994a91.3.2025.10.14.13.45.53
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Tue, 14 Oct 2025 13:45:53 -0700 (PDT)
-Received: from dave by dread.disaster.area with local (Exim 4.98.2)
-	(envelope-from <david@fromorbit.com>)
-	id 1v8lu3-0000000Es6g-0Y5G;
-	Wed, 15 Oct 2025 07:45:51 +1100
-Date: Wed, 15 Oct 2025 07:45:51 +1100
-From: Dave Chinner <david@fromorbit.com>
-To: Jan Kara <jack@suse.cz>
-Cc: Christoph Hellwig <hch@lst.de>, Damien Le Moal <dlemoal@kernel.org>,
-	"Matthew Wilcox (Oracle)" <willy@infradead.org>,
-	Eric Van Hensbergen <ericvh@kernel.org>,
-	Latchesar Ionkov <lucho@ionkov.net>,
-	Dominique Martinet <asmadeus@codewreck.org>,
-	Christian Schoenebeck <linux_oss@crudebyte.com>,
-	Chris Mason <clm@fb.com>, David Sterba <dsterba@suse.com>,
-	Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
-	Joseph Qi <joseph.qi@linux.alibaba.com>,
-	Alexander Viro <viro@zeniv.linux.org.uk>,
-	Christian Brauner <brauner@kernel.org>,
-	Josef Bacik <josef@toxicpanda.com>, linux-block@vger.kernel.org,
-	v9fs@lists.linux.dev, linux-btrfs@vger.kernel.org,
-	linux-ext4@vger.kernel.org, linux-fsdevel@vger.kernel.org,
-	jfs-discussion@lists.sourceforge.net, ocfs2-devel@lists.linux.dev,
-	linux-xfs@vger.kernel.org, linux-mm@kvack.org
-Subject: Re: [PATCH 06/10] mm,btrfs: add a filemap_fdatawrite_kick_nr helper
-Message-ID: <aO62fx2B5ZZLsRVM@dread.disaster.area>
-References: <20251013025808.4111128-1-hch@lst.de>
- <20251013025808.4111128-7-hch@lst.de>
- <74593bac-929b-4496-80e0-43d0f54d6b4c@kernel.org>
- <4bcpiwrhbrraau7nlp6mxbffprtnlv3piqyn7xkm7j2txxqlmn@3knyilc526ts>
- <20251014044723.GA30978@lst.de>
- <qh7xhmefm54k3hgny3iwkxbdrgjf35swqokiiicu5gg3ahvf4s@xhyw4sfagjgw>
+        d=1e100.net; s=20230601; t=1760494346; x=1761099146;
+        h=to:from:subject:message-id:date:mime-version:x-gm-message-state
+         :from:to:cc:subject:date:message-id:reply-to;
+        bh=yX6KbDxutmkXQKPzLf8J37+e9FP78fVbAOChBEEIGpg=;
+        b=Y0Y1N4qEy2WHXK+/1Hr3S8VjoMoqIHtE1LM15tFF1e9LDnDRTLbGL+GbMc9Iye6USu
+         kz6EdvSLPBz0IbK+kqa7N/ICNsL9iACvCg7ijybQevnNnK8hRRxKUuyFFxmwUatLUsC1
+         rqpxSgyvCWDeLq+0OH5JNKp0InKV+n6J4r1JNdSBuUydDgYK85tC1JE23eWW3cPvf+Te
+         0IxKhs7GUXMz6pDucRRAIzAs/I6OOPoSeyLRKyHhvSST7l0stda0jtfb6ytAde5oaPaQ
+         MECMPW6wVyfhFbZRPI7ydAY9ajPmAAIrAQQzIf7GgKpo/9NN+32Us5gzFamC3jDrw+BM
+         1Opw==
+X-Forwarded-Encrypted: i=1; AJvYcCV6atnmDKohYuUpCE1O8dtSwk6NunGwj8ZgKYdswEOYZOg7vLujHsQWjwCc1lDtzMMgRfMAT/Sp1ez3vg==@lists.linux.dev
+X-Gm-Message-State: AOJu0YwW6yGDkUNwxGz15gakDHbp2EYiDlSALaJnjtjHRip3/RVh4DxD
+	d5LHDzyskXdt6x0HIdu8SbtfH5qyc8BZ9pmdtdVzRT6/OAd2L+BID5dWYrjjfVqJvlMnoenKKGx
+	8GFTLOnyJCZnbv0XXO0KoYEgKoU1Ja1umSFW2k1Pkg2Qiz4WXKYpi1yrw4zI=
+X-Google-Smtp-Source: AGHT+IEh6ISMeUj5fvyKppQ0bbxdDEziWXtDJH7fDBk7Uuo84Z0DwzKlKYkmPlGFcq92pwmQedn0jgx81rgoPsgid71wyy9YFX5W
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <qh7xhmefm54k3hgny3iwkxbdrgjf35swqokiiicu5gg3ahvf4s@xhyw4sfagjgw>
+X-Received: by 2002:a05:6e02:12cb:b0:42e:7589:6290 with SMTP id
+ e9e14a558f8ab-42f87377de2mr300391665ab.12.1760494346563; Tue, 14 Oct 2025
+ 19:12:26 -0700 (PDT)
+Date: Tue, 14 Oct 2025 19:12:26 -0700
+X-Google-Appengine-App-Id: s~syzkaller
+X-Google-Appengine-App-Id-Alias: syzkaller
+Message-ID: <68ef030a.050a0220.91a22.022b.GAE@google.com>
+Subject: [syzbot] [ocfs2?] UBSAN: array-index-out-of-bounds in ocfs2_block_group_fill
+From: syzbot <syzbot+77026564530dbc29b854@syzkaller.appspotmail.com>
+To: akpm@linux-foundation.org, dmantipov@yandex.ru, jlbec@evilplan.org, 
+	joseph.qi@linux.alibaba.com, linux-kernel@vger.kernel.org, mark@fasheh.com, 
+	ocfs2-devel@lists.linux.dev, syzkaller-bugs@googlegroups.com
+Content-Type: text/plain; charset="UTF-8"
 
-On Tue, Oct 14, 2025 at 11:33:26AM +0200, Jan Kara wrote:
-> On Tue 14-10-25 06:47:23, Christoph Hellwig wrote:
-> > On Mon, Oct 13, 2025 at 01:58:15PM +0200, Jan Kara wrote:
-> > > I don't love filemap_fdatawrite_kick_nr() either. Your
-> > > filemap_fdatawrite_nrpages() is better but so far we had the distinction
-> > > that filemap_fdatawrite* is for data integrity writeback and filemap_flush
-> > > is for memory cleaning writeback. And in some places this is important
-> > > distinction which I'd like to keep obvious in the naming. So I'd prefer
-> > > something like filemap_flush_nrpages() (to stay consistent with previous
-> > > naming) or if Christoph doesn't like flush (as that's kind of overloaded
-> > > word) we could have filemap_writeback_nrpages().
-> > 
-> > Not a big fan of flush, but the important point in this series is
-> > to have consistent naming.
-> 
-> I fully agree on that.
+Hello,
 
-*nod*
+syzbot found the following issue on:
 
-> >  If we don't like the kick naming we should standardize on _flush (or
-> >  whatever) and have the _range and _nrpages variants of whatever we pick
-> >  for the base name.
-> > 
-> > Anyone with strong feelings and or good ideas about naming please speak
-> > up now.
-> 
-> I agree with either keeping filemap_flush* or using filemap_writeback* (and
-> renaming filemap_flush to filemap_writeback).
+HEAD commit:    52ba76324a9d Add linux-next specific files for 20251013
+git tree:       linux-next
+console output: https://syzkaller.appspot.com/x/log.txt?x=157d3b34580000
+kernel config:  https://syzkaller.appspot.com/x/.config?x=99cb6b007a8889ef
+dashboard link: https://syzkaller.appspot.com/bug?extid=77026564530dbc29b854
+compiler:       Debian clang version 20.1.8 (++20250708063551+0c9f909b7976-1~exp1~20250708183702.136), Debian LLD 20.1.8
+syz repro:      https://syzkaller.appspot.com/x/repro.syz?x=15039dcd980000
+C reproducer:   https://syzkaller.appspot.com/x/repro.c?x=15ad9542580000
 
-I'd prefer filemap_flush* because most people are already familiar
-with that naming and the expected semnatics. But I could live with
-filemap_writebacki*, too. Both are better than "kick", IMO.
+Downloadable assets:
+disk image: https://storage.googleapis.com/syzbot-assets/1729256319ee/disk-52ba7632.raw.xz
+vmlinux: https://storage.googleapis.com/syzbot-assets/a3152cfcba7c/vmlinux-52ba7632.xz
+kernel image: https://storage.googleapis.com/syzbot-assets/4065a3b3d959/bzImage-52ba7632.xz
+mounted in repro: https://storage.googleapis.com/syzbot-assets/d98ffa49f949/mount_0.gz
+  fsck result: OK (log: https://syzkaller.appspot.com/x/fsck.log?x=1510f304580000)
 
--Dave.
--- 
-Dave Chinner
-david@fromorbit.com
+The issue was bisected to:
+
+commit aa545adbe491402cf1e664f6be0a799ed69d9946
+Author: Dmitry Antipov <dmantipov@yandex.ru>
+Date:   Tue Oct 7 12:35:26 2025 +0000
+
+    ocfs2: annotate flexible array members with __counted_by_le()
+
+bisection log:  https://syzkaller.appspot.com/x/bisect.txt?x=11575542580000
+final oops:     https://syzkaller.appspot.com/x/report.txt?x=13575542580000
+console output: https://syzkaller.appspot.com/x/log.txt?x=15575542580000
+
+IMPORTANT: if you fix the issue, please add the following tag to the commit:
+Reported-by: syzbot+77026564530dbc29b854@syzkaller.appspotmail.com
+Fixes: aa545adbe491 ("ocfs2: annotate flexible array members with __counted_by_le()")
+
+         option from the mount to silence this warning.
+=======================================================
+JBD2: Ignoring recovery information on journal
+ocfs2: Mounting device (7,0) on (node local, slot 0) with ordered data mode.
+------------[ cut here ]------------
+UBSAN: array-index-out-of-bounds in fs/ocfs2/suballoc.c:380:22
+index 0 is out of range for type 'struct ocfs2_chain_rec[] __counted_by(cl_count)' (aka 'struct ocfs2_chain_rec[]')
+CPU: 0 UID: 0 PID: 6052 Comm: syz.0.17 Not tainted syzkaller #0 PREEMPT(full) 
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 10/02/2025
+Call Trace:
+ <TASK>
+ dump_stack_lvl+0x189/0x250 lib/dump_stack.c:120
+ ubsan_epilogue+0xa/0x40 lib/ubsan.c:233
+ __ubsan_handle_out_of_bounds+0xe9/0xf0 lib/ubsan.c:455
+ ocfs2_block_group_fill+0x938/0xb30 fs/ocfs2/suballoc.c:380
+ ocfs2_block_group_alloc_contig fs/ocfs2/suballoc.c:454 [inline]
+ ocfs2_block_group_alloc fs/ocfs2/suballoc.c:699 [inline]
+ ocfs2_reserve_suballoc_bits+0x117d/0x4680 fs/ocfs2/suballoc.c:834
+ ocfs2_reserve_new_metadata_blocks+0x403/0x940 fs/ocfs2/suballoc.c:984
+ ocfs2_expand_inline_dir fs/ocfs2/dir.c:2853 [inline]
+ ocfs2_extend_dir+0xc76/0x4870 fs/ocfs2/dir.c:3215
+ ocfs2_prepare_dir_for_insert+0x2fdf/0x54b0 fs/ocfs2/dir.c:4320
+ ocfs2_mknod+0x819/0x2050 fs/ocfs2/namei.c:297
+ ocfs2_mkdir+0x191/0x440 fs/ocfs2/namei.c:659
+ vfs_mkdir+0x306/0x510 fs/namei.c:4453
+ do_mkdirat+0x247/0x590 fs/namei.c:4486
+ __do_sys_mkdirat fs/namei.c:4503 [inline]
+ __se_sys_mkdirat fs/namei.c:4501 [inline]
+ __x64_sys_mkdirat+0x87/0xa0 fs/namei.c:4501
+ do_syscall_x64 arch/x86/entry/syscall_64.c:63 [inline]
+ do_syscall_64+0xfa/0xfa0 arch/x86/entry/syscall_64.c:94
+ entry_SYSCALL_64_after_hwframe+0x77/0x7f
+RIP: 0033:0x7f0917d8d617
+Code: 73 01 c3 48 c7 c1 a8 ff ff ff f7 d8 64 89 01 48 83 c8 ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 44 00 00 b8 02 01 00 00 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 a8 ff ff ff f7 d8 64 89 01 48
+RSP: 002b:00007fff863b0218 EFLAGS: 00000246 ORIG_RAX: 0000000000000102
+RAX: ffffffffffffffda RBX: 00007fff863b02a0 RCX: 00007f0917d8d617
+RDX: 00000000000001ff RSI: 0000200000000680 RDI: 00000000ffffff9c
+RBP: 0000200000000080 R08: 0000200000000140 R09: 0000000000000000
+R10: 0000200000000080 R11: 0000000000000246 R12: 0000200000000680
+R13: 00007fff863b0260 R14: 0000000000000000 R15: 0000000000000000
+ </TASK>
+---[ end trace ]---
+
+
+---
+This report is generated by a bot. It may contain errors.
+See https://goo.gl/tpsmEJ for more information about syzbot.
+syzbot engineers can be reached at syzkaller@googlegroups.com.
+
+syzbot will keep track of this issue. See:
+https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
+For information about bisection process see: https://goo.gl/tpsmEJ#bisection
+
+If the report is already addressed, let syzbot know by replying with:
+#syz fix: exact-commit-title
+
+If you want syzbot to run the reproducer, reply with:
+#syz test: git://repo/address.git branch-or-commit-hash
+If you attach or paste a git patch, syzbot will apply it before testing.
+
+If you want to overwrite report's subsystems, reply with:
+#syz set subsystems: new-subsystem
+(See the list of subsystem names on the web dashboard)
+
+If the report is a duplicate of another one, reply with:
+#syz dup: exact-subject-of-another-report
+
+If you want to undo deduplication, reply with:
+#syz undup
