@@ -1,65 +1,65 @@
-Received: from mail-wr1-f48.google.com (mail-wr1-f48.google.com [209.85.221.48])
+Received: from mail-wr1-f46.google.com (mail-wr1-f46.google.com [209.85.221.46])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7EA18946C
-	for <ocfs2-devel@lists.linux.dev>; Thu, 16 Oct 2025 02:22:43 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.221.48
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D3F8C1C6FF6
+	for <ocfs2-devel@lists.linux.dev>; Thu, 16 Oct 2025 02:54:29 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.221.46
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1760581366; cv=none; b=K9SxSI6yRq86q9R2NfZeUZWt5cMvIG/SgwjVDJFWWnq8qcWE0vYXMsH1o06AmXY1m/s2ETCUMugGJ27NYimXtPetJAEojLeXsMuAdW6C2EdUP2uaCD30Bx2XwLARq3dMf9eXVn9SjUHlIpYlsh3hw4DCsn33rpzAK0SfXl8Ymxk=
+	t=1760583272; cv=none; b=jv7SVokLKSxpJ8BTzF3Fte+7UxB8z2wIwJjBZdRxYZMHVLsrvmGeDP5zGLuHISDBsUqTrnnGNAm8N3Qbwz9I2GGF/kQsTJgfKqeRWruLpwHmtHgwbDqhBGLSWzoIIriyCCbOFIhtFMvujg5MuYK0EogNOqL7/8yNCGHQuXAAOgQ=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1760581366; c=relaxed/simple;
-	bh=DjFMOqTJdGz2ALQVc/zOl4bS75JVickU8pI1Jj6PNyg=;
+	s=arc-20240116; t=1760583272; c=relaxed/simple;
+	bh=KHCHcBVWvAp9hjz+XRUbtVuTiqk7hL2hNvDca/3lxLA=;
 	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=iGQsOl3SJdtK73ZEBXNzV5Q3mwWZejZ2FFAAzvCTwWumcn8EPX78L9+8SJTSAx+0gA/Ntp67EaPpz/Ss+b7uwifXO/jqq82Zig60OT2JUq5MuTp//iokF3xl+Rp5LmDPjYUdyR1Uc4g3eATABI1MaswIgWUSuFitoL2ElDxEr68=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=SO+GljSe; arc=none smtp.client-ip=209.85.221.48
+	 In-Reply-To:Content-Type; b=cQE5aWxQEW5HHMYooswuTEcYlGmVfR289JkNiVB6ceULq18xlJLVKFLm5UsByaSwfyXWlxXRSTiEjfv2EUn7CF4BNZP/mggN6g5vDj37qM+ufcxBEFez9rXGGIaeVom4kjbcsQYmfQuN2rlaJCnVu6Dx+3g1ZmswmzCbux2nl2M=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=boDaulRf; arc=none smtp.client-ip=209.85.221.46
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="SO+GljSe"
-Received: by mail-wr1-f48.google.com with SMTP id ffacd0b85a97d-401ce0cae36so13652f8f.2
-        for <ocfs2-devel@lists.linux.dev>; Wed, 15 Oct 2025 19:22:43 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="boDaulRf"
+Received: by mail-wr1-f46.google.com with SMTP id ffacd0b85a97d-3fba2c43a16so6019f8f.1
+        for <ocfs2-devel@lists.linux.dev>; Wed, 15 Oct 2025 19:54:29 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=suse.com; s=google; t=1760581362; x=1761186162; darn=lists.linux.dev;
+        d=suse.com; s=google; t=1760583268; x=1761188068; darn=lists.linux.dev;
         h=content-transfer-encoding:in-reply-to:content-language:from
          :references:cc:to:subject:user-agent:mime-version:date:message-id
          :from:to:cc:subject:date:message-id:reply-to;
-        bh=2uS8bfBhOyVrU+c04z3SvKj2gVbAxdtxi3q8QGsK0TA=;
-        b=SO+GljSeusZstiaCofc3ikwTJwjlvVnTw+1lSMCP9rKHtHOVp50v8txpMdAYf04RyD
-         aX5serzLk1eVfu5xRpKtU3wI6/KsXCcLJtpIUItZOiRG2tevkvnIcH41CzZcwrpnmEur
-         8bENg8MndXKZXJMrYFXUQHeqkCJhJqjoIMp5bROC8KWpMhASGlNROxwRt1Q+fDWaRAeP
-         c2Oha+xgUm0d1q5sOZ0MHUDXXtBbSM/kYbtuWWxh2tx5xNvvLHZZVOsyS/eDTwPtwoEd
-         O82j3h12m0YlzTH5cI3ROR5FeBVpso+hAstLhm/ibp4ifhTmZ65DTOaSJYyjWzA7VYAJ
-         HqLg==
+        bh=7zdsiyNtTOrbWAfftvy9D2zymsgyyWUuWQ3WN9aBcjI=;
+        b=boDaulRfLp2WT+8cQg/v+s6mhIHa9rX6LdCu4V5ZmtEmwu8Bgitv/PJ2yO+xzLWEf4
+         orcy13ROTxOxqeGUrzs5gQF2fn+f24oxYwCs/aK2M3jENxDo8FZA+6ZBnr61PWIBqrRu
+         6Frx64tjV+/e22XTUIhnyZQzkZmYh8xbmgjW7zzU8jmU1cAa4iMDyirPTAG9DRPFKdbU
+         YlfCy+DFEhizdmlJTLrkC/3ZS4NXB8MQrdZUHRKWuhQGTPM/W43RrXP+gx5SB/R+AN7Q
+         78wrwglo2OCf1NjLscc8LyfXv/kGPLtc90UBN4ZGwsY6ExT/GhcCpt7A22nRgmq8SOqL
+         Q4Dg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1760581362; x=1761186162;
+        d=1e100.net; s=20230601; t=1760583268; x=1761188068;
         h=content-transfer-encoding:in-reply-to:content-language:from
          :references:cc:to:subject:user-agent:mime-version:date:message-id
          :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
-        bh=2uS8bfBhOyVrU+c04z3SvKj2gVbAxdtxi3q8QGsK0TA=;
-        b=h43UFctoyJegpWDNktDohr/DH//mLGerSHZ2Kx5vemO5jBGJ36sRejSTMAWTdrVPT7
-         vLoq8KwVW2uwC+eyDZ0u6Vt2scRMVUOr3wMJp1HOpdWpaVIFfR5eDUhF++3P9lHQeXfP
-         7D2AiEcmaQLdc5fH5Z2rRFvPPa6yB5NH14pWbdAZV2YMSFufm5f5tC0sdTW8lmtzrOm8
-         xAjw3c4tULS/lfWjuNBj6rJTp01GwEJNZ/o2r7W0f9+S445LGOlwlCgmwUjvMz1PUdWM
-         Du8cvMVofEj2Gsoqc4PVgkIzXq6bijEeFy3OCaj/KejL4JXNfVlOEB9XuwW0GXt1eVNk
-         SCkw==
-X-Gm-Message-State: AOJu0YynG2IQceVJQ4ZFqgfGG4ev+ize6iA9J2f5qmy8OuuTiodmGpIQ
-	YevWhlq0R6TYqNKlb/s0KfvwktolAtInnRNcZoYYzJp7xh8zflEBovSmM2gNHxFHz+Y=
-X-Gm-Gg: ASbGncsapHoZlOT8P2aVr/N/DPGrJcJnmlm+f4TcbkkE44S5IqUMbdrsXLypM/nL6pk
-	6KJvZJ7wSL3PnZnAowdSWycZBsNepVphxK1Qlz0O9AuCMHbZiNblHKnajJvrZAtZR+jFPjjd/TK
-	bWHegWFvZw4RhiWQIfN01vCeSHX45Sgb56NK44IQSIdTxKwnei/HOO44u0BtR16NrU8BBlv6vg+
-	oC2con04hZeQYUSZSsVp1bHaqZsOrKicamcwELZtlrOILwQVLrMWQIUN4iPJWyYzwE53lSSehiT
-	AkIuMke32lKx5utuCttfT8N7XRN+xYpTkxtJjoqO+FfRLHmaMLDDbQWbZ2+NeBGK5OPhmg31a+f
-	oNxziMD2fJCES5wx5CTBkyQei2g1rQrH6RbIiKXLcqkHRQAdVNq0zRmc0eoKd6z/f2hXdu/BU0X
-	W9IelPWPI=
-X-Google-Smtp-Source: AGHT+IEYq0KiiFHzmYpY7pvjgzWI2Xh2EGUq/4LqFXPBVNBYtfrim7z9Rsuf8S1WghuIXoCvN5ztdg==
-X-Received: by 2002:a05:600c:46c8:b0:46e:46de:ebdb with SMTP id 5b1f17b1804b1-46fa9b1b132mr130368115e9.7.1760581361776;
-        Wed, 15 Oct 2025 19:22:41 -0700 (PDT)
+        bh=7zdsiyNtTOrbWAfftvy9D2zymsgyyWUuWQ3WN9aBcjI=;
+        b=eSsd9Mp3Dg8EzM+0CpXB78TMTPgmsh/x7aP1N17j/2I6LPY/jXaoK4stOVeZoSAdVa
+         f9qwXc3InKs5IgpSTUZDbFOF5bPScwqe5f/cc03Oq89KZ0aEiz7BSVc0wdfzb9z7cAS9
+         4IE16z4GuObbv4tJDb+zyI9w5pPLtzbslgVjiBS4AoDihubpTCH5Q+hT3+RzrmTyfkhA
+         IhDrTlz5VJA6EyIh4xj3vhPDUHtjPjNGEV0tW4jkznaMURdCrv3yNg6AJvSTXz4+A7Ew
+         cQl0Qz1l4vr5+lvkGjx/4TrJZGYKO33b7sQGzuBg81LAtGK25JRrlTydn0H1XV8Ksig1
+         gKgA==
+X-Gm-Message-State: AOJu0YzdbnHeGbmd0ce2KxFxg8OrK50fTJuqfDVS8/y3GxNNMuCW4/XK
+	fEY56jEg6iQD3AXayPXSmEoZyGO9ICTzlGhz2X8sMNA+LUXYT6n7zh4QDQ4A84N9+7E=
+X-Gm-Gg: ASbGnctLoR4xHUHV/7HP6Mgeuv2LrFbTkUzY73a+fL+asU/TjGjSKKJOBu3rh41U8gE
+	aO9mK0Iu4c6MK+lXY+jG/aQbZMDyUn4pv64MvoBsHiJdsA8Now/9WQEGfVfHkLintpNvb5nsNkD
+	BDrjKZLGoDl+EbLKlQhWMPDngl7gy+6X6pcz/LPLj0kdl1QqjrWOpPeCdYkryLfoch9JXqKp9M/
+	kfGkA5uLAdubR6aMsUVb8BZj5TPrp4AFrJy53hu9EjLub2KKBNxmFGqJNGVj2Izb2tYdv+kFNNO
+	c2pFsbh/zMtPX0ho5QJhIUhxIM+PbKPGvdv5/MtHEpVvUAQndxNdbJuRHMBgRQSMioYbgIOpJ1P
+	7Bf+lfVZPzmHaNDZih4zw0o+PK2CcSMAbxWTdT70oWM/Q/RKxPRS3jsj+JLIru+lZxmUxm4Rjmx
+	V3iLaQ65vZcto86akwqA==
+X-Google-Smtp-Source: AGHT+IHg+yxHeng26cP4CglEdtG63FS4tK7ChSAtJNFd+xFlNSVYBMalcCWAwI8SI6nGffU3fG6M3A==
+X-Received: by 2002:a05:600c:c162:b0:46e:6778:c631 with SMTP id 5b1f17b1804b1-46fa9a214c4mr124448655e9.0.1760583268143;
+        Wed, 15 Oct 2025 19:54:28 -0700 (PDT)
 Received: from [10.202.112.30] ([202.127.77.110])
-        by smtp.gmail.com with ESMTPSA id d9443c01a7336-29099313b28sm11193995ad.3.2025.10.15.19.22.39
+        by smtp.gmail.com with ESMTPSA id 41be03b00d2f7-b6a228ab568sm1039159a12.16.2025.10.15.19.54.25
         (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Wed, 15 Oct 2025 19:22:41 -0700 (PDT)
-Message-ID: <2d6351d4-c753-4a95-8036-95c991524de6@suse.com>
-Date: Thu, 16 Oct 2025 10:22:36 +0800
+        Wed, 15 Oct 2025 19:54:27 -0700 (PDT)
+Message-ID: <b3a5af0b-6b83-4a2c-bd91-b0d43c6946ba@suse.com>
+Date: Thu, 16 Oct 2025 10:54:23 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -67,56 +67,56 @@ List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH] ocfs2: add chain list sanity check to
- ocfs2_block_group_alloc()
+Subject: Re: [PATCH] ocfs2: add directory size check to
+ ocfs2_find_dir_space_id()
 To: Dmitry Antipov <dmantipov@yandex.ru>, Mark Fasheh <mark@fasheh.com>,
  Joel Becker <jlbec@evilplan.org>, Joseph Qi <joseph.qi@linux.alibaba.com>
 Cc: ocfs2-devel@lists.linux.dev, lvc-project@linuxtesting.org,
- syzbot+77026564530dbc29b854@syzkaller.appspotmail.com
-References: <20251015064837.281929-1-dmantipov@yandex.ru>
+ syzbot+ded9116588a7b73c34bc@syzkaller.appspotmail.com
+References: <20251013103709.146001-1-dmantipov@yandex.ru>
 From: Heming Zhao <heming.zhao@suse.com>
 Content-Language: en-US
-In-Reply-To: <20251015064837.281929-1-dmantipov@yandex.ru>
+In-Reply-To: <20251013103709.146001-1-dmantipov@yandex.ru>
 Content-Type: text/plain; charset=UTF-8; format=flowed
 Content-Transfer-Encoding: 7bit
 
-Hi
+Hi Dimitry,
 
-the code logic LGTM, but there are a few minor issues. see comments below.
-
-On 10/15/25 14:48, Dmitry Antipov wrote:
-> In 'ocfs2_block_group_alloc()', add an extra check whether the maximum
-> amount of chain records in 'struct ocfs2_chain_list' matches the value
-> calculated based on the filesystem block size.
+On 10/13/25 18:37, Dmitry Antipov wrote:
+> In 'ocfs2_find_dir_space_id()', add extra check whether the directory
+> data block is large enough to hold at least one directory entry, and
+> raise 'ocfs2_error()' if the former is unexpectedly small.
 > 
-> Reported-by: syzbot+77026564530dbc29b854@syzkaller.appspotmail.com
-> Closes: https://syzkaller.appspot.com/bug?extid=77026564530dbc29b854
+> Reported-by: syzbot+ded9116588a7b73c34bc@syzkaller.appspotmail.com
+> Closes: https://syzkaller.appspot.com/bug?extid=ded9116588a7b73c34bc
 > Signed-off-by: Dmitry Antipov <dmantipov@yandex.ru>
 > ---
->   fs/ocfs2/suballoc.c | 7 +++++++
->   1 file changed, 7 insertions(+)
+>   fs/ocfs2/dir.c | 8 ++++++++
+>   1 file changed, 8 insertions(+)
 > 
-> diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
-> index 6ac4dcd54588..99eb651d5593 100644
-> --- a/fs/ocfs2/suballoc.c
-> +++ b/fs/ocfs2/suballoc.c
-> @@ -671,6 +671,13 @@ static int ocfs2_block_group_alloc(struct ocfs2_super *osb,
->   	BUG_ON(ocfs2_is_cluster_bitmap(alloc_inode));
+> diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
+> index b9bf1428a3d9..3c2dacba9b0a 100644
+> --- a/fs/ocfs2/dir.c
+> +++ b/fs/ocfs2/dir.c
+> @@ -3444,6 +3444,14 @@ static int ocfs2_find_dir_space_id(struct inode *dir, struct buffer_head *di_bh,
+>   		offset += le16_to_cpu(de->rec_len);
+>   	}
 >   
->   	cl = &fe->id2.i_chain;
-> +	/* If these two doesn't match, the filesystem is most likely corrupted. */
+> +	if (!last_de) {
 
-Since the sanity check explains itself, the comment above is unnecessary.> +	if (le16_to_cpu(cl->cl_count) != ocfs2_chain_recs_per_inode(osb->sb)) {
-> +		status = -EINVAL;
-> +		mlog_errno(status);
+I can't imagine how the last_de is NULL here.
+Would you give more details for this patch?
 
-As mlog_errno() is handled in the 'bail' section, we don't need to repeat the same task here.
-
-Thanks
-Heming> +		goto bail;
+Thanks,
+Heming> +		ret = ocfs2_error(sb, "Directory entry (#%llu: size=%lld) "
+> +				  "is unexpectedly short",
+> +				  (unsigned long long)OCFS2_I(dir)->ip_blkno,
+> +				  i_size_read(dir));
+> +		goto out;
 > +	}
 > +
->   	status = ocfs2_reserve_clusters_with_limit(osb,
->   						   le16_to_cpu(cl->cl_cpg),
->   						   max_block, flags, &ac);
+>   	/*
+>   	 * We're going to require expansion of the directory - figure
+>   	 * out how many blocks we'll need so that a place for the
+
 
