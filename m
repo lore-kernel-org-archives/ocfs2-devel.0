@@ -1,65 +1,36 @@
-Received: from mail-wm1-f50.google.com (mail-wm1-f50.google.com [209.85.128.50])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from forward501a.mail.yandex.net (forward501a.mail.yandex.net [178.154.239.81])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id ABE9D31D732
-	for <ocfs2-devel@lists.linux.dev>; Thu, 16 Oct 2025 11:58:45 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.50
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id DA8A12E62D4
+	for <ocfs2-devel@lists.linux.dev>; Thu, 16 Oct 2025 15:32:56 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=178.154.239.81
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1760615928; cv=none; b=cpY0+gaarj1PIMZn6FIRKITyV1sZTdsJJh6VMr46yG1x5SUxLSzaPvpdVn90M6VcmwXZM9yA9IS8b2AgDze5V+UrSmbDprI4g3q5oQzhG0G+SK2Zj2CJg7xNpBwoHpX/5rNc4YiuUwLd9j57YEOvypR1zDa6AaXV0c204vcJ/xw=
+	t=1760628781; cv=none; b=MHUX7cY1z6m8zmijhGM5wueM04locinCbnWnYP9SAMx2e0JNzQS5hFNOCYpZfyDXHoDWJpxE5ZrwBJ8+FehrLL7/qliQNjfSwUoxIh1poo0Qs1f4bM9JFJbryPbQS05Q1qS/hl98cb/abfQqc1fHnJmNMzKKjbhl9esniGLtlx0=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1760615928; c=relaxed/simple;
-	bh=jN5ukxPxnMIeutcb60pTCGmhJtVGo8IXrcCa833m3sI=;
+	s=arc-20240116; t=1760628781; c=relaxed/simple;
+	bh=cXG1Y1swLE9XaE9+kqRqC54WZ18XC/n+iduFJeMp1iw=;
 	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=X2Otf0IRjLK9EblqjAkIDArrTMgz9qNjXOi99ng9lehQRGpM04HC/K/2f/ahQNY8iIfUBowlin34JQx20qL46kTdBkLYeFLFFDYieI9i+mVShllIdjvzyg8KDzEItPAxcYYE8sPJY3oCrZ/j+4zEbMn1jX9jaaFlRyGRJyUvIfE=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=UTY8fo3C; arc=none smtp.client-ip=209.85.128.50
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
+	 In-Reply-To:Content-Type; b=rMJzP836x0JTkqe6kQTHmmwwnRyd5AcgBMl8QH2kQvRBalEAo/vE9xJ7XJTSev8SIM/9/SbGSATImOWWTJ45NADALIa81rLevTlutXPCCJ3zL6m+eoTDFpvYwpudWUnnKIbrxxCCUoQL2IP0gTafvI5R23lsLeHhGdm/BvxjXjA=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru; spf=pass smtp.mailfrom=yandex.ru; dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b=uydqFXcV; arc=none smtp.client-ip=178.154.239.81
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=yandex.ru
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="UTY8fo3C"
-Received: by mail-wm1-f50.google.com with SMTP id 5b1f17b1804b1-47112c4abc8so770485e9.1
-        for <ocfs2-devel@lists.linux.dev>; Thu, 16 Oct 2025 04:58:45 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=suse.com; s=google; t=1760615924; x=1761220724; darn=lists.linux.dev;
-        h=content-transfer-encoding:in-reply-to:content-language:from
-         :references:cc:to:subject:user-agent:mime-version:date:message-id
-         :from:to:cc:subject:date:message-id:reply-to;
-        bh=xufGbtpD6Ny51lilNGjTzP3C80baPcSSLhflrXWLOGk=;
-        b=UTY8fo3CRhdi10m7SbJ8x6oNXY9K/y3igkMMPQu3PpntTUviYz/d8PCjwlY8Yq7PHg
-         0K6CaYqyZ3Sg8p4HW+eN3Kvuz2UB0mh+mapk6XHFTqnIMslvq6ygaa6uskuA/Amock+Y
-         8bLQMkonR1finOwBaSbFgTZVsgGw09CxqzI1Pg96PrDqsNDRCG3R5R1aO0eb6OAcwa8H
-         1mgly3JZNpFr0umlvAYAPn1aZPONb/G4daDWWOvkgw2eS+QpQIkNj9wAvMj9xtDO+Vtc
-         8AUZVuj11xhua5wBu6wW0/x2uzLNaEPxUMhMdnWsSJQGDIHveYqBcAap99TClF7A7Rnt
-         /aDw==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1760615924; x=1761220724;
-        h=content-transfer-encoding:in-reply-to:content-language:from
-         :references:cc:to:subject:user-agent:mime-version:date:message-id
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
-        bh=xufGbtpD6Ny51lilNGjTzP3C80baPcSSLhflrXWLOGk=;
-        b=ti//u5kALX9KvVJBeb6C7CIVdpVkb+TdRJmZDTyRldgbEKO1srjt+uZYrc1ms5+Npz
-         SbWNtgfZAA2zG/GKsQHt6/rvIzunPp9O7sLky8Tr+h3hb1wJgmPkPcyDsbuGnhHZo3mo
-         9t4Nn9yhZrSqoIju7BBv6jqu3gvfLudk3mtAygorfSgKCUlsw6r9ZcYReprCxvf4Jxbu
-         XINYQwlPuzg7TsgkLDTevwfdXo+sWY+NUCzVqGYHQMMQGETG6FN9D5fgpgPcHhBVkMTy
-         EkIPMu/TCMcPf+o8gBnW9P447trQpFxmfCtziSobIC8WPcNwauUG57olPq1eEySeT44k
-         IXyQ==
-X-Gm-Message-State: AOJu0Yw5wamgtCmw5P+ovrecqfkd8ra8RiCxefPuqMyyRSboaHwoGUEL
-	ULlVZtqmOdr/VO/aWGJLz9ljZs7yDp1eihDFdYYzuO0phjAnSWdL2T1+X+zmVsQaY8Q=
-X-Gm-Gg: ASbGncvi483NepOnA8O6G1xwTKsdLb7kz6eq9HOyZmN0bSq6ApO+P6292JU2bMVwffK
-	KXGKvA1QG5XL/dZQRhCCAYVVVgrgsNOwBLWkcHj0wAefIhDekd9NOK0VV3VAh/kw8CjtYh9zw2o
-	uQ2WkOkfx8BqEmXg1Fc8/y0BFvse+nr76dn8LzhrBV6mhqimkvbBu4WGguTnvEsxrgFimE+proL
-	Ft4t8vTOdZY1xrqhKkcxn7JFoOzNB9oBdWfOSXH1kOD/XIlGytZLS3xRSJi+TFEkx6yxxNqa1XU
-	Vey/Cyo+9lVRcoHxyLXOCllu079DfbH8YZq1UQp3FnXf0ncck1eJMZdk4ijJOX4zFsgrZtAWCBP
-	cd/VfD97Oj+dtlwZFe7HBl7xQ9nBQpPvSrpAFXA2+iXlJn9ElimBGIok0A2CEku/9S2y6vZlAFR
-	95Ah9dGfEkCwTA6e8G4g==
-X-Google-Smtp-Source: AGHT+IHDYjJ0QnFpeedcDLcaSztvQB3NrK22LtKH3FeiwOs5aik8az+OP93OlDqr2qx5trKIm5Qrsg==
-X-Received: by 2002:a05:6000:2012:b0:3f8:dcfb:131f with SMTP id ffacd0b85a97d-4266e8f9a36mr11340491f8f.10.1760615923945;
-        Thu, 16 Oct 2025 04:58:43 -0700 (PDT)
-Received: from [10.202.112.30] ([202.127.77.110])
-        by smtp.gmail.com with ESMTPSA id d2e1a72fcca58-7992d09659esm22429709b3a.45.2025.10.16.04.58.41
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Thu, 16 Oct 2025 04:58:43 -0700 (PDT)
-Message-ID: <fe37aa24-30c0-4c7c-83de-e3df6a9dac6a@suse.com>
-Date: Thu, 16 Oct 2025 19:58:39 +0800
+	dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b="uydqFXcV"
+Received: from mail-nwsmtp-smtp-production-main-69.iva.yp-c.yandex.net (mail-nwsmtp-smtp-production-main-69.iva.yp-c.yandex.net [IPv6:2a02:6b8:c0c:90aa:0:640:875f:0])
+	by forward501a.mail.yandex.net (Yandex) with ESMTPS id 91C8880AE7;
+	Thu, 16 Oct 2025 18:25:02 +0300 (MSK)
+Received: by mail-nwsmtp-smtp-production-main-69.iva.yp-c.yandex.net (smtp/Yandex) with ESMTPSA id 1PTFoUdLwqM0-eMhUpJKj;
+	Thu, 16 Oct 2025 18:25:01 +0300
+X-Yandex-Fwd: 1
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=yandex.ru; s=mail;
+	t=1760628301; bh=cXG1Y1swLE9XaE9+kqRqC54WZ18XC/n+iduFJeMp1iw=;
+	h=In-Reply-To:To:From:Cc:Date:References:Subject:Message-ID;
+	b=uydqFXcVE4PMSTUPj5giptVpyHA21i+kXS6TsMvqOBDSSrZSZ2SXgnu7Lmfd4NgnU
+	 RdRfeE1ZS+G4TA2SyBcib9aM4nkH42/54VmAkLAJl0Sy0y4jwiye0FwhKTqlXFAz7E
+	 b840OevcLLquanaOFTYaO6JI+lUJKTANsx0foquI=
+Authentication-Results: mail-nwsmtp-smtp-production-main-69.iva.yp-c.yandex.net; dkim=pass header.i=@yandex.ru
+Message-ID: <4a5bae73-8831-4bf5-ac35-690380ad7ce9@yandex.ru>
+Date: Thu, 16 Oct 2025 18:25:00 +0300
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -69,54 +40,67 @@ MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
 Subject: Re: [PATCH] ocfs2: add directory size check to
  ocfs2_find_dir_space_id()
-To: Dmitry Antipov <dmantipov@yandex.ru>, Mark Fasheh <mark@fasheh.com>,
+Content-Language: en-MW
+To: Heming Zhao <heming.zhao@suse.com>, Mark Fasheh <mark@fasheh.com>,
  Joel Becker <jlbec@evilplan.org>, Joseph Qi <joseph.qi@linux.alibaba.com>
 Cc: ocfs2-devel@lists.linux.dev, lvc-project@linuxtesting.org,
  syzbot+ded9116588a7b73c34bc@syzkaller.appspotmail.com
 References: <20251013103709.146001-1-dmantipov@yandex.ru>
-From: Heming Zhao <heming.zhao@suse.com>
-Content-Language: en-US
-In-Reply-To: <20251013103709.146001-1-dmantipov@yandex.ru>
+ <fe37aa24-30c0-4c7c-83de-e3df6a9dac6a@suse.com>
+From: Dmitry Antipov <dmantipov@yandex.ru>
+Autocrypt: addr=dmantipov@yandex.ru; keydata=
+ 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
+ A/UwwXBRuvydGV0=
+In-Reply-To: <fe37aa24-30c0-4c7c-83de-e3df6a9dac6a@suse.com>
 Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: base64
 
-Hi Dmitry,
-
-On 10/13/25 18:37, Dmitry Antipov wrote:
-> In 'ocfs2_find_dir_space_id()', add extra check whether the directory
-> data block is large enough to hold at least one directory entry, and
-> raise 'ocfs2_error()' if the former is unexpectedly small.
-> 
-> Reported-by: syzbot+ded9116588a7b73c34bc@syzkaller.appspotmail.com
-> Closes: https://syzkaller.appspot.com/bug?extid=ded9116588a7b73c34bc
-> Signed-off-by: Dmitry Antipov <dmantipov@yandex.ru>
-> ---
->   fs/ocfs2/dir.c | 8 ++++++++
->   1 file changed, 8 insertions(+)
-> 
-> diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
-> index b9bf1428a3d9..3c2dacba9b0a 100644
-> --- a/fs/ocfs2/dir.c
-> +++ b/fs/ocfs2/dir.c
-> @@ -3444,6 +3444,14 @@ static int ocfs2_find_dir_space_id(struct inode *dir, struct buffer_head *di_bh,
->   		offset += le16_to_cpu(de->rec_len);
->   	}
->   
-> +	if (!last_de) {
-> +		ret = ocfs2_error(sb, "Directory entry (#%llu: size=%lld) "
-> +				  "is unexpectedly short",
-> +				  (unsigned long long)OCFS2_I(dir)->ip_blkno,
-> +				  i_size_read(dir));
-> +		goto out;
-> +	}
-> +
-
-The 'goto' will use the uninitialized value of 'ret'.
-The others look good to me.
-
-- Heming
-
->   	/*
->   	 * We're going to require expansion of the directory - figure
->   	 * out how many blocks we'll need so that a place for the
-
+T24gMTAvMTYvMjUgMjo1OCBQTSwgSGVtaW5nIFpoYW8gd3JvdGU6DQoNCj4+IGRpZmYgLS1n
+aXQgYS9mcy9vY2ZzMi9kaXIuYyBiL2ZzL29jZnMyL2Rpci5jDQo+PiBpbmRleCBiOWJmMTQy
+OGEzZDkuLjNjMmRhY2JhOWIwYSAxMDA2NDQNCj4+IC0tLSBhL2ZzL29jZnMyL2Rpci5jDQo+
+PiArKysgYi9mcy9vY2ZzMi9kaXIuYw0KPj4gQEAgLTM0NDQsNiArMzQ0NCwxNCBAQCBzdGF0
+aWMgaW50IG9jZnMyX2ZpbmRfZGlyX3NwYWNlX2lkKHN0cnVjdCBpbm9kZSAqZGlyLCBzdHJ1
+Y3QgYnVmZmVyX2hlYWQgKmRpX2JoLA0KPj4gwqDCoMKgwqDCoMKgwqDCoMKgIG9mZnNldCAr
+PSBsZTE2X3RvX2NwdShkZS0+cmVjX2xlbik7DQo+PiDCoMKgwqDCoMKgIH0NCj4+ICvCoMKg
+wqAgaWYgKCFsYXN0X2RlKSB7DQo+PiArwqDCoMKgwqDCoMKgwqAgcmV0ID0gb2NmczJfZXJy
+b3Ioc2IsICJEaXJlY3RvcnkgZW50cnkgKCMlbGx1OiBzaXplPSVsbGQpICINCj4+ICvCoMKg
+wqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgICJpcyB1bmV4cGVjdGVkbHkgc2hvcnQi
+LA0KPj4gK8KgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqAgKHVuc2lnbmVkIGxv
+bmcgbG9uZylPQ0ZTMl9JKGRpciktPmlwX2Jsa25vLA0KPj4gK8KgwqDCoMKgwqDCoMKgwqDC
+oMKgwqDCoMKgwqDCoMKgwqAgaV9zaXplX3JlYWQoZGlyKSk7DQo+PiArwqDCoMKgwqDCoMKg
+wqAgZ290byBvdXQ7DQo+PiArwqDCoMKgIH0NCj4+ICsNCj4gDQo+IFRoZSAnZ290bycgd2ls
+bCB1c2UgdGhlIHVuaW5pdGlhbGl6ZWQgdmFsdWUgb2YgJ3JldCcuDQo+IFRoZSBvdGhlcnMg
+bG9vayBnb29kIHRvIG1lLg0KDQpIbW1tLi4uICdyZXQnIGlzIGV4cGxpY2l0bHkgaW5pdGlh
+bGl6ZWQgd2l0aCAnb2NmczJfZXJyb3IoLi4uKScsDQp3aGljaCBpcyBleHBlY3RlZCB0byBy
+ZXR1cm4gZWl0aGVyIC1FSU8gb3IgLUVST0ZTLg0KDQpEbWl0cnkNCg0K
