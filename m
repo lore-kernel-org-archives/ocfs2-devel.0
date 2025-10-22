@@ -1,156 +1,140 @@
-Received: from mail-il1-f205.google.com (mail-il1-f205.google.com [209.85.166.205])
+Received: from mail-wr1-f50.google.com (mail-wr1-f50.google.com [209.85.221.50])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D573C23A9AD
-	for <ocfs2-devel@lists.linux.dev>; Tue, 21 Oct 2025 12:09:29 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.166.205
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 817602F28EA
+	for <ocfs2-devel@lists.linux.dev>; Wed, 22 Oct 2025 07:39:22 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.221.50
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1761048571; cv=none; b=PlNHvvpK0/7sDuW5aEiyQU4+wzCs7z6qGJxb3BsjfbbSXnRnXfY91Z/23t9TbXoLdrumpvSzrWZFTH3cfmaD8K9vsRkO5OIr75QSdADsSetxOLbdBxjNMwTuCam1LaXkeaSsUZsnPqM4qfAPysUpoif+Xj0fIOp/KIkBSFvvW90=
+	t=1761118766; cv=none; b=OPc6fIdLXenf1TOQ4qDbbW/vRtB43FVrTQrLEKZUSUb4Yv/yaQekCKh+36QiWoSFaEeSeGYAMvsnr7lJ/2nLiL4qQyE0IkamfuAtc6mQdi97hnXhixa6c2/vFvCkK+Y02RkZj3aQJR3DQLiTrmJothhJeOyM42jmg9ftudaM2bU=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1761048571; c=relaxed/simple;
-	bh=8DZKaKowd43gZVTMVHK2bM8w3cFQfAeiIqIewPTkAb0=;
-	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=SXxXWH662rlVIS5+oCI6rzzvhN8aHjAykqWme2gLm5n75bVvyLbIkDi3XvEWR+8i5a9FpqcnLR3BpW3CSft2USse63t0s8iTPdytx5RHfMwNIkdWCFsdD0Iz4nx7WouHU5qODaOo5jbRiZzr8ovxnq0DAQKb1RRwXIK4cU7YZmQ=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.166.205
-Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
-Received: by mail-il1-f205.google.com with SMTP id e9e14a558f8ab-430cec27637so42731645ab.2
-        for <ocfs2-devel@lists.linux.dev>; Tue, 21 Oct 2025 05:09:29 -0700 (PDT)
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1761048569; x=1761653369;
-        h=to:from:subject:message-id:date:mime-version:x-gm-message-state
+	s=arc-20240116; t=1761118766; c=relaxed/simple;
+	bh=1UfJyDUIks1vxH1FbS6Cvd77yqmwrg+w+bj2jY4f62c=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=qcy2iG6H0RMbHCPnArA0aDuk2Z7Y/l0skDl74lsCNDdH4n/RXR+V/rzuzOV5HJEp4gmYTWnx+nu7MizXtA2zlDm5kfKHUOZ0Hmj85Yzn1jSdFihAiy8ClHimDF0YoswfF87eSZWZBmsj73rj1FMP+CKK8x5FMIyD2kNRRrhmSRQ=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=WyOp4v6I; arc=none smtp.client-ip=209.85.221.50
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="WyOp4v6I"
+Received: by mail-wr1-f50.google.com with SMTP id ffacd0b85a97d-427054641f0so980481f8f.1
+        for <ocfs2-devel@lists.linux.dev>; Wed, 22 Oct 2025 00:39:22 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=suse.com; s=google; t=1761118761; x=1761723561; darn=lists.linux.dev;
+        h=content-transfer-encoding:in-reply-to:content-language:from
+         :references:cc:to:subject:user-agent:mime-version:date:message-id
          :from:to:cc:subject:date:message-id:reply-to;
-        bh=7HSvrBYgqDO0ztUIY/t6QRupb1FILIM60kvawj7pDCo=;
-        b=A9ORxA/LkzuizQKT/IFCwotxfxXy4LHJ2+vkBSgf9ix+SAit/82b4RlHUKt7htYHjH
-         Y1FyLSStN5TanWV7vNud0cAjNNjZBSEPemUfsrXRMjTmO6X1uw3fXOlOdhLcOpkKwEPs
-         xazDEN0WVtxKgVkxH9EqXx0haChYofwY8wsCWdbN8Y3FXSWGirRLp5H9YvKhVv3LC2nM
-         ibuCNls7NiDMxAAcl982Ks2DLGUJYcy7+t+67k+XSptzdRbUrViqLMidTLOEOPeSqQq1
-         ZJZGTxTSwX12/HT40Qk03dt3G71rYpwnwMpNfKUYjHIoHB8O+GI5xCdAAUx/jrX/ZdMB
-         9BhA==
-X-Forwarded-Encrypted: i=1; AJvYcCV3zPqzZ07Q/A+r/90yQx+kfz3hCH2g5T9D3OtXwS2CkU8iZfZV+iKxkVREG/o4dXtOQ8mHVT6/TVIyGw==@lists.linux.dev
-X-Gm-Message-State: AOJu0YxBp03W82tLjad3r5PJdo6BGeR1sLLfh9UzksVq2X964AkbG2yM
-	xnAAq5nuGzyq3g2yRKxFnNpzk3xW1QWSodLo86w1ZwxqD5kWQiXR/7MFPU8EGvpFbMkuzD9sOJ5
-	uWvrj+2pIBqFVMBSUmgwV0gq6fOhAnI2Vr8wOlcWvfK1v2JV5eVT8ShPtH/g=
-X-Google-Smtp-Source: AGHT+IF3JAZJiINBZTz2bqbyvxAHIkBUkDS04Du54uXjTFpmVY/Ay7YwMdHR8T701b2FCIb8njzEM3sJkS1YViH9g57IVlOz+64W
+        bh=zDabq8PDu9wX3R0wzqBQvDddehb78pUgpQxLOLuzpFQ=;
+        b=WyOp4v6I8y5vMcQjAKIS74V2srflM67wV/oNanjr1B7fnfvTrjeVVNDX4x6kI/L1aP
+         8+C5Z5EKK5YrauV6K1NoL4skRvTu3gtA8ymVe4gPCJ44zYDsmF5OUgumImLbnn7elyUl
+         SYvX09wscOZm+LXW/yEo39OLkUuD2wN3x/j0fvO+2vM8/evkTuOKkm/x7sIJS9c7Td7J
+         b6gSFSPvVDCMW87GsBVqH229RfOWt0fdCfLAPWsqSh3aw3pgerKv6i5xvwsOn378AZ34
+         0xPi8+DOuF17vu8euWbA5Nug7Dgo7ps32MDgiJTEvPj/LgyOkUU2QWOl6/EJLOq2c6xD
+         0d5A==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1761118761; x=1761723561;
+        h=content-transfer-encoding:in-reply-to:content-language:from
+         :references:cc:to:subject:user-agent:mime-version:date:message-id
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
+        bh=zDabq8PDu9wX3R0wzqBQvDddehb78pUgpQxLOLuzpFQ=;
+        b=BPjwNRkubgIDlYIGDo3LIrMTWQvGeNKiI5SqqOZOcujIxOIT4hP5kPxH/C4yee6oYo
+         YWtOcinv9mlWpdyWF/xPw/HxQ790QbtAb1qnblvAdfBDbX63PYlgZAttsLZJF8uGvvdo
+         CmzDd/hhhUOI6W4UXlGskPRzUrz9lHR69FfRafQK7gIdOZ2cYORZEklntNquWQLeKp66
+         +YZyFHqQHWJdvRcsO/ypmhFcUkQvsPVugkJUwXKFyGiuq7/k1gbbE+Rv47e7M7MjGv2U
+         LFGjkckbU8JhJg5nkCm0waz0D3gt8ovsN4XaLw1ZZje0dcVVfk0w0s9IA8KbpnQF6bud
+         /C2w==
+X-Gm-Message-State: AOJu0Yz+YpkBp5tSdMrK5aWrra64bZtb6mvQHLkkYkOHONygP71g9DT3
+	GpEOBZ0txDRaWpWUQqEqmMFtZ2/bMiILCc+zihXGqIqWdEc/k1Ye5b6KtHXuC5eBUOA=
+X-Gm-Gg: ASbGncvFiK0Z6gUUy+YFDgCMJ8BZpksglMR2qhIwvrMtD76rxK69MQvyQgz/9SMiqSq
+	Y7HL0jhSGtNp1LYSvGOCCSVeJKOW1zXYJ4y5DGxp6Lvk+7qGI43gFVKcZsFy2o5h/F5ry56XVyM
+	4U1d+MlVDeLcu8IpG0QYdwOMT7vFyrYxtX015zkKY+AIMK4lBOQHPW0A2O31aWpb+k+DD+Nrbv1
+	6cYgj88Llou3yai1i62OLJ1zY8Nuq5M28ua+nH/pFFs7fg5NO8AKxDd8+gDpicJz9xT8VOd0ae9
+	i2xZan/m0nMgR5oKCdqUa7bttQ/OnnRq9oroU/IWHrJ+Y/cEgp/zrUP5EkRI3+VvGAHy9ZuPKT8
+	XfT4ExL2IChESNxsZ+3AnKgautE65nEwDoxsP7aU9P1KLXCTs9dj1P58RLmNMvqLyNxEc8Qrg8J
+	15DYYuyaUxaZPDmUKvTQ==
+X-Google-Smtp-Source: AGHT+IHbPcBV4Jg3z1Nt/xyma/WZObn+nVFRnZ77szpptc4TA1RRvvUBkMvEBMLEOpPwqOJ7C/AHLw==
+X-Received: by 2002:a05:600c:6308:b0:45d:da49:c47d with SMTP id 5b1f17b1804b1-474941ec4b9mr22170705e9.0.1761118760686;
+        Wed, 22 Oct 2025 00:39:20 -0700 (PDT)
+Received: from [10.202.112.30] ([202.127.77.110])
+        by smtp.gmail.com with ESMTPSA id d2e1a72fcca58-7a26a9e5f90sm749867b3a.38.2025.10.22.00.39.18
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Wed, 22 Oct 2025 00:39:19 -0700 (PDT)
+Message-ID: <6a446b6f-0405-483f-a3ac-a482eba1b807@suse.com>
+Date: Wed, 22 Oct 2025 15:39:15 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-X-Received: by 2002:a05:6e02:441b:10b0:430:c6b3:b03f with SMTP id
- e9e14a558f8ab-430c6b3b240mr199350495ab.28.1761048569000; Tue, 21 Oct 2025
- 05:09:29 -0700 (PDT)
-Date: Tue, 21 Oct 2025 05:09:28 -0700
-X-Google-Appengine-App-Id: s~syzkaller
-X-Google-Appengine-App-Id-Alias: syzkaller
-Message-ID: <68f777f8.050a0220.346f24.0016.GAE@google.com>
-Subject: [syzbot] [ocfs2?] kernel BUG in __ocfs2_claim_clusters
-From: syzbot <syzbot+d937c5714fc8cd6d39df@syzkaller.appspotmail.com>
-To: jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
-	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
-	syzkaller-bugs@googlegroups.com
-Content-Type: text/plain; charset="UTF-8"
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH] ocfs2: annotate more flexible array members with
+ __counted_by_le()
+To: Dmitry Antipov <dmantipov@yandex.ru>, Mark Fasheh <mark@fasheh.com>,
+ Joel Becker <jlbec@evilplan.org>, Joseph Qi <joseph.qi@linux.alibaba.com>
+Cc: ocfs2-devel@lists.linux.dev
+References: <20251021105518.119953-1-dmantipov@yandex.ru>
+From: Heming Zhao <heming.zhao@suse.com>
+Content-Language: en-US
+In-Reply-To: <20251021105518.119953-1-dmantipov@yandex.ru>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
 
-Hello,
+On 10/21/25 18:55, Dmitry Antipov wrote:
+> Annotate flexible array members of 'struct ocfs2_local_alloc' and
+> 'struct ocfs2_inline_data' with  '__counted_by_le()' attribute to
+> improve array bounds checking when CONFIG_UBSAN_BOUNDS is enabled,
+> and prefer the convenient 'memset()' over an explicit loop to
+> simplify 'ocfs2_clear_local_alloc()'.
+> 
+> Signed-off-by: Dmitry Antipov <dmantipov@yandex.ru>
 
-syzbot found the following issue on:
+LGTM.
+Reviewed-by: Heming Zhao <heming.zhao@suse.com>
 
-HEAD commit:    98ac9cc4b445 Merge tag 'f2fs-fix-6.18-rc2' of git://git.ke..
-git tree:       upstream
-console output: https://syzkaller.appspot.com/x/log.txt?x=1754ede2580000
-kernel config:  https://syzkaller.appspot.com/x/.config?x=c2d7b4143707d3a0
-dashboard link: https://syzkaller.appspot.com/bug?extid=d937c5714fc8cd6d39df
-compiler:       Debian clang version 20.1.8 (++20250708063551+0c9f909b7976-1~exp1~20250708183702.136), Debian LLD 20.1.8
+> ---
+>   fs/ocfs2/localalloc.c | 4 +---
+>   fs/ocfs2/ocfs2_fs.h   | 4 ++--
+>   2 files changed, 3 insertions(+), 5 deletions(-)
+> 
+> diff --git a/fs/ocfs2/localalloc.c b/fs/ocfs2/localalloc.c
+> index d1aa04a5af1b..56be21c695d6 100644
+> --- a/fs/ocfs2/localalloc.c
+> +++ b/fs/ocfs2/localalloc.c
+> @@ -905,13 +905,11 @@ static int ocfs2_local_alloc_find_clear_bits(struct ocfs2_super *osb,
+>   static void ocfs2_clear_local_alloc(struct ocfs2_dinode *alloc)
+>   {
+>   	struct ocfs2_local_alloc *la = OCFS2_LOCAL_ALLOC(alloc);
+> -	int i;
+>   
+>   	alloc->id1.bitmap1.i_total = 0;
+>   	alloc->id1.bitmap1.i_used = 0;
+>   	la->la_bm_off = 0;
+> -	for(i = 0; i < le16_to_cpu(la->la_size); i++)
+> -		la->la_bitmap[i] = 0;
+> +	memset(la->la_bitmap, 0, le16_to_cpu(la->la_size));
+>   }
+>   
+>   #if 0
+> diff --git a/fs/ocfs2/ocfs2_fs.h b/fs/ocfs2/ocfs2_fs.h
+> index f7763da5c4a2..c501eb3cdcda 100644
+> --- a/fs/ocfs2/ocfs2_fs.h
+> +++ b/fs/ocfs2/ocfs2_fs.h
+> @@ -641,7 +641,7 @@ struct ocfs2_local_alloc
+>   	__le16 la_size;		/* Size of included bitmap, in bytes */
+>   	__le16 la_reserved1;
+>   	__le64 la_reserved2;
+> -/*10*/	__u8   la_bitmap[];
+> +/*10*/	__u8   la_bitmap[] __counted_by_le(la_size);
+>   };
+>   
+>   /*
+> @@ -654,7 +654,7 @@ struct ocfs2_inline_data
+>   				 * for data, starting at id_data */
+>   	__le16	id_reserved0;
+>   	__le32	id_reserved1;
+> -	__u8	id_data[];	/* Start of user data */
+> +	__u8	id_data[] __counted_by_le(id_count);	/* Start of user data */
+>   };
+>   
+>   /*
 
-Unfortunately, I don't have any reproducer for this issue yet.
-
-Downloadable assets:
-disk image (non-bootable): https://storage.googleapis.com/syzbot-assets/d900f083ada3/non_bootable_disk-98ac9cc4.raw.xz
-vmlinux: https://storage.googleapis.com/syzbot-assets/4a2afc96e189/vmlinux-98ac9cc4.xz
-kernel image: https://storage.googleapis.com/syzbot-assets/92d24cde05de/bzImage-98ac9cc4.xz
-
-IMPORTANT: if you fix the issue, please add the following tag to the commit:
-Reported-by: syzbot+d937c5714fc8cd6d39df@syzkaller.appspotmail.com
-
-(syz.0.0,5328,0):ocfs2_read_blocks_sync:112 ERROR: status = -12
-(syz.0.0,5328,0):update_backups:196 ERROR: status = -12
-ocfs2: Failed to update super blocks on 7,0 during fs resize. This condition is not fatal, but fsck.ocfs2 should be run to fix it
-------------[ cut here ]------------
-kernel BUG at fs/ocfs2/suballoc.c:2390!
-Oops: invalid opcode: 0000 [#1] SMP KASAN NOPTI
-CPU: 0 UID: 0 PID: 5328 Comm: syz.0.0 Not tainted syzkaller #0 PREEMPT(full) 
-Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.16.3-debian-1.16.3-2~bpo12+1 04/01/2014
-RIP: 0010:__ocfs2_claim_clusters+0x8d1/0x8f0 fs/ocfs2/suballoc.c:2390
-Code: db 78 fe e9 9b fc ff ff e8 3c a2 11 fe 48 c7 c7 a0 a6 66 8e 48 89 de 4c 89 fa e8 ea 7c 1c 01 e9 a2 fc ff ff e8 20 a2 11 fe 90 <0f> 0b e8 18 a2 11 fe 90 0f 0b e8 10 a2 11 fe 90 0f 0b e8 08 a2 11
-RSP: 0018:ffffc9000d3ae8c0 EFLAGS: 00010283
-RAX: ffffffff83aeb170 RBX: 1ffff110024f0010 RCX: 0000000000100000
-RDX: ffffc9000e7eb000 RSI: 00000000000823b8 RDI: 00000000000823b9
-RBP: ffffc9000d3aea50 R08: ffffc9000d3ae967 R09: 0000000000000000
-R10: ffffc9000d3ae940 R11: fffff52001a75d2d R12: 0000000000000000
-R13: ffff888033b90000 R14: 0000000000000000 R15: ffff888012780080
-FS:  00007f6b80dd76c0(0000) GS:ffff88808d300000(0000) knlGS:0000000000000000
-CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-CR2: 000020000012d000 CR3: 00000000428be000 CR4: 0000000000352ef0
-Call Trace:
- <TASK>
- ocfs2_claim_clusters fs/ocfs2/suballoc.c:2458 [inline]
- ocfs2_block_group_alloc_contig fs/ocfs2/suballoc.c:432 [inline]
- ocfs2_block_group_alloc fs/ocfs2/suballoc.c:699 [inline]
- ocfs2_reserve_suballoc_bits+0xf1e/0x4640 fs/ocfs2/suballoc.c:834
- ocfs2_reserve_new_metadata_blocks+0x403/0x940 fs/ocfs2/suballoc.c:984
- ocfs2_reserve_new_metadata fs/ocfs2/suballoc.c:1027 [inline]
- ocfs2_lock_allocators+0x29e/0x5c0 fs/ocfs2/suballoc.c:2761
- ocfs2_write_begin_nolock+0x2279/0x4340 fs/ocfs2/aops.c:1719
- ocfs2_write_begin+0x1bb/0x310 fs/ocfs2/aops.c:1884
- generic_perform_write+0x2c5/0x900 mm/filemap.c:4242
- ocfs2_file_write_iter+0x157a/0x1d10 fs/ocfs2/file.c:2469
- new_sync_write fs/read_write.c:593 [inline]
- vfs_write+0x5c9/0xb30 fs/read_write.c:686
- ksys_write+0x145/0x250 fs/read_write.c:738
- do_syscall_x64 arch/x86/entry/syscall_64.c:63 [inline]
- do_syscall_64+0xfa/0xfa0 arch/x86/entry/syscall_64.c:94
- entry_SYSCALL_64_after_hwframe+0x77/0x7f
-RIP: 0033:0x7f6b7ff8efc9
-Code: ff ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 40 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 a8 ff ff ff f7 d8 64 89 01 48
-RSP: 002b:00007f6b80dd7038 EFLAGS: 00000246 ORIG_RAX: 0000000000000001
-RAX: ffffffffffffffda RBX: 00007f6b801e6090 RCX: 00007f6b7ff8efc9
-RDX: 00000000fffffec6 RSI: 0000200000000180 RDI: 000000000000000d
-RBP: 00007f6b80011f91 R08: 0000000000000000 R09: 0000000000000000
-R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000000
-R13: 00007f6b801e6128 R14: 00007f6b801e6090 R15: 00007ffd51891f88
- </TASK>
-Modules linked in:
----[ end trace 0000000000000000 ]---
-RIP: 0010:__ocfs2_claim_clusters+0x8d1/0x8f0 fs/ocfs2/suballoc.c:2390
-Code: db 78 fe e9 9b fc ff ff e8 3c a2 11 fe 48 c7 c7 a0 a6 66 8e 48 89 de 4c 89 fa e8 ea 7c 1c 01 e9 a2 fc ff ff e8 20 a2 11 fe 90 <0f> 0b e8 18 a2 11 fe 90 0f 0b e8 10 a2 11 fe 90 0f 0b e8 08 a2 11
-RSP: 0018:ffffc9000d3ae8c0 EFLAGS: 00010283
-RAX: ffffffff83aeb170 RBX: 1ffff110024f0010 RCX: 0000000000100000
-RDX: ffffc9000e7eb000 RSI: 00000000000823b8 RDI: 00000000000823b9
-RBP: ffffc9000d3aea50 R08: ffffc9000d3ae967 R09: 0000000000000000
-R10: ffffc9000d3ae940 R11: fffff52001a75d2d R12: 0000000000000000
-R13: ffff888033b90000 R14: 0000000000000000 R15: ffff888012780080
-FS:  00007f6b80dd76c0(0000) GS:ffff88808d300000(0000) knlGS:0000000000000000
-CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-CR2: 000020000012d000 CR3: 00000000428be000 CR4: 0000000000352ef0
-
-
----
-This report is generated by a bot. It may contain errors.
-See https://goo.gl/tpsmEJ for more information about syzbot.
-syzbot engineers can be reached at syzkaller@googlegroups.com.
-
-syzbot will keep track of this issue. See:
-https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
-
-If the report is already addressed, let syzbot know by replying with:
-#syz fix: exact-commit-title
-
-If you want to overwrite report's subsystems, reply with:
-#syz set subsystems: new-subsystem
-(See the list of subsystem names on the web dashboard)
-
-If the report is a duplicate of another one, reply with:
-#syz dup: exact-subject-of-another-report
-
-If you want to undo deduplication, reply with:
-#syz undup
