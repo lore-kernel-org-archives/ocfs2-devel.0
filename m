@@ -1,78 +1,84 @@
-Received: from mail-il1-f197.google.com (mail-il1-f197.google.com [209.85.166.197])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from forward103d.mail.yandex.net (forward103d.mail.yandex.net [178.154.239.214])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 492513009FE
-	for <ocfs2-devel@lists.linux.dev>; Thu, 23 Oct 2025 08:33:03 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.166.197
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id BB74F32779B
+	for <ocfs2-devel@lists.linux.dev>; Thu, 23 Oct 2025 14:17:07 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=178.154.239.214
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1761208387; cv=none; b=NFE9VFwoGaK6F2qjphxjk1M27Mm/MWUw55Zy/3dhcU+OOhtkcedcMAapnZV6Qu63T8eYlE/8uHz4Fy1FlycRI/in93Gjy31+GDVIOnvpNCFkS/QRXWJfDI694Ad7591veebTS2aSW5O1z9zNdE4VfIP1VooRv9RIv04HZRMv7I4=
+	t=1761229031; cv=none; b=cnsRJ63Tg62cpxpVwZ4rnSfximpMxn8sAf0+v9DlEPVoO+XqpasWnYivBcahLv40pQShsl0eFe30eKqBcynjZneD+Lw1/Oka4UAJkACH9LeuQBRHhKeb4vHRjXBnGs5nDT3cA/hUuiaeFnx5QNr0tsRhevK2C6M+r0adBNpush0=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1761208387; c=relaxed/simple;
-	bh=jva66kR4NZ3M1ov3McIzikQzcfgbDJM7ZZ0MaSesmb0=;
-	h=MIME-Version:Date:In-Reply-To:Message-ID:Subject:From:To:
-	 Content-Type; b=KJ1k8ebeLiLq+Oi6hEjXdFgnTzk4f5MEPDO1iSL5KmS65amSbvKodd8KVCt73eT0GLd9hz6BvATALO481AqR4FXzfHRP000mmJ4VzAuAcun9gwARA4qIrZvC7016UslRqvpaQOC3LJks55fw/2jsJYQmsyX8rC1Z35N/M87PM4I=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.166.197
-Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
-Received: by mail-il1-f197.google.com with SMTP id e9e14a558f8ab-430afceae09so5988535ab.0
-        for <ocfs2-devel@lists.linux.dev>; Thu, 23 Oct 2025 01:33:03 -0700 (PDT)
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1761208383; x=1761813183;
-        h=to:from:subject:message-id:in-reply-to:date:mime-version
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
-        bh=Bo0duX95EeaqTX/n7Bu28C+Uf1XrNKZNf+CW/BIermM=;
-        b=gFzJmkheoPnUviSP5Tcbqd6xKPm11IUHVcQ5XPfyap5t9RWdjr65MApaGJTsbN/ijW
-         g3HL0qoH5hHh4Bv9YKdxCfI9Ze//yS7aZNXdY/pgK7CR//3LIKHAgfPxDAZBFbGfEvZp
-         TyF6PzULu2qLWchQSUsyEVjdpvI4A8Hwgxqj1TknTniKTEYH70K7ZCZ0coiHPbJyGEce
-         X47qu6nJNffMB6qqwqn/7gLC37JVjMYzlGGWT84SgmVFiiFfgvpDXSHaQip6ZriHLY7P
-         MCWzKBB/hitXbDgZXCKwRHJOV9YP9DO/euBLoFzEUiiyCEKTc+9gVew2ZgYsJ85MzK+B
-         AoHg==
-X-Forwarded-Encrypted: i=1; AJvYcCVR6hWiQhX+GIXVI5izaWFUXCIOJC9mpJ2bTqCXkqDVAImyr/4/kKRYMaS9wv+877QbRDWZYd7QRLsVvA==@lists.linux.dev
-X-Gm-Message-State: AOJu0YyJyx4MLy+DFnD0ribz9mWiNZ2A7P7nD4D6jJKm5Aq3kw6YxiLT
-	+SyVczv4Vd//N7eXIOlpcL0kVn6AAbSUg/+WMs8FK0oDgo1x1cb0idqHAnNKVdhEyEC9R4/KHZa
-	dvjDVPjUacvma5g4dhpK6kfmC/RBw6HA1sDhKuj5B8hEiSt/y33DndYSgj/A=
-X-Google-Smtp-Source: AGHT+IHF6OvyWR2tzTt/jUjGg88oGb6mphS+JUm7X2abQm9CNSmCy3hN5F5l/ZA2IncHZ0LBqfVoQfDH9qSN/LL0ssgazN6DQVXA
+	s=arc-20240116; t=1761229031; c=relaxed/simple;
+	bh=64fwtTDJa/bxy5EJ9MXE4o8s8hTmQtZlXZVj0AYG3Js=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=CeAzjy88l5r0UoIggutTD+jIVQbYY45NlSXR9p5hqe2xe/QDHl5HlOLdP3y4yssV/X1DVuJ8Z716zKlI5myn04ZNvOdi4CuiHtx0fIdsUdRI2orGPPcVO+CgVX/MKFjoW8K/KGAAyh5nIlHoorhoUiq2CaUn6FDLtm//vKewmWw=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru; spf=pass smtp.mailfrom=yandex.ru; dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b=XgmGMVCn; arc=none smtp.client-ip=178.154.239.214
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=yandex.ru
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b="XgmGMVCn"
+Received: from mail-nwsmtp-smtp-production-main-88.klg.yp-c.yandex.net (mail-nwsmtp-smtp-production-main-88.klg.yp-c.yandex.net [IPv6:2a02:6b8:c43:84a0:0:640:dfd2:0])
+	by forward103d.mail.yandex.net (Yandex) with ESMTPS id 71D99C010D;
+	Thu, 23 Oct 2025 17:16:59 +0300 (MSK)
+Received: by mail-nwsmtp-smtp-production-main-88.klg.yp-c.yandex.net (smtp/Yandex) with ESMTPSA id vGZDgwDLlqM0-NcPNXHgf;
+	Thu, 23 Oct 2025 17:16:58 +0300
+X-Yandex-Fwd: 1
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=yandex.ru; s=mail;
+	t=1761229018; bh=NU+ycM+gPP9TFiYVRQjYhB6mGo/K9SLdNurO4M9QqJU=;
+	h=Message-ID:Date:Cc:Subject:To:From;
+	b=XgmGMVCnWgfdjMN2B7oItMYOf0rqWg9LvRy4dUjJFOVKsGqCe/LTNf9P6S9w4OOOC
+	 vOGtknCBDr5QqOccU8scQHyKCruvbHKfxrgP+Yh3ib47Bcn88JLkz1qrQoJGvtPqAj
+	 b6pMaiKUgO+w6X/uQe2NqAr0aI307l3aVm9bRJYo=
+Authentication-Results: mail-nwsmtp-smtp-production-main-88.klg.yp-c.yandex.net; dkim=pass header.i=@yandex.ru
+From: Dmitry Antipov <dmantipov@yandex.ru>
+To: Heming Zhao <heming.zhao@suse.com>,
+	Mark Fasheh <mark@fasheh.com>,
+	Joel Becker <jlbec@evilplan.org>,
+	Joseph Qi <joseph.qi@linux.alibaba.com>
+Cc: ocfs2-devel@lists.linux.dev,
+	lvc-project@linuxtesting.org,
+	Dmitry Antipov <dmantipov@yandex.ru>,
+	syzbot+c16daba279a1161acfb0@syzkaller.appspotmail.com
+Subject: [PATCH] ocfs2: add inline inode consistency check to ocfs2_validate_inode_block()
+Date: Thu, 23 Oct 2025 17:16:50 +0300
+Message-ID: <20251023141650.417129-1-dmantipov@yandex.ru>
+X-Mailer: git-send-email 2.51.0
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-X-Received: by 2002:a05:6e02:1d98:b0:430:c49d:750c with SMTP id
- e9e14a558f8ab-430c528fc97mr317958155ab.27.1761208383281; Thu, 23 Oct 2025
- 01:33:03 -0700 (PDT)
-Date: Thu, 23 Oct 2025 01:33:03 -0700
-In-Reply-To: <000000000000cb688206213d1bda@google.com>
-X-Google-Appengine-App-Id: s~syzkaller
-X-Google-Appengine-App-Id-Alias: syzkaller
-Message-ID: <68f9e83f.a70a0220.3bf6c6.0035.GAE@google.com>
-Subject: Re: [syzbot] [ocfs2?] possible deadlock in ocfs2_fiemap
-From: syzbot <syzbot+ca440b457d21568f8021@syzkaller.appspotmail.com>
-To: akpm@linux-foundation.org, elic@nvidia.com, jasowang@redhat.com, 
-	jlbec@evilplan.org, joseph.qi@linux.alibaba.com, linux-kernel@vger.kernel.org, 
-	lizhi.xu@windriver.com, mark.tinguely@oracle.com, mark@fasheh.com, 
-	mst@redhat.com, ocfs2-devel@lists.linux.dev, ocfs2-devel@oss.oracle.com, 
-	parav@nvidia.com, syzkaller-bugs@googlegroups.com
-Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
 
-syzbot suspects this issue was fixed by commit:
+In 'ocfs2_validate_inode_block()', add an extra check whether an inode
+with inline data (i.e. self-contained) has no clusters, thus preventing
+an invalid inode from being passed to 'ocfs2_evict_inode()' and below.
 
-commit 04100f775c2ea501927f508f17ad824ad1f23c8d
-Author: Mark Tinguely <mark.tinguely@oracle.com>
-Date:   Fri Aug 29 15:18:15 2025 +0000
+Reported-by: syzbot+c16daba279a1161acfb0@syzkaller.appspotmail.com
+Closes: https://syzkaller.appspot.com/bug?extid=c16daba279a1161acfb0
+Signed-off-by: Dmitry Antipov <dmantipov@yandex.ru>
+---
+ fs/ocfs2/inode.c | 8 ++++++++
+ 1 file changed, 8 insertions(+)
 
-    ocfs2: fix recursive semaphore deadlock in fiemap call
+diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
+index fcc89856ab95..5fad0a56cc98 100644
+--- a/fs/ocfs2/inode.c
++++ b/fs/ocfs2/inode.c
+@@ -1503,6 +1503,14 @@ int ocfs2_validate_inode_block(struct super_block *sb,
+ 		goto bail;
+ 	}
+ 
++	if ((le16_to_cpu(di->i_dyn_features) & OCFS2_INLINE_DATA_FL) &&
++	    le32_to_cpu(di->i_clusters)) {
++		rc = ocfs2_error(sb, "Invalid dinode %llu: %u clusters\n",
++				 (unsigned long long)bh->b_blocknr,
++				 le32_to_cpu(di->i_clusters));
++		goto bail;
++	}
++
+ 	rc = 0;
+ 
+ bail:
+-- 
+2.51.0
 
-bisection log:  https://syzkaller.appspot.com/x/bisect.txt?x=13bead42580000
-start commit:   c330cb607721 Merge tag 'i2c-for-6.17-rc3' of git://git.ker..
-git tree:       upstream
-kernel config:  https://syzkaller.appspot.com/x/.config?x=e1e1566c7726877e
-dashboard link: https://syzkaller.appspot.com/bug?extid=ca440b457d21568f8021
-syz repro:      https://syzkaller.appspot.com/x/repro.syz?x=133b6c42580000
-C reproducer:   https://syzkaller.appspot.com/x/repro.c?x=10b9a862580000
-
-If the result looks correct, please mark the issue as fixed by replying with:
-
-#syz fix: ocfs2: fix recursive semaphore deadlock in fiemap call
-
-For information about bisection process see: https://goo.gl/tpsmEJ#bisection
