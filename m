@@ -1,102 +1,95 @@
-Received: from forward501a.mail.yandex.net (forward501a.mail.yandex.net [178.154.239.81])
+Received: from bombadil.infradead.org (bombadil.infradead.org [198.137.202.133])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E702827453
-	for <ocfs2-devel@lists.linux.dev>; Fri, 24 Oct 2025 05:06:49 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=178.154.239.81
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 29BE22F7AD3;
+	Fri, 24 Oct 2025 08:04:49 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=198.137.202.133
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1761282414; cv=none; b=gfbrIzv1wGUrZ+eg+y/2H+Y3NQI9uFAJjAFgTCNvuoQdwvuYCjNA8GuFdBRMN7FyPVuHIneDh32CBuNNXS3BZBARCkV0XwEFqXMzvDZnuPbH9tn3SwGlEbh/WSBvnjqRjoaVVKi0MIeD4ulWQ8ek5Cd021wH64kjc8J/0iznC2U=
+	t=1761293091; cv=none; b=N9jLgn6NmsGc/V2RkJzhAcHJ3DYAMFA3clRzu49eafNzN3EgQs/aETR63hDFiy05uAz0CctIcI7LgaGQWNmbULQTHYoOjQsvZbaY9ri2cbZotuXFyPYDHKY4l4vfsNkJH25eNwjEg+KFlnGhVIozfEy4+M45OyNm7nL6Y7fqe/E=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1761282414; c=relaxed/simple;
-	bh=0Kf808jms2jYdqNz3srT0dXtKANyXwdgsXUhMHuFlzo=;
-	h=Message-ID:Date:MIME-Version:To:Cc:References:From:Subject:
-	 In-Reply-To:Content-Type; b=Myec9wwTiMg3mv82Qm1zfoG9Xo6c5g4e0G5+ilYiyosFuzsVf04SpDDE9Ch1z5jJ3qlq8W7xlq9SFpx+zWvjQdUuf6OnFegQejwTYayUIFmSkZwfrUF/aXn5RNxdQfeOmbDukZB+g1Ci+mPMTqfe6kJsuDiiNLn/KK11yoX6GxA=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru; spf=pass smtp.mailfrom=yandex.ru; dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b=Octzh3C1; arc=none smtp.client-ip=178.154.239.81
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=yandex.ru
+	s=arc-20240116; t=1761293091; c=relaxed/simple;
+	bh=cbp0PyNjc/FnWzdjpq1IiESkpBBpZqik92hgHtcyUlA=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=kR0mRNjDiCV66cEYf8Mdx0QH6J0QKmHgiLm+GcKIn/w2uGfIyr97hILLmLBixc9aYcSQIrocTuu9Bx0KFutIhtBtJrMsn5MOhhQVnoHnhdRcuUED0SGZIr8BccpGY6entHpUlMAWtIR7eGDoyIEdBUb3bksaUDKR7muYGa/DO38=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=lst.de; spf=none smtp.mailfrom=bombadil.srs.infradead.org; dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b=EFyFm+F2; arc=none smtp.client-ip=198.137.202.133
+Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=lst.de
+Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=bombadil.srs.infradead.org
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b="Octzh3C1"
-Received: from mail-nwsmtp-smtp-production-main-64.vla.yp-c.yandex.net (mail-nwsmtp-smtp-production-main-64.vla.yp-c.yandex.net [IPv6:2a02:6b8:c1d:5a89:0:640:b4ed:0])
-	by forward501a.mail.yandex.net (Yandex) with ESMTPS id AA95C80D25;
-	Fri, 24 Oct 2025 08:06:41 +0300 (MSK)
-Received: by mail-nwsmtp-smtp-production-main-64.vla.yp-c.yandex.net (smtp/Yandex) with ESMTPSA id d6R0a0ML4Cg0-nnEbeO0u;
-	Fri, 24 Oct 2025 08:06:41 +0300
-X-Yandex-Fwd: 1
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=yandex.ru; s=mail;
-	t=1761282401; bh=0Kf808jms2jYdqNz3srT0dXtKANyXwdgsXUhMHuFlzo=;
-	h=In-Reply-To:Subject:To:From:Cc:Date:References:Message-ID;
-	b=Octzh3C1ZnFFRzhItCiW4j99w6UX0vmh3koEQiupVjrgwcq81eoqKAaqIptVDornz
-	 pCAwpJ82ZN/3nWT8/SlRcznCvsIkgi1ld2lA6YVGGcOJ+BC0Br9UdyubbiuT7N8G9d
-	 2UU6cXcI7C4M3aVwlodwNmldx7W6Y3e5WlsrEojE=
-Authentication-Results: mail-nwsmtp-smtp-production-main-64.vla.yp-c.yandex.net; dkim=pass header.i=@yandex.ru
-Message-ID: <43f2a8e8-b7bf-450c-b00c-dafe31b538b1@yandex.ru>
-Date: Fri, 24 Oct 2025 08:06:39 +0300
+	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="EFyFm+F2"
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+	d=infradead.org; s=bombadil.20210309; h=Content-Transfer-Encoding:
+	MIME-Version:Message-ID:Date:Subject:Cc:To:From:Sender:Reply-To:Content-Type:
+	Content-ID:Content-Description:In-Reply-To:References;
+	bh=NA1EuLVhaXagkNkbEp2XlJIvkVm/6B2UHwg0o62JmEg=; b=EFyFm+F20P3IJnCg0fyoCLJwx/
+	iUjafVa3MnQpYacpmfc4FhY83ukGNrsi+RejEgHj/fS1IEVKt+ePz8CTV35hZRQCamiNAgvqGDamH
+	G/bB0vfKuOOTJboHNrKU8b2hjoo58Z8uBGyWcaRUUcJPc6WmWp8CKv+P1pfXUE9fZi1StqiPTEl1q
+	HIslYqKlVG2K5+5Q8OZdMGqwzwFPLr09kDx/GxHA5L8tPfeHjHs4BUFM+7cn6uFZmPAfxxCXlQRJS
+	784JSAnaI4lZd+Lz3VWOA9xf4bhqJXX+qM2lSiyLuhgSCRV3wEGvfowG3PsaZ5zzdMVd0nrjtN4P0
+	U8Bfua3w==;
+Received: from 2a02-8389-2341-5b80-d601-7564-c2e0-491c.cable.dynamic.v6.surfer.at ([2a02:8389:2341:5b80:d601:7564:c2e0:491c] helo=localhost)
+	by bombadil.infradead.org with esmtpsa (Exim 4.98.2 #2 (Red Hat Linux))
+	id 1vCCmu-00000008c2I-1Fku;
+	Fri, 24 Oct 2025 08:04:40 +0000
+From: Christoph Hellwig <hch@lst.de>
+To: "Matthew Wilcox (Oracle)" <willy@infradead.org>,
+	Eric Van Hensbergen <ericvh@kernel.org>,
+	Latchesar Ionkov <lucho@ionkov.net>,
+	Dominique Martinet <asmadeus@codewreck.org>,
+	Christian Schoenebeck <linux_oss@crudebyte.com>,
+	Chris Mason <clm@fb.com>,
+	David Sterba <dsterba@suse.com>,
+	Mark Fasheh <mark@fasheh.com>,
+	Joel Becker <jlbec@evilplan.org>,
+	Joseph Qi <joseph.qi@linux.alibaba.com>
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>,
+	Christian Brauner <brauner@kernel.org>,
+	Josef Bacik <josef@toxicpanda.com>,
+	Jan Kara <jack@suse.cz>,
+	linux-block@vger.kernel.org,
+	v9fs@lists.linux.dev,
+	linux-btrfs@vger.kernel.org,
+	linux-ext4@vger.kernel.org,
+	linux-fsdevel@vger.kernel.org,
+	jfs-discussion@lists.sourceforge.net,
+	ocfs2-devel@lists.linux.dev,
+	linux-xfs@vger.kernel.org,
+	linux-mm@kvack.org
+Subject: filemap_* writeback interface cleanups v2
+Date: Fri, 24 Oct 2025 10:04:11 +0200
+Message-ID: <20251024080431.324236-1-hch@lst.de>
+X-Mailer: git-send-email 2.47.3
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Content-Language: en-MW
-To: Joseph Qi <joseph.qi@linux.alibaba.com>,
- Heming Zhao <heming.zhao@suse.com>, Mark Fasheh <mark@fasheh.com>,
- Joel Becker <jlbec@evilplan.org>
-Cc: ocfs2-devel@lists.linux.dev, lvc-project@linuxtesting.org,
- syzbot+c16daba279a1161acfb0@syzkaller.appspotmail.com
-References: <20251023141650.417129-1-dmantipov@yandex.ru>
- <75608a44-e803-4265-9000-f93d048cc30e@linux.alibaba.com>
-From: Dmitry Antipov <dmantipov@yandex.ru>
-Autocrypt: addr=dmantipov@yandex.ru; keydata=
- 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
- A/UwwXBRuvydGV0=
-Subject: Re: [PATCH] ocfs2: add inline inode consistency check to
- ocfs2_validate_inode_block()
-In-Reply-To: <75608a44-e803-4265-9000-f93d048cc30e@linux.alibaba.com>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
+X-SRS-Rewrite: SMTP reverse-path rewritten from <hch@infradead.org> by bombadil.infradead.org. See http://www.infradead.org/rpr.html
 
-On 10/24/25 4:09 AM, Joseph Qi wrote:
+Hi all,
 
-> s/has no clusters/has clusters?
+while looking at the filemap writeback code, I think adding
+filemap_fdatawrite_wbc ended up being a mistake, as all but the original
+btrfs caller should be using better high level interfaces instead.  This
+series removes all these, switches btrfs to a more specific interfaces
+and also cleans up another too low-level interface.  With this the
+writeback_control that is passed to the writeback code is only
+initialized in three places, although there are a lot more places in
+file system code that never reach the common writeback code.
 
-Hm. Reading the comment at the beginning of ocfs2_truncate_for_delete(),
-I assume that a dinode with inline data should have i_clusters set to 0.
+Changes since v1:
+ - use LLONG_MAX instead of LONG_MAX in one place
+ - two commit message typo fixes
+ - keep the filemap_flush* naming
 
-This crash was triggered by using crafted filesystem image containing
-dinode with inline data but non-zero number of clusters, see
-https://syzkaller.appspot.com/x/log.txt?x=11960258580000. In particular,
-dinode with inline data should never be passed to ocfs2_commit_truncate().
-
-Dmitry
+Diffstat:
+ fs/9p/vfs_file.c        |   17 +------
+ fs/btrfs/inode.c        |   46 ++++++--------------
+ fs/fs-writeback.c       |    6 +-
+ fs/ocfs2/journal.c      |   11 ----
+ fs/sync.c               |   10 +---
+ include/linux/fs.h      |    6 +-
+ include/linux/pagemap.h |    5 --
+ mm/fadvise.c            |    3 -
+ mm/filemap.c            |  109 +++++++++++++++++++-----------------------------
+ 9 files changed, 76 insertions(+), 137 deletions(-)
