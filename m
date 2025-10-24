@@ -1,155 +1,102 @@
-Received: from mail-ej1-f46.google.com (mail-ej1-f46.google.com [209.85.218.46])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from forward501a.mail.yandex.net (forward501a.mail.yandex.net [178.154.239.81])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A37B614B06C
-	for <ocfs2-devel@lists.linux.dev>; Fri, 24 Oct 2025 02:31:51 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.218.46
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E702827453
+	for <ocfs2-devel@lists.linux.dev>; Fri, 24 Oct 2025 05:06:49 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=178.154.239.81
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1761273113; cv=none; b=moC5c8ZedVRKZYJAH5QUQXG4UHqXPeEMsDnce0mRsqKYjaoaz3TzMsjbXoaMFLdKluNVTw5ENuNGv3hdsOyRDjFtf8P3lcPFM2JeL6bApAspjUnWubfi3ZUf5sUZpfjef9FoTJrRlZYm+YwAN1mpDfJrhLHeRdgDkK2ELARQxzE=
+	t=1761282414; cv=none; b=gfbrIzv1wGUrZ+eg+y/2H+Y3NQI9uFAJjAFgTCNvuoQdwvuYCjNA8GuFdBRMN7FyPVuHIneDh32CBuNNXS3BZBARCkV0XwEFqXMzvDZnuPbH9tn3SwGlEbh/WSBvnjqRjoaVVKi0MIeD4ulWQ8ek5Cd021wH64kjc8J/0iznC2U=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1761273113; c=relaxed/simple;
-	bh=mB+Sz698UKnQG2Of9PMiBc4sskjxEz1TZXLMejF+Bgo=;
-	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=Bf6mJDT7XhzSmDQb/5P98koJi2tzTi23ASa5Bi+2omMbAaAN4ebuTFsvrsLQdAyYTsjD/FvXTqWdNnZliFyNXHJTvnKcWI0m0lgwkjN53L9TxdL9EPYuA+M5Y6rx9a8SnyBUGdUsYFjM9zMH+0rQA8THb6K5cZ2NQjcv4yR+6HQ=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=juA9HWKw; arc=none smtp.client-ip=209.85.218.46
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	s=arc-20240116; t=1761282414; c=relaxed/simple;
+	bh=0Kf808jms2jYdqNz3srT0dXtKANyXwdgsXUhMHuFlzo=;
+	h=Message-ID:Date:MIME-Version:To:Cc:References:From:Subject:
+	 In-Reply-To:Content-Type; b=Myec9wwTiMg3mv82Qm1zfoG9Xo6c5g4e0G5+ilYiyosFuzsVf04SpDDE9Ch1z5jJ3qlq8W7xlq9SFpx+zWvjQdUuf6OnFegQejwTYayUIFmSkZwfrUF/aXn5RNxdQfeOmbDukZB+g1Ci+mPMTqfe6kJsuDiiNLn/KK11yoX6GxA=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru; spf=pass smtp.mailfrom=yandex.ru; dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b=Octzh3C1; arc=none smtp.client-ip=178.154.239.81
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=yandex.ru
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="juA9HWKw"
-Received: by mail-ej1-f46.google.com with SMTP id a640c23a62f3a-b6d5b756284so250707566b.1
-        for <ocfs2-devel@lists.linux.dev>; Thu, 23 Oct 2025 19:31:51 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1761273110; x=1761877910; darn=lists.linux.dev;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:date:subject:cc:to:from:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=Vucv2+AArBiVxHEjmAULkpSApHonysQt9coOVU0c3uU=;
-        b=juA9HWKwoN6Tazw4sogzdbptAtnJwtpUDVeDedNGJb/7D50z4nta3gNAv+Gpt9fcrO
-         JgWGLYOoOHuLUFpJvqbLQ/hFfPAeIwjivSRAxK4yuoYya0YJfqZv9h7lC0KRJNchMG+k
-         RhMnCd0X/W6jIZTkBk9rO9WKbCDEML0d7Oq9Zy9F8yIu5NWdNml7wiPZxgBvsBMfR8Gr
-         Sh06WoMj5oEr2PviCzcXsXkUxXQYwEFawp7prYEIMkTXJ6XuamuLsehSsOEBKGlZA3XA
-         d4OJ7y5ZE7U6TrHtacM78dxZwNP1zjnDJaFH3p6ZSFZsrQ/K/6r4fhDNFNc89cpZPEZ0
-         X/Yw==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1761273110; x=1761877910;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:date:subject:cc:to:from:x-gm-message-state:from:to:cc
-         :subject:date:message-id:reply-to;
-        bh=Vucv2+AArBiVxHEjmAULkpSApHonysQt9coOVU0c3uU=;
-        b=iiW0vK6pnXqd2pGHhaVnfP/+yo6ZcPlx2ZH4q+LxReRgxZ/cKOmIEFG+quxfp2WcdX
-         7ZmE0yzMTggtoEtW1qVCciQJwt1JEVWqCWO5htR0EwihhD+2N0nu03qnR5DZUbBqkYGm
-         eWkKlN9lYjZ/I20mBiccjmfQVf1x5SPiNXCOjM8fbGC0ciQmGr44ZSPFsdLIB4/BKGEl
-         f/pL2h+N4uoFezPEgxuFYrDsqMjnaNw77igX9Y7tUeuy11balTEeNj2kXIQdhlh2ocpv
-         9pVsN56tvAufyrR9hJu3h9bvykCHknFxXjIJsyP7+z0XonbewN6ZXIheEsP8WaZqaTNl
-         EAzQ==
-X-Gm-Message-State: AOJu0Ywgneqjxb/KVxQuZ1oTufxCSuv4y6QO3wp5LIMRKZwt6kRpbSBg
-	qMQsXZOqXcN6gXwuuP3tTTi97l1lVztANiUaFnIVT0DMhsSNhmuvMd0o
-X-Gm-Gg: ASbGncuA00mSls7yMVKsUW/JFsbNUVW4KPAljvrFiUBOMnGs5PJYSTUHN///ilwK8WN
-	uBWm0JnFfPUhJuDEN/JQhlEwOfBI5EuvMvNSGYm38Jt5dgvjS8+1BG7k9tBayjXspj9cWbI68Ds
-	ypgxKOPgEpLT/2VMZnClfWg8GYW5vvEd2tFVhKybt72AEoIDq+EQ0zR77QVbCHMIYlKYXk+P90K
-	odmNLATdZQzqjG+Tgwur7H65GLESJg8I7jin/NN7+BkPLskHJ5HIxHo4Zk1HnYBkY5N4D2TINsv
-	S7SO0cb0XrrKUhkK+kCCV/sti94ce0d2Xtnyfo4SbyUMrqLugBJZak1zTDKrjn9mz0dL35nB9r8
-	oL1w2HA5CJsmiKB8jDnOa9I9DIJJ46pbD+pfYeTkW36U1MeEnpcNsYkKI6LB1OsCgh/Jm2tBN0B
-	xfeUoTzB5FmNhv
-X-Google-Smtp-Source: AGHT+IFqr0OGMyRPm4LvrFPZEOmm/DXOx7zylQHcHqhS9CvytEP058sbN2a+w/3eikBWJAEa++c9yQ==
-X-Received: by 2002:a17:907:3f1f:b0:b6d:5003:8746 with SMTP id a640c23a62f3a-b6d50038937mr592991666b.21.1761273109902;
-        Thu, 23 Oct 2025 19:31:49 -0700 (PDT)
-Received: from eray-kasa.. ([2a02:4e0:2daa:1585:2b9a:69d4:d466:5f63])
-        by smtp.gmail.com with ESMTPSA id a640c23a62f3a-b6d511f8634sm385725066b.29.2025.10.23.19.31.48
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Thu, 23 Oct 2025 19:31:49 -0700 (PDT)
-From: Ahmet Eray Karadag <eraykrdg1@gmail.com>
-To: mark@fasheh.com,
-	jlbec@evilplan.org,
-	joseph.qi@linux.alibaba.com
-Cc: ocfs2-devel@lists.linux.dev,
-	linux-kernel@vger.kernel.org,
-	david.hunter.linux@gmail.com,
-	skhan@linuxfoundation.org,
-	Ahmet Eray Karadag <eraykrdg1@gmail.com>,
-	syzbot+55c40ae8a0e5f3659f2b@syzkaller.appspotmail.com,
-	Albin Babu Varghese <albinbabuvarghese20@gmail.com>
-Subject: [PATCH v2] ocfs2: Invalidate inode if i_mode is zero after block read
-Date: Fri, 24 Oct 2025 05:30:57 +0300
-Message-ID: <20251024023056.29275-2-eraykrdg1@gmail.com>
-In-Reply-To: <20251022222752.46758-2-eraykrdg1@gmail.com>
-References: <20251022222752.46758-2-eraykrdg1@gmail.com>
+	dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b="Octzh3C1"
+Received: from mail-nwsmtp-smtp-production-main-64.vla.yp-c.yandex.net (mail-nwsmtp-smtp-production-main-64.vla.yp-c.yandex.net [IPv6:2a02:6b8:c1d:5a89:0:640:b4ed:0])
+	by forward501a.mail.yandex.net (Yandex) with ESMTPS id AA95C80D25;
+	Fri, 24 Oct 2025 08:06:41 +0300 (MSK)
+Received: by mail-nwsmtp-smtp-production-main-64.vla.yp-c.yandex.net (smtp/Yandex) with ESMTPSA id d6R0a0ML4Cg0-nnEbeO0u;
+	Fri, 24 Oct 2025 08:06:41 +0300
+X-Yandex-Fwd: 1
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=yandex.ru; s=mail;
+	t=1761282401; bh=0Kf808jms2jYdqNz3srT0dXtKANyXwdgsXUhMHuFlzo=;
+	h=In-Reply-To:Subject:To:From:Cc:Date:References:Message-ID;
+	b=Octzh3C1ZnFFRzhItCiW4j99w6UX0vmh3koEQiupVjrgwcq81eoqKAaqIptVDornz
+	 pCAwpJ82ZN/3nWT8/SlRcznCvsIkgi1ld2lA6YVGGcOJ+BC0Br9UdyubbiuT7N8G9d
+	 2UU6cXcI7C4M3aVwlodwNmldx7W6Y3e5WlsrEojE=
+Authentication-Results: mail-nwsmtp-smtp-production-main-64.vla.yp-c.yandex.net; dkim=pass header.i=@yandex.ru
+Message-ID: <43f2a8e8-b7bf-450c-b00c-dafe31b538b1@yandex.ru>
+Date: Fri, 24 Oct 2025 08:06:39 +0300
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+User-Agent: Mozilla Thunderbird
+Content-Language: en-MW
+To: Joseph Qi <joseph.qi@linux.alibaba.com>,
+ Heming Zhao <heming.zhao@suse.com>, Mark Fasheh <mark@fasheh.com>,
+ Joel Becker <jlbec@evilplan.org>
+Cc: ocfs2-devel@lists.linux.dev, lvc-project@linuxtesting.org,
+ syzbot+c16daba279a1161acfb0@syzkaller.appspotmail.com
+References: <20251023141650.417129-1-dmantipov@yandex.ru>
+ <75608a44-e803-4265-9000-f93d048cc30e@linux.alibaba.com>
+From: Dmitry Antipov <dmantipov@yandex.ru>
+Autocrypt: addr=dmantipov@yandex.ru; keydata=
+ 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
+ A/UwwXBRuvydGV0=
+Subject: Re: [PATCH] ocfs2: add inline inode consistency check to
+ ocfs2_validate_inode_block()
+In-Reply-To: <75608a44-e803-4265-9000-f93d048cc30e@linux.alibaba.com>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
 
-A panic occurs in ocfs2_unlink due to WARN_ON(inode->i_nlink == 0) when
-handling a corrupted inode with i_mode=0 and i_nlink=0 in memory.
+On 10/24/25 4:09 AM, Joseph Qi wrote:
 
-This "zombie" inode is created because ocfs2_read_locked_inode proceeds
-even after ocfs2_validate_inode_block successfully validates a block
-that structurally looks okay (passes checksum, signature etc.) but
-contains semantically invalid data (specifically i_mode=0). The current
-validation function doesn't check for i_mode being zero.
+> s/has no clusters/has clusters?
 
-This results in an in-memory inode with i_mode=0 being added to the VFS
-cache, which later triggers the panic during unlink.
+Hm. Reading the comment at the beginning of ocfs2_truncate_for_delete(),
+I assume that a dinode with inline data should have i_clusters set to 0.
 
-Prevent this by adding an explicit check for i_mode == 0 within
-ocfs2_validate_inode_block. If i_mode is zero, return -EFSCORRUPTED to signal
-corruption. This causes the caller (ocfs2_read_locked_inode) to invoke
-make_bad_inode(), correctly preventing the zombie inode from entering
-the cache.
+This crash was triggered by using crafted filesystem image containing
+dinode with inline data but non-zero number of clusters, see
+https://syzkaller.appspot.com/x/log.txt?x=11960258580000. In particular,
+dinode with inline data should never be passed to ocfs2_commit_truncate().
 
----
-[RFC]:
-The current fix handles i_mode=0 corruption detected during inode read
-by returning -EFSCORRUPTED from ocfs2_validate_inode_block, which leads to
-make_bad_inode() being called, preventing the corrupted inode from
-entering the cache. This approach avoids immediately forcing the entire
-filesystem read-only, assuming the corruption might be localized to
-this inode.
-
-Is this less aggressive error handling strategy appropriate for i_mode=0
-corruption? Or is this condition considered severe enough that we *should*
-explicitly call ocfs2_error() within the validation function to guarantee
-the filesystem is marked read-only immediately upon detection?
-Feedback and testing on the correct severity assessment and error
-handling for this type of corruption would be appreciated.
----
-v2:
- - Reviewed how ext4 handling same situation and we come up with this
-   solution
----
-Reported-by: syzbot+55c40ae8a0e5f3659f2b@syzkaller.appspotmail.com
-Fixes: https://syzkaller.appspot.com/bug?extid=55c40ae8a0e5f3659f2b
-Co-developed-by: Albin Babu Varghese <albinbabuvarghese20@gmail.com>
-Signed-off-by: Albin Babu Varghese <albinbabuvarghese20@gmail.com>
-Signed-off-by: Ahmet Eray Karadag <eraykrdg1@gmail.com>
----
- fs/ocfs2/inode.c | 10 +++++++++-
- 1 file changed, 9 insertions(+), 1 deletion(-)
-
-diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-index 14bf440ea4df..6c936f62b169 100644
---- a/fs/ocfs2/inode.c
-+++ b/fs/ocfs2/inode.c
-@@ -1455,7 +1455,15 @@ int ocfs2_validate_inode_block(struct super_block *sb,
- 		     (unsigned long long)bh->b_blocknr);
- 		goto bail;
- 	}
--
-+	if (di->i_links_count == 0) {
-+		if (le16_to_cpu(di->i_mode) == 0 ||
-+			!(le32_to_cpu(di->i_flags) & OCFS2_ORPHANED_FL)) {
-+			mlog(ML_ERROR, "Invalid dinode #%llu: i_mode is zero!\n",
-+			           (unsigned long long)bh->b_blocknr);
-+			rc = -EFSCORRUPTED;
-+			goto bail;
-+		}
-+	}
- 	/*
- 	 * Errors after here are fatal.
- 	 */
--- 
-2.43.0
-
+Dmitry
