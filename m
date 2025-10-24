@@ -1,237 +1,105 @@
-Received: from smtp-out1.suse.de (smtp-out1.suse.de [195.135.223.130])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from casper.infradead.org (casper.infradead.org [90.155.50.34])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0BA123090D5
-	for <ocfs2-devel@lists.linux.dev>; Fri, 24 Oct 2025 12:13:21 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=195.135.223.130
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2F2A031D751;
+	Fri, 24 Oct 2025 17:08:27 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=90.155.50.34
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1761308004; cv=none; b=O6uU3ujTZrU/h6gA9nGUNeeujo+ojPfhyFbhKBLrIq+Ki1Lphoat81uMBV7ALkhO6B9yLuurifiSNi9y3DCOD1eRSSxkqUGJpEx+ElCcnVKzZbyV/VfzIfSqEjrEW0lXnybWZmQ35aZscKGy3TQdqK2JeOIVclEmWiCJe8yPfk0=
+	t=1761325709; cv=none; b=UGoV9gLbyme5ln6ACkllUVq/ZkIqqhe1FLICcJq/UOfUWjDVIQNr2HN2u887/zlWMgW+YUG4ns7VbD9H9oyUcblc66BVi6UK7PVnE17Fla59rwfw19385RbZyvW6nIi1jJdAtAhazEhp9ooKDOVNnuRgxsWagZDftFPo0YztH1s=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1761308004; c=relaxed/simple;
-	bh=i0EfOjInC/aJdda6sojezLSbi8o9QQmIbE3cti/JV8w=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=OCjCyKomjsquAY91M+uwrMHJw9ynnGPiLZVLWb54BS2xlZHm7KtFArj4LDHo/9ZJsI5NJpCCfb7TWZkBeX8JQieEjAuTFaODguoIwxipBJPz6LA5JAXBrW8t/CH0IzCbkb/4CHGkJKcEt51XPmjp/6Lk5bIHJ1Ci9AnBIbz4xhc=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=suse.cz; spf=pass smtp.mailfrom=suse.cz; dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b=CjojHoYq; dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b=1acUFfy3; dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b=CjojHoYq; dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b=1acUFfy3; arc=none smtp.client-ip=195.135.223.130
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=suse.cz
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.cz
+	s=arc-20240116; t=1761325709; c=relaxed/simple;
+	bh=zYdTJOgapAFKVjT9trEkPlkpCkQBy04KPDl3fSFOy6o=;
+	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
+	 MIME-Version; b=FIkeicmGSl9FWh1X3CYyeYJxEmi6KhqZMTN+dLUfG368a/Tk5DPfyaeBijdOwoWGtRqWU8yxUBxcmrxRA8/qYZcuh7JREVNJ/nsYQT109o2M2kQoAyvmdoWqGyYEfKVJZvMRQH6UCqYuIyyMxeh2TzAEed25NY2aaz7tW2j2fCY=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=infradead.org; spf=none smtp.mailfrom=infradead.org; dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b=cMGukuXH; arc=none smtp.client-ip=90.155.50.34
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=infradead.org
+Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=infradead.org
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b="CjojHoYq";
-	dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b="1acUFfy3";
-	dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b="CjojHoYq";
-	dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b="1acUFfy3"
-Received: from imap1.dmz-prg2.suse.org (unknown [10.150.64.97])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
-	(No client certificate requested)
-	by smtp-out1.suse.de (Postfix) with ESMTPS id 46D6C2120A;
-	Fri, 24 Oct 2025 12:13:20 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.cz; s=susede2_rsa;
-	t=1761308000; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=AkVO73khQEXexPsxQT0RVGnJrziAwGHpdDpx2ltyfZ0=;
-	b=CjojHoYqaGMzfr5XqNusQqu1GyDxPy0hnR6Ldj+jMf2eYrTAdI2alMTnKoUSmrXoHvFzyY
-	UToaifYK+aQl8TtK32yOMGz7StJr1kY/XFCLmL8yl3rGsIxvYxpuaYXr9RvWQe45kcVwON
-	5/tuFmNtP0/OwY0IBwV80drSEDaabHk=
-DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.cz;
-	s=susede2_ed25519; t=1761308000;
-	h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=AkVO73khQEXexPsxQT0RVGnJrziAwGHpdDpx2ltyfZ0=;
-	b=1acUFfy3hGwnqk5XZUYklOyZE7Yzi46EVBZ/g+PJSSiLxPnydp7ewriPn0sf5iaWyR9gF9
-	M2aK7AndCIkzA5Cg==
-Authentication-Results: smtp-out1.suse.de;
-	none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.cz; s=susede2_rsa;
-	t=1761308000; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=AkVO73khQEXexPsxQT0RVGnJrziAwGHpdDpx2ltyfZ0=;
-	b=CjojHoYqaGMzfr5XqNusQqu1GyDxPy0hnR6Ldj+jMf2eYrTAdI2alMTnKoUSmrXoHvFzyY
-	UToaifYK+aQl8TtK32yOMGz7StJr1kY/XFCLmL8yl3rGsIxvYxpuaYXr9RvWQe45kcVwON
-	5/tuFmNtP0/OwY0IBwV80drSEDaabHk=
-DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.cz;
-	s=susede2_ed25519; t=1761308000;
-	h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=AkVO73khQEXexPsxQT0RVGnJrziAwGHpdDpx2ltyfZ0=;
-	b=1acUFfy3hGwnqk5XZUYklOyZE7Yzi46EVBZ/g+PJSSiLxPnydp7ewriPn0sf5iaWyR9gF9
-	M2aK7AndCIkzA5Cg==
-Received: from imap1.dmz-prg2.suse.org (localhost [127.0.0.1])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
-	(No client certificate requested)
-	by imap1.dmz-prg2.suse.org (Postfix) with ESMTPS id 301D713693;
-	Fri, 24 Oct 2025 12:13:20 +0000 (UTC)
-Received: from dovecot-director2.suse.de ([2a07:de40:b281:106:10:150:64:167])
-	by imap1.dmz-prg2.suse.org with ESMTPSA
-	id Mwu+C2Bt+2jXOQAAD6G6ig
-	(envelope-from <jack@suse.cz>); Fri, 24 Oct 2025 12:13:20 +0000
-Received: by quack3.suse.cz (Postfix, from userid 1000)
-	id 3BF23A28AB; Fri, 24 Oct 2025 14:13:19 +0200 (CEST)
-Date: Fri, 24 Oct 2025 14:13:19 +0200
-From: Jan Kara <jack@suse.cz>
-To: Christoph Hellwig <hch@lst.de>
-Cc: "Matthew Wilcox (Oracle)" <willy@infradead.org>, 
-	Eric Van Hensbergen <ericvh@kernel.org>, Latchesar Ionkov <lucho@ionkov.net>, 
-	Dominique Martinet <asmadeus@codewreck.org>, Christian Schoenebeck <linux_oss@crudebyte.com>, 
-	Chris Mason <clm@fb.com>, David Sterba <dsterba@suse.com>, Mark Fasheh <mark@fasheh.com>, 
-	Joel Becker <jlbec@evilplan.org>, Joseph Qi <joseph.qi@linux.alibaba.com>, 
-	Alexander Viro <viro@zeniv.linux.org.uk>, Christian Brauner <brauner@kernel.org>, 
-	Josef Bacik <josef@toxicpanda.com>, Jan Kara <jack@suse.cz>, linux-block@vger.kernel.org, 
-	v9fs@lists.linux.dev, linux-btrfs@vger.kernel.org, linux-ext4@vger.kernel.org, 
-	linux-fsdevel@vger.kernel.org, jfs-discussion@lists.sourceforge.net, 
-	ocfs2-devel@lists.linux.dev, linux-xfs@vger.kernel.org, linux-mm@kvack.org
-Subject: Re: [PATCH 10/10] mm: rename filemap_fdatawrite_range_kick to
- filemap_flush_range
-Message-ID: <yybiur2jmv6s4n2sjlubwimmfbsrb3gx6tk67ki23jnqncaeba@wayirnpbaum3>
-References: <20251024080431.324236-1-hch@lst.de>
- <20251024080431.324236-11-hch@lst.de>
+	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="cMGukuXH"
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+	d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
+	References:In-Reply-To:Message-ID:Date:Subject:Cc:To:From:Sender:Reply-To:
+	Content-Type:Content-ID:Content-Description;
+	bh=UcPyyDZpz5flXt++/wS3mYYcN5qM5XbOtlxGVYwjhBs=; b=cMGukuXH2WbNVH55yV6XLYovPN
+	nvFIIt9STDhMA4RF7o44KyY+V/V93RNAmpCmBxCSvq1T28/vQfF7PQAf4vFyX/r6Hdq7TiSAPe+Bh
+	HS9AL+TAFKUKC95uBXTTJQ6fNcdfIV3H2WOuriRrfEMwlLgu+sZrNl5DKUL8uInDWB9xT9TZnXjko
+	tlKY4g/myz+iJ1wT+Yq0mNPSWb2GDKT6G/oQPBOIRRN86iQauMXOaJf1JfVBMDISiax6mD372ZsV1
+	froNlQY+Zp3JnyqFNRgMvxl8ZTh8Cd5MysYsJqWVya1QzSFNnjU9ipo2GDGYiA52lPloWJVoq9Frs
+	qmjNQdFQ==;
+Received: from willy by casper.infradead.org with local (Exim 4.98.2 #2 (Red Hat Linux))
+	id 1vCLH6-00000005zKm-0S00;
+	Fri, 24 Oct 2025 17:08:24 +0000
+From: "Matthew Wilcox (Oracle)" <willy@infradead.org>
+To: linux-fsdevel@vger.kernel.org,
+	Christian Brauner <brauner@kernel.org>
+Cc: "Matthew Wilcox (Oracle)" <willy@infradead.org>,
+	Mark Fasheh <mark@fasheh.com>,
+	Joel Becker <jlbec@evilplan.org>,
+	Joseph Qi <joseph.qi@linux.alibaba.com>,
+	ocfs2-devel@lists.linux.dev
+Subject: [PATCH 01/10] filemap: Add folio_next_pos()
+Date: Fri, 24 Oct 2025 18:08:09 +0100
+Message-ID: <20251024170822.1427218-2-willy@infradead.org>
+X-Mailer: git-send-email 2.51.0
+In-Reply-To: <20251024170822.1427218-1-willy@infradead.org>
+References: <20251024170822.1427218-1-willy@infradead.org>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20251024080431.324236-11-hch@lst.de>
-X-Spamd-Result: default: False [-3.80 / 50.00];
-	BAYES_HAM(-3.00)[100.00%];
-	NEURAL_HAM_LONG(-1.00)[-1.000];
-	MID_RHS_NOT_FQDN(0.50)[];
-	NEURAL_HAM_SHORT(-0.20)[-1.000];
-	MIME_GOOD(-0.10)[text/plain];
-	RCVD_COUNT_THREE(0.00)[3];
-	FUZZY_RATELIMITED(0.00)[rspamd.com];
-	FROM_HAS_DN(0.00)[];
-	ARC_NA(0.00)[];
-	RCPT_COUNT_TWELVE(0.00)[24];
-	MIME_TRACE(0.00)[0:+];
-	DKIM_SIGNED(0.00)[suse.cz:s=susede2_rsa,suse.cz:s=susede2_ed25519];
-	RCVD_TLS_LAST(0.00)[];
-	TO_MATCH_ENVRCPT_ALL(0.00)[];
-	FROM_EQ_ENVFROM(0.00)[];
-	TO_DN_SOME(0.00)[];
-	RCVD_VIA_SMTP_AUTH(0.00)[];
-	MISSING_XM_UA(0.00)[];
-	DBL_BLOCKED_OPENRESOLVER(0.00)[suse.com:email,imap1.dmz-prg2.suse.org:helo]
-X-Spam-Flag: NO
-X-Spam-Score: -3.80
-X-Spam-Level: 
+Content-Transfer-Encoding: 8bit
 
-On Fri 24-10-25 10:04:21, Christoph Hellwig wrote:
-> Rename filemap_fdatawrite_range_kick to filemap_flush_range because it
-> is the ranged version of filemap_flush.
-> 
-> Signed-off-by: Christoph Hellwig <hch@lst.de>
+Replace the open-coded implementation in ocfs2 (which loses the top
+32 bits on 32-bit architectures) with a helper in pagemap.h.
 
-Looks good. Feel free to add:
+Fixes: 35edec1d52c0 (ocfs2: update truncate handling of partial clusters)
+Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
+Cc: Mark Fasheh <mark@fasheh.com>
+Cc: Joel Becker <jlbec@evilplan.org>
+Cc: Joseph Qi <joseph.qi@linux.alibaba.com>
+Cc: ocfs2-devel@lists.linux.dev
+---
+ fs/ocfs2/alloc.c        |  2 +-
+ include/linux/pagemap.h | 11 +++++++++++
+ 2 files changed, 12 insertions(+), 1 deletion(-)
 
-Reviewed-by: Jan Kara <jack@suse.cz>
-
-								Honza
-
-> ---
->  fs/sync.c          | 3 +--
->  include/linux/fs.h | 6 +++---
->  mm/fadvise.c       | 2 +-
->  mm/filemap.c       | 8 ++++----
->  4 files changed, 9 insertions(+), 10 deletions(-)
-> 
-> diff --git a/fs/sync.c b/fs/sync.c
-> index 6d8b04e04c3c..1759f6ba36cd 100644
-> --- a/fs/sync.c
-> +++ b/fs/sync.c
-> @@ -285,8 +285,7 @@ int sync_file_range(struct file *file, loff_t offset, loff_t nbytes,
->  			ret = filemap_fdatawrite_range(mapping, offset,
->  					endbyte);
->  		else
-> -			ret = filemap_fdatawrite_range_kick(mapping, offset,
-> -					endbyte);
-> +			ret = filemap_flush_range(mapping, offset, endbyte);
->  		if (ret < 0)
->  			goto out;
->  	}
-> diff --git a/include/linux/fs.h b/include/linux/fs.h
-> index c895146c1444..a5dbfa20f8d7 100644
-> --- a/include/linux/fs.h
-> +++ b/include/linux/fs.h
-> @@ -3014,7 +3014,7 @@ extern int __must_check file_fdatawait_range(struct file *file, loff_t lstart,
->  extern int __must_check file_check_and_advance_wb_err(struct file *file);
->  extern int __must_check file_write_and_wait_range(struct file *file,
->  						loff_t start, loff_t end);
-> -int filemap_fdatawrite_range_kick(struct address_space *mapping, loff_t start,
-> +int filemap_flush_range(struct address_space *mapping, loff_t start,
->  		loff_t end);
->  
->  static inline int file_write_and_wait(struct file *file)
-> @@ -3051,8 +3051,8 @@ static inline ssize_t generic_write_sync(struct kiocb *iocb, ssize_t count)
->  	} else if (iocb->ki_flags & IOCB_DONTCACHE) {
->  		struct address_space *mapping = iocb->ki_filp->f_mapping;
->  
-> -		filemap_fdatawrite_range_kick(mapping, iocb->ki_pos - count,
-> -					      iocb->ki_pos - 1);
-> +		filemap_flush_range(mapping, iocb->ki_pos - count,
-> +				iocb->ki_pos - 1);
->  	}
->  
->  	return count;
-> diff --git a/mm/fadvise.c b/mm/fadvise.c
-> index f1be619f0e58..67028e30aa91 100644
-> --- a/mm/fadvise.c
-> +++ b/mm/fadvise.c
-> @@ -111,7 +111,7 @@ int generic_fadvise(struct file *file, loff_t offset, loff_t len, int advice)
->  		spin_unlock(&file->f_lock);
->  		break;
->  	case POSIX_FADV_DONTNEED:
-> -		filemap_fdatawrite_range_kick(mapping, offset, endbyte);
-> +		filemap_flush_range(mapping, offset, endbyte);
->  
->  		/*
->  		 * First and last FULL page! Partial pages are deliberately
-> diff --git a/mm/filemap.c b/mm/filemap.c
-> index f90f5bb2b825..fa770768ea3a 100644
-> --- a/mm/filemap.c
-> +++ b/mm/filemap.c
-> @@ -419,7 +419,7 @@ int filemap_fdatawrite(struct address_space *mapping)
->  EXPORT_SYMBOL(filemap_fdatawrite);
->  
->  /**
-> - * filemap_fdatawrite_range_kick - start writeback on a range
-> + * filemap_flush_range - start writeback on a range
->   * @mapping:	target address_space
->   * @start:	index to start writeback on
->   * @end:	last (inclusive) index for writeback
-> @@ -429,12 +429,12 @@ EXPORT_SYMBOL(filemap_fdatawrite);
->   *
->   * Return: %0 on success, negative error code otherwise.
->   */
-> -int filemap_fdatawrite_range_kick(struct address_space *mapping, loff_t start,
-> +int filemap_flush_range(struct address_space *mapping, loff_t start,
->  				  loff_t end)
->  {
->  	return filemap_writeback(mapping, start, end, WB_SYNC_NONE, NULL);
->  }
-> -EXPORT_SYMBOL_GPL(filemap_fdatawrite_range_kick);
-> +EXPORT_SYMBOL_GPL(filemap_flush_range);
->  
->  /**
->   * filemap_flush - mostly a non-blocking flush
-> @@ -447,7 +447,7 @@ EXPORT_SYMBOL_GPL(filemap_fdatawrite_range_kick);
->   */
->  int filemap_flush(struct address_space *mapping)
->  {
-> -	return filemap_fdatawrite_range_kick(mapping, 0, LLONG_MAX);
-> +	return filemap_flush_range(mapping, 0, LLONG_MAX);
->  }
->  EXPORT_SYMBOL(filemap_flush);
->  
-> -- 
-> 2.47.3
-> 
+diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
+index 162711cc5b20..b267ec580da9 100644
+--- a/fs/ocfs2/alloc.c
++++ b/fs/ocfs2/alloc.c
+@@ -6892,7 +6892,7 @@ static void ocfs2_zero_cluster_folios(struct inode *inode, loff_t start,
+ 		ocfs2_map_and_dirty_folio(inode, handle, from, to, folio, 1,
+ 				&phys);
+ 
+-		start = folio_next_index(folio) << PAGE_SHIFT;
++		start = folio_next_pos(folio);
+ 	}
+ out:
+ 	if (folios)
+diff --git a/include/linux/pagemap.h b/include/linux/pagemap.h
+index 09b581c1d878..e16576e3763a 100644
+--- a/include/linux/pagemap.h
++++ b/include/linux/pagemap.h
+@@ -941,6 +941,17 @@ static inline pgoff_t folio_next_index(const struct folio *folio)
+ 	return folio->index + folio_nr_pages(folio);
+ }
+ 
++/**
++ * folio_next_pos - Get the file position of the next folio.
++ * @folio: The current folio.
++ *
++ * Return: The position of the folio which follows this folio in the file.
++ */
++static inline loff_t folio_next_pos(const struct folio *folio)
++{
++	return (loff_t)folio_next_index(folio) << PAGE_SHIFT;
++}
++
+ /**
+  * folio_file_page - The page for a particular index.
+  * @folio: The folio which contains this index.
 -- 
-Jan Kara <jack@suse.com>
-SUSE Labs, CR
+2.47.2
+
