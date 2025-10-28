@@ -1,33 +1,33 @@
 Received: from zeniv.linux.org.uk (zeniv.linux.org.uk [62.89.141.173])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 400FB217723;
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 26D8B1FFC48;
 	Tue, 28 Oct 2025 00:46:21 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=62.89.141.173
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1761612387; cv=none; b=MY90+g8QwgFwj8G6Be2Yp8rM4Zd+Z8WQ9TvjIi4cOsjFYIt86v3C5H4+m2y/nTg2GuC5YWipiDV15F7s7Uk6ZS786AglMB9O5hl+oj1/sgaeS/YXo+ucBee11MWzf3VVi1Ku47Vw9+IBs+EL672FFPCrl13EsrPnJ0Z7wABP5FU=
+	t=1761612387; cv=none; b=d40UIBYE1m+n4fc/vfZsd9KU29gFJYqYhzcuMMzM/zdZfE2OhteyM0hW2pk5U4rnfHpEHJh2iMaopRuo9ljQ5VFKDEi1hd87mKYn57fsAUR7i0fVwcuvCEdC/RDZ7sail6E0qdz+jSFkNBWkLtkCed6rnt11FuErbS9ff7ZOB+Q=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
 	s=arc-20240116; t=1761612387; c=relaxed/simple;
-	bh=jGXLbtBoU52kB5fq2se2ip0WlsiUE6GUM8W8byZni/8=;
+	bh=bf3+g4U+6wGli2vhuPciTlWsbHOZefsVTzvJDSs1kWA=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=XpmQ06bUrcK3LtPXwgybHTXmOnGmabp35ygZJaxFC9sESvavitkprxKeQqWedE/GK3u4nUkZl1jqW/F4thGcD5SU4Ps2ruIXjJ2w9X/bLFE5feUKgmp/B9qXT+ftilDCT53Dok9rxScoOnJHIMGMEQWAZU2my52TgH4RqwtWfKs=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk; spf=none smtp.mailfrom=ftp.linux.org.uk; dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b=WS+FB8wn; arc=none smtp.client-ip=62.89.141.173
+	 MIME-Version; b=H2OZLxP9J4XQaVsQ5WO1XQhiKxqPUbTPdAGs7VWkkaESr6yOPNkUSuOTETnKx+xoug2MRW7qEPcEvd/GbbOLZFYjiygj5Ue5z4Qn0t2uVdO9SgWULVEApMGTUHjalJ/p9kKPP8fYBsxWGV4P01nmZa6Dx476wsL9Tu1JkytQ73k=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk; spf=none smtp.mailfrom=ftp.linux.org.uk; dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b=dpmtniKg; arc=none smtp.client-ip=62.89.141.173
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk
 Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=ftp.linux.org.uk
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b="WS+FB8wn"
+	dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b="dpmtniKg"
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
 	d=linux.org.uk; s=zeniv-20220401; h=Sender:Content-Transfer-Encoding:
 	MIME-Version:References:In-Reply-To:Message-ID:Date:Subject:Cc:To:From:
 	Reply-To:Content-Type:Content-ID:Content-Description;
-	bh=XM4FZa0do0+xkZhNaAyLfkF8FdfO7rZo+6nC0ji7Cc4=; b=WS+FB8wnnvrg1STdVHRHhgtd3e
-	vA8ZVpy0FVTwmwDGjCHc/2tiGcDQkk87YeN70uDxpICW0w2QMEcAqsDJXCqIGDXWDAgcCJQT5FLgv
-	IU1uIxyHaIhuzZXuqtR+78tanMf6sk8IV1fzlNZL69yfV+Af2Upb49UTz4IjADgRxoaWJnca5sKQX
-	AATECFXUnQxK2k3O9chDriGxOsLOR3+wEFJUafpfsa2m7AS9rX3yNjIxcIrfS+Af1F2DtpuBwBJgV
-	tBZ4ytoVCKlXYk5skQ95GPhvuT0p8Zj7buhDSVwVyQEZVMEI52Ey0/J/+V9+vtlESXizL3+cBs2Xa
-	mmNljBtQ==;
+	bh=OHt/Ew+g7B0pNZwOTBE8VBfCIPUfQxC19aVy8itf040=; b=dpmtniKgbg5gFqW2xm5+8kdYGJ
+	hTEUxg2eRsoiSPIsC4/0/rf1gDnlubESIhlcx13vBoDnu9rk18uA8acv8bEkrsjKUUFm3h3rlpa1A
+	fTf+rUS4AP/pzxQuw/nOBIEbP+sTz48lVgnHMf4+zcH8Er6FOrTD70RAkRvxDK2bYKPrzx7Dvmx6f
+	EpEQEUKgw/qfWaAKtwjDUYmFOmwj2AFDVB8T4bmUhLFubUeMBhThmgssVXjpFRvReFgAFl54RPJy+
+	6mv9CO2WjdrWQnKlDQh2qJmgQ0RF5kUsXnl3Ph4AvSk7srnGMPqRtdr7EXfmJSzPNcx5aa2cqmspm
+	/qMvmccA==;
 Received: from viro by zeniv.linux.org.uk with local (Exim 4.98.2 #2 (Red Hat Linux))
-	id 1vDXqq-00000001eXr-29Z5;
+	id 1vDXqq-00000001eY8-39u1;
 	Tue, 28 Oct 2025 00:46:16 +0000
 From: Al Viro <viro@zeniv.linux.org.uk>
 To: linux-fsdevel@vger.kernel.org
@@ -52,9 +52,9 @@ Cc: torvalds@linux-foundation.org,
 	selinux@vger.kernel.org,
 	borntraeger@linux.ibm.com,
 	bpf@vger.kernel.org
-Subject: [PATCH v2 17/50] convert fuse_ctl
-Date: Tue, 28 Oct 2025 00:45:36 +0000
-Message-ID: <20251028004614.393374-18-viro@zeniv.linux.org.uk>
+Subject: [PATCH v2 20/50] convert debugfs
+Date: Tue, 28 Oct 2025 00:45:39 +0000
+Message-ID: <20251028004614.393374-21-viro@zeniv.linux.org.uk>
 X-Mailer: git-send-email 2.49.0
 In-Reply-To: <20251028004614.393374-1-viro@zeniv.linux.org.uk>
 References: <20251028004614.393374-1-viro@zeniv.linux.org.uk>
@@ -67,52 +67,84 @@ MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: Al Viro <viro@ftp.linux.org.uk>
 
-objects are created in fuse_ctl_add_dentry() by d_alloc_name()+d_add(),
-removed by simple_remove_by_name().
+similar to tracefs - simulation of normal codepath for creation,
+simple_recursive_removal() for removal.
 
-What we return is a borrowed reference - it is valid until the call of
-fuse_ctl_remove_conn() and we depend upon the exclusion (on fuse_mutex)
-for safety.  Return value is used only within the caller
-(fuse_ctl_add_conn()).
-
-Replace d_add() with d_make_persistent() + dput().  dput() is paired
-with d_alloc_name() and return value is the result of d_make_persistent().
-
+Acked-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- fs/fuse/control.c | 12 +++++++++---
- 1 file changed, 9 insertions(+), 3 deletions(-)
+ fs/debugfs/inode.c | 17 ++++++++---------
+ 1 file changed, 8 insertions(+), 9 deletions(-)
 
-diff --git a/fs/fuse/control.c b/fs/fuse/control.c
-index 3dca752127ff..140bd5730d99 100644
---- a/fs/fuse/control.c
-+++ b/fs/fuse/control.c
-@@ -236,8 +236,14 @@ static struct dentry *fuse_ctl_add_dentry(struct dentry *parent,
- 		inc_nlink(inode);
- 	}
- 	inode->i_private = fc;
--	d_add(dentry, inode);
--
+diff --git a/fs/debugfs/inode.c b/fs/debugfs/inode.c
+index 661a99a7dfbe..682120fdbb17 100644
+--- a/fs/debugfs/inode.c
++++ b/fs/debugfs/inode.c
+@@ -329,7 +329,7 @@ static struct file_system_type debug_fs_type = {
+ 	.name =		"debugfs",
+ 	.init_fs_context = debugfs_init_fs_context,
+ 	.parameters =	debugfs_param_specs,
+-	.kill_sb =	kill_litter_super,
++	.kill_sb =	kill_anon_super,
+ };
+ MODULE_ALIAS_FS("debugfs");
+ 
+@@ -405,16 +405,15 @@ static struct dentry *debugfs_start_creating(const char *name,
+ 
+ static struct dentry *failed_creating(struct dentry *dentry)
+ {
+-	inode_unlock(d_inode(dentry->d_parent));
+-	dput(dentry);
++	simple_done_creating(dentry);
+ 	simple_release_fs(&debugfs_mount, &debugfs_mount_count);
+ 	return ERR_PTR(-ENOMEM);
+ }
+ 
+ static struct dentry *end_creating(struct dentry *dentry)
+ {
+-	inode_unlock(d_inode(dentry->d_parent));
+-	return dentry;
++	simple_done_creating(dentry);
++	return dentry; // borrowed
+ }
+ 
+ static struct dentry *__debugfs_create_file(const char *name, umode_t mode,
+@@ -456,7 +455,7 @@ static struct dentry *__debugfs_create_file(const char *name, umode_t mode,
+ 	DEBUGFS_I(inode)->raw = real_fops;
+ 	DEBUGFS_I(inode)->aux = (void *)aux;
+ 
+-	d_instantiate(dentry, inode);
 +	d_make_persistent(dentry, inode);
-+	dput(dentry);
-+
-+	/*
-+	 * We are returning a borrowed reference here - it's only good while
-+	 * fuse_mutex is held.  Actually it's d_make_persistent() return
-+	 * value...
-+	 */
- 	return dentry;
+ 	fsnotify_create(d_inode(dentry->d_parent), dentry);
+ 	return end_creating(dentry);
  }
+@@ -602,7 +601,7 @@ struct dentry *debugfs_create_dir(const char *name, struct dentry *parent)
  
-@@ -346,7 +352,7 @@ static void fuse_ctl_kill_sb(struct super_block *sb)
- 	fuse_control_sb = NULL;
- 	mutex_unlock(&fuse_mutex);
- 
--	kill_litter_super(sb);
-+	kill_anon_super(sb);
+ 	/* directory inodes start off with i_nlink == 2 (for "." entry) */
+ 	inc_nlink(inode);
+-	d_instantiate(dentry, inode);
++	d_make_persistent(dentry, inode);
+ 	inc_nlink(d_inode(dentry->d_parent));
+ 	fsnotify_mkdir(d_inode(dentry->d_parent), dentry);
+ 	return end_creating(dentry);
+@@ -649,7 +648,7 @@ struct dentry *debugfs_create_automount(const char *name,
+ 	DEBUGFS_I(inode)->automount = f;
+ 	/* directory inodes start off with i_nlink == 2 (for "." entry) */
+ 	inc_nlink(inode);
+-	d_instantiate(dentry, inode);
++	d_make_persistent(dentry, inode);
+ 	inc_nlink(d_inode(dentry->d_parent));
+ 	fsnotify_mkdir(d_inode(dentry->d_parent), dentry);
+ 	return end_creating(dentry);
+@@ -704,7 +703,7 @@ struct dentry *debugfs_create_symlink(const char *name, struct dentry *parent,
+ 	inode->i_mode = S_IFLNK | S_IRWXUGO;
+ 	inode->i_op = &debugfs_symlink_inode_operations;
+ 	inode->i_link = link;
+-	d_instantiate(dentry, inode);
++	d_make_persistent(dentry, inode);
+ 	return end_creating(dentry);
  }
- 
- static struct file_system_type fuse_ctl_fs_type = {
+ EXPORT_SYMBOL_GPL(debugfs_create_symlink);
 -- 
 2.47.3
 
