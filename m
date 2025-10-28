@@ -1,34 +1,34 @@
 Received: from zeniv.linux.org.uk (zeniv.linux.org.uk [62.89.141.173])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2AF692116F6;
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 355C6214A8B;
 	Tue, 28 Oct 2025 00:46:21 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=62.89.141.173
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1761612387; cv=none; b=a1NUQ1ziZohpb90vBj0QR0MPYOHvgv1R2eQ/mTZBL6f0dJiJfXKfet5E0YIu71dW6MBJfgJg+olcx34OIWtNaY6a4MwaoP6Ub55ag54XVKYFcVIyCyTsW1RSEJUdZkoaeeTJlJ61WSB1rLYK8t4U5ARxoUn64bBhbn+ZU8zDwvI=
+	t=1761612388; cv=none; b=W0/pHqA0r7150LpIzd+ClvZz0GhIDGhhqcG/ij6/q7wMgwciMgnKyPlHmLA+FwsIzLTh60XKF6tANAXIDtIyndBdi9o6G0dyjfnYiXk3kCajjpY1QmPJONFDmONGutLsB1HbODO7Ipng3E8dXb/Xv6eOtyHBZzzLcJU2DpMLJD4=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1761612387; c=relaxed/simple;
-	bh=McNIUAqXu4qUUnpy/u9z9Zap5mXt5Gi3Tmjpjgu3QB8=;
+	s=arc-20240116; t=1761612388; c=relaxed/simple;
+	bh=eOUrha5S74n/OwHdx1/jPxs30BSri6jdyvJfSjvTRC4=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=dSeYX05wDWFVmRfYNAxzP3am22xfQ1yDM8CEh4MFlJbEtsiuSGZfQGAEacqllOxI+cIKESGcfiS/D3Aq1B3a242iOafflyE/o4Kyc5J0tr1UJYKM0j8PD9/3OkJyQwdBzGdDyT7pXlTya6L6FZbe3c7g9U1Dd74l3M/rWLtLD3M=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk; spf=none smtp.mailfrom=ftp.linux.org.uk; dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b=wJOqMQYn; arc=none smtp.client-ip=62.89.141.173
+	 MIME-Version; b=N7uZGel85eY3dPKEwgxgEw6cOVhlGzwazNeicEc3Ql6dJnDQ5f2uikSrvt8+xwdtShUUwjUcQghiF8JFVsAYQBqyaN9G2Ze3w40WtDEOv4LqoYBFO7br+EVXJ3yVhDZPabyoRnsiymYrtaDDDY9JvSmGXqNEcGnVI3X0PygyOsU=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk; spf=none smtp.mailfrom=ftp.linux.org.uk; dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b=a1Ou47jU; arc=none smtp.client-ip=62.89.141.173
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk
 Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=ftp.linux.org.uk
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b="wJOqMQYn"
+	dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b="a1Ou47jU"
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
 	d=linux.org.uk; s=zeniv-20220401; h=Sender:Content-Transfer-Encoding:
 	MIME-Version:References:In-Reply-To:Message-ID:Date:Subject:Cc:To:From:
 	Reply-To:Content-Type:Content-ID:Content-Description;
-	bh=AxXF+ZX7o2qevQIhaj7GgHO9nhvHZfJFLXJ69dxgaxo=; b=wJOqMQYn/agdM5HgN30InThuM4
-	YKX3asL/ZDg1YZerfVxwnR4IjS5+rIKsb5lOPquQKQnSwBD/KyhzjMLiNBwCyBJ1Hi+CIdrD4bTbT
-	glwIkIKVjh6Fq4GLIkfs9mbfYjUWCB6Z4HYkPZ/6c32QmE9hMHwLVbXg1CG82vHQjgzoPkY9QDnB6
-	p5w+gUbz3/gwdNOUPxTUgj5isWLCB7q3uR+Q/aB3dZj8GdGTChUwLYH0g8lvzKudw9f5tjGazaCl6
-	pyd+GtjpJwkVpLOqbpTgpR5D7gU1+EEel79+MPwja27D5aFjvJAZVFiWQDk229jSbYl2karclhEWS
-	3qZbyJoA==;
+	bh=VD4R3gUn11tbzuOSrLlHcr6CK6toCdQdVG0PoPu8WQM=; b=a1Ou47jUeDFPDyFuwMzS1mCZUD
+	t4KSAdCbW8S0oXxyua9xCSIy5xSnMG+YugoYQEQs86rDE8nYyKYjvCHzS+nI5LqBcYi129ADzTFCk
+	8J97IQGe12RNPvNE65YFEV/sc7YmlTc8FgbW9sm4WHyGoIt4F5ohMiEVIHREZGxXXSgU656MOLje7
+	/GmObfB7I2zPX0ezu6D3E1HvYj5dLt+dIGNfqk6kH2v6u1i+uhNlkjCzwPTb80l7bGeHK3tVg30dp
+	yhiPLC8K4uwvPWJ/+4G67Un8B6U5D3oTqzwaV+HjVkQrNeq+zZIGY80OEG0AkUFFQLxU8HtTC/0Lh
+	/JT2lAUg==;
 Received: from viro by zeniv.linux.org.uk with local (Exim 4.98.2 #2 (Red Hat Linux))
-	id 1vDXqs-00000001ecD-3iKp;
-	Tue, 28 Oct 2025 00:46:18 +0000
+	id 1vDXqp-00000001eVu-0XWM;
+	Tue, 28 Oct 2025 00:46:15 +0000
 From: Al Viro <viro@zeniv.linux.org.uk>
 To: linux-fsdevel@vger.kernel.org
 Cc: torvalds@linux-foundation.org,
@@ -52,9 +52,9 @@ Cc: torvalds@linux-foundation.org,
 	selinux@vger.kernel.org,
 	borntraeger@linux.ibm.com,
 	bpf@vger.kernel.org
-Subject: [PATCH v2 40/50] hypfs: don't pin dentries twice
-Date: Tue, 28 Oct 2025 00:45:59 +0000
-Message-ID: <20251028004614.393374-41-viro@zeniv.linux.org.uk>
+Subject: [PATCH v2 05/50] introduce a flag for explicitly marking persistently pinned dentries
+Date: Tue, 28 Oct 2025 00:45:24 +0000
+Message-ID: <20251028004614.393374-6-viro@zeniv.linux.org.uk>
 X-Mailer: git-send-email 2.49.0
 In-Reply-To: <20251028004614.393374-1-viro@zeniv.linux.org.uk>
 References: <20251028004614.393374-1-viro@zeniv.linux.org.uk>
@@ -67,108 +67,141 @@ MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: Al Viro <viro@ftp.linux.org.uk>
 
-hypfs dentries end up with refcount 2 when they are not busy.
-Refcount 1 is enough to keep them pinned, and going that way
-allows to simplify things nicely:
-	* don't need to drop an extra reference before the
-call of kill_litter_super() in ->kill_sb(); all we need
-there is to reset the cleanup list - everything on it will
-be taken out automatically.
-	* we can make use of simple_recursive_removal() on
-tree rebuilds; just make sure that only children of root
-end up in the cleanup list and hypfs_delete_tree() becomes
-much simpler
+Some filesystems use a kinda-sorta controlled dentry refcount leak to pin
+dentries of created objects in dcache (and undo it when removing those).
+Reference is grabbed and not released, but it's not actually _stored_
+anywhere.  That works, but it's hard to follow and verify; among other
+things, we have no way to tell _which_ of the increments is intended
+to be an unpaired one.  Worse, on removal we need to decide whether
+the reference had already been dropped, which can be non-trivial if
+that removal is on umount and we need to figure out if this dentry is
+pinned due to e.g. unlink() not done.  Usually that is handled by using
+kill_litter_super() as ->kill_sb(), but there are open-coded special
+cases of the same (consider e.g. /proc/self).
+
+Things get simpler if we introduce a new dentry flag (DCACHE_PERSISTENT)
+marking those "leaked" dentries.  Having it set claims responsibility
+for +1 in refcount.
+
+The end result this series is aiming for:
+
+* get these unbalanced dget() and dput() replaced with new primitives that
+  would, in addition to adjusting refcount, set and clear persistency flag.
+* instead of having kill_litter_super() mess with removing the remaining
+  "leaked" references (e.g. for all tmpfs files that hadn't been removed
+  prior to umount), have the regular shrink_dcache_for_umount() strip
+  DCACHE_PERSISTENT of all dentries, dropping the corresponding
+  reference if it had been set.  After that kill_litter_super() becomes
+  an equivalent of kill_anon_super().
+
+Doing that in a single step is not feasible - it would affect too many places
+in too many filesystems.  It has to be split into a series.
+
+Here we
+	* introduce the new flag
+	* teach shrink_dcache_for_umount() to handle it (i.e. remove
+and drop refcount on anything that survives to umount with that flag
+still set)
+	* teach kill_litter_super() that anything with that flag does
+*not* need to be unpinned.
+
+Next commits will add primitives for maintaing that flag and convert the
+common helpers to those.  After that - a long series of per-filesystem
+patches converting to those primitives.
 
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- arch/s390/hypfs/inode.c | 41 ++++++++++-------------------------------
- 1 file changed, 10 insertions(+), 31 deletions(-)
+ fs/dcache.c            | 27 ++++++++++++++++++++++-----
+ include/linux/dcache.h |  1 +
+ 2 files changed, 23 insertions(+), 5 deletions(-)
 
-diff --git a/arch/s390/hypfs/inode.c b/arch/s390/hypfs/inode.c
-index 96409573c75d..a4dc8e13d999 100644
---- a/arch/s390/hypfs/inode.c
-+++ b/arch/s390/hypfs/inode.c
-@@ -61,33 +61,17 @@ static void hypfs_update_update(struct super_block *sb)
- 
- static void hypfs_add_dentry(struct dentry *dentry)
- {
--	dentry->d_fsdata = hypfs_last_dentry;
--	hypfs_last_dentry = dentry;
--}
--
--static void hypfs_remove(struct dentry *dentry)
--{
--	struct dentry *parent;
--
--	parent = dentry->d_parent;
--	inode_lock(d_inode(parent));
--	if (simple_positive(dentry)) {
--		if (d_is_dir(dentry))
--			simple_rmdir(d_inode(parent), dentry);
--		else
--			simple_unlink(d_inode(parent), dentry);
-+	if (IS_ROOT(dentry->d_parent)) {
-+		dentry->d_fsdata = hypfs_last_dentry;
-+		hypfs_last_dentry = dentry;
- 	}
--	d_drop(dentry);
--	dput(dentry);
--	inode_unlock(d_inode(parent));
+diff --git a/fs/dcache.c b/fs/dcache.c
+index 035cccbc9276..f2c9f4fef2a2 100644
+--- a/fs/dcache.c
++++ b/fs/dcache.c
+@@ -1511,6 +1511,15 @@ static enum d_walk_ret select_collect(void *_data, struct dentry *dentry)
+ 	return ret;
  }
  
--static void hypfs_delete_tree(struct dentry *root)
-+static void hypfs_delete_tree(void)
++static enum d_walk_ret select_collect_umount(void *_data, struct dentry *dentry)
++{
++	if (dentry->d_flags & DCACHE_PERSISTENT) {
++		dentry->d_flags &= ~DCACHE_PERSISTENT;
++		dentry->d_lockref.count--;
++	}
++	return select_collect(_data, dentry);
++}
++
+ static enum d_walk_ret select_collect2(void *_data, struct dentry *dentry)
  {
- 	while (hypfs_last_dentry) {
--		struct dentry *next_dentry;
--		next_dentry = hypfs_last_dentry->d_fsdata;
--		hypfs_remove(hypfs_last_dentry);
-+		struct dentry *next_dentry = hypfs_last_dentry->d_fsdata;
-+		simple_recursive_removal(hypfs_last_dentry, NULL);
- 		hypfs_last_dentry = next_dentry;
- 	}
- }
-@@ -184,14 +168,14 @@ static ssize_t hypfs_write_iter(struct kiocb *iocb, struct iov_iter *from)
- 		rc = -EBUSY;
- 		goto out;
- 	}
--	hypfs_delete_tree(sb->s_root);
-+	hypfs_delete_tree();
- 	if (machine_is_vm())
- 		rc = hypfs_vm_create_files(sb->s_root);
- 	else
- 		rc = hypfs_diag_create_files(sb->s_root);
- 	if (rc) {
- 		pr_err("Updating the hypfs tree failed\n");
--		hypfs_delete_tree(sb->s_root);
-+		hypfs_delete_tree();
- 		goto out;
- 	}
- 	hypfs_update_update(sb);
-@@ -326,13 +310,9 @@ static void hypfs_kill_super(struct super_block *sb)
- {
- 	struct hypfs_sb_info *sb_info = sb->s_fs_info;
- 
--	if (sb->s_root)
--		hypfs_delete_tree(sb->s_root);
--	if (sb_info && sb_info->update_file)
--		hypfs_remove(sb_info->update_file);
--	kfree(sb->s_fs_info);
--	sb->s_fs_info = NULL;
-+	hypfs_last_dentry = NULL;
- 	kill_litter_super(sb);
-+	kfree(sb_info);
+ 	struct select_data *data = _data;
+@@ -1539,18 +1548,20 @@ static enum d_walk_ret select_collect2(void *_data, struct dentry *dentry)
  }
  
- static struct dentry *hypfs_create_file(struct dentry *parent, const char *name,
-@@ -367,7 +347,6 @@ static struct dentry *hypfs_create_file(struct dentry *parent, const char *name,
- 		BUG();
- 	inode->i_private = data;
- 	d_instantiate(dentry, inode);
--	dget(dentry);
- fail:
- 	inode_unlock(d_inode(parent));
- 	return dentry;
+ /**
+- * shrink_dcache_parent - prune dcache
++ * shrink_dcache_tree - prune dcache
+  * @parent: parent of entries to prune
++ * @for_umount: true if we want to unpin the persistent ones
+  *
+  * Prune the dcache to remove unused children of the parent dentry.
+  */
+-void shrink_dcache_parent(struct dentry *parent)
++static void shrink_dcache_tree(struct dentry *parent, bool for_umount)
+ {
+ 	for (;;) {
+ 		struct select_data data = {.start = parent};
+ 
+ 		INIT_LIST_HEAD(&data.dispose);
+-		d_walk(parent, &data, select_collect);
++		d_walk(parent, &data,
++			for_umount ? select_collect_umount : select_collect);
+ 
+ 		if (!list_empty(&data.dispose)) {
+ 			shrink_dentry_list(&data.dispose);
+@@ -1575,6 +1586,11 @@ void shrink_dcache_parent(struct dentry *parent)
+ 			shrink_dentry_list(&data.dispose);
+ 	}
+ }
++
++void shrink_dcache_parent(struct dentry *parent)
++{
++	shrink_dcache_tree(parent, false);
++}
+ EXPORT_SYMBOL(shrink_dcache_parent);
+ 
+ static enum d_walk_ret umount_check(void *_data, struct dentry *dentry)
+@@ -1601,7 +1617,7 @@ static enum d_walk_ret umount_check(void *_data, struct dentry *dentry)
+ 
+ static void do_one_tree(struct dentry *dentry)
+ {
+-	shrink_dcache_parent(dentry);
++	shrink_dcache_tree(dentry, true);
+ 	d_walk(dentry, dentry, umount_check);
+ 	d_drop(dentry);
+ 	dput(dentry);
+@@ -3111,7 +3127,8 @@ static enum d_walk_ret d_genocide_kill(void *data, struct dentry *dentry)
+ {
+ 	struct dentry *root = data;
+ 	if (dentry != root) {
+-		if (d_unhashed(dentry) || !dentry->d_inode)
++		if (d_unhashed(dentry) || !dentry->d_inode ||
++		    dentry->d_flags & DCACHE_PERSISTENT)
+ 			return D_WALK_SKIP;
+ 
+ 		if (!(dentry->d_flags & DCACHE_GENOCIDE)) {
+diff --git a/include/linux/dcache.h b/include/linux/dcache.h
+index c83e02b94389..94b58655322a 100644
+--- a/include/linux/dcache.h
++++ b/include/linux/dcache.h
+@@ -225,6 +225,7 @@ enum dentry_flags {
+ 	DCACHE_PAR_LOOKUP		= BIT(24),	/* being looked up (with parent locked shared) */
+ 	DCACHE_DENTRY_CURSOR		= BIT(25),
+ 	DCACHE_NORCU			= BIT(26),	/* No RCU delay for freeing */
++	DCACHE_PERSISTENT		= BIT(27)
+ };
+ 
+ #define DCACHE_MANAGED_DENTRY \
 -- 
 2.47.3
 
