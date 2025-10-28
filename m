@@ -1,34 +1,34 @@
 Received: from zeniv.linux.org.uk (zeniv.linux.org.uk [62.89.141.173])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2C645212552;
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2F4D821257F;
 	Tue, 28 Oct 2025 00:46:21 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=62.89.141.173
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1761612385; cv=none; b=uFTTKYR6OmExLvBs7jw8xPyheqTeBAogUAPTzyn3WQbtRoHIeWgh8Ai35akInhQe56muWhg+HwbJ2levdQIeYXMHDvnVAAp13tjnJRyU4u5zS9PqzIqseDgkhznrIls1owZlZCB80a2eaR6yj7+qO+qUmwMJKfFKBwO/a61yeso=
+	t=1761612386; cv=none; b=JOA1649IgAHtUeEy9aPZPR49kV5VUKZjdzcW6pLuLa7xqJVw4FqTtttOOsFstExMF0ja/f/07CM63xImf/ne9IV7S2d4xb6KVYM4bhNWVKycw/3MoBQgQFyqmCtuLhjcwCMBEwGz+7ddlZucoPG2FEQmi1I3bPC06RDl68nEtiw=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1761612385; c=relaxed/simple;
-	bh=E0XCMbRyAhD2XoeMfhrYfganZphBWRkxQgzdVmdnRpc=;
+	s=arc-20240116; t=1761612386; c=relaxed/simple;
+	bh=hr2eggLL3gfFkFag7GRXjPM7dMjl1ef+LM0Ik1Xxmb8=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=mMJUXKqGZQF2CfkqyubGNOJj/MCP569eAfo1Sv0xAew4TXFYyLKK+4+e6hs8EZnoFEcvi7WlrhdfT5X5bk+8KCnnqDaDfGhLlh58VoQhzgvQUKkFWOy8niqJg5L0ZrzdQW5wjDz7mdZsdIkW+342weaqSSI4ECIEHQnUn3Qov8Y=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk; spf=none smtp.mailfrom=ftp.linux.org.uk; dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b=ZZi6wMhZ; arc=none smtp.client-ip=62.89.141.173
+	 MIME-Version; b=tZyQVtDjl7lzS1dt+RwddlaQuO7r8A7xKbJ3cNhTTW1mOizuzLlxEvx2WYOxVvWh8WdYOZdQg5IfeNNEniM9Y2uuxQ0sR1ARCBBlcUKoMTP64uVFKu74J74I4eerwsh6/nA8giSIQXoVtgJEu8K/W83l1KJTodMQ0akj9SWlEb0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk; spf=none smtp.mailfrom=ftp.linux.org.uk; dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b=C6ElkibK; arc=none smtp.client-ip=62.89.141.173
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk
 Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=ftp.linux.org.uk
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b="ZZi6wMhZ"
+	dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b="C6ElkibK"
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
 	d=linux.org.uk; s=zeniv-20220401; h=Sender:Content-Transfer-Encoding:
 	MIME-Version:References:In-Reply-To:Message-ID:Date:Subject:Cc:To:From:
 	Reply-To:Content-Type:Content-ID:Content-Description;
-	bh=8VEUlF9JhG6FP5SEDR4ze5YZGwCC3RxL0G6kDzkTUDE=; b=ZZi6wMhZQmOlamZhoVFAN+5wJ0
-	qn7ptGF3nnBZELZTTvCHFFxYcyQgGikSFr87FwlVC5rFdSl1je3r4NZeExdiMFlJV9n0UnLtoZBls
-	kJ2JzKacJBnLvr916Buge0/yhNbkk6VrPnenxxNfx6fCM0XLYKHa1IG5Ay/kr/rNPylYz59mv9uCK
-	2cdxz1Q7sCiwTvSQS8ZJMncDcPDgt8uvmVTJQhwonNzSEVJZ+Oeqc5iDEV16aWIXzYYba9BAWVzR4
-	MUj1iEnBoNRgiAyJQZKdSLapuYAl2mILpO8J8AZsNBTUWcHHG/1Ladu85KDWZJ9kTw0PoK6gtQTD0
-	z49FPwWg==;
+	bh=+re8cgG256R+nyhDcVzLSPRAvzZcH6z0w0ygW9fyGms=; b=C6ElkibK0px+2mUJx3est2ATNh
+	knmPWICEKuFaRKLX2J8F/OWuvhPQM3kwW2CxlTz4cQ5t1zIYW56OdcKRivRLmBHhtPjhZQq9iiLPb
+	2RYVMzXRB0JiCxMRFjhOWbBFAHvo4nCAT7f+7fWR8DegrSnoXDyDdixOrAKVS0zBRzlftAclj91Lq
+	B/JfU0nycboNFxv0gK8Oy0vYmatA87jPzEGqPheGMU8jqz0DTO9F1T0kmNSlas37O23j9SoVUy8yy
+	1GQ0PKk0c6OLN9FlEsb6fUR81HnVQ23wsJxwB25wJIlMAgXNPM2KB15R5P5XzQ82t5SPaCiSKsRaD
+	CtgzjFBg==;
 Received: from viro by zeniv.linux.org.uk with local (Exim 4.98.2 #2 (Red Hat Linux))
-	id 1vDXqp-00000001eWf-2Y4n;
-	Tue, 28 Oct 2025 00:46:15 +0000
+	id 1vDXqr-00000001eYo-1QjE;
+	Tue, 28 Oct 2025 00:46:17 +0000
 From: Al Viro <viro@zeniv.linux.org.uk>
 To: linux-fsdevel@vger.kernel.org
 Cc: torvalds@linux-foundation.org,
@@ -52,9 +52,9 @@ Cc: torvalds@linux-foundation.org,
 	selinux@vger.kernel.org,
 	borntraeger@linux.ibm.com,
 	bpf@vger.kernel.org
-Subject: [PATCH v2 09/50] procfs: make /self and /thread_self dentries persistent
-Date: Tue, 28 Oct 2025 00:45:28 +0000
-Message-ID: <20251028004614.393374-10-viro@zeniv.linux.org.uk>
+Subject: [PATCH v2 26/50] convert devpts
+Date: Tue, 28 Oct 2025 00:45:45 +0000
+Message-ID: <20251028004614.393374-27-viro@zeniv.linux.org.uk>
 X-Mailer: git-send-email 2.49.0
 In-Reply-To: <20251028004614.393374-1-viro@zeniv.linux.org.uk>
 References: <20251028004614.393374-1-viro@zeniv.linux.org.uk>
@@ -67,172 +67,154 @@ MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: Al Viro <viro@ftp.linux.org.uk>
 
-... and there's no need to remember those pointers anywhere - ->kill_sb()
-no longer needs to bother since kill_anon_super() will take care of
-them anyway and proc_pid_readdir() only wants the inumbers, which
-we had in a couple of static variables all along.
+Two kinds of objects there - ptmx and everything else (pty).  The former is
+created on mount and kept until the fs shutdown; the latter get created
+and removed by tty layer (the references are borrowed into tty->driver_data).
+The reference to ptmx dentry is also kept, but we only ever use it to
+find ptmx inode on remount.
+
+* turn d_add() into d_make_persistent() + dput()  both in mknod_ptmx() and
+in devpts_pty_new().
+
+* turn dput() to d_make_discardable() in devpts_pty_kill().
+
+* switch mknod_ptmx() to simple_{start,done}_creating().
+
+* instead of storing in pts_fs_info a reference to ptmx dentry, store a reference
+to its inode, seeing that this is what we use it for.
 
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- fs/proc/base.c          |  6 ++----
- fs/proc/internal.h      |  1 +
- fs/proc/root.c          | 14 ++++----------
- fs/proc/self.c          | 10 +++-------
- fs/proc/thread_self.c   | 11 +++--------
- include/linux/proc_fs.h |  2 --
- 6 files changed, 13 insertions(+), 31 deletions(-)
+ fs/devpts/inode.c | 57 +++++++++++++++++------------------------------
+ 1 file changed, 21 insertions(+), 36 deletions(-)
 
-diff --git a/fs/proc/base.c b/fs/proc/base.c
-index 6299878e3d97..869677a26332 100644
---- a/fs/proc/base.c
-+++ b/fs/proc/base.c
-@@ -3585,14 +3585,12 @@ int proc_pid_readdir(struct file *file, struct dir_context *ctx)
- 		return 0;
+diff --git a/fs/devpts/inode.c b/fs/devpts/inode.c
+index fdf22264a8e9..9f3de528c358 100644
+--- a/fs/devpts/inode.c
++++ b/fs/devpts/inode.c
+@@ -102,7 +102,7 @@ struct pts_fs_info {
+ 	struct ida allocated_ptys;
+ 	struct pts_mount_opts mount_opts;
+ 	struct super_block *sb;
+-	struct dentry *ptmx_dentry;
++	struct inode *ptmx_inode; // borrowed
+ };
  
- 	if (pos == TGID_OFFSET - 2) {
--		struct inode *inode = d_inode(fs_info->proc_self);
--		if (!dir_emit(ctx, "self", 4, inode->i_ino, DT_LNK))
-+		if (!dir_emit(ctx, "self", 4, self_inum, DT_LNK))
- 			return 0;
- 		ctx->pos = pos = pos + 1;
- 	}
- 	if (pos == TGID_OFFSET - 1) {
--		struct inode *inode = d_inode(fs_info->proc_thread_self);
--		if (!dir_emit(ctx, "thread-self", 11, inode->i_ino, DT_LNK))
-+		if (!dir_emit(ctx, "thread-self", 11, thread_self_inum, DT_LNK))
- 			return 0;
- 		ctx->pos = pos = pos + 1;
- 	}
-diff --git a/fs/proc/internal.h b/fs/proc/internal.h
-index d1598576506c..c1e8eb984da8 100644
---- a/fs/proc/internal.h
-+++ b/fs/proc/internal.h
-@@ -373,6 +373,7 @@ static inline void proc_tty_init(void) {}
- extern struct proc_dir_entry proc_root;
- 
- extern void proc_self_init(void);
-+extern unsigned self_inum, thread_self_inum;
- 
- /*
-  * task_[no]mmu.c
-diff --git a/fs/proc/root.c b/fs/proc/root.c
-index 1e24e085c7d5..d8ca41d823e4 100644
---- a/fs/proc/root.c
-+++ b/fs/proc/root.c
-@@ -347,17 +347,11 @@ static void proc_kill_sb(struct super_block *sb)
+ static inline struct pts_fs_info *DEVPTS_SB(struct super_block *sb)
+@@ -259,7 +259,6 @@ static int devpts_parse_param(struct fs_context *fc, struct fs_parameter *param)
+ static int mknod_ptmx(struct super_block *sb, struct fs_context *fc)
  {
- 	struct proc_fs_info *fs_info = proc_sb_info(sb);
+ 	int mode;
+-	int rc = -ENOMEM;
+ 	struct dentry *dentry;
+ 	struct inode *inode;
+ 	struct dentry *root = sb->s_root;
+@@ -268,18 +267,10 @@ static int mknod_ptmx(struct super_block *sb, struct fs_context *fc)
+ 	kuid_t ptmx_uid = current_fsuid();
+ 	kgid_t ptmx_gid = current_fsgid();
  
--	if (!fs_info) {
--		kill_anon_super(sb);
--		return;
+-	inode_lock(d_inode(root));
+-
+-	/* If we have already created ptmx node, return */
+-	if (fsi->ptmx_dentry) {
+-		rc = 0;
+-		goto out;
 -	}
 -
--	dput(fs_info->proc_self);
--	dput(fs_info->proc_thread_self);
--
- 	kill_anon_super(sb);
--	put_pid_ns(fs_info->pid_ns);
--	kfree_rcu(fs_info, rcu);
-+	if (fs_info) {
-+		put_pid_ns(fs_info->pid_ns);
-+		kfree_rcu(fs_info, rcu);
-+	}
- }
- 
- static struct file_system_type proc_fs_type = {
-diff --git a/fs/proc/self.c b/fs/proc/self.c
-index b46fbfd22681..62d2c0cfe35c 100644
---- a/fs/proc/self.c
-+++ b/fs/proc/self.c
-@@ -31,12 +31,11 @@ static const struct inode_operations proc_self_inode_operations = {
- 	.get_link	= proc_self_get_link,
- };
- 
--static unsigned self_inum __ro_after_init;
-+unsigned self_inum __ro_after_init;
- 
- int proc_setup_self(struct super_block *s)
- {
- 	struct inode *root_inode = d_inode(s->s_root);
--	struct proc_fs_info *fs_info = proc_sb_info(s);
- 	struct dentry *self;
- 	int ret = -ENOMEM;
- 
-@@ -51,18 +50,15 @@ int proc_setup_self(struct super_block *s)
- 			inode->i_uid = GLOBAL_ROOT_UID;
- 			inode->i_gid = GLOBAL_ROOT_GID;
- 			inode->i_op = &proc_self_inode_operations;
--			d_add(self, inode);
-+			d_make_persistent(self, inode);
- 			ret = 0;
--		} else {
--			dput(self);
- 		}
-+		dput(self);
+-	dentry = d_alloc_name(root, "ptmx");
+-	if (!dentry) {
++	dentry = simple_start_creating(root, "ptmx");
++	if (IS_ERR(dentry)) {
+ 		pr_err("Unable to alloc dentry for ptmx node\n");
+-		goto out;
++		return PTR_ERR(dentry);
  	}
- 	inode_unlock(root_inode);
  
- 	if (ret)
- 		pr_err("proc_fill_super: can't allocate /proc/self\n");
--	else
--		fs_info->proc_self = self;
- 
- 	return ret;
- }
-diff --git a/fs/proc/thread_self.c b/fs/proc/thread_self.c
-index 0e5050d6ab64..d6113dbe58e0 100644
---- a/fs/proc/thread_self.c
-+++ b/fs/proc/thread_self.c
-@@ -31,12 +31,11 @@ static const struct inode_operations proc_thread_self_inode_operations = {
- 	.get_link	= proc_thread_self_get_link,
- };
- 
--static unsigned thread_self_inum __ro_after_init;
-+unsigned thread_self_inum __ro_after_init;
- 
- int proc_setup_thread_self(struct super_block *s)
- {
- 	struct inode *root_inode = d_inode(s->s_root);
--	struct proc_fs_info *fs_info = proc_sb_info(s);
- 	struct dentry *thread_self;
- 	int ret = -ENOMEM;
- 
-@@ -51,19 +50,15 @@ int proc_setup_thread_self(struct super_block *s)
- 			inode->i_uid = GLOBAL_ROOT_UID;
- 			inode->i_gid = GLOBAL_ROOT_GID;
- 			inode->i_op = &proc_thread_self_inode_operations;
--			d_add(thread_self, inode);
-+			d_make_persistent(thread_self, inode);
- 			ret = 0;
--		} else {
--			dput(thread_self);
- 		}
-+		dput(thread_self);
+ 	/*
+@@ -287,9 +278,9 @@ static int mknod_ptmx(struct super_block *sb, struct fs_context *fc)
+ 	 */
+ 	inode = new_inode(sb);
+ 	if (!inode) {
++		simple_done_creating(dentry);
+ 		pr_err("Unable to alloc inode for ptmx node\n");
+-		dput(dentry);
+-		goto out;
++		return -ENOMEM;
  	}
- 	inode_unlock(root_inode);
  
- 	if (ret)
- 		pr_err("proc_fill_super: can't allocate /proc/thread-self\n");
--	else
--		fs_info->proc_thread_self = thread_self;
--
- 	return ret;
+ 	inode->i_ino = 2;
+@@ -299,23 +290,18 @@ static int mknod_ptmx(struct super_block *sb, struct fs_context *fc)
+ 	init_special_inode(inode, mode, MKDEV(TTYAUX_MAJOR, 2));
+ 	inode->i_uid = ptmx_uid;
+ 	inode->i_gid = ptmx_gid;
++	fsi->ptmx_inode = inode;
+ 
+-	d_add(dentry, inode);
++	d_make_persistent(dentry, inode);
+ 
+-	fsi->ptmx_dentry = dentry;
+-	rc = 0;
+-out:
+-	inode_unlock(d_inode(root));
+-	return rc;
++	simple_done_creating(dentry);
++
++	return 0;
  }
  
-diff --git a/include/linux/proc_fs.h b/include/linux/proc_fs.h
-index f139377f4b31..19d1c5e5f335 100644
---- a/include/linux/proc_fs.h
-+++ b/include/linux/proc_fs.h
-@@ -66,8 +66,6 @@ enum proc_pidonly {
+ static void update_ptmx_mode(struct pts_fs_info *fsi)
+ {
+-	struct inode *inode;
+-	if (fsi->ptmx_dentry) {
+-		inode = d_inode(fsi->ptmx_dentry);
+-		inode->i_mode = S_IFCHR|fsi->mount_opts.ptmxmode;
+-	}
++	fsi->ptmx_inode->i_mode = S_IFCHR|fsi->mount_opts.ptmxmode;
+ }
  
- struct proc_fs_info {
- 	struct pid_namespace *pid_ns;
--	struct dentry *proc_self;        /* For /proc/self */
--	struct dentry *proc_thread_self; /* For /proc/thread-self */
- 	kgid_t pid_gid;
- 	enum proc_hidepid hide_pid;
- 	enum proc_pidonly pidonly;
+ static int devpts_reconfigure(struct fs_context *fc)
+@@ -461,7 +447,7 @@ static void devpts_kill_sb(struct super_block *sb)
+ 	if (fsi)
+ 		ida_destroy(&fsi->allocated_ptys);
+ 	kfree(fsi);
+-	kill_litter_super(sb);
++	kill_anon_super(sb);
+ }
+ 
+ static struct file_system_type devpts_fs_type = {
+@@ -534,16 +520,15 @@ struct dentry *devpts_pty_new(struct pts_fs_info *fsi, int index, void *priv)
+ 	sprintf(s, "%d", index);
+ 
+ 	dentry = d_alloc_name(root, s);
+-	if (dentry) {
+-		dentry->d_fsdata = priv;
+-		d_add(dentry, inode);
+-		fsnotify_create(d_inode(root), dentry);
+-	} else {
++	if (!dentry) {
+ 		iput(inode);
+-		dentry = ERR_PTR(-ENOMEM);
++		return ERR_PTR(-ENOMEM);
+ 	}
+-
+-	return dentry;
++	dentry->d_fsdata = priv;
++	d_make_persistent(dentry, inode);
++	fsnotify_create(d_inode(root), dentry);
++	dput(dentry);
++	return dentry; // borrowed
+ }
+ 
+ /**
+@@ -573,7 +558,7 @@ void devpts_pty_kill(struct dentry *dentry)
+ 	drop_nlink(dentry->d_inode);
+ 	d_drop(dentry);
+ 	fsnotify_unlink(d_inode(dentry->d_parent), dentry);
+-	dput(dentry);	/* d_alloc_name() in devpts_pty_new() */
++	d_make_discardable(dentry);
+ }
+ 
+ static int __init init_devpts_fs(void)
 -- 
 2.47.3
 
