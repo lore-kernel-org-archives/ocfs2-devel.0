@@ -1,107 +1,69 @@
-Received: from mail-lf1-f47.google.com (mail-lf1-f47.google.com [209.85.167.47])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from out30-118.freemail.mail.aliyun.com (out30-118.freemail.mail.aliyun.com [115.124.30.118])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6CB441D5CFB
-	for <ocfs2-devel@lists.linux.dev>; Tue, 28 Oct 2025 05:38:09 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.167.47
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 43D7020F08C
+	for <ocfs2-devel@lists.linux.dev>; Tue, 28 Oct 2025 05:51:33 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.118
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1761629894; cv=none; b=kw6a5sNOao4hX7I42RPc4HHgl0n9/6TSLF7D3XY/mlwjhN3wUPKjNv1jAX4/z7bfCyxwRLiOdAPiewcX+XR6Z2e9UKP1ECvdrLajIyOkljHZCtGmdOgmzRGAteQctacMmxV/vGEtInZbiayIYfy/w9nqCCq9h+egH2ndEvrjWfg=
+	t=1761630697; cv=none; b=JAk3CBKtBeXZaSCqOtTTEBsneZXgkgwP5dsNqzzj/3CKGvcq9ASLQW9OEzgNyLMopY34umU8MBv1Sjw/MZuB+mJq4Bln6Xs1QzkqYE7VkQNi5indZNbvvl7/2a3FTIDBpsmvRvnxj+aaTB+CG6tSfyvNBsz1sEqAE5+2X2iAEKw=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1761629894; c=relaxed/simple;
-	bh=MBBUGXoG1YUz44tfK9dC7obCvP9yR1LjZ/0B16rOeOU=;
-	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
-	 To:Cc:Content-Type; b=bG3AhFtCRf33C/ntifZe6YDSXMgfPo3f+yJEtM+CdyqrUhE0G0/ymsWzGnCf24RHMe8ttpJQ+tsciEJYkhtHc0jE6z5pT4XI3bCim7+WRbUGAAi/REXkhTQW+5hfa6olvrmEKq22xnDuJV+cxQVDdqZtE/Xl0pVJ/AX1NWzvay8=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=linux-foundation.org; spf=pass smtp.mailfrom=linuxfoundation.org; dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b=DcI+pZwp; arc=none smtp.client-ip=209.85.167.47
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=linux-foundation.org
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linuxfoundation.org
+	s=arc-20240116; t=1761630697; c=relaxed/simple;
+	bh=e1fam2Ne2ZjjxOEsbUStz/rmPPNei35wLRJ0DsQmLfQ=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=RtxQdJDy9U8Eei0qePjT6gqSOj1/+s0AE5aNf3UFqZ1oqIBvSZJrwEQs8NnUma1puiVF153HM8F0rQZlLDL5aIJJQP9zm7Au/PySPN28TDwHMMwPj5v0VD124qLCOxRCx8vyDFhUmwIAannhg3xYp5XIKreWs1AzsTX8OmyLpU0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=J435IuXU; arc=none smtp.client-ip=115.124.30.118
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b="DcI+pZwp"
-Received: by mail-lf1-f47.google.com with SMTP id 2adb3069b0e04-591c9934e0cso7986127e87.0
-        for <ocfs2-devel@lists.linux.dev>; Mon, 27 Oct 2025 22:38:09 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=linux-foundation.org; s=google; t=1761629887; x=1762234687; darn=lists.linux.dev;
-        h=cc:to:subject:message-id:date:from:in-reply-to:references
-         :mime-version:from:to:cc:subject:date:message-id:reply-to;
-        bh=3Wy1ynDaI6taIoYDlBwI1sYFOXKyWHxR4eO6K9jXR3Y=;
-        b=DcI+pZwpJYeMSgdFUCkP1ANCcQkJOhJbzauEkJVKLZnuSK312R8a2HCZGpDIAgbcXh
-         pFv+Lj7M9BI765q+McVgCgUxMFeR08fpucXsKXcp83KD9ln6Mcmuvosi65nFQlkvUoYo
-         k0yr9Wtd0A7vvOrYQLtBXKN+UKXIPCqghrtFM=
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1761629887; x=1762234687;
-        h=cc:to:subject:message-id:date:from:in-reply-to:references
-         :mime-version:x-gm-message-state:from:to:cc:subject:date:message-id
-         :reply-to;
-        bh=3Wy1ynDaI6taIoYDlBwI1sYFOXKyWHxR4eO6K9jXR3Y=;
-        b=cRMK3yjf6VlAh4gctRJgA0b3b9Qvkdewmnkact2Zd+v8K5wDdPBPNUnwEGgNOoY9ij
-         nlbeWCgkJFShwSsbvx9kgKFoxv0rJgMAbrfU30UXRo1S8o5HeIgxm1sGQCzwyvXeaB1y
-         LoUian2xxUFIk51AwC9wcq8eu04O8nBzDMCn8HenoMeGA4qN3CGq8MGTBXhTjNt9o5OF
-         ai4xzcXdXm+/49QUr1IHU+XMsHPexYGs6Evx2OtjrFdqrYsdXAAyzavsfzUPvIoM6lnm
-         HjbSWLf0t8irgVdhDegQOBtS1Co9c62i6ncFZ2vB7SnCVXWeW/I8nrYkInto8ZPdcTWW
-         +nKA==
-X-Forwarded-Encrypted: i=1; AJvYcCUTPzFsgjOCxdK9pmktA+4HhVKG2vGuW4c7j4s4kwwJHQ5/HxO5Hijm3xZezGHn0lzUla53vXydgDqDVA==@lists.linux.dev
-X-Gm-Message-State: AOJu0YyfEQacCaFxMLdrv7mYKrLgYajE/XteZZCf5w6wbCnzJ3aWDFfH
-	gvP9MRcdVSdPkbObE5gs2Rmo4435JrYjUnZ3GfIFGHI7PsIILLJZCMAOptZlI1DVuPb6o+zHgqt
-	N/EDwjmgrgw==
-X-Gm-Gg: ASbGncvh1JEGKdREgSlhWMsg4JpwyIhKUja5c750MvOKdtm3+mTYae9TCe0FGpvr3fJ
-	feFxpSR1wXVGLyJoN4aCooQJo3mq0NO6utm2yg25YUMb47/dyHCh2OgR/yQdYt+Xa4FNz8unUGe
-	FsCRUU+xBzdkl1ERHwCV5lqCdZ30ZX4pUrTI8aMhfPf2jzcPNyYd3O+n705LdFVzFP3d9eS3vEK
-	wTc+8+SuIeA2ApZ5JHRLSPONgzx6jjlbw/19mc5Pia6OufglgW5T977vcxSo8IQfvobmgvYl7bZ
-	zpB5IPI6fnhJy2fuH/YCJevEtOYg1E0JPWhyaWGqhQe6ghxSdxBqDj863ocACghWdm8BajMWnRo
-	IicleBz+MsWPhWmZt3C786sCKZopCpGVuJPKBKRM5PmCPLIuYVqUkiWhRJbCu7DJrceIAbT03vr
-	sw3g0TtZdn4j8XU+ygm/p08t6uTi7ybYqREAASYP9vw+D4twqSjA==
-X-Google-Smtp-Source: AGHT+IHARa/YTqntb6qAa0GgdGU+J75Q54PbgCtNCB1y2FH35NtaMm0yxcjxBAySD8ObdKG5cIbL/w==
-X-Received: by 2002:a05:6512:b91:b0:57e:65dd:9bcd with SMTP id 2adb3069b0e04-5930e99b894mr652539e87.13.1761629887186;
-        Mon, 27 Oct 2025 22:38:07 -0700 (PDT)
-Received: from mail-lf1-f51.google.com (mail-lf1-f51.google.com. [209.85.167.51])
-        by smtp.gmail.com with ESMTPSA id 2adb3069b0e04-59301f60dfasm2812183e87.61.2025.10.27.22.38.05
-        for <ocfs2-devel@lists.linux.dev>
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Mon, 27 Oct 2025 22:38:05 -0700 (PDT)
-Received: by mail-lf1-f51.google.com with SMTP id 2adb3069b0e04-591c9934e0cso7986084e87.0
-        for <ocfs2-devel@lists.linux.dev>; Mon, 27 Oct 2025 22:38:05 -0700 (PDT)
-X-Forwarded-Encrypted: i=1; AJvYcCVwdRWAk7aYf2Cp2iWl7ywgCsayx3MgshVvgKQvZNUsExwtA8+Igy8Imt1WtH7Ar0zui6d7svQYA9I8Nw==@lists.linux.dev
-X-Received: by 2002:a05:6402:5346:20b0:63c:1e15:b9fb with SMTP id
- 4fb4d7f45d1cf-63ed84d11b8mr1725392a12.22.1761629565035; Mon, 27 Oct 2025
- 22:32:45 -0700 (PDT)
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="J435IuXU"
+DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=linux.alibaba.com; s=default;
+	t=1761630686; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=oeWMBZUWLtd+ufJm/UKsPOK1NABI+bQigjrSNtLmH/I=;
+	b=J435IuXU5EHucyJFk9k39z32Q3qlaj+fz0NFKg6QjrHhn8UkzWeaWxSoaKG7pFZXNqUZQI2n8VswrPz+qsQDbG/aVE11pMK9BSWsAKk2y7UhIG2pmhkJKWA87MD1x64wby7Dt+Wr0Xn0KJRhdABAe/Or3VNmVx4ZPp31HrXpZGs=
+Received: from 30.221.128.145(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0WrAwvGn_1761630685 cluster:ay36)
+          by smtp.aliyun-inc.com;
+          Tue, 28 Oct 2025 13:51:25 +0800
+Message-ID: <d475a54e-2f15-4235-a21f-9d217a1a9126@linux.alibaba.com>
+Date: Tue, 28 Oct 2025 13:51:23 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-References: <20251028004614.393374-1-viro@zeniv.linux.org.uk>
- <20251028004614.393374-32-viro@zeniv.linux.org.uk> <20251028015553.GM2441659@ZenIV>
-In-Reply-To: <20251028015553.GM2441659@ZenIV>
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Mon, 27 Oct 2025 22:32:28 -0700
-X-Gmail-Original-Message-ID: <CAHk-=whCnWNXcmZAgxfV9p8rKJfjxcceNzaxia41f675+yEdfA@mail.gmail.com>
-X-Gm-Features: AWmQ_bkREqIMu_f1B9dwguEOjRWmmtrQM-BuU5ACiXPx-fVfEkz6aAECfx6yPOQ
-Message-ID: <CAHk-=whCnWNXcmZAgxfV9p8rKJfjxcceNzaxia41f675+yEdfA@mail.gmail.com>
-Subject: Re: [PATCH v2 31/50] convert autofs
-To: Al Viro <viro@zeniv.linux.org.uk>
-Cc: linux-fsdevel@vger.kernel.org, brauner@kernel.org, jack@suse.cz, 
-	raven@themaw.net, miklos@szeredi.hu, neil@brown.name, a.hindborg@kernel.org, 
-	linux-mm@kvack.org, linux-efi@vger.kernel.org, ocfs2-devel@lists.linux.dev, 
-	kees@kernel.org, rostedt@goodmis.org, gregkh@linuxfoundation.org, 
-	linux-usb@vger.kernel.org, paul@paul-moore.com, casey@schaufler-ca.com, 
-	linuxppc-dev@lists.ozlabs.org, john.johansen@canonical.com, 
-	selinux@vger.kernel.org, borntraeger@linux.ibm.com, bpf@vger.kernel.org
-Content-Type: text/plain; charset="UTF-8"
+User-Agent: Mozilla Thunderbird
+Subject: Re: [RESEND PATCH v2] ocfs2: introduce chain list sanity check with
+ ocfs2_check_chain_list()
+To: Heming Zhao <heming.zhao@suse.com>
+Cc: Dmitry Antipov <dmantipov@yandex.ru>, Mark Fasheh <mark@fasheh.com>,
+ Joel Becker <jlbec@evilplan.org>, ocfs2-devel@lists.linux.dev,
+ lvc-project@linuxtesting.org,
+ syzbot+77026564530dbc29b854@syzkaller.appspotmail.com,
+ syzbot+5054473a31f78f735416@syzkaller.appspotmail.com
+References: <20251027125654.312153-1-dmantipov@yandex.ru>
+ <9e9f5ed7-5c37-462c-9970-3da7dd957e4e@linux.alibaba.com>
+ <nxmdosp26qotev63tpeq43njfobyxpes3v4zhpb6jhmerpjhpn@ba4ylsi6nctq>
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+In-Reply-To: <nxmdosp26qotev63tpeq43njfobyxpes3v4zhpb6jhmerpjhpn@ba4ylsi6nctq>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
-On Mon, 27 Oct 2025 at 18:55, Al Viro <viro@zeniv.linux.org.uk> wrote:
->
-> BTW, is there any reason why autofs_dir_unlink() does not update
-> ctime of the parent directory?
 
-An autofs 'rmdir' is really just an expire, isn't it? It doesn't
-really change anything in the parent, and a lookup will just reinstate
-the directory.
 
-So I'd go the other way, and say that the strange thing is that it
-changes mtime...
+On 2025/10/28 12:08, Heming Zhao wrote:
+> On Tue, Oct 28, 2025 at 09:53:06AM +0800, Joseph Qi wrote:
+>> Hi,
+>> It seems that these checks can also been moved into ocfs2_validate_inode_block()?
+>>
+>> Thanks,
+>> Joseph
+> 
+> The patch checks 'block group' not 'inode block', the signatures are
+> different: OCFS2_GROUP_DESC_SIGNATURE vs. OCFS2_INODE_SIGNATURE.
+> In my view, current code is correct.
+> 
 
-That said, exactly *because* it changes mtime, I think the real answer
-is that none of this matters, and it's probably just an oversight, and
-it could easily go either way.
+But it checks chain list, right?
 
-               Linus
+Joseph
