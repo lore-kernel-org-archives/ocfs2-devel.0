@@ -1,34 +1,34 @@
 Received: from zeniv.linux.org.uk (zeniv.linux.org.uk [62.89.141.173])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id AE71722128B;
-	Tue, 28 Oct 2025 00:46:24 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 269381F130A;
+	Tue, 28 Oct 2025 00:46:21 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=62.89.141.173
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1761612389; cv=none; b=OauWX/FTSWpor1h804H3Wry5jFO4TRRIPyjtqIyyG6VTQWwW5nPeFuOlMOnHkVILPpcujWvLkV4N3TXEHRafLnTQUBJMU9uwoTSan32lBcwXcNQXEuYZn0wgvCObGWVMoDEveXx4mewsT9x695+fkLyAB20QeypCoSy+/HZyJF0=
+	t=1761612392; cv=none; b=qmJBKnRiI3tNmae7kre64Fj8ukXnoqxoEuxusRW03f6i2Sdmh1XaOVfpxaZlrNzTrZthz8CKvwULesJ0sqMzXK3GjYmecSU5hwoVMKGSthf3k2CEAikoq0b+6hlmesqFBqvwEc+yqmd7YYwvRuu+HskFd5LSfDqq3+KVZU4wuaQ=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1761612389; c=relaxed/simple;
-	bh=qmm5zqjd/ajDkMciqA7fBNEetKA9cGkBQlvYQhRuTNY=;
+	s=arc-20240116; t=1761612392; c=relaxed/simple;
+	bh=aQ8wiaM2Vz5X//su5rT71uA1xpaSvUMrx9j5Y7IQzKU=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=V5H+43PwRGYp9dfEwSEKaCqJJ4+QdsJ5Y86IvrHl8oxqKi8JrbvG7GN65ag2Tl1eO9G78uQNTo00wb6IwpO1Wd7VHXzT5DLfWWISItxwyb6xsRJBt1uXwBuTPF3gb19L0k2U/GzQjkpcY1LbVS3wLYBYlF8DM+88wsj9cqaceZE=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk; spf=none smtp.mailfrom=ftp.linux.org.uk; dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b=qWSFV529; arc=none smtp.client-ip=62.89.141.173
+	 MIME-Version; b=Wjd0ei6FC+ihlWFx31sqakhweAkvKuLCArZjgsN4ZD7WkjVYC6Mn65UgR5GTgqC/NuLWZRLdN9z/E3FmT3ibgedCCTeXPWtfHhMHMyyh0SbGxD7MsP4wcLmOHDPKGduWiMvJ2m4QLRy7/hw7ZGWbUh9HUYhTR35RLhJ6cAhYIbs=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk; spf=none smtp.mailfrom=ftp.linux.org.uk; dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b=TQkTG/l4; arc=none smtp.client-ip=62.89.141.173
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk
 Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=ftp.linux.org.uk
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b="qWSFV529"
+	dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b="TQkTG/l4"
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
 	d=linux.org.uk; s=zeniv-20220401; h=Sender:Content-Transfer-Encoding:
 	MIME-Version:References:In-Reply-To:Message-ID:Date:Subject:Cc:To:From:
 	Reply-To:Content-Type:Content-ID:Content-Description;
-	bh=7kO6yHdg6siJNaebYbY2WULFHGrjSdi/bz+IlHzXX3E=; b=qWSFV529y90Ap6JBzI+mn63edH
-	BAwZcDrZ0a4vMWGm7Q9HAkd3smT55GSGctGorOIAdaqzWNqKy5xV4Djjv373/fG4UAiE4peVfwBPD
-	3NV8Iy2WP39Dbj7Ji2dmNoFd6WxgfkC3MIuVf+PcahH1nLGmmqQD4BTTk+QxOMZg+MzjPUgbZ+mT9
-	bUy4nrFkUbG3Yn2DEdqo85Oy3OjskYW7QwZJs7AEkrEv1NLvXBXqWuTfTOLD/iQXHC0RwWQQKK/0w
-	kIEs9PElDxS2vWbt28o1WOSWf1dU484GGh/FPZLlYBkYTb1jvt0PFcSblxjo0UUl4ep9UiJurBknH
-	jULeC1pw==;
+	bh=tZCVSqTQSDDLvQs1X2myYSkLJtZwbiT5pTgxLsDWfWg=; b=TQkTG/l4YgkpOlP+d1PQp7TBss
+	TAOduNXarFbVZ1eOoYJJxTY+Ud7jJegjJhyIOx+eaG2xUFAJFZ3GCE9QShuPJsm10n+qKQWfivbMv
+	nvIarbTTsx+LKaFS7gNAq6R87GW/s0sSaM5l6+otZMx3PSe098UUVdFfRM0tHZ7qiCcFh5U/Ype2a
+	FPYtOk7idQXmkT1QrkNWTEFjZZoI1jzchz3HUfo3WYOEgWqoz/lr5kZqXsrQ18HicEJYZiRxUWisu
+	QzvCq1Ay7RAnX7k8UfmtBZ1/16RRWtlb2iWzZjbxWg+CJxmYUDQ1EY45JWQ2cpqLOZkZQ0Jb24aGh
+	wI6BtHoQ==;
 Received: from viro by zeniv.linux.org.uk with local (Exim 4.98.2 #2 (Red Hat Linux))
-	id 1vDXqv-00000001epa-3BMB;
-	Tue, 28 Oct 2025 00:46:21 +0000
+	id 1vDXqp-00000001eWI-1hoi;
+	Tue, 28 Oct 2025 00:46:15 +0000
 From: Al Viro <viro@zeniv.linux.org.uk>
 To: linux-fsdevel@vger.kernel.org
 Cc: torvalds@linux-foundation.org,
@@ -52,9 +52,9 @@ Cc: torvalds@linux-foundation.org,
 	selinux@vger.kernel.org,
 	borntraeger@linux.ibm.com,
 	bpf@vger.kernel.org
-Subject: [PATCH v2 48/50] convert securityfs
-Date: Tue, 28 Oct 2025 00:46:07 +0000
-Message-ID: <20251028004614.393374-49-viro@zeniv.linux.org.uk>
+Subject: [PATCH v2 07/50] convert simple_{link,unlink,rmdir,rename,fill_super}() to new primitives
+Date: Tue, 28 Oct 2025 00:45:26 +0000
+Message-ID: <20251028004614.393374-8-viro@zeniv.linux.org.uk>
 X-Mailer: git-send-email 2.49.0
 In-Reply-To: <20251028004614.393374-1-viro@zeniv.linux.org.uk>
 References: <20251028004614.393374-1-viro@zeniv.linux.org.uk>
@@ -67,76 +67,59 @@ MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: Al Viro <viro@ftp.linux.org.uk>
 
-securityfs uses simple_recursive_removal(), but does not bother to mark
-dentries persistent.  This is the only place where it still happens; get
-rid of that irregularity.
-
-* use simple_{start,done}_creating() and d_make_persitent(); kill_litter_super()
-use was already gone, since we empty the filesystem instance before it gets
-shut down.
+Note that simple_unlink() et.al. are used by many filesystems; for now
+they can not assume that persistency mark will have been set back
+when the object got created.  Once all conversions are done we'll
+have them complain if called for something that had not been marked
+persistent.
 
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- security/inode.c | 33 ++++++++++++---------------------
- 1 file changed, 12 insertions(+), 21 deletions(-)
+ fs/libfs.c | 10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
 
-diff --git a/security/inode.c b/security/inode.c
-index bf7b5e2e6955..73df5db7f831 100644
---- a/security/inode.c
-+++ b/security/inode.c
-@@ -127,24 +127,19 @@ static struct dentry *securityfs_create_dentry(const char *name, umode_t mode,
- 		parent = mount->mnt_root;
- 	}
- 
--	dir = d_inode(parent);
--
--	inode_lock(dir);
--	dentry = lookup_noperm(&QSTR(name), parent);
--	if (IS_ERR(dentry))
-+	inode = new_inode(parent->d_sb);
-+	if (unlikely(!inode)) {
-+		dentry = ERR_PTR(-ENOMEM);
- 		goto out;
--
--	if (d_really_is_positive(dentry)) {
--		error = -EEXIST;
--		goto out1;
- 	}
- 
--	inode = new_inode(dir->i_sb);
--	if (!inode) {
--		error = -ENOMEM;
--		goto out1;
--	}
-+	dir = d_inode(parent);
- 
-+	dentry = simple_start_creating(parent, name);
-+	if (IS_ERR(dentry)) {
-+		iput(inode);
-+		goto out;
-+	}
- 	inode->i_ino = get_next_ino();
- 	inode->i_mode = mode;
- 	simple_inode_init_ts(inode);
-@@ -160,15 +155,11 @@ static struct dentry *securityfs_create_dentry(const char *name, umode_t mode,
- 	} else {
- 		inode->i_fop = fops;
- 	}
+diff --git a/fs/libfs.c b/fs/libfs.c
+index a033f35493d0..80f288a771e3 100644
+--- a/fs/libfs.c
++++ b/fs/libfs.c
+@@ -630,7 +630,7 @@ static void __simple_recursive_removal(struct dentry *dentry,
+ 				if (callback)
+ 					callback(victim);
+ 				fsnotify_delete(inode, d_inode(victim), victim);
+-				dput(victim);		// unpin it
++				d_make_discardable(victim);
+ 			}
+ 			if (victim == dentry) {
+ 				inode_set_mtime_to_ts(inode,
+@@ -764,8 +764,7 @@ int simple_link(struct dentry *old_dentry, struct inode *dir, struct dentry *den
+ 			      inode_set_ctime_to_ts(dir, inode_set_ctime_current(inode)));
+ 	inc_nlink(inode);
+ 	ihold(inode);
+-	dget(dentry);
 -	d_instantiate(dentry, inode);
--	inode_unlock(dir);
--	return dentry;
 +	d_make_persistent(dentry, inode);
-+	simple_done_creating(dentry);
-+	return dentry; // borrowed
- 
--out1:
+ 	return 0;
+ }
+ EXPORT_SYMBOL(simple_link);
+@@ -798,7 +797,7 @@ int simple_unlink(struct inode *dir, struct dentry *dentry)
+ 	inode_set_mtime_to_ts(dir,
+ 			      inode_set_ctime_to_ts(dir, inode_set_ctime_current(inode)));
+ 	drop_nlink(inode);
 -	dput(dentry);
--	dentry = ERR_PTR(error);
- out:
--	inode_unlock(dir);
- 	if (pinned)
- 		simple_release_fs(&mount, &mount_count);
- 	return dentry;
++	d_make_discardable(dentry);
+ 	return 0;
+ }
+ EXPORT_SYMBOL(simple_unlink);
+@@ -1078,7 +1077,8 @@ int simple_fill_super(struct super_block *s, unsigned long magic,
+ 		simple_inode_init_ts(inode);
+ 		inode->i_fop = files->ops;
+ 		inode->i_ino = i;
+-		d_add(dentry, inode);
++		d_make_persistent(dentry, inode);
++		dput(dentry);
+ 	}
+ 	return 0;
+ }
 -- 
 2.47.3
 
