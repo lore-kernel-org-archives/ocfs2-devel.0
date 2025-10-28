@@ -1,34 +1,34 @@
 Received: from zeniv.linux.org.uk (zeniv.linux.org.uk [62.89.141.173])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1AC5019EED3;
-	Tue, 28 Oct 2025 00:46:20 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 44415219A81;
+	Tue, 28 Oct 2025 00:46:21 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=62.89.141.173
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1761612386; cv=none; b=DJiDt5fVKJeNl3o/cHN7XZxf0hqzVrtPhk4Hr3ytkx6AOr6AhB8DdV/zYJN9zkraRreoGVfxXA+rnQ2y6W5WC00I0mJq5Y0Aq5r7nTyzR4M9+yJpqq/VRUngFl3Mkl5OOPe1lOVc5vSr+Mm92psBnWNbLciSYYnh7n5Qbvroyd4=
+	t=1761612386; cv=none; b=mV8evPm5YjP1uTUipjCOb+fRHBbozGCCJGBBBgyO9M34p9sJiAPwSmLc/pCTsaUENRSzJCMf8YI1KV0f9JgGscS6wFzbzF3qdmFa5GT2loNm2i+bwiXU4YTuuUmZcnA3l4TLl+1IMss0ozCxXcZG4lMLi/3rrOAsFvemlUbeJLM=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
 	s=arc-20240116; t=1761612386; c=relaxed/simple;
-	bh=byBMgHbR87T18XBWxBXLSo3SukdEydOq3tHxIUqMMIY=;
+	bh=drdrUYlNf0PCOpfWhx6O/F9lOTCkn1Mjer9awXrbASA=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=PGocGql72bS3d6w9Frq0FAVu2d3hnKKPQd976GvyS7BVH8HGmKZMlDxBBtitYXtL3FJ3+j8rJSUr6vG/8KhU1fLgMRSf9BRG8CxvKFKyqDordk4EOcPwdSKXWmTHzgowuu5FSEaZtA2BhGAW/A480CemkTVN/3uYQmwxXS8edH8=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk; spf=none smtp.mailfrom=ftp.linux.org.uk; dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b=svrtyr64; arc=none smtp.client-ip=62.89.141.173
+	 MIME-Version; b=Dqiu/EtrjJc1RJTByre+m/8RiKswG5A7vOC53AVWAtgvZNkQyeW9P1SbmkF2L+B8xfEF7rwzCouoM12I2hivf7JTD9vBut81JBhbbfL7E9KzWYYlePa9hO7FZJrRCQTMvOVnR5krTFN5HallPDNAOJ9TqVv6vgIfZkstaBhZ52k=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk; spf=none smtp.mailfrom=ftp.linux.org.uk; dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b=N1HyiXqW; arc=none smtp.client-ip=62.89.141.173
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk
 Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=ftp.linux.org.uk
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b="svrtyr64"
+	dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b="N1HyiXqW"
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
 	d=linux.org.uk; s=zeniv-20220401; h=Sender:Content-Transfer-Encoding:
 	MIME-Version:References:In-Reply-To:Message-ID:Date:Subject:Cc:To:From:
 	Reply-To:Content-Type:Content-ID:Content-Description;
-	bh=h9ER29fbTJgjBa1gGf0LtXabL8srR/KWhHIa5FKJzwk=; b=svrtyr64P+f8y4UQ14XiZrnvbY
-	U8nvU2HTGKPb2Dixbm/HgRUzlcWeYZmNOij59DJ1Esrn16p4qSYwKE6eO0+HLdEUvBruEBJZhuwhK
-	1TIqKSv1xn9YNNm8f4D+3eDUZ7bPgaLzSBFiWT6bOlAIvV6LU3nsWVKXNs7wQiZ0rOLJxMJBbprrP
-	cJ7p9byjj3ZLd3MRD4H005lq+VvCyGwuPvM/h7aLREFWM/pyW9435dmXk+DccFTP//zJmbB2j4z/4
-	FGbAwpIV1ETEwk+wvvTiW83+PBcyFf4aFPVTlclNeJyd4WjNSCKRDaFG66uZDOlfu735e4oGnE0ry
-	NGI0ieaQ==;
+	bh=LZ6yrPf10XyjUbpb0uoz9zDvZV76d0sxqTJxoq2o+VY=; b=N1HyiXqWvHuK6eYbHoqjsKF4yS
+	sRZR3R+AAf6swru+RmI/QN/YSkxT19z6dcL9RxoRt93tDwIfw8aweTO/4iA9n9JU+jR603TVBSnk+
+	Q2YJ74xC/uQLAY75lEg1xiQjThGulXfxJPHOqIx4++XcFlGut3/cwxrsMFTf0DgAoU4re6hB8TA1M
+	3D10mdbSmAzj5Eoeu/6TEUA1WUtGct5NSYbTRd/fYRips79EkV3WYcVtfDidNQWbDxf0wxBszRyaY
+	S8UHHm0pO8PDTgf+NmR2oCic03QfrrrZZGr2Mr642AXlexwRwbP3JkXztjANyhVSGqgVHU/kqDZ6X
+	WD2OlCNw==;
 Received: from viro by zeniv.linux.org.uk with local (Exim 4.98.2 #2 (Red Hat Linux))
-	id 1vDXqs-00000001eb7-2n9C;
-	Tue, 28 Oct 2025 00:46:18 +0000
+	id 1vDXqq-00000001eYF-3cOg;
+	Tue, 28 Oct 2025 00:46:16 +0000
 From: Al Viro <viro@zeniv.linux.org.uk>
 To: linux-fsdevel@vger.kernel.org
 Cc: torvalds@linux-foundation.org,
@@ -52,9 +52,9 @@ Cc: torvalds@linux-foundation.org,
 	selinux@vger.kernel.org,
 	borntraeger@linux.ibm.com,
 	bpf@vger.kernel.org
-Subject: [PATCH v2 38/50] gadgetfs: switch to simple_remove_by_name()
-Date: Tue, 28 Oct 2025 00:45:57 +0000
-Message-ID: <20251028004614.393374-39-viro@zeniv.linux.org.uk>
+Subject: [PATCH v2 21/50] debugfs: remove duplicate checks in callers of start_creating()
+Date: Tue, 28 Oct 2025 00:45:40 +0000
+Message-ID: <20251028004614.393374-22-viro@zeniv.linux.org.uk>
 X-Mailer: git-send-email 2.49.0
 In-Reply-To: <20251028004614.393374-1-viro@zeniv.linux.org.uk>
 References: <20251028004614.393374-1-viro@zeniv.linux.org.uk>
@@ -67,135 +67,55 @@ MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: Al Viro <viro@ftp.linux.org.uk>
 
-No need to return dentry from gadgetfs_create_file() or keep it around
-afterwards.
+we'd already verified that DEBUGFS_ALLOW_API was there in
+start_creating() - it would've failed otherwise
 
+Acked-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- drivers/usb/gadget/legacy/inode.c | 32 +++++++++++++------------------
- 1 file changed, 13 insertions(+), 19 deletions(-)
+ fs/debugfs/inode.c | 15 ---------------
+ 1 file changed, 15 deletions(-)
 
-diff --git a/drivers/usb/gadget/legacy/inode.c b/drivers/usb/gadget/legacy/inode.c
-index 13c3da49348c..bcc25f13483f 100644
---- a/drivers/usb/gadget/legacy/inode.c
-+++ b/drivers/usb/gadget/legacy/inode.c
-@@ -150,7 +150,6 @@ struct dev_data {
- 	void				*buf;
- 	wait_queue_head_t		wait;
- 	struct super_block		*sb;
--	struct dentry			*dentry;
+diff --git a/fs/debugfs/inode.c b/fs/debugfs/inode.c
+index 682120fdbb17..25a554331ac4 100644
+--- a/fs/debugfs/inode.c
++++ b/fs/debugfs/inode.c
+@@ -433,11 +433,6 @@ static struct dentry *__debugfs_create_file(const char *name, umode_t mode,
+ 	if (IS_ERR(dentry))
+ 		return dentry;
  
- 	/* except this scratch i/o buffer for ep0 */
- 	u8				rbuf[RBUF_SIZE];
-@@ -208,7 +207,6 @@ struct ep_data {
- 	struct usb_endpoint_descriptor	desc, hs_desc;
- 	struct list_head		epfiles;
- 	wait_queue_head_t		wait;
--	struct dentry			*dentry;
- };
- 
- static inline void get_ep (struct ep_data *data)
-@@ -1561,16 +1559,12 @@ static void destroy_ep_files (struct dev_data *dev)
- 	spin_lock_irq (&dev->lock);
- 	while (!list_empty(&dev->epfiles)) {
- 		struct ep_data	*ep;
--		struct dentry	*dentry;
- 
- 		/* break link to FS */
- 		ep = list_first_entry (&dev->epfiles, struct ep_data, epfiles);
- 		list_del_init (&ep->epfiles);
- 		spin_unlock_irq (&dev->lock);
- 
--		dentry = ep->dentry;
--		ep->dentry = NULL;
+-	if (!(debugfs_allow & DEBUGFS_ALLOW_API)) {
+-		failed_creating(dentry);
+-		return ERR_PTR(-EPERM);
+-	}
 -
- 		/* break link to controller */
- 		mutex_lock(&ep->lock);
- 		if (ep->state == STATE_EP_ENABLED)
-@@ -1581,10 +1575,11 @@ static void destroy_ep_files (struct dev_data *dev)
- 		mutex_unlock(&ep->lock);
+ 	inode = debugfs_get_inode(dentry->d_sb);
+ 	if (unlikely(!inode)) {
+ 		pr_err("out of free dentries, can not create file '%s'\n",
+@@ -583,11 +578,6 @@ struct dentry *debugfs_create_dir(const char *name, struct dentry *parent)
+ 	if (IS_ERR(dentry))
+ 		return dentry;
  
- 		wake_up (&ep->wait);
--		put_ep (ep);
+-	if (!(debugfs_allow & DEBUGFS_ALLOW_API)) {
+-		failed_creating(dentry);
+-		return ERR_PTR(-EPERM);
+-	}
+-
+ 	inode = debugfs_get_inode(dentry->d_sb);
+ 	if (unlikely(!inode)) {
+ 		pr_err("out of free dentries, can not create directory '%s'\n",
+@@ -630,11 +620,6 @@ struct dentry *debugfs_create_automount(const char *name,
+ 	if (IS_ERR(dentry))
+ 		return dentry;
  
- 		/* break link to dcache */
--		simple_recursive_removal(dentry, NULL);
-+		simple_remove_by_name(dev->sb->s_root, ep->name, NULL);
-+
-+		put_ep (ep);
- 
- 		spin_lock_irq (&dev->lock);
- 	}
-@@ -1592,14 +1587,14 @@ static void destroy_ep_files (struct dev_data *dev)
- }
- 
- 
--static struct dentry *
--gadgetfs_create_file (struct super_block *sb, char const *name,
-+static int gadgetfs_create_file (struct super_block *sb, char const *name,
- 		void *data, const struct file_operations *fops);
- 
- static int activate_ep_files (struct dev_data *dev)
- {
- 	struct usb_ep	*ep;
- 	struct ep_data	*data;
-+	int err;
- 
- 	gadget_for_each_ep (ep, dev->gadget) {
- 
-@@ -1622,9 +1617,9 @@ static int activate_ep_files (struct dev_data *dev)
- 		if (!data->req)
- 			goto enomem1;
- 
--		data->dentry = gadgetfs_create_file (dev->sb, data->name,
-+		err = gadgetfs_create_file (dev->sb, data->name,
- 				data, &ep_io_operations);
--		if (!data->dentry)
-+		if (err)
- 			goto enomem2;
- 		list_add_tail (&data->epfiles, &dev->epfiles);
- 	}
-@@ -1988,8 +1983,7 @@ gadgetfs_make_inode (struct super_block *sb,
- /* creates in fs root directory, so non-renamable and non-linkable.
-  * so inode and dentry are paired, until device reconfig.
-  */
--static struct dentry *
--gadgetfs_create_file (struct super_block *sb, char const *name,
-+static int gadgetfs_create_file (struct super_block *sb, char const *name,
- 		void *data, const struct file_operations *fops)
- {
- 	struct dentry	*dentry;
-@@ -1997,16 +1991,16 @@ gadgetfs_create_file (struct super_block *sb, char const *name,
- 
- 	dentry = d_alloc_name(sb->s_root, name);
- 	if (!dentry)
--		return NULL;
-+		return -ENOMEM;
- 
- 	inode = gadgetfs_make_inode (sb, data, fops,
- 			S_IFREG | (default_perm & S_IRWXUGO));
- 	if (!inode) {
- 		dput(dentry);
--		return NULL;
-+		return -ENOMEM;
- 	}
- 	d_add (dentry, inode);
--	return dentry;
-+	return 0;
- }
- 
- static const struct super_operations gadget_fs_operations = {
-@@ -2059,8 +2053,8 @@ gadgetfs_fill_super (struct super_block *sb, struct fs_context *fc)
- 		goto Enomem;
- 
- 	dev->sb = sb;
--	dev->dentry = gadgetfs_create_file(sb, CHIP, dev, &ep0_operations);
--	if (!dev->dentry) {
-+	rc = gadgetfs_create_file(sb, CHIP, dev, &ep0_operations);
-+	if (rc) {
- 		put_dev(dev);
- 		goto Enomem;
- 	}
+-	if (!(debugfs_allow & DEBUGFS_ALLOW_API)) {
+-		failed_creating(dentry);
+-		return ERR_PTR(-EPERM);
+-	}
+-
+ 	inode = debugfs_get_inode(dentry->d_sb);
+ 	if (unlikely(!inode)) {
+ 		pr_err("out of free dentries, can not create automount '%s'\n",
 -- 
 2.47.3
 
