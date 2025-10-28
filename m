@@ -1,136 +1,78 @@
-Received: from mail-wm1-f51.google.com (mail-wm1-f51.google.com [209.85.128.51])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from relay.hostedemail.com (smtprelay0015.hostedemail.com [216.40.44.15])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4899927145F
-	for <ocfs2-devel@lists.linux.dev>; Tue, 28 Oct 2025 15:18:17 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.51
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D80DC342CA4
+	for <ocfs2-devel@lists.linux.dev>; Tue, 28 Oct 2025 15:36:52 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=216.40.44.15
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1761664699; cv=none; b=En4aSyQy/NyTypeXaLd/fwBFbo8gP0cL/MtM6qPHIaX4qVzzAjR42v9eTmQhCS3a+JaJlwP+isG/PTBNYN4liigwf0e1rMEB8XeGN40iURPG3GELmRFlGc4uh2r768ofMm230AByRc8RD3qUpEUtRkLsWtUNm++noYLrnfn3+Io=
+	t=1761665815; cv=none; b=FQxgPGic7jd+J+i9UgR/zhkKwBv6sfpPgff/hdytCNqDx152tUOACalbBtDULp1fauwpugMJr+nocfm9iqYlLeYUIGJGrfqb93h++9LBzl4C71VVRMKDwDOTICxv3z8OtQZ5dgQJ5hB2jOxd5IwD/dWbkbtvF+h+F/qREwSZIB4=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1761664699; c=relaxed/simple;
-	bh=PbRp+ajtOg+0xSFPHREHFQRZTUdCmqfyv3R8J3wjGkM=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=nMco5pmikjI+tReVS0X6N+TF9hT+bZnJTdGzucYq5Cy5w9/XFfkcEtmbWdm11PLyruAVPXWMTrDmZXelsSyyms+go1ikbiAf/I0RKiO4lPt1pNtyRxFvGwiATVWfM9LmL5KrnUFsva6Vf5AhdXuvxn9p6soK2YkpE4RIae3Knz4=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=DkP8Lkty; arc=none smtp.client-ip=209.85.128.51
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="DkP8Lkty"
-Received: by mail-wm1-f51.google.com with SMTP id 5b1f17b1804b1-470ff9b5820so8101435e9.3
-        for <ocfs2-devel@lists.linux.dev>; Tue, 28 Oct 2025 08:18:16 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=suse.com; s=google; t=1761664695; x=1762269495; darn=lists.linux.dev;
-        h=in-reply-to:content-disposition:mime-version:references:message-id
-         :subject:cc:to:from:date:from:to:cc:subject:date:message-id:reply-to;
-        bh=1aCCqFJAi2+9Tsms88mpx76RhkzC4wwnAMBJgZAH1fA=;
-        b=DkP8Lktylt/eO66813K9fz5o00Ckd8EUQOOISiTaY3vUd129Jo8paJzXHAThl8ts7+
-         jBdMoXxCwyTUV8Aio++cbDJc0MfkXf3q/Jr8bcUw0YTkpPzrlnhWUx+2AENL9mPy0bKt
-         gtAaFK/zgHq+2jG2dl/UZ+N3lOUZNgdAR80WHbbELaGh0jqG3eOvkhix+CuWMxcqHbTU
-         wa+EaKPgvq86JgZGSXro5vrHw7LN1qASACcKivPc7ofqm/zc3sm0mJ5iFq7qh4SqFP3P
-         Nj+P5YVExMgWnjHAvvfnRonV8qOdqEYtkqTCLodKTBtDYBexLWgA7n3DDlGqWUHOCGb/
-         gaZA==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1761664695; x=1762269495;
-        h=in-reply-to:content-disposition:mime-version:references:message-id
-         :subject:cc:to:from:date:x-gm-message-state:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=1aCCqFJAi2+9Tsms88mpx76RhkzC4wwnAMBJgZAH1fA=;
-        b=sWL2ojAi7m6Tat0HjWbP/dAIjsrl4e5WavOHwapl+oS6GtKr5aBOdDs19W/5ZQA9NE
-         VZAgDxdVBdtlwXS7PTnjsiywMoqR24U5XMxLie9xLwRuH0Jfpnyp15shNb6D+opdkqpc
-         Kj2oAz75PnGNZ367Mp2hEHh3BnJaf6QklF98xW7Qrr2c8QppkRbjDisDsJKTE8H2CW5e
-         Zr08OdL+tXDIrAty34jhSpioFdu/YMCZDtymaxlGKO34gyKmvhxu3hre16CQ4Fl48/qp
-         JI/SmRoKoiVzaio4pZvLWIh3d1592ouqvAssbo3Hb53ErY/bLLDiGKWJ6DcDs9JbIK3K
-         l2RA==
-X-Forwarded-Encrypted: i=1; AJvYcCVUzOdHAGbTi8M6Hl7XiaP0cGYP7QC0qOploY9b2yCjQuNpGFRYLK6zGCw1a2PqQD4YaTalTbS6HA6etg==@lists.linux.dev
-X-Gm-Message-State: AOJu0YysahXWYm+jGWK9OEh1RoEatJpCaOanqchNDdCESigHy0ASWaKm
-	k+ffZ5qQ0LupP8y0oDZCLGL8Siq019d91F6sSTK8GMcWOC4vDLOxGA+ulzdFrNZltK0=
-X-Gm-Gg: ASbGncuaVhrVcnTFRO5OvYmFdSVJvI9+h7mxJ7eT51cHkeZ4z/hjOlFWjT6SYqplxLV
-	A1pvRie0btInEoZ3zgeVXbNYuMnHdFjGszt+eSs7te7YeSzHA2HJOSZHR2piD0Gkbnp8LOwO4Tn
-	84o4iAGRoWQ7Dn9iGgcfOQ002RcwfDaBCGwW6T7kV+cIfjeqIvFsYjXyGN/Gv0xVEjwl8Fyu6jK
-	hwfDzwsVEk/tJv4ls3aYfCCdkR+wAUOlj4qvEteTzThLyJ8KYdAwVjelHcJICoz0lnSDFeKGM4V
-	pewYT2l4uMNjM6AynbZWDP0LBn03MoHjH4MHo5fxW77TpxL6vv2EGq+M/e3OwT+yj7H5ibMkv6c
-	PAUwmvE9frIHyV9stMUObMYctFV21hakvyOlCE1l74vu7E0s/oObkfpXRNDo4JsSV+jT2zNUQvY
-	r8/sCJTh6Fnw==
-X-Google-Smtp-Source: AGHT+IGHC+5q3jONyLVpxr/LPe1IU8xxVo2vnazBFL5gdLj4RwP+IOpO7Ejjlwux8bliJlgClGLqsw==
-X-Received: by 2002:a05:600c:1987:b0:471:703:c206 with SMTP id 5b1f17b1804b1-47717e6c391mr18222615e9.5.1761664695355;
-        Tue, 28 Oct 2025 08:18:15 -0700 (PDT)
-Received: from localhost ([202.127.77.110])
-        by smtp.gmail.com with ESMTPSA id d2e1a72fcca58-7a4140a0d47sm11869358b3a.73.2025.10.28.08.18.12
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Tue, 28 Oct 2025 08:18:13 -0700 (PDT)
-Date: Tue, 28 Oct 2025 23:18:10 +0800
-From: Heming Zhao <heming.zhao@suse.com>
-To: Dmitry Antipov <dmantipov@yandex.ru>
-Cc: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, 
-	Joseph Qi <joseph.qi@linux.alibaba.com>, ocfs2-devel@lists.linux.dev, lvc-project@linuxtesting.org, 
-	syzbot+77026564530dbc29b854@syzkaller.appspotmail.com, syzbot+5054473a31f78f735416@syzkaller.appspotmail.com
-Subject: Re: [PATCH] ocfs2: add extra consistency checks for chain allocator
- dinodes
-Message-ID: <7dtojt66rmztmpj4sc7y5jlpewccdic7hcsrinz5bzoipod4f2@m4huov4utr7n>
-References: <20251028101447.693289-1-dmantipov@yandex.ru>
+	s=arc-20240116; t=1761665815; c=relaxed/simple;
+	bh=AT1uEgiRUagYgIwDeUfnNzT7JxjLRSnmy9fGyjkeVUc=;
+	h=Date:From:To:Cc:Subject:Message-ID:In-Reply-To:References:
+	 MIME-Version:Content-Type; b=iBtiJOvTOsui83QVcr5k4DYcRISvXGHZzLWV8pqCMn7FZBRjH8W7ATmx+YLMWLCAT83pkOL7iRory7JCmey7hLm6c+U9D5tYl5mKX3riTgrGe08CeHylTuE9nkg5zMbUFMqUD7YJAHKGMOfbgsVmNsi6eLe9dxQp24IF2mvSKG4=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=goodmis.org; spf=pass smtp.mailfrom=goodmis.org; arc=none smtp.client-ip=216.40.44.15
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=goodmis.org
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=goodmis.org
+Received: from omf08.hostedemail.com (a10.router.float.18 [10.200.18.1])
+	by unirelay08.hostedemail.com (Postfix) with ESMTP id 3CD0C1404A9;
+	Tue, 28 Oct 2025 15:36:44 +0000 (UTC)
+Received: from [HIDDEN] (Authenticated sender: rostedt@goodmis.org) by omf08.hostedemail.com (Postfix) with ESMTPA id A321A2002A;
+	Tue, 28 Oct 2025 15:36:39 +0000 (UTC)
+Date: Tue, 28 Oct 2025 11:37:17 -0400
+From: Steven Rostedt <rostedt@goodmis.org>
+To: Al Viro <viro@zeniv.linux.org.uk>
+Cc: linux-fsdevel@vger.kernel.org, torvalds@linux-foundation.org,
+ brauner@kernel.org, jack@suse.cz, raven@themaw.net, miklos@szeredi.hu,
+ neil@brown.name, a.hindborg@kernel.org, linux-mm@kvack.org,
+ linux-efi@vger.kernel.org, ocfs2-devel@lists.linux.dev, kees@kernel.org,
+ gregkh@linuxfoundation.org, linux-usb@vger.kernel.org, paul@paul-moore.com,
+ casey@schaufler-ca.com, linuxppc-dev@lists.ozlabs.org,
+ john.johansen@canonical.com, selinux@vger.kernel.org,
+ borntraeger@linux.ibm.com, bpf@vger.kernel.org
+Subject: Re: [PATCH v2 19/50] convert tracefs
+Message-ID: <20251028113717.2154482d@gandalf.local.home>
+In-Reply-To: <20251028004614.393374-20-viro@zeniv.linux.org.uk>
+References: <20251028004614.393374-1-viro@zeniv.linux.org.uk>
+	<20251028004614.393374-20-viro@zeniv.linux.org.uk>
+X-Mailer: Claws Mail 3.20.0git84 (GTK+ 2.24.33; x86_64-pc-linux-gnu)
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20251028101447.693289-1-dmantipov@yandex.ru>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+X-Stat-Signature: f6bmgxhcefm7bwohfbwepa9p8cuixubt
+X-Rspamd-Server: rspamout07
+X-Rspamd-Queue-Id: A321A2002A
+X-Session-Marker: 726F737465647440676F6F646D69732E6F7267
+X-Session-ID: U2FsdGVkX1+s7gR+r9niKNL07T0pO7ukE0upf2CD5vI=
+X-HE-Tag: 1761665799-59606
+X-HE-Meta: U2FsdGVkX19g0bbaz2RZh320ocW7TSQSsOT9nF8qHkd5qWlBifJ/KGtfmWtsv1mzJP9ht/c5mZRt/OtFwhvV0nurLgOmsL+MgJEwJdQoabvLgqWyyWgPOtUtslgD012XhVqixajC5WLifrc/mNIrsi899n45JcxWb92Q20WFBPjq9fbMnMjzm49UpPMD39et9NXHIuTp+8ue8LHJcfY24Tb39Ouk2tY7I25w4L+/k2xiNhHBjQibW0Hpw7CZthMHcDOEtP04RbMR+7OcgsAvcilq3cwXqyvP6wxxoNA77oyga0E0P4NCRNz/Jj7XTabrxjt2M47rWHelMrTtE3Ho2LOneBwKq0YQxYsBKf09n05la3UZdYBsNJsEB3vTPECvtqDSIEN0Vv1VQdzkGQVHiqH5dArBachPtpebDDmuJAfLPjsP32VD10VFGrg/VDlo
 
-On Tue, Oct 28, 2025 at 01:14:47PM +0300, Dmitry Antipov wrote:
-> When validating chain allocator dinode in 'ocfs2_validate_inode_block()',
-> add an extra checks whether a) the maximum amount of chain records in
-> 'struct ocfs2_chain_list' matches the value calculated based on the
-> filesystem block size, and b) the next free slot index is within the
-> valid range.
-> 
-> Reported-by: syzbot+77026564530dbc29b854@syzkaller.appspotmail.com
-> Closes: https://syzkaller.appspot.com/bug?extid=77026564530dbc29b854
-> Reported-by: syzbot+5054473a31f78f735416@syzkaller.appspotmail.com
-> Closes: https://syzkaller.appspot.com/bug?extid=5054473a31f78f735416
-> Suggested-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-> Signed-off-by: Dmitry Antipov <dmantipov@yandex.ru>
+On Tue, 28 Oct 2025 00:45:38 +0000
+Al Viro <viro@zeniv.linux.org.uk> wrote:
 
-LGTM.
-Reviewed-by: Heming Zhao <heming.zhao@suse.com>
-> ---
-> note: this is going to replace "ocfs2: introduce chain list sanity check
->       with ocfs2_check_chain_list()" because it looks more consistent and
->       allows to filter out damaged/inconsistent dinodes earlier (immediately
->       after being read).
-> ---
->  fs/ocfs2/inode.c | 17 +++++++++++++++++
->  1 file changed, 17 insertions(+)
+> A mix of persistent and non-persistent dentries in there.  Strictly
+> speaking, no need for kill_litter_super() anyway - it pins an internal
+> mount whenever a persistent dentry is created, so at fs shutdown time
+> there won't be any to deal with.
 > 
-> diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-> index fcc89856ab95..1b6bdd9d7755 100644
-> --- a/fs/ocfs2/inode.c
-> +++ b/fs/ocfs2/inode.c
-> @@ -1503,6 +1503,23 @@ int ocfs2_validate_inode_block(struct super_block *sb,
->  		goto bail;
->  	}
->  
-> +	if (le32_to_cpu(di->i_flags) & OCFS2_CHAIN_FL) {
-> +		struct ocfs2_chain_list *cl = &di->id2.i_chain;
-> +
-> +		if (le16_to_cpu(cl->cl_count) != ocfs2_chain_recs_per_inode(sb)) {
-> +			rc = ocfs2_error(sb, "Invalid dinode %llu: chain list count %u\n",
-> +					 (unsigned long long)bh->b_blocknr,
-> +					 le16_to_cpu(cl->cl_count));
-> +			goto bail;
-> +		}
-> +		if (le16_to_cpu(cl->cl_next_free_rec) > le16_to_cpu(cl->cl_count)) {
-> +			rc = ocfs2_error(sb, "Invalid dinode %llu: chain list index %u\n",
-> +					 (unsigned long long)bh->b_blocknr,
-> +					 le16_to_cpu(cl->cl_next_free_rec));
-> +			goto bail;
-> +		}
-> +	}
-> +
->  	rc = 0;
->  
->  bail:
-> -- 
-> 2.51.0
+> However, let's make it explicit - replace d_instantiate() with
+> d_make_persistent() + dput() (the latter in tracefs_end_creating(),
+> where it folds with inode_unlock() into simple_done_creating())
+> for dentries we want persistent and have d_make_discardable() done
+> either by simple_recursive_removal() (used by tracefs_remove())
+> or explicitly in eventfs_remove_events_dir().
 > 
+> Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
+
+I ran the tracing selftests and some other tests I have against this and
+nothing interesting happened. I didn't run my full test suite, but it looks
+sane to me.
+
+Acked-by: Steven Rostedt (Google) <rostedt@goodmis.org>
+
+-- Steve
