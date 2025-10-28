@@ -1,34 +1,34 @@
 Received: from zeniv.linux.org.uk (zeniv.linux.org.uk [62.89.141.173])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4705121A425;
-	Tue, 28 Oct 2025 00:46:21 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 151BF21B9C0;
+	Tue, 28 Oct 2025 00:46:22 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=62.89.141.173
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1761612389; cv=none; b=c8UJt4N1MSranItWtGuFaI/ibBCzwXwElnfRTklDuN/segRKTvSz3udmgka3dtrYMBdOyDzlJ7+6X2vfNjARHfzGrEAyB37A25uF76QgJid5uSHPkZzhe5m3tChXVaN2Oi/WBhmDbXkPMlVrY+2KYSm4mOd6kd43qsC339DWE50=
+	t=1761612388; cv=none; b=B65s3KsfhLdzFnWxZvo6YKNB71zchrrjqU+3fzWUWAQt9fX7IWFwjxkslOP6GBjaz2j+mFvGiF/wi+75Ucq1MImq7qLlsoIcNeJmmOGgDq9Ayq09AJSwHVcuM9uZMwYD0lsGxkKDCCqZdIqApyF4YDWHFkjGeJE7YyALmeAKtOs=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1761612389; c=relaxed/simple;
-	bh=9AS75eVlweTY+v6fpHuTI3Q7t//pHwL//inAnhQncd4=;
+	s=arc-20240116; t=1761612388; c=relaxed/simple;
+	bh=hvKn4v226vlFPVcEMTmI8vKLyXW8b3xQk740dDR1S7k=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=pEc4vU3lPV6ZkrmMNahz3rTwdMHs5+wIx7lmWeCJJ2Tson8O0mwKRJ9O8qJcbe32WW3JqxIJhel3Sx3vNiRzsnjhDrv1LIhqq5xhDC60lRLDlBcnqh6z+SqQy8peni80xccmvD4jBT7D03qTzAjGs6tcAA8jV/xj3vPSL33isx0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk; spf=none smtp.mailfrom=ftp.linux.org.uk; dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b=hzjac2Xc; arc=none smtp.client-ip=62.89.141.173
+	 MIME-Version; b=tavUFj4bilt8Zzb8h3YWY9sXKuScappy1G8leGcCfVAeNW9VTX5tWjPlDJIr1/IYQPfKyHwExA0gVRXdJxIqg7w0GQoCRToeif5yGV7G08WTRdqwDILnPjukg+vK1+NdGQwU85duNLDjyfLsIvEgk0ytVfLXJD241UXH+HGJ6Ew=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk; spf=none smtp.mailfrom=ftp.linux.org.uk; dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b=w10996o+; arc=none smtp.client-ip=62.89.141.173
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk
 Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=ftp.linux.org.uk
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b="hzjac2Xc"
+	dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b="w10996o+"
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
 	d=linux.org.uk; s=zeniv-20220401; h=Sender:Content-Transfer-Encoding:
 	MIME-Version:References:In-Reply-To:Message-ID:Date:Subject:Cc:To:From:
 	Reply-To:Content-Type:Content-ID:Content-Description;
-	bh=NrCfZqIGx2QtH4dFK91zKO0X/du0eTzDDHu7mpHeJ3A=; b=hzjac2XcGzM7vx6iy4y4pMHz7c
-	YvrOiKioiAMxlbKNayPq4Ci26DiSpne6cnBNtmW+PLi+Kv8TU/AsNrBvRWrH1/5ldEiEjzGsgYT9Y
-	IFR2pYeIQR8b3auleenkSDmUSrEBPVfba1zbhVxMZpn6n9kXEYebKk4iat9MYD76Fp50cGZDcwWl1
-	YT4NMiUHbR7zMRs0ZK2mIRrFZ6vKUaZEuVVKEVl5muqIIV0dirc1zNd7KtC3X3UXCWDEX6GuzxIAe
-	WhEqFSEgQtKL9A51iu67xl8y+9dVwt7439McsK0XJGIhua2TYgNXwyGzWjrp8cr1EeelG0+qOB4dX
-	/DrdQ/KQ==;
+	bh=aIO5z+XlaxOUN+dxGxWKQXIfyt7HKUVO8xN2mehuHOs=; b=w10996o+4wBACa8wFc2VJLTe4l
+	AE6SJfEeRlDJBYm9lG/BAJ2sno1dzvFxIr+TtSNTtBOWzrsOCuWNgNAkAt0vBEbh1UMQG+wJlVBHQ
+	sr8OKStPsOoMhX34Qf9DmIY46eYtxaTPX5hENvuK30W7LXSkmdHMOhCs1ztH4929mgSkNcSTduvmQ
+	Ra/dafUsYAby60kk2NLpCI2h5RjB+QHXiUdARFd5c+bM2avsNoSpvSX4Qomh81V30TPn/scJZlW+K
+	oeoNBr+ZulzfdrkHMiokpoHrOb3j9iKluVu8L+IDFhPH2OH6bFaWMaGGhse1QPURBnFF6IceB3uY/
+	fm9paVBw==;
 Received: from viro by zeniv.linux.org.uk with local (Exim 4.98.2 #2 (Red Hat Linux))
-	id 1vDXqs-00000001eca-474A;
-	Tue, 28 Oct 2025 00:46:19 +0000
+	id 1vDXqu-00000001ejA-11In;
+	Tue, 28 Oct 2025 00:46:20 +0000
 From: Al Viro <viro@zeniv.linux.org.uk>
 To: linux-fsdevel@vger.kernel.org
 Cc: torvalds@linux-foundation.org,
@@ -52,9 +52,9 @@ Cc: torvalds@linux-foundation.org,
 	selinux@vger.kernel.org,
 	borntraeger@linux.ibm.com,
 	bpf@vger.kernel.org
-Subject: [PATCH v2 41/50] hypfs: switch hypfs_create_str() to returning int
-Date: Tue, 28 Oct 2025 00:46:00 +0000
-Message-ID: <20251028004614.393374-42-viro@zeniv.linux.org.uk>
+Subject: [PATCH v2 44/50] convert rpc_pipefs
+Date: Tue, 28 Oct 2025 00:46:03 +0000
+Message-ID: <20251028004614.393374-45-viro@zeniv.linux.org.uk>
 X-Mailer: git-send-email 2.49.0
 In-Reply-To: <20251028004614.393374-1-viro@zeniv.linux.org.uk>
 References: <20251028004614.393374-1-viro@zeniv.linux.org.uk>
@@ -67,156 +67,98 @@ MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: Al Viro <viro@ftp.linux.org.uk>
 
-Every single caller only cares about PTR_ERR_OR_ZERO() of return value...
+Just use d_make_persistent() + dput() (and fold the latter into
+simple_finish_creating()) and that's it...
+
+NOTE: pipe->dentry is a borrowed reference - it does not contribute
+to dentry refcount.
 
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- arch/s390/hypfs/hypfs.h         |  3 +--
- arch/s390/hypfs/hypfs_diag_fs.c | 40 +++++++++------------------------
- arch/s390/hypfs/hypfs_vm_fs.c   |  6 ++---
- arch/s390/hypfs/inode.c         |  9 ++++----
- 4 files changed, 18 insertions(+), 40 deletions(-)
+ net/sunrpc/rpc_pipe.c | 27 ++++++++++++---------------
+ 1 file changed, 12 insertions(+), 15 deletions(-)
 
-diff --git a/arch/s390/hypfs/hypfs.h b/arch/s390/hypfs/hypfs.h
-index 4dc2e068e0ff..0d109d956015 100644
---- a/arch/s390/hypfs/hypfs.h
-+++ b/arch/s390/hypfs/hypfs.h
-@@ -25,8 +25,7 @@ extern struct dentry *hypfs_mkdir(struct dentry *parent, const char *name);
- extern struct dentry *hypfs_create_u64(struct dentry *dir, const char *name,
- 				       __u64 value);
+diff --git a/net/sunrpc/rpc_pipe.c b/net/sunrpc/rpc_pipe.c
+index 0bd1df2ebb47..379daefc4847 100644
+--- a/net/sunrpc/rpc_pipe.c
++++ b/net/sunrpc/rpc_pipe.c
+@@ -536,17 +536,16 @@ static int rpc_new_file(struct dentry *parent,
  
--extern struct dentry *hypfs_create_str(struct dentry *dir, const char *name,
--				       char *string);
-+extern int hypfs_create_str(struct dentry *dir, const char *name, char *string);
- 
- /* LPAR Hypervisor */
- extern int hypfs_diag_init(void);
-diff --git a/arch/s390/hypfs/hypfs_diag_fs.c b/arch/s390/hypfs/hypfs_diag_fs.c
-index ede951dc0085..2178e6060a5d 100644
---- a/arch/s390/hypfs/hypfs_diag_fs.c
-+++ b/arch/s390/hypfs/hypfs_diag_fs.c
-@@ -228,8 +228,7 @@ static int hypfs_create_cpu_files(struct dentry *cpus_dir, void *cpu_info)
- 			return PTR_ERR(rc);
+ 	inode = rpc_get_inode(dir->i_sb, S_IFREG | mode);
+ 	if (unlikely(!inode)) {
+-		dput(dentry);
+-		inode_unlock(dir);
++		simple_done_creating(dentry);
+ 		return -ENOMEM;
  	}
- 	diag224_idx2name(cpu_info__ctidx(diag204_get_info_type(), cpu_info), buffer);
--	rc = hypfs_create_str(cpu_dir, "type", buffer);
--	return PTR_ERR_OR_ZERO(rc);
-+	return hypfs_create_str(cpu_dir, "type", buffer);
+ 	inode->i_ino = iunique(dir->i_sb, 100);
+ 	if (i_fop)
+ 		inode->i_fop = i_fop;
+ 	rpc_inode_setowner(inode, private);
+-	d_instantiate(dentry, inode);
++	d_make_persistent(dentry, inode);
+ 	fsnotify_create(dir, dentry);
+-	inode_unlock(dir);
++	simple_done_creating(dentry);
+ 	return 0;
  }
  
- static void *hypfs_create_lpar_files(struct dentry *systems_dir, void *part_hdr)
-@@ -276,8 +275,7 @@ static int hypfs_create_phys_cpu_files(struct dentry *cpus_dir, void *cpu_info)
- 	if (IS_ERR(rc))
- 		return PTR_ERR(rc);
- 	diag224_idx2name(phys_cpu__ctidx(diag204_get_info_type(), cpu_info), buffer);
--	rc = hypfs_create_str(cpu_dir, "type", buffer);
--	return PTR_ERR_OR_ZERO(rc);
-+	return hypfs_create_str(cpu_dir, "type", buffer);
- }
+@@ -563,18 +562,17 @@ static struct dentry *rpc_new_dir(struct dentry *parent,
  
- static void *hypfs_create_phys_files(struct dentry *parent_dir, void *phys_hdr)
-@@ -316,41 +314,25 @@ int hypfs_diag_create_files(struct dentry *root)
- 		return rc;
- 
- 	systems_dir = hypfs_mkdir(root, "systems");
--	if (IS_ERR(systems_dir)) {
--		rc = PTR_ERR(systems_dir);
--		goto err_out;
--	}
-+	if (IS_ERR(systems_dir))
-+		return PTR_ERR(systems_dir);
- 	time_hdr = (struct x_info_blk_hdr *)buffer;
- 	part_hdr = time_hdr + info_blk_hdr__size(diag204_get_info_type());
- 	for (i = 0; i < info_blk_hdr__npar(diag204_get_info_type(), time_hdr); i++) {
- 		part_hdr = hypfs_create_lpar_files(systems_dir, part_hdr);
--		if (IS_ERR(part_hdr)) {
--			rc = PTR_ERR(part_hdr);
--			goto err_out;
--		}
-+		if (IS_ERR(part_hdr))
-+			return PTR_ERR(part_hdr);
+ 	inode = rpc_get_inode(dir->i_sb, S_IFDIR | mode);
+ 	if (unlikely(!inode)) {
+-		dput(dentry);
+-		inode_unlock(dir);
++		simple_done_creating(dentry);
+ 		return ERR_PTR(-ENOMEM);
  	}
- 	if (info_blk_hdr__flags(diag204_get_info_type(), time_hdr) &
- 	    DIAG204_LPAR_PHYS_FLG) {
- 		ptr = hypfs_create_phys_files(root, part_hdr);
--		if (IS_ERR(ptr)) {
--			rc = PTR_ERR(ptr);
--			goto err_out;
--		}
-+		if (IS_ERR(ptr))
-+			return PTR_ERR(ptr);
- 	}
- 	hyp_dir = hypfs_mkdir(root, "hyp");
--	if (IS_ERR(hyp_dir)) {
--		rc = PTR_ERR(hyp_dir);
--		goto err_out;
--	}
--	ptr = hypfs_create_str(hyp_dir, "type", "LPAR Hypervisor");
--	if (IS_ERR(ptr)) {
--		rc = PTR_ERR(ptr);
--		goto err_out;
--	}
--	rc = 0;
--
--err_out:
--	return rc;
-+	if (IS_ERR(hyp_dir))
-+		return PTR_ERR(hyp_dir);
-+	return hypfs_create_str(hyp_dir, "type", "LPAR Hypervisor");
- }
  
- /* Diagnose 224 functions */
-diff --git a/arch/s390/hypfs/hypfs_vm_fs.c b/arch/s390/hypfs/hypfs_vm_fs.c
-index 6011289afa8c..e8a32d66062b 100644
---- a/arch/s390/hypfs/hypfs_vm_fs.c
-+++ b/arch/s390/hypfs/hypfs_vm_fs.c
-@@ -100,11 +100,9 @@ int hypfs_vm_create_files(struct dentry *root)
- 		rc = PTR_ERR(dir);
- 		goto failed;
- 	}
--	file = hypfs_create_str(dir, "type", "z/VM Hypervisor");
--	if (IS_ERR(file)) {
--		rc = PTR_ERR(file);
-+	rc = hypfs_create_str(dir, "type", "z/VM Hypervisor");
-+	if (rc)
- 		goto failed;
--	}
+ 	inode->i_ino = iunique(dir->i_sb, 100);
+ 	inc_nlink(dir);
+-	d_instantiate(dentry, inode);
++	d_make_persistent(dentry, inode);
+ 	fsnotify_mkdir(dir, dentry);
+-	inode_unlock(dir);
++	simple_done_creating(dentry);
  
- 	/* physical cpus */
- 	dir = hypfs_mkdir(root, "cpus");
-diff --git a/arch/s390/hypfs/inode.c b/arch/s390/hypfs/inode.c
-index a4dc8e13d999..c5e2d8932b88 100644
---- a/arch/s390/hypfs/inode.c
-+++ b/arch/s390/hypfs/inode.c
-@@ -398,24 +398,23 @@ struct dentry *hypfs_create_u64(struct dentry *dir,
- 	return dentry;
- }
- 
--struct dentry *hypfs_create_str(struct dentry *dir,
--				const char *name, char *string)
-+int hypfs_create_str(struct dentry *dir, const char *name, char *string)
- {
- 	char *buffer;
- 	struct dentry *dentry;
- 
- 	buffer = kmalloc(strlen(string) + 2, GFP_KERNEL);
- 	if (!buffer)
--		return ERR_PTR(-ENOMEM);
-+		return -ENOMEM;
- 	sprintf(buffer, "%s\n", string);
- 	dentry =
- 	    hypfs_create_file(dir, name, buffer, S_IFREG | REG_FILE_MODE);
- 	if (IS_ERR(dentry)) {
- 		kfree(buffer);
--		return ERR_PTR(-ENOMEM);
-+		return -ENOMEM;
- 	}
- 	hypfs_add_dentry(dentry);
 -	return dentry;
-+	return 0;
++	return dentry; // borrowed
  }
  
- static const struct file_operations hypfs_file_ops = {
+ static int rpc_populate(struct dentry *parent,
+@@ -657,8 +655,7 @@ int rpc_mkpipe_dentry(struct dentry *parent, const char *name,
+ 
+ 	inode = rpc_get_inode(dir->i_sb, umode);
+ 	if (unlikely(!inode)) {
+-		dput(dentry);
+-		inode_unlock(dir);
++		simple_done_creating(dentry);
+ 		err = -ENOMEM;
+ 		goto failed;
+ 	}
+@@ -668,10 +665,10 @@ int rpc_mkpipe_dentry(struct dentry *parent, const char *name,
+ 	rpci->private = private;
+ 	rpci->pipe = pipe;
+ 	rpc_inode_setowner(inode, private);
+-	d_instantiate(dentry, inode);
+-	pipe->dentry = dentry;
++	pipe->dentry = dentry; // borrowed
++	d_make_persistent(dentry, inode);
+ 	fsnotify_create(dir, dentry);
+-	inode_unlock(dir);
++	simple_done_creating(dentry);
+ 	return 0;
+ 
+ failed:
+@@ -1206,7 +1203,7 @@ static void rpc_kill_sb(struct super_block *sb)
+ 					   sb);
+ 	mutex_unlock(&sn->pipefs_sb_lock);
+ out:
+-	kill_litter_super(sb);
++	kill_anon_super(sb);
+ 	put_net(net);
+ }
+ 
 -- 
 2.47.3
 
