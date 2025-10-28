@@ -1,102 +1,106 @@
-Received: from lamorak.hansenpartnership.com (lamorak.hansenpartnership.com [198.37.111.173])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-wr1-f48.google.com (mail-wr1-f48.google.com [209.85.221.48])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 225D61E51EE
-	for <ocfs2-devel@lists.linux.dev>; Tue, 28 Oct 2025 12:53:47 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=198.37.111.173
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id BBAAB264A86
+	for <ocfs2-devel@lists.linux.dev>; Tue, 28 Oct 2025 15:11:54 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.221.48
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1761656029; cv=none; b=BGczRGQ2MolwTdAlTLsIAuMoX4LvTOBGd/llBpIBJcZcgrG8tSkrAz5wm1BRoj2wFydZEBxo/hfXvaNEN9DMbQK8Tv6w/GM7Fg0qXxQ5VNjsxiLUo7/ConVHDaSPAbh6CwHGEsbM5YGRIpRNinR7SuFMpNYk2+88xrsp7E7n5q8=
+	t=1761664316; cv=none; b=ITRSHOjEuRNQnRYViaMoQ5whF4Z8sMSd9Vqw/jS8fglGnsIN8bqYLsX8giUX/gSehcwveMfR3O9vSwqcRXWTA7wI20DqYEw82D+6I70IWJXltaVYMQv85vDiM8Nh37xkuF55s3bzDiIBLSL0/0FhcX3EkSRys/vNDSJ+KrDhRvI=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1761656029; c=relaxed/simple;
-	bh=36eCAB+0sW4xMVrmbFJUt0Jd2fPKRpcz4N2tZkYaW0A=;
-	h=Message-ID:Subject:From:To:Cc:Date:In-Reply-To:References:
-	 Content-Type:MIME-Version; b=T05lj3hM6GM4tgmgQS93CHUCjpHp6FmtBGlxLcgnxSWICV5cfzjBkfIxi6K+dL3Q3Px/E4b++xZ7tw1KwmTg5ESfuGpSQPPeiCSJkjn3gZ7H9MoF3mUm0FX9Jz8QMywAFP9+pP1s2d5mkaT2RGcKgTCgT4QhqAdsmv3CPzRC5+Q=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=HansenPartnership.com; spf=pass smtp.mailfrom=HansenPartnership.com; dkim=pass (1024-bit key) header.d=hansenpartnership.com header.i=@hansenpartnership.com header.b=Up+wUdpU; arc=none smtp.client-ip=198.37.111.173
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=HansenPartnership.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=HansenPartnership.com
+	s=arc-20240116; t=1761664316; c=relaxed/simple;
+	bh=0hNtzKD0vu5AGddF0QaHTFvhk5oQ7Ez32FuDNp1nkVo=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=PJtU2ze5nKILAYKHwVL+MjI6BGN0sfO/1ZW43Jnn/Lp9zeAVIDEJxPq8vF9+vG/mph4tawxLD+iWJvSZMLR9tMSutbzq+PEYIAKyA00wD4UUtwA15/IztwxIZpY+Ojh58H4CJ8GtdSQ9c/i1a1wX1vnKHpAktzVT2uSre4Usb4w=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=Jl6o56Fk; arc=none smtp.client-ip=209.85.221.48
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=hansenpartnership.com header.i=@hansenpartnership.com header.b="Up+wUdpU"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
-	d=hansenpartnership.com; s=20151216; t=1761656026;
-	bh=36eCAB+0sW4xMVrmbFJUt0Jd2fPKRpcz4N2tZkYaW0A=;
-	h=Message-ID:Subject:From:To:Date:In-Reply-To:References:From;
-	b=Up+wUdpUE3fM2XmpjOk/4MC2BBN7QcGfqCN/Y30XMtMGeEdr6sS2keJncZnoHtIxc
-	 DUSL0fv5TOME1iHo/0QPy6kCQ/EbzsX/nDu9ZkF/OyKG2r+VSTgHBrf5rWvr3odv+A
-	 bnk/Q+3IpimJ4Pj5aehK+pn8AFKPoritDfPNvoVo=
-Received: from lingrow.int.hansenpartnership.com (unknown [IPv6:2601:5c4:4302:c21::a774])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange x25519 server-signature RSA-PSS (2048 bits) server-digest SHA256)
-	(No client certificate requested)
-	by lamorak.hansenpartnership.com (Postfix) with ESMTPSA id 04C181C00EE;
-	Tue, 28 Oct 2025 08:53:45 -0400 (EDT)
-Message-ID: <66300d81c5e127e3bca8c6c4d997da386b142004.camel@HansenPartnership.com>
-Subject: Re: [PATCH v2 22/50] convert efivarfs
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
-To: Al Viro <viro@zeniv.linux.org.uk>, linux-fsdevel@vger.kernel.org
-Cc: torvalds@linux-foundation.org, brauner@kernel.org, jack@suse.cz, 
- raven@themaw.net, miklos@szeredi.hu, neil@brown.name,
- a.hindborg@kernel.org,  linux-mm@kvack.org, linux-efi@vger.kernel.org,
- ocfs2-devel@lists.linux.dev,  kees@kernel.org, rostedt@goodmis.org,
- gregkh@linuxfoundation.org,  linux-usb@vger.kernel.org,
- paul@paul-moore.com, casey@schaufler-ca.com, 
- linuxppc-dev@lists.ozlabs.org, john.johansen@canonical.com, 
- selinux@vger.kernel.org, borntraeger@linux.ibm.com, bpf@vger.kernel.org
-Date: Tue, 28 Oct 2025 08:53:45 -0400
-In-Reply-To: <20251028004614.393374-23-viro@zeniv.linux.org.uk>
-References: <20251028004614.393374-1-viro@zeniv.linux.org.uk>
-	 <20251028004614.393374-23-viro@zeniv.linux.org.uk>
-Autocrypt: addr=James.Bottomley@HansenPartnership.com;
- prefer-encrypt=mutual;
- keydata=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
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
-User-Agent: Evolution 3.50.3 
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="Jl6o56Fk"
+Received: by mail-wr1-f48.google.com with SMTP id ffacd0b85a97d-4270a072a0bso1023414f8f.0
+        for <ocfs2-devel@lists.linux.dev>; Tue, 28 Oct 2025 08:11:54 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=suse.com; s=google; t=1761664313; x=1762269113; darn=lists.linux.dev;
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:cc:to:from:date:from:to:cc:subject:date:message-id:reply-to;
+        bh=fvdl5PKDvmBWsB9WzzrBkubpu+KLUJy+vJoXmu6tziQ=;
+        b=Jl6o56FkG1JZRQFpb4yoYu1Jy1QYsLFJsfdU1TGkKemlaDsk1+hIVZcU2decJBOS52
+         HOQfzNBz945y+X1oZQLYDXQg79UV3cZTQJCJdRx6lLdAaTC3/7XSgLz3A0y+Mc8SEEbT
+         7459n+6tCLuDw7Yu15nWp8t9HUignIgkR92iC7LNa61Z9AZzYbsgZG3XytKIr7BPo2Uu
+         9CDc/ICe4nSWcL7mcGQoU0C8p2pbLxqulCTTIQFQqFJjcVB5nveb2sXW8NMSiH05OMRI
+         OLVdqk7wemADwsXsKtaQuuei4AGumKfdIjlFzs+6L7LHFmORjb3gIkhBZBVv4jAL2HVE
+         O+nQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1761664313; x=1762269113;
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:cc:to:from:date:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=fvdl5PKDvmBWsB9WzzrBkubpu+KLUJy+vJoXmu6tziQ=;
+        b=T3noAUjqDBiJ75B/agQ+bIKERJQ4GWofERUaz0/DALgdR48P+GXbnxLPAlEclJ/X3c
+         uBNv1HRQX5b1E0CImBrecZcJF98tLhWViESYbDEKzB7KU59Fezv5HMAyKRZXbtBRcJvx
+         mR0TTEuMMCj6yK4vdjXdD/TJ6MfIe9sgAK6XF1DJOAZOCNWwZCbj1306Eo7EKLY7dTbQ
+         P/PLCxPg3yM2Odj12Eowj/R/dawYA6N+/IiLsWCaGUjhgygySCAxS6nc4k62697StfXK
+         Kp0lfz5IHqA/d0gH3k4UJ6hJVcwJowViRuIuSosMdCEsLPuktCCdCaM/c7GGy+jezAoN
+         1iFA==
+X-Forwarded-Encrypted: i=1; AJvYcCWwfL+L9MrYS6ToFE3SyS+P9QTEzKYFAfgg6dQyTIx4rpYMkyFehEx6o5EtQPH5Ksp95lBaSHUVbLiBcQ==@lists.linux.dev
+X-Gm-Message-State: AOJu0Yy+gZ6Y+WextTRUTq+CXQlkZLCVz2Yju8+3bgKO68MdfSK9QGkn
+	8m00zwpGAf06Of9QAhIu0lCHxXcvBxDJHgHO5uVWXgWWMeGSXr+fTxkGV9eS3VSgIj8=
+X-Gm-Gg: ASbGncv1391BtM6zbl18VfZNmgQ3mrr7iZlPM93os/FwkQIzM5TMf0DnmKOjULVVqNb
+	AsVPArzPaJoIb3+834+muJAWz9B9Vcr8k1rTc9kntsoH2foeDDAUfW00NO8WuGsDThpcfOf/3pM
+	Te4c9/9ZDKFrZuDt96Aw8f3X2/axFCoSsdwiloVPCHB/vbXuQPtByDiQ1/4Rcc3z70g1vkR7Xte
+	bt/bH2dkYfy+zpj17ystcuM/7yTV7y4iQOXGCelocV4DoUTWF7j1oUJ/5n7ZVqfu3yY0x/ySh0r
+	Map1jaMLfzmGNrZilAH32iG6Zabn4et09t7KEGF/xQS5I+Dsp1Yo+W9ANABZjWklmH1Ef+9clzO
+	O5pTFz/S5CbUH/vgo5Oa+DJRJ2jFEwiSp7PcQaKjvcWVQBcioEIqA+ZkhghAhh0NdM6CTSJKx0b
+	Y=
+X-Google-Smtp-Source: AGHT+IFD7FBeFg4RMX3U5GYrY3Gubn5T8dfAKac56uXuQtSzlswe80TdvY7p8MIy4bhmnPlK3pZWSA==
+X-Received: by 2002:a05:6000:2382:b0:425:86cf:43bb with SMTP id ffacd0b85a97d-429a7e7212fmr1894347f8f.5.1761664312965;
+        Tue, 28 Oct 2025 08:11:52 -0700 (PDT)
+Received: from localhost ([202.127.77.110])
+        by smtp.gmail.com with ESMTPSA id d2e1a72fcca58-7a414049f20sm12185401b3a.29.2025.10.28.08.11.51
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Tue, 28 Oct 2025 08:11:52 -0700 (PDT)
+Date: Tue, 28 Oct 2025 23:11:49 +0800
+From: Heming Zhao <heming.zhao@suse.com>
+To: Joseph Qi <joseph.qi@linux.alibaba.com>
+Cc: Dmitry Antipov <dmantipov@yandex.ru>, Mark Fasheh <mark@fasheh.com>, 
+	Joel Becker <jlbec@evilplan.org>, ocfs2-devel@lists.linux.dev, lvc-project@linuxtesting.org, 
+	syzbot+77026564530dbc29b854@syzkaller.appspotmail.com, syzbot+5054473a31f78f735416@syzkaller.appspotmail.com
+Subject: Re: [RESEND PATCH v2] ocfs2: introduce chain list sanity check with
+ ocfs2_check_chain_list()
+Message-ID: <irjdhznytzgsgxcgkdhl4go6veh3a3p2bx6kqwhmcjlqumdebh@rkdl6s2e4yfd>
+References: <20251027125654.312153-1-dmantipov@yandex.ru>
+ <9e9f5ed7-5c37-462c-9970-3da7dd957e4e@linux.alibaba.com>
+ <nxmdosp26qotev63tpeq43njfobyxpes3v4zhpb6jhmerpjhpn@ba4ylsi6nctq>
+ <d475a54e-2f15-4235-a21f-9d217a1a9126@linux.alibaba.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <d475a54e-2f15-4235-a21f-9d217a1a9126@linux.alibaba.com>
 
-On Tue, 2025-10-28 at 00:45 +0000, Al Viro wrote:
-> Initially filesystem is populated with d_alloc_name() + d_add().
-> That becomes d_alloc_name() + d_make_persistent() + dput().
-> Dynamic creation is switched to d_make_persistent();
-> removal - to simple_unlink() (no point open-coding it in
-> efivarfs_unlink(), better call it there)
->=20
-> Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
+On Tue, Oct 28, 2025 at 01:51:23PM +0800, Joseph Qi wrote:
+> 
+> 
+> On 2025/10/28 12:08, Heming Zhao wrote:
+> > On Tue, Oct 28, 2025 at 09:53:06AM +0800, Joseph Qi wrote:
+> >> Hi,
+> >> It seems that these checks can also been moved into ocfs2_validate_inode_block()?
+> >>
+> >> Thanks,
+> >> Joseph
+> > 
+> > The patch checks 'block group' not 'inode block', the signatures are
+> > different: OCFS2_GROUP_DESC_SIGNATURE vs. OCFS2_INODE_SIGNATURE.
+> > In my view, current code is correct.
+> > 
+> 
+> But it checks chain list, right?
+> 
+> Joseph
 
-The patch looks fine to me ... you can add an ack if you're collecting
-them, but don't bother if you're not.
+Got your meaning, you're right.
 
-This caught my eye, though:
-
-[...]
-> @@ -278,7 +278,8 @@ static int efivarfs_create_dentry(struct
-> super_block *sb, efi_char16_t *name16,
-> =C2=A0	inode->i_private =3D entry;
-> =C2=A0	i_size_write(inode, size + sizeof(__u32)); /* attributes +
-> data */
-> =C2=A0	inode_unlock(inode);
-> -	d_add(dentry, inode);
-> +	d_make_persistent(dentry, inode);
-> +	dput(dentry);
-
-That dput looks misplaced in a creation routine and this is a common
-pattern in pseudo filesystems that either pre-populate the dentry state
-or create effectively unused dentries on other changes.  I know not
-every pseudo filesystem does this, but it did make me wonder if it
-should have it's own API, say d_create_persistent()?
-
-Regards,
-
-James
-
+- Heming
