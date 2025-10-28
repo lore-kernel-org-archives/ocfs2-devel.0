@@ -1,34 +1,34 @@
 Received: from zeniv.linux.org.uk (zeniv.linux.org.uk [62.89.141.173])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 36DF3214A97;
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4178221772A;
 	Tue, 28 Oct 2025 00:46:21 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=62.89.141.173
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1761612389; cv=none; b=R+6xoXWvrxmkrXfefi1zG9muzhmKTHHW+Rog05ROE4bwMg2ouLyPHOuF/7IFOq3u+ILCe4tFkVRBEi9nQrs3bw0wZxk+udZSa5q7r7BGcelMy8825fNYV/Nr02q8K6fZ6Tcp2lVI+tE2hI5f36cZSjab+uDvLNSf/qE2Nqy5zNk=
+	t=1761612388; cv=none; b=HU7vGnwA+EITVpx2NVx4SwOpNHbwrQQhF2Wz8uZUIaCEzNCvUPR11brCC9SVePTMVMkce8NkB8zZOumnLe8fOO9cRs8pNoNpGZF4GXn8eH9sRTtwBLIUpwdzj3STSAHXJfoT7h62IQ1Rxnz5K4v2o6oSH7zI0lDB5MgfJcF80pk=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1761612389; c=relaxed/simple;
-	bh=wuHRVTuXFJmdyMHFXddGjPkbh9aAfDS2a7pk9RHCUqg=;
+	s=arc-20240116; t=1761612388; c=relaxed/simple;
+	bh=6FX1ILmV0SzjanE3r6A3iB5OV0/8/mOgmvNvMSsg0S8=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=E/atDyMG+GXIaOTVT/6NFprFXeEGL33LmycmqWxg3g7XEiMms/rqN8jUhj51fwFY3BNNXcOVyjxG3aveaJzynT956CJUxczdM90vWok2PYyTxt9W71/Hpu2uIsJqkh8viXKwyNEV5xUFsM2aqz5w3cf/I0tS+ssmyiOn9HpMXRU=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk; spf=none smtp.mailfrom=ftp.linux.org.uk; dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b=Nox/vfUc; arc=none smtp.client-ip=62.89.141.173
+	 MIME-Version; b=RsSr1AKDjjb7Yu4nI/TXjSsBFtUkv8L31LDSpLj/09hiKBB/zuCVmwLGeUwntX0rTgaHM+NxHe8exP3JqgkkS5fWeOj2NJ8I4BwfkwdVa5ndDOv/perLIWr+huyqIy+btQZdl42HcPAiNQoZkhkA7r43fvGF+fiyZONy6/o+WSE=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk; spf=none smtp.mailfrom=ftp.linux.org.uk; dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b=VsVuTNuT; arc=none smtp.client-ip=62.89.141.173
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk
 Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=ftp.linux.org.uk
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b="Nox/vfUc"
+	dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b="VsVuTNuT"
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
 	d=linux.org.uk; s=zeniv-20220401; h=Sender:Content-Transfer-Encoding:
 	MIME-Version:References:In-Reply-To:Message-ID:Date:Subject:Cc:To:From:
 	Reply-To:Content-Type:Content-ID:Content-Description;
-	bh=wF5oceMSXViySxysMkUNPeCJ07Zgu8R8pwpIbBxZfJs=; b=Nox/vfUcgx/TdeOwjzOvIBCDcH
-	n9sXl5MTg6aGwD3FdblklBCbekJf8k1VNaIfHkTysh8rHxqlTbDJ/t3Elsggu3Q8NZgpFPmz/N0WH
-	erYPHUrU44BhDD2BW+OYKt6Nh1+Wi/YQIld2OAuPrfyTCBSrmjVV1qJfZiJcoHM/lEtI5aheobi42
-	o8Eaw1L7+Wcws8iEzDES8PjbGLiRsPv3gyLEvaHn5OP/E/vRRUjW6sfKVf5yLIGi5nbrImW7RHxqW
-	rHwcCYmYY6i586c1OKYGUe9PNX+DoM/1FugO+0xqUcw2o5JBBKON8yxD4xOITf0ubS+ds+4pZE8Ec
-	5nJDTKTg==;
+	bh=E7cNvRx/cApjSX66b8FSjJI2fyjXpW5PkYfHFIOF7HU=; b=VsVuTNuTIHc4/BtKRQmf0nDY73
+	mWl3Dwzu6X5U8nei1TpyXq2X5yrpxoWybXmkIBZHiLZeQRHMsrlmBN092u9eokVSxIVHiGGfGqAeO
+	7qi0K0TSduNTt31COYmzintXgfZyhK7fAg5CVAmj7864qVd0dLe+XTrV9EyiCZDYDyRMnwRCbrTyL
+	+f2gJ0BAiNlXB4R7uaB8Kngk2oOAKX1h/Np8qMsm2LPbZpFwdi5xGpH1Kxg/h4/T9ngbozltJyjKI
+	W+ucGiqo0W/h+YgF0F4ZrGgk+et564BA8iBO9ZprjWBaJB9l37W++eesJdNfNGR9ET7XB5Py/n4g0
+	dXRdClJg==;
 Received: from viro by zeniv.linux.org.uk with local (Exim 4.98.2 #2 (Red Hat Linux))
-	id 1vDXqs-00000001ebX-377o;
-	Tue, 28 Oct 2025 00:46:18 +0000
+	id 1vDXqo-00000001eVR-3bCF;
+	Tue, 28 Oct 2025 00:46:14 +0000
 From: Al Viro <viro@zeniv.linux.org.uk>
 To: linux-fsdevel@vger.kernel.org
 Cc: torvalds@linux-foundation.org,
@@ -52,9 +52,9 @@ Cc: torvalds@linux-foundation.org,
 	selinux@vger.kernel.org,
 	borntraeger@linux.ibm.com,
 	bpf@vger.kernel.org
-Subject: [PATCH v2 39/50] convert gadgetfs
-Date: Tue, 28 Oct 2025 00:45:58 +0000
-Message-ID: <20251028004614.393374-40-viro@zeniv.linux.org.uk>
+Subject: [PATCH v2 02/50] tracefs: fix a leak in eventfs_create_events_dir()
+Date: Tue, 28 Oct 2025 00:45:21 +0000
+Message-ID: <20251028004614.393374-3-viro@zeniv.linux.org.uk>
 X-Mailer: git-send-email 2.49.0
 In-Reply-To: <20251028004614.393374-1-viro@zeniv.linux.org.uk>
 References: <20251028004614.393374-1-viro@zeniv.linux.org.uk>
@@ -67,54 +67,37 @@ MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: Al Viro <viro@ftp.linux.org.uk>
 
-same as functionfs
+If we have LOCKDOWN_TRACEFS, the function bails out - *after*
+having locked the parent directory and without bothering to
+undo that.  Just check it before tracefs_start_creating()...
 
+Fixes: e24709454c45 "tracefs/eventfs: Add missing lockdown checks"
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- drivers/usb/gadget/legacy/inode.c | 19 +++++++++++--------
- 1 file changed, 11 insertions(+), 8 deletions(-)
+ fs/tracefs/event_inode.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
 
-diff --git a/drivers/usb/gadget/legacy/inode.c b/drivers/usb/gadget/legacy/inode.c
-index bcc25f13483f..62566a8e7451 100644
---- a/drivers/usb/gadget/legacy/inode.c
-+++ b/drivers/usb/gadget/legacy/inode.c
-@@ -1989,17 +1989,20 @@ static int gadgetfs_create_file (struct super_block *sb, char const *name,
- 	struct dentry	*dentry;
- 	struct inode	*inode;
- 
--	dentry = d_alloc_name(sb->s_root, name);
--	if (!dentry)
--		return -ENOMEM;
--
- 	inode = gadgetfs_make_inode (sb, data, fops,
- 			S_IFREG | (default_perm & S_IRWXUGO));
--	if (!inode) {
--		dput(dentry);
-+	if (!inode)
- 		return -ENOMEM;
-+
-+	dentry = simple_start_creating(sb->s_root, name);
-+	if (IS_ERR(dentry)) {
-+		iput(inode);
-+		return PTR_ERR(dentry);
- 	}
--	d_add (dentry, inode);
-+
-+	d_make_persistent(dentry, inode);
-+
-+	simple_done_creating(dentry);
- 	return 0;
- }
- 
-@@ -2096,7 +2099,7 @@ static void
- gadgetfs_kill_sb (struct super_block *sb)
+diff --git a/fs/tracefs/event_inode.c b/fs/tracefs/event_inode.c
+index 8705c77a9e75..93c231601c8e 100644
+--- a/fs/tracefs/event_inode.c
++++ b/fs/tracefs/event_inode.c
+@@ -757,7 +757,7 @@ struct eventfs_inode *eventfs_create_events_dir(const char *name, struct dentry
+ 						const struct eventfs_entry *entries,
+ 						int size, void *data)
  {
- 	mutex_lock(&sb_mutex);
--	kill_litter_super (sb);
-+	kill_anon_super (sb);
- 	if (the_device) {
- 		put_dev (the_device);
- 		the_device = NULL;
+-	struct dentry *dentry = tracefs_start_creating(name, parent);
++	struct dentry *dentry;
+ 	struct eventfs_root_inode *rei;
+ 	struct eventfs_inode *ei;
+ 	struct tracefs_inode *ti;
+@@ -768,6 +768,7 @@ struct eventfs_inode *eventfs_create_events_dir(const char *name, struct dentry
+ 	if (security_locked_down(LOCKDOWN_TRACEFS))
+ 		return NULL;
+ 
++	dentry = tracefs_start_creating(name, parent);
+ 	if (IS_ERR(dentry))
+ 		return ERR_CAST(dentry);
+ 
 -- 
 2.47.3
 
