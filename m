@@ -1,47 +1,63 @@
-Received: from forward102d.mail.yandex.net (forward102d.mail.yandex.net [178.154.239.213])
+Received: from zeniv.linux.org.uk (zeniv.linux.org.uk [62.89.141.173])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A26FB1FBEB9
-	for <ocfs2-devel@lists.linux.dev>; Mon, 27 Oct 2025 12:57:17 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=178.154.239.213
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 26A741F5435;
+	Tue, 28 Oct 2025 00:46:21 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=62.89.141.173
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1761569841; cv=none; b=HSogQJSFh+wn0TWY4jbyGRLRuet9Bf/iXW8wDdEkBg8riroy4f5+Cf2/XiwfJxZE6gV6PNRQBa/j1Qgt+Xyz0fkanTvc2IAH/MtRKgO+7Axae+r832xQmKPD111wY1hcv5rAtb7k0KjkOLTq+o3hmrHX/v5QDiCVlifz7Pi9a+I=
+	t=1761612385; cv=none; b=pAmQDhdYGSC1gEmzRhALwJ6qQK4LGvJAZPMvKVTTC7MuHTGKA6dD9C5ssVQqrWunupt1bca2UmvYxQEypOhS4nns4l9jxTd48wSqhFPJ+W/NK5JevEqPIeHSnfykzPaR2OdpUtrz5bjY1nHLtjsbqAZ/97rWJjNEjEKX4StcQrM=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1761569841; c=relaxed/simple;
-	bh=3I2FEVKCORYoeqgAcUqlW6a36nBUpnPrFqZfoprpfo4=;
-	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=Jawfik9KAtPPOyxlhb9q5tOJIS6ffa5+N+ikC1xRLsYRaNuaiXOK882Elj5+mwd2is6++IGT9Hh5UC0/cYMxrtKtYvvZIWXcUUZhO0wP+m8EB9E/U++CoUWljVFfMcxtpOwTgcyMDsENCwYlVMG5nfwABkUc9Pjgmij7ArO3hN4=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru; spf=pass smtp.mailfrom=yandex.ru; dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b=r/wBjxxL; arc=none smtp.client-ip=178.154.239.213
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=yandex.ru
+	s=arc-20240116; t=1761612385; c=relaxed/simple;
+	bh=Q3JKx9rr2UYQTrTc5nh98pYJ2RYkW05b2PhhcVfT9eI=;
+	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
+	 MIME-Version; b=qmDEFavkVx8bU51H3+9rAMapgnN+NwTJor+3i6arCrc29paqAcUwZkWr404F7UQDiTkF1XHLGcXwnHYcG8o0ZVFAN8xuiE6KgmBria6uj07cVtE6h2dYEg1ON+hjVTnRxXZ4RkSvsDbLy4bv9EVp1BxEXxtKHrTa4IWfIoedewM=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk; spf=none smtp.mailfrom=ftp.linux.org.uk; dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b=EnJw0qmw; arc=none smtp.client-ip=62.89.141.173
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk
+Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=ftp.linux.org.uk
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b="r/wBjxxL"
-Received: from mail-nwsmtp-smtp-production-main-59.klg.yp-c.yandex.net (mail-nwsmtp-smtp-production-main-59.klg.yp-c.yandex.net [IPv6:2a02:6b8:c42:2dcb:0:640:715b:0])
-	by forward102d.mail.yandex.net (Yandex) with ESMTPS id 0B01EC01EE;
-	Mon, 27 Oct 2025 15:57:10 +0300 (MSK)
-Received: by mail-nwsmtp-smtp-production-main-59.klg.yp-c.yandex.net (smtp/Yandex) with ESMTPSA id 8vboQt4LpSw0-5tv794pR;
-	Mon, 27 Oct 2025 15:57:09 +0300
-X-Yandex-Fwd: 1
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=yandex.ru; s=mail;
-	t=1761569829; bh=Yx0th47Z8Ei+itNnP0K/pjx7l9mMopPj+CnrbEFLrag=;
-	h=Message-ID:Date:Cc:Subject:To:From;
-	b=r/wBjxxLDYCTx12AXorW6FuEWpJmRwQ4Bc5KB1U86jTcJafyHPFzEOfBG9c6da5Xa
-	 auI+AeogafqGORR+huyVFucSeLR6BP7rIhPX0EqjWZdVR48XVUaLIyBMi8JDnTF0sr
-	 qaXf+PvrT7+4VyP2+w0+xjEKaF8JEjiWJIfKGNFI=
-Authentication-Results: mail-nwsmtp-smtp-production-main-59.klg.yp-c.yandex.net; dkim=pass header.i=@yandex.ru
-From: Dmitry Antipov <dmantipov@yandex.ru>
-To: Heming Zhao <heming.zhao@suse.com>,
-	Mark Fasheh <mark@fasheh.com>,
-	Joel Becker <jlbec@evilplan.org>,
-	Joseph Qi <joseph.qi@linux.alibaba.com>
-Cc: ocfs2-devel@lists.linux.dev,
-	lvc-project@linuxtesting.org,
-	Dmitry Antipov <dmantipov@yandex.ru>,
-	syzbot+77026564530dbc29b854@syzkaller.appspotmail.com,
-	syzbot+5054473a31f78f735416@syzkaller.appspotmail.com
-Subject: [RESEND PATCH v2] ocfs2: introduce chain list sanity check with ocfs2_check_chain_list()
-Date: Mon, 27 Oct 2025 15:56:54 +0300
-Message-ID: <20251027125654.312153-1-dmantipov@yandex.ru>
-X-Mailer: git-send-email 2.51.0
+	dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b="EnJw0qmw"
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+	d=linux.org.uk; s=zeniv-20220401; h=Sender:Content-Transfer-Encoding:
+	MIME-Version:References:In-Reply-To:Message-ID:Date:Subject:Cc:To:From:
+	Reply-To:Content-Type:Content-ID:Content-Description;
+	bh=LJyQ0sQN8CTZJ8YY6THdmavnh3TQW/mMqH0kl5Snbhs=; b=EnJw0qmwlqcmyocNeFhS6dBbSW
+	1oc/tk54h8tJLUV3jtnCFVKV9SAzfc4a2bYuIhkLHFSyHnSHxvnmO5HqsOqRDA3PqL9Zk6LZgPkvx
+	YcMuriKNT4TgjVgt+sWOdMq+fgGBoc4zTrg/svOSrV2sDeU+SAq3EqO23MEOeybVqamlG8jLbnlEo
+	y/HsdpdTaX3RDCUnOXaJ03nH346+GbeNtOQmdhhN4Tm7H8LjtLEw8RBxU25YzvnbiD3RMQnmvLtFB
+	k108O9Ns40dXLKbM2rmZSbK5mlgYsg/XsAcDElak6W1NteqV+jnici7stCuS3qwplcpKtK86fqV/X
+	LWoMcYKA==;
+Received: from viro by zeniv.linux.org.uk with local (Exim 4.98.2 #2 (Red Hat Linux))
+	id 1vDXqq-00000001eY2-2qXC;
+	Tue, 28 Oct 2025 00:46:16 +0000
+From: Al Viro <viro@zeniv.linux.org.uk>
+To: linux-fsdevel@vger.kernel.org
+Cc: torvalds@linux-foundation.org,
+	brauner@kernel.org,
+	jack@suse.cz,
+	raven@themaw.net,
+	miklos@szeredi.hu,
+	neil@brown.name,
+	a.hindborg@kernel.org,
+	linux-mm@kvack.org,
+	linux-efi@vger.kernel.org,
+	ocfs2-devel@lists.linux.dev,
+	kees@kernel.org,
+	rostedt@goodmis.org,
+	gregkh@linuxfoundation.org,
+	linux-usb@vger.kernel.org,
+	paul@paul-moore.com,
+	casey@schaufler-ca.com,
+	linuxppc-dev@lists.ozlabs.org,
+	john.johansen@canonical.com,
+	selinux@vger.kernel.org,
+	borntraeger@linux.ibm.com,
+	bpf@vger.kernel.org
+Subject: [PATCH v2 19/50] convert tracefs
+Date: Tue, 28 Oct 2025 00:45:38 +0000
+Message-ID: <20251028004614.393374-20-viro@zeniv.linux.org.uk>
+X-Mailer: git-send-email 2.49.0
+In-Reply-To: <20251028004614.393374-1-viro@zeniv.linux.org.uk>
+References: <20251028004614.393374-1-viro@zeniv.linux.org.uk>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -49,70 +65,97 @@ List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
+Sender: Al Viro <viro@ftp.linux.org.uk>
 
-Introduce 'ocfs2_check_chain_list()' to check whether a) the maximum
-amount of chain records in 'struct ocfs2_chain_list' matches the value
-calculated based on the filesystem block size, and b) the next free slot
-index is within the valid range, and use the aforementioned function
-in 'ocfs2_block_group_alloc()' and 'ocfs2_claim_suballoc_bits()'.
+A mix of persistent and non-persistent dentries in there.  Strictly
+speaking, no need for kill_litter_super() anyway - it pins an internal
+mount whenever a persistent dentry is created, so at fs shutdown time
+there won't be any to deal with.
 
-Reported-by: syzbot+77026564530dbc29b854@syzkaller.appspotmail.com
-Closes: https://syzkaller.appspot.com/bug?extid=77026564530dbc29b854
-Reported-by: syzbot+5054473a31f78f735416@syzkaller.appspotmail.com
-Closes: https://syzkaller.appspot.com/bug?extid=5054473a31f78f735416
-Signed-off-by: Dmitry Antipov <dmantipov@yandex.ru>
+However, let's make it explicit - replace d_instantiate() with
+d_make_persistent() + dput() (the latter in tracefs_end_creating(),
+where it folds with inode_unlock() into simple_done_creating())
+for dentries we want persistent and have d_make_discardable() done
+either by simple_recursive_removal() (used by tracefs_remove())
+or explicitly in eventfs_remove_events_dir().
+
+Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
-note: resend to ensure that it's reviewed and hopefully good enough for
-      mm-nonmm-unstable of -mm
-v2: bail on cl->cl_next_free_rec > cl->cl_count (the name is misleading,
-    cl_next_free_rec is a member count (and so can be equal to array
-    size) rather than member index)
----
- fs/ocfs2/suballoc.c | 17 +++++++++++++++++
- 1 file changed, 17 insertions(+)
+ fs/tracefs/event_inode.c |  4 ++--
+ fs/tracefs/inode.c       | 13 ++++++-------
+ 2 files changed, 8 insertions(+), 9 deletions(-)
 
-diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
-index 6ac4dcd54588..9969a041ab18 100644
---- a/fs/ocfs2/suballoc.c
-+++ b/fs/ocfs2/suballoc.c
-@@ -649,6 +649,16 @@ ocfs2_block_group_alloc_discontig(handle_t *handle,
- 	return status ? ERR_PTR(status) : bg_bh;
+diff --git a/fs/tracefs/event_inode.c b/fs/tracefs/event_inode.c
+index 93c231601c8e..61cbdafa2411 100644
+--- a/fs/tracefs/event_inode.c
++++ b/fs/tracefs/event_inode.c
+@@ -823,7 +823,7 @@ struct eventfs_inode *eventfs_create_events_dir(const char *name, struct dentry
+ 	 * something not worth much. Keeping directory links at 1
+ 	 * tells userspace not to trust the link number.
+ 	 */
+-	d_instantiate(dentry, inode);
++	d_make_persistent(dentry, inode);
+ 	/* The dentry of the "events" parent does keep track though */
+ 	inc_nlink(dentry->d_parent->d_inode);
+ 	fsnotify_mkdir(dentry->d_parent->d_inode, dentry);
+@@ -910,5 +910,5 @@ void eventfs_remove_events_dir(struct eventfs_inode *ei)
+ 	 * and destroyed dynamically.
+ 	 */
+ 	d_invalidate(dentry);
+-	dput(dentry);
++	d_make_discardable(dentry);
+ }
+diff --git a/fs/tracefs/inode.c b/fs/tracefs/inode.c
+index 0c023941a316..d9d8932a7b9c 100644
+--- a/fs/tracefs/inode.c
++++ b/fs/tracefs/inode.c
+@@ -538,7 +538,7 @@ static struct file_system_type trace_fs_type = {
+ 	.name =		"tracefs",
+ 	.init_fs_context = tracefs_init_fs_context,
+ 	.parameters	= tracefs_param_specs,
+-	.kill_sb =	kill_litter_super,
++	.kill_sb =	kill_anon_super,
+ };
+ MODULE_ALIAS_FS("tracefs");
+ 
+@@ -571,16 +571,15 @@ struct dentry *tracefs_start_creating(const char *name, struct dentry *parent)
+ 
+ struct dentry *tracefs_failed_creating(struct dentry *dentry)
+ {
+-	inode_unlock(d_inode(dentry->d_parent));
+-	dput(dentry);
++	simple_done_creating(dentry);
+ 	simple_release_fs(&tracefs_mount, &tracefs_mount_count);
+ 	return NULL;
  }
  
-+static int ocfs2_check_chain_list(struct ocfs2_chain_list *cl,
-+				  struct super_block *sb)
-+{
-+	if (le16_to_cpu(cl->cl_count) != ocfs2_chain_recs_per_inode(sb))
-+		return -EINVAL;
-+	if (le16_to_cpu(cl->cl_next_free_rec) > le16_to_cpu(cl->cl_count))
-+		return -EINVAL;
-+	return 0;
-+}
-+
- /*
-  * We expect the block group allocator to already be locked.
-  */
-@@ -671,6 +681,10 @@ static int ocfs2_block_group_alloc(struct ocfs2_super *osb,
- 	BUG_ON(ocfs2_is_cluster_bitmap(alloc_inode));
+ struct dentry *tracefs_end_creating(struct dentry *dentry)
+ {
+-	inode_unlock(d_inode(dentry->d_parent));
+-	return dentry;
++	simple_done_creating(dentry);
++	return dentry;	// borrowed
+ }
  
- 	cl = &fe->id2.i_chain;
-+	status = ocfs2_check_chain_list(cl, alloc_inode->i_sb);
-+	if (status)
-+		goto bail;
-+
- 	status = ocfs2_reserve_clusters_with_limit(osb,
- 						   le16_to_cpu(cl->cl_cpg),
- 						   max_block, flags, &ac);
-@@ -1992,6 +2006,9 @@ static int ocfs2_claim_suballoc_bits(struct ocfs2_alloc_context *ac,
- 	}
+ /* Find the inode that this will use for default */
+@@ -661,7 +660,7 @@ struct dentry *tracefs_create_file(const char *name, umode_t mode,
+ 	inode->i_private = data;
+ 	inode->i_uid = d_inode(dentry->d_parent)->i_uid;
+ 	inode->i_gid = d_inode(dentry->d_parent)->i_gid;
+-	d_instantiate(dentry, inode);
++	d_make_persistent(dentry, inode);
+ 	fsnotify_create(d_inode(dentry->d_parent), dentry);
+ 	return tracefs_end_creating(dentry);
+ }
+@@ -692,7 +691,7 @@ static struct dentry *__create_dir(const char *name, struct dentry *parent,
  
- 	cl = (struct ocfs2_chain_list *) &fe->id2.i_chain;
-+	status = ocfs2_check_chain_list(cl, ac->ac_inode->i_sb);
-+	if (status)
-+		goto bail;
- 
- 	victim = ocfs2_find_victim_chain(cl);
- 	ac->ac_chain = victim;
+ 	/* directory inodes start off with i_nlink == 2 (for "." entry) */
+ 	inc_nlink(inode);
+-	d_instantiate(dentry, inode);
++	d_make_persistent(dentry, inode);
+ 	inc_nlink(d_inode(dentry->d_parent));
+ 	fsnotify_mkdir(d_inode(dentry->d_parent), dentry);
+ 	return tracefs_end_creating(dentry);
 -- 
-2.51.0
+2.47.3
 
