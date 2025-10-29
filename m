@@ -1,106 +1,76 @@
-Received: from forward201a.mail.yandex.net (forward201a.mail.yandex.net [178.154.239.92])
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A1C2C146D45
-	for <ocfs2-devel@lists.linux.dev>; Wed, 29 Oct 2025 06:00:26 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=178.154.239.92
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id EBF622F6599;
+	Wed, 29 Oct 2025 06:18:53 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1761717630; cv=none; b=BQMa/5d1NnZUQw0DZ2xDbg5G1Ppc+auTVOSH+o4y8bEBtR1e7ehMgLDBY5C8FhacIChiKyKWjDR1yczJyc0QARL5IpPIWu0l1lbPCZj9irV2gdQxGncqaHeQo/dX/hyCuB1JqIwOBisoudWrkNTj2a+Cafu03yllSP0IqzOu4c4=
+	t=1761718734; cv=none; b=p1vj7Tj0eTCbg7tnNpMmpzi0D1pdF+YIhHOYHeqvcsMpAfvMiOc4flEf1tWqV736QSqUawqXA+Yui2MiOkxdDPs7MXyCZh07uJDzDz8Rw/ibwRkKz1GcDNMWJTITKiGoxDdwQPg7wa6eR2hPywDNyy8pY1w2VGKuASFNbmGKBOg=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1761717630; c=relaxed/simple;
-	bh=w80kugyj2NALYe60hecmJFhlLiEG3w+QsddCrKSvnd0=;
-	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=iJ9mkTyEgHRGGvxBROs59IjFZte/ndOdlKWnwCOjwMQJFcQRaqeMggZeDZ+BM6zLtHA9HOZTLOmlAZFwaMPuIYfHC477AJj2OVtFsICAhUquUOH6PVrFoxn0BqT7EaabfBe4Xdw5AjKdGnsroe2jESxqPBkZdUbQhuu6RMe/DiQ=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru; spf=pass smtp.mailfrom=yandex.ru; dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b=J+RKpfzW; arc=none smtp.client-ip=178.154.239.92
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=yandex.ru
+	s=arc-20240116; t=1761718734; c=relaxed/simple;
+	bh=sNwUDE3GpjZgRRxK39FIaAoWLzOItBsyKBeQQ57qbFM=;
+	h=From:To:Cc:Subject:In-Reply-To:References:Date:Message-ID:
+	 MIME-Version:Content-Type; b=rVCPJKIC0KAdiCV+gYoDrqDGI6YvvsgFUEFSMIRgcNehTbIfVvspLXGW/uYec3BpstUldfxtymNQKkO97wRq1/SvjkcxGgIXXqnHJXtOXAJUY1nhGaTa4X16WjwmFQPGHjLOgdOM7Hx3kBiolDj22xPmiUtttY1wuB6YNbhzLZA=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=Rk+6qLII; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b="J+RKpfzW"
-Received: from forward103a.mail.yandex.net (forward103a.mail.yandex.net [IPv6:2a02:6b8:c0e:500:1:45:d181:d103])
-	by forward201a.mail.yandex.net (Yandex) with ESMTPS id EA79A80C65
-	for <ocfs2-devel@lists.linux.dev>; Wed, 29 Oct 2025 08:53:56 +0300 (MSK)
-Received: from mail-nwsmtp-smtp-production-main-81.vla.yp-c.yandex.net (mail-nwsmtp-smtp-production-main-81.vla.yp-c.yandex.net [IPv6:2a02:6b8:c0f:571a:0:640:23e3:0])
-	by forward103a.mail.yandex.net (Yandex) with ESMTPS id B215F806EB;
-	Wed, 29 Oct 2025 08:53:47 +0300 (MSK)
-Received: by mail-nwsmtp-smtp-production-main-81.vla.yp-c.yandex.net (smtp/Yandex) with ESMTPSA id krWxHjNLw4Y0-ckcnuFIX;
-	Wed, 29 Oct 2025 08:53:47 +0300
-X-Yandex-Fwd: 1
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=yandex.ru; s=mail;
-	t=1761717227; bh=kPWcq429uw+WFB+6EIEJBm7FpywLc3z+jKAiPP/2uBY=;
-	h=Message-ID:Date:In-Reply-To:Cc:Subject:References:To:From;
-	b=J+RKpfzW7aER/w8hLxrcu/VqfT/BxmuX8RDRza4GWAqRFAGe03ZkKvPSmSWYkfP1u
-	 236ebQ3Rmb+fM43moxKfhyndfKRtltnmGNawGgi45WbolljoC+aFB32ZJVog+iXQlJ
-	 S5No/KGGKmgrbtivJNOxrgLyIXyAA/KYyF7JJRlo=
-Authentication-Results: mail-nwsmtp-smtp-production-main-81.vla.yp-c.yandex.net; dkim=pass header.i=@yandex.ru
-From: Dmitry Antipov <dmantipov@yandex.ru>
-To: Joseph Qi <joseph.qi@linux.alibaba.com>,
-	Deepanshu Kartikey <kartikey406@gmail.com>
-Cc: Heming Zhao <heming.zhao@suse.com>,
-	Mark Fasheh <mark@fasheh.com>,
-	Joel Becker <jlbec@evilplan.org>,
-	ocfs2-devel@lists.linux.dev,
-	lvc-project@linuxtesting.org,
-	Dmitry Antipov <dmantipov@yandex.ru>,
-	syzbot+77026564530dbc29b854@syzkaller.appspotmail.com,
-	syzbot+5054473a31f78f735416@syzkaller.appspotmail.com
-Subject: [PATCH 1/2] ocfs2: add extra consistency checks for chain allocator dinodes
-Date: Wed, 29 Oct 2025 08:53:37 +0300
-Message-ID: <20251029055338.1192000-1-dmantipov@yandex.ru>
-X-Mailer: git-send-email 2.51.0
-In-Reply-To: <9461385f-235d-40fc-8da6-b1f2dfb47d6c@linux.alibaba.com>
-References: <9461385f-235d-40fc-8da6-b1f2dfb47d6c@linux.alibaba.com>
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="Rk+6qLII"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 92541C4CEF7;
+	Wed, 29 Oct 2025 06:18:47 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=k20201202; t=1761718733;
+	bh=sNwUDE3GpjZgRRxK39FIaAoWLzOItBsyKBeQQ57qbFM=;
+	h=From:To:Cc:Subject:In-Reply-To:References:Date:From;
+	b=Rk+6qLII7dhXKc90DR7x0yOEvODjOW/vGOClfgVuFKE3QWXEzLxdfMqDCeOj2aCQC
+	 Af7tFpcn1bA5YqBuP1vrNitK3sm7hW3KrYUEiQ3uUVlPgDiReiQJI+4PU5WchW6eKG
+	 /h6vzvh0y93wx4HdCp/Guuc6ZBoGwAMJ5nQwd9g2jF4j4MbCDnBXz63JsAb0YVujnH
+	 RPaDTnOSvsJkgMOZTcApLHzlog5soPtmuQGsnj9HF4Ql6o+0V30MAVN0BZ3P8otsW+
+	 JyjsA3LXvuXmXdm+mAmvjC3CctniwC/hpFVHFmdzVIxYrqzOgGJawmQ9zcv0wDagWd
+	 vR1pv53KN6RGw==
+From: Andreas Hindborg <a.hindborg@kernel.org>
+To: Al Viro <viro@zeniv.linux.org.uk>, linux-fsdevel@vger.kernel.org
+Cc: torvalds@linux-foundation.org, brauner@kernel.org, jack@suse.cz,
+ raven@themaw.net, miklos@szeredi.hu, neil@brown.name, linux-mm@kvack.org,
+ linux-efi@vger.kernel.org, ocfs2-devel@lists.linux.dev, kees@kernel.org,
+ rostedt@goodmis.org, gregkh@linuxfoundation.org,
+ linux-usb@vger.kernel.org, paul@paul-moore.com, casey@schaufler-ca.com,
+ linuxppc-dev@lists.ozlabs.org, john.johansen@canonical.com,
+ selinux@vger.kernel.org, borntraeger@linux.ibm.com, bpf@vger.kernel.org
+Subject: Re: [PATCH v2 10/50] configfs, securityfs: kill_litter_super() not
+ needed
+In-Reply-To: <20251028004614.393374-11-viro@zeniv.linux.org.uk>
+References: <20251028004614.393374-1-viro@zeniv.linux.org.uk>
+ <iNj77i-tfrdVv9HEpIj_AzJNAUOKdPKNfNsGxMAfclR7sy-qVQBLpolv7Wgpmckad9w4QJXyH36_g88ejY-xpg==@protonmail.internalid>
+ <20251028004614.393374-11-viro@zeniv.linux.org.uk>
+Date: Wed, 29 Oct 2025 07:18:29 +0100
+Message-ID: <87v7jyfcy2.fsf@t14s.mail-host-address-is-not-set>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain
 
-When validating chain allocator dinode in 'ocfs2_validate_inode_block()',
-add an extra checks whether a) the maximum amount of chain records in
-'struct ocfs2_chain_list' matches the value calculated based on the
-filesystem block size, and b) the next free slot index is within the
-valid range.
+"Al Viro" <viro@zeniv.linux.org.uk> writes:
 
-Reported-by: syzbot+77026564530dbc29b854@syzkaller.appspotmail.com
-Closes: https://syzkaller.appspot.com/bug?extid=77026564530dbc29b854
-Reported-by: syzbot+5054473a31f78f735416@syzkaller.appspotmail.com
-Closes: https://syzkaller.appspot.com/bug?extid=5054473a31f78f735416
-Suggested-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-Signed-off-by: Dmitry Antipov <dmantipov@yandex.ru>
----
- fs/ocfs2/inode.c | 17 +++++++++++++++++
- 1 file changed, 17 insertions(+)
+> These are guaranteed to be empty by the time they are shut down;
+> both are single-instance and there is an internal mount maintained
+> for as long as there is any contents.
+>
+> Both have that internal mount pinned by every object in root.
+>
+> In other words, kill_litter_super() boils down to kill_anon_super()
+> for those.
+>
+> Reviewed-by: Joel Becker <jlbec@evilplan.org>
+> Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 
-diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-index fcc89856ab95..1b6bdd9d7755 100644
---- a/fs/ocfs2/inode.c
-+++ b/fs/ocfs2/inode.c
-@@ -1503,6 +1503,23 @@ int ocfs2_validate_inode_block(struct super_block *sb,
- 		goto bail;
- 	}
- 
-+	if (le32_to_cpu(di->i_flags) & OCFS2_CHAIN_FL) {
-+		struct ocfs2_chain_list *cl = &di->id2.i_chain;
-+
-+		if (le16_to_cpu(cl->cl_count) != ocfs2_chain_recs_per_inode(sb)) {
-+			rc = ocfs2_error(sb, "Invalid dinode %llu: chain list count %u\n",
-+					 (unsigned long long)bh->b_blocknr,
-+					 le16_to_cpu(cl->cl_count));
-+			goto bail;
-+		}
-+		if (le16_to_cpu(cl->cl_next_free_rec) > le16_to_cpu(cl->cl_count)) {
-+			rc = ocfs2_error(sb, "Invalid dinode %llu: chain list index %u\n",
-+					 (unsigned long long)bh->b_blocknr,
-+					 le16_to_cpu(cl->cl_next_free_rec));
-+			goto bail;
-+		}
-+	}
-+
- 	rc = 0;
- 
- bail:
--- 
-2.51.0
+Acked-by: Andreas Hindborg <a.hindborg@kernel.org> (configfs)
+
+Best regards,
+Andreas Hindborg
+
+
+
+
 
