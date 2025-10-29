@@ -1,100 +1,117 @@
-Received: from mail-pj1-f50.google.com (mail-pj1-f50.google.com [209.85.216.50])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id F0270338F54
-	for <ocfs2-devel@lists.linux.dev>; Wed, 29 Oct 2025 14:49:46 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.216.50
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 25E3F2C0F7B;
+	Wed, 29 Oct 2025 14:53:37 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1761749388; cv=none; b=JoZ0DPhJbb6jHnYdgF2JHtByjSDtijSE/IdcfGaMsCzmg2g+LxaqeAcxuobQUQSBr4zS9pXd5xTO7CF7oHJueT1/S0gxI4YQPC+x/qZVNO+5s4pAsRSlr6G6FQxoLk573cbJ+w4eEDtrb1mHFnstB4s/vSGYl8WoeQ56peT9a5E=
+	t=1761749618; cv=none; b=NSoVANkLGskMXfU0iHrLzZ3fzRvHOggDgaAfM26GRVD5K1Zr1zyolyh7e/9Aqsc4Y09Oy9+lhLd4uf5z7k1PaOs+VR0scIDqTdj5wQBkFvKDzIyRhUAat+dhNkkfqSPJhDoFqi/tDTuJAG27Xf/MWfC7j0HoOBjgzp5QJvfE+8I=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1761749388; c=relaxed/simple;
-	bh=N/H9Hc3aJwCtzPmRJOck3fIp82+NkA0LZ9tUFRkG0Bw=;
-	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
-	 To:Cc:Content-Type; b=P9VsZ7V2jUmeG4/Wn9O4Mdy7/YcwYhgyZH0gvpyV58SI+7UARN+33xu1kFBwUXZQGicB13etn8BQiBs8pYQMTe7O9qyDBgHrYvbiLFa9qTfcwT3sq/4H/nzXz20Iuf5AyWkyqFOFU9q3ZNAF+vTQSxQMN+HFDgU1M7ag1QbbW+I=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=paul-moore.com; spf=pass smtp.mailfrom=paul-moore.com; dkim=pass (2048-bit key) header.d=paul-moore.com header.i=@paul-moore.com header.b=IwDY4gsl; arc=none smtp.client-ip=209.85.216.50
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=paul-moore.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=paul-moore.com
+	s=arc-20240116; t=1761749618; c=relaxed/simple;
+	bh=4N52YreIUF0OvAY3AgVuCEeEXHoxvfXQKpRpGqGXt0Y=;
+	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
+	 MIME-Version:Content-Type; b=qTF/08hMBurk2hPwiIPkUZwmEy9OIzZyGfzUNdQj5E0gGxLFwX+tqQp907bMfRzXXyl/gekmuswJXYIETm6t0bFAc454qrV8pVgSrG445q/6IeGFWhm6YGVB85fuoq/lBa1dRg1sAjIp826mzPY8Dbp9LxT4iVr7mngzjE0GAe8=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=d6i+Tpv8; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=paul-moore.com header.i=@paul-moore.com header.b="IwDY4gsl"
-Received: by mail-pj1-f50.google.com with SMTP id 98e67ed59e1d1-32ec291a325so5742508a91.1
-        for <ocfs2-devel@lists.linux.dev>; Wed, 29 Oct 2025 07:49:46 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=paul-moore.com; s=google; t=1761749386; x=1762354186; darn=lists.linux.dev;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=vsfcHn1joSx3FYcBHFCIU4wVQAcpbVHvkEyCsZn4M7g=;
-        b=IwDY4gsl6isqBJGHjjZVFvz/+eA6ag+9zQ0DdjqjuwjAvWXbD9LCQKSVIG7i2o6w+9
-         GOZJsupSW8plIFvIl3LEPBmA8D7PgdNYjPCi7iBAxoyBve1L4Bevb094ED1K4a2eAY5l
-         ng3dNmrHj6h2FGgLWlK3O8FXdE/g6sv2L0U5s4LdhQ/8GN/20AhwCwAv2+PQG9jDHSoT
-         MPGXEmWDxegQZIrZ9Mquwnk7ICPuEOIA3CetHWFtbqs3LTDljqt3QbZA3RmWjase/p6n
-         s/YNCgWB80yKM2pN1BeVFGjAf2Ek16xdWhjQerAPlYxz9ujSsDK9mWE6Mkson27U5mpl
-         AZ+A==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1761749386; x=1762354186;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:x-gm-message-state:from:to:cc
-         :subject:date:message-id:reply-to;
-        bh=vsfcHn1joSx3FYcBHFCIU4wVQAcpbVHvkEyCsZn4M7g=;
-        b=XtbpLVV3Qzhuz5PNgFRTySOeojxSMdllxxtLjt7WRYiMgy5xDkne0vLjb95TRx5ltg
-         5WYN3zfFWV2BSFh7SOBLso8rb4/9FYcpMd3wUYBjaQRr8BLqz6yLgB2pw7JruD5yLxpe
-         UvwuE+SANT12g8LQWu+maCo5cwgpQ3xvDezPLWj7pDx8S5J76Xcs1Vj7eQ2Ba/S59YeL
-         HXpRulLrW9XIMuYDkaveSbFyJJPdPIxIJQcJ1uYY7H13MPDqZix4RXc8bRDcFfWSxFT3
-         ls4jmrObFI/L87YxvHBefZMphIS+5cfF9z2cH0nvvoMw5QODFA79gopxROPH/PMf7wcT
-         3siQ==
-X-Forwarded-Encrypted: i=1; AJvYcCWwM0YHTRwkxFAN1fTRL6pievrgutjOV1mBcqpMzCSZ+x7L9OkshFXW2V3rxRE3nDx6/OA/tyajysGtzQ==@lists.linux.dev
-X-Gm-Message-State: AOJu0YxE1bhUH7YYlFrCwvOgnqBreDyJ98i0uKkFvTXrjvBaGCGZ51Ml
-	IG/kAyWEeaXaIU3g8sbxyr1IDCJRmHVw+tLND9OvcYA3znC8SYeRdYo/aMQe+gZ/FS3VKUaYq7F
-	m/vmeOyAEkRlBsV5bz6YujwHIWGi1oYQf9mt7UiAb
-X-Gm-Gg: ASbGncvGFTHZ5sappY5sIlkBOpsJBIHjXjoYIi/HvWd6ndXqZS/qkGQlORsjNyyDema
-	7b0NXEScx6xNpS7SEFGZ/GG8wpx6WLCQm1Xz1kLo91gGMtmUqZX0cHD/BniI5LSVYbI8p9mPSBV
-	H2RmG6DOwQKTDdGGoNlKMn3vjMu9tDhVoWLo/b7KlggdM91cjlun21nSkyI0minYfeLDtE309TT
-	Y3LXWMT1MuI6mzE+BgT0USINxAdLvLA0hl681JJhUm5vil5j2INRS7Iq5GH
-X-Google-Smtp-Source: AGHT+IHiN2wVay8qKwNUCQNQedszNEqWD+gbH8QhJy+T+EtTl6Gz4GwA6YgaiehmmoZJBoAentF29nQI5J4sc3vsbuw=
-X-Received: by 2002:a17:90a:d64d:b0:32e:5d87:8abc with SMTP id
- 98e67ed59e1d1-3403a302f52mr3761415a91.36.1761749386246; Wed, 29 Oct 2025
- 07:49:46 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="d6i+Tpv8"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 75851C4CEF7;
+	Wed, 29 Oct 2025 14:53:32 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=k20201202; t=1761749617;
+	bh=4N52YreIUF0OvAY3AgVuCEeEXHoxvfXQKpRpGqGXt0Y=;
+	h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
+	b=d6i+Tpv81I+RjXv1z/ZhRypcIVRTtXraq5U9iBWHQnvW+KkPDvGl1y2pSEVEa6fIB
+	 Ln4x6wF3AkfAIwedEj981+iIN+wR6+btNH1aNeYDoUlV+PjuWWLC2qWuazlwsZDUyc
+	 w6JEXBhDvgpuQ5ndnBinokI18XbR2srsXkcfTy4nMLpLT5LYAeO4NgeFX7Rl3DUghg
+	 Y+Yu9YxHcIql1AYDpRrZVpwWLKrTXwOqAs1s25OG2ooUXYEvx3zM1w82Fg077igDaB
+	 eTslPtXRVVOcLbKtU1sdxtLF6P6BiY2N2GMT83pc272G20lW+5PvUy3M8NbUj0mjMG
+	 oZaRyJXLYf5Iw==
+From: Christian Brauner <brauner@kernel.org>
+To: Christoph Hellwig <hch@lst.de>
+Cc: Christian Brauner <brauner@kernel.org>,
+	Alexander Viro <viro@zeniv.linux.org.uk>,
+	Josef Bacik <josef@toxicpanda.com>,
+	Jan Kara <jack@suse.cz>,
+	linux-block@vger.kernel.org,
+	v9fs@lists.linux.dev,
+	linux-btrfs@vger.kernel.org,
+	linux-ext4@vger.kernel.org,
+	linux-fsdevel@vger.kernel.org,
+	jfs-discussion@lists.sourceforge.net,
+	ocfs2-devel@lists.linux.dev,
+	linux-xfs@vger.kernel.org,
+	linux-mm@kvack.org,
+	"Matthew Wilcox (Oracle)" <willy@infradead.org>,
+	Eric Van Hensbergen <ericvh@kernel.org>,
+	Latchesar Ionkov <lucho@ionkov.net>,
+	Dominique Martinet <asmadeus@codewreck.org>,
+	Christian Schoenebeck <linux_oss@crudebyte.com>,
+	Chris Mason <clm@fb.com>,
+	David Sterba <dsterba@suse.com>,
+	Mark Fasheh <mark@fasheh.com>,
+	Joel Becker <jlbec@evilplan.org>,
+	Joseph Qi <joseph.qi@linux.alibaba.com>
+Subject: Re: filemap_* writeback interface cleanups v2
+Date: Wed, 29 Oct 2025 15:53:19 +0100
+Message-ID: <20251029-fahrdienst-klaglos-834e266b8e42@brauner>
+X-Mailer: git-send-email 2.47.3
+In-Reply-To: <20251024080431.324236-1-hch@lst.de>
+References: <20251024080431.324236-1-hch@lst.de>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-References: <20251028004614.393374-1-viro@zeniv.linux.org.uk>
- <20251028004614.393374-36-viro@zeniv.linux.org.uk> <CAHC9VhRQNmPZ3Sz496WPgQp-OkijiF7GgmHuR+=Kn3qBE6nj6Q@mail.gmail.com>
- <20251029032404.GQ2441659@ZenIV>
-In-Reply-To: <20251029032404.GQ2441659@ZenIV>
-From: Paul Moore <paul@paul-moore.com>
-Date: Wed, 29 Oct 2025 10:49:34 -0400
-X-Gm-Features: AWmQ_bkw5gzRbiAC20oxF8nOixccAI_lXABYmuYCSfnezye7FZYc2Gs15NqnG0I
-Message-ID: <CAHC9VhRefx4MBDU78Qob7Pe2pDLK=1HK4b2EuTtENVssntHecQ@mail.gmail.com>
-Subject: Re: [PATCH v2 35/50] convert selinuxfs
-To: Al Viro <viro@zeniv.linux.org.uk>
-Cc: linux-fsdevel@vger.kernel.org, torvalds@linux-foundation.org, 
-	brauner@kernel.org, jack@suse.cz, raven@themaw.net, miklos@szeredi.hu, 
-	neil@brown.name, a.hindborg@kernel.org, linux-mm@kvack.org, 
-	linux-efi@vger.kernel.org, ocfs2-devel@lists.linux.dev, kees@kernel.org, 
-	rostedt@goodmis.org, gregkh@linuxfoundation.org, linux-usb@vger.kernel.org, 
-	casey@schaufler-ca.com, linuxppc-dev@lists.ozlabs.org, 
-	john.johansen@canonical.com, selinux@vger.kernel.org, 
-	borntraeger@linux.ibm.com, bpf@vger.kernel.org
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset="utf-8"
+X-Developer-Signature: v=1; a=openpgp-sha256; l=2522; i=brauner@kernel.org; h=from:subject:message-id; bh=4N52YreIUF0OvAY3AgVuCEeEXHoxvfXQKpRpGqGXt0Y=; b=owGbwMvMwCU28Zj0gdSKO4sYT6slMWQyaaVPuJ+i9m4br2nk2mOv3Hiqzuq8kEi/LX5pZ5Jpp 1hLQ0l0RykLgxgXg6yYIotDu0m43HKeis1GmRowc1iZQIYwcHEKwESObmZkePvsGoekGs9rdpbt ZmmmOZrb/hx/6K49NePTtSDdi8HVvIwMl5ZenxV508LqDt+pO5cidkrwHHy3v/970ayNXZffekh 4MAEA
+X-Developer-Key: i=brauner@kernel.org; a=openpgp; fpr=4880B8C9BD0E5106FC070F4F7B3C391EFEA93624
+Content-Transfer-Encoding: 8bit
 
-On Tue, Oct 28, 2025 at 11:24=E2=80=AFPM Al Viro <viro@zeniv.linux.org.uk> =
-wrote:
-> On Tue, Oct 28, 2025 at 08:02:39PM -0400, Paul Moore wrote:
->
-> > I suppose the kill_litter_super()->kill_anon_super() should probably
-> > be pulled out into another patch as it's not really related to the
-> > d_make_persistent() change,
->
-> It very much is related - anything persistent left at ->kill_sb() time
-> will be taken out by generic_shutdown_super().  If all pinned objects
-> in there are marked persistent, kill_litter_super() becomes equivalent
-> to kill_anon_super() for that fs.
+On Fri, 24 Oct 2025 10:04:11 +0200, Christoph Hellwig wrote:
+> while looking at the filemap writeback code, I think adding
+> filemap_fdatawrite_wbc ended up being a mistake, as all but the original
+> btrfs caller should be using better high level interfaces instead.  This
+> series removes all these, switches btrfs to a more specific interfaces
+> and also cleans up another too low-level interface.  With this the
+> writeback_control that is passed to the writeback code is only
+> initialized in three places, although there are a lot more places in
+> file system code that never reach the common writeback code.
+> 
+> [...]
 
-Gotcha, thanks.
+Applied to the vfs-6.19.writeback branch of the vfs/vfs.git tree.
+Patches in the vfs-6.19.writeback branch should appear in linux-next soon.
 
---=20
-paul-moore.com
+Please report any outstanding bugs that were missed during review in a
+new review to the original patch series allowing us to drop it.
+
+It's encouraged to provide Acked-bys and Reviewed-bys even though the
+patch has now been applied. If possible patch trailers will be updated.
+
+Note that commit hashes shown below are subject to change due to rebase,
+trailer updates or similar. If in doubt, please check the listed branch.
+
+tree:   https://git.kernel.org/pub/scm/linux/kernel/git/vfs/vfs.git
+branch: vfs-6.19.writeback
+
+[01/10] mm: don't opencode filemap_fdatawrite_range in filemap_invalidate_inode
+        https://git.kernel.org/vfs/vfs/c/a21134b5d6cb
+[02/10] 9p: don't opencode filemap_fdatawrite_range in v9fs_mmap_vm_close
+        https://git.kernel.org/vfs/vfs/c/3c2e5cee5eb3
+[03/10] ocfs2: don't opencode filemap_fdatawrite_range in ocfs2_journal_submit_inode_data_buffers
+        https://git.kernel.org/vfs/vfs/c/890f141da068
+[04/10] btrfs: use the local tmp_inode variable in start_delalloc_inodes
+        https://git.kernel.org/vfs/vfs/c/41e52c644753
+[05/10] btrfs: push struct writeback_control into start_delalloc_inodes
+        https://git.kernel.org/vfs/vfs/c/c9501112e3cb
+[06/10] mm,btrfs: add a filemap_flush_nr helper
+        https://git.kernel.org/vfs/vfs/c/7fabcb7fbabb
+[07/10] mm: remove __filemap_fdatawrite
+        https://git.kernel.org/vfs/vfs/c/735965144806
+[08/10] mm: remove filemap_fdatawrite_wbc
+        https://git.kernel.org/vfs/vfs/c/1bcb413d0cd8
+[09/10] mm: remove __filemap_fdatawrite_range
+        https://git.kernel.org/vfs/vfs/c/45cbce5b8877
+[10/10] mm: rename filemap_fdatawrite_range_kick to filemap_flush_range
+        https://git.kernel.org/vfs/vfs/c/c28d67b33cbf
