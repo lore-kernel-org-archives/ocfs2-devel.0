@@ -1,117 +1,111 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-yx1-f47.google.com (mail-yx1-f47.google.com [74.125.224.47])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 25E3F2C0F7B;
-	Wed, 29 Oct 2025 14:53:37 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7650822A4D6
+	for <ocfs2-devel@lists.linux.dev>; Wed, 29 Oct 2025 15:02:17 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=74.125.224.47
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1761749618; cv=none; b=NSoVANkLGskMXfU0iHrLzZ3fzRvHOggDgaAfM26GRVD5K1Zr1zyolyh7e/9Aqsc4Y09Oy9+lhLd4uf5z7k1PaOs+VR0scIDqTdj5wQBkFvKDzIyRhUAat+dhNkkfqSPJhDoFqi/tDTuJAG27Xf/MWfC7j0HoOBjgzp5QJvfE+8I=
+	t=1761750138; cv=none; b=kdXM9UutDrFEWyy6Si83H2Bw+bmfsgYnj1trM1vCn+gWC/HTfIfBq7PpjNh5CSjKtlAZGITU8behg6Tf/V/9NHGkxjJIKvTtaix3hPDIVMTZBM2BHQ0Ac57HRkKO6nN9cWe3ZaE+ELfnJ7Ef3p5U6Bff9ypHQNGcy55z83ihGQE=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1761749618; c=relaxed/simple;
-	bh=4N52YreIUF0OvAY3AgVuCEeEXHoxvfXQKpRpGqGXt0Y=;
-	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version:Content-Type; b=qTF/08hMBurk2hPwiIPkUZwmEy9OIzZyGfzUNdQj5E0gGxLFwX+tqQp907bMfRzXXyl/gekmuswJXYIETm6t0bFAc454qrV8pVgSrG445q/6IeGFWhm6YGVB85fuoq/lBa1dRg1sAjIp826mzPY8Dbp9LxT4iVr7mngzjE0GAe8=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=d6i+Tpv8; arc=none smtp.client-ip=10.30.226.201
+	s=arc-20240116; t=1761750138; c=relaxed/simple;
+	bh=EtUhswymVMQHOpqsxRbh1N0WNlqbwva0l0wUNZ1mOXs=;
+	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
+	 To:Cc:Content-Type; b=alwTLDtjRwDhKJay/6xz8ttqCLtE6W6ZZM6dXvXjkmtqwdpCY55C3zk+/6jFAMvV5W8LdXsa5iZUh33xqXJduSt2VN5XDgDS/MISyVuuTfvMab8UM8cI8x7VOHmd+V+i48fNWtHcFpRIS43mqCMiFEArkTSAMa/TGXkYOrU+ya0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=BpnnEsnY; arc=none smtp.client-ip=74.125.224.47
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="d6i+Tpv8"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 75851C4CEF7;
-	Wed, 29 Oct 2025 14:53:32 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1761749617;
-	bh=4N52YreIUF0OvAY3AgVuCEeEXHoxvfXQKpRpGqGXt0Y=;
-	h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-	b=d6i+Tpv81I+RjXv1z/ZhRypcIVRTtXraq5U9iBWHQnvW+KkPDvGl1y2pSEVEa6fIB
-	 Ln4x6wF3AkfAIwedEj981+iIN+wR6+btNH1aNeYDoUlV+PjuWWLC2qWuazlwsZDUyc
-	 w6JEXBhDvgpuQ5ndnBinokI18XbR2srsXkcfTy4nMLpLT5LYAeO4NgeFX7Rl3DUghg
-	 Y+Yu9YxHcIql1AYDpRrZVpwWLKrTXwOqAs1s25OG2ooUXYEvx3zM1w82Fg077igDaB
-	 eTslPtXRVVOcLbKtU1sdxtLF6P6BiY2N2GMT83pc272G20lW+5PvUy3M8NbUj0mjMG
-	 oZaRyJXLYf5Iw==
-From: Christian Brauner <brauner@kernel.org>
-To: Christoph Hellwig <hch@lst.de>
-Cc: Christian Brauner <brauner@kernel.org>,
-	Alexander Viro <viro@zeniv.linux.org.uk>,
-	Josef Bacik <josef@toxicpanda.com>,
-	Jan Kara <jack@suse.cz>,
-	linux-block@vger.kernel.org,
-	v9fs@lists.linux.dev,
-	linux-btrfs@vger.kernel.org,
-	linux-ext4@vger.kernel.org,
-	linux-fsdevel@vger.kernel.org,
-	jfs-discussion@lists.sourceforge.net,
-	ocfs2-devel@lists.linux.dev,
-	linux-xfs@vger.kernel.org,
-	linux-mm@kvack.org,
-	"Matthew Wilcox (Oracle)" <willy@infradead.org>,
-	Eric Van Hensbergen <ericvh@kernel.org>,
-	Latchesar Ionkov <lucho@ionkov.net>,
-	Dominique Martinet <asmadeus@codewreck.org>,
-	Christian Schoenebeck <linux_oss@crudebyte.com>,
-	Chris Mason <clm@fb.com>,
-	David Sterba <dsterba@suse.com>,
-	Mark Fasheh <mark@fasheh.com>,
-	Joel Becker <jlbec@evilplan.org>,
-	Joseph Qi <joseph.qi@linux.alibaba.com>
-Subject: Re: filemap_* writeback interface cleanups v2
-Date: Wed, 29 Oct 2025 15:53:19 +0100
-Message-ID: <20251029-fahrdienst-klaglos-834e266b8e42@brauner>
-X-Mailer: git-send-email 2.47.3
-In-Reply-To: <20251024080431.324236-1-hch@lst.de>
-References: <20251024080431.324236-1-hch@lst.de>
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="BpnnEsnY"
+Received: by mail-yx1-f47.google.com with SMTP id 956f58d0204a3-63d97bcb898so62046d50.0
+        for <ocfs2-devel@lists.linux.dev>; Wed, 29 Oct 2025 08:02:17 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20230601; t=1761750136; x=1762354936; darn=lists.linux.dev;
+        h=cc:to:subject:message-id:date:from:in-reply-to:references
+         :mime-version:from:to:cc:subject:date:message-id:reply-to;
+        bh=EpOjZgm2V4L8ELcigzO9YtF8ftHrknnJRbCrky8ghSI=;
+        b=BpnnEsnYMU/fbLVkCp0VmYGELR+NAnsMtUC3AVPR7z6xYHO3IrK7kFtIch8bqeTsn1
+         9r7Y5HXU8DAQlVBT2C3vlVRwy0ZHo4pbhRgLwH105Gs0/akMm8efWZmFvEjg5jEsGMI5
+         +fLZZxqODLzb0tOFr5r5emjCUtCOZg5ur8F0/xOzOXt9a5agDHIsDxD7hr062R75cbTg
+         zgRrZ+v60VZvrTwDhgY/E5qJKGcGVXav4O26MWv9EX+skILL+i5ZD6/NXHzxEzveXm40
+         71MgR6Ls+STtu7SP3d1+tAF+bDomnCznryYuxTVl3ItDzBkvVAUQOtW0w55jb13AgPgp
+         NQXA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1761750136; x=1762354936;
+        h=cc:to:subject:message-id:date:from:in-reply-to:references
+         :mime-version:x-gm-message-state:from:to:cc:subject:date:message-id
+         :reply-to;
+        bh=EpOjZgm2V4L8ELcigzO9YtF8ftHrknnJRbCrky8ghSI=;
+        b=RZwOJWy+GYcXK3yIX+xlGQ0TI1jYD4zPcnkCp1muPYCnCeZIcxOFtCtt8lAcbqm22O
+         6/lY+ZD0oyHxZc2oTvw5odvGH2RVQ2Z4SRSIwoOF8/pX+Ns+XijY5nEbgSP6KmhUhqI8
+         4Vv4VTTi2TAK6FCYm1iFGTCCigLYH9asH0B6cLkwOGnz6sk6809a0AOyVYIvcgYVlF4t
+         ca0niEUpTlREbCHGzr3NGgFeGCELMlwZ6YhrunXOj7Cgh/CHUZ5GLFy6XNFK4PtP2eTh
+         1UnJKXk+aEVEAFmajMgV0Ck1iU+L8mTcMANoKFEyXypwElKdWMpd+RoDu2jf7Oc1GCq1
+         MZog==
+X-Forwarded-Encrypted: i=1; AJvYcCV++5goCeFYDd2BAlqfv5V164VaQhD2ZPPHr4fTOT0UFC39wsA1qm8LVYKBT+hy95VPw2fBHWlzO9QNyw==@lists.linux.dev
+X-Gm-Message-State: AOJu0YyI7TRY6n5M0ALcG74dZseI54i197SEbysPiXFxgsFqK84CFYE0
+	OXSIPxd16XhFQZ5jZ6+SctyZWpuaCYYjZQwKZBfNVGsaxnyTYGzuIdxud5irkXXdethzyhppRb4
+	HkNRlSquo0vufta6apOKswR2DnQ3uerE=
+X-Gm-Gg: ASbGncsKomAAjuheGEQoOoX3Lrn53hqkTWJyMqOiHWmpw1IGz2xhgq3Ahd4/MLSobXT
+	atfu7sg5XiwE8RhH+gsg7FP95m//E5xMHvucZjNdDc92+qb9rQqeoZwl/O3g3c/DnM0nqUmsKwE
+	KSWBA/OD/tuQdrp3siCkwVh5R9CtQTjfy4wlg0Pj+FYkn2voNZoCl+08ttMVa3cMS576h9q5UWY
+	BkZ29OwPMFSBHbM2fzhehM5W/wWtsKCnGi8gfNRykWwt/UVO0KNvhw/smn4w6XSGbaEpmnkZMse
+	OImSxrsyO+ddTP2GxQ==
+X-Google-Smtp-Source: AGHT+IFAJzl5v9GfpcorgskAIw0N+sbQsVmVk5qMk26i6GHpKnzhmIFtR14lUA8CotmhIkiQgzMOeZvu1/s9UCthEH4=
+X-Received: by 2002:a05:690e:155c:20b0:63f:3ea7:34f4 with SMTP id
+ 956f58d0204a3-63f6c6a955bmr4871405d50.28.1761750136042; Wed, 29 Oct 2025
+ 08:02:16 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-X-Developer-Signature: v=1; a=openpgp-sha256; l=2522; i=brauner@kernel.org; h=from:subject:message-id; bh=4N52YreIUF0OvAY3AgVuCEeEXHoxvfXQKpRpGqGXt0Y=; b=owGbwMvMwCU28Zj0gdSKO4sYT6slMWQyaaVPuJ+i9m4br2nk2mOv3Hiqzuq8kEi/LX5pZ5Jpp 1hLQ0l0RykLgxgXg6yYIotDu0m43HKeis1GmRowc1iZQIYwcHEKwESObmZkePvsGoekGs9rdpbt ZmmmOZrb/hx/6K49NePTtSDdi8HVvIwMl5ZenxV508LqDt+pO5cidkrwHHy3v/970ayNXZffekh 4MAEA
-X-Developer-Key: i=brauner@kernel.org; a=openpgp; fpr=4880B8C9BD0E5106FC070F4F7B3C391EFEA93624
-Content-Transfer-Encoding: 8bit
+References: <9461385f-235d-40fc-8da6-b1f2dfb47d6c@linux.alibaba.com>
+ <20251029055338.1192000-1-dmantipov@yandex.ru> <20251029055338.1192000-2-dmantipov@yandex.ru>
+ <632f9f46-785d-4da9-a422-546fe3d91af3@linux.alibaba.com> <523f1272-8bf8-41d4-afb1-36a7ceb11494@yandex.ru>
+In-Reply-To: <523f1272-8bf8-41d4-afb1-36a7ceb11494@yandex.ru>
+From: Deepanshu Kartikey <kartikey406@gmail.com>
+Date: Wed, 29 Oct 2025 20:32:03 +0530
+X-Gm-Features: AWmQ_bnQNvM9ISUhmXuRIJo2fyxeSKUb6i7sy6N9sFbQj-uIe8E_7aysaq27MoQ
+Message-ID: <CADhLXY7Uy-y8gAtXD1=xmc_UBocVci1z-nE17iA7q-y01Y_WFw@mail.gmail.com>
+Subject: Re: [PATCH 2/2] ocfs2: validate cl_bpc in allocator inodes to prevent divide-by-zero
+To: Dmitry Antipov <dmantipov@yandex.ru>
+Cc: Joseph Qi <joseph.qi@linux.alibaba.com>, akpm <akpm@linux-foundation.org>, 
+	Heming Zhao <heming.zhao@suse.com>, Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, 
+	ocfs2-devel@lists.linux.dev, lvc-project@linuxtesting.org, 
+	syzbot+fd8af97c7227fe605d95@syzkaller.appspotmail.com
+Content-Type: text/plain; charset="UTF-8"
 
-On Fri, 24 Oct 2025 10:04:11 +0200, Christoph Hellwig wrote:
-> while looking at the filemap writeback code, I think adding
-> filemap_fdatawrite_wbc ended up being a mistake, as all but the original
-> btrfs caller should be using better high level interfaces instead.  This
-> series removes all these, switches btrfs to a more specific interfaces
-> and also cleans up another too low-level interface.  With this the
-> writeback_control that is passed to the writeback code is only
-> initialized in three places, although there are a lot more places in
-> file system code that never reach the common writeback code.
-> 
-> [...]
+Hi Dmitry,
 
-Applied to the vfs-6.19.writeback branch of the vfs/vfs.git tree.
-Patches in the vfs-6.19.writeback branch should appear in linux-next soon.
+Thank you for catching this issue! Since this validation was originally my
+contribution, I'd like to help fix it.
 
-Please report any outstanding bugs that were missed during review in a
-new review to the original patch series allowing us to drop it.
+To debug this properly, I need some information:
 
-It's encouraged to provide Acked-bys and Reviewed-bys even though the
-patch has now been applied. If possible patch trailers will be updated.
+1. When you run `mkfs.ocfs2 -b 512`, what value does it actually write
+   for cl_bpc on disk? The error shows "bits per cluster 1" but our
+   calculation expects 8 (4096/512). Is the on-disk value really 1, or
+   is there something wrong with how we're reading it?
 
-Note that commit hashes shown below are subject to change due to rebase,
-trailer updates or similar. If in doubt, please check the listed branch.
+2. Could you share the complete error output with the expected value?
+   The current message only shows the on-disk value, but it would help
+   to see what our calculation produced.
 
-tree:   https://git.kernel.org/pub/scm/linux/kernel/git/vfs/vfs.git
-branch: vfs-6.19.writeback
+3. For reference, what are the cluster size and block size settings
+   being used in your test? (e.g., 4KB clusters with 512-byte blocks?)
 
-[01/10] mm: don't opencode filemap_fdatawrite_range in filemap_invalidate_inode
-        https://git.kernel.org/vfs/vfs/c/a21134b5d6cb
-[02/10] 9p: don't opencode filemap_fdatawrite_range in v9fs_mmap_vm_close
-        https://git.kernel.org/vfs/vfs/c/3c2e5cee5eb3
-[03/10] ocfs2: don't opencode filemap_fdatawrite_range in ocfs2_journal_submit_inode_data_buffers
-        https://git.kernel.org/vfs/vfs/c/890f141da068
-[04/10] btrfs: use the local tmp_inode variable in start_delalloc_inodes
-        https://git.kernel.org/vfs/vfs/c/41e52c644753
-[05/10] btrfs: push struct writeback_control into start_delalloc_inodes
-        https://git.kernel.org/vfs/vfs/c/c9501112e3cb
-[06/10] mm,btrfs: add a filemap_flush_nr helper
-        https://git.kernel.org/vfs/vfs/c/7fabcb7fbabb
-[07/10] mm: remove __filemap_fdatawrite
-        https://git.kernel.org/vfs/vfs/c/735965144806
-[08/10] mm: remove filemap_fdatawrite_wbc
-        https://git.kernel.org/vfs/vfs/c/1bcb413d0cd8
-[09/10] mm: remove __filemap_fdatawrite_range
-        https://git.kernel.org/vfs/vfs/c/45cbce5b8877
-[10/10] mm: rename filemap_fdatawrite_range_kick to filemap_flush_range
-        https://git.kernel.org/vfs/vfs/c/c28d67b33cbf
+4. Do you have access to the filesystem image or can dump the on-disk
+   structures with debugfs.ocfs2?
+
+I suspect either:
+- Our calculation is wrong for non-4KB block sizes
+- The cl_bpc field is stored/interpreted differently than we think
+- We need to validate differently (range check vs exact match)
+
+I'd like to investigate this and send a fix. Let me know what additional
+information you have, or I can create test filesystems with different
+block sizes and debug it myself.
+
+Thanks,
+Deepanshu
