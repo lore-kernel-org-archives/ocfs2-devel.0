@@ -1,76 +1,90 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-yw1-f171.google.com (mail-yw1-f171.google.com [209.85.128.171])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id EBF622F6599;
-	Wed, 29 Oct 2025 06:18:53 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 225A22264D5
+	for <ocfs2-devel@lists.linux.dev>; Wed, 29 Oct 2025 06:26:32 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.171
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1761718734; cv=none; b=p1vj7Tj0eTCbg7tnNpMmpzi0D1pdF+YIhHOYHeqvcsMpAfvMiOc4flEf1tWqV736QSqUawqXA+Yui2MiOkxdDPs7MXyCZh07uJDzDz8Rw/ibwRkKz1GcDNMWJTITKiGoxDdwQPg7wa6eR2hPywDNyy8pY1w2VGKuASFNbmGKBOg=
+	t=1761719194; cv=none; b=p+YIVgi3PryqubBVdyii2tzKUV5D4U7VwrwfRZTd30CxHmel96/tdI2MByAmYiA1oUj1vN4fNVQmY/8L5yni3GvWX8oziQ/id0Hqo0gA6e+hszb3UOBqtfFXyCjMgi5NjcQIEl8W+UWyc5fRVg11r8gT24Q45qqsDmRp1iczLME=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1761718734; c=relaxed/simple;
-	bh=sNwUDE3GpjZgRRxK39FIaAoWLzOItBsyKBeQQ57qbFM=;
-	h=From:To:Cc:Subject:In-Reply-To:References:Date:Message-ID:
-	 MIME-Version:Content-Type; b=rVCPJKIC0KAdiCV+gYoDrqDGI6YvvsgFUEFSMIRgcNehTbIfVvspLXGW/uYec3BpstUldfxtymNQKkO97wRq1/SvjkcxGgIXXqnHJXtOXAJUY1nhGaTa4X16WjwmFQPGHjLOgdOM7Hx3kBiolDj22xPmiUtttY1wuB6YNbhzLZA=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=Rk+6qLII; arc=none smtp.client-ip=10.30.226.201
+	s=arc-20240116; t=1761719194; c=relaxed/simple;
+	bh=NhtgJ4hpH0NlSvrusEx8JKVl/ABVPRZwnP/6fBxJBU8=;
+	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
+	 To:Cc:Content-Type; b=oEELlWAwPAyDvVZ9nCZY7DTVyOv7QILezL3RObaWs6mrkp18q+mwJh0Pf6yz5CgTQzr8/JYjKX6d4ZcPLCvJ/hCyfjfAHeTvj5AVIj15jMsaxTDaARB5dQC/aCdmQLTUVs6lUQF/DCUgUeO9hG8R6vK5i/i0JeYEDKPlOfnaH/0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=e6HFT2EU; arc=none smtp.client-ip=209.85.128.171
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="Rk+6qLII"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 92541C4CEF7;
-	Wed, 29 Oct 2025 06:18:47 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1761718733;
-	bh=sNwUDE3GpjZgRRxK39FIaAoWLzOItBsyKBeQQ57qbFM=;
-	h=From:To:Cc:Subject:In-Reply-To:References:Date:From;
-	b=Rk+6qLII7dhXKc90DR7x0yOEvODjOW/vGOClfgVuFKE3QWXEzLxdfMqDCeOj2aCQC
-	 Af7tFpcn1bA5YqBuP1vrNitK3sm7hW3KrYUEiQ3uUVlPgDiReiQJI+4PU5WchW6eKG
-	 /h6vzvh0y93wx4HdCp/Guuc6ZBoGwAMJ5nQwd9g2jF4j4MbCDnBXz63JsAb0YVujnH
-	 RPaDTnOSvsJkgMOZTcApLHzlog5soPtmuQGsnj9HF4Ql6o+0V30MAVN0BZ3P8otsW+
-	 JyjsA3LXvuXmXdm+mAmvjC3CctniwC/hpFVHFmdzVIxYrqzOgGJawmQ9zcv0wDagWd
-	 vR1pv53KN6RGw==
-From: Andreas Hindborg <a.hindborg@kernel.org>
-To: Al Viro <viro@zeniv.linux.org.uk>, linux-fsdevel@vger.kernel.org
-Cc: torvalds@linux-foundation.org, brauner@kernel.org, jack@suse.cz,
- raven@themaw.net, miklos@szeredi.hu, neil@brown.name, linux-mm@kvack.org,
- linux-efi@vger.kernel.org, ocfs2-devel@lists.linux.dev, kees@kernel.org,
- rostedt@goodmis.org, gregkh@linuxfoundation.org,
- linux-usb@vger.kernel.org, paul@paul-moore.com, casey@schaufler-ca.com,
- linuxppc-dev@lists.ozlabs.org, john.johansen@canonical.com,
- selinux@vger.kernel.org, borntraeger@linux.ibm.com, bpf@vger.kernel.org
-Subject: Re: [PATCH v2 10/50] configfs, securityfs: kill_litter_super() not
- needed
-In-Reply-To: <20251028004614.393374-11-viro@zeniv.linux.org.uk>
-References: <20251028004614.393374-1-viro@zeniv.linux.org.uk>
- <iNj77i-tfrdVv9HEpIj_AzJNAUOKdPKNfNsGxMAfclR7sy-qVQBLpolv7Wgpmckad9w4QJXyH36_g88ejY-xpg==@protonmail.internalid>
- <20251028004614.393374-11-viro@zeniv.linux.org.uk>
-Date: Wed, 29 Oct 2025 07:18:29 +0100
-Message-ID: <87v7jyfcy2.fsf@t14s.mail-host-address-is-not-set>
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="e6HFT2EU"
+Received: by mail-yw1-f171.google.com with SMTP id 00721157ae682-784966ad073so86868467b3.1
+        for <ocfs2-devel@lists.linux.dev>; Tue, 28 Oct 2025 23:26:32 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20230601; t=1761719192; x=1762323992; darn=lists.linux.dev;
+        h=cc:to:subject:message-id:date:from:in-reply-to:references
+         :mime-version:from:to:cc:subject:date:message-id:reply-to;
+        bh=QDF5Imk0wQgp4Kj5CR5fnsrS5T7uQ8SxpT67VhH9w/o=;
+        b=e6HFT2EUQgfNDjpyG0kuSJdFuIifwuIl/Hwvi88bh7ZsTIwsvnK0lGU0vO8DGKEJeq
+         O5hpjyo0wXg4zdM+HUtuUPBRzZsLRPR2UeCAtx/xM1uVwfXqLmhL6AkVo3gk0m5PJzdF
+         Z/1CuPw96f0hX3jUyGB9iwle1alWnUrLBzTZN12Z0RMFlOm3iRBrJnrKXluELJ6zpXEY
+         O9nTNnkvHI4W1+qkbd2+1K/COV5BmsVLKhWVDahB/TnyAEf8d1ST7KBoh4AcdgmrGlF+
+         YsOs5pUyxkZ4iV/yHnvUtNWCNeNxw59lZS3y1AQG9JWmd/esMyS20hA91kilysKOxqKa
+         C0TA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1761719192; x=1762323992;
+        h=cc:to:subject:message-id:date:from:in-reply-to:references
+         :mime-version:x-gm-message-state:from:to:cc:subject:date:message-id
+         :reply-to;
+        bh=QDF5Imk0wQgp4Kj5CR5fnsrS5T7uQ8SxpT67VhH9w/o=;
+        b=IBFXP58ztHMoyfdajGuLji2wBgaCKc0+HlL6620h7mtPS4hpt9J9Dzd4bUixDp3ynq
+         r5lTgu9X5q293hLzcfMop+PrKQQImfi+rsCdQyNt5595UYPAzcv90lpmdbg9whakQLNp
+         /lr15UI6v1oVHloAmMDHis5hTqO3LgfXdUxP5zjrFAHfNrsUia285FDxtpnou3/fnE/V
+         ztt8sHmk1xQkIG5pxuzULq34fi08rtscTL5GwKc///vjOyZADrRFWrs2BirEnoNVsyig
+         hI9AxlxiTGASIV8AJlsrys3lwTbYNHm6+RemLUXk6lq46YKbyYE1tlwityWFUjY1/5j7
+         uY4g==
+X-Forwarded-Encrypted: i=1; AJvYcCV7j2/tt1h0gYNqwwqsUtm5FYHs94VYx2svDx4BeIvuC3H3qHcmxSjJDNpck6EyVmGivEzKX3tc+mz9/w==@lists.linux.dev
+X-Gm-Message-State: AOJu0YyJ03UhpdB6svwugA0DJxcfbrAizOJt2GYEne0XsP0lza0vsPD5
+	nxNULRSfsGkKUdQBpNTcXx9/Zi9MRgRRfLgX63UT94weac++q3eh7I7GbJaqZAC/Tgpx3MXZD1z
+	srgjxtipLbcnICzLhUZuPDb33vuFB+c8=
+X-Gm-Gg: ASbGncuVIrCKxSpKI78H3Q2SZTZTu/yjgpTjsZ9U2q9ZnQ6yU3s/uQNKzbPF2YdFxRC
+	C4yG9GsyApUz+K+355G7n5tBD7ARi+OCUmEqapMYKfhP7u4wq+EBAA+RFQZxBC8MV4GUanzS7K/
+	dU4soTShxt+tutKNJiDUIVie30dTR1JPwL6BE27dEz++2kc2bzEFUcwygRyThXI78Vlf8gIaQ3V
+	HgT/F03i3QH3033dOavey6o+qEMR1GwB85jnqODOqyAb9OnJB0JibISk7Iw6+HIZGp/ZLDCnNmb
+	pQKTbnnOZb64jFv+sg==
+X-Google-Smtp-Source: AGHT+IGuER6xdb7kIgTZnYnKFAqkmSzlHxXNgqTbBTBhg9kQwL2OAFigNW3w5ec3cEi0LulJDAszj5Sp7dUAJEVRAEE=
+X-Received: by 2002:a05:690c:6205:b0:783:68bd:4fbb with SMTP id
+ 00721157ae682-78628ea4e27mr16680947b3.31.1761719191848; Tue, 28 Oct 2025
+ 23:26:31 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Type: text/plain
+References: <9461385f-235d-40fc-8da6-b1f2dfb47d6c@linux.alibaba.com>
+ <20251029055338.1192000-1-dmantipov@yandex.ru> <20251029055338.1192000-2-dmantipov@yandex.ru>
+In-Reply-To: <20251029055338.1192000-2-dmantipov@yandex.ru>
+From: Deepanshu Kartikey <kartikey406@gmail.com>
+Date: Wed, 29 Oct 2025 11:56:20 +0530
+X-Gm-Features: AWmQ_blyv0Zv3Mjicsaq0DYDULkCgJ6fW-IHq43VpyQ0CNSuaFLPARYmh6W4isk
+Message-ID: <CADhLXY5pOn-URoQs10X6R_WHFJG64AFOPNQaoHPbH_7r_8OG_A@mail.gmail.com>
+Subject: Re: [PATCH 2/2] ocfs2: validate cl_bpc in allocator inodes to prevent divide-by-zero
+To: Dmitry Antipov <dmantipov@yandex.ru>
+Cc: Joseph Qi <joseph.qi@linux.alibaba.com>, Heming Zhao <heming.zhao@suse.com>, 
+	Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@lists.linux.dev, 
+	lvc-project@linuxtesting.org, 
+	syzbot+fd8af97c7227fe605d95@syzkaller.appspotmail.com
+Content-Type: text/plain; charset="UTF-8"
 
-"Al Viro" <viro@zeniv.linux.org.uk> writes:
+Hi Dmitry,
 
-> These are guaranteed to be empty by the time they are shut down;
-> both are single-instance and there is an internal mount maintained
-> for as long as there is any contents.
->
-> Both have that internal mount pinned by every object in root.
->
-> In other words, kill_litter_super() boils down to kill_anon_super()
-> for those.
->
-> Reviewed-by: Joel Becker <jlbec@evilplan.org>
-> Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
-
-Acked-by: Andreas Hindborg <a.hindborg@kernel.org> (configfs)
-
-Best regards,
-Andreas Hindborg
+Thanks for combining the patches! The series looks good overall.  One
+suggestion: Would it be possible to display both the corrupted and
+expected values in the error message?
+Like: "Invalid dinode %llu: bits per cluster %u, expected %u\n" . This
+would help administrators understand what the correct value should be,
+which is especially useful during fsck operations. Everything else
+looks great!
 
 
-
-
-
+Thanks,
+Deepanshu
