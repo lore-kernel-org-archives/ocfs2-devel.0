@@ -1,72 +1,72 @@
-Received: from mail-pj1-f51.google.com (mail-pj1-f51.google.com [209.85.216.51])
+Received: from mail-pj1-f52.google.com (mail-pj1-f52.google.com [209.85.216.52])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A6BDA2E265A
-	for <ocfs2-devel@lists.linux.dev>; Wed, 29 Oct 2025 15:07:11 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.216.51
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C44DC2FFFA9
+	for <ocfs2-devel@lists.linux.dev>; Wed, 29 Oct 2025 15:19:51 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.216.52
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1761750433; cv=none; b=CL+CoFyRavfYNwRp/q3hlj8ZlgXuGNIa8EXPcQ5+JZDNxnCyxMSHbuGKFMg56WfCKyqg6WTCALCCZfxBhXjZaw2oS86ylfH8xnNVIXmu3gpt48W8rEjdy43p2SHcyQEBnQoi2kp9XjP4eKQJn7ixWSzWTOj6koqqrgI3wyFYOBM=
+	t=1761751193; cv=none; b=nAvepE2KitMzLcwM0Ct3EQO5CNvv3AnUaOllTUALi/QnXdqtj6swaNKNpP1eBGn83jbwKf14yobLr8bqIzo/JesBz5p5vulX9z3IlB4OI9C8h7GlszaSKyA1Niy7oi+jZFbpnV7pE2sWpN6lpgYfKvT8z5FL8L+ZVS4G9H1haUI=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1761750433; c=relaxed/simple;
-	bh=f8Fhr45tAG7sziLg9U37nK1+JBvIXcz4AelF+jGe5oE=;
+	s=arc-20240116; t=1761751193; c=relaxed/simple;
+	bh=XmlYQpf2O8iYK7QwAPdhC5O4544PeopBai3GSa1C/lk=;
 	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
-	 To:Cc:Content-Type; b=LsGm7j2CgvIPppU+wqMNSB3FiF3QqN/4r8JgLmRcmJKxpZrPCYuU/mIiuih6VrwVeISn+MhUkWFTRdWTxx7SIMt8JG5Hqj0nMXBZf/A71S4BBZIt3BmUc13cLSck2JEp3bfJAKqtraESkBr5xuhJfVhjoVGjXN1zXVe/ZIAS620=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=j2eCXAQJ; arc=none smtp.client-ip=209.85.216.51
+	 To:Cc:Content-Type; b=TWJ7p7zqlknrJi7zi4bug2rOaQGVnzsa6IG/kUO7yfrCfDTYrcTDelh00EEv1ZCdfnpEAR2BxwxxMk75ousJa5BGL25iiAAP7Z46D/j8fcV6u3zCtDg1DAW4L2Nb36z+Km6YH/T74RxFaLrg6j1mgnrtdXd/jOsV2Iq1BkN7/fk=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=Dua8kACm; arc=none smtp.client-ip=209.85.216.52
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="j2eCXAQJ"
-Received: by mail-pj1-f51.google.com with SMTP id 98e67ed59e1d1-33badfbbc48so12641a91.2
-        for <ocfs2-devel@lists.linux.dev>; Wed, 29 Oct 2025 08:07:11 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="Dua8kACm"
+Received: by mail-pj1-f52.google.com with SMTP id 98e67ed59e1d1-34029cd0cbdso27006a91.3
+        for <ocfs2-devel@lists.linux.dev>; Wed, 29 Oct 2025 08:19:51 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1761750431; x=1762355231; darn=lists.linux.dev;
+        d=gmail.com; s=20230601; t=1761751191; x=1762355991; darn=lists.linux.dev;
         h=content-transfer-encoding:cc:to:subject:message-id:date:from
          :in-reply-to:references:mime-version:from:to:cc:subject:date
          :message-id:reply-to;
-        bh=+IfYIDKxJGGNldyfSmZN9xBlg4Ge86/H8w7OAL6l3zA=;
-        b=j2eCXAQJpsdBO9XjwJVrefRp687kHVKi52eFYsiIeRGkXzEDCWjIA2qG/iYf+r8pZ5
-         cZYe6rmg03T2262pOS1iwT9OuEAQ9tB2fhrQZUmWj+vS0BM2mN3pfFwSnDoAOy8ILv22
-         G2Lsq4SSm38xnGVYH4cncEV9/iYU/AfyGwqTfR6HkRIh2wo2b2MfFn6xNekVKV7jOAdS
-         yMeUZCixsIc8FkRKqtyJVeANu6vvzkdQrmc0gyqLuDX3UvEBPQqea/ISHR6EmL+x7uwi
-         wMhkqwf0Lp8biSiyautCUMRYj3q6BC9cKCrbFUspdI/8mQoXYA3R3xgYd6LQzho33K1q
-         REog==
+        bh=1CdmUiAXh1HKc3m/r9pA/phMrmd+nlM0IzGmsHncGb4=;
+        b=Dua8kACmLTTnnO9uWzJetZfau27i6TeLbQCN7akNiyhH30w4p+Dh3w2BNZ2nPAA1H0
+         NUz46JQb21EbLWo0Vs45smfc88emHqHM+mw28uS5Ts6Fj8JZ8Kg1oLyRLet1q0WSOATR
+         7RxaFKhxv/5lapgtNeyHEKGcHL1xV/D4C7TFE00LIlzrQhDh07/xjLSNopowwEYjzzfu
+         jN7Ph7yWx08vh6RfGOIeq7CZ3t359YGct1N2WwogNhGX20rPyvWnQ8aYV2ZZ5rqMDY3I
+         sG11nj5HY1oYiLj7QWJWRGgOdfy2epa/angaZ+RoDzT+3uwqiPGiKiNwaeDgrwHxcXtr
+         sI0A==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1761750431; x=1762355231;
+        d=1e100.net; s=20230601; t=1761751191; x=1762355991;
         h=content-transfer-encoding:cc:to:subject:message-id:date:from
          :in-reply-to:references:mime-version:x-gm-message-state:from:to:cc
          :subject:date:message-id:reply-to;
-        bh=+IfYIDKxJGGNldyfSmZN9xBlg4Ge86/H8w7OAL6l3zA=;
-        b=bIOb/8zaNJdOzcsvQ7jRettsne8xfRa/ci1Z5g4Isf+Cxci0ROFd55PGOZYlKnYick
-         l8VVs6h9Ssjhzbo9zLm7FS3t0VW3UYCKZn2LH3C1MSG8XtYJqRCInKgi2OAX51SEY0oU
-         iNbtjSzickV8HpTncc+PslMxYaBtLicaKHJ5vCIgGqJMxXEJNiONIUJHjCi8DOApJUv+
-         XOy0bbpboowmqS4L+zucDf4kwMIbn3eMEyGmIuOsC89B/uN2NCmg7Bftbe23cdagM1ZR
-         sfRn7Fls5jj3e/m8Z8mRD83+yxtuPvKNF0m+YgIzHFu92dq7HrW8SWRMYboBZiJOL/FW
-         aEkg==
-X-Forwarded-Encrypted: i=1; AJvYcCWif9ZzZcAL2Zfd6arRPAoiXuswdUn66CIZ63PyLoTVWs7yxyRBSs7Jj4dKJAMHjasH6zeHNVxRy9USnQ==@lists.linux.dev
-X-Gm-Message-State: AOJu0YwIMuB5ZqwmeFnRNW64yCbouOtM+QrcODCjKoRRv7XMYDwe+bLJ
-	FzGIhgC1ItRN7luFbKPugZt8LYevZx4oiR58Bybu2q2hD59VzRJ5xDO1tn1YNsVOdrcPcNMnO16
-	dT1w+47hBoA6dC+opTbItW9+2/CPAoPo=
-X-Gm-Gg: ASbGnct3D2sfxFfqoxG8eCwxY7pgjv9M2cEBcxIlO+GTZmJ69aeyL4CReIn68AVGbqd
-	i4Br2bTmme5PYBSL2Ilq76fM+91uMqHJ7yJWxEOplDr3kn29YtxNoL8dPHxH7Um2XDK3mvBO2+u
-	qJ2REIU9+rZdIOWhr4t5H38irR3YB3T8BYS2eDF5OEFxQBkg5OFSMkgl81cJ0r2TL3owLDeXrod
-	p1fYDFKicThgXue+upZQjKnxhgxibZZyyCzqYQEjKFocbhMKjUAcRQGN00GJai1+gRTktc=
-X-Google-Smtp-Source: AGHT+IFVqO8ewpIAf0wvRQFGIOOwuq6fD8Gg5dHkMSFcg7AR9XFXs/odOiaOENp+NesUqtIMC2BHNrgVUxHGzL0/CTY=
-X-Received: by 2002:a17:90b:134b:b0:32d:db5b:7636 with SMTP id
- 98e67ed59e1d1-3403a28efb0mr3676582a91.27.1761750430698; Wed, 29 Oct 2025
- 08:07:10 -0700 (PDT)
+        bh=1CdmUiAXh1HKc3m/r9pA/phMrmd+nlM0IzGmsHncGb4=;
+        b=vuB6t9UQUgvmLrFzY/a86fdbIJ3v7WtbKyNBG+oNQ5CQPMymUzg6Mfh2uvzRH1+l5m
+         e5jp9Dx6SnAMvarUTszeDUPXvc7jA+R56GAX+McL8DV7fbMWzyHT0ZWIQ8tdMHXsEyAu
+         T93/HC8shCzn57saWbGQLCn5tnRNXhmL6A2Sye3VywTV6QpYPWqlekislME5QQzFryn9
+         H0TOigOoTAC6tB1GYGnyShmMkgqckTA+bVzJPYa3FLX1oN9ktcR29xbF+8sSGg7ehaAk
+         NaKhf4Ta0CUhLQz0QHT1YbrKkyU6/QJoiyRNR93tLrXnmkfXG6WgsrnO6aYXpMPmep3T
+         krZg==
+X-Forwarded-Encrypted: i=1; AJvYcCXdUz6VzdCWHLG2OKp8M4ovYxON2Ue7a0FTxPqX+VBvD5nz9xtBVqbz6gcgUZ5H5d5gXQCOSGVQNbI1PA==@lists.linux.dev
+X-Gm-Message-State: AOJu0YxBNMvZjI8oY63JevyKlxsIs9XthtrMih2t15qyiUFE6INLrJXG
+	Yk+cL6XmaqCLxCyqPhHJi6iA1In7aIg2HO1wbF8KNPVYbV3ce0C4Qe+BVzrxBpWeq08LW/c4/cR
+	AdJn1oxzEe4CmvqZ00np314PHgDlV6j0=
+X-Gm-Gg: ASbGnctI10+bLrvSMtE829ej7PCFNTKNkvfabF1zfzdPu6Ch3k6vFTf2h3yg8/lg3S9
+	O0V5G9K3QXlbGj9JLCg9yc8nCI0z2LZogzZ6YOzaKEisZThWXFCdXqW+qbSnYfNBTG+Pve0NC4g
+	rKeFFzdz6aqhaCtlqPw0QgkKvgcjMm9pEIAoHPpHrimjRcQr95NauJXliABoU7nw1u1pZ2hss6B
+	1e5PwUWw5QOiec7GEGBk97GFb81IJYl87ASmCp/eLJ8631HLGvNceveBhUK6ith4+3EuXk=
+X-Google-Smtp-Source: AGHT+IFbcnsAk75YEZiUX3rsU0b/ZmVe83k3NaOxPSYI+q4vlPOeZ92ke++maKcHRCEWJ6+8d/ixoTttE36+ff9pbFg=
+X-Received: by 2002:a17:90b:1f8a:b0:33f:eca0:47c6 with SMTP id
+ 98e67ed59e1d1-3403a2f179cmr3475777a91.30.1761751190939; Wed, 29 Oct 2025
+ 08:19:50 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-References: <20251028004614.393374-1-viro@zeniv.linux.org.uk> <20251028004614.393374-36-viro@zeniv.linux.org.uk>
-In-Reply-To: <20251028004614.393374-36-viro@zeniv.linux.org.uk>
+References: <20251028004614.393374-1-viro@zeniv.linux.org.uk> <20251028004614.393374-34-viro@zeniv.linux.org.uk>
+In-Reply-To: <20251028004614.393374-34-viro@zeniv.linux.org.uk>
 From: Stephen Smalley <stephen.smalley.work@gmail.com>
-Date: Wed, 29 Oct 2025 11:06:58 -0400
-X-Gm-Features: AWmQ_blCWCRSlgnSUoNEZRYW0rUX4EVkF7hJCMWu9E3EunP63rWoSyVWbO7_enY
-Message-ID: <CAEjxPJ53wJEK4bzt0VMbY=G9gkzuZZA_XtrT+acwPys3p0byBA@mail.gmail.com>
-Subject: Re: [PATCH v2 35/50] convert selinuxfs
+Date: Wed, 29 Oct 2025 11:19:39 -0400
+X-Gm-Features: AWmQ_bk3QGrfeacG4nKn1A56jExYpoFICsJu3Aq8X6pMLjFJYWj1N_7Lqh37COA
+Message-ID: <CAEjxPJ60geP6mJsKW41Pj12tPCf-dGk=ys8vr5fEiO2tVj1Rdg@mail.gmail.com>
+Subject: Re: [PATCH v2 33/50] selinuxfs: don't stash the dentry of /policy_capabilities
 To: Al Viro <viro@zeniv.linux.org.uk>
 Cc: linux-fsdevel@vger.kernel.org, torvalds@linux-foundation.org, 
 	brauner@kernel.org, jack@suse.cz, raven@themaw.net, miklos@szeredi.hu, 
@@ -79,78 +79,103 @@ Cc: linux-fsdevel@vger.kernel.org, torvalds@linux-foundation.org,
 Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: quoted-printable
 
-On Tue, Oct 28, 2025 at 2:00=E2=80=AFPM Al Viro <viro@zeniv.linux.org.uk> w=
+On Mon, Oct 27, 2025 at 8:48=E2=80=AFPM Al Viro <viro@zeniv.linux.org.uk> w=
 rote:
 >
-> Tree has invariant part + two subtrees that get replaced upon each
-> policy load.  Invariant parts stay for the lifetime of filesystem,
-> these two subdirs - from policy load to policy load (serialized
-> on lock_rename(root, ...)).
+> Don't bother to store the dentry of /policy_capabilities - it belongs
+> to invariant part of tree and we only use it to populate that directory,
+> so there's no reason to keep it around afterwards.
 >
-> All object creations are via d_alloc_name()+d_add() inside selinuxfs,
-> all removals are via simple_recursive_removal().
->
-> Turn those d_add() into d_make_persistent()+dput() and that's mostly it.
+> Same situation as with /avc, /ss, etc.  There are two directories that
+> get replaced on policy load - /class and /booleans.  These we need to
+> stash (and update the pointers on policy reload); /policy_capabilities
+> is not in the same boat.
 >
 > Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
-
-I took this series for a spin and didn't see any problems with the
-selinux-testsuite.
-Also re-based my WIP selinux namespaces patch series [1] on top, which
-introduces multiple selinuxfs instances (one per selinux namespace),
-and didn't see any problems.
 
 Reviewed-by: Stephen Smalley <stephen.smalley.work@gmail.com>
 Tested-by: Stephen Smalley <stephen.smalley.work@gmail.com>
 
-[1] https://lore.kernel.org/selinux/20250814132637.1659-1-stephen.smalley.w=
-ork@gmail.com/
-
 > ---
->  security/selinux/selinuxfs.c | 10 ++++++----
->  1 file changed, 6 insertions(+), 4 deletions(-)
+>  security/selinux/selinuxfs.c | 21 +++++++++------------
+>  1 file changed, 9 insertions(+), 12 deletions(-)
 >
 > diff --git a/security/selinux/selinuxfs.c b/security/selinux/selinuxfs.c
-> index f088776dbbd3..eae565358db4 100644
+> index 232e087bce3e..b39e919c27b1 100644
 > --- a/security/selinux/selinuxfs.c
 > +++ b/security/selinux/selinuxfs.c
-> @@ -1205,7 +1205,8 @@ static struct dentry *sel_attach(struct dentry *par=
-ent, const char *name,
->                 iput(inode);
->                 return ERR_PTR(-ENOMEM);
->         }
-> -       d_add(dentry, inode);
-> +       d_make_persistent(dentry, inode);
-> +       dput(dentry);
->         return dentry;
+> @@ -75,7 +75,6 @@ struct selinux_fs_info {
+>         struct dentry *class_dir;
+>         unsigned long last_class_ino;
+>         bool policy_opened;
+> -       struct dentry *policycap_dir;
+>         unsigned long last_ino;
+>         struct super_block *sb;
+>  };
+> @@ -117,7 +116,6 @@ static void selinux_fs_info_free(struct super_block *=
+sb)
+>
+>  #define BOOL_DIR_NAME "booleans"
+>  #define CLASS_DIR_NAME "class"
+> -#define POLICYCAP_DIR_NAME "policy_capabilities"
+>
+>  #define TMPBUFLEN      12
+>  static ssize_t sel_read_enforce(struct file *filp, char __user *buf,
+> @@ -1871,23 +1869,24 @@ static int sel_make_classes(struct selinux_policy=
+ *newpolicy,
+>         return rc;
 >  }
 >
-> @@ -1934,10 +1935,11 @@ static struct dentry *sel_make_swapover_dir(struc=
-t super_block *sb,
->         /* directory inodes start off with i_nlink =3D=3D 2 (for "." entr=
-y) */
->         inc_nlink(inode);
->         inode_lock(sb->s_root->d_inode);
-> -       d_add(dentry, inode);
-> +       d_make_persistent(dentry, inode);
->         inc_nlink(sb->s_root->d_inode);
->         inode_unlock(sb->s_root->d_inode);
-> -       return dentry;
-> +       dput(dentry);
-> +       return dentry;  // borrowed
->  }
->
->  #define NULL_FILE_NAME "null"
-> @@ -2080,7 +2082,7 @@ static int sel_init_fs_context(struct fs_context *f=
-c)
->  static void sel_kill_sb(struct super_block *sb)
+> -static int sel_make_policycap(struct selinux_fs_info *fsi)
+> +static int sel_make_policycap(struct dentry *dir)
 >  {
->         selinux_fs_info_free(sb);
-> -       kill_litter_super(sb);
-> +       kill_anon_super(sb);
->  }
+> +       struct super_block *sb =3D dir->d_sb;
+>         unsigned int iter;
+>         struct dentry *dentry =3D NULL;
+>         struct inode *inode =3D NULL;
 >
->  static struct file_system_type sel_fs_type =3D {
+>         for (iter =3D 0; iter <=3D POLICYDB_CAP_MAX; iter++) {
+>                 if (iter < ARRAY_SIZE(selinux_policycap_names))
+> -                       dentry =3D d_alloc_name(fsi->policycap_dir,
+> +                       dentry =3D d_alloc_name(dir,
+>                                               selinux_policycap_names[ite=
+r]);
+>                 else
+> -                       dentry =3D d_alloc_name(fsi->policycap_dir, "unkn=
+own");
+> +                       dentry =3D d_alloc_name(dir, "unknown");
+>
+>                 if (dentry =3D=3D NULL)
+>                         return -ENOMEM;
+>
+> -               inode =3D sel_make_inode(fsi->sb, S_IFREG | 0444);
+> +               inode =3D sel_make_inode(sb, S_IFREG | 0444);
+>                 if (inode =3D=3D NULL) {
+>                         dput(dentry);
+>                         return -ENOMEM;
+> @@ -2071,15 +2070,13 @@ static int sel_fill_super(struct super_block *sb,=
+ struct fs_context *fc)
+>                 goto err;
+>         }
+>
+> -       fsi->policycap_dir =3D sel_make_dir(sb->s_root, POLICYCAP_DIR_NAM=
+E,
+> -                                         &fsi->last_ino);
+> -       if (IS_ERR(fsi->policycap_dir)) {
+> -               ret =3D PTR_ERR(fsi->policycap_dir);
+> -               fsi->policycap_dir =3D NULL;
+> +       dentry =3D sel_make_dir(sb->s_root, "policy_capabilities", &fsi->=
+last_ino);
+> +       if (IS_ERR(dentry)) {
+> +               ret =3D PTR_ERR(dentry);
+>                 goto err;
+>         }
+>
+> -       ret =3D sel_make_policycap(fsi);
+> +       ret =3D sel_make_policycap(dentry);
+>         if (ret) {
+>                 pr_err("SELinux: failed to load policy capabilities\n");
+>                 goto err;
 > --
 > 2.47.3
 >
