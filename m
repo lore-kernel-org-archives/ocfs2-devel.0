@@ -1,155 +1,141 @@
-Received: from mail-wr1-f44.google.com (mail-wr1-f44.google.com [209.85.221.44])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from forward500d.mail.yandex.net (forward500d.mail.yandex.net [178.154.239.208])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1DB0A337B90
-	for <ocfs2-devel@lists.linux.dev>; Thu, 30 Oct 2025 07:59:19 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.221.44
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8E7113385A3
+	for <ocfs2-devel@lists.linux.dev>; Thu, 30 Oct 2025 08:12:08 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=178.154.239.208
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1761811162; cv=none; b=lTL2TBiI8rhx77p3qY7cnRf+KcBO05qvil5c5LIuKLSRVY6MW4NyATM9W/ifoHK+cqAAbEtfE9XNNAOtUsJv9jnVm0v+kXH4SUAM77UUSwGNw31zfYcq1vZ+6CGxmKErrSAbhIhMfiPyunyat9GywuuedXK40zntnvWS3vT93NI=
+	t=1761811933; cv=none; b=MdZLYtz+danWMbHFUTmwMSzJYPeTNIvfzDqHsUgN6vET7u86J3djaz/tKewrxcX6BV/e3SNHOlBqHawXpkHVbmcyhQvK1uBbe40sWaYddC//beKrN7Od84sGgvast+uXhHoEIMq6VFAQg65RGVCfK1gFKbZY31CwwBLqIWCFjDQ=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1761811162; c=relaxed/simple;
-	bh=p9Kbtdf4LrBZJvlhGyrQ8xwNEm/z9oCOyc3wRrZl5os=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=DzqLK9mPgYWHelQptoRhACUVuOYZPpgkIZD2+ioU76/elkLOC2jJWcIaNSzwXI8YUhIF4TgszI7pFF/8z9DKMIhZ2EMCElBRBkFCtPOnHVmstB6MaXaK5sstqQ1nw672aHYya3g3QUw+Q891EeCZ+UWQkbWycFpLr6uaIIrEQcM=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=gch/rDTY; arc=none smtp.client-ip=209.85.221.44
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
+	s=arc-20240116; t=1761811933; c=relaxed/simple;
+	bh=8tcZvySeN/V2dt6sbobRc1JmD5E9TR9rrhkaCVMpA0U=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=R9KVoOomdSHtsg9HH3BL8GAwnRDwMQvw21ON7gbijJHWBKhuP4OOrZbhGViLzi6hTk/i4TIPfkQia+QxWNjixnd6ySLSpnsxtEfjrF4caqxnPwSV5sOWkw2KC7A0+s3/BNkBoUPRFRJHRrTC5NwX//SyZoHugo5YT6+3RMUcjuk=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru; spf=pass smtp.mailfrom=yandex.ru; dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b=FJkctWwl; arc=none smtp.client-ip=178.154.239.208
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=yandex.ru
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="gch/rDTY"
-Received: by mail-wr1-f44.google.com with SMTP id ffacd0b85a97d-429a8a27db6so116048f8f.1
-        for <ocfs2-devel@lists.linux.dev>; Thu, 30 Oct 2025 00:59:19 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=suse.com; s=google; t=1761811158; x=1762415958; darn=lists.linux.dev;
-        h=in-reply-to:content-disposition:mime-version:references:message-id
-         :subject:cc:to:from:date:from:to:cc:subject:date:message-id:reply-to;
-        bh=IIoxsoXYWqm4Xf1ajsdITMeQ3bdYTIRud5Xrl/r9fQ4=;
-        b=gch/rDTY3+oNeJE3js1j7HLqxOoII5aNg1KQqjP+R3wktQbXuU8giDdTEf6TW/fOAC
-         kEYfm9EqlvKZlHZ7Bpqg10+RjfJhac3Sm3UvK8QaGhYw0wvAATBNXh6XUQr/J3RbYXhO
-         qAIO1feNiM2MoUUHboixwAiwPtvyEimdTdI2+YQ0FGkdASRPGPGRP7a9YuBP7rb/kyGm
-         r9Jqm0QdbaUSSdRS6d67AMFTw4s+ly3KJGbPfFycaqr8VMOxmuSePmp7RqQQ3DmhdWOb
-         gsjvJssYSBu51mHAA/3N5QSLS7vn+IZbePhUXgJtJ77T5mabgSARvkk4egCecd4YYE++
-         gH0g==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1761811158; x=1762415958;
-        h=in-reply-to:content-disposition:mime-version:references:message-id
-         :subject:cc:to:from:date:x-gm-message-state:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=IIoxsoXYWqm4Xf1ajsdITMeQ3bdYTIRud5Xrl/r9fQ4=;
-        b=SASGVv9gtPKIkviwMBAZ3s4YY49AlTb2TP+BfTBock6tGtpiqPI8ibE0/XjAuwl0Gu
-         U0Xs3+SSAxN80M8axM0SRKQcbkm0kCOFw8nCCAsKLrS25tBOHLvAtB1Ty958XBWeHbQW
-         sGPUAIEvARrAq5utk0fgR2hRiRhyn+kDRBNKQGyzLSYhrEHvA4/WdteQoXgK0rXcfuON
-         MCjXR4zrTCVKLGK91LPndZ22EhRsNa+kFlrPXoFEk1Wy4DzR06TU7Ex+JnQGynxdf6Qd
-         KbyiH0My+G1ZYS8ljZFN2D68BmzuS2EsUXXSuwBZQgGUJGQOAgHHA8tvprsbTyqCUoBd
-         84Gw==
-X-Forwarded-Encrypted: i=1; AJvYcCW7mG/V4wjOtCGk4eMa6yU78qrz7y54GYEzmvTSaMJgts+VfjfnWoBTs+Ec7dsz8wWqVqjpaWDr5Oc1Sg==@lists.linux.dev
-X-Gm-Message-State: AOJu0YyKfW2TBQSBiZd4TUQh2/UmYkarTe4st1jmyf1LnZmOS21OgUG1
-	9ldrFPW6edzZTuwQRcYXCQ0EQLqPQx1yofPNSkdwItS/srq0CJ+xT5ce5XWHdx6rlQI=
-X-Gm-Gg: ASbGncu70UPzuthskj/eWFbJpuZYWJpwUmPZsdFSYaGjZ0qVPNK2siGpHn/qtNsbSgM
-	VnyedLMmeQm1l0FyeofSG1zuOsuiITf5QLXpufFj5+MKbMOeKwYeR5bT31mbf5PQLJg60jyzql9
-	Wd5/NgKCpRDBMsf46IpCiYAj7tEOT7FbBGg6YTEpwHOGozWB8urAmr2rWx8HtttNHsHa1xGXgWR
-	+TVFY0Jm71Zw99jDl1zJJ524Xq8ZDgZ9mL4TREELxXGTcHvKKjs1PtHe3EmI5uEKexMx+EPWmCl
-	A9/cAZP4DiULdAYLgO+bW63E1pD9cjsQidpdlQ+xdAnYfqxC2hAFAv24L2b5DE2txKMHVqMb+ay
-	4z2BtKA7kOBj7D9nXuxcCTO+D+or8Vgu0vKizRDbs/qV6huEi5o53EHc3pbL6EiDrAXJuy3sA+a
-	M=
-X-Google-Smtp-Source: AGHT+IG7qoNWxeH56TLe6+Z4Mf4ydyY551FTBsYsB9Zop338tCPTa37NEB0x1rOcV0kV8iiRB6Eptw==
-X-Received: by 2002:a05:6000:26cf:b0:426:ff0e:b563 with SMTP id ffacd0b85a97d-429aef845a1mr2544640f8f.3.1761811158290;
-        Thu, 30 Oct 2025 00:59:18 -0700 (PDT)
-Received: from localhost ([202.127.77.110])
-        by smtp.gmail.com with ESMTPSA id 98e67ed59e1d1-340509894c9sm1616343a91.7.2025.10.30.00.59.17
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Thu, 30 Oct 2025 00:59:17 -0700 (PDT)
-Date: Thu, 30 Oct 2025 15:59:15 +0800
-From: Heming Zhao <heming.zhao@suse.com>
-To: Ahmet Eray Karadag <eraykrdg1@gmail.com>
-Cc: mark@fasheh.com, jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
-	ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org, david.hunter.linux@gmail.com, 
-	skhan@linuxfoundation.org, syzbot+b93b65ee321c97861072@syzkaller.appspotmail.com, 
-	Albin Babu Varghese <albinbabuvarghese20@gmail.com>
-Subject: Re: [RFC RFT PATCH] ocfs2: Mark inode bad upon validation failure
- during read
-Message-ID: <wzykonhpj76qowdn24inwtaji4zfclesmc3lqnnc7cn6jkyjl4@oauagnarupov>
-References: <20251029225748.11361-2-eraykrdg1@gmail.com>
+	dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b="FJkctWwl"
+Received: from mail-nwsmtp-smtp-production-main-84.iva.yp-c.yandex.net (mail-nwsmtp-smtp-production-main-84.iva.yp-c.yandex.net [IPv6:2a02:6b8:c0c:41d:0:640:f0c1:0])
+	by forward500d.mail.yandex.net (Yandex) with ESMTPS id 6A4008135F;
+	Thu, 30 Oct 2025 11:12:01 +0300 (MSK)
+Received: by mail-nwsmtp-smtp-production-main-84.iva.yp-c.yandex.net (smtp/Yandex) with ESMTPSA id xBatpF4M0Os0-kcxnXRYx;
+	Thu, 30 Oct 2025 11:12:00 +0300
+X-Yandex-Fwd: 1
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=yandex.ru; s=mail;
+	t=1761811920; bh=e6q27sdk07+eSwhn0qjSluT2Rw2Fu5NZwMC6rxZOdmI=;
+	h=In-Reply-To:To:From:Cc:Date:References:Subject:Message-ID;
+	b=FJkctWwlNKU+FG/VsrXzxz6yqkLufFTTGki938UFrWsNSvMY4A3PEpnc/Q0wLcsBb
+	 NyeXgytVpVOUYCYmyRjfQSLltwtw6tJBaqoSgty2Oq17Fh7x6csQZrImJBbNNxCiat
+	 1FYG57OWMhK1mHLtf90SPwehbM3bNqnt5bMSEZS8=
+Authentication-Results: mail-nwsmtp-smtp-production-main-84.iva.yp-c.yandex.net; dkim=pass header.i=@yandex.ru
+Message-ID: <f2323939-4939-439c-8fc3-773c60cc25e6@yandex.ru>
+Date: Thu, 30 Oct 2025 11:11:59 +0300
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20251029225748.11361-2-eraykrdg1@gmail.com>
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH 2/2] ocfs2: validate cl_bpc in allocator inodes to prevent
+ divide-by-zero
+Content-Language: en-MW
+To: Heming Zhao <heming.zhao@suse.com>,
+ Deepanshu Kartikey <kartikey406@gmail.com>
+Cc: Joseph Qi <joseph.qi@linux.alibaba.com>, akpm
+ <akpm@linux-foundation.org>, Mark Fasheh <mark@fasheh.com>,
+ Joel Becker <jlbec@evilplan.org>, ocfs2-devel@lists.linux.dev,
+ lvc-project@linuxtesting.org,
+ syzbot+fd8af97c7227fe605d95@syzkaller.appspotmail.com
+References: <20251029055338.1192000-2-dmantipov@yandex.ru>
+ <632f9f46-785d-4da9-a422-546fe3d91af3@linux.alibaba.com>
+ <523f1272-8bf8-41d4-afb1-36a7ceb11494@yandex.ru>
+ <ruygrlyh5vq5tbcsolpgyxgs6r36yiyph4rzgoti4txq5d6xky@k2q2smssjekq>
+ <CADhLXY6rVF8+gVCT3=SjRXB3EerBT3yC8qsk25VU+tjVRkWrcQ@mail.gmail.com>
+ <eeee7189-c9ed-4c80-8312-d4d15e0260e4@linux.alibaba.com>
+ <CADhLXY5TPHyVkgB3f9ZNzWUursXcOByEAEch7w4GpqP6CTzv6g@mail.gmail.com>
+ <CADhLXY5zFHjm81iU5Jkv2iVYuUNg_18rYqVUmZ+-V=v=P6KjFQ@mail.gmail.com>
+ <eba45ee8-1268-4c55-bfa1-c690b28c2e21@linux.alibaba.com>
+ <CADhLXY5QK3vDcXhuW-xq5Bd72uPCVA1MeTnxn_991irOmvhRCg@mail.gmail.com>
+ <x4g7symjachxmkyhjqx5x2dfdn4ybvfkbzjvqiso7qbtxdgov7@2xds57btyzt2>
+From: Dmitry Antipov <dmantipov@yandex.ru>
+Autocrypt: addr=dmantipov@yandex.ru; keydata=
+ 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
+ A/UwwXBRuvydGV0=
+In-Reply-To: <x4g7symjachxmkyhjqx5x2dfdn4ybvfkbzjvqiso7qbtxdgov7@2xds57btyzt2>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
 
-Hi,
+On 10/30/25 7:22 AM, Heming Zhao wrote:
 
-In my view, combining this patch and another patch [1] is a complete
-solution for this bug.
+> One way I considered uses the inode block number to bypass global_bitmap.
+> the code seems ugly (demo):
+> 
+> ```
+> osb = OCFS2_SB(sb);
+> inode = ocfs2_get_system_file_inode(osb, GLOBAL_BITMAP_SYSTEM_INODE, OCFS2_INVALID_SLOT)
+> 
+> if (OCFS2_I(inode)->ip_blkno != le64_to_cpu(fe->i_blkno))
+>    goto by_pass_the_check;
 
-According to the oops stack, the FS is already in read-only mode.
-We should forbid any write operations and then perform the inode
-sanity check.
+This is what happens in ocfs2_initialize_super(), and, IIUC, the global (cluster) bitmap
+is the only dinode which can have cl_bpc set to 1. So what about the following:
 
-And I think ocfs2_validate_inode_block is a good place for make_bad_inode().
+diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
+index 709afbfd1f9f..a8138c150d81 100644
+--- a/fs/ocfs2/inode.c
++++ b/fs/ocfs2/inode.c
+@@ -1520,7 +1520,18 @@ int ocfs2_validate_inode_block(struct super_block *sb,
+                                          le16_to_cpu(cl->cl_next_free_rec));
+                         goto bail;
+                 }
+-               if (le16_to_cpu(cl->cl_bpc) != bpc) {
++
++               if (OCFS2_SB(sb)->bitmap_blkno == 0 && le16_to_cpu(cl->cl_bpc) == 1)
++                       /* This dinode represents a cluster bitmap, and we're reading
++                        * it for the first time from ocfs2_initialize_super().
++                        */
++                       ;
++               else if (OCFS2_SB(sb)->bitmap_blkno == le64_to_cpu(di->i_blkno))
++                       /* This dinode represents a cluster bitmap, and we can
++                        * recognize it by using the known block number.
++                        */
++                       ;
++               else if (le16_to_cpu(cl->cl_bpc) != bpc) {
+                         rc = ocfs2_error(sb, "Invalid dinode %llu: bits per cluster %u\n",
+                                          (unsigned long long)bh->b_blocknr,
+                                          le16_to_cpu(cl->cl_bpc));
 
-[1]:
-https://syzkaller.appspot.com/text?tag=Patch&x=1287f614580000
-- by albinbabuvarghese20@gmail.com from:
-  https://syzkaller.appspot.com/bug?extid=b93b65ee321c97861072 
-
-Thanks,
-Heming
-
-On Thu, Oct 30, 2025 at 01:57:49AM +0300, Ahmet Eray Karadag wrote:
-> Potentially triggered by sequences like buffered writes followed by
-> open(O_DIRECT), can result in an invalid on-disk inode block 
-> (e.g., bad signature). OCFS2 detects this corruption when reading the
-> inode block via ocfs2_validate_inode_block(), logs "Invalid dinode",
-> and often switches the filesystem to read-only mode.
-> 
-> Currently, the function reading the inode block (ocfs2_read_inode_block_full())
-> fails to call make_bad_inode() upon detecting the validation error.
-> Because the in-memory inode is not marked bad, subsequent operations
-> (like ftruncate) proceed erroneously. They eventually reach code
-> (e.g., ocfs2_truncate_file()) that compares the inconsistent
-> in-memory size (38639) against the invalid/stale on-disk size (0), leading
-> to kernel crashes via BUG_ON.
-> 
-> Fix this by calling make_bad_inode(inode) within the error handling path of
-> ocfs2_read_inode_block_full() immediately after a block read or validation
-> error occurs. This ensures VFS is properly notified about the
-> corrupt inode at the point of detection. Marking the inode bad  allows VFS
-> to correctly fail subsequent operations targeting this inode early,
-> preventing kernel panics caused by operating on known inconsistent inode states.
-> 
-> [RFC]: While this patch prevents the kernel crash triggered by the reproducer,
-> feedback is requested on whether ocfs2_read_inode_block_full() is the most
-> appropriate layer to call make_bad_inode(). Should this check perhaps reside
-> within the caller or should the error propagation be handled differently?:
-> Input on the best practice for handling this specific VFS inconsistency
-> within OCFS2 would be appreciated.
-> 
-> Reported-by: syzbot+b93b65ee321c97861072@syzkaller.appspotmail.com
-> Link: https://syzkaller.appspot.com/bug?extid=b93b65ee321c97861072
-> Co-developed-by: Albin Babu Varghese <albinbabuvarghese20@gmail.com>
-> Signed-off-by: Albin Babu Varghese <albinbabuvarghese20@gmail.com>
-> Signed-off-by: Ahmet Eray Karadag <eraykrdg1@gmail.com>
-> ---
->  fs/ocfs2/inode.c | 2 ++
->  1 file changed, 2 insertions(+)
-> 
-> diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-> index fcc89856ab95..415ad29ec758 100644
-> --- a/fs/ocfs2/inode.c
-> +++ b/fs/ocfs2/inode.c
-> @@ -1690,6 +1690,8 @@ int ocfs2_read_inode_block_full(struct inode *inode, struct buffer_head **bh,
->  	rc = ocfs2_read_blocks(INODE_CACHE(inode), OCFS2_I(inode)->ip_blkno,
->  			       1, &tmp, flags, ocfs2_validate_inode_block);
->  
-> +	if (rc < 0)
-> +		make_bad_inode(inode);
->  	/* If ocfs2_read_blocks() got us a new bh, pass it up. */
->  	if (!rc && !*bh)
->  		*bh = tmp;
-> -- 
-> 2.43.0
-> 
-> 
+Dmitry
