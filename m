@@ -1,137 +1,143 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
+Received: from forward204d.mail.yandex.net (forward204d.mail.yandex.net [178.154.239.217])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 12951244660
-	for <ocfs2-devel@lists.linux.dev>; Thu, 30 Oct 2025 13:36:04 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0870F1E3DCD
+	for <ocfs2-devel@lists.linux.dev>; Thu, 30 Oct 2025 15:36:28 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=178.154.239.217
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1761831365; cv=none; b=e4hMNj4vw+0IuMJyNDLPNpv/AKMKndkhNZWFVrx3qU/vXSbYcA7QPBOX/HAHAGwSJjz3cyOWzt8ErDv+4IH/iKsY7d2W0CVHdCT6R/f5WH49w0sTjO5vEGsPBmj5nyMLmIrsxdyNkXH1TFQvJt3tYUlB9Ju9PvsxHyG4jeuLhk0=
+	t=1761838592; cv=none; b=Y3yCx7bsSZ4j14dlvPAFIszgcyPs9JuTawhe6yaBbp34kxfNRMKlwcqc9mXUA8YOegRuUNPO/0UCg+A9O2eSCIxmSvg1ir0HFTcjOudCnUFbBkk3p4xqUwHUljyxPxB3bNmZT4z/2gw8dgyGySxh81fOmRrecVYEhuPSw/cEb+Y=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1761831365; c=relaxed/simple;
-	bh=946tCSyfwkcJEZIYbJYPYmAWxgbWBFpGqs507Chemqs=;
-	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
-	 To:Cc:Content-Type; b=tTZvCTJ0A8/CP5KH5q5MZs3XO6dGIG2lAR/xxsyyILLPEDlsQ6Ux6undvBdDyHQbhARyzQ4P8OVvhaU/IID1RJwnhatLa6L6sRXb04P2yedtgvlI9xNWh4A57oVAEHq2Omv9up2W/whioEPdzMP14+hjo/N6+wO6ckWCSUbaBEk=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=Mo4w8M+z; arc=none smtp.client-ip=10.30.226.201
+	s=arc-20240116; t=1761838592; c=relaxed/simple;
+	bh=PWzTtyLiT1WeZ/k4qWzb+VhyDuGMz1rKw5WHvGEfYlQ=;
+	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
+	 MIME-Version; b=jNJLvGEphZA99l0YyQT9veRb9lxFOR4lGn9I/w4w/h4XzgLo/8Q0uurTH2SMXnCw4G3cYP9Gmx/OXaYr7cskuc/9NjnUfG264L7CJLXY+mr/zGj/TTiEhOY/3JOtX45sYI2HJMq0a2BxE/0mlwFTZqqaD6Y5zAJ6+PluTEQWbp4=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru; spf=pass smtp.mailfrom=yandex.ru; dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b=AHotqiKu; arc=none smtp.client-ip=178.154.239.217
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=yandex.ru
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="Mo4w8M+z"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 7DDDFC113D0
-	for <ocfs2-devel@lists.linux.dev>; Thu, 30 Oct 2025 13:36:04 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1761831364;
-	bh=946tCSyfwkcJEZIYbJYPYmAWxgbWBFpGqs507Chemqs=;
-	h=References:In-Reply-To:From:Date:Subject:To:Cc:From;
-	b=Mo4w8M+zoG7x4VSKBHFBlkcNbJr8yuOPcibcxBBGoKKL/xxYP6SoTzLLo4MNs3B3W
-	 LXBRGiqiBcuymn4pvOVdEzE+RhAUAEeSzEzaMVgkWQfQdcCqM8chFRdyPlB8uyQjhI
-	 Sy04DC7qmGww/ewmG6nPtqVrjY2mNjujRFnNwL7bqfm0FwXXsFy8N/4MjZzNCTEKM6
-	 AH9cxSZFPyaoQjhLwB8gKrOvY8VBqCrViJzhsfAiHRlbe8Pd48ohtXcde5WYc+J+Ks
-	 xtnvYufRNIqRkyzqUNQQ8FGGMaRxPzAYxs8fhTOpNjbPwsbTzNyqAjyH/iSW6qfl8l
-	 9rr9LsibKVXjw==
-Received: by mail-lj1-f182.google.com with SMTP id 38308e7fff4ca-37a17d470dfso2742791fa.3
-        for <ocfs2-devel@lists.linux.dev>; Thu, 30 Oct 2025 06:36:04 -0700 (PDT)
-X-Forwarded-Encrypted: i=1; AJvYcCV1x2IEH9mODUpbH8OsysEaC/yuzvibbSJdigD6ZlEgtGE04gmFf/T4QOZ9X0kqO7u35SnLSDw09KC7rg==@lists.linux.dev
-X-Gm-Message-State: AOJu0Yy7HTIH1WNMwhjdzXOw4/MeFUb1Y/pLLWJPhJKCwM4kwlKI0OWJ
-	RLrKHesxldF5+IYBbrknVAdyRgyfM7Nq3hiRo/pGNYNETRL2eQKQkVYDGiVHksj4gjAAIJ2z8Yd
-	3C/ZLgp2pFsIWTAh3X7sFjiihV3gHvyY=
-X-Google-Smtp-Source: AGHT+IHPsQ63GACF+WTAXoqOco8sKMg1RRh6aHz0Br4Fnz15qbhOtOELzGrlJEWp65H1oXl/2WnpIpMcc/ndPgk67GM=
-X-Received: by 2002:a2e:9e56:0:b0:376:30c5:66ef with SMTP id
- 38308e7fff4ca-37a1094a526mr7884761fa.16.1761831362808; Thu, 30 Oct 2025
- 06:36:02 -0700 (PDT)
+	dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b="AHotqiKu"
+Received: from forward100d.mail.yandex.net (forward100d.mail.yandex.net [IPv6:2a02:6b8:c41:1300:1:45:d181:d100])
+	by forward204d.mail.yandex.net (Yandex) with ESMTPS id F399784A53
+	for <ocfs2-devel@lists.linux.dev>; Thu, 30 Oct 2025 18:30:54 +0300 (MSK)
+Received: from mail-nwsmtp-smtp-production-main-88.klg.yp-c.yandex.net (mail-nwsmtp-smtp-production-main-88.klg.yp-c.yandex.net [IPv6:2a02:6b8:c43:84a0:0:640:dfd2:0])
+	by forward100d.mail.yandex.net (Yandex) with ESMTPS id E29BBC0047;
+	Thu, 30 Oct 2025 18:30:46 +0300 (MSK)
+Received: by mail-nwsmtp-smtp-production-main-88.klg.yp-c.yandex.net (smtp/Yandex) with ESMTPSA id iUho7MELQiE0-IclWsrJU;
+	Thu, 30 Oct 2025 18:30:46 +0300
+X-Yandex-Fwd: 1
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=yandex.ru; s=mail;
+	t=1761838246; bh=zqSHQhC0EFLdIsETiGRtF3p92czmbnYIBkOk+oghQxE=;
+	h=Message-ID:Date:In-Reply-To:Cc:Subject:References:To:From;
+	b=AHotqiKuF0pUTHOcT3GWlX5H6yZAPHATyMPfQvguE8dCSNezjyedKrWTSdktA+ZRj
+	 P4va1NEfpHYH7hpkF9BT4fml+Y/Wm2fkl1S+Dyr6tv1PdTsGQyO48L1ioI8RKLrxlW
+	 D45OeVy09+QP3+lyAQ626hX2rvIPjQO59CikDP9A=
+Authentication-Results: mail-nwsmtp-smtp-production-main-88.klg.yp-c.yandex.net; dkim=pass header.i=@yandex.ru
+From: Dmitry Antipov <dmantipov@yandex.ru>
+To: Heming Zhao <heming.zhao@suse.com>,
+	Joseph Qi <joseph.qi@linux.alibaba.com>,
+	Deepanshu Kartikey <kartikey406@gmail.com>
+Cc: Mark Fasheh <mark@fasheh.com>,
+	Joel Becker <jlbec@evilplan.org>,
+	ocfs2-devel@lists.linux.dev,
+	lvc-project@linuxtesting.org,
+	syzbot+fd8af97c7227fe605d95@syzkaller.appspotmail.com,
+	Dmitry Antipov <dmantipov@yandex.ru>
+Subject: [PATCH v2 2/2] ocfs2: validate cl_bpc in allocator inodes to prevent divide-by-zero
+Date: Thu, 30 Oct 2025 18:30:03 +0300
+Message-ID: <20251030153003.1934585-2-dmantipov@yandex.ru>
+X-Mailer: git-send-email 2.51.0
+In-Reply-To: <20251030153003.1934585-1-dmantipov@yandex.ru>
+References: <20251030153003.1934585-1-dmantipov@yandex.ru>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-References: <20251028004614.393374-1-viro@zeniv.linux.org.uk>
- <20251028004614.393374-23-viro@zeniv.linux.org.uk> <66300d81c5e127e3bca8c6c4d997da386b142004.camel@HansenPartnership.com>
- <20251028174540.GN2441659@ZenIV> <20251028210805.GP2441659@ZenIV>
- <CAMj1kXF6tvg6+CL_1x7h0HK1PoSGtxDjc0LQ1abGQBd5qrbffg@mail.gmail.com>
- <9f079d0c8cffb150c0decb673a12bfe1b835efc9.camel@HansenPartnership.com> <20251029193755.GU2441659@ZenIV>
-In-Reply-To: <20251029193755.GU2441659@ZenIV>
-From: Ard Biesheuvel <ardb@kernel.org>
-Date: Thu, 30 Oct 2025 14:35:51 +0100
-X-Gmail-Original-Message-ID: <CAMj1kXHnEq97bzt-C=zKJdV3BK3EDJCPz3Pfyk52p2735-4wFA@mail.gmail.com>
-X-Gm-Features: AWmQ_bm2LrdVSSm_iuRDZ6ti_gfIvNqTw5CQZuyqzyGspRRRkaM_-X7LCT9AH9Q
-Message-ID: <CAMj1kXHnEq97bzt-C=zKJdV3BK3EDJCPz3Pfyk52p2735-4wFA@mail.gmail.com>
-Subject: Re: [PATCH v2 22/50] convert efivarfs
-To: Al Viro <viro@zeniv.linux.org.uk>, 
-	James Bottomley <james.bottomley@hansenpartnership.com>, brauner@kernel.org
-Cc: linux-fsdevel@vger.kernel.org, torvalds@linux-foundation.org, jack@suse.cz, 
-	raven@themaw.net, miklos@szeredi.hu, neil@brown.name, a.hindborg@kernel.org, 
-	linux-mm@kvack.org, linux-efi@vger.kernel.org, ocfs2-devel@lists.linux.dev, 
-	kees@kernel.org, rostedt@goodmis.org, gregkh@linuxfoundation.org, 
-	linux-usb@vger.kernel.org, paul@paul-moore.com, casey@schaufler-ca.com, 
-	linuxppc-dev@lists.ozlabs.org, john.johansen@canonical.com, 
-	selinux@vger.kernel.org, borntraeger@linux.ibm.com, bpf@vger.kernel.org
-Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
 
-On Wed, 29 Oct 2025 at 20:38, Al Viro <viro@zeniv.linux.org.uk> wrote:
->
-> On Wed, Oct 29, 2025 at 02:57:51PM -0400, James Bottomley wrote:
->
-> > I think this all looks OK.  The reason for the convolution is that
-> > simple_start/done_creating() didn't exist when I did the conversion ...
-> > although if they had, I'm not sure I'd have thought of reworking
-> > efivarfs_create_dentry to use them.  I tried to update some redundant
-> > bits, but it wasn't the focus of what I was trying to fix.
-> >
-> > So I think the cleanup works and looks nice.
-> >
-> > >
-> > > Relying on the -EEXIST return value to detect duplicates, and
-> > > combining the two callbacks seem like neat optimizations to me, so
-> > >
-> > > Acked-by: Ard Biesheuvel <ardb@kernel.org>
-> > >
-> > > but I have to confess I am slightly out of my depth when it comes to
-> > > VFS stuff.
-> >
-> > Yes, ack too.
->
->         Umm...  FWIW, I've got a few more followups on top of that (see
-> #untested.efivarfs, current head at 36051c773015).  Not sure what would
-> be the best way to deal with that stuff - I hope to get the main series
-> stabilized and merged in the coming window.  Right now I'm collecting
-> feedback (acked-by, etc.), and there's a couple of outright bugfixes
-> in front of the series, so I'd expect at least a rebase to -rc4...
->
+From: Deepanshu Kartikey <kartikey406@gmail.com>
 
-I pulled your code and tried to test it. It works fine for the
-ordinary case, but only now I realized that commit
+The chain allocator field cl_bpc (blocks per cluster) is read from disk
+and used in division operations without validation. A corrupted filesystem
+image with cl_bpc=0 causes a divide-by-zero crash in the kernel:
 
-commit 0e4f9483959b785f65a36120bb0e4cf1407e492c
-Author: Christian Brauner <brauner@kernel.org>
-Date:   Mon Mar 31 14:42:12 2025 +0200
+  divide error: 0000 [#1] PREEMPT SMP KASAN
+  RIP: 0010:ocfs2_bg_discontig_add_extent fs/ocfs2/suballoc.c:335 [inline]
+  RIP: 0010:ocfs2_block_group_fill+0x5bd/0xa70 fs/ocfs2/suballoc.c:386
+  Call Trace:
+   ocfs2_block_group_alloc+0x7e9/0x1330 fs/ocfs2/suballoc.c:703
+   ocfs2_reserve_suballoc_bits+0x20a6/0x4640 fs/ocfs2/suballoc.c:834
+   ocfs2_reserve_new_inode+0x4f4/0xcc0 fs/ocfs2/suballoc.c:1074
+   ocfs2_mknod+0x83c/0x2050 fs/ocfs2/namei.c:306
 
-    efivarfs: support freeze/thaw
+This patch adds validation in ocfs2_validate_inode_block() to ensure cl_bpc
+matches the expected value calculated from the superblock's cluster size
+and block size for chain allocator inodes (identified by OCFS2_CHAIN_FL).
 
-actually broke James's implementation of the post-resume sync with the
-underlying variable store.
+Moving the validation to inode validation time (rather than allocation time)
+has several benefits:
+- Validates once when the inode is read, rather than on every allocation
+- Protects all code paths that use cl_bpc (allocation, resize, etc.)
+- Follows the existing pattern of inode validation in OCFS2
+- Centralizes validation logic
 
-So I wonder what the point is of all this complexity if it does not
-work for the use case where it is the most important, i.e., resume
-from hibernation, where the system goes through an ordinary cold boot
-and so the EFI variable store may have gotten out of sync with the
-hibernated kernel's view of it.
+The validation catches both:
+- Zero values that cause divide-by-zero crashes
+- Non-zero but incorrect values indicating filesystem corruption or
+  mismatched filesystem geometry
 
-If no freeze/thaw support in the suspend/resume path is forthcoming,
-would it be better to just revert that change? That would badly
-conflict with your changes, though, so I'd like to resolve this before
-going further down this path.
+With this fix, mounting a corrupted filesystem produces:
 
+  OCFS2: ERROR (device loop0): ocfs2_validate_inode_block: Inode 74
+         has corrupted cl_bpc: ondisk=0 expected=16
 
-I did need to apply a fixup to get the revert to compile:
+instead of a kernel crash.
 
---- a/fs/efivarfs/super.c
-+++ b/fs/efivarfs/super.c
-@@ -412,8 +412,7 @@
- {
-        unsigned long size;
-        struct efivarfs_ctx *ectx = container_of(ctx, struct efivarfs_ctx, ctx);
--       struct qstr qstr = { .name = name, .len = len };
--       struct dentry *dentry = d_hash_and_lookup(ectx->sb->s_root, &qstr);
-+       struct dentry *dentry = try_lookup_noperm(&QSTR_LEN(name,
-len), ectx->sb->s_root);
-        struct inode *inode;
-        struct efivar_entry *entry;
-        int err;
+Link: https://lore.kernel.org/ocfs2-devel/20251026132625.12348-1-kartikey406@gmail.com/T/#u [v1]
+Link: https://lore.kernel.org/all/20251027124131.10002-1-kartikey406@gmail.com/T/ [v2]
+Reported-by: syzbot+fd8af97c7227fe605d95@syzkaller.appspotmail.com
+Closes: https://syzkaller.appspot.com/bug?extid=fd8af97c7227fe605d95
+Tested-by: syzbot+fd8af97c7227fe605d95@syzkaller.appspotmail.com
+Suggested-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+Signed-off-by: Deepanshu Kartikey <kartikey406@gmail.com>
+[dmantipov: combine into the series and tweak
+ the message to fit the commonly used style]
+Signed-off-by: Dmitry Antipov <dmantipov@yandex.ru>
+---
+v2: add extra check to bypass global bitmap dinode (Joseph Qi)
+---
+ fs/ocfs2/inode.c | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+
+diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
+index 1b6bdd9d7755..08e18be4f1b9 100644
+--- a/fs/ocfs2/inode.c
++++ b/fs/ocfs2/inode.c
+@@ -1505,6 +1505,8 @@ int ocfs2_validate_inode_block(struct super_block *sb,
+ 
+ 	if (le32_to_cpu(di->i_flags) & OCFS2_CHAIN_FL) {
+ 		struct ocfs2_chain_list *cl = &di->id2.i_chain;
++		u16 bpc = 1 << (OCFS2_SB(sb)->s_clustersize_bits -
++				sb->s_blocksize_bits);
+ 
+ 		if (le16_to_cpu(cl->cl_count) != ocfs2_chain_recs_per_inode(sb)) {
+ 			rc = ocfs2_error(sb, "Invalid dinode %llu: chain list count %u\n",
+@@ -1518,6 +1520,14 @@ int ocfs2_validate_inode_block(struct super_block *sb,
+ 					 le16_to_cpu(cl->cl_next_free_rec));
+ 			goto bail;
+ 		}
++		if (OCFS2_SB(sb)->bitmap_blkno &&
++		    OCFS2_SB(sb)->bitmap_blkno != le64_to_cpu(di->i_blkno) &&
++		    le16_to_cpu(cl->cl_bpc) != bpc) {
++			rc = ocfs2_error(sb, "Invalid dinode %llu: bits per cluster %u\n",
++					 (unsigned long long)bh->b_blocknr,
++					 le16_to_cpu(cl->cl_bpc));
++			goto bail;
++		}
+ 	}
+ 
+ 	rc = 0;
+-- 
+2.51.0
+
