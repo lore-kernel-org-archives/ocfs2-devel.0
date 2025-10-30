@@ -1,36 +1,31 @@
-Received: from forward501a.mail.yandex.net (forward501a.mail.yandex.net [178.154.239.81])
+Received: from out30-99.freemail.mail.aliyun.com (out30-99.freemail.mail.aliyun.com [115.124.30.99])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9FE29306B3D
-	for <ocfs2-devel@lists.linux.dev>; Thu, 30 Oct 2025 08:34:24 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=178.154.239.81
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 64428335BAF
+	for <ocfs2-devel@lists.linux.dev>; Thu, 30 Oct 2025 08:48:23 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.99
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1761813268; cv=none; b=l4gNDL/xwHLBva01TIhB6RWaUSC23GpZNnV62uOHYqvFg4M1lupav6f+AWq9L5e3VJMCcNQqmTdxHh/mFnFMAZ0/DnyAZZpfLcY+zQ/c+4vvpfU56wVmPEtjksvgOd8UwiV+jb8E4q4UXY8xjE3juMU9XT0u5dvcULQz7II2i2Y=
+	t=1761814107; cv=none; b=bZEm9kwHlQNHt/WgOgF+ERbbq1yQNWcVskh9OhfRBuiS6Sh0LJKG7XFrLKJlys8b5CU3OQeLafmD5vyw8xGF4EciAMMu2/u3RUBG6pa9S3LyKdHU5z6k4MgJL7TPqb5ab7vrG4r4H1W6Ic4OxCrc6BFP2tnq348mUYJeF8DBpfI=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1761813268; c=relaxed/simple;
-	bh=mLHd2nMXeVxUvGcMBq8irkGwDbRMTqCjcSr2IAtXiuo=;
-	h=Message-ID:Date:MIME-Version:Subject:From:To:Cc:References:
-	 In-Reply-To:Content-Type; b=VhJRFGB881Q8qNmNp6N9TBFc1yw5jJ7lHDmSvkhs4lW/ogfx0YHskTq27yYDiqETTY1gIMLGVYjAUHzOzfCDJLMSr7qxTkas3i9+Ys29QvF0G8vluLeYEa/F89CvLnpcXJmPoKwkelbjUl3ZgF7v/g6IWeEcUn5HDw4gLTWaoys=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru; spf=pass smtp.mailfrom=yandex.ru; dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b=N+/kTFFR; arc=none smtp.client-ip=178.154.239.81
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=yandex.ru
+	s=arc-20240116; t=1761814107; c=relaxed/simple;
+	bh=J+EYqLb1D1xcN8w56Y92H/fISYVgTSEemisBFJGOQvw=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=Itmt9ubXTSf4t+mUaubOHLn2BbjMYYVBa6J/jQ78gY2xJruCqptRKBQi30t93ISolxVOFv79GiylsyONJrvvuFLDxKRGA3sahulzYlgSlMxSBzuZEhbwNcASAh2p4nU5+n4XImskENxX5r+kvJonpW7eO+xZamHCMb4vYeGwijw=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=ougi8TVY; arc=none smtp.client-ip=115.124.30.99
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b="N+/kTFFR"
-Received: from mail-nwsmtp-smtp-production-main-74.vla.yp-c.yandex.net (mail-nwsmtp-smtp-production-main-74.vla.yp-c.yandex.net [IPv6:2a02:6b8:c1f:5d94:0:640:92d3:0])
-	by forward501a.mail.yandex.net (Yandex) with ESMTPS id 52EA180B93;
-	Thu, 30 Oct 2025 11:34:15 +0300 (MSK)
-Received: by mail-nwsmtp-smtp-production-main-74.vla.yp-c.yandex.net (smtp/Yandex) with ESMTPSA id DYapdiBMrGk0-SidfcuwX;
-	Thu, 30 Oct 2025 11:34:14 +0300
-X-Yandex-Fwd: 1
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=yandex.ru; s=mail;
-	t=1761813254; bh=mLHd2nMXeVxUvGcMBq8irkGwDbRMTqCjcSr2IAtXiuo=;
-	h=In-Reply-To:Cc:Date:References:To:From:Subject:Message-ID;
-	b=N+/kTFFRRW/v0LANo1ezGRM7oDuyFSYdMmzcW43Md1+mUf3pF4lnjpXsP1u2huDI3
-	 /rXAqjTzflivNlXGdtUnRMHxcVz++r9tf5Pv0Xbi4sQdu2dgoTXuJ6Ffo6JVCByreC
-	 uSAum+OZRpN3OI0Or9s63W/kyj0grjvjdKrCAZ1g=
-Authentication-Results: mail-nwsmtp-smtp-production-main-74.vla.yp-c.yandex.net; dkim=pass header.i=@yandex.ru
-Message-ID: <066fd295-a899-4ed0-a8eb-220557c45913@yandex.ru>
-Date: Thu, 30 Oct 2025 11:34:13 +0300
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="ougi8TVY"
+DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=linux.alibaba.com; s=default;
+	t=1761814101; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=hZtC9qWNK5upRr4D6x7wBqeIPV4d3KE5tOWkjCqAyZc=;
+	b=ougi8TVYSgLxAGG8KBq82G7mAUFn7vpVqw/2+s0UmLJ39IhtLkqwyKTDXxsyQZODbEHZB6v+tnOhMeY4PFYLxMkKcnq1uR8xK0CqKlRysLAESOpQScCQfKHDIOQy1fjwQ/SNmBhTi7XJp/mydrYF9+bzzfWKmx85v3OxtOmSTC0=
+Received: from 30.221.128.133(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0WrJaDC8_1761814100 cluster:ay36)
+          by smtp.aliyun-inc.com;
+          Thu, 30 Oct 2025 16:48:20 +0800
+Message-ID: <a5f617da-ab4a-414b-ba2b-a6f126708620@linux.alibaba.com>
+Date: Thu, 30 Oct 2025 16:48:20 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -40,12 +35,9 @@ MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
 Subject: Re: [PATCH 2/2] ocfs2: validate cl_bpc in allocator inodes to prevent
  divide-by-zero
-Content-Language: en-MW
-From: Dmitry Antipov <dmantipov@yandex.ru>
-To: Heming Zhao <heming.zhao@suse.com>,
+To: Dmitry Antipov <dmantipov@yandex.ru>, Heming Zhao <heming.zhao@suse.com>,
  Deepanshu Kartikey <kartikey406@gmail.com>
-Cc: Joseph Qi <joseph.qi@linux.alibaba.com>, akpm
- <akpm@linux-foundation.org>, Mark Fasheh <mark@fasheh.com>,
+Cc: akpm <akpm@linux-foundation.org>, Mark Fasheh <mark@fasheh.com>,
  Joel Becker <jlbec@evilplan.org>, ocfs2-devel@lists.linux.dev,
  lvc-project@linuxtesting.org,
  syzbot+fd8af97c7227fe605d95@syzkaller.appspotmail.com
@@ -61,97 +53,78 @@ References: <20251029055338.1192000-2-dmantipov@yandex.ru>
  <CADhLXY5QK3vDcXhuW-xq5Bd72uPCVA1MeTnxn_991irOmvhRCg@mail.gmail.com>
  <x4g7symjachxmkyhjqx5x2dfdn4ybvfkbzjvqiso7qbtxdgov7@2xds57btyzt2>
  <f2323939-4939-439c-8fc3-773c60cc25e6@yandex.ru>
-Autocrypt: addr=dmantipov@yandex.ru; keydata=
- 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
- A/UwwXBRuvydGV0=
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
 In-Reply-To: <f2323939-4939-439c-8fc3-773c60cc25e6@yandex.ru>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: base64
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 
-T24gMTAvMzAvMjUgMTE6MTEgQU0sIERtaXRyeSBBbnRpcG92IHdyb3RlOg0KDQo+IFRoaXMg
-aXMgd2hhdCBoYXBwZW5zIGluIG9jZnMyX2luaXRpYWxpemVfc3VwZXIoKSwgYW5kLCBJSVVD
-LCB0aGUgZ2xvYmFsIChjbHVzdGVyKSBiaXRtYXANCj4gaXMgdGhlIG9ubHkgZGlub2RlIHdo
-aWNoIGNhbiBoYXZlIGNsX2JwYyBzZXQgdG8gMS4gU28gd2hhdCBhYm91dCB0aGUgZm9sbG93
-aW5nOg0KPiANCj4gZGlmZiAtLWdpdCBhL2ZzL29jZnMyL2lub2RlLmMgYi9mcy9vY2ZzMi9p
-bm9kZS5jDQo+IGluZGV4IDcwOWFmYmZkMWY5Zi4uYTgxMzhjMTUwZDgxIDEwMDY0NA0KPiAt
-LS0gYS9mcy9vY2ZzMi9pbm9kZS5jDQo+ICsrKyBiL2ZzL29jZnMyL2lub2RlLmMNCj4gQEAg
-LTE1MjAsNyArMTUyMCwxOCBAQCBpbnQgb2NmczJfdmFsaWRhdGVfaW5vZGVfYmxvY2soc3Ry
-dWN0IHN1cGVyX2Jsb2NrICpzYiwNCj4gIMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDC
-oMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgIGxl
-MTZfdG9fY3B1KGNsLT5jbF9uZXh0X2ZyZWVfcmVjKSk7DQo+ICDCoMKgwqDCoMKgwqDCoMKg
-wqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgIGdvdG8gYmFpbDsNCj4gIMKgwqDCoMKg
-wqDCoMKgwqDCoMKgwqDCoMKgwqDCoCB9DQo+IC3CoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDC
-oMKgIGlmIChsZTE2X3RvX2NwdShjbC0+Y2xfYnBjKSAhPSBicGMpIHsNCj4gKw0KPiArwqDC
-oMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoCBpZiAoT0NGUzJfU0Ioc2IpLT5iaXRtYXBfYmxr
-bm8gPT0gMCAmJiBsZTE2X3RvX2NwdShjbC0+Y2xfYnBjKSA9PSAxKQ0KPiArwqDCoMKgwqDC
-oMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqAgLyogVGhpcyBkaW5vZGUgcmVw
-cmVzZW50cyBhIGNsdXN0ZXIgYml0bWFwLCBhbmQgd2UncmUgcmVhZGluZw0KPiArwqDCoMKg
-wqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoCAqIGl0IGZvciB0aGUg
-Zmlyc3QgdGltZSBmcm9tIG9jZnMyX2luaXRpYWxpemVfc3VwZXIoKS4NCj4gK8KgwqDCoMKg
-wqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqAgKi8NCj4gK8KgwqDCoMKg
-wqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgIDsNCj4gK8KgwqDCoMKgwqDC
-oMKgwqDCoMKgwqDCoMKgwqAgZWxzZSBpZiAoT0NGUzJfU0Ioc2IpLT5iaXRtYXBfYmxrbm8g
-PT0gbGU2NF90b19jcHUoZGktPmlfYmxrbm8pKQ0KPiArwqDCoMKgwqDCoMKgwqDCoMKgwqDC
-oMKgwqDCoMKgwqDCoMKgwqDCoMKgwqAgLyogVGhpcyBkaW5vZGUgcmVwcmVzZW50cyBhIGNs
-dXN0ZXIgYml0bWFwLCBhbmQgd2UgY2FuDQo+ICvCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDC
-oMKgwqDCoMKgwqDCoMKgwqDCoMKgICogcmVjb2duaXplIGl0IGJ5IHVzaW5nIHRoZSBrbm93
-biBibG9jayBudW1iZXIuDQo+ICvCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKg
-wqDCoMKgwqDCoMKgICovDQo+ICvCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKg
-wqDCoMKgwqDCoCA7DQo+ICvCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgIGVsc2UgaWYg
-KGxlMTZfdG9fY3B1KGNsLT5jbF9icGMpICE9IGJwYykgew0KPiAgwqDCoMKgwqDCoMKgwqDC
-oMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoCByYyA9IG9jZnMyX2Vycm9yKHNiLCAi
-SW52YWxpZCBkaW5vZGUgJWxsdTogYml0cyBwZXIgY2x1c3RlciAldVxuIiwNCj4gIMKgwqDC
-oMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDC
-oMKgwqDCoMKgwqDCoMKgwqDCoMKgICh1bnNpZ25lZCBsb25nIGxvbmcpYmgtPmJfYmxvY2tu
-ciwNCj4gIMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDC
-oMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgIGxlMTZfdG9fY3B1KGNsLT5jbF9i
-cGMpKTsNCg0KQmxhaC4gVGhpcyBvbmUgbG9va3MgbXVjaCBiZXR0ZXI6DQoNCmRpZmYgLS1n
-aXQgYS9mcy9vY2ZzMi9pbm9kZS5jIGIvZnMvb2NmczIvaW5vZGUuYw0KaW5kZXggNzA5YWZi
-ZmQxZjlmLi5hNmY0MTlmMGRkMzkgMTAwNjQ0DQotLS0gYS9mcy9vY2ZzMi9pbm9kZS5jDQor
-KysgYi9mcy9vY2ZzMi9pbm9kZS5jDQpAQCAtMTUyMCw3ICsxNTIwLDExIEBAIGludCBvY2Zz
-Ml92YWxpZGF0ZV9pbm9kZV9ibG9jayhzdHJ1Y3Qgc3VwZXJfYmxvY2sgKnNiLA0KICAgICAg
-ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgbGUxNl90b19jcHUoY2wtPmNs
-X25leHRfZnJlZV9yZWMpKTsNCiAgICAgICAgICAgICAgICAgICAgICAgICBnb3RvIGJhaWw7
-DQogICAgICAgICAgICAgICAgIH0NCi0gICAgICAgICAgICAgICBpZiAobGUxNl90b19jcHUo
-Y2wtPmNsX2JwYykgIT0gYnBjKSB7DQorICAgICAgICAgICAgICAgaWYgKChsZTE2X3RvX2Nw
-dShjbC0+Y2xfYnBjKSA9PSAxKSAmJg0KKyAgICAgICAgICAgICAgICAgICAobGUxNl90b19j
-cHUoY2wtPmNsX2NwZykgPT0gb2NmczJfZ3JvdXBfYml0bWFwX3NpemUoc2IsIDAsIDApICog
-OCkpDQorICAgICAgICAgICAgICAgICAgICAgICAvKiBUaGlzIGRpbm9kZSByZXByZXNlbnRz
-IHRoZSB2YWxpZCBjbHVzdGVyIGJpdG1hcC4gKi8NCisgICAgICAgICAgICAgICAgICAgICAg
-IDsNCisgICAgICAgICAgICAgICBlbHNlIGlmIChsZTE2X3RvX2NwdShjbC0+Y2xfYnBjKSAh
-PSBicGMpIHsNCiAgICAgICAgICAgICAgICAgICAgICAgICByYyA9IG9jZnMyX2Vycm9yKHNi
-LCAiSW52YWxpZCBkaW5vZGUgJWxsdTogYml0cyBwZXIgY2x1c3RlciAldVxuIiwNCiAgICAg
-ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICh1bnNpZ25lZCBsb25nIGxv
-bmcpYmgtPmJfYmxvY2tuciwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
-ICAgICAgIGxlMTZfdG9fY3B1KGNsLT5jbF9icGMpKTsNCg0KRG1pdHJ5DQoNCg==
+
+
+On 2025/10/30 16:11, Dmitry Antipov wrote:
+> On 10/30/25 7:22 AM, Heming Zhao wrote:
+> 
+>> One way I considered uses the inode block number to bypass global_bitmap.
+>> the code seems ugly (demo):
+>>
+>> ```
+>> osb = OCFS2_SB(sb);
+>> inode = ocfs2_get_system_file_inode(osb, GLOBAL_BITMAP_SYSTEM_INODE, OCFS2_INVALID_SLOT)
+>>
+>> if (OCFS2_I(inode)->ip_blkno != le64_to_cpu(fe->i_blkno))
+>>    goto by_pass_the_check;
+> 
+> This is what happens in ocfs2_initialize_super(), and, IIUC, the global (cluster) bitmap
+> is the only dinode which can have cl_bpc set to 1. So what about the following:
+> 
+> diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
+> index 709afbfd1f9f..a8138c150d81 100644
+> --- a/fs/ocfs2/inode.c
+> +++ b/fs/ocfs2/inode.c
+> @@ -1520,7 +1520,18 @@ int ocfs2_validate_inode_block(struct super_block *sb,
+>                                          le16_to_cpu(cl->cl_next_free_rec));
+>                         goto bail;
+>                 }
+> -               if (le16_to_cpu(cl->cl_bpc) != bpc) {
+> +
+> +               if (OCFS2_SB(sb)->bitmap_blkno == 0 && le16_to_cpu(cl->cl_bpc) == 1)
+> +                       /* This dinode represents a cluster bitmap, and we're reading
+> +                        * it for the first time from ocfs2_initialize_super().
+> +                        */
+> +                       ;
+> +               else if (OCFS2_SB(sb)->bitmap_blkno == le64_to_cpu(di->i_blkno))
+> +                       /* This dinode represents a cluster bitmap, and we can
+> +                        * recognize it by using the known block number.
+> +                        */
+> +                       ;
+> +               else if (le16_to_cpu(cl->cl_bpc) != bpc) {
+>                         rc = ocfs2_error(sb, "Invalid dinode %llu: bits per cluster %u\n",
+>                                          (unsigned long long)bh->b_blocknr,
+>                                          le16_to_cpu(cl->cl_bpc));
+> 
+We don't have a simple flag to identify the global bitmap.
+AFAIK, we may check it through:
+  1. i_clusters, global bitmap has the whole volume clusters set in this
+     field.
+  2. i_blkno, which is set during mkfs.
+
+But now we face the situation during the mount when initialize super,
+which means the corresponding fields in ocfs2_super is 0 as of now.
+
+And I've also found during runtime, we can validate through:
+
+static inline int ocfs2_is_cluster_bitmap(struct inode *inode)
+{
+	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+	return osb->bitmap_blkno == OCFS2_I(inode)->ip_blkno;
+}
+
+So here we may check it something like:
+
+if (OCFS2_SB(sb)->bitmap_blkno &&
+    (OCFS2_SB(sb)->bitmap_blkno != le64_to_cpu(di->i_blkno) &&
+    (le16_to_cpu(cl->cl_bpc) != bpc))
+
+Joseph
+
+
+
