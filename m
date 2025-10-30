@@ -1,105 +1,153 @@
-Received: from forward204d.mail.yandex.net (forward204d.mail.yandex.net [178.154.239.217])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from smtp-out1.suse.de (smtp-out1.suse.de [195.135.223.130])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 086A7157480
-	for <ocfs2-devel@lists.linux.dev>; Thu, 30 Oct 2025 15:36:28 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=178.154.239.217
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E092E36CA9E
+	for <ocfs2-devel@lists.linux.dev>; Thu, 30 Oct 2025 18:21:07 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=195.135.223.130
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1761838592; cv=none; b=QILmnotO8Iqul/ydU6WtvIeuO2fIYo/cKQCQrLV2goLLRLcXSbwIoTiE71imvVo6QsV8tGLP5fP5oJ/d6+a7/3uCEP6YS7sd7nzfnfeSlZ+WE1VwKPCEchaZZw09qXutym7DPqB1fBGW90Bn+IsrXGSIGPkrqcPIGam6MSxlC4Y=
+	t=1761848469; cv=none; b=d+PUutHxObnzGQXLCCjRLDJXriPLi8YVC3lePgNpby3xdPuEGkUUkitRUwovbDYhMLTRzTYrZz5m/yFpBUGe8cZNqUP/XwkibP/sHB1qa4hb4vZT/v4ial4d+XVzPWPSWsq8xyFpHGwx/8/xpE0ZObi2vn77GSE5Uzchr0bhWOg=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1761838592; c=relaxed/simple;
-	bh=RVkZm31EWmzHCAyHMhuD92HDfDMmpla4ZzR/+CqkdTs=;
-	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=i/nTZ/qM11RexDif0leWvE1QWc0K/pBVvNXKBQcL0E0ndggaocdyXoZc1LPbqsc1IqwMHxpurMVgMbW4HCkNoEo4GgfKlFmFEPRnxK+PczlswNjTXQepTn+kjetS6BtU+DnwR6sohl/pHO5udSXZHJfVhdYxf4p4fUs8cBWz33I=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru; spf=pass smtp.mailfrom=yandex.ru; dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b=ZtNG4ExN; arc=none smtp.client-ip=178.154.239.217
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=yandex.ru
+	s=arc-20240116; t=1761848469; c=relaxed/simple;
+	bh=MHjPd3cIr9Ro8JvYM4wscOP1KLV2+IEH+OrZHKIv/+Y=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=JujNFabsJSPjegcpG52iWKiTnNQsY5rJ9pZUIGFeSUZjo99iGO/RkAo6i0vEBiKdaECzRpQs4Qpt41/9b1Kri+A/lQtUH9W71ljxIOUzzjuhxHkB/4QakKtgj6M4WW6ytzxDwZQRcM/Tgeyb/CBFX1WY/W9HbPn5H6hKljjnsSo=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=suse.cz; spf=pass smtp.mailfrom=suse.cz; dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b=j/xDpomi; dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b=BgUnj8Qj; dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b=cCgp4+xR; dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b=Y02q4QQG; arc=none smtp.client-ip=195.135.223.130
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=suse.cz
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.cz
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b="ZtNG4ExN"
-Received: from forward100d.mail.yandex.net (forward100d.mail.yandex.net [IPv6:2a02:6b8:c41:1300:1:45:d181:d100])
-	by forward204d.mail.yandex.net (Yandex) with ESMTPS id 2BFDF84A21
-	for <ocfs2-devel@lists.linux.dev>; Thu, 30 Oct 2025 18:30:54 +0300 (MSK)
-Received: from mail-nwsmtp-smtp-production-main-88.klg.yp-c.yandex.net (mail-nwsmtp-smtp-production-main-88.klg.yp-c.yandex.net [IPv6:2a02:6b8:c43:84a0:0:640:dfd2:0])
-	by forward100d.mail.yandex.net (Yandex) with ESMTPS id 2163DC0081;
-	Thu, 30 Oct 2025 18:30:46 +0300 (MSK)
-Received: by mail-nwsmtp-smtp-production-main-88.klg.yp-c.yandex.net (smtp/Yandex) with ESMTPSA id iUho7MELQiE0-uC3fdxiU;
-	Thu, 30 Oct 2025 18:30:45 +0300
-X-Yandex-Fwd: 1
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=yandex.ru; s=mail;
-	t=1761838245; bh=k2vGnw35aAr+Y3o6tKRDBjOFK4MGtg06zJNFxYGwwww=;
-	h=Message-ID:Date:Cc:Subject:To:From;
-	b=ZtNG4ExNG9m0B29FogAsRQPtbE4BiF7jYTaIZRz7A7lQFUdrRtnvhvQhAbFjOoo1O
-	 euCDmqch3Hbjm9n0I1/e5cLX+ZiYzj5w9X7RvSKsmAS6DEo+d4vH5vY3AR7oltgJ1Q
-	 I2d4ziT3yXx7yk2plJwc5x4OYMajN07Ait87jbjo=
-Authentication-Results: mail-nwsmtp-smtp-production-main-88.klg.yp-c.yandex.net; dkim=pass header.i=@yandex.ru
-From: Dmitry Antipov <dmantipov@yandex.ru>
-To: Heming Zhao <heming.zhao@suse.com>,
+	dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b="j/xDpomi";
+	dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b="BgUnj8Qj";
+	dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b="cCgp4+xR";
+	dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b="Y02q4QQG"
+Received: from imap1.dmz-prg2.suse.org (imap1.dmz-prg2.suse.org [IPv6:2a07:de40:b281:104:10:150:64:97])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by smtp-out1.suse.de (Postfix) with ESMTPS id 0559D3377A;
+	Thu, 30 Oct 2025 18:21:05 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.cz; s=susede2_rsa;
+	t=1761848466;
+	h=from:from:reply-to:reply-to:date:date:message-id:message-id:to:to:
+	 cc:cc:mime-version:mime-version:content-type:content-type:
+	 in-reply-to:in-reply-to:references:references;
+	bh=35Rgq9aWXXCYtegCi5Nd8FkRSQcbW288tXIHMGLSzos=;
+	b=j/xDpomipRi27Xvy5GBORux7vuiP/KIQypNiMxJ8XY5CAbXUZwuZU26mxFjInTO+/6/9Az
+	yp4Zk/5YrAK9vfNS0FBWYcF1k/XIUs+WnhQtbidqXPDPPSHgwIfBn/uKBM9DiMXh76p25L
+	QfOM3INTM8rTbEHkNjI+ohNh/JXVzxw=
+DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.cz;
+	s=susede2_ed25519; t=1761848466;
+	h=from:from:reply-to:reply-to:date:date:message-id:message-id:to:to:
+	 cc:cc:mime-version:mime-version:content-type:content-type:
+	 in-reply-to:in-reply-to:references:references;
+	bh=35Rgq9aWXXCYtegCi5Nd8FkRSQcbW288tXIHMGLSzos=;
+	b=BgUnj8Qjc9JEkRhbNm9umHTuI9hdu2AQHZAeqr0cUg5Ti1fHlpDUPAO2VvjgWm+mkJeEB7
+	bh0sjWg6UEJwvqCA==
+Authentication-Results: smtp-out1.suse.de;
+	dkim=pass header.d=suse.cz header.s=susede2_rsa header.b=cCgp4+xR;
+	dkim=pass header.d=suse.cz header.s=susede2_ed25519 header.b=Y02q4QQG
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.cz; s=susede2_rsa;
+	t=1761848465;
+	h=from:from:reply-to:reply-to:date:date:message-id:message-id:to:to:
+	 cc:cc:mime-version:mime-version:content-type:content-type:
+	 in-reply-to:in-reply-to:references:references;
+	bh=35Rgq9aWXXCYtegCi5Nd8FkRSQcbW288tXIHMGLSzos=;
+	b=cCgp4+xRw5fM4joQmxNWc82CsEDmpI8WHpVjHkG7LIHe5MO5lOaHu6CJRJPph59idlGVSo
+	1GEifCUC/UXW3iHjs+dN0oy9hpXC3sev/rDh51NDLoFJZ4y22TYsuPgNZzxHlmVyOE3yMt
+	eR70wdyU9CS8HtyYY/REg7rgXoaEcgo=
+DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.cz;
+	s=susede2_ed25519; t=1761848465;
+	h=from:from:reply-to:reply-to:date:date:message-id:message-id:to:to:
+	 cc:cc:mime-version:mime-version:content-type:content-type:
+	 in-reply-to:in-reply-to:references:references;
+	bh=35Rgq9aWXXCYtegCi5Nd8FkRSQcbW288tXIHMGLSzos=;
+	b=Y02q4QQGUEocIdhPkNnWmwYmiyhHHVVYkXfo4ejKJow+PUEPO/8nr0WoTihHxbaNeNEJOT
+	4BEYFr6dQxGabwAw==
+Received: from imap1.dmz-prg2.suse.org (localhost [127.0.0.1])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by imap1.dmz-prg2.suse.org (Postfix) with ESMTPS id D15001396A;
+	Thu, 30 Oct 2025 18:21:04 +0000 (UTC)
+Received: from dovecot-director2.suse.de ([2a07:de40:b281:106:10:150:64:167])
+	by imap1.dmz-prg2.suse.org with ESMTPSA
+	id njTnMpCsA2lrBgAAD6G6ig
+	(envelope-from <dsterba@suse.cz>); Thu, 30 Oct 2025 18:21:04 +0000
+Date: Thu, 30 Oct 2025 19:21:03 +0100
+From: David Sterba <dsterba@suse.cz>
+To: Christoph Hellwig <hch@lst.de>
+Cc: "Matthew Wilcox (Oracle)" <willy@infradead.org>,
+	Eric Van Hensbergen <ericvh@kernel.org>,
+	Latchesar Ionkov <lucho@ionkov.net>,
+	Dominique Martinet <asmadeus@codewreck.org>,
+	Christian Schoenebeck <linux_oss@crudebyte.com>,
+	Chris Mason <clm@fb.com>, David Sterba <dsterba@suse.com>,
+	Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
 	Joseph Qi <joseph.qi@linux.alibaba.com>,
-	Deepanshu Kartikey <kartikey406@gmail.com>
-Cc: Mark Fasheh <mark@fasheh.com>,
-	Joel Becker <jlbec@evilplan.org>,
-	ocfs2-devel@lists.linux.dev,
-	lvc-project@linuxtesting.org,
-	Dmitry Antipov <dmantipov@yandex.ru>,
-	syzbot+77026564530dbc29b854@syzkaller.appspotmail.com,
-	syzbot+5054473a31f78f735416@syzkaller.appspotmail.com
-Subject: [PATCH v2 1/2] ocfs2: add extra consistency checks for chain allocator dinodes
-Date: Thu, 30 Oct 2025 18:30:02 +0300
-Message-ID: <20251030153003.1934585-1-dmantipov@yandex.ru>
-X-Mailer: git-send-email 2.51.0
+	Alexander Viro <viro@zeniv.linux.org.uk>,
+	Christian Brauner <brauner@kernel.org>,
+	Josef Bacik <josef@toxicpanda.com>, Jan Kara <jack@suse.cz>,
+	linux-block@vger.kernel.org, v9fs@lists.linux.dev,
+	linux-btrfs@vger.kernel.org, linux-ext4@vger.kernel.org,
+	linux-fsdevel@vger.kernel.org, jfs-discussion@lists.sourceforge.net,
+	ocfs2-devel@lists.linux.dev, linux-xfs@vger.kernel.org,
+	linux-mm@kvack.org, Damien Le Moal <dlemoal@kernel.org>,
+	Johannes Thumshirn <johannes.thumshirn@wdc.com>
+Subject: Re: [PATCH 05/10] btrfs: push struct writeback_control into
+ start_delalloc_inodes
+Message-ID: <20251030182103.GC13846@twin.jikos.cz>
+Reply-To: dsterba@suse.cz
+References: <20251024080431.324236-1-hch@lst.de>
+ <20251024080431.324236-6-hch@lst.de>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20251024080431.324236-6-hch@lst.de>
+User-Agent: Mutt/1.5.23.1-rc1 (2014-03-12)
+X-Spam-Level: 
+X-Spam-Flag: NO
+X-Rspamd-Queue-Id: 0559D3377A
+X-Rspamd-Action: no action
+X-Rspamd-Server: rspamd1.dmz-prg2.suse.org
+X-Spamd-Result: default: False [-4.21 / 50.00];
+	BAYES_HAM(-3.00)[100.00%];
+	NEURAL_HAM_LONG(-1.00)[-1.000];
+	HAS_REPLYTO(0.30)[dsterba@suse.cz];
+	R_DKIM_ALLOW(-0.20)[suse.cz:s=susede2_rsa,suse.cz:s=susede2_ed25519];
+	NEURAL_HAM_SHORT(-0.20)[-1.000];
+	MIME_GOOD(-0.10)[text/plain];
+	MX_GOOD(-0.01)[];
+	RCVD_VIA_SMTP_AUTH(0.00)[];
+	ARC_NA(0.00)[];
+	RCPT_COUNT_TWELVE(0.00)[26];
+	MIME_TRACE(0.00)[0:+];
+	R_RATELIMIT(0.00)[to_ip_from(RL9qow8fch3pfgh43469ius4rs)];
+	TO_DN_SOME(0.00)[];
+	FUZZY_RATELIMITED(0.00)[rspamd.com];
+	REPLYTO_DOM_NEQ_TO_DOM(0.00)[];
+	DKIM_SIGNED(0.00)[suse.cz:s=susede2_rsa,suse.cz:s=susede2_ed25519];
+	FROM_EQ_ENVFROM(0.00)[];
+	FROM_HAS_DN(0.00)[];
+	RCVD_TLS_ALL(0.00)[];
+	REPLYTO_ADDR_EQ_FROM(0.00)[];
+	DBL_BLOCKED_OPENRESOLVER(0.00)[suse.com:email];
+	RCVD_COUNT_TWO(0.00)[2];
+	TO_MATCH_ENVRCPT_ALL(0.00)[];
+	DKIM_TRACE(0.00)[suse.cz:+]
+X-Spam-Score: -4.21
 
-When validating chain allocator dinode in 'ocfs2_validate_inode_block()',
-add an extra checks whether a) the maximum amount of chain records in
-'struct ocfs2_chain_list' matches the value calculated based on the
-filesystem block size, and b) the next free slot index is within the
-valid range.
+On Fri, Oct 24, 2025 at 10:04:16AM +0200, Christoph Hellwig wrote:
+> In preparation for changing the filemap_fdatawrite_wbc API to not expose
+> the writeback_control to the callers, push the wbc declaration next to
+> the filemap_fdatawrite_wbc call and just pass the nr_to_write value to
+> start_delalloc_inodes.
+> 
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
+> Reviewed-by: Damien Le Moal <dlemoal@kernel.org>
+> Reviewed-by: Johannes Thumshirn <johannes.thumshirn@wdc.com>
 
-Reported-by: syzbot+77026564530dbc29b854@syzkaller.appspotmail.com
-Closes: https://syzkaller.appspot.com/bug?extid=77026564530dbc29b854
-Reported-by: syzbot+5054473a31f78f735416@syzkaller.appspotmail.com
-Closes: https://syzkaller.appspot.com/bug?extid=5054473a31f78f735416
-Suggested-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-Signed-off-by: Dmitry Antipov <dmantipov@yandex.ru>
----
-v2: unchanged since v1
----
- fs/ocfs2/inode.c | 17 +++++++++++++++++
- 1 file changed, 17 insertions(+)
-
-diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-index fcc89856ab95..1b6bdd9d7755 100644
---- a/fs/ocfs2/inode.c
-+++ b/fs/ocfs2/inode.c
-@@ -1503,6 +1503,23 @@ int ocfs2_validate_inode_block(struct super_block *sb,
- 		goto bail;
- 	}
- 
-+	if (le32_to_cpu(di->i_flags) & OCFS2_CHAIN_FL) {
-+		struct ocfs2_chain_list *cl = &di->id2.i_chain;
-+
-+		if (le16_to_cpu(cl->cl_count) != ocfs2_chain_recs_per_inode(sb)) {
-+			rc = ocfs2_error(sb, "Invalid dinode %llu: chain list count %u\n",
-+					 (unsigned long long)bh->b_blocknr,
-+					 le16_to_cpu(cl->cl_count));
-+			goto bail;
-+		}
-+		if (le16_to_cpu(cl->cl_next_free_rec) > le16_to_cpu(cl->cl_count)) {
-+			rc = ocfs2_error(sb, "Invalid dinode %llu: chain list index %u\n",
-+					 (unsigned long long)bh->b_blocknr,
-+					 le16_to_cpu(cl->cl_next_free_rec));
-+			goto bail;
-+		}
-+	}
-+
- 	rc = 0;
- 
- bail:
--- 
-2.51.0
-
+Acked-by: David Sterba <dsterba@suse.com>
